@@ -33,9 +33,16 @@ used the SSH helper incorrectly and exited nonzero; the corrected stdin
 invocation verified identity. No radio/session retry. No live device process
 or physical handoff remains pending; GTK8 is consumed.
 
-Next: refresh core-initiated disconnect and key-disable ordering against the
-current driver and pinned mac80211 before persistent connected operation and
-a two-minute authenticated SSH stream. Do not extend the grant or finite join
+Next: [S1 host-only preparation](SESSION_0202_PLAN.md#s1-preparation--unchanged-gtk8-stream-and-core-initiated-disconnect)
+on the unchanged GTK8 image: a 20-second owned PTY SSH stream across release,
+the same five periodic pings and one guarded standard disconnect near PM +55 s.
+Current-source audit and local client/verdict/ownership/binding/source-routing
+fixtures pass; Linux PTY/host checks, deployment and a new physical selection
+remain pending. The kernel/client/firmware limits stay unchanged; the planned
+controlled stop is explicitly shorter than the kernel's 60-second cap and is
+not a full-duration pass. Remote stream quiescence is a mandatory seal/recovery
+gate. No S1 device run or new kernel build has occurred. Persistent operation
+and the two-minute authenticated stream still follow this core-transition test. Do not extend the grant or finite join
 constant to substitute for that lifecycle. Keep rekey, key/PID reuse and
 reconnect disabled, permanent fatal poison, exact per-frame checks, no -48
 adjustment and unchanged transaction bounds. Full ten-minute traffic and

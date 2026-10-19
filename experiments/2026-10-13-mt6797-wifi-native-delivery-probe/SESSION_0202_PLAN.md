@@ -1501,3 +1501,104 @@ short join-grant release, transaction/resource protections and strict per-frame
 crypto gates. Do not obtain two/ten-minute acceptance by requesting a longer
 grant or simply raising the finite join constant. Rekey, key/PID reuse and
 reconnect remain disabled until their ownership contracts are resolved.
+
+
+### S1 preparation — unchanged GTK8, stream and core-initiated disconnect
+
+GTK8 passed protected traffic beyond the reported join grant, but its SSH
+challenge closed before release and teardown began at the driver's budget
+stop. The next unique measurement is a maintained post-release authenticated
+stream and teardown initiated through the standard supplicant interface while
+data is active. Reuse the exact GTK8 image/package/config/DT/RAM and existing
+periodic leaf; no kernel build, new wire command, PN read, key/PID reuse, rekey
+or reconnect. S1 has fresh `gtk8-s1` capture/session/deployment namespaces;
+its runtime receipt is byte-identical to GTK8, not a new kernel artifact.
+
+The pinned mac80211 source is unchanged from the earlier lifecycle audit:
+`key.c` SHA-256 `d86ef8b871244dec3c489706fdd044a8befb4e85aa2dd0671ed6d9c35beb293d`,
+`sta_info.c` `c2584dc5cbfa858b8b603113d6cf6a4194626e5f37747b2f87a29b0281baa1b4`,
+`util.c` `232eb6328c7f3a7b40844fb188a6f681ef916e7691aba525de8322191bdd646e`,
+`mlme.c` `97b33dcf39dd45fa5f00db314be9b1ff2e6aeb00d007060b35e9a0d501befc57`.
+The associated `ieee80211_mgd_deauth` path enters `set_disassoc` under the wiphy
+lock, stops network polling/carrier, invokes management preparation, and
+removes the station. Station destruction descends AUTHORIZED, frees station
+keys and then reaches NOTEXIST. DISABLE_KEY is synchronous and its error cannot
+be used as evidence of firmware deletion. The current driver management
+preparation ends data on DEAUTH/DISASSOC; downward station callbacks withdraw
+borrowed RX/key pointers and synchronize handoff, and key disable waits for
+cleanup with the MAC mutex released. The worker's connection-loss report queues
+wiphy work rather than waiting for it. A missing `.flush` remains no firmware
+queue barrier. These source contracts support testing the transition; they do
+not replace its hardware result or authorize healthy re-arm.
+
+**S1 hypothesis:** the current path can carry an authenticated SSH stream
+across release and complete core-initiated cleanup before the existing budget.
+One fresh boot, capture, session and SSH attempt. Preserve the 60-second kernel
+wall, 9-second grant, periodic probes at PM +10/+20/+30/+40/+50 s, 25-second
+client acquisition, 10-second ConnectTimeout, 90-second helper poll, owned-group
+join/grace and every firmware/frame/command/resource bound. The fixed Wi-Fi
+command serves the existing boot/ready fields, then five timestamped chunks
+spanning 20 seconds. Both the client elapsed time and chunk span must cover the
+planned duration. Late authentication can exhaust the unchanged 25-second
+bound; retain partial output and classify its actual stage, never silently
+extend it. The standard permanent stdout/stderr/neighbor/route retention stays.
+
+The stream explicitly requests a PTY (`-T` becomes `-tt`); an owned stdin pipe
+is held open without sending data until the client exits, because stdin EOF
+closes this server's PTY. The child inherits the existing helper process group.
+Raw stdout is retained up to 64 KiB with actual/truncated byte counts explicit;
+authentication, host-key, route, agent and forwarding options remain frozen.
+The original verifier accepts the unchanged boot/ready fields in the raw PTY
+output; no bytes are rewritten. The existing RAM creates/mounts devpts and the
+kernel selects UNIX98 PTYs. From the verified public
+[Dropbear archive](https://matt.ucc.asn.au/dropbear/releases/dropbear-2026.94.tar.bz2)
+SHA-256 `e098034a843699200c8c977a991fff73159735bf795d5f72ef672c41a6b1ae81`,
+the PTY path creates a controlling terminal, and channel cleanup closes its
+master. The pinned kernel's PTY close/hangup path signals the foreground group.
+The non-PTY cleanup body does not itself establish command-child termination;
+that is why S1 does not use an unbounded non-PTY stream.
+
+Before a stream starts, require the expected boot, ACTIVE/no-fault window,
+PTY descriptors and PM offset at most five seconds. Before installing a signal
+handler, `/proc` must establish that the command PID, process group, session
+and foreground group are its own. The existing BusyBox timeout bounds execution
+at 22 seconds; HUP/TERM terminates only that verified own group. Failed ownership
+or late-start admission launches no sleep loop. A bounded read-only process
+observation after PM +6 s requires the boot-specific command tag absent before
+sealing/recovery: at most 512 processes, 4,096 command bytes each, scalar counts
+only, at most 20 seconds of successful-presence polling within the unchanged
+helper budget, each USB call at most 15 seconds. The query cannot match its own
+argv. Failed/unknown reads are not retried. The parent additionally refuses
+export, seal and recovery without remote-stream quiescence, independently of
+local process-group success. Raw observations remain private and sealed.
+
+After the stream/probes, the owned host helper schedules exactly one fresh
+boot/window/PM-clock/binary-digest guarded `/bin/wpa_cli -p /tmp/wpa -i wlan0
+disconnect` near PM +55 s. Use the existing BusyBox three-second timeout and one
+15-second USB call; no remote sleep, cache flush, packet capture or retry.
+Refuse outside PM +55 through +56 s or after an earlier data end/fault. A failed
+SSH stream does not suppress this independent transition measurement if its
+remote work is quiescent and the window is freshly live. Preserve request
+start/end timestamps, reply, client ticks, periodic results and all driver
+release/beacon/teardown clocks.
+
+**Predeclared outcomes:** owned PTY/start/stream refusal or timeout is a distinct
+host/SSH result; uncertain remote quiescence holds preservation/recovery;
+request not admitted because the window ended or timing was missed is NOT
+REACHED, with no late retry; accepted standard disconnect followed by a data
+end reason `disconnect` inside that request's timestamps and healthy stage 3
+establishes the core transition for this run; accepted request with a budget
+stop, fault, uncredited cleanup or unresolved debt is a separate first failure.
+SSH stream, post-release periodic traffic and cleanup are graded independently.
+The planned controlled stop is PM +55 s, not a full 60-second run. The new
+verdict must keep the inherited duration/60-second result false and report the
+actual data-phase duration. Ten-minute SSH traffic and same-boot reconnect
+remain incomplete. One scalars file/one table row only after an actual run.
+
+Local client/control cases, raw PTY identity parsing, generated-shell syntax
+and ShellCheck, strict controlled-stop verdict, fresh namespace/helper binding,
+unchanged installer/recovery source routing and completed no-scan host refusal
+fixtures pass. The seal-gate fixture rejects unconfirmed remote work. A Linux
+PTY hangup fixture remains pending along with clean pushed-input Linux host
+validation, reviewed checksum-skip installation/shutdown, host preparation and
+a fresh owner physical boot2 selection. S1 has not executed on the device.

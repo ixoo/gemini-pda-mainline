@@ -1,5 +1,35 @@
 # Reusable healthy lifetimes: current source audit and remaining gates
 
+## GTK8 refresh and core-initiated teardown test
+
+[GTK8](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#gtk8-consumed--protected-traffic-beyond-the-join-privilege)
+now demonstrates periodic protected traffic beyond a nine-second join grant
+within the unchanged 60-second window, and returns the host ledger whole.
+Deauthentication still completes late with status 5, unacknowledged. Borrowed
+key withdrawal, removal credits and stage 3 remain separate from a firmware
+queued-RX/key-incarnation barrier; rekey/reuse/reconnect stay disabled.
+
+The current core audit reverified the same key/station/util source identities
+below and `mlme.c` SHA-256
+`97b33dcf39dd45fa5f00db314be9b1ff2e6aeb00d007060b35e9a0d501befc57`.
+The associated deauth path invokes management preparation before station/key
+removal under the wiphy lock. Driver management preparation already ends an
+active data phase on a core DEAUTH/DISASSOC; station descent withdraws/synchronizes
+handoff, and DISABLE_KEY waits for cleanup with the MAC mutex released. The
+worker queues connection loss without waiting on wiphy work. A core flush with
+no driver callback is still not a firmware barrier. Current successful boots
+exercise driver-budget-initiated cleanup; [S1](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#s1-preparation--unchanged-gtk8-stream-and-core-initiated-disconnect)
+will measure the opposite ordering on the unchanged image, with an SSH stream
+held across release and a standard controlled disconnect before budget.
+
+For a future persistent phase, keep the pre-data join fence and per-operation
+bounds, and arm the existing teardown margin when any data-end path fires.
+Currently `join_deadline` is set at bounded data opening, and early data end
+does not shorten it; DISABLE_KEY uses that stored horizon. Removing the finite
+wall without replacing the teardown fence would not implement a bounded
+unwind. No persistent kernel change or re-arm is selected before the current
+core transition is classified. Stage 3 still does not permit key/PN reset.
+
 ## GTK7 refresh: resource cleanup is separate from connected ownership
 
 [GTK7](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#gtk7-consumed--whole-ledger-cleanup-with-late-deauthentication)
