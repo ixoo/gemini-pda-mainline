@@ -25,8 +25,10 @@ and unbuilt. Resolve bounded PID retirement/reuse and measurement accounting
 before the subsequent longer-window admission. Beacon-filter declaration and
 source-supported genuine-loss routing remain subsequent lifecycle work.
 I50 build/package/composition and local host fixtures now pass; [current build record](SESSION_0202_PLAN.md#i50-built-and-composed--host-validation-before-deployment).
-Linux host validation, guarded deployment/readback/shutdown and fresh host
-preparation remain before any physical handoff. No I50 device admission yet. Rekey/key reuse/reconnect remain
+All six clean Linux host fixture groups, guarded deployment/full readback,
+clean shutdown and fresh host preparation now pass. [I50 physical handoff](SESSION_0202_PLAN.md#i50-handoff-ready--physical-selection-pending)
+requires a new owner boot2 selection; no capture/session yet. The S1 reply is
+consumed. Verify a new boot and the I50 kernel notes before the single run. Rekey/key reuse/reconnect remain
 disabled; full scan/ten-minute/same-boot acceptance is incomplete. Preserve
 published measurements and keep private RE explanations/source identities private.
 

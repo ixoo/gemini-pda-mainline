@@ -1841,3 +1841,34 @@ flush, helper timing extension, monitor flag or device control API. Permanent
 client output retention remains. Clean pushed-input Linux host validation and
 reviewed guarded installation/readback/shutdown/host preparation still precede
 a new owner physical boot2 selection. No I50 deployment or device run yet.
+
+
+### I50 handoff ready — physical selection pending
+
+Host bindings `eca5e7dd84de0e573f52f2591ea47d825ccfa9b0` are pushed. All six
+clean pushed-input Linux host fixture groups pass. Known-good Gemian boot
+`9dac50f6-816c-4c08-981d-79535cb56f69` was freshly verified before deployment.
+The reviewed 603-line installer differs from the S1/GTK8 installer only in
+candidate/tool/receipt/evidence/boot identities; device-guard SHA-256 stays
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`.
+Bash syntax and ShellCheck pass. Two offline output-directory preparation
+refusals were corrected before the single device installation attempt.
+
+Live GPT, inactive/non-root target, power and predecessor checks passed.
+Boot2 was written, synced/flushed and fully read back as
+`7bc347261ba8246dd1a4a53fa0270ab4705e91f73f9bdb850fdc06f29937fa2f`.
+The deployment seal and clean shutdown confirm. No new partition backup or
+alternate write. Fresh runtime, exact mode-0600 deployment summary and complete
+offline host preparation pass with the reviewed four-probe leaf and retained
+short-SSH client output. No I50 capture/session has occurred.
+
+Next requires a **new** owner physical boot2 selection with USB connected to
+the custodian laptop. Verify a new mainline boot UUID, expected kernel/architecture
+and exact 84-byte note SHA-256
+`5b84b38e00d9099d2f9c488d09963b4206cbea14451c659b7e6920ee2d24ce51`
+before one capture/session. The S1 physical reply is consumed. Keep the I50
+outcome set and actual 9–11 second idle qualification above, no silent retry,
+separate transport/network/SSH/cleanup verdicts, all evidence seals, quiescence
+and the single reviewed return. One scalars file and one existing table row only
+after the actual run. Connected-lifetime prototype and unrelated restored
+research remain excluded from these published inputs.
