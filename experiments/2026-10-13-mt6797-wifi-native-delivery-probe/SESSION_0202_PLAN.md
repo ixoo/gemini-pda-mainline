@@ -231,6 +231,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK5 | `f015f0f2-1320-4e12-98d5-dbacc7c69cb2` | no named HIF refusal in data; cleanup completion timeout | bound | 75.305 / 69.919 / 49.575 ms | authenticated, exit 0, 1.439 s | FAIL: deauth PID 33 timeout; no stage 3; quiescence/return pass | 60.019 / 60 s PASS; cleanup stop +0.813 s | [one scalars file](results/gtk5-runtime-scalars.json) |
 | GTK6 | `6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd` | no named HIF refusal; command-path credit observed | bound | 94.942 / 89.260 / 37.169 ms | authenticated, exit 0, 1.739 s | FAIL: missing deauth; PM abort credited with one retained page; whole-ledger stop | 60.015 / 60 s PASS | [one scalars file](results/gtk6-runtime-scalars.json) |
 | GTK7 | `138674d4-2aff-4ff5-ad75-a0670d432b36` | no named HIF refusal; six cleanup command paths credited | bound | initial 3/3; periodic 5/5 | authenticated, exit 0, 1.618 s | stage 3, zero debt; deauth missed bound, late status 5; return verified | 60.011 / 60 s PASS | [one scalars file](results/gtk7-runtime-scalars.json) |
+| GTK8 | `a996ec5e-fc20-49d3-a160-2ed321e3e156` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | authenticated before release, exit 0, 1.397 s | host stage 3, zero debt; late deauth status 5, no ACK; return verified | 60.009 / 60 s PASS | [one scalars file](results/gtk8-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -1431,3 +1432,72 @@ before one admitted capture/session under the declared release/traffic/cleanup
 branches. No retry, key/PID reuse, rekey or second association. Preserve
 release sequence/credit timing, periodic outcomes, beacon count/age and
 teardown timestamps in one public scalars file and one existing table row.
+
+
+### GTK8 consumed — protected traffic beyond the join privilege
+
+One boot `a996ec5e-fc20-49d3-a160-2ed321e3e156`, kernel input `8792a406`,
+host bindings `49ff0b1c`, handoff `b9555ddf`. Fresh boot and exact 84-byte note
+identity matched. The first read-only identity invocation passed its command
+incorrectly to the SSH helper and exited nonzero without verification; stdout
+was not retained. The corrected stdin invocation verified identity. No capture
+or radio session started on the failed invocation. There was one Phase-A
+capture (285/285 ready), one session and one Wi-Fi SSH attempt; no session retry.
+
+The [single scalars file](results/gtk8-runtime-scalars.json) records independent
+capability, connected-after-release, duration, transport, network and host
+cleanup verdicts. The reported grant was 9,000 ms. Channel abort sequence 29
+submitted at PM +6.274939 s, status 0, one real page; credit returned at
++6.299955 s with zero debt, a 25.016 ms wait under the unchanged 100 ms bound.
+All five scheduled numeric-router probes replied after that credit, at PM
++10.745 / +20.545 / +30.595 / +40.755 / +50.645 s completion offsets (userspace
+clock resolution 10 ms). PM indication follows the grant, so these probes are
+also beyond the original reported grant horizon. Owned successful data TX
+completions continued through +50.296 s. This demonstrates protected traffic
+beyond the join privilege for this bounded run; returned pages remain host
+buffer-accounting observations, not explicit firmware execution acknowledgments.
+Nearby aggregate TX timestamps do not identify individual ICMP frames.
+
+DHCP and initial pings 103.012 / 29.413 / 41.235 ms passed. Fresh SSH
+authenticated with exit 0 in 1.397 s, no stderr, while the data window was open
+and **before** channel release. Neither a post-release SSH handshake nor a
+maintained authenticated SSH stream was measured. The data phase ended by
+budget at 60,009 ms, TX queued/done/failed 35/35/0. Checked PTK/GTK handoffs
+42/231, delivered GTK ARP 106, withheld ARP 0. No named HIF refusal, capacity
+stop, pre-budget AP loss or 0x13 event. The strict post-release host verdict
+passes, independently recomputed from the sealed evidence. Standard scan
+acceptance remains open: the inherited passive-scan verdict has no standard BSS.
+
+PM abort sequence 31 credited before reserved deauth PID 40. The frame still
+missed its unchanged 750 ms completion bound and was retired without ACK or
+refund. PTK, GTK and station removals credited under their existing bounds;
+the actual ledger returned to zero at station removal. Exact late PID 40 then
+returned status 5 at PM +61.069767 s without another credit/free. Cleanup
+skipped the already returned privilege, submitted no second channel abort,
+and credited BSS-off at floor zero. All five remaining commands credited;
+whole-ledger stage 3 followed with `deauth=0`, and both local key disables
+returned status 0. No bounded-debt terminal. Host resource cleanup passes;
+acknowledged deauthentication and independent firmware key/queued-RX retirement
+are still unproved. Moving data beyond the privilege did not restore timely
+deauthentication in this run; do not assign a firmware mechanism.
+
+Owned-beacon queue admissions at data end: total 21, since PM 20, last age
+58.114 s (last admission PM +2.031 s). Continuous owned-beacon delivery is not
+established despite successful periodic protected traffic. This is not proof
+of RF loss. No fixed-offset host-TX failure occurred and its predeclared private
+question was not triggered.
+
+All 71 pre-recovery seals, eight client-observation files and 2,186 contiguous
+kmsg records (184,416 bytes) verify. One-cycle export, helper/device quiescence,
+A53 regression and one reviewed recovery request pass. Changed-boot Gemian
+`4f0120ad-fa64-462a-82d3-c2c3f9b0a30e` was independently verified afterward.
+GTK8 is consumed; no live device process, retry or physical handoff remains.
+
+Next, refresh the current mac80211-initiated disconnect/key-disable ordering
+before introducing persistent connected operation and the two-minute SSH
+stage. Current success is a finite driver-initiated budget stop; it does not
+prove a core-initiated teardown while data is active. Keep the successful
+short join-grant release, transaction/resource protections and strict per-frame
+crypto gates. Do not obtain two/ten-minute acceptance by requesting a longer
+grant or simply raising the finite join constant. Rekey, key/PID reuse and
+reconnect remain disabled until their ownership contracts are resolved.

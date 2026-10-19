@@ -1,17 +1,48 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-**GTK8 installed; waiting for owner physical boot2 selection.** Source
-`8792a406`, host/package bindings `49ff0b1c`: a 9-second join privilege released
-during the unchanged 60-second initial-key window. Linux source/HIF/host
-fixtures, required Buildbox build and package validation pass. Guarded full
-readback, clean shutdown and offline host preparation pass. Expected boot2
-SHA-256 `ffbb0d343aa7061e1c592488ee6ee92786cc70abe7a6f9008ca1f4a17cce2dff`;
-84-byte kernel-note SHA-256
-`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`.
-[Current handoff](SESSION_0202_PLAN.md#gtk8-installed--physical-selection-pending).
-No GTK8 capture/session has occurred; use a fresh owner selection and boot
-identity before one admitted run. No automatic boot selection or unchanged retry.
+**GTK8 consumed once: finite capability, post-release protected traffic,
+60-second duration and whole-ledger host cleanup PASS.** Boot
+`a996ec5e-fc20-49d3-a160-2ed321e3e156`, kernel `8792a406`, bindings `49ff0b1c`,
+handoff `b9555ddf`.
+[One row and analysis](SESSION_0202_PLAN.md#gtk8-consumed--protected-traffic-beyond-the-join-privilege),
+[one scalars file](results/gtk8-runtime-scalars.json).
 
+The 9,000 ms join privilege was submitted for release at PM +6.275 s and
+credited at +6.300 s (25.016 ms, no deadline extension). All five periodic
+probes replied beyond that credit and the original reported grant horizon;
+owned successful data completions continued through PM +50.296 s. The window
+ended by budget at 60,009 ms. DHCP, three initial pings and SSH exit 0 in
+1.397 s passed. SSH authenticated **before** release and closed; no maintained
+post-release authenticated stream is claimed. Checked PTK/GTK 42/231, GTK ARP
+handoffs 106, withheld 0. No HIF refusal, capacity stop, pre-budget AP loss or
+0x13 event. Standard scan acceptance remains open.
+
+PM abort credited first; reserved deauth PID 40 still missed 750 ms and later
+returned status 5 during removals. No ACK or invented refund. The ledger
+returned whole at station removal; cleanup skipped a second channel abort and
+credited BSS-off at floor zero. Host stage 3, zero debt, local key disables
+status 0. This is host cleanup success, not acknowledged deauth or independent
+firmware key/queued-RX retirement. Owned-beacon admissions were 21 total/20
+since PM, last age 58.114 s; do not infer continuous beacon delivery or RF loss.
+
+All 71 seals and 2,186 contiguous records, complete one-cycle export,
+helper/device quiescence, regression and one reviewed return verify.
+Independently confirmed Gemian `4f0120ad-fa64-462a-82d3-c2c3f9b0a30e`.
+Two read-only identity invocations preceded the one capture/session: the first
+used the SSH helper incorrectly and exited nonzero; the corrected stdin
+invocation verified identity. No radio/session retry. No live device process
+or physical handoff remains pending; GTK8 is consumed.
+
+Next: refresh core-initiated disconnect and key-disable ordering against the
+current driver and pinned mac80211 before persistent connected operation and
+a two-minute authenticated SSH stream. Do not extend the grant or finite join
+constant to substitute for that lifecycle. Keep rekey, key/PID reuse and
+reconnect disabled, permanent fatal poison, exact per-frame checks, no -48
+adjustment and unchanged transaction bounds. Full ten-minute traffic and
+same-boot reconnect acceptance remain incomplete. Preserve public measurements;
+keep firmware-RE explanations and private source identities private.
+
+Prior GTK7 result follows as history; its successor below is now consumed.
 
 **GTK7 consumed once: capability and 60-second low-traffic duration PASS;
 whole-ledger cleanup stage 3 reached, deauthentication still unacknowledged.**
