@@ -1,0 +1,3 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# One 50-second comparison; no key/PID reuse, rekey or reconnect.
+CONFIG_MT6797_CCMP_50S_IDLE=y

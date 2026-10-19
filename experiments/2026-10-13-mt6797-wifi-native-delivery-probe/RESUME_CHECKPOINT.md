@@ -16,13 +16,17 @@ export, remote/local/device quiescence, regression and one reviewed return
 verify. Independently confirmed Gemian `9dac50f6-816c-4c08-981d-79535cb56f69`.
 No physical action or S1 retry is pending. No S1 kernel build/change occurred.
 
-Next: persistent connected-station source work, retaining the pre-data join
-fence, unchanged operation deadlines and an explicitly armed five-second
-teardown fence at data end. Inventory measurement caps before admitting a
-longer stream; do not raise the finite join constant as a substitute. Rekey,
-key/PID reuse and reconnect stay disabled. Standard scan and full ten-minute /
-same-boot reconnect acceptance are still incomplete. Keep private RE explanations
-and source identities private; preserve published measurements.
+Next: [one I50 timing comparison](SESSION_0202_PLAN.md#after-s1-review--one-50-second-idle-tail-comparison-selected-first)
+with unchanged GTK8 behavior except the selected data/native walls (50 s) and
+four periodic probes ending at PM +40 s. Confirm the actual idle gap; later TX
+makes it inconclusive. No result alone identifies a mechanism or admits an
+injected frame. Connected-lifetime source/fixtures are prepared but unarchived
+and unbuilt. Resolve bounded PID retirement/reuse and measurement accounting
+before the subsequent longer-window admission. Beacon-filter declaration and
+source-supported genuine-loss routing remain subsequent lifecycle work.
+No I50 build, package or device admission yet. Rekey/key reuse/reconnect remain
+disabled; full scan/ten-minute/same-boot acceptance is incomplete. Preserve
+published measurements and keep private RE explanations/source identities private.
 
 **GTK8 consumed once: finite capability, post-release protected traffic,
 60-second duration and whole-ledger host cleanup PASS.** Boot

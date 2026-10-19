@@ -828,3 +828,4 @@ proposals/0214-wifi-mt6797-quarantine-one-cleanup-page-without-a-healthy-termina
 proposals/0215-wifi-mt6797-credit-PM-abort-before-reserved-deauthentication.patch
 proposals/0216-wifi-mt6797-retain-PM-relative-completion-and-beacon-observations.patch
 proposals/0217-wifi-mt6797-test-connected-data-after-bounded-join-privilege-release.patch
+proposals/0218-wifi-mt6797-select-a-50-second-idle-tail-comparison.patch

@@ -1,0 +1,74 @@
+From 564bf3ce18ac0b915381482b3a096077c5827d3f Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Sun, 18 Oct 2026 21:39:56 -0400
+Subject: [PATCH] wifi: mt6797: select a 50-second idle-tail comparison
+
+Shorten only the connected-data and diagnostic walls under a default-off
+profile. Keep the nine-second join privilege, existing cleanup order,
+all resource caps and operation deadlines. The separately reviewed host
+protocol stops periodic probes at PM +40 seconds.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig       | 10 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c         |  4 ++++
+ drivers/net/wireless/mediatek/mt6797/native-diag.h |  4 ++++
+ 3 files changed, 18 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 625605d..a4f03a0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -93,6 +93,16 @@ config MT6797_NATIVE_DELIVERY_DIAG
+ 	  unless this option is set; the Phase B compile profile does not set it.
+ 	  Not driver support; a bounded source-grounded crypto-delivery test.
+ 
++config MT6797_CCMP_50S_IDLE
++	bool "MT6797 default-off 50-second idle-tail comparison"
++	depends on MT6797_CCMP_CHANNEL_RELEASE
++	default n
++	help
++	  Shorten only the data and diagnostic walls to 50 seconds. Keep the
++	  nine-second join privilege, all resource caps and operation bounds.
++	  Use the separately reviewed four-probe leaf. No crypto, RX format,
++	  key/PID reuse or reconnect changes; not sustained support.
++
+ config MT6797_CCMP_CHANNEL_RELEASE
+ 	bool "MT6797 default-off connected data after join privilege release"
+ 	depends on MT6797_CCMP_INITIAL_GTK
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 3798e9a..faa000b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -50,7 +50,11 @@ MODULE_PARM_DESC(ccmp_stable_epoch,
+  * and the poll and packet caps that cover scan hand-off, join, data phase and
+  * teardown at the 20 ms poll period. All are chosen host limits.
+  */
++#ifdef CONFIG_MT6797_CCMP_50S_IDLE
++#define MT6797_JOIN_DATA_BUDGET_MS 50000U
++#else
+ #define MT6797_JOIN_DATA_BUDGET_MS 60000U
++#endif
+ #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
+ /* The data phase runs inside the channel grant (the reference's first data
+  * frames did) and ends this long before the grant does. The tail covers, in
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index 520b080..caf12e4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -15,7 +15,11 @@
+  */
+ #ifdef CONFIG_MT6797_CCMP_60S_WINDOW
+ /* One admitted 60-second observation; resource caps below remain independent. */
++#ifdef CONFIG_MT6797_CCMP_50S_IDLE
++#define MT6797_NATIVE_DIAG_WALL_MS    50000U
++#else
+ #define MT6797_NATIVE_DIAG_WALL_MS    60000U
++#endif
+ #else
+ #define MT6797_NATIVE_DIAG_WALL_MS    10000U        /* 10 s post-switch wall */
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+

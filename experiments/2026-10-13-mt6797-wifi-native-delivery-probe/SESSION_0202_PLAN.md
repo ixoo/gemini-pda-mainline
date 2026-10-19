@@ -1688,3 +1688,110 @@ teardown fence armed at data end. Do not obtain two/ten minutes by increasing
 the finite join window. Before selecting its test, enumerate every remaining
 measurement cap and exact monitoring/stop path. Stable-key/PID reuse, reconnect
 and standard-scan acceptance remain separate open gates.
+
+
+### After S1 — separate connected lifetime from join and teardown
+
+**Source change selected, not yet a built or admitted device candidate.** GTK8
+and S1 support traffic under the connected BSS after the join privilege is
+returned; S1 also supports standard core-initiated teardown. Add one default-off
+connected-lifetime option depending on that exact path. Preserve the ten-second
+pre-data join fence and nine-second privilege. On successful data opening,
+mark the connected data/lifetime horizons as unbounded, retaining all individual
+command/frame/credit bounds. On the first data end, arm the existing five-second
+teardown fence from that instant, preserving an earlier fence and never renewing
+it on repeated calls. No U64 sentinel addition/overflow. Standard disconnect,
+key withdrawal, station descent, capacity exhaustion and fatal events keep their
+existing paths. Fatal poison and the stable-key re-arm exclusions stay intact.
+
+The connected phase must not consume the cumulative 4,096 **join/teardown poll**
+quota; its per-tick receive bound, scheduling period, transport deadlines and
+memory/queue caps remain unchanged. Pre-data and teardown still consume that
+quota. Bypass only the CCMP diagnostic's 60-second elapsed wall (including the
+pre-read, post-read and mode-entry clamp); retain 4,096 RX frames, 1,024 checked
+handoffs, 2 MiB RX bytes, 32,768 total lifetime packets, PID ceiling 127, the
+8-frame/12,400-byte TX queue, 750 ms completion/drain and all retirement caps.
+Native-ciphertext and option-off behavior must remain byte-equivalent after
+preprocessing. A quota stop remains a real bounded result, never a duration pass.
+These finite measurement quotas still prevent a sustained-support claim.
+
+S1 consumed 2,308 worker polls and 420 received packets over roughly 55 seconds,
+with 275 checked handoffs. Linear projections are only sizing estimates, not
+firmware guarantees: a two-minute low-traffic stream is below current RX/checked
+caps, while the old cumulative poll quota would bind around 80–100 seconds.
+Keep the capacities unchanged for the next diagnostic; log the actual first
+limit. No PID reuse or extra traffic to consume its remaining range.
+
+**Next test design, not execution admission:** one fresh boot with a 120-second
+owned authenticated SSH stream, followed by standard disconnect, using the
+existing private leaf overall 300-second wall. The listener's current 90-second
+bound, client's 25-second acquisition, 90-second helper poll and the remote
+22-second stream wall cannot host it. Those host-only observation bounds need
+explicit matched review/fixtures before installation: one bounded listener,
+client and remote stream, retained stderr, ownership/quiescence before sealing,
+and a predeclared standard-disconnect interval. ConnectTimeout remains 10;
+firmware/frame/credit/teardown bounds stay unchanged. Do not launch the old leaf
+or S1 helper with a persistent kernel and assume a two-minute measurement.
+
+Decision branches: a complete 120-second stream followed by attributable
+standard disconnect and whole-ledger cleanup passes that finite milestone;
+an earlier quota, transport, monitor, client or cleanup stop is the first failure
+with its exact time/stage. Unknown remote ownership blocks export/recovery.
+No event tolerance, longer grant, rekey, key/PID reuse or reconnect is included.
+Standard scan and ten-minute/same-boot reconnect acceptance remain open.
+
+
+### After S1 review — one 50-second idle-tail comparison selected first
+
+The connected-lifetime source above is prepared and its focused local fixtures
+pass, including option-off parity and the first-end five-second fence at ±1 ns.
+It has not been archived, built or admitted. The owner-supplied review selects
+one timing comparison before that work continues; retain it as source-only.
+
+S1 is the first recorded acknowledged reserved deauthentication with PM
+indication present, after a standard mac80211 disconnect. Five PM-indication
+boots are in the current GTK5–GTK8/S1 record; no sixth boot is inferred.
+The last successful ordinary-data completion to reserved-deauth submission,
+using the same log timestamp domain, was approximately 10.123 s for GTK7,
+9.935 s for GTK8 and 0.223 s for S1. Earlier GTK5/GTK6 lack the same completion
+timestamp instrumentation. Thus an idle correlation is supported, but neither
+“at least ten seconds” nor a six-run uniform timing assertion is established.
+No packet-level attribution of the extra S1 data transmission is available.
+
+**I50 hypothesis and unique observation:** retain GTK8's budget-initiated cleanup,
+but move its data/native observation walls from 60 to 50 seconds and remove only
+the PM +50 s periodic probe. Leave probes at +10/+20/+30/+40 s and ordinary
+short SSH authentication. No live-traffic injection or standard-disconnect
+request before the driver budget stop. The new default-off `MT6797_CCMP_50S_IDLE`
+profile adds only those two selected kernel constants; no monitoring flag,
+crypto, RX format, event, cleanup order, grant or operation-bound change.
+All existing capacities and the bounded-debt safety path remain.
+
+**Admissibility/outcomes:** the last actual successful data completion must be
+near the final scheduled probe and roughly ten seconds before deauth; unexpected
+later host TX makes the intended idle comparison inconclusive, even if cleanup
+passes. Missing deauth completion away from the old offset excludes that offset
+as a necessary condition for the observed stall, but does not distinguish idle
+from budget/core teardown ordering or other causes. Acknowledged deauth makes a
+simple idle-only explanation insufficient; it does not identify a timer or
+justify avoiding specific offsets. Another first failure is separate. Neither
+result authorizes inserting an arbitrary data frame ahead of teardown.
+The production direction remains standard mac80211 disconnect; driver budget
+termination remains a diagnostic safety boundary.
+
+The pinned `mlme.c` SHA-256
+`97b33dcf39dd45fa5f00db314be9b1ff2e6aeb00d007060b35e9a0d501befc57`
+confirms `CONNECTION_MONITOR` suppresses both software beacon and connection
+monitor reset timers (lines 118–145); the current plan already records both.
+The station's `IEEE80211_VIF_BEACON_FILTER` declaration and source-supported
+owned-loss routing belong in the subsequent lifecycle candidate, not this
+constants-only comparison. The next longer-window design must resolve bounded
+PID retirement/reuse and rate/cap accounting before admission; do not assume
+linear sizing or reuse a timed-out/uncertain PID. Key reuse, rekey and reconnect
+remain disabled. No new firmware analysis or public mechanism claim.
+
+Local actual-source I50 tests pass the selected opening, elapsed-wall boundary,
+unchanged capacities, grant/release/uncertain-transport cases and six option-off
+MAC/native preprocessing comparisons. Linux fixtures/checkpatch/build, actual
+package provenance, the four-probe leaf and helper/classifier/source-routing
+validation remain required before a guarded install or physical handoff.
