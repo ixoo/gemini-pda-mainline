@@ -15,8 +15,10 @@ Independent Gemian `0ad152bc-0456-4298-82d2-eb50d09ada81`. No pending physical
 action or unchanged I50 retry. The narrow host admission correction and its
 seven actual-main cases pass from clean pushed inputs on Linux.
 [Connected-lifetime/PID/accounting/monitoring source](SESSION_0202_PLAN.md#connected-source-prepared--build-input-validation-pending)
-is now prepared with actual-source local tests and strict checkpatch; clean
-Linux fixtures, kernel build and a reviewed host stream remain before admission. Key reuse/rekey/reconnect remain
+has passed clean Linux source fixtures and the required kernel build.
+[The real P1 package/candidate and host protocol](SESSION_0202_PLAN.md#p1-built-and-composed--complete-host-validation-before-deployment)
+are composed with local host tests; clean Linux host checks and guarded
+deployment/readback/shutdown/preparation remain before a new physical handoff. Key reuse/rekey/reconnect remain
 disabled and full Wi-Fi acceptance remains incomplete.
 
 **S1 consumed once: controlled core disconnect and 20-second SSH stream PASS.**

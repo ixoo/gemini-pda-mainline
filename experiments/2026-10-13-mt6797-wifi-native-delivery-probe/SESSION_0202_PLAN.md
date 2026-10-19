@@ -2048,11 +2048,13 @@ same-boot reconnect are still disabled.
 ### P1 host envelope — predeclared before implementation/admission
 
 The first connected-lifetime run will require **120 seconds of authenticated
-SSH traffic**, not a longer nominal join budget. Use 241 boot-bound PTY chunks
-scheduled against absolute monotonic half-second targets, with the first chunk
-admitted by PM +5 s. Require the actual last-minus-first span and host elapsed
-time both at least 120 s. Absolute targets prevent per-iteration shell overhead
-from extending a relative-sleep loop; a missed slot is a distinct host result,
+SSH traffic**, not a longer nominal join budget. Use 243 boot-bound PTY chunks spanning a scheduled 121 seconds
+against absolute monotonic half-second targets, with the first chunk
+admitted by PM +5 s. Require the actual device span at least 121 s and the client receive span at
+least 120 s, with every chunk timestamped on arrival and no receive gap over
+three seconds. The extra scheduled second permits measuring a full 120 s
+receive interval despite transit variation; it is not a shorter-duration pass. Absolute targets prevent per-iteration shell overhead
+from extending a relative-sleep loop; emission over 400 ms late is a distinct host result,
 not a catch-up burst. The rate should exercise ordinary PID wrap; claim wire
 reuse only when a completed reused slot is actually observed, not from a wrap
 cursor alone. Raw client stdout remains capped at 64 KiB with actual/truncated
@@ -2080,8 +2082,10 @@ stream quiescence, make exactly one guarded standard supplicant disconnect
 within PM +120 through +135 s, without waiting for a particular instant or
 injecting a teardown frame. That follows freshly completed traffic and avoids
 attributing any outcome to a firmware clock. Refuse a stale, faulted or missed
-control window and do not retry. Keep its three-second BusyBox/15-second USB
-bounds. Key PN state and all firmware/frame/credit/teardown bounds are unchanged.
+control window and do not retry. If the stream fails earlier but the current window and
+remote quiescence are positively verified, allow an explicitly labelled early
+standard abort from PM +6 through +135 s; it cannot satisfy the duration or
+completed-stream verdict. Keep the three-second BusyBox/15-second USB bounds. Key PN state and all firmware/frame/credit/teardown bounds are unchanged.
 
 The parent refuses export, seal or recovery unless the local helper group and
 the remote tagged command are quiescent. A late/failed/unknown owner observation
@@ -2092,3 +2096,61 @@ a different first limit or failure is recorded with its offset. The 600-second
 milestone and a second key/station lifetime remain later admissions. This plan
 authorizes no physical run until the actual built package, composed candidate,
 all host fixtures and guarded installation/readback/shutdown are validated.
+
+
+### P1 built and composed — complete host validation before deployment
+
+Clean pushed kernel input `71c4b4a818b5eef6330e0ca844407574941a017c` passed
+all six Linux source fixture groups, all four strict checkpatch runs and the
+single required Buildbox backend build. The final actual-header PTK/GTK fixture
+again passed 19,007 cases. Final source archive
+`e7be093e6f4200b03aaff56787dc8d74ca1f3468`; 715 canonical selected patches.
+The validated/fetched package inventory SHA-256 is
+`1e92619aac81cdc66479cc8d6a17ef168237436a7e2dacdf1feca0d0383055d1`.
+The configuration explicitly enables connected lifetime and completed PID reuse,
+with I50 disabled. No source/kernel rebuild follows host-only tooling below.
+
+[Actual P1 receipt](results/ccmp-stable-monitor-candidate-p1.json) SHA-256
+`d4cb557f4022547bf49d2f4961c9d12a3142332ebb0d19444c2edcfac833b89d`;
+full padded boot2 SHA-256
+`f19d4e27bd24fc38b091c8847440c051f83e92da3972865125ae4c0a0589e998`.
+DT/initramfs are byte-identical to I50. The exact actual-package configuration
+oracle passes twelve changed-parent refusals/eleven child mutations. The new
+84-byte kernel-note SHA-256
+`b0213c37e6080b8b334f73842ca3162390cdfeecb29d8eb93bd41d2c2bf9b160`
+is independently checked against ELF, validated Image/symbol map and sysfs
+exporter, and differs from I50. Composition changed no firmware/calibration or
+credential material and does not establish hardware support.
+
+The eleven-probe leaf [join-ccmp-p1.sh](join-ccmp-p1.sh), body SHA-256
+`de6fe61312562e1c1dc429de92df48580c5ebeec6f307bf1488fccda64289a98`,
+changes only the original periodic schedule, listener bound and explanatory
+comments. It keeps the existing 300 s wall and child quiescence. The scoped
+client helper SHA-256 is
+`2c28acdf350943a6fc6159a5799d1f039830309d78f68d7cf9683a4ce867173d`.
+Its host limit replay reuses the pinned frozen functions with only the reviewed
+25-to-135 s exchange and 120-to-210 s CLI/poll constants changed; bytecode
+comparison confirms unchanged authentication/ACK/receipt operations. The parent
+uses poll 210 s, join 270 s, grace 5 s. The actual parent-generated argv reaches
+that child CLI in the fixture; a standalone parent-only assertion is insufficient.
+
+The stdout reader retains raw bytes up to 64 KiB, drains the pipe live and
+records chunk arrival times. Device schedule 121 s / 243 absolute half-second
+chunks must yield at least 120 s of client receipt span, with no receipt gap
+over 3 s. Emission over 400 ms late refuses instead of catching up. Timeout
+partial output, over-cap output, buffered-only delivery and receive stalls
+remain negative independent results. A real child that cannot finish until
+its first line is consumed proves the reader is live. The existing own-PTY
+PID/session/foreground-group guard and hangup mechanism remain; real Linux
+PTY validation is still required for these host inputs.
+
+Nineteen local client cases pass (the Linux-only PTY case is skipped on the
+laptop). Generated outer/inner stream, normal/abort control and owner-query
+commands pass shell syntax/ShellCheck, and actual AWK programs execute in the
+fixture. Slot trace/duration/controller verdict cases pass separately. All
+five local adapter groups pass. The remote-owner parent gate refuses missing,
+false or unknown ownership and never clears the inherited local unsafe state.
+An unexpected helper exception retains a negative private host receipt and
+unknown ownership; it cannot authorize recovery. Clean pushed-input Linux host
+checks, guarded deployment/readback/shutdown and fresh preparation remain before
+a new physical boot2 handoff. No P1 device run or public run row exists.
