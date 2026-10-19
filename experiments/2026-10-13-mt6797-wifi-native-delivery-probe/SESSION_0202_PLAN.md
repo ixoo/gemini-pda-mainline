@@ -233,6 +233,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK7 | `138674d4-2aff-4ff5-ad75-a0670d432b36` | no named HIF refusal; six cleanup command paths credited | bound | initial 3/3; periodic 5/5 | authenticated, exit 0, 1.618 s | stage 3, zero debt; deauth missed bound, late status 5; return verified | 60.011 / 60 s PASS | [one scalars file](results/gtk7-runtime-scalars.json) |
 | GTK8 | `a996ec5e-fc20-49d3-a160-2ed321e3e156` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | authenticated before release, exit 0, 1.397 s | host stage 3, zero debt; late deauth status 5, no ACK; return verified | 60.009 / 60 s PASS | [one scalars file](results/gtk8-runtime-scalars.json) |
 | S1 | `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | fresh authenticated stream, five chunks / 20.450 s across release; exit 0 | stage 3, zero debt, deauth ACK; return verified | controlled disconnect, 55.502 s data; not full 60 s | [one scalars file](results/s1-runtime-scalars.json) |
+| I50 | `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; periodic 4/4 | NOT REACHED: host helper namespace refusal before client/TCP | stage 3, zero debt, deauth ACK; return verified | 50.005 / 50 s PASS; full-session FAIL | [one scalars file](results/i50-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -1872,3 +1873,59 @@ separate transport/network/SSH/cleanup verdicts, all evidence seals, quiescence
 and the single reviewed return. One scalars file and one existing table row only
 after the actual run. Connected-lifetime prototype and unrelated restored
 research remain excluded from these published inputs.
+
+
+### I50 consumed — acknowledged idle-tail teardown; SSH not reached
+
+One boot `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7`, kernel input `00f351eb`,
+bindings `eca5e7dd`, handoff `6908713d`. One read-only identity acquisition,
+one 285/285 capture, one session and one reviewed return; no retry. The
+[single scalars file](results/i50-runtime-scalars.json) keeps the verdicts
+independent. The 50,005 ms budget end, DHCP, initial three replies
+104.318 / 31.964 / 43.725 ms, four periodic replies, checked PTK/GTK handoffs
+11/191 and GTK ARP handoffs 78 passed; withheld ARP 0. Data queued/done/failed
+11/11/0. No HIF refusal, capacity stop or 0x13 event.
+
+Release sequence 29 credited at PM +6.259879 s with zero debt (25.079 ms).
+The last successful ordinary-data completion was PM +40.144193 s. Its log
+record precedes reserved deauth submission by **10,098.634 ms**, inside the
+predeclared 9–11 s idle qualification, without another successful data completion.
+Reserved PID 16 completed status 0 at PM +50.269067 s and was acknowledged.
+PM abort and all five remaining cleanup command paths credited at floor zero;
+whole-ledger stage 3, zero debt, no missing/retired/late completion, local key
+disables status 0. The measured counterexample weakens a deterministic idle-only
+stall explanation; it does not identify a firmware mechanism or justify offset
+avoidance or insertion of a data frame. Standard mac80211 disconnect remains
+the production direction; budget expiry remains a diagnostic boundary.
+
+**SSH was NOT REACHED.** The owned host helper exited 1 without a receipt,
+client observation, host ACK or network client attempt. Its standard CLI admits
+numbered/GTK session names but rejects `session-ccmp-i50`. The exact refusal was
+reproduced offline from the executed source SHA-256
+`6d27cb8b8beccab4b0216e6c4b110935d457268abb0eefb3b784c00694d4477e`,
+before client main or any command. Helper stderr itself was discarded by the
+parent; this is a source-reproduced diagnosis, not fabricated runtime stderr.
+No TCP/SSH failure or success may be inferred. Adapter fixtures exercised the
+parent binding but missed the child CLI guard. A focused actual-main fixture
+now covers that boundary; the correction admits only the exact I50 name and
+keeps root, symlink, filename, platform and other-name refusals.
+
+The immutable full-session classifier stays false: SSH/host ACK are absent.
+Its idle-comparison aggregate is also false because it requires authentication
+and the complete nine-file cycle protocol. This does not erase the separately
+qualified kernel idle/deauth timestamps or the four retained replies. All
+62 seals / 2,134 contiguous records and exactly the eight exported c1 frames
+verify; the missing host-ACK frame was never created and is not synthesized.
+Local helper/device quiescence, regression, one reviewed return and independent
+changed-boot Gemian `0ad152bc-0456-4298-82d2-eb50d09ada81` verify. Owned-beacon
+admissions were 21 total/20 since PM, last age 48.130 s; no continuous-beacon
+or RF-loss claim. Standard scan remains incomplete.
+
+No unchanged I50 repeat is selected merely to obtain a green aggregate. Fix
+and verify the host namespace gate offline, then continue the connected-lifetime
+source work. Before admitting 120/600-second streams, resolve bounded completed-
+PID reuse and measurement accounting, add the source-supported station beacon-
+filter declaration and normal owned-loss reporting, retain the pre-data fence
+and arm bounded teardown on data end. Keep key reuse, rekey and reconnect
+refused until their ownership barriers are supported. No new firmware analysis
+or private explanation is published.

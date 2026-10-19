@@ -1,5 +1,22 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**I50 consumed once: duration/network/acknowledged cleanup PASS; SSH NOT REACHED.**
+Boot `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7`, kernel `00f351eb`, bindings
+`eca5e7dd`, handoff `6908713d`. [One row and analysis](SESSION_0202_PLAN.md#i50-consumed--acknowledged-idle-tail-teardown-ssh-not-reached),
+[one scalars file](results/i50-runtime-scalars.json). Data budget 50.005 s,
+initial 3/3 and periodic 4/4 replies, release credit and whole-ledger stage 3
+pass. Reserved deauth ACK followed a measured 10.099-second data-completion
+idle gap; this weakens idle-only causation without identifying a mechanism.
+The host helper refused the I50 namespace before client/TCP; no SSH result or
+host ACK exists. The exact child-CLI guard is reproduced offline. The immutable
+full-session verdict remains false. All 62 seals, 2,134 contiguous records,
+eight available cycle frames, quiescence/regression and reviewed return verify.
+Independent Gemian `0ad152bc-0456-4298-82d2-eb50d09ada81`. No pending physical
+action or unchanged I50 retry. Correct the narrow host admission gate with an
+actual-main test, then resume connected-lifetime/PID/accounting/monitoring
+source work before longer-window admission. Key reuse/rekey/reconnect remain
+disabled and full Wi-Fi acceptance remains incomplete.
+
 **S1 consumed once: controlled core disconnect and 20-second SSH stream PASS.**
 Unchanged GTK8 image, boot `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e`; host inputs
 `2a197328`, handoff `f12da769`. [One row and analysis](SESSION_0202_PLAN.md#s1-consumed--ssh-stream-and-standard-disconnect-pass),
@@ -16,21 +33,9 @@ export, remote/local/device quiescence, regression and one reviewed return
 verify. Independently confirmed Gemian `9dac50f6-816c-4c08-981d-79535cb56f69`.
 No physical action or S1 retry is pending. No S1 kernel build/change occurred.
 
-Next: [one I50 timing comparison](SESSION_0202_PLAN.md#after-s1-review--one-50-second-idle-tail-comparison-selected-first)
-with unchanged GTK8 behavior except the selected data/native walls (50 s) and
-four periodic probes ending at PM +40 s. Confirm the actual idle gap; later TX
-makes it inconclusive. No result alone identifies a mechanism or admits an
-injected frame. Connected-lifetime source/fixtures are prepared but unarchived
-and unbuilt. Resolve bounded PID retirement/reuse and measurement accounting
-before the subsequent longer-window admission. Beacon-filter declaration and
-source-supported genuine-loss routing remain subsequent lifecycle work.
-I50 build/package/composition and local host fixtures now pass; [current build record](SESSION_0202_PLAN.md#i50-built-and-composed--host-validation-before-deployment).
-All six clean Linux host fixture groups, guarded deployment/full readback,
-clean shutdown and fresh host preparation now pass. [I50 physical handoff](SESSION_0202_PLAN.md#i50-handoff-ready--physical-selection-pending)
-requires a new owner boot2 selection; no capture/session yet. The S1 reply is
-consumed. Verify a new boot and the I50 kernel notes before the single run. Rekey/key reuse/reconnect remain
-disabled; full scan/ten-minute/same-boot acceptance is incomplete. Preserve
-published measurements and keep private RE explanations/source identities private.
+The I50 preparation/handoff and S1 successor plans below are consumed history;
+use the current I50 result at the top. Connected-lifetime prototype remains
+unarchived/unbuilt; longer-window admission still needs the source gates above.
 
 **GTK8 consumed once: finite capability, post-release protected traffic,
 60-second duration and whole-ledger host cleanup PASS.** Boot

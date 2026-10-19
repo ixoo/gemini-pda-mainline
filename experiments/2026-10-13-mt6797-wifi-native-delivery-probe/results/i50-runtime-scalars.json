@@ -1,0 +1,949 @@
+{
+  "run": "I50",
+  "status": "consumed once; 50-second duration, network and acknowledged cleanup PASS; SSH NOT REACHED due host preflight; admitted full-session verdict remains FAIL",
+  "boot_id": "e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7",
+  "kernel_input": "00f351eb37da1c52fe25039e5e9d0f495a2d945d",
+  "tooling_commit": "eca5e7dd84de0e573f52f2591ea47d825ccfa9b0",
+  "handoff_commit": "6908713dd2b03383838936aefd53e8dfe2e1c03d",
+  "candidate_full_partition_sha256": "7bc347261ba8246dd1a4a53fa0270ab4705e91f73f9bdb850fdc06f29937fa2f",
+  "attempts": {
+    "read_only_identity_probes": 1,
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh_client": 0,
+    "helper_spawn": 1,
+    "standard_disconnect_requests": 0,
+    "native_recovery_requests": 1,
+    "watcher_checks": 2
+  },
+  "verdicts": {
+    "transport": "PASS: no HIF refusal; release and all five remaining command paths credited",
+    "dhcp": "bound",
+    "pings": "initial 3/3 and periodic 4/4",
+    "ssh": "NOT REACHED: helper rejected I50 session namespace before probing or launching the Wi-Fi client",
+    "ssh_failure_stage": "host helper preflight, before client/TCP",
+    "cleanup": "PASS: whole-ledger stage 3, zero debt, reserved deauth acknowledged",
+    "duration": "PASS: budget end at 50005 / 50000 ms; not a 60-second or sustained-operation result",
+    "admitted_full_session": "FAIL: missing SSH/host ACK; immutable classifier retains false"
+  },
+  "full_session_pass": false,
+  "duration_pass": true,
+  "network_observed": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": false
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 104.318
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 31.964
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 43.725
+    }
+  ],
+  "data_window": {
+    "planned_ms": 50000,
+    "actual_ms": 50005,
+    "end_reason": "budget",
+    "tx_queued": 11,
+    "tx_done": 11,
+    "tx_failed": 0,
+    "checked_handoffs": 202,
+    "checked_cap": 1024,
+    "total_rx_cap": 4096,
+    "rx_byte_cap": 2097152,
+    "pid_reuse": false
+  },
+  "ssh": {
+    "attempted": false,
+    "client_exit": null,
+    "failure_stage": "host preflight",
+    "client_stderr_available": false,
+    "helper_exit": 1,
+    "helper_timed_out": false,
+    "helper_receipt_created": false,
+    "host_ack_created": false,
+    "helper_stderr_available": false,
+    "source_refusal_reproduced_offline": {
+      "helper_source_sha256": "6d27cb8b8beccab4b0216e6c4b110935d457268abb0eefb3b784c00694d4477e",
+      "exact_preflight_refusal_reproduced_offline": true,
+      "refusal": "receipt does not name a CCMP session",
+      "command_calls": 0,
+      "wifi_client_main_reached": false,
+      "sealed_helper_exit": 1,
+      "sealed_helper_stderr_retained": false,
+      "scope": "deterministic source/argv namespace diagnosis; no fabricated runtime stderr"
+    },
+    "scope": "exact namespace refusal is source-reproduced; no runtime stderr was retained or fabricated"
+  },
+  "idle_observation": {
+    "predeclared_numeric_idle_valid": true,
+    "last_successful_data_pm_offset_ns": 40144192618,
+    "deauth_submission_log_us": 90093347,
+    "last_data_completion_log_us": 79994713,
+    "completion_log_to_deauth_submission_us": 10098634,
+    "deauth_completion": {
+      "sequence": 2095,
+      "time_us": 90119587,
+      "pid": 16,
+      "status": 0,
+      "class": 2,
+      "observed_ns": 90074306543,
+      "pm_offset_ns": 50269066541
+    },
+    "deauth_acked": true,
+    "full_admitted_comparison_pass": false,
+    "scope": "kernel same-domain log clocks and owned frame completions; SSH unmeasured; no RF or firmware mechanism attribution",
+    "inference": "acknowledged reserved deauthentication after about ten seconds without another successful host data completion contradicts an idle-only deterministic stall claim; no timing-avoidance or artificial-data fix is established"
+  },
+  "periodic_transmissions": {
+    "reference": "PM connection aggregate credit observation",
+    "probes": [
+      {
+        "ordinal": 1,
+        "scheduled_offset_ns": 10000000000,
+        "start_offset_ns": 10384759998,
+        "completion_offset_ns": 10744759998,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 36.637
+      },
+      {
+        "ordinal": 2,
+        "scheduled_offset_ns": 20000000000,
+        "start_offset_ns": 20154759998,
+        "completion_offset_ns": 20554759998,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 35.686
+      },
+      {
+        "ordinal": 3,
+        "scheduled_offset_ns": 30000000000,
+        "start_offset_ns": 30074759998,
+        "completion_offset_ns": 30494759998,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 46.169
+      },
+      {
+        "ordinal": 4,
+        "scheduled_offset_ns": 40000000000,
+        "start_offset_ns": 40104759998,
+        "completion_offset_ns": 40504759998,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 27.79
+      }
+    ],
+    "driver_tx_completions": [
+      {
+        "sequence": 2021,
+        "time_us": 39903701,
+        "pid": 3,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 39858420925,
+        "pm_offset_ns": 53180923
+      },
+      {
+        "sequence": 2026,
+        "time_us": 39933181,
+        "pid": 4,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 39887900079,
+        "pm_offset_ns": 82660077
+      },
+      {
+        "sequence": 2045,
+        "time_us": 40347866,
+        "pid": 5,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 40302585694,
+        "pm_offset_ns": 497345692
+      },
+      {
+        "sequence": 2051,
+        "time_us": 40449067,
+        "pid": 6,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 40403786002,
+        "pm_offset_ns": 598546000
+      },
+      {
+        "sequence": 2054,
+        "time_us": 41822590,
+        "pid": 7,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 41777309925,
+        "pm_offset_ns": 1972069923
+      },
+      {
+        "sequence": 2057,
+        "time_us": 41879733,
+        "pid": 8,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 41834452540,
+        "pm_offset_ns": 2029212538
+      },
+      {
+        "sequence": 2060,
+        "time_us": 42807849,
+        "pid": 9,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 42762568694,
+        "pm_offset_ns": 2957328692
+      },
+      {
+        "sequence": 2063,
+        "time_us": 43819841,
+        "pid": 10,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 43774560541,
+        "pm_offset_ns": 3969320539
+      },
+      {
+        "sequence": 2066,
+        "time_us": 45523798,
+        "pid": 11,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 45478517694,
+        "pm_offset_ns": 5673277692
+      },
+      {
+        "sequence": 2072,
+        "time_us": 50275896,
+        "pid": 12,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 50230615618,
+        "pm_offset_ns": 10425375616
+      },
+      {
+        "sequence": 2074,
+        "time_us": 60046714,
+        "pid": 13,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 60001433465,
+        "pm_offset_ns": 20196193463
+      },
+      {
+        "sequence": 2076,
+        "time_us": 69982656,
+        "pid": 14,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 69937375619,
+        "pm_offset_ns": 30132135617
+      },
+      {
+        "sequence": 2078,
+        "time_us": 79994713,
+        "pid": 15,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 79949432620,
+        "pm_offset_ns": 40144192618
+      },
+      {
+        "sequence": 2095,
+        "time_us": 90119587,
+        "pid": 16,
+        "status": 0,
+        "class": 2,
+        "observed_ns": 90074306543,
+        "pm_offset_ns": 50269066541
+      }
+    ],
+    "clock_resolution_ns": 10000000,
+    "scope": "numeric router probes; nearby TX observations do not identify individual packets"
+  },
+  "channel_release": {
+    "submitted": {
+      "sequence": 2067,
+      "time_us": 46085341,
+      "command_sequence": 29,
+      "status": 0,
+      "observed_ns": 46040039464,
+      "pm_offset_ns": 6234799462,
+      "debt": 1
+    },
+    "credited": {
+      "sequence": 2069,
+      "time_us": 46110400,
+      "command_sequence": 29,
+      "observed_ns": 46065118925,
+      "pm_offset_ns": 6259878923,
+      "debt": 0
+    },
+    "credit_wait_ms": 25.079461,
+    "no_second_abort_at_cleanup": true
+  },
+  "gtk": {
+    "withheld_arp": 0,
+    "queued_ptk": 11,
+    "queued_gtk": 191,
+    "delivered_arp": 78
+  },
+  "pm": {
+    "credit_observed_ns": 39805240002,
+    "connection_credited_before_keys": true,
+    "abort_before_reserved_deauth": true
+  },
+  "beacon_delivery_at_data_end": {
+    "observed_ns": 89966610236,
+    "count": 21,
+    "known": 1,
+    "age_ns": 48130307234,
+    "since_pm_known": 1,
+    "since_pm": 20,
+    "interval_tu": 100,
+    "last_admission_offset_from_pm_ns": 2031063000,
+    "scope": "existing qualified owned-BSS queue admissions; not RF reception",
+    "continuous_delivery_proven": false
+  },
+  "cleanup": {
+    "healthy_stage_3": true,
+    "final_page_debt": 0,
+    "deauth_pid": 16,
+    "deauth_acked": true,
+    "missing_completion": false,
+    "late_retired_completion": false,
+    "key_disable_statuses": [
+      0,
+      0
+    ],
+    "all_remaining_command_paths_credited": true,
+    "command_credit_deadline_ms": 100,
+    "reuse_allowed": false,
+    "credit_timestamps": [
+      {
+        "sequence": 2088,
+        "time_us": 90044751,
+        "op": 1,
+        "command_sequence": 31,
+        "credit": 0,
+        "observed_ns": 89999470005,
+        "pm_offset_ns": 50194230003,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2090,
+        "time_us": 90070410,
+        "op": 1,
+        "command_sequence": 31,
+        "credit": 1,
+        "observed_ns": 90025130312,
+        "pm_offset_ns": 50219890310,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2096,
+        "time_us": 90121349,
+        "op": 2,
+        "command_sequence": 32,
+        "credit": 0,
+        "observed_ns": 90076069082,
+        "pm_offset_ns": 50270829080,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2099,
+        "time_us": 90146351,
+        "op": 2,
+        "command_sequence": 32,
+        "credit": 1,
+        "observed_ns": 90101071236,
+        "pm_offset_ns": 50295831234,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2100,
+        "time_us": 90148205,
+        "op": 3,
+        "command_sequence": 33,
+        "credit": 0,
+        "observed_ns": 90102925082,
+        "pm_offset_ns": 50297685080,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2103,
+        "time_us": 90174378,
+        "op": 3,
+        "command_sequence": 33,
+        "credit": 1,
+        "observed_ns": 90129097543,
+        "pm_offset_ns": 50323857541,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2104,
+        "time_us": 90176229,
+        "op": 4,
+        "command_sequence": 34,
+        "credit": 0,
+        "observed_ns": 90130949313,
+        "pm_offset_ns": 50325709311,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2107,
+        "time_us": 90202510,
+        "op": 4,
+        "command_sequence": 34,
+        "credit": 1,
+        "observed_ns": 90157227543,
+        "pm_offset_ns": 50351987541,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2109,
+        "time_us": 90229401,
+        "op": 6,
+        "command_sequence": 35,
+        "credit": 0,
+        "observed_ns": 90184106005,
+        "pm_offset_ns": 50378866003,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2112,
+        "time_us": 90254408,
+        "op": 6,
+        "command_sequence": 35,
+        "credit": 1,
+        "observed_ns": 90209127466,
+        "pm_offset_ns": 50403887464,
+        "floor": 0,
+        "debt": 0
+      }
+    ],
+    "op_names": {
+      "1": "PM abort",
+      "2": "PTK removal",
+      "3": "GTK removal",
+      "4": "station removal",
+      "6": "BSS off"
+    }
+  },
+  "monitor": {
+    "bss_timeout_observed": 0,
+    "prebudget_connection_loss": false,
+    "timeout_tolerance_enabled": false
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1991,
+        "time_us": 39577416,
+        "fields": [
+          "40",
+          "9000"
+        ]
+      }
+    ],
+    "pm_metadata": [
+      {
+        "sequence": 2011,
+        "time_us": 39825409,
+        "fields": [
+          "3",
+          "100",
+          "3"
+        ]
+      }
+    ],
+    "pm_connection": [
+      {
+        "sequence": 2015,
+        "time_us": 39851574,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1",
+          "0",
+          "00"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2036,
+        "time_us": 40008768,
+        "fields": [
+          "50000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2082,
+        "time_us": 90013953,
+        "fields": [
+          "budget",
+          "50005",
+          "0",
+          "0",
+          "0",
+          "11",
+          "11",
+          "0",
+          "15"
+        ]
+      }
+    ],
+    "gtk_counters": [
+      {
+        "sequence": 2120,
+        "time_us": 90271433,
+        "fields": [
+          "0",
+          "11",
+          "191",
+          "78"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2049,
+        "time_us": 40446550,
+        "fields": [
+          "1",
+          "74"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2038,
+        "time_us": 40030516,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2041,
+        "time_us": 40054415,
+        "fields": [
+          "2",
+          "0",
+          "1",
+          "0",
+          "442"
+        ]
+      },
+      {
+        "sequence": 2080,
+        "time_us": 90010570,
+        "fields": [
+          "3",
+          "2",
+          "284",
+          "0",
+          "58085"
+        ]
+      },
+      {
+        "sequence": 2086,
+        "time_us": 90042385,
+        "fields": [
+          "4",
+          "0",
+          "284",
+          "0",
+          "58085"
+        ]
+      }
+    ],
+    "pm_abort": [
+      {
+        "sequence": 2087,
+        "time_us": 90043727,
+        "fields": [
+          "31",
+          "0"
+        ]
+      }
+    ],
+    "deauth_retirement": [],
+    "late_retired_completion": [],
+    "tc4_credits": [
+      {
+        "sequence": 1989,
+        "time_us": 39429311,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1990,
+        "time_us": 39453347,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1992,
+        "time_us": 39601375,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1997,
+        "time_us": 39653344,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2003,
+        "time_us": 39701310,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2008,
+        "time_us": 39729321,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2009,
+        "time_us": 39753376,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2013,
+        "time_us": 39849374,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2019,
+        "time_us": 39901370,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2027,
+        "time_us": 39957332,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2029,
+        "time_us": 39981353,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2033,
+        "time_us": 40005325,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2040,
+        "time_us": 40053356,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2068,
+        "time_us": 46109337,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2085,
+        "time_us": 90041332,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2089,
+        "time_us": 90069342,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2093,
+        "time_us": 90117313,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2098,
+        "time_us": 90145309,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2102,
+        "time_us": 90173323,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2106,
+        "time_us": 90201410,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2111,
+        "time_us": 90253340,
+        "fields": [
+          "1",
+          "0"
+        ]
+      }
+    ],
+    "deauth_tx": [
+      {
+        "sequence": 2092,
+        "time_us": 90093347,
+        "fields": [
+          "12",
+          "16",
+          "1"
+        ]
+      }
+    ],
+    "fault": [],
+    "bss_timeout_counter": [
+      {
+        "sequence": 2121,
+        "time_us": 90273024,
+        "fields": [
+          "0"
+        ]
+      }
+    ],
+    "loss_report": [
+      {
+        "sequence": 2130,
+        "time_us": 90294546,
+        "fields": [
+          "cleanup",
+          "1"
+        ]
+      }
+    ],
+    "key_disables": [
+      {
+        "sequence": 2132,
+        "time_us": 90381446,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1"
+        ]
+      },
+      {
+        "sequence": 2133,
+        "time_us": 90383187,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1"
+        ]
+      }
+    ],
+    "completion_observation": [
+      {
+        "sequence": 2114,
+        "time_us": 90257624,
+        "fields": [
+          "now_ns=90212341851 inflight=0 pid=16 submit_pid=15 submit_return_ns=79924117466 frame_deadline_ns=90799135928 guard_valid=1 guard_return_ns=90212340005 whcr=0x00000000 whisr=0x00000000"
+        ]
+      }
+    ],
+    "credit_observation": [
+      {
+        "sequence": 2117,
+        "time_us": 90265213,
+        "fields": [
+          "site=0 native_state=4 pending=0 credit_deadline_ns=90284082928 lifetime_deadline_ns=94963486156 polls=2082 scan=0 closing=0 first=0 wtqcr7=0x00000000 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=0 tc1_released=0"
+        ]
+      }
+    ],
+    "receive_observations": [
+      {
+        "sequence": 2115,
+        "time_us": 90260647,
+        "fields": [
+          "port=0 attempts=2344 packets=294 type7=71 opposite=0 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=90212319236"
+        ]
+      },
+      {
+        "sequence": 2116,
+        "time_us": 90262954,
+        "fields": [
+          "port=1 attempts=2325 packets=0 type7=0 opposite=163 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=89940063082"
+        ]
+      }
+    ],
+    "pm_credit_clock": [
+      {
+        "sequence": 2014,
+        "time_us": 39850526,
+        "fields": [
+          "39805240002"
+        ]
+      }
+    ],
+    "data_end_beacons": [
+      {
+        "sequence": 2081,
+        "time_us": 90011892,
+        "fields": [
+          "89966610236",
+          "21",
+          "1",
+          "48130307234",
+          "1",
+          "20",
+          "100"
+        ]
+      }
+    ],
+    "healthy_cleanup": [
+      {
+        "sequence": 2119,
+        "time_us": 90270072,
+        "fields": [
+          "3",
+          "1"
+        ]
+      }
+    ],
+    "bounded_cleanup": [],
+    "pm_abort_credit": [
+      {
+        "sequence": 2091,
+        "time_us": 90072280,
+        "fields": [
+          "1"
+        ]
+      }
+    ],
+    "released_cleanup_stage": [
+      {
+        "sequence": 2108,
+        "time_us": 90204466,
+        "fields": [
+          "1",
+          "1"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "sealed_entries_verified": 62,
+    "seal_sha256": "b47ba0127c97ccafad11de8bcc97a06888d52ef33554969dea10cae9318f49b1",
+    "log_sha256": "52a6b220315de9d052abd05eff84356f9f8d0eeee3a499867ae55df04a17f3fe",
+    "log_bytes": 174532,
+    "contiguous_records": 2134,
+    "legacy_full_cycle_export_complete": false,
+    "available_eight_cycle_frames_exactly_validated": true,
+    "omitted_cycle_file": "host-ack (not created)",
+    "cycle_export_bytes": 4011,
+    "local_helper_group_quiescent": true,
+    "device_children_quiescent": true,
+    "regression_pass": true,
+    "reviewed_return_confirmed": true,
+    "independently_confirmed_gemian": true,
+    "returned_gemian_boot": "0ad152bc-0456-4298-82d2-eb50d09ada81"
+  },
+  "limits": [
+    "The admitted full SSH/network/cleanup session did not pass because the helper refused before a client attempt; no SSH result may be inferred",
+    "The kernel idle/deauth measurement remains separately observable; it does not identify a firmware mechanism or justify offset avoidance or a synthetic data frame",
+    "Eight exported cycle frames are preserved exactly, with no host-ACK file; the original full-cycle checker correctly refuses that omission",
+    "Host resource cleanup/removal credits do not independently establish key erasure or stale queued-frame retirement",
+    "No standard scan, two-/ten-minute stream, rekey, key reuse or same-boot reconnect acceptance; no -48 adjustment or longer transport deadlines"
+  ]
+}
