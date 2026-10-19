@@ -990,6 +990,43 @@
           "configs/gemini-a53-wifi-ccmp-channel-release.fragment",
           "configs/gemini-a53-wifi-ccmp-50s-idle.fragment"
         ]
+      },
+      "mt6797-a53-wifi-ccmp-connected-lifetime": {
+        "base": "defconfig",
+        "patch_series": "patches/series-a53-wifi-ccmp-connected-lifetime",
+        "fragments": [
+          "configs/gemini-handoff.fragment",
+          "configs/gemini-usbdiag.fragment",
+          "configs/gemini-clk-ignore-unused.fragment",
+          "configs/gemini-observability.fragment",
+          "configs/gemini-fbcon-rotation.fragment",
+          "configs/gemini-keyboard.fragment",
+          "configs/gemini-keyboard-wrrd.fragment",
+          "configs/gemini-keyboard-manual-reboot.fragment",
+          "configs/gemini-smp8.fragment",
+          "configs/gemini-emmc-development.fragment",
+          "configs/gemini-mt6797-pwrap-reset-serviceability.fragment",
+          "configs/gemini-a53-service-facilities.fragment",
+          "configs/gemini-a53-modern-conn-provider-compile.fragment",
+          "configs/gemini-a53-wifi-core-integration-compile.fragment",
+          "configs/gemini-a53-consys-owner-passive.fragment",
+          "configs/gemini-a53-wifi-firmware-probe.fragment",
+          "configs/gemini-a53-wifi-hif-probe.fragment",
+          "configs/gemini-a53-wifi-emi-set-probe.fragment",
+          "configs/gemini-a53-wifi-emi-copy-probe.fragment",
+          "configs/gemini-a53-wifi-wmt-start.fragment",
+          "configs/gemini-a53-wmt-default-query.fragment",
+          "configs/gemini-a53-wifi-scan-tuning-sample.fragment",
+          "configs/gemini-a53-wifi-phase-a.fragment",
+          "configs/gemini-a53-wifi-phase-b-compile.fragment",
+          "configs/gemini-a53-wifi-native-delivery-diag.fragment",
+          "configs/gemini-a53-wifi-ccmp-stable-monitor.fragment",
+          "configs/gemini-a53-wifi-ccmp-mask-control.fragment",
+          "configs/gemini-a53-wifi-ccmp-60s-window.fragment",
+          "configs/gemini-a53-wifi-ccmp-initial-gtk.fragment",
+          "configs/gemini-a53-wifi-ccmp-channel-release.fragment",
+          "configs/gemini-a53-wifi-ccmp-connected-lifetime.fragment"
+        ]
       }
     }
   }

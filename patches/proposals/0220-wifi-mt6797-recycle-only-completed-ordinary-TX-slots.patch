@@ -1,0 +1,279 @@
+From 311b05ec813340745f89678a70274c706aa2a75c Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Mon, 19 Oct 2026 06:26:42 -0400
+Subject: [PATCH] wifi: mt6797: recycle only completed ordinary TX slots
+
+Use a bounded, single-inflight pool for ordinary PIDs 1 through 126.
+A slot becomes reusable only after its exact owned completion, and the
+MAC allocator also requires returned TC1/TC4 credits. Reserve PID 127
+for the lifetime's deauthentication; it never enters the reusable pool.
+Keep timeouts fatal and key/station reuse disabled. Count well-formed
+unowned completions without completing an skb or changing a deadline.
+
+Local ordinals observe host ownership, not a new firmware generation.
+The pinned public gen3 driver rotates per-WLAN PIDs and consumes a
+matching WLAN/PID pending entry on TX-done. This remains the underlying
+completion contract, not a claim that host fixtures prove firmware.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  10 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 155 +++++++++++++++++++
+ 2 files changed, 165 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 94c60b1..b6ba295 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -103,6 +103,16 @@ config MT6797_CCMP_50S_IDLE
+ 	  Use the separately reviewed four-probe leaf. No crypto, RX format,
+ 	  key/PID reuse or reconnect changes; not sustained support.
+ 
++config MT6797_CCMP_TX_PID_REUSE
++	bool "MT6797 default-off completed TX PID reuse"
++	depends on MT6797_CCMP_CONNECTED_LIFETIME
++	default n
++	help
++	  Recycle ordinary frame IDs only after the exact owned completion and
++	  returned credits. Keep one frame in flight; reserve ID 127 for the
++	  lifetime's deauthentication. Never recycle on timeout or ambiguity.
++	  This does not enable key reuse, rekey or a second station lifetime.
++
+ config MT6797_CCMP_CONNECTED_LIFETIME
+ 	bool "MT6797 default-off connected station lifetime"
+ 	depends on MT6797_CCMP_CHANNEL_RELEASE && !MT6797_CCMP_50S_IDLE
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 652f24e..7d4dfc2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -44,6 +44,55 @@ MODULE_PARM_DESC(ccmp_stable_epoch,
+ #endif
+ #include "join-tx.h"
+ #include "join-commands.h"
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++/* One initial station/key epoch, one frame in flight. No timeout release.
++ * The reserved deauthentication never enters this reusable ordinary pool.
++ */
++#define MT6797_JOIN_PID_LAST 126U
++#define MT6797_JOIN_PID_RESERVED 127U
++struct mt6797_join_pid_pool {
++	unsigned char next, pending;
++	bool used[MT6797_JOIN_PID_LAST + 1];
++	bool completed[MT6797_JOIN_PID_LAST + 1];
++	unsigned int allocations, completions, wraps;
++};
++
++static inline unsigned char mt6797_join_pid_take(struct mt6797_join_pid_pool *p)
++{
++	unsigned char pid;
++
++	if (!p || !p->next || p->next > MT6797_JOIN_PID_LAST || p->pending ||
++	    p->allocations != p->completions || p->allocations == ~0U)
++		return 0;
++	pid = p->next;
++	if (p->used[pid] && !p->completed[pid])
++		return 0;
++	p->used[pid] = true;
++	p->completed[pid] = false;
++	p->pending = pid;
++	p->allocations++;
++	if (pid == MT6797_JOIN_PID_LAST) {
++		p->next = 1;
++		p->wraps++;
++	} else {
++		p->next++;
++	}
++	return pid;
++}
++
++static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
++					    unsigned char pid)
++{
++	if (!p || !pid || pid > MT6797_JOIN_PID_LAST || p->pending != pid ||
++	    !p->used[pid] || p->completed[pid] || p->completions == ~0U ||
++	    p->allocations != p->completions + 1)
++		return false;
++	p->completed[pid] = true;
++	p->pending = 0;
++	p->completions++;
++	return true;
++}
++#endif
+ 
+ /* Phase C3 finite limits: the data phase budget after the group key's
+  * credit, the teardown margin added to the lifetime deadline at that point,
+@@ -130,6 +179,11 @@ struct mt6797_mac {
+ 	struct sk_buff *join_inflight;
+ 	u64 join_deadline, join_frame_deadline;
+ 	u8 join_ap[ETH_ALEN], join_pid, join_next_pid;
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++	struct mt6797_join_pid_pool ccmp_pid_pool;
++	unsigned int ccmp_unowned_tx_done;
++	bool ccmp_reserved_pid_used;
++#endif
+ 	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+ 	unsigned int join_page_debt, join_polls, join_packets;
+@@ -292,6 +346,50 @@ struct mt6797_mac {
+ #endif
+ };
+ 
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++/* Mutex held; selection already owns the skb but has not submitted it. */
++static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved)
++{
++	unsigned char pid;
++
++	if (!ccmp_stable_epoch) {
++		mac->join_pid = mac->join_next_pid++;
++		return 0;
++	}
++	if (mac->first_error || mac->closing || mac->join_retired ||
++	    mac->join_credit_pending || mac->join_page_debt || mac->join_data_page_debt)
++		return -EBUSY;
++	if (reserved) {
++		if (mac->ccmp_reserved_pid_used || mac->ccmp_pid_pool.pending)
++			return -EOWNERDEAD;
++		mac->ccmp_reserved_pid_used = true;
++		pid = MT6797_JOIN_PID_RESERVED;
++	} else {
++		if (mac->join_data_ended || mac->ccmp_reserved_pid_used)
++			return -EOWNERDEAD;
++		pid = mt6797_join_pid_take(&mac->ccmp_pid_pool);
++		if (!pid)
++			return -EOWNERDEAD;
++		mac->join_next_pid = mac->ccmp_pid_pool.next;
++	}
++	mac->join_pid = pid;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN TX slot allocation: pid=%u ordinal=%u reserved=%u wraps=%u\n",
++		 pid, reserved ? 0 : mac->ccmp_pid_pool.allocations,
++		 (unsigned int)reserved, mac->ccmp_pid_pool.wraps);
++	return 0;
++}
++
++static void mt6797_ccmp_pid_report(struct mt6797_mac *mac, const char *phase)
++{
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN TX slot summary: phase=%s allocations=%u completions=%u pending=%u wraps=%u unowned=%u\n",
++		 phase, mac->ccmp_pid_pool.allocations, mac->ccmp_pid_pool.completions,
++		 mac->ccmp_pid_pool.pending, mac->ccmp_pid_pool.wraps,
++		 mac->ccmp_unowned_tx_done);
++}
++#endif
++
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel);
+@@ -1983,6 +2081,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN join data LLC mismatches discarded: total=%u\n",
+ 				 mac->join_data_llc_discarded);
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++		if (ccmp_stable_epoch)
++			mt6797_ccmp_pid_report(mac, "cleanup");
++#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (mac->ccmp_cleanup_bounded_done) {
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -2335,6 +2437,10 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ #endif
+ 	mac->join_data_ended = true;
+ 	mac->join_data_end_reason = reason;
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++	if (ccmp_stable_epoch)
++		mt6797_ccmp_pid_report(mac, "window");
++#endif
+ #ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
+ 	if (ccmp_stable_epoch) {
+ 		teardown_end = now + (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
+@@ -2974,7 +3080,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				memcpy(mac->join_eth + 6, skb->data + 10, ETH_ALEN);
+ 				memcpy(mac->join_eth + 12, skb->data + 30, 2);
+ 				memcpy(mac->join_eth + 14, skb->data + 32, skb->len - 32);
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++				ret = mt6797_ccmp_assign_pid(mac, false);
++				if (ret)
++					goto failed;
++#else
+ 				mac->join_pid = mac->join_next_pid++;
++#endif
+ 				mac->join_last_acked = false;
+ 				reinit_completion(&mac->join_frame_done);
+ 				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
+@@ -3014,7 +3126,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				ret = -EINVAL;
+ 				goto failed;
+ 			}
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++			ret = mt6797_ccmp_assign_pid(mac, skb == mac->join_internal);
++			if (ret)
++				goto failed;
++#else
++
+ 			mac->join_pid = mac->join_next_pid++;
++#endif
+ 			mac->join_last_acked = false;
+ 			reinit_completion(&mac->join_frame_done);
+ 			pages = (MT6797_JOIN_TX_DESC_BYTES + skb->len + 127) / 128;
+@@ -3141,6 +3260,25 @@ submitted:
+ 				continue;
+ #endif
+ 			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++				/* Exact ABI shape, but no matching host owner. Like the
++				 * public pending-list consumer, complete no skb. A real
++				 * pending frame keeps its unchanged deadline.
++				 */
++				if (ccmp_stable_epoch &&
++				    (!mac->join_inflight ||
++				     mac->join_packet[8] != mac->join_pid ||
++				     mac->join_packet[12] != 1)) {
++					mac->ccmp_unowned_tx_done++;
++					if (mac->ccmp_unowned_tx_done <= 8)
++						dev_info(wiphy_dev(mac->hw->wiphy),
++							 "one-shot WLAN unowned TX completion: pid=%u wlan=%u status=%u count=%u\n",
++							 mac->join_packet[8], mac->join_packet[12],
++							 mac->join_packet[9],
++							 mac->ccmp_unowned_tx_done);
++					continue;
++				}
++#endif
+ 				if (!mac->join_inflight ||
+ 	!mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
+ 			    mac->join_pid, 1, &result) ||
+@@ -3148,6 +3286,20 @@ submitted:
+ 					ret = -EPROTO;
+ 					goto failed;
+ 				}
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++				if (ccmp_stable_epoch &&
++				    mac->join_pid != MT6797_JOIN_PID_RESERVED) {
++					if (!mt6797_join_pid_complete(&mac->ccmp_pid_pool,
++								      mac->join_pid)) {
++						ret = -EPROTO;
++						goto failed;
++					}
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN TX slot completion: pid=%u ordinal=%u wraps=%u\n",
++						 mac->join_pid, mac->ccmp_pid_pool.completions,
++						 mac->ccmp_pid_pool.wraps);
++				}
++#endif
+ 				completed = mac->join_inflight;
+ 				mac->join_inflight = NULL;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+@@ -5498,6 +5650,9 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	skb_queue_head_init(&mac->join_queue);
+ 	INIT_DELAYED_WORK(&mac->join_work, mt6797_mac_join_work);
+ 	mac->join_next_pid = 1;
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++	mac->ccmp_pid_pool.next = 1;
++#endif
+ 	init_completion(&mac->join_channel_done);
+ 	init_completion(&mac->join_sta_done);
+ 	init_completion(&mac->join_credit_done);
+-- 
+2.54.0 (Apple Git-157)
+

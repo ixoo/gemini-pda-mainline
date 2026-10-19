@@ -1,0 +1,62 @@
+From e7be093e6f4200b03aaff56787dc8d74ca1f3468 Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Mon, 19 Oct 2026 06:39:20 -0400
+Subject: [PATCH] wifi: mt6797: size connected observation counters separately
+
+Select 32768 RX records, 8192 checked handoffs, 16 MiB of cumulative RX
+bytes and 65536 lifetime packets only for the connected experiment.
+The measured low-rate workload projects below these ceilings through
+ten minutes. These are finite observation counters, not queue storage.
+
+Keep the original native and other-profile ceilings, per-frame size,
+8-frame TX queue, packet-drain budgets and every transaction/teardown
+bound. Do not reset key or PN ownership at a counter boundary.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c         | 5 +++++
+ drivers/net/wireless/mediatek/mt6797/native-diag.h | 7 +++++++
+ 2 files changed, 12 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 63bf4c5..e0465dd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -121,7 +121,12 @@ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
+  */
+ #define MT6797_JOIN_DATA_CREDIT_RECORDS 8U
+ #define MT6797_JOIN_MAX_POLLS 4096U
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++/* Covers the connected observation plus pre-data and bounded retirement RX. */
++#define MT6797_JOIN_MAX_PACKETS 65536U
++#else
+ #define MT6797_JOIN_MAX_PACKETS 32768U
++#endif
+ #define MT6797_JOIN_DATA_RX_MAX 16384U
+ #define MT6797_JOIN_DATA_TX_QUEUE 8U
+ #define MT6797_JOIN_DATA_TX_QUEUE_BYTES (8U * 1550U)
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index 121cb84..9325836 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -31,9 +31,16 @@
+  * Native ciphertext ceilings and every retirement ceiling remain unchanged.
+  */
+ #ifdef CONFIG_MT6797_CCMP_60S_WINDOW
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++/* Low-traffic connected observation through ten minutes, not queue storage. */
++#define MT6797_CCMP_DIAG_RX_MAX       32768U
++#define MT6797_CCMP_DIAG_CHECKED_MAX  8192U
++#define MT6797_CCMP_DIAG_BYTES_MAX    (16U * 1024U * 1024U)
++#else
+ #define MT6797_CCMP_DIAG_RX_MAX       4096U
+ #define MT6797_CCMP_DIAG_CHECKED_MAX  1024U
+ #define MT6797_CCMP_DIAG_BYTES_MAX    (2U * 1024U * 1024U)
++#endif
+ #else
+ #define MT6797_CCMP_DIAG_RX_MAX       MT6797_NATIVE_DIAG_RX_MAX
+ #define MT6797_CCMP_DIAG_CHECKED_MAX  MT6797_NATIVE_DIAG_NATIVE_MAX
+-- 
+2.54.0 (Apple Git-157)
+

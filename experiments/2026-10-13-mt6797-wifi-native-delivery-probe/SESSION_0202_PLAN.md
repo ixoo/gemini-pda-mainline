@@ -1929,3 +1929,166 @@ filter declaration and normal owned-loss reporting, retain the pre-data fence
 and arm bounded teardown on data end. Keep key reuse, rekey and reconnect
 refused until their ownership barriers are supported. No new firmware analysis
 or private explanation is published.
+
+
+### Connected-lifetime successor — source gates before a 120-second stream
+
+I50's result and host correction are pushed at `d05117bc` / `b2ba89d4`;
+all seven actual-client-main namespace cases and the I50 verdict fixture pass
+on Linux from the clean pushed checkout. No kernel build or unchanged-image
+repeat is needed for that host-only correction.
+
+Prepare one initial-key connected-lifetime candidate, with separate logical
+archives and one eventual build. Retain all pre-data join/credit/frame bounds,
+strict PTK/GTK PN checks, fatal transport poison and key/reconnect refusals.
+The existing source-only connected phase is rebased onto the canonical I50
+source with I50 disabled, so both profiles can preserve canonical patch order.
+
+1. **Connected data and bounded teardown:** the successful data opening owns
+   an independent connected phase, with no finite join/data wall. The first
+   standard or resource/loss data end arms the existing five-second teardown
+   fence; repeated callbacks cannot renew it, and an earlier fence wins. The
+   cumulative 4,096 join/teardown poll quota excludes connected data, retaining
+   its 20 ms worker and per-tick RX/transaction limits. Pre-data behavior and
+   option-off behavior remain unchanged. Exact boundary/poison/native tests
+   already pass locally; Linux and integrated validation remain.
+2. **Completed PID ownership:** the verified public gen3
+   [allocator and active completion handler](https://github.com/lineage-geminipda/android_kernel_planet_mt6797/blob/c5b0be85017ad0c599725e8273842efdbecdd88a/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic_tx.c)
+   rotate per-WLAN PIDs and match a completion to a pending WLAN/PID entry.
+   The checked source SHA-256 is
+   `1f479d41bab8e2b5bba68eb6514f3e977559d31d97c39c7833f3dc9f111cd1ed`;
+   the public pending-list removal in `nic.c` is separately verified.
+   Retain one host frame in flight. Rotate ordinary IDs only after the exact
+   owned completion and whole TC1/TC4 ledgers. Reserve 127 for the lifetime's
+   deauthentication, so a missing/late reserved completion cannot alias reused
+   data. Unknown well-formed completions may be counted/discarded only after
+   ownership classification; malformed/current-owned errors remain fatal.
+   Local allocation generations are observations, not a new wire generation.
+   Vendor matching does not prove that firmware can never duplicate an old
+   same-ID event after wrap; no synthetic test or local generation will be
+   represented as that proof. No station/key-epoch reuse is enabled.
+3. **Monitoring contract:** declare `IEEE80211_VIF_BEACON_FILTER` only on the
+   PM-required station path. Both software monitors are already suppressed by
+   `CONNECTION_MONITOR`. A well-formed current owned-BSS 0x13 in a healthy data
+   phase should end data and report standard connection loss once, with bounded
+   cleanup rather than protocol poison. It is a disconnect, not event tolerance.
+   Foreign, malformed, stale or pre-data events retain existing refusal. Keep
+   reason values observational; no private explanation or decoded mapping.
+4. **Observation capacity:** rescale the connected profile before the longer
+   run, keeping real queue/memory and per-operation limits unchanged. The earlier
+   observed 33 RX/s and roughly 770 KiB/minute imply about 19,800 acquisitions
+   and 7.5 MiB over ten minutes before margin. Use connected-only ceilings of
+   32,768 RX records, 8,192 checked handoffs, 16 MiB RX bytes and 65,536 total
+   lifetime packets; their storage is still per-frame, with no larger queue.
+   This also leaves margin for low-rate SSH traffic and the observed group load.
+   The original native-ciphertext and existing-profile ceilings stay unchanged.
+   These remain finite measurement limits, not an all-day operational claim;
+   every actual first cap must be reported and normal-profile promotion must
+   remove diagnostic lifetime termination after the path is proved.
+
+Before building, fixture exact PID wrap/completion/credit/failure/retired-ID
+ownership, stale and malformed events, first-end teardown at ±1 ns, native and
+option-off parity and the integrated RX limits. A missing/uncertain ordinary
+completion must poison; never recycle it on timeout. Key PN contexts never
+reset with an observation counter or PID wrap. Keep callbacks/worker lock order
+and source-proved standard loss reporting. One supported source assumption is
+ordinary TX-done completion semantics used by the public driver; unsupported
+firmware behavior is not manufactured by the fixture.
+
+The eventual host protocol must carry a real 120-second authenticated SSH stream,
+retain stderr/partial output, prove remote/local quiescence and then use standard
+mac80211 disconnect with no private control API. Its listener/client/remote/parent
+observation bounds need a separate matched review; ConnectTimeout and all firmware,
+frame, credit and teardown bounds remain unchanged. Predeclare a first packet,
+PID ownership, quota, monitoring, SSH-stage or cleanup failure independently.
+Only after a validated 120-second result should the 600-second milestone and
+safe second-key/station lifetime be admitted. No new device action is selected
+by this source plan alone.
+
+
+### Connected source prepared — build input validation pending
+
+Four separately scoped archives are now prepared: 0219 separates connected
+ownership and arms the first-end five-second fence; 0220 owns/recycles completed
+ordinary PID slots and reserves 127; 0221 declares the station beacon-filter
+contract and maps an exact owned live-data loss to standard disconnect/cleanup;
+0222 selects the connected-only observation capacities declared above. The named
+`mt6797-a53-wifi-ccmp-connected-lifetime` profile preserves all 715 selected
+patches in canonical order, includes the I50 source option default-off, and
+selects connected lifetime/completed PID reuse without selecting I50.
+
+Local actual-source tests pass: six connected-lifetime option-off MAC/header
+comparisons and ±1 ns first-end/unchanged native boundaries; 8,192 pure-pool
+and 8,192 actual MAC allocation/completion transactions with wraps, pending
+and credit/poison/timeout refusals, reserved-ID isolation, current/unowned/
+malformed completion branches and three option-off MAC selections; exact
+owned-loss body/256 reason values, foreign sequence/BSS, stale/pre-data/poison
+states, once-only core reporting, station flag admission/removal and three
+option-off MAC selections; capacity ±1/native/drain checks and six option-off
+selections. No observer interprets numeric reasons or reads new registers.
+
+The final combined source keeps nine crypto/HIF files and ten key/queue/core
+callback bodies byte-identical to I50. The existing actual-header PTK/GTK
+fixtures pass all 19,007 GTK/context/layout/PN/refusal cases. This does not prove
+firmware enforcement or stale-event exclusion after an indistinguishable wire
+ID reuse. Strict checkpatch is clean for all four archives apart from the
+explicit non-certifying experiment author's DCO omission. No key/PN context is
+reset by a PID wrap or a cumulative counter.
+
+Clean pushed-input Linux fixture runs and the single required Buildbox kernel
+build remain. No package or receipt is invented, and no new candidate is admitted
+for a boot. The host-only 120-second stream preparation follows independently;
+it must handle its own longer observation envelope and explicit namespace at
+the actual child CLI, retain all client output, guard the remote PTY owner and
+confirm remote/local quiescence before sealing/recovery. Standard connect,
+DHCP, ping, SSH and disconnect remain the interfaces. Key reuse, rekey and
+same-boot reconnect are still disabled.
+
+
+### P1 host envelope — predeclared before implementation/admission
+
+The first connected-lifetime run will require **120 seconds of authenticated
+SSH traffic**, not a longer nominal join budget. Use 241 boot-bound PTY chunks
+scheduled against absolute monotonic half-second targets, with the first chunk
+admitted by PM +5 s. Require the actual last-minus-first span and host elapsed
+time both at least 120 s. Absolute targets prevent per-iteration shell overhead
+from extending a relative-sleep loop; a missed slot is a distinct host result,
+not a catch-up burst. The rate should exercise ordinary PID wrap; claim wire
+reuse only when a completed reused slot is actually observed, not from a wrap
+cursor alone. Raw client stdout remains capped at 64 KiB with actual/truncated
+counts explicit, and stderr/neighbor/numeric-route retention stays permanent.
+
+Verify the same boot/window before each
+chunk, with the existing own foreground PTY PID/group/session guard before any
+signal handler. The first-chunk PM +5 s bound is an admission cutoff, not a
+periodic interval. The remote BusyBox command bound becomes 125 s, client
+acquisition 135 s, helper poll 210 s and parent-owned helper join 270 s with the
+existing five-second termination grace. These are **host observation bounds**
+for the requested longer command. The parent bound covers the helper's 210 s
+poll plus post-client USB observation (15 s), existing remote-owner absence
+budget (20 s), one control call (15 s) and ten seconds of margin, including an
+early driver failure. ConnectTimeout remains 10 s. Extend the actual child
+CLI's poll admission and its exchange bound explicitly; test real main-path
+admission, not just the parent adapter (the I50 gap).
+
+The existing one-cycle leaf keeps its 300 s overall wall and finite owned-child
+termination. Only its listener bound becomes 180 s, and scheduled single-probe
+pings continue at +10 through +110 s (eleven); the full SSH stream covers the
+last interval. Stopping probes at +110 avoids racing a final +120 probe against
+standard disconnect. After normal SSH command completion and verified remote
+stream quiescence, make exactly one guarded standard supplicant disconnect
+within PM +120 through +135 s, without waiting for a particular instant or
+injecting a teardown frame. That follows freshly completed traffic and avoids
+attributing any outcome to a firmware clock. Refuse a stale, faulted or missed
+control window and do not retry. Keep its three-second BusyBox/15-second USB
+bounds. Key PN state and all firmware/frame/credit/teardown bounds are unchanged.
+
+The parent refuses export, seal or recovery unless the local helper group and
+the remote tagged command are quiescent. A late/failed/unknown owner observation
+is a separate blocked preservation state, not an implicit timeout recovery.
+Successful 120-second traffic, actual PID retirement/reuse, eleven probes,
+standard-disconnect attribution and whole-ledger cleanup are separate verdicts;
+a different first limit or failure is recorded with its offset. The 600-second
+milestone and a second key/station lifetime remain later admissions. This plan
+authorizes no physical run until the actual built package, composed candidate,
+all host fixtures and guarded installation/readback/shutdown are validated.

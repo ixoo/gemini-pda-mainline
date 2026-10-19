@@ -1,5 +1,22 @@
 # Reusable healthy lifetimes: current source audit and remaining gates
 
+## I50 refresh: timing observation and next ownership work
+
+[I50](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#i50-consumed--acknowledged-idle-tail-teardown-ssh-not-reached)
+acknowledged its reserved deauthentication after a measured 10.099-second idle
+interval and reached whole-ledger cleanup at a 50-second budget stop. Its SSH
+helper refused before client/TCP; no SSH result is inferred. This is a separate
+host namespace defect, now corrected and tested against actual CLI admission.
+No timer mechanism, traffic injection or offset-avoidance fix follows.
+
+The next [source gates](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#connected-lifetime-successor--source-gates-before-a-120-second-stream)
+separate connected data from join/teardown, add completed-PID ownership for the
+same initial key epoch, rescale finite observation counters and declare/report
+the standard monitoring contract. PID reuse is not key reuse: local generations
+and returned command credits do not establish a firmware queued-RX/key-incarnation
+barrier. Both firmware/resource retirement and mac80211 NOTEXIST remain required
+before any stable-key re-arm; reconnect/rekey/key reuse remain disabled.
+
 ## S1 refresh: standard teardown ordering observed
 
 [S1](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#s1-consumed--ssh-stream-and-standard-disconnect-pass)

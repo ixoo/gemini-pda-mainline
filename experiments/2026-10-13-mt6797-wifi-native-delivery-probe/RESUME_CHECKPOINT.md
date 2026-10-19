@@ -12,9 +12,11 @@ host ACK exists. The exact child-CLI guard is reproduced offline. The immutable
 full-session verdict remains false. All 62 seals, 2,134 contiguous records,
 eight available cycle frames, quiescence/regression and reviewed return verify.
 Independent Gemian `0ad152bc-0456-4298-82d2-eb50d09ada81`. No pending physical
-action or unchanged I50 retry. Correct the narrow host admission gate with an
-actual-main test, then resume connected-lifetime/PID/accounting/monitoring
-source work before longer-window admission. Key reuse/rekey/reconnect remain
+action or unchanged I50 retry. The narrow host admission correction and its
+seven actual-main cases pass from clean pushed inputs on Linux.
+[Connected-lifetime/PID/accounting/monitoring source](SESSION_0202_PLAN.md#connected-source-prepared--build-input-validation-pending)
+is now prepared with actual-source local tests and strict checkpatch; clean
+Linux fixtures, kernel build and a reviewed host stream remain before admission. Key reuse/rekey/reconnect remain
 disabled and full Wi-Fi acceptance remains incomplete.
 
 **S1 consumed once: controlled core disconnect and 20-second SSH stream PASS.**
@@ -34,8 +36,8 @@ verify. Independently confirmed Gemian `9dac50f6-816c-4c08-981d-79535cb56f69`.
 No physical action or S1 retry is pending. No S1 kernel build/change occurred.
 
 The I50 preparation/handoff and S1 successor plans below are consumed history;
-use the current I50 result at the top. Connected-lifetime prototype remains
-unarchived/unbuilt; longer-window admission still needs the source gates above.
+use the current I50 result at the top. The connected-lifetime source archives are prepared but unbuilt; longer-window
+admission still needs the source and host gates above.
 
 **GTK8 consumed once: finite capability, post-release protected traffic,
 60-second duration and whole-ledger host cleanup PASS.** Boot

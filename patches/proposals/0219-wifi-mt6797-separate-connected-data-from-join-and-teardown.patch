@@ -1,0 +1,193 @@
+From dd3eb3bf314dff27d8d89830be8c05fee318b14f Mon Sep 17 00:00:00 2001
+From: Codex Experiment <codex-experiment@example.invalid>
+Date: Mon, 19 Oct 2026 06:21:17 -0400
+Subject: [PATCH] wifi: mt6797: separate connected data from join and teardown
+
+Keep the initial join fence and all per-operation bounds. The connected
+BSS no longer ends on the diagnostic elapsed wall or consumes the
+cumulative join poll quota. The first data end arms the existing
+five-second teardown fence, without renewing it on repeated callbacks
+or overflowing an unbounded horizon.
+
+Internal experiment archive, synthetic non-certifying author;
+no DCO certification and not an upstream submission.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 12 +++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 53 ++++++++++++++++++-
+ .../wireless/mediatek/mt6797/native-diag.h    |  7 +++
+ 3 files changed, 71 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index a4f03a0..94c60b1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -103,6 +103,18 @@ config MT6797_CCMP_50S_IDLE
+ 	  Use the separately reviewed four-probe leaf. No crypto, RX format,
+ 	  key/PID reuse or reconnect changes; not sustained support.
+ 
++config MT6797_CCMP_CONNECTED_LIFETIME
++	bool "MT6797 default-off connected station lifetime"
++	depends on MT6797_CCMP_CHANNEL_RELEASE && !MT6797_CCMP_50S_IDLE
++	default n
++	help
++	  Keep the initial connected BSS alive until standard teardown or an
++	  existing resource/fault stop. Preserve the pre-data join fence and
++	  per-operation bounds; arm the five-second cleanup fence at data end.
++	  The 60-second sample wall and cumulative join poll quota do not end
++	  connected data. RX/byte/PID/queue caps remain, with no reuse or rekey.
++	  This is not sustained support or a reusable key/station lifecycle.
++
+ config MT6797_CCMP_CHANNEL_RELEASE
+ 	bool "MT6797 default-off connected data after join privilege release"
+ 	depends on MT6797_CCMP_INITIAL_GTK
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index faa000b..652f24e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2159,8 +2159,12 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
+ 	 */
+ #ifdef CONFIG_MT6797_CCMP_60S_WINDOW
+ 	if (ccmp_stable_epoch && !mac->native_diag_sample_done && !mac->join_data_ended &&
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	    (mac->native_diag_total >= MT6797_CCMP_DIAG_RX_MAX ||
++#else
+ 	    (el >= MT6797_NATIVE_DIAG_WALL_MS ||
+ 	     mac->native_diag_total >= MT6797_CCMP_DIAG_RX_MAX ||
++#endif
+ 	     mac->native_diag_native >= MT6797_NATIVE_DIAG_NATIVE_MAX ||
+ 	     mac->native_diag_bytes + MT6797_HIF_RX_MAX_PACKET > MT6797_CCMP_DIAG_BYTES_MAX))
+ 		mac->native_diag_sample_done = true;
+@@ -2298,7 +2302,11 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 		u64 wall = now + (u64)MT6797_NATIVE_DIAG_WALL_MS * NSEC_PER_MSEC;
+ 
+ 		mac->native_diag_started = now;
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++		if (!ccmp_stable_epoch && wall < mac->join_data_deadline)
++#else
+ 		if (wall < mac->join_data_deadline)
++#endif
+ 			mac->join_data_deadline = wall;	/* wall even on an empty RX stream */
+ 	}
+ 	if (prev != mac->native_diag_state)
+@@ -2315,10 +2323,24 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+  */
+ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ {
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	u64 now, teardown_end;
++#endif
++
+ 	if (!mac->join_data_phase || mac->join_data_ended)
+ 		return;
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	/* Only the first end owns the teardown fence. */
++	now = ktime_get_ns();
++#endif
+ 	mac->join_data_ended = true;
+ 	mac->join_data_end_reason = reason;
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	if (ccmp_stable_epoch) {
++		teardown_end = now + (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
++		mac->join_deadline = min(mac->join_deadline, teardown_end);
++	}
++#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	mt6797_ccmp_data_end_beacons(mac);
+ #endif
+@@ -2359,7 +2381,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+  */
+ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ {
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	u64 now = ktime_get_ns(), grant_end;
++#else
+ 	u64 now = ktime_get_ns(), budget_end, grant_end;
++#endif
+ 
+ #ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
+ 	if (!ccmp_stable_epoch || !mac->ccmp_pm_connected || !mac->ccmp_pm_credit_ns)
+@@ -2382,7 +2408,9 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ #endif
+ 	if (mac->join_grant_deadline <= now + (u64)MT6797_JOIN_GRANT_TAIL_MS * NSEC_PER_MSEC)
+ 		return -ETIMEDOUT;
++#ifndef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
+ 	budget_end = now + (u64)MT6797_JOIN_DATA_BUDGET_MS * NSEC_PER_MSEC;
++#endif
+ 	grant_end = mac->join_grant_deadline - (u64)MT6797_JOIN_GRANT_TAIL_MS * NSEC_PER_MSEC;
+ 	mac->join_data_phase = true;
+ 	mac->join_data_ended = false;
+@@ -2397,16 +2425,33 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 	 * grant tail, with no new TX until its command credit returns.
+ 	 */
+ 	mac->ccmp_channel_release_at = grant_end;
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	/* Connected BSS ownership is independent of the finite join fence.
++	 * end_data arms the existing bounded teardown fence exactly once.
++	 */
++	mac->join_data_deadline = U64_MAX;
++#else
+ 	mac->join_data_deadline = budget_end;
++#endif
+ #else
+ 	mac->join_data_deadline = min(budget_end, grant_end);
+ #endif
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	mac->join_deadline = U64_MAX;
++#else
+ 	mac->join_deadline = mac->join_data_deadline +
+ 			     (u64)MT6797_JOIN_TEARDOWN_MARGIN_MS * NSEC_PER_MSEC;
++#endif
+ 	mac->join_hold_until = mac->join_data_deadline;
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN connected data phase: teardown_margin_ms=%u no_reuse=1\n",
++		 MT6797_JOIN_TEARDOWN_MARGIN_MS);
++#else
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join data phase: budget_ms=%llu teardown_margin_ms=%u inside_grant=1\n",
+ 		 (mac->join_data_deadline - now) / NSEC_PER_MSEC, MT6797_JOIN_TEARDOWN_MARGIN_MS);
++#endif
+ 	return 0;
+ }
+ #endif
+@@ -2751,7 +2796,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	}
+ #endif
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+-					now >= mac->join_deadline || ++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
++					now >= mac->join_deadline ||
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++		((!ccmp_stable_epoch || !mac->join_data_phase || mac->join_data_ended) &&
++		 ++mac->join_polls > MT6797_JOIN_MAX_POLLS) ||
++#else
++		++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
++#endif
+ 					(mac->join_inflight && now >= mac->join_frame_deadline)) {
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		/* A data frame still in flight at its deadline: name it with the
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index caf12e4..121cb84 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -101,11 +101,18 @@ mt6797_native_diag_budget_step(const struct mt6797_native_diag_budget *b)
+ static inline enum mt6797_native_diag_step
+ mt6797_ccmp_diag_budget_step(const struct mt6797_native_diag_budget *b)
+ {
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++	if (!b || b->total_rx >= MT6797_CCMP_DIAG_RX_MAX ||
++	    b->native_rx >= MT6797_CCMP_DIAG_CHECKED_MAX ||
++	    b->bytes >= MT6797_CCMP_DIAG_BYTES_MAX)
++		return MT6797_NATIVE_DIAG_STOP;
++#else
+ 	if (!b || b->elapsed_ms >= MT6797_NATIVE_DIAG_WALL_MS ||
+ 	    b->total_rx >= MT6797_CCMP_DIAG_RX_MAX ||
+ 	    b->native_rx >= MT6797_CCMP_DIAG_CHECKED_MAX ||
+ 	    b->bytes >= MT6797_CCMP_DIAG_BYTES_MAX)
+ 		return MT6797_NATIVE_DIAG_STOP;
++#endif
+ 	return MT6797_NATIVE_DIAG_CONTINUE;
+ }
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+

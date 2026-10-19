@@ -829,3 +829,7 @@ proposals/0215-wifi-mt6797-credit-PM-abort-before-reserved-deauthentication.patc
 proposals/0216-wifi-mt6797-retain-PM-relative-completion-and-beacon-observations.patch
 proposals/0217-wifi-mt6797-test-connected-data-after-bounded-join-privilege-release.patch
 proposals/0218-wifi-mt6797-select-a-50-second-idle-tail-comparison.patch
+proposals/0219-wifi-mt6797-separate-connected-data-from-join-and-teardown.patch
+proposals/0220-wifi-mt6797-recycle-only-completed-ordinary-TX-slots.patch
+proposals/0221-wifi-mt6797-report-owned-connected-monitor-loss-to-mac80211.patch
+proposals/0222-wifi-mt6797-size-connected-observation-counters-separately.patch

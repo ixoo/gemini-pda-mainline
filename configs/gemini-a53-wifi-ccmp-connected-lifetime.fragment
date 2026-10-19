@@ -1,0 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# One initial key/station epoch, standard teardown, no key reuse/reconnect.
+CONFIG_MT6797_CCMP_CONNECTED_LIFETIME=y
+CONFIG_MT6797_CCMP_TX_PID_REUSE=y
