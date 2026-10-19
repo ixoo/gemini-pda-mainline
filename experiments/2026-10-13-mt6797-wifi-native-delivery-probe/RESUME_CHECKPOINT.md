@@ -1,5 +1,19 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**S1 host-only test ready; waiting for a new physical boot2 selection.** Inputs
+`2a197328` reuse the exact GTK8 image/config/DT/RAM and existing periodic leaf.
+All Linux tests, including the real PTY/held-input/hangup and clock-parser
+cases, pass. The guarded installer skipped writing because boot2 already
+matched; full readback/seal, clean shutdown and fresh host preparation pass.
+[Current S1 handoff](SESSION_0202_PLAN.md#s1-admitted--unchanged-image-verified-physical-selection-pending).
+New boot UUID and unchanged 84-byte note SHA-256
+`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`
+are required before one capture/session. Planned: a 20-second owned PTY SSH
+stream across release, unchanged five periodic pings, then one guarded standard
+supplicant disconnect near PM +55 s. This is a controlled core-transition test,
+not a full 60-second budget pass. No S1 device run yet; use a new owner reply.
+
+
 **GTK8 consumed once: finite capability, post-release protected traffic,
 60-second duration and whole-ledger host cleanup PASS.** Boot
 `a996ec5e-fc20-49d3-a160-2ed321e3e156`, kernel `8792a406`, bindings `49ff0b1c`,
@@ -31,14 +45,15 @@ Independently confirmed Gemian `4f0120ad-fa64-462a-82d3-c2c3f9b0a30e`.
 Two read-only identity invocations preceded the one capture/session: the first
 used the SSH helper incorrectly and exited nonzero; the corrected stdin
 invocation verified identity. No radio/session retry. No live device process
-or physical handoff remains pending; GTK8 is consumed.
+is pending for GTK8, which is consumed; the new S1 physical handoff is above.
 
 Next: [S1 host-only preparation](SESSION_0202_PLAN.md#s1-preparation--unchanged-gtk8-stream-and-core-initiated-disconnect)
 on the unchanged GTK8 image: a 20-second owned PTY SSH stream across release,
 the same five periodic pings and one guarded standard disconnect near PM +55 s.
 Current-source audit and local client/verdict/ownership/binding/source-routing
-fixtures pass; Linux PTY/host checks, deployment and a new physical selection
-remain pending. The kernel/client/firmware limits stay unchanged; the planned
+fixtures and Linux PTY/host checks pass. Matching-image guarded deployment,
+readback, clean shutdown and host preparation pass; a new physical selection
+is pending as recorded above. The kernel/client/firmware limits stay unchanged; the planned
 controlled stop is explicitly shorter than the kernel's 60-second cap and is
 not a full-duration pass. Remote stream quiescence is a mandatory seal/recovery
 gate. No S1 device run or new kernel build has occurred. Persistent operation

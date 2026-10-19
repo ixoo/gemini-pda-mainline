@@ -1602,3 +1602,38 @@ fixtures pass. The seal-gate fixture rejects unconfirmed remote work. A Linux
 PTY hangup fixture remains pending along with clean pushed-input Linux host
 validation, reviewed checksum-skip installation/shutdown, host preparation and
 a fresh owner physical boot2 selection. S1 has not executed on the device.
+
+
+### S1 admitted — unchanged image verified, physical selection pending
+
+Host-only inputs are pushed at `2a197328`. All six Linux fixture groups pass,
+including all twelve client cases (real PTY ownership/hangup, held-open stdin,
+timeout partial output and actual generated AWK execution). The controlled-stop
+verdict, namespace/helper/installer binding, remote-quiescence seal refusal,
+retained installer/recovery source routing and completed no-scan refusal cases
+pass. The generated outer/inner stream, disconnect and process-observation
+commands pass shell syntax and ShellCheck. A preflight found and corrected a
+Python escaping error in generated AWK before publication/device admission;
+executable parser fixtures now cover every clock path. No S1 radio run occurred.
+
+Fresh known-good Gemian `4f0120ad-fa64-462a-82d3-c2c3f9b0a30e` was independently
+verified. The reviewed 603-line installer differs from GTK8 only in tool,
+predecessor/boot and evidence identities; guard SHA-256 remains
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`.
+Bash syntax and ShellCheck pass. The live GPT/non-root/inactive/power guards
+passed, and boot2 already matched the exact GTK8 full-partition SHA-256
+`ffbb0d343aa7061e1c592488ee6ee92786cc70abe7a6f9008ca1f4a17cce2dff`.
+Writing was skipped; full readback, deployment seal and clean shutdown verify.
+No new kernel build, image/rootfs change, partition backup or alternate write.
+
+Fresh S1 runtime, exact mode-0600 deployment summary and complete offline host
+preparation pass with the unchanged reviewed periodic leaf. No capture/session
+or S1 run row exists. Next is a **new** owner physical boot2 selection with USB
+to the custodian laptop, then a new boot UUID with the same GTK8 kernel/release
+and 84-byte note SHA-256
+`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`.
+Do not reuse the consumed GTK8 selection reply. Execute one capture/session
+under the S1 branches above. Record the 20-second stream and intended PM +55 s
+core stop independently; do not label that shorter controlled trial a full
+60-second duration pass. Remote and local ownership/quiescence, evidence,
+regression and the single reviewed return remain mandatory.
