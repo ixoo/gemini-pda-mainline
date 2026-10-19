@@ -1,0 +1,1248 @@
+{
+  "run": "S1",
+  "status": "consumed once; controlled core-disconnect trial PASS on unchanged GTK8 image",
+  "boot_id": "cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e",
+  "kernel_input": "8792a406713f126c3a77a31ab08add466e39a03f",
+  "tooling_commit": "2a197328c928ec480bb1079423cb840e9c582270",
+  "handoff_commit": "f12da76922271f5e6a35f5aa6378b8782476357a",
+  "candidate_full_partition_sha256": "ffbb0d343aa7061e1c592488ee6ee92786cc70abe7a6f9008ca1f4a17cce2dff",
+  "attempts": {
+    "read_only_identity_probes": 1,
+    "phase_a_capture": 1,
+    "device_sessions": 1,
+    "wifi_ssh": 1,
+    "standard_disconnect_requests": 1,
+    "native_recovery_requests": 1,
+    "watcher_checks": 3
+  },
+  "verdicts": {
+    "transport": "PASS: no HIF refusal; release and all five remaining command paths credited",
+    "dhcp": "bound",
+    "pings": "initial 3/3 and periodic 5/5",
+    "ssh": "PASS: fresh authenticated PTY stream, five chunks spanning 20.45 s across channel release; exit 0, no stderr",
+    "ssh_failure_stage": null,
+    "core_disconnect": "PASS: one accepted standard request; driver disconnect inside request timestamps",
+    "cleanup": "PASS: whole-ledger stage 3, zero debt, deauth acknowledged",
+    "duration": "planned controlled stop at PM +55 s; actual data phase 55.502 s; not a full 60-second budget pass"
+  },
+  "core_disconnect_trial_pass": true,
+  "full_60s_duration_pass": false,
+  "data_window": {
+    "planned_cap_ms": 60000,
+    "actual_ms": 55502,
+    "end_reason": "disconnect",
+    "end_pm_offset_ns": 55658927388,
+    "tx_queued": 43,
+    "tx_done": 43,
+    "tx_failed": 0
+  },
+  "ssh": {
+    "exit": 0,
+    "failure_stage": null,
+    "client_elapsed_ms": 22109.181459,
+    "stdout_bytes": 891,
+    "stderr_bytes": 0,
+    "stdout_sha256": "0abe4820b4b54ba14dc41862609e2c87478ccb2c41ad4e159b57b4062c0408f0",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "neighbor_before": "absent",
+    "route_snapshot_exit": 0,
+    "stream": {
+      "clock_resolution_ns": 10000000,
+      "host_elapsed_ns": 22109181459,
+      "owned_pty_group": true,
+      "pass": true,
+      "planned_stream_ms": 20000,
+      "pm_offsets_ns": [
+        3374850917,
+        8474850917,
+        13584850917,
+        18704850917,
+        23824850917
+      ],
+      "scope": "authenticated SSH PTY output; raw stdout retained, frozen identity fields verified separately"
+    },
+    "chunk_span_ns": 20450000000,
+    "crossed_channel_release": true,
+    "remote_quiescence": {
+      "observation_not_before_pm_ns": 6000000000,
+      "queries": [
+        {
+          "exit": 0,
+          "owner_count": 0,
+          "pm_offset_ns": 24984850917,
+          "timeout": false
+        }
+      ],
+      "quiesced": true,
+      "scope": "tagged stream command/timeout owners absent; late stream starts refused",
+      "stream_admission_cutoff_pm_ns": 5000000000
+    },
+    "ten_minute_session_proven": false
+  },
+  "core_disconnect": {
+    "accepted": true,
+    "after_pm_offset_ns": 55974850917,
+    "attempted": true,
+    "before_pm_offset_ns": 55614850917,
+    "exit": 0,
+    "reason": null,
+    "stderr_bytes": 0
+  },
+  "network": {
+    "dhcp_exit": "0",
+    "dhcp_bound": 1,
+    "dhcp_prefix": "24",
+    "lease_written": 1,
+    "dropbear_digest_ok": 1,
+    "wifi_sshd_started": 1,
+    "wifi_sshd_ready": 1,
+    "ping_transmitted": 3,
+    "ping_received": 3,
+    "host_ack": true
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 99.68
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 41.982
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 45.835
+    }
+  ],
+  "periodic_transmissions": {
+    "reference": "PM connection aggregate credit observation",
+    "probes": [
+      {
+        "ordinal": 1,
+        "scheduled_offset_ns": 10000000000,
+        "start_offset_ns": 10174850917,
+        "completion_offset_ns": 10574850917,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 32.993
+      },
+      {
+        "ordinal": 2,
+        "scheduled_offset_ns": 20000000000,
+        "start_offset_ns": 20204850917,
+        "completion_offset_ns": 20614850917,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 45.674
+      },
+      {
+        "ordinal": 3,
+        "scheduled_offset_ns": 30000000000,
+        "start_offset_ns": 30224850917,
+        "completion_offset_ns": 30624850917,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 48.246
+      },
+      {
+        "ordinal": 4,
+        "scheduled_offset_ns": 40000000000,
+        "start_offset_ns": 40284850917,
+        "completion_offset_ns": 40694850917,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 47.096
+      },
+      {
+        "ordinal": 5,
+        "scheduled_offset_ns": 50000000000,
+        "start_offset_ns": 50304850917,
+        "completion_offset_ns": 50734850917,
+        "replies": 1,
+        "exit": 0,
+        "rtt_ms": 53.38
+      }
+    ],
+    "driver_tx_completions": [
+      {
+        "sequence": 2024,
+        "time_us": 113023645,
+        "pid": 3,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 112978373083,
+        "pm_offset_ns": 53224000
+      },
+      {
+        "sequence": 2030,
+        "time_us": 113075684,
+        "pid": 4,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 113030411083,
+        "pm_offset_ns": 105262000
+      },
+      {
+        "sequence": 2050,
+        "time_us": 113491893,
+        "pid": 5,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 113446620314,
+        "pm_offset_ns": 521471231
+      },
+      {
+        "sequence": 2054,
+        "time_us": 113591786,
+        "pid": 6,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 113546513006,
+        "pm_offset_ns": 621363923
+      },
+      {
+        "sequence": 2057,
+        "time_us": 114927857,
+        "pid": 7,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 114882583237,
+        "pm_offset_ns": 1957434154
+      },
+      {
+        "sequence": 2060,
+        "time_us": 114979787,
+        "pid": 8,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 114934513929,
+        "pm_offset_ns": 2009364846
+      },
+      {
+        "sequence": 2063,
+        "time_us": 115151750,
+        "pid": 9,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115106477160,
+        "pm_offset_ns": 2181328077
+      },
+      {
+        "sequence": 2066,
+        "time_us": 115227694,
+        "pid": 10,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115182422083,
+        "pm_offset_ns": 2257273000
+      },
+      {
+        "sequence": 2069,
+        "time_us": 115279813,
+        "pid": 11,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115234540237,
+        "pm_offset_ns": 2309391154
+      },
+      {
+        "sequence": 2072,
+        "time_us": 115335699,
+        "pid": 12,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115290426160,
+        "pm_offset_ns": 2365277077
+      },
+      {
+        "sequence": 2074,
+        "time_us": 115386824,
+        "pid": 13,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115341550083,
+        "pm_offset_ns": 2416401000
+      },
+      {
+        "sequence": 2076,
+        "time_us": 115462656,
+        "pid": 14,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115417382391,
+        "pm_offset_ns": 2492233308
+      },
+      {
+        "sequence": 2078,
+        "time_us": 115514600,
+        "pid": 15,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115469327314,
+        "pm_offset_ns": 2544178231
+      },
+      {
+        "sequence": 2080,
+        "time_us": 115562626,
+        "pid": 16,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115517353314,
+        "pm_offset_ns": 2592204231
+      },
+      {
+        "sequence": 2082,
+        "time_us": 115610563,
+        "pid": 17,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115565290699,
+        "pm_offset_ns": 2640141616
+      },
+      {
+        "sequence": 2084,
+        "time_us": 115682702,
+        "pid": 18,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115637428622,
+        "pm_offset_ns": 2712279539
+      },
+      {
+        "sequence": 2086,
+        "time_us": 115730641,
+        "pid": 19,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115685367622,
+        "pm_offset_ns": 2760218539
+      },
+      {
+        "sequence": 2088,
+        "time_us": 115778619,
+        "pid": 20,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115733345083,
+        "pm_offset_ns": 2808196000
+      },
+      {
+        "sequence": 2090,
+        "time_us": 115826809,
+        "pid": 21,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115781528006,
+        "pm_offset_ns": 2856378923
+      },
+      {
+        "sequence": 2092,
+        "time_us": 115874686,
+        "pid": 22,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115829411545,
+        "pm_offset_ns": 2904262462
+      },
+      {
+        "sequence": 2094,
+        "time_us": 115922635,
+        "pid": 23,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115877361929,
+        "pm_offset_ns": 2952212846
+      },
+      {
+        "sequence": 2096,
+        "time_us": 115970624,
+        "pid": 24,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115925351160,
+        "pm_offset_ns": 3000202077
+      },
+      {
+        "sequence": 2098,
+        "time_us": 116018541,
+        "pid": 25,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 115973269006,
+        "pm_offset_ns": 3048119923
+      },
+      {
+        "sequence": 2100,
+        "time_us": 116066778,
+        "pid": 26,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116021505468,
+        "pm_offset_ns": 3096356385
+      },
+      {
+        "sequence": 2102,
+        "time_us": 116118609,
+        "pid": 27,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116073336776,
+        "pm_offset_ns": 3148187693
+      },
+      {
+        "sequence": 2104,
+        "time_us": 116170669,
+        "pid": 28,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116125394853,
+        "pm_offset_ns": 3200245770
+      },
+      {
+        "sequence": 2106,
+        "time_us": 116218664,
+        "pid": 29,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116173390468,
+        "pm_offset_ns": 3248241385
+      },
+      {
+        "sequence": 2108,
+        "time_us": 116270702,
+        "pid": 30,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116225428929,
+        "pm_offset_ns": 3300279846
+      },
+      {
+        "sequence": 2110,
+        "time_us": 116318662,
+        "pid": 31,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116273388314,
+        "pm_offset_ns": 3348239231
+      },
+      {
+        "sequence": 2112,
+        "time_us": 116390619,
+        "pid": 32,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116345346391,
+        "pm_offset_ns": 3420197308
+      },
+      {
+        "sequence": 2114,
+        "time_us": 116926682,
+        "pid": 33,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 116881409006,
+        "pm_offset_ns": 3956259923
+      },
+      {
+        "sequence": 2116,
+        "time_us": 118642660,
+        "pid": 34,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 118597386699,
+        "pm_offset_ns": 5672237616
+      },
+      {
+        "sequence": 2121,
+        "time_us": 121490669,
+        "pid": 35,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 121445395007,
+        "pm_offset_ns": 8520245924
+      },
+      {
+        "sequence": 2123,
+        "time_us": 123190747,
+        "pid": 36,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 123145474084,
+        "pm_offset_ns": 10220325001
+      },
+      {
+        "sequence": 2125,
+        "time_us": 126606664,
+        "pid": 37,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 126561391238,
+        "pm_offset_ns": 13636242155
+      },
+      {
+        "sequence": 2127,
+        "time_us": 131734734,
+        "pid": 38,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131689460623,
+        "pm_offset_ns": 18764311540
+      },
+      {
+        "sequence": 2129,
+        "time_us": 133234761,
+        "pid": 39,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133189486777,
+        "pm_offset_ns": 20264337694
+      },
+      {
+        "sequence": 2131,
+        "time_us": 136854612,
+        "pid": 40,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136809338315,
+        "pm_offset_ns": 23884189232
+      },
+      {
+        "sequence": 2133,
+        "time_us": 136902592,
+        "pid": 41,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136857319008,
+        "pm_offset_ns": 23932169925
+      },
+      {
+        "sequence": 2135,
+        "time_us": 136950584,
+        "pid": 42,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136905311008,
+        "pm_offset_ns": 23980161925
+      },
+      {
+        "sequence": 2137,
+        "time_us": 137002738,
+        "pid": 43,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136957463931,
+        "pm_offset_ns": 24032314848
+      },
+      {
+        "sequence": 2139,
+        "time_us": 143254773,
+        "pid": 44,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 143209499470,
+        "pm_offset_ns": 30284350387
+      },
+      {
+        "sequence": 2141,
+        "time_us": 153310669,
+        "pid": 45,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 153265396162,
+        "pm_offset_ns": 40340247079
+      },
+      {
+        "sequence": 2143,
+        "time_us": 163342642,
+        "pid": 46,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 163297369701,
+        "pm_offset_ns": 50372220618
+      },
+      {
+        "sequence": 2145,
+        "time_us": 168498688,
+        "pid": 47,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 168453414163,
+        "pm_offset_ns": 55528265080
+      },
+      {
+        "sequence": 2163,
+        "time_us": 168747647,
+        "pid": 48,
+        "status": 0,
+        "class": 2,
+        "observed_ns": 168702374240,
+        "pm_offset_ns": 55777225157
+      }
+    ],
+    "clock_resolution_ns": 10000000,
+    "scope": "numeric router probes; nearby TX observations do not identify individual packets"
+  },
+  "channel_release": {
+    "submitted": {
+      "sequence": 2117,
+      "time_us": 119197345,
+      "command_sequence": 29,
+      "status": 0,
+      "observed_ns": 119152054391,
+      "pm_offset_ns": 6226905308,
+      "debt": 1
+    },
+    "credited": {
+      "sequence": 2119,
+      "time_us": 119222388,
+      "command_sequence": 29,
+      "observed_ns": 119177114468,
+      "pm_offset_ns": 6251965385,
+      "debt": 0
+    },
+    "credit_wait_ms": 25.060077,
+    "no_second_abort_at_cleanup": true
+  },
+  "gtk": {
+    "withheld_arp": 0,
+    "queued_ptk": 50,
+    "queued_gtk": 225,
+    "delivered_arp": 106
+  },
+  "pm": {
+    "credit_observed_ns": 112925149083,
+    "connection_credited_before_keys": true,
+    "abort_before_reserved_deauth": true
+  },
+  "beacon_delivery_at_data_end": {
+    "observed_ns": 168584076471,
+    "count": 21,
+    "known": 1,
+    "age_ns": 53647709772,
+    "since_pm_known": 1,
+    "since_pm": 20,
+    "interval_tu": 100,
+    "last_admission_offset_from_pm_ns": 2011217616,
+    "scope": "existing qualified owned-BSS queue admissions; not RF reception",
+    "continuous_delivery_proven": false
+  },
+  "cleanup": {
+    "healthy_stage_3": true,
+    "final_page_debt": 0,
+    "deauth_acked": true,
+    "missing_completion": false,
+    "late_retired_completion": false,
+    "key_disable_statuses": [
+      0,
+      0
+    ],
+    "all_remaining_command_paths_credited": true,
+    "command_credit_deadline_ms": 100,
+    "reuse_allowed": false,
+    "credit_timestamps": [
+      {
+        "sequence": 2156,
+        "time_us": 168672800,
+        "op": 1,
+        "command_sequence": 31,
+        "credit": 0,
+        "observed_ns": 168627527394,
+        "pm_offset_ns": 55702378311,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2158,
+        "time_us": 168698386,
+        "op": 1,
+        "command_sequence": 31,
+        "credit": 1,
+        "observed_ns": 168653112548,
+        "pm_offset_ns": 55727963465,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2164,
+        "time_us": 168749526,
+        "op": 2,
+        "command_sequence": 32,
+        "credit": 0,
+        "observed_ns": 168704252548,
+        "pm_offset_ns": 55779103465,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2167,
+        "time_us": 168774424,
+        "op": 2,
+        "command_sequence": 32,
+        "credit": 1,
+        "observed_ns": 168729149240,
+        "pm_offset_ns": 55804000157,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2168,
+        "time_us": 168776315,
+        "op": 3,
+        "command_sequence": 33,
+        "credit": 0,
+        "observed_ns": 168731039933,
+        "pm_offset_ns": 55805890850,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2171,
+        "time_us": 168802435,
+        "op": 3,
+        "command_sequence": 33,
+        "credit": 1,
+        "observed_ns": 168757161317,
+        "pm_offset_ns": 55832012234,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2172,
+        "time_us": 168804323,
+        "op": 4,
+        "command_sequence": 34,
+        "credit": 0,
+        "observed_ns": 168759050086,
+        "pm_offset_ns": 55833901003,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2175,
+        "time_us": 168834421,
+        "op": 4,
+        "command_sequence": 34,
+        "credit": 1,
+        "observed_ns": 168789147779,
+        "pm_offset_ns": 55863998696,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2177,
+        "time_us": 168861357,
+        "op": 6,
+        "command_sequence": 35,
+        "credit": 0,
+        "observed_ns": 168816075779,
+        "pm_offset_ns": 55890926696,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2180,
+        "time_us": 168886442,
+        "op": 6,
+        "command_sequence": 35,
+        "credit": 1,
+        "observed_ns": 168841168471,
+        "pm_offset_ns": 55916019388,
+        "floor": 0,
+        "debt": 0
+      }
+    ],
+    "op_names": {
+      "1": "PM abort",
+      "2": "PTK removal",
+      "3": "GTK removal",
+      "4": "station removal",
+      "6": "BSS off"
+    }
+  },
+  "monitor": {
+    "bss_timeout_observed": 0,
+    "prebudget_connection_loss": false,
+    "timeout_tolerance_enabled": false
+  },
+  "driver_events": {
+    "grant": [
+      {
+        "sequence": 1994,
+        "time_us": 112689428,
+        "fields": [
+          "40",
+          "9000"
+        ]
+      }
+    ],
+    "pm_metadata": [
+      {
+        "sequence": 2014,
+        "time_us": 112941402,
+        "fields": [
+          "3",
+          "100",
+          "3"
+        ]
+      }
+    ],
+    "pm_connection": [
+      {
+        "sequence": 2018,
+        "time_us": 112971485,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1",
+          "0",
+          "00"
+        ]
+      }
+    ],
+    "data_start": [
+      {
+        "sequence": 2039,
+        "time_us": 113128762,
+        "fields": [
+          "60000",
+          "5000",
+          "1"
+        ]
+      }
+    ],
+    "data_end": [
+      {
+        "sequence": 2148,
+        "time_us": 168631407,
+        "fields": [
+          "disconnect",
+          "55502",
+          "0",
+          "0",
+          "0",
+          "43",
+          "43",
+          "0",
+          "82"
+        ]
+      }
+    ],
+    "gtk_counters": [
+      {
+        "sequence": 2188,
+        "time_us": 168903867,
+        "fields": [
+          "0",
+          "50",
+          "225",
+          "106"
+        ]
+      }
+    ],
+    "first_gtk_queue": [
+      {
+        "sequence": 2046,
+        "time_us": 113341476,
+        "fields": [
+          "1",
+          "60"
+        ]
+      }
+    ],
+    "native_state_transitions": [
+      {
+        "sequence": 2041,
+        "time_us": 113150506,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "0",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2044,
+        "time_us": 113174424,
+        "fields": [
+          "2",
+          "0",
+          "1",
+          "0",
+          "442"
+        ]
+      },
+      {
+        "sequence": 2152,
+        "time_us": 168646526,
+        "fields": [
+          "3",
+          "2",
+          "407",
+          "0",
+          "74670"
+        ]
+      },
+      {
+        "sequence": 2154,
+        "time_us": 168670365,
+        "fields": [
+          "4",
+          "0",
+          "407",
+          "0",
+          "74670"
+        ]
+      }
+    ],
+    "pm_abort": [
+      {
+        "sequence": 2155,
+        "time_us": 168671776,
+        "fields": [
+          "31",
+          "0"
+        ]
+      }
+    ],
+    "deauth_retirement": [],
+    "late_retired_completion": [],
+    "tc4_credits": [
+      {
+        "sequence": 1992,
+        "time_us": 112541312,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1993,
+        "time_us": 112565312,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 1995,
+        "time_us": 112713452,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2000,
+        "time_us": 112761366,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2006,
+        "time_us": 112817314,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2011,
+        "time_us": 112845345,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2012,
+        "time_us": 112869316,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2016,
+        "time_us": 112969320,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2022,
+        "time_us": 113021346,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2028,
+        "time_us": 113073350,
+        "fields": [
+          "2",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2032,
+        "time_us": 113101353,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2036,
+        "time_us": 113125355,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2043,
+        "time_us": 113173343,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2118,
+        "time_us": 119221334,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2153,
+        "time_us": 168669311,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2157,
+        "time_us": 168697331,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2161,
+        "time_us": 168745330,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2166,
+        "time_us": 168773336,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2170,
+        "time_us": 168801354,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2174,
+        "time_us": 168833341,
+        "fields": [
+          "1",
+          "0"
+        ]
+      },
+      {
+        "sequence": 2179,
+        "time_us": 168885344,
+        "fields": [
+          "1",
+          "0"
+        ]
+      }
+    ],
+    "deauth_tx": [
+      {
+        "sequence": 2160,
+        "time_us": 168721343,
+        "fields": [
+          "12",
+          "48",
+          "1"
+        ]
+      }
+    ],
+    "fault": [],
+    "bss_timeout_counter": [
+      {
+        "sequence": 2189,
+        "time_us": 168905540,
+        "fields": [
+          "0"
+        ]
+      }
+    ],
+    "loss_report": [
+      {
+        "sequence": 2198,
+        "time_us": 168927369,
+        "fields": [
+          "cleanup",
+          "1"
+        ]
+      }
+    ],
+    "key_disables": [
+      {
+        "sequence": 2199,
+        "time_us": 168928639,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1"
+        ]
+      },
+      {
+        "sequence": 2200,
+        "time_us": 168930404,
+        "fields": [
+          "1",
+          "1",
+          "0",
+          "1"
+        ]
+      }
+    ],
+    "completion_observation": [
+      {
+        "sequence": 2182,
+        "time_us": 168889737,
+        "fields": [
+          "now_ns=168844463317 inflight=0 pid=48 submit_pid=47 submit_return_ns=168428099702 frame_deadline_ns=169427153163 guard_valid=1 guard_return_ns=168844462317 whcr=0x00000000 whisr=0x00000000"
+        ]
+      }
+    ],
+    "credit_observation": [
+      {
+        "sequence": 2185,
+        "time_us": 168897562,
+        "fields": [
+          "site=0 native_state=4 pending=0 credit_deadline_ns=168916053625 lifetime_deadline_ns=178083488622 polls=2308 scan=0 closing=0 first=0 wtqcr7=0x00000000 tc4_free=26 cpu_pending=0 ffa_pending=0 tc1_free=16 ac1_pending=0 released=0 tc1_released=0"
+        ]
+      }
+    ],
+    "receive_observations": [
+      {
+        "sequence": 2183,
+        "time_us": 168892845,
+        "fields": [
+          "port=0 attempts=2694 packets=420 type7=132 opposite=0 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=168844449856"
+        ]
+      },
+      {
+        "sequence": 2184,
+        "time_us": 168895211,
+        "fields": [
+          "port=1 attempts=2672 packets=0 type7=0 opposite=248 status=-11 pre_valid=1 pre_wrplr=0x00000000 return_ns=168576043933"
+        ]
+      }
+    ],
+    "pm_credit_clock": [
+      {
+        "sequence": 2017,
+        "time_us": 112970425,
+        "fields": [
+          "112925149083"
+        ]
+      }
+    ],
+    "data_end_beacons": [
+      {
+        "sequence": 2147,
+        "time_us": 168629355,
+        "fields": [
+          "168584076471",
+          "21",
+          "1",
+          "53647709772",
+          "1",
+          "20",
+          "100"
+        ]
+      }
+    ],
+    "healthy_cleanup": [
+      {
+        "sequence": 2187,
+        "time_us": 168902457,
+        "fields": [
+          "3",
+          "1"
+        ]
+      }
+    ],
+    "bounded_cleanup": [],
+    "pm_abort_credit": [
+      {
+        "sequence": 2159,
+        "time_us": 168700272,
+        "fields": [
+          "1"
+        ]
+      }
+    ],
+    "released_cleanup_stage": [
+      {
+        "sequence": 2176,
+        "time_us": 168836375,
+        "fields": [
+          "1",
+          "1"
+        ]
+      }
+    ]
+  },
+  "preservation": {
+    "sealed_entries_verified": 75,
+    "seal_sha256": "614135d2c48aa7d59a3477af4aa5fbc07861ebb0035958e75324255e28fbb9b9",
+    "log_sha256": "efe99b30297ce48138069ad605a0d3358c9077e5423fff3e9ed78e6070a8a555",
+    "log_bytes": 187577,
+    "contiguous_records": 2202,
+    "one_cycle_export_complete": true,
+    "local_helper_group_quiescent": true,
+    "remote_stream_quiescent": true,
+    "device_children_quiescent": true,
+    "regression_pass": true,
+    "reviewed_return_confirmed": true,
+    "independently_confirmed_gemian": true,
+    "returned_gemian_boot": "9dac50f6-816c-4c08-981d-79535cb56f69"
+  },
+  "limits": [
+    "One 20-second authenticated stream and planned 55-second stop do not establish two or ten minutes of traffic",
+    "Host cleanup and credited removals do not independently establish firmware key erasure or stale queued-RX retirement",
+    "The timely deauthentication differs from budget-end GTK8, but this run alone does not identify the cause",
+    "Owned-beacon admissions became stale despite successful data; no continuous beacon or RF-loss claim",
+    "Standard scan acceptance, persistent station lifecycle, rekey, key/PID reuse and same-boot reconnect remain incomplete; no -48 adjustment or deadline extensions"
+  ]
+}

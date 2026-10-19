@@ -1,5 +1,18 @@
 # Reusable healthy lifetimes: current source audit and remaining gates
 
+## S1 refresh: standard teardown ordering observed
+
+[S1](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#s1-consumed--ssh-stream-and-standard-disconnect-pass)
+on the unchanged GTK8 image carried a 20.450-second authenticated SSH stream
+across release, then accepted a standard supplicant disconnect near PM +55.6 s.
+Data ended on that request, with acknowledged deauth, whole-ledger stage 3 and
+local key disables status 0. The opposite core/worker ordering is now measured
+once; it does not supply a firmware queued-RX/key-incarnation barrier or permit
+re-arm. The next source step is an independent connected data phase with the
+existing bounded teardown fence armed on data end, rather than extending the
+finite join horizon. Enumerate diagnostic caps and monitoring first. Keep
+fatal poison, per-operation deadlines and rekey/reuse/reconnect refusals.
+
 ## GTK8 refresh and core-initiated teardown test
 
 [GTK8](../2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#gtk8-consumed--protected-traffic-beyond-the-join-privilege)

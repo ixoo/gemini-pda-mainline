@@ -232,6 +232,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK6 | `6f5dbd31-9ed7-4f91-9c42-6a7ccd432bfd` | no named HIF refusal; command-path credit observed | bound | 94.942 / 89.260 / 37.169 ms | authenticated, exit 0, 1.739 s | FAIL: missing deauth; PM abort credited with one retained page; whole-ledger stop | 60.015 / 60 s PASS | [one scalars file](results/gtk6-runtime-scalars.json) |
 | GTK7 | `138674d4-2aff-4ff5-ad75-a0670d432b36` | no named HIF refusal; six cleanup command paths credited | bound | initial 3/3; periodic 5/5 | authenticated, exit 0, 1.618 s | stage 3, zero debt; deauth missed bound, late status 5; return verified | 60.011 / 60 s PASS | [one scalars file](results/gtk7-runtime-scalars.json) |
 | GTK8 | `a996ec5e-fc20-49d3-a160-2ed321e3e156` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | authenticated before release, exit 0, 1.397 s | host stage 3, zero debt; late deauth status 5, no ACK; return verified | 60.009 / 60 s PASS | [one scalars file](results/gtk8-runtime-scalars.json) |
+| S1 | `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | fresh authenticated stream, five chunks / 20.450 s across release; exit 0 | stage 3, zero debt, deauth ACK; return verified | controlled disconnect, 55.502 s data; not full 60 s | [one scalars file](results/s1-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -1637,3 +1638,53 @@ under the S1 branches above. Record the 20-second stream and intended PM +55 s
 core stop independently; do not label that shorter controlled trial a full
 60-second duration pass. Remote and local ownership/quiescence, evidence,
 regression and the single reviewed return remain mandatory.
+
+
+### S1 consumed — SSH stream and standard disconnect pass
+
+One fresh boot `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e`, unchanged GTK8
+kernel/image, host inputs `2a197328`, handoff `f12da769`. One read-only identity
+acquisition matched the kernel/architecture/new boot and exact 84-byte notes.
+One capture passed 285/285; one admitted session, one SSH attempt and one
+standard disconnect request, without retry. The [single scalars file](results/s1-runtime-scalars.json)
+records the independent verdicts and timestamps.
+
+DHCP and initial replies 99.680 / 41.982 / 45.835 ms pass. The fresh authenticated
+PTY stream returned five chunks at PM +3.375 / +8.475 / +13.585 / +18.705 /
++23.825 s: span 20.450 s, client elapsed 22.109 s, exit 0 and no stderr. The
+channel-release credit at +6.252 s lies inside that stream. All five periodic
+router probes replied after release, at completion offsets +10.575 / +20.615 /
++30.625 / +40.695 / +50.735 s. These observations establish a maintained
+20-second authenticated exchange across release, not two or ten minutes.
+
+The remote stream tag was absent in the single quiescence acquisition at
+PM +24.985 s. The guarded standard supplicant disconnect was accepted between
++55.615 and +55.975 s. The driver ended data with reason `disconnect` at
++55.659 s, inside that request interval; data-phase elapsed 55,502 ms. The
+controlled-transition verdict passes. The inherited full 60-second duration
+and connected-data-after-release duration verdicts remain false, as intended.
+Successful periodic traffic after release is recorded independently.
+
+PM abort credited first; reserved deauth PID 48 completed with status 0 at
+PM +55.777 s, acknowledged within its unchanged bound. PTK, GTK, station and
+BSS-off commands all credited within 100 ms with floor zero; no second channel
+abort. Whole-ledger cleanup stage 3 has `deauth=1`, zero page debt and both
+local key disables status 0. No missing/retired/late deauth completion this run.
+This differs from budget-end GTK8, but one changed host protocol cannot assign
+the cause. Host cleanup and removal credits remain distinct from independently
+proved firmware key erasure/queued-frame retirement. No rekey, reuse or reconnect.
+
+Checked PTK/GTK handoffs 50/225; GTK ARP handoffs 106, withheld ARP 0. Data
+TX queued/done/failed 43/43/0. No HIF refusal, capacity stop or 0x13 event.
+Owned-beacon queue admissions remained 21 total/20 since PM; last age 53.648 s
+at data end. Do not infer continuous beacon delivery or RF loss from that count.
+All 75 seals, 2,202 contiguous log records, complete one-cycle export, local and
+remote helper/device quiescence and regression verify. One reviewed return and
+independent changed-boot Gemian `9dac50f6-816c-4c08-981d-79535cb56f69` verify.
+
+Next is the source-supported persistent connected-station phase, with the
+pre-data join fence and per-operation bounds retained and the existing five-second
+teardown fence armed at data end. Do not obtain two/ten minutes by increasing
+the finite join window. Before selecting its test, enumerate every remaining
+measurement cap and exact monitoring/stop path. Stable-key/PID reuse, reconnect
+and standard-scan acceptance remain separate open gates.

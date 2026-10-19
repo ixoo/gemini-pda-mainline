@@ -1,18 +1,28 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
-**S1 host-only test ready; waiting for a new physical boot2 selection.** Inputs
-`2a197328` reuse the exact GTK8 image/config/DT/RAM and existing periodic leaf.
-All Linux tests, including the real PTY/held-input/hangup and clock-parser
-cases, pass. The guarded installer skipped writing because boot2 already
-matched; full readback/seal, clean shutdown and fresh host preparation pass.
-[Current S1 handoff](SESSION_0202_PLAN.md#s1-admitted--unchanged-image-verified-physical-selection-pending).
-New boot UUID and unchanged 84-byte note SHA-256
-`6725caca78f120244c9fcc00137a3800f4573588fc1424287a1278ffbdf9cd0a`
-are required before one capture/session. Planned: a 20-second owned PTY SSH
-stream across release, unchanged five periodic pings, then one guarded standard
-supplicant disconnect near PM +55 s. This is a controlled core-transition test,
-not a full 60-second budget pass. No S1 device run yet; use a new owner reply.
+**S1 consumed once: controlled core disconnect and 20-second SSH stream PASS.**
+Unchanged GTK8 image, boot `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e`; host inputs
+`2a197328`, handoff `f12da769`. [One row and analysis](SESSION_0202_PLAN.md#s1-consumed--ssh-stream-and-standard-disconnect-pass),
+[one scalars file](results/s1-runtime-scalars.json). DHCP, initial 3/3 and
+post-release periodic 5/5 pings pass. Fresh authenticated SSH produced five
+chunks spanning 20.450 seconds across the +6.252 s channel-release credit;
+client exit 0, no stderr. Standard disconnect accepted near PM +55.6 s ended
+data with reason `disconnect`, elapsed 55.502 s. This planned stop is not a
+full 60-second duration pass. PM abort, acknowledged deauth and all remaining
+cleanup commands completed; whole-ledger stage 3, zero debt, local disables 0.
+No HIF refusal, capacity stop or 0x13 event. Owned-beacon admissions were stale;
+no continuous-beacon claim. All 75 seals / 2,202 contiguous records, one-cycle
+export, remote/local/device quiescence, regression and one reviewed return
+verify. Independently confirmed Gemian `9dac50f6-816c-4c08-981d-79535cb56f69`.
+No physical action or S1 retry is pending. No S1 kernel build/change occurred.
 
+Next: persistent connected-station source work, retaining the pre-data join
+fence, unchanged operation deadlines and an explicitly armed five-second
+teardown fence at data end. Inventory measurement caps before admitting a
+longer stream; do not raise the finite join constant as a substitute. Rekey,
+key/PID reuse and reconnect stay disabled. Standard scan and full ten-minute /
+same-boot reconnect acceptance are still incomplete. Keep private RE explanations
+and source identities private; preserve published measurements.
 
 **GTK8 consumed once: finite capability, post-release protected traffic,
 60-second duration and whole-ledger host cleanup PASS.** Boot
@@ -45,24 +55,10 @@ Independently confirmed Gemian `4f0120ad-fa64-462a-82d3-c2c3f9b0a30e`.
 Two read-only identity invocations preceded the one capture/session: the first
 used the SSH helper incorrectly and exited nonzero; the corrected stdin
 invocation verified identity. No radio/session retry. No live device process
-is pending for GTK8, which is consumed; the new S1 physical handoff is above.
+is pending for GTK8, which is consumed; S1 is also consumed as recorded above.
 
-Next: [S1 host-only preparation](SESSION_0202_PLAN.md#s1-preparation--unchanged-gtk8-stream-and-core-initiated-disconnect)
-on the unchanged GTK8 image: a 20-second owned PTY SSH stream across release,
-the same five periodic pings and one guarded standard disconnect near PM +55 s.
-Current-source audit and local client/verdict/ownership/binding/source-routing
-fixtures and Linux PTY/host checks pass. Matching-image guarded deployment,
-readback, clean shutdown and host preparation pass; a new physical selection
-is pending as recorded above. The kernel/client/firmware limits stay unchanged; the planned
-controlled stop is explicitly shorter than the kernel's 60-second cap and is
-not a full-duration pass. Remote stream quiescence is a mandatory seal/recovery
-gate. No S1 device run or new kernel build has occurred. Persistent operation
-and the two-minute authenticated stream still follow this core-transition test. Do not extend the grant or finite join
-constant to substitute for that lifecycle. Keep rekey, key/PID reuse and
-reconnect disabled, permanent fatal poison, exact per-frame checks, no -48
-adjustment and unchanged transaction bounds. Full ten-minute traffic and
-same-boot reconnect acceptance remain incomplete. Preserve public measurements;
-keep firmware-RE explanations and private source identities private.
+The S1 preparation/handoff above is historical and consumed; use the current
+S1 result at the top for the next source decision.
 
 Prior GTK7 result follows as history; its successor below is now consumed.
 
