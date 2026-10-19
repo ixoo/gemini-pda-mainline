@@ -24,7 +24,9 @@ injected frame. Connected-lifetime source/fixtures are prepared but unarchived
 and unbuilt. Resolve bounded PID retirement/reuse and measurement accounting
 before the subsequent longer-window admission. Beacon-filter declaration and
 source-supported genuine-loss routing remain subsequent lifecycle work.
-No I50 build, package or device admission yet. Rekey/key reuse/reconnect remain
+I50 build/package/composition and local host fixtures now pass; [current build record](SESSION_0202_PLAN.md#i50-built-and-composed--host-validation-before-deployment).
+Linux host validation, guarded deployment/readback/shutdown and fresh host
+preparation remain before any physical handoff. No I50 device admission yet. Rekey/key reuse/reconnect remain
 disabled; full scan/ten-minute/same-boot acceptance is incomplete. Preserve
 published measurements and keep private RE explanations/source identities private.
 

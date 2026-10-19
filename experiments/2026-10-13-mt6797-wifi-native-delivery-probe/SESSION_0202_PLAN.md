@@ -1795,3 +1795,49 @@ unchanged capacities, grant/release/uncertain-transport cases and six option-off
 MAC/native preprocessing comparisons. Linux fixtures/checkpatch/build, actual
 package provenance, the four-probe leaf and helper/classifier/source-routing
 validation remain required before a guarded install or physical handoff.
+
+
+### I50 built and composed — host validation before deployment
+
+Kernel input `00f351eb37da1c52fe25039e5e9d0f495a2d945d`, source archive
+`564bf3ce18ac0b915381482b3a096077c5827d3f`, profile
+`mt6797-a53-wifi-ccmp-50s-idle`, 711 canonical patches. Linux actual-source
+I50 and inherited grant/release tests pass. Strict checkpatch reports zero
+errors/warnings/checks with only the deliberate synthetic-author DCO omission
+excluded. An incorrect expected-SHA preflight and a filename-mode checkpatch
+invocation stopped before compilation; corrected checks preceded the single
+required Buildbox backend build. No source or device retry.
+
+The build and fetched package validation pass. Package inventory SHA-256
+`2baecfb31bdd9b0e7de7e53b327186433b5ae1a692a3d9fd2ad36a67f0e77dfa`;
+[actual receipt](results/ccmp-stable-monitor-candidate-i50.json) SHA-256
+`544ba48aa0b2a773d8400ce1db68bf190ff90fc6529fcb4254daef4de232fb87`;
+full padded boot2 SHA-256
+`7bc347261ba8246dd1a4a53fa0270ab4705e91f73f9bdb850fdc06f29937fa2f`.
+The 84-byte boot-note SHA-256
+`5b84b38e00d9099d2f9c488d09963b4206cbea14451c659b7e6920ee2d24ce51`
+is independently checked against ELF, validated Image/symbol map and the sysfs
+exporter; it differs from GTK8. The configuration oracle confirms only the
+selected option is added; DT and RAM remain byte-identical to GTK8.
+
+The reviewed four-probe leaf is
+[join-ccmp-i50.sh](join-ccmp-i50.sh), body SHA-256
+`48e782530ba35c1a8344c622093c50605c1d252086416e5cce4a227a3cd04bc6`.
+Its only changes from the existing periodic leaf are comments and removal of
+the +50 s probe. Shell syntax and ShellCheck pass. The new classifier requires
+four replies, an actual 50-second budget end, the existing release/ownership
+records and a measured last-successful-data-to-deauth log gap of 9–11 seconds,
+with that last data completion at PM +40–41 seconds. Out-of-slot or extra later
+TX makes the idle comparison inconclusive, regardless of cleanup outcome.
+Missing cleanup must not erase an otherwise measured deauth observation.
+Local parser cases cover those independent branches, malformed/duplicate TX,
+wrong duration, missing probes and refusal of old GTK8/S1 evidence as I50.
+
+All five new local host fixture groups pass: exact actual-package configuration
+(ten parent refusals/nine child mutations), receipt/namespace/installer binding,
+retained installer sources, retained session/recovery sources and completed
+no-scan host ownership. No new SSH command, stream, packet capture, neighbor
+flush, helper timing extension, monitor flag or device control API. Permanent
+client output retention remains. Clean pushed-input Linux host validation and
+reviewed guarded installation/readback/shutdown/host preparation still precede
+a new owner physical boot2 selection. No I50 deployment or device run yet.
