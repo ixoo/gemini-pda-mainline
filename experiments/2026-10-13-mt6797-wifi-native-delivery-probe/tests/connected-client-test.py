@@ -43,7 +43,7 @@ class ConnectedClientTests(unittest.TestCase):
             result = subprocess.run(['awk', program], input=raw, capture_output=True, check=True)
             self.assertEqual(result.stdout, expected)
 
-    def exercise(self, ssh_rc=0, closed=False, bad_clock=False, control_rc=0, control_timeout=False, remote_unknown=False, buffered=False, receive_gap=False):
+    def exercise(self, ssh_rc=0, closed=False, bad_clock=False, control_rc=0, control_timeout=False, remote_unknown=False, buffered=False, receive_gap=False, early=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / 'ssh-client-observation'
             clock, wifi, controls = [0.0], [], []
@@ -67,7 +67,7 @@ class ConnectedClientTests(unittest.TestCase):
                     self.assertIn('timeout 125', argv[-1])
                     self.assertIn('sleep 0.05', argv[-1])
                     kwargs['stderr'].write(b'' if not ssh_rc else b'ssh: fixture failure\n')
-                    clock[0] += (127.1 if receive_gap else 122.1)
+                    clock[0] += (12.1 if early else 127.1 if receive_gap else 122.1)
                     owned = f'P1_OWNED_TTY boot={F.BOOT} owned_group=1 tag=P1_STREAM_OWNER_{F.BOOT}\n'.encode()
                     response = subprocess.CompletedProcess(argv, ssh_rc, stdout=(F.SERVED+owned+ticks).replace(b'\n',b'\r\n') if not ssh_rc else b'')
                     response.p1_receive_ticks = [[i,0 if buffered else i*500000000+(4000000000 if receive_gap and i>=100 else 0)] for i in range(243)] if not ssh_rc else []
@@ -86,16 +86,17 @@ class ConnectedClientTests(unittest.TestCase):
                     self.assertNotIn('sleep', argv[-1])
                     if control_timeout:
                         raise subprocess.TimeoutExpired(argv, 15, output=b'partial')
-                    return subprocess.CompletedProcess(argv, control_rc,
-                        stdout=(f'P1_DISCONNECT boot={F.BOOT} before_pm_offset_ns=123200000000\n'
-                                'P1_DISCONNECT_RESULT exit=0 after_pm_offset_ns=123500000000 reply_ok=1\n').encode(), stderr=b'')
+                    before,after=(13200000000,13500000000) if early else (123200000000,123500000000)
+                    return subprocess.CompletedProcess(argv,control_rc,
+                        stdout=(f'P1_DISCONNECT boot={F.BOOT} before_pm_offset_ns={before}\n'
+                                f'P1_DISCONNECT_RESULT exit=0 after_pm_offset_ns={after} reply_ok=1\n').encode(),stderr=b'')
                 result = F.PROBE
                 if closed:
                     result = result.replace(b'FATAL=0', b'FATAL=1')
                 if 'DATA_ENDED=' in argv[-1]:
                     subprocess.run(['/bin/sh', '-n'], input=argv[-1].encode(), check=True)
                     self.assert_clock_awk(argv[-1])
-                    result += b'DATA_ENDED=0\nP1_PM_NS=' + (b'bad' if bad_clock else b'1000000000') + b'\nP1_NOW_NS=124000000000\n'
+                    result += b'DATA_ENDED=0\nP1_PM_NS=' + (b'bad' if bad_clock else b'1000000000') + b'\nP1_NOW_NS=' + (b'14000000000\n' if early else b'124000000000\n')
                 return subprocess.CompletedProcess(argv, 0, stdout=result)
 
             with patch.object(S.M, 'base_command', lambda keys: (['ssh', '-T'], 'root@10.0.0.1')), \
@@ -120,6 +121,14 @@ class ConnectedClientTests(unittest.TestCase):
         self.assertFalse(result['p1_stream']['pass'])
         self.assertTrue(result['p1_core_disconnect']['accepted'])
         self.assertEqual((wifi, controls), (1, 1))
+
+    def test_failed_ssh_aborts_early_without_waiting_for_completed_stream_window(self):
+        result,wifi,controls,elapsed=self.exercise(ssh_rc=255,early=True)
+        self.assertEqual((wifi,controls),(1,1))
+        self.assertLess(elapsed,20)
+        self.assertFalse(result['all_pass'])
+        self.assertTrue(result['p1_core_disconnect']['accepted'])
+        self.assertEqual(result['p1_core_disconnect']['kind'],'abort_after_incomplete_stream')
 
     def test_unknown_remote_owner_prevents_control(self):
         result, wifi, controls, _ = self.exercise(remote_unknown=True)
