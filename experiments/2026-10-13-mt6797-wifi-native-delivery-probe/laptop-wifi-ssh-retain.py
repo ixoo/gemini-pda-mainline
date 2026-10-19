@@ -88,7 +88,7 @@ def main():
         raise ValueError('custodian laptop and one owned receipt required')
     receipt = Path(sys.argv[sys.argv.index('--receipt') + 1])
     runtime = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True)
-    if not re.fullmatch(r'session-ccmp(?:[1-9][0-9]*|-gtk[1-9][0-9]*)', receipt.parent.name):
+    if not re.fullmatch(r'session-ccmp(?:[1-9][0-9]*|-gtk[1-9][0-9]*|-i50)', receipt.parent.name):
         raise ValueError('receipt does not name a CCMP session')
     expected = runtime / 'ccmp-stable-monitor' / receipt.parent.name / 'wifi-ssh-receipt.json'
     if receipt != expected or receipt.parent.resolve(strict=True) != receipt.parent:
