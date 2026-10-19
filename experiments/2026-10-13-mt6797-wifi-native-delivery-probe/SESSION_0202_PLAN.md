@@ -2154,3 +2154,42 @@ An unexpected helper exception retains a negative private host receipt and
 unknown ownership; it cannot authorize recovery. Clean pushed-input Linux host
 checks, guarded deployment/readback/shutdown and fresh preparation remain before
 a new physical boot2 handoff. No P1 device run or public run row exists.
+
+
+### P1 handoff ready — physical boot2 selection pending
+
+Host bindings `2ec08e59b1e0fc37155d858129e3ed3479e97124` passed all eight
+clean pushed-input Linux host fixture groups, including real PTY ownership/
+hangup. The additional explicit early-SSH-failure cleanup case is published
+at `7dc1d4969087556ad383a00b292f580c1a4bca53`; all twenty client cases pass
+on Linux, with no skipped PTY case. This test-only refinement changes no
+kernel, helper, candidate or receipt. An early abort cannot satisfy the
+completed-stream duration/controller verdict.
+
+Fresh known-good Gemian `0ad152bc-0456-4298-82d2-eb50d09ada81` was verified.
+The reviewed 603-line installer differs from I50 only in candidate, tool,
+receipt, predecessor, evidence and boot identities. Device-guard SHA-256 stays
+`0f0fc88ce4650590c6cb86f0ef5ce22b95b2a0f41c9b39b397e24e39cf9f0ebf`;
+Bash syntax/ShellCheck pass. One guarded boot2 installation passed live GPT,
+inactive/non-root target, power and predecessor checks. Write/sync/flush and
+full readback match
+`f19d4e27bd24fc38b091c8847440c051f83e92da3972865125ae4c0a0589e998`.
+Deployment seal and clean shutdown verify; no new partition backup, automatic
+reboot or alternate partition write. Fresh runtime, exact mode-0600 deployment
+summary and complete offline host preparation pass with the reviewed P1 leaf,
+actual keys and unchanged retained source/recovery routing. No capture/session
+yet, and no public P1 run row or result is invented.
+
+Next needs a **new** physical owner boot2 selection with USB connected to the
+custodian laptop. The I50 selection is consumed. Verify a new boot UUID,
+expected kernel/architecture and exact 84-byte note SHA-256
+`b0213c37e6080b8b334f73842ca3162390cdfeecb29d8eb93bd41d2c2bf9b160`
+before one capture/session on the actual receipt above. Keep the source-defined
+PID ownership, 121-second schedule / minimum 120-second received traffic,
+eleven probes and normal/early-abort controller branches independently graded.
+Unknown remote ownership holds sealing/recovery. Preserve all evidence before
+the single reviewed return and independently verify changed-boot Gemian.
+One scalars file/one existing table row only after the actual run; no silent
+retry. Ten-minute traffic, standard-scan acceptance, key retirement/rekey/key
+reuse and same-boot reconnect remain incomplete. Restored research stays out
+of Wi-Fi commits.

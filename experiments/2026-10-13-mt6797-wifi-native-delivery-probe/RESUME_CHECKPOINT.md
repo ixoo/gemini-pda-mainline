@@ -1,5 +1,24 @@
 # Wi-Fi resume checkpoint — INCOMPLETE
 
+**P1 installed and prepared; waiting for a new physical boot2 selection.**
+Kernel input `71c4b4a8`, bindings `2ec08e59`, final host test `7dc1d496`.
+[Current handoff](SESSION_0202_PLAN.md#p1-handoff-ready--physical-boot2-selection-pending).
+All Linux source/host checks, twenty client cases including real PTY, the single
+kernel build, package/composition validation, guarded installation/full readback,
+clean shutdown and fresh host preparation pass. Full boot2 checksum
+`f19d4e27bd24fc38b091c8847440c051f83e92da3972865125ae4c0a0589e998`;
+[actual receipt](results/ccmp-stable-monitor-candidate-p1.json).
+No P1 capture/session or result exists. Require a fresh mainline boot UUID and
+exact 84-byte kernel notes
+`b0213c37e6080b8b334f73842ca3162390cdfeecb29d8eb93bd41d2c2bf9b160`
+before the one admitted run. Do not reuse the consumed I50 physical reply.
+The P1 hypothesis is sustained initial-key traffic with completed ordinary-PID
+reuse and standard disconnect: 243 absolute half-second chunks schedule 121 s,
+requiring at least 120 s of live client receipt span, eleven periodic probes,
+verified remote/local quiescence and whole-ledger/ACK cleanup. First failures,
+including an early host abort, remain separate; no shorter-duration pass or
+wire-generation/key-retirement inference. Full Wi-Fi acceptance is unfinished.
+
 **I50 consumed once: duration/network/acknowledged cleanup PASS; SSH NOT REACHED.**
 Boot `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7`, kernel `00f351eb`, bindings
 `eca5e7dd`, handoff `6908713d`. [One row and analysis](SESSION_0202_PLAN.md#i50-consumed--acknowledged-idle-tail-teardown-ssh-not-reached),
@@ -17,8 +36,9 @@ seven actual-main cases pass from clean pushed inputs on Linux.
 [Connected-lifetime/PID/accounting/monitoring source](SESSION_0202_PLAN.md#connected-source-prepared--build-input-validation-pending)
 has passed clean Linux source fixtures and the required kernel build.
 [The real P1 package/candidate and host protocol](SESSION_0202_PLAN.md#p1-built-and-composed--complete-host-validation-before-deployment)
-are composed with local host tests; clean Linux host checks and guarded
-deployment/readback/shutdown/preparation remain before a new physical handoff. Key reuse/rekey/reconnect remain
+are composed and now pass clean Linux host checks, guarded deployment/full
+readback/shutdown and fresh preparation, as recorded in the current handoff
+at the top. No physical P1 selection has been consumed yet. Key reuse/rekey/reconnect remain
 disabled and full Wi-Fi acceptance remains incomplete.
 
 **S1 consumed once: controlled core disconnect and 20-second SSH stream PASS.**
