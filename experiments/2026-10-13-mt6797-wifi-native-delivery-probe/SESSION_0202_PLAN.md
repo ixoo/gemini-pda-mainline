@@ -2374,3 +2374,22 @@ a 600-second test. An earlier failure is separately recorded at its stage and
 offset. The package/profile/kernel and every boot artifact are unchanged;
 only the external host source/receipt pins change. No kernel build is needed.
 The new deployment-evidence namespace is P1D; existing records stay intact.
+
+
+P1D host input `2da1f41b` is pushed. A clean Linux checkout passed all 22
+actual-helper tests, including the real owned-PTY case, the post-client
+timeout refusal and late-snapshot refusal; actual-leaf periodic and terminal
+wait fixtures, original remote-owner recovery gate, actual binding, Bash
+syntax and ShellCheck also passed. Local retained installer/session routing
+and source checks passed. Recomposition independently verified every boot
+artifact byte-identical to P1H. No kernel rebuild was performed.
+
+The reviewed 603-line installer changed only identities/evidence names from
+P1H and retained the exact boot2 guard. It verified live Gemian, live GPT
+boot2 identity, inactive/non-root state, stable power and the matching full
+partition checksum, skipped writing and confirmed clean shutdown. Its new
+deployment seal verified. Complete actual offline host preparation passed
+against the corrected private leaf, helper and repinned receipt. The fresh
+runtime has only the deployment summary; capture/session remain unconsumed.
+A new physical boot2 selection with USB connected is required. Do not reuse
+P1H's selection or claim a P1D result before that handoff.

@@ -1,3 +1,29 @@
+## Latest: P1D prepared — new physical boot2 handoff pending
+
+P1H's [row and analysis](SESSION_0202_PLAN.md) and
+[scalars](results/p1h-runtime-scalars.json) are committed at `c1a100cb`.
+The >=120-second received SSH gate passed; its prompt-disconnect gate failed
+on a half-second host snapshot timeout. It later reached clean whole-ledger
+teardown at the admitted leaf wall, with 167 completed ordinary PID reuses.
+
+P1D host input `2da1f41b` corrects only that software snapshot envelope and
+bounded terminal-wait USB progress. All 22 helper tests and actual leaf/gate
+fixtures passed on clean Linux; syntax, ShellCheck, retained-source/binding
+and repository checks passed. The kernel/package/profile and boot artifacts
+are unchanged. The reviewed guard verified the matching full partition,
+skipped writing, preserved a separate deployment seal and confirmed clean
+shutdown. Complete actual offline host preparation passed.
+
+One new owner-operated physical boot2 selection with USB connected is now
+pending. No P1D device session has run; earlier selections are consumed.
+Require a fresh UUID and the exact P1 kernel-notes identity before the one
+capture and one session. This run still requires >=120 seconds of received
+SSH and a prompt standard disconnect under the unchanged time/ownership
+gates. Only after that gate passes proceed toward 600 seconds. Key reuse,
+rekey and reconnect remain disabled; full usable-Wi-Fi acceptance is incomplete.
+
+---
+
 ## Latest: P1H consumed — SSH duration passed; host control gate failed
 
 See the [single row](SESSION_0202_PLAN.md) and
