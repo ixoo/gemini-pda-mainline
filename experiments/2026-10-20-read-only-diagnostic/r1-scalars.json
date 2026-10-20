@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "run": "R1",
+  "boot_id": "71d4e5d2-c69f-40e5-90fb-9df865fdc263",
+  "candidate_preparation": "passed",
+  "fresh_identity": "passed",
+  "collection": "refused-initial-acquisition-gate",
+  "accepted_data_units": 0,
+  "preservation": "complete-log-through-seal",
+  "readback_verified": true,
+  "native_restart_requests": 1,
+  "restart_request_transport": "SSH-disconnect-unconfirmed-at-host-bound",
+  "known_good_return": "changed-ID-Gemian-confirmed",
+  "returned_boot_id": "e89014fc-49df-403c-b7c8-332b230a41c0",
+  "collection_retries": 0,
+  "mechanism_and_raw_evidence": "private",
+  "wifi_capability": "not-measured"
+}
