@@ -1,3 +1,25 @@
+## Latest: P1D passed — ten-minute host-envelope preparation next
+
+P1D's [row/analysis](SESSION_0202_PLAN.md) and
+[scalars](results/p1d-runtime-scalars.json) record the full admitted gate:
+121.136 seconds received SSH, all initial/periodic pings, 167 completed PID
+reuses, prompt standard disconnect and whole-ledger stage 3 with deauth ACK.
+The post-client snapshot took 0.602 seconds. All 75 seal entries and 3,283
+contiguous records independently verified. The original harness and a separate
+authenticated check confirmed changed-boot Gemian after one reviewed return.
+No P1D device operation remains pending.
+
+Next is >=600 seconds of received SSH and standard disconnect. Audit in the
+existing session plan identifies necessary host limits, including the USB
+server's 360-second hard connection cap and the boot-started logger's
+600-second deadline/exact verifier. Prepare those coherently before a new
+image/boot. Reuse the validated kernel: measured driver counts project below
+its current caps; no driver deadline or cap change is justified. There is no
+ten-minute candidate or physical handoff yet. Key reuse, rekey, same-boot
+reconnect, supported ordinary crypto and minimal board acceptance remain open.
+
+---
+
 ## Latest: P1D prepared — new physical boot2 handoff pending
 
 P1H's [row and analysis](SESSION_0202_PLAN.md) and

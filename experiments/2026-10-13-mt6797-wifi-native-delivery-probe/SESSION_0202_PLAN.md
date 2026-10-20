@@ -236,6 +236,7 @@ remain in the existing private evidence seal, not public scalars.
 | I50 | `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; periodic 4/4 | NOT REACHED: host helper namespace refusal before client/TCP | stage 3, zero debt, deauth ACK; return verified | 50.005 / 50 s PASS; full-session FAIL | [one scalars file](results/i50-runtime-scalars.json) |
 | P1 | `b79d576c-5449-4899-8260-a61f350e0a5d` | no HIF refusal; 154/154 data TX completed; 32 completed PID reuses | bound | initial 3/3; periodic 6/11, five not reached | authenticated; 116 ticks / 57.563 s received; exit 255, server maximum duration | whole-ledger stage 3, deauth 127 ACK; preservation continuation and changed Gemian verified | 63.924 s data; received SSH 57.563 / 120 s FAIL, harness limit | [one scalars file](results/p1-runtime-scalars.json) |
 | P1H | `1327a444-77d3-4014-81cb-a436a32cbc3a` | no HIF refusal; 289/289 data TX completed; 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | PASS: exit 0, 243 chunks across 121.090 s; later USB snapshot timed out | eventual stage 3, zero debt, deauth ACK at leaf wall; planned disconnect not attempted; return verified | SSH 121.090 / 120 s PASS; data 298.704 s; full-session FAIL | [one scalars file](results/p1h-runtime-scalars.json) |
+| P1D | `435e780a-3c83-4ccc-b861-20fc29dbcf3c` | PASS; 289/289 data TX, 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | exit 0, 243 chunks / 121.136 s; post-client snapshot 0.602 s | prompt standard disconnect, stage 3, zero debt, deauth ACK; original preservation/return pass | received SSH 121.136 / 120 s PASS; data 127.892 s; admitted full-session PASS | [one scalars file](results/p1d-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -2393,3 +2394,62 @@ against the corrected private leaf, helper and repinned receipt. The fresh
 runtime has only the deployment summary; capture/session remain unconsumed.
 A new physical boot2 selection with USB connected is required. Do not reuse
 P1H's selection or claim a P1D result before that handoff.
+
+
+### P1D consumed — full admitted 120-second gate passed
+
+The [single scalars file](results/p1d-runtime-scalars.json) records this fresh
+boot without repetition. All 243 chunks arrived across 121.136346958 seconds;
+maximum interarrival was 0.696585625 seconds, SSH exited 0 and stderr was empty.
+DHCP, initial replies 109.187 / 95.563 / 51.502 ms and eleven scheduled probes
+passed. The post-client USB snapshot took 0.602204374 seconds and returned an
+open data window; this exceeds the older half-second allowance but does not
+separate SSH setup from observation work. Tagged remote owners were absent.
+One guarded standard disconnect was accepted at PM +128.029..128.389 seconds.
+
+Data ended at 127.892 seconds. All 289 queued data frames completed. Ordinary
+allocations/completions were 293/293, including 167 completed reuses, two
+wraps and zero unowned completions. Reserved PID 127 was acknowledged at
+PM +128.201 seconds. All five cleanup commands credited within 100 ms, with
+whole-ledger stage 3 and no debt. Checked PTK/GTK were 295/501, delivered GTK
+ARP 229, withheld eligible ARP zero, and no owned-loss event or HIF refusal.
+Filtered owned-beacon admissions were 21, last age 126.060 seconds, establishing
+no continuous RF reception claim.
+
+The original harness completed: owned helper/device-child quiescence, all nine
+cycle files including ACK, 75 seal entries, 3,283 contiguous records
+(380,856 bytes), A53 regression and one reviewed recovery. The original return
+watcher and an independent authenticated check both confirmed changed-boot
+Gemian. The full actual classifier independently recomputed true. This is the
+admitted initial-key 120-second gate, not ten-minute, ordinary-mode crypto,
+key-retirement/rekey/reuse or same-boot reconnect acceptance.
+
+### Ten-minute envelope audit — resolve before the next boot
+
+The next milestone remains >=600 seconds of received authenticated traffic
+then standard disconnect. Current P1D measurements project below the unchanged
+driver caps: 1,442 total RX, 796 checked handoffs and 190,617 RX bytes in
+127.892 seconds, versus caps 32,768 / 8,192 / 16 MiB. These are planning
+estimates, not a guarantee; any actual cap stop remains a separate failure.
+The connected data path does not spend the finite join-poll budget, and
+completed ordinary PID reuse is now measured. No driver change is justified.
+
+Host limits still block this test: the leaf wall is 300 seconds, its listener
+180 seconds, remote stream 125 seconds, client 135 seconds, helper poll 210
+seconds, parent join 270 seconds and scan/join acquisition 330 seconds. The
+USB Dropbear connection also has a hard `-M 360`. The RAM logger starts at boot
+and has a 600-second deadline, so it cannot cover a 600-second data window plus
+setup, cleanup and sealing. The frozen log verifier requires that exact
+deadline; changing the logger alone would make preservation fail.
+
+Prepare one explicitly bounded ten-minute host envelope together. Use slower
+stream sampling so every chunk still fits the existing 64 KiB retention cap;
+retain individual timestamps and a maximum interarrival bound. Extend only
+the necessary userspace/session/logger budgets, with a matching scoped log
+verifier, keeping 2 MiB log capacity, all source/identity/seal/ownership checks,
+10-second ConnectTimeout, driver deadlines and firmware/resource limits.
+Build any changed logger only on Buildbox from clean pushed source and verify
+its package provenance before composition. Reuse the validated kernel. The
+next initramfs must declare its finite USB/logger lifetime changes, preserve
+all other members and pass the reviewed boot2 handoff again. No ten-minute
+image or device admission exists yet.
