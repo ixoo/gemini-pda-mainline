@@ -2280,3 +2280,13 @@ Bash syntax and ShellCheck. Local config/provenance, retained installer/source
 routing and repository checks passed. The fresh deployment-evidence namespace
 is P1H so the original P1 deployment record cannot be overwritten. The reviewed
 installer accepts the already matching full checksum and skips writing.
+
+
+P1H handoff is ready. The reviewed guard revalidated live Gemian, GPT boot2
+identity, inactive/non-root state and power, then verified the already matching
+full-partition checksum. It skipped writing, preserved a separate deployment
+seal, and confirmed clean shutdown. Complete actual offline host preparation
+passed against the corrected private leaf and repinned receipt. A new physical
+boot2 selection is now required; no P1H capture or radio session has run.
+After the owner's selection, require a fresh UUID and the same exact P1
+84-byte kernel-notes identity before the one capture and one session.

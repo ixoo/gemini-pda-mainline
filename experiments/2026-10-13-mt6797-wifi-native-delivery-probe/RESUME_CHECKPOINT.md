@@ -1,3 +1,23 @@
+## Latest: P1H ready; waiting for a new physical boot2 selection
+
+The P1 result is committed at `24f9ba08`. The corrected host envelope and
+its exact pins are pushed at `15d4cf5e`, with separate P1H deployment evidence
+at `5cfb7b24`. The Linux actual-leaf/progress and binding checks, syntax,
+ShellCheck, local retained-source/config fixtures and repository checks passed.
+No kernel changed or rebuilt: boot artifacts and full boot2 checksum are
+byte-identical to the installed P1 image. The guard verified that match,
+skipped writing and confirmed clean shutdown; offline host preparation passed.
+
+One new owner-operated boot2 selection with USB connected to the custodian
+is pending. P1's earlier reply is consumed. There has been no P1H device test.
+Require a fresh UUID, exact kernel-notes identity, one capture and one session.
+The test still requires >=120 seconds of received SSH traffic, completed PID
+reuse and standard disconnect. Stop at any earlier first failure, preserve it
+and retain independent duration/network/cleanup verdicts. No private firmware
+mechanism or offset-avoidance rule is inferred.
+
+---
+
 ## Latest: P1 consumed; host maximum-duration defect
 
 P1's [single table row](SESSION_0202_PLAN.md) and
