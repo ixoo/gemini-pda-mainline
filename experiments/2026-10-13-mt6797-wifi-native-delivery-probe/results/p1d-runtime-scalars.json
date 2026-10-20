@@ -6321,5 +6321,22 @@
     "No ordinary-mode integrity/PN or minimal-board-profile promotion beyond the current supported bounded contract is claimed",
     "No RF completeness, firmware timer mechanism or offset-exclusion rule inferred",
     "No transport/driver deadline extension, -48 adjustment or test retry"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 37221142386,
+    "submissions": [
+      {
+        "submission_log_time_us": 165439614,
+        "pid": 127,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 128176236000,
+        "nearest_nominal_pm_30s_index": 4,
+        "signed_offset_from_nearest_nominal_boundary_ns": 8176236000
+      }
+    ]
+  }
 }

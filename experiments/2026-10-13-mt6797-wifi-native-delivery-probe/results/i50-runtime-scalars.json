@@ -945,5 +945,22 @@
     "Eight exported cycle frames are preserved exactly, with no host-ACK file; the original full-cycle checker correctly refuses that omission",
     "Host resource cleanup/removal credits do not independently establish key erasure or stale queued-frame retirement",
     "No standard scan, two-/ten-minute stream, rekey, key reuse or same-boot reconnect acceptance; no -48 adjustment or longer transport deadlines"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 39805240002,
+    "submissions": [
+      {
+        "submission_log_time_us": 90093347,
+        "pid": 16,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 50242821000,
+        "nearest_nominal_pm_30s_index": 2,
+        "signed_offset_from_nearest_nominal_boundary_ns": -9757179000
+      }
+    ]
+  }
 }

@@ -383,5 +383,19 @@
     "GTK ARP handoff and neighbor observations do not prove peer attribution or causation of SSH success",
     "No unowned completion or BSS-timeout event was observed; no event tolerance or firmware reason interpretation was used",
     "Do not extend cleanup or transport deadlines to conceal the first post-window failure"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": null,
+    "submissions": [
+      {
+        "submission_log_time_us": 114451844,
+        "pid": 33,
+        "offset_known": false
+      }
+    ]
+  }
 }

@@ -558,5 +558,19 @@
     "credit_attribution_unresolved": true,
     "command_path_credited": true,
     "stop_condition": "whole-ledger requirement before removals"
+  },
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": null,
+    "submissions": [
+      {
+        "submission_log_time_us": 182449257,
+        "pid": 34,
+        "offset_known": false
+      }
+    ]
   }
 }

@@ -1216,5 +1216,22 @@
     "standard_bss_result": false,
     "standard_scan_succeeded": false,
     "scope": "inherited passive-scan verdict; join capability does not establish standard scan acceptance"
+  },
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 99113248313,
+    "submissions": [
+      {
+        "submission_log_time_us": 159406931,
+        "pid": 41,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 60250820000,
+        "nearest_nominal_pm_30s_index": 2,
+        "signed_offset_from_nearest_nominal_boundary_ns": 250820000
+      }
+    ]
   }
 }

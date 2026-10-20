@@ -2464,3 +2464,74 @@ the static AArch64 helper twice, compares replicas and writes commit/toolchain/
 source/hash provenance plus an exact package manifest. Modified source or
 fixtures refuse. This source preparation does not admit a boot; the scoped
 900-second verifier, host envelope and composed-image review are still needed.
+
+
+### P2 predeclaration — one 600-second lifetime
+
+P2 keeps P1D's protocol: standard WPA2 join, DHCP, individual pings, received
+authenticated SSH measured at both ends, then one supplicant disconnect. Use
+602 compact one-second chunks over a 601-second sender schedule, requiring
+>=600 seconds received, all ordinals/boot tags, <=3-second maximum receiver
+gap and the existing 64 KiB raw-output cap. Compact records omit only the
+repeated clock-resolution literal, retained as invariant receipt metadata.
+The standard disconnect request must start within PM +604..608 seconds; its
+existing live guard and bounded reply/teardown remain authoritative. A late
+check refuses control and is a host result, not a successful shorter test.
+
+Periodic probes are single guarded pings at PM +10..590 seconds, every ten
+seconds. Export every result/completion offset. P1D's conservative linear
+projection is about 3,735 checked handoffs against 8,192 (about 4,457 spare),
+6,765 total RX against 32,768, and about 0.9 MiB against 16 MiB. The slower
+SSH cadence reduces its traffic contribution, but these are estimates; real
+counters and the first binding limit decide the outcome. Driver caps, packet
+ownership, key guards, transaction deadlines, no-copy/poison and cleanup
+limits remain unchanged. No kernel rebuild/change is selected.
+
+Host bounds are explicit: remote stream 610 seconds, client 625 seconds, helper
+poll 710 seconds, parent helper join 770 seconds, leaf wall 780 seconds and
+join acquisition 810 seconds. Wi-Fi listener/maximum duration are 660 seconds;
+USB maximum connection duration is 900 seconds, with idle bounds unchanged.
+The boot-started RAM observer is 900 seconds with the same 2 MiB log/64 KiB
+record-size limits, paired with a scoped decoder requiring exactly that
+contract. Both decoder loading routes must prove the new binding before a
+session; the old 600-second source/decoder stays unchanged for previous tools.
+Negative ACK and terminal waits emit bounded numeric USB progress without
+extra radio traffic. ConnectTimeout remains ten seconds; ordinary USB reads
+remain 15 seconds and supplicant disconnect remains three seconds.
+
+The actual P2 composition reuses the validated P1D kernel/config/DT. Relative
+to P1D, only `bin/usb-auth` and `bin/kmsg-capture` differ in the same 64-member
+RAM root: one finite USB connection limit and the reproducibly built observer.
+All other members, including `init`, are byte-identical. Fresh live identity
+must therefore verify the USB script and logger hashes as well as kernel
+notes/boot identity before firmware capture; the unchanged kernel notes alone
+do not distinguish this root from P1D. Complete host preparation and the
+reviewed guarded boot2 installation/readback/new physical selection are still
+required. No P2 device session has run.
+
+Predeclared outcomes: full pass closes only the ten-minute single-lifetime
+gate; a host-bound stop is a harness result; an owned loss event exercises
+0221 and is graded on standard loss reporting and clean teardown, without
+inferring the event's cause; a management completion stall reopens that
+question even if bounded-debt flushing completes; any other first failure is
+separate. Record network, SSH duration, transport and cleanup independently.
+One scalars file/one existing table row per run, no retry.
+
+Existing sealed logs for nine PM-era runs were matched to their published log
+digests. Their original scalars now include derived reserved-submission timing
+on a requested nominal PM +30k comparison axis. Seven have the explicit
+PM-credit clock announcement and a same-log-clock offset; GTK5/GTK6 lack that
+reference, so their new offsets are unknown. No extra wire observation was
+added. These are submission-log observations, not precise wire timestamps or
+proof of a firmware timer phase. The records remain a correlation across
+different configurations: in particular P1H acknowledged near PM +299 seconds,
+about one second before a nominal boundary, so a universal 1.5-second exclusion
+rule is not established. P2 exports the same calculation for every reserved
+submission, plus beacon count/age, slot summaries and all cleanup credit times.
+
+After P2, refresh the two-lifetime design against the corrected source and
+pinned mac80211 teardown callbacks: re-arm only after firmware/resource
+cleanup and station teardown, with a supported key-retirement barrier and
+stale-generation rejection before any reuse. Key reuse, rekey and reconnect
+remain disabled now. A later owner-operated AP-off test will check owned 0x13
+standard connection-loss reporting and clean teardown; it is not part of P2.

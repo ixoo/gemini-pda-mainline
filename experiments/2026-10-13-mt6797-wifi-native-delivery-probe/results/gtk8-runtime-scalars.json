@@ -1227,5 +1227,22 @@
     "Reserved deauth missed its unchanged bound and later returned status 5; do not label it acknowledged",
     "Owned-beacon admissions remained stale despite successful periodic data; no RF-loss or firmware-mechanism claim",
     "Standard scan, rekey, PID/key reuse and reconnect remain incomplete/disabled; no -48 adjustment or longer transaction deadlines"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 47625156848,
+    "submissions": [
+      {
+        "submission_log_time_us": 107901278,
+        "pid": 40,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 60230921000,
+        "nearest_nominal_pm_30s_index": 2,
+        "signed_offset_from_nearest_nominal_boundary_ns": 230921000
+      }
+    ]
+  }
 }

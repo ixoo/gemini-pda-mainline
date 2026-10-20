@@ -1244,5 +1244,22 @@
     "The timely deauthentication differs from budget-end GTK8, but this run alone does not identify the cause",
     "Owned-beacon admissions became stale despite successful data; no continuous beacon or RF-loss claim",
     "Standard scan acceptance, persistent station lifecycle, rekey, key/PID reuse and same-boot reconnect remain incomplete; no -48 adjustment or deadline extensions"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 112925149083,
+    "submissions": [
+      {
+        "submission_log_time_us": 168721343,
+        "pid": 48,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 55750918000,
+        "nearest_nominal_pm_30s_index": 2,
+        "signed_offset_from_nearest_nominal_boundary_ns": -4249082000
+      }
+    ]
+  }
 }

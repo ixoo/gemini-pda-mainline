@@ -6308,5 +6308,22 @@
     "No 600-second SSH acceptance, key reuse, rekey or same-boot reconnect",
     "The full native classifier remains false because the standard control/host session is incomplete",
     "No raw addresses, credentials or firmware explanations published; no deadline extension, -48 adjustment or test retry performed"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 49425556849,
+    "submissions": [
+      {
+        "submission_log_time_us": 348435610,
+        "pid": 127,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 298967821000,
+        "nearest_nominal_pm_30s_index": 10,
+        "signed_offset_from_nearest_nominal_boundary_ns": -1032179000
+      }
+    ]
+  }
 }

@@ -3371,5 +3371,22 @@
     "No key reuse, rekey or same-boot reconnect enabled",
     "Full host session classifier remains false; partial authenticated reception is separate from successful complete exchange",
     "No firmware mechanism attribution, deadline extension, -48 adjustment or automatic test retry"
-  ]
+  ],
+  "reserved_submission_offsets": {
+    "reference": "same kmsg timestamp domain, PM-credit announcement",
+    "resolution_ns": 1000,
+    "wire_timestamp": false,
+    "firmware_timer_phase_proven": false,
+    "pm_credit_monotonic_ns": 129701225238,
+    "submissions": [
+      {
+        "submission_log_time_us": 193907502,
+        "pid": 127,
+        "offset_known": true,
+        "pm_relative_log_offset_ns": 64164114000,
+        "nearest_nominal_pm_30s_index": 2,
+        "signed_offset_from_nearest_nominal_boundary_ns": 4164114000
+      }
+    ]
+  }
 }
