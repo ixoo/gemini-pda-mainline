@@ -1,0 +1,3375 @@
+{
+  "run": "P1",
+  "boot_id": "b79d576c-5449-4899-8260-a61f350e0a5d",
+  "kernel_input": "71c4b4a818b5eef6330e0ca844407574941a017c",
+  "host_input": "2ec08e59b1e0fc37155d858129e3ed3479e97124",
+  "handoff_commit": "da22f844b4e1af22d954f199ff1962959574e340",
+  "candidate_full_partition_sha256": "f19d4e27bd24fc38b091c8847440c051f83e92da3972865125ae4c0a0589e998",
+  "notes_sha256": "b0213c37e6080b8b334f73842ca3162390cdfeecb29d8eb93bd41d2c2bf9b160",
+  "attempts": {
+    "phase_a_capture": 1,
+    "device_session": 1,
+    "wifi_ssh_client": 1,
+    "standard_disconnect_requests": 1,
+    "native_recovery_requests": 1,
+    "read_only_post_stop_inspection": 1,
+    "preservation_continuations": 1
+  },
+  "verdicts": {
+    "transport": "PASS observed: no HIF framing refusal; 154/154 data completions, channel release and five cleanup command credits",
+    "dhcp": "bound",
+    "pings": "initial 3/3; scheduled 6/11 completed before abort, remaining five NOT REACHED",
+    "ssh": "authenticated and 116 received ticks; exit 255 after 59.692 s; server Max duration reached under -M 60",
+    "ssh_failure_stage": "post-authenticated stream; server maximum-duration policy",
+    "duration": "FAIL: received span 57.563 s, required >=120 s",
+    "cleanup": "PASS kernel: whole-ledger stage 3 and reserved deauth ACK; original host seal/recovery refused on transient nonzero supplicant count; separate preserved continuation verified child quiescence and returned",
+    "full_session": "FAIL: incomplete stream, absent host ACK, early standard abort"
+  },
+  "planned_received_ssh_ms": 120000,
+  "actual_data_window_ms": 63924,
+  "data_end_reason": "disconnect",
+  "core_disconnect": {
+    "accepted": true,
+    "after_pm_offset_ns": 64388774762,
+    "attempted": true,
+    "before_pm_offset_ns": 64028774762,
+    "exit": 0,
+    "kind": "abort_after_incomplete_stream",
+    "reason": null,
+    "stderr_bytes": 0
+  },
+  "ssh": {
+    "authenticated_observed": true,
+    "client_exit": 255,
+    "client_timed_out": false,
+    "host_elapsed_ns": 59691717750,
+    "received_ticks": 116,
+    "first_ordinal": 0,
+    "last_ordinal": 115,
+    "observed_partial_receive_span_ns": 57563048875,
+    "max_receive_gap_ns": 699474292,
+    "host_receive_ticks": [
+      [
+        0,
+        1410515042
+      ],
+      [
+        1,
+        2047726667
+      ],
+      [
+        2,
+        2440347417
+      ],
+      [
+        3,
+        3094955000
+      ],
+      [
+        4,
+        3661363917
+      ],
+      [
+        5,
+        3966142875
+      ],
+      [
+        6,
+        4481516042
+      ],
+      [
+        7,
+        4929667125
+      ],
+      [
+        8,
+        5474050000
+      ],
+      [
+        9,
+        5965761167
+      ],
+      [
+        10,
+        6425689125
+      ],
+      [
+        11,
+        6981045125
+      ],
+      [
+        12,
+        7469690834
+      ],
+      [
+        13,
+        7945622959
+      ],
+      [
+        14,
+        8474173125
+      ],
+      [
+        15,
+        8989928917
+      ],
+      [
+        16,
+        9473544167
+      ],
+      [
+        17,
+        9985625917
+      ],
+      [
+        18,
+        10469838084
+      ],
+      [
+        19,
+        10965638875
+      ],
+      [
+        20,
+        11497875959
+      ],
+      [
+        21,
+        12003088750
+      ],
+      [
+        22,
+        12532150375
+      ],
+      [
+        23,
+        13081949584
+      ],
+      [
+        24,
+        13490524292
+      ],
+      [
+        25,
+        14003071625
+      ],
+      [
+        26,
+        14516730292
+      ],
+      [
+        27,
+        14984896959
+      ],
+      [
+        28,
+        15457588875
+      ],
+      [
+        29,
+        15949662167
+      ],
+      [
+        30,
+        16564221417
+      ],
+      [
+        31,
+        16924990292
+      ],
+      [
+        32,
+        17485518375
+      ],
+      [
+        33,
+        17997001959
+      ],
+      [
+        34,
+        18509930292
+      ],
+      [
+        35,
+        19020391750
+      ],
+      [
+        36,
+        19535749084
+      ],
+      [
+        37,
+        19969432334
+      ],
+      [
+        38,
+        20450616834
+      ],
+      [
+        39,
+        20967437125
+      ],
+      [
+        40,
+        21473668875
+      ],
+      [
+        41,
+        21990472084
+      ],
+      [
+        42,
+        22490892750
+      ],
+      [
+        43,
+        23116463375
+      ],
+      [
+        44,
+        23628353375
+      ],
+      [
+        45,
+        24141511875
+      ],
+      [
+        46,
+        24465666750
+      ],
+      [
+        47,
+        24965599584
+      ],
+      [
+        48,
+        25432938042
+      ],
+      [
+        49,
+        25978010667
+      ],
+      [
+        50,
+        26474361084
+      ],
+      [
+        51,
+        26957993167
+      ],
+      [
+        52,
+        27508698709
+      ],
+      [
+        53,
+        28031793667
+      ],
+      [
+        54,
+        28481560959
+      ],
+      [
+        55,
+        29056315375
+      ],
+      [
+        56,
+        29465397000
+      ],
+      [
+        57,
+        29921786334
+      ],
+      [
+        58,
+        30501666750
+      ],
+      [
+        59,
+        31009566750
+      ],
+      [
+        60,
+        31426116584
+      ],
+      [
+        61,
+        31993688375
+      ],
+      [
+        62,
+        32497636042
+      ],
+      [
+        63,
+        32979874334
+      ],
+      [
+        64,
+        33561879167
+      ],
+      [
+        65,
+        34028737042
+      ],
+      [
+        66,
+        34553175084
+      ],
+      [
+        67,
+        34933118209
+      ],
+      [
+        68,
+        35489955959
+      ],
+      [
+        69,
+        35928991042
+      ],
+      [
+        70,
+        36535132625
+      ],
+      [
+        71,
+        37008652334
+      ],
+      [
+        72,
+        37508991625
+      ],
+      [
+        73,
+        37939276125
+      ],
+      [
+        74,
+        38425813959
+      ],
+      [
+        75,
+        39090850667
+      ],
+      [
+        76,
+        39500767959
+      ],
+      [
+        77,
+        39922465209
+      ],
+      [
+        78,
+        40524931500
+      ],
+      [
+        79,
+        40991766167
+      ],
+      [
+        80,
+        41465440667
+      ],
+      [
+        81,
+        41985615875
+      ],
+      [
+        82,
+        42473375542
+      ],
+      [
+        83,
+        42982881250
+      ],
+      [
+        84,
+        43494483625
+      ],
+      [
+        85,
+        43989120334
+      ],
+      [
+        86,
+        44509903625
+      ],
+      [
+        87,
+        45036751875
+      ],
+      [
+        88,
+        45461696542
+      ],
+      [
+        89,
+        45973681125
+      ],
+      [
+        90,
+        46485979625
+      ],
+      [
+        91,
+        47185453917
+      ],
+      [
+        92,
+        47502571250
+      ],
+      [
+        93,
+        48009665250
+      ],
+      [
+        94,
+        48511690917
+      ],
+      [
+        95,
+        48956957750
+      ],
+      [
+        96,
+        49469676459
+      ],
+      [
+        97,
+        49992965125
+      ],
+      [
+        98,
+        50513649000
+      ],
+      [
+        99,
+        50957593000
+      ],
+      [
+        100,
+        51438256250
+      ],
+      [
+        101,
+        51997755167
+      ],
+      [
+        102,
+        52458048334
+      ],
+      [
+        103,
+        52961647792
+      ],
+      [
+        104,
+        53517631417
+      ],
+      [
+        105,
+        53981754000
+      ],
+      [
+        106,
+        54528743334
+      ],
+      [
+        107,
+        54998740584
+      ],
+      [
+        108,
+        55527175834
+      ],
+      [
+        109,
+        56047902250
+      ],
+      [
+        110,
+        56469627792
+      ],
+      [
+        111,
+        56969563334
+      ],
+      [
+        112,
+        57486326334
+      ],
+      [
+        113,
+        58035800417
+      ],
+      [
+        114,
+        58551890459
+      ],
+      [
+        115,
+        58973563917
+      ]
+    ],
+    "stdout_bytes": 13988,
+    "stderr_bytes": 51,
+    "stderr_class": "closed by remote host",
+    "server_end": "Max duration reached",
+    "configured_server_max_duration_s": 60,
+    "outer_listener_timeout_s": 180,
+    "duration_pass": false,
+    "ack_written": false
+  },
+  "individual_pings": [
+    {
+      "sequence": 0,
+      "ttl": 64,
+      "time_ms": 94.524
+    },
+    {
+      "sequence": 1,
+      "ttl": 64,
+      "time_ms": 32.878
+    },
+    {
+      "sequence": 2,
+      "ttl": 64,
+      "time_ms": 32.573
+    }
+  ],
+  "periodic_transmissions": {
+    "planned_offsets_s": [
+      10,
+      20,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100,
+      110
+    ],
+    "actual_probes": [
+      {
+        "ordinal": 1,
+        "scheduled_offset_ns": 10000000000,
+        "attempted": 1,
+        "start_offset_ns": 10398774762,
+        "completion_offset_ns": 10818774762,
+        "exit": 0,
+        "statistics_known": 1,
+        "transmitted": 1,
+        "replies": 1,
+        "rtt_known": 1,
+        "rtt_ms": 44.254,
+        "clock_resolution_ns": 10000000
+      },
+      {
+        "ordinal": 2,
+        "scheduled_offset_ns": 20000000000,
+        "attempted": 1,
+        "start_offset_ns": 20148774762,
+        "completion_offset_ns": 20558774762,
+        "exit": 0,
+        "statistics_known": 1,
+        "transmitted": 1,
+        "replies": 1,
+        "rtt_known": 1,
+        "rtt_ms": 46.698,
+        "clock_resolution_ns": 10000000
+      },
+      {
+        "ordinal": 3,
+        "scheduled_offset_ns": 30000000000,
+        "attempted": 1,
+        "start_offset_ns": 30188774762,
+        "completion_offset_ns": 30628774762,
+        "exit": 0,
+        "statistics_known": 1,
+        "transmitted": 1,
+        "replies": 1,
+        "rtt_known": 1,
+        "rtt_ms": 52.08,
+        "clock_resolution_ns": 10000000
+      },
+      {
+        "ordinal": 4,
+        "scheduled_offset_ns": 40000000000,
+        "attempted": 1,
+        "start_offset_ns": 40418774762,
+        "completion_offset_ns": 40848774762,
+        "exit": 0,
+        "statistics_known": 1,
+        "transmitted": 1,
+        "replies": 1,
+        "rtt_known": 1,
+        "rtt_ms": 29.352,
+        "clock_resolution_ns": 10000000
+      },
+      {
+        "ordinal": 5,
+        "scheduled_offset_ns": 50000000000,
+        "attempted": 1,
+        "start_offset_ns": 50178774762,
+        "completion_offset_ns": 50638774762,
+        "exit": 0,
+        "statistics_known": 1,
+        "transmitted": 1,
+        "replies": 1,
+        "rtt_known": 1,
+        "rtt_ms": 40.125,
+        "clock_resolution_ns": 10000000
+      },
+      {
+        "ordinal": 6,
+        "scheduled_offset_ns": 60000000000,
+        "attempted": 1,
+        "start_offset_ns": 60018774762,
+        "completion_offset_ns": 60478774762,
+        "exit": 0,
+        "statistics_known": 1,
+        "transmitted": 1,
+        "replies": 1,
+        "rtt_known": 1,
+        "rtt_ms": 36.452,
+        "clock_resolution_ns": 10000000
+      }
+    ],
+    "remaining_not_reached": 5,
+    "clock_resolution_ns": 10000000,
+    "driver_tx_completions": [
+      {
+        "pid": 3,
+        "ordinal": 3,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 129755605469,
+        "pm_offset_ns": 54380231
+      },
+      {
+        "pid": 4,
+        "ordinal": 4,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 129815730776,
+        "pm_offset_ns": 114505538
+      },
+      {
+        "pid": 5,
+        "ordinal": 5,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 130217010853,
+        "pm_offset_ns": 515785615
+      },
+      {
+        "pid": 6,
+        "ordinal": 6,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 130291659776,
+        "pm_offset_ns": 590434538
+      },
+      {
+        "pid": 7,
+        "ordinal": 7,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131611667930,
+        "pm_offset_ns": 1910442692
+      },
+      {
+        "pid": 8,
+        "ordinal": 8,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131663611315,
+        "pm_offset_ns": 1962386077
+      },
+      {
+        "pid": 9,
+        "ordinal": 9,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131763837315,
+        "pm_offset_ns": 2062612077
+      },
+      {
+        "pid": 10,
+        "ordinal": 10,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131815612238,
+        "pm_offset_ns": 2114387000
+      },
+      {
+        "pid": 11,
+        "ordinal": 11,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131867629392,
+        "pm_offset_ns": 2166404154
+      },
+      {
+        "pid": 12,
+        "ordinal": 12,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131919622469,
+        "pm_offset_ns": 2218397231
+      },
+      {
+        "pid": 13,
+        "ordinal": 13,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131994564853,
+        "pm_offset_ns": 2293339615
+      },
+      {
+        "pid": 14,
+        "ordinal": 14,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132046556546,
+        "pm_offset_ns": 2345331308
+      },
+      {
+        "pid": 15,
+        "ordinal": 15,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132098564623,
+        "pm_offset_ns": 2397339385
+      },
+      {
+        "pid": 16,
+        "ordinal": 16,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132154524084,
+        "pm_offset_ns": 2453298846
+      },
+      {
+        "pid": 17,
+        "ordinal": 17,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132206495546,
+        "pm_offset_ns": 2505270308
+      },
+      {
+        "pid": 18,
+        "ordinal": 18,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132258459546,
+        "pm_offset_ns": 2557234308
+      },
+      {
+        "pid": 19,
+        "ordinal": 19,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132310493469,
+        "pm_offset_ns": 2609268231
+      },
+      {
+        "pid": 20,
+        "ordinal": 20,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132370519238,
+        "pm_offset_ns": 2669294000
+      },
+      {
+        "pid": 21,
+        "ordinal": 21,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132422506161,
+        "pm_offset_ns": 2721280923
+      },
+      {
+        "pid": 22,
+        "ordinal": 22,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132498558238,
+        "pm_offset_ns": 2797333000
+      },
+      {
+        "pid": 23,
+        "ordinal": 23,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132550514853,
+        "pm_offset_ns": 2849289615
+      },
+      {
+        "pid": 24,
+        "ordinal": 24,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132602552930,
+        "pm_offset_ns": 2901327692
+      },
+      {
+        "pid": 25,
+        "ordinal": 25,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132678521238,
+        "pm_offset_ns": 2977296000
+      },
+      {
+        "pid": 26,
+        "ordinal": 26,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132742532546,
+        "pm_offset_ns": 3041307308
+      },
+      {
+        "pid": 27,
+        "ordinal": 27,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132826555161,
+        "pm_offset_ns": 3125329923
+      },
+      {
+        "pid": 28,
+        "ordinal": 28,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132878534392,
+        "pm_offset_ns": 3177309154
+      },
+      {
+        "pid": 29,
+        "ordinal": 29,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132930522238,
+        "pm_offset_ns": 3229297000
+      },
+      {
+        "pid": 30,
+        "ordinal": 30,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132982474007,
+        "pm_offset_ns": 3281248769
+      },
+      {
+        "pid": 31,
+        "ordinal": 31,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133034456546,
+        "pm_offset_ns": 3333231308
+      },
+      {
+        "pid": 32,
+        "ordinal": 32,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133574515777,
+        "pm_offset_ns": 3873290539
+      },
+      {
+        "pid": 33,
+        "ordinal": 33,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133602566930,
+        "pm_offset_ns": 3901341692
+      },
+      {
+        "pid": 34,
+        "ordinal": 34,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 134066506623,
+        "pm_offset_ns": 4365281385
+      },
+      {
+        "pid": 35,
+        "ordinal": 35,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 134582604931,
+        "pm_offset_ns": 4881379693
+      },
+      {
+        "pid": 36,
+        "ordinal": 36,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 135078495777,
+        "pm_offset_ns": 5377270539
+      },
+      {
+        "pid": 37,
+        "ordinal": 37,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 135394541623,
+        "pm_offset_ns": 5693316385
+      },
+      {
+        "pid": 38,
+        "ordinal": 38,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 135594530777,
+        "pm_offset_ns": 5893305539
+      },
+      {
+        "pid": 39,
+        "ordinal": 39,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136082488623,
+        "pm_offset_ns": 6381263385
+      },
+      {
+        "pid": 40,
+        "ordinal": 40,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136558687469,
+        "pm_offset_ns": 6857462231
+      },
+      {
+        "pid": 41,
+        "ordinal": 41,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 137102532700,
+        "pm_offset_ns": 7401307462
+      },
+      {
+        "pid": 42,
+        "ordinal": 42,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 137594529623,
+        "pm_offset_ns": 7893304385
+      },
+      {
+        "pid": 43,
+        "ordinal": 43,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 138054498008,
+        "pm_offset_ns": 8353272770
+      },
+      {
+        "pid": 44,
+        "ordinal": 44,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 138610488238,
+        "pm_offset_ns": 8909263000
+      },
+      {
+        "pid": 45,
+        "ordinal": 45,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 139098494008,
+        "pm_offset_ns": 9397268770
+      },
+      {
+        "pid": 46,
+        "ordinal": 46,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 139574537469,
+        "pm_offset_ns": 9873312231
+      },
+      {
+        "pid": 47,
+        "ordinal": 47,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 140070553469,
+        "pm_offset_ns": 10369328231
+      },
+      {
+        "pid": 48,
+        "ordinal": 48,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 140150724623,
+        "pm_offset_ns": 10449499385
+      },
+      {
+        "pid": 49,
+        "ordinal": 49,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 140618545085,
+        "pm_offset_ns": 10917319847
+      },
+      {
+        "pid": 50,
+        "ordinal": 50,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 141102484469,
+        "pm_offset_ns": 11401259231
+      },
+      {
+        "pid": 51,
+        "ordinal": 51,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 141618531546,
+        "pm_offset_ns": 11917306308
+      },
+      {
+        "pid": 52,
+        "ordinal": 52,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 142102644854,
+        "pm_offset_ns": 12401419616
+      },
+      {
+        "pid": 53,
+        "ordinal": 53,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 142594464162,
+        "pm_offset_ns": 12893238924
+      },
+      {
+        "pid": 54,
+        "ordinal": 54,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 143086504239,
+        "pm_offset_ns": 13385279001
+      },
+      {
+        "pid": 55,
+        "ordinal": 55,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 143578496931,
+        "pm_offset_ns": 13877271693
+      },
+      {
+        "pid": 56,
+        "ordinal": 56,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 144074514162,
+        "pm_offset_ns": 14373288924
+      },
+      {
+        "pid": 57,
+        "ordinal": 57,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 144586602931,
+        "pm_offset_ns": 14885377693
+      },
+      {
+        "pid": 58,
+        "ordinal": 58,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 145078508085,
+        "pm_offset_ns": 15377282847
+      },
+      {
+        "pid": 59,
+        "ordinal": 59,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 145562471316,
+        "pm_offset_ns": 15861246078
+      },
+      {
+        "pid": 60,
+        "ordinal": 60,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 146118523547,
+        "pm_offset_ns": 16417298309
+      },
+      {
+        "pid": 61,
+        "ordinal": 61,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 146614631085,
+        "pm_offset_ns": 16913405847
+      },
+      {
+        "pid": 62,
+        "ordinal": 62,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 147090547470,
+        "pm_offset_ns": 17389322232
+      },
+      {
+        "pid": 63,
+        "ordinal": 63,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 147574524393,
+        "pm_offset_ns": 17873299155
+      },
+      {
+        "pid": 64,
+        "ordinal": 64,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 148094530777,
+        "pm_offset_ns": 18393305539
+      },
+      {
+        "pid": 65,
+        "ordinal": 65,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 148554521085,
+        "pm_offset_ns": 18853295847
+      },
+      {
+        "pid": 66,
+        "ordinal": 66,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 149114552008,
+        "pm_offset_ns": 19413326770
+      },
+      {
+        "pid": 67,
+        "ordinal": 67,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 149606632778,
+        "pm_offset_ns": 19905407540
+      },
+      {
+        "pid": 68,
+        "ordinal": 68,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 149906579778,
+        "pm_offset_ns": 20205354540
+      },
+      {
+        "pid": 69,
+        "ordinal": 69,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 150102461624,
+        "pm_offset_ns": 20401236386
+      },
+      {
+        "pid": 70,
+        "ordinal": 70,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 150602556393,
+        "pm_offset_ns": 20901331155
+      },
+      {
+        "pid": 71,
+        "ordinal": 71,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 151102536008,
+        "pm_offset_ns": 21401310770
+      },
+      {
+        "pid": 72,
+        "ordinal": 72,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 151598526932,
+        "pm_offset_ns": 21897301694
+      },
+      {
+        "pid": 73,
+        "ordinal": 73,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 152078574162,
+        "pm_offset_ns": 22377348924
+      },
+      {
+        "pid": 74,
+        "ordinal": 74,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 152562572009,
+        "pm_offset_ns": 22861346771
+      },
+      {
+        "pid": 75,
+        "ordinal": 75,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 153102488855,
+        "pm_offset_ns": 23401263617
+      },
+      {
+        "pid": 76,
+        "ordinal": 76,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 153586509393,
+        "pm_offset_ns": 23885284155
+      },
+      {
+        "pid": 77,
+        "ordinal": 77,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 154078490239,
+        "pm_offset_ns": 24377265001
+      },
+      {
+        "pid": 78,
+        "ordinal": 78,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 154586595470,
+        "pm_offset_ns": 24885370232
+      },
+      {
+        "pid": 79,
+        "ordinal": 79,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 155074598316,
+        "pm_offset_ns": 25373373078
+      },
+      {
+        "pid": 80,
+        "ordinal": 80,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 155618570701,
+        "pm_offset_ns": 25917345463
+      },
+      {
+        "pid": 81,
+        "ordinal": 81,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 156094609470,
+        "pm_offset_ns": 26393384232
+      },
+      {
+        "pid": 82,
+        "ordinal": 82,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 156594619932,
+        "pm_offset_ns": 26893394694
+      },
+      {
+        "pid": 83,
+        "ordinal": 83,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 157066548855,
+        "pm_offset_ns": 27365323617
+      },
+      {
+        "pid": 84,
+        "ordinal": 84,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 157606525547,
+        "pm_offset_ns": 27905300309
+      },
+      {
+        "pid": 85,
+        "ordinal": 85,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 158102538932,
+        "pm_offset_ns": 28401313694
+      },
+      {
+        "pid": 86,
+        "ordinal": 86,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 158590539778,
+        "pm_offset_ns": 28889314540
+      },
+      {
+        "pid": 87,
+        "ordinal": 87,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 159098496009,
+        "pm_offset_ns": 29397270771
+      },
+      {
+        "pid": 88,
+        "ordinal": 88,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 159590459701,
+        "pm_offset_ns": 29889234463
+      },
+      {
+        "pid": 89,
+        "ordinal": 89,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 159954578547,
+        "pm_offset_ns": 30253353309
+      },
+      {
+        "pid": 90,
+        "ordinal": 90,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 160102469009,
+        "pm_offset_ns": 30401243771
+      },
+      {
+        "pid": 91,
+        "ordinal": 91,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 160586534778,
+        "pm_offset_ns": 30885309540
+      },
+      {
+        "pid": 92,
+        "ordinal": 92,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 161078495086,
+        "pm_offset_ns": 31377269848
+      },
+      {
+        "pid": 93,
+        "ordinal": 93,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 161550490009,
+        "pm_offset_ns": 31849264771
+      },
+      {
+        "pid": 94,
+        "ordinal": 94,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 162130593317,
+        "pm_offset_ns": 32429368079
+      },
+      {
+        "pid": 95,
+        "ordinal": 95,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 162638533932,
+        "pm_offset_ns": 32937308694
+      },
+      {
+        "pid": 96,
+        "ordinal": 96,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 163054576009,
+        "pm_offset_ns": 33353350771
+      },
+      {
+        "pid": 97,
+        "ordinal": 97,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 163622576548,
+        "pm_offset_ns": 33921351310
+      },
+      {
+        "pid": 98,
+        "ordinal": 98,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 164130508778,
+        "pm_offset_ns": 34429283540
+      },
+      {
+        "pid": 99,
+        "ordinal": 99,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 164555512855,
+        "pm_offset_ns": 34854287617
+      },
+      {
+        "pid": 100,
+        "ordinal": 100,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 165134534548,
+        "pm_offset_ns": 35433309310
+      },
+      {
+        "pid": 101,
+        "ordinal": 101,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 165622530163,
+        "pm_offset_ns": 35921304925
+      },
+      {
+        "pid": 102,
+        "ordinal": 102,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 166134495548,
+        "pm_offset_ns": 36433270310
+      },
+      {
+        "pid": 103,
+        "ordinal": 103,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 166558537086,
+        "pm_offset_ns": 36857311848
+      },
+      {
+        "pid": 104,
+        "ordinal": 104,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 167118559548,
+        "pm_offset_ns": 37417334310
+      },
+      {
+        "pid": 105,
+        "ordinal": 105,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 167558568779,
+        "pm_offset_ns": 37857343541
+      },
+      {
+        "pid": 106,
+        "ordinal": 106,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 168126681856,
+        "pm_offset_ns": 38425456618
+      },
+      {
+        "pid": 107,
+        "ordinal": 107,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 168638565625,
+        "pm_offset_ns": 38937340387
+      },
+      {
+        "pid": 108,
+        "ordinal": 108,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 169138573933,
+        "pm_offset_ns": 39437348695
+      },
+      {
+        "pid": 109,
+        "ordinal": 109,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 169566544163,
+        "pm_offset_ns": 39865318925
+      },
+      {
+        "pid": 110,
+        "ordinal": 110,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 170054511240,
+        "pm_offset_ns": 40353286002
+      },
+      {
+        "pid": 111,
+        "ordinal": 111,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 170154586779,
+        "pm_offset_ns": 40453361541
+      },
+      {
+        "pid": 112,
+        "ordinal": 112,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 170642535394,
+        "pm_offset_ns": 40941310156
+      },
+      {
+        "pid": 113,
+        "ordinal": 113,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 171078560933,
+        "pm_offset_ns": 41377335695
+      },
+      {
+        "pid": 114,
+        "ordinal": 114,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 171550546779,
+        "pm_offset_ns": 41849321541
+      },
+      {
+        "pid": 115,
+        "ordinal": 115,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 172126616394,
+        "pm_offset_ns": 42425391156
+      },
+      {
+        "pid": 116,
+        "ordinal": 116,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 172622590164,
+        "pm_offset_ns": 42921364926
+      },
+      {
+        "pid": 117,
+        "ordinal": 117,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 173094561933,
+        "pm_offset_ns": 43393336695
+      },
+      {
+        "pid": 118,
+        "ordinal": 118,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 173614520010,
+        "pm_offset_ns": 43913294772
+      },
+      {
+        "pid": 119,
+        "ordinal": 119,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 174102531933,
+        "pm_offset_ns": 44401306695
+      },
+      {
+        "pid": 120,
+        "ordinal": 120,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 174578549394,
+        "pm_offset_ns": 44877324156
+      },
+      {
+        "pid": 121,
+        "ordinal": 121,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 175117278010,
+        "pm_offset_ns": 45416052772
+      },
+      {
+        "pid": 122,
+        "ordinal": 122,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 175602570395,
+        "pm_offset_ns": 45901345157
+      },
+      {
+        "pid": 123,
+        "ordinal": 123,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 176114573933,
+        "pm_offset_ns": 46413348695
+      },
+      {
+        "pid": 124,
+        "ordinal": 124,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 176602516395,
+        "pm_offset_ns": 46901291157
+      },
+      {
+        "pid": 125,
+        "ordinal": 125,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 177090658472,
+        "pm_offset_ns": 47389433234
+      },
+      {
+        "pid": 126,
+        "ordinal": 126,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 177602587548,
+        "pm_offset_ns": 47901362310
+      },
+      {
+        "pid": 1,
+        "ordinal": 127,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 178118464010,
+        "pm_offset_ns": 48417238772
+      },
+      {
+        "pid": 2,
+        "ordinal": 128,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 178634477779,
+        "pm_offset_ns": 48933252541
+      },
+      {
+        "pid": 3,
+        "ordinal": 129,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 179126507625,
+        "pm_offset_ns": 49425282387
+      },
+      {
+        "pid": 4,
+        "ordinal": 130,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 179638494241,
+        "pm_offset_ns": 49937269003
+      },
+      {
+        "pid": 5,
+        "ordinal": 131,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 179930589318,
+        "pm_offset_ns": 50229364080
+      },
+      {
+        "pid": 6,
+        "ordinal": 132,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 180102529549,
+        "pm_offset_ns": 50401304311
+      },
+      {
+        "pid": 7,
+        "ordinal": 133,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 180586516395,
+        "pm_offset_ns": 50885291157
+      },
+      {
+        "pid": 8,
+        "ordinal": 134,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 181098587703,
+        "pm_offset_ns": 51397362465
+      },
+      {
+        "pid": 9,
+        "ordinal": 135,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 181622464779,
+        "pm_offset_ns": 51921239541
+      },
+      {
+        "pid": 10,
+        "ordinal": 136,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 182142658626,
+        "pm_offset_ns": 52441433388
+      },
+      {
+        "pid": 11,
+        "ordinal": 137,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 182586510549,
+        "pm_offset_ns": 52885285311
+      },
+      {
+        "pid": 12,
+        "ordinal": 138,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 183066619087,
+        "pm_offset_ns": 53365393849
+      },
+      {
+        "pid": 13,
+        "ordinal": 139,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 183626566780,
+        "pm_offset_ns": 53925341542
+      },
+      {
+        "pid": 14,
+        "ordinal": 140,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 184090530549,
+        "pm_offset_ns": 54389305311
+      },
+      {
+        "pid": 15,
+        "ordinal": 141,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 184590558010,
+        "pm_offset_ns": 54889332772
+      },
+      {
+        "pid": 16,
+        "ordinal": 142,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 185094667164,
+        "pm_offset_ns": 55393441926
+      },
+      {
+        "pid": 17,
+        "ordinal": 143,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 185146547087,
+        "pm_offset_ns": 55445321849
+      },
+      {
+        "pid": 18,
+        "ordinal": 144,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 185614515395,
+        "pm_offset_ns": 55913290157
+      },
+      {
+        "pid": 19,
+        "ordinal": 145,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 186158507780,
+        "pm_offset_ns": 56457282542
+      },
+      {
+        "pid": 20,
+        "ordinal": 146,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 186602557934,
+        "pm_offset_ns": 56901332696
+      },
+      {
+        "pid": 21,
+        "ordinal": 147,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 187118530164,
+        "pm_offset_ns": 57417304926
+      },
+      {
+        "pid": 22,
+        "ordinal": 148,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 187626590088,
+        "pm_offset_ns": 57925364850
+      },
+      {
+        "pid": 23,
+        "ordinal": 149,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 188099345934,
+        "pm_offset_ns": 58398120696
+      },
+      {
+        "pid": 24,
+        "ordinal": 150,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 188598555780,
+        "pm_offset_ns": 58897330542
+      },
+      {
+        "pid": 25,
+        "ordinal": 151,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 189114555165,
+        "pm_offset_ns": 59413329927
+      },
+      {
+        "pid": 26,
+        "ordinal": 152,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 189614552934,
+        "pm_offset_ns": 59913327696
+      },
+      {
+        "pid": 27,
+        "ordinal": 153,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 189762615549,
+        "pm_offset_ns": 60061390311
+      },
+      {
+        "pid": 28,
+        "ordinal": 154,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 190126518088,
+        "pm_offset_ns": 60425292850
+      },
+      {
+        "pid": 29,
+        "ordinal": 155,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 190602498318,
+        "pm_offset_ns": 60901273080
+      },
+      {
+        "pid": 30,
+        "ordinal": 156,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 191106625319,
+        "pm_offset_ns": 61405400081
+      },
+      {
+        "pid": 31,
+        "ordinal": 157,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 191158565857,
+        "pm_offset_ns": 61457340619
+      },
+      {
+        "pid": 32,
+        "ordinal": 158,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 191210512011,
+        "pm_offset_ns": 61509286773
+      },
+      {
+        "pid": 127,
+        "ordinal": null,
+        "status": 0,
+        "class": 2,
+        "observed_ns": 193890350934,
+        "pm_offset_ns": 64189125696
+      }
+    ],
+    "reference": "PM connection credit observation"
+  },
+  "pid_ownership": {
+    "trace_valid": true,
+    "whole_after_cleanup": true,
+    "ordinary_allocations": 158,
+    "ordinary_completions": 158,
+    "completed_reuses": 32,
+    "reserved_allocations": 1,
+    "snapshots": {
+      "window": {
+        "allocations": 158,
+        "completions": 158,
+        "pending": 0,
+        "wraps": 1,
+        "unowned": 0
+      },
+      "cleanup": {
+        "allocations": 158,
+        "completions": 158,
+        "pending": 0,
+        "wraps": 1,
+        "unowned": 0
+      }
+    },
+    "tx_completions": [
+      {
+        "pid": 3,
+        "ordinal": 3,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 129755605469,
+        "pm_offset_ns": 54380231
+      },
+      {
+        "pid": 4,
+        "ordinal": 4,
+        "status": 0,
+        "class": 0,
+        "observed_ns": 129815730776,
+        "pm_offset_ns": 114505538
+      },
+      {
+        "pid": 5,
+        "ordinal": 5,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 130217010853,
+        "pm_offset_ns": 515785615
+      },
+      {
+        "pid": 6,
+        "ordinal": 6,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 130291659776,
+        "pm_offset_ns": 590434538
+      },
+      {
+        "pid": 7,
+        "ordinal": 7,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131611667930,
+        "pm_offset_ns": 1910442692
+      },
+      {
+        "pid": 8,
+        "ordinal": 8,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131663611315,
+        "pm_offset_ns": 1962386077
+      },
+      {
+        "pid": 9,
+        "ordinal": 9,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131763837315,
+        "pm_offset_ns": 2062612077
+      },
+      {
+        "pid": 10,
+        "ordinal": 10,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131815612238,
+        "pm_offset_ns": 2114387000
+      },
+      {
+        "pid": 11,
+        "ordinal": 11,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131867629392,
+        "pm_offset_ns": 2166404154
+      },
+      {
+        "pid": 12,
+        "ordinal": 12,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131919622469,
+        "pm_offset_ns": 2218397231
+      },
+      {
+        "pid": 13,
+        "ordinal": 13,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 131994564853,
+        "pm_offset_ns": 2293339615
+      },
+      {
+        "pid": 14,
+        "ordinal": 14,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132046556546,
+        "pm_offset_ns": 2345331308
+      },
+      {
+        "pid": 15,
+        "ordinal": 15,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132098564623,
+        "pm_offset_ns": 2397339385
+      },
+      {
+        "pid": 16,
+        "ordinal": 16,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132154524084,
+        "pm_offset_ns": 2453298846
+      },
+      {
+        "pid": 17,
+        "ordinal": 17,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132206495546,
+        "pm_offset_ns": 2505270308
+      },
+      {
+        "pid": 18,
+        "ordinal": 18,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132258459546,
+        "pm_offset_ns": 2557234308
+      },
+      {
+        "pid": 19,
+        "ordinal": 19,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132310493469,
+        "pm_offset_ns": 2609268231
+      },
+      {
+        "pid": 20,
+        "ordinal": 20,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132370519238,
+        "pm_offset_ns": 2669294000
+      },
+      {
+        "pid": 21,
+        "ordinal": 21,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132422506161,
+        "pm_offset_ns": 2721280923
+      },
+      {
+        "pid": 22,
+        "ordinal": 22,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132498558238,
+        "pm_offset_ns": 2797333000
+      },
+      {
+        "pid": 23,
+        "ordinal": 23,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132550514853,
+        "pm_offset_ns": 2849289615
+      },
+      {
+        "pid": 24,
+        "ordinal": 24,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132602552930,
+        "pm_offset_ns": 2901327692
+      },
+      {
+        "pid": 25,
+        "ordinal": 25,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132678521238,
+        "pm_offset_ns": 2977296000
+      },
+      {
+        "pid": 26,
+        "ordinal": 26,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132742532546,
+        "pm_offset_ns": 3041307308
+      },
+      {
+        "pid": 27,
+        "ordinal": 27,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132826555161,
+        "pm_offset_ns": 3125329923
+      },
+      {
+        "pid": 28,
+        "ordinal": 28,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132878534392,
+        "pm_offset_ns": 3177309154
+      },
+      {
+        "pid": 29,
+        "ordinal": 29,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132930522238,
+        "pm_offset_ns": 3229297000
+      },
+      {
+        "pid": 30,
+        "ordinal": 30,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 132982474007,
+        "pm_offset_ns": 3281248769
+      },
+      {
+        "pid": 31,
+        "ordinal": 31,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133034456546,
+        "pm_offset_ns": 3333231308
+      },
+      {
+        "pid": 32,
+        "ordinal": 32,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133574515777,
+        "pm_offset_ns": 3873290539
+      },
+      {
+        "pid": 33,
+        "ordinal": 33,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 133602566930,
+        "pm_offset_ns": 3901341692
+      },
+      {
+        "pid": 34,
+        "ordinal": 34,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 134066506623,
+        "pm_offset_ns": 4365281385
+      },
+      {
+        "pid": 35,
+        "ordinal": 35,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 134582604931,
+        "pm_offset_ns": 4881379693
+      },
+      {
+        "pid": 36,
+        "ordinal": 36,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 135078495777,
+        "pm_offset_ns": 5377270539
+      },
+      {
+        "pid": 37,
+        "ordinal": 37,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 135394541623,
+        "pm_offset_ns": 5693316385
+      },
+      {
+        "pid": 38,
+        "ordinal": 38,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 135594530777,
+        "pm_offset_ns": 5893305539
+      },
+      {
+        "pid": 39,
+        "ordinal": 39,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136082488623,
+        "pm_offset_ns": 6381263385
+      },
+      {
+        "pid": 40,
+        "ordinal": 40,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 136558687469,
+        "pm_offset_ns": 6857462231
+      },
+      {
+        "pid": 41,
+        "ordinal": 41,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 137102532700,
+        "pm_offset_ns": 7401307462
+      },
+      {
+        "pid": 42,
+        "ordinal": 42,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 137594529623,
+        "pm_offset_ns": 7893304385
+      },
+      {
+        "pid": 43,
+        "ordinal": 43,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 138054498008,
+        "pm_offset_ns": 8353272770
+      },
+      {
+        "pid": 44,
+        "ordinal": 44,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 138610488238,
+        "pm_offset_ns": 8909263000
+      },
+      {
+        "pid": 45,
+        "ordinal": 45,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 139098494008,
+        "pm_offset_ns": 9397268770
+      },
+      {
+        "pid": 46,
+        "ordinal": 46,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 139574537469,
+        "pm_offset_ns": 9873312231
+      },
+      {
+        "pid": 47,
+        "ordinal": 47,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 140070553469,
+        "pm_offset_ns": 10369328231
+      },
+      {
+        "pid": 48,
+        "ordinal": 48,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 140150724623,
+        "pm_offset_ns": 10449499385
+      },
+      {
+        "pid": 49,
+        "ordinal": 49,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 140618545085,
+        "pm_offset_ns": 10917319847
+      },
+      {
+        "pid": 50,
+        "ordinal": 50,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 141102484469,
+        "pm_offset_ns": 11401259231
+      },
+      {
+        "pid": 51,
+        "ordinal": 51,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 141618531546,
+        "pm_offset_ns": 11917306308
+      },
+      {
+        "pid": 52,
+        "ordinal": 52,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 142102644854,
+        "pm_offset_ns": 12401419616
+      },
+      {
+        "pid": 53,
+        "ordinal": 53,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 142594464162,
+        "pm_offset_ns": 12893238924
+      },
+      {
+        "pid": 54,
+        "ordinal": 54,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 143086504239,
+        "pm_offset_ns": 13385279001
+      },
+      {
+        "pid": 55,
+        "ordinal": 55,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 143578496931,
+        "pm_offset_ns": 13877271693
+      },
+      {
+        "pid": 56,
+        "ordinal": 56,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 144074514162,
+        "pm_offset_ns": 14373288924
+      },
+      {
+        "pid": 57,
+        "ordinal": 57,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 144586602931,
+        "pm_offset_ns": 14885377693
+      },
+      {
+        "pid": 58,
+        "ordinal": 58,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 145078508085,
+        "pm_offset_ns": 15377282847
+      },
+      {
+        "pid": 59,
+        "ordinal": 59,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 145562471316,
+        "pm_offset_ns": 15861246078
+      },
+      {
+        "pid": 60,
+        "ordinal": 60,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 146118523547,
+        "pm_offset_ns": 16417298309
+      },
+      {
+        "pid": 61,
+        "ordinal": 61,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 146614631085,
+        "pm_offset_ns": 16913405847
+      },
+      {
+        "pid": 62,
+        "ordinal": 62,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 147090547470,
+        "pm_offset_ns": 17389322232
+      },
+      {
+        "pid": 63,
+        "ordinal": 63,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 147574524393,
+        "pm_offset_ns": 17873299155
+      },
+      {
+        "pid": 64,
+        "ordinal": 64,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 148094530777,
+        "pm_offset_ns": 18393305539
+      },
+      {
+        "pid": 65,
+        "ordinal": 65,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 148554521085,
+        "pm_offset_ns": 18853295847
+      },
+      {
+        "pid": 66,
+        "ordinal": 66,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 149114552008,
+        "pm_offset_ns": 19413326770
+      },
+      {
+        "pid": 67,
+        "ordinal": 67,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 149606632778,
+        "pm_offset_ns": 19905407540
+      },
+      {
+        "pid": 68,
+        "ordinal": 68,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 149906579778,
+        "pm_offset_ns": 20205354540
+      },
+      {
+        "pid": 69,
+        "ordinal": 69,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 150102461624,
+        "pm_offset_ns": 20401236386
+      },
+      {
+        "pid": 70,
+        "ordinal": 70,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 150602556393,
+        "pm_offset_ns": 20901331155
+      },
+      {
+        "pid": 71,
+        "ordinal": 71,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 151102536008,
+        "pm_offset_ns": 21401310770
+      },
+      {
+        "pid": 72,
+        "ordinal": 72,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 151598526932,
+        "pm_offset_ns": 21897301694
+      },
+      {
+        "pid": 73,
+        "ordinal": 73,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 152078574162,
+        "pm_offset_ns": 22377348924
+      },
+      {
+        "pid": 74,
+        "ordinal": 74,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 152562572009,
+        "pm_offset_ns": 22861346771
+      },
+      {
+        "pid": 75,
+        "ordinal": 75,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 153102488855,
+        "pm_offset_ns": 23401263617
+      },
+      {
+        "pid": 76,
+        "ordinal": 76,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 153586509393,
+        "pm_offset_ns": 23885284155
+      },
+      {
+        "pid": 77,
+        "ordinal": 77,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 154078490239,
+        "pm_offset_ns": 24377265001
+      },
+      {
+        "pid": 78,
+        "ordinal": 78,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 154586595470,
+        "pm_offset_ns": 24885370232
+      },
+      {
+        "pid": 79,
+        "ordinal": 79,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 155074598316,
+        "pm_offset_ns": 25373373078
+      },
+      {
+        "pid": 80,
+        "ordinal": 80,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 155618570701,
+        "pm_offset_ns": 25917345463
+      },
+      {
+        "pid": 81,
+        "ordinal": 81,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 156094609470,
+        "pm_offset_ns": 26393384232
+      },
+      {
+        "pid": 82,
+        "ordinal": 82,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 156594619932,
+        "pm_offset_ns": 26893394694
+      },
+      {
+        "pid": 83,
+        "ordinal": 83,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 157066548855,
+        "pm_offset_ns": 27365323617
+      },
+      {
+        "pid": 84,
+        "ordinal": 84,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 157606525547,
+        "pm_offset_ns": 27905300309
+      },
+      {
+        "pid": 85,
+        "ordinal": 85,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 158102538932,
+        "pm_offset_ns": 28401313694
+      },
+      {
+        "pid": 86,
+        "ordinal": 86,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 158590539778,
+        "pm_offset_ns": 28889314540
+      },
+      {
+        "pid": 87,
+        "ordinal": 87,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 159098496009,
+        "pm_offset_ns": 29397270771
+      },
+      {
+        "pid": 88,
+        "ordinal": 88,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 159590459701,
+        "pm_offset_ns": 29889234463
+      },
+      {
+        "pid": 89,
+        "ordinal": 89,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 159954578547,
+        "pm_offset_ns": 30253353309
+      },
+      {
+        "pid": 90,
+        "ordinal": 90,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 160102469009,
+        "pm_offset_ns": 30401243771
+      },
+      {
+        "pid": 91,
+        "ordinal": 91,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 160586534778,
+        "pm_offset_ns": 30885309540
+      },
+      {
+        "pid": 92,
+        "ordinal": 92,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 161078495086,
+        "pm_offset_ns": 31377269848
+      },
+      {
+        "pid": 93,
+        "ordinal": 93,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 161550490009,
+        "pm_offset_ns": 31849264771
+      },
+      {
+        "pid": 94,
+        "ordinal": 94,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 162130593317,
+        "pm_offset_ns": 32429368079
+      },
+      {
+        "pid": 95,
+        "ordinal": 95,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 162638533932,
+        "pm_offset_ns": 32937308694
+      },
+      {
+        "pid": 96,
+        "ordinal": 96,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 163054576009,
+        "pm_offset_ns": 33353350771
+      },
+      {
+        "pid": 97,
+        "ordinal": 97,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 163622576548,
+        "pm_offset_ns": 33921351310
+      },
+      {
+        "pid": 98,
+        "ordinal": 98,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 164130508778,
+        "pm_offset_ns": 34429283540
+      },
+      {
+        "pid": 99,
+        "ordinal": 99,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 164555512855,
+        "pm_offset_ns": 34854287617
+      },
+      {
+        "pid": 100,
+        "ordinal": 100,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 165134534548,
+        "pm_offset_ns": 35433309310
+      },
+      {
+        "pid": 101,
+        "ordinal": 101,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 165622530163,
+        "pm_offset_ns": 35921304925
+      },
+      {
+        "pid": 102,
+        "ordinal": 102,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 166134495548,
+        "pm_offset_ns": 36433270310
+      },
+      {
+        "pid": 103,
+        "ordinal": 103,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 166558537086,
+        "pm_offset_ns": 36857311848
+      },
+      {
+        "pid": 104,
+        "ordinal": 104,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 167118559548,
+        "pm_offset_ns": 37417334310
+      },
+      {
+        "pid": 105,
+        "ordinal": 105,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 167558568779,
+        "pm_offset_ns": 37857343541
+      },
+      {
+        "pid": 106,
+        "ordinal": 106,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 168126681856,
+        "pm_offset_ns": 38425456618
+      },
+      {
+        "pid": 107,
+        "ordinal": 107,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 168638565625,
+        "pm_offset_ns": 38937340387
+      },
+      {
+        "pid": 108,
+        "ordinal": 108,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 169138573933,
+        "pm_offset_ns": 39437348695
+      },
+      {
+        "pid": 109,
+        "ordinal": 109,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 169566544163,
+        "pm_offset_ns": 39865318925
+      },
+      {
+        "pid": 110,
+        "ordinal": 110,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 170054511240,
+        "pm_offset_ns": 40353286002
+      },
+      {
+        "pid": 111,
+        "ordinal": 111,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 170154586779,
+        "pm_offset_ns": 40453361541
+      },
+      {
+        "pid": 112,
+        "ordinal": 112,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 170642535394,
+        "pm_offset_ns": 40941310156
+      },
+      {
+        "pid": 113,
+        "ordinal": 113,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 171078560933,
+        "pm_offset_ns": 41377335695
+      },
+      {
+        "pid": 114,
+        "ordinal": 114,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 171550546779,
+        "pm_offset_ns": 41849321541
+      },
+      {
+        "pid": 115,
+        "ordinal": 115,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 172126616394,
+        "pm_offset_ns": 42425391156
+      },
+      {
+        "pid": 116,
+        "ordinal": 116,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 172622590164,
+        "pm_offset_ns": 42921364926
+      },
+      {
+        "pid": 117,
+        "ordinal": 117,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 173094561933,
+        "pm_offset_ns": 43393336695
+      },
+      {
+        "pid": 118,
+        "ordinal": 118,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 173614520010,
+        "pm_offset_ns": 43913294772
+      },
+      {
+        "pid": 119,
+        "ordinal": 119,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 174102531933,
+        "pm_offset_ns": 44401306695
+      },
+      {
+        "pid": 120,
+        "ordinal": 120,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 174578549394,
+        "pm_offset_ns": 44877324156
+      },
+      {
+        "pid": 121,
+        "ordinal": 121,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 175117278010,
+        "pm_offset_ns": 45416052772
+      },
+      {
+        "pid": 122,
+        "ordinal": 122,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 175602570395,
+        "pm_offset_ns": 45901345157
+      },
+      {
+        "pid": 123,
+        "ordinal": 123,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 176114573933,
+        "pm_offset_ns": 46413348695
+      },
+      {
+        "pid": 124,
+        "ordinal": 124,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 176602516395,
+        "pm_offset_ns": 46901291157
+      },
+      {
+        "pid": 125,
+        "ordinal": 125,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 177090658472,
+        "pm_offset_ns": 47389433234
+      },
+      {
+        "pid": 126,
+        "ordinal": 126,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 177602587548,
+        "pm_offset_ns": 47901362310
+      },
+      {
+        "pid": 1,
+        "ordinal": 127,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 178118464010,
+        "pm_offset_ns": 48417238772
+      },
+      {
+        "pid": 2,
+        "ordinal": 128,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 178634477779,
+        "pm_offset_ns": 48933252541
+      },
+      {
+        "pid": 3,
+        "ordinal": 129,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 179126507625,
+        "pm_offset_ns": 49425282387
+      },
+      {
+        "pid": 4,
+        "ordinal": 130,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 179638494241,
+        "pm_offset_ns": 49937269003
+      },
+      {
+        "pid": 5,
+        "ordinal": 131,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 179930589318,
+        "pm_offset_ns": 50229364080
+      },
+      {
+        "pid": 6,
+        "ordinal": 132,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 180102529549,
+        "pm_offset_ns": 50401304311
+      },
+      {
+        "pid": 7,
+        "ordinal": 133,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 180586516395,
+        "pm_offset_ns": 50885291157
+      },
+      {
+        "pid": 8,
+        "ordinal": 134,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 181098587703,
+        "pm_offset_ns": 51397362465
+      },
+      {
+        "pid": 9,
+        "ordinal": 135,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 181622464779,
+        "pm_offset_ns": 51921239541
+      },
+      {
+        "pid": 10,
+        "ordinal": 136,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 182142658626,
+        "pm_offset_ns": 52441433388
+      },
+      {
+        "pid": 11,
+        "ordinal": 137,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 182586510549,
+        "pm_offset_ns": 52885285311
+      },
+      {
+        "pid": 12,
+        "ordinal": 138,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 183066619087,
+        "pm_offset_ns": 53365393849
+      },
+      {
+        "pid": 13,
+        "ordinal": 139,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 183626566780,
+        "pm_offset_ns": 53925341542
+      },
+      {
+        "pid": 14,
+        "ordinal": 140,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 184090530549,
+        "pm_offset_ns": 54389305311
+      },
+      {
+        "pid": 15,
+        "ordinal": 141,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 184590558010,
+        "pm_offset_ns": 54889332772
+      },
+      {
+        "pid": 16,
+        "ordinal": 142,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 185094667164,
+        "pm_offset_ns": 55393441926
+      },
+      {
+        "pid": 17,
+        "ordinal": 143,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 185146547087,
+        "pm_offset_ns": 55445321849
+      },
+      {
+        "pid": 18,
+        "ordinal": 144,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 185614515395,
+        "pm_offset_ns": 55913290157
+      },
+      {
+        "pid": 19,
+        "ordinal": 145,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 186158507780,
+        "pm_offset_ns": 56457282542
+      },
+      {
+        "pid": 20,
+        "ordinal": 146,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 186602557934,
+        "pm_offset_ns": 56901332696
+      },
+      {
+        "pid": 21,
+        "ordinal": 147,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 187118530164,
+        "pm_offset_ns": 57417304926
+      },
+      {
+        "pid": 22,
+        "ordinal": 148,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 187626590088,
+        "pm_offset_ns": 57925364850
+      },
+      {
+        "pid": 23,
+        "ordinal": 149,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 188099345934,
+        "pm_offset_ns": 58398120696
+      },
+      {
+        "pid": 24,
+        "ordinal": 150,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 188598555780,
+        "pm_offset_ns": 58897330542
+      },
+      {
+        "pid": 25,
+        "ordinal": 151,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 189114555165,
+        "pm_offset_ns": 59413329927
+      },
+      {
+        "pid": 26,
+        "ordinal": 152,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 189614552934,
+        "pm_offset_ns": 59913327696
+      },
+      {
+        "pid": 27,
+        "ordinal": 153,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 189762615549,
+        "pm_offset_ns": 60061390311
+      },
+      {
+        "pid": 28,
+        "ordinal": 154,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 190126518088,
+        "pm_offset_ns": 60425292850
+      },
+      {
+        "pid": 29,
+        "ordinal": 155,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 190602498318,
+        "pm_offset_ns": 60901273080
+      },
+      {
+        "pid": 30,
+        "ordinal": 156,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 191106625319,
+        "pm_offset_ns": 61405400081
+      },
+      {
+        "pid": 31,
+        "ordinal": 157,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 191158565857,
+        "pm_offset_ns": 61457340619
+      },
+      {
+        "pid": 32,
+        "ordinal": 158,
+        "status": 0,
+        "class": 1,
+        "observed_ns": 191210512011,
+        "pm_offset_ns": 61509286773
+      },
+      {
+        "pid": 127,
+        "ordinal": null,
+        "status": 0,
+        "class": 2,
+        "observed_ns": 193890350934,
+        "pm_offset_ns": 64189125696
+      }
+    ],
+    "unowned_first_events": [],
+    "errors": []
+  },
+  "gtk": {
+    "withheld_arp": 0,
+    "queued_ptk": 159,
+    "queued_gtk": 254,
+    "delivered_arp": 113
+  },
+  "pm_credit_observed_ns": 129701225238,
+  "beacon_delivery_at_data_end": {
+    "sequence": 2683,
+    "time_us": 193807908,
+    "observed_ns": 193765753088,
+    "count": 20,
+    "known": 1,
+    "age_ns": 62152225004,
+    "since_pm_known": 1,
+    "since_pm": 19,
+    "interval_tu": 100,
+    "scope": "qualified owned-BSS queue admissions, not RF reception; filter enabled",
+    "continuous_delivery_proven": false
+  },
+  "cleanup": {
+    "healthy_stage_3": true,
+    "whole_ledger": true,
+    "final_page_debt": 0,
+    "deauth_pid": 127,
+    "deauth_acked": true,
+    "credit_timestamps": [
+      {
+        "sequence": 2692,
+        "time_us": 193857632,
+        "op": 1,
+        "command_sequence": 31,
+        "credit": 0,
+        "observed_ns": 193815477396,
+        "pm_offset_ns": 64114252158,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2694,
+        "time_us": 193883239,
+        "op": 1,
+        "command_sequence": 31,
+        "credit": 1,
+        "observed_ns": 193841085165,
+        "pm_offset_ns": 64139859927,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2701,
+        "time_us": 193934316,
+        "op": 2,
+        "command_sequence": 32,
+        "credit": 0,
+        "observed_ns": 193892160934,
+        "pm_offset_ns": 64190935696,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2704,
+        "time_us": 193959237,
+        "op": 2,
+        "command_sequence": 32,
+        "credit": 1,
+        "observed_ns": 193917082857,
+        "pm_offset_ns": 64215857619,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2705,
+        "time_us": 193961103,
+        "op": 3,
+        "command_sequence": 33,
+        "credit": 0,
+        "observed_ns": 193918948473,
+        "pm_offset_ns": 64217723235,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2708,
+        "time_us": 193991334,
+        "op": 3,
+        "command_sequence": 33,
+        "credit": 1,
+        "observed_ns": 193949179011,
+        "pm_offset_ns": 64247953773,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2709,
+        "time_us": 193993225,
+        "op": 4,
+        "command_sequence": 34,
+        "credit": 0,
+        "observed_ns": 193951069549,
+        "pm_offset_ns": 64249844311,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2712,
+        "time_us": 194019306,
+        "op": 4,
+        "command_sequence": 34,
+        "credit": 1,
+        "observed_ns": 193977151396,
+        "pm_offset_ns": 64275926158,
+        "floor": 0,
+        "debt": 0
+      },
+      {
+        "sequence": 2714,
+        "time_us": 194046268,
+        "op": 6,
+        "command_sequence": 35,
+        "credit": 0,
+        "observed_ns": 194004102473,
+        "pm_offset_ns": 64302877235,
+        "floor": 0,
+        "debt": 1
+      },
+      {
+        "sequence": 2717,
+        "time_us": 194071330,
+        "op": 6,
+        "command_sequence": 35,
+        "credit": 1,
+        "observed_ns": 194029174319,
+        "pm_offset_ns": 64327949081,
+        "floor": 0,
+        "debt": 0
+      }
+    ],
+    "op_names": {
+      "1": "PM abort",
+      "2": "PTK removal",
+      "3": "GTK removal",
+      "4": "station removal",
+      "6": "BSS off"
+    }
+  },
+  "monitor": {
+    "owned_timeout_events": 0,
+    "monitor_loss_reported": false,
+    "blanket_tolerance": false
+  },
+  "preservation": {
+    "original_harness_stopped_before_seal": true,
+    "original_supplicant_count": 1,
+    "later_confirmed_supplicant_count": 0,
+    "boot_bound_child_quiescence": true,
+    "local_helper_group_quiescent": true,
+    "remote_stream_owners_absent": true,
+    "sealed_entries_verified": 89,
+    "seal_sha256": "bbe893cd3e34f6446fc1b0ee78df00bc7273ebb27610e2f4c281908ab2697e5f",
+    "log_bytes": 283670,
+    "contiguous_log_records": 2740,
+    "log_sha256": "da25266b7490f1cd074daea4837b0a3915539b47c6dbb5b58cc798180d5ed171",
+    "log_complete_through_seal": true,
+    "exact_available_cycle_files": 8,
+    "host_ack_absent": true,
+    "cycle_export_bytes": 5744,
+    "original_evidence_preserved_unchanged": true,
+    "reviewed_recovery_requests": 1,
+    "watcher_initial_return_confirmed": false,
+    "independent_changed_gemian_confirmed": true,
+    "returned_gemian_boot": "cb2244e3-3a89-4046-9318-66ae32f7b2af"
+  },
+  "interpretation": [
+    "The first measured failure is the server 60-second maximum-duration policy, not a transport timeout or an identified firmware timer",
+    "The USB control channel retained a 60-second idle policy and also closed before the leaf completed. That policy is a source-supported candidate for its closure, not a separately logged runtime diagnosis; it left a brief quiescence race.",
+    "P1 received traffic beyond the earlier finite window and demonstrated 32 completed ordinary PID reuses without timed-out PID reuse",
+    "Acknowledged reserved deauthentication near PM +64 s is an additional offset observation, not proof of a periodic exclusion rule",
+    "Initial and filtered beacon admissions cannot prove uninterrupted RF reception; no loss event occurred in this window"
+  ],
+  "limits": [
+    "120- and 600-second SSH acceptance not reached",
+    "No key reuse, rekey or same-boot reconnect enabled",
+    "Full host session classifier remains false; partial authenticated reception is separate from successful complete exchange",
+    "No firmware mechanism attribution, deadline extension, -48 adjustment or automatic test retry"
+  ]
+}

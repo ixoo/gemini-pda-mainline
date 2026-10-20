@@ -1,3 +1,29 @@
+## Latest: P1 consumed; host maximum-duration defect
+
+P1's [single table row](SESSION_0202_PLAN.md) and
+[scalars](results/p1-runtime-scalars.json) supersede earlier pending handoffs.
+It authenticated and received 116 ticks across 57.563 seconds, then the
+server's retained `-M 60` limit closed SSH. The 120-second gate failed.
+Standard early disconnect reached whole-ledger stage 3 with reserved PID 127
+acknowledged at PM +64.189 s. Ordinary PID reuse was measured: 32 completed
+reuses, all 158 allocations completed. Six periodic probes passed through
+PM +60 s; the other five were not reached. No HIF refusal or monitor-loss event.
+
+The original seal/recovery gate correctly refused a nonzero supplicant count.
+After bounded read-only classification, a preservation-only continuation
+revalidated child quiescence and all evidence before one reviewed recovery.
+All 89 seal entries and 2,740 contiguous records verified. An independent
+check confirmed changed-boot Gemian. There is no pending device operation.
+
+Next: correct the host listener maximum-duration limit and USB progress
+envelope on the unchanged installed P1 image, with focused actual-leaf tests,
+then make a new explicit physical boot2 handoff for a separate 120-second run.
+Do not count P1 as a duration pass or retry it silently. The exact +63-second
+comparison remains unexecuted; offset correlations establish no timing rule.
+Key reuse, rekey, reconnect and ten-minute acceptance remain unproven/disabled.
+
+---
+
 # Wi-Fi resume checkpoint — INCOMPLETE
 
 **P1 installed and prepared; waiting for a new physical boot2 selection.**

@@ -234,6 +234,7 @@ remain in the existing private evidence seal, not public scalars.
 | GTK8 | `a996ec5e-fc20-49d3-a160-2ed321e3e156` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | authenticated before release, exit 0, 1.397 s | host stage 3, zero debt; late deauth status 5, no ACK; return verified | 60.009 / 60 s PASS | [one scalars file](results/gtk8-runtime-scalars.json) |
 | S1 | `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | fresh authenticated stream, five chunks / 20.450 s across release; exit 0 | stage 3, zero debt, deauth ACK; return verified | controlled disconnect, 55.502 s data; not full 60 s | [one scalars file](results/s1-runtime-scalars.json) |
 | I50 | `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; periodic 4/4 | NOT REACHED: host helper namespace refusal before client/TCP | stage 3, zero debt, deauth ACK; return verified | 50.005 / 50 s PASS; full-session FAIL | [one scalars file](results/i50-runtime-scalars.json) |
+| P1 | `b79d576c-5449-4899-8260-a61f350e0a5d` | no HIF refusal; 154/154 data TX completed; 32 completed PID reuses | bound | initial 3/3; periodic 6/11, five not reached | authenticated; 116 ticks / 57.563 s received; exit 255, server maximum duration | whole-ledger stage 3, deauth 127 ACK; preservation continuation and changed Gemian verified | 63.924 s data; received SSH 57.563 / 120 s FAIL, harness limit | [one scalars file](results/p1-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -2193,3 +2194,49 @@ One scalars file/one existing table row only after the actual run; no silent
 retry. Ten-minute traffic, standard-scan acceptance, key retirement/rekey/key
 reuse and same-boot reconnect remain incomplete. Restored research stays out
 of Wi-Fi commits.
+
+
+### P1 consumed — server-duration limit, not the 120-second gate
+
+The single admitted P1 boot ran the published kernel and host inputs in the
+[scalars](results/p1-runtime-scalars.json). DHCP and three initial replies
+passed. Six scheduled pings completed through PM +60 s. The SSH client
+received ordinals 0–115 across 57.563 s, then exited 255 after 59.692 s. The
+retained server log explicitly reports `Max duration reached`: the listener's
+outer timeout was 180 s, but its unchanged Dropbear `-M 60` capped each
+connection. Extending the outer timeout alone was insufficient. Duration and
+the full admitted exchange failed; no host ACK was created. The helper issued
+the predeclared early standard disconnect at PM +64.03–64.39 s.
+
+The driver completed all 154 queued data frames, 158 ordinary PID allocations
+and completions, including 32 reuses after owned completion. Reserved PID 127
+was acknowledged at PM +64.189 s; all five remaining command paths credited
+within their existing 100 ms deadlines, with stage 3 and no debt. Checked
+PTK/GTK counts were 159/254, including 113 delivered GTK ARP frames and zero
+withheld eligible ARP. No owned monitor-loss event or HIF framing refusal
+occurred. Filtered beacon admissions totalled 20, with last-admission age
+62.152 s at data end; these admissions do not prove continuous RF reception.
+
+The original host stopped before sealing/recovery because the supplicant count
+was one after the USB command closed. No retry or second radio session ran.
+A bounded read-only inspection subsequently found the owned children absent
+and the boot-bound quiescence record clear. A preservation-only continuation
+revalidated both original gates, preserved all original evidence, exported the
+eight existing cycle files without inventing a host ACK, and verified 89 seal
+entries and 2,740 contiguous kernel records. One reviewed recovery was
+requested. Its first watcher check was unconfirmed; a separate authenticated
+check confirmed changed-boot Gemian. The original failure evidence is retained.
+
+The USB server also has `-I 60`; its closure is consistent with no output from
+the leaf during the periodic loop, but no server-side USB closure reason was
+retained. Correct the SSH maximum-duration envelope and emit bounded numeric
+progress on the existing USB channel before another 120-second attempt. Keep
+the installed kernel unchanged and retain the same driver deadlines and caps.
+
+I50's 10.099-second idle gap with an ACK at PM +50.269 s remains an observation
+against a deterministic idle-only explanation. Earlier +60-second failures,
+S1's +55.777-second ACK, and P1's +64.189-second ACK are an offset pattern;
+they do not establish a firmware mechanism or a safe timing exclusion rule.
+The suggested exact +63-second comparison has not run. No production rule to
+avoid particular offsets or inject traffic is justified by these data. The
+current first failure is the host envelope; fix that before another boot.
