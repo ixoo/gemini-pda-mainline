@@ -2453,3 +2453,14 @@ its package provenance before composition. Reuse the validated kernel. The
 next initramfs must declare its finite USB/logger lifetime changes, preserve
 all other members and pass the reviewed boot2 handoff again. No ten-minute
 image or device admission exists yet.
+
+
+The first ten-minute input is a scoped observer build, not a device candidate.
+`build-ten-minute-logger.py` pins the unchanged baseline capture source and
+actual parser/I/O fixtures, derives exactly `DEADLINE_MS` 600000 -> 900000 in
+a managed Buildbox build directory, and leaves the 2 MiB byte cap and 64 KiB
+maximum record size unchanged. It runs those actual-source fixtures, builds
+the static AArch64 helper twice, compares replicas and writes commit/toolchain/
+source/hash provenance plus an exact package manifest. Modified source or
+fixtures refuse. This source preparation does not admit a boot; the scoped
+900-second verifier, host envelope and composed-image review are still needed.
