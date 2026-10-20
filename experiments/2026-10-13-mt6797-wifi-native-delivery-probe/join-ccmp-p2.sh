@@ -15,7 +15,7 @@
 #
 # P2 has fifty-nine guarded periodic pings and accepts a distinct bounded-debt
 # terminal without calling it healthy cleanup.
-# Budgets: overall wall <= 780 s (monotonic /proc/uptime); per cycle one scan,
+# Budgets: overall wall <= 720 s (monotonic /proc/uptime); per cycle one scan,
 # one join, one data phase, one lease, one listener (<=660 s), one ping (3x2 s),
 # udhcpc <=20 s; fifty-nine periodic pings <=3 s each; SSH-receipt wait and rearm wait bounded by the overall wall.
 set -eu
@@ -246,6 +246,13 @@ stage=ccmp_mode
 stage=boot_identity
 boot_before=$($BB cat /proc/sys/kernel/random/boot_id)
 [ "$boot_before" = "$EXPECTED_BOOT" ]
+stage=host_budget
+host_start_s=$(now_s)
+# The boot-started logger stops at 900 seconds. Reserve at least 130 seconds
+# after the entire leaf wall for owned-child quiescence, export and sealing.
+[ "$host_start_s" -le 50 ] || { $BB printf '__STAGE_FAIL__ stage=host_budget reason=late_start\n' >&2; exit 1; }
+deadline=$((host_start_s + 720))
+$BB printf 'p2_host_budget boot_uptime_s=%s leaf_deadline_s=%s logger_deadline_s=900\n' "$host_start_s" "$deadline"
 stage=single_phy0
 [ -d /sys/class/ieee80211/phy0 ]
 [ "$($BB cat /sys/class/ieee80211/phy0/index)" = 0 ]
@@ -315,7 +322,6 @@ stage=control_ready
 [ "$sta_auto" = 0 ] || { $BB printf '__STAGE_FAIL__ stage=%s rc=sta-autoconnect\n' "$stage" >&2; exit 1; }
 
 dropbear_sha256=10663dd45019bc1391730c36d779e6a5e4433fd86311543a714f1a198629bc54
-deadline=$(( $(now_s) + 780 ))
 
 # Prepare owned paths, DHCP hook and listener prerequisites BEFORE select/ACTIVE.
 # The lease and listener still cannot be fabricated or started with a static IP.

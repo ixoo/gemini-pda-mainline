@@ -42,7 +42,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 SOURCE_COMMIT = 'e7be093e6f4200b03aaff56787dc8d74ca1f3468'
 PATCH_SHA256 = '58e5d1475d3024b9a0de783d6e1e8be167dd475c7621bb0190951e795a3ba02e'
 SERIES_SHA256 = '3978ed09f029e1be191c6ef1223b133c5e5987f62a8ecfe3d96b9cbabcf8c070'
-PERIODIC_LEAF_SHA256 = 'a9f9ad2bc15da3b5eb7bb75093b1622f6f7cecf847b3043493910edfe4547799'
+PERIODIC_LEAF_SHA256 = '8415967974a673d44d4255a2476347b539f76a62e38acb1394183aa1cd21a1fe'
 PARTITION_BYTES = 16777216
 BOOT_NAME = 'gemini-obs-P'
 BOOT_CMDLINE = 'bootopt=64S3,32N2,64N2'
@@ -265,6 +265,8 @@ def main():
                   'host_envelope_sha256': 'dbafdb83b95edf261a99fe118cabe1cbdf799d9e4a949cdcd1f809691d27da62',
                   'host_stream_tick_count': 602, 'host_stream_tick_interval_ns': 1000000000,
                   'usb_session_max_seconds': 900, 'logger_deadline_ms': 900000,
+                  'host_leaf_wall_seconds': 720, 'host_leaf_start_max_uptime_seconds': 50,
+                  'host_post_leaf_reserved_seconds': 130,
                   'logger_byte_limit': 2097152,
                   'logger_package_manifest_sha256': sha(observer_manifest),
                   'logger_helper_sha256': sha(observer_binary),

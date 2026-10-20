@@ -40,7 +40,7 @@ with tempfile.TemporaryDirectory(prefix='connected-leaf-') as td:
 BB="$1"
 TEST_ROOT="$2"
 EXPECTED_BOOT=$($BB cat /proc/sys/kernel/random/boot_id)
-deadline=780
+deadline=720
 now_s() { echo 1; }
 window_ok() { return 0; }
 periodic_now_ns() { echo "$((pc_clock + pc_sec * 1000000000 + 1000000))"; }
@@ -146,3 +146,16 @@ printf 'result=%s\n' "$rc" >&2
         assert got.stdout.decode()==expected
         assert int(clock.read_text())==(35 if case=='waiting' else 0)
 print('Actual P2 ACK wait: bounded progress with unchanged wall/ACK/boot/fatal/terminal/window gates PASS')
+
+# Enforce the complete logger/leaf/tail budget before interface creation or keys.
+budget=source.split('stage=host_budget\n',1)[1].split('stage=single_phy0\n',1)[0]
+for age,expected_rc in [(49,0),(50,0),(51,1)]:
+    script='BB=""\nnow_s() { echo %d; }\n'%age+budget
+    got=subprocess.run(['/bin/sh','-s'],input=script.encode(),capture_output=True,timeout=5)
+    assert got.returncode==expected_rc
+    if expected_rc==0:
+        assert got.stdout==('p2_host_budget boot_uptime_s=%d leaf_deadline_s=%d logger_deadline_s=900\n'%(age,age+720)).encode()
+        assert 900-(age+720)>=130
+    else:
+        assert b'stage=host_budget reason=late_start' in got.stderr and not got.stdout
+print('P2 whole-second boot budget: 49/50 admitted, 51 refused before interface/key effects; >=130-second seal tail PASS')

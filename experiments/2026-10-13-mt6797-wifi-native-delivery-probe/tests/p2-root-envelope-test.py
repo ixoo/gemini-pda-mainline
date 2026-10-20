@@ -31,6 +31,8 @@ for name in ['bin/usb-auth','bin/kmsg-capture']:
     assert a[name].mode==b[name].mode and a[name].uid==b[name].uid and a[name].gid==b[name].gid
 receipt=json.loads((new/'candidate.json').read_text())
 assert receipt['logger_deadline_ms']==900000 and receipt['logger_byte_limit']==2097152
+assert receipt['host_leaf_wall_seconds']==720 and receipt['host_leaf_start_max_uptime_seconds']==50
+assert receipt['host_post_leaf_reserved_seconds']==130
 assert receipt['host_control_pm_window_ms']==[604000,608000]
 assert receipt['host_stream_tick_count']==602 and receipt['host_stream_tick_interval_ns']==1000000000
 assert receipt['host_stream_required_ms']==600000 and receipt['host_stream_scheduled_ms']==601000

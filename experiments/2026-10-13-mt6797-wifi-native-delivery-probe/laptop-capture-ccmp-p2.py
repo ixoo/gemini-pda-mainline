@@ -20,7 +20,7 @@ CAP = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(CAP)
 
 NATIVE_RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
-NATIVE_MANIFEST_SHA = 'fa2b5ef7c55aafdb9f1dc5e7c196e344e719bc1ba605ca83c4d12bda9e522287'
+NATIVE_MANIFEST_SHA = 'bf73a14d7cfe6f2ddd528025da6c0c2cb01a24e69e9669146ecc39a75ecb4073'
 assert CAP.RELEASE == '7.1.3-gemini-a53-wifi-phase-b-compile', 'frozen capture release changed'
 ROOT = Path(os.environ['GEMINI_RUNTIME_ROOT']).resolve(strict=True) / 'ccmp-stable-monitor'
 

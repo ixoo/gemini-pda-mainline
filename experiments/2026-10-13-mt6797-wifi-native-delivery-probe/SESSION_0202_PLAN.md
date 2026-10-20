@@ -2535,3 +2535,24 @@ cleanup and station teardown, with a supported key-retirement barrier and
 stale-generation rejection before any reuse. Key reuse, rekey and reconnect
 remain disabled now. A later owner-operated AP-off test will check owned 0x13
 standard connection-loss reporting and clean teardown; it is not part of P2.
+
+
+### Final P2 whole-boot budget — supersedes the 780-second leaf draft
+
+Before installation, the whole-boot audit tightened the external leaf wall
+to 720 seconds, anchored before interface creation. A whole-second uptime
+greater than 50 refuses before association or key installation. Thus the
+leaf deadline is at most boot second 770, reserving at least 130 seconds under
+the 900-second logger for owned-child quiescence, evidence export and sealing.
+This cold-start guard is a host-admission result, never a Wi-Fi capability
+failure. Initial live identity also records uptime/active logger so an expired
+or delayed boot cannot silently start this protocol. No firmware, driver,
+transaction or control-window deadline changes.
+
+The 601-second sender schedule, >=600 seconds received, 59 periodic probes and
+PM +604..608 request window stay unchanged. Source fixtures exercise actual
+guard uptime values 49/50/51, and the earlier terminal/ACK gates. Recomposition
+proved every boot-artifact byte identical to the earlier P2 draft; only the
+external leaf and recipe metadata changed. The final recipe records the
+720-second wall, 50-second start ceiling and 130-second post-leaf reserve.
+There is still no P2 device session or physical handoff.

@@ -19,7 +19,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 # Expected last-installed P1D, freshly verified by ROOT/GPT guard before write.
 # Historical Gemian identity is not current identity or a deployment receipt.
 PREDECESSOR_SHA = 'f19d4e27bd24fc38b091c8847440c051f83e92da3972865125ae4c0a0589e998'
-MANIFEST_SHA = 'fa2b5ef7c55aafdb9f1dc5e7c196e344e719bc1ba605ca83c4d12bda9e522287'
+MANIFEST_SHA = 'bf73a14d7cfe6f2ddd528025da6c0c2cb01a24e69e9669146ecc39a75ecb4073'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
@@ -74,6 +74,9 @@ def validate(candidate, previous):
                                expected.get('teardown_fence_at_first_data_end_ms') == 5000 and
                                expected.get('logger_deadline_ms') == 900000 and
                                expected.get('logger_byte_limit') == 2097152 and
+                               expected.get('host_leaf_wall_seconds') == 720 and
+                               expected.get('host_leaf_start_max_uptime_seconds') == 50 and
+                               expected.get('host_post_leaf_reserved_seconds') == 130 and
                                expected.get('logger_helper_sha256') == '1fcd5d6ab41f25499094cb411d0dc6351850f393f8fe78929bff6e9321287ce0' and
                                expected.get('host_envelope_sha256') == 'dbafdb83b95edf261a99fe118cabe1cbdf799d9e4a949cdcd1f809691d27da62' and
                                expected.get('usb_session_max_seconds') == 900 and
@@ -120,8 +123,8 @@ def validate(candidate, previous):
                                expected.get('periodic_ping_offsets_s') == list(range(10, 591, 10)) and
                                expected.get('periodic_before_ssh_ack') is True and
                                expected.get('periodic_clock_resolution_ns') == 10000000 and
-                               expected.get('periodic_leaf_sha256') == 'a9f9ad2bc15da3b5eb7bb75093b1622f6f7cecf847b3043493910edfe4547799' and
-                               ADAPTER.INSTALLER.digest((HERE / 'join-ccmp-p2.sh').read_bytes()) == 'a9f9ad2bc15da3b5eb7bb75093b1622f6f7cecf847b3043493910edfe4547799' and
+                               expected.get('periodic_leaf_sha256') == '8415967974a673d44d4255a2476347b539f76a62e38acb1394183aa1cd21a1fe' and
+                               ADAPTER.INSTALLER.digest((HERE / 'join-ccmp-p2.sh').read_bytes()) == '8415967974a673d44d4255a2476347b539f76a62e38acb1394183aa1cd21a1fe' and
                                expected.get('beacon_clock_scope') ==
                                'existing owned-beacon queue admission; includes pre-data' and
                                expected.get('last_rx_clock_scope') ==
