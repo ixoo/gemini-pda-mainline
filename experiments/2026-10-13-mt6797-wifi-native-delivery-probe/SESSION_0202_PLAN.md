@@ -2556,3 +2556,17 @@ proved every boot-artifact byte identical to the earlier P2 draft; only the
 external leaf and recipe metadata changed. The final recipe records the
 720-second wall, 50-second start ceiling and 130-second post-leaf reserve.
 There is still no P2 device session or physical handoff.
+
+
+### P2 physical handoff readiness
+
+Source `1bbcaad8` passed the applicable Linux actual-source and final budget
+fixtures. The final composed recipe is
+`bf73a14d7cfe6f2ddd528025da6c0c2cb01a24e69e9669146ecc39a75ecb4073`;
+full boot2 checksum is
+`2f9f83dcf2b950ef9efa1b079fe08f46790a1081f6d9546106cf13f8e0e774a5`.
+The guarded write, full readback, deployment seal and clean shutdown passed.
+Complete actual offline host preparation passed. No P2 device session has run;
+one new physical boot2 selection is required. Preserve the first failure and
+all evidence without a retry. After P2 testing, the owner's separate private
+collection task precedes the next Wi-Fi lifecycle test.

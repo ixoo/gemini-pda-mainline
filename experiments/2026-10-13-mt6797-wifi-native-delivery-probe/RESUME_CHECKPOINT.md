@@ -1,3 +1,30 @@
+## Latest: P2 installed — new physical boot2 handoff pending
+
+P2 source `1bbcaad8` passed the relevant Linux actual-source helper, leaf,
+verdict, loader/binding and installer checks, including the final cold-start
+boundary. The reviewed installer verified the predecessor, wrote boot2,
+required matching full-partition readback and confirmed clean shutdown.
+Complete actual offline host preparation passed with the scoped 900-second
+log contract. No P2 capture or session has run; earlier boot selections are
+consumed.
+
+The [P2 predeclaration](SESSION_0202_PLAN.md) requires >=600 seconds of received
+authenticated SSH, 59 periodic probes and standard disconnect requested at
+PM +604..608 seconds. The validated kernel is unchanged; only the USB script
+and bounded observer differ from P1D's RAM root. Verify those live hashes,
+kernel notes, a fresh boot UUID, uptime and active logger before the one
+capture/session. The leaf refuses starts after whole-second uptime 50 and
+reserves >=130 seconds for quiescence/export/sealing. A late start is a host
+admission result; do not silently retry it.
+
+A new owner-operated physical boot2 selection with USB connected is pending.
+After P2 testing and preservation/return, proceed with the separately requested
+private collection task before the next Wi-Fi lifecycle test. Its design and
+admission remain separate. Key reuse, rekey and reconnect remain disabled;
+full maintained-Wi-Fi acceptance remains incomplete.
+
+---
+
 ## Latest: P1D passed — ten-minute host-envelope preparation next
 
 P1D's [row/analysis](SESSION_0202_PLAN.md) and
