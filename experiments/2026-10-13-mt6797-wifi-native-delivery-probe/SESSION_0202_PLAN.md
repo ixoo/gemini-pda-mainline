@@ -235,6 +235,7 @@ remain in the existing private evidence seal, not public scalars.
 | S1 | `cff2c4f8-466d-406b-a7ad-d9f1e8bfee1e` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; post-release 5/5 | fresh authenticated stream, five chunks / 20.450 s across release; exit 0 | stage 3, zero debt, deauth ACK; return verified | controlled disconnect, 55.502 s data; not full 60 s | [one scalars file](results/s1-runtime-scalars.json) |
 | I50 | `e8a4c5ca-1fda-42ad-a0f7-1b68e99c08f7` | no HIF refusal; release + five cleanup commands credited | bound | initial 3/3; periodic 4/4 | NOT REACHED: host helper namespace refusal before client/TCP | stage 3, zero debt, deauth ACK; return verified | 50.005 / 50 s PASS; full-session FAIL | [one scalars file](results/i50-runtime-scalars.json) |
 | P1 | `b79d576c-5449-4899-8260-a61f350e0a5d` | no HIF refusal; 154/154 data TX completed; 32 completed PID reuses | bound | initial 3/3; periodic 6/11, five not reached | authenticated; 116 ticks / 57.563 s received; exit 255, server maximum duration | whole-ledger stage 3, deauth 127 ACK; preservation continuation and changed Gemian verified | 63.924 s data; received SSH 57.563 / 120 s FAIL, harness limit | [one scalars file](results/p1-runtime-scalars.json) |
+| P1H | `1327a444-77d3-4014-81cb-a436a32cbc3a` | no HIF refusal; 289/289 data TX completed; 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | PASS: exit 0, 243 chunks across 121.090 s; later USB snapshot timed out | eventual stage 3, zero debt, deauth ACK at leaf wall; planned disconnect not attempted; return verified | SSH 121.090 / 120 s PASS; data 298.704 s; full-session FAIL | [one scalars file](results/p1h-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -2290,3 +2291,55 @@ passed against the corrected private leaf and repinned receipt. A new physical
 boot2 selection is now required; no P1H capture or radio session has run.
 After the owner's selection, require a fresh UUID and the same exact P1
 84-byte kernel-notes identity before the one capture and one session.
+
+
+### P1H consumed — received duration passed; post-client control not admitted
+
+The [single scalars file](results/p1h-runtime-scalars.json) separates these
+outcomes. Fresh authenticated SSH exited 0, with 243 complete received chunks
+across 121.089910917 seconds and maximum interarrival 0.663486833 seconds.
+The client ran 122.978208875 seconds with empty stderr. DHCP, initial replies
+89.900 / 32.294 / 36.194 ms and all eleven scheduled probes passed. The server
+duration fix therefore reached the declared >=120-second received gate.
+
+The next first failure was one post-client USB snapshot timeout. Retained
+source shows `window_after_client` calls its software-only probe with 0.5 s,
+although ordinary USB acquisitions already allow up to 15 s. The receipt
+records unknown window/boot for that acquisition, so the helper correctly
+issued no disconnect. It did confirm the tagged remote stream owners absent
+and wrote the successful stream's boot-bound host ACK. No second client or
+alternate/late control was substituted. The record cannot distinguish SSH
+setup from remote snapshot work within the failed half-second allowance.
+
+The USB leaf later closed after 188.067 seconds. Numeric progress covered the
+eleven probes, not the subsequent terminal wait. A read-only inspection found
+the owned leaf/supplicant still present and no child-quiescence record, so the
+original seal/recovery refusal remained authoritative. After the existing
+300-second leaf wall, a new read-only observation found the child record clear
+and supplicant absent. The driver ended data at 298.704 seconds, completed all
+289 queued data frames, and reached whole-ledger stage 3 with deauth PID 127
+acknowledged at PM +298.993 seconds. This was eventual supplicant teardown,
+not the planned prompt helper disconnect. All five remaining cleanup command
+paths credited within 100 ms; no page debt, HIF framing refusal or owned loss
+event occurred. 293 ordinary allocations/completions included 167 completed
+reuses. Checked PTK/GTK counts were 296/1,248, delivered GTK ARP 610 and withheld
+eligible ARP zero. Filtered owned-beacon admissions were 22, last age
+296.848 seconds; they establish no continuous RF reception claim.
+
+A separate preservation-only continuation revalidated both child gates,
+preserved the unchanged original session and both inspection records, and
+exported all nine cycle files including the ACK. Ninety seal entries and
+3,283 contiguous kernel records (381,032 bytes) independently verified before
+one reviewed recovery request. Its first watcher check was unconfirmed; an
+independent authenticated check confirmed changed-boot Gemian. The immutable
+full-session classifier remains false: successful SSH duration and eventual
+healthy cleanup do not make the missing planned control pass.
+
+The smallest successor corrects the P1 helper's software snapshot to the
+already admitted 15-second USB acquisition bound, without changing any driver
+or firmware deadline. Keep the existing PM +120..135-second control window
+authoritative: a still-failing or late acquisition must refuse control. Add
+bounded numeric progress to the existing terminal wait so negative results
+can reach the original quiescence/export path without an idle USB close. No
+new radio frame, register access, kernel build, key reuse or reconnect is
+needed. Validate those exact host paths before another physical handoff.

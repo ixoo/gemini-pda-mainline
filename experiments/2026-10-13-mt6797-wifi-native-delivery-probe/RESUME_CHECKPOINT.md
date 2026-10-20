@@ -1,3 +1,27 @@
+## Latest: P1H consumed — SSH duration passed; host control gate failed
+
+See the [single row](SESSION_0202_PLAN.md) and
+[scalars](results/p1h-runtime-scalars.json). SSH exited 0 with 243 chunks
+received across 121.090 seconds; initial 3/3 and periodic 11/11 pings passed.
+The next first failure was the source-pinned 0.5-second post-client USB
+snapshot. Without a verified open-window snapshot the helper correctly sent
+no disconnect. The full planned session remains FAIL.
+
+The original host refused recovery while a child remained live. After the
+admitted leaf wall, independent read-only observations confirmed quiescence.
+Eventual supplicant teardown ended data at 298.704 seconds with deauth ACK,
+whole-ledger stage 3, no debt and 167 completed ordinary PID reuses. All 90 seal
+entries/3,283 contiguous records verified before one reviewed recovery. A
+separate authenticated check confirmed changed-boot Gemian. No retry ran.
+
+Next: correct only the host snapshot envelope and bounded terminal-wait USB
+progress, retaining all driver/firmware/control-time gates. Validate the actual
+host paths, then prepare a separate fresh boot handoff. The 120-second stream
+is demonstrated; prompt standard disconnect remains the failed gate. No
+600-second or same-boot reconnect claim is established.
+
+---
+
 ## Latest: P1H ready; waiting for a new physical boot2 selection
 
 The P1 result is committed at `24f9ba08`. The corrected host envelope and
