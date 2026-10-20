@@ -1,3 +1,28 @@
+## Latest: P2 consumed — host-limited duration; healthy cleanup and return
+
+See the [single result row/analysis](SESSION_0202_PLAN.md) and
+[scalars](results/p2-runtime-scalars.json). P2 authenticated SSH and retained
+602 valid raw chunks over a 601-second remote schedule, but its host receiver
+kept only 244 timestamp entries. The required >=600-second host receive span
+and continuity are unproven. All initial/59 periodic pings passed; no device
+duration failure was measured. The later helper abort refused at its interval
+guard, exit 49; the exact rejected offset was not retained.
+
+The unchanged leaf wall ended data at 718.184 seconds. Whole-ledger stage 3,
+zero debt and deauth ACK passed separately; all 75 seal entries and 4,992
+contiguous log records independently verified. The original reviewed return
+and separate authenticated changed-boot Gemian check passed. No device work
+or retry remains pending for this consumed run.
+
+Next, follow the owner's separate private collection task before another
+Wi-Fi lifecycle test. Keep its static admission, candidate, boot and evidence
+separate. A later P2 successor needs the real-runner timestamp cap corrected
+and tested beyond 244 chunks; it is not implemented by this result checkpoint.
+Key reuse, rekey and same-boot reconnect remain disabled; ten-minute acceptance
+and maintained Wi-Fi remain incomplete.
+
+---
+
 ## Latest: P2 installed — new physical boot2 handoff pending
 
 P2 source `1bbcaad8` passed the relevant Linux actual-source helper, leaf,

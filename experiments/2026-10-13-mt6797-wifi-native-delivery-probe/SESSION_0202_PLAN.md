@@ -237,6 +237,7 @@ remain in the existing private evidence seal, not public scalars.
 | P1 | `b79d576c-5449-4899-8260-a61f350e0a5d` | no HIF refusal; 154/154 data TX completed; 32 completed PID reuses | bound | initial 3/3; periodic 6/11, five not reached | authenticated; 116 ticks / 57.563 s received; exit 255, server maximum duration | whole-ledger stage 3, deauth 127 ACK; preservation continuation and changed Gemian verified | 63.924 s data; received SSH 57.563 / 120 s FAIL, harness limit | [one scalars file](results/p1-runtime-scalars.json) |
 | P1H | `1327a444-77d3-4014-81cb-a436a32cbc3a` | no HIF refusal; 289/289 data TX completed; 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | PASS: exit 0, 243 chunks across 121.090 s; later USB snapshot timed out | eventual stage 3, zero debt, deauth ACK at leaf wall; planned disconnect not attempted; return verified | SSH 121.090 / 120 s PASS; data 298.704 s; full-session FAIL | [one scalars file](results/p1h-runtime-scalars.json) |
 | P1D | `435e780a-3c83-4ccc-b861-20fc29dbcf3c` | PASS; 289/289 data TX, 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | exit 0, 243 chunks / 121.136 s; post-client snapshot 0.602 s | prompt standard disconnect, stage 3, zero debt, deauth ACK; original preservation/return pass | received SSH 121.136 / 120 s PASS; data 127.892 s; admitted full-session PASS | [one scalars file](results/p1d-runtime-scalars.json) |
+| P2 | `34f65daf-241a-4c7a-9b18-1503186e4a07` | PASS; 717/717 data TX, 595 completed PID reuses | bound | initial 3/3; periodic 59/59 | authenticated exit 0, 602 raw chunks; timestamp retention capped at 244, duration NOT PROVEN | eventual whole-ledger stage 3, zero debt, deauth ACK at leaf wall; original sealing/return pass | data 718.184 s; full-session FAIL from host receive retention; helper disconnect guard exit 49 | [one scalars file](results/p2-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -2570,3 +2571,44 @@ Complete actual offline host preparation passed. No P2 device session has run;
 one new physical boot2 selection is required. Preserve the first failure and
 all evidence without a retry. After P2 testing, the owner's separate private
 collection task precedes the next Wi-Fi lifecycle test.
+
+
+### P2 result — host receive-retention defect, cleanup passed separately
+
+One capture and one session ran on fresh boot
+`34f65daf-241a-4c7a-9b18-1503186e4a07`. WPA2, DHCP, three initial pings,
+59 periodic probes and fresh SSH authentication passed. SSH exited 0 after
+603.289 seconds with 54,876 raw output bytes and all 602 valid remote chunks.
+The host runner still caps its receive timestamp list at 244 entries. It counted
+the stream but retained only ordinals 0..243; the remaining 358 receive times
+are unavailable. The raw remote schedule cannot establish host continuity.
+Ten-minute received-traffic acceptance is **not proven**, and this is a host
+harness result, not a measured device duration failure. The earlier synthetic
+fixtures did not exercise a real runner consuming more than 244 chunks.
+
+The helper consequently selected its incomplete-stream abort branch. That
+request exited 49 at the PM interval guard before invoking standard disconnect.
+The preceding no-owner snapshot was PM +607.121 seconds; rejection-time offset
+was not retained, so its exact value is unknown. No second request was made.
+The leaf's unchanged wall eventually terminated supplicant; data lasted
+718.184 seconds. Cleanup reached whole-ledger stage 3 with zero debt and a
+deauthentication ACK. All five cleanup commands credited within 100 ms.
+
+Data TX completed 717/717; ordinary slots completed 721/721 with 595 completed
+reuses, five wraps and zero unowned completions. Checked PTK/GTK handoffs were
+715/2,770, delivered GTK ARP 1,246, withheld ARP zero, and no owned loss event
+or HIF refusal occurred. The filtered owned-beacon admission count was 21,
+last admission age 716.406 seconds; that describes host delivery with filtering,
+not RF beacon absence. The reserved submission was nominal PM +718.428 seconds
+on the same-log comparison axis, 1.572 seconds before its nearest nominal
+30-second boundary; no production timing rule follows.
+
+All 75 pre-recovery seal entries and 4,992 contiguous log records independently
+verified. Original child quiescence, complete log export, regression and reviewed
+return passed; a separate authenticated check confirmed changed-boot Gemian.
+There was no test retry. One [scalars file](results/p2-runtime-scalars.json)
+contains the timing, probes, slot and teardown evidence. The receive cap needs
+a focused real-runner fixture before a later P2 successor, without changing
+driver limits. Per the owner's order, proceed first with the separately requested
+private collection task, keeping its candidate, evidence and admission separate.
+Key reuse, rekey, reconnect and maintained-Wi-Fi promotion remain disabled.
