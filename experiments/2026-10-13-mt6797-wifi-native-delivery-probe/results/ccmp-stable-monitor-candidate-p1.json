@@ -114,7 +114,7 @@
   ],
   "periodic_before_ssh_ack": true,
   "periodic_clock_resolution_ns": 10000000,
-  "periodic_leaf_sha256": "de6fe61312562e1c1dc429de92df48580c5ebeec6f307bf1488fccda64289a98",
+  "periodic_leaf_sha256": "3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e",
   "beacon_clock_scope": "existing owned-beacon queue admission; includes pre-data",
   "last_rx_clock_scope": "strict PTK/GTK queue admission only",
   "bootstrap": "normal-dhcp-only",

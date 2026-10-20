@@ -19,7 +19,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 # Expected last-installed I50, freshly verified by ROOT/GPT guard before write.
 # Historical Gemian identity is not current identity or a deployment receipt.
 PREDECESSOR_SHA = '7bc347261ba8246dd1a4a53fa0270ab4705e91f73f9bdb850fdc06f29937fa2f'
-MANIFEST_SHA = 'd4cb557f4022547bf49d2f4961c9d12a3142332ebb0d19444c2edcfac833b89d'
+MANIFEST_SHA = '71c581f0e4478e71009f2ff3d09b78be6951124a6d6c8ca09bd92cd2e78262ba'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
@@ -112,8 +112,8 @@ def validate(candidate, previous):
                                expected.get('periodic_ping_offsets_s') == [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110] and
                                expected.get('periodic_before_ssh_ack') is True and
                                expected.get('periodic_clock_resolution_ns') == 10000000 and
-                               expected.get('periodic_leaf_sha256') == 'de6fe61312562e1c1dc429de92df48580c5ebeec6f307bf1488fccda64289a98' and
-                               ADAPTER.INSTALLER.digest((HERE / 'join-ccmp-p1.sh').read_bytes()) == 'de6fe61312562e1c1dc429de92df48580c5ebeec6f307bf1488fccda64289a98' and
+                               expected.get('periodic_leaf_sha256') == '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e' and
+                               ADAPTER.INSTALLER.digest((HERE / 'join-ccmp-p1.sh').read_bytes()) == '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e' and
                                expected.get('beacon_clock_scope') ==
                                'existing owned-beacon queue admission; includes pre-data' and
                                expected.get('last_rx_clock_scope') ==

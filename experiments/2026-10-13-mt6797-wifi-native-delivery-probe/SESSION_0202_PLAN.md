@@ -2240,3 +2240,36 @@ they do not establish a firmware mechanism or a safe timing exclusion rule.
 The suggested exact +63-second comparison has not run. No production rule to
 avoid particular offsets or inject traffic is justified by these data. The
 current first failure is the host envelope; fix that before another boot.
+
+
+### P1H host correction — unchanged kernel, new explicit admission required
+
+Hypothesis: the retained server maximum-duration option prevents the declared
+121-second SSH stream; the quiet USB leaf also needs bounded progress to stay
+inside its existing 60-second idle policy. Change only the external leaf: use
+Dropbear `-M 180` under the existing 180-second listener timeout, and emit one
+numeric progress line after each of the eleven existing periodic probes. Keep
+`-I 30`, connect timeout, host client/remote/process budgets, driver deadlines,
+firmware commands, resource limits and traffic schedule unchanged. No new
+network frame is added for USB progress. Authentication options remain pinned.
+
+The kernel package/input/profile and every boot artifact are byte-identical to
+P1; no kernel rebuild is needed. The external-leaf receipt is repinned for this
+correction. P1's historical receipt/source remain reproducible at its recorded
+handoff commit. This is a separate run named P1H, with a fresh private runtime
+root, not a resumed or repeated P1 attempt. No P1H device result exists yet.
+
+The actual-leaf fixture checks that the server envelope covers the declared
+remote/client stream and exercises the existing eleven-slot loop with
+deterministic clocks and ping observations: exactly eleven numeric progress
+records, all original scheduled offsets, no device or network action. Host
+fixtures establish this envelope only; real 120-second received traffic still
+requires the new boot.
+
+Predeclared outcomes: full received span at least 120 seconds plus completed
+ordinary PID reuse and standard whole-ledger disconnect passes this gate; an
+earlier client/server/monitor/transport failure is recorded at its actual
+offset and stage; a preservation or child-ownership refusal stops recovery
+until classified and all original gates are satisfied. Keep individual
+network, SSH duration, PID retirement and cleanup verdicts independent. No
+600-second or same-boot reconnect claim follows from this gate.

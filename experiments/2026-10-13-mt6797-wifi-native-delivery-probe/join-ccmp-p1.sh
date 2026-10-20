@@ -217,6 +217,11 @@ periodic_data_checks() {
         # cannot be confused with the initial three-ping protocol summary.
         $BB sed "s/^/periodic_raw ordinal=$pc_n /" "$pc_dir/periodic-current.log" >> "$pc_dir/ping.log" || return 1
         $BB rm -f "$pc_dir/periodic-current.log"
+        # Bounded progress on the existing USB command prevents its unchanged
+        # 60-second idle policy from closing a live, otherwise quiet leaf.
+        # Numeric scalars only; no address, key or frame content.
+        $BB printf 'periodic_progress cycle=%s ordinal=%s exit=%s replies=%s\n' \
+            "$pc_cyc" "$pc_n" "$pc_rc" "${pc_rx:-0}"
     done
     return "$pc_fail"
 }
@@ -348,7 +353,7 @@ data_checks() {
     fi
     if [ "$dropbear_digest_ok" = 1 ] && [ -f /etc/dropbear/host_key ] && [ -d /root/.ssh ] && window_ok "$cyc"; then
         $BB timeout 180 /bin/dropbear -F -s -j -k -l wlan0 -p "$($BB cat "$cd/lease"):22" -D /root/.ssh \
-            -r /etc/dropbear/host_key -P "$cd/sshd-pid" -I 30 -M 60 -T 2 2> "$cd/dropbear.log" &
+            -r /etc/dropbear/host_key -P "$cd/sshd-pid" -I 30 -M 180 -T 2 2> "$cd/dropbear.log" &
         wifi_sshd_pid=$!
         wifi_sshd_started=1
         t=0

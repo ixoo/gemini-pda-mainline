@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 
 def bind_ccmp_p1(host):
     reviewed = (HERE / 'join-ccmp-p1.sh').read_bytes()
-    if hashlib.sha256(reviewed).hexdigest() != 'de6fe61312562e1c1dc429de92df48580c5ebeec6f307bf1488fccda64289a98' or not host.PH.SCAN.SCAN_SOURCE.read_bytes().endswith(reviewed):
+    if hashlib.sha256(reviewed).hexdigest() != '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e' or not host.PH.SCAN.SCAN_SOURCE.read_bytes().endswith(reviewed):
         raise ValueError('P1 requires its exact reviewed periodic leaf')
     host.CCMP_CLASSIFIER = HERE / 'classify-ccmp-connected.py'
     root = host.RUNTIME_ROOT / 'ccmp-stable-monitor/session-ccmp-p1'
