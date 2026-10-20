@@ -2273,3 +2273,10 @@ offset and stage; a preservation or child-ownership refusal stops recovery
 until classified and all original gates are satisfied. Keep individual
 network, SSH duration, PID retirement and cleanup verdicts independent. No
 600-second or same-boot reconnect claim follows from this gate.
+
+The host correction is pushed at `15d4cf5e`; its actual-leaf fixture and
+actual binding/preparation tests passed on a clean Linux checkout, alongside
+Bash syntax and ShellCheck. Local config/provenance, retained installer/source
+routing and repository checks passed. The fresh deployment-evidence namespace
+is P1H so the original P1 deployment record cannot be overwritten. The reviewed
+installer accepts the already matching full checksum and skips writing.
