@@ -389,6 +389,8 @@ data_checks() {
 # Fails on the fault terminal (stopped:) or boot change. Echoes reached count.
 wait_record() {
     pat=$1; want=$2
+    wr_start=$(now_s)
+    wr_progress=$wr_start
     while [ "$(now_s)" -lt "$deadline" ]; do
         [ "$($BB cat /proc/sys/kernel/random/boot_id)" = "$EXPECTED_BOOT" ] || return 2
         log=$($BB dmesg)
@@ -398,6 +400,15 @@ wait_record() {
         n=$(printf '%s\n' "$log" | $BB grep -Ec "$pat" || true)
         [ -n "$n" ] || n=0
         [ "$n" -ge "$want" ] && return 0
+        # Keep the existing USB command observable during a negative terminal
+        # wait. The original wall still stops this loop; no device action or
+        # driver deadline is renewed. Only bounded numeric scalars are emitted.
+        wr_now=$(now_s)
+        if [ "$((wr_now - wr_progress))" -ge 10 ]; then
+            $BB printf 'record_wait_progress expected_count=%s observed_count=%s elapsed_s=%s\n' \
+                "$want" "$n" "$((wr_now - wr_start))"
+            wr_progress=$wr_now
+        fi
         $BB sleep 0.2
     done
     return 1

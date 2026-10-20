@@ -63,7 +63,7 @@
     120000,
     135000
   ],
-  "host_helper_sha256": "2c28acdf350943a6fc6159a5799d1f039830309d78f68d7cf9683a4ce867173d",
+  "host_helper_sha256": "31b65043570988dc3f9d06cd3269cd98e9c8015d48f45bc6fa838c7b20d4b3bf",
   "initial_gtk": true,
   "observation_window_ms": null,
   "connected_channel_release": true,
@@ -114,7 +114,7 @@
   ],
   "periodic_before_ssh_ack": true,
   "periodic_clock_resolution_ns": 10000000,
-  "periodic_leaf_sha256": "3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e",
+  "periodic_leaf_sha256": "d7959108e8a51d26c14c23493d199ff9dd35f786e5dd3b0d39c59f131b5722a0",
   "beacon_clock_scope": "existing owned-beacon queue admission; includes pre-data",
   "last_rx_clock_scope": "strict PTK/GTK queue admission only",
   "bootstrap": "normal-dhcp-only",

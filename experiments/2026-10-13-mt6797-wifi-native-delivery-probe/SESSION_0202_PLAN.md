@@ -2343,3 +2343,34 @@ bounded numeric progress to the existing terminal wait so negative results
 can reach the original quiescence/export path without an idle USB close. No
 new radio frame, register access, kernel build, key reuse or reconnect is
 needed. Validate those exact host paths before another physical handoff.
+
+
+### P1D host control correction — predeclared successor
+
+Hypothesis: P1H exceeded the retained short-session observer's half-second
+software USB snapshot allowance after a complete 120-second stream. Give only
+that existing acquisition the ordinary 15-second USB read bound; retain its
+exact remote checks, capture its elapsed time in the receipt, and change no
+firmware/driver/credit/frame deadline. The PM +120..135-second admission and
+the independent live guard remain authoritative, so a slow/unknown/closed
+snapshot still cannot send a late disconnect. This does not distinguish SSH
+setup cost from remote observation cost in P1H; the successor measures total
+software acquisition time without adding a device probe or retry.
+
+The existing terminal-record loop emits a numeric progress line at ten-second
+intervals while waiting, still inside its original 300-second wall. It retains
+boot/fatal/terminal checks and sends no network frame or register access. The
+actual-leaf fixture exercises the unchanged timeout and immediate fatal, boot
+and reached branches on a deterministic clock, as well as the eleven original
+probes. The actual helper fixture checks the 15-second snapshot, a timeout
+without retry/control, and a late snapshot that cannot extend the control
+window. All original helper ownership, receipt and negative-control cases
+remain selected.
+
+P1D is a separate fresh-runtime run of the same 120-second received-stream
+and standard-disconnect gate, not a repetition of P1H without a changed
+observation. A full pass closes the still-failed prompt-disconnect gate before
+a 600-second test. An earlier failure is separately recorded at its stage and
+offset. The package/profile/kernel and every boot artifact are unchanged;
+only the external host source/receipt pins change. No kernel build is needed.
+The new deployment-evidence namespace is P1D; existing records stay intact.

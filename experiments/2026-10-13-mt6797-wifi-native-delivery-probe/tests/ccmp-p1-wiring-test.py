@@ -8,9 +8,9 @@ fixture = (HERE / 'ccmp2-wiring-test.py').read_text()
 fixture = fixture.replace('ccmp2', 'ccmp-p1').replace('CCMP2', 'P1').replace(
     'ccmp-stable-monitor-candidate-2', 'ccmp-stable-monitor-candidate-p1').replace(
     'mt6797-wifi-ccmp-stable-monitor-deployment-2',
-    'mt6797-wifi-ccmp-stable-monitor-deployment-p1h').replace(
+    'mt6797-wifi-ccmp-stable-monitor-deployment-p1d').replace(
     'ba8078a0be1673a81a8159b5166769aeb226785eb0ee29ba682c3db3e50dc93d',
-    '71c581f0e4478e71009f2ff3d09b78be6951124a6d6c8ca09bd92cd2e78262ba').replace(
+    '1184f7305aad6c33cb727dcc8f4780da03a982c1718daad6875ea95e849e92e5').replace(
     '41881cb1345a9b1e3d39930c646a63d21499d5d7222039b8abfa7a9bf3b0be8e',
     '7bc347261ba8246dd1a4a53fa0270ab4705e91f73f9bdb850fdc06f29937fa2f')
 fixture = fixture.replace('laptop-wifi-ssh-ccmp.py', 'laptop-wifi-ssh-connected.py')

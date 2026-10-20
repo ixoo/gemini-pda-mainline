@@ -58,3 +58,50 @@ run_bounded() {
     assert len(re.findall(r'^periodic_ping ', log, re.M)) == 11
     assert [int(n) for n in re.findall(r'scheduled_offset_ns=(\d+)', log)] == list(range(10**10, 111*10**9, 10**10))
 print('Actual leaf: 180-second server envelope, 11 bounded numeric progress records and unchanged scheduled probes PASS')
+
+# Exercise the actual terminal wait on a deterministic host clock, including
+# its negative path. These are read-only fake observations, not a device test.
+wait_body = 'wait_record() {\n' + source.split('wait_record() {\n', 1)[1].split(
+    '\n# Wait for the ATTRIBUTABLE', 1)[0]
+with tempfile.TemporaryDirectory(prefix='connected-terminal-wait-') as td:
+    root = Path(td)
+    wrapper = root / 'bb'
+    wrapper.write_text('''#!/bin/sh
+case "$1" in
+ dmesg)
+  case "$TEST_CASE" in
+   fatal) printf 'one-shot WLAN join stopped: fixture\n' ;;
+   reached) printf 'fixture-terminal\n' ;;
+  esac ;;
+ sleep)
+  n=$(cat "$TEST_CLOCK")
+  printf '%s\n' "$((n+1))" > "$TEST_CLOCK" ;;
+ *) exec ''' + busybox + ''' "$@" ;;
+esac
+''')
+    wrapper.chmod(0o700)
+    for case, expected_rc in [('waiting', 1), ('fatal', 3), ('reached', 0), ('boot', 2)]:
+        clock = root / 'clock'
+        clock.write_text('0\n')
+        script = '''set -eu
+BB="$1"
+TEST_CLOCK="$2"
+TEST_CASE="$3"
+export TEST_CLOCK TEST_CASE
+EXPECTED_BOOT=$($BB cat /proc/sys/kernel/random/boot_id)
+[ "$TEST_CASE" != boot ] || EXPECTED_BOOT=not-this-boot
+deadline=35
+now_s() { cat "$TEST_CLOCK"; }
+''' + wait_body + '''
+rc=0
+wait_record fixture-terminal 1 || rc=$?
+printf 'result=%s\n' "$rc" >&2
+'''
+        result = subprocess.run(['/bin/sh', '-s', '--', str(wrapper), str(clock), case],
+                                input=script.encode(), capture_output=True, timeout=10)
+        assert result.returncode == 0 and result.stderr == ('result=%d\n' % expected_rc).encode()
+        expected = ''.join('record_wait_progress expected_count=1 observed_count=0 elapsed_s=%d\n' % n
+                           for n in [10, 20, 30]) if case == 'waiting' else ''
+        assert result.stdout.decode() == expected
+        assert int(clock.read_text()) == (35 if case == 'waiting' else 0)
+print('Actual terminal wait: bounded numeric progress; unchanged wall, fatal, reached and boot refusals PASS')

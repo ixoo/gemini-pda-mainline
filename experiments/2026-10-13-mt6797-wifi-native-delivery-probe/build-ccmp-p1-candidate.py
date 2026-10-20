@@ -41,7 +41,7 @@ RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 SOURCE_COMMIT = 'e7be093e6f4200b03aaff56787dc8d74ca1f3468'
 PATCH_SHA256 = '58e5d1475d3024b9a0de783d6e1e8be167dd475c7621bb0190951e795a3ba02e'
 SERIES_SHA256 = '3978ed09f029e1be191c6ef1223b133c5e5987f62a8ecfe3d96b9cbabcf8c070'
-PERIODIC_LEAF_SHA256 = '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e'
+PERIODIC_LEAF_SHA256 = 'd7959108e8a51d26c14c23493d199ff9dd35f786e5dd3b0d39c59f131b5722a0'
 PARTITION_BYTES = 16777216
 BOOT_NAME = 'gemini-obs-P'
 BOOT_CMDLINE = 'bootopt=64S3,32N2,64N2'
@@ -229,7 +229,7 @@ def main():
                   'lifetime_packet_max': 65536, 'connected_data_poll_quota': False,
                   'host_stream_required_ms': 120000, 'host_stream_scheduled_ms': 121000,
                   'host_receive_gap_max_ms': 3000, 'host_control_pm_window_ms': [120000, 135000],
-                  'host_helper_sha256': '2c28acdf350943a6fc6159a5799d1f039830309d78f68d7cf9683a4ce867173d',
+                  'host_helper_sha256': '31b65043570988dc3f9d06cd3269cd98e9c8015d48f45bc6fa838c7b20d4b3bf',
                   'initial_gtk': True, 'observation_window_ms': None,
                   'connected_channel_release': True, 'join_grant_request_ms': 9000,
                   'connected_release_tail_ms': 2500, 'data_window_inside_grant': False,

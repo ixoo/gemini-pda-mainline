@@ -348,7 +348,19 @@ def run(root, keys, boot, cycles, poll, runner=held_stdin_runner,
                       'printf "P1_NOW_NS=%s\\n" "$(/bin/busybox awk '\
                       "'{printf \"%.0f\\n\", $1 * 1000000000}' /proc/uptime)\"")
             argv = [*argv[:-1], argv[-1] + suffix]
-            response = runner(argv, **kwargs)
+            # The retained short-session observer supplies 0.5 s. P1's declared
+            # software USB envelope is the same 15 s used by its other reads;
+            # keep the remote script and every control-time gate unchanged.
+            if kwargs.get('timeout') != 0.5:
+                raise ValueError('unexpected post-client snapshot limit')
+            kwargs = {**kwargs, 'timeout': 15}
+            probe_started = monotonic()
+            try:
+                response = runner(argv, **kwargs)
+            finally:
+                captured['window_probe'] = {
+                    'timeout_seconds': 15,
+                    'elapsed_ns': int((monotonic() - probe_started) * 1e9)}
             captured.update(fields=M.parse_block(response.stdout.decode('ascii', 'replace')),
                             returned=monotonic())
             return response
@@ -424,6 +436,7 @@ def run(root, keys, boot, cycles, poll, runner=held_stdin_runner,
     result['p1_ssh_output'] = captured.get('ssh_output')
     result['p1_core_disconnect'] = control
     result['p1_control_pm_interval_ns'] = [120_000_000_000,135_000_000_000]
+    result['p1_post_client_probe'] = captured.get('window_probe')
     result['p1_host_limits'] = {'poll_seconds':210,'ssh_seconds':135,'remote_seconds':125,'parent_join_seconds':270,'grace_seconds':5}
     result['p1_60s_budget_pass_claimed'] = False
     result['all_pass'] = bool(result['all_pass'] and stream['pass'] and remote['quiesced'] and control['accepted'])

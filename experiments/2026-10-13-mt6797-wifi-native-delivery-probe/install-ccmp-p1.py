@@ -19,14 +19,14 @@ RELEASE = '7.1.3-gemini-a53-wifi-ccmp-stable-monitor'
 # Expected last-installed I50, freshly verified by ROOT/GPT guard before write.
 # Historical Gemian identity is not current identity or a deployment receipt.
 PREDECESSOR_SHA = '7bc347261ba8246dd1a4a53fa0270ab4705e91f73f9bdb850fdc06f29937fa2f'
-MANIFEST_SHA = '71c581f0e4478e71009f2ff3d09b78be6951124a6d6c8ca09bd92cd2e78262ba'
+MANIFEST_SHA = '1184f7305aad6c33cb727dcc8f4780da03a982c1718daad6875ea95e849e92e5'
 ADAPTER.HERE = HERE
 ADAPTER.PREDECESSOR_SHA = PREDECESSOR_SHA
 ADAPTER.INSTALLER.HERE = HERE
 ADAPTER.INSTALLER.TOOL_NAME = 'install-ccmp-p1.py'
 ADAPTER.INSTALLER.CANDIDATE_RECEIPT = 'results/ccmp-stable-monitor-candidate-p1.json'
 ADAPTER.INSTALLER.EXPERIMENT = 'mt6797-wifi-ccmp-stable-monitor'
-ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-ccmp-stable-monitor-deployment-p1h'
+ADAPTER.INSTALLER.RECEIPT_NAME = 'mt6797-wifi-ccmp-stable-monitor-deployment-p1d'
 ADAPTER.INSTALLER.MANIFEST_SHA = MANIFEST_SHA
 ADAPTER.MANIFEST_SHA = MANIFEST_SHA
 ORIGINAL_SOURCES = ADAPTER.INSTALLER.sources
@@ -112,8 +112,8 @@ def validate(candidate, previous):
                                expected.get('periodic_ping_offsets_s') == [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110] and
                                expected.get('periodic_before_ssh_ack') is True and
                                expected.get('periodic_clock_resolution_ns') == 10000000 and
-                               expected.get('periodic_leaf_sha256') == '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e' and
-                               ADAPTER.INSTALLER.digest((HERE / 'join-ccmp-p1.sh').read_bytes()) == '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e' and
+                               expected.get('periodic_leaf_sha256') == 'd7959108e8a51d26c14c23493d199ff9dd35f786e5dd3b0d39c59f131b5722a0' and
+                               ADAPTER.INSTALLER.digest((HERE / 'join-ccmp-p1.sh').read_bytes()) == 'd7959108e8a51d26c14c23493d199ff9dd35f786e5dd3b0d39c59f131b5722a0' and
                                expected.get('beacon_clock_scope') ==
                                'existing owned-beacon queue admission; includes pre-data' and
                                expected.get('last_rx_clock_scope') ==

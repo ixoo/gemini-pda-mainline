@@ -43,7 +43,7 @@ class ConnectedClientTests(unittest.TestCase):
             result = subprocess.run(['awk', program], input=raw, capture_output=True, check=True)
             self.assertEqual(result.stdout, expected)
 
-    def exercise(self, ssh_rc=0, closed=False, bad_clock=False, control_rc=0, control_timeout=False, remote_unknown=False, buffered=False, receive_gap=False, early=False):
+    def exercise(self, ssh_rc=0, closed=False, bad_clock=False, control_rc=0, control_timeout=False, remote_unknown=False, buffered=False, receive_gap=False, early=False, window_timeout=False, late_window=False):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / 'ssh-client-observation'
             clock, wifi, controls = [0.0], [], []
@@ -94,9 +94,12 @@ class ConnectedClientTests(unittest.TestCase):
                 if closed:
                     result = result.replace(b'FATAL=0', b'FATAL=1')
                 if 'DATA_ENDED=' in argv[-1]:
+                    self.assertEqual(kwargs['timeout'], 15)
+                    if window_timeout:
+                        raise subprocess.TimeoutExpired(argv, 15)
                     subprocess.run(['/bin/sh', '-n'], input=argv[-1].encode(), check=True)
                     self.assert_clock_awk(argv[-1])
-                    result += b'DATA_ENDED=0\nP1_PM_NS=' + (b'bad' if bad_clock else b'1000000000') + b'\nP1_NOW_NS=' + (b'14000000000\n' if early else b'124000000000\n')
+                    result += b'DATA_ENDED=0\nP1_PM_NS=' + (b'bad' if bad_clock else b'1000000000') + b'\nP1_NOW_NS=' + (b'137000000000\n' if late_window else b'14000000000\n' if early else b'124000000000\n')
                 return subprocess.CompletedProcess(argv, 0, stdout=result)
 
             with patch.object(S.M, 'base_command', lambda keys: (['ssh', '-T'], 'root@10.0.0.1')), \
@@ -114,6 +117,21 @@ class ConnectedClientTests(unittest.TestCase):
         self.assertEqual((wifi, controls), (1, 1))
         self.assertGreater(elapsed, 121)
         self.assertFalse(result['p1_60s_budget_pass_claimed'])
+
+    def test_post_client_snapshot_timeout_refuses_control(self):
+        result, wifi, controls, _ = self.exercise(window_timeout=True)
+        self.assertTrue(result['p1_stream']['pass'])
+        self.assertTrue(result['driver_window_after_client']['timeout'])
+        self.assertEqual(result['p1_post_client_probe']['timeout_seconds'], 15)
+        self.assertFalse(result['p1_core_disconnect']['attempted'])
+        self.assertEqual((wifi, controls), (1, 0))
+
+    def test_late_snapshot_does_not_extend_control_window(self):
+        result, wifi, controls, _ = self.exercise(late_window=True)
+        self.assertTrue(result['p1_stream']['pass'])
+        self.assertEqual(result['driver_window_after_client']['driver_data_window'], 'open')
+        self.assertFalse(result['p1_core_disconnect']['attempted'])
+        self.assertEqual((wifi, controls), (1, 0))
 
     def test_ssh_failure_does_not_suppress_independent_control(self):
         result, wifi, controls, _ = self.exercise(ssh_rc=255)

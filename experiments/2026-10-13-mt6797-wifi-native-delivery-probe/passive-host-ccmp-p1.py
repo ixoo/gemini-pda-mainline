@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 
 def bind_ccmp_p1(host):
     reviewed = (HERE / 'join-ccmp-p1.sh').read_bytes()
-    if hashlib.sha256(reviewed).hexdigest() != '3188a0ddf8ead1c58affebff941a2659d21b26f343bb6fb732a037fe1828dd6e' or not host.PH.SCAN.SCAN_SOURCE.read_bytes().endswith(reviewed):
+    if hashlib.sha256(reviewed).hexdigest() != 'd7959108e8a51d26c14c23493d199ff9dd35f786e5dd3b0d39c59f131b5722a0' or not host.PH.SCAN.SCAN_SOURCE.read_bytes().endswith(reviewed):
         raise ValueError('P1 requires its exact reviewed periodic leaf')
     host.CCMP_CLASSIFIER = HERE / 'classify-ccmp-connected.py'
     root = host.RUNTIME_ROOT / 'ccmp-stable-monitor/session-ccmp-p1'
@@ -28,7 +28,7 @@ def bind_ccmp_p1(host):
         if ph.HELPER is not None:
             ph.HELPER.receipt_path = ph.WIFI_SSH_RECEIPT
             ph.HELPER.record['receipt'] = str(ph.WIFI_SSH_RECEIPT)
-    if hashlib.sha256((HERE / 'laptop-wifi-ssh-connected.py').read_bytes()).hexdigest() != '2c28acdf350943a6fc6159a5799d1f039830309d78f68d7cf9683a4ce867173d':
+    if hashlib.sha256((HERE / 'laptop-wifi-ssh-connected.py').read_bytes()).hexdigest() != '31b65043570988dc3f9d06cd3269cd98e9c8015d48f45bc6fa838c7b20d4b3bf':
         raise ValueError('P1 reviewed helper changed')
     if ph.HELPER is not None:
         if ph.HELPER.record['started']:
