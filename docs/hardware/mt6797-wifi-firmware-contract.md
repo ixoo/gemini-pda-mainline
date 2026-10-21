@@ -40,11 +40,13 @@ Bring-up, in order: base configuration, NIC enable, regulatory domain, scan
 filter. Scanning allows one scan in flight; a second concurrent request is
 refused.
 
-Join, in order: BSS slot activation, BSS parameters, authentication and
-association, station record, key installation, and finally the connected
-indication. **The connected indication is mandatory.** Without it the firmware
-runs its own no-connection timer and will stop traffic on its own schedule,
-regardless of what the host believes.
+The tested join path activates the BSS slot, supplies BSS parameters, completes
+authentication and association, and creates the station record. It then obtains
+DTIM from a qualified post-association beacon and requires a credited connected
+indication **before key installation**. This ordering is enforced by
+[0211](../../patches/proposals/0211-wifi-mt6797-indicate-PM-connection-from-owned-beacon-before-keys.patch).
+The connected indication is mandatory; association alone does not establish
+the firmware's connected monitoring state.
 
 Teardown, in order: abort indication, key removal, station removal, BSS slot
 deactivation. This order is the only one that has produced a clean, fully
@@ -59,10 +61,17 @@ driver must act on the firmware's loss event rather than on its own timeout.
 
 ## Keys
 
-The firmware owns the crypto engine. The driver installs and removes keys and
-never touches key material, sequence numbers or replay state. Key retirement
-and slot reuse for a second connection in the same boot are not yet
-established; until they are, the driver must not attempt a second lifetime.
+The firmware owns encryption and decryption. The driver receives key material
+through mac80211's key callbacks and submits installation and removal commands.
+The checked receive path also maintains separate host PN state for the initial
+PTK and GTK, and rejects frames without the required metadata or a strictly
+increasing PN. The [group RX contract](../../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/MAC80211_GROUP_RX_CONTRACT.md)
+describes those host checks; firmware crypto ownership does not replace them.
+
+Key retirement and slot reuse for a second connection in the same boot are not
+yet established. Returned command credits and station teardown alone do not
+prove retirement of firmware-queued frames. Until that barrier is established,
+the driver must not reset PN state or attempt a second protected lifetime.
 
 ## Diagnostic access
 

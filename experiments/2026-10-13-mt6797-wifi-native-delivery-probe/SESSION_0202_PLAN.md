@@ -2612,3 +2612,58 @@ a focused real-runner fixture before a later P2 successor, without changing
 driver limits. Per the owner's order, proceed first with the separately requested
 private collection task, keeping its candidate, evidence and admission separate.
 Key reuse, rekey, reconnect and maintained-Wi-Fi promotion remain disabled.
+
+### P2E host-evidence successor — preparation admitted, execution held
+
+The owner authorized preparation of this host-only successor on 2026-10-21,
+keeping the kernel unchanged and device execution paused. The consumed P2
+result remains host-limited. P2E addresses its two evidence defects in separate
+host inputs and fresh evidence namespaces; it is not a retry admission.
+
+The hypothesis is that P2's missing receive-continuity verdict comes from the
+real reader's inherited 244-entry timestamp cap, rather than missing output.
+The actual P2 derivation expects 602 arrivals but leaves that cap unchanged.
+Prepare a separately pinned successor, preserving the consumed helper and its
+receipts. Retain 603 timestamp entries: all 602 planned arrivals plus one
+excess-arrival sentinel. Continue counting and draining excess output, but
+never accept extra, missing, duplicate or reordered ordinals. Keep the existing
+64 KiB raw-output bound and every timing and continuity requirement unchanged.
+
+Before a boot, exercise the actual derived `held_stdin_runner` with a real
+local child producing more than 244 complete tick lines, including fragmented
+reads. Require all 602 ordinals and receive times to survive acquisition; also
+cover the excess-arrival sentinel, partial output and bounded timeout. These
+fixtures establish reader behaviour, not ten minutes of network continuity.
+Retain the existing independent sender/receiver span and maximum-gap checks.
+
+The disconnect guard already acquires the PM-relative offset before exit 49.
+Retain that scalar, the selected normal/abort branch and its lower/upper bounds
+when it refuses, before returning the same error. Do not extend the normal
+PM +604..608-second interval, the abort interval or any deadline. Keep successful
+disconnect output compatible with the existing parser. A late or otherwise
+refused request remains a failed control gate, with no second request.
+
+Predeclared decisions for a later separately admitted run:
+
+- Fresh boot-bound SSH produces all 602 received arrivals over at least 600
+  seconds with no gap over three seconds, WPA2/DHCP/three initial pings and all
+  59 periodic probes pass, and normal disconnect is accepted within its
+  existing interval, and whole-ledger cleanup passes: the single-lifetime
+  ten-minute gate passes, independently of reconnect or maintained support.
+- Timestamp retention, a host bound or a disconnect guard fails: retain the
+  exact first host failure and its offset; do not classify it as driver loss.
+- A firmware loss event, transport refusal, TX stall or cleanup failure occurs:
+  retain that separate first failure and grade cleanup independently.
+
+The kernel, firmware, resource caps, PN checks and key epoch remain unchanged.
+No build, installation, device session, key reuse, rekey or reconnect is
+admitted by this preparation. The protected-lifetime retirement barrier remains a
+separate source obligation before any two-lifetime candidate.
+
+P2E's host entrypoints are `prepare-ccmp-p2e.py`,
+`laptop-capture-ccmp-p2e.py` and `laptop-session-ccmp-p2e.py`. The session
+selects `laptop-wifi-ssh-connected-p2e.py` through its pinned host binding.
+They retain the existing P2 candidate receipt, kernel input `71c4b4a` and leaf;
+only the helper evidence path and fresh host namespaces differ. No image is
+composed by this preparation. All original P2 source identities are checked
+before the fixed derivations; unknown source or anchor changes refuse.

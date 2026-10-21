@@ -1,3 +1,26 @@
+## Latest: P2E host-only preparation — device execution paused
+
+The owner authorized the separate [P2E evidence successor](SESSION_0202_PLAN.md#p2e-host-evidence-successor--preparation-admitted-execution-held).
+Its reader retains all 602 planned arrival timestamps plus one excess-arrival
+sentinel, and its refused-disconnect record includes the already acquired
+PM-relative offset and unchanged bounds. The consumed P2 source and evidence
+remain intact. P2E uses fresh `capture-ccmp-p2e` and `session-ccmp-p2e` paths,
+the unchanged P2 image/leaf/classifier, and the existing custody and recovery
+contracts. No new kernel, installation or device run is admitted.
+
+Local reader/client tests pass, including real pipes exceeding the old
+244-entry cap, fragmentation, excess arrivals and partial timeout retention.
+Actual generated guard/PTY cases still require the clean Linux check. Routing
+fixtures select the exact new helper, keep both 900-second log decoders and
+preserve refusal on unknown local/remote owners. Linux verification and the
+final source checkpoint remain pending; this is preparation, not a hardware
+pass. Do not reuse an earlier boot selection or start a P2E session.
+
+Key reuse, rekey and protected reconnect remain disabled pending the separate
+firmware queued-RX/key-retirement barrier. The ten-minute gate is still unproven.
+
+---
+
 ## Latest: P2 consumed — host-limited duration; healthy cleanup and return
 
 See the [single result row/analysis](SESSION_0202_PLAN.md) and
