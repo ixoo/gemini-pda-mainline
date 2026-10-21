@@ -1,3 +1,19 @@
+## Current: owner paused all work — status checkpoint
+
+All implementation, builds and device work are paused at the owner’s request.
+No device action or physical boot handoff is pending. Earlier handoffs below
+are historical and consumed; do not execute them as current instructions.
+P2E-1 stopped on host orchestration before Wi-Fi was reached. Its evidence is
+preserved and the reviewed return independently confirmed changed-boot Gemian
+`0d88c2d5-b21e-47fe-bf39-c95e896f724a`.
+
+The fail-closed launcher correction is committed and Linux-validated; no further
+attempt has run. Ten-minute received-traffic acceptance and same-boot reconnect
+remain unproven. Key reuse, rekey and protected reconnect remain disabled.
+Unrelated restored research is excluded from this status checkpoint.
+
+---
+
 ## Latest: P2E-1 consumed — host launch failure, return confirmed
 
 [One result row and analysis](SESSION_0202_PLAN.md#p2e-1-consumed--outer-launch-failure-and-late-start-refusal)
@@ -17,7 +33,11 @@ output first, fail closed on any acquisition/identity error, pass only the
 fresh boot ID to the helper before bootstrap, and invoke the original failure
 session once if capture refuses. It retains the original whole-second <=50
 guard and every transport/data deadline. Local launcher tests and an actual
-offline constructor fixture pass; clean Linux launcher validation is pending.
+offline constructor fixture pass. Clean pushed input `c37baf06` passed all ten
+launcher tests on Linux with no skips, including the actual retained collector
+and a local child. The full Linux repository check passed. The constructor used
+a historical receipt as an offline fixture only; it establishes no live readiness.
+See the [launcher validation record](results/p2e-launcher-validation.json).
 No new device attempt or physical handoff is admitted by this checkpoint.
 
 ---

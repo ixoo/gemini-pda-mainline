@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "status": "validated; all work paused by owner; no further device attempt",
+  "source_commit": "c37baf061bad2101653bcef19a5e5fdcc0632b27",
+  "linux_clean_pushed_input": true,
+  "linux_tests": 10,
+  "linux_skipped": 0,
+  "linux_log_sha256": "6d37a15c2945d82edf91f1a20d171cd35a7429dc48931c0cd0ecff616ecd3870",
+  "launcher_sha256": "022ed6dab641141d1aff5bf3b2b7051eca46b3f8e630ed335b70bc9934a095eb",
+  "tests_sha256": "a2970db678e8319b25750d16b03b21bc2d1b635afafaed2108f3fef1d1e81336",
+  "original_host_proof_sha256": "85333866812c678302b8b6a7394a42fef532bad7533b2ac4c5e18299831b4b09",
+  "coverage": [
+    "actual retained collector opens prepared directory and runs a local child",
+    "any local identity error prevents capture and session",
+    "wrong notes/kernel/cold admission prevents bootstrap",
+    "fresh boot replaces stale helper boot before capture",
+    "capture and session each execute at most once",
+    "capture refusal enters original failure session once",
+    "capture boot change holds before session",
+    "consumed controller claim cannot be reused",
+    "whole-second 50.99 boundary preserved; 51.00 refused"
+  ],
+  "local_actual_constructor_fixture": "pass; historical copied receipt fixture only, no transport or live readiness",
+  "local_constructor_log_sha256": "6b438ddbdcbdf25fb72b6919c0c1bfb2ba659ee9a03aeb372d9f7f081de52a9f",
+  "unchanged_kernel_notes_sha256": "b0213c37e6080b8b334f73842ca3162390cdfeecb29d8eb93bd41d2c2bf9b160",
+  "new_kernel_build": false,
+  "new_image": false,
+  "further_device_attempt": false,
+  "limits_changed": false,
+  "limitations": [
+    "No network-duration or firmware enforcement claim.",
+    "The original leaf guard remains authoritative after bootstrap; preflight does not guarantee time remains for leaf admission.",
+    "Any later attempt needs a new reviewed handoff and owner physical selection."
+  ],
+  "linux_repository_checks": "pass",
+  "linux_repository_log_sha256": "0fada8fb1d633d4c0584b78ea2a47331f145240461efc733850ab27f6c97116b",
+  "owner_paused": true
+}
