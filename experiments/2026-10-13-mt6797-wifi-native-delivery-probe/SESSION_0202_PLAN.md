@@ -238,6 +238,7 @@ remain in the existing private evidence seal, not public scalars.
 | P1H | `1327a444-77d3-4014-81cb-a436a32cbc3a` | no HIF refusal; 289/289 data TX completed; 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | PASS: exit 0, 243 chunks across 121.090 s; later USB snapshot timed out | eventual stage 3, zero debt, deauth ACK at leaf wall; planned disconnect not attempted; return verified | SSH 121.090 / 120 s PASS; data 298.704 s; full-session FAIL | [one scalars file](results/p1h-runtime-scalars.json) |
 | P1D | `435e780a-3c83-4ccc-b861-20fc29dbcf3c` | PASS; 289/289 data TX, 167 completed PID reuses | bound | initial 3/3; periodic 11/11 | exit 0, 243 chunks / 121.136 s; post-client snapshot 0.602 s | prompt standard disconnect, stage 3, zero debt, deauth ACK; original preservation/return pass | received SSH 121.136 / 120 s PASS; data 127.892 s; admitted full-session PASS | [one scalars file](results/p1d-runtime-scalars.json) |
 | P2 | `34f65daf-241a-4c7a-9b18-1503186e4a07` | PASS; 717/717 data TX, 595 completed PID reuses | bound | initial 3/3; periodic 59/59 | authenticated exit 0, 602 raw chunks; timestamp retention capped at 244, duration NOT PROVEN | eventual whole-ledger stage 3, zero debt, deauth ACK at leaf wall; original sealing/return pass | data 718.184 s; full-session FAIL from host receive retention; helper disconnect guard exit 49 | [one scalars file](results/p2-runtime-scalars.json) |
+| P2E-1 | `83d27b28-e256-4bed-8730-959e352ad79b` | bootstrap PASS; data unmeasured | NOT REACHED | NOT REACHED | NOT REACHED; outer launch lost identity/boot binding | host quiescence, seal, regression and changed-boot return PASS; WLAN stage 3 not reached | no data window; leaf refused start after existing whole-second 50 limit | [one scalars file](results/p2e-runtime-scalars.json) |
 
 D3's SSH process lasted 1.410 seconds with empty stderr. Its numeric ARP read
 was absent before A and complete afterward. The route read returned exit 71,
@@ -2687,3 +2688,37 @@ python3 tests/p2e-wiring-test.py "$GEMINI_SESSION_SOURCE_ROOT"
 The retained helper cohort is checked against the existing source pins. No
 credentials or device connection are used by these fixtures. Execution remains
 paused; no boot2 write, physical handoff or session is pending from this work.
+
+### P2E-1 consumed — outer-launch failure and late-start refusal
+
+The owner subsequently resumed one guarded P2E test. The unchanged P2 image
+was installed with matching full readback and clean shutdown. After the owner's
+boot reply, the custodian attempted an ad hoc launch before its outer controller
+had been validated. Its added identity reader omitted
+the output directory required by the retained collector. Opening stdout failed
+locally before that reader created an SSH process. The outer shell lacked
+fail-fast handling and continued to capture, then could not propagate the
+missing boot ID to the SSH helper. This was an orchestration error; the tested
+P2E timestamp reader was never exercised on the device.
+
+The original capture independently verified boot
+`83d27b28-e256-4bed-8730-959e352ad79b` and completed WMT/START. The leaf's
+existing whole-second start guard then refused with
+`stage=host_budget reason=late_start`, exit 1. This establishes start after
+50 whole seconds; the exact rejected uptime was not retained. Scan, WPA2,
+DHCP, pings, SSH and protected data were not reached. No driver data failure,
+key installation or healthy WLAN cleanup stage 3 is inferred.
+
+The existing failure session finished before any manual abort was issued.
+Host quiescence, regression, all 61 pre-recovery seal entries and the complete
+1,978-record log verified. The original reviewed return and a separate bounded
+authenticated check confirmed changed-boot Gemian. No retry or second recovery
+ran. [One scalars file](results/p2e-runtime-scalars.json) records the separate
+verdicts; original capture/session evidence remains unchanged.
+
+Before proposing another admission, replace the ad hoc command sequence with
+`laptop-run-ccmp-p2e.py`: prepare identity output before acquisition, stop on
+every local or identity failure, propagate the freshly verified boot before
+bootstrap, and preserve the original one-capture/one-session failure path.
+Keep the existing cold-start guard, all other limits and the kernel unchanged.
+A new physical selection requires a completed, tested launcher handoff first.

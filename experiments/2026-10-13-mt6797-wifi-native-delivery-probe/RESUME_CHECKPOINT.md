@@ -1,4 +1,28 @@
-## Latest: P2E host-only preparation — device execution paused
+## Latest: P2E-1 consumed — host launch failure, return confirmed
+
+[One result row and analysis](SESSION_0202_PLAN.md#p2e-1-consumed--outer-launch-failure-and-late-start-refusal)
+and [scalars](results/p2e-runtime-scalars.json) record the admitted attempt.
+The added identity reader failed locally on a missing output directory; the
+outer shell continued instead of failing closed. Bootstrap completed under the
+capture's independent identity checks, but the leaf refused its existing
+whole-second start limit before scan or any protected lifetime. SSH was never
+reached. This is a host result, not evidence against the driver or a P2E pass.
+
+All 61 seal entries, 1,978 contiguous log records, host quiescence and regression
+verified before the original reviewed return. A separate authenticated check
+confirmed changed-boot Gemian. No manual abort, retry or second recovery ran.
+
+`laptop-run-ccmp-p2e.py` now replaces the ad hoc launch: create the identity
+output first, fail closed on any acquisition/identity error, pass only the
+fresh boot ID to the helper before bootstrap, and invoke the original failure
+session once if capture refuses. It retains the original whole-second <=50
+guard and every transport/data deadline. Local launcher tests and an actual
+offline constructor fixture pass; clean Linux launcher validation is pending.
+No new device attempt or physical handoff is admitted by this checkpoint.
+
+---
+
+## Earlier: P2E host-only preparation — before device admission
 
 The owner authorized the separate [P2E evidence successor](SESSION_0202_PLAN.md#p2e-host-evidence-successor--preparation-admitted-execution-held).
 Its reader retains all 602 planned arrival timestamps plus one excess-arrival

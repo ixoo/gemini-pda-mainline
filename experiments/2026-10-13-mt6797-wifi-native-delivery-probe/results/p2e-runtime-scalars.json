@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "run": "P2E-1",
+  "boot_id": "83d27b28-e256-4bed-8730-959e352ad79b",
+  "classification": "host-launch failure; ten-minute and protected-data gates not reached",
+  "first_local_failure": "identity output directory missing; collector file open failed before SSH process creation",
+  "outer_launch_failed_closed": false,
+  "live_identity_record_written": false,
+  "extra_notes_preflight_verified": false,
+  "capture": {
+    "attempts": 1,
+    "bootstrap_pass": true,
+    "firmware_start_request_sent": true,
+    "start_exit": 0,
+    "live_boot_from_capture": true
+  },
+  "leaf": {
+    "exit": 1,
+    "elapsed_seconds": 0.224,
+    "first_refusal": "host_budget late_start",
+    "existing_max_start_whole_seconds": 50,
+    "observed_start_whole_seconds_greater_than": 50,
+    "exact_rejected_uptime": null,
+    "stderr_bytes": 89
+  },
+  "network": {
+    "scan_admitted": false,
+    "wpa2_reached": false,
+    "dhcp_reached": false,
+    "pings_reached": false,
+    "ssh_reached": false,
+    "ssh_helper_boot_binding_available": false,
+    "ten_minute_ssh_proven": false
+  },
+  "cleanup": {
+    "healthy_wlan_stage3_reached": false,
+    "station_keys_installed": false,
+    "host_quiescence_pass": true,
+    "host_regression_pass": true,
+    "preservation_pass": true,
+    "sealed_entries_verified": 61,
+    "log_records": 1978,
+    "log_bytes": 146516,
+    "log_sha256": "1c656da7904084fb317bc574b41e48d18d85ff00cc2997f8b490b21f75cd17c0",
+    "seal_manifest_sha256": "bbc5070d3b2854689d11c8e8b9ada97c3e955961a017994af5c089adceed49a8",
+    "native_recovery_requested_once": true,
+    "original_return_confirmed": true,
+    "returned_gemian_boot": "0d88c2d5-b21e-47fe-bf39-c95e896f724a",
+    "independent_gemian_identity_confirmed": true
+  },
+  "manual_abort_performed": false,
+  "retry_performed": false,
+  "kernel_unchanged": true,
+  "duration_ms": null,
+  "source_input": "2bc037c6f74f2ae11ddea349416b19ad4cc37357",
+  "controller_was_ad_hoc": true,
+  "successor_requirement": "Fail-closed preprepared launcher with output-directory creation, fresh boot propagation and no bootstrap on any identity failure."
+}
