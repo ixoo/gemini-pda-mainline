@@ -2667,3 +2667,23 @@ They retain the existing P2 candidate receipt, kernel input `71c4b4a` and leaf;
 only the helper evidence path and fresh host namespaces differ. No image is
 composed by this preparation. All original P2 source identities are checked
 before the fixed derivations; unknown source or anchor changes refuse.
+
+[Host validation](results/p2e-host-validation.json) on clean pushed input
+`e59f9370` passed 31 Linux client tests with no skips and the source-routing and
+parent-custody fixtures. The real reader reproduces P2's old 244-entry cap,
+then retains the corrected 602-arrival stream, fragmented input, a bounded
+excess-arrival sentinel and partial timeout output. The generated disconnect
+script preserves exact normal/abort boundaries, records refusal offsets and
+never invokes the mocked CLI outside those bounds. Repository checks passed
+locally and on Linux. These tests add no device observation or acceptance claim.
+
+From this experiment directory, reproduce the host checks on Linux with:
+
+```sh
+python3 tests/p2e-client-test.py
+python3 tests/p2e-wiring-test.py "$GEMINI_SESSION_SOURCE_ROOT"
+```
+
+The retained helper cohort is checked against the existing source pins. No
+credentials or device connection are used by these fixtures. Execution remains
+paused; no boot2 write, physical handoff or session is pending from this work.

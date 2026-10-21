@@ -8,13 +8,21 @@ remain intact. P2E uses fresh `capture-ccmp-p2e` and `session-ccmp-p2e` paths,
 the unchanged P2 image/leaf/classifier, and the existing custody and recovery
 contracts. No new kernel, installation or device run is admitted.
 
-Local reader/client tests pass, including real pipes exceeding the old
-244-entry cap, fragmentation, excess arrivals and partial timeout retention.
-Actual generated guard/PTY cases still require the clean Linux check. Routing
-fixtures select the exact new helper, keep both 900-second log decoders and
-preserve refusal on unknown local/remote owners. Linux verification and the
-final source checkpoint remain pending; this is preparation, not a hardware
-pass. Do not reuse an earlier boot selection or start a P2E session.
+[Validation](results/p2e-host-validation.json) on clean pushed input `e59f9370`
+passed all 31 client tests on Linux with no skips, including real pipes beyond
+244 arrivals, all 602 planned timestamps, fragmentation, excess arrivals,
+partial timeout retention, PTY custody and eight actual generated guard-boundary
+subcases. The original reader's 244-entry defect reproduces independently.
+Routing/custody fixtures select the exact new helper, keep both 900-second log
+decoders and preserve refusal on unknown local/remote owners. Repository checks
+passed locally and on the clean Linux checkout.
+
+This is host preparation, not a hardware pass or a live handoff. No kernel or
+image was rebuilt, no installation or device operation ran, and no P2E runtime
+receipt exists. A later execution needs its own admission, current device
+identity, guarded installation/readback of the unchanged P2 image, real receipt
+preparation and owner physical boot selection. Do not reuse an earlier boot
+selection or start a P2E session while execution is paused.
 
 Key reuse, rekey and protected reconnect remain disabled pending the separate
 firmware queued-RX/key-retirement barrier. The ten-minute gate is still unproven.

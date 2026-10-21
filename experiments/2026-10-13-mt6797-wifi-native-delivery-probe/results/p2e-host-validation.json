@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "status": "host-only-preparation-validated; device execution paused",
+  "input_commit": "e59f9370cb6140d551acadc8fa4e29e01984c5cb",
+  "kernel_unchanged": true,
+  "kernel_build_commit": "71c4b4a818b5eef6330e0ca844407574941a017c",
+  "existing_p2_boot2_sha256": "2f9f83dcf2b950ef9efa1b079fe08f46790a1081f6d9546106cf13f8e0e774a5",
+  "new_kernel_build": false,
+  "new_image_composition": false,
+  "installation_performed": false,
+  "live_device_preparation": false,
+  "device_execution_admitted": false,
+  "device_operations_performed": false,
+  "ten_minute_ssh_proven": false,
+  "key_reuse_enabled": false,
+  "rekey_enabled": false,
+  "reconnect_enabled": false,
+  "receive_timestamps": {
+    "planned": 602,
+    "retained_cap": 603,
+    "raw_output_byte_limit_unchanged": 65536,
+    "required_span_ns_unchanged": 600000000000,
+    "maximum_gap_ns_unchanged": 3000000000
+  },
+  "disconnect_bounds_ns_unchanged": {
+    "normal": [
+      604000000000,
+      608000000000
+    ],
+    "abort": [
+      6000000000,
+      608000000000
+    ]
+  },
+  "evidence_roots": {
+    "capture": "capture-ccmp-p2e",
+    "session": "session-ccmp-p2e"
+  },
+  "linux_validation": {
+    "platform": "Linux x86_64",
+    "python": "3.11.2",
+    "clean_pushed_input": true,
+    "client_tests": 31,
+    "skipped": 0,
+    "source_routing_and_custody_fixtures": 2,
+    "actual_generated_guard_boundary_subcases": 8,
+    "actual_local_child_reader_exercised": true,
+    "consumed_reader_244_entry_failure_reproduced": true,
+    "validation_log_sha256": "4ef7508dd4366212bb861e4b17c1b1aacb335f6b21ce27e8e99bfd1bf1948bc1",
+    "repository_checks": "pass",
+    "repository_log_sha256": "5bde79626e68e88bb40b48d95815312d9ee977374fe66ae4525d4d966865372b"
+  },
+  "source_sha256": {
+    "p2-evidence-successor.py": "ef37f9b90b9d2e8f7db2ab6cbd34ac9663bc120b2b472fd71eb5322cc8a29265",
+    "laptop-wifi-ssh-connected-p2e.py": "ebd787c573c9434fc1848487bee30d24df1b5702b4847aae26a9a9e44e4f7a8e",
+    "passive-host-ccmp-p2e.py": "7aa626821de480e311ef92e61abd5a37703fe81dfbf7f6f19d248989d30bbe34",
+    "laptop-session-ccmp-p2e.py": "5fb70ad6eccabca5e012818404e47a4c681a45a414c2d79c6e1cf062a1928793",
+    "laptop-capture-ccmp-p2e.py": "af54d2062181fe5b029b6c62fa61f0875ba06bddd3468c22ca511d414fbc62df",
+    "prepare-ccmp-p2e.py": "b2467985dd72dd636bb107159ffea4abe59d1ec9853d33de608929601463bb7e",
+    "tests/p2e-client-test.py": "f2ef77c4b09d07ca39d64bde64e567c78f1ba0c0c4b1a2cae3a05cd15ca860b3",
+    "tests/p2e-wiring-test.py": "cd862b4931ba25c442b356c116347ad1743c526ecc06eeb45202a671a922b9fb"
+  },
+  "consumed_p2_source_sha256": {
+    "laptop-capture-ccmp-p2.py": "22df3dceee3b50c278f6bf68805f805379a37067228a1d64fa6618d1cdb8a878",
+    "laptop-session-ccmp-p2.py": "3c89d332087c73c35c8c157f17628a0ffa44238f8159e9e75b13942e00496eb5",
+    "laptop-wifi-ssh-connected-p2.py": "5d25538b7a13f8809fe6a2e87fee4f3772a5d3a658625135b7a194299ea828ef",
+    "laptop-wifi-ssh-connected.py": "31b65043570988dc3f9d06cd3269cd98e9c8015d48f45bc6fa838c7b20d4b3bf",
+    "passive-host-ccmp-p2.py": "2965249eeaa61fb460761db39c709c03ae92bd17d5da97d734c940242634e471",
+    "prepare-ccmp-p2.py": "a67e17b2818fb58821d674e71a963f0187f551ece62bd39108818de44844c15c",
+    "ten-minute-envelope.py": "dbafdb83b95edf261a99fe118cabe1cbdf799d9e4a949cdcd1f809691d27da62"
+  },
+  "limitations": [
+    "Host fixtures establish acquisition, parsing, bounds and custody only.",
+    "No new device observation or acceptance result.",
+    "Protected reconnect still requires firmware queued-RX and key retirement evidence."
+  ]
+}
