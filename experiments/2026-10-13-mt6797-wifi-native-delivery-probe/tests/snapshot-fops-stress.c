@@ -106,7 +106,7 @@ static void inspect(void *owner,struct mt6797_snapshot_readiness *r){
  assert(owner_alive);inspections++;
  *r=(struct mt6797_snapshot_readiness){.ready=probe_ok,.epoch_enabled=true,
  .configured=probe_ok,.running=true,.data_active=true,.associated=true,
- .ptk_present=true,.gtk_present=true,.mac_state=2};
+ .ptk_present=true,.gtk_present=true,.window_open=true,.mac_state=2};
 }
 static int step(void *o,u32 a,unsigned int ordinal,u64 deadline,struct mt6797_snapshot_word *w){w->value=ordinal+0x100;w->valid=true;return 0;}
 static const struct mt6797_snapshot_range ranges[]={{0x1000,4}};
