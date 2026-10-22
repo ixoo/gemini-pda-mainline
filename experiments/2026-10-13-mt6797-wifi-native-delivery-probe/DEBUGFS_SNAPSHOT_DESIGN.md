@@ -31,6 +31,8 @@ A set is frozen when a read starts. Every set must contain 1–2,048 aligned
 preserved. A concurrent snapshot is refused; a selector change during a running
 snapshot is refused. A successful later read receives a new generation. Open
 readers keep immutable, reference-counted results after a later selection/read.
+Admission refusals are returned as syscall errors and do not replace an active
+or previously retained result; status identifies its own generation.
 
 The binary contains only the successfully completed query prefix, at most
 8,192 bytes. Status is authoritative: a partial read can return bytes while
@@ -61,7 +63,10 @@ buffers/context alive until the last file is released.
 
 The debugfs thread never holds MAC, RTNL or HIF locks while waiting. The short
 snapshot mutex protects admission, status and result publication only. It is
-released before calling a backend. The ready predicate is memory-only, and the
+released before calling a backend. Request allocation/reclaim occurs outside
+that mutex too. Normal close and the shared terminal path fence the running
+state before terminating snapshots, so a racing admission is rejected or caught
+by the stop hook before worker cancellation. The ready predicate is memory-only, and the
 kick callback schedules work without acquiring a driver lock.
 
 The existing MAC worker services ordinary TX, RX and control/link-loss handling
@@ -108,3 +113,15 @@ rejected ordinals. Source-wiring checks cover default-off admission, lack of a
 binary write method, per-reader retention and backend calls outside the snapshot
 mutex. Kernel compilation and filesystem/concurrency behavior are separate
 checks; no device test is implied by host fixtures.
+
+## Current review evidence
+
+[Validation record](results/debugfs-snapshot-validation.json): the exact public
+input `c78cb892` compiled and its package validated/fetched on Buildbox. Linux
+set-policy/source-wiring and repository checks passed. The first compile exposed
+the removed `no_llseek` symbol; the corrected null seek handler is paired with
+`nonseekable_open`. Strict checkpatch reports zero errors, three warnings and twelve
+style checks; style cleanup is outstanding before upstream submission.
+
+The filesystem lifetime/concurrency paths have been source-reviewed, not run in
+a test kernel. Device execution and installation remain held for design review.

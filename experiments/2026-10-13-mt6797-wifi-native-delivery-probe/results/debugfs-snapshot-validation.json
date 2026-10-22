@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "design review draft; device execution held",
+  "public_source_commit": "c78cb8926115b1e4ebf44a23a749b5abf4e5b82f",
+  "profile": "mt6797-a53-wifi-snapshot-compile",
+  "linux_kernel_compile": "pass",
+  "validated_package_inventory_sha256": "471fa71ed11444d0e3762ef9414f457d04fc2989275e7e83ad995b7160695ec7",
+  "package_fetch_validation": "pass",
+  "linux_repository_checks": "pass",
+  "actual_set_policy_and_source_wiring": "pass",
+  "maximum_words": 2048,
+  "snapshot_timeout_ms": 60000,
+  "public_sets": 0,
+  "public_wire_backend": false,
+  "module_parameter_default": false,
+  "module_parameter_runtime_writable": false,
+  "runtime_gate_default": false,
+  "permissions": "root files plus CAP_SYS_RAWIO",
+  "binary_write_method": false,
+  "userspace_address_offset_length_mode_arguments": false,
+  "immutable_result_per_open": true,
+  "device_experiment": false,
+  "candidate_composed": false,
+  "installed": false,
+  "kernel_filesystem_concurrency_runtime_tested": false,
+  "checkpatch": {
+    "errors": 0,
+    "warnings": 3,
+    "checks": 12,
+    "notes": "style findings retained for review; not an upstream-ready submission"
+  },
+  "logs": {
+    "public-review-checks.log": "d21b14355bf8339abb28186291db4554b75af48f8aad418dc0ca132adaf60828",
+    "public-review-checkpatch.log": "f2d0944c5b0707439666582c0b26be2921c32aabd97dc14d13fb12ab525978ff",
+    "public-build-review.log": "5b8b18d7297b254bbd91b8a9218e237fb1181cf0f00a3f46344a4e42be31b738",
+    "public-fetch-review.log": "d517406ffc727d98802df1026170f8b4069dca6a2db2c5a0a475757f44079247"
+  },
+  "limitations": [
+    "Host policy/wiring checks and compilation do not establish a firmware transport contract.",
+    "No running-kernel VFS race, cancellation or removal test has been performed.",
+    "The connected device experiment remains held until design review."
+  ],
+  "compiled_public_patch_sha256": "7b29284559c43139adb1fc1821918d9110b74e53605061f1035084e1a7654bc4",
+  "review_public_patch_sha256": "7b29284559c43139adb1fc1821918d9110b74e53605061f1035084e1a7654bc4",
+  "compiled_and_review_code_hunks_sha256": "f2115160e005d49626d6b6613209b25949164ff42deba290b0c7dbe5f7ef12e6",
+  "post_compile_change": "documentation and validation record only"
+}
