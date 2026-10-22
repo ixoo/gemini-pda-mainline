@@ -1,0 +1,4 @@
+# Compile-only snapshot mechanism; module parameter remains off.
+CONFIG_DEBUG_FS=y
+CONFIG_CFG80211_DEBUGFS=y
+CONFIG_LOCALVERSION="-gemini-a53-wifi-snapshot-compile"
