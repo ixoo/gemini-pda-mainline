@@ -125,3 +125,19 @@ style checks; style cleanup is outstanding before upstream submission.
 
 The filesystem lifetime/concurrency paths have been source-reviewed, not run in
 a test kernel. Device execution and installation remain held for design review.
+
+## Pre-install concurrency follow-up
+
+The actual snapshot.c file operations now have a focused pthread service-shim
+stress test, `tests/snapshot-fops-stress.py SOURCE`. It exercises a gate-on
+concurrent reader (EBUSY), signal interruption and release of the waiting reader,
+open/close without reading during acquisition, generation retention, subsequent
+gate-off retrieval, and owner removal with an open reader. ASAN/UBSAN passed100
+rounds on Linux. No production code or policy changed for this test.
+
+This does not run mounted debugfs or a real SIGKILL/exit_files path. Debugfs,
+uaccess, capability and timer services are simulated; mutexes, waits and signals
+are concurrent host primitives. That requested operating-kernel filesystem
+corner remains unverified. The available build container cannot load a module
+or mount a debugfs test instance. No device experiment or installation was used
+to work around the missing host coverage. Existing checkpatch style notes remain.
