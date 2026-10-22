@@ -32,7 +32,8 @@ assert tick.index('mutex_unlock(&s->lock);\n\t/* Never hold') < tick.index('ops-
 assert 'if (!r->terminal)' in tick
 assert 'gate = gate' in core and 's->poisoned = false' not in core
 assert 'f->result = s->last;' in core and 'kref_get(&f->result->ref)' in core
-assert 'mt6797_snapshot_disable(mac->snapshot);\n\tcancel_delayed_work_sync' in mac
+shutdown = mac.split('static void mt6797_mac_snapshot_shutdown(', 1)[1].split('#endif', 1)[0]
+assert shutdown.index('mt6797_snapshot_disable(') < shutdown.index('mac->join_running = false') < shutdown.index('cancel_delayed_work_sync(')
 work = mac.split('static void mt6797_mac_join_work(', 1)[1].split('static ', 1)[0]
 assert work.index('for (n = 0; n < 8; n++)') < work.index('mt6797_snapshot_tick(mac->snapshot)')
 assert 'snapshot_delay = mt6797_snapshot_active' in work

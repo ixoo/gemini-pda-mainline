@@ -1,4 +1,4 @@
-From 155a57397525079967fea17a222f3c7ce2f51032 Mon Sep 17 00:00:00 2001
+From ae728f6e654947faf877e889bb1eab40f6e744be Mon Sep 17 00:00:00 2001
 From: Gemini experiment <experiment@invalid>
 Date: Wed, 21 Oct 2026 20:07:35 -0400
 Subject: [PATCH] wifi: add a gated fixed-set debugfs snapshot mechanism
@@ -8,11 +8,11 @@ addresses, wire encoder, setter or boot-time trigger are included.
 This experiment is non-certifying and not submission-ready.
 ---
  drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
- drivers/net/wireless/mediatek/mt6797/mac.c    |  81 ++-
- .../wireless/mediatek/mt6797/snapshot-sets.h  |  58 +++
- .../net/wireless/mediatek/mt6797/snapshot.c   | 485 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  88 +++-
+ .../wireless/mediatek/mt6797/snapshot-sets.h  |  58 ++
+ .../net/wireless/mediatek/mt6797/snapshot.c   | 498 ++++++++++++++++++
  .../net/wireless/mediatek/mt6797/snapshot.h   |  51 ++
- 5 files changed, 673 insertions(+), 3 deletions(-)
+ 5 files changed, 693 insertions(+), 3 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot-sets.h
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot.c
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot.h
@@ -27,7 +27,7 @@ index 497d0ae..25cbb25 100644
  obj-$(CONFIG_MT6797_MAC80211) += mac.o
 +obj-$(CONFIG_MT6797_MAC80211) += snapshot.o
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index e0465dd..204088a 100644
+index e0465dd..9e086c6 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -1,6 +1,7 @@
@@ -65,7 +65,7 @@ index e0465dd..204088a 100644
  	/* Order: RTNL -> this mutex -> HIF mutex. No CONSYS callback here. */
  	struct mutex mutex;
  	struct ieee80211_supported_band band, band_5g;
-@@ -351,6 +358,52 @@ struct mt6797_mac {
+@@ -351,6 +358,57 @@ struct mt6797_mac {
  #endif
  };
  
@@ -103,13 +103,18 @@ index e0465dd..204088a 100644
 +static void mt6797_mac_snapshot_shutdown(void *owner)
 +{
 +	struct mt6797_mac *mac = owner;
++	unsigned long flags;
 +
-+	/* Close admission before cancelling the worker; no late kick can race. */
++	/* Close admission and fence self-rearming before cancelling the worker. */
 +	mt6797_snapshot_disable(mac->snapshot);
-+	cancel_delayed_work_sync(&mac->join_work);
 +	mutex_lock(&mac->mutex);
++	mac->closing = true;
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
 +	mt6797_snapshot_fail(mac->snapshot, -ENODEV);
 +	mutex_unlock(&mac->mutex);
++	cancel_delayed_work_sync(&mac->join_work);
 +	mt6797_snapshot_unregister(mac->snapshot);
 +	mac->snapshot = NULL;
 +}
@@ -118,7 +123,7 @@ index e0465dd..204088a 100644
  #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
  /* Mutex held; selection already owns the skb but has not submitted it. */
  static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved)
-@@ -1477,6 +1530,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+@@ -1477,6 +1535,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
  	 * rendezvous is the only admitted reset route and never reaches here.
  	 */
  	mutex_lock(&mac->mutex);
@@ -126,7 +131,7 @@ index e0465dd..204088a 100644
  	mac->join_retired = true;
  #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
  	if (ccmp_stable_epoch)
-@@ -2823,7 +2877,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -2823,7 +2882,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	struct mt6797_scan_frame beacon;
  	struct sk_buff_head received, discard;
  	struct sk_buff *skb, *completed = NULL, *internal = NULL;
@@ -135,7 +140,7 @@ index e0465dd..204088a 100644
  	unsigned int n, port, pages;
  	u64 now, deadline, grant_end;
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
-@@ -2909,8 +2963,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -2909,8 +2968,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	running = mac->join_running;
  	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
@@ -147,7 +152,7 @@ index e0465dd..204088a 100644
  	now = ktime_get_ns();
  	branch = 1;
  #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
-@@ -3910,6 +3966,9 @@ management_frame:
+@@ -3910,6 +3971,9 @@ management_frame:
  		if (!got)
  			break;
  	}
@@ -157,7 +162,7 @@ index e0465dd..204088a 100644
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  	branch = 8;
  	ret = mt6797_mac_join_cleanup_step(mac);
-@@ -3935,12 +3994,15 @@ management_frame:
+@@ -3935,12 +3999,15 @@ management_frame:
  		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
  	}
  #endif
@@ -174,7 +179,7 @@ index e0465dd..204088a 100644
  	ret = mt6797_mac_join_fail_stop(mac, ret, branch, &discard, &internal);
  unlock:
  	mutex_unlock(&mac->mutex);
-@@ -5788,6 +5850,19 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+@@ -5788,6 +5855,21 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
  		ieee80211_unregister_hw(hw);
  		goto free_hw;
  	}
@@ -187,8 +192,10 @@ index e0465dd..204088a 100644
 +		mac->snapshot = NULL;
 +	} else if (mac->snapshot) {
 +		ret = devm_add_action_or_reset(dev, mt6797_mac_snapshot_shutdown, mac);
-+		if (ret)
-+			dev_warn(dev, "snapshot lifetime registration failed: %d\n", ret);
++		if (ret) {
++			ieee80211_unregister_hw(hw);
++			goto free_hw;
++		}
 +	}
 +#endif
  	*out = hw;
@@ -260,10 +267,10 @@ index 0000000..40eda73
 +#endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
 new file mode 100644
-index 0000000..3429061
+index 0000000..f6a14ce
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
-@@ -0,0 +1,485 @@
+@@ -0,0 +1,498 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* Bounded fixed-set snapshots. This file contains no firmware protocol. */
 +#include <linux/capability.h>
@@ -614,6 +621,7 @@ index 0000000..3429061
 +			const struct mt6797_snapshot_ops *ops, void *owner, bool enabled)
 +{
 +	struct mt6797_snapshot *s;
++	struct dentry *entry;
 +	unsigned int i;
 +
 +	if (!enabled || IS_ERR_OR_NULL(parent) || !ops || !ops->ready || !ops->step)
@@ -637,11 +645,23 @@ index 0000000..3429061
 +		kref_put(&s->ref, mt6797_snapshot_free);
 +		return NULL;
 +	}
-+	debugfs_create_file("gate", 0600, s->dir, s, &mt6797_snapshot_control_ops);
-+	debugfs_create_file("set", 0600, s->dir, s, &mt6797_snapshot_control_ops);
-+	debugfs_create_file("snapshot", 0400, s->dir, s, &mt6797_snapshot_data_ops);
-+	debugfs_create_file("status", 0400, s->dir, s, &mt6797_snapshot_status_ops);
++	entry = debugfs_create_file("set", 0600, s->dir, s, &mt6797_snapshot_control_ops);
++	if (IS_ERR_OR_NULL(entry))
++		goto fail;
++	entry = debugfs_create_file("snapshot", 0400, s->dir, s, &mt6797_snapshot_data_ops);
++	if (IS_ERR_OR_NULL(entry))
++		goto fail;
++	entry = debugfs_create_file("status", 0400, s->dir, s, &mt6797_snapshot_status_ops);
++	if (IS_ERR_OR_NULL(entry))
++		goto fail;
++	/* Gate publication is last. No read can start during partial creation. */
++	entry = debugfs_create_file("gate", 0600, s->dir, s, &mt6797_snapshot_control_ops);
++	if (IS_ERR_OR_NULL(entry))
++		goto fail;
 +	return s;
++fail:
++	mt6797_snapshot_unregister(s);
++	return ERR_PTR(-ENOMEM);
 +}
 +
 +int mt6797_snapshot_tick(struct mt6797_snapshot *s)
