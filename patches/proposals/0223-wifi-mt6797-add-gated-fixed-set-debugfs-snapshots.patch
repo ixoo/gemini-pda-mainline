@@ -1,18 +1,30 @@
-From ae728f6e654947faf877e889bb1eab40f6e744be Mon Sep 17 00:00:00 2001
+From fc4ae0effd203e87d857ad4bd76eeb08e2461f59 Mon Sep 17 00:00:00 2001
 From: Gemini experiment <experiment@invalid>
 Date: Wed, 21 Oct 2026 20:07:35 -0400
 Subject: [PATCH] wifi: add a gated fixed-set debugfs snapshot mechanism
 
 Default-off diagnostic mechanism with an empty provider. No firmware
 addresses, wire encoder, setter or boot-time trigger are included.
+
+Security boundary:
+- Populated providers must compile the read-mode byte to literal zero
+  and offer no setter or write-value operation. None ships here.
+- Userspace selects only a compiled name, never an address, offset,
+  firmware length or mode. The public set table is empty.
+- The immutable module parameter and runtime gate both default off.
+  Without the parameter, registration creates no interface.
+- Firmware configuration must precede admission. The data file has no
+  write or seek method; only root with CAP_SYS_RAWIO can read it.
+
 This experiment is non-certifying and not submission-ready.
+
 ---
  drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
- drivers/net/wireless/mediatek/mt6797/mac.c    |  88 +++-
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  88 ++-
  .../wireless/mediatek/mt6797/snapshot-sets.h  |  58 ++
- .../net/wireless/mediatek/mt6797/snapshot.c   | 498 ++++++++++++++++++
+ .../net/wireless/mediatek/mt6797/snapshot.c   | 499 ++++++++++++++++++
  .../net/wireless/mediatek/mt6797/snapshot.h   |  51 ++
- 5 files changed, 693 insertions(+), 3 deletions(-)
+ 5 files changed, 694 insertions(+), 3 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot-sets.h
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot.c
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot.h
@@ -27,7 +39,7 @@ index 497d0ae..25cbb25 100644
  obj-$(CONFIG_MT6797_MAC80211) += mac.o
 +obj-$(CONFIG_MT6797_MAC80211) += snapshot.o
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index e0465dd..9e086c6 100644
+index e0465dd..929f5a9 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -1,6 +1,7 @@
@@ -123,15 +135,23 @@ index e0465dd..9e086c6 100644
  #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
  /* Mutex held; selection already owns the skb but has not submitted it. */
  static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved)
-@@ -1477,6 +1535,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
- 	 * rendezvous is the only admitted reset route and never reaches here.
- 	 */
- 	mutex_lock(&mac->mutex);
+@@ -1488,6 +1546,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
 +	mt6797_snapshot_fail(mac->snapshot, -ENETDOWN);
- 	mac->join_retired = true;
- #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
- 	if (ccmp_stable_epoch)
-@@ -2823,7 +2882,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	mutex_unlock(&mac->mutex);
+ 	/* Neither this mutex nor the queue lock may be held while cancelling. */
+ 	cancel_delayed_work_sync(&mac->join_work);
+@@ -2711,6 +2770,7 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	skb_queue_splice_init(&mac->join_queue, discard);
+ 	mac->join_queue_bytes = 0;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	mt6797_snapshot_fail(mac->snapshot, ret);
+ 	if (mac->join_inflight) {
+ 		__skb_queue_tail(discard, mac->join_inflight);
+ 		mac->join_inflight = NULL;
+@@ -2823,7 +2883,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	struct mt6797_scan_frame beacon;
  	struct sk_buff_head received, discard;
  	struct sk_buff *skb, *completed = NULL, *internal = NULL;
@@ -140,7 +160,7 @@ index e0465dd..9e086c6 100644
  	unsigned int n, port, pages;
  	u64 now, deadline, grant_end;
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
-@@ -2909,8 +2968,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -2909,8 +2969,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	running = mac->join_running;
  	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
@@ -152,7 +172,7 @@ index e0465dd..9e086c6 100644
  	now = ktime_get_ns();
  	branch = 1;
  #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
-@@ -3910,6 +3971,9 @@ management_frame:
+@@ -3910,6 +3972,9 @@ management_frame:
  		if (!got)
  			break;
  	}
@@ -162,7 +182,7 @@ index e0465dd..9e086c6 100644
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
  	branch = 8;
  	ret = mt6797_mac_join_cleanup_step(mac);
-@@ -3935,12 +3999,15 @@ management_frame:
+@@ -3935,9 +4000,11 @@ management_frame:
  		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
  	}
  #endif
@@ -175,10 +195,6 @@ index e0465dd..9e086c6 100644
  	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
  	goto unlock;
  failed:
-+	mt6797_snapshot_fail(mac->snapshot, ret);
- 	ret = mt6797_mac_join_fail_stop(mac, ret, branch, &discard, &internal);
- unlock:
- 	mutex_unlock(&mac->mutex);
 @@ -5788,6 +5855,21 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
  		ieee80211_unregister_hw(hw);
  		goto free_hw;
@@ -267,10 +283,10 @@ index 0000000..40eda73
 +#endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
 new file mode 100644
-index 0000000..f6a14ce
+index 0000000..5badff6
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
-@@ -0,0 +1,498 @@
+@@ -0,0 +1,499 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* Bounded fixed-set snapshots. This file contains no firmware protocol. */
 +#include <linux/capability.h>
@@ -494,6 +510,10 @@ index 0000000..f6a14ce
 +	struct mt6797_snapshot_result *r;
 +	int ret;
 +
++	/* Allocation may reclaim; keep it outside every shared driver lock. */
++	r = kzalloc(sizeof(*r), GFP_KERNEL_ACCOUNT);
++	if (!r)
++		return -ENOMEM;
 +	mutex_lock(&s->lock);
 +	if (s->dying) {
 +		ret = -ENODEV;
@@ -528,11 +548,6 @@ index 0000000..f6a14ce
 +		ret = -EOVERFLOW;
 +		goto out;
 +	}
-+	r = kzalloc(sizeof(*r), GFP_KERNEL_ACCOUNT);
-+	if (!r) {
-+		ret = -ENOMEM;
-+		goto out;
-+	}
 +	kref_init(&r->ref);
 +	init_completion(&r->done);
 +	r->set = &s->ops->sets[s->selected];
@@ -550,8 +565,10 @@ index 0000000..f6a14ce
 +	if (s->ops->kick)
 +		s->ops->kick(s->owner);
 +	ret = 0;
++	r = NULL; /* References transferred to the context and this file. */
 +out:
 +	mutex_unlock(&s->lock);
++	kfree_sensitive(r);
 +	return ret;
 +}
 +

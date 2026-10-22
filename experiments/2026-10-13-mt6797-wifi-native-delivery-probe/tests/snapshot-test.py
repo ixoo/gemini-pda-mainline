@@ -39,3 +39,10 @@ assert work.index('for (n = 0; n < 8; n++)') < work.index('mt6797_snapshot_tick(
 assert 'snapshot_delay = mt6797_snapshot_active' in work
 assert 'mt6797_hif_' not in core
 print('actual set-policy and safety wiring checks=pass; device_action=none')
+
+start = core.split('static int mt6797_snapshot_start(', 1)[1].split('static ssize_t mt6797_snapshot_read(', 1)[0]
+assert start.index('kzalloc(') < start.index('mutex_lock(&s->lock)')
+close = mac.split('static void mt6797_mac_join_close(', 1)[1].split('static ', 1)[0]
+assert close.index('mac->join_running = false') < close.index('mt6797_snapshot_fail(')
+failed = mac.split('static int mt6797_mac_join_fail_stop(', 2)[2].split('static ', 1)[0]
+assert failed.index('mac->join_running = false') < failed.index('mt6797_snapshot_fail(')
