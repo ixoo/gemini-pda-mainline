@@ -111,6 +111,9 @@ static void inspect(void *owner,struct mt6797_snapshot_readiness *r){
 static int step(void *o,u32 a,unsigned int ordinal,u64 deadline,struct mt6797_snapshot_word *w){w->value=ordinal+0x100;w->valid=true;return 0;}
 static const struct mt6797_snapshot_range ranges[]={{0x1000,4}};
 static const struct mt6797_snapshot_set sets[]={{"test",ranges,1}};
+static int abort_error;
+static struct mt6797_snapshot *settling_snapshot;
+static int settle(void *owner, int error){assert(error==-ETIMEDOUT);assert(settling_snapshot->abort_pending);return abort_error;}
 static const struct mt6797_snapshot_ops ops={.sets=sets,.nsets=1,.ready=ready,.readiness=inspect,.step=step};
 static void open_file(struct mt6797_snapshot *s,struct file *f){struct inode i={.i_private=s};assert(!mt6797_snapshot_data_ops.open(&i,f));}
 static void close_file(struct file *f){assert(!mt6797_snapshot_data_ops.release(NULL,f));}
@@ -161,6 +164,29 @@ int main(void){
   /* Open reader owns immutable result even after owner removal. */
   assert(retained.data[3]==0x103);close_file(&retained.file);
   assert(!atomic_load(&allocations));
+ }
+ /* A collection timeout retains the prefix and waits for backend disposition.
+  * A settled lease allows a later generation; an unresolved lease stays fatal.
+  */
+ for(unsigned int fatal=0;fatal<2;fatal++){
+  owner_alive=probe_ok=true;abort_error=fatal?-EIO:0;
+  struct mt6797_snapshot_ops policy=ops;policy.abort=settle;
+  struct mt6797_snapshot *s=mt6797_snapshot_register(NULL,&fake_entry,&policy,NULL,true);
+  assert(s);settling_snapshot=s;s->gate=true;s->selected=0;
+  struct file f={0};open_file(s,&f);assert(!mt6797_snapshot_start(f.private_data));
+  assert(!mt6797_snapshot_tick(s));assert(s->last->words==1);
+  mutex_lock(&s->lock);mt6797_snapshot_finish(s,-ETIMEDOUT);mutex_unlock(&s->lock);
+  assert(!s->poisoned && s->abort_pending && s->last->terminal);
+  struct file next={0};open_file(s,&next);assert(mt6797_snapshot_start(next.private_data)==-EIO);
+  assert(mt6797_snapshot_tick(s)==abort_error && !s->abort_pending);
+  assert(s->poisoned==!!fatal && s->last->words==1 && s->last->error==-ETIMEDOUT);
+  s->gate=false;char data[16]={0};loff_t pos=0;
+  assert(mt6797_snapshot_read(&f,data,sizeof(data),&pos)==4);
+  u32 first;memcpy(&first,data,4);assert(first==0x100);
+  s->gate=true;
+  if(fatal)assert(mt6797_snapshot_start(next.private_data)==-EIO);
+  else {assert(!mt6797_snapshot_start(next.private_data));for(int i=0;i<4;i++)assert(!mt6797_snapshot_tick(s));assert(s->generation==2&&!s->last->error);}
+  close_file(&f);close_file(&next);mt6797_snapshot_unregister(s);assert(!atomic_load(&allocations));
  }
  puts("PASS: 100 rounds, concurrent gate-on reader EBUSY, signal-terminated read/release, open-close during capture, retained generation, owner removal; ASAN/UBSAN. Service shims, NOT mounted debugfs/SIGKILL.");
 }

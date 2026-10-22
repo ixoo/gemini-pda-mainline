@@ -1,0 +1,90 @@
+From e6e6aa51e2baf9abff33f74ddb9b2d1853b00164 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 22 Oct 2026 18:31:00 -0400
+Subject: [PATCH] wifi: mt6797: release settled snapshot timeouts without
+ poisoning the link
+
+A snapshot collection budget can expire after its backend has settled every
+transaction. Keep the partial result and let the backend decide whether
+transport ownership is safe to release. Preserve fatal poison on any failed
+release and fence new readers until that decision completes.
+
+---
+ .../net/wireless/mediatek/mt6797/snapshot.c   | 30 +++++++++++++------
+ 1 file changed, 21 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
+index d810685..1e0828c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/snapshot.c
++++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
+@@ -71,12 +71,29 @@ static void mt6797_snapshot_finish(struct mt6797_snapshot *s, int error)
+ 	r->finished = ktime_get_ns();
+ 	r->terminal = true;
+ 	if (error) {
+-		s->poisoned = true;
++		if (error != -ETIMEDOUT)
++			s->poisoned = true;
+ 		s->abort_pending = true;
+ 	}
+ 	complete_all(&r->done);
+ }
+ 
++/* A collection timeout is recoverable only if the backend releases ownership.
++ * An unresolved wire transaction or prior fatal error remains fatal forever.
++ */
++static int mt6797_snapshot_abort_result(struct mt6797_snapshot *s, int error)
++{
++	int ret = s->ops->abort ? s->ops->abort(s->owner, error) : error;
++
++	mutex_lock(&s->lock);
++	if (ret)
++		s->poisoned = true;
++	/* Keep new generations fenced until the backend has relinquished its lease. */
++	s->abort_pending = false;
++	mutex_unlock(&s->lock);
++	return ret;
++}
++
+ static void mt6797_snapshot_timeout(struct work_struct *work)
+ {
+ 	struct mt6797_snapshot *s = container_of(to_delayed_work(work),
+@@ -446,10 +463,9 @@ int mt6797_snapshot_tick(struct mt6797_snapshot *s)
+ 	}
+ 	r = s->last;
+ 	if (s->abort_pending) {
+-		s->abort_pending = false;
+ 		ret = r->error;
+ 		mutex_unlock(&s->lock);
+-		return s->ops->abort ? s->ops->abort(s->owner, ret) : 0;
++		return mt6797_snapshot_abort_result(s, ret);
+ 	}
+ 	if (r->terminal) {
+ 		mutex_unlock(&s->lock);
+@@ -478,11 +494,9 @@ int mt6797_snapshot_tick(struct mt6797_snapshot *s)
+ 		ret = r->error;
+ 	else
+ 		ret = 0;
+-	if (ret)
+-		s->abort_pending = false;
+ 	mutex_unlock(&s->lock);
+ 	if (ret)
+-		ret = s->ops->abort ? s->ops->abort(s->owner, ret) : 0;
++		ret = mt6797_snapshot_abort_result(s, ret);
+ 	kref_put(&r->ref, mt6797_snapshot_result_free);
+ 	return ret;
+ }
+@@ -493,10 +507,8 @@ void mt6797_snapshot_fail(struct mt6797_snapshot *s, int error)
+ 		return;
+ 	mutex_lock(&s->lock);
+ 	mt6797_snapshot_finish(s, error);
+-	s->abort_pending = false;
+ 	mutex_unlock(&s->lock);
+-	if (s->ops->abort)
+-		s->ops->abort(s->owner, error);
++	mt6797_snapshot_abort_result(s, error);
+ }
+ 
+ bool mt6797_snapshot_active(struct mt6797_snapshot *s)
+-- 
+2.54.0 (Apple Git-157)
+
