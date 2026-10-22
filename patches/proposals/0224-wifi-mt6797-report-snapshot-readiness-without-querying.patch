@@ -1,17 +1,17 @@
-From c7a85f508d32fab8e67b1c6ae9e096761845a7a9 Mon Sep 17 00:00:00 2001
+From e92eeb2dcabb18d7703be5663e57213b3dfabeca Mon Sep 17 00:00:00 2001
 From: Gemini experiment tooling <gemini-experiment@example.invalid>
 Date: Thu, 22 Oct 2026 06:03:59 -0400
 Subject: [PATCH] wifi: retain host snapshot readiness on admission and status
 
 Inspect host predicate memory once per readiness decision. Report the same observation on a refusal and in status without submitting a query. Preserve admission policy and fence owner destruction before inspection.
 ---
- drivers/net/wireless/mediatek/mt6797/mac.c    | 37 +++++++++++++++++--
- .../net/wireless/mediatek/mt6797/snapshot.c   | 37 +++++++++++++++++--
- .../net/wireless/mediatek/mt6797/snapshot.h   |  9 +++++
- 3 files changed, 75 insertions(+), 8 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 37 ++++++++++++++--
+ .../net/wireless/mediatek/mt6797/snapshot.c   | 44 +++++++++++++++++--
+ .../net/wireless/mediatek/mt6797/snapshot.h   |  9 ++++
+ 3 files changed, 82 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 929f5a9..97d9d6b 100644
+index 929f5a9..7b3f5e7 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -359,13 +359,41 @@ struct mt6797_mac {
@@ -20,7 +20,7 @@ index 929f5a9..97d9d6b 100644
  #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN) && IS_ENABLED(CONFIG_CFG80211_DEBUGFS)
 -static bool mt6797_mac_snapshot_ready(void *owner)
 +static void mt6797_mac_snapshot_readiness(void *owner,
-+	struct mt6797_snapshot_readiness *state)
++					struct mt6797_snapshot_readiness *state)
  {
  	struct mt6797_mac *mac = owner;
  
@@ -69,7 +69,7 @@ index 929f5a9..97d9d6b 100644
  	.kick = mt6797_mac_snapshot_kick,
  };
 diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
-index 5badff6..54ca763 100644
+index 5badff6..805964e 100644
 --- a/drivers/net/wireless/mediatek/mt6797/snapshot.c
 +++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
 @@ -43,7 +43,7 @@ struct mt6797_snapshot_file {
@@ -81,32 +81,31 @@ index 5badff6..54ca763 100644
  	unsigned int text_bytes;
  };
  
-@@ -127,6 +127,24 @@ static int mt6797_snapshot_release(struct inode *inode, struct file *file)
+@@ -127,6 +127,23 @@ static int mt6797_snapshot_release(struct inode *inode, struct file *file)
  	return 0;
  }
  
 +/* s->lock held: dying fences owner destruction before inspecting memory. */
 +static bool mt6797_snapshot_inspect(struct mt6797_snapshot *s,
-+	struct mt6797_snapshot_readiness *state)
++				  struct mt6797_snapshot_readiness *state)
 +{
 +	*state = (struct mt6797_snapshot_readiness){};
 +	if (s->dying)
-+	return false;
++		return false;
 +	if (s->ops->readiness) {
-+	s->ops->readiness(s->owner, state);
-+	return true;
++		s->ops->readiness(s->owner, state);
++		return true;
 +	}
 +	state->ready = s->ops->ready(s->owner);
 +	return false;
 +}
 +
 +#define SNAPSHOT_READY_FORMAT "ready=%u epoch_enabled=%u configured=%u running=%u data_active=%u associated=%u ptk_present=%u gtk_present=%u closing=%u error=%u cleanup=%u end=%u mac_state=0x%08x"
-+#define SNAPSHOT_READY_ARGS(x) (x).ready, (x).epoch_enabled, (x).configured, (x).running, (x).data_active, (x).associated, (x).ptk_present, (x).gtk_present, (x).closing, (x).error, (x).cleanup, (x).end, (x).mac_state
 +
  static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
  					  size_t size, loff_t *pos)
  {
-@@ -134,6 +152,8 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+@@ -134,6 +151,8 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
  	struct mt6797_snapshot *s = f->snapshot;
  	char *text = f->text;
  	struct mt6797_snapshot_result *r;
@@ -115,7 +114,7 @@ index 5badff6..54ca763 100644
  	int n;
  	ssize_t ret;
  
-@@ -145,6 +165,7 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+@@ -145,6 +164,7 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
  		goto cached;
  	mutex_lock(&s->lock);
  	r = s->last;
@@ -123,7 +122,7 @@ index 5badff6..54ca763 100644
  	if (!strcmp(file->f_path.dentry->d_name.name, "gate"))
  		n = scnprintf(text, sizeof(f->text), "%u\n", s->gate);
  	else if (!strcmp(file->f_path.dentry->d_name.name, "set"))
-@@ -153,13 +174,15 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+@@ -153,13 +173,19 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
  			s->ops->sets[s->selected].name : "none");
  	else
  		n = scnprintf(text, sizeof(f->text),
@@ -137,11 +136,15 @@ index 5badff6..54ca763 100644
  			s->gate, s->poisoned, r ? r->started : 0,
 -			r ? r->finished : 0);
 +			r ? r->finished : 0, readiness_valid,
-+			SNAPSHOT_READY_ARGS(readiness));
++			readiness.ready, readiness.epoch_enabled,
++			readiness.configured, readiness.running, readiness.data_active,
++			readiness.associated, readiness.ptk_present, readiness.gtk_present,
++			readiness.closing, readiness.error, readiness.cleanup,
++			readiness.end, readiness.mac_state);
  	mutex_unlock(&s->lock);
  	f->text_bytes = n;
  cached:
-@@ -219,6 +242,8 @@ static int mt6797_snapshot_start(struct mt6797_snapshot_file *f)
+@@ -219,6 +245,8 @@ static int mt6797_snapshot_start(struct mt6797_snapshot_file *f)
  {
  	struct mt6797_snapshot *s = f->snapshot;
  	struct mt6797_snapshot_result *r;
@@ -150,7 +153,7 @@ index 5badff6..54ca763 100644
  	int ret;
  
  	/* Allocation may reclaim; keep it outside every shared driver lock. */
-@@ -251,7 +276,11 @@ static int mt6797_snapshot_start(struct mt6797_snapshot_file *f)
+@@ -251,7 +279,15 @@ static int mt6797_snapshot_start(struct mt6797_snapshot_file *f)
  		ret = -ENODATA;
  		goto out;
  	}
@@ -159,7 +162,11 @@ index 5badff6..54ca763 100644
 +	if (!readiness.ready) {
 +		pr_info("mt6797 snapshot readiness refused: errno=-19 readiness_valid=%u "
 +			SNAPSHOT_READY_FORMAT "\n", readiness_valid,
-+			SNAPSHOT_READY_ARGS(readiness));
++			readiness.ready, readiness.epoch_enabled,
++			readiness.configured, readiness.running, readiness.data_active,
++			readiness.associated, readiness.ptk_present, readiness.gtk_present,
++			readiness.closing, readiness.error, readiness.cleanup,
++			readiness.end, readiness.mac_state);
  		ret = -ENODEV;
  		goto out;
  	}
