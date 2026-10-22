@@ -46,7 +46,9 @@ the reader even if the normal MAC worker cannot progress. The reader also checks
 that same absolute deadline. Late backend completions cannot modify a terminal
 buffer. Timeout/failure latches diagnostic poison; toggling the gate does not
 clear it or authorize another wire attempt. The completed prefix remains
-available with the gate off.
+available with the gate off. A pre-wire diagnostic rejection does not itself
+stop an otherwise healthy connection; the backend reports a driver failure only
+when the transport/lifetime is poisoned.
 
 Firmware configuration must already be published before admission. The backend
 must recheck actual firmware/lifetime ownership before every query. A connected

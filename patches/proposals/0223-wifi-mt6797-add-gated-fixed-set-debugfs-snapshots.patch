@@ -1,4 +1,4 @@
-From 17806bf3eb40fe0e229e6c6c0fddca5d5afc72c8 Mon Sep 17 00:00:00 2001
+From 155a57397525079967fea17a222f3c7ce2f51032 Mon Sep 17 00:00:00 2001
 From: Gemini experiment <experiment@invalid>
 Date: Wed, 21 Oct 2026 20:07:35 -0400
 Subject: [PATCH] wifi: add a gated fixed-set debugfs snapshot mechanism
@@ -10,9 +10,9 @@ This experiment is non-certifying and not submission-ready.
  drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
  drivers/net/wireless/mediatek/mt6797/mac.c    |  81 ++-
  .../wireless/mediatek/mt6797/snapshot-sets.h  |  58 +++
- .../net/wireless/mediatek/mt6797/snapshot.c   | 487 ++++++++++++++++++
- .../net/wireless/mediatek/mt6797/snapshot.h   |  50 ++
- 5 files changed, 674 insertions(+), 3 deletions(-)
+ .../net/wireless/mediatek/mt6797/snapshot.c   | 485 ++++++++++++++++++
+ .../net/wireless/mediatek/mt6797/snapshot.h   |  51 ++
+ 5 files changed, 673 insertions(+), 3 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot-sets.h
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot.c
  create mode 100644 drivers/net/wireless/mediatek/mt6797/snapshot.h
@@ -260,10 +260,10 @@ index 0000000..40eda73
 +#endif
 diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
 new file mode 100644
-index 0000000..20a5606
+index 0000000..3429061
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
-@@ -0,0 +1,487 @@
+@@ -0,0 +1,485 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/* Bounded fixed-set snapshots. This file contains no firmware protocol. */
 +#include <linux/capability.h>
@@ -601,7 +601,7 @@ index 0000000..20a5606
 +static const struct file_operations name = { \
 +	.owner = THIS_MODULE, .open = mt6797_snapshot_open, \
 +	.release = mt6797_snapshot_release, .read = reader, .write = writer, \
-+	.llseek = no_llseek, \
++	.llseek = NULL, \
 +}
 +MT6797_SNAPSHOT_OPS(mt6797_snapshot_control_ops,
 +		    mt6797_snapshot_control_read, mt6797_snapshot_control_write);
@@ -663,9 +663,7 @@ index 0000000..20a5606
 +		s->abort_pending = false;
 +		ret = r->error;
 +		mutex_unlock(&s->lock);
-+		if (s->ops->abort)
-+			s->ops->abort(s->owner, ret);
-+		return ret;
++		return s->ops->abort ? s->ops->abort(s->owner, ret) : 0;
 +	}
 +	if (r->terminal) {
 +		mutex_unlock(&s->lock);
@@ -697,8 +695,8 @@ index 0000000..20a5606
 +	if (ret)
 +		s->abort_pending = false;
 +	mutex_unlock(&s->lock);
-+	if (ret && s->ops->abort)
-+		s->ops->abort(s->owner, ret);
++	if (ret)
++		ret = s->ops->abort ? s->ops->abort(s->owner, ret) : 0;
 +	kref_put(&r->ref, mt6797_snapshot_result_free);
 +	return ret;
 +}
@@ -753,10 +751,10 @@ index 0000000..20a5606
 +}
 diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.h b/drivers/net/wireless/mediatek/mt6797/snapshot.h
 new file mode 100644
-index 0000000..90518c5
+index 0000000..c525c2c
 --- /dev/null
 +++ b/drivers/net/wireless/mediatek/mt6797/snapshot.h
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,51 @@
 +/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef MT6797_SNAPSHOT_H
 +#define MT6797_SNAPSHOT_H
@@ -790,8 +788,9 @@ index 0000000..90518c5
 +		    struct mt6797_snapshot_word *word);
 +	/* Caller holds the MAC mutex. Poison an indeterminate transaction;
 +	 * neither gate toggles nor a later read may clear fatal poison.
++	 * Return a driver error only if the transport/lifetime is poisoned.
 +	 */
-+	void (*abort)(void *owner, int error);
++	int (*abort)(void *owner, int error);
 +	/* Nonblocking scheduling only; must not acquire MAC/HIF locks. */
 +	void (*kick)(void *owner);
 +};
