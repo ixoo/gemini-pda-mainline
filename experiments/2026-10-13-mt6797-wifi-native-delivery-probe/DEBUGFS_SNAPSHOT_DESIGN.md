@@ -141,3 +141,16 @@ are concurrent host primitives. That requested operating-kernel filesystem
 corner remains unverified. The available build container cannot load a module
 or mount a debugfs test instance. No device experiment or installation was used
 to work around the missing host coverage. Existing checkpatch style notes remain.
+
+## Readiness observability
+
+Patch0224 adds a pure host-memory readiness observation shared by admission,
+the refusal line and the existing status file. It reports every admission
+predicate as a boolean and mac_state, the driver's native diagnostic state enum.
+No addresses, packet contents, firmware values or new wire reads are logged.
+Status inspection works with gate0 and never allocates a generation or kicks
+work. Each status open freezes its own observation; it is not a promise that
+state remains unchanged until a later snapshot read. A readiness rejection logs
+the actual observation used for that decision, without changing admission.
+Owner destruction first closes inspection; retained status descriptors report
+readiness_valid=0 without dereferencing the retired owner.

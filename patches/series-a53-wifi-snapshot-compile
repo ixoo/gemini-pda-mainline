@@ -714,3 +714,4 @@ proposals/0220-wifi-mt6797-recycle-only-completed-ordinary-TX-slots.patch
 proposals/0221-wifi-mt6797-report-owned-connected-monitor-loss-to-mac80211.patch
 proposals/0222-wifi-mt6797-size-connected-observation-counters-separately.patch
 proposals/0223-wifi-mt6797-add-gated-fixed-set-debugfs-snapshots.patch
+proposals/0224-wifi-mt6797-report-snapshot-readiness-without-querying.patch

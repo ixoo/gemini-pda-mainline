@@ -1,0 +1,193 @@
+From c7a85f508d32fab8e67b1c6ae9e096761845a7a9 Mon Sep 17 00:00:00 2001
+From: Gemini experiment tooling <gemini-experiment@example.invalid>
+Date: Thu, 22 Oct 2026 06:03:59 -0400
+Subject: [PATCH] wifi: retain host snapshot readiness on admission and status
+
+Inspect host predicate memory once per readiness decision. Report the same observation on a refusal and in status without submitting a query. Preserve admission policy and fence owner destruction before inspection.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 37 +++++++++++++++++--
+ .../net/wireless/mediatek/mt6797/snapshot.c   | 37 +++++++++++++++++--
+ .../net/wireless/mediatek/mt6797/snapshot.h   |  9 +++++
+ 3 files changed, 75 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 929f5a9..97d9d6b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -359,13 +359,41 @@ struct mt6797_mac {
+ };
+ 
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN) && IS_ENABLED(CONFIG_CFG80211_DEBUGFS)
+-static bool mt6797_mac_snapshot_ready(void *owner)
++static void mt6797_mac_snapshot_readiness(void *owner,
++	struct mt6797_snapshot_readiness *state)
+ {
+ 	struct mt6797_mac *mac = owner;
+ 
+-	/* configured is published only after firmware start and configuration. */
+-	return READ_ONCE(mac->configured) && !READ_ONCE(mac->first_error) &&
+-	       !READ_ONCE(mac->closing);
++	*state = (struct mt6797_snapshot_readiness){};
++	state->configured = READ_ONCE(mac->configured);
++	state->error = !!READ_ONCE(mac->first_error);
++	state->closing = READ_ONCE(mac->closing);
++#if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++	state->running = READ_ONCE(mac->join_running);
++	state->end = READ_ONCE(mac->join_data_ended);
++	state->data_active = READ_ONCE(mac->join_data_phase) && !state->end;
++	state->associated = READ_ONCE(mac->join_assoc_received) &&
++		!READ_ONCE(mac->join_assoc_status);
++	state->ptk_present = READ_ONCE(mac->join_key_pairwise) == 1;
++	state->gtk_present = READ_ONCE(mac->join_key_group) == 1;
++	state->cleanup = READ_ONCE(mac->join_cleanup_requested);
++#endif
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	state->epoch_enabled = READ_ONCE(ccmp_stable_epoch);
++#endif
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	state->mac_state = READ_ONCE(mac->native_diag_state);
++#endif
++	/* Empty public provider retains its original admission policy. */
++	state->ready = state->configured && !state->error && !state->closing;
++}
++
++static bool mt6797_mac_snapshot_ready(void *owner)
++{
++	struct mt6797_snapshot_readiness state;
++
++	mt6797_mac_snapshot_readiness(owner, &state);
++	return state.ready;
+ }
+ 
+ static int mt6797_mac_snapshot_empty(void *owner, u32 address,
+@@ -385,6 +413,7 @@ static void mt6797_mac_snapshot_kick(void *owner)
+ /* Public mechanism: no ranges, wire encoding, or diagnostic command backend. */
+ static const struct mt6797_snapshot_ops mt6797_mac_snapshot_ops = {
+ 	.ready = mt6797_mac_snapshot_ready,
++	.readiness = mt6797_mac_snapshot_readiness,
+ 	.step = mt6797_mac_snapshot_empty,
+ 	.kick = mt6797_mac_snapshot_kick,
+ };
+diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
+index 5badff6..54ca763 100644
+--- a/drivers/net/wireless/mediatek/mt6797/snapshot.c
++++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
+@@ -43,7 +43,7 @@ struct mt6797_snapshot_file {
+ 	struct mt6797_snapshot *snapshot;
+ 	struct mt6797_snapshot_result *result;
+ 	struct mutex lock;
+-	char text[384];
++	char text[1024];
+ 	unsigned int text_bytes;
+ };
+ 
+@@ -127,6 +127,24 @@ static int mt6797_snapshot_release(struct inode *inode, struct file *file)
+ 	return 0;
+ }
+ 
++/* s->lock held: dying fences owner destruction before inspecting memory. */
++static bool mt6797_snapshot_inspect(struct mt6797_snapshot *s,
++	struct mt6797_snapshot_readiness *state)
++{
++	*state = (struct mt6797_snapshot_readiness){};
++	if (s->dying)
++	return false;
++	if (s->ops->readiness) {
++	s->ops->readiness(s->owner, state);
++	return true;
++	}
++	state->ready = s->ops->ready(s->owner);
++	return false;
++}
++
++#define SNAPSHOT_READY_FORMAT "ready=%u epoch_enabled=%u configured=%u running=%u data_active=%u associated=%u ptk_present=%u gtk_present=%u closing=%u error=%u cleanup=%u end=%u mac_state=0x%08x"
++#define SNAPSHOT_READY_ARGS(x) (x).ready, (x).epoch_enabled, (x).configured, (x).running, (x).data_active, (x).associated, (x).ptk_present, (x).gtk_present, (x).closing, (x).error, (x).cleanup, (x).end, (x).mac_state
++
+ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+ 					  size_t size, loff_t *pos)
+ {
+@@ -134,6 +152,8 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+ 	struct mt6797_snapshot *s = f->snapshot;
+ 	char *text = f->text;
+ 	struct mt6797_snapshot_result *r;
++	struct mt6797_snapshot_readiness readiness;
++	bool readiness_valid;
+ 	int n;
+ 	ssize_t ret;
+ 
+@@ -145,6 +165,7 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+ 		goto cached;
+ 	mutex_lock(&s->lock);
+ 	r = s->last;
++	readiness_valid = mt6797_snapshot_inspect(s, &readiness);
+ 	if (!strcmp(file->f_path.dentry->d_name.name, "gate"))
+ 		n = scnprintf(text, sizeof(f->text), "%u\n", s->gate);
+ 	else if (!strcmp(file->f_path.dentry->d_name.name, "set"))
+@@ -153,13 +174,15 @@ static ssize_t mt6797_snapshot_control_read(struct file *file, char __user *buf,
+ 			s->ops->sets[s->selected].name : "none");
+ 	else
+ 		n = scnprintf(text, sizeof(f->text),
+-			"state=%s words_collected=%u total_words=%u last_error=%d generation=%llu set=%s gate=%u poisoned=%u start_ns=%llu finish_ns=%llu\n",
++			"state=%s words_collected=%u total_words=%u last_error=%d generation=%llu set=%s gate=%u poisoned=%u start_ns=%llu finish_ns=%llu readiness_valid=%u "
++			SNAPSHOT_READY_FORMAT "\n",
+ 			!r ? "idle" : !r->terminal ? "running" :
+ 			r->error ? "error" : "complete", r ? r->words : 0,
+ 			r ? r->total : 0, r ? r->error : 0,
+ 			r ? r->generation : 0, r ? r->set->name : "none",
+ 			s->gate, s->poisoned, r ? r->started : 0,
+-			r ? r->finished : 0);
++			r ? r->finished : 0, readiness_valid,
++			SNAPSHOT_READY_ARGS(readiness));
+ 	mutex_unlock(&s->lock);
+ 	f->text_bytes = n;
+ cached:
+@@ -219,6 +242,8 @@ static int mt6797_snapshot_start(struct mt6797_snapshot_file *f)
+ {
+ 	struct mt6797_snapshot *s = f->snapshot;
+ 	struct mt6797_snapshot_result *r;
++	struct mt6797_snapshot_readiness readiness;
++	bool readiness_valid;
+ 	int ret;
+ 
+ 	/* Allocation may reclaim; keep it outside every shared driver lock. */
+@@ -251,7 +276,11 @@ static int mt6797_snapshot_start(struct mt6797_snapshot_file *f)
+ 		ret = -ENODATA;
+ 		goto out;
+ 	}
+-	if (!s->ops->ready(s->owner)) {
++	readiness_valid = mt6797_snapshot_inspect(s, &readiness);
++	if (!readiness.ready) {
++		pr_info("mt6797 snapshot readiness refused: errno=-19 readiness_valid=%u "
++			SNAPSHOT_READY_FORMAT "\n", readiness_valid,
++			SNAPSHOT_READY_ARGS(readiness));
+ 		ret = -ENODEV;
+ 		goto out;
+ 	}
+diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.h b/drivers/net/wireless/mediatek/mt6797/snapshot.h
+index c525c2c..6341071 100644
+--- a/drivers/net/wireless/mediatek/mt6797/snapshot.h
++++ b/drivers/net/wireless/mediatek/mt6797/snapshot.h
+@@ -17,11 +17,20 @@ struct mt6797_snapshot_word {
+ 	bool valid;
+ };
+ 
++/* Host predicates only; never firmware addresses, contents or registers. */
++struct mt6797_snapshot_readiness {
++	bool ready, epoch_enabled, configured, running, data_active, associated;
++	bool ptk_present, gtk_present, closing, error, cleanup, end;
++	u32 mac_state;
++};
++
+ struct mt6797_snapshot_ops {
+ 	const struct mt6797_snapshot_set *sets;
+ 	unsigned int nsets;
+ 	/* Pure memory predicate: no locks, I/O, or firmware effects. */
+ 	bool (*ready)(void *owner);
++ /* Optional pure memory inspection. Admission uses this exact observation. */
++	void (*readiness)(void *owner, struct mt6797_snapshot_readiness *state);
+ 	/* Called AFTER ordinary RX/TX service, under the driver's MAC mutex.
+ 	 * At most one query may be outstanding. -EINPROGRESS is not a retry.
+ 	 * Return a valid word once, on success or a terminal partial result.
+-- 
+2.54.0 (Apple Git-157)
+
