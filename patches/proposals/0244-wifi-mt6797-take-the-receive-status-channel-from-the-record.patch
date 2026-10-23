@@ -1,0 +1,105 @@
+From 5eb67e9e80a920fb71d197ce9c789be37ddf4e57 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 19:06:12 -0400
+Subject: [PATCH] wifi: mt6797: take the receive status channel from the record
+
+Every delivered frame told mac80211 it arrived on 5200 MHz by constant.
+Derive the band and frequency from the record's own channel byte at each
+delivery site instead. On the joined channel the result is unchanged; the
+admission gates still require that channel, so nothing else moves yet, but
+the delivery sites no longer have to change when other channels are
+admitted.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 31 +++++++++++++---------
+ 1 file changed, 19 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 0f9cfcff2..177e7bf1d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -63,6 +63,19 @@ MODULE_PARM_DESC(snapshot_enable,
+ #include "join-tx.h"
+ #include "join-commands.h"
+ #include "join-depth.h"
++
++/* Receive status channel from the record's own channel byte (RXD byte 5),
++ * not from a constant: the joined channel is what the admission gates still
++ * require today, and other channels become possible without touching the
++ * delivery sites.
++ */
++static void mt6797_mac_rx_channel(struct sk_buff *skb, unsigned int channel)
++{
++	enum nl80211_band band = channel > 14 ? NL80211_BAND_5GHZ : NL80211_BAND_2GHZ;
++
++	IEEE80211_SKB_RXCB(skb)->band = band;
++	IEEE80211_SKB_RXCB(skb)->freq = ieee80211_channel_to_frequency(channel, band);
++}
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+ /* One initial station/key epoch, bounded data owners. No timeout release.
+  * The reserved deauthentication never enters this reusable ordinary pool.
+@@ -726,8 +739,7 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ #endif
+ 	skb_put_data(skb, mac->join_packet + view.offset, view.bytes);
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+-	IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-	IEEE80211_SKB_RXCB(skb)->freq = 5200;
++	mt6797_mac_rx_channel(skb, mac->join_packet[5]);
+ 	IEEE80211_SKB_RXCB(skb)->flag = rx_flags;
+ 	if (!mac->ccmp_queued)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -3094,8 +3106,7 @@ static int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 		return -ENOMEM;
+ 	skb_put_data(skb, mac->join_packet + offset, bytes);
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+-	IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-	IEEE80211_SKB_RXCB(skb)->freq = 5200;
++	mt6797_mac_rx_channel(skb, mac->join_packet[5]);
+ 	if (rcpi <= 220)
+ 		IEEE80211_SKB_RXCB(skb)->signal = (int)rcpi / 2 - 110;
+ 	else
+@@ -3936,8 +3947,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				skb_put_data(skb, mac->join_packet + eapol.offset, eapol.bytes);
+ 				memset(IEEE80211_SKB_RXCB(skb), 0,
+ 				       sizeof(struct ieee80211_rx_status));
+-				IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-				IEEE80211_SKB_RXCB(skb)->freq = 5200;
++				mt6797_mac_rx_channel(skb, mac->join_packet[5]);
+ 				if (eapol.signal_valid)
+ 					IEEE80211_SKB_RXCB(skb)->signal = eapol.signal_dbm;
+ 				else
+@@ -4048,8 +4058,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					skb_put_data(skb, mac->join_packet + mo, ml);
+ 					memset(IEEE80211_SKB_RXCB(skb), 0,
+ 					       sizeof(struct ieee80211_rx_status));
+-					IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-					IEEE80211_SKB_RXCB(skb)->freq = 5200;
++					mt6797_mac_rx_channel(skb, mac->join_packet[5]);
+ 					IEEE80211_SKB_RXCB(skb)->flag |=
+ 						mt6797_native_diag_ordinary_flags(0);
+ 					if (!mac->native_diag_native)
+@@ -4124,8 +4133,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				skb_put_data(skb, mac->join_packet + data.offset, data.bytes);
+ 				memset(IEEE80211_SKB_RXCB(skb), 0,
+ 				       sizeof(struct ieee80211_rx_status));
+-				IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-				IEEE80211_SKB_RXCB(skb)->freq = 5200;
++				mt6797_mac_rx_channel(skb, mac->join_packet[5]);
+ 				IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_DECRYPTED |
+ 					RX_FLAG_IV_STRIPPED | RX_FLAG_MMIC_STRIPPED;
+ 				if (data.signal_valid)
+@@ -4354,8 +4362,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ 			skb_put_data(skb, mac->join_packet + frame.offset, frame.bytes);
+ 			memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+-			IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-			IEEE80211_SKB_RXCB(skb)->freq = 5200;
++			mt6797_mac_rx_channel(skb, mac->join_packet[5]);
+ 			IEEE80211_SKB_RXCB(skb)->signal = frame.signal_dbm;
+ 			__skb_queue_tail(&received, skb);
+ 		}
+-- 
+2.43.0
+
