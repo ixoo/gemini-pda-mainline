@@ -122,3 +122,10 @@ held window (approximately <=0.35 seconds after a tick). Stage-3 resource
 retirement and reserved-frame delivery remain independent verdicts. No second
 protected lifetime follows from this observation; see the
 [offline prerequisites](../../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SECOND_LIFETIME_PREREQUISITES.md).
+
+The [released-page/event ordering result](../../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/FIRMWARE_RESTART_BOUNDARY.md)
+shows key events after command-page credit (5.059 ms pairwise, 1.079 ms group).
+No host-visible ordering point proves that all earlier firmware events have
+been emitted, so credit or drain evidence cannot admit another protected
+lifetime in the same firmware instance. A separate firmware-restart boundary
+is under offline audit; its unknown stop/start prerequisites prevent a candidate.

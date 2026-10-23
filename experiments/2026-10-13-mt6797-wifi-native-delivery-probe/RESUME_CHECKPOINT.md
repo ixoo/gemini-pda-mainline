@@ -1,3 +1,17 @@
+# Current handoff: negative credit boundary; provider re-probe unavailable
+
+[Offline boundary audit results](FIRMWARE_RESTART_BOUNDARY.md): released pages
+precede key events by 5.059/1.079 ms; no credit/drain retirement proof exists.
+No firmware stop/off counterpart is implemented. MAC `.stop` is host-only and
+"firmware stopped" is a retained-state log. Provider re-probe was evaluated
+first and refuses the retained `bound` owner; the built-in provider has no
+remove lifecycle and suppresses bind attributes. NIC cycling keeps firmware
+running and is not a boundary. New WMT stop/off work needs an explicit owner
+decision and has not started. No available boundary today, no restart run
+predeclared, no command, rebuild or boot. Reuse/rekey/re-arm stay refused;
+0229/0230 remain dormant. The one-boot allowance remains unconsumed.
+Earlier checkpoints below are historical.
+
 # Current handoff: dormant host prerequisites; firmware decision pending
 
 [Two offline tracks](TWO_LIFETIME_OFFLINE_TRACKS.md): 0229/0230 add unconsumed,

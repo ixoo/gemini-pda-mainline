@@ -1,0 +1,180 @@
+{
+  "date": "2026-10-23",
+  "decision": "Track B NEGATIVE; same-firmware protected reuse unsupported on credit/drain evidence",
+  "kmsg_sha256": "006210923ecddecc6c9f652e00b23f4c910e3d828c4d3b2cc69787e66c7c41e4",
+  "records": 4966,
+  "key_event_after_released_page_us": {
+    "pairwise": 5059,
+    "group": 1079
+  },
+  "record_ids": {
+    "pairwise": [
+      2031,
+      2035
+    ],
+    "group": [
+      2042,
+      2043
+    ]
+  },
+  "static_support": "owner-supplied dispatcher/handler-table ordering; exact locations retained privately; no new binary analysis",
+  "source_sha256": {
+    "mt6797-consys.c": "76e114641b11c2e0ff5ca72be7b36cadbbe51dec1f92a2abd6b45268deab8053",
+    "hif.c": "c51ea139bf59564a61fe4b0bd2b122eb78dcd9a151dfc1e0ebee2846d04afe09",
+    "record-prepare.c": "ae1ae6e90856e650e89ef39dd9bafabadcf9c2113c9e94ee516f336f74235dd3",
+    "mac.c": "95c50e104cb95c1ae6a7522600312e8feb35648af30936b61c84302a5092e60d"
+  },
+  "option_A": "provider re-probe evaluated first: unavailable in current driver; static bound owner, no remove callback, bind attributes suppressed; no supported cold-state restoration",
+  "actual_source_fixtures": "PASS: provider bound predicate refuses -EBUSY; registration has suppressed bind attributes and no remove callback; deferred trigger and HIF duplicate START refuse; host-only MAC start cannot certify required initialization",
+  "dormant_helpers": "0229/0230 remain default-off and unconsumed; necessary host pieces, not retirement proof",
+  "production_code_changed": false,
+  "protected_rearm_enabled": false,
+  "key_slot_reuse_enabled": false,
+  "rekey_enabled": false,
+  "firmware_commands_issued": false,
+  "kernel_build": false,
+  "boot": false,
+  "one_boot_allowance_consumed": false,
+  "restart_run_predeclared": false,
+  "reconnect_goal": "blocked for same-firmware protected reuse; firmware-restart alternative remains unproved",
+  "retained_boolean_state_inventory": {
+    "CONSYS": {
+      "fields": [
+        "bt_h1_after_negotiate",
+        "enabled",
+        "bt_rail",
+        "wifi_rail",
+        "wmt_identity_only",
+        "wmt_negotiate_only",
+        "wmt_query_only",
+        "bound",
+        "emi_set_attempted",
+        "emi_sealed",
+        "emi_copy_attempted",
+        "fw_start_attempted",
+        "wmt_init_attempted",
+        "wmt_init_complete",
+        "deferred_start_armed",
+        "deferred_start_attempted"
+      ],
+      "treatment": "fresh reviewed instance lifecycle; no in-place clearing of poison",
+      "scope": "all bool declarations in inspected owner struct, including compile-time options; not a claim that delegated WMT internals are closed"
+    },
+    "HIF": {
+      "fields": [
+        "start_attempted",
+        "firmware_ready",
+        "capability_attempted",
+        "capability_complete",
+        "tx_status_boot_attempted",
+        "tx_status_normal_attempted",
+        "tx_status_accounting_baseline",
+        "port0_reported",
+        "port0_attempted"
+      ],
+      "treatment": "fresh reviewed instance lifecycle; no in-place clearing of poison",
+      "scope": "all bool declarations in inspected owner struct, including compile-time options; not a claim that delegated WMT internals are closed"
+    },
+    "MAC": {
+      "fields": [
+        "configured",
+        "closing",
+        "join_deauth_status_valid",
+        "join_deauth_status_late",
+        "join_deauth_timed_out",
+        "ccmp_reserved_pid_used",
+        "join_running",
+        "join_open",
+        "join_retired",
+        "join_sta_removed",
+        "join_rearm_pending",
+        "join_closed",
+        "join_bss_valid",
+        "join_channel_valid",
+        "join_scan_ready",
+        "join_peer_used",
+        "join_peer_ready",
+        "join_auth_received",
+        "join_auth_ok",
+        "join_authenticated",
+        "join_assoc_received",
+        "join_short_preamble",
+        "join_bss_configured",
+        "join_cleanup_requested",
+        "join_cleanup_done",
+        "join_deauth_done",
+        "join_last_acked",
+        "join_credit_pending",
+        "join_channel_pending",
+        "join_channel_granted",
+        "join_sta_pending",
+        "join_sta_active",
+        "join_peer_refusal_logged",
+        "join_channel_refusal_logged",
+        "join_key_pairwise_submitted",
+        "join_key_group_submitted",
+        "join_key_done",
+        "join_key_done_second",
+        "join_rsn",
+        "join_channel_released",
+        "join_data_phase",
+        "join_data_ended",
+        "native_diag_engaged",
+        "native_diag_sample_done",
+        "native_diag_rx_reported",
+        "native_diag_rxd_sampled",
+        "ccmp_gtk_attempted",
+        "ccmp_gtk_seen",
+        "ccmp_dtim_valid",
+        "ccmp_pm_attempted",
+        "ccmp_pm_connected",
+        "ccmp_pm_abort_pending",
+        "ccmp_pm_abort_credited",
+        "ccmp_loss_reported",
+        "ccmp_cleanup_credit_active",
+        "ccmp_cleanup_bounded_done",
+        "ccmp_channel_release_pending",
+        "ccmp_decap",
+        "ccmp_closed",
+        "ccmp_ptk_attempted",
+        "ccmp_tx_ready",
+        "join_inflight_data",
+        "scan_ready",
+        "started",
+        "scan_used",
+        "scan_active",
+        "bss_active",
+        "scan_beacon",
+        "scan_credit",
+        "scan_frame_seen",
+        "tuning_pending"
+      ],
+      "treatment": "fresh reviewed instance lifecycle; no in-place clearing of poison",
+      "scope": "all bool declarations in inspected owner struct, including compile-time options; not a claim that delegated WMT internals are closed"
+    }
+  },
+  "fixture_log_sha256": "44fcf6953149d4956975f259fa2db50e0337b3f870afd4485f7fe04211c896a2",
+  "repository_checks": "PASS; harness-declared Linux-only fixture skips",
+  "fixture_sanitizers": "ASan/UBSan PASS; actual HIF START and failure functions, MAC start and deferred-trigger predicate; fake I/O only",
+  "stop_audit_result": "no firmware stop/off counterpart implemented; MAC stop closes host work; firmware stopped log retains state",
+  "start_audit_result": "start-only WMT/MTKE bring-up; HIF START refuses start_attempted; retained boot owner means one start per boot by construction",
+  "boundary_ranking": [
+    {
+      "boundary": "provider re-probe",
+      "rank": 1,
+      "result": "unavailable in current driver; offline refusal and unknown restart state; no device attempt"
+    },
+    {
+      "boundary": "NIC 0x04 disable/enable",
+      "rank": 2,
+      "result": "not a boundary; firmware event producer survives"
+    },
+    {
+      "boundary": "new WMT stop/off",
+      "rank": 3,
+      "result": "not started; explicit owner decision required before ROM handler analysis; shared BT/FM/GPS scope"
+    }
+  ],
+  "available_boundary_today": null,
+  "new_WMT_lifecycle_project_started": false
+}

@@ -1,5 +1,7 @@
 # Two protected lifetimes — incomplete offline admission
 
+The same-firmware route has since resolved negatively. See the [firmware-restart prerequisite audit](FIRMWARE_RESTART_BOUNDARY.md); it has UNKNOWN items and no restart run has been predeclared. The procedure below is historical and unadmitted.
+
 The owner accepted this hold. The active [two-track work list and decision](TWO_LIFETIME_OFFLINE_TRACKS.md) now permit dormant host prerequisites only; all build and boot work remains held.
 
 Owner request, 2026-10-23: two lifetimes in one boot, 120 seconds each, then

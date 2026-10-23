@@ -1,4 +1,6 @@
-# Two-lifetime offline tracks — decision pending
+# Two-lifetime offline tracks — negative result recorded
+
+Track B is now **NEGATIVE**; see the [evidence and firmware-restart pivot](FIRMWARE_RESTART_BOUNDARY.md). The earlier pending table below is retained as history. No credit/drain-based protected reuse is admitted.
 
 Owner direction, 2026-10-23: accept the
 [incomplete attribution checkpoint](TWO_LIFETIME_PREDECLARATION.md), implement
@@ -72,7 +74,7 @@ sanitized conclusions with permission.
 
 | Handler | Event emitted synchronously before return and before releasing credit? | Beacon-loss timer cancelled? | Aging timer cancelled? | Station/BSS queues flushed? | Evidence status |
 | --- | --- | --- | --- | --- | --- |
-| `0x07` key operation | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | Owner evidence pending |
+| `0x07` key operation | NO: key events observed after released-page credit | UNKNOWN | UNKNOWN | UNKNOWN | Negative runtime ordering; owner static support |
 | `0x14` station removal | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | Owner evidence pending |
 | `0x11` BSS operation | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | Owner evidence pending |
 | `0x17` abort indication | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | Owner evidence pending |
@@ -95,6 +97,7 @@ Track A's interfaces or synthetic tests.
   capability we cannot add, retain the one-lifetime driver and stop. Do not
   substitute a timing heuristic, longer delay or host generation label.
 
-No branch has resolved. Re-arm stays refused, reconnect remains open pending
-evidence, and the one-boot allowance is unconsumed. There are no new runtime
-results or physical boot2 handoff.
+The negative branch has resolved. Same-firmware protected reconnect is blocked
+on a firmware capability we cannot add; re-arm stays refused. The separate
+firmware-restart inventory is held on UNKNOWN prerequisites. The one-boot
+allowance remains unconsumed; no physical boot2 handoff is pending.
