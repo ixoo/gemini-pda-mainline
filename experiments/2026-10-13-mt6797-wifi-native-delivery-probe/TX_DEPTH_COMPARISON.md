@@ -50,3 +50,29 @@ classifier never authorizes a repeat. Preserve original automatic output.
 Five short chunks are a finite comparison, not a sustained-throughput claim.
 Baseline-2's 51.8 s protocol differs; pump-1 uses this same duration-bound shape
 and is the primary comparison. No rate-change pass is authorized here.
+
+## Sealed offline candidate
+
+Validated build `957b5f3e41a9a2d4781a09ea4709d855bffa0245`, profile
+`mt6797-a53-wifi-tx-depth-measurement`. See
+[build and fixture scalars](results/tx-depth-build-validation.json).
+The configuration delta against the actual pump package is only depth=4;
+all seven relevant prepared-source exports match the reviewed files.
+
+- Candidate manifest: `c5786bf65130093e1bf1ee84ac617fd74a1e70f356b3d0c05f20617c6e5cffc8`.
+- Android boot image: `8d1a49b876890f2afd0b416dc39264dfafd45dc0af03323a7584aba014181943`.
+- Full 16 MiB boot2: `574fb99045fb13261235372fb1549b8682116fc534fc13d417226eb6787726c7`.
+- Live notes: 84 bytes at Image offset 12900184,
+  SHA-256 `c91b6cf420ceb03653ec7f9dc50bc1b1d98b9c95b85c9cacddb8f130ad7d38ea`.
+
+The exact RAM/DT and parent boot reproduction passed. Private successor host
+bindings and installer are sealed under `artifacts/wifi-tx-depth-work/`;
+the helper changes only its session label. The embedded device guard is
+byte-identical to the reviewed pump installer. Offline constructors loaded
+these bindings and refused at the missing genuine deployment receipt, as
+required; after installation they must pass using the actual receipt.
+
+Verification occurs at build/package, host-seal, installation and physical-boot
+stage boundaries, or after a material content change. No run has happened at
+this offline checkpoint. The owner must physically select boot2 after verified
+installation and shutdown.

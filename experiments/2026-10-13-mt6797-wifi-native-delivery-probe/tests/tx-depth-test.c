@@ -6,6 +6,7 @@
 #include "join-depth.h"
 #include "pid-source.inc"
 #include "room-source.inc"
+#include "cleanup-source.inc"
 #include "quiescence-source.inc"
 
 int main(void)
@@ -41,6 +42,7 @@ int main(void)
 	assert(!mt6797_data_room(&slots, 1, 100));
 	assert(!memcmp(&slots, &before, sizeof(slots)));
 	assert(!fixture_quiescent(&slots, false, 0, NULL));
+	assert(!fixture_cleanup_admits(&slots, 0));
 	assert(!mt6797_data_expired(&slots, 749999999ULL));
 	assert(mt6797_data_expired(&slots, 750000000ULL));
 	assert(!memcmp(&slots, &before, sizeof(slots)));
@@ -54,8 +56,11 @@ int main(void)
 		assert(!mt6797_data_take(&slots, i));
 		assert(slots.count == i - 1);
 		assert(fixture_quiescent(&slots, false, 0, NULL) == (i == 1));
+		assert(fixture_cleanup_admits(&slots, 0) == (i == 1));
 	}
 	assert(!p.pending && p.allocations == p.completions);
+	assert(!fixture_cleanup_admits(&slots, 1));
+	assert(fixture_cleanup_admits(&slots, 0));
 	assert(!fixture_quiescent(&slots, true, 0, NULL));
 	assert(!fixture_quiescent(&slots, false, 1, NULL));
 	assert(!fixture_quiescent(&slots, false, 0, frames));

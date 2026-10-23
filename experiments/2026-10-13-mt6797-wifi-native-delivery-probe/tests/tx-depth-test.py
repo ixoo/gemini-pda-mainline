@@ -54,6 +54,13 @@ deadline = 'mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;'
 assert source.count(deadline) == parent.count(deadline) == 3
 quiescent = re.findall(r'\tc\.quiescent = [^;]+;', source)
 assert len(quiescent) == 1 and '!mac->data_slots.count' in quiescent[0]
+cleanup = function(source, 'mt6797_mac_join_cleanup_step')
+gate_start = cleanup.index('#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK\n\tif (queued ||')
+gate_end = cleanup.index('\n\t\treturn 0;', gate_start) + len('\n\t\treturn 0;')
+cleanup_guard = cleanup[gate_start:gate_end]
+assert 'mac->data_slots.count' in cleanup_guard
+debt_guard = '\tif (mac->join_data_page_debt)\n\t\treturn 0;'
+assert cleanup.count(debt_guard) == 1
 
 with tempfile.TemporaryDirectory(prefix='tx-depth-') as directory:
     temporary = Path(directory)
@@ -67,11 +74,28 @@ struct mt6797_mac {
     struct mt6797_hif_ledger *hif;
     struct mt6797_join_pid_pool ccmp_pid_pool;
     struct mt6797_data_slots data_slots;
+    void *join_inflight;
+    unsigned int join_page_debt, join_data_page_debt;
+    bool join_credit_pending;
 };
 static void mt6797_hif_normal_ledger(struct mt6797_hif_ledger *hif,
                                     struct mt6797_hif_ledger *ledger)
 { *ledger = *hif; }
 ''' + function(source, 'mt6797_ccmp_data_room') + '\n')
+    (temporary/'cleanup-source.inc').write_text('''
+static bool mt6797_ccmp_cleanup_debt_ready(struct mt6797_mac *mac)
+{ (void)mac; return false; }
+static bool fixture_cleanup_admits(const struct mt6797_data_slots *slots,
+                                   unsigned int data_debt)
+{
+    struct mt6797_mac state = {.data_slots = *slots,
+                               .join_data_page_debt = data_debt}, *mac = &state;
+    bool queued = false;
+#define CONFIG_MT6797_CCMP_INITIAL_GTK 1
+''' + cleanup_guard + '\n#undef CONFIG_MT6797_CCMP_INITIAL_GTK\n' + debt_guard + '''
+    return true;
+}
+''')
     (temporary/'quiescence-source.inc').write_text('''
 static bool fixture_quiescent(const struct mt6797_data_slots *slots,
                              bool credit, unsigned int debt, void *inflight)

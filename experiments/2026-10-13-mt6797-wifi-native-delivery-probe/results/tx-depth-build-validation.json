@@ -1,0 +1,47 @@
+{
+  "build_commit": "957b5f3e41a9a2d4781a09ea4709d855bffa0245",
+  "profile": "mt6797-a53-wifi-tx-depth-measurement",
+  "package_manifest_sha256": "bd24958ec8feabee4d29b4890ca52568620d201905913f9f00e8f74d0753af49",
+  "build_pass": true,
+  "package_validation_pass": true,
+  "kernel_config_sha256": "3fb6bf0bc13751d199b5f6980ec0c274670dfbf7fd9516d6e4de24ebbfbfc96e",
+  "pump_config_sha256": "a4c5059e3b651a4a2a72eae796e997700bf1fe8d38147141fed671a7f9a96ed6",
+  "config_delta": {
+    "CONFIG_MT6797_CCMP_TX_DEPTH": {
+      "before": null,
+      "after": "4"
+    }
+  },
+  "prepared_source_matches_reviewed": true,
+  "mac_source_sha256": "c956718058f12f2247470c5365d690fdb1f1d773bad00dad618f8b213b23c377",
+  "unchanged_from_pump": [
+    "mt6797_mac_join_guard",
+    "mt6797_mac_join_wait_management",
+    "join-tx.h"
+  ],
+  "descriptor_sha256": "9a440e9542ca55034514fd8f7d9b2c34e10e1ab31cb160c1ca5f248fcc1deb60",
+  "fixtures": {
+    "actual_pid_slots_preflight_depths": [
+      1,
+      4
+    ],
+    "actual_partial_tc1_prepare_depths": [
+      1,
+      4
+    ],
+    "actual_cleanup_early_guards_depths": [
+      1,
+      4
+    ],
+    "asan_ubsan_pass": true,
+    "descriptor_credit_guard_unchanged": true,
+    "completion_packet_dispatch": "static wiring checks; not a full dynamic worker execution"
+  },
+  "checkpatch": {
+    "errors": 0,
+    "checks": 0,
+    "warnings": 1,
+    "warning": "new-file MAINTAINERS advisory; internal non-certifying experiment patch"
+  },
+  "hardware_measured": false
+}
