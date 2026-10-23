@@ -844,3 +844,4 @@ proposals/0230-wifi-mt6797-add-dormant-PN-epoch-helpers.patch
 proposals/0231-wifi-mt6797-bound-immediate-single-frame-TX-pump.patch
 proposals/0232-wifi-mt6797-bound-data-TX-owners-by-PID.patch
 proposals/0233-wifi-mt6797-yield-shortly-only-without-TX-progress.patch
+proposals/0234-wifi-mt6797-treat-active-data-phase-as-pending-receive.patch

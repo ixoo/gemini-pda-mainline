@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 13:30:00 -0400
+Subject: [PATCH] wifi: mt6797: treat an active data phase as pending receive work
+
+This driver has no receive interrupt: every receive record, including the TCP
+ACKs that keep a sender's window open, is drained inside the join worker. The
+pump predicate therefore left the worker on the 20 ms idle interval whenever
+the TX queue momentarily emptied, so inbound records waited up to one idle
+interval.
+
+Count an active data phase as pending work so the short interval applies while
+connected. Scheduling only: no change to depth, credit accounting, PID
+ownership, deadlines or join admission, and the existing bounded no-progress
+guard still prevents an unbounded spin.
+
+Measurement profile only; not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 12 +++++++++---
+ 1 file changed, 9 insertions(+), 3 deletions(-)
+
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c	2026-10-23 13:27:09
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c	2026-10-23 13:27:09
+@@ -4247,9 +4247,16 @@
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ 	if (ccmp_stable_epoch && !mt6797_snapshot_active(mac->snapshot)) {
+ 		unsigned int delay_ms;
++		/* A connected data phase can deliver a record (including a TCP ACK
++		 * for a frame just sent) at any moment, and this driver has no RX
++		 * interrupt: every receive runs inside this worker. Treat an active
++		 * data phase as pending work so the short interval applies, not the
++		 * idle one. Bounded by the existing no-progress guard.
++		 */
+ 		bool pending = !skb_queue_empty(&mac->join_queue) ||
+ 			mac->join_inflight || mac->data_slots.count || mac->join_credit_pending ||
+-			mac->join_page_debt || mac->join_data_page_debt;
++			mac->join_page_debt || mac->join_data_page_debt ||
++			(mac->join_data_phase && !mac->join_data_ended);
+ 
+ 		delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
+ 						  pending, pump_progress);
