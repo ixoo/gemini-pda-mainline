@@ -76,3 +76,13 @@ Verification occurs at build/package, host-seal, installation and physical-boot
 stage boundaries, or after a material content change. No run has happened at
 this offline checkpoint. The owner must physically select boot2 after verified
 installation and shutdown.
+
+## Installation handoff
+
+The reviewed installer wrote/synced/flushed boot2 and verified matching full
+readback `574fb99045fb13261235372fb1549b8682116fc534fc13d417226eb6787726c7`.
+Clean shutdown confirmed unreachable. Both capture and session offline
+constructors passed against the genuine depth deployment receipt; host hashes
+and candidate/receipt bindings were verified at the physical-handoff boundary.
+The one measurement attempt is unconsumed. Physical boot2 selection is pending;
+no throughput result is claimed for depth four yet.

@@ -1,14 +1,31 @@
-# Current work: pump-1 recorded; bounded data depth authorized
+# Current work: depth four installed; physical boot2 selection pending
 
 [Pump-1 result](TX_PUMP_RESULT.md): TX 0.291 Mbit/s (+41% aggregate), RX
-2.846 Mbit/s, CPU idle 86.5% / 82.6%. Five 1 s chunks per direction;
-standard disconnect accepted, whole-ledger stage 3 and status-0 deauth.
-Reviewed return independently confirmed Gemian. Consumed, no retry.
+2.846 Mbit/s, CPU idle 86.5% / 82.6%. Standard disconnect accepted;
+whole-ledger stage 3 and status-0 deauth. Consumed, no retry.
 
-Next owner-selected pass: data depth four, fixed 6 Mbps descriptor unchanged.
-Offline implementation and fixtures precede build and one measurement; no
-new candidate or device eligibility is claimed here. DMA deferred; reconnect
-closed. Host harness and source reading delegated, root is device custodian.
+[Depth comparison](TX_DEPTH_COMPARISON.md): patch 0232 adds at most four
+ordinary data owners, exact PID completion and unchanged 750 ms bounds.
+Management/reserved ownership, page reconciliation, descriptor fixed nominal
+6 Mbps, admission and resource caps stay unchanged. Actual-source fixtures at
+depths one/four, ASAN/UBSAN, strict checkpatch and repository checks pass.
+Validated Buildbox build `957b5f3e` differs in configuration only by depth=4.
+Actual prepared files match the reviewed source; descriptor and credit guard
+are byte-identical to pump-1.
+
+Full boot2 `574fb99045fb13261235372fb1549b8682116fc534fc13d417226eb6787726c7`
+was written, synced/flushed and fully read back with matching SHA-256. Clean
+Gemian shutdown confirmed unreachable. Genuine receipt and both offline host
+constructors pass; sealed host inputs verified at this physical-handoff stage.
+No depth measurement has run; its one attempt is unconsumed.
+
+Runtime: `artifacts/wifi-throughput-depth-1`. After the owner selects boot2,
+root launches `artifacts/wifi-tx-depth-work/hosts/throughput-run.py` with that
+runtime and `--execute` exactly once. The finite procedure verifies fresh live
+identity before firmware start, uses five 1 s/1 MiB chunks per direction and
+prompt standard disconnect, then seals evidence and performs reviewed return.
+No retry, rate change, DMA, rekey or protected re-arm. Root remains device
+custodian; host harness and source reading were delegated.
 
 # Historical handoff: baseline 2 measured; bounded TX pump comparison
 
