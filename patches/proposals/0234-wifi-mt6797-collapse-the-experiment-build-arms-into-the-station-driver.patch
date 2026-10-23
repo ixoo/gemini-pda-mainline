@@ -1,0 +1,930 @@
+From 4451218f660ede201bb0aec8e03f15daabddd51b Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 15:39:11 -0400
+Subject: [PATCH] wifi: mt6797: collapse the experiment build arms into the
+ station driver
+
+The driver grew as a chain of seventeen default-off Kconfig arms plus two
+module parameters that selected among lifetimes, windows and observers.
+Only one combination is contract-correct and has passed the 120 s and 600 s
+gates: the checked stable-epoch receive path with the initial GTK, the
+connected lifetime, PID reuse, depth-four TX and the progress-aware yield.
+Make that combination the only build arm.
+
+Keep the compile-time symbols the source still uses, but turn them into
+def_bool facts that follow MT6797_MAC80211 instead of user choices, and
+retire the four arms the working driver never takes: the read-only scan
+tuning samples, the 50-second idle-tail comparison, the register-write
+mask-control comparison (the only write through the diagnostic path, which
+the firmware contract forbids), and the dormant lifetime-prerequisite
+helpers that had no caller. The native-delivery diagnostic is now never
+armed and the stable epoch is always armed; both former module parameters
+become constants so the compiler drops the dead branches. No command,
+descriptor, deadline, credit or data-path behaviour changes for the arm
+that runs on the device.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 210 +++---------------
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  52 -----
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   9 -
+ .../mediatek/mt6797/join-command-submit.h     |  12 +-
+ .../wireless/mediatek/mt6797/join-commands.h  |  22 --
+ .../wireless/mediatek/mt6797/lifetime-fence.h |  71 ------
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 111 +--------
+ .../wireless/mediatek/mt6797/native-diag.h    |   4 -
+ .../wireless/mediatek/mt6797/normal_command.h |  64 ------
+ .../net/wireless/mediatek/mt6797/pn-epoch.h   |  99 ---------
+ 10 files changed, 42 insertions(+), 612 deletions(-)
+ delete mode 100644 drivers/net/wireless/mediatek/mt6797/lifetime-fence.h
+ delete mode 100644 drivers/net/wireless/mediatek/mt6797/pn-epoch.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index f8a0388e2..3956584bb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -1,208 +1,72 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config MT6797_HIF_CORE
+-	bool "MT6797 private WLAN HIF transport core"
++	bool "MT6797 WLAN host interface transport"
+ 	depends on ARM64 && FW_LOADER
+ 	select CRC32
+ 	default n
+ 	help
+-	  Build the private ordered AHB transport and bounded ordinary INIT
+-	  section implementation. There is no platform probe or runtime caller
+-	  until a real CONSYS owner supplies the required powered mapping and
+-	  exclusion. This option does not provide a usable Wi-Fi device.
++	  Build the ordered AHB transport, the firmware image loader and the
++	  bounded ordinary INIT section implementation for the MT6797
++	  connectivity subsystem. The CONSYS owner supplies the powered mapping
++	  and exclusion; this option alone provides no Wi-Fi device.
+ 
+ config MT6797_MAC80211
+-	bool "MT6797 WLAN regulatory configuration integration"
++	bool "MT6797 WLAN mac80211 station driver"
+ 	depends on MT6797_HIF_CORE && MAC80211
+ 	default n
+ 	help
+-	  Register the 2.4 GHz channel inventory with mac80211 and submit
+-	  retained configuration under cfg80211 regulatory ownership.
+-	  By itself radio and packet operations remain unavailable. This experimental
+-	  option does not yet provide a usable station interface.
++	  Register the MT6797 WLAN function with mac80211 as a managed-mode
++	  station: regulatory configuration, passive scan, one WPA2-PSK station
++	  lifetime per boot with firmware-owned encryption and connection
++	  monitoring, checked CCMP receive with host PN validation, and a bounded
++	  programmed-I/O data path. Reconnect, rekey and power save are not yet
++	  supported.
+ 
++# The following symbols are build-structure facts of the station driver, not
++# user choices. They follow MT6797_MAC80211 and keep the source's existing
++# compile-time structure while the experiment arms are retired one by one.
+ config MT6797_HIF_TX_STATUS_PROBE
+-	bool "MT6797 bounded WLAN returned-page observation"
+-	depends on MT6797_MAC80211
+-	default n
+-	help
+-	  Read interrupt/control and returned-page counters once before normal
+-	  commands and twice after configuration, with no intervening commands.
+-	  These reads may consume hardware status. No credit refund, IRQ enable,
+-	  radio request or packet DMA is performed. Experimental diagnostic only.
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_HIF_TC4_RECONCILE
+-	bool "MT6797 bounded normal TC4 credit reconciliation"
+-	depends on MT6797_HIF_TX_STATUS_PROBE
+-	default n
+-	help
+-	  Require a zero returned-page baseline and reconcile the complete
+-	  post-configuration counter pair against the sole normal TC4 ledger.
+-	  Retain separate CPU and free-pool pending counts, refunding only their
+-	  minimum within the outstanding debit. No extra completion estimate,
+-	  IRQ enable, radio request or packet DMA is performed.
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_PASSIVE_SCAN
+-	bool "MT6797 one-shot passive mac80211 scan"
+-	depends on MT6797_HIF_TC4_RECONCILE
+-	default n
+-	help
+-	  Admit one standard station-type interface for one passive 2.4 GHz
+-	  hardware scan, bounded to permitted channels with no probe requests.
+-	  Poll RX and fresh TC4 accounting under the retained exclusive PIO
+-	  owner while IRQs stay disabled. Validate native beacon descriptors and
+-	  report them through cfg80211. Cancellation, timeout and failure abort
+-	  the host request and retire its wire lifetime; they are not firmware
+-	  stop acknowledgements. No association, key, data TX or DMA is provided.
+-
+-config MT6797_SCAN_TUNING_SAMPLE
+-	bool "MT6797 bounded read-only scan tuning samples"
+-	depends on MT6797_PASSIVE_SCAN
+-	default n
+-	help
+-	  During the sole passive scan, issue at most four read-only firmware
+-	  RAM queries for two fixed channel-state words. Match exact replies
+-	  within 100 ms using fresh shared command sequences. Samples are
+-	  non-atomic software state, not proof of RF tuning or listening time.
+-	  No arbitrary register access or register write interface is exposed.
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_STATION_JOIN
+-	bool "MT6797 experimental bounded legacy station join"
+-	depends on MT6797_PASSIVE_SCAN
+-	default n
+-	help
+-	  Retain one AIS BSS after a successful passive channel-40 scan for a
+-	  ten-second host setup budget. A healthy unused handoff may request
+-	  deactivation once; poisoned resources remain retired until recovery.
+-	  Copy BSS and operating-channel state without retaining stack pointers.
+-	  This incomplete implementation leaves management TX closed and has
+-	  no keys, data path, DMA or interrupts. Existing passive-scan profiles
+-	  do not enable this option.
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_NATIVE_DELIVERY_DIAG
+-	bool "MT6797 default-off native-crypto-delivery diagnostic (proposal 0181)"
+-	depends on MT6797_STATION_JOIN
+-	default n
+-	help
+-	  A default-off, separately profiled diagnostic that, after one healthy
+-	  associated data phase, submits the pinned 16-byte SET_MONITOR command
+-	  once, admits a bounded window of ordinary RX as untouched protected
+-	  native MPDUs to standard mac80211 with every crypto bypass/strip flag
+-	  clear (so mac80211 runs the full CCMP AEAD/MIC and replay check), and
+-	  submits one disable on a healthy end. It is armed only by the
+-	  native_delivery_diag module parameter and is absent from the build
+-	  unless this option is set; the Phase B compile profile does not set it.
+-	  Not driver support; a bounded source-grounded crypto-delivery test.
+-
+-config MT6797_CCMP_50S_IDLE
+-	bool "MT6797 default-off 50-second idle-tail comparison"
+-	depends on MT6797_CCMP_CHANNEL_RELEASE
+-	default n
+-	help
+-	  Shorten only the data and diagnostic walls to 50 seconds. Keep the
+-	  nine-second join privilege, all resource caps and operation bounds.
+-	  Use the separately reviewed four-probe leaf. No crypto, RX format,
+-	  key/PID reuse or reconnect changes; not sustained support.
++	def_bool MT6797_MAC80211
+ 
+-config MT6797_CCMP_TX_PID_REUSE
+-	bool "MT6797 default-off completed TX PID reuse"
+-	depends on MT6797_CCMP_CONNECTED_LIFETIME
+-	default n
+-	help
+-	  Recycle ordinary frame IDs only after the exact owned completion and
+-	  returned credits. Keep one frame in flight; reserve ID 127 for the
+-	  lifetime's deauthentication. Never recycle on timeout or ambiguity.
+-	  This does not enable key reuse, rekey or a second station lifetime.
+-
+-config MT6797_CCMP_CONNECTED_LIFETIME
+-	bool "MT6797 default-off connected station lifetime"
+-	depends on MT6797_CCMP_CHANNEL_RELEASE && !MT6797_CCMP_50S_IDLE
+-	default n
+-	help
+-	  Keep the initial connected BSS alive until standard teardown or an
+-	  existing resource/fault stop. Preserve the pre-data join fence and
+-	  per-operation bounds; arm the five-second cleanup fence at data end.
+-	  The 60-second sample wall and cumulative join poll quota do not end
+-	  connected data. RX/byte/PID/queue caps remain, with no reuse or rekey.
+-	  This is not sustained support or a reusable key/station lifecycle.
++config MT6797_CCMP_STABLE_EPOCH
++	def_bool MT6797_MAC80211
+ 
+-config MT6797_CCMP_CHANNEL_RELEASE
+-	bool "MT6797 default-off connected data after join privilege release"
+-	depends on MT6797_CCMP_INITIAL_GTK
+-	default n
+-	help
+-	  Request nine seconds for joining, then return that privilege during
+-	  the existing 60-second initial-key window. Hold new TX across the
+-	  existing command credit deadline; retain all resource caps and the
+-	  finite teardown. No rekey, reuse, reconnect or sustained support claim.
++config MT6797_CCMP_60S_WINDOW
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_CCMP_INITIAL_GTK
+-	bool "MT6797 default-off checked initial GTK compatibility"
+-	depends on MT6797_CCMP_60S_WINDOW
+-	default n
+-	help
+-	  Extend the single initial-key experiment with an independently seeded
+-	  strict GTK PN context, group/BMC attribution and checked Ethernet RX.
+-	  Keep all receive/transport limits and the standard mac80211 handoff.
+-	  No rekey, reuse, reconnect or maintained crypto support claim.
+-
+-config MT6797_CCMP_60S_WINDOW
+-	bool "MT6797 default-off 60-second initial-key observation"
+-	depends on MT6797_CCMP_MASK_CONTROL
+-	default n
+-	help
+-	  Request exactly 65 seconds of channel ownership and admit a 60-second
+-	  data phase only with enough actual grant remaining for its cleanup
+-	  tail. Preserve every resource cap and command/frame/cleanup timeout.
+-	  Independent of RX format ownership; no sustained support claim.
++	def_bool MT6797_MAC80211
+ 
+-config MT6797_CCMP_STABLE_EPOCH
+-	bool "MT6797 default-off monitor-assisted stable PTK compatibility"
+-	depends on MT6797_NATIVE_DELIVERY_DIAG
+-	default n
+-	help
+-	  Reuse the admitted finite monitor protocol for one initial station/key
+-	  epoch. Checked hardware-CCMP Ethernet RX with driver PN validation uses
+-	  standard mac80211 decap. GTK RX, rekey, slot reuse and normal-mode PN
+-	  production are not supported. The read-only ccmp_stable_epoch arm is
+-	  mutually exclusive with native_delivery_diag. No IRQ/DMA changes.
++config MT6797_CCMP_CHANNEL_RELEASE
++	def_bool MT6797_MAC80211
+ 
+-config MT6797_CCMP_MASK_CONTROL
+-	bool "MT6797 default-off observed mask-only control comparison"
+-	depends on MT6797_CCMP_STABLE_EPOCH
+-	default n
+-	help
+-	  Compare one observed three-bit firmware control primitive with the
+-	  global monitor operation, retaining all initial-PTK diagnostic limits.
+-	  Only one fixed address and values 7/0 are admitted. This does not
+-	  establish group meanings, firmware integrity or healthy key reuse.
++config MT6797_CCMP_CONNECTED_LIFETIME
++	def_bool MT6797_MAC80211
+ 
+-config MT6797_CCMP_LIFETIME_PREREQUISITES
+-	bool "MT6797 dormant protected-lifetime prerequisites"
+-	depends on MT6797_CCMP_STABLE_EPOCH
+-	default n
+-	help
+-	  Compile unconsumed host drain-fence and PN-epoch helpers for offline
+-	  fixtures. No command, polling, re-arm or admission caller is added.
+-	  Firmware retirement evidence remains required before any consumer.
+-	  This option does not enable a second protected lifetime.
++config MT6797_CCMP_TX_PID_REUSE
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_CCMP_TX_PUMP
+-	bool "MT6797 bounded immediate single-frame TX pump measurement"
+-	depends on MT6797_CCMP_CONNECTED_LIFETIME && MT6797_CCMP_TX_PID_REUSE
+-	default n
+-	help
+-	  Poll back-to-back while queued frames, completions or credit remain.
+-	  After at most 32 iterations without TX progress, request a 1 ms
+-	  yield. Idle polls retain 20 ms. This changes scheduling only, not
+-	  in-flight depth, credit accounting, PID ownership, deadlines or join
+-	  admission. Enable only in the dedicated throughput measurement profile.
++	def_bool MT6797_MAC80211
+ 
+ config MT6797_CCMP_TX_DEPTH
+-	int "MT6797 maximum outstanding ordinary data frames"
++	int
+ 	depends on MT6797_CCMP_TX_PUMP
+ 	range 1 4
+-	default 1
++	default 4
+ 	help
+-	  Bound ordinary data TX owners by PID, with the existing TC1 ledger.
+-	  Management, security and reserved frames retain their single owner.
+-	  Use four only in the dedicated throughput measurement profile.
++	  Maximum outstanding ordinary data frames, bounded by PID ownership and
++	  the TC1 page ledger. Management, security and reserved frames keep a
++	  single owner.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index eee6db409..86a1bb7a6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -836,20 +836,6 @@ int mt6797_hif_native_monitor(struct mt6797_hif *hif, unsigned int sequence,
+ }
+ #endif
+ 
+-#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+-/* Same shared owner/credit path as SET_MONITOR; no readback or retry.
+- * Zero proves PIO submission, not control completion or resource retirement.
+- */
+-int mt6797_hif_diag_mask(struct mt6797_hif *hif, unsigned int sequence,
+-			 bool enable, u64 deadline_ns)
+-{
+-	u8 payload[MT6797_DIAG_MASK_BYTES];
+-
+-	mt6797_diag_mask_payload(enable, payload);
+-	return mt6797_hif_send_join_command(hif, 0xc0, sequence, payload,
+-					   sizeof(payload), false, deadline_ns);
+-}
+-#endif
+ 
+ /*
+  * True only when the post-record normal owner is idle with every TC4 page
+@@ -1068,44 +1054,6 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 	return error;
+ }
+ 
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+-				unsigned int sequence, u64 deadline_ns)
+-{
+-	struct mt6797_hif_pio_result transfer;
+-	struct mt6797_hif_command command;
+-	int error;
+-
+-	if (!hif || !mt6797_scan_tuning_address(role) || sequence > 255)
+-		return -EINVAL;
+-	if (!mutex_trylock(&hif->mutex))
+-		return -EBUSY;
+-	if (!hif->firmware_ready || !hif->capability_complete ||
+-	    hif->transaction->phase != MT6797_INIT_IDLE ||
+-	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
+-		error = -EIO;
+-		goto unlock;
+-	}
+-	error = mt6797_hif_enter(hif, deadline_ns);
+-	if (error)
+-		goto out;
+-	error = mt6797_normal_prepare_scan_tuning(&hif->normal, role, sequence,
+-						  hif->scratch, sizeof(hif->scratch), &command);
+-	if (error)
+-		goto out;
+-	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
+-					hif->scratch, 16, sizeof(hif->scratch), &transfer);
+-	error = mt6797_normal_submitted(&hif->normal, error);
+-	if (!error)
+-		error = mt6797_hif_guard(hif);
+-out:
+-	if (error)
+-		error = mt6797_hif_fail(hif, error);
+-unlock:
+-	mutex_unlock(&hif->mutex);
+-	return error;
+-}
+-#endif
+ 
+ /* Read one port-0 packet only when its earlier 89-byte length is unchanged.
+  * Keep all payload bytes private to the HIF scratch buffer.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 84e3025bd..30cc1b193 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -198,10 +198,6 @@ int mt6797_hif_observe_port0(struct mt6797_hif *hif, u64 deadline_ns,
+  * retained normal owner. The caller owns payload provenance, ordering and regulatory policy.
+  * A successful return proves only PIO submission, not firmware application.
+  */
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-int mt6797_hif_send_scan_tuning(struct mt6797_hif *hif, unsigned int role,
+-				unsigned int sequence, u64 deadline_ns);
+-#endif
+ 
+ /* Process context only. Encoded payloads do not prove slot ownership or
+  * legal channel admission. The MAC owner must serialize pending responses,
+@@ -246,11 +242,6 @@ int mt6797_hif_native_monitor(struct mt6797_hif *hif, unsigned int sequence,
+ 			      bool enable, u8 channel, u64 deadline_ns);
+ #endif
+ 
+-#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+-/* Default-off exact observed mask operation, using the existing TC4 owner. */
+-int mt6797_hif_diag_mask(struct mt6797_hif *hif, unsigned int sequence,
+-			 bool enable, u64 deadline_ns);
+-#endif
+ 
+ /* One native bounded management frame through the existing TC4 PIO owner.
+  * Process context only. Caller owns station/channel generation, destination,
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index 606b7b367..4530b83a1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -59,17 +59,7 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	case 0x1c:
+ 		required = 16;
+ 		break;
+-#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+-	case 0xc0:
+-		/* Only the exact observed store; reject lengths before field reads. */
+-		if (bytes != MT6797_DIAG_MASK_BYTES ||
+-		    mt6797_join_le32(payload) != MT6797_DIAG_MASK_TARGET ||
+-		    (mt6797_join_le32(payload + 4) != 0 &&
+-		     mt6797_join_le32(payload + 4) != 7))
+-			return -EINVAL;
+-		required = MT6797_DIAG_MASK_BYTES;
+-		break;
+-#elif defined(CONFIG_MT6797_NATIVE_DELIVERY_DIAG)
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	case 0xfc:
+ 		/* CMD_ID_SET_MONITOR, the default-off native-crypto-delivery
+ 		 * diagnostic's one 16-byte SET_MONITOR (proposal 0181). Present
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index f935147b6..44f1fbadc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -310,28 +310,6 @@ mt6797_native_monitor_payload(bool enable, unsigned char channel,
+ 	return true;
+ }
+ 
+-#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+-/* Observed stock callback's complete Boolean-mask store, not a general MCR API.
+- * Group meanings and pending-format ownership remain diagnostic questions.
+- */
+-#define MT6797_DIAG_MASK_BYTES 8U
+-#define MT6797_DIAG_MASK_TARGET 0x800c0068U
+-static inline bool
+-mt6797_diag_mask_payload(bool enable, unsigned char output[MT6797_DIAG_MASK_BYTES])
+-{
+-	unsigned int i;
+-
+-	if (!output)
+-		return false;
+-	for (i = 0; i < 4; i++)
+-		output[i] = MT6797_DIAG_MASK_TARGET >> (8 * i);
+-	output[4] = enable ? 7 : 0;
+-	output[5] = 0;
+-	output[6] = 0;
+-	output[7] = 0;
+-	return true;
+-}
+-#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ #define MT6797_JOIN_PM_CONNECTED_BYTES 12U
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/lifetime-fence.h b/drivers/net/wireless/mediatek/mt6797/lifetime-fence.h
+deleted file mode 100644
+index 63d633430..000000000
+--- a/drivers/net/wireless/mediatek/mt6797/lifetime-fence.h
++++ /dev/null
+@@ -1,71 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
+-#ifndef MT6797_LIFETIME_FENCE_H
+-#define MT6797_LIFETIME_FENCE_H
+-
+-#ifdef CONFIG_MT6797_CCMP_LIFETIME_PREREQUISITES
+-#define MT6797_FENCE_QUIET_NS 100000000ULL
+-#define MT6797_FENCE_BUDGET_NS 200000000ULL
+-
+-/* Supplied observations only: no command, reader, wait or admission caller.
+- * reply_prefix_proven requires established round-trip ordering semantics,
+- * not merely a matching reply or returned command-buffer credit. The pending
+- * firmware evidence must establish that meaning before a production caller.
+- * quiet_records covers EVERY RX record throughout [quiet_start, quiet_end].
+- * A quiet interval alone never proves retirement of a delayed producer.
+- */
+-struct mt6797_lifetime_fence_input {
+-	bool queue_empty, ledger_whole, reply_matched, reply_prefix_proven;
+-	unsigned int pending_records, card_credit, command_credit;
+-	unsigned int pending_cpu, pending_ffa, quiet_records;
+-	u64 teardown_completed_ns, roundtrip_sent_ns, reply_ns;
+-	u64 quiet_start_ns, quiet_end_ns;
+-};
+-
+-struct mt6797_lifetime_fence {
+-	bool consumed;
+-};
+-
+-/* One evaluation only, including refusal. Result is a host prerequisite,
+- * never permission to re-arm; no live caller consumes it.
+- */
+-static inline bool
+-mt6797_lifetime_drain_fence(struct mt6797_lifetime_fence *f,
+-			    const struct mt6797_lifetime_fence_input *i)
+-{
+-	bool fresh = f && !f->consumed;
+-	bool pass = false;
+-	u64 quiet = 0;
+-
+-	if (f)
+-		f->consumed = true;
+-	if (i) {
+-		if (i->quiet_end_ns >= i->quiet_start_ns)
+-			quiet = i->quiet_end_ns - i->quiet_start_ns;
+-		pass = fresh && i->queue_empty && i->ledger_whole &&
+-			!i->pending_records && !i->card_credit && !i->command_credit &&
+-			!i->pending_cpu && !i->pending_ffa && !i->quiet_records &&
+-			i->reply_matched && i->reply_prefix_proven &&
+-			i->teardown_completed_ns &&
+-			i->roundtrip_sent_ns > i->teardown_completed_ns &&
+-			i->reply_ns >= i->roundtrip_sent_ns &&
+-			i->quiet_start_ns >= i->reply_ns &&
+-			quiet >= MT6797_FENCE_QUIET_NS &&
+-			quiet <= MT6797_FENCE_BUDGET_NS;
+-		pr_info("mt6797 host fence: pass=%u fresh=%u queue_empty=%u ledger_whole=%u pending_records=%u card_credit=%u command_credit=%u pending_cpu=%u pending_ffa=%u quiet_records=%u reply_matched=%u prefix_proven=%u teardown_ns=%llu sent_ns=%llu reply_ns=%llu quiet_start_ns=%llu quiet_end_ns=%llu admission_unchanged=1\n",
+-			pass, fresh, i->queue_empty, i->ledger_whole,
+-			i->pending_records, i->card_credit, i->command_credit,
+-			i->pending_cpu, i->pending_ffa, i->quiet_records,
+-			i->reply_matched, i->reply_prefix_proven,
+-			(unsigned long long)i->teardown_completed_ns,
+-			(unsigned long long)i->roundtrip_sent_ns,
+-			(unsigned long long)i->reply_ns,
+-			(unsigned long long)i->quiet_start_ns,
+-			(unsigned long long)i->quiet_end_ns);
+-	} else {
+-		pr_info("mt6797 host fence: pass=0 fresh=%u missing_input=1 admission_unchanged=1\n",
+-			fresh);
+-	}
+-	return pass;
+-}
+-#endif
+-#endif /* MT6797_LIFETIME_FENCE_H */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 287e4c97a..cf8b5e8a1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -23,18 +23,14 @@
+ #include "group-data.h"
+ #include "data-rx.h"
+ #include "join-rearm.h"
+-#include "lifetime-fence.h"
+-#include "pn-epoch.h"
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ #include "join-pump.h"
+ #endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ #include "native-diag.h"
+ #include "native-beacon.h"
+-static bool native_delivery_diag;
+-module_param(native_delivery_diag, bool, 0444);
+-MODULE_PARM_DESC(native_delivery_diag,
+-		 "Arm the default-off native-crypto-delivery diagnostic (0181)");
++/* The native-crypto-delivery diagnostic is retired: never armed. */
++static const bool native_delivery_diag;
+ #endif
+ #include "action-frame.h"
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+@@ -43,11 +39,9 @@ MODULE_PARM_DESC(native_delivery_diag,
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ #include "ccmp-gtk-rx.h"
+ #endif
+-static bool ccmp_stable_epoch;
++/* The checked stable-epoch path is the only receive model now. */
++static const bool ccmp_stable_epoch = true;
+ static const u32 mt6797_ccmp_ciphers[] = { WLAN_CIPHER_SUITE_CCMP };
+-module_param(ccmp_stable_epoch, bool, 0444);
+-MODULE_PARM_DESC(ccmp_stable_epoch,
+-		 "Arm one monitor-assisted stable PTK epoch; excludes native_delivery_diag");
+ #endif
+ static bool snapshot_enable;
+ module_param(snapshot_enable, bool, 0444);
+@@ -121,11 +115,7 @@ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
+  * and the poll and packet caps that cover scan hand-off, join, data phase and
+  * teardown at the 20 ms poll period. All are chosen host limits.
+  */
+-#ifdef CONFIG_MT6797_CCMP_50S_IDLE
+-#define MT6797_JOIN_DATA_BUDGET_MS 50000U
+-#else
+ #define MT6797_JOIN_DATA_BUDGET_MS 60000U
+-#endif
+ #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
+ /* The data phase runs inside the channel grant (the reference's first data
+  * frames did) and ends this long before the grant does. The tail covers, in
+@@ -372,11 +362,6 @@ struct mt6797_mac {
+ 	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	u64 tuning_sent_ns, tuning_deadline;
+-	unsigned int tuning_submitted, tuning_received, tuning_sequence;
+-	bool tuning_pending;
+-#endif
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ #endif
+ };
+@@ -1192,20 +1177,11 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 		 MT6797_PASSIVE_SCAN_DWELL_MS,
+ 		 (ktime_get_ns() - mac->scan_started_ns) / NSEC_PER_USEC,
+ 		 mac->scan_count);
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot passive WLAN tuning summary: submitted=%u received=%u pending=%u atomic=0 rf_proven=0\n",
+-		 mac->tuning_submitted, mac->tuning_received, mac->tuning_pending);
+-#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	mac->join_scan_ready = false;
+ 	if (!cancel && !*status && !mac->first_error) {
+ 		if (!mac->bss_active || mac->join_retired || mac->scan_count != 1 ||
+ 		    mac->scan_channels != BIT(mt6797_channel_slot(40)) ||
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-		    mac->tuning_pending ||
+-		    mac->tuning_received != mac->tuning_submitted ||
+-#endif
+ 		    !mt6797_hif_normal_idle(mac->hif)) {
+ 			*status = -EPROTO;
+ 			mac->first_error = *status;
+@@ -1267,27 +1243,6 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 		if (bytes < 8)
+ 			return -EPROTO;
+ 		switch (packet[4]) {
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-		case 5: {
+-			unsigned int value, index = mac->tuning_received;
+-			u64 now = ktime_get_ns();
+-
+-			if (!mac->tuning_pending || now >= mac->tuning_deadline)
+-				return -EPROTO;
+-			ret = mt6797_scan_tuning_reply(packet, bytes, index % 2,
+-						       mac->tuning_sequence, &value);
+-			if (ret)
+-				return ret;
+-			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot passive WLAN tuning sample: sample=%u role=%u value=%u sent_us=%llu received_us=%llu post_done=%u\n",
+-				 index / 2, index % 2, value,
+-				 (mac->tuning_sent_ns - mac->scan_started_ns) / NSEC_PER_USEC,
+-				 (now - mac->scan_started_ns) / NSEC_PER_USEC, *done);
+-			mac->tuning_received++;
+-			mac->tuning_pending = false;
+-			return 0;
+-		}
+-#endif
+ 		case 0x0d:
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot passive WLAN done header: len=%zu seq=%u payload_seq=%u\n",
+@@ -2557,20 +2512,10 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 	act = mt6797_native_diag_transition(&c);
+ 	mac->native_diag_state = c.state;
+ 	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
+-#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+-		rc = mt6797_hif_diag_mask(mac->hif, mac->sequence++,
+-					  act == MT6797_ND_ACT_SUBMIT_ENABLE,
+-					  min_t(u64, mac->join_deadline,
+-						ktime_get_ns() + 100 * NSEC_PER_MSEC));
+-		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN mask-control submission: enable=%u status=%d\n",
+-			 (unsigned int)(act == MT6797_ND_ACT_SUBMIT_ENABLE), rc);
+-#else
+ 		rc = mt6797_hif_native_monitor(mac->hif, mac->sequence++,
+ 					       act == MT6797_ND_ACT_SUBMIT_ENABLE, 40,
+ 					       min_t(u64, mac->join_deadline,
+ 						     ktime_get_ns() + 100 * NSEC_PER_MSEC));
+-#endif
+ 		if (rc) {
+ 			if (!mac->first_error)
+ 				mac->first_error = rc;
+@@ -4319,48 +4264,13 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	now = ktime_get_ns();
+ 	if (now >= mac->scan_deadline || ++mac->scan_polls > 256) {
+ 		ret = -ETIMEDOUT;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-		if (mac->tuning_pending)
+-			goto failed;
+-#endif
+ 		cancel = true;
+ 		goto finish;
+ 	}
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	if (mac->tuning_pending && now >= mac->tuning_deadline) {
+-		ret = -ETIMEDOUT;
+-		goto failed;
+-	}
+-#endif
+ 	deadline = min_t(u64, now + 100 * NSEC_PER_MSEC, mac->scan_deadline);
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	if (mac->tuning_pending)
+-		deadline = min(deadline, mac->tuning_deadline);
+-#endif
+ 	ret = mt6797_mac_scan_guard(mac, deadline);
+ 	if (ret)
+ 		goto failed;
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	if (!mac->tuning_pending && mac->tuning_submitted < 4 &&
+-	    now - mac->scan_started_ns >=
+-	    (mac->tuning_submitted < 2 ? 100 : 300) * NSEC_PER_MSEC) {
+-		if (mac->sequence > 255) {
+-			ret = -ENOSPC;
+-			goto failed;
+-		}
+-		mac->tuning_sequence = mac->sequence++;
+-		mac->tuning_sent_ns = ktime_get_ns();
+-		mac->tuning_deadline = min_t(u64, mac->scan_deadline,
+-					     mac->tuning_sent_ns + 100 * NSEC_PER_MSEC);
+-		ret = mt6797_hif_send_scan_tuning(mac->hif,
+-						  mac->tuning_submitted % 2, mac->tuning_sequence,
+-						  mac->tuning_deadline);
+-		if (ret)
+-			goto failed;
+-		mac->tuning_submitted++;
+-		mac->tuning_pending = true;
+-	}
+-#endif
+ 	/* Alternate ports, at most sixteen packets per tick and 4096 overall.
+ 	 * Finish this bounded tick after a done event so the other port is not
+ 	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
+@@ -4391,15 +4301,6 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		if (!got)
+ 			break;
+ 	}
+-#if IS_ENABLED(CONFIG_MT6797_SCAN_TUNING_SAMPLE)
+-	/* A pending query gets only this existing bounded RX tick after DONE.
+-	 * Do not extend the scan lifetime or submit any query after DONE.
+-	 */
+-	if (mac->tuning_pending && (done || ktime_get_ns() >= mac->tuning_deadline)) {
+-		ret = -ETIMEDOUT;
+-		goto failed;
+-	}
+-#endif
+ 	if (done)
+ 		goto finish;
+ 	schedule_delayed_work(&mac->scan_work, msecs_to_jiffies(20));
+@@ -5985,10 +5886,6 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch && native_delivery_diag)
+ 		return -EINVAL;
+-#endif
+-#ifdef CONFIG_MT6797_CCMP_MASK_CONTROL
+-	if (!ccmp_stable_epoch)
+-		return -EINVAL;
+ #endif
+ 	if (capability->product != 0x6797 || capability->firmware_own != 0x0403 ||
+ 	    capability->firmware_peer || capability->rf_cal_fail ||
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index 9325836da..f35f1acf6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -15,11 +15,7 @@
+  */
+ #ifdef CONFIG_MT6797_CCMP_60S_WINDOW
+ /* One admitted 60-second observation; resource caps below remain independent. */
+-#ifdef CONFIG_MT6797_CCMP_50S_IDLE
+-#define MT6797_NATIVE_DIAG_WALL_MS    50000U
+-#else
+ #define MT6797_NATIVE_DIAG_WALL_MS    60000U
+-#endif
+ #else
+ #define MT6797_NATIVE_DIAG_WALL_MS    10000U        /* 10 s post-switch wall */
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index afa17e4af..26dc78f39 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -307,70 +307,6 @@ mt6797_normal_prepare(struct mt6797_normal_transaction *t,
+ 	return -EINVAL;
+ }
+ 
+-/* Read-only scan diagnostic: exactly two ordinary firmware RAM words.
+- * Role 0 is the completed tuning band cache; role 1 contains requested channel
+- * metadata. No hardware, special command prefix or arbitrary address is admitted.
+- */
+-static inline unsigned int mt6797_scan_tuning_address(unsigned int role)
+-{
+-	return role == 0 ? 0xf006c040U : role == 1 ? 0xf006bf7cU : 0;
+-}
+-
+-static inline int
+-mt6797_normal_prepare_scan_tuning(struct mt6797_normal_transaction *t,
+-				  unsigned int role, unsigned int sequence,
+-				  unsigned char *output, size_t capacity,
+-				  struct mt6797_hif_command *command)
+-{
+-	unsigned int address = mt6797_scan_tuning_address(role);
+-	unsigned char payload[8] = {0};
+-	int error;
+-
+-	if (!t || !command || !output)
+-		return -EINVAL;
+-	*command = (struct mt6797_hif_command){0};
+-	if (!address)
+-		return -EINVAL;
+-	if (t->phase != MT6797_NORMAL_NVRAM_SUBMITTED)
+-		return mt6797_normal_abort(t);
+-	payload[0] = (unsigned char)address;
+-	payload[1] = (unsigned char)(address >> 8);
+-	payload[2] = (unsigned char)(address >> 16);
+-	payload[3] = (unsigned char)(address >> 24);
+-	error = mt6797_normal_encode(t, 0xc0, 0, sequence, payload, 8, 16,
+-				     MT6797_NORMAL_CONFIG_TX, output, capacity, command);
+-	if (!error)
+-		t->config_return_phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+-	return error;
+-}
+-
+-/* Caller owns the single outstanding query and retires it on any error.
+- * Matching a reply does not refund TC4 credit or authorize another lifetime.
+- */
+-static inline int
+-mt6797_scan_tuning_reply(const unsigned char *packet, size_t bytes,
+-			 unsigned int role, unsigned int sequence,
+-			 unsigned int *value)
+-{
+-	unsigned int address = mt6797_scan_tuning_address(role);
+-	unsigned int reflected;
+-
+-	if (!packet || !value || !address || sequence > 255)
+-		return -EINVAL;
+-	*value = 0;
+-	if (bytes != 16 || mt6797_normal_le16(packet) != 16 ||
+-	    mt6797_normal_le16(packet + 2) != 0xe000 || packet[4] != 5 ||
+-	    packet[5] != sequence)
+-		return -EPROTO;
+-	reflected = (unsigned int)packet[8] | ((unsigned int)packet[9] << 8) |
+-		((unsigned int)packet[10] << 16) | ((unsigned int)packet[11] << 24);
+-	if (reflected != address)
+-		return -EPROTO;
+-	*value = (unsigned int)packet[12] | ((unsigned int)packet[13] << 8) |
+-		((unsigned int)packet[14] << 16) | ((unsigned int)packet[15] << 24);
+-	return 0;
+-}
+-
+ /* Selected no-reply configuration commands. The caller owns their order,
+  * payload content, regulatory policy and calibration provenance.
+  */
+diff --git a/drivers/net/wireless/mediatek/mt6797/pn-epoch.h b/drivers/net/wireless/mediatek/mt6797/pn-epoch.h
+deleted file mode 100644
+index 5ce97f462..000000000
+--- a/drivers/net/wireless/mediatek/mt6797/pn-epoch.h
++++ /dev/null
+@@ -1,99 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
+-#ifndef MT6797_PN_EPOCH_H
+-#define MT6797_PN_EPOCH_H
+-
+-#ifdef CONFIG_MT6797_CCMP_LIFETIME_PREREQUISITES
+-/* Opaque key-incarnation identity, not key bytes or a hash logged to userspace.
+- * Descriptor ownership MUST come from independently established provenance.
+- * Copying the current owner onto an untagged raw RXD is expressly invalid.
+- * No production caller, key-event attribution or descriptor tagging is added.
+- */
+-struct mt6797_pn_owner {
+-	u64 key_identity;
+-	u32 generation;
+-	u8 key_index, peer[6];
+-	bool pairwise;
+-};
+-
+-struct mt6797_pn_epoch {
+-	struct mt6797_pn_owner owner;
+-	u8 pn[6]; /* most significant byte first */
+-	bool initialized, active, seeded, retired;
+-};
+-
+-static inline bool
+-mt6797_pn_owner_equal(const struct mt6797_pn_owner *a,
+-		      const struct mt6797_pn_owner *b)
+-{
+-	return a->key_identity == b->key_identity &&
+-		a->key_index == b->key_index && a->generation == b->generation &&
+-		a->pairwise == b->pairwise && !memcmp(a->peer, b->peer, 6);
+-}
+-
+-/* Separate pristine storage per new key. A live or retired context cannot be
+- * overwritten. PTK starts at the handshake RX sequence, GTK is unseeded until
+- * its first fully validated, independently attributed frame. Stage 3 has no
+- * interface here and never resets a PN floor.
+- */
+-static inline bool
+-mt6797_pn_epoch_init(struct mt6797_pn_epoch *e,
+-		     const struct mt6797_pn_owner *owner,
+-		     const u8 *handshake_pn)
+-{
+-	static const u8 zero_peer[6];
+-
+-	if (!e || !owner || e->initialized || !owner->key_identity ||
+-	    !owner->generation || owner->key_index > 3 ||
+-	    (owner->peer[0] & 1) || !memcmp(owner->peer, zero_peer, 6) ||
+-	    (owner->pairwise && (!handshake_pn || owner->key_index)))
+-		return false;
+-	*e = (struct mt6797_pn_epoch) { .owner = *owner, .initialized = true };
+-	if (owner->pairwise) {
+-		memcpy(e->pn, handshake_pn, 6);
+-		e->seeded = true;
+-	}
+-	return true;
+-}
+-
+-static inline bool mt6797_pn_epoch_activate(struct mt6797_pn_epoch *e)
+-{
+-	if (!e || !e->initialized || e->active || e->retired)
+-		return false;
+-	e->active = true;
+-	return true;
+-}
+-
+-/* Invoke only after complete frame/crypto/metadata validation. This performs
+- * ownership and strict PN validation, not decryption or raw RXD attribution.
+- * Refusal preserves every byte. The first accepted GTK frame seeds its floor.
+- */
+-static inline bool
+-mt6797_pn_epoch_accept(struct mt6797_pn_epoch *e,
+-		       const struct mt6797_pn_owner *descriptor_owner,
+-		       bool provenance_proven, const u8 *pn)
+-{
+-	if (!e || !descriptor_owner || !pn || !provenance_proven ||
+-	    !e->initialized || !e->active || e->retired ||
+-	    !mt6797_pn_owner_equal(&e->owner, descriptor_owner) ||
+-	    (e->seeded && memcmp(pn, e->pn, 6) <= 0))
+-		return false;
+-	memcpy(e->pn, pn, 6);
+-	e->seeded = true;
+-	return true;
+-}
+-
+-/* A host-fence result alone is not producer_retirement_proven. Old replay
+- * state remains intact on retirement; it is never recycled for a new key.
+- */
+-static inline bool
+-mt6797_pn_epoch_retire(struct mt6797_pn_epoch *e,
+-		       bool producer_retirement_proven)
+-{
+-	if (!e || !e->initialized || e->retired || !producer_retirement_proven)
+-		return false;
+-	e->active = false;
+-	e->retired = true;
+-	return true;
+-}
+-#endif
+-#endif /* MT6797_PN_EPOCH_H */
+-- 
+2.43.0
+
