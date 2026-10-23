@@ -59,9 +59,9 @@ class MeasurementTests(unittest.TestCase):
 
     def test_generated_shell_and_finite_protocol(self):
         script=T['remote_script']('00000000-0000-4000-8000-000000000001','192.0.2.1')
-        self.assertEqual(script.count('$BB timeout 10'),2)
+        self.assertEqual(script.count('$BB timeout 1'),2)
         self.assertIn('bs=65536 count=16',script)
-        self.assertEqual(T['validate_idle_safety'](script)['maximum_transfer_silence_seconds'],10)
+        self.assertEqual(T['validate_idle_safety'](script)['maximum_transfer_silence_seconds'],1)
         self.assertIn('5000000000',script)  # late-start refusal preserved
         self.assertEqual(script.count('TP1_%s_CPU_BEFORE'),1)
         self.assertNotIn('iperf',script)
@@ -72,7 +72,7 @@ class MeasurementTests(unittest.TestCase):
     def test_silent_command_exceeding_idle_policy_is_refused(self):
         script=T['remote_script']('00000000-0000-4000-8000-000000000001','192.0.2.1')
         with self.assertRaises(ValueError):
-            T['validate_idle_safety'](script.replace('$BB timeout 10','$BB timeout 31'))
+            T['validate_idle_safety'](script.replace('$BB timeout 1','$BB timeout 31'))
         with self.assertRaises(ValueError):
             T['validate_idle_safety'](script.replace('TP2_PROGRESS','QUIET'))
 
@@ -102,7 +102,7 @@ class MeasurementTests(unittest.TestCase):
         # Exercise the actual generated counter; substitute only the network
         # producer with a known 1 MiB zero stream. Keep the inherited 128 KiB
         # regular-file limit. No device, limit extension or payload file.
-        producer='$BB timeout 10 $BB nc 192.0.2.1 48002'
+        producer='$BB timeout 1 $BB nc 192.0.2.1 48002'
         self.assertEqual(counter.count(producer),1)
         counter=counter.replace(producer,'$BB dd if=/dev/zero bs=65536 count=16 2>/dev/null')
         def limit():resource.setrlimit(resource.RLIMIT_FSIZE,(131072,131072))
@@ -111,7 +111,27 @@ class MeasurementTests(unittest.TestCase):
         self.assertNotIn('/tmp/tp2-rx',script)
         self.assertFalse(T['validate_receive_safety'](script)['regular_payload_file'])
         with self.assertRaises(ValueError):
-            T['validate_receive_safety'](script.replace('| $BB wc -c','> /tmp/oversize-rx'))
+            T['validate_receive_safety'](script.replace('| $BB wc -c','> /tmp/oversize-rx'),regular_file_limit=T['MAX_BYTES']-1)
+
+    def test_duration_ends_before_a_large_byte_cap(self):
+        endpoint=T['Endpoint']('127.0.0.1',0,'127.0.0.1',True,duration=0.03,maximum=1<<40)
+        count=0
+        with socket.create_connection(endpoint.socket.getsockname()) as peer:
+            while data:=peer.recv(65536):count+=len(data)
+        endpoint.thread.join(1);endpoint.close()
+        self.assertGreater(count,0)
+        self.assertEqual(endpoint.result['chunks'][0]['ended_by'],'duration')
+        self.assertGreaterEqual(endpoint.result['chunks'][0]['elapsed_ns'],30_000_000)
+        self.assertLess(endpoint.result['chunks'][0]['elapsed_ns'],500_000_000)
+
+    def test_device_chunk_counts_and_duplicate_refusal(self):
+        raw=(b'TP2_PROGRESS direction=RX chunk=1 phase=start ns=1000000000\r\n'
+             b'TP2_PROGRESS direction=RX chunk=1 phase=end rc=143 bytes=65536 ns=2000000000\r\n')
+        row=T['device_chunks'](raw,'RX')[1]
+        self.assertEqual(row['device_received_bytes'],65536)
+        self.assertEqual(row['device_elapsed_ns'],1_000_000_000)
+        self.assertAlmostEqual(row['device_Mbit_s'],0.524288)
+        self.assertEqual(T['device_chunks'](raw+raw,'RX'),{})
 
     def test_controller_claim_exclusive(self):
         with tempfile.TemporaryDirectory() as d:

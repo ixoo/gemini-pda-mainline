@@ -7,6 +7,11 @@ No claim that a DMA change would fix throughput follows from that measurement.
 Future DMA justification would concern CPU headroom, with its separate
 [transfer-contract unknowns](DMA_TRANSFER_CONTRACT.md) still unresolved.
 
+Final owner steering: **duration-bounded first**, five chunks per direction,
+**1 s or 1 MiB hard cap**, whichever ends first, **100 ms gaps**. The earlier
+128 KiB size-bound preparation is superseded before installation or boot.
+The 2 MiB logger and every driver resource cap remain unchanged.
+
 ## Source finding and minimal change
 
 In the installed-source audit, data enqueue requests delay 0, but a running
@@ -27,7 +32,10 @@ The prior loss-path waiter candidate is not changed in this scheduling pass.
 The actual-source fixture compiles the scheduling helper with ASan/UBSan,
 checks pending/idle choices and repeated guard backoffs, and verifies the rest
 of the MAC source is identical outside includes, the counter and scheduling
-block. Existing credit/attribution/admission code is unchanged. Checkpatch has
+block. The freshly built source passes the same fixture. Against the actual installed
+source, HIF is byte-identical; data TX, RX, guard, credit/management waiters and
+key-disable functions are identical. Reporting and compiled-off snapshot
+mechanisms remain outside the active data change. Checkpatch has
 zero errors/checks and its new-file/MAINTAINERS advisory; this remains an
 internal, non-certifying experiment patch, not an upstream submission.
 
@@ -40,7 +48,7 @@ not another P2E run. Reconnect and dormant lifetime safeguards remain closed/off
 
 ## Before device admission
 
-Commit/push reviewed inputs, then build from a clean checkout with
+Reviewed inputs were committed/pushed and built from a clean checkout with
 `KERNEL_PROFILE=mt6797-a53-wifi-tx-pump-measurement ./scripts/build-kernel --backend buildbox`.
 Require canonical series order, exact selected config (pump y, prerequisites n),
 validated package/source/compiler identity and unchanged finite driver caps.
@@ -49,16 +57,38 @@ firmware inputs, without introducing a sampler. Pin its hashes before install;
 guard live-GPT boot2 and require matching full-partition readback, clean
 shutdown and physical owner selection. No alternate partition or boot retry.
 
+Build `23745fe907c48ae0137cf5151b1117770545ce07`, package manifest SHA-256
+`44a071bdd43322bcc21bbf99da60ee89407e6b64523ca24d1a64828a6c36c532`,
+has **only CONFIG_MT6797_CCMP_TX_PUMP=y** as a config difference from baseline.
+An earlier build enabled cfg80211 debugfs through the inherited profile; it
+was rejected for installation and corrected. Candidate boot2 SHA-256
+`e33c85f94b1217918ffe4bb886195fa469c564a49684b4f9c3fc62234540970d`,
+manifest `16eb08d56be896e0d607b12142aaee6e52e95a1332a7f669932fe1e529d5ac9f`,
+84-byte live-notes SHA-256
+`e875f110f15fefaba186133a7092c5476566ce3262de927d8d73db7c99622c22`.
+The parent container was reproduced byte-for-byte before replacing only the
+kernel/config; RAM and board tree are byte-identical. The exact
+[candidate validator](validate-tx-pump-candidate.py) is read-only. Real deployment
+receipt checks complete after readback and before physical boot; no synthetic
+receipt is accepted as device evidence.
+
 RX counts through `timeout nc | wc -c`, with no regular payload file or
 ulimit increase. Preflight rejects a planned regular-file sink exceeding the
 inherited 128 KiB limit. The fixture streams 1 MiB through the actual generated
 counter under that limit. Independent SSH keepalives and chunk progress remain.
 
-The unchanged 2 MiB logger is a finite bound: projecting baseline-2 record
-volume to five faster 1 MiB chunks each way would exceed it. Byte budget versus
-an explicitly authorized capture-bound change must be settled and pinned
-**before device admission**. No logger or driver resource limit is silently
-raised. This does not block building/testing the scheduling-only kernel.
+Thirteen host fixtures cover byte/duration endings, per-chunk parsing, CPU
+arithmetic and RX file-limit preflight. Four offline VM-loopback cases using
+the exact retained BusyBox (SHA-256
+`52151e7f322f926b64049cdaa1410dc3ea6485525e0624b05813791c219ae933`)
+verify TX/RX cap completion (exit 0) and one-second termination (exit 143),
+including pipe-based RX counting under the unchanged 128 KiB regular-file
+limit. This is utility evidence, not a device throughput result.
+
+The 2 MiB logger is still an absolute finite bound. Duration-bounding limits
+active transfer time, but does not promise that every possible fast path fits
+that byte budget. A logger/resource cap censors the run; preserve and stop,
+never extend a limit or repeat the boot to finish the other direction.
 
 ## Single-run hypothesis, procedure and branches
 
@@ -67,12 +97,23 @@ Hypothesis: removing avoidable delayed-work sleeps increases TX beyond the
 aggregate idle alone cannot exclude saturation of one service CPU.
 
 Verify fresh live image/notes/RAM identity before the existing firmware start.
-Join, DHCP, three pings, SSH; five separate known-size chunks per direction,
-device TX then RX, timeout at most 10 s/chunk and progress at each boundary.
-Preserve the 5 s SSH keepalive and 135 s owned-process bound. Record actual
-bytes/time, completed chunks, CPU idle/iowait, netdev deltas and completion/error
-counts for each direction. A known-size short completion is not a sustained
-50 s result. Report any byte-budget difference from baseline explicitly.
+Join, DHCP, three pings, SSH; device TX then RX, five chunks each, ending at
+1 s elapsed or the 1 MiB hard cap, with 100 ms gaps. Plain `nc` uses separate
+TCP data sockets in both directions. The retained RAM inventory has no iperf3;
+SSH carries only control/progress/5 s keepalives, not bulk-data crypto. Its
+small control work still contributes to CPU accounting. Preserve the existing
+135 s owned-process bound. Record each chunk's actual elapsed time, bytes,
+rate and ending reason, plus aggregate rates, CPU idle/iowait, netdev deltas
+and completion/error counts. RX uses the device's received-byte count, not
+host-sent bytes. A cap-ended short chunk is explicitly labelled.
+
+**Protocol difference:** baseline-2 TX spanned 51.829942958 s of size-bounded
+chunks with a 10 s timeout (all five ended at that timeout); this run uses
+1 s. The comparable quantities are per-chunk
+rates, not bytes or total test durations. Baseline-2's five per-chunk TX rates
+were 0.202007, 0.204181, 0.193683, 0.212439 and 0.221851 Mbit/s; median
+0.2041814378 Mbit/s. Report the aggregate comparison to 0.205740 Mbit/s too,
+including the intentional-gap and short-run caveat.
 
 After traffic, prove remote-group/local-endpoint quiescence, immediately make
 one EOS-derived standard disconnect attempt, report delivery and whole-ledger
@@ -85,6 +126,18 @@ return through the reviewed path. Unknown ownership holds recovery. A refused
 disconnect is a harness result, no second attempt. Missing whole ledger remains
 a failure even if the traffic rate improves. No repeat follows a censored run.
 
-If TX moves by an order of magnitude, the next throughput question is link rate
-and aggregation. This pass adds no DMA, RX-DMA, deeper queue, rekey, key-slot
-reuse, protected re-arm, firmware-lifecycle command or provider lifecycle work.
+Score the measured TX median per-chunk rate against that baseline median:
+
+- At least 10 times higher: pump cadence was the ceiling under this protocol;
+  next question is link rate, rate control and aggregation.
+- Above baseline's observed chunk-rate range but below 10 times: modest rise;
+  the remaining ceiling is elsewhere (depth or per-frame credit serialization).
+  Report and stop; do not widen this pass.
+- Within baseline's observed range (or worse): no established improvement;
+  the 20 ms reschedule was not demonstrated as the limit. Re-examine the worker
+  path before any further change. This single-run band is not a confidence interval.
+- RX harness refusal: RX unmeasured, never a link result. Incomplete/censored TX:
+  no rate-branch score. Delivery/whole-ledger verdicts remain independent.
+
+This pass adds no DMA, RX-DMA, deeper queue, rekey, key-slot reuse, protected
+re-arm, firmware-lifecycle command or provider lifecycle work.

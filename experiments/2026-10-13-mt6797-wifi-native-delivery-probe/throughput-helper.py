@@ -13,7 +13,7 @@ import sys
 import threading
 import time
 
-DURATION = 10
+DURATION = 1
 CHUNKS = 5
 MAX_BYTES = 1024 * 1024
 SSH_IDLE_SECONDS = 30
@@ -52,27 +52,38 @@ class Endpoint:
                 with connection:
                     if connection.getpeername()[0] != self.peer:
                         raise ValueError('unexpected measurement peer')
-                    connection.settimeout(0.2)
                     chunk_start = time.monotonic_ns()
                     if start is None: start = chunk_start
-                    end = chunk_start + int((self.duration+2) * 1e9)
+                    end = chunk_start + int(self.duration * 1e9)
                     count = 0
+                    reason = 'duration'
                     block = bytes(65536)
                     while not self.cancel.is_set() and time.monotonic_ns() < end:
                         if count >= self.maximum: break
                         try:
+                            connection.settimeout(max(0.001,min(0.05,(end-time.monotonic_ns())/1e9)))
                             if self.sending:
                                 amount = connection.send(block[:min(len(block), self.maximum-count)])
                             else:
                                 data = connection.recv(min(len(block), self.maximum-count))
                                 amount = len(data)
                                 if any(data): raise ValueError('nonzero measurement payload')
-                            if not amount: break
+                            if not amount:
+                                reason = 'peer_eof'
+                                break
                             count += amount
                             self.result['bytes'] += amount
                         except socket.timeout:
                             continue
-                    self.result['chunks'].append({'ordinal':ordinal,'bytes':count,'elapsed_ns':time.monotonic_ns()-chunk_start})
+                        except (BrokenPipeError,ConnectionResetError) as error:
+                            # The other end has its own bounded nc lifetime.
+                            # Its SSH progress/status must independently agree.
+                            reason = type(error).__name__
+                            break
+                    elapsed = time.monotonic_ns()-chunk_start
+                    self.result['chunks'].append({'ordinal':ordinal,'bytes':count,
+                        'elapsed_ns':elapsed,'Mbit_s':count*8000/elapsed,
+                        'ended_by':'byte_cap' if count>=self.maximum else reason})
                     self.result['known_size_complete'] = count==self.maximum
                     if self.cancel.is_set(): return
                     if not count: raise ValueError('empty chunk; later traffic withheld')
@@ -123,20 +134,22 @@ for dir in TX RX; do
     printf 'TP1_%s_START_NS=' "$dir"; clock
     i=1; total=0; rc=0
     while [ "$i" -le 5 ]; do
-        printf 'TP2_PROGRESS direction=%s chunk=%s phase=start\n' "$dir" "$i"
-        rc=0
+        printf 'TP2_PROGRESS direction=%s chunk=%s phase=start ns=' "$dir" "$i"; clock
+        rc=0; n=unknown
         if [ "$dir" = TX ]; then
-            $BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeout 10 $BB nc HOST 48001 || rc=$?
+            $BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeout 1 $BB nc HOST 48001 || rc=$?
         else
             # shellcheck disable=SC3040 # pinned BusyBox ash supports pipefail
-            n=$(set -o pipefail; $BB timeout 10 $BB nc HOST 48002 | $BB wc -c) || rc=$?
+            n=$(set -o pipefail; $BB timeout 1 $BB nc HOST 48002 | $BB wc -c) || rc=$?
+            n=$((n+0))
             total=$((total+n))
             [ "$n" -gt 0 ] || exit 39
         fi
-        printf 'TP2_PROGRESS direction=%s chunk=%s phase=end rc=%s\n' "$dir" "$i" "$rc"
+        printf 'TP2_PROGRESS direction=%s chunk=%s phase=end rc=%s bytes=%s ns=' "$dir" "$i" "$rc" "$n"; clock
         case "$rc" in 0|124|143) ;; *) exit 38;; esac
         d=$(dmesg)
         if printf '%s' "$d" | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:|data phase end:)'; then exit 34; fi
+        [ "$i" = 5 ] || $BB sleep 0.1
         i=$((i+1))
     done
     [ "$dir" != RX ] || printf 'TP1_RX_BYTES=%s\n' "$total"
@@ -190,6 +203,24 @@ def cpu_result(output, direction):
     return result
 
 
+def device_chunks(output, direction):
+    starts, ends = {}, {}
+    prefix=rb'^TP2_PROGRESS direction='+direction.encode()+rb' chunk=([1-5]) '
+    for match in re.finditer(prefix+rb'phase=start ns=([0-9]+)\r?$',output,re.M):
+        ordinal=int(match[1])
+        if ordinal in starts: return {}
+        starts[ordinal]=int(match[2])
+    for match in re.finditer(prefix+rb'phase=end rc=([0-9]+) bytes=(unknown|[0-9]+) ns=([0-9]+)\r?$',output,re.M):
+        ordinal=int(match[1])
+        if ordinal in ends or ordinal not in starts: return {}
+        elapsed=int(match[4])-starts[ordinal]
+        count=None if match[3]==b'unknown' else int(match[3])
+        ends[ordinal]={'device_elapsed_ns':elapsed,'device_exit':int(match[2]),
+                       'device_received_bytes':count,
+                       'device_Mbit_s':count*8000/elapsed if count is not None and elapsed>0 else None}
+    return ends
+
+
 def execute(root, keys, boot, cycles, poll):
     if cycles != 1 or poll != 710:
         raise ValueError('measurement requires one cycle and retained host bounds')
@@ -241,6 +272,19 @@ def execute(root, keys, boot, cycles, poll):
     output = (root/'stdout.bin').read_bytes() if (root/'stdout.bin').exists() else b''
     for label, endpoint in zip(('TX','RX'),endpoints):
         measured[label] = {**endpoint.result, 'device_cpu':cpu_result(output,label)}
+        progress=device_chunks(output,label)
+        measured[label]['chunk_progress_valid']=len(progress)==CHUNKS
+        for chunk in measured[label].get('chunks',[]):
+            chunk.update(progress.get(chunk['ordinal'],{}))
+            if label=='RX':
+                chunk.update(host_sent_bytes=chunk.pop('bytes'),
+                             host_elapsed_ns=chunk.pop('elapsed_ns'),
+                             host_Mbit_s=chunk.pop('Mbit_s'),host_ended_by=chunk.pop('ended_by'))
+                chunk.update(bytes=chunk.get('device_received_bytes'),
+                             elapsed_ns=chunk.get('device_elapsed_ns'),
+                             Mbit_s=chunk.get('device_Mbit_s'),
+                             ended_by='device_timeout' if chunk.get('device_exit') in (124,143) else
+                                      'byte_cap' if chunk.get('device_received_bytes')==MAX_BYTES else 'peer_eof')
         counters = []
         for phase in ('BEFORE','AFTER'):
             stats = re.search(rb'^TP1_'+label.encode()+b'_STATS_'+phase.encode()+rb' ([^\r\n]+)',output,re.M)
@@ -260,6 +304,11 @@ def execute(root, keys, boot, cycles, poll):
             measured[label]['device_received_bytes'] = delivered
             start_ns,end_ns = measured[label].get('device_start_ns'),measured[label].get('device_end_ns')
             measured[label]['device_Mbit_s'] = delivered*8000/(end_ns-start_ns) if delivered is not None and start_ns is not None and end_ns is not None and end_ns>start_ns else None
+            measured[label].update(host_sent_bytes=measured[label]['bytes'],
+                                   host_elapsed_ns=measured[label].get('elapsed_ns'),
+                                   host_Mbit_s=measured[label].get('Mbit_s'),bytes=delivered,
+                                   elapsed_ns=end_ns-start_ns if end_ns is not None and start_ns is not None else None,
+                                   Mbit_s=measured[label]['device_Mbit_s'])
     # Reuse the finite read-only owner check; never infer quiescence from SSH exit.
     original_argument = g['remote_quiescence_argument']
     owner = re.search(rb'^TP1_OWNER_PID=([1-9][0-9]*)\r?$',output,re.M)
@@ -307,7 +356,7 @@ done
                 before = re.search(rb'before_pm_offset_ns=([0-9]+)',response.stdout)
                 after = re.search(rb'after_pm_offset_ns=([0-9]+) reply_ok=1',response.stdout)
                 control.update(exit=response.returncode,accepted=bool(response.returncode==0 and before and after and lower<=int(before[1])<=upper and int(before[1])<=int(after[1])<=upper+5_000_000_000))
-    result['throughput_measurement'] = {'directions':measured,'seconds_each':DURATION*CHUNKS,'chunks_each':CHUNKS,'maximum_bytes_each':MAX_BYTES*CHUNKS,'core_disconnect':control,'new_build':False}
+    result['throughput_measurement'] = {'directions':measured,'seconds_each':DURATION*CHUNKS,'seconds_per_chunk':DURATION,'gap_seconds':0.1,'chunks_each':CHUNKS,'maximum_bytes_each':MAX_BYTES*CHUNKS,'core_disconnect':control,'new_build':True,'data_path':'plain nc TCP; SSH control/progress only'}
     counter_names = {'rx_packets','tx_packets','rx_errors','tx_errors','rx_dropped','tx_dropped'}
     directions_ok = bool(len(measured)==2 and
                          (measured.get('RX',{}).get('device_received_bytes') or 0)>0)
@@ -315,6 +364,8 @@ done
         directions_ok = bool(directions_ok and direction.get('completed') and
                              not direction['errors'] and direction['expected_termination'] and
                              direction['device_cpu']['valid'] and direction['bytes']>0 and len(direction.get('chunks',[]))==CHUNKS and
+                             direction['chunk_progress_valid'] and
+                             all(c.get('device_exit') in (0,124,143) for c in direction['chunks']) and
                              set(direction.get('netdev_delta',{}))==counter_names and
                              min(direction['netdev_delta'].values())>=0)
     result['all_pass'] = bool(result['all_pass'] and remote['quiesced'] and
@@ -326,7 +377,7 @@ def main():
     # Retain the reviewed CLI/key/receipt/owned-helper exception machinery.
     cohort = Path(os.environ['TP_SOURCE_ROOT'])
     module = runpy.run_path(str(cohort/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/laptop-wifi-ssh-connected-p2e.py'))
-    module['main'].__globals__['SESSION'] = 'session-throughput-2'
+    module['main'].__globals__['SESSION'] = 'session-throughput-pump-1'
     module['main'].__globals__['run'] = execute
     return module['main']()
 

@@ -10,9 +10,12 @@ Gemian confirmed. Baselines 1/2 and P2E-D1/D2 consumed, no repeat.
 [Pump comparison](TX_PUMP_COMPARISON.md): patch 0231 adds bounded immediate
 scheduling for pending work, idle/guard backoff 20 ms, at most 32 consecutive
 immediate iterations. No depth, ledger, PID, deadline or admission change.
-Default off except the new measurement profile. Source fixture and manifest
-order pass; build/device evidence pending. Settle capture byte budget before
-device admission. DMA deferred: no throughput justification; reconnect closed.
+Default off except the new measurement profile. Validated Buildbox build
+23745fe9 differs in config only by pump=y; RAM/DT unchanged. Final protocol:
+five 1 s/1 MiB-cap chunks per direction, 100 ms gaps, nc data and SSH control;
+2 MiB logger unchanged. Thirteen host fixtures and four retained-BusyBox
+loopback cases pass. Exact candidate/readback and real receipt checks must
+precede the one physical pump boot. DMA deferred; reconnect closed.
 
 # Historical handoff: invalid baseline recorded; corrected run prepared offline
 

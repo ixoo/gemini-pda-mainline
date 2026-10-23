@@ -30,7 +30,7 @@ def classify(kmsg, receipt, verified_boot, protocol=None):
     directions = measurement.get('directions',{})
     timing = bool(len(directions)==2 and all(d.get('completed') and
                   len(d.get('chunks',[]))==5 and
-                  all(0<c.get('elapsed_ns',0)<=12.5e9 for c in d['chunks'])
+                  all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=1.5e9 for c in d['chunks'])
                   for d in directions.values()))
     passed = bool(verified_boot and receipt and receipt.get('all_pass') and timing and
                   value.get('healthy_cleanup') and value.get('counts_ok') and

@@ -1,0 +1,59 @@
+{
+  "kernel_build_commit": "23745fe907c48ae0137cf5151b1117770545ce07",
+  "profile": "mt6797-a53-wifi-tx-pump-measurement",
+  "kernel_release": "7.1.3-gemini-a53-private-p2e-delivery",
+  "package_manifest_sha256": "44a071bdd43322bcc21bbf99da60ee89407e6b64523ca24d1a64828a6c36c532",
+  "config_sha256": "a4c5059e3b651a4a2a72eae796e997700bf1fe8d38147141fed671a7f9a96ed6",
+  "configuration_delta": {
+    "CONFIG_MT6797_CCMP_TX_PUMP": [
+      null,
+      "y"
+    ]
+  },
+  "modules_built": false,
+  "repository_dirty": false,
+  "pump_patch_sha256": "8d0f6b26fa8358f38231d91d5ecc18c0d064b79be322f8d0da99904428047af9",
+  "notes_bytes": 84,
+  "notes_sha256": "e875f110f15fefaba186133a7092c5476566ce3262de927d8d73db7c99622c22",
+  "candidate_manifest_sha256": "16eb08d56be896e0d607b12142aaee6e52e95a1332a7f669932fe1e529d5ac9f",
+  "boot2_sha256": "e33c85f94b1217918ffe4bb886195fa469c564a49684b4f9c3fc62234540970d",
+  "ram_change": "none",
+  "device_tree_change": "none",
+  "host_fixtures": 13,
+  "retained_busybox_loopback_cases": 4,
+  "checkpatch": {
+    "errors": 0,
+    "checks": 0,
+    "warnings": 1,
+    "warning": "new header/MAINTAINERS advisory; internal experiment patch"
+  },
+  "sampler": false,
+  "dma": false,
+  "reconnect": false,
+  "device_action": "none at preparation checkpoint",
+  "protocol": {
+    "seconds_per_chunk": 1,
+    "byte_cap_per_chunk": 1048576,
+    "chunks_each": 5,
+    "gap_seconds": 0.1,
+    "logger_byte_limit": 2097152,
+    "data": "plain nc TCP; SSH control only"
+  },
+  "earlier_config_different_build": {
+    "commit": "94a29e8dcc15b7aff6f183961e989eac82f12bae",
+    "installed": false,
+    "reason": "unrelated CFG80211_DEBUGFS=y; corrected"
+  },
+  "actual_built_mac_sha256": "04596048df1780830dc3dd9e7009075d8b2ed2e0ee652b275909205a4ef95cde",
+  "actual_built_source_fixture": "pass; accounting/PID/admission identical outside scheduling block",
+  "installed_vs_pump_hif_sha256": "c51ea139bf59564a61fe4b0bd2b122eb78dcd9a151dfc1e0ebee2846d04afe09",
+  "installed_vs_pump_hif_identical": true,
+  "installed_baseline_critical_functions": {
+    "mt6797_mac_tx": true,
+    "mt6797_mac_join_guard": true,
+    "mt6797_mac_join_wait_credit": true,
+    "mt6797_mac_join_wait_management": true,
+    "mt6797_ccmp_disable_key": true,
+    "mt6797_ccmp_receive": true
+  }
+}

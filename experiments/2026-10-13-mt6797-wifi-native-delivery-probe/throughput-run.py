@@ -22,7 +22,7 @@ def write_new(path, value):
 def validate(runtime):
     env={**os.environ,**json.loads((runtime/'environment.json').read_text())}
     plan=json.loads((runtime/'measurement-plan.json').read_text())
-    if plan['run']!='PIO-throughput-baseline-2' or (runtime/'execution-claim.json').exists():
+    if plan['run']!='PIO-throughput-pump-1' or (runtime/'execution-claim.json').exists():
         raise ValueError('measurement namespace already consumed or mismatched')
     for field,key in [('TP_HELPER','helper_sha256'),('TP_REVIEWED_LEAF','leaf_sha256'),('GEMINI_JOIN_SCRIPT','private_leaf_sha256')]:
         if hashlib.sha256(Path(env[field]).read_bytes()).hexdigest()!=plan[key]:
@@ -34,21 +34,21 @@ def validate(runtime):
             raise ValueError('measurement source changed: '+name)
     candidate=Path(env['TP_CANDIDATE'])
     receipt=json.loads((candidate/'candidate.json').read_text())
-    if hashlib.sha256((candidate/'candidate.json').read_bytes()).hexdigest()!='8eb12232ddbb2a00027f926a2c72c5e8213a3dbffadf6269c10beeed6bdceab3':
-        raise ValueError('installed-image receipt changed')
+    if hashlib.sha256((candidate/'candidate.json').read_bytes()).hexdigest()!='16eb08d56be896e0d607b12142aaee6e52e95a1332a7f669932fe1e529d5ac9f':
+        raise ValueError('reviewed pump receipt changed')
     for name,identity in receipt['files'].items():
         if hashlib.sha256((candidate/name).read_bytes()).hexdigest()!=identity['sha256']:
-            raise ValueError('installed-image input changed: '+name)
+            raise ValueError('reviewed pump input changed: '+name)
     return env,receipt
 
 
 def execute(runtime,env,protocol):
-    write_new(runtime/'execution-claim.json',{'run':'PIO-throughput-baseline-2','one_attempt':True,'retry':False,'image_changed':False})
+    write_new(runtime/'execution-claim.json',{'run':'PIO-throughput-pump-1','one_attempt':True,'retry':False,'image_changed':True})
     cohort=Path(env['TP_SOURCE_ROOT'])
     old=runpy.run_path(str(cohort/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/laptop-run-ccmp-p2e.py'))
     collector=runpy.run_path(str(Path(env['GEMINI_SESSION_SOURCE_ROOT'])/'experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/collect-baseline.py'))
     state={'runtime':runtime,'protocol':protocol,'keys':Path(env['GEMINI_WIFI_SSH_KEYS']),
-           'previous_boot':'1c5d22fe-aa8f-4f51-8250-c20790761b9f','collector':collector}
+           'previous_boot':'5044c0d9-617b-4030-8e59-1ba3b1147a72','collector':collector}
     # A readiness wait is read-only and finite, never a boot or radio retry.
     ssh=collector['ssh_command'](state['keys'])
     endpoint=ssh[-2].removeprefix('root@')
@@ -62,17 +62,18 @@ def execute(runtime,env,protocol):
             if time.monotonic()>=deadline:
                 raise TimeoutError('USB readiness deadline; no capture attempted')
             time.sleep(0.5)
+    old['identity'].__globals__['NOTES_SHA']=protocol['kernel_notes_sha256']
     live=old['identity'](state)
     env['GEMINI_WIFI_SSH_BOOT']=live['boot_id']
-    results={'run':'PIO-throughput-baseline-2','boot_id':live['boot_id'],'boot_allowance_consumed':True,
-             'kernel_build_commit':protocol['kernel_build_commit'],'new_image':False}
+    results={'run':'PIO-throughput-pump-1','boot_id':live['boot_id'],'boot_allowance_consumed':True,
+             'kernel_build_commit':protocol['kernel_build_commit'],'new_image':True}
     adapter=Path(env['TP_ADAPTER'])
     for phase in ('capture','session'):
         with (runtime/(phase+'-execute.log')).open('xb') as log:
             result=subprocess.run([sys.executable,str(adapter),phase,'--execute'],env=env,stdout=log,stderr=subprocess.STDOUT)
         results[phase+'_exit']=result.returncode
         if phase=='capture':
-            preflight=runtime/'ccmp-stable-monitor/capture-throughput-2/preflight.json'
+            preflight=runtime/'ccmp-stable-monitor/capture-throughput-pump-1/preflight.json'
             if preflight.is_file():
                 observed=json.loads(preflight.read_text())
                 if observed['boot_id']!=live['boot_id'] or observed['release']!=protocol['kernel_release']:

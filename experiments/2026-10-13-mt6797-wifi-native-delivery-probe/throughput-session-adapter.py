@@ -10,8 +10,8 @@ import runpy
 import subprocess
 import sys
 
-CANDIDATE_SHA = '8eb12232ddbb2a00027f926a2c72c5e8213a3dbffadf6269c10beeed6bdceab3'
-BOOT2_SHA = '5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd'
+CANDIDATE_SHA = '16eb08d56be896e0d607b12142aaee6e52e95a1332a7f669932fe1e529d5ac9f'
+BOOT2_SHA = 'e33c85f94b1217918ffe4bb886195fa469c564a49684b4f9c3fc62234540970d'
 ADAPTER_SHA = 'ff658dc6e4df8553d71239f3b56b79699cb4763647fe3890dd066821e3431eeb'
 
 
@@ -20,8 +20,8 @@ def candidate():
     if hashlib.sha256(path.read_bytes()).hexdigest() != CANDIDATE_SHA:
         raise ValueError('measurement candidate receipt changed')
     value = json.loads(path.read_bytes())
-    if value['files']['boot2-padded.img']['sha256'] != BOOT2_SHA or value['kernel_build_commit'] != '3da69187ec93fd15b28fda3fbdbf118c37ad55a5':
-        raise ValueError('measurement is bound to the unchanged installed image')
+    if value['files']['boot2-padded.img']['sha256'] != BOOT2_SHA or value['kernel_build_commit'] != '23745fe907c48ae0137cf5151b1117770545ce07':
+        raise ValueError('measurement is bound to the exact rebuilt pump image')
     return path, value
 
 
@@ -59,14 +59,32 @@ def run_phase(phase, execute):
             # A measurement-specific exact installed-image binding. This is
             # not an install receipt, archive search or permission to flash.
             return {'path':lambda:receipt, 'read':lambda:value}
-        result = original(str(path), *args, **kwargs)
+        if path == cohort/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/install-ccmp-p2.py':
+            raw=path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!='7c8b36d145e3bbefbe07e8ef964ce5cf381f623805ea941b129180ec55101a9d':
+                raise ValueError('retained installer validation source changed')
+            source=raw.decode()
+            # Identity bindings only. Preserve every original scope/cap,
+            # member-inventory, padding and real deployment-receipt check.
+            for old,new in (
+                ('8eb12232ddbb2a00027f926a2c72c5e8213a3dbffadf6269c10beeed6bdceab3',CANDIDATE_SHA),
+                ('mt6797-a53-private-p2e-delivery','mt6797-a53-wifi-tx-pump-measurement'),
+                ('e7be093e6f4200b03aaff56787dc8d74ca1f3468','23745fe907c48ae0137cf5151b1117770545ce07'),
+                ('mt6797-wifi-ccmp-stable-monitor-deployment-p2ed1','mt6797-wifi-tx-pump-deployment-1')):
+                if source.count(old)!=1:
+                    raise ValueError('retained installer identity anchor changed')
+                source=source.replace(old,new)
+            result={'__file__':str(path),'__name__':'pump_installer_binding'}
+            exec(compile(source,str(path),'exec'),result)
+        else:
+            result = original(str(path), *args, **kwargs)
         if path.name == 'p2-evidence-successor.py':
             if hashlib.sha256(path.read_bytes()).hexdigest() != ADAPTER_SHA:
                 raise ValueError('retained custody derivation changed')
             globals_ = result['client'].__globals__
             old_roots = globals_['fresh_roots']
             def roots(source):
-                return old_roots(source).replace('session-ccmp-p2e','session-throughput-2').replace('capture-ccmp-p2e','capture-throughput-2')
+                return old_roots(source).replace('session-ccmp-p2e','session-throughput-pump-1').replace('capture-ccmp-p2e','capture-throughput-pump-1')
             globals_['fresh_roots'] = roots
             old_host = result['host']
             def host(source, client_sha):
@@ -88,10 +106,15 @@ def run_phase(phase, execute):
         script = cohort/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe'/('laptop-'+phase+'-ccmp-p2e.py')
         sys.argv = [str(script),'--candidate',str(receipt.parent)] + (['--execute'] if execute else [])
         result = hooked(script)
+        if phase == 'capture':
+            cap = result['CAP']
+            # Bind the existing manifest check to this exact rebuilt candidate;
+            # retain the receipt path and every device/identity check.
+            cap.MANIFEST_SHA = cap.WMT.CAPTURE.MANIFEST_SHA = CANDIDATE_SHA
         # Wrappers compile definitions without invoking main under run_path.
         if phase == 'session':
             host = result['GLOBALS']['NH']
-            expected = (str(Path(os.environ['GEMINI_RUNTIME_ROOT'])/'ccmp-stable-monitor/session-throughput-2'),plan['helper_sha256'])
+            expected = (str(Path(os.environ['GEMINI_RUNTIME_ROOT'])/'ccmp-stable-monitor/session-throughput-pump-1'),plan['helper_sha256'])
             if getattr(host,'THROUGHPUT_BINDING',None)!=expected or host.PH.ROOT!=host.ROOT:
                 raise ValueError('measurement host/helper binding not applied to actual constructor')
         main = result['CAP'].main if phase == 'capture' else result['GLOBALS']['NH'].main
