@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-23",
+  "run": "PIO-throughput-baseline-1",
+  "status": "prepared; physical selection pending; no runtime throughput claimed",
+  "source_sha256": {
+    "throughput-helper.py": "baf0bd18dc1b97338e76e771bff2db3bc7b201b610752ccc2e51c2c88dc7562d",
+    "throughput-session-adapter.py": "8a133dced70a1347bada059984e0f773775dfcdf19a7aa65426189f36eaa2ff1",
+    "classify-throughput.py": "fa8228de7d944e082fbd2b5cbab74bf92a4ac8c8bffc1b86dbf7dcd5b6c068d5",
+    "throughput-run.py": "fcfbdd0476048ae80bd1a1f92d79ffd5a5c1355cfa5d829302c8d43f7c5a778e",
+    "throughput-prepare.py": "219797313149b8c0562f9b1a9d07ebdc1f835a7a7b6620f6abb36e972ce0770a"
+  },
+  "offline_tests": "7 PASS: real local send/receive, cancellation, peer refusal, CPU arithmetic, generated shell syntax/ShellCheck, exclusive controller claim",
+  "actual_retained_constructors": "capture/session PASS; measurement helper/namespace binding asserted; no device action",
+  "image_sha256": "5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd",
+  "installed_image_verification": "PASS read-only live-GPT boot2 lookup, exact size and full checksum; Gemian boot identity stable",
+  "image_changed": false,
+  "kernel_build": false,
+  "iperf3_present_in_validated_root": false,
+  "fallback": "BusyBox dd/nc, 60s and 64MiB maximum each direction; zero payload",
+  "CPU_observation": "two aggregate /proc/stat reads per direction; no resident sampler",
+  "size_arithmetic_tests": "existing actual transfer-size helper: 30 cases PASS ASan/UBSan",
+  "DMA_implementation": "REFUSED on known address-routing/DMA-mask, bus-field semantics, shared ownership and error-quiescence unknowns",
+  "DMA_comparison_boot_queued": false,
+  "one_boot_allowance_consumed": false,
+  "reconnect": "closed as a limitation; no reopen without owner decision; safeguards dormant",
+  "retained_custody_sources_verified": 9578,
+  "retained_seal_intentional_exclusion": "consumed active deployment receipt archived after D2; not restored or searched; exact candidate receipt and fresh read-only installed full checksum used instead",
+  "external_guard_identity": "matches original reviewed seal",
+  "repository_checks": "PASS; harness-declared Linux-only fixture skips",
+  "host_firewall": "read-only check: disabled; no setting changed",
+  "measurement_ports": "48001/48002 free at preparation; no listener retained"
+}

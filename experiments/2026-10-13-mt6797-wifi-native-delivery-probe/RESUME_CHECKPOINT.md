@@ -1,3 +1,21 @@
+# Current handoff: PIO baseline prepared; physical boot2 selection pending
+
+[Predeclared throughput baseline](THROUGHPUT_BASELINE_PREDECLARATION.md): one
+fresh boot, unchanged installed `3da69187` / boot2 `5f63e2d32fc0...`; join,
+DHCP/three pings/SSH, device TX then RX up to 60 s each, software CPU/netdev
+boundary counters, one EOS-guarded standard disconnect, whole-ledger stage 3,
+sealed export/regression and reviewed return. Offline fixtures/constructors pass;
+full installed-partition checksum verified read-only. No image change or build.
+Prepared runtime: `artifacts/wifi-throughput-baseline-1`. One attempt only.
+
+Reconnect is closed as a limitation, not a pending task. Do not reopen without
+owner decision; 0229/0230 stay dormant. [DMA transfer contract](DMA_TRANSFER_CONTRACT.md)
+requires refusal on unresolved bit-32 routing, ownership and error quiescence;
+TX DMA implementation and comparison boot are held. RX DMA remains separate.
+The baseline consumes the standing allowance only when executed; no baseline
+result is claimed before the physical boot. P2E-D1/D2 remain consumed.
+Earlier handoffs below are history, not an active test queue.
+
 # Current handoff: probe pass closed; single-lifetime fallback and DMA/throughput next
 
 [Probe-path result and authorized fallback](OBSERVABLE_RECONNECT_DECISION.md):

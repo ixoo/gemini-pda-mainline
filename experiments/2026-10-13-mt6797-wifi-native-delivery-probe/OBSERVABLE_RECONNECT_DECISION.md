@@ -1,4 +1,9 @@
-# Observable reconnect: TX-probe pass stopped; single-lifetime fallback selected
+# Reconnect closed as a limitation; single-lifetime baseline retained
+
+Reconnect is closed for now, not a pending implementation task. Do not reopen it
+without an owner decision. No key-installation guarantee or firmware ordering
+point exists; the probe needs a new protected TX shape and another internal
+owner. The active project is [PIO measurement then DMA/throughput](THROUGHPUT_BASELINE_PREDECLARATION.md).
 
 Owner decision, 2026-10-23: use the TX probe below instead of the RX gate, make
 one bounded implementation pass, and stop if the existing path needs new

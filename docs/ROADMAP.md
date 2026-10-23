@@ -189,13 +189,14 @@ bounded pipelining and exact completion ownership. The current frame waits for
 one completion round trip before the next; throughput and rekey timing need
 that work, but it is not a prerequisite for the 60-second ARP/SSH diagnostic.
 
-The reconnect probe implementation pass reached its owner-defined stop condition:
-the existing internal path needs a new protected native frame shape and distinct
-probe ownership. Retain the working single-lifetime baseline. The next Wi-Fi
-project is DMA/throughput, beginning with bounded completion/credit ownership
-and the shared AP-DMA constraints. No further reconnect design, firmware lifecycle
-work, rebuild or boot follows automatically. See the
-[probe-pass result](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/OBSERVABLE_RECONNECT_DECISION.md).
+Reconnect is closed as a limitation: no key-installation guarantee or firmware
+ordering point exists, and the probe needs a new protected TX shape and another
+internal owner. Retain the single-lifetime baseline and dormant safeguards;
+reopen only by owner decision. DMA/throughput is the active Wi-Fi project,
+starting with the [unchanged-image PIO baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_BASELINE_PREDECLARATION.md).
+Implement TX DMA only after the [transfer contract](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DMA_TRANSFER_CONTRACT.md)
+closes address-routing, shared-resource and quiescence unknowns; preserve PIO
+and the command/credit handshake. RX DMA remains separate later work.
 
 ## Rules of the road
 
