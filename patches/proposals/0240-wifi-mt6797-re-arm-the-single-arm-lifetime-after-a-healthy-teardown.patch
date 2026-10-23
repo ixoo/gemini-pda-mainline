@@ -1,0 +1,168 @@
+From e7248390b8db17643dc69551ae9c94ac3288628a Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 18:05:12 -0400
+Subject: [PATCH] wifi: mt6797: re-arm the single-arm lifetime after a healthy
+ teardown
+
+The re-arm path only ever ran in the legacy arm: it was excluded under the
+stable epoch, capped at two lifetimes per boot and left a dozen epoch
+latches (key cookies, receive contexts, PM and cleanup residue, the PID
+pool, the in-flight slots, the monitor-control state) at their end-of-life
+values, so a second lifetime could never form in the arm that passed the
+gates. Reset that epoch state to its probe-time values when the healthy
+stage-3 cleanup and the mac80211 station teardown have both been seen,
+and let mac80211 scan and join again. The boot-scoped identities still
+advance monotonically and still refuse re-arm on wrap, the rendezvous and
+quiescence rules are unchanged, and a poisoned lifetime still closes.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ .../net/wireless/mediatek/mt6797/join-rearm.h |  3 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 95 +++++++++++++++++--
+ 2 files changed, 90 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-rearm.h b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+index 75f5e07cb..e3c9493b4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-rearm.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+@@ -38,8 +38,7 @@ mt6797_join_rearm_ready(const struct mt6797_join_rearm_state *s)
+ {
+ 	if (!s->cleanup_done || !s->sta_removed || s->poisoned)
+ 		return MT6797_JOIN_REARM_NO;
+-	if (s->lifetimes >= 2 ||
+-	    s->key_pairwise != 2 || s->key_group != 2 ||
++	if (s->key_pairwise != 2 || s->key_group != 2 ||
+ 	    !s->key_done || !s->key_done_second ||
+ 	    s->inflight || s->page_debt || s->data_page_debt || s->credit_pending ||
+ 	    !s->queue_empty)
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 9e7868f04..7fcfbaa17 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1483,6 +1483,92 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+  * a value; key/absence events do not gain identities. Returns -EOWNERDEAD to
+  * ask the caller to poison on wrap, 0 on a completed re-arm.
+  */
++/* Per-lifetime epoch state back to its probe-time values, so a re-armed
++ * lifetime starts as the first one did: no key cookies, no receive contexts,
++ * no PM or cleanup residue, a fresh PID pool and empty in-flight slots. The
++ * boot-scoped identities (command sequence, channel token, station sequence)
++ * are left to the caller, which advances them.
++ */
++static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
++{
++	unsigned long flags;
++
++#ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++	mac->native_diag_state = MT6797_ND_IDLE;
++	mac->native_diag_engaged = false;
++	mac->native_diag_sample_done = false;
++	mac->native_diag_total = 0;
++	mac->native_diag_native = 0;
++	mac->native_diag_bytes = 0;
++	mac->native_diag_retire_reads = 0;
++	mac->native_diag_retire_bytes = 0;
++	mac->native_diag_started = 0;
++	mac->native_diag_retire_started = 0;
++	memset(mac->native_diag_rx, 0, sizeof(mac->native_diag_rx));
++	mac->native_diag_rx_reported = false;
++	mac->native_diag_rxd_sampled = false;
++#endif
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	memset(&mac->ccmp_rx, 0, sizeof(mac->ccmp_rx));
++#ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
++	memset(&mac->ccmp_gtk_rx, 0, sizeof(mac->ccmp_gtk_rx));
++	mac->ccmp_gtk_attempted = false;
++	mac->ccmp_gtk_seen = false;
++	mac->ccmp_gtk_arp_withheld = 0;
++	mac->ccmp_gtk_queued = 0;
++	mac->ccmp_gtk_arp_handoff = 0;
++	mac->ccmp_last_checked_rx = 0;
++	mac->ccmp_last_beacon_rx = 0;
++	mac->ccmp_timeout_observed = 0;
++	reinit_completion(&mac->ccmp_dtim_done);
++	mac->ccmp_dtim_period = 0;
++	mac->ccmp_dtim_status = 0;
++	mac->ccmp_dtim_valid = false;
++	mac->ccmp_pm_attempted = false;
++	mac->ccmp_pm_connected = false;
++	mac->ccmp_pm_abort_pending = false;
++	mac->ccmp_pm_abort_credited = false;
++	mac->ccmp_loss_reported = false;
++	mac->ccmp_deauth_timeouts = 0;
++	mac->ccmp_deauth_late = 0;
++	mac->ccmp_deauth_retired_pid = 0;
++	mac->ccmp_cleanup_retained_pages = 0;
++	mac->ccmp_cleanup_credit_floor = 0;
++	mac->ccmp_cleanup_op = 0;
++	mac->ccmp_cleanup_sequence = 0;
++	mac->ccmp_cleanup_credit_active = false;
++	mac->ccmp_cleanup_bounded_done = false;
++	mac->ccmp_pm_credit_ns = 0;
++#ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
++	mac->ccmp_channel_release_at = 0;
++	mac->ccmp_channel_release_sequence = 0;
++	mac->ccmp_channel_release_pending = false;
++#endif
++	mac->ccmp_beacons_at_pm_credit = 0;
++#endif
++	RCU_INIT_POINTER(mac->ccmp_sta, NULL);
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->ccmp_tx_ready = false;
++	mac->ccmp_ptk = NULL;
++	mac->ccmp_gtk = NULL;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	reinit_completion(&mac->ccmp_key_done);
++	reinit_completion(&mac->ccmp_cleanup_done);
++	mac->ccmp_decap = false;
++	mac->ccmp_closed = false;
++	mac->ccmp_ptk_attempted = false;
++	mac->ccmp_queued = 0;
++	memset(&mac->ccmp_observation, 0, sizeof(mac->ccmp_observation));
++#endif
++#ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++	memset(&mac->ccmp_pid_pool, 0, sizeof(mac->ccmp_pid_pool));
++	mac->ccmp_pid_pool.next = 1;
++	mac->ccmp_unowned_tx_done = 0;
++	mac->ccmp_reserved_pid_used = false;
++#endif
++	memset(&mac->data_slots, 0, sizeof(mac->data_slots));
++}
++
+ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ {
+ 	unsigned long flags;
+@@ -1597,7 +1683,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_submitted = 0;
+ 	mac->join_sta_removed = false;
+ 	mac->join_rearm_pending = false;
+-	/* join_next_pid stays monotonic: lifetime 2 uses fresh TX pids, never reused. */
++	mt6797_mac_epoch_reset(mac);
++	/* join_next_pid stays monotonic; the PID pool restarts with the epoch. */
+ 	reinit_completion(&mac->join_channel_done);
+ 	reinit_completion(&mac->join_sta_done);
+ 	reinit_completion(&mac->join_credit_done);
+@@ -4256,10 +4343,6 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	 * inline reset, so the re-arm never runs while this pass holds local SKBs.
+ 	 */
+ 	if (mac->join_cleanup_done && mac->join_sta_removed && !mac->join_closed &&
+-#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+-	    !ccmp_stable_epoch &&
+-#endif
+-	    mac->join_lifetimes < 2 &&
+ 	    !mac->first_error && !mac->closing && !mac->join_rearm_pending) {
+ 		mac->join_rearm_pending = true;
+ 		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
+@@ -4431,7 +4514,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	mutex_lock(&mac->mutex);
+ 	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
+ 	    mac->closing || mac->first_error || mac->scan_used ||
+-	    mac->join_lifetimes >= 2 || mac->join_closed)
++	    mac->join_closed)
+ 		goto out;
+ 	/* mac80211 may append supported-rate IEs internally. There are no
+ 	 * probe requests in this passive form, so no IEs are transmitted.
+-- 
+2.43.0
+

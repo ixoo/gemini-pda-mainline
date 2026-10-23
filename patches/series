@@ -850,3 +850,4 @@ proposals/0236-wifi-mt6797-pipeline-data-frames-across-the-TC1-page-budget.patch
 proposals/0237-wifi-mt6797-keep-the-proven-monitor-control-in-the-single-build-arm.patch
 proposals/0238-wifi-mt6797-drop-records-framed-across-the-data-end-monitor-toggle.patch
 proposals/0239-wifi-mt6797-keep-the-retired-mode-parameters-visible-for-the-host-leaf.patch
+proposals/0240-wifi-mt6797-re-arm-the-single-arm-lifetime-after-a-healthy-teardown.patch
