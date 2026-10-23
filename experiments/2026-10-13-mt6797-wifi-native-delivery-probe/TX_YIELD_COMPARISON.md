@@ -59,3 +59,26 @@ confirmation. One attempt, no retry of this or any consumed run. No sampler.
 This pass does not demonstrate reconnect, rekey, key-slot reuse, maintained
 Wi-Fi support or sustained throughput. DMA remains deferred. No rate change
 or additional boot follows automatically from any branch.
+
+## Sealed offline candidate
+
+Validated build `1a4f291e221e7bc42536b4e17594614dae269405`, profile
+`mt6797-a53-wifi-tx-yield-measurement`.
+[Build/source/fixture scalars](results/tx-yield-build-validation.json) confirm
+byte-identical configuration to depth four, including HZ=250 and depth=4.
+Actual prepared source matches the reviewed yield change; descriptor, depth,
+HIF ledger, management and deadline code match the depth candidate.
+
+- Candidate manifest: `d3b1c04e811330a00ff4f7dad7e93e808899eb5734aee851b195ee7195374a42`.
+- Android boot: `04bd176f6f8dd9a91d3cc96ddfbcfe1286bde29ee9992ccee7cef85162bb68f4`.
+- Full 16 MiB boot2: `8014a0dd67c5cf5641ef4134fa5412bba971a4c93c095d48c60f02a95051ccae`.
+- Live notes: 84 bytes at Image offset 12900184, SHA-256
+  `efdc05a727078927f49a07db0344d39493c04548a1ab8cadab9e68e650611052`.
+
+Exact RAM/DT and parent reproduction pass. Sealed private host/installer
+bindings are retained under `artifacts/wifi-tx-yield-work/`; helper changes
+only its session label, classifier remains depth four. The embedded device
+guard is byte-identical to the reviewed depth installer. Offline constructors
+loaded these bindings and refused at the missing genuine installation receipt;
+they must pass with the actual receipt after installation. No yield run has
+happened at this offline checkpoint.

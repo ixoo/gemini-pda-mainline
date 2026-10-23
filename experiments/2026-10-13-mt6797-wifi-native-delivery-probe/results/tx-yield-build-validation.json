@@ -1,0 +1,47 @@
+{
+  "build_commit": "1a4f291e221e7bc42536b4e17594614dae269405",
+  "profile": "mt6797-a53-wifi-tx-yield-measurement",
+  "package_manifest_sha256": "66fb88ba630f67437b0ee287cdf4d79d5187d14a0a55dc3e038ab17b135d71aa",
+  "build_pass": true,
+  "package_validation_pass": true,
+  "config_byte_identical_to_depth": true,
+  "kernel_config_sha256": "3fb6bf0bc13751d199b5f6980ec0c274670dfbf7fd9516d6e4de24ebbfbfc96e",
+  "config_delta": {},
+  "actual_prepared_source_matches_reviewed": true,
+  "mac_source_sha256": "1b5a728c8d33a5fd4dbc60741cdba0123adb2221e0dfb9631f245e3c53c3dc85",
+  "pump_header_sha256": "040a38c15118b17e716f8076aa96bb5b7c9b997ca1bf6bc62aac584e62369bee",
+  "unchanged_from_depth": [
+    "join-depth.h",
+    "join-tx.h",
+    "hif.c",
+    "hif.h",
+    "join-submit.h",
+    "mt6797_mac_join_guard",
+    "mt6797_mac_join_wait_management",
+    "key-disable",
+    "all deadline assignments"
+  ],
+  "fixtures": {
+    "actual_yield_helper_asan_ubsan": "PASS",
+    "reverse_normalized_MAC": "byte-identical to depth",
+    "actual_depth_fixture_depths": [
+      1,
+      4
+    ],
+    "gap_tool_bins": "match depth timing audit exactly"
+  },
+  "checkpatch": {
+    "errors": 0,
+    "warnings": 0,
+    "checks": 0
+  },
+  "yield": {
+    "no_progress_immediate_limit": 32,
+    "pending_requested_ms": 1,
+    "idle_ms": 20,
+    "HZ": 250,
+    "pending_jiffies": 1,
+    "nominal_jiffy_ms": 4
+  },
+  "hardware_measured": false
+}

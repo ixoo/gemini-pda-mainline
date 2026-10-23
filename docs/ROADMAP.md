@@ -184,19 +184,16 @@ then unbind and restart without a fault. Usable means WPA2 association, DHCP,
 ping and a ten-minute SSH session on a clean profile. Then one CONSYS/WMT
 owner, one WLAN driver and one profile; retired diagnostics leave the series.
 
-After the low-traffic gate, replace the single in-flight TX bottleneck with
-bounded pipelining and exact completion ownership. The current frame waits for
-one completion round trip before the next; throughput and rekey timing need
-that work, but it is not a prerequisite for the 60-second ARP/SSH diagnostic.
+Bounded four-frame TX ownership is demonstrated in the finite
+[depth comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_DEPTH_RESULT.md).
+The current priority is the single-variable [pump-yield comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_YIELD_COMPARISON.md).
+Rate adaptation remains a separate following pass.
 
 Reconnect is closed as a limitation: no key-installation guarantee or firmware
 ordering point exists, and the probe needs a new protected TX shape and another
 internal owner. Retain the single-lifetime baseline and dormant safeguards;
-reopen only by owner decision. The [measured PIO TX baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_BASELINE_2_RESULT.md)
-places the bounded [worker-pump comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_PUMP_COMPARISON.md)
-next: remove fixed polling sleeps under pending work, preserving single-frame
-ownership and accounting, then measure both directions and CPU. DMA is deferred;
-its possible justification is CPU headroom, not this throughput result. The
+reopen only by owner decision. DMA is deferred; its possible justification is
+CPU headroom, not demonstrated throughput improvement. The
 [transfer contract](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DMA_TRANSFER_CONTRACT.md)
 unknowns remain. RX DMA is separate later work.
 

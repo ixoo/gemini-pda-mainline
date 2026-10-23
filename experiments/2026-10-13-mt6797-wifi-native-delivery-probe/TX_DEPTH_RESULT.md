@@ -53,7 +53,7 @@ All these records have advanced=1. `ucTxCount` is directly observed; its
 source does not define a retry formula. If it includes the initial attempt,
 conditional extra attempts are pump 3/7 versus depth 0/24 during TX/RX.
 RX-column events are device TX while receiving, not AP retry counts.
-Whole-phase depth histogram is 825/18/3, sum 870 reported transmissions,
+Whole-phase depth histogram is 825/18/3, sum 870 reported count units,
 conditional extras 24. Status 0 reports transmission, not verified encryption
 or an independent AP-ACK observation.
 
