@@ -845,3 +845,4 @@ proposals/0231-wifi-mt6797-bound-immediate-single-frame-TX-pump.patch
 proposals/0232-wifi-mt6797-bound-data-TX-owners-by-PID.patch
 proposals/0233-wifi-mt6797-yield-shortly-only-without-TX-progress.patch
 proposals/0234-wifi-mt6797-collapse-the-experiment-build-arms-into-the-station-driver.patch
+proposals/0235-wifi-mt6797-hold-the-mac80211-queue-instead-of-dropping-data-frames.patch

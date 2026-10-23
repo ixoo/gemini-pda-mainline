@@ -1,0 +1,153 @@
+From 15f7b1e337a6fd5d4d7fdd6b74a15ee45ad13328 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 15:44:12 -0400
+Subject: [PATCH] wifi: mt6797: hold the mac80211 queue instead of dropping
+ data frames
+
+The bounded data queue admits eight frames; the ninth was freed unsent
+with no status. TCP sees that as loss and collapses its congestion window,
+which is the 50 to 200 ms "nothing to submit" gaps between bursts in the
+sealed yield log. Stop mac80211's queue when the data queue is full and
+wake it when the worker takes a frame out, when the data phase ends, and
+at every close, re-arm or fail-stop so mac80211 is never left stopped
+across a lifetime. Queue depth, in-flight depth, descriptors, credit
+accounting, ownership and deadlines are unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 44 ++++++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index cf8b5e8a1..76c6608ae 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -213,6 +213,8 @@ struct mt6797_mac {
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+ 	unsigned int join_page_debt, join_polls, join_packets;
+ 	bool join_running, join_open, join_retired;
++	/* mac80211's queue is stopped while the bounded data queue is full. */
++	bool join_tx_stopped;
+ 	/* Reusable bounded two-lifetime milestone (proposal 0180): the mac80211
+ 	 * station teardown (sta_state -> NOTEXIST) and the worker's healthy
+ 	 * stage-3 cleanup rendezvous in either order; the already-serialized
+@@ -1469,6 +1471,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ {
+ 	unsigned long flags;
++	bool wake;
+ 
+ 	/* The caller (join_work) re-arms only on MT6797_JOIN_REARM_YES from
+ 	 * mt6797_join_rearm_ready(), which has already proved the rendezvous,
+@@ -1587,7 +1590,11 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+ 	mac->join_queue_bytes = 0;
++	wake = mac->join_tx_stopped;
++	mac->join_tx_stopped = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (wake)
++		ieee80211_wake_queues(mac->hw);
+ 	mac->join_retired = false;
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join rearm: lifetime=%u token=%u sta_seq=%u sequence=%u\n",
+@@ -1600,6 +1607,7 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	unsigned long flags;
+ 	struct sk_buff_head discard;
+ 	struct sk_buff *skb, *internal = NULL;
++	bool wake;
+ 
+ 	skb_queue_head_init(&discard);
+ 	/* Fence every producer before cancellation, preserving idle eligibility.
+@@ -1645,7 +1653,11 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	skb_queue_splice_init(&mac->join_queue, &discard);
+ 	mac->join_queue_bytes = 0;
++	wake = mac->join_tx_stopped;
++	mac->join_tx_stopped = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (wake)
++		ieee80211_wake_queues(mac->hw);
+ 	while ((skb = mt6797_data_pop(&mac->data_slots)))
+ 		__skb_queue_tail(&discard, skb);
+ 	if (mac->join_inflight) {
+@@ -2364,6 +2376,21 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
++/* With join_queue.lock held: true when mac80211 may be woken because the
++ * bounded data queue has room again, or because the lifetime no longer
++ * accepts data and mac80211 must not stay stopped across it.
++ */
++static bool mt6797_mac_tx_room(struct mt6797_mac *mac)
++{
++	if (!mac->join_tx_stopped)
++		return false;
++	if (mac->join_data_phase && !mac->join_data_ended &&
++	    skb_queue_len(&mac->join_queue) >= MT6797_JOIN_DATA_TX_QUEUE)
++		return false;
++	mac->join_tx_stopped = false;
++	return true;
++}
++
+ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason);
+ 
+ /* Step the asynchronous native-crypto-delivery state machine once per worker
+@@ -2803,6 +2830,7 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 				     struct sk_buff **internal)
+ {
+ 	unsigned long flags;
++	bool wake;
+ 
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	mt6797_ccmp_observe_terminal(mac);
+@@ -2845,7 +2873,11 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	mac->join_open = false;
+ 	skb_queue_splice_init(&mac->join_queue, discard);
+ 	mac->join_queue_bytes = 0;
++	wake = mac->join_tx_stopped;
++	mac->join_tx_stopped = false;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	if (wake)
++		ieee80211_wake_queues(mac->hw);
+ 	mt6797_snapshot_fail(mac->snapshot, ret);
+ 	{
+ 		struct sk_buff *owned;
+@@ -3011,6 +3043,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	const u8 *body;
+ #endif
+ 	bool running, ack = false, completed_internal = false, select;
++	bool wake = false;
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ 	bool pump_progress = false;
+ #endif
+@@ -3259,7 +3292,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		}
+ 		if (skb)
+ 			mac->join_queue_bytes -= skb->len;
++		wake = mt6797_mac_tx_room(mac);
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++		if (wake)
++			ieee80211_wake_queues(mac->hw);
+ 		if (skb) {
+ 			mac->join_inflight = skb;
+ 			/* Linearize in process context; never retain a borrowed STA pointer. */
+@@ -5739,6 +5775,14 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			mac->join_data_tx_queued++;
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
++			/* Hold mac80211's queue instead of dropping the next frame:
++			 * a drop here is seen by TCP as loss and collapses its window.
++			 */
++			if (skb_queue_len(&mac->join_queue) >= MT6797_JOIN_DATA_TX_QUEUE ||
++			    mac->join_queue_bytes + 1550U > MT6797_JOIN_DATA_TX_QUEUE_BYTES) {
++				mac->join_tx_stopped = true;
++				ieee80211_stop_queues(hw);
++			}
+ 			schedule_delayed_work(&mac->join_work, 0);
+ 			accepted = true;
+ 		}
+-- 
+2.43.0
+
