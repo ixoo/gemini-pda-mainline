@@ -1,0 +1,117 @@
+From a8078c63f33a62489086899cd1e7ac1827b0a57d Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 12:57:54 -0400
+Subject: [PATCH] wifi: mt6797: yield shortly only without TX progress
+
+Count consecutive no-progress worker iterations. A frame submission or
+matched completion resets the guard. Pending work yields for a requested
+1 ms after 32 no-progress immediate iterations; only true idle uses 20 ms.
+Keep depth, descriptors, accounting, ownership and deadlines unchanged.
+The existing delayed-work timer rounds the request to the configured jiffy.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  4 ++--
+ .../net/wireless/mediatek/mt6797/join-pump.h  | 19 +++++++++++++++----
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 11 ++++++++++-
+ 3 files changed, 27 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 5f245c9..f8a0388 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -192,8 +192,8 @@ config MT6797_CCMP_TX_PUMP
+ 	default n
+ 	help
+ 	  Poll back-to-back while queued frames, completions or credit remain.
+-	  After at most 32 immediate iterations, yield for the existing 20 ms
+-	  interval. Idle polls retain 20 ms. This changes scheduling only, not
++	  After at most 32 iterations without TX progress, request a 1 ms
++	  yield. Idle polls retain 20 ms. This changes scheduling only, not
+ 	  in-flight depth, credit accounting, PID ownership, deadlines or join
+ 	  admission. Enable only in the dedicated throughput measurement profile.
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-pump.h b/drivers/net/wireless/mediatek/mt6797/join-pump.h
+index 54e8e51..0f229a6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-pump.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-pump.h
+@@ -4,17 +4,28 @@
+ 
+ #define MT6797_JOIN_PUMP_MAX_ZERO 32U
+ #define MT6797_JOIN_PUMP_IDLE_MS 20U
++#define MT6797_JOIN_PUMP_PENDING_MS 1U
+ 
+-/* Scheduling only: never consume a frame, completion or page credit here. */
++/* Scheduling only. Count consecutive no-progress iterations, not submitted
++ * frames or retired completions. Idle alone gets the long interval.
++ */
+ static inline unsigned int
+-mt6797_join_pump_delay(unsigned int *zero_runs, bool pending)
++mt6797_join_pump_delay(unsigned int *zero_runs, bool pending, bool progress)
+ {
+-	if (pending && *zero_runs < MT6797_JOIN_PUMP_MAX_ZERO) {
++	if (!pending) {
++		*zero_runs = 0;
++		return MT6797_JOIN_PUMP_IDLE_MS;
++	}
++	if (progress) {
++		*zero_runs = 0;
++		return 0;
++	}
++	if (*zero_runs < MT6797_JOIN_PUMP_MAX_ZERO) {
+ 		(*zero_runs)++;
+ 		return 0;
+ 	}
+ 	*zero_runs = 0;
+-	return MT6797_JOIN_PUMP_IDLE_MS;
++	return MT6797_JOIN_PUMP_PENDING_MS;
+ }
+ 
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 0c70363..287e4c9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3066,6 +3066,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	const u8 *body;
+ #endif
+ 	bool running, ack = false, completed_internal = false, select;
++#ifdef CONFIG_MT6797_CCMP_TX_PUMP
++	bool pump_progress = false;
++#endif
+ #ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
+ 	bool channel_release_holds_tx = false;
+ #endif
+@@ -3428,6 +3431,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			mac->join_page_debt = pages;
+ 			mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ submitted:
++#ifdef CONFIG_MT6797_CCMP_TX_PUMP
++			pump_progress = true;
++#endif
+ 			if (MT6797_DATA_DEPTH > 1 && mac->join_inflight_data) {
+ 				if (!mt6797_data_put(&mac->data_slots, mac->join_pid,
+ 						     mac->join_inflight,
+@@ -3597,6 +3603,9 @@ submitted:
+ 						 mac->join_pid, mac->ccmp_pid_pool.completions,
+ 						 mac->ccmp_pid_pool.wraps);
+ 				}
++#endif
++#ifdef CONFIG_MT6797_CCMP_TX_PUMP
++				pump_progress = true;
+ #endif
+ 				completed = mac->join_inflight;
+ 				mac->join_inflight = NULL;
+@@ -4243,7 +4252,7 @@ management_frame:
+ 			mac->join_page_debt || mac->join_data_page_debt;
+ 
+ 		delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
+-						  pending);
++						  pending, pump_progress);
+ 		snapshot_delay = msecs_to_jiffies(delay_ms);
+ 	}
+ #endif
+-- 
+2.54.0 (Apple Git-157)
+
