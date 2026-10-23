@@ -1,0 +1,52 @@
+# Bounded data-depth comparison: predeclaration
+
+Hypothesis: allowing up to four ordinary data TX owners can overlap the
+status round trip that still serializes pump-1. The descriptor remains fixed
+at nominal OFDM 6 Mbps; rate control and aggregation are separate later passes.
+DMA remains deferred. No reconnect, key-slot reuse or rekey is enabled.
+
+The only runtime variable relative to [pump-1](TX_PUMP_RESULT.md) is ordinary
+data in-flight depth, one to four. The actual source uses TC1 for ordinary
+data; TC4 management/security and reserved deauthentication stay unchanged.
+The unchanged TC1 page pool may constrain effective depth below four. There
+is no pool enlargement, page-debt reconciliation change, PID reuse rule change,
+deadline extension, admission change or new firmware command. Each data owner
+keeps its existing 750 ms deadline; exact PID completion retires only its owner.
+Credit shortfall or a busy next PID waits without allocating/submitting.
+Cleanup requires no outstanding owners, debt zero and whole ledgers.
+
+## One finite run
+
+Build from clean pushed inputs using the depth measurement profile, validate
+artifact/config/source identities and use the reviewed boot2 guard and matching
+full-partition readback. Clean shutdown, then physical boot2 selection by owner.
+Verify fresh live identity before firmware start. One attempt, no retry.
+
+Join, DHCP, three pings and authenticated Wi-Fi SSH; plain TCP `nc` data,
+SSH control/progress/keepalive. Device TX followed by device RX, five chunks per
+direction, each bounded by 1 s or 1 MiB, 100 ms gaps. Keep the 2 MiB logger,
+receiver streaming counter and file-limit preflight. Capture per-chunk elapsed,
+delivered bytes/rate, aggregates, CPU idle, netdev errors/drops, TX status
+completion/nonzero counts, and descriptor completion attempt counts where
+available. Do not equate status completion with a radio ACK/encryption proof.
+
+Disconnect promptly through the existing EOS-derived standard window; require
+honest per-run delivery and whole-ledger stage-3 results. Seal/export evidence,
+reviewed return and independent changed-boot Gemian confirmation. A failed
+classifier never authorizes a repeat. Preserve original automatic output.
+
+## Decision branches
+
+- First driver/link error, credit anomaly, identity mismatch or link loss:
+  stop, preserve/export, reviewed return; no retry or widening.
+- RX harness failure: RX unmeasured, report the harness condition.
+- Depth four improves TX: report magnitude against pump-1 (0.290676 Mbit/s,
+  86.496% idle) and RX (2.846408 Mbit/s, 82.587% idle), with per-chunk rates
+  and completion/attempt counts. Distinguish configured depth from observed
+  peak outstanding owners.
+- Modest or unchanged TX: report the remaining serialization/airtime limit;
+  do not change rate, aggregation, ledger, pool sizes or deadlines in this run.
+
+Five short chunks are a finite comparison, not a sustained-throughput claim.
+Baseline-2's 51.8 s protocol differs; pump-1 uses this same duration-bound shape
+and is the primary comparison. No rate-change pass is authorized here.

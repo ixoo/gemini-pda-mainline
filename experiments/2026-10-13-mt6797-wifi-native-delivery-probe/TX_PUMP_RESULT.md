@@ -89,6 +89,17 @@ analysis explicit. DMA remains deferred; this run does not justify DMA as a
 throughput fix. The consumed run is complete, without retry. The owner subsequently selected
 bounded data depth as the next single-variable pass; rate changes remain separate.
 
+## Completion counts for the depth comparison
+
+The complete ordinary-data phase reports 537 completions, all status 0 and
+advanced=1. Firmware-reported `ucTxCount`: 527 frames at 1, ten at 2, sum 547.
+The parser exposes this count only when the advanced flag is set. Its source
+name does not establish a retry formula; ten retries is an inference only if
+the field includes the initial attempt. Preserve the count histogram as the
+direct observation. Direction-specific completions above cover their shorter
+measurement intervals, not the whole data phase. Reused PIDs are separate
+owners and must not be deduplicated across the run.
+
 ## Fixed-rate descriptor finding
 
 The actual built `join-tx.h` data encoder sets `d[11] = 0x80`

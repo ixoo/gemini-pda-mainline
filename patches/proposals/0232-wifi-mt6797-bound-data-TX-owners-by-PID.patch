@@ -1,0 +1,550 @@
+From 19b332b997dfba935bb3cbd700e9513f1e942da0 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 12:30:48 -0400
+Subject: [PATCH] wifi: mt6797: bound ordinary data TX owners by PID
+
+Default to one owner. Permit four ordinary data owners in the measurement
+profile, each with an exact PID and unchanged 750 ms status bound. Preserve
+TC1 page reconciliation, management and reserved ownership, descriptors
+and firmware commands. Credit shortfall and a busy next PID wait without
+consuming an owner. Cleanup waits for all data owners and both ledgers.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  10 ++
+ drivers/net/wireless/mediatek/mt6797/hif.c    |   1 +
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   1 +
+ .../net/wireless/mediatek/mt6797/join-depth.h |  93 ++++++++++++
+ .../wireless/mediatek/mt6797/join-submit.h    |   2 +
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 140 ++++++++++++++----
+ 6 files changed, 218 insertions(+), 29 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-depth.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index e328c4e..5f245c9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -196,3 +196,13 @@ config MT6797_CCMP_TX_PUMP
+ 	  interval. Idle polls retain 20 ms. This changes scheduling only, not
+ 	  in-flight depth, credit accounting, PID ownership, deadlines or join
+ 	  admission. Enable only in the dedicated throughput measurement profile.
++
++config MT6797_CCMP_TX_DEPTH
++	int "MT6797 maximum outstanding ordinary data frames"
++	depends on MT6797_CCMP_TX_PUMP
++	range 1 4
++	default 1
++	help
++	  Bound ordinary data TX owners by PID, with the existing TC1 ledger.
++	  Management, security and reserved frames retain their single owner.
++	  Use four only in the dedicated throughput measurement profile.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 7ef5ca0..eee6db4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -885,6 +885,7 @@ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *
+ 	t = &hif->normal;
+ 	out->phase = t->phase;
+ 	out->tc4_free = t->tc4_free;
++	out->tc1_free = t->tc1_free;
+ 	out->tc4_limit = t->tc4_limit;
+ 	out->pending_cpu = t->tc4_pending_cpu;
+ 	out->pending_ffa = t->tc4_pending_ffa;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index c4af682..84e3025 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -262,6 +262,7 @@ bool mt6797_hif_normal_idle(struct mt6797_hif *hif);
+ /* Diagnostic snapshot of the normal transaction's page ledger. */
+ struct mt6797_hif_ledger {
+ 	unsigned int phase, tc4_free, tc4_limit, pending_cpu, pending_ffa;
++	unsigned int tc1_free;
+ 	bool sequences, locked;
+ };
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-depth.h b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+new file mode 100644
+index 0000000..8d44395
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+@@ -0,0 +1,93 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_DEPTH_H
++#define MT6797_JOIN_DEPTH_H
++
++#ifdef CONFIG_MT6797_CCMP_TX_DEPTH
++#define MT6797_DATA_DEPTH CONFIG_MT6797_CCMP_TX_DEPTH
++#else
++#define MT6797_DATA_DEPTH 1U
++#endif
++
++struct mt6797_data_owner {
++	void *frame;
++	unsigned long long deadline;
++	unsigned char pid;
++};
++
++struct mt6797_data_slots {
++	struct mt6797_data_owner owner[MT6797_DATA_DEPTH];
++	unsigned int count;
++};
++
++static inline bool
++mt6797_data_room(const struct mt6797_data_slots *s, unsigned int pages,
++		 unsigned int free_pages)
++{
++	return s->count < MT6797_DATA_DEPTH && pages && pages <= free_pages;
++}
++
++static inline struct mt6797_data_owner *
++mt6797_data_find(struct mt6797_data_slots *s, unsigned char pid)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DATA_DEPTH; i++)
++		if (s->owner[i].frame && s->owner[i].pid == pid)
++			return &s->owner[i];
++	return NULL;
++}
++
++static inline bool
++mt6797_data_put(struct mt6797_data_slots *s, unsigned char pid, void *frame,
++		unsigned long long deadline)
++{
++	unsigned int i;
++
++	if (!frame || !pid || pid >= 127 || s->count >= MT6797_DATA_DEPTH ||
++	    mt6797_data_find(s, pid))
++		return false;
++	for (i = 0; i < MT6797_DATA_DEPTH; i++) {
++		if (!s->owner[i].frame) {
++			s->owner[i] = (struct mt6797_data_owner){frame, deadline, pid};
++			s->count++;
++			return true;
++		}
++	}
++	return false;
++}
++
++static inline void *mt6797_data_take(struct mt6797_data_slots *s, unsigned char pid)
++{
++	struct mt6797_data_owner *o = mt6797_data_find(s, pid);
++	void *frame;
++
++	if (!o)
++		return NULL;
++	frame = o->frame;
++	*o = (struct mt6797_data_owner){0};
++	s->count--;
++	return frame;
++}
++
++static inline void *mt6797_data_pop(struct mt6797_data_slots *s)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DATA_DEPTH; i++)
++		if (s->owner[i].frame)
++			return mt6797_data_take(s, s->owner[i].pid);
++	return NULL;
++}
++
++static inline bool
++mt6797_data_expired(const struct mt6797_data_slots *s, unsigned long long now)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DATA_DEPTH; i++)
++		if (s->owner[i].frame && now >= s->owner[i].deadline)
++			return true;
++	return false;
++}
++
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-submit.h b/drivers/net/wireless/mediatek/mt6797/join-submit.h
+index 8cf29b4..eeca6c2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-submit.h
+@@ -129,8 +129,10 @@ mt6797_join_prepare_data(struct mt6797_normal_transaction *t,
+ 	if (!mt6797_join_tx_data_descriptor(frame, bytes, wlan, pid, lifetime_ms,
+ 					    attempt_count, descriptor, &pages))
+ 		return -EINVAL;
++	#if !defined(CONFIG_MT6797_CCMP_TX_DEPTH) || CONFIG_MT6797_CCMP_TX_DEPTH == 1
+ 	if (t->tc1_free != t->tc1_limit || t->tc1_pending)
+ 		return -EBUSY;
++#endif
+ 	if (t->tc1_free < pages)
+ 		return -ENOSPC;
+ 	total = MT6797_JOIN_TX_DESC_BYTES + bytes;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 8da7da9..0c70363 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -55,8 +55,9 @@ MODULE_PARM_DESC(snapshot_enable,
+ 		 "Enable fixed-set snapshots; debugfs gate defaults off");
+ #include "join-tx.h"
+ #include "join-commands.h"
++#include "join-depth.h"
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+-/* One initial station/key epoch, one frame in flight. No timeout release.
++/* One initial station/key epoch, bounded data owners. No timeout release.
+  * The reserved deauthentication never enters this reusable ordinary pool.
+  */
+ #define MT6797_JOIN_PID_LAST 126U
+@@ -72,15 +73,20 @@ static inline unsigned char mt6797_join_pid_take(struct mt6797_join_pid_pool *p)
+ {
+ 	unsigned char pid;
+ 
+-	if (!p || !p->next || p->next > MT6797_JOIN_PID_LAST || p->pending ||
+-	    p->allocations != p->completions || p->allocations == ~0U)
++	if (!p || !p->next || p->next > MT6797_JOIN_PID_LAST ||
++	    (MT6797_DATA_DEPTH == 1 ? p->pending || p->allocations != p->completions :
++	     p->pending >= MT6797_DATA_DEPTH || p->allocations - p->completions != p->pending) ||
++	    p->allocations == ~0U)
+ 		return 0;
+ 	pid = p->next;
+ 	if (p->used[pid] && !p->completed[pid])
+ 		return 0;
+ 	p->used[pid] = true;
+ 	p->completed[pid] = false;
+-	p->pending = pid;
++	if (MT6797_DATA_DEPTH > 1)
++		p->pending++;
++	else
++		p->pending = pid;
+ 	p->allocations++;
+ 	if (pid == MT6797_JOIN_PID_LAST) {
+ 		p->next = 1;
+@@ -94,12 +100,17 @@ static inline unsigned char mt6797_join_pid_take(struct mt6797_join_pid_pool *p)
+ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
+ 					    unsigned char pid)
+ {
+-	if (!p || !pid || pid > MT6797_JOIN_PID_LAST || p->pending != pid ||
++	if (!p || !pid || pid > MT6797_JOIN_PID_LAST ||
++	    (MT6797_DATA_DEPTH == 1 ? p->pending != pid : !p->pending) ||
+ 	    !p->used[pid] || p->completed[pid] || p->completions == ~0U ||
+-	    p->allocations != p->completions + 1)
++	    (MT6797_DATA_DEPTH == 1 ? p->allocations != p->completions + 1 :
++	     p->allocations - p->completions != p->pending))
+ 		return false;
+ 	p->completed[pid] = true;
+-	p->pending = 0;
++	if (MT6797_DATA_DEPTH > 1)
++		p->pending--;
++	else
++		p->pending = 0;
+ 	p->completions++;
+ 	return true;
+ }
+@@ -199,6 +210,7 @@ struct mt6797_mac {
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ 	unsigned int join_pump_zero_runs;
+ #endif
++	struct mt6797_data_slots data_slots;
+ 	struct sk_buff *join_inflight;
+ 	u64 join_deadline, join_frame_deadline;
+ 	u8 join_ap[ETH_ALEN], join_pid, join_next_pid;
+@@ -482,8 +494,24 @@ mt6797_mac_deauth_delivery(struct mt6797_mac *mac, const char *phase,
+ }
+ 
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
++#if MT6797_DATA_DEPTH > 1
++/* Only a precheck: submission still charges the existing TC1 transaction. */
++static bool mt6797_ccmp_data_room(struct mt6797_mac *mac, size_t bytes)
++{
++	struct mt6797_hif_ledger ledger;
++	unsigned int pid = mac->ccmp_pid_pool.next;
++	unsigned int pages = (MT6797_JOIN_TX_DESC_BYTES + 14 + bytes - 32 + 127) / 128;
++
++	/* A busy next PID waits; it never releases or skips that owner. */
++	if (mac->ccmp_pid_pool.used[pid] && !mac->ccmp_pid_pool.completed[pid])
++		return false;
++	mt6797_hif_normal_ledger(mac->hif, &ledger);
++	return mt6797_data_room(&mac->data_slots, pages, ledger.locked ? 0 : ledger.tc1_free);
++}
++#endif
++
+ /* Mutex held; selection already owns the skb but has not submitted it. */
+-static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved)
++static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved, bool data)
+ {
+ 	unsigned char pid;
+ 
+@@ -492,7 +520,8 @@ static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved)
+ 		return 0;
+ 	}
+ 	if (mac->first_error || mac->closing || mac->join_retired ||
+-	    mac->join_credit_pending || mac->join_page_debt || mac->join_data_page_debt)
++	    mac->join_credit_pending || mac->join_page_debt ||
++	    (mac->join_data_page_debt && !(data && MT6797_DATA_DEPTH > 1)))
+ 		return -EBUSY;
+ 	if (reserved) {
+ 		if (mac->ccmp_reserved_pid_used || mac->ccmp_pid_pool.pending)
+@@ -803,7 +832,7 @@ static bool mt6797_ccmp_cleanup_debt_ready(const struct mt6797_mac *mac)
+ 		mac->join_cleanup_requested && mac->join_data_ended &&
+ 		!mac->first_error && !mac->closing && !mac->join_retired &&
+ 		mac->join_cleanup_stage <= 3 && mac->ccmp_cleanup_retained_pages == 1 &&
+-		mac->join_page_debt == 1 && !mac->join_inflight;
++		mac->join_page_debt == 1 && !mac->join_inflight && !mac->data_slots.count;
+ }
+ 
+ static bool mt6797_ccmp_cleanup_credit_ready(const struct mt6797_mac *mac)
+@@ -1662,6 +1691,8 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	skb_queue_splice_init(&mac->join_queue, &discard);
+ 	mac->join_queue_bytes = 0;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	while ((skb = mt6797_data_pop(&mac->data_slots)))
++		__skb_queue_tail(&discard, skb);
+ 	if (mac->join_inflight) {
+ 		__skb_queue_tail(&discard, mac->join_inflight);
+ 		mac->join_inflight = NULL;
+@@ -1754,7 +1785,7 @@ static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac)
+ 	int ret;
+ 
+ 	if (!mac->join_scan_ready || !mac->bss_active || mac->join_peer_used ||
+-	    mac->first_error || mac->scan_active || mac->join_inflight ||
++	    mac->first_error || mac->scan_active || mac->join_inflight || mac->data_slots.count ||
+ 	    mac->join_page_debt || mac->join_sta_pending || mac->join_sta_active ||
+ 	    mac->join_channel_pending || mac->join_channel_granted)
+ 		return 0;
+@@ -1961,7 +1992,8 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		if (mac->join_packet[5] || body[0] || body[1] > 1 ||
+ 		    !mac->join_cleanup_requested || mac->join_cleanup_done ||
+ 		    mac->join_cleanup_stage != 3 || mac->join_page_debt ||
+-		    mac->join_credit_pending || mac->join_inflight || queued ||
++		    mac->join_credit_pending || mac->join_inflight ||
++		    mac->data_slots.count || queued ||
+ 		    mac->join_absence_events >= 2)
+ 			return -EPROTO;
+ 		mac->join_absence_events++;
+@@ -2090,10 +2122,11 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ #endif
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+-	if (queued || mac->join_inflight ||
++	if (queued || mac->join_inflight || mac->data_slots.count ||
+ 	    (mac->join_page_debt && !mt6797_ccmp_cleanup_debt_ready(mac)) ||
+ #else
+-	if (queued || mac->join_inflight || mac->join_page_debt ||
++	if (queued || mac->join_inflight || mac->data_slots.count ||
++	    mac->join_page_debt ||
+ #endif
+ 	    mac->join_credit_pending)
+ 		return 0;
+@@ -2415,7 +2448,8 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
+ 	now = ktime_get_ns();
+ 	el = mac->native_diag_started ?
+ 		(unsigned int)((now - mac->native_diag_started) / NSEC_PER_MSEC) : 0;
+-	owed = mac->join_inflight || mac->join_page_debt || mac->join_credit_pending;
++	owed = mac->join_inflight || mac->data_slots.count ||
++	       mac->join_page_debt || mac->join_credit_pending;
+ 	/* ACTIVE sample window: the crossing read is never admitted (reserve a full
+ 	 * HIF-max read); the wall is honored even on an empty stream.
+ 	 */
+@@ -2505,7 +2539,8 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 	c.data_phase = mac->join_data_phase && !mac->join_data_ended &&
+ 		       mac->join_key_pairwise == 1 && mac->join_key_group == 1 &&
+ 		       now < mac->join_data_deadline;
+-	c.quiescent = !mac->join_credit_pending && !mac->join_page_debt && !mac->join_inflight;
++	c.quiescent = !mac->join_credit_pending && !mac->join_page_debt &&
++		      !mac->join_inflight && !mac->data_slots.count;
+ 	c.poisoned = mac->first_error || mac->closing;
+ 	c.deadline_passed = (mac->native_diag_state == MT6797_ND_ENABLE_PENDING ||
+ 			     mac->native_diag_state == MT6797_ND_DISABLE_PENDING) &&
+@@ -2784,7 +2819,7 @@ static int mt6797_ccmp_channel_release_step(struct mt6797_mac *mac, u64 now)
+ 	 * must complete and both real ledgers must be whole before the abort.
+ 	 * The unchanged frame bound and remaining tail bound this drain.
+ 	 */
+-	if (mac->join_inflight || mac->join_credit_pending ||
++	if (mac->join_inflight || mac->data_slots.count || mac->join_credit_pending ||
+ 	    mac->join_page_debt || mac->join_data_page_debt)
+ 		return 1;
+ 	if (mac->sequence > 253)
+@@ -2867,6 +2902,12 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	mac->join_queue_bytes = 0;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	mt6797_snapshot_fail(mac->snapshot, ret);
++	{
++		struct sk_buff *owned;
++
++		while ((owned = mt6797_data_pop(&mac->data_slots)))
++			__skb_queue_tail(discard, owned);
++	}
+ 	if (mac->join_inflight) {
+ 		__skb_queue_tail(discard, mac->join_inflight);
+ 		mac->join_inflight = NULL;
+@@ -3016,7 +3057,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct mt6797_join_tx_result result;
+ 	struct mt6797_join_rx_frame frame;
+ 	struct mt6797_scan_frame beacon;
+-	struct sk_buff_head received, discard;
++	struct sk_buff_head received, discard, data_completed;
+ 	struct sk_buff *skb, *completed = NULL, *internal = NULL;
+ 	unsigned long flags, snapshot_delay;
+ 	unsigned int n, port, pages;
+@@ -3040,6 +3081,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 
+ 	skb_queue_head_init(&received);
+ 	skb_queue_head_init(&discard);
++	skb_queue_head_init(&data_completed);
+ 	mutex_lock(&mac->mutex);
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	/* Dedicated re-arm pass (proposal 0180), checked before the running/retired
+@@ -3060,7 +3102,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			.poisoned = mac->first_error || mac->closing,
+ 			.key_done = mac->join_key_done,
+ 			.key_done_second = mac->join_key_done_second,
+-			.inflight = !!mac->join_inflight,
++			.inflight = !!(mac->join_inflight || mac->data_slots.count),
+ 			.credit_pending = mac->join_credit_pending,
+ 			.queue_empty = queue_empty,
+ 			.key_pairwise = mac->join_key_pairwise,
+@@ -3132,7 +3174,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #else
+ 		++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
+ #endif
+-					(mac->join_inflight && now >= mac->join_frame_deadline)) {
++					(mac->join_inflight && now >= mac->join_frame_deadline) ||
++	    mt6797_data_expired(&mac->data_slots, now)) {
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		/* A data frame still in flight at its deadline: name it with the
+ 		 * TC1 ledger's state, so the next decision can tell a consumed
+@@ -3250,9 +3293,17 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					__skb_queue_tail(&discard, walk);
+ 					continue;
+ 				}
+-				if (data && !port && walk != mac->join_internal &&
+-				    mac->join_data_page_debt)
++				if (data && !port && walk != mac->join_internal) {
++#if MT6797_DATA_DEPTH > 1
++					if (!mt6797_ccmp_data_room(mac, walk->len))
++						continue;
++#else
++					if (mac->join_data_page_debt)
++						continue;
++#endif
++				} else if (mac->data_slots.count) {
+ 					continue;
++				}
+ 				__skb_unlink(walk, &mac->join_queue);
+ 				skb = walk;
+ 				break;
+@@ -3304,7 +3355,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				memcpy(mac->join_eth + 12, skb->data + 30, 2);
+ 				memcpy(mac->join_eth + 14, skb->data + 32, skb->len - 32);
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+-				ret = mt6797_ccmp_assign_pid(mac, false);
++				ret = mt6797_ccmp_assign_pid(mac, false, !port);
+ 				if (ret)
+ 					goto failed;
+ #else
+@@ -3319,7 +3370,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					if (ret)
+ 						goto failed;
+ 					mac->join_inflight_data = true;
+-					mac->join_data_page_debt = pages;
++					mac->join_data_page_debt += pages;
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+ 							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu\n",
+@@ -3350,7 +3401,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				goto failed;
+ 			}
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+-			ret = mt6797_ccmp_assign_pid(mac, skb == mac->join_internal);
++			ret = mt6797_ccmp_assign_pid(mac, skb == mac->join_internal, false);
+ 			if (ret)
+ 				goto failed;
+ #else
+@@ -3377,7 +3428,16 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			mac->join_page_debt = pages;
+ 			mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ submitted:
+-			;
++			if (MT6797_DATA_DEPTH > 1 && mac->join_inflight_data) {
++				if (!mt6797_data_put(&mac->data_slots, mac->join_pid,
++						     mac->join_inflight,
++						     mac->join_frame_deadline)) {
++					ret = -EPROTO;
++					goto failed;
++				}
++				mac->join_inflight = NULL;
++				mac->join_inflight_data = false;
++			}
+ 		}
+ 	}
+ 	for (n = 0; n < 8; n++) {
+@@ -3483,6 +3543,21 @@ submitted:
+ 				continue;
+ #endif
+ 			if (mt6797_join_event(mac->join_packet, rx.logical_bytes, 0x0f, 16)) {
++				if (MT6797_DATA_DEPTH > 1 && !mac->join_inflight &&
++				    mac->join_packet[12] == 1) {
++					struct mt6797_data_owner *owner;
++
++					owner = mt6797_data_find(&mac->data_slots,
++								 mac->join_packet[8]);
++					if (owner) {
++						mac->join_pid = owner->pid;
++						mac->join_frame_deadline = owner->deadline;
++						mac->join_inflight =
++							mt6797_data_take(&mac->data_slots,
++									 owner->pid);
++						mac->join_inflight_data = true;
++					}
++				}
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+ 				/* Exact ABI shape, but no matching host owner. Like the
+ 				 * public pending-list consumer, complete no skb. A real
+@@ -3566,6 +3641,10 @@ submitted:
+ 					 * eight in a row end the data phase.
+ 					 */
+ 					mac->join_inflight_data = false;
++					if (MT6797_DATA_DEPTH > 1) {
++						__skb_queue_tail(&data_completed, completed);
++						completed = NULL;
++					}
+ 					if (ack) {
+ 						mac->join_data_tx_done++;
+ 						mac->join_data_tx_failures_in_row = 0;
+@@ -4160,7 +4239,7 @@ management_frame:
+ 	if (ccmp_stable_epoch && !mt6797_snapshot_active(mac->snapshot)) {
+ 		unsigned int delay_ms;
+ 		bool pending = !skb_queue_empty(&mac->join_queue) ||
+-			mac->join_inflight || mac->join_credit_pending ||
++			mac->join_inflight || mac->data_slots.count || mac->join_credit_pending ||
+ 			mac->join_page_debt || mac->join_data_page_debt;
+ 
+ 		delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
+@@ -4181,6 +4260,8 @@ unlock:
+ 	if (ccmp_stable_epoch)
+ 		mutex_lock(&mac->ccmp_receive_mutex);
+ #endif
++	while ((skb = __skb_dequeue(&data_completed)))
++		ieee80211_tx_status_ni(mac->hw, skb);
+ 	if (completed) {
+ 		if (completed_internal)
+ 			dev_kfree_skb(completed);
+@@ -4905,7 +4986,8 @@ static int mt6797_ccmp_pm_indicate(struct mt6797_mac *mac, u64 phase_deadline)
+ 		ret = -ENOSPC;
+ 		goto out;
+ 	}
+-	if (mac->join_inflight || mac->join_page_debt || mac->join_credit_pending ||
++	if (mac->join_inflight || mac->data_slots.count || mac->join_page_debt ||
++	    mac->join_credit_pending ||
+ 	    !mt6797_hif_normal_idle(mac->hif)) {
+ 		ret = -EBUSY;
+ 		goto out;
+@@ -5341,7 +5423,7 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	 * the frame and join deadlines; a reply that is only queued stays queued
+ 	 * while this command's page is owed and goes out after the credit.
+ 	 */
+-	if (mac->join_inflight || mac->join_page_debt) {
++	if (mac->join_inflight || mac->data_slots.count || mac->join_page_debt) {
+ 		ret = mt6797_mac_join_wait_management(mac);
+ 		if (ret)
+ 			goto failed;
+-- 
+2.54.0 (Apple Git-157)
+
