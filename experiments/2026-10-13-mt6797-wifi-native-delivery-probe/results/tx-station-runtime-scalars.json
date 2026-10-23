@@ -1,0 +1,69 @@
+{
+  "runs": {
+    "station-1": {
+      "run": "PIO-throughput-station-1",
+      "profile": "mt6797-a53-wifi-station",
+      "kernel_build_commit": "ea9f812713d98f37d89c9f6882b1cd8f94124cd7",
+      "candidate_manifest_sha256": "c5831999f69d360085e7824b4556d183b416154470b6bfc4a52ed3985ec29314",
+      "boot2_sha256": "2fdaa4e60f67817b2511316c580af74f58f84fb1ef3e5f62cab01259522f9a14",
+      "mainline_boot_id": "abf5b2ef-4187-415e-85b5-c175fd1d5ff6",
+      "outcome": "harness interface refusal before Wi-Fi: leaf mode stage read a removed module parameter; no sealed log; manual power cycle to Gemian",
+      "fix": "proposal 0239"
+    },
+    "station-2": {
+      "run": "PIO-throughput-station2-1",
+      "profile": "mt6797-a53-wifi-station",
+      "kernel_build_commit": "f2db098f72f26b43dbb955492c0851770bb95a61",
+      "candidate_manifest_sha256": "0343b3ebedfd1b7babd66c99873ad96edba159243f36e222dbb444202445b38b",
+      "boot2_sha256": "598c26b816c5ad1cb1fccfad915855300c8367153e44a84e2777455b880e25b9",
+      "kernel_notes_sha256": "f6157259ef2e640b20083ccfb2d39a4660b1a06b738b23214cfbcbf8490419a6",
+      "mainline_boot_id": "cb54b5d7-5d5a-4ee1-ba17-9388dd80833c",
+      "previous_gemian_boot_id": "3536496f-3711-494d-a605-c2212b41ca6d",
+      "returned_gemian_boot_id": "135292c1-d711-46a4-855f-2ed92b3ff6c7",
+      "admitted_uptime_s": 35.76,
+      "throughput": {
+        "tx_host_received_mbit_s": 1.1923,
+        "tx_chunk_mbit_s": [1.45, 1.45, 1.44, 1.46, 1.45],
+        "tx_bytes": 908672,
+        "tx_elapsed_ns": 6097100542,
+        "tx_device_cpu_idle_percent": 86.33,
+        "rx_host_sent_mbit_s": 9.8521,
+        "rx_device_mbit_s": 8.4733,
+        "rx_device_chunk_mbit_s": [18.24, 18.24, 16.13, 17.85, 17.85],
+        "rx_device_cpu_idle_percent": 77.15
+      },
+      "completion_gaps_ms": {
+        "scope": "all 2,312 ordinary TX completions in the sealed log",
+        "median": 1.11,
+        "p75": 7.98,
+        "p90": 8.01,
+        "bins": {"lt_6": 1466, "6_to_12": 809, "12_to_25": 15, "ge_25": 21}
+      },
+      "data_phase": {
+        "end_reason": "disconnect",
+        "elapsed_ms": 13855,
+        "tx_queued": 2308,
+        "tx_done": 2304,
+        "tx_failed": 4,
+        "pid_allocations": 2312,
+        "pid_completions": 2312,
+        "pid_wraps": 18,
+        "unowned": 0,
+        "teardown_framing_drops": 0
+      },
+      "first_failure": {
+        "host": "leaf acknowledgment wait found the data-window marker gone from the 1 MiB kernel ring (about 30,000 records logged), closed the window and terminated the supplicant; host acknowledgment at 17.4 s refused as late",
+        "device": "first pass after data end exceeded the 4,096-pass lifetime quota; lifetime fail-stopped with status -110 at branch 1 before any teardown command",
+        "fixes": ["8 MiB kernel ring in the single-arm fragments", "proposal 0245 (deadlines, no pass quota)", "proposal 0246 (per-frame slot lines demoted)"]
+      },
+      "session": {
+        "capture_exit": 0,
+        "session_exit": 1,
+        "host_refusal": "remote owner not confirmed quiescent; export refused by the session host",
+        "preservation": "separate reviewed preservation: quiescence proved, log sealed complete-log-through-seal (30,199 records), native reboot, changed-boot Gemian confirmed",
+        "retry": false
+      },
+      "not_established": ["standard disconnect grading", "reserved deauthentication delivery", "cleanup stage"]
+    }
+  }
+}

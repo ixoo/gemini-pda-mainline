@@ -1,4 +1,21 @@
-# Current: quiet-console measured; single-arm station candidate next
+# Current: single arm measured neutral; station-3 next with 0245 and 0246
+
+[Station result](TX_STATION_RESULT.md): the consolidated single build arm
+matches or beats the tree it came from (TX 1.192 Mbit/s, RX 9.85 Mbit/s,
+median completion gap 1.11 ms). Station-1 never reached Wi-Fi (leaf read a
+removed parameter, fixed by 0239). Station-2 ended early on two host-chosen
+limits: the 1 MiB kernel ring wrapped past the leaf's data-window marker
+(single-arm profiles now boot with an 8 MiB ring; 0246 demotes the two
+per-frame slot lines) and the 4,096-pass lifetime quota ended the lifetime
+before any teardown command (0245 removes it). Device returned to
+changed-boot Gemian `135292c1-d711-46a4-855f-2ed92b3ff6c7`. No retry.
+
+Next boot: station-3 (station profile + 0245 + 0246 + 8 MiB ring), expected
+to repeat the throughput and complete the teardown with the host
+acknowledgment accepted; then flow-control, pipelining, autorate, lifecycle.
+Key reuse, rekey and reconnect remain disabled until the lifecycle boot.
+
+# Historical: quiet-console measured; single-arm station candidate next
 
 [Quiet-console result](TX_QUIET_CONSOLE_RESULT.md): with the driver unchanged
 and only the serial console quieted, the median gap between TX completions

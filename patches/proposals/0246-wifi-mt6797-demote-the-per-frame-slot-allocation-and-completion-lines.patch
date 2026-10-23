@@ -1,0 +1,49 @@
+From f347323f04ead9be084947fba2cf7f09b05fe113 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 19:22:12 -0400
+Subject: [PATCH] wifi: mt6797: demote the per-frame slot allocation and
+ completion lines
+
+Each ordinary data frame logged three informational lines: slot
+allocation, slot completion and TX done. At the rates the single arm now
+reaches that is about 30,000 records in a 14 s data phase, which wrapped
+the kernel ring the device-side session leaf polls and cost printk time on
+the data path. Keep the TX done record, which the measurement classifiers
+and the completion-gap analysis read, and the per-lifetime slot summary;
+make the two per-frame slot lines debug messages.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 186567e71..dddecce7a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -552,8 +552,8 @@ static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved, bool da
+ 		mac->join_next_pid = mac->ccmp_pid_pool.next;
+ 	}
+ 	mac->join_pid = pid;
+-	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN TX slot allocation: pid=%u ordinal=%u reserved=%u wraps=%u\n",
++	dev_dbg(wiphy_dev(mac->hw->wiphy),
++		"one-shot WLAN TX slot allocation: pid=%u ordinal=%u reserved=%u wraps=%u\n",
+ 		 pid, reserved ? 0 : mac->ccmp_pid_pool.allocations,
+ 		 (unsigned int)reserved, mac->ccmp_pid_pool.wraps);
+ 	return 0;
+@@ -3750,8 +3750,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 						ret = -EPROTO;
+ 						goto failed;
+ 					}
+-					dev_info(wiphy_dev(mac->hw->wiphy),
+-						 "one-shot WLAN TX slot completion: pid=%u ordinal=%u wraps=%u\n",
++					dev_dbg(wiphy_dev(mac->hw->wiphy),
++						"one-shot WLAN TX slot completion: pid=%u ordinal=%u wraps=%u\n",
+ 						 mac->join_pid, mac->ccmp_pid_pool.completions,
+ 						 mac->ccmp_pid_pool.wraps);
+ 				}
+-- 
+2.43.0
+

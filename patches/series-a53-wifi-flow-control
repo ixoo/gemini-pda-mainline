@@ -730,3 +730,4 @@ proposals/0237-wifi-mt6797-keep-the-proven-monitor-control-in-the-single-build-a
 proposals/0238-wifi-mt6797-drop-records-framed-across-the-data-end-monitor-toggle.patch
 proposals/0239-wifi-mt6797-keep-the-retired-mode-parameters-visible-for-the-host-leaf.patch
 proposals/0245-wifi-mt6797-bound-the-lifetime-by-its-deadlines-not-by-a-pass-quota.patch
+proposals/0246-wifi-mt6797-demote-the-per-frame-slot-allocation-and-completion-lines.patch
