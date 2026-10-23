@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "run": "PIO-throughput-baseline-1",
+  "date": "2026-10-23",
+  "host_revision": "b8cc6490",
+  "boot_id": "0b917a11-3fcd-4c5b-ab3e-0749ed8066b4",
+  "kernel_build_commit": "3da69187ec93fd15b28fda3fbdbf118c37ad55a5",
+  "kernel_release": "7.1.3-gemini-a53-private-p2e-delivery",
+  "boot2_sha256": "5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd",
+  "new_build": false,
+  "image_changed": false,
+  "boot_allowance_consumed": true,
+  "retry": false,
+  "baseline_pass": false,
+  "measurement_censored": true,
+  "join": true,
+  "dhcp": true,
+  "pings_sent": 3,
+  "pings_received": 3,
+  "ssh_authenticated": true,
+  "ssh_exit": 255,
+  "first_measurement_error": "SSH server idle timeout (30 s); final device snapshots missing",
+  "directions": {
+    "RX": {
+      "bytes": 0,
+      "completed": false,
+      "device_cpu": {
+        "valid": false
+      },
+      "device_end_ns": null,
+      "device_pipeline_exit": null,
+      "device_received_bytes": null,
+      "device_start_ns": null,
+      "errors": 0,
+      "expected_termination": false,
+      "host_count_scope": "sent",
+      "owner_quiescent": true
+    },
+    "TX": {
+      "bytes": 842312,
+      "completed": true,
+      "device_cpu": {
+        "valid": false
+      },
+      "device_end_ns": null,
+      "device_pipeline_exit": null,
+      "device_start_ns": 24580000000,
+      "elapsed_ns": 31067160709,
+      "errors": 0,
+      "expected_termination": false,
+      "host_count_scope": "received",
+      "owner_quiescent": true,
+      "completed_60s_measurement": false,
+      "completed_field_scope": "host socket reached EOF, not successful measurement"
+    }
+  },
+  "standard_disconnect_attempted": false,
+  "standard_disconnect_withheld_reason": "missing device EOS timestamp after SSH interruption",
+  "ordinary_tx_allocations": 626,
+  "ordinary_tx_completions": 626,
+  "ordinary_tx_nonzero_status": 0,
+  "ordinary_tx_pending": 0,
+  "ordinary_tx_unowned": 0,
+  "reserved_delivery": {
+    "verdict": "transmitted",
+    "status": 0,
+    "class": 2,
+    "phase": "completion",
+    "pm_offset_ns": 366357114252,
+    "cleanup_repeat": false
+  },
+  "data_end_reason": "connection-loss",
+  "data_elapsed_ms": 366091,
+  "cleanup": {
+    "healthy_stage3": false,
+    "whole_ledger": false,
+    "status": -110,
+    "page_debt": 1,
+    "branch": 8,
+    "pairwise_removal_credited": true,
+    "group_removal_credited": false,
+    "no_reuse": true
+  },
+  "seal_entries_verified": 73,
+  "seal_sha256": "92a18018943bf1539fa6563ae36547ea62d966b6e167dda7815022b697b5e1f9",
+  "log": {
+    "bytes": 616820,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 4602,
+    "sha256": "776b2681c2f74dbad9aae208933edca1b922bb78add0c175b1e6f41e6fc4f908",
+    "status_sha256": "25cc32aa36a3f3293c10ad8f5d42ee2c0a6166e00fa2d4ba4da8bf40b4328e4b"
+  },
+  "a53_regression_pass": true,
+  "reviewed_return_confirmed": true,
+  "independent_gemian_return_confirmed": true,
+  "returned_gemian_boot": "1c5d22fe-aa8f-4f51-8250-c20790761b9f",
+  "reconnect_closed": true,
+  "dma_implementation_admitted": false,
+  "comparison_boot_queued": false,
+  "baseline_valid": false,
+  "loss_path_first_end_to_end_exercise": true
+}

@@ -1,4 +1,37 @@
-# Current handoff: PIO baseline prepared; physical boot2 selection pending
+# Current handoff: invalid baseline recorded; corrected run prepared offline
+
+[Baseline 1](THROUGHPUT_BASELINE_RESULT.md) is invalid (SSH idle policy); no
+rate claim. The independent first connection-loss teardown did not retire its
+ledger. The [offline audit](LOSS_PATH_TEARDOWN_AUDIT.md) reproduces a driver
+waiter candidate against actual installed source; firmware dropping group
+removal is unproved because the host stopped before its credit bound expired.
+
+[Corrected baseline 2](THROUGHPUT_BASELINE_2_PREDECLARATION.md): five 10 s/1 MiB
+chunks per direction, chunk progress plus independent SSH keepalives, direction
+CPU/netdev snapshots, prompt single EOS/quiescence-guarded standard disconnect,
+honest whole-ledger/delivery verdict, seal and reviewed return. Ten measurement
+fixtures and the actual-source waiter fixture pass; actual capture/session
+constructors and installed-image input validation pass offline. One new boot
+authorized by the owner's correction, no rebuild/image change; physical boot2
+selection remains required. No retry of baseline 1 or either P2E run.
+Reconnect closed, safeguards dormant; TX DMA still held on its contract.
+
+# Historical handoff: PIO baseline consumed; returned to Gemian
+
+[Baseline result](THROUGHPUT_BASELINE_RESULT.md): one unchanged-image boot,
+join/DHCP/three pings/authentication passed. TX was interrupted by the retained
+SSH server's 30-second idle policy: 842312 received bytes in 31.067 s,
+invalid stalled transfer; no rate claim; RX and CPU idle unavailable. Missing EOS withheld the
+standard disconnect. Later connection-loss teardown transmitted reserved
+deauth status 0 but stopped on group-removal credit debt (-110); no whole-ledger
+stage 3. Evidence sealed and independently rehashed; reviewed return and
+independent changed-boot Gemian confirmation passed. No retry, build or image
+change. The boot allowance is consumed; no further device action queued.
+Reconnect remains closed, safeguards dormant. TX DMA remains refused on the
+[unresolved transfer contract](DMA_TRANSFER_CONTRACT.md). Earlier handoffs below
+are history, not an active test queue.
+
+# Historical handoff: PIO baseline prepared; physical boot2 selection pending
 
 [Predeclared throughput baseline](THROUGHPUT_BASELINE_PREDECLARATION.md): one
 fresh boot, unchanged installed `3da69187` / boot2 `5f63e2d32fc0...`; join,

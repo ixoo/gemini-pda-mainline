@@ -28,7 +28,10 @@ def classify(kmsg, receipt, verified_boot, protocol=None):
         direction['device_tx_status_completions'] = len(done)
         direction['device_tx_status_nonzero'] = sum(int(m[1]) != 0 for m in done)
     directions = measurement.get('directions',{})
-    timing = bool(len(directions)==2 and all(59e9<=d.get('elapsed_ns',0)<=63e9 for d in directions.values()))
+    timing = bool(len(directions)==2 and all(d.get('completed') and
+                  len(d.get('chunks',[]))==5 and
+                  all(0<c.get('elapsed_ns',0)<=12.5e9 for c in d['chunks'])
+                  for d in directions.values()))
     passed = bool(verified_boot and receipt and receipt.get('all_pass') and timing and
                   value.get('healthy_cleanup') and value.get('counts_ok') and
                   value.get('sequence_ok') and value.get('gtk_counters_consistent') and not value.get('fault'))

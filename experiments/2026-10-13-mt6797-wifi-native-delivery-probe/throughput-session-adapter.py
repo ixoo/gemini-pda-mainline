@@ -66,7 +66,7 @@ def run_phase(phase, execute):
             globals_ = result['client'].__globals__
             old_roots = globals_['fresh_roots']
             def roots(source):
-                return old_roots(source).replace('session-ccmp-p2e','session-throughput-1').replace('capture-ccmp-p2e','capture-throughput-1')
+                return old_roots(source).replace('session-ccmp-p2e','session-throughput-2').replace('capture-ccmp-p2e','capture-throughput-2')
             globals_['fresh_roots'] = roots
             old_host = result['host']
             def host(source, client_sha):
@@ -91,7 +91,7 @@ def run_phase(phase, execute):
         # Wrappers compile definitions without invoking main under run_path.
         if phase == 'session':
             host = result['GLOBALS']['NH']
-            expected = (str(Path(os.environ['GEMINI_RUNTIME_ROOT'])/'ccmp-stable-monitor/session-throughput-1'),plan['helper_sha256'])
+            expected = (str(Path(os.environ['GEMINI_RUNTIME_ROOT'])/'ccmp-stable-monitor/session-throughput-2'),plan['helper_sha256'])
             if getattr(host,'THROUGHPUT_BINDING',None)!=expected or host.PH.ROOT!=host.ROOT:
                 raise ValueError('measurement host/helper binding not applied to actual constructor')
         main = result['CAP'].main if phase == 'capture' else result['GLOBALS']['NH'].main

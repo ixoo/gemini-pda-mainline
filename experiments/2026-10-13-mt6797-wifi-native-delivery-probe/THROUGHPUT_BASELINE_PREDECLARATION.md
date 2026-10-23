@@ -1,4 +1,8 @@
-# PIO throughput baseline 1 — predeclared, physical boot2 selection pending
+# PIO throughput baseline 1 — historical predeclaration, now consumed
+
+Executed once: [interrupted measurement and failed cleanup result](THROUGHPUT_BASELINE_RESULT.md).
+Returned to independently verified Gemian. The preparation/readiness statements
+below describe the pre-boot checkpoint; they do not queue a repeat.
 
 Owner request, 2026-10-23: measurement first, one boot of the unchanged installed
 image, no rebuild or image change. Reconnect is **closed as a limitation**, not

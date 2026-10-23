@@ -35,7 +35,7 @@ def prepare(repo, runtime):
     reviewed.write_bytes(leaf)
     bound.write_bytes(private[:-len(retained)]+leaf)
     bound.chmod(0o600)
-    plan = {'schema':1,'run':'PIO-throughput-baseline-1','image_changed':False,'boot_allowance_consumed':False,
+    plan = {'schema':1,'run':'PIO-throughput-baseline-2','image_changed':False,'boot_allowance_consumed':False,
             'helper_sha256':hashlib.sha256((here/'throughput-helper.py').read_bytes()).hexdigest(),
             'leaf_sha256':hashlib.sha256(leaf).hexdigest(),
             'private_leaf_sha256':hashlib.sha256(bound.read_bytes()).hexdigest(),
@@ -48,7 +48,7 @@ def prepare(repo, runtime):
            'GEMINI_JOIN_SCRIPT':str(bound),'GEMINI_SESSION_SOURCE_ROOT':str(repo/'artifacts/wifi-snapshot-c2-session-sources'),
            'GEMINI_INSTALLER_SOURCE_ROOT':str(repo/'artifacts/wifi-ccmp6-installer-sources'),
            'GEMINI_WIFI_SSH_KEYS':str(repo/'artifacts/credentials/a53-auth'),
-           'GEMINI_WIFI_SSH_BOOT':'556ecf83-e9b3-4042-81c9-5b4de957d13c',
+           'GEMINI_WIFI_SSH_BOOT':'1c5d22fe-aa8f-4f51-8250-c20790761b9f',
            'TP_SOURCE_ROOT':str(cohort),'TP_CANDIDATE':str(candidate),'TP_PLAN':str(plan_path),
            'TP_REVIEWED_LEAF':str(reviewed),'TP_HELPER':str(here/'throughput-helper.py'),
            'TP_ADAPTER':str(here/'throughput-session-adapter.py'),
@@ -67,7 +67,7 @@ def prepare(repo, runtime):
         prepared = old(str(source/'prepare-ccmp.py'))
         g=prepared['main'].__globals__
         g.update(RECEIPT=candidate/'candidate.json',MANIFEST_SHA='8eb12232ddbb2a00027f926a2c72c5e8213a3dbffadf6269c10beeed6bdceab3',
-                 CAPTURE='capture-throughput-1',SESSION='session-throughput-1',REVIEWED_JOIN_SCRIPT=reviewed)
+                 CAPTURE='capture-throughput-2',SESSION='session-throughput-2',REVIEWED_JOIN_SCRIPT=reviewed)
         prepared['main']()
     finally:
         runpy.run_path=old
@@ -75,7 +75,7 @@ def prepare(repo, runtime):
     # Preserve the actual prior install receipt as prior-install evidence;
     # no new installation or partition action is represented by this copy.
     deployment=repo/'artifacts/device-install-evidence/mt6797-wifi-ccmp-stable-monitor-deployment-p2ed1/deployment-summary.txt'
-    shutil.copyfile(deployment,runtime/'ccmp-stable-monitor/session-throughput-1/deployment-summary.txt')
+    shutil.copyfile(deployment,runtime/'ccmp-stable-monitor/session-throughput-2/deployment-summary.txt')
     for phase in ('capture','session'):
         with (runtime/(phase+'-offline-prepare.log')).open('xb') as log:
             result=subprocess.run([sys.executable,str(here/'throughput-session-adapter.py'),phase],env=env,stdout=log,stderr=subprocess.STDOUT,timeout=60)

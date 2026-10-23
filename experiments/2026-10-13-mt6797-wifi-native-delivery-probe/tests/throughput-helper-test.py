@@ -58,14 +58,42 @@ class MeasurementTests(unittest.TestCase):
 
     def test_generated_shell_and_finite_protocol(self):
         script=T['remote_script']('00000000-0000-4000-8000-000000000001','192.0.2.1')
-        self.assertEqual(script.count('$BB timeout 60'),2)
-        self.assertIn('bs=65536 count=1024',script)
+        self.assertEqual(script.count('$BB timeout 10'),2)
+        self.assertIn('bs=65536 count=16',script)
+        self.assertEqual(T['validate_idle_safety'](script)['maximum_transfer_silence_seconds'],10)
         self.assertIn('5000000000',script)  # late-start refusal preserved
-        self.assertEqual(script.count('TP1_TX_CPU_BEFORE'),1)
+        self.assertEqual(script.count('TP1_%s_CPU_BEFORE'),1)
         self.assertNotIn('iperf',script)
         self.assertLess(len(script.encode())+1000,4096)
         subprocess.run(['/bin/sh','-n'],input=script.encode(),check=True)
         subprocess.run(['shellcheck','--shell=sh','-'],input=script.encode(),check=True)
+
+    def test_silent_command_exceeding_idle_policy_is_refused(self):
+        script=T['remote_script']('00000000-0000-4000-8000-000000000001','192.0.2.1')
+        with self.assertRaises(ValueError):
+            T['validate_idle_safety'](script.replace('$BB timeout 10','$BB timeout 31'))
+        with self.assertRaises(ValueError):
+            T['validate_idle_safety'](script.replace('TP2_PROGRESS','QUIET'))
+
+    def test_five_chunks_use_separate_connections(self):
+        endpoint=T['Endpoint']('127.0.0.1',0,'127.0.0.1',False,duration=0.2,maximum=4096,chunks=5)
+        address=endpoint.socket.getsockname()
+        for _ in range(5):
+            with socket.create_connection(address) as peer:
+                peer.sendall(bytes(4096));peer.shutdown(socket.SHUT_WR)
+        endpoint.thread.join(1);endpoint.close()
+        self.assertEqual(endpoint.result['bytes'],5*4096)
+        self.assertEqual(len(endpoint.result['chunks']),5)
+        self.assertTrue(endpoint.result['completed'])
+
+    def test_empty_chunk_stops_before_another_accept(self):
+        endpoint=T['Endpoint']('127.0.0.1',0,'127.0.0.1',False,duration=0.2,maximum=4096,chunks=5)
+        with socket.create_connection(endpoint.socket.getsockname()) as peer:
+            peer.shutdown(socket.SHUT_WR)
+        endpoint.thread.join(1);endpoint.close()
+        self.assertEqual(endpoint.result['errors'],1)
+        self.assertEqual(len(endpoint.result['chunks']),1)
+        self.assertFalse(endpoint.result['completed'])
 
     def test_controller_claim_exclusive(self):
         with tempfile.TemporaryDirectory() as d:

@@ -13,12 +13,14 @@ import sys
 import threading
 import time
 
-DURATION = 60
-MAX_BYTES = 64 * 1024 * 1024
+DURATION = 10
+CHUNKS = 5
+MAX_BYTES = 1024 * 1024
+SSH_IDLE_SECONDS = 30
 
 
 class Endpoint:
-    def __init__(self, address, port, peer, sending, duration=DURATION, maximum=MAX_BYTES):
+    def __init__(self, address, port, peer, sending, duration=DURATION, maximum=MAX_BYTES, chunks=1):
         self.socket = socket.socket()
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
@@ -26,7 +28,8 @@ class Endpoint:
         self.socket.settimeout(0.2)
         self.peer, self.sending = peer, sending
         self.duration, self.maximum = duration, maximum
-        self.result = {'bytes': 0, 'errors': 0, 'completed': False}
+        self.chunks = chunks
+        self.result = {'bytes': 0, 'errors': 0, 'completed': False, 'chunks': []}
         self.cancel = threading.Event()
         self.thread = threading.Thread(target=self.work, daemon=True)
         self.thread.start()
@@ -34,44 +37,46 @@ class Endpoint:
     def work(self):
         start = None
         try:
-            deadline = time.monotonic() + 80
-            connection = None
-            while not self.cancel.is_set() and time.monotonic() < deadline:
-                try:
-                    connection = self.socket.accept()[0]
-                    break
-                except socket.timeout:
-                    continue
-            if connection is None:
-                if self.cancel.is_set():
-                    return
-                raise TimeoutError('measurement accept deadline')
-            with connection:
-                if connection.getpeername()[0] != self.peer:
-                    raise ValueError('unexpected measurement peer')
-                connection.settimeout(0.2)
-                start = time.monotonic_ns()
-                end = start + int(self.duration * 1e9)
-                block = bytes(65536)
-                while not self.cancel.is_set() and time.monotonic_ns() < end:
-                    if self.result['bytes'] >= self.maximum:
-                        self.result['known_size_complete'] = True
-                        break
+            for ordinal in range(1,self.chunks+1):
+                deadline = time.monotonic() + 80
+                connection = None
+                while not self.cancel.is_set() and time.monotonic() < deadline:
                     try:
-                        if self.sending:
-                            amount = connection.send(block[:min(len(block), self.maximum-self.result['bytes'])])
-                        else:
-                            data = connection.recv(min(len(block), self.maximum-self.result['bytes']))
-                            amount = len(data)
-                            if any(data):
-                                raise ValueError('nonzero measurement payload')
-                        if not amount:
-                            self.result['eof'] = True
-                            break
-                        self.result['bytes'] += amount
+                        connection = self.socket.accept()[0]
+                        break
                     except socket.timeout:
                         continue
-                self.result['completed'] = True
+                if connection is None:
+                    if self.cancel.is_set(): return
+                    raise TimeoutError('measurement accept deadline')
+                with connection:
+                    if connection.getpeername()[0] != self.peer:
+                        raise ValueError('unexpected measurement peer')
+                    connection.settimeout(0.2)
+                    chunk_start = time.monotonic_ns()
+                    if start is None: start = chunk_start
+                    end = chunk_start + int((self.duration+2) * 1e9)
+                    count = 0
+                    block = bytes(65536)
+                    while not self.cancel.is_set() and time.monotonic_ns() < end:
+                        if count >= self.maximum: break
+                        try:
+                            if self.sending:
+                                amount = connection.send(block[:min(len(block), self.maximum-count)])
+                            else:
+                                data = connection.recv(min(len(block), self.maximum-count))
+                                amount = len(data)
+                                if any(data): raise ValueError('nonzero measurement payload')
+                            if not amount: break
+                            count += amount
+                        except socket.timeout:
+                            continue
+                    self.result['bytes'] += count
+                    self.result['chunks'].append({'ordinal':ordinal,'bytes':count,'elapsed_ns':time.monotonic_ns()-chunk_start})
+                    self.result['known_size_complete'] = count==self.maximum
+                    if self.cancel.is_set(): return
+                    if not count: raise ValueError('empty chunk; later traffic withheld')
+            self.result['completed'] = True
         except Exception as error:
             if not self.cancel.is_set():
                 self.result.update(errors=1, error=type(error).__name__)
@@ -111,32 +116,49 @@ n=$($BB awk '{printf "%.0f\n", $1*1000000000}' /proc/uptime)
 cpu() { $BB head -n 1 /proc/stat; }
 stats() { for k in rx_packets tx_packets rx_errors tx_errors rx_dropped tx_dropped; do printf '%s=' "$k"; $BB cat /sys/class/net/wlan0/statistics/$k | $BB tr '\n' ' '; done; printf '\n'; }
 clock() { $BB awk '{printf "%.0f\n", $1*1000000000}' /proc/uptime; }
-printf 'TP1_TX_CPU_BEFORE '; cpu
-printf 'TP1_TX_STATS_BEFORE '; stats
-printf 'TP1_TX_START_NS='; clock
-rc=0
-$BB timeout 60 $BB sh -c 'set -o pipefail; /bin/busybox dd if=/dev/zero bs=65536 count=1024 2>/tmp/tp1-dd.log | /bin/busybox nc HOST 48001' || rc=$?
-printf 'TP1_TX_RC=%s\n' "$rc"
-case "$rc" in 0|124|143) ;; *) exit 38;; esac
-printf 'TP1_TX_CPU_AFTER '; cpu
-printf 'TP1_TX_STATS_AFTER '; stats
-printf 'TP1_TX_END_NS='; clock
-d=$(dmesg)
-if printf '%s' "$d" | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:|data phase end:)'; then exit 34; fi
-[ "$(cat /proc/sys/kernel/random/boot_id)" = BOOT ] || exit 35
-printf 'TP1_RX_CPU_BEFORE '; cpu
-printf 'TP1_RX_STATS_BEFORE '; stats
-printf 'TP1_RX_START_NS='; clock
-rc=0
-received=$($BB timeout 60 $BB sh -c 'set -o pipefail; /bin/busybox nc HOST 48002 | /bin/busybox wc -c') || rc=$?
-printf 'TP1_RX_BYTES=%s\n' "${received:-unknown}"
-printf 'TP1_RX_RC=%s\n' "$rc"
-printf 'TP1_RX_CPU_AFTER '; cpu
-printf 'TP1_RX_STATS_AFTER '; stats
-printf 'TP1_RX_END_NS='; clock
-printf 'TP1_END_NS='; clock
+trap 'printf "TP1_END_NS="; clock' EXIT
+for dir in TX RX; do
+    printf 'TP1_%s_CPU_BEFORE ' "$dir"; cpu
+    printf 'TP1_%s_STATS_BEFORE ' "$dir"; stats
+    printf 'TP1_%s_START_NS=' "$dir"; clock
+    i=1; total=0; rc=0
+    while [ "$i" -le 5 ]; do
+        printf 'TP2_PROGRESS direction=%s chunk=%s phase=start\n' "$dir" "$i"
+        rc=0
+        if [ "$dir" = TX ]; then
+            $BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeout 10 $BB nc HOST 48001 || rc=$?
+        else
+            $BB timeout 10 $BB nc HOST 48002 > /tmp/tp2-rx || rc=$?
+            n=$($BB wc -c < /tmp/tp2-rx); total=$((total+n)); $BB rm -f /tmp/tp2-rx
+            [ "$n" -gt 0 ] || exit 39
+        fi
+        printf 'TP2_PROGRESS direction=%s chunk=%s phase=end rc=%s\n' "$dir" "$i" "$rc"
+        case "$rc" in 0|124|143) ;; *) exit 38;; esac
+        d=$(dmesg)
+        if printf '%s' "$d" | $BB grep -Eq 'one-shot WLAN join (stopped:|rearm refused:|rearm wrap:|data phase end:)'; then exit 34; fi
+        i=$((i+1))
+    done
+    [ "$dir" != RX ] || printf 'TP1_RX_BYTES=%s\n' "$total"
+    printf 'TP1_%s_RC=%s\n' "$dir" "$rc"
+    printf 'TP1_%s_CPU_AFTER ' "$dir"; cpu
+    printf 'TP1_%s_STATS_AFTER ' "$dir"; stats
+    printf 'TP1_%s_END_NS=' "$dir"; clock
+    [ "$(cat /proc/sys/kernel/random/boot_id)" = BOOT ] || exit 35
+done
 '''.replace('BOOT', shlex.quote(boot)).replace('HOST', shlex.quote(host))
     return script
+
+
+def validate_idle_safety(script, idle=SSH_IDLE_SECONDS):
+    """Validate this concrete chunk loop before submitting it, not arbitrary shell."""
+    bounds = [int(n) for n in re.findall(r'\$BB timeout ([0-9]+)',script)]
+    if (len(bounds)!=2 or max(bounds)+2>=idle or
+        script.count('TP2_PROGRESS direction=%s chunk=%s phase=start')!=1 or
+        script.count('TP2_PROGRESS direction=%s chunk=%s phase=end')!=1 or
+        'while [ "$i" -le 5 ]' not in script):
+        raise ValueError('planned command can exceed SSH idle policy without progress')
+    return {'idle_seconds':idle,'maximum_transfer_silence_seconds':max(bounds),
+            'progress_margin_seconds':2,'server_alive_interval_seconds':5}
 
 
 def cpu_result(output, direction):
@@ -187,15 +209,16 @@ def execute(root, keys, boot, cycles, poll):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as route:
             route.connect((peer, 9))  # local route selection; sends no datagram
             host = route.getsockname()[0]
-        endpoints.append(Endpoint(host,48001,peer,False))
-        endpoints.append(Endpoint(host,48002,peer,True))
+        endpoints.append(Endpoint(host,48001,peer,False,chunks=CHUNKS))
+        endpoints.append(Endpoint(host,48002,peer,True,chunks=CHUNKS))
         script = remote_script(boot, host)
+        validate_idle_safety(script)
         tag = 'TP1_OWNER_'+boot
         addition = '; exec /bin/busybox timeout 135 /bin/busybox sh -c ' + shlex.quote(script) + ' ' + shlex.quote(tag)
         command = argv[-1] + addition
         if len(command.encode()) > 4096:
             raise ValueError('measurement exceeds retained owner-observation bound')
-        argv = ['-tt' if x == '-T' else x for x in argv[:-1]] + [command]
+        argv = [argv[0],'-o','ServerAliveInterval=5','-o','ServerAliveCountMax=3',*['-tt' if x == '-T' else x for x in argv[1:-1]],command]
         return g['held_stdin_runner'](argv, **kwargs)
 
     try:
@@ -256,9 +279,13 @@ done
         fields = captured.get('fields',{})
         end = re.search(rb'^TP1_END_NS=([0-9]+)\r?$',output,re.M)
         latest = remote.get('queries',[{}])[-1]
-        if end and re.fullmatch(r'[1-9][0-9]*',fields.get('P2_PM_NS','')) and latest.get('pm_offset_ns') is not None:
+        if re.fullmatch(r'[1-9][0-9]*',fields.get('P2_PM_NS','')) and latest.get('pm_offset_ns') is not None:
             pm = int(fields['P2_PM_NS'])
-            now, eos = pm+int(latest['pm_offset_ns']),int(end[1])
+            now = pm+int(latest['pm_offset_ns'])
+            # Observed EOS: all tagged owners/endpoints are already absent.
+            # This USB observation also permits prompt cleanup after SSH fails.
+            eos = int(end[1]) if end else now
+            control['eos_source'] = 'remote_end' if end else 'quiescence_observed'
             lower, upper = eos-pm, eos-pm+30_000_000_000
             if 0 < pm <= eos <= now <= eos+15_000_000_000:
                 command = g['disconnect_argument'](boot,pm,True).replace('6000000000',str(lower)).replace('608000000000',str(upper))
@@ -269,14 +296,14 @@ done
                 before = re.search(rb'before_pm_offset_ns=([0-9]+)',response.stdout)
                 after = re.search(rb'after_pm_offset_ns=([0-9]+) reply_ok=1',response.stdout)
                 control.update(exit=response.returncode,accepted=bool(response.returncode==0 and before and after and lower<=int(before[1])<=upper and int(before[1])<=int(after[1])<=upper+5_000_000_000))
-    result['throughput_measurement'] = {'directions':measured,'seconds_each':DURATION,'maximum_bytes_each':MAX_BYTES,'core_disconnect':control,'new_build':False}
+    result['throughput_measurement'] = {'directions':measured,'seconds_each':DURATION*CHUNKS,'chunks_each':CHUNKS,'maximum_bytes_each':MAX_BYTES*CHUNKS,'core_disconnect':control,'new_build':False}
     counter_names = {'rx_packets','tx_packets','rx_errors','tx_errors','rx_dropped','tx_dropped'}
     directions_ok = bool(len(measured)==2 and
                          (measured.get('RX',{}).get('device_received_bytes') or 0)>0)
     for direction in measured.values():
         directions_ok = bool(directions_ok and direction.get('completed') and
                              not direction['errors'] and direction['expected_termination'] and
-                             direction['device_cpu']['valid'] and direction['bytes']>0 and
+                             direction['device_cpu']['valid'] and direction['bytes']>0 and len(direction.get('chunks',[]))==CHUNKS and
                              set(direction.get('netdev_delta',{}))==counter_names and
                              min(direction['netdev_delta'].values())>=0)
     result['all_pass'] = bool(result['all_pass'] and remote['quiesced'] and
@@ -288,7 +315,7 @@ def main():
     # Retain the reviewed CLI/key/receipt/owned-helper exception machinery.
     cohort = Path(os.environ['TP_SOURCE_ROOT'])
     module = runpy.run_path(str(cohort/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/laptop-wifi-ssh-connected-p2e.py'))
-    module['main'].__globals__['SESSION'] = 'session-throughput-1'
+    module['main'].__globals__['SESSION'] = 'session-throughput-2'
     module['main'].__globals__['run'] = execute
     return module['main']()
 

@@ -22,7 +22,7 @@ def write_new(path, value):
 def validate(runtime):
     env={**os.environ,**json.loads((runtime/'environment.json').read_text())}
     plan=json.loads((runtime/'measurement-plan.json').read_text())
-    if plan['run']!='PIO-throughput-baseline-1' or (runtime/'execution-claim.json').exists():
+    if plan['run']!='PIO-throughput-baseline-2' or (runtime/'execution-claim.json').exists():
         raise ValueError('measurement namespace already consumed or mismatched')
     for field,key in [('TP_HELPER','helper_sha256'),('TP_REVIEWED_LEAF','leaf_sha256'),('GEMINI_JOIN_SCRIPT','private_leaf_sha256')]:
         if hashlib.sha256(Path(env[field]).read_bytes()).hexdigest()!=plan[key]:
@@ -43,12 +43,12 @@ def validate(runtime):
 
 
 def execute(runtime,env,protocol):
-    write_new(runtime/'execution-claim.json',{'run':'PIO-throughput-baseline-1','one_attempt':True,'retry':False,'image_changed':False})
+    write_new(runtime/'execution-claim.json',{'run':'PIO-throughput-baseline-2','one_attempt':True,'retry':False,'image_changed':False})
     cohort=Path(env['TP_SOURCE_ROOT'])
     old=runpy.run_path(str(cohort/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/laptop-run-ccmp-p2e.py'))
     collector=runpy.run_path(str(Path(env['GEMINI_SESSION_SOURCE_ROOT'])/'experiments/2026-09-05-owner-away-experiment-preparation/baseline/scripts/collect-baseline.py'))
     state={'runtime':runtime,'protocol':protocol,'keys':Path(env['GEMINI_WIFI_SSH_KEYS']),
-           'previous_boot':'556ecf83-e9b3-4042-81c9-5b4de957d13c','collector':collector}
+           'previous_boot':'1c5d22fe-aa8f-4f51-8250-c20790761b9f','collector':collector}
     # A readiness wait is read-only and finite, never a boot or radio retry.
     ssh=collector['ssh_command'](state['keys'])
     endpoint=ssh[-2].removeprefix('root@')
@@ -64,7 +64,7 @@ def execute(runtime,env,protocol):
             time.sleep(0.5)
     live=old['identity'](state)
     env['GEMINI_WIFI_SSH_BOOT']=live['boot_id']
-    results={'run':'PIO-throughput-baseline-1','boot_id':live['boot_id'],'boot_allowance_consumed':True,
+    results={'run':'PIO-throughput-baseline-2','boot_id':live['boot_id'],'boot_allowance_consumed':True,
              'kernel_build_commit':protocol['kernel_build_commit'],'new_image':False}
     adapter=Path(env['TP_ADAPTER'])
     for phase in ('capture','session'):
@@ -72,7 +72,7 @@ def execute(runtime,env,protocol):
             result=subprocess.run([sys.executable,str(adapter),phase,'--execute'],env=env,stdout=log,stderr=subprocess.STDOUT)
         results[phase+'_exit']=result.returncode
         if phase=='capture':
-            preflight=runtime/'ccmp-stable-monitor/capture-throughput-1/preflight.json'
+            preflight=runtime/'ccmp-stable-monitor/capture-throughput-2/preflight.json'
             if preflight.is_file():
                 observed=json.loads(preflight.read_text())
                 if observed['boot_id']!=live['boot_id'] or observed['release']!=protocol['kernel_release']:
