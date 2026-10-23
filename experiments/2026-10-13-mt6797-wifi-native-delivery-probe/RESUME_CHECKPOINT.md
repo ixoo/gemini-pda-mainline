@@ -1,4 +1,25 @@
-# Current work: progress-aware yield installed; physical boot2 pending
+# Current: quiet-console measured; single-arm station candidate next
+
+[Quiet-console result](TX_QUIET_CONSOLE_RESULT.md): with the driver unchanged
+and only the serial console quieted, the median gap between TX completions
+fell from 8.2 ms to 1.05 ms and the 12–25 ms population almost vanished;
+TX 1.044 Mbit/s (+19 %), RX 8.02 Mbit/s. The remaining TX limit is the data
+queue freeing the ninth frame unsent (proposal 0235 next). The run exposed a
+teardown defect: a receive record framed for the other monitor state right
+after the data-end monitor-control disable fail-stopped the lifetime before
+any teardown command; proposal 0238 drops such records after data end.
+The session host refused export (quiescence query exit 63); a separate
+reviewed preservation sealed the complete log and returned the device to
+changed-boot Gemian `d2d47ea1-90df-4845-9e8c-8ac1b1dff2b0`. No retry.
+
+Next boots, one variable each, all on the retained kernel release string:
+`mt6797-a53-wifi-station` (0234 single build arm + 0237 proven monitor
+control + 0238; expected: same throughput as quiet-console, teardown
+completes), then `mt6797-a53-wifi-flow-control` (+0235), then
+`mt6797-a53-wifi-pipelining` (+0236). Key reuse, rekey and reconnect remain
+disabled. Earlier handoffs below are historical and consumed.
+
+# Historical: progress-aware yield installed; physical boot2 pending
 
 [Depth-four result](TX_DEPTH_RESULT.md): TX 0.506 Mbit/s, RX 7.061 Mbit/s,
 idle 84.3% / 77.3%, peak four owners, whole-ledger cleanup and status-0

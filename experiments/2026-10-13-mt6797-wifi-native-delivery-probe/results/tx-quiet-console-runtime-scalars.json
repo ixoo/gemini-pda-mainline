@@ -1,0 +1,56 @@
+{
+  "run": "PIO-throughput-quiet-console-1",
+  "profile": "mt6797-a53-wifi-quiet-console",
+  "kernel_build_commit": "7237af148aa5eeeeab40d34ce93bd21f3d3013a6",
+  "candidate_manifest_sha256": "6abba2a5e72d0b13623e6295ff715fb2934adced331935757bd0ee86e4c6e373",
+  "boot2_sha256": "da4fadcc6f8efd0e934d602f8b82e37420c2c38247b2ef2f39fca8685452b8ba",
+  "kernel_notes_sha256": "4eba0b543c0c2d52f31f6a83a1113b107926714960938895ef7bd70c9a4dc69f",
+  "mainline_boot_id": "cc8a3b7c-ff91-4136-b983-accd84aff9bf",
+  "previous_gemian_boot_id": "4a11ee22-e62c-4479-a16a-3dd23d256d81",
+  "returned_gemian_boot_id": "d2d47ea1-90df-4845-9e8c-8ac1b1dff2b0",
+  "variable": "kernel command line loglevel=4 without ignore_loglevel; driver unchanged from the tx-yield profile",
+  "throughput": {
+    "protocol": "five chunks per direction, 1 s or 1 MiB each, plain TCP data, SSH control",
+    "tx_host_received_mbit_s": 1.0438,
+    "tx_chunk_mbit_s": [1.1189, 1.1989, 1.2701, 1.2335, 1.2927],
+    "tx_bytes": 765320,
+    "tx_elapsed_ns": 5865396125,
+    "tx_device_cpu_idle_percent": 86.79,
+    "rx_host_sent_mbit_s": 8.0154,
+    "rx_device_chunk_mbit_s": [9.869, 11.984, 10.755, 11.815, null],
+    "rx_host_sent_bytes": 5242880,
+    "rx_host_elapsed_ns": 5232803250
+  },
+  "completion_gaps_ms": {
+    "scope": "all 2,487 ordinary TX completions in the sealed log, both directions, all statuses",
+    "median": 1.05,
+    "p75": 7.94,
+    "p90": 8.05,
+    "bins": {"lt_6": 1665, "6_to_12": 743, "12_to_25": 40, "ge_25": 38}
+  },
+  "data_phase": {
+    "end_reason": "disconnect",
+    "elapsed_ms": 13859,
+    "tx_queued": 2483,
+    "tx_done": 2481,
+    "tx_failed": 2,
+    "pid_allocations": 2487,
+    "pid_completions": 2487,
+    "pid_wraps": 19,
+    "unowned": 0
+  },
+  "first_failure": {
+    "stage": "teardown",
+    "description": "first receive record after the monitor-control disable refused by the header-length gate (header 1548, selection 1596); lifetime fail-stopped with status -71 before any teardown command",
+    "cleanup_stage": 0,
+    "fix": "proposal 0238"
+  },
+  "session": {
+    "capture_exit": 0,
+    "session_exit": 1,
+    "host_refusal": "remote owner quiescence query exit 63; export refused by the session host",
+    "preservation": "separate reviewed preservation: post-session quiescence proved, log sealed complete-log-through-seal (12,030 records), native reboot, changed-boot Gemian confirmed",
+    "retry": false
+  },
+  "not_established": ["standard disconnect grading", "reserved deauthentication delivery", "cleanup stage"]
+}

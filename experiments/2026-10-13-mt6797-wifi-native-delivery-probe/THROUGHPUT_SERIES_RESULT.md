@@ -13,6 +13,7 @@ described here; each run's own artefacts are named.
 | depth-1 | four data frames in flight, PID-matched | 0.506 | 7.061 | 84.3% / 77.3% |
 | yield-1 | count no-progress turns; 1 ms while pending | 0.837 | 7.002 | 80.8% / 76.0% |
 | phase-pending | active data phase counts as pending receive | 0.876 | 7.133 | 81.5% / 75.9% |
+| [quiet-console](TX_QUIET_CONSOLE_RESULT.md) | console `loglevel=4`, no `ignore_loglevel`; driver unchanged | 1.044 | 8.015 | 86.8% / — |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Protocol in every column: five chunks per direction, 1 s or 1 MiB per chunk,
