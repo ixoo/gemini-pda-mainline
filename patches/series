@@ -855,3 +855,4 @@ proposals/0241-wifi-mt6797-report-the-firmware-s-loss-reason-with-the-connection
 proposals/0242-wifi-mt6797-let-the-firmware-select-the-rate-of-ordinary-data-frames.patch
 proposals/0243-wifi-mt6797-count-Action-frames-and-out-of-window-absence-notices.patch
 proposals/0244-wifi-mt6797-take-the-receive-status-channel-from-the-record.patch
+proposals/0245-wifi-mt6797-bound-the-lifetime-by-its-deadlines-not-by-a-pass-quota.patch

@@ -1,0 +1,50 @@
+From 743559415452020075f74d31e37812d1593c6bdb Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 19:17:04 -0400
+Subject: [PATCH] wifi: mt6797: bound the lifetime by its deadlines, not by a
+ pass quota
+
+The worker ended the lifetime after 4,096 passes outside the data phase.
+That quota dates from the one-shot scan diagnostics; under immediate
+rescheduling the join alone takes thousands of passes, so in the first
+single-arm boot the first pass after data end exceeded it and the lifetime
+fail-stopped before any teardown command, leaving the firmware BSS
+connected. The lifetime is already bounded by its join, frame, credit,
+data and teardown deadlines. Keep counting passes for the record and
+remove the quota from the stop condition.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 177e7bf1d..186567e71 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3294,14 +3294,15 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		goto failed;
+ 	}
+ #endif
++	/* Passes are counted for the record only. The lifetime is bounded by
++	 * its deadlines (join, frame, credit, data and teardown), not by a pass
++	 * quota: under immediate rescheduling the join alone can take thousands
++	 * of passes, and the first pass after data end would otherwise end the
++	 * lifetime before any teardown command.
++	 */
++	mac->join_polls++;
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+ 					now >= mac->join_deadline ||
+-#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
+-		((!ccmp_stable_epoch || !mac->join_data_phase || mac->join_data_ended) &&
+-		 ++mac->join_polls > MT6797_JOIN_MAX_POLLS) ||
+-#else
+-		++mac->join_polls > MT6797_JOIN_MAX_POLLS ||
+-#endif
+ 					(mac->join_inflight && now >= mac->join_frame_deadline) ||
+ 	    mt6797_data_expired(&mac->data_slots, now)) {
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-- 
+2.43.0
+
