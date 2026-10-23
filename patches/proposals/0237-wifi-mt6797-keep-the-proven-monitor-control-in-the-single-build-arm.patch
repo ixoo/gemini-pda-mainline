@@ -1,0 +1,146 @@
+From f2507dc4e085c91ad20f222552ef86788a008f20 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 16:38:29 -0400
+Subject: [PATCH] wifi: mt6797: keep the proven monitor control in the single
+ build arm
+
+Every profile that passed the 120 s and 600 s gates had the mask-control
+arm compiled in, so the data path they proved submits the stock monitor
+callback's Boolean-mask word store directly, not the full SET_MONITOR
+command. The build-arm collapse dropped that arm and would have moved the
+station driver onto the SET_MONITOR path, a second variable in the next
+boot. Restore the mask store as the unconditional monitor control of the
+single arm: the same fixed address, the same two admitted values, the same
+owner and credit path. Replacing it with the SET_MONITOR command, which
+the firmware contract prefers, is a separate measured change.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 14 +++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  3 +++
+ .../mediatek/mt6797/join-command-submit.h     |  9 +++++++
+ .../wireless/mediatek/mt6797/join-commands.h  | 25 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 11 +++++---
+ 5 files changed, 58 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 00764a9c0..ee32baf73 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -839,6 +839,20 @@ int mt6797_hif_native_monitor(struct mt6797_hif *hif, unsigned int sequence,
+ }
+ #endif
+ 
++/* The monitor control of the proven data path: one fixed-address word store
++ * through the same shared owner and credit path as SET_MONITOR; no readback
++ * or retry. Zero proves PIO submission, not control completion.
++ */
++int mt6797_hif_diag_mask(struct mt6797_hif *hif, unsigned int sequence,
++			 bool enable, u64 deadline_ns)
++{
++	u8 payload[MT6797_DIAG_MASK_BYTES];
++
++	mt6797_diag_mask_payload(enable, payload);
++	return mt6797_hif_send_join_command(hif, 0xc0, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++
+ 
+ /*
+  * True only when the post-record normal owner is idle with every TC4 page
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 30cc1b193..067022082 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -241,6 +241,9 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_native_monitor(struct mt6797_hif *hif, unsigned int sequence,
+ 			      bool enable, u8 channel, u64 deadline_ns);
+ #endif
++/* The proven data path's monitor control: the fixed-address mask store. */
++int mt6797_hif_diag_mask(struct mt6797_hif *hif, unsigned int sequence,
++			 bool enable, u64 deadline_ns);
+ 
+ 
+ /* One native bounded management frame through the existing TC4 PIO owner.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+index 4530b83a1..448b6633b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-command-submit.h
+@@ -59,6 +59,15 @@ mt6797_join_prepare_command(struct mt6797_normal_transaction *t,
+ 	case 0x1c:
+ 		required = 16;
+ 		break;
++	case 0xc0:
++		/* Only the exact mask store; reject lengths before field reads. */
++		if (bytes != MT6797_DIAG_MASK_BYTES ||
++		    mt6797_join_le32(payload) != MT6797_DIAG_MASK_TARGET ||
++		    (mt6797_join_le32(payload + 4) != 0 &&
++		     mt6797_join_le32(payload + 4) != 7))
++			return -EINVAL;
++		required = MT6797_DIAG_MASK_BYTES;
++		break;
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	case 0xfc:
+ 		/* CMD_ID_SET_MONITOR, the default-off native-crypto-delivery
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 44f1fbadc..6f4281e50 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -310,6 +310,31 @@ mt6797_native_monitor_payload(bool enable, unsigned char channel,
+ 	return true;
+ }
+ 
++/* The monitor control the proven data path uses: the stock SET_MONITOR
++ * callback's complete Boolean-mask store, written directly as one word at
++ * its fixed address through the register-access command. Only this address
++ * and the values 7 (enable) and 0 (disable) are ever encoded. It is what
++ * every profile that passed the 120 s and 600 s gates submitted; the full
++ * SET_MONITOR command remains the diagnostic alternative, not the default.
++ */
++#define MT6797_DIAG_MASK_BYTES 8U
++#define MT6797_DIAG_MASK_TARGET 0x800c0068U
++static inline bool
++mt6797_diag_mask_payload(bool enable, unsigned char output[MT6797_DIAG_MASK_BYTES])
++{
++	unsigned int i;
++
++	if (!output)
++		return false;
++	for (i = 0; i < 4; i++)
++		output[i] = MT6797_DIAG_MASK_TARGET >> (8 * i);
++	output[4] = enable ? 7 : 0;
++	output[5] = 0;
++	output[6] = 0;
++	output[7] = 0;
++	return true;
++}
++
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ #define MT6797_JOIN_PM_CONNECTED_BYTES 12U
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 48e741991..f8a41a6bc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2539,10 +2539,13 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 	act = mt6797_native_diag_transition(&c);
+ 	mac->native_diag_state = c.state;
+ 	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
+-		rc = mt6797_hif_native_monitor(mac->hif, mac->sequence++,
+-					       act == MT6797_ND_ACT_SUBMIT_ENABLE, 40,
+-					       min_t(u64, mac->join_deadline,
+-						     ktime_get_ns() + 100 * NSEC_PER_MSEC));
++		rc = mt6797_hif_diag_mask(mac->hif, mac->sequence++,
++					  act == MT6797_ND_ACT_SUBMIT_ENABLE,
++					  min_t(u64, mac->join_deadline,
++						ktime_get_ns() + 100 * NSEC_PER_MSEC));
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN mask-control submission: enable=%u status=%d\n",
++			 (unsigned int)(act == MT6797_ND_ACT_SUBMIT_ENABLE), rc);
+ 		if (rc) {
+ 			if (!mac->first_error)
+ 				mac->first_error = rc;
+-- 
+2.43.0
+
