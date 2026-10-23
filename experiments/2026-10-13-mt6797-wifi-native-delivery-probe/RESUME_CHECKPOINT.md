@@ -1,4 +1,16 @@
-# Current work: baseline 2 measured; bounded TX pump comparison
+# Current work: pump-1 recorded; bounded data depth authorized
+
+[Pump-1 result](TX_PUMP_RESULT.md): TX 0.291 Mbit/s (+41% aggregate), RX
+2.846 Mbit/s, CPU idle 86.5% / 82.6%. Five 1 s chunks per direction;
+standard disconnect accepted, whole-ledger stage 3 and status-0 deauth.
+Reviewed return independently confirmed Gemian. Consumed, no retry.
+
+Next owner-selected pass: data depth four, fixed 6 Mbps descriptor unchanged.
+Offline implementation and fixtures precede build and one measurement; no
+new candidate or device eligibility is claimed here. DMA deferred; reconnect
+closed. Host harness and source reading delegated, root is device custodian.
+
+# Historical handoff: baseline 2 measured; bounded TX pump comparison
 
 [Baseline 2 result](THROUGHPUT_BASELINE_2_RESULT.md): TX five chunks,
 0.205740 Mbit/s, 87.525% aggregate idle, 959 completions/four nonzero.

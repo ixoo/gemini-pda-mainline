@@ -1,3 +1,5 @@
+Consumed: see [measured pump-1 result](TX_PUMP_RESULT.md). No retry.
+
 # TX pump comparison 1 — one candidate, one measurement boot
 
 Owner decision after [baseline 2](THROUGHPUT_BASELINE_2_RESULT.md), 2026-10-23.
