@@ -82,3 +82,14 @@ guard is byte-identical to the reviewed depth installer. Offline constructors
 loaded these bindings and refused at the missing genuine installation receipt;
 they must pass with the actual receipt after installation. No yield run has
 happened at this offline checkpoint.
+
+## Verified installation handoff
+
+The guarded installer wrote/synced/flushed boot2 and matched full readback
+`8014a0dd67c5cf5641ef4134fa5412bba971a4c93c095d48c60f02a95051ccae`.
+Clean shutdown confirmed unreachable. Capture and session offline constructors
+passed with the genuine deployment receipt; frozen host hashes and exact
+candidate/receipt bindings verified at the physical-handoff stage. One attempt
+is unconsumed. Physical boot2 selection is pending; no yield throughput result
+is claimed yet. Verification was consolidated at stage boundaries or material
+content changes, with no new device action for rechecking documentation.

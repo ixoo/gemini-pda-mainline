@@ -1,20 +1,36 @@
-# Current work: depth four consumed; pump-yield successor authorized
+# Current work: progress-aware yield installed; physical boot2 pending
 
 [Depth-four result](TX_DEPTH_RESULT.md): TX 0.506 Mbit/s, RX 7.061 Mbit/s,
-CPU idle 84.3% / 77.3%, peak four owners, zero unowned/pending after cleanup.
-Standard disconnect accepted; stage 3 whole ledger and status-0 transmitted
-deauth. Root independently confirmed changed-boot Gemian return. No retry.
+idle 84.3% / 77.3%, peak four owners, whole-ledger cleanup and status-0
+transmitted deauth. Reviewed return independently confirmed changed-boot Gemian.
+Consumed, no retry. Its measured TX gap clusters are approximately 4.2/31.8 ms.
 
-Next owner-selected single variable: count no-progress iterations, reset on
-frame submission or completion retirement; after the bounded guard, pending
-work yields 1 ms, truly idle work 20 ms. Depth four, descriptor fixed nominal
-6 Mbps, credit accounting, PID attribution, deadlines and admission unchanged.
-Falsifiable target 2.5–3 Mbit/s TX; if not reached, report and stop rather than
-changing rate or widening this pass. Same five 1 s/1 MiB chunks per direction.
-No successor candidate or device eligibility is claimed at this checkpoint.
+[Yield comparison](TX_YIELD_COMPARISON.md): patch 0233 resets the no-progress
+guard on successful frame submission or matched completion retirement. After
+32 no-progress immediate iterations, pending work requests 1 ms; genuinely idle
+work retains 20 ms. Existing HZ=250 means a one-jiffy nominal 4 ms short yield.
+Depth four, fixed-rate descriptor, ledger, PID attribution, deadlines,
+admission, management and key ownership remain unchanged. Actual-source
+fixtures, ASAN/UBSAN, strict checkpatch and repository checks pass.
 
-Root owns device work and final records. Harness and analysis are delegated.
-Reconnect closed, safeguards dormant, DMA deferred, rate a following pass.
+Validated build `1a4f291e` has byte-identical configuration to depth four.
+Full boot2 `8014a0dd67c5cf5641ef4134fa5412bba971a4c93c095d48c60f02a95051ccae`
+was written/synced/flushed and fully read back with matching SHA-256. Gemian
+clean shutdown confirmed unreachable. Both offline constructors pass using
+the genuine receipt; candidate and sealed host hashes verified at this
+physical-handoff stage. No yield measurement has run; one attempt unconsumed.
+
+Runtime `artifacts/wifi-throughput-yield-1`. After owner boot2 selection,
+root launches `artifacts/wifi-tx-yield-work/hosts/throughput-run.py` with that
+runtime and `--execute` exactly once, using Python 3.13. Live identity precedes
+firmware start; five 1 s/1 MiB chunks per direction, prompt standard disconnect,
+seal/export and reviewed return. Compute first-class gap histograms with
+`summarize-throughput-completion-gaps.py` using the matching within-chunk filter.
+Falsifiable TX target 2.5–3 Mbit/s; report partial/unmet result honestly.
+
+Root retains device custody and final records; harness and analysis delegated.
+No retry, rate change, DMA, rekey or protected re-arm. Reconnect closed,
+safeguards dormant. Rate adaptation remains a separate following pass.
 
 # Historical handoff: baseline 2 measured; bounded TX pump comparison
 
