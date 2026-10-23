@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-23",
+  "input_commit": "2328643a5b17fa837ae69a9be2c48252b54b3924",
+  "status": "INCOMPLETE: offline admission HOLD before build",
+  "actual_source_diagnostic": "counterexamples reproduced; not a second-lifetime pass",
+  "source_sha256": {
+    "mac.c": "2523e7bff8599201a6113bca2bb8a6bf630c3b0b2342ad2ecb6466e830851ced",
+    "join-events.h": "68b620271e0e88ecaaaf9a927b8403918d456acdbf95626a0789c6772e521c01",
+    "ccmp-rx.h": "35b581f1cd3abdda66e8b392b39bd538875975e2254e80488dc1cc8dbbec85a0",
+    "ccmp-gtk-rx.h": "44deda239a5c824469b69489e21fec84ef0af8a26ee7b13f95b1f764ab437bb1"
+  },
+  "diagnostic_log_sha256": "9ffb54544a7af20e17e759e3b3300cd5c73cc1d38d913f9d149cb96f1a246944",
+  "coverage": [
+    "untagged key event before pairwise install, during pairwise install, after pairwise install during group install, and third-event refusal",
+    "old TX completion with distinct versus reused wire PID",
+    "old descriptor accepted with fresh PTK/GTK context, all GTK indices",
+    "equal/lower PN refusal, GTK mixed-index refusal, old-floor/new-key conflict",
+    "maintained PTK and GTK baseline fixtures, including 19007 GTK cases"
+  ],
+  "missing_capability": "source-supported retirement or attribution boundary for old key events and firmware/HIF queued data across key-slot reuse",
+  "production_code_changed": false,
+  "generation_or_PN_reuse_enabled": false,
+  "rearm_debt_quarantine_removal_fixtures_completed": false,
+  "snapshot_compile_build_completed": false,
+  "kernel_build": false,
+  "candidate_created": false,
+  "installation": false,
+  "device_action": false,
+  "boot_allowance_consumed": false,
+  "P2E_repeated": false,
+  "reconnect_goal": "OPEN; no second protected lifetime admitted or tested",
+  "installed_kernel_unchanged": "3da69187; does not contain 0228"
+}

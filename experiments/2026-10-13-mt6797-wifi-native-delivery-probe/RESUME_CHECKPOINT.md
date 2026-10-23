@@ -1,3 +1,13 @@
+# Current handoff: two-lifetime offline gate held before build
+
+[Incomplete offline admission](TWO_LIFETIME_PREDECLARATION.md): actual-source
+fixtures reproduce untagged key-event and old-descriptor attribution gaps if
+protected reuse is enabled without a producer-retirement boundary. No production
+re-arm, kernel build, candidate, installation or device action occurred. The
+installed kernel remains `3da69187`; any eventual candidate needs a rebuild with
+0228. No boot allowance is consumed and no physical selection is pending.
+Reconnect remains open. P2E-D1/D2 remain consumed; do not repeat them.
+
 # Current handoff: P2E-D2 complete; no further P2E boot
 
 [Recorded result and offline follow-up](SESSION_0202_PLAN.md#p2e-d2-consumed--600-second-gate-pass-delivery-transmitted-cleanup-pass):
