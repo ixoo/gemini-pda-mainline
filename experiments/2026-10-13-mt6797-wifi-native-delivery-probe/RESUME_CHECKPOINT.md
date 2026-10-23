@@ -1,3 +1,15 @@
+# Current handoff: probe pass closed; single-lifetime fallback and DMA/throughput next
+
+[Probe-path result and authorized fallback](OBSERVABLE_RECONNECT_DECISION.md):
+actual source rejects protected QoS-null in the native encoder; the sole internal
+reserved owner blocks later data/deauth and reports completion as deauth. New
+mechanisms would be required, so the one-pass timebox is closed. No admission
+change, rebuild, install or boot. Retain the single-lifetime baseline; 0229/0230
+stay dormant. No further reconnect design or WMT lifecycle work is pending.
+The next Wi-Fi project is DMA/throughput under the roadmap. The one-boot
+allowance remains unconsumed; P2E-D1/D2 remain consumed. Earlier handoffs are
+history, not an active test queue.
+
 # Current handoff: negative credit boundary; provider re-probe unavailable
 
 [Offline boundary audit results](FIRMWARE_RESTART_BOUNDARY.md): released pages

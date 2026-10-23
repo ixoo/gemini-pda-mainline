@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-23",
+  "decision": "TX probe replaces RX gate; one-pass source stop condition reached; authorized single-lifetime fallback selected",
+  "RX_gate_flaw": "no key-generation identity; stale decrypted descriptor can pass fresh PN context",
+  "TX_probe_limitation": "matched status 0 is transmission, not verified encryption; payload-free probe exposes no application payload",
+  "actual_path_fixture": "PASS reproducing unsupported protected native QoS-null shape and single reserved-owner exhaustion; all existing internal completions remain deauth evidence",
+  "probe_gate_fixture_clean": false,
+  "requested_gate_status_generation_suite_completed": false,
+  "source_sha256": {
+    "mac.c": "95c50e104cb95c1ae6a7522600312e8feb35648af30936b61c84302a5092e60d",
+    "join-tx.h": "9a440e9542ca55034514fd8f7d9b2c34e10e1ab31cb160c1ca5f248fcc1deb60"
+  },
+  "fixture_log_sha256": "6d262ca96822fc39b2a6abce54c3184d61752ea40aca5f7a7c699e98a57758a3",
+  "new_mechanisms_added": false,
+  "production_admission_changed": false,
+  "dormant_helpers": "0229/0230 remain default-off and unconsumed",
+  "kernel_rebuild": false,
+  "installation": false,
+  "boot": false,
+  "one_boot_allowance_consumed": false,
+  "installed_kernel_unchanged": "3da69187; not a rebuilt 0228/0230 artifact",
+  "fallback": "retain working single-lifetime source and runtime baseline; move next Wi-Fi project to DMA/throughput",
+  "WMT_lifecycle_project_started": false
+}

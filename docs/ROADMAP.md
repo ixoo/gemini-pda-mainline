@@ -189,6 +189,14 @@ bounded pipelining and exact completion ownership. The current frame waits for
 one completion round trip before the next; throughput and rekey timing need
 that work, but it is not a prerequisite for the 60-second ARP/SSH diagnostic.
 
+The reconnect probe implementation pass reached its owner-defined stop condition:
+the existing internal path needs a new protected native frame shape and distinct
+probe ownership. Retain the working single-lifetime baseline. The next Wi-Fi
+project is DMA/throughput, beginning with bounded completion/credit ownership
+and the shared AP-DMA constraints. No further reconnect design, firmware lifecycle
+work, rebuild or boot follows automatically. See the
+[probe-pass result](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/OBSERVABLE_RECONNECT_DECISION.md).
+
 ## Rules of the road
 
 - One question per boot is not the default. A candidate carries a
