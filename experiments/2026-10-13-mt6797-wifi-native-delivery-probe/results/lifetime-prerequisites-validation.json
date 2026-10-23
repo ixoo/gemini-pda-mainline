@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-23",
+  "scope": "Track A dormant host prerequisites; Track B pending owner firmware table",
+  "flag": "CONFIG_MT6797_CCMP_LIFETIME_PREREQUISITES",
+  "default": "n",
+  "selected_by_profiles": false,
+  "patch_sha256": {
+    "0229-wifi-mt6797-add-dormant-host-drain-fence.patch": "6b017af2ea24cfac1dc4b78785022a08527d03ddbacc6627f524bc8ad4540b42",
+    "0230-wifi-mt6797-add-dormant-PN-epoch-helpers.patch": "9de680ee472042fbadc44dbefe959c8bae661d148dbcc9c4d084522822d488e8"
+  },
+  "actual_helper_tests": "PASS ASan/UBSan; terminal fence refusals and complete input logs; PTK/GTK activation, owner matching, strict PN, fresh-key low PN and proof-gated retirement",
+  "option_off": "headers preprocess empty; MAC identical except two unconsumed includes",
+  "ordered_patch_replay": "PASS byte-exact",
+  "checkpatch": "strict PASS; --no-signoff for non-certifying archives, FILE_PATH_CHANGES ignored for added experiment headers",
+  "repository_checks": "PASS with harness-declared Linux-only fixture skips",
+  "firmware_evidence_table": "all four handler rows UNKNOWN; owner producing evidence",
+  "host_generation_resolves_raw_descriptor_ambiguity": false,
+  "admission_changed": false,
+  "production_consumer_added": false,
+  "firmware_commands_issued": false,
+  "sampler_added": false,
+  "kernel_rebuild": false,
+  "installation": false,
+  "boot": false,
+  "one_boot_allowance_consumed": false,
+  "decision": "PENDING; re-arm refused until firmware table resolves",
+  "negative_branch": "any event after releasing credit or timers not cancelled: unsupported second protected lifetime; reconnect blocked on unavailable firmware capability; retain one-lifetime driver and stop"
+}

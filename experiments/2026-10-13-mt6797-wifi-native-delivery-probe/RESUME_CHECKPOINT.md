@@ -1,3 +1,13 @@
+# Current handoff: dormant host prerequisites; firmware decision pending
+
+[Two offline tracks](TWO_LIFETIME_OFFLINE_TRACKS.md): 0229/0230 add unconsumed,
+default-off host fence and PN-epoch helpers. Actual-source fixtures pass; no
+admission or descriptor-provenance capability is added. The owner is producing
+the four-handler event/credit, timer-cancellation and queue-flush evidence table.
+Until it resolves, re-arm stays refused. No commands, build, installation or
+boot; the one-boot allowance remains unconsumed. P2E-D1/D2 remain consumed.
+Earlier checkpoints below remain history, not an active physical handoff.
+
 # Current handoff: two-lifetime offline gate held before build
 
 [Incomplete offline admission](TWO_LIFETIME_PREDECLARATION.md): actual-source

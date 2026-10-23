@@ -1,0 +1,138 @@
+From 091ed610b2db14b23b1238f49d7531755bd6fd32 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 07:29:02 -0400
+Subject: [PATCH] wifi: mt6797: add dormant PN epoch ownership helpers
+
+Keep fresh replay state per key identity, index, peer and generation.
+PTK seeds from handshake state; GTK seeds on its first accepted frame.
+Reject inactive contexts, unproven descriptor provenance and owner
+mismatch. Retire only with producer-retirement proof, preserving PN.
+No production caller or admission change is added.
+
+Internal experiment archive; non-certifying and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  1 +
+ .../net/wireless/mediatek/mt6797/pn-epoch.h   | 99 +++++++++++++++++++
+ 2 files changed, 100 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/pn-epoch.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 8384db3..49db135 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -24,6 +24,7 @@
+ #include "data-rx.h"
+ #include "join-rearm.h"
+ #include "lifetime-fence.h"
++#include "pn-epoch.h"
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ #include "native-diag.h"
+ #include "native-beacon.h"
+diff --git a/drivers/net/wireless/mediatek/mt6797/pn-epoch.h b/drivers/net/wireless/mediatek/mt6797/pn-epoch.h
+new file mode 100644
+index 0000000..5ce97f4
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/pn-epoch.h
+@@ -0,0 +1,99 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_PN_EPOCH_H
++#define MT6797_PN_EPOCH_H
++
++#ifdef CONFIG_MT6797_CCMP_LIFETIME_PREREQUISITES
++/* Opaque key-incarnation identity, not key bytes or a hash logged to userspace.
++ * Descriptor ownership MUST come from independently established provenance.
++ * Copying the current owner onto an untagged raw RXD is expressly invalid.
++ * No production caller, key-event attribution or descriptor tagging is added.
++ */
++struct mt6797_pn_owner {
++	u64 key_identity;
++	u32 generation;
++	u8 key_index, peer[6];
++	bool pairwise;
++};
++
++struct mt6797_pn_epoch {
++	struct mt6797_pn_owner owner;
++	u8 pn[6]; /* most significant byte first */
++	bool initialized, active, seeded, retired;
++};
++
++static inline bool
++mt6797_pn_owner_equal(const struct mt6797_pn_owner *a,
++		      const struct mt6797_pn_owner *b)
++{
++	return a->key_identity == b->key_identity &&
++		a->key_index == b->key_index && a->generation == b->generation &&
++		a->pairwise == b->pairwise && !memcmp(a->peer, b->peer, 6);
++}
++
++/* Separate pristine storage per new key. A live or retired context cannot be
++ * overwritten. PTK starts at the handshake RX sequence, GTK is unseeded until
++ * its first fully validated, independently attributed frame. Stage 3 has no
++ * interface here and never resets a PN floor.
++ */
++static inline bool
++mt6797_pn_epoch_init(struct mt6797_pn_epoch *e,
++		     const struct mt6797_pn_owner *owner,
++		     const u8 *handshake_pn)
++{
++	static const u8 zero_peer[6];
++
++	if (!e || !owner || e->initialized || !owner->key_identity ||
++	    !owner->generation || owner->key_index > 3 ||
++	    (owner->peer[0] & 1) || !memcmp(owner->peer, zero_peer, 6) ||
++	    (owner->pairwise && (!handshake_pn || owner->key_index)))
++		return false;
++	*e = (struct mt6797_pn_epoch) { .owner = *owner, .initialized = true };
++	if (owner->pairwise) {
++		memcpy(e->pn, handshake_pn, 6);
++		e->seeded = true;
++	}
++	return true;
++}
++
++static inline bool mt6797_pn_epoch_activate(struct mt6797_pn_epoch *e)
++{
++	if (!e || !e->initialized || e->active || e->retired)
++		return false;
++	e->active = true;
++	return true;
++}
++
++/* Invoke only after complete frame/crypto/metadata validation. This performs
++ * ownership and strict PN validation, not decryption or raw RXD attribution.
++ * Refusal preserves every byte. The first accepted GTK frame seeds its floor.
++ */
++static inline bool
++mt6797_pn_epoch_accept(struct mt6797_pn_epoch *e,
++		       const struct mt6797_pn_owner *descriptor_owner,
++		       bool provenance_proven, const u8 *pn)
++{
++	if (!e || !descriptor_owner || !pn || !provenance_proven ||
++	    !e->initialized || !e->active || e->retired ||
++	    !mt6797_pn_owner_equal(&e->owner, descriptor_owner) ||
++	    (e->seeded && memcmp(pn, e->pn, 6) <= 0))
++		return false;
++	memcpy(e->pn, pn, 6);
++	e->seeded = true;
++	return true;
++}
++
++/* A host-fence result alone is not producer_retirement_proven. Old replay
++ * state remains intact on retirement; it is never recycled for a new key.
++ */
++static inline bool
++mt6797_pn_epoch_retire(struct mt6797_pn_epoch *e,
++		       bool producer_retirement_proven)
++{
++	if (!e || !e->initialized || e->retired || !producer_retirement_proven)
++		return false;
++	e->active = false;
++	e->retired = true;
++	return true;
++}
++#endif
++#endif /* MT6797_PN_EPOCH_H */
+-- 
+2.54.0 (Apple Git-157)
+

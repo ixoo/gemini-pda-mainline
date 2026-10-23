@@ -1,5 +1,7 @@
 # Two protected lifetimes — incomplete offline admission
 
+The owner accepted this hold. The active [two-track work list and decision](TWO_LIFETIME_OFFLINE_TRACKS.md) now permit dormant host prerequisites only; all build and boot work remains held.
+
 Owner request, 2026-10-23: two lifetimes in one boot, 120 seconds each, then
 firmware stop and reviewed return. No P2E run, repetition, sampler, firmware
 command extension or limit extension. P2E-D1/D2 remain consumed; their 600-second
@@ -57,7 +59,9 @@ requested by the owner; no claim is made that the legacy re-arm helper already
 implements them.
 
 The source-supported retirement/attribution boundary must be resolved before
-implementing re-arm, generation-owned operations and fresh per-key PN contexts.
+wiring re-arm, generation-owned operations or fresh per-key PN contexts into
+protected reuse. Dormant, unconsumed helpers are now permitted under the active
+two-track work list.
 Refusing all second lifetimes would preserve safety but would not implement
 the requested capability. No always-refusing substitute candidate is selected.
 

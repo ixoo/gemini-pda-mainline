@@ -839,3 +839,5 @@ proposals/0225-wifi-mt6797-distinguish-snapshot-window-from-cleanup-reservation.
 proposals/0226-wifi-mt6797-report-pre-key-EAPOL-admission-predicates.patch
 proposals/0227-wifi-mt6797-release-settled-snapshot-timeouts.patch
 proposals/0228-wifi-mt6797-distinguish-reserved-delivery-from-cleanup.patch
+proposals/0229-wifi-mt6797-add-dormant-host-drain-fence.patch
+proposals/0230-wifi-mt6797-add-dormant-PN-epoch-helpers.patch

@@ -1,0 +1,128 @@
+From 41b8a7d85a16fb58b3d58c044e553b936cb33b0b Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 07:29:02 -0400
+Subject: [PATCH] wifi: mt6797: add a dormant host drain fence
+
+Evaluate and log supplied ledger, post-teardown round-trip and bounded
+quiet-window inputs once. A failed fence is terminal. No command or
+admission caller is added; the new Kconfig flag defaults off. Reply
+ordering semantics still require firmware evidence.
+
+Internal experiment archive; non-certifying and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 10 +++
+ .../wireless/mediatek/mt6797/lifetime-fence.h | 71 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    |  1 +
+ 3 files changed, 82 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/lifetime-fence.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index b6ba295..dd1acf1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -175,3 +175,13 @@ config MT6797_CCMP_MASK_CONTROL
+ 	  global monitor operation, retaining all initial-PTK diagnostic limits.
+ 	  Only one fixed address and values 7/0 are admitted. This does not
+ 	  establish group meanings, firmware integrity or healthy key reuse.
++
++config MT6797_CCMP_LIFETIME_PREREQUISITES
++	bool "MT6797 dormant protected-lifetime prerequisites"
++	depends on MT6797_CCMP_STABLE_EPOCH
++	default n
++	help
++	  Compile unconsumed host drain-fence and PN-epoch helpers for offline
++	  fixtures. No command, polling, re-arm or admission caller is added.
++	  Firmware retirement evidence remains required before any consumer.
++	  This option does not enable a second protected lifetime.
+diff --git a/drivers/net/wireless/mediatek/mt6797/lifetime-fence.h b/drivers/net/wireless/mediatek/mt6797/lifetime-fence.h
+new file mode 100644
+index 0000000..63d6334
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/lifetime-fence.h
+@@ -0,0 +1,71 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_LIFETIME_FENCE_H
++#define MT6797_LIFETIME_FENCE_H
++
++#ifdef CONFIG_MT6797_CCMP_LIFETIME_PREREQUISITES
++#define MT6797_FENCE_QUIET_NS 100000000ULL
++#define MT6797_FENCE_BUDGET_NS 200000000ULL
++
++/* Supplied observations only: no command, reader, wait or admission caller.
++ * reply_prefix_proven requires established round-trip ordering semantics,
++ * not merely a matching reply or returned command-buffer credit. The pending
++ * firmware evidence must establish that meaning before a production caller.
++ * quiet_records covers EVERY RX record throughout [quiet_start, quiet_end].
++ * A quiet interval alone never proves retirement of a delayed producer.
++ */
++struct mt6797_lifetime_fence_input {
++	bool queue_empty, ledger_whole, reply_matched, reply_prefix_proven;
++	unsigned int pending_records, card_credit, command_credit;
++	unsigned int pending_cpu, pending_ffa, quiet_records;
++	u64 teardown_completed_ns, roundtrip_sent_ns, reply_ns;
++	u64 quiet_start_ns, quiet_end_ns;
++};
++
++struct mt6797_lifetime_fence {
++	bool consumed;
++};
++
++/* One evaluation only, including refusal. Result is a host prerequisite,
++ * never permission to re-arm; no live caller consumes it.
++ */
++static inline bool
++mt6797_lifetime_drain_fence(struct mt6797_lifetime_fence *f,
++			    const struct mt6797_lifetime_fence_input *i)
++{
++	bool fresh = f && !f->consumed;
++	bool pass = false;
++	u64 quiet = 0;
++
++	if (f)
++		f->consumed = true;
++	if (i) {
++		if (i->quiet_end_ns >= i->quiet_start_ns)
++			quiet = i->quiet_end_ns - i->quiet_start_ns;
++		pass = fresh && i->queue_empty && i->ledger_whole &&
++			!i->pending_records && !i->card_credit && !i->command_credit &&
++			!i->pending_cpu && !i->pending_ffa && !i->quiet_records &&
++			i->reply_matched && i->reply_prefix_proven &&
++			i->teardown_completed_ns &&
++			i->roundtrip_sent_ns > i->teardown_completed_ns &&
++			i->reply_ns >= i->roundtrip_sent_ns &&
++			i->quiet_start_ns >= i->reply_ns &&
++			quiet >= MT6797_FENCE_QUIET_NS &&
++			quiet <= MT6797_FENCE_BUDGET_NS;
++		pr_info("mt6797 host fence: pass=%u fresh=%u queue_empty=%u ledger_whole=%u pending_records=%u card_credit=%u command_credit=%u pending_cpu=%u pending_ffa=%u quiet_records=%u reply_matched=%u prefix_proven=%u teardown_ns=%llu sent_ns=%llu reply_ns=%llu quiet_start_ns=%llu quiet_end_ns=%llu admission_unchanged=1\n",
++			pass, fresh, i->queue_empty, i->ledger_whole,
++			i->pending_records, i->card_credit, i->command_credit,
++			i->pending_cpu, i->pending_ffa, i->quiet_records,
++			i->reply_matched, i->reply_prefix_proven,
++			(unsigned long long)i->teardown_completed_ns,
++			(unsigned long long)i->roundtrip_sent_ns,
++			(unsigned long long)i->reply_ns,
++			(unsigned long long)i->quiet_start_ns,
++			(unsigned long long)i->quiet_end_ns);
++	} else {
++		pr_info("mt6797 host fence: pass=0 fresh=%u missing_input=1 admission_unchanged=1\n",
++			fresh);
++	}
++	return pass;
++}
++#endif
++#endif /* MT6797_LIFETIME_FENCE_H */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index af013ee..8384db3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -23,6 +23,7 @@
+ #include "group-data.h"
+ #include "data-rx.h"
+ #include "join-rearm.h"
++#include "lifetime-fence.h"
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ #include "native-diag.h"
+ #include "native-beacon.h"
+-- 
+2.54.0 (Apple Git-157)
+
