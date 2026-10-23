@@ -84,12 +84,22 @@ project's capture work. Neither may be used to write registers.
 
 - Power save: the firmware runs with power save off, which is why battery cost
   is high. Enabling it needs a firmware-side contract that is not yet derived.
-- Bands, rates and aggregation: only the tested access point and channel have
-  been exercised.
+- Bands and rates: only the tested access point and channel have been
+  exercised. Aggregation is different: the firmware enables TX and RX
+  block-ack by default in both directions, so the driver neither configures it
+  nor may assume it is off. A driver that needs it disabled would have to send
+  the firmware's aggregation control command, which this driver does not.
 - Monitor mode: a firmware facility exists; its semantics are unverified.
-- A transmission stall observed when a reserved management frame is submitted
-  shortly after a firmware keep-alive instant. Its cause is not established
-  and may be in hardware.
+- A delivery delay for a reserved management frame submitted shortly after a
+  firmware keep-alive instant. The frame is not lost: it is held in the
+  firmware's management queue and released when a later station- or key-state
+  command reaches the firmware, which is normally the teardown chain itself.
+  It then completes with either a transmitted status or a flushed status, and
+  **a flushed completion means the frame never reached the air**. The driver
+  must therefore report a deauthentication as sent only on a transmitted
+  completion, and must not treat its own timeout as a transmission result. The
+  host cannot observe the firmware's keep-alive instant, so it cannot
+  deliberately schedule around the window.
 
 ## Obligations for driver changes
 
