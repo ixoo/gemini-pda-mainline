@@ -3,6 +3,7 @@
 """Real local sockets, cancellation, CPU arithmetic and generated shell; no device."""
 from pathlib import Path
 import runpy
+import resource
 import socket
 import subprocess
 import tempfile
@@ -94,6 +95,23 @@ class MeasurementTests(unittest.TestCase):
         self.assertEqual(endpoint.result['errors'],1)
         self.assertEqual(len(endpoint.result['chunks']),1)
         self.assertFalse(endpoint.result['completed'])
+
+    def test_rx_counter_streams_above_inherited_file_limit(self):
+        script=T['remote_script']('00000000-0000-4000-8000-000000000001','192.0.2.1')
+        counter=next(line.strip() for line in script.splitlines() if 'n=$(set -o pipefail;' in line)
+        # Exercise the actual generated counter; substitute only the network
+        # producer with a known 1 MiB zero stream. Keep the inherited 128 KiB
+        # regular-file limit. No device, limit extension or payload file.
+        producer='$BB timeout 10 $BB nc 192.0.2.1 48002'
+        self.assertEqual(counter.count(producer),1)
+        counter=counter.replace(producer,'$BB dd if=/dev/zero bs=65536 count=16 2>/dev/null')
+        def limit():resource.setrlimit(resource.RLIMIT_FSIZE,(131072,131072))
+        result=subprocess.run(['/bin/bash','-c','BB=command; rc=0; '+counter+'; printf "%s %s\\n" "$n" "$rc"'],capture_output=True,check=True,preexec_fn=limit)
+        self.assertEqual(result.stdout.strip(),b'1048576 0')
+        self.assertNotIn('/tmp/tp2-rx',script)
+        self.assertFalse(T['validate_receive_safety'](script)['regular_payload_file'])
+        with self.assertRaises(ValueError):
+            T['validate_receive_safety'](script.replace('| $BB wc -c','> /tmp/oversize-rx'))
 
     def test_controller_claim_exclusive(self):
         with tempfile.TemporaryDirectory() as d:

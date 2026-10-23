@@ -1,4 +1,20 @@
-# Current handoff: invalid baseline recorded; corrected run prepared offline
+# Current work: baseline 2 measured; bounded TX pump comparison
+
+[Baseline 2 result](THROUGHPUT_BASELINE_2_RESULT.md): TX five chunks,
+0.205740 Mbit/s, 87.525% aggregate idle, 959 completions/four nonzero.
+RX unmeasured: inherited regular-file limit; offline streaming counter and
+preflight fix pass. Prompt standard disconnect, whole-ledger stage 3 and
+status-0 reserved deauth passed. Sealed evidence and independent changed-boot
+Gemian confirmed. Baselines 1/2 and P2E-D1/D2 consumed, no repeat.
+
+[Pump comparison](TX_PUMP_COMPARISON.md): patch 0231 adds bounded immediate
+scheduling for pending work, idle/guard backoff 20 ms, at most 32 consecutive
+immediate iterations. No depth, ledger, PID, deadline or admission change.
+Default off except the new measurement profile. Source fixture and manifest
+order pass; build/device evidence pending. Settle capture byte budget before
+device admission. DMA deferred: no throughput justification; reconnect closed.
+
+# Historical handoff: invalid baseline recorded; corrected run prepared offline
 
 [Baseline 1](THROUGHPUT_BASELINE_RESULT.md) is invalid (SSH idle policy); no
 rate claim. The independent first connection-loss teardown did not retire its

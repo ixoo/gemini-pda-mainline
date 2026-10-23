@@ -192,11 +192,13 @@ that work, but it is not a prerequisite for the 60-second ARP/SSH diagnostic.
 Reconnect is closed as a limitation: no key-installation guarantee or firmware
 ordering point exists, and the probe needs a new protected TX shape and another
 internal owner. Retain the single-lifetime baseline and dormant safeguards;
-reopen only by owner decision. DMA/throughput is the active Wi-Fi project,
-starting with the [unchanged-image PIO baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_BASELINE_PREDECLARATION.md).
-Implement TX DMA only after the [transfer contract](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DMA_TRANSFER_CONTRACT.md)
-closes address-routing, shared-resource and quiescence unknowns; preserve PIO
-and the command/credit handshake. RX DMA remains separate later work.
+reopen only by owner decision. The [measured PIO TX baseline](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_BASELINE_2_RESULT.md)
+places the bounded [worker-pump comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_PUMP_COMPARISON.md)
+next: remove fixed polling sleeps under pending work, preserving single-frame
+ownership and accounting, then measure both directions and CPU. DMA is deferred;
+its possible justification is CPU headroom, not this throughput result. The
+[transfer contract](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DMA_TRANSFER_CONTRACT.md)
+unknowns remain. RX DMA is separate later work.
 
 ## Rules of the road
 

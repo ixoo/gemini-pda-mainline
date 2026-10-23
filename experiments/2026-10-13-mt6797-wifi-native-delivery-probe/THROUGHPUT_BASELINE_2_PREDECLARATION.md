@@ -1,4 +1,8 @@
-# Corrected PIO throughput baseline 2 — offline gates before one boot
+# Corrected PIO throughput baseline 2 — historical predeclaration, consumed
+
+[Result](THROUGHPUT_BASELINE_2_RESULT.md): TX measured, RX file-limit refusal,
+prompt standard disconnect and whole-ledger stage 3. Reviewed return confirmed.
+The plan below records the pre-boot protocol; it does not queue a repeat.
 
 Owner instruction after [invalid baseline 1](THROUGHPUT_BASELINE_RESULT.md):
 one separately named run, unchanged installed image, no rebuild. The baseline-1

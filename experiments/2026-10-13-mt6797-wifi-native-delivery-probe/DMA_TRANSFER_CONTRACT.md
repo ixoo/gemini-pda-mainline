@@ -1,5 +1,11 @@
 # MT6797 Wi-Fi TX DMA transfer contract — implementation held
 
+Owner decision after [measured PIO TX baseline 2](THROUGHPUT_BASELINE_2_RESULT.md):
+**DMA deferred**, not selected as a throughput fix. The active experiment is
+the [bounded TX pump comparison](TX_PUMP_COMPARISON.md). A later DMA case would
+need a CPU-headroom justification and closure of the unknowns below; the
+current measurement supplies no DMA-throughput justification.
+
 Offline source audit, 2026-10-23. No DMA programming, clock/reset operation,
 firmware command or device experiment was used. The retained map inputs were
 verified against their preserved checksums. The existing

@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "run": "PIO-throughput-baseline-2",
+  "host_revision": "910ea7bb",
+  "boot_id": "1877fe6b-b6e1-4f35-9211-f863bdf1efea",
+  "kernel_build_commit": "3da69187ec93fd15b28fda3fbdbf118c37ad55a5",
+  "boot2_sha256": "5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd",
+  "tx_measured": true,
+  "tx": {
+    "Mbit_s": 0.2057399138687279,
+    "bytes": 1332936,
+    "chunks": [
+      {
+        "bytes": 303656,
+        "elapsed_ns": 12025555583,
+        "ordinal": 1
+      },
+      {
+        "bytes": 244288,
+        "elapsed_ns": 9571408750,
+        "ordinal": 2
+      },
+      {
+        "bytes": 292072,
+        "elapsed_ns": 12063926792,
+        "ordinal": 3
+      },
+      {
+        "bytes": 245736,
+        "elapsed_ns": 9253873167,
+        "ordinal": 4
+      },
+      {
+        "bytes": 247184,
+        "elapsed_ns": 8913517541,
+        "ordinal": 5
+      }
+    ],
+    "completed": true,
+    "completion_interval": "start-inclusive, end-exclusive; boundary uncertainty one device clock tick",
+    "device_clock_resolution_ns": 10000000,
+    "device_cpu": {
+      "idle_percent": 87.52535496957404,
+      "idle_ticks": 35383,
+      "iowait_percent": 0.0,
+      "iowait_ticks": 0,
+      "total_ticks": 40426,
+      "valid": true
+    },
+    "device_end_ns": 75210000000,
+    "device_pipeline_exit": 143,
+    "device_start_ns": 24210000000,
+    "device_tx_status_completions": 959,
+    "device_tx_status_nonzero": 4,
+    "elapsed_ns": 51829942958,
+    "errors": 0,
+    "expected_termination": true,
+    "host_count_scope": "received",
+    "known_size_complete": false,
+    "netdev_delta": {
+      "rx_dropped": 84,
+      "rx_errors": 0,
+      "rx_packets": 972,
+      "tx_dropped": 0,
+      "tx_errors": 0,
+      "tx_packets": 1031
+    },
+    "owner_quiescent": true
+  },
+  "rx_measured": false,
+  "rx_refusal": "inherited regular-file limit; SIGXFSZ (153); no rate or delivered count claimed",
+  "regular_file_limit_bytes": 131072,
+  "ssh_idle_timeout_recurred": false,
+  "disconnect": {
+    "accepted": true,
+    "attempted": true,
+    "eos_source": "remote_end",
+    "exit": 0,
+    "interval_ns": [
+      56560853076,
+      86560853076
+    ]
+  },
+  "healthy_stage3": true,
+  "whole_ledger": true,
+  "ordinary_allocations": 1051,
+  "ordinary_completions": 1051,
+  "ordinary_nonzero_status": 4,
+  "reserved_delivery": {
+    "verdict": "transmitted",
+    "status": 0,
+    "class": 2,
+    "completion_pm_ns": 61945222696,
+    "cleanup_repeat": true
+  },
+  "log": {
+    "bytes": 924284,
+    "classification": "complete-log-through-seal",
+    "coverage": "sequence-zero-through-explicit-seal",
+    "records": 6317,
+    "sha256": "be54bc4afac50200e008a6625bf3ab29ecc4cb9c66b1c1d05daa7a4ce7253a36",
+    "status_sha256": "918e179183869983fa5d3f6ad895933abc20326d6c140f65e248b2b89a50907b"
+  },
+  "seal_entries_verified": 75,
+  "seal_sha256": "abfd3fd23e3873612ab6e856d1abcf0faa572b92d13920f445fa2e77f546afca",
+  "regression_pass": true,
+  "independent_gemian_return_confirmed": true,
+  "returned_boot": "5044c0d9-617b-4030-8e59-1ba3b1147a72",
+  "run_consumed": true,
+  "repeat": false,
+  "dma_deferred": true,
+  "dma_throughput_justified": false,
+  "reconnect_closed": true
+}

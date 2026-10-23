@@ -1,0 +1,115 @@
+From e482a9351537a4cae5a18db343dd6f1434d929ae Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 09:59:56 -0400
+Subject: [PATCH] wifi: mt6797: bound immediate polling of the single-frame TX
+ pump
+
+Keep the existing 20 ms idle poll, but requeue immediately when the
+serialized worker still owns queued TX, a completion or credit. Yield
+for 20 ms after at most 32 consecutive immediate iterations so a held
+queue cannot spin indefinitely. Default off; measurement profile only.
+
+No in-flight-depth, ledger, PID, deadline, admission or firmware command
+change. The fixed-set snapshot cadence is preserved when active.
+
+Experimental upstream Wi-Fi scheduling candidate; replace this polling
+policy with normal event-driven ownership when that transport exists.
+Internal experiment archive; non-certifying and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 11 ++++++++++
+ .../net/wireless/mediatek/mt6797/join-pump.h  | 20 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 18 +++++++++++++++++
+ 3 files changed, 49 insertions(+)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/join-pump.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index dd1acf1..e328c4e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -185,3 +185,14 @@ config MT6797_CCMP_LIFETIME_PREREQUISITES
+ 	  fixtures. No command, polling, re-arm or admission caller is added.
+ 	  Firmware retirement evidence remains required before any consumer.
+ 	  This option does not enable a second protected lifetime.
++
++config MT6797_CCMP_TX_PUMP
++	bool "MT6797 bounded immediate single-frame TX pump measurement"
++	depends on MT6797_CCMP_CONNECTED_LIFETIME && MT6797_CCMP_TX_PID_REUSE
++	default n
++	help
++	  Poll back-to-back while queued frames, completions or credit remain.
++	  After at most 32 immediate iterations, yield for the existing 20 ms
++	  interval. Idle polls retain 20 ms. This changes scheduling only, not
++	  in-flight depth, credit accounting, PID ownership, deadlines or join
++	  admission. Enable only in the dedicated throughput measurement profile.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-pump.h b/drivers/net/wireless/mediatek/mt6797/join-pump.h
+new file mode 100644
+index 0000000..54e8e51
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/join-pump.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_JOIN_PUMP_H
++#define MT6797_JOIN_PUMP_H
++
++#define MT6797_JOIN_PUMP_MAX_ZERO 32U
++#define MT6797_JOIN_PUMP_IDLE_MS 20U
++
++/* Scheduling only: never consume a frame, completion or page credit here. */
++static inline unsigned int
++mt6797_join_pump_delay(unsigned int *zero_runs, bool pending)
++{
++	if (pending && *zero_runs < MT6797_JOIN_PUMP_MAX_ZERO) {
++		(*zero_runs)++;
++		return 0;
++	}
++	*zero_runs = 0;
++	return MT6797_JOIN_PUMP_IDLE_MS;
++}
++
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 49db135..8da7da9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -25,6 +25,9 @@
+ #include "join-rearm.h"
+ #include "lifetime-fence.h"
+ #include "pn-epoch.h"
++#ifdef CONFIG_MT6797_CCMP_TX_PUMP
++#include "join-pump.h"
++#endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ #include "native-diag.h"
+ #include "native-beacon.h"
+@@ -193,6 +196,9 @@ struct mt6797_mac {
+ 	/* Single-use join queue. Admission is closed until owned state callbacks. */
+ 	struct sk_buff_head join_queue;
+ 	struct delayed_work join_work;
++#ifdef CONFIG_MT6797_CCMP_TX_PUMP
++	unsigned int join_pump_zero_runs;
++#endif
+ 	struct sk_buff *join_inflight;
+ 	u64 join_deadline, join_frame_deadline;
+ 	u8 join_ap[ETH_ALEN], join_pid, join_next_pid;
+@@ -4150,6 +4156,18 @@ management_frame:
+ 	snapshot_delay = mt6797_snapshot_active(mac->snapshot) ?
+ 		1 : msecs_to_jiffies(20);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
++#ifdef CONFIG_MT6797_CCMP_TX_PUMP
++	if (ccmp_stable_epoch && !mt6797_snapshot_active(mac->snapshot)) {
++		unsigned int delay_ms;
++		bool pending = !skb_queue_empty(&mac->join_queue) ||
++			mac->join_inflight || mac->join_credit_pending ||
++			mac->join_page_debt || mac->join_data_page_debt;
++
++		delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
++						  pending);
++		snapshot_delay = msecs_to_jiffies(delay_ms);
++	}
++#endif
+ 	if (mac->join_running)
+ 		schedule_delayed_work(&mac->join_work, snapshot_delay);
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-- 
+2.54.0 (Apple Git-157)
+

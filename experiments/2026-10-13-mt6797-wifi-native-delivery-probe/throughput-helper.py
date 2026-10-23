@@ -69,9 +69,9 @@ class Endpoint:
                                 if any(data): raise ValueError('nonzero measurement payload')
                             if not amount: break
                             count += amount
+                            self.result['bytes'] += amount
                         except socket.timeout:
                             continue
-                    self.result['bytes'] += count
                     self.result['chunks'].append({'ordinal':ordinal,'bytes':count,'elapsed_ns':time.monotonic_ns()-chunk_start})
                     self.result['known_size_complete'] = count==self.maximum
                     if self.cancel.is_set(): return
@@ -128,8 +128,9 @@ for dir in TX RX; do
         if [ "$dir" = TX ]; then
             $BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeout 10 $BB nc HOST 48001 || rc=$?
         else
-            $BB timeout 10 $BB nc HOST 48002 > /tmp/tp2-rx || rc=$?
-            n=$($BB wc -c < /tmp/tp2-rx); total=$((total+n)); $BB rm -f /tmp/tp2-rx
+            # shellcheck disable=SC3040 # pinned BusyBox ash supports pipefail
+            n=$(set -o pipefail; $BB timeout 10 $BB nc HOST 48002 | $BB wc -c) || rc=$?
+            total=$((total+n))
             [ "$n" -gt 0 ] || exit 39
         fi
         printf 'TP2_PROGRESS direction=%s chunk=%s phase=end rc=%s\n' "$dir" "$i" "$rc"
@@ -159,6 +160,15 @@ def validate_idle_safety(script, idle=SSH_IDLE_SECONDS):
         raise ValueError('planned command can exceed SSH idle policy without progress')
     return {'idle_seconds':idle,'maximum_transfer_silence_seconds':max(bounds),
             'progress_margin_seconds':2,'server_alive_interval_seconds':5}
+
+
+def validate_receive_safety(script, regular_file_limit=131072):
+    # This is the concrete planned nc command, not a general shell validator.
+    sinks = re.findall(r'\bnc [^\n|]*>\s*(\S+)',script)
+    if MAX_BYTES>regular_file_limit and any(s!='/dev/null' for s in sinks):
+        raise ValueError('planned RX payload write exceeds inherited file limit')
+    return {'maximum_chunk_bytes':MAX_BYTES,'regular_file_limit_bytes':regular_file_limit,
+            'regular_payload_file':bool(sinks)}
 
 
 def cpu_result(output, direction):
@@ -213,6 +223,7 @@ def execute(root, keys, boot, cycles, poll):
         endpoints.append(Endpoint(host,48002,peer,True,chunks=CHUNKS))
         script = remote_script(boot, host)
         validate_idle_safety(script)
+        validate_receive_safety(script)
         tag = 'TP1_OWNER_'+boot
         addition = '; exec /bin/busybox timeout 135 /bin/busybox sh -c ' + shlex.quote(script) + ' ' + shlex.quote(tag)
         command = argv[-1] + addition
