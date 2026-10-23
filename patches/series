@@ -851,3 +851,5 @@ proposals/0237-wifi-mt6797-keep-the-proven-monitor-control-in-the-single-build-a
 proposals/0238-wifi-mt6797-drop-records-framed-across-the-data-end-monitor-toggle.patch
 proposals/0239-wifi-mt6797-keep-the-retired-mode-parameters-visible-for-the-host-leaf.patch
 proposals/0240-wifi-mt6797-re-arm-the-single-arm-lifetime-after-a-healthy-teardown.patch
+proposals/0241-wifi-mt6797-report-the-firmware-s-loss-reason-with-the-connection-loss.patch
+proposals/0242-wifi-mt6797-let-the-firmware-select-the-rate-of-ordinary-data-frames.patch

@@ -1,0 +1,79 @@
+From 37b8870ccafd3424e7b86753b9d4ccdf7e85678e Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 18:07:23 -0400
+Subject: [PATCH] wifi: mt6797: report the firmware's loss reason with the
+ connection loss
+
+The connection-loss report told mac80211 and the log only that the
+firmware's monitor fired. The event's reason byte separates the cases
+that matter for the driver: reason 6 is the firmware's no-connection
+watchdog, which fires only when the connected indication was never
+credited and therefore marks a driver ordering fault; every other reason
+is the firmware's own link judgement. Carry the reason into the report
+and classify it as watchdog, air or host (a host-originated loss carries
+no firmware reason). No behaviour changes.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 7fcfbaa17..c4d07001d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -927,13 +927,21 @@ static bool mt6797_ccmp_deauth_late(struct mt6797_mac *mac, size_t bytes)
+ /* MAC mutex held; this standard API only queues work, never calls back here.
+  * A finite healthy terminal and a fatal live-data stop share one notification.
+  */
+-static void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *source)
++/* reason is the firmware's beacon-timeout reason byte for a monitor loss and
++ * zero otherwise. Reason 6 is the firmware's no-connection watchdog: it fires
++ * only when the connected indication was never credited, which is a driver
++ * ordering fault, not an air loss. Every other reason is the firmware's own
++ * link judgement and is reported to mac80211 as such.
++ */
++static void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *source,
++					unsigned int reason)
+ {
+ 	if (!ccmp_stable_epoch || !mac->vif || !mac->started || mac->ccmp_loss_reported)
+ 		return;
+ 	mac->ccmp_loss_reported = true;
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN connection loss report: source=%s once=1\n", source);
++		 "one-shot WLAN connection loss report: source=%s reason=%u class=%s once=1\n",
++		 source, reason, !reason ? "host" : reason == 6 ? "watchdog" : "air");
+ 	ieee80211_connection_loss(mac->vif);
+ }
+ #endif
+@@ -2369,7 +2377,7 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		/* This API only queues work; no synchronous MLME call under our mutex. */
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (ccmp_stable_epoch)
+-			mt6797_ccmp_connection_lost(mac, "cleanup");
++			mt6797_ccmp_connection_lost(mac, "cleanup", 0);
+ 		else if (mac->vif && mac->started)
+ 			ieee80211_connection_loss(mac->vif);
+ #else
+@@ -2759,7 +2767,7 @@ static bool mt6797_ccmp_owned_loss(struct mt6797_mac *mac, size_t bytes)
+ 		return false;
+ 	mt6797_ccmp_timeout_observe(mac, bytes);
+ 	mt6797_mac_join_end_data(mac, "connection-loss");
+-	mt6797_ccmp_connection_lost(mac, "monitor");
++	mt6797_ccmp_connection_lost(mac, "monitor", mac->join_packet[9]);
+ 	return true;
+ }
+ #endif
+@@ -2953,7 +2961,7 @@ static int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 		mac->join_page_debt, mac->join_cleanup_stage, branch);
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	if (mac->join_data_phase)
+-		mt6797_ccmp_connection_lost(mac, "terminal");
++		mt6797_ccmp_connection_lost(mac, "terminal", 0);
+ #endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	mt6797_native_diag_rx_report(mac);
+-- 
+2.43.0
+
