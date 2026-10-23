@@ -732,3 +732,4 @@ proposals/0238-wifi-mt6797-drop-records-framed-across-the-data-end-monitor-toggl
 proposals/0239-wifi-mt6797-keep-the-retired-mode-parameters-visible-for-the-host-leaf.patch
 proposals/0240-wifi-mt6797-re-arm-the-single-arm-lifetime-after-a-healthy-teardown.patch
 proposals/0241-wifi-mt6797-report-the-firmware-s-loss-reason-with-the-connection-loss.patch
+proposals/0243-wifi-mt6797-count-Action-frames-and-out-of-window-absence-notices.patch

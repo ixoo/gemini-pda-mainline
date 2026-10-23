@@ -1,0 +1,123 @@
+From c57c4d42699f2a61106abebebbd46141fcb408c6 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 18:59:52 -0400
+Subject: [PATCH] wifi: mt6797: count Action frames and out-of-window absence
+ notices
+
+Two receive paths still ended a lifetime on traffic that is normal for a
+connected station. The ninth directed Action frame from the AP was a
+protocol error, so an AP retrying a block-ack or SA-query exchange could
+end the data phase; count them without a ceiling and log the category and
+action code of the first eight, so the next boots show which exchanges
+reach the host before they are delivered to mac80211. A BSS absence or
+presence notice outside the teardown window was a protocol error too; a
+well-formed one is now a state change: an absence during the data phase
+ends it and the ordinary teardown runs, anything else is counted and
+ignored. Malformed events are refused as before.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 54 +++++++++++++++++-----
+ 1 file changed, 42 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c4d07001d..0f9cfcff2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -267,7 +267,7 @@ struct mt6797_mac {
+ 	bool join_channel_pending, join_channel_granted;
+ 	bool join_sta_pending, join_sta_active;
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
+-	unsigned int join_absence_events;
++	unsigned int join_absence_events, join_absence_outside;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
+@@ -1652,6 +1652,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_cleanup_group_discarded = 0;
+ 	mac->join_data_llc_discarded = 0;
+ 	mac->join_absence_events = 0;
++	mac->join_absence_outside = 0;
+ 	mac->join_data_rx_unicast = 0;
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
+@@ -1880,6 +1881,8 @@ static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac)
+ }
+ #endif
+ 
++static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason);
++
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_channel expected = {
+@@ -2067,13 +2070,31 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		queued = !skb_queue_empty(&mac->join_queue);
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-		if (mac->join_packet[5] || body[0] || body[1] > 1 ||
+-		    !mac->join_cleanup_requested || mac->join_cleanup_done ||
++		if (mac->join_packet[5] || body[0] || body[1] > 1)
++			return -EPROTO;
++		if (!mac->join_cleanup_requested || mac->join_cleanup_done ||
+ 		    mac->join_cleanup_stage != 3 || mac->join_page_debt ||
+ 		    mac->join_credit_pending || mac->join_inflight ||
+ 		    mac->data_slots.count || queued ||
+-		    mac->join_absence_events >= 2)
+-			return -EPROTO;
++		    mac->join_absence_events >= 2) {
++			/* Outside the teardown window the firmware's absence or
++			 * presence notice is a state change, not a protocol fault.
++			 * An absence during the data phase ends it, and the
++			 * teardown then runs as for any disconnect; anything else
++			 * is counted and ignored.
++			 */
++			bool in_data = mac->join_data_phase && !mac->join_data_ended;
++
++			mac->join_absence_outside++;
++			if (mac->join_absence_outside <= 4)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join bss absence outside teardown: absent=%u quota=%u data_phase=%u count=%u\n",
++					 body[1], body[2], (unsigned int)in_data,
++					 mac->join_absence_outside);
++			if (body[1] == 1 && in_data)
++				mt6797_mac_join_end_data(mac, "bss-absence");
++			return 0;
++		}
+ 		mac->join_absence_events++;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -4265,14 +4286,23 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			    mt6797_join_action_frame(mac->join_packet, rx.logical_bytes, 40,
+ 						     mac->hw->wiphy->perm_addr,
+ 						     mac->join_ap, mac->join_key_pairwise == 1,
+-						     &action) &&
+-			    mac->join_action_discarded < 8) {
++						     &action)) {
++				/* Counted without a ceiling: an AP that keeps
++				 * retrying a block-ack or SA-query exchange must
++				 * not end the lifetime. The category and action
++				 * code of the first eight are logged so the next
++				 * boots tell which exchanges reach the host before
++				 * they are delivered to mac80211.
++				 */
+ 				mac->join_action_discarded++;
+-				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join action frame discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x count=%u\n",
+-					 action.bytes, action.fc, action.match, action.wlan,
+-					 action.bss, action.sec, action.status,
+-					 mac->join_action_discarded);
++				if (mac->join_action_discarded <= 8)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join action frame discarded: bytes=%zu fc=0x%x match=0x%02x wlan=%u bss=%u sec=%u status=0x%04x category=%u action=%u count=%u\n",
++						 action.bytes, action.fc, action.match,
++						 action.wlan, action.bss, action.sec,
++						 action.status, mac->join_packet[64 + 24],
++						 mac->join_packet[64 + 25],
++						 mac->join_action_discarded);
+ 				continue;
+ 			}
+ #endif
+-- 
+2.43.0
+
