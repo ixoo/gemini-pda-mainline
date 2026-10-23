@@ -1,0 +1,82 @@
+From fa8b732ae9c999ccf74eec617ff08bbee7874592 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 15:52:48 -0400
+Subject: [PATCH] wifi: mt6797: pipeline data frames across the TC1 page budget
+
+The declared TC1 budget of 16 pages admitted one 1518-byte frame (13 pages)
+at a time whatever the in-flight depth, so depth four only ever pipelined
+small frames. The vendor driver's default host budget for this queue is 36
+such frames (468 pages), and the 26-page TC4 pool observed on the device is
+exactly its two-frame default, so four frames (52 pages) stay far inside
+the firmware's allocation; the ledger still refuses a return that exceeds
+the debit. Submit every admissible data frame in one worker pass, up to the
+in-flight depth, instead of one frame per pass followed by a full round of
+status reads. Descriptors, PID ownership, deadlines, credit reconciliation
+and the management and security single-owner rule are unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 11 +++++++----
+ drivers/net/wireless/mediatek/mt6797/mac.c |  8 ++++++++
+ 2 files changed, 15 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 86a1bb7a6..00764a9c0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -510,11 +510,14 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				    hif->transaction->used_sequences);
+ 	if (error)
+ 		goto out;
+-	/* Phase C3 data pool: a declared 16-page TC1 budget (one 1518-byte
+-	 * frame with its descriptor is 13 pages), far below the pinned
+-	 * NIC_TX_PAGE_COUNT_TC1 the vendor configures; one frame in flight.
++	/* Data pool: a declared 52-page TC1 budget, four 1518-byte frames with
++	 * their descriptors (13 pages each). The vendor driver's default host
++	 * budget for this queue is 36 such frames (468 pages), and the 26-page
++	 * TC4 pool observed on the device is exactly its two-frame default, so
++	 * four frames stay far inside the firmware's allocation. The ledger
++	 * still refuses any return that exceeds the debit.
+ 	 */
+-	error = mt6797_normal_admit_tc1(&hif->normal, 16, 16);
++	error = mt6797_normal_admit_tc1(&hif->normal, 52, 52);
+ 	if (error)
+ 		goto out;
+ 	/* A pre-existing port-1 event would make its reply owner ambiguous.
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 76c6608ae..48e741991 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3044,6 +3044,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ 	bool running, ack = false, completed_internal = false, select;
+ 	bool wake = false;
++	unsigned int submits = 0;
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ 	bool pump_progress = false;
+ #endif
+@@ -3209,6 +3210,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	channel_release_holds_tx = ret;
+ 	ret = 0;
+ #endif
++select_more:
+ 	branch = 3;
+ 	select = !mac->join_inflight && !mac->join_page_debt;
+ #ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
+@@ -3424,6 +3426,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				}
+ 				mac->join_inflight = NULL;
+ 				mac->join_inflight_data = false;
++				/* Submit every admissible data frame in this pass, up
++				 * to the in-flight depth, before the receive loop and
++				 * the next pass's status reads run again.
++				 */
++				if (++submits < MT6797_DATA_DEPTH)
++					goto select_more;
+ 			}
+ 		}
+ 	}
+-- 
+2.43.0
+
