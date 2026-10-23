@@ -78,10 +78,18 @@ the driver must not reset PN state or attempt a second protected lifetime.
 
 ## Diagnostic access
 
-Two diagnostic paths exist and both are read-only from the driver's side: a
-single-word register query and a bounded memory-dump query over a fixed window
-of on-chip capture memory. The memory-dump path is the one used for the
-project's capture work. Neither may be used to write registers.
+Two diagnostic paths exist: a single-word register query and a bounded
+memory-dump query over a fixed window of on-chip capture memory. The
+memory-dump path is read-only and is the one used for the project's capture
+work. The register path has a write form, and the driver's proven data path
+uses it for exactly one thing: the monitor control that makes the firmware
+deliver the receive metadata the checked CCMP path needs is a single-word
+store at one fixed address with one of two admitted values, which is what the
+vendor firmware's own monitor callback stores. Every profile that passed the
+120 s and 600 s gates submitted that store (it was compiled in under the
+mask-control option). No other register write exists, none is admitted by the
+command encoder, and replacing the store with the firmware's SET_MONITOR
+command is a separate measured change.
 
 ## What this contract does not cover
 
@@ -111,7 +119,8 @@ project's capture work. Neither may be used to write registers.
 3. Follow the bring-up, join and teardown orders above; never skip the
    connected indication.
 4. Treat a state-dependent refusal as a protocol result, not a fault.
-5. Do not use either diagnostic path to write.
+5. Do not write through the diagnostic paths beyond the one fixed-address
+   monitor-control store named above; never through the memory-dump path.
 6. Do not attempt a second connection lifetime until key retirement is
    characterised.
 
