@@ -1,0 +1,64 @@
+From aa92427edc058e1f0e5585af863010aec2ceae10 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 17:26:08 -0400
+Subject: [PATCH] wifi: mt6797: keep the retired mode parameters visible for
+ the host leaf
+
+The retained device-side session leaf reads the driver's two old mode
+parameters from sysfs before it brings the interface up. The build-arm
+collapse removed them, so the first station boot never reached Wi-Fi:
+the leaf's mode stage failed on the missing file and the device sat idle
+until the host's poll budget ran out.
+
+Keep both names as read-only parameters that the driver never reads: the
+retired diagnostic always reports 0 and the stable epoch always reports 1,
+which is what every retained leaf expects. No value passed on the command
+line can arm or disarm anything, since the driver's own constants are
+separate.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index aad4ae039..9e7868f04 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -29,8 +29,15 @@
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ #include "native-diag.h"
+ #include "native-beacon.h"
+-/* The native-crypto-delivery diagnostic is retired: never armed. */
++/* The native-crypto-delivery diagnostic is retired: never armed. A
++ * read-only parameter of the old name stays so the retained host leaf,
++ * which reads it, keeps working; the driver never reads it, so no value
++ * can arm anything.
++ */
+ static const bool native_delivery_diag;
++static bool native_delivery_diag_param;
++module_param_named(native_delivery_diag, native_delivery_diag_param, bool, 0444);
++MODULE_PARM_DESC(native_delivery_diag, "Retired diagnostic; reported only, always 0");
+ #endif
+ #include "action-frame.h"
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+@@ -39,8 +46,14 @@ static const bool native_delivery_diag;
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ #include "ccmp-gtk-rx.h"
+ #endif
+-/* The checked stable-epoch path is the only receive model now. */
++/* The checked stable-epoch path is the only receive model now. The
++ * read-only parameter of the old name stays for the retained host leaf
++ * and always reports Y; the driver never reads it.
++ */
+ static const bool ccmp_stable_epoch = true;
++static bool ccmp_stable_epoch_param = true;
++module_param_named(ccmp_stable_epoch, ccmp_stable_epoch_param, bool, 0444);
++MODULE_PARM_DESC(ccmp_stable_epoch, "Always armed; reported only, always 1");
+ static const u32 mt6797_ccmp_ciphers[] = { WLAN_CIPHER_SUITE_CCMP };
+ #endif
+ static bool snapshot_enable;
+-- 
+2.43.0
+
