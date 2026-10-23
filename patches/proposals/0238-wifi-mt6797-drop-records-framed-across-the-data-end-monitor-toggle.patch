@@ -1,0 +1,71 @@
+From 6a74a2baa0186089dc7562142db54b22ca9af71f Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 16:57:08 -0400
+Subject: [PATCH] wifi: mt6797: drop records framed across the data-end monitor
+ toggle
+
+The quiet-console measurement ended its data phase with the host-to-device
+stream still in flight. Right after the monitor-control disable the next
+receive record carried the other state's framing (header length 1548 in a
+1596-byte selection), the exact-match gate refused it with a protocol
+error, and the lifetime fail-stopped before any teardown command was sent.
+The firmware BSS was left connected until the native reboot.
+
+After data end such a record has nothing to deliver, and a completed
+transfer leaves the FIFO consistent. Count and drop it, logging the first
+few, and carry on with the teardown instead of poisoning the lifetime.
+Before data end the gates keep their fail-stop behaviour unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index f8a41a6bc..aad4ae039 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -209,6 +209,8 @@ struct mt6797_mac {
+ 	unsigned int ccmp_unowned_tx_done;
+ 	bool ccmp_reserved_pid_used;
+ #endif
++	/* Records framed for the other monitor state, dropped after data end. */
++	unsigned int join_teardown_framing_drops;
+ 	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
+ 	unsigned int join_page_debt, join_polls, join_packets;
+@@ -1478,6 +1480,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	 * the quiescent gate and that the wire identities do not wrap.
+ 	 */
+ 	mac->join_channel_token++;
++	mac->join_teardown_framing_drops = 0;
+ 	mac->join_sta_sequence++;
+ 	/* Scan cycle re-opened; the radio (scan_ready), vif, configured and
+ 	 * started state and the monotonic mac->sequence are left as they are.
+@@ -3502,6 +3505,22 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				ret = 0;
+ 				continue;
+ 			}
++			if (ret == -EPROTO && rx.protocol_refusal != MT6797_HIF_RX_REFUSAL_NONE &&
++			    mac->join_data_phase && mac->join_data_ended && rx.rx_complete) {
++				/* A record framed for the other monitor state, in flight
++				 * across the data-end control toggle. The data phase is over,
++				 * so its payload is not deliverable anyway, and the transfer
++				 * completed, so the FIFO is consistent. Count it and carry on
++				 * with the teardown instead of poisoning the lifetime.
++				 */
++				if (mac->join_teardown_framing_drops++ < 4)
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN teardown framing drop: port=%u selected=%u header=%u count=%u\n",
++						 rx_port, rx.selected_length, rx.header_length,
++						 mac->join_teardown_framing_drops);
++				ret = 0;
++				continue;
++			}
+ 			if (ret || ++mac->join_packets > MT6797_JOIN_MAX_PACKETS)
+ 				goto failed;
+ 			got = true;
+-- 
+2.43.0
+

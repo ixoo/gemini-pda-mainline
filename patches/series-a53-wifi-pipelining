@@ -728,3 +728,4 @@ proposals/0234-wifi-mt6797-collapse-the-experiment-build-arms-into-the-station-d
 proposals/0235-wifi-mt6797-hold-the-mac80211-queue-instead-of-dropping-data-frames.patch
 proposals/0236-wifi-mt6797-pipeline-data-frames-across-the-TC1-page-budget.patch
 proposals/0237-wifi-mt6797-keep-the-proven-monitor-control-in-the-single-build-arm.patch
+proposals/0238-wifi-mt6797-drop-records-framed-across-the-data-end-monitor-toggle.patch
