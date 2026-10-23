@@ -1,0 +1,69 @@
+{
+  "run": "P2E-D2",
+  "status": "consumed once; gate600s PASS; delivery TRANSMITTED; guarded disconnect refused; cleanup PASS",
+  "kernel_commit": "3da69187",
+  "kernel_release": "7.1.3-gemini-a53-private-p2e-delivery",
+  "boot_id": "ec61feee-1a46-4dc8-a4d9-5451704a4e46",
+  "boot2_sha256": "5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd",
+  "kmsg_sha256": "006210923ecddecc6c9f652e00b23f4c910e3d828c4d3b2cc69787e66c7c41e4",
+  "kmsg_records": 4966,
+  "gate600s": {
+    "verdict": "PASS",
+    "arrivals": 602,
+    "host_span_ns": 601199849042,
+    "device_span_ns": 601250000000,
+    "max_host_gap_ns": 1312715292,
+    "probes_passed": 59,
+    "probes_total": 59,
+    "ssh_exit": 0,
+    "observed_stream_end_pm_ns": 604498752845
+  },
+  "disconnect": {
+    "accepted": false,
+    "attempted": true,
+    "exit": 49,
+    "kind": "after_completed_stream",
+    "pm_interval_refusal_observed": true,
+    "precheck_interval_ns": [
+      604000000000,
+      608000000000
+    ],
+    "precheck_pm_offset_ns": 606178752845,
+    "reason": "guard or bounded standard disconnect refused",
+    "refusal_outside_interval": true,
+    "refused_interval_ns": [
+      604000000000,
+      608000000000
+    ],
+    "refused_pm_offset_ns": 608548752845,
+    "stderr_bytes": 0
+  },
+  "delivery": {
+    "verdict": "TRANSMITTED",
+    "status": 0,
+    "class": 2,
+    "submit_pm_ns": 717660136000,
+    "completion_pm_ns": 717685083504,
+    "submission_log_to_completion_us": 23716,
+    "nearest_nominal_30s_boundary_offset_ns": -2339864000,
+    "phases": [
+      "completion",
+      "cleanup"
+    ],
+    "completion_before_cleanup_op2_key_removal": true,
+    "branch": "predeclared far-phase; no narrowing of held window"
+  },
+  "cleanup": {
+    "verdict": "PASS",
+    "stage": 3,
+    "ledger": "whole",
+    "firmware_stopped_record": false,
+    "session_end": "owned supplicant termination"
+  },
+  "limitations": [
+    "No standard-disconnect acceptance; refusal was a harness result, no retry or driver fault.",
+    "PM/log clocks are proxies, not wire latency or an observed firmware tick.",
+    "No AP capture, second lifetime, data-frame retirement, rekey or maintained support claim."
+  ],
+  "further_p2e_boot": false
+}

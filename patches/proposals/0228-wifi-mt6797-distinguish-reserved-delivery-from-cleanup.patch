@@ -1,0 +1,175 @@
+From dfc048f59b1f8ad97ed945c15c1292cef0a96c1c Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Thu, 22 Oct 2026 23:41:55 -0400
+Subject: [PATCH] wifi: mt6797: distinguish reserved delivery from cleanup
+
+Preserve matched status independently of resource retirement. Stage 3
+reports transmitted only for status 0, flushed for status 5, missing
+only after timeout without a late completion, otherwise unclassified.
+Retain normal and late reporting without changing admission, credits,
+deadlines or cleanup operations. Status 5 never establishes delivery
+on air.
+
+Internal experiment archive; non-certifying and not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 75 +++++++++++++++++++---
+ 1 file changed, 66 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index e6ece5f..af013ee 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -181,6 +181,9 @@ struct mt6797_mac {
+ 	unsigned int sequence;
+ 	bool configured, closing;
+ 	int first_error;
++	bool join_deauth_status_valid, join_deauth_status_late;
++	bool join_deauth_timed_out;
++	u8 join_deauth_status, join_lifetimes;
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct ieee80211_hw *hw;
+ 	struct ieee80211_vif *vif;
+@@ -208,7 +211,6 @@ struct mt6797_mac {
+ 	 * key-completion barrier (ADD_PKEY_DONE carries no generation).
+ 	 */
+ 	bool join_sta_removed, join_rearm_pending, join_closed;
+-	u8 join_lifetimes;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
+ 	u8 join_bssid[ETH_ALEN];
+@@ -445,6 +447,32 @@ static void mt6797_mac_snapshot_shutdown(void *owner)
+ }
+ #endif
+ 
++static const char * __maybe_unused
++mt6797_mac_deauth_verdict(const struct mt6797_mac *mac)
++{
++	if (!mac->join_deauth_status_valid)
++		return mac->join_deauth_timed_out ? "missing" : "unclassified";
++	if (mac->join_deauth_status == 0)
++		return "transmitted";
++	if (mac->join_deauth_status == 5)
++		return "flushed";
++	return "unclassified";
++}
++
++/* Completion evidence only; never infer delivery from submission or cleanup.
++ * join_lifetimes is the existing scan-generation counter. Timing is logged by
++ * mt6797_ccmp_tx_timing from PM command credit, not a keep-alive tick.
++ */
++static void __maybe_unused
++mt6797_mac_deauth_delivery(struct mt6797_mac *mac, const char *phase,
++			   bool valid, unsigned int status, bool late)
++{
++	pr_info("mt6797 deauth delivery: lifetime=%u phase=%s completion_valid=%u status=%u transmitted=%u flushed=%u unclassified=%u late=%u\n",
++		mac->join_lifetimes, phase, valid, valid ? status : 255,
++		valid && status == 0, valid && status == 5,
++		valid && status != 0 && status != 5, valid && late);
++}
++
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+ /* Mutex held; selection already owns the skb but has not submitted it. */
+ static int mt6797_ccmp_assign_pid(struct mt6797_mac *mac, bool reserved)
+@@ -741,6 +769,8 @@ static bool mt6797_ccmp_deauth_retire(struct mt6797_mac *mac, u64 now,
+ 	mac->join_inflight = NULL;
+ 	mac->join_internal = NULL;
+ 	mac->join_last_acked = false;
++	mac->join_deauth_timed_out = true;
++	mt6797_mac_deauth_delivery(mac, "timeout", false, 0, false);
+ 	complete_all(&mac->join_frame_done);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN deauth completion missing: pid=%u timeouts=%u debt=%u acked=0 no_reuse=1\n",
+@@ -833,10 +863,21 @@ static bool mt6797_ccmp_deauth_late(struct mt6797_mac *mac, size_t bytes)
+ 	    !mac->join_running || !mac->join_cleanup_requested || mac->join_retired ||
+ 	    mac->first_error || mac->closing ||
+ 	    !mt6797_join_tx_done(mac->join_packet, bytes,
+-				 mac->ccmp_deauth_retired_pid, 1, &result) ||
+-	    (result.status > 7 && (result.status < 32 || result.status > 34)))
++				 mac->ccmp_deauth_retired_pid, 1, &result))
++		return false;
++	if (result.status > 7 && (result.status < 32 || result.status > 34)) {
++		mac->join_deauth_status_valid = true;
++		mac->join_deauth_status_late = true;
++		mac->join_deauth_status = result.status;
++		mt6797_mac_deauth_delivery(mac, "late-unclassified", true,
++					   result.status, true);
+ 		return false;
++	}
+ 	mac->ccmp_deauth_late++;
++	mac->join_deauth_status_valid = true;
++	mac->join_deauth_status_late = true;
++	mac->join_deauth_status = result.status;
++	mt6797_mac_deauth_delivery(mac, "late", true, result.status, true);
+ 	mt6797_ccmp_tx_timing(mac, mac->ccmp_deauth_retired_pid, result.status, 3);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN retired deauth completion: pid=%u status=%u late=%u no_credit=1\n",
+@@ -970,7 +1011,7 @@ static bool mt6797_mac_join_regulatory_stop(struct mt6797_mac *mac,
+ 
+ 	if (!mac->join_scan_ready && !mac->join_peer_used)
+ 		return false;
+-	/* 0180: a healthy quiescent terminal (stage-3 cleanup done: deauth sent,
++	/* 0180: a healthy quiescent terminal (stage-3 cleanup done: reserved TX retired,
+ 	 * keys removed, channel returned, no active TX) makes the expected idle
+ 	 * regulatory restore benign; do not poison it, so a subsequent fresh
+ 	 * scan/beacon re-admits normally. An active lifetime still retires.
+@@ -1482,6 +1523,10 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_cleanup_requested = false;
+ 	mac->join_cleanup_done = false;
+ 	mac->join_deauth_done = false;
++	mac->join_deauth_timed_out = false;
++	mac->join_deauth_status_valid = false;
++	mac->join_deauth_status_late = false;
++	mac->join_deauth_status = 0;
+ 	mac->join_cleanup_stage = 0;
+ 	mac->join_rsn = false;
+ 	mac->join_key_pairwise = 0;
+@@ -2186,6 +2231,10 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 		if (ccmp_stable_epoch)
+ 			mt6797_ccmp_pid_report(mac, "cleanup");
+ #endif
++		mt6797_mac_deauth_delivery(mac, "cleanup",
++					   mac->join_deauth_status_valid,
++					   mac->join_deauth_status,
++					   mac->join_deauth_status_late);
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (mac->ccmp_cleanup_bounded_done) {
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -2193,13 +2242,15 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 				 mac->join_page_debt);
+ 		} else {
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
+-				 mac->join_deauth_done);
++				 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u delivery=%s\n",
++				 mac->join_deauth_done,
++				 mt6797_mac_deauth_verdict(mac));
+ 		}
+ #else
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u\n",
+-			 mac->join_deauth_done);
++			 "one-shot WLAN join cleanup: stage=3 credits=returned slots=retired deauth=%u delivery=%s\n",
++			 mac->join_deauth_done,
++			 mt6797_mac_deauth_verdict(mac));
+ #endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 		mt6797_native_diag_rx_report(mac);
+@@ -3486,8 +3537,14 @@ submitted:
+ 				ack = result.status == 0;
+ 				mac->join_last_acked = ack;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-				if (completed_internal)
++				if (completed_internal) {
+ 					mac->join_deauth_done = ack;
++					mac->join_deauth_status_valid = true;
++					mac->join_deauth_status_late = false;
++					mac->join_deauth_status = result.status;
++					mt6797_mac_deauth_delivery(mac, "completion", true,
++								   result.status, false);
++				}
+ #endif
+ 				complete_all(&mac->join_frame_done);
+ 				ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(completed));
+-- 
+2.54.0 (Apple Git-157)
+

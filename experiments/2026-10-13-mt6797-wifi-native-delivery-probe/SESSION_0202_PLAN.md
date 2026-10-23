@@ -2722,3 +2722,67 @@ every local or identity failure, propagate the freshly verified boot before
 bootstrap, and preserve the original one-capture/one-session failure path.
 Keep the existing cold-start guard, all other limits and the kernel unchanged.
 A new physical selection requires a completed, tested launcher handoff first.
+
+
+### P2E-D2 consumed — 600-second gate PASS, delivery TRANSMITTED, cleanup PASS
+
+P2E-D1 and P2E-D2 are consumed. D1 refused before join because of a stale
+receipt. D2 is a result, not a driver failure. The unchanged installed kernel
+`3da69187`, release `7.1.3-gemini-a53-private-p2e-delivery`, and boot2 digest
+`5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd`
+identify this run. [One scalars file](results/p2ed2-runtime-scalars.json)
+records its independent verdicts; the original ignored evidence remains in
+`artifacts/wifi-p2ed2-runtime-1/`.
+
+All 602 arrivals survived acquisition: host span 601.199849042 s, device span
+601.250 s, maximum host gap 1.312715292 s, 59/59 periodic probes, SSH exit 0.
+**gate600s: PASS.** The attempted guarded disconnect refused at PM+608.548752845 s
+against [604,608] s, after precheck at +606.178752845 s. The 0.549 s overrun is a
+harness result. No second attempt occurred; no driver fault is inferred.
+
+| Run/shape | Submission offset / duration | Delivery verdict |
+| --- | --- | --- |
+| GTK5–8 held shape | near tick; removal commands release queued management frames | status 5: flushed, never on air |
+| EMI1 late transmitted shape | +0.352 s; 829.6 ms, completion during removal | status 0: transmitted |
+| P2E-D2 far-phase shape | PM+717.660 s → +717.685 s; 23.716 ms; class=2 normal branch | status 0: transmitted; completion precedes cleanup op=2 / key removal |
+
+D2's delivery line appears first at `phase=completion`, then repeats at
+`phase=cleanup`. PM+717.66 s is **2.34 s before** the next nominal 30 s multiple,
+the predeclared far-phase branch. It confirms the model without narrowing the
+blocking window: held cases remain within approximately 0.35 s after a tick.
+The PM/log comparison is not a measured wire latency or observed firmware tick.
+
+The owned supplicant was terminated at the existing leaf wall. Cleanup reached
+stage 3 with a whole ledger. There is **no `firmware stopped (` record** for this
+teardown; absence of that record does not negate cleanup. The sealed kmsg has
+4,966 records, SHA-256
+`006210923ecddecc6c9f652e00b23f4c910e3d828c4d3b2cc69787e66c7c41e4`.
+Evidence is preserved unchanged. No further P2E boot is queued or authorized by
+this record; the next device item is an owner decision.
+
+### Offline follow-up — reachable disconnect window and truthful stage 3
+
+[The window successor](disconnect-window.py) keeps consumed P2/P2E inputs and
+receipts unchanged. It derives the normal interval from the observed final
+stream PM offset E: [E,E+30 s]. The precheck requires now <= E+15 s, reserving
+the entire existing 15 s USB-call bound; it also requires 30 s of remaining host
+poll budget. An unreachable schedule refuses before control. The incomplete
+stream branch retains its old bounds. There is one request and no retry.
+D2's E=604.498752845 s yields an upper bound of 634.498752845 s; its precheck
+and actual refused-request time both fit with headroom. Tests reject a margin
+that can be consumed by the control bound plus <=1 s of drift. This is an offline
+derivation, not a new launcher/receipt binding or a new run admission.
+
+Proposal 0228 retains the already observed delivery evidence and appends
+`delivery=transmitted|flushed|missing|unclassified` to stage 3. Only matched
+status 0 claims transmission; status 5 means flushed, never on air. Missing
+requires timeout without a later matched completion; other states are
+unclassified. A late status supersedes the timeout's provisional missing state.
+The existing `deauth` field remains its historical timely-ACK scalar; cleanup
+success and delivery are separate. Admission, credits, deadlines and teardown
+operations are unchanged. The snapshot compile profile selects
+this reporting change in canonical order. Historical profiles stay pinned. No kernel build or boot is
+needed to validate this reporting-only change; the installed image is unchanged.
+
+The [offline second-lifetime prerequisite plan](SECOND_LIFETIME_PREREQUISITES.md)
+is the next source obligation. It admits no device operation.

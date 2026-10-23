@@ -1,0 +1,21 @@
+{
+  "scope": "P2E-D2 result record, reporting-only proposal 0228, offline disconnect window and second-lifetime plan",
+  "repository_checks": "PASS; macOS Linux-only package/provenance fixtures skipped as declared by harness",
+  "profiles_audited": 41,
+  "patch_replay": "PASS; byte-exact against public MAC parent through 0227",
+  "checkpatch": "PASS strict; --no-signoff for explicitly non-certifying experiment archive",
+  "deauth_delivery_helpers": "PASS; actual extracted C, all 256 statuses with normal/late shapes, timeout/missing and unclassified, repeated cleanup logs, no state mutation; ASan/UBSan; unused option-off compile",
+  "deauth_production_wiring": "PASS; stage3, normal, late, refused unknown status, timeout and rearm; existing ACK predicate retained",
+  "disconnect_window_tests": "PASS; 4 focused actual-client/derivation tests, D2 schedule and <=1s drift-margin rejection, exact remote bounds and refusal/timeout never retried",
+  "consumed_p2e_regressions": "PASS; 31 tests, 2 Linux-only skips (PTY/proc and BusyBox)",
+  "kernel_build": false,
+  "DT_changed": false,
+  "device_action": false,
+  "new_runtime_or_receipt_binding": false,
+  "further_p2e_boot_queued": false,
+  "limitations": [
+    "Host fixtures establish source behavior, not a new network or firmware observation.",
+    "Reporting helpers were compiled locally; a complete kernel was not rebuilt.",
+    "The offline window derivation is intentionally not attached to a device launcher; consumed files and receipts remain pinned."
+  ]
+}

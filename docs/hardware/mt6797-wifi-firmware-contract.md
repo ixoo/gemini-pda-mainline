@@ -69,7 +69,10 @@ increasing PN. The [group RX contract](../../experiments/2026-10-13-mt6797-wifi-
 describes those host checks; firmware crypto ownership does not replace them.
 
 Key retirement and slot reuse for a second connection in the same boot are not
-yet established. Returned command credits and station teardown alone do not
+yet established. Removal commands visibly release queued management-class
+frames, including the reserved frame; this removes that queued management
+owner but establishes nothing about queued data frames. Returned command
+credits and station teardown alone do not
 prove retirement of firmware-queued frames. Until that barrier is established,
 the driver must not reset PN state or attempt a second protected lifetime.
 
@@ -111,3 +114,11 @@ project's capture work. Neither may be used to write registers.
 5. Do not use either diagnostic path to write.
 6. Do not attempt a second connection lifetime until key retirement is
    characterised.
+
+The [P2E-D2 result](../../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#p2e-d2-consumed--600-second-gate-pass-delivery-transmitted-cleanup-pass)
+adds a normal status-0 completion 2.34 seconds before the next nominal PM+30k
+boundary. It confirms the far-phase prediction without narrowing the observed
+held window (approximately <=0.35 seconds after a tick). Stage-3 resource
+retirement and reserved-frame delivery remain independent verdicts. No second
+protected lifetime follows from this observation; see the
+[offline prerequisites](../../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SECOND_LIFETIME_PREREQUISITES.md).
