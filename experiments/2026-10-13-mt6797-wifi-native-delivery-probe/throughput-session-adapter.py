@@ -70,6 +70,7 @@ def run_phase(phase, execute):
                 ('8eb12232ddbb2a00027f926a2c72c5e8213a3dbffadf6269c10beeed6bdceab3',CANDIDATE_SHA),
                 ('mt6797-a53-private-p2e-delivery','mt6797-a53-wifi-tx-pump-measurement'),
                 ('e7be093e6f4200b03aaff56787dc8d74ca1f3468','23745fe907c48ae0137cf5151b1117770545ce07'),
+                ('df5dc8242af6a59b361de227807455fc782b56cbc77706afb13563fefaeed8f0','5f63e2d32fc0b921b4fc60d5a50baeb045d1155598ad4108fb0afe6629bfefdd'),
                 ('mt6797-wifi-ccmp-stable-monitor-deployment-p2ed1','mt6797-wifi-tx-pump-deployment-1')):
                 if source.count(old)!=1:
                     raise ValueError('retained installer identity anchor changed')
