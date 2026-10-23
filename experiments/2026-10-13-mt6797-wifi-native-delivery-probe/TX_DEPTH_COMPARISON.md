@@ -1,3 +1,5 @@
+Consumed: see [measured depth-four result](TX_DEPTH_RESULT.md). No retry.
+
 # Bounded data-depth comparison: predeclaration
 
 Hypothesis: allowing up to four ordinary data TX owners can overlap the

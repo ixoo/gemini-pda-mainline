@@ -1,31 +1,20 @@
-# Current work: depth four installed; physical boot2 selection pending
+# Current work: depth four consumed; pump-yield successor authorized
 
-[Pump-1 result](TX_PUMP_RESULT.md): TX 0.291 Mbit/s (+41% aggregate), RX
-2.846 Mbit/s, CPU idle 86.5% / 82.6%. Standard disconnect accepted;
-whole-ledger stage 3 and status-0 deauth. Consumed, no retry.
+[Depth-four result](TX_DEPTH_RESULT.md): TX 0.506 Mbit/s, RX 7.061 Mbit/s,
+CPU idle 84.3% / 77.3%, peak four owners, zero unowned/pending after cleanup.
+Standard disconnect accepted; stage 3 whole ledger and status-0 transmitted
+deauth. Root independently confirmed changed-boot Gemian return. No retry.
 
-[Depth comparison](TX_DEPTH_COMPARISON.md): patch 0232 adds at most four
-ordinary data owners, exact PID completion and unchanged 750 ms bounds.
-Management/reserved ownership, page reconciliation, descriptor fixed nominal
-6 Mbps, admission and resource caps stay unchanged. Actual-source fixtures at
-depths one/four, ASAN/UBSAN, strict checkpatch and repository checks pass.
-Validated Buildbox build `957b5f3e` differs in configuration only by depth=4.
-Actual prepared files match the reviewed source; descriptor and credit guard
-are byte-identical to pump-1.
+Next owner-selected single variable: count no-progress iterations, reset on
+frame submission or completion retirement; after the bounded guard, pending
+work yields 1 ms, truly idle work 20 ms. Depth four, descriptor fixed nominal
+6 Mbps, credit accounting, PID attribution, deadlines and admission unchanged.
+Falsifiable target 2.5–3 Mbit/s TX; if not reached, report and stop rather than
+changing rate or widening this pass. Same five 1 s/1 MiB chunks per direction.
+No successor candidate or device eligibility is claimed at this checkpoint.
 
-Full boot2 `574fb99045fb13261235372fb1549b8682116fc534fc13d417226eb6787726c7`
-was written, synced/flushed and fully read back with matching SHA-256. Clean
-Gemian shutdown confirmed unreachable. Genuine receipt and both offline host
-constructors pass; sealed host inputs verified at this physical-handoff stage.
-No depth measurement has run; its one attempt is unconsumed.
-
-Runtime: `artifacts/wifi-throughput-depth-1`. After the owner selects boot2,
-root launches `artifacts/wifi-tx-depth-work/hosts/throughput-run.py` with that
-runtime and `--execute` exactly once. The finite procedure verifies fresh live
-identity before firmware start, uses five 1 s/1 MiB chunks per direction and
-prompt standard disconnect, then seals evidence and performs reviewed return.
-No retry, rate change, DMA, rekey or protected re-arm. Root remains device
-custodian; host harness and source reading were delegated.
+Root owns device work and final records. Harness and analysis are delegated.
+Reconnect closed, safeguards dormant, DMA deferred, rate a following pass.
 
 # Historical handoff: baseline 2 measured; bounded TX pump comparison
 

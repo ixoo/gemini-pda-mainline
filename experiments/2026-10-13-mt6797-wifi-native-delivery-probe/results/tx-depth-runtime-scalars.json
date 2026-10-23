@@ -1,0 +1,137 @@
+{
+  "run": "throughput-depth-1",
+  "attempts": 1,
+  "mainline_boot_id": "f5572c15-f40b-448e-be37-19fdb30d296a",
+  "build_commit": "957b5f3e41a9a2d4781a09ea4709d855bffa0245",
+  "boot2_sha256": "574fb99045fb13261235372fb1549b8682116fc534fc13d417226eb6787726c7",
+  "tx": {
+    "bytes": 364224,
+    "elapsed_ns": 5763185584,
+    "mbit_s": 0.5055870503440654,
+    "cpu_idle_percent": 84.25523099233479,
+    "completions": 341,
+    "nonzero": 0,
+    "firmware_count_histogram": {
+      "1": 341
+    },
+    "chunks": [
+      {
+        "bytes": 71976,
+        "elapsed_ns": 1001489959,
+        "mbit_s": 0.5749513460673649,
+        "end": "duration"
+      },
+      {
+        "bytes": 76320,
+        "elapsed_ns": 1001794709,
+        "mbit_s": 0.6094661855515949,
+        "end": "duration"
+      },
+      {
+        "bytes": 77768,
+        "elapsed_ns": 1001596000,
+        "mbit_s": 0.6211526403859441,
+        "end": "duration"
+      },
+      {
+        "bytes": 60392,
+        "elapsed_ns": 1001313458,
+        "mbit_s": 0.4825022535550501,
+        "end": "duration"
+      },
+      {
+        "bytes": 77768,
+        "elapsed_ns": 1002087084,
+        "mbit_s": 0.620848237576925,
+        "end": "duration"
+      }
+    ]
+  },
+  "rx": {
+    "bytes": 5242880,
+    "elapsed_ns": 5940000000,
+    "mbit_s": 7.061117845117845,
+    "cpu_idle_percent": 77.3440814594824,
+    "device_tx_completions": 475,
+    "nonzero": 0,
+    "firmware_count_histogram": {
+      "1": 454,
+      "2": 18,
+      "3": 3
+    },
+    "chunks": [
+      {
+        "bytes": 1048576,
+        "elapsed_ns": 900000000,
+        "mbit_s": 9.320675555555555,
+        "end": "byte_cap"
+      },
+      {
+        "bytes": 1048576,
+        "elapsed_ns": 990000000,
+        "mbit_s": 8.473341414141414,
+        "end": "byte_cap"
+      },
+      {
+        "bytes": 1048576,
+        "elapsed_ns": 830000000,
+        "mbit_s": 10.106756626506025,
+        "end": "byte_cap"
+      },
+      {
+        "bytes": 1048576,
+        "elapsed_ns": 800000000,
+        "mbit_s": 10.48576,
+        "end": "byte_cap"
+      },
+      {
+        "bytes": 1048576,
+        "elapsed_ns": 930000000,
+        "mbit_s": 9.020008602150538,
+        "end": "byte_cap"
+      }
+    ]
+  },
+  "whole_data_phase": {
+    "completions": 846,
+    "nonzero": 0,
+    "firmware_count_histogram": {
+      "1": 825,
+      "2": 18,
+      "3": 3
+    },
+    "retry_semantics": "unproved; conditional extra attempts 24 if count includes initial attempt"
+  },
+  "ownership": {
+    "max_outstanding": 4,
+    "allocations": 850,
+    "completions": 850,
+    "pending": 0,
+    "unowned": 0,
+    "completed_reuses": 724,
+    "wraps": 6,
+    "reserved_allocations": 1,
+    "trace_valid": true,
+    "whole_after_cleanup": true,
+    "out_of_order_observed": false
+  },
+  "standard_disconnect": "accepted",
+  "cleanup": "stage=3 credits=returned slots=retired deauth=1 delivery=transmitted",
+  "reserved_deauth_status": 0,
+  "controller_exit": 0,
+  "seal": {
+    "entries": 75,
+    "verified": true,
+    "sha256": "5672a969c963db97f8de16ede07b70bb5f7939efa42a7753588a9950f711f6c9",
+    "kmsg_bytes": 780577,
+    "records": 5515,
+    "kmsg_sha256": "068faf3da1b4468d723c2e0f98404e6ee5f0c0b26ad704e6ae7dbf941edd8b78",
+    "cap_bytes": 2097152,
+    "censored": false
+  },
+  "independent_return": {
+    "release": "3.18.41+",
+    "architecture": "aarch64",
+    "boot_id": "f6c84475-5fff-4477-ab7a-ca45539d85ed"
+  }
+}
