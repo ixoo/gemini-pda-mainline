@@ -1,0 +1,7 @@
+# Console-cost measurement: the same image as the tx-yield profile, with
+# kernel messages below warning level kept in the ring buffer instead of being
+# printed synchronously on the 921600-baud serial console. The RAM logger reads
+# the ring buffer, so retained evidence is unchanged; only console output moves.
+CONFIG_LOCALVERSION="-gemini-a53-wifi-quiet-console"
+CONFIG_CMDLINE="console=ttyS0,921600n8 earlycon maxcpus=8 nokaslr loglevel=4 log_buf_len=1M initcall_debug rdinit=/init panic=0 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-CCMP-Stable-Monitor g_ether.iSerialNumber=GEMINI_CCMP_STABLE_MONITOR_20261014 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32 mac.native_delivery_diag=0 mac.ccmp_stable_epoch=1"
+CONFIG_CMDLINE_FORCE=y
