@@ -1,0 +1,96 @@
+From 32b6063cb9c02ae822ac1629583827ff3a005b4e Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 20:49:02 -0400
+Subject: [PATCH] wifi: mt6797: never refuse a BSS notice for its content; log
+ a refused body
+
+The flow-control boot ended its teardown at cleanup stage 2: a 12-byte
+EVENT_ID_BSS_ABSENCE_PRESENCE notice arrived 0.6 ms after the stage-2
+submission, before that command's credit, and the absence gate of the
+measurement tree, which requires no page debt, refused it with -EPROTO;
+the lifetime fail-stopped (branch 6, status -71) with the removal
+credit still owed. Station-3 received the same notice after the credit
+and admitted it. Proposal 0243 already turns a notice outside the
+admission window into a counted state change; it now joins the
+measurement series. This change removes the one refusal 0243 left, a
+notice whose body is not the owned BSS's absence or presence: it is
+counted and its four body bytes logged for the first four (no address
+fits in them). When the broad control dispatcher still refuses a
+12-byte event, its body is logged too, so the next refusal is
+diagnosable. The admission window, the in-flight and credit guards and
+the cap of two admitted absences are unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 27 +++++++++++++++++++---
+ 1 file changed, 24 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 9db207e7c..fb5a86eb1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -251,6 +251,7 @@ struct mt6797_mac {
+ 	bool join_sta_pending, join_sta_active;
+ 	bool join_peer_refusal_logged, join_channel_refusal_logged;
+ 	unsigned int join_absence_events, join_absence_outside;
++	unsigned int join_absence_unexpected;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
+@@ -1540,6 +1541,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_llc_discarded = 0;
+ 	mac->join_absence_events = 0;
+ 	mac->join_absence_outside = 0;
++	mac->join_absence_unexpected = 0;
+ 	mac->join_data_rx_unicast = 0;
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
+@@ -1947,8 +1949,20 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		queued = !skb_queue_empty(&mac->join_queue);
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-		if (mac->join_packet[5] || body[0] || body[1] > 1)
+-			return -EPROTO;
++		if (mac->join_packet[5] || body[0] || body[1] > 1) {
++			/* An unsolicited notice whose content is not the owned
++			 * BSS's absence or presence is a firmware state change the
++			 * lifetime does not depend on: counted, its four body bytes
++			 * logged (no address fits in them), never a fault.
++			 */
++			mac->join_absence_unexpected++;
++			if (mac->join_absence_unexpected <= 4)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join bss notice unexpected: seq=%u body=%02x%02x%02x%02x count=%u\n",
++					 mac->join_packet[5], body[0], body[1], body[2],
++					 body[3], mac->join_absence_unexpected);
++			return 0;
++		}
+ 		if (!mac->join_cleanup_requested || mac->join_cleanup_done ||
+ 		    mac->join_cleanup_stage != 3 || mac->join_page_debt ||
+ 		    mac->join_credit_pending || mac->join_inflight ||
+@@ -3669,13 +3683,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 					mt6797_ccmp_timeout_observe(mac, rx.logical_bytes);
+ #endif
+-					/* Header metadata only: no body bytes, no address. */
++					/* Header metadata, and the body of a four-byte notice
++					 * (no address fits in it); no other body bytes.
++					 */
+ 					dev_info(wiphy_dev(mac->hw->wiphy),
+ 						 "one-shot WLAN join control event refused: status=%d bytes=%zu type=0x%04x id=0x%02x seq=%u\n",
+ 						 ret, rx.logical_bytes,
+ 						 mt6797_join_le16(mac->join_packet + 2),
+ 						 rx.logical_bytes >= 8 ? mac->join_packet[4] : 0,
+ 						 rx.logical_bytes >= 8 ? mac->join_packet[5] : 0);
++					if (rx.logical_bytes == 12)
++						dev_info(wiphy_dev(mac->hw->wiphy),
++							 "one-shot WLAN join control event body: %02x%02x%02x%02x\n",
++							 mac->join_packet[8], mac->join_packet[9],
++							 mac->join_packet[10], mac->join_packet[11]);
+ 					goto failed;
+ 				}
+ 				continue;
+-- 
+2.43.0
+

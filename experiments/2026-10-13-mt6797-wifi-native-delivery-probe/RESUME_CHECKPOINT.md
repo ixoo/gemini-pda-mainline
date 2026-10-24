@@ -1,4 +1,21 @@
-# Current: station-3 completed its teardown; flow-control next
+# Current: flow-control measured negative and retired; pipelining next
+
+[Flow-control result](TX_FLOW_CONTROL_RESULT.md): holding the mac80211
+queue (0235) lost a fifth to a quarter in both directions (TX 0.922,
+RX 8.10 Mbit/s against 1.225 / 10.01 on station-3) and its teardown
+fail-stopped when a BSS absence notice arrived before the stage-2 credit.
+0235 and its profile are retired; 0236 is rebased onto the station tree;
+0243 (notices outside the window are counted) joins every measurement
+series; 0247 removes the last content refusal and logs a refused body.
+Device returned to changed-boot Gemian
+`54cfeeb8-c0d8-4b0d-a016-d8d74844de1b`; the flow-control image
+(boot2 `8d52e5c3…`) is the installed predecessor of the next candidate.
+
+Next boot: pipelining (station tree + 0236 + 0243 + 0247), then autorate,
+lifecycle. Key reuse, rekey and reconnect remain disabled until the
+lifecycle boot.
+
+# Historical: station-3 completed its teardown; flow-control next
 
 [Station result](TX_STATION_RESULT.md): station-3 (0245, 0246, 8 MiB ring)
 repeated the throughput (TX 1.225 Mbit/s, RX 10.01 Mbit/s, median gap
@@ -46,7 +63,7 @@ changed-boot Gemian `d2d47ea1-90df-4845-9e8c-8ac1b1dff2b0`. No retry.
 Next boots, one variable each, all on the retained kernel release string:
 `mt6797-a53-wifi-station` (0234 single build arm + 0237 proven monitor
 control + 0238; expected: same throughput as quiet-console, teardown
-completes), then `mt6797-a53-wifi-flow-control` (+0235), then
+completes), then pipelining (+0236), then
 `mt6797-a53-wifi-pipelining` (+0236). Key reuse, rekey and reconnect remain
 disabled. Earlier handoffs below are historical and consumed.
 

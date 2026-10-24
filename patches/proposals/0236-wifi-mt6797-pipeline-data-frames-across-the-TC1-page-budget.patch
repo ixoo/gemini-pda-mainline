@@ -1,6 +1,6 @@
-From fa8b732ae9c999ccf74eec617ff08bbee7874592 Mon Sep 17 00:00:00 2001
+From 0bd3f3f6f1d8b6cbc71444119e08b43a00d1394a Mon Sep 17 00:00:00 2001
 From: Gemini experiment <experiment@invalid>
-Date: Fri, 23 Oct 2026 15:52:48 -0400
+Date: Fri, 23 Oct 2026 20:47:54 -0400
 Subject: [PATCH] wifi: mt6797: pipeline data frames across the TC1 page budget
 
 The declared TC1 budget of 16 pages admitted one 1518-byte frame (13 pages)
@@ -45,18 +45,17 @@ index 86a1bb7a6..00764a9c0 100644
  		goto out;
  	/* A pre-existing port-1 event would make its reply owner ambiguous.
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 76c6608ae..48e741991 100644
+index cf8b5e8a1..e56d9a2d7 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -3044,6 +3044,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -3044,5 +3044,6 @@ static void mt6797_mac_join_work(struct work_struct *work)
  #endif
  	bool running, ack = false, completed_internal = false, select;
- 	bool wake = false;
 +	unsigned int submits = 0;
  #ifdef CONFIG_MT6797_CCMP_TX_PUMP
  	bool pump_progress = false;
  #endif
-@@ -3209,6 +3210,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -3176,6 +3177,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	channel_release_holds_tx = ret;
  	ret = 0;
  #endif
@@ -64,7 +63,7 @@ index 76c6608ae..48e741991 100644
  	branch = 3;
  	select = !mac->join_inflight && !mac->join_page_debt;
  #ifdef CONFIG_MT6797_CCMP_CHANNEL_RELEASE
-@@ -3424,6 +3426,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -3388,6 +3390,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				}
  				mac->join_inflight = NULL;
  				mac->join_inflight_data = false;

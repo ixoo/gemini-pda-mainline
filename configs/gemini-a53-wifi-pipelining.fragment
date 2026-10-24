@@ -1,4 +1,4 @@
-# Pipelining measurement: the flow-control profile plus proposal 0236.
+# Pipelining measurement: the station profile plus proposal 0236.
 # MT6797 mac80211 station driver, single build arm. Replaces the chained
 # experiment fragments: the driver's compile-time structure now follows
 # CONFIG_MT6797_MAC80211 alone, and the retired diagnostics have no option.

@@ -725,7 +725,6 @@ proposals/0231-wifi-mt6797-bound-immediate-single-frame-TX-pump.patch
 proposals/0232-wifi-mt6797-bound-data-TX-owners-by-PID.patch
 proposals/0233-wifi-mt6797-yield-shortly-only-without-TX-progress.patch
 proposals/0234-wifi-mt6797-collapse-the-experiment-build-arms-into-the-station-driver.patch
-proposals/0235-wifi-mt6797-hold-the-mac80211-queue-instead-of-dropping-data-frames.patch
 proposals/0236-wifi-mt6797-pipeline-data-frames-across-the-TC1-page-budget.patch
 proposals/0237-wifi-mt6797-keep-the-proven-monitor-control-in-the-single-build-arm.patch
 proposals/0238-wifi-mt6797-drop-records-framed-across-the-data-end-monitor-toggle.patch
@@ -736,3 +735,4 @@ proposals/0243-wifi-mt6797-count-Action-frames-and-out-of-window-absence-notices
 proposals/0244-wifi-mt6797-take-the-receive-status-channel-from-the-record.patch
 proposals/0245-wifi-mt6797-bound-the-lifetime-by-its-deadlines-not-by-a-pass-quota.patch
 proposals/0246-wifi-mt6797-demote-the-per-frame-slot-allocation-and-completion-lines.patch
+proposals/0247-wifi-mt6797-never-refuse-a-BSS-notice-for-its-content-log-a-refused-body.patch

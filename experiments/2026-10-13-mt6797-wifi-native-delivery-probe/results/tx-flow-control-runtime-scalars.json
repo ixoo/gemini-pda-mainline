@@ -1,0 +1,78 @@
+{
+  "runs": {
+    "flow-control-1": {
+      "run": "PIO-throughput-flow-control-1",
+      "profile": "mt6797-a53-wifi-flow-control",
+      "proposal": "0235 (retired)",
+      "kernel_build_commit": "c48412ae9c92e629533dbfdba986cfc028f56a16",
+      "candidate_manifest_sha256": "4b544a48699d18680786bf53f45f757cfbacfb46835d4b33d072950b3f32401e",
+      "boot2_sha256": "8d52e5c36d2f97d3106f9ed04a79438e5e7f8b62d545084f9dcda79d2143ca62",
+      "kernel_notes_sha256": "78399eb8bc53ce3540a8ea88e0722e1319ae9340de15e3382498aa324eb7a83d",
+      "mainline_boot_id": "5449eb4d-46a2-4580-87ca-cd4e44365d19",
+      "previous_gemian_boot_id": "4ad62c4b-e0a1-4575-b9ac-23d85ab3c30d",
+      "returned_gemian_boot_id": "54cfeeb8-c0d8-4b0d-a016-d8d74844de1b",
+      "admitted_uptime_s": 5.91,
+      "complete_log_records": 20455,
+      "throughput": {
+        "tx_host_received_mbit_s": 0.922,
+        "tx_chunk_mbit_s": [
+          1.22,
+          1.08,
+          0.93,
+          1.1,
+          1.1
+        ],
+        "tx_device_cpu_idle_percent": 87.74,
+        "rx_host_sent_mbit_s": 8.0973,
+        "rx_device_chunk_mbit_s": [
+          16.45,
+          13.11,
+          14.98,
+          11.04,
+          10.89
+        ],
+        "rx_device_cpu_idle_percent": 79.69
+      },
+      "completion_gaps_ms": {
+        "scope": "all 2,988 TX completions in the sealed log",
+        "median": 0.7,
+        "p75": 7.07,
+        "p90": 8.01,
+        "bins": {
+          "lt_6": 2163,
+          "6_to_12": 782,
+          "12_to_25": 10,
+          "ge_25": 32
+        }
+      },
+      "data_phase": {
+        "end_reason": "disconnect",
+        "elapsed_ms": 20904,
+        "tx_queued": 2983,
+        "tx_done": 2981,
+        "tx_failed": 2,
+        "pid_allocations": 2987,
+        "pid_completions": 2987,
+        "pid_wraps": 23,
+        "unowned": 0
+      },
+      "teardown": {
+        "host_ack_accepted": true,
+        "standard_disconnect": "accepted, exit 0",
+        "pm_abort_status": 0,
+        "deauth_delivery": "transmitted, completion phase",
+        "fail_stop": "join stopped status=-71 cleanup=3 branch=6 after a 12-byte id 0x11 notice arrived before the stage-2 credit (refused by the no-debt gate)",
+        "ccmp_stable_disable_status": -71,
+        "removal_command_credit": 0
+      },
+      "session": {
+        "capture_exit": 0,
+        "session_exit": 1,
+        "export": "accepted; log_complete true",
+        "return": "native, changed-ID-Gemian, 15.3 s",
+        "retry": false
+      },
+      "decision": "0235 retired; flow-control profile retired; 0236 rebased onto the station tree; 0243 added to every measurement series; 0247 added"
+    }
+  }
+}
