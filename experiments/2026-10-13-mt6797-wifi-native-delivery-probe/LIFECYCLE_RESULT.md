@@ -1,4 +1,4 @@
-# Lifecycle boots 1 to 4: each boot takes the second lifetime one stage further
+# Lifecycle boots 1 to 9: each boot takes the second lifetime one stage further
 
 Result record, 2026-10-24. One boot on the `mt6797-a53-wifi-lifecycle`
 profile (pipelining tree plus 0240 re-arm, 0241 loss reason, 0243) under
@@ -226,9 +226,66 @@ the two per-frame records demoted for them, then the same image once
 more. Cycle 2's lower throughput (first chunk 2.73, then 3.1–3.25) is
 noted, not interpreted, until a complete log can be read.
 
+## Lifecycle boot 9: two lifetimes in one complete sealed log; second-lifetime item closed
+
+Same image again (build `e22d9838`, boot2 `10a1b156…`, no reinstall), boot
+`b4be0086…`, firmware ready at 10.9 s uptime. One harness change: the
+lifecycle runs measure two chunks per direction instead of five, so two
+lifetimes' per-frame records fit under the device logger's 2 MiB limit.
+Both cycles passed on the host and the device, and this time the log is
+whole:
+
+| Cycle | TX, host received | RX, host sent | CPU idle TX / RX |
+|---|---:|---:|---|
+| 1 | 2.864 Mbit/s (chunks 3.33, 3.20) | 7.11 Mbit/s (device chunks 11.98, 12.52) | 86.8 % / 79.2 % |
+| 2 | 2.482 Mbit/s (chunks 3.26, 3.28) | 5.54 Mbit/s (device chunks 10.75, 11.18) | 81.9 % / 76.5 % |
+
+The sealed log is complete: 1,412,427 bytes, 8,697 records, sealed on the
+host's stop signal at 54.0 s with the logger reporting a pass, and the
+session classified as a RAM-service regression pass with the complete log
+through the seal. On that log the classifier passes all nine gates
+(re-arms, lifetimes, data phases, terminals, keys removed and re-added,
+second-cycle PN seeding, scans, no fault, receipt): `lifecycle_pass` and
+`two_lifetime_pass` are both true, with no first failure.
+
+What the device did, from the log:
+
+- **Lifetime 1.** Keys done at 15.1 s uptime; data phase 12.95 s with
+  1,553 data frames queued, 1,552 done and 1 failed; slot ledger 1,557
+  allocations and 1,557 completions (12 PID wraps, none unowned); standard
+  disconnect, three-stage cleanup with the deauthentication transmitted,
+  all credits returned and slots retired; both keys removed; re-arm
+  record `lifetime=1 token=2` at 28.15 s.
+- **Re-arm to lifetime 2.** Scan admitted, two passive BSS notices logged
+  as informational by 0250 and one BSS absence outside teardown counted
+  (not acted on); fresh keys done at 32.1 s, 4.0 s after the re-arm.
+- **Lifetime 2.** Data phase 19.17 s with 1,667 frames queued, 1,667 done
+  and none failed; ledger 1,671/1,671 (13 wraps); standard disconnect,
+  the same complete cleanup with deauthentication transmitted, both keys
+  removed; second re-arm record `lifetime=2 token=2` at 51.42 s.
+- No data slot expired (0253's path was not needed), no fault record, no
+  refused event.
+
+Host side: both acknowledgments written and both standard disconnects
+accepted; the second cycle's exchange began 7.7 s after its credit clock
+(within the 30 s bound). Returned to changed-boot Gemian
+`c73da941-e073-4de7-9edb-4ca8df2122c9` in two attempts.
+
+**Second-lifetime item: closed.** One boot ran two complete WPA2-PSK
+station lifetimes with the driver's own re-arm between them, each with
+scan, join, keys, DHCP, pings, measured TCP traffic in both directions,
+standard disconnect, three-stage cleanup and key removal, in one complete
+sealed log that the classifier passes. Cycle 2's per-chunk TX rate equals
+cycle 1's (3.26–3.28 against 3.20–3.33 Mbit/s); its lower aggregate is
+inter-chunk time, and boot 8's first-chunk ramp did not recur. Cycle 2's
+device-side RX chunks are about 1 Mbit/s lower than cycle 1's; noted, not
+interpreted. Reconnection after an access-point loss, rather than after
+the host's standard disconnect, is the next lifecycle question and
+remains untested.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-8/` (sealed
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-9/` (sealed
 sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`

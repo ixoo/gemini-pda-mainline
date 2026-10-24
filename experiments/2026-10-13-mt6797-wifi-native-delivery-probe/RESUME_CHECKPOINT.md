@@ -1,4 +1,20 @@
-# Current: lifecycle boot 8 measured two lifetimes; a complete log is still owed
+# Current: lifecycle boot 9 sealed two lifetimes in one complete log
+
+[Lifecycle result](LIFECYCLE_RESULT.md): on the lifecycle-7 image (boot2
+`10a1b156…`) with two chunks per direction, boot `b4be0086…` ran two
+complete station lifetimes with the driver's re-arm between them (cycle 1
+TX 2.86 / RX 7.11, cycle 2 TX 2.48 / RX 5.54 Mbit/s), the sealed log is
+complete (1.41 MB) and the classifier passes all nine gates. The plan's
+second-lifetime item is closed. Device returned to changed-boot Gemian
+`c73da941-e073-4de7-9edb-4ca8df2122c9`; the lifecycle-7 image remains
+installed.
+
+Next: the access-point-loss test (reconnection after the AP goes away
+rather than after the host's standard disconnect; AP power is an owner
+action, harness to design), then general operation on the
+`mt6797-a53-wifi-general` profile.
+
+# Historical: lifecycle boot 8 measured two lifetimes; a complete log is still owed
 
 [Lifecycle result](LIFECYCLE_RESULT.md): both cycles passed on the host
 (cycle 1 TX 2.46 / RX 5.59, cycle 2 TX 1.68 / RX 3.91 Mbit/s) and the

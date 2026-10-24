@@ -60,7 +60,8 @@ Keep this file under 200 lines; move anything else to an experiment record.
   separate for the framing fault, preserving equality/poison/no-copy.
   Builds/device work stay on hold; rekey/reuse/reconnect remain disabled.
   Sustained 60 s / 2 min / 10 min acceptance remains untested.
-- **Open.** Wi-Fi station operation beyond one bounded lifetime; replay
+- **Open.** Wi-Fi station operation beyond two bounded lifetimes on one boot
+  (reconnection after access-point loss is untested); replay
   enforcement in firmware is unknown. No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.

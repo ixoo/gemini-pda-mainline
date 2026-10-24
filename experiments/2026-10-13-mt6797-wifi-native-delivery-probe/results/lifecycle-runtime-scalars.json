@@ -460,6 +460,118 @@
         }
       },
       "verdict": "second lifetime demonstrated on-device and measured by the host; complete sealed log still owed (logger limit)"
+    },
+    "lifecycle-9": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-9)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "image": "same as lifecycle-7 (no reinstall)",
+      "harness_changes": [
+        "two chunks per direction (lifecycle runs only)"
+      ],
+      "kernel_build_commit": "e22d9838212b79ca0c8a075e4f91fa298ebe7175",
+      "boot2_sha256": "10a1b156be6df67180cd7d95d3802acb7dcccc129da331b88c35db14b044b4d4",
+      "mainline_boot_id": "b4be0086-74c5-4427-ae39-2dbcbd6bc340",
+      "previous_gemian_boot_id": "d2f7adf3-339e-49af-878d-fc741bdad1cd",
+      "returned_gemian_boot_id": "c73da941-e073-4de7-9edb-4ca8df2122c9",
+      "firmware_ready_uptime_s": 10.86,
+      "receipt": {
+        "all_pass": true,
+        "cycles_passed": 2,
+        "cycles_started": 2,
+        "ready_wait_s": [
+          3.7,
+          7.7
+        ],
+        "standard_disconnect_accepted": [
+          true,
+          true
+        ]
+      },
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.864,
+        "tx_chunk_mbit_s": [
+          3.33,
+          3.2
+        ],
+        "rx_host_sent_mbit_s": 7.109,
+        "rx_device_chunk_mbit_s": [
+          11.98,
+          12.52
+        ],
+        "tx_device_cpu_idle_percent": 86.8,
+        "rx_device_cpu_idle_percent": 79.2
+      },
+      "cycle_2": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.482,
+        "tx_chunk_mbit_s": [
+          3.26,
+          3.28
+        ],
+        "rx_host_sent_mbit_s": 5.537,
+        "rx_device_chunk_mbit_s": [
+          10.75,
+          11.18
+        ],
+        "tx_device_cpu_idle_percent": 81.9,
+        "rx_device_cpu_idle_percent": 76.5
+      },
+      "device": {
+        "lifetime_1": {
+          "keys_done_uptime_s": 15.1,
+          "data_phase_elapsed_ms": 12951,
+          "tx_queued": 1553,
+          "tx_done": 1552,
+          "tx_failed": 1,
+          "slot_allocations": 1557,
+          "slot_completions": 1557,
+          "pid_wraps": 12,
+          "cleanup": "stage 3, deauth transmitted, keys removed",
+          "rearm_uptime_s": 28.15
+        },
+        "lifetime_2": {
+          "keys_done_uptime_s": 32.11,
+          "data_phase_elapsed_ms": 19171,
+          "tx_queued": 1667,
+          "tx_done": 1667,
+          "tx_failed": 0,
+          "slot_allocations": 1671,
+          "slot_completions": 1671,
+          "pid_wraps": 13,
+          "cleanup": "stage 3, deauth transmitted, keys removed",
+          "rearm_uptime_s": 51.42
+        },
+        "data_slots_expired": 0,
+        "faults": 0
+      },
+      "log": {
+        "complete": true,
+        "bytes": 1412427,
+        "records": 8697,
+        "logger_byte_limit": 2097152,
+        "sealed": "sealed-on-sigterm, result pass",
+        "elapsed_ms": 53975,
+        "session_classification": "ram-service-regression-pass",
+        "log_classification": "complete-log-through-seal"
+      },
+      "classifier": {
+        "lifecycle_pass": true,
+        "two_lifetime_pass": true,
+        "first_failure": null,
+        "gates_true": [
+          "rearms",
+          "lifetimes",
+          "data_phases",
+          "terminals",
+          "keys_removed_and_readded",
+          "second_cycle_pn_seeding",
+          "scans",
+          "no_fault",
+          "receipt"
+        ]
+      },
+      "verdict": "second-lifetime item closed: two complete station lifetimes with the driver re-arm between them in one complete sealed log"
     }
   }
 }
