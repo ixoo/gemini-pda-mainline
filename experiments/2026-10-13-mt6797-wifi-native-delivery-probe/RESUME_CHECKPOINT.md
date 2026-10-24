@@ -1,4 +1,17 @@
-# Current: lifecycle boot 4 joined its second lifetime; a late key removal closed it; 0251 next
+# Current: lifecycle boot 5 refused the re-arm as a PID wrap; 0252 next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): with 0251 both key removals were
+seen and the re-arm was requested, but the readiness check refused it as
+a wrap because the join PID counter, synced from the cyclic data PID
+pool, stood at 82; boots 3 and 4 had passed that clause by luck. 0252
+drops the clause. Device returned to changed-boot Gemian
+`9b35a4fa-ef15-4ac0-a276-298a887a6f2f`; the lifecycle-5 image (boot2
+`33e1f785…`) is the installed predecessor.
+
+Next boot: lifecycle-6 (lifecycle tree + 0252) under the two-cycle
+harness, then the AP-off loss test.
+
+# Historical: lifecycle boot 4 joined its second lifetime; a late key removal closed it; 0251 next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): with 0250 the second lifetime
 scanned, joined, associated and activated, then its handshake failed
