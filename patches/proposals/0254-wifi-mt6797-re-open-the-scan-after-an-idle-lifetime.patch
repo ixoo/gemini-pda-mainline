@@ -1,0 +1,155 @@
+From 9149990329ea98f033fdae2b067db6ab0ff5caf5 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 11:37:14 -0400
+Subject: [PATCH] wifi: mt6797: re-open the scan after an idle lifetime
+
+The driver admits one scan per lifetime and gives mac80211 ten seconds
+after the scan completes to begin the join; at that deadline the worker
+retires the idle BSS and fail-stops the lifetime with -ETIMEDOUT, which
+poisons the boot. A scan that finds no BSS therefore ends Wi-Fi for the
+boot, and a second scan request before the deadline is refused with
+-EOPNOTSUPP and an error record the session grammar reads as a fault.
+Lifecycle boot 9 ran two lifetimes against a present AP, but a station
+whose AP goes away cannot reconnect through this: its first scan after
+the loss finds nothing and the boot is over.
+
+At the deadline, when the retirement cleared the idle BSS and nothing
+beyond the scan happened (no peer, so no channel, station or key write),
+log the idle scan, hand back the lifetime count it took, reset only the
+scan-cycle state and leave the worker idle, so the next scan request is
+admitted; a lifetime that reached its peer still ends on the deadline as
+before. A scan request while this lifetime's scan is live or awaiting
+its join returns -EBUSY without a record: mac80211 reports it and the
+supplicant retries. The stale two-lifetime comments go with it.
+
+Compile-tested in the development VM, strict checkpatch clean. Not yet
+run on the device.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 70 +++++++++++++++++++---
+ 1 file changed, 62 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c11f3111f..3cdc3eb82 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -231,13 +231,15 @@ struct mt6797_mac {
+ 	/* Reusable bounded two-lifetime milestone (proposal 0180): the mac80211
+ 	 * station teardown (sta_state -> NOTEXIST) and the worker's healthy
+ 	 * stage-3 cleanup rendezvous in either order; the already-serialized
+-	 * join_work does the one reset after both. At most two lifetimes are
+-	 * admitted; a third is refused. These are not an authenticated
++	 * join_work does the one reset after both. Lifetimes re-arm while the
++	 * wire identities do not wrap. These are not an authenticated
+ 	 * key-completion barrier (ADD_PKEY_DONE carries no generation).
+ 	 */
+ 	bool join_sta_removed, join_rearm_pending, join_closed;
+ 	/* mac80211 key removals seen in this epoch; the re-arm waits for both. */
+ 	unsigned int ccmp_key_disables;
++	/* Scans that mac80211 never followed with a join; boot-scoped. */
++	unsigned int join_idle_scans;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
+ 	u8 join_bssid[ETH_ALEN];
+@@ -1888,6 +1890,43 @@ static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac)
+ 		mac->bss_active = false;
+ 	return ret;
+ }
++
++/* A scan that mac80211 never followed with a join (no BSS found, or none
++ * selected) is not a failed lifetime: its idle BSS is retired above and the
++ * scan cycle is re-opened so the next request is admitted. Only scan-cycle
++ * state is reset; the wire identities, keys and epoch were never consumed.
++ * The lifetime counted at this scan's submission is handed back.
++ */
++static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
++{
++	unsigned long flags;
++
++	mac->join_idle_scans++;
++	if (mac->join_lifetimes)
++		mac->join_lifetimes--;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join idle scan retired: lifetime=%u idle_scans=%u sequence=%u\n",
++		 mac->join_lifetimes, mac->join_idle_scans, mac->sequence);
++	mac->scan_used = false;
++	mac->scan_active = false;
++	mac->scan_count = 0;
++	mac->scan_channels = 0;
++	mac->scan_polls = 0;
++	mac->scan_packets = 0;
++	mac->scan_beacon = false;
++	mac->scan_credit = false;
++	mac->scan_frame_seen = false;
++	mac->scan_started_ns = 0;
++	mac->join_scan_ready = false;
++	mac->join_deadline = 0;
++	mac->join_polls = 0;
++	mac->join_packets = 0;
++	mac->join_seen = 0;
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = false;
++	mac->join_open = false;
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++}
+ #endif
+ 
+ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason);
+@@ -3291,6 +3330,15 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		mac->ccmp_observation.branch1_site = 1;
+ #endif
+ 		ret = mt6797_mac_join_retire_idle_bss(mac);
++		/* The retirement above cleared bss_active only if nothing beyond
++		 * the scan happened; a lifetime that reached its peer still ends
++		 * here on the deadline.
++		 */
++		if (!ret && mac->join_scan_ready && !mac->join_peer_used &&
++		    !mac->bss_active) {
++			mt6797_mac_join_reopen_scan(mac);
++			goto unlock;
++		}
+ 		if (!ret)
+ 			ret = -ETIMEDOUT;
+ 		goto failed;
+@@ -4595,9 +4643,16 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 
+ 	mutex_lock(&mac->mutex);
+ 	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
+-	    mac->closing || mac->first_error || mac->scan_used ||
+-	    mac->join_closed)
++	    mac->closing || mac->first_error || mac->join_closed)
+ 		goto out;
++	/* One scan per lifetime: a request while this lifetime's scan is live
++	 * or still awaiting its join is busy, not a submission fault. mac80211
++	 * reports it and the supplicant retries.
++	 */
++	if (mac->scan_used) {
++		ret = -EBUSY;
++		goto out;
++	}
+ 	/* mac80211 may append supported-rate IEs internally. There are no
+ 	 * probe requests in this passive form, so no IEs are transmitted.
+ 	 */
+@@ -4633,9 +4688,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 * cannot be retried or treated as an effect-free rejection.
+ 	 */
+ 	mac->scan_used = true;
+-	/* 0180: count the lifetime at its first effectful submission (this scan),
+-	 * so a third cycle is refused here before any scan/peer/channel/key write,
+-	 * not only at a third activation.
++	/* 0180: count the lifetime at its first effectful submission (this scan).
++	 * An idle scan hands the count back when it is retired.
+ 	 */
+ 	if (mac->join_lifetimes < U8_MAX)
+ 		mac->join_lifetimes++;
+@@ -4668,7 +4722,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	dev_info(wiphy_dev(hw->wiphy), "one-shot passive WLAN scan: admitted=1\n");
+ 	schedule_delayed_work(&mac->scan_work, 0);
+ out:
+-	if (ret && mac->scan_used)
++	if (ret && ret != -EBUSY && mac->scan_used)
+ 		dev_err(wiphy_dev(hw->wiphy),
+ 			"one-shot passive WLAN submission stopped: status=%d\n", ret);
+ 	mutex_unlock(&mac->mutex);
+-- 
+2.43.0
+
