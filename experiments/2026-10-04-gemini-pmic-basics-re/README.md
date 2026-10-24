@@ -181,6 +181,12 @@ better witness for the running kernel.
   and no rail constraints, so today every unused rail is protected only by the
   profiles' `regulator_ignore_unused` flag
   ([roadmap shared dependencies table](../../docs/ROADMAP.md#shared-dependencies)).
+
+  Conversion qualification: F8 reports the vendor descriptor table, not
+  measured rail voltages. The [datasheet cross-check](../2026-09-28-mt6351-datasheet-review/README.md#highest-priority-finding-buck-voltage-conversion-conflict)
+  records conflicting VS1/VS2/VPA formulas; resolve their applicability before
+  new active consumers or full regulator promotion. VEMC/VIO18 observations
+  retain their existing scope.
 - **F9. VCORE and VSRAM_PROC are under hardware voltage control in the vendor
   configuration.** `BUCK_VCORE_VOSEL_CTRL = 1` and (E2 branch)
   `BUCK_VSRAM_PROC_VOSEL_CTRL = 1` select the hardware `VOSEL` path used by the

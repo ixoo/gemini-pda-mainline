@@ -1,0 +1,124 @@
+{
+  "method": "Local SHA-256 and byte-size verification; URLs are supplied provenance, not independently authenticated downloads.",
+  "sources": [
+    {
+      "file": "MT6797_Functional_Specification_V1_0.pdf",
+      "source": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Functional_Specification_V1_0.pdf",
+      "resolved_url": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Functional_Specification_V1_0.pdf",
+      "bytes": 5310452,
+      "sha256": "8d079e9447765b4a0ce68cb94241d686c3537546750d11cd4a6a92a80b69944e"
+    },
+    {
+      "file": "MT6797_Register_Table_Part_1.pdf",
+      "source": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf",
+      "resolved_url": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_1.pdf",
+      "bytes": 29555856,
+      "sha256": "e8ef503a32a8bb318a000fe6727d2bcdaa3557992a0ffed344e9de37acc2caff"
+    },
+    {
+      "file": "MT6797_Register_Table_Part_2.pdf",
+      "source": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_2.pdf",
+      "resolved_url": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/docs/MT6797_Register_Table_Part_2.pdf",
+      "bytes": 28965686,
+      "sha256": "e31066d16d0e94fdd5c2a7f8c306ad6a3b5516f31482f54b59286b62393d2c3a"
+    },
+    {
+      "file": "96Boards-MT6797-documentation-index.html",
+      "source": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/",
+      "resolved_url": "https://www.96boards.org/documentation/consumer/mediatekx20/additional-docs/",
+      "bytes": 19284,
+      "sha256": "a169368135b69f1934dfe39af90df7ff51e5b1dba30651dd6c28f0a07e2accc2"
+    },
+    {
+      "file": "MediaTekX20_Schematics_v2.0.pdf",
+      "source": "https://raw.githubusercontent.com/96boards/documentation/master/consumer/mediatekx20/hardware-docs/MediaTekX20_Schematics_v2.0.pdf",
+      "resolved_url": "https://raw.githubusercontent.com/96boards/documentation/master/consumer/mediatekx20/hardware-docs/MediaTekX20_Schematics_v2.0.pdf",
+      "bytes": 726731,
+      "sha256": "ab1a265043786812e3e0c3cf2281853547c95822a29db120c4c3fbedd7fa0591"
+    },
+    {
+      "file": "MediaTekX20_BOM.pdf",
+      "source": "https://raw.githubusercontent.com/96boards/documentation/master/consumer/mediatekx20/hardware-docs/MediaTekX20_BOM.pdf",
+      "resolved_url": "https://raw.githubusercontent.com/96boards/documentation/master/consumer/mediatekx20/hardware-docs/MediaTekX20_BOM.pdf",
+      "bytes": 65095,
+      "sha256": "1ba5ba856024875a7f7cf69560ff5e22c9f3a224b3e2d7917ff23bff41c2c2ac"
+    },
+    {
+      "file": "Gemian-HardwareHacking.md",
+      "source": "https://raw.githubusercontent.com/wiki/gemian/gemian/HardwareHacking.md",
+      "resolved_url": "https://raw.githubusercontent.com/wiki/gemian/gemian/HardwareHacking.md",
+      "bytes": 10586,
+      "sha256": "750eb8d981c15be4ccb31f6de78fa17ffb3787ea922bff251237729b361cfd4f"
+    },
+    {
+      "file": "DA9213-DA9214-DA9215-datasheet.pdf",
+      "source": "https://www.renesas.com/en/document/dst/da92131415-datasheet",
+      "resolved_url": "https://www.renesas.com/en/document/dst/da92131415-datasheet",
+      "bytes": 1524177,
+      "sha256": "8b8d437311a50c2fcbc410cee8e3d7609b7a7f1592335999fbf6d287c9d06e23"
+    },
+    {
+      "file": "MT6351-MFD-register-header-submission-2017.html",
+      "source": "https://lists.infradead.org/pipermail/linux-mediatek/2017-August/009903.html",
+      "resolved_url": "https://lists.infradead.org/pipermail/linux-mediatek/2017-August/009903.html",
+      "bytes": 53974,
+      "sha256": "fcc989cc639ba0c400925e49888057aa769f007bc11e1642f33f91d581b8124a"
+    },
+    {
+      "file": "MT6351-regulator-binding-proposal-2017.html",
+      "source": "https://lists.infradead.org/pipermail/linux-mediatek/2017-August/009904.html",
+      "resolved_url": "https://lists.infradead.org/pipermail/linux-mediatek/2017-August/009904.html",
+      "bytes": 17205,
+      "sha256": "84d5168f39a6336b0b878267a18ad4ccbf033908e337ea6813742c3ee908c370"
+    },
+    {
+      "file": "AW9523B-English-datasheet.pdf",
+      "source": "https://cdn-shop.adafruit.com/product-files/4886/AW9523+English+Datasheet.pdf",
+      "resolved_url": "https://cdn-shop.adafruit.com/product-files/4886/AW9523+English+Datasheet.pdf",
+      "bytes": 836010,
+      "sha256": "078b88ccb91a11e11eead9cf75855115cac5de6e2dab29f445106d36b2300c3b"
+    },
+    {
+      "file": "AW9523B-manufacturer-documentation-index.html",
+      "source": "https://www.awinic.com/en/productDetail/AW9523BTQR",
+      "resolved_url": "https://www.awinic.com/en/productDetail/AW9523BTQR",
+      "bytes": 182872,
+      "sha256": "2719c1cc4134acab117f8e7148ba334a85077b9191322db93bbd351467b422c5"
+    },
+    {
+      "file": "FUSB301A-datasheet.pdf",
+      "source": "https://www.onsemi.com/pdf/datasheet/fusb301a-d.pdf",
+      "resolved_url": "https://resources.ampheo.com/static/datasheets/onsemi/fusb301atmx-sn00362.pdf",
+      "bytes": 622578,
+      "sha256": "ae6d0191c4e5f99a95d214215d353ab4febf4920e9e39c4bab6f32d92ca52ec5"
+    },
+    {
+      "file": "BQ25896-datasheet.pdf",
+      "source": "https://www.ti.com/lit/ds/symlink/bq25896.pdf",
+      "resolved_url": "https://www.ti.com/lit/ds/symlink/bq25896.pdf",
+      "bytes": 1675426,
+      "sha256": "f45ec93b7e7dbcd1b1df3997283474f6d2b7ada65c0332af09dcd356dbbb0bc2"
+    },
+    {
+      "file": "TPS65132-datasheet.pdf",
+      "source": "https://www.ti.com/lit/ds/symlink/tps65132.pdf",
+      "resolved_url": "https://www.ti.com/lit/ds/symlink/tps65132.pdf",
+      "bytes": 2481620,
+      "sha256": "9e977d3525a80b61bab2f6d72ce8a8953a1950076b7f2179aaacc5b1225fee47"
+    },
+    {
+      "file": "Solomon-Systech-mobile-drivers-overview.pdf",
+      "source": "https://www.solomon-systech.com/media/custom-news/3d18eeb5-c279-4445-8bea-93c6c03f5fe3/assets/a64d6f0a-af69-43b2-865f-f5770ad222cd/mobile-drivers.pdf?disposition=inline",
+      "resolved_url": "https://www.solomon-systech.com/media/custom-news/3d18eeb5-c279-4445-8bea-93c6c03f5fe3/assets/a64d6f0a-af69-43b2-865f-f5770ad222cd/mobile-drivers.pdf?disposition=inline",
+      "bytes": 235821,
+      "sha256": "a8ce4f901c5fa2c8b93e7389a2b27685e66bc972d210ad6fafa7f02178c97e94"
+    },
+    {
+      "file": "bsg100-hardware.md",
+      "source": "https://raw.githubusercontent.com/bsg100/gemini-linux/main/hardware.md",
+      "resolved_url": "https://raw.githubusercontent.com/bsg100/gemini-linux/main/hardware.md",
+      "bytes": 40404,
+      "sha256": "1f72a73fc48fb6a905343e941f29e48b88f27c90d40a8b2e3f57042c534e7a8c"
+    }
+  ]
+}

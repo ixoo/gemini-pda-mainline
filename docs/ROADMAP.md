@@ -143,6 +143,9 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    (the sanitized inventory has been requested from the custodian);
    writing it blind would switch on rails the loader left off
    ([H7 refinement](../experiments/2026-10-04-gemini-pmic-basics-re/README.md#h7-ordering-refinement-2026-10-05)).
+   Resolve the [VS1/VS2/VPA conversion conflict](../experiments/2026-09-28-mt6351-datasheet-review/README.md#highest-priority-finding-buck-voltage-conversion-conflict)
+   before new active consumers of those rails or full regulator promotion;
+   descriptor equivalence alone does not validate their voltages.
 6. **Upstream, owner action.** Both candidate topics still apply on mainline
    `67f0943b` and linux-next with no overlap (2026-10-06); the lore search
    is a manual check. Pick two small topics, take authorship and sign

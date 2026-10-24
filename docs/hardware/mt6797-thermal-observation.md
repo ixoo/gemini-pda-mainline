@@ -31,3 +31,9 @@ not a conversion-freshness indication. Seven bank slots use four sensor IDs;
 the repeated sensor ID uses the same mux/calibration index in separate banks.
 Source names do not establish physical sensor placement. These source-backed
 facts neither prove actual live mux routing nor simultaneous conversion.
+
+The supplied MT6797 register table, part 1 p.1084, describes AUXADC channel-data
+bit 12 as read-cleared readiness. This is a documentary constraint on a future
+raw AUXADC observer, not a demonstrated effect of thermal measurement-register
+reads or a conversion-age guarantee. Preserve the driver's acquisition
+ownership; see the [source assessment](../../experiments/2026-09-29-documentation-collection-review/README.md#reads-can-change-the-evidence).

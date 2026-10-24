@@ -6,6 +6,12 @@ candidate or upstream submission. Changes stay within named compile profiles. [I
 check results](source-review.json) pin the individual public files inspected;
 Linux sources are not vendored here.
 
+The [datasheet review](../2026-09-28-mt6351-datasheet-review/README.md)
+records unresolved VS1/VS2/VPA formulas conflicting with the local and vendor
+descriptors. Descriptor equivalence is not electrical validation; resolve
+these conversions before full regulator promotion or new active consumers.
+This qualification does not reopen this superseded preparation topic.
+
 ## Scope and result
 
 The existing Gemini MT6351 core patch combines a four-bank extension with a

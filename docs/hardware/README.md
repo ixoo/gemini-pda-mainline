@@ -25,6 +25,18 @@ the experiments that support or challenge it.
 | [Boot graphics](boot-graphics.md) | Retained LK logo-container format, complete slot geometry, Gemian Yamui splash, and modification safety boundary. |
 | [Partition backup boundary](partition-backup.md) | Safe private capture policy, checksums, naming, permissions, and non-public raw state. |
 
+## Documentation assessments
+
+These source reviews preserve documentary contradictions and interpretation
+limits. Their reconciliation notes link newer work; current support and
+priorities remain in the support matrix and roadmap.
+
+| Assessment | Remaining reference value |
+| --- | --- |
+| [MT6797 functional specification](../../experiments/2026-09-28-mt6797-functional-spec-review/README.md) | HIF example errors, global DMA visibility and thermal acquisition limits; subsequent HIF review is linked. |
+| [MT6351 datasheet](../../experiments/2026-09-28-mt6351-datasheet-review/README.md) | Unresolved VS1/VS2/VPA conversion conflict, incomplete VCN fields and storage trim evidence. |
+| [17-source collection](../../experiments/2026-09-29-documentation-collection-review/README.md) | Read side effects, power-control limits, SSD2092 classification and source defects; [source inventory](../../experiments/2026-09-29-documentation-collection-review/sources.json). |
+
 ## What belongs here
 
 Create one focused Markdown document per stable subject, such as a device

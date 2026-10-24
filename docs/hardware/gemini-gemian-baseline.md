@@ -490,6 +490,11 @@ capture selects an NT36672-named LCM. The named device also retains an unbound
 mixed `SSD2092` label in filtered suspend messages cannot be promoted to a panel
 identity. These may be panel variants or legacy display/touch labels; the
 current evidence cannot decide. See the [normalized bsg100 panel cross-check](../../experiments/2026-07-13-bsg100-gemini-linux-comparison/results/bsg100-panel-crosscheck-20260714.txt).
+The supplied Solomon manufacturer selection guide lists SSD2092 as an
+integrated touch/display controller (TDDI), so a touch-driver name cannot rule
+out a display role. This documentary classification does not identify this
+unit's panel or supply its command sequence; see the
+[collection assessment](../../experiments/2026-09-29-documentation-collection-review/README.md#ssd2092-is-not-categorically-touch-only).
 The R63419 string is an inactive vendor-tree alternative and must not be used
 for the initial Gemini display implementation. Audio enumeration does not
 establish working speakers, microphones, headset detection, or routing.
