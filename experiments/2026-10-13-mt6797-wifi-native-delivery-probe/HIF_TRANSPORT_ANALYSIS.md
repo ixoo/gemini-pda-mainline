@@ -220,3 +220,25 @@ the harness). Branches: `failures>0` or a timeout → stop the receive
 direction, keep transmit; rates unchanged with DMA engaged → the receive
 ceiling is the poll structure (WRPLR read, guard, status) rather than the
 byte moves, and the next step is the interrupt and enhanced-status read.
+
+## 7. Conclusion: the transmit data copy is not the bottleneck
+
+Boot 2 moved 3,712 data frames through AP-DMA channel 0 with zero
+failures and changed neither direction (TX 2.69 against 2.62–2.76
+Mbit/s, RX 7.04 against 6.91–6.99). That closes the transmit side of §1:
+after 0236 removed the per-frame host cost, the bytes' path to the HIF is
+not what limits transmit; the forced 6 Mbit/s descriptor rate is what
+remains (§2), and the receive worker is a separate question (§1, measured
+next against 7.0 host-side and about 12 device-side). The transmit
+direction stays admitted in the lifecycle fragment: booted and
+understood.
+
+How to read a future log: the amended 0260 writes one of two records at
+firmware start. `HIF DMA: attached=1 selector=… addr2=… tx=… rx=…` means
+the channel is programmed and the `HIF DMA transfers` data-end record
+counts what went through it; `HIF DMA: not attached: channel=… selector=…
+clock=… tx=… rx=…` names which prerequisite was missing (the device-tree
+resource, the EMI selector mapping, the AP-DMA clock, or neither direction
+built). Boot 1 would have read `not attached: channel=0`. "Attached and
+ineffective" is `attached=1` with a non-zero transfer count and unchanged
+rates, which is what boot 2 is for transmit.

@@ -49,6 +49,11 @@ vendor control used the same laptop as the far end.
    descriptor, payload and status per pass, and TX went 1.225 → 3.198
    Mbit/s ([pipelining](TX_PIPELINING_RESULT.md)). That closes this series;
    the rate word is the next single variable.
+5. **The transmit data copy is not the bottleneck.** Transmit-DMA boot 2
+   moved every data frame by AP-DMA with zero failures and changed neither
+   direction ([transport record §7](HIF_TRANSPORT_ANALYSIS.md#7-conclusion-the-transmit-data-copy-is-not-the-bottleneck));
+   the forced 6 Mbit/s rate is what remains on transmit, and the receive
+   worker is measured separately.
 
 ## What the numbers point at next
 

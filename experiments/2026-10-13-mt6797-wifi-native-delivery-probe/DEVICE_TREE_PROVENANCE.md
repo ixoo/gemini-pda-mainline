@@ -37,6 +37,44 @@ The 600 s gate, the delivery taxonomy, both lifetimes and the throughput
 series were therefore produced on a tree reproducible only from the
 candidate lineage, not from a build of the series.
 
+## The connectivity node, property by property
+
+Built from the committed series alone (`9d276157`, plain board tree) and
+compared with the booted tree with `tests/dtdiff.py`, the
+`consys@10001340` node differs in exactly these items; nothing else in
+that node differs.
+
+| Item | Committed series | Booted tree | Why the booted value is the wiring the driver runs with |
+|---|---|---|---|
+| `mediatek,one-shot-wmt-negotiate` | absent | present | the connectivity owner negotiates the WMT mode on the scan line before Wi-Fi start; every lifecycle boot shows `WMT negotiation: result=0` |
+| `mediatek,one-shot-wmt-common-init` | absent | present | the owner runs the 285-step common initialisation; every lifecycle boot shows `common init 285/285`; without it the AFE stage never runs |
+| `mediatek,coex-antenna-mode = <1>` | absent | `<1>` | the coexistence antenna setting the common init programs; the value the vendor firmware is configured with on this board |
+| `reg`/`reg-names` entry `afe` (`0x180b6000`, `0x100`) | absent | present | the AFE register window the common init owns; the owner refuses common init without it |
+| `mediatek,one-shot-wmt-identity-capture` | present | absent | an earlier isolated chip-capture mode (2026-10-03); the binding makes it exclusive with negotiation |
+| `wifi { status }` | `"disabled"` | absent (enabled) | the wireless child must probe for the station driver to exist |
+
+All six are board wiring and configuration, not driver policy, so they
+belong in a board DTS. 0261 sets them in a variant rather than in the base
+board file because the base file still serves the chip-capture and
+Bluetooth profiles that select the other mode; moving the AFE resource and
+the antenna mode into the base file is the natural next step once those
+profiles are retired.
+
+## The composer was the defect
+
+The candidate composer copied `board.dtb` and `initramfs.img` from the
+parent candidate, so nothing validated them against the build. From this
+record on, composers take the kernel and the board tree from the build
+package and declare anything inherited with its hash
+([`hosts/candidate_inputs.py`](hosts/candidate_inputs.py)): the RAM root
+is the one inherited artefact (no kernel build produces it) and is
+recorded as such in the candidate record; composition refuses when a
+declared hash does not match or when a parent's tree differs from the
+build's output beyond phandle numbering
+([`tests/candidate-inputs-test.py`](tests/candidate-inputs-test.py) is
+the fixture: a parent with a differing tree is refused, a wrong hash is
+refused, a missing tree is refused, an equivalent tree is accepted).
+
 ## The fix: proposal 0261, the Wi-Fi service tree
 
 [`0261`](../../patches/proposals/0261-arm64-dts-mediatek-add-the-Gemini-PDA-Wi-Fi-service-tree.patch)
