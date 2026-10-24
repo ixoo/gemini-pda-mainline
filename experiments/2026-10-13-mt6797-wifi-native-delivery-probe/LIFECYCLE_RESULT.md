@@ -1,4 +1,4 @@
-# Lifecycle boots 1 and 2: one full lifetime each, then no re-arm
+# Lifecycle boots 1 to 3: one lifetime, then no re-arm, then a refused second scan
 
 Result record, 2026-10-24. One boot on the `mt6797-a53-wifi-lifecycle`
 profile (pipelining tree plus 0240 re-arm, 0241 loss reason, 0243) under
@@ -68,11 +68,38 @@ re-arm is still pending and the lifetime is neither closed nor poisoned;
 the pass keeps its rendezvous, quiescence and wrap rules. Next boot:
 lifecycle-3 with 0249.
 
+## Lifecycle boot 3 (0248 + 0249): the re-arm fires; the second scan refuses a notice
+
+Build input `88fd578a`, boot `6ec6eedd…`, boot2 `2bd8396d…`, admitted at
+8.8 s. Cycle 1 passed (TX 3.156 Mbit/s, chunks 3.95–4.28; RX 6.33 Mbit/s,
+device chunks 15.8–17.1; teardown complete). This time the driver logged
+`join rearm: lifetime=1 token=2 sta_seq=21 sequence=35` 0.2 ms after
+mac80211's connection-loss notice, the leaf saw it (`cycle=1
+rearm=present`, `enable_network=OK`), and cycle 2 selected the network.
+
+The second scan was admitted 4 s later and refused 28 ms after that: the
+firmware answered it with the same 12-byte BSS absence/presence notice
+(id 0x11, sequence 0) that the join path now counts, but the scan's event
+consumer knows only the done header, the debug event and the sleepy
+notification, so it logged `unknown event … id=0x11` and retired the scan
+with `status=-71`; the channel request that followed was refused for
+lack of a scan (`config=-95`) and the lifetime stopped there
+(`cycle=2 data_phase=fault_or_timeout`). The first lifetime's scan never
+meets this notice because it runs before any BSS exists. Harness:
+`cycles_started=2 cycles_passed=1 rearms_observed=1`; sealed (27,578
+records); returned to changed-boot Gemian
+`cd90a4fb-d0d6-464d-b635-cb75b0f61aca`.
+
+Proposal 0250 admits the notice in the scan consumer (logged once with
+its four body bytes, then ignored); every other unknown event stays a
+fault. Next boot: lifecycle-4 with 0250.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` and `…-lifecycle-2/` (sealed
-sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
+`artifacts/wifi-throughput-lifecycle-1/`, `…-lifecycle-2/` and
+`…-lifecycle-3/` (sealed sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
-and `…/mt6797-wifi-tx-lifecycle2-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle2-deployment-1/` and
+`…/mt6797-wifi-tx-lifecycle3-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).

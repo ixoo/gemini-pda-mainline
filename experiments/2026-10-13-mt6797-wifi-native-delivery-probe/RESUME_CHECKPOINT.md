@@ -1,4 +1,17 @@
-# Current: lifecycle boots 1 and 2 ran one lifetime each; 0249 next
+# Current: lifecycle boot 3 re-armed; second scan refused a notice; 0250 next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): with 0249 the re-arm fired and
+the second lifetime began, but its scan was refused when the firmware's
+BSS absence/presence notice (id 0x11) arrived during the scan: the scan
+consumer treats any unknown event as a protocol fault. 0250 admits that
+notice in the scan path, as 0243/0247 did for the join path. Device
+returned to changed-boot Gemian `cd90a4fb-d0d6-464d-b635-cb75b0f61aca`;
+the lifecycle-3 image (boot2 `2bd8396d…`) is the installed predecessor.
+
+Next boot: lifecycle-4 (lifecycle tree + 0250) under the two-cycle
+harness, then the AP-off loss test.
+
+# Historical: lifecycle boots 1 and 2 ran one lifetime each; 0249 next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): boot 2 (0248) repeated boot 1:
 cycle 1 passed, then no re-arm record of any kind. The cause is the

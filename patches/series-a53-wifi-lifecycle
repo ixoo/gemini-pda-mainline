@@ -737,3 +737,4 @@ proposals/0246-wifi-mt6797-demote-the-per-frame-slot-allocation-and-completion-l
 proposals/0247-wifi-mt6797-never-refuse-a-BSS-notice-for-its-content-log-a-refused-body.patch
 proposals/0248-wifi-mt6797-request-the-re-arm-from-the-station-teardown-in-the-stable-epoch.patch
 proposals/0249-wifi-mt6797-keep-a-pending-re-arm-across-the-key-removal-cancel.patch
+proposals/0250-wifi-mt6797-let-the-scan-ignore-a-BSS-absence-or-presence-notice.patch

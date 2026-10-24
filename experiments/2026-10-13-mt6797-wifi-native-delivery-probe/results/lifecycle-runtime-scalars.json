@@ -114,6 +114,65 @@
       },
       "cause": "key-removal callback cancels the join worker synchronously 11 ms after the stage-3 terminal, discarding the queued re-arm pass while its pending flag stays set; the station-removal site then sees a request pending",
       "fix": "proposal 0249"
+    },
+    "lifecycle-3": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-3)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243",
+        "0247",
+        "0248",
+        "0249"
+      ],
+      "kernel_build_commit": "88fd578a0a01e4b5a282efc6515db17a3dbd1e59",
+      "candidate_manifest_sha256": "f126c20d50fe90f86d47ce9dd141c49b3bfc205877e37f41d75ed5902239fddc",
+      "boot2_sha256": "2bd8396d28cfc41666843f6acc1623a7f63b017db791d43fb86adc81370a7c2d",
+      "mainline_boot_id": "6ec6eedd-28e4-4dab-82a8-221a69d4b68d",
+      "previous_gemian_boot_id": "c5c2c830-6bc4-48b1-8841-aa81f53c2383",
+      "returned_gemian_boot_id": "cd90a4fb-d0d6-464d-b635-cb75b0f61aca",
+      "admitted_uptime_s": 8.83,
+      "complete_log_records": 27578,
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 3.156,
+        "tx_chunk_mbit_s": [
+          4.14,
+          4.2,
+          4.15,
+          4.28,
+          3.95
+        ],
+        "rx_host_sent_mbit_s": 6.326,
+        "rx_device_chunk_mbit_s": [
+          17.12,
+          16.13,
+          15.83,
+          16.78,
+          16.45
+        ]
+      },
+      "rearm": {
+        "record": "join rearm: lifetime=1 token=2 sta_seq=21 sequence=35",
+        "after_connection_loss_ms": 0.2,
+        "leaf": "cycle=1 rearm=present enable_network=OK"
+      },
+      "cycle_2": {
+        "started": true,
+        "select_network": "OK",
+        "scan": "admitted; refused 28 ms later by an unknown 12-byte event id 0x11 seq 0; status=-71",
+        "channel_request": "refused config=-95",
+        "pass": false,
+        "leaf": "data_phase=fault_or_timeout rc=3"
+      },
+      "classifier_or_harness": {
+        "cycles_started": 2,
+        "cycles_passed": 1,
+        "rearms_observed": 1
+      },
+      "cause": "scan event consumer refuses the BSS absence/presence notice the firmware emits for the torn-down BSS during the second lifetime's scan",
+      "fix": "proposal 0250"
     }
   }
 }

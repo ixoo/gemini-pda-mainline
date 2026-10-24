@@ -1,0 +1,52 @@
+From e6d1326c2b7a86bcbecd0bac0c677c94a737b545 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Sat, 24 Oct 2026 09:49:13 -0400
+Subject: [PATCH] wifi: mt6797: let the scan ignore a BSS absence or presence
+ notice
+
+The third lifecycle boot re-armed after its first lifetime and admitted
+the second scan, which the firmware answered 28 ms later with a 12-byte
+EVENT_ID_BSS_ABSENCE_PRESENCE notice for the BSS it had just torn down.
+The scan's event consumer knows the done header, the debug event and the
+sleepy notification only, so it refused the notice as a protocol fault,
+retired the scan, and the join that followed was refused for lack of a
+scan. The first lifetime never sees this notice because its scan runs
+before any BSS exists. Admit the notice in the scan consumer as the join
+path already does: log its four body bytes once and continue to the
+scan's own completion. Every other event the scan does not know stays a
+fault.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index b4ad67553..87d3d155b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1291,6 +1291,20 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 			if (ret)
+ 				return ret;
+ 			return own & BIT(8) ? 0 : -EACCES;
++		case 0x11:
++			/* EVENT_ID_BSS_ABSENCE_PRESENCE: an unsolicited notice the
++			 * firmware emits for a BSS it still tracks. The second
++			 * lifetime's scan receives the previous BSS's notice here;
++			 * it is a state change the scan does not depend on, so it
++			 * is logged (four body bytes, no address fits) and ignored,
++			 * as the join path already does under 0243 and 0247.
++			 */
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot passive WLAN bss notice: len=%zu seq=%u body=%02x%02x%02x%02x\n",
++				 bytes, packet[5], bytes > 8 ? packet[8] : 0,
++				 bytes > 9 ? packet[9] : 0, bytes > 10 ? packet[10] : 0,
++				 bytes > 11 ? packet[11] : 0);
++			return 0;
+ 		default:
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot passive WLAN unknown event: len=%zu id=0x%02x seq=%u\n",
+-- 
+2.43.0
+
