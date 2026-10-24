@@ -196,4 +196,3 @@ build-versus-boot divergence; the predeclaration under-described the
 loader. Two facts worth keeping: the kernel has always booted with the
 SCP node enabled, whatever the source says, and with the loader's own
 reserved-memory map rather than the two CCCI reservations in the source.
-
