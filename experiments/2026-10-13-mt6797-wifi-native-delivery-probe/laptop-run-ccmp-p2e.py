@@ -6,6 +6,7 @@ import hashlib
 import importlib.util
 import json
 import math
+import base64
 import os
 from pathlib import Path
 import re
@@ -89,8 +90,12 @@ def identity_script(protocol):
               'p=$($BB cat /run/a53/kmsg-pid)\n[ "$p" -gt 1 ]\n'
               '[ "$($BB readlink /proc/$p/exe)" = /bin/kmsg-capture ]\n'
               'printf "logger_active=yes\\n"\n')
+    # The booted flattened device tree, read back for the build-versus-boot
+    # comparison: its hash, its size and its bytes (base64, 76-column lines).
+    booted = ('$BB sha256sum /sys/firmware/fdt\n$BB wc -c </sys/firmware/fdt\n'
+              '$BB base64 </sys/firmware/fdt\n')
     return (source+''.join('$BB sha256sum /'+name+'\n'
-                         for name in protocol['live_root_sha256'])).encode()
+                         for name in protocol['live_root_sha256'])+booted).encode()
 
 
 def identity(state):
@@ -100,12 +105,19 @@ def identity(state):
     script = identity_script(state['protocol'])
     (attempt/'command.sh').write_bytes(script)
     process = collector['run_once'](collector['ssh_command'](state['keys']), script,
-                                    attempt, 10, stdout_limit=4096, stderr_limit=4096)
+                                    attempt, 10, stdout_limit=131072, stderr_limit=4096)
     write(attempt/'process.json', process)
     require(process['exit_status'] == 0 and process['reason'] is None and
             process['stdin_complete'], 'live identity acquisition refused')
     lines = (attempt/'stdout.txt').read_bytes().decode('ascii').splitlines()
-    require(len(lines) == 7+len(state['protocol']['live_root_sha256']), 'identity framing')
+    roots = len(state['protocol']['live_root_sha256'])
+    require(len(lines) >= 10+roots, 'identity framing')
+    booted_sha, booted_size = lines[7+roots].split()[0], int(lines[8+roots])
+    booted = base64.b64decode(''.join(lines[9+roots:]), validate=True)
+    require(len(booted) == booted_size and hashlib.sha256(booted).hexdigest() == booted_sha and
+            booted[:4] == b'\xd0\x0d\xfe\xed', 'booted device tree identity')
+    (state['runtime']/'booted-fdt.dtb').write_bytes(booted)
+    lines = lines[:7+roots]
     require(lines[0] == state['protocol']['kernel_release'] and lines[1] == 'aarch64', 'live kernel identity')
     require(re.fullmatch(r'[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}', lines[2]) and
             lines[2] != state['previous_boot'], 'fresh boot identity')
@@ -117,7 +129,8 @@ def identity(state):
     require([line.split()[0] for line in lines[7:]] ==
             list(state['protocol']['live_root_sha256'].values()), 'P2 live root identity')
     result = dict(boot_id=lines[2], uptime_s=uptime, logger_active=True,
-                  root_hashes_verified=True, notes_bytes=84, notes_sha256=NOTES_SHA)
+                  root_hashes_verified=True, notes_bytes=84, notes_sha256=NOTES_SHA,
+                  booted_fdt_sha256=booted_sha, booted_fdt_bytes=booted_size)
     write(state['runtime']/'live-identity.json', result)
     return result
 

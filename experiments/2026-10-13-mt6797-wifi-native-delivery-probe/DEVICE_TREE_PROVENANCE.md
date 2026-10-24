@@ -60,6 +60,28 @@ Bluetooth profiles that select the other mode; moving the AFE resource and
 the antenna mode into the base file is the natural next step once those
 profiles are retired.
 
+## Which board file is which
+
+`mt6797-gemini-pda.dts` is the board's upstream description and the only
+file meant for submission: it carries the hardware as the series
+understands it today (current board fixes, the connectivity node in the
+isolated chip-capture mode with the wireless child disabled, the service
+consumers disabled), and it deliberately carries no experiment mode,
+no serviceability enable and no hand-measured timing.
+`mt6797-gemini-pda-wifi-service.dts` is the measurement and service tree,
+not the board's description: it exists to reproduce the booted Wi-Fi
+tree from source and to be retired. Of the six connectivity items, two
+are board wiring and belong in the upstream file once the chip-capture
+profiles that still select the other mode are retired: the AFE register
+window (a resource the part has) and the coexistence antenna mode (a
+board fact); the other four are experiment plumbing (the negotiation and
+common-init one-shot selectors, the exclusive chip-capture selector and
+the wireless child's status) that leaves with the one-shot framework when
+the connectivity owner becomes an ordinary driver. Known, justified
+deviation: strict checkpatch flags the three reserved-memory compatibles
+in the service tree as undocumented; they are the booted tree's and are
+kept for fidelity, not proposed upstream.
+
 ## The composer was the defect
 
 The candidate composer copied `board.dtb` and `initramfs.img` from the
@@ -119,3 +141,25 @@ against 10.5–13 seen before), inside the run-to-run spread of the earlier
 chunks (10.5–12.9). Conclusion: the device tree the Wi-Fi runs boot is now
 produced by the committed series, and the series' results stand on it.
 From this boot on, candidates are composed from the package's tree.
+
+## Closing the chain on the device (predeclared, boot 2 of the equivalence candidate)
+
+The offline proof runs source → build → comparison with the previously
+booted binary. The other direction, boot → tree the kernel actually
+received, was not captured on the first equivalence boot. The identity
+stage of the harness now reads `/sys/firmware/fdt` back (hash, size and
+the tree itself, stored as `booted-fdt.dtb` in the runtime) and the same
+installed candidate (`02cd8b1e…`, boot2 `a0bbc52e…`, nothing changed on
+the device) boots once more under a second runtime. One variable: the
+tree's source, as before; the harness change is host-side capture only.
+
+Acceptance, decided before the boot: identity and kernel notes as the
+package states; firmware start; WMT common init 285/285; the DMA attach
+record as on boot 2; TX 2.6–3.4 Mbit/s per chunk and RX about 7 Mbit/s
+host-side, 11–13 device-side; and the booted tree equal to the build's
+`mt6797-gemini-pda-wifi-service.dtb` (`08f6929f…`) under `tests/dtdiff.py`
+except for what the boot loader writes into the tree it hands the kernel:
+the root `model` (the kernel prints `MT6797X`), `/chosen` (boot arguments
+and what LK adds there), `/memory` and the `/firmware` tag data. Both
+hashes go into the scalars record. Any other difference is a
+build-versus-boot divergence and outranks the rest of the queue.
