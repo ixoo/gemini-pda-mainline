@@ -1,4 +1,18 @@
-# Current: receive-DMA candidate installed and armed; the owner boots it
+# Current: both DMA directions booted and kept; the poll structure is the receive ceiling
+
+[Transport record §9](HIF_TRANSPORT_ANALYSIS.md#9-receive-direction-dma-boot-result-2026-10-24--engaged-intact-and-not-the-ceiling):
+receive DMA engaged (8,510 moves in, 3,870 out, zero failures, data
+intact) and neither rate moved (TX 2.63, RX 6.67 Mbit/s), so the per-frame
+poll structure is the receive ceiling and the interrupt with the
+enhanced-status read is the next transport step. Both directions stay
+admitted (lower CPU, zero failures; counter: one receive chunk at 9.64).
+The console indicator wrote its five stage blocks (30 lines, no error),
+not evidence. Device returned to Gemian `84dfc8eb…`. Queue: the AP-loss
+gate (0254) with loss defined for a tree without a host keep-alive, the
+station-record rate inputs (branch 3 of the rate table), then the
+interrupt-driven receive.
+
+# Historical: receive-DMA candidate installed and armed; the owner boots it
 
 The lifecycle profile with `CONFIG_MT6797_HIF_DMA_RX=y` (`fdf4c6b1`) is
 composed from the package's tree, installed on boot2 (`51faa318…` over

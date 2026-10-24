@@ -139,7 +139,7 @@
   },
   "verdict": "pass: transmit direction established (addressing, programming, completion); rates in the baseline band as predeclared; receive untested"
  },
- "rxdma-1-staged": {
+ "rxdma-1": {
   "run": "PIO-throughput-rxdma-1",
   "profile": "mt6797-a53-wifi-lifecycle",
   "change": "CONFIG_MT6797_HIF_DMA_RX=y (the pass-rate cap retired in the same fragment)",
@@ -161,6 +161,67 @@
   "install_result": "write-synced-flushed-full-readback-verified",
   "written_from_gemian_boot_id": "14da9b9e-6040-437d-b97d-a5ffa35b6e21",
   "harness": "service host cohort 1 (booted tree read back, display probe); console progress indicator enabled (TP_CONSOLE_PROGRESS=1, variant rxdma), not evidence",
-  "status": "installed, device shut down, watcher armed; owner selects boot2"
+  "mainline_boot_id": "17c16b91-0b15-4600-9c6f-80123902c423",
+  "previous_gemian_boot_id": "14da9b9e-6040-437d-b97d-a5ffa35b6e21",
+  "returned_gemian_boot_id": "84dfc8eb-35e9-418b-87e8-d3d02bd37c7c",
+  "booted_fdt_sha256_prefix": "31db5ff5df6306be",
+  "rx": {
+   "host_sent_aggregate_mbit_s": 6.67,
+   "device_chunk_mbit_s": [
+    11.65,
+    11.81,
+    9.64,
+    11.49,
+    10.36
+   ],
+   "device_cpu_idle_percent": 81.0
+  },
+  "tx": {
+   "host_received_aggregate_mbit_s": 2.63,
+   "host_chunk_mbit_s": [
+    3.34,
+    3.35,
+    3.19,
+    3.25,
+    2.98
+   ],
+   "device_cpu_idle_percent": 85.9
+  },
+  "tx_status_histogram": {
+   "0": 3874,
+   "3": 1
+  },
+  "hif_dma": {
+   "attach_record": "attached=1 selector=0x11403200 addr2=1 tx=1 rx=1",
+   "transfers_tx": 3870,
+   "transfers_rx": 8510,
+   "poll_max": 0,
+   "failures": 0
+  },
+  "census": {
+   "passes": 110070,
+   "submissions": 3870,
+   "max_per_pass": 4,
+   "elapsed_ms": 21524,
+   "passes_per_s": 5113.8
+  },
+  "data_phase": {
+   "elapsed_ms": 21523,
+   "tx_queued": 3870,
+   "tx_done": 3869,
+   "tx_failed": 1
+  },
+  "log": {
+   "complete": true,
+   "bytes": 1632552
+  },
+  "console_indicator_not_evidence": {
+   "lines": 30,
+   "dead": 0
+  },
+  "display_probe_not_evidence": {
+   "tty0_write": "ok"
+  },
+  "verdict": "branch 2: engaged in both directions, data intact, rates unchanged; the poll structure is the receive ceiling; both directions kept admitted (lower CPU, zero failures); counter: one receive chunk at 9.64"
  }
 }

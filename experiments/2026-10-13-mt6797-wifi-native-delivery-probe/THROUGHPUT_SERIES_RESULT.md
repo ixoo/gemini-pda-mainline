@@ -28,6 +28,7 @@ described here; each run's own artefacts are named.
 | [service-2](DEVICE_TREE_PROVENANCE.md#closing-the-chain-on-the-device-result-2026-10-24) | same image; the booted tree read back and compared with the build | 2.67 | 7.54 (device-side chunks 11.7–12.7) | 86.5% / 78.2% |
 | [rate-3](TX_AUTORATE_RESULT.md#rate-visibility-boot-result-2026-10-24--branch-3-an-empty-rate-table) | 0262 rate record + 0263 unforced data rate (retired): every status-3 frame reports rate word 0x0000; control frames 0x004b | no data frame acknowledged | — | — |
 | [pass-rate](RX_REBASELINE_RESULT.md#pass-rate-boot-result-2026-10-24--neither-direction-moved-the-polled-read-is-the-ceiling) | 0264 census + 0265 one data submission per pass (retired): 5,011 passes/s, 0.034 frames/pass | 2.55 | 7.16 (device-side chunks 11.5–12.2) | 86.4% / 78.4% |
+| [rx-dma](HIF_TRANSPORT_ANALYSIS.md#9-receive-direction-dma-boot-result-2026-10-24--engaged-intact-and-not-the-ceiling) | AP-DMA both directions: 3,870 out, 8,510 in, 0 failures; kept | 2.63 | 6.67 (device-side chunks 9.6–11.8) | 85.9% / 81.0% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
@@ -53,6 +54,11 @@ vendor control used the same laptop as the far end.
    descriptor, payload and status per pass, and TX went 1.225 → 3.198
    Mbit/s ([pipelining](TX_PIPELINING_RESULT.md)). That closes this series;
    the rate word is the next single variable.
+6. **Neither is the receive data copy.** With AP-DMA moving every received
+   packet, receive stayed at 6.67 host-side; the per-frame poll structure
+   (WRPLR read, guard, status) is the receive ceiling, and the interrupt
+   with the enhanced-status read is the next transport step
+   ([transport record §9](HIF_TRANSPORT_ANALYSIS.md#9-receive-direction-dma-boot-result-2026-10-24--engaged-intact-and-not-the-ceiling)).
 5. **The transmit data copy is not the bottleneck.** Transmit-DMA boot 2
    moved every data frame by AP-DMA with zero failures and changed neither
    direction ([transport record §7](HIF_TRANSPORT_ANALYSIS.md#7-conclusion-the-transmit-data-copy-is-not-the-bottleneck));

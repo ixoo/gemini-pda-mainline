@@ -277,3 +277,38 @@ rate lines at its chunk markers; a few writes per second at most, nothing
 to the kernel log, the first write error ends all writes, unset means no
 change. The leaf reports `console_progress_lines=` at its end; the screen
 is never graded and the command line is unchanged (`console=ttyS0`).
+
+## 9. Receive-direction DMA boot: result (2026-10-24) — engaged, intact, and not the ceiling
+
+Build `fdf4c6b1`, boot2 `51faa318…` over `695a8f88…`, mainline boot
+`17c16b91…`, returned to Gemian `84dfc8eb…`, complete sealed log, five
+chunks each way, all pass. Attach record `attached=1 selector=0x11403200
+addr2=1 tx=1 rx=1`; data-end record `HIF DMA transfers: tx=3870 rx=8510
+poll_max=0 failures=0`: every data frame out and every received packet in
+went through the channel, the completion flag set before the first poll,
+no timeout, and every receive chunk completed by byte cap with the TCP
+stream verified. Rates: TX 2.63 Mbit/s (chunks 2.98–3.35), RX 6.67
+host-side (device-side chunks 9.6–11.8), CPU idle 85.9 % / 81.0 %
+(receive idle up from 78–79 %), status histogram 3874 × 0 / 1 × 3, census
+5,114 passes per second.
+
+Branch 2 of §8: unchanged with the DMA engaged. The byte moves were not
+the receive cost; what remains per received frame is the poll structure,
+the WRPLR read, the guard and the status reads around each transfer, which
+is where the vendor's interrupt and enhanced-status read (§1) differ from
+this driver. That is the next transport step, predeclared when its turn
+comes: one interrupt-driven receive with the enhanced status block read
+once per burst, measured against 6.7–7.5 host-side and 10–13 device-side.
+
+Retention: both DMA directions stay admitted. Throughput is unchanged
+within the run-to-run spread (the lowest receive chunk, 9.64 Mbit/s, sits
+below the earlier 10.0 floor by one chunk's noise; the aggregate 6.67 is
+inside 6.67–7.54 seen since the equivalence boots), zero transfers failed
+over 12,380 moves, receive CPU idle rose two to three points, and the path
+is the vendor's. The counter is kept: a lower receive chunk appeared once;
+if the next two boots repeat it, the receive direction is re-examined.
+
+Console indicator, not evidence: the leaf reported
+`console_progress_lines=30 console_progress_dead=0`, five stage blocks of
+six lines written to the frame-buffer console with no write error; the
+helper's chunk lines are written from its own shell and are not counted.
