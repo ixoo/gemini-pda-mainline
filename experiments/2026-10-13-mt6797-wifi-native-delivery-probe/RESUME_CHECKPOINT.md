@@ -1,4 +1,21 @@
-# Current: RX-fix negative (0256 retired); the receive mechanism is unidentified
+# Current: the transport is the ceiling; see the structural analysis
+
+[Structural analysis](HIF_TRANSPORT_ANALYSIS.md): the receive path is a
+word-at-a-time PIO poll from the same worker that transmits (about 400
+bus operations per frame), where the vendor driver takes an interrupt,
+reads per-queue frame counts and lengths in one enhanced status read, and
+moves the bytes with the AP DMA engine in one aggregated read per burst;
+the sealed logs (device receive rate per chunk, CPU idle, no loss) and a
+fresh vendor control (45 / 38.5 Mbit/s) agree that the worker, not the
+air, is the receive ceiling. Transmit is capped by the forced 6 Mbit/s
+rate; the station record and BSS info match the vendor's legacy-only
+shape field by field, so the unforced-rate failure is upstream of the
+host inputs except for QoS/HT declaration. The idle-link loss is not a
+record difference either. Next: transport first (interrupt, enhanced
+status, aggregated DMA reads), then QoS as the rate variable, the
+keep-alive workaround, the lifecycle gates.
+
+# Historical: RX-fix negative (0256 retired); the receive mechanism is unidentified
 
 [RX re-baseline record](RX_REBASELINE_RESULT.md#rx-fix-boot-0256-retired-the-order-inside-the-pass-is-not-the-mechanism):
 serving the receive port before submission engaged on 1,586 passes and
