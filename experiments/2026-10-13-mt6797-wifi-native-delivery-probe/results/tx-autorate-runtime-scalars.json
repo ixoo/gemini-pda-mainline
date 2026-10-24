@@ -1,0 +1,44 @@
+{
+  "runs": {
+    "autorate-1": {
+      "run": "PIO-throughput-autorate-1",
+      "profile": "mt6797-a53-wifi-autorate",
+      "proposal": "0242 (retired)",
+      "kernel_build_commit": "88f5edafd1b06cf2edd71efe3ef9490e2e6a775d",
+      "candidate_manifest_sha256": "1b04c2a9a404936af83d30c47a1f24a36e4d26cecbaa8fe53d9e2b587011a565",
+      "boot2_sha256": "08a930e8b33f8ba6693e53565afd28c5f048bd98840aa1f35ab173f230872e55",
+      "mainline_boot_id": "673ab08e-a8dd-4f97-aafe-1ca2b758a42b",
+      "previous_gemian_boot_id": "f0e12505-a599-410e-9319-a5e2f9f69bb5",
+      "returned_gemian_boot_id": "c977624f-203f-487f-a31e-8d0125ffe654",
+      "data_phase": {
+        "end_reason": "disconnect",
+        "elapsed_ms": 12207,
+        "tx_queued": 4,
+        "tx_done": 0,
+        "tx_failed": 4,
+        "tx_status": 3,
+        "frame_bytes": 342,
+        "dhcp_bound": 0
+      },
+      "fixed_rate_frames": {
+        "management_and_eapol": "all acknowledged, status 0",
+        "reserved_deauth": "status 0"
+      },
+      "teardown": {
+        "pm_abort_status": 0,
+        "absence_notice": "counted outside teardown (0243)",
+        "cleanup_stage_3": "credits=returned slots=retired",
+        "ccmp_stable_disable_status": 0,
+        "join_stopped_record": false
+      },
+      "session": {
+        "capture_exit": 0,
+        "session_exit": 1,
+        "export": "accepted; log_complete true",
+        "return": "native, changed-ID-Gemian, 15.3 s",
+        "retry": false
+      },
+      "decision": "0242 retired with its profile; next hypothesis: station-record transmit parameters, to be read against the vendor driver before another boot"
+    }
+  }
+}

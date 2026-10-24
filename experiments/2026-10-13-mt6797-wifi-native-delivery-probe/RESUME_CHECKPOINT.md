@@ -1,4 +1,19 @@
-# Current: pipelining measured TX ×2.6; autorate next
+# Current: autorate negative and retired; lifecycle (two lifetimes) next
+
+[Autorate result](TX_AUTORATE_RESULT.md): with the descriptor's fixed-rate
+bit cleared, no ordinary data frame was acknowledged (four DHCP discovers,
+TX status 3 each) while every fixed-rate frame in the same lifetime
+succeeded; the teardown completed. 0242 and its profile are retired; the
+rate lever moves to the station record's transmit parameters, to be read
+against the vendor driver before another boot. Device returned to
+changed-boot Gemian `c977624f-203f-487f-a31e-8d0125ffe654`; the autorate
+image (boot2 `08a930e8…`) is the installed predecessor of the lifecycle
+image.
+
+Next boot: lifecycle (pipelining tree + 0240, 0241, 0243; two lifetimes
+in one boot under the two-cycle host harness), then the AP-off loss test.
+
+# Historical: pipelining measured TX ×2.6; autorate next
 
 [Pipelining result](TX_PIPELINING_RESULT.md): submitting every admissible
 data frame per worker pass took TX from 1.225 to 3.198 Mbit/s (chunks
