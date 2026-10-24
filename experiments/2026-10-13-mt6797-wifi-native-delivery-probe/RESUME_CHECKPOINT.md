@@ -1,4 +1,20 @@
-# Current: lifecycle boot 6 stopped on an expired data slot; 0253 next
+# Current: lifecycle boot 7 ran two lifetimes on the device; harness bounds next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): with 0248–0253 the driver
+re-armed after its first lifetime and ran a complete second one (scan,
+grant, join, keys, data phase with DHCP and pings, teardown), then
+re-armed again. The host's cycle-2 measurement did not run because the
+per-cycle exchange must begin within 5 s of the PM credit clock, which
+the second cycle missed by about 6 s, and the classifier expects exactly
+one re-arm. Both are harness contracts. Device returned to changed-boot
+Gemian `ca90fb06-5313-4e55-9b75-e7d4b65d97c5`; the lifecycle-7 image
+(boot2 `10a1b156…`) is the installed predecessor.
+
+Next: widen the second cycle's admission bound and accept the trailing
+re-arm in the harness, re-run the same image for the measured second
+lifetime, then the AP-off loss test.
+
+# Historical: lifecycle boot 6 stopped on an expired data slot; 0253 next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): on the weakest link of the
 series a data frame produced no TX status within its 750 ms slot

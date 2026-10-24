@@ -311,6 +311,71 @@
       },
       "cause": "deadline check treats an expired data slot as a fault; a lost TX status under receive load ends the lifetime",
       "fix": "proposal 0253 (retire the expired slot as a lost frame)"
+    },
+    "lifecycle-7": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-7)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243",
+        "0247",
+        "0248",
+        "0249",
+        "0250",
+        "0251",
+        "0252",
+        "0253"
+      ],
+      "kernel_build_commit": "e22d9838212b79ca0c8a075e4f91fa298ebe7175",
+      "candidate_manifest_sha256": "d1d84fe075a1938d942226fe9ae33258385af1d1b25b887b8e9a8e16d5047c3d",
+      "boot2_sha256": "10a1b156be6df67180cd7d95d3802acb7dcccc129da331b88c35db14b044b4d4",
+      "mainline_boot_id": "3280ef7c-5c90-4103-a157-6a1d4309025d",
+      "previous_gemian_boot_id": "e55151bd-490f-44f8-bbfe-26ffb2937f65",
+      "returned_gemian_boot_id": "ca90fb06-5313-4e55-9b75-e7d4b65d97c5",
+      "complete_log_records": 26356,
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.47,
+        "tx_chunk_mbit_s": [
+          3.47,
+          3.21,
+          3.18,
+          3.04,
+          3.16
+        ],
+        "rx_host_sent_mbit_s": 5.707,
+        "rx_device_chunk_mbit_s": [
+          11.49,
+          12.16,
+          12.16,
+          10.23,
+          11.98
+        ]
+      },
+      "device_lifetime_2": {
+        "rearm": "join rearm: lifetime=1 token=2 sta_seq=21 sequence=35",
+        "scan": "complete, BSS notice logged twice and ignored",
+        "activation": "sequence=42 lifetime=2",
+        "pm": "DTIM latched, credit clock, PM credited",
+        "keys": "EAPOL 1-4, pairwise and group key done",
+        "data_phase": "DHCP bound, listener ready, 3/3 pings; ended by disconnect after 16.4 s, 34 frames",
+        "teardown": "stage 3 credits=returned, both key removals, further re-arm (lifetime=2 sta_seq=43)"
+      },
+      "cycle_2_host": {
+        "exchange": "not run: per-cycle script exit 37 (exchange must begin within 5 s of the PM credit clock; ready seen 11.8 s into the wait)",
+        "host_ack": "absent"
+      },
+      "classifier": {
+        "lifecycle_pass": false,
+        "first_failure_gate": "rearms",
+        "observed_rearms": 2,
+        "activation_lifetimes": [
+          1,
+          2
+        ]
+      },
+      "device_verdict": "second lifetime demonstrated on-device; remaining misses are harness contracts (5 s admission bound for cycle 2; exactly-one re-arm gate)"
     }
   }
 }

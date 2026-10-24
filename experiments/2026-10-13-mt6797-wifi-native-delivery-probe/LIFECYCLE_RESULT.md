@@ -163,15 +163,44 @@ frame is reported to mac80211 unacknowledged, counted as failed and with
 the consecutive failures that end the data phase, and a late status for
 its PID stays counted as unowned. Next boot: lifecycle-7 with 0253.
 
+## Lifecycle boot 7 (0253): two lifetimes on the device; the host's 5 s admission guard
+
+Build input `e22d9838`, boot `3280ef7c…`, boot2 `10a1b156…`. Lifetime 1
+passed (TX 2.47 Mbit/s, RX 5.71 Mbit/s, teardown complete, both key
+removals), the re-arm fired, and the second lifetime ran end to end on
+the device: scan with the BSS notice logged and ignored, channel grant,
+authentication, association, activation as lifetime 2, DTIM latched,
+power management credited, the four-way handshake, both keys installed,
+the data phase (the leaf's DHCP bound, listener ready, three pings
+answered), its end by disconnect, the stage-3 cleanup with credits
+returned, both key removals, and a further re-arm afterwards, which the
+driver allows since 0240 removed the two-lifetime cap. The supplicant
+counted two complete handshakes and two connected events in one boot.
+Sealed (26,356 records); returned to changed-boot Gemian
+`ca90fb06-5313-4e55-9b75-e7d4b65d97c5`.
+
+What did not happen is the host's cycle-2 measurement. The per-cycle
+exchange script requires the exchange to begin within 5 s of that
+lifetime's PM credit clock, the stream-admission rule inherited from the
+stable-monitor protocol; cycle 1 met it (ready seen 4.4 s after the
+clock), cycle 2 did not (the host saw the leaf's ready marker 11.8 s after
+its wait began), so the script exited before any traffic, the leaf's
+acknowledgment wait ran out and the lifetime ended by disconnect without
+throughput. The classifier also still expects exactly one re-arm. Both
+are harness contracts, not driver behaviour: the next run widens the
+admission bound for the second cycle and accepts the trailing re-arm.
+The driver side of the plan's second-lifetime item is demonstrated.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-6/` (sealed
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-7/` (sealed
 sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
 `…/mt6797-wifi-tx-lifecycle2-deployment-1/`,
 `…/mt6797-wifi-tx-lifecycle3-deployment-1/`,
 `…/mt6797-wifi-tx-lifecycle4-deployment-1/`,
-`…/mt6797-wifi-tx-lifecycle5-deployment-1/` and
-`…/mt6797-wifi-tx-lifecycle6-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle5-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle6-deployment-1/` and
+`…/mt6797-wifi-tx-lifecycle7-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).
