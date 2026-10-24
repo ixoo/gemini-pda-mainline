@@ -863,3 +863,4 @@ proposals/0251-wifi-mt6797-re-arm-only-after-both-of-mac80211-s-key-removals.pat
 proposals/0252-wifi-mt6797-do-not-treat-the-cyclic-data-PID-as-a-re-arm-wrap.patch
 proposals/0253-wifi-mt6797-retire-an-expired-data-slot-as-a-lost-frame.patch
 proposals/0254-wifi-mt6797-re-open-the-scan-after-an-idle-lifetime.patch
+proposals/0256-wifi-mt6797-serve-the-receive-port-before-submission-in-a-busy-pass.patch
