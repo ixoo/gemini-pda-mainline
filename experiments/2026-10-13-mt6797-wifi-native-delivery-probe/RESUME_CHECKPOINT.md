@@ -1,4 +1,24 @@
-# Current: RX re-baseline measured; the rate boot (0255) is next
+# Current: rate-2 negative (0255 retired); the RX-cost fix is the next boot
+
+[Rate-2](TX_AUTORATE_RESULT.md): with the vendor's own data descriptor (no
+fixed-rate bit, zero rate word) every ordinary data frame still completed
+with status 3 while every fixed-rate frame completed with status 0, so the
+block is in what the firmware derives from the station record, not the
+descriptor; 0255 retired. Device returned to changed-boot Gemian
+`78b5c75b-5a8b-4598-9b7e-61acbf0f35e9`; the 0255 image is still on boot2
+and will be replaced by the next candidate.
+
+Next, one variable per boot: (1) the RX-cost fix: serve the receive port
+before submission in the pipelining pass (depth, page budget, credit model
+and admission untouched), both directions against 6.99 / 3.198; if RX does
+not recover, cap submissions per pass as the second variant; (2) the
+host-side keep-alive (a narrowly admitted null-data frame in mac80211's own
+keep-alive shape), a workaround with a stated cost; (3) the three-cycle
+lifecycle boot; (4) the access-point-loss boot on 0254, whose
+predeclaration must say what a lost access point means while the host is
+sending keep-alives.
+
+# Historical: RX re-baseline measured; the rate boot (0255) is next
 
 [RX re-baseline](RX_REBASELINE_RESULT.md): on the installed lifecycle image,
 five chunks both directions, one lifetime, RX 6.99 Mbit/s host-side and

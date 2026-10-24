@@ -45,3 +45,34 @@ path.
 install receipt under
 `artifacts/device-install-evidence/mt6797-wifi-tx-autorate-deployment-1/`,
 [scalars](results/tx-autorate-runtime-scalars.json).
+
+## rate-2 (2026-10-24): the vendor's data descriptor, same result; the block is upstream of the descriptor
+
+Proposal 0255 built ordinary data descriptors exactly as the vendor data
+path does: no fixed-rate bit, zero power offset and the rate word (bytes
+24–27) left zero, so the firmware's adaptation chooses from the station
+record's rate set; management, EAPOL and the reserved deauthentication
+kept their fixed 6 Mbit/s descriptors. One boot on the lifecycle tree
+(build `4a37c041`, boot2 `f02087dc…` over `87d7b532…`, boot `4afdfa74…`),
+five-chunk protocol planned.
+
+**Per-frame completion status is the headline.** Nine host frames
+completed: authentication and association (fixed rate) status 0; the two
+EAPOL frames (fixed rate) status 0; the reserved deauthentication (fixed
+rate) status 0; and every one of the four ordinary data frames, the DHCP
+discovers at 342 bytes, status 3 after three attempts each, one every
+three seconds until the leaf gave up (DHCP failed, no lease, no
+measurement, the host disconnect refused by the window guard). Teardown
+completed normally and the device returned to changed-boot Gemian
+`78b5c75b-5a8b-4598-9b7e-61acbf0f35e9`; log complete.
+
+This is the same outcome as the autorate boot with a descriptor the
+firmware's own driver would have produced, so the descriptor is excluded:
+whatever the firmware derives for an unforced data rate from the station
+record (its rate set, the HT and capability fields, or its rate policy)
+yields frames the access point never acknowledges, while a forced 6 Mbit/s
+is acknowledged every time. That distinction is the result. It also fits
+the idle-link loss of lifecycle boot 10: a firmware-originated keep-alive
+takes its rate the same way. Proposal 0255 is retired; the rate lever
+moves to the station record, a larger question that needs the private
+reference before another boot. Scalars: [rate-2](results/tx-rate2-runtime-scalars.json).

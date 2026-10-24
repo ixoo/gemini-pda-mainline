@@ -1,0 +1,40 @@
+{
+  "run": "PIO-throughput-rate-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "proposal": "0255 (retired)",
+  "kernel_build_commit": "4a37c04181b9ebae002e0a0bb75d977a2592c8af",
+  "boot2_sha256": "f02087dc54e1ebc73a75e15c0daa2ce37a1140f9a4bf4d161bcc61d7f8d59e2f",
+  "predecessor_boot2_sha256": "87d7b5322b97fe6c7b6e1b2b2726a5437d818645834914d4334d43e62ccf9b23",
+  "mainline_boot_id": "4afdfa74-9fb5-4b2e-adf8-41b11b0df76c",
+  "previous_gemian_boot_id": "c9fa4427-c705-4ad2-8426-1b26d205b0e9",
+  "returned_gemian_boot_id": "78b5c75b-5a8b-4598-9b7e-61acbf0f35e9",
+  "tx_done_status_histogram": {
+    "0": 5,
+    "3": 4
+  },
+  "frames": {
+    "fixed_rate_status_0": [
+      "auth",
+      "assoc",
+      "eapol 2/4",
+      "eapol 4/4",
+      "reserved deauth"
+    ],
+    "data_zero_rate_word_status_3": [
+      "dhcp discover x4 (342 bytes, 3 attempts each, ~3 s apart)"
+    ]
+  },
+  "data_phase": {
+    "elapsed_ms": 12855,
+    "tx_queued": 4,
+    "tx_done": 0,
+    "tx_failed": 4,
+    "end_reason": "disconnect (leaf gave up; DHCP failed)"
+  },
+  "throughput": "not measured (no lease)",
+  "log": {
+    "complete": true,
+    "bytes": 174955
+  },
+  "verdict": "descriptor excluded: the unforced data rate the firmware derives from the station record is never acknowledged; 0255 retired; rate lever moves to the station record"
+}
