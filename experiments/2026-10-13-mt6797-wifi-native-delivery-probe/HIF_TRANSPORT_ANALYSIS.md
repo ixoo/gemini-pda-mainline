@@ -276,7 +276,13 @@ verdict), and the throughput helper's device script writes the chunk and
 rate lines at its chunk markers; a few writes per second at most, nothing
 to the kernel log, the first write error ends all writes, unset means no
 change. The leaf reports `console_progress_lines=` at its end; the screen
-is never graded and the command line is unchanged (`console=ttyS0`).
+is never graded and the command line is unchanged (`console=ttyS0`). The injection mechanism is guarded by
+[`tests/console-progress-test.py`](tests/console-progress-test.py): every
+leaf anchor occurs exactly once, the injected leaf is the reviewed leaf plus
+exactly the known block, the flag off leaves it untouched, and the helper's
+device script is the original plus exactly the cp() definition and its
+chunk lines, flag on and off, with the helper's own safety validators
+still passing.
 
 ## 9. Receive-direction DMA boot: result (2026-10-24) — engaged, intact, and not the ceiling
 
