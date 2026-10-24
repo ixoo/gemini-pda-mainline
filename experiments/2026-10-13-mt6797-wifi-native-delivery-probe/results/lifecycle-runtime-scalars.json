@@ -192,27 +192,36 @@
       "mainline_boot_id": "09ce9685-b029-4244-93ae-243764b0b991",
       "previous_gemian_boot_id": "cd90a4fb-d0d6-464d-b635-cb75b0f61aca",
       "returned_gemian_boot_id": "3f113be8-5bf7-457a-a6eb-29637d099d00",
+      "admitted_uptime_s": 6.07,
       "complete_log_records": 26198,
       "cycle_1": {
         "pass": true,
         "tx_host_received_mbit_s": 2.589,
-        "rx_host_sent_mbit_s": 5.585
-      },
-      "rearm": {
-        "record": "join rearm: lifetime=1 token=2 sta_seq=21 sequence=32",
-        "us_after_first_key_removal": 90,
-        "us_before_second_key_removal": 170
+        "tx_chunk_mbit_s": [
+          3.41,
+          3.24,
+          3.31,
+          3.3,
+          3.42
+        ],
+        "rx_host_sent_mbit_s": 5.585,
+        "rx_device_chunk_mbit_s": [
+          12.91,
+          9.87,
+          10.23,
+          10.49,
+          10.62
+        ]
       },
       "cycle_2": {
-        "scan": "complete; bss notice logged twice (body 00010200, 00000000)",
-        "grant": "channel 40 interval 9000 ms",
-        "auth_assoc": "ok, aid 7",
-        "activation": "lifetime=2",
-        "handshake": "EAPOL refused; PM connection attempted=0 dtim_status=-61; mac80211 failed to move station to desired state",
+        "started": true,
+        "scan": "complete with the BSS notice logged and ignored (0250)",
+        "grant_auth_assoc": "ok; activation lifetime=2",
+        "failure": "no DTIM latched from four beacons; PM connection attempted=0 status=-125 dtim_status=-61; mac80211 failed to move station",
         "pass": false
       },
-      "cause": "second key removal arrived after the re-arm's epoch reset: ccmp-stable disable status=-110 and withdraw closed the new lifetime's receive path",
-      "fix": "proposal 0251"
+      "cause": "mac80211's second key removal arrived 0.17 ms after the re-arm pass, timed out on the reset cleanup completion and withdrew the fresh epoch's CCMP receive path",
+      "fix": "proposal 0251 (defer the re-arm until both key removals of the epoch are seen)"
     }
   }
 }
