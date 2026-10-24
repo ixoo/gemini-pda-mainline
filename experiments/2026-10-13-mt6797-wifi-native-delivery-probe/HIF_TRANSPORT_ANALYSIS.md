@@ -122,3 +122,21 @@ is a workaround with a stated cost until that is resolved.
 4. **Order.** Transport first: it is the one change that moves both
    directions and removes the worker as the shared bottleneck that every
    later measurement (rate, lifecycle, loss) has been read through.
+
+## 5. First transport proposals (2026-10-24)
+
+Proposals 0258 (binding), 0259 (device tree) and 0260 (connectivity owner
+and HIF) attach the Wi-Fi HIF's AP-DMA channel 0 and move data-port
+transfers of at least 64 bytes through it, following the vendor's register
+sequence with one coherent bounce buffer below 4 GiB and the
+address-extension bits the vendor sets on every start; management,
+security and command writes stay PIO; each direction is its own build
+option. The lifecycle profile admits the transmit direction first, where a
+wrong address can only send garbage, so the first boot establishes the
+channel's addressing and programming on this device; the receive direction,
+which carries the throughput question, follows in the next boot. The
+host fixture [`tests/hif-dma-test.c`](tests/hif-dma-test.c)
+(`tests/run-hif-dma-test.py <kernel tree>`) models the channel and checks
+the setup word, the CON/SRC/DST/LEN programming, the extension bits in both
+settings, the bounce copy in both directions with padding, the completion
+acknowledgment and masking, the timeout path and the attach/free pairing.

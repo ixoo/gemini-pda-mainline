@@ -1,4 +1,4 @@
-From 1e29e001404a9cda08777913b709542e170a4d9a Mon Sep 17 00:00:00 2001
+From 5466e7b237e67c196899fc818dac147bc1e1cdef Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 24 Oct 2026 15:02:27 -0400
 Subject: [PATCH] soc: mediatek: wifi: mt6797: move the HIF data ports by
@@ -32,11 +32,11 @@ device tree), strict checkpatch clean except the binding split, which
 is its own patch. Not yet run on the device.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig |  24 ++
- drivers/net/wireless/mediatek/mt6797/hif.c   | 217 ++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 250 ++++++++++++++++++-
  drivers/net/wireless/mediatek/mt6797/hif.h   |  23 +-
  drivers/net/wireless/mediatek/mt6797/mac.c   |   9 +
- drivers/soc/mediatek/mt6797-consys.c         |  51 ++++-
- 5 files changed, 312 insertions(+), 12 deletions(-)
+ drivers/soc/mediatek/mt6797-consys.c         |  51 +++-
+ 5 files changed, 345 insertions(+), 12 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 3956584bb..9e7141935 100644
@@ -74,13 +74,14 @@ index 3956584bb..9e7141935 100644
  	int
  	depends on MT6797_CCMP_TX_PUMP
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index ee32baf73..5f473a2fe 100644
+index ee32baf73..674c9ad3a 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
-@@ -4,8 +4,11 @@
+@@ -4,8 +4,12 @@
  #include <string.h>
  #else
  #include <linux/align.h>
++#include <linux/bits.h>
 +#include <linux/clk.h>
  #include <linux/delay.h>
 +#include <linux/dma-mapping.h>
@@ -89,7 +90,7 @@ index ee32baf73..5f473a2fe 100644
  #include <linux/ktime.h>
  #include <linux/mutex.h>
  #include <linux/slab.h>
-@@ -42,9 +45,44 @@ struct mt6797_hif {
+@@ -42,9 +46,72 @@ struct mt6797_hif {
  	bool port0_reported;
  	bool port0_attempted;
  	int first_error;
@@ -131,10 +132,38 @@ index ee32baf73..5f473a2fe 100644
 +#define MT6797_APDMA_BUFFER_BYTES	4096U
 +#define MT6797_APDMA_POLL_LIMIT		200000U
 +
++/* Register access to the channel window; host fixtures supply the test pair. */
++
++#ifdef MT6797_HIF_HOST_TEST
++/* Host fixtures declare and model mt6797_test_dma_read/write. */
++static inline u32 mt6797_hif_dma_rd(struct mt6797_hif *hif, unsigned int offset)
++{
++	unsigned int value = 0;
++
++	mt6797_test_dma_read((u8 *)hif->dma + offset, &value);
++	return value;
++}
++
++static inline void mt6797_hif_dma_wr(struct mt6797_hif *hif, unsigned int offset, u32 value)
++{
++	mt6797_test_dma_write(value, (u8 *)hif->dma + offset);
++}
++#else
++static inline u32 mt6797_hif_dma_rd(struct mt6797_hif *hif, unsigned int offset)
++{
++	return readl(hif->dma + offset);
++}
++
++static inline void mt6797_hif_dma_wr(struct mt6797_hif *hif, unsigned int offset, u32 value)
++{
++	writel(value, hif->dma + offset);
++}
++#endif
++
  static int mt6797_hif_fail(struct mt6797_hif *hif, int error)
  {
  	if (!hif->first_error)
-@@ -137,9 +175,172 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
+@@ -137,9 +204,176 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
  
  void mt6797_hif_free(struct mt6797_hif *hif)
  {
@@ -215,42 +244,46 @@ index ee32baf73..5f473a2fe 100644
 +	if (hif->io.write(hif->io.context, 0, command.word))
 +		return -EIO;
 +	result->setup_submitted = true;
-+	con = readl(hif->dma + MT6797_APDMA_CON);
++	con = mt6797_hif_dma_rd(hif, MT6797_APDMA_CON);
 +	con &= ~(MT6797_APDMA_CON_BURST | MT6797_APDMA_CON_FIX | MT6797_APDMA_CON_DIR);
 +	con |= MT6797_APDMA_CON_BURST_4_4 | MT6797_APDMA_CON_INCR |
 +	       (direction == MT6797_HIF_READ ? MT6797_APDMA_CON_DIR : 0);
-+	writel(con, hif->dma + MT6797_APDMA_CON);
++	mt6797_hif_dma_wr(hif, MT6797_APDMA_CON, con);
 +	if (direction == MT6797_HIF_READ) {
-+		writel(lower_32_bits(hif->dma_fifo), hif->dma + MT6797_APDMA_SRC);
-+		writel(lower_32_bits(hif->dma_phys), hif->dma + MT6797_APDMA_DST);
++		mt6797_hif_dma_wr(hif, MT6797_APDMA_SRC, lower_32_bits(hif->dma_fifo));
++		mt6797_hif_dma_wr(hif, MT6797_APDMA_DST, lower_32_bits(hif->dma_phys));
 +	} else {
-+		writel(lower_32_bits(hif->dma_phys), hif->dma + MT6797_APDMA_SRC);
-+		writel(lower_32_bits(hif->dma_fifo), hif->dma + MT6797_APDMA_DST);
++		mt6797_hif_dma_wr(hif, MT6797_APDMA_SRC, lower_32_bits(hif->dma_phys));
++		mt6797_hif_dma_wr(hif, MT6797_APDMA_DST, lower_32_bits(hif->dma_fifo));
 +	}
-+	writel(command.transfer_bytes & MT6797_APDMA_LEN_MASK, hif->dma + MT6797_APDMA_LEN);
++	mt6797_hif_dma_wr(hif, MT6797_APDMA_LEN, command.transfer_bytes & MT6797_APDMA_LEN_MASK);
 +	if (hif->dma_addr2) {
-+		writel(readl(hif->dma + MT6797_APDMA_SRC2) | BIT(0), hif->dma + MT6797_APDMA_SRC2);
-+		writel(readl(hif->dma + MT6797_APDMA_DST2) | BIT(0), hif->dma + MT6797_APDMA_DST2);
++		mt6797_hif_dma_wr(hif, MT6797_APDMA_SRC2,
++				  mt6797_hif_dma_rd(hif, MT6797_APDMA_SRC2) | BIT(0));
++		mt6797_hif_dma_wr(hif, MT6797_APDMA_DST2,
++				  mt6797_hif_dma_rd(hif, MT6797_APDMA_DST2) | BIT(0));
 +	}
-+	writel(readl(hif->dma + MT6797_APDMA_INT_EN) | BIT(0), hif->dma + MT6797_APDMA_INT_EN);
-+	writel(readl(hif->dma + MT6797_APDMA_EN) | BIT(0), hif->dma + MT6797_APDMA_EN);
++	mt6797_hif_dma_wr(hif, MT6797_APDMA_INT_EN,
++			  mt6797_hif_dma_rd(hif, MT6797_APDMA_INT_EN) | BIT(0));
++	mt6797_hif_dma_wr(hif, MT6797_APDMA_EN, mt6797_hif_dma_rd(hif, MT6797_APDMA_EN) | BIT(0));
 +	for (;;) {
-+		flag = readl(hif->dma + MT6797_APDMA_INT_FLAG);
++		flag = mt6797_hif_dma_rd(hif, MT6797_APDMA_INT_FLAG);
 +		if (flag & BIT(0))
 +			break;
 +		if (++polls > MT6797_APDMA_POLL_LIMIT ||
 +		    ktime_get_ns() >= hif->deadline_ns) {
 +			hif->dma_failures++;
-+			writel(readl(hif->dma + MT6797_APDMA_INT_EN) & ~BIT(0),
-+			       hif->dma + MT6797_APDMA_INT_EN);
++			mt6797_hif_dma_wr(hif, MT6797_APDMA_INT_EN,
++					  mt6797_hif_dma_rd(hif, MT6797_APDMA_INT_EN) & ~BIT(0));
 +			return -ETIMEDOUT;
 +		}
 +		cpu_relax();
 +	}
-+	writel(flag & ~BIT(0), hif->dma + MT6797_APDMA_INT_FLAG);
-+	writel(readl(hif->dma + MT6797_APDMA_INT_EN) & ~BIT(0), hif->dma + MT6797_APDMA_INT_EN);
++	mt6797_hif_dma_wr(hif, MT6797_APDMA_INT_FLAG, flag & ~BIT(0));
++	mt6797_hif_dma_wr(hif, MT6797_APDMA_INT_EN,
++			  mt6797_hif_dma_rd(hif, MT6797_APDMA_INT_EN) & ~BIT(0));
 +	for (polls = 0;; polls++) {
-+		en = readl(hif->dma + MT6797_APDMA_EN);
++		en = mt6797_hif_dma_rd(hif, MT6797_APDMA_EN);
 +		if (!(en & BIT(0)))
 +			break;
 +		if (polls > MT6797_APDMA_POLL_LIMIT) {
@@ -307,7 +340,7 @@ index ee32baf73..5f473a2fe 100644
  /* Called with the mutex held; busy callers refuse without waiting/retrying. */
  static int mt6797_hif_enter(struct mt6797_hif *hif, u64 deadline_ns)
  {
-@@ -1013,10 +1214,10 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+@@ -1013,10 +1247,10 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
  	error = mt6797_hif_enter(hif, deadline_ns);
  	if (error)
  		goto fail;
@@ -322,7 +355,7 @@ index ee32baf73..5f473a2fe 100644
  	error = mt6797_normal_submitted(&hif->normal, error);
  	if (!error)
  		error = mt6797_hif_guard(hif);
-@@ -1216,10 +1417,10 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+@@ -1216,10 +1450,10 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
  	/* The selected RX path stages four extra bytes. The PIO encoder rounds
  	 * to its block transfer span, bounded by the 2560-byte scratch buffer.
  	 */
