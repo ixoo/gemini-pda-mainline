@@ -55,5 +55,17 @@
   "kept": [
    "0262"
   ]
+ },
+ "state2-1-staged": {
+  "run": "PIO-throughput-state2-1",
+  "profile": "mt6797-a53-wifi-rate",
+  "proposals": "0262 record, 0263 unforced data rate (this boot only), 0266 state-2 station record",
+  "kernel_build_commit": "93a9f000205aaae30bd9f08d585ed19f31a78d71",
+  "boot2_sha256": "bf9bd8059031430cd076d52424799b23f2d791519494627a0bbe294fc1ae8847",
+  "predecessor_boot2_sha256": "51faa318649b38821e01539eb76ea7d4418aa812819da2ab808eaa5d899ba440",
+  "board_dtb_sha256": "08f6929f37a85eb8",
+  "install_result": "write-synced-flushed-full-readback-verified",
+  "written_from_gemian_boot_id": "84dfc8eb-35e9-418b-87e8-d3d02bd37c7c",
+  "status": "installed, device shut down, watcher armed; owner selects boot2"
  }
 }

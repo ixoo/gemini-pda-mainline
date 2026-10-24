@@ -1,4 +1,12 @@
-# Current: the state-2 station-record boot is predeclared and building
+# Current: the state-2 station-record candidate is installed and armed; the owner boots it
+
+Rate profile `93a9f000` (0262, 0263 for this boot only, 0266) composed
+from the package's tree, installed on boot2 (`bf9bd805…` over `51faa318…`,
+written from Gemian `84dfc8eb…`, full readback verified), device shut
+down, watcher armed, console indicator enabled (not evidence). Branch
+table: [autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-predeclared-2026-10-24).
+
+# Historical: the state-2 station-record boot is predeclared and building
 
 [Autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-predeclared-2026-10-24):
 0266 sends the station record at state 2 after authentication, the
