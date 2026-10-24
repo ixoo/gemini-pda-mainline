@@ -265,3 +265,15 @@ not the cost and the poll structure (WRPLR read, guard, status) is, the
 next step being the interrupt and the enhanced status read; `failures>0`,
 a timeout, or corrupted receive data → stop the receive direction, keep
 transmit, and read the address-extension semantics again.
+
+Riding on this boot, opt-in and not evidence: the console progress
+indicator ([`hosts/console_progress.py`](hosts/console_progress.py)). With
+`TP_CONSOLE_PROGRESS=1` in the run environment the prepare step injects
+into the reviewed leaf a six-line block (variant and boot, stage, cycle
+and chunk, rate and elapsed time, link, verdict) rewritten in place on
+`/dev/tty0` at the leaf's own markers (capture, join, data, teardown,
+verdict), and the throughput helper's device script writes the chunk and
+rate lines at its chunk markers; a few writes per second at most, nothing
+to the kernel log, the first write error ends all writes, unset means no
+change. The leaf reports `console_progress_lines=` at its end; the screen
+is never graded and the command line is unchanged (`console=ttyS0`).
