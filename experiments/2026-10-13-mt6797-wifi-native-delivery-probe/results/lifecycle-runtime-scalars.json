@@ -1,0 +1,68 @@
+{
+  "runs": {
+    "lifecycle-1": {
+      "run": "PIO-lifecycle-1",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243"
+      ],
+      "kernel_build_commit": "88f5edafd1b06cf2edd71efe3ef9490e2e6a775d",
+      "candidate_manifest_sha256": "519581a83225ad1ae44e714ba4977e7ca04919582cdc3f9a15d5a1d3c46806cc",
+      "boot2_sha256": "10978b3c5a68b7bf91c0e95ff8b109e12b022ff3a86a70946d5b5dcd1cfd360a",
+      "mainline_boot_id": "8dac7669-2ae7-4abc-8523-44518965036d",
+      "previous_gemian_boot_id": "c977624f-203f-487f-a31e-8d0125ffe654",
+      "returned_gemian_boot_id": "af877fc7-8235-4b32-b57e-08e6360c9c15",
+      "admitted_uptime_s": 6.35,
+      "complete_log_records": 24998,
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 3.108,
+        "tx_chunk_mbit_s": [
+          3.93,
+          4.06,
+          4.05,
+          4.14,
+          4.22
+        ],
+        "rx_host_sent_mbit_s": 6.595,
+        "rx_device_chunk_mbit_s": [
+          17.48,
+          15.53,
+          16.45,
+          17.48,
+          17.12
+        ],
+        "tx_device_cpu_idle_percent": 84.8,
+        "rx_device_cpu_idle_percent": 76.3,
+        "completions": 3743,
+        "failed": 2,
+        "median_gap_ms": 0.44,
+        "data_phase_ms": 24531,
+        "teardown": "PM abort 0, deauth transmitted, stage 3 credits=returned slots=retired, two key removals, disable status 0, loss report source=cleanup reason=0 class=host"
+      },
+      "cycle_2": {
+        "started": true,
+        "pass": false,
+        "reason": "no re-arm record, no refusal, no fault after the station teardown; leaf wait ran to the wall"
+      },
+      "classifier": {
+        "lifecycle_pass": false,
+        "first_failure_gate": "rearms",
+        "rearms": 0,
+        "lifetimes": 1,
+        "no_fault": true
+      },
+      "session": {
+        "capture_exit": 0,
+        "session_exit": 1,
+        "export": "accepted; log_complete true",
+        "return": "native, changed-ID-Gemian",
+        "retry": false
+      },
+      "cause": "station-removal callback still gated the re-arm request on the stable epoch being off and on the two-lifetime cap; the worker's unlocked site runs no pass after a retired terminal",
+      "fix": "proposal 0248"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+From 348b0c6dd5807d94ba3deed96fa9615308ec1c44 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Fri, 23 Oct 2026 22:36:49 -0400
+Subject: [PATCH] wifi: mt6797: request the re-arm from the station teardown in
+ the stable epoch
+
+The lifecycle boot ran one full lifetime (join, data phase, standard
+disconnect, stage-3 cleanup with credits returned, keys removed) and then
+logged nothing for the remaining eleven minutes: no re-arm, no refusal,
+no fault. Proposal 0240 unlocked the re-arm for the stable epoch at the
+worker's rendezvous site only, but no worker pass runs after a retired
+terminal, and the other requester, the mac80211 station teardown, still
+refused to queue the re-arm pass under the stable epoch and the old
+two-lifetime cap. Drop both gates there and require the healthy stage-3
+cleanup to be done already, so a teardown that arrives first cannot log a
+false refusal and the worker's site keeps that order. The rendezvous,
+quiescence and wrap rules of the re-arm pass are unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 14 +++++++++-----
+ 1 file changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index fbaebefa2..17ead811d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -5724,11 +5724,15 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 					 * the pass with sta_removed=false and log a false refusal.
+ 					 */
+ 					close = false;
+-					if (mac->join_sta_removed && !mac->join_closed &&
+-#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+-					    !ccmp_stable_epoch &&
+-#endif
+-					    mac->join_lifetimes < 2 && !mac->join_rearm_pending) {
++					/* The stable epoch re-arms too (0240 unlocked the worker's
++					 * site only; no worker pass runs after a retired terminal,
++					 * so this teardown is the only requester once the healthy
++					 * stage-3 cleanup is already done). The cleanup_done test
++					 * keeps a teardown that precedes the terminal from logging
++					 * a false refusal; the worker's site then requests it.
++					 */
++					if (mac->join_sta_removed && mac->join_cleanup_done &&
++					    !mac->join_closed && !mac->join_rearm_pending) {
+ 						mac->join_rearm_pending = true;
+ 						schedule_delayed_work(&mac->join_work, 0);
+ 					}
+-- 
+2.43.0
+

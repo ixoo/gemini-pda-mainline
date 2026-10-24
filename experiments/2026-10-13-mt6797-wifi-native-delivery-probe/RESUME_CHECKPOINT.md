@@ -1,4 +1,18 @@
-# Current: autorate negative and retired; lifecycle (two lifetimes) next
+# Current: lifecycle boot 1 ran one lifetime; re-arm never requested; 0248 next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): cycle 1 passed in full (TX 3.11,
+RX 6.60 Mbit/s, teardown complete, 0241's loss-reason record present),
+then the driver never queued the re-arm pass: the station-removal callback
+still gated it on the stable epoch being off and on the old two-lifetime
+cap, and 0240 had unlocked only the worker's site, which runs no pass
+after a retired terminal. Proposal 0248 fixes the callback. Device
+returned to changed-boot Gemian `af877fc7-8235-4b32-b57e-08e6360c9c15`;
+the lifecycle image (boot2 `10978b3c…`) is the installed predecessor.
+
+Next boot: lifecycle-2 (lifecycle tree + 0248) under the same two-cycle
+harness, then the AP-off loss test.
+
+# Historical: autorate negative and retired; lifecycle (two lifetimes) next
 
 [Autorate result](TX_AUTORATE_RESULT.md): with the descriptor's fixed-rate
 bit cleared, no ordinary data frame was acknowledged (four DHCP discovers,
