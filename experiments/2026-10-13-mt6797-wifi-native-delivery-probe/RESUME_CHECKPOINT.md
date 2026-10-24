@@ -1,4 +1,15 @@
-# Current: the chain is closed on the device; the rate-visibility boot waits on one classification
+# Current: rate-visibility candidate installed and armed; the owner boots it
+
+The owner classified the three extra booted-tree categories as boot-loader
+writes; the device-tree chain is closed in both directions. The
+rate-visibility candidate (profile `mt6797-a53-wifi-rate`, `91629f5b`,
+boot2 `bb9b9389…` over `a0bbc52e…`, written from Gemian `c0fe3443…`, full
+readback verified) is installed, the device shut down, the watcher armed.
+Headline and branch table: [autorate record](TX_AUTORATE_RESULT.md#rate-visibility-boot-predeclared-2026-10-24-runs-after-the-equivalence-boot).
+After it: the pruning pass (inventory drafted), then the pass-rate boot,
+receive DMA, and the AP-loss gate with loss defined under host keep-alives.
+
+# Historical: the chain is closed on the device; the rate-visibility boot waits on one classification
 
 [Provenance record](DEVICE_TREE_PROVENANCE.md#closing-the-chain-on-the-device-result-2026-10-24):
 the same equivalence image booted again with the harness reading

@@ -1,0 +1,22 @@
+{
+ "rate3-staged": {
+  "run": "PIO-throughput-rate3-1",
+  "profile": "mt6797-a53-wifi-rate",
+  "proposals": "0262 (TX-done rate record), 0263 (ordinary data without a fixed rate; the retired 0255)",
+  "kernel_build_commit": "91629f5b22cc08d0e4175cb2a42f073db1c62a8e",
+  "boot2_sha256": "bb9b9389331c08d4cf851ac44fa4c004e71398df3c11cdcb6b2e515cd991cd3f",
+  "predecessor_boot2_sha256": "a0bbc52e1ec45f0acdeef3bfd4fdb22d0e18bb5f427ce89fcea11cbd4b5094e5",
+  "board_dtb_source": "package dtbs/mediatek/mt6797-gemini-pda-wifi-service.dtb",
+  "board_dtb_sha256": "08f6929f37a85eb8",
+  "kernel_config_change": {
+   "CONFIG_MT6797_TX_DONE_RATE_RECORD": [
+    null,
+    "y"
+   ]
+  },
+  "install_result": "write-synced-flushed-full-readback-verified",
+  "written_from_gemian_boot_id": "c0fe3443-030d-4719-98a3-56ad945bd474",
+  "status": "installed, device shut down, watcher armed; owner selects boot2",
+  "headline": "histogram of the firmware rate word of every status-3 completion; branch table in TX_AUTORATE_RESULT.md"
+ }
+}

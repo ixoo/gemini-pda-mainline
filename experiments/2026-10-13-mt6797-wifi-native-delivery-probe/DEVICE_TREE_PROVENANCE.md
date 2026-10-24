@@ -196,3 +196,7 @@ build-versus-boot divergence; the predeclaration under-described the
 loader. Two facts worth keeping: the kernel has always booted with the
 SCP node enabled, whatever the source says, and with the loader's own
 reserved-memory map rather than the two CCCI reservations in the source.
+
+Owner classification (2026-10-24): the three categories beyond the
+predeclared allowance are boot-loader writes, not a build-versus-boot
+divergence; the chain is closed and the queue proceeds.
