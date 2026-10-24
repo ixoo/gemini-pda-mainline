@@ -121,33 +121,6 @@ scan through activation, now behaves as the first. Harness:
 records); returned to changed-boot Gemian
 `3f113be8-5bf7-457a-a6eb-29637d099d00`. Next boot: lifecycle-5 with 0251.
 
-## Lifecycle boot 4 (0250): the second lifetime reaches activation; a late key removal closes it
-
-Build input `2fea15db`, boot `09ce9685…`, boot2 `e65967a1…`, admitted at
-6.1 s. Cycle 1 passed (TX 2.589 Mbit/s, chunks 3.24–3.42; RX 5.59 Mbit/s,
-device chunks 9.9–12.9; teardown complete). The re-arm fired, the second
-scan logged the BSS notice and completed (one beacon, done header), the
-channel grant, authentication and association succeeded and the station
-record activated as lifetime 2. Then the beacons delivered after
-activation never produced the `PM beacon metadata` record, the
-connected power-management step reported `attempted=0 … status=-125
-dtim_status=-61`, mac80211 logged "failed to move station … to desired
-state", and the lifetime stopped (`cycle=2 data_phase=fault_or_timeout`).
-
-The order of records explains it: the first key removal completed, the
-re-arm pass ran 0.09 ms later, and mac80211's second key removal arrived
-0.17 ms after that, in the fresh epoch. That removal waited for a cleanup
-that no longer existed, timed out (`removal_command_credit=0
-status=-110`) and withdrew the CCMP receive path again, which is the
-gate every later step checks. Harness: `cycles_started=2 cycles_passed=1
-rearms_observed=1`; sealed (26,198 records); returned to changed-boot
-Gemian `3f113be8-5bf7-457a-a6eb-29637d099d00`.
-
-Proposal 0251 counts mac80211's key removals per epoch and defers the
-re-arm pass, with its request kept pending, until both have been seen;
-the removal that completes the pair re-queues it (0249). Next boot:
-lifecycle-5 with 0251.
-
 ## Evidence
 
 `artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-4/` (sealed

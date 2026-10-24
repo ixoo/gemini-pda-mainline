@@ -739,4 +739,3 @@ proposals/0248-wifi-mt6797-request-the-re-arm-from-the-station-teardown-in-the-s
 proposals/0249-wifi-mt6797-keep-a-pending-re-arm-across-the-key-removal-cancel.patch
 proposals/0250-wifi-mt6797-let-the-scan-ignore-a-BSS-absence-or-presence-notice.patch
 proposals/0251-wifi-mt6797-re-arm-only-after-both-of-mac80211-s-key-removals.patch
-proposals/0251-wifi-mt6797-re-arm-only-after-both-of-mac80211-s-key-removals.patch
