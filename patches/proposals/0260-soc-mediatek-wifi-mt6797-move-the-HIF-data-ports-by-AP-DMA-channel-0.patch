@@ -1,0 +1,502 @@
+From 1e29e001404a9cda08777913b709542e170a4d9a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 15:02:27 -0400
+Subject: [PATCH] soc: mediatek: wifi: mt6797: move the HIF data ports by
+ AP-DMA channel 0
+
+The Wi-Fi HIF data path reads and writes every packet one 32-bit word
+per bus operation through the CMD53 data register, from the same worker
+that polls completions and submits frames: about four hundred bus
+operations per 1.5 KB frame. Measured on the device, that worker is the
+receive ceiling (device-side 11-18 Mbit/s per chunk at 77-79 % idle,
+no loss) while the vendor driver on the same link reaches 38-45 Mbit/s;
+the vendor moves its data ports through the AP-DMA engine's HIF channel
+0 and polls the channel's completion flag.
+
+Attach that channel when the device tree names it: map its window, take
+the ap-dma clock, allocate one coherent 4 KiB bounce buffer below 4 GiB
+and record the 4 GiB address-translation selector. A data-port transfer
+of at least 64 bytes then follows the vendor sequence (the CMD53 setup
+word on the HIF window; CON with burst 4/4, bus increment and direction;
+source, destination and length; the address-extension bits as the
+vendor sets them; interrupt enable and EN; completion by the channel's
+own flag, acknowledged, masked, EN seen clear) and copies through the
+bounce buffer; anything else, and every management, security and
+command write, stays PIO. Each direction is behind its own build
+option so one boot can admit transmit alone, where a wrong address only
+sends garbage, before receive. Counters of DMA transfers, the longest
+completion poll and failures are kept for the records.
+
+Compile-tested in the development VM (driver, connectivity owner and
+device tree), strict checkpatch clean except the binding split, which
+is its own patch. Not yet run on the device.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  24 ++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 217 ++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  23 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c   |   9 +
+ drivers/soc/mediatek/mt6797-consys.c         |  51 ++++-
+ 5 files changed, 312 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 3956584bb..9e7141935 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -61,6 +61,30 @@ config MT6797_CCMP_TX_PID_REUSE
+ config MT6797_CCMP_TX_PUMP
+ 	def_bool MT6797_MAC80211
+ 
++config MT6797_HIF_DMA_TX
++	bool "MT6797 Wi-Fi HIF: transmit data frames through AP-DMA channel 0"
++	depends on MT6797_HIF_CORE
++	default n
++	help
++	  Move ordinary data frames to the HIF data port through the Wi-Fi
++	  AP-DMA channel 0 when the device tree names its register window,
++	  instead of the PIO word loop that writes one 32-bit word per bus
++	  operation. Management, security and command writes stay PIO. The
++	  transfer completes by polling the channel's own flag under the
++	  context deadline; a timeout poisons the context like a PIO fault.
++
++config MT6797_HIF_DMA_RX
++	bool "MT6797 Wi-Fi HIF: receive packets through AP-DMA channel 0"
++	depends on MT6797_HIF_CORE
++	default n
++	help
++	  Read received packets from the HIF data ports through the Wi-Fi
++	  AP-DMA channel 0 when the device tree names its register window,
++	  instead of the PIO word loop that reads one 32-bit word per bus
++	  operation. Packets shorter than the DMA minimum stay PIO. The
++	  transfer completes by polling the channel's own flag under the
++	  context deadline; a timeout poisons the context like a PIO fault.
++
+ config MT6797_CCMP_TX_DEPTH
+ 	int
+ 	depends on MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index ee32baf73..5f473a2fe 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -4,8 +4,11 @@
+ #include <string.h>
+ #else
+ #include <linux/align.h>
++#include <linux/clk.h>
+ #include <linux/delay.h>
++#include <linux/dma-mapping.h>
+ #include <linux/err.h>
++#include <linux/io.h>
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
+ #include <linux/slab.h>
+@@ -42,9 +45,44 @@ struct mt6797_hif {
+ 	bool port0_reported;
+ 	bool port0_attempted;
+ 	int first_error;
++	/* AP-DMA channel 0 for the data ports (mt6797_hif_attach_dma); NULL
++	 * window means PIO. The bounce buffer is coherent and below 4 GiB.
++	 */
++	void __iomem *dma;
++	phys_addr_t dma_fifo;
++	struct device *dma_dev;
++	struct clk *dma_clk;
++	void *dma_buffer;
++	dma_addr_t dma_phys;
++	size_t dma_buffer_bytes;
++	bool dma_addr2;
++	unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
+ 	u8 scratch[2560];
+ };
+ 
++/* AP-DMA HIF channel 0 registers (window offsets) and fields, as the vendor
++ * driver programs them: CON burst 4/4, bus-increment, direction (1 = read
++ * from the FIFO), fixed addressing off; INT_FLAG/INT_EN bit 0; EN bit 0;
++ * SRC/DST_ADDR2 bit 0 the address-extension bit.
++ */
++#define MT6797_APDMA_INT_FLAG	0x00
++#define MT6797_APDMA_INT_EN	0x04
++#define MT6797_APDMA_EN		0x08
++#define MT6797_APDMA_CON	0x18
++#define MT6797_APDMA_SRC	0x1c
++#define MT6797_APDMA_DST	0x20
++#define MT6797_APDMA_LEN	0x24
++#define MT6797_APDMA_SRC2	0x54
++#define MT6797_APDMA_DST2	0x58
++#define MT6797_APDMA_CON_DIR		BIT(0)
++#define MT6797_APDMA_CON_FIX		BIT(1)
++#define MT6797_APDMA_CON_BURST		GENMASK(17, 16)
++#define MT6797_APDMA_CON_BURST_4_4	(3U << 16)
++#define MT6797_APDMA_CON_INCR		BIT(31)
++#define MT6797_APDMA_LEN_MASK		GENMASK(19, 0)
++#define MT6797_APDMA_BUFFER_BYTES	4096U
++#define MT6797_APDMA_POLL_LIMIT		200000U
++
+ static int mt6797_hif_fail(struct mt6797_hif *hif, int error)
+ {
+ 	if (!hif->first_error)
+@@ -137,9 +175,172 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
+ 
+ void mt6797_hif_free(struct mt6797_hif *hif)
+ {
++	if (hif && hif->dma) {
++		dma_free_coherent(hif->dma_dev, hif->dma_buffer_bytes, hif->dma_buffer,
++				  hif->dma_phys);
++		clk_disable_unprepare(hif->dma_clk);
++	}
+ 	kfree(hif);
+ }
+ 
++int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
++			  phys_addr_t fifo, struct device *dev, struct clk *clk,
++			  bool addr2)
++{
++	int error;
++
++	if (!hif || !window || !dev || !clk || hif->dma)
++		return -EINVAL;
++	/* The vendor's working configuration mapped host buffers below 4 GiB. */
++	error = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
++	if (error)
++		return error;
++	error = clk_prepare_enable(clk);
++	if (error)
++		return error;
++	hif->dma_buffer = dma_alloc_coherent(dev, MT6797_APDMA_BUFFER_BYTES,
++					     &hif->dma_phys, GFP_KERNEL);
++	if (!hif->dma_buffer) {
++		clk_disable_unprepare(clk);
++		return -ENOMEM;
++	}
++	if (upper_32_bits(hif->dma_phys) || upper_32_bits(fifo)) {
++		dma_free_coherent(dev, MT6797_APDMA_BUFFER_BYTES, hif->dma_buffer,
++				  hif->dma_phys);
++		clk_disable_unprepare(clk);
++		return -ERANGE;
++	}
++	hif->dma_buffer_bytes = MT6797_APDMA_BUFFER_BYTES;
++	hif->dma_dev = dev;
++	hif->dma_clk = clk;
++	hif->dma_fifo = fifo;
++	hif->dma_addr2 = addr2;
++	hif->dma = window;
++	return 0;
++}
++
++/* One data-port transfer through AP-DMA channel 0, vendor sequence: the
++ * CMD53 setup word on the window, then CON/SRC/DST/LEN, the extension bits,
++ * interrupt enable and EN; completion is the channel's own flag, polled
++ * under the context deadline, then acknowledged, the interrupt masked and
++ * EN seen clear. Payload moves through the coherent bounce buffer. Any
++ * timeout poisons the context like a PIO fault; nothing is retried.
++ */
++static int mt6797_hif_dma_transfer(struct mt6797_hif *hif, unsigned int port,
++				   enum mt6797_hif_direction direction,
++				   unsigned char *buffer, size_t payload_bytes,
++				   size_t capacity,
++				   struct mt6797_hif_pio_result *result)
++{
++	struct mt6797_hif_command command;
++	unsigned int polls = 0;
++	u32 con, flag, en;
++	int error;
++
++	*result = (struct mt6797_hif_pio_result){0};
++	error = mt6797_hif_encode_command(port, direction, MT6797_HIF_DMA_ENABLED,
++					  payload_bytes,
++					  min(capacity, hif->dma_buffer_bytes), &command);
++	if (error)
++		return error;
++	if (direction == MT6797_HIF_WRITE) {
++		memcpy(hif->dma_buffer, buffer, payload_bytes);
++		memset((u8 *)hif->dma_buffer + payload_bytes, 0,
++		       command.transfer_bytes - payload_bytes);
++	}
++	dma_wmb();
++	if (hif->io.write(hif->io.context, 0, command.word))
++		return -EIO;
++	result->setup_submitted = true;
++	con = readl(hif->dma + MT6797_APDMA_CON);
++	con &= ~(MT6797_APDMA_CON_BURST | MT6797_APDMA_CON_FIX | MT6797_APDMA_CON_DIR);
++	con |= MT6797_APDMA_CON_BURST_4_4 | MT6797_APDMA_CON_INCR |
++	       (direction == MT6797_HIF_READ ? MT6797_APDMA_CON_DIR : 0);
++	writel(con, hif->dma + MT6797_APDMA_CON);
++	if (direction == MT6797_HIF_READ) {
++		writel(lower_32_bits(hif->dma_fifo), hif->dma + MT6797_APDMA_SRC);
++		writel(lower_32_bits(hif->dma_phys), hif->dma + MT6797_APDMA_DST);
++	} else {
++		writel(lower_32_bits(hif->dma_phys), hif->dma + MT6797_APDMA_SRC);
++		writel(lower_32_bits(hif->dma_fifo), hif->dma + MT6797_APDMA_DST);
++	}
++	writel(command.transfer_bytes & MT6797_APDMA_LEN_MASK, hif->dma + MT6797_APDMA_LEN);
++	if (hif->dma_addr2) {
++		writel(readl(hif->dma + MT6797_APDMA_SRC2) | BIT(0), hif->dma + MT6797_APDMA_SRC2);
++		writel(readl(hif->dma + MT6797_APDMA_DST2) | BIT(0), hif->dma + MT6797_APDMA_DST2);
++	}
++	writel(readl(hif->dma + MT6797_APDMA_INT_EN) | BIT(0), hif->dma + MT6797_APDMA_INT_EN);
++	writel(readl(hif->dma + MT6797_APDMA_EN) | BIT(0), hif->dma + MT6797_APDMA_EN);
++	for (;;) {
++		flag = readl(hif->dma + MT6797_APDMA_INT_FLAG);
++		if (flag & BIT(0))
++			break;
++		if (++polls > MT6797_APDMA_POLL_LIMIT ||
++		    ktime_get_ns() >= hif->deadline_ns) {
++			hif->dma_failures++;
++			writel(readl(hif->dma + MT6797_APDMA_INT_EN) & ~BIT(0),
++			       hif->dma + MT6797_APDMA_INT_EN);
++			return -ETIMEDOUT;
++		}
++		cpu_relax();
++	}
++	writel(flag & ~BIT(0), hif->dma + MT6797_APDMA_INT_FLAG);
++	writel(readl(hif->dma + MT6797_APDMA_INT_EN) & ~BIT(0), hif->dma + MT6797_APDMA_INT_EN);
++	for (polls = 0;; polls++) {
++		en = readl(hif->dma + MT6797_APDMA_EN);
++		if (!(en & BIT(0)))
++			break;
++		if (polls > MT6797_APDMA_POLL_LIMIT) {
++			hif->dma_failures++;
++			return -ETIMEDOUT;
++		}
++		cpu_relax();
++	}
++	dma_rmb();
++	if (direction == MT6797_HIF_READ) {
++		if (command.transfer_bytes > capacity)
++			return -ENOSPC;
++		memcpy(buffer, hif->dma_buffer, command.transfer_bytes);
++		hif->dma_rx++;
++	} else {
++		hif->dma_tx++;
++	}
++	if (polls > hif->dma_poll_max)
++		hif->dma_poll_max = polls;
++	result->data_bytes = command.transfer_bytes;
++	result->transfer_complete = true;
++	return 0;
++}
++
++void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
++			  unsigned int *rx, unsigned int *poll_max,
++			  unsigned int *failures)
++{
++	*tx = hif ? hif->dma_tx : 0;
++	*rx = hif ? hif->dma_rx : 0;
++	*poll_max = hif ? hif->dma_poll_max : 0;
++	*failures = hif ? hif->dma_failures : 0;
++}
++
++/* The data-port transfer: DMA where attached, built for the direction and
++ * large enough to be worth it; the PIO encoder otherwise.
++ */
++static int mt6797_hif_data_transfer(struct mt6797_hif *hif, unsigned int port,
++				    enum mt6797_hif_direction direction,
++				    unsigned char *buffer, size_t payload_bytes,
++				    size_t capacity,
++				    struct mt6797_hif_pio_result *result)
++{
++	bool admitted = direction == MT6797_HIF_READ ?
++		IS_ENABLED(CONFIG_MT6797_HIF_DMA_RX) : IS_ENABLED(CONFIG_MT6797_HIF_DMA_TX);
++
++	if (hif->dma && admitted && payload_bytes >= MT6797_HIF_DMA_MIN_BYTES)
++		return mt6797_hif_dma_transfer(hif, port, direction, buffer,
++					       payload_bytes, capacity, result);
++	return mt6797_hif_pio_transfer(&hif->io, port, direction, buffer,
++				       payload_bytes, capacity, result);
++}
++
+ /* Called with the mutex held; busy callers refuse without waiting/retrying. */
+ static int mt6797_hif_enter(struct mt6797_hif *hif, u64 deadline_ns)
+ {
+@@ -1013,10 +1214,10 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto fail;
+-	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
+-					hif->scratch,
+-					MT6797_JOIN_TX_DESC_BYTES + frame_bytes,
+-					sizeof(hif->scratch), &transfer);
++	error = mt6797_hif_data_transfer(hif, 0x34, MT6797_HIF_WRITE,
++					 hif->scratch,
++					 MT6797_JOIN_TX_DESC_BYTES + frame_bytes,
++					 sizeof(hif->scratch), &transfer);
+ 	error = mt6797_normal_submitted(&hif->normal, error);
+ 	if (!error)
+ 		error = mt6797_hif_guard(hif);
+@@ -1216,10 +1417,10 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+ 	/* The selected RX path stages four extra bytes. The PIO encoder rounds
+ 	 * to its block transfer span, bounded by the 2560-byte scratch buffer.
+ 	 */
+-	error = mt6797_hif_pio_transfer(&hif->io, port ? 0x54 : 0x50,
+-					MT6797_HIF_READ, hif->scratch,
+-					logical + 4U, sizeof(hif->scratch),
+-					&transfer);
++	error = mt6797_hif_data_transfer(hif, port ? 0x54 : 0x50,
++					 MT6797_HIF_READ, hif->scratch,
++					 logical + 4U, sizeof(hif->scratch),
++					 &transfer);
+ 	result->rx_setup = transfer.setup_submitted;
+ 	result->rx_complete = transfer.transfer_complete;
+ 	result->staging_bytes = transfer.data_bytes;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 067022082..6b7171242 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -114,9 +114,30 @@ struct mt6797_hif_tx_status {
+ struct mt6797_hif *
+ mt6797_hif_alloc(void __iomem *base, size_t span,
+ 		 struct mt6797_init_transaction *transaction);
+-/* Caller has stopped/joined every user; this frees no provider resources. */
++/* Caller has stopped/joined every user; this frees no provider resources
++ * except a DMA attachment made through mt6797_hif_attach_dma.
++ */
+ void mt6797_hif_free(struct mt6797_hif *hif);
+ 
++struct device;
++struct clk;
++/* Attach the Wi-Fi HIF's AP-DMA channel 0 (its 0x80-byte register window)
++ * for the data ports: the fixed data-port FIFO's physical address, the
++ * device that owns the coherent bounce buffer, the AP-DMA clock, and whether
++ * the address-extension bits are set on each start. Data-port transfers of
++ * at least MT6797_HIF_DMA_MIN_BYTES then move by DMA where the build admits
++ * the direction; everything else stays PIO. Returns zero or an error that
++ * leaves the context on PIO.
++ */
++int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
++			  phys_addr_t fifo, struct device *dev, struct clk *clk,
++			  bool addr2);
++#define MT6797_HIF_DMA_MIN_BYTES 64U
++/* DMA transfer counters for the records: zero when no channel is attached. */
++void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
++			  unsigned int *rx, unsigned int *poll_max,
++			  unsigned int *failures);
++
+ /* Absolute monotonic nanoseconds; positive remaining budget <= one second.
+  * WCIR (0), WHLPCR (4), WRPLR (0x90) only. No register writes are exposed.
+  */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 3cdc3eb82..d92315c7f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2804,6 +2804,15 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->join_data_rx_unicast, mac->join_data_rx_group, mac->join_data_rx_dropped,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
++	{
++		unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
++
++		mt6797_hif_dma_stats(mac->hif, &dma_tx, &dma_rx, &dma_poll_max,
++				     &dma_failures);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
++			 dma_tx, dma_rx, dma_poll_max, dma_failures);
++	}
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 8b607f8dc..9a8aa6734 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -57,6 +57,9 @@
+ #define MT6797_CONSYS_AFE_SIZE	0x100
+ #define MT6797_CONSYS_HIF_REG	0x180f0000
+ #define MT6797_CONSYS_HIF_SIZE	0x1100
++#define MT6797_CONSYS_HIF_DMA_REG	0x11000080
++#define MT6797_CONSYS_HIF_DMA_SIZE	0x80
++#define MT6797_CONSYS_HIF_DATA_PORT	0x1000
+ #define MT6797_CONSYS_EMI_SELECTOR_REG	0x10001f00
+ #define MT6797_HIF_CMD_SETUP	0x0000
+ #define MT6797_HIF_CMD52_DATA	0x0004
+@@ -123,6 +126,7 @@ struct mt6797_consys {
+ 	void __iomem *mcu_acr;
+ 	void __iomem *afe;
+ 	void __iomem *hif;
++	void __iomem *hif_dma;
+ 	void __iomem *emi_selector;
+ 	void __iomem *emi_window;
+ 	u8 __iomem *region19_window;
+@@ -1026,6 +1030,26 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 		owner->fw_hif = NULL;
+ 		goto stopped;
+ 	}
++	if (owner->hif_dma && owner->emi_selector && owner->wmt_query.dma_clk &&
++	    (IS_ENABLED(CONFIG_MT6797_HIF_DMA_TX) || IS_ENABLED(CONFIG_MT6797_HIF_DMA_RX))) {
++		/* The vendor driver sets both address-extension bits on every
++		 * start; its working configuration on this device had the 4 GiB
++		 * selector set and host addresses below 4 GiB. The same is done
++		 * here, recorded with the selector; a refusal leaves PIO.
++		 */
++		u32 selector = readl(owner->emi_selector);
++
++		ret = mt6797_hif_attach_dma(owner->fw_hif, owner->hif_dma,
++					    MT6797_CONSYS_HIF_REG + MT6797_CONSYS_HIF_DATA_PORT,
++					    dev, owner->wmt_query.dma_clk,
++					    !!(selector & BIT(13)));
++		dev_info(dev,
++			 "one-shot WLAN HIF DMA: attached=%d selector=0x%08x addr2=%u tx=%d rx=%d\n",
++			 ret == 0, selector, !!(selector & BIT(13)),
++			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_TX),
++			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_RX));
++		ret = 0;
++	}
+ 	ret = mt6797_wlan_firmware_submit_ordinary(owner->wlan_image,
+ 						 owner->fw_hif, &ordinary);
+ 	dev_info(dev,
+@@ -2093,7 +2117,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 			goto out_unlock;
+ 		}
+ 	}
+-	afe_resource = platform_get_resource(pdev, IORESOURCE_MEM, 9);
++	afe_resource = platform_get_resource_byname(pdev, IORESOURCE_MEM, "afe");
+ 	/* Common init owns the AFE stage unconditionally. */
+ 	if (common_init && !afe_resource) {
+ 		ret = -EINVAL;
+@@ -2107,7 +2131,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 			ret = -EINVAL;
+ 			goto out_unlock;
+ 		}
+-		afe = devm_platform_ioremap_resource(pdev, 9);
++		afe = devm_ioremap_resource(&pdev->dev, afe_resource);
+ 		if (IS_ERR(afe)) {
+ 			ret = PTR_ERR(afe);
+ 			goto out_unlock;
+@@ -2123,6 +2147,27 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	mt6797_consys.mcu_acr = mcu_acr;
+ 	mt6797_consys.hif = hif;
+ 	mt6797_consys.emi_selector = emi_selector;
++	/* The Wi-Fi HIF's AP-DMA channel 0, optional: the data ports move by
++	 * DMA when it is present and the driver is built for it; PIO otherwise.
++	 */
++	if (hif) {
++		struct resource *dma_resource =
++			platform_get_resource_byname(pdev, IORESOURCE_MEM, "wifi-hif-dma");
++
++		if (dma_resource) {
++			if (dma_resource->start != MT6797_CONSYS_HIF_DMA_REG ||
++			    resource_size(dma_resource) != MT6797_CONSYS_HIF_DMA_SIZE) {
++				ret = -EINVAL;
++				goto out_unlock;
++			}
++			mt6797_consys.hif_dma = devm_ioremap_resource(&pdev->dev, dma_resource);
++			if (IS_ERR(mt6797_consys.hif_dma)) {
++				ret = PTR_ERR(mt6797_consys.hif_dma);
++				mt6797_consys.hif_dma = NULL;
++				goto out_unlock;
++			}
++		}
++	}
+ 	if (wmt_query) {
+ 		static const resource_size_t bases[] = {
+ 			0x1100c000, 0x11000a00, 0x11000a80
+@@ -2131,7 +2176,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		void __iomem *mapped[3];
+ 		unsigned int i;
+ 
+-		if (platform_get_resource(pdev, IORESOURCE_MEM, 10) ||
++		if (platform_get_resource(pdev, IORESOURCE_MEM, 11) ||
+ 		    of_irq_count(pdev->dev.of_node) != 1) {
+ 			ret = -EINVAL;
+ 			goto out_unlock;
+-- 
+2.43.0
+

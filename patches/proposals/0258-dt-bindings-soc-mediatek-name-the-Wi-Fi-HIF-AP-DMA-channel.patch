@@ -1,0 +1,50 @@
+From 7b8a693a3a59f9d181298d80e7f2c65fd8e6470a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 15:02:26 -0400
+Subject: [PATCH] dt-bindings: soc: mediatek: name the Wi-Fi HIF AP-DMA channel
+
+The MT6797 Wi-Fi HIF data ports can be moved by the AP-DMA engine's HIF
+channel 0, whose 0x80-byte register window sits at 0x11000080 and whose
+clock is the ap-dma clock the binding already names for BTIF. Add the
+optional wifi-hif-dma register entry, before the analog front-end entry,
+so a board can expose that channel to the connectivity driver.
+---
+ .../bindings/soc/mediatek/mediatek,mt6797-consys.yaml       | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 8db54c825..78ef54d52 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -31,6 +31,7 @@ properties:
+       - description: BTIF controller at 0x1100c000.
+       - description: BTIF AP-DMA TX channel at 0x11000a00.
+       - description: BTIF AP-DMA RX channel at 0x11000a80.
++      - description: Optional Wi-Fi HIF AP-DMA channel 0 at 0x11000080.
+       - description: Optional connectivity analog front-end at 0x180b6000.
+ 
+   reg-names:
+@@ -45,6 +46,7 @@ properties:
+       - const: btif
+       - const: btif-dma-tx
+       - const: btif-dma-rx
++      - const: wifi-hif-dma
+       - const: afe
+ 
+   clocks:
+@@ -263,10 +265,10 @@ allOf:
+       properties:
+         reg:
+           minItems: 9
+-          maxItems: 10
++          maxItems: 11
+         reg-names:
+           minItems: 9
+-          maxItems: 10
++          maxItems: 11
+       required:
+         - mediatek,deferred-wmt-firmware-start
+         - clocks
+-- 
+2.43.0
+

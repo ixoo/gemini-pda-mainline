@@ -863,3 +863,6 @@ proposals/0251-wifi-mt6797-re-arm-only-after-both-of-mac80211-s-key-removals.pat
 proposals/0252-wifi-mt6797-do-not-treat-the-cyclic-data-PID-as-a-re-arm-wrap.patch
 proposals/0253-wifi-mt6797-retire-an-expired-data-slot-as-a-lost-frame.patch
 proposals/0254-wifi-mt6797-re-open-the-scan-after-an-idle-lifetime.patch
+proposals/0258-dt-bindings-soc-mediatek-name-the-Wi-Fi-HIF-AP-DMA-channel.patch
+proposals/0259-arm64-dts-mediatek-expose-the-Gemini-PDA-Wi-Fi-HIF-AP-DMA-channel.patch
+proposals/0260-soc-mediatek-wifi-mt6797-move-the-HIF-data-ports-by-AP-DMA-channel-0.patch
