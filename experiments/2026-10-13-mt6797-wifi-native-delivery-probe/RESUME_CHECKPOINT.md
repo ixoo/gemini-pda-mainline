@@ -11,8 +11,7 @@ measurement profiles. The pass-rate boot is predeclared
 ([record](RX_REBASELINE_RESULT.md#pass-rate-boot-predeclared-2026-10-24-pass-rate-not-pass-order)):
 0264 census, 0265 cap set to one in the lifecycle fragment, the fbcon
 display check riding on it; then receive DMA, the AP-loss gate with loss
-defined under host keep-alives, the station-record rate inputs, and the
-driver-side removal of the orphaned options.
+defined under host keep-alives, and the station-record rate inputs.
 
 # Historical: rate-visibility candidate installed and armed; the owner boots it
 
