@@ -154,7 +154,8 @@ each an update command, and derives the desired non-HT rate set from the
 association response; this driver sends state 1 before authentication and
 state 3 after association, with the desired set from the beacon. The
 smallest difference first:
-[0266](../../patches/proposals/0266-wifi-mt6797-update-the-station-record-at-state-2-after-authentication.patch)
+0266 (retired after the boot; in the git history as
+`patches/proposals/0266-wifi-mt6797-update-the-station-record-at-state-2-after-authentication.patch`)
 sends the state-2 update after authentication (the state-1 payload with
 the state advanced, one record and one credit wait in the join). Profile
 `mt6797-a53-wifi-rate` is re-created for this boot: the lifecycle profile
@@ -173,3 +174,41 @@ transmit rate if any complete. Branches, decided before the boot:
 
 0263 retires again after the boot; 0266 is retained only on the first
 branch.
+
+## State-2 station record boot: inconclusive (join refused), 0266 retired (2026-10-24)
+
+Build `93a9f000`, boot2 `bf9bd805…` over `51faa318…`, mainline boot
+`6de6f8a9…`, returned to Gemian `93ff170a…`, complete sealed log. The
+passive scan passed (`complete=1 beacon=1 credit=1`), the authentication
+frame went out at the fixed rate (`0x004b`, status 0) and its response
+arrived; the state-2 update then returned -22 and the join stopped with
+-110 (`join stopped: status=-110 first=0 submitted=0x800 debt=2
+cleanup=0 branch=2`). No data phase: none of the three branch rows was
+reached, and nothing about the rate table, the state sequence or the
+chosen rates follows from this boot. It is not a rate data point.
+
+Where the -22 came from, read before any vendor interpretation: our own
+code. `mt6797_join_station_payload` (`join-commands.h`) admits station
+states 1 and 3 only, so `mt6797_hif_join_station` (`hif.c`) returned
+-EINVAL before anything was written; the log shows no submission for
+sequence 20 and the firmware never saw the record. The vendor's state-2
+update is the same command (`CMD_ID_UPDATE_STA_RECORD`, 0x13) with the
+same record layout and only `ucStaState` advanced
+(`cnmStaSendUpdateCmd`, `cnm_mem.c`, called from `cnmStaRecChangeState`
+for every state), so no different command or record exists on the
+vendor side; the one concrete difference between the two hosts is the
+state order (1, 2, 3 against 1, 3), which this boot did not exercise.
+
+0266 is retired with that counter-evidence: as written, its premise
+("the same payload, state advanced") was refused by our encoder, and the
+rate thread gets no blind variation. Whether the encoder's admission of
+state 2 is tried once, as the single informed attempt the vendor reading
+allows, is the owner's decision; without it the rate thread closes and
+the forced 6 Mbit/s is recorded as a characterised limit (2.6–2.8 Mbit/s
+of TCP over 802.11a at 6 Mbit/s is plausible efficiency, not a defect),
+reopened only by a firmware-side decode in the RE VM.
+
+Also from this boot, not rate: the stop line's `debt=2 cleanup=0`
+records pages reserved for the refused update and never released; the
+failed-join path keeps a false debt. That fix goes in before the AP-loss
+gate and every reconnection ([transport record](HIF_TRANSPORT_ANALYSIS.md)).

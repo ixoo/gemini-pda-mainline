@@ -1,5 +1,5 @@
 # Rate measurement: the lifecycle profile with the TX-completion rate record (0262),
-# ordinary data frames without a fixed rate (0263) and the state-2 station record (0266).
+# ordinary data frames without a fixed rate (0263).
 # MT6797 mac80211 station driver, single build arm. Replaces the chained
 # experiment fragments: the driver's compile-time structure now follows
 # CONFIG_MT6797_MAC80211 alone, and the retired diagnostics have no option.

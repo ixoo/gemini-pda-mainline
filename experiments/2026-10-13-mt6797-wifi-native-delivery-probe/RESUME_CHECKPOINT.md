@@ -1,4 +1,17 @@
-# Current: the state-2 station-record candidate is installed and armed; the owner boots it
+# Current: state-2 boot inconclusive (join refused); page-debt fix, batching, pruning, guard next
+
+[Autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-inconclusive-join-refused-0266-retired-2026-10-24):
+our own encoder refused station state 2 (-22, `mt6797_join_station_payload`),
+the join stopped before any data phase, and 0266 is retired; the vendor
+uses the same command and record for every state, so only the state order
+differs. The owner decides whether the encoder's admission is tried once
+as the last rate attempt. Next, offline while nothing runs: release the
+page reservation of a refused join command (the stop line reads `debt=2`),
+the receive-batching proposal (the next throughput boot), the second
+pruning increment, and the guard on the console injection. Device
+returned to Gemian `93ff170a…`.
+
+# Historical: the state-2 station-record candidate is installed and armed; the owner boots it
 
 Rate profile `93a9f000` (0262, 0263 for this boot only, 0266) composed
 from the package's tree, installed on boot2 (`bf9bd805…` over `51faa318…`,

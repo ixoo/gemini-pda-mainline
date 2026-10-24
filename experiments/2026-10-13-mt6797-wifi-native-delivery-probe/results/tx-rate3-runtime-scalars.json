@@ -56,7 +56,7 @@
    "0262"
   ]
  },
- "state2-1-staged": {
+ "state2-1": {
   "run": "PIO-throughput-state2-1",
   "profile": "mt6797-a53-wifi-rate",
   "proposals": "0262 record, 0263 unforced data rate (this boot only), 0266 state-2 station record",
@@ -66,6 +66,16 @@
   "board_dtb_sha256": "08f6929f37a85eb8",
   "install_result": "write-synced-flushed-full-readback-verified",
   "written_from_gemian_boot_id": "84dfc8eb-35e9-418b-87e8-d3d02bd37c7c",
-  "status": "installed, device shut down, watcher armed; owner selects boot2"
+  "mainline_boot_id": "6de6f8a9-fc0d-4286-b616-615d77050229",
+  "previous_gemian_boot_id": "84dfc8eb-35e9-418b-87e8-d3d02bd37c7c",
+  "returned_gemian_boot_id": "93ff170a-3025-4e3f-b109-07cf008151aa",
+  "log": {
+   "complete": true,
+   "bytes": 147419
+  },
+  "join": "passive scan passed; auth sent at 0x004b status 0 and answered; state-2 update -22 from mt6797_join_station_payload (our encoder: states 1 and 3 only); join stopped -110 branch 2, submitted=0x800 debt=2 cleanup=0",
+  "verdict": "inconclusive (join refused); not a rate data point; 0266 retired",
+  "einval_origin": "host: join-commands.h mt6797_join_station_payload via hif.c mt6797_hif_join_station; no command submitted",
+  "vendor_reading": "same command 0x13 and record for states 1, 2, 3 (cnm_mem.c cnmStaSendUpdateCmd); only the state order differs"
  }
 }
