@@ -870,3 +870,4 @@ proposals/0261-arm64-dts-mediatek-add-the-Gemini-PDA-Wi-Fi-service-tree.patch
 proposals/0262-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch
 proposals/0263-wifi-mt6797-send-ordinary-data-frames-without-a-fixed-rate.patch
 proposals/0264-wifi-mt6797-count-the-data-phase-s-worker-passes-and-submissions.patch
+proposals/0267-wifi-mt6797-release-the-page-reservation-of-a-refused-join-command.patch

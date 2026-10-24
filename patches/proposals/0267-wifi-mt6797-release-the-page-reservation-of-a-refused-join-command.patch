@@ -1,0 +1,119 @@
+From 842bb5e33b4dafabb90c8a1ea4b0ad957c9acfc4 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 19:30:28 -0400
+Subject: [PATCH] wifi: mt6797: release the page reservation of a refused join
+ command
+
+The state-2 boot's stop line read "debt=2 cleanup=0": the two pages
+reserved for a station record that the host's own encoder refused with
+-EINVAL were never released, so the failed join carried a false debt
+into its stop. A join command refused before any write owes the device
+nothing. Release the reservation and the credit wait on -EINVAL at every
+join-command send, and nowhere else: a transfer that was written keeps
+its debt. The stop line of a refused join then reads debt=0; an ordinary
+boot's accounting is unchanged.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 0043c1c64..f71611c73 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -570,6 +570,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ static int mt6797_mac_join_retire_idle_bss(struct mt6797_mac *mac);
+ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac);
++static void mt6797_mac_join_refused(struct mt6797_mac *mac, int ret);
+ #endif
+ #endif
+ 
+@@ -3006,6 +3007,7 @@ static int mt6797_ccmp_channel_release_step(struct mt6797_mac *mac, u64 now)
+ 	mac->ccmp_channel_release_sequence = mac->sequence++;
+ 	ret = mt6797_hif_join_channel(mac->hif, mac->ccmp_channel_release_sequence,
+ 				      mac->join_channel_token, 40, 0, true, deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN connected channel release: credited=0 sequence=%u status=%d observed_ns=%llu pm_offset_ns=%llu debt=%u\n",
+ 		 mac->ccmp_channel_release_sequence, ret, now, now - mac->ccmp_pm_credit_ns,
+@@ -4948,6 +4950,19 @@ static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
+ 
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ /* Enter and return with the MAC mutex held. Polling must run while we wait. */
++/* A join command the host refused before any write (-EINVAL from the
++ * payload encoder or the HIF argument checks) owes the device nothing:
++ * release the page reservation and the credit wait so the join stops with
++ * a true debt. Pages already written are never released here.
++ */
++static void mt6797_mac_join_refused(struct mt6797_mac *mac, int ret)
++{
++	if (ret != -EINVAL)
++		return;
++	mac->join_page_debt = 0;
++	mac->join_credit_pending = false;
++}
++
+ static int mt6797_mac_join_wait_credit(struct mt6797_mac *mac)
+ {
+ 	u64 now = ktime_get_ns(), deadline = mac->join_credit_deadline;
+@@ -5103,6 +5118,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_page_debt = 1;
+ 	ret = mt6797_hif_join_filter(mac->hif, mac->sequence++,
+ 				     mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (ret)
+@@ -5127,6 +5143,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 				      mac->join_channel_token, 40,
+ 				      mac->join_requested_ms, false,
+ 				      mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (!ret)
+@@ -5141,6 +5158,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	ret = mt6797_hif_join_station(mac->hif, mac->sequence++, mac->join_ap,
+ 				      1, 0, desired, basic,
+ 				      mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (!ret) {
+@@ -5236,6 +5254,7 @@ static int mt6797_ccmp_pm_indicate(struct mt6797_mac *mac, u64 phase_deadline)
+ 	ret = mt6797_hif_join_pm_connected(mac->hif, mac->sequence++,
+ 					   mac->ccmp_dtim_period, mac->join_aid,
+ 					   mac->join_beacon_interval, deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (!ret && (mac->ccmp_closed || mac->closing || mac->join_retired || mac->first_error))
+@@ -5291,6 +5310,7 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 				 mac->join_desired_rates, mac->join_peer_basic_rates,
+ 				 mac->join_short_preamble, mac->join_rsn,
+ 				 mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (ret)
+@@ -5309,6 +5329,7 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	ret = mt6797_hif_join_station(mac->hif, mac->join_sta_sequence,
+ 				     mac->join_ap, 3, aid, mac->join_desired_rates,
+ 				     mac->join_peer_basic_rates, mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+ 	if (ret)
+@@ -5685,6 +5706,7 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	ret = mt6797_hif_join_key(mac->hif, mac->sequence++, true, pairwise,
+ 				  mac->join_ap, key->keyidx, key->key,
+ 				  mac->join_credit_deadline);
++	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret && pairwise)
+ 		mac->join_key_pairwise_submitted = true;
+ 	if (!ret && !pairwise)
+-- 
+2.43.0
+

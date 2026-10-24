@@ -403,3 +403,29 @@ the boot:
 
 The screen indicator may run on this boot as well; it is not evidence.
 The boot is staged when the owner is at the device and the access point.
+
+## Failed-join page reservation (0267, 2026-10-24)
+
+The state-2 boot's stop line read `join stopped: status=-110 … debt=2
+cleanup=0`: two pages reserved for a station record that the host's own
+encoder refused with -EINVAL were never released, so the failed join
+carried a false debt into its stop. A join command refused before any
+write owes the device nothing.
+[0267](../../patches/proposals/0267-wifi-mt6797-release-the-page-reservation-of-a-refused-join-command.patch)
+releases the reservation and the credit wait on -EINVAL at every
+join-command send (eight sites: filter, channel, station at states 1 and
+3, BSS, power-management connected, key, channel release), and nowhere
+else; a transfer that was written keeps its debt. This is the state the
+AP-loss gate and every reconnection start from, so it goes in before
+them.
+
+Acceptance: the stop line of a refused join reports `debt=0`, the
+teardown and cleanup counters agree, and an ordinary boot's stop and
+data-end accounting are unchanged. The host test for the join peer path
+(`2026-10-07-mt6797-wifi-phase-b-join/tests/join-peer-test.c`) no
+longer compiles against the current driver (its struct shim predates
+the lifetime, absence and data-slot fields), so it cannot carry a
+refusal case; that staleness is an input to the second pruning
+increment. The failure path itself is not exercised on the device
+without spending a boot; it is verified on the next ordinary boot's
+accounting, and that boot's record says so plainly.
