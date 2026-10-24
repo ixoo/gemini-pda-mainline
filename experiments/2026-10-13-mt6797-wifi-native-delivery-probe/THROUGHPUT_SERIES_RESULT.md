@@ -27,7 +27,7 @@ described here; each run's own artefacts are named.
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
-The device tree these runs booted is not reproducible from committed inputs (one inherited `board.dtb` since 2026-10-17, see the [transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result)); a reproducibility fix is pending and precedes further device work.
+The device tree these runs booted is not reproducible from committed inputs (one inherited `board.dtb` since 2026-10-17, see the [transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result)); proposal 0261 reproduces it from source ([provenance record](DEVICE_TREE_PROVENANCE.md)); the equivalence boot is pending and precedes further device work.
 
 Protocol in every column: five chunks per direction, 1 s or 1 MiB per chunk,
 plain TCP for data, SSH only for control, prompt standard disconnect. The

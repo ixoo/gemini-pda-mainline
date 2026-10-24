@@ -62,11 +62,11 @@ Keep this file under 200 lines; move anything else to an experiment record.
   Sustained 60 s / 2 min / 10 min acceptance remains untested.
 - **Open.** Wi-Fi station operation beyond two bounded lifetimes on one boot
   (reconnection after access-point loss is untested); replay
-  enforcement in firmware is unknown. The device tree the Wi-Fi boots run
-  is one inherited composition artifact that no build reproduces, with
-  three `consys` properties absent from every DTS patch; the series must be
-  reconciled with the booted tree before any boot from a freshly built one
-  ([transport record §6](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result)). No charging, RTC alarm or lid.
+  enforcement in firmware is unknown. The device tree the Wi-Fi boots ran
+  until 2026-10-24 was an inherited binary that no build reproduced;
+  proposal 0261 now reproduces it from source and one equivalence boot
+  must confirm it before any further Wi-Fi device work
+  ([provenance record](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DEVICE_TREE_PROVENANCE.md)). No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.
 - **Device (2026-10-18 UTC).** D2 consumed; evidence sealed and reviewed return

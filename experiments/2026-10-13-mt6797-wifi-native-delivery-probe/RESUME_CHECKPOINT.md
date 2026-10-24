@@ -1,4 +1,16 @@
-# Current: DMA series paused after boot 2; device-tree reproducibility first
+# Current: the service tree (0261) reproduces the booted device tree; equivalence boot next
+
+[Provenance record](DEVICE_TREE_PROVENANCE.md): the tree every Wi-Fi run
+booted since 2026-10-17 is identified (`25ab60f4…`, a mid-August
+serviceability tree edited in place by the July and October experiments),
+and proposal 0261 reproduces it from source: zero nodes and zero
+properties differ from the boot-2 tree, only phandle numbering. Next: build
+the lifecycle profile with 0261, compose a candidate from the package's own
+service tree (composers no longer copy a parent's tree), and run the
+predeclared equivalence boot; then the rate-visibility boot, the pass-rate
+boot, and receive DMA on the reproducible tree.
+
+# Historical: DMA series paused after boot 2; device-tree reproducibility first
 
 Owner direction (2026-10-24): no further DMA candidate is installed until
 the device tree the Wi-Fi runs boot can be regenerated from committed

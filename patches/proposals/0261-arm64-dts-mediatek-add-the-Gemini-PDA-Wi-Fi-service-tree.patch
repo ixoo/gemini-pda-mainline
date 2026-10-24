@@ -1,0 +1,201 @@
+From 6377f59f873f26a0828efd03dd089a09f0d9afee Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 17:13:32 -0400
+Subject: [PATCH] arm64: dts: mediatek: add the Gemini PDA Wi-Fi service tree
+
+From 2026-10-17 to 2026-10-24 every Gemini PDA Wi-Fi candidate booted one
+board device tree carried from candidate to candidate as a binary: a
+mid-August serviceability tree (keyboard, USB gadget, simple framebuffer)
+whose connectivity-subsystem node the October WMT experiments edited in
+place with fdtput. No build reproduced it, and three of its consys
+properties were set by no source file. This variant reproduces that tree
+from source on top of the current board file: the service enables, the
+consys configuration the Wi-Fi driver runs with (WMT negotiation and
+common init, coexistence antenna mode 1, the AFE resource, the wireless
+child enabled) and the board changes made after the tree was built that
+it never received, undone here. Its output matches the booted tree node
+for node and property for property; only phandle numbering differs.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ arch/arm64/boot/dts/mediatek/Makefile         |   1 +
+ .../mt6797-gemini-pda-wifi-service.dts        | 155 ++++++++++++++++++
+ 2 files changed, 156 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+index 2b77bae8d..adeb1baa5 100644
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -10,6 +10,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-clock-backend-entry.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-protected-readback.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-physical-source.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-admission.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-wifi-service.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-bananapi-bpi-r64.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts
+new file mode 100644
+index 000000000..37235b2c8
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts
+@@ -0,0 +1,155 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ *
++ * The device tree the Gemini PDA Wi-Fi experiments boot, reproduced from
++ * source. From 2026-10-17 to 2026-10-24 every Wi-Fi candidate carried one
++ * binary board tree from candidate to candidate: a mid-August
++ * serviceability tree (keyboard, USB gadget, simple framebuffer) whose
++ * connectivity-subsystem node the October WMT experiments edited in place.
++ * Board changes made after that tree was built, which it never received,
++ * are undone here so that this file's output matches it node for node and
++ * property for property; only phandle numbering differs.
++ */
++
++#include "mt6797-gemini-pda.dts"
++
++/ {
++	chosen {
++		#address-cells = <2>;
++		#size-cells = <2>;
++		ranges;
++
++		framebuffer@7dfb0000 {
++			compatible = "simple-framebuffer";
++			reg = <0 0x7dfb0000 0 0x1f90000>;
++			width = <1080>;
++			height = <2160>;
++			stride = <4352>;
++			format = "a8r8g8b8";
++			clocks = <&infrasys CLK_INFRA_DISP_PWM>,
++				 <&topckgen CLK_TOP_MUX_MM>;
++		};
++	};
++
++	/delete-node/ ram-console;
++
++	consys@10001340 {
++		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
++		      <0 0x18070008 0 4>, <0 0x18070110 0 4>,
++		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>,
++		      <0 0x1100c000 0 0x1000>, <0 0x11000a00 0 0x80>,
++		      <0 0x11000a80 0 0x80>, <0 0x11000080 0 0x80>,
++		      <0 0x180b6000 0 0x100>;
++		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
++			    "wifi-hif", "emi-selector",
++			    "btif", "btif-dma-tx", "btif-dma-rx", "wifi-hif-dma",
++			    "afe";
++		/delete-property/ mediatek,one-shot-wmt-identity-capture;
++		mediatek,one-shot-wmt-negotiate;
++		mediatek,one-shot-wmt-common-init;
++		mediatek,coex-antenna-mode = <1>;
++
++		wifi {
++			/delete-property/ status;
++		};
++	};
++
++	firmware {
++		atag-devinfo {
++			/delete-node/ ptp-calibration-data@c;
++			/delete-node/ cpu-efuse-identity@58;
++		};
++	};
++
++	reserved-memory {
++		memory@44600000 {
++			compatible = "mediatek,mt6797-atf-reserved-memory";
++		};
++
++		memory@44610000 {
++			compatible = "mediatek,mt6797-atf-ramdump-memory";
++		};
++
++		memory@44640000 {
++			compatible = "mediatek,cache-dump-memory";
++		};
++	};
++
++	scp@10020000 {
++		compatible = "mediatek,scp";
++		reg = <0 0x10020000 0 0x80000>, <0 0x100a0000 0 0x1000>,
++		      <0 0x100a4000 0 0x1000>;
++		interrupts = <GIC_SPI 199 IRQ_TYPE_LEVEL_HIGH>;
++		status = "disabled";
++	};
++
++	cpus {
++		/delete-node/ cpu-map;
++	};
++};
++
++/delete-node/ &a72_platform_state;
++/delete-node/ &dvfsp_resource_owner;
++/delete-node/ &dvfsp_bigidvfs_backend;
++/delete-node/ &dvfsp_clock_backend;
++
++&dvfsp_handoff {
++	/delete-property/ nvmem-cells;
++	/delete-property/ nvmem-cell-names;
++};
++
++&watchdog {
++	/delete-property/ interrupts;
++};
++
++&i2c6 {
++	compatible = "mediatek,mt6797-i2c", "mediatek,mt6577-i2c";
++};
++
++&da9214 {
++	compatible = "dlg,da9214";
++	reg = <0x68>;
++	/delete-property/ reg-names;
++
++	regulators {
++		BUCKA {
++			regulator-name = "da9214-bucka";
++		};
++
++		BUCKB {
++			regulator-name = "vproc-big";
++		};
++	};
++};
++
++&i2c5 {
++	clock-frequency = <400000>;
++	status = "okay";
++};
++
++&aw9523 {
++	/delete-property/ interrupt-parent;
++	/delete-property/ interrupts;
++	/delete-property/ interrupt-controller;
++	/delete-property/ #interrupt-cells;
++	status = "okay";
++};
++
++&{/keyboard-matrix} {
++	col-scan-delay-us = <2>;
++	poll-interval = <20>;
++	status = "okay";
++};
++
++&u3phy {
++	status = "okay";
++};
++
++&u2port0 {
++	status = "okay";
++};
++
++&ssusb {
++	status = "okay";
++};
+-- 
+2.43.0
+

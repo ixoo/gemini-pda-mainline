@@ -9,7 +9,7 @@ before selecting the network again. Build input `88f5edaf`, boot
 `8dac7669…`, candidate `519581a8…`, boot2 `10978b3c…`, admitted at 6.4 s
 uptime.
 
-The device tree these runs booted is not reproducible from committed inputs (one inherited `board.dtb` since 2026-10-17, see the [transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result)); a reproducibility fix is pending and precedes further device work.
+The device tree these runs booted is not reproducible from committed inputs (one inherited `board.dtb` since 2026-10-17, see the [transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result)); proposal 0261 reproduces it from source ([provenance record](DEVICE_TREE_PROVENANCE.md)); the equivalence boot is pending and precedes further device work.
 
 ## Cycle 1: pass
 
