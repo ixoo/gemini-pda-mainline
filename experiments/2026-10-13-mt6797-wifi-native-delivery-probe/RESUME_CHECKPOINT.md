@@ -1,4 +1,18 @@
-# Current: flow-control measured negative and retired; pipelining next
+# Current: pipelining measured TX ×2.6; autorate next
+
+[Pipelining result](TX_PIPELINING_RESULT.md): submitting every admissible
+data frame per worker pass took TX from 1.225 to 3.198 Mbit/s (chunks
+within 4 %), median completion gap 0.61 ms; RX 7.63 against 10.01, not
+attributed on one run. The teardown completed with 0243/0247 in the tree
+(absence notice admitted after the credit; no refusal). Device returned to
+changed-boot Gemian `f0e12505-a599-410e-9319-a5e2f9f69bb5`; the pipelining
+image (boot2 `ec96eb96…`) is the installed predecessor of autorate.
+
+Next boot: autorate (pipelining tree + 0242, firmware-selected rate for
+ordinary data frames), then lifecycle. Key reuse, rekey and reconnect
+remain disabled until the lifecycle boot.
+
+# Historical: flow-control measured negative and retired; pipelining next
 
 [Flow-control result](TX_FLOW_CONTROL_RESULT.md): holding the mac80211
 queue (0235) lost a fifth to a quarter in both directions (TX 0.922,

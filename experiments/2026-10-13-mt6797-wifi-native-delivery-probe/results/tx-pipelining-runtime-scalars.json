@@ -1,0 +1,84 @@
+{
+  "runs": {
+    "pipelining-1": {
+      "run": "PIO-throughput-pipelining-1",
+      "profile": "mt6797-a53-wifi-pipelining",
+      "proposals_under_test": [
+        "0236",
+        "0243",
+        "0247"
+      ],
+      "kernel_build_commit": "88f5edafd1b06cf2edd71efe3ef9490e2e6a775d",
+      "candidate_manifest_sha256": "2ddfa9246f7e484e58820b871cb2a208cd9998ade001b3e7d51ba45632d4a88a",
+      "boot2_sha256": "ec96eb967b7e01328e0ac48ac77c7221c1120d61f201d86817c84d45686a41a9",
+      "mainline_boot_id": "1cd23f95-d978-4607-9946-8f1f62253460",
+      "previous_gemian_boot_id": "54cfeeb8-c0d8-4b0d-a016-d8d74844de1b",
+      "returned_gemian_boot_id": "f0e12505-a599-410e-9319-a5e2f9f69bb5",
+      "admitted_uptime_s": 7.46,
+      "complete_log_records": 27026,
+      "throughput": {
+        "tx_host_received_mbit_s": 3.198,
+        "tx_chunk_mbit_s": [
+          3.91,
+          4.03,
+          3.89,
+          3.98,
+          3.92
+        ],
+        "tx_device_cpu_idle_percent": 85.8,
+        "rx_host_sent_mbit_s": 7.626,
+        "rx_device_chunk_mbit_s": [
+          12.16,
+          13.53,
+          14.22,
+          13.53,
+          13.32
+        ],
+        "rx_device_cpu_idle_percent": 77.6
+      },
+      "completion_gaps_ms": {
+        "scope": "all 4,081 TX completions in the sealed log",
+        "median": 0.61,
+        "p75": 2.43,
+        "p90": 7.84,
+        "bins": {
+          "lt_6": 3204,
+          "6_to_12": 836,
+          "12_to_25": 15,
+          "ge_25": 25
+        }
+      },
+      "data_phase": {
+        "end_reason": "disconnect",
+        "elapsed_ms": 21187,
+        "tx_queued": 4076,
+        "tx_done": 4068,
+        "tx_failed": 8,
+        "tx_credits": 25190,
+        "pid_allocations": 4080,
+        "pid_completions": 4080,
+        "pid_wraps": 32,
+        "unowned": 0
+      },
+      "teardown": {
+        "host_ack_accepted": true,
+        "standard_disconnect": "accepted, exit 0",
+        "pm_abort_status": 0,
+        "deauth_delivery": "transmitted, completion and cleanup phases",
+        "absence_notice": "admitted after the stage-2 credit (bss=0 absent=0)",
+        "cleanup_stage_3": "credits=returned slots=retired",
+        "ccmp_stable_disable_status": 0,
+        "join_stopped_record": false,
+        "notice_refusals": 0
+      },
+      "session": {
+        "capture_exit": 0,
+        "session_exit": 1,
+        "export": "accepted; log_complete true",
+        "return": "native, changed-ID-Gemian, 15.4 s",
+        "retry": false
+      },
+      "decision": "0236 retained; RX decrease not attributed (one run)"
+    }
+  }
+}
