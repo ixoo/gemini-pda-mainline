@@ -87,8 +87,12 @@ window). The per-chunk device receive rate fell from 16–18 to 11–12
 Mbit/s, about 0.3 ms more per received frame, and the mechanism is not
 identified by these runs. A capped submission count per pass, the second
 variant proposed, cannot engage for the same reason the reorder did not;
-the receive path itself has no per-frame records, so the next step that
-can discriminate is receive-path instrumentation (frames per pass, read
+a repeat of the vendor control after this boot measured 45.1 Mbit/s
+transmit and 38.5 Mbit/s receive on the same link (RSSI −54 dBm;
+[scalars](results/vendor-control-2.json)), above the 2026-10-23 control,
+so the link has not degraded and the mainline receive level is not
+link-limited; the receive path itself has no per-frame records, so the
+next step that can discriminate is receive-path instrumentation (frames per pass, read
 time per frame, pass cadence) on the same image, or a boot of the
 pre-pipelining station tree with only 0236 added, to re-establish which
 boot moved the receive rate.

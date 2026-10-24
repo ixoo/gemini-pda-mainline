@@ -23,6 +23,7 @@ described here; each run's own artefacts are named.
 | [rx-fix](RX_REBASELINE_RESULT.md#rx-fix-boot-0256-retired-the-order-inside-the-pass-is-not-the-mechanism) | 0256: receive port served before submission in a busy pass (retired) | 2.75 | 7.23 (device-side chunks 11.3–12.7) | 86.2% / 78.5% |
 | [rx-rebaseline](RX_REBASELINE_RESULT.md) | lifecycle tree (0236 + 0240–0254), five chunks, one lifetime, nothing changed | 2.760 | 6.99 (device-side chunks 10.5–12.0) | 86.1% / 78.5% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
+| **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
 Protocol in every column: five chunks per direction, 1 s or 1 MiB per chunk,
 plain TCP for data, SSH only for control, prompt standard disconnect. The
