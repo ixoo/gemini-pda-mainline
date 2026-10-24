@@ -1,0 +1,57 @@
+{
+  "run": "PIO-throughput-rxbase-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "kernel_build_commit": "d838628f89a2247df3a72319f8d3d74577357448",
+  "boot2_sha256": "87d7b5322b97fe6c7b6e1b2b2726a5437d818645834914d4334d43e62ccf9b23",
+  "install_result": "skipped-already-matching",
+  "mainline_boot_id": "95fc360b-71be-473e-9ecb-274a9d0b2b9c",
+  "previous_gemian_boot_id": "605bbbd1-7efb-4f95-b329-aba26c1a08f5",
+  "returned_gemian_boot_id": "c9fa4427-c705-4ad2-8426-1b26d205b0e9",
+  "protocol": "five chunks per direction, 1 s or 1 MiB per chunk, one lifetime, standard disconnect",
+  "rx": {
+    "host_sent_aggregate_mbit_s": 6.99,
+    "device_chunk_mbit_s": [
+      11.81,
+      11.98,
+      11.98,
+      10.49,
+      11.49
+    ],
+    "host_chunk_mbit_s": [
+      16.59,
+      24.45,
+      23.06,
+      19.78,
+      23.33
+    ],
+    "bytes": 5242880,
+    "elapsed_ms": 6000,
+    "device_cpu_idle_percent": 78.5
+  },
+  "tx": {
+    "host_received_aggregate_mbit_s": 2.76,
+    "host_chunk_mbit_s": [
+      3.45,
+      3.3,
+      3.16,
+      3.17,
+      3.49
+    ],
+    "bytes": 2072864,
+    "elapsed_ms": 6008,
+    "device_cpu_idle_percent": 86.1
+  },
+  "data_phase": {
+    "elapsed_ms": 21546,
+    "tx_queued": 3936,
+    "tx_done": 3935,
+    "tx_failed": 1,
+    "end_reason": "disconnect",
+    "disconnect_accepted": true
+  },
+  "log": {
+    "complete": true,
+    "bytes": 1656991
+  },
+  "verdict": "receive level since pipelining reproducible (7.0-7.6 host-side, 10.5-14 device-side on four boots) against 9.9-10.0 / 16-18 before: pipelining cost about 30% RX; not link variance; cycle-2 5.54 remains one unexplained low run"
+}

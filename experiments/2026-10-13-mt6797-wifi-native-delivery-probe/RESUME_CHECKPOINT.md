@@ -1,4 +1,21 @@
-# Current: lifecycle boot 10 refused by the host harness; RX re-baseline next
+# Current: RX re-baseline measured; the rate boot (0255) is next
+
+[RX re-baseline](RX_REBASELINE_RESULT.md): on the installed lifecycle image,
+five chunks both directions, one lifetime, RX 6.99 Mbit/s host-side and
+10.5–12.0 device-side per chunk, TX 2.76 (chunks 3.16–3.49). The receive
+level since pipelining (7.0–7.6 / 10.5–14 on four boots) against 9.9–10.0
+/ 16–18 before it is reproducible: pipelining cost about 30 % RX; the link
+is not the explanation; cycle 2's 5.54 stays one unexplained low run.
+Device returned to changed-boot Gemian
+`c9fa4427-c705-4ad2-8426-1b26d205b0e9`. Boot 10's idle loss is recorded as
+a finding: idle, the link is lost after about six minutes; a host-side
+keep-alive is a separate queued variable.
+
+Next: the rate boot, proposal 0255 (build `4a37c041`), then the RX-cost
+experiment (bound submissions per pass when the receive port has pending
+frames), the three-cycle lifecycle boot, the access-point-loss boot.
+
+# Historical: lifecycle boot 10 refused by the host harness; RX re-baseline next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): boot 10 (lifecycle tree + 0254,
 boot2 `87d7b532…`, three planned cycles) measured nothing: the retained

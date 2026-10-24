@@ -334,6 +334,21 @@ connection holds under light traffic; idle, it does not. Recorded as an
 open item for general operation. The loss path itself, data end, cleanup
 and re-arm, behaved as the loss test expects.
 
+**Finding: connected but idle, the link is lost after about six minutes;
+under light periodic traffic it holds for 600 s.** The frame-count
+discriminator was applied to this log: between the last host frame at
+21.6 s and the loss at 382.7 s the driver recorded no transmit completion
+(slot ledger 11 allocations, 11 completions, none unowned), and the
+driver's transmit admission passes only control-port EAPOL and LLC/SNAP
+data, so mac80211's null-data keep-alive cannot reach the air. The
+firmware's own keep-alive frames report no host completion, so the zero
+count does not show whether they were sent; the loss came 361 s after the
+last host frame, a multiple of the firmware's 30-second keep-alive period,
+which fits a keep-alive that runs and fails to hold the association rather
+than one that never ran. Either way the host must keep the link alive
+itself, with a periodic frame the gate admits or a keep-alive shape admitted
+deliberately; that is a separate variable, queued after the rate boot.
+
 ## Evidence
 
 `artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-10/` (sealed
