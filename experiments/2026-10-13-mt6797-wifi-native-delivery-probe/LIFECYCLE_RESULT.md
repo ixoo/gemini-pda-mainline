@@ -1,4 +1,4 @@
-# Lifecycle boots 1 to 9: each boot takes the second lifetime one stage further
+# Lifecycle boots 1 to 10: each boot takes the second lifetime one stage further
 
 Result record, 2026-10-24. One boot on the `mt6797-a53-wifi-lifecycle`
 profile (pipelining tree plus 0240 re-arm, 0241 loss reason, 0243) under
@@ -283,9 +283,60 @@ interpreted. Reconnection after an access-point loss, rather than after
 the host's standard disconnect, is the next lifecycle question and
 remains untested.
 
+## What two lifetimes establish, and what they do not
+
+Two lifetimes ran on the device with fresh keys, in one complete sealed log
+(boot 9). The re-arm barrier that admitted the second is host-side: the
+stage-3 cleanup, the whole slot ledger retired and both key removals
+credited. It is not a firmware guarantee. The firmware's key-done event
+carries no generation, and a returned page credit does not bound event
+delivery (measured: the event arrives 1–5 ms after the credit), so a stale
+untagged key event could satisfy a new install window; the PN epochs bound
+the damage to a failed lifetime rather than a plaintext leak, and nothing
+here claims replay or attribution safety. Reconnection after access-point
+loss, longer operation and power management remain untested; boot 10 adds
+that an idle connection was lost after six minutes.
+
+## Lifecycle boot 10: the host harness refused three cycles; an idle connection was lost at 367 s
+
+New image: build `d838628f` adds proposal 0254 (an idle scan re-opens the
+scan cycle instead of fail-stopping the lifetime), boot2 `87d7b532…`
+(predecessor `10a1b156…`), boot `5805513e…`. Planned: three
+supplicant-driven lifetimes with one chunk per direction. Nothing was
+measured: the host helper exited with status 2 before any Wi-Fi exchange.
+The retained phase-b parser that the helper chain runs through admits one
+or two cycles and refuses three; that exit bypassed the helper's failure
+receipt, the session host then had no quiescence result and refused export,
+and the device was returned by the reviewed preservation path (quiescence
+proved, complete log sealed, changed-boot Gemian
+`605bbbd1-7efb-4f95-b329-aba26c1a08f5`). Harness result, not a driver
+result; the harness now hands that parser its admitted value while the plan
+binds the real count, and a parser exit leaves a receipt. The
+third-lifetime question is unanswered and queued behind the RX
+re-baseline and the rate boot.
+
+What the device did while it waited: cycle 1 scanned, joined (activation
+lifetime 1 at 14.9 s), completed the handshake, DHCP and pings (7 data
+frames queued, 7 done), then sat connected with no host traffic. At
+382.7 s uptime, 366.7 s into the data phase, the firmware reported a
+connection loss (`source=monitor reason=4 class=air`), the first time the
+owned loss path has fired on the device. The driver ended the data phase
+with reason connection-loss, ran the three-stage cleanup with the
+deauthentication transmitted, saw both keys removed and re-armed
+(`lifetime=1 token=2`). The leaf had already stopped (its acknowledgment
+window closed at the terminal), so no scan followed and 0254's path was not
+exercised. Two readings remain open and this boot does not separate them:
+an access-point inactivity disassociation of a station that sent nothing
+for six minutes (4 is the 802.11 inactivity reason code, if the firmware
+passes it through), or a firmware keep-alive that is not running. The
+600-second P2E-D2 gate passed with a probe every ten seconds, so the
+connection holds under light traffic; idle, it does not. Recorded as an
+open item for general operation. The loss path itself, data end, cleanup
+and re-arm, behaved as the loss test expects.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-9/` (sealed
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-10/` (sealed
 sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
@@ -293,6 +344,7 @@ install receipts under
 `…/mt6797-wifi-tx-lifecycle3-deployment-1/`,
 `…/mt6797-wifi-tx-lifecycle4-deployment-1/`,
 `…/mt6797-wifi-tx-lifecycle5-deployment-1/`,
-`…/mt6797-wifi-tx-lifecycle6-deployment-1/` and
-`…/mt6797-wifi-tx-lifecycle7-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle6-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle7-deployment-1/` and
+`…/mt6797-wifi-tx-lifecycle10-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).

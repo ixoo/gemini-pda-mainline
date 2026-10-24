@@ -572,6 +572,48 @@
         ]
       },
       "verdict": "second-lifetime item closed: two complete station lifetimes with the driver re-arm between them in one complete sealed log"
+    },
+    "lifecycle-10": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-10)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "image": "new: lifecycle tree + proposal 0254",
+      "planned": {
+        "cycles": 3,
+        "chunks_each": 1,
+        "loss_cycle": null
+      },
+      "kernel_build_commit": "d838628f89a2247df3a72319f8d3d74577357448",
+      "boot2_sha256": "87d7b5322b97fe6c7b6e1b2b2726a5437d818645834914d4334d43e62ccf9b23",
+      "predecessor_boot2_sha256": "10a1b156be6df67180cd7d95d3802acb7dcccc129da331b88c35db14b044b4d4",
+      "mainline_boot_id": "5805513e-d854-468e-98a6-56f339e073ad",
+      "previous_gemian_boot_id": "c73da941-e073-4de7-9edb-4ca8df2122c9",
+      "returned_gemian_boot_id": "605bbbd1-7efb-4f95-b329-aba26c1a08f5",
+      "outcome": "host harness refusal before any Wi-Fi exchange: the retained phase-b parser admits one or two cycles and exited 2 on three; no receipt; session export refused; reviewed preservation sealed the complete log and returned the device",
+      "fix": "lifecycle-helper hands the parser its admitted value (plan binds the real count); a parser exit now leaves a receipt",
+      "throughput": "not measured",
+      "device": {
+        "cycle_1": "scan, join (activation lifetime 1 at 14.9 s), handshake, DHCP, pings; 7 data frames queued and done; then idle",
+        "connection_loss": {
+          "uptime_s": 382.7,
+          "data_phase_elapsed_ms": 366703,
+          "report": "source=monitor reason=4 class=air",
+          "data_end_reason": "connection-loss",
+          "cleanup": "stage 3, deauth transmitted, both keys removed",
+          "rearm": "lifetime=1 token=2 sta_seq=21 sequence=35",
+          "first_owned_loss_event_on_device": true
+        },
+        "idle_scans": 0,
+        "third_lifetime": "unanswered"
+      },
+      "log": {
+        "complete": true,
+        "bytes": 173179,
+        "records": 2128,
+        "sealed": "sealed-on-sigterm, result pass (preservation)",
+        "session_classification": "export refused by the session host; preserved separately"
+      },
+      "open": "idle connection lost after ~6 min: access-point inactivity disassociation or firmware keep-alive not running; not separated",
+      "retry": false
     }
   }
 }

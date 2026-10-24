@@ -36,6 +36,11 @@ vendor control used the same laptop as the far end.
    phase count as pending so the worker could never fall back to the 20 ms
    interval mid-stream. TX moved 0.837 → 0.876 (+4.7%), inside noise. That patch
    was therefore reverted; depth and yield are retained.
+4. **Pipelining confirmed the per-frame host-cost diagnosis.** 0236 submits
+   every admissible data frame per worker pass; the ~12 ms per frame was
+   descriptor, payload and status per pass, and TX went 1.225 → 3.198
+   Mbit/s ([pipelining](TX_PIPELINING_RESULT.md)). That closes this series;
+   the rate word is the next single variable.
 
 ## What the numbers point at next
 

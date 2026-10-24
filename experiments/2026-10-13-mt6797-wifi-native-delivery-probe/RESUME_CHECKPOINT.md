@@ -1,4 +1,25 @@
-# Current: lifecycle boot 9 sealed two lifetimes in one complete log
+# Current: lifecycle boot 10 refused by the host harness; RX re-baseline next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): boot 10 (lifecycle tree + 0254,
+boot2 `87d7b532…`, three planned cycles) measured nothing: the retained
+parser behind the helper admits two cycles at most and exited before any
+exchange; fixed in the harness. While the leaf waited, the firmware
+reported an air-class connection loss after 367 s idle and the driver took
+the loss path cleanly (data end, cleanup, re-arm); whether that is the
+access point's inactivity timer or a missing keep-alive is open. Device
+returned to changed-boot Gemian `605bbbd1-7efb-4f95-b329-aba26c1a08f5`;
+the 0254 image remains installed.
+
+Next, one variable per boot: (1) RX re-baseline, the five-chunk protocol
+both directions, one lifetime, on the installed lifecycle image, to answer
+whether pipelining cost receive throughput (10.01 → 7.63 → 7.11 → 5.54
+across boots) or the link varies; (2) rate, proposal 0255 (ordinary data
+descriptors with no fixed rate and a zero rate word, as the vendor data
+path builds them; 0242 had left the rate code without the enable bit)
+against 3.198 Mbit/s; (3) the three-cycle lifecycle boot; (4) the
+access-point-loss boot on 0254.
+
+# Historical: lifecycle boot 9 sealed two lifetimes in one complete log
 
 [Lifecycle result](LIFECYCLE_RESULT.md): on the lifecycle-7 image (boot2
 `10a1b156…`) with two chunks per direction, boot `b4be0086…` ran two
