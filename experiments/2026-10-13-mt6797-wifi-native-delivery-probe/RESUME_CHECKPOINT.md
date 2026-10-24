@@ -1,4 +1,19 @@
-# Current: transmit DMA passed on boot 2; the receive-direction build is next
+# Current: DMA series paused after boot 2; device-tree reproducibility first
+
+Owner direction (2026-10-24): no further DMA candidate is installed until
+the device tree the Wi-Fi runs boot can be regenerated from committed
+inputs. Order: identify the inherited tree and its origin exactly; add
+the DTS change that reproduces it; build from committed inputs alone and
+account for any delta; one equivalence boot (identity and notes, firmware
+start, common init 285/285, TX/RX within the seen variance); then one
+boot that makes the unforced rate visible (TX-done rate field restored
+for one measurement, 0255 variant with fixed-rate management as the
+control); then one boot measuring passes per second with data
+submissions capped at one per pass; then the receive-direction DMA on the
+reproducible tree. The receive-direction fragment line is reverted until
+then; the transmit direction stays admitted, as booted.
+
+# Historical: transmit DMA passed on boot 2; the receive-direction build is next
 
 [Transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result):
 boot 2 (`9d276157`, boot2 `b9afec4d…`, mainline `6227a6ba…`, returned to
