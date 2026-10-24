@@ -748,3 +748,4 @@ proposals/0260-soc-mediatek-wifi-mt6797-move-the-HIF-data-ports-by-AP-DMA-channe
 proposals/0261-arm64-dts-mediatek-add-the-Gemini-PDA-Wi-Fi-service-tree.patch
 proposals/0264-wifi-mt6797-count-the-data-phase-s-worker-passes-and-submissions.patch
 proposals/0267-wifi-mt6797-release-the-page-reservation-of-a-refused-join-command.patch
+proposals/0268-wifi-mt6797-receive-by-the-enhanced-status-block-and-aggregated-reads.patch

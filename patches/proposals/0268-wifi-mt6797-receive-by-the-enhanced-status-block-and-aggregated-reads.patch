@@ -1,0 +1,400 @@
+From c672b76bb331e5f0ad7900e10db310c7c38820a6 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 19:47:15 -0400
+Subject: [PATCH] wifi: mt6797: receive by the enhanced status block and
+ aggregated reads
+
+The receive-direction DMA boot showed the byte moves are not the receive
+cost; what remains per received frame is the register work around it: a
+length register read, a transfer setup, a guard and a status read, with
+the worker making five thousand passes a second. The vendor driver reads
+the enhanced status block once (receive queue counts and frame lengths)
+and then one aggregated data-port read per queue. Do the same, by
+polling, behind a build option: once per worker pass read the 112-byte
+block from the WHISR register, read each non-empty queue's frames in one
+aggregated transfer, split them by the reported lengths with the same
+header check as before, and serve them from that cache; the worker loop
+is unchanged and a pass that finds the cache empty reads the block once.
+The mode is switched on in WHCR at the first receive (sixteen lengths,
+enhance bit) and read back; the data-end record counts block reads,
+aggregates, frames and failures. The coherent bounce buffer grows to hold
+one queue's aggregate.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  10 +
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 230 ++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h   |   8 +
+ drivers/net/wireless/mediatek/mt6797/mac.c   |  12 +
+ 4 files changed, 259 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 9e7141935..8470144b8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -85,6 +85,16 @@ config MT6797_HIF_DMA_RX
+ 	  transfer completes by polling the channel's own flag under the
+ 	  context deadline; a timeout poisons the context like a PIO fault.
+ 
++config MT6797_HIF_RX_BATCH
++	bool "MT6797 Wi-Fi HIF: receive by the enhanced status block and aggregated reads"
++	depends on MT6797_HIF_DMA_RX
++	help
++	  Once per worker pass read the enhanced status block (receive queue
++	  counts and frame lengths), then read each queue's frames in one
++	  aggregated data-port transfer and serve them from that cache: no
++	  per-frame length register read or guard. The vendor's receive
++	  path by polling; a measurement variable for the receive ceiling.
++
+ config MT6797_CCMP_TX_DEPTH
+ 	int
+ 	depends on MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 674c9ad3a..8e3fe5167 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -12,6 +12,7 @@
+ #include <linux/io.h>
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
++#include <linux/unaligned.h>
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ #endif
+@@ -27,6 +28,12 @@
+ #define MT6797_RX_SW_FRAME 0xe001U
+ #define MT6797_RX_DATA_TYPE 2U
+ 
++/* Receive batching (0268): one queue's aggregate of sixteen maximum frames, and
++ * the enhanced status block.
++ */
++#define MT6797_HIF_RX_BATCH_QUEUE_BYTES	(16U * ALIGN(MT6797_HIF_RX_MAX_PACKET + 4U, 4))
++#define MT6797_HIF_RX_BATCH_BLOCK_BYTES	112U
++
+ struct mt6797_hif {
+ 	void __iomem *base;
+ 	/* Serializes this context, transaction and scratch; never external owners. */
+@@ -59,6 +66,22 @@ struct mt6797_hif {
+ 	bool dma_addr2;
+ 	unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
+ 	u8 scratch[2560];
++	/* Receive batching (0268): the enhanced status block read once per
++	 * worker pass, the aggregated data-port read per queue it names, and
++	 * the frames served from that cache without per-frame register work.
++	 */
++	bool rx_batch_forced, rx_batch_enabled, rx_batch_on, rx_batch_refill;
++	u32 rx_batch_whcr_before, rx_batch_whcr_after;
++	unsigned int rx_batch_reads, rx_batch_aggregates, rx_batch_frames,
++		     rx_batch_empty, rx_batch_max_frames, rx_batch_failures;
++	unsigned int rx_batch_count, rx_batch_next;
++	struct {
++		u8 port;
++		u16 length;
++		u32 offset;
++	} rx_batch_frame[32];
++	u8 rx_batch_block[MT6797_HIF_RX_BATCH_BLOCK_BYTES];
++	u8 *rx_batch_agg;
+ };
+ 
+ /* AP-DMA HIF channel 0 registers (window offsets) and fields, as the vendor
+@@ -81,7 +104,10 @@ struct mt6797_hif {
+ #define MT6797_APDMA_CON_BURST_4_4	(3U << 16)
+ #define MT6797_APDMA_CON_INCR		BIT(31)
+ #define MT6797_APDMA_LEN_MASK		GENMASK(19, 0)
+-#define MT6797_APDMA_BUFFER_BYTES	4096U
++/* One receive queue's aggregate (sixteen frames of the maximum length, each
++ * with its four staged bytes, rounded to the 512-byte block) must fit.
++ */
++#define MT6797_APDMA_BUFFER_BYTES	40960U
+ #define MT6797_APDMA_POLL_LIMIT		200000U
+ 
+ /* Register access to the channel window; host fixtures supply the test pair. */
+@@ -191,6 +217,11 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
+ 	hif = kzalloc_obj(*hif, GFP_KERNEL);
+ 	if (!hif)
+ 		return ERR_PTR(-ENOMEM);
++	hif->rx_batch_agg = kzalloc(2U * MT6797_HIF_RX_BATCH_QUEUE_BYTES, GFP_KERNEL);
++	if (!hif->rx_batch_agg) {
++		kfree(hif);
++		return ERR_PTR(-ENOMEM);
++	}
+ 	hif->base = base;
+ 	hif->transaction = transaction;
+ 	hif->io = (struct mt6797_hif_pio_io){
+@@ -209,6 +240,8 @@ void mt6797_hif_free(struct mt6797_hif *hif)
+ 				  hif->dma_phys);
+ 		clk_disable_unprepare(hif->dma_clk);
+ 	}
++	if (hif)
++		kfree(hif->rx_batch_agg);
+ 	kfree(hif);
+ }
+ 
+@@ -411,6 +444,160 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+ 	return mt6797_hif_read(hif, 0x1000, value);
+ }
+ 
++static int mt6797_hif_write32_locked(struct mt6797_hif *hif, unsigned int reg,
++				     u32 value)
++{
++	int error;
++
++	error = mt6797_hif_write(hif, 0, (1U << 31) | (1U << 28) | (reg << 9) | 4U);
++	if (error)
++		return error;
++	return mt6797_hif_write(hif, 0x1000, value);
++}
++
++/* The enhanced status block (the vendor's ENHANCE_MODE_DATA_STRUCT_T): WHISR,
++ * sixteen TX queue counts, the two receive queues' packet counts and up to
++ * sixteen lengths each, two mailboxes; 112 bytes as one byte-mode read of
++ * the WHISR register.
++ */
++static int mt6797_hif_rx_batch_block(struct mt6797_hif *hif)
++{
++	unsigned int offset, word;
++	int error;
++
++	error = mt6797_hif_write(hif, 0, (1U << 28) | (0x10U << 9) |
++				 MT6797_HIF_RX_BATCH_BLOCK_BYTES);
++	if (error)
++		return error;
++	for (offset = 0; offset < MT6797_HIF_RX_BATCH_BLOCK_BYTES; offset += 4) {
++		error = mt6797_hif_read(hif, 0x1000, &word);
++		if (error)
++			return error;
++		put_unaligned_le32(word, hif->rx_batch_block + offset);
++	}
++	hif->rx_batch_reads++;
++	return 0;
++}
++
++/* Vendor sequence: MAX_HIF_RX_LEN_NUM (bits 13:8) to sixteen and
++ * RX_ENHANCE_MODE_EN (bit 16) in WHCR, then read back.
++ */
++static int mt6797_hif_rx_batch_enable(struct mt6797_hif *hif)
++{
++	u32 whcr;
++	int error;
++
++	error = mt6797_hif_read32_locked(hif, 0x0c, &whcr);
++	if (error)
++		return error;
++	hif->rx_batch_whcr_before = whcr;
++	whcr &= ~(0x3fU << 8);
++	whcr |= (16U << 8) | BIT(16);
++	error = mt6797_hif_write32_locked(hif, 0x0c, whcr);
++	if (error)
++		return error;
++	error = mt6797_hif_read32_locked(hif, 0x0c, &whcr);
++	if (error)
++		return error;
++	hif->rx_batch_whcr_after = whcr;
++	hif->rx_batch_enabled = true;
++	hif->rx_batch_on = (whcr & BIT(16)) && ((whcr >> 8) & 0x3fU) == 16U;
++	return hif->rx_batch_on ? 0 : -EIO;
++}
++
++static unsigned int mt6797_hif_rx_batch_length(const struct mt6797_hif *hif,
++					       unsigned int queue, unsigned int i)
++{
++	return get_unaligned_le16(hif->rx_batch_block + 40 + 32 * queue + 2 * i);
++}
++
++/* One pass's receive work: the block, then per non-empty queue one
++ * aggregated read of every reported frame (each frame occupies its length
++ * plus the four staged bytes, rounded to four), split by the reported
++ * lengths with the same header check the per-frame path applies.
++ */
++static int mt6797_hif_rx_batch_fill(struct mt6797_hif *hif)
++{
++	struct mt6797_hif_pio_result transfer;
++	unsigned int queue, i, n, count = 0;
++	size_t total, offset;
++	int error;
++
++	error = mt6797_hif_rx_batch_block(hif);
++	if (error)
++		return error;
++	hif->rx_batch_count = 0;
++	hif->rx_batch_next = 0;
++	for (queue = 0; queue < 2; queue++) {
++		u8 *agg = hif->rx_batch_agg + queue * MT6797_HIF_RX_BATCH_QUEUE_BYTES;
++
++		n = get_unaligned_le16(hif->rx_batch_block + 36 + 2 * queue);
++		if (!n)
++			continue;
++		if (n > 16)
++			return -EPROTO;
++		total = 0;
++		for (i = 0; i < n; i++) {
++			unsigned int length = mt6797_hif_rx_batch_length(hif, queue, i);
++
++			if (length < 4 || length > MT6797_HIF_RX_MAX_PACKET)
++				return -EPROTO;
++			total += ALIGN(length + 4U, 4);
++		}
++		error = mt6797_hif_data_transfer(hif, queue ? 0x54 : 0x50,
++						 MT6797_HIF_READ, agg, total,
++						 MT6797_HIF_RX_BATCH_QUEUE_BYTES,
++						 &transfer);
++		if (error)
++			return error;
++		hif->rx_batch_aggregates++;
++		offset = 0;
++		for (i = 0; i < n; i++) {
++			unsigned int length = mt6797_hif_rx_batch_length(hif, queue, i);
++
++			if (mt6797_normal_le16(agg + offset) != length)
++				return -EPROTO;
++			hif->rx_batch_frame[count].port = queue;
++			hif->rx_batch_frame[count].length = length;
++			hif->rx_batch_frame[count].offset =
++				queue * MT6797_HIF_RX_BATCH_QUEUE_BYTES + offset;
++			count++;
++			offset += ALIGN(length + 4U, 4);
++		}
++	}
++	hif->rx_batch_count = count;
++	hif->rx_batch_frames += count;
++	if (count > hif->rx_batch_max_frames)
++		hif->rx_batch_max_frames = count;
++	if (!count)
++		hif->rx_batch_empty++;
++	return 0;
++}
++
++/* Called once per worker pass: the next receive may read the block again. */
++void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif)
++{
++	if (hif)
++		hif->rx_batch_refill = true;
++}
++
++void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
++			       struct mt6797_hif_rx_batch_stats *stats)
++{
++	*stats = (struct mt6797_hif_rx_batch_stats){0};
++	if (!hif)
++		return;
++	stats->on = hif->rx_batch_on;
++	stats->whcr_before = hif->rx_batch_whcr_before;
++	stats->whcr_after = hif->rx_batch_whcr_after;
++	stats->reads = hif->rx_batch_reads;
++	stats->aggregates = hif->rx_batch_aggregates;
++	stats->frames = hif->rx_batch_frames;
++	stats->empty = hif->rx_batch_empty;
++	stats->max_frames = hif->rx_batch_max_frames;
++	stats->failures = hif->rx_batch_failures;
++}
++
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 		      u32 *value)
+ {
+@@ -1419,6 +1606,47 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto poison;
++	if (IS_ENABLED(CONFIG_MT6797_HIF_RX_BATCH) || hif->rx_batch_forced) {
++		if (!hif->rx_batch_enabled) {
++			error = mt6797_hif_rx_batch_enable(hif);
++			if (error)
++				goto poison;
++		}
++		if (hif->rx_batch_next >= hif->rx_batch_count && hif->rx_batch_refill) {
++			hif->rx_batch_refill = false;
++			error = mt6797_hif_rx_batch_fill(hif);
++			if (error) {
++				hif->rx_batch_failures++;
++				goto poison;
++			}
++		}
++		if (hif->rx_batch_next >= hif->rx_batch_count) {
++			error = -EAGAIN;
++			goto unlock;
++		}
++		/* Frames are served in the order the block reported them, each
++		 * tagged with its own queue; the caller's port is advisory.
++		 */
++		{
++			unsigned int f = hif->rx_batch_next;
++
++			if (capacity < hif->rx_batch_frame[f].length) {
++				error = -ENOSPC;
++				goto unlock;
++			}
++			hif->rx_batch_next++;
++			memcpy(buffer, hif->rx_batch_agg + hif->rx_batch_frame[f].offset,
++			       hif->rx_batch_frame[f].length);
++			result->logical_bytes = hif->rx_batch_frame[f].length;
++			result->packet_type = mt6797_normal_le16(buffer + 2);
++			result->selected_port = hif->rx_batch_frame[f].port;
++			result->selected_port_valid = true;
++			result->rx_setup = true;
++			result->rx_complete = true;
++			result->staging_bytes = ALIGN(result->logical_bytes + 4U, 4);
++			goto unlock;
++		}
++	}
+ 	error = mt6797_hif_read32_locked(hif, 0x90, &lengths);
+ 	if (error)
+ 		goto poison;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 6b7171242..011257638 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -134,6 +134,14 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
+ 			  bool addr2);
+ #define MT6797_HIF_DMA_MIN_BYTES 64U
+ /* DMA transfer counters for the records: zero when no channel is attached. */
++struct mt6797_hif_rx_batch_stats {
++	bool on;
++	u32 whcr_before, whcr_after;
++	unsigned int reads, aggregates, frames, empty, max_frames, failures;
++};
++void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif);
++void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
++			       struct mt6797_hif_rx_batch_stats *stats);
+ void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
+ 			  unsigned int *rx, unsigned int *poll_max,
+ 			  unsigned int *failures);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index f71611c73..e65c5485a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2818,6 +2818,16 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
+ 			 dma_tx, dma_rx, dma_poll_max, dma_failures);
+ 	}
++	{
++		struct mt6797_hif_rx_batch_stats batch;
++
++		mt6797_hif_rx_batch_stats(mac->hif, &batch);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x->0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u failures=%u\n",
++			 batch.on, batch.whcr_before, batch.whcr_after, batch.reads,
++			 batch.aggregates, batch.frames, batch.empty, batch.max_frames,
++			 batch.failures);
++	}
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join pass census: passes=%u submissions=%u max_per_pass=%u elapsed_ms=%llu\n",
+ 		 mac->join_data_passes, mac->join_data_submissions, mac->join_data_pass_max,
+@@ -3677,6 +3687,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ 		}
+ 	}
++	mt6797_hif_rx_batch_pass(mac->hif);
+ 	for (n = 0; n < 8; n++) {
+ 		bool got = false;
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+@@ -4595,6 +4606,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	 * Finish this bounded tick after a done event so the other port is not
+ 	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
+ 	 */
++	mt6797_hif_rx_batch_pass(mac->hif);
+ 	for (n = 0; n < 8; n++) {
+ 		bool got = false;
+ 
+-- 
+2.43.0
+

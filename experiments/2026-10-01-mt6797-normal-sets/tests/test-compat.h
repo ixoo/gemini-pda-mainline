@@ -50,3 +50,15 @@ static inline void memzero_explicit(void *p, size_t n)
 		*v++ = 0;
 }
 #endif
+
+/* Alignment and unaligned little-endian accessors (hif.c, proposal 0268). */
+#ifndef MT6797_TEST_COMPAT_UNALIGNED
+#define MT6797_TEST_COMPAT_UNALIGNED
+#ifndef ALIGN
+#define ALIGN(x, a) (((x) + ((a) - 1)) & ~((__typeof__(x))(a) - 1))
+#endif
+static inline unsigned int get_unaligned_le16(const void *p)
+{ const unsigned char *b = p; return (unsigned int)b[0] | ((unsigned int)b[1] << 8); }
+static inline void put_unaligned_le32(unsigned int v, void *p)
+{ unsigned char *b = p; b[0] = v; b[1] = v >> 8; b[2] = v >> 16; b[3] = v >> 24; }
+#endif

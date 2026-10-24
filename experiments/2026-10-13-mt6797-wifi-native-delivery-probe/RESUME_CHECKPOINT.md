@@ -1,4 +1,15 @@
-# Current: state-2 boot inconclusive (join refused); page-debt fix, batching, pruning, guard next
+# Current: receive batching (0268) predeclared and building; the page-release fix rides with it
+
+Offline items done since the state-2 refusal: 0267 (a refused join
+command releases its page reservation), the console-injection guard, the
+second pruning increment (192 files), and 0268 (receive by the enhanced
+status block and one aggregated read per queue, host fixture passing).
+Next boot: the lifecycle profile with 0267 and 0268, predeclared in the
+[transport record §10](HIF_TRANSPORT_ANALYSIS.md#10-receive-batching-boot-predeclared-2026-10-25).
+The owner decides separately whether the encoder's admission of station
+state 2 is tried once as the last rate attempt.
+
+# Historical: state-2 boot inconclusive (join refused); page-debt fix, batching, pruning, guard next
 
 [Autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-inconclusive-join-refused-0266-retired-2026-10-24):
 our own encoder refused station state 2 (-22, `mt6797_join_station_payload`),

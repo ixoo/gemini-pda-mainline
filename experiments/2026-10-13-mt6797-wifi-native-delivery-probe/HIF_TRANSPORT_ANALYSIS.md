@@ -318,3 +318,42 @@ Console indicator, not evidence: the leaf reported
 `console_progress_lines=30 console_progress_dead=0`, five stage blocks of
 six lines written to the frame-buffer console with no write error; the
 helper's chunk lines are written from its own shell and are not counted.
+
+## 10. Receive batching boot (predeclared, 2026-10-25)
+
+What is left per received frame after the DMA boots is register work: the
+length register read, the transfer setup, the guard and the status reads,
+with the worker making five thousand passes a second (a notice latency of
+about 200 µs, so the interrupt is not the first lever).
+[0268](../../patches/proposals/0268-wifi-mt6797-receive-by-the-enhanced-status-block-and-aggregated-reads.patch)
+does what the vendor's receive path does, by polling: once per worker pass
+one 112-byte read of the enhanced status block from the WHISR register
+(the receive queues' frame counts and up to sixteen lengths each), then
+one aggregated data-port transfer per non-empty queue, split by the
+reported lengths with the same header check as before and served from
+that cache; the worker loop is unchanged, a pass that finds the cache
+empty reads the block once, and the mode is switched on in WHCR
+(sixteen lengths, the enhance bit) at the first receive and read back.
+The vendor reads that block in its interrupt handler, but the block is a
+register read it also polls elsewhere, so no interrupt is needed and
+nothing in the queue reorders. Host fixture:
+[`tests/hif-rx-batch-test.c`](tests/hif-rx-batch-test.c)
+(`tests/run-hif-rx-batch-test.py <kernel tree>`): the enable and
+read-back, the block, two aggregates split into three frames served in
+block order, -EAGAIN on the empty cache without bus work, one block read
+per pass, and the refusals (a count over sixteen, a header that disagrees
+with its length). The census (0264) stays.
+
+Single variable against the receive-DMA boot:
+`CONFIG_MT6797_HIF_RX_BATCH=y` in the lifecycle fragment; the page-release
+fix 0267 is in the same build and its accounting is read on this boot
+(the failure path itself stays unexercised unless a join fails). Headline:
+device-side receive chunks and host-side receive rate beside the new
+`HIF RX batch` data-end record (`on`, WHCR before and after, block reads,
+aggregates, frames, empty reads, failures).
+
+| Outcome | Reading | Next |
+|---|---|---|
+| device-side receive chunks above the 10.5–13 band, or host-side above 8 Mbit/s | the per-frame reads were the cost | keep the batching; move the TX status reads into the same block |
+| unchanged (RX about 7 host-side, 11–13 device-side), `on=1`, frames counted, zero failures | the register work was not the cost either; the worker's notice latency and scheduling remain | the interrupt earns its risk next |
+| `on=0` (WHCR did not take the bits), or `failures>0`, or frames lost | the mode or the aggregate framing is not what the vendor source says for this firmware | stop batching, keep per-frame receive, read the firmware side |
