@@ -1,4 +1,23 @@
-# Current: the transmit-DMA boot is installed and armed; the owner boots it
+# Current: transmit-DMA boot 1 never attached (device tree); boot 2 installed and armed
+
+[Transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result):
+boot 1 (`9d276157`, boot2 `42b6e52b…`, mainline `bc582fa7…`) ran the
+protocol with a complete log and reproduced the baseline (TX 2.62, RX 6.91
+Mbit/s), but the candidate composer had built the image with the parent
+candidate's `board.dtb`, which has no `wifi-hif-dma` entry, so the channel
+was never attached (`HIF DMA transfers: tx=0 rx=0`). Nothing about the DMA
+programming is established. The same check found that every Wi-Fi boot
+since 2026-10-17 has used one inherited device tree that no build
+reproduces and that carries three `consys` properties absent from every
+DTS patch; reconciling the series with the booted tree is a roadmap item.
+Boot 2 is staged with the only change being that tree plus the channel
+entry: candidate `ced3a0f3…`, boot2 `b9afec4d…` over `42b6e52b…`, written
+from Gemian `af1b8d18…`, full readback verified, device shut down, watcher
+armed; predeclaration as for boot 1. Device returned to Gemian
+`af1b8d18…` after boot 1. Scalars:
+[`results/transport-dma-runtime-scalars.json`](results/transport-dma-runtime-scalars.json).
+
+# Historical: the transmit-DMA boot is installed and armed; the owner boots it
 
 Proposals 0258–0260 (AP-DMA channel 0 for the HIF data ports, transmit
 direction admitted by the lifecycle profile) are built as `9d276157`,

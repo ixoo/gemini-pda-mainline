@@ -140,3 +140,52 @@ host fixture [`tests/hif-dma-test.c`](tests/hif-dma-test.c)
 the setup word, the CON/SRC/DST/LEN programming, the extension bits in both
 settings, the bounce copy in both directions with padding, the completion
 acknowledgment and masking, the timeout path and the attach/free pairing.
+
+## 6. Transmit-DMA boot 1 (2026-10-24): a composition defect, not a driver result
+
+Build `9d276157` (0258–0260, `CONFIG_MT6797_HIF_DMA_TX=y`), candidate
+`e838a5de…`, boot2 `42b6e52b…`, mainline boot `bc582fa7…`, returned to
+Gemian `af1b8d18…`. The run completed the five-chunk protocol with a
+complete sealed log, and reproduced the baseline: TX 2.62 Mbit/s, RX 6.91
+Mbit/s host-side (device-side chunks 10.6–12.9 Mbit/s), TX status
+histogram 3742 × 0 / 4 × 3. The DMA path never engaged: the log has no
+attach record and the data-end record reads `HIF DMA transfers: tx=0 rx=0
+poll_max=0 failures=0`. Cause: the candidate composer builds the boot
+image from the parent candidate's `board.dtb`, not from the new build, so
+the booted device tree had no `wifi-hif-dma` entry; the connectivity
+owner found no channel and stayed on PIO. The predeclared expectations
+were therefore not tested; nothing about the DMA programming is
+established either way. Two defects are recorded: the composer's device
+tree source, and the attach block in 0260, which logs nothing when a
+prerequisite is missing (a line for the skipped case goes into the
+receive-direction build).
+
+**Device-tree provenance finding.** The `board.dtb` every Wi-Fi candidate
+has booted since 2026-10-17 is one inherited composition artifact
+(`25ab60f4…`, 28,671 bytes) that no kernel package on the host reproduces
+(all 1,529 packaged MediaTek DTBs checked). Its `consys` node carries three
+properties (`one-shot-wmt-common-init`, `one-shot-wmt-negotiate`,
+`coex-antenna-mode`) that no device-tree patch in `patches/` sets, while the
+series' own DTS selects `one-shot-wmt-identity-capture` instead and differs
+in other nodes (CPU topology, A72 platform state, DVFSP handoff status,
+simple framebuffer). The lifecycle results are therefore reproducible from
+the candidate lineage, not from a fresh build of the series; reconciling the
+DTS with the booted tree is an open item ([roadmap](../../docs/ROADMAP.md))
+and must precede any boot from a freshly built device tree, which would
+change several variables at once.
+
+**Transmit-DMA boot 2 (staged).** Same package, same kernel and
+configuration; the only change is the inherited device tree given the
+channel (`reg` 0x11000080/0x80 and the name `wifi-hif-dma` inserted before
+`afe`, by `fdtput`; `board.dtb` `25ab60f4…` → `87a637c7…`, 28,703 bytes,
+nothing else differs in the decompiled tree). Candidate `ced3a0f3…`, boot2
+`b9afec4d…` over `42b6e52b…`, written from Gemian `af1b8d18…`, full readback
+verified, device shut down. Predeclaration unchanged from boot 1: the
+attach record reads `attached=1 … tx=1 rx=0`; every ordinary data frame of
+at least 64 bytes goes out by DMA (`tx` count close to the data-phase
+`tx_done`) with `failures=0`; transmit and receive rates within the
+baseline band (TX 2.6–2.8, RX device-side chunks 10.5–13). Branches: pass
+→ receive direction next (one build option); `attached=0` → the selector or
+clock prerequisite, read from the record; `failures>0` or `-ETIMEDOUT` →
+address-extension semantics, try the extension bit off; data status 3 while
+management frames complete → addressing wrong, stop the path.

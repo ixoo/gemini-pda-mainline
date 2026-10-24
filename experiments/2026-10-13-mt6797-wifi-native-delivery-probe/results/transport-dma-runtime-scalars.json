@@ -1,0 +1,88 @@
+{
+ "dmatx-1": {
+  "run": "PIO-throughput-dmatx-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "proposals": "0258-0260 (transmit direction, CONFIG_MT6797_HIF_DMA_TX=y)",
+  "kernel_build_commit": "9d27615732f22a9cad43b17953cbb3b0cac47145",
+  "candidate_sha256": "e838a5dea5fe123813bce9bf9553d810cdf2d7ec509b8b69810b48cb20c8f9bd",
+  "boot2_sha256": "42b6e52bc75aaacfd3bac765f92f711f0732edd28d1c4a18058478ec2abf3d91",
+  "predecessor_boot2_sha256": "0663f1a9e490f9d9103dd2b525f817eb57baf422cb486390a93abfe19896a1b8",
+  "board_dtb_sha256": "25ab60f45686138c4620",
+  "board_dtb_bytes": 28671,
+  "mainline_boot_id": "bc582fa7-0523-4734-a225-096a64d59797",
+  "previous_gemian_boot_id": "04d5197a-9d8f-46b3-beab-d08c52cda99e",
+  "returned_gemian_boot_id": "af1b8d18-6c3c-4406-890b-53b7ead9613f",
+  "rx": {
+   "host_sent_aggregate_mbit_s": 6.91,
+   "device_chunk_mbit_s": [
+    10.62,
+    12.16,
+    12.52,
+    12.91,
+    11.04
+   ],
+   "host_chunk_mbit_s": [
+    23.63,
+    18.15,
+    21.48,
+    24.71,
+    23.47
+   ],
+   "device_cpu_idle_percent": 79.9
+  },
+  "tx": {
+   "host_received_aggregate_mbit_s": 2.62,
+   "host_chunk_mbit_s": [
+    3.13,
+    3.12,
+    3.3,
+    3.27,
+    3.1
+   ],
+   "device_cpu_idle_percent": 86.2
+  },
+  "tx_status_histogram": {
+   "0": 3742,
+   "3": 4
+  },
+  "hif_dma": {
+   "attach_record": "absent",
+   "transfers_tx": 0,
+   "transfers_rx": 0,
+   "poll_max": 0,
+   "failures": 0
+  },
+  "data_phase": {
+   "elapsed_ms": 21611,
+   "tx_queued": 3741,
+   "tx_done": 3737,
+   "tx_failed": 4
+  },
+  "log": {
+   "complete": true,
+   "bytes": 1583459,
+   "records": 9596
+  },
+  "verdict": "composition defect: the composer used the parent candidate's board.dtb, which has no wifi-hif-dma entry; DMA never attached; measurement reproduces the baseline; predeclaration untested",
+  "defects": [
+   "composer device-tree source (parent, not the build)",
+   "0260 attach block silent when a prerequisite is missing"
+  ]
+ },
+ "dmatx-2-staged": {
+  "run": "PIO-throughput-dmatx2-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "kernel_build_commit": "9d27615732f22a9cad43b17953cbb3b0cac47145",
+  "candidate_sha256": "ced3a0f30a492d96",
+  "boot2_sha256": "b9afec4d05e036b3a74cfb4dcecda6bd8020db70d407670a311d64216a9b459a",
+  "predecessor_boot2_sha256": "42b6e52bc75aaacfd3bac765f92f711f0732edd28d1c4a18058478ec2abf3d91",
+  "board_dtb_parent_sha256": "25ab60f45686138c4620",
+  "board_dtb_sha256": "87a637c7ff7fa28f53c97c8bb71dfe2c0858234745c22d2b90f0d5cbe55622a0",
+  "board_dtb_bytes": 28703,
+  "board_dtb_edit": "consys reg 0x11000080/0x80 + reg-name wifi-hif-dma inserted before afe (fdtput); nothing else",
+  "kernel_config_change": {},
+  "install_result": "write-synced-flushed-full-readback-verified",
+  "written_from_gemian_boot_id": "af1b8d18-6c3c-4406-890b-53b7ead9613f",
+  "status": "installed, device shut down, watcher armed; owner selects boot2"
+ }
+}
