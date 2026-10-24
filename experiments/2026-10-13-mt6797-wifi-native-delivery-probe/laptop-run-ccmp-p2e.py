@@ -92,10 +92,16 @@ def identity_script(protocol):
               'printf "logger_active=yes\\n"\n')
     # The booted flattened device tree, read back for the build-versus-boot
     # comparison: its hash, its size and its bytes (base64, 76-column lines).
+    # Display-path check (not evidence, never graded): the bound virtual-terminal
+    # consoles, and one test line written to /dev/tty0.
+    display = ('for v in /sys/class/vtconsole/vtcon*; do [ -e "$v" ] && '
+               'printf "%s=%s;" "$($BB cat "$v/name" | $BB tr -d " ")" "$($BB cat "$v/bind")"; done; echo\n'
+               'if printf "\\033[H\\033[2J  progress test  \\n" >/dev/tty0 2>/dev/null; '
+               'then echo tty0=ok; else echo tty0=failed; fi\n')
     booted = ('$BB sha256sum /sys/firmware/fdt\n$BB wc -c </sys/firmware/fdt\n'
               '$BB base64 </sys/firmware/fdt\n')
     return (source+''.join('$BB sha256sum /'+name+'\n'
-                         for name in protocol['live_root_sha256'])+booted).encode()
+                         for name in protocol['live_root_sha256'])+display+booted).encode()
 
 
 def identity(state):
@@ -111,9 +117,11 @@ def identity(state):
             process['stdin_complete'], 'live identity acquisition refused')
     lines = (attempt/'stdout.txt').read_bytes().decode('ascii').splitlines()
     roots = len(state['protocol']['live_root_sha256'])
-    require(len(lines) >= 10+roots, 'identity framing')
-    booted_sha, booted_size = lines[7+roots].split()[0], int(lines[8+roots])
-    booted = base64.b64decode(''.join(lines[9+roots:]), validate=True)
+    require(len(lines) >= 12+roots, 'identity framing')
+    display_consoles, display_write = lines[7+roots], lines[8+roots]
+    require(display_write in ('tty0=ok', 'tty0=failed'), 'display probe framing')
+    booted_sha, booted_size = lines[9+roots].split()[0], int(lines[10+roots])
+    booted = base64.b64decode(''.join(lines[11+roots:]), validate=True)
     require(len(booted) == booted_size and hashlib.sha256(booted).hexdigest() == booted_sha and
             booted[:4] == b'\xd0\x0d\xfe\xed', 'booted device tree identity')
     (state['runtime']/'booted-fdt.dtb').write_bytes(booted)
@@ -130,7 +138,8 @@ def identity(state):
             list(state['protocol']['live_root_sha256'].values()), 'P2 live root identity')
     result = dict(boot_id=lines[2], uptime_s=uptime, logger_active=True,
                   root_hashes_verified=True, notes_bytes=84, notes_sha256=NOTES_SHA,
-                  booted_fdt_sha256=booted_sha, booted_fdt_bytes=booted_size)
+                  booted_fdt_sha256=booted_sha, booted_fdt_bytes=booted_size,
+                  display_consoles=display_consoles, display_write=display_write)
     write(state['runtime']/'live-identity.json', result)
     return result
 
