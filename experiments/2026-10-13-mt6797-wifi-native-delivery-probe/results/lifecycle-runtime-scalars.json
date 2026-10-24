@@ -376,6 +376,90 @@
         ]
       },
       "device_verdict": "second lifetime demonstrated on-device; remaining misses are harness contracts (5 s admission bound for cycle 2; exactly-one re-arm gate)"
+    },
+    "lifecycle-8": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-8)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "image": "same as lifecycle-7 (no reinstall)",
+      "harness_changes": [
+        "cycle>=2 admission bound 30 s",
+        "trailing re-arm accepted"
+      ],
+      "kernel_build_commit": "e22d9838212b79ca0c8a075e4f91fa298ebe7175",
+      "boot2_sha256": "10a1b156be6df67180cd7d95d3802acb7dcccc129da331b88c35db14b044b4d4",
+      "mainline_boot_id": "a3691ccf-db3e-4a23-a74e-57f630d5cb5a",
+      "previous_gemian_boot_id": "ca90fb06-5313-4e55-9b75-e7d4b65d97c5",
+      "returned_gemian_boot_id": "d2f7adf3-339e-49af-878d-fc741bdad1cd",
+      "receipt": {
+        "all_pass": true,
+        "cycles_passed": 2,
+        "cycles_started": 2
+      },
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.456,
+        "tx_chunk_mbit_s": [
+          3.24,
+          3.27,
+          3.18,
+          3.24,
+          3.27
+        ],
+        "rx_host_sent_mbit_s": 5.592,
+        "rx_device_chunk_mbit_s": [
+          12.16,
+          10.89,
+          11.04,
+          11.49,
+          10.49
+        ],
+        "tx_device_cpu_idle_percent": 84.6,
+        "rx_device_cpu_idle_percent": 78.7
+      },
+      "cycle_2": {
+        "pass": true,
+        "tx_host_received_mbit_s": 1.681,
+        "tx_chunk_mbit_s": [
+          2.73,
+          3.13,
+          3.16,
+          3.25,
+          3.24
+        ],
+        "rx_host_sent_mbit_s": 3.913,
+        "rx_device_chunk_mbit_s": [
+          12.52,
+          10.89,
+          10.75,
+          9.99,
+          12.91
+        ],
+        "tx_device_cpu_idle_percent": 79.3,
+        "rx_device_cpu_idle_percent": 74.7
+      },
+      "leaf": {
+        "cycles_completed": 2,
+        "rearms_observed": 2,
+        "supplicant_handshakes": 2
+      },
+      "log": {
+        "complete": false,
+        "bytes": 2097060,
+        "records": 33144,
+        "logger_byte_limit": 2097152,
+        "last_uptime_s": 64.47,
+        "classifier_on_partial": {
+          "rearms": true,
+          "lifetimes": true,
+          "scans": true,
+          "no_fault": true,
+          "receipt": true,
+          "data_phases": false,
+          "terminals": false,
+          "keys_removed_and_readded": false
+        }
+      },
+      "verdict": "second lifetime demonstrated on-device and measured by the host; complete sealed log still owed (logger limit)"
     }
   }
 }

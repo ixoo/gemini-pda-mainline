@@ -1,4 +1,18 @@
-# Current: lifecycle boot 7 ran two lifetimes on the device; harness bounds next
+# Current: lifecycle boot 8 measured two lifetimes; a complete log is still owed
+
+[Lifecycle result](LIFECYCLE_RESULT.md): both cycles passed on the host
+(cycle 1 TX 2.46 / RX 5.59, cycle 2 TX 1.68 / RX 3.91 Mbit/s) and the
+device ran two lifetimes with the re-arm between them, but the device
+logger's 2 MiB limit cut the sealed log inside lifetime 2's data phase,
+so the classifier cannot see that lifetime's teardown. Device returned to
+changed-boot Gemian `d2f7adf3-339e-49af-878d-fc741bdad1cd`; the
+lifecycle-7 image (boot2 `10a1b156…`) remains installed.
+
+Next: a larger logger limit (or demoted per-frame records) for lifecycle
+runs, one confirming boot of the same image with a complete sealed log,
+then the AP-off loss test.
+
+# Historical: lifecycle boot 7 ran two lifetimes on the device; harness bounds next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): with 0248–0253 the driver
 re-armed after its first lifetime and ran a complete second one (scan,

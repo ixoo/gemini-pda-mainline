@@ -191,9 +191,44 @@ are harness contracts, not driver behaviour: the next run widens the
 admission bound for the second cycle and accepts the trailing re-arm.
 The driver side of the plan's second-lifetime item is demonstrated.
 
+## Lifecycle boot 8: two lifetimes measured; the device logger's 2 MiB cap
+
+Same image as boot 7 (build `e22d9838`, boot2 `10a1b156…`), boot
+`a3691ccf…`, with two harness changes: the second cycle's exchange may
+begin up to 30 s after its PM credit clock, and the classifier accepts the
+trailing re-arm. Both cycles passed on the host and the device:
+
+| Cycle | TX, host received | RX, host sent | CPU idle TX / RX |
+|---|---:|---:|---|
+| 1 | 2.456 Mbit/s (chunks 3.18–3.27) | 5.59 Mbit/s (device chunks 10.5–12.2) | 84.6 % / 78.7 % |
+| 2 | 1.681 Mbit/s (chunks 2.73, 3.13, 3.16, 3.25, 3.24) | 3.91 Mbit/s (device chunks 10.0–12.9) | 79.3 % / 74.7 % |
+
+Both acknowledgments were written and both standard disconnects
+accepted; the leaf reported `cycles_completed=2 rearms_observed=2`, the
+supplicant two complete handshakes and two connected events, and the
+device log shows activation as lifetime 1 and lifetime 2 with the re-arm
+between them. The second re-arm the leaf counted follows lifetime 2's
+stage-3 cleanup and key removals, so that teardown completed too.
+
+The sealed log is incomplete: the device-side RAM logger stops at its
+2 MiB byte limit, reached at 64.5 s uptime inside lifetime 2's data phase
+(two lifetimes write about two per-frame records for some seven thousand
+frames). The session therefore classified as returned with an incomplete
+log and the classifier, which passes the re-arm, lifetime, scan, fault and
+receipt gates on the partial log, cannot see lifetime 2's data-phase end,
+terminal and key removals. Returned to changed-boot Gemian
+`d2f7adf3-339e-49af-878d-fc741bdad1cd`.
+
+**Where this leaves the second-lifetime item.** Demonstrated on the
+device and measured by the host; not yet sealed as one complete log. The
+confirming boot needs either a larger logger limit for lifecycle runs or
+the two per-frame records demoted for them, then the same image once
+more. Cycle 2's lower throughput (first chunk 2.73, then 3.1–3.25) is
+noted, not interpreted, until a complete log can be read.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-7/` (sealed
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-8/` (sealed
 sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
