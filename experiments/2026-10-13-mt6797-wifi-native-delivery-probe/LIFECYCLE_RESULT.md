@@ -365,3 +365,41 @@ install receipts under
 `…/mt6797-wifi-tx-lifecycle7-deployment-1/` and
 `…/mt6797-wifi-tx-lifecycle10-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).
+
+## AP-loss gate (predeclared, 2026-10-24; last in the queue)
+
+Proposal 0254 re-opens the scan after an idle lifetime; it has never run
+against a real access-point loss. The tree has no host keep-alive (0257 is
+held, not admitted), so "loss" is defined for this tree as follows, before
+the boot:
+
+- The run uses the lifecycle harness with the predeclared cycle pins:
+  two lifetimes, one chunk each, the second lifetime kept connected under
+  the light periodic traffic that held the 600 s gate (a probe every ten
+  seconds), so that the firmware's aging keep-alive never fires and the
+  only loss source is the access point.
+- The owner removes power from the access point at a stated time, between
+  60 and 120 s into the second lifetime's data phase; the host records the
+  time it was told. Nothing else changes on the device.
+- Loss means: the firmware's monitor reports a connection loss
+  (`source=monitor`, a beacon-loss family reason, that is any of 1, 3, 7,
+  9 or 13 as decoded in the private firmware notes, not reason 4) within
+  60 s of the power removal, while the periodic probes fail from the
+  removal onwards; the driver ends the data phase with reason
+  connection-loss, runs the three-stage cleanup, removes both keys,
+  re-arms (`lifetime=2 token=…`) and, with nothing to join, 0254 retires
+  the idle scan and re-opens it.
+- The owner restores power 60 s after removal. Pass: the station rejoins
+  the restored access point within the scan window, completes the
+  handshake and DHCP, and a third lifetime's data phase opens with its
+  probes answered; the log is complete through the seal.
+- Branches: reason 4 instead of the beacon-loss family → the firmware
+  judged the loss by its own keep-alive, not by beacons, and the
+  beacon-tracking configuration is the finding; no loss report within 60 s
+  → the firmware's beacon-loss detection is not armed on this tree
+  (0x16's HW beacon-loss flag), and that is the finding; loss reported but
+  no rejoin → 0254's re-open path or the scan after loss is the fault, read
+  from the log's scan and join records.
+
+The screen indicator may run on this boot as well; it is not evidence.
+The boot is staged when the owner is at the device and the access point.
