@@ -1,0 +1,26 @@
+{
+ "passrate-1-staged": {
+  "run": "PIO-throughput-passrate-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "proposals": "0264 pass census (logging), 0265 cap, CONFIG_MT6797_DATA_SUBMITS_PER_PASS=1",
+  "kernel_build_commit": "3fd31bdd3995f90196c9f38dce44e0c9dfd0551b",
+  "boot2_sha256": "695a8f888d05e5e4a38fcb030b47faae6bf44887f34446420bd91a59cbf9861b",
+  "predecessor_boot2_sha256": "bb9b9389331c08d4cf851ac44fa4c004e71398df3c11cdcb6b2e515cd991cd3f",
+  "board_dtb_source": "package dtbs/mediatek/mt6797-gemini-pda-wifi-service.dtb",
+  "board_dtb_sha256": "08f6929f37a85eb8",
+  "kernel_config_change_vs_parent": {
+   "CONFIG_MT6797_TX_DONE_RATE_RECORD": [
+    "y",
+    null
+   ],
+   "CONFIG_MT6797_DATA_SUBMITS_PER_PASS": [
+    null,
+    "1"
+   ]
+  },
+  "install_result": "write-synced-flushed-full-readback-verified",
+  "written_from_gemian_boot_id": "28318e8b-f62e-409b-81c4-19b3f0a8e866",
+  "harness": "service host cohort 1: booted tree read back; display probe (vtconsole bind, one tty0 write), not evidence",
+  "status": "installed, device shut down, watcher armed; owner selects boot2"
+ }
+}

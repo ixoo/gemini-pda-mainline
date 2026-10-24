@@ -1,4 +1,14 @@
-# Current: the unforced rate is named (zero: an empty rate table); pruning pass next
+# Current: pass-rate candidate installed and armed; the owner boots it
+
+The lifecycle profile with 0264 (pass census) and 0265 (one data
+submission per pass) is built (`3fd31bdd`), composed from the package's
+tree, installed on boot2 (`695a8f88…` over `bb9b9389…`, written from
+Gemian `28318e8b…`, full readback verified), the device shut down and the
+watcher armed. Headline and branch table in the
+[receive record](RX_REBASELINE_RESULT.md#pass-rate-boot-predeclared-2026-10-24-pass-rate-not-pass-order);
+the fbcon display probe rides on this boot, not graded.
+
+# Historical: the unforced rate is named (zero: an empty rate table); pruning pass next
 
 [Autorate record](TX_AUTORATE_RESULT.md#rate-visibility-boot-result-2026-10-24--branch-3-an-empty-rate-table):
 every ordinary data frame sent without a fixed rate carried the firmware
