@@ -189,3 +189,34 @@ baseline band (TX 2.6–2.8, RX device-side chunks 10.5–13). Branches: pass
 clock prerequisite, read from the record; `failures>0` or `-ETIMEDOUT` →
 address-extension semantics, try the extension bit off; data status 3 while
 management frames complete → addressing wrong, stop the path.
+
+**Transmit-DMA boot 2 (2026-10-24): passed.** Mainline boot `6227a6ba…`
+(boot2 `b9afec4d…`), returned to Gemian `af51145e…`, complete sealed log
+(9,543 records). Attach record `attached=1 selector=0x11403200 addr2=1
+tx=1 rx=0`; data-end record `HIF DMA transfers: tx=3712 rx=0 poll_max=0
+failures=0` against `tx_queued=3712 tx_done=3711 tx_failed=1`: every
+ordinary data frame went out through the channel, the completion flag was
+set before the first poll each time, and no transfer timed out. TX status
+histogram 3716 × 0 / 1 × 3. Rates in the baseline band: TX 2.69 Mbit/s,
+RX 7.04 host-side (device-side chunks 11.8–12.9), CPU idle 86.3 % / 79.5 %.
+Established: the channel's addressing (host bounce buffer below 4 GiB
+with the extension bit set as the selector says), the CON/SRC/DST/LEN
+programming and the completion handling are right for the transmit
+direction on this device. Not established: anything about receive, and
+any throughput effect (transmit is air-bound at the fixed rate, receive
+was still PIO). The attach block now also logs the skipped case (0260
+amended: `HIF DMA: not attached: channel= selector= clock=`).
+
+**Next: the receive direction.** One build option changes
+(`CONFIG_MT6797_HIF_DMA_RX=y` in the lifecycle fragment, with the amended
+0260); the composer takes the parent's device tree, which now carries the
+channel. Predeclared: attach record `tx=1 rx=1`; `HIF DMA transfers`
+`rx` close to the number of received data frames with `failures=0`;
+device-side receive chunks above the 10.5–13 Mbit/s PIO band if the
+worker's per-frame bus cost was the receive ceiling (the structural
+claim), unchanged if the cost sits elsewhere in the pass; receive data
+intact (the chunks complete by byte cap with the TCP stream verified by
+the harness). Branches: `failures>0` or a timeout → stop the receive
+direction, keep transmit; rates unchanged with DMA engaged → the receive
+ceiling is the poll structure (WRPLR read, guard, status) rather than the
+byte moves, and the next step is the interrupt and enhanced-status read.

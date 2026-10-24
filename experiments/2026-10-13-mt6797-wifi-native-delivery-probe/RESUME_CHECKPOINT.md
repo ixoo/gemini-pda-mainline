@@ -1,4 +1,21 @@
-# Current: transmit-DMA boot 1 never attached (device tree); boot 2 installed and armed
+# Current: transmit DMA passed on boot 2; the receive-direction build is next
+
+[Transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result):
+boot 2 (`9d276157`, boot2 `b9afec4d…`, mainline `6227a6ba…`, returned to
+Gemian `af51145e…`) attached the channel (`attached=1 selector=0x11403200
+addr2=1 tx=1 rx=0`) and moved all 3,712 data frames by DMA with zero
+failures and the completion flag set before the first poll; TX 2.69 and
+RX 7.04 Mbit/s stay in the baseline band as predeclared. The transmit
+direction's addressing, programming and completion handling are
+established; nothing about receive or throughput is. Next build: the
+lifecycle fragment admits the receive direction
+(`CONFIG_MT6797_HIF_DMA_RX=y`) and 0260 is amended to log the skipped
+attach case; the device tree stays the inherited tree with the channel
+(composer parent: the boot-2 candidate). Predeclaration in the record.
+Scalars:
+[`results/transport-dma-runtime-scalars.json`](results/transport-dma-runtime-scalars.json).
+
+# Historical: transmit-DMA boot 1 never attached (device tree); boot 2 installed and armed
 
 [Transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result):
 boot 1 (`9d276157`, boot2 `42b6e52b…`, mainline `bc582fa7…`) ran the

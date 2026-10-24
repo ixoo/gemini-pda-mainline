@@ -69,7 +69,7 @@
    "0260 attach block silent when a prerequisite is missing"
   ]
  },
- "dmatx-2-staged": {
+ "dmatx-2": {
   "run": "PIO-throughput-dmatx2-1",
   "profile": "mt6797-a53-wifi-lifecycle",
   "kernel_build_commit": "9d27615732f22a9cad43b17953cbb3b0cac47145",
@@ -83,6 +83,60 @@
   "kernel_config_change": {},
   "install_result": "write-synced-flushed-full-readback-verified",
   "written_from_gemian_boot_id": "af1b8d18-6c3c-4406-890b-53b7ead9613f",
-  "status": "installed, device shut down, watcher armed; owner selects boot2"
+  "mainline_boot_id": "6227a6ba-a0e7-4af9-a972-b1d9be7e4b4a",
+  "previous_gemian_boot_id": "af1b8d18-6c3c-4406-890b-53b7ead9613f",
+  "returned_gemian_boot_id": "af51145e-fbdf-443f-b145-32adddb0229a",
+  "rx": {
+   "host_sent_aggregate_mbit_s": 7.04,
+   "device_chunk_mbit_s": [
+    12.34,
+    12.52,
+    12.34,
+    11.81,
+    12.91
+   ],
+   "host_chunk_mbit_s": [
+    26.05,
+    26.14,
+    19.52,
+    23.97,
+    23.93
+   ],
+   "device_cpu_idle_percent": 79.5
+  },
+  "tx": {
+   "host_received_aggregate_mbit_s": 2.69,
+   "host_chunk_mbit_s": [
+    3.35,
+    3.13,
+    3.33,
+    3.43,
+    3.19
+   ],
+   "device_cpu_idle_percent": 86.3
+  },
+  "tx_status_histogram": {
+   "0": 3716,
+   "3": 1
+  },
+  "hif_dma": {
+   "attach_record": "attached=1 selector=0x11403200 addr2=1 tx=1 rx=0",
+   "transfers_tx": 3712,
+   "transfers_rx": 0,
+   "poll_max": 0,
+   "failures": 0
+  },
+  "data_phase": {
+   "elapsed_ms": 21071,
+   "tx_queued": 3712,
+   "tx_done": 3711,
+   "tx_failed": 1
+  },
+  "log": {
+   "complete": true,
+   "bytes": 1574321,
+   "records": 9543
+  },
+  "verdict": "pass: transmit direction established (addressing, programming, completion); rates in the baseline band as predeclared; receive untested"
  }
 }

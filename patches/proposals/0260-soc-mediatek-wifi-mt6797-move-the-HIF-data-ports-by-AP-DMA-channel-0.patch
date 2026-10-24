@@ -1,4 +1,4 @@
-From 5466e7b237e67c196899fc818dac147bc1e1cdef Mon Sep 17 00:00:00 2001
+From a9952b80a6a0e893cf39e6aefca0f579db959a83 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 24 Oct 2026 15:02:27 -0400
 Subject: [PATCH] soc: mediatek: wifi: mt6797: move the HIF data ports by
@@ -35,8 +35,8 @@ is its own patch. Not yet run on the device.
  drivers/net/wireless/mediatek/mt6797/hif.c   | 250 ++++++++++++++++++-
  drivers/net/wireless/mediatek/mt6797/hif.h   |  23 +-
  drivers/net/wireless/mediatek/mt6797/mac.c   |   9 +
- drivers/soc/mediatek/mt6797-consys.c         |  51 +++-
- 5 files changed, 345 insertions(+), 12 deletions(-)
+ drivers/soc/mediatek/mt6797-consys.c         |  58 ++++-
+ 5 files changed, 352 insertions(+), 12 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 3956584bb..9e7141935 100644
@@ -427,7 +427,7 @@ index 3cdc3eb82..d92315c7f 100644
  	if (ccmp_stable_epoch)
  		dev_info(wiphy_dev(mac->hw->wiphy),
 diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
-index 8b607f8dc..9a8aa6734 100644
+index 8b607f8dc..72811cc62 100644
 --- a/drivers/soc/mediatek/mt6797-consys.c
 +++ b/drivers/soc/mediatek/mt6797-consys.c
 @@ -57,6 +57,9 @@
@@ -448,7 +448,7 @@ index 8b607f8dc..9a8aa6734 100644
  	void __iomem *emi_selector;
  	void __iomem *emi_window;
  	u8 __iomem *region19_window;
-@@ -1026,6 +1030,26 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+@@ -1026,6 +1030,33 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
  		owner->fw_hif = NULL;
  		goto stopped;
  	}
@@ -471,11 +471,18 @@ index 8b607f8dc..9a8aa6734 100644
 +			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_TX),
 +			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_RX));
 +		ret = 0;
++	} else {
++		dev_info(dev,
++			 "one-shot WLAN HIF DMA: not attached: channel=%d selector=%d clock=%d tx=%d rx=%d\n",
++			 !!owner->hif_dma, !!owner->emi_selector,
++			 !!owner->wmt_query.dma_clk,
++			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_TX),
++			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_RX));
 +	}
  	ret = mt6797_wlan_firmware_submit_ordinary(owner->wlan_image,
  						 owner->fw_hif, &ordinary);
  	dev_info(dev,
-@@ -2093,7 +2117,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -2093,7 +2124,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  			goto out_unlock;
  		}
  	}
@@ -484,7 +491,7 @@ index 8b607f8dc..9a8aa6734 100644
  	/* Common init owns the AFE stage unconditionally. */
  	if (common_init && !afe_resource) {
  		ret = -EINVAL;
-@@ -2107,7 +2131,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -2107,7 +2138,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  			ret = -EINVAL;
  			goto out_unlock;
  		}
@@ -493,7 +500,7 @@ index 8b607f8dc..9a8aa6734 100644
  		if (IS_ERR(afe)) {
  			ret = PTR_ERR(afe);
  			goto out_unlock;
-@@ -2123,6 +2147,27 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -2123,6 +2154,27 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  	mt6797_consys.mcu_acr = mcu_acr;
  	mt6797_consys.hif = hif;
  	mt6797_consys.emi_selector = emi_selector;
@@ -521,7 +528,7 @@ index 8b607f8dc..9a8aa6734 100644
  	if (wmt_query) {
  		static const resource_size_t bases[] = {
  			0x1100c000, 0x11000a00, 0x11000a80
-@@ -2131,7 +2176,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+@@ -2131,7 +2183,7 @@ static int mt6797_consys_probe(struct platform_device *pdev)
  		void __iomem *mapped[3];
  		unsigned int i;
  
