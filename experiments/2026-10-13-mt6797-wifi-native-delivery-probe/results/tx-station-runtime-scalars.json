@@ -23,13 +23,25 @@
       "admitted_uptime_s": 35.76,
       "throughput": {
         "tx_host_received_mbit_s": 1.1923,
-        "tx_chunk_mbit_s": [1.45, 1.45, 1.44, 1.46, 1.45],
+        "tx_chunk_mbit_s": [
+          1.45,
+          1.45,
+          1.44,
+          1.46,
+          1.45
+        ],
         "tx_bytes": 908672,
         "tx_elapsed_ns": 6097100542,
         "tx_device_cpu_idle_percent": 86.33,
         "rx_host_sent_mbit_s": 9.8521,
         "rx_device_mbit_s": 8.4733,
-        "rx_device_chunk_mbit_s": [18.24, 18.24, 16.13, 17.85, 17.85],
+        "rx_device_chunk_mbit_s": [
+          18.24,
+          18.24,
+          16.13,
+          17.85,
+          17.85
+        ],
         "rx_device_cpu_idle_percent": 77.15
       },
       "completion_gaps_ms": {
@@ -37,7 +49,12 @@
         "median": 1.11,
         "p75": 7.98,
         "p90": 8.01,
-        "bins": {"lt_6": 1466, "6_to_12": 809, "12_to_25": 15, "ge_25": 21}
+        "bins": {
+          "lt_6": 1466,
+          "6_to_12": 809,
+          "12_to_25": 15,
+          "ge_25": 21
+        }
       },
       "data_phase": {
         "end_reason": "disconnect",
@@ -54,7 +71,11 @@
       "first_failure": {
         "host": "leaf acknowledgment wait found the data-window marker gone from the 1 MiB kernel ring (about 30,000 records logged), closed the window and terminated the supplicant; host acknowledgment at 17.4 s refused as late",
         "device": "first pass after data end exceeded the 4,096-pass lifetime quota; lifetime fail-stopped with status -110 at branch 1 before any teardown command",
-        "fixes": ["8 MiB kernel ring in the single-arm fragments", "proposal 0245 (deadlines, no pass quota)", "proposal 0246 (per-frame slot lines demoted)"]
+        "fixes": [
+          "8 MiB kernel ring in the single-arm fragments",
+          "proposal 0245 (deadlines, no pass quota)",
+          "proposal 0246 (per-frame slot lines demoted)"
+        ]
       },
       "session": {
         "capture_exit": 0,
@@ -63,7 +84,99 @@
         "preservation": "separate reviewed preservation: quiescence proved, log sealed complete-log-through-seal (30,199 records), native reboot, changed-boot Gemian confirmed",
         "retry": false
       },
-      "not_established": ["standard disconnect grading", "reserved deauthentication delivery", "cleanup stage"]
+      "not_established": [
+        "standard disconnect grading",
+        "reserved deauthentication delivery",
+        "cleanup stage"
+      ]
+    },
+    "station-3": {
+      "run": "PIO-throughput-station3-1",
+      "profile": "mt6797-a53-wifi-station",
+      "kernel_build_commit": "c48412ae9c92e629533dbfdba986cfc028f56a16",
+      "candidate_manifest_sha256": "4e0447250d49524145e259ee46998784855b936e4084873720865ddf59aaa9ff",
+      "boot2_sha256": "f88ca4640f6e9f5cd8285f4e08e37a17039a4ad75179b014a86b0c451e787ad8",
+      "kernel_notes_sha256": "e35c09eb9ea22200e400ab06a3bff80d86cd5693f0bb865927c8a72dde59b7ae",
+      "mainline_boot_id": "01addf82-5685-4137-a363-878ba5f0c3cb",
+      "previous_gemian_boot_id": "135292c1-d711-46a4-855f-2ed92b3ff6c7",
+      "returned_gemian_boot_id": "4ad62c4b-e0a1-4575-b9ac-23d85ab3c30d",
+      "admitted_uptime_s": 7.9,
+      "complete_log_sha256": "909a03d2f68b29f8a7b194e0babfd1dc8ddb795ac7bb5196abf31383a317389f",
+      "complete_log_records": 17933,
+      "throughput": {
+        "tx_host_received_mbit_s": 1.225,
+        "tx_chunk_mbit_s": [
+          1.45,
+          1.44,
+          1.44,
+          1.45,
+          1.46
+        ],
+        "tx_bytes": 907224,
+        "tx_device_cpu_idle_percent": 87.74,
+        "rx_host_sent_mbit_s": 10.0103,
+        "rx_device_chunk_mbit_s": [
+          17.48,
+          17.85,
+          17.85,
+          14.72,
+          17.48
+        ],
+        "rx_device_cpu_idle_percent": 76.87
+      },
+      "completion_gaps_ms": {
+        "scope": "all 2,564 TX completions in the sealed log",
+        "median": 1.16,
+        "p75": 7.97,
+        "p90": 8.01,
+        "bins": {
+          "lt_6": 1759,
+          "6_to_12": 769,
+          "12_to_25": 12,
+          "ge_25": 23
+        }
+      },
+      "data_phase": {
+        "end_reason": "disconnect",
+        "elapsed_ms": 17659,
+        "tx_queued": 2559,
+        "tx_done": 2554,
+        "tx_failed": 5,
+        "pid_allocations": 2563,
+        "pid_completions": 2563,
+        "pid_wraps": 20,
+        "unowned": 0,
+        "teardown_framing_drops": 0
+      },
+      "teardown": {
+        "host_ack_accepted": true,
+        "standard_disconnect": "accepted, exit 0, deauth by local choice",
+        "pm_abort_status": 0,
+        "pm_abort_credit_returned": true,
+        "deauth_delivery": "transmitted, late=0, completion and cleanup phases",
+        "cleanup_stages": [
+          0,
+          1,
+          2,
+          3
+        ],
+        "key_removals": 2,
+        "ccmp_stable_disable_status": 0,
+        "connection_loss_report": "source=cleanup once=1",
+        "join_stopped_record": false
+      },
+      "session": {
+        "capture_exit": 0,
+        "session_exit": 1,
+        "export": "accepted; log_complete true",
+        "return": "native, changed-ID-Gemian, 15.5 s",
+        "retry": false
+      },
+      "grading_side_effect": "classifier per-PID ownership trace reads the demoted slot completion line: trace_valid false, 'TX timing lacks a retired owner', counters intact, run not failed",
+      "not_established": [
+        "ten-minute SSH stream",
+        "key reuse, rekey, reconnect"
+      ]
     }
   }
 }

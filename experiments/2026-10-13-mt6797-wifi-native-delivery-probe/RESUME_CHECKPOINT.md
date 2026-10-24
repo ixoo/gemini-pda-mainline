@@ -1,4 +1,18 @@
-# Current: single arm measured neutral; station-3 next with 0245 and 0246
+# Current: station-3 completed its teardown; flow-control next
+
+[Station result](TX_STATION_RESULT.md): station-3 (0245, 0246, 8 MiB ring)
+repeated the throughput (TX 1.225 Mbit/s, RX 10.01 Mbit/s, median gap
+1.16 ms) and completed the whole close: standard disconnect, host
+acknowledgment accepted, PM abort, deauthentication delivered, cleanup
+stages, key removals, slots retired, native return to changed-boot Gemian
+`4ad62c4b-e0a1-4575-b9ac-23d85ab3c30d`. The single build arm is the
+foundation for the measurement boots that follow.
+
+Next boot: flow-control (station tree + its series), then pipelining,
+autorate, lifecycle. Key reuse, rekey and reconnect remain disabled until
+the lifecycle boot.
+
+# Historical: single arm measured neutral; station-3 next with 0245 and 0246
 
 [Station result](TX_STATION_RESULT.md): the consolidated single build arm
 matches or beats the tree it came from (TX 1.192 Mbit/s, RX 9.85 Mbit/s,
