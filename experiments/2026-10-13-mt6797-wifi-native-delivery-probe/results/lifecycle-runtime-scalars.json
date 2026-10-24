@@ -173,6 +173,46 @@
       },
       "cause": "scan event consumer refuses the BSS absence/presence notice the firmware emits for the torn-down BSS during the second lifetime's scan",
       "fix": "proposal 0250"
+    },
+    "lifecycle-4": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-4)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243",
+        "0247",
+        "0248",
+        "0249",
+        "0250"
+      ],
+      "kernel_build_commit": "2fea15db4259e77e74357ce527b5397262a07b88",
+      "candidate_manifest_sha256": "0a5d06122786b462a3e18066ae2653564f38ae215120dc17604a470abf7696a9",
+      "boot2_sha256": "e65967a1a75b6978c1df49190a80efb1cc8363fa8352246b77011a22a31ac7cc",
+      "mainline_boot_id": "09ce9685-b029-4244-93ae-243764b0b991",
+      "previous_gemian_boot_id": "cd90a4fb-d0d6-464d-b635-cb75b0f61aca",
+      "returned_gemian_boot_id": "3f113be8-5bf7-457a-a6eb-29637d099d00",
+      "complete_log_records": 26198,
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.589,
+        "rx_host_sent_mbit_s": 5.585
+      },
+      "rearm": {
+        "record": "join rearm: lifetime=1 token=2 sta_seq=21 sequence=32",
+        "us_after_first_key_removal": 90,
+        "us_before_second_key_removal": 170
+      },
+      "cycle_2": {
+        "scan": "complete; bss notice logged twice (body 00010200, 00000000)",
+        "grant": "channel 40 interval 9000 ms",
+        "auth_assoc": "ok, aid 7",
+        "activation": "lifetime=2",
+        "handshake": "EAPOL refused; PM connection attempted=0 dtim_status=-61; mac80211 failed to move station to desired state",
+        "pass": false
+      },
+      "cause": "second key removal arrived after the re-arm's epoch reset: ccmp-stable disable status=-110 and withdraw closed the new lifetime's receive path",
+      "fix": "proposal 0251"
     }
   }
 }

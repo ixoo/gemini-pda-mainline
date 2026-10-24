@@ -1,4 +1,4 @@
-# Lifecycle boots 1 to 3: one lifetime, then no re-arm, then a refused second scan
+# Lifecycle boots 1 to 4: each boot takes the second lifetime one stage further
 
 Result record, 2026-10-24. One boot on the `mt6797-a53-wifi-lifecycle`
 profile (pipelining tree plus 0240 re-arm, 0241 loss reason, 0243) under
@@ -94,12 +94,40 @@ Proposal 0250 admits the notice in the scan consumer (logged once with
 its four body bytes, then ignored); every other unknown event stays a
 fault. Next boot: lifecycle-4 with 0250.
 
+## Lifecycle boot 4 (0248–0250): the second lifetime joins; a late key removal closes it
+
+Build input `2fea15db`, boot `09ce9685…`, boot2 `e65967a1…`. Cycle 1
+passed (TX 2.59, RX 5.59 Mbit/s). The re-arm fired, the second scan logged
+the BSS notice twice (`body=00010200` while scanning, `00000000` after the
+done header) and completed, the channel grant, authentication, association
+and station activation (`lifetime=2`) all succeeded, and beacons were
+delivered. The handshake then never completed: both EAPOL candidates were
+refused, the PM connection step reported `attempted=0 … dtim_status=-61`,
+and mac80211 gave up (`failed to move station … to desired state`).
+
+The cause is in the 300 µs around the re-arm. mac80211 removes the two
+keys one after the other, each removal cancels the join worker, and the
+re-arm pass had been queued by the terminal and re-queued after the first
+removal (0249). It ran 90 µs after the first removal and 170 µs *before*
+the second, which then waited for a cleanup the epoch reset had already
+cleared, timed out (`ccmp-stable disable … status=-110`) and withdrew the
+new lifetime's receive path, so no EAPOL frame could be admitted.
+
+Proposal 0251 counts mac80211's key removals per epoch and defers the
+re-arm pass, request kept pending, until both have been seen; the second
+removal re-queues it. Everything the second lifetime did reach, from the
+scan through activation, now behaves as the first. Harness:
+`cycles_started=2 cycles_passed=1 rearms_observed=1`; sealed (26,198
+records); returned to changed-boot Gemian
+`3f113be8-5bf7-457a-a6eb-29637d099d00`. Next boot: lifecycle-5 with 0251.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/`, `…-lifecycle-2/` and
-`…-lifecycle-3/` (sealed sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-4/` (sealed
+sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
-`…/mt6797-wifi-tx-lifecycle2-deployment-1/` and
-`…/mt6797-wifi-tx-lifecycle3-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle2-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle3-deployment-1/` and
+`…/mt6797-wifi-tx-lifecycle4-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).

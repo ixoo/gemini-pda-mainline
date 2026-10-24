@@ -1,0 +1,77 @@
+From d2e68d306d9c93b03c5db18e79682b6803dc0443 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Sat, 24 Oct 2026 10:26:52 -0400
+Subject: [PATCH] wifi: mt6797: re-arm only after both of mac80211's key
+ removals
+
+The fourth lifecycle boot re-armed, scanned, joined and activated its
+second lifetime, then never completed the handshake: mac80211's second
+key removal arrived 170 microseconds after the re-arm pass had reset the
+epoch, waited for a cleanup that no longer existed, timed out, and
+withdrew the new lifetime's receive path, so every EAPOL frame was
+refused and the station could not be authorized. The pairwise and group
+removals are serialized by mac80211 and each one cancels this worker, so
+the pass queued by the terminal or re-queued after the first removal can
+run between them. Count the removals per epoch and defer the pass, with
+its request kept pending, until both have been seen; the removal that
+completes the pair re-queues it. The rendezvous, quiescence and wrap
+rules are unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 87d3d155b..f0a904cf4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -236,6 +236,8 @@ struct mt6797_mac {
+ 	 * key-completion barrier (ADD_PKEY_DONE carries no generation).
+ 	 */
+ 	bool join_sta_removed, join_rearm_pending, join_closed;
++	/* mac80211 key removals seen in this epoch; the re-arm waits for both. */
++	unsigned int ccmp_key_disables;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	/* Copied stack state only: no BSS/STA/chanctx pointer is retained. */
+ 	u8 join_bssid[ETH_ALEN];
+@@ -1588,6 +1590,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	mac->ccmp_reserved_pid_used = false;
+ #endif
+ 	memset(&mac->data_slots, 0, sizeof(mac->data_slots));
++	mac->ccmp_key_disables = 0;
+ }
+ 
+ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+@@ -3228,6 +3231,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			.next_pid = mac->join_next_pid,
+ 		};
+ 
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++		/* mac80211 still owns a key of this lifetime: its removal cancels
++		 * this worker and queues the pass again (0249). A re-arm before it
++		 * reset the epoch under that key on the fourth lifecycle boot, and
++		 * the late removal then closed the new lifetime's receive path.
++		 */
++		if (ccmp_stable_epoch && !mac->join_closed && mac->ccmp_key_disables < 2) {
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join rearm deferred: key_removals=%u\n",
++				 mac->ccmp_key_disables);
++			goto unlock;
++		}
++#endif
+ 		mac->join_rearm_pending = false;
+ 		switch (mac->join_closed ? MT6797_JOIN_REARM_NO :
+ 			mt6797_join_rearm_ready(&rs)) {
+@@ -5380,6 +5396,7 @@ static int mt6797_ccmp_disable_key(struct mt6797_mac *mac)
+ 
+ 	skb_queue_head_init(&discard);
+ 	mutex_lock(&mac->mutex);
++	mac->ccmp_key_disables++;
+ 	mt6797_ccmp_withdraw(mac);
+ 	/* Retain only reserved deauth; never dereference queued key cookies. */
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-- 
+2.43.0
+

@@ -1,4 +1,17 @@
-# Current: lifecycle boot 3 re-armed; second scan refused a notice; 0250 next
+# Current: lifecycle boot 4 joined its second lifetime; a late key removal closed it; 0251 next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): with 0250 the second lifetime
+scanned, joined, associated and activated, then its handshake failed
+because mac80211's second key removal landed 170 µs after the re-arm had
+reset the epoch and closed the new receive path. 0251 defers the re-arm
+until both key removals have been seen. Device returned to changed-boot
+Gemian `3f113be8-5bf7-457a-a6eb-29637d099d00`; the lifecycle-4 image
+(boot2 `e65967a1…`) is the installed predecessor.
+
+Next boot: lifecycle-5 (lifecycle tree + 0251) under the two-cycle
+harness, then the AP-off loss test.
+
+# Historical: lifecycle boot 3 re-armed; second scan refused a notice; 0250 next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): with 0249 the re-arm fired and
 the second lifetime began, but its scan was refused when the firmware's
