@@ -49,7 +49,7 @@ The proven Phase A profile is unchanged. Earlier checkpoints admitted no candida
   6 Mbps support before modifying outputs.
 
 Selected patches are listed in
-[`series-a53-wifi-phase-b-compile`](../../patches/series-a53-wifi-phase-b-compile).
+`series-a53-wifi-phase-b-compile` (series retired 2026-10-24, in the git history).
 Their public wire source is gen3 at revision
 `c5b0be85017ad0c599725e8273842efdbecdd88a`; source links are in the experiment
 [design](README.md). Vendor headers are not added to this repository.

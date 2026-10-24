@@ -1,7 +1,0 @@
-# Single-inflight throughput comparison only; no DMA or lifetime reuse.
-# Retain the installed RAM guard's release ABI. Candidate SHA and build notes
-# distinguish this build; the source/profile identity is recorded separately.
-CONFIG_LOCALVERSION="-gemini-a53-private-p2e-delivery"
-CONFIG_MT6797_CCMP_TX_PUMP=y
-# CONFIG_CFG80211_DEBUGFS is not set
-# CONFIG_MT6797_CCMP_LIFETIME_PREREQUISITES is not set

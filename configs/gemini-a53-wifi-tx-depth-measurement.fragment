@@ -1,2 +1,0 @@
-# Bounded ordinary data owners only; descriptor and all resource caps unchanged.
-CONFIG_MT6797_CCMP_TX_DEPTH=4

@@ -6,9 +6,10 @@ rate word `0x0000` (the CCK 1 Mbit/s code, undecodable on 5 GHz) while
 the fixed-rate control frames carried `0x004b`; branch 3 of the table,
 the station record's rate inputs are the lever, predeclared when its turn
 comes. 0263 retired, 0262 kept. Device returned to Gemian `28318e8b…`.
-Next, by owner direction: the pruning pass (one reviewable commit with
-what is kept and why), then the pass-rate boot, receive DMA, the AP-loss
-gate with loss defined under host keep-alives.
+The [pruning pass](PRUNING_2026-10-24.md) retired the answered
+measurement profiles; next the pass-rate boot (with the fbcon display
+check riding on it), receive DMA, the AP-loss gate with loss defined
+under host keep-alives, and the driver-side removal of the orphaned options.
 
 # Historical: rate-visibility candidate installed and armed; the owner boots it
 

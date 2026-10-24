@@ -7,7 +7,7 @@ are the foundation; no historical artifacts, series or runtime evidence changed.
 
 - [0191 patch](../../patches/proposals/0191-wifi-mt6797-gate-one-monitor-assisted-stable-ccmp-epoch.patch)
   changes only driver `Kconfig` and `mac.c`.
-- [Profile proposal](../../configs/gemini-a53-wifi-ccmp-stable-monitor.fragment)
+- Profile proposal (fragment retired 2026-10-24, in the git history)
   originally archived unselected, uses native arm0/CCMP arm1
   and requires the existing ND6 profile's ordered foundation plus exact0190/0191.
   The later approved selection is recorded below; the original fragment's
