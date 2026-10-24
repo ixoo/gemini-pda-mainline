@@ -145,3 +145,31 @@ update command. That boot is predeclared when it is next in the queue.
 
 0263 is retired again, as announced; 0262 stays available to measurement
 profiles. Scalars: [`results/tx-rate3-runtime-scalars.json`](results/tx-rate3-runtime-scalars.json).
+
+## State-2 station record boot (predeclared, 2026-10-24)
+
+Branch 3 named the lever: the firmware's rate table for this station is
+empty. The vendor host walks the station record through states 1, 2 and 3,
+each an update command, and derives the desired non-HT rate set from the
+association response; this driver sends state 1 before authentication and
+state 3 after association, with the desired set from the beacon. The
+smallest difference first:
+[0266](../../patches/proposals/0266-wifi-mt6797-update-the-station-record-at-state-2-after-authentication.patch)
+sends the state-2 update after authentication (the state-1 payload with
+the state advanced, one record and one credit wait in the join). Profile
+`mt6797-a53-wifi-rate` is re-created for this boot: the lifecycle profile
+plus 0262 (rate record), 0263 (ordinary data without a fixed rate, the
+variant under test, re-admitted for this boot only) and 0266. The single
+variable against the rate-visibility boot is the state-2 update.
+
+Headline: the rate words and status of the ordinary data frames, and the
+transmit rate if any complete. Branches, decided before the boot:
+
+| Outcome | Reading | Next |
+|---|---|---|
+| data frames complete (status 0) with non-zero rate words | the state sequence was the missing trigger; rate adaptation is on | measure TX against the fixed-rate 2.6–2.8; retire the forced 6 Mbit/s descriptor if TX rises |
+| rate words still `0x0000`, status 3 | the state sequence is not the input the table build consumes | the desired rate set from the association response, then the record's other fields, one per boot |
+| non-zero rate words but status 3 | the table is built and a rate chosen that the link does not carry | read the chosen rates; compare with the AP's supported set |
+
+0263 retires again after the boot; 0266 is retained only on the first
+branch.

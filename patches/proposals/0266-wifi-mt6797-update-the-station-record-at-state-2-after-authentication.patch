@@ -1,0 +1,74 @@
+From 3a66e39b8f1d43035dfe7227c081cdafca31a4ea Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 19:15:47 -0400
+Subject: [PATCH] wifi: mt6797: update the station record at state 2 after
+ authentication
+
+Every ordinary data frame sent without a fixed rate carries the firmware
+rate word 0x0000 and is never acknowledged, while the fixed-rate frames
+in the same descriptor format are: the firmware's rate table for this
+station is empty. The vendor host walks the station record through
+states 1, 2 and 3, each an update command, where this driver sent 1
+before authentication and 3 after association. Send the state-2 update
+after authentication, the same payload as state 1 with the state
+advanced, so that whatever the firmware does between states 1 and 3 runs
+as it does for the vendor; one record and one credit wait in the join,
+nothing else changes.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 31 ++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a7a92516c..e9843f889 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -5265,6 +5265,35 @@ static int mt6797_ccmp_pm_indicate(struct mt6797_mac *mac, u64 phase_deadline)
+ }
+ #endif
+ 
++/* The vendor host walks the station record through states 1, 2 and 3, each
++ * an update command; this driver sent 1 before authentication and 3 after
++ * association. Send the state-2 update after authentication, the same
++ * payload as state 1 with the state advanced, so that the firmware's
++ * per-state processing between 1 and 3 runs as it does for the vendor.
++ * Caller holds mac->mutex; the join peer must be ready.
++ */
++static int mt6797_mac_join_authenticated_record(struct mt6797_mac *mac)
++{
++	int ret;
++
++	lockdep_assert_held(&mac->mutex);
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 2;
++	ret = mt6797_hif_join_station(mac->hif, mac->sequence++, mac->join_ap,
++				      2, 0, mac->join_desired_rates,
++				      mac->join_peer_basic_rates,
++				      mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join station state 2: status=%d sequence=%u\n",
++		 ret, mac->sequence);
++	return ret;
++}
++
+ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ {
+ 	u64 deadline, now;
+@@ -5926,6 +5955,8 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 		    mac->join_auth_ok && !mac->join_authenticated &&
+ 		    !mac->join_retired && !mac->closing && !mac->first_error) {
+ 			ret = mt6797_mac_join_wait_management(mac);
++			if (!ret)
++				ret = mt6797_mac_join_authenticated_record(mac);
+ 			if (!ret)
+ 				mac->join_authenticated = true;
+ 		}
+-- 
+2.43.0
+

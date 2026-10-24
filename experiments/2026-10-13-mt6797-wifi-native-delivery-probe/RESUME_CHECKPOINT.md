@@ -1,4 +1,13 @@
-# Current: both DMA directions booted and kept; the poll structure is the receive ceiling
+# Current: the state-2 station-record boot is predeclared and building
+
+[Autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-predeclared-2026-10-24):
+0266 sends the station record at state 2 after authentication, the
+smallest difference from the vendor's record sequence, on the re-created
+rate profile (0262 record, 0263 unforced data rate for this boot only).
+Branch table in the record. The AP-loss gate waits for the owner at the
+access point; the interrupt-driven receive is the transport step after.
+
+# Historical: both DMA directions booted and kept; the poll structure is the receive ceiling
 
 [Transport record §9](HIF_TRANSPORT_ANALYSIS.md#9-receive-direction-dma-boot-result-2026-10-24--engaged-intact-and-not-the-ceiling):
 receive DMA engaged (8,510 moves in, 3,870 out, zero failures, data
