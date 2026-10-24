@@ -88,7 +88,7 @@ logs one extra line per completion (`join TX rate: pid= status= rate=0x…
 flags=0x…`, the firmware's rate word valid with flag bit 0, behind
 `CONFIG_MT6797_TX_DONE_RATE_RECORD`; the existing completion line is
 unchanged) and
-[0263](../../patches/proposals/0263-wifi-mt6797-send-ordinary-data-frames-without-a-fixed-rate.patch)
+0263 (retired after the boot; in the git history as `patches/proposals/0263-wifi-mt6797-send-ordinary-data-frames-without-a-fixed-rate.patch`)
 is the retired 0255 as it was: ordinary data frames with the fixed-rate
 bit clear and the rate word zero, management and security frames at their
 fixed basic rates (the control: they must complete with status 0 as
@@ -112,3 +112,36 @@ Branch table, decided before the boot:
 One boot, five chunks, one lifetime, as the other measurement boots. 0263
 is retired again after the boot whatever the answer; 0262 stays available
 for measurement profiles.
+
+## Rate-visibility boot: result (2026-10-24) — branch 3, an empty rate table
+
+Build `91629f5b` (profile `mt6797-a53-wifi-rate`), boot2 `bb9b9389…` over
+`a0bbc52e…`, mainline boot `cff73c8a…`, returned to Gemian `28318e8b…`,
+complete sealed log. The join reached the data phase; four ordinary data
+frames were queued and all four failed (status 3); the five fixed-rate
+control frames completed (status 0). The headline, from the new
+`join TX rate` record (flag bit 0 set on every line, so the firmware
+reported a rate for each frame):
+
+| Completion status | Frames | Rate word | Decoded |
+|---|---|---|---|
+| 0 (management / security, fixed rate) | 5 | `0x004b` | OFDM 6 Mbit/s: mode 1 (bits 6–8), index 11, the descriptor's own code |
+| 3 (ordinary data, unforced) | 4 | `0x0000` | mode 0, index 0: the CCK 1 Mbit/s code, which no 5 GHz receiver decodes |
+
+The control frames confirm the rate-word format (the same code the
+descriptor carries at `0x4b << 2`), so the zero is a real zero, not a
+different encoding. Branch 3 of the table: the unforced path indexes an
+empty rate table and sends at entry 0; the descriptor is exonerated (a
+fixed code in the same descriptor goes out and is acknowledged) and so
+is the power table. The lever is the rate table the firmware builds from
+the station record: its inputs are the desired non-HT rate set (bits 6–13
+for 6–54 Mbit/s), the desired PHY type set (OFDM only, 8), the BSS basic
+rate set, the default fixed-rate code (`0x4b`) and the record's state
+sequence. Our record sends OFDM-only and the 6–54 set, so the next single
+variable is which of those the firmware's table build actually consumes;
+the vendor host derives the desired set from the association response's
+operational set and walks the record through states 1, 2 and 3, each an
+update command. That boot is predeclared when it is next in the queue.
+
+0263 is retired again, as announced; 0262 stays available to measurement
+profiles. Scalars: [`results/tx-rate3-runtime-scalars.json`](results/tx-rate3-runtime-scalars.json).

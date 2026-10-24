@@ -1,4 +1,16 @@
-# Current: rate-visibility candidate installed and armed; the owner boots it
+# Current: the unforced rate is named (zero: an empty rate table); pruning pass next
+
+[Autorate record](TX_AUTORATE_RESULT.md#rate-visibility-boot-result-2026-10-24--branch-3-an-empty-rate-table):
+every ordinary data frame sent without a fixed rate carried the firmware
+rate word `0x0000` (the CCK 1 Mbit/s code, undecodable on 5 GHz) while
+the fixed-rate control frames carried `0x004b`; branch 3 of the table,
+the station record's rate inputs are the lever, predeclared when its turn
+comes. 0263 retired, 0262 kept. Device returned to Gemian `28318e8b…`.
+Next, by owner direction: the pruning pass (one reviewable commit with
+what is kept and why), then the pass-rate boot, receive DMA, the AP-loss
+gate with loss defined under host keep-alives.
+
+# Historical: rate-visibility candidate installed and armed; the owner boots it
 
 The owner classified the three extra booted-tree categories as boot-loader
 writes; the device-tree chain is closed in both directions. The

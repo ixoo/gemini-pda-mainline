@@ -1,5 +1,5 @@
 {
- "rate3-staged": {
+ "rate3": {
   "run": "PIO-throughput-rate3-1",
   "profile": "mt6797-a53-wifi-rate",
   "proposals": "0262 (TX-done rate record), 0263 (ordinary data without a fixed rate; the retired 0255)",
@@ -16,7 +16,44 @@
   },
   "install_result": "write-synced-flushed-full-readback-verified",
   "written_from_gemian_boot_id": "c0fe3443-030d-4719-98a3-56ad945bd474",
-  "status": "installed, device shut down, watcher armed; owner selects boot2",
-  "headline": "histogram of the firmware rate word of every status-3 completion; branch table in TX_AUTORATE_RESULT.md"
+  "headline": "histogram of the firmware rate word of every status-3 completion; branch table in TX_AUTORATE_RESULT.md",
+  "mainline_boot_id": "cff73c8a-11e2-410d-aeeb-5f2c1dd382a7",
+  "previous_gemian_boot_id": "c0fe3443-030d-4719-98a3-56ad945bd474",
+  "returned_gemian_boot_id": "28318e8b-f62e-409b-81c4-19b3f0a8e866",
+  "log": {
+   "complete": true,
+   "bytes": 173065
+  },
+  "data_phase": {
+   "elapsed_ms": 12363,
+   "tx_queued": 4,
+   "tx_done": 0,
+   "tx_failed": 4
+  },
+  "tx_status_histogram": {
+   "0": 5,
+   "3": 4
+  },
+  "rate_words": {
+   "status_0": {
+    "0x004b": 5
+   },
+   "status_3": {
+    "0x0000": 4
+   },
+   "flag_valid_on_all": true
+  },
+  "hif_dma": {
+   "attach_record": "attached=1 selector=0x11403200 addr2=1 tx=1 rx=0",
+   "transfers_tx": 4,
+   "failures": 0
+  },
+  "branch": "3: zero rate word on every status-3 frame; the unforced path indexes an empty rate table (entry 0 = CCK 1 Mbit/s code on a 5 GHz channel)",
+  "retired": [
+   "0263"
+  ],
+  "kept": [
+   "0262"
+  ]
  }
 }
