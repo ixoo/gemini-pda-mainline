@@ -1,4 +1,13 @@
-# Current: pass rate is not the mechanism; receive DMA is the next boot
+# Current: receive-DMA candidate installed and armed; the owner boots it
+
+The lifecycle profile with `CONFIG_MT6797_HIF_DMA_RX=y` (`fdf4c6b1`) is
+composed from the package's tree, installed on boot2 (`51faa318…` over
+`695a8f88…`, written from Gemian `14da9b9e…`, full readback verified), the
+device shut down and the watcher armed; the console progress indicator is
+enabled for this run (opt-in, not evidence). Predeclaration:
+[transport record §8](HIF_TRANSPORT_ANALYSIS.md#8-receive-direction-dma-boot-predeclared-2026-10-24).
+
+# Historical: pass rate is not the mechanism; receive DMA is the next boot
 
 [Receive record](RX_REBASELINE_RESULT.md#pass-rate-boot-result-2026-10-24--neither-direction-moved-the-polled-read-is-the-ceiling):
 with one data submission per pass neither direction moved (TX 2.55, RX

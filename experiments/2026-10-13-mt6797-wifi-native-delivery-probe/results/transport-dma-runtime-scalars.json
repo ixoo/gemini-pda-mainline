@@ -138,5 +138,29 @@
    "records": 9543
   },
   "verdict": "pass: transmit direction established (addressing, programming, completion); rates in the baseline band as predeclared; receive untested"
+ },
+ "rxdma-1-staged": {
+  "run": "PIO-throughput-rxdma-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "change": "CONFIG_MT6797_HIF_DMA_RX=y (the pass-rate cap retired in the same fragment)",
+  "kernel_build_commit": "fdf4c6b1951305bbbc8ddaac0420914bfe2306d8",
+  "boot2_sha256": "51faa318649b38821e01539eb76ea7d4418aa812819da2ab808eaa5d899ba440",
+  "predecessor_boot2_sha256": "695a8f888d05e5e4a38fcb030b47faae6bf44887f34446420bd91a59cbf9861b",
+  "board_dtb_source": "package dtbs/mediatek/mt6797-gemini-pda-wifi-service.dtb",
+  "board_dtb_sha256": "08f6929f37a85eb8",
+  "kernel_config_change_vs_parent": {
+   "CONFIG_MT6797_HIF_DMA_RX": [
+    null,
+    "y"
+   ],
+   "CONFIG_MT6797_DATA_SUBMITS_PER_PASS": [
+    "1",
+    null
+   ]
+  },
+  "install_result": "write-synced-flushed-full-readback-verified",
+  "written_from_gemian_boot_id": "14da9b9e-6040-437d-b97d-a5ffa35b6e21",
+  "harness": "service host cohort 1 (booted tree read back, display probe); console progress indicator enabled (TP_CONSOLE_PROGRESS=1, variant rxdma), not evidence",
+  "status": "installed, device shut down, watcher armed; owner selects boot2"
  }
 }
