@@ -163,3 +163,37 @@ the root `model` (the kernel prints `MT6797X`), `/chosen` (boot arguments
 and what LK adds there), `/memory` and the `/firmware` tag data. Both
 hashes go into the scalars record. Any other difference is a
 build-versus-boot divergence and outranks the rest of the queue.
+
+## Closing the chain on the device: result (2026-10-24)
+
+Same candidate (`02cd8b1e…`, boot2 `a0bbc52e…`), second runtime,
+mainline boot `cd7d22f5…`, returned to Gemian `c0fe3443…`, complete sealed
+log. Every measured acceptance item holds: kernel notes `99ed07a9…` as the
+package states, firmware start, WMT common init 285/285, the DMA attach
+record as on boot 2 (3,718 transfers, zero failures), TX 2.67 Mbit/s
+(chunks 3.08–3.33), RX 7.54 host-side (device-side chunks 11.65–12.71),
+status histogram 3720 × 0 / 3 × 3.
+
+The booted tree (`/sys/firmware/fdt`, SHA-256 `64fd49dd…`, 54,764 bytes)
+against the build's `mt6797-gemini-pda-wifi-service.dtb` (`08f6929f…`,
+28,703 bytes) under `tests/dtdiff.py`:
+
+| Where | Booted tree differs by | Writer |
+|---|---|---|
+| root `model` | `MT6797X` instead of the board name | boot loader (predeclared) |
+| `/chosen` | 19 properties: `bootargs`, `linux,initrd-*`, the `atag,*` records, `ccci,modem_info_v2`, `non_secure_sram` | boot loader (predeclared) |
+| `/memory@40000000` | `mblock_info`, `orig_dram_info`, `lca_reserved_mem`, `tee_reserved_mem` | boot loader (predeclared) |
+| `/reserved-memory` | nine `mblock-*` and `reserve-memory-dram_r*` nodes added; the two `reserve-memory-ccci_*` nodes of the build replaced by `mblock-5/6/7-ccci` | boot loader, not in the predeclared list |
+| `/firmware/android` | one node of modem option strings | boot loader, not in the predeclared list |
+| `/scp@10020000` | `status` turned from `disabled` to `okay` | boot loader, not in the predeclared list |
+
+Nothing else differs: every node and property the build defines reaches
+the kernel as built, except the SCP status the boot loader flips. The
+predeclared allowance named four categories; three more appeared, all
+boot-loader writes of the kind the vendor loader is known for (memory
+block reservations, modem options, the SCP node). Reading: no
+build-versus-boot divergence; the predeclaration under-described the
+loader. Two facts worth keeping: the kernel has always booted with the
+SCP node enabled, whatever the source says, and with the loader's own
+reserved-memory map rather than the two CCCI reservations in the source.
+

@@ -1,4 +1,16 @@
-# Current: equivalence boot passed; the rate-visibility boot is next
+# Current: the chain is closed on the device; the rate-visibility boot waits on one classification
+
+[Provenance record](DEVICE_TREE_PROVENANCE.md#closing-the-chain-on-the-device-result-2026-10-24):
+the same equivalence image booted again with the harness reading
+`/sys/firmware/fdt` back; every measured item passed (285/285, DMA
+attached, TX 2.67, RX 7.54 Mbit/s) and the booted tree equals the build
+except for boot-loader writes, three categories of which (reserved-memory
+blocks, the Android firmware node, the SCP status) were not in the
+predeclared allowance. The owner classifies that before boot2 is
+overwritten by the rate-visibility candidate, which is built (`91629f5b`)
+and derived. Device returned to Gemian `c0fe3443…`.
+
+# Historical: equivalence boot passed; the rate-visibility boot is next
 
 [Provenance record](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24):
 the candidate built from the committed series alone (0261, tree from the

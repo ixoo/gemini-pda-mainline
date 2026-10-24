@@ -74,5 +74,74 @@
    "bytes": 1575695
   },
   "verdict": "pass: every acceptance item holds; the committed series now produces the tree the Wi-Fi runs boot"
+ },
+ "service2-1": {
+  "run": "PIO-throughput-service2-1",
+  "candidate_sha256": "02cd8b1e6c7947c219c8f8dbb9fdda21b1f42141ec826371e84aca2651dbb05e",
+  "boot2_sha256": "a0bbc52e1ec45f0acdeef3bfd4fdb22d0e18bb5f427ce89fcea11cbd4b5094e5",
+  "same_installed_image_as": "service-1",
+  "harness_change": "identity stage reads /sys/firmware/fdt back (service host cohort 1)",
+  "mainline_boot_id": "cd7d22f5-148f-4b6d-b09a-350d02214542",
+  "previous_gemian_boot_id": "0e50a29d-6a21-4781-9a5b-ae787dd3b479",
+  "returned_gemian_boot_id": "c0fe3443-030d-4719-98a3-56ad945bd474",
+  "kernel_notes_sha256": "99ed07a906e1ce96f6cd4a99c675278abe30e5576d358ced905e0cb44510a566",
+  "board_dtb_sha256": "08f6929f37a85eb8",
+  "board_dtb_bytes": 28703,
+  "booted_fdt_sha256": "64fd49dd521388dcf2280e3f2e16f8cc1ea23639cd4c44f76170d4744772044a",
+  "booted_fdt_bytes": 54764,
+  "booted_vs_build": {
+   "nodes_only_in_build": 2,
+   "nodes_only_booted": 10,
+   "properties_differing": 25,
+   "all_attributed_to": "boot loader (model, /chosen, /memory, reserved-memory mblocks, /firmware/android, scp status)",
+   "beyond_predeclared_allowance": [
+    "reserved-memory",
+    "/firmware/android",
+    "/scp status"
+   ]
+  },
+  "common_init": "285/285",
+  "hif_dma": {
+   "attach_record": "attached=1 selector=0x11403200 addr2=1 tx=1 rx=0",
+   "transfers_tx": 3718,
+   "failures": 0
+  },
+  "rx": {
+   "host_sent_aggregate_mbit_s": 7.54,
+   "device_chunk_mbit_s": [
+    12.34,
+    12.71,
+    12.34,
+    12.71,
+    11.65
+   ],
+   "device_cpu_idle_percent": 78.2
+  },
+  "tx": {
+   "host_received_aggregate_mbit_s": 2.67,
+   "host_chunk_mbit_s": [
+    3.08,
+    3.19,
+    3.28,
+    3.33,
+    3.16
+   ],
+   "device_cpu_idle_percent": 86.5
+  },
+  "tx_status_histogram": {
+   "0": 3720,
+   "3": 3
+  },
+  "data_phase": {
+   "elapsed_ms": 20399,
+   "tx_queued": 3718,
+   "tx_done": 3715,
+   "tx_failed": 3
+  },
+  "log": {
+   "complete": true,
+   "bytes": 1574609
+  },
+  "verdict": "measured items pass; booted tree equals the build except boot-loader writes, three categories beyond the predeclared list; owner to confirm the classification"
  }
 }
