@@ -9,10 +9,20 @@ second-lifetime item is closed. Device returned to changed-boot Gemian
 `c73da941-e073-4de7-9edb-4ca8df2122c9`; the lifecycle-7 image remains
 installed.
 
-Next: the access-point-loss test (reconnection after the AP goes away
-rather than after the host's standard disconnect; AP power is an owner
-action, harness to design), then general operation on the
-`mt6797-a53-wifi-general` profile.
+Next: the access-point-loss test needs a driver change first. The driver
+admits one scan per lifetime and fail-stops a lifetime whose scan mac80211
+does not follow with a join within ten seconds, so the first scan after a
+loss would end the boot; proposal 0254 (build `d838628f`) retires the idle
+scan's BSS, hands back the lifetime count and re-opens the scan instead,
+and answers a scan request during a live scan with a quiet -EBUSY. That
+image is installed on boot2 (`87d7b532…`, predecessor `10a1b156…`,
+written from Gemian `c73da941…`). Lifecycle boot 10 runs it with three
+supplicant-driven lifetimes and one chunk per direction (so three
+lifetimes fit the logger limit): it answers whether a third lifetime is
+admitted and whether 0254 is inert on the normal path. Then lifecycle
+boot 11, the loss test proper (cycle 1 ends by the owner cutting AP
+power, the driver's loss report, idle scans while the AP is away, a
+second measured lifetime after it returns), then general operation.
 
 # Historical: lifecycle boot 8 measured two lifetimes; a complete log is still owed
 
