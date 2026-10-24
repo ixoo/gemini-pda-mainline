@@ -1,4 +1,22 @@
-# Current: the transport is the ceiling; see the structural analysis
+# Current: the transmit-DMA boot is installed and armed; the owner boots it
+
+Proposals 0258–0260 (AP-DMA channel 0 for the HIF data ports, transmit
+direction admitted by the lifecycle profile) are built as `9d276157`,
+composed, bound, reviewed and installed on boot2 (`42b6e52b…` over
+`0663f1a9…`, written from Gemian `04d5197a…`, full readback verified);
+the device is shut down and the watcher waits for the USB endpoint. The
+boot runs the five-chunk one-lifetime protocol. Predeclared: the attach
+record names the channel and the selector; every ordinary data frame of
+at least 64 bytes goes out by DMA with zero failures; transmit and
+receive rates unchanged (transmit is air-bound, receive still PIO). A
+pass clears the channel's addressing and programming for the receive
+direction (one build option, the next boot); DMA failures or data frames
+no longer acknowledged while management frames are stop that path until
+the address-extension semantics are resolved. The host fixture for the
+transfer passes (`tests/run-hif-dma-test.py`). The keep-alive patch is
+rebased on the DMA tree and held.
+
+# Historical: the transport is the ceiling; see the structural analysis
 
 [Structural analysis](HIF_TRANSPORT_ANALYSIS.md): the receive path is a
 word-at-a-time PIO poll from the same worker that transmits (about 400
