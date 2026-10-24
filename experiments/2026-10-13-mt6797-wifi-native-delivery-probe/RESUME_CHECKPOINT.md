@@ -7,9 +7,12 @@ the fixed-rate control frames carried `0x004b`; branch 3 of the table,
 the station record's rate inputs are the lever, predeclared when its turn
 comes. 0263 retired, 0262 kept. Device returned to Gemian `28318e8b…`.
 The [pruning pass](PRUNING_2026-10-24.md) retired the answered
-measurement profiles; next the pass-rate boot (with the fbcon display
-check riding on it), receive DMA, the AP-loss gate with loss defined
-under host keep-alives, and the driver-side removal of the orphaned options.
+measurement profiles. The pass-rate boot is predeclared
+([record](RX_REBASELINE_RESULT.md#pass-rate-boot-predeclared-2026-10-24-pass-rate-not-pass-order)):
+0264 census, 0265 cap set to one in the lifecycle fragment, the fbcon
+display check riding on it; then receive DMA, the AP-loss gate with loss
+defined under host keep-alives, the station-record rate inputs, and the
+driver-side removal of the orphaned options.
 
 # Historical: rate-visibility candidate installed and armed; the owner boots it
 

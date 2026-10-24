@@ -102,3 +102,36 @@ boot moved the receive rate.
 `artifacts/wifi-throughput-rxbase-1/` and `…-rxfix-1/` (sealed sessions), install receipts
 `artifacts/device-install-evidence/mt6797-wifi-tx-rxbase-deployment-1/`
 (result skipped-already-matching) and `…-rxfix-deployment-1/`, [scalars](results/rx-rebaseline-runtime-scalars.json).
+
+## Pass-rate boot (predeclared, 2026-10-24): pass rate, not pass order
+
+0256 settled that the order inside a pass is not the receive mechanism.
+Pass duration still is a candidate: a one-frame-per-read polled receive
+loses throughput when 0236 makes each pass longer, however the pass is
+ordered, because there are fewer passes per second. Two proposals on the
+lifecycle profile:
+[0264](../../patches/proposals/0264-wifi-mt6797-count-the-data-phase-s-worker-passes-and-submissions.patch)
+counts, during the data phase, the worker passes, the data frames
+submitted and the most submitted in one pass, and prints them at data end
+(`join pass census: passes= submissions= max_per_pass= elapsed_ms=`,
+logging only);
+[0265](../../patches/proposals/0265-wifi-mt6797-cap-the-data-frames-one-worker-pass-submits.patch)
+adds `CONFIG_MT6797_DATA_SUBMITS_PER_PASS` (0 = the in-flight depth,
+nothing changes); the lifecycle fragment sets it to 1 for this boot, the
+single variable. Everything else is the equivalence kernel.
+
+Headline: passes per second and frames per pass from the census, beside
+the device-side receive chunks and the host-side transmit rate. Branches,
+decided before the boot:
+
+| Outcome | Reading | Next |
+|---|---|---|
+| RX returns toward 10 Mbit/s host-side (device-side chunks back above 13) and TX falls back toward the yield-era 0.84 Mbit/s | pass duration is the receive mechanism; the tuning point sits between one and four submissions per pass | one bracketing boot at two submissions per pass |
+| neither direction moves (TX about 2.6–2.8, RX about 7 host-side, 11–13 device-side) | the receive drop is not pass-related; the ~400 bus operations per frame of the polled read are the ceiling | receive-direction DMA, the next boot; the cap retires |
+| RX moves without TX falling, or TX falls without RX moving | the two directions are not coupled through the pass; the census numbers say which side changed | read the census before choosing |
+
+Riding on this boot, not graded and not evidence: the harness identity
+stage prints the bound virtual-terminal consoles and writes one test line
+to `/dev/tty0`, the display-path check the owner asked for before any
+console progress indicator is written. Its outcome is recorded in the
+boot's identity file and reported, nothing more.

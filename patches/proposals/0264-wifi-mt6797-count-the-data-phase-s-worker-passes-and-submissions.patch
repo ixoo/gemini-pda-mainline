@@ -1,0 +1,71 @@
+From a0ed7d3cc7296023d5c7c11c0494e23219f41554 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 18:29:07 -0400
+Subject: [PATCH 264/265] wifi: mt6797: count the data phase's worker passes
+ and submissions
+
+Proposal 0256 settled that the order inside a worker pass is not the
+receive mechanism; pass duration still is a candidate, because a
+one-frame-per-read polled receive loses throughput when passes become
+longer. Count, during the data phase, the worker passes, the ordinary data
+frames submitted and the most submitted in one pass, and print them with
+the elapsed time at data end, so that passes per second and frames per
+pass can be read from the sealed log. Logging only.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d92315c7f..0043c1c64 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -301,6 +301,10 @@ struct mt6797_mac {
+ 	 * rekey, no second phase.
+ 	 */
+ 	bool join_channel_released, join_data_phase, join_data_ended;
++	/* Pass census of the data phase: worker passes, data frames submitted,
++	 * and the most submitted in one pass.
++	 */
++	unsigned int join_data_passes, join_data_submissions, join_data_pass_max;
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	unsigned char native_diag_state;
+ 	unsigned int native_diag_total, native_diag_native, native_diag_bytes;
+@@ -2813,6 +2817,10 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
+ 			 dma_tx, dma_rx, dma_poll_max, dma_failures);
+ 	}
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join pass census: passes=%u submissions=%u max_per_pass=%u elapsed_ms=%llu\n",
++		 mac->join_data_passes, mac->join_data_submissions, mac->join_data_pass_max,
++		 (ktime_get_ns() - mac->join_data_started) / NSEC_PER_MSEC);
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -2898,6 +2906,9 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 	mac->join_data_phase = true;
+ 	mac->join_data_ended = false;
+ 	mac->join_data_started = now;
++	mac->join_data_passes = 0;
++	mac->join_data_submissions = 0;
++	mac->join_data_pass_max = 0;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch)
+ 		mac->ccmp_observation.active = true;
+@@ -4487,6 +4498,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
+ 	}
+ #endif
++	if (mac->join_data_phase && !mac->join_data_ended) {
++		mac->join_data_passes++;
++		mac->join_data_submissions += submits;
++		if (submits > mac->join_data_pass_max)
++			mac->join_data_pass_max = submits;
++	}
+ 	snapshot_delay = mt6797_snapshot_active(mac->snapshot) ?
+ 		1 : msecs_to_jiffies(20);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-- 
+2.43.0
+

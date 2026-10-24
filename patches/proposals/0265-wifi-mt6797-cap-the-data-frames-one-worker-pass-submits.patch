@@ -1,0 +1,74 @@
+From f837f6a3fbf9ac4382d0ac5ca367a8ea32f2623c Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 18:29:07 -0400
+Subject: [PATCH 265/265] wifi: mt6797: cap the data frames one worker pass
+ submits
+
+A build option bounds how many ordinary data frames one worker pass
+submits before the receive loop runs again; 0, the default, keeps the
+in-flight depth as the bound and changes nothing. Set to 1 it is the
+single variable of the pass-rate measurement: if the receive rate returns
+toward the pre-pipelining level and transmit falls back, pass duration is
+the receive mechanism and the tuning point lies between one and four; if
+neither moves, the receive ceiling is the polled read itself.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig      | 12 ++++++++++++
+ drivers/net/wireless/mediatek/mt6797/join-depth.h |  9 +++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c        |  2 +-
+ 3 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 9e7141935..151a70bac 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -94,3 +94,15 @@ config MT6797_CCMP_TX_DEPTH
+ 	  Maximum outstanding ordinary data frames, bounded by PID ownership and
+ 	  the TC1 page ledger. Management, security and reserved frames keep a
+ 	  single owner.
++
++config MT6797_DATA_SUBMITS_PER_PASS
++	int "MT6797 Wi-Fi: ordinary data frames submitted per worker pass (0 = depth)"
++	depends on MT6797_CCMP_TX_PUMP
++	range 0 4
++	default 0
++	help
++	  Cap on the ordinary data frames one worker pass submits before the
++	  receive loop runs again. 0 keeps the in-flight depth as the cap. A
++	  measurement variable for the pass-rate question; the default changes
++	  nothing.
++
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-depth.h b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+index 6c37559e3..3808a2dda 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-depth.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+@@ -106,3 +106,12 @@ mt6797_data_expired(const struct mt6797_data_slots *s, unsigned long long now)
+ }
+ 
+ #endif
++
++/* Data frames one worker pass may submit; 0 means the in-flight depth. */
++#if !defined(CONFIG_MT6797_DATA_SUBMITS_PER_PASS) || CONFIG_MT6797_DATA_SUBMITS_PER_PASS == 0
++#define MT6797_DATA_SUBMITS_PER_PASS MT6797_DATA_DEPTH
++#elif CONFIG_MT6797_DATA_SUBMITS_PER_PASS >= CONFIG_MT6797_CCMP_TX_DEPTH
++#define MT6797_DATA_SUBMITS_PER_PASS MT6797_DATA_DEPTH
++#else
++#define MT6797_DATA_SUBMITS_PER_PASS ((unsigned int)CONFIG_MT6797_DATA_SUBMITS_PER_PASS)
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 0043c1c64..d363b9e08 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3670,7 +3670,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				 * to the in-flight depth, before the receive loop and
+ 				 * the next pass's status reads run again.
+ 				 */
+-				if (++submits < MT6797_DATA_DEPTH)
++				if (++submits < MT6797_DATA_SUBMITS_PER_PASS)
+ 					goto select_more;
+ 			}
+ 		}
+-- 
+2.43.0
+

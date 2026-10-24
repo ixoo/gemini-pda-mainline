@@ -868,3 +868,5 @@ proposals/0259-arm64-dts-mediatek-expose-the-Gemini-PDA-Wi-Fi-HIF-AP-DMA-channel
 proposals/0260-soc-mediatek-wifi-mt6797-move-the-HIF-data-ports-by-AP-DMA-channel-0.patch
 proposals/0261-arm64-dts-mediatek-add-the-Gemini-PDA-Wi-Fi-service-tree.patch
 proposals/0262-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch
+proposals/0264-wifi-mt6797-count-the-data-phase-s-worker-passes-and-submissions.patch
+proposals/0265-wifi-mt6797-cap-the-data-frames-one-worker-pass-submits.patch
