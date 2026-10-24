@@ -63,6 +63,57 @@
       },
       "cause": "station-removal callback still gated the re-arm request on the stable epoch being off and on the two-lifetime cap; the worker's unlocked site runs no pass after a retired terminal",
       "fix": "proposal 0248"
+    },
+    "lifecycle-2": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-2)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243",
+        "0247",
+        "0248"
+      ],
+      "kernel_build_commit": "d67f3fd72ff7380aa9cc2d43109b8bc5d974b948",
+      "candidate_manifest_sha256": "77e531201e4935efa3b558149b105c6cfe8eb58acc77375e2cb197789a8aa406",
+      "boot2_sha256": "76adce937c886c08248f8e2c127aaa2dbad2b8867f0eb5033509cb6dfe7c016d",
+      "mainline_boot_id": "7b768cda-1b38-493b-9bdd-867284f351a1",
+      "previous_gemian_boot_id": "af877fc7-8235-4b32-b57e-08e6360c9c15",
+      "returned_gemian_boot_id": "c5c2c830-6bc4-48b1-8841-aa81f53c2383",
+      "admitted_uptime_s": 8.02,
+      "complete_log_records": 24950,
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.922,
+        "tx_chunk_mbit_s": [
+          3.98,
+          3.61,
+          3.96,
+          3.85,
+          3.87
+        ],
+        "rx_host_sent_mbit_s": 6.754,
+        "rx_device_chunk_mbit_s": [
+          16.78,
+          17.12,
+          17.48,
+          17.48,
+          17.48
+        ],
+        "tx_device_cpu_idle_percent": 84.2,
+        "rx_device_cpu_idle_percent": 76.1,
+        "completions": 3733,
+        "failed": 5,
+        "median_gap_ms": 0.48,
+        "data_phase_ms": 24703
+      },
+      "cycle_2": {
+        "started": true,
+        "pass": false,
+        "reason": "no re-arm record, no refusal, no fault; leaf wait ran to the wall"
+      },
+      "cause": "key-removal callback cancels the join worker synchronously 11 ms after the stage-3 terminal, discarding the queued re-arm pass while its pending flag stays set; the station-removal site then sees a request pending",
+      "fix": "proposal 0249"
     }
   }
 }

@@ -857,3 +857,4 @@ proposals/0245-wifi-mt6797-bound-the-lifetime-by-its-deadlines-not-by-a-pass-quo
 proposals/0246-wifi-mt6797-demote-the-per-frame-slot-allocation-and-completion-lines.patch
 proposals/0247-wifi-mt6797-never-refuse-a-BSS-notice-for-its-content-log-a-refused-body.patch
 proposals/0248-wifi-mt6797-request-the-re-arm-from-the-station-teardown-in-the-stable-epoch.patch
+proposals/0249-wifi-mt6797-keep-a-pending-re-arm-across-the-key-removal-cancel.patch

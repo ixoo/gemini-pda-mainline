@@ -1,0 +1,48 @@
+From bdd1e72403ceafeff7ab3da805cd8377eff1db65 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Sat, 24 Oct 2026 07:42:58 -0400
+Subject: [PATCH] wifi: mt6797: keep a pending re-arm across the key-removal
+ cancel
+
+Two lifecycle boots ran one full lifetime each and then logged nothing:
+no re-arm, no refusal, no fault. In both, mac80211's two key removals
+arrived about 11 ms after the stage-3 terminal, inside the 20 ms delay
+of the re-arm pass that terminal had just queued. The key-removal
+callback cancels the join worker synchronously before the key is freed,
+which discarded that pass while its pending flag stayed set, so the
+station-removal callback that followed saw a request already pending and
+did not queue another. Re-queue the pass after the cancel when a re-arm
+is still pending and the lifetime is neither closed nor poisoned. The
+pass itself still decides with the unchanged rendezvous, quiescence and
+wrap rules.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 17ead811d..b4ad67553 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -5426,6 +5426,16 @@ static int mt6797_ccmp_disable_key(struct mt6797_mac *mac)
+ 	cancel_delayed_work_sync(&mac->join_work);
+ 	mutex_lock(&mac->ccmp_receive_mutex);
+ 	mutex_unlock(&mac->ccmp_receive_mutex);
++	/* A re-arm pass queued by the healthy terminal in the 20 ms before
++	 * this removal was cancelled with everything else; its pending flag
++	 * survives, so queue it again now that the key is gone. The pass
++	 * itself still decides with the rendezvous and quiescence rules.
++	 */
++	mutex_lock(&mac->mutex);
++	if (mac->join_rearm_pending && !mac->join_closed && !mac->first_error &&
++	    !mac->closing)
++		schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
++	mutex_unlock(&mac->mutex);
+ 	while ((skb = __skb_dequeue(&discard))) {
+ 		if (skb == internal)
+ 			dev_kfree_skb(skb);
+-- 
+2.43.0
+

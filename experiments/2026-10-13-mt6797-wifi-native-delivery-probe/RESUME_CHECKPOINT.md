@@ -1,4 +1,18 @@
-# Current: lifecycle boot 1 ran one lifetime; re-arm never requested; 0248 next
+# Current: lifecycle boots 1 and 2 ran one lifetime each; 0249 next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): boot 2 (0248) repeated boot 1:
+cycle 1 passed, then no re-arm record of any kind. The cause is the
+key-removal callback's synchronous cancel of the join worker 11 ms after
+the stage-3 terminal, which discards the re-arm pass the terminal had just
+queued while its pending flag stays set. 0249 re-queues the pass after
+that cancel. Device returned to changed-boot Gemian
+`c5c2c830-6bc4-48b1-8841-aa81f53c2383`; the lifecycle-2 image (boot2
+`76adce93…`) is the installed predecessor.
+
+Next boot: lifecycle-3 (lifecycle tree + 0249) under the two-cycle
+harness, then the AP-off loss test.
+
+# Historical: lifecycle boot 1 ran one lifetime; re-arm never requested; 0248 next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): cycle 1 passed in full (TX 3.11,
 RX 6.60 Mbit/s, teardown complete, 0241's loss-reason record present),

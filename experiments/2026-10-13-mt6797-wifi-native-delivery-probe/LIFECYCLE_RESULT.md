@@ -1,4 +1,4 @@
-# Lifecycle boot 1: one full lifetime, then no re-arm request
+# Lifecycle boots 1 and 2: one full lifetime each, then no re-arm
 
 Result record, 2026-10-24. One boot on the `mt6797-a53-wifi-lifecycle`
 profile (pipelining tree plus 0240 re-arm, 0241 loss reason, 0243) under
@@ -44,9 +44,35 @@ log a false refusal; the worker's site keeps that order). Everything else
 in this boot, including 0243's and 0241's new records, behaved as
 specified. Next boot: the same harness on the lifecycle tree plus 0248.
 
+## Lifecycle boot 2 (0248): same outcome, and the real cause
+
+Build input `d67f3fd7`, boot `7b768cda…`, boot2 `76adce93…`, admitted at
+8.0 s. Cycle 1 passed again (TX 2.922 Mbit/s, chunks 3.61–3.98; RX
+6.75 Mbit/s, device chunks 16.8–17.5; 3,733 completions, 5 failed, median
+gap 0.48 ms; teardown complete), then the same silence: no re-arm, no
+refusal, no fault; `cycles_started=2 cycles_passed=1`; sealed (24,950
+records); returned to changed-boot Gemian
+`c5c2c830-6bc4-48b1-8841-aa81f53c2383`.
+
+Both logs order the end of the lifetime the same way: the supplicant's
+local deauthentication, the data-phase end, PM abort, the stage-3
+terminal, then mac80211's two key removals about 11 ms later, then the
+connection-loss notice. The key-removal callback waits for the healthy
+cleanup, logs, and cancels the join worker synchronously before the key
+is freed. The terminal had just queued the re-arm pass with a 20 ms
+delay, so the cancel discarded it while its pending flag stayed set, and
+the station-removal site that 0248 unlocked then saw a request already
+pending and queued nothing. 0248 removed a real gate but was not
+sufficient. Proposal 0249 re-queues the pass after that cancel when a
+re-arm is still pending and the lifetime is neither closed nor poisoned;
+the pass keeps its rendezvous, quiescence and wrap rules. Next boot:
+lifecycle-3 with 0249.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` (sealed session, per-cycle
-evidence under `session-lifecycle-1/lifecycle-c1/`), install receipt under
-`artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`,
+`artifacts/wifi-throughput-lifecycle-1/` and `…-lifecycle-2/` (sealed
+sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
+install receipts under
+`artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
+and `…/mt6797-wifi-tx-lifecycle2-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).
