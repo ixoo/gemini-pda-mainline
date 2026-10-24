@@ -20,6 +20,7 @@ described here; each run's own artefacts are named.
 | [pipelining](TX_PIPELINING_RESULT.md) | 0236: every admissible data frame per pass, 52-page TC1 budget (+0243, 0247) | **3.198** | 7.626 | 85.8% / 77.6% |
 | [autorate](TX_AUTORATE_RESULT.md) | 0242: fixed-rate bit cleared for data (retired) | no frame acknowledged | — | — |
 | [rate-2](TX_AUTORATE_RESULT.md) | 0255: zero rate word for ordinary data, the vendor data descriptor (retired) | no data frame acknowledged (status 3 ×4; fixed-rate frames status 0) | — | — |
+| [rx-fix](RX_REBASELINE_RESULT.md#rx-fix-boot-0256-retired-the-order-inside-the-pass-is-not-the-mechanism) | 0256: receive port served before submission in a busy pass (retired) | 2.75 | 7.23 (device-side chunks 11.3–12.7) | 86.2% / 78.5% |
 | [rx-rebaseline](RX_REBASELINE_RESULT.md) | lifecycle tree (0236 + 0240–0254), five chunks, one lifetime, nothing changed | 2.760 | 6.99 (device-side chunks 10.5–12.0) | 86.1% / 78.5% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 

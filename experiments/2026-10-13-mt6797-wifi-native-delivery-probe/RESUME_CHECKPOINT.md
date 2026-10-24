@@ -1,4 +1,25 @@
-# Current: rate-2 negative (0255 retired); the RX-cost fix is the next boot
+# Current: RX-fix negative (0256 retired); the receive mechanism is unidentified
+
+[RX re-baseline record](RX_REBASELINE_RESULT.md#rx-fix-boot-0256-retired-the-order-inside-the-pass-is-not-the-mechanism):
+serving the receive port before submission engaged on 1,586 passes and
+changed nothing (RX 7.23 host-side, 11.3–12.7 device-side; TX 3.27–3.38
+per chunk). The logs show the receive direction submits at most one
+acknowledgment per pass, so neither 0236 change can engage there, its
+page budget is host-only, and 0243/0247 add no per-frame work; every
+segment is received once. The 16–18 → 11–12 Mbit/s per-chunk receive
+drop since the pipelining boot has no identified mechanism. Device
+returned to changed-boot Gemian `04d5197a-9d8f-46b3-beab-d08c52cda99e`;
+the 0256 image is still on boot2 and will be replaced.
+
+Next: the owner's call between receive-path instrumentation on the same
+image (frames per pass, read time, pass cadence) and a boot of the
+pre-pipelining station tree plus 0236 alone; the capped-submission variant
+cannot engage in the receive direction. Then the host-side keep-alive
+(null-data admission, a workaround with a stated cost), the three-cycle
+lifecycle boot, the access-point-loss boot on 0254 with its predeclared
+meaning of loss while keep-alives are sent.
+
+# Historical: rate-2 negative (0255 retired); the RX-cost fix is the next boot
 
 [Rate-2](TX_AUTORATE_RESULT.md): with the vendor's own data descriptor (no
 fixed-rate bit, zero rate word) every ordinary data frame still completed

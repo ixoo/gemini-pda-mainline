@@ -52,8 +52,49 @@ for the RX stream are host transmissions). The experiment that tests it,
 bounding submissions per pass when the receive port has pending frames, is
 one variable and is queued after the rate boot.
 
+## RX-fix boot (0256, retired): the order inside the pass is not the mechanism
+
+One boot with proposal 0256 (build `aabfc63f`, boot2 `0663f1a9…` over
+`f02087dc…`, boot `398a2d44…`): when the previous pass's receive loop had
+delivered frames, the pass drained the receive port before it submitted;
+depth, page budget, credit model and admission unchanged. Same protocol,
+one lifetime.
+
+| Direction | Host-side aggregate | Device-side chunk rates | Host-side chunk rates | CPU idle |
+|---|---:|---|---|---|
+| RX | **7.23 Mbit/s** (re-baseline 6.99) | 11.81, 11.98, 11.34, 11.49, 12.71 (mean 11.9; re-baseline 11.6) | 18.4, 22.6, 19.8, 20.1, 25.9 | 78.5 % |
+| TX | **2.75 Mbit/s** (re-baseline 2.76) | — | 3.37, 3.29, 3.35, 3.27, 3.38 (mean 3.33; re-baseline 3.31) | 86.2 % |
+
+The reorder engaged on 1,586 passes and moved neither direction outside
+noise: receive did not recover and transmit did not fall. Data phase
+21.0 s, 3,584 frames queued, 3,581 done, 3 failed; disconnect accepted,
+teardown complete, log complete. Returned to changed-boot Gemian
+`04d5197a-9d8f-46b3-beab-d08c52cda99e`. Proposal 0256 is retired.
+
+**What the sealed logs add.** In the receive window the device transmits
+only TCP acknowledgments, about 340–410 completions per second against a
+pass cadence of one every 0.5–0.7 ms (median completion gap), so there is
+rarely more than one frame to submit per pass: 0236's submission loop
+cannot engage in this direction, and its TC1 budget (16 → 52 pages) is a
+host-side ledger that already admitted four acknowledgment-sized frames
+before the change and sends nothing to the firmware. The other two patches
+of the pipelining boot, 0243 and 0247, add bounded logging on the receive
+event path, nothing per frame. Device netdev counters show every segment
+received once in every run (3,681–3,686 receive packets for 5 MiB), so
+the loss is not dropped frames; the acknowledgment count rose with the
+pipelining tree (2,381 → 2,497–2,790 transmit packets in the receive
+window). The per-chunk device receive rate fell from 16–18 to 11–12
+Mbit/s, about 0.3 ms more per received frame, and the mechanism is not
+identified by these runs. A capped submission count per pass, the second
+variant proposed, cannot engage for the same reason the reorder did not;
+the receive path itself has no per-frame records, so the next step that
+can discriminate is receive-path instrumentation (frames per pass, read
+time per frame, pass cadence) on the same image, or a boot of the
+pre-pipelining station tree with only 0236 added, to re-establish which
+boot moved the receive rate.
+
 ## Evidence
 
-`artifacts/wifi-throughput-rxbase-1/` (sealed session), install receipt
+`artifacts/wifi-throughput-rxbase-1/` and `…-rxfix-1/` (sealed sessions), install receipts
 `artifacts/device-install-evidence/mt6797-wifi-tx-rxbase-deployment-1/`
-(result skipped-already-matching), [scalars](results/rx-rebaseline-runtime-scalars.json).
+(result skipped-already-matching) and `…-rxfix-deployment-1/`, [scalars](results/rx-rebaseline-runtime-scalars.json).
