@@ -1,0 +1,78 @@
+{
+ "service-1": {
+  "run": "PIO-throughput-service-1",
+  "profile": "mt6797-a53-wifi-lifecycle",
+  "kernel_build_commit": "18be24e3037e2033d1ff3d27307535e2f9fe03c0",
+  "package_sha256_prefix": "b8de6d8c0b3ed90dc79ea78d2e53f02db073376a0112ef480b0f081a968aa6ca",
+  "candidate_sha256": "02cd8b1e6c7947c219c8f8dbb9fdda21b1f42141ec826371e84aca2651dbb05e",
+  "boot2_sha256": "a0bbc52e1ec45f0acdeef3bfd4fdb22d0e18bb5f427ce89fcea11cbd4b5094e5",
+  "predecessor_boot2_sha256": "b9afec4d05e036b3a74cfb4dcecda6bd8020db70d407670a311d64216a9b459a",
+  "board_dtb_source": "package dtbs/mediatek/mt6797-gemini-pda-wifi-service.dtb (proposal 0261)",
+  "board_dtb_sha256": "08f6929f37a85eb8",
+  "board_dtb_equivalence": "tests/dtdiff.py against the boot-2 tree: 0 nodes, 0 properties differ",
+  "inherited_artefacts": [
+   {
+    "name": "initramfs.img",
+    "sha256_prefix": "01494ed8cfe8",
+    "reason": "no kernel build produces it"
+   }
+  ],
+  "kernel_config_change": {},
+  "install_result": "write-synced-flushed-full-readback-verified",
+  "written_from_gemian_boot_id": "af51145e-fbdf-443f-b145-32adddb0229a",
+  "acceptance": "identity and notes as the package states; firmware start; common init 285/285; DMA attach record as boot 2; TX 2.6-3.4 Mbit/s per chunk; RX ~7 host-side, 11-13 device-side",
+  "mainline_boot_id": "3082477b-db18-44a8-87ee-b1656737b934",
+  "previous_gemian_boot_id": "af51145e-fbdf-443f-b145-32adddb0229a",
+  "returned_gemian_boot_id": "0e50a29d-6a21-4781-9a5b-ae787dd3b479",
+  "rx": {
+   "host_sent_aggregate_mbit_s": 6.77,
+   "device_chunk_mbit_s": [
+    11.98,
+    11.98,
+    11.18,
+    12.52,
+    9.99
+   ],
+   "host_chunk_mbit_s": [
+    21.52,
+    24.59,
+    23.97,
+    22.66,
+    25.27
+   ],
+   "device_cpu_idle_percent": 79.6
+  },
+  "tx": {
+   "host_received_aggregate_mbit_s": 2.63,
+   "host_chunk_mbit_s": [
+    3.26,
+    3.29,
+    3.09,
+    3.2,
+    3.21
+   ],
+   "device_cpu_idle_percent": 86.4
+  },
+  "tx_status_histogram": {
+   "0": 3718,
+   "3": 2
+  },
+  "common_init": "285/285",
+  "hif_dma": {
+   "attach_record": "attached=1 selector=0x11403200 addr2=1 tx=1 rx=0",
+   "transfers_tx": 3715,
+   "failures": 0
+  },
+  "data_phase": {
+   "elapsed_ms": 21779,
+   "tx_queued": 3715,
+   "tx_done": 3713,
+   "tx_failed": 2
+  },
+  "log": {
+   "complete": true,
+   "bytes": 1575695
+  },
+  "verdict": "pass: every acceptance item holds; the committed series now produces the tree the Wi-Fi runs boot"
+ }
+}

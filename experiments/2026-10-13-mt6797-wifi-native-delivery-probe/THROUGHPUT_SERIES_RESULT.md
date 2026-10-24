@@ -24,10 +24,11 @@ described here; each run's own artefacts are named.
 | [rx-rebaseline](RX_REBASELINE_RESULT.md) | lifecycle tree (0236 + 0240–0254), five chunks, one lifetime, nothing changed | 2.760 | 6.99 (device-side chunks 10.5–12.0) | 86.1% / 78.5% |
 | [dma-tx-1](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result) | 0258–0260 built with transmit DMA, but the composed device tree lacked the channel: PIO throughout (composition defect; re-run staged) | 2.62 | 6.91 (device-side chunks 10.6–12.9) | 86.2% / 79.9% |
 | [dma-tx-2](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result) | 0258–0260, transmit direction by AP-DMA channel 0: attached, 3,712 transfers, 0 failures; receive still PIO | 2.69 | 7.04 (device-side chunks 11.8–12.9) | 86.3% / 79.5% |
+| [service-1](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24) | same kernel as dma-tx-2; device tree built from the committed series (0261) instead of the inherited binary | 2.63 | 6.77 (device-side chunks 10.0–12.5) | 86.4% / 79.6% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
-The device tree these runs booted is not reproducible from committed inputs (one inherited `board.dtb` since 2026-10-17, see the [transport record §6](HIF_TRANSPORT_ANALYSIS.md#6-transmit-dma-boot-1-2026-10-24-a-composition-defect-not-a-driver-result)); proposal 0261 reproduces it from source ([provenance record](DEVICE_TREE_PROVENANCE.md)); the equivalence boot is pending and precedes further device work.
+Runs before 2026-10-24 booted an inherited `board.dtb` that no build produced; proposal 0261 reproduces it from source and the [equivalence boot](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24) confirmed the series' results stand on it.
 
 Protocol in every column: five chunks per direction, 1 s or 1 MiB per chunk,
 plain TCP for data, SSH only for control, prompt standard disconnect. The

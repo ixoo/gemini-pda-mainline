@@ -64,8 +64,8 @@ Keep this file under 200 lines; move anything else to an experiment record.
   (reconnection after access-point loss is untested); replay
   enforcement in firmware is unknown. The device tree the Wi-Fi boots ran
   until 2026-10-24 was an inherited binary that no build reproduced;
-  proposal 0261 now reproduces it from source and one equivalence boot
-  must confirm it before any further Wi-Fi device work
+  proposal 0261 reproduces it from source and the equivalence boot
+  confirmed the series' results stand on it
   ([provenance record](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DEVICE_TREE_PROVENANCE.md)). No charging, RTC alarm or lid.
   The `full` profile has never booted. No upstream submission. A72 and thermal
   protection are parked.

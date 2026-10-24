@@ -76,3 +76,39 @@ the idle-link loss of lifecycle boot 10: a firmware-originated keep-alive
 takes its rate the same way. Proposal 0255 is retired; the rate lever
 moves to the station record, a larger question that needs the private
 reference before another boot. Scalars: [rate-2](results/tx-rate2-runtime-scalars.json).
+
+## Rate-visibility boot (predeclared, 2026-10-24; runs after the equivalence boot)
+
+Both unforced-rate boots ended with status 3 on every ordinary data frame
+and nobody could name the rate the firmware chose, because the TX-done
+event's rate word was parsed but never logged. Profile
+`mt6797-a53-wifi-rate` is the lifecycle profile plus two proposals:
+[0262](../../patches/proposals/0262-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch)
+logs one extra line per completion (`join TX rate: pid= status= rate=0x…
+flags=0x…`, the firmware's rate word valid with flag bit 0, behind
+`CONFIG_MT6797_TX_DONE_RATE_RECORD`; the existing completion line is
+unchanged) and
+[0263](../../patches/proposals/0263-wifi-mt6797-send-ordinary-data-frames-without-a-fixed-rate.patch)
+is the retired 0255 as it was: ordinary data frames with the fixed-rate
+bit clear and the rate word zero, management and security frames at their
+fixed basic rates (the control: they must complete with status 0 as
+before).
+
+Headline: the rate word of every frame that completes with status 3, as
+a histogram, decoded as the MediaTek rate code (mode in bits 6–8: 0 CCK,
+1 OFDM, 2 HT mixed, 3 HT greenfield, 4 VHT; index in bits 0–5; the forced
+descriptor's OFDM 6 Mbit/s is 0x4b) and also shown raw, with the status-0
+management frames' words beside them as the control.
+
+Branch table, decided before the boot:
+
+| Status-3 rate words | Meaning | Next |
+|---|---|---|
+| a plausible legacy rate (CCK or OFDM index in the station's basic/supported set) | the descriptor and the rate table are exonerated; the fault is elsewhere (power, antenna, QoS/HT fields) | compare the frame's other descriptor fields with the fixed-rate frames that succeed |
+| an HT/VHT MCS (mode 2–4) the legacy-only station record never negotiated | the station record / BSS info shape is the lever | declare the station's HT capability or constrain the record's PHY type set |
+| zero, or an index outside any rate table | the unforced path indexes an empty rate table | the rate table the firmware builds from the station record (desired rate set, PHY type set) is the lever |
+| flag bit 0 clear on the failing frames | the firmware reports no rate for them | the record cannot name the rate; fall back to the vendor's rate-set bits and a fixed-rate sweep |
+
+One boot, five chunks, one lifetime, as the other measurement boots. 0263
+is retired again after the boot whatever the answer; 0262 stays available
+for measurement profiles.

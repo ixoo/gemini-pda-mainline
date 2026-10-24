@@ -100,3 +100,22 @@ kernel notes as the package states; firmware start; WMT common init
 RX about 7 Mbit/s host-side and 11–13 device-side. Any departure is the
 finding and outranks everything queued behind it. Candidate composers take
 the board tree from the package from here on.
+
+## Equivalence boot: passed (2026-10-24)
+
+Build `18be24e3` (lifecycle profile with 0261), candidate `02cd8b1e…`
+composed from the package's `mt6797-gemini-pda-wifi-service.dtb`
+(`08f6929f…`, zero nodes and zero properties different from the boot-2
+tree) with the RAM root declared as the one inherited artefact; boot2
+`a0bbc52e…` over `b9afec4d…`, written from Gemian `af51145e…`; mainline
+boot `3082477b…`, returned to Gemian `0e50a29d…`; complete sealed log.
+Firmware start, WMT common init `285/285`, the DMA attach record as on
+boot 2 (`attached=1 selector=0x11403200 addr2=1 tx=1 rx=0`, 3,715
+transfers, zero failures), TX 2.63 Mbit/s (chunks 3.09–3.29), RX 6.77
+host-side (device-side chunks 10.0–12.5), CPU idle 86.4 % / 79.6 %, TX
+status histogram 3718 × 0 / 2 × 3. Every acceptance item holds; the one
+value at the edge of its band is the last receive chunk (9.99 Mbit/s
+against 10.5–13 seen before), inside the run-to-run spread of the earlier
+chunks (10.5–12.9). Conclusion: the device tree the Wi-Fi runs boot is now
+produced by the committed series, and the series' results stand on it.
+From this boot on, candidates are composed from the package's tree.

@@ -1,4 +1,31 @@
-# Current: the service tree (0261) reproduces the booted device tree; equivalence boot next
+# Current: equivalence boot passed; the rate-visibility boot is next
+
+[Provenance record](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24):
+the candidate built from the committed series alone (0261, tree from the
+package, RAM root declared) booted as the inherited tree did: common init
+285/285, the DMA attach record as boot 2, TX 2.63 and RX 6.77 Mbit/s,
+inside the seen variance. The series' results stand on a tree anyone can
+rebuild; composers take the tree from the package from here on. Device
+returned to Gemian `0e50a29d…`. Next: the rate-visibility boot on profile
+`mt6797-a53-wifi-rate` (0262 rate record, 0263 unforced data rate) with
+its [branch table](TX_AUTORATE_RESULT.md#rate-visibility-boot-predeclared-2026-10-24-runs-after-the-equivalence-boot);
+then the pass-rate boot; then receive DMA.
+
+# Historical: equivalence boot building; rate-visibility boot predeclared behind it
+
+The lifecycle profile with 0261 is built (`18be24e3`); the equivalence
+candidate (`02cd8b1e…`, boot2 `a0bbc52e…` over `b9afec4d…`, written from
+Gemian `af51145e…`, full readback verified, device shut down, watcher
+armed) takes its board tree from the package through
+[`hosts/candidate_inputs.py`](hosts/candidate_inputs.py) (the RAM root
+declared as the one inherited artefact, the parent's tree checked
+equivalent). After it: the rate-visibility boot on profile
+`mt6797-a53-wifi-rate` (0262 rate record, 0263 unforced data rate), with
+its branch table in the [autorate record](TX_AUTORATE_RESULT.md#rate-visibility-boot-predeclared-2026-10-24-runs-after-the-equivalence-boot);
+then the pass-rate boot; then receive DMA. The transmit-DMA question is
+closed ([transport record §7](HIF_TRANSPORT_ANALYSIS.md#7-conclusion-the-transmit-data-copy-is-not-the-bottleneck)).
+
+# Historical: the service tree (0261) reproduces the booted device tree; equivalence boot next
 
 [Provenance record](DEVICE_TREE_PROVENANCE.md): the tree every Wi-Fi run
 booted since 2026-10-17 is identified (`25ab60f4…`, a mid-August
