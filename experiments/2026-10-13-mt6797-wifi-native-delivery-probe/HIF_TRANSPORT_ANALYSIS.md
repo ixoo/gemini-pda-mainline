@@ -242,3 +242,26 @@ resource, the EMI selector mapping, the AP-DMA clock, or neither direction
 built). Boot 1 would have read `not attached: channel=0`. "Attached and
 ineffective" is `attached=1` with a non-zero transfer count and unchanged
 rates, which is what boot 2 is for transmit.
+
+## 8. Receive-direction DMA boot (predeclared, 2026-10-24)
+
+The pass-rate boot closed the last host-side explanation of the receive
+level: the worker runs about five thousand passes a second and capping
+its submissions changed nothing, so the receive ceiling is the polled read
+itself, about 400 bus operations per frame. One build option changes:
+`CONFIG_MT6797_HIF_DMA_RX=y` in the lifecycle fragment (the amended 0260
+is already booted); the device tree is the package's service tree as on
+the last three boots.
+
+Measured against the baseline band: RX 7.0 Mbit/s host-side, about 12
+device-side; TX 2.6–2.8. Expected: the attach record reads `tx=1 rx=1`;
+`HIF DMA transfers` `rx` close to the number of received data frames
+with `failures=0`; the received payloads intact (every chunk completes
+by byte cap, the TCP stream verified by the harness). Branches: device-side
+receive chunks above the 10.5–13 band → the byte moves were the cost and
+the direction stays admitted, the next lever being the per-frame
+WRPLR/status reads; unchanged with the DMA engaged → the byte moves are
+not the cost and the poll structure (WRPLR read, guard, status) is, the
+next step being the interrupt and the enhanced status read; `failures>0`,
+a timeout, or corrupted receive data → stop the receive direction, keep
+transmit, and read the address-extension semantics again.

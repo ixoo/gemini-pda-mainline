@@ -1,26 +1,63 @@
 {
- "passrate-1-staged": {
+ "passrate-1": {
   "run": "PIO-throughput-passrate-1",
   "profile": "mt6797-a53-wifi-lifecycle",
-  "proposals": "0264 pass census (logging), 0265 cap, CONFIG_MT6797_DATA_SUBMITS_PER_PASS=1",
+  "proposals": "0264 pass census (kept), 0265 cap at one submission per pass (retired)",
   "kernel_build_commit": "3fd31bdd3995f90196c9f38dce44e0c9dfd0551b",
   "boot2_sha256": "695a8f888d05e5e4a38fcb030b47faae6bf44887f34446420bd91a59cbf9861b",
   "predecessor_boot2_sha256": "bb9b9389331c08d4cf851ac44fa4c004e71398df3c11cdcb6b2e515cd991cd3f",
-  "board_dtb_source": "package dtbs/mediatek/mt6797-gemini-pda-wifi-service.dtb",
+  "mainline_boot_id": "fa85a198-e749-4ad9-87dc-619817a328bb",
+  "previous_gemian_boot_id": "28318e8b-f62e-409b-81c4-19b3f0a8e866",
+  "returned_gemian_boot_id": "14da9b9e-6040-437d-b97d-a5ffa35b6e21",
   "board_dtb_sha256": "08f6929f37a85eb8",
-  "kernel_config_change_vs_parent": {
-   "CONFIG_MT6797_TX_DONE_RATE_RECORD": [
-    "y",
-    null
-   ],
-   "CONFIG_MT6797_DATA_SUBMITS_PER_PASS": [
-    null,
-    "1"
-   ]
+  "booted_fdt_sha256_prefix": "9595a861e30bd342",
+  "booted_vs_build": "25 properties, all loader writes (model, /chosen, /memory, scp status)",
+  "census": {
+   "passes": 105081,
+   "submissions": 3555,
+   "max_per_pass": 1,
+   "elapsed_ms": 20971,
+   "passes_per_s": 5010.8,
+   "frames_per_pass": 0.034
   },
-  "install_result": "write-synced-flushed-full-readback-verified",
-  "written_from_gemian_boot_id": "28318e8b-f62e-409b-81c4-19b3f0a8e866",
-  "harness": "service host cohort 1: booted tree read back; display probe (vtconsole bind, one tty0 write), not evidence",
-  "status": "installed, device shut down, watcher armed; owner selects boot2"
+  "rx": {
+   "host_sent_aggregate_mbit_s": 7.16,
+   "device_chunk_mbit_s": [
+    11.49,
+    12.16,
+    11.49,
+    11.65,
+    11.81
+   ],
+   "device_cpu_idle_percent": 78.4
+  },
+  "tx": {
+   "host_received_aggregate_mbit_s": 2.55,
+   "host_chunk_mbit_s": [
+    3.17,
+    2.99,
+    3.04,
+    3.04,
+    3.25
+   ],
+   "device_cpu_idle_percent": 86.4
+  },
+  "tx_status_histogram": {
+   "0": 3555,
+   "3": 5
+  },
+  "hif_dma": {
+   "transfers_tx": 3555,
+   "failures": 0
+  },
+  "log": {
+   "complete": true,
+   "bytes": 1512970
+  },
+  "display_probe_not_evidence": {
+   "consoles": "(S)dummydevice=0;(M)framebufferdevice=1;",
+   "tty0_write": "ok"
+  },
+  "branch": "2: neither direction moved; the polled read is the receive ceiling; receive DMA next"
  }
 }

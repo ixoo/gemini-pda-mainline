@@ -1,4 +1,15 @@
-# Current: pass-rate candidate installed and armed; the owner boots it
+# Current: pass rate is not the mechanism; receive DMA is the next boot
+
+[Receive record](RX_REBASELINE_RESULT.md#pass-rate-boot-result-2026-10-24--neither-direction-moved-the-polled-read-is-the-ceiling):
+with one data submission per pass neither direction moved (TX 2.55, RX
+7.16 Mbit/s; 5,011 passes per second, 0.034 frames per pass), so the
+polled read is the receive ceiling; 0265 retired, 0264 kept. The display
+probe found fbcon bound and the tty0 write landing (not evidence). Next
+boot, predeclared in the [transport record §8](HIF_TRANSPORT_ANALYSIS.md#8-receive-direction-dma-boot-predeclared-2026-10-24):
+the lifecycle fragment admits the receive direction. Device returned to
+Gemian `14da9b9e…`.
+
+# Historical: pass-rate candidate installed and armed; the owner boots it
 
 The lifecycle profile with 0264 (pass census) and 0265 (one data
 submission per pass) is built (`3fd31bdd`), composed from the package's

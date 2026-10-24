@@ -115,7 +115,8 @@ counts, during the data phase, the worker passes, the data frames
 submitted and the most submitted in one pass, and prints them at data end
 (`join pass census: passes= submissions= max_per_pass= elapsed_ms=`,
 logging only);
-[0265](../../patches/proposals/0265-wifi-mt6797-cap-the-data-frames-one-worker-pass-submits.patch)
+0265 (retired after the boot; in the git history as
+`patches/proposals/0265-wifi-mt6797-cap-the-data-frames-one-worker-pass-submits.patch`)
 adds `CONFIG_MT6797_DATA_SUBMITS_PER_PASS` (0 = the in-flight depth,
 nothing changes); the lifecycle fragment sets it to 1 for this boot, the
 single variable. Everything else is the equivalence kernel.
@@ -135,3 +136,32 @@ stage prints the bound virtual-terminal consoles and writes one test line
 to `/dev/tty0`, the display-path check the owner asked for before any
 console progress indicator is written. Its outcome is recorded in the
 boot's identity file and reported, nothing more.
+
+## Pass-rate boot: result (2026-10-24) — neither direction moved; the polled read is the ceiling
+
+Build `3fd31bdd`, boot2 `695a8f88…` over `bb9b9389…`, mainline boot
+`fa85a198…`, returned to Gemian `14da9b9e…`, complete sealed log, five
+chunks each way, all pass. With one data submission per pass
+(`max_per_pass=1`, the cap engaged): TX 2.55 Mbit/s host-side (chunks
+2.99–3.25), RX 7.16 host-side (device-side chunks 11.5–12.2), CPU idle
+86.4 % / 78.4 %, status histogram 3555 × 0 / 5 × 3, DMA transmit 3,555
+transfers with zero failures. The census: 105,081 worker passes in
+20,971 ms, 5,011 passes per second, 3,555 data frames submitted, 0.034
+frames per pass.
+
+Branch 2 of the table: neither direction moved. Receive stayed where the
+pipelined tree left it and transmit did not fall back toward the
+yield-era 0.84 Mbit/s, so pass duration is not the receive mechanism and
+pass batching was never the transmit gain: the worker runs five thousand
+passes a second, a data frame is submitted in one pass in thirty, and the
+gain 0236 brought came from the in-flight depth, not from several
+submissions per pass. The receive ceiling is the polled read itself, the
+~400 bus operations per frame, which the receive-direction DMA replaces
+next. 0265 (the cap) is retired with its fragment line; 0264 (the census)
+stays, one line per data phase.
+
+Not evidence, reported as asked: the display probe found the frame-buffer
+console bound (`(M) frame buffer device` bind 1, the dummy console
+unbound) and the test line reached `/dev/tty0`. The console progress
+indicator can be written against a live virtual terminal. The booted tree
+again differed from the build only in the loader's 25 properties.

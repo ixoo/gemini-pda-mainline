@@ -27,6 +27,7 @@ described here; each run's own artefacts are named.
 | [service-1](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24) | same kernel as dma-tx-2; device tree built from the committed series (0261) instead of the inherited binary | 2.63 | 6.77 (device-side chunks 10.0–12.5) | 86.4% / 79.6% |
 | [service-2](DEVICE_TREE_PROVENANCE.md#closing-the-chain-on-the-device-result-2026-10-24) | same image; the booted tree read back and compared with the build | 2.67 | 7.54 (device-side chunks 11.7–12.7) | 86.5% / 78.2% |
 | [rate-3](TX_AUTORATE_RESULT.md#rate-visibility-boot-result-2026-10-24--branch-3-an-empty-rate-table) | 0262 rate record + 0263 unforced data rate (retired): every status-3 frame reports rate word 0x0000; control frames 0x004b | no data frame acknowledged | — | — |
+| [pass-rate](RX_REBASELINE_RESULT.md#pass-rate-boot-result-2026-10-24--neither-direction-moved-the-polled-read-is-the-ceiling) | 0264 census + 0265 one data submission per pass (retired): 5,011 passes/s, 0.034 frames/pass | 2.55 | 7.16 (device-side chunks 11.5–12.2) | 86.4% / 78.4% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
