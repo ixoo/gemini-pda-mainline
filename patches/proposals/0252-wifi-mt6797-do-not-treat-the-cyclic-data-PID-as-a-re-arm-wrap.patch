@@ -1,0 +1,44 @@
+From 6b02c6d071dc7efc9700a22ad25d3da352f2b51c Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Sat, 24 Oct 2026 10:38:49 -0400
+Subject: [PATCH] wifi: mt6797: do not treat the cyclic data PID as a re-arm
+ wrap
+
+The fifth lifecycle boot completed its first lifetime, both key
+removals and the deferred re-arm request, and the re-arm pass then
+refused with "rearm wrap: next_pid=82" and poisoned the lifetime. The
+join PID counter is synced from the data PID pool, which cycles through
+its range during every data phase and restarts with the epoch; its
+value at the terminal is wherever the last data frame left it. The
+previous two boots passed this clause by luck (PIDs 10 and 15). Drop
+the clause: the wrap rule keeps the channel token, the station
+sequence and the command sequence, which are the boot-scoped
+identities it was written for.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ drivers/net/wireless/mediatek/mt6797/join-rearm.h | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-rearm.h b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+index e3c9493b4..d0e1445fd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-rearm.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+@@ -43,8 +43,11 @@ mt6797_join_rearm_ready(const struct mt6797_join_rearm_state *s)
+ 	    s->inflight || s->page_debt || s->data_page_debt || s->credit_pending ||
+ 	    !s->queue_empty)
+ 		return MT6797_JOIN_REARM_NO;
+-	if (s->channel_token == 255 || s->sta_sequence == 255 || s->sequence > 248 ||
+-	    s->next_pid > 63)
++	/* The data PID is cyclic and the pool restarts with the epoch, so it
++	 * is not a boot-scoped identity: the fifth lifecycle boot stopped its
++	 * data phase at PID 82 and was refused here as a wrap.
++	 */
++	if (s->channel_token == 255 || s->sta_sequence == 255 || s->sequence > 248)
+ 		return MT6797_JOIN_REARM_WRAP;
+ 	return MT6797_JOIN_REARM_YES;
+ }
+-- 
+2.43.0
+

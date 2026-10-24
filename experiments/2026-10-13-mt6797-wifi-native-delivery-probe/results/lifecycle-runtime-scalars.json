@@ -213,6 +213,57 @@
       },
       "cause": "second key removal arrived after the re-arm's epoch reset: ccmp-stable disable status=-110 and withdraw closed the new lifetime's receive path",
       "fix": "proposal 0251"
+    },
+    "lifecycle-5": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-5)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243",
+        "0247",
+        "0248",
+        "0249",
+        "0250",
+        "0251"
+      ],
+      "kernel_build_commit": "b75580439e59de919ca9192b82ed44951911cc84",
+      "candidate_manifest_sha256": "57e1f72e3ba2703ee96bf8cfbabfe69c72c731e8fa5fc2cf5bc5f76415f6451d",
+      "boot2_sha256": "33e1f78551a7ceea1ef708428c5ba0adb45524e44ab10c4dc5bf60e04239c9c3",
+      "mainline_boot_id": "cf5a925e-48c1-4dac-a882-482ddcb56cb5",
+      "previous_gemian_boot_id": "3f113be8-5bf7-457a-a6eb-29637d099d00",
+      "returned_gemian_boot_id": "9b35a4fa-ef15-4ac0-a276-298a887a6f2f",
+      "complete_log_records": 25715,
+      "cycle_1": {
+        "pass": true,
+        "tx_host_received_mbit_s": 2.482,
+        "tx_chunk_mbit_s": [
+          3.11,
+          3.34,
+          3.2,
+          3.27,
+          3.32
+        ],
+        "rx_host_sent_mbit_s": 5.615,
+        "rx_device_chunk_mbit_s": [
+          11.04,
+          11.65,
+          11.65,
+          11.04,
+          12.34
+        ]
+      },
+      "rearm": {
+        "record": "join rearm wrap: token=1 sta_seq=20 sequence=35 next_pid=82",
+        "effect": "lifetime poisoned; leaf cycle=1 terminal=fault_or_timeout"
+      },
+      "classifier": {
+        "lifecycle_pass": false,
+        "first_failure_gate": "no_fault",
+        "kind": "join rearm wrap"
+      },
+      "cause": "readiness check treats the cyclic data PID counter (synced from the pool, restarted with the epoch) as a boot-scoped identity; boots 3 and 4 passed it by luck at PIDs 10 and 15",
+      "fix": "proposal 0252"
     }
   }
 }

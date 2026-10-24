@@ -121,13 +121,34 @@ scan through activation, now behaves as the first. Harness:
 records); returned to changed-boot Gemian
 `3f113be8-5bf7-457a-a6eb-29637d099d00`. Next boot: lifecycle-5 with 0251.
 
+## Lifecycle boot 5 (0251): the re-arm is refused as a wrap on a cyclic PID
+
+Build input `b7558043`, boot `cf5a925e…`, boot2 `33e1f785…`. Cycle 1
+passed (TX 2.482 Mbit/s, chunks 3.11–3.34; RX 5.62 Mbit/s, device chunks
+11.0–12.3; teardown complete, both key removals seen), and the re-arm
+pass then refused: `join rearm wrap: token=1 sta_seq=20 sequence=35
+next_pid=82`, which poisons the lifetime. The leaf saw the fault
+(`cycle=1 terminal=fault_or_timeout`), the classifier's first failure is
+that record (`no_fault` gate), sealed (25,715 records), returned to
+changed-boot Gemian `9b35a4fa-ef15-4ac0-a276-298a887a6f2f`.
+
+The join PID counter is synced from the data PID pool, which cycles
+through its range during every data phase and restarts with the epoch,
+so its value at the terminal is wherever the last data frame left it:
+10 and 15 on boots 3 and 4, which passed the readiness check's
+`next_pid > 63` clause by luck, and 82 here. Proposal 0252 drops that
+clause; the wrap rule keeps the channel token, the station sequence and
+the command sequence, the boot-scoped identities it was written for.
+Next boot: lifecycle-6 with 0252.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-4/` (sealed
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-5/` (sealed
 sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
 `…/mt6797-wifi-tx-lifecycle2-deployment-1/`,
-`…/mt6797-wifi-tx-lifecycle3-deployment-1/` and
-`…/mt6797-wifi-tx-lifecycle4-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle3-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle4-deployment-1/` and
+`…/mt6797-wifi-tx-lifecycle5-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).
