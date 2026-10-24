@@ -141,14 +141,37 @@ clause; the wrap rule keeps the channel token, the station sequence and
 the command sequence, the boot-scoped identities it was written for.
 Next boot: lifecycle-6 with 0252.
 
+## Lifecycle boot 6 (0252): the first lifetime stops on an expired data slot
+
+Build input `2d80832a`, boot `fad2ec53…`, boot2 `96bf3ce7…`. This boot ran
+on the weakest link of the series (TX 2.395 Mbit/s, chunks 2.9–3.2; eleven
+failed frames). Twelve seconds into the data phase, during the second
+receive chunk, the worker's deadline check found a data slot whose TX
+status had not arrived within its 750 ms deadline and stopped the
+lifetime (`join stopped: status=-110 … branch=1`, credit observation
+`site=2`, 8 frames unaccounted, one slot pending). The leaf then saw no
+host acknowledgment (`cycle=1 host_ack=absent`), the harness recorded
+`cycles_started=1 cycles_passed=0`, sealed (15,347 records), returned to
+changed-boot Gemian `e55151bd-490f-44f8-bbfe-26ffb2937f65`. The re-arm
+gates fixed by 0248–0252 were never reached; nothing is known about them
+from this boot.
+
+Every earlier boot of the series had zero unaccounted frames, so the
+expiry is new, and it is a lost frame rather than a protocol fault.
+Proposal 0253 retires an expired slot before the deadline check: the
+frame is reported to mac80211 unacknowledged, counted as failed and with
+the consecutive failures that end the data phase, and a late status for
+its PID stays counted as unowned. Next boot: lifecycle-7 with 0253.
+
 ## Evidence
 
-`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-5/` (sealed
+`artifacts/wifi-throughput-lifecycle-1/` to `…-lifecycle-6/` (sealed
 sessions, per-cycle evidence under `session-lifecycle-1/lifecycle-c1/`),
 install receipts under
 `artifacts/device-install-evidence/mt6797-wifi-tx-lifecycle-image-deployment-1/`
 `…/mt6797-wifi-tx-lifecycle2-deployment-1/`,
 `…/mt6797-wifi-tx-lifecycle3-deployment-1/`,
-`…/mt6797-wifi-tx-lifecycle4-deployment-1/` and
-`…/mt6797-wifi-tx-lifecycle5-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle4-deployment-1/`,
+`…/mt6797-wifi-tx-lifecycle5-deployment-1/` and
+`…/mt6797-wifi-tx-lifecycle6-deployment-1/`,
 [scalars](results/lifecycle-runtime-scalars.json).

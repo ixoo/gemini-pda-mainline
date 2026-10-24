@@ -1,0 +1,113 @@
+From 70649281e13f647518e3248095b8462c73065307 Mon Sep 17 00:00:00 2001
+From: Gemini experiment <experiment@invalid>
+Date: Sat, 24 Oct 2026 10:52:05 -0400
+Subject: [PATCH] wifi: mt6797: retire an expired data slot as a lost frame
+
+The sixth lifecycle boot ended its first lifetime in the middle of the
+receive direction: a data frame's TX status had not arrived within its
+750 ms slot deadline, and the worker's deadline check treated the
+expired slot as a fault and stopped the lifetime with -ETIMEDOUT. The
+six boots before it had no such frame; this one ran on the weakest
+link of the series (eleven failed frames). A frame that produced no
+status is a lost frame, not a protocol fault. Retire each expired slot
+before the deadline check: report the frame to mac80211 unacknowledged,
+count it as failed and with the consecutive failures that end the data
+phase, and log the first four. A status that still arrives for its PID
+is counted as unowned, as before. The management frame deadline, the
+join deadline and every other stop condition are unchanged.
+
+Internal experiment archive; synthetic non-certifying author,
+not submission-ready.
+---
+ .../net/wireless/mediatek/mt6797/join-depth.h | 15 +++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 32 +++++++++++++++++--
+ 2 files changed, 45 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-depth.h b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+index 8d44395e7..6c37559e3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-depth.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+@@ -79,6 +79,21 @@ static inline void *mt6797_data_pop(struct mt6797_data_slots *s)
+ 	return NULL;
+ }
+ 
++/* Retire one slot whose deadline has passed, returning its frame and PID. */
++static inline void *
++mt6797_data_take_expired(struct mt6797_data_slots *s, unsigned long long now,
++			 unsigned char *pid)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DATA_DEPTH; i++)
++		if (s->owner[i].frame && now >= s->owner[i].deadline) {
++			*pid = s->owner[i].pid;
++			return mt6797_data_take(s, *pid);
++		}
++	return NULL;
++}
++
+ static inline bool
+ mt6797_data_expired(const struct mt6797_data_slots *s, unsigned long long now)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index f0a904cf4..c11f3111f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -374,6 +374,7 @@ struct mt6797_mac {
+ 	 */
+ 	unsigned int join_data_page_debt, join_data_tx_queued, join_data_tx_done;
+ 	unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
++	unsigned int join_data_expired;
+ 	bool join_inflight_data;
+ 
+ 	u64 scan_deadline, scan_started_ns;
+@@ -1686,6 +1687,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_tx_done = 0;
+ 	mac->join_data_tx_failed = 0;
+ 	mac->join_data_tx_failures_in_row = 0;
++	mac->join_data_expired = 0;
+ 	mac->join_inflight_data = false;
+ 	mac->join_last_acked = false;
+ 	mac->join_credit_pending = false;
+@@ -3301,10 +3303,36 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	 * lifetime before any teardown command.
+ 	 */
+ 	mac->join_polls++;
++	/* A data frame whose status has not come within its slot deadline is a
++	 * lost frame, not a protocol fault: lifecycle boot 6 ended its lifetime
++	 * on one such frame under receive load. Report it unacknowledged and
++	 * count it with the consecutive failures that end the data phase; a
++	 * late status for its PID is already counted as unowned.
++	 */
++	{
++		unsigned char expired_pid;
++
++		while ((skb = mt6797_data_take_expired(&mac->data_slots, now,
++						      &expired_pid))) {
++			mac->join_data_tx_failed++;
++			mac->join_data_expired++;
++			if (mac->join_data_expired <= 4)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join data TX expired: pid=%u count=%u in_row=%u\n",
++					 expired_pid, mac->join_data_expired,
++					 mac->join_data_tx_failures_in_row + 1);
++			ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(skb));
++			IEEE80211_SKB_CB(skb)->flags &= ~IEEE80211_TX_STAT_ACK;
++			__skb_queue_tail(&data_completed, skb);
++			if (++mac->join_data_tx_failures_in_row >=
++			    MT6797_JOIN_DATA_TX_FAILURES)
++				mt6797_mac_join_end_data(mac, "txfail");
++		}
++		skb = NULL;
++	}
+ 	if (mac->scan_active || mac->first_error || mac->closing ||
+ 					now >= mac->join_deadline ||
+-					(mac->join_inflight && now >= mac->join_frame_deadline) ||
+-	    mt6797_data_expired(&mac->data_slots, now)) {
++					(mac->join_inflight && now >= mac->join_frame_deadline)) {
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		/* A data frame still in flight at its deadline: name it with the
+ 		 * TC1 ledger's state, so the next decision can tell a consumed
+-- 
+2.43.0
+

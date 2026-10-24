@@ -741,3 +741,4 @@ proposals/0249-wifi-mt6797-keep-a-pending-re-arm-across-the-key-removal-cancel.p
 proposals/0250-wifi-mt6797-let-the-scan-ignore-a-BSS-absence-or-presence-notice.patch
 proposals/0251-wifi-mt6797-re-arm-only-after-both-of-mac80211-s-key-removals.patch
 proposals/0252-wifi-mt6797-do-not-treat-the-cyclic-data-PID-as-a-re-arm-wrap.patch
+proposals/0253-wifi-mt6797-retire-an-expired-data-slot-as-a-lost-frame.patch

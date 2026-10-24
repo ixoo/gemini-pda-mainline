@@ -264,6 +264,53 @@
       },
       "cause": "readiness check treats the cyclic data PID counter (synced from the pool, restarted with the epoch) as a boot-scoped identity; boots 3 and 4 passed it by luck at PIDs 10 and 15",
       "fix": "proposal 0252"
+    },
+    "lifecycle-6": {
+      "run": "PIO-lifecycle-1 (runtime wifi-throughput-lifecycle-6)",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "proposals_under_test": [
+        "0240",
+        "0241",
+        "0243",
+        "0247",
+        "0248",
+        "0249",
+        "0250",
+        "0251",
+        "0252"
+      ],
+      "kernel_build_commit": "2d80832a1f1cc66f527beae28e7811170f1b3045",
+      "candidate_manifest_sha256": "88f6a6556b8e19d295a3f0b0e82ec344d9ca273eb734d7ef68e933d1665eff65",
+      "boot2_sha256": "96bf3ce7cdee3c0659301254db1bf9a9dbb6aa897ecf939164addb6ea34efef4",
+      "mainline_boot_id": "fad2ec53-a0dc-4f02-adc1-7176e8592a9c",
+      "previous_gemian_boot_id": "9b35a4fa-ef15-4ac0-a276-298a887a6f2f",
+      "returned_gemian_boot_id": "e55151bd-490f-44f8-bbfe-26ffb2937f65",
+      "complete_log_records": 15347,
+      "cycle_1": {
+        "pass": false,
+        "tx_host_received_mbit_s": 2.395,
+        "tx_chunk_mbit_s": [
+          3.22,
+          3.0,
+          2.9,
+          3.14,
+          3.23
+        ],
+        "rx": "stopped during chunk 2",
+        "data_phase_ms": 12047,
+        "tx_queued": 2151,
+        "tx_done": 2132,
+        "tx_failed": 11,
+        "unaccounted": 8,
+        "stop": "join stopped status=-110 branch=1, credit observation site=2: a data slot expired (no TX status within 750 ms)"
+      },
+      "harness": {
+        "cycles_started": 1,
+        "cycles_passed": 0,
+        "host_ack": "absent"
+      },
+      "cause": "deadline check treats an expired data slot as a fault; a lost TX status under receive load ends the lifetime",
+      "fix": "proposal 0253 (retire the expired slot as a lost frame)"
     }
   }
 }

@@ -1,4 +1,18 @@
-# Current: lifecycle boot 5 refused the re-arm as a PID wrap; 0252 next
+# Current: lifecycle boot 6 stopped on an expired data slot; 0253 next
+
+[Lifecycle result](LIFECYCLE_RESULT.md): on the weakest link of the
+series a data frame produced no TX status within its 750 ms slot
+deadline and the worker ended the lifetime twelve seconds into the data
+phase, before any re-arm gate was reached. 0253 retires an expired slot
+as a lost frame (reported unacknowledged, counted with the consecutive
+failures that end the data phase). Device returned to changed-boot Gemian
+`e55151bd-490f-44f8-bbfe-26ffb2937f65`; the lifecycle-6 image (boot2
+`96bf3ce7…`) is the installed predecessor.
+
+Next boot: lifecycle-7 (lifecycle tree + 0253) under the two-cycle
+harness, then the AP-off loss test.
+
+# Historical: lifecycle boot 5 refused the re-arm as a PID wrap; 0252 next
 
 [Lifecycle result](LIFECYCLE_RESULT.md): with 0251 both key removals were
 seen and the re-arm was requested, but the readiness check refused it as
