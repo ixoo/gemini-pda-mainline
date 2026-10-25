@@ -9,8 +9,12 @@ join path still unexercised. The measurement protocol becomes 4 MiB or
 3 s per chunk with a final-half rate (the 1 MiB cap made every receive
 chunk since rx-batch-4 and boot E's transmit a floor, marked in the
 series table); the memory policy and the instrument corollary are
-recorded. 0280 (depth with the ledger derived from it) is in the series;
-boot F runs depth 8 under the new protocol, boot G depth 12.
+recorded. 0280 (depth with the ledger derived from it) is in the series.
+Boot F is staged: lifecycle package at `4a6c3785` (depth 8, ledger 104),
+boot2 `78bc8d58…` over `528d1d1d…` (full readback verified from Gemian
+`104bb967…`), five steady-state chunks (4 MiB or 3 s) with the probe,
+preflight passed, device shut down, watcher armed; the owner selects
+boot2. Boot G (depth 12) follows on boot F's numbers.
 
 # Historical: the AP-loss gate is running; boots F and G (depth 8 then 12) are predeclared on the credit-retire baseline
 
