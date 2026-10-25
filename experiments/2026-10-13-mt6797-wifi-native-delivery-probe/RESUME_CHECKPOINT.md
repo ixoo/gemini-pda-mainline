@@ -1,4 +1,12 @@
-# Current: probe boot 1 half ran (TCP samples valid, ping/UDP void by injection order); same-image re-run staged
+# Current: probe boots 1 and 2 lost to the harness (unbound host, renamed flag); third same-image run staged with the plan asserted
+
+[§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-2-2026-10-25-a-graded-repeat-the-probe-ran-disabled-by-the-staging):
+boot 2 is a graded TCP repeat (2.67 / 6.99) with the probe disabled by a
+renamed environment flag in the derived staging script. The staging now
+asserts the plan and the device script before the install. The ping and
+UDP readings are still owed; boot 1's TCP samples stand.
+
+# Historical: probe boot 1 half ran (TCP samples valid, ping/UDP void by injection order); same-image re-run staged
 
 [§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-1-2026-10-25-the-tcp-samples-came-the-ping-and-the-udp-bursts-did-not):
 the device's advertised window is ample and the in-chunk TCP round-trip

@@ -212,6 +212,38 @@
       },
       "fix": "probe block inserted before the HOST/BOOT substitution; guard refuses unbound placeholders; trigger RTT added",
       "rerun": "same image, probe-2"
+    },
+    "probe-2": {
+      "run": "PIO-throughput-probe2-1",
+      "same_image_as": "probe-1",
+      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+      "install_result": "skipped-already-matching",
+      "mainline_boot_id": "4627e5ea-3851-4b0d-9d5a-51f9948a4168",
+      "previous_gemian_boot_id": "bc556eb9-787f-401c-9697-deccb3493948",
+      "returned_gemian_boot_id": "1172db3c-93eb-4e28-a487-53cd44b1bdd2",
+      "sealed_log_bytes": 1499754,
+      "throughput": {
+        "tx_host_received_mbit_s": 2.67,
+        "tx_chunk_mbit_s": [
+          3.28,
+          3.16,
+          3.21,
+          3.4,
+          3.32
+        ],
+        "tx_device_cpu_idle_percent": 86.13,
+        "rx_host_sent_mbit_s": 6.99,
+        "rx_device_chunk_mbit_s": [
+          12.34,
+          12.52,
+          12.34,
+          11.81,
+          11.98
+        ],
+        "rx_device_cpu_idle_percent": 80.96
+      },
+      "receive_probe": "disabled: the derived staging script renamed TP_RECEIVE_PROBE (plan receive_probe false)",
+      "fix": "staging asserts the plan flag and the bound device script before the install"
     }
   }
 }

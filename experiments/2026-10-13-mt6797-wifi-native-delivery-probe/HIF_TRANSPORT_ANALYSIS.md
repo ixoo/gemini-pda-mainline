@@ -870,3 +870,22 @@ lever.
 | Reading | Cause | Next |
 |---|---|---|
 | UDP delivered near 11–12 Mbit/s device-side whatever is offered, loss low below it and rising above it, TCP RTT at rest short | the access point's legacy downlink rate to a station that advertises no HT | advertise HT (and the matching station record) before any transport lever |
+
+### Probe boot 2 (2026-10-25): a graded repeat; the probe ran disabled by the staging
+
+Same image (`cacce7a1…`, the installer recorded `skipped-already-matching`
+after its full readback), mainline boot `4627e5ea…`, returned to Gemian
+`1172db3c…`, complete sealed log (1,499,754 bytes). Graded: TX 2.67
+Mbit/s (chunks 3.16–3.40), receive 6.99 host-side (device-side 11.8–12.5),
+`debt=0`, the third reading of the reverted tree in a row. The probe did
+not run: the staging script for the re-run was derived from the first by a
+name sweep that also renamed the probe's environment flag, so the prepare
+step recorded `receive_probe: false` and the device script carried no
+probe block (the receipt holds a disabled probe record). The staging now
+asserts, before anything touches the device, that the plan says the probe
+is on and that the device script the helper will send carries the host in
+its probe lines; the staging scripts are host tooling outside the
+repository and the lesson is recorded here because it cost a device
+cycle: three cycles of this probe have been lost to the harness (the
+unbound placeholder, the renamed flag), none to the driver. The TCP
+samples of boot 1 stand; the ping and the UDP readings are still owed.
