@@ -1,4 +1,19 @@
-# Current: 0268 boot 1 stopped at the credit wait (block read consumed the TX counts); amended 0268 builds
+# Current: 0268 boot 2 reached EAPOL message 2, then the join guard refused (-EIO, debt 0); guard record added, boot 3 staged
+
+[Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-2-of-0268-2026-10-25-the-credits-came-the-join-guard-refused-at-the-second-eapol-message):
+the credit merge delivered every credit; the stop is one of four -EIO
+sources the log cannot tell apart, and the join guard now records the
+words it saw. Boot 3 reads TX first (2.6–2.8 band, debt 0, failures 0)
+before any receive row applies. Standing rule for every predeclaration
+from now on: two questions answered from source, no boot: reachability
+(which function performs the bus write; what earlier can refuse or consume
+it) and ownership (which registers the new code reads destructively, who
+else reads or writes them, what they now see). Owner decision still owed
+on the state-2 attempt (last of the rate thread, after batching, if yes).
+The AP-loss gate is where a failed join's accounting (0267, the timeout
+contract) is verified.
+
+# Historical: 0268 boot 1 stopped at the credit wait (block read consumed the TX counts); amended 0268 builds
 
 [Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-1-of-0268-2026-10-25-the-join-stopped-at-its-credit-wait-the-block-read-had-consumed-the-tx-release-counts):
 the receive side worked through authentication, the credit path never saw

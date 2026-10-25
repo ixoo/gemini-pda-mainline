@@ -187,7 +187,10 @@ cleanup=0 branch=2`). No data phase: none of the three branch rows was
 reached, and nothing about the rate table, the state sequence or the
 chosen rates follows from this boot. It is not a rate data point. The
 state-2 update was never sent; the branch-3 lever (the station record's
-shape) remains untested, not falsified, and stays live.
+shape) remains untested, not falsified, and stays live. The rate thread
+stays closed pending the owner's explicit answer; if it is yes, the single
+attempt (the encoder admitting state 2) is scheduled after the
+receive-batching boots, never in the same boot as a receive measurement.
 
 Where the -22 came from, read before any vendor interpretation: our own
 code. `mt6797_join_station_payload` (`join-commands.h`) admits station

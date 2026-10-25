@@ -15,6 +15,26 @@
       "mechanism": "enhanced block read consumed WHISR and the TX queue release counts the credit path polled (vendor: nicTxReleaseResource from rTxInfo)",
       "fix": "amended 0268: block counts merged into the next TX status acquisition; no poison on block contents",
       "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    },
+    "rx-batch-2": {
+      "run": "PIO-throughput-rxbatch2-1",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "kernel_build_commit": "192c71ff58f55e7dc4fe1799dc445548c01a478a",
+      "boot2_sha256": "a9b89cfbb20ec5e9d7ef0c77a375535f3e0af6b5fed68e31eb77ba56e6b8268b",
+      "predecessor_boot2_sha256": "0037de60c40c85406407544879f41a808ec8ead0bd403a62769e0347b9d73bb8",
+      "mainline_boot_id": "9335c457-95c4-4f66-a0fe-ecc58473bb68",
+      "previous_gemian_boot_id": "1163163d-cc86-4c83-bd0b-22be53ddcb7f",
+      "returned_gemian_boot_id": "0b7f827b-fdb3-4488-98ca-d2c93ef852e8",
+      "sealed_log_bytes": 150285,
+      "outcome": "inconclusive: credits returned for every command and frame (0.8 ms after submission), join authenticated, associated, activated, EAPOL 1 received and 2 sent; join guard returned -EIO 172 us after its TX done (status=-5 branch=2 debt=0); no data phase",
+      "eio_candidates": [
+        "WCIR identity/ready",
+        "tx status admission (valid=0)",
+        "merged WHISR abnormal/assert bits",
+        "ledger reconcile refusing counts (second release count against a zero debt)"
+      ],
+      "fix": "guard records its words; fixture models both consumers; no driver behaviour change",
+      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
     }
   }
 }

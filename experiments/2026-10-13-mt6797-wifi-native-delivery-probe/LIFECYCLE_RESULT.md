@@ -368,6 +368,16 @@ install receipts under
 
 ## AP-loss gate (predeclared, 2026-10-24; last in the queue)
 
+This gate is the boot that exercises a failed join inside one lifetime, so
+two things are verified here and nowhere else: 0267's accounting (a refused
+command releases its reservation; its path has not run on device yet) and
+the contract for a written command that times out, stated in the
+[transport record](HIF_TRANSPORT_ANALYSIS.md#boot-1-of-0268-2026-10-25-the-join-stopped-at-its-credit-wait-the-block-read-had-consumed-the-tx-release-counts).
+The predeclaration reads the ledger at the failed join's stop and before
+the rejoin, and says whether a late credit was reconciled into the ledger
+or read as `join credit overflow`; the rejoin inherits the enabled receive
+mode (0268) whole.
+
 Proposal 0254 re-opens the scan after an idle lifetime; it has never run
 against a real access-point loss. The tree has no host keep-alive (0257 is
 held, not admitted), so "loss" is defined for this tree as follows, before

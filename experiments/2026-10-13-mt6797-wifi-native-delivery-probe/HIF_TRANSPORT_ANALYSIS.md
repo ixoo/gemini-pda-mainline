@@ -416,3 +416,130 @@ bad length, the dropped aggregate with the other queue still served, the
 credit merge and its clearing), strict checkpatch is clean. Boot 2 keeps
 the headline, the band and the table above; the `join credit` lines of
 the management frames are the first thing read.
+
+**The page debt of a written command that times out** (`debt=1 cleanup=0`
+on this boot). `cleanup=0` on branch 1 is by design: the lifetime
+fail-stops without a cleanup submission when the credit wait times out,
+because the page of a written command is the firmware's until a release
+count returns, and the host must not reuse it. 0267 stays scoped to a
+command refused before any write; it is not extended to this path. The
+accounting has two layers: `join_page_debt` (mac.c) is the waiter's
+bookkeeping, and the re-arm path zeroes it (`mt6797_mac_join_rearm`); the
+page ledger itself is the HIF's normal transaction (`tc4_free`,
+`tc4_pending_cpu/ffa`, normal_command.h), which re-arm does not touch, so a
+page the firmware still owns stays debited there, a late release count is
+reconciled against it, and nothing zeroes it short of a cold re-init. The
+gap is between the layers: a release that arrives after re-arm, with the
+waiter's debt already zero, reads as `join credit overflow` (-EPROTO) in
+the guard and stops the new join; the ledger is right, the bookkeeping is
+not. Contract, for the AP-loss gate (the boot that exercises exactly this
+path): after a failed join and before the next, the accounting is
+reconciled by a release count read into the ledger, or by the lifetime's
+retirement with the ledger whole (`mt6797_hif_normal_idle`, hif.c:
+`tc4_free == tc4_limit`, nothing pending), or by a re-init; never by
+zeroing. The gate's predeclaration reads the ledger at the failed join's
+stop and before the rejoin, and says whether a late credit was reconciled
+or read as overflow ([lifecycle record](LIFECYCLE_RESULT.md)).
+
+### Boot 2 of 0268 (2026-10-25): the credits came; the join guard refused at the second EAPOL message
+
+Build `192c71ff`, boot2 `a9b89cfb…` over `0037de60…`, mainline boot
+`9335c457…`, returned to Gemian `0b7f827b…`, complete sealed log
+(150,285 bytes). The merge did what it was written for: every command and
+frame's page credit returned (`join credit: pages=1 remaining=0` 0.8 ms
+after the authentication frame, the association frame and the first EAPOL
+message, where the register path had reported them only at `TX done`,
+7–8 ms later), the join authenticated, associated, activated the station
+(`state=3 lifetime=1`), received EAPOL message 1 and sent message 2
+(`eapol sent: pid=3 pages=2`, credited, `TX done: pid=3 status=0`). Then,
+172 µs after that `TX done`, `join stopped: status=-5 first=0
+submitted=0x801 debt=0 cleanup=0 branch=2`. Branch 2 is the join guard
+(`mt6797_mac_join_guard`, mac.c), which returned -EIO with the waiter's
+debt at zero. No data phase, no `HIF RX batch` record: not a throughput
+data point. Display probe (not evidence): framebuffer console bound, tty0
+write ok, the indicator wrote.
+
+Where -EIO can come from in that guard, from source: (a) the identity read
+of WCIR (chip id 0x0279 with `WLAN_READY` bit 21) failing, that is the
+firmware no longer ready; (b) the TX status acquisition refused by its own
+admission (`mt6797_hif_tx_status`, runtime form: the normal phase must be
+`NVRAM_SUBMITTED`, the baseline and the normal attempt made), which
+returns -EIO without poisoning; (c) the abnormal bits of the merged WHISR
+(bit 6 `ABNORMAL_INT`, bit 31 `D2H_SW_ASSERT_INFO_INT`), which poison;
+(d) the ledger's reconcile refusing the counts (`mt6797_normal_reconcile`:
+a count in a queue other than TQ1, TQ14 and TQ15, or a count above the
+unmatched debt), which aborts the ledger with -EIO. The log cannot tell
+them apart: the stop line carries the mac's first error (0), not the
+HIF's, and nothing recorded the words. One candidate stands out from the
+vendor source and this boot's own timing: the block reports the release
+at the moment the firmware frees the page (0.8 ms after submission), the
+register path reported it at `TX done`; if the firmware also reports a
+count at completion (a page freed in two steps, or the same page twice),
+the second count meets a debt of zero and (d) is exactly this symptom.
+The vendor tolerates that: `nicTxCalculateResource` (nic_tx.c) clamps the
+TX-done counts to the pages in use (`ucExtraTxDone`, the "extra TX done"
+accounting), where our ledger refuses with an abort. This is a reading,
+not a finding; boot 3 settles it.
+
+What changed for boot 3, all offline: the guard records its refusal with
+the words it saw (`join guard failed: ret= wcir= own= valid= whcr= whisr=
+wtqcr0= wtqcr7= hif= pending_whisr= pending0= pending7= batch_failures=
+credits=`), so (a) shows in `wcir`, (b) in `valid=0`, (c) in `whisr`, (d)
+in `valid=0x3ff` with the counts in `wtqcr7`/`wtqcr0` and `hif=-5`. The
+fixture now models both consumers of WHISR and the queue counts over one
+clear-on-read hardware state: the credit path alone with the mode off
+(unchanged behaviour), counts arriving between two block reads
+(accumulated, not doubled), a block carrying no counts (`credits=` still),
+and counts arriving while the credit path is mid-acquisition (added in
+that one acquisition, nothing split or left pending); the merge-dependent
+cases fail against a copy of the driver with the merge removed (checked:
+the first of them aborts at its assertion). No driver behaviour changed
+beyond the record line.
+
+**Boot 3 reading, TX first.** The merge changes TX accounting, and its
+failure mode is over-credit: more pages released than reserved raises the
+in-flight depth, which looks like progress. So before the receive number
+means anything: TX must sit in the 2.6–2.8 Mbit/s band (chunks seen up to
+3.35 so far), `debt=0` at the stop line with `failures=0`, the byte caps
+and the TCP verification intact. TX above 3.4 Mbit/s, or any non-zero
+debt at the stop, stops the boot: the merge is over-releasing, the receive
+number is held ungraded, and the next step is the accounting, not the
+transport. A `join guard failed` line with `valid=0x3ff` and counts
+against a zero debt is branch (d) above and goes the same way: the
+accounting, with the vendor's clamp as the reference, before any further
+boot. Only with TX in band and the debt whole do the receive rows of the
+table apply.
+
+**Reachability and ownership, answered from source** (the two questions
+every predeclaration now carries; they would have caught both of this
+week's lost boots). Reachability: the WHCR write is
+`mt6797_hif_write32_locked(hif, 0x0c, …)` in `mt6797_hif_rx_batch_enable`,
+reached from `mt6797_hif_receive` on the first receive once the firmware
+is ready, the capability complete and the normal phase at
+`CAP_RECEIVED`/`NVRAM_SUBMITTED`: the same admission every receive passes,
+nothing earlier refuses it (boot 1 read back 0x00011000). The block read
+(`mt6797_hif_rx_batch_block`: one setup word, 28 data-port reads of the
+WHISR register) and the aggregated transfer (`mt6797_hif_data_transfer`,
+ports 0x50/0x54, which `encode_command` admits for READ) reach the bus
+with nothing consuming them first; the cache serve returns -EAGAIN with no
+bus work when the cache is empty and no pass has armed a refill. The
+guard record is a `dev_err` on the existing error path. Ownership: WHISR
+(0x10) is clear-on-read in both forms, so `mt6797_hif_tx_status` (every
+pass, and the two boot snapshots) now sees the register value OR-ed with
+what the block consumed; `mt6797_hif_read32` admits only registers 0, 4
+and 0x90 and never reads it. WTQCR0–7 (0x130–0x14c) are clear-on-read and
+read only by `mt6797_hif_tx_status`, which now sees the register counts
+plus the block-carried counts, half-word by half-word. WHCR (0x0c) is
+read-modify-written once by the enable and read by `mt6797_hif_tx_status`
+for its record (0x00011000 from then on); no other writer in the driver,
+and the firmware-start path does not touch it. WRPLR (0x90) is read by the
+per-frame path and `mt6797_hif_read32`; while the mode is on the per-frame
+path is not entered and the block's lengths replace it. The data ports
+0x50/0x54 are consumed by the aggregated read; the per-frame path would
+consume the same FIFO and is not entered. The block's receive counts and
+lengths describe what is queued and are re-reported until the port read
+drains it (assumed from the vendor's model; a queue skipped for a bad
+length is the case that tests it, and `failures=` reports it). What no
+source answers is the timing of the TX release counts the firmware places
+in the block against those it places in the registers: boot 2's open
+question, and what the guard record is for.

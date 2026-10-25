@@ -1,4 +1,4 @@
-From 549a4127d6e29c534084c4e4f062164f304fbfa8 Mon Sep 17 00:00:00 2001
+From 73f5ab7d5fc43006004d97b190594a054e143065 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 24 Oct 2026 19:47:15 -0400
 Subject: [PATCH] wifi: mt6797: receive by the enhanced status block and
@@ -30,12 +30,16 @@ transport retransmits). Each is counted in failures. Poison is reserved
 for a bus failure. The data-end record reports the mode, WHCR before and
 after, block reads, aggregates, frames, empty passes, failures and the
 blocks that carried TX credit. Behind CONFIG_MT6797_HIF_RX_BATCH.
+
+The join guard records its refusal with the words it saw (identity and
+ownership registers, the status acquisition, the merge state), so a
+credit fault on device names its source instead of a bare status.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig |  10 +
- drivers/net/wireless/mediatek/mt6797/hif.c   | 295 ++++++++++++++++++-
- drivers/net/wireless/mediatek/mt6797/hif.h   |  10 +
- drivers/net/wireless/mediatek/mt6797/mac.c   |  12 +
- 4 files changed, 326 insertions(+), 1 deletion(-)
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 299 ++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  12 +
+ drivers/net/wireless/mediatek/mt6797/mac.c   |  32 +-
+ 4 files changed, 350 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 9e7141935..8470144b8 100644
@@ -59,7 +63,7 @@ index 9e7141935..8470144b8 100644
  	int
  	depends on MT6797_CCMP_TX_PUMP
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 674c9ad3a..da0c2ac94 100644
+index 674c9ad3a..dea3d7601 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
 @@ -12,6 +12,7 @@
@@ -148,7 +152,7 @@ index 674c9ad3a..da0c2ac94 100644
  	kfree(hif);
  }
  
-@@ -411,6 +453,201 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+@@ -411,6 +453,205 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
  	return mt6797_hif_read(hif, 0x1000, value);
  }
  
@@ -345,12 +349,16 @@ index 674c9ad3a..da0c2ac94 100644
 +	stats->max_frames = hif->rx_batch_max_frames;
 +	stats->failures = hif->rx_batch_failures;
 +	stats->credit_blocks = hif->rx_batch_credit_blocks;
++	stats->pending_whisr = hif->rx_batch_pending_whisr;
++	stats->pending_wtqcr0 = hif->rx_batch_pending_wtqcr[0];
++	stats->pending_wtqcr7 = hif->rx_batch_pending_wtqcr[7];
++	stats->error = hif->first_error;
 +}
 +
  int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
  		      u32 *value)
  {
-@@ -632,6 +869,13 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+@@ -632,6 +873,13 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
  		if (error)
  			goto poison;
  		status[n].valid_words |= 2U;
@@ -364,7 +372,7 @@ index 674c9ad3a..da0c2ac94 100644
  		/* Pinned WHISR: abnormal status bit 6, firmware assert bit 31.
  		 * Do not proceed to another read or command after either signal.
  		 */
-@@ -645,6 +889,13 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+@@ -645,6 +893,13 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
  			if (error)
  				goto poison;
  			status[n].valid_words |= 1U << (i + 2);
@@ -378,7 +386,7 @@ index 674c9ad3a..da0c2ac94 100644
  		}
  		if (account && (count == 2 || runtime)) {
  			error = mt6797_normal_reconcile(&reconciled,
-@@ -1419,6 +1670,48 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+@@ -1419,6 +1674,48 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
  	error = mt6797_hif_enter(hif, deadline_ns);
  	if (error)
  		goto poison;
@@ -428,10 +436,10 @@ index 674c9ad3a..da0c2ac94 100644
  	if (error)
  		goto poison;
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
-index 6b7171242..b06966e95 100644
+index 6b7171242..d7800db25 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.h
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.h
-@@ -134,6 +134,16 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
+@@ -134,6 +134,18 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
  			  bool addr2);
  #define MT6797_HIF_DMA_MIN_BYTES 64U
  /* DMA transfer counters for the records: zero when no channel is attached. */
@@ -440,6 +448,8 @@ index 6b7171242..b06966e95 100644
 +	u32 whcr_before, whcr_after;
 +	unsigned int reads, aggregates, frames, empty, max_frames, failures;
 +	unsigned int credit_blocks;
++	u32 pending_whisr, pending_wtqcr0, pending_wtqcr7;
++	int error;
 +};
 +
 +void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif);
@@ -449,10 +459,45 @@ index 6b7171242..b06966e95 100644
  			  unsigned int *rx, unsigned int *poll_max,
  			  unsigned int *failures);
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index f71611c73..cfed9c900 100644
+index f71611c73..af241a714 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -2818,6 +2818,16 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -1807,9 +1807,9 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 
+ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ {
+-	struct mt6797_hif_tx_status status;
++	struct mt6797_hif_tx_status status = {0};
+ 	struct mt6797_normal_release account;
+-	u32 wcir, own;
++	u32 wcir = 0, own = 0;
+ 	int ret;
+ 
+ 	ret = mt6797_hif_read32(mac->hif, 0, deadline, &wcir);
+@@ -1821,6 +1821,22 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+ 		ret = -EACCES;
+ 	if (!ret)
+ 		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
++	if (ret) {
++		/* The guard's refusal, with the words it saw: the identity and
++		 * ownership registers, the status acquisition (valid=0 means it
++		 * was refused before any read), and the receive-batching merge
++		 * state (0268) so a credit fault names its source.
++		 */
++		struct mt6797_hif_rx_batch_stats batch;
++
++		mt6797_hif_rx_batch_stats(mac->hif, &batch);
++		dev_err(wiphy_dev(mac->hw->wiphy),
++			"one-shot WLAN join guard failed: ret=%d wcir=0x%08x own=0x%08x valid=0x%x whcr=0x%08x whisr=0x%08x wtqcr0=0x%08x wtqcr7=0x%08x hif=%d pending_whisr=0x%08x pending0=0x%08x pending7=0x%08x batch_failures=%u credits=%u\n",
++			ret, wcir, own, status.valid_words, status.whcr, status.whisr,
++			status.wtqcr[0], status.wtqcr[7], batch.error, batch.pending_whisr,
++			batch.pending_wtqcr0, batch.pending_wtqcr7, batch.failures,
++			batch.credit_blocks);
++	}
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (!ret)
+ 		mt6797_ccmp_observe_guard(&mac->ccmp_observation, &status, &account);
+@@ -2818,6 +2834,16 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
  			 dma_tx, dma_rx, dma_poll_max, dma_failures);
  	}
@@ -469,7 +514,7 @@ index f71611c73..cfed9c900 100644
  	dev_info(wiphy_dev(mac->hw->wiphy),
  		 "one-shot WLAN join pass census: passes=%u submissions=%u max_per_pass=%u elapsed_ms=%llu\n",
  		 mac->join_data_passes, mac->join_data_submissions, mac->join_data_pass_max,
-@@ -3677,6 +3687,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -3677,6 +3703,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			}
  		}
  	}
@@ -477,7 +522,7 @@ index f71611c73..cfed9c900 100644
  	for (n = 0; n < 8; n++) {
  		bool got = false;
  #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
-@@ -4595,6 +4606,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+@@ -4595,6 +4622,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
  	 * Finish this bounded tick after a done event so the other port is not
  	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
  	 */

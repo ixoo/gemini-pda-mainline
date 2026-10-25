@@ -47,6 +47,16 @@ static u8 block[112];
 static u8 queue_stream[2][40960];
 static unsigned int queue_offset[2];
 static unsigned int setup_words, block_reads, whisr_reads, wrplr_reads;
+/* The two consumers' shared hardware: WHISR and the sixteen TX queue
+ * release counts, each clear-on-read whichever form reads it (the 112-byte
+ * block or the WHISR/WTQCR registers).
+ */
+static u32 hw_whisr;
+static unsigned int hw_tq[16];
+static u8 image[112];
+static bool inject_release_on_whisr_read;
+static void put16(u8 *p, unsigned int v) { p[0] = v; p[1] = v >> 8; }
+static void release(unsigned int q, unsigned int n) { hw_tq[q] += n; hw_whisr |= BIT(0); }
 
 u64 ktime_get_ns(void) { return 1000; }
 void usleep_range(unsigned long a, unsigned long b) { (void)a; (void)b; assert(false); }
@@ -76,9 +86,31 @@ int mt6797_test_read(void *address, unsigned int *value)
 	assert(address == window + 0x1000 && !pending_write);
 	if (pending_port == 0x0c) {
 		*value = whcr;
+	} else if (pending_port == 0x10 && pending_bytes == 112) {
+		unsigned int i;
+
+		if (!pending_offset) {	/* the block read consumes the counts */
+			memcpy(image, block, sizeof(image));
+			put16(image, hw_whisr); put16(image + 2, hw_whisr >> 16);
+			for (i = 0; i < 16; i++)
+				put16(image + 4 + 2 * i, hw_tq[i]);
+			hw_whisr = 0;
+			memset(hw_tq, 0, sizeof(hw_tq));
+		}
+		assert(pending_offset + 4 <= sizeof(image));
+		memcpy(value, image + pending_offset, 4);
 	} else if (pending_port == 0x10) {
-		assert(pending_offset + 4 <= sizeof(block));
-		memcpy(value, block + pending_offset, 4);
+		*value = hw_whisr;	/* the register read consumes it too */
+		hw_whisr = 0;
+		if (inject_release_on_whisr_read) {
+			inject_release_on_whisr_read = false;
+			release(15, 1); release(14, 1);
+		}
+	} else if (pending_port >= 0x130 && pending_port <= 0x14c) {
+		unsigned int i = (pending_port - 0x130) / 4;
+
+		*value = hw_tq[2 * i] | (hw_tq[2 * i + 1] << 16);
+		hw_tq[2 * i] = hw_tq[2 * i + 1] = 0;
 	} else if (pending_port == 0x50 || pending_port == 0x54) {
 		unsigned int q = pending_port == 0x54;
 
@@ -86,8 +118,6 @@ int mt6797_test_read(void *address, unsigned int *value)
 		memcpy(value, queue_stream[q] + queue_offset[q] + pending_offset, 4);
 		if (pending_offset + 4 >= pending_bytes)
 			queue_offset[q] += pending_bytes;
-	} else if (pending_port >= 0x130 && pending_port <= 0x14c) {
-		*value = 0;	/* WTQCR0-7: consumed by the block read in enhanced mode */
 	} else {
 		assert(false);	/* no WRPLR or other register reads in batch mode */
 	}
@@ -95,7 +125,6 @@ int mt6797_test_read(void *address, unsigned int *value)
 	return 0;
 }
 
-static void put16(u8 *p, unsigned int v) { p[0] = v; p[1] = v >> 8; }
 static unsigned int frame(u8 *stream, unsigned int offset, unsigned int length, unsigned int seed)
 {
 	unsigned int i;
@@ -123,9 +152,27 @@ static void fresh(void)
 	memset(queue_stream, 0, sizeof(queue_stream));
 	memset(block, 0, sizeof(block));
 	queue_offset[0] = queue_offset[1] = 0;
+	hw_whisr = 0;
+	memset(hw_tq, 0, sizeof(hw_tq));
 }
 
-static struct mt6797_hif *make(void)
+/* The cold observation is the one status acquisition this model reaches; the
+ * merge sits in the acquisition loop every form shares. White box: the
+ * admission flags are reset so it can be taken more than once.
+ */
+static int observe(struct mt6797_hif *hif, struct mt6797_hif_tx_status *st)
+{
+	int ret;
+
+	hif->normal.phase = MT6797_NORMAL_COLD;
+	hif->capability_attempted = false;
+	hif->tx_status_boot_attempted = false;
+	ret = mt6797_hif_observe_tx_status(hif, 1000000, 1, st);
+	hif->normal.phase = MT6797_NORMAL_CAP_RECEIVED;
+	return ret;
+}
+
+static struct mt6797_hif *make(bool forced)
 {
 	static struct mt6797_init_transaction transaction;
 	struct mt6797_hif *hif;
@@ -138,7 +185,7 @@ static struct mt6797_hif *make(void)
 	hif->firmware_ready = true;
 	hif->capability_complete = true;
 	hif->normal.phase = MT6797_NORMAL_CAP_RECEIVED;
-	hif->rx_batch_forced = true;
+	hif->rx_batch_forced = forced;
 	return hif;
 }
 
@@ -146,7 +193,7 @@ int main(void)
 {
 	struct mt6797_hif_rx_result rx;
 	struct mt6797_hif_rx_batch_stats stats;
-	struct mt6797_hif *hif = make();
+	struct mt6797_hif *hif = make(true);
 	unsigned char out[2560];
 	unsigned int l0[2] = {60, 1518}, l1[1] = {100}, l17[17], off, i;
 
@@ -246,41 +293,98 @@ int main(void)
 
 	/* 6. The TX release counts the block carries (WHISR and the sixteen
 	 * queue counts, consumed by the read) are merged into the next TX
-	 * status acquisition in the WTQCR word layout, then cleared.
+	 * status acquisition in the WTQCR word layout, then cleared. Fails
+	 * without the merge: the counts would be gone with the block read.
 	 */
 	fresh();
 	{
 		struct mt6797_hif_tx_status st;
 
 		announce(0, l0, 0, l1);
-		block[0] = 0x02;			/* WHISR TX done */
-		put16(block + 4 + 2 * 1, 1);		/* TQ1: one AC1 page */
-		put16(block + 4 + 2 * 14, 2);		/* TQ14: two FFA pages */
+		release(1, 1);			/* TQ1: one AC1 page */
+		release(14, 2);			/* TQ14: two FFA pages */
 		mt6797_hif_rx_batch_pass(hif);
 		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
 		mt6797_hif_rx_batch_stats(hif, &stats);
-		assert(stats.credit_blocks == 1);
-		assert(hif->rx_batch_pending_whisr == 0x2 && hif->rx_batch_pending_wtqcr[0] == 0x00010000 &&
-		       hif->rx_batch_pending_wtqcr[7] == 0x00000002);
-		/* The same counts twice accumulate half-word by half-word. */
-		mt6797_hif_rx_batch_pass(hif);
-		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
-		assert(hif->rx_batch_pending_wtqcr[0] == 0x00020000 && hif->rx_batch_pending_wtqcr[7] == 0x00000004);
-		/* The cold observation path is the one acquisition this model can
-		 * reach; the merge sits in the shared acquisition loop.
-		 */
-		hif->normal.phase = MT6797_NORMAL_COLD;
-		hif->capability_attempted = false;
-		hif->tx_status_boot_attempted = false;
-		assert(!mt6797_hif_observe_tx_status(hif, 1000000, 1, &st));
-		assert(whisr_reads == 1 && st.whisr == 0x2 && st.wtqcr[0] == 0x00020000 &&
-		       st.wtqcr[7] == 0x00000004 && st.wtqcr[1] == 0);
-		assert(!hif->rx_batch_pending_whisr && !hif->rx_batch_pending_wtqcr[0] &&
-		       !hif->rx_batch_pending_wtqcr[7] && !hif->first_error);
+		assert(stats.credit_blocks == 1 && stats.pending_whisr == 0x1 &&
+		       stats.pending_wtqcr0 == 0x00010000 && stats.pending_wtqcr7 == 0x00000002);
+		assert(!observe(hif, &st));
+		assert(whisr_reads == 1 && st.whisr == 0x1 && st.wtqcr[0] == 0x00010000 &&
+		       st.wtqcr[7] == 0x00000002 && st.wtqcr[1] == 0);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(!stats.pending_whisr && !stats.pending_wtqcr0 && !stats.pending_wtqcr7 && !hif->first_error);
 	}
 
+	/* 7. Counts arriving between two block reads accumulate, and are not
+	 * doubled: the second read finds the registers empty. Fails without
+	 * the merge (nothing reaches the acquisition).
+	 */
+	fresh();
+	{
+		struct mt6797_hif_tx_status st;
+
+		release(15, 1); release(14, 1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		release(15, 1); release(14, 1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(stats.credit_blocks == 3 && stats.pending_wtqcr7 == 0x00020002);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0x00020002);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0 && st.whisr == 0);
+	}
+
+	/* 8. A block that carries no TX counts leaves credits= alone (control:
+	 * does not depend on the merge).
+	 */
+	fresh();
+	announce(0, l0, 0, l1);
+	mt6797_hif_rx_batch_pass(hif);
+	assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+	mt6797_hif_rx_batch_stats(hif, &stats);
+	assert(stats.credit_blocks == 3 && !stats.pending_wtqcr7);
+
+	/* 9. Counts that arrive while the credit path is mid-acquisition (after
+	 * its WHISR read, before its WTQCR reads) land in the registers and are
+	 * added to the block-carried counts in that one acquisition: no split
+	 * update, nothing left pending. Fails without the merge (the
+	 * block-carried half is lost).
+	 */
+	fresh();
+	{
+		struct mt6797_hif_tx_status st;
+
+		release(15, 2); release(14, 2);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		inject_release_on_whisr_read = true;
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0x00030003);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(!stats.pending_wtqcr7 && !inject_release_on_whisr_read);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0);
+	}
 	mt6797_hif_free(hif);
 	free(window);
-	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge)\n");
+
+	/* 10. Mode off (the option disabled, nothing forced): the credit path
+	 * polls the registers as before and consumes them; no block is read
+	 * (control: the unchanged behaviour).
+	 */
+	fresh();
+	hif = make(false);
+	{
+		struct mt6797_hif_tx_status st;
+		unsigned int before = block_reads;
+
+		release(15, 2); release(14, 2);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0x00020002 && st.whisr == 0x1);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(block_reads == before && !stats.on && !stats.credit_blocks && !hif->first_error);
+	}
+	mt6797_hif_free(hif);
+	free(window);
+	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge, interleavings, mode off)\n");
 	return 0;
 }

@@ -31,6 +31,7 @@ described here; each run's own artefacts are named.
 | [rx-dma](HIF_TRANSPORT_ANALYSIS.md#9-receive-direction-dma-boot-result-2026-10-24--engaged-intact-and-not-the-ceiling) | AP-DMA both directions: 3,870 out, 8,510 in, 0 failures; kept | 2.63 | 6.67 (device-side chunks 9.6–11.8) | 85.9% / 81.0% |
 | [state-2](TX_AUTORATE_RESULT.md#state-2-station-record-boot-inconclusive-join-refused-0266-retired-2026-10-24) | 0266 state-2 station record (retired): our encoder refused state 2 (-22), join stopped before any data phase | inconclusive (join refused) | inconclusive (join refused) | — |
 | [rx-batch-1](HIF_TRANSPORT_ANALYSIS.md#boot-1-of-0268-2026-10-25-the-join-stopped-at-its-credit-wait-the-block-read-had-consumed-the-tx-release-counts) | 0268 first form (enhanced status block + aggregated reads): the block read consumed the TX release counts, the join stopped at its credit wait; amended | inconclusive (join stopped) | inconclusive (join stopped) | — |
+| [rx-batch-2](HIF_TRANSPORT_ANALYSIS.md#boot-2-of-0268-2026-10-25-the-credits-came-the-join-guard-refused-at-the-second-eapol-message) | 0268 amended (block TX counts merged into the credit path): every credit returned, join reached EAPOL message 2, then the join guard refused with -EIO at debt 0; guard record added | inconclusive (join stopped) | inconclusive (join stopped) | — |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
