@@ -4016,3 +4016,61 @@ with the long guard interval we advertise (65 Mbit/s). The owner's
 advertised. Expect about +15–18 % on transmit before per-frame overhead.
 A fixed MCS trades margin for rate, so losses should rise, not fall,
 until rate adaptation exists.
+
+### Boot V result (2026-10-25, 22:25 UTC): batching lifts receive modestly and transmit with it; ingest is still bound elsewhere; one correct replay refusal
+
+Build `1246fc2d` (`HIF_RX_BATCH` re-admitted on boot U's tree), boot2
+`c06ff1ae…` over boot U's `a227cbd5…`, mainline boot `81266691…`,
+returned to Gemian `885a03ed…` by the session's own reviewed return (live
+identity checked afterwards); log complete through the seal (193,192
+bytes). Clean verdict: `session_exit=0`, `all_pass=True`,
+`verdict_failed=[]`, no warning, every gate true (`tx_delivery`
+included).
+
+**The batching worked.** `HIF RX batch: on=1 whcr=0x00000000
+reads=535990 aggregates=20994 frames=43914 empty=514996 max=16
+failures=0 credits=51230 block_abnormal=0x00000000`: every frame came
+through the status block and the aggregated reads, about 2.1 per
+aggregate and up to 16. The ledger is exact: `expired=0 pid_faults=0
+left_pages=0 dropped_full=0 tx_failed=0`, sampled reports 797 of 797 at
+status 0, retire wait 5.16 ms, 12 in flight. No receive chunk ended by
+`device_timeout`. The downlink is HT: MCS7 ×42,055 of 42,069 QoS frames.
+
+**Against §32's rows.**
+
+| | Boot T (no HT) | Boot U (HT) | Boot V (HT + batch) |
+|---|---|---|---|
+| RX aggregate | 16.38 | 13.72 | **18.22** |
+| RX chunks | 18.7, 10.4, 20.0, 18.8, 20.0 | 18.6, 18.1, 9.4, 18.4, 8.9 | 22.1, 19.5, 22.3, 10.1, 20.6 |
+| TX aggregate (chunks) | 20.86 (21.7–22.3) | 19.2 (19.3–20.9) | **22.01** (22.3–24.1) |
+| device TCP retransmissions, TX | 9 | 32 | 4 |
+| receive refusals | 0 | 0 | 1 (`pn=equal`, Retry) |
+
+- *Receive* rose on its good chunks, from 18.1–18.6 to 19.5–22.3, about
+  +15 %. It did not rise toward 25–30, so the result sits nearer the
+  "RX unchanged" row than the first.
+- The device was 85.6 % idle during receive, so the CPU is not the
+  ingest limit. The single dip (chunk 4, 10.1) came with the laptop's
+  own send rate falling to 11.8 and an empty device receive queue: the
+  flow slowed at the sender, as in boots T and U.
+- The per-frame register work was part of the cost, and no longer the
+  binding part. Ingest is elsewhere: the polled loop's cadence or the
+  firmware's ring. The interrupt is the next receive question, now with
+  a reason.
+- *Transmit* also rose, to 22.01 with every chunk at 22.3–24.1, with 4
+  retransmissions. That is an inference, not measured: with one status
+  block read per pass in place of per-frame reads, the worker returns to
+  the transmit queue sooner.
+
+**The one refusal: the literal trigger of §32's third row, and a correct
+refusal.** `field=pn ... fc=0x4a88 qos=0x0000 pn=equal tid=0
+counter=pairwise`, 148 bytes. The Retry bit is set and the PN equals the
+TID-0 counter: a retransmission of a frame already delivered. The
+replay check must refuse it, and §30 predicted this row ("equal, or a
+Retry frame: a genuine duplicate, refused as it must be"). It names its
+TID and counter, has `status=none`, and is no aggregation artefact. So
+the row's literal condition is met while its cause, the batching
+interacting with HT frames, is not. Boot B's precedent (line 1727)
+recorded a literal trigger of this kind as "not boot B's failure". The
+admission stays as predeclared until the owner decides. Also recorded:
+`rx_llc_mis=3`, all `type=0x002e`.

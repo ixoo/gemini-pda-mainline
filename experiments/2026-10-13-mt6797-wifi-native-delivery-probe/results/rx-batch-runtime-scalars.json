@@ -3046,6 +3046,104 @@
     "tx_failed": 2
    },
    "reading": "HIF section 31: the AP uses HT toward this station at the top MCS and the receive path takes it with no refusal; receive ingest is now the binding limit; two transmit air losses at the fixed 54 Mbit/s"
+  },
+  "boot-v": {
+   "run": "PIO-throughput-bootv-1",
+   "session": "2026-10-25 22:25 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot U tree; HIF_RX_BATCH on, HT_CAPABILITY on, WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "1246fc2d9a3e9350d77bb18a9cef95a08cface03",
+   "boot2_sha256": "c06ff1ae1ae90387e4cd711cb9b1703a6e4f6cc0cd41b6b562441594fe9ea05e",
+   "predecessor_boot2_sha256": "a227cbd515f3a3db31b111a4c0b9d27314374d0f3b3ad69626ef3793ffaaeaf7",
+   "mainline_boot_id": "81266691-1d71-41ff-b743-d14f644347e1",
+   "previous_gemian_boot_id": "5356f352-d5e6-4eeb-9f57-db174827ef6c",
+   "returned_gemian_boot_id": "885a03ed-d198-43c2-9867-fab58cf7d71a",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty, no warning",
+   "sealed_log_bytes": 193192,
+   "series_row": true,
+   "rx_batch": {
+    "on": 1,
+    "reads": 535990,
+    "aggregates": 20994,
+    "frames": 43914,
+    "empty": 514996,
+    "max": 16,
+    "failures": 0,
+    "credits": 51230
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 22.01,
+    "tx_chunk_mbit_s": [
+     23.9,
+     24.14,
+     23.64,
+     22.46,
+     22.3
+    ],
+    "rx_aggregate_mbit_s": 18.22,
+    "rx_device_chunk_mbit_s": [
+     22.09,
+     19.49,
+     22.27,
+     10.1,
+     20.59
+    ],
+    "rx_host_sent_mbit_s": [
+     26.95,
+     28.98,
+     24.63,
+     11.84,
+     30.39
+    ],
+    "credit_retire_wait_avg_us": 5162,
+    "device_cpu_idle_percent": {
+     "tx": 81.1,
+     "rx": 85.6
+    },
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 4
+    }
+   },
+   "qos": {
+    "tx_qos": 51039,
+    "tx_tid_refused": 0,
+    "tx_tid": [
+     50877,
+     0,
+     0,
+     162,
+     0,
+     0,
+     0,
+     0
+    ],
+    "rx_qos": 42069,
+    "rx_nonqos": 126,
+    "rx_refused": 1,
+    "rx_refused_qos": 1,
+    "rx_llc_mis": 3
+   },
+   "rx_refusals": {
+    "pn_equal_retry_tid0": 1
+   },
+   "ht": {
+    "rx_rates": {
+     "ht_mcs7": 42055,
+     "ht_mcs6": 4,
+     "ht_mcs5": 6,
+     "ht_mcs4": 4,
+     "ofdm_6m": 126
+    }
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 32: batching works with HT frames and lifts receive about 15 % on its good chunks, not toward 25-30; the device is 86 % idle, so ingest is bound by the polled cadence or the firmware ring; transmit rose to 22; one correct replay refusal of a retried duplicate"
   }
  }
 }

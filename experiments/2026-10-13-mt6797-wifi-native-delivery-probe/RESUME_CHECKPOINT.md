@@ -1,4 +1,16 @@
-# Current: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) staged on boot2
+# Current: boot V's receive batching works with HT and lifts receive about 15 % (RX 18.22, TX 22.01, clean verdict); ingest is still bound elsewhere; the owner decides keep or revert and the next step
+
+[Boot V](HIF_TRANSPORT_ANALYSIS.md#boot-v-result-2026-10-25-2225-utc-batching-lifts-receive-modestly-and-transmit-with-it-ingest-is-still-bound-elsewhere-one-correct-replay-refusal):
+batching on with no failure (20,994 aggregates, up to 16); receive good
+chunks 19.5-22.3 against boot U's 18.1-18.6, not toward 25-30; device
+86 % idle during receive; transmit 22.3-24.1 per chunk with 4
+retransmissions. One refusal, a retried duplicate (`pn=equal`, Retry)
+refused correctly: the literal trigger of §32's revert row, not its
+cause. Candidates next: keep the batching, then the fixed MCS7
+descriptor (boot W) or the receive interrupt. Nothing is staged; the
+device is on Gemian (`885a03ed…`).
+
+# Historical: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) staged on boot2
 
 [Boot U](HIF_TRANSPORT_ANALYSIS.md#boot-u-result-2026-10-25-2209-utc-the-access-point-uses-ht-toward-this-station-at-the-top-mcs-and-our-receive-path-takes-it-unchanged):
 HT negotiated; downlink MCS7 ×27,538, MCS6 ×9,846; zero refusals on
