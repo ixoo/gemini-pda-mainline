@@ -1,0 +1,94 @@
+From ed66dcf71a4f31929ffe8fefd8a72de93c7830db Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 16:48:40 -0400
+Subject: [PATCH] wifi: mt6797: admit QoS data on any TID at the receive checks
+
+Boot Q completed the handshake under WMM and then failed at DHCP: the
+access point, sending to a WMM station, delivered its replies as QoS
+data, and both receive checks refused every QoS frame (rx_qos=0). They
+fix descriptor byte 9 at 0x40 (CCMP and TID 0) and the QoS control at 0.
+
+With WMM, both the pairwise and the group check now admit a QoS data
+frame on any TID whose QoS control holds only that TID (normal
+acknowledgment, no A-MSDU, no EOSP) and agrees with byte 9's low
+nibble. The cipher nibble is still required to be CCMP. Non-QoS frames,
+and every frame without WMM, keep TID 0 and QoS control 0. The
+firmware decrypts and translates the frame to Ethernet; the host
+delivers it as before. Every other predicate, the PN order included, is
+unchanged.
+---
+ .../wireless/mediatek/mt6797/ccmp-gtk-rx.h    |  4 ++--
+ .../net/wireless/mediatek/mt6797/ccmp-rx.h    | 21 +++++++++++++++++--
+ 2 files changed, 21 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+index f9694d33f..ff377615d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+@@ -39,7 +39,7 @@ mt6797_ccmp_gtk_rx_check(const unsigned char *packet, size_t bytes,
+ 	    (packet[4] >> 6) != context->key_id || packet[5] != context->channel ||
+ 	    (packet[6] & 0xbf) != 0x8e ||
+ 	    packet[7] != (unsigned int)context->rxd_bssid << 2 ||
+-	    packet[8] != context->wlan_index || packet[9] != 0x40 ||
++	    packet[8] != context->wlan_index || (packet[9] & 0xf0) != 0x40 ||
+ 	    mt6797_join_le16(packet + 10) != 0xc000)
+ 		return false;
+ 	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
+@@ -57,7 +57,7 @@ mt6797_ccmp_gtk_rx_check(const unsigned char *packet, size_t bytes,
+ 	fc = mt6797_join_le16(packet + 16);
+ 	if ((fc & ~(0x2800U | MT6797_CCMP_RX_QOS_BIT)) != 0x4208 ||
+ 	    (mt6797_join_le16(packet + 24) & 15) ||
+-	    mt6797_join_le16(packet + 26) || mt6797_join_le32(packet + 28))
++	    !mt6797_ccmp_rx_tid_ok(packet, fc) || mt6797_join_le32(packet + 28))
+ 		return false;
+ 	ethernet = packet + offset;
+ 	for (i = 0; i < 6; i++) {
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+index 5f98076a6..fa319052f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+@@ -13,6 +13,23 @@
+ #define MT6797_CCMP_RX_QOS_BIT 0U
+ #endif
+ 
++/* Descriptor byte 9 carries the cipher in its high nibble (CCMP, 4) and the
++ * frame's TID in its low nibble (boot P). With WMM a QoS data frame is
++ * admitted on any TID whose QoS control holds only that TID (normal
++ * acknowledgment, no A-MSDU, no EOSP) and agrees with byte 9; a non-QoS
++ * frame, and every frame without WMM, keeps TID 0 and QoS control 0 (0289).
++ */
++static inline bool mt6797_ccmp_rx_tid_ok(const unsigned char *packet, unsigned int fc)
++{
++	unsigned int qos = mt6797_join_le16(packet + 26);
++
++	if ((packet[9] & 0xf0) != 0x40)
++		return false;
++	if (fc & MT6797_CCMP_RX_QOS_BIT)
++		return !(qos & ~0x000fU) && (qos & 15) == (packet[9] & 15U);
++	return !qos && !(packet[9] & 15);
++}
++
+ /*
+  * Caller-owned, serialized context for ONE initial, stable PTK epoch. The
+  * caller must establish current authorization/key activation and seed pn from
+@@ -66,7 +83,7 @@ mt6797_ccmp_rx_check(const unsigned char *packet, size_t bytes,
+ 	    packet[4] != 0x02 || packet[5] != context->channel ||
+ 	    (packet[6] & 0xbf) != 0x8e ||
+ 	    packet[7] != (unsigned int)context->rxd_bssid << 2 ||
+-	    packet[8] != context->wlan_index || packet[9] != 0x40 ||
++	    packet[8] != context->wlan_index || (packet[9] & 0xf0) != 0x40 ||
+ 	    mt6797_join_le16(packet + 10) != 0xc000)
+ 		return false;
+ 	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
+@@ -84,7 +101,7 @@ mt6797_ccmp_rx_check(const unsigned char *packet, size_t bytes,
+ 	fc = mt6797_join_le16(packet + 16);
+ 	if ((fc & ~(0x2800U | MT6797_CCMP_RX_QOS_BIT)) != 0x4208 ||
+ 	    (mt6797_join_le16(packet + 24) & 15) ||
+-	    mt6797_join_le16(packet + 26) || mt6797_join_le32(packet + 28))
++	    !mt6797_ccmp_rx_tid_ok(packet, fc) || mt6797_join_le32(packet + 28))
+ 		return false;
+ 	ethernet = packet + offset;
+ 	for (i = 0; i < 6; i++) {
+-- 
+2.43.0
+

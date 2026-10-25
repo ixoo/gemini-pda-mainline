@@ -61,6 +61,10 @@ access category of the handshake frames: the access point sends its
 EAPOL-Key on TID 6 (AC_VO) once WMM is negotiated, and the gate refused
 the descriptor's TID (boots O and P). The same detail will recur in
 roaming, in 802.1X and with any access point that puts EAPOL on AC_VO.
+The second (boot Q) was the downlink data admission: with WMM the access
+point sends all data as QoS, and the receive checks admitted only TID 0
+with QoS control 0. Both obstacles are QoS-layout consequences, and both
+will recur in roaming and 802.1X.
 
 ## Boundaries
 

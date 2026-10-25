@@ -8,7 +8,11 @@ and were refused at the post-key receive check (`rx_qos=0`,
 `rx_refused_qos=4`), which fixes descriptor byte 9 at `0x40` and the QoS
 control at 0. That check records no per-frame refusal, so its field is
 inferred, not named: the next change records it (logging only), then the
-data-path counterpart of 0286, each its own boot; boot R waits.
+data-path counterpart of 0286. Owner, 2026-10-25: boot R is that
+admission as one variable (0289, any TID with a consistent QoS control,
+both checks), with 0288 naming every remaining refusal;
+[§28](HIF_TRANSPORT_ANALYSIS.md#28-boot-r-predeclared-2026-10-25-qos-data-admitted-at-the-receive-checks-one-variable).
+The records' QoS declaration moves to boot S.
 
 # Historical: boot P named the handshake's obstacle (the AP's EAPOL-Key on TID 6, refused at descriptor byte 9) and its evidence survived; boot Q (0286 admit, 0287 TID 6 uplink, 0285 refusal record; records non-QoS) is staged on boot2 at 65679190 (image 13703a41…, predecessor 48bec39b…); the HT-chain measurement freeze starts with it
 

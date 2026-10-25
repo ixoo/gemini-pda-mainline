@@ -1,0 +1,145 @@
+From 5d1aab8fad258c7360c4d0b75eb122c9567b6274 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 16:48:15 -0400
+Subject: [PATCH] wifi: mt6797: name every data frame both receive checks
+ refuse
+
+Boot Q completed the handshake under WMM, then DHCP failed: four QoS
+data frames came back and were refused by the post-key receive checks,
+which record nothing per frame. The refusing field could only be
+inferred. The refusal counters from 0284 were also taken before the
+group-key check, so they counted group frames that check then
+delivered.
+
+Count a refusal only once both the pairwise and the group checks have
+refused the frame. Record the first 64 of a lifetime by the fields the
+checks fix: descriptor bytes 4 to 10 and the group set, the frame
+control, QoS control and HT control from group 4, the PN's order
+against the matching receive context, and the first field that differs
+from the admitted shape. Lengths, flags and orders only, no address or
+payload byte. Logging only; admission is unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 72 +++++++++++++++++++---
+ 1 file changed, 65 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a63c9db24..5b982663a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -330,6 +330,7 @@ struct mt6797_mac {
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
+ 	unsigned int join_eapol_refused; /* refused pre-key frames, their own bound */
++	unsigned int ccmp_rx_refused; /* data frames both receive checks refused */
+ 	unsigned int join_action_discarded, join_group_action_discarded;
+ 	unsigned int join_keyed_beacons;
+ 	unsigned int join_beacons_delivered;
+@@ -781,6 +782,67 @@ static void mt6797_ccmp_withheld_arp(struct mt6797_mac *mac, size_t bytes)
+ }
+ #endif
+ 
++/* A data frame both receive checks refused (0288): counted, and named for the
++ * first 64 of a lifetime by the descriptor and header fields the checks fix,
++ * with the first of them that differs from the admitted shape. Lengths,
++ * flags and the PN's order only; no address or payload byte.
++ */
++static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
++{
++	const u8 *p = mac->join_packet;
++	const struct mt6797_ccmp_rx_context *c;
++	unsigned int groups, fc = 0x10000, qos = 0x10000, i;
++	const char *field, *pn = "n/a";
++
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	mac->qos_rx_refused++;
++	if (bytes >= 18 && (mt6797_join_le16(p + 16) & 0x0080))
++		mac->qos_rx_refused_qos++;
++#endif
++	if (++mac->ccmp_rx_refused > 64) {
++		if (mac->ccmp_rx_refused == 65)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN data rx refusal record suppressed: limit=64\n");
++		return;
++	}
++	if (bytes < 48) {
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN data rx refused: n=%u field=short bytes=%zu\n",
++			 mac->ccmp_rx_refused, bytes);
++		return;
++	}
++	groups = (mt6797_join_le16(p + 2) >> 9) & 15;
++	c = p[8] == 2 ? &mac->ccmp_gtk_rx : &mac->ccmp_rx;
++	if (groups & 8) {
++		fc = mt6797_join_le16(p + 16);
++		qos = mt6797_join_le16(p + 26);
++		for (i = 0; i < 6; i++) {
++			if (p[32 + 5 - i] != c->pn[i]) {
++				pn = p[32 + 5 - i] > c->pn[i] ? "greater" : "lower";
++				break;
++			}
++		}
++		if (i == 6)
++			pn = "equal";
++	}
++	field = (mt6797_join_le16(p + 2) >> 13) != 2 ? "packet-type" :
++		(p[6] & 0xbf) != 0x8e ? "layout" :
++		p[8] != 1 && p[8] != 2 ? "wlan-index" :
++		(p[9] & 0xf0) != 0x40 ? "cipher" :
++		mt6797_join_le16(p + 10) != 0xc000 ? "prefix" :
++		(groups & 9) != 9 ? "groups" :
++		(fc & ~(0x2800U | MT6797_CCMP_RX_QOS_BIT)) != 0x4208 ? "frame-control" :
++		((fc & 0x0080) ? (qos & ~0x000fU) || (qos & 15) != (p[9] & 15) :
++		 qos || (p[9] & 15)) ? "qos-control" :
++		mt6797_join_le32(p + 28) ? "ht-control" :
++		strcmp(pn, "greater") ? "pn" : "other";
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN data rx refused: n=%u field=%s bytes=%zu groups=0x%x p4=0x%02x p6=0x%02x p7=0x%02x wlan=%u p9=0x%02x prefix=0x%04x fc=0x%04x qos=0x%04x ht=0x%08x pn=%s\n",
++		 mac->ccmp_rx_refused, field, bytes, groups, p[4], p[6], p[7], p[8], p[9],
++		 mt6797_join_le16(p + 10), fc, qos,
++		 (groups & 8) ? mt6797_join_le32(p + 28) : 0, pn);
++}
++
+ /* Caller holds the MAC mutex and has already admitted this ACTIVE RX. */
+ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 				struct sk_buff_head *received)
+@@ -803,13 +865,6 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	if (!skb)
+ 		return -ENOMEM;
+ 	if (!mt6797_ccmp_rx_check(mac->join_packet, bytes, &mac->ccmp_rx, &view)) {
+-#ifdef CONFIG_MT6797_WMM_QOS_DATA
+-		if (bytes >= 18) {
+-			mac->qos_rx_refused++;
+-			if (mt6797_join_le16(mac->join_packet + 16) & 0x0080)
+-				mac->qos_rx_refused_qos++;
+-		}
+-#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (mac->ccmp_gtk && mac->join_key_group == 1 &&
+ 		    mac->ccmp_gtk_rx.key_id == mac->join_group_key_id &&
+@@ -820,6 +875,7 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 		}
+ 		mt6797_ccmp_withheld_arp(mac, bytes);
+ #endif
++		mt6797_ccmp_rx_refused(mac, bytes);
+ 		dev_kfree_skb(skb);
+ 		return 0;
+ 	}
+@@ -1939,6 +1995,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_eapol_trace = 0;
+ 	mac->join_eapol_refused = 0;
++	mac->ccmp_rx_refused = 0;
+ 	mac->join_eapol_tx = 0;
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+@@ -5766,6 +5823,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_eapol_trace = 0;
+ 	mac->join_eapol_refused = 0;
++	mac->ccmp_rx_refused = 0;
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+ 	mac->join_group_action_discarded = 0;
+-- 
+2.43.0
+

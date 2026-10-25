@@ -3407,3 +3407,58 @@ The likely fix after it is the data-path counterpart of 0286 (byte 9's
 low nibble and the QoS control's TID admitted, the cipher still
 required CCMP), each its own boot; boot R (the records' QoS declaration)
 waits behind them.
+
+**Boot Q's target met, in the owner's terms (2026-10-25).** `wmm_requested=1
+wmm_accepted=1 ac_params=8`; the EAPOL-Key admitted on both messages
+(`qos=0x0006 ethertype=0x888e`, the body valid); the pairwise and group
+keys installed; `tx_qos=4 tx_nonqos=0 tx_tid_refused=0`, which also
+settles the queue question: QoS uplink frames reach the provisioned
+queue and none are refused. The handshake defect of boot O is closed.
+The DHCP failure is the downlink QoS data admission, not the handshake:
+the access point sends data as QoS because WMM is negotiated, and no QoS
+data frame was delivered (`rx_qos=0`) while 40 non-QoS frames were.
+One correction to the counts: 0284 took `rx_refused` before the group
+check ran, so the 45 includes group frames that check then delivered;
+`rx_qos=0` still shows that all four QoS frames were refused by both
+checks. 0288 counts a refusal only when both have refused.
+
+## 28. Boot R (predeclared, 2026-10-25): QoS data admitted at the receive checks, one variable
+
+**The change.**
+[0289](../../patches/proposals/0289-wifi-mt6797-admit-QoS-data-on-any-TID-at-the-receive-checks.patch):
+with WMM, both the pairwise and the group receive check admit a QoS data
+frame on any TID whose QoS control holds only that TID (normal
+acknowledgment, no A-MSDU, no EOSP) and agrees with descriptor byte 9's
+low nibble; the cipher nibble is still required CCMP; non-QoS frames keep
+TID 0. The firmware decrypts and translates the frame to Ethernet, which
+the host delivers as before: the translated layout is the only one the
+firmware delivers for data, QoS or not, so a native QoS data frame stays
+refused and named. The records' QoS declaration stays off; the 0x4c
+descriptor, the depth (12) and the ledger are untouched. Riding along,
+logging only:
+[0288](../../patches/proposals/0288-wifi-mt6797-name-every-data-frame-both-receive-checks-refuse.patch)
+names every frame both checks refuse (the first 64 of a lifetime): the
+descriptor bytes and group set, the frame control, QoS control and HT
+control, the PN's order against the receive context, and the first field
+that differs; refusals are counted only when both checks refuse. The
+owner's rule: a refusal that is not named has already cost three boots.
+The C fixtures for both checks pass unchanged (the non-WMM path,
+sanitizers on).
+
+| Reading | Required |
+|---|---|
+| `rx_qos > 0` and `rx_refused_qos` → 0 | the admission is the change, and it worked |
+| DHCP binds, `cycles_completed=1` | the data path is restored |
+| TX about 23, RX about 19, rate `0x4c`, ledger exact | nothing else moved |
+| `rx_refused` beside `rx_qos`, every refusal named (`data rx refused: field=...`) | what is still refused, and why |
+| any MIC or decrypt failure | the 26-byte AAD (the firmware's, on the receive side), and stop |
+
+| Reading | Cause | Next |
+|---|---|---|
+| QoS frames refused at `field=pn` | the access point's PNs arrive out of order across TIDs; the receive context keeps one strict counter for all of them | a per-TID replay counter, its own change |
+| QoS frames refused at another field | a second difference for QoS data | named by 0288; its own change |
+| DHCP binds and the measurement runs | the downlink is restored at the legacy rate | boot S: the records' QoS declaration, then HT capability |
+
+**After it, the chain as scoped.** The station record's QoS declaration
+(firmware side) as its own variable, then HT capability advertisement,
+then the station record's PHY and MCS fields, then block-ack.

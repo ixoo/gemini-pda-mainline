@@ -765,3 +765,5 @@ proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legac
 proposals/0285-wifi-mt6797-never-skip-a-refused-pre-key-frame-without-a-record.patch
 proposals/0286-wifi-mt6797-admit-the-access-point-s-QoS-EAPOL-Key-whatever-its-TID.patch
 proposals/0287-wifi-mt6797-send-the-control-port-s-EAPOL-on-TID-6-with-WMM.patch
+proposals/0288-wifi-mt6797-name-every-data-frame-both-receive-checks-refuse.patch
+proposals/0289-wifi-mt6797-admit-QoS-data-on-any-TID-at-the-receive-checks.patch
