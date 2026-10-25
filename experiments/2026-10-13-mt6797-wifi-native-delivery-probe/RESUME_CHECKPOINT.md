@@ -5,7 +5,10 @@ one quantity (about 1.5 ms a frame) limits both directions; boot E
 attacks it with 0278 (no PID, no status report, retired on credit
 arrival with a submission timestamp read at the credit event) on the
 baseline tree, with 0275 v2 and 0279 keeping five chunks under the
-logger's cap. Boot D closed the rate thread (0277 a proposal with one open
+logger's cap. Boot E is staged: lifecycle package at `c6fa0edc`, boot2
+`528d1d1d…` over `df7d6e65…` (full readback verified from Gemian
+`3279578d…`), five chunks, preflight passed, device shut down, watcher
+armed; the owner selects boot2. Boot D closed the rate thread (0277 a proposal with one open
 question; the two-chunk numbers valid, not series rows; the UDP 30 leg
 is the strongest receive evidence). Then the AP-loss gate, independent.
 
