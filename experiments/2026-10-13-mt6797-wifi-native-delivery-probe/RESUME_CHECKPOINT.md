@@ -1,4 +1,17 @@
-# Current: boot L withdrew the receive stall and the acknowledgement split; receive is measured on the device's count; transmit at depth 8 is a band of 19 ± 2; boot M (depth 12, once) is staged on boot2 at faea70e6 (image 7a9a40e8…, predecessor c0f4a6f1…); the owner selects boot2
+# Current: boot M (depth 12) held the model and ends the depth sweep at about 23 Mbit/s transmit; one receive chunk slowed without a silence; the next step is the owner's decision
+
+[Boot M](HIF_TRANSPORT_ANALYSIS.md#boot-m-result-2026-10-25-1853-utc-depth-12-on-the-model-the-depth-sweep-stops-a-receive-slowdown-the-silence-rule-cannot-see):
+transmit 22.7–24.1 Mbit/s at a 5.46 ms wait with 12 in flight, nothing
+freed unsent and one retransmission; the three-depth fit's asymptote is
+35.7 Mbit/s, so the sweep stops at depth 12 (kept in the fragment). The
+receive queue never stopped (high water ≤ 12). Receive chunk 5 slowed to
+9.54 Mbit/s on the device's count with the laptop sending at 12.9 and
+one second at 218 KiB, without a 200 ms silence: a real receive slowdown
+the silence rule misses, not the acknowledgement queue. Above the ~33–36
+Mbit/s wall only HT helps; the AP-loss vanish-and-return test is the
+remaining robustness item.
+
+# Historical: boot L withdrew the receive stall and the acknowledgement split; receive is measured on the device's count; transmit at depth 8 is a band of 19 ± 2; boot M (depth 12, once) is staged on boot2 at faea70e6 (image 7a9a40e8…, predecessor c0f4a6f1…); the owner selects boot2
 
 [Boot L](HIF_TRANSPORT_ANALYSIS.md#boot-l-result-2026-10-25-1837-utc-the-queue-never-stopped-during-receive-transmit-did-not-reproduce-the-acknowledgements-lag),
 no driver variable, first clean verdict: zero stops in every receive

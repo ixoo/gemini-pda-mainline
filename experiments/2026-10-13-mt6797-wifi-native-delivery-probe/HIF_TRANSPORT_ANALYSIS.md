@@ -2749,3 +2749,61 @@ the per-pass submission count, and the ledger is admitted at HIF
 activation; ownership, 156 of the firmware's 468 pages, the host
 ledger's own figures; the vendor, within the vendor's budget for the
 queue.
+
+### Boot M result (2026-10-25, 18:53 UTC): depth 12 on the model; the depth sweep stops; a receive slowdown the silence rule cannot see
+
+Build `faea70e6` (boot L's tree at depth 12, ledger 156, 0283 v2),
+boot2 `7a9a40e8…` over `c0f4a6f1…`, mainline boot `9baa00b0…`, returned
+to Gemian `38cd7be3…` (recovery confirmed, live identity checked
+afterwards); session `ram-service-regression-pass`, log complete
+(184,282 bytes), receipt `all_pass`, verdict passed (`session_exit=0`),
+no early stop.
+
+**Transmit, against §23: the second row; the sweep stops.** Chunks
+23.01, 22.91, 22.73, 22.85, 24.06 Mbit/s (final halves 22.44–24.63),
+aggregate 21.87; `wait_avg` 5.459 ms with `inflight_max=12` (the depth
+exercised) and 10.4 in flight on average (30,388 frames in 15.99 s);
+`expired=0`, `pid_faults=0`, `left_pages=0`, `dropped_full=0`,
+`tx_failed=0`, 836 of 836 samples at `0x4c` status 0, one retransmission
+(cwnd 116–156). The wait came in 3.6 % under the model's 5.66 ms, short
+of the first row's mark (5.4 ms); transmit ran 6 % under the model's
+24.6 and 10 % under the rule at the measured wait (25.5). Within the
+session noise the model holds: depth 4 → 8 → 12 gave 16.2, 19 ± 2 and
+23 Mbit/s, the waits 2.86, 4.26–4.67 and 5.46 ms. A least-squares line
+through the three depths (boots J, K and L averaged, M) gives wait ≈
+1.67 ms + 0.324 ms × depth, an asymptote of 3,083 frames a second, 35.7
+Mbit/s: the same wall as the two-point 33.1 within the depth-8 spread.
+The remaining depth gains (about 1.5 Mbit/s from 12 to 16 on either
+fit) are below the session noise, so the depth sweep stops here, as
+predeclared; depth 12 stays in the lifecycle fragment (no safety counter
+moved, no transmit timeout). Stops ran at about 45 a second in the
+transmit seconds (693 in all), the queue at its stop mark, as at depth 8.
+
+**Receive.** Device-side chunks 16.87, 20.13, 18.81, 19.01, 9.54 Mbit/s,
+every chunk `peer_eof`, every drain complete (0.56–1.73 s), no timeout;
+zero stops and wakes in all 20 whole receive seconds, high water 4–12;
+no gap over 200 ms inside either measurement window (six outside). The
+TCP flow's view (15.63, 17.42, 14.24, 15.02, 5.41, with 2.65–4.19 MB
+unacknowledged at each close) trails the device's count in every chunk,
+the acknowledgement lag boot L showed.
+
+**A receive slowdown the silence rule cannot see.** Chunk 5 (51.17–55.22
+s) ran at 9.54 Mbit/s on the device's own count, and the laptop itself
+sent only 4.83 MB in its 3 s (12.9 Mbit/s against 22.9–26.8 in chunks
+1–4): the sender slowed. The per-second series puts it in one second,
+53.30–54.30 s, with 218 KiB delivered (1.8 Mbit/s) and 85 frames queued
+for transmit, between seconds of 1,994 and 1,347 KiB; frames kept
+arriving at intervals under 200 ms, so no gap was recorded. The data
+queue held at most 12 frames and never stopped, so it is not the
+acknowledgement path's queue, and the split stays withdrawn. It is a
+real receive slowdown on the device's count, which boot L's withdrawal
+of "the receive stall" did not cover: that withdrawal holds for
+silences and for the chunk totals it re-read, not for this. The
+sender's slowing is consistent with loss recovery on the laptop's side
+(an inference: the laptop's own retransmissions are not recorded; the
+device's netdev `rx_dropped` rose by 8 during the receive phase). The
+silence rule misses a trickle; a per-second floor (for example a second
+under a quarter of its chunk's median) would catch it.
+
+**Stalls (§17).** Receive chunk 5 of boot M, the second at 53.30–54.30 s,
+218 KiB, the sender at 12.9 Mbit/s over the chunk; no transmit stall.

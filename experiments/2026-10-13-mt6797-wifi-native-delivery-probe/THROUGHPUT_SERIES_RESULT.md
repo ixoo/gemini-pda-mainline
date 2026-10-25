@@ -48,6 +48,7 @@ described here; each run's own artefacts are named.
 | [boot J](HIF_TRANSPORT_ANALYSIS.md#boot-j-result-2026-10-25-1753-utc-transmit-above-12-with-zero-loss-the-retransmissions-were-part-of-the-cost) (17:53 UTC; same run; cross-session against boot I and boot H run 3) | 0282 v2, the queue bound its own option (64 frames, stop 56, wake 32): the configuration fix that released the mechanism; 156 stops and wakes (boot I 2,223), `high_water=56`, zero frames freed unsent, 406 of 406 samples at 0x4c status 0, 6 retransmissions in 14,550 segments, cwnd 58–95; the pipeline saturated (4 ÷ 2.864 ms = 1,397 frames/s, 16.2 Mbit/s predicted); no stall | floor (every transmit chunk byte-capped at 4 MiB in about 2.1 s): 15.02 (chunks 15.51–16.70) | floor (every receive chunk byte-capped): 17.26 (device-side chunks 18.54–19.62) | 84.9% / 86.5% |
 | [boot K](HIF_TRANSPORT_ANALYSIS.md#boot-k-result-2026-10-25-1810-utc-transmit-27--on-the-rule-the-revert-row-fired-on-receive-confounded-by-the-harness) (18:10 UTC; adjacent to boot J; chunks 16 MiB or 3 s) | depth 8 (ledger 104) on boot J's tree: transmit steady at 20.9–21.2 on the rule (8 ÷ 4.26 ms = 1,877 frames/s, 21.7 predicted), 564 stops, nothing freed unsent, 4 retransmissions; two receive chunks on the device's 4 s bound (one the receive stall, one the drain after the laptop's close racing the bound); reverted to depth 4 by the rule, the attribution confounded by the harness | 19.87 (chunks 20.87–21.16, duration-bound) | 16.46 (device-side chunks 11.7–19.8; two at the device's bound) | 82.6% / 86.5% |
 | [boot L](HIF_TRANSPORT_ANALYSIS.md#boot-l-result-2026-10-25-1837-utc-the-queue-never-stopped-during-receive-transmit-did-not-reproduce-the-acknowledgements-lag) (18:37 UTC; boot K's tree with no driver variable: the 0283 series, the 6 s device bound, the drain accounting; the first clean verdict) | zero stops and wakes in all 18 receive seconds and no receive gap: the receive stall and the acknowledgement split withdrawn; transmit the lower sample of the depth-8 band (wait 4.67 ms, one 203 ms transmit stall with 8 in flight) | 16.15 (chunks 15.50–18.72) | 18.83 (device-side chunks 16.80–21.18; TCP flow view 14.31–21.44) | 86.3% / 87.9% |
+| [boot M](HIF_TRANSPORT_ANALYSIS.md#boot-m-result-2026-10-25-1853-utc-depth-12-on-the-model-the-depth-sweep-stops-a-receive-slowdown-the-silence-rule-cannot-see) (18:53 UTC; adjacent to boot L; one variable) | depth 12 (ledger 156): transmit on the model (wait 5.46 ms, 12 in flight, nothing freed unsent, 1 retransmission); the depth sweep stops (three-depth fit asymptote 35.7 Mbit/s); receive queue never stopped; one receive chunk slowed by the sender (one second at 218 KiB) without a silence | 21.87 (chunks 22.73–24.06) | 16.08 (device-side chunks 9.54–20.13) | 81.8% / 87.5% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
@@ -171,17 +172,20 @@ is depth 12, once.
 
 ## Where throughput stands (2026-10-25, after boot L)
 
-- **Transmit:** about 19 ± 2 Mbit/s at depth 8 (boot K 20.9 at a 4.26 ms
-  wait, boot L 17.5 at 4.67 ms), on the rule depth ÷ credit-retire wait,
-  with nothing freed unsent.
+- **Transmit:** about 23 Mbit/s at depth 12 (boot M, 22.7–24.1 per chunk at
+  a 5.46 ms wait), where the depth sweep stopped; 19 ± 2 at depth 8 (boot
+  K 20.9, boot L 17.5); on the rule depth ÷ credit-retire wait, with
+  nothing freed unsent.
 - **Receive:** 19.6–21.2 Mbit/s per chunk on the device's own count
-  (boot L), 19.5–24.3 in the whole seconds inside a chunk; UDP carried 29
+  (boot L; 16.9–20.1 on boot M, with one chunk slowed by the sender to
+  9.5), 19.5–24.3 in the whole seconds inside a chunk; UDP carried 29
   Mbit/s at 2 % loss through the same path (boot D), so the receive path
   itself carries about 30.
 - **The ceiling:** about 33 Mbit/s, where the two-point depth model's
   asymptote and the estimated air ceiling of a fixed 54 Mbit/s rate
-  meet. Above it only HT aggregation helps; boot M (depth 12) tests the
-  model once.
+  meet (the three-depth fit gives 35.7). Above it only HT aggregation
+  helps; the vendor's own driver reached 45.1 Mbit/s of transmit on the
+  older protocol (vendor control 2).
 - **Robustness:** the AP-loss gate passed as the access point's own
   inactivity disassociation; a controlled vanish-and-return test remains
   the one robustness item, independent of all of the above.
