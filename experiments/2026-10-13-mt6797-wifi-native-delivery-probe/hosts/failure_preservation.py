@@ -164,6 +164,11 @@ def apply_adapter(path):
 
 def apply_return(path):
     s = path.read_text()
+    # A work directory derived from one already patched carries the change: verify it, do not re-apply.
+    if s.count("p, out, err = step('owned-stop', ") == 1:
+        assert s.index("step('owned-stop'") < s.index("step('log-export'") < s.index("step('post-session-quiescence'"), \
+            'return order (stop, export, proof) changed'
+        return
     old = """p, out, err = step('post-session-quiescence', q)
 assert p['exit_status'] == 0 and p['reason'] is None and p['stdin_complete'] and not err and out == b'post_session_quiescence=pass\\n', (p, out, err)
 p, out, err = step('log-export', S.seal_script(v, boot), 30, 3145728)
