@@ -1,4 +1,4 @@
-# Current: boot T's per-TID replay counters removed every receive refusal (all_pass); boot U (HT capability advertised, descriptor unchanged) predeclared, awaiting the owner's review before staging
+# Current: boot T's per-TID replay counters removed every receive refusal (all_pass); boot U (HT capability advertised, descriptor unchanged) staged on boot2
 
 [Boot T](HIF_TRANSPORT_ANALYSIS.md#boot-t-result-2026-10-25-2153-utc-per-tid-replay-counters-remove-every-receive-refusal-the-anti-replay-invariant-has-the-shape-ht-needs):
 `rx_refused=0 rx_refused_qos=0`, the anti-replay invariant per TID and
@@ -12,8 +12,14 @@ window, so they were not boot S's transmit dip. The fixed-rate trade is
 recorded: nothing is refused, yet TCP retransmits on channel dips at a
 fixed 54 Mbit/s. [§31](HIF_TRANSPORT_ANALYSIS.md#31-boot-u-predeclared-2026-10-25-ht-capability-advertised-the-descriptor-unchanged):
 0293 advertises HT20 MCS 0-7 and admits exactly that element and the
-HT20 width; descriptor, records and block-ack refusal unchanged. Nothing
-is staged; the device is on Gemian (`bafaa65c…`).
+HT20 width; descriptor, records and block-ack refusal unchanged. Owner,
+2026-10-25: approved as predeclared. The composer's and the candidate
+validator's configuration allowances, inherited as empty, now admit
+exactly `CONFIG_MT6797_HT_CAPABILITY=y`. Boot U is staged on boot2 at
+625c1eb3 (image a227cbd5…, predecessor c7f650a8…), written and read
+back from Gemian (boot `bafaa65c…`), device command 4,074 of 4,096
+bytes, preflight passed, the device shut down cleanly; the owner
+selects boot2.
 
 # Historical: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) staged on boot2
 
