@@ -6,14 +6,23 @@ usage: transmit_probe.py <work-dir>   (after receive_probe.py and the protocol
 injection; before prepare)
 
 Device side, in the probe block after the chunks: the receive UDP legs step
-aside (they stand on three boots at zero loss) for three ICMP echo legs the
-device offers toward the laptop, 1,400-byte payloads at 10, 20 and 30
-Mbit/s (893, 1,786 and 2,679 requests at 1.12, 0.56 and 0.37 ms), each timed
-on the device's clock and summarised by BusyBox ping (the laptop answers
-every request; the receive path carries 30 Mbit/s with zero loss, so a
-missing reply is a lost request). The device's BusyBox has no UDP sender,
-so the echo leg is the transmit probe this harness can carry without a new
-device tool; the return traffic is the declared deviation.
+aside (they stand on three boots at zero loss) for one ICMP echo leg the
+device offers toward the laptop, 1,400-byte payloads at 10 Mbit/s (893
+requests at 1.12 ms), timed on the device's clock and summarised by
+BusyBox ping (the laptop answers every request, so a missing reply is a
+lost request); its own error line is kept if ping fails. The device's
+BusyBox has no UDP sender, so the echo leg is the transmit probe this
+harness can carry without a new device tool; the return traffic is the
+declared deviation.
+
+The 20 and 30 Mbit/s legs (1,786 and 2,679 requests at 0.56 and 0.37 ms)
+ended early with no summary in boots M, N and S, their stderr discarded:
+they reported nothing and are removed (the transmit chunks measure those
+rates). With the device's UDP trigger gone, the laptop's trigger thread
+waited for three connections that never came (`completed: false`,
+`udp: []` in every run since boot H); it is created with no rates, so
+only its laptop pings remain, and the record says the UDP legs are
+retired.
 
 One line per transmit chunk, 1.5 s in, from /proc/net/tcp for the socket to
 the laptop's transmit port (0xBB81): the congestion window and slow-start
@@ -45,9 +54,9 @@ a=$(u)
 $BB timeout 5 $BB nc -w2 HOST 48003 </dev/null 2>/dev/null >/dev/null
 $BB sleep 2.5; printf 'TP3_UDP %s %s\\n' "$r" "$(($(u)-a))"
 done ) 2>/dev/null; printf 'TP3_RC=%s\\n' "$?"; true
-""", """( for p in 893:0.00112 1786:0.00056 2679:0.00037; do c=${p%:*}
-t0=$(clock); $BB ping -q -c $c -i ${p#*:} -s 1400 HOST >/tmp/p; t1=$(clock)
-printf 'TP3_TXPING %s %s %s\\n' "$c" $((t1-t0)) "$($BB grep transmitted /tmp/p)"
+""", """( for p in 893:0.00112; do c=${p%:*}
+t0=$(clock); $BB ping -q -c $c -i ${p#*:} -s 1400 HOST >/tmp/p 2>&1; t1=$(clock)
+printf 'TP3_TXPING %s %s %s\\n' "$c" $((t1-t0)) "$($BB grep -e ted -e ping: /tmp/p)"
 done ) 2>/dev/null; printf 'TP3_RC=%s\\n' "$?"; true
 """)
 # 2. the device's TCP state 1.5 s into each transmit chunk, and its retransmission count around the direction
@@ -95,5 +104,11 @@ literal(h, """    m = re.search(rb'^TP3_RC=([0-9]+)\\r?$', output, re.M)
     m = re.search(rb'^TP3_RC=([0-9]+)\\r?$', output, re.M)
     record['probe_rc'] = int(m[1]) if m else None   # None: the block never reached its own status line
 """)
+# 5. the laptop's trigger: no rates (the device no longer triggers), so only its pings run
+literal(h, "ProbeTrigger(host,48003,peer,48004,(10,20,30))", "ProbeTrigger(host,48003,peer,48004,())")
+literal(h, """    record['tx_ping'] = legs
+""", """    record['tx_ping'] = legs
+    record['udp_legs'] = 'retired: the transmit probe replaced the device trigger (boot H)'
+""")
 compile(h.read_text(), str(h), 'exec')
-print('transmit probe: echo legs 10/20/30 Mbit/s, TCP state per transmit chunk, retransmission count, comments stripped at render')
+print('transmit probe: one echo leg at 10 Mbit/s (its error kept), the UDP trigger retired, TCP state per transmit chunk, retransmission count, comments stripped at render')

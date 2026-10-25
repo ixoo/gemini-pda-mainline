@@ -95,7 +95,7 @@ line(ok, "the helper's own validators admit the rendered device script")
 
 # 3. the helper's probe function is reachable from the call site the plan enables
 line("result['throughput_measurement']['receive_probe'] = receive_probe(output, probe, endpoints)" in source, 'helper: the probe record is written into the receipt')
-line("if os.environ.get('TP_RECEIVE_PROBE') == '1':" in source and 'ProbeTrigger(host,48003,peer,48004,(10,20,30))' in source, 'helper: the trigger is created under the same flag the plan enables')
+line("if os.environ.get('TP_RECEIVE_PROBE') == '1':" in source and ('ProbeTrigger(host,48003,peer,48004,())' if transmit else 'ProbeTrigger(host,48003,peer,48004,(10,20,30))') in source, 'helper: the trigger is created under the same flag the plan enables')
 line('endpoints[-1].probe = nonlocal_probe[0]' in source, 'helper: the receive endpoint carries the probe (in-chunk ping)')
 
 # 4. the probe's legs record a non-empty sample offline
