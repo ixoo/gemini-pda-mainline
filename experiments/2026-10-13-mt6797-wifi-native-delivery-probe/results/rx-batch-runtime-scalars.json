@@ -673,6 +673,132 @@
    "data_end": null,
    "rx_rates": null,
    "reading": "54 Mbit/s acknowledged; TX x1.9 (real), receive +13 % (inside the floor), in-chunk RTT down a third: section 13 row 2; about 1.6 ms per frame remains with the air time removed; the log cap (per-frame records) and the probe's cut legs are harness/diagnostic faults, boot D measures two chunks per direction and carries 0274 v2"
+  },
+  "boot-d": {
+   "run": "PIO-throughput-bootd-1",
+   "session": "2026-10-25 15:06 UTC (1 h 50 min after boot C; cross-session, \u00b140 % floor)",
+   "profile": "mt6797-a53-wifi-rate",
+   "kernel_build_commit": "e1e67f78462ddce857b89d9f83c59c1b4c7f9157",
+   "boot2_sha256": "df7d6e651c32fa3b91767e4a01fda9fa54228c646bbe19c92190ebc4d218dd52",
+   "predecessor_boot2_sha256": "8cd3631403875135077f9002b49e3a7af0471d4dcb3d084d1786fe8cd0a3ab07",
+   "mainline_boot_id": "b55338e7-eaec-402c-a2d6-fb3b7f060ed8",
+   "previous_gemian_boot_id": "52ffff40-1dc2-4bd7-9369-87be7dcbcbbc",
+   "returned_gemian_boot_id": "3279578d-5160-4550-a7cc-78d080df8db7",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 971986,
+   "all_pass": true,
+   "chunks_each": 2,
+   "data_fixed_rate_code": "0x0",
+   "state2": {
+    "status": 0,
+    "sequence": 20
+   },
+   "tx_rate_words": {
+    "0/0x004b": 1460,
+    "3/0x004b": 3
+   },
+   "throughput": {
+    "tx_host_received_mbit_s": 3.45,
+    "tx_chunk_mbit_s": [
+     3.95,
+     3.81
+    ],
+    "rx_host_sent_mbit_s": 7.91,
+    "rx_device_chunk_mbit_s": [
+     15.83,
+     10.36
+    ],
+    "rx_host_chunk_mbit_s": [
+     22.57,
+     16.44
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap"
+    ],
+    "tx_device_cpu_idle_percent": 86.71,
+    "rx_device_cpu_idle_percent": 82.34
+   },
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 20815,
+    "rx_delivered": 7486,
+    "tx_queued": 1458,
+    "tx_done": 1455,
+    "tx_failed": 3,
+    "tx_credits_pages": 9895
+   },
+   "census": {
+    "passes": 91670,
+    "submissions": 1458,
+    "max_per_pass": 4
+   },
+   "ccmp_stable_end": {
+    "queued": 7446,
+    "beyond": 0
+   },
+   "rx_rates": {
+    "1/12 (54M)": 5849,
+    "1/8 (48M)": 822,
+    "1/11 (6M)": 315,
+    "1/13 (36M)": 242,
+    "1/15 (9M)": 147,
+    "1/14 (18M)": 31,
+    "1/9 (24M)": 20,
+    "1/10 (12M)": 20
+   },
+   "probe": {
+    "udp": [
+     {
+      "rate": 10,
+      "sent": 893,
+      "counted": 893
+     },
+     {
+      "rate": 20,
+      "sent": 1786,
+      "counted": 1786
+     },
+     {
+      "rate": 30,
+      "sent": 2679,
+      "counted": 2620,
+      "loss": 0.022
+     }
+    ],
+    "trigger_rtt_ms": [
+     7,
+     7,
+     7
+    ],
+    "laptop_ping_at_rest_ms": {
+     "min": 167.811,
+     "avg": 222.454,
+     "max": 277.318
+    },
+    "laptop_ping_in_chunk": null,
+    "tcp_rx_chunk_rttcur_ms_max": [
+     115,
+     178
+    ],
+    "tcp_rx_chunk_rttcur_ms_samples": [
+     [
+      9,
+      22,
+      55,
+      97,
+      58,
+      115
+     ],
+     [
+      7,
+      140,
+      165,
+      178
+     ]
+    ]
+   },
+   "reading": "state 2 accepted; data without a fixed rate acknowledged at the firmware's choice 0x004b (6 Mbit/s) on every frame: the table is valid, no adaptation; TX at the fixed-6 baseline, 45 % below fixed 54; the rate thread closes on 0273 at 0x4c; 0277 kept in the rate series only"
   }
  }
 }

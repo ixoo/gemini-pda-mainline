@@ -1444,3 +1444,15 @@ where that thread lives. The tree is the rate series (the lifecycle tree
 through 0274 v2, then 0275, 0276, 0277) on the rate profile (data without
 a fixed rate, the received and transmitted rate records). Two chunks per
 direction; the probe rides. The AP-loss gate stays independent.
+
+### Boot D result (2026-10-25, 15:06 UTC): the state-2 record is accepted, the firmware selects 6 Mbit/s; the rate thread closes
+
+Recorded in the [autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes).
+For the transport thread: TX per chunk at the firmware's choice is the
+fixed-6 baseline (3.8–4.0 Mbit/s), 45 % below the fixed 54 of boot C, so
+0273 at 0x4c stays the data path; the two-chunk run kept the log complete
+(972 KB) with all three probe legs and the disconnect; the queued count
+(7,446) did not reach the 0274 ceiling. The transmit lever that remains
+is the completion path: the corrected second attempt (retire on credit
+arrival with its instrument) is drafted and compiled on a VM branch,
+not admitted, pending the owner. The AP-loss gate follows.

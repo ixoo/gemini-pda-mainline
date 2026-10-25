@@ -1,4 +1,17 @@
-# Current: boot C measured (54 Mbit/s acknowledged, TX ×1.9, log cut at the cap); boot D (state 2) prepared on the rebuilt rate series
+# Current: boot D measured (state 2 accepted, the firmware selects 6 Mbit/s); the rate thread is closed on the fixed 54 descriptor; the AP-loss gate is next
+
+[Boot D result](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes):
+the state-2 record is accepted and data without a fixed rate is
+acknowledged, every frame at the firmware's rate word 0x004b; TX at the
+fixed-6 baseline, 45 % below boot C's fixed 54, so 0273 at 0x4c stays the
+data path and the rate thread closes (what makes the firmware climb is a
+firmware-side question, not a boot). Two chunks kept the log complete.
+Next: the AP-loss gate (lifecycle tree at b2b7e693 over the boot-D image;
+verifies 0267 and the timeout-debt contract; owner at the access point),
+then the completion lever's corrected second attempt if the owner admits
+it (drafted and compiled, not in a series).
+
+# Historical: boot C measured (54 Mbit/s acknowledged, TX ×1.9, log cut at the cap); boot D (state 2) prepared on the rebuilt rate series
 
 [§13 result](HIF_TRANSPORT_ANALYSIS.md#boot-c-result-2026-10-25-1314-utc-54-mbits-acknowledged-transmit-19-the-log-cut-at-the-cap)
 and the [boot D predeclaration](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-predeclared-2026-10-25-the-encoder-admits-state-2):

@@ -287,3 +287,77 @@ ledger stands at seven.
 8,192, the ccmp-stable end line must show `beyond>0` with the data phase
 ending by `disconnect`; otherwise "not exercised" (the fixture is the
 evidence).
+
+## State-2 station record boot, second attempt: result (2026-10-25, 15:06 UTC) — the table is valid, the selection stays at 6 Mbit/s; the rate thread closes
+
+Build `e1e67f78` (profile `mt6797-a53-wifi-rate`), boot2 `df7d6e65…` over
+`8cd36314…`, mainline boot `b55338e7…`, returned to Gemian `3279578d…`
+(changed-ID Gemian, recovery confirmed, 15 s); session
+`ram-service-regression-pass`, log complete through the seal (971,986
+bytes, 6,503 records, two chunks per direction), receipt `all_pass`,
+disconnect accepted, data phase 20.8 s ending by `disconnect`.
+
+**TX first.** `tx_failed=3` of 1,458 queued, `debt=0`, no guard record,
+no credit overflow (22 credit lines), DMA attached both ways.
+
+**The state-2 update was accepted:** `join station state 2: status=0
+sequence=20`, one record and one credit wait, the join unchanged
+otherwise. The first data frame went out with no fixed rate (`rate=0x00`)
+and was acknowledged, as was every data frame after it: 1,460 completions
+with status 0 and 3 with status 3, every one carrying the firmware's rate
+word `0x004b` (OFDM 6 Mbit/s, flag bit 0 set). The rate table is valid
+(the rate-visibility boot's unacknowledged `0x0000` frames are gone), and
+the firmware's selection is 6 Mbit/s for all 1,463 frames over 20 s: no
+adaptation upward at a link the access point drives at 54 Mbit/s toward
+us (`RX rates: 1/12=5849` of 7,446 queued, 48 Mbit/s on 822).
+
+| Direction | Boot D (15:06 UTC, no fixed rate, two chunks) | Boot C (13:14 UTC, fixed 54) | Probe boot 4 (11:39 UTC, fixed 6) |
+|---|---|---|---|
+| TX, host-received aggregate / chunks (Mbit/s) | 3.45 / 3.95, 3.81 | 5.53 / 6.64–7.84 | 3.14 / 3.73–4.07 |
+| RX, host-sent aggregate / device-side chunks (Mbit/s) | 7.91 / 15.83, 10.36 (both `byte_cap`) | 7.19 / 16.45–18.24 | 7.78 / 14.46–15.83 |
+| device idle TX / RX | 86.7 % / 82.3 % | 83.0 % / 76.5 % | 86.2 % / 78.3 % |
+| UDP 10 / 20 / 30 Mbit/s | 893/893 / 1786/1786 / 2620/2679 (2.2 % lost) | zero loss / cut / cut | zero loss / zero loss / cut |
+| TCP receive `rttcur` max per chunk (ms) | 115, 178 | 88, 70, 51, 60, 79 | 132, 139, 95, 85, 65 |
+| at-rest ping (ms min/avg/max) | 168 / 222 / 277 | 43 / 98 / 153 | 8 / 23 / 52 |
+
+Cross-session (boot C ended 1 h 50 min earlier), ±40 % floor. TX per chunk
+is the fixed-6 baseline exactly (3.8–4.0 against 3.7–4.1) and 45 % below
+boot C's fixed 54, beyond the floor: the firmware's choice costs half the
+transmit rate against the fixed 54 descriptor. Receive is inside the floor
+(the second chunk's 10.4 is one chunk). The in-chunk ping record is absent
+(its thread did not report within the join; recorded missing). The at-rest
+ping has risen boot over boot (23, 98, 122, 222 ms avg) and is recorded,
+not read: it runs after the data phases and says nothing about them.
+
+**Reading, against the predeclared rows.** The third row's condition holds
+literally (status 0, non-zero rate words), but its conclusion does not: a
+selection that never leaves the lowest rate across 1,460 acknowledged
+frames is a valid table without adaptation, not rate control alive. The
+measured fact is narrower and useful: the vendor's state sequence (1, 2,
+3) is what makes a frame without a fixed rate acknowledged; what makes
+the firmware climb from 6 Mbit/s is something else in what the vendor
+writes (the record's remaining fields, or the association response's
+capabilities it carries into the record at state 3), and that is a
+firmware-side question for the RE VM, not a boot. **The rate thread
+closes here**, as the owner set it: the fixed 54 Mbit/s descriptor (0273
+at 0x4c) is the data path, the transmit per-frame cost that remains at
+54 is the completion path's, and no further rate variation is admitted
+without a decode that names the field.
+
+**Dispositions.** 0277 (state 2) is kept in the rate series only: accepted
+by the firmware, the vendor's sequence, and the precondition for any
+later rate-control work; measured neutral on transmit, so by the series'
+precedent it is not admitted to the lifecycle tree. 0276 (rate code 0)
+stays as one value of 0273's option; the lifecycle fragment keeps 0x4c.
+0275 (the TX-done rate record) stays in the rate series. The rate
+profile remains the measurement profile of this thread.
+
+**0274 v2 on this boot.** `ccmp-stable end: queued=7446 beyond=0`: the
+count did not cross 8,192 under two chunks and three probe legs, so the
+ceiling was not exercised; the window stayed open to the disconnect and
+all three legs ran, consistent with v2 and not a test of it. The fixture
+remains the evidence; the first boot that crosses the count verifies it.
+
+**Two chunks per direction** held the log at 972 KB with three per-frame
+records: the measurement fits the sealed logger's contract with room for
+five chunks of this volume, not of boot C's.
