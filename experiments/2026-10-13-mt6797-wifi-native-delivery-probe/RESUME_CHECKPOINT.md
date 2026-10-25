@@ -1,4 +1,4 @@
-# Current: boot P named the handshake's obstacle (the AP's EAPOL-Key on TID 6, refused at descriptor byte 9) and its evidence survived; boot Q (0286 admit, 0287 TID 6 uplink, 0285 refusal record; records non-QoS) predeclared and building; the HT-chain measurement freeze starts with it
+# Current: boot P named the handshake's obstacle (the AP's EAPOL-Key on TID 6, refused at descriptor byte 9) and its evidence survived; boot Q (0286 admit, 0287 TID 6 uplink, 0285 refusal record; records non-QoS) is staged on boot2 at 65679190 (image 13703a41…, predecessor 48bec39b…); the HT-chain measurement freeze starts with it
 
 [Boot P](HIF_TRANSPORT_ANALYSIS.md#boot-p-result-2026-10-25-2030-utc-the-access-point-sends-eapol-key-on-tid-6-the-gate-refused-it-at-descriptor-byte-9-the-evidence-survived):
 four EAPOL-Key frames arrived as QoS data on TID 6 (translated,
@@ -11,6 +11,8 @@ admits the TID, sends our EAPOL on TID 6 (the queue stays the explicit
 TC4 port), records every refused pre-key frame, and keeps the records
 non-QoS; success is a completed handshake and nothing else moved. Then
 boot R (the records' QoS declaration), then HT capability.
+Boot Q's image was written and read back from Gemian (boot `86417b2f…`),
+preflight passed, and the device shut down cleanly; the owner selects boot2.
 
 # Historical: the failed-boot evidence gap closed in two layers; ramoops lost to a cold power-key boot; boot P (WMM on, records non-QoS, the EAPOL header traced) predeclared, awaiting the owner's review before staging
 
