@@ -1,4 +1,18 @@
-# Current: boot O failed at the four-way handshake (the access point accepted WMM, no EAPOL-Key arrived); the kernel record was lost; 0284 reverted; a failed join must become sealable before the next join-path boot
+# Current: the failed-boot evidence gap closed in two layers; ramoops lost to a cold power-key boot; boot P (WMM on, records non-QoS, the EAPOL header traced) predeclared, awaiting the owner's review before staging
+
+[§26](HIF_TRANSPORT_ANALYSIS.md#26-boot-p-predeclared-2026-10-25-the-discriminating-boot-wmm-on-and-the-records-non-qos-instrumented)
+is the discriminating boot: 0284 v2 with `WMM_QOS_RECORDS` off, and
+every pre-key frame's header (length field, frame control, QoS control,
+EtherType, BSS tag, verdict) recorded. The evidence gap is closed by
+the leaf's failed-join exit and, behind it,
+`failure_preservation.py`: the session stops the owned supplicant,
+re-checks and seals, or exports the kernel record before refusing; the
+watcher's return stops the owned processes and exports before its
+proof. Ramoops did not survive boot O because the owner's restart was a
+cold power-key boot (`boot_reason=0`), not a layout mismatch. The access
+point negotiates WMM: the first HT prerequisite holds.
+
+# Historical: boot O failed at the four-way handshake (the access point accepted WMM, no EAPOL-Key arrived); the kernel record was lost; 0284 reverted; a failed join must become sealable before the next join-path boot
 
 [Boot O](HIF_TRANSPORT_ANALYSIS.md#boot-o-result-2026-10-25-1938-utc-the-access-point-accepted-wmm-the-four-way-handshake-timed-out-the-kernel-record-was-lost-0284-reverted):
 the association with WMM succeeded; ten seconds later the access point

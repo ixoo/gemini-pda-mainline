@@ -3164,3 +3164,99 @@ host seals the kernel record and the reviewed return runs. Tested
 offline ([join-failure-exit-test.py](tests/join-failure-exit-test.py));
 the seal and the return on a real failed join remain to be shown by the
 next boot that fails one. Every staged boot from here applies it.
+
+**The positive result, stated plainly (owner, 2026-10-25).** This access
+point negotiates WMM with this station: it accepted our WMM information
+element and returned its EDCA parameter set in the association response.
+That is the first HT prerequisite confirmed, independent of the
+handshake's failure; WMM is required for 802.11n, so in practice the
+access point is 11n-capable (an inference, consistent with the vendor
+driver's 45.1 Mbit/s through it).
+
+**Why ramoops did not survive.** The layout was not the cause: boot O's
+live device tree carries `ramoops@44410000` (`0xe0000`, records
+`0x1000`, console `0x10000`, ftrace `0x1000`, pmsg `0x20000`), which puts
+the console zone at `[0x444bf000, 0x444cf000)`, exactly Gemian's primary
+console zone, the cross-version layout the
+[Gemian baseline](../../docs/hardware/gemini-gemian-baseline.md#exact-active-ramoops-layout)
+records. The reset path was: Gemian came up with `boot_reason=0` and
+`androidboot.bootreason=power_key`, a cold power-on. Retention is
+established only across warm resets; the owner's power-key restart was
+the only way out of a hung session, and it destroys the console it was
+meant to read. So the kernel record must leave the device over USB
+before any restart, and a warm path (the reviewed native reboot) keeps
+the ramoops copy as a second line.
+
+**The evidence gap, closed in two layers.** The leaf ends a failed
+join's data-phase wait itself ([join_failure_exit.py](hosts/join_failure_exit.py)).
+Behind it, [failure_preservation.py](hosts/failure_preservation.py):
+
+- in the session, when the C2 wrapper refuses on quiescence, the owned
+  supplicant is stopped (every `wpa_supplicant`, TERM, then KILL after
+  5 s, the sets before and after recorded), the C2 supplicant count and
+  the leaf's quiescence record are re-run under new labels, and either
+  both pass and the C2 cycles export and the reviewed seal proceed to
+  the reviewed return, or the kernel record is exported through the
+  reviewed seal script, kept privately, and the return refused as
+  before;
+- in the watcher's preservation and return, the owned processes its
+  proof names (`wpa_supplicant`, `nc`, `dhcpcd`, `udhcpc`) are stopped
+  the same way and the sealed log exported whatever their state; the
+  quiescence proof is then required before the native reboot.
+
+The RAM-wiping reboot still needs quiescence; the export no longer does.
+Tested offline ([failure-preservation-test.py](tests/failure-preservation-test.py))
+and the stop script against real processes on Linux (a plain process
+stopped by TERM, one ignoring TERM stopped by KILL at 5.6 s, an
+unrelated process left running).
+
+**The receive path for a QoS EAPOL-Key, read from source (owner's
+item).** 0284's gate admits the AP's clear EAPOL-Key as QoS data on
+both layouts as written: the translated layout with the QoS frame
+control from group 4, its QoS control copied into a rebuilt 34-byte
+header for mac80211 (A-MSDU refused); the native layout with the
+descriptor's header length 26 and the LLC at 26, passed through as
+received. So the source does not refuse the 26-byte layout as such, and
+does not exclude any of boot O's three causes on its own: the gate
+still fixes descriptor fields measured only on non-QoS frames (format
+byte 1, MSDU format 0, the translated header length 14, the padding
+flag) and the BSS tag (15 before the BSS command completes, 1 after the
+station activation), any of which can refuse a QoS frame, and in the
+stable-epoch receive path a refused pre-key frame is traced and skipped,
+not fatal, which is exactly boot O's silence. The existing trace (every
+pre-key data descriptor up to 64, verdict and predicate) held the
+answer; 0284 v2 adds the header it read.
+
+## 26. Boot P (predeclared, 2026-10-25): the discriminating boot, WMM on and the records non-QoS, instrumented
+
+**The change, one variable against boot O.**
+[0284 v2](../../patches/proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch):
+`CONFIG_MT6797_WMM_QOS_DATA=y` with `CONFIG_MT6797_WMM_QOS_RECORDS`
+off: WMM negotiated and the host's QoS admission as in boot O, the BSS
+info and the station record left non-QoS (`ucIsQBSS`, `ucIsQoS` 0), as
+in every working boot. The instrument: for every pre-key data frame the
+gate examines, an `EAPOL header:` line with the verdict and refusing
+predicate, the descriptor's header-length field, the frame control, the
+QoS control, the EtherType and the BSS tag; the candidate recognizer
+also knows the native 26-byte layout. No fix rides along: the boot
+names the cause, and its fix is its own single change.
+
+**The reading.**
+
+| Observation | Cause | Next |
+|---|---|---|
+| an EAPOL-Key (`ethertype=0x888e`) arrives as QoS (QoS frame control, or `hl=26`) and is refused, the predicate named | the gate does not take that layout or field | admit it as its own change, records still non-QoS, and re-run |
+| it arrives (QoS or not) and is admitted, and the handshake completes | with the records non-QoS the downlink works: in boot O the records' QoS declaration stopped message 1 in the firmware | the records' declaration is the next question, its own boot |
+| it arrives and is admitted, and the handshake still fails | message 1 got through; the failure is later, our message 2 as QoS data on the uplink or the AP refusing it | the uplink QoS EAPOL framing gets the record |
+| no EAPOL-shaped frame in the trace at all | message 1 never reached the host even with the records non-QoS | the firmware's receive under WMM, or the access point not sending; not the gate |
+
+The owner's brief read the last row as "the AP never sent it because
+our EAPOL-Key reply was rejected"; message 1 comes before any reply, so
+a missing message 1 cannot be caused by our message 2.
+
+If the handshake completes, the rest of §25's "nothing moved" table
+applies (transmit about 23, receive about 19, the samples at `0x4c`
+status 0, no refusals, the verdict green). Either way the kernel record
+now reaches the laptop: on a failed join through the leaf's exit and
+the seal, and behind it through the session's stop or export and the
+watcher's export-before-proof.
