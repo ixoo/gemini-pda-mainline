@@ -1,4 +1,4 @@
-# Current: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) predeclared, awaiting the owner's review before staging
+# Current: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
 
 [Boot Y](HIF_TRANSPORT_ANALYSIS.md#boot-y-result-2026-10-25-2335-utc-firmware-transmit-aggregation-reports-every-frame-delivered-while-tcp-sees-loss-the-stream-collapsed-35s-stop-row):
 the record took (tx_ampdu=2, tx_ba=64, the peer's ampdu=0x1b), then the
@@ -22,7 +22,13 @@ submission batching. Owner's two suspects checked: `sta_phy`/`bss_phy`
 and ampdu=0x1b is the access point's own A-MPDU parameters. [§36](HIF_TRANSPORT_ANALYSIS.md#36-boot-z-predeclared-2026-10-25-aggregation-declared-as-in-boot-y-one-frame-in-flight-the-discriminator):
 `TX_AMPDU=y` with `CCMP_TX_DEPTH=1` separates "the declaration breaks
 framing" from "the aggregate breaks delivery"; stop rule below about 275
-frames/s. Nothing is staged; the device is on Gemian (`84fe607a…`).
+frames/s. Owner, 2026-10-25: approved as predeclared. The compose,
+validator, bind and review records are pinned to depth 1 (13 ledger
+pages) and the allowances admit exactly the depth change. Boot Z is
+staged on boot2 at f62f9e45 (image f775c477…, predecessor 2d09ef9d…),
+written and read back from Gemian (boot `84fe607a…`), device command
+4,074 of 4,096 bytes, preflight passed, the device shut down cleanly; the
+owner selects boot2.
 
 # Historical: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) staged on boot2
 
