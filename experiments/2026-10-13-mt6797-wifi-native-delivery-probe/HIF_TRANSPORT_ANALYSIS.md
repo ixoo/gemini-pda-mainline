@@ -4320,3 +4320,57 @@ The measurement is the service time; throughput is a consequence. If
 `wait_avg ÷ depth` falls below about 0.2 ms, the firmware is amortising
 its per-frame work and transmit can pass 30. If it stays near 0.43 ms,
 its cost is per MPDU and about 23 Mbit/s is the real ceiling.
+
+### Boot X result (2026-10-25, 23:13 UTC): the records' QoS and HT declaration is compatible; nothing the declaration could move moved
+
+Build `a34cff21` (`WMM_QOS_RECORDS` and 0295 `HT_RECORDS` on boot W's
+tree), boot2 `9b74c622…` over boot W's `0b0e2e01…`, mainline boot
+`393a0c99…`, returned to Gemian `0c2f26a4…` by the session's own
+reviewed return (live identity checked afterwards); log complete through
+the seal (187,581 bytes). Verdict passed: `session_exit=0`,
+`all_pass=True`, `verdict_failed=[]`, one warning `tx_air_losses=3`.
+
+**The declaration, as sent.** `join WMM: ... records_qos=1`;
+`join HT records: declared=1 sta_phy=0x18 mcs=0xff mcs32=0 cap=0x09ef
+ext=0x0000 bss_phy=0x18 protect=2 op1=0x07 op2=0x0006 op3=0x0000 ampdu=0
+ba=disabled`. The firmware accepted both records, and the join and both
+lifetimes ran as before. The baseline the block-ack boot inherits, read
+from the access point's elements:
+
+- `cap=0x09ef`: LDPC, 40 MHz, SM power save disabled, short GI 20 and 40,
+  TX STBC, one RX STBC stream, 7,935-byte A-MSDU, no greenfield.
+- `protect=2` and `op2=0x0006`: HT operating mode 2 (a 20 MHz
+  protection mode) with non-greenfield stations present.
+- `op1=0x07`: the access point runs a 40 MHz BSS with its secondary
+  channel below. We declare HT20 (`ucRfSco` left 0), consistent with
+  40 MHz retired as a lever.
+
+**Against §34's table: met.**
+
+| Reading | Boot X |
+|---|---|
+| association, lifetimes | as before |
+| ledger | `expired=0 pid_faults=0 left_pages=0 dropped_full=0`; `tx_failed=3`, all sampled status 3 at `0x0087` (air losses, the warning) |
+| TC mapping | every credit returned: 48,727 retired, `tx_done` + `tx_failed` = `tx_queued` (49,497 + 3 = 49,500), backpressure never left stopped (`stopped=0`), TC4 reconciliation as in every boot |
+| refusals | `rx_refused=0`, `tx_tid_refused=0` |
+| rate samples | `0/0x0087=770, 3/0x0087=3`: the record did not override the descriptor's fixed MCS |
+| TX / RX | 21.27 (chunks 23.4, 23.9, 23.8, 20.0, 21.2) / 18.94 (13.8, then 21.2, 20.2, 21.6, 21.8) |
+
+Throughput sits within the series' run-to-run spread around boot W's
+22.58 / 19.97. Transmit's first three chunks match boot W, and its last
+two came with 16 TCP retransmissions and `ssthresh` down to 34: air,
+the fixed-rate trade, three sampled losses. Receive's one low chunk had
+the laptop's own send rate falling with it (14.8), as in earlier boots;
+the other four match boot W. Nothing the declaration could move moved.
+
+**Next: the block-ack boot (to be predeclared).** It inherits this
+baseline. Block-ack is enabled in the station record
+(`ucTxAmpdu`/`ucRxAmpdu`, the A-MPDU parameters), with several frames
+submitted per aggregate window, read as service time per frame:
+
+| `wait_avg ÷ depth` | Meaning |
+|---|---|
+| falls below about 0.2 ms | the firmware is amortising its per-frame work; transmit can pass 30 |
+| stays near 0.43–0.46 ms | its cost is per MPDU; about 23 Mbit/s is the real ceiling |
+
+Boot X's figure is 0.46 ms (5.49 ms ÷ 12).

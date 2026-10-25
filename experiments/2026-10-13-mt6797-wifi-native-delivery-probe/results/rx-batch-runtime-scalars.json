@@ -3215,6 +3215,87 @@
     "tx_failed": 0
    },
    "reading": "HIF section 33: the firmware sends HT MCS7 on the legacy station record with no loss; transmit +2.6 % only, because the credit-retire cycle (about 433 us a frame) binds, not the air (189 us); both directions are bound by the polled host cycle, so the interrupt is the next lever"
+  },
+  "boot-x": {
+   "run": "PIO-throughput-bootx-1",
+   "session": "2026-10-25 23:13 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot W tree + 0295; WMM_QOS_RECORDS on, HT_RECORDS on)",
+   "kernel_build_commit": "a34cff21afca2d5c32b2460d1fab6f1f72a012ed",
+   "boot2_sha256": "9b74c622df2cb5e0510ac9d4382ac1a726e24f52db9e8971cf794d3a35a32435",
+   "predecessor_boot2_sha256": "0b0e2e0123c92baf953459a183b24ca82bbfece0ac8d87e72e4115eb87cbbc16",
+   "mainline_boot_id": "393a0c99-a538-439d-9bc7-d30a538aab92",
+   "previous_gemian_boot_id": "dd7fd353-f6ca-4619-995a-208f603c49cc",
+   "returned_gemian_boot_id": "0c2f26a4-56c0-41f1-befe-3dcc2566b399",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty, warning tx_air_losses=3",
+   "sealed_log_bytes": 187581,
+   "series_row": true,
+   "records": {
+    "records_qos": 1,
+    "declared": 1,
+    "sta_phy": "0x18",
+    "mcs": "0xff",
+    "mcs32": 0,
+    "cap": "0x09ef",
+    "ext": "0x0000",
+    "bss_phy": "0x18",
+    "protect": 2,
+    "op1": "0x07",
+    "op2": "0x0006",
+    "op3": "0x0000",
+    "ampdu": 0,
+    "ba": "disabled"
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 21.27,
+    "tx_chunk_mbit_s": [
+     23.36,
+     23.89,
+     23.76,
+     20.04,
+     21.24
+    ],
+    "rx_aggregate_mbit_s": 18.94,
+    "rx_device_chunk_mbit_s": [
+     13.75,
+     21.16,
+     20.17,
+     21.62,
+     21.75
+    ],
+    "credit_retire_wait_avg_us": 5490,
+    "inflight_max": 12,
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 16
+    }
+   },
+   "tc_mapping": {
+    "tx_queued": 49500,
+    "tx_done": 49497,
+    "tx_failed": 3,
+    "retired": 48727,
+    "backpressure_stopped": 0
+   },
+   "qos": {
+    "tx_qos": 49500,
+    "tx_tid_refused": 0,
+    "rx_qos": 44521,
+    "rx_refused": 0,
+    "rx_llc_mis": 6
+   },
+   "tx_sampled_status": {
+    "0": 770,
+    "3": 3
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 3
+   },
+   "reading": "HIF section 34: the records' QoS and HT declaration is accepted and changes nothing observed; every credit returns on TC1; the block-ack boot inherits this baseline"
   }
  }
 }

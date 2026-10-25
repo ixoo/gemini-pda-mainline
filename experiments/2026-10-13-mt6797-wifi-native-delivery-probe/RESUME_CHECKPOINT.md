@@ -1,4 +1,16 @@
-# Current: boot W sends HT MCS7 with no loss and the per-frame service time binds; boot X (the records' QoS and HT declaration, a no-change compatibility step) staged on boot2
+# Current: boot X's records' QoS and HT declaration is compatible (nothing moved, every credit on TC1); the block-ack boot is next, to be predeclared
+
+[Boot X](HIF_TRANSPORT_ANALYSIS.md#boot-x-result-2026-10-25-2313-utc-the-records-qos-and-ht-declaration-is-compatible-nothing-the-declaration-could-move-moved):
+`records_qos=1`, `join HT records: declared=1 sta_phy=0x18 mcs=0xff
+cap=0x09ef bss_phy=0x18 protect=2 op1=0x07 op2=0x0006`; the ledger
+whole with three air losses, every credit returned, no refusal, rate
+still 0x0087; TX 21.27, RX 18.94, within the spread. The access point
+runs a 40 MHz BSS (secondary below); we declare HT20. Next: block-ack in
+the station record with several frames per aggregate window, read as
+wait_avg / depth (0.46 ms here). Nothing is staged; the device is on
+Gemian (`0c2f26a4…`).
+
+# Historical: boot W sends HT MCS7 with no loss and the per-frame service time binds; boot X (the records' QoS and HT declaration, a no-change compatibility step) staged on boot2
 
 [Boot W](HIF_TRANSPORT_ANALYSIS.md#boot-w-result-2026-10-25-2244-utc-the-firmware-sends-ht-mcs7-on-a-legacy-station-record-with-no-loss-but-transmit-hardly-moves-the-per-frame-cycle-binds-not-the-air):
 clean verdict; every sampled frame at 0x0087, status 0; TX 22.58 (chunks
