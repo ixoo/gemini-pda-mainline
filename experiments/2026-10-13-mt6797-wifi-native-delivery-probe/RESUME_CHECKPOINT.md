@@ -1,4 +1,4 @@
-# Current: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) predeclared, awaiting the owner's review before staging
+# Current: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) staged on boot2
 
 [Boot X](HIF_TRANSPORT_ANALYSIS.md#boot-x-result-2026-10-25-2313-utc-the-records-qos-and-ht-declaration-is-compatible-nothing-the-declaration-could-move-moved):
 `records_qos=1`, `join HT records: declared=1 sta_phy=0x18 mcs=0xff
@@ -14,8 +14,12 @@ block-ack disappoints. [§35](HIF_TRANSPORT_ANALYSIS.md#35-boot-y-predeclared-20
 0296 `TX_AMPDU=y` (ucTxAmpdu enabled, ucTxBaSize 64, the peer's
 ucAmpduParam; receive A-MPDU still disabled). The vendor's submission
 batching (one transfer per queue, `CFG_SDIO_TX_AGG`) is read and is the
-next lever if the service time stays near 0.46 ms. Nothing is staged;
-the device is on Gemian (`0c2f26a4…`).
+next lever if the service time stays near 0.46 ms. Owner, 2026-10-25:
+approved as predeclared. The composer's and validator's allowances admit
+exactly TX_AMPDU. Boot Y is staged on boot2 at 70df93c9 (image
+2d09ef9d…, predecessor 9b74c622…), written and read back from Gemian
+(boot `0c2f26a4…`), device command 4,074 of 4,096 bytes, preflight
+passed, the device shut down cleanly; the owner selects boot2.
 
 # Historical: boot W sends HT MCS7 with no loss and the per-frame service time binds; boot X (the records' QoS and HT declaration, a no-change compatibility step) staged on boot2
 
