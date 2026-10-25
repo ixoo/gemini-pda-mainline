@@ -55,7 +55,6 @@ with tempfile.TemporaryDirectory() as tmp:
     script = mod['remote_script'](env['GEMINI_WIFI_SSH_BOOT'], host)
     os.environ.clear(); os.environ.update(saved)
 anchors = {
-    'probe block (ping)': ("printf 'TP3_PING", 1),
     'probe block (UDP loop)': ("printf 'TP3_UDP", 1),
     'probe trigger to the laptop': ('nc -w2 %s 48003' % host, 1),
     'receive listener (device reads from the laptop)': ('nc %s 48002 | $BB wc -c' % host, 1),
@@ -67,8 +66,18 @@ for name, (needle, count) in anchors.items():
     n = script.count(needle)
     line(n == count, 'rendered device script: %s present (anchor count %d)' % (name, n))
 line(not re.search(r'\bHOST\b|\bBOOT\b', script), 'rendered device script: no unbound placeholder')
-command = len((env.get('TP_BASE_COMMAND', 'x' * 405) + '; exec /bin/busybox timeout 135 /bin/busybox sh -c ' + shlex.quote(script) + ' TP1_OWNER_' + env['GEMINI_WIFI_SSH_BOOT']).encode())
-line(command <= 4096, 'rendered device command within the 4096-byte bound (%d)' % command)
+# the base command exactly as the run forms it: the cohort's M.COMMAND with its ready placeholder formatted (boot 3 was voided by a stand-in that was 28 bytes short)
+try:
+    saved = dict(os.environ); os.environ['TP_SOURCE_ROOT'] = env['TP_SOURCE_ROOT']
+    origin = runpy.run_path(str(Path(env['TP_SOURCE_ROOT']) / 'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/laptop-wifi-ssh-connected-p2e.py'))
+    M = origin['run'].__globals__['M']
+    base = M.COMMAND.format(ready=shlex.quote(M.READY_TEMPLATE.format(1)))
+    os.environ.clear(); os.environ.update(saved)
+except Exception as error:
+    base = None; line(False, 'base command could not be formed from the cohort: %r' % (error,))
+if base is not None:
+    command = len((base + '; exec /bin/busybox timeout 135 /bin/busybox sh -c ' + shlex.quote(script) + ' TP1_OWNER_' + env['GEMINI_WIFI_SSH_BOOT']).encode())
+    line(command <= 4096, 'rendered device command within the 4096-byte bound (%d, base %d)' % (command, len(base.encode())))
 try:
     mod['validate_idle_safety'](script); mod['validate_receive_safety'](script); ok = True
 except Exception as error:
@@ -91,6 +100,7 @@ with tempfile.TemporaryDirectory() as tmp:
     trig.thread.join(timeout=5); trig.close()
     sends = trig.result.get('sends', [])
     line(bool(sends) and abs(sends[0]['offered_mbit_s'] - 10) < 1.5, 'offline: UDP send leg paces 10 Mbit/s on loopback (%s)' % (sends[0].get('offered_mbit_s') if sends else None))
+    line(script.index('TP3_UDP') > script.index('for dir in TX RX'), 'rendered device script: the probe block follows the chunk loop (off the critical path)')
     line(trig.result.get('laptop_ping_at_rest', {}).get('rtt_ms') is not None, "offline: the laptop's ping to its own address records a round trip")
     line(bool(trig.result.get('trigger_rtt_ms')), 'offline: the trigger connection records a TCP round trip (%s)' % trig.result.get('trigger_rtt_ms'))
     # UDP receive direction: a datagram to a bound loopback socket arrives

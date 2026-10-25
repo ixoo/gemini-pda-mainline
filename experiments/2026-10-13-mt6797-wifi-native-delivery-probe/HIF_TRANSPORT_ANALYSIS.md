@@ -971,3 +971,77 @@ default; WHISR never copied by a consumer; station state 2 never sent
 through our refused encoder; and the MCU transmit-status report never
 requested by the vendor for a plain data frame. Four instances; the third
 question stays in every predeclaration.
+
+### Probe boot 3 (2026-10-25): voided before the measurement; recovered through the reviewed path
+
+Same image (`cacce7a1…`, installer `skipped-already-matching`), mainline
+boot `d6563d2d…`. The join completed and the data window opened; the
+measurement never started. The receipt names the helper's exception:
+`measurement exceeds retained owner-observation bound`, the helper's own
+check that the owned device command stays within 4096 bytes. The preflight
+had passed that check at 4073 bytes with a 405-byte stand-in for the base
+command; the run forms the base from the cohort's command with its ready
+placeholder filled (433 bytes), so the real command was 4101 bytes and the
+helper refused before any bus traffic. The leaf then waited for a
+measurement that never came: the data phase ended by `connection-loss`
+after 368 s when the host chain closed its stream, and the session host
+refused export, seal and recovery together ("P2 remote owner not
+confirmed quiescent"), leaving the device in mainline.
+
+Recovery, through the reviewed path and separately from that refusal
+(`preserve-and-return.py`, the station-2 precedent): live identity and the
+RAM guard verified, the post-session quiescence proof passed (no owner
+remained; nothing was killed), the full log sealed
+(`complete-log-through-seal`), the native reboot requested (the first
+request ended on the outer timeout with the SSH disconnect unconfirmed, the
+second confirmed it), changed-ID Gemian `37bc58e9…` confirmed 15 s later.
+The device never needed the owner's hands.
+
+**Recovery unbundled from export.** The session host's refusal couples two
+different preconditions: export and seal need quiescence, recovery needs
+verified identity and the reviewed path. The cohort's refusal is sealed
+and stays as it is; the unbundling lives in the watcher that starts the
+run: the run has a wall clock of 300 s, and when it ends with the session
+refused, failed or timed out while the device is still reachable on the USB
+link, the watcher runs the reviewed preservation and return at once and
+records the quiescence proof's outcome either way. A helper exception
+therefore ends in a sealed log and a Gemian boot within minutes, not in a
+stranded device. The sealed chain's own stream read is not bounded by this
+(its sources are hash-pinned); the bound is the run's wall clock and the
+measurement runner's 90 s timeout.
+
+**The six fixes, in the owner's order.** The probe block runs after the
+chunk loop, inside one subshell that cannot fail the run, every command in
+it bounded. The trigger is `$BB timeout 5 $BB nc -w2 HOST 48003 </dev/null
+2>/dev/null >/dev/null || true` (the redirections in that order because the
+helper's receive validator reads the last sink of an `nc` line and admits
+only `/dev/null`). A rate with no matching send is recorded `offered:
+false`; the trigger records the connecting address and refuses nothing.
+The measurement runner call carries a 90 s timeout. The sender paces by
+sleeping; the in-chunk ping runs at 50 ms intervals (the laptop admits it
+unprivileged). The counter window is 2.5 s. The device-side ping is gone
+(the laptop's pings at rest and in-chunk replace it, and the block had to
+lose 30 bytes to fit the real base): the block is 290 bytes quoted and the
+rendered command 4029 bytes against the 4096 bound.
+
+**The device block has an offline test.**
+[`tests/probe-device-block-test.py`](tests/probe-device-block-test.py)
+runs the block in a POSIX shell against a local trigger listener that sends
+one second of datagrams to a closed port per trigger, on Linux with a
+busybox binary; run in the development VM with the device's own busybox
+(copied from the installed initramfs, 1.36.1), it emitted the three
+`TP3_UDP` lines with counts equal to the listener's sends (363, 362, 366)
+and exited in 7.6 s. The preflight now forms the base command exactly as
+the run does and checks that the block follows the chunk loop. The
+`TCP_CONNECTION_INFO` offsets stand (f[10] `snd_wnd`, f[11]
+`snd_sbbytes`, f[13] `rttcur`, f[14] `srtt`, against `netinet/tcp.h`); the
+field is relabelled the effective send window.
+
+**Boot 4 predeclaration, the delta.** Readings as for boot 3 (window and
+in-chunk RTT as interval samples, laptop pings at rest and in-chunk, trigger
+round trips, UDP at three offered rates), with the device block after the
+chunks. What a silent or refused run now produces: a bounded failure, the
+run ending at its 300 s wall clock at the latest (the measurement runner at
+90 s), the reviewed preservation and return following at once, the sealed
+log and the Gemian boot id in the record; a void boot can no longer look
+like boot 3.

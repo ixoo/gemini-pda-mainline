@@ -244,6 +244,35 @@
       },
       "receive_probe": "disabled: the derived staging script renamed TP_RECEIVE_PROBE (plan receive_probe false)",
       "fix": "staging asserts the plan flag and the bound device script before the install"
+    },
+    "probe-3": {
+      "run": "PIO-throughput-probe3-1",
+      "same_image_as": "probe-1",
+      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+      "mainline_boot_id": "d6563d2d-041b-4f5b-bcbb-bdcb420a197e",
+      "previous_gemian_boot_id": "1172db3c-93eb-4e28-a487-53cd44b1bdd2",
+      "returned_gemian_boot_id": "37bc58e9-7bc7-4550-b4f6-fabbcb34ed11",
+      "outcome": "void: helper exception 'measurement exceeds retained owner-observation bound' (rendered command 4101 bytes; base 433, preflight stand-in 405); data phase ended by connection-loss at 368 s",
+      "recovery": {
+        "path": "preserve-and-return.py (reviewed)",
+        "post_session_quiescence": "pass (no owner remained, nothing killed)",
+        "log": "complete-log-through-seal",
+        "native_reboot_attempts": 2,
+        "classification": "changed-ID-Gemian",
+        "elapsed_seconds": 15.369
+      },
+      "fixes": [
+        "probe block after the chunk loop in a bounded subshell",
+        "trigger bounded by timeout 5",
+        "offered:false per rate without a send; peer recorded not refused",
+        "measurement runner timeout 90 s; watcher wall clock 300 s with automatic reviewed recovery",
+        "sleep-paced sender; in-chunk ping -i 0.05",
+        "counter window 2.5 s",
+        "device-side ping dropped (laptop pings replace it); block 290 bytes quoted, command 4029",
+        "preflight forms the exact base",
+        "device block offline test (VM, device busybox): 3 lines, counts 363/362/366, 7.6 s",
+        "snd_wnd relabel"
+      ]
     }
   }
 }

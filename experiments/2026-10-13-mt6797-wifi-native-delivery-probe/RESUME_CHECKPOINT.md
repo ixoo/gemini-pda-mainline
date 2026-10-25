@@ -1,4 +1,15 @@
-# Current: probe boot 3 staged behind the preflight gate; the owner's queue is B (credits-only completion), C (rate sweep), D (state 2), AP-loss gate independent
+# Current: probe boot 3 void (command bound; real base 433 bytes), device recovered through the reviewed path; boot 4 staged with the probe after the chunks, the exact-base preflight, the device-block test and the recovering watcher
+
+[§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-3-2026-10-25-voided-before-the-measurement-recovered-through-the-reviewed-path):
+the helper refused its own command bound (4101 bytes); the leaf waited; the
+session host refused export and recovery together; the reviewed
+preservation and return recovered the device (nothing killed, changed-ID
+Gemian 37bc58e9…). Recovery is unbundled at the watcher (300 s wall clock,
+automatic reviewed return). The six fixes and the device-block offline
+test are in; the UDP, ping and interval readings are still owed to boot 4.
+The queue after it stands: B, C, D, the AP-loss gate independent.
+
+# Historical: probe boot 3 staged behind the preflight gate; the owner's queue is B (credits-only completion), C (rate sweep), D (state 2), AP-loss gate independent
 
 [§11](HIF_TRANSPORT_ANALYSIS.md#before-probe-boot-3-the-two-faults-named-the-gate-on-the-rendered-run-the-queue):
 the two faults are named (the swept flag; the dead counter trio on a path

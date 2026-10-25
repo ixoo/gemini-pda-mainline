@@ -54,26 +54,26 @@ def check_helper():
             assert ('TP3_UDP' in script) == (flag == '1')
             assert not re.search(r'\bHOST\b|\bBOOT\b', script), 'placeholder left unbound in the device script'
             if flag == '1':
-                assert script.count('192.0.2.1 48003') == 1 and 'ping -c3 192.0.2.1' in script, 'probe lines not bound to the host'
+                assert script.count('192.0.2.1 48003') == 1 and script.index('TP3_UDP') > script.index('for dir in TX RX'), 'probe block missing, unbound, or before the chunk loop'
             if flag == '0':
                 assert script == mod0_script, 'flag off: device script differs from the reviewed one'
-            # the base command measured at 405 bytes (M.COMMAND); 420 leaves a margin
-            command = 'x' * 420 + '; exec /bin/busybox timeout 135 /bin/busybox sh -c ' + shlex.quote(script) + ' TP1_OWNER_00000000-0000-4000-8000-000000000000'
+            # the run-time base command: M.COMMAND with its ready placeholder formatted (433 bytes); 440 leaves a margin
+            command = 'x' * 440 + '; exec /bin/busybox timeout 135 /bin/busybox sh -c ' + shlex.quote(script) + ' TP1_OWNER_00000000-0000-4000-8000-000000000000'
             assert len(command.encode()) <= 4096, 'device command exceeds the 4096-byte bound: %d' % len(command.encode())
             with tempfile.NamedTemporaryFile('w', suffix='.sh', delete=False) as f:
                 f.write(script)
             subprocess.run(['bash', '-n', f.name], check=True)
         # the record parses a synthetic device output
-        output = (b'TP3_PING round-trip min/avg/max = 3.912/4.401/5.120 ms\r\n'
-                  b'TP3_UDP 10 880\r\n'
-                  b'TP3_UDP 20 1700\r\n')
+        output = (b'TP3_UDP 10 880\r\n'
+                  b'TP3_UDP 20 1700\r\n'
+                  b'TP3_UDP 30 0\r\n')
         class P:
             DATAGRAM = 1400
             in_chunk = {}
             result = {'sends': [{'rate_mbit_s': 10, 'datagrams': 893, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 10.0},
                                 {'rate_mbit_s': 20, 'datagrams': 1786, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 20.0}], 'completed': True}
         rec = mod['receive_probe'](output, P(), [])
-        assert rec['ping']['rtt_ms']['avg'] == 4.401 and len(rec['udp']) == 2
+        assert len(rec['udp']) == 3 and rec['udp'][2]['offered'] is False and rec['udp'][0]['offered'] is True
         assert rec['udp'][0]['device_counted'] == 880 and abs(rec['udp'][0]['loss_fraction'] - (1 - 880 / 893)) < 1e-9
         assert abs(rec['udp'][0]['delivered_mbit_s'] - 880 * 1400 * 8 / 1e6) < 1e-6 and rec['graded'] is False
         # the trigger paces its offered rates on loopback (a closed UDP port)

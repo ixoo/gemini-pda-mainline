@@ -8,9 +8,9 @@ reviewed one plus exactly these blocks, and that the device script still
 passes the helper's own validators. Nothing here is graded: the receipt
 gains a `receive_probe` record and `all_pass` does not read it.
 
-Three readings in one boot, before the chunk loop (the device at rest):
-- one ping from the device to the laptop (three echoes, the summary line),
-  and the TCP round-trip time the laptop's kernel measures on each trigger
+Three readings in one boot, the device block after the chunk loop inside one
+subshell that cannot fail the run (every command in it bounded):
+- the TCP round-trip time the laptop's kernel measures on each trigger
   connection from the device at rest (one byte out, the acknowledgement
   back), as a second reading of the same quantity, plus the laptop's own
   ping to the device at rest (before the command) and in-chunk (during the
@@ -38,20 +38,21 @@ import re
 import sys
 from pathlib import Path
 
-DEVICE_BLOCK = r'''printf 'TP3_PING %s\n' "$($BB timeout 6 $BB ping -c3 HOST 2>&1 | $BB tail -1)"
-u() { $BB awk '/^Udp:/{l=$3}END{print l}' /proc/net/snmp; }
+DEVICE_BLOCK = r'''( u() { $BB awk '/^Udp:/{l=$3}END{print l}' /proc/net/snmp; }
 for r in 10 20 30; do
     a=$(u)
-    $BB nc -w2 HOST 48003 </dev/null 2>/dev/null >/dev/null
-    $BB sleep 1.6; printf 'TP3_UDP %s %s\n' "$r" "$(($(u)-a))"
-done
+    $BB timeout 5 $BB nc -w2 HOST 48003 </dev/null 2>/dev/null >/dev/null || true
+    $BB sleep 2.5; printf 'TP3_UDP %s %s\n' "$r" "$(($(u)-a))"
+done ) 2>/dev/null || true
 '''
 
 LAPTOP_BLOCK = '''
 RP_DEVICE_BLOCK = r\'\'\'__DEVICE_BLOCK__\'\'\'
 
 def tcp_info(sock):
-    """macOS TCP_CONNECTION_INFO: the peer's advertised window and the RTT."""
+    """macOS TCP_CONNECTION_INFO (netinet/tcp.h): f[10] snd_wnd, the effective
+    send window (the peer's advertised window as the sender sees it), f[11]
+    snd_sbbytes, f[13] rttcur, f[14] srtt; offsets verified on loopback."""
     import struct
     try:
         raw = sock.getsockopt(socket.IPPROTO_TCP, 0x106, 256)
@@ -59,7 +60,7 @@ def tcp_info(sock):
     except (OSError, struct.error):
         return None
     return {'snd_wscale': f[1], 'rcv_wscale': f[2], 'maxseg': f[7], 'snd_cwnd': f[9],
-            'peer_window': f[10], 'snd_sbbytes': f[11], 'rttcur_ms': f[13], 'srtt_ms': f[14]}
+            'snd_wnd': f[10], 'snd_sbbytes': f[11], 'rttcur_ms': f[13], 'srtt_ms': f[14]}
 
 
 def tcp_info_summary(samples):
@@ -70,15 +71,15 @@ def tcp_info_summary(samples):
         v = sorted(s[key] for s in samples); return v[len(v) // 2]
     return {'samples': len(samples), 'maxseg': samples[-1]['maxseg'],
             'rttcur_ms_samples': [s['rttcur_ms'] for s in samples],
-            'peer_window_samples': [s['peer_window'] for s in samples],
-            'peer_window_min': min(s['peer_window'] for s in samples),
-            'peer_window_median': med('peer_window'),
-            'peer_window_max': max(s['peer_window'] for s in samples),
+            'snd_wnd_samples': [s['snd_wnd'] for s in samples],
+            'snd_wnd_min': min(s['snd_wnd'] for s in samples),
+            'snd_wnd_median': med('snd_wnd'),
+            'snd_wnd_max': max(s['snd_wnd'] for s in samples),
             'snd_cwnd_median': med('snd_cwnd'), 'rttcur_ms_median': med('rttcur_ms'),
             'rttcur_ms_max': max(s['rttcur_ms'] for s in samples), 'srtt_ms_last': samples[-1]['srtt_ms']}
 
 
-def laptop_ping(peer, count=3, interval=0.3):
+def laptop_ping(peer, count=3, interval=0.05):
     """The laptop's own ping to the device: at rest before the command, and
     in-chunk during the third receive chunk. The summary line and the
     parsed round-trip min/avg/max."""
@@ -121,8 +122,9 @@ class ProbeTrigger:
                 due = start + int(n * interval * 1e9)
                 if due >= end:
                     break
-                while time.monotonic_ns() < due:
-                    pass
+                wait = (due - time.monotonic_ns()) / 1e9
+                if wait > 0:
+                    time.sleep(wait)
                 out.sendto(n.to_bytes(4, 'big') + bytes(self.DATAGRAM - 4), self.target)
                 n += 1
             elapsed = time.monotonic_ns() - start
@@ -146,8 +148,8 @@ class ProbeTrigger:
                     if self.cancel.is_set(): return
                     raise TimeoutError('probe trigger deadline')
                 with connection:
-                    if connection.getpeername()[0] != self.peer:
-                        raise ValueError('unexpected probe peer')
+                    # only the device reaches this port; record the address, refuse nothing
+                    self.result.setdefault('trigger_peers', []).append(connection.getpeername()[0])
                     try:
                         connection.send(b'x'); time.sleep(0.08)
                         info = tcp_info(connection)
@@ -180,8 +182,13 @@ def receive_probe(output, probe, endpoints):
     for m in re.finditer(rb'^TP3_UDP ([0-9]+) (-?[0-9]+)\\r?$', output, re.M):
         udp.append({'rate_mbit_s': int(m[1]), 'device_counted': int(m[2])})
     sends = (probe.result.get('sends', []) if probe else [])
-    for entry, sent in zip(udp, sends):
-        if sent.get('rate_mbit_s') == entry['rate_mbit_s']:
+    for entry in udp:
+        sent = next((x for x in sends if x.get('rate_mbit_s') == entry['rate_mbit_s']), None)
+        if sent is None:
+            entry['offered'] = False   # the trigger never produced a send for this rate: say so
+            continue
+        entry['offered'] = True
+        if True:
             entry.update(laptop_sent=sent['datagrams'], laptop_offered_mbit_s=sent.get('offered_mbit_s'),
                          delivered_mbit_s=entry['device_counted'] * probe.DATAGRAM * 8000 / sent['elapsed_ns'] if sent.get('elapsed_ns') else None,
                          loss_fraction=1 - entry['device_counted'] / sent['datagrams'] if sent['datagrams'] else None)
@@ -200,8 +207,8 @@ def receive_probe(output, probe, endpoints):
 
 HELPER_EDITS = [
     # 1. the device block before the chunk loop
-    ("trap 'printf \"TP1_END_NS=\"; clock' EXIT\nfor dir in TX RX; do\n",
-     "trap 'printf \"TP1_END_NS=\"; clock' EXIT\n__RP_BLOCK__for dir in TX RX; do\n"),
+    ("    [ \"$(cat /proc/sys/kernel/random/boot_id)\" = BOOT ] || exit 35\ndone\n",
+     "    [ \"$(cat /proc/sys/kernel/random/boot_id)\" = BOOT ] || exit 35\ndone\n__RP_BLOCK__"),
     # 2. the flag, substituted when the script is built
     # the block goes in before BOOT and HOST are substituted, so its own HOST
     # tokens are bound (the first probe boot left them literal: edit order)
@@ -232,7 +239,8 @@ HELPER_EDITS = [
      "        endpoints.append(Endpoint(host,48002,peer,True,chunks=CHUNKS))\n"
      "        if os.environ.get('TP_RECEIVE_PROBE') == '1':\n"
      "            nonlocal_probe[0] = ProbeTrigger(host,48003,peer,48004,(10,20,30))\n"
-     "            endpoints[-1].probe = nonlocal_probe[0]\n"),
+     "            endpoints[-1].probe = nonlocal_probe[0]\n"
+     "        kwargs = {**kwargs, 'timeout': min(kwargs.get('timeout', 90), 90)}  # a silent measurement fails here, not at the poll budget\n"),
     ("    original_command = M.COMMAND\n",
      "    original_command = M.COMMAND\n    nonlocal_probe = [None]\n"),
     ("        for endpoint in endpoints:\n            endpoint.close()\n",
