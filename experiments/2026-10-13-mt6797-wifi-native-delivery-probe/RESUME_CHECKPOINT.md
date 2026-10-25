@@ -1,4 +1,15 @@
-# Current: boot B predeclared and building (0269–0272: ceiling lift, delivered count, RX rate record, credits-only completion)
+# Current: boot B regressed (0272 retired, 0269 reverted); boot C, the fixed-rate sweep at 54 Mbit/s, is next
+
+[§12 result](HIF_TRANSPORT_ANALYSIS.md#boot-b-result-2026-10-25-1208-utc-a-regression-0272-retired-0269-reverted)
+and [§13](HIF_TRANSPORT_ANALYSIS.md#13-boot-c-predeclared-2026-10-25-the-fixed-rate-sweep-6--54-mbits):
+retiring at submission removed the only bound on the firmware's air queue;
+the credit model is corrected for any second attempt (retire on credit
+arrival); the access point sends at 54 Mbit/s to this station. Boot C:
+0273 rate code 0x4c on the admitted tree with 0270, 0271 and 0274 (the
+ceiling stops its count, never the window); fallback 0x49. Then D (state
+2); the AP-loss gate independent.
+
+# Historical: boot B predeclared and building (0269–0272: ceiling lift, delivered count, RX rate record, credits-only completion)
 
 [Transport record §12](HIF_TRANSPORT_ANALYSIS.md#12-boot-b-predeclared-2026-10-25-retire-ordinary-data-on-page-credits):
 ordinary data goes out without a PID or an MCU status report and is

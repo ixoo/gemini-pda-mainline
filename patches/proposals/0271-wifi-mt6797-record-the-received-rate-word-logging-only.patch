@@ -1,7 +1,7 @@
-From 17ffd1a994953d95b2850f67a88751e7dd1e33f8 Mon Sep 17 00:00:00 2001
+From 62bf004f2cce83b543c770a8ef3deb73ac7a3e2d Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 25 Oct 2026 07:59:35 -0400
-Subject: [PATCH 3/4] wifi: mt6797: record the received rate word (logging
+Date: Sun, 25 Oct 2026 08:15:31 -0400
+Subject: [PATCH 2/4] wifi: mt6797: record the received rate word (logging
  only)
 
 Mirror the transmit rate record for received frames: when a queued data

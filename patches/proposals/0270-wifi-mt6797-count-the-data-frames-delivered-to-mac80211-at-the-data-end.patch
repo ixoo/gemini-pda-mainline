@@ -1,7 +1,7 @@
-From 175e44789273bacf9c2e2bf911a986334fb98d71 Mon Sep 17 00:00:00 2001
+From 9d3360e770077f1242af16ecc81202a9934cc9f8 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 25 Oct 2026 07:59:35 -0400
-Subject: [PATCH 2/4] wifi: mt6797: count the data frames delivered to mac80211
+Date: Sun, 25 Oct 2026 08:15:31 -0400
+Subject: [PATCH 1/4] wifi: mt6797: count the data frames delivered to mac80211
  at the data end
 
 The data-end record carried rx_unicast, rx_group and rx_dropped from the

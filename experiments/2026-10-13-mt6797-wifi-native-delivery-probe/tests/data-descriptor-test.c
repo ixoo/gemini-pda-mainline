@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Host fixture for 0271 and 0272's header changes: the data descriptor with
- * and without the MCU status report (PID and report bytes together, the PID
- * rule inverted without a report), and the receive-vector word helper (group
- * 3 present after groups 4, 1 and 2; absent; truncated).
+/* Host fixture for 0271 and 0273's header changes: the data descriptor's
+ * fixed rate code (the default, and a profile's value through the option)
+ * beside the PID and report bytes it always carries, and the receive-vector
+ * word helper (group 3 present after groups 4, 1 and 2; absent; truncated).
  */
 #include <assert.h>
 #include <stdio.h>
@@ -22,16 +22,17 @@ int main(void)
 
 	/* a plausible Ethernet frame: unicast destination, a non-EAPOL type */
 	frame[0] = 0x02; frame[12] = 0x08; frame[13] = 0x00;
-	/* reported: PID and "TX status to MCU" together */
+	/* PID and "TX status to MCU" together, the fixed-rate bit, and the rate code
+	 * the build chose (0x4b unless the option says otherwise)
+	 */
 	assert(mt6797_join_tx_data_descriptor(frame, sizeof(frame), 1, 5, 500, 3, d, &pages));
-	assert(d[20] == 5 && d[21] == 2);
-	assert(mt6797_join_tx_data_descriptor_report(frame, sizeof(frame), 1, 5, true, 500, 3, d, &pages));
-	assert(d[20] == 5 && d[21] == 2);
-	/* unreported: no PID, no report; a PID with no report is refused, PID 0 with a report is refused */
-	assert(mt6797_join_tx_data_descriptor_report(frame, sizeof(frame), 1, 0, false, 500, 3, d, &pages));
-	assert(d[20] == 0 && d[21] == 0 && d[11] == 0x80 && pages);
-	assert(!mt6797_join_tx_data_descriptor_report(frame, sizeof(frame), 1, 5, false, 500, 3, d, &pages));
-	assert(!mt6797_join_tx_data_descriptor_report(frame, sizeof(frame), 1, 0, true, 500, 3, d, &pages));
+	assert(d[20] == 5 && d[21] == 2 && d[11] == 0x80 && pages);
+	assert(d[26] == ((MT6797_DATA_FIXED_RATE_CODE << 2) & 255) && d[27] == (MT6797_DATA_FIXED_RATE_CODE << 2) >> 8);
+#ifdef CONFIG_MT6797_DATA_FIXED_RATE_CODE
+	assert(MT6797_DATA_FIXED_RATE_CODE == CONFIG_MT6797_DATA_FIXED_RATE_CODE);
+#else
+	assert(MT6797_DATA_FIXED_RATE_CODE == 0x4bU && d[26] == 0x2c && d[27] == 1);
+#endif
 
 	/* receive vector: groups 4, 1, 2, 3 present -> word at 16+16+16+8 */
 	memset(pkt, 0, sizeof(pkt));
@@ -46,6 +47,6 @@ int main(void)
 	assert(!mt6797_rx_vector_word(pkt, sizeof(pkt), &word));
 	put16(pkt + 2, 15U << 9);
 	assert(!mt6797_rx_vector_word(pkt, 58, &word));
-	printf("credit-completion-test: PASS (descriptor with and without the report; vector word)\n");
+	printf("data-descriptor-test: PASS (rate code 0x%02x; vector word)\n", MT6797_DATA_FIXED_RATE_CODE);
 	return 0;
 }

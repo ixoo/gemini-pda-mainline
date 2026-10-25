@@ -1131,7 +1131,7 @@ its way it is the trusted verdict at the device.
 
 ## 12. Boot B (predeclared, 2026-10-25): retire ordinary data on page credits
 
-**The change.** [0272](../../patches/proposals/0272-wifi-mt6797-retire-ordinary-data-frames-on-page-credits.patch),
+**The change.** 0272 (retired, in the history),
 behind `CONFIG_MT6797_DATA_CREDIT_COMPLETION`: an ordinary data descriptor
 goes out without a PID and without the MCU transmit-status report (bytes
 20 and 21 of the descriptor stay zero), and the frame is retired at
@@ -1146,7 +1146,7 @@ for frames with a completion handler (`nicTxFillDesc`) and retires plain
 data on the page release counts; this is what the driver now does.
 
 Three more things ride in the same build, none of them a data-path change:
-[0269](../../patches/proposals/0269-wifi-mt6797-let-the-connected-lifetime-queue-as-many-frames-as-it-admits.patch)
+0269 (reverted, in the history)
 lifts the diagnostic's queued-frame ceiling to the admitted ceiling
 (32,768), so the data window no longer closes under a probe beside the
 chunks; [0270](../../patches/proposals/0270-wifi-mt6797-count-the-data-frames-delivered-to-mac80211-at-the-data-end.patch)
@@ -1157,11 +1157,12 @@ mode/rate of each queued data frame and prints the distinct values at the
 data end (`RX rates: mode/rate=count …`): the rate the access point sends
 toward this station. The lifecycle and rate fragments set both options.
 Host fixture
-[`tests/credit-completion-test.c`](tests/credit-completion-test.c)
-(`tests/run-credit-completion-test.py <kernel tree>`): the descriptor with
-and without the report (PID and report bytes together; a PID with no report
-refused, PID 0 with a report refused), and the vector word after groups 4,
-1 and 2, alone, absent, truncated. Compiled with both options on and off;
+[`tests/data-descriptor-test.c`](tests/data-descriptor-test.c)
+(`tests/run-data-descriptor-test.py <kernel tree>`; it followed the
+proposals that remained after boot B): the descriptor's rate bytes at the
+default and at a profile's value, and the vector word after groups 4, 1
+and 2, alone, absent, truncated. The descriptor-report variant's checks
+went with 0272. Compiled with both options on and off;
 strict checkpatch clean on all four.
 
 **Comparison rule.** Within the session: boot B is read against the
@@ -1210,3 +1211,123 @@ before the install; the probe rides along (opt-in) and the lifted ceiling
 keeps the data window open under it; a silent or refused run ends at the
 watcher's 300 s wall clock at the latest and the reviewed preservation and
 return follow at once.
+
+### Boot B result (2026-10-25, 12:08 UTC): a regression; 0272 retired, 0269 reverted
+
+Build `d8aa0d5f`, boot2 `276a6628…` over `cacce7a1…`, mainline boot
+`b7a486c7…`, returned to Gemian `3b6d4978…` by the harness's own path
+(session exit 1 after a clean receipt: `all_pass true`, disconnect
+accepted, data phase 27.9 s ending by `disconnect`), complete sealed log
+(173,080 bytes), preflight 25/25. The comparison is the same-session
+adjacent pair, boot B against probe boot 4 (11:39), and is valid.
+
+| | probe boot 4 (same image as the series) | boot B (0272 + 0269 admitted) |
+|---|---|---|
+| TX per chunk, host received | 3.73–4.07 Mbit/s (aggregate 3.14) | 3.13–3.76 (aggregate 3.07) |
+| RX device-side per chunk | 14.46–15.83, every chunk at its byte cap | 11.34, 7.64, 1.46, 0.95, 1.19; four chunks ended by the device timeout |
+| In-chunk TCP round trip | 6→139 ms | 8→438 ms |
+| Round trip at rest (laptop ping / trigger TCP) | 8–51 ms / 7–8 ms | 67–177 ms / 33, 13, 6 ms |
+| UDP delivered, loss | 10 and 20 Mbit/s, zero loss | 10: 608/893 (32 % lost); 20: 2,001/1,786 (late datagrams of the previous burst counted); 30: 2,434/2,679 (9 %) |
+| data-end counters | — | `rx_delivered=8581 tx_queued=3000 tx_done=3000 tx_failed=0 tx_credits=22489 credit_retired=3000` |
+
+No gain on the direction the lever targeted and a collapse on the one the
+series cares about: the receive collapse appeared only with ordinary data
+retired at submission. 0272 is retired with this boot as its
+counter-evidence (out of the series and the fragments; the proposal is in
+the history). 0269 is reverted as well: a queued-frame ceiling is runtime
+behaviour, not logging, and it landed in the same boot, so this boot
+cannot say which of the two starved receive. What probe boot 4 needed is
+done differently by
+[0274](../../patches/proposals/0274-wifi-mt6797-the-diagnostic-s-queued-frame-ceiling-stops-its-count-not-the-window.patch):
+the diagnostic's ceiling stays 8,192 and stops its own count (frames beyond
+it are delivered and counted apart, `beyond=` on the ccmp-stable end line);
+it never closes the data window or refuses delivery again.
+
+**The safety reading.** `tx_failed=0`; the laptop's receive leg saw no
+non-zero byte in any transmitted chunk (the helper's zero-payload check,
+which raises on the first non-zero byte, passed on all five); `rx_delivered`
+8,581 frames handed to mac80211. Retiring a buffer at submission while the
+firmware may still own it is the change class that corrupts silently; that
+check passing is the only evidence this boot holds that it did not, and the
+regression is otherwise unattributed between the two admitted changes.
+
+**The credit model, corrected before any second attempt.** The vendor does
+not retire plain data at submission: it releases transmit resources on
+the credit events the firmware reports (`nicTxReleaseResource` from the
+block's counts, nic.c synthesising the done bit from non-zero counts),
+which is what our `tx_credits` counter measures. 0272 retired the frame
+when the bus write returned and used the credits only as flow control, so
+nothing bounded the frames the firmware held for the air: the 1-page
+acknowledgements of a receive went out as fast as credits came back
+(0.8 ms), the firmware's queue grew, the in-chunk round trip reached 438
+ms against the descriptor's 500 ms lifetime, and the receive collapsed. A
+second attempt, if the lever gets one, is a descriptor with no PID and no
+status report retired on credit arrival, never at submission, with an
+instrument that survives retirement (the probe's in-chunk round trip, or a
+timestamp taken before the retirement). The `tx_credits=22489` against
+`credit_retired=3000` is pages against frames, from the code:
+`join_data_credits` accumulates `tc1_released` pages and `credit_retired`
+counted frames; 22,489 pages over 3,000 frames is 7.5 pages a frame, as
+probe boot 4's 24,939 pages over 4,011 frames (6.2) with its different
+mix of 12-page data frames and 1-page acknowledgements. Not a divergence.
+
+**What stands from this boot.** The received-rate record read the access
+point's downlink: `RX rates: mode/rate=count
+1/9=90,1/11=297,1/13=438,1/8=706,1/12=6249,1/14=126,1/10=187,1/15=448`,
+OFDM throughout, with index 12 (54 Mbit/s) on 6,249 of 8,541 frames and 48
+Mbit/s on 706; the access point sends to this station mostly at 54. The
+probe table's fourth row (a legacy downlink rate as the cap) is closed.
+The second attempt at this lever is not spent now: under the broken
+accounting TX still did not move, so the lever's expected gain is less
+supported than when it was queued. The fixed-rate sweep goes ahead of it.
+
+
+## 13. Boot C (predeclared, 2026-10-25): the fixed-rate sweep, 6 → 54 Mbit/s
+
+**The change.** [0273](../../patches/proposals/0273-wifi-mt6797-make-the-data-descriptor-s-fixed-rate-code-a-build-option.patch)
+puts the ordinary data descriptor's fixed rate code behind
+`CONFIG_MT6797_DATA_FIXED_RATE_CODE` (default 0x4b, OFDM 6 Mbit/s, the
+series' value); the lifecycle fragment sets 0x4c, OFDM 54 Mbit/s, the
+largest remaining multiple and the rate the access point already uses
+toward us. Management and security descriptors keep 6 Mbit/s. The first
+data frame's record prints the code (`rate=0x4c`). Fallback if 54 fails:
+0x49, 24 Mbit/s. The tree is otherwise the current admitted one (probe
+boot 4's) with the two logging records (0270, 0271) and the ceiling fix
+(0274); 0272 and 0269 are out. Host fixture
+[`tests/data-descriptor-test.c`](tests/data-descriptor-test.c) checks the
+descriptor's rate bytes at the default and at 0x4c and the vector word
+helper; compiled at both values with the rate record on and off; checkpatch
+clean.
+
+**Comparison.** Same-session adjacent pair: boot C against the last boot of
+the current admitted tree in its session; if more than the session has
+passed since probe boot 4, the record says so and the comparison is
+stated as cross-session with the ±40 % floor. The probe rides (in-chunk
+round trip and the UDP legs are known good).
+
+**TX first.** `debt=0`, no guard record, the data phase ending by
+`disconnect`, `tx_failed` read before any rate claim: a fixed rate the
+access point does not receive shows as unacknowledged frames (`TX done
+status=3`, `txfail` ending the data phase) and sends the next boot to 24.
+
+| Reading | Cause | Next |
+|---|---|---|
+| TX per chunk up by a multiple, in-chunk round trip down, receive up with no receive-side change | the per-frame cost was the air time at 6 Mbit/s and the receive number tracks the acknowledgement path, confirmed with no new mechanism | the state-2 attempt (boot D) on the faster tree; then the completion lever's corrected second attempt if still wanted |
+| TX up, receive unchanged | the transmit per-frame cost fell but the receive clock is elsewhere | read the RX rates and the in-chunk round trip; the credit model's second attempt |
+| TX unchanged at 54 (frames acknowledged) | the per-frame cost is not the air time: the firmware's fixed-rate path or the MCU report costs the 4–9 ms regardless of rate | the credit model's second attempt (retire on credit arrival) is the lever |
+| frames unacknowledged, `txfail` | 54 is not received by the access point from this station at this power | the 24 Mbit/s fallback (0x49), same reading |
+
+**The three questions.** Reachability: the rate bytes 26 and 27 are written
+by `mt6797_join_tx_data_descriptor` (join-tx.h) from the option, reached by
+the unchanged submission path; nothing earlier reads or refuses them (the
+fixture checks both values). Ownership: no register; the firmware reads the
+descriptor. What the vendor writes: for plain data the vendor writes no
+fixed rate at all (its rate control runs from the station record's rate
+table, which ours leaves empty, the branch-3 finding); the fixed-rate bit
+with a code is the series' own path since the first data frame, now at a
+different code. The ledger stands at five.
+
+**Verification of 0274 on this boot.** With the probe's datagrams the
+queued count would again cross 8,192: the ccmp-stable end line must show
+the count saturated and `beyond>0` with the data phase ending by
+`disconnect`, not `native-diag`.

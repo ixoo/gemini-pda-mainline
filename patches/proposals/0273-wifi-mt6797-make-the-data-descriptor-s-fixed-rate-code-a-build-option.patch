@@ -1,0 +1,94 @@
+From bb82574bd3f1ad6f246f6e98b75cc9321c448cd7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 08:15:31 -0400
+Subject: [PATCH 3/4] wifi: mt6797: make the data descriptor's fixed rate code
+ a build option
+
+Every ordinary data descriptor has carried OFDM 6 Mbit/s (rate code 0x4b)
+with the fixed-rate bit set; the firmware's rate control is not usable
+because the station record's rate table is empty (the rate-visibility
+boot). Put the code behind CONFIG_MT6797_DATA_FIXED_RATE_CODE, default
+0x4b, so a profile can sweep it (0x49 is 24, 0x4c is 54 Mbit/s); the
+first data frame's record prints the code in use. Management and security
+descriptors keep 6 Mbit/s. A measurement variable; nothing changes at the
+default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig   | 12 ++++++++++++
+ drivers/net/wireless/mediatek/mt6797/join-tx.h | 14 +++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.c     |  5 +++--
+ 3 files changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 12aaa06f7..66f61da98 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -104,6 +104,18 @@ config MT6797_RX_RATE_RECORD
+ 	  receive ceiling is the path or the station's own capability
+ 	  advertisement. No behaviour changes.
+ 
++config MT6797_DATA_FIXED_RATE_CODE
++	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
++	default 0x4b
++	range 0x40 0x4f
++	help
++	  The rate code written into every ordinary data descriptor with the
++	  fixed-rate bit set: mode in bits 6-8 (0x40 is OFDM), legacy index in
++	  bits 0-5 (11=6, 15=9, 10=12, 14=18, 9=24, 13=36, 8=48, 12=54 Mbit/s).
++	  Management and security frames keep OFDM 6 Mbit/s. A measurement
++	  variable for the per-frame air time; the default is the rate the
++	  series has always used.
++
+ config MT6797_CCMP_TX_DEPTH
+ 	int
+ 	depends on MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-tx.h b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+index f4dcc5268..e953f32f1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-tx.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+@@ -4,6 +4,17 @@
+ 
+ #include "join-events.h"
+ 
++/* The fixed rate code of an ordinary data descriptor (mode in bits 6-8,
++ * legacy index in bits 0-5; the OFDM indices are 11=6, 15=9, 10=12, 14=18,
++ * 9=24, 13=36, 8=48, 12=54 Mbit/s). Management and security frames keep
++ * OFDM 6 Mbit/s (0x4b). A measurement variable; the default is unchanged.
++ */
++#ifdef CONFIG_MT6797_DATA_FIXED_RATE_CODE
++#define MT6797_DATA_FIXED_RATE_CODE ((unsigned int)CONFIG_MT6797_DATA_FIXED_RATE_CODE)
++#else
++#define MT6797_DATA_FIXED_RATE_CODE 0x4bU
++#endif
++
+ #define MT6797_JOIN_TX_DESC_BYTES 28U
+ 
+ /* Original encoder from the pinned public gen3 nicTxComposeDesc path.
+@@ -161,7 +172,8 @@ mt6797_join_tx_data_descriptor(const unsigned char *frame, size_t bytes,
+ 	d[11] = 0x80; /* Fixed rate enabled, zero power offset. */
+ 	d[12] = count; d[13] = count >> 8;
+ 	d[20] = pid; d[21] = 2; /* TX status to MCU. */
+-	d[26] = (0x4bU << 2) & 255; d[27] = (0x4bU << 2) >> 8;
++	d[26] = (MT6797_DATA_FIXED_RATE_CODE << 2) & 255;
++	d[27] = (MT6797_DATA_FIXED_RATE_CODE << 2) >> 8;
+ 	for (i = 0; i < MT6797_JOIN_TX_DESC_BYTES; i++)
+ 		output[i] = d[i];
+ 	*pages = (total + 127U) / 128U;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 2a68fbc9f..790821485 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3682,8 +3682,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					mac->join_data_page_debt += pages;
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+-							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu\n",
+-							 mac->join_pid, pages, eth_bytes);
++							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x\n",
++							 mac->join_pid, pages, eth_bytes,
++							 MT6797_DATA_FIXED_RATE_CODE);
+ 					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 					mac->ccmp_observation.submit_pid = mac->join_pid;
+-- 
+2.43.0
+

@@ -413,6 +413,104 @@
         "driver_data_path_fault": false
       },
       "reading": "receive path not the ceiling (UDP 20 Mbit/s, zero loss); TCP receive tracks the acknowledgement path (transmit side); interrupt not next; boot B next"
+    },
+    "boot-b": {
+      "run": "PIO-throughput-bootb-1",
+      "session": "2026-10-25 12:08 UTC (adjacent to probe-4)",
+      "kernel_build_commit": "d8aa0d5f94b4006d58e169a71858413cccd70aaf",
+      "boot2_sha256": "276a6628361ba08e022c162ff3b96bf45c497383b8cbcf76543727d489a2778f",
+      "predecessor_boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+      "mainline_boot_id": "b7a486c7-56eb-4dcb-be29-c9e6dee938b1",
+      "returned_gemian_boot_id": "3b6d4978-87d7-4597-be6f-d3d27ac92b58",
+      "sealed_log_bytes": 173080,
+      "all_pass": true,
+      "throughput": {
+        "tx_host_received_mbit_s": 3.07,
+        "tx_chunk_mbit_s": [
+          3.13,
+          3.64,
+          3.76,
+          3.55,
+          3.74
+        ],
+        "rx_host_sent_mbit_s": 3.5,
+        "rx_device_chunk_mbit_s": [
+          11.34,
+          7.64,
+          1.46,
+          0.95,
+          1.19
+        ],
+        "rx_chunk_ended_by": [
+          "byte_cap",
+          "device_timeout",
+          "device_timeout",
+          "device_timeout",
+          "device_timeout"
+        ],
+        "tx_device_cpu_idle_percent": 89.07,
+        "rx_device_cpu_idle_percent": 88.48
+      },
+      "data_end": {
+        "rx_delivered": 8581,
+        "tx_queued": 3000,
+        "tx_done": 3000,
+        "tx_failed": 0,
+        "tx_credits_pages": 22489,
+        "credit_retired": 3000
+      },
+      "probe": {
+        "udp": [
+          {
+            "rate": 10,
+            "sent": 893,
+            "counted": 608
+          },
+          {
+            "rate": 20,
+            "sent": 1786,
+            "counted": 2001
+          },
+          {
+            "rate": 30,
+            "sent": 2679,
+            "counted": 2434
+          }
+        ],
+        "laptop_ping_at_rest_ms": {
+          "min": 66.82,
+          "avg": 121.9,
+          "max": 176.98
+        },
+        "laptop_ping_in_chunk_ms": {
+          "min": 70.26,
+          "avg": 103.66,
+          "max": 150.83
+        },
+        "trigger_rtt_ms": [
+          33,
+          13,
+          6
+        ],
+        "tcp_rx_chunk_rttcur_ms_max": [
+          167,
+          207,
+          438,
+          428,
+          338
+        ]
+      },
+      "rx_rates": {
+        "1/12 (54M)": 6249,
+        "1/8 (48M)": 706,
+        "1/15 (9M)": 448,
+        "1/13 (36M)": 438,
+        "1/11 (6M)": 297,
+        "1/10 (12M)": 187,
+        "1/14 (18M)": 126,
+        "1/9 (24M)": 90
+      },
+      "reading": "regression: TX unchanged, receive collapsed; 0272 retired (counter-evidence), 0269 reverted (behaviour, co-landed); the safety check (zero payload) passed; the credit model corrected: retire on credit arrival, never at submission"
     }
   }
 }
