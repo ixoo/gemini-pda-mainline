@@ -357,3 +357,62 @@ aggregates, frames, empty reads, failures).
 | device-side receive chunks above the 10.5–13 band, or host-side above 8 Mbit/s | the per-frame reads were the cost | keep the batching; move the TX status reads into the same block |
 | unchanged (RX about 7 host-side, 11–13 device-side), `on=1`, frames counted, zero failures | the register work was not the cost either; the worker's notice latency and scheduling remain | the interrupt earns its risk next |
 | `on=0` (WHCR did not take the bits), or `failures>0`, or frames lost | the mode or the aggregate framing is not what the vendor source says for this firmware | stop batching, keep per-frame receive, read the firmware side |
+| `on=1`, block reads happening, `empty` every pass, `frames=0`: receive stalls with the mode correctly enabled | the block is not pollable on this firmware (the vendor reads it in its interrupt handler; if it is populated only on delivery, polling finds nothing) | revert to per-frame receive; the interrupt is the next variable |
+| the `join credit` lines of the management frames missing, `credits=0` at data end | the block carried no TX release counts; the vendor reading of the enhanced block is wrong for this firmware | stop batching, keep per-frame receive |
+| a credit still missing with `credits>0` | the merge of the block's counts into the TX status acquisition is wrong | fix the merge against the fixture before any further boot |
+
+The mode across a rejoin: it is switched on once per HIF and the HIF lives
+for the boot (`mac->hif` is set at probe; the firmware is started once and
+never restarted inside a boot), so the enabled flag and the hardware state
+agree across a teardown and a re-arm. A rejoin within one boot (the
+AP-loss gate) inherits a fully configured receive mode, not a half one;
+teardown does not revert it and has no reason to.
+
+### Boot 1 of 0268 (2026-10-25): the join stopped at its credit wait; the block read had consumed the TX release counts
+
+Build `9846b776`, boot2 `0037de60…` over `bf9bd805…`, mainline boot
+`647b420a…`, returned to Gemian `1163163d…`, complete sealed log
+(146,439 bytes). The mode took at the first receive (the second TX status
+snapshot already reads `WHCR=0x00011000`: sixteen lengths, enhance bit),
+and every exchange through the passive scan, the join grant, the peer
+record and the authentication frame's response came through the batched
+path. Then the authentication frame's page credit never arrived. In the
+receive-DMA boot every management frame's `TX done` is followed by `join
+credit: pages=1 remaining=0`; here `join TX done: pid=1 status=0` and `join
+RX: subtype=11 status=0` are followed, 104 ms later, by `join stopped:
+status=-110 first=0 submitted=0x800 debt=1 cleanup=0 branch=1` (branch 1 is
+the worker's deadline check; the waiter was the credit wait,
+`mt6797_mac_join_wait_credit`, mac.c). No data phase, no `HIF RX batch`
+record, no row of the table reached: not a throughput data point, and
+nothing about the receive ceiling follows from it. Display probe (not
+evidence): framebuffer console bound, tty0 write ok, the indicator wrote.
+
+Mechanism, from the vendor source before any guess. In enhanced mode the
+block read of WHISR returns WHISR and the sixteen TX queue release counts
+together (`ENHANCE_MODE_DATA_STRUCT_T`: `u4WHISR`, then the TQ counts), and
+the vendor releases those counts into its TC accounting from the block
+(`nicTxReleaseResource(prAdapter, &prSDIOCtrl->rTxInfo)`, nic_tx.c;
+nic.c synthesises the TX-done bit from non-zero counts). The read consumes
+them. Our credit path (`mt6797_hif_tx_status`, hif.c) still polled WHISR
+and WTQCR0–7 directly, after the pass's receive had read the block, so it
+saw zeros and the one-page debt stayed open to the 100 ms credit
+deadline. The receive side of 0268 worked; its interaction with the credit
+side was not covered by the fixture, which modelled receive only. 0267's
+path (a refused command) was not exercised; its accounting is still
+unverified on device.
+
+Amended 0268 (same number; this boot of the earlier form is its record):
+the counts the block carries are accumulated half-word by half-word and
+merged into the next TX status acquisition (WHISR bits and WTQCR words,
+the abnormal bits checked merged), with `credits=` in the data-end record
+counting the blocks that carried any. With it the three measurement
+protections: a count above sixteen is served as sixteen and drains next
+pass, a length outside the frame bounds leaves that queue unread this
+pass, a header that disagrees with its reported length drops that
+aggregate (frames lost, the transport retransmits); each is counted in
+`failures`, none poisons receive, and poison is reserved for a bus
+failure, said so in the code. The fixture covers all of it (the clamp, the
+bad length, the dropped aggregate with the other queue still served, the
+credit merge and its clearing), strict checkpatch is clean. Boot 2 keeps
+the headline, the band and the table above; the `join credit` lines of
+the management frames are the first thing read.

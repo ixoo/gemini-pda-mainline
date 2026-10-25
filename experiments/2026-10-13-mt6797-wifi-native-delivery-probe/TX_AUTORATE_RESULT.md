@@ -185,7 +185,9 @@ arrived; the state-2 update then returned -22 and the join stopped with
 -110 (`join stopped: status=-110 first=0 submitted=0x800 debt=2
 cleanup=0 branch=2`). No data phase: none of the three branch rows was
 reached, and nothing about the rate table, the state sequence or the
-chosen rates follows from this boot. It is not a rate data point.
+chosen rates follows from this boot. It is not a rate data point. The
+state-2 update was never sent; the branch-3 lever (the station record's
+shape) remains untested, not falsified, and stays live.
 
 Where the -22 came from, read before any vendor interpretation: our own
 code. `mt6797_join_station_payload` (`join-commands.h`) admits station

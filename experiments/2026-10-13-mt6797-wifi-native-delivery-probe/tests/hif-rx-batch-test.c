@@ -46,7 +46,7 @@ static u32 whcr = 0x00000a00;		/* some other length count before enable */
 static u8 block[112];
 static u8 queue_stream[2][40960];
 static unsigned int queue_offset[2];
-static unsigned int setup_words, block_reads, wrplr_reads;
+static unsigned int setup_words, block_reads, whisr_reads, wrplr_reads;
 
 u64 ktime_get_ns(void) { return 1000; }
 void usleep_range(unsigned long a, unsigned long b) { (void)a; (void)b; assert(false); }
@@ -58,8 +58,10 @@ int mt6797_test_write(unsigned int value, void *address)
 		pending_write = !!(value & BIT(31));
 		pending_offset = 0;
 		setup_words++;
-		if (pending_port == 0x10)
+		if (pending_port == 0x10 && pending_bytes == 112)
 			block_reads++;
+		else if (pending_port == 0x10)
+			whisr_reads++;
 		if (pending_port == 0x90)
 			wrplr_reads++;
 		return 0;
@@ -84,6 +86,8 @@ int mt6797_test_read(void *address, unsigned int *value)
 		memcpy(value, queue_stream[q] + queue_offset[q] + pending_offset, 4);
 		if (pending_offset + 4 >= pending_bytes)
 			queue_offset[q] += pending_bytes;
+	} else if (pending_port >= 0x130 && pending_port <= 0x14c) {
+		*value = 0;	/* WTQCR0-7: consumed by the block read in enhanced mode */
 	} else {
 		assert(false);	/* no WRPLR or other register reads in batch mode */
 	}
@@ -111,6 +115,14 @@ static void announce(unsigned int n0, const unsigned int *l0, unsigned int n1, c
 	put16(block + 36, n0); put16(block + 38, n1);
 	for (i = 0; i < n0 && i < 16; i++) put16(block + 40 + 2 * i, l0[i]);
 	for (i = 0; i < n1 && i < 16; i++) put16(block + 72 + 2 * i, l1[i]);
+}
+
+/* Start a case with empty queue streams at offset zero and an empty block. */
+static void fresh(void)
+{
+	memset(queue_stream, 0, sizeof(queue_stream));
+	memset(block, 0, sizeof(block));
+	queue_offset[0] = queue_offset[1] = 0;
 }
 
 static struct mt6797_hif *make(void)
@@ -174,26 +186,101 @@ int main(void)
 	mt6797_hif_rx_batch_stats(hif, &stats);
 	assert(block_reads == 2 && stats.reads == 2 && stats.empty == 1 && stats.frames == 3);
 
-	/* 3. A count over sixteen is refused and poisons the context. */
+	/* 3. A count over sixteen is served as sixteen (counted once in failures,
+	 * never poison); the seventeenth frame drains on the next pass.
+	 */
+	fresh();
+	off = 0;
+	for (i = 0; i < 17; i++)
+		off = frame(queue_stream[0], off, 60, 10 + i);
 	announce(17, l17, 0, l1);
 	mt6797_hif_rx_batch_pass(hif);
-	assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EPROTO);
+	for (i = 0; i < 16; i++) {
+		assert(!mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx));
+		assert(rx.logical_bytes == 60 && rx.packet_type == (0x4000 | (10 + i)));
+	}
+	assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
 	mt6797_hif_rx_batch_stats(hif, &stats);
-	assert(stats.failures == 1 && hif->first_error == -EPROTO);
-
-	/* 4. A header that disagrees with the reported length is refused. */
-	mt6797_hif_free(hif);
-	free(window);
-	hif = make();
-	memset(queue_stream, 0, sizeof(queue_stream)); memset(queue_offset, 0, sizeof(queue_offset));
-	frame(queue_stream[0], 0, 60, 5); put16(queue_stream[0], 61);
-	announce(1, l0, 0, l1);
+	assert(stats.failures == 1 && stats.max_frames == 16 && stats.frames == 19 && !hif->first_error);
+	announce(1, l17, 0, l1);
 	mt6797_hif_rx_batch_pass(hif);
-	assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EPROTO);
-	mt6797_hif_rx_batch_stats(hif, &stats);
-	assert(stats.failures == 1 && stats.aggregates == 1);
+	assert(!mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx));
+	assert(rx.logical_bytes == 60 && rx.packet_type == (0x4000 | 26));
+	assert(!hif->first_error);
+
+	/* 4. A length outside the frame bounds leaves that queue unread this
+	 * pass: no data-port transfer, counted, no poison.
+	 */
+	fresh();
+	{
+		unsigned int bad[1] = {2}, before;
+
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		before = stats.aggregates;
+		announce(1, bad, 0, l1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(stats.failures == 2 && stats.aggregates == before && !hif->first_error);
+	}
+
+	/* 5. A header that disagrees with its reported length drops that
+	 * aggregate (its frames are gone); the other queue's frames are still
+	 * served in the same pass, and the context is not poisoned.
+	 */
+	fresh();
+	{
+		unsigned int lie[2] = {60, 100};
+
+		off = frame(queue_stream[0], 0, 60, 30);
+		frame(queue_stream[0], off, 80, 31);	/* the block said 100 */
+		frame(queue_stream[1], 0, 100, 32);
+		announce(2, lie, 1, l1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(!mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx));
+		assert(rx.logical_bytes == 100 && rx.selected_port == 1 && rx.packet_type == (0x4000 | 32));
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(stats.failures == 3 && !hif->first_error);
+	}
+
+	/* 6. The TX release counts the block carries (WHISR and the sixteen
+	 * queue counts, consumed by the read) are merged into the next TX
+	 * status acquisition in the WTQCR word layout, then cleared.
+	 */
+	fresh();
+	{
+		struct mt6797_hif_tx_status st;
+
+		announce(0, l0, 0, l1);
+		block[0] = 0x02;			/* WHISR TX done */
+		put16(block + 4 + 2 * 1, 1);		/* TQ1: one AC1 page */
+		put16(block + 4 + 2 * 14, 2);		/* TQ14: two FFA pages */
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(stats.credit_blocks == 1);
+		assert(hif->rx_batch_pending_whisr == 0x2 && hif->rx_batch_pending_wtqcr[0] == 0x00010000 &&
+		       hif->rx_batch_pending_wtqcr[7] == 0x00000002);
+		/* The same counts twice accumulate half-word by half-word. */
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		assert(hif->rx_batch_pending_wtqcr[0] == 0x00020000 && hif->rx_batch_pending_wtqcr[7] == 0x00000004);
+		/* The cold observation path is the one acquisition this model can
+		 * reach; the merge sits in the shared acquisition loop.
+		 */
+		hif->normal.phase = MT6797_NORMAL_COLD;
+		hif->capability_attempted = false;
+		hif->tx_status_boot_attempted = false;
+		assert(!mt6797_hif_observe_tx_status(hif, 1000000, 1, &st));
+		assert(whisr_reads == 1 && st.whisr == 0x2 && st.wtqcr[0] == 0x00020000 &&
+		       st.wtqcr[7] == 0x00000004 && st.wtqcr[1] == 0);
+		assert(!hif->rx_batch_pending_whisr && !hif->rx_batch_pending_wtqcr[0] &&
+		       !hif->rx_batch_pending_wtqcr[7] && !hif->first_error);
+	}
+
 	mt6797_hif_free(hif);
 	free(window);
-	printf("receive batching fixtures: PASS\n");
+	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge)\n");
 	return 0;
 }

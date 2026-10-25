@@ -59,6 +59,11 @@ static inline void memzero_explicit(void *p, size_t n)
 #endif
 static inline unsigned int get_unaligned_le16(const void *p)
 { const unsigned char *b = p; return (unsigned int)b[0] | ((unsigned int)b[1] << 8); }
+static inline unsigned int get_unaligned_le32(const void *p)
+{ const unsigned char *b = p; return (unsigned int)b[0] | ((unsigned int)b[1] << 8) | ((unsigned int)b[2] << 16) | ((unsigned int)b[3] << 24); }
 static inline void put_unaligned_le32(unsigned int v, void *p)
 { unsigned char *b = p; b[0] = v; b[1] = v >> 8; b[2] = v >> 16; b[3] = v >> 24; }
+#ifndef min_t
+#define min_t(type, a, b) ((type)(a) < (type)(b) ? (type)(a) : (type)(b))
+#endif
 #endif

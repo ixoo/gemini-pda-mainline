@@ -1,0 +1,20 @@
+{
+  "runs": {
+    "rx-batch-1": {
+      "run": "PIO-throughput-rxbatch-1",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "kernel_build_commit": "9846b776354204b5703d7438fe6bbe7e58434111",
+      "boot2_sha256": "0037de60c40c85406407544879f41a808ec8ead0bd403a62769e0347b9d73bb8",
+      "predecessor_boot2_sha256": "bf9bd8059031430cd076d52424799b23f2d791519494627a0bbe294fc1ae8847",
+      "mainline_boot_id": "647b420a-fd0e-4a05-9491-11fd1ccc139c",
+      "previous_gemian_boot_id": "93ff170a-3025-4e3f-b109-07cf008151aa",
+      "returned_gemian_boot_id": "1163163d-cc86-4c83-bd0b-22be53ddcb7f",
+      "sealed_log_bytes": 146439,
+      "outcome": "inconclusive: join stopped at the credit wait (status=-110 branch=1 debt=1) 104 ms after the authentication response; no data phase",
+      "whcr_at_second_tx_status_snapshot": "0x00011000",
+      "mechanism": "enhanced block read consumed WHISR and the TX queue release counts the credit path polled (vendor: nicTxReleaseResource from rTxInfo)",
+      "fix": "amended 0268: block counts merged into the next TX status acquisition; no poison on block contents",
+      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    }
+  }
+}

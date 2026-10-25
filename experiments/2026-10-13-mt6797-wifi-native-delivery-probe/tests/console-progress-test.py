@@ -26,9 +26,13 @@ LEAF = Path(sys.argv[1]) if len(sys.argv) > 1 else REPO / 'artifacts/wifi-servic
 HELPER = Path(sys.argv[2]) if len(sys.argv) > 2 else REPO / 'artifacts/wifi-tx-passrate-work/hosts/throughput-helper.py'
 
 
+SKIPPED = []
+
+
 def check_leaf():
     if not LEAF.is_file():
         print('SKIP leaf: no reviewed leaf at', LEAF)
+        SKIPPED.append('leaf')
         return
     leaf = LEAF.read_bytes()
     text = leaf.decode()
@@ -55,6 +59,7 @@ def check_leaf():
 def check_helper():
     if not HELPER.is_file():
         print('SKIP helper: no helper at', HELPER)
+        SKIPPED.append('helper')
         return
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp); (work / 'hosts').mkdir()
@@ -103,3 +108,9 @@ def check_helper():
 if __name__ == '__main__':
     check_leaf()
     check_helper()
+    if SKIPPED:
+        # A skipped half was not checked: say so on its own line and exit
+        # non-zero, so the run cannot be read as green.
+        print('RESULT: SKIP (%s not checked here); the other half passed' % ' and '.join(SKIPPED))
+        sys.exit(2)
+    print('RESULT: PASS (leaf and helper)')

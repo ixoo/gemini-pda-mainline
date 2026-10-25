@@ -1,4 +1,14 @@
-# Current: receive batching (0268) predeclared and building; the page-release fix rides with it
+# Current: 0268 boot 1 stopped at the credit wait (block read consumed the TX counts); amended 0268 builds
+
+[Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-1-of-0268-2026-10-25-the-join-stopped-at-its-credit-wait-the-block-read-had-consumed-the-tx-release-counts):
+the receive side worked through authentication, the credit path never saw
+the counts the block had consumed. The amended proposal merges them into
+the TX status acquisition, never poisons on what the block says, and adds
+two branch rows; boot 2 is the same measurement. Queue after it: the
+owner-confirmed state-2 encoder attempt (explicitly last of the rate
+thread, if confirmed), then the AP-loss gate.
+
+# Historical: receive batching (0268) predeclared and building; the page-release fix rides with it
 
 Offline items done since the state-2 refusal: 0267 (a refused join
 command releases its page reservation), the console-injection guard, the
