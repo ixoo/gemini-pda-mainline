@@ -749,3 +749,7 @@ proposals/0261-arm64-dts-mediatek-add-the-Gemini-PDA-Wi-Fi-service-tree.patch
 proposals/0264-wifi-mt6797-count-the-data-phase-s-worker-passes-and-submissions.patch
 proposals/0267-wifi-mt6797-release-the-page-reservation-of-a-refused-join-command.patch
 proposals/0268-wifi-mt6797-receive-by-the-enhanced-status-block-and-aggregated-reads.patch
+proposals/0269-wifi-mt6797-let-the-connected-lifetime-queue-as-many-frames-as-it-admits.patch
+proposals/0270-wifi-mt6797-count-the-data-frames-delivered-to-mac80211-at-the-data-end.patch
+proposals/0271-wifi-mt6797-record-the-received-rate-word-logging-only.patch
+proposals/0272-wifi-mt6797-retire-ordinary-data-frames-on-page-credits.patch

@@ -1,4 +1,15 @@
-# Current: the probe answered (boot 4): the receive path is not the ceiling; boot B (credits-only completion) is next, with the diagnostic ceiling lifted in the same build
+# Current: boot B predeclared and building (0269–0272: ceiling lift, delivered count, RX rate record, credits-only completion)
+
+[Transport record §12](HIF_TRANSPORT_ANALYSIS.md#12-boot-b-predeclared-2026-10-25-retire-ordinary-data-on-page-credits):
+ordinary data goes out without a PID or an MCU status report and is
+retired at submission; the comparison is within the session against probe
+boot 4 (or an adjacent baseline boot if the owner's hands allow); TX
+first, then the four-row table; two attempts at the lever. The fixture
+covers the descriptor forms and the vector word. Absence ledger: five
+entries. Queue after B: C (rate sweep), D (state 2); AP-loss gate
+independent.
+
+# Historical: the probe answered (boot 4): the receive path is not the ceiling; boot B (credits-only completion) is next, with the diagnostic ceiling lifted in the same build
 
 [§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly):
 UDP 10/20 Mbit/s delivered with zero loss, RTT 7–8 ms at rest and 40–130

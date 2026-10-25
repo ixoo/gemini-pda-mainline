@@ -1,0 +1,60 @@
+From 175e44789273bacf9c2e2bf911a986334fb98d71 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 07:59:35 -0400
+Subject: [PATCH 2/4] wifi: mt6797: count the data frames delivered to mac80211
+ at the data end
+
+The data-end record carried rx_unicast, rx_group and rx_dropped from the
+join worker's own delivery branch, which the lifecycle tree never enters
+since the runtime delivery path took over; they read zero on every boot
+that moved megabytes, and the path that delivers kept no count. Count the
+frames handed to mac80211 in mt6797_ccmp_receive and print that instead
+of the three dead counters. Logging only.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 966521d7c..61cddd40d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -326,6 +326,7 @@ struct mt6797_mac {
+ 	bool ccmp_gtk_attempted, ccmp_gtk_seen;
+ 	unsigned int ccmp_gtk_arp_withheld;
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
++	unsigned int ccmp_rx_delivered; /* data frames handed to mac80211 */
+ 	u64 ccmp_last_checked_rx, ccmp_last_beacon_rx;
+ 	unsigned int ccmp_timeout_observed;
+ 	struct completion ccmp_dtim_done;
+@@ -981,6 +982,8 @@ static void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
+ 			mac->ccmp_gtk_arp_handoff++;
+ #endif
+ 	}
++	if (ready)
++		mac->ccmp_rx_delivered++;
+ 	mutex_unlock(&mac->mutex);
+ 	if (ready)
+ 		ieee80211_rx_napi(mac->hw, sta, skb, NULL);
+@@ -1680,6 +1683,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_rx_unicast = 0;
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
++	mac->ccmp_rx_delivered = 0;
+ 	mac->join_data_rx_outside = 0;
+ 	mac->join_data_g1_uni_present = 0;
+ 	mac->join_data_g1_uni_absent = 0;
+@@ -2824,9 +2828,9 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ #endif
+ 	mac->join_hold_until = ktime_get_ns();
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_unicast=%u rx_group=%u rx_dropped=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u\n",
++		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_delivered=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u\n",
+ 		 reason, (ktime_get_ns() - mac->join_data_started) / NSEC_PER_MSEC,
+-		 mac->join_data_rx_unicast, mac->join_data_rx_group, mac->join_data_rx_dropped,
++		 mac->ccmp_rx_delivered,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
+ 	{
+-- 
+2.43.0
+

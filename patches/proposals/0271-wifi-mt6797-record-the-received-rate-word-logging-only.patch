@@ -1,0 +1,170 @@
+From 17ffd1a994953d95b2850f67a88751e7dd1e33f8 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 07:59:35 -0400
+Subject: [PATCH 3/4] wifi: mt6797: record the received rate word (logging
+ only)
+
+Mirror the transmit rate record for received frames: when a queued data
+frame's descriptor carries receive-vector group 3, take its first word
+(the pinned nic_rx.h RX_VT_RX_RATE bits 0-6 and RX_VT_RX_MODE bits 12-14)
+and count the distinct mode/rate values; print them at the data-phase end
+with the counts of frames whose vector was absent or beyond the eight
+tracked values. The number says what rate the access point sends toward
+this station, which decides whether a receive ceiling is the path or the
+station's own capability advertisement. Behind
+CONFIG_MT6797_RX_RATE_RECORD; no behaviour changes.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  9 ++++
+ .../net/wireless/mediatek/mt6797/data-rx.h    | 29 ++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 47 +++++++++++++++++++
+ 3 files changed, 85 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 8470144b8..12aaa06f7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -95,6 +95,15 @@ config MT6797_HIF_RX_BATCH
+ 	  per-frame length register read or guard. The vendor's receive
+ 	  path by polling; a measurement variable for the receive ceiling.
+ 
++config MT6797_RX_RATE_RECORD
++	bool "MT6797 Wi-Fi: record the received rate word (logging only)"
++	help
++	  Count the receive vector's mode and rate of every queued data frame
++	  and print the distinct values at the data-phase end. The rate the
++	  access point sends toward this station, which decides whether a
++	  receive ceiling is the path or the station's own capability
++	  advertisement. No behaviour changes.
++
+ config MT6797_CCMP_TX_DEPTH
+ 	int
+ 	depends on MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/data-rx.h b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+index 3c8e5e6e5..99bca9644 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/data-rx.h
+@@ -17,6 +17,35 @@ struct mt6797_data_rx {
+ 	unsigned char group_vld;   /* The 4-bit GROUP_VLD mask as decoded (bit 0 is group 1). */
+ };
+ 
++/* The first receive-vector word of a gen3 RXD when group 3 is present (the
++ * pinned nic_rx.h: RX_VT_RX_RATE bits 0-6, RX_VT_RX_MODE bits 12-14), walked
++ * in the source order group 4, 1, 2, 3 from the 16-byte base; false when
++ * the group is absent or the packet is too short. Recorded, never decided on.
++ */
++static inline bool
++mt6797_rx_vector_word(const unsigned char *packet, size_t bytes, unsigned int *word)
++{
++	size_t offset = 16;
++	unsigned int groups;
++
++	if (!packet || !word || bytes < 16)
++		return false;
++	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	if (!(groups & 4))
++		return false;
++	if (groups & 8)
++		offset += 16;
++	if (groups & 1)
++		offset += 16;
++	if (groups & 2)
++		offset += 8;
++	if (offset + 4 > bytes)
++		return false;
++	*word = mt6797_join_le16(packet + offset) |
++		((unsigned int)mt6797_join_le16(packet + offset + 2) << 16);
++	return true;
++}
++
+ /* Original decoder of one protected, firmware-decrypted, translated data
+  * frame of the public gen3 RXD layout for a legacy non-QoS station, the two
+  * classes the reference run 3 ledger holds and the pinned nic_rx.h defines:
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 61cddd40d..2a68fbc9f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -327,6 +327,13 @@ struct mt6797_mac {
+ 	unsigned int ccmp_gtk_arp_withheld;
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
+ 	unsigned int ccmp_rx_delivered; /* data frames handed to mac80211 */
++#ifdef CONFIG_MT6797_RX_RATE_RECORD
++	/* Received-rate record (logging only): the first receive-vector word's
++	 * mode and rate of each queued data frame, by distinct value.
++	 */
++	struct { unsigned int word, count; } rx_rates[8];
++	unsigned int rx_rates_other, rx_rates_absent;
++#endif
+ 	u64 ccmp_last_checked_rx, ccmp_last_beacon_rx;
+ 	unsigned int ccmp_timeout_observed;
+ 	struct completion ccmp_dtim_done;
+@@ -699,6 +706,9 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	struct sk_buff *skb;
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	bool group = false;
++#endif
++#ifdef CONFIG_MT6797_RX_RATE_RECORD
++	unsigned int rate_word;
+ #endif
+ 	unsigned int rx_flags = RX_FLAG_8023 | RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED |
+ 		RX_FLAG_MIC_STRIPPED | RX_FLAG_PN_VALIDATED | RX_FLAG_NO_SIGNAL_VAL;
+@@ -744,6 +754,23 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 			 "one-shot WLAN ccmp-stable RX: first ethernet_bytes=%zu flags=0x%x\n",
+ 			 view.bytes, rx_flags);
+ 	mac->ccmp_queued++;
++#ifdef CONFIG_MT6797_RX_RATE_RECORD
++	if (!mt6797_rx_vector_word(mac->join_packet, bytes, &rate_word)) {
++		mac->rx_rates_absent++;
++	} else {
++		unsigned int key = rate_word & 0x707fU, k;
++
++		for (k = 0; k < ARRAY_SIZE(mac->rx_rates); k++) {
++			if (mac->rx_rates[k].count && mac->rx_rates[k].word != key)
++				continue;
++			mac->rx_rates[k].word = key;
++			mac->rx_rates[k].count++;
++			break;
++		}
++		if (k == ARRAY_SIZE(mac->rx_rates))
++			mac->rx_rates_other++;
++	}
++#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	mac->ccmp_last_checked_rx = ktime_get_ns();
+ #endif
+@@ -1684,6 +1711,11 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
+ 	mac->ccmp_rx_delivered = 0;
++#ifdef CONFIG_MT6797_RX_RATE_RECORD
++	memset(mac->rx_rates, 0, sizeof(mac->rx_rates));
++	mac->rx_rates_other = 0;
++	mac->rx_rates_absent = 0;
++#endif
+ 	mac->join_data_rx_outside = 0;
+ 	mac->join_data_g1_uni_present = 0;
+ 	mac->join_data_g1_uni_absent = 0;
+@@ -2842,6 +2874,21 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
+ 			 dma_tx, dma_rx, dma_poll_max, dma_failures);
+ 	}
++#ifdef CONFIG_MT6797_RX_RATE_RECORD
++	{
++		char rates[96];
++		unsigned int k, n = 0;
++
++		for (k = 0; k < ARRAY_SIZE(mac->rx_rates) && mac->rx_rates[k].count; k++)
++			n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/%u=%u",
++				       k ? "," : "", (mac->rx_rates[k].word >> 12) & 7,
++				       mac->rx_rates[k].word & 0x7f, mac->rx_rates[k].count);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN RX rates: mode/rate=count %s other=%u absent=%u\n",
++			 n ? rates : "-", mac->rx_rates_other,
++			 mac->rx_rates_absent);
++	}
++#endif
+ 	{
+ 		struct mt6797_hif_rx_batch_stats batch;
+ 
+-- 
+2.43.0
+

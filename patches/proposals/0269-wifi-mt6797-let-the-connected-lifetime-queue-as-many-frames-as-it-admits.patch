@@ -1,0 +1,38 @@
+From 55e915cfe5e35750f7cd5ec24312fe4a5ad3080e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 07:59:35 -0400
+Subject: [PATCH 1/4] wifi: mt6797: let the connected lifetime queue as many
+ frames as it admits
+
+The native-delivery diagnostic ends its sample window when the CCMP path
+has queued MT6797_CCMP_DIAG_CHECKED_MAX frames. Under the connected
+lifetime that ceiling was 8192 while the admitted frame ceiling is 32768;
+a measured receive of five one-megabyte chunks reaches 4500-4650 queued
+frames, and with a receive probe beside it the counter read 8192 and the
+data window closed under the measurement, before the host's disconnect.
+The queued-frame ceiling now equals the admitted frame ceiling; every
+other ceiling and the retire budget are unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/native-diag.h | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/native-diag.h b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+index f35f1acf6..d485d7067 100644
+--- a/drivers/net/wireless/mediatek/mt6797/native-diag.h
++++ b/drivers/net/wireless/mediatek/mt6797/native-diag.h
+@@ -30,7 +30,11 @@
+ #ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
+ /* Low-traffic connected observation through ten minutes, not queue storage. */
+ #define MT6797_CCMP_DIAG_RX_MAX       32768U
+-#define MT6797_CCMP_DIAG_CHECKED_MAX  8192U
++/* The queued-frame ceiling equals the admitted frame ceiling: a measured
++ * receive of five one-megabyte chunks with a probe beside it crossed the
++ * earlier 8192 and closed the data window under the measurement.
++ */
++#define MT6797_CCMP_DIAG_CHECKED_MAX  32768U
+ #define MT6797_CCMP_DIAG_BYTES_MAX    (16U * 1024U * 1024U)
+ #else
+ #define MT6797_CCMP_DIAG_RX_MAX       4096U
+-- 
+2.43.0
+

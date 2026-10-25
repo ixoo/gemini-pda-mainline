@@ -1128,3 +1128,85 @@ throughput series is corrected to this measured spread, with this pair as
 the evidence. The console verdict reached the owner on the framebuffer in
 seconds without SSH; once the status line and the cap field are out of
 its way it is the trusted verdict at the device.
+
+## 12. Boot B (predeclared, 2026-10-25): retire ordinary data on page credits
+
+**The change.** [0272](../../patches/proposals/0272-wifi-mt6797-retire-ordinary-data-frames-on-page-credits.patch),
+behind `CONFIG_MT6797_DATA_CREDIT_COMPLETION`: an ordinary data descriptor
+goes out without a PID and without the MCU transmit-status report (bytes
+20 and 21 of the descriptor stay zero), and the frame is retired at
+submission; mac80211 is told it was transmitted without an acknowledgment
+report (`IEEE80211_TX_STAT_NOACK_TRANSMITTED`, which its loss accounting
+does not count); the TX-done event and the in-flight slot are not used for
+it; the page credits of the TC1 pool stay the flow control, as they were.
+Management and security frames keep their PID, their report and the
+TX-done event. The data-end record counts the frames retired this way
+(`credit_retired=`). The vendor sets the PID and the report together only
+for frames with a completion handler (`nicTxFillDesc`) and retires plain
+data on the page release counts; this is what the driver now does.
+
+Three more things ride in the same build, none of them a data-path change:
+[0269](../../patches/proposals/0269-wifi-mt6797-let-the-connected-lifetime-queue-as-many-frames-as-it-admits.patch)
+lifts the diagnostic's queued-frame ceiling to the admitted ceiling
+(32,768), so the data window no longer closes under a probe beside the
+chunks; [0270](../../patches/proposals/0270-wifi-mt6797-count-the-data-frames-delivered-to-mac80211-at-the-data-end.patch)
+prints `rx_delivered=` (frames handed to mac80211) in place of the three
+dead counters; [0271](../../patches/proposals/0271-wifi-mt6797-record-the-received-rate-word-logging-only.patch),
+behind `CONFIG_MT6797_RX_RATE_RECORD`, counts the receive vector's
+mode/rate of each queued data frame and prints the distinct values at the
+data end (`RX rates: mode/rate=count …`): the rate the access point sends
+toward this station. The lifecycle and rate fragments set both options.
+Host fixture
+[`tests/credit-completion-test.c`](tests/credit-completion-test.c)
+(`tests/run-credit-completion-test.py <kernel tree>`): the descriptor with
+and without the report (PID and report bytes together; a PID with no report
+refused, PID 0 with a report refused), and the vector word after groups 4,
+1 and 2, alone, absent, truncated. Compiled with both options on and off;
+strict checkpatch clean on all four.
+
+**Comparison rule.** Within the session: boot B is read against the
+adjacent boot of the current image in the same session, probe boot 4
+(11:39 UTC: TX chunks 3.73–4.07, RX device-side 14.46–15.83, in-chunk TCP
+round trip rising 9→139 ms, round trip at rest 7–8 ms). If the owner's
+hands allow, a baseline boot of the current image immediately before B
+replaces that reference; otherwise B is read against probe boot 4 and the
+record says so.
+
+**TX first, then the rest.** `debt=0` at the stop, no guard record, the
+data phase ending by `disconnect`, `credit_retired` equal to the data
+frames queued, `tx_done` counting them (retired at submission: that field
+now means retired, and the per-frame `TX done` records exist only for
+management and security frames). Then the reading:
+
+| Reading (against probe boot 4, same session) | Cause | Next |
+|---|---|---|
+| TX per chunk up, in-chunk round trip down, UDP and TCP receive up without any receive-side change | the per-frame MCU report was the completion latency, and the acknowledgment clock is confirmed in the same boot | the fixed-rate sweep (boot C) on the faster completion path |
+| TX up, round trip down, receive unchanged | the completion latency was transmit-only; the receive number has another clock | the sweep still; the receive clock is read from the RX rates line (the access point's rate) |
+| TX and round trip unchanged | data frames are not retired on credits the way the vendor's are (the firmware still waits on something per frame, or the air transmission is the slow part) | one second attempt on this lever (the fixed-rate bit, then the rate code); then the record |
+| the join fails, the debt is not zero, or `credit_retired` is below the frames queued | the retirement at submission is wrong in a way the fixture did not reach | revert the admission, keep the proposal, study from source |
+
+Two attempts at this lever, then the record, as the owner set it.
+
+**The three questions.** Reachability: the descriptor bytes are written by
+`mt6797_join_tx_data_descriptor_report` (join-tx.h), reached from
+`mt6797_hif_send_data_report` (hif.c) through
+`mt6797_join_prepare_data_report` (join-submit.h); the PID rule is inverted
+for the unreported form (PID 0 required) and the fixture covers both forms,
+so nothing earlier refuses it; the frame reaches the bus by the same
+transfer as before; the page accounting (`tc1_free`, `join_data_page_debt`)
+is unchanged; the skb reaches mac80211 through the existing completed-data
+queue outside the driver locks. Ownership: no new register is read or
+written; the TX-done event path keeps its PIDs for reported frames; the
+receive-vector word is read from the packet copy, non-destructively, and
+the diagnostic ceiling is a constant. The third question: the vendor writes
+PID and `TXS_TO_MCU` only for a frame with a completion handler and writes
+neither for plain data; that absence is the fifth entry of the ledger
+(WHCR never written beyond init, WHISR never copied, state 2 never sent
+through a refused encoder, the MCU report never requested for plain data,
+and now relied upon).
+
+**What a void boot produces now.** The preflight reads the rendered run
+before the install; the probe rides along (opt-in) and the lifted ceiling
+keeps the data window open under it; a silent or refused run ends at the
+watcher's 300 s wall clock at the latest and the reviewed preservation and
+return follow at once.

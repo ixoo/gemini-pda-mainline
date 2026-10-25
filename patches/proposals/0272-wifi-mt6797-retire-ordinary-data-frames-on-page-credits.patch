@@ -1,0 +1,368 @@
+From a1ff8c8b3933406bb77a5dc66aa33ed58c7d1763 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 07:59:35 -0400
+Subject: [PATCH 4/4] wifi: mt6797: retire ordinary data frames on page credits
+
+Every data descriptor requested a transmit-status report to the MCU with a
+PID, and the frame was retired on the firmware's TX-done event received
+through the receive path, 4-9 ms after the bus write. The vendor sets the
+PID and the MCU report together only for frames with a completion handler
+(nicTxFillDesc) and retires plain data on the page release counts.
+
+Behind CONFIG_MT6797_DATA_CREDIT_COMPLETION an ordinary data frame goes out
+without a PID or a status report and is retired at submission: mac80211 is
+told the frame was transmitted without an acknowledgment report
+(IEEE80211_TX_STAT_NOACK_TRANSMITTED), never a loss; the TX-done event and
+the in-flight slot are not used for it; the page credits remain the flow
+control. Management and security frames keep their PID, their report and
+the TX-done event. The data-end record counts the frames retired this way.
+A measurement variable for the transmit completion latency.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 10 +++
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 27 ++++---
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  5 ++
+ .../wireless/mediatek/mt6797/join-submit.h    | 31 +++++---
+ .../net/wireless/mediatek/mt6797/join-tx.h    | 35 +++++++--
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 72 ++++++++++++++-----
+ 6 files changed, 140 insertions(+), 40 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 12aaa06f7..30fe9c942 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -104,6 +104,16 @@ config MT6797_RX_RATE_RECORD
+ 	  receive ceiling is the path or the station's own capability
+ 	  advertisement. No behaviour changes.
+ 
++config MT6797_DATA_CREDIT_COMPLETION
++	bool "MT6797 Wi-Fi: retire ordinary data frames on page credits"
++	help
++	  Send ordinary data descriptors without a PID or the MCU transmit
++	  status report, as the vendor does for frames without a completion
++	  handler, and retire them at submission; the page credits remain
++	  the flow control. Management and security frames keep their
++	  reports and the TX done event. A measurement variable for the
++	  transmit completion latency.
++
+ config MT6797_CCMP_TX_DEPTH
+ 	int
+ 	depends on MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 160324782..3f3cb55d7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1484,10 +1484,11 @@ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
+ 	return error;
+ }
+ 
+-int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+-			 size_t frame_bytes, u8 wlan, u8 pid,
+-			 unsigned int lifetime_ms, unsigned int attempt_count,
+-			 u64 deadline_ns)
++int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
++				size_t frame_bytes, u8 wlan, u8 pid,
++				bool status_report,
++				unsigned int lifetime_ms, unsigned int attempt_count,
++				u64 deadline_ns)
+ {
+ 	struct mt6797_hif_pio_result transfer;
+ 	struct mt6797_hif_command command;
+@@ -1503,10 +1504,11 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 		error = -EIO;
+ 		goto unlock;
+ 	}
+-	error = mt6797_join_prepare_data(&hif->normal, frame, frame_bytes,
+-					 wlan, pid, lifetime_ms, attempt_count,
+-					 hif->scratch, sizeof(hif->scratch),
+-					 &command);
++	error = mt6797_join_prepare_data_report(&hif->normal, frame, frame_bytes,
++						wlan, pid, status_report,
++						lifetime_ms, attempt_count,
++						hif->scratch, sizeof(hif->scratch),
++						&command);
+ 	if (error)
+ 		goto unlock;
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+@@ -1527,6 +1529,15 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 	return error;
+ }
+ 
++int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
++			 size_t frame_bytes, u8 wlan, u8 pid,
++			 unsigned int lifetime_ms, unsigned int attempt_count,
++			 u64 deadline_ns)
++{
++	return mt6797_hif_send_data_report(hif, frame, frame_bytes, wlan, pid, true,
++					   lifetime_ms, attempt_count, deadline_ns);
++}
++
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 			   enum mt6797_normal_config_kind kind,
+ 			   unsigned int sequence, const u8 *payload,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index a6a26de25..62beaa469 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -307,6 +307,11 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 			 size_t frame_bytes, u8 wlan, u8 pid,
+ 			 unsigned int lifetime_ms, unsigned int attempt_count,
+ 			 u64 deadline_ns);
++int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
++				size_t frame_bytes, u8 wlan, u8 pid,
++				bool status_report,
++				unsigned int lifetime_ms, unsigned int attempt_count,
++				u64 deadline_ns);
+ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
+ 			     size_t frame_bytes, u8 wlan, u8 pid,
+ 			     unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-submit.h b/drivers/net/wireless/mediatek/mt6797/join-submit.h
+index eeca6c2d3..ee39d346c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-submit.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-submit.h
+@@ -105,12 +105,13 @@ mt6797_join_prepare_security(struct mt6797_normal_transaction *t,
+  * is untouched; the phase flip is the same as for every frame.
+  */
+ static inline int
+-mt6797_join_prepare_data(struct mt6797_normal_transaction *t,
+-			 const unsigned char *frame, size_t bytes,
+-			 unsigned char wlan, unsigned char pid,
+-			 unsigned int lifetime_ms, unsigned int attempt_count,
+-			 unsigned char *output, size_t capacity,
+-			 struct mt6797_hif_command *command)
++mt6797_join_prepare_data_report(struct mt6797_normal_transaction *t,
++				const unsigned char *frame, size_t bytes,
++				unsigned char wlan, unsigned char pid,
++				bool status_report,
++				unsigned int lifetime_ms, unsigned int attempt_count,
++				unsigned char *output, size_t capacity,
++				struct mt6797_hif_command *command)
+ {
+ 	unsigned char descriptor[MT6797_JOIN_TX_DESC_BYTES];
+ 	struct mt6797_hif_command encoded;
+@@ -126,8 +127,9 @@ mt6797_join_prepare_data(struct mt6797_normal_transaction *t,
+ 	    !t->tc4_limit || t->tc4_limit > 0xffffU || t->tc4_free > t->tc4_limit ||
+ 	    !t->tc1_limit || t->tc1_free > t->tc1_limit)
+ 		return mt6797_normal_abort(t);
+-	if (!mt6797_join_tx_data_descriptor(frame, bytes, wlan, pid, lifetime_ms,
+-					    attempt_count, descriptor, &pages))
++	if (!mt6797_join_tx_data_descriptor_report(frame, bytes, wlan, pid,
++						   status_report, lifetime_ms,
++						   attempt_count, descriptor, &pages))
+ 		return -EINVAL;
+ 	#if !defined(CONFIG_MT6797_CCMP_TX_DEPTH) || CONFIG_MT6797_CCMP_TX_DEPTH == 1
+ 	if (t->tc1_free != t->tc1_limit || t->tc1_pending)
+@@ -152,4 +154,17 @@ mt6797_join_prepare_data(struct mt6797_normal_transaction *t,
+ 	*command = encoded;
+ 	return 0;
+ }
++
++static inline int
++mt6797_join_prepare_data(struct mt6797_normal_transaction *t,
++			 const unsigned char *frame, size_t bytes,
++			 unsigned char wlan, unsigned char pid,
++			 unsigned int lifetime_ms, unsigned int attempt_count,
++			 unsigned char *output, size_t capacity,
++			 struct mt6797_hif_command *command)
++{
++	return mt6797_join_prepare_data_report(t, frame, bytes, wlan, pid, true,
++					       lifetime_ms, attempt_count, output,
++					       capacity, command);
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-tx.h b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+index f4dcc5268..b9c998bb1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-tx.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+@@ -128,17 +128,24 @@ mt6797_join_tx_security_descriptor(const unsigned char *frame, size_t bytes,
+  * type or subtype is encoded. No transport, lifetime or admission here.
+  */
+ static inline bool
+-mt6797_join_tx_data_descriptor(const unsigned char *frame, size_t bytes,
+-			       unsigned char wlan, unsigned char pid,
+-			       unsigned int lifetime_ms, unsigned int attempt_count,
+-			       unsigned char output[MT6797_JOIN_TX_DESC_BYTES],
+-			       unsigned int *pages)
++mt6797_join_tx_data_descriptor_report(const unsigned char *frame, size_t bytes,
++				      unsigned char wlan, unsigned char pid,
++				      bool status_report,
++				      unsigned int lifetime_ms, unsigned int attempt_count,
++				      unsigned char output[MT6797_JOIN_TX_DESC_BYTES],
++				      unsigned int *pages)
+ {
+ 	unsigned char d[MT6797_JOIN_TX_DESC_BYTES] = {0};
+ 	unsigned int lifetime, total, count, i;
+ 
++	/* Without a status report the frame carries no PID: the vendor sets
++	 * the PID and the MCU report together, only for frames with a
++	 * completion handler (nicTxFillDesc), and retires plain data on the
++	 * page release counts.
++	 */
+ 	if (!frame || !output || !pages || bytes < MT6797_JOIN_ETH_MIN_BYTES ||
+-	    bytes > MT6797_JOIN_ETH_MAX_BYTES || wlan > 30 || !pid || pid > 127 ||
++	    bytes > MT6797_JOIN_ETH_MAX_BYTES || wlan > 30 ||
++	    (status_report ? (!pid || pid > 127) : pid != 0) ||
+ 	    !lifetime_ms || lifetime_ms > 10000 || !attempt_count || attempt_count > 30)
+ 		return false;
+ 	if ((frame[6] & 1) || (frame[12] == 0x88 && frame[13] == 0x8e))
+@@ -160,11 +167,25 @@ mt6797_join_tx_data_descriptor(const unsigned char *frame, size_t bytes,
+ 	d[10] = lifetime;
+ 	d[11] = 0x80; /* Fixed rate enabled, zero power offset. */
+ 	d[12] = count; d[13] = count >> 8;
+-	d[20] = pid; d[21] = 2; /* TX status to MCU. */
++	if (status_report) {
++		d[20] = pid; d[21] = 2; /* TX status to MCU. */
++	}
+ 	d[26] = (0x4bU << 2) & 255; d[27] = (0x4bU << 2) >> 8;
+ 	for (i = 0; i < MT6797_JOIN_TX_DESC_BYTES; i++)
+ 		output[i] = d[i];
+ 	*pages = (total + 127U) / 128U;
+ 	return true;
+ }
++
++static inline bool
++mt6797_join_tx_data_descriptor(const unsigned char *frame, size_t bytes,
++			       unsigned char wlan, unsigned char pid,
++			       unsigned int lifetime_ms, unsigned int attempt_count,
++			       unsigned char output[MT6797_JOIN_TX_DESC_BYTES],
++			       unsigned int *pages)
++{
++	return mt6797_join_tx_data_descriptor_report(frame, bytes, wlan, pid, true,
++						     lifetime_ms, attempt_count,
++						     output, pages);
++}
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 2a68fbc9f..a0cd30953 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -387,6 +387,7 @@ struct mt6797_mac {
+ 	 * pages owed on that pool, counts, and the in-flight frame's class.
+ 	 */
+ 	unsigned int join_data_page_debt, join_data_tx_queued, join_data_tx_done;
++	unsigned int join_data_credit_retired; /* ordinary data retired at submission (0272) */
+ 	unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
+ 	unsigned int join_data_expired;
+ 	bool join_inflight_data;
+@@ -1711,6 +1712,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
+ 	mac->ccmp_rx_delivered = 0;
++	mac->join_data_credit_retired = 0;
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+ 	memset(mac->rx_rates, 0, sizeof(mac->rx_rates));
+ 	mac->rx_rates_other = 0;
+@@ -2860,11 +2862,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ #endif
+ 	mac->join_hold_until = ktime_get_ns();
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_delivered=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u\n",
++		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_delivered=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u credit_retired=%u\n",
+ 		 reason, (ktime_get_ns() - mac->join_data_started) / NSEC_PER_MSEC,
+ 		 mac->ccmp_rx_delivered,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+-		 mac->join_data_credits);
++		 mac->join_data_credits, mac->join_data_credit_retired);
+ 	{
+ 		unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
+ 
+@@ -3313,6 +3315,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct mt6797_join_rx_frame frame;
+ 	struct mt6797_scan_frame beacon;
+ 	struct sk_buff_head received, discard, data_completed;
++	bool credit_only = false;
+ 	struct sk_buff *skb, *completed = NULL, *internal = NULL;
+ 	unsigned long flags, snapshot_delay;
+ 	unsigned int n, port, pages;
+@@ -3663,23 +3666,54 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				memcpy(mac->join_eth + 6, skb->data + 10, ETH_ALEN);
+ 				memcpy(mac->join_eth + 12, skb->data + 30, 2);
+ 				memcpy(mac->join_eth + 14, skb->data + 32, skb->len - 32);
++				credit_only = !port &&
++					      IS_ENABLED(CONFIG_MT6797_DATA_CREDIT_COMPLETION);
++				if (credit_only) {
++					/* No PID and no MCU status report for an ordinary
++					 * data frame: it is retired on its page credits, as
++					 * the vendor retires plain data (0272).
++					 */
++					mac->join_pid = 0;
++				} else {
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+-				ret = mt6797_ccmp_assign_pid(mac, false, !port);
+-				if (ret)
+-					goto failed;
++					ret = mt6797_ccmp_assign_pid(mac, false, !port);
++					if (ret)
++						goto failed;
+ #else
+-				mac->join_pid = mac->join_next_pid++;
++					mac->join_pid = mac->join_next_pid++;
+ #endif
++				}
+ 				mac->join_last_acked = false;
+ 				reinit_completion(&mac->join_frame_done);
+ 				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
+ 				if (!port) {
+-					ret = mt6797_hif_send_data(mac->hif, mac->join_eth, eth_bytes,
+-								   1, mac->join_pid, 500, 3, deadline);
++					ret = mt6797_hif_send_data_report(mac->hif,
++									  mac->join_eth,
++									  eth_bytes, 1,
++									  mac->join_pid,
++									  !credit_only,
++									  500, 3, deadline);
+ 					if (ret)
+ 						goto failed;
+-					mac->join_inflight_data = true;
++					mac->join_inflight_data = !credit_only;
+ 					mac->join_data_page_debt += pages;
++					if (credit_only) {
++						/* Retired at submission: mac80211 sees a
++						 * frame transmitted without an
++						 * acknowledgment report, never a loss; the
++						 * TX done event and the slot are not used.
++						 */
++						struct ieee80211_tx_info *cb;
++
++						cb = IEEE80211_SKB_CB(skb);
++
++						ieee80211_tx_info_clear_status(cb);
++						cb->flags |= IEEE80211_TX_STAT_NOACK_TRANSMITTED;
++						__skb_queue_tail(&data_completed, skb);
++						mac->join_inflight = NULL;
++						mac->join_data_tx_done++;
++						mac->join_data_credit_retired++;
++					}
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+ 							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu\n",
+@@ -3740,15 +3774,19 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ 			pump_progress = true;
+ #endif
+-			if (MT6797_DATA_DEPTH > 1 && mac->join_inflight_data) {
+-				if (!mt6797_data_put(&mac->data_slots, mac->join_pid,
+-						     mac->join_inflight,
+-						     mac->join_frame_deadline)) {
+-					ret = -EPROTO;
+-					goto failed;
++			if (MT6797_DATA_DEPTH > 1 &&
++			    (mac->join_inflight_data || credit_only)) {
++				if (mac->join_inflight_data) {
++					if (!mt6797_data_put(&mac->data_slots, mac->join_pid,
++							     mac->join_inflight,
++							     mac->join_frame_deadline)) {
++						ret = -EPROTO;
++						goto failed;
++					}
++					mac->join_inflight = NULL;
++					mac->join_inflight_data = false;
+ 				}
+-				mac->join_inflight = NULL;
+-				mac->join_inflight_data = false;
++				credit_only = false;
+ 				/* Submit every admissible data frame in this pass, up
+ 				 * to the in-flight depth, before the receive loop and
+ 				 * the next pass's status reads run again.
+-- 
+2.43.0
+
