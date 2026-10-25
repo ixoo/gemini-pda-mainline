@@ -65,11 +65,13 @@ literal(h, """    [ "$dir" != RX ] || printf 'TP1_RX_BYTES=%s\\n' "$total"
 """, """    [ "$dir" != RX ] || printf 'TP1_RX_BYTES=%s\\n' "$total"
     [ "$dir" != TX ] || printf 'TP4_R1=%s\\n' "$(rt)"
 """)
-# 3. comments stripped at render (the idle and receive validators read the rendered text)
+# 3. comments stripped at render, and the console indicator's lines when it is off (the validators read the rendered text)
 literal(h, """.replace('HOST', shlex.quote(host))
     return script
 """, """.replace('HOST', shlex.quote(host))
     script = '\\n'.join(l for l in script.split('\\n') if not l.lstrip().startswith('# shellcheck'))
+    if os.environ.get('TP_CONSOLE_PROGRESS') != '1':   # the indicator is off: its dead lines leave the bounded command
+        script = '\\n'.join(l for l in script.split('\\n') if not (l.lstrip().startswith("cp '") or l.lstrip().startswith('cp() {')))
     return script
 """)
 # 4. the laptop side: parse the echo legs, the TCP state lines and the retransmission counts into the probe record

@@ -68,7 +68,8 @@ literal(h, "                        'ended_by':'byte_cap' if count>=self.maximum
 p = work / 'hosts/throughput-prepare.py'
 literal(p, "'seconds_per_chunk':1,'byte_cap_per_chunk':1048576,", "'seconds_per_chunk':%d,'byte_cap_per_chunk':%d," % (SECONDS, CAP))
 r = work / 'review-installer.py'
-literal(r, "'seconds_per_chunk': 1,", "'seconds_per_chunk': %d," % SECONDS)
-literal(r, "'byte_cap_per_chunk': 1048576,", "'byte_cap_per_chunk': %d," % CAP)
+if "'seconds_per_chunk': %d," % SECONDS not in r.read_text():   # a work directory derived from one already on this protocol keeps its record
+    literal(r, "'seconds_per_chunk': 1,", "'seconds_per_chunk': %d," % SECONDS)
+    literal(r, "'byte_cap_per_chunk': 1048576,", "'byte_cap_per_chunk': %d," % CAP)
 compile(h.read_text(), str(h), 'exec')
 print('steady-state chunks: %d MiB or %d s each, final-half rate recorded (helper, device leaf, plan, review record)' % (CAP >> 20, SECONDS))

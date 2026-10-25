@@ -109,7 +109,7 @@ with tempfile.TemporaryDirectory() as tmp:
     trig.thread.join(timeout=5); trig.close()
     sends = trig.result.get('sends', [])
     line(bool(sends) and abs(sends[0]['offered_mbit_s'] - 10) < 1.5, 'offline: UDP send leg paces 10 Mbit/s on loopback (%s)' % (sends[0].get('offered_mbit_s') if sends else None))
-    line(script.index('TP3_UDP') > script.index('for dir in TX RX'), 'rendered device script: the probe block follows the chunk loop (off the critical path)')
+    line(script.index('TP3_TXPING' if transmit else 'TP3_UDP') > script.index('for dir in TX RX'), 'rendered device script: the probe block follows the chunk loop (off the critical path)')
     line(trig.result.get('laptop_ping_at_rest', {}).get('rtt_ms') is not None, "offline: the laptop's ping to its own address records a round trip")
     line(bool(trig.result.get('trigger_rtt_ms')), 'offline: the trigger connection records a TCP round trip (%s)' % trig.result.get('trigger_rtt_ms'))
     # UDP receive direction: a datagram to a bound loopback socket arrives

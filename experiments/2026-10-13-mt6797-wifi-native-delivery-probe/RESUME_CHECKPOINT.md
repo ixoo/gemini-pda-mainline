@@ -8,8 +8,11 @@ access point's downlink distribution; the silent early stop is a named
 harness fault now recorded with its reason. The second run on the same
 image carries a device-to-laptop echo probe at 10/20/30 Mbit/s and the
 device's congestion window per chunk; its table decides between the
-driver and TCP before any HT work. The owner's AP power times are still
-owed.
+driver and TCP before any HT work. The second run is staged on the same
+image (boot2 `0f1ca6cf…`, the installer's full readback matched and the
+write skipped; device shut down; watcher armed; the owner selects boot2);
+the console indicator is off this run for the device command's bound.
+The owner's AP power times are still owed.
 
 # Historical: boot F read as no change (the firmware's per-frame transmit processing is the limit, ~800 frames/s); boot G cancelled; boot H samples the status report 1 in 64; HT aggregation is the throughput project
 
