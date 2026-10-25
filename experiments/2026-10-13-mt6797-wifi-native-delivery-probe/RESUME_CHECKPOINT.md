@@ -1,4 +1,4 @@
-# Current: boot J released the mechanism (TX 15.5–16.7 Mbit/s, zero loss, the pipeline saturated at depth ÷ wait); the acknowledgement path read from source; boot K (depth 8, 16 MiB chunks) predeclared and building
+# Current: boot J released the mechanism (TX 15.5–16.7 Mbit/s, zero loss, the pipeline saturated at depth ÷ wait); the acknowledgement path read from source; boot K (depth 8, 16 MiB chunks) is staged on boot2 at 5a3e577d (image 5f5a187c…, predecessor 5e19a3c6…); the owner selects boot2
 
 [Boot J](HIF_TRANSPORT_ANALYSIS.md#boot-j-result-2026-10-25-1753-utc-transmit-above-12-with-zero-loss-the-retransmissions-were-part-of-the-cost)
 took §20's second branch: 156 stops and wakes (boot I's 2,223),
@@ -12,7 +12,9 @@ one data queue, its stop and its four-frame window, so the receive-stall
 hypothesis stands as consistent, not proven, and is watched rather than
 reproduced. [§21](HIF_TRANSPORT_ANALYSIS.md#21-boot-k-predeclared-2026-10-25-depth-8-on-boot-js-tree)
 predeclares boot K: depth 8 (ledger 104) on boot J's tree, chunks at
-16 MiB or 3 s; HT stays closed.
+16 MiB or 3 s; HT stays closed. Boot K's image was written and read
+back from Gemian (boot `3722770b…`) and the device shut down cleanly;
+the watcher starts the same run on the owner's boot2 selection.
 
 # Historical: boot J (0282 v2: queue bound 64, stop 56, wake 32) is staged on boot2 at e51cb584 (image 5e19a3c6…, predecessor d589c647…); the owner selects boot2; the watcher starts the five-chunk run
 
