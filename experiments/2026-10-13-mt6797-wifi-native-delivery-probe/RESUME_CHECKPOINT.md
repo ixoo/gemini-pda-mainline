@@ -1,4 +1,17 @@
-# Current: boot F read as no change (the firmware's per-frame transmit processing is the limit, ~800 frames/s); boot G cancelled; boot H samples the status report 1 in 64; HT aggregation is the throughput project
+# Current: boot H's first run void (harness stop after one chunk; the sampled report works); the second run adds the transmit probe and the device's TCP state; HT is not opened
+
+[§18](HIF_TRANSPORT_ANALYSIS.md#18-boot-h-second-run-predeclared-2026-10-25-the-transmit-probe-and-the-devices-tcp-state):
+boot F's reading is corrected a third time (depth 8 neutral, the offer
+rate is the limit, mechanism not identified); boot H's one chunk proved
+the air exonerated (39 samples at 0x4c, status 0) and recorded the
+access point's downlink distribution; the silent early stop is a named
+harness fault now recorded with its reason. The second run on the same
+image carries a device-to-laptop echo probe at 10/20/30 Mbit/s and the
+device's congestion window per chunk; its table decides between the
+driver and TCP before any HT work. The owner's AP power times are still
+owed.
+
+# Historical: boot F read as no change (the firmware's per-frame transmit processing is the limit, ~800 frames/s); boot G cancelled; boot H samples the status report 1 in 64; HT aggregation is the throughput project
 
 [Boot F result](HIF_TRANSPORT_ANALYSIS.md#boot-f-result-2026-10-25-1613-utc-depth-8-did-not-move-transmit-the-slots-are-half-empty-the-limit-is-upstream-of-the-driver)
 (corrected reading) and [§17](HIF_TRANSPORT_ANALYSIS.md#17-stalls-named-and-boot-h-predeclared-2026-10-25-the-sampled-status-report):
@@ -15,9 +28,13 @@ path?), private memo, no boot: answered, no AES tables in either image,
 the cost is not encryption. Boot H is staged: lifecycle package at
 `a1aa339a` (depth 4, credit retire, one report in 64), boot2 `0f1ca6cf…`
 over `78bc8d58…` (full readback verified from Gemian `ccba9a97…`), five
-steady-state chunks with the device bound at 4 s, preflight passed,
-device shut down, watcher armed; the owner selects boot2. The owner's AP
-power times are still owed.
+steady-state chunks with the device bound at 4 s. Its first run was void
+for the series: the 4 s device bound made the laptop close a transmit
+chunk first and the leaf read the device's exit 1 as a fault after one
+chunk; the sampled report itself worked (39 samples, 39 reports, all at
+0x4c with status 0, latency 4–8 ms). The transmit leg now accepts that
+close; the run is repeated on the same image. The owner's AP power times
+are still owed.
 
 # Historical: boot F (depth 8) measured neutral; the transmit limit is upstream of the driver (the sender's TCP); depth returns to 4; next are transmit UDP legs and the TCP retransmission count
 

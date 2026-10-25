@@ -42,6 +42,13 @@ literal(h, "$BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeou
         "$BB dd if=/dev/zero bs=65536 count=64 2>/tmp/tp2-dd.log | $BB timeout %d $BB nc HOST 48001 || rc=$?" % DEVICE_BOUND)
 literal(h, "n=$(set -o pipefail; $BB timeout 1 $BB nc HOST 48002 | $BB wc -c) || rc=$?",
         "n=$(set -o pipefail; $BB timeout %d $BB nc HOST 48002 | $BB wc -c) || rc=$?" % DEVICE_BOUND)
+# with the device's bound past the laptop's duration, the laptop closes a transmit chunk first and the
+# device's nc exits 1 on the closed pipe (boot H ended after one chunk on exit 38): that close is the
+# chunk's normal end on the transmit leg only; the receive leg sees a plain EOF (exit 0). Written as
+# one pattern so the rendered command stays under its 4,096-byte bound.
+literal(h, """        case "$rc" in 0|124|143) ;; *) exit 38;; esac
+""", """        case "$rc$dir" in 0*|124*|143*|1TX) ;; *) exit 38;; esac
+""")
 # the laptop side: progress samples every 50 ms, the rate over the final half of the chunk beside the whole-chunk rate
 literal(h, "                    samples, next_sample = [], 0\n",
         "                    samples, next_sample = [], 0\n                    progress, next_progress = [], 0\n")

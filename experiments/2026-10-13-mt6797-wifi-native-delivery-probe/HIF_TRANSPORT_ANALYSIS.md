@@ -1766,16 +1766,23 @@ for a 1,518-byte frame, 5.6× less than the 1.25 ms observed, and the
 access point receives at that rate (5 unacknowledged of 5,132 on boot C);
 the credits are collected in every pass (216,858 passes, 0.088
 submissions each); the wait grows with the depth while the rate does
-not, a fixed service rate behind a longer queue. Therefore **the
-firmware's per-frame transmit processing is the limit at about 800
-frames a second**, and it is not addressable by depth, status report,
-ledger or buffer changes. The low mean occupancy, which the first reading
-took for an arrival limit, is TCP pacing its sends to the rate the
-firmware drains (acknowledgement clocking), as the receive direction
-shows from the other side: 20 Mbit/s there is 1,730 segments a second
-received plus about 860 acknowledgements transmitted, the transmit
-service at its ceiling again, on a 2 MB window over a 300–600 ms round
-trip.
+not, a fixed service rate behind a longer queue. **Corrected again (owner, after boot H's chunk): depth 8 neutral, the
+offer rate is the limit; the mechanism is not yet identified.** The
+firmware reading above does not survive the depth comparison: a
+service-limited pipeline with eight admitted would have carried the
+wait from 3.48 ms to about 6.96 ms, and it went to 4.47; the mean in
+flight never approached 8, and the worker's census (0.088 submissions a
+pass over 216,858 passes) says the driver's queue was empty most of the
+time. The frames are not being offered at the depth the driver permits.
+The service-time derivation (wait over occupancy, 1.24 ms at both
+depths) measures the per-frame latency when few are in flight; it is a
+ceiling only if the firmware serves serially, which is the unproven
+step. What is proven: the air is not the limit (boot H's sampled frames
+all left at 0x4c with status 0, 0.225 ms of air against 1.25 ms
+observed), the host's DMA and CPU are not, and the depth is not. Whether
+"the driver can only do 9" or "TCP is pacing it at 9" is decided by a
+transmit probe without acknowledgement pacing and by the device's own
+TCP state during the chunks (§18), not by more depth.
 
 **Dispositions.** Boot G (depth 12) is cancelled and the boot spent
 elsewhere (§17); the lifecycle fragment returns to depth 4 (0280 stays
@@ -1784,16 +1791,17 @@ would fill). 0274 v2 held again (`beyond=18927`). The steady-state
 protocol is adopted with its bound race fixed; boot F's whole-chunk
 transmit numbers are the first steady-state rates in the series.
 
-**Next.** With the per-frame cost firmware-side, the way past 9.25 Mbit/s
-is fewer firmware transactions per byte: A-MSDU or A-MPDU, which need HT
-capability, QoS data with TIDs and, for A-MPDU, a block-ack session.
-That moves HT ahead of everything else on the throughput queue, as a
-project, not a boot. Two bounded items come first: the sampled status
-report that identifies the rate of a data frame at 1/64 of the cost
-(§17), and one firmware question in the RE VM, private memo, no boot: is
-the firmware's 1.25 ms a frame dominated by a software CCMP step in its
-transmit descriptor path? If so, aggregation amortises it (one crypto
-transaction per aggregate) and no per-frame rate change would.
+**Next.** If the per-frame cost is real and inside the firmware, the way
+past 9.25 Mbit/s is fewer firmware transactions per byte (A-MSDU or
+A-MPDU: HT capability, QoS data with TIDs and, for A-MPDU, a block-ack
+session), a project, not a boot. **It is not opened on the current
+evidence**: aggregation addresses a per-frame cost, and a per-frame cost
+has not been established. The sampled status report (§17) and the
+transmit probe with the device's TCP state (§18) decide it in one boot;
+if they say TCP-paced, HT could not move the number it would be opened
+for. The firmware question (software CCMP in the transmit path) is
+answered in the private memo: no AES tables in either image, the cost,
+whatever it is, is not encryption.
 
 ## 17. Stalls, named; and boot H (predeclared, 2026-10-25): the sampled status report
 
@@ -1855,3 +1863,97 @@ submission (every 64th ordinary data frame carries a PID and the report
 flag); the report arrives on the receive path as today's management
 reports do; the vendor requests the report exactly this way for frames
 with a handler. The ledger stands at ten.
+
+### Boot H, first run (2026-10-25, 16:37 UTC): void for the series on a harness fault; the sampled report works
+
+Build `a1aa339a` (depth 4, credit retire, one report in 64), boot2
+`0f1ca6cf…` over `78bc8d58…`, mainline boot `aa1af0f7…`, returned to
+Gemian `00c816df…` (recovery confirmed); session
+`ram-service-regression-pass`, log complete through the seal (172,800
+bytes). The measurement ended after the first transmit chunk: the device
+bound of 4 s that fixed boot F's race made the laptop close a transmit
+chunk first, and the device's `nc` then exits 1 on the closed pipe, which
+the leaf's exit-code rule read as a fault (exit 38); the leaf ended, the
+host's disconnect ended the data phase at 8.9 s (`reason=disconnect`,
+`tx_failed=0`), the receive direction and the probe never ran, receipt
+`all_pass=false`. A harness fault, not a device finding: the transmit leg
+now accepts that close as the chunk's normal end (receive sees a plain
+EOF), and the run is repeated on the same image.
+
+**What the one chunk and the instrument did yield (provisional, not a
+series row).** TX chunk 1: 9.48 Mbit/s over 3.0 s (final half 9.46), the
+steady rate again. The sampled status report worked exactly as
+predeclared: `samples=39 reports=39` of 2,484 frames retired (one in 64),
+no expiry, no PID-pool fault, no unowned completion, `left_pages=0`; the
+rate histogram `0/0x004c=39` (every sample sent at 54 Mbit/s, status 0,
+first and last 0x4c), the completion-latency histogram `n=39`: 37 in
+[4, 8) ms, one in [8, 16), one under 1 ms, maximum 14.9 ms, against the
+credit-retire mean wait of 3.59 ms. **Proven by the chunk:** every sampled data frame left at 0x4c with status
+0, so the air (0.225 ms a frame at 54 Mbit/s against the 1.25 ms
+observed) is exonerated at the fixed rate, and the one-in-64 report costs
+nothing (39 reports of about 2,500 frames). Also recorded, the first
+direct evidence of what the access point chooses toward this station in
+one phase: `RX rates 1/12=1286, 1/8=227, 1/13=80, 1/11=41, 1/9=4` (78 %
+at 54 Mbit/s, 14 % at 48). **Not proven:** that the firmware's per-frame
+processing is the limit; the depth comparison does not support it (the
+boot F record's third reading), and this chunk cannot say whether the
+driver can only do 9 or TCP paces it at 9. **The fault, named:** a run
+that ends after one chunk without recording a reason is the silent-leg
+class again (an endpoint reported `completed=false, errors=0`, the
+receive direction had no chunks, the classifier read `fault=false` with
+`measurement_censored=true`); an endpoint that stops now records why and
+the session fails with that reason attached (§18). Boot H is recorded as
+one valid transmit chunk with the receive direction lost to a harness
+stop, not as a measurement.
+
+## 18. Boot H, second run (predeclared, 2026-10-25): the transmit probe and the device's TCP state
+
+**The question.** The transmit number is 9.2 Mbit/s at depth 4 and 8 with
+the air, the host and the depth excluded; what remains is "the driver
+and firmware can only do 9" against "TCP paces it at 9". Two instruments
+decide it in one boot, neither a driver change.
+
+**The transmit probe.** The mirror of the receive probe that proved 30
+Mbit/s: the device offers 10, 20 and 30 Mbit/s toward the laptop with
+1,400-byte payloads, timed on the device, the arrivals counted on the
+laptop. The device's BusyBox has no UDP sender (`nc` is TCP-only, no
+`socat`), so the leg is ICMP echo: `ping -s 1400 -i <interval> -c N`,
+893, 1,786 and 2,679 requests at intervals of 1.12, 0.56 and 0.37 ms,
+each leg about a second; the laptop answers every request (its replies
+are the count, taken on the device as "received", and the receive path
+has carried 30 Mbit/s with zero loss on three boots, so a missing reply
+is a lost request), and the offered rate is the device's own clock
+around the leg. The return traffic is the one deviation from the owner's
+specification (no return traffic) and is declared; the receive UDP legs
+step aside this boot to keep the device command under its 4,096-byte
+bound (they stand on three boots), the leaf's comment lines are stripped
+at render and the console indicator (not evidence) is left out of this
+run for the same reason ([`hosts/transmit_probe.py`](hosts/transmit_probe.py);
+the early-stop record is [`hosts/early_stop.py`](hosts/early_stop.py)).
+
+**The device's TCP state.** One line per transmit chunk, sampled 1.5 s
+into the chunk from `/proc/net/tcp` for the socket to the laptop's
+transmit port: the congestion window, the slow-start threshold, the
+retransmit-queue count and the transmit queue; and the device's TCP
+retransmission count (`/proc/net/snmp`, `RetransSegs`) before and after
+the transmit phase. It discriminates the same question from the other
+side and makes the answer unambiguous when both agree.
+
+**The silent early stop, fixed.** An endpoint that stops before its last
+chunk records why (`stopped: after_chunk, reason`), the measurement
+carries `early_stop` with the device's exit code, and the classifier's
+fault reason names it; a run that ends after one chunk can no longer
+read as censored with no fault.
+
+| TX probe result | Cause | Next |
+|---|---|---|
+| about 20 Mbit/s or better | the driver and firmware are not the limit; the TCP send window is | the transmit number becomes a TCP question: socket buffers, large segments, or a protocol without acknowledgement pacing |
+| about 9 Mbit/s, matching TCP | the per-frame cost is real and inside the firmware | aggregation (HT with block-ack) is the throughput project |
+| between | both contribute | read the device's congestion window before choosing |
+
+The cwnd line reads the same table from the other side: a window pinned
+near the bandwidth-delay product of 9 Mbit/s over the in-chunk round trip
+says TCP; a window far above it with the queue empty says the driver.
+The run otherwise repeats boot H's first run on the same image (the
+sampled status report, 0281), five steady-state chunks with the transmit
+leg's close accepted, the stall ledger kept.

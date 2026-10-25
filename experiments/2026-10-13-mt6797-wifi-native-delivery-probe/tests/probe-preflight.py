@@ -55,10 +55,11 @@ with tempfile.TemporaryDirectory() as tmp:
     host = '10.15.19.2'
     script = mod['remote_script'](env['GEMINI_WIFI_SSH_BOOT'], host)
     os.environ.clear(); os.environ.update(saved)
+transmit = 'TP3_TXPING' in script   # the transmit probe (echo legs) in place of the receive UDP legs
 anchors = {
-    'probe block (UDP loop)': ("printf 'TP3_UDP", 1),
+    'probe block (echo legs)' if transmit else 'probe block (UDP loop)': ("printf 'TP3_TXPING" if transmit else "printf 'TP3_UDP", 1),
     'probe status line (the probe decides only itself)': ("printf 'TP3_RC=%s\\n' \"$?\"; true", 1),
-    'probe trigger to the laptop': ('nc -w2 %s 48003' % host, 1),
+    'device TCP state per transmit chunk' if transmit else 'probe trigger to the laptop': ("TP4_TCP" if transmit else 'nc -w2 %s 48003' % host, 1),
     'receive listener (device reads from the laptop)': ('nc %s 48002 | $BB wc -c' % host, 1),
     'transmit sender (device writes to the laptop)': ('nc %s 48001' % host, 1),
     'both directions': ('for dir in TX RX; do', 1),

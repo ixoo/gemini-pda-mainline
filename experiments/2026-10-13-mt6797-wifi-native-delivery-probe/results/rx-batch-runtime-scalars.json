@@ -1222,6 +1222,63 @@
      "ended_by": "device_timeout (bound race)"
     }
    ]
+  },
+  "boot-h-1": {
+   "run": "PIO-throughput-booth-1",
+   "session": "2026-10-25 16:37 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (depth 4, credit retire, report sample 64)",
+   "kernel_build_commit": "a1aa339a0e189a18b86fba66d0e6f709b45d7637",
+   "boot2_sha256": "0f1ca6cfb30166547ab495ca1ffe305f21e8844db228e19fc4c883f8b4f39a92",
+   "predecessor_boot2_sha256": "78bc8d58061e5df811eef276f3e01df57a227c51a7a412b305f48bbb3c814ed1",
+   "mainline_boot_id": "aa1af0f7-36b9-4316-b98d-8f8c89680b75",
+   "previous_gemian_boot_id": "ccba9a97-b0ce-4e99-8691-ee247dcb8b78",
+   "returned_gemian_boot_id": "00c816df-18b4-4907-911c-6ab8c1dfded3",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 172800,
+   "all_pass": false,
+   "series_row": false,
+   "outcome": "void: the leaf ended after TX chunk 1 (device nc exit 1 on the laptop's close with the 4 s device bound; leaf exit 38); harness fault, fixed (transmit leg accepts the close)",
+   "tx_chunk1": {
+    "mbit_s": 9.48,
+    "final_half_mbit_s": 9.46,
+    "bytes": 3555864,
+    "elapsed_ms": 3002
+   },
+   "credit_retire": {
+    "retired": 2484,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 3592,
+    "wait_max_us": 9479,
+    "inflight_max": 4,
+    "samples": 39,
+    "reports": 39
+   },
+   "sampled": {
+    "tx_rates": {
+     "0/0x004c": 39
+    },
+    "latency_ms_buckets": {
+     "<1": 1,
+     "<2": 0,
+     "<4": 0,
+     "<8": 37,
+     "<16": 1,
+     "<32": 0,
+     "<64": 0,
+     "more": 0
+    },
+    "n": 39,
+    "max_us": 14884
+   },
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 8851,
+    "tx_queued": 2523,
+    "tx_failed": 0,
+    "rx_delivered": 1677
+   },
+   "reading": "instrument verified (39 samples, 39 reports, all 0x4c status 0, latency 4-8 ms); run void for the series; repeat on the same image with the transmit-leg close accepted"
   }
  }
 }
