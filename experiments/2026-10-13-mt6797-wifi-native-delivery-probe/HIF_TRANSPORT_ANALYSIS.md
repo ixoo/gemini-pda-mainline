@@ -889,3 +889,85 @@ repository and the lesson is recorded here because it cost a device
 cycle: three cycles of this probe have been lost to the harness (the
 unbound placeholder, the renamed flag), none to the driver. The TCP
 samples of boot 1 stand; the ping and the UDP readings are still owed.
+
+### Before probe boot 3: the two faults named, the gate on the rendered run, the queue
+
+**Activation.** The run's environment set `TP_RECEIVE_PROBE2=1` while the
+prepare step, the helper and the guard read `TP_RECEIVE_PROBE`, so the
+plan recorded `receive_probe: false` and the probe never armed. The cause
+was the staging script for the re-run, derived from the first by a name
+sweep that also swept the flag. One name, `TP_RECEIVE_PROBE`, is read by
+the prepare step, the helper, the guard and the preflight; nothing else
+exists to be set by habit, and the preflight refuses an environment that
+carries any other `TP_RECEIVE_*` name.
+
+**Receive direction.** `rx_unicast=0 rx_group=0 rx_dropped=0` on the
+data-end line while `tx_done=3513` and the receive chunks completed: no
+leg was dead. The helper's own output has every receive chunk closing with
+its full megabyte on the device (`TP2_PROGRESS direction=RX chunk=n
+phase=end rc=0 bytes=1048576`, five times) and the interface counting
+3,672 received packets over the receive direction; the laptop's send leg
+and the device's listener both worked. The three counters are the dead
+thing: they belong to the join worker's own data-delivery branch (mac.c,
+the `mt6797_data_rx` path bounded by `MT6797_JOIN_DATA_RX_MAX`), which the
+lifecycle tree never enters because received data has gone through the
+runtime delivery path (`mt6797_ccmp_receive`, `ieee80211_rx_napi`) since
+the single-arm consolidation; they have read zero on every boot of this
+series, including the ones that moved five megabytes. The live path keeps
+no count of delivered frames at all, so the data-end line is silent about
+receive: that is the finding the owner's rule names (a silent leg is worse
+than a failed one), and the next build adds the delivered-frame count to
+the data-end record and drops the three dead counters from it (logging
+only), alongside the received-rate record.
+
+**The gate.** [`tests/probe-preflight.py`](tests/probe-preflight.py) reads
+the rendered artefacts of a prepared run (the plan, the environment, the
+helper the run will load, the device script it will send) and prints one
+line per check: every feature flag in the plan agrees with the
+environment and no stray flag exists; the rendered device script carries
+the probe block, the receive listener, the transmit sender, both
+directions and five chunks, each by anchor count, with no unbound
+placeholder, within the command bound and admitted by the helper's own
+validators; the helper writes the probe record and creates the trigger
+under the same flag; offline, the UDP send leg paces on loopback, the
+laptop's ping to its own address and the trigger connection each record a
+round trip, a datagram arrives on a loopback socket, and a two-ended TCP
+transfer runs through the helper's receive endpoint with its samples. Run
+against boot 2's rendered run it refuses on seven lines (the stray flag,
+the disabled plan, the three probe anchors, the endpoint without the probe,
+the ping); the staging stops at a refusal before anything touches the
+device.
+
+**Probe boot 3 (boot A), what it must produce.** The device's advertised
+window and the in-chunk TCP round-trip time as interval samples (every 50
+ms, listed, not only a median); the laptop's ping to the device at rest
+(before the owned command) and in-chunk (during the third receive chunk);
+the device's ping to the laptop at rest and the trigger connections' TCP
+round trips; the UDP delivered rate and loss at 10, 20 and 30 Mbit/s
+offered. The pair of pings is the discriminator the 61–102 ms in-chunk
+reading demands: slow only under load is a queue, slow at rest is policy
+or path. The UDP reading separates the downlink from the acknowledgement
+path, and the fourth row (the access point's legacy downlink rate to a
+station that advertises no HT) stays in the table.
+
+**The queue after it, as the owner set it.** Boot B: stop requesting the
+MCU transmit-status report on ordinary data descriptors and complete those
+frames on page credits, as the vendor does, management and security
+keeping their reports; branches as predeclared (latency falls with TX up
+and in-chunk RTT down confirms; RX rising with no receive-side change
+confirms the acknowledgement clock in the same boot; latency unchanged
+means data frames are not retired on credits the way the vendor's are);
+two attempts, then the record. The next build also carries the
+received-rate record, mirroring 0262 for received frames behind its own
+option, once the source confirms the received-frame status carries the
+rate. Boot C: the fixed-rate sweep on the data descriptor's rate code (6 →
+54, 24 as the fallback), a transmit-side change that moves the receive
+number proving the receive measurement a transmit property. Boot D: the
+state-2 encoder attempt, one line of admission, one boot, the rate thread
+closing on its result. The AP-loss gate stays independent of all of it.
+
+**Absence ledger.** WHCR never written by the vendor beyond its init
+default; WHISR never copied by a consumer; station state 2 never sent
+through our refused encoder; and the MCU transmit-status report never
+requested by the vendor for a plain data frame. Four instances; the third
+question stays in every predeclaration.

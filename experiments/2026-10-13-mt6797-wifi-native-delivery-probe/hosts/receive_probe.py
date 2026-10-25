@@ -12,7 +12,10 @@ Three readings in one boot, before the chunk loop (the device at rest):
 - one ping from the device to the laptop (three echoes, the summary line),
   and the TCP round-trip time the laptop's kernel measures on each trigger
   connection from the device at rest (one byte out, the acknowledgement
-  back), as a second reading of the same quantity;
+  back), as a second reading of the same quantity, plus the laptop's own
+  ping to the device at rest (before the command) and in-chunk (during the
+  third receive chunk): slow only under load is queueing, slow at rest is
+  policy or path;
 - three offered UDP rates (10, 20, 30 Mbit/s, one second each, 1400-byte
   datagrams) sent by the laptop to a closed port on the device, counted by
   the device kernel's UDP `NoPorts` counter and the interface's rx_bytes,
@@ -21,7 +24,8 @@ Three readings in one boot, before the chunk loop (the device at rest):
   gap: the device has no UDP receiver.
 And during the TCP receive chunks, from the laptop's send socket: the
 device's advertised window, the congestion window, the segment size and
-the round-trip time (macOS TCP_CONNECTION_INFO), sampled every 50 ms. The
+the round-trip time (macOS TCP_CONNECTION_INFO), sampled every 50 ms and
+recorded as the interval samples beside their summary. The
 device's receive buffer parameters are the kernel defaults (the initramfs
 sets none); the device command has a 4096-byte bound, so they are not
 read there and the advertised window is the measurement.
@@ -65,11 +69,27 @@ def tcp_info_summary(samples):
     def med(key):
         v = sorted(s[key] for s in samples); return v[len(v) // 2]
     return {'samples': len(samples), 'maxseg': samples[-1]['maxseg'],
+            'rttcur_ms_samples': [s['rttcur_ms'] for s in samples],
+            'peer_window_samples': [s['peer_window'] for s in samples],
             'peer_window_min': min(s['peer_window'] for s in samples),
             'peer_window_median': med('peer_window'),
             'peer_window_max': max(s['peer_window'] for s in samples),
             'snd_cwnd_median': med('snd_cwnd'), 'rttcur_ms_median': med('rttcur_ms'),
             'rttcur_ms_max': max(s['rttcur_ms'] for s in samples), 'srtt_ms_last': samples[-1]['srtt_ms']}
+
+
+def laptop_ping(peer, count=3, interval=0.3):
+    """The laptop's own ping to the device: at rest before the command, and
+    in-chunk during the third receive chunk. The summary line and the
+    parsed round-trip min/avg/max."""
+    try:
+        out = subprocess.run(['ping', '-c', str(count), '-i', str(interval), peer], capture_output=True, text=True, timeout=10).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return {'summary': None, 'rtt_ms': None}
+    line = [l for l in out.splitlines() if 'round-trip' in l or 'rtt' in l]
+    m = re.search(r'= ([0-9.]+)/([0-9.]+)/([0-9.]+)', line[-1]) if line else None
+    return {'summary': line[-1] if line else (out.strip().splitlines() or [''])[-1],
+            'rtt_ms': {'min': float(m[1]), 'avg': float(m[2]), 'max': float(m[3])} if m else None}
 
 
 class ProbeTrigger:
@@ -85,6 +105,8 @@ class ProbeTrigger:
         self.socket.settimeout(0.2)
         self.peer, self.target, self.rates = peer, (peer, target_port), list(rates_mbit_s)
         self.result = {'sends': [], 'errors': 0, 'completed': False, 'datagram_bytes': self.DATAGRAM}
+        self.result['laptop_ping_at_rest'] = laptop_ping(peer)
+        self.in_chunk = {}
         self.cancel = threading.Event()
         self.thread = threading.Thread(target=self.work, daemon=True)
         self.thread.start()
@@ -166,6 +188,9 @@ def receive_probe(output, probe, endpoints):
     record['udp'] = udp
     if probe:
         record['laptop'] = {k: v for k, v in probe.result.items() if k != 'sends'}
+        t = probe.in_chunk.get('thread')
+        if t: t.join(timeout=12)
+        record['laptop_ping_in_chunk'] = probe.in_chunk.get('ping')
     rx = [e for e in endpoints if e.sending]
     if rx:
         record['tcp_receive_chunks'] = [c.get('tcp_info') for c in rx[0].result.get('chunks', [])]
@@ -189,7 +214,9 @@ HELPER_EDITS = [
     ("def remote_script(boot, host):\n", LAPTOP_BLOCK + "\ndef remote_script(boot, host):\n"),
     # 5. per-chunk TCP samples on the sending endpoint
     ("                    count = 0\n                    reason = 'duration'\n",
-     "                    count = 0\n                    reason = 'duration'\n                    samples, next_sample = [], 0\n"),
+     "                    count = 0\n                    reason = 'duration'\n                    samples, next_sample = [], 0\n"
+     "                    if self.sending and ordinal == 3 and getattr(self, 'probe', None) is not None:\n"
+     "                        self.probe.in_chunk['thread'] = threading.Thread(target=lambda: self.probe.in_chunk.__setitem__('ping', laptop_ping(self.peer)), daemon=True); self.probe.in_chunk['thread'].start()\n"),
     ("                            count += amount\n                            self.result['bytes'] += amount\n",
      "                            count += amount\n                            self.result['bytes'] += amount\n"
      "                            if self.sending and sys.platform == 'darwin' and time.monotonic_ns() >= next_sample:\n"
@@ -204,7 +231,8 @@ HELPER_EDITS = [
     ("        endpoints.append(Endpoint(host,48002,peer,True,chunks=CHUNKS))\n",
      "        endpoints.append(Endpoint(host,48002,peer,True,chunks=CHUNKS))\n"
      "        if os.environ.get('TP_RECEIVE_PROBE') == '1':\n"
-     "            nonlocal_probe[0] = ProbeTrigger(host,48003,peer,48004,(10,20,30))\n"),
+     "            nonlocal_probe[0] = ProbeTrigger(host,48003,peer,48004,(10,20,30))\n"
+     "            endpoints[-1].probe = nonlocal_probe[0]\n"),
     ("    original_command = M.COMMAND\n",
      "    original_command = M.COMMAND\n    nonlocal_probe = [None]\n"),
     ("        for endpoint in endpoints:\n            endpoint.close()\n",

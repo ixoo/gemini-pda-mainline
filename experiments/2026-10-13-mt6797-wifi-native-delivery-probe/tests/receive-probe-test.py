@@ -69,6 +69,7 @@ def check_helper():
                   b'TP3_UDP 20 1700\r\n')
         class P:
             DATAGRAM = 1400
+            in_chunk = {}
             result = {'sends': [{'rate_mbit_s': 10, 'datagrams': 893, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 10.0},
                                 {'rate_mbit_s': 20, 'datagrams': 1786, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 20.0}], 'completed': True}
         rec = mod['receive_probe'](output, P(), [])
@@ -77,6 +78,7 @@ def check_helper():
         assert abs(rec['udp'][0]['delivered_mbit_s'] - 880 * 1400 * 8 / 1e6) < 1e-6 and rec['graded'] is False
         # the trigger paces its offered rates on loopback (a closed UDP port)
         trig = mod['ProbeTrigger']('127.0.0.1', 0, '127.0.0.1', 1, (10, 30))
+        assert trig.result['laptop_ping_at_rest']['rtt_ms'] is not None, trig.result['laptop_ping_at_rest']
         port = trig.socket.getsockname()[1]
         for _ in (10, 30):
             socket.create_connection(('127.0.0.1', port)).close(); time.sleep(1.3)

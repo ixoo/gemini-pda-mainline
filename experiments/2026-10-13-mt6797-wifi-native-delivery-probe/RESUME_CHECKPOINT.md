@@ -1,4 +1,14 @@
-# Current: probe boots 1 and 2 lost to the harness (unbound host, renamed flag); third same-image run staged with the plan asserted
+# Current: probe boot 3 staged behind the preflight gate; the owner's queue is B (credits-only completion), C (rate sweep), D (state 2), AP-loss gate independent
+
+[§11](HIF_TRANSPORT_ANALYSIS.md#before-probe-boot-3-the-two-faults-named-the-gate-on-the-rendered-run-the-queue):
+the two faults are named (the swept flag; the dead counter trio on a path
+the tree never enters, while the receive leg itself delivered), the
+preflight gate reads the rendered run and refuses boot 2's, and boot 3
+adds the laptop's pings at rest and in-chunk and the interval samples.
+Next build (logging only): the delivered-frame count on the data-end line
+and the received-rate record. The absence ledger has four entries.
+
+# Historical: probe boots 1 and 2 lost to the harness (unbound host, renamed flag); third same-image run staged with the plan asserted
 
 [§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-2-2026-10-25-a-graded-repeat-the-probe-ran-disabled-by-the-staging):
 boot 2 is a graded TCP repeat (2.67 / 6.99) with the probe disabled by a
