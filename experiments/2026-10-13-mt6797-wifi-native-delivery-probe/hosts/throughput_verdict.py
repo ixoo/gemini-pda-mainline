@@ -22,6 +22,11 @@ It also records 0283's receive gaps per direction, only those inside the
 direction's start and end markers (on the kernel clock, like the gaps); the
 driver does not know the leaf's phases, so the windowing is applied here, and
 a gap kept in the record is a stall by construction. Not a verdict gate.
+
+A failed verdict names itself: the receipt lists the checks that cleared
+`all_pass` (`all_pass_failed`), and the verdict lists the gates that failed
+with their phase (`verdict_failed`, `receipt:` or `classifier:`), so a
+`session_exit=1` is read from the record, not reconstructed by hand.
 """
 import sys
 from pathlib import Path
@@ -67,6 +72,8 @@ def apply(path):
             "                                'native_ciphertext_ok': native['ok'], 'sequence_ok': bool(value.get('sequence_ok')),\n"
             "                                'no_fault': not value.get('fault'), 'ownership': ledger_ok},\n"
             "                 retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])\n"
+            "    value['verdict_failed'] = ['receipt:' + name for name in (receipt or {}).get('all_pass_failed', [])] + \\\n"
+            "        ['classifier:' + gate for gate, ok in value['verdict_gates'].items() if not ok]\n"
             "    value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,\n")
     literal("\ndef cleanup_record(kmsg):\n", '''
 def credit_retire_record(kmsg):
@@ -98,9 +105,42 @@ def cleanup_record(kmsg):
     path.write_text(s)
 
 
+def apply_receipt(path):
+    """The receipt names the checks that cleared all_pass."""
+    s = path.read_text()
+    old = """    for direction in measured.values():
+        directions_ok = bool(directions_ok and direction.get('completed') and"""
+    new = """    failed = [] if result['all_pass'] else ['retained receipt checks']
+    if not directions_ok: failed.append('directions present with received bytes')
+    for label, direction in measured.items():
+        for name, ok in (('completed', direction.get('completed')), ('errors', not direction['errors']),
+                         ('expected_termination', direction['expected_termination']),
+                         ('device_cpu', direction['device_cpu']['valid']), ('bytes', direction['bytes']>0),
+                         ('chunk_count', len(direction.get('chunks',[]))==CHUNKS),
+                         ('chunk_progress', direction['chunk_progress_valid']),
+                         ('chunk_exits', all(c.get('device_exit') in (0,124,143,1,141) for c in direction['chunks'])),
+                         ('netdev_counters', set(direction.get('netdev_delta',{}))==counter_names and
+                          min(direction['netdev_delta'].values())>=0)):
+            if not ok: failed.append(label + '.' + name)
+    if not remote['quiesced']: failed.append('remote quiescence')
+    if not control['accepted']: failed.append('core disconnect')
+    for direction in measured.values():
+        directions_ok = bool(directions_ok and direction.get('completed') and"""
+    assert s.count(old) == 1, 'receipt anchor (directions)'
+    s = s.replace(old, new)
+    old = """    result['all_pass'] = bool(result['all_pass'] and remote['quiesced'] and
+                              control['accepted'] and directions_ok)
+"""
+    assert s.count(old) == 1, 'receipt anchor (all_pass)'
+    s = s.replace(old, old + "    result['all_pass_failed'] = failed\n")
+    compile(s, str(path), 'exec')
+    path.write_text(s)
+
+
 if __name__ == '__main__':
     if sys.argv[1:2] == ['--source']:
         apply(Path(sys.argv[2]))
     else:
         apply(Path(sys.argv[1]) / 'hosts/classify-throughput.py')
+        apply_receipt(Path(sys.argv[1]) / 'hosts/throughput-helper.py')
     print('throughput verdict: stale gates replaced (native ciphertext, declared chunk bound, credit-retire ownership); retained fields recorded')

@@ -21,7 +21,10 @@ one chunk had 3.0 MB unacknowledged at the close and all of it acknowledged
 142 ms later, a burst of delayed acknowledgements. So the chunk's primary
 rate stays the device's received bytes over the device's own span, and the
 acknowledged bytes over the send window are a secondary rate, reported with
-the unacknowledged amount; the two bases are never averaged.
+the unacknowledged amount; the two bases are never averaged. The laptop's
+final-half rate on a receive chunk is its write rate into its own socket,
+which reached 49.4 Mbit/s on boot N against an air ceiling of about 30; it
+is kept only as `host_write_final_half_Mbit_s` and is not a delivery figure.
 """
 import sys
 from pathlib import Path
@@ -63,6 +66,8 @@ literal(h, "                             ended_by='device_timeout' if chunk.get(
            "                                      'byte_cap' if chunk.get('device_received_bytes')==MAX_BYTES else 'peer_eof')\n"
            "                if label=='RX':\n"
            "                    chunk.update(rate_basis='device received bytes over the device span')\n"
+           "                    # the laptop's final half on receive is its write rate, which can exceed the air (boot N: 49.4)\n"
+           "                    chunk['host_write_final_half_Mbit_s'] = chunk.pop('final_half_Mbit_s', None)\n"
            "                if label=='RX' and chunk.get('drain'):\n"
            "                    chunk.update(tcp_flow_Mbit_s=chunk['drain']['send_window_Mbit_s'],\n"
            "                                 tcp_flow_unacknowledged_bytes=chunk['drain']['bytes_after_close'],\n"

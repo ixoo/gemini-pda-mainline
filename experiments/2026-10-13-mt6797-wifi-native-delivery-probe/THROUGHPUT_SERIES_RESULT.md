@@ -49,6 +49,7 @@ described here; each run's own artefacts are named.
 | [boot K](HIF_TRANSPORT_ANALYSIS.md#boot-k-result-2026-10-25-1810-utc-transmit-27--on-the-rule-the-revert-row-fired-on-receive-confounded-by-the-harness) (18:10 UTC; adjacent to boot J; chunks 16 MiB or 3 s) | depth 8 (ledger 104) on boot J's tree: transmit steady at 20.9–21.2 on the rule (8 ÷ 4.26 ms = 1,877 frames/s, 21.7 predicted), 564 stops, nothing freed unsent, 4 retransmissions; two receive chunks on the device's 4 s bound (one the receive stall, one the drain after the laptop's close racing the bound); reverted to depth 4 by the rule, the attribution confounded by the harness | 19.87 (chunks 20.87–21.16, duration-bound) | 16.46 (device-side chunks 11.7–19.8; two at the device's bound) | 82.6% / 86.5% |
 | [boot L](HIF_TRANSPORT_ANALYSIS.md#boot-l-result-2026-10-25-1837-utc-the-queue-never-stopped-during-receive-transmit-did-not-reproduce-the-acknowledgements-lag) (18:37 UTC; boot K's tree with no driver variable: the 0283 series, the 6 s device bound, the drain accounting; the first clean verdict) | zero stops and wakes in all 18 receive seconds and no receive gap: the receive stall and the acknowledgement split withdrawn; transmit the lower sample of the depth-8 band (wait 4.67 ms, one 203 ms transmit stall with 8 in flight) | 16.15 (chunks 15.50–18.72) | 18.83 (device-side chunks 16.80–21.18; TCP flow view 14.31–21.44) | 86.3% / 87.9% |
 | [boot M](HIF_TRANSPORT_ANALYSIS.md#boot-m-result-2026-10-25-1853-utc-depth-12-on-the-model-the-depth-sweep-stops-a-receive-slowdown-the-silence-rule-cannot-see) (18:53 UTC; adjacent to boot L; one variable) | depth 12 (ledger 156): transmit on the model (wait 5.46 ms, 12 in flight, nothing freed unsent, 1 retransmission); the depth sweep stops (three-depth fit asymptote 35.7 Mbit/s); receive queue never stopped; one receive chunk slowed by the sender (one second at 218 KiB) without a silence | 21.87 (chunks 22.73–24.06) | 16.08 (device-side chunks 9.54–20.13) | 81.8% / 87.5% |
+| [boot N](HIF_TRANSPORT_ANALYSIS.md#boot-n-result-2026-10-25-1910-utc-depth-16-is-flat-the-air-binds-depth-12-is-the-setting-the-receive-stream-read-on-both-ends) (19:10 UTC; adjacent to boot M; one variable) | depth 16 (ledger 208): transmit flat (1,927 frames/s against 1,900 at depth 12; wait 6.57 ms, 12.7 of 16 in flight): the air binds; depth 12 is the setting; receive stream on both ends: the application lags at moments without closing the window, one chunk's drain has two silences with the window open (link side); receipt false on the transmit direction's normal 141 close (rule fixed), data whole | 22.20 (chunks 23.24–23.77) | 17.94 (device-side chunks 15.39–20.97) | 82.4% / 86.6% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
@@ -172,16 +173,16 @@ is depth 12, once.
 
 ## Where throughput stands (2026-10-25, after boot L)
 
-- **Transmit:** about 23 Mbit/s at depth 12 (boot M, 22.7–24.1 per chunk at
-  a 5.46 ms wait), where the depth sweep stopped; 19 ± 2 at depth 8 (boot
-  K 20.9, boot L 17.5); on the rule depth ÷ credit-retire wait, with
-  nothing freed unsent.
-- **Receive:** 17–21 Mbit/s per chunk on the device's own count (boots L
-  and M; one boot-M chunk slowed by the sender to 9.5), up to 23–24 in
-  the best whole seconds inside a chunk (the laptop's final-half figures
-  of 28–34 are its write rate, not delivery); UDP carried 29
-  Mbit/s at 2 % loss through the same path (boot D), so the receive path
-  itself carries about 30.
+- **Transmit:** about 23–23.5 Mbit/s, the legacy wall: depth 12 (boot M,
+  22.7–24.1 per chunk) and depth 16 (boot N, 23.2–23.8) carry the same
+  frames a second, so the air binds and depth 12 is the setting; 19 ± 2 at
+  depth 8 (boots K and L); nothing freed unsent.
+- **Receive:** about 19 Mbit/s delivered over TCP on the device's own
+  whole-window count (17–21 per chunk across boots L–N); the laptop's
+  final-half figures are its write rate and are withdrawn as a receive
+  measure (boot N's include 49.4, above the air); UDP carried 29
+  Mbit/s at 2 % loss through the same path (boot D): the path's capacity
+  of about 30 stands on the UDP probe alone.
 - **The ceiling:** about 30 Mbit/s, the air at a fixed 54 Mbit/s (about
   386 µs a 1,518-byte frame with its overheads, about 2,590 frames a
   second); the depth model's asymptote (35.7) lies above it, so the air

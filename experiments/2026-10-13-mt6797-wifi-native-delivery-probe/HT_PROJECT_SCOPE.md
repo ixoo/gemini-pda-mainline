@@ -32,19 +32,29 @@ reached 45.1 Mbit/s of transmit on this device (vendor control 2 in
 
 ## The work, in dependency order
 
+mac80211 negotiates HT only when WMM is in use (`ieee80211_determine_our_sta_mode`:
+"WMM/QoS not supported, limiting to legacy"), and WMM needs four hardware
+queues and a `conf_tx` operation. So the first association that can carry HT
+also carries WMM, and its data becomes QoS data: the data path changes with
+the first step. (Corrected 2026-10-25 from an earlier order that put HT
+association before QoS.)
+
 | # | Change | Side | Depends on | Proven by |
 |---|---|---|---|---|
-| 1 | HT capability advertisement on 5 GHz: HT20, MCS 0–7 (1×1), the A-MPDU parameters left conservative, no short GI at first | host only | — | mac80211's association request carries the HT capability element |
-| 2 | The association admission accepts the HT capability element (and the HT operation in the response) instead of refusing it | host only | 1 | a legacy-rate sanity boot: the join completes with HT elements on both sides, data still at the fixed 0x4c, the throughput row unchanged within noise |
-| 3 | The station record's PHY type set, MCS set and HT capability fields from the peer's HT capabilities | firmware-facing | 2 | the record accepted and the firmware's rate word leaving 0x4c for an HT MCS on the sampled reports (0281) |
-| 4 | QoS data with TIDs: WMM advertised, four mac80211 queues, the transmit admission and the descriptor for QoS data | host and firmware-facing | 2 | QoS data acknowledged on the air, the backpressure stop/wake per queue |
-| 5 | Block-ack for A-MPDU: transmit sessions (`ampdu_action`), the firmware's aggregation, receive reordering in mac80211 | firmware-facing | 3, 4 | aggregates in the sampled reports, transmit above the 30 Mbit/s legacy ceiling |
+| 1 | WMM: four mac80211 queues, a `conf_tx` operation, the WMM element admitted in the association; the backpressure stop/wake across the four queues | host only | — | a legacy-rate boot: the join and both lifetimes as before, the association response's WMM parameters accepted, the ledger whole |
+| 2 | QoS data in the transmit admission (subtype 8, the 26-byte header with its QoS control field) and in its Ethernet II conversion; received QoS data likewise | host, the descriptor unchanged | 1 | the same boot: data acknowledged on the air at the fixed 0x4c, the throughput row unchanged within noise |
+| 3 | HT capability on 5 GHz (HT20, MCS 0–7 for 1×1, conservative A-MPDU parameters, no short GI) and the HT capability element admitted in the association (and the HT operation in the response) | host only | 1, 2 | the received-rate record (0271): the access point's frames to this station in HT modes rather than legacy OFDM |
+| 4 | The station record's PHY type set, MCS set and HT capability fields from the peer's HT capabilities | firmware-facing | 3 | the firmware's rate word leaving 0x4c for an HT MCS on the sampled reports (0281) |
+| 5 | Block-ack for A-MPDU: transmit sessions (`ampdu_action`), the firmware's aggregation, receive reordering in mac80211 | firmware-facing | 4 | aggregates in the sampled reports, transmit above the 30 Mbit/s legacy ceiling |
 
-Items 1 and 2 are host-only and can be proven with one legacy-rate
-sanity boot before any firmware work; they change only what is
-negotiated. Items 3–5 need the firmware's interfaces for the station
-record, QoS queues and aggregation, read and reviewed under the same
-rules as the existing commands.
+Items 1–3 are host-only, but items 1 and 2 change the data path, so they
+are proven together on a legacy-rate boot before item 3 asks for HT. The
+question whether this access point speaks HT to this device is already
+answered by the vendor's driver (45.1 Mbit/s of transmit through it, above
+the legacy ceiling); item 3's boot answers whether it speaks HT to ours.
+Items 4–5 need the firmware's interfaces for the station record and
+aggregation, read and reviewed under the same rules as the existing
+commands.
 
 ## Boundaries
 

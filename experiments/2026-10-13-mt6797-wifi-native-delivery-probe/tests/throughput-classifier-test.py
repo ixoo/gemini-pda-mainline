@@ -139,8 +139,15 @@ class ClassifierTests(unittest.TestCase):
                        raw.replace(b'total=45705', b'total=0').replace(b'bytes=56223004', b'bytes=0').replace(b'total=0 native=0 bytes=0\n6', b'total=9 native=0 bytes=9\n6', 1),
                        RETIRE+TERMINAL):
             self.assertFalse(classify(broken, receipt, True, data_depth=8)['throughput_baseline_pass'])
+        self.assertEqual(value['verdict_failed'], [])
+        receipt['all_pass_failed'] = ['TX.expected_termination']; receipt['all_pass'] = False
+        self.assertEqual(classify(raw, receipt, True, data_depth=8)['verdict_failed'],
+                         ['receipt:TX.expected_termination', 'classifier:receipt_all_pass'])
+        receipt['all_pass'] = True; del receipt['all_pass_failed']
         receipt['throughput_measurement']['directions']['RX']['chunks'][0] = {'elapsed_ns': 6_600_000_000}
-        self.assertFalse(classify(raw, receipt, True, data_depth=8)['throughput_baseline_pass'])
+        value = classify(raw, receipt, True, data_depth=8)
+        self.assertEqual(value['verdict_failed'], ['classifier:timing'])
+        self.assertFalse(value['throughput_baseline_pass'])
 
 
 if __name__ == '__main__':

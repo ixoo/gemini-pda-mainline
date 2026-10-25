@@ -138,6 +138,8 @@ def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
                                 'native_ciphertext_ok': native['ok'], 'sequence_ok': bool(value.get('sequence_ok')),
                                 'no_fault': not value.get('fault'), 'ownership': ledger_ok},
                  retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])
+    value['verdict_failed'] = ['receipt:' + name for name in (receipt or {}).get('all_pass_failed', [])] + \
+        ['classifier:' + gate for gate, ok in value['verdict_gates'].items() if not ok]
     value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,
                  provisional_ccmp_compatibility_pass=passed,ten_minute_ssh_proven=False,
                  same_boot_reconnect_proven=False,maintained_wifi_support=False,

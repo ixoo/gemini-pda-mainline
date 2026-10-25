@@ -1,4 +1,22 @@
-# Current: the air ceiling corrected to about 30 Mbit/s (transmit at 77 % of it); receive stays on the device's count; boot N (depth 16, the receive stream's state) is staged on boot2 at e13b2a90 (image 95f81866…, predecessor 7a9a40e8…); HT scoped as a project
+# Current: depth is finished; transmit on the legacy rate sits at its wall (~23.5 Mbit/s, depth 12 the setting); the receive slowdowns are link-side; HT is the project; the next step is the owner's decision
+
+[Boot N](HIF_TRANSPORT_ANALYSIS.md#boot-n-result-2026-10-25-1910-utc-depth-16-is-flat-the-air-binds-depth-12-is-the-setting-the-receive-stream-read-on-both-ends):
+depth 16 carried 1,927 frames a second against depth 12's 1,900 with the
+wait up a fifth, so the air binds; the lifecycle fragment is back at
+depth 12. The receive stream, read on both ends: the device's
+application lags at moments without closing the window, and the one
+slow chunk's silences fell in its drain with the window open and the
+device idle, a link-side event. The receipt read false only on the
+transmit direction's normal 141 close (the direction-level rule now
+accepts it); the data is whole. Throughput stands at about 23.5
+transmit and about 19 receive (device count; the laptop's final half is
+withdrawn as a receive measure) against a 30 Mbit/s air ceiling. A failed
+verdict now names its check and phase (`verdict_failed`). [HT](HT_PROJECT_SCOPE.md)
+is the project; mac80211 negotiates HT only with WMM, so its first boot is
+WMM and QoS data at the legacy rate, a data-path change not yet started.
+The access-point vanish-and-return test is the remaining robustness item.
+
+# Historical: the air ceiling corrected to about 30 Mbit/s (transmit at 77 % of it); receive stays on the device's count; boot N (depth 16, the receive stream's state) is staged on boot2 at e13b2a90 (image 95f81866…, predecessor 7a9a40e8…); HT scoped as a project
 
 Boot M is re-read with the owner: the fixed-54 air carries about 2,590
 frames a second, about 30 Mbit/s, below the depth model's asymptote, so

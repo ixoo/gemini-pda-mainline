@@ -2884,3 +2884,122 @@ the per-pass submission count; ownership, 208 of the firmware's 468
 pages; the vendor, within the vendor's budget for the queue. The stream
 samples read only the device's own `/proc/net/tcp` and the laptop's
 own socket.
+
+### Boot N result (2026-10-25, 19:10 UTC): depth 16 is flat, the air binds; depth 12 is the setting; the receive stream read on both ends
+
+Build `e13b2a90` (boot M's tree at depth 16, ledger 208, with the
+receive stream's state), boot2 `95f81866…` over `7a9a40e8…`, mainline
+boot `f81c66aa…`, returned to Gemian `a8d4e94f…` (recovery confirmed,
+live identity checked afterwards); session `ram-service-regression-pass`,
+log complete (183,989 bytes), both directions complete, no early stop.
+The receipt read `all_pass=false` on one field: the transmit
+direction's pipeline exit was 141, its last chunk's normal close when
+the laptop ends the chunk first, which the per-chunk rule has accepted
+since boot H and the direction-level rule did not (earlier runs' last
+transmit chunks happened to exit 0). The data is whole; the
+direction-level rule now accepts the same transmit closes
+([steady_state_chunks.py](hosts/steady_state_chunks.py)). Every other
+verdict gate passed.
+
+**Transmit, against §24: the second row.** Chunks 23.33, 23.44, 23.36,
+23.77, 23.24 Mbit/s (final halves 23.32–24.21), aggregate 22.20; wait
+6.571 ms with `inflight_max=16`, 12.7 in flight on average (30,793
+frames in 15.98 s, 1,927 a second against boot M's 1,900); nothing
+expired, faulted, left or freed unsent, `tx_failed=0`, 857 of 857
+samples at `0x4c` status 0, three retransmissions. A third more depth
+and a fifth more wait gave 1.4 % more frames: the extra frames wait for
+airtime, not for the window. The rule at the measured wait (28.2) is no
+longer what binds; the air is: 1,927 data frames a second at about 386
+µs each fill about 74 % of every second before the laptop's own
+acknowledgements on the same channel. Transmit on the legacy rate has
+reached its wall at about 23.5 Mbit/s (78 % of the 30 Mbit/s ceiling).
+Depth 12 is the setting; the fragment returns to it. Depth is finished;
+HT is the project ([scope](HT_PROJECT_SCOPE.md)).
+
+**Receive.** Device-side chunks 20.10, 17.73, 20.47, 15.39, 20.97 Mbit/s,
+every chunk `peer_eof`, every drain complete (0.54–1.87 s), no timeout;
+zero stops in all 20 receive seconds (high water 9–16). The stream on
+both ends, against §24's readings:
+
+- **The receiving application.** The device's socket held 847,824 bytes
+  unread at one 0.5 s sample of chunk 2 and 1,927,384 at one of chunk 5,
+  zero at every other sample: `nc` into `wc` falls behind at moments.
+  The advertised window never closed (its least, after opening, was 2.1
+  MB), so the application's lag did not throttle the stream: the first
+  reading does not apply.
+- **The link.** Chunk 4 (45.18–50.12 s, 15.39 Mbit/s, the slow one)
+  holds the only two receive gaps inside a measurement window: 368 ms
+  from 49.41 s (550 KB in the 219 ms before it, 66 bytes in the 200 ms
+  after) and 271 ms from 49.78 s, both in the chunk's drain after the
+  laptop's close, with the device's socket empty, nothing in flight on
+  the device, the queue at 1 and the advertised window open at 6.7 MB.
+  Frames stopped arriving with the window open and the device idle: the
+  second reading, a link-side event. Whether the access point held the
+  frames or the laptop stopped sending (its retransmission timer with
+  4.19 MB unacknowledged at the close) the record cannot tell: the
+  laptop's own retransmissions are not sampled.
+- **The stack.** No sample shows the driver delivering while the socket
+  queue and the window stand still: the third reading does not occur.
+
+The receive slowdowns are link-side and in the drain, not the driver's
+and not the application's. The next instrument, if it is wanted, is the
+laptop's retransmitted bytes from the same socket samples.
+
+**Stalls (§17).** Receive chunk 4 of boot N, 49.41–50.05 s, two silences
+(368 and 271 ms) in the drain, window open, socket empty.
+
+**The owner's reading of boot N (2026-10-25).** The depth sweep ends
+here. Against depth 12, depth 16 gave 1.7 % more transmit for a third
+more frames in flight; depth 12 is the best value, and the transmit
+design's ceiling on the fixed 54 Mbit/s rate is about 23.4 Mbit/s, 78 %
+of the air's 30. No further host-side depth, queue or accounting change
+can move it: the air binds, and only a faster or aggregated PHY (HT)
+does.
+
+**The receive final half, withdrawn.** Boot N's receive "final halves"
+include 49.4 Mbit/s, which a legacy 54 Mbit/s association cannot
+carry: the figure is the laptop's write rate into its own socket, which
+runs in bursts as delayed acknowledgements free its buffer, not a
+delivery rate. The reading of boot M's 28–34 Mbit/s as receive capacity
+is withdrawn with it (the record had already declined to adopt it). The
+receive record keeps the figure only as `host_write_final_half_Mbit_s`.
+Receive is quoted as the device's whole-window rate, about 19 Mbit/s
+delivered over TCP; the path's capacity of about 30 Mbit/s stands on the
+UDP probe alone (boot D). A device-side final half would need the
+leaf's progress inside a chunk, and the device command has 18 bytes of
+its 4,096 left; 0283's per-second series is the device-side figure
+inside a chunk.
+
+**The verdict, named.** Boot N's `session_exit=1` came from one receipt
+field, the transmit direction's pipeline exit (fixed, above). Every gate
+the verdict applies now reads the run's own declarations (the device
+bound for timing, the credit-retire record for ownership; the sample
+ceilings, the 1 s chunk bound and the PID trace are no longer gates),
+and a failed verdict names itself: the receipt lists the checks that
+cleared `all_pass` and the verdict lists the failed gates with their
+phase (`verdict_failed`). Re-run on boot N's record it reads
+`classifier:receipt_all_pass` (its receipt predates the list). The
+receipt's own checks (quiescence, the core disconnect, completeness,
+chunk exits, the netdev counters) are data-path checks and stay gates;
+`byte_cap_reached`, `duration_pass` and `connected_lifetime_trial_pass`
+are retained fields that gate nothing.
+
+**HT needs WMM: the host-only probe cannot leave the data path alone
+(from source, 2026-10-25).** The cheapest decisive experiment the owner
+proposed (advertise HT, carry the HT capability element in the
+association, change nothing on the data path) cannot be built on
+mac80211: `ieee80211_determine_our_sta_mode` limits a station to legacy
+when WMM is not in use ("WMM/QoS not supported, limiting to legacy"),
+and WMM needs at least four hardware queues and a `conf_tx` operation;
+the driver registers one queue and no `conf_tx`. With WMM in use,
+mac80211 sends QoS data (subtype 8, a 26-byte header with the QoS
+control field), which the transmit admission refuses (it accepts
+non-QoS protected data, 0x4108, only), and the association admission
+refuses the WMM element as well as the HT capability. So the smallest
+HT association is HT advertisement, WMM (four queues, `conf_tx`, the
+element admitted) and QoS data in the transmit admission and its
+Ethernet II conversion together: [the scope](HT_PROJECT_SCOPE.md) is
+re-ordered accordingly. Whether the access point speaks HT to this
+device is already answered by the vendor's own driver: 45.1 Mbit/s of
+transmit through the same access point (vendor control 2) is above the
+legacy ceiling and needs HT.

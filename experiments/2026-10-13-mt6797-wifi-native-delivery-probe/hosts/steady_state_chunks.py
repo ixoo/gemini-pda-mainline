@@ -63,6 +63,10 @@ literal(h, """        case "$rc" in 0|124|143) ;; *) exit 38;; esac
 # the laptop's verdict accepts the same transmit-leg closes (boot H's third run measured whole and read all_pass=false on them)
 literal(h, "all(c.get('device_exit') in (0,124,143) for c in direction['chunks'])",
         "all(c.get('device_exit') in (0,124,143,1,141) for c in direction['chunks'])")   # the leaf itself refuses 1/141 on the receive leg
+# the direction's pipeline exit is its last chunk's: the same transmit-leg closes are its normal end (boot N's last
+# transmit chunk closed with 141 and the receipt read all_pass=false on a whole run; earlier last chunks happened to exit 0)
+literal(h, "measured[label]['expected_termination'] = measured[label]['device_pipeline_exit'] in (0,124,143)",
+        "measured[label]['expected_termination'] = measured[label]['device_pipeline_exit'] in ((0,124,143,1,141) if label=='TX' else (0,124,143))")
 # the laptop side: progress samples every 50 ms, the rate over the final half of the chunk beside the whole-chunk rate
 literal(h, "                    samples, next_sample = [], 0\n",
         "                    samples, next_sample = [], 0\n                    progress, next_progress = [], 0\n")
