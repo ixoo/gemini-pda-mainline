@@ -9,8 +9,10 @@ ieee80211_stop_queues anywhere); the echo legs lose 29–54 % above about
 9 Mbit/s offered. HT stays closed. Boot I: 0282 stops mac80211's queues
 at the bound and wakes them when drained, one variable, the same run;
 0282 is in the series and the lifecycle fragment, its package building at
-`b02ddb84`, the work directory derived. The owner's AP power times are
-still owed.
+`b02ddb84`, the work directory derived; its expectation is loss to zero
+and 10–20 Mbit/s, not a multiple, read with `wait_avg`, `inflight_max`,
+stops and wakes beside the rate; HT opens only on zero-loss transmit at
+the drain rate. The owner's AP power times are still owed.
 
 # Historical: boot H's first run void (harness stop after one chunk; the sampled report works); the second run adds the transmit probe and the device's TCP state; HT is not opened
 

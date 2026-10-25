@@ -2054,6 +2054,15 @@ and the stalls. HT is not opened on this: the first change is
 backpressure (§19), after which the transmit number reads the drain rate
 without loss and the drain itself becomes the question.
 
+**Transmit-path loss, the first figure.** Beside the receive path's UDP
+figure (30 Mbit/s offered, zero loss, three boots), the transmit path
+now has its own: 0.9 % lost at 4.8 Mbit/s offered, 29 % at 9.5 and 54 %
+at 14.0 (1,400-byte echo requests, the pacing of BusyBox `ping` at about
+2.3 ms declared). The loss begins at the drain rate, not at an air
+rate: the sampled reports show the air acknowledging every frame it is
+given, and the drop sits in the driver's admission above about 800–
+1,000 frames a second.
+
 **Stalls.** None on transmit this run; receive chunk 3 (14.46 against
 19.6–20.3, 2.32 s to its cap) is the one slow chunk and is recorded in
 the ledger (§17).
@@ -2072,31 +2081,52 @@ wakes and the drops. The vendor's form of the same thing is the
 per-queue stop threshold with a wake (`gl_kal.c`). Nothing changes with
 the option off.
 
-**The position.** Boot H's third run named the transmit limit: the
-driver drains about 800–1,000 frames a second and drops, unreported,
-what TCP offers above it; TCP loses 2 %, holds a six-segment window and
-paces at 9.2–9.7 Mbit/s. With backpressure the drops stop, the window
-grows, and the transmit number reads the drain rate itself without
-retransmissions; the drain (the per-frame cost upstream of the air) is
-then the next question, with the HIF transaction count per frame as its
-first candidate.
+**The expectation, honestly (owner, 2026-10-25).** Backpressure converts
+drops into queueing; it does not raise the drain rate. The arithmetic
+bounds the result: 1,150 frames a second at depth 4 with a 3.48 ms wait,
+1,790 at depth 8 with 4.47 ms, that is 13 to 20 Mbit/s; removing 451
+retransmissions out of about 3,600 frames a chunk is worth about a tenth
+of the goodput, and the rest comes from TCP's window recovering. So: loss
+to zero, the rate to 10–20 Mbit/s, not a multiple. The single most
+informative number is not the rate but whether the drain rate moved at
+all between boot H and boot I: `wait_avg`, `inflight_max`, the stops and
+the wakes are quoted beside the rate.
+
+**Why 0235's verdict does not apply.** 0235 held the mac80211 queue and
+was retired for measuring worse; 0282 does the same thing. At that time
+the pipeline submitted one frame per pass, so holding the queue could
+only add latency; now the queue is eight deep, credits retire
+asynchronously, and holding it is the only way to keep frames that would
+otherwise be freed unsent.
+
+**The drop counter.** `tx_failed=0` through 451 retransmissions is this
+boot's instrumentation lesson: a frame freed unsent is invisible to every
+counter the driver has. 0282's `dropped_full` counts every ordinary data
+frame the transmit entry frees unsent inside an open data phase, stopped
+or not, so the data-end record can never again show zero drops while the
+stack retransmits; it is the number that says whether backpressure holds
+or leaks.
 
 **Harness.** The same run as boot H's third: five steady-state chunks,
 the sampled report, the echo legs, the TCP state per chunk, the
 retransmission count; the laptop's verdict accepts the transmit leg's
 closes.
 
-**TX first.** `tx_failed`, `retire_expired`, `pid_faults`,
-`tx_dropped` (expected 0 with the queues stopped in time), the
-zero-payload check; any receive `device_timeout` or non-zero payload
-reverts.
+**TX first.** `tx_failed`, `retire_expired`, `pid_faults`, `dropped_full`
+(expected 0 with the queues stopped in time), the zero-payload check;
+any receive `device_timeout` or non-zero payload reverts, as boot B
+established.
 
 | Reading | Cause | Next |
 |---|---|---|
-| `RetransSegs` near 0, cwnd grows past six, TX chunks above 9.7 | the drops were the window's limit; the drain rate is now the ceiling, read as the new TX number | the drain: HIF transactions per frame (the worker's pass structure), then aggregation only if the per-frame cost survives that |
-| `RetransSegs` near 0, cwnd grows, TX chunks unchanged at 9.2–9.7 | the drops were real but the drain rate was already the ceiling | the drain, as above; HT stays closed until the drain is understood |
-| `RetransSegs` unchanged, cwnd still six | the losses are elsewhere (the air after all, or the laptop's acknowledgements) | read the sampled reports against the retransmissions; the receive-side acknowledgement path |
-| `tx_dropped` > 0 or stalls on stopped queues | the stop or the wake mark is wrong | revert; read the counts |
+| steady TX 12–20 Mbit/s, zero loss, retransmissions near zero | the drops were masking the drain rate | the drain rate is now the limit: the per-frame cost, then aggregation |
+| steady TX about 9.3 Mbit/s, zero loss, stops high, `inflight_max` 8 throughout (4 at this depth) | the 1.1 ms per frame is real and the drops never inflated it | aggregation (HT) is the only lever left on transmit |
+| TX up but RX down, or any `device_timeout` | the stop/wake path starves the receive side | revert, as boot B established |
+
+**What opens HT.** HT is opened when a boot shows zero-loss transmit at
+the drain rate with a per-frame cost that only aggregation can amortise;
+boot I is the boot that decides whether that is now true. It is not
+reopened on instinct before.
 
 **The three questions.** Reachability: the stop at the transmit entry's
 admission, the wake in the worker's dequeue and at every path that

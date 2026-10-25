@@ -150,9 +150,14 @@ frame: TX 7.4 Mbit/s at 54 where the air is 0.3 ms a frame; TCP receive
 15.8 with one acknowledgement per 1.47 ms (measured by the probe's
 `rttcur` samples), while UDP carries 29 Mbit/s at 2 % loss through the
 same path (boot D). The per-frame figure is derived (rate ÷ depth); the
-samples and the UDP counts are measured. The next boot attacks that number
-directly (the credit model, §15 of the transport record), read on both
-directions in the same boot.
+samples and the UDP counts are measured. Boot H's third run then named the
+transmit limit: the driver's data queue frees frames unsent above its
+drain rate (about 800–1,000 frames a second) with no backpressure, TCP
+loses 2 % and holds a six-segment window; the transmit path's own loss
+figure is 29 % at 9.5 Mbit/s offered and 54 % at 14 (echo requests, the
+device tool's pacing declared), beside the receive path's zero loss at
+30. Boot I adds backpressure (§19) and decides whether the drain rate
+itself is the next limit.
 
 ## What 802.11ac would need (noted 2026-10-25, after the transport)
 
