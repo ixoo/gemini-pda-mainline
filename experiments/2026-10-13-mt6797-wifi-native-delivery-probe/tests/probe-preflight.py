@@ -62,11 +62,17 @@ anchors = {
     'receive listener (device reads from the laptop)': ('nc %s 48002 | $BB wc -c' % host, 1),
     'transmit sender (device writes to the laptop)': ('nc %s 48001' % host, 1),
     'both directions': ('for dir in TX RX; do', 1),
-    '%d chunks' % CHUNKS: ('while [ "$i" -le %d ]' % CHUNKS, 1),
+    'five-chunk loop text (the idle validator pins it)': ('while [ "$i" -le 5 ]', 1),
 }
 for name, (needle, count) in anchors.items():
     n = script.count(needle)
     line(n == count, 'rendered device script: %s present (anchor count %d)' % (name, n))
+# a shorter run narrows the validated loop after the validators (the lifecycle precedent); the helper must carry exactly that narrowing
+if CHUNKS != 5:
+    narrowing = "script.replace('while [ \"$i\" -le 5 ]; do', 'while [ \"$i\" -le %d ]; do')" % CHUNKS
+    line(source.count(narrowing) == 1 and source.index('validate_receive_safety(script)') < source.index(narrowing),
+         'helper narrows the validated loop to %d chunks after its validators' % CHUNKS)
+    line('CHUNKS = %d\n' % CHUNKS in source, 'helper counts %d chunks per direction (CHUNKS)' % CHUNKS)
 line(not re.search(r'\bHOST\b|\bBOOT\b', script), 'rendered device script: no unbound placeholder')
 # the base command exactly as the run forms it: the cohort's M.COMMAND with its ready placeholder formatted (boot 3 was voided by a stand-in that was 28 bytes short)
 try:

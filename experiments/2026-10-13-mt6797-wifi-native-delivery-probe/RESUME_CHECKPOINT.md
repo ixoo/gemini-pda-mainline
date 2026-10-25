@@ -8,8 +8,11 @@ device log sealed at its cap under the per-frame records, so boot D
 measures two chunks per direction. The review amended 0274 (the budget
 step still closed the window at the ceiling) and 0271 (line buffer),
 retired 0262/0263 for 0275/0276 (the rate series did not apply), and
-added 0277 (state 2). Then the completion lever's corrected second
-attempt; the AP-loss gate independent.
+added 0277 (state 2). Boot D is staged: rate package at `e1e67f78`,
+boot2 `df7d6e65…` over `8cd36314…` (full readback verified from Gemian
+`52ffff40…`), two chunks per direction, preflight passed, device shut
+down, watcher armed; the owner selects boot2. Then the completion lever's
+corrected second attempt; the AP-loss gate independent.
 
 # Historical: boot B regressed (0272 retired, 0269 reverted); boot C, the fixed-rate sweep at 54 Mbit/s, is next
 
