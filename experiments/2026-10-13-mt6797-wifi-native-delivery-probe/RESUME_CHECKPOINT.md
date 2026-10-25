@@ -1,4 +1,20 @@
-# Current: boot J (0282 v2: queue bound 64, stop 56, wake 32) is staged on boot2 at e51cb584 (image 5e19a3c6…, predecessor d589c647…); the owner selects boot2; the watcher starts the five-chunk run
+# Current: boot J released the mechanism (TX 15.5–16.7 Mbit/s, zero loss, the pipeline saturated at depth ÷ wait); the acknowledgement path read from source; boot K (depth 8, 16 MiB chunks) predeclared and building
+
+[Boot J](HIF_TRANSPORT_ANALYSIS.md#boot-j-result-2026-10-25-1753-utc-transmit-above-12-with-zero-loss-the-retransmissions-were-part-of-the-cost)
+took §20's second branch: 156 stops and wakes (boot I's 2,223),
+`high_water=56` of 64, nothing freed unsent, six retransmissions in
+14,550 segments; backpressure was right and the eight-frame bound was
+not. The transmit ceiling is now depth ÷ `wait_avg` (4 ÷ 2.864 ms =
+1,397 frames/s, 16.2 Mbit/s predicted, 16.5 measured), and the wait fell
+to 2.86 ms once nothing was dropped. From source: the 802.11 ACK never
+reaches the host, but the receive path's TCP acknowledgements share the
+one data queue, its stop and its four-frame window, so the receive-stall
+hypothesis stands as consistent, not proven, and is watched rather than
+reproduced. [§21](HIF_TRANSPORT_ANALYSIS.md#21-boot-k-predeclared-2026-10-25-depth-8-on-boot-js-tree)
+predeclares boot K: depth 8 (ledger 104) on boot J's tree, chunks at
+16 MiB or 3 s; HT stays closed.
+
+# Historical: boot J (0282 v2: queue bound 64, stop 56, wake 32) is staged on boot2 at e51cb584 (image 5e19a3c6…, predecessor d589c647…); the owner selects boot2; the watcher starts the five-chunk run
 
 Boot J's image was written and read back from Gemian (boot `fa957e17…`),
 the device shut down cleanly; the measurement is the same as boots H and

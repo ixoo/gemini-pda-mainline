@@ -2220,3 +2220,169 @@ stops, the wakes and the high-water mark.
 The three questions: reachability, the same stop and wake sites with the
 marks moved; ownership, mac80211's queue state is the host's; the vendor,
 a per-queue packet threshold with a wake. The ledger stands at twelve.
+
+### Boot J result (2026-10-25, 17:53 UTC): transmit above 12 with zero loss; the retransmissions were part of the cost
+
+Build `e51cb584` (boot I's tree with 0282 v2, queue bound 64, stop 56,
+wake 32), boot2 `5e19a3c6…` over `d589c647…`, mainline boot `50c9d80a…`,
+returned to Gemian `3722770b…` (recovery confirmed, live identity checked
+afterwards); session `ram-service-regression-pass`, log complete (176,635
+bytes), receipt `all_pass`, both directions complete, no early stop. The
+controller's `session_exit=1` is the same exit boots H (run 3) and I
+recorded with a complete log and a passing receipt.
+
+**TX first.** `tx_failed=0`, `retired=25630 expired=0 pid_faults=0
+left_pages=0`, 406 samples with 406 reports all at `0/0x004c`; the
+backpressure record: `stops=156 wakes=156 dropped_full=0 stopped=0
+high_water=56 bound=64`: the queue reached its stop mark and never its
+bound, and no frame was freed unsent. The zero-payload check passed and
+no receive chunk reached the device's bound.
+
+| | Boot J (bound 64) | Boot I (bound 8) | Boot H run 3 (no backpressure) |
+|---|---|---|---|
+| TX chunks, whole / final half (Mbit/s) | 16.61, 16.70, 15.51, 15.96, 16.50 / 16.64, 16.60, 15.22, 16.09, 16.55 (all `byte_cap`: floors) | 2.46–4.02 / 3.30–4.59 | 9.19–9.73 / 9.16–9.81 |
+| TX aggregate | 15.02 | 3.34 | 8.95 |
+| RX device-side chunks (Mbit/s) / ended by | 19.17, 18.54, 18.85, 18.54, 19.62 / all `byte_cap` | 7.55–19.28 / one `device_timeout` | 14.5–20.3 / all `byte_cap` |
+| stops / wakes / `dropped_full` | 156 / 156 / 0 (at most 14 a second over the 11.3 s transmit phase) | 2,223 / 2,223 / 0 | — (frames freed unsent) |
+| device TCP state per TX chunk (cwnd / ssthresh) | 65/64, 71/63, 58/49, 86/53, 95/77, retransmit queue 0 throughout | 2/16 … 22/11 | 6/5 … 6/6 |
+| `RetransSegs` across the TX phase | 0 → 6 (0.04 % of 14,550 transmitted) | 0 → 549 | 0 → 451 |
+| credit-retire wait mean / max, in flight max | 2.86 ms / 14.5 ms, 4 | 2.84 ms / 15.2 ms, 4 | 3.07 ms / 15.4 ms, 4 |
+| completion latency (406 samples) | 25 under 1 ms, 70 in [1, 2), 76 in [2, 4), 144 in [4, 8), 91 in [8, 16), max 13.6 ms | 13, 72, 31, 95, 46 of 257 | 42, 78, 25, 199, 29 of 373 |
+| echo legs | the first leg 892 of 893 (4.81 Mbit/s offered by the device tool's pacing); the second and third did not run to their summary, as in boot I | 893 of 893; two without summary | 0.9 % / 29 % / 54 % loss |
+| in-chunk ping / at rest (ms min/avg/max) | 17.2 / 36.1 / 47.7 and 31.4 / 86.3 / 141.0 | 6.1 / 43.1 / 66.4 and 70.0 / 125.2 / 180.3 | 10.3 / 44.6 / 85.4 and 9.7 / 37.0 / 78.1 |
+
+**Reading, against §20's table as predeclared: the second branch, and
+the configuration fix that released the mechanism (owner, 2026-10-25).**
+Transmit at 15.51–16.70 Mbit/s per chunk (aggregate 15.02) against boot
+H run 3's 9.19–9.73 and boot I's 2.46–4.02, with `dropped_full=0`,
+`tx_failed=0`, `expired=0`, `left_pages=0`, 406 of 406 sampled frames at
+`0x4c` status 0 and six retransmissions in 14,550 segments: above 12 with
+zero loss. Backpressure was never wrong; the queue bound was. The same
+stop and wake sites with the hysteresis moved (stop near full at 56,
+wake at half at 32) turned boot I's 2,223 cycles into 156 over the 29.2 s
+data phase (at most 14 a second in the 11.3 s transmit phase), the queue
+peaked at its stop mark (`high_water=56` of `bound=64`) and never at its
+bound, and TCP's window opened (cwnd 58–95 against boot H's 6). The
+retransmissions of boots H and I were part of the cost: the drain rate
+boot H implied (800–1,000 frames a second) was the rate TCP allowed a
+lossy path, not the driver's. Cross-session against boot I (+350 %) and
+boot H run 3 (+68 % aggregate, ×1.7 per chunk), both outside the ±40 %
+floor; every transmit chunk ended on its byte cap in about 2.1 s, so the
+chunk rates are floors.
+
+Not taken: the first branch (HT opens on transmit at about 9.3), the
+third (stops in the hundreds), the fourth (retransmissions persisting)
+and the fifth (no receive `device_timeout`, no non-zero payload; the
+bound stays). HT/aggregation stays closed: its condition was written for
+the drain rate confirmed at 9.3, and the pipeline, not the drain rate, is
+now the bound.
+
+**The saturation arithmetic, which now predicts.** With ordinary data
+retired on credit arrival the transmit ceiling is the depth over the mean
+credit-retire wait: 4 ÷ 2.864 ms = 1,397 frames a second, 16.2 Mbit/s at
+1,448 bytes of TCP payload a frame, against 16.5 measured on the chunks'
+final halves (15.2–16.6) and 1,285 frames a second over the whole phase
+(14,550 in 11.32 s of device clock, 3.7 of 4 in flight on average). The
+pipeline is saturated. The wait itself fell at the same depth: 3.48 ms on
+boot E and 3.07 ms on boot H run 3 (frames freed unsent), 2.84 ms on boot
+I and 2.86 ms on boot J (none freed), and the same 2.84–2.86 ms at 3.3
+and at 15 Mbit/s, so it is the per-frame service time, not queueing in
+the driver. The silent drops were inflating the credit wait: the earlier
+"about 1.25 ms a frame" (rate ÷ depth on boots F and H) was a starved
+pipe, not the service time (0.72 ms a frame at depth 4). From here the
+forecast rule is depth ÷ `wait_avg`, read against the wait each boot
+measures. Boot F's neutral depth-8 result (3.6 of 8 in flight, 4.47 ms)
+was measured with frames freed unsent and does not carry to this tree.
+
+**Stalls.** None: transmit chunks within 7 % of each other (15.51–16.70),
+receive chunks within 6 % (18.54–19.62), all ended on the byte cap. No
+entry for the §17 ledger.
+
+**Which queue the acknowledgements take (from source, no boot; the
+owner's receive-stall hypothesis).** Two kinds of acknowledgement are in
+play and they answer differently.
+
+- The 802.11 link-layer ACK is a control frame the MAC sends a SIFS after
+  each received frame. It never reaches the host: mac80211 does not build
+  it, the driver's `.tx` accepts only protected To-DS data, the two
+  control-port EAPOL frames and an allowed management set (anything else
+  is freed unsent), and its filter passes no control frames up. It does
+  not share the data queue; that part of the hypothesis is dropped.
+- The TCP acknowledgements the device sends while it receives are
+  ordinary protected data frames, and they share everything with transmit
+  data: the driver registers one mac80211 queue (`hw->queues = 1` with
+  the station join), so all access categories are one queue; they enter
+  the same `join_queue` under the same bound; the stop is
+  `ieee80211_stop_queues()` on every queue at once; and they take the
+  same four-frame in-flight window and the same credit retire. A stopped
+  or full data queue therefore holds or (before backpressure) frees the
+  receive path's acknowledgements, which is a mechanism by which a
+  transmit-queue defect stalls the peer's sending.
+
+The hypothesis stands on its second half: in this tree the receive
+path's TCP acknowledgements have no path around the data queue. It is
+consistent with the record (boot I's stall with a chattering
+eight-frame queue; boot J's none with a deep one; the earlier stalls on
+boots C, D and F, when a full eight-frame queue freed frames unsent,
+acknowledgements included) and not proven: the data-end record counts
+stops and drops for the whole data phase, not by direction, so no boot
+yet shows a stop or a drop inside a stalled receive chunk. The structural
+fix it points at is a path for acknowledgements and control that the
+data queue cannot stop: a separate queue (or a separate traffic class,
+as the vendor's four-queue resource model provides) for small frames and
+pure TCP acknowledgements. That needs mac80211 queues beyond the one
+registered (or a driver-side priority queue) and is not yet a proposal.
+One further observation from the same read: the management and EAPOL
+admission refuses any frame while the shared queue holds three or more,
+so with a 64-frame data queue a management frame sent during a busy
+data phase is freed unsent; no such frame is sent on this path today.
+
+## 21. Boot K (predeclared, 2026-10-25): depth 8 on boot J's tree
+
+**The change.** `CONFIG_MT6797_CCMP_TX_DEPTH=8` on boot J's tree (the
+TC1 ledger derives to 104 pages, 0280), with the same 64-frame queue,
+stop 56 and wake 32. One driver variable against boot J.
+
+**The harness.** The chunk byte cap rises from 4 MiB to 16 MiB with the
+3 s duration kept (plan, review record, the laptop's sender and the
+device's `dd`). At 16.5 Mbit/s a chunk filled 4 MiB in 2.0 s, inside
+the duration; at a predicted 32 Mbit/s it would fill in 1.05 s and at
+the air limit in under 0.9 s, censoring again exactly where the change
+is largest. At 16 MiB the duration binds below about 45 Mbit/s, so every
+chunk measures steady state. Boot J's chunk rates were floors under the
+old cap; boot K's are not, so the comparison reads boot K's chunks
+against boot J's final halves.
+
+**The expectation (depth ÷ `wait_avg`).** Read `wait_avg` first.
+
+| `wait_avg` at depth 8 | forecast frames/s | forecast TX Mbit/s |
+|---|---|---|
+| 2.9 ms (unchanged) | 2,760 | 32 |
+| 3.6 ms | 2,220 | 26 |
+| 4.5 ms (boot F's) | 1,780 | 21 |
+| 5.0 ms | 1,600 | 18.5 |
+
+| Reading | Cause | Next |
+|---|---|---|
+| TX 26–32 Mbit/s with `wait_avg` near 2.9–3.6 ms, stops in boot J's order (hundreds, not thousands), `high_water` near 64, `dropped_full=0` | the depth was the bound; the pipeline scales | the rule holds; the air is the next limit to look for |
+| TX below 26 with `wait_avg` risen toward 5 ms and the rule still matching | the firmware's per-frame service time grows with the frames it holds | a different answer: the firmware's per-frame path, not the host depth |
+| TX far below the rule at the measured wait | something other than the window binds (the air, the queue's refill, the peer) | read `inflight_max`, the in-flight mean and the stops before anything else |
+| TX above about 35 Mbit/s | the air at the fixed 54 Mbit/s rate becomes visible as a limit | the rate (54 Mbit/s) rather than the pipeline is the next question |
+| `expired` > 0, `pid_faults` > 0, `left_pages` > 0 or `dropped_full` > 0 | the FIFO, the pool or the queue does not hold at this depth | revert to depth 4; read the credit lines |
+| any receive `device_timeout` or non-zero payload | the depth starves the receive side | revert to depth 4, as boot B established |
+
+Receive is expected unchanged or better. `inflight_max` must reach 8 or
+the depth was not exercised.
+
+**The receive stall: watched, not reproduced.** No boot is spent on a
+reproduction. If no receive stall appears in boot K and the run after it,
+both with the deep queue, the attribution is recorded as "consistent
+with the shared-queue hypothesis, not proven". A stall that does appear
+goes to the §17 ledger with its device-clock position and the stops and
+drops beside it.
+
+The three questions: reachability, the depth sizes the slot array and
+the per-pass submission count and the ledger is admitted at HIF
+activation on every boot; ownership, the host ledger's figures (104 of
+the firmware's 468-page budget); the vendor, the same budget the vendor
+allots this queue.

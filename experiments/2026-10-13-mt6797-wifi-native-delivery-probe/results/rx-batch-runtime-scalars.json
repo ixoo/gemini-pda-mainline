@@ -1657,6 +1657,159 @@
     }
    ],
    "reading": "mechanism success (2,223 stops/wakes, dropped_full=0) and configuration regression (a stop/wake every 16 ms with the 8-frame bound at the depth's order throttled transmit to a third); 0282 kept, bound decoupled to 64 frames with stop at 56 and wake at 32 (v2); boot J measures it"
+  },
+  "boot-j": {
+   "run": "PIO-throughput-bootj-1",
+   "session": "2026-10-25 17:53 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot I tree + 0282 v2, queue bound 64)",
+   "kernel_build_commit": "e51cb584cffd10e8516daa182c855557bef53449",
+   "boot2_sha256": "5e19a3c646705e5fd08602e934c0f1467aaca7551c34d77cba546cdd3eb7709e",
+   "predecessor_boot2_sha256": "d589c647fd203bee17da45e13e2a8c4c89b67573cf74a4f0727b335e8c6a4c47",
+   "mainline_boot_id": "50c9d80a-f0a7-469d-ad23-afae28b4d11f",
+   "previous_gemian_boot_id": "fa957e17-51ae-46b8-9996-2c3d7827473c",
+   "returned_gemian_boot_id": "3722770b-4692-4fcd-a206-5e86e19009e6",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 176635,
+   "all_pass": true,
+   "series_row": true,
+   "throughput": {
+    "tx_host_received_mbit_s": 15.02,
+    "tx_chunk_mbit_s": [
+     16.61,
+     16.7,
+     15.51,
+     15.96,
+     16.5
+    ],
+    "tx_final_half_mbit_s": [
+     16.64,
+     16.6,
+     15.22,
+     16.09,
+     16.55
+    ],
+    "tx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "rx_host_sent_mbit_s": 17.26,
+    "rx_device_chunk_mbit_s": [
+     19.17,
+     18.54,
+     18.85,
+     18.54,
+     19.62
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "byte_cap_per_chunk": 4194304,
+    "tx_device_cpu_idle_percent": 84.9,
+    "rx_device_cpu_idle_percent": 86.5
+   },
+   "backpressure": {
+    "stops": 156,
+    "wakes": 156,
+    "dropped_full": 0,
+    "stopped": 0,
+    "high_water": 56,
+    "bound": 64
+   },
+   "credit_retire": {
+    "retired": 25630,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 2864,
+    "wait_max_us": 14463,
+    "left_pages": 0,
+    "inflight_max": 4,
+    "samples": 406,
+    "reports": 406
+   },
+   "sampled": {
+    "tx_rates": {
+     "0/0x004c": 406
+    },
+    "latency_ms_buckets": {
+     "<1": 25,
+     "<2": 70,
+     "<4": 76,
+     "<8": 144,
+     "<16": 91
+    },
+    "n": 406,
+    "max_us": 13563
+   },
+   "tcp_state": [
+    {
+     "chunk": 1,
+     "cwnd": 65,
+     "ssthresh": 64
+    },
+    {
+     "chunk": 2,
+     "cwnd": 71,
+     "ssthresh": 63
+    },
+    {
+     "chunk": 3,
+     "cwnd": 58,
+     "ssthresh": 49
+    },
+    {
+     "chunk": 4,
+     "cwnd": 86,
+     "ssthresh": 53
+    },
+    {
+     "chunk": 5,
+     "cwnd": 95,
+     "ssthresh": 77
+    }
+   ],
+   "tcp_retrans_segs": {
+    "before": 0,
+    "after": 6
+   },
+   "tx_phase": {
+    "device_clock_s": [
+     16.19,
+     27.51
+    ],
+    "tx_packets": 14550
+   },
+   "tx_echo": [
+    {
+     "count": 893,
+     "offered_mbit_s": 4.81,
+     "received": 892,
+     "loss": 0.0011
+    }
+   ],
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 29184,
+    "tx_queued": 26036,
+    "tx_failed": 0,
+    "rx_delivered": 21928
+   },
+   "saturation": {
+    "depth": 4,
+    "forecast_frames_per_s": 1397,
+    "forecast_mbit_s": 16.2,
+    "measured_frames_per_s": 1285,
+    "mean_in_flight": 3.68,
+    "rule": "depth / wait_avg"
+   },
+   "stalls": [],
+   "reading": "second branch of HIF section 20: TX above 12 with zero loss; the configuration fix that released the mechanism (backpressure was right, the 8-frame bound was not; stop 56 / wake 32 turned 2,223 cycles into 156); the pipeline is saturated at depth / wait_avg; HT stays closed; boot K is depth 8"
   }
  }
 }

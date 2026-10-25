@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Steady-state chunks for a derived throughput run: 4 MiB or 3 s per chunk,
+"""Steady-state chunks for a derived throughput run: 16 MiB or 3 s per chunk,
 whichever comes first, and a final-half rate beside the whole-chunk rate.
 
 usage: steady_state_chunks.py <work-dir>   (last injection, after the probe and
@@ -16,14 +16,20 @@ the old cap are floors and say so. The device side's per-chunk command is
 bounded by 4 s (one second past the laptop's duration, so a chunk that the
 laptop ends by duration is never cut first by the device: on boot F the two
 3 s bounds raced and a receive chunk read `device_timeout` at the device's
-SIGTERM) and sends at most 4 MiB; the SSH idle policy (30 s) and the leaf's
+SIGTERM) and sends at most the cap; the SSH idle policy (30 s) and the leaf's
 135 s bound hold with room.
+
+The cap was 4 MiB through boot J, which filled it in about 2.1 s at 16.5
+Mbit/s; a predicted 32 Mbit/s would fill it in about 1 s, censoring the
+chunks exactly where a change is largest. At 16 MiB the 3 s duration binds
+below about 45 Mbit/s, so every chunk measures steady state (from boot K).
 """
+import re
 import sys
 from pathlib import Path
 
 work = Path(sys.argv[1])
-CAP = 4 * 1024 * 1024
+CAP = 16 * 1024 * 1024
 SECONDS = 3
 DEVICE_BOUND = SECONDS + 1   # the device's bound must outlast the laptop's duration, or the two 3 s bounds race (boot F, RX chunk 5)
 
@@ -35,11 +41,11 @@ def literal(path, old, new, count=1):
 
 
 h = work / 'hosts/throughput-helper.py'
-literal(h, "DURATION = 1\n", "DURATION = %d  # steady-state chunks: 4 MiB or 3 s, whichever first\n" % SECONDS)
+literal(h, "DURATION = 1\n", "DURATION = %d  # steady-state chunks: %d MiB or %d s, whichever first\n" % (SECONDS, CAP >> 20, SECONDS))
 literal(h, "MAX_BYTES = 1024 * 1024\n", "MAX_BYTES = %d\n" % CAP)
-# the device side: 4 MiB of zeros per transmit chunk, 3 s bounds on both legs
+# the device side: the cap in zeros per transmit chunk, the device's bound on both legs
 literal(h, "$BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeout 1 $BB nc HOST 48001 || rc=$?",
-        "$BB dd if=/dev/zero bs=65536 count=64 2>/tmp/tp2-dd.log | $BB timeout %d $BB nc HOST 48001 || rc=$?" % DEVICE_BOUND)
+        "$BB dd if=/dev/zero bs=65536 count=%d 2>/tmp/tp2-dd.log | $BB timeout %d $BB nc HOST 48001 || rc=$?" % (CAP // 65536, DEVICE_BOUND))
 literal(h, "n=$(set -o pipefail; $BB timeout 1 $BB nc HOST 48002 | $BB wc -c) || rc=$?",
         "n=$(set -o pipefail; $BB timeout %d $BB nc HOST 48002 | $BB wc -c) || rc=$?" % DEVICE_BOUND)
 # with the device's bound past the laptop's duration, the laptop closes a transmit chunk first and the
@@ -71,8 +77,10 @@ literal(h, "                        'ended_by':'byte_cap' if count>=self.maximum
 p = work / 'hosts/throughput-prepare.py'
 literal(p, "'seconds_per_chunk':1,'byte_cap_per_chunk':1048576,", "'seconds_per_chunk':%d,'byte_cap_per_chunk':%d," % (SECONDS, CAP))
 r = work / 'review-installer.py'
-if "'seconds_per_chunk': %d," % SECONDS not in r.read_text():   # a work directory derived from one already on this protocol keeps its record
-    literal(r, "'seconds_per_chunk': 1,", "'seconds_per_chunk': %d," % SECONDS)
-    literal(r, "'byte_cap_per_chunk': 1048576,", "'byte_cap_per_chunk': %d," % CAP)
+# a work directory derived from an earlier steady-state one carries that run's record: replace whichever value it holds
+for key, value in (('seconds_per_chunk', SECONDS), ('byte_cap_per_chunk', CAP)):
+    old = re.findall(r"'%s': \d+," % key, r.read_text())
+    assert len(old) == 1, (key, old)
+    literal(r, old[0], "'%s': %d," % (key, value))
 compile(h.read_text(), str(h), 'exec')
 print('steady-state chunks: %d MiB or %d s each, final-half rate recorded (helper, device leaf, plan, review record)' % (CAP >> 20, SECONDS))
