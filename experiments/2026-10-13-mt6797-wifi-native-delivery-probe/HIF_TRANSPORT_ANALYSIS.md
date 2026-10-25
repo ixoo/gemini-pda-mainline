@@ -816,3 +816,57 @@ includes the AP and the laptop's own stack, so a 4 ms reading says the
 loop is slow, not which half; the UDP reading is what assigns it to the
 device's transmit side (receive moves freely without acknowledgements) or
 to its receive side (receive does not move).
+
+### Probe boot 1 (2026-10-25): the TCP samples came, the ping and the UDP bursts did not
+
+Build `7ba78e08`, boot2 `cacce7a1…` over `96e1f41e…`, mainline boot
+`07a5f5db…`, returned to Gemian `bc556eb9…`, complete sealed log
+(1,629,872 bytes). Graded numbers (TCP, as every boot): TX 2.69 Mbit/s
+(chunks 3.19–3.43, the 3.43 just above the band's 3.4 line on one chunk;
+`debt=0`, 21 credits matched), receive 6.78 host-side (device-side chunks
+10.1–12.5), the batching option compiled out (`on=0`, no block reads), the
+rx-dma row reproduced on the reverted tree.
+
+The probe itself ran half. The TCP samples are valid and are the first
+reading of their kind: during every receive chunk the device's advertised
+window sat between 64 KB (its floor at the chunk start) and 212–452 KB
+(median 151–238 KB), the laptop's congestion window at 200–256 KB, the
+segment size 1448, and the laptop-measured TCP round-trip time at a
+median of 61–102 ms per chunk, with maxima of 113–203 ms. The window is
+ample. The round-trip time during a receive is not 4 ms; it is a queue:
+the laptop offers 20–24 Mbit/s in each burst, the device takes 10–12.5
+Mbit/s, and the difference waits somewhere between the laptop's socket
+and the device's stack for about a hundred milliseconds.
+
+The ping and the three UDP bursts recorded nothing (`TP3_PING` empty,
+`TP3_UDP n 0` three times, the laptop's trigger listener never accepted),
+and the cause is this record's own injection: the probe's block was
+inserted into the device script after the `HOST` and `BOOT` placeholders
+had been substituted, so its `ping` and `nc` lines went to the literal
+name `HOST` (the device has no resolver; `timeout 6` ended the ping, the
+triggers failed to connect). The owner's rule applies to host-side code
+as it does to the driver: the injection's reachability question was not
+asked of the substitution order. Fixed: the block is inserted before the
+substitutions; the guard now refuses a device script with an unbound
+placeholder and checks that the probe lines carry the host; and the
+trigger connection now yields a second round-trip reading at rest (the
+laptop sends one byte and reads its kernel's RTT sample for that
+connection), beside the ping. The kernel image is unchanged, so the re-run
+is a same-image boot (the installer records `skipped-already-matching`
+after its full readback and shuts down as before).
+
+One more candidate for the table, from source. The driver registers twelve
+legacy rates (1–54 Mbit/s, mac.c) and no HT capability, so the access
+point's downlink to this station is legacy OFDM at the rate its own
+control picks from that set; the device-side receive of 10–12.5 Mbit/s of
+TCP payload is what 18–24 Mbit/s OFDM carries. The vendor control ran
+with HT. If the UDP delivered rate tops out near the same 11–12 Mbit/s
+with low loss at 30 Mbit/s offered, the ceiling is the access point's
+rate to a legacy-only station, not our receive path and not the
+acknowledgement clock; that reading goes to the table as a fourth row,
+with the HT capability (and the station record's rate set) as the next
+lever.
+
+| Reading | Cause | Next |
+|---|---|---|
+| UDP delivered near 11–12 Mbit/s device-side whatever is offered, loss low below it and rising above it, TCP RTT at rest short | the access point's legacy downlink rate to a station that advertises no HT | advertise HT (and the matching station record) before any transport lever |

@@ -52,6 +52,9 @@ def check_helper():
             script = mod['remote_script']('00000000-0000-4000-8000-000000000000', '192.0.2.1')
             mod['validate_idle_safety'](script); mod['validate_receive_safety'](script)
             assert ('TP3_UDP' in script) == (flag == '1')
+            assert not re.search(r'\bHOST\b|\bBOOT\b', script), 'placeholder left unbound in the device script'
+            if flag == '1':
+                assert script.count('192.0.2.1 48003') == 1 and 'ping -c3 192.0.2.1' in script, 'probe lines not bound to the host'
             if flag == '0':
                 assert script == mod0_script, 'flag off: device script differs from the reviewed one'
             # the base command measured at 405 bytes (M.COMMAND); 420 leaves a margin
@@ -80,6 +83,7 @@ def check_helper():
         trig.thread.join(timeout=5); trig.close()
         sends = trig.result['sends']
         assert trig.result['completed'] and [s['rate_mbit_s'] for s in sends] == [10, 30], trig.result
+        assert len(trig.result.get('trigger_rtt_ms', [])) == 2
         for s in sends:
             assert abs(s['offered_mbit_s'] - s['rate_mbit_s']) / s['rate_mbit_s'] < 0.15, s
     print('PASS helper: original plus the known blocks; validators and command bound with the flag on and off; record parses; trigger paces within 15 %%: %s' %

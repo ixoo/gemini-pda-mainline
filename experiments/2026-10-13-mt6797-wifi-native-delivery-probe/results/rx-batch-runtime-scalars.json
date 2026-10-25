@@ -143,6 +143,75 @@
       "reading": "table row 2: register work not the receive cost; the completion rate during the receive chunks equals the TCP acknowledgement rate, so an acknowledgement-free receive measurement is proposed before the interrupt",
       "retention": "kept, admitted in the lifecycle fragment",
       "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    },
+    "probe-1": {
+      "run": "PIO-throughput-probe-1",
+      "profile": "mt6797-a53-wifi-lifecycle (CONFIG_MT6797_HIF_RX_BATCH unset)",
+      "kernel_build_commit": "7ba78e08ddfe202acae782c798881904871dcc26",
+      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+      "predecessor_boot2_sha256": "96e1f41e59d805f587074519f90ba68fe3c24345f4454bd7abf904fd5893b25a",
+      "mainline_boot_id": "07a5f5db-685f-48bb-9737-7c5ebb8ca539",
+      "previous_gemian_boot_id": "ae210f69-252c-44a4-bc26-48e63791199d",
+      "returned_gemian_boot_id": "bc556eb9-787f-401c-9697-deccb3493948",
+      "sealed_log_bytes": 1629872,
+      "throughput": {
+        "tx_host_received_mbit_s": 2.69,
+        "tx_chunk_mbit_s": [
+          3.34,
+          3.43,
+          3.19,
+          3.35,
+          3.26
+        ],
+        "tx_device_cpu_idle_percent": 85.71,
+        "rx_host_sent_mbit_s": 6.78,
+        "rx_device_chunk_mbit_s": [
+          11.18,
+          10.11,
+          12.52,
+          11.81,
+          12.16
+        ],
+        "rx_device_cpu_idle_percent": 80.34
+      },
+      "receive_probe": {
+        "graded": false,
+        "tcp_receive_chunks_rttcur_ms_median": [
+          102,
+          94,
+          75,
+          61,
+          88
+        ],
+        "tcp_receive_chunks_rttcur_ms_max": [
+          124,
+          124,
+          203,
+          162,
+          113
+        ],
+        "peer_window_bytes_median": [
+          238080,
+          184832,
+          200192,
+          151040,
+          174080
+        ],
+        "peer_window_bytes_min": 64512,
+        "peer_window_bytes_max": 452608,
+        "snd_cwnd_median": [
+          205617,
+          238921,
+          256297,
+          199825,
+          225889
+        ],
+        "maxseg": 1448,
+        "ping": "void (literal HOST in the injected block)",
+        "udp": "void (triggers never reached the laptop: literal HOST)"
+      },
+      "fix": "probe block inserted before the HOST/BOOT substitution; guard refuses unbound placeholders; trigger RTT added",
+      "rerun": "same image, probe-2"
     }
   }
 }

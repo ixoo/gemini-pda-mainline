@@ -9,7 +9,10 @@ passes the helper's own validators. Nothing here is graded: the receipt
 gains a `receive_probe` record and `all_pass` does not read it.
 
 Three readings in one boot, before the chunk loop (the device at rest):
-- one ping from the device to the laptop (three echoes, the summary line);
+- one ping from the device to the laptop (three echoes, the summary line),
+  and the TCP round-trip time the laptop's kernel measures on each trigger
+  connection from the device at rest (one byte out, the acknowledgement
+  back), as a second reading of the same quantity;
 - three offered UDP rates (10, 20, 30 Mbit/s, one second each, 1400-byte
   datagrams) sent by the laptop to a closed port on the device, counted by
   the device kernel's UDP `NoPorts` counter and the interface's rx_bytes,
@@ -123,6 +126,12 @@ class ProbeTrigger:
                 with connection:
                     if connection.getpeername()[0] != self.peer:
                         raise ValueError('unexpected probe peer')
+                    try:
+                        connection.send(b'x'); time.sleep(0.08)
+                        info = tcp_info(connection)
+                    except OSError:
+                        info = None
+                    self.result.setdefault('trigger_rtt_ms', []).append(info['rttcur_ms'] if info else None)
                 self.result['sends'].append(self.send(rate))
             self.result['completed'] = True
         except Exception as error:
@@ -169,8 +178,10 @@ HELPER_EDITS = [
     ("trap 'printf \"TP1_END_NS=\"; clock' EXIT\nfor dir in TX RX; do\n",
      "trap 'printf \"TP1_END_NS=\"; clock' EXIT\n__RP_BLOCK__for dir in TX RX; do\n"),
     # 2. the flag, substituted when the script is built
+    # the block goes in before BOOT and HOST are substituted, so its own HOST
+    # tokens are bound (the first probe boot left them literal: edit order)
     (".replace('BOOT', shlex.quote(boot)).replace('HOST', shlex.quote(host))\n    return script\n",
-     ".replace('BOOT', shlex.quote(boot)).replace('HOST', shlex.quote(host)).replace('__RP_BLOCK__', RP_DEVICE_BLOCK if os.environ.get('TP_RECEIVE_PROBE') == '1' else '')\n    return script\n"),
+     ".replace('__RP_BLOCK__', RP_DEVICE_BLOCK if os.environ.get('TP_RECEIVE_PROBE') == '1' else '').replace('BOOT', shlex.quote(boot)).replace('HOST', shlex.quote(host))\n    return script\n"),
     # 3. the idle validator admits the probe's one extra bounded command
     ("    bounds = [int(n) for n in re.findall(r'\\$BB timeout ([0-9]+)',script)]\n    if (len(bounds)!=2 or max(bounds)+2>=idle or\n",
      "    bounds = [int(n) for n in re.findall(r'\\$BB timeout ([0-9]+)',script)]\n    if (len(bounds) not in (2, 3) or max(bounds)+2>=idle or\n"),

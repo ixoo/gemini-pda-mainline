@@ -1,4 +1,13 @@
-# Current: the owner's order after boot 4; the receive probe is staged
+# Current: probe boot 1 half ran (TCP samples valid, ping/UDP void by injection order); same-image re-run staged
+
+[§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-1-2026-10-25-the-tcp-samples-came-the-ping-and-the-udp-bursts-did-not):
+the device's advertised window is ample and the in-chunk TCP round-trip
+time is 61–102 ms (a queue), not 4 ms; the ping and UDP readings are owed
+to the re-run (the probe block was inserted after the host placeholder
+was substituted; fixed, guarded). A fourth row joins the table: the
+access point's legacy downlink rate to a station that advertises no HT.
+
+# Historical: the owner's order after boot 4; the receive probe is staged
 
 Owner decisions (2026-10-25): 0268's admission reverted (neutral;
 precedent), the proposal kept behind its option; the receive probe
