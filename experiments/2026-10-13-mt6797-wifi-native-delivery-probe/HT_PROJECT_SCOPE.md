@@ -105,6 +105,12 @@ delivers frames natively:
   rate);
 - implementing `ampdu_action` per TID (today a stub that refuses).
 
+**Boot U's answer.** The access point uses HT toward this station at the
+top MCS (MCS7 ×27,538 of 38,106), and our receive path takes it with no
+refusal: the cheap route's question is answered yes. Receive ingest is
+now the binding limit (boot V), and the fixed MCS7 descriptor is the
+transmit step after it (boot W).
+
 **The descriptor's A-MPDU bits are not air aggregation.** Status bits 14
 and 15 (`RX_STATUS_AMPDU_SUB_FRAME`, `RX_STATUS_AMPDU_FORMAT`) are set on
 every ordinary accepted frame (`0xc000`), legacy boots included. They

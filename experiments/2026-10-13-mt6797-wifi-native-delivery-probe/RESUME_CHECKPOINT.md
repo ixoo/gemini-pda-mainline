@@ -1,4 +1,19 @@
-# Current: boot T's per-TID replay counters removed every receive refusal (all_pass); boot U (HT capability advertised, descriptor unchanged) staged on boot2
+# Current: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) predeclared, awaiting the owner's review before staging
+
+[Boot U](HIF_TRANSPORT_ANALYSIS.md#boot-u-result-2026-10-25-2209-utc-the-access-point-uses-ht-toward-this-station-at-the-top-mcs-and-our-receive-path-takes-it-unchanged):
+HT negotiated; downlink MCS7 ×27,538, MCS6 ×9,846; zero refusals on
+38,106 QoS frames. The verdict failed only on two transmit air losses
+(status 3, MPDU_ERROR) folded into the ownership gate; the gate is now
+split (`tx_delivery`, an air-loss warning when every failure is status
+3). TX 19.2, RX 13.72, TCP retransmissions 32: not attributed from one
+run. Receive ingest is the binding limit (the AP offers 65-72 Mbit/s of
+air, we take 18).
+[§32](HIF_TRANSPORT_ANALYSIS.md#32-boot-v-predeclared-2026-10-25-receive-batching-re-admitted-on-boot-us-tree):
+`CONFIG_MT6797_HIF_RX_BATCH=y` on boot U's tree; then boot W, the fixed
+MCS7 descriptor (0x87). Nothing is staged; the device is on Gemian
+(`5356f352…`).
+
+# Historical: boot T's per-TID replay counters removed every receive refusal (all_pass); boot U (HT capability advertised, descriptor unchanged) staged on boot2
 
 [Boot T](HIF_TRANSPORT_ANALYSIS.md#boot-t-result-2026-10-25-2153-utc-per-tid-replay-counters-remove-every-receive-refusal-the-anti-replay-invariant-has-the-shape-ht-needs):
 `rx_refused=0 rx_refused_qos=0`, the anti-replay invariant per TID and

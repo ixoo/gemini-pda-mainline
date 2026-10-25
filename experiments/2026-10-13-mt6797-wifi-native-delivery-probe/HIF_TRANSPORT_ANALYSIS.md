@@ -3912,3 +3912,107 @@ Success is that nothing moves:
 
 The fixed-rate trade (boot T) applies: the HT steps should predict more
 loss exposure at a fixed MCS, not less.
+
+### Boot U result (2026-10-25, 22:09 UTC): the access point uses HT toward this station at the top MCS, and our receive path takes it unchanged
+
+Build `625c1eb3` (0293, records non-QoS), boot2 `a227cbd5…` over boot
+T's `c7f650a8…`, mainline boot `23568a50…`, returned to Gemian
+`5356f352…` by the session's own reviewed return (live identity checked
+afterwards); log complete through the seal (187,145 bytes). The receipt
+was whole (`all_pass=True`, five chunks each way, the core disconnect
+accepted). The verdict failed on one gate, `classifier:ownership`, for
+`tx_failed=2`, explained below.
+
+**HT is available, and received.**
+
+- `join HT: requested=1 accepted=1`.
+- The receive rate record: mode 2 (HT) MCS7 ×27,538, MCS6 ×9,846,
+  MCS5 ×718 and MCS4 ×4, with the legacy 6 Mbit/s ×130 the
+  management and group frames.
+- Zero refusals on 38,106 QoS frames, almost all of them HT
+  (`rx_refused=0 rx_refused_qos=0`, no status bit beyond `0xc000`,
+  `rx_llc_mis=1` with `type=0x002e` as before). No action frame was
+  recorded either way.
+
+This access point will use HT toward this station and chooses the top
+MCS, and our receive path accepts HT frames unchanged: the QoS, TID and
+per-TID replay work generalises. §31's stop boundary was not reached.
+
+**The two failed transmits are air losses.** The sampled transmit
+reports show `0/0x004c=747,3/0x004c=2`. Status 3 is
+`TX_RESULT_MPDU_ERROR` in the vendor's `wlan_lib.h` (`59e00a91`): a
+frame unacknowledged after its retries, at the fixed 54 Mbit/s.
+`expired=0 pid_faults=0 left_pages=0`. The old gate folded `tx_failed`
+into the ownership proof, so an air loss read as an ownership failure.
+The flags `counts_ok`, `duration_pass` and `connected_lifetime_trial_pass`
+were false in boots S and T too, whose verdicts passed: they were never
+gates, and they did not fail this run. Fixed on the host (below).
+
+**Throughput, against boot T's 20.86 / 16.38 and §31's "nothing moved".**
+
+- *Transmit:* 19.2 Mbit/s (chunks 19.3–20.9).
+- *Receive:* 13.72 Mbit/s (chunks 18.6, 18.1, 9.4, 18.4, 8.9).
+- The device's TCP retransmissions across the transmit direction rose
+  to 32 (boots S and T: 6 and 9), and `cwnd` fell as low as 22.
+- In both receive dips the laptop's own send rate fell with the device's
+  (16.0 and 11.8 against 22–23.5 on the other chunks), with no
+  refusal.
+
+So "nothing moved" was not met in rate or loss. From one run this cannot
+be split between the channel and the access point's HT behaviour; it is
+recorded, not attributed. The binding limit is plain all the same: the
+access point offers about 65–72 Mbit/s of air and the device takes 18
+at best.
+
+## 32. Boot V (predeclared, 2026-10-25): receive batching re-admitted on boot U's tree
+
+**The change.** `CONFIG_MT6797_HIF_RX_BATCH=y` in the lifecycle fragment,
+with [0268](../../patches/proposals/0268-wifi-mt6797-receive-by-the-enhanced-status-block-and-aggregated-reads.patch)
+unchanged and still in the series. Once per pass it reads the enhanced
+status block, then reads each queue's frames in one aggregated
+data-port transfer. When it was measured (boot 4 of 0268) it was
+neutral, and correctly retired. Its own record said the receive number
+was then plausibly clocked by the transmit path's acknowledgement
+latency, so no receive lever could move it. Boot U changes that
+condition: the access point now delivers MCS7 and our receive side is
+the binding limit. Everything else is boot U's tree: HT advertised, the
+descriptor at `0x4c`, the records non-QoS, depth 12, the ledger. The
+probe's UDP legs stay retired.
+
+**Riding along, host only: the verdict no longer lies about air
+losses.** `throughput_verdict.py` splits a failed transmit out of
+`ownership` into its own gate, `tx_delivery`. When every failed frame is
+accounted for by status-3 (`MPDU_ERROR`) entries in the sampled report
+histogram, the gate passes and the count is a named warning
+(`verdict_warnings: tx_air_losses=N`). Any other status, or failures the
+histogram does not explain, fail `classifier:tx_delivery`.
+`ownership` keeps its proof (one record, retired > 0, nothing expired,
+no PID fault, no pages left). The cohort's legacy flags are listed by
+name in `retained_not_gated`.
+
+Re-classified offline, boot U's own evidence passes with
+`tx_air_losses=2`, and boot T is unchanged. A synthetic status 5, and an
+unexplained count, both fail `tx_delivery`. Fixture:
+`tests/throughput-classifier-test.py`.
+
+| Reading | Cause | Next |
+|---|---|---|
+| RX rises toward 25–30 with TX unchanged | the per-frame register work was the ingest limit, exposed only now | keep it; the receive side is then within a factor of 2 of the access point |
+| RX unchanged | ingest is elsewhere: the polled loop's cadence or the firmware's ring | the interrupt becomes the next question, with a reason at last |
+| any refusal, or any `device_timeout` receive chunk | the batching interacts with HT frames | revert, as boot B established |
+| the credit ledger not whole (`expired`, `pid_faults`, `left_pages`) | the block read's TX credit merge (boot 1 of 0268) on today's credit-retire path | revert; the merge is the suspect |
+
+Quoted beside the receive rate: the device-side rate, the refusal
+counters, `HIF RX batch:` (reads, aggregates, frames, max, failures),
+the receive rate record, and the transmit side's `tx_air_losses`.
+
+**After it, the fixed HT MCS for transmit (boot W, not yet
+predeclared).** One constant, `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x87`
+(`TX_MODE_HT_MM | MCS7`), in the descriptor's existing fixed-rate field.
+The access point proves MCS7 works in this channel. Payload air time for
+a 1,536-byte frame drops from 227.6 µs at 54 Mbit/s to 189 µs at MCS7
+with the long guard interval we advertise (65 Mbit/s). The owner's
+169 µs is MCS7 with the short guard interval (72.2 Mbit/s), which is not
+advertised. Expect about +15–18 % on transmit before per-frame overhead.
+A fixed MCS trades margin for rate, so losses should rise, not fall,
+until rate adaptation exists.

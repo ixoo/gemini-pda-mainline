@@ -2959,6 +2959,93 @@
     "tx_failed": 0
    },
    "reading": "HIF section 30: per-TID replay counters remove every receive refusal (rx_refused=0); transmit steady near boot M; the receive chunk-2 dip slowed at the sender; device TCP retransmissions 9 (recorded, not graded)"
+  },
+  "boot-u": {
+   "run": "PIO-throughput-bootu-1",
+   "session": "2026-10-25 22:09 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot T tree + 0293; HT_CAPABILITY on, WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "625c1eb3fe09eb6b070f8958456d99806c90b4db",
+   "boot2_sha256": "a227cbd515f3a3db31b111a4c0b9d27314374d0f3b3ad69626ef3793ffaaeaf7",
+   "predecessor_boot2_sha256": "c7f650a88699627e1ebe08915edb4ad2e4df3f1f7043aed5a9d4f280d87ed503",
+   "mainline_boot_id": "23568a50-1a6c-463e-958e-45fb376ca03d",
+   "previous_gemian_boot_id": "bafaa65c-9b9d-4f2a-94db-698f2af7cdd0",
+   "returned_gemian_boot_id": "5356f352-d5e6-4eeb-9f57-db174827ef6c",
+   "returned_by": "session's reviewed return",
+   "classification": "receipt whole; verdict failed classifier:ownership on tx_failed=2 (status 3, MPDU_ERROR, air loss); passes with tx_air_losses=2 under the split gate",
+   "sealed_log_bytes": 187145,
+   "series_row": true,
+   "ht": {
+    "requested": 1,
+    "accepted": 1,
+    "rx_rates": {
+     "ht_mcs7": 27538,
+     "ht_mcs6": 9846,
+     "ht_mcs5": 718,
+     "ht_mcs4": 4,
+     "ofdm_6m": 130
+    }
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 19.2,
+    "tx_chunk_mbit_s": [
+     19.27,
+     20.53,
+     20.12,
+     20.88,
+     20.52
+    ],
+    "rx_aggregate_mbit_s": 13.72,
+    "rx_device_chunk_mbit_s": [
+     18.57,
+     18.07,
+     9.44,
+     18.41,
+     8.91
+    ],
+    "rx_host_sent_mbit_s": [
+     23.45,
+     22.27,
+     15.98,
+     23.49,
+     11.84
+    ],
+    "credit_retire_wait_avg_us": 5859,
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 32
+    }
+   },
+   "qos": {
+    "tx_qos": 47946,
+    "tx_tid_refused": 0,
+    "tx_tid": [
+     47777,
+     0,
+     0,
+     169,
+     0,
+     0,
+     0,
+     0
+    ],
+    "rx_qos": 38106,
+    "rx_nonqos": 130,
+    "rx_refused": 0,
+    "rx_refused_qos": 0,
+    "rx_llc_mis": 1
+   },
+   "tx_sampled_status": {
+    "0": 747,
+    "3": 2
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 2
+   },
+   "reading": "HIF section 31: the AP uses HT toward this station at the top MCS and the receive path takes it with no refusal; receive ingest is now the binding limit; two transmit air losses at the fixed 54 Mbit/s"
   }
  }
 }
