@@ -11,7 +11,13 @@ Boot H restores the rate and latency instruments by sampling one data
 frame in 64 with the MCU status report (0281, predeclared with its
 table). The throughput lever is aggregation, which means HT (a project);
 one bounded RE question first (software CCMP in the firmware's transmit
-path?), private memo, no boot. The owner's AP power times are still owed.
+path?), private memo, no boot: answered, no AES tables in either image,
+the cost is not encryption. Boot H is staged: lifecycle package at
+`a1aa339a` (depth 4, credit retire, one report in 64), boot2 `0f1ca6cf…`
+over `78bc8d58…` (full readback verified from Gemian `ccba9a97…`), five
+steady-state chunks with the device bound at 4 s, preflight passed,
+device shut down, watcher armed; the owner selects boot2. The owner's AP
+power times are still owed.
 
 # Historical: boot F (depth 8) measured neutral; the transmit limit is upstream of the driver (the sender's TCP); depth returns to 4; next are transmit UDP legs and the TCP retransmission count
 
