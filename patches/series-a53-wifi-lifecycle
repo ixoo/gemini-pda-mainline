@@ -770,3 +770,4 @@ proposals/0289-wifi-mt6797-admit-QoS-data-on-any-TID-at-the-receive-checks.patch
 proposals/0290-wifi-mt6797-discard-the-group-LLC-mismatch-class-as-the-vendor-does-and-name-status-bits.patch
 proposals/0291-wifi-mt6797-transmit-QoS-data-on-any-TID-each-refusal-named.patch
 proposals/0292-wifi-mt6797-keep-one-CCMP-replay-counter-per-TID.patch
+proposals/0293-wifi-mt6797-advertise-HT-on-5-GHz-with-the-data-rate-still-fixed.patch

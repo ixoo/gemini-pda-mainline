@@ -1,0 +1,186 @@
+From 3a00ecb87e05f68902f2b1b183c41c00bd440fa8 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 17:58:45 -0400
+Subject: [PATCH] wifi: mt6797: advertise HT on 5 GHz with the data rate still
+ fixed
+
+Boot T closed the WMM step with no refusal. mac80211 negotiates HT only
+with WMM; this is the cheap entry, capabilities only, to learn whether
+the access point sends HT rates to this station.
+
+With MT6797_HT_CAPABILITY, the 5 GHz band advertises HT: HT20, one
+stream, MCS 0-7, no short guard interval, greenfield, STBC, LDPC or 40
+MHz, the smallest A-MPDU window (8 KiB, 8 us spacing), static SM power
+save disabled. The association admission accepts exactly that HT
+capability element (mac80211 sets the SM power save bits itself) and
+the join channel at HT20 as well as 20 MHz non-HT; the association
+response is read for the access point's HT operation element and the
+result recorded. The data descriptor keeps its fixed legacy rate, the
+station record its legacy PHY and records non-QoS, and block-ack stays
+refused (ampdu_action returns -EOPNOTSUPP), so no aggregation session
+can be agreed. The reading is the receive rate record.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 15 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 78 +++++++++++++++++++-
+ 2 files changed, 91 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index e4ea4c981..297f358d9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -172,6 +172,21 @@ config MT6797_WMM_QOS_DATA
+ 	  is refused. The data-end record counts QoS and non-QoS frames each
+ 	  way and the receive check's refusals.
+ 
++config MT6797_HT_CAPABILITY
++	bool "MT6797 Wi-Fi: advertise HT on 5 GHz, data still at the fixed legacy rate"
++	depends on MT6797_WMM_QOS_DATA
++	default y
++	help
++	  Advertise HT capability on the 5 GHz band (HT20 only, MCS 0-7 for
++	  one stream, no short guard interval, greenfield, STBC or LDPC,
++	  static SM power save disabled, the smallest A-MPDU window), admit
++	  exactly that HT capability element in the association request and
++	  the HT20 channel width at the join channel. The data descriptor
++	  keeps its fixed legacy rate, the station record its legacy PHY, and
++	  block-ack stays refused: the step only asks whether the access
++	  point sends HT rates to this station, read in the receive rate
++	  record.
++
+ config MT6797_WMM_QOS_RECORDS
+ 	bool "MT6797 Wi-Fi: declare the station and the BSS QoS to the firmware under WMM"
+ 	depends on MT6797_WMM_QOS_DATA
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 056fd7db8..298f1b77c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -217,6 +217,9 @@ struct mt6797_mac {
+ 	/* Order: RTNL -> this mutex -> HIF mutex. No CONSYS callback here. */
+ 	struct mutex mutex;
+ 	struct ieee80211_supported_band band, band_5g;
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++	bool join_ht_requested, join_ht_accepted;
++#endif
+ 	struct ieee80211_channel channels[MT6797_CHANNELS];
+ 	struct ieee80211_rate rates[12];
+ 	char alpha2[2];
+@@ -1250,6 +1253,50 @@ static int mt6797_series_second(struct mt6797_mac *mac, u64 now)
+ }
+ #endif
+ 
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++/* HT20, one stream, MCS 0-7; no short GI, greenfield, STBC, LDPC or 40 MHz;
++ * the smallest A-MPDU window (0293). mac80211 sets the SM power save field
++ * from its own mode, so the admission below leaves those two bits free.
++ */
++#define MT6797_HT_CAP_INFO (WLAN_HT_CAP_SM_PS_DISABLED << IEEE80211_HT_CAP_SM_PS_SHIFT)
++#define MT6797_HT_AMPDU_PARAMS \
++	(IEEE80211_HT_MAX_AMPDU_8K | \
++	 (IEEE80211_HT_MPDU_DENSITY_8 << IEEE80211_HT_AMPDU_PARM_DENSITY_SHIFT))
++
++/* Exactly the advertised HT capability element body (26 bytes). */
++static bool mt6797_join_ht_cap_ok(const u8 *b)
++{
++	unsigned int i;
++
++	if ((get_unaligned_le16(b) & ~IEEE80211_HT_CAP_SM_PS) !=
++	    (MT6797_HT_CAP_INFO & ~IEEE80211_HT_CAP_SM_PS) ||
++	    b[2] != MT6797_HT_AMPDU_PARAMS || b[3] != 0xff ||
++	    b[15] != IEEE80211_HT_MCS_TX_DEFINED)
++		return false;
++	for (i = 4; i < 26; i++)
++		if (i != 15 && b[i])
++			return false;
++	return true;
++}
++
++/* The access point accepts HT when its response carries an HT operation
++ * element (0293).
++ */
++static void mt6797_join_assoc_ht(struct mt6797_mac *mac, const u8 *f, size_t n)
++{
++	size_t e = 30;
++
++	while (mac->join_ht_requested && e + 2 <= n && f[e + 1] <= n - e - 2) {
++		if (f[e] == WLAN_EID_HT_OPERATION && f[e + 1] == 22)
++			mac->join_ht_accepted = true;
++		e += 2 + f[e + 1];
++	}
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join HT: requested=%u accepted=%u descriptor_rate=fixed\n",
++		 mac->join_ht_requested, mac->join_ht_accepted);
++}
++#endif
++
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ /* The access point's association response: WMM is accepted when we asked
+  * for it and the response carries the WMM parameter element (OUI 00:50:f2,
+@@ -1861,7 +1908,17 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 			continue;
+ 		}
+ #endif
+-		/* No HT/VHT, fast-transition or WMM negotiation in this admission. */
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++		/* One HT capability element, exactly the advertised one. */
++		if (subtype == 0 && f[ie] == WLAN_EID_HT_CAPABILITY &&
++		    f[ie + 1] == 26 && mt6797_join_ht_cap_ok(f + ie + 2) &&
++		    !mac->join_ht_requested) {
++			mac->join_ht_requested = true;
++			ie += 2 + f[ie + 1];
++			continue;
++		}
++#endif
++		/* No other HT, no VHT, fast-transition or WMM negotiation here. */
+ 		if (f[ie] == WLAN_EID_HT_CAPABILITY ||
+ 		    f[ie] == WLAN_EID_VHT_CAPABILITY ||
+ 		    f[ie] == WLAN_EID_MOBILITY_DOMAIN ||
+@@ -2117,6 +2174,10 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	mac->join_wmm_requested = false;
+ 	mac->join_wmm_accepted = false;
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++	mac->join_ht_requested = false;
++	mac->join_ht_accepted = false;
++#endif
+ 	mac->qos_ac_params = 0;
+ 	mac->qos_tx = 0;
+ 	mac->qos_tx_nonqos = 0;
+@@ -5230,6 +5291,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					 mac->join_assoc_status);
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 				mt6797_join_assoc_wmm(mac, body, frame.bytes);
++#endif
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++				mt6797_join_assoc_ht(mac, body, frame.bytes);
+ #endif
+ 				if (!mac->join_assoc_status &&
+ 				    (!mac->join_aid || mac->join_aid > 2007)) {
+@@ -5679,7 +5743,9 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 			channel == &mac->channels[slot] &&
+ 			channel->band == NL80211_BAND_5GHZ &&
+ 			channel->hw_value == 40 && channel->center_freq == 5200 &&
+-			def->width == NL80211_CHAN_WIDTH_20_NOHT &&
++			(def->width == NL80211_CHAN_WIDTH_20_NOHT ||
++			 (IS_ENABLED(CONFIG_MT6797_HT_CAPABILITY) &&
++			  def->width == NL80211_CHAN_WIDTH_20)) &&
+ 			def->center_freq1 == 5200 && !def->center_freq2 &&
+ 			!(channel->flags & (IEEE80211_CHAN_DISABLED |
+ 				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
+@@ -7290,6 +7356,14 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		/* 5 GHz has the eight legacy OFDM rates, never CCK rates. */
+ 		mac->band_5g.bitrates = mac->rates + 4;
+ 		mac->band_5g.n_bitrates = ARRAY_SIZE(mac->rates) - 4;
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++		mac->band_5g.ht_cap.ht_supported = true;
++		mac->band_5g.ht_cap.cap = MT6797_HT_CAP_INFO;
++		mac->band_5g.ht_cap.ampdu_factor = IEEE80211_HT_MAX_AMPDU_8K;
++		mac->band_5g.ht_cap.ampdu_density = IEEE80211_HT_MPDU_DENSITY_8;
++		mac->band_5g.ht_cap.mcs.rx_mask[0] = 0xff;
++		mac->band_5g.ht_cap.mcs.tx_params = IEEE80211_HT_MCS_TX_DEFINED;
++#endif
+ 		hw->wiphy->bands[NL80211_BAND_5GHZ] = &mac->band_5g;
+ 	}
+ 	ret = ieee80211_register_hw(hw);
+-- 
+2.43.0
+

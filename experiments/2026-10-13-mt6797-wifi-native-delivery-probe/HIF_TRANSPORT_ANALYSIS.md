@@ -3829,6 +3829,40 @@ to pace 893 requests, against 1.08 s in boot S, so this run's leg ran at
 half its nominal rate. That is recorded as a probe reading, not as
 transmit capacity.
 
+**Boot T completes the WMM/QoS step (owner, 2026-10-25).** Across 49,697
+transmit and 42,198 receive QoS frames: `rx_refused=0 rx_refused_qos=0
+rx_llc_mis=0 tx_tid_refused=0`, with TIDs 0, 3 and 7 exercised.
+Transmit ran 21.71–22.26 per chunk (aggregate 20.86) against boot S's
+15.0–22.6 (17.17). Across boots S and T the QoS framing is cleared: with
+the same framing, transmit returned to boot M's level, so the framing was
+never the cause.
+
+**What boot S's transmit variance was not: the PN drops.** The proposed
+attribution, that boot S's transmit variance was the twelve per-TID PN
+drops and their TCP consequences, does not survive the timing.
+
+- On the device's clock, boot S's transmit direction ran 17.24–33.51 s
+  and its receive direction 33.54–53.43 s.
+- The twelve refusals are stamped 34.59–55.39 s: every one fell after
+  the transmit direction had ended, ten of them in the receive
+  direction's data frames.
+- They cost receive retransmissions, not the transmit dip.
+
+Boot S's transmit dip was a congestion episode of its own (chunk 3:
+`cwnd 84 ssthresh 64`). Boot T's steadier transmit is the same
+fixed-rate link on another run, not the PN change.
+
+**The residual loss source, and the fixed-rate trade.** Nothing is
+refused any more, yet boot T's transmit direction retransmitted 9
+segments, and `ssthresh` fell to 24 in chunk 4. At a fixed 54 Mbit/s
+there is no rate adaptation: a dip in the channel costs frames at that
+rate, and TCP backs off. That is the standing trade of the fixed-rate
+decision (0273), and it bounds both directions' variance.
+
+A fixed HT MCS trades less margin for more air time: MCS7 needs a
+cleaner channel than 54 Mbit/s OFDM. So the HT steps should predict
+more loss exposure, not less, unless rate adaptation comes with them.
+
 **Against §30.** The change is met: the per-TID counters are the fix,
 and nothing at or below a TID's last PN is accepted. The anti-replay
 invariant now has the per-TID shape that block-ack needs. Next, per the
@@ -3836,3 +3870,45 @@ owner's sequence, is HT on the cheap route (HT scope): HT capability
 advertised with WMM, the fixed `0x4c` descriptor and the records kept,
 and the receive rate record read for HT modes, watching the receive
 refusals for a change of shape.
+
+## 31. Boot U (predeclared, 2026-10-25): HT capability advertised, the descriptor unchanged
+
+**The change.**
+[0293](../../patches/proposals/0293-wifi-mt6797-advertise-HT-on-5-GHz-with-the-data-rate-still-fixed.patch)
+(`MT6797_HT_CAPABILITY`, set in the lifecycle fragment) is the cheap HT
+entry, capabilities only.
+
+- *Advertised on 5 GHz:* HT20, one stream, MCS 0–7. No short guard
+  interval, greenfield, STBC, LDPC or 40 MHz. The smallest A-MPDU window
+  (8 KiB, 8 µs spacing), SM power save disabled.
+- *Admission:* the association request admits exactly that HT
+  capability element (mac80211 sets the SM power save bits itself), and
+  the join channel is admitted at HT20 as well as 20 MHz non-HT. Before
+  0293 the admission refused any HT element and any HT width.
+- *Recorded:* `join HT: requested= accepted=`, accepted when the
+  response carries the access point's HT operation element.
+- *Unchanged:* the fixed `0x4c` data descriptor, the station record's
+  legacy PHY, the records non-QoS, depth 12, the ledger, the measurement
+  protocol. Block-ack stays refused: `ampdu_action` returns
+  `-EOPNOTSUPP`, so mac80211 declines any ADDBA request, and the
+  driver's management admission does not transmit action frames in any
+  case.
+
+Success is that nothing moves:
+
+| Reading | Required |
+|---|---|
+| `join HT: requested=1 accepted=1`, association and both lifetimes as before | HT negotiated |
+| `rx_refused=0`, no status bit beyond `0xc000`, ledger exact | nothing else moved |
+| TX about 22, RX about 18, a clean verdict | the measurement unchanged |
+| the receive rate record (`RX rates: mode/rate=`) | **the reading that matters** |
+
+| Reading | Cause | Next |
+|---|---|---|
+| mode 2 (HT) frames in the receive rate record | the access point sends HT toward this station | the fixed-MCS descriptor (`TX_MODE_HT_MM \| MCS7` = `0x87` in the existing fixed-rate field) as the next single variable |
+| only mode 1 (OFDM) | the access point stays legacy toward this station | HT buys nothing here; the throughput work ends at about 22/18, recorded as such |
+| `rx_refused` non-zero, new status bits, or more than one A-MPDU sub-frame per buffer | the access point aggregates toward a station that cannot receive it | **stop**: name each before any throughput claim; that is the boundary between "HT is available" and "HT is available and we cannot receive it" |
+| `join frame element refused` or `join channel refused` | the admission does not match what mac80211 built | the record names the element or width; correct the admission |
+
+The fixed-rate trade (boot T) applies: the HT steps should predict more
+loss exposure at a fixed MCS, not less.

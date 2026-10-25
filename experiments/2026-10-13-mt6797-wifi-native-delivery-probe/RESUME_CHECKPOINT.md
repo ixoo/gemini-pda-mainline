@@ -1,4 +1,4 @@
-# Current: boot T's per-TID replay counters removed every receive refusal (all_pass); next is HT on the cheap route, to be predeclared
+# Current: boot T's per-TID replay counters removed every receive refusal (all_pass); boot U (HT capability advertised, descriptor unchanged) predeclared, awaiting the owner's review before staging
 
 [Boot T](HIF_TRANSPORT_ANALYSIS.md#boot-t-result-2026-10-25-2153-utc-per-tid-replay-counters-remove-every-receive-refusal-the-anti-replay-invariant-has-the-shape-ht-needs):
 `rx_refused=0 rx_refused_qos=0`, the anti-replay invariant per TID and
@@ -7,8 +7,13 @@ that slowed at the sender); ledger exact; the probe's UDP legs retired.
 Next, per the owner's sequence: HT capability advertised with WMM, the
 fixed 0x4c descriptor and records non-QoS kept, the receive rate record
 read for HT modes and the receive refusals watched for a change of
-shape. Not yet predeclared. Nothing is staged; the device is on Gemian
-(`bafaa65c…`).
+shape. The PN drops fell in boot S's receive window, not its transmit
+window, so they were not boot S's transmit dip. The fixed-rate trade is
+recorded: nothing is refused, yet TCP retransmits on channel dips at a
+fixed 54 Mbit/s. [§31](HIF_TRANSPORT_ANALYSIS.md#31-boot-u-predeclared-2026-10-25-ht-capability-advertised-the-descriptor-unchanged):
+0293 advertises HT20 MCS 0-7 and admits exactly that element and the
+HT20 width; descriptor, records and block-ack refusal unchanged. Nothing
+is staged; the device is on Gemian (`bafaa65c…`).
 
 # Historical: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) staged on boot2
 
