@@ -273,6 +273,146 @@
         "device block offline test (VM, device busybox): 3 lines, counts 363/362/366, 7.6 s",
         "snd_wnd relabel"
       ]
+    },
+    "probe-4": {
+      "run": "PIO-throughput-probe4-1",
+      "session": "2026-10-25 11:39 UTC",
+      "same_image_as": "probe-1",
+      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+      "mainline_boot_id": "2f327013-152c-48aa-bad5-002968ea1d23",
+      "previous_gemian_boot_id": "37bc58e9-7bc7-4550-b4f6-fabbcb34ed11",
+      "returned_gemian_boot_id": "1b6850a9-ca0c-43a0-af9a-6471c24704b2",
+      "sealed_log_bytes": 1686335,
+      "throughput": {
+        "tx_host_received_mbit_s": 3.14,
+        "tx_chunk_mbit_s": [
+          4.07,
+          3.74,
+          3.73,
+          3.87,
+          3.95
+        ],
+        "tx_device_cpu_idle_percent": 86.17,
+        "rx_host_sent_mbit_s": 7.78,
+        "rx_device_chunk_mbit_s": [
+          14.46,
+          14.98,
+          15.25,
+          15.25,
+          15.83
+        ],
+        "rx_host_chunk_mbit_s": [
+          29.45,
+          32.95,
+          35.57,
+          34.14,
+          36.14
+        ],
+        "rx_device_cpu_idle_percent": 78.26
+      },
+      "receive_probe": {
+        "udp": [
+          {
+            "rate_mbit_s": 10,
+            "laptop_sent": 893,
+            "device_counted": 893,
+            "delivered_mbit_s": 10.01,
+            "loss": 0.0
+          },
+          {
+            "rate_mbit_s": 20,
+            "laptop_sent": 1786,
+            "device_counted": 1786,
+            "delivered_mbit_s": 20.01,
+            "loss": 0.0
+          },
+          {
+            "rate_mbit_s": 30,
+            "offered": true,
+            "missing": true,
+            "reason": "owned command terminated when the data window closed"
+          }
+        ],
+        "trigger_rtt_ms": [
+          7,
+          8,
+          8
+        ],
+        "laptop_ping_at_rest_ms": {
+          "min": 8.21,
+          "avg": 22.934,
+          "max": 51.532
+        },
+        "laptop_ping_in_chunk_ms": {
+          "min": 12.906,
+          "avg": 56.29,
+          "max": 97.561
+        },
+        "tcp_rx_chunk_rttcur_ms_samples": [
+          [
+            9,
+            27,
+            44,
+            69,
+            95,
+            132
+          ],
+          [
+            9,
+            22,
+            42,
+            66,
+            102,
+            139
+          ],
+          [
+            8,
+            24,
+            48,
+            76,
+            95
+          ],
+          [
+            6,
+            19,
+            39,
+            69,
+            85
+          ],
+          [
+            8,
+            27,
+            50,
+            53,
+            65
+          ]
+        ],
+        "snd_wnd_bytes": {
+          "min": 64512,
+          "median_per_chunk": [
+            266752,
+            279552,
+            136704,
+            203776,
+            129536
+          ],
+          "max": 497152
+        },
+        "snd_cwnd_median_per_chunk": [
+          205617,
+          238921,
+          256297,
+          199825,
+          225889
+        ],
+        "maxseg": 1448
+      },
+      "verdict": {
+        "all_pass": false,
+        "cause": "data phase ended by native-diag at 19.7 s: ccmp_queued reached MT6797_CCMP_DIAG_CHECKED_MAX (8192; series boots 4505-4646) with the probe's 2679 datagrams; disconnect not attempted; owned command terminated (third UDP line lost)",
+        "driver_data_path_fault": false
+      },
+      "reading": "receive path not the ceiling (UDP 20 Mbit/s, zero loss); TCP receive tracks the acknowledgement path (transmit side); interrupt not next; boot B next"
     }
   }
 }

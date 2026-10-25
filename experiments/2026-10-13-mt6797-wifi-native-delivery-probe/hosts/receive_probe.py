@@ -40,10 +40,10 @@ from pathlib import Path
 
 DEVICE_BLOCK = r'''( u() { $BB awk '/^Udp:/{l=$3}END{print l}' /proc/net/snmp; }
 for r in 10 20 30; do
-    a=$(u)
-    $BB timeout 5 $BB nc -w2 HOST 48003 </dev/null 2>/dev/null >/dev/null || true
-    $BB sleep 2.5; printf 'TP3_UDP %s %s\n' "$r" "$(($(u)-a))"
-done ) 2>/dev/null || true
+a=$(u)
+$BB timeout 5 $BB nc -w2 HOST 48003 </dev/null 2>/dev/null >/dev/null
+$BB sleep 2.5; printf 'TP3_UDP %s %s\n' "$r" "$(($(u)-a))"
+done ) 2>/dev/null; printf 'TP3_RC=%s\n' "$?"; true
 '''
 
 LAPTOP_BLOCK = '''
@@ -182,7 +182,14 @@ def receive_probe(output, probe, endpoints):
     for m in re.finditer(rb'^TP3_UDP ([0-9]+) (-?[0-9]+)\\r?$', output, re.M):
         udp.append({'rate_mbit_s': int(m[1]), 'device_counted': int(m[2])})
     sends = (probe.result.get('sends', []) if probe else [])
+    for sent in sends:   # a rate the laptop offered with no device line: missing, not lost
+        if not any(e['rate_mbit_s'] == sent.get('rate_mbit_s') for e in udp):
+            udp.append({'rate_mbit_s': sent.get('rate_mbit_s'), 'offered': True, 'missing': True,
+                        'laptop_sent': sent.get('datagrams'), 'laptop_offered_mbit_s': sent.get('offered_mbit_s')})
+    udp.sort(key=lambda e: e['rate_mbit_s'])
     for entry in udp:
+        if entry.get('missing'):
+            continue
         sent = next((x for x in sends if x.get('rate_mbit_s') == entry['rate_mbit_s']), None)
         if sent is None:
             entry['offered'] = False   # the trigger never produced a send for this rate: say so
@@ -193,6 +200,8 @@ def receive_probe(output, probe, endpoints):
                          delivered_mbit_s=entry['device_counted'] * probe.DATAGRAM * 8000 / sent['elapsed_ns'] if sent.get('elapsed_ns') else None,
                          loss_fraction=1 - entry['device_counted'] / sent['datagrams'] if sent['datagrams'] else None)
     record['udp'] = udp
+    m = re.search(rb'^TP3_RC=([0-9]+)\\r?$', output, re.M)
+    record['probe_rc'] = int(m[1]) if m else None   # None: the block never reached its own status line
     if probe:
         record['laptop'] = {k: v for k, v in probe.result.items() if k != 'sends'}
         t = probe.in_chunk.get('thread')
@@ -219,6 +228,11 @@ HELPER_EDITS = [
      "    bounds = [int(n) for n in re.findall(r'\\$BB timeout ([0-9]+)',script)]\n    if (len(bounds) not in (2, 3) or max(bounds)+2>=idle or\n"),
     # 4. the laptop side: the trigger, the TCP sampler and the record
     ("def remote_script(boot, host):\n", LAPTOP_BLOCK + "\ndef remote_script(boot, host):\n"),
+    # the byte cap is recorded, never in the verdict (a 1 s chunk at 4 Mbit/s cannot reach a 1 MiB cap); a duration-relative floor beside it
+    ("                    self.result['known_size_complete'] = count==self.maximum\n",
+     "                    self.result['byte_cap_reached'] = count==self.maximum\n"
+     "                    best = max(c['Mbit_s'] for c in self.result['chunks'])\n"
+     "                    for c in self.result['chunks']: c['rate_floor_met'] = c['Mbit_s'] >= 0.8 * best\n"),
     # 5. per-chunk TCP samples on the sending endpoint
     ("                    count = 0\n                    reason = 'duration'\n",
      "                    count = 0\n                    reason = 'duration'\n                    samples, next_sample = [], 0\n"

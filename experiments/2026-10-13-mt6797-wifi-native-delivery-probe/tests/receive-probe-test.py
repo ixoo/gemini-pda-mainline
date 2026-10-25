@@ -66,14 +66,16 @@ def check_helper():
         # the record parses a synthetic device output
         output = (b'TP3_UDP 10 880\r\n'
                   b'TP3_UDP 20 1700\r\n'
-                  b'TP3_UDP 30 0\r\n')
+                  b'TP3_RC=0\r\n')
         class P:
             DATAGRAM = 1400
             in_chunk = {}
             result = {'sends': [{'rate_mbit_s': 10, 'datagrams': 893, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 10.0},
-                                {'rate_mbit_s': 20, 'datagrams': 1786, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 20.0}], 'completed': True}
+                                {'rate_mbit_s': 20, 'datagrams': 1786, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 20.0},
+                                {'rate_mbit_s': 30, 'datagrams': 2679, 'elapsed_ns': 1_000_000_000, 'offered_mbit_s': 30.0}], 'completed': True}
         rec = mod['receive_probe'](output, P(), [])
-        assert len(rec['udp']) == 3 and rec['udp'][2]['offered'] is False and rec['udp'][0]['offered'] is True
+        assert len(rec['udp']) == 3 and rec['udp'][2]['missing'] is True and rec['udp'][2]['offered'] is True and rec['udp'][0]['offered'] is True
+        assert rec['probe_rc'] == 0
         assert rec['udp'][0]['device_counted'] == 880 and abs(rec['udp'][0]['loss_fraction'] - (1 - 880 / 893)) < 1e-9
         assert abs(rec['udp'][0]['delivered_mbit_s'] - 880 * 1400 * 8 / 1e6) < 1e-6 and rec['graded'] is False
         # the trigger paces its offered rates on loopback (a closed UDP port)

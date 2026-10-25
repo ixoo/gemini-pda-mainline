@@ -1045,3 +1045,86 @@ run ending at its 300 s wall clock at the latest (the measurement runner at
 90 s), the reviewed preservation and return following at once, the sealed
 log and the Gemian boot id in the record; a void boot can no longer look
 like boot 3.
+
+### Probe boot 4 (2026-10-25, 11:39 UTC): the readings, graded correctly
+
+Same image (`cacce7a1…`), mainline boot `2f327013…`, returned to Gemian
+`1b6850a9…` through the harness's own path, complete sealed log
+(1,686,335 bytes). The run's verdict line read `FAILED rc=1` and the
+receipt `all_pass: false`; both are artefacts of the measurement
+machinery, not of the driver's data path, and the readings stand as
+measured:
+
+| Reading | Value |
+|---|---|
+| TX, per chunk (host received) | 3.73–4.07 Mbit/s (aggregate 3.14 over 6.17 s) |
+| RX, per chunk, device-side | 14.46–15.83 Mbit/s; host-side bursts 29.5–36.1; aggregate 7.78 |
+| UDP offered 10 Mbit/s, no return traffic | 893 sent, 893 counted, delivered 10.01, loss 0 |
+| UDP offered 20 Mbit/s | 1,786 sent, 1,786 counted, delivered 20.01, loss 0 |
+| UDP offered 30 Mbit/s | sent by the laptop (third trigger accepted), the device line missing (below) |
+| Round trip at rest, TCP (trigger connections) | 7, 8, 8 ms |
+| Round trip at rest, ICMP (laptop to device) | 8.2 / 22.9 / 51.5 ms min/avg/max |
+| Round trip in-chunk, ICMP (during receive chunk 3) | 12.9 / 56.3 / 97.6 ms |
+| Round trip in-chunk, TCP samples per receive chunk (50 ms apart) | 9→132, 9→139, 8→95, 6→85, 8→65 ms |
+| Effective send window (the device's advertised window as the sender sees it) | 64 KB at each chunk's start, 130–280 KB median, up to 497 KB |
+| Congestion window, median | 200–256 KB; segment size 1448 |
+
+**What voided the verdict, from the record.** The data phase ended by the
+driver, `reason=native-diag`, 19.7 s after it began and before the host
+had sent its disconnect, so the disconnect was never attempted
+(`core_disconnect attempted=false`) and the receipt could not pass; the
+owned device command was terminated with the data window, which is why
+the third UDP line is missing and the leaf's verdict read failed. What
+closed the data phase is a ceiling from the diagnostic era that still
+sits in the lifecycle tree: with `CONFIG_MT6797_CCMP_60S_WINDOW` and
+`CONFIG_MT6797_CCMP_CONNECTED_LIFETIME` the native-delivery diagnostic
+ends its sample window when the CCMP path has queued
+`MT6797_CCMP_DIAG_CHECKED_MAX` (8,192) frames (`mac.c`: `ccmp_queued >=
+MT6797_CCMP_DIAG_CHECKED_MAX` sets `native_diag_sample_done`; the retire
+budget of 750 ms then closes it and ends the data phase). Every boot of
+the series finished its TCP chunks at 4,505–4,646 queued frames; this
+boot's probe added 2,679 datagrams and the counter read exactly 8,192 at
+the end (`ccmp-stable end: queued=8192`). The -5 at branch 8 that followed
+is the teardown meeting a frame the closed window no longer admitted
+(`native HIF refused: gate=header-length`, `teardown framing drop`), not a
+fault of the data phase. Neither of the two harness fields the owner named
+was in the verdict: the probe's exit status never reached it (`|| true`
+already ended the block), and `known_size_complete` is recorded only, by
+design unreachable for a one-second transmit chunk at a 1 MiB cap. Both
+are fixed regardless: the block now ends with its own `TP3_RC=` line and
+`true`, recorded as `probe_rc`, so it can decide nothing but itself; the
+cap field is relabelled `byte_cap_reached` and a duration-relative floor
+(`rate_floor_met`: at least 0.8 of the best chunk of that direction) is
+recorded beside it, neither in the verdict. A rate the laptop offered with
+no device line is recorded `offered: true, missing: true`, never as loss.
+The ceiling itself is lifted for the measurement lifetime in the next
+build (a proposal: the diagnostic's queued-frame ceiling becomes the
+connected lifetime's, 32,768, under the lifecycle options), because at
+15 Mbit/s a five-chunk receive alone approaches it.
+
+**The receive question, answered.** UDP delivered 20 Mbit/s into the
+device with zero loss and no return traffic, so the receive path is not
+the ceiling and the interrupt is not the next step (table rows 1 and 3
+resolved against row 3; row 4, the access point's legacy downlink rate,
+is above 20 Mbit/s at least, so it is not the cap at the measured TCP
+rates). TCP receive at 14.5–15.8 device-side while UDP carries 20 points
+at the acknowledgement path, which is our transmit side: the 6 Mbit/s
+fixed rate, the 4–9 ms per-frame completion, and a round trip of 7–8 ms
+idle that rises to 40–130 ms under load as the queue builds. The next
+lever is the one predeclared as boot B: stop requesting the MCU status
+report on ordinary data descriptors and complete those frames on page
+credits as the vendor does, the only change on the table that can move
+the round trip, which is what the TCP number has been tracking.
+
+**Re-baseline, and the comparison rule from now on.** The same image
+produced TX 3.7–4.1 and RX 14.5–15.8 device-side in this session against
+TX 3.2–3.4 and RX 8.5–12.5 at 02:00 (aggregates 3.14 against 2.67–2.69,
+7.78 against 6.78–6.99). Session-to-session variance is about ±40 %, not
+the ±5–7 % the records have assumed. From here: a driver change is judged
+against the adjacent boot in the same session, or A/B inside one boot;
+every "inside the band" in the records names the session it means or is
+reworded as a within-session comparison; the noise floor in the
+throughput series is corrected to this measured spread, with this pair as
+the evidence. The console verdict reached the owner on the framebuffer in
+seconds without SSH; once the status line and the cap field are out of
+its way it is the trusted verdict at the device.

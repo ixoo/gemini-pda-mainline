@@ -57,8 +57,9 @@ elapsed = time.monotonic() - start
 t.join(timeout=5)
 lines = [l for l in run.stdout.splitlines() if l.startswith('TP3_UDP')]
 counts = [int(re.match(r'TP3_UDP (\d+) (-?\d+)', l)[2]) for l in lines]
-ok = (len(lines) == 3 and 'BLOCK_DONE' in run.stdout and run.returncode == 0 and elapsed < 30
+rc_line = [l for l in run.stdout.splitlines() if l.startswith('TP3_RC=')]
+ok = (len(lines) == 3 and 'BLOCK_DONE' in run.stdout and run.returncode == 0 and elapsed < 30 and rc_line == ['TP3_RC=0']
       and len(sent) == 3 and all(c > 0 for c in counts) and all(abs(c - s) <= max(3, s // 20) for c, s in zip(counts, sent)))
 print('device block: lines=%r sent=%r elapsed=%.1fs rc=%d' % (lines, sent, elapsed, run.returncode))
-print(('PASS' if ok else 'FAIL') + ' device block: three TP3_UDP lines, counts match the listener within 5 %, exits within the bound')
+print(('PASS' if ok else 'FAIL') + ' device block: three TP3_UDP lines, TP3_RC=0, counts match the listener within 5 %, exits within the bound')
 sys.exit(0 if ok else 1)

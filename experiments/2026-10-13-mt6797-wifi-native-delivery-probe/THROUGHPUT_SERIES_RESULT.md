@@ -37,7 +37,14 @@ described here; each run's own artefacts are named.
 | [probe-1](HIF_TRANSPORT_ANALYSIS.md#probe-boot-1-2026-10-25-the-tcp-samples-came-the-ping-and-the-udp-bursts-did-not) | lifecycle tree, batching compiled out (0268 retired from admission); receive probe host-side: TCP samples valid (RTT 61–102 ms median in-chunk, window ample), ping and UDP void (injection order), re-run on the same image | 2.69 | 6.78 (device-side chunks 10.1–12.5) | 85.7% / 80.3% |
 | [probe-2](HIF_TRANSPORT_ANALYSIS.md#probe-boot-2-2026-10-25-a-graded-repeat-the-probe-ran-disabled-by-the-staging) | same image; probe disabled by a renamed staging flag (graded repeat only) | 2.67 | 6.99 (device-side chunks 11.8–12.5) | 86.1% / 81.0% |
 | [probe-3](HIF_TRANSPORT_ANALYSIS.md#probe-boot-3-2026-10-25-voided-before-the-measurement-recovered-through-the-reviewed-path) | same image; void: the device command crossed the 4096-byte bound (base 433, not the preflight's 405); recovered through the reviewed path | void | void | — |
+| [probe-4](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly) (11:39 UTC session) | same image; the probe ran: UDP 10 and 20 Mbit/s delivered with zero loss, RTT 7–8 ms at rest and 40–130 under load, window ample; the verdict line was a diagnostic-ceiling artefact (8,192 queued frames) | 3.14 (chunks 3.73–4.07) | 7.78 (device-side chunks 14.5–15.8) | 86.2% / 78.3% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
+
+Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
+RX 8.5–12.5 device-side at 02:00 and TX 3.7–4.1 / RX 14.5–15.8 at 11:39.
+Session-to-session variance is about ±40 %; a driver change is judged
+against the adjacent boot in the same session or A/B inside one boot, and
+"the band" in any row above means the band of that row's session.
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
 Runs before 2026-10-24 booted an inherited `board.dtb` that no build produced; proposal 0261 reproduces it from source and the [equivalence boot](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24) confirmed the series' results stand on it.
@@ -80,6 +87,13 @@ vendor control used the same laptop as the far end.
    transmit path's per-frame latency; an acknowledgement-free receive
    measurement separates that from the receive path before the interrupt
    is tried ([transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either)).
+8. **The receive path is not the ceiling.** The probe (boot 4) delivered
+   UDP at 20 Mbit/s offered with zero loss and no return traffic while TCP
+   received 14.5–15.8 device-side in the same session; the round trip is
+   7–8 ms at rest and 40–130 ms under load with the window ample. The
+   receive number tracks the acknowledgement path, our transmit side; the
+   interrupt is not next, the transmit completion lever is
+   ([transport record §11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly)).
 
 ## What the numbers point at next
 

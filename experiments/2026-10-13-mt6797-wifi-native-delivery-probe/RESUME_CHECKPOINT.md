@@ -1,4 +1,19 @@
-# Current: probe boot 3 void (command bound; real base 433 bytes), device recovered through the reviewed path; boot 4 staged with the probe after the chunks, the exact-base preflight, the device-block test and the recovering watcher
+# Current: the probe answered (boot 4): the receive path is not the ceiling; boot B (credits-only completion) is next, with the diagnostic ceiling lifted in the same build
+
+[§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly):
+UDP 10/20 Mbit/s delivered with zero loss, RTT 7–8 ms at rest and 40–130
+loaded, window ample; TX 3.7–4.1 and RX 14.5–15.8 device-side in this
+session (±40 % session variance; the comparison rule is now
+within-session). The verdict line was the native-diag's 8,192 queued-frame
+ceiling closing the data window under the probe's datagrams. Next build:
+lift that ceiling for the measurement lifetime, the delivered-frame count
+on the data-end line, the received-rate record, and boot B's change (no
+MCU status report for ordinary data, completion on page credits). The
+probe block now ends with its own status line; a missing rate is recorded
+missing. Queue after B: C (rate sweep), D (state 2); AP-loss gate
+independent.
+
+# Historical: probe boot 3 void (command bound; real base 433 bytes), device recovered through the reviewed path; boot 4 staged with the probe after the chunks, the exact-base preflight, the device-block test and the recovering watcher
 
 [§11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-3-2026-10-25-voided-before-the-measurement-recovered-through-the-reviewed-path):
 the helper refused its own command bound (4101 bytes); the leaf waited; the

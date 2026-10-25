@@ -56,6 +56,7 @@ with tempfile.TemporaryDirectory() as tmp:
     os.environ.clear(); os.environ.update(saved)
 anchors = {
     'probe block (UDP loop)': ("printf 'TP3_UDP", 1),
+    'probe status line (the probe decides only itself)': ("printf 'TP3_RC=%s\\n' \"$?\"; true", 1),
     'probe trigger to the laptop': ('nc -w2 %s 48003' % host, 1),
     'receive listener (device reads from the laptop)': ('nc %s 48002 | $BB wc -c' % host, 1),
     'transmit sender (device writes to the laptop)': ('nc %s 48001' % host, 1),
