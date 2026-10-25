@@ -2069,7 +2069,7 @@ the ledger (§17).
 
 ## 19. Boot I (predeclared, 2026-10-25): backpressure toward mac80211, one variable
 
-**The change.** [0282](../../patches/proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-full.patch)
+**The change.** [0282](../../patches/proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-nearly-full-with-the-queue-bound-its-own-option.patch)
 (`CONFIG_MT6797_TX_BACKPRESSURE`): when the driver's data queue reaches
 its bound (eight frames, 12,400 bytes) the transmit entry stops
 mac80211's queues instead of letting the next frame arrive to be freed
@@ -2134,3 +2134,89 @@ empties the queue. Ownership: mac80211's queue state is the host's;
 nothing is written to the device. What the vendor writes: a network
 queue stop at a packet threshold and a wake when drained. The ledger
 stands at eleven.
+
+### Boot I result (2026-10-25, 17:33 UTC): the mechanism works, the queue discipline does not
+
+Build `b02ddb84` (boot H's tree with 0282), boot2 `d589c647…` over
+`0f1ca6cf…`, mainline boot `bf3cebdf…`, returned to Gemian `fa957e17…`
+(recovery confirmed); session `ram-service-regression-pass`, log complete
+(174,970 bytes), receipt `all_pass` (the laptop's rule now accepts the
+transmit leg's closes), both directions complete, no early stop.
+
+**TX first.** `tx_failed=0`, `retired=16214 expired=0 pid_faults=0
+left_pages=0`, 257 samples with 257 reports all at `0/0x004c`; the
+backpressure record: `stops=2223 wakes=2223 dropped_full=0 stopped=0`,
+so mac80211's queues were stopped and woken 2,223 times in 16,471 frames
+(every seventh frame) and no frame was freed unsent. The zero-payload
+check passed.
+
+| | Boot I (0282 on) | Boot H run 3 (same tree, 0282 off) |
+|---|---|---|
+| TX chunks, whole / final half (Mbit/s) | 2.46, 3.69, 3.69, 4.02, 3.80 / 3.81, 4.59, 3.91, 4.03, 3.30 | 9.19–9.73 / 9.16–9.81 |
+| TX aggregate | 3.34 | 8.95 |
+| RX device-side chunks (Mbit/s) / ended by | 17.66, 19.17, 7.55, 19.28, 13.42 / chunk 3 `device_timeout` (3.78 MB at the device's 4 s bound, final half 58, a stall at its start) | 14.5–20.3 / all `byte_cap` |
+| device TCP state per TX chunk (cwnd / ssthresh) | 2/16, 12/11, 19/14, 1/15 (retransmit queue 1: a timeout), 22/11 | 6/5, 6/5, 6/5, 6/6, 6/6 |
+| `RetransSegs` across the TX phase | 0 → 549 (3.3 % of 16,471) | 0 → 451 (1.9 %) |
+| credit-retire wait mean / max, in flight max | 2.84 ms / 15.2 ms, 4 | 3.07 ms / 15.4 ms, 4 |
+| completion latency (257 samples) | 13 under 1 ms, 72 in [1, 2), 31 in [2, 4), 95 in [4, 8), 46 in [8, 16), max 10.5 ms | 42, 78, 25, 199, 29 of 373 |
+| echo legs | the first leg 893 of 893 at 9.35 Mbit/s offered, zero loss; the second and third did not run to their summary | 0.9 % / 29 % / 54 % |
+| in-chunk ping / at rest (ms min/avg/max) | 6.1 / 43.1 / 66.4 and 70.0 / 125.2 / 180.3 | 10.3 / 44.6 / 85.4 and 9.7 / 37.0 / 78.1 |
+
+**Reading (owner, 2026-10-25): a mechanism success and a configuration
+regression.** `stops=2223 wakes=2223 dropped_full=0 stopped=0`,
+`tx_failed=0`, `expired=0`: the intent is achieved and nothing was freed
+unsent. And transmit fell from 9.19–9.73 to 2.46–4.02 Mbit/s per chunk
+(aggregate 8.95 → 3.34) while the credit-retire wait fell to 2.84 ms with
+`inflight_max=4`. The cause is in the counters, not the throughput: 2,223
+stops over a 35.7 s phase is a stop and a wake every 16 ms, and four in
+flight over 2.84 ms allows about 1,400 frames a second against about 345
+delivered. The stop/wake cycle is the limiter: the queue bound (eight)
+and the in-flight depth (four) are the same order, so the queue
+oscillates at the worker's pass cadence and mac80211 is re-scheduled
+before it can refill. The 549 retransmissions and the window swinging
+from 1 to 22 are what TCP does to a path whose service stops every 16
+ms; they are not the air (257 clean samples) and not drops
+(`dropped_full=0`). 0282 is kept and its thresholds fixed (§20); the
+series does not return to silent drops as the fallback: the old
+behaviour bought throughput by losing frames and paying 451
+retransmissions behind a `tx_failed=0`, and the drop counter stays in
+the data-end record permanently so that can never be invisible again.
+
+**Stalls.** Receive chunk 3 ended at the device's bound (`device_timeout`,
+3,782,176 bytes in 4.01 s, 7.55 Mbit/s whole against 17.7–19.3 on chunks
+1, 2, 4 and 5, the laptop's final half at 58), the third appearance of
+the same intermittent receive stall; transmit chunk 1 ran at 2.46 against
+3.7–4.0. Both go to the stall ledger (§17) with their device-clock
+positions taken from the leaf's progress lines, and any transmit reading
+quotes its stall-free chunks beside the whole run.
+
+## 20. Boot J (predeclared, 2026-10-25): backpressure with the queue decoupled from the depth
+
+**The change.** 0282 amended in place
+([v2](../../patches/proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-nearly-full-with-the-queue-bound-its-own-option.patch)):
+the data queue's bound becomes its own option
+(`CONFIG_MT6797_DATA_TX_QUEUE_FRAMES`, default 64 frames, 100 kB of
+pageable memory, eight without the option), the stop mark is seven
+eighths of the bound (56) and the wake mark half (32), so the stop and
+wake cycle runs about 100 ms apart at the measured drain rate rather
+than every 16 ms; the record keeps the stops, the wakes and the drops and
+adds the queue's high-water mark against its bound. One variable, the
+same run as boots H and I (five steady-state chunks, the sampled report,
+the echo legs, the TCP state per chunk, the retransmission count).
+
+**The expectation.** Stops in the low tens a second, `dropped_full=0`,
+transmit back at or above 9.25 Mbit/s with no retransmissions on the
+device's socket. Quoted beside the rate: `wait_avg`, `inflight_max`, the
+stops, the wakes and the high-water mark.
+
+| Reading | Cause | Next |
+|---|---|---|
+| TX back at about 9.3 Mbit/s with zero loss and retransmissions near zero | the drain rate is confirmed as the limit | aggregation (HT) is the only remaining transmit lever; it opens on this evidence |
+| TX above 12 with zero loss | the retransmissions were part of the cost and the true drain rate is higher | the drain rate, measured now without loss, is the next number to understand |
+| stops still in the hundreds a second, or TX still throttled | the marks are still coupled to the pass cadence | widen the bound again before reading anything else |
+| retransmissions persist with `dropped_full=0` | the retransmissions are not drops: the device's TCP timers against a late acknowledgement | the device's `TcpExt` counters (loss probes, spurious timeouts, DSACKs) before and after the transmit phase |
+| any receive `device_timeout` or non-zero payload | the stop/wake path starves the receive side | revert to the previous bound, as boot B established |
+
+The three questions: reachability, the same stop and wake sites with the
+marks moved; ownership, mac80211's queue state is the host's; the vendor,
+a per-queue packet threshold with a wake. The ledger stands at twelve.

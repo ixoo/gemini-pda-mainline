@@ -440,7 +440,7 @@ increment. The failure path itself is not exercised on the device
 without spending a boot; it is verified on the next ordinary boot's
 accounting, and that boot's record says so plainly.
 
-## AP-loss gate: result (2026-10-25, 15:48 UTC) — three lifetimes, the loss reported by the firmware's keep-alive judgement, not by beacons
+## AP-loss gate: result (2026-10-25, 15:48 UTC) — three lifetimes; the loss was the access point's own inactivity disassociation, reported as reason 4, and the station rejoined within 2 s of its rearm
 
 Lifecycle package `c6fa0edc` (the admitted baseline with 0278 credit
 retire), the boot-E image `528d1d1d…` (install skipped as already
@@ -453,36 +453,44 @@ of 3, one chunk per direction, cycle 2 waited for the loss
 `loss_report source=monitor reason=4 class=air`, `idle_scans_so_far=0`,
 waited 356.6 s over 133 polls).
 
-**Timeline (kernel clock).** Lifetime 1: activation at 13.1 s, data phase
-7.6 s, standard disconnect. Lifetime 2: activation at 23.5 s; the data
-phase ran 362 s under the harness's periodic traffic (1,115 frames
-transmitted, 2,684 delivered, `tx_failed=0`) and ended at 386.7 s by
-`connection-loss`, the firmware's monitor reporting `reason=4 class=air`;
-cleanup stage 3 with credits returned and slots retired; rearm
-`lifetime=2` at 386.8 s. Lifetime 3: grant at 388.4 s and activation at
-388.6 s, 1.8 s after the rearm, against the restored access point; data
-phase 8.6 s, standard disconnect, third rearm. The owner was instructed to
-remove the access point's power at 15:50:45 UTC (about 110 s after the
-measurement start, inside the 60–120 s window of lifetime 2's data phase)
-and to restore it at 15:51:45 UTC; the owner's actual times are not yet
-in the record, and the delays below are read against the instructed
-times.
+**What this version tests, and what it does not (re-predeclared by the
+owner, 2026-10-25).** The owner cannot control the access point, so the
+instructed power cut never happened and no owner timestamp exists; the
+loss the gate recorded is the access point's own inactivity
+disassociation of an idle station, the event a real user hits most
+often. The gate therefore tests recovery from an AP-initiated
+disassociation: the firmware's report, the driver's data end, the
+three-stage cleanup, the rearm, and the rejoin of the same access point
+without host traffic, all timed by the device's own records. It does not
+test a radio that disappears and returns; the controlled-hotspot variant
+(a hotspot the owner can switch) is the way to test vanish-and-return if
+that claim is ever needed. Every timestamp below is the device's.
 
-**Reading, against the predeclared branches.** Two branches held at once.
-No loss report came within 60 s of the power removal: lifetime 2 kept
-its data phase for about four minutes after the beacons stopped, so the
-firmware's beacon-loss detection is not armed on this tree (the
-PM-connected command's beacon-tracking configuration is the finding, the
-predeclared second branch). The report that eventually came was reason 4,
-not the beacon-loss family: the firmware judged the loss by its own
-keep-alive or acknowledgement failures (the predeclared first branch),
-plausibly once the restored access point, holding no association for this
-station, stopped acknowledging its frames. The rejoin itself passed the
-gate's test: the station rejoined the restored access point within 2 s of
-the rearm, completed the handshake and DHCP, and a third lifetime's data
-phase opened with its probes answered; the log is complete through the
-seal. 0254's idle-scan re-open was not reached (no idle scan: the access
-point was already back when the rearm scanned).
+**Timeline (kernel clock, the device's records).** Lifetime 1: activation
+at 13.1 s, data phase 7.6 s, standard disconnect. Lifetime 2: activation
+at 23.5 s; the data phase ran 362.1 s nearly idle (1,115 frames
+transmitted, 2,684 delivered over six minutes, the harness's periodic
+probes, `tx_failed=0`) and ended at 386.7 s by `connection-loss`, the
+firmware's monitor reporting `reason=4 class=air`: the access point's
+inactivity timer dropped the station after about six minutes, the same
+reason-4 report the earlier idle-station record carries at 382.7 s.
+Cleanup stage 3 with credits returned and slots retired; rearm
+`lifetime=2` at 386.8 s. Lifetime 3: grant at 388.4 s and activation at
+388.6 s, 1.8 s after the rearm (the access point was present throughout,
+so no idle scan was needed and 0254's re-open path was not reached:
+`idle_scans_so_far=0`); the handshake and DHCP completed, the data phase
+ran 8.6 s with its probes answered, standard disconnect, third rearm; the
+log is complete through the seal. The leaf stayed alive past the loss
+(cycle 2's wait: 356.6 s over 133 polls) and took its wall clock from
+its own bounds.
+
+**Reading.** Pass, on the terms re-predeclared: an AP-initiated
+disassociation is detected and reported (reason 4, the keep-alive family
+rather than beacon loss, since the beacons never stopped), the lifetime
+is torn down cleanly, and the station rejoins the same access point
+within 2 s of the rearm without host traffic. Beacon-loss detection was
+not exercised by this version and stays an open question for the
+controlled-hotspot variant.
 
 **The ledger after the loss (0267's path and the credit model).** No
 `join stopped`, `rearm refused` or `guard failed` line in the log: the

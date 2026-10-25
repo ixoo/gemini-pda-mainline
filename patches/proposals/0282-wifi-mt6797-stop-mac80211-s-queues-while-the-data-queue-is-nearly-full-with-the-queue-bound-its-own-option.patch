@@ -1,0 +1,237 @@
+From d22ec1d76e5139f882fadf368d7a715c4b68724a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 13:22:06 -0400
+Subject: [PATCH] wifi: mt6797: stop mac80211's queues while the data queue is
+ nearly full, with the queue bound its own option
+
+A frame that arrives when the driver's data queue is full is freed
+unsent, reported to no one: no counter moves and the completion report
+cannot name it. The device's TCP sees the loss (451 retransmissions in a
+transmit phase of 23,885 segments on boot H, with every sampled frame
+acknowledged on the air) and holds its window at six segments. Behind
+CONFIG_MT6797_TX_BACKPRESSURE, stop mac80211's queues when the data
+queue is nearly full (seven eighths of its bound), wake them once the
+worker has drained it to half, and wake them when the queue is emptied
+at teardown; frames that still arrive while stopped are counted, and the
+data-end record reports the stops, the wakes, the drops, the stopped
+state and the queue's high-water mark against its bound.
+
+The first form stopped at a bound of eight frames and woke at four, the
+in-flight depth's order: the queue oscillated at the worker's pass
+cadence (a stop and a wake every 16 ms over 35.7 s on boot I, nothing
+freed unsent) and transmit fell to a third. The bound is now its own
+option, CONFIG_MT6797_DATA_TX_QUEUE_FRAMES (default 64; 100 kB of
+pageable memory), so the stop and wake marks sit about 100 ms apart at
+the measured drain rate; eight remains the value without the option.
+The vendor stops the network queue at a per-queue packet threshold and
+wakes it the same way. Nothing changes with backpressure off.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 28 +++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 84 +++++++++++++++++++-
+ 2 files changed, 111 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index e513f36cb..855382b55 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -140,6 +140,34 @@ config MT6797_TX_PER_FRAME_RECORD
+ 	  measurement at 54 Mbit/s fits the sealed logger's byte cap.
+ 	  Management, security and internal frames keep their lines.
+ 
++config MT6797_TX_BACKPRESSURE
++	bool "MT6797 Wi-Fi: stop mac80211's queues while the data queue is nearly full"
++	depends on MT6797_STATION_JOIN
++	help
++	  A frame that arrives when the driver's data queue is full is freed
++	  unsent and reported to no one, so TCP's bursts above the driver's
++	  drain rate become losses that pin its window. Stop mac80211's queues
++	  when the queue is nearly full (seven eighths of its bound) and wake
++	  them once it has drained to half (the vendor stops the network queue
++	  at a packet threshold and wakes it). Frames that still arrive while
++	  stopped are counted; the data-end record reports the stops, the
++	  wakes, the drops and the queue's high-water mark. Nothing changes
++	  with this off.
++
++config MT6797_DATA_TX_QUEUE_FRAMES
++	int "MT6797 Wi-Fi: ordinary data frames the driver queues ahead of submission"
++	depends on MT6797_STATION_JOIN
++	range 8 256
++	default 64
++	help
++	  The bound of the driver's data queue in frames (1,550 bytes each).
++	  Eight, the series' first value, is the in-flight depth's order, so
++	  with backpressure the queue oscillated at the worker's pass cadence
++	  (a stop and a wake every 16 ms on boot I) and throttled transmit;
++	  64 to 128 frames (100 to 200 kB of pageable memory) decouple the
++	  queue from the depth so the stop and wake marks are about 100 ms
++	  apart.
++
+ config MT6797_TX_REPORT_SAMPLE
+ 	int "MT6797 Wi-Fi: request the MCU status report for one ordinary data frame in N (0 = none)"
+ 	depends on MT6797_DATA_CREDIT_RETIRE
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 19425628f..e07f91ea1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -153,8 +153,15 @@ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
+ #define MT6797_JOIN_MAX_PACKETS 32768U
+ #endif
+ #define MT6797_JOIN_DATA_RX_MAX 16384U
++#ifdef CONFIG_MT6797_DATA_TX_QUEUE_FRAMES
++#define MT6797_JOIN_DATA_TX_QUEUE ((unsigned int)CONFIG_MT6797_DATA_TX_QUEUE_FRAMES)
++#else
+ #define MT6797_JOIN_DATA_TX_QUEUE 8U
+-#define MT6797_JOIN_DATA_TX_QUEUE_BYTES (8U * 1550U)
++#endif
++/* Backpressure marks: stop at seven eighths of the bound, wake at half. */
++#define MT6797_JOIN_DATA_TX_STOP (MT6797_JOIN_DATA_TX_QUEUE - MT6797_JOIN_DATA_TX_QUEUE / 8U)
++#define MT6797_JOIN_DATA_TX_WAKE (MT6797_JOIN_DATA_TX_QUEUE / 2U)
++#define MT6797_JOIN_DATA_TX_QUEUE_BYTES (MT6797_JOIN_DATA_TX_QUEUE * 1550U)
+ #define MT6797_JOIN_DATA_TX_FAILURES 8U
+ /* PIDs 1..127 are consumed in order by management, security and data frames;
+  * ordinary data stops at 126 so the reserved deauthentication always has one.
+@@ -226,6 +233,11 @@ struct mt6797_mac {
+ 	unsigned int join_teardown_framing_drops;
+ 	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	/* mac80211's queues stopped while the data queue is at its bound (0282). */
++	bool tx_queues_stopped;
++	unsigned int tx_queue_stops, tx_queue_wakes, tx_dropped_full, tx_queue_high_water;
++#endif
+ 	unsigned int join_page_debt, join_polls, join_packets;
+ 	bool join_running, join_open, join_retired;
+ 	/* Reusable bounded two-lifetime milestone (proposal 0180): the mac80211
+@@ -1827,6 +1839,12 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->tx_sample_counter = 0;
+ 	mac->tx_samples = 0;
+ 	mac->tx_sample_reports = 0;
++#endif
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	mac->tx_queue_stops = 0;
++	mac->tx_queue_wakes = 0;
++	mac->tx_dropped_full = 0;
++	mac->tx_queue_high_water = 0;
+ #endif
+ 	mac->join_inflight_data = false;
+ 	mac->join_last_acked = false;
+@@ -1873,6 +1891,9 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	unsigned long flags;
+ 	struct sk_buff_head discard;
+ 	struct sk_buff *skb, *internal = NULL;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	bool wake_queues = false;
++#endif
+ 
+ 	skb_queue_head_init(&discard);
+ 	/* Fence every producer before cancellation, preserving idle eligibility.
+@@ -1918,7 +1939,18 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	skb_queue_splice_init(&mac->join_queue, &discard);
+ 	mac->join_queue_bytes = 0;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	if (mac->tx_queues_stopped) {
++		mac->tx_queues_stopped = false;
++		mac->tx_queue_wakes++;
++		wake_queues = true;
++	}
++#endif
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	if (wake_queues)
++		ieee80211_wake_queues(mac->hw);
++#endif
+ 	while ((skb = mt6797_data_pop(&mac->data_slots)))
+ 		__skb_queue_tail(&discard, skb);
+ #ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
+@@ -3016,6 +3048,13 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->ccmp_rx_delivered,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join data backpressure: stops=%u wakes=%u dropped_full=%u stopped=%u high_water=%u bound=%u\n",
++		 mac->tx_queue_stops, mac->tx_queue_wakes, mac->tx_dropped_full,
++		 mac->tx_queues_stopped, mac->tx_queue_high_water,
++		 MT6797_JOIN_DATA_TX_QUEUE);
++#endif
+ #ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join data credit retire end: retired=%u expired=%u pid_faults=%u wait_avg_us=%llu wait_max_us=%llu left_pages=%u inflight_max=%u samples=%u reports=%u\n",
+@@ -3500,6 +3539,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	const bool credit_retire = IS_ENABLED(CONFIG_MT6797_DATA_CREDIT_RETIRE) &&
+ 				   MT6797_DATA_DEPTH > 1;
+ 	bool sample = false;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	bool wake = false;
++#endif
+ 	unsigned long flags, snapshot_delay;
+ 	unsigned int n, port, pages;
+ 	u64 now, deadline, grant_end;
+@@ -3812,7 +3854,21 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		}
+ 		if (skb)
+ 			mac->join_queue_bytes -= skb->len;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++		if (mac->tx_queues_stopped &&
++		    skb_queue_len(&mac->join_queue) <= MT6797_JOIN_DATA_TX_WAKE) {
++			mac->tx_queues_stopped = false;
++			mac->tx_queue_wakes++;
++			wake = true;
++		}
++#endif
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++		if (wake) {
++			wake = false;
++			ieee80211_wake_queues(mac->hw);
++		}
++#endif
+ 		if (skb) {
+ 			mac->join_inflight = skb;
+ 			/* Linearize in process context; never retain a borrowed STA pointer. */
+@@ -6381,6 +6437,9 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 	unsigned long flags;
+ 	unsigned int fc, subtype;
+ 	bool accepted = false;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++	bool stop = false;
++#endif
+ 
+ 	/* Phase C2: the supplicant's control-port EAPOL frames, built by
+ 	 * mac80211 as non-QoS To-DS data frames with the LLC/SNAP EAPOL type to
+@@ -6445,8 +6504,31 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			__skb_queue_tail(&mac->join_queue, skb);
+ 			schedule_delayed_work(&mac->join_work, 0);
+ 			accepted = true;
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++			/* Nearly full: stop mac80211's queues before a frame
++			 * arrives to be freed unsent; the worker wakes them once
++			 * the queue has drained to half (wide hysteresis, so the
++			 * cycle runs at the queue's scale, not the pass cadence).
++			 */
++			if (skb_queue_len(&mac->join_queue) > mac->tx_queue_high_water)
++				mac->tx_queue_high_water = skb_queue_len(&mac->join_queue);
++			if (!mac->tx_queues_stopped &&
++			    (skb_queue_len(&mac->join_queue) >= MT6797_JOIN_DATA_TX_STOP ||
++			     mac->join_queue_bytes + 1550U > MT6797_JOIN_DATA_TX_QUEUE_BYTES)) {
++				mac->tx_queues_stopped = true;
++				mac->tx_queue_stops++;
++				stop = true;
++			}
++		} else if (mac->join_open && mac->join_data_phase &&
++			   !mac->join_data_ended) {
++			mac->tx_dropped_full++;
++#endif
+ 		}
+ 		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++#ifdef CONFIG_MT6797_TX_BACKPRESSURE
++		if (stop)
++			ieee80211_stop_queues(hw);
++#endif
+ 		if (accepted)
+ 			return;
+ 	}
+-- 
+2.43.0
+

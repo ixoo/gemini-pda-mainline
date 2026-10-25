@@ -1,4 +1,31 @@
-# Current: boot H's third run is whole: the transmit limit is the driver's silent drops above its drain rate (no backpressure) plus the drain itself; boot I adds backpressure
+# Current: boot I showed the backpressure mechanism works and its queue discipline does not; 0282 v2 decouples the queue bound (64 frames, stop at 56, wake at 32); boot J measures it; the AP-loss gate passed as an AP-initiated disassociation
+
+[Boot I](HIF_TRANSPORT_ANALYSIS.md#boot-i-result-2026-10-25-1733-utc-the-mechanism-works-the-queue-discipline-does-not)
+and [§20](HIF_TRANSPORT_ANALYSIS.md#20-boot-j-predeclared-2026-10-25-backpressure-with-the-queue-decoupled-from-the-depth):
+2,223 stops and wakes (one every 16 ms) with zero frames freed unsent
+throttled transmit to a third because the 8-frame bound sat at the
+in-flight depth's order; 0282 stays (silent drops are never the
+fallback again) and its bound becomes its own option, 64 frames with
+wide hysteresis. Boot J is that one variable on the same run; its table
+decides whether the drain rate is confirmed (HT opens) or higher. The
+[gate](LIFECYCLE_RESULT.md#ap-loss-gate-result-2026-10-25-1548-utc--three-lifetimes-the-loss-was-the-access-points-own-inactivity-disassociation-reported-as-reason-4-and-the-station-rejoined-within-2-s-of-its-rearm)
+is re-read as the access point's own inactivity disassociation (no owner
+actuation existed) and passes on those terms; no owner times are owed.
+
+# Historical: boot I (backpressure) reverted by the rule; the retransmissions TCP counts are not the driver's drops nor the air; boot J reads the device's TCP counters for loss against spurious retransmission
+
+[Boot I](HIF_TRANSPORT_ANALYSIS.md#boot-i-result-2026-10-25-1733-utc-backpressure-held-and-transmit-fell-the-losses-tcp-counts-are-not-the-drivers-drops-0282-reverts)
+and [§20](HIF_TRANSPORT_ANALYSIS.md#20-boot-j-predeclared-2026-10-25-loss-or-spurious-retransmission-read-from-the-devices-tcp):
+2,223 stops and wakes with zero frames freed unsent, and transmit fell to
+a third with 549 retransmissions and a receive chunk at the device's
+bound; 0282 reverts (the lifecycle fragment is back to boot H's tree,
+the option stays). The remaining reading is retransmission without loss
+(loss probes and spurious timeouts against a late acknowledgement); boot
+J reads the device's TcpExt counters before and after the transmit
+phase on boot H's image, harness only. HT stays closed. The owner's AP
+power times are still owed.
+
+# Historical: boot H's third run is whole: the transmit limit is the driver's silent drops above its drain rate (no backpressure) plus the drain itself; boot I adds backpressure
 
 [Run 3](HIF_TRANSPORT_ANALYSIS.md#boot-h-third-run-2026-10-25-1714-utc-whole-the-transmit-limit-is-the-drivers-own-drops-not-the-air-not-the-depth-and-tcp-holds-a-six-segment-window-because-of-them)
 and [§19](HIF_TRANSPORT_ANALYSIS.md#19-boot-i-predeclared-2026-10-25-backpressure-toward-mac80211-one-variable):

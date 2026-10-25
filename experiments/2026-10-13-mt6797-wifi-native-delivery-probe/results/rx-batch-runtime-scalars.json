@@ -1004,9 +1004,7 @@
     "lifetime3_activation": 388.6
    },
    "instructed_ap_power": {
-    "cut_utc": "15:50:45",
-    "restore_utc": "15:51:45",
-    "owner_actual": null
+    "note": "the owner cannot control the access point; no cut or restore happened; the loss is the AP's own inactivity disassociation (device clock 386.7 s, 362 s into lifetime 2)"
    },
    "data_ends": [
     {
@@ -1033,7 +1031,7 @@
     }
    ],
    "series_row": false,
-   "reading": "no loss report within 60 s of the cut (beacon-loss detection not armed); the eventual report is reason 4 (keep-alive/ack judgement); rejoin within 2 s of the rearm against the restored AP, third lifetime passed; 0267 not exercised (no refused join); ledger clean across the loss"
+   "reading": "AP-initiated inactivity disassociation (reason 4) after ~6 min idle; cleanup clean; rearm; rejoin of the same AP within 1.8 s without host traffic; 0254 re-open not reached (AP present); vanish-and-return not tested; ledger clean across the loss"
   },
   "boot-f": {
    "run": "PIO-throughput-bootf-1",
@@ -1519,6 +1517,146 @@
     }
    ],
    "reading": "the air exonerated (373 clean samples); TCP cwnd pinned at 6 by 451 retransmissions that are the driver's silent drops when its 8-frame queue is full (no ieee80211_stop_queues); echo legs lose 29-54 % above ~9 Mbit/s offered; the drain rate ~800-1,000 frames/s plus the drops is the transmit limit; next: backpressure (0282), HT not opened"
+  },
+  "boot-i": {
+   "run": "PIO-throughput-booti-1",
+   "session": "2026-10-25 17:33 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot H tree + 0282)",
+   "kernel_build_commit": "b02ddb845ae72b1d1bb6f68e32665b3b856dc1c6",
+   "boot2_sha256": "d589c647fd203bee17da45e13e2a8c4c89b67573cf74a4f0727b335e8c6a4c47",
+   "predecessor_boot2_sha256": "0f1ca6cfb30166547ab495ca1ffe305f21e8844db228e19fc4c883f8b4f39a92",
+   "mainline_boot_id": "bf3cebdf-7bce-4d3c-90ac-c8dc42fdbf85",
+   "previous_gemian_boot_id": "0550b47c-0056-41bf-a41c-b76ebd2dcb28",
+   "returned_gemian_boot_id": "fa957e17-51ae-46b8-9996-2c3d7827473c",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 174970,
+   "all_pass": true,
+   "series_row": true,
+   "throughput": {
+    "tx_host_received_mbit_s": 3.34,
+    "tx_chunk_mbit_s": [
+     2.46,
+     3.69,
+     3.69,
+     4.02,
+     3.8
+    ],
+    "tx_final_half_mbit_s": [
+     3.81,
+     4.59,
+     3.91,
+     4.03,
+     3.3
+    ],
+    "rx_host_sent_mbit_s": 12.9,
+    "rx_device_chunk_mbit_s": [
+     17.66,
+     19.17,
+     7.55,
+     19.28,
+     13.42
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "device_timeout",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "tx_device_cpu_idle_percent": 89.2,
+    "rx_device_cpu_idle_percent": 87.0
+   },
+   "backpressure": {
+    "stops": 2223,
+    "wakes": 2223,
+    "dropped_full": 0
+   },
+   "credit_retire": {
+    "retired": 16214,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 2844,
+    "wait_max_us": 15235,
+    "inflight_max": 4,
+    "samples": 257,
+    "reports": 257
+   },
+   "sampled": {
+    "tx_rates": {
+     "0/0x004c": 257
+    },
+    "latency_ms_buckets": {
+     "<1": 13,
+     "<2": 72,
+     "<4": 31,
+     "<8": 95,
+     "<16": 46
+    },
+    "n": 257,
+    "max_us": 10481
+   },
+   "tcp_state": [
+    {
+     "chunk": 1,
+     "cwnd": 2,
+     "ssthresh": 16
+    },
+    {
+     "chunk": 2,
+     "cwnd": 12,
+     "ssthresh": 11
+    },
+    {
+     "chunk": 3,
+     "cwnd": 19,
+     "ssthresh": 14
+    },
+    {
+     "chunk": 4,
+     "cwnd": 1,
+     "ssthresh": 15,
+     "retrans_queue": 1
+    },
+    {
+     "chunk": 5,
+     "cwnd": 22,
+     "ssthresh": 11
+    }
+   ],
+   "tcp_retrans_segs": {
+    "before": 0,
+    "after": 549
+   },
+   "tx_echo": [
+    {
+     "count": 893,
+     "offered_mbit_s": 9.35,
+     "received": 893,
+     "loss": 0.0
+    }
+   ],
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 35700,
+    "tx_queued": 16471,
+    "tx_failed": 0,
+    "rx_delivered": 19205
+   },
+   "stalls": [
+    {
+     "direction": "TX",
+     "chunk": 1,
+     "mbit_s": 2.46
+    },
+    {
+     "direction": "RX",
+     "chunk": 3,
+     "mbit_s": 7.55,
+     "ended_by": "device_timeout",
+     "elapsed_ms": 4010
+    }
+   ],
+   "reading": "mechanism success (2,223 stops/wakes, dropped_full=0) and configuration regression (a stop/wake every 16 ms with the 8-frame bound at the depth's order throttled transmit to a third); 0282 kept, bound decoupled to 64 frames with stop at 56 and wake at 32 (v2); boot J measures it"
   }
  }
 }

@@ -760,4 +760,4 @@ proposals/0278-wifi-mt6797-retire-ordinary-data-frames-on-credit-arrival.patch
 proposals/0279-wifi-mt6797-count-ordinary-data-completions-print-per-frame-lines-only-on-request.patch
 proposals/0280-wifi-mt6797-make-the-data-depth-a-build-option-with-the-TC1-ledger-derived-from-it.patch
 proposals/0281-wifi-mt6797-request-the-MCU-status-report-for-one-ordinary-data-frame-in-N.patch
-proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-full.patch
+proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-nearly-full-with-the-queue-bound-its-own-option.patch
