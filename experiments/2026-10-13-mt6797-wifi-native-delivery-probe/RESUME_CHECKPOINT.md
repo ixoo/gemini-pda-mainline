@@ -29,10 +29,13 @@ the credit merge delivered every credit; the stop is one of four -EIO
 sources the log cannot tell apart, and the join guard now records the
 words it saw. Boot 3 reads TX first (2.6–2.8 band, debt 0, failures 0)
 before any receive row applies. Standing rule for every predeclaration
-from now on: two questions answered from source, no boot: reachability
+from now on: three questions answered from source, no boot: reachability
 (which function performs the bus write; what earlier can refuse or consume
-it) and ownership (which registers the new code reads destructively, who
-else reads or writes them, what they now see). Owner decision still owed
+it), ownership (which registers the new code reads destructively, who
+else reads or writes them, what they now see) and, for every register the
+new code writes, what the vendor writes there, or that it writes nothing
+(absence is the evidence: WHCR never written, WHISR never copied, state 2
+never sent through a refused encoder). Owner decision still owed
 on the state-2 attempt (last of the rate thread, after batching, if yes).
 The AP-loss gate is where a failed join's accounting (0267, the timeout
 contract) is verified.

@@ -510,9 +510,11 @@ accounting, with the vendor's clamp as the reference, before any further
 boot. Only with TX in band and the debt whole do the receive rows of the
 table apply.
 
-**Reachability and ownership, answered from source** (the two questions
-every predeclaration now carries; they would have caught both of this
-week's lost boots). Reachability: the WHCR write is
+**Reachability and ownership, answered from source** (two of the three
+questions every predeclaration now carries; the third, for every register
+the new code writes, what the vendor writes there or that it writes
+nothing, was added after boot 3 and would have caught it: the vendor
+writes WHCR once, at init, to the firmware's default). Reachability: the WHCR write is
 `mt6797_hif_write32_locked(hif, 0x0c, …)` in `mt6797_hif_rx_batch_enable`,
 reached from `mt6797_hif_receive` on the first receive once the firmware
 is ready, the capability complete and the normal phase at
@@ -703,8 +705,43 @@ receive path itself holds and the interrupt is. That is a protocol change
 to the measurement and the owner's call; the table's row says
 "interrupt next" and it stands as written until then.
 
-Retention: 0268 is kept and stays admitted in the lifecycle fragment
-(vendor-equivalent receive by the block without a WHCR write, 12,754
-frames with zero failures, neutral in throughput); the per-frame path
-remains in the driver behind the option. The series' receive levers are
-now all measured: scheduling, depth, DMA, batching, pass cap.
+Retention (the owner's decision, 2026-10-25): 0268 measured neutral, and
+the project's precedent for neutral is retirement (phase-pending, 0255,
+0263, 0265). What it carries beyond the neutral number is a change to the
+TX credit accounting on the path every remaining boot depends on, and an
+admitted default should hold a number that justifies it; this one holds a
+neutral with three receive chunks below the band. So the admission is
+reverted: `CONFIG_MT6797_HIF_RX_BATCH` leaves the lifecycle and rate
+fragments, the per-frame receive path is the admitted default again, and
+the proposal stays in the series behind its option, with its fixtures,
+for the boot that needs it (none is named; if a receive measurement later
+needs the batched path to be readable, it is admitted when that boot is
+staged). The series' receive levers are all measured: scheduling, depth,
+DMA, batching, pass cap.
+
+**What sets the 4–9 ms from submission to completion, from source (no
+boot).** The driver learns a completion from the firmware: every data
+descriptor requests a transmit-status report to the MCU with a PID
+(`join-tx.h`: `d[20] = pid; d[21] = 2`, "TX status to MCU"), and the
+firmware answers with a TX-done event that arrives through the receive
+path (`join-events.h`, `mt6797_join_tx_done`; mac.c prints `join TX done`
+from it). The worker sees that event on the pass after it lands, about
+160–200 µs at the measured 5,000–6,000 passes/s; nothing in the driver
+waits for a later credit event to declare the frame complete (the page
+credit is separate accounting). So the 4–9 ms are spent between the HIF
+write and the firmware's event, on the firmware side of the bus. The
+vendor driver requests the MCU status report only for frames that carry a
+completion handler (management, EAPOL: `nicTxFillDesc`, nic_tx.c, sets
+the PID and `TXS_TO_MCU` under `if (prMsduInfo->pfTxDoneHandler)`), and
+completes ordinary data on the page release counts alone; our descriptors
+ask the MCU for a report on every data frame, which the vendor firmware
+never does for data. Two things that answer cannot separate: whether the
+frame goes to air late (queued behind the fixed-rate path or the per-frame
+MCU report) or goes early and is reported late. The probe's round-trip
+time is the measurement that separates them, because it does not depend
+on when we learn of the completion. If the air transmission is late, the
+lever is ours (no MCU report for data, completion on credits, as the
+vendor does; then the rate); if only the report is late, the completion
+latency does not clock receive and the acknowledgement reading above is
+wrong. The inter-completion gap of 0.70 ms median says the firmware
+pipelines frames; it does not say which of the two.
