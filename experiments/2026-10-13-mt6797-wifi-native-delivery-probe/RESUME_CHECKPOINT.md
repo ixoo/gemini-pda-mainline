@@ -7,8 +7,10 @@ with 451 retransmissions that no counter shows; the source names the
 drop (a full 8-frame data queue frees the next frame unsent, no
 ieee80211_stop_queues anywhere); the echo legs lose 29–54 % above about
 9 Mbit/s offered. HT stays closed. Boot I: 0282 stops mac80211's queues
-at the bound and wakes them when drained, one variable, the same run.
-The owner's AP power times are still owed.
+at the bound and wakes them when drained, one variable, the same run;
+0282 is in the series and the lifecycle fragment, its package building at
+`b02ddb84`, the work directory derived. The owner's AP power times are
+still owed.
 
 # Historical: boot H's first run void (harness stop after one chunk; the sampled report works); the second run adds the transmit probe and the device's TCP state; HT is not opened
 
