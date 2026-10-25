@@ -1279,6 +1279,42 @@
     "rx_delivered": 1677
    },
    "reading": "instrument verified (39 samples, 39 reports, all 0x4c status 0, latency 4-8 ms); run void for the series; repeat on the same image with the transmit-leg close accepted"
+  },
+  "boot-h-2": {
+   "run": "PIO-throughput-booth2-1",
+   "session": "2026-10-25 17:06 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (depth 4, credit retire, report sample 64)",
+   "kernel_build_commit": "a1aa339a0e189a18b86fba66d0e6f709b45d7637",
+   "boot2_sha256": "0f1ca6cfb30166547ab495ca1ffe305f21e8844db228e19fc4c883f8b4f39a92",
+   "install": "skipped-already-matching",
+   "mainline_boot_id": "ea148dcb-710e-494f-8530-976128057177",
+   "previous_gemian_boot_id": "00c816df-18b4-4907-911c-6ab8c1dfded3",
+   "returned_gemian_boot_id": "d70ab8f1-108d-4abc-bea8-fe233d175312",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 177340,
+   "all_pass": false,
+   "series_row": false,
+   "outcome": "void: leaf exit 38 after TX chunk 1 (device nc exit 141 on the laptop's close; the transmit leg accepted only 1); early_stop recorded with both endpoints' reasons; fixed (141 accepted)",
+   "tx_chunk1": {
+    "mbit_s": 9.19,
+    "final_half_mbit_s": 9.42,
+    "bytes": 3445816,
+    "elapsed_ms": 3001,
+    "device_exit": 141
+   },
+   "tcp_state": [
+    {
+     "chunk": 1,
+     "cwnd": 7,
+     "ssthresh": 5,
+     "retrans_queue": 0
+    }
+   ],
+   "tcp_retrans_segs": {
+    "before": 0,
+    "after": null
+   },
+   "reading": "stop named by the early-stop record; first cwnd sample 7/ssthresh 5 at 9.2 Mbit/s (a ~9 ms round trip as TCP sees it; provisional: TCP window-limited transmit); third run on the same image"
   }
  }
 }

@@ -1957,3 +1957,29 @@ says TCP; a window far above it with the queue empty says the driver.
 The run otherwise repeats boot H's first run on the same image (the
 sampled status report, 0281), five steady-state chunks with the transmit
 leg's close accepted, the stall ledger kept.
+
+### Boot H, second run (2026-10-25, 17:06 UTC): stopped after one chunk again, this time with its reason recorded; the first congestion-window sample
+
+Same image (`0f1ca6cf…`, the installer's full readback matched), mainline
+boot `ea148dcb…`, returned to Gemian `d70ab8f1…`; session
+`ram-service-regression-pass`, log complete (177,340 bytes). The run
+stopped after the first transmit chunk once more: the device's `nc` ended
+the chunk the laptop closed with SIGPIPE (exit 141), not the exit 1 the
+transmit leg had been taught to accept, and the leaf exited 38 again. The
+early-stop record did its job: the measurement carries `early_stop` with
+both endpoints' reasons ("TX: cancelled while waiting for the device to
+open chunk 2; RX: cancelled while waiting for the device to open chunk
+1") and `device_chunk_exits TX: [141]`, so the stop is named in the
+receipt and the classifier, not inferred. The transmit leg now accepts
+141 as well; the third run follows on the same image.
+
+**The first congestion-window sample.** 1.5 s into transmit chunk 1 (9.19
+Mbit/s whole, 9.42 final half) the device's socket to the laptop read
+`cwnd=7 ssthresh=5`, retransmit queue empty: a window of seven segments
+(10 KB) in congestion avoidance, which at 9.2 Mbit/s is a round trip of
+about 9 ms as the device's TCP sees it, and a slow-start threshold of five
+says the window was cut by loss or by a retransmission timeout before
+this sample. One sample, provisional: it reads as the first row of §18's
+table from the TCP side (the device's TCP is pacing transmit at its
+window over the completion latency), and the third run's five samples
+and echo legs decide it.
