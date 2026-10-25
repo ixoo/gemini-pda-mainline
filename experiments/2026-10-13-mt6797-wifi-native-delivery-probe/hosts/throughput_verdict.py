@@ -113,12 +113,14 @@ def apply_receipt(path):
     new = """    failed = [] if result['all_pass'] else ['retained receipt checks']
     if not directions_ok: failed.append('directions present with received bytes')
     for label, direction in measured.items():
-        for name, ok in (('completed', direction.get('completed')), ('errors', not direction['errors']),
-                         ('expected_termination', direction['expected_termination']),
-                         ('device_cpu', direction['device_cpu']['valid']), ('bytes', direction['bytes']>0),
+        # Total over a measurement that never ran (boot R: receive bytes None after a failed SSH).
+        for name, ok in (('completed', direction.get('completed')), ('errors', not direction.get('errors')),
+                         ('expected_termination', direction.get('expected_termination')),
+                         ('device_cpu', (direction.get('device_cpu') or {}).get('valid')),
+                         ('bytes', (direction.get('bytes') or 0)>0),
                          ('chunk_count', len(direction.get('chunks',[]))==CHUNKS),
-                         ('chunk_progress', direction['chunk_progress_valid']),
-                         ('chunk_exits', all(c.get('device_exit') in (0,124,143,1,141) for c in direction['chunks'])),
+                         ('chunk_progress', direction.get('chunk_progress_valid')),
+                         ('chunk_exits', all(c.get('device_exit') in (0,124,143,1,141) for c in direction.get('chunks',[]))),
                          ('netdev_counters', set(direction.get('netdev_delta',{}))==counter_names and
                           min(direction['netdev_delta'].values())>=0)):
             if not ok: failed.append(label + '.' + name)
