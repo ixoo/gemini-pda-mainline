@@ -1,12 +1,15 @@
-# Current: boot W sends HT MCS7 with no loss, but transmit moved 2.6 %: the polled per-frame cycle binds both directions, so the interrupt is the next lever, to be scoped
+# Current: boot W sends HT MCS7 with no loss, but transmit moved 2.6 %: the per-frame service time (about 0.43 ms, air about 0.19) binds; next project firmware aggregation, to be scoped into boots
 
 [Boot W](HIF_TRANSPORT_ANALYSIS.md#boot-w-result-2026-10-25-2244-utc-the-firmware-sends-ht-mcs7-on-a-legacy-station-record-with-no-loss-but-transmit-hardly-moves-the-per-frame-cycle-binds-not-the-air):
 clean verdict; every sampled frame at 0x0087, status 0; TX 22.58 (chunks
 23.5-24.2), RX 19.97; credit-retire wait unchanged at 5.2 ms over 12
 (about 433 us a frame against 189 us of air), device 85 % idle, 96 % of
-block reads empty. The air-rate levers (short GI, 40 MHz) cannot move the
-binding constraint; the interrupt (ISR, status block, aggregated DMA) is
-next and is not yet scoped or predeclared. The fixed MCS7 stays.
+block reads empty. Owner: 40 MHz and short GI retired (air-only, low
+value); the next project is firmware aggregation (the station record's
+QoS/HT/A-MPDU fields; the descriptor's BA bit is already clear), read as
+service time per frame (below about 0.2 ms amortises; near 0.43 the cost
+is per MPDU). The shared-worker and shared-medium couplings are recorded.
+Not yet predeclared; the fixed MCS7 stays.
 Nothing is staged; the device is on Gemian (`dd7fd353…`).
 
 # Historical: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) staged on boot2

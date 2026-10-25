@@ -4195,3 +4195,55 @@ interrupt (the vendor's ISR → status block → aggregated DMA) removes. The
 air-rate levers stay unused and cheap, for after it. The fixed MCS7
 stays: no loss, transmit and receive no worse, and it keeps air time free
 for the downlink.
+
+**Boot W, the owner's reading (2026-10-25): the service-time arithmetic,
+the air-rate levers retired, and the two couplings.**
+
+*The arithmetic, which decides the next project.*
+
+| Quantity | Value | Source |
+|---|---|---|
+| air at MCS7 (long GI), 1,518 bytes | 0.19 ms (0.17 at short GI); 0.22 at 54 Mbit/s | 1,518 × 8 ÷ 65, ÷ 72.2, ÷ 54 |
+| transmit service time per frame | 0.43 ms | credit-retire wait 5.2 ms ÷ 12 in flight (the owner's 0.46 rounds the same) |
+| transmit, per TCP segment | 0.51 ms | 22.58 Mbit/s ÷ (1,448 × 8) = 1,949 segments/s |
+| receive, per TCP segment | 0.58 ms | 19.97 Mbit/s = 1,724 segments/s, arriving in aggregated bursts |
+| the vendor through the same firmware | 0.26 ms | 45 Mbit/s = 3,885 segments/s |
+
+- The air is about a third of our transmit service time, which is why a
+  17–20 % air reduction produced 2.6 %.
+- Receive shows the same per-frame cost while the access point sends
+  aggregated bursts (2.1 frames per block read, up to 16), so the cost
+  is per frame, not per aggregate.
+- Subtracting air time, the vendor's firmware work is about 0.09 ms a
+  frame against our 0.28 ms (the owner's estimate).
+
+*40 MHz and short guard interval are retired as throughput levers.* Both
+only shrink the air component, which is now the smaller part of the
+service time. They are recorded as "air-only, low value" and leave the
+HT queue, so they do not return as candidates.
+
+*The two couplings, read before any result that moves both directions is
+called a side effect.*
+
+- **Shared worker:** a receive-side change moves transmit. Boot V
+  batching moved transmit from 19.2 (boot U) and 20.86 (boot T) to
+  22.01, with no transmit change.
+- **Shared medium:** a transmit-side change can move receive, because
+  shorter transmit air time frees the medium for the access point's
+  downlink. Boot W shows it only weakly. Receive's aggregate rose 10 %
+  (18.22 → 19.97), but the mean of boot V's four undisturbed chunks
+  (21.1) equals boot W's five (21.0): most of the aggregate gain is boot
+  V's single dip not recurring. The coupling is plausible and recorded;
+  boot W does not measure its size.
+
+*The next project: firmware aggregation (HT scope).* What the record
+already shows:
+
+- Our descriptor leaves block-ack enabled. Byte 11 is the vendor's
+  `ucPowerOffset`: bit 7 fixed rate, bit 5 `TX_DESC_BA_DISABLE`; ours is
+  `0x80`, so BA-disable is clear.
+- What declares nothing is the station record: no QoS (`ucIsQoS`, the
+  existing `WMM_QOS_RECORDS` option, kept off since boot P), legacy PHY
+  (`ucDesiredPhyTypeSet`), and no MCS set, HT capability or A-MPDU
+  parameters (`ucMcsSet`, `aucRxMcsBitmask`, `u2HtCapInfo`,
+  `ucAmpduParam` in `CMD_UPDATE_STA_RECORD`).

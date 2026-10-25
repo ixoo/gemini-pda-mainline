@@ -105,6 +105,34 @@ delivers frames natively:
   rate);
 - implementing `ampdu_action` per TID (today a stub that refuses).
 
+**Boot W's answer, and the next project (owner, 2026-10-25).** The
+firmware sends HT MCS7 on the legacy station record with no loss, but
+transmit moved 2.6 %. The service time is about 0.43 ms a frame, of
+which MCS7 air is about 0.19 ms: the air is no longer the limit.
+
+- *Retired:* 40 MHz and short guard interval (air-only, low value).
+- *The next project:* firmware aggregation, the vendor's shape. Same
+  firmware, 45 Mbit/s, about 0.26 ms a frame. The source shows
+  aggregation firmware-side (no mac80211 block-ack, the descriptor's
+  per-frame `TX_DESC_BA_DISABLE`, a 64 KiB A-MPDU capability), and the
+  access point already aggregates toward us.
+- *Its pieces:* the station record's QoS and HT fields
+  (`ucIsQoS`, `ucDesiredPhyTypeSet`, `ucMcsSet`, `aucRxMcsBitmask`,
+  `u2HtCapInfo`, `ucAmpduParam`); the descriptor's block-ack bit, already
+  clear in ours (byte 11 `0x80`); and several frames submitted per
+  aggregate window. The per-frame cost is expected to fall as the
+  aggregate grows.
+- *The reading, predeclared:* service time per frame, not throughput.
+
+| `wait_avg ÷ depth` | Meaning |
+|---|---|
+| falls below about 0.2 ms | aggregation amortises the firmware's work; transmit can pass 30 |
+| stays near 0.43 ms | the firmware's cost is per MPDU; the ceiling is real |
+
+What the firmware does with the BSS and station QoS records, and whether
+its block-ack is gated on HT, are the bounded firmware questions named
+earlier, each answered before its boot.
+
 **Boot U's answer.** The access point uses HT toward this station at the
 top MCS (MCS7 ×27,538 of 38,106), and our receive path takes it with no
 refusal: the cheap route's question is answered yes. Receive ingest is
