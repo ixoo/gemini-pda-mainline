@@ -761,3 +761,4 @@ proposals/0280-wifi-mt6797-make-the-data-depth-a-build-option-with-the-TC1-ledge
 proposals/0281-wifi-mt6797-request-the-MCU-status-report-for-one-ordinary-data-frame-in-N.patch
 proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-nearly-full-with-the-queue-bound-its-own-option.patch
 proposals/0283-wifi-mt6797-record-a-per-second-backpressure-series-and-receive-gaps.patch
+proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch

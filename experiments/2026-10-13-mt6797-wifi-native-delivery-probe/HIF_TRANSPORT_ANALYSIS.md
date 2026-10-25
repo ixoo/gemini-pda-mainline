@@ -3003,3 +3003,91 @@ re-ordered accordingly. Whether the access point speaks HT to this
 device is already answered by the vendor's own driver: 45.1 Mbit/s of
 transmit through the same access point (vendor control 2) is above the
 legacy ceiling and needs HT.
+
+## 25. Boot O (predeclared, 2026-10-25): WMM and QoS data at the legacy rate, a de-risking step whose success is that nothing moves
+
+**Why.** Every route past the 30 Mbit/s legacy air needs QoS data with
+TIDs: A-MPDU requires it and block-ack is per TID, and mac80211
+negotiates HT only with WMM. The driver refused WMM by design (the
+association admission refused its element; one queue; non-QoS data
+with TID 0 fixed). This boot carries WMM and QoS data at a rate that
+already works, so the framing's risks are isolated from the rate change
+that follows. **It has no throughput expectation**: without an HT
+capability mac80211 starts no block-ack session, and
+`ampdu_action` refuses one anyway, so QoS framing alone changes nothing
+measurable. Any throughput move is a warning, not a win: it would mean
+something else changed with the framing.
+
+**The change, one variable.**
+[0284](../../patches/proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch)
+(`CONFIG_MT6797_WMM_QOS_DATA`) on boot M's tree (depth 12, the 64-frame
+queue, 0283):
+
+- four mac80211 queues, a `conf_tx` operation (the access point's EDCA
+  parameters recorded; no WMM parameter command, so the firmware keeps
+  its defaults), `ampdu_action` refusing block-ack;
+- the association admits one WMM information element with QoS info 0
+  (no U-APSD); when the access point answers with its WMM parameter
+  element the BSS info declares `ucIsQBSS` (byte 42) and the station
+  record `ucIsQoS` (byte 18), as the vendor does for a WMM access point;
+- transmit: QoS data with QoS control 0 (TID 0, AC_BE, the TC1 queue the
+  descriptor already names) and the control-port EAPOL frames with their
+  own TID, converted to Ethernet II from the 26-byte header; QoS data
+  with any other TID is refused and counted; the descriptor, the fixed
+  0x4c rate, the ledger and the depth are unchanged;
+- receive: QoS data with QoS control 0, and QoS EAPOL-Key on both the
+  translated and the native layout, with the 26-byte header rebuilt for
+  mac80211.
+
+**Where the risks actually sit (from source).** The owner's brief placed
+the CCMP AAD of the 26-byte header on the host. It is not there: the
+host hands the firmware Ethernet II and receives decrypted, translated
+802.3, so the firmware builds the 802.11 header and computes the AAD on
+both paths. The host's risks are admission and framing; the AAD is the
+firmware's, triggered by the station record's QoS declaration. A third
+risk the brief did not name: with WMM the access point is likely to
+send the four-way handshake's EAPOL-Key frames as QoS data, which the
+EAPOL gate refused; 0284 admits them, and the handshake is the first
+thing this boot tests.
+
+**Success is "nothing moved".**
+
+| Reading | Required |
+|---|---|
+| WMM | `join WMM: requested=1 accepted=1`; four `WMM params` lines (one per access category) |
+| join, both lifetimes, ledger | unchanged: the handshake completes, `expired=0`, `pid_faults=0`, `left_pages=0`, `dropped_full=0`, `tx_failed=0` |
+| framing | `data qos:` `tx_qos` carries the data and `tx_nonqos` near 0, `tx_tid_refused=0`; `rx_qos` carries the receive, `rx_refused_qos=0` |
+| TX per chunk | about 23 Mbit/s (depth 12's band), five full-duration chunks |
+| RX device-side | about 19 Mbit/s |
+| rate samples | 697–857 sampled reports, all at `0x4c` status 0 |
+| CCMP | no decrypt or replay failure on either path: no receive refusals beyond boot M's background, no transmit stall with the air acknowledging |
+| frame counts | delivered ≈ received, no unexplained drops |
+| verdict | `session_exit=0`; if not, `verdict_failed` names the check |
+
+**The failure modes, named in advance.**
+
+| Reading | Cause | Next |
+|---|---|---|
+| the join stops at the handshake, the EAPOL trace reads `frame-control`, `native-layout` or `llc` | the access point's QoS EAPOL-Key in a shape the gate does not take | read the trace's descriptor bytes; nothing else changed |
+| `requested=1 accepted=0`, `tx_qos=0` | the access point ignored our WMM element or answered without its parameters; mac80211 stays non-QoS | the association record shows whether the element was carried; the boot is a no-op, not a failure |
+| `rx_refused_qos` climbing with `rx_qos=0` | the firmware's receive descriptor for QoS data differs from the non-QoS shape the check fixes, or the firmware's decryption of QoS frames fails (the AAD on receive) | read one refused descriptor; the check, not the key |
+| transmit stalls (TCP retransmitting, chunks near zero) while the sampled reports read status 0 | the air acknowledges our QoS frames but the access point discards them: the firmware's AAD for the QoS header on transmit | revert the station record's `ucIsQoS` first (the transmit framing follows it) |
+| `tx_tid_refused` > 0 | mac80211 classified ordinary data off TID 0 | the classification, not the path; data on other TIDs is the next step's work |
+
+The three questions: reachability, the same admission, conversion and
+receive-check sites the non-QoS path uses, and the BSS and station
+records already sent after association; ownership, the QoS declaration
+is the host's own record fields; the vendor, `ucIsQoS`/`ucIsQBSS` set
+for a WMM access point and QoS data with TID 0 in TC1 (public gen3
+`CMD_UPDATE_STA_RECORD_T`/`CMD_SET_BSS_INFO`).
+
+**After it, each one boot.** HT capability advertisement (the 54 Mbit/s
+descriptor kept, the received-rate record read for HT modes: does this
+access point send HT to this station); then the station record's PHY
+and MCS fields so the firmware can transmit at MCS; then block-ack and
+A-MPDU, where the throughput appears ([scope](HT_PROJECT_SCOPE.md)).
+
+**Housekeeping already done.** The verdict reads the run's declarations
+and names its failures (`verdict_failed`), and the transmit direction's
+normal 141 close is accepted (boot N); the receive final half is out of
+the record as a delivery figure (`host_write_final_half_Mbit_s` only).

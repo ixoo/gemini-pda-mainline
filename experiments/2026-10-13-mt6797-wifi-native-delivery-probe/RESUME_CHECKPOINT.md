@@ -1,4 +1,17 @@
-# Current: depth is finished; transmit on the legacy rate sits at its wall (~23.5 Mbit/s, depth 12 the setting); the receive slowdowns are link-side; HT is the project; the next step is the owner's decision
+# Current: the HT project starts: boot O (0284, WMM and QoS data at the legacy rate, success is that nothing moves) predeclared and building
+
+[§25](HIF_TRANSPORT_ANALYSIS.md#25-boot-o-predeclared-2026-10-25-wmm-and-qos-data-at-the-legacy-rate-a-de-risking-step-whose-success-is-that-nothing-moves):
+[0284](../../patches/proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch)
+registers four queues and `conf_tx`, admits the WMM element, declares
+the station and the BSS QoS to the firmware when the access point
+answers with WMM, and carries data (TID 0) and EAPOL as QoS data each
+way; block-ack is refused, the descriptor, rate, ledger and depth (12)
+are unchanged. The AAD of the 26-byte header is the firmware's on both
+paths, not the host's; the host's risks are the admissions, the QoS
+EAPOL-Key of the handshake first. No throughput expectation: success
+is that nothing moved.
+
+# Historical: depth is finished; transmit on the legacy rate sits at its wall (~23.5 Mbit/s, depth 12 the setting); the receive slowdowns are link-side; HT is the project; the next step is the owner's decision
 
 [Boot N](HIF_TRANSPORT_ANALYSIS.md#boot-n-result-2026-10-25-1910-utc-depth-16-is-flat-the-air-binds-depth-12-is-the-setting-the-receive-stream-read-on-both-ends):
 depth 16 carried 1,927 frames a second against depth 12's 1,900 with the

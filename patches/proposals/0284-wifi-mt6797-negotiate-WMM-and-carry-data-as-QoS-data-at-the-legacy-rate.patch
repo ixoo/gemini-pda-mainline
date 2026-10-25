@@ -1,0 +1,652 @@
+From af27db7a06e79012bc2162a192cd4d426feefa8b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 15:29:39 -0400
+Subject: [PATCH] wifi: mt6797: negotiate WMM and carry data as QoS data at the
+ legacy rate
+
+mac80211 negotiates HT only when WMM is in use (a station without WMM
+is limited to legacy), and WMM needs four hardware queues and a
+conf_tx operation. Aggregation needs QoS data with TIDs on top of that,
+and block-ack is per TID. The driver registers one queue, refuses the
+WMM element in the association, declares the station and the BSS
+non-QoS to the firmware, and admits only non-QoS data each way.
+
+Behind CONFIG_MT6797_WMM_QOS_DATA, for the first step toward HT at a
+rate that already works:
+
+- four queues, a conf_tx operation (the access point's EDCA parameters
+  are recorded; the firmware keeps its defaults), and ampdu_action
+  refusing block-ack, so nothing aggregates;
+- the association admits one WMM information element with QoS info 0
+  (no U-APSD); when the access point answers with its WMM parameter
+  element, the BSS info declares ucIsQBSS and the station record
+  ucIsQoS, as the vendor does for a WMM access point;
+- the transmit admission and its Ethernet II conversion take the 26-byte
+  QoS header: ordinary data with QoS control 0 (TID 0, AC_BE, the TC1
+  queue the descriptor already names), the control-port EAPOL frames
+  with their own TID; QoS data with any other TID is refused and
+  counted;
+- the receive checks take QoS data with QoS control 0, and the EAPOL
+  gate takes QoS EAPOL-Key on both layouts, rebuilding the 26-byte
+  header for mac80211.
+
+The firmware builds the 802.11 header and computes the CCMP AAD on
+both paths; the descriptor, the fixed rate, the credit ledger and the
+depth are unchanged. The data end records the WMM state, the access
+point's parameter sets, and QoS against non-QoS frames each way with
+the receive check's refusals. With the option off every predicate is
+unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  18 ++
+ .../wireless/mediatek/mt6797/ccmp-gtk-rx.h    |   2 +-
+ .../net/wireless/mediatek/mt6797/ccmp-rx.h    |  11 +-
+ .../net/wireless/mediatek/mt6797/eapol-rx.h   |  52 +++--
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  35 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  10 +
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 189 +++++++++++++++++-
+ 7 files changed, 291 insertions(+), 26 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 65d0f139c..358f5e843 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -154,6 +154,24 @@ config MT6797_TX_BACKPRESSURE
+ 	  wakes, the drops and the queue's high-water mark. Nothing changes
+ 	  with this off.
+ 
++config MT6797_WMM_QOS_DATA
++	bool "MT6797 Wi-Fi: negotiate WMM and carry data as QoS data at the legacy rate"
++	depends on MT6797_STATION_JOIN && MT6797_CCMP_STABLE_EPOCH && MT6797_TX_BACKPRESSURE
++	help
++	  mac80211 negotiates HT only with WMM, so every step toward
++	  aggregation starts here. Register four queues and a conf_tx
++	  operation, admit the WMM information element in the association
++	  request, declare the station and the BSS as QoS to the firmware
++	  when the access point answers with its WMM parameters, and carry
++	  data as QoS data: the transmit admission and its Ethernet II
++	  conversion take the 26-byte QoS header (TID 0 for ordinary data,
++	  any TID for the control-port EAPOL frames), and the receive checks
++	  take QoS data with TID 0 and normal acknowledgment. The firmware
++	  builds the 802.11 header and computes the CCMP AAD on both paths;
++	  the descriptor (TID 0, TC1, the fixed rate) is unchanged. Block-ack
++	  is refused. The data-end record counts QoS and non-QoS frames each
++	  way and the receive check's refusals.
++
+ config MT6797_DATA_PHASE_SERIES
+ 	bool "MT6797 Wi-Fi: per-second backpressure series and receive-gap windows (logging only)"
+ 	depends on MT6797_TX_BACKPRESSURE && MT6797_DATA_CREDIT_RETIRE && MT6797_CCMP_STABLE_EPOCH
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+index d4f56cb5e..f9694d33f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-gtk-rx.h
+@@ -55,7 +55,7 @@ mt6797_ccmp_gtk_rx_check(const unsigned char *packet, size_t bytes,
+ 	if (offset > bytes || bytes - offset <= 14)
+ 		return false;
+ 	fc = mt6797_join_le16(packet + 16);
+-	if ((fc & ~0x2800U) != 0x4208 ||
++	if ((fc & ~(0x2800U | MT6797_CCMP_RX_QOS_BIT)) != 0x4208 ||
+ 	    (mt6797_join_le16(packet + 24) & 15) ||
+ 	    mt6797_join_le16(packet + 26) || mt6797_join_le32(packet + 28))
+ 		return false;
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+index 322929073..5f98076a6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+@@ -4,6 +4,15 @@
+ 
+ #include "join-events.h"
+ 
++/* QoS data (subtype bit 0x0080) with QoS control 0, TID 0 and normal
++ * acknowledgment, admitted only with WMM negotiated (0284); 0 otherwise.
++ */
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++#define MT6797_CCMP_RX_QOS_BIT 0x0080U
++#else
++#define MT6797_CCMP_RX_QOS_BIT 0U
++#endif
++
+ /*
+  * Caller-owned, serialized context for ONE initial, stable PTK epoch. The
+  * caller must establish current authorization/key activation and seed pn from
+@@ -73,7 +82,7 @@ mt6797_ccmp_rx_check(const unsigned char *packet, size_t bytes,
+ 	if (offset > bytes || bytes - offset <= 14)
+ 		return false;
+ 	fc = mt6797_join_le16(packet + 16);
+-	if ((fc & ~0x2800U) != 0x4208 ||
++	if ((fc & ~(0x2800U | MT6797_CCMP_RX_QOS_BIT)) != 0x4208 ||
+ 	    (mt6797_join_le16(packet + 24) & 15) ||
+ 	    mt6797_join_le16(packet + 26) || mt6797_join_le32(packet + 28))
+ 		return false;
+diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+index ca7ea6498..2cc77338c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+@@ -4,6 +4,17 @@
+ 
+ #include "join-events.h"
+ 
++/* With WMM negotiated (0284) the access point may send EAPOL-Key as QoS
++ * data: a 26-byte header with its QoS control field, any TID, no A-MSDU.
++ */
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++#define MT6797_EAPOL_RX_QOS_BIT 0x0080U
++#define MT6797_EAPOL_RX_QOS_EXTRA 2U
++#else
++#define MT6797_EAPOL_RX_QOS_BIT 0U
++#define MT6797_EAPOL_RX_QOS_EXTRA 0U
++#endif
++
+ enum mt6797_eapol_gate {
+ 	MT6797_EAPOL_OK,
+ 	MT6797_EAPOL_INPUT,
+@@ -34,7 +45,7 @@ enum mt6797_eapol_gate {
+ };
+ 
+ struct mt6797_eapol_rx {
+-	unsigned char prefix[32];
++	unsigned char prefix[32 + MT6797_EAPOL_RX_QOS_EXTRA];
+ 	size_t prefix_bytes, offset, bytes;
+ 	int signal_dbm;
+ 	bool signal_valid; /* False when the firmware omitted RX vector group 3. */
+@@ -64,7 +75,7 @@ mt6797_eapol_rx_gate(const unsigned char *packet, size_t bytes,
+ {
+ 	struct mt6797_eapol_rx r = {0};
+ 	size_t offset = 16, group4 = 0, vector = 0, eapol;
+-	unsigned int groups, fc, i, length;
++	unsigned int groups, fc, i, length, hl;
+ 	const unsigned char *f, *source;
+ 	bool translated;
+ 
+@@ -117,6 +128,10 @@ mt6797_eapol_rx_gate(const unsigned char *packet, size_t bytes,
+ 		fc = mt6797_join_le16(packet + group4);
+ 		if (mt6797_join_le16(packet + group4 + 8) & 15)
+ 			return MT6797_EAPOL_FRAGMENT;
++		/* A QoS frame's rebuilt header carries its QoS control field. */
++		hl = fc & MT6797_EAPOL_RX_QOS_BIT ? 26 : 24;
++		if (hl == 26 && (packet[group4 + 10] & 0x80))
++			return MT6797_EAPOL_FRAME_CONTROL;
+ 		for (i = 0; i < 6; i++)
+ 			if (f[i] != own[i] || packet[group4 + 2 + i] != ap[i])
+ 				return MT6797_EAPOL_PEER;
+@@ -124,7 +139,7 @@ mt6797_eapol_rx_gate(const unsigned char *packet, size_t bytes,
+ 			return MT6797_EAPOL_ETHERTYPE;
+ 		source = f + 6;
+ 		eapol = offset + 14;
+-		r.prefix_bytes = 32;
++		r.prefix_bytes = hl + 8;
+ 		r.prefix[0] = fc;
+ 		r.prefix[1] = fc >> 8;
+ 		for (i = 0; i < 6; i++) {
+@@ -134,32 +149,43 @@ mt6797_eapol_rx_gate(const unsigned char *packet, size_t bytes,
+ 		}
+ 		r.prefix[22] = packet[group4 + 8];
+ 		r.prefix[23] = packet[group4 + 9];
+-		r.prefix[24] = 0xaa;
+-		r.prefix[25] = 0xaa;
+-		r.prefix[26] = 3;
+-		r.prefix[30] = 0x88;
+-		r.prefix[31] = 0x8e;
++		if (hl == 26) {
++			r.prefix[24] = packet[group4 + 10];
++			r.prefix[25] = packet[group4 + 11];
++		}
++		r.prefix[hl] = 0xaa;
++		r.prefix[hl + 1] = 0xaa;
++		r.prefix[hl + 2] = 3;
++		r.prefix[hl + 6] = 0x88;
++		r.prefix[hl + 7] = 0x8e;
+ 		r.offset = eapol;
+ 	} else {
+-		if ((packet[6] & 63) != 24 || bytes - offset < 36)
++		hl = packet[6] & 63;
++		if ((hl != 24 && !(MT6797_EAPOL_RX_QOS_BIT && hl == 26)) ||
++		    bytes - offset < hl + 12)
+ 			return MT6797_EAPOL_NATIVE_LAYOUT;
+ 		fc = mt6797_join_le16(f);
+ 		if (mt6797_join_le16(f + 22) & 15)
+ 			return MT6797_EAPOL_FRAGMENT;
++		/* The header length must agree with the QoS subtype. */
++		if ((hl == 26) != !!(fc & MT6797_EAPOL_RX_QOS_BIT) ||
++		    (hl == 26 && (f[24] & 0x80)))
++			return MT6797_EAPOL_FRAME_CONTROL;
+ 		for (i = 0; i < 6; i++)
+ 			if (f[4 + i] != own[i] || f[10 + i] != ap[i])
+ 				return MT6797_EAPOL_PEER;
+-		if (f[24] != 0xaa || f[25] != 0xaa || f[26] != 3 ||
+-		    f[27] || f[28] || f[29] || f[30] != 0x88 || f[31] != 0x8e)
++		if (f[hl] != 0xaa || f[hl + 1] != 0xaa || f[hl + 2] != 3 ||
++		    f[hl + 3] || f[hl + 4] || f[hl + 5] ||
++		    f[hl + 6] != 0x88 || f[hl + 7] != 0x8e)
+ 			return MT6797_EAPOL_LLC;
+ 		source = f + 16;
+-		eapol = offset + 32;
++		eapol = offset + hl + 8;
+ 		r.offset = offset;
+ 	}
+ 	/* Version/type, DS direction, fragment, protection and QoS are fixed.
+ 	 * Retry and More-Data do not alter header layout or peer identity.
+ 	 */
+-	if ((fc & ~0x2800U) != 0x0208)
++	if ((fc & ~(0x2800U | MT6797_EAPOL_RX_QOS_BIT)) != 0x0208)
+ 		return MT6797_EAPOL_FRAME_CONTROL;
+ 	if (source[0] & 1)
+ 		return MT6797_EAPOL_SOURCE;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 1af107aa9..02426cb59 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1300,6 +1300,41 @@ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 					   sizeof(payload), false, deadline_ns);
+ }
+ 
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++/* CMD_SET_BSS_INFO byte 42 ucIsQBSS and CMD_UPDATE_STA_RECORD byte 18
++ * ucIsQoS: the vendor sets both for an access point that answered with WMM.
++ */
++int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
++	unsigned int desired_rates, unsigned int basic_rates,
++	bool short_preamble, bool wpa2, bool qos, u64 deadline_ns)
++{
++	u8 payload[MT6797_JOIN_BSS_BYTES];
++
++	if (!mt6797_join_bss_payload(ap, ssid, ssid_bytes, desired_rates,
++				     basic_rates, short_preamble, wpa2, payload))
++		return -EINVAL;
++	payload[42] = qos;
++	return mt6797_hif_send_join_command(hif, 0x12, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++
++int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, unsigned int state, unsigned int aid,
++	unsigned int desired_rates, unsigned int basic_rates, bool qos,
++	u64 deadline_ns)
++{
++	u8 payload[MT6797_JOIN_STA_BYTES];
++
++	if (!mt6797_join_station_payload(ap, state, aid, desired_rates,
++					basic_rates, payload))
++		return -EINVAL;
++	payload[18] = qos;
++	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++#endif
++
+ int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
+ 			bool add, bool pairwise, const u8 *peer,
+ 			unsigned int key_id, const u8 *material, u64 deadline_ns)
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 62beaa469..dc70c9afa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -265,6 +265,16 @@ bool mt6797_hif_cleanup_ready(struct mt6797_hif *hif);
+ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
++	unsigned int desired_rates, unsigned int basic_rates,
++	bool short_preamble, bool wpa2, bool qos, u64 deadline_ns);
++int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
++	const u8 *ap, unsigned int state, unsigned int aid,
++	unsigned int desired_rates, unsigned int basic_rates, bool qos,
++	u64 deadline_ns);
++#endif
+ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 	unsigned int sequence, u64 deadline_ns);
+ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 86eec1c11..23dd12245 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -162,6 +162,17 @@ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
+ #define MT6797_JOIN_DATA_TX_STOP (MT6797_JOIN_DATA_TX_QUEUE - MT6797_JOIN_DATA_TX_QUEUE / 8U)
+ #define MT6797_JOIN_DATA_TX_WAKE (MT6797_JOIN_DATA_TX_QUEUE / 2U)
+ #define MT6797_JOIN_DATA_TX_QUEUE_BYTES (MT6797_JOIN_DATA_TX_QUEUE * 1550U)
++/* QoS data from mac80211 carries a 2-byte QoS control field after the
++ * 24-byte header (0284); without WMM the bit is never admitted.
++ */
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++#define MT6797_JOIN_TX_QOS_BIT 0x0080U
++#define MT6797_JOIN_TX_QOS_EXTRA 2U
++#else
++#define MT6797_JOIN_TX_QOS_BIT 0U
++#define MT6797_JOIN_TX_QOS_EXTRA 0U
++#endif
++#define MT6797_JOIN_TX_HDRLEN(fc) ((fc) & MT6797_JOIN_TX_QOS_BIT ? 26U : 24U)
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+ #define MT6797_SERIES_SECONDS 96U
+ #define MT6797_RX_GAPS 32U
+@@ -243,6 +254,14 @@ struct mt6797_mac {
+ 	bool tx_queues_stopped;
+ 	unsigned int tx_queue_stops, tx_queue_wakes, tx_dropped_full, tx_queue_high_water;
+ #endif
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	/* WMM requested in our association and answered by the access point,
++	 * the frames carried each way by kind, and the receive check's refusals.
++	 */
++	bool join_wmm_requested, join_wmm_accepted;
++	unsigned int qos_ac_params, qos_tx, qos_tx_nonqos, qos_tx_tid_refused;
++	unsigned int qos_rx, qos_rx_nonqos, qos_rx_refused, qos_rx_refused_qos;
++#endif
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+ 	/* Per-second data-phase series and receive gaps (0283), logging only. */
+ 	struct mt6797_data_second {
+@@ -783,6 +802,13 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	if (!skb)
+ 		return -ENOMEM;
+ 	if (!mt6797_ccmp_rx_check(mac->join_packet, bytes, &mac->ccmp_rx, &view)) {
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++		if (bytes >= 18) {
++			mac->qos_rx_refused++;
++			if (mt6797_join_le16(mac->join_packet + 16) & 0x0080)
++				mac->qos_rx_refused_qos++;
++		}
++#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 		if (mac->ccmp_gtk && mac->join_key_group == 1 &&
+ 		    mac->ccmp_gtk_rx.key_id == mac->join_group_key_id &&
+@@ -806,6 +832,12 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 			 "one-shot WLAN checked GTK RX: first_queued=1 ethernet_bytes=%zu\n",
+ 			 view.bytes);
+ 	}
++#endif
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	if (mt6797_join_le16(mac->join_packet + 16) & 0x0080)
++		mac->qos_rx++;
++	else
++		mac->qos_rx_nonqos++;
+ #endif
+ 	skb_put_data(skb, mac->join_packet + view.offset, view.bytes);
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+@@ -1109,6 +1141,28 @@ static int mt6797_series_second(struct mt6797_mac *mac, u64 now)
+ }
+ #endif
+ 
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++/* The access point's association response: WMM is accepted when we asked
++ * for it and the response carries the WMM parameter element (OUI 00:50:f2,
++ * type 2, subtype 1, version 1, 24 bytes).
++ */
++static void mt6797_join_assoc_wmm(struct mt6797_mac *mac, const u8 *f, size_t n)
++{
++	size_t e = 30;
++
++	while (mac->join_wmm_requested && e + 2 <= n && f[e + 1] <= n - e - 2) {
++		if (f[e] == WLAN_EID_VENDOR_SPECIFIC && f[e + 1] == 24 && !f[e + 2] &&
++		    f[e + 3] == 0x50 && f[e + 4] == 0xf2 && f[e + 5] == 2 &&
++		    f[e + 6] == 1 && f[e + 7] == 1)
++			mac->join_wmm_accepted = true;
++		e += 2 + f[e + 1];
++	}
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join WMM: requested=%u accepted=%u\n",
++		 mac->join_wmm_requested, mac->join_wmm_accepted);
++}
++#endif
++
+ /* Called only in the common serialized RX/TX-status batch, outside MAC locks.
+  * Withdrawal fences eligibility then waits for this batch before key removal
+  * callbacks complete. RCU covers pubsta and the entire core RX handoff.
+@@ -1683,6 +1737,19 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ #else
+ 		if (f[ie] == WLAN_EID_RSN)
+ 			return false;
++#endif
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++		/* One WMM information element (OUI 00:50:f2, type 2, subtype 0,
++		 * version 1) with QoS info 0: no U-APSD.
++		 */
++		if (subtype == 0 && f[ie] == WLAN_EID_VENDOR_SPECIFIC &&
++		    f[ie + 1] == 7 && f[ie + 2] == 0 && f[ie + 3] == 0x50 &&
++		    f[ie + 4] == 0xf2 && f[ie + 5] == 2 && f[ie + 6] == 0 &&
++		    f[ie + 7] == 1 && !f[ie + 8] && !mac->join_wmm_requested) {
++			mac->join_wmm_requested = true;
++			ie += 2 + f[ie + 1];
++			continue;
++		}
+ #endif
+ 		/* No HT/VHT, fast-transition or WMM negotiation in this admission. */
+ 		if (f[ie] == WLAN_EID_HT_CAPABILITY ||
+@@ -1935,6 +2002,18 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->tx_dropped_full = 0;
+ 	mac->tx_queue_high_water = 0;
+ #endif
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	mac->join_wmm_requested = false;
++	mac->join_wmm_accepted = false;
++	mac->qos_ac_params = 0;
++	mac->qos_tx = 0;
++	mac->qos_tx_nonqos = 0;
++	mac->qos_tx_tid_refused = 0;
++	mac->qos_rx = 0;
++	mac->qos_rx_nonqos = 0;
++	mac->qos_rx_refused = 0;
++	mac->qos_rx_refused_qos = 0;
++#endif
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+ 	memset(mac->series, 0, sizeof(mac->series));
+ 	mac->series_used = 0;
+@@ -3159,6 +3238,14 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->tx_queues_stopped, mac->tx_queue_high_water,
+ 		 MT6797_JOIN_DATA_TX_QUEUE);
+ #endif
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u\n",
++		 mac->join_wmm_requested, mac->join_wmm_accepted, mac->qos_ac_params,
++		 mac->qos_tx, mac->qos_tx_nonqos, mac->qos_tx_tid_refused,
++		 mac->qos_rx, mac->qos_rx_nonqos, mac->qos_rx_refused,
++		 mac->qos_rx_refused_qos);
++#endif
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+ 	{
+ 		unsigned int i;
+@@ -4037,11 +4124,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				 * TC1 pool (the firmware encrypts with the installed
+ 				 * pairwise key); its pages are owed on that pool.
+ 				 */
+-				size_t eth_bytes = 14 + skb->len - 32;
++				unsigned int fc = get_unaligned_le16(skb->data);
++				unsigned int hl = MT6797_JOIN_TX_HDRLEN(fc);
++				size_t eth_bytes = 14 + skb->len - (hl + 8);
+ 				bool port = IEEE80211_SKB_CB(skb)->control.flags &
+ 					    IEEE80211_TX_CTRL_PORT_CTRL_PROTO;
+ 
+-				if (skb->len < 36 || eth_bytes > MT6797_JOIN_ETH_MAX_BYTES ||
++				if (skb->len < hl + 12 || eth_bytes > MT6797_JOIN_ETH_MAX_BYTES ||
+ 				    !mac->join_sta_active ||
+ 				    (!port && (!mac->join_data_phase || mac->join_data_ended))) {
+ 					ret = -EINVAL;
+@@ -4049,8 +4138,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				}
+ 				memcpy(mac->join_eth, skb->data + 16, ETH_ALEN);
+ 				memcpy(mac->join_eth + 6, skb->data + 10, ETH_ALEN);
+-				memcpy(mac->join_eth + 12, skb->data + 30, 2);
+-				memcpy(mac->join_eth + 14, skb->data + 32, skb->len - 32);
++				memcpy(mac->join_eth + 12, skb->data + hl + 6, 2);
++				memcpy(mac->join_eth + 14, skb->data + hl + 8, skb->len - (hl + 8));
+ #ifdef CONFIG_MT6797_CCMP_TX_PID_REUSE
+ 				ret = mt6797_ccmp_assign_pid(mac, false, !port);
+ 				if (ret)
+@@ -4988,6 +5077,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+ 					 "one-shot WLAN join RX: subtype=1 status=%u\n",
+ 					 mac->join_assoc_status);
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++				mt6797_join_assoc_wmm(mac, body, frame.bytes);
++#endif
+ 				if (!mac->join_assoc_status &&
+ 				    (!mac->join_aid || mac->join_aid > 2007)) {
+ 					ret = -EPROTO;
+@@ -5844,11 +5936,19 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	reinit_completion(&mac->join_credit_done);
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 1;
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	ret = mt6797_hif_join_bss_qos(mac->hif, mac->sequence++, mac->join_ap,
++				     mac->join_ssid, mac->join_ssid_bytes,
++				     mac->join_desired_rates, mac->join_peer_basic_rates,
++				     mac->join_short_preamble, mac->join_rsn,
++				     mac->join_wmm_accepted, mac->join_credit_deadline);
++#else
+ 	ret = mt6797_hif_join_bss(mac->hif, mac->sequence++, mac->join_ap,
+ 				 mac->join_ssid, mac->join_ssid_bytes,
+ 				 mac->join_desired_rates, mac->join_peer_basic_rates,
+ 				 mac->join_short_preamble, mac->join_rsn,
+ 				 mac->join_credit_deadline);
++#endif
+ 	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+@@ -5865,9 +5965,16 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	reinit_completion(&mac->join_credit_done);
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 2;
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	ret = mt6797_hif_join_station_qos(mac->hif, mac->join_sta_sequence,
++					 mac->join_ap, 3, aid, mac->join_desired_rates,
++					 mac->join_peer_basic_rates, mac->join_wmm_accepted,
++					 mac->join_credit_deadline);
++#else
+ 	ret = mt6797_hif_join_station(mac->hif, mac->join_sta_sequence,
+ 				     mac->join_ap, 3, aid, mac->join_desired_rates,
+ 				     mac->join_peer_basic_rates, mac->join_credit_deadline);
++#endif
+ 	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+@@ -6567,13 +6674,30 @@ static void mt6797_mac_sta_set_decap_offload(struct ieee80211_hw *hw,
+ }
+ #endif
+ 
++/* Ordinary QoS data: TID 0 (AC_BE, the TC1 queue) with normal
++ * acknowledgment and no A-MSDU, QoS control 0; any other is refused and
++ * counted (0284). Non-QoS frames pass.
++ */
++static inline bool mt6797_join_qos_tid_refused(struct mt6797_mac *mac, const u8 *header,
++					unsigned int hl)
++{
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	if (hl == 26 && get_unaligned_le16(header + 24)) {
++		mac->qos_tx_tid_refused++;
++		return true;
++	}
++#endif
++	return false;
++}
++
+ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 			  struct ieee80211_tx_control *control, struct sk_buff *skb)
+ {
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	struct mt6797_mac *mac = hw->priv;
+ 	static const u8 llc_eapol[8] = { 0xaa, 0xaa, 3, 0, 0, 0, 0x88, 0x8e };
+-	u8 header[32];
++	u8 header[32 + MT6797_JOIN_TX_QOS_EXTRA];
++	unsigned int hl;
+ 	unsigned long flags;
+ 	unsigned int fc, subtype;
+ 	bool accepted = false;
+@@ -6590,12 +6714,17 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 	 * association and before the deauthentication. They are submitted
+ 	 * after the station activation as Ethernet II security frames.
+ 	 */
++	/* With WMM, mac80211 sends the control port's EAPOL as QoS data (its
++	 * own TID) and ordinary data as QoS data; the header is 26 bytes.
++	 */
+ 	if (skb->len >= sizeof(header) + 4 &&
+ 	    skb->len <= sizeof(header) + MT6797_JOIN_ETH_MAX_BYTES - 14 &&
+ 	    (IEEE80211_SKB_CB(skb)->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO) &&
+ 	    !skb_copy_bits(skb, 0, header, sizeof(header)) &&
+-	    mt6797_join_le16(header) == 0x0108 &&
+-	    !memcmp(header + 24, llc_eapol, sizeof(llc_eapol)) &&
++	    (hl = MT6797_JOIN_TX_HDRLEN(mt6797_join_le16(header))) &&
++	    (mt6797_join_le16(header) & ~MT6797_JOIN_TX_QOS_BIT) == 0x0108 &&
++	    (hl == 24 || !(header[24] & 0xe0)) &&
++	    !memcmp(header + hl, llc_eapol, sizeof(llc_eapol)) &&
+ 	    ether_addr_equal(header + 4, mac->join_ap) &&
+ 	    ether_addr_equal(header + 10, hw->wiphy->perm_addr) &&
+ 	    ether_addr_equal(header + 16, mac->join_ap)) {
+@@ -6627,9 +6756,11 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 	    !(IEEE80211_SKB_CB(skb)->control.flags & IEEE80211_TX_CTRL_PORT_CTRL_PROTO) &&
+ 	    IEEE80211_SKB_CB(skb)->control.hw_key &&
+ 	    !skb_copy_bits(skb, 0, header, sizeof(header)) &&
+-	    (mt6797_join_le16(header) & ~0x0800U) == 0x4108 &&
+-	    !memcmp(header + 24, llc_eapol, 6) &&
+-	    !(header[30] == 0x88 && header[31] == 0x8e) &&
++	    (hl = MT6797_JOIN_TX_HDRLEN(mt6797_join_le16(header))) &&
++	    (mt6797_join_le16(header) & ~(0x0800U | MT6797_JOIN_TX_QOS_BIT)) == 0x4108 &&
++	    !mt6797_join_qos_tid_refused(mac, header, hl) &&
++	    !memcmp(header + hl, llc_eapol, 6) &&
++	    !(header[hl + 6] == 0x88 && header[hl + 7] == 0x8e) &&
+ 	    ether_addr_equal(header + 4, mac->join_ap) &&
+ 	    ether_addr_equal(header + 10, hw->wiphy->perm_addr)) {
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+@@ -6643,6 +6774,12 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 		    skb_queue_len(&mac->join_queue) < MT6797_JOIN_DATA_TX_QUEUE &&
+ 		    mac->join_queue_bytes + skb->len <= MT6797_JOIN_DATA_TX_QUEUE_BYTES) {
+ 			mac->join_data_tx_queued++;
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++			if (hl == 26)
++				mac->qos_tx++;
++			else
++				mac->qos_tx_nonqos++;
++#endif
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
+ 			schedule_delayed_work(&mac->join_work, 0);
+@@ -6714,8 +6851,37 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 	ieee80211_free_txskb(hw, skb);
+ }
+ 
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++/* The access point's EDCA parameters, recorded; the firmware keeps its
++ * defaults on this step (no WMM parameter command is sent).
++ */
++static int mt6797_mac_conf_tx(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++			      unsigned int link_id, u16 ac,
++			      const struct ieee80211_tx_queue_params *params)
++{
++	struct mt6797_mac *mac = hw->priv;
++
++	mac->qos_ac_params++;
++	dev_info(wiphy_dev(hw->wiphy),
++		 "one-shot WLAN WMM params: ac=%u aifs=%u cw_min=%u cw_max=%u txop=%u\n",
++		 ac, params->aifs, params->cw_min, params->cw_max, params->txop);
++	return 0;
++}
++
++/* No block-ack on this step: nothing aggregates. */
++static int mt6797_mac_ampdu_action(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
++				   struct ieee80211_ampdu_params *params)
++{
++	return -EOPNOTSUPP;
++}
++#endif
++
+ static const struct ieee80211_ops mt6797_mac_ops = {
+ 	.tx = mt6797_mac_tx,
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	.conf_tx = mt6797_mac_conf_tx,
++	.ampdu_action = mt6797_mac_ampdu_action,
++#endif
+ 	.start = mt6797_mac_start,
+ 	.stop = mt6797_mac_stop,
+ 	.add_interface = mt6797_mac_add_interface,
+@@ -6894,7 +7060,8 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	SET_IEEE80211_DEV(hw, dev);
+ 	SET_IEEE80211_PERM_ADDR(hw, data + 4);
+ 	ieee80211_hw_set(hw, NO_AUTO_VIF);
+-	hw->queues = IS_ENABLED(CONFIG_MT6797_STATION_JOIN) ? 1 : 4;
++	hw->queues = IS_ENABLED(CONFIG_MT6797_STATION_JOIN) &&
++		     !IS_ENABLED(CONFIG_MT6797_WMM_QOS_DATA) ? 1 : 4;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
+ #endif
+-- 
+2.43.0
+

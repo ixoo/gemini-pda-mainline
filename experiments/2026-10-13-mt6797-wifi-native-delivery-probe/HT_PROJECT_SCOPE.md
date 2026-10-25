@@ -41,7 +41,7 @@ association before QoS.)
 
 | # | Change | Side | Depends on | Proven by |
 |---|---|---|---|---|
-| 1 | WMM: four mac80211 queues, a `conf_tx` operation, the WMM element admitted in the association; the backpressure stop/wake across the four queues | host only | — | a legacy-rate boot: the join and both lifetimes as before, the association response's WMM parameters accepted, the ledger whole |
+| 1 | WMM: four mac80211 queues, a `conf_tx` operation, the WMM element admitted in the association, and the BSS and station records' QoS declaration (`ucIsQBSS`, `ucIsQoS`), on which the firmware's QoS framing and AAD follow; boot O ([0284](../../patches/proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch)) | host, and the two record fields | — | a legacy-rate boot: the join and both lifetimes as before, the association response's WMM parameters accepted, the ledger whole |
 | 2 | QoS data in the transmit admission (subtype 8, the 26-byte header with its QoS control field) and in its Ethernet II conversion; received QoS data likewise | host, the descriptor unchanged | 1 | the same boot: data acknowledged on the air at the fixed 0x4c, the throughput row unchanged within noise |
 | 3 | HT capability on 5 GHz (HT20, MCS 0–7 for 1×1, conservative A-MPDU parameters, no short GI) and the HT capability element admitted in the association (and the HT operation in the response) | host only | 1, 2 | the received-rate record (0271): the access point's frames to this station in HT modes rather than legacy OFDM |
 | 4 | The station record's PHY type set, MCS set and HT capability fields from the peer's HT capabilities | firmware-facing | 3 | the firmware's rate word leaving 0x4c for an HT MCS on the sampled reports (0281) |
