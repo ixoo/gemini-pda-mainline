@@ -35,6 +35,35 @@
       ],
       "fix": "guard records its words; fixture models both consumers; no driver behaviour change",
       "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    },
+    "rx-batch-3": {
+      "run": "PIO-throughput-rxbatch3-1",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "kernel_build_commit": "285d6aa3cb808811c2bb6c54266fb70e99e5f2eb",
+      "boot2_sha256": "490008d5c5e47028e979a532ac63d6da6d825399e037dd6cb907dfa5eaa9cc88",
+      "predecessor_boot2_sha256": "a9b89cfbb20ec5e9d7ef0c77a375535f3e0af6b5fed68e31eb77ba56e6b8268b",
+      "mainline_boot_id": "d3f812a9-b298-4aea-893e-482e85edd4ac",
+      "previous_gemian_boot_id": "0b7f827b-fdb3-4488-98ca-d2c93ef852e8",
+      "returned_gemian_boot_id": "4d65ad5c-15b7-423b-844c-0cce2863cd1e",
+      "sealed_log_bytes": 150250,
+      "guard_record": {
+        "ret": -5,
+        "wcir": "0x00300279",
+        "own": "0x00000100",
+        "valid": "0x3",
+        "whcr": "0x00011000",
+        "whisr": "0x00000042",
+        "wtqcr0": 0,
+        "wtqcr7": 0,
+        "hif": -5,
+        "pending": 0,
+        "batch_failures": 0,
+        "credits": 2
+      },
+      "outcome": "inconclusive: associated, four beacons, 416 ms without a delivered frame, then the device's abnormal interrupt (WHISR bit 6) refused the guard's acquisition",
+      "cause": "the enable wrote WHCR 0x00011000 (RX_ENHANCE_MODE_EN and a count of sixteen); the vendor's init clears bit 16 and programs count 0; in that mode every receive-port read carries a status block the host never read",
+      "fix": "WHCR confirmed by reading, never written; block WHISR not copied; block-carried abnormal recorded and fatal; WASR/WASR2 in the guard record",
+      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
     }
   }
 }

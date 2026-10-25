@@ -42,7 +42,7 @@ int mt6797_test_dma_write(unsigned int value, void *address) { (void)value; (voi
 static u8 *window;
 static unsigned int pending_port, pending_bytes, pending_offset;
 static bool pending_write;
-static u32 whcr = 0x00000a00;		/* some other length count before enable */
+static u32 whcr = 0x00000000;		/* the firmware default: count 0 (unlimited), bit 16 clear */
 static u8 block[112];
 static u8 queue_stream[2][40960];
 static unsigned int queue_offset[2];
@@ -77,8 +77,7 @@ int mt6797_test_write(unsigned int value, void *address)
 		return 0;
 	}
 	assert(address == window + 0x1000 && pending_write);
-	if (pending_port == 0x0c)
-		whcr = value;
+	assert(pending_port != 0x0c);	/* WHCR is confirmed by reading, never written */
 	return 0;
 }
 int mt6797_test_read(void *address, unsigned int *value)
@@ -209,7 +208,7 @@ int main(void)
 	announce(2, l0, 1, l1);
 	mt6797_hif_rx_batch_pass(hif);
 	assert(!mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx));
-	assert((whcr & BIT(16)) && ((whcr >> 8) & 0x3fU) == 16U && hif->rx_batch_on);
+	assert(whcr == 0 && hif->rx_batch_on && hif->rx_batch_whcr_after == 0);
 	assert(rx.logical_bytes == 60 && rx.selected_port == 0 && rx.selected_port_valid && out[0] == 60);
 	assert(rx.packet_type == (0x4000 | 1) && out[7] == (u8)(1 + 7));
 	assert(!mt6797_hif_receive_runtime_packet(hif, 1, 1000000, out, sizeof(out), &rx));
@@ -306,13 +305,17 @@ int main(void)
 		mt6797_hif_rx_batch_pass(hif);
 		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
 		mt6797_hif_rx_batch_stats(hif, &stats);
-		assert(stats.credit_blocks == 1 && stats.pending_whisr == 0x1 &&
+		assert(stats.credit_blocks == 1 && stats.block_whisr == 0x1 &&
 		       stats.pending_wtqcr0 == 0x00010000 && stats.pending_wtqcr7 == 0x00000002);
 		assert(!observe(hif, &st));
-		assert(whisr_reads == 1 && st.whisr == 0x1 && st.wtqcr[0] == 0x00010000 &&
-		       st.wtqcr[7] == 0x00000002 && st.wtqcr[1] == 0);
+		/* The register WHISR was consumed by the block read and is not
+		 * copied back: the acquisition's own word is zero and the done
+		 * bit the counts imply is synthesised beside it.
+		 */
+		assert(whisr_reads == 1 && st.whisr == 0 && st.synthesized == 0x1 &&
+		       st.wtqcr[0] == 0x00010000 && st.wtqcr[7] == 0x00000002 && st.wtqcr[1] == 0);
 		mt6797_hif_rx_batch_stats(hif, &stats);
-		assert(!stats.pending_whisr && !stats.pending_wtqcr0 && !stats.pending_wtqcr7 && !hif->first_error);
+		assert(!stats.pending_wtqcr0 && !stats.pending_wtqcr7 && !hif->first_error);
 	}
 
 	/* 7. Counts arriving between two block reads accumulate, and are not
@@ -331,8 +334,8 @@ int main(void)
 		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
 		mt6797_hif_rx_batch_stats(hif, &stats);
 		assert(stats.credit_blocks == 3 && stats.pending_wtqcr7 == 0x00020002);
-		assert(!observe(hif, &st) && st.wtqcr[7] == 0x00020002);
-		assert(!observe(hif, &st) && st.wtqcr[7] == 0 && st.whisr == 0);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0x00020002 && st.synthesized == 0x1);
+		assert(!observe(hif, &st) && st.wtqcr[7] == 0 && st.whisr == 0 && !st.synthesized);
 	}
 
 	/* 8. A block that carries no TX counts leaves credits= alone (control:
@@ -364,6 +367,68 @@ int main(void)
 		assert(!stats.pending_wtqcr7 && !inject_release_on_whisr_read);
 		assert(!observe(hif, &st) && st.wtqcr[7] == 0);
 	}
+
+	/* 9b. The block's edge bits are never copied; the abnormal edge (bit 6)
+	 * the block carries is recorded with the word and fails the HIF, as
+	 * the vendor resets the chip on it from whichever read carried it.
+	 */
+	fresh();
+	hw_whisr = BIT(6) | BIT(1);
+	mt6797_hif_rx_batch_pass(hif);
+	assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EIO);
+	mt6797_hif_rx_batch_stats(hif, &stats);
+	assert(stats.block_abnormal == (BIT(6) | BIT(1)) && stats.error == -EIO && hif->first_error == -EIO);
+	mt6797_hif_free(hif);
+	free(window);
+
+	/* 11. The join replay over the merged block state, at the ledger: the
+	 * state-1 record (two pages) credited through the block, the
+	 * authentication frame (one page) credited through the registers, the
+	 * second EAPOL message (two pages) credited through the block and its
+	 * completion carrying no counts; the guard's acquisition passes each
+	 * time with the synthesised done bit where the block carried the
+	 * counts, and trips only on a genuine abnormal in the register.
+	 */
+	fresh();
+	hif = make(true);
+	{
+		static unsigned char history[32];
+		struct mt6797_hif_tx_status st;
+		struct mt6797_normal_release acc;
+		struct mt6797_normal_transaction *t = &hif->normal;
+
+		t->phase = MT6797_NORMAL_COLD;
+		assert(!mt6797_normal_admit(t, 26, 26, history));
+		t->phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif->tx_status_accounting_baseline = true;
+		hif->tx_status_normal_attempted = true;
+		/* state-1 record: two pages written, released while the block is the reader */
+		t->tc4_free -= 2;
+		release(15, 2); release(14, 2);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		assert(!mt6797_hif_reconcile_runtime(hif, 1000000, &st, &acc));
+		assert(acc.released_pages == 2 && t->tc4_free == 26 && st.synthesized == 0x1 && st.whisr == 0);
+		/* authentication frame: one page, released between block reads, seen by the registers */
+		t->tc4_free -= 1;
+		release(15, 1); release(14, 1);
+		assert(!mt6797_hif_reconcile_runtime(hif, 1000000, &st, &acc));
+		assert(acc.released_pages == 1 && t->tc4_free == 26 && !st.synthesized && st.whisr == 0x1);
+		/* second EAPOL message: two pages through the block, then a completion with no counts */
+		t->tc4_free -= 2;
+		release(15, 2); release(14, 2);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		assert(!mt6797_hif_reconcile_runtime(hif, 1000000, &st, &acc));
+		assert(acc.released_pages == 2 && t->tc4_free == 26 && st.synthesized == 0x1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		assert(!mt6797_hif_reconcile_runtime(hif, 1000000, &st, &acc));
+		assert(!acc.released_pages && t->tc4_free == 26 && !st.synthesized && !st.whisr && !hif->first_error);
+		/* a genuine abnormal in the register trips the guard's acquisition */
+		hw_whisr = BIT(6);
+		assert(mt6797_hif_reconcile_runtime(hif, 1000000, &st, &acc) == -EIO && hif->first_error == -EIO);
+	}
 	mt6797_hif_free(hif);
 	free(window);
 
@@ -385,6 +450,6 @@ int main(void)
 	}
 	mt6797_hif_free(hif);
 	free(window);
-	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge, interleavings, mode off)\n");
+	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge, interleavings, block abnormal, join replay, mode off)\n");
 	return 0;
 }

@@ -543,3 +543,108 @@ length is the case that tests it, and `failures=` reports it). What no
 source answers is the timing of the TX release counts the firmware places
 in the block against those it places in the registers: boot 2's open
 question, and what the guard record is for.
+
+### Boot 3 of 0268 (2026-10-25): the guard's words name the abnormal interrupt; the cause is our own WHCR write
+
+Build `285d6aa3`, boot2 `490008d5…` over `a9b89cfb…`, mainline boot
+`d3f812a9…`, returned to Gemian `4d65ad5c…`, complete sealed log
+(150,250 bytes). Authenticated, associated, station activated, four
+beacons delivered; then 416 ms in which no frame was delivered (beacons 5
+to 8 are missing), and the guard record:
+
+```
+join guard failed: ret=-5 wcir=0x00300279 own=0x00000100 valid=0x3 whcr=0x00011000
+  whisr=0x00000042 wtqcr0=0 wtqcr7=0 hif=-5 pending_whisr=0 pending0=0 pending7=0
+  batch_failures=0 credits=2
+```
+
+The four sources, against that line and the two logs. (a) The identity
+read: excluded, `wcir` carries chip id 0x0279 with `WLAN_READY` set and
+the ownership bit is held. (b) The acquisition's admission: excluded,
+`valid=0x3` says it read WHCR and WHISR, so it was admitted. (d) The
+ledger's reconcile: excluded, the acquisition was refused before the
+WTQCR reads (`valid` lacks their bits), the counts are zero and nothing
+was pending; across boots 2 and 3 sixteen page credits returned, each
+matching its reservation, no overflow line. (c) The abnormal bit: the one
+left standing, and confirmed: `whisr=0x42` is `RX0_DONE_INT` with
+`ABNORMAL_INT` (bit 6). Boot 2 stopped with the same status at the same
+guard with its words unrecorded; it is read as the same event. `failures=0`
+says every aggregate the host read split cleanly; the device, not the
+split, raised the flag.
+
+The cause, from the vendor source. Its SDIO init (`nicSDIOInit`, nic.c)
+programs WHCR with the reported-length count field at 0 ("unlimited", the
+field's documented range is 0–15 and a request of sixteen maps to 0) and
+`RX_ENHANCE_MODE_EN` (bit 16) clear: the vendor build has
+`CFG_SDIO_INTR_ENHANCE 1` (the 112-byte status read this proposal uses)
+and `CFG_SDIO_RX_ENHANCE 0`. The firmware's default WHCR is that
+configuration already (every boot's first TX status snapshot reads
+`WHCR=0x00000000`). The earlier form of 0268 wrote 0x00011000: bit 16 and
+a count of sixteen. Bit 16 is the RX enhancement, a mode the vendor's own
+receive code describes and never runs on this chip: in it every
+receive-port read returns the frames followed by four bytes of padding
+and a fresh copy of the status block (nic_rx.c, the `kalMemCopy` after
+the last frame of each aggregate, and the coalescing buffer sized for it),
+which the host is expected to consume. Our aggregated reads never read
+those 116 bytes. What exactly the device objected to is unread (WASR and
+WASR2, which the vendor's abnormal handler reads before resetting the
+chip, were not in the record); the mode mismatch is the one deviation from
+the vendor's configuration on this path, and the stall before the flag
+fits a FIFO carrying unread state behind every read. The proposal's
+"vendor sequence" comment on the enable was wrong, and it was the kind of
+claim the ownership question is for: WHCR's other writer is the firmware's
+reset default, and we overwrote it.
+
+On the owner's reading that OR-ing the block's WHISR into the polled
+acquisition manufactured the edge: the record does not support that for
+this boot. Bit 6 is a hardware event whichever read carried it, the
+acquisition's own register read is part of the 0x42, and the vendor's
+response to `ABNORMAL_INT` from either read is a chip reset, not a
+dismissal. The rule itself is right and is now the code: in enhanced mode
+the block is the single owner of WHISR and the TX counts; consumers derive
+from it and never copy it. The counts are merged as additive data with the
+TX-done bit they imply synthesised for the record (`synth=`), the block's
+edge bits are not copied anywhere, and a block that carries bit 6 or bit
+31 is its own recorded finding (`block_abnormal=` with the word, WASR and
+WASR2 in the guard record) that fails the HIF, as the vendor resets the
+chip for it. Dropping a block-carried abnormal would run the FIFO in a
+state the firmware has declared bad; that is the explicit decision.
+
+Amended 0268 for boot 4: WHCR is not written at all; the mode is confirmed
+by reading (bit 16 clear, count 0–15) and refused otherwise. The unused
+register-write helper is gone, so the proposal has no WHCR writer. The
+guard record adds `synth=`, `wasr=`, `wasr2=`, `block_whisr=` and
+`block_abnormal=`; the data-end record carries `block_abnormal=`. The
+fixture covers the read-only confirmation, the uncopied WHISR beside the
+synthesised bit, the block-carried abnormal (recorded, fatal), and the
+join replay the owner asked for, at the ledger: the state-1 record's two
+pages credited through the block, the authentication frame's page
+credited through the registers, the second EAPOL message's two pages
+through the block and its completion carrying no counts; the guard's
+acquisition passes each with the synthesised bit where the block carried
+the counts, and trips only on a genuine abnormal in the register. The
+standing audit gains its third question, which this failure was: which
+consumer's invariant now sees these values, and does it still mean what
+it meant? For 0268: the reconcile sees the same counts earlier (at the
+page's release rather than at `TX done`, 0.8 ms against 7–8 ms) and its
+bounds held through sixteen credits; the acquisition's abnormal check now
+sees the register alone, as it always did; the block's abnormal has its
+own path.
+
+**Boot budget (recorded before boot 4).** Boot 3 was the last diagnostic
+boot for this transport, and its words named the source. Boot 4 is the
+one measurement boot: TX first (the 2.6–2.8 band, `debt=0`, `failures=0`,
+`on=1 whcr=0x00000000`, `block_abnormal=0`), then the receive rows of the
+table. A guard refusal or a block-carried abnormal on boot 4 reverts
+receive batching to the per-frame path (the option off in the lifecycle
+fragment, the proposal kept) and moves the study to source, with the
+interrupt and the block, and not to the device.
+
+Reachability and ownership for boot 4, the delta: there is no WHCR write
+to reach; the enable is one register read under the same admission as
+before. WASR (0x20) and WASR2 (0xe0) are read only on the guard's failure
+path, after the refusal, through `mt6797_hif_read32`, which admits them
+without the deadline entry so a poisoned context can still be described;
+the vendor's abnormal handler reads them once before its reset, whether
+they clear on read is not stated, and nothing else in this driver reads
+them. The merged counts' consumer is the reconcile, unchanged.

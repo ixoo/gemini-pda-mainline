@@ -1,4 +1,16 @@
-# Current: 0268 boot 2 reached EAPOL message 2, then the join guard refused (-EIO, debt 0); guard record added, boot 3 staged
+# Current: 0268 boot 3 named the abnormal interrupt; cause was our WHCR write; boot 4 is the one measurement boot
+
+[Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-3-of-0268-2026-10-25-the-guards-words-name-the-abnormal-interrupt-the-cause-is-our-own-whcr-write):
+the guard's words excluded three of the four sources and confirmed the
+device's abnormal interrupt; the vendor's init clears WHCR bit 16 (RX
+enhancement) and our enable set it. 0268 now confirms WHCR by reading and
+never writes it; the block's WHISR is not copied (counts merged, done bit
+synthesised, block-carried abnormal recorded and fatal); the join-replay
+fixture passes. Budget: boot 4 measures (TX first), a refusal there
+reverts the admission to per-frame and the study goes to source. Owner
+decision still owed on the state-2 attempt.
+
+# Historical: 0268 boot 2 reached EAPOL message 2, then the join guard refused (-EIO, debt 0); guard record added, boot 3 staged
 
 [Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-2-of-0268-2026-10-25-the-credits-came-the-join-guard-refused-at-the-second-eapol-message):
 the credit merge delivered every credit; the stop is one of four -EIO

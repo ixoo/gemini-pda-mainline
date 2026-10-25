@@ -1,4 +1,4 @@
-From 73f5ab7d5fc43006004d97b190594a054e143065 Mon Sep 17 00:00:00 2001
+From 80bcfa218d0628cd6cc93707bd8dbd596a09cd61 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 24 Oct 2026 19:47:15 -0400
 Subject: [PATCH] wifi: mt6797: receive by the enhanced status block and
@@ -11,35 +11,43 @@ one 112-byte read of the enhanced status block (the receive queues'
 frame counts and up to sixteen lengths each), then one aggregated
 data-port transfer per non-empty queue, split by the reported lengths
 with the same header check as before and served from that cache. The
-worker loop is unchanged; the mode is switched on in WHCR (sixteen
-lengths, the enhance bit) at the first receive and read back.
+worker loop is unchanged.
 
-In enhanced mode the block read also consumes WHISR and the sixteen TX
-queue release counts (the vendor's rTxInfo, released into its TC
-accounting from the block, nic_tx.c). The first boot of this proposal
-lost the authentication frame's page credit that way and the join
-stopped at its credit wait. The counts the block carries are therefore
-merged into the next TX status acquisition, half-word by half-word, and
-the credit path is otherwise unchanged.
+WHCR is not written. The vendor's build has the interrupt enhancement
+(this status read) and not the RX enhancement: its init clears
+RX_ENHANCE_MODE_EN and programs the reported-length count 0 (unlimited,
+up to the block's sixteen), which is the firmware's default already. The
+earlier form of this proposal set bit 16 and a count of sixteen, which put
+the device in a mode where every receive-port read carries a status block
+after the frames; the device flagged the abnormal interrupt on the third
+boot. The mode is now confirmed by reading and refused if WHCR differs.
+
+In this mode the block is the single owner of WHISR and the sixteen TX
+queue release counts: the read consumes them (the vendor releases its TC
+accounting from the block, nic_tx.c). The counts the block carries are
+additive data and are merged into the next TX status acquisition,
+half-word by half-word, with the TX-done bit they imply synthesised for
+the record as the vendor does; the block's WHISR edge bits are never
+copied into the polled acquisition. The abnormal (bit 6) and
+firmware-assert (bit 31) edges the block carries are recorded with the
+word and fail the HIF, as the vendor resets the chip on either from
+whichever read carried it.
 
 What the block says is advisory and never poisons receive: a count above
 sixteen is served as sixteen and drains next pass, a length outside the
 frame bounds leaves that queue unread this pass, a header that disagrees
 with its reported length drops that aggregate (frames lost, the
 transport retransmits). Each is counted in failures. Poison is reserved
-for a bus failure. The data-end record reports the mode, WHCR before and
-after, block reads, aggregates, frames, empty passes, failures and the
-blocks that carried TX credit. Behind CONFIG_MT6797_HIF_RX_BATCH.
-
-The join guard records its refusal with the words it saw (identity and
-ownership registers, the status acquisition, the merge state), so a
-credit fault on device names its source instead of a bare status.
+for a bus failure and the two edges above. The join guard records its
+refusal with the words it saw (identity and ownership registers, the
+status acquisition with the synthesised bits, WASR/WASR2, the block's
+WHISR, the merge state). Behind CONFIG_MT6797_HIF_RX_BATCH.
 ---
  drivers/net/wireless/mediatek/mt6797/Kconfig |  10 +
- drivers/net/wireless/mediatek/mt6797/hif.c   | 299 ++++++++++++++++++-
- drivers/net/wireless/mediatek/mt6797/hif.h   |  12 +
- drivers/net/wireless/mediatek/mt6797/mac.c   |  32 +-
- 4 files changed, 350 insertions(+), 3 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 311 ++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  13 +
+ drivers/net/wireless/mediatek/mt6797/mac.c   |  36 ++-
+ 4 files changed, 366 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
 index 9e7141935..8470144b8 100644
@@ -63,7 +71,7 @@ index 9e7141935..8470144b8 100644
  	int
  	depends on MT6797_CCMP_TX_PUMP
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 674c9ad3a..dea3d7601 100644
+index 674c9ad3a..160324782 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
 @@ -12,6 +12,7 @@
@@ -87,7 +95,7 @@ index 674c9ad3a..dea3d7601 100644
  struct mt6797_hif {
  	void __iomem *base;
  	/* Serializes this context, transaction and scratch; never external owners. */
-@@ -59,6 +66,31 @@ struct mt6797_hif {
+@@ -59,6 +66,32 @@ struct mt6797_hif {
  	bool dma_addr2;
  	unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
  	u8 scratch[2560];
@@ -105,7 +113,8 @@ index 674c9ad3a..dea3d7601 100644
 +	 * they are merged into the next TX status acquisition instead of being
 +	 * lost; the credit path is otherwise unchanged.
 +	 */
-+	u32 rx_batch_pending_whisr, rx_batch_pending_wtqcr[8];
++	u32 rx_batch_pending_wtqcr[8];
++	u32 rx_batch_block_whisr, rx_batch_block_abnormal;
 +	unsigned int rx_batch_credit_blocks;
 +	/* Two queues of up to sixteen frames each, as the block reports them. */
 +	struct {
@@ -119,7 +128,7 @@ index 674c9ad3a..dea3d7601 100644
  };
  
  /* AP-DMA HIF channel 0 registers (window offsets) and fields, as the vendor
-@@ -81,7 +113,10 @@ struct mt6797_hif {
+@@ -81,7 +114,10 @@ struct mt6797_hif {
  #define MT6797_APDMA_CON_BURST_4_4	(3U << 16)
  #define MT6797_APDMA_CON_INCR		BIT(31)
  #define MT6797_APDMA_LEN_MASK		GENMASK(19, 0)
@@ -131,7 +140,7 @@ index 674c9ad3a..dea3d7601 100644
  #define MT6797_APDMA_POLL_LIMIT		200000U
  
  /* Register access to the channel window; host fixtures supply the test pair. */
-@@ -191,6 +226,11 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
+@@ -191,6 +227,11 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
  	hif = kzalloc_obj(*hif, GFP_KERNEL);
  	if (!hif)
  		return ERR_PTR(-ENOMEM);
@@ -143,7 +152,7 @@ index 674c9ad3a..dea3d7601 100644
  	hif->base = base;
  	hif->transaction = transaction;
  	hif->io = (struct mt6797_hif_pio_io){
-@@ -209,6 +249,8 @@ void mt6797_hif_free(struct mt6797_hif *hif)
+@@ -209,6 +250,8 @@ void mt6797_hif_free(struct mt6797_hif *hif)
  				  hif->dma_phys);
  		clk_disable_unprepare(hif->dma_clk);
  	}
@@ -152,21 +161,10 @@ index 674c9ad3a..dea3d7601 100644
  	kfree(hif);
  }
  
-@@ -411,6 +453,205 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+@@ -411,6 +454,204 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
  	return mt6797_hif_read(hif, 0x1000, value);
  }
  
-+static int mt6797_hif_write32_locked(struct mt6797_hif *hif, unsigned int reg,
-+				     u32 value)
-+{
-+	int error;
-+
-+	error = mt6797_hif_write(hif, 0, (1U << 31) | (1U << 28) | (reg << 9) | 4U);
-+	if (error)
-+		return error;
-+	return mt6797_hif_write(hif, 0x1000, value);
-+}
-+
 +/* The enhanced status block (the vendor's ENHANCE_MODE_DATA_STRUCT_T): WHISR,
 + * sixteen TX queue counts, the two receive queues' packet counts and up to
 + * sixteen lengths each, two mailboxes; 112 bytes as one byte-mode read of
@@ -191,8 +189,14 @@ index 674c9ad3a..dea3d7601 100644
 +	return 0;
 +}
 +
-+/* Vendor sequence: MAX_HIF_RX_LEN_NUM (bits 13:8) to sixteen and
-+ * RX_ENHANCE_MODE_EN (bit 16) in WHCR, then read back.
++/* The vendor's SDIO init (nicSDIOInit, nic.c) programs WHCR with the
++ * reported-length count 0 ("unlimited", up to the block's sixteen) and
++ * RX_ENHANCE_MODE_EN (bit 16) clear: its build has the interrupt
++ * enhancement (the 112-byte status read) and not the RX enhancement, in
++ * which every receive-port read carries a status block after the frames.
++ * The firmware's default WHCR is that configuration already, so nothing
++ * is written: the mode is confirmed by reading, and refused if bit 16 is
++ * set or the count field is outside the vendor's 0–15.
 + */
 +static int mt6797_hif_rx_batch_enable(struct mt6797_hif *hif)
 +{
@@ -203,17 +207,9 @@ index 674c9ad3a..dea3d7601 100644
 +	if (error)
 +		return error;
 +	hif->rx_batch_whcr_before = whcr;
-+	whcr &= ~(0x3fU << 8);
-+	whcr |= (16U << 8) | BIT(16);
-+	error = mt6797_hif_write32_locked(hif, 0x0c, whcr);
-+	if (error)
-+		return error;
-+	error = mt6797_hif_read32_locked(hif, 0x0c, &whcr);
-+	if (error)
-+		return error;
 +	hif->rx_batch_whcr_after = whcr;
 +	hif->rx_batch_enabled = true;
-+	hif->rx_batch_on = (whcr & BIT(16)) && ((whcr >> 8) & 0x3fU) == 16U;
++	hif->rx_batch_on = !(whcr & BIT(16)) && ((whcr >> 8) & 0x3fU) <= 15U;
 +	return hif->rx_batch_on ? 0 : -EIO;
 +}
 +
@@ -256,7 +252,18 @@ index 674c9ad3a..dea3d7601 100644
 +	error = mt6797_hif_rx_batch_block(hif);
 +	if (error)
 +		return error;
-+	hif->rx_batch_pending_whisr |= get_unaligned_le32(hif->rx_batch_block);
++	/* In this mode the block is the single owner of WHISR: consumers derive
++	 * from it (the TX credits from the counts, below), they never copy its
++	 * edge bits into a polled acquisition. The abnormal (bit 6) and
++	 * firmware-assert (bit 31) edges are the exception the vendor also
++	 * makes: it resets the chip on either, from whichever read carried it,
++	 * so here they are recorded with the word and fail the HIF.
++	 */
++	hif->rx_batch_block_whisr = get_unaligned_le32(hif->rx_batch_block);
++	if (hif->rx_batch_block_whisr & (BIT(6) | BIT(31))) {
++		hif->rx_batch_block_abnormal = hif->rx_batch_block_whisr;
++		return -EIO;
++	}
 +	for (i = 0; i < 8; i++) {
 +		u32 word = get_unaligned_le32(hif->rx_batch_block + 4 + 4 * i);
 +
@@ -349,7 +356,8 @@ index 674c9ad3a..dea3d7601 100644
 +	stats->max_frames = hif->rx_batch_max_frames;
 +	stats->failures = hif->rx_batch_failures;
 +	stats->credit_blocks = hif->rx_batch_credit_blocks;
-+	stats->pending_whisr = hif->rx_batch_pending_whisr;
++	stats->block_whisr = hif->rx_batch_block_whisr;
++	stats->block_abnormal = hif->rx_batch_block_abnormal;
 +	stats->pending_wtqcr0 = hif->rx_batch_pending_wtqcr[0];
 +	stats->pending_wtqcr7 = hif->rx_batch_pending_wtqcr[7];
 +	stats->error = hif->first_error;
@@ -358,35 +366,50 @@ index 674c9ad3a..dea3d7601 100644
  int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
  		      u32 *value)
  {
-@@ -632,6 +873,13 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
- 		if (error)
- 			goto poison;
- 		status[n].valid_words |= 2U;
-+		if (!n) {
-+			/* What the enhanced block read consumed since the last
-+			 * acquisition (0268); the abnormal bits are checked merged.
-+			 */
-+			status[n].whisr |= hif->rx_batch_pending_whisr;
-+			hif->rx_batch_pending_whisr = 0;
-+		}
- 		/* Pinned WHISR: abnormal status bit 6, firmware assert bit 31.
- 		 * Do not proceed to another read or command after either signal.
- 		 */
-@@ -645,6 +893,13 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+@@ -419,10 +660,20 @@ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 	if (!value)
+ 		return -EINVAL;
+ 	*value = 0;
+-	if (!hif || (reg != 0 && reg != 4 && reg != 0x90))
++	if (!hif || (reg != 0 && reg != 4 && reg != 0x90 && reg != 0x20 &&
++		     reg != 0xe0))
+ 		return -EINVAL;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
++	if (reg == 0x20 || reg == 0xe0) {
++		/* WASR/WASR2, the abnormal status (read by the vendor's abnormal
++		 * handler): a record on the failure path, past the guard, so a
++		 * poisoned context can still be described.
++		 */
++		error = mt6797_hif_read32_locked(hif, reg, value);
++		mutex_unlock(&hif->mutex);
++		return error;
++	}
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (!error)
+ 		error = mt6797_hif_read32_locked(hif, reg, value);
+@@ -645,6 +896,20 @@ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
  			if (error)
  				goto poison;
  			status[n].valid_words |= 1U << (i + 2);
 +			if (!n) {
++				/* The counts the enhanced block consumed since the
++				 * last acquisition (0268), additive data; the TX-done
++				 * bit they imply is synthesised for the record as the
++				 * vendor does, never copied from the block's WHISR.
++				 */
 +				u32 pending = hif->rx_batch_pending_wtqcr[i];
 +
 +				status[n].wtqcr[i] =
 +					mt6797_hif_add16x2(status[n].wtqcr[i], pending);
 +				hif->rx_batch_pending_wtqcr[i] = 0;
++				if (pending)
++					status[n].synthesized |= BIT(0);
 +			}
  		}
  		if (account && (count == 2 || runtime)) {
  			error = mt6797_normal_reconcile(&reconciled,
-@@ -1419,6 +1674,48 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
+@@ -1419,6 +1684,48 @@ static int mt6797_hif_receive(struct mt6797_hif *hif, unsigned int port,
  	error = mt6797_hif_enter(hif, deadline_ns);
  	if (error)
  		goto poison;
@@ -436,10 +459,18 @@ index 674c9ad3a..dea3d7601 100644
  	if (error)
  		goto poison;
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
-index 6b7171242..d7800db25 100644
+index 6b7171242..a6a26de25 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.h
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.h
-@@ -134,6 +134,18 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
+@@ -104,6 +104,7 @@ struct mt6797_hif_rx_result {
+ struct mt6797_hif_tx_status {
+ 	u32 whcr, whisr, wtqcr[8];
+ 	unsigned int valid_words;
++	u32 synthesized;	/* done bits implied by block-carried counts (0268) */
+ };
+ 
+ /* Allocation owns memory only. Caller retains the real powered mapping,
+@@ -134,6 +135,18 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
  			  bool addr2);
  #define MT6797_HIF_DMA_MIN_BYTES 64U
  /* DMA transfer counters for the records: zero when no channel is attached. */
@@ -448,7 +479,7 @@ index 6b7171242..d7800db25 100644
 +	u32 whcr_before, whcr_after;
 +	unsigned int reads, aggregates, frames, empty, max_frames, failures;
 +	unsigned int credit_blocks;
-+	u32 pending_whisr, pending_wtqcr0, pending_wtqcr7;
++	u32 block_whisr, block_abnormal, pending_wtqcr0, pending_wtqcr7;
 +	int error;
 +};
 +
@@ -459,7 +490,7 @@ index 6b7171242..d7800db25 100644
  			  unsigned int *rx, unsigned int *poll_max,
  			  unsigned int *failures);
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index f71611c73..af241a714 100644
+index f71611c73..966521d7c 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -1807,9 +1807,9 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
@@ -474,7 +505,7 @@ index f71611c73..af241a714 100644
  	int ret;
  
  	ret = mt6797_hif_read32(mac->hif, 0, deadline, &wcir);
-@@ -1821,6 +1821,22 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
+@@ -1821,6 +1821,26 @@ static int mt6797_mac_join_guard(struct mt6797_mac *mac, u64 deadline)
  		ret = -EACCES;
  	if (!ret)
  		ret = mt6797_hif_reconcile_runtime(mac->hif, deadline, &status, &account);
@@ -485,19 +516,23 @@ index f71611c73..af241a714 100644
 +		 * state (0268) so a credit fault names its source.
 +		 */
 +		struct mt6797_hif_rx_batch_stats batch;
++		u32 wasr = 0, wasr2 = 0;
 +
 +		mt6797_hif_rx_batch_stats(mac->hif, &batch);
++		mt6797_hif_read32(mac->hif, 0x20, deadline, &wasr);
++		mt6797_hif_read32(mac->hif, 0xe0, deadline, &wasr2);
 +		dev_err(wiphy_dev(mac->hw->wiphy),
-+			"one-shot WLAN join guard failed: ret=%d wcir=0x%08x own=0x%08x valid=0x%x whcr=0x%08x whisr=0x%08x wtqcr0=0x%08x wtqcr7=0x%08x hif=%d pending_whisr=0x%08x pending0=0x%08x pending7=0x%08x batch_failures=%u credits=%u\n",
++			"one-shot WLAN join guard failed: ret=%d wcir=0x%08x own=0x%08x valid=0x%x whcr=0x%08x whisr=0x%08x synth=0x%x wtqcr0=0x%08x wtqcr7=0x%08x hif=%d wasr=0x%08x wasr2=0x%08x block_whisr=0x%08x block_abnormal=0x%08x pending0=0x%08x pending7=0x%08x batch_failures=%u credits=%u\n",
 +			ret, wcir, own, status.valid_words, status.whcr, status.whisr,
-+			status.wtqcr[0], status.wtqcr[7], batch.error, batch.pending_whisr,
++			status.synthesized, status.wtqcr[0], status.wtqcr[7], batch.error,
++			wasr, wasr2, batch.block_whisr, batch.block_abnormal,
 +			batch.pending_wtqcr0, batch.pending_wtqcr7, batch.failures,
 +			batch.credit_blocks);
 +	}
  #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
  	if (!ret)
  		mt6797_ccmp_observe_guard(&mac->ccmp_observation, &status, &account);
-@@ -2818,6 +2834,16 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -2818,6 +2838,16 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
  			 dma_tx, dma_rx, dma_poll_max, dma_failures);
  	}
@@ -506,15 +541,15 @@ index f71611c73..af241a714 100644
 +
 +		mt6797_hif_rx_batch_stats(mac->hif, &batch);
 +		dev_info(wiphy_dev(mac->hw->wiphy),
-+			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x->0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u failures=%u credits=%u\n",
-+			 batch.on, batch.whcr_before, batch.whcr_after, batch.reads,
++			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u failures=%u credits=%u block_abnormal=0x%08x\n",
++			 batch.on, batch.whcr_after, batch.reads,
 +			 batch.aggregates, batch.frames, batch.empty, batch.max_frames,
-+			 batch.failures, batch.credit_blocks);
++			 batch.failures, batch.credit_blocks, batch.block_abnormal);
 +	}
  	dev_info(wiphy_dev(mac->hw->wiphy),
  		 "one-shot WLAN join pass census: passes=%u submissions=%u max_per_pass=%u elapsed_ms=%llu\n",
  		 mac->join_data_passes, mac->join_data_submissions, mac->join_data_pass_max,
-@@ -3677,6 +3703,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -3677,6 +3707,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			}
  		}
  	}
@@ -522,7 +557,7 @@ index f71611c73..af241a714 100644
  	for (n = 0; n < 8; n++) {
  		bool got = false;
  #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
-@@ -4595,6 +4622,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+@@ -4595,6 +4626,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
  	 * Finish this bounded tick after a done event so the other port is not
  	 * skipped. This is not an event-drain fence. Empty polls consume no RX.
  	 */
