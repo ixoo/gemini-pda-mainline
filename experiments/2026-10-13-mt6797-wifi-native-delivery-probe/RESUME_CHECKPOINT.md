@@ -1,4 +1,4 @@
-# Current: the air ceiling corrected to about 30 Mbit/s (transmit at 77 % of it); receive stays on the device's count; boot N (depth 16, the receive stream's state) predeclared and building; HT scoped as a project
+# Current: the air ceiling corrected to about 30 Mbit/s (transmit at 77 % of it); receive stays on the device's count; boot N (depth 16, the receive stream's state) is staged on boot2 at e13b2a90 (image 95f81866…, predecessor 7a9a40e8…); HT scoped as a project
 
 Boot M is re-read with the owner: the fixed-54 air carries about 2,590
 frames a second, about 30 Mbit/s, below the depth model's asymptote, so
@@ -10,6 +10,8 @@ runs depth 16 once (25–26 expected) and records the receive stream on
 both ends (the device's window every 50 ms, its socket queue every
 0.5 s, the driver's frames a second). [HT](HT_PROJECT_SCOPE.md) is
 scoped as a five-item project; items 1–2 are host-only.
+Boot N's image was written and read back from Gemian (boot `38cd7be3…`),
+preflight passed, and the device shut down cleanly; the owner selects boot2.
 
 # Historical: boot M (depth 12) held the model and ends the depth sweep at about 23 Mbit/s transmit; one receive chunk slowed without a silence; the next step is the owner's decision
 
