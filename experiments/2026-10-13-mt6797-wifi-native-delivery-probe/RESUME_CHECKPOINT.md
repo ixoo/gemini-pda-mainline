@@ -1,4 +1,17 @@
-# Current: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
+# Current: boot Z shows the aggregation declaration harmless and the aggregate undelivered; aggregation parked behind a firmware read; the receive interrupt is next, to be scoped
+
+[Boot Z](HIF_TRANSPORT_ANALYSIS.md#boot-z-result-2026-10-25-2351-utc-the-declaration-is-harmless-at-depth-one-the-aggregate-is-what-goes-undelivered-the-lifetime-then-stopped-on-missing-transmit-reports):
+depth one under boot Y's declaration delivered (five transmit chunks at
+9.4-10.4, TCP healthy, about 750 frames/s, zero refusals): the fault is
+the aggregate or the agreement, not the declaration. 56 transmit reports
+never arrived; that stalled the depth-one pipeline and the lifetime
+stopped mid-receive (join stopped, branch 4): not a harness truncation.
+Ceiling without aggregation about 1,950 frames/s, 23.6 Mbit/s. TX_AMPDU
+leaves the fragment and the depth returns to 12. Aggregation waits on
+one bounded firmware question; the receive interrupt is the next boot.
+Nothing is staged; the device is on Gemian (`3885482b…`).
+
+# Historical: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
 
 [Boot Y](HIF_TRANSPORT_ANALYSIS.md#boot-y-result-2026-10-25-2335-utc-firmware-transmit-aggregation-reports-every-frame-delivered-while-tcp-sees-loss-the-stream-collapsed-35s-stop-row):
 the record took (tx_ampdu=2, tx_ba=64, the peer's ampdu=0x1b), then the

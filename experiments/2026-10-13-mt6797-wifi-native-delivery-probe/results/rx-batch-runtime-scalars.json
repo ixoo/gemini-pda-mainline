@@ -3344,6 +3344,60 @@
     "tx_failed": 0
    },
    "reading": "HIF section 35: transmit status and end-to-end delivery disagree under firmware aggregation; the stop row; TX_AMPDU withdrawn from the profile; submission batching next"
+  },
+  "boot-z": {
+   "run": "PIO-throughput-bootz-1",
+   "session": "2026-10-25 23:51 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot Y tree; TX_AMPDU on, CCMP_TX_DEPTH 1)",
+   "kernel_build_commit": "f62f9e451063bd1d56aeec0c11b59821ccf9c8d3",
+   "boot2_sha256": "f775c4778608d687af46af5e6a86545e3f85e0968d704570183d61346e702be4",
+   "predecessor_boot2_sha256": "2d09ef9df4462e50195b3cd340de459aacdc7ad5b9eedfe549bc5aafd8762495",
+   "mainline_boot_id": "d25cb9fc-61c1-42ba-bbd2-5f368cc75cd4",
+   "previous_gemian_boot_id": "84fe607a-0398-49dc-b957-0be3d21cb198",
+   "returned_gemian_boot_id": "3885482b-4178-4fb9-8d6a-5bd87c469b16",
+   "returned_by": "session's reviewed return (two attempts)",
+   "classification": "discriminator: transmit delivered at depth one under the aggregation declaration; lifetime stopped mid-receive on missing transmit reports",
+   "sealed_log_bytes": 188283,
+   "series_row": true,
+   "throughput": {
+    "tx_chunk_mbit_s": [
+     10.19,
+     9.4,
+     10.36,
+     10.19,
+     9.6
+    ],
+    "rx_chunk_mbit_s": [
+     13.1,
+     13.2,
+     0
+    ],
+    "tcp_cwnd": [
+     56,
+     50,
+     65,
+     43,
+     62
+    ],
+    "tcp_retrans_segs": {
+     "before": 2,
+     "after": 5
+    }
+   },
+   "tx": {
+    "tx_queued": 22295,
+    "tx_done": 22229,
+    "tx_failed": 10,
+    "reports": 22239,
+    "missing_reports": 56,
+    "frames_per_s": 753
+   },
+   "lifetime_end": "join stopped (branch 4), connection loss report source=terminal, data phase 29.6 s",
+   "qos": {
+    "rx_refused": 0,
+    "rx_llc_mis": 7
+   },
+   "reading": "HIF section 36: the aggregation declaration does not break framing; the aggregate fails (boot Y); under the declaration per-frame transmit status is incomplete, which stalled depth one; aggregation parked behind a firmware read; the receive interrupt next"
   }
  }
 }

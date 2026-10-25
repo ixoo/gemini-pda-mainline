@@ -4667,3 +4667,92 @@ read only for delivery and acknowledgement, not rate.
 
 Also recorded: the `join HT records:` line, the sampled transmit status,
 the device's TCP state, and any receive refusal or control event.
+
+### Boot Z result (2026-10-25, 23:51 UTC): the declaration is harmless at depth one; the aggregate is what goes undelivered; the lifetime then stopped on missing transmit reports
+
+Build `f62f9e45` (`TX_AMPDU` as in boot Y, `CCMP_TX_DEPTH=1`), boot2
+`f775c477…` over boot Y's `2d09ef9d…`, mainline boot `d25cb9fc…`,
+returned to Gemian `3885482b…` by the session's own reviewed return
+(`changed-ID-Gemian`, two attempts, recovery confirmed; live identity
+checked afterwards); log complete through the seal (188,283 bytes).
+Verdict failed (`session_exit=1`). The receipt and the lifetime are
+named below.
+
+**The discriminator's first branch (owner, 2026-10-25).** The declaration
+was exactly boot Y's (`join HT records: ... ampdu=0x1b tx_ampdu=2
+tx_ba=64 rx_ampdu=1`), with one frame in flight.
+
+- All five transmit chunks completed at 10.19, 9.40, 10.36, 10.19 and
+  9.60 Mbit/s.
+- The device's TCP stayed healthy: `cwnd` 56, 50, 65, 43, 62 against boot
+  Y's collapse to 1, with retransmissions rising from 2 to 5.
+- 22,295 frames were queued in 29.6 s, about 750 a second, above the
+  depth model's 550 and far above the 275 stop line.
+- The transmit status is 0 at `0x0087` on 22,229 of 22,239 reports, the
+  other 10 being air losses (status 3).
+- Zero refusals (`rx_refused=0`); `rx_llc_mis=7`, all `type=0x002e`.
+
+So the station record's QoS, HT and A-MPDU declaration does not break
+framing. The fault is in the aggregate, or in the block-ack agreement
+the access point honours. Boot Y stays the counter-evidence for the
+aggregate itself.
+
+**The receive half, and why the lifetime ended: not a harness
+truncation.** Receive chunks 1 and 2 ran at 13.1 and 13.2 Mbit/s, chunk
+3 at zero, chunks 4 and 5 never opened. The driver stopped the lifetime:
+`join stopped: status=0 first=0 submitted=0x801 debt=0 cleanup=0
+branch=4` (at error level), then `connection loss report:
+source=terminal`, which ended the data phase at 29.6 s
+(`reason=disconnect`) and with it the measurement's SSH session (exit
+255). Before the stop, six receive gaps of 300–620 ms show transmit
+stalled with frames waiting and nothing submitted: `queue=38–53
+inflight=0 pages=0 stopped=1`.
+
+At depth one the driver does not retire on credits (`retired=0
+samples=0`): each frame waits for its own transmit-done report. 22,295
+frames were queued against 22,239 reports (22,229 done, 10 failed), so
+56 reports never arrived. The last record before the stop is a frame in
+flight still awaiting its report (`CCMP completion observation:
+inflight=1 pid=68`). Under the transmit block-ack declaration, the
+firmware's per-frame transmit status is therefore incomplete. That
+stalls a depth-one pipeline and ended this lifetime. It is a finding
+about the aggregation state, recorded with boot Y's, not a receive
+result: the receive numbers 13.1/13.2/0 are not to be read as a receive
+regression.
+
+**The cost model this boot gives, and the ceiling (owner, 2026-10-25).**
+
+| Depth | Frames/s | Source |
+|---|---|---|
+| 1 | about 750–820 (unloaded round trip about 1.2 ms a frame) | boot Z |
+| 12 | about 1,890 | boots M, W |
+| 16 | about 1,970 | boot N |
+
+The firmware saturates at about 1,950 frames a second, about 23.6 Mbit/s,
+which is why depths 12 and 16 measured the same. `wait_avg ÷ depth`
+understates the fixed round trip and is read as a lower bound on the
+service time. About 23 Mbit/s is the measured ceiling of the design
+without aggregation; in the owner's reading, no further depth, queue or
+batching change will move it.
+
+**Aggregation is parked behind firmware visibility.** Three boots (Y, Z,
+and boot X's declaration) went into aggregation with no measured gain.
+The remaining question lives inside the firmware, not in the host's
+records: does it ever establish a transmit block-ack session for this
+TID, and why does it report success for aggregates the peer never
+delivered? It is scoped as one bounded firmware question, answered in the
+private analysis environment with these runs' evidence as its premise.
+No further boot goes to record bisects unless that read says the host is
+involved. `CONFIG_MT6797_TX_AMPDU` leaves the fragment again, and the
+depth returns to 12.
+
+**Next: the receive interrupt (to be scoped and predeclared).** Receive
+has a measured third behind the batching (boot V) and an access point
+delivering MCS7, and its remaining cost is named: the poll cadence (96 %
+of block reads empty, about 5,000 passes a second). The vendor's shape
+(ISR → status block read → aggregated DMA) is one step from ours, the
+last lever with no unknown mechanism. The predeclaration reads the
+device-side receive rate and frames per second, not the aggregate. The
+UDP probe stays retired. Any refusal, `device_timeout`, or a transmit
+regression beyond the noise band reverts immediately, as boot B
+established.
