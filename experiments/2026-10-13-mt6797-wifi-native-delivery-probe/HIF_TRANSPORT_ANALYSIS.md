@@ -2386,3 +2386,116 @@ the per-pass submission count and the ledger is admitted at HIF
 activation on every boot; ownership, the host ledger's figures (104 of
 the firmware's 468-page budget); the vendor, the same budget the vendor
 allots this queue.
+
+### Boot K result (2026-10-25, 18:10 UTC): transmit +27 % on the rule; the revert row fired on receive, confounded by the harness
+
+Build `5a3e577d` (boot J's tree at depth 8, ledger 104), boot2
+`5f5a187c…` over `5e19a3c6…`, mainline boot `7f208322…`, returned to
+Gemian `4a464713…` (recovery confirmed, live identity checked
+afterwards); session `ram-service-regression-pass`, log complete
+(174,327 bytes), receipt `all_pass`, both directions complete, no early
+stop; the controller's `session_exit=1` is the same exit as boots H
+(run 3), I and J.
+
+**TX first.** `tx_failed=0`, `retired=51117 expired=0 pid_faults=0
+left_pages=0 inflight_max=8` (the depth was exercised), 811 samples with
+811 reports all at `0/0x004c`; `stops=564 wakes=564 dropped_full=0
+stopped=0 high_water=56 bound=64`. The zero-payload check passed.
+
+| | Boot K (depth 8) | Boot J (depth 4) |
+|---|---|---|
+| TX chunks, whole / final half (Mbit/s) | 20.99, 20.89, 20.89, 20.87, 21.16 / 21.05, 20.68, 21.27, 21.12, 21.00 (all ended by the 3 s duration: steady state) | 15.51–16.70 / 15.22–16.64 (byte-capped at 4 MiB: floors) |
+| TX aggregate | 19.87 | 15.02 |
+| credit-retire wait mean / max, in flight max | 4.26 ms / 22.5 ms, 8 | 2.86 ms / 14.5 ms, 4 |
+| rule (depth ÷ wait) / measured frames a second | 1,877 (21.7 Mbit/s) / 1,725 over the phase (27,531 in 15.96 s; 7.4 of 8 in flight) | 1,397 (16.2) / 1,285 |
+| stops / wakes / `dropped_full`, high water | 564 / 564 / 0 over the 43.3 s data phase, 56 of 64 | 156 / 156 / 0, 56 of 64 |
+| device TCP state per TX chunk (cwnd / ssthresh) | 110/46, 90/83, 118/99, 116/90, 110/58, retransmit queue 0 | 58–95 |
+| `RetransSegs` across the TX phase | 0 → 4 | 0 → 6 |
+| completion latency (811 samples) | 22 under 1 ms, 84 in [1, 2), 212 in [2, 4), 316 in [4, 8), 176 in [8, 16), 1 in [16, 32), max 16.2 ms | 25, 70, 76, 144, 91 of 406 |
+| RX device-side chunks (Mbit/s) / ended by | 19.55, 19.80, 11.70, 19.41, 15.97 / `peer_eof`, `peer_eof`, **`device_timeout`**, `peer_eof`, **`device_timeout`** | 18.54–19.62 / all `byte_cap` |
+| echo legs | the first leg 893 of 893 at 9.09 Mbit/s offered; the second and third without summary, as in boots I and J | 892 of 893 at 4.81 |
+| in-chunk ping / at rest (ms min/avg/max) | 9.9 / 53.6 / 102.0 and 43.5 / 98.6 / 153.6 | 17.2 / 36.1 / 47.7 and 31.4 / 86.3 / 141.0 |
+
+**Transmit, against §21: the second row.** 20.9–21.2 Mbit/s per chunk,
+steady to 2 %, +27 % on boot J's chunks within the session (boot J's
+were floors, so the gain is at most that) with zero loss and four
+retransmissions. The wait rose from 2.86 to 4.26 ms (×1.49 for ×2 the
+depth) and the rule, read at the measured wait, predicted 21.7 Mbit/s
+against 21.0: the rule holds, and the forecast table's 4.5 ms row (21)
+is where the boot landed. The pipeline is still saturated (7.4 of 8 in
+flight), and the per-frame service time fell from 0.72 to 0.53 ms, so
+holding more frames helps the firmware less than in proportion: the
+second row's reading, the firmware's per-frame path rather than the host
+depth, is the transmit limit's next question. Stops stayed in the
+hundreds and the queue at its stop mark, as predicted. The air (above
+about 35) is not yet visible.
+
+**Receive: the revert row fired.** Two receive chunks ended on the
+device's 4 s bound. The rule is applied as written: the lifecycle
+fragment returns to depth 4. The attribution to the depth is not
+established, because the harness changed in the same boot (a confound
+the staging should have caught):
+
+- With the 16 MiB cap, receive chunks are bound by the laptop's 3 s
+  duration for the first time; before, they ended on the 4 MiB cap in
+  about 1.8 s. The laptop writes at 23–26 Mbit/s into a send window of
+  up to 1.8 MB with round trips of 300–370 ms, and the device keeps
+  receiving that queue after the laptop's close: the three whole chunks
+  ended on `peer_eof` 3.62–3.82 s after their start, 0.2–0.4 s inside
+  the device's bound. The device's one-second margin was set for a
+  transmit race (boot F) and is now raced by the receive drain.
+- Chunk 5 (device clock 48.46–52.47 s, 8,006,568 bytes, 15.97 Mbit/s)
+  is that race: about 0.96 MB the laptop had sent was still in flight
+  when the bound fired.
+- Chunk 3 (40.48–44.49 s, 5,865,848 bytes, 11.70 Mbit/s, against about
+  9.7 MB sent) is the intermittent receive stall again, its fourth
+  appearance; it would have stalled under any bound.
+
+**Stall ledger (§17).** Receive chunk 3 of boot K, device clock 40.48 s
+to 44.49 s, 5,865,848 bytes, ended on the device's bound; receive chunk 5,
+48.46 s to 52.47 s, 8,006,568 bytes, a drain cut by the bound rather
+than a stall. The stall appeared with the deep queue (high water 56,
+nothing freed unsent), so §21's watch does not record the shared-queue
+attribution as consistent: either the stall is not the data queue, or
+the queue stopped inside the stalled chunk, which the whole-phase stop
+counter cannot show.
+
+**The transmit ceiling of the current design (owner, 2026-10-25; a
+two-point fit).** Boots J and K fix the credit-retire wait as a line in
+the depth: wait ≈ 1.465 ms + 0.350 ms × depth (2.864 ms at 4, 4.263 ms at
+8). Throughput is depth ÷ wait, so it rises toward 1 ÷ 0.350 ms = 2,859
+frames a second, 33.1 Mbit/s at 1,448 bytes of TCP payload a frame:
+
+| depth | wait (model) | frames a second | TX Mbit/s |
+|---|---|---|---|
+| 4 | 2.86 ms | 1,397 | 16.2 (boot J: 16.5 final halves) |
+| 8 | 4.26 ms | 1,877 | 21.7 (boot K: 21.0) |
+| 12 | 5.66 ms | 2,119 | 24.6 |
+| 16 | 7.06 ms | 2,266 | 26.2 |
+| ∞ | — | 2,859 | 33.1 |
+
+About 33 Mbit/s is also the order of the air ceiling at a fixed 54
+Mbit/s rate once each frame's contention, preamble and acknowledgement
+are paid (an estimate, not measured on this device): depth and air run
+out in the same place, and nothing above about 33 Mbit/s is reachable in
+this design without HT aggregation. That is the number at which HT stops
+being a project and becomes the only option. The fit has two points and
+no degrees of freedom; depth 12 is its test. (The owner's brief quoted
+21.2 Mbit/s for depth 8; 8 ÷ 4.263 ms is 1,877 frames a second, 21.7 at
+1,448 bytes, the same frame size that gives boot J's 16.2.)
+
+**How a receive chunk ends.** `peer_eof`: the laptop stopped sending at
+its 3 s duration and closed, and the device read end-of-stream after
+draining what was still in flight (3.62–3.82 s on boot K): the normal
+end of a duration-bound chunk. `device_timeout`: the device's own bound
+(`timeout 4`, exit 143) fired before end-of-stream: a stall, or (boot K's
+chunk 5) a drain longer than the one-second margin. `byte_cap`: the cap
+was reached first (every chunk through boot J). Only `device_timeout`
+can be a stall, and since boot K it is not always one.
+
+**What would change the decision.** Separating the two causes needs the
+device's receive bound past the drain (or the receive chunk ended by
+bytes the laptop counts, not by the device's clock) and the stops and
+drops split by direction; with those, depth 8 on the same image either
+keeps its receive or shows the depth starving it. Not staged: the next
+boot is the owner's decision.

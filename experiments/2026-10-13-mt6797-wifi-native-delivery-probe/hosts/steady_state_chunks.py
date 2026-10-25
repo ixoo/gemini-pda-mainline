@@ -23,6 +23,9 @@ The cap was 4 MiB through boot J, which filled it in about 2.1 s at 16.5
 Mbit/s; a predicted 32 Mbit/s would fill it in about 1 s, censoring the
 chunks exactly where a change is largest. At 16 MiB the 3 s duration binds
 below about 45 Mbit/s, so every chunk measures steady state (from boot K).
+Boot K showed the cost on receive: a duration-bound chunk keeps arriving
+after the laptop's close (its send queue drains for 0.6-0.8 s), so the
+device's 4 s bound races that drain (HIF section 21's result).
 """
 import re
 import sys

@@ -1810,6 +1810,192 @@
    },
    "stalls": [],
    "reading": "second branch of HIF section 20: TX above 12 with zero loss; the configuration fix that released the mechanism (backpressure was right, the 8-frame bound was not; stop 56 / wake 32 turned 2,223 cycles into 156); the pipeline is saturated at depth / wait_avg; HT stays closed; boot K is depth 8"
+  },
+  "boot-k": {
+   "run": "PIO-throughput-bootk-1",
+   "session": "2026-10-25 18:10 UTC (adjacent to boot J)",
+   "profile": "mt6797-a53-wifi-lifecycle (boot J tree, CCMP_TX_DEPTH=8, ledger 104)",
+   "kernel_build_commit": "5a3e577d049e6a2770c303ce58b27518db0d6aea",
+   "boot2_sha256": "5f5a187c169048fa2613369ea65e10fd7b66983966923878bc5a3f076370687c",
+   "predecessor_boot2_sha256": "5e19a3c646705e5fd08602e934c0f1467aaca7551c34d77cba546cdd3eb7709e",
+   "mainline_boot_id": "7f208322-189f-4e80-93ed-d9b24026a631",
+   "previous_gemian_boot_id": "3722770b-4692-4fcd-a206-5e86e19009e6",
+   "returned_gemian_boot_id": "4a464713-a543-4d9d-aca7-9e4381ab7ea3",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 174327,
+   "all_pass": true,
+   "series_row": true,
+   "throughput": {
+    "tx_host_received_mbit_s": 19.87,
+    "tx_chunk_mbit_s": [
+     20.99,
+     20.89,
+     20.89,
+     20.87,
+     21.16
+    ],
+    "tx_final_half_mbit_s": [
+     21.05,
+     20.68,
+     21.27,
+     21.12,
+     21.0
+    ],
+    "tx_chunk_ended_by": [
+     "duration",
+     "duration",
+     "duration",
+     "duration",
+     "duration"
+    ],
+    "rx_host_sent_mbit_s": 16.46,
+    "rx_device_chunk_mbit_s": [
+     19.55,
+     19.8,
+     11.7,
+     19.41,
+     15.97
+    ],
+    "rx_chunk_ended_by": [
+     "peer_eof",
+     "peer_eof",
+     "device_timeout",
+     "peer_eof",
+     "device_timeout"
+    ],
+    "rx_chunk_elapsed_ms": [
+     3820,
+     3620,
+     4010,
+     3620,
+     4010
+    ],
+    "byte_cap_per_chunk": 16777216,
+    "seconds_per_chunk": 3,
+    "tx_device_cpu_idle_percent": 82.6,
+    "rx_device_cpu_idle_percent": 86.5
+   },
+   "backpressure": {
+    "stops": 564,
+    "wakes": 564,
+    "dropped_full": 0,
+    "stopped": 0,
+    "high_water": 56,
+    "bound": 64
+   },
+   "credit_retire": {
+    "retired": 51117,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 4263,
+    "wait_max_us": 22469,
+    "left_pages": 0,
+    "inflight_max": 8,
+    "samples": 811,
+    "reports": 811
+   },
+   "sampled": {
+    "tx_rates": {
+     "0/0x004c": 811
+    },
+    "latency_ms_buckets": {
+     "<1": 22,
+     "<2": 84,
+     "<4": 212,
+     "<8": 316,
+     "<16": 176,
+     "<32": 1
+    },
+    "n": 811,
+    "max_us": 16223
+   },
+   "tcp_state": [
+    {
+     "chunk": 1,
+     "cwnd": 110,
+     "ssthresh": 46
+    },
+    {
+     "chunk": 2,
+     "cwnd": 90,
+     "ssthresh": 83
+    },
+    {
+     "chunk": 3,
+     "cwnd": 118,
+     "ssthresh": 99
+    },
+    {
+     "chunk": 4,
+     "cwnd": 116,
+     "ssthresh": 90
+    },
+    {
+     "chunk": 5,
+     "cwnd": 110,
+     "ssthresh": 58
+    }
+   ],
+   "tcp_retrans_segs": {
+    "before": 0,
+    "after": 4
+   },
+   "tx_phase": {
+    "device_clock_s": [
+     16.68,
+     32.64
+    ],
+    "tx_packets": 27531
+   },
+   "tx_echo": [
+    {
+     "count": 893,
+     "offered_mbit_s": 9.09,
+     "received": 893,
+     "loss": 0.0
+    }
+   ],
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 43303,
+    "tx_queued": 51928,
+    "tx_failed": 0,
+    "rx_delivered": 44093
+   },
+   "saturation": {
+    "depth": 8,
+    "forecast_frames_per_s": 1877,
+    "forecast_mbit_s": 21.7,
+    "measured_frames_per_s": 1725,
+    "mean_in_flight": 7.35,
+    "rule": "depth / wait_avg"
+   },
+   "stalls": [
+    {
+     "direction": "RX",
+     "chunk": 3,
+     "device_clock_s": [
+      40.48,
+      44.49
+     ],
+     "bytes": 5865848,
+     "mbit_s": 11.7,
+     "ended_by": "device_timeout"
+    },
+    {
+     "direction": "RX",
+     "chunk": 5,
+     "device_clock_s": [
+      48.46,
+      52.47
+     ],
+     "bytes": 8006568,
+     "mbit_s": 15.97,
+     "ended_by": "device_timeout",
+     "note": "drain after the laptop's close cut by the device's 4 s bound"
+    }
+   ],
+   "reading": "transmit on HIF section 21's second row (rule holds at the measured wait, 21.7 predicted, 21.0 measured; the wait rose x1.49 for x2 depth); the revert row fired on two receive device_timeout chunks, so the fragment returns to depth 4; the attribution is confounded by the 16 MiB cap making receive chunks duration-bound, whose drain races the device's 4 s bound; one chunk is the receive stall again with the deep queue"
   }
  }
 }

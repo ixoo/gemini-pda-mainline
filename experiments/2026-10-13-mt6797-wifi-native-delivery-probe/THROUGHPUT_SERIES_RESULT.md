@@ -46,6 +46,7 @@ described here; each run's own artefacts are named.
 | [boot H, run 3](HIF_TRANSPORT_ANALYSIS.md#boot-h-third-run-2026-10-25-1714-utc-whole-the-transmit-limit-is-the-drivers-own-drops-not-the-air-not-the-depth-and-tcp-holds-a-six-segment-window-because-of-them) (17:14 UTC; steady-state chunks; two earlier runs void on the harness) | 0281 sampled status report (one in 64) on the baseline: 373 samples all at 0x4c status 0 (the air exonerated); the device's TCP at cwnd 6 / ssthresh 5–6 on every chunk with 451 retransmissions (1.9 %) that no counter and no sampled report shows: the driver frees frames unsent when its 8-frame queue is full (no backpressure); echo legs lose 29–54 % above ~9 Mbit/s offered; the transmit limit is the drain rate (~800–1,000 frames/s) plus the drops | 8.95 (chunks 9.19–9.73 steady) | 17.07 (device-side chunks 14.5–20.3, cap-bound after 1.65 s) | 89.6% / 86.7% |
 | [boot I](HIF_TRANSPORT_ANALYSIS.md#boot-i-result-2026-10-25-1733-utc-the-mechanism-works-the-queue-discipline-does-not) (17:33 UTC; same run) | 0282 backpressure toward mac80211 on boot H's tree: 2,223 stops and wakes, zero frames freed unsent, and transmit fell to a third with 549 retransmissions (3.3 %) and a receive chunk at the device's bound; reverted by the rule; the losses TCP counts are not the driver's drops nor the air (257 clean samples): retransmission without loss is the remaining reading | 3.34 (chunks 2.46–4.02) | 12.90 (device-side chunks 7.6–19.3; one at the bound) | 89.2% / 87.0% |
 | [boot J](HIF_TRANSPORT_ANALYSIS.md#boot-j-result-2026-10-25-1753-utc-transmit-above-12-with-zero-loss-the-retransmissions-were-part-of-the-cost) (17:53 UTC; same run; cross-session against boot I and boot H run 3) | 0282 v2, the queue bound its own option (64 frames, stop 56, wake 32): the configuration fix that released the mechanism; 156 stops and wakes (boot I 2,223), `high_water=56`, zero frames freed unsent, 406 of 406 samples at 0x4c status 0, 6 retransmissions in 14,550 segments, cwnd 58–95; the pipeline saturated (4 ÷ 2.864 ms = 1,397 frames/s, 16.2 Mbit/s predicted); no stall | floor (every transmit chunk byte-capped at 4 MiB in about 2.1 s): 15.02 (chunks 15.51–16.70) | floor (every receive chunk byte-capped): 17.26 (device-side chunks 18.54–19.62) | 84.9% / 86.5% |
+| [boot K](HIF_TRANSPORT_ANALYSIS.md#boot-k-result-2026-10-25-1810-utc-transmit-27--on-the-rule-the-revert-row-fired-on-receive-confounded-by-the-harness) (18:10 UTC; adjacent to boot J; chunks 16 MiB or 3 s) | depth 8 (ledger 104) on boot J's tree: transmit steady at 20.9–21.2 on the rule (8 ÷ 4.26 ms = 1,877 frames/s, 21.7 predicted), 564 stops, nothing freed unsent, 4 retransmissions; two receive chunks on the device's 4 s bound (one the receive stall, one the drain after the laptop's close racing the bound); reverted to depth 4 by the rule, the attribution confounded by the harness | 19.87 (chunks 20.87–21.16, duration-bound) | 16.46 (device-side chunks 11.7–19.8; two at the device's bound) | 82.6% / 86.5% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
@@ -161,7 +162,10 @@ device tool's pacing declared), beside the receive path's zero loss at
 30. Boot I added backpressure (§19) and boot J fixed its queue bound
 (§20): transmit at 15.5–16.7 Mbit/s with zero loss, and the limit is now
 the pipeline, depth ÷ credit-retire wait (4 ÷ 2.86 ms, 16.2 Mbit/s
-predicted against 16.5 measured). Boot K (§21) is depth 8.
+predicted against 16.5 measured). Boot K (§21) at depth 8 held the
+rule (21.7 predicted, 21.0 measured, the wait up to 4.26 ms) and lost
+two receive chunks to the device's bound; the fragment is back at depth 4
+until the receive bound and the stall are separated.
 
 ## What 802.11ac would need (noted 2026-10-25, after the transport)
 

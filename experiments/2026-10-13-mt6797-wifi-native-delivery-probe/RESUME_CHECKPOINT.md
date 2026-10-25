@@ -1,4 +1,18 @@
-# Current: boot J released the mechanism (TX 15.5–16.7 Mbit/s, zero loss, the pipeline saturated at depth ÷ wait); the acknowledgement path read from source; boot K (depth 8, 16 MiB chunks) is staged on boot2 at 5a3e577d (image 5f5a187c…, predecessor 5e19a3c6…); the owner selects boot2
+# Current: boot K held the rule on transmit (21.0 Mbit/s at depth 8, 21.7 predicted) and lost two receive chunks to the device's bound; the fragment is back at depth 4; the next boot is the owner's decision
+
+[Boot K](HIF_TRANSPORT_ANALYSIS.md#boot-k-result-2026-10-25-1810-utc-transmit-27--on-the-rule-the-revert-row-fired-on-receive-confounded-by-the-harness):
+transmit 20.9–21.2 Mbit/s steady (+27 % on boot J), wait 4.26 ms with 8
+in flight, 564 stops, nothing freed unsent, four retransmissions. Two
+receive chunks ended on the device's 4 s bound, so §21's revert row
+fired and `CONFIG_MT6797_CCMP_TX_DEPTH` is 4 again. The attribution is
+confounded: the 16 MiB cap made receive chunks duration-bound for the
+first time, and the drain after the laptop's close (0.6–0.8 s on the
+whole chunks) races the device's bound; one of the two is that race,
+the other the intermittent receive stall again, this time with a deep
+queue. Separating them needs the receive bound past the drain and the
+stops split by direction.
+
+# Historical: boot J released the mechanism (TX 15.5–16.7 Mbit/s, zero loss, the pipeline saturated at depth ÷ wait); the acknowledgement path read from source; boot K (depth 8, 16 MiB chunks) is staged on boot2 at 5a3e577d (image 5f5a187c…, predecessor 5e19a3c6…); the owner selects boot2
 
 [Boot J](HIF_TRANSPORT_ANALYSIS.md#boot-j-result-2026-10-25-1753-utc-transmit-above-12-with-zero-loss-the-retransmissions-were-part-of-the-cost)
 took §20's second branch: 156 stops and wakes (boot I's 2,223),
