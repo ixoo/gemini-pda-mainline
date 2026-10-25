@@ -8,7 +8,7 @@ parser.add_argument("kernel_tree", type=Path)
 parser.add_argument("--compat", type=Path, default=None)
 args = parser.parse_args()
 driver = args.kernel_tree.resolve() / "drivers/net/wireless/mediatek/mt6797"
-if "mt6797_data_take_oldest" not in (driver / "join-depth.h").read_text():
+if "mt6797_data_cover_oldest" not in (driver / "join-depth.h").read_text():
     parser.error("apply the credit-retire proposal first")
 here = Path(__file__).resolve().parent
 compat = args.compat or here.parents[1] / "2026-10-01-mt6797-normal-sets/tests"

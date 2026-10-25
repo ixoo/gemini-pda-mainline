@@ -1747,51 +1747,111 @@ boot's change is reverted for a different reason, below.
 | UDP 10 / 20 / 30 Mbit/s | zero loss on all three | zero loss on all three |
 | ccmp-stable end | `queued=8192 beyond=18927` | `beyond=3304` |
 
-**Reading, against §16's rows.** Frames per second are flat: 9.2 Mbit/s
-steady at depth 8 against boot E's 9.2 floor at depth 4, now measured over
-full 3 s chunks, so the number is a rate, not a floor. The wait rose
-28 % (3.48 to 4.47 ms), not in proportion to the doubled depth, so the
-second row (a serial firmware bottleneck, which would fill the slots and
-double the wait) does not hold either. Little's law settles it: 795
-frames a second at a 4.47 ms wait is 3.6 frames in flight on average, of
-8 admitted; at depth 4 the same arithmetic gave 2.8 of 4. The slots are
-half empty: neither the host depth nor the firmware's per-frame
-processing is the transmit limit; the frames are not arriving at the
-driver fast enough. The worker's census agrees (216,858 passes, 0.088
-submissions a pass, the device 90 % idle). What limits the arrival is
-upstream of the driver, in the sender's TCP: the third transmit chunk
-collapsed to 1.9 Mbit/s for most of its 3 s (a retransmission-timeout
-stall; a frame the air loses is reported to mac80211 as transmitted
-without an acknowledgement report, so air losses are TCP's to recover),
-and the in-chunk round trip under load is 48 ms, which with a window in
-the 64 KB range is about 10 Mbit/s. The receive direction says the same
-from the other side: it reached 20 Mbit/s only by growing the device's
-receive window to 2 MB over a 300–600 ms round trip (queueing in the
-receive path, bufferbloat, not a frame ceiling), and UDP carried 30
-Mbit/s with zero loss throughout.
+**Reading (corrected the same day: the first reading named the sender's
+TCP; the owner's arithmetic names the firmware).** Frames per second are
+flat: 9.2 Mbit/s steady at depth 8 against boot E's 9.2 floor at depth
+4, now measured over full 3 s chunks, so the number is a rate, not a
+floor; the wait rose 3.48 → 4.47 ms and `inflight_max` 4 → 8. The
+pipeline is not saturated by the host: 8 slots at 4.47 ms would admit
+about 1,790 frames a second, and 794 arrive. Depth 12 would read a wait
+of about 5.5 ms and the same rate. **Depth 8: no change, the service
+rate is fixed.** The quantity that decides it is the service time, wait
+divided by mean occupancy (Little's law): 3.48 ms over 2.8 frames at
+depth 4 and 4.47 ms over 3.6 frames at depth 8 are both 1.24 ms a frame,
+a serial service whose utilisation at 794 frames a second is 0.99. The
+limiter, with the evidence that excludes everything else: the host's DMA
+attached and carried every frame (`tx=1` attached, no failure, no DMA
+poll ceiling) with the CPU 90 % idle; the air at 54 Mbit/s costs 0.225 ms
+for a 1,518-byte frame, 5.6× less than the 1.25 ms observed, and the
+access point receives at that rate (5 unacknowledged of 5,132 on boot C);
+the credits are collected in every pass (216,858 passes, 0.088
+submissions each); the wait grows with the depth while the rate does
+not, a fixed service rate behind a longer queue. Therefore **the
+firmware's per-frame transmit processing is the limit at about 800
+frames a second**, and it is not addressable by depth, status report,
+ledger or buffer changes. The low mean occupancy, which the first reading
+took for an arrival limit, is TCP pacing its sends to the rate the
+firmware drains (acknowledgement clocking), as the receive direction
+shows from the other side: 20 Mbit/s there is 1,730 segments a second
+received plus about 860 acknowledgements transmitted, the transmit
+service at its ceiling again, on a 2 MB window over a 300–600 ms round
+trip.
 
-**Dispositions.** Depth 8 is measured neutral on throughput and worse on
-latency (mean wait +28 %, maximum ×2.3, in-chunk round trip +68 %), so by
-the series' precedent the lifecycle fragment returns to depth 4 and 0280
-stays as the option for a later sweep; the depth sweep stops here (boot G
-at depth 12 would measure the same arrival limit) and the §16 forecast is
-retired as written: it assumed the slots were full. 0274 v2 held again
-(`beyond=18927`). The steady-state protocol is adopted with its bound
-race fixed; boot F's whole-chunk transmit numbers are the first
-steady-state rates in the series, and its receive whole-chunk numbers
-are cap-bound after 1.7 s or more, closer to steady than any earlier row
-but still marked as capped.
+**Dispositions.** Boot G (depth 12) is cancelled and the boot spent
+elsewhere (§17); the lifecycle fragment returns to depth 4 (0280 stays
+the option); the §16 forecast is retired as written (it assumed the slots
+would fill). 0274 v2 held again (`beyond=18927`). The steady-state
+protocol is adopted with its bound race fixed; boot F's whole-chunk
+transmit numbers are the first steady-state rates in the series.
 
-**Next, on the evidence.** Transmit is limited by the sender's TCP
-behaviour over this link, not by the HIF: the two readings that separate
-the candidates are a transmit UDP leg (the device offering 10, 20 and 30
-Mbit/s to the laptop, counted there, the mirror of the probe's receive
-legs: if it carries 20–30 Mbit/s with the same path, TCP is the limit) and
-the device's TCP retransmission count across the transmit phase
-(`/proc/net/snmp` `Tcp: RetransSegs`, read before and after), both
-harness instruments with no kernel change. If TCP is the limit, the
-levers are the air loss rate seen by TCP (the acknowledgement-less
-completion report hides the firmware's retries; a loss on the air costs a
-TCP timeout rather than a firmware retransmission) and the device's send
-buffer, before any further HIF work. The receive side's lever is the
-300–600 ms queueing, read from the device's receive path.
+**Next.** With the per-frame cost firmware-side, the way past 9.25 Mbit/s
+is fewer firmware transactions per byte: A-MSDU or A-MPDU, which need HT
+capability, QoS data with TIDs and, for A-MPDU, a block-ack session.
+That moves HT ahead of everything else on the throughput queue, as a
+project, not a boot. Two bounded items come first: the sampled status
+report that identifies the rate of a data frame at 1/64 of the cost
+(§17), and one firmware question in the RE VM, private memo, no boot: is
+the firmware's 1.25 ms a frame dominated by a software CCMP step in its
+transmit descriptor path? If so, aggregation amortises it (one crypto
+transaction per aggregate) and no per-frame rate change would.
+
+## 17. Stalls, named; and boot H (predeclared, 2026-10-25): the sampled status report
+
+**Stalls, a named object.** Transmit chunk 3 of boot F ran at 1.91 Mbit/s
+for its whole 3 s (716,336 bytes; final half 0.72 Mbit/s) between device
+clock 40.94 s and 43.95 s, while the chunks on either side ran at 9.2;
+receive chunk 5 of boot F received 3,353,568 bytes between 59.20 s and
+62.22 s, its laptop-side final half at 42 Mbit/s and its whole at 8.9,
+so its first half carried almost nothing, before the device's bound cut
+it. The same phenomenon appeared at longer intervals before: boot D's
+second receive chunk (10.4 against 15.8), boot C's first transmit chunks
+below the later ones. These are not the series' rate; they cost real
+throughput and they would confound an aggregation reading left inside
+the chunk averages. From here every result quotes its stall-free chunks
+beside the whole-run rate, and each stall is recorded here with its
+device-clock start and end, its direction and its bytes. The mechanism
+(a TCP retransmission timeout after an air loss that the completion
+report cannot name, or a receive-path pause) is a separate question; the
+sampled report below gives the first instrument that can name an air
+loss on a data frame.
+
+**Boot H: the sampled MCU status report ([0281](../../patches/proposals/0281-wifi-mt6797-request-the-MCU-status-report-for-one-ordinary-data-frame-in-N.patch), predeclared).** Retiring
+on credits removed both instruments that identified a data frame's rate
+and its submit-to-completion time (the histograms read `n=0`). Restore
+them by sampling, not by restoring their cost: request the MCU status
+report for one ordinary data frame in 64, the vendor's own asymmetry (it
+requests reports only where it has a handler), keeping the credit-retire
+path for the 63 others. The sampled frame keeps its place in the credit
+FIFO (its pages are matched in order like every other frame) and its
+slot until the report arrives, which supplies the rate word, the status
+and the latency sample into the existing histograms (0275 v2, 0279) at
+1/64 of the per-frame cost; the credit accounting stays exact. One
+variable, five steady-state chunks, the probe riding, the stall ledger
+kept.
+
+| Reading | Cause | Next |
+|---|---|---|
+| the sampled rate word is 0x4c throughout, status 0 | the air is exonerated: the firmware's per-frame cost is the limit at the fixed rate | aggregation (HT) is the throughput lever; the RE question decides how much it buys |
+| the firmware downshifts below 54 on some samples | the air is part of the answer | the rate is a lever beside aggregation: read the downshift against the stalls |
+| sampled status 3 clustered at the stalls | air losses the credit path hid, costing TCP timeouts | name the stalls as air losses; the firmware's retry count is the next read |
+| samples missing or unowned | the sampling path or the pool disagrees with the credit path | revert 0281; the fixture is wrong |
+
+**The RE question, answered (private memo, 2026-10-25).** Neither
+retained firmware image (the ROM and the RAM code) holds an AES S-box,
+inverse S-box, T-table or round-constant table, so a table-driven
+software AES is excluded; the key material installed by the key command
+goes to the MAC's per-station key table, which the hardware reads. The
+firmware's ~1.25 ms a frame is not encryption but its per-transaction
+work around a data frame (descriptor, station and key lookup, queueing,
+page and status bookkeeping). A-MSDU divides that work by the aggregate
+size and fits this cost exactly; A-MPDU buys air time, not firmware time;
+no per-frame rate change moves it. Host fixture for 0281:
+[`tests/credit-retire-test.c`](tests/credit-retire-test.c) (a sampled
+frame covered in order and held for its report; a report before coverage
+leaves a placeholder; placeholders occupy entries for the room check).
+
+**Reachability, ownership, the vendor.** The sample is chosen at
+submission (every 64th ordinary data frame carries a PID and the report
+flag); the report arrives on the receive path as today's management
+reports do; the vendor requests the report exactly this way for frames
+with a handler. The ledger stands at ten.

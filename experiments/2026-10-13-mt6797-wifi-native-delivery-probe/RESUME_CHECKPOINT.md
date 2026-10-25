@@ -1,4 +1,19 @@
-# Current: boot F (depth 8) measured neutral; the transmit limit is upstream of the driver (the sender's TCP); depth returns to 4; next are transmit UDP legs and the TCP retransmission count
+# Current: boot F read as no change (the firmware's per-frame transmit processing is the limit, ~800 frames/s); boot G cancelled; boot H samples the status report 1 in 64; HT aggregation is the throughput project
+
+[Boot F result](HIF_TRANSPORT_ANALYSIS.md#boot-f-result-2026-10-25-1613-utc-depth-8-did-not-move-transmit-the-slots-are-half-empty-the-limit-is-upstream-of-the-driver)
+(corrected reading) and [§17](HIF_TRANSPORT_ANALYSIS.md#17-stalls-named-and-boot-h-predeclared-2026-10-25-the-sampled-status-report):
+the service time is 1.24 ms a frame at both depths (utilisation 0.99), so
+the firmware's per-frame transmit processing is the limit and depth,
+report, ledger and buffers cannot move it; depth returns to 4, boot G
+(depth 12) is cancelled. Stalls are a named object with device-clock
+timestamps; every result quotes stall-free chunks beside the whole run.
+Boot H restores the rate and latency instruments by sampling one data
+frame in 64 with the MCU status report (0281, predeclared with its
+table). The throughput lever is aggregation, which means HT (a project);
+one bounded RE question first (software CCMP in the firmware's transmit
+path?), private memo, no boot. The owner's AP power times are still owed.
+
+# Historical: boot F (depth 8) measured neutral; the transmit limit is upstream of the driver (the sender's TCP); depth returns to 4; next are transmit UDP legs and the TCP retransmission count
 
 [Boot F result](HIF_TRANSPORT_ANALYSIS.md#boot-f-result-2026-10-25-1613-utc-depth-8-did-not-move-transmit-the-slots-are-half-empty-the-limit-is-upstream-of-the-driver):
 first steady-state protocol run (4 MiB or 3 s); transmit 9.2 Mbit/s

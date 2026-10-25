@@ -1,0 +1,327 @@
+From de9158e06b66fd4fcbccdf2dbf44f2557a1ddbf6 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 12:25:17 -0400
+Subject: [PATCH] wifi: mt6797: request the MCU status report for one ordinary
+ data frame in N
+
+Retiring ordinary data on credit arrival removed the two instruments
+that named a data frame's rate and its submit-to-completion time: no
+data frame carries a status report, so the rate and latency histograms
+read zero. Restore them by sampling, not by restoring their cost: behind
+CONFIG_MT6797_TX_REPORT_SAMPLE (0 = none) one ordinary data frame in N
+goes out with a PID and the MCU status report, the vendor's own
+asymmetry (it requests reports only where it has a handler). The sampled
+frame keeps its place in the credit order (its pages are matched in
+submission order like every other frame) and its slot until the report
+arrives, which feeds the rate and latency histograms through the
+existing completion path; a report that arrives before the credits
+covered the frame leaves a placeholder that holds its place, so the
+credit accounting stays exact; the slot room check counts placeholders.
+The credit-retire end line counts the samples requested and the reports
+received. Nothing changes at 0.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 14 ++++
+ .../net/wireless/mediatek/mt6797/join-depth.h | 81 ++++++++++++++++---
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 52 ++++++++++--
+ 3 files changed, 126 insertions(+), 21 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 8b8fcb4c4..e513f36cb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -140,6 +140,20 @@ config MT6797_TX_PER_FRAME_RECORD
+ 	  measurement at 54 Mbit/s fits the sealed logger's byte cap.
+ 	  Management, security and internal frames keep their lines.
+ 
++config MT6797_TX_REPORT_SAMPLE
++	int "MT6797 Wi-Fi: request the MCU status report for one ordinary data frame in N (0 = none)"
++	depends on MT6797_DATA_CREDIT_RETIRE
++	range 0 4096
++	default 0
++	help
++	  With ordinary data retired on credit arrival no data frame carries a
++	  status report, so nothing names the rate a data frame was sent at or
++	  its submit-to-completion time. Request the report for one frame in N
++	  (the vendor's own asymmetry: it requests reports only where it has a
++	  handler); the sampled frame keeps its place in the credit FIFO and
++	  its slot until the report arrives, which feeds the rate and latency
++	  histograms at 1/N of the per-frame cost. 0 requests none.
++
+ config MT6797_DATA_CREDIT_RETIRE
+ 	bool "MT6797 Wi-Fi: retire ordinary data frames on credit arrival"
+ 	depends on MT6797_CCMP_TX_PID_REUSE && MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-depth.h b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+index d4b499568..d6fa4bb82 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-depth.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-depth.h
+@@ -14,9 +14,14 @@ struct mt6797_data_owner {
+ 	unsigned char pid;
+ 	/* A frame retired on credit arrival: the pages it was charged, its
+ 	 * submission order and time; zero pages for a frame with a status report.
++	 * A sampled frame (reported) keeps its place in the credit order and its
++	 * slot until its report arrives: covered once the credits reached it. A
++	 * placeholder (no frame, pages left) holds the order of a reported frame
++	 * taken by its report before the credits covered it.
+ 	 */
+ 	unsigned int pages, ordinal;
+ 	unsigned long long submitted;
++	bool reported, covered;
+ };
+ 
+ struct mt6797_data_slots {
+@@ -24,11 +29,23 @@ struct mt6797_data_slots {
+ 	unsigned int count;
+ };
+ 
++/* An entry holding neither a frame nor a placeholder's pages. */
++static inline bool mt6797_data_entry_free(const struct mt6797_data_slots *s)
++{
++	unsigned int i;
++
++	for (i = 0; i < MT6797_DATA_DEPTH; i++)
++		if (!s->owner[i].frame && !s->owner[i].pages)
++			return true;
++	return false;
++}
++
+ static inline bool
+ mt6797_data_room(const struct mt6797_data_slots *s, unsigned int pages,
+ 		 unsigned int free_pages)
+ {
+-	return s->count < MT6797_DATA_DEPTH && pages && pages <= free_pages;
++	return s->count < MT6797_DATA_DEPTH && mt6797_data_entry_free(s) &&
++	       pages && pages <= free_pages;
+ }
+ 
+ static inline struct mt6797_data_owner *
+@@ -52,7 +69,7 @@ mt6797_data_put(struct mt6797_data_slots *s, unsigned char pid, void *frame,
+ 	    mt6797_data_find(s, pid))
+ 		return false;
+ 	for (i = 0; i < MT6797_DATA_DEPTH; i++) {
+-		if (!s->owner[i].frame) {
++		if (!s->owner[i].frame && !s->owner[i].pages) {
+ 			s->owner[i] = (struct mt6797_data_owner){ .frame = frame,
+ 								  .deadline = deadline,
+ 								  .pid = pid };
+@@ -88,7 +105,13 @@ static inline void *mt6797_data_take(struct mt6797_data_slots *s, unsigned char
+ 	if (!o)
+ 		return NULL;
+ 	frame = o->frame;
+-	*o = (struct mt6797_data_owner){0};
++	if (o->reported && !o->covered) {
++		/* Its report came first: keep its place in the credit order. */
++		o->frame = NULL;
++		o->pid = 0;
++	} else {
++		*o = (struct mt6797_data_owner){0};
++	}
+ 	s->count--;
+ 	return frame;
+ }
+@@ -118,24 +141,43 @@ mt6797_data_take_expired(struct mt6797_data_slots *s, unsigned long long now,
+ 	return NULL;
+ }
+ 
+-/* The oldest credit-retired frame (lowest ordinal) whose pages the credits
+- * cover, taken out of its slot with a copy of its owner; NULL when none.
++enum mt6797_data_cover {
++	MT6797_DATA_COVER_NONE,		/* no credit frame, or the credits fall short */
++	MT6797_DATA_COVER_RETIRE,	/* the oldest frame is covered and taken */
++	MT6797_DATA_COVER_HELD,		/* covered but waiting for its report, or a placeholder */
++};
++
++/* Cover the oldest credit-ordered entry (lowest ordinal) if the credits reach
++ * its pages: a plain frame is taken for retirement; a sampled frame is marked
++ * covered and kept for its report; a placeholder is cleared. The copy holds
++ * the entry as it was.
+  */
+-static inline void *
+-mt6797_data_take_oldest(struct mt6797_data_slots *s, unsigned int credit_pages,
+-			struct mt6797_data_owner *copy)
++static inline enum mt6797_data_cover
++mt6797_data_cover_oldest(struct mt6797_data_slots *s, unsigned int credit_pages,
++			 struct mt6797_data_owner *copy, void **frame)
+ {
+-	const struct mt6797_data_owner *oldest = NULL;
++	struct mt6797_data_owner *oldest = NULL;
+ 	unsigned int i;
+ 
++	*frame = NULL;
+ 	for (i = 0; i < MT6797_DATA_DEPTH; i++)
+-		if (s->owner[i].frame && s->owner[i].pages &&
++		if (s->owner[i].pages &&
++		    !(s->owner[i].reported && s->owner[i].covered) &&
+ 		    (!oldest || s->owner[i].ordinal < oldest->ordinal))
+ 			oldest = &s->owner[i];
+ 	if (!oldest || oldest->pages > credit_pages)
+-		return NULL;
++		return MT6797_DATA_COVER_NONE;
+ 	*copy = *oldest;
+-	return mt6797_data_take(s, copy->pid);
++	if (!oldest->frame) {
++		*oldest = (struct mt6797_data_owner){0};
++		return MT6797_DATA_COVER_HELD;
++	}
++	if (oldest->reported) {
++		oldest->covered = true;
++		return MT6797_DATA_COVER_HELD;
++	}
++	*frame = mt6797_data_take(s, copy->pid);
++	return MT6797_DATA_COVER_RETIRE;
+ }
+ 
+ static inline bool
+@@ -144,11 +186,24 @@ mt6797_data_credit_outstanding(const struct mt6797_data_slots *s)
+ 	unsigned int i;
+ 
+ 	for (i = 0; i < MT6797_DATA_DEPTH; i++)
+-		if (s->owner[i].frame && s->owner[i].pages)
++		if (s->owner[i].pages &&
++		    !(s->owner[i].reported && s->owner[i].covered))
+ 			return true;
+ 	return false;
+ }
+ 
++/* Mark a credit-ordered frame as sampled: it carries a status report. */
++static inline bool
++mt6797_data_mark_reported(struct mt6797_data_slots *s, unsigned char pid)
++{
++	struct mt6797_data_owner *o = mt6797_data_find(s, pid);
++
++	if (!o || !o->pages)
++		return false;
++	o->reported = true;
++	return true;
++}
++
+ static inline bool
+ mt6797_data_expired(const struct mt6797_data_slots *s, unsigned long long now)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 26a77da8c..19425628f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -411,6 +411,8 @@ struct mt6797_mac {
+ 	unsigned int credit_retire_records, credit_retire_expired;
+ 	unsigned int credit_retire_pid_faults, credit_retire_inflight_max;
+ 	u64 credit_retire_wait_sum_ns, credit_retire_wait_max_ns;
++	/* Sampled status reports (0281): one ordinary data frame in N. */
++	unsigned int tx_sample_counter, tx_samples, tx_sample_reports;
+ #endif
+ 	unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
+ 	unsigned int join_data_expired;
+@@ -1822,6 +1824,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->credit_retire_inflight_max = 0;
+ 	mac->credit_retire_wait_sum_ns = 0;
+ 	mac->credit_retire_wait_max_ns = 0;
++	mac->tx_sample_counter = 0;
++	mac->tx_samples = 0;
++	mac->tx_sample_reports = 0;
+ #endif
+ 	mac->join_inflight_data = false;
+ 	mac->join_last_acked = false;
+@@ -1954,14 +1959,20 @@ static void mt6797_mac_credit_retire(struct mt6797_mac *mac, unsigned int pages)
+ {
+ 	struct mt6797_data_owner taken;
+ 	struct sk_buff *skb;
++	void *frame;
++	enum mt6797_data_cover cover;
+ 	u64 now = ktime_get_ns();
+ 
+ 	mac->credit_retire_pages += pages;
+-	while ((skb = mt6797_data_take_oldest(&mac->data_slots,
+-					      mac->credit_retire_pages, &taken))) {
++	while ((cover = mt6797_data_cover_oldest(&mac->data_slots,
++						 mac->credit_retire_pages, &taken,
++						 &frame)) != MT6797_DATA_COVER_NONE) {
+ 		u64 wait = now > taken.submitted ? now - taken.submitted : 0;
+ 
+ 		mac->credit_retire_pages -= taken.pages;
++		if (cover == MT6797_DATA_COVER_HELD)
++			continue;	/* a sample waits for its report; a placeholder is done */
++		skb = frame;
+ 		if (!mt6797_join_pid_complete(&mac->ccmp_pid_pool, taken.pid))
+ 			mac->credit_retire_pid_faults++;
+ 		mac->credit_retired++;
+@@ -3007,13 +3018,14 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->join_data_credits);
+ #ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data credit retire end: retired=%u expired=%u pid_faults=%u wait_avg_us=%llu wait_max_us=%llu left_pages=%u inflight_max=%u\n",
++		 "one-shot WLAN join data credit retire end: retired=%u expired=%u pid_faults=%u wait_avg_us=%llu wait_max_us=%llu left_pages=%u inflight_max=%u samples=%u reports=%u\n",
+ 		 mac->credit_retired, mac->credit_retire_expired,
+ 		 mac->credit_retire_pid_faults,
+ 		 mac->credit_retired ? mac->credit_retire_wait_sum_ns /
+ 		 mac->credit_retired / NSEC_PER_USEC : 0,
+ 		 mac->credit_retire_wait_max_ns / NSEC_PER_USEC,
+-		 mac->credit_retire_pages, mac->credit_retire_inflight_max);
++		 mac->credit_retire_pages, mac->credit_retire_inflight_max,
++		 mac->tx_samples, mac->tx_sample_reports);
+ #endif
+ 	{
+ 		unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
+@@ -3487,6 +3499,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct sk_buff *skb, *completed = NULL, *internal = NULL;
+ 	const bool credit_retire = IS_ENABLED(CONFIG_MT6797_DATA_CREDIT_RETIRE) &&
+ 				   MT6797_DATA_DEPTH > 1;
++	bool sample = false;
+ 	unsigned long flags, snapshot_delay;
+ 	unsigned int n, port, pages;
+ 	u64 now, deadline, grant_end;
+@@ -3856,12 +3869,26 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					/* Retired on credit arrival: no PID in the descriptor
+ 					 * and no status report; the host PID keys the slot.
+ 					 */
++#ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
++					/* One ordinary data frame in N carries a status report
++					 * (0281): it keeps its place in the credit order and its
++					 * slot until the report names its rate and completion.
++					 */
++					sample = credit_retire &&
++						 CONFIG_MT6797_TX_REPORT_SAMPLE &&
++						 ++mac->tx_sample_counter >=
++						 CONFIG_MT6797_TX_REPORT_SAMPLE;
++					if (sample) {
++						mac->tx_sample_counter = 0;
++						mac->tx_samples++;
++					}
++#endif
+ 					ret = mt6797_hif_send_data_report(mac->hif, mac->join_eth,
+ 									  eth_bytes, 1,
+-									  credit_retire ? 0 :
+-									  mac->join_pid,
+-									  !credit_retire, 500, 3,
+-									  deadline);
++									  (credit_retire && !sample) ?
++									  0 : mac->join_pid,
++									  !credit_retire || sample,
++									  500, 3, deadline);
+ 					if (ret)
+ 						goto failed;
+ 					mac->join_inflight_data = true;
+@@ -3939,6 +3966,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 							     ktime_get_ns());
+ 				if (put && mac->data_slots.count > mac->credit_retire_inflight_max)
+ 					mac->credit_retire_inflight_max = mac->data_slots.count;
++				if (put && sample) {
++					mt6797_data_mark_reported(&mac->data_slots,
++								  mac->join_pid);
++					sample = false;
++				}
+ #else
+ 				put = mt6797_data_put(&mac->data_slots, mac->join_pid,
+ 						      mac->join_inflight,
+@@ -4086,6 +4118,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					owner = mt6797_data_find(&mac->data_slots,
+ 								 mac->join_packet[8]);
+ 					if (owner) {
++#ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
++						if (owner->reported)
++							mac->tx_sample_reports++;
++#endif
+ 						mac->join_pid = owner->pid;
+ 						mac->join_frame_deadline = owner->deadline;
+ 						mac->join_inflight =
+-- 
+2.43.0
+

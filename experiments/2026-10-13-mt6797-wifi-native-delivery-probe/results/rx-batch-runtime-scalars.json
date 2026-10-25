@@ -1196,7 +1196,32 @@
     "snd_wnd_max_bytes": 2036736
    },
    "watcher_note": "started by hand 13 s after the endpoint came up (staged watcher lacked the executable bit; fixed)",
-   "reading": "depth 8 neutral on throughput (9.2 steady), worse on latency; Little's law 3.6 of 8 slots occupied: the limit is upstream of the driver (the sender's TCP); fragment returns to depth 4, sweep stops; next instruments: transmit UDP legs and Tcp RetransSegs"
+   "reading": "depth 8: no change, the service rate is fixed (service time 1.24 ms/frame at both depths, utilisation 0.99): the firmware's per-frame transmit processing limits at ~800 frames/s; fragment back to depth 4, sweep stopped, boot G cancelled; stalls named (TX chunk 3 at 40.94\u201343.95 s, RX chunk 5 at 59.20\u201362.22 s device clock); next boot H: sampled status report 1 in 64 (0281); HT aggregation is the throughput lever",
+   "stalls": [
+    {
+     "direction": "TX",
+     "chunk": 3,
+     "device_clock_s": [
+      40.94,
+      43.95
+     ],
+     "bytes": 716336,
+     "mbit_s": 1.91,
+     "final_half_mbit_s": 0.72
+    },
+    {
+     "direction": "RX",
+     "chunk": 5,
+     "device_clock_s": [
+      59.2,
+      62.22
+     ],
+     "bytes": 3353568,
+     "mbit_s": 8.88,
+     "laptop_final_half_mbit_s": 42.09,
+     "ended_by": "device_timeout (bound race)"
+    }
+   ]
   }
  }
 }
