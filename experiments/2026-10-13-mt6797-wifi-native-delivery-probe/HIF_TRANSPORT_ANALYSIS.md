@@ -3091,3 +3091,62 @@ A-MPDU, where the throughput appears ([scope](HT_PROJECT_SCOPE.md)).
 and names its failures (`verdict_failed`), and the transmit direction's
 normal 141 close is accepted (boot N); the receive final half is out of
 the record as a delivery figure (`host_write_final_half_Mbit_s` only).
+
+### Boot O result (2026-10-25, 19:38 UTC): the access point accepted WMM; the four-way handshake timed out; the kernel record was lost; 0284 reverted
+
+Build `1882d5d3` (0284 on boot M's tree), boot2 `8c813def…` over boot
+N's `95f81866…`, mainline boot `00ad695e…`; the owner restarted the
+device by hand into Gemian `27f35470…` (live identity checked). The
+boot is **void for the measurement and a failure on its own path**: no
+data phase was reached.
+
+**What the retained evidence shows (the supplicant's own log and the
+leaf's progress, laptop side).** The association carried our WMM
+element and the access point answered with its parameters (the
+supplicant: "Valid WMM association, WMM AC is enabled", U-APSD queues
+0). The supplicant then waited for EAPOL-Key message 1 and received
+none; ten seconds after the association the access point
+deauthenticated the station with reason 15 (4WAY_HANDSHAKE_TIMEOUT).
+The leaf waited for its one record for the rest of the run's 300 s wall
+clock and the run ended on it (exit 124).
+
+**What it does not show.** The kernel record, which holds the EAPOL
+gate's trace for every EAPOL-shaped frame (`EAPOL admission: ...
+verdict=... predicate=...`), was not exported: the session refuses to
+seal the log while the owned supplicant is still alive
+("owned supplicant not confirmed quiesced (supplicant_processes=1);
+refusing seal and recovery"), and the reviewed preservation and return
+refused on the same post-session quiescence proof (exit 62), as they
+are designed to; nothing kills a device process. The owner restarted
+the device; the ramoops console did not survive (the read-only pstore
+capture from Gemian found no entries). So three causes cannot be
+separated:
+
+- the access point's message 1 arrived as QoS data in a shape the new
+  EAPOL gate refused (on the translated or the native layout);
+- the firmware did not deliver it once the station record declared QoS
+  (or delivered it where the receive path does not look);
+- the access point did not send it.
+
+**Against §25: the first named failure mode.** The handshake stopped,
+nothing else changed; the rule applies: a change that fails on its own
+path reverts. The lifecycle fragment drops `CONFIG_MT6797_WMM_QOS_DATA`
+(boot M's tree again, depth 12); 0284 stays a proposal. The WMM half is
+answered: this access point accepts our WMM element and returns its
+parameters.
+
+**The harness gap this exposed.** A join that fails leaves the
+supplicant alive, and with it alive neither the session's seal nor the
+reviewed return proceeds: the evidence that explains a failed join is
+exactly the evidence that is lost. Before another join-path change is
+booted, either the leaf must end its own supplicant when the join fails
+(so the quiescence proof passes and the seal and return run), or the
+kernel record must be exported on a path that does not need it. That is
+a change to the reviewed preservation tooling and is the owner's call.
+
+**Separating the causes, when the gap is closed.** The cheapest
+discriminating boot keeps WMM and the QoS EAPOL gate but leaves the
+station record and BSS info non-QoS (`ucIsQoS`/`ucIsQBSS` 0): if the
+handshake then completes, the firmware's QoS declaration was what
+stopped message 1; if it still times out, the gate's trace names the
+refused shape.

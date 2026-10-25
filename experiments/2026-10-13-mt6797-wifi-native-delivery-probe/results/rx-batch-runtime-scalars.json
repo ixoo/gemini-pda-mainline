@@ -2622,6 +2622,33 @@
     }
    ],
    "reading": "HIF section 24 second row: transmit flat at depth 16, the air binds, depth 12 is the setting; receive stream: application lags without closing the window, link-side silences in one drain, no stack reading; receipt false on the transmit direction's 141 close, rule fixed"
+  },
+  "boot-o": {
+   "run": "PIO-throughput-booto-1",
+   "session": "2026-10-25 19:38 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot M tree, depth 12, + 0284 WMM_QOS_DATA)",
+   "kernel_build_commit": "1882d5d3e2a32a55d91b19acb5d13584a48ecd72",
+   "boot2_sha256": "8c813def3bfe9ce981fd91539007ad06e0e6d757c580aa8b61b84ed2e2f3ae02",
+   "predecessor_boot2_sha256": "95f81866523668c2981e60dda37fb1ff4c61230e717d3fc8fbf0c3f3eeb4f59f",
+   "mainline_boot_id": "00ad695e-cb7c-4e47-92d5-0a193b23c537",
+   "previous_gemian_boot_id": "a8d4e94f-b178-4b03-81be-e433c8ef2a47",
+   "returned_gemian_boot_id": "27f35470-63f5-45b2-a9ad-8ae2a70dfc57",
+   "returned_by": "owner restart",
+   "classification": "void: join failed at the four-way handshake",
+   "series_row": true,
+   "wmm": {
+    "association_accepted": true,
+    "u_apsd_queues": 0
+   },
+   "handshake": {
+    "eapol_key_received_by_supplicant": 0,
+    "deauth_reason": 15
+   },
+   "kernel_record": "not exported (seal and reviewed return refuse while the owned supplicant lives); pstore empty after the restart",
+   "run_exit": 124,
+   "preserve_and_return_exit": 1,
+   "post_session_quiescence_exit": 62,
+   "reading": "first named failure mode of HIF section 25: the handshake stopped; 0284 reverted from the fragment; the causes (gate refusal, firmware delivery under the QoS record, the AP not sending) cannot be separated without the kernel record"
   }
  }
 }

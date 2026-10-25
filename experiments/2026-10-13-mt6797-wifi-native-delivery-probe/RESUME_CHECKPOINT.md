@@ -1,4 +1,17 @@
-# Current: the HT project starts: boot O (0284, WMM and QoS data at the legacy rate, success is that nothing moves) is staged on boot2 at 1882d5d3 (image 8c813def…, predecessor 95f81866…); the owner selects boot2
+# Current: boot O failed at the four-way handshake (the access point accepted WMM, no EAPOL-Key arrived); the kernel record was lost; 0284 reverted; a failed join must become sealable before the next join-path boot
+
+[Boot O](HIF_TRANSPORT_ANALYSIS.md#boot-o-result-2026-10-25-1938-utc-the-access-point-accepted-wmm-the-four-way-handshake-timed-out-the-kernel-record-was-lost-0284-reverted):
+the association with WMM succeeded; ten seconds later the access point
+deauthenticated with reason 15 (handshake timeout), no EAPOL-Key having
+reached the supplicant. The session would not seal and the reviewed
+return would not run while the supplicant lived (as designed); the
+owner restarted the device into Gemian `27f35470…`, and the ramoops
+console did not survive. The lifecycle fragment is back to boot M's
+tree. Before another join-path change is booted, a failed join must
+leave its kernel record recoverable (the leaf ending its own supplicant,
+or an export that does not need its quiescence): the owner's call.
+
+# Historical: the HT project starts: boot O (0284, WMM and QoS data at the legacy rate, success is that nothing moves) is staged on boot2 at 1882d5d3 (image 8c813def…, predecessor 95f81866…); the owner selects boot2
 
 [§25](HIF_TRANSPORT_ANALYSIS.md#25-boot-o-predeclared-2026-10-25-wmm-and-qos-data-at-the-legacy-rate-a-de-risking-step-whose-success-is-that-nothing-moves):
 [0284](../../patches/proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch)
