@@ -69,6 +69,9 @@ the transmit admission allowed only TID 0 while mac80211 picks the TID
 from the frame, and a group LLC-mismatch class (`0xc200`) surfaced at
 the receive check. The first three obstacles were all access-category
 or frame-layout consequences, none of them aggregation.
+Boot S restored the data path under WMM and measured it (17.2 / 17.6
+Mbit/s at the legacy rate); the fourth obstacle is the receive replay
+counter, one for all TIDs where QoS needs one per TID.
 
 **The descriptor's A-MPDU bits are not air aggregation.** Status bits 14
 and 15 (`RX_STATUS_AMPDU_SUB_FRAME`, `RX_STATUS_AMPDU_FORMAT`) are set on

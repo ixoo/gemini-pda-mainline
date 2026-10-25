@@ -3623,3 +3623,68 @@ boots K–N, whose SSH connected, it is false. Tests:
 | `data tx refused` with a non-zero ack policy or another bit | a second transmit difference | named; its own change |
 | SSH still unreached with both counters at 0 | the cause is not the admissions | the receipt now grades it; the next diagnostic reads the device's own TCP view |
 | the measurement runs | the data path under WMM at the legacy rate | boot T: the station record's QoS declaration, which brings the TID into the descriptor and the TC by access category (the vendor's QoS template) |
+
+### Boot S result (2026-10-25, 21:32 UTC): the data path under WMM is restored and measured; both predictions held; the per-TID replay branch opened
+
+Build `349f8165` (0290, 0291, records non-QoS), boot2 `f7cdcf2f…` over
+boot R's `45c802cd…`, mainline boot `dfe35b8e…`, returned to Gemian
+`566c4f7e…` by the session's own reviewed return (live identity checked
+afterwards); log complete through the seal (197,281 bytes). The first
+graded receipt of the HT chain: `session_exit=0`, `all_pass=True`,
+`verdict_failed=[]`, `throughput_baseline_pass=True`, the core disconnect
+accepted. The seal-gap fixes were not exercised (the SSH connected).
+
+**§29's admissions.**
+
+- *Transmit:* `tx_tid_refused=0`, `tx_qos=48784`,
+  `tx_tid=48581/0/0/203/0/0/0/0`. mac80211 used TID 0 and TID 3. TID 3
+  is AF21, the marking on the measurement's SSH control session, so a
+  refusal of anything off TID 0 is what stopped boot R's SSH. That
+  refusal is now measured, not only fitted.
+- *Receive:* `rx_qos=38884 rx_nonqos=145`. `rx_llc_mis=2`, both
+  `type=0x002e bytes=46 fc=0x6208 keyid=1`: an 802.3 length, not an
+  EtherType. §28's inference held: these are 802.2 LLC frames, not DHCP,
+  and discarding them as the vendor does lost nothing. DHCP bound, the
+  pings were answered, the measurement's SSH connected and
+  `cycles_completed=1`.
+- *Ledger exact:* `expired=0 pid_faults=0 left_pages=0
+  dropped_full=0 tx_failed=0`, every sampled report at `0x4c`, no MIC or
+  decrypt failure.
+
+**The open row: `field=pn pn=lower`, 12 unicast frames (§29's second
+branch).** All 12 came on the pairwise entry (`wlan=1`) with status
+`0xc000` (`status=none`):
+
+- ten on TID 0 (`qos=0x0000`, 1,524–1,596 bytes, three with the Retry
+  bit);
+- two on TID 5 (`qos=0x0005`, `p9=0x45`, 148 bytes).
+
+The pairwise check keeps one strict counter across TIDs. A TID 5 frame
+below the counter, and TID 0 frames without Retry below it, are the
+reordering across TIDs that a per-TID receiver counter tolerates. The
+retried TID 0 frames may also be genuine duplicates, which any counter
+refuses. The record gives the PN's order against one counter, not the
+PNs, so the split is not measured. 12 of 38,896 unicast frames is not a
+throughput limit, but each costs TCP a retransmission. The next change
+is a per-TID pairwise replay counter, named as security-relevant: each
+TID keeps its own strictly increasing counter, and nothing at or below a
+TID's last PN is accepted.
+
+**Throughput: no expectation was declared, but two readings move.**
+
+- *Receive:* 17.64 Mbit/s (chunks 14.6–21.2), against boot M's 16.9–20.1
+  at the same depth: within the earlier spread.
+- *Transmit:* 17.17 Mbit/s (chunks 22.6, 18.9, 16.3, 15.0, 19.6), against
+  boot M's 22.7–24.1. The firmware side did not slow down: credit-retire
+  wait 5.37 ms (boot M 5.46), 12 in flight, `tx_done=48784`. The
+  driver's queue stopped mac80211 299 times, against 693 in boot M: it
+  filled less often, so the shortfall sits upstream of the queue, in the
+  TCP flow. That is an inference from one run, cause not measured.
+  Candidates are the acknowledgements returning as QoS data and the
+  `pn=lower` drops. It is a reading for the next boot to watch, not a
+  reason to repeat this one.
+
+**Against §29.** Rows 1–3 met; row 4 met except the `pn=` refusals. That
+branch's next step is the per-TID pairwise replay counter, its own boot,
+named as a security change. The station record's QoS declaration (boot
+T as scoped) waits behind it.

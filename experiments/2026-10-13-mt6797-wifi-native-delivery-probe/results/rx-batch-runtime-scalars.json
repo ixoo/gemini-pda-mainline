@@ -2797,6 +2797,76 @@
     "tx_failed": 0
    },
    "reading": "HIF section 28: the QoS receive admission works; blockers named: 19 transmit TID refusals (unnamed by 0284) and 14 group LLC-mismatch frames (status 0xc200, not DHCP); the helper crashed on a measurement that never ran and the session refused its seal"
+  },
+  "boot-s": {
+   "run": "PIO-throughput-boots-1",
+   "session": "2026-10-25 21:32 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot R tree + 0290, 0291; WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "349f8165fb8b13688c46386c4da0c1484e1cd030",
+   "boot2_sha256": "f7cdcf2f50e089d4545dc551a77cfe855e8882a05b108be707f37fd8516efd1c",
+   "predecessor_boot2_sha256": "45c802cdd68f6f0e96540c6714c6453c7758da154bd6eae2ff8acc693ef76166",
+   "mainline_boot_id": "dfe35b8e-bc1b-4705-a25e-5ff2dec81ab6",
+   "previous_gemian_boot_id": "bcd86356-90d6-4ca7-8757-9b3aaa1f6b87",
+   "returned_gemian_boot_id": "566c4f7e-4e82-41b4-89bd-af84382fe2ea",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty, throughput_baseline_pass",
+   "sealed_log_bytes": 197281,
+   "series_row": true,
+   "throughput": {
+    "tx_aggregate_mbit_s": 17.17,
+    "tx_chunk_mbit_s": [
+     22.57,
+     18.9,
+     16.25,
+     15.02,
+     19.56
+    ],
+    "rx_aggregate_mbit_s": 17.64,
+    "rx_device_chunk_mbit_s": [
+     14.64,
+     21.24,
+     18.7,
+     20.48,
+     18.69
+    ],
+    "credit_retire_wait_avg_us": 5373,
+    "inflight_max": 12,
+    "backpressure_stops": 299
+   },
+   "qos": {
+    "tx_qos": 48784,
+    "tx_nonqos": 0,
+    "tx_tid_refused": 0,
+    "tx_tid": [
+     48581,
+     0,
+     0,
+     203,
+     0,
+     0,
+     0,
+     0
+    ],
+    "rx_qos": 38884,
+    "rx_nonqos": 145,
+    "rx_refused": 12,
+    "rx_refused_qos": 12,
+    "rx_llc_mis": 2,
+    "rx_llc_mis_type": "0x002e"
+   },
+   "rx_refusals": {
+    "pn_lower_tid0": 10,
+    "pn_lower_tid5": 2,
+    "tid0_with_retry": 3
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 29: the data path under WMM restored and measured; TIDs 0 and 3 in use (AF21 SSH); the LLC-mismatch class is 802.3 length frames; 12 unicast pn=lower refusals open the per-TID replay counter branch; transmit below boot M with the firmware side unchanged"
   }
  }
 }

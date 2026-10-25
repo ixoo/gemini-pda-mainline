@@ -1,4 +1,19 @@
-# Current: boot R admitted QoS data on receive and DHCP bound; two named blockers and the seal gap fixed; boot S (the data path under WMM) staged on boot2
+# Current: boot S restored and measured the data path under WMM (all_pass); 12 unicast frames refused at pn=lower open the per-TID replay counter, a named security change
+
+[Boot S](HIF_TRANSPORT_ANALYSIS.md#boot-s-result-2026-10-25-2132-utc-the-data-path-under-wmm-is-restored-and-measured-both-predictions-held-the-per-tid-replay-branch-opened):
+the first graded receipt of the HT chain (`all_pass=True`,
+`verdict_failed=[]`): TX 17.17, RX 17.64 Mbit/s at the legacy rate.
+No transmit refusal (`tx_tid=48581/0/0/203/...`: TID 3 is the SSH
+control session's AF21); the LLC-mismatch frames carry an 802.3 length
+(`0x002e`), not DHCP. Open: 12 unicast QoS frames (TID 0 and TID 5)
+refused at `field=pn pn=lower`, the one pairwise counter across TIDs;
+the next change is a per-TID pairwise replay counter, named as
+security-relevant, its own boot, before the records' QoS declaration.
+Transmit is below boot M's 22.9 with the firmware side unchanged
+(retire wait 5.37 ms, fewer queue stops): recorded, cause not measured.
+Nothing is staged; the device is on Gemian (`566c4f7e…`).
+
+# Historical: boot R admitted QoS data on receive and DHCP bound; two named blockers and the seal gap fixed; boot S (the data path under WMM) staged on boot2
 
 [Boot R](HIF_TRANSPORT_ANALYSIS.md#boot-r-result-2026-10-25-2055-utc-qos-receive-admission-works-and-dhcp-binds-two-named-blockers-and-the-measurements-ssh-never-connected):
 `rx_qos=22 rx_refused_qos=0`, DHCP bound, pings answered; the
