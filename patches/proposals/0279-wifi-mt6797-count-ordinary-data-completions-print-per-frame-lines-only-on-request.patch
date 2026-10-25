@@ -1,0 +1,146 @@
+From 2ba34afa7df005ce8407f92898725a6d73db724d Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 11:16:46 -0400
+Subject: [PATCH 4/4] wifi: mt6797: count ordinary data completions, print
+ per-frame lines only on request
+
+Every ordinary data completion wrote two kernel lines (the TX done line
+and the completion timing line), about 400 bytes a frame; at 54 Mbit/s a
+five-chunk measurement writes more than the sealed logger's 2 MiB cap in
+its transmit phase alone and loses every end-of-phase record (boot C).
+Count those completions instead: the status and rate histogram (the rate
+record) and a new submit-to-completion latency histogram in log2
+millisecond buckets with the count and the maximum, printed once at the
+data-phase end, which carries the completion-gap statistic the per-frame
+lines were kept for. Behind CONFIG_MT6797_TX_PER_FRAME_RECORD the
+per-frame lines come back for ordinary data; management, security and
+internal frames keep their lines either way. Logging only.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 11 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 53 +++++++++++++++++---
+ 2 files changed, 57 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 4d204f1e5..45a166a8c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -129,6 +129,17 @@ config MT6797_DATA_FIXED_RATE_CODE
+ 	  variable for the per-frame air time; the default is the rate the
+ 	  series has always used.
+ 
++config MT6797_TX_PER_FRAME_RECORD
++	bool "MT6797 Wi-Fi: per-frame completion lines for ordinary data"
++	depends on MT6797_STATION_JOIN
++	help
++	  Print the per-frame TX done and completion timing lines for every
++	  ordinary data completion. Off, those frames are counted into the
++	  data phase's status and rate histogram and a completion-latency
++	  histogram printed once at the data-phase end, so a five-chunk
++	  measurement at 54 Mbit/s fits the sealed logger's byte cap.
++	  Management, security and internal frames keep their lines.
++
+ config MT6797_DATA_CREDIT_RETIRE
+ 	bool "MT6797 Wi-Fi: retire ordinary data frames on credit arrival"
+ 	depends on MT6797_CCMP_TX_PID_REUSE && MT6797_CCMP_TX_PUMP
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 311d9f637..26a77da8c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -328,6 +328,11 @@ struct mt6797_mac {
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
+ 	unsigned int ccmp_rx_delivered; /* data frames handed to mac80211 */
+ 	unsigned int ccmp_queued_beyond; /* frames past the diagnostic's count ceiling */
++	/* Ordinary data submit-to-completion latency, log2 millisecond buckets
++	 * (<1, <2, ... <64, more), the count and the maximum (0279).
++	 */
++	unsigned int tx_latency[8], tx_latency_n;
++	u64 tx_latency_max_ns;
+ #if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
+ 	/* The data phase's transmit completions by status and firmware rate
+ 	 * word (key = status << 16 | rate), eight distinct values, the rest
+@@ -947,6 +952,19 @@ static void mt6797_tx_rate_record(struct mt6797_mac *mac, unsigned int status,
+ }
+ #endif
+ 
++/* One ordinary data completion into the latency histogram. */
++static void mt6797_tx_latency_record(struct mt6797_mac *mac, u64 latency_ns)
++{
++	unsigned int ms = (unsigned int)min_t(u64, latency_ns / NSEC_PER_MSEC, 1000), b = 0;
++
++	while (b < 7 && ms >= (1U << b))
++		b++;
++	mac->tx_latency[b]++;
++	mac->tx_latency_n++;
++	if (latency_ns > mac->tx_latency_max_ns)
++		mac->tx_latency_max_ns = latency_ns;
++}
++
+ static void mt6797_ccmp_cleanup_timing(struct mt6797_mac *mac, bool credit)
+ {
+ 	u64 now = ktime_get_ns();
+@@ -1764,6 +1782,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_rx_dropped = 0;
+ 	mac->ccmp_rx_delivered = 0;
+ 	mac->ccmp_queued_beyond = 0;
++	memset(mac->tx_latency, 0, sizeof(mac->tx_latency));
++	mac->tx_latency_n = 0;
++	mac->tx_latency_max_ns = 0;
+ #if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
+ 	memset(mac->tx_rates, 0, sizeof(mac->tx_rates));
+ 	mac->tx_rates_other = 0;
+@@ -3003,6 +3024,12 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
+ 			 dma_tx, dma_rx, dma_poll_max, dma_failures);
+ 	}
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN TX completion latency: ms<1=%u <2=%u <4=%u <8=%u <16=%u <32=%u <64=%u more=%u n=%u max_us=%llu\n",
++		 mac->tx_latency[0], mac->tx_latency[1], mac->tx_latency[2],
++		 mac->tx_latency[3], mac->tx_latency[4], mac->tx_latency[5],
++		 mac->tx_latency[6], mac->tx_latency[7], mac->tx_latency_n,
++		 mac->tx_latency_max_ns / NSEC_PER_USEC);
+ #if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
+ 	{
+ 		char rates[160];
+@@ -4119,10 +4146,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				}
+ #endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+-				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join TX done: pid=%u status=%u advanced=%u count=%u\n",
+-					 mac->join_pid, result.status, !!(result.flags & 1),
+-					 result.count);
++				/* Ordinary data: one histogram entry, no per-frame line
++				 * unless the per-frame option is set; the other classes
++				 * keep their lines.
++				 */
++				if (!mac->join_inflight_data ||
++				    IS_ENABLED(CONFIG_MT6797_TX_PER_FRAME_RECORD))
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join TX done: pid=%u status=%u advanced=%u count=%u\n",
++						 mac->join_pid, result.status, !!(result.flags & 1),
++						 result.count);
++				if (mac->join_inflight_data)
++					mt6797_tx_latency_record(mac, ktime_get_ns() -
++								 (mac->join_frame_deadline -
++								  750 * NSEC_PER_MSEC));
+ #if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
+ 				/* The firmware's rate word, valid with flag bit 0, into the
+ 				 * data phase's histogram (ordinary data only).
+@@ -4132,9 +4169,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+-				mt6797_ccmp_tx_timing(mac, mac->join_pid, result.status,
+-						      mac->join_inflight_data ? 1 :
+-						      completed_internal ? 2 : 0);
++				if (!mac->join_inflight_data ||
++				    IS_ENABLED(CONFIG_MT6797_TX_PER_FRAME_RECORD))
++					mt6797_ccmp_tx_timing(mac, mac->join_pid, result.status,
++							      mac->join_inflight_data ? 1 :
++							      completed_internal ? 2 : 0);
+ #endif
+ 				ack = result.status == 0;
+ 				mac->join_last_acked = ack;
+-- 
+2.43.0
+

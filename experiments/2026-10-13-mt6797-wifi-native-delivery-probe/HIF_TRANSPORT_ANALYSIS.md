@@ -1426,7 +1426,7 @@ cross, the fixture is the evidence and the boot records "not exercised".
 0262 (the TX-done rate record) moved the Kconfig context 0268 expects, and
 0273 rewrites the descriptor lines 0263 deleted; the repository checker
 orders series but does not apply them. Both are retired and re-expressed
-on the current tree as [0275](../../patches/proposals/0275-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch)
+on the current tree as [0275](../../patches/proposals/0275-wifi-mt6797-record-the-data-phase-s-firmware-rate-words-as-a-histogram.patch)
 (the same record, rebased) and [0276](../../patches/proposals/0276-wifi-mt6797-rate-code-0-sends-ordinary-data-without-a-fixed-rate.patch)
 (rate code 0 is "no fixed rate at all", the vendor data form, one value of
 0273's option); the state-2 record is [0277](../../patches/proposals/0277-wifi-mt6797-update-the-station-record-at-state-2-after-authentication.patch).
@@ -1456,3 +1456,76 @@ fixed-6 baseline (3.8–4.0 Mbit/s), 45 % below the fixed 54 of boot C, so
 is the completion path: the corrected second attempt (retire on credit
 arrival with its instrument) is drafted and compiled on a VM branch,
 not admitted, pending the owner. The AP-loss gate follows.
+
+## 15. Boot E (predeclared, 2026-10-25): the corrected credit model, read on both directions
+
+**The position, now unambiguous.** About 1.5 ms of per-frame cost against
+the vendor's about 0.26 ms. TX 7.4 Mbit/s at 54 where the air is 0.3 ms a
+frame: the per-frame cost is the entire transmit limit. RX 15.8 Mbit/s
+through TCP with one acknowledgement per 1.47 ms, the same number, while
+the UDP legs prove the path carries 29 Mbit/s at 2 % loss (boot D). The
+per-frame figures are derived (rate ÷ depth); the probe's `rttcur`
+samples and the UDP counts are measured. One quantity limits both
+directions; this boot is its first direct attack.
+
+**The change.** [0278](../../patches/proposals/0278-wifi-mt6797-retire-ordinary-data-frames-on-credit-arrival.patch)
+(`CONFIG_MT6797_DATA_CREDIT_RETIRE`): an ordinary data descriptor with no
+PID and no MCU status report, retired when the TC1 page credits returned
+since the frames submitted before it cover its own pages, in submission
+order, never at submission; the depth-4 slot stays the in-flight bound
+and the 750 ms slot deadline the backstop (an expired frame frees its host
+PID and counts as failed); pages left over with no frame in flight are
+dropped so a frame is never retired by credits that preceded it. The
+instrument survives retirement: a submission timestamp read at the credit
+event (four early `join data credit retire:` lines, then one line at the
+data end: retired, expired, PID-pool faults, mean and maximum wait,
+unmatched pages, deepest in-flight count), beside the probe's in-chunk
+round trip. With it, [0275 v2](../../patches/proposals/0275-wifi-mt6797-record-the-data-phase-s-firmware-rate-words-as-a-histogram.patch)
+(the firmware rate words as a per-phase histogram) and
+[0279](../../patches/proposals/0279-wifi-mt6797-count-ordinary-data-completions-print-per-frame-lines-only-on-request.patch)
+(ordinary data completions counted into a status/rate histogram and a
+submit-to-completion latency histogram; per-frame lines only behind
+`CONFIG_MT6797_TX_PER_FRAME_RECORD`, off), so five chunks fit the sealed
+logger's cap at the 54 Mbit/s rate. The tree is the baseline (boot C's,
+0273 at 0x4c) with those three; 0277 is not in it. Host fixtures:
+[`tests/credit-retire-test.c`](tests/credit-retire-test.c) (the descriptor
+without a report; slots retired in order as credits cover them, a
+reported frame never by credits) and the descriptor fixture; compiled with
+the options on and off; strict checkpatch clean apart from the series'
+absent sign-off.
+
+**Harness.** Five chunks per direction with aggregate logging; the probe
+rides (in-chunk ping now keyed to the last chunk, its absence recorded);
+the classifier takes the declared count. Comparison: boot C (same tree
+without 0278) per chunk, cross-session with the ±40 % floor; the headline
+is both directions in the same boot, TX chunks and RX device-side chunks,
+with the UDP legs as the free ceiling probe.
+
+**TX first.** `tx_failed`, `retire_expired` and `pid_faults` read before
+any throughput claim; `debt=0`; the data phase ending by `disconnect`; the
+laptop's zero-payload check on every transmitted chunk (a buffer retired
+while the firmware still owns it is the change class that corrupts
+silently); any RX chunk ended by `device_timeout` or any non-zero payload
+reverts 0278 immediately, as boot B established.
+
+| Reading | Cause | Next |
+|---|---|---|
+| per-frame cost down: TX and RX both up, the same-boot ratio of TX chunks and RX device chunks against boot C quoted | the MCU status report and its collection were the completion path's cost | the credit model is admitted; the next lever is fewer bus transactions per frame |
+| cost flat: TX and RX at boot C's numbers, retire waits at the old completion latency | the credits are not the completion path; the firmware's own per-frame processing is the next reading | revert 0278 to a proposal; read the retire-wait histogram and the firmware's per-frame path (RE VM) |
+| `retire_expired` > 0 with frames stalling to the slot deadline | the firmware's returned page count per frame is below the charged pages (the FIFO never covers the head) | revert; the page unit is the finding, read from the credit lines |
+| any `device_timeout` receive chunk or a non-zero payload byte | the in-flight bound or the buffer ownership is wrong | revert immediately (boot B's rule) |
+
+**The three questions.** Reachability: the descriptor bytes 20–21 and the
+report flag through `mt6797_hif_send_data_report`; the retire path from
+the pass guard's TC1 release accounting, which runs every pass; the drain
+at the worker's status reporting. Ownership: the frame buffer is the
+host's until retirement; the firmware owns the pages until it returns them
+(the credit event), which is exactly when the frame is retired. What the
+vendor writes: no PID and no report for plain data, resources released on
+the page counts (`nicTxReleaseResource`), the frame freed after the bus
+write (the host keeps no slot); ours keeps the slot until the credits
+arrive, the stricter form. The ledger stands at eight.
+
+**0274 v2 on this boot.** Five chunks and three probe legs cross 8,192
+queued frames: the ccmp-stable end line must show `beyond>0` with the
+data phase ending by `disconnect`; otherwise "not exercised".

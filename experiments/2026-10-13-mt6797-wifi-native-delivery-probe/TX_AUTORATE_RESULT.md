@@ -83,7 +83,7 @@ Both unforced-rate boots ended with status 3 on every ordinary data frame
 and nobody could name the rate the firmware chose, because the TX-done
 event's rate word was parsed but never logged. Profile
 `mt6797-a53-wifi-rate` is the lifecycle profile plus two proposals:
-0262 (retired on 2026-10-25, re-expressed on the current tree as [0275](../../patches/proposals/0275-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch))
+0262 (retired on 2026-10-25, re-expressed on the current tree as [0275](../../patches/proposals/0275-wifi-mt6797-record-the-data-phase-s-firmware-rate-words-as-a-histogram.patch))
 logs one extra line per completion (`join TX rate: pid= status= rate=0x…
 flags=0x…`, the firmware's rate word valid with flag bit 0, behind
 `CONFIG_MT6797_TX_DONE_RATE_RECORD`; the existing completion line is
@@ -230,7 +230,7 @@ refused by our own encoder before anything reached the firmware.
 
 **The tree.** The rate series: the lifecycle tree through
 [0274 v2](../../patches/proposals/0274-wifi-mt6797-the-diagnostic-s-ceilings-stop-its-counts-not-the-window.patch),
-then [0275](../../patches/proposals/0275-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch)
+then [0275](../../patches/proposals/0275-wifi-mt6797-record-the-data-phase-s-firmware-rate-words-as-a-histogram.patch)
 (one `join TX rate: pid= status= rate=0x… flags=0x…` line per completion,
 the firmware's rate word valid with flag bit 0; the retired 0262 rebased),
 [0276](../../patches/proposals/0276-wifi-mt6797-rate-code-0-sends-ordinary-data-without-a-fixed-rate.patch)
@@ -344,13 +344,72 @@ at 0x4c) is the data path, the transmit per-frame cost that remains at
 54 is the completion path's, and no further rate variation is admitted
 without a decode that names the field.
 
-**Dispositions.** 0277 (state 2) is kept in the rate series only: accepted
-by the firmware, the vendor's sequence, and the precondition for any
-later rate-control work; measured neutral on transmit, so by the series'
-precedent it is not admitted to the lifecycle tree. 0276 (rate code 0)
-stays as one value of 0273's option; the lifecycle fragment keeps 0x4c.
-0275 (the TX-done rate record) stays in the rate series. The rate
-profile remains the measurement profile of this thread.
+**The close, in both halves (owner's reading, 2026-10-25).** Positive:
+the state-2 record is accepted and the rate table is populated; ordinary
+data goes out with no fixed rate and is acknowledged, 1,463 of 1,463
+completions carrying 0x004b. The empty-table defect of the rate-visibility
+boot is fixed. Negative: the firmware's selection sits at table entry 0
+for 20 s and never climbs, so adaptive operation is 1.9× slower than the
+forced rate. **0277 stays a proposal with one open question** (what makes
+the firmware's rate control advance past table entry 0?) and is not
+admitted until that has an answer; it stays in the proposal profile
+`mt6797-a53-wifi-rate` only, never in the baseline. 0276 (rate code 0)
+stays as one value of 0273's option; 0275 is re-expressed as a per-phase
+histogram (below). **The fixed-54 tree is the admitted baseline**:
+decision, no boot; boot C's tree (the lifecycle tree with 0273 at 0x4c and
+the logging records) is the configuration every future measurement runs,
+measured 1.9× faster with its air time no longer the limit. The adaptive
+tree is a proposal, not a default.
+
+**The measurement the branches did not anticipate.** Boot D's third UDP
+leg: 2,620 of 2,679 datagrams delivered at 30 Mbit/s offered, 2.2 % loss.
+The receive path sustains about 29 Mbit/s, three times the TCP number
+measured in the same boot (15.83 device-side). That is the strongest
+receive evidence the project has; the predeclared rows were written for
+"UDP near the TCP number" and the reading is far above it.
+
+**The shared limiter, one number.** TCP receive at 15.83 Mbit/s with one
+acknowledgement per two 1,448-byte segments is one acknowledgement every
+1.47 ms, the same quantity as the per-frame transmit cost; the UDP leg
+removed the alternative that the receive path itself is slow. The series
+agrees: the fastest-transmit tree (boot C, 7.4 Mbit/s) carried the
+fastest receive (16.5–18.2), and both 6 Mbit/s trees (probe 4, boot D)
+sat at 14.5–15.8. Which figures are derived and which measured: 1.6 ms per
+frame and about 6 ms submit-to-completion at depth 4 are derived (rate ÷
+depth); the probe's `rttcur` samples and the UDP counts are measured. So
+one quantity limits both directions, and the next boot is its first
+direct attack (the transport record's §15).
+
+**Two silent harness facts, fixed.** `measurement_censored: true` on a run
+whose chunk count was declared shorter in advance: a predeclared short
+run is not censored; the classifier now takes the plan's declared count
+and records `measurement_short_by` as `declaration` or `fault`
+([`classify-throughput.py`](classify-throughput.py), applied to a derived
+run by [`hosts/declared_chunks.py`](hosts/declared_chunks.py)).
+`laptop_ping_in_chunk: null`: the in-chunk ping was keyed to chunk 3 and
+boot D had two, so it vanished without a word; it is keyed to the last
+chunk now and its absence is recorded as absent
+([`hosts/receive_probe.py`](hosts/receive_probe.py)). Boot D's two-chunk
+numbers are valid readings but not series rows; the series table and the
+scalars say so.
+
+**Power save, answered from source, no boot.** The at-rest round trip read
+8/23/52, 43/98/153, 70/122/177 and 168/222/277 ms across four boots
+against a 300 ms DTIM period: a station changing sleep state. Does our
+join enable power save? It neither enables nor disables it: the join sends
+the PM-connected indication (command 0x16: BSS 0, DTIM period, AID, beacon
+interval, no U-APSD) and never the power-save-profile command. The vendor
+host always sends that profile at adapter start, the registry's default
+being the fast power-save switch (`CFG_INIT_POWER_SAVE_PROF`), and switches
+to continuous-active (CAM) only in its test modes. So our station runs at
+the firmware's own default profile, which the host source does not state;
+the at-rest readings fit a station that sleeps between DTIM beacons. For
+the in-chunk cadence the answer is no: continuous traffic keeps a fast
+power-save station awake, and a maximum power-save station would show
+DTIM-bound receive stalls (hundreds of milliseconds), not a steady 1.47
+ms. The 1.47 ms is the completion path's. Sending the profile explicitly
+(CAM, as the vendor does for its test modes) is a one-command candidate
+for the at-rest number, not for the throughput series.
 
 **0274 v2 on this boot.** `ccmp-stable end: queued=7446 beyond=0`: the
 count did not cross 8,192 under two chunks and three probe legs, so the

@@ -1,7 +1,7 @@
-From c73134b77e4ae2a86e9cee15430e026cb2040d40 Mon Sep 17 00:00:00 2001
+From f07ca9cee666a72ce0303a4bf511ce535305b76e Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 09:28:45 -0400
-Subject: [PATCH 5/6] wifi: mt6797: rate code 0 sends ordinary data without a
+Subject: [PATCH 2/4] wifi: mt6797: rate code 0 sends ordinary data without a
  fixed rate
 
 Admit 0 as the data descriptor's fixed rate code: the descriptor then
@@ -19,10 +19,10 @@ first data frame's record prints the code (rate=0x00).
  2 files changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
-index 90e7520df..6aaee06a3 100644
+index 6165182f6..2cc6f8136 100644
 --- a/drivers/net/wireless/mediatek/mt6797/Kconfig
 +++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
-@@ -107,11 +107,14 @@ config MT6797_RX_RATE_RECORD
+@@ -117,11 +117,14 @@ config MT6797_TX_DONE_RATE_RECORD
  config MT6797_DATA_FIXED_RATE_CODE
  	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
  	default 0x4b

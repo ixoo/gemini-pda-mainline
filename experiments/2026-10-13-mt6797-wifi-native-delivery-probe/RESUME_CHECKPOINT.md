@@ -1,4 +1,15 @@
-# Current: boot D measured (state 2 accepted, the firmware selects 6 Mbit/s); the rate thread is closed on the fixed 54 descriptor; the AP-loss gate is next
+# Current: the fixed-54 tree is the baseline; boot E (the credit model, five chunks, aggregate logging) is next
+
+[§15](HIF_TRANSPORT_ANALYSIS.md#15-boot-e-predeclared-2026-10-25-the-corrected-credit-model-read-on-both-directions):
+one quantity (about 1.5 ms a frame) limits both directions; boot E
+attacks it with 0278 (no PID, no status report, retired on credit
+arrival with a submission timestamp read at the credit event) on the
+baseline tree, with 0275 v2 and 0279 keeping five chunks under the
+logger's cap. Boot D closed the rate thread (0277 a proposal with one open
+question; the two-chunk numbers valid, not series rows; the UDP 30 leg
+is the strongest receive evidence). Then the AP-loss gate, independent.
+
+# Historical: boot D measured (state 2 accepted, the firmware selects 6 Mbit/s); the rate thread is closed on the fixed 54 descriptor; the AP-loss gate is next
 
 [Boot D result](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes):
 the state-2 record is accepted and data without a fixed rate is

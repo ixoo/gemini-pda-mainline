@@ -40,7 +40,7 @@ described here; each run's own artefacts are named.
 | [probe-4](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly) (11:39 UTC session) | same image; the probe ran: UDP 10 and 20 Mbit/s delivered with zero loss, RTT 7–8 ms at rest and 40–130 under load, window ample; the verdict line was a diagnostic-ceiling artefact (8,192 queued frames) | 3.14 (chunks 3.73–4.07) | 7.78 (device-side chunks 14.5–15.8) | 86.2% / 78.3% |
 | [boot B](HIF_TRANSPORT_ANALYSIS.md#boot-b-result-2026-10-25-1208-utc-a-regression-0272-retired-0269-reverted) (12:08 UTC, same session as probe-4) | 0272 ordinary data retired at submission + 0269 ceiling raised (both retired/reverted): TX unchanged, receive collapsed (four chunks on the device timeout), RTT to 438 ms; AP downlink read at 54 Mbit/s | 3.07 (chunks 3.13–3.76) | 3.50 (device-side chunks 11.3, 7.6, 1.5, 0.95, 1.2) | 89.1% / 88.5% |
 | [boot C](HIF_TRANSPORT_ANALYSIS.md#boot-c-result-2026-10-25-1314-utc-54-mbits-acknowledged-transmit-19-the-log-cut-at-the-cap) (13:14 UTC; cross-session, ±40 % floor) | 0273 fixed rate code 0x4c (OFDM 54 Mbit/s) on the admitted tree with 0270, 0271, 0274: frames acknowledged (5 of 5,132 unacknowledged), TX ×1.9, receive +13 % (inside the floor), in-chunk round trip down by a third; the device log sealed at its 2 MiB cap in the transmit phase (per-frame records), so the verdict failed on the log and no end-of-phase line exists | 5.53 (chunks 6.64–7.84) | 7.19 (device-side chunks 16.5–18.2) | 83.0% / 76.5% |
-| [boot D](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes) (15:06 UTC; rate profile, two chunks; cross-session) | state-2 record (0277) accepted, data without a fixed rate (0276, code 0) acknowledged with the firmware's rate word 0x004b on every frame: the table is valid, the selection stays at 6 Mbit/s; the rate thread closes on the fixed 54 descriptor; log complete, three probe legs, disconnect | 3.45 (chunks 3.81–3.95) | 7.91 (device-side chunks 15.8, 10.4) | 86.7% / 82.3% |
+| [boot D](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes) (15:06 UTC; rate profile; **two chunks, valid but not a series row**; cross-session) | state-2 record (0277) accepted, data without a fixed rate (0276, code 0) acknowledged with the firmware's rate word 0x004b on every frame: the table is valid, the selection stays at 6 Mbit/s; the rate thread closes on the fixed 54 descriptor; log complete, three probe legs, disconnect | 3.45 (chunks 3.81–3.95) | 7.91 (device-side chunks 15.8, 10.4) | 86.7% / 82.3% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
@@ -97,6 +97,38 @@ vendor control used the same laptop as the far end.
    receive number tracks the acknowledgement path, our transmit side; the
    interrupt is not next, the transmit completion lever is
    ([transport record §11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly)).
+
+## The baseline from boot C (decision, 2026-10-25)
+
+The fixed-54 tree (the lifecycle tree with 0273 at 0x4c and the logging
+records) is the admitted baseline every future measurement runs: measured
+1.9× faster than fixed 6, its air time no longer the limit. The adaptive
+tree (rate code 0 with the state-2 record) is a proposal profile with one
+open question. One quantity limits both directions, about 1.5 ms per
+frame: TX 7.4 Mbit/s at 54 where the air is 0.3 ms a frame; TCP receive
+15.8 with one acknowledgement per 1.47 ms (measured by the probe's
+`rttcur` samples), while UDP carries 29 Mbit/s at 2 % loss through the
+same path (boot D). The per-frame figure is derived (rate ÷ depth); the
+samples and the UDP counts are measured. The next boot attacks that number
+directly (the credit model, §15 of the transport record), read on both
+directions in the same boot.
+
+## What 802.11ac would need (noted 2026-10-25, after the transport)
+
+The firmware supports VHT 1×1; the station side is host work: HT/VHT
+capability advertisement and the peer's capabilities in the station record
+and BSS info (PHY type set, HT/VHT capability fields, VHT MCS maps, channel
+width), a working rate table (boot D: valid but not adapting), QoS data
+with TIDs, WMM parameters and four access-category queues, block-ack
+sessions with host-side reordering, and 80 MHz channel configuration.
+A-MSDU needs HT capability, so "larger frames per transaction" sits behind
+capability advertisement alongside A-MPDU; the only transport lever that
+stands alone is fewer bus transactions per frame. The access point already
+sends to this station at 54 Mbit/s OFDM: the received-rate record (boot B:
+index 12 on 6,249 of 8,541 frames; boot D: 5,849 of 7,446), not an
+inference from our twelve advertised rates. None of this helps until the
+per-frame cost is fixed: at 1.5 ms a frame the ceiling is the same at 54
+or 433 Mbit/s.
 
 ## What the numbers point at next
 

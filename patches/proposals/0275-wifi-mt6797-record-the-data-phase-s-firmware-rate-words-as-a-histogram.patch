@@ -1,0 +1,141 @@
+From 0357bbc4eccdc5481b978588a1b602f7ba253c8f Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 11:15:47 -0400
+Subject: [PATCH 1/4] wifi: mt6797: record the data phase's firmware rate words
+ as a histogram
+
+The TX-done event carries the rate word and the retry count the firmware
+used for the frame when its flag bit 0 is set; the driver parses both and
+logs only the count. Behind CONFIG_MT6797_TX_DONE_RATE_RECORD count every
+ordinary data completion by its status and rate word, keep the first and
+last words, and print the histogram once at the data-phase end: it says
+what rate the firmware sent at (the rate thread's question) in one line,
+where the earlier per-frame form wrote 200 bytes a frame and could not fit
+a five-chunk measurement under the sealed logger's byte cap. Management,
+security and internal frames are not counted. Logging only.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 10 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 58 ++++++++++++++++++++
+ 2 files changed, 68 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 66f61da98..6165182f6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -104,6 +104,16 @@ config MT6797_RX_RATE_RECORD
+ 	  receive ceiling is the path or the station's own capability
+ 	  advertisement. No behaviour changes.
+ 
++config MT6797_TX_DONE_RATE_RECORD
++	bool "MT6797 Wi-Fi: record the firmware rate words of the data phase (per-phase histogram)"
++	depends on MT6797_STATION_JOIN
++	help
++	  Count every ordinary data completion by its status and the rate word
++	  the firmware reports (valid with flag bit 0), keep the first and
++	  last words, and print the histogram once at the data-phase end; no
++	  per-frame line. Says what rate the firmware sent at, within the
++	  sealed logger's byte cap at any chunk count. Logging only.
++
+ config MT6797_DATA_FIXED_RATE_CODE
+ 	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
+ 	default 0x4b
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 01751a395..fd5c3ebf2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -328,6 +328,14 @@ struct mt6797_mac {
+ 	unsigned int ccmp_gtk_queued, ccmp_gtk_arp_handoff;
+ 	unsigned int ccmp_rx_delivered; /* data frames handed to mac80211 */
+ 	unsigned int ccmp_queued_beyond; /* frames past the diagnostic's count ceiling */
++#if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
++	/* The data phase's transmit completions by status and firmware rate
++	 * word (key = status << 16 | rate), eight distinct values, the rest
++	 * counted apart; the first and last words seen.
++	 */
++	struct { unsigned int key, count; } tx_rates[8];
++	unsigned int tx_rates_other, tx_rate_first, tx_rate_last, tx_rate_n;
++#endif
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+ 	/* Received-rate record (logging only): the first receive-vector word's
+ 	 * mode and rate of each queued data frame, by distinct value.
+@@ -907,6 +915,27 @@ static void mt6797_ccmp_tx_timing(struct mt6797_mac *mac, unsigned int pid,
+ 		 pid, status, frame_class, now, now - mac->ccmp_pm_credit_ns);
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
++/* One ordinary data completion into the per-phase rate histogram. */
++static void mt6797_tx_rate_record(struct mt6797_mac *mac, unsigned int status,
++				  unsigned int rate)
++{
++	unsigned int key = ((status & 0xff) << 16) | (rate & 0xffff), k;
++
++	if (!mac->tx_rate_n++)
++		mac->tx_rate_first = rate & 0xffff;
++	mac->tx_rate_last = rate & 0xffff;
++	for (k = 0; k < ARRAY_SIZE(mac->tx_rates); k++) {
++		if (mac->tx_rates[k].count && mac->tx_rates[k].key != key)
++			continue;
++		mac->tx_rates[k].key = key;
++		mac->tx_rates[k].count++;
++		return;
++	}
++	mac->tx_rates_other++;
++}
++#endif
++
+ static void mt6797_ccmp_cleanup_timing(struct mt6797_mac *mac, bool credit)
+ {
+ 	u64 now = ktime_get_ns();
+@@ -1724,6 +1753,13 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_rx_dropped = 0;
+ 	mac->ccmp_rx_delivered = 0;
+ 	mac->ccmp_queued_beyond = 0;
++#if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
++	memset(mac->tx_rates, 0, sizeof(mac->tx_rates));
++	mac->tx_rates_other = 0;
++	mac->tx_rate_first = 0;
++	mac->tx_rate_last = 0;
++	mac->tx_rate_n = 0;
++#endif
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+ 	memset(mac->rx_rates, 0, sizeof(mac->rx_rates));
+ 	mac->rx_rates_other = 0;
+@@ -2879,6 +2915,21 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 			 "one-shot WLAN HIF DMA transfers: tx=%u rx=%u poll_max=%u failures=%u\n",
+ 			 dma_tx, dma_rx, dma_poll_max, dma_failures);
+ 	}
++#if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
++	{
++		char rates[160];
++		unsigned int k, n = 0;
++
++		for (k = 0; k < ARRAY_SIZE(mac->tx_rates) && mac->tx_rates[k].count; k++)
++			n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/0x%04x=%u",
++				       k ? "," : "", mac->tx_rates[k].key >> 16,
++				       mac->tx_rates[k].key & 0xffff, mac->tx_rates[k].count);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN TX rates: status/rate=count %s other=%u first=0x%04x last=0x%04x n=%u\n",
++			 n ? rates : "-", mac->tx_rates_other, mac->tx_rate_first,
++			 mac->tx_rate_last, mac->tx_rate_n);
++	}
++#endif
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+ 	{
+ 		char rates[144];
+@@ -3955,6 +4006,13 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					 "one-shot WLAN join TX done: pid=%u status=%u advanced=%u count=%u\n",
+ 					 mac->join_pid, result.status, !!(result.flags & 1),
+ 					 result.count);
++#if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
++				/* The firmware's rate word, valid with flag bit 0, into the
++				 * data phase's histogram (ordinary data only).
++				 */
++				if (mac->join_inflight_data)
++					mt6797_tx_rate_record(mac, result.status, result.rate);
++#endif
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 				mt6797_ccmp_tx_timing(mac, mac->join_pid, result.status,
+-- 
+2.43.0
+

@@ -206,7 +206,8 @@ def receive_probe(output, probe, endpoints):
         record['laptop'] = {k: v for k, v in probe.result.items() if k != 'sends'}
         t = probe.in_chunk.get('thread')
         if t: t.join(timeout=12)
-        record['laptop_ping_in_chunk'] = probe.in_chunk.get('ping')
+        # keyed to the last chunk (a two-chunk run had no chunk 3 and the record vanished without a word, boot D)
+        record['laptop_ping_in_chunk'] = probe.in_chunk.get('ping') or {'missing': True, 'reason': 'no in-chunk ping record (the thread did not start on the last chunk, or did not finish within the join)'}
     rx = [e for e in endpoints if e.sending]
     if rx:
         record['tcp_receive_chunks'] = [c.get('tcp_info') for c in rx[0].result.get('chunks', [])]
@@ -236,7 +237,7 @@ HELPER_EDITS = [
     # 5. per-chunk TCP samples on the sending endpoint
     ("                    count = 0\n                    reason = 'duration'\n",
      "                    count = 0\n                    reason = 'duration'\n                    samples, next_sample = [], 0\n"
-     "                    if self.sending and ordinal == 3 and getattr(self, 'probe', None) is not None:\n"
+     "                    if self.sending and ordinal == self.chunks and getattr(self, 'probe', None) is not None:\n"
      "                        self.probe.in_chunk['thread'] = threading.Thread(target=lambda: self.probe.in_chunk.__setitem__('ping', laptop_ping(self.peer)), daemon=True); self.probe.in_chunk['thread'].start()\n"),
     ("                            count += amount\n                            self.result['bytes'] += amount\n",
      "                            count += amount\n                            self.result['bytes'] += amount\n"

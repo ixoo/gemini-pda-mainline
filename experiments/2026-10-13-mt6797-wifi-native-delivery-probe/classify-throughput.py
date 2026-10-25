@@ -88,8 +88,9 @@ def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
         direction['device_tx_status_completions'] = len(done)
         direction['device_tx_status_nonzero'] = sum(int(m[1]) != 0 for m in done)
     directions = measurement.get('directions',{})
+    declared = measurement.get('chunks_each', 5)   # a predeclared shorter run is not a censored one
     timing = bool(len(directions)==2 and all(d.get('completed') and
-                  len(d.get('chunks',[]))==5 and
+                  len(d.get('chunks',[]))==declared and
                   all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=1.5e9 for c in d['chunks'])
                   for d in directions.values()))
     passed = bool(verified_boot and receipt and receipt.get('all_pass') and timing and
@@ -98,7 +99,9 @@ def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
     value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,
                  provisional_ccmp_compatibility_pass=passed,ten_minute_ssh_proven=False,
                  same_boot_reconnect_proven=False,maintained_wifi_support=False,
-                 measurement_censored=not timing)
+                 measurement_censored=not timing,
+                 measurement_short_by=None if timing and declared == 5 else ('declaration' if timing else 'fault'),
+                 chunks_declared=declared)
     return value
 
 

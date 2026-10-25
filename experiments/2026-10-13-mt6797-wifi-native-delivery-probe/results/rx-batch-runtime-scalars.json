@@ -798,7 +798,9 @@
      ]
     ]
    },
-   "reading": "state 2 accepted; data without a fixed rate acknowledged at the firmware's choice 0x004b (6 Mbit/s) on every frame: the table is valid, no adaptation; TX at the fixed-6 baseline, 45 % below fixed 54; the rate thread closes on 0273 at 0x4c; 0277 kept in the rate series only"
+   "reading": "state 2 accepted; data without a fixed rate acknowledged at the firmware's choice 0x004b (6 Mbit/s) on every frame: the table is valid, no adaptation; TX at the fixed-6 baseline, 45 % below fixed 54; the rate thread closes on 0273 at 0x4c; 0277 kept in the rate series only",
+   "series_row": false,
+   "note": "two chunks per direction by declaration: valid readings, not a series row; the UDP 30 Mbit/s leg (2,620/2,679, 2.2 % loss) is the strongest receive evidence; 0277 not admitted; the fixed-54 tree (boot C) is the baseline"
   }
  }
 }
