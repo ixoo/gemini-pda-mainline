@@ -12,7 +12,10 @@ at the bound and wakes them when drained, one variable, the same run;
 `b02ddb84`, the work directory derived; its expectation is loss to zero
 and 10–20 Mbit/s, not a multiple, read with `wait_avg`, `inflight_max`,
 stops and wakes beside the rate; HT opens only on zero-loss transmit at
-the drain rate. The owner's AP power times are still owed.
+the drain rate. Boot I is staged: boot2 `d589c647…` over `0f1ca6cf…`
+(full readback verified from Gemian `0550b47c…`), device shut down,
+watcher armed; the owner selects boot2. The owner's AP power times are
+still owed.
 
 # Historical: boot H's first run void (harness stop after one chunk; the sampled report works); the second run adds the transmit probe and the device's TCP state; HT is not opened
 
