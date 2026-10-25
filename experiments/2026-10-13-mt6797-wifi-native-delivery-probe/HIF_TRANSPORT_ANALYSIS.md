@@ -4247,3 +4247,76 @@ already shows:
   (`ucDesiredPhyTypeSet`), and no MCS set, HT capability or A-MPDU
   parameters (`ucMcsSet`, `aucRxMcsBitmask`, `u2HtCapInfo`,
   `ucAmpduParam` in `CMD_UPDATE_STA_RECORD`).
+
+## 34. Boot X (predeclared, 2026-10-25): the records' QoS and HT declaration, a compatibility step whose success is that nothing moves
+
+**Purpose, in one line.** The BSS's `ucIsQBSS` and the station's
+`ucIsQoS` (and the records' HT fields) gate nothing observed yet: boots
+S–W carried QoS data both ways with them off, with zero refusals and HT
+rates. Their consumer is the firmware's QoS and aggregation machinery,
+which only block-ack exercises. This boot isolates the declaration from
+the aggregation after it, so a later block-ack failure cannot be
+attributed to the records.
+
+**The change.** `CONFIG_MT6797_WMM_QOS_RECORDS=y` (off since boot P) and
+[0295](../../patches/proposals/0295-wifi-mt6797-declare-the-access-point-s-HT-in-the-post-association-records.patch)
+`CONFIG_MT6797_HT_RECORDS=y` in the lifecycle fragment, on boot W's tree.
+The fields follow the vendor structures (`nic_cmd_event.h`, `59e00a91`).
+Only the post-association records change, the ones the vendor AIS path
+also sends after association. The state-1 record before association
+stays legacy.
+
+| Record field (byte) | Sent | Value |
+|---|---|---|
+| BSS `ucIsQBSS` (42) | yes | 1 (WMM accepted) |
+| BSS `ucPhyTypeSet` (55) | yes | `0x18`, OFDM \| HT |
+| BSS `u2OperationalRateSet`, `u2BSSBasicRateSet` (44, 46) | unchanged | as the join establishes |
+| BSS RLM `ucHtProtectMode` (73) | yes | the operating mode of the AP's HT information 2 (`ENUM_HT_PROTECT_MODE` values) |
+| BSS RLM `u2HtOpInfo3`, `u2HtOpInfo2`, `ucHtOpInfo1` (76, 78, 80) | yes | from the AP's HT operation element, in the association response |
+| BSS RLM `ucRfSco`, `ucGfOperationMode`, `ucTxRifsMode` (71, 74, 75) | left at 0 | HT20 at the fixed channel |
+| BSS `ucUseShortPreamble`, `ucUseShortSlotTime`, `ucNonHTBasicPhyType` (81, 82, 52) | unchanged | |
+| STA `ucIsQoS` (18) | yes | 1 |
+| STA `ucDesiredPhyTypeSet` (13) | yes | `0x18`, OFDM \| HT |
+| STA `ucMcsSet`, `ucSupMcs32`, `aucRxMcsBitmask[10]` (21, 22, 24–33) | yes | from the peer's HT MCS set, in the association response |
+| STA `u2HtCapInfo`, `u2HtExtendedCap` (40, 42) | yes | from the peer's HT capability element |
+| STA `u2RxHighestSupportedRate`, `u4TxRateInfo`, `u4TxBeamformingCap`, `ucAselCap` (34, 36, 44, 49) | left at 0 | today's values |
+| STA `ucAmpduParam` (48) | left at 0 | benign |
+| STA `ucTxAmpdu`, `ucRxAmpdu` (76, 77) | unchanged | 1, block-ack disabled |
+| STA `u2HwDefaultFixedRateCode` (74), the data descriptor | unchanged | `0x4b` for management; data at `0x87` |
+
+One record line names every declared value as sent (`join HT records:
+declared= sta_phy= mcs= mcs32= cap= ext= bss_phy= protect= op1= op2=
+op3=`). The next boot inherits it as its baseline.
+
+**Success is that nothing moved, read on the queue mapping, not the
+rate.**
+
+| Reading | Required |
+|---|---|
+| association, both lifetimes, `join HT records: declared=1` | the records accepted |
+| ledger | unchanged: `debt=0`, `left_pages=0`, `expired=0`, `dropped_full=0`, `tx_failed=0` or air losses only |
+| TC mapping | every QoS submission still on the provisioned TC1 |
+| refusals | `rx_refused=0`, `tx_tid_refused=0` |
+| TX / RX | about 22.6 / 20 Mbit/s |
+| rate samples | still `0x0087` (the descriptor's fixed MCS is unchanged by the record) |
+
+How the TC mapping is read: the host names the queue in each descriptor
+(byte 3: queue index 1, TC1) and the firmware returns page credits per
+queue. No per-TC line exists, so a firmware remap to an unprovisioned TC
+(the vendor's model has four AC TCs; we have pages for one) shows as
+credits that do not return: `expired` or `left_pages` non-zero,
+`tx_credits` short of the submissions, or the backpressure left stopped.
+
+| Reading | Cause | Next |
+|---|---|---|
+| nothing moved | the declaration is compatible | the block-ack boot, inheriting this baseline |
+| credits stop returning, a queue starves | the firmware maps QoS frames away from TC1 once the station is QoS | **the finding worth having before block-ack**: the TC per access category (the vendor's `arNetwork2TcResource`) becomes its own change |
+| the association or a record refused | a field or its encoding is wrong | the record line names the values; correct the field |
+| rate samples leave `0x0087` | the record overrides the descriptor's fixed rate | name it; the rate source is then the record |
+
+**Then the block-ack boot (not yet predeclared).** Block-ack enabled in
+the station record, with several frames submitted per aggregate window.
+The measurement is the service time; throughput is a consequence. If
+`wait_avg ÷ depth` falls below about 0.2 ms, the firmware is amortising
+its per-frame work and transmit can pass 30. If it stays near 0.43 ms,
+its cost is per MPDU and about 23 Mbit/s is the real ceiling.

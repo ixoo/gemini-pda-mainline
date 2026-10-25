@@ -772,3 +772,4 @@ proposals/0291-wifi-mt6797-transmit-QoS-data-on-any-TID-each-refusal-named.patch
 proposals/0292-wifi-mt6797-keep-one-CCMP-replay-counter-per-TID.patch
 proposals/0293-wifi-mt6797-advertise-HT-on-5-GHz-with-the-data-rate-still-fixed.patch
 proposals/0294-wifi-mt6797-admit-an-HT-rate-code-as-the-fixed-data-rate.patch
+proposals/0295-wifi-mt6797-declare-the-access-point-s-HT-in-the-post-association-records.patch

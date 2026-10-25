@@ -1,0 +1,263 @@
+From c66708808d0ad489f1d0aed1324811ea1175b7ed Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 18:57:19 -0400
+Subject: [PATCH] wifi: mt6797: declare the access point's HT in the
+ post-association records
+
+Boots S to W carried QoS data both ways, at HT rates, with the BSS and
+station records non-QoS and legacy, and nothing was refused: the
+records' QoS and HT fields gate nothing observed yet. Their consumer is
+the firmware's QoS and aggregation machinery, which only block-ack
+exercises. This change declares them alone, before block-ack, so a later
+aggregation failure cannot be attributed to the declaration.
+
+With MT6797_HT_RECORDS (and WMM_QOS_RECORDS for ucIsQBSS and ucIsQoS),
+when the access point answered with WMM and HT, the association
+response's HT capability and operation element bodies are kept, and:
+
+- CMD_SET_BSS_INFO declares ucPhyTypeSet OFDM | HT and, in its RLM tail,
+  ucHtProtectMode (the operating mode of HT information 2), u2HtOpInfo3,
+  u2HtOpInfo2 and ucHtOpInfo1; the secondary channel, greenfield and
+  RIFS fields stay zero (HT20 at the fixed channel);
+- the state-3 CMD_UPDATE_STA_RECORD declares ucDesiredPhyTypeSet OFDM |
+  HT, ucMcsSet, ucSupMcs32, aucRxMcsBitmask, u2HtCapInfo and
+  u2HtExtendedCap from the peer's HT capability; the rx highest rate,
+  transmit rate info, beamforming, ASEL and A-MPDU parameters stay zero
+  and ucTxAmpdu/ucRxAmpdu stay 1 (block-ack disabled).
+
+The pre-association state-1 record, the rate sets, the preamble and slot
+fields and the data descriptor's fixed rate are unchanged. One record
+line names every declared value as sent. Field offsets follow the
+public gen3 CMD_SET_BSS_INFO and CMD_UPDATE_STA_RECORD_T layouts.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 16 +++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 37 ++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  5 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 50 ++++++++++++++++++--
+ 4 files changed, 101 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index d9d9ff0d4..acff0d18a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -191,6 +191,22 @@ config MT6797_HT_CAPABILITY
+ 	  point sends HT rates to this station, read in the receive rate
+ 	  record.
+ 
++config MT6797_HT_RECORDS
++	bool "MT6797 Wi-Fi: declare the access point's HT in the post-association records"
++	depends on MT6797_HT_CAPABILITY && MT6797_WMM_QOS_RECORDS
++	default y
++	help
++	  When the access point answered with HT, the post-association
++	  CMD_SET_BSS_INFO declares the HT PHY (ucPhyTypeSet) and the
++	  access point's HT operation (ucHtProtectMode, u2HtOpInfo1..3 in
++	  the RLM tail), and the state-3 CMD_UPDATE_STA_RECORD declares the
++	  HT PHY (ucDesiredPhyTypeSet) and the peer's HT capability from the
++	  association response (ucMcsSet, ucSupMcs32, aucRxMcsBitmask,
++	  u2HtCapInfo, u2HtExtendedCap). A-MPDU parameters stay zero and
++	  block-ack stays disabled (ucTxAmpdu/ucRxAmpdu 1); the data
++	  descriptor's fixed rate is unchanged. A compatibility step that
++	  isolates the record declaration from the aggregation after it.
++
+ config MT6797_WMM_QOS_RECORDS
+ 	bool "MT6797 Wi-Fi: declare the station and the BSS QoS to the firmware under WMM"
+ 	depends on MT6797_WMM_QOS_DATA
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 02426cb59..deec835f3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1303,11 +1303,19 @@ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ /* CMD_SET_BSS_INFO byte 42 ucIsQBSS and CMD_UPDATE_STA_RECORD byte 18
+  * ucIsQoS: the vendor sets both for an access point that answered with WMM.
++ * With the access point's HT operation element body (22 bytes: primary
++ * channel, info 1, info 2, info 3, basic MCS set), the BSS declares the HT
++ * PHY (byte 55, PHY_TYPE_BIT_OFDM | PHY_TYPE_BIT_HT) and, in the RLM tail at
++ * byte 68, ucHtProtectMode (73, the operating mode of info 2, the vendor's
++ * ENUM_HT_PROTECT_MODE values), u2HtOpInfo3 (76), u2HtOpInfo2 (78) and
++ * ucHtOpInfo1 (80). The secondary channel, greenfield and RIFS fields stay
++ * zero: the join is HT20 at the fixed channel (0295).
+  */
+ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
+ 	unsigned int desired_rates, unsigned int basic_rates,
+-	bool short_preamble, bool wpa2, bool qos, u64 deadline_ns)
++	bool short_preamble, bool wpa2, bool qos, const u8 *ht_op,
++	u64 deadline_ns)
+ {
+ 	u8 payload[MT6797_JOIN_BSS_BYTES];
+ 
+@@ -1315,14 +1323,31 @@ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 				     basic_rates, short_preamble, wpa2, payload))
+ 		return -EINVAL;
+ 	payload[42] = qos;
++	if (ht_op) {
++		payload[55] = 0x18;
++		payload[73] = ht_op[2] & 3;
++		payload[76] = ht_op[4]; payload[77] = ht_op[5];
++		payload[78] = ht_op[2]; payload[79] = ht_op[3];
++		payload[80] = ht_op[1];
++	}
+ 	return mt6797_hif_send_join_command(hif, 0x12, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
+ 
++/* With the peer's HT capability element body from the association
++ * response (26 bytes: capability info, A-MPDU parameters, the 16-byte MCS
++ * set, extended capability, beamforming, ASEL), the station record
++ * declares the HT PHY (byte 13, OFDM | HT), ucMcsSet (21, MCS 0-7 the peer
++ * receives), ucSupMcs32 (22, MCS 32), aucRxMcsBitmask (24-33, the peer's
++ * receive bitmask), u2HtCapInfo (40) and u2HtExtendedCap (42). The rx
++ * highest rate, transmit rate info, beamforming, ASEL and A-MPDU
++ * parameters stay zero, and ucTxAmpdu/ucRxAmpdu stay 1 (block-ack
++ * disabled) (0295).
++ */
+ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, bool qos,
+-	u64 deadline_ns)
++	const u8 *ht_cap, u64 deadline_ns)
+ {
+ 	u8 payload[MT6797_JOIN_STA_BYTES];
+ 
+@@ -1330,6 +1355,14 @@ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 					basic_rates, payload))
+ 		return -EINVAL;
+ 	payload[18] = qos;
++	if (ht_cap) {
++		payload[13] = 0x18;
++		payload[21] = ht_cap[3];
++		payload[22] = ht_cap[7] & 1;
++		memcpy(payload + 24, ht_cap + 3, 10);
++		payload[40] = ht_cap[0]; payload[41] = ht_cap[1];
++		payload[42] = ht_cap[19]; payload[43] = ht_cap[20];
++	}
+ 	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index dc70c9afa..c160068e4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -269,11 +269,12 @@ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
+ 	unsigned int desired_rates, unsigned int basic_rates,
+-	bool short_preamble, bool wpa2, bool qos, u64 deadline_ns);
++	bool short_preamble, bool wpa2, bool qos, const u8 *ht_op,
++	u64 deadline_ns);
+ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, bool qos,
+-	u64 deadline_ns);
++	const u8 *ht_cap, u64 deadline_ns);
+ #endif
+ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 	unsigned int sequence, u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 298f1b77c..f11a4e139 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -219,6 +219,13 @@ struct mt6797_mac {
+ 	struct ieee80211_supported_band band, band_5g;
+ #ifdef CONFIG_MT6797_HT_CAPABILITY
+ 	bool join_ht_requested, join_ht_accepted;
++#ifdef CONFIG_MT6797_HT_RECORDS
++	/* The access point's HT capability and operation element bodies from
++	 * its association response, declared in the post-association records.
++	 */
++	u8 join_ht_peer_cap[26], join_ht_op[22];
++	bool join_ht_peer_cap_seen, join_ht_op_seen;
++#endif
+ #endif
+ 	struct ieee80211_channel channels[MT6797_CHANNELS];
+ 	struct ieee80211_rate rates[12];
+@@ -1287,8 +1294,19 @@ static void mt6797_join_assoc_ht(struct mt6797_mac *mac, const u8 *f, size_t n)
+ 	size_t e = 30;
+ 
+ 	while (mac->join_ht_requested && e + 2 <= n && f[e + 1] <= n - e - 2) {
+-		if (f[e] == WLAN_EID_HT_OPERATION && f[e + 1] == 22)
++		if (f[e] == WLAN_EID_HT_OPERATION && f[e + 1] == 22) {
+ 			mac->join_ht_accepted = true;
++#ifdef CONFIG_MT6797_HT_RECORDS
++			memcpy(mac->join_ht_op, f + e + 2, 22);
++			mac->join_ht_op_seen = true;
++#endif
++		}
++#ifdef CONFIG_MT6797_HT_RECORDS
++		if (f[e] == WLAN_EID_HT_CAPABILITY && f[e + 1] == 26) {
++			memcpy(mac->join_ht_peer_cap, f + e + 2, 26);
++			mac->join_ht_peer_cap_seen = true;
++		}
++#endif
+ 		e += 2 + f[e + 1];
+ 	}
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -2177,6 +2195,10 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ #ifdef CONFIG_MT6797_HT_CAPABILITY
+ 	mac->join_ht_requested = false;
+ 	mac->join_ht_accepted = false;
++#ifdef CONFIG_MT6797_HT_RECORDS
++	mac->join_ht_peer_cap_seen = false;
++	mac->join_ht_op_seen = false;
++#endif
+ #endif
+ 	mac->qos_ac_params = 0;
+ 	mac->qos_tx = 0;
+@@ -6132,6 +6154,9 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ {
+ 	u64 deadline, now;
+ 	int ret;
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++	const u8 *ht_cap = NULL, *ht_op = NULL;
++#endif
+ 
+ 	if (!mac->join_assoc_received || mac->join_assoc_status ||
+ 	    !mac->join_ssid_bytes || !aid || aid > 2007 || aid != mac->join_aid ||
+@@ -6156,13 +6181,32 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 1;
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
++#ifdef CONFIG_MT6797_HT_RECORDS
++	/* Both records declare HT only with WMM records and the access point's
++	 * accepted HT; the element bodies are named once, as sent (0295).
++	 */
++	if (mac->join_wmm_accepted && mac->join_ht_accepted &&
++	    mac->join_ht_op_seen && mac->join_ht_peer_cap_seen) {
++		ht_cap = mac->join_ht_peer_cap;
++		ht_op = mac->join_ht_op;
++	}
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join HT records: declared=%u sta_phy=0x%02x mcs=0x%02x mcs32=%u cap=0x%04x ext=0x%04x bss_phy=0x%02x protect=%u op1=0x%02x op2=0x%04x op3=0x%04x ampdu=0 ba=disabled\n",
++		 !!ht_cap, ht_cap ? 0x18 : 0x08, ht_cap ? ht_cap[3] : 0,
++		 ht_cap ? ht_cap[7] & 1 : 0,
++		 ht_cap ? get_unaligned_le16(ht_cap) : 0,
++		 ht_cap ? get_unaligned_le16(ht_cap + 19) : 0, ht_op ? 0x18 : 0x08,
++		 ht_op ? ht_op[2] & 3 : 0, ht_op ? ht_op[1] : 0,
++		 ht_op ? get_unaligned_le16(ht_op + 2) : 0,
++		 ht_op ? get_unaligned_le16(ht_op + 4) : 0);
++#endif
+ 	ret = mt6797_hif_join_bss_qos(mac->hif, mac->sequence++, mac->join_ap,
+ 				     mac->join_ssid, mac->join_ssid_bytes,
+ 				     mac->join_desired_rates, mac->join_peer_basic_rates,
+ 				     mac->join_short_preamble, mac->join_rsn,
+ 				     mac->join_wmm_accepted &&
+ 				     IS_ENABLED(CONFIG_MT6797_WMM_QOS_RECORDS),
+-				     mac->join_credit_deadline);
++				     ht_op, mac->join_credit_deadline);
+ #else
+ 	ret = mt6797_hif_join_bss(mac->hif, mac->sequence++, mac->join_ap,
+ 				 mac->join_ssid, mac->join_ssid_bytes,
+@@ -6192,7 +6236,7 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 					 mac->join_peer_basic_rates,
+ 					 mac->join_wmm_accepted &&
+ 					 IS_ENABLED(CONFIG_MT6797_WMM_QOS_RECORDS),
+-					 mac->join_credit_deadline);
++					 ht_cap, mac->join_credit_deadline);
+ #else
+ 	ret = mt6797_hif_join_station(mac->hif, mac->join_sta_sequence,
+ 				     mac->join_ap, 3, aid, mac->join_desired_rates,
+-- 
+2.43.0
+

@@ -1,4 +1,4 @@
-# Current: boot W sends HT MCS7 with no loss, but transmit moved 2.6 %: the per-frame service time (about 0.43 ms, air about 0.19) binds; next project firmware aggregation, to be scoped into boots
+# Current: boot W sends HT MCS7 with no loss and the per-frame service time binds; boot X (the records' QoS and HT declaration, a no-change compatibility step) predeclared, awaiting the owner's review before staging
 
 [Boot W](HIF_TRANSPORT_ANALYSIS.md#boot-w-result-2026-10-25-2244-utc-the-firmware-sends-ht-mcs7-on-a-legacy-station-record-with-no-loss-but-transmit-hardly-moves-the-per-frame-cycle-binds-not-the-air):
 clean verdict; every sampled frame at 0x0087, status 0; TX 22.58 (chunks
@@ -9,7 +9,11 @@ value); the next project is firmware aggregation (the station record's
 QoS/HT/A-MPDU fields; the descriptor's BA bit is already clear), read as
 service time per frame (below about 0.2 ms amortises; near 0.43 the cost
 is per MPDU). The shared-worker and shared-medium couplings are recorded.
-Not yet predeclared; the fixed MCS7 stays.
+The fixed MCS7 stays. [§34](HIF_TRANSPORT_ANALYSIS.md#34-boot-x-predeclared-2026-10-25-the-records-qos-and-ht-declaration-a-compatibility-step-whose-success-is-that-nothing-moves):
+`WMM_QOS_RECORDS=y` and 0295 `HT_RECORDS=y` declare ucIsQBSS/ucIsQoS and
+the AP's HT capability and operation in the post-association records,
+block-ack still disabled; success is that nothing moves, read on the TC
+mapping (credits returning on TC1). Then the block-ack boot.
 Nothing is staged; the device is on Gemian (`dd7fd353…`).
 
 # Historical: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) staged on boot2
