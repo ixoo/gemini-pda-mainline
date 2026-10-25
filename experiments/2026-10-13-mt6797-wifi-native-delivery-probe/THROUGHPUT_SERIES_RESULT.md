@@ -176,16 +176,19 @@ is depth 12, once.
   a 5.46 ms wait), where the depth sweep stopped; 19 ± 2 at depth 8 (boot
   K 20.9, boot L 17.5); on the rule depth ÷ credit-retire wait, with
   nothing freed unsent.
-- **Receive:** 19.6–21.2 Mbit/s per chunk on the device's own count
-  (boot L; 16.9–20.1 on boot M, with one chunk slowed by the sender to
-  9.5), 19.5–24.3 in the whole seconds inside a chunk; UDP carried 29
+- **Receive:** 17–21 Mbit/s per chunk on the device's own count (boots L
+  and M; one boot-M chunk slowed by the sender to 9.5), up to 23–24 in
+  the best whole seconds inside a chunk (the laptop's final-half figures
+  of 28–34 are its write rate, not delivery); UDP carried 29
   Mbit/s at 2 % loss through the same path (boot D), so the receive path
   itself carries about 30.
-- **The ceiling:** about 33 Mbit/s, where the two-point depth model's
-  asymptote and the estimated air ceiling of a fixed 54 Mbit/s rate
-  meet (the three-depth fit gives 35.7). Above it only HT aggregation
-  helps; the vendor's own driver reached 45.1 Mbit/s of transmit on the
-  older protocol (vendor control 2).
+- **The ceiling:** about 30 Mbit/s, the air at a fixed 54 Mbit/s (about
+  386 µs a 1,518-byte frame with its overheads, about 2,590 frames a
+  second); the depth model's asymptote (35.7) lies above it, so the air
+  is the wall and transmit at 23 runs at 77 % of it. Above it only HT
+  aggregation helps ([the HT project](HT_PROJECT_SCOPE.md)); the vendor's
+  own driver reached 45.1 Mbit/s of transmit on the older protocol
+  (vendor control 2).
 - **Robustness:** the AP-loss gate passed as the access point's own
   inactivity disassociation; a controlled vanish-and-return test remains
   the one robustness item, independent of all of the above.

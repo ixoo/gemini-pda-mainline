@@ -60,6 +60,13 @@ Keep this file under 200 lines; move anything else to an experiment record.
   separate for the framing fault, preserving equality/poison/no-copy.
   Builds/device work stay on hold; rekey/reuse/reconnect remain disabled.
   Sustained 60 s / 2 min / 10 min acceptance remains untested.
+- **Wi-Fi throughput (2026-10-25).** Transmit about 23 Mbit/s and receive
+  about 17–21 Mbit/s at the fixed 54 Mbit/s rate, against an air ceiling of
+  about 30 ([throughput series](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-25-after-boot-l)).
+  The legacy path is near its wall; HT is the next throughput project
+  ([scope](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HT_PROJECT_SCOPE.md)),
+  items 1–2 host-only. The access-point vanish-and-return test remains the
+  robustness item.
 - **Open.** Wi-Fi station operation beyond two bounded lifetimes on one boot
   (reconnection after access-point loss is untested); replay
   enforcement in firmware is unknown. The device tree the Wi-Fi boots ran

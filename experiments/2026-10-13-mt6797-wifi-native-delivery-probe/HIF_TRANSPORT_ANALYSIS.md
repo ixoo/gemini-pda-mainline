@@ -2807,3 +2807,80 @@ under a quarter of its chunk's median) would catch it.
 
 **Stalls (§17).** Receive chunk 5 of boot M, the second at 53.30–54.30 s,
 218 KiB, the sender at 12.9 Mbit/s over the chunk; no transmit stall.
+
+**The air ceiling, corrected downward (owner, 2026-10-25).** At a fixed
+54 Mbit/s a 1,518-byte frame costs about 386 µs of air once the
+preamble, SIFS, the acknowledgement, DIFS and the average backoff are
+paid (225 µs of payload; about 20, 16, 30, 34 and 68 µs of the rest),
+so the air carries about 2,590 frames a second, about 30 Mbit/s of TCP
+goodput, not the 33 the record carried. The three-depth fit's asymptote
+(35.7) lies above it, so the air, not the window, is the wall. At 23
+Mbit/s transmit runs at 77 % of the air ceiling; every further depth
+step buys at most a few percent. That is the number that decides HT.
+
+**Receive, read on the device's clock (correcting the owner's brief).**
+The brief quoted "device-side final halves" of 29.3, 33.8, 28.1, 21.3
+and 0 Mbit/s as the steady receive capacity. Those figures are the
+laptop's: in the receive direction the laptop is the sender, and its
+final half is the rate it wrote into its own socket, which runs ahead
+of delivery while its send buffer fills. The device's own per-second
+count, the only delivery measure inside a chunk, never reached them:
+no whole receive second of boot M carried more than 2,857 KiB (23.4
+Mbit/s), none of boot L's more than 2,972 (24.3). Slow start is
+short against the 3 s window (the device's advertised window opens from
+64 KB and the round trip starts near 7 ms). So receive stays quoted on
+the device's count: 17–20 Mbit/s per chunk, up to about 23–24 in its
+best whole seconds; UDP's 29 (boot D) is what the path carried without
+TCP. The series row keeps the device's figure as primary.
+
+**Boot M's chunk 5, re-read.** Not "the last two seconds empty": the two
+seconds carried 218 KiB and then 1,347 KiB (the drain). The laptop
+wrote nothing in its last 1.5 s (no final-half figure), and the device's
+advertised window, at the last sample, was open at 2.18 MB; but the
+laptop sampled the window only after a successful send, so the stall
+itself has no samples. The driver delivered frames throughout. The
+stream slowed with the link live; [§24](#24-boot-n-predeclared-2026-10-25-depth-16-and-the-receive-streams-state)
+instruments the stream.
+
+## 24. Boot N (predeclared, 2026-10-25): depth 16, and the receive stream's state
+
+**The change.** `CONFIG_MT6797_CCMP_TX_DEPTH=16` (the TC1 ledger derives
+to 208 of the firmware's 468 pages) on boot M's tree: one driver
+variable, worth running only because it is one line. With it, the
+receive stream's state is recorded on both ends
+([receive_stream.py](hosts/receive_stream.py), no driver change): the
+device's advertised window every 50 ms from the laptop's socket,
+whatever the send did, with the chunk-relative time and the laptop's
+unacknowledged backlog; the bytes waiting in the device's receive
+socket (`rx_queue` from `/proc/net/tcp`) every 0.5 s; and the frames the
+driver delivers, already in 0283's per-second series. Recorded, not
+gated: the stream-stall check joins the receipt only once it can be
+computed unambiguously.
+
+**Transmit expectation.** The three-depth fit gives a wait of 1.668 +
+0.324 × 16 = 6.86 ms, 2,332 frames a second, 27.0 Mbit/s; the two-point
+model 26.2; the air ceiling about 30. Expect 25–26 Mbit/s, with the wait
+read first:
+
+| Reading | Cause | Next |
+|---|---|---|
+| transmit 25–26 at a wait near 6.9 ms | the window still binds, the air close behind | depth is finished; HT is the project |
+| transmit flat near 23 with the wait rising past 7 ms | the air binds (frames wait for airtime, not for the window) | depth 12 is the setting; HT is the project |
+| safety counters non-zero or a transmit timeout | the pool or the queue does not hold at 16 | revert to depth 12 |
+
+**Receive: the stream's three readings.**
+
+| Reading | Cause | Consequence |
+|---|---|---|
+| the device's window closes to zero while frames keep arriving | the receiving application (`nc` into `wc`) cannot consume at the arrival rate | a measurement artefact: drain faster or use a bigger receive buffer |
+| the window stays open and the frames a second fall | the access point stopped sending to this station | a link event, and its own investigation |
+| frames a second stay high but the socket's queue and the window do not move | the stack is not consuming what the driver delivers | ours, and worth a boot |
+
+A chunk without a slowdown reads nothing; the readings apply only to a
+second below a quarter of its chunk's median on the device's count.
+
+The three questions: reachability, the depth sizes the slot array and
+the per-pass submission count; ownership, 208 of the firmware's 468
+pages; the vendor, within the vendor's budget for the queue. The stream
+samples read only the device's own `/proc/net/tcp` and the laptop's
+own socket.

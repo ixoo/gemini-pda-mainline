@@ -1,4 +1,17 @@
-# Current: boot M (depth 12) held the model and ends the depth sweep at about 23 Mbit/s transmit; one receive chunk slowed without a silence; the next step is the owner's decision
+# Current: the air ceiling corrected to about 30 Mbit/s (transmit at 77 % of it); receive stays on the device's count; boot N (depth 16, the receive stream's state) predeclared and building; HT scoped as a project
+
+Boot M is re-read with the owner: the fixed-54 air carries about 2,590
+frames a second, about 30 Mbit/s, below the depth model's asymptote, so
+the air is the wall. The brief's "device-side final halves" of 28–34
+Mbit/s are the laptop's write rate; the device never delivered above
+24.3 in a whole second, so receive stays quoted on the device's count.
+[§24](HIF_TRANSPORT_ANALYSIS.md#24-boot-n-predeclared-2026-10-25-depth-16-and-the-receive-streams-state)
+runs depth 16 once (25–26 expected) and records the receive stream on
+both ends (the device's window every 50 ms, its socket queue every
+0.5 s, the driver's frames a second). [HT](HT_PROJECT_SCOPE.md) is
+scoped as a five-item project; items 1–2 are host-only.
+
+# Historical: boot M (depth 12) held the model and ends the depth sweep at about 23 Mbit/s transmit; one receive chunk slowed without a silence; the next step is the owner's decision
 
 [Boot M](HIF_TRANSPORT_ANALYSIS.md#boot-m-result-2026-10-25-1853-utc-depth-12-on-the-model-the-depth-sweep-stops-a-receive-slowdown-the-silence-rule-cannot-see):
 transmit 22.7–24.1 Mbit/s at a 5.46 ms wait with 12 in flight, nothing
