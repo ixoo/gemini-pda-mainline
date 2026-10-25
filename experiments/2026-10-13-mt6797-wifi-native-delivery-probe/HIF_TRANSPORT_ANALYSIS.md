@@ -4552,3 +4552,66 @@ owner's queue needs no firmware answer: submission batching (several
 frames per transfer, the vendor's `CFG_SDIO_TX_AGG`). Whether
 aggregation returns, and with which read first (the firmware's block-ack
 sequence handling, or a fixed-rate exclusion), is the owner's decision.
+
+**Boot Y, the owner's classification (2026-10-25): a regression, with the
+class of cause.**
+
+- *The evidence.* 2,372 transmit frames in 41.6 s (about 57 a second
+  against about 1,200 in boots W and X), 371 frames delivered, one chunk
+  at 8.28 Mbit/s, then the disconnect. Meanwhile the host pipeline was
+  healthy: `expired=0 pid_faults=0 left_pages=0`, `inflight_max=12`,
+  `wait_avg=4.81 ms`.
+- *The class of cause.* Both directions starved with the association
+  intact. That is an aggregation state the peer does not share, not a
+  host or ledger fault.
+- *Kept as a permanent instrument:* `join HT records:` (`declared`,
+  `sta_phy`, `mcs`, `cap`, `ampdu`, `tx_ampdu`, `tx_ba`, `rx_ampdu`), the
+  record an aggregation boot is read by.
+- *Reverted:* `CONFIG_MT6797_TX_AMPDU` leaves the fragment. 0296 stays a
+  proposal, with this boot as its counter-evidence.
+
+**The block-ack control path, read from the vendor source before any
+further aggregation attempt (`59e00a91`).**
+
+1. *Does the host send an ADDBA acceptance or per-TID control for the
+   firmware to aggregate?* No. With `CFG_M0VE_BA_TO_DRIVER 0`, no host
+   path sends one. `CMD_ID_TX_AMPDU` (`wlanoidSetTxAmpdu`) and
+   `CMD_ID_ADDBA_REJECT` (`wlanoidSetAddbaReject`) are set-OIDs, and
+   neither has a caller in the connect or initialisation path. The only
+   host input per station is the station record (`ucTxAmpdu`,
+   `ucRxAmpdu`, `ucTxBaSize`, `ucRxBaSize`, `ucAmpduParam`).
+   `CMD_ID_RESET_BA_SCOREBOARD` belongs to the moved-to-driver build.
+2. *What must the host do on `EVENT_ID_RX_ADDBA`?* Create a receive
+   reorder entry for the event's TID, with its starting sequence and
+   window (`qmHandleEventRxAddBa` → `qmAddRxBaEntry`), and reorder that
+   TID's frames until `EVENT_ID_RX_DELBA`. It is a receive event only. In
+   boot Y none was emitted: the join path refuses and logs any
+   unrecognised control event (`join control event refused`), and the
+   log has none. That is consistent with `ucRxAmpdu` declared disabled.
+3. *Is `CMD_ID_ADDBA_REJECT` needed once per TID, and what does the
+   firmware assume without it?* It is one global flag
+   (`CMD_ADDBA_REJECT_T { fgEnable }`), not per TID, and the vendor's
+   normal path never sends it. What the firmware assumes without it is
+   in the firmware, not in the source.
+
+So no answer is "the host must send it": the source shows no host step
+missing from boot Y. The failure lies in the firmware's transmit
+block-ack behaviour toward this access point. One consequence for the
+next attempt: with block-ack in the firmware, the vendor gives the host
+no transmit block-ack event, only the receive ones. A per-TID transmit
+session record (requested, established, rejected, window) has no host
+input defined in the source. A future aggregation boot can show the
+receive events and the service time; the transmit session itself would
+need a firmware query or an air capture, each its own question.
+
+**A precondition and a stop rule for every aggregation boot (the
+predeclaration lacked both).**
+
+- *Precondition:* the link carries the previous boot's volume. The
+  graded table assumes a working link.
+- *Stop rule:* if transmit frames per second fall below about half the
+  previous boot's (here 57 against about 1,200), stop, revert, and do not
+  grade throughput.
+
+Boot Y spent 41 seconds carrying 2,372 frames and never reached the
+measurement it was predeclared for.

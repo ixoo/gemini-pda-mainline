@@ -116,6 +116,14 @@ write one frame per transfer. Then interrupt-driven receive, then short
 guard interval and 40 MHz. Rate adaptation and power save are off the
 throughput queue.
 
+**Boot Y (2026-10-25): firmware transmit aggregation regressed.** With
+`ucTxAmpdu` enabled, the firmware reported every frame delivered while
+the stream starved (57 frames/s). The vendor source shows no host step
+missing, and gives the host no transmit block-ack event. Aggregation is
+withdrawn behind its option. Any return carries the precondition and
+stop rule of HIF §35 and a way to see the transmit session (a firmware
+query or an air capture). Submission batching is next.
+
 **Boot W's answer, and the next project (owner, 2026-10-25).** The
 firmware sends HT MCS7 on the legacy station record with no loss, but
 transmit moved 2.6 %. The service time is about 0.43 ms a frame, of

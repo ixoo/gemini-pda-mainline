@@ -8,8 +8,17 @@ first transmit chunk delivered 8.28 Mbit/s with the device's TCP at cwnd
 under aggregation; causes not distinguished (the AP's reorder buffer
 and the firmware's sequence handling, the fixed-rate descriptor in an
 A-MPDU, TID 3). `CONFIG_MT6797_TX_AMPDU` leaves the fragment; 0296 stays
-behind its option. Next in the owner's queue: submission batching.
-Nothing is staged; the device is on Gemian (`84fe607a…`).
+behind its option. Owner: a regression (57 frames/s against about
+1,200, both directions starved with the association intact: an
+aggregation state the peer does not share). The vendor source shows no
+host step missing (no ADDBA acceptance with block-ack in the firmware;
+EVENT_ID_RX_ADDBA is receive-only and none was emitted; ADDBA_REJECT is
+global and never sent). Aggregation boots now carry a precondition (the
+link carries the previous volume) and a stop rule (transmit frames/s
+below half: stop, revert, do not grade). A transmit block-ack session
+record has no host input in the source. Next in the owner's queue:
+submission batching. Nothing is staged; the device is on Gemian
+(`84fe607a…`).
 
 # Historical: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) staged on boot2
 
