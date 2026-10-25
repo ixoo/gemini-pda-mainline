@@ -1,0 +1,87 @@
+From e5b3c59b65b79e40277669a5183a5fd2a4480d7a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 11:56:03 -0400
+Subject: [PATCH] wifi: mt6797: make the data depth a build option with the TC1
+ ledger derived from it
+
+Ordinary data is retired on credit arrival and the in-flight depth is the
+only bound on the frames the firmware holds for the air; at depth 4 the
+mean wait from submission to the covering credit was 3.5 ms and every
+transmit chunk hit the harness cap. The depth has been a fixed 4 with a
+52-page ledger (four frames of 13 pages) since the pipelining proposal,
+while the vendor's default budget for the queue is 468 pages. Let a
+profile set the depth (1 to 16); the pages the host ledger admits derive
+from it, 13 a frame, so a build cannot carry one depth with another
+depth's ledger (52 at four, 104 at eight, 156 at twelve). The ledger
+still refuses any return that exceeds the debit. Nothing changes at the
+default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 10 +++++++---
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 20 +++++++++++++++++---
+ 2 files changed, 24 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 45a166a8c..8b8fcb4c4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -154,11 +154,15 @@ config MT6797_DATA_CREDIT_RETIRE
+ 	  transmit completion latency, with its own record on the data end.
+ 
+ config MT6797_CCMP_TX_DEPTH
+-	int
++	int "MT6797 Wi-Fi: outstanding ordinary data frames"
+ 	depends on MT6797_CCMP_TX_PUMP
+-	range 1 4
++	range 1 16
+ 	default 4
+ 	help
+ 	  Maximum outstanding ordinary data frames, bounded by PID ownership and
+ 	  the TC1 page ledger. Management, security and reserved frames keep a
+-	  single owner.
++	  single owner. A measurement variable: with ordinary data retired on
++	  credit arrival the depth sets the frames the firmware may hold for
++	  the air. The TC1 ledger admits 13 pages per frame of depth (52 at
++	  the default four, 104 at eight, 156 at twelve) of the firmware's
++	  468-page budget; it derives from this value and cannot disagree.
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 3f3cb55d7..1af107aa9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -17,6 +17,17 @@
+ #include <linux/string.h>
+ #endif
+ #include "hif.h"
++
++/* The TC1 pages the host ledger admits for ordinary data: 13 a full frame
++ * (28-byte descriptor, 1,514-byte Ethernet frame, 128-byte pages) times the
++ * data depth, so the ledger and the depth cannot disagree; 52 without the
++ * depth option, the series' value.
++ */
++#ifdef CONFIG_MT6797_CCMP_TX_DEPTH
++#define MT6797_TC1_LEDGER_PAGES (13U * CONFIG_MT6797_CCMP_TX_DEPTH)
++#else
++#define MT6797_TC1_LEDGER_PAGES 52U
++#endif
+ #include "join-submit.h"
+ #include "join-command-submit.h"
+ 
+@@ -1013,10 +1024,13 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	 * their descriptors (13 pages each). The vendor driver's default host
+ 	 * budget for this queue is 36 such frames (468 pages), and the 26-page
+ 	 * TC4 pool observed on the device is exactly its two-frame default, so
+-	 * four frames stay far inside the firmware's allocation. The ledger
+-	 * still refuses any return that exceeds the debit.
++	 * the admitted frames stay inside the firmware's allocation at every
++	 * depth the option allows (13 pages a frame: 52 at four, the series'
++	 * default; 104 at eight; 156 at twelve). The ledger still refuses any
++	 * return that exceeds the debit.
+ 	 */
+-	error = mt6797_normal_admit_tc1(&hif->normal, 52, 52);
++	error = mt6797_normal_admit_tc1(&hif->normal, MT6797_TC1_LEDGER_PAGES,
++					MT6797_TC1_LEDGER_PAGES);
+ 	if (error)
+ 		goto out;
+ 	/* A pre-existing port-1 event would make its reply owner ambiguous.
+-- 
+2.43.0
+

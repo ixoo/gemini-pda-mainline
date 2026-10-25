@@ -439,3 +439,68 @@ refusal case; that staleness is an input to the second pruning
 increment. The failure path itself is not exercised on the device
 without spending a boot; it is verified on the next ordinary boot's
 accounting, and that boot's record says so plainly.
+
+## AP-loss gate: result (2026-10-25, 15:48 UTC) — three lifetimes, the loss reported by the firmware's keep-alive judgement, not by beacons
+
+Lifecycle package `c6fa0edc` (the admitted baseline with 0278 credit
+retire), the boot-E image `528d1d1d…` (install skipped as already
+matching, full readback verified), mainline boot of the gate recorded in
+the session, returned to Gemian `104bb967…` (changed-ID Gemian, recovery
+confirmed); session `ram-service-regression-pass`, log complete through
+the seal (243,780 bytes, 399 s), receipt `all_pass`, `cycles_passed=3`
+of 3, one chunk per direction, cycle 2 waited for the loss
+(`loss-wait.json`: `accepted`, `data_end_reason=connection-loss`,
+`loss_report source=monitor reason=4 class=air`, `idle_scans_so_far=0`,
+waited 356.6 s over 133 polls).
+
+**Timeline (kernel clock).** Lifetime 1: activation at 13.1 s, data phase
+7.6 s, standard disconnect. Lifetime 2: activation at 23.5 s; the data
+phase ran 362 s under the harness's periodic traffic (1,115 frames
+transmitted, 2,684 delivered, `tx_failed=0`) and ended at 386.7 s by
+`connection-loss`, the firmware's monitor reporting `reason=4 class=air`;
+cleanup stage 3 with credits returned and slots retired; rearm
+`lifetime=2` at 386.8 s. Lifetime 3: grant at 388.4 s and activation at
+388.6 s, 1.8 s after the rearm, against the restored access point; data
+phase 8.6 s, standard disconnect, third rearm. The owner was instructed to
+remove the access point's power at 15:50:45 UTC (about 110 s after the
+measurement start, inside the 60–120 s window of lifetime 2's data phase)
+and to restore it at 15:51:45 UTC; the owner's actual times are not yet
+in the record, and the delays below are read against the instructed
+times.
+
+**Reading, against the predeclared branches.** Two branches held at once.
+No loss report came within 60 s of the power removal: lifetime 2 kept
+its data phase for about four minutes after the beacons stopped, so the
+firmware's beacon-loss detection is not armed on this tree (the
+PM-connected command's beacon-tracking configuration is the finding, the
+predeclared second branch). The report that eventually came was reason 4,
+not the beacon-loss family: the firmware judged the loss by its own
+keep-alive or acknowledgement failures (the predeclared first branch),
+plausibly once the restored access point, holding no association for this
+station, stopped acknowledging its frames. The rejoin itself passed the
+gate's test: the station rejoined the restored access point within 2 s of
+the rearm, completed the handshake and DHCP, and a third lifetime's data
+phase opened with its probes answered; the log is complete through the
+seal. 0254's idle-scan re-open was not reached (no idle scan: the access
+point was already back when the rearm scanned).
+
+**The ledger after the loss (0267's path and the credit model).** No
+`join stopped`, `rearm refused` or `guard failed` line in the log: the
+failed-join path was not exercised, because no join was refused; 0267
+remains unexercised on hardware. What the gate does show is the credit
+model across a loss: every lifetime's data phase ended with
+`tx_failed=0`, the cleanup of the lost lifetime recorded `credits=returned
+slots=retired`, every cleanup command's `debt=1` returned to `debt=0` on
+its credit (sixty such pairs over the three lifetimes, no overflow), the
+credit-retire record closed each lifetime clean (`retired=1184/1115/1259
+expired=0 pid_faults=0 left_pages=0`, mean waits 3.0, 3.4 and 3.0 ms), and
+lifetime 3 started from a clean ledger with its own credit lines, so no
+page reservation survived the loss.
+
+**Next.** The beacon-loss finding is a configuration question for the
+PM-connected command (0x16) and the firmware's beacon tracking, to be read
+from the vendor's connected indication and its power-save profile before
+any boot; the owner's recorded power times close the delay figures. The
+gate needs no new mechanism; a second run with the access point kept off
+for longer than the keep-alive judgement would separate the two branches
+cleanly if the configuration reading leaves them joined.

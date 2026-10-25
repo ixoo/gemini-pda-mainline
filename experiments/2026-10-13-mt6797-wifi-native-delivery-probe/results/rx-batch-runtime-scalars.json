@@ -977,6 +977,63 @@
     ]
    },
    "reading": "credit retire is the transmit completion path: 5,637 retired on credit arrival, mean wait 3.5 ms at depth 4, no expiry/fault; every TX chunk capped at 1 MiB in 0.9 s (TX figure a floor; harness cap binds); receive inside the floor (the receive limit is not the transmit completion path; UDP 30 zero loss); 0274 v2 verified; 0278 admitted"
+  },
+  "aploss": {
+   "run": "PIO-lifecycle-1 (AP-loss gate)",
+   "session": "2026-10-25 15:48 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "c6fa0edc82b81b0ffcc98a6a18bc7a5ed027a2e4",
+   "boot2_sha256": "528d1d1d05979447f023ef21d0cbe7d442dda1492e9d76f4d5b691e12c32fd86",
+   "install": "skipped-already-matching",
+   "returned_gemian_boot_id": "104bb967-eb86-4315-a781-2cd27c854358",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 243780,
+   "cycles_passed": 3,
+   "loss_cycle": 2,
+   "loss_wait": {
+    "data_end_reason": "connection-loss",
+    "loss_report": "source=monitor reason=4 class=air",
+    "idle_scans_so_far": 0,
+    "waited_s": 356.6
+   },
+   "timeline_kernel_s": {
+    "lifetime1_activation": 13.1,
+    "lifetime2_activation": 23.5,
+    "loss_data_end": 386.7,
+    "rearm2": 386.8,
+    "lifetime3_activation": 388.6
+   },
+   "instructed_ap_power": {
+    "cut_utc": "15:50:45",
+    "restore_utc": "15:51:45",
+    "owner_actual": null
+   },
+   "data_ends": [
+    {
+     "lifetime": 1,
+     "reason": "disconnect",
+     "elapsed_ms": 7607,
+     "tx_queued": 1184,
+     "tx_failed": 0
+    },
+    {
+     "lifetime": 2,
+     "reason": "connection-loss",
+     "elapsed_ms": 362067,
+     "tx_queued": 1115,
+     "tx_failed": 0,
+     "rx_delivered": 2684
+    },
+    {
+     "lifetime": 3,
+     "reason": "disconnect",
+     "elapsed_ms": 8583,
+     "tx_queued": 1259,
+     "tx_failed": 0
+    }
+   ],
+   "series_row": false,
+   "reading": "no loss report within 60 s of the cut (beacon-loss detection not armed); the eventual report is reason 4 (keep-alive/ack judgement); rejoin within 2 s of the rearm against the restored AP, third lifetime passed; 0267 not exercised (no refused join); ledger clean across the loss"
   }
  }
 }

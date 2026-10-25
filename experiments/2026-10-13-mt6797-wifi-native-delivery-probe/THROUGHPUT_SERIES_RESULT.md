@@ -33,15 +33,15 @@ described here; each run's own artefacts are named.
 | [rx-batch-1](HIF_TRANSPORT_ANALYSIS.md#boot-1-of-0268-2026-10-25-the-join-stopped-at-its-credit-wait-the-block-read-had-consumed-the-tx-release-counts) | 0268 first form (enhanced status block + aggregated reads): the block read consumed the TX release counts, the join stopped at its credit wait; amended | inconclusive (join stopped) | inconclusive (join stopped) | — |
 | [rx-batch-2](HIF_TRANSPORT_ANALYSIS.md#boot-2-of-0268-2026-10-25-the-credits-came-the-join-guard-refused-at-the-second-eapol-message) | 0268 amended (block TX counts merged into the credit path): every credit returned, join reached EAPOL message 2, then the join guard refused with -EIO at debt 0; guard record added | inconclusive (join stopped) | inconclusive (join stopped) | — |
 | [rx-batch-3](HIF_TRANSPORT_ANALYSIS.md#boot-3-of-0268-2026-10-25-the-guards-words-name-the-abnormal-interrupt-the-cause-is-our-own-whcr-write) | 0268 with the guard record: `whisr=0x42`, the device's abnormal interrupt; cause: the enable wrote WHCR bit 16 (RX enhancement, a mode the vendor clears); WHCR no longer written | inconclusive (join stopped) | inconclusive (join stopped) | — |
-| [rx-batch-4](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either) | 0268 (enhanced status block + one aggregated read per queue, WHCR untouched): 12,754 frames, 5,706 aggregates, 0 failures; kept | 2.64 | 6.37 (device-side chunks 8.5–12.2) | 86.4% / 77.9% |
-| [probe-1](HIF_TRANSPORT_ANALYSIS.md#probe-boot-1-2026-10-25-the-tcp-samples-came-the-ping-and-the-udp-bursts-did-not) | lifecycle tree, batching compiled out (0268 retired from admission); receive probe host-side: TCP samples valid (RTT 61–102 ms median in-chunk, window ample), ping and UDP void (injection order), re-run on the same image | 2.69 | 6.78 (device-side chunks 10.1–12.5) | 85.7% / 80.3% |
-| [probe-2](HIF_TRANSPORT_ANALYSIS.md#probe-boot-2-2026-10-25-a-graded-repeat-the-probe-ran-disabled-by-the-staging) | same image; probe disabled by a renamed staging flag (graded repeat only) | 2.67 | 6.99 (device-side chunks 11.8–12.5) | 86.1% / 81.0% |
+| [rx-batch-4](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either) | 0268 (enhanced status block + one aggregated read per queue, WHCR untouched): 12,754 frames, 5,706 aggregates, 0 failures; kept | 2.64 | floor (every receive chunk byte-capped at 1 MiB in under a second): 6.37 (device-side chunks 8.5–12.2) | 86.4% / 77.9% |
+| [probe-1](HIF_TRANSPORT_ANALYSIS.md#probe-boot-1-2026-10-25-the-tcp-samples-came-the-ping-and-the-udp-bursts-did-not) | lifecycle tree, batching compiled out (0268 retired from admission); receive probe host-side: TCP samples valid (RTT 61–102 ms median in-chunk, window ample), ping and UDP void (injection order), re-run on the same image | 2.69 | floor (every receive chunk byte-capped at 1 MiB in under a second): 6.78 (device-side chunks 10.1–12.5) | 85.7% / 80.3% |
+| [probe-2](HIF_TRANSPORT_ANALYSIS.md#probe-boot-2-2026-10-25-a-graded-repeat-the-probe-ran-disabled-by-the-staging) | same image; probe disabled by a renamed staging flag (graded repeat only) | 2.67 | floor (every receive chunk byte-capped at 1 MiB in under a second): 6.99 (device-side chunks 11.8–12.5) | 86.1% / 81.0% |
 | [probe-3](HIF_TRANSPORT_ANALYSIS.md#probe-boot-3-2026-10-25-voided-before-the-measurement-recovered-through-the-reviewed-path) | same image; void: the device command crossed the 4096-byte bound (base 433, not the preflight's 405); recovered through the reviewed path | void | void | — |
-| [probe-4](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly) (11:39 UTC session) | same image; the probe ran: UDP 10 and 20 Mbit/s delivered with zero loss, RTT 7–8 ms at rest and 40–130 under load, window ample; the verdict line was a diagnostic-ceiling artefact (8,192 queued frames) | 3.14 (chunks 3.73–4.07) | 7.78 (device-side chunks 14.5–15.8) | 86.2% / 78.3% |
+| [probe-4](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly) (11:39 UTC session) | same image; the probe ran: UDP 10 and 20 Mbit/s delivered with zero loss, RTT 7–8 ms at rest and 40–130 under load, window ample; the verdict line was a diagnostic-ceiling artefact (8,192 queued frames) | 3.14 (chunks 3.73–4.07) | floor (every receive chunk byte-capped at 1 MiB in under a second): 7.78 (device-side chunks 14.5–15.8) | 86.2% / 78.3% |
 | [boot B](HIF_TRANSPORT_ANALYSIS.md#boot-b-result-2026-10-25-1208-utc-a-regression-0272-retired-0269-reverted) (12:08 UTC, same session as probe-4) | 0272 ordinary data retired at submission + 0269 ceiling raised (both retired/reverted): TX unchanged, receive collapsed (four chunks on the device timeout), RTT to 438 ms; AP downlink read at 54 Mbit/s | 3.07 (chunks 3.13–3.76) | 3.50 (device-side chunks 11.3, 7.6, 1.5, 0.95, 1.2) | 89.1% / 88.5% |
-| [boot C](HIF_TRANSPORT_ANALYSIS.md#boot-c-result-2026-10-25-1314-utc-54-mbits-acknowledged-transmit-19-the-log-cut-at-the-cap) (13:14 UTC; cross-session, ±40 % floor) | 0273 fixed rate code 0x4c (OFDM 54 Mbit/s) on the admitted tree with 0270, 0271, 0274: frames acknowledged (5 of 5,132 unacknowledged), TX ×1.9, receive +13 % (inside the floor), in-chunk round trip down by a third; the device log sealed at its 2 MiB cap in the transmit phase (per-frame records), so the verdict failed on the log and no end-of-phase line exists | 5.53 (chunks 6.64–7.84) | 7.19 (device-side chunks 16.5–18.2) | 83.0% / 76.5% |
-| [boot D](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes) (15:06 UTC; rate profile; **two chunks, valid but not a series row**; cross-session) | state-2 record (0277) accepted, data without a fixed rate (0276, code 0) acknowledged with the firmware's rate word 0x004b on every frame: the table is valid, the selection stays at 6 Mbit/s; the rate thread closes on the fixed 54 descriptor; log complete, three probe legs, disconnect | 3.45 (chunks 3.81–3.95) | 7.91 (device-side chunks 15.8, 10.4) | 86.7% / 82.3% |
-| [boot E](HIF_TRANSPORT_ANALYSIS.md#boot-e-result-2026-10-25-1538-utc-the-credit-model-is-the-completion-path-for-transmit-receive-did-not-follow) (15:38 UTC; cross-session against boot C) | 0278 ordinary data retired on credit arrival (no PID, no status report) on the baseline tree, with 0275 v2 and 0279 aggregate records: 5,637 frames retired, mean wait 3.5 ms at four in flight, no expiry, no fault; every TX chunk hit the 1 MiB cap in 0.9 s (the TX figure is a floor); receive inside the floor; UDP 30 Mbit/s zero loss; 0274 v2 verified (beyond=3304); log 173 KB for five chunks | 7.74 (chunks 9.18–9.46, cap-bound) | 13.53 (device-side chunks 17.9–20.0) | 89.1% / 86.4% |
+| [boot C](HIF_TRANSPORT_ANALYSIS.md#boot-c-result-2026-10-25-1314-utc-54-mbits-acknowledged-transmit-19-the-log-cut-at-the-cap) (13:14 UTC; cross-session, ±40 % floor) | 0273 fixed rate code 0x4c (OFDM 54 Mbit/s) on the admitted tree with 0270, 0271, 0274: frames acknowledged (5 of 5,132 unacknowledged), TX ×1.9, receive +13 % (inside the floor), in-chunk round trip down by a third; the device log sealed at its 2 MiB cap in the transmit phase (per-frame records), so the verdict failed on the log and no end-of-phase line exists | 5.53 (chunks 6.64–7.84) | floor (every receive chunk byte-capped at 1 MiB in under a second): 7.19 (device-side chunks 16.5–18.2) | 83.0% / 76.5% |
+| [boot D](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-result-2026-10-25-1506-utc--the-table-is-valid-the-selection-stays-at-6-mbits-the-rate-thread-closes) (15:06 UTC; rate profile; **two chunks, valid but not a series row**; cross-session) | state-2 record (0277) accepted, data without a fixed rate (0276, code 0) acknowledged with the firmware's rate word 0x004b on every frame: the table is valid, the selection stays at 6 Mbit/s; the rate thread closes on the fixed 54 descriptor; log complete, three probe legs, disconnect | 3.45 (chunks 3.81–3.95) | floor (every receive chunk byte-capped at 1 MiB in under a second): 7.91 (device-side chunks 15.8, 10.4) | 86.7% / 82.3% |
+| [boot E](HIF_TRANSPORT_ANALYSIS.md#boot-e-result-2026-10-25-1538-utc-the-credit-model-is-the-completion-path-for-transmit-receive-did-not-follow) (15:38 UTC; cross-session against boot C) | 0278 ordinary data retired on credit arrival (no PID, no status report) on the baseline tree, with 0275 v2 and 0279 aggregate records: 5,637 frames retired, mean wait 3.5 ms at four in flight, no expiry, no fault; every TX chunk hit the 1 MiB cap in 0.9 s (the TX figure is a floor); receive inside the floor; UDP 30 Mbit/s zero loss; 0274 v2 verified (beyond=3304); log 173 KB for five chunks | floor (1 MiB in 0.91 s on every transmit chunk): 7.74 (chunks 9.18–9.46, cap-bound) | floor (every receive chunk byte-capped at 1 MiB in under a second): 13.53 (device-side chunks 17.9–20.0) | 89.1% / 86.4% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
@@ -98,6 +98,44 @@ vendor control used the same laptop as the far end.
    receive number tracks the acknowledgement path, our transmit side; the
    interrupt is not next, the transmit completion lever is
    ([transport record §11](HIF_TRANSPORT_ANALYSIS.md#probe-boot-4-2026-10-25-1139-utc-the-readings-graded-correctly)).
+
+## Measurement protocol and floors (owner, 2026-10-25)
+
+**Floors.** The 1 MiB-per-chunk cap, set for the 6 Mbit/s era, ended every
+receive chunk from rx-batch-4 onward before its second (0.45–0.99 s) and
+every transmit chunk of boot E (0.91 s): those rates are rates over a
+window holding a large share of slow start, and the table marks them as
+floors so they are never averaged with steady-state numbers. From boot F
+the protocol is a chunk of 4 MiB or 3 s, whichever comes first, with the
+rate over the chunk's final half recorded beside the whole-chunk rate
+([`hosts/steady_state_chunks.py`](hosts/steady_state_chunks.py)); the
+chunk count and the two directions stay the same so the series remains
+comparable, and pre-protocol rows are floors.
+
+**Instruments and the sealed logger.** 173 KB for five chunks at 54 Mbit/s
+(boot E) settles the logger question: the per-phase histograms (the
+transmit rate words, the completion latency, the credit-retire record)
+were the right instrument and the 2 MiB cap was never the real
+constraint; the cap is not reopened when a future instrument grows, the
+instrument changes shape. The corollary: a measurement is never shortened
+to fit an instrument (boot D's two chunks were that mistake, declared and
+valid but not a series row), and a run that seals its log before its data
+ends is a harness fault, not a reason to measure less. The per-frame lines
+remain available behind `CONFIG_MT6797_TX_PER_FRAME_RECORD` for a boot
+that needs raw lines.
+
+**Memory policy for measurement runs.** Pageable memory is not scarce on
+this device: instruments and buffers may use up to about 64 MiB per run
+(the TC1 ledger at 52 pages was 6.6 kB of accounting against the
+firmware's 468-page, 60 kB budget; depth 12 adds about 18 kB of socket
+buffers; the constraint lifted by the depth sweep was a conservation
+habit, not RAM). Two memories do not move with this policy: the
+device-tree reserved pools (`consys-reserve-memory` 2 MiB,
+`reserve-memory-scp_share` 16 MiB, `mblock-7-ccci` 12 MiB, all `nomap`),
+which serve whatever must be physically contiguous or uncached for the
+HIF and AP-DMA, and the CONNSYS firmware's own heaps, rings and TC pools
+inside that reserve, which the host cannot grow by allocating more. Those
+move only with device-tree provenance.
 
 ## The baseline from boot C (decision, 2026-10-25)
 

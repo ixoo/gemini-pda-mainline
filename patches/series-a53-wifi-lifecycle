@@ -757,3 +757,4 @@ proposals/0275-wifi-mt6797-record-the-data-phase-s-firmware-rate-words-as-a-hist
 proposals/0276-wifi-mt6797-rate-code-0-sends-ordinary-data-without-a-fixed-rate.patch
 proposals/0278-wifi-mt6797-retire-ordinary-data-frames-on-credit-arrival.patch
 proposals/0279-wifi-mt6797-count-ordinary-data-completions-print-per-frame-lines-only-on-request.patch
+proposals/0280-wifi-mt6797-make-the-data-depth-a-build-option-with-the-TC1-ledger-derived-from-it.patch

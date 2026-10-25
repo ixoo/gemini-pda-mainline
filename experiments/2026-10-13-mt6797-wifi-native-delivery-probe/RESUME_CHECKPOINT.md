@@ -1,4 +1,32 @@
-# Current: boot E measured; the credit model (0278) is admitted as the transmit completion path; the TX harness cap now binds; AP-loss gate next
+# Current: the AP-loss gate ran (loss by keep-alive, not beacons; rejoin passed); the protocol moves to 4 MiB or 3 s chunks; boot F (depth 8) is next
+
+[Gate result](LIFECYCLE_RESULT.md#ap-loss-gate-result-2026-10-25-1548-utc--three-lifetimes-the-loss-reported-by-the-firmwares-keep-alive-judgement-not-by-beacons):
+no loss report within 60 s of the cut (beacon-loss detection not armed
+on this tree), the eventual report reason 4 (the firmware's keep-alive
+judgement), the rejoin within 2 s against the restored access point, a
+third lifetime passed, the ledger clean across the loss; 0267's refused
+join path still unexercised. The measurement protocol becomes 4 MiB or
+3 s per chunk with a final-half rate (the 1 MiB cap made every receive
+chunk since rx-batch-4 and boot E's transmit a floor, marked in the
+series table); the memory policy and the instrument corollary are
+recorded. 0280 (depth with the ledger derived from it) is in the series;
+boot F runs depth 8 under the new protocol, boot G depth 12.
+
+# Historical: the AP-loss gate is running; boots F and G (depth 8 then 12) are predeclared on the credit-retire baseline
+
+[§16](HIF_TRANSPORT_ANALYSIS.md#16-boots-f-and-g-predeclared-2026-10-25-the-depth-one-variable-each):
+with data retired on credit arrival the depth is the only bound on the
+frames the firmware holds; the ledger admits 52 of the firmware's 468
+pages. 0280 makes the depth and the ledger pages options; boot F runs
+depth 8 (104 pages), boot G depth 12 (156), one variable each, five
+chunks, the per-chunk cap raised to 4 MiB, the revert rule standing;
+each read against its own rising wait. Boot E's page accounting is
+reconciled (13-page data frames plus 1-page acknowledgements match the
+credits to 0.8 %; one 128-byte unit on both sides) and the vendor's
+resource contract is sourced from nic_tx.c (50 ms poll, no per-frame
+FIFO). The AP-loss gate runs over the boot-E image now.
+
+# Historical: boot E measured; the credit model (0278) is admitted as the transmit completion path; the TX harness cap now binds; AP-loss gate next
 
 [§15 result](HIF_TRANSPORT_ANALYSIS.md#boot-e-result-2026-10-25-1538-utc-the-credit-model-is-the-completion-path-for-transmit-receive-did-not-follow):
 5,637 frames retired on credit arrival (mean wait 3.5 ms at four in

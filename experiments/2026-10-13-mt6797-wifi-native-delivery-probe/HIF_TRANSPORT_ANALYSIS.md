@@ -1512,7 +1512,7 @@ reverts 0278 immediately, as boot B established.
 |---|---|---|
 | per-frame cost down: TX and RX both up, the same-boot ratio of TX chunks and RX device chunks against boot C quoted | the MCU status report and its collection were the completion path's cost | the credit model is admitted; the next lever is fewer bus transactions per frame |
 | cost flat: TX and RX at boot C's numbers, retire waits at the old completion latency | the credits are not the completion path; the firmware's own per-frame processing is the next reading | revert 0278 to a proposal; read the retire-wait histogram and the firmware's per-frame path (RE VM) |
-| `retire_expired` > 0 with frames stalling to the slot deadline | the firmware's returned page count per frame is below the charged pages (the FIFO never covers the head) | revert; the page unit is the finding, read from the credit lines |
+| `retire_expired` > 0 with frames stalling to the slot deadline | a frame the credits never cover (this branch did not occur; the charge and release units are the same 128-byte page on both sides, reconciled in the result) | revert; read the credit lines |
 | any `device_timeout` receive chunk or a non-zero payload byte | the in-flight bound or the buffer ownership is wrong | revert immediately (boot B's rule) |
 
 **The three questions.** Reachability: the descriptor bytes 20–21 and the
@@ -1562,9 +1562,9 @@ management and security frames.
 
 | Direction | Boot E (15:38 UTC, credit retire) | Boot C (13:14 UTC, same tree without 0278) |
 |---|---|---|
-| TX chunks (Mbit/s) / ended by | 9.23, 9.18, 9.46, 9.20, 9.25 / all `byte_cap` at 0.89–0.91 s | 6.64–7.84 / `duration` |
+| TX chunks (Mbit/s) / ended by | **floor** 9.23, 9.18, 9.46, 9.20, 9.25 / all `byte_cap` at 0.89–0.91 s (1 MiB; a rate over a window holding slow start, not a measured steady rate) | 6.64–7.84 / `duration` |
 | TX aggregate, host received | 7.74 | 5.53 |
-| RX device-side chunks (Mbit/s) | 18.64, 19.97, 17.85, 17.85, 18.64 (all `byte_cap`) | 16.45–18.24 |
+| RX device-side chunks (Mbit/s) | **floor** 18.64, 19.97, 17.85, 17.85, 18.64 (all `byte_cap` in 0.42–0.47 s) | **floor** 16.45–18.24 (`byte_cap` in 0.46–0.51 s) |
 | RX aggregate, host sent | 13.53 | 7.19 |
 | device idle TX / RX | 89.1 % / 86.4 % | 83.0 % / 76.5 % |
 | UDP 10 / 20 / 30 Mbit/s | 893/893, 1786/1786, 2679/2679: zero loss on all three | zero loss / cut / cut |
@@ -1598,6 +1598,38 @@ device ceiling on frames. Where the 29 ms sits (the device's receive
 buffering and acknowledgement timing, or the air) is the next receive
 question; it is not the HIF per-frame cost.
 
+**Page accounting, reconciled (owner, 2026-10-25).** `tx_credits=49276`
+against `retired=5637` is not a per-frame page figure: the data phase
+carried about 3,620 data frames at 13 pages each (28-byte descriptor plus
+a 1,514-byte Ethernet frame, 128-byte pages) and about 1,810
+acknowledgement frames at 1 page, 48,870 pages against the 49,276
+observed, a 0.8 % match. Both sides count the same unit: the vendor's
+`NIC_TX_PAGE_SIZE` is 128 and ours is `(28 + len + 127) / 128`
+(0123, 0278). The charge and the return are identical units; no unit
+question remains, and no length sweep is queued (it would re-measure what
+the source says).
+
+**The vendor's resource contract, sourced (gen3 `nic_tx.c`).**
+`nicTxAcquireResource` charges the frame's page count against the
+queue's free-page count without blocking (busy when short);
+`nicTxPollingResource` reads the released counts (WTSR) and sleeps the
+polling delay between reads when the pool is empty;
+`nicTxReleaseResource` adds the released counts to the free-page pool
+and derives a free-buffer count as pages divided by the maximum pages
+per frame (`NIC_TX_MAX_PAGE_PER_FRAME`, whose size constant the header
+marks "for development only"); the derived count is nonetheless read by
+the queue manager's quota adjustment (`qmAdjustTcQuotasMthread`,
+`que_mgt.c`) to spread the per-queue budgets, though admission itself is
+the page count. The polling delay is 50 ms
+(`NIC_TX_RESOURCE_POLLING_DELAY_MSEC`), with 256 polls the timeout, not
+5 ms. There is no per-frame FIFO on the vendor side: plain data is freed
+after the bus write and the pool is the whole contract. Our FIFO (the frame kept
+until the credits that cover it arrive, in submission order) is the
+stricter form of the same contract. The two questions that remain for
+firmware reverse engineering are the trigger of the released count (DMA
+completion, acknowledgement, or retry exhaustion) and over-return under
+aggregation; both matter only once depth 12 and, later, A-MPDU exist.
+
 **Dispositions.** 0278 is admitted (it is the lifecycle tree's data path
 from this boot). 0274 v2 is verified on hardware: the queued count
 saturated at 8,192 with 3,304 frames beyond it delivered and counted, the
@@ -1617,3 +1649,58 @@ together, the owner's call. Until then boot E's transmit number is a floor.
 in §15's table). Receive: the 29 ms round trip under load, read from the
 device side. The AP-loss gate stays independent and needs no new
 mechanism; it runs over the boot-E image.
+
+## 16. Boots F and G (predeclared, 2026-10-25): the depth, one variable each
+
+**The position.** With ordinary data retired on credit arrival, the
+in-flight depth is the only bound on the frames the firmware holds for
+the air, and the host ledger admits 52 pages (four frames of 13) where
+the vendor's default budget for the queue is 468 pages (36 frames): the
+ledger uses about 11 % of the budget. The forecast is arithmetic on boot
+E's mean wait, not a guess, and it predeclares its own correction: the
+wait rises with depth (more frames queue behind each credit), so each
+result is read against the wait it measured, never against 3.48 ms flat.
+
+| depth | ledger pages | predicted frames/s at 3.5 ms | implied |
+|---|---|---|---|
+| 4 (boot E) | 52 | 1,143 | 13 Mbit/s (measured as a 9.3 floor under the 1 MiB cap) |
+| 8 (boot F) | 104 | 2,286 | 26 Mbit/s |
+| 12 (boot G) | 156 | 3,429 | air-limited at 54 Mbit/s |
+
+**The change.** [0280](../../patches/proposals/0280-wifi-mt6797-make-the-data-depth-a-build-option-with-the-TC1-ledger-derived-from-it.patch)
+makes the depth (`CONFIG_MT6797_CCMP_TX_DEPTH`, 1–16) a build option
+with the pages the host ledger admits derived from it, 13 a frame, so a
+build cannot carry one depth with another depth's ledger (owner's
+refinement); nothing changes at the default. Boot F: depth 8, 104 pages.
+Boot G: depth 12, 156 pages, exposed only through the sweep profiles. One variable per boot, five chunks,
+the probe riding, boot B's revert rule standing (any receive chunk ended
+by `device_timeout` or any non-zero payload reverts the boot's change).
+The tree is otherwise the baseline with 0278.
+
+**Harness.** The per-chunk byte cap is raised from 1 MiB to 4 MiB for
+these boots (plan, review record and the laptop's sender together; the
+device side is bounded by the laptop), so a 1 s chunk is the bound up to
+33 Mbit/s; the compose, validator and review records take the declared
+depth and ledger. Both changes are declared in the run's plan.
+
+**TX first.** `tx_failed`, `retire_expired`, `pid_faults`, `left_pages`
+and the zero-payload check before any throughput claim; `inflight_max`
+must reach the depth or the depth was not exercised.
+
+| Reading | Cause | Next |
+|---|---|---|
+| frames/s up with the wait rising less than proportionally; TX and RX device chunks quoted as the same-boot pair | the depth was the bound; the credit path scales | the next depth, then the air: a higher legacy rate against HT, decided on the depth-12 numbers |
+| frames/s flat with the wait rising in proportion | the firmware's per-frame processing is the bound, not the host depth | stop the depth sweep; the firmware's per-frame path (RE VM) |
+| `retire_expired` > 0 or `pid_faults` > 0 | the FIFO or the pool does not hold at this depth | revert to the previous depth; read the credit lines |
+| any `device_timeout` receive chunk or a non-zero payload | the bound or the ownership is wrong at this depth | revert immediately |
+
+**The three questions.** Reachability: the depth sizes the slot array and
+the per-pass submission count; the ledger pages are the admit call at
+HIF activation, reached on every boot. Ownership: the host ledger's own
+figures, 6.6 kB of accounting at 52 pages against the vendor's 468-page
+(60 kB) budget, with about 18 kB of extra socket buffers at depth 12: the
+constraint being lifted was never RAM but a conservation habit; the
+firmware's budget is 468 pages. What the vendor writes: 468
+pages, 36 frames, by default; no per-frame FIFO. The ledger stands at
+nine. After the air becomes the limit, the choice between a higher
+legacy rate and HT is made on the depth-12 numbers, not before them.

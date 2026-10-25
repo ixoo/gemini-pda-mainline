@@ -14,11 +14,11 @@ here = Path(__file__).resolve().parent
 compat = args.compat or here.parents[1] / "2026-10-01-mt6797-normal-sets/tests"
 with tempfile.TemporaryDirectory(prefix="mt6797-credit-retire-") as directory:
     binary = Path(directory) / "test"
-    for depth in ("1", "4"):
+    for depth in ("1", "4", "8", "12"):   # the slot array at every depth the series has run
         subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-DIS_ENABLED(x)=0",
                         "-DCONFIG_MT6797_CCMP_TX_DEPTH=" + depth, "-fsanitize=address,undefined",
                         "-fno-pie", "-no-pie", "-I", str(compat), "-I", str(driver),
                         str(here / "credit-retire-test.c"), "-o", str(binary)], check=True)
         if depth == "4":
             subprocess.run([str(binary)], check=True, timeout=10)
-print("credit-retire fixtures: PASS (depth 4 run; depth 1 compiled; ASan/UBSan, non-PIE)")
+print("credit-retire fixtures: PASS (depth 4 run; depths 1, 8 and 12 compiled; ASan/UBSan, non-PIE)")
