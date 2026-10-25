@@ -4363,6 +4363,32 @@ the fixed-rate trade, three sampled losses. Receive's one low chunk had
 the laptop's own send rate falling with it (14.8), as in earlier boots;
 the other four match boot W. Nothing the declaration could move moved.
 
+**Owner, 2026-10-25: boot X passed its purpose and missed its
+criterion; the two halves are recorded separately.**
+
+- *Passed: the steady state is unchanged.* Transmit chunks 1–3 match
+  boot W (23.4–23.9 against 23.5–24.2), and receive chunks 2–5 are
+  slightly better. `rx_refused=0`, `tx_tid_refused=0`, the ledger exact.
+  The queue mapping is intact: 49,500 QoS frames all landed on the
+  provisioned TC1. The declared risk, the firmware wanting per-AC
+  traffic classes we have no pages for, did not materialise.
+- *Missed: §34's "nothing moved" criterion on losses.* Transmit chunks 4
+  and 5 ran at 20.0 and 21.2 against 23.8–24.1, retransmissions rose from
+  4 to 16, and `tx_failed` from 0 to 3. That is an unexplained loss
+  episode in the second half, not a throughput regression: the steady
+  state is unchanged.
+- *Read together with it:* three of 773 sampled transmit reports carry
+  status 3 (`MPDU_ERROR`) at MCS7, where boot W had none of 830. Small,
+  but the first retry-limit failures the fixed MCS has produced. They
+  are kept beside the loss episode, not read separately.
+
+**The declaration stays, and is named as a suspect.** It is the
+prerequisite for the aggregation that follows and cost nothing
+structural. If the block-ack boot disappoints, the first thing to split
+is the declaration itself: the QoS bits alone against the HT fields
+(`u2HtOpInfo1..3`, `ucHtProtectMode`). Those are the only part of it
+that can change framing and protection behaviour.
+
 **Next: the block-ack boot (to be predeclared).** It inherits this
 baseline. Block-ack is enabled in the station record
 (`ucTxAmpdu`/`ucRxAmpdu`, the A-MPDU parameters), with several frames
@@ -4371,6 +4397,88 @@ submitted per aggregate window, read as service time per frame:
 | `wait_avg ÷ depth` | Meaning |
 |---|---|
 | falls below about 0.2 ms | the firmware is amortising its per-frame work; transmit can pass 30 |
-| stays near 0.43–0.46 ms | its cost is per MPDU; about 23 Mbit/s is the real ceiling |
+| stays near 0.43–0.46 ms | its cost is per MPDU; about 23 Mbit/s is the real ceiling, and the vendor's 45 comes from something else, worth one source read |
+| retransmissions climb with boot X's second-half signature | the declaration's HT fields, not the aggregation | split the declaration (above) |
 
 Boot X's figure is 0.46 ms (5.49 ms ÷ 12).
+
+## 35. Boot Y (predeclared, 2026-10-25): transmit aggregation in the firmware, read as service time
+
+**Where the differentiation stands (owner, 2026-10-25).** Everything else
+is at parity with the vendor and is not re-litigated: WMM, QoS framing,
+HT capability, per-TID replay, TID routing, the records' QoS and HT
+declaration, both directions clean. One structural gap remains. Our
+per-frame service is about 0.46 ms against 0.17–0.19 ms of air; the
+vendor's 45 Mbit/s through the same firmware implies about 0.26 ms end
+to end and 0.09 ms of firmware work per frame. Two differences in how
+the vendor transmits explain it, each now read from source:
+
+- *Firmware-side A-MPDU.* The vendor build keeps block-ack in the
+  firmware (`config.h`: `CFG_M0VE_BA_TO_DRIVER 0`). Its station record
+  enables A-MPDU (`cnm_mem.c`: `ucTxAmpdu` and `ucRxAmpdu` =
+  `FEATURE_OPT_IN_COMMAND(AmpduTx/AmpduRx)`, `FEATURE_ENABLED` by
+  default, so 2; `ucTxBaSize` and `ucRxBaSize` 64; `ucAmpduParam` the
+  peer's). The host handles only the receive block-ack events
+  (`EVENT_ID_RX_ADDBA/DELBA`) for its reordering. Transmit block-ack
+  needs no host event.
+- *Submission batching (the second suspect, owner's item 3, answered).*
+  The vendor hands the firmware a burst per transfer, not one frame per
+  command. With MT6797's `CFG_SDIO_TX_AGG 1` and
+  `CFG_SDIO_TX_AGG_LIMIT 0`, `nicTxMsduQueue` copies every queued MSDU
+  (descriptor and frame, 4-byte aligned) into one coalescing buffer of up
+  to 968 pages, then issues one `HAL_WRITE_TX_PORT` for the whole queue.
+  On this AHB part one `kalDevPortWrite` is one SDIO-gen3 command in
+  block mode, a single transfer (DMA to `MCR_WTDR1`) carrying every frame.
+  Ours writes one descriptor and one DMA transfer per frame. That is a
+  host-side lever for the same per-frame difference, cheaper than any
+  firmware question.
+
+**The queue, in this order.**
+
+1. Transmit aggregation (this boot), read as service time.
+2. Submission batching (several frames per transfer), if aggregation
+   leaves the per-frame cost near 0.46 ms.
+3. Interrupt-driven receive, if receive stays near 20 against an access
+   point sending at MCS7. Boot V showed the block read worth about a
+   third; the residual is the pass cadence.
+4. Only then short guard interval, then 40 MHz: both scale the air, a
+   third of the cost.
+
+Rate adaptation (parked on an unanswered firmware question) and power
+save (an idle and latency item) stay off the throughput queue.
+
+**The change.**
+[0296](../../patches/proposals/0296-wifi-mt6797-let-the-firmware-aggregate-transmit-to-an-HT-access-point.patch)
+(`CONFIG_MT6797_TX_AMPDU=y` in the lifecycle fragment, on boot X's tree):
+in the state-3 station record that declares the access point's HT,
+
+- `ucTxAmpdu` (76) = 2, `FEATURE_OPT_CMD_ENABLED`, where boot X sent 1
+  (DISABLED);
+- `ucTxBaSize` (92) = 64, the vendor's window;
+- `ucAmpduParam` (48) = the peer's A-MPDU parameters from its HT
+  capability, where boot X sent 0.
+
+Receive A-MPDU stays disabled (`ucRxAmpdu` 1, `ucRxBaSize` 0). A
+receive session would need host reordering, and admission of status
+words with the A-MPDU bits clear (the vendor's `RXS_DW2_AMPDU_nERR`
+path), its own change. Host submission is unchanged: one frame per
+transfer, 12 in flight, so an aggregate can hold at most what the
+firmware has queued (up to 12). The record line names the values
+(`ampdu= tx_ampdu=2 tx_ba=64 rx_ampdu=1`).
+
+**The reading: service time first, throughput a consequence.**
+
+| `wait_avg ÷ depth` | Meaning | Next |
+|---|---|---|
+| falls below about 0.2 ms | the firmware amortises its per-frame work across the aggregate | aggregation is the lever; raise the depth (the aggregate's upper bound) and read transmit past 30 |
+| stays near 0.46 ms | the firmware's cost is per MPDU, **or no aggregate formed** | submission batching (queue item 2) |
+| retransmissions climb with boot X's second-half signature | the declaration's HT fields, not the aggregation | split the declaration: the QoS bits alone against the HT fields |
+| any receive refusal, credits not returning, a stuck queue | the session changed more than the transmit path | stop and name it |
+
+**One limitation, stated before the boot.** The transmit-done event
+carries `ucTxCount` and `ucFlag`, and the source gives neither an
+aggregation meaning. So a result near 0.46 ms cannot by itself
+distinguish "the firmware's cost is per MPDU" from "the firmware formed
+no aggregate" (no session established, or a fixed-rate descriptor kept
+out of aggregation). Either way the next lever is the same, submission
+batching, which needs no firmware answer.

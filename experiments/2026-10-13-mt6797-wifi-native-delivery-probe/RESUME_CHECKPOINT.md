@@ -1,4 +1,4 @@
-# Current: boot X's records' QoS and HT declaration is compatible (nothing moved, every credit on TC1); the block-ack boot is next, to be predeclared
+# Current: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) predeclared, awaiting the owner's review before staging
 
 [Boot X](HIF_TRANSPORT_ANALYSIS.md#boot-x-result-2026-10-25-2313-utc-the-records-qos-and-ht-declaration-is-compatible-nothing-the-declaration-could-move-moved):
 `records_qos=1`, `join HT records: declared=1 sta_phy=0x18 mcs=0xff
@@ -7,8 +7,15 @@ whole with three air losses, every credit returned, no refusal, rate
 still 0x0087; TX 21.27, RX 18.94, within the spread. The access point
 runs a 40 MHz BSS (secondary below); we declare HT20. Next: block-ack in
 the station record with several frames per aggregate window, read as
-wait_avg / depth (0.46 ms here). Nothing is staged; the device is on
-Gemian (`0c2f26a4…`).
+wait_avg / depth (0.46 ms here). Owner: boot X passed its purpose and
+missed its criterion on a second-half loss episode (with three status-3
+frames); the declaration stays, named as the first thing to split if
+block-ack disappoints. [§35](HIF_TRANSPORT_ANALYSIS.md#35-boot-y-predeclared-2026-10-25-transmit-aggregation-in-the-firmware-read-as-service-time):
+0296 `TX_AMPDU=y` (ucTxAmpdu enabled, ucTxBaSize 64, the peer's
+ucAmpduParam; receive A-MPDU still disabled). The vendor's submission
+batching (one transfer per queue, `CFG_SDIO_TX_AGG`) is read and is the
+next lever if the service time stays near 0.46 ms. Nothing is staged;
+the device is on Gemian (`0c2f26a4…`).
 
 # Historical: boot W sends HT MCS7 with no loss and the per-frame service time binds; boot X (the records' QoS and HT declaration, a no-change compatibility step) staged on boot2
 

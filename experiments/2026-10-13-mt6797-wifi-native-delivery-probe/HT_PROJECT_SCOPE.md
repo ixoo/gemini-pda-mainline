@@ -105,6 +105,17 @@ delivers frames natively:
   rate);
 - implementing `ampdu_action` per TID (today a stub that refuses).
 
+**Parity and the one gap (owner, 2026-10-25), not re-litigated.** WMM,
+QoS framing, HT capability, per-TID replay, TID routing, the records' QoS
+and HT declaration (boot X), and both directions clean are at parity with
+the vendor. The one structural gap is the per-frame service time: about
+0.46 ms against the vendor's implied 0.26 ms. It has two source-read
+differences. Firmware-side A-MPDU is boot Y (HIF §35). Submission
+batching is next: the vendor writes the whole queue in one transfer, we
+write one frame per transfer. Then interrupt-driven receive, then short
+guard interval and 40 MHz. Rate adaptation and power save are off the
+throughput queue.
+
 **Boot W's answer, and the next project (owner, 2026-10-25).** The
 firmware sends HT MCS7 on the legacy station record with no loss, but
 transmit moved 2.6 %. The service time is about 0.43 ms a frame, of
