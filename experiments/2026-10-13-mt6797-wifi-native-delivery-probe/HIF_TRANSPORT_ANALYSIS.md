@@ -3782,3 +3782,57 @@ ledger, the measurement protocol.
 | `pn=lower` on a TID without Retry | the access point reorders within one TID, or the seed is wrong | read the seed and the record before anything else |
 | refusals at a new field or status bit | another layout difference | named; its own change |
 | clean | the anti-replay invariant now has the per-TID shape HT needs | HT, the cheap route first (HT scope) |
+
+### Boot T result (2026-10-25, 21:53 UTC): per-TID replay counters remove every receive refusal; the anti-replay invariant has the shape HT needs
+
+Build `42307a6a` (0292 and the probe repair, records non-QoS), boot2
+`c7f650a8…` over boot S's `f7cdcf2f…`, mainline boot `efaa1099…`,
+returned to Gemian `bafaa65c…` by the session's own reviewed return
+(live identity checked afterwards); log complete through the seal
+(187,451 bytes). Graded receipt: `session_exit=0`, `all_pass=True`,
+`verdict_failed=[]`, the core disconnect accepted. The device command
+rendered at 4,074 of 4,096 bytes.
+
+**§30's change: met.**
+
+- `rx_refused=0 rx_refused_qos=0`, with `rx_qos=42198 rx_nonqos=186`.
+  No frame was refused at any field, so not one `pn=` refusal remains,
+  genuine duplicate or otherwise. Boot S's twelve were the single counter
+  across TIDs.
+- Transmit: `tx_tid_refused=0`, `tx_tid=49528/0/0/168/0/0/0/1` (TID 3
+  for the SSH control session, one frame on TID 7).
+- `rx_llc_mis=0`: no LLC-mismatch frame this run.
+- Ledger exact (`expired=0 pid_faults=0 left_pages=0 dropped_full=0
+  tx_failed=0`), retire wait 5.53 ms, 12 in flight, every sampled report
+  at `0x4c`, no MIC or decrypt failure.
+
+**Throughput (recorded; no expectation declared).**
+
+- *Transmit:* 20.86 Mbit/s with every chunk at 21.7–22.3, a steadier run
+  than boot S's 15.0–22.6, close to boot M's 22.7–24.1.
+- *Receive:* 16.38 Mbit/s, chunks 18.7, 10.4, 20.0, 18.8, 20.0. The
+  chunk-2 dip had no receive refusal and an empty device receive queue,
+  and the laptop's own send rate fell with it (17.2 against 22.9–24.2 on
+  the other chunks). The flow slowed at the sender, not at a drop in this
+  driver. A single-chunk dip of this size is in boot M's record too
+  (chunk 5 at 9.5).
+- *§30's recorded row, not met:* device TCP retransmissions went from 0
+  to 9 across the transmit direction, against boot S's 1 to 7. The
+  per-TID counters removed the receive refusals, not the transmit
+  direction's own retransmissions. That is the air, recorded and not
+  graded.
+
+**The probe.** The UDP legs are recorded as retired, and the laptop's
+trigger thread now completes (`completed: true`). The one echo leg
+delivered 892 of 893 at 4.8 Mbit/s offered: the device took 2.07 s
+to pace 893 requests, against 1.08 s in boot S, so this run's leg ran at
+half its nominal rate. That is recorded as a probe reading, not as
+transmit capacity.
+
+**Against §30.** The change is met: the per-TID counters are the fix,
+and nothing at or below a TID's last PN is accepted. The anti-replay
+invariant now has the per-TID shape that block-ack needs. Next, per the
+owner's sequence, is HT on the cheap route (HT scope): HT capability
+advertised with WMM, the fixed `0x4c` descriptor and the records kept,
+and the receive rate record read for HT modes, watching the receive
+refusals for a change of shape.

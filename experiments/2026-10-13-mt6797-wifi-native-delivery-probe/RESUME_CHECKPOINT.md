@@ -1,4 +1,16 @@
-# Current: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) staged on boot2
+# Current: boot T's per-TID replay counters removed every receive refusal (all_pass); next is HT on the cheap route, to be predeclared
+
+[Boot T](HIF_TRANSPORT_ANALYSIS.md#boot-t-result-2026-10-25-2153-utc-per-tid-replay-counters-remove-every-receive-refusal-the-anti-replay-invariant-has-the-shape-ht-needs):
+`rx_refused=0 rx_refused_qos=0`, the anti-replay invariant per TID and
+strict; TX 20.86 (every chunk 21.7-22.3), RX 16.38 (one chunk-2 dip
+that slowed at the sender); ledger exact; the probe's UDP legs retired.
+Next, per the owner's sequence: HT capability advertised with WMM, the
+fixed 0x4c descriptor and records non-QoS kept, the receive rate record
+read for HT modes and the receive refusals watched for a change of
+shape. Not yet predeclared. Nothing is staged; the device is on Gemian
+(`bafaa65c…`).
+
+# Historical: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) staged on boot2
 
 [Boot S](HIF_TRANSPORT_ANALYSIS.md#boot-s-result-2026-10-25-2132-utc-the-data-path-under-wmm-is-restored-and-measured-both-predictions-held-the-per-tid-replay-branch-opened):
 the first graded receipt of the HT chain: TX 17.17, RX 17.64 Mbit/s.

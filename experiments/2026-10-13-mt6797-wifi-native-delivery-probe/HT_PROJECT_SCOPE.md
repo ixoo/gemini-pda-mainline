@@ -73,7 +73,8 @@ Boot S restored the data path under WMM and measured it (17.2 / 17.6
 Mbit/s at the legacy rate; WMM cost no measurable throughput). The fourth
 obstacle is the receive replay counter: one for all TIDs, where CCMP
 needs one per TID. It is a prerequisite for HT, not a detour, because
-aggregation and block-ack are per TID too (boot T, 0292).
+aggregation and block-ack are per TID too (boot T, 0292). Boot T cleared it:
+no receive refusal at any field, every TID strictly ordered.
 
 **Two HT routes, predeclared separately.**
 

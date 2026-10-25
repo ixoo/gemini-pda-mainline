@@ -2875,6 +2875,90 @@
     "tx_failed": 0
    },
    "reading": "HIF section 29: the WMM data path works and is measured; WMM cost no measurable throughput (the transmit variance is one TCP congestion episode in chunk 3, nothing dropped); TID 3 carried 203 frames (AF21 SSH); the LLC-mismatch frames are 802.3 length frames; the 12 unicast pn=lower refusals are a per-TID packet-number mismatch, fixed by 0292 (section 30)"
+  },
+  "boot-t": {
+   "run": "PIO-throughput-boott-1",
+   "session": "2026-10-25 21:53 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot S tree + 0292, probe repair; WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "42307a6acdfdea2b62f15a452de8d57e9f77fff6",
+   "boot2_sha256": "c7f650a88699627e1ebe08915edb4ad2e4df3f1f7043aed5a9d4f280d87ed503",
+   "predecessor_boot2_sha256": "f7cdcf2f50e089d4545dc551a77cfe855e8882a05b108be707f37fd8516efd1c",
+   "mainline_boot_id": "efaa1099-e211-4c69-aa5c-f0a1814d887f",
+   "previous_gemian_boot_id": "566c4f7e-4e82-41b4-89bd-af84382fe2ea",
+   "returned_gemian_boot_id": "bafaa65c-9b9d-4f2a-94db-698f2af7cdd0",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty",
+   "sealed_log_bytes": 187451,
+   "series_row": true,
+   "device_command_bytes": 4074,
+   "throughput": {
+    "tx_aggregate_mbit_s": 20.86,
+    "tx_chunk_mbit_s": [
+     22.18,
+     22.03,
+     22.26,
+     21.71,
+     21.92
+    ],
+    "rx_aggregate_mbit_s": 16.38,
+    "rx_device_chunk_mbit_s": [
+     18.73,
+     10.35,
+     20.03,
+     18.84,
+     20.04
+    ],
+    "rx_host_sent_mbit_s": [
+     23.53,
+     17.21,
+     23.69,
+     22.85,
+     24.24
+    ],
+    "credit_retire_wait_avg_us": 5530,
+    "inflight_max": 12,
+    "backpressure_stops": 230,
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 9
+    }
+   },
+   "qos": {
+    "tx_qos": 49697,
+    "tx_nonqos": 0,
+    "tx_tid_refused": 0,
+    "tx_tid": [
+     49528,
+     0,
+     0,
+     168,
+     0,
+     0,
+     0,
+     1
+    ],
+    "rx_qos": 42198,
+    "rx_nonqos": 186,
+    "rx_refused": 0,
+    "rx_refused_qos": 0,
+    "rx_llc_mis": 0
+   },
+   "probe": {
+    "udp_legs": "retired",
+    "echo_leg": {
+     "count": 893,
+     "received": 892,
+     "offered_mbit_s": 4.83
+    }
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 30: per-TID replay counters remove every receive refusal (rx_refused=0); transmit steady near boot M; the receive chunk-2 dip slowed at the sender; device TCP retransmissions 9 (recorded, not graded)"
   }
  }
 }
