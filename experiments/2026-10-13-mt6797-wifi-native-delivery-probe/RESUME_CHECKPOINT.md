@@ -16,8 +16,9 @@ The second run stopped after one chunk again (the device's nc ends the
 laptop's close with SIGPIPE, 141, not 1), this time with the stop named
 in the receipt by the early-stop record; its one congestion-window sample
 (cwnd 7, ssthresh 5 at 9.2 Mbit/s) provisionally reads TCP-paced. The
-transmit leg accepts 141; the third run is staged on the same image. The
-owner's AP power times are still owed.
+transmit leg accepts 141; the third run is staged on the same image
+(installer skip with full readback, device shut down, watcher armed; the
+owner selects boot2). The owner's AP power times are still owed.
 
 # Historical: boot F read as no change (the firmware's per-frame transmit processing is the limit, ~800 frames/s); boot G cancelled; boot H samples the status report 1 in 64; HT aggregation is the throughput project
 
