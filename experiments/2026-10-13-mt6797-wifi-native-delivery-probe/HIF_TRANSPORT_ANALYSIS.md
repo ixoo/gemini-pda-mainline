@@ -1983,3 +1983,124 @@ this sample. One sample, provisional: it reads as the first row of §18's
 table from the TCP side (the device's TCP is pacing transmit at its
 window over the completion latency), and the third run's five samples
 and echo legs decide it.
+
+### Boot H, third run (2026-10-25, 17:14 UTC): whole; the transmit limit is the driver's own drops, not the air, not the depth, and TCP holds a six-segment window because of them
+
+Same image (`0f1ca6cf…`, the installer's full readback matched), mainline
+boot `7a95b0c6…`, returned to Gemian `0550b47c…` (recovery confirmed);
+session `ram-service-regression-pass`, log complete (172,256 bytes); both
+directions complete, five steady-state chunks each, the echo legs and
+five congestion-window samples; data phase 37.8 s ending by `disconnect`.
+The receipt reads `all_pass=false` only because the laptop's own rule
+still demanded exit 0/124/143 on every chunk where the transmit leg now
+ends on the laptop's close (1 or 141): a verdict artefact, corrected in
+the protocol; the measurement is whole.
+
+**TX first.** `tx_failed=0`; `retired=23512 expired=0 pid_faults=0
+wait_avg_us=3073 wait_max_us=15377 left_pages=0 inflight_max=4
+samples=373 reports=373`; no guard record, no overflow, the zero-payload
+check passed; `ccmp-stable end: queued=8192 beyond=18083` (0274 v2 held
+again). The interface counters: `tx_errors=0 tx_dropped=0` on both
+phases.
+
+| | Boot H run 3 (depth 4, sampled report, steady-state chunks) |
+|---|---|
+| TX chunks, whole / final half (Mbit/s) | 9.19, 9.28, 9.35, 9.72, 9.73 / 9.17, 9.16, 9.41, 9.81, 9.47 (all `duration`, 3.0 s; no stall) |
+| TX aggregate, host received | 8.95 |
+| RX device-side chunks, whole (Mbit/s) | 20.34, 20.21, 14.46, 20.21, 19.62 (4 MiB in 1.65–2.32 s; chunk 3 the slow one) |
+| RX aggregate, host sent | 17.07 |
+| device idle TX / RX | 89.6 % / 86.7 % |
+| sampled status reports | 373 of 23,512 (one in 63): all `0/0x004c`, first and last 0x4c; latency 42 under 1 ms, 78 in [1, 2), 25 in [2, 4), 199 in [4, 8), 29 in [8, 16), max 10.0 ms |
+| device TCP state 1.5 s into each TX chunk | `cwnd=6 ssthresh=5`, `6/5`, `6/5`, `6/6`, `6/6`; retransmit queue empty each time |
+| device TCP `RetransSegs` across the TX phase | 0 → 451 (1.9 % of 23,885 segments) |
+| echo legs, device to laptop, 1,400-byte payloads | offered 4.83 Mbit/s: 885 of 893 replied (0.9 % lost); offered 9.48: 1,263 of 1,786 (29 %); offered 13.96: 1,218 of 2,679 (54 %); delivered 4.79, 6.70, 6.34 Mbit/s |
+| in-chunk ping / at rest (ms min/avg/max) | 10.3 / 44.6 / 85.4 and 9.7 / 37.0 / 78.1 |
+| TCP receive `rttcur` max per chunk (ms) / window max | 324, 300, 348, 331, 300 / 2.5 MB |
+| AP downlink (RX rates) | 1/12=25486, 1/8=656, 1/11=124, 1/13=5, 1/9=4 (97 % at 54 Mbit/s) |
+
+**Reading, against §18's table.** The echo legs could not offer 10, 20
+and 30: BusyBox `ping` paced its requests at about 2.3 ms whatever the
+interval asked (offered 4.8, 9.5 and 14.0 Mbit/s), a limitation of the
+device-side tool, declared. What they do show is decisive with the TCP
+state beside them: at 4.8 Mbit/s offered the path delivers 4.8 with under
+1 % loss; at 9.5 and 14 offered it delivers 6.7 and 6.3 with 29 % and
+54 % lost, so the transmit path loses what is offered above roughly
+800–1,000 frames a second rather than queueing it. TCP sees the same
+thing from inside: 451 retransmissions in the transmit phase and a
+congestion window pinned at six segments (8.7 KB) with the slow-start
+threshold at five or six on all five samples, which at 9.2–9.7 Mbit/s is
+a round trip of about 7.3 ms as the device's TCP measures it. The window
+never grows because every probe above the drain rate costs a loss. The
+373 sampled status reports, all acknowledged at 0x4c, say those losses
+are not on the air (at a 1.9 % loss rate the chance of 373 clean samples
+is below one in a thousand), and the interface counters count no drop:
+the loss is between the socket and the firmware, invisible to every
+counter. The source names it: the driver's data admission is a bounded
+queue (`MT6797_JOIN_DATA_TX_QUEUE` frames, 8 × 1,550 bytes), and a frame
+that arrives when the queue is full is freed unsent
+(`ieee80211_free_txskb` at the end of the transmit entry) with no
+`ieee80211_stop_queues` anywhere in the driver: there is no backpressure
+toward mac80211, so TCP's bursts above the drain rate are dropped
+silently, reported to no one, and recovered by TCP's retransmission with
+its window halved. The vendor stops the network queue at a per-queue
+threshold and wakes it (`netif_stop_subqueue` / `netif_wake_subqueue`,
+`gl_kal.c`). So: the middle row of the table (both contribute), read
+with the window: the driver drains about 800–1,000 frames a second and
+drops the excess; TCP, losing 2 %, holds a six-segment window and paces
+at 9.2–9.7 Mbit/s; the per-frame drain cost (about 1.1–1.25 ms a frame
+for 1,448-byte frames) is real and upstream of the air, and the drops are
+a defect of their own that costs the retransmissions, the small window
+and the stalls. HT is not opened on this: the first change is
+backpressure (§19), after which the transmit number reads the drain rate
+without loss and the drain itself becomes the question.
+
+**Stalls.** None on transmit this run; receive chunk 3 (14.46 against
+19.6–20.3, 2.32 s to its cap) is the one slow chunk and is recorded in
+the ledger (§17).
+
+## 19. Boot I (predeclared, 2026-10-25): backpressure toward mac80211, one variable
+
+**The change.** [0282](../../patches/proposals/0282-wifi-mt6797-stop-mac80211-s-queues-while-the-data-queue-is-full.patch)
+(`CONFIG_MT6797_TX_BACKPRESSURE`): when the driver's data queue reaches
+its bound (eight frames, 12,400 bytes) the transmit entry stops
+mac80211's queues instead of letting the next frame arrive to be freed
+unsent; the worker wakes them once the queue has drained to half; the
+data-phase end, the discard of the queue at teardown and the rearm wake
+them so nothing stays stopped. Frames that still arrive while stopped
+are counted (`tx_dropped=`) and the data-end line reports the stops, the
+wakes and the drops. The vendor's form of the same thing is the
+per-queue stop threshold with a wake (`gl_kal.c`). Nothing changes with
+the option off.
+
+**The position.** Boot H's third run named the transmit limit: the
+driver drains about 800–1,000 frames a second and drops, unreported,
+what TCP offers above it; TCP loses 2 %, holds a six-segment window and
+paces at 9.2–9.7 Mbit/s. With backpressure the drops stop, the window
+grows, and the transmit number reads the drain rate itself without
+retransmissions; the drain (the per-frame cost upstream of the air) is
+then the next question, with the HIF transaction count per frame as its
+first candidate.
+
+**Harness.** The same run as boot H's third: five steady-state chunks,
+the sampled report, the echo legs, the TCP state per chunk, the
+retransmission count; the laptop's verdict accepts the transmit leg's
+closes.
+
+**TX first.** `tx_failed`, `retire_expired`, `pid_faults`,
+`tx_dropped` (expected 0 with the queues stopped in time), the
+zero-payload check; any receive `device_timeout` or non-zero payload
+reverts.
+
+| Reading | Cause | Next |
+|---|---|---|
+| `RetransSegs` near 0, cwnd grows past six, TX chunks above 9.7 | the drops were the window's limit; the drain rate is now the ceiling, read as the new TX number | the drain: HIF transactions per frame (the worker's pass structure), then aggregation only if the per-frame cost survives that |
+| `RetransSegs` near 0, cwnd grows, TX chunks unchanged at 9.2–9.7 | the drops were real but the drain rate was already the ceiling | the drain, as above; HT stays closed until the drain is understood |
+| `RetransSegs` unchanged, cwnd still six | the losses are elsewhere (the air after all, or the laptop's acknowledgements) | read the sampled reports against the retransmissions; the receive-side acknowledgement path |
+| `tx_dropped` > 0 or stalls on stopped queues | the stop or the wake mark is wrong | revert; read the counts |
+
+**The three questions.** Reachability: the stop at the transmit entry's
+admission, the wake in the worker's dequeue and at every path that
+empties the queue. Ownership: mac80211's queue state is the host's;
+nothing is written to the device. What the vendor writes: a network
+queue stop at a packet threshold and a wake when drained. The ledger
+stands at eleven.

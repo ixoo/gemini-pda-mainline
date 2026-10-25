@@ -1,4 +1,16 @@
-# Current: boot H's first run void (harness stop after one chunk; the sampled report works); the second run adds the transmit probe and the device's TCP state; HT is not opened
+# Current: boot H's third run is whole: the transmit limit is the driver's silent drops above its drain rate (no backpressure) plus the drain itself; boot I adds backpressure
+
+[Run 3](HIF_TRANSPORT_ANALYSIS.md#boot-h-third-run-2026-10-25-1714-utc-whole-the-transmit-limit-is-the-drivers-own-drops-not-the-air-not-the-depth-and-tcp-holds-a-six-segment-window-because-of-them)
+and [§19](HIF_TRANSPORT_ANALYSIS.md#19-boot-i-predeclared-2026-10-25-backpressure-toward-mac80211-one-variable):
+373 sampled frames all acknowledged at 0x4c; the device's TCP at cwnd 6
+with 451 retransmissions that no counter shows; the source names the
+drop (a full 8-frame data queue frees the next frame unsent, no
+ieee80211_stop_queues anywhere); the echo legs lose 29–54 % above about
+9 Mbit/s offered. HT stays closed. Boot I: 0282 stops mac80211's queues
+at the bound and wakes them when drained, one variable, the same run.
+The owner's AP power times are still owed.
+
+# Historical: boot H's first run void (harness stop after one chunk; the sampled report works); the second run adds the transmit probe and the device's TCP state; HT is not opened
 
 [§18](HIF_TRANSPORT_ANALYSIS.md#18-boot-h-second-run-predeclared-2026-10-25-the-transmit-probe-and-the-devices-tcp-state):
 boot F's reading is corrected a third time (depth 8 neutral, the offer

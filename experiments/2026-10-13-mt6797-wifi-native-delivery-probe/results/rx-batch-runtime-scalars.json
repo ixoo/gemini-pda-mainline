@@ -1315,6 +1315,210 @@
     "after": null
    },
    "reading": "stop named by the early-stop record; first cwnd sample 7/ssthresh 5 at 9.2 Mbit/s (a ~9 ms round trip as TCP sees it; provisional: TCP window-limited transmit); third run on the same image"
+  },
+  "boot-h-3": {
+   "run": "PIO-throughput-booth3-1",
+   "session": "2026-10-25 17:14 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (depth 4, credit retire, report sample 64)",
+   "kernel_build_commit": "a1aa339a0e189a18b86fba66d0e6f709b45d7637",
+   "boot2_sha256": "0f1ca6cfb30166547ab495ca1ffe305f21e8844db228e19fc4c883f8b4f39a92",
+   "install": "skipped-already-matching",
+   "mainline_boot_id": "7a95b0c6-9d28-4447-99a5-ba38372d2096",
+   "previous_gemian_boot_id": "d70ab8f1-108d-4abc-bea8-fe233d175312",
+   "returned_gemian_boot_id": "0550b47c-0056-41bf-a41c-b76ebd2dcb28",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 172256,
+   "all_pass": false,
+   "all_pass_note": "laptop rule demanded exit 0/124/143 on the transmit leg's closes (1/141); corrected; the measurement is whole",
+   "series_row": true,
+   "throughput": {
+    "tx_host_received_mbit_s": 8.95,
+    "tx_chunk_mbit_s": [
+     9.19,
+     9.28,
+     9.35,
+     9.72,
+     9.73
+    ],
+    "tx_final_half_mbit_s": [
+     9.17,
+     9.16,
+     9.41,
+     9.81,
+     9.47
+    ],
+    "tx_chunk_ended_by": [
+     "duration",
+     "duration",
+     "duration",
+     "duration",
+     "duration"
+    ],
+    "tx_device_exit": [
+     141,
+     1,
+     141,
+     141,
+     141
+    ],
+    "rx_host_sent_mbit_s": 17.07,
+    "rx_device_chunk_mbit_s": [
+     20.34,
+     20.21,
+     14.46,
+     20.21,
+     19.62
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "rx_chunk_elapsed_ms": [
+     1650,
+     1660,
+     2320,
+     1660,
+     1710
+    ],
+    "tx_device_cpu_idle_percent": 89.6,
+    "rx_device_cpu_idle_percent": 86.7
+   },
+   "credit_retire": {
+    "retired": 23512,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 3073,
+    "wait_max_us": 15377,
+    "inflight_max": 4,
+    "samples": 373,
+    "reports": 373
+   },
+   "sampled": {
+    "tx_rates": {
+     "0/0x004c": 373
+    },
+    "latency_ms_buckets": {
+     "<1": 42,
+     "<2": 78,
+     "<4": 25,
+     "<8": 199,
+     "<16": 29,
+     "<32": 0,
+     "<64": 0,
+     "more": 0
+    },
+    "n": 373,
+    "max_us": 10030
+   },
+   "tcp_state": [
+    {
+     "chunk": 1,
+     "cwnd": 6,
+     "ssthresh": 5
+    },
+    {
+     "chunk": 2,
+     "cwnd": 6,
+     "ssthresh": 5
+    },
+    {
+     "chunk": 3,
+     "cwnd": 6,
+     "ssthresh": 5
+    },
+    {
+     "chunk": 4,
+     "cwnd": 6,
+     "ssthresh": 6
+    },
+    {
+     "chunk": 5,
+     "cwnd": 6,
+     "ssthresh": 6
+    }
+   ],
+   "tcp_retrans_segs": {
+    "before": 0,
+    "after": 451
+   },
+   "tx_echo": [
+    {
+     "count": 893,
+     "offered_mbit_s": 4.83,
+     "received": 885,
+     "delivered_mbit_s": 4.79,
+     "loss": 0.009
+    },
+    {
+     "count": 1786,
+     "offered_mbit_s": 9.48,
+     "received": 1263,
+     "delivered_mbit_s": 6.7,
+     "loss": 0.293
+    },
+    {
+     "count": 2679,
+     "offered_mbit_s": 13.96,
+     "received": 1218,
+     "delivered_mbit_s": 6.34,
+     "loss": 0.545
+    }
+   ],
+   "echo_note": "BusyBox ping paced requests at ~2.3 ms regardless of the interval asked: offered 4.8/9.5/14, not 10/20/30",
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 37751,
+    "rx_delivered": 26313,
+    "tx_queued": 23885,
+    "tx_failed": 0,
+    "tx_credits_pages": 208564
+   },
+   "ccmp_stable_end": {
+    "queued": 8192,
+    "beyond": 18083
+   },
+   "rx_rates": {
+    "1/12 (54M)": 25486,
+    "1/8 (48M)": 656,
+    "1/11 (6M)": 124,
+    "1/13 (36M)": 5,
+    "1/9 (24M)": 4
+   },
+   "interface": {
+    "tx_errors": 0,
+    "tx_dropped": 0
+   },
+   "probe": {
+    "laptop_ping_in_chunk_ms": {
+     "min": 10.28,
+     "avg": 44.612,
+     "max": 85.415
+    },
+    "laptop_ping_at_rest_ms": {
+     "min": 9.744,
+     "avg": 36.968,
+     "max": 78.108
+    },
+    "tcp_rx_chunk_rttcur_ms_max": [
+     324,
+     300,
+     348,
+     331,
+     300
+    ]
+   },
+   "stalls": [
+    {
+     "direction": "RX",
+     "chunk": 3,
+     "mbit_s": 14.46,
+     "elapsed_ms": 2320
+    }
+   ],
+   "reading": "the air exonerated (373 clean samples); TCP cwnd pinned at 6 by 451 retransmissions that are the driver's silent drops when its 8-frame queue is full (no ieee80211_stop_queues); echo legs lose 29-54 % above ~9 Mbit/s offered; the drain rate ~800-1,000 frames/s plus the drops is the transmit limit; next: backpressure (0282), HT not opened"
   }
  }
 }

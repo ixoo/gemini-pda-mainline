@@ -49,6 +49,9 @@ literal(h, "n=$(set -o pipefail; $BB timeout 1 $BB nc HOST 48002 | $BB wc -c) ||
 literal(h, """        case "$rc" in 0|124|143) ;; *) exit 38;; esac
 """, """        case "$rc$dir" in 0*|124*|143*|1TX|141TX) ;; *) exit 38;; esac
 """)
+# the laptop's verdict accepts the same transmit-leg closes (boot H's third run measured whole and read all_pass=false on them)
+literal(h, "all(c.get('device_exit') in (0,124,143) for c in direction['chunks'])",
+        "all(c.get('device_exit') in (0,124,143,1,141) for c in direction['chunks'])")   # the leaf itself refuses 1/141 on the receive leg
 # the laptop side: progress samples every 50 ms, the rate over the final half of the chunk beside the whole-chunk rate
 literal(h, "                    samples, next_sample = [], 0\n",
         "                    samples, next_sample = [], 0\n                    progress, next_progress = [], 0\n")
