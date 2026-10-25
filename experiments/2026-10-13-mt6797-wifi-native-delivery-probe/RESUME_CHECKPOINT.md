@@ -1,4 +1,24 @@
-# Current: boot Q completed the four-way handshake under WMM; DHCP then failed, the access point's QoS replies refused at the CCMP receive check; the next change records that check's refusals
+# Current: boot R admitted QoS data on receive and DHCP bound; two named blockers and the seal gap fixed; boot S (the data path under WMM) predeclared, awaiting the owner's review before staging
+
+[Boot R](HIF_TRANSPORT_ANALYSIS.md#boot-r-result-2026-10-25-2055-utc-qos-receive-admission-works-and-dhcp-binds-two-named-blockers-and-the-measurements-ssh-never-connected):
+`rx_qos=22 rx_refused_qos=0`, DHCP bound, pings answered; the
+measurement's SSH never connected. Blockers: 19 transmit frames refused
+at the TID admission (0284 allowed only QoS control 0, unnamed), and 14
+group frames refused at status `0xc200` (`RX_STATUS_LLC_MIS`, the
+class `data-rx.h` already decodes; by size and the earlier type word,
+802.2 LLC frames rather than DHCP; the vendor drops them). The seal gap
+was the laptop helper's crash on a measurement that never ran (the
+naming loop added for boot N) plus an owner check that cannot pass
+when SSH never connects; both fixed on the host (`unreached_stream.py`, the total
+loop). [§29](HIF_TRANSPORT_ANALYSIS.md#29-boot-s-predeclared-2026-10-25-the-data-path-under-wmm-two-admissions-every-refusal-named):
+0290 discards the LLC-mismatch class as the vendor does, named with
+its type word, and names status bits in every refusal; 0291 admits QoS
+transmit on TIDs 0-7 (descriptor TID 0, TC1, the vendor's non-QoS
+template), counted per TID, each refusal named by TID and access
+category. No replay check is relaxed. Nothing is staged; the device is
+on Gemian (`bcd86356…`).
+
+# Historical: boot Q completed the four-way handshake under WMM; DHCP then failed, the access point's QoS replies refused at the CCMP receive check; the next change records that check's refusals
 
 [Boot Q](HIF_TRANSPORT_ANALYSIS.md#boot-q-result-2026-10-25-2043-utc-the-four-way-handshake-completes-under-wmm-dhcp-then-failed-the-access-points-qos-replies-refused-at-the-receive-check):
 the AP's EAPOL-Key admitted on TID 6, our messages 2 and 4 accepted,

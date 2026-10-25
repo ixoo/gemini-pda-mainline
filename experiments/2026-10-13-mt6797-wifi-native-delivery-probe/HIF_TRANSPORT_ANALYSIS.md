@@ -3462,3 +3462,164 @@ sanitizers on).
 **After it, the chain as scoped.** The station record's QoS declaration
 (firmware side) as its own variable, then HT capability advertisement,
 then the station record's PHY and MCS fields, then block-ack.
+
+### Boot R result (2026-10-25, 20:55 UTC): QoS receive admission works and DHCP binds; two named blockers, and the measurement's SSH never connected
+
+Build `1af78599` (0288, 0289, records non-QoS), boot2 `45c802cd…` over
+boot Q's `13703a41…`, mainline boot `c747596b…`, returned to Gemian
+`bcd86356…` by the watcher's reviewed preservation and return (recovery
+confirmed); kernel log complete through the seal (216,421 bytes). The
+session refused its export and seal, so no graded receipt was written
+(the seal gap, below).
+
+**§28's target met.** `rx_qos=22 rx_refused_qos=0`: no QoS frame was
+refused. DHCP bound at the leaf (`dhcp_exit=0 dhcp_bound=1
+dhcp_prefix=24 lease_written=1`), dropbear was ready and three pings went
+out and came back. The data phase ran 291.8 s and ended on the leaf's
+disconnect: `tx_queued=14 tx_done=14 tx_failed=0`, `rx_delivered=1165`,
+ledger exact (`expired=0 pid_faults=0 left_pages=0 dropped_full=0`),
+association unchanged (`requested=1 accepted=1 records_qos=0`), no MIC
+or decrypt failure. The measurement did not run: the laptop's SSH over
+Wi-Fi never connected (`connect to host ... port 22: Operation timed
+out`, exit 255, no byte).
+
+**Two blockers, both named.**
+
+1. *Transmit:* `tx_tid_refused=19` against `tx_qos=14`. 0284 refused any
+   QoS control other than 0 and only counted it, so these frames are not
+   named individually. Mainline's RFC 8325 mapping puts AF21 on TID 3
+   and CS3 on TID 4, for example, and a refusal of anything mac80211
+   classified off TID 0 fits pings passing while SSH did not. That is a
+   fit, not a measurement.
+2. *Receive:* 15 frames refused by both checks (0288), all on the
+   broadcast entry (`wlan=2`). 14 at `field=prefix`: status `0xc200`,
+   142 bytes, `p4=0x48 p6=0xce p9=0x40`, group-4 frame control
+   `0x6208` or `0x4208` (non-QoS data, FromDS, Protected, More Data on
+   ten), `pn=greater`. One at `field=packet-type` (`0xe004`, 442 bytes:
+   not a data descriptor). No receive refusal was QoS.
+
+**The `0xc200` decode (the owner's, checked against the pinned source).**
+In the pinned gen3 `nic_rx.h` (`59e00a91`), descriptor bytes 10–11 are
+`u2StatusFlag`. Bit 9 is `RX_STATUS_LLC_MIS`, and bits 14 and 15 are
+`RX_STATUS_AMPDU_SUB_FRAME` and `RX_STATUS_AMPDU_FORMAT`, so
+`0xc200 = 0xc000 | LLC_MIS`. The descriptor bytes give broadcast match
+with key id 1, a translated 14-byte header with the 2-byte offset, TID 0
+and CCMP. This is the group LLC-mismatch class that `data-rx.h` already
+decodes from runtime 30, there with the type word `0x002e`.
+
+**One correction: these are not the DHCP replies.** Three readings
+disagree:
+
+- DHCP bound in this boot.
+- Each frame is 142 bytes: a 16-byte base, 64 bytes of groups 1–4 and the
+  2-byte offset leave 60 bytes. That is a 14-byte header and 46 bytes,
+  the size of a minimum Ethernet frame. A DHCP reply carries at least
+  300 bytes of BOOTP.
+- The class's earlier record carried `0x002e` in the type word, an 802.3
+  length of 46 rather than an EtherType: an 802.2 LLC frame that the
+  hardware could not translate to Ethernet II.
+
+The pinned vendor data path also drops a frame with this bit as an error
+(`nic_rx.c`: `RXS_DW2_RX_nERR_BITMAP` `0x07F8` covers bit 9; it logs
+`LLC_MIS_ERR` and drops). Its receive path never reads
+`RX_STATUS_ETH_TYPE_OFFSET`. Boot S therefore discards the class as the
+vendor does, naming each frame's type or length word, rather than
+admitting it. If that word comes back at `0x0600` or above (an
+EtherType), this inference is wrong and admission is the next boot's
+change.
+
+**The packet numbers (security).** The group check keeps one strict
+counter and admits a frame only when its PN is greater. `pn=greater`
+means each of the 14 would have advanced that counter: they are not
+replays, so nothing about them needs a replay check relaxed. Discarding
+them leaves the counter unchanged. The per-TID concern is real on the
+pairwise side. A receiver keeps one replay counter per TID because a
+transmitter's frames on different TIDs can be reordered against each
+other, while the pairwise check keeps one counter for all TIDs. That
+would appear as `field=pn pn=lower` on unicast QoS frames; boot R has
+none. If it appears, a per-TID pairwise counter is its own change, named
+as security-relevant: each TID stays strictly ordered, and no PN at or
+below that TID's last is ever accepted.
+
+**The vendor's transmit routing (`nic_tx.h`, `nic_tx.c`, `que_mgt.c`
+at `59e00a91`).**
+
+- `NET_TC_NON_STAREC_NON_QOS_INDEX` exists ("BMC/non-associated
+  frame"). In station mode, however, `qmDetermineStaRecIndex` sends every
+  frame, group destinations included, through the access point's station
+  record. `STA_REC_INDEX_BMCAST` and its TC5 are for IBSS and
+  access-point operation.
+- With a QoS station record, the TC follows the TID's access category
+  (`aucTid2ACI`; `arNetwork2TcResource`: BE→TC1, BK→TC0, VI→TC2,
+  VO→TC3). With a non-QoS record, one TID-0 template on TC5 serves every
+  TID.
+- `nicTxFillMsduInfo` moves DHCP and ARP to UP 6 (VO) at the lowest
+  fixed rate.
+
+Our record is non-QoS, so the descriptor's TID 0 already matches the
+vendor. We stay on TC1, the queue of every earlier boot: moving to TC5 is
+a resource-pool change and its own variable.
+
+**The seal gap, diagnosed and fixed (host).** The halt did satisfy the
+device's quiescence (the watcher's owned-stop found only the supplicant,
+then nothing). The refusal came from the laptop's helper, in two layers:
+
+1. *A crash in the boot N naming loop.* The failure-naming loop that
+   `throughput_verdict.py` added for boot N evaluates
+   `direction['bytes'] > 0`. With no measurement, receive `bytes` is
+   `None`, so the helper raised `TypeError` after the USB remote-owner
+   scan had already run. Its catch-all then wrote "helper exception;
+   remote ownership not confirmed" over that result. The retained gate
+   short-circuits; the naming loop did not. The loop is now total over a
+   measurement that never ran.
+2. *A check that could not pass.* Without the device's `TP1_OWNER_PID`,
+   the helper forces the owner scan to fail (`owners=1`), because it
+   cannot check the owner's process group. A connection that never
+   opened never prints that PID. `unreached_stream.py` lets the tagged
+   scan stand unmodified only when the retained SSH observation proves
+   the TCP connect failed: exit 255, no timeout, no stdout, and stderr
+   exactly one `ssh: connect to host ... port 22:` failure line. The
+   record names the case (`ssh_unreached`). Any other missing PID still
+   fails.
+
+Against boot R's retained observation the predicate is true; against
+boots K–N, whose SSH connected, it is false. Tests:
+`tests/unreached-stream-test.py`.
+
+## 29. Boot S (predeclared, 2026-10-25): the data path under WMM, two admissions, every refusal named
+
+**The changes, one declared boot (the owner's order).**
+
+- [0290](../../patches/proposals/0290-wifi-mt6797-discard-the-group-LLC-mismatch-class-as-the-vendor-does-and-name-status-bits.patch)
+  (receive): the CCMP path recognises the group LLC-mismatch class with
+  the existing `data-rx.h` decoder and discards it as the vendor does.
+  It is never delivered, the group PN is unchanged, and the first eight
+  are named with the type or length word (`join data LLC mismatch
+  discarded: ... type=`). Every refusal record also names the status
+  bits that differ from `0xc000` (`status=llc-mis`, and so on).
+- [0291](../../patches/proposals/0291-wifi-mt6797-transmit-QoS-data-on-any-TID-each-refusal-named.patch)
+  (transmit): QoS data is admitted on any TID 0–7 with normal
+  acknowledgment, no A-MSDU and no EOSP, and counted per TID
+  (`tx_tid=`). The descriptor stays TID 0 on TC1, the vendor's non-QoS
+  template. Any other QoS control is refused, counted and named
+  (`data tx refused: tid= ac= qos= group= type= tos=`).
+- Host, failure handling only: `unreached_stream.py` and the total
+  naming loop. The measurement protocol is unchanged (the HT-chain
+  freeze).
+- Unchanged: the records non-QoS, depth 12, rate `0x4c`, the ledger.
+  No replay check is relaxed.
+
+| Reading | Required |
+|---|---|
+| `tx_tid_refused=0`, `tx_tid=` showing the TIDs in use | the transmit admission is the change |
+| `rx_refused` 0 apart from named non-data descriptors; `rx_llc_mis` equal to the former `0xc200` refusals, each with `type=` | the receive class is named and handled as the vendor does |
+| DHCP binds, the measurement's SSH connects, `cycles_completed=1`, a graded `ccmp-session-result.json` | the data path is restored and measured |
+| no throughput expectation; ledger exact; no MIC or decrypt failure; `pn=` refusals none | nothing else moved |
+
+| Reading | Cause | Next |
+|---|---|---|
+| `type=` at `0x0600` or above on the discarded class | they carry an EtherType: §28's inference wrong | admit the class, its own change |
+| `field=pn pn=lower` on unicast QoS frames | the AP's TIDs reorder against one pairwise counter | a per-TID pairwise replay counter, its own named security change |
+| `data tx refused` with a non-zero ack policy or another bit | a second transmit difference | named; its own change |
+| SSH still unreached with both counters at 0 | the cause is not the admissions | the receipt now grades it; the next diagnostic reads the device's own TCP view |
+| the measurement runs | the data path under WMM at the legacy rate | boot T: the station record's QoS declaration, which brings the TID into the descriptor and the TC by access category (the vendor's QoS template) |

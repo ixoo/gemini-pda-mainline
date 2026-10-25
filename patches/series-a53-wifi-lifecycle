@@ -767,3 +767,5 @@ proposals/0286-wifi-mt6797-admit-the-access-point-s-QoS-EAPOL-Key-whatever-its-T
 proposals/0287-wifi-mt6797-send-the-control-port-s-EAPOL-on-TID-6-with-WMM.patch
 proposals/0288-wifi-mt6797-name-every-data-frame-both-receive-checks-refuse.patch
 proposals/0289-wifi-mt6797-admit-QoS-data-on-any-TID-at-the-receive-checks.patch
+proposals/0290-wifi-mt6797-discard-the-group-LLC-mismatch-class-as-the-vendor-does-and-name-status-bits.patch
+proposals/0291-wifi-mt6797-transmit-QoS-data-on-any-TID-each-refusal-named.patch

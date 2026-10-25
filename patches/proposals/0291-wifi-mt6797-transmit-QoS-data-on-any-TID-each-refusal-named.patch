@@ -1,0 +1,135 @@
+From b67df8b900082b5d1da25804c05b7b678bfd7e6d Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 17:19:08 -0400
+Subject: [PATCH] wifi: mt6797: transmit QoS data on any TID, each refusal
+ named
+
+Boot R refused nineteen of mac80211's QoS data frames at the transmit
+admission, which accepted only QoS control 0 (TID 0). mac80211 chooses
+the TID from the frame (RFC 8325 maps AF21 to TID 3, for example).
+
+With WMM the admission now accepts QoS data on any TID 0-7 with normal
+acknowledgment, no A-MSDU and no EOSP. The station record stays
+non-QoS, so the descriptor keeps TID 0 and the TC1 queue, the vendor's
+single template for a non-QoS station record (nic_tx.c); in station mode
+the vendor sends a group destination through the access point's record
+as well (que_mgt.c qmDetermineStaRecIndex). Admitted frames are counted
+per TID. Any other QoS control is refused, counted and the first 16 of a
+lifetime named by TID, mac80211's access category, the destination's
+group bit, the Ethernet type and an IPv4 TOS byte.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 55 +++++++++++++++++-----
+ 1 file changed, 43 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 015910bc5..07d73c70d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -260,6 +260,7 @@ struct mt6797_mac {
+ 	 */
+ 	bool join_wmm_requested, join_wmm_accepted;
+ 	unsigned int qos_ac_params, qos_tx, qos_tx_nonqos, qos_tx_tid_refused;
++	unsigned int qos_tx_tid[8]; /* admitted QoS data by TID (0291) */
+ 	unsigned int qos_rx, qos_rx_nonqos, qos_rx_refused, qos_rx_refused_qos;
+ #endif
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+@@ -2113,6 +2114,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->qos_tx = 0;
+ 	mac->qos_tx_nonqos = 0;
+ 	mac->qos_tx_tid_refused = 0;
++	memset(mac->qos_tx_tid, 0, sizeof(mac->qos_tx_tid));
+ 	mac->qos_rx = 0;
+ 	mac->qos_rx_nonqos = 0;
+ 	mac->qos_rx_refused = 0;
+@@ -3344,9 +3346,12 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ #endif
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u rx_llc_mis=%u\n",
++		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u tx_tid=%u/%u/%u/%u/%u/%u/%u/%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u rx_llc_mis=%u\n",
+ 		 mac->join_wmm_requested, mac->join_wmm_accepted, mac->qos_ac_params,
+ 		 mac->qos_tx, mac->qos_tx_nonqos, mac->qos_tx_tid_refused,
++		 mac->qos_tx_tid[0], mac->qos_tx_tid[1], mac->qos_tx_tid[2],
++		 mac->qos_tx_tid[3], mac->qos_tx_tid[4], mac->qos_tx_tid[5],
++		 mac->qos_tx_tid[6], mac->qos_tx_tid[7],
+ 		 mac->qos_rx, mac->qos_rx_nonqos, mac->qos_rx_refused,
+ 		 mac->qos_rx_refused_qos, mac->join_data_llc_discarded);
+ #endif
+@@ -6819,18 +6824,42 @@ static void mt6797_mac_sta_set_decap_offload(struct ieee80211_hw *hw,
+ }
+ #endif
+ 
+-/* Ordinary QoS data: TID 0 (AC_BE, the TC1 queue) with normal
+- * acknowledgment and no A-MSDU, QoS control 0; any other is refused and
+- * counted (0284). Non-QoS frames pass.
++/* Ordinary QoS data on any TID mac80211 chose (0-7) with normal
++ * acknowledgment, no A-MSDU and no EOSP is admitted (0291). The station
++ * record is non-QoS, so the descriptor keeps TID 0 and the TC1 queue: the
++ * vendor's single template for a non-QoS station record (nic_tx.c,
++ * nicTxGenerateDescTemplate; in station mode a group destination also goes
++ * through the access point's record, qmDetermineStaRecIndex). Any other QoS
++ * control is refused, counted and the first 16 of a lifetime named by TID,
++ * mac80211's access category, the destination's group bit, the Ethernet
++ * type and an IPv4 TOS byte. Non-QoS frames pass.
+  */
+-static inline bool mt6797_join_qos_tid_refused(struct mt6797_mac *mac, const u8 *header,
+-					unsigned int hl)
++static bool mt6797_join_qos_tid_refused(struct mt6797_mac *mac, struct sk_buff *skb,
++					const u8 *header, unsigned int hl)
+ {
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+-	if (hl == 26 && get_unaligned_le16(header + 24)) {
+-		mac->qos_tx_tid_refused++;
+-		return true;
++	static const char *const ac[IEEE80211_NUM_ACS] = { "vo", "vi", "be", "bk" };
++	unsigned int qos, queue;
++	char tos[8] = "n/a";
++	u8 ip[2];
++
++	if (hl != 26)
++		return false;
++	qos = get_unaligned_le16(header + 24);
++	if (!(qos & ~IEEE80211_QOS_CTL_TAG1D_MASK))
++		return false;
++	if (++mac->qos_tx_tid_refused <= 16) {
++		queue = skb_get_queue_mapping(skb);
++		if (header[hl + 6] == 0x08 && !header[hl + 7] &&
++		    !skb_copy_bits(skb, hl + 8, ip, sizeof(ip)) && (ip[0] >> 4) == 4)
++			scnprintf(tos, sizeof(tos), "0x%02x", ip[1]);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN data tx refused: n=%u tid=%u ac=%s qos=0x%04x group=%u type=0x%02x%02x tos=%s\n",
++			 mac->qos_tx_tid_refused, qos & 15,
++			 queue < IEEE80211_NUM_ACS ? ac[queue] : "none", qos,
++			 header[16] & 1, header[hl + 6], header[hl + 7], tos);
+ 	}
++	return true;
+ #endif
+ 	return false;
+ }
+@@ -6903,7 +6932,7 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 	    !skb_copy_bits(skb, 0, header, sizeof(header)) &&
+ 	    (hl = MT6797_JOIN_TX_HDRLEN(mt6797_join_le16(header))) &&
+ 	    (mt6797_join_le16(header) & ~(0x0800U | MT6797_JOIN_TX_QOS_BIT)) == 0x4108 &&
+-	    !mt6797_join_qos_tid_refused(mac, header, hl) &&
++	    !mt6797_join_qos_tid_refused(mac, skb, header, hl) &&
+ 	    !memcmp(header + hl, llc_eapol, 6) &&
+ 	    !(header[hl + 6] == 0x88 && header[hl + 7] == 0x8e) &&
+ 	    ether_addr_equal(header + 4, mac->join_ap) &&
+@@ -6920,10 +6949,12 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 		    mac->join_queue_bytes + skb->len <= MT6797_JOIN_DATA_TX_QUEUE_BYTES) {
+ 			mac->join_data_tx_queued++;
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+-			if (hl == 26)
++			if (hl == 26) {
+ 				mac->qos_tx++;
+-			else
++				mac->qos_tx_tid[header[24] & 7]++;
++			} else {
+ 				mac->qos_tx_nonqos++;
++			}
+ #endif
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
+-- 
+2.43.0
+

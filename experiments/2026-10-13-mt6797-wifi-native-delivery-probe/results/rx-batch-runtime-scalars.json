@@ -2751,6 +2751,52 @@
     "tx_failed": 0
    },
    "reading": "HIF section 27: the handshake goal met; DHCP failed with the AP's four QoS replies refused at the CCMP receive check (byte 9 fixed at 0x40, QoS control at 0); the refusing field is not recorded post-key"
+  },
+  "boot-r": {
+   "run": "PIO-throughput-bootr-1",
+   "session": "2026-10-25 20:55 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot Q tree + 0288, 0289; WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "1af78599600bb1d8083fd4713c537d2960c14ea5",
+   "boot2_sha256": "45c802cdd68f6f0e96540c6714c6453c7758da154bd6eae2ff8acc693ef76166",
+   "predecessor_boot2_sha256": "13703a41d0da4164ee7dfb773782b4f277682611620726b48ca4ae08762fde1f",
+   "mainline_boot_id": "c747596b-8f4d-4ce4-aa5e-562a87b4f95c",
+   "previous_gemian_boot_id": "8afdfec0-643f-4709-ba4f-81dc1ecf68a1",
+   "returned_gemian_boot_id": "bcd86356-90d6-4ca7-8757-9b3aaa1f6b87",
+   "returned_by": "watcher's reviewed preservation and return",
+   "classification": "void for the measurement: QoS receive admitted, DHCP bound, measurement SSH unreached; no graded receipt (host seal gap)",
+   "sealed_log_bytes": 216421,
+   "series_row": true,
+   "data_phase": {
+    "elapsed_ms": 291816,
+    "dhcp_bound": 1,
+    "ping_received": 3,
+    "tx_queued": 14,
+    "tx_done": 14,
+    "rx_delivered": 1165,
+    "end": "leaf disconnect"
+   },
+   "qos": {
+    "tx_qos": 14,
+    "tx_nonqos": 0,
+    "tx_tid_refused": 19,
+    "rx_qos": 22,
+    "rx_nonqos": 1103,
+    "rx_refused": 15,
+    "rx_refused_qos": 0
+   },
+   "rx_refusals": {
+    "prefix_0xc200_llc_mis": 14,
+    "packet_type_0xe004": 1,
+    "pn": "greater on all 14"
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 28: the QoS receive admission works; blockers named: 19 transmit TID refusals (unnamed by 0284) and 14 group LLC-mismatch frames (status 0xc200, not DHCP); the helper crashed on a measurement that never ran and the session refused its seal"
   }
  }
 }

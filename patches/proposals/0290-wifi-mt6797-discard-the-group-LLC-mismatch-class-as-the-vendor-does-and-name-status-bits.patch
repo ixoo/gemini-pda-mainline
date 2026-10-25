@@ -1,0 +1,138 @@
+From 8ed3f09e15e06fbdf4c9d119a9c36d7375e2fa2d Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 17:19:02 -0400
+Subject: [PATCH] wifi: mt6797: discard the group LLC-mismatch class as the
+ vendor does, and name status bits
+
+Boot R refused fourteen downlink frames at the status word: 0xc200, the
+admitted 0xc000 with bit 9 set. The pinned gen3 nic_rx.h names bit 9
+RX_STATUS_LLC_MIS, and its data path drops a frame carrying it as an
+error (nic_rx.c, RXS_DW2_RX_nERR_BITMAP covers bit 9). The descriptor
+bytes match the group LLC-mismatch class data-rx.h already decodes:
+broadcast match with key id 1, translated 14-byte header, CCMP, TID 0,
+non-QoS group-4 frame control from the access point.
+
+The CCMP receive path now recognises that class with the existing
+decoder and discards it, never delivered or interpreted and with the
+group PN unchanged, counted and the first eight named by the translated
+type or length word, as the join path already does. The data-end QoS
+line reports the count. Every other refusal keeps its record, which now
+also names the status bits that differ from 0xc000 as nic_rx.h names
+them.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 56 +++++++++++++++++++---
+ 1 file changed, 50 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5b982663a..015910bc5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -780,19 +780,52 @@ static void mt6797_ccmp_withheld_arp(struct mt6797_mac *mac, size_t bytes)
+ 	    view.bytes && view.ether_type == 0x0806)
+ 		mac->ccmp_gtk_arp_withheld++;
+ }
++
++/* The group LLC-mismatch class of data-rx.h (status 0xc200: boot R's
++ * fourteen downlink refusals). The pinned vendor data path drops a status
++ * word with RX_STATUS_LLC_MIS as an error (nic_rx.c, RXS_DW2_RX_nERR_BITMAP
++ * covers bit 9), so it is discarded here too: never delivered or
++ * interpreted, the group PN unchanged, counted and the first eight named by
++ * the translated type or length word, as the join path does (0290).
++ */
++static bool mt6797_ccmp_llc_mismatch(struct mt6797_mac *mac, size_t bytes)
++{
++	struct mt6797_data_rx view;
++
++	if (!mac->ccmp_gtk || mac->join_key_group != 1 ||
++	    !mt6797_data_rx_llc_mismatch(mac->join_packet, bytes, 40, mac->join_ap,
++					 MT6797_JOIN_BMC_WLAN_INDEX, &view) ||
++	    view.key_id != mac->join_group_key_id)
++		return false;
++	if (++mac->join_data_llc_discarded <= 8)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join data LLC mismatch discarded: bytes=%zu fc=0x%x keyid=%u tid=%u type=0x%04x count=%u\n",
++			 view.bytes, mac->join_packet[16] | mac->join_packet[17] << 8,
++			 view.key_id, view.tid, view.ether_type,
++			 mac->join_data_llc_discarded);
++	return true;
++}
+ #endif
+ 
+ /* A data frame both receive checks refused (0288): counted, and named for the
+  * first 64 of a lifetime by the descriptor and header fields the checks fix,
+  * with the first of them that differs from the admitted shape. Lengths,
+- * flags and the PN's order only; no address or payload byte.
++ * flags and the PN's order only; no address or payload byte. The status
++ * word's bits that differ from the admitted 0xc000 are named as the pinned
++ * nic_rx.h names them (0290).
+  */
+ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ {
++	static const char *const status_bit[16] = {
++		"sw", "fcs", "cipher-mismatch", "cipher-length", "icv", "tkip-mic",
++		"length", "de-amsdu", "exceed-length", "llc-mis", "udf-vlt", "frag",
++		"null", "data", "ampdu-sub", "ampdu-format",
++	};
+ 	const u8 *p = mac->join_packet;
+ 	const struct mt6797_ccmp_rx_context *c;
+-	unsigned int groups, fc = 0x10000, qos = 0x10000, i;
++	unsigned int groups, fc = 0x10000, qos = 0x10000, i, diff, n = 0;
+ 	const char *field, *pn = "n/a";
++	char status[144];
+ 
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	mac->qos_rx_refused++;
+@@ -813,6 +846,13 @@ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ 	}
+ 	groups = (mt6797_join_le16(p + 2) >> 9) & 15;
+ 	c = p[8] == 2 ? &mac->ccmp_gtk_rx : &mac->ccmp_rx;
++	diff = mt6797_join_le16(p + 10) ^ 0xc000;
++	for (i = 0; i < 16; i++)
++		if (diff & BIT(i))
++			n += scnprintf(status + n, sizeof(status) - n, "%s%s",
++				       n ? "+" : "", status_bit[i]);
++	if (!n)
++		strscpy(status, "none", sizeof(status));
+ 	if (groups & 8) {
+ 		fc = mt6797_join_le16(p + 16);
+ 		qos = mt6797_join_le16(p + 26);
+@@ -837,9 +877,9 @@ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ 		mt6797_join_le32(p + 28) ? "ht-control" :
+ 		strcmp(pn, "greater") ? "pn" : "other";
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN data rx refused: n=%u field=%s bytes=%zu groups=0x%x p4=0x%02x p6=0x%02x p7=0x%02x wlan=%u p9=0x%02x prefix=0x%04x fc=0x%04x qos=0x%04x ht=0x%08x pn=%s\n",
++		 "one-shot WLAN data rx refused: n=%u field=%s bytes=%zu groups=0x%x p4=0x%02x p6=0x%02x p7=0x%02x wlan=%u p9=0x%02x prefix=0x%04x status=%s fc=0x%04x qos=0x%04x ht=0x%08x pn=%s\n",
+ 		 mac->ccmp_rx_refused, field, bytes, groups, p[4], p[6], p[7], p[8], p[9],
+-		 mt6797_join_le16(p + 10), fc, qos,
++		 mt6797_join_le16(p + 10), status, fc, qos,
+ 		 (groups & 8) ? mt6797_join_le32(p + 28) : 0, pn);
+ }
+ 
+@@ -874,6 +914,10 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 			goto checked;
+ 		}
+ 		mt6797_ccmp_withheld_arp(mac, bytes);
++		if (mt6797_ccmp_llc_mismatch(mac, bytes)) {
++			dev_kfree_skb(skb);
++			return 0;
++		}
+ #endif
+ 		mt6797_ccmp_rx_refused(mac, bytes);
+ 		dev_kfree_skb(skb);
+@@ -3300,11 +3344,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ #endif
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u\n",
++		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u rx_llc_mis=%u\n",
+ 		 mac->join_wmm_requested, mac->join_wmm_accepted, mac->qos_ac_params,
+ 		 mac->qos_tx, mac->qos_tx_nonqos, mac->qos_tx_tid_refused,
+ 		 mac->qos_rx, mac->qos_rx_nonqos, mac->qos_rx_refused,
+-		 mac->qos_rx_refused_qos);
++		 mac->qos_rx_refused_qos, mac->join_data_llc_discarded);
+ #endif
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+ 	{
+-- 
+2.43.0
+

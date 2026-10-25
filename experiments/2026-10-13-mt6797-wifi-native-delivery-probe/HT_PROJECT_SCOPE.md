@@ -64,7 +64,21 @@ roaming, in 802.1X and with any access point that puts EAPOL on AC_VO.
 The second (boot Q) was the downlink data admission: with WMM the access
 point sends all data as QoS, and the receive checks admitted only TID 0
 with QoS control 0. Both obstacles are QoS-layout consequences, and both
-will recur in roaming and 802.1X.
+will recur in roaming and 802.1X. The third (boot R) was the same kind:
+the transmit admission allowed only TID 0 while mac80211 picks the TID
+from the frame, and a group LLC-mismatch class (`0xc200`) surfaced at
+the receive check. The first three obstacles were all access-category
+or frame-layout consequences, none of them aggregation.
+
+**The descriptor's A-MPDU bits are not air aggregation.** Status bits 14
+and 15 (`RX_STATUS_AMPDU_SUB_FRAME`, `RX_STATUS_AMPDU_FORMAT`) are set on
+every ordinary accepted frame (`0xc000`), legacy boots included. They
+describe how the frame was delivered through the receive buffer, not an
+802.11 A-MPDU, and are no evidence that the access point aggregates to
+this station. Whether block-ack and A-MPDU are gated on HT in the
+firmware, and what it does with the BSS and station QoS records, are
+item 5's questions, one bounded firmware session each, later; nothing on
+the path to a working WMM data path needs them.
 
 ## Boundaries
 
