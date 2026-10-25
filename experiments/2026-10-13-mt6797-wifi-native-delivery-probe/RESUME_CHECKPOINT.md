@@ -1,4 +1,20 @@
-# Current: boot K held the rule on transmit (21.0 Mbit/s at depth 8, 21.7 predicted) and lost two receive chunks to the device's bound; the fragment is back at depth 4; the next boot is the owner's decision
+# Current: boot L predeclared (depth 8 restored, receive measured over the send window, the queue's per-second series and receive gaps, the verdict's stale gates replaced) and building
+
+Boot K's revert fired on a receive artefact under a transmit change; the
+rule is amended (a timeout reverts a change on its own path, or when the
+safety counters show loss) and depth 8 is restored.
+[§22](HIF_TRANSPORT_ANALYSIS.md#22-boot-l-predeclared-2026-10-25-depth-8-again-measured-over-the-send-window-with-the-queues-time-series)
+adds no driver variable: the device's bound moves to 6 s, the laptop
+measures each receive chunk over its send window and records the drain
+beside it, 0283 prints the queue's stops, wakes and high-water per second
+and every receive gap over 200 ms, and the throughput verdict keeps its
+live gates and replaces the stale ones. The boot answers four questions:
+transmit near 20.9, the clean receive rate, boot K's chunk 3, and whether
+the queue ever stops during receive (expected: never). No
+acknowledgement-split boot before those answers; HT stays closed below
+the 33 Mbit/s ceiling.
+
+# Historical: boot K held the rule on transmit (21.0 Mbit/s at depth 8, 21.7 predicted) and lost two receive chunks to the device's bound; the fragment is back at depth 4; the next boot is the owner's decision
 
 [Boot K](HIF_TRANSPORT_ANALYSIS.md#boot-k-result-2026-10-25-1810-utc-transmit-27--on-the-rule-the-revert-row-fired-on-receive-confounded-by-the-harness):
 transmit 20.9–21.2 Mbit/s steady (+27 % on boot J), wait 4.26 ms with 8

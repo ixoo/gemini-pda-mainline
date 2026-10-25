@@ -11,6 +11,12 @@ from unittest.mock import patch
 HERE = Path(__file__).resolve().parent.parent
 PREFIX = b'6,1,100,-;device: one-shot WLAN join cleanup: '
 TERMINAL = PREFIX + b'stage=3 credits=returned slots=retired deauth=1'
+NATIVE = (b'6,1,90,-;device: one-shot WLAN native-diag: state=1 act=1 total=0 native=0 bytes=0\n'
+          b'6,1,95,-;device: one-shot WLAN native-diag: state=3 act=2 total=45705 native=0 bytes=56223004\n')
+RETIRE = (b'6,1,96,-;device: one-shot WLAN join data phase end: reason=disconnect elapsed_ms=43303 rx_delivered=1 '
+          b'tx_queued=4 tx_done=4 tx_failed=0 tx_credits=8\n'
+          b'6,1,97,-;device: one-shot WLAN join data credit retire end: retired=51117 expired=0 pid_faults=0 '
+          b'wait_avg_us=4263 wait_max_us=22469 left_pages=0 inflight_max=8 samples=811 reports=811\n')
 
 
 class ClassifierTests(unittest.TestCase):
@@ -53,7 +59,7 @@ class ClassifierTests(unittest.TestCase):
             label: {'completed': True, 'chunks': [{'elapsed_ns': 1_000_000_000}]*5}
             for label in ('TX', 'RX')}}}
         classify = self.module['classify']
-        raw = TERMINAL+b' delivery=transmitted'
+        raw = NATIVE+TERMINAL+b' delivery=transmitted'
         value = classify(raw, receipt, True)
         self.assertTrue(value['throughput_baseline_pass'])
         self.assertEqual(value['cleanup_delivery'], 'transmitted')
@@ -110,10 +116,31 @@ class ClassifierTests(unittest.TestCase):
                 with patch.dict(self.module['classify'].__globals__,
                                 depth_decoder=lambda source, namespace: lambda raw: {
                                     'trace_valid': valid, 'whole_after_cleanup': whole}):
-                    value = self.module['classify'](TERMINAL, receipt, True, data_depth=4)
+                    value = self.module['classify'](NATIVE+TERMINAL, receipt, True, data_depth=4)
                     self.assertEqual(value['throughput_baseline_pass'], expected)
         with self.assertRaises(ValueError):
             self.module['classify'](TERMINAL, None, True, data_depth=2)
+
+    def test_steady_state_credit_retire_verdict(self):
+        # Boot K's shape: 3 s chunks inside the device's 6 s bound, credit retire, no PID trace.
+        receipt = {'all_pass': True, 'throughput_measurement': {
+            'device_bound_seconds': 6, 'directions': {
+                label: {'completed': True, 'chunks': [{'elapsed_ns': 3_820_000_000}]*5}
+                for label in ('TX', 'RX')}}}
+        classify = self.module['classify']
+        raw = NATIVE+RETIRE+TERMINAL
+        value = classify(raw, receipt, True, data_depth=8)
+        self.assertTrue(value['throughput_baseline_pass'], value['verdict_gates'])
+        self.assertTrue(value['credit_retire_ownership']['whole'])
+        self.assertEqual(value['retained_not_gated'], ['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])
+        for broken in (raw.replace(b'expired=0', b'expired=1'), raw.replace(b'pid_faults=0', b'pid_faults=2'),
+                       raw.replace(b'left_pages=0', b'left_pages=13'), raw.replace(b'tx_failed=0', b'tx_failed=1'),
+                       raw.replace(b'total=45705 native=0', b'total=45705 native=1'),
+                       raw.replace(b'total=45705', b'total=0').replace(b'bytes=56223004', b'bytes=0').replace(b'total=0 native=0 bytes=0\n6', b'total=9 native=0 bytes=9\n6', 1),
+                       RETIRE+TERMINAL):
+            self.assertFalse(classify(broken, receipt, True, data_depth=8)['throughput_baseline_pass'])
+        receipt['throughput_measurement']['directions']['RX']['chunks'][0] = {'elapsed_ns': 6_600_000_000}
+        self.assertFalse(classify(raw, receipt, True, data_depth=8)['throughput_baseline_pass'])
 
 
 if __name__ == '__main__':

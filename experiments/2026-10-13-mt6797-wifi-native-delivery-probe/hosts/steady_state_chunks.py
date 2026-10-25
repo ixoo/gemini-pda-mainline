@@ -25,7 +25,9 @@ chunks exactly where a change is largest. At 16 MiB the 3 s duration binds
 below about 45 Mbit/s, so every chunk measures steady state (from boot K).
 Boot K showed the cost on receive: a duration-bound chunk keeps arriving
 after the laptop's close (its send queue drains for 0.6-0.8 s), so the
-device's 4 s bound races that drain (HIF section 21's result).
+device's 4 s bound races that drain (HIF section 21's result). From boot L
+the device's bound is 6 s for a 3 s send, and drain_accounting.py measures
+the receive chunk over the laptop's send window.
 """
 import re
 import sys
@@ -34,7 +36,7 @@ from pathlib import Path
 work = Path(sys.argv[1])
 CAP = 16 * 1024 * 1024
 SECONDS = 3
-DEVICE_BOUND = SECONDS + 1   # the device's bound must outlast the laptop's duration, or the two 3 s bounds race (boot F, RX chunk 5)
+DEVICE_BOUND = SECONDS + 3   # past the laptop's duration and any receive drain after its close (boot F raced at +0; boot K's drain at +1)
 
 
 def literal(path, old, new, count=1):

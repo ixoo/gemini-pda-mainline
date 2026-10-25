@@ -42,6 +42,29 @@ def depth_decoder(source, namespace):
     return derived['pid_trace']
 
 
+def credit_retire_record(kmsg):
+    """The credit-retire end record and the data end's failed count, or None."""
+    ends = re.findall(rb'one-shot WLAN join data credit retire end: retired=(\d+) expired=(\d+) '
+                      rb'pid_faults=(\d+) wait_avg_us=\d+ wait_max_us=\d+ left_pages=(\d+) ', kmsg)
+    data = re.findall(rb'one-shot WLAN join data phase end: reason=\S+ elapsed_ms=\d+ .*?tx_failed=(\d+) ', kmsg)
+    if not ends:
+        return None
+    retired, expired, faults, left = map(int, ends[0])
+    failed = int(data[0]) if len(data) == 1 else None
+    return {'records': len(ends), 'retired': retired, 'expired': expired, 'pid_faults': faults,
+            'left_pages': left, 'tx_failed': failed,
+            'whole': len(ends) == 1 and retired > 0 and expired == faults == left == 0 and failed == 0}
+
+
+def native_record(kmsg):
+    """No native ciphertext reached the core and the diagnostic counters only grew."""
+    counts = [tuple(map(int, m)) for m in re.findall(
+        rb'one-shot WLAN native-diag: state=\d+ act=\d+ total=(\d+) native=(\d+) bytes=(\d+)\r?$', kmsg, re.M)]
+    monotone = all(counts[i][j] >= counts[i - 1][j] for i in range(1, len(counts)) for j in range(3))
+    return {'records': len(counts), 'native_last': counts[-1][1] if counts else None,
+            'ok': bool(counts) and all(c[1] == 0 for c in counts) and monotone}
+
+
 def cleanup_record(kmsg):
     """Accept the retained terminal grammar and its explicit delivery suffix.
 
@@ -59,15 +82,20 @@ def cleanup_record(kmsg):
 
 
 def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
-    if data_depth not in (1, 4):
-        raise ValueError('only reviewed data depths one and four are supported')
+    if data_depth not in (1, 4, 8, 12, 16):
+        raise ValueError('only reviewed data depths one, four, eight, twelve and sixteen are supported')
     value = base['classify'](kmsg,receipt,verified_boot,protocol)
     # The immutable cohort predates the delivery suffix. Adapt only its cleanup
     # grammar; all ledger, sequence, counter, fault and receipt gates stay live.
     healthy, delivery = cleanup_record(kmsg)
     value.update(healthy_cleanup=healthy, cleanup_delivery=delivery)
     ledger_ok = True
-    if data_depth == 4:
+    retire = credit_retire_record(kmsg)
+    if retire is not None:
+        # ordinary data carries no PID under credit retire (0278): its end record is the ownership proof
+        value['credit_retire_ownership'] = retire
+        ledger_ok = retire['whole']
+    elif data_depth == 4:
         origin = Path(os.environ['TP_SOURCE_ROOT'])/'experiments/2026-10-13-mt6797-wifi-native-delivery-probe/classify-ccmp-connected.py'
         trace = depth_decoder(origin.read_text(), base['classify'].__globals__)(kmsg)
         value['pid_ownership'] = trace
@@ -89,13 +117,22 @@ def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
         direction['device_tx_status_nonzero'] = sum(int(m[1]) != 0 for m in done)
     directions = measurement.get('directions',{})
     declared = measurement.get('chunks_each', 5)   # a predeclared shorter run is not a censored one
+    # each chunk inside the device's declared bound; the 1 s protocol's 1.5 s otherwise
+    chunk_limit = (measurement['device_bound_seconds'] + 0.5) * 1e9 if measurement.get('device_bound_seconds') else 1.5e9
+    native = native_record(kmsg)
     timing = bool(len(directions)==2 and all(d.get('completed') and
                   len(d.get('chunks',[]))==declared and
-                  all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=1.5e9 for c in d['chunks'])
+                  all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=chunk_limit for c in d['chunks'])
                   for d in directions.values()))
     passed = bool(verified_boot and receipt and receipt.get('all_pass') and timing and
-                  value.get('healthy_cleanup') and value.get('counts_ok') and
-                  value.get('sequence_ok') and value.get('gtk_counters_consistent') and not value.get('fault') and ledger_ok)
+                  value.get('healthy_cleanup') and native['ok'] and
+                  value.get('sequence_ok') and not value.get('fault') and ledger_ok)
+    value.update(native_ciphertext=native, chunk_limit_ns=int(chunk_limit),
+                 verdict_gates={'receipt_all_pass': bool(receipt and receipt.get('all_pass')), 'verified_boot': bool(verified_boot),
+                                'timing': timing, 'healthy_cleanup': bool(value.get('healthy_cleanup')),
+                                'native_ciphertext_ok': native['ok'], 'sequence_ok': bool(value.get('sequence_ok')),
+                                'no_fault': not value.get('fault'), 'ownership': ledger_ok},
+                 retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])
     value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,
                  provisional_ccmp_compatibility_pass=passed,ten_minute_ssh_proven=False,
                  same_boot_reconnect_proven=False,maintained_wifi_support=False,

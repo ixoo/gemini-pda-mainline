@@ -2499,3 +2499,88 @@ bytes the laptop counts, not by the device's clock) and the stops and
 drops split by direction; with those, depth 8 on the same image either
 keeps its receive or shows the depth starving it. Not staged: the next
 boot is the owner's decision.
+
+**The revert re-read (owner, 2026-10-25).** Boot K's revert fired on a
+receive artefact under a transmit change: the depth is a transmit
+variable, the timeouts were on the receive path, and the safety counters
+(`expired`, `pid_faults`, `left_pages`, `dropped_full`, `tx_failed`) were
+all zero. The rule is amended: a timeout reverts a change on its own
+path, or when the safety counters show loss. Depth 8 is restored.
+
+## 22. Boot L (predeclared, 2026-10-25): depth 8 again, measured over the send window, with the queue's time series
+
+**No driver variable.** Boot K's tree (depth 8, ledger 104, the 64-frame
+queue) with three instruments and no behavioural change, so the boot
+answers four questions at once: does transmit reproduce about 20.9 Mbit/s;
+what is the clean receive rate with the drain excluded; was boot K's
+receive chunk 3 a stall or a drain artefact; and does the queue ever stop
+while the device receives. An acknowledgement-split boot is not staged
+before those four answers exist: it would be a change aimed at a
+mechanism the same boot can rule out.
+
+**The receive bound and the drain.** The device's bound on both legs
+moves from 4 s to 6 s for the 3 s send ([steady_state_chunks.py](hosts/steady_state_chunks.py)).
+The owner asked for the device to time the laptop's close; it cannot: the
+end of stream reaches it behind the very drain being measured. The
+laptop's socket can, on one clock ([drain_accounting.py](hosts/drain_accounting.py)):
+at the close it reads the bytes not yet acknowledged (`snd_sbbytes`),
+so the bytes the device had acknowledged by the close are the sent bytes
+less that backlog, and it polls until the backlog is empty (up to 2.5 s)
+to time the drain. The receive chunk's rate is the acknowledged bytes over
+the send window; the drain is recorded beside it with its bytes and
+duration, never as a rate; the device's own count and exit stay in the
+record. With the bound past any drain, `peer_eof` against
+`device_timeout` stops being a proxy, and only a stall can leave a
+shortfall. The acknowledged count trails the device's receipt by the
+acknowledgement's own delay, so the rate is a slight underestimate, the
+same in every chunk.
+
+**The queue's time series and the receive gaps.** [0283](../../patches/proposals/0283-wifi-mt6797-record-a-per-second-backpressure-series-and-receive-gaps.patch)
+(`CONFIG_MT6797_DATA_PHASE_SERIES`, logging only) prints, per second of
+the data phase, the stops, the wakes, the queue's high-water mark, the
+kilobytes delivered and the data frames queued, with the phase's start on
+the kernel clock; the run's `TP1_<DIR>_START_NS` markers are on the same
+clock and align it offline. The driver does not know the leaf's phases,
+so it records time, not a phase split. It also records each gap of more
+than 200 ms between delivered data frames (at most 32): its start, its
+duration, the bytes delivered before it and in the 200 ms after it, the
+data frames queued (the device's acknowledgements, in a receive chunk)
+and retired during it, and the queue length, frames in flight, credit
+pages and stop state when it ended. Gaps at chunk boundaries are expected
+and are discarded by the alignment.
+
+**The verdict.** Every steady-state run since boot H failed the verdict on
+gates written for earlier protocols while its data was whole. The
+throughput verdict ([throughput_verdict.py](hosts/throughput_verdict.py),
+the same change in [classify-throughput.py](classify-throughput.py))
+keeps the receipt, the verified boot, healthy cleanup, the key sequence,
+no fault and the declared chunk count, and replaces the stale gates: no
+native ciphertext reached the core with the counters monotone (for the
+512-frame and 1 MiB ceilings of `counts_ok` and the 60 s GTK budget of
+`gtk_counters_consistent`); each chunk inside the device's declared bound
+plus 0.5 s (for the 1 s protocol's 1.5 s); and the credit-retire end
+record as the ownership proof (nothing expired, no PID fault, no pages
+left, no failed transmit) where ordinary data carries no PID (for the
+depth-four PID trace). Read against boots J and K's records it passes
+every gate but timing, which their receipts could not declare.
+
+**The expectations.**
+
+| Question | Expectation | If not |
+|---|---|---|
+| transmit | 20.9 Mbit/s ± noise at a wait near 4.26 ms, stops in the hundreds, `dropped_full=0` | a cross-boot difference larger than boot J to K's needs its own reading before anything else |
+| clean receive rate | about 19.5 Mbit/s over the send window on every stall-free chunk, the drain 0.5–1 s and complete | a drain longer than 2.5 s is recorded incomplete and read as a stall |
+| boot K's chunk 3 | no `device_timeout`; a shortfall appears only with a receive gap inside the chunk | a shortfall without a gap: the accounting is wrong, not the path |
+| the queue during receive | **zero stops and zero wakes in every second of the receive phase**: the queue holds only the device's TCP acknowledgements, a few hundred a second against a bound of 64, so it can reach its stop mark only if the acknowledgement path stalls on its own | the acknowledgement split is justified, and the series and the gap records say where |
+
+If the queue never stops during receive and a receive gap still appears,
+the shared queue is excluded as the stall's cause with evidence, and the
+gap record (acknowledgements queued and retired, in flight, pages)
+names what the path was doing. If no stall appears in this run and the
+next with the deep queue, the attribution is recorded as "consistent
+with the shared-queue hypothesis, not proven".
+
+The three questions: reachability, the series and the gaps are updated
+at the same admission, wake and delivery sites the counters already use;
+ownership, all of it is the host's own state, read and printed at the
+data end; the vendor, no counterpart (logging only).
