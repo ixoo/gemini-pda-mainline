@@ -21,4 +21,14 @@ with tempfile.TemporaryDirectory(prefix="mt6797-native-diag-") as directory:
                     "-fno-pie", "-no-pie", "-I", str(driver), str(fixture),
                     "-o", str(binary)], check=True, timeout=30)
     subprocess.run([str(binary)], check=True, timeout=30)
-print("native-diag decision: PASS (ASan/UBSan; synthetic only)")
+    # The CCMP budget step under the 60-second window, with and without the
+    # connected lifetime (0274: the lifetime's ceilings are counts, not stops).
+    ccmp = Path(__file__).with_name("ccmp-budget-step-test.c")
+    for defines in (["-DCONFIG_MT6797_CCMP_60S_WINDOW"],
+                    ["-DCONFIG_MT6797_CCMP_60S_WINDOW", "-DCONFIG_MT6797_CCMP_CONNECTED_LIFETIME"]):
+        subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror", *defines,
+                        "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+                        "-fno-pie", "-no-pie", "-I", str(driver), str(ccmp),
+                        "-o", str(binary)], check=True, timeout=30)
+        subprocess.run([str(binary)], check=True, timeout=30)
+print("native-diag decision: PASS (ASan/UBSan; synthetic only; CCMP budget step with and without the connected lifetime)")

@@ -752,4 +752,4 @@ proposals/0268-wifi-mt6797-receive-by-the-enhanced-status-block-and-aggregated-r
 proposals/0270-wifi-mt6797-count-the-data-frames-delivered-to-mac80211-at-the-data-end.patch
 proposals/0271-wifi-mt6797-record-the-received-rate-word-logging-only.patch
 proposals/0273-wifi-mt6797-make-the-data-descriptor-s-fixed-rate-code-a-build-option.patch
-proposals/0274-wifi-mt6797-the-diagnostic-s-queued-frame-ceiling-stops-its-count-not-the-window.patch
+proposals/0274-wifi-mt6797-the-diagnostic-s-ceilings-stop-its-counts-not-the-window.patch

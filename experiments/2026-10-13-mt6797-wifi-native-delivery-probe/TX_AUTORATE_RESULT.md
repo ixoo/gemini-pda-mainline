@@ -83,7 +83,7 @@ Both unforced-rate boots ended with status 3 on every ordinary data frame
 and nobody could name the rate the firmware chose, because the TX-done
 event's rate word was parsed but never logged. Profile
 `mt6797-a53-wifi-rate` is the lifecycle profile plus two proposals:
-[0262](../../patches/proposals/0262-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch)
+0262 (retired on 2026-10-25, re-expressed on the current tree as [0275](../../patches/proposals/0275-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch))
 logs one extra line per completion (`join TX rate: pid= status= rate=0x…
 flags=0x…`, the firmware's rate word valid with flag bit 0, behind
 `CONFIG_MT6797_TX_DONE_RATE_RECORD`; the existing completion line is
@@ -217,3 +217,73 @@ Also from this boot, not rate: the stop line's `debt=2 cleanup=0`
 records pages reserved for the refused update and never released; the
 failed-join path keeps a false debt. That fix goes in before the AP-loss
 gate and every reconnection ([transport record](HIF_TRANSPORT_ANALYSIS.md)).
+
+## State-2 station record boot, second attempt (predeclared, 2026-10-25): the encoder admits state 2
+
+**Approved.** The owner's single informed attempt (after the probe and the
+sweep): one boot, and the rate thread closes either way. The vendor host
+walks the station record through states 1, 2 and 3 with the same update
+command and only `ucStaState` advanced (`cnmStaRecChangeState` →
+`cnmStaSendUpdateCmd`, `cnm_mem.c`); this driver sent 1 before
+authentication and 3 after association, and the first attempt (0266) was
+refused by our own encoder before anything reached the firmware.
+
+**The tree.** The rate series: the lifecycle tree through
+[0274 v2](../../patches/proposals/0274-wifi-mt6797-the-diagnostic-s-ceilings-stop-its-counts-not-the-window.patch),
+then [0275](../../patches/proposals/0275-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch)
+(one `join TX rate: pid= status= rate=0x… flags=0x…` line per completion,
+the firmware's rate word valid with flag bit 0; the retired 0262 rebased),
+[0276](../../patches/proposals/0276-wifi-mt6797-rate-code-0-sends-ordinary-data-without-a-fixed-rate.patch)
+(rate code 0: no fixed-rate bit, zero power offset, zero rate word, the
+vendor data form; the retired 0263 as one value of 0273's option) and
+[0277](../../patches/proposals/0277-wifi-mt6797-update-the-station-record-at-state-2-after-authentication.patch)
+(the encoder admits state 2; after `join_wait_management` succeeds the
+state-2 update goes out with the state-1 payload and the state advanced,
+one record and one credit wait, `join station state 2: status= sequence=`).
+Profile `mt6797-a53-wifi-rate`: AP-DMA both ways, the received and
+transmitted rate records, `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x0`. Both
+series applied in order in the VM; the rate tree equals the boot D branch;
+compiled at rate code 0 and 0x4c; strict checkpatch clean apart from the
+series' usual absent sign-off; the descriptor fixture covers code 0.
+
+**Harness.** Two chunks per direction (the lifecycle-9 precedent: three
+per-frame records at this rate do not fit five chunks under the sealed
+logger's 2 MiB), applied to the derived helper after its validators; the
+probe rides (opt-in, recorded, not graded); the preflight takes the
+declared count. Comparison: boot C (54 Mbit/s fixed) per chunk,
+cross-session with the ±40 % floor unless boot D runs in boot C's session.
+
+**Hypothesis.** With the state-2 update accepted after authentication, the
+firmware's rate table for this station is populated and ordinary data sent
+without a fixed rate completes with status 0 and a non-zero firmware rate
+word.
+
+**Unique observations.** The `join station state 2` line's status; the
+first data frame's `rate=0x00`; the per-completion rate words; the
+completion status histogram; the data phase ending by `disconnect`.
+
+**TX first.** The status-3 count and `tx_failed` are read before any rate
+claim; `debt=0`; no guard record.
+
+| Reading | Cause | Next |
+|---|---|---|
+| state-2 update refused (`status=-22`/`-110`, join stops; or the firmware refuses the command) | the state-2 form is not accepted by this firmware from this host; the station record's shape stays the untested lever | the rate thread closes: the fixed rate is the characterised limit (54 Mbit/s acknowledged); reopened only by a firmware-side decode in the RE VM |
+| accepted; data completes with status 3 and rate word 0 | the rate table is empty even after state 2: what fills it is not the state sequence | the thread closes, same reading; 0276 and 0277 are retired with this counter-evidence, 0275 stays as a record |
+| accepted; data completes with status 0 and non-zero rate words | the firmware's rate control is alive once state 2 is sent | the thread opens: TX per chunk against boot C's fixed 54; the rate profile becomes the measurement tree; then the completion lever |
+| accepted; mixed status with rate words present | rate control alive but losing frames at the chosen rates | read the rate words against the status; the vendor's rate-control parameters are the next question |
+
+**The three questions.** 0277: reachability, the state-2 command is sent
+from `mt6797_mac_sta_state` after the management wait and before
+`join_authenticated`, through `mt6797_hif_join_station` whose encoder now
+admits 2 (a refusal releases the reservation by 0267); ownership, the
+station record is the firmware's, written only by the update command; what
+the vendor writes, the same command and record at every state change.
+0276: reachability, descriptor bytes 11, 26 and 27 from the option through
+the unchanged submission path; ownership, none (the firmware reads the
+descriptor); what the vendor writes, no fixed rate for plain data. The
+ledger stands at seven.
+
+**Verification of 0274 v2 on this boot.** If the queued count crosses
+8,192, the ccmp-stable end line must show `beyond>0` with the data phase
+ending by `disconnect`; otherwise "not exercised" (the fixture is the
+evidence).

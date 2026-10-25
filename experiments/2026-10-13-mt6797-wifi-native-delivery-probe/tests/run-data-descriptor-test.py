@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Exercise the data descriptor's rate code and the receive-vector word (0271, 0273), at the default and at a profile's value without hardware."""
+"""Exercise the data descriptor's rate code and the receive-vector word (0271, 0273, 0276): the default, a profile's value and 0 (no fixed rate), without hardware."""
 from pathlib import Path
 import argparse
 import subprocess
@@ -29,4 +29,9 @@ with tempfile.TemporaryDirectory(prefix="mt6797-hif-rx-batch-") as directory:
                     "-fno-pie", "-no-pie", "-I", str(compat), "-I", str(driver),
                     str(here / "data-descriptor-test.c"), "-o", str(binary)], check=True)
     subprocess.run([str(binary)], check=True, timeout=10)
-print("data descriptor fixtures: PASS (default and 0x4c; ASan/UBSan, non-PIE)")
+    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                    "-DIS_ENABLED(x)=0", "-DCONFIG_MT6797_DATA_FIXED_RATE_CODE=0x0", "-fsanitize=address,undefined",
+                    "-fno-pie", "-no-pie", "-I", str(compat), "-I", str(driver),
+                    str(here / "data-descriptor-test.c"), "-o", str(binary)], check=True)
+    subprocess.run([str(binary)], check=True, timeout=10)
+print("data descriptor fixtures: PASS (default, 0x4c and 0; ASan/UBSan, non-PIE)")

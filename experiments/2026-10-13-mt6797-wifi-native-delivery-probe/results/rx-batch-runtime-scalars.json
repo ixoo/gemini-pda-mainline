@@ -1,516 +1,678 @@
 {
-  "runs": {
-    "rx-batch-1": {
-      "run": "PIO-throughput-rxbatch-1",
-      "profile": "mt6797-a53-wifi-lifecycle",
-      "kernel_build_commit": "9846b776354204b5703d7438fe6bbe7e58434111",
-      "boot2_sha256": "0037de60c40c85406407544879f41a808ec8ead0bd403a62769e0347b9d73bb8",
-      "predecessor_boot2_sha256": "bf9bd8059031430cd076d52424799b23f2d791519494627a0bbe294fc1ae8847",
-      "mainline_boot_id": "647b420a-fd0e-4a05-9491-11fd1ccc139c",
-      "previous_gemian_boot_id": "93ff170a-3025-4e3f-b109-07cf008151aa",
-      "returned_gemian_boot_id": "1163163d-cc86-4c83-bd0b-22be53ddcb7f",
-      "sealed_log_bytes": 146439,
-      "outcome": "inconclusive: join stopped at the credit wait (status=-110 branch=1 debt=1) 104 ms after the authentication response; no data phase",
-      "whcr_at_second_tx_status_snapshot": "0x00011000",
-      "mechanism": "enhanced block read consumed WHISR and the TX queue release counts the credit path polled (vendor: nicTxReleaseResource from rTxInfo)",
-      "fix": "amended 0268: block counts merged into the next TX status acquisition; no poison on block contents",
-      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+ "runs": {
+  "rx-batch-1": {
+   "run": "PIO-throughput-rxbatch-1",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "9846b776354204b5703d7438fe6bbe7e58434111",
+   "boot2_sha256": "0037de60c40c85406407544879f41a808ec8ead0bd403a62769e0347b9d73bb8",
+   "predecessor_boot2_sha256": "bf9bd8059031430cd076d52424799b23f2d791519494627a0bbe294fc1ae8847",
+   "mainline_boot_id": "647b420a-fd0e-4a05-9491-11fd1ccc139c",
+   "previous_gemian_boot_id": "93ff170a-3025-4e3f-b109-07cf008151aa",
+   "returned_gemian_boot_id": "1163163d-cc86-4c83-bd0b-22be53ddcb7f",
+   "sealed_log_bytes": 146439,
+   "outcome": "inconclusive: join stopped at the credit wait (status=-110 branch=1 debt=1) 104 ms after the authentication response; no data phase",
+   "whcr_at_second_tx_status_snapshot": "0x00011000",
+   "mechanism": "enhanced block read consumed WHISR and the TX queue release counts the credit path polled (vendor: nicTxReleaseResource from rTxInfo)",
+   "fix": "amended 0268: block counts merged into the next TX status acquisition; no poison on block contents",
+   "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+  },
+  "rx-batch-2": {
+   "run": "PIO-throughput-rxbatch2-1",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "192c71ff58f55e7dc4fe1799dc445548c01a478a",
+   "boot2_sha256": "a9b89cfbb20ec5e9d7ef0c77a375535f3e0af6b5fed68e31eb77ba56e6b8268b",
+   "predecessor_boot2_sha256": "0037de60c40c85406407544879f41a808ec8ead0bd403a62769e0347b9d73bb8",
+   "mainline_boot_id": "9335c457-95c4-4f66-a0fe-ecc58473bb68",
+   "previous_gemian_boot_id": "1163163d-cc86-4c83-bd0b-22be53ddcb7f",
+   "returned_gemian_boot_id": "0b7f827b-fdb3-4488-98ca-d2c93ef852e8",
+   "sealed_log_bytes": 150285,
+   "outcome": "inconclusive: credits returned for every command and frame (0.8 ms after submission), join authenticated, associated, activated, EAPOL 1 received and 2 sent; join guard returned -EIO 172 us after its TX done (status=-5 branch=2 debt=0); no data phase",
+   "eio_candidates": [
+    "WCIR identity/ready",
+    "tx status admission (valid=0)",
+    "merged WHISR abnormal/assert bits",
+    "ledger reconcile refusing counts (second release count against a zero debt)"
+   ],
+   "fix": "guard records its words; fixture models both consumers; no driver behaviour change",
+   "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+  },
+  "rx-batch-3": {
+   "run": "PIO-throughput-rxbatch3-1",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "285d6aa3cb808811c2bb6c54266fb70e99e5f2eb",
+   "boot2_sha256": "490008d5c5e47028e979a532ac63d6da6d825399e037dd6cb907dfa5eaa9cc88",
+   "predecessor_boot2_sha256": "a9b89cfbb20ec5e9d7ef0c77a375535f3e0af6b5fed68e31eb77ba56e6b8268b",
+   "mainline_boot_id": "d3f812a9-b298-4aea-893e-482e85edd4ac",
+   "previous_gemian_boot_id": "0b7f827b-fdb3-4488-98ca-d2c93ef852e8",
+   "returned_gemian_boot_id": "4d65ad5c-15b7-423b-844c-0cce2863cd1e",
+   "sealed_log_bytes": 150250,
+   "guard_record": {
+    "ret": -5,
+    "wcir": "0x00300279",
+    "own": "0x00000100",
+    "valid": "0x3",
+    "whcr": "0x00011000",
+    "whisr": "0x00000042",
+    "wtqcr0": 0,
+    "wtqcr7": 0,
+    "hif": -5,
+    "pending": 0,
+    "batch_failures": 0,
+    "credits": 2
+   },
+   "outcome": "inconclusive: associated, four beacons, 416 ms without a delivered frame, then the device's abnormal interrupt (WHISR bit 6) refused the guard's acquisition",
+   "cause": "the enable wrote WHCR 0x00011000 (RX_ENHANCE_MODE_EN and a count of sixteen); the vendor's init clears bit 16 and programs count 0; in that mode every receive-port read carries a status block the host never read",
+   "fix": "WHCR confirmed by reading, never written; block WHISR not copied; block-carried abnormal recorded and fatal; WASR/WASR2 in the guard record",
+   "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+  },
+  "rx-batch-4": {
+   "run": "PIO-throughput-rxbatch4-1",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "796d43bf7892710742e5af4ae7959329c9eae440",
+   "boot2_sha256": "96e1f41e59d805f587074519f90ba68fe3c24345f4454bd7abf904fd5893b25a",
+   "predecessor_boot2_sha256": "490008d5c5e47028e979a532ac63d6da6d825399e037dd6cb907dfa5eaa9cc88",
+   "mainline_boot_id": "7aa0ea7c-0cb7-4427-938e-0a2eda3398d5",
+   "previous_gemian_boot_id": "4d65ad5c-15b7-423b-844c-0cce2863cd1e",
+   "returned_gemian_boot_id": "ae210f69-252c-44a4-bc26-48e63791199d",
+   "sealed_log_bytes": 1696642,
+   "throughput": {
+    "tx_host_received_mbit_s": 2.64,
+    "tx_chunk_mbit_s": [
+     3.2,
+     3.2,
+     3.1,
+     3.22,
+     3.19
+    ],
+    "tx_device_cpu_idle_percent": 86.44,
+    "rx_host_sent_mbit_s": 6.37,
+    "rx_device_chunk_mbit_s": [
+     11.49,
+     12.16,
+     10.62,
+     9.87,
+     8.47
+    ],
+    "rx_device_cpu_idle_percent": 77.88
+   },
+   "rx_batch": {
+    "on": 1,
+    "whcr": "0x00000000",
+    "reads": 137007,
+    "aggregates": 5706,
+    "frames": 12754,
+    "empty": 131301,
+    "max_frames": 16,
+    "failures": 0,
+    "credit_blocks": 3647,
+    "block_abnormal": "0x00000000"
+   },
+   "census": {
+    "passes": 132989,
+    "submissions": 4031,
+    "max_per_pass": 4,
+    "elapsed_ms": 21711
+   },
+   "data_phase": {
+    "end_reason": "disconnect",
+    "tx_queued": 4031,
+    "tx_done": 4029,
+    "tx_failed": 2,
+    "cleanup": "stage=3 credits=returned slots=retired",
+    "debt_at_end": 0
+   },
+   "tx_completions_per_second": [
+    2,
+    4,
+    4,
+    185,
+    260,
+    228,
+    261,
+    227,
+    199,
+    273,
+    377,
+    449,
+    518,
+    277,
+    195,
+    556,
+    20
+   ],
+   "reading": "table row 2: register work not the receive cost; the completion rate during the receive chunks equals the TCP acknowledgement rate, so an acknowledgement-free receive measurement is proposed before the interrupt",
+   "retention": "kept, admitted in the lifecycle fragment",
+   "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+  },
+  "probe-1": {
+   "run": "PIO-throughput-probe-1",
+   "profile": "mt6797-a53-wifi-lifecycle (CONFIG_MT6797_HIF_RX_BATCH unset)",
+   "kernel_build_commit": "7ba78e08ddfe202acae782c798881904871dcc26",
+   "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+   "predecessor_boot2_sha256": "96e1f41e59d805f587074519f90ba68fe3c24345f4454bd7abf904fd5893b25a",
+   "mainline_boot_id": "07a5f5db-685f-48bb-9737-7c5ebb8ca539",
+   "previous_gemian_boot_id": "ae210f69-252c-44a4-bc26-48e63791199d",
+   "returned_gemian_boot_id": "bc556eb9-787f-401c-9697-deccb3493948",
+   "sealed_log_bytes": 1629872,
+   "throughput": {
+    "tx_host_received_mbit_s": 2.69,
+    "tx_chunk_mbit_s": [
+     3.34,
+     3.43,
+     3.19,
+     3.35,
+     3.26
+    ],
+    "tx_device_cpu_idle_percent": 85.71,
+    "rx_host_sent_mbit_s": 6.78,
+    "rx_device_chunk_mbit_s": [
+     11.18,
+     10.11,
+     12.52,
+     11.81,
+     12.16
+    ],
+    "rx_device_cpu_idle_percent": 80.34
+   },
+   "receive_probe": {
+    "graded": false,
+    "tcp_receive_chunks_rttcur_ms_median": [
+     102,
+     94,
+     75,
+     61,
+     88
+    ],
+    "tcp_receive_chunks_rttcur_ms_max": [
+     124,
+     124,
+     203,
+     162,
+     113
+    ],
+    "peer_window_bytes_median": [
+     238080,
+     184832,
+     200192,
+     151040,
+     174080
+    ],
+    "peer_window_bytes_min": 64512,
+    "peer_window_bytes_max": 452608,
+    "snd_cwnd_median": [
+     205617,
+     238921,
+     256297,
+     199825,
+     225889
+    ],
+    "maxseg": 1448,
+    "ping": "void (literal HOST in the injected block)",
+    "udp": "void (triggers never reached the laptop: literal HOST)"
+   },
+   "fix": "probe block inserted before the HOST/BOOT substitution; guard refuses unbound placeholders; trigger RTT added",
+   "rerun": "same image, probe-2"
+  },
+  "probe-2": {
+   "run": "PIO-throughput-probe2-1",
+   "same_image_as": "probe-1",
+   "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+   "install_result": "skipped-already-matching",
+   "mainline_boot_id": "4627e5ea-3851-4b0d-9d5a-51f9948a4168",
+   "previous_gemian_boot_id": "bc556eb9-787f-401c-9697-deccb3493948",
+   "returned_gemian_boot_id": "1172db3c-93eb-4e28-a487-53cd44b1bdd2",
+   "sealed_log_bytes": 1499754,
+   "throughput": {
+    "tx_host_received_mbit_s": 2.67,
+    "tx_chunk_mbit_s": [
+     3.28,
+     3.16,
+     3.21,
+     3.4,
+     3.32
+    ],
+    "tx_device_cpu_idle_percent": 86.13,
+    "rx_host_sent_mbit_s": 6.99,
+    "rx_device_chunk_mbit_s": [
+     12.34,
+     12.52,
+     12.34,
+     11.81,
+     11.98
+    ],
+    "rx_device_cpu_idle_percent": 80.96
+   },
+   "receive_probe": "disabled: the derived staging script renamed TP_RECEIVE_PROBE (plan receive_probe false)",
+   "fix": "staging asserts the plan flag and the bound device script before the install"
+  },
+  "probe-3": {
+   "run": "PIO-throughput-probe3-1",
+   "same_image_as": "probe-1",
+   "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+   "mainline_boot_id": "d6563d2d-041b-4f5b-bcbb-bdcb420a197e",
+   "previous_gemian_boot_id": "1172db3c-93eb-4e28-a487-53cd44b1bdd2",
+   "returned_gemian_boot_id": "37bc58e9-7bc7-4550-b4f6-fabbcb34ed11",
+   "outcome": "void: helper exception 'measurement exceeds retained owner-observation bound' (rendered command 4101 bytes; base 433, preflight stand-in 405); data phase ended by connection-loss at 368 s",
+   "recovery": {
+    "path": "preserve-and-return.py (reviewed)",
+    "post_session_quiescence": "pass (no owner remained, nothing killed)",
+    "log": "complete-log-through-seal",
+    "native_reboot_attempts": 2,
+    "classification": "changed-ID-Gemian",
+    "elapsed_seconds": 15.369
+   },
+   "fixes": [
+    "probe block after the chunk loop in a bounded subshell",
+    "trigger bounded by timeout 5",
+    "offered:false per rate without a send; peer recorded not refused",
+    "measurement runner timeout 90 s; watcher wall clock 300 s with automatic reviewed recovery",
+    "sleep-paced sender; in-chunk ping -i 0.05",
+    "counter window 2.5 s",
+    "device-side ping dropped (laptop pings replace it); block 290 bytes quoted, command 4029",
+    "preflight forms the exact base",
+    "device block offline test (VM, device busybox): 3 lines, counts 363/362/366, 7.6 s",
+    "snd_wnd relabel"
+   ]
+  },
+  "probe-4": {
+   "run": "PIO-throughput-probe4-1",
+   "session": "2026-10-25 11:39 UTC",
+   "same_image_as": "probe-1",
+   "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+   "mainline_boot_id": "2f327013-152c-48aa-bad5-002968ea1d23",
+   "previous_gemian_boot_id": "37bc58e9-7bc7-4550-b4f6-fabbcb34ed11",
+   "returned_gemian_boot_id": "1b6850a9-ca0c-43a0-af9a-6471c24704b2",
+   "sealed_log_bytes": 1686335,
+   "throughput": {
+    "tx_host_received_mbit_s": 3.14,
+    "tx_chunk_mbit_s": [
+     4.07,
+     3.74,
+     3.73,
+     3.87,
+     3.95
+    ],
+    "tx_device_cpu_idle_percent": 86.17,
+    "rx_host_sent_mbit_s": 7.78,
+    "rx_device_chunk_mbit_s": [
+     14.46,
+     14.98,
+     15.25,
+     15.25,
+     15.83
+    ],
+    "rx_host_chunk_mbit_s": [
+     29.45,
+     32.95,
+     35.57,
+     34.14,
+     36.14
+    ],
+    "rx_device_cpu_idle_percent": 78.26
+   },
+   "receive_probe": {
+    "udp": [
+     {
+      "rate_mbit_s": 10,
+      "laptop_sent": 893,
+      "device_counted": 893,
+      "delivered_mbit_s": 10.01,
+      "loss": 0.0
+     },
+     {
+      "rate_mbit_s": 20,
+      "laptop_sent": 1786,
+      "device_counted": 1786,
+      "delivered_mbit_s": 20.01,
+      "loss": 0.0
+     },
+     {
+      "rate_mbit_s": 30,
+      "offered": true,
+      "missing": true,
+      "reason": "owned command terminated when the data window closed"
+     }
+    ],
+    "trigger_rtt_ms": [
+     7,
+     8,
+     8
+    ],
+    "laptop_ping_at_rest_ms": {
+     "min": 8.21,
+     "avg": 22.934,
+     "max": 51.532
     },
-    "rx-batch-2": {
-      "run": "PIO-throughput-rxbatch2-1",
-      "profile": "mt6797-a53-wifi-lifecycle",
-      "kernel_build_commit": "192c71ff58f55e7dc4fe1799dc445548c01a478a",
-      "boot2_sha256": "a9b89cfbb20ec5e9d7ef0c77a375535f3e0af6b5fed68e31eb77ba56e6b8268b",
-      "predecessor_boot2_sha256": "0037de60c40c85406407544879f41a808ec8ead0bd403a62769e0347b9d73bb8",
-      "mainline_boot_id": "9335c457-95c4-4f66-a0fe-ecc58473bb68",
-      "previous_gemian_boot_id": "1163163d-cc86-4c83-bd0b-22be53ddcb7f",
-      "returned_gemian_boot_id": "0b7f827b-fdb3-4488-98ca-d2c93ef852e8",
-      "sealed_log_bytes": 150285,
-      "outcome": "inconclusive: credits returned for every command and frame (0.8 ms after submission), join authenticated, associated, activated, EAPOL 1 received and 2 sent; join guard returned -EIO 172 us after its TX done (status=-5 branch=2 debt=0); no data phase",
-      "eio_candidates": [
-        "WCIR identity/ready",
-        "tx status admission (valid=0)",
-        "merged WHISR abnormal/assert bits",
-        "ledger reconcile refusing counts (second release count against a zero debt)"
-      ],
-      "fix": "guard records its words; fixture models both consumers; no driver behaviour change",
-      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    "laptop_ping_in_chunk_ms": {
+     "min": 12.906,
+     "avg": 56.29,
+     "max": 97.561
     },
-    "rx-batch-3": {
-      "run": "PIO-throughput-rxbatch3-1",
-      "profile": "mt6797-a53-wifi-lifecycle",
-      "kernel_build_commit": "285d6aa3cb808811c2bb6c54266fb70e99e5f2eb",
-      "boot2_sha256": "490008d5c5e47028e979a532ac63d6da6d825399e037dd6cb907dfa5eaa9cc88",
-      "predecessor_boot2_sha256": "a9b89cfbb20ec5e9d7ef0c77a375535f3e0af6b5fed68e31eb77ba56e6b8268b",
-      "mainline_boot_id": "d3f812a9-b298-4aea-893e-482e85edd4ac",
-      "previous_gemian_boot_id": "0b7f827b-fdb3-4488-98ca-d2c93ef852e8",
-      "returned_gemian_boot_id": "4d65ad5c-15b7-423b-844c-0cce2863cd1e",
-      "sealed_log_bytes": 150250,
-      "guard_record": {
-        "ret": -5,
-        "wcir": "0x00300279",
-        "own": "0x00000100",
-        "valid": "0x3",
-        "whcr": "0x00011000",
-        "whisr": "0x00000042",
-        "wtqcr0": 0,
-        "wtqcr7": 0,
-        "hif": -5,
-        "pending": 0,
-        "batch_failures": 0,
-        "credits": 2
-      },
-      "outcome": "inconclusive: associated, four beacons, 416 ms without a delivered frame, then the device's abnormal interrupt (WHISR bit 6) refused the guard's acquisition",
-      "cause": "the enable wrote WHCR 0x00011000 (RX_ENHANCE_MODE_EN and a count of sixteen); the vendor's init clears bit 16 and programs count 0; in that mode every receive-port read carries a status block the host never read",
-      "fix": "WHCR confirmed by reading, never written; block WHISR not copied; block-carried abnormal recorded and fatal; WASR/WASR2 in the guard record",
-      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    "tcp_rx_chunk_rttcur_ms_samples": [
+     [
+      9,
+      27,
+      44,
+      69,
+      95,
+      132
+     ],
+     [
+      9,
+      22,
+      42,
+      66,
+      102,
+      139
+     ],
+     [
+      8,
+      24,
+      48,
+      76,
+      95
+     ],
+     [
+      6,
+      19,
+      39,
+      69,
+      85
+     ],
+     [
+      8,
+      27,
+      50,
+      53,
+      65
+     ]
+    ],
+    "snd_wnd_bytes": {
+     "min": 64512,
+     "median_per_chunk": [
+      266752,
+      279552,
+      136704,
+      203776,
+      129536
+     ],
+     "max": 497152
     },
-    "rx-batch-4": {
-      "run": "PIO-throughput-rxbatch4-1",
-      "profile": "mt6797-a53-wifi-lifecycle",
-      "kernel_build_commit": "796d43bf7892710742e5af4ae7959329c9eae440",
-      "boot2_sha256": "96e1f41e59d805f587074519f90ba68fe3c24345f4454bd7abf904fd5893b25a",
-      "predecessor_boot2_sha256": "490008d5c5e47028e979a532ac63d6da6d825399e037dd6cb907dfa5eaa9cc88",
-      "mainline_boot_id": "7aa0ea7c-0cb7-4427-938e-0a2eda3398d5",
-      "previous_gemian_boot_id": "4d65ad5c-15b7-423b-844c-0cce2863cd1e",
-      "returned_gemian_boot_id": "ae210f69-252c-44a4-bc26-48e63791199d",
-      "sealed_log_bytes": 1696642,
-      "throughput": {
-        "tx_host_received_mbit_s": 2.64,
-        "tx_chunk_mbit_s": [
-          3.2,
-          3.2,
-          3.1,
-          3.22,
-          3.19
-        ],
-        "tx_device_cpu_idle_percent": 86.44,
-        "rx_host_sent_mbit_s": 6.37,
-        "rx_device_chunk_mbit_s": [
-          11.49,
-          12.16,
-          10.62,
-          9.87,
-          8.47
-        ],
-        "rx_device_cpu_idle_percent": 77.88
-      },
-      "rx_batch": {
-        "on": 1,
-        "whcr": "0x00000000",
-        "reads": 137007,
-        "aggregates": 5706,
-        "frames": 12754,
-        "empty": 131301,
-        "max_frames": 16,
-        "failures": 0,
-        "credit_blocks": 3647,
-        "block_abnormal": "0x00000000"
-      },
-      "census": {
-        "passes": 132989,
-        "submissions": 4031,
-        "max_per_pass": 4,
-        "elapsed_ms": 21711
-      },
-      "data_phase": {
-        "end_reason": "disconnect",
-        "tx_queued": 4031,
-        "tx_done": 4029,
-        "tx_failed": 2,
-        "cleanup": "stage=3 credits=returned slots=retired",
-        "debt_at_end": 0
-      },
-      "tx_completions_per_second": [
-        2,
-        4,
-        4,
-        185,
-        260,
-        228,
-        261,
-        227,
-        199,
-        273,
-        377,
-        449,
-        518,
-        277,
-        195,
-        556,
-        20
-      ],
-      "reading": "table row 2: register work not the receive cost; the completion rate during the receive chunks equals the TCP acknowledgement rate, so an acknowledgement-free receive measurement is proposed before the interrupt",
-      "retention": "kept, admitted in the lifecycle fragment",
-      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    "snd_cwnd_median_per_chunk": [
+     205617,
+     238921,
+     256297,
+     199825,
+     225889
+    ],
+    "maxseg": 1448
+   },
+   "verdict": {
+    "all_pass": false,
+    "cause": "data phase ended by native-diag at 19.7 s: ccmp_queued reached MT6797_CCMP_DIAG_CHECKED_MAX (8192; series boots 4505-4646) with the probe's 2679 datagrams; disconnect not attempted; owned command terminated (third UDP line lost)",
+    "driver_data_path_fault": false
+   },
+   "reading": "receive path not the ceiling (UDP 20 Mbit/s, zero loss); TCP receive tracks the acknowledgement path (transmit side); interrupt not next; boot B next"
+  },
+  "boot-b": {
+   "run": "PIO-throughput-bootb-1",
+   "session": "2026-10-25 12:08 UTC (adjacent to probe-4)",
+   "kernel_build_commit": "d8aa0d5f94b4006d58e169a71858413cccd70aaf",
+   "boot2_sha256": "276a6628361ba08e022c162ff3b96bf45c497383b8cbcf76543727d489a2778f",
+   "predecessor_boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
+   "mainline_boot_id": "b7a486c7-56eb-4dcb-be29-c9e6dee938b1",
+   "returned_gemian_boot_id": "3b6d4978-87d7-4597-be6f-d3d27ac92b58",
+   "sealed_log_bytes": 173080,
+   "all_pass": true,
+   "throughput": {
+    "tx_host_received_mbit_s": 3.07,
+    "tx_chunk_mbit_s": [
+     3.13,
+     3.64,
+     3.76,
+     3.55,
+     3.74
+    ],
+    "rx_host_sent_mbit_s": 3.5,
+    "rx_device_chunk_mbit_s": [
+     11.34,
+     7.64,
+     1.46,
+     0.95,
+     1.19
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "device_timeout",
+     "device_timeout",
+     "device_timeout",
+     "device_timeout"
+    ],
+    "tx_device_cpu_idle_percent": 89.07,
+    "rx_device_cpu_idle_percent": 88.48
+   },
+   "data_end": {
+    "rx_delivered": 8581,
+    "tx_queued": 3000,
+    "tx_done": 3000,
+    "tx_failed": 0,
+    "tx_credits_pages": 22489,
+    "credit_retired": 3000
+   },
+   "probe": {
+    "udp": [
+     {
+      "rate": 10,
+      "sent": 893,
+      "counted": 608
+     },
+     {
+      "rate": 20,
+      "sent": 1786,
+      "counted": 2001
+     },
+     {
+      "rate": 30,
+      "sent": 2679,
+      "counted": 2434
+     }
+    ],
+    "laptop_ping_at_rest_ms": {
+     "min": 66.82,
+     "avg": 121.9,
+     "max": 176.98
     },
-    "probe-1": {
-      "run": "PIO-throughput-probe-1",
-      "profile": "mt6797-a53-wifi-lifecycle (CONFIG_MT6797_HIF_RX_BATCH unset)",
-      "kernel_build_commit": "7ba78e08ddfe202acae782c798881904871dcc26",
-      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
-      "predecessor_boot2_sha256": "96e1f41e59d805f587074519f90ba68fe3c24345f4454bd7abf904fd5893b25a",
-      "mainline_boot_id": "07a5f5db-685f-48bb-9737-7c5ebb8ca539",
-      "previous_gemian_boot_id": "ae210f69-252c-44a4-bc26-48e63791199d",
-      "returned_gemian_boot_id": "bc556eb9-787f-401c-9697-deccb3493948",
-      "sealed_log_bytes": 1629872,
-      "throughput": {
-        "tx_host_received_mbit_s": 2.69,
-        "tx_chunk_mbit_s": [
-          3.34,
-          3.43,
-          3.19,
-          3.35,
-          3.26
-        ],
-        "tx_device_cpu_idle_percent": 85.71,
-        "rx_host_sent_mbit_s": 6.78,
-        "rx_device_chunk_mbit_s": [
-          11.18,
-          10.11,
-          12.52,
-          11.81,
-          12.16
-        ],
-        "rx_device_cpu_idle_percent": 80.34
-      },
-      "receive_probe": {
-        "graded": false,
-        "tcp_receive_chunks_rttcur_ms_median": [
-          102,
-          94,
-          75,
-          61,
-          88
-        ],
-        "tcp_receive_chunks_rttcur_ms_max": [
-          124,
-          124,
-          203,
-          162,
-          113
-        ],
-        "peer_window_bytes_median": [
-          238080,
-          184832,
-          200192,
-          151040,
-          174080
-        ],
-        "peer_window_bytes_min": 64512,
-        "peer_window_bytes_max": 452608,
-        "snd_cwnd_median": [
-          205617,
-          238921,
-          256297,
-          199825,
-          225889
-        ],
-        "maxseg": 1448,
-        "ping": "void (literal HOST in the injected block)",
-        "udp": "void (triggers never reached the laptop: literal HOST)"
-      },
-      "fix": "probe block inserted before the HOST/BOOT substitution; guard refuses unbound placeholders; trigger RTT added",
-      "rerun": "same image, probe-2"
+    "laptop_ping_in_chunk_ms": {
+     "min": 70.26,
+     "avg": 103.66,
+     "max": 150.83
     },
-    "probe-2": {
-      "run": "PIO-throughput-probe2-1",
-      "same_image_as": "probe-1",
-      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
-      "install_result": "skipped-already-matching",
-      "mainline_boot_id": "4627e5ea-3851-4b0d-9d5a-51f9948a4168",
-      "previous_gemian_boot_id": "bc556eb9-787f-401c-9697-deccb3493948",
-      "returned_gemian_boot_id": "1172db3c-93eb-4e28-a487-53cd44b1bdd2",
-      "sealed_log_bytes": 1499754,
-      "throughput": {
-        "tx_host_received_mbit_s": 2.67,
-        "tx_chunk_mbit_s": [
-          3.28,
-          3.16,
-          3.21,
-          3.4,
-          3.32
-        ],
-        "tx_device_cpu_idle_percent": 86.13,
-        "rx_host_sent_mbit_s": 6.99,
-        "rx_device_chunk_mbit_s": [
-          12.34,
-          12.52,
-          12.34,
-          11.81,
-          11.98
-        ],
-        "rx_device_cpu_idle_percent": 80.96
-      },
-      "receive_probe": "disabled: the derived staging script renamed TP_RECEIVE_PROBE (plan receive_probe false)",
-      "fix": "staging asserts the plan flag and the bound device script before the install"
+    "trigger_rtt_ms": [
+     33,
+     13,
+     6
+    ],
+    "tcp_rx_chunk_rttcur_ms_max": [
+     167,
+     207,
+     438,
+     428,
+     338
+    ]
+   },
+   "rx_rates": {
+    "1/12 (54M)": 6249,
+    "1/8 (48M)": 706,
+    "1/15 (9M)": 448,
+    "1/13 (36M)": 438,
+    "1/11 (6M)": 297,
+    "1/10 (12M)": 187,
+    "1/14 (18M)": 126,
+    "1/9 (24M)": 90
+   },
+   "reading": "regression: TX unchanged, receive collapsed; 0272 retired (counter-evidence), 0269 reverted (behaviour, co-landed); the safety check (zero payload) passed; the credit model corrected: retire on credit arrival, never at submission"
+  },
+  "boot-c": {
+   "run": "PIO-throughput-bootc-1",
+   "session": "2026-10-25 13:14 UTC (66 min after boot B; cross-session, \u00b140 % floor)",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "9ea1a37c7f6fe70366a6f6e0ecbc65a7a8ace225",
+   "boot2_sha256": "8cd3631403875135077f9002b49e3a7af0471d4dcb3d084d1786fe8cd0a3ab07",
+   "predecessor_boot2_sha256": "276a6628361ba08e022c162ff3b96bf45c497383b8cbcf76543727d489a2778f",
+   "mainline_boot_id": "61cda9bd-ffd8-4f7e-8cfb-4395104b187d",
+   "previous_gemian_boot_id": "3b6d4978-87d7-4597-be6f-d3d27ac92b58",
+   "returned_gemian_boot_id": "52ffff40-1dc2-4bd7-9369-87be7dcbcbbc",
+   "classification": "returned-with-incomplete-log",
+   "sealed_log_bytes": 2097147,
+   "logger": {
+    "result": "failed",
+    "reason": "byte-cap",
+    "byte_limit": 2097152,
+    "elapsed_ms": 27533,
+    "records": 12310,
+    "tx_done_lines": 5134,
+    "tx_completion_timing_lines": 5129
+   },
+   "all_pass": false,
+   "data_fixed_rate_code": "0x4c",
+   "throughput": {
+    "tx_host_received_mbit_s": 5.53,
+    "tx_chunk_mbit_s": [
+     7.84,
+     6.64,
+     7.52,
+     7.7,
+     7.19
+    ],
+    "tx_chunk_ended_by": [
+     "duration",
+     "duration",
+     "duration",
+     "duration",
+     "peer_eof"
+    ],
+    "rx_host_sent_mbit_s": 7.19,
+    "rx_device_chunk_mbit_s": [
+     17.48,
+     17.48,
+     18.24,
+     16.45,
+     17.12
+    ],
+    "rx_host_chunk_mbit_s": [
+     32.77,
+     31.48,
+     38.93,
+     42.15,
+     36.3
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "tx_device_cpu_idle_percent": 82.95,
+    "rx_device_cpu_idle_percent": 76.51
+   },
+   "tx_done_status": {
+    "0": 5127,
+    "3": 5
+   },
+   "status3_pids": [
+    34,
+    58,
+    73,
+    98,
+    116
+   ],
+   "probe": {
+    "udp": [
+     {
+      "rate": 10,
+      "sent": 893,
+      "counted": 893,
+      "loss": 0.0
+     },
+     {
+      "rate": 20,
+      "sent": 1786,
+      "counted": null,
+      "missing": true
+     },
+     {
+      "rate": 30,
+      "missing": true
+     }
+    ],
+    "probe_rc": null,
+    "laptop_ping_at_rest_ms": {
+     "min": 42.978,
+     "avg": 98.028,
+     "max": 153.102
     },
-    "probe-3": {
-      "run": "PIO-throughput-probe3-1",
-      "same_image_as": "probe-1",
-      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
-      "mainline_boot_id": "d6563d2d-041b-4f5b-bcbb-bdcb420a197e",
-      "previous_gemian_boot_id": "1172db3c-93eb-4e28-a487-53cd44b1bdd2",
-      "returned_gemian_boot_id": "37bc58e9-7bc7-4550-b4f6-fabbcb34ed11",
-      "outcome": "void: helper exception 'measurement exceeds retained owner-observation bound' (rendered command 4101 bytes; base 433, preflight stand-in 405); data phase ended by connection-loss at 368 s",
-      "recovery": {
-        "path": "preserve-and-return.py (reviewed)",
-        "post_session_quiescence": "pass (no owner remained, nothing killed)",
-        "log": "complete-log-through-seal",
-        "native_reboot_attempts": 2,
-        "classification": "changed-ID-Gemian",
-        "elapsed_seconds": 15.369
-      },
-      "fixes": [
-        "probe block after the chunk loop in a bounded subshell",
-        "trigger bounded by timeout 5",
-        "offered:false per rate without a send; peer recorded not refused",
-        "measurement runner timeout 90 s; watcher wall clock 300 s with automatic reviewed recovery",
-        "sleep-paced sender; in-chunk ping -i 0.05",
-        "counter window 2.5 s",
-        "device-side ping dropped (laptop pings replace it); block 290 bytes quoted, command 4029",
-        "preflight forms the exact base",
-        "device block offline test (VM, device busybox): 3 lines, counts 363/362/366, 7.6 s",
-        "snd_wnd relabel"
-      ]
+    "laptop_ping_in_chunk_ms": {
+     "min": 9.23,
+     "avg": 34.811,
+     "max": 50.919
     },
-    "probe-4": {
-      "run": "PIO-throughput-probe4-1",
-      "session": "2026-10-25 11:39 UTC",
-      "same_image_as": "probe-1",
-      "boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
-      "mainline_boot_id": "2f327013-152c-48aa-bad5-002968ea1d23",
-      "previous_gemian_boot_id": "37bc58e9-7bc7-4550-b4f6-fabbcb34ed11",
-      "returned_gemian_boot_id": "1b6850a9-ca0c-43a0-af9a-6471c24704b2",
-      "sealed_log_bytes": 1686335,
-      "throughput": {
-        "tx_host_received_mbit_s": 3.14,
-        "tx_chunk_mbit_s": [
-          4.07,
-          3.74,
-          3.73,
-          3.87,
-          3.95
-        ],
-        "tx_device_cpu_idle_percent": 86.17,
-        "rx_host_sent_mbit_s": 7.78,
-        "rx_device_chunk_mbit_s": [
-          14.46,
-          14.98,
-          15.25,
-          15.25,
-          15.83
-        ],
-        "rx_host_chunk_mbit_s": [
-          29.45,
-          32.95,
-          35.57,
-          34.14,
-          36.14
-        ],
-        "rx_device_cpu_idle_percent": 78.26
-      },
-      "receive_probe": {
-        "udp": [
-          {
-            "rate_mbit_s": 10,
-            "laptop_sent": 893,
-            "device_counted": 893,
-            "delivered_mbit_s": 10.01,
-            "loss": 0.0
-          },
-          {
-            "rate_mbit_s": 20,
-            "laptop_sent": 1786,
-            "device_counted": 1786,
-            "delivered_mbit_s": 20.01,
-            "loss": 0.0
-          },
-          {
-            "rate_mbit_s": 30,
-            "offered": true,
-            "missing": true,
-            "reason": "owned command terminated when the data window closed"
-          }
-        ],
-        "trigger_rtt_ms": [
-          7,
-          8,
-          8
-        ],
-        "laptop_ping_at_rest_ms": {
-          "min": 8.21,
-          "avg": 22.934,
-          "max": 51.532
-        },
-        "laptop_ping_in_chunk_ms": {
-          "min": 12.906,
-          "avg": 56.29,
-          "max": 97.561
-        },
-        "tcp_rx_chunk_rttcur_ms_samples": [
-          [
-            9,
-            27,
-            44,
-            69,
-            95,
-            132
-          ],
-          [
-            9,
-            22,
-            42,
-            66,
-            102,
-            139
-          ],
-          [
-            8,
-            24,
-            48,
-            76,
-            95
-          ],
-          [
-            6,
-            19,
-            39,
-            69,
-            85
-          ],
-          [
-            8,
-            27,
-            50,
-            53,
-            65
-          ]
-        ],
-        "snd_wnd_bytes": {
-          "min": 64512,
-          "median_per_chunk": [
-            266752,
-            279552,
-            136704,
-            203776,
-            129536
-          ],
-          "max": 497152
-        },
-        "snd_cwnd_median_per_chunk": [
-          205617,
-          238921,
-          256297,
-          199825,
-          225889
-        ],
-        "maxseg": 1448
-      },
-      "verdict": {
-        "all_pass": false,
-        "cause": "data phase ended by native-diag at 19.7 s: ccmp_queued reached MT6797_CCMP_DIAG_CHECKED_MAX (8192; series boots 4505-4646) with the probe's 2679 datagrams; disconnect not attempted; owned command terminated (third UDP line lost)",
-        "driver_data_path_fault": false
-      },
-      "reading": "receive path not the ceiling (UDP 20 Mbit/s, zero loss); TCP receive tracks the acknowledgement path (transmit side); interrupt not next; boot B next"
-    },
-    "boot-b": {
-      "run": "PIO-throughput-bootb-1",
-      "session": "2026-10-25 12:08 UTC (adjacent to probe-4)",
-      "kernel_build_commit": "d8aa0d5f94b4006d58e169a71858413cccd70aaf",
-      "boot2_sha256": "276a6628361ba08e022c162ff3b96bf45c497383b8cbcf76543727d489a2778f",
-      "predecessor_boot2_sha256": "cacce7a15e46d706983643a930a83108806d0e68b5ba9fc697346f4cb7fe274a",
-      "mainline_boot_id": "b7a486c7-56eb-4dcb-be29-c9e6dee938b1",
-      "returned_gemian_boot_id": "3b6d4978-87d7-4597-be6f-d3d27ac92b58",
-      "sealed_log_bytes": 173080,
-      "all_pass": true,
-      "throughput": {
-        "tx_host_received_mbit_s": 3.07,
-        "tx_chunk_mbit_s": [
-          3.13,
-          3.64,
-          3.76,
-          3.55,
-          3.74
-        ],
-        "rx_host_sent_mbit_s": 3.5,
-        "rx_device_chunk_mbit_s": [
-          11.34,
-          7.64,
-          1.46,
-          0.95,
-          1.19
-        ],
-        "rx_chunk_ended_by": [
-          "byte_cap",
-          "device_timeout",
-          "device_timeout",
-          "device_timeout",
-          "device_timeout"
-        ],
-        "tx_device_cpu_idle_percent": 89.07,
-        "rx_device_cpu_idle_percent": 88.48
-      },
-      "data_end": {
-        "rx_delivered": 8581,
-        "tx_queued": 3000,
-        "tx_done": 3000,
-        "tx_failed": 0,
-        "tx_credits_pages": 22489,
-        "credit_retired": 3000
-      },
-      "probe": {
-        "udp": [
-          {
-            "rate": 10,
-            "sent": 893,
-            "counted": 608
-          },
-          {
-            "rate": 20,
-            "sent": 1786,
-            "counted": 2001
-          },
-          {
-            "rate": 30,
-            "sent": 2679,
-            "counted": 2434
-          }
-        ],
-        "laptop_ping_at_rest_ms": {
-          "min": 66.82,
-          "avg": 121.9,
-          "max": 176.98
-        },
-        "laptop_ping_in_chunk_ms": {
-          "min": 70.26,
-          "avg": 103.66,
-          "max": 150.83
-        },
-        "trigger_rtt_ms": [
-          33,
-          13,
-          6
-        ],
-        "tcp_rx_chunk_rttcur_ms_max": [
-          167,
-          207,
-          438,
-          428,
-          338
-        ]
-      },
-      "rx_rates": {
-        "1/12 (54M)": 6249,
-        "1/8 (48M)": 706,
-        "1/15 (9M)": 448,
-        "1/13 (36M)": 438,
-        "1/11 (6M)": 297,
-        "1/10 (12M)": 187,
-        "1/14 (18M)": 126,
-        "1/9 (24M)": 90
-      },
-      "reading": "regression: TX unchanged, receive collapsed; 0272 retired (counter-evidence), 0269 reverted (behaviour, co-landed); the safety check (zero payload) passed; the credit model corrected: retire on credit arrival, never at submission"
+    "trigger_rtt_ms": [
+     6,
+     6
+    ],
+    "tcp_rx_chunk_rttcur_ms_max": [
+     88,
+     70,
+     51,
+     60,
+     79
+    ],
+    "tcp_rx_chunk_rttcur_ms_samples": [
+     [
+      9,
+      17,
+      48,
+      70,
+      88
+     ],
+     [
+      9,
+      17,
+      39,
+      70,
+      68,
+      69
+     ],
+     [
+      8,
+      23,
+      46,
+      51,
+      50
+     ],
+     [
+      5,
+      22,
+      48,
+      60
+     ],
+     [
+      9,
+      23,
+      40,
+      59,
+      79
+     ]
+    ],
+    "snd_wnd_bytes": {
+     "min": 64512,
+     "max": 400896
     }
+   },
+   "data_end": null,
+   "rx_rates": null,
+   "reading": "54 Mbit/s acknowledged; TX x1.9 (real), receive +13 % (inside the floor), in-chunk RTT down a third: section 13 row 2; about 1.6 ms per frame remains with the air time removed; the log cap (per-frame records) and the probe's cut legs are harness/diagnostic faults, boot D measures two chunks per direction and carries 0274 v2"
   }
+ }
 }

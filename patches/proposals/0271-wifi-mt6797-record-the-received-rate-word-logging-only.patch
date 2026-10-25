@@ -1,7 +1,7 @@
-From 62bf004f2cce83b543c770a8ef3deb73ac7a3e2d Mon Sep 17 00:00:00 2001
+From 551a4fdc6ac1713f8ce823ffb8786bb61906b2b6 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 08:15:31 -0400
-Subject: [PATCH 2/4] wifi: mt6797: record the received rate word (logging
+Subject: [PATCH 1/6] wifi: mt6797: record the received rate word (logging
  only)
 
 Mirror the transmit rate record for received frames: when a queued data
@@ -80,7 +80,7 @@ index 3c8e5e6e5..99bca9644 100644
   * frame of the public gen3 RXD layout for a legacy non-QoS station, the two
   * classes the reference run 3 ledger holds and the pinned nic_rx.h defines:
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 61cddd40d..2a68fbc9f 100644
+index 61cddd40d..6361e6d15 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -327,6 +327,13 @@ struct mt6797_mac {
@@ -149,7 +149,7 @@ index 61cddd40d..2a68fbc9f 100644
  	}
 +#ifdef CONFIG_MT6797_RX_RATE_RECORD
 +	{
-+		char rates[96];
++		char rates[144];
 +		unsigned int k, n = 0;
 +
 +		for (k = 0; k < ARRAY_SIZE(mac->rx_rates) && mac->rx_rates[k].count; k++)

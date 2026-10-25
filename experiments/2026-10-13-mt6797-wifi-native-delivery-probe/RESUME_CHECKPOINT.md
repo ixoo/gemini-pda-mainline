@@ -1,4 +1,17 @@
-# Current: boot B regressed (0272 retired, 0269 reverted); boot C, the fixed-rate sweep at 54 Mbit/s, is next
+# Current: boot C measured (54 Mbit/s acknowledged, TX ×1.9, log cut at the cap); boot D (state 2) prepared on the rebuilt rate series
+
+[§13 result](HIF_TRANSPORT_ANALYSIS.md#boot-c-result-2026-10-25-1314-utc-54-mbits-acknowledged-transmit-19-the-log-cut-at-the-cap)
+and the [boot D predeclaration](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-predeclared-2026-10-25-the-encoder-admits-state-2):
+the fixed rate at 54 is acknowledged; TX per chunk ×1.9, receive inside
+the floor, about 1.6 ms per frame remains with the air time removed; the
+device log sealed at its cap under the per-frame records, so boot D
+measures two chunks per direction. The review amended 0274 (the budget
+step still closed the window at the ceiling) and 0271 (line buffer),
+retired 0262/0263 for 0275/0276 (the rate series did not apply), and
+added 0277 (state 2). Then the completion lever's corrected second
+attempt; the AP-loss gate independent.
+
+# Historical: boot B regressed (0272 retired, 0269 reverted); boot C, the fixed-rate sweep at 54 Mbit/s, is next
 
 [§12 result](HIF_TRANSPORT_ANALYSIS.md#boot-b-result-2026-10-25-1208-utc-a-regression-0272-retired-0269-reverted)
 and [§13](HIF_TRANSPORT_ANALYSIS.md#13-boot-c-predeclared-2026-10-25-the-fixed-rate-sweep-6--54-mbits):

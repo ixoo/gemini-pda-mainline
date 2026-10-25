@@ -1,0 +1,101 @@
+From 05418f72feb661169287d74dcfdbf6a7508de2e7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 24 Oct 2026 19:15:47 -0400
+Subject: [PATCH 6/6] wifi: mt6797: update the station record at state 2 after
+ authentication
+
+Every ordinary data frame sent without a fixed rate carries the firmware
+rate word 0x0000 and is never acknowledged, while the fixed-rate frames
+in the same descriptor format are: the firmware's rate table for this
+station is empty. The vendor host walks the station record through
+states 1, 2 and 3, each an update command, where this driver sent 1
+before authentication and 3 after association. Send the state-2 update
+after authentication, the same payload as state 1 with the state
+advanced, so that whatever the firmware does between states 1 and 3 runs
+as it does for the vendor; one record and one credit wait in the join,
+nothing else changes.
+
+Signed-off-by: Julien Etienne <julien.etienne@gmail.com>
+(cherry picked from commit bdab9c7154e5cc9003241a62cb0b45e9e1f61129)
+---
+ .../wireless/mediatek/mt6797/join-commands.h  |  7 +++--
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 31 +++++++++++++++++++
+ 2 files changed, 35 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-commands.h b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+index 6f4281e50..2d014ae50 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-commands.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-commands.h
+@@ -49,7 +49,8 @@ mt6797_join_legacy_rates(unsigned int supported, unsigned int basic,
+ 	return true;
+ }
+ 
+-/* Original payload encoders for one legacy 5 GHz, 20 MHz join. Slot indices
++/* Original payload encoders for one legacy 5 GHz, 20 MHz join. States 1 and 2
++ * carry no association id, state 3 carries it (the vendor's sequence). Slot indices
+  * are project reservations, not firmware allocation acknowledgements.
+  * The caller must establish the exclusive BSS/peer lifetime first.
+  */
+@@ -61,8 +62,8 @@ mt6797_join_station_payload(const unsigned char *ap, unsigned int state,
+ 	unsigned char p[MT6797_JOIN_STA_BYTES] = {0};
+ 	unsigned int i, any = 0;
+ 
+-	if (!ap || !output || (ap[0] & 1) || (state != 1 && state != 3) ||
+-	    (state == 1 && aid) || (state == 3 && (!aid || aid > 2007)) ||
++	if (!ap || !output || (ap[0] & 1) || state < 1 || state > 3 ||
++	    (state != 3 && aid) || (state == 3 && (!aid || aid > 2007)) ||
+ 	    !desired_rates || (desired_rates & ~0x3fc0U) ||
+ 	    !basic_rates || (basic_rates & ~desired_rates) ||
+ 	    !(desired_rates & (1U << 6)))
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index ad28e9b37..b62ae6c39 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -5373,6 +5373,35 @@ static int mt6797_ccmp_pm_indicate(struct mt6797_mac *mac, u64 phase_deadline)
+ }
+ #endif
+ 
++/* The vendor host walks the station record through states 1, 2 and 3, each
++ * an update command; this driver sent 1 before authentication and 3 after
++ * association. Send the state-2 update after authentication, the same
++ * payload as state 1 with the state advanced, so that the firmware's
++ * per-state processing between 1 and 3 runs as it does for the vendor.
++ * Caller holds mac->mutex; the join peer must be ready.
++ */
++static int mt6797_mac_join_authenticated_record(struct mt6797_mac *mac)
++{
++	int ret;
++
++	lockdep_assert_held(&mac->mutex);
++	mac->join_credit_deadline = min_t(u64, mac->join_deadline,
++					  ktime_get_ns() + 100 * NSEC_PER_MSEC);
++	reinit_completion(&mac->join_credit_done);
++	mac->join_credit_pending = true;
++	mac->join_page_debt = 2;
++	ret = mt6797_hif_join_station(mac->hif, mac->sequence++, mac->join_ap,
++				      2, 0, mac->join_desired_rates,
++				      mac->join_peer_basic_rates,
++				      mac->join_credit_deadline);
++	if (!ret)
++		ret = mt6797_mac_join_wait_credit(mac);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join station state 2: status=%d sequence=%u\n",
++		 ret, mac->sequence);
++	return ret;
++}
++
+ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ {
+ 	u64 deadline, now;
+@@ -6037,6 +6066,8 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 		    mac->join_auth_ok && !mac->join_authenticated &&
+ 		    !mac->join_retired && !mac->closing && !mac->first_error) {
+ 			ret = mt6797_mac_join_wait_management(mac);
++			if (!ret)
++				ret = mt6797_mac_join_authenticated_record(mac);
+ 			if (!ret)
+ 				mac->join_authenticated = true;
+ 		}
+-- 
+2.43.0
+

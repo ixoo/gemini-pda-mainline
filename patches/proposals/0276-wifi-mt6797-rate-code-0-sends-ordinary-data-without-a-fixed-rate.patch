@@ -1,0 +1,71 @@
+From c73134b77e4ae2a86e9cee15430e026cb2040d40 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 09:28:45 -0400
+Subject: [PATCH 5/6] wifi: mt6797: rate code 0 sends ordinary data without a
+ fixed rate
+
+Admit 0 as the data descriptor's fixed rate code: the descriptor then
+carries no fixed-rate bit, a zero power offset and a zero rate word, the
+form the vendor data path produces for every data frame, and the firmware
+chooses the rate from the station record's rate set. This re-expresses the
+retired proposal that sent ordinary data without a fixed rate (it cleared
+the bit and dropped the rate bytes by hand, and could not be carried in
+the same series as the rate-code option, which rewrites the same lines)
+as one value of that option. Nothing changes at any other value; the
+first data frame's record prints the code (rate=0x00).
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig   |  5 ++++-
+ drivers/net/wireless/mediatek/mt6797/join-tx.h | 10 +++++++---
+ 2 files changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 90e7520df..6aaee06a3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -107,11 +107,14 @@ config MT6797_RX_RATE_RECORD
+ config MT6797_DATA_FIXED_RATE_CODE
+ 	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
+ 	default 0x4b
+-	range 0x40 0x4f
++	range 0x0 0x4f
+ 	help
+ 	  The rate code written into every ordinary data descriptor with the
+ 	  fixed-rate bit set: mode in bits 6-8 (0x40 is OFDM), legacy index in
+ 	  bits 0-5 (11=6, 15=9, 10=12, 14=18, 9=24, 13=36, 8=48, 12=54 Mbit/s).
++	  0 sends the frame without a fixed rate at all, the vendor data
++	  path's form: no fixed-rate bit, zero power offset, the rate word
++	  zero, the firmware choosing the rate from the station record.
+ 	  Management and security frames keep OFDM 6 Mbit/s. A measurement
+ 	  variable for the per-frame air time; the default is the rate the
+ 	  series has always used.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-tx.h b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+index e953f32f1..66a13d82a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-tx.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+@@ -6,8 +6,11 @@
+ 
+ /* The fixed rate code of an ordinary data descriptor (mode in bits 6-8,
+  * legacy index in bits 0-5; the OFDM indices are 11=6, 15=9, 10=12, 14=18,
+- * 9=24, 13=36, 8=48, 12=54 Mbit/s). Management and security frames keep
+- * OFDM 6 Mbit/s (0x4b). A measurement variable; the default is unchanged.
++ * 9=24, 13=36, 8=48, 12=54 Mbit/s), or 0 for no fixed rate at all: the
++ * vendor data path's form, no fixed-rate bit, zero power offset and a zero
++ * rate word, the firmware choosing from the station record. Management and
++ * security frames keep OFDM 6 Mbit/s (0x4b). A measurement variable; the
++ * default is unchanged.
+  */
+ #ifdef CONFIG_MT6797_DATA_FIXED_RATE_CODE
+ #define MT6797_DATA_FIXED_RATE_CODE ((unsigned int)CONFIG_MT6797_DATA_FIXED_RATE_CODE)
+@@ -169,7 +172,8 @@ mt6797_join_tx_data_descriptor(const unsigned char *frame, size_t bytes,
+ 	d[6] = 0x80; /* Protected frame, TID 0, no header padding. */
+ 	d[7] = 1U << 2; /* Own-MAC 1. */
+ 	d[10] = lifetime;
+-	d[11] = 0x80; /* Fixed rate enabled, zero power offset. */
++	/* Fixed rate enabled unless the code is 0, zero power offset. */
++	d[11] = MT6797_DATA_FIXED_RATE_CODE ? 0x80 : 0;
+ 	d[12] = count; d[13] = count >> 8;
+ 	d[20] = pid; d[21] = 2; /* TX status to MCU. */
+ 	d[26] = (MT6797_DATA_FIXED_RATE_CODE << 2) & 255;
+-- 
+2.43.0
+

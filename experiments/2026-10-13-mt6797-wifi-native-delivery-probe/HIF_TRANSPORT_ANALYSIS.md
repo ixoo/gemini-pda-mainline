@@ -1238,7 +1238,7 @@ the history). 0269 is reverted as well: a queued-frame ceiling is runtime
 behaviour, not logging, and it landed in the same boot, so this boot
 cannot say which of the two starved receive. What probe boot 4 needed is
 done differently by
-[0274](../../patches/proposals/0274-wifi-mt6797-the-diagnostic-s-queued-frame-ceiling-stops-its-count-not-the-window.patch):
+[0274](../../patches/proposals/0274-wifi-mt6797-the-diagnostic-s-ceilings-stop-its-counts-not-the-window.patch):
 the diagnostic's ceiling stays 8,192 and stops its own count (frames beyond
 it are delivered and counted apart, `beyond=` on the ccmp-stable end line);
 it never closes the data window or refuses delivery again.
@@ -1331,3 +1331,116 @@ different code. The ledger stands at five.
 queued count would again cross 8,192: the ccmp-stable end line must show
 the count saturated and `beyond>0` with the data phase ending by
 `disconnect`, not `native-diag`.
+
+### Boot C result (2026-10-25, 13:14 UTC): 54 Mbit/s acknowledged, transmit ×1.9, the log cut at the cap
+
+Build `9ea1a37c`, boot2 `8cd36314…` over `276a6628…`, mainline boot
+`61cda9bd…`, returned to Gemian `52ffff40…` by the session's own return
+(changed-ID Gemian, recovery confirmed, two attempts, 15 s; the watcher's
+unbundled recovery was not needed, the USB endpoint was down when the run
+ended). Session classification `returned-with-incomplete-log`: the device
+logger sealed at 2,097,147 bytes (`reason=byte-cap`, 27.5 s after its
+start, 12,310 records, of them 5,134 `join TX done` and 5,129 `TX
+completion timing` lines), so no data-end, RX-rates or ccmp-stable end
+line exists and the receipt's `all_pass` is false on the log alone. The
+measurement itself completed both directions.
+
+**TX first.** The first data frame went out at `rate=0x4c`; 5,127
+completions with status 0 and 5 with status 3 (`count=3`, scattered pids
+34, 58, 73, 98, 116): 54 Mbit/s is received by the access point from this
+station at this power. No guard record, no fault, no credit overflow, DMA
+attached both ways. The 24 Mbit/s fallback is not needed.
+
+| Direction | Boot C (13:14 UTC) | Probe boot 4 (11:39 UTC) | Boot B (12:08 UTC) |
+|---|---|---|---|
+| TX, host-received aggregate / chunks (Mbit/s) | 5.53 / 7.84, 6.64, 7.52, 7.70, 7.19 | 3.14 / 4.07, 3.74, 3.73, 3.87, 3.95 | 3.07 / 3.13–3.76 |
+| RX, host-sent aggregate / device-side chunks (Mbit/s) | 7.19 / 17.48, 17.48, 18.24, 16.45, 17.12 (all `byte_cap`) | 7.78 / 14.46, 14.98, 15.25, 15.25, 15.83 | 3.50 / 11.3, 7.6, 1.5, 0.95, 1.2 |
+| device idle TX / RX | 83.0 % / 76.5 % | 86.2 % / 78.3 % | 89.1 % / 88.5 % |
+| in-chunk round trip (laptop ping, ms min/avg/max) | 9.2 / 34.8 / 50.9 | 12.9 / 56.3 / 97.6 | 70.3 / 103.7 / 150.8 |
+| TCP receive `rttcur` max per chunk (ms) | 88, 70, 51, 60, 79 | 132, 139, 95, 85, 65 | 167–438 |
+| UDP 10 / 20 / 30 Mbit/s | 893/893, zero loss / device line absent / absent | zero loss / zero loss / absent | 608/893, 2001/1786, 2434/2679 |
+
+Boot C ran 66 minutes after boot B with the owner away between, so the
+comparison is stated as cross-session with the ±40 % floor. TX per chunk
+is ×1.9 the probe-4 chunks (6.64–7.84 against 3.73–4.07), beyond the
+floor: real. Receive on the device side is +13 % (16.45–18.24 against
+14.46–15.83), inside the floor: unchanged. The in-chunk round trip fell
+by a third and the receive-direction `rttcur` samples fell with it, the
+same direction as the transmit gain. The at-rest ping read 43/98/153 ms
+(probe 4: 8/23/52; boot B: 67/122/177): the at-rest sample is not stable
+across boots and is recorded, not read.
+
+**Reading: the second row of §13.** TX up, receive unchanged. The
+arithmetic: a 1,448-byte frame's air time fell from about 2.0 ms at
+6 Mbit/s to about 0.3 ms at 54, and the per-frame cost (depth 4,
+host-received rate) fell from about 3.0 ms to about 1.6 ms. Roughly 1.4 ms
+of the per-frame cost was air time; about 1.6 ms per frame remains and
+does not depend on the rate: at depth 4 that is a submit-to-completion of
+about 6 ms per frame with the air time removed from it, the owner's
+"4–9 ms" question in its remaining form (the MCU status report and its
+collection, not the air). Receive did not follow the transmit gain beyond
+the floor, so the receive number is not simply the acknowledgement path's
+air time either; the RX-rates line that would say what the access point
+sent is lost with the log. The next lever on transmit is the completion
+path (the corrected second attempt: retire on credit arrival, with its
+instrument); boot D (state 2) is independent and already approved.
+
+**Two faults, named.** (1) *The log cap.* Two per-frame kernel records of
+about 200 bytes each cost 2 MiB in 5,100 completions; at the 54 Mbit/s
+rate the five-chunk measurement writes that many frames in the transmit
+phase alone. The plan's own precedent (lifecycle-9) keeps the sealed
+logger's 2 MiB contract and measures fewer chunks; boot D measures two
+chunks per direction (the leaf's five-chunk loop text stays for the idle
+validator and is narrowed after it, exactly as the lifecycle helper does;
+the preflight takes the declared count). (2) *The probe's missing legs.*
+The owned command ended during the 20 Mbit/s leg (`probe_rc` absent, the
+disconnect never attempted) as it ended during probe 4's 30 Mbit/s leg.
+With the log cut there is no data-end line to name the reason; the
+queued-frame arithmetic (about 1,600 acknowledgements received in the
+transmit phase, 3,620 data frames in the receive phase, 893 datagrams of
+the first leg, then the second leg's 1,786) crosses 8,192 inside that leg,
+and the review below shows 0274 as booted could not have kept the window
+open there. Recorded as the probable cause, not verified by the log.
+
+**Verification of 0274 on this boot: not possible, and by reading not
+needed.** The review of the admitted tree (owner away, 2026-10-25) found
+that 0274 removed one of three stops at the queued-frame ceiling: the
+pre-read control step still asked the connected lifetime's budget step
+(`mt6797_ccmp_diag_budget_step`), which stops at the same saturated count
+(and at the total-frame and byte ceilings), closing the window through the
+diagnostic's transition; and the per-frame admission asked it too, so
+every frame beyond the ceiling was refused as `window_blocked` and the
+`beyond=` count could never move. 0274 is amended in place
+([0274 v2](../../patches/proposals/0274-wifi-mt6797-the-diagnostic-s-ceilings-stop-its-counts-not-the-window.patch)):
+under the connected lifetime the budget step stops only on a missing
+budget, the pre-read sample ceilings are the 60-second window's alone, the
+count saturates and the frames beyond are delivered and counted apart.
+A host fixture ([`tests/ccmp-budget-step-test.c`](tests/ccmp-budget-step-test.c),
+run by `run-native-diag-test.py` with and without the connected lifetime)
+pins both forms. Verification moves to boot D: if the queued count crosses
+8,192 under two chunks and the probe, the ccmp-stable end line shows
+`beyond>0` with the data phase ending by `disconnect`; if it does not
+cross, the fixture is the evidence and the boot records "not exercised".
+
+**Also from the review.** The rate series could not be applied past 0268:
+0262 (the TX-done rate record) moved the Kconfig context 0268 expects, and
+0273 rewrites the descriptor lines 0263 deleted; the repository checker
+orders series but does not apply them. Both are retired and re-expressed
+on the current tree as [0275](../../patches/proposals/0275-wifi-mt6797-record-the-firmware-rate-word-of-every-TX-completion.patch)
+(the same record, rebased) and [0276](../../patches/proposals/0276-wifi-mt6797-rate-code-0-sends-ordinary-data-without-a-fixed-rate.patch)
+(rate code 0 is "no fixed rate at all", the vendor data form, one value of
+0273's option); the state-2 record is [0277](../../patches/proposals/0277-wifi-mt6797-update-the-station-record-at-state-2-after-authentication.patch).
+Both series were applied in order in the VM and the rate series' tree is
+identical to the boot D branch. [0271](../../patches/proposals/0271-wifi-mt6797-record-the-received-rate-word-logging-only.patch)
+is amended in place for its line buffer (96 bytes held eight entries only
+at small counts). The descriptor fixture now covers rate code 0.
+
+## 14. Boot D (predeclared, 2026-10-25): the state-2 station record, one boot
+
+The rate thread's single informed attempt, approved by the owner after
+the probe and the sweep; predeclared in the
+[autorate record](TX_AUTORATE_RESULT.md#state-2-station-record-boot-second-attempt-predeclared-2026-10-25-the-encoder-admits-state-2)
+where that thread lives. The tree is the rate series (the lifecycle tree
+through 0274 v2, then 0275, 0276, 0277) on the rate profile (data without
+a fixed rate, the received and transmitted rate records). Two chunks per
+direction; the probe rides. The AP-loss gate stays independent.

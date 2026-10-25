@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Host fixture for 0271 and 0273's header changes: the data descriptor's
- * fixed rate code (the default, and a profile's value through the option)
- * beside the PID and report bytes it always carries, and the receive-vector
- * word helper (group 3 present after groups 4, 1 and 2; absent; truncated).
+/* Host fixture for 0271, 0273 and 0276's header changes: the data
+ * descriptor's fixed rate code (the default, a profile's value through the
+ * option, and 0 for no fixed rate at all) beside the PID and report bytes it
+ * always carries, and the receive-vector word helper (group 3 present after
+ * groups 4, 1 and 2; absent; truncated).
  */
 #include <assert.h>
 #include <stdio.h>
@@ -26,7 +27,9 @@ int main(void)
 	 * the build chose (0x4b unless the option says otherwise)
 	 */
 	assert(mt6797_join_tx_data_descriptor(frame, sizeof(frame), 1, 5, 500, 3, d, &pages));
-	assert(d[20] == 5 && d[21] == 2 && d[11] == 0x80 && pages);
+	assert(d[20] == 5 && d[21] == 2 && pages);
+	/* code 0: no fixed-rate bit and a zero rate word (the vendor data form) */
+	assert(d[11] == (MT6797_DATA_FIXED_RATE_CODE ? 0x80 : 0));
 	assert(d[26] == ((MT6797_DATA_FIXED_RATE_CODE << 2) & 255) && d[27] == (MT6797_DATA_FIXED_RATE_CODE << 2) >> 8);
 #ifdef CONFIG_MT6797_DATA_FIXED_RATE_CODE
 	assert(MT6797_DATA_FIXED_RATE_CODE == CONFIG_MT6797_DATA_FIXED_RATE_CODE);

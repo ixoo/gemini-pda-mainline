@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 work, runtime = Path(sys.argv[1]), Path(sys.argv[2])
+CHUNKS = int(os.environ.get('TP_CHUNKS', '5'))   # the declared chunk count per direction (five; boot D measures two)
 failures = []
 
 
@@ -45,7 +46,7 @@ line(not any(k.startswith('TP_RECEIVE_PROBE') and k != 'TP_RECEIVE_PROBE' for k 
 line(plan.get('receive_probe') is True, 'the plan enables the receive probe')
 line(plan.get('helper_sha256') and __import__('hashlib').sha256(helper_path.read_bytes()).hexdigest() == plan['helper_sha256'], 'the plan pins the helper the run will load')
 
-# 2. the rendered device script: probe block, receive listener, transmit sender, both directions, five chunks
+# 2. the rendered device script: probe block, receive listener, transmit sender, both directions, the declared chunk count
 with tempfile.TemporaryDirectory() as tmp:
     path = Path(tmp) / 'helper.py'; path.write_text(source)
     saved = dict(os.environ)
@@ -61,7 +62,7 @@ anchors = {
     'receive listener (device reads from the laptop)': ('nc %s 48002 | $BB wc -c' % host, 1),
     'transmit sender (device writes to the laptop)': ('nc %s 48001' % host, 1),
     'both directions': ('for dir in TX RX; do', 1),
-    'five chunks': ('while [ "$i" -le 5 ]', 1),
+    '%d chunks' % CHUNKS: ('while [ "$i" -le %d ]' % CHUNKS, 1),
 }
 for name, (needle, count) in anchors.items():
     n = script.count(needle)
@@ -121,8 +122,8 @@ with tempfile.TemporaryDirectory() as tmp:
     c.close(); ep.thread.join(timeout=5); ep.close()
     line(ep.result.get('completed') and total == 262144, 'offline: two-ended TCP transfer through the receive endpoint moves the chunk (%d bytes, tcp_info %s)' % (total, 'present' if ep.result['chunks'] and ep.result['chunks'][0].get('tcp_info') else 'absent'))
 
-# 5. the chunk plan covers five chunks in both directions
-line(plan.get('chunks_each') == 5, 'plan: five chunks each way (chunks_each=%r)' % plan.get('chunks_each'))
+# 5. the chunk plan covers the declared chunk count in both directions
+line(plan.get('chunks_each') == CHUNKS, 'plan: %d chunks each way (chunks_each=%r)' % (CHUNKS, plan.get('chunks_each')))
 
 if failures:
     print('REFUSED: %d check(s) failed; the handoff does not proceed' % len(failures)); sys.exit(2)
