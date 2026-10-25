@@ -3144,6 +3144,77 @@
     "tx_failed": 0
    },
    "reading": "HIF section 32: batching works with HT frames and lifts receive about 15 % on its good chunks, not toward 25-30; the device is 86 % idle, so ingest is bound by the polled cadence or the firmware ring; transmit rose to 22; one correct replay refusal of a retried duplicate"
+  },
+  "boot-w": {
+   "run": "PIO-throughput-bootw-1",
+   "session": "2026-10-25 22:44 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot V tree + 0294; DATA_FIXED_RATE_CODE 0x87, HIF_RX_BATCH, HT_CAPABILITY on, WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "43f4fa20e89c4e2946e45a8500441d1b1194fd7b",
+   "boot2_sha256": "0b0e2e0123c92baf953459a183b24ca82bbfece0ac8d87e72e4115eb87cbbc16",
+   "predecessor_boot2_sha256": "c06ff1ae1ae90387e4cd711cb9b1703a6e4f6cc0cd41b6b562441594fe9ea05e",
+   "mainline_boot_id": "2bcf0d02-8e50-4ad0-9a53-20a8fcaab717",
+   "previous_gemian_boot_id": "885a03ed-d198-43c2-9867-fab58cf7d71a",
+   "returned_gemian_boot_id": "dd7fd353-f6ca-4619-995a-208f603c49cc",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty, no warning",
+   "sealed_log_bytes": 189447,
+   "series_row": true,
+   "tx_sampled": {
+    "rate": "0x0087",
+    "status0": 830,
+    "status3": 0
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 22.58,
+    "tx_chunk_mbit_s": [
+     23.51,
+     23.76,
+     24.17,
+     23.83,
+     24.08
+    ],
+    "rx_aggregate_mbit_s": 19.97,
+    "rx_device_chunk_mbit_s": [
+     22.59,
+     20.38,
+     17.77,
+     21.87,
+     22.37
+    ],
+    "credit_retire_wait_avg_us": 5202,
+    "inflight_max": 12,
+    "device_cpu_idle_percent": {
+     "tx": 80.9,
+     "rx": 84.8
+    },
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 4
+    }
+   },
+   "rx_batch": {
+    "reads": 560659,
+    "aggregates": 24047,
+    "frames": 46443,
+    "empty": 536612,
+    "max": 16,
+    "failures": 0
+   },
+   "qos": {
+    "tx_qos": 53133,
+    "tx_tid_refused": 0,
+    "rx_qos": 44541,
+    "rx_refused": 0,
+    "rx_llc_mis": 2
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 33: the firmware sends HT MCS7 on the legacy station record with no loss; transmit +2.6 % only, because the credit-retire cycle (about 433 us a frame) binds, not the air (189 us); both directions are bound by the polled host cycle, so the interrupt is the next lever"
   }
  }
 }

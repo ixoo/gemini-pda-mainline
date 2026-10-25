@@ -1,4 +1,15 @@
-# Current: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) staged on boot2
+# Current: boot W sends HT MCS7 with no loss, but transmit moved 2.6 %: the polled per-frame cycle binds both directions, so the interrupt is the next lever, to be scoped
+
+[Boot W](HIF_TRANSPORT_ANALYSIS.md#boot-w-result-2026-10-25-2244-utc-the-firmware-sends-ht-mcs7-on-a-legacy-station-record-with-no-loss-but-transmit-hardly-moves-the-per-frame-cycle-binds-not-the-air):
+clean verdict; every sampled frame at 0x0087, status 0; TX 22.58 (chunks
+23.5-24.2), RX 19.97; credit-retire wait unchanged at 5.2 ms over 12
+(about 433 us a frame against 189 us of air), device 85 % idle, 96 % of
+block reads empty. The air-rate levers (short GI, 40 MHz) cannot move the
+binding constraint; the interrupt (ISR, status block, aggregated DMA) is
+next and is not yet scoped or predeclared. The fixed MCS7 stays.
+Nothing is staged; the device is on Gemian (`dd7fd353…`).
+
+# Historical: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) staged on boot2
 
 [Boot V](HIF_TRANSPORT_ANALYSIS.md#boot-v-result-2026-10-25-2225-utc-batching-lifts-receive-modestly-and-transmit-with-it-ingest-is-still-bound-elsewhere-one-correct-replay-refusal):
 batching on with no failure (20,994 aggregates, up to 16); receive good

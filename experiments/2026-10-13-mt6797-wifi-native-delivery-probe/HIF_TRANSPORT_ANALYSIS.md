@@ -4143,3 +4143,55 @@ moves the binding constraint:
   levers come first, because they are cheaper. Short guard interval
   (`SGI_20`, about 11 %) and 40 MHz are fields in paths we already
   write.
+
+### Boot W result (2026-10-25, 22:44 UTC): the firmware sends HT MCS7 on a legacy station record with no loss, but transmit hardly moves: the per-frame cycle binds, not the air
+
+Build `43f4fa20` (0294, `DATA_FIXED_RATE_CODE=0x87`, batching and HT on,
+records non-QoS), boot2 `0b0e2e01…` over boot V's `c06ff1ae…`, mainline
+boot `2bcf0d02…`, returned to Gemian `dd7fd353…` by the session's own
+reviewed return (live identity checked afterwards); log complete through
+the seal (189,447 bytes). Clean verdict: `session_exit=0`,
+`all_pass=True`, `verdict_failed=[]`, no warning.
+
+**The descriptor change took, with no loss.** `join data TX: first ...
+rate=0x87`; sampled reports `0/0x0087=830` of 830: every sampled data
+frame was sent at HT MCS7 and acknowledged. The firmware sends HT on a
+station record that still declares legacy PHY. There were no air losses
+(`tx_failed=0`, no `tx_air_losses` warning) and 4 TCP retransmissions.
+Ledger exact: `expired=0 pid_faults=0 left_pages=0 dropped_full=0`. No
+receive refusal (`rx_refused=0`), and the downlink is MCS7 on 44,360 of
+44,541 QoS frames. Batching `failures=0`, with 96 % of block reads empty
+again (536,612 of 560,659).
+
+| | Boot V (54 Mbit/s OFDM) | Boot W (HT MCS7) |
+|---|---|---|
+| TX aggregate (chunks) | 22.01 (22.3–24.1) | 22.58 (23.5–24.2) |
+| credit-retire wait, in flight | 5.16 ms, 12 | 5.20 ms, 12 |
+| RX aggregate (chunks) | 18.22 (22.1, 19.5, 22.3, 10.1, 20.6) | 19.97 (22.6, 20.4, 17.8, 21.9, 22.4) |
+| device idle TX / RX | 81.1 / 85.6 % | 80.9 / 84.8 % |
+| TCP retransmissions, air losses | 4, 0 | 4, 0 |
+
+**Against §33's prediction: not met, and the reason is measured.**
+Transmit rose 2.6 %, not 15–18 %. The credit-retire wait did not move
+(5.16 → 5.20 ms at 12 in flight): each frame costs about 433 µs of the
+host-and-firmware cycle (5.2 ms over 12), against 189 µs of air at MCS7
+and 227.6 µs at 54 Mbit/s. Shortening the air time could not shorten the
+cycle. Transmit is bound by the per-frame retire cycle, as the depth
+model said (asymptote about 33–36 Mbit/s), not by the air. Receive rose
+to 19.97 with no dip. Its good chunks (20.4–22.6) sit with boot V's
+(19.5–22.3): one run, read as unchanged.
+
+**The decision §33 asked for: the interrupt, not the air-rate levers.**
+The criterion was which lever moves the binding constraint.
+
+- *Transmit:* a 17 % cut in air time moved transmit by 2.6 %, so short
+  guard interval (about 11 % less air) and 40 MHz cannot move it either.
+- *Receive:* the downlink already arrives at MCS7, about 65 Mbit/s of
+  air, while we take 20 with the device 85 % idle and 96 % of block reads
+  empty. Receive is bound by the poll cadence, not the air.
+
+Both directions are bound by the polled host cycle, which is what the
+interrupt (the vendor's ISR → status block → aggregated DMA) removes. The
+air-rate levers stay unused and cheap, for after it. The fixed MCS7
+stays: no loss, transmit and receive no worse, and it keeps air time free
+for the downlink.
