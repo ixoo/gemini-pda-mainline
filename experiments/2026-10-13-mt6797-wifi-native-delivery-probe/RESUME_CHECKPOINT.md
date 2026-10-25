@@ -1,4 +1,18 @@
-# Current: the fixed-54 tree is the baseline; boot E (the credit model, five chunks, aggregate logging) is next
+# Current: boot E measured; the credit model (0278) is admitted as the transmit completion path; the TX harness cap now binds; AP-loss gate next
+
+[§15 result](HIF_TRANSPORT_ANALYSIS.md#boot-e-result-2026-10-25-1538-utc-the-credit-model-is-the-completion-path-for-transmit-receive-did-not-follow):
+5,637 frames retired on credit arrival (mean wait 3.5 ms at four in
+flight, no expiry, no fault, zero-payload check passed); every TX chunk
+hit the 1 MiB cap in 0.9 s, so the transmit figure (9.2–9.5 Mbit/s) is a
+floor and `byte_cap_per_chunk` must be raised before the next transmit
+measurement (owner's call on the finite protocol); receive 17.9–20.0,
+inside the floor: the receive limit is not the transmit completion path
+(UDP 30 Mbit/s at zero loss; TCP receive paced by a 29 ms round trip).
+0274 v2 verified on hardware (beyond=3304). Next: the AP-loss gate over
+the boot-E image (owner at the access point); then fewer bus transactions
+per frame on transmit and the receive round trip from the device side.
+
+# Historical: the fixed-54 tree is the baseline; boot E (the credit model, five chunks, aggregate logging) is next
 
 [§15](HIF_TRANSPORT_ANALYSIS.md#15-boot-e-predeclared-2026-10-25-the-corrected-credit-model-read-on-both-directions):
 one quantity (about 1.5 ms a frame) limits both directions; boot E

@@ -801,6 +801,182 @@
    "reading": "state 2 accepted; data without a fixed rate acknowledged at the firmware's choice 0x004b (6 Mbit/s) on every frame: the table is valid, no adaptation; TX at the fixed-6 baseline, 45 % below fixed 54; the rate thread closes on 0273 at 0x4c; 0277 kept in the rate series only",
    "series_row": false,
    "note": "two chunks per direction by declaration: valid readings, not a series row; the UDP 30 Mbit/s leg (2,620/2,679, 2.2 % loss) is the strongest receive evidence; 0277 not admitted; the fixed-54 tree (boot C) is the baseline"
+  },
+  "boot-e": {
+   "run": "PIO-throughput-boote-1",
+   "session": "2026-10-25 15:38 UTC (cross-session against boot C; boot D 32 min earlier on the adaptive tree)",
+   "profile": "mt6797-a53-wifi-lifecycle",
+   "kernel_build_commit": "c6fa0edc82b81b0ffcc98a6a18bc7a5ed027a2e4",
+   "boot2_sha256": "528d1d1d05979447f023ef21d0cbe7d442dda1492e9d76f4d5b691e12c32fd86",
+   "predecessor_boot2_sha256": "df7d6e651c32fa3b91767e4a01fda9fa54228c646bbe19c92190ebc4d218dd52",
+   "mainline_boot_id": "21c301dc-6191-43b2-916a-884831159b47",
+   "previous_gemian_boot_id": "3279578d-5160-4550-a7cc-78d080df8db7",
+   "returned_gemian_boot_id": "239967b1-f041-4499-93bb-57b3daa40633",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 172693,
+   "all_pass": true,
+   "chunks_each": 5,
+   "series_row": true,
+   "classifier": {
+    "chunks_declared": 5,
+    "measurement_censored": false,
+    "measurement_short_by": null,
+    "throughput_baseline_pass": false,
+    "note": "baseline_pass false on every boot since probe 4 (gtk_counters_consistent gate of the connected-lifetime classifier); the series grades on the receipt and the sealed log"
+   },
+   "throughput": {
+    "tx_host_received_mbit_s": 7.74,
+    "tx_chunk_mbit_s": [
+     9.23,
+     9.18,
+     9.46,
+     9.2,
+     9.25
+    ],
+    "tx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "tx_chunk_elapsed_ms": [
+     909,
+     914,
+     887,
+     912,
+     907
+    ],
+    "rx_host_sent_mbit_s": 13.53,
+    "rx_device_chunk_mbit_s": [
+     18.64,
+     19.97,
+     17.85,
+     17.85,
+     18.64
+    ],
+    "rx_host_chunk_mbit_s": [
+     41.74,
+     37.96,
+     43.32,
+     31.81,
+     34.87
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap"
+    ],
+    "rx_chunk_elapsed_ms": [
+     450,
+     420,
+     470,
+     470,
+     450
+    ],
+    "tx_device_cpu_idle_percent": 89.06,
+    "rx_device_cpu_idle_percent": 86.44
+   },
+   "credit_retire": {
+    "retired": 5637,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 3477,
+    "wait_max_us": 14337,
+    "left_pages": 0,
+    "inflight_max": 4,
+    "early": [
+     {
+      "pid": 5,
+      "pages": 3,
+      "wait_us": 94
+     },
+     {
+      "pid": 6,
+      "pages": 3,
+      "wait_us": 149
+     },
+     {
+      "pid": 7,
+      "pages": 1,
+      "wait_us": 104
+     },
+     {
+      "pid": 8,
+      "pages": 1,
+      "wait_us": 122
+     }
+    ]
+   },
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 22787,
+    "rx_delivered": 11534,
+    "tx_queued": 5637,
+    "tx_done": 5637,
+    "tx_failed": 0,
+    "tx_credits_pages": 49276
+   },
+   "census": {
+    "passes": 132038,
+    "submissions": 5637,
+    "max_per_pass": 4
+   },
+   "ccmp_stable_end": {
+    "queued": 8192,
+    "beyond": 3304
+   },
+   "rx_rates": {
+    "1/12 (54M)": 9037,
+    "1/8 (48M)": 2283,
+    "1/13 (36M)": 86,
+    "1/11 (6M)": 79,
+    "1/9 (24M)": 11
+   },
+   "probe": {
+    "udp": [
+     {
+      "rate": 10,
+      "sent": 893,
+      "counted": 893
+     },
+     {
+      "rate": 20,
+      "sent": 1786,
+      "counted": 1786
+     },
+     {
+      "rate": 30,
+      "sent": 2679,
+      "counted": 2679
+     }
+    ],
+    "trigger_rtt_ms": [
+     7,
+     7,
+     7
+    ],
+    "laptop_ping_at_rest_ms": {
+     "min": 253.986,
+     "avg": 308.886,
+     "max": 363.63
+    },
+    "laptop_ping_in_chunk_ms": {
+     "min": 4.874,
+     "avg": 28.67,
+     "max": 41.35
+    },
+    "tcp_rx_chunk_rttcur_ms_max": [
+     76,
+     83,
+     62,
+     80,
+     57
+    ]
+   },
+   "reading": "credit retire is the transmit completion path: 5,637 retired on credit arrival, mean wait 3.5 ms at depth 4, no expiry/fault; every TX chunk capped at 1 MiB in 0.9 s (TX figure a floor; harness cap binds); receive inside the floor (the receive limit is not the transmit completion path; UDP 30 zero loss); 0274 v2 verified; 0278 admitted"
   }
  }
 }

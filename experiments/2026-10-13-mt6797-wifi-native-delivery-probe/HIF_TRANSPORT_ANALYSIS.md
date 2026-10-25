@@ -1529,3 +1529,91 @@ arrive, the stricter form. The ledger stands at eight.
 **0274 v2 on this boot.** Five chunks and three probe legs cross 8,192
 queued frames: the ccmp-stable end line must show `beyond>0` with the
 data phase ending by `disconnect`; otherwise "not exercised".
+
+### Boot E result (2026-10-25, 15:38 UTC): the credit model is the completion path for transmit; receive did not follow
+
+Build `c6fa0edc` (lifecycle profile: 0273 at 0x4c, 0275 v2, 0276, 0278
+credit retire, 0279 per-frame lines off), boot2 `528d1d1d…` over
+`df7d6e65…`, mainline boot `21c301dc…`, returned to Gemian `239967b1…`
+(changed-ID Gemian, recovery confirmed, 15 s); session
+`ram-service-regression-pass`, log complete through the seal (172,693
+bytes, 2,126 records, five chunks per direction: the aggregate records
+hold five chunks at 54 Mbit/s with a tenth of the cap used), receipt
+`all_pass`, disconnect accepted, data phase 22.8 s ending by
+`disconnect`; the classifier read the declared count (`chunks_declared=5`,
+`measurement_censored=false`). Its `throughput_baseline_pass` is false
+on this boot as on every boot of this series since probe boot 4 (its
+`gtk_counters_consistent` gate, from the connected-lifetime trial's
+classifier, has been false since boot B); the series grades on the
+receipt and the sealed log, never on that gate, and the gate is noted
+here as classifier debt, not a device finding.
+
+**TX first, and the revert rule.** `tx_failed=0`; the credit model's own
+line: `retired=5637 expired=0 pid_faults=0 wait_avg_us=3477
+wait_max_us=14337 left_pages=0 inflight_max=4`; no expired slot, no
+PID-pool fault, no unmatched page; `debt=0`, no guard record, 21 credit
+lines, no overflow. Every receive chunk ended at its byte cap (no
+`device_timeout`) and the laptop's zero-payload check passed on all five
+transmitted chunks (the helper raises on the first non-zero byte and the
+receipt is `all_pass`). The revert rule was not triggered. The first data
+frame: `rate=0x4c report=0`; no TX done line and no per-frame completion
+line for ordinary data (0279); the five completions in the log are
+management and security frames.
+
+| Direction | Boot E (15:38 UTC, credit retire) | Boot C (13:14 UTC, same tree without 0278) |
+|---|---|---|
+| TX chunks (Mbit/s) / ended by | 9.23, 9.18, 9.46, 9.20, 9.25 / all `byte_cap` at 0.89–0.91 s | 6.64–7.84 / `duration` |
+| TX aggregate, host received | 7.74 | 5.53 |
+| RX device-side chunks (Mbit/s) | 18.64, 19.97, 17.85, 17.85, 18.64 (all `byte_cap`) | 16.45–18.24 |
+| RX aggregate, host sent | 13.53 | 7.19 |
+| device idle TX / RX | 89.1 % / 86.4 % | 83.0 % / 76.5 % |
+| UDP 10 / 20 / 30 Mbit/s | 893/893, 1786/1786, 2679/2679: zero loss on all three | zero loss / cut / cut |
+| in-chunk ping (ms min/avg/max), keyed to the last chunk | 4.9 / 28.7 / 41.4 | 9.2 / 34.8 / 50.9 |
+| TCP receive `rttcur` max per chunk (ms) | 76, 83, 62, 80, 57 | 88, 70, 51, 60, 79 |
+| at-rest ping (ms) | 254 / 309 / 364 | 43 / 98 / 153 |
+| ccmp-stable end | `queued=8192 beyond=3304` | lost with the log |
+
+**Reading.** Transmit: the per-frame cost is down and the credits are the
+completion path. The measured evidence is the instrument: 5,637 frames
+retired on credit arrival with a mean wait of 3.48 ms and a maximum of
+14.3 ms at four in flight, against the ~6 ms submit-to-completion derived
+for the status-report path; and every transmit chunk reached its 1 MiB cap
+in 0.9 s where boot C's ran their full second. The throughput number
+itself is censored by the harness: the 1 MiB-per-chunk cap, set for the
+6 Mbit/s era, now binds at 9.2–9.5 Mbit/s, so boot E's TX figure is a
+floor, inside the ±40 % cross-session floor against boot C only because
+the cap cut it (derived from the retire wait at depth 4, the path can
+carry about 13 Mbit/s before the next limit). Receive: 17.9–20.0 against
+16.5–18.2, inside the floor; the acknowledgement frames took the same
+cheaper path and the receive number did not follow. So the first row's
+condition holds on transmit and not on receive: the transmit completion
+path was the transmit limit, and the receive limit is not the transmit
+completion path. What the receive data say: UDP carries 30 Mbit/s with
+zero loss on all three legs (2,679 datagrams a second received and
+delivered: about 0.37 ms a frame on the receive path), so the receive
+path is not the limit either; TCP receive at 18.6 Mbit/s runs with an
+in-chunk round trip of 29 ms mean and `rttcur` up to 83 ms over a window
+of 64–380 KB, which is the sender pacing on a long round trip, not a
+device ceiling on frames. Where the 29 ms sits (the device's receive
+buffering and acknowledgement timing, or the air) is the next receive
+question; it is not the HIF per-frame cost.
+
+**Dispositions.** 0278 is admitted (it is the lifecycle tree's data path
+from this boot). 0274 v2 is verified on hardware: the queued count
+saturated at 8,192 with 3,304 frames beyond it delivered and counted, the
+window open to the host's disconnect. 0279 and 0275 v2 did their job: a
+five-chunk boot at the fixed 54 rate sealed at 173 KB. The in-chunk ping
+keyed to the last chunk reported. The at-rest ping keeps rising boot over
+boot (23, 98, 122, 222, 309 ms avg): recorded, the power-save answer stands.
+
+**Harness, before the next transmit measurement.** `byte_cap_per_chunk`
+(1 MiB, "1 s or 1 MiB per chunk") is part of the reviewed finite protocol
+and now censors transmit; the next measurement needs the cap raised (4 MiB
+per 1 s chunk keeps the duration the bound up to 33 Mbit/s) with the plan,
+the installer review's protocol record and the leaf's `MAX_BYTES` changed
+together, the owner's call. Until then boot E's transmit number is a floor.
+
+**Next.** Transmit: fewer bus transactions per frame (the next lever named
+in §15's table). Receive: the 29 ms round trip under load, read from the
+device side. The AP-loss gate stays independent and needs no new
+mechanism; it runs over the boot-E image.
