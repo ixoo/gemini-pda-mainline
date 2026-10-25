@@ -13,8 +13,11 @@ over a window holding a large share of slow start, and the depth sweep's
 predicted 26 Mbit/s would fill the cap in 0.3 s. The chunk count and the two
 directions stay the same so the series stays comparable; rows measured under
 the old cap are floors and say so. The device side's per-chunk command is
-bounded by the same 3 s and sends at most 4 MiB; the SSH idle policy (30 s)
-and the leaf's 135 s bound hold with room.
+bounded by 4 s (one second past the laptop's duration, so a chunk that the
+laptop ends by duration is never cut first by the device: on boot F the two
+3 s bounds raced and a receive chunk read `device_timeout` at the device's
+SIGTERM) and sends at most 4 MiB; the SSH idle policy (30 s) and the leaf's
+135 s bound hold with room.
 """
 import sys
 from pathlib import Path
@@ -22,6 +25,7 @@ from pathlib import Path
 work = Path(sys.argv[1])
 CAP = 4 * 1024 * 1024
 SECONDS = 3
+DEVICE_BOUND = SECONDS + 1   # the device's bound must outlast the laptop's duration, or the two 3 s bounds race (boot F, RX chunk 5)
 
 
 def literal(path, old, new, count=1):
@@ -35,9 +39,9 @@ literal(h, "DURATION = 1\n", "DURATION = %d  # steady-state chunks: 4 MiB or 3 s
 literal(h, "MAX_BYTES = 1024 * 1024\n", "MAX_BYTES = %d\n" % CAP)
 # the device side: 4 MiB of zeros per transmit chunk, 3 s bounds on both legs
 literal(h, "$BB dd if=/dev/zero bs=65536 count=16 2>/tmp/tp2-dd.log | $BB timeout 1 $BB nc HOST 48001 || rc=$?",
-        "$BB dd if=/dev/zero bs=65536 count=64 2>/tmp/tp2-dd.log | $BB timeout 3 $BB nc HOST 48001 || rc=$?")
+        "$BB dd if=/dev/zero bs=65536 count=64 2>/tmp/tp2-dd.log | $BB timeout %d $BB nc HOST 48001 || rc=$?" % DEVICE_BOUND)
 literal(h, "n=$(set -o pipefail; $BB timeout 1 $BB nc HOST 48002 | $BB wc -c) || rc=$?",
-        "n=$(set -o pipefail; $BB timeout 3 $BB nc HOST 48002 | $BB wc -c) || rc=$?")
+        "n=$(set -o pipefail; $BB timeout %d $BB nc HOST 48002 | $BB wc -c) || rc=$?" % DEVICE_BOUND)
 # the laptop side: progress samples every 50 ms, the rate over the final half of the chunk beside the whole-chunk rate
 literal(h, "                    samples, next_sample = [], 0\n",
         "                    samples, next_sample = [], 0\n                    progress, next_progress = [], 0\n")

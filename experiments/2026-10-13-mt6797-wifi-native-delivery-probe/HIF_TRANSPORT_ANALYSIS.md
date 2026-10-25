@@ -1704,3 +1704,94 @@ firmware's budget is 468 pages. What the vendor writes: 468
 pages, 36 frames, by default; no per-frame FIFO. The ledger stands at
 nine. After the air becomes the limit, the choice between a higher
 legacy rate and HT is made on the depth-12 numbers, not before them.
+
+### Boot F result (2026-10-25, 16:13 UTC): depth 8 did not move transmit; the slots are half empty, the limit is upstream of the driver
+
+Build `4a6c3785` (lifecycle profile, depth 8 with the 104-page ledger
+derived), boot2 `78bc8d58…` over `528d1d1d…`, mainline boot `d54083d8…`,
+returned to Gemian `ccba9a97…` (changed-ID Gemian, recovery confirmed,
+three attempts); session `ram-service-regression-pass`, log complete
+through the seal (173,864 bytes), receipt `all_pass`, disconnect accepted,
+data phase 41.2 s ending by `disconnect`. The steady-state protocol ran
+for the first time: 4 MiB or 3 s per chunk, five chunks each way. The
+watcher was started by hand 13 s after the owner's boot reached the USB
+endpoint (the staged watcher file lacked its executable bit, a staging
+fault now fixed); the cold logger admitted the start and the run is whole.
+
+**TX first, and the revert rule.** `tx_failed=0`; `retired=19041
+expired=0 pid_faults=0 wait_avg_us=4473 wait_max_us=32323 left_pages=0
+inflight_max=8`: the depth was exercised to its limit, no expiry, no
+fault, no unmatched page; `debt=0`, no guard record, 21 credit lines, no
+overflow; the zero-payload check passed on all five transmitted chunks.
+One receive chunk (the fifth) reads `ended_by=device_timeout`, the
+literal trigger of boot B's revert rule, and it is not boot B's failure:
+the device's 3 s bound (`timeout 3`, exit 143) fired before the laptop's
+3 s duration, a race between two equal bounds in the new protocol, with
+3,353,568 bytes received and the laptop's final-half send rate at 42
+Mbit/s; the receive direction did not collapse (the other four chunks at
+their 4 MiB cap in 1.7–2.5 s, UDP at 30 Mbit/s with zero loss,
+`rx_delivered=27158`). The protocol is corrected (the device's bound is
+now one second past the laptop's duration) and the rule stands; this
+boot's change is reverted for a different reason, below.
+
+| | Boot F (depth 8; 4 MiB or 3 s) | Boot E (depth 4; 1 MiB or 1 s) |
+|---|---|---|
+| TX chunks, whole (Mbit/s) / ended by | 9.24, 9.15, 1.91, 9.25, 9.36 / all `duration` (3.0 s, 3.4–3.5 MB) | floor 9.18–9.46 / `byte_cap` at 0.91 s |
+| TX chunks, final half (Mbit/s) | 9.09, 8.85, 0.72, 9.24, 9.05 | — |
+| RX device-side chunks, whole (Mbit/s) / ended by | 13.70, 15.98, 18.75, 20.09, 8.88 / `byte_cap` in 1.7–2.5 s, the fifth at the device's bound | floor 17.9–20.0 / `byte_cap` in 0.45 s |
+| RX laptop-side final half (Mbit/s; the sender's buffer fill, not the device's receive) | 28, 56, 45, 64, 42 | — |
+| credit retire: mean / max wait, in flight max | 4.47 ms / 32.3 ms, 8 | 3.48 ms / 14.3 ms, 4 |
+| TCP receive `rttcur` max per chunk (ms) / window max | 626, 288, 306, 291, 318 / 2.0 MB | 76–83 / 0.4 MB |
+| in-chunk ping (ms min/avg/max) | 4.6 / 48.2 / 95.0 | 4.9 / 28.7 / 41.4 |
+| at-rest ping (ms) | 3.9 / 26.3 / 63.9 | 254 / 309 / 364 |
+| UDP 10 / 20 / 30 Mbit/s | zero loss on all three | zero loss on all three |
+| ccmp-stable end | `queued=8192 beyond=18927` | `beyond=3304` |
+
+**Reading, against §16's rows.** Frames per second are flat: 9.2 Mbit/s
+steady at depth 8 against boot E's 9.2 floor at depth 4, now measured over
+full 3 s chunks, so the number is a rate, not a floor. The wait rose
+28 % (3.48 to 4.47 ms), not in proportion to the doubled depth, so the
+second row (a serial firmware bottleneck, which would fill the slots and
+double the wait) does not hold either. Little's law settles it: 795
+frames a second at a 4.47 ms wait is 3.6 frames in flight on average, of
+8 admitted; at depth 4 the same arithmetic gave 2.8 of 4. The slots are
+half empty: neither the host depth nor the firmware's per-frame
+processing is the transmit limit; the frames are not arriving at the
+driver fast enough. The worker's census agrees (216,858 passes, 0.088
+submissions a pass, the device 90 % idle). What limits the arrival is
+upstream of the driver, in the sender's TCP: the third transmit chunk
+collapsed to 1.9 Mbit/s for most of its 3 s (a retransmission-timeout
+stall; a frame the air loses is reported to mac80211 as transmitted
+without an acknowledgement report, so air losses are TCP's to recover),
+and the in-chunk round trip under load is 48 ms, which with a window in
+the 64 KB range is about 10 Mbit/s. The receive direction says the same
+from the other side: it reached 20 Mbit/s only by growing the device's
+receive window to 2 MB over a 300–600 ms round trip (queueing in the
+receive path, bufferbloat, not a frame ceiling), and UDP carried 30
+Mbit/s with zero loss throughout.
+
+**Dispositions.** Depth 8 is measured neutral on throughput and worse on
+latency (mean wait +28 %, maximum ×2.3, in-chunk round trip +68 %), so by
+the series' precedent the lifecycle fragment returns to depth 4 and 0280
+stays as the option for a later sweep; the depth sweep stops here (boot G
+at depth 12 would measure the same arrival limit) and the §16 forecast is
+retired as written: it assumed the slots were full. 0274 v2 held again
+(`beyond=18927`). The steady-state protocol is adopted with its bound
+race fixed; boot F's whole-chunk transmit numbers are the first
+steady-state rates in the series, and its receive whole-chunk numbers
+are cap-bound after 1.7 s or more, closer to steady than any earlier row
+but still marked as capped.
+
+**Next, on the evidence.** Transmit is limited by the sender's TCP
+behaviour over this link, not by the HIF: the two readings that separate
+the candidates are a transmit UDP leg (the device offering 10, 20 and 30
+Mbit/s to the laptop, counted there, the mirror of the probe's receive
+legs: if it carries 20–30 Mbit/s with the same path, TCP is the limit) and
+the device's TCP retransmission count across the transmit phase
+(`/proc/net/snmp` `Tcp: RetransSegs`, read before and after), both
+harness instruments with no kernel change. If TCP is the limit, the
+levers are the air loss rate seen by TCP (the acknowledgement-less
+completion report hides the firmware's retries; a loss on the air costs a
+TCP timeout rather than a firmware retransmission) and the device's send
+buffer, before any further HIF work. The receive side's lever is the
+300–600 ms queueing, read from the device's receive path.

@@ -1034,6 +1034,169 @@
    ],
    "series_row": false,
    "reading": "no loss report within 60 s of the cut (beacon-loss detection not armed); the eventual report is reason 4 (keep-alive/ack judgement); rejoin within 2 s of the rearm against the restored AP, third lifetime passed; 0267 not exercised (no refused join); ledger clean across the loss"
+  },
+  "boot-f": {
+   "run": "PIO-throughput-bootf-1",
+   "session": "2026-10-25 16:13 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (depth 8)",
+   "kernel_build_commit": "4a6c3785b0390a98aff6dce924543532d149fbc4",
+   "boot2_sha256": "78bc8d58061e5df811eef276f3e01df57a227c51a7a412b305f48bbb3c814ed1",
+   "predecessor_boot2_sha256": "528d1d1d05979447f023ef21d0cbe7d442dda1492e9d76f4d5b691e12c32fd86",
+   "mainline_boot_id": "d54083d8-44be-4a8c-b4de-ed6e920208ee",
+   "previous_gemian_boot_id": "104bb967-eb86-4315-a781-2cd27c854358",
+   "returned_gemian_boot_id": "ccba9a97-b0ce-4e99-8691-ee247dcb8b78",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 173864,
+   "all_pass": true,
+   "chunks_each": 5,
+   "series_row": true,
+   "protocol": {
+    "seconds_per_chunk": 3,
+    "byte_cap_per_chunk": 4194304,
+    "device_bound_s": 3,
+    "race": "RX chunk 5 ended by the device's bound (exit 143) before the laptop's duration; fixed to 4 s"
+   },
+   "throughput": {
+    "tx_host_received_mbit_s": 7.4,
+    "tx_chunk_mbit_s": [
+     9.24,
+     9.15,
+     1.91,
+     9.25,
+     9.36
+    ],
+    "tx_final_half_mbit_s": [
+     9.09,
+     8.85,
+     0.72,
+     9.24,
+     9.05
+    ],
+    "tx_chunk_ended_by": [
+     "duration",
+     "duration",
+     "duration",
+     "duration",
+     "duration"
+    ],
+    "tx_chunk_elapsed_ms": [
+     3001,
+     3001,
+     3002,
+     3000,
+     3001
+    ],
+    "rx_host_sent_mbit_s": 13.57,
+    "rx_device_chunk_mbit_s": [
+     13.7,
+     15.98,
+     18.75,
+     20.09,
+     8.88
+    ],
+    "rx_laptop_final_half_mbit_s": [
+     28.3,
+     56.09,
+     45.27,
+     64.06,
+     42.09
+    ],
+    "rx_chunk_ended_by": [
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "byte_cap",
+     "device_timeout"
+    ],
+    "rx_chunk_elapsed_ms": [
+     2450,
+     2100,
+     1790,
+     1670,
+     3020
+    ],
+    "tx_device_cpu_idle_percent": 89.67,
+    "rx_device_cpu_idle_percent": 87.83
+   },
+   "credit_retire": {
+    "retired": 19041,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 4473,
+    "wait_max_us": 32323,
+    "left_pages": 0,
+    "inflight_max": 8,
+    "little_mean_inflight": 3.6
+   },
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 41163,
+    "rx_delivered": 27158,
+    "tx_queued": 19041,
+    "tx_done": 19041,
+    "tx_failed": 0,
+    "tx_credits_pages": 140913
+   },
+   "census": {
+    "passes": 216858,
+    "submissions": 19041,
+    "max_per_pass": 8
+   },
+   "ccmp_stable_end": {
+    "queued": 8192,
+    "beyond": 18927
+   },
+   "rx_rates": {
+    "1/12 (54M)": 25959,
+    "1/8 (48M)": 1011,
+    "1/11 (6M)": 140,
+    "1/13 (36M)": 5,
+    "1/9 (24M)": 4
+   },
+   "probe": {
+    "udp": [
+     {
+      "rate": 10,
+      "sent": 893,
+      "counted": 893
+     },
+     {
+      "rate": 20,
+      "sent": 1786,
+      "counted": 1786
+     },
+     {
+      "rate": 30,
+      "sent": 2679,
+      "counted": 2679
+     }
+    ],
+    "trigger_rtt_ms": [
+     3,
+     6,
+     7
+    ],
+    "laptop_ping_at_rest_ms": {
+     "min": 3.894,
+     "avg": 26.291,
+     "max": 63.938
+    },
+    "laptop_ping_in_chunk_ms": {
+     "min": 4.551,
+     "avg": 48.226,
+     "max": 95.045
+    },
+    "tcp_rx_chunk_rttcur_ms_max": [
+     626,
+     288,
+     306,
+     291,
+     318
+    ],
+    "snd_wnd_max_bytes": 2036736
+   },
+   "watcher_note": "started by hand 13 s after the endpoint came up (staged watcher lacked the executable bit; fixed)",
+   "reading": "depth 8 neutral on throughput (9.2 steady), worse on latency; Little's law 3.6 of 8 slots occupied: the limit is upstream of the driver (the sender's TCP); fragment returns to depth 4, sweep stops; next instruments: transmit UDP legs and Tcp RetransSegs"
   }
  }
 }

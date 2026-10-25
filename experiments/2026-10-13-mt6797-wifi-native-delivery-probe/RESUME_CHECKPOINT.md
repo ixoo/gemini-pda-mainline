@@ -1,4 +1,18 @@
-# Current: the AP-loss gate ran (loss by keep-alive, not beacons; rejoin passed); the protocol moves to 4 MiB or 3 s chunks; boot F (depth 8) is next
+# Current: boot F (depth 8) measured neutral; the transmit limit is upstream of the driver (the sender's TCP); depth returns to 4; next are transmit UDP legs and the TCP retransmission count
+
+[Boot F result](HIF_TRANSPORT_ANALYSIS.md#boot-f-result-2026-10-25-1613-utc-depth-8-did-not-move-transmit-the-slots-are-half-empty-the-limit-is-upstream-of-the-driver):
+first steady-state protocol run (4 MiB or 3 s); transmit 9.2 Mbit/s
+steady at depth 8 as at depth 4, the retire wait up 28 %, 3.6 of 8 slots
+occupied on average: the frames are not arriving at the driver fast
+enough; one chunk stalled on a TCP timeout; receive reached 20 Mbit/s on
+a 2 MB window over a 300–600 ms round trip; UDP 30 zero loss. Depth
+returns to 4 (0280 stays the option), the sweep stops, the protocol's
+bound race is fixed (device 4 s). Next: a transmit UDP leg and the TCP
+retransmission count, both harness instruments; then the air-loss and
+send-buffer levers if TCP is the limit. The AP-loss gate is recorded;
+the owner's actual power times are still owed.
+
+# Historical: the AP-loss gate ran (loss by keep-alive, not beacons; rejoin passed); the protocol moves to 4 MiB or 3 s chunks; boot F (depth 8) is next
 
 [Gate result](LIFECYCLE_RESULT.md#ap-loss-gate-result-2026-10-25-1548-utc--three-lifetimes-the-loss-reported-by-the-firmwares-keep-alive-judgement-not-by-beacons):
 no loss report within 60 s of the cut (beacon-loss detection not armed
