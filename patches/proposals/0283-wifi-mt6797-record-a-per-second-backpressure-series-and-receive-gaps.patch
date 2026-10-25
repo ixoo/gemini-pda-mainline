@@ -1,4 +1,4 @@
-From f191ac2f4c924e2d88328b6cb7013024c149bae8 Mon Sep 17 00:00:00 2001
+From f13842249c7f5de0f924ee007ecb4e4eec6495b3 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 14:25:31 -0400
 Subject: [PATCH] wifi: mt6797: record a per-second backpressure series and
@@ -18,20 +18,25 @@ kernel clock for alignment with the run's own markers.
 A receive stall inferred from a chunk total cannot be attributed. Also
 record each gap of more than 200 ms between delivered data frames (at
 most 32, the overflow counted): its start, its duration, the bytes
-delivered before it and in the 200 ms after it, the data frames queued
-and retired during it, and the queue length, frames in flight, credit
-pages outstanding and stop state when it ended. Logging only; nothing
-changes with the option off.
+delivered in the 200-400 ms before it (with that window's length) and
+in the 200 ms after it, the data frames queued and retired during it,
+and the queue length, frames in flight, credit pages outstanding and
+stop state when it ended. Logging only; nothing changes with the option
+off.
+
+The first form recorded the bytes before a gap as the phase's
+cumulative count beside a delta after it, so the pair could not be read
+as one window; both are deltas now.
 ---
- drivers/net/wireless/mediatek/mt6797/Kconfig |  16 +++
- drivers/net/wireless/mediatek/mt6797/mac.c   | 141 +++++++++++++++++++
- 2 files changed, 157 insertions(+)
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  17 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 154 +++++++++++++++++++
+ 2 files changed, 171 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
-index 855382b55..3d75dc557 100644
+index 855382b55..65d0f139c 100644
 --- a/drivers/net/wireless/mediatek/mt6797/Kconfig
 +++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
-@@ -154,6 +154,22 @@ config MT6797_TX_BACKPRESSURE
+@@ -154,6 +154,23 @@ config MT6797_TX_BACKPRESSURE
  	  wakes, the drops and the queue's high-water mark. Nothing changes
  	  with this off.
  
@@ -47,7 +52,8 @@ index 855382b55..3d75dc557 100644
 +	  data end on the kernel clock so a run aligns them with its own
 +	  markers. Also record each gap of more than 200 ms between delivered
 +	  data frames (at most 32): its start, duration, the bytes delivered
-+	  before it and in the 200 ms after it, the data frames queued and
++	  in the 200-400 ms before it (with that window's length) and in the
++	  200 ms after it, the data frames queued and
 +	  retired during it, and the queue, in-flight and credit state at its
 +	  end. Nothing else changes.
 +
@@ -55,7 +61,7 @@ index 855382b55..3d75dc557 100644
  	int "MT6797 Wi-Fi: ordinary data frames the driver queues ahead of submission"
  	depends on MT6797_STATION_JOIN
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index e07f91ea1..f1d2e7e7e 100644
+index e07f91ea1..86eec1c11 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -162,6 +162,11 @@ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
@@ -70,7 +76,7 @@ index e07f91ea1..f1d2e7e7e 100644
  #define MT6797_JOIN_DATA_TX_FAILURES 8U
  /* PIDs 1..127 are consumed in order by management, security and data frames;
   * ordinary data stops at 126 so the reserved deauthentication always has one.
-@@ -237,6 +242,24 @@ struct mt6797_mac {
+@@ -237,6 +242,25 @@ struct mt6797_mac {
  	/* mac80211's queues stopped while the data queue is at its bound (0282). */
  	bool tx_queues_stopped;
  	unsigned int tx_queue_stops, tx_queue_wakes, tx_dropped_full, tx_queue_high_water;
@@ -84,18 +90,19 @@ index e07f91ea1..f1d2e7e7e 100644
 +	unsigned int series_used, series_beyond;
 +	struct mt6797_rx_gap {
 +		u64 start_ns;
-+		u32 duration_ms, rx_bytes_before, rx_bytes_after;
++		u32 duration_ms, before_ms, rx_bytes_before, rx_bytes_after;
 +		u32 tx_queued, tx_retired;
 +		u16 queue_len, pages;
 +		u8 inflight, stopped;
 +	} rx_gaps[MT6797_RX_GAPS];
 +	unsigned int rx_gap_count, rx_gaps_beyond;
-+	u64 rx_last_ns, rx_gap_after_until;
++	u64 rx_last_ns, rx_gap_after_until, rx_snap_ns[2];
 +	u32 rx_bytes_total, rx_series_bytes, rx_last_tx_queued, rx_last_retired;
++	u32 rx_snap_bytes[2];
  #endif
  	unsigned int join_page_debt, join_polls, join_packets;
  	bool join_running, join_open, join_retired;
-@@ -1067,6 +1090,24 @@ static void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *sour
+@@ -1067,6 +1091,24 @@ static void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *sour
  }
  #endif
  
@@ -120,7 +127,7 @@ index e07f91ea1..f1d2e7e7e 100644
  /* Called only in the common serialized RX/TX-status batch, outside MAC locks.
   * Withdrawal fences eligibility then waits for this batch before key removal
   * callbacks complete. RCU covers pubsta and the entire core RX handoff.
-@@ -1095,6 +1136,44 @@ static void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
+@@ -1095,6 +1137,53 @@ static void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
  	}
  	if (ready)
  		mac->ccmp_rx_delivered++;
@@ -143,7 +150,10 @@ index e07f91ea1..f1d2e7e7e 100644
 +				g = &mac->rx_gaps[mac->rx_gap_count++];
 +				g->start_ns = mac->rx_last_ns;
 +				g->duration_ms = (now - mac->rx_last_ns) / NSEC_PER_MSEC;
-+				g->rx_bytes_before = mac->rx_bytes_total;
++				/* bytes in the 200-400 ms before the gap, a delta like the after */
++				g->before_ms = (mac->rx_last_ns - mac->rx_snap_ns[0]) /
++					       NSEC_PER_MSEC;
++				g->rx_bytes_before = mac->rx_bytes_total - mac->rx_snap_bytes[0];
 +				g->rx_bytes_after = 0;
 +				g->tx_queued = mac->join_data_tx_queued - mac->rx_last_tx_queued;
 +				g->tx_retired = mac->credit_retired - mac->rx_last_retired;
@@ -156,6 +166,12 @@ index e07f91ea1..f1d2e7e7e 100644
 +			if (mac->rx_gap_count && now < mac->rx_gap_after_until)
 +				mac->rx_gaps[mac->rx_gap_count - 1].rx_bytes_after += skb->len;
 +			mac->rx_bytes_total += skb->len;
++			if (now - mac->rx_snap_ns[1] >= MT6797_RX_GAP_NS) {
++				mac->rx_snap_ns[0] = mac->rx_snap_ns[1];
++				mac->rx_snap_bytes[0] = mac->rx_snap_bytes[1];
++				mac->rx_snap_ns[1] = now;
++				mac->rx_snap_bytes[1] = mac->rx_bytes_total;
++			}
 +			mac->rx_last_ns = now;
 +			mac->rx_last_tx_queued = mac->join_data_tx_queued;
 +			mac->rx_last_retired = mac->credit_retired;
@@ -165,7 +181,7 @@ index e07f91ea1..f1d2e7e7e 100644
  	mutex_unlock(&mac->mutex);
  	if (ready)
  		ieee80211_rx_napi(mac->hw, sta, skb, NULL);
-@@ -1845,6 +1924,19 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+@@ -1845,6 +1934,21 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
  	mac->tx_queue_wakes = 0;
  	mac->tx_dropped_full = 0;
  	mac->tx_queue_high_water = 0;
@@ -179,13 +195,15 @@ index e07f91ea1..f1d2e7e7e 100644
 +	mac->rx_last_ns = 0;
 +	mac->rx_gap_after_until = 0;
 +	mac->rx_bytes_total = 0;
++	memset(mac->rx_snap_ns, 0, sizeof(mac->rx_snap_ns));
++	memset(mac->rx_snap_bytes, 0, sizeof(mac->rx_snap_bytes));
 +	mac->rx_series_bytes = 0;
 +	mac->rx_last_tx_queued = 0;
 +	mac->rx_last_retired = 0;
  #endif
  	mac->join_inflight_data = false;
  	mac->join_last_acked = false;
-@@ -3055,6 +3147,33 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -3055,6 +3159,34 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  		 mac->tx_queues_stopped, mac->tx_queue_high_water,
  		 MT6797_JOIN_DATA_TX_QUEUE);
  #endif
@@ -207,10 +225,11 @@ index e07f91ea1..f1d2e7e7e 100644
 +			const struct mt6797_rx_gap *g = &mac->rx_gaps[i];
 +
 +			dev_info(wiphy_dev(mac->hw->wiphy),
-+				 "one-shot WLAN data rx gap: n=%u start_ns=%llu at_ms=%llu duration_ms=%u rx_bytes_before=%u rx_bytes_after=%u tx_queued=%u tx_retired=%u queue=%u inflight=%u pages=%u stopped=%u\n",
++				 "one-shot WLAN data rx gap: n=%u start_ns=%llu at_ms=%llu duration_ms=%u before_ms=%u rx_bytes_before=%u rx_bytes_after=%u tx_queued=%u tx_retired=%u queue=%u inflight=%u pages=%u stopped=%u\n",
 +				 i, g->start_ns,
 +				 (g->start_ns - mac->join_data_started) / NSEC_PER_MSEC,
-+				 g->duration_ms, g->rx_bytes_before, g->rx_bytes_after,
++				 g->duration_ms, g->before_ms, g->rx_bytes_before,
++				 g->rx_bytes_after,
 +				 g->tx_queued, g->tx_retired, g->queue_len, g->inflight,
 +				 g->pages, g->stopped);
 +		}
@@ -219,7 +238,7 @@ index e07f91ea1..f1d2e7e7e 100644
  #ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
  	dev_info(wiphy_dev(mac->hw->wiphy),
  		 "one-shot WLAN join data credit retire end: retired=%u expired=%u pid_faults=%u wait_avg_us=%llu wait_max_us=%llu left_pages=%u inflight_max=%u samples=%u reports=%u\n",
-@@ -3860,6 +3979,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -3860,6 +3992,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			mac->tx_queues_stopped = false;
  			mac->tx_queue_wakes++;
  			wake = true;
@@ -234,7 +253,7 @@ index e07f91ea1..f1d2e7e7e 100644
  		}
  #endif
  		spin_unlock_irqrestore(&mac->join_queue.lock, flags);
-@@ -6440,6 +6567,9 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -6440,6 +6580,9 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  #ifdef CONFIG_MT6797_TX_BACKPRESSURE
  	bool stop = false;
  #endif
@@ -244,7 +263,7 @@ index e07f91ea1..f1d2e7e7e 100644
  
  	/* Phase C2: the supplicant's control-port EAPOL frames, built by
  	 * mac80211 as non-QoS To-DS data frames with the LLC/SNAP EAPOL type to
-@@ -6519,6 +6649,17 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -6519,6 +6662,17 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  				mac->tx_queue_stops++;
  				stop = true;
  			}

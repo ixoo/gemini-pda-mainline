@@ -47,6 +47,7 @@ described here; each run's own artefacts are named.
 | [boot I](HIF_TRANSPORT_ANALYSIS.md#boot-i-result-2026-10-25-1733-utc-the-mechanism-works-the-queue-discipline-does-not) (17:33 UTC; same run) | 0282 backpressure toward mac80211 on boot H's tree: 2,223 stops and wakes, zero frames freed unsent, and transmit fell to a third with 549 retransmissions (3.3 %) and a receive chunk at the device's bound; reverted by the rule; the losses TCP counts are not the driver's drops nor the air (257 clean samples): retransmission without loss is the remaining reading | 3.34 (chunks 2.46–4.02) | 12.90 (device-side chunks 7.6–19.3; one at the bound) | 89.2% / 87.0% |
 | [boot J](HIF_TRANSPORT_ANALYSIS.md#boot-j-result-2026-10-25-1753-utc-transmit-above-12-with-zero-loss-the-retransmissions-were-part-of-the-cost) (17:53 UTC; same run; cross-session against boot I and boot H run 3) | 0282 v2, the queue bound its own option (64 frames, stop 56, wake 32): the configuration fix that released the mechanism; 156 stops and wakes (boot I 2,223), `high_water=56`, zero frames freed unsent, 406 of 406 samples at 0x4c status 0, 6 retransmissions in 14,550 segments, cwnd 58–95; the pipeline saturated (4 ÷ 2.864 ms = 1,397 frames/s, 16.2 Mbit/s predicted); no stall | floor (every transmit chunk byte-capped at 4 MiB in about 2.1 s): 15.02 (chunks 15.51–16.70) | floor (every receive chunk byte-capped): 17.26 (device-side chunks 18.54–19.62) | 84.9% / 86.5% |
 | [boot K](HIF_TRANSPORT_ANALYSIS.md#boot-k-result-2026-10-25-1810-utc-transmit-27--on-the-rule-the-revert-row-fired-on-receive-confounded-by-the-harness) (18:10 UTC; adjacent to boot J; chunks 16 MiB or 3 s) | depth 8 (ledger 104) on boot J's tree: transmit steady at 20.9–21.2 on the rule (8 ÷ 4.26 ms = 1,877 frames/s, 21.7 predicted), 564 stops, nothing freed unsent, 4 retransmissions; two receive chunks on the device's 4 s bound (one the receive stall, one the drain after the laptop's close racing the bound); reverted to depth 4 by the rule, the attribution confounded by the harness | 19.87 (chunks 20.87–21.16, duration-bound) | 16.46 (device-side chunks 11.7–19.8; two at the device's bound) | 82.6% / 86.5% |
+| [boot L](HIF_TRANSPORT_ANALYSIS.md#boot-l-result-2026-10-25-1837-utc-the-queue-never-stopped-during-receive-transmit-did-not-reproduce-the-acknowledgements-lag) (18:37 UTC; boot K's tree with no driver variable: the 0283 series, the 6 s device bound, the drain accounting; the first clean verdict) | zero stops and wakes in all 18 receive seconds and no receive gap: the receive stall and the acknowledgement split withdrawn; transmit the lower sample of the depth-8 band (wait 4.67 ms, one 203 ms transmit stall with 8 in flight) | 16.15 (chunks 15.50–18.72) | 18.83 (device-side chunks 16.80–21.18; TCP flow view 14.31–21.44) | 86.3% / 87.9% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 
 Noise floor, corrected (2026-10-25): the same image measured TX 3.2–3.4 /
@@ -164,8 +165,26 @@ device tool's pacing declared), beside the receive path's zero loss at
 the pipeline, depth ÷ credit-retire wait (4 ÷ 2.86 ms, 16.2 Mbit/s
 predicted against 16.5 measured). Boot K (§21) at depth 8 held the
 rule (21.7 predicted, 21.0 measured, the wait up to 4.26 ms) and lost
-two receive chunks to the device's bound; the fragment is back at depth 4
-until the receive bound and the stall are separated.
+two receive chunks to the device's bound, which boot L showed was the
+drain and the acknowledgement timing, not a receive stall. Boot M (§23)
+is depth 12, once.
+
+## Where throughput stands (2026-10-25, after boot L)
+
+- **Transmit:** about 19 ± 2 Mbit/s at depth 8 (boot K 20.9 at a 4.26 ms
+  wait, boot L 17.5 at 4.67 ms), on the rule depth ÷ credit-retire wait,
+  with nothing freed unsent.
+- **Receive:** 19.6–21.2 Mbit/s per chunk on the device's own count
+  (boot L), 19.5–24.3 in the whole seconds inside a chunk; UDP carried 29
+  Mbit/s at 2 % loss through the same path (boot D), so the receive path
+  itself carries about 30.
+- **The ceiling:** about 33 Mbit/s, where the two-point depth model's
+  asymptote and the estimated air ceiling of a fixed 54 Mbit/s rate
+  meet. Above it only HT aggregation helps; boot M (depth 12) tests the
+  model once.
+- **Robustness:** the AP-loss gate passed as the access point's own
+  inactivity disassociation; a controlled vanish-and-return test remains
+  the one robustness item, independent of all of the above.
 
 ## What 802.11ac would need (noted 2026-10-25, after the transport)
 

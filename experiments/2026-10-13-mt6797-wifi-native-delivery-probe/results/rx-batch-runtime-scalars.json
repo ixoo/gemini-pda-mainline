@@ -1996,6 +1996,213 @@
     }
    ],
    "reading": "transmit on HIF section 21's second row (rule holds at the measured wait, 21.7 predicted, 21.0 measured; the wait rose x1.49 for x2 depth); the revert row fired on two receive device_timeout chunks, so the fragment returns to depth 4; the attribution is confounded by the 16 MiB cap making receive chunks duration-bound, whose drain races the device's 4 s bound; one chunk is the receive stall again with the deep queue"
+  },
+  "boot-l": {
+   "run": "PIO-throughput-bootl-1",
+   "session": "2026-10-25 18:37 UTC (adjacent to boot K)",
+   "profile": "mt6797-a53-wifi-lifecycle (boot K tree, depth 8, + 0283 DATA_PHASE_SERIES v1)",
+   "kernel_build_commit": "7fddd16f2a6a434c1ff24351cb2c5005d27a6d9b",
+   "boot2_sha256": "c0f4a6f16690b701e9330055377776e581d50ea716f42b91dde88f89d0fa53c7",
+   "predecessor_boot2_sha256": "5f5a187c169048fa2613369ea65e10fd7b66983966923878bc5a3f076370687c",
+   "mainline_boot_id": "176270e2-4e75-4ef7-839e-3b72c74e04ff",
+   "previous_gemian_boot_id": "4a464713-a543-4d9d-aca7-9e4381ab7ea3",
+   "returned_gemian_boot_id": "9721fff5-84ce-4b89-a9ad-df6c0378d77a",
+   "classification": "ram-service-regression-pass",
+   "sealed_log_bytes": 185244,
+   "all_pass": true,
+   "series_row": true,
+   "throughput_baseline_pass": true,
+   "session_exit": 0,
+   "throughput": {
+    "tx_host_received_mbit_s": 16.15,
+    "tx_chunk_mbit_s": [
+     17.25,
+     18.65,
+     18.72,
+     15.5,
+     17.38
+    ],
+    "tx_final_half_mbit_s": [
+     19.07,
+     18.73,
+     19.02,
+     16.45,
+     18.2
+    ],
+    "tx_chunk_ended_by": [
+     "duration",
+     "duration",
+     "duration",
+     "duration",
+     "duration"
+    ],
+    "rx_device_chunk_mbit_s": [
+     19.63,
+     20.45,
+     16.8,
+     21.18,
+     21.11
+    ],
+    "rx_tcp_flow_mbit_s": [
+     20.28,
+     20.48,
+     15.74,
+     21.44,
+     14.31
+    ],
+    "rx_chunk_ended_by": [
+     "peer_eof",
+     "peer_eof",
+     "peer_eof",
+     "peer_eof",
+     "peer_eof"
+    ],
+    "rx_drain": [
+     {
+      "acked_at_close": 7606344,
+      "after_close": 1914600,
+      "drain_ms": 848
+     },
+     {
+      "acked_at_close": 7682376,
+      "after_close": 1572656,
+      "drain_ms": 588
+     },
+     {
+      "acked_at_close": 5907016,
+      "after_close": 2663144,
+      "drain_ms": 1023
+     },
+     {
+      "acked_at_close": 8042152,
+      "after_close": 1487800,
+      "drain_ms": 566
+     },
+     {
+      "acked_at_close": 5368528,
+      "after_close": 3022552,
+      "drain_ms": 142
+     }
+    ],
+    "device_bound_seconds": 6,
+    "byte_cap_per_chunk": 16777216,
+    "seconds_per_chunk": 3,
+    "tx_device_cpu_idle_percent": 86.3,
+    "rx_device_cpu_idle_percent": 87.9
+   },
+   "backpressure": {
+    "stops": 94,
+    "wakes": 94,
+    "dropped_full": 0,
+    "stopped": 0,
+    "high_water": 56,
+    "bound": 64,
+    "receive_whole_seconds": 18,
+    "receive_stops": 0,
+    "receive_wakes": 0,
+    "receive_high_water_max": 30
+   },
+   "rx_gaps": {
+    "recorded": 15,
+    "in_receive_window": 0,
+    "in_transmit_window": 1,
+    "outside_windows": 14
+   },
+   "credit_retire": {
+    "retired": 43947,
+    "expired": 0,
+    "pid_faults": 0,
+    "wait_avg_us": 4670,
+    "wait_max_us": 24111,
+    "left_pages": 0,
+    "inflight_max": 8,
+    "samples": 697,
+    "reports": 697
+   },
+   "sampled": {
+    "tx_rates": {
+     "0/0x004c": 697
+    },
+    "latency_ms_buckets": {
+     "<1": 42,
+     "<2": 65,
+     "<4": 55,
+     "<8": 241,
+     "<16": 291,
+     "<32": 3
+    },
+    "n": 697,
+    "max_us": 23859
+   },
+   "tcp_state": [
+    {
+     "chunk": 1,
+     "cwnd": 98,
+     "ssthresh": 65
+    },
+    {
+     "chunk": 2,
+     "cwnd": 47,
+     "ssthresh": 42
+    },
+    {
+     "chunk": 3,
+     "cwnd": 56,
+     "ssthresh": 45
+    },
+    {
+     "chunk": 4,
+     "cwnd": 76,
+     "ssthresh": 66
+    },
+    {
+     "chunk": 5,
+     "cwnd": 25,
+     "ssthresh": 24
+    }
+   ],
+   "tcp_retrans_segs": {
+    "before": 0,
+    "after": 96
+   },
+   "tx_phase": {
+    "device_clock_s": [
+     16.76,
+     33.05
+    ],
+    "tx_packets": 23142
+   },
+   "data_end": {
+    "reason": "disconnect",
+    "elapsed_ms": 44004,
+    "tx_queued": 44644,
+    "tx_failed": 0,
+    "rx_delivered": 43386
+   },
+   "saturation": {
+    "depth": 8,
+    "forecast_frames_per_s": 1713,
+    "forecast_mbit_s": 19.8,
+    "measured_frames_per_s": 1421,
+    "mean_in_flight": 6.6,
+    "rule": "depth / wait_avg"
+   },
+   "stalls": [
+    {
+     "direction": "TX",
+     "chunk": 4,
+     "device_clock_s": [
+      27.41,
+      27.61
+     ],
+     "duration_ms": 203,
+     "inflight": 8,
+     "queue": 29,
+     "frames_queued_in_gap": 45,
+     "frames_retired_in_gap": 9
+    }
+   ],
+   "reading": "no driver variable; first clean verdict; zero stops in every receive second and no receive gap: the intermittent receive stall and the acknowledgement split withdrawn (chunk boundaries and acknowledgement batching); receive primary on the device's count; transmit the lower sample of the depth-8 band (19 +/- 2); one 203 ms transmit stall with 8 in flight"
   }
  }
 }

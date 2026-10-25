@@ -115,6 +115,11 @@ def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
         direction['completion_interval'] = 'start-inclusive, end-exclusive; boundary uncertainty one device clock tick'
         direction['device_tx_status_completions'] = len(done)
         direction['device_tx_status_nonzero'] = sum(int(m[1]) != 0 for m in done)
+        # receive gaps (0283) kept only inside this direction's markers: idle outside them is expected
+        gaps = [g for g in re.findall(rb'one-shot WLAN data rx gap: ([^\r\n]+)', kmsg)]
+        inside = [g.decode() for g in gaps if start <= int(re.search(rb'start_ns=(\d+)', g)[1]) < end]
+        direction['rx_gaps_in_window'] = inside
+        direction['rx_gaps_outside_window'] = len(gaps) - len(inside)
     directions = measurement.get('directions',{})
     declared = measurement.get('chunks_each', 5)   # a predeclared shorter run is not a censored one
     # each chunk inside the device's declared bound; the 1 s protocol's 1.5 s otherwise

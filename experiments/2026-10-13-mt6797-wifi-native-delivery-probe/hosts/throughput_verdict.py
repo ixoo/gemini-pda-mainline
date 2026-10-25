@@ -17,6 +17,11 @@ reached the core and the counters are monotone; each chunk inside the
 device's declared bound; and, where the credit-retire record is present, it
 is the ownership proof (nothing expired, no PID fault, no pages left, no
 failed transmit). The retained fields stay in the record unchanged.
+
+It also records 0283's receive gaps per direction, only those inside the
+direction's start and end markers (on the kernel clock, like the gaps); the
+driver does not know the leaf's phases, so the windowing is applied here, and
+a gap kept in the record is a stall by construction. Not a verdict gate.
 """
 import sys
 from pathlib import Path
@@ -48,6 +53,13 @@ def apply(path):
             "                  value.get('sequence_ok') and value.get('gtk_counters_consistent') and not value.get('fault') and ledger_ok)\n",
             "                  value.get('healthy_cleanup') and native['ok'] and\n"
             "                  value.get('sequence_ok') and not value.get('fault') and ledger_ok)\n")
+    literal("        direction['device_tx_status_nonzero'] = sum(int(m[1]) != 0 for m in done)\n",
+            "        direction['device_tx_status_nonzero'] = sum(int(m[1]) != 0 for m in done)\n"
+            "        # receive gaps (0283) kept only inside this direction's markers: idle outside them is expected\n"
+            "        gaps = [g for g in re.findall(rb'one-shot WLAN data rx gap: ([^\\r\\n]+)', kmsg)]\n"
+            "        inside = [g.decode() for g in gaps if start <= int(re.search(rb'start_ns=(\\d+)', g)[1]) < end]\n"
+            "        direction['rx_gaps_in_window'] = inside\n"
+            "        direction['rx_gaps_outside_window'] = len(gaps) - len(inside)\n")
     literal("    value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,\n",
             "    value.update(native_ciphertext=native, chunk_limit_ns=int(chunk_limit),\n"
             "                 verdict_gates={'receipt_all_pass': bool(receipt and receipt.get('all_pass')), 'verified_boot': bool(verified_boot),\n"

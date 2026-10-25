@@ -2584,3 +2584,168 @@ The three questions: reachability, the series and the gaps are updated
 at the same admission, wake and delivery sites the counters already use;
 ownership, all of it is the host's own state, read and printed at the
 data end; the vendor, no counterpart (logging only).
+
+### Boot L result (2026-10-25, 18:37 UTC): the queue never stopped during receive; transmit did not reproduce; the acknowledgements lag
+
+Build `7fddd16f` (boot K's tree at depth 8 with 0283), boot2 `c0f4a6f1…`
+over `5f5a187c…`, mainline boot `176270e2…`, returned to Gemian
+`9721fff5…` (recovery confirmed, live identity checked afterwards);
+session `ram-service-regression-pass`, log complete (185,244 bytes),
+receipt `all_pass`, both directions complete, no early stop. The
+controller's `session_exit` is 0 for the first time in the steady-state
+series: the amended verdict passed every gate (receipt, verified boot,
+timing inside 6.5 s, healthy cleanup, no native ciphertext, key
+sequence, no fault, credit-retire ownership).
+
+**Alignment.** The series' start (`started_ns=14480161923`) plus the data
+phase's 44,004 ms lands within 5 ms of the series line's own kernel
+timestamp, and the leaf's markers are on the same clock: second 18
+holds the change from transmit (ended 33.05 s) to receive (started
+33.20 s), second 37 holds the receive end (52.30 s).
+
+**The four answers.**
+
+| Question | Expectation (§22) | Boot L |
+|---|---|---|
+| transmit | about 20.9 Mbit/s at a wait near 4.26 ms | **not reproduced**: chunks 17.25, 18.65, 18.72, 15.50, 17.38 (final halves 16.45–19.07), aggregate 16.15; wait 4.67 ms, 8 in flight at most, 6.6 on average (23,142 frames in 16.29 s); the rule at the measured wait predicts 19.9; `RetransSegs` 0 → 96 against boot K's 4, `dropped_full=0`, `tx_failed=0`, `expired=0`, 697 of 697 samples at `0x4c` status 0 |
+| clean receive rate | about 19.5 Mbit/s over the send window, the drain 0.5–1 s and complete | device-side 19.63, 20.45, 16.80, 21.18, 21.11 Mbit/s; every drain complete (0.14–1.02 s), every chunk `peer_eof`, no `device_timeout` |
+| boot K's chunk 3 | no `device_timeout`; a shortfall only with a receive gap | no timeout and no receive gap over 200 ms anywhere in the receive phase; chunk 3 is again the slow one (16.80 device-side over 4.08 s), as a dip in the per-second series (2,031 and 1,694 KiB in its first and last seconds against 2,400–2,970), not a silence |
+| the queue during receive | zero stops and zero wakes in every receive second | **zero stops and zero wakes in all 18 whole receive seconds**, high water 9–30 against the stop mark of 56; the stops (94) are all in the transmit seconds and in the echo leg after receive (21 in second 40) |
+
+**The acknowledgement split is excluded as the receive mechanism.** The
+queue holds only the device's acknowledgements while it receives
+(429–1,578 frames queued a second) and never reached its stop mark, so
+data backpressure delayed no acknowledgement in this run. A separate
+stop/wake domain for acknowledgements would have changed nothing here.
+
+**The send-window rate measures the acknowledgements, not the receipt.**
+Receive chunk 5: the laptop had 5,368,528 bytes acknowledged at its
+close and 3,022,552 still unacknowledged, and the whole backlog was
+acknowledged 142 ms later; the device counted all 8,391,080 bytes over
+3.18 s. Three megabytes cannot cross the air in 142 ms, so most of the
+backlog had already arrived and its acknowledgements had not yet reached
+the laptop: about a second's worth of received data unacknowledged, then
+acknowledged in one burst (an inference from the byte counts and the
+air rate; no per-frame timing exists). Chunks 1, 2 and 4 drained at the
+air's pace (1.5–1.9 MB over 0.57–0.85 s), chunk 3 likewise (2.66 MB over
+1.02 s). So the owner's rate basis (bytes acknowledged by the close over
+the send window: 20.28, 20.48, 15.74, 21.44, 14.31) reads the
+acknowledgement path's lag as a receive shortfall; with every drain
+complete and no timeout, the device's own count over its own span is
+the clean receive rate. The lag is real and is not the driver's queue
+(no stop, high water 10–30 at depth 8); where it accumulates (the
+device's TCP, the in-flight window, or the uplink) this run cannot say.
+
+**Transmit at depth 8 is a band, about 19 ± 2 Mbit/s (owner, 2026-10-25).**
+Two boots with the same configuration and different waits gave boot
+K's 20.87–21.16 per chunk at 4.26 ms and boot L's 15.50–18.72 (mean
+17.5) at 4.67 ms. The record carries the band, not the better sample;
+boot K's number stands as its upper sample. The model's prediction at
+boot L's wait, 8 ÷ 4.67 ms = 1,713 frames a second or 19.8 Mbit/s, falls
+inside the band, though boot L itself ran below it (6.6 of 8 in flight
+on average), with 96 retransmissions where boot K had 4 and one
+transmit-path stall: a 203 ms stretch from 27.41 s (transmit chunk 4,
+the slowest at 15.50) with nothing arriving from the laptop while 8
+frames were in flight and 29 queued, and only 9 retired against 45
+queued. The pipeline stopped retiring, so the firmware or the air held
+the frames. The completion latency shifted up (291 samples in [8, 16)
+ms against 176) and the round trip at rest rose (64–172 ms against
+43–154): a session difference, inside the ±40 % floor, with no driver
+variable and nothing in the logging that costs more than a clock read
+per frame.
+
+**The intermittent receive stall is withdrawn (owner, 2026-10-25).**
+Boot L ran the receive phase with the drain excluded and found no
+receive silence: of the fifteen gaps over 200 ms the driver recorded,
+four fall before the transmit phase (14.49–16.24 s, the data phase
+opening) and ten after the receive phase (53.5–58.4 s, the echo legs and
+the idle tail), all but one with an empty data path (queue 1, nothing in
+flight, nothing queued or retired; the exception, 54.44 s, is inside the
+second echo leg with 271 frames queued and 8 in flight), and one inside
+the transmit window (the 203 ms transmit stall above); none falls inside
+the receive window (33.20–52.30 s). The chunk shortfalls were two different things, and
+neither is a receive-path stall:
+
+- **The acknowledgement timing.** Chunk 5's shortfall (14.31 Mbit/s on
+  the acknowledged bytes) is the split between in flight and
+  acknowledged at the laptop's close: 3.02 MB unacknowledged, all of it
+  acknowledged in 142 ms, which is a burst of delayed acknowledgements,
+  not a wire rate. On the device's own count the chunk ran at 21.11.
+- **The chunk boundary.** Chunk 3 (16.80 device-side over 4.08 s) is
+  normal in its interior (the three whole seconds inside it: 2,776, 2,548
+  and 2,381 KiB, 19.5–22.7 Mbit/s); its shortfall is in its first 0.39 s
+  and its last 0.69 s, the new connection's start and the long drain,
+  which together carried about 664 KiB.
+
+So three boots attributed a chunk-boundary and acknowledgement-batching
+effect to the receive path: boot I's chunk 3 (`device_timeout` at the
+4 MiB cap), boot K's chunks 3 and 5 (on the device's 4 s bound with the
+drain racing it) and the dips quoted since boot F. What made them
+believable, kept so that neither belief returns: every one was a chunk
+total read against a bound, with no record inside the chunk; the
+device's bound sat one second past the laptop's duration, inside the
+drain; and the rate basis mixed the laptop's view with the device's.
+The earlier shortfalls on the device's own count (boot I's 3.78 MB in
+4.01 s, boot K's 5.87 MB) were real slow chunks, but no record inside
+them exists, so they name no mechanism and are not evidence of a
+receive-path stall; boot L, the first run instrumented inside the
+chunk, found no receive silence at all. The
+acknowledgement-split hypothesis is withdrawn on the same evidence and
+on boot L's series: zero stops in every receive second, high water at
+most 30 against the stop mark of 56, and no receive gap at all.
+
+**Measuring receive from now on (owner, 2026-10-25).** The device knows
+when the bytes arrived; the laptop knows when they were acknowledged,
+and the difference is the device's acknowledgement batching. The
+primary receive rate is the device's received bytes over its own span
+(the leaf's start and end markers, 10 ms resolution; the start includes
+the connection's opening, about one round trip); the secondary is the
+bytes acknowledged by the laptop's close over the send window, reported
+as the TCP flow's view with the unacknowledged amount stated. Both are
+reported per chunk and never averaged across the two bases. Boot L by
+both: device 19.63, 20.45, 16.80, 21.18, 21.11; flow 20.28, 20.48, 15.74,
+21.44, 14.31 (unacknowledged at the close 1.91, 1.57, 2.66, 1.49, 3.02 MB).
+
+**The gap record, corrected before it is believed again.** Two defects
+in 0283's receive gaps: `rx_bytes_before` was cumulative while
+`rx_bytes_after` was a delta, so the pair could not be read as one
+window; and gaps were recorded across the whole data phase, where idle
+is expected. 0283 v2 logs both as deltas (the bytes in the 200–400 ms
+before the gap, with that window's length, and in the 200 ms after it),
+and the throughput record keeps only the gaps between a direction's
+start and end markers, counting the others; the driver does not know
+the leaf's phases, so the windowing is applied where the markers are.
+A gap kept in the record is a stall by construction.
+
+## 23. Boot M (predeclared, 2026-10-25): depth 12, once, then stop
+
+**The change.** `CONFIG_MT6797_CCMP_TX_DEPTH=12` (the TC1 ledger derives
+to 156 pages of the firmware's 468) on boot L's tree; everything else as
+boot L (the 64-frame queue, the 16 MiB or 3 s chunks, the 6 s device
+bound, the drain accounting, 0283's series with the gap record as v2,
+the amended verdict). One variable against boot L.
+
+**The expectation, from the two-point model.** wait ≈ 1.465 ms + 0.350
+ms × 12 = 5.66 ms, so 12 ÷ 5.66 ms = 2,119 frames a second, 24.6 Mbit/s.
+Read `wait_avg` first, and read transmit against the rule at the wait
+the boot measures, since depth 8 gave 17.5 to 20.9 across two sessions:
+
+| Reading | Cause | Next |
+|---|---|---|
+| `wait_avg` under the model (below about 5.4 ms) with transmit on the rule | the wait grows less than linearly; the asymptote is above 33 Mbit/s | one more depth step is worth considering |
+| `wait_avg` near 5.66 ms, transmit near the rule | the model holds; the remaining depth gains are worth less than the session noise | depth is spent; the 54 Mbit/s air is the wall, and above it only HT |
+| transmit well under the rule at the measured wait | the window is not what binds at this depth (the air, the firmware's queue) | read the in-flight mean, the transmit gaps and the latency before anything else |
+| `expired`, `pid_faults`, `left_pages`, `dropped_full` or `tx_failed` non-zero | the pool or the queue does not hold at this depth | revert to depth 8 (the amended rule: safety counters show loss) |
+| a transmit-path timeout | the depth fails on its own path | revert to depth 8 |
+
+Receive is not this change's path: a receive timeout does not revert it
+(the amended rule), and receive is read on the device's count with the
+TCP flow's view beside it. `inflight_max` must reach 12 or the depth was
+not exercised. After this boot the depth sweep stops whatever it shows,
+except on the first row.
+
+The three questions: reachability, the depth sizes the slot array and
+the per-pass submission count, and the ledger is admitted at HIF
+activation; ownership, 156 of the firmware's 468 pages, the host
+ledger's own figures; the vendor, within the vendor's budget for the
+queue.
