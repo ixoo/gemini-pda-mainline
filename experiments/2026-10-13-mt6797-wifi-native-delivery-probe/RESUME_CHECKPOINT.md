@@ -1,4 +1,15 @@
-# Current: 0268 measured (boot 4): neutral, kept; the receive number may be clocked by transmit latency
+# Current: the owner's order after boot 4; the receive probe is staged
+
+Owner decisions (2026-10-25): 0268's admission reverted (neutral;
+precedent), the proposal kept behind its option; the receive probe
+approved as a mechanism measurement with three readings in one boot
+([transport record §11](HIF_TRANSPORT_ANALYSIS.md#11-receive-probe-predeclared-2026-10-25-is-the-receive-number-clocked-by-the-transmit-path));
+the state-2 encoder attempt approved as one boot after the probe, closing
+the rate thread on its result; the AP-loss gate independent, scheduled
+when the owner is at the access point; the completion-latency answer from
+source is in §10; the standing audit has three questions.
+
+# Historical: 0268 measured (boot 4): neutral, kept; the receive number may be clocked by transmit latency
 
 [Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either):
 TX 2.64 in band, debt 0, failures 0; receive 6.37 host-side with 12,754

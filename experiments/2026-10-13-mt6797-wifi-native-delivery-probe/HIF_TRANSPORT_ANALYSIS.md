@@ -745,3 +745,74 @@ vendor does; then the rate); if only the report is late, the completion
 latency does not clock receive and the acknowledgement reading above is
 wrong. The inter-completion gap of 0.70 ms median says the firmware
 pipelines frames; it does not say which of the two.
+
+## 11. Receive probe (predeclared, 2026-10-25): is the receive number clocked by the transmit path?
+
+A mechanism measurement, recorded beside the graded numbers and never
+graded; the measurement protocol stays TCP for every graded number,
+including the vendor comparison. One boot on the lifecycle tree with the
+batching admission reverted (build `7ba78e08`: the per-frame receive path,
+AP-DMA both directions, 0267, 0268 compiled out), the probe injected
+host-side at prepare time
+([`hosts/receive_probe.py`](hosts/receive_probe.py), guard
+[`tests/receive-probe-test.py`](tests/receive-probe-test.py)). Three
+readings in the same boot, because two cannot separate the first two
+causes:
+
+- **UDP receive, no return traffic.** Before the chunk loop, the device at
+  rest: the laptop sends 1400-byte datagrams for one second at 10, 20 and
+  30 Mbit/s to a closed UDP port on the device, each burst triggered by
+  the device; the device kernel counts them in its UDP `NoPorts` counter
+  (`/proc/net/snmp`), the laptop counts what it sent. Delivered rate and
+  loss (sent minus counted; the device has no UDP receiver, so a sequence
+  gap is not available) at each offered rate; the headline is the
+  delivered rate at the highest offered rate with loss under one percent.
+  Return traffic: the kernel's port-unreachable, rate-limited to one per
+  second by default.
+- **Round-trip time at rest.** One `ping -c3` from the device to the
+  laptop before the chunks, the summary line.
+- **The device's TCP receive window.** During each TCP receive chunk the
+  laptop's send socket is sampled every 50 ms (macOS
+  `TCP_CONNECTION_INFO`): the window the device advertises, the
+  congestion window, the segment size and the TCP round-trip time. The
+  device's receive buffer parameters are the kernel defaults (the
+  initramfs sets none; `tcp_rmem` 4096/131072/6291456), not read on the
+  device because the owned command has a 4096-byte bound (the probe's
+  device block fits it with 33 bytes to spare); the advertised window is
+  the measurement.
+
+**Prediction.** If the acknowledgement latency is about 3.7 ms and one
+acknowledgement covers two segments, a TCP receive runs at about
+2 × MSS / latency = 2 × 1460 × 8 / 3.7 ms ≈ 6.3 Mbit/s, which is what the
+series measures (6.4–7.5 host-side); the vendor's band would then follow
+from a lower acknowledgement latency.
+
+| Reading | Cause | Next |
+|---|---|---|
+| UDP far above 6.4 Mbit/s with loss under 1 %, RTT about 4 ms, window ample | the transmit path's completion latency clocks receive | the interrupt is not the next step; the shared limiter is TX completion latency (the MCU status report on every data frame, the fixed-rate path) |
+| UDP far above 6.4, RTT well under 1 ms, window small | TCP flow control on the device, not transmit latency | fix the device's receive window and re-measure TCP before touching the transport |
+| UDP near 6.4 (loss rising with the offered rate) | the receive path holds | the interrupt earns its risk after all |
+
+The graded TCP numbers of this boot are read as every boot's: TX first
+(the 2.6–2.8 band, `debt=0`), then receive, against the rx-dma row (the
+same tree without 0268 admitted).
+
+**The three questions.** Reachability: the probe writes nothing to the
+device's registers and changes no driver code; its bus traffic is the
+device's own `ping`, three `nc` connections to the laptop (the triggers)
+and the kernel's handling of datagrams to a closed port; the device block
+runs inside the owned PTY command before the chunk loop, after the
+owner's identity checks, and the helper's own validators (idle policy,
+receive sinks, the command bound) admit it with the flag on; with the flag
+off the device script is byte-identical to the reviewed one (the guard
+checks both). Ownership: the laptop socket option is read on the
+laptop's own socket; the device's UDP counter is the kernel's, read twice
+around each burst; neither is destructive and nothing else in the
+measurement reads them. The third question: the probe writes no register,
+and the vendor writes none for it.
+
+**What it does not measure.** The RTT from `ping` and from the TCP samples
+includes the AP and the laptop's own stack, so a 4 ms reading says the
+loop is slow, not which half; the UDP reading is what assigns it to the
+device's transmit side (receive moves freely without acknowledgements) or
+to its receive side (receive does not move).
