@@ -15,8 +15,17 @@ receipt, the verified boot, healthy cleanup, the key sequence, no fault, the
 declared chunk count) and replaces the stale ones: no native ciphertext
 reached the core and the counters are monotone; each chunk inside the
 device's declared bound; and, where the credit-retire record is present, it
-is the ownership proof (nothing expired, no PID fault, no pages left, no
-failed transmit). The retained fields stay in the record unchanged.
+is the ownership proof (nothing expired, no PID fault, no pages left). The
+retained fields stay in the record unchanged, and the cohort's legacy
+pass flags are listed by name as not gated.
+
+A failed transmit is its own gate (boot U): status 3 is
+TX_RESULT_MPDU_ERROR in the vendor's wlan_lib.h, a frame the air did not
+acknowledge after its retries, which a fixed rate predicts. When every
+failed frame is accounted for by status-3 entries in the sampled report
+histogram, the gate passes and the count is a named warning
+(`tx_air_losses`); any other status, or failures the histogram does not
+explain, fail `tx_delivery`.
 
 It also records 0283's receive gaps per direction, only those inside the
 direction's start and end markers (on the kernel clock, like the gaps); the
@@ -47,6 +56,7 @@ def apply(path):
             "        # ordinary data carries no PID under credit retire (0278): its end record is the ownership proof\n"
             "        value['credit_retire_ownership'] = retire\n"
             "        ledger_ok = retire['whole']\n    elif data_depth == 4:\n")
+    literal("    passed = bool(", "    tx_delivery = retire is None or retire['tx_delivery_ok']\n    passed = bool(tx_delivery and ")
     literal("                  all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=1.5e9 for c in d['chunks'])\n",
             "                  all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=chunk_limit for c in d['chunks'])\n")
     literal("    declared = measurement.get('chunks_each', 5)   # a predeclared shorter run is not a censored one\n",
@@ -70,8 +80,12 @@ def apply(path):
             "                 verdict_gates={'receipt_all_pass': bool(receipt and receipt.get('all_pass')), 'verified_boot': bool(verified_boot),\n"
             "                                'timing': timing, 'healthy_cleanup': bool(value.get('healthy_cleanup')),\n"
             "                                'native_ciphertext_ok': native['ok'], 'sequence_ok': bool(value.get('sequence_ok')),\n"
-            "                                'no_fault': not value.get('fault'), 'ownership': ledger_ok},\n"
-            "                 retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])\n"
+            "                                'no_fault': not value.get('fault'), 'ownership': ledger_ok,\n"
+            "                                'tx_delivery': tx_delivery},\n"
+            "                 verdict_warnings=(['tx_air_losses=%d' % retire['tx_air_losses']] if retire and retire['tx_air_losses'] else []),\n"
+            "                 retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok',\n"
+            "                                     'provisional_ccmp_compatibility_pass', 'duration_pass', 'connected_lifetime_trial_pass',\n"
+            "                                     'periodic_after_release_pass', 'ten_minute_ssh_proven', 'byte_cap_reached'])\n"
             "    value['verdict_failed'] = ['receipt:' + name for name in (receipt or {}).get('all_pass_failed', [])] + \\\n"
             "        ['classifier:' + gate for gate, ok in value['verdict_gates'].items() if not ok]\n"
             "    value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,\n")
@@ -85,9 +99,20 @@ def credit_retire_record(kmsg):
         return None
     retired, expired, faults, left = map(int, ends[0])
     failed = int(data[0]) if len(data) == 1 else None
+    # the sampled report histogram: status 3 (TX_RESULT_MPDU_ERROR) is an air loss
+    rates = re.findall(rb'one-shot WLAN TX rates: status/rate=count (\\S+) ', kmsg)
+    statuses = {}
+    for entry in (rates[0].split(b',') if len(rates) == 1 else []):
+        m = re.fullmatch(rb'(\\d+)/0x[0-9a-f]+=(\\d+)', entry)
+        if m:
+            statuses[int(m[1])] = statuses.get(int(m[1]), 0) + int(m[2])
+    air = statuses.get(3, 0)
+    other = sum(n for status, n in statuses.items() if status not in (0, 3))
     return {'records': len(ends), 'retired': retired, 'expired': expired, 'pid_faults': faults,
-            'left_pages': left, 'tx_failed': failed,
-            'whole': len(ends) == 1 and retired > 0 and expired == faults == left == 0 and failed == 0}
+            'left_pages': left, 'tx_failed': failed, 'sampled_status': statuses,
+            'tx_air_losses': air if failed else 0,
+            'tx_delivery_ok': failed == 0 or (failed is not None and not other and failed == air),
+            'whole': len(ends) == 1 and retired > 0 and expired == faults == left == 0 and failed is not None}
 
 
 def native_record(kmsg):

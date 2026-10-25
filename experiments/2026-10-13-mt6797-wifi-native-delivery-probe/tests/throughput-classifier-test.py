@@ -132,7 +132,18 @@ class ClassifierTests(unittest.TestCase):
         value = classify(raw, receipt, True, data_depth=8)
         self.assertTrue(value['throughput_baseline_pass'], value['verdict_gates'])
         self.assertTrue(value['credit_retire_ownership']['whole'])
-        self.assertEqual(value['retained_not_gated'], ['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])
+        self.assertEqual(value['retained_not_gated'][:3], ['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])
+        self.assertIn('duration_pass', value['retained_not_gated'])
+        # boot U: failed transmits all sampled at status 3 (TX_RESULT_MPDU_ERROR) are an air-loss warning
+        rates = b'6,1,1,-;mt6797-consys 10001340.consys: one-shot WLAN TX rates: status/rate=count %s other=0 first=0x004c last=0x004c n=12\n'
+        failing = NATIVE + RETIRE.replace(b'tx_failed=0', b'tx_failed=2')
+        air = failing + rates % b'0/0x004c=10,3/0x004c=2' + TERMINAL
+        lossy = classify(air, receipt, True, data_depth=8)
+        self.assertEqual((lossy['verdict_failed'], lossy['verdict_warnings']), ([], ['tx_air_losses=2']))
+        self.assertTrue(lossy['throughput_baseline_pass'])
+        for status in (b'0/0x004c=10,5/0x004c=2', b'0/0x004c=11,3/0x004c=1'):   # another status, or unexplained
+            failed = classify(failing + rates % status + TERMINAL, receipt, True, data_depth=8)
+            self.assertEqual(failed['verdict_failed'], ['classifier:tx_delivery'])
         for broken in (raw.replace(b'expired=0', b'expired=1'), raw.replace(b'pid_faults=0', b'pid_faults=2'),
                        raw.replace(b'left_pages=0', b'left_pages=13'), raw.replace(b'tx_failed=0', b'tx_failed=1'),
                        raw.replace(b'total=45705 native=0', b'total=45705 native=1'),

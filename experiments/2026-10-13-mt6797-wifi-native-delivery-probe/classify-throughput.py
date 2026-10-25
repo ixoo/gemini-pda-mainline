@@ -51,9 +51,20 @@ def credit_retire_record(kmsg):
         return None
     retired, expired, faults, left = map(int, ends[0])
     failed = int(data[0]) if len(data) == 1 else None
+    # the sampled report histogram: status 3 (TX_RESULT_MPDU_ERROR) is an air loss
+    rates = re.findall(rb'one-shot WLAN TX rates: status/rate=count (\S+) ', kmsg)
+    statuses = {}
+    for entry in (rates[0].split(b',') if len(rates) == 1 else []):
+        m = re.fullmatch(rb'(\d+)/0x[0-9a-f]+=(\d+)', entry)
+        if m:
+            statuses[int(m[1])] = statuses.get(int(m[1]), 0) + int(m[2])
+    air = statuses.get(3, 0)
+    other = sum(n for status, n in statuses.items() if status not in (0, 3))
     return {'records': len(ends), 'retired': retired, 'expired': expired, 'pid_faults': faults,
-            'left_pages': left, 'tx_failed': failed,
-            'whole': len(ends) == 1 and retired > 0 and expired == faults == left == 0 and failed == 0}
+            'left_pages': left, 'tx_failed': failed, 'sampled_status': statuses,
+            'tx_air_losses': air if failed else 0,
+            'tx_delivery_ok': failed == 0 or (failed is not None and not other and failed == air),
+            'whole': len(ends) == 1 and retired > 0 and expired == faults == left == 0 and failed is not None}
 
 
 def native_record(kmsg):
@@ -129,15 +140,20 @@ def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
                   len(d.get('chunks',[]))==declared and
                   all(c.get('elapsed_ns') is not None and 0<c['elapsed_ns']<=chunk_limit for c in d['chunks'])
                   for d in directions.values()))
-    passed = bool(verified_boot and receipt and receipt.get('all_pass') and timing and
+    tx_delivery = retire is None or retire['tx_delivery_ok']
+    passed = bool(tx_delivery and verified_boot and receipt and receipt.get('all_pass') and timing and
                   value.get('healthy_cleanup') and native['ok'] and
                   value.get('sequence_ok') and not value.get('fault') and ledger_ok)
     value.update(native_ciphertext=native, chunk_limit_ns=int(chunk_limit),
                  verdict_gates={'receipt_all_pass': bool(receipt and receipt.get('all_pass')), 'verified_boot': bool(verified_boot),
                                 'timing': timing, 'healthy_cleanup': bool(value.get('healthy_cleanup')),
                                 'native_ciphertext_ok': native['ok'], 'sequence_ok': bool(value.get('sequence_ok')),
-                                'no_fault': not value.get('fault'), 'ownership': ledger_ok},
-                 retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok'])
+                                'no_fault': not value.get('fault'), 'ownership': ledger_ok,
+                                'tx_delivery': tx_delivery},
+                 verdict_warnings=(['tx_air_losses=%d' % retire['tx_air_losses']] if retire and retire['tx_air_losses'] else []),
+                 retained_not_gated=['counts_ok', 'gtk_counters_consistent', 'queued_count_ok',
+                                     'provisional_ccmp_compatibility_pass', 'duration_pass', 'connected_lifetime_trial_pass',
+                                     'periodic_after_release_pass', 'ten_minute_ssh_proven', 'byte_cap_reached'])
     value['verdict_failed'] = ['receipt:' + name for name in (receipt or {}).get('all_pass_failed', [])] + \
         ['classifier:' + gate for gate, ok in value['verdict_gates'].items() if not ok]
     value.update(throughput_measurement=measurement,throughput_baseline_pass=passed,
