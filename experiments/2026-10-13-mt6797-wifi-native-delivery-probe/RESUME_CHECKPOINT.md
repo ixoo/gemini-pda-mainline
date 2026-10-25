@@ -1,4 +1,12 @@
-# Current: boot I showed the backpressure mechanism works and its queue discipline does not; 0282 v2 decouples the queue bound (64 frames, stop at 56, wake at 32); boot J measures it; the AP-loss gate passed as an AP-initiated disassociation
+# Current: boot J (0282 v2: queue bound 64, stop 56, wake 32) is staged on boot2 at e51cb584 (image 5e19a3c6…, predecessor d589c647…); the owner selects boot2; the watcher starts the five-chunk run
+
+Boot J's image was written and read back from Gemian (boot `fa957e17…`),
+the device shut down cleanly; the measurement is the same as boots H and
+I (five steady-state chunks each way, the echo legs, the TCP state per
+chunk, the early-stop record), read against
+[§20's table](HIF_TRANSPORT_ANALYSIS.md#20-boot-j-predeclared-2026-10-25-backpressure-with-the-queue-decoupled-from-the-depth).
+
+# Historical: Current: boot I showed the backpressure mechanism works and its queue discipline does not; 0282 v2 decouples the queue bound (64 frames, stop at 56, wake at 32); boot J measures it; the AP-loss gate passed as an AP-initiated disassociation
 
 [Boot I](HIF_TRANSPORT_ANALYSIS.md#boot-i-result-2026-10-25-1733-utc-the-mechanism-works-the-queue-discipline-does-not)
 and [§20](HIF_TRANSPORT_ANALYSIS.md#20-boot-j-predeclared-2026-10-25-backpressure-with-the-queue-decoupled-from-the-depth):
