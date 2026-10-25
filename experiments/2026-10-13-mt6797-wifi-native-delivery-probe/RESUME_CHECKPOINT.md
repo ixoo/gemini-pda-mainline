@@ -8,9 +8,14 @@ floor and `byte_cap_per_chunk` must be raised before the next transmit
 measurement (owner's call on the finite protocol); receive 17.9–20.0,
 inside the floor: the receive limit is not the transmit completion path
 (UDP 30 Mbit/s at zero loss; TCP receive paced by a 29 ms round trip).
-0274 v2 verified on hardware (beyond=3304). Next: the AP-loss gate over
-the boot-E image (owner at the access point); then fewer bus transactions
-per frame on transmit and the receive round trip from the device side.
+0274 v2 verified on hardware (beyond=3304). The AP-loss gate is staged
+over the boot-E image (the same image, `528d1d1d…`, install skipped as
+already matching with full readback; three lifetimes, one chunk each,
+cycle 2 waits for the access-point loss; watcher armed; the owner
+selects boot2 and cuts the access point's power 60–120 s into the
+second lifetime's data phase, restoring it 60 s later). Then fewer bus
+transactions per frame on transmit and the receive round trip from the
+device side.
 
 # Historical: the fixed-54 tree is the baseline; boot E (the credit model, five chunks, aggregate logging) is next
 
