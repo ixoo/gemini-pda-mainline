@@ -1,4 +1,4 @@
-# Current: boot L predeclared (depth 8 restored, receive measured over the send window, the queue's per-second series and receive gaps, the verdict's stale gates replaced) and building
+# Current: boot L predeclared (depth 8 restored, receive measured over the send window, the queue's per-second series and receive gaps, the verdict's stale gates replaced) is staged on boot2 at 7fddd16f (image c0f4a6f1…, predecessor 5f5a187c…); the owner selects boot2
 
 Boot K's revert fired on a receive artefact under a transmit change; the
 rule is amended (a timeout reverts a change on its own path, or when the
@@ -12,7 +12,9 @@ live gates and replaces the stale ones. The boot answers four questions:
 transmit near 20.9, the clean receive rate, boot K's chunk 3, and whether
 the queue ever stops during receive (expected: never). No
 acknowledgement-split boot before those answers; HT stays closed below
-the 33 Mbit/s ceiling.
+the 33 Mbit/s ceiling. Boot L's image was written and read back from
+Gemian (boot `4a464713…`), preflight passed with the 6 s bound and the
+drain accounting rendered, and the device shut down cleanly.
 
 # Historical: boot K held the rule on transmit (21.0 Mbit/s at depth 8, 21.7 predicted) and lost two receive chunks to the device's bound; the fragment is back at depth 4; the next boot is the owner's decision
 
