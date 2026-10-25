@@ -1,4 +1,4 @@
-# Current: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) predeclared, awaiting the owner's review before staging
+# Current: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) staged on boot2
 
 [Boot V](HIF_TRANSPORT_ANALYSIS.md#boot-v-result-2026-10-25-2225-utc-batching-lifts-receive-modestly-and-transmit-with-it-ingest-is-still-bound-elsewhere-one-correct-replay-refusal):
 batching on with no failure (20,994 aggregates, up to 16); receive good
@@ -11,7 +11,12 @@ one worker. [§33](HIF_TRANSPORT_ANALYSIS.md#33-boot-w-predeclared-2026-10-25-th
 `DATA_FIXED_RATE_CODE=0x87` with 0294 widening the option's range;
 prediction toward 25 on transmit (189 µs per frame, long GI), slightly
 more air loss. Then one decision: the interrupt or the air-rate levers.
-Nothing is staged; the device is on Gemian (`885a03ed…`).
+Owner, 2026-10-25: approved as predeclared. The composer's and
+validator's allowances admit exactly `DATA_FIXED_RATE_CODE` 0x4c → 0x87.
+Boot W is staged on boot2 at 43f4fa20 (image 0b0e2e01…, predecessor
+c06ff1ae…), written and read back from Gemian (boot `885a03ed…`), device
+command 4,074 of 4,096 bytes, preflight passed, the device shut down
+cleanly; the owner selects boot2.
 
 # Historical: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) staged on boot2
 
