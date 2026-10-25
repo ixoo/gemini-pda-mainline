@@ -33,6 +33,7 @@ described here; each run's own artefacts are named.
 | [rx-batch-1](HIF_TRANSPORT_ANALYSIS.md#boot-1-of-0268-2026-10-25-the-join-stopped-at-its-credit-wait-the-block-read-had-consumed-the-tx-release-counts) | 0268 first form (enhanced status block + aggregated reads): the block read consumed the TX release counts, the join stopped at its credit wait; amended | inconclusive (join stopped) | inconclusive (join stopped) | — |
 | [rx-batch-2](HIF_TRANSPORT_ANALYSIS.md#boot-2-of-0268-2026-10-25-the-credits-came-the-join-guard-refused-at-the-second-eapol-message) | 0268 amended (block TX counts merged into the credit path): every credit returned, join reached EAPOL message 2, then the join guard refused with -EIO at debt 0; guard record added | inconclusive (join stopped) | inconclusive (join stopped) | — |
 | [rx-batch-3](HIF_TRANSPORT_ANALYSIS.md#boot-3-of-0268-2026-10-25-the-guards-words-name-the-abnormal-interrupt-the-cause-is-our-own-whcr-write) | 0268 with the guard record: `whisr=0x42`, the device's abnormal interrupt; cause: the enable wrote WHCR bit 16 (RX enhancement, a mode the vendor clears); WHCR no longer written | inconclusive (join stopped) | inconclusive (join stopped) | — |
+| [rx-batch-4](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either) | 0268 (enhanced status block + one aggregated read per queue, WHCR untouched): 12,754 frames, 5,706 aggregates, 0 failures; kept | 2.64 | 6.37 (device-side chunks 8.5–12.2) | 86.4% / 77.9% |
 | **vendor control** | proprietary driver, Gemian | **14.59** | **31.54** | — |
 | **vendor control 2** (2026-10-24) | proprietary driver, Gemian, same method, after the RX-fix boot | **45.1** | **38.5** | — |
 
@@ -68,6 +69,14 @@ vendor control used the same laptop as the far end.
    direction ([transport record §7](HIF_TRANSPORT_ANALYSIS.md#7-conclusion-the-transmit-data-copy-is-not-the-bottleneck));
    the forced 6 Mbit/s rate is what remains on transmit, and the receive
    worker is measured separately.
+7. **Nor is the receive register work.** Receive by the enhanced status
+   block and aggregated reads (0268, boot 4) moved every frame of the data
+   phase with zero failures and left receive at 6.37 host-side. The same
+   log shows the transmit completion rate during the receive chunks at the
+   TCP acknowledgement rate, so the receive number may be clocked by the
+   transmit path's per-frame latency; an acknowledgement-free receive
+   measurement separates that from the receive path before the interrupt
+   is tried ([transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either)).
 
 ## What the numbers point at next
 

@@ -648,3 +648,63 @@ without the deadline entry so a poisoned context can still be described;
 the vendor's abnormal handler reads them once before its reset, whether
 they clear on read is not stated, and nothing else in this driver reads
 them. The merged counts' consumer is the reconcile, unchanged.
+
+### Boot 4 of 0268 (2026-10-25): the measurement — the register work was not the receive cost either
+
+Build `796d43bf`, boot2 `96e1f41e…` over `490008d5…`, mainline boot
+`7aa0ea7c…`, returned to Gemian `ae210f69…`, complete sealed log
+(1,696,642 bytes), five chunks each way, standard disconnect accepted.
+
+TX first, as predeclared: 2.64 Mbit/s (chunks 3.10–3.22), inside the
+2.6–2.8 band and under the 3.4 stop line; `debt=0` at the lifetime's end
+(`join cleanup: stage=3 credits=returned slots=retired`, the cleanup
+timing lines closing at `debt=0`); `failures=0`; the byte caps and the
+TCP receipt intact (`all_pass True`). The merge is accepted: 21 page
+credits over the join and the cleanup, each matched, no overflow line, no
+guard record. 0267's path (a refused command) was not exercised; the
+ordinary boot's accounting is whole.
+
+Then the receive rows. `HIF RX batch: on=1 whcr=0x00000000 reads=137007
+aggregates=5706 frames=12754 empty=131301 max=16 failures=0 credits=3647
+block_abnormal=0x00000000`: the mode held for the boot without a WHCR
+write, every frame of the data phase came through the block and the
+aggregated reads (up to sixteen per block, 2.2 per aggregate on average,
+96 % of the passes finding nothing), nothing was dropped, split wrongly or
+flagged. Receive: 6.37 Mbit/s host-side (device-side chunks 8.5–12.2,
+the last two below the 10.5–13 band), CPU idle 77.9 %; the pass census
+6,125 passes/s at 0.030 frames per pass. That is the table's second row,
+unchanged within the series' spread: with the per-frame length read, the
+transfer setup and the status reads collapsed into one block read and one
+aggregate per queue, the receive number did not move. The receive data
+copy (DMA) was not the cost, and the per-frame register work was not the
+cost.
+
+What the same log says about where the cost is, read before the next
+lever is chosen. The transmit completions per second across the data
+phase run at 185–273 during the receive chunks and 377–556 during the
+transmit chunks (`join TX done` lines, 4,035 completions, inter-completion
+gap median 0.70 ms, p90 7.9 ms). During a TCP receive the device's
+transmissions are the acknowledgements, one per two segments: 5 MiB in
+6.58 s is about 545 segments/s and about 270 acknowledgements/s, which is
+the transmit completion rate observed in those seconds. The receive
+throughput of a TCP flow is window over round-trip time, and the
+round-trip time here includes our transmit path's latency for each
+acknowledgement (submit to completion, the 4–9 ms measured on the
+transmit side since the yield boot), not the receive path's. So the
+receive number may be clocked by the transmit path and would not move
+with any receive-side lever, interrupt included; the three receive boots
+that changed nothing (DMA, batching, the pass-rate cap) are consistent
+with that and do not distinguish it. One measurement does: a receive
+chunk that needs no acknowledgements (UDP, same host, same byte cap) or
+the round-trip time from the device at rest; if the UDP receive clears
+the TCP number by a wide margin, the receive ceiling is the transmit
+latency and the interrupt is not the next step; if it does not, the
+receive path itself holds and the interrupt is. That is a protocol change
+to the measurement and the owner's call; the table's row says
+"interrupt next" and it stands as written until then.
+
+Retention: 0268 is kept and stays admitted in the lifecycle fragment
+(vendor-equivalent receive by the block without a WHCR write, 12,754
+frames with zero failures, neutral in throughput); the per-frame path
+remains in the driver behind the option. The series' receive levers are
+now all measured: scheduling, depth, DMA, batching, pass cap.

@@ -1,4 +1,16 @@
-# Current: 0268 boot 3 named the abnormal interrupt; cause was our WHCR write; boot 4 is the one measurement boot
+# Current: 0268 measured (boot 4): neutral, kept; the receive number may be clocked by transmit latency
+
+[Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-4-of-0268-2026-10-25-the-measurement--the-register-work-was-not-the-receive-cost-either):
+TX 2.64 in band, debt 0, failures 0; receive 6.37 host-side with 12,754
+frames through the block and the aggregates. Register work was not the
+receive cost. The transmit completion rate during the receive chunks sits
+at the TCP acknowledgement rate, so an acknowledgement-free receive chunk
+(UDP) or a round-trip measurement is proposed before the interrupt; the
+owner decides the protocol change. Owner decision still owed on the
+state-2 attempt. The AP-loss gate is where a failed join's accounting is
+verified.
+
+# Historical: 0268 boot 3 named the abnormal interrupt; cause was our WHCR write; boot 4 is the one measurement boot
 
 [Transport record §10](HIF_TRANSPORT_ANALYSIS.md#boot-3-of-0268-2026-10-25-the-guards-words-name-the-abnormal-interrupt-the-cause-is-our-own-whcr-write):
 the guard's words excluded three of the four sources and confirmed the

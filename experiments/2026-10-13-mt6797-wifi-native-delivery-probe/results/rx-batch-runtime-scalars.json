@@ -64,6 +64,85 @@
       "cause": "the enable wrote WHCR 0x00011000 (RX_ENHANCE_MODE_EN and a count of sixteen); the vendor's init clears bit 16 and programs count 0; in that mode every receive-port read carries a status block the host never read",
       "fix": "WHCR confirmed by reading, never written; block WHISR not copied; block-carried abnormal recorded and fatal; WASR/WASR2 in the guard record",
       "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
+    },
+    "rx-batch-4": {
+      "run": "PIO-throughput-rxbatch4-1",
+      "profile": "mt6797-a53-wifi-lifecycle",
+      "kernel_build_commit": "796d43bf7892710742e5af4ae7959329c9eae440",
+      "boot2_sha256": "96e1f41e59d805f587074519f90ba68fe3c24345f4454bd7abf904fd5893b25a",
+      "predecessor_boot2_sha256": "490008d5c5e47028e979a532ac63d6da6d825399e037dd6cb907dfa5eaa9cc88",
+      "mainline_boot_id": "7aa0ea7c-0cb7-4427-938e-0a2eda3398d5",
+      "previous_gemian_boot_id": "4d65ad5c-15b7-423b-844c-0cce2863cd1e",
+      "returned_gemian_boot_id": "ae210f69-252c-44a4-bc26-48e63791199d",
+      "sealed_log_bytes": 1696642,
+      "throughput": {
+        "tx_host_received_mbit_s": 2.64,
+        "tx_chunk_mbit_s": [
+          3.2,
+          3.2,
+          3.1,
+          3.22,
+          3.19
+        ],
+        "tx_device_cpu_idle_percent": 86.44,
+        "rx_host_sent_mbit_s": 6.37,
+        "rx_device_chunk_mbit_s": [
+          11.49,
+          12.16,
+          10.62,
+          9.87,
+          8.47
+        ],
+        "rx_device_cpu_idle_percent": 77.88
+      },
+      "rx_batch": {
+        "on": 1,
+        "whcr": "0x00000000",
+        "reads": 137007,
+        "aggregates": 5706,
+        "frames": 12754,
+        "empty": 131301,
+        "max_frames": 16,
+        "failures": 0,
+        "credit_blocks": 3647,
+        "block_abnormal": "0x00000000"
+      },
+      "census": {
+        "passes": 132989,
+        "submissions": 4031,
+        "max_per_pass": 4,
+        "elapsed_ms": 21711
+      },
+      "data_phase": {
+        "end_reason": "disconnect",
+        "tx_queued": 4031,
+        "tx_done": 4029,
+        "tx_failed": 2,
+        "cleanup": "stage=3 credits=returned slots=retired",
+        "debt_at_end": 0
+      },
+      "tx_completions_per_second": [
+        2,
+        4,
+        4,
+        185,
+        260,
+        228,
+        261,
+        227,
+        199,
+        273,
+        377,
+        449,
+        518,
+        277,
+        195,
+        556,
+        20
+      ],
+      "reading": "table row 2: register work not the receive cost; the completion rate during the receive chunks equals the TCP acknowledgement rate, so an acknowledgement-free receive measurement is proposed before the interrupt",
+      "retention": "kept, admitted in the lifecycle fragment",
+      "display_probe_not_evidence": "framebuffer console bound, tty0 write ok"
     }
   }
 }
