@@ -1,4 +1,4 @@
-# Current: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) predeclared, awaiting the owner's review before staging
+# Current: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) staged on boot2
 
 [Boot S](HIF_TRANSPORT_ANALYSIS.md#boot-s-result-2026-10-25-2132-utc-the-data-path-under-wmm-is-restored-and-measured-both-predictions-held-the-per-tid-replay-branch-opened):
 the first graded receipt of the HT chain: TX 17.17, RX 17.64 Mbit/s.
@@ -11,8 +11,11 @@ The 12 `pn=lower` refusals are a per-TID packet-number mismatch.
 0292 keeps eight strict replay counters per context, seeded per TID from
 mac80211, and names the TID and counter of each refusal. The probe's
 dead UDP trigger and failing echo legs are retired. Then HT, the cheap
-route (fixed rate, no aggregation) first. Nothing is staged; the device
-is on Gemian (`566c4f7e…`).
+route (fixed rate, no aggregation) first. Owner, 2026-10-25: approved
+as predeclared. Boot T is staged on boot2 at 42307a6a (image
+c7f650a8…, predecessor f7cdcf2f…), written and read back from Gemian
+(boot `566c4f7e…`), device command 4,074 of 4,096 bytes, preflight
+passed, the device shut down cleanly; the owner selects boot2.
 
 # Historical: boot S restored and measured the data path under WMM (all_pass); 12 unicast frames refused at pn=lower opened the per-TID replay counter
 
