@@ -1,4 +1,17 @@
-# Current: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) staged on boot2
+# Current: boot Y's firmware transmit aggregation reported every frame delivered while TCP collapsed; aggregation withdrawn; submission batching is next, to be scoped
+
+[Boot Y](HIF_TRANSPORT_ANALYSIS.md#boot-y-result-2026-10-25-2335-utc-firmware-transmit-aggregation-reports-every-frame-delivered-while-tcp-sees-loss-the-stream-collapsed-35s-stop-row):
+the record took (tx_ampdu=2, tx_ba=64, the peer's ampdu=0x1b), then the
+first transmit chunk delivered 8.28 Mbit/s with the device's TCP at cwnd
+1 and the SSH control session died; every transmit status was 0 at
+0x0087 and every credit returned. Transmit status and delivery disagree
+under aggregation; causes not distinguished (the AP's reorder buffer
+and the firmware's sequence handling, the fixed-rate descriptor in an
+A-MPDU, TID 3). `CONFIG_MT6797_TX_AMPDU` leaves the fragment; 0296 stays
+behind its option. Next in the owner's queue: submission batching.
+Nothing is staged; the device is on Gemian (`84fe607a…`).
+
+# Historical: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) staged on boot2
 
 [Boot X](HIF_TRANSPORT_ANALYSIS.md#boot-x-result-2026-10-25-2313-utc-the-records-qos-and-ht-declaration-is-compatible-nothing-the-declaration-could-move-moved):
 `records_qos=1`, `join HT records: declared=1 sta_phy=0x18 mcs=0xff

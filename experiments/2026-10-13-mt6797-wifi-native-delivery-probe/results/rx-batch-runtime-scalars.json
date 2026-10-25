@@ -3296,6 +3296,54 @@
     "tx_failed": 3
    },
    "reading": "HIF section 34: the records' QoS and HT declaration is accepted and changes nothing observed; every credit returns on TC1; the block-ack boot inherits this baseline"
+  },
+  "boot-y": {
+   "run": "PIO-throughput-booty-1",
+   "session": "2026-10-25 23:35 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot X tree + 0296; TX_AMPDU on)",
+   "kernel_build_commit": "70df93c9525bb44aaf7c720365db237809825e17",
+   "boot2_sha256": "2d09ef9df4462e50195b3cd340de459aacdc7ad5b9eedfe549bc5aafd8762495",
+   "predecessor_boot2_sha256": "9b74c622df2cb5e0510ac9d4382ac1a726e24f52db9e8971cf794d3a35a32435",
+   "mainline_boot_id": "03459830-f7e8-425a-86e8-cdf66ac2d201",
+   "previous_gemian_boot_id": "0c2f26a4-56c0-41f1-befe-3dcc2566b399",
+   "returned_gemian_boot_id": "84fe607a-0398-49dc-b957-0be3d21cb198",
+   "returned_by": "session's reviewed return",
+   "classification": "void for the measurement: TCP collapsed under firmware transmit aggregation while every transmit status reported success",
+   "sealed_log_bytes": 197649,
+   "series_row": true,
+   "records": {
+    "ampdu": "0x1b",
+    "tx_ampdu": 2,
+    "tx_ba": 64,
+    "rx_ampdu": 1
+   },
+   "throughput": {
+    "tx_chunk1_mbit_s": 8.28,
+    "tx_chunk1_bytes": 3108432,
+    "tcp_state_chunk1": {
+     "cwnd": 1,
+     "ssthresh": 7
+    },
+    "ssh_exit": 255
+   },
+   "tx": {
+    "tx_queued": 2372,
+    "tx_done": 2372,
+    "tx_failed": 0,
+    "sampled": {
+     "0/0x0087": 37
+    },
+    "retired": 2335,
+    "wait_avg_us": 4810
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 35: transmit status and end-to-end delivery disagree under firmware aggregation; the stop row; TX_AMPDU withdrawn from the profile; submission batching next"
   }
  }
 }

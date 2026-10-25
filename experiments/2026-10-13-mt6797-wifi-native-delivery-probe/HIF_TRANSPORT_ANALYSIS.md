@@ -4482,3 +4482,73 @@ distinguish "the firmware's cost is per MPDU" from "the firmware formed
 no aggregate" (no session established, or a fixed-rate descriptor kept
 out of aggregation). Either way the next lever is the same, submission
 batching, which needs no firmware answer.
+
+### Boot Y result (2026-10-25, 23:35 UTC): firmware transmit aggregation reports every frame delivered while TCP sees loss; the stream collapsed; §35's stop row
+
+Build `70df93c9` (0296, `TX_AMPDU` on boot X's tree), boot2 `2d09ef9d…`
+over boot X's `9b74c622…`, mainline boot `03459830…`, returned to Gemian
+`84fe607a…` by the session's own reviewed return (live identity checked
+afterwards); log complete through the seal (197,649 bytes). Verdict
+failed: `session_exit=1`, the receipt not whole, `classifier:timing`. The
+failure is named below; no throughput is claimed.
+
+**The change took.** `join HT records: declared=1 ... ampdu=0x1b
+tx_ampdu=2 tx_ba=64 rx_ampdu=1`: the firmware accepted the station record
+with transmit A-MPDU enabled, the 64-frame window, and the peer's A-MPDU
+parameters `0x1b` (64 KiB maximum A-MPDU, 8 µs density). The join and
+association ran as before.
+
+**What happened.**
+
+- The transmit direction's first chunk delivered 3,108,432 bytes to the
+  laptop in 3 s: 8.28 Mbit/s against about 23.5 in boots W and X.
+- 1.5 s into it, the device's TCP sender stood at `cwnd 1 ssthresh 7`
+  (`TP4_TCP 1 1 7`): repeated retransmission timeouts.
+- The measurement's SSH control session then ended (exit 255 about 22 s
+  after it started, no stderr, 479 bytes of output). The second
+  transmit chunk and every receive chunk never opened (`early_stop:
+  cancelled while waiting for the device to open chunk 2 / chunk 1`).
+- The data phase ran to the leaf's own disconnect: 41.6 s, 2,372 frames
+  queued.
+
+**What the firmware and the driver said meanwhile.**
+
+- `tx_done=2372 tx_failed=0`; the sampled reports `0/0x0087=37` of 37,
+  every one status 0 at MCS7.
+- The credits whole: `retired=2335 expired=0 pid_faults=0 left_pages=0`,
+  `dropped_full=0`, backpressure never left stopped.
+- No transmit refusal (`tx_tid=2319/0/0/53/...`).
+- One receive refusal, the 442-byte software-frame class of boot R
+  (`field=packet-type prefix=0xe004 status=cipher-mismatch+data
+  wlan=2`), not a data frame. `rx_qos=179` (MCS7), `rx_llc_mis=16`.
+
+**Reading.** With firmware transmit aggregation, the firmware reports
+frames as delivered (status 0) that the peer does not deliver to the
+laptop: TCP collapses while the driver's ledger stays whole. This is the
+first boot in the series where the transmit status and end-to-end
+delivery disagree. The ledger's own checks cannot see it; the receipt
+and the TCP state do.
+
+Candidates, not measured and not distinguished by this record:
+
+- the access point's block-ack reorder buffer holding or dropping the
+  aggregated frames: the sequence numbers the firmware assigns against
+  the session's starting sequence, or a BlockAckReq the firmware does not
+  send;
+- the fixed-rate descriptor (`0x87`) on frames inside an A-MPDU;
+- the session on the SSH control session's TID 3 failing separately
+  from TID 0.
+
+The service-time reading is not meaningful on a stream that collapsed
+(wait 4.81 ms over 12, from 2,372 frames).
+
+**§35's row.** "Credits not returning, a stuck queue → stop and name
+it": the credits returned, but the end-to-end stream stalled, which is
+the condition the row exists for. So the boot stops here. Transmit
+aggregation is withdrawn from the admitted profile until its failure is
+understood: `CONFIG_MT6797_TX_AMPDU` leaves the lifecycle fragment, and
+0296 stays in the series behind its option. The next lever in the
+owner's queue needs no firmware answer: submission batching (several
+frames per transfer, the vendor's `CFG_SDIO_TX_AGG`). Whether
+aggregation returns, and with which read first (the firmware's block-ack
+sequence handling, or a fixed-rate exclusion), is the owner's decision.
