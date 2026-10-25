@@ -2702,6 +2702,55 @@
     "second_layer_used": false
    },
    "reading": "HIF section 26 first row: the AP's EAPOL-Key arrives as QoS on TID 6 and is refused at descriptor byte 9, which carries the TID; boot O attributed to the same refusal; the evidence fix worked"
+  },
+  "boot-q": {
+   "run": "PIO-throughput-bootq-1",
+   "session": "2026-10-25 20:43 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot P tree + 0285, 0286, 0287; WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "656791901755db6861415967739201693170d1e2",
+   "boot2_sha256": "13703a41d0da4164ee7dfb773782b4f277682611620726b48ca4ae08762fde1f",
+   "predecessor_boot2_sha256": "48bec39b154aea794d5d8579fdb678865ddafc246810646cbb1d417a754813f4",
+   "mainline_boot_id": "c7f9b018-f1e0-40c5-b006-e573f74f408c",
+   "previous_gemian_boot_id": "86417b2f-311b-4266-a08c-524a4a5ed746",
+   "returned_gemian_boot_id": "8afdfec0-643f-4709-ba4f-81dc1ecf68a1",
+   "returned_by": "session's reviewed return",
+   "classification": "void: handshake completed, DHCP failed",
+   "sealed_log_bytes": 184711,
+   "series_row": true,
+   "handshake": {
+    "completed": true,
+    "eapol_delivered_tid": [
+     6,
+     6
+    ],
+    "pre_key_refusals": {
+     "bss-interval": 1,
+     "rxd-byte4": 2
+    },
+    "supplicant": "four messages, PTK and GTK installed, connected"
+   },
+   "data_phase": {
+    "elapsed_ms": 12538,
+    "dhcp_bound": 0,
+    "end": "leaf disconnect, reason 3 locally generated"
+   },
+   "qos": {
+    "tx_qos": 4,
+    "tx_nonqos": 0,
+    "tx_tid_refused": 0,
+    "rx_qos": 0,
+    "rx_nonqos": 40,
+    "rx_refused": 45,
+    "rx_refused_qos": 4
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 27: the handshake goal met; DHCP failed with the AP's four QoS replies refused at the CCMP receive check (byte 9 fixed at 0x40, QoS control at 0); the refusing field is not recorded post-key"
   }
  }
 }

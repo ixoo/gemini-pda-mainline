@@ -3361,3 +3361,49 @@ non-QoS:
 | a refusal at another predicate | a second field differs for QoS frames | named by 0285's record; admit it as its own change |
 
 After boot R, HT capability advertisement is the next step.
+
+### Boot Q result (2026-10-25, 20:43 UTC): the four-way handshake completes under WMM; DHCP then failed, the access point's QoS replies refused at the receive check
+
+Build `65679190` (0285-0287, records non-QoS), boot2 `13703a41…` over
+boot P's `48bec39b…`, mainline boot `c7f9b018…`, returned to Gemian
+`8afdfec0…` by the session's own reviewed return (recovery confirmed,
+live identity checked afterwards); log complete through the seal
+(184,711 bytes); verdict red and named (no received bytes, no core
+disconnect, timing).
+
+**The handshake: §27's first goal met.** The access point's EAPOL-Key
+arrived on TID 6 as in boot P; the first message 1 was refused at
+`bss-interval` (the BSS-tag timing rule, exactly as on the non-WMM
+baseline), and messages 1 and 3 were then admitted and delivered
+(`join eapol delivered: ... tid=6`); no frame was refused at byte 9; the
+only other refusals were protected frames at byte 4. The supplicant
+logged each of the four messages once, installed the PTK and the GTK,
+completed the key negotiation and connected: our messages 2 and 4 (TID 6
+in the descriptor, TC4, non-QoS records) were accepted by the access
+point. The association and the ledger were unchanged
+(`requested=1 accepted=1 records_qos=0`; `expired=0`, `pid_faults=0`,
+`left_pages=0`, `dropped_full=0`, `tx_failed=0`).
+
+**Then DHCP failed and the leaf ended the lifetime.** The data phase
+opened (12.5 s, then the leaf's own disconnect, reason 3 locally
+generated): `dhcp_exit=1 dhcp_bound=0`, the data checks failed, and no
+measurement ran. The QoS counters: `tx_qos=4 tx_nonqos=0` (four DHCP
+discovers, carried by mac80211 as QoS data and converted), `rx_qos=0
+rx_nonqos=40 rx_refused=45 rx_refused_qos=4`. Four QoS frames came back
+and all four were refused by the CCMP receive check, none delivered: the
+access point's DHCP replies, one per discover (an inference from the
+counts; the post-key receive check records no per-frame refusal, 0285
+covers the pre-key gate only). The check fixes descriptor byte 9 at
+`0x40` (the cipher and TID 0) and the QoS control at 0, so a reply on any
+TID other than 0 is refused by construction: the same class of field as
+boot P's EAPOL refusal, on the data path.
+
+**Against §27.** The handshake row is met; nothing else could be read
+because no data flowed. The next change must name the data path's
+refusing field before it is widened: a per-frame record for the CCMP
+receive check's refusals (the predicate, frame control, QoS control and
+descriptor byte 9), logging only, the way 0285 does for the pre-key gate.
+The likely fix after it is the data-path counterpart of 0286 (byte 9's
+low nibble and the QoS control's TID admitted, the cipher still
+required CCMP), each its own boot; boot R (the records' QoS declaration)
+waits behind them.

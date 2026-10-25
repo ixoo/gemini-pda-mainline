@@ -1,4 +1,16 @@
-# Current: boot P named the handshake's obstacle (the AP's EAPOL-Key on TID 6, refused at descriptor byte 9) and its evidence survived; boot Q (0286 admit, 0287 TID 6 uplink, 0285 refusal record; records non-QoS) is staged on boot2 at 65679190 (image 13703a41…, predecessor 48bec39b…); the HT-chain measurement freeze starts with it
+# Current: boot Q completed the four-way handshake under WMM; DHCP then failed, the access point's QoS replies refused at the CCMP receive check; the next change records that check's refusals
+
+[Boot Q](HIF_TRANSPORT_ANALYSIS.md#boot-q-result-2026-10-25-2043-utc-the-four-way-handshake-completes-under-wmm-dhcp-then-failed-the-access-points-qos-replies-refused-at-the-receive-check):
+the AP's EAPOL-Key admitted on TID 6, our messages 2 and 4 accepted,
+keys installed, connected; the association and ledger unchanged. Then
+four DHCP discovers went out as QoS data and four QoS frames came back
+and were refused at the post-key receive check (`rx_qos=0`,
+`rx_refused_qos=4`), which fixes descriptor byte 9 at `0x40` and the QoS
+control at 0. That check records no per-frame refusal, so its field is
+inferred, not named: the next change records it (logging only), then the
+data-path counterpart of 0286, each its own boot; boot R waits.
+
+# Historical: boot P named the handshake's obstacle (the AP's EAPOL-Key on TID 6, refused at descriptor byte 9) and its evidence survived; boot Q (0286 admit, 0287 TID 6 uplink, 0285 refusal record; records non-QoS) is staged on boot2 at 65679190 (image 13703a41…, predecessor 48bec39b…); the HT-chain measurement freeze starts with it
 
 [Boot P](HIF_TRANSPORT_ANALYSIS.md#boot-p-result-2026-10-25-2030-utc-the-access-point-sends-eapol-key-on-tid-6-the-gate-refused-it-at-descriptor-byte-9-the-evidence-survived):
 four EAPOL-Key frames arrived as QoS data on TID 6 (translated,
