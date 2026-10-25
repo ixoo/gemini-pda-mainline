@@ -3150,3 +3150,17 @@ station record and BSS info non-QoS (`ucIsQoS`/`ucIsQBSS` 0): if the
 handshake then completes, the firmware's QoS declaration was what
 stopped message 1; if it still times out, the gate's trace names the
 refused shape.
+
+**The gap closed (owner-reviewed, 2026-10-25).**
+[join_failure_exit.py](hosts/join_failure_exit.py) adds one literal
+replacement to prepare's leaf derivation: while the leaf waits for the
+data phase's record, and only then, the wait ends at once when the
+supplicant's own log shows the join has ended (a deauthentication or
+disconnection notification, or auto-connect disabled; in boots L, M and
+N these appear only after the connection, at the lifetime's end), or
+after 90 s without the data phase. The cycle then breaks as any
+data-phase fault does, the leaf quiesces its supplicant and exits, the
+host seals the kernel record and the reviewed return runs. Tested
+offline ([join-failure-exit-test.py](tests/join-failure-exit-test.py));
+the seal and the return on a real failed join remain to be shown by the
+next boot that fails one. Every staged boot from here applies it.

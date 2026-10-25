@@ -9,7 +9,9 @@ owner restarted the device into Gemian `27f35470…`, and the ramoops
 console did not survive. The lifecycle fragment is back to boot M's
 tree. Before another join-path change is booted, a failed join must
 leave its kernel record recoverable (the leaf ending its own supplicant,
-or an export that does not need its quiescence): the owner's call.
+or an export that does not need its quiescence). Closed: the leaf now
+ends a failed join's data-phase wait itself (owner-reviewed
+`join_failure_exit.py`), applied to every staged boot from here.
 
 # Historical: the HT project starts: boot O (0284, WMM and QoS data at the legacy rate, success is that nothing moves) is staged on boot2 at 1882d5d3 (image 8c813def…, predecessor 95f81866…); the owner selects boot2
 
