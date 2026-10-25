@@ -1,4 +1,4 @@
-# Current: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) predeclared, awaiting the owner's review before staging
+# Current: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) staged on boot2
 
 [Boot U](HIF_TRANSPORT_ANALYSIS.md#boot-u-result-2026-10-25-2209-utc-the-access-point-uses-ht-toward-this-station-at-the-top-mcs-and-our-receive-path-takes-it-unchanged):
 HT negotiated; downlink MCS7 ×27,538, MCS6 ×9,846; zero refusals on
@@ -10,8 +10,12 @@ run. Receive ingest is the binding limit (the AP offers 65-72 Mbit/s of
 air, we take 18).
 [§32](HIF_TRANSPORT_ANALYSIS.md#32-boot-v-predeclared-2026-10-25-receive-batching-re-admitted-on-boot-us-tree):
 `CONFIG_MT6797_HIF_RX_BATCH=y` on boot U's tree; then boot W, the fixed
-MCS7 descriptor (0x87). Nothing is staged; the device is on Gemian
-(`5356f352…`).
+MCS7 descriptor (0x87). Owner, 2026-10-25: approved as predeclared.
+The composer's and validator's allowances admit exactly
+`CONFIG_MT6797_HIF_RX_BATCH=y`. Boot V is staged on boot2 at 1246fc2d
+(image c06ff1ae…, predecessor a227cbd5…), written and read back from
+Gemian (boot `5356f352…`), device command 4,074 of 4,096 bytes,
+preflight passed, the device shut down cleanly; the owner selects boot2.
 
 # Historical: boot T's per-TID replay counters removed every receive refusal (all_pass); boot U (HT capability advertised, descriptor unchanged) staged on boot2
 
