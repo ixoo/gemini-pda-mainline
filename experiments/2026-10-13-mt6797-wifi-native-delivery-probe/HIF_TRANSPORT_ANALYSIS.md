@@ -4062,6 +4062,24 @@ status 0, retire wait 5.16 ms, 12 in flight. No receive chunk ended by
   block read per pass in place of per-frame reads, the worker returns to
   the transmit queue sooner.
 
+**Owner, 2026-10-25: the re-admission paid; 0268 stays admitted.** RX
+13.72 → 18.22 aggregate (clean chunks 18.1–18.6 → 19.5–22.3), TX 19.20 →
+22.01 with no transmit change, 42,055 MCS7 frames through the block
+read. Two lessons, stated once so later boots are read correctly:
+
+- *A "neutral" retirement records a condition, not a property.* 0268
+  measured neutral while the acknowledgement clock capped receive at
+  about 19. That was the condition; it was not a property of the
+  batching. This is the second retirement overturned when the condition
+  changed.
+- *Transmit and receive share one worker.* A receive-side change moves
+  transmit: here the transmit chunks rose by 2–3 Mbit/s with nothing on
+  the transmit path changed. Later boots attribute a transmit move to a
+  receive change, or the reverse, only after this.
+
+`empty=514996` of `reads=535990`: 96 % of block reads find nothing. The
+remaining receive cost is the pass cadence, not the block read.
+
 **The one refusal: the literal trigger of §32's third row, and a correct
 refusal.** `field=pn ... fc=0x4a88 qos=0x0000 pn=equal tid=0
 counter=pairwise`, 148 bytes. The Retry bit is set and the PN equals the
@@ -4072,5 +4090,56 @@ TID and counter, has `status=none`, and is no aggregation artefact. So
 the row's literal condition is met while its cause, the batching
 interacting with HT frames, is not. Boot B's precedent (line 1727)
 recorded a literal trigger of this kind as "not boot B's failure". The
-admission stays as predeclared until the owner decides. Also recorded:
+owner kept the admission. Also recorded:
 `rx_llc_mis=3`, all `type=0x002e`.
+
+## 33. Boot W (predeclared, 2026-10-25): the fixed HT MCS7 on transmit, one constant
+
+**The change.** `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x87`
+(`TX_MODE_HT_MM | MCS7`, `wlan_def.h`) in the lifecycle fragment, written
+into the descriptor's existing fixed-rate field
+(`TX_DESC_FIXDE_RATE_MASK`, bits 2–13: `0x87 << 2 = 0x021c`). The
+guard-interval and LDPC bits stay clear (the long guard interval we
+advertise). The option's range stopped at `0x4f`, so `0x87` would have
+been refused by the configuration and silently replaced by the 6 Mbit/s
+default.
+[0294](../../patches/proposals/0294-wifi-mt6797-admit-an-HT-rate-code-as-the-fixed-data-rate.patch)
+widens the range to the vendor's 8-bit codes and documents the HT mode;
+no code changes. Management and security frames keep OFDM 6 Mbit/s.
+Everything else is boot V's tree: batching on, HT advertised, the
+records non-QoS (the station record's PHY stays legacy), depth 12, the
+ledger.
+
+**The prediction.** The access point sends MCS7 to us on 42,055 of
+42,069 frames, so the channel supports it in that direction.
+
+- *Air time:* payload air time for a 1,536-byte frame goes from 227.6 µs
+  at 54 Mbit/s to 189 µs at MCS7 with the long guard interval
+  (65 Mbit/s). The owner's 169 µs is MCS7 with the short guard interval
+  (72.2 Mbit/s), not configured here.
+- *Transmit:* about +15–18 % before per-frame overhead, so toward 25 from
+  boot V's 22.
+- *Losses:* a fixed MCS trades margin for rate, so losses and
+  retransmissions should rise slightly. That is not a regression, and
+  the verdict's `tx_air_losses` warning is where it should appear.
+
+| Reading | Cause | Next |
+|---|---|---|
+| sampled reports at rate `0x87`, status 0; TX toward 25 | the firmware sends HT on the legacy station record | the receive decision below |
+| reports at `0x87` with many status-3 frames, TX down | MCS7 has no margin on the uplink at this range | a lower fixed MCS (6 or 5) as its own boot, or adaptation |
+| every data frame status 3, or the reported rate stays `0x4c` | the firmware will not send HT to a station record declared legacy | the station record's PHY and MCS fields (HT scope item 4) |
+| any receive refusal, ledger not whole beyond air losses | the change reached past the transmit rate | stop and name it |
+
+**Then one decision, not a queue: the interrupt or the air-rate
+levers.** With batching in place, the remaining receive cost is the poll
+cadence (96 % of block reads empty) against an access point willing to
+send at 65–72 Mbit/s. The choice is made on one criterion, which one
+moves the binding constraint:
+
+- *If receive ingest stays flat while transmit rises:* the receive answer
+  is the interrupt, the vendor's own shape (ISR → status block →
+  aggregated DMA). It removes the pass cadence.
+- *If receive tracks the air rate once transmit is faster:* the air-rate
+  levers come first, because they are cheaper. Short guard interval
+  (`SGI_20`, about 11 %) and 40 MHz are fields in paths we already
+  write.

@@ -1,14 +1,17 @@
-# Current: boot V's receive batching works with HT and lifts receive about 15 % (RX 18.22, TX 22.01, clean verdict); ingest is still bound elsewhere; the owner decides keep or revert and the next step
+# Current: boot V's receive batching paid (RX 18.22, TX 22.01) and stays admitted; boot W (fixed HT MCS7 on transmit) predeclared, awaiting the owner's review before staging
 
 [Boot V](HIF_TRANSPORT_ANALYSIS.md#boot-v-result-2026-10-25-2225-utc-batching-lifts-receive-modestly-and-transmit-with-it-ingest-is-still-bound-elsewhere-one-correct-replay-refusal):
 batching on with no failure (20,994 aggregates, up to 16); receive good
 chunks 19.5-22.3 against boot U's 18.1-18.6, not toward 25-30; device
 86 % idle during receive; transmit 22.3-24.1 per chunk with 4
 retransmissions. One refusal, a retried duplicate (`pn=equal`, Retry)
-refused correctly: the literal trigger of §32's revert row, not its
-cause. Candidates next: keep the batching, then the fixed MCS7
-descriptor (boot W) or the receive interrupt. Nothing is staged; the
-device is on Gemian (`885a03ed…`).
+refused correctly. Owner: 0268 stays admitted; the earlier "neutral" was
+a condition (the acknowledgement clock), and transmit and receive share
+one worker. [§33](HIF_TRANSPORT_ANALYSIS.md#33-boot-w-predeclared-2026-10-25-the-fixed-ht-mcs7-on-transmit-one-constant):
+`DATA_FIXED_RATE_CODE=0x87` with 0294 widening the option's range;
+prediction toward 25 on transmit (189 µs per frame, long GI), slightly
+more air loss. Then one decision: the interrupt or the air-rate levers.
+Nothing is staged; the device is on Gemian (`885a03ed…`).
 
 # Historical: boot U shows the access point uses HT toward this station at the top MCS, received with no refusal; boot V (receive batching re-admitted) staged on boot2
 

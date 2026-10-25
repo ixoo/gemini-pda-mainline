@@ -1,0 +1,45 @@
+From 745fbe74fce1598e983fa6e0ad30dab3063422be Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 18:29:02 -0400
+Subject: [PATCH] wifi: mt6797: admit an HT rate code as the fixed data rate
+
+Boot U showed the access point sends HT MCS7 to this station on almost
+every frame; the next transmit step is the fixed-rate descriptor at HT
+MCS7 (TX_MODE_HT_MM | MCS7 = 0x87, the vendor's wlan_def.h). The
+option's range stopped at 0x4f, the OFDM codes, so 0x87 would have been
+refused by the configuration and replaced by the 6 Mbit/s default.
+
+Widen the range to 0x0-0xff, the 8-bit codes the vendor writes into the
+descriptor's fixed-rate field (TX_DESC_FIXDE_RATE_MASK, bits 2-13), and
+document the HT mode. No code changes: the descriptor already shifts the
+code into that field and leaves the guard interval and LDPC bits clear.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 297f358d9..d9d9ff0d4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -117,11 +117,15 @@ config MT6797_TX_DONE_RATE_RECORD
+ config MT6797_DATA_FIXED_RATE_CODE
+ 	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
+ 	default 0x4b
+-	range 0x0 0x4f
++	range 0x0 0xff
+ 	help
+ 	  The rate code written into every ordinary data descriptor with the
+-	  fixed-rate bit set: mode in bits 6-8 (0x40 is OFDM), legacy index in
+-	  bits 0-5 (11=6, 15=9, 10=12, 14=18, 9=24, 13=36, 8=48, 12=54 Mbit/s).
++	  fixed-rate bit set: mode in bits 6-8 (0x40 is OFDM, 0x80 is HT mixed
++	  mode), then the rate index in bits 0-5: for OFDM the legacy index
++	  (11=6, 15=9, 10=12, 14=18, 9=24, 13=36, 8=48, 12=54 Mbit/s), for HT
++	  the MCS (0x87 is HT MCS7). The descriptor's field is the vendor's
++	  TX_DESC_FIXDE_RATE_MASK (bits 2-13); the guard interval and LDPC
++	  bits beside it stay clear (long guard interval).
+ 	  0 sends the frame without a fixed rate at all, the vendor data
+ 	  path's form: no fixed-rate bit, zero power offset, the rate word
+ 	  zero, the firmware choosing the rate from the station record.
+-- 
+2.43.0
+
