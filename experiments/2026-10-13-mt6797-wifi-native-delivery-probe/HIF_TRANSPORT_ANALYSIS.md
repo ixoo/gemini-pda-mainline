@@ -4615,3 +4615,55 @@ predeclaration lacked both).**
 
 Boot Y spent 41 seconds carrying 2,372 frames and never reached the
 measurement it was predeclared for.
+
+**Two declaration suspects, checked against the pinned source (owner,
+2026-10-25): neither holds.**
+
+- *The PHY type sets are OFDM | HT, not HT | VHT.* At `59e00a91`,
+  `wlan_def.h`'s `ENUM_PHY_TYPE_INDEX_T` is HR/DSSS 0, ERP 1, ERP-P2P 2,
+  OFDM 3, HT 4, VHT 5, so `PHY_TYPE_BIT_OFDM` = `BIT(3)` = `0x08`,
+  `PHY_TYPE_BIT_HT` = `0x10`, `PHY_TYPE_BIT_VHT` = `0x20`, and
+  `PHY_TYPE_SET_802_11AN` = OFDM | HT = `0x18`. The declared `sta_phy`
+  and `bss_phy` of `0x18` are therefore exactly the vendor's 802.11an set,
+  in the vendor's bit assignment. The legacy `0x08` that boots A–W ran on
+  is `PHY_TYPE_BIT_OFDM`, and `ucNonHTBasicPhyType = 3` is
+  `PHY_TYPE_OFDM_INDEX`. A layout without the ERP-P2P entry (OFDM `0x04`,
+  HT `0x08`, VHT `0x10`) is not this pin. No correction is needed.
+- *`ampdu=0x1b` is the peer's own A-MPDU parameters, not a constant.*
+  The driver copies the access point's HT capability element body from
+  its association response (`mac.c`, `join_ht_peer_cap`) and writes byte
+  2 of it into `ucAmpduParam` (`hif.c`). The record line prints that same
+  byte. The vendor fills it the same way (`prStaRec->ucAmpduParam =
+  rHtCap.ucAmpduParamsInfo`). `0x1b` decodes as maximum A-MPDU exponent
+  3 (64 KiB) and minimum start spacing 6 (8 µs). Our own advertised value
+  would be `0x18` (8 KiB, 8 µs), so the declared value cannot be ours.
+
+## 36. Boot Z (predeclared, 2026-10-25): aggregation declared as in boot Y, one frame in flight, the discriminator
+
+**Purpose.** Separate "the declaration breaks framing" from "the
+aggregate breaks delivery" for the price of one boot. The PHY sets and
+the A-MPDU parameters are correct as declared, so the remaining split is
+whether one frame at a time survives the transmit block-ack state.
+
+**The change.** On boot Y's tree, the lifecycle fragment sets
+`CONFIG_MT6797_TX_AMPDU=y` again (the declaration exactly as boot Y:
+`ucTxAmpdu` 2, `ucTxBaSize` 64, the peer's `ucAmpduParam` `0x1b`, receive
+A-MPDU disabled) and `CONFIG_MT6797_CCMP_TX_DEPTH=1`: one frame in
+flight, the depth pins at their depth-one ledger. Nothing else changes:
+HT, the records, `0x87`, batching on.
+
+**Precondition and stop rule (§35's, scaled to depth one).** The depth
+model (wait ≈ 1.465 + 0.350 × depth ms, the depth sweep's fit) predicts a retire
+wait of about 1.8 ms at depth one, so about 550 frames a second. If
+transmit frames per second fall below about 275, the boot stops,
+`TX_AMPDU` is reverted, and no throughput is graded. The receipt is
+read only for delivery and acknowledgement, not rate.
+
+| Reading | Cause | Next |
+|---|---|---|
+| frames delivered and acknowledged at about the depth-one rate, TX rate `0x87`, TCP healthy | the declaration is harmless; boot Y's aggregate itself is malformed or unagreed | read the A-MPDU construction: the delimiter, the per-MPDU PN, and the session's starting sequence against the access point's reorder window |
+| even one frame at a time is not delivered (TCP collapses, status 0 reported) | the declaration alone breaks framing | read what `ucTxAmpdu`/`ucTxBaSize`/`ucAmpduParam` change in the firmware's frame build, against the association response's HT capability |
+| transmit below about 275 frames/s | the stop rule | stop, revert, do not grade |
+
+Also recorded: the `join HT records:` line, the sampled transmit status,
+the device's TCP state, and any receive refusal or control event.

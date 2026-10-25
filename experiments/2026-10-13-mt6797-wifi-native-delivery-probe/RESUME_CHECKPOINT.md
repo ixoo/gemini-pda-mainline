@@ -1,4 +1,4 @@
-# Current: boot Y's firmware transmit aggregation reported every frame delivered while TCP collapsed; aggregation withdrawn; submission batching is next, to be scoped
+# Current: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) predeclared, awaiting the owner's review before staging
 
 [Boot Y](HIF_TRANSPORT_ANALYSIS.md#boot-y-result-2026-10-25-2335-utc-firmware-transmit-aggregation-reports-every-frame-delivered-while-tcp-sees-loss-the-stream-collapsed-35s-stop-row):
 the record took (tx_ampdu=2, tx_ba=64, the peer's ampdu=0x1b), then the
@@ -17,8 +17,12 @@ global and never sent). Aggregation boots now carry a precondition (the
 link carries the previous volume) and a stop rule (transmit frames/s
 below half: stop, revert, do not grade). A transmit block-ack session
 record has no host input in the source. Next in the owner's queue:
-submission batching. Nothing is staged; the device is on Gemian
-(`84fe607a…`).
+submission batching. Owner's two suspects checked: `sta_phy`/`bss_phy`
+0x18 is OFDM|HT in the pinned bit assignment (ERP-P2P makes OFDM bit 3),
+and ampdu=0x1b is the access point's own A-MPDU parameters. [§36](HIF_TRANSPORT_ANALYSIS.md#36-boot-z-predeclared-2026-10-25-aggregation-declared-as-in-boot-y-one-frame-in-flight-the-discriminator):
+`TX_AMPDU=y` with `CCMP_TX_DEPTH=1` separates "the declaration breaks
+framing" from "the aggregate breaks delivery"; stop rule below about 275
+frames/s. Nothing is staged; the device is on Gemian (`84fe607a…`).
 
 # Historical: boot X's declaration compatible; boot Y (transmit aggregation in the firmware, read as service time) staged on boot2
 
