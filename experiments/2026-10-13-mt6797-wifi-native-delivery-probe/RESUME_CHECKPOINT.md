@@ -1,4 +1,20 @@
-# Current: boot S restored and measured the data path under WMM (all_pass); 12 unicast frames refused at pn=lower open the per-TID replay counter, a named security change
+# Current: boot S restored and measured the data path under WMM (all_pass, WMM cost nothing measurable); boot T (one CCMP replay counter per TID, security-relevant) predeclared, awaiting the owner's review before staging
+
+[Boot S](HIF_TRANSPORT_ANALYSIS.md#boot-s-result-2026-10-25-2132-utc-the-data-path-under-wmm-is-restored-and-measured-both-predictions-held-the-per-tid-replay-branch-opened):
+the first graded receipt of the HT chain: TX 17.17, RX 17.64 Mbit/s.
+The transmit variance is one TCP congestion episode (chunk 3: cwnd 84,
+ssthresh 64; retransmissions 1 to 7; nothing dropped), so the QoS
+framing is not a suspect. TID 3 carried 203 frames (boot R's SSH
+failure explained), and the LLC-mismatch frames are 802.3 length frames.
+The 12 `pn=lower` refusals are a per-TID packet-number mismatch.
+[§30](HIF_TRANSPORT_ANALYSIS.md#30-boot-t-predeclared-2026-10-25-one-ccmp-replay-counter-per-tid-a-security-relevant-change):
+0292 keeps eight strict replay counters per context, seeded per TID from
+mac80211, and names the TID and counter of each refusal. The probe's
+dead UDP trigger and failing echo legs are retired. Then HT, the cheap
+route (fixed rate, no aggregation) first. Nothing is staged; the device
+is on Gemian (`566c4f7e…`).
+
+# Historical: boot S restored and measured the data path under WMM (all_pass); 12 unicast frames refused at pn=lower opened the per-TID replay counter
 
 [Boot S](HIF_TRANSPORT_ANALYSIS.md#boot-s-result-2026-10-25-2132-utc-the-data-path-under-wmm-is-restored-and-measured-both-predictions-held-the-per-tid-replay-branch-opened):
 the first graded receipt of the HT chain (`all_pass=True`,

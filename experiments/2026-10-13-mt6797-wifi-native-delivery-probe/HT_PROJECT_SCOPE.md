@@ -70,8 +70,39 @@ from the frame, and a group LLC-mismatch class (`0xc200`) surfaced at
 the receive check. The first three obstacles were all access-category
 or frame-layout consequences, none of them aggregation.
 Boot S restored the data path under WMM and measured it (17.2 / 17.6
-Mbit/s at the legacy rate); the fourth obstacle is the receive replay
-counter, one for all TIDs where QoS needs one per TID.
+Mbit/s at the legacy rate; WMM cost no measurable throughput). The fourth
+obstacle is the receive replay counter: one for all TIDs, where CCMP
+needs one per TID. It is a prerequisite for HT, not a detour, because
+aggregation and block-ack are per TID too (boot T, 0292).
+
+**Two HT routes, predeclared separately.**
+
+| Route | Needs | Predicted |
+|---|---|---|
+| fixed MCS, no aggregation | HT capability in the wiphy; the HT element in the association; then the MCS in the descriptor's existing fixed-rate field (`TX_MODE_HT_MM \| MCS7` = `0x87`, `wlan_def.h`) | whether this access point uses HT rates toward this station, for one boot and no aggregation work |
+| block-ack and A-MPDU | per-TID PN (0292), `ampdu_action`, `AMPDU_AGGREGATION`, per-frame rate and HT-flag reporting, the firmware's block-ack commands | about +100 %; this is the project |
+
+The cheap route starts host-side only: advertise HT with WMM negotiated,
+keep the fixed `0x4c` descriptor and the records non-QoS, and read the
+receive rate record for HT modes. If the access point starts sending HT
+rates to this station, the next piece is the descriptor's MCS and the
+station record's PHY and MCS fields. If it stays legacy, HT buys nothing
+here and the throughput work closes at about 23/19 Mbit/s.
+
+**Watch in that boot.** Advertising HT may make the access point
+aggregate its downlink. If the receive refusals change shape (new
+status bits, larger frames, A-MPDU sub-frames with more than one per
+buffer), stop and read them before any throughput claim. That is the
+difference between "HT is available" and "HT is available and we cannot
+receive it".
+
+**Two host contracts become ours once HT begins**, because this driver
+delivers frames natively:
+
+- reporting each received frame's rate and HT flags to mac80211, today
+  logged in the rate record but not reported (`RX_FLAG_NO_SIGNAL_VAL`, no
+  rate);
+- implementing `ampdu_action` per TID (today a stub that refuses).
 
 **The descriptor's A-MPDU bits are not air aggregation.** Status bits 14
 and 15 (`RX_STATUS_AMPDU_SUB_FRAME`, `RX_STATUS_AMPDU_FORMAT`) are set on

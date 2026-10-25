@@ -2831,7 +2831,15 @@
     ],
     "credit_retire_wait_avg_us": 5373,
     "inflight_max": 12,
-    "backpressure_stops": 299
+    "backpressure_stops": 299,
+    "tcp_state_chunk3": {
+     "cwnd": 84,
+     "ssthresh": 64
+    },
+    "tcp_retrans_segs": {
+     "before": 1,
+     "after": 7
+    }
    },
    "qos": {
     "tx_qos": 48784,
@@ -2866,7 +2874,7 @@
     "dropped_full": 0,
     "tx_failed": 0
    },
-   "reading": "HIF section 29: the data path under WMM restored and measured; TIDs 0 and 3 in use (AF21 SSH); the LLC-mismatch class is 802.3 length frames; 12 unicast pn=lower refusals open the per-TID replay counter branch; transmit below boot M with the firmware side unchanged"
+   "reading": "HIF section 29: the WMM data path works and is measured; WMM cost no measurable throughput (the transmit variance is one TCP congestion episode in chunk 3, nothing dropped); TID 3 carried 203 frames (AF21 SSH); the LLC-mismatch frames are 802.3 length frames; the 12 unicast pn=lower refusals are a per-TID packet-number mismatch, fixed by 0292 (section 30)"
   }
  }
 }

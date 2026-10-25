@@ -3652,39 +3652,133 @@ accepted. The seal-gap fixes were not exercised (the SSH connected).
   decrypt failure.
 
 **The open row: `field=pn pn=lower`, 12 unicast frames (§29's second
-branch).** All 12 came on the pairwise entry (`wlan=1`) with status
-`0xc000` (`status=none`):
+branch): a per-TID packet-number mismatch, a correctness defect.**
 
-- ten on TID 0 (`qos=0x0000`, 1,524–1,596 bytes, three with the Retry
-  bit);
+All 12 came on the pairwise entry (`wlan=1`) with status `0xc000`
+(`status=none`) and CCMP:
+
+- ten on TID 0 (`qos=0x0000`, `fc=0x4288`, 1,524–1,596 bytes, three of
+  them with Retry: `fc=0x4a88`);
 - two on TID 5 (`qos=0x0005`, `p9=0x45`, 148 bytes).
 
-The pairwise check keeps one strict counter across TIDs. A TID 5 frame
-below the counter, and TID 0 frames without Retry below it, are the
-reordering across TIDs that a per-TID receiver counter tolerates. The
-retried TID 0 frames may also be genuine duplicates, which any counter
-refuses. The record gives the PN's order against one counter, not the
-PNs, so the split is not measured. 12 of 38,896 unicast frames is not a
-throughput limit, but each costs TCP a retransmission. The next change
-is a per-TID pairwise replay counter, named as security-relevant: each
-TID keeps its own strictly increasing counter, and nothing at or below a
-TID's last PN is accepted.
+CCMP keeps a PN per TID, while the driver kept one counter across all
+TIDs. Once TID 3 and TID 5 carried traffic, a TID 0 frame below the
+counter they had advanced looked like a replay. Under WMM that
+predicate drops legitimate frames and holds the anti-replay invariant in
+the wrong shape. 12 of 38,896 unicast frames is not a throughput limit,
+but each costs a TCP retransmission. Under HT these TIDs become the
+population where A-MPDU sub-frames and block-ack sessions appear, all
+of them per TID.
 
-**Throughput: no expectation was declared, but two readings move.**
+The fix is
+[0292](../../patches/proposals/0292-wifi-mt6797-keep-one-CCMP-replay-counter-per-TID.patch),
+its own change, predeclared as security-relevant in §30.
 
-- *Receive:* 17.64 Mbit/s (chunks 14.6–21.2), against boot M's 16.9–20.1
-  at the same depth: within the earlier spread.
-- *Transmit:* 17.17 Mbit/s (chunks 22.6, 18.9, 16.3, 15.0, 19.6), against
-  boot M's 22.7–24.1. The firmware side did not slow down: credit-retire
-  wait 5.37 ms (boot M 5.46), 12 in flight, `tx_done=48784`. The
-  driver's queue stopped mac80211 299 times, against 693 in boot M: it
-  filled less often, so the shortfall sits upstream of the queue, in the
-  TCP flow. That is an inference from one run, cause not measured.
-  Candidates are the acknowledgements returning as QoS data and the
-  `pn=lower` drops. It is a reading for the next boot to watch, not a
-  reason to repeat this one.
+**Throughput: WMM cost no measurable throughput.**
 
-**Against §29.** Rows 1–3 met; row 4 met except the `pn=` refusals. That
-branch's next step is the per-TID pairwise replay counter, its own boot,
-named as a security change. The station record's QoS declaration (boot
-T as scoped) waits behind it.
+- *Transmit:* 17.17 Mbit/s over five chunks (22.6, 18.9, 16.3, 15.0,
+  19.6). The variance is one fixed-rate TCP congestion episode, not the
+  QoS framing. The device's own TCP state places it in chunk 3
+  (`cwnd 84 ssthresh 64`, against 128/102 in chunk 1 and 187/107 in
+  chunk 2), and the device's retransmissions rose from 1 to 7 across the
+  transmit direction. The driver dropped nothing (`dropped_full=0`,
+  `tx_failed=0`), and the firmware side held boot M's pace (credit-retire
+  wait 5.37 ms against 5.46, 12 in flight). The chunks either side of the
+  episode run at boot M's level: chunk 1 at 22.6 with final half 23.6,
+  and chunk 5's final half 23.7, against boot M's 22.7–24.1.
+- *Receive:* 17.64 Mbit/s (chunks 14.6–21.2), within boot M's 16.9–20.1
+  at the same depth.
+
+The QoS framing is therefore not a suspect in later comparisons; a
+transmit dip is read against the TCP state first.
+
+**The vendor's status masks beside ours (`nic_rx.h`, `59e00a91`).**
+
+| Mask | Value | Rule |
+|---|---|---|
+| `RXS_DW2_RX_nERR_BITMAP` | `0x07F8` | bits 3–10 must be zero; contains `RX_STATUS_LLC_MIS` (bit 9), so the vendor drops this class |
+| `RXS_DW2_AMPDU_nERR_BITMAP` | `0xFFBF` | all bits except bit 6 must be zero: a frame inside a block-ack session |
+| `RXS_DW2_RX_nDATA_BITMAP` | `0x3000` | must equal `0x2000` for a non-data frame |
+| ours | `== 0xc000` | exact |
+
+Our predicate is stricter than any single vendor mask: it requires
+both A-MPDU bits set and every other bit clear. That suits a station
+without block-ack. Once HT frames arrive with other status bits set,
+each one is refused and named (0290's `status=`), not silently
+admitted. Widening the predicate then follows the vendor masks bit by
+bit, never wholesale.
+
+**The rate codes, from source.** `wlan_def.h` (`59e00a91`, lines 51–98):
+`TX_MODE_OFDM 0x40`, `TX_MODE_HT_MM 0x80`, OFDM codes 6M `0xB`, 9M `0xF`,
+12M `0xA`, 18M `0xE`, 24M `0x9`, 36M `0xD`, 48M `0x8`, 54M `0xC`, MCS7
+`0x7`. So `0x4b` is 6 Mbit/s, `0x4c` is 54 Mbit/s and `0x87` is HT MCS7,
+as the records have said. Boot S's downlink histogram (mode 1, OFDM)
+decodes as 54 M ×38,446, 48 M ×429, 6 M ×145, 36 M ×5, 24 M ×4.
+
+**Against §29.** Rows 1–3 met; row 4 met except the `pn=` refusals,
+which are §30's change. Boot S met its purpose: the WMM data path works
+(`tx_qos=48784 tx_nonqos=0 tx_tid_refused=0`, `rx_qos=38884`, DHCP, SSH,
+the full five-chunk measurement, a clean verdict). Three confirmations:
+
+- TID 3 carried 203 frames, which explains boot R's SSH failure;
+- the LLC-mismatch frames are 46-byte 802.3 length frames
+  (`type=0x002e`), and discarding them was right;
+- the transmit variance is a TCP congestion episode, not the QoS framing.
+
+## 30. Boot T (predeclared, 2026-10-25): one CCMP replay counter per TID, a security-relevant change
+
+**The change.**
+[0292](../../patches/proposals/0292-wifi-mt6797-keep-one-CCMP-replay-counter-per-TID.patch)
+is security-relevant and declared as such. Both the pairwise and the
+group context keep eight replay counters, indexed from descriptor byte
+9's TID nibble (`ucTidSecMode` bits 0–3), the same per-TID keying as the
+vendor's receive state (`aucRxBaTable[ucTID]`, `CFG_RX_MAX_BA_TID_NUM 8`)
+and mac80211's `rx_pn[tid]`.
+
+- TID 0's counter is the existing field; a non-QoS data frame shares it,
+  as in mac80211. TIDs 1–7 are new.
+- A frame is checked against its own TID's counter and advances only that
+  one.
+- Each counter is seeded at key installation from mac80211's receive
+  sequence for that TID, and cleared with the context exactly where the
+  single counter was.
+- *Not relaxed:* every counter stays strict, and nothing at or below a
+  TID's last PN is accepted. A QoS TID of 8 or more (TSPEC, never
+  negotiated) is now refused.
+- The refusal record names the frame's TID and the counter that refused
+  it (`tid= counter=pairwise|group`).
+
+New offline fixture `tests/ccmp-tid-pn-test.c` (ASan and UBSan): boot S's
+case is admitted (TID 3 ahead, then a TID 0 frame above its own counter).
+Equal and lower PNs are refused on the same TID, non-QoS frames share
+TID 0, and TSPEC TIDs and a QoS/descriptor TID disagreement are refused,
+in both contexts. The frozen PTK and GTK fixtures pass unchanged.
+
+**Riding along, host and not graded: the probe's dead legs.** Since boot
+H, `transmit_probe.py` has replaced the device's UDP trigger with the
+echo legs. The laptop's trigger thread still waited for three connections
+that never came (`completed: false`, `udp: []`, every run). The 20 and
+30 Mbit/s echo legs ended early with no summary in boots M, N and S
+(stderr discarded). Both are removed: the trigger is created with no
+rates (its laptop pings remain), and the record says `udp_legs:
+retired`. The 10 Mbit/s echo leg, which has recorded zero loss every
+time, stays, and now keeps its own error line. The device command
+shrinks by about 21 bytes against its 4,096-byte bound. Boot S rendered
+4,091 bytes at the longest laptop address, a 5-byte margin, so the stage
+now renders the command before installing and refuses above the bound.
+
+Unchanged: WMM data, the records non-QoS, depth 12, rate `0x4c`, the
+ledger, the measurement protocol.
+
+| Reading | Required |
+|---|---|
+| no `field=pn pn=lower` on unicast QoS frames; `rx_refused_qos` → 0 | per-TID counters are the fix |
+| any remaining `pn=` refusal names its TID and counter, and is `equal` or a Retry frame | a genuine duplicate, refused as it must be |
+| DHCP, SSH, five chunks, a clean verdict; ledger exact; no MIC failure | nothing else moved |
+| TCP retransmissions (`tcp_retrans_segs`) at or below boot S's 6 | one cause of retransmission removed (recorded, not graded) |
+
+| Reading | Cause | Next |
+|---|---|---|
+| `pn=lower` on a TID without Retry | the access point reorders within one TID, or the seed is wrong | read the seed and the record before anything else |
+| refusals at a new field or status bit | another layout difference | named; its own change |
+| clean | the anti-replay invariant now has the per-TID shape HT needs | HT, the cheap route first (HT scope) |
