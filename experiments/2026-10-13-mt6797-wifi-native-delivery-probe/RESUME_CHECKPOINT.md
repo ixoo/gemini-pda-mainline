@@ -1,4 +1,4 @@
-# Current: boot L withdrew the receive stall and the acknowledgement split; receive is measured on the device's count; transmit at depth 8 is a band of 19 ± 2; boot M (depth 12, once) predeclared and building
+# Current: boot L withdrew the receive stall and the acknowledgement split; receive is measured on the device's count; transmit at depth 8 is a band of 19 ± 2; boot M (depth 12, once) is staged on boot2 at faea70e6 (image 7a9a40e8…, predecessor c0f4a6f1…); the owner selects boot2
 
 [Boot L](HIF_TRANSPORT_ANALYSIS.md#boot-l-result-2026-10-25-1837-utc-the-queue-never-stopped-during-receive-transmit-did-not-reproduce-the-acknowledgements-lag),
 no driver variable, first clean verdict: zero stops in every receive
@@ -12,6 +12,8 @@ deltas, and the record keeps only gaps inside a direction's markers.
 Transmit at depth 8 is 19 ± 2 (boot K 20.9, boot L 17.5).
 [§23](HIF_TRANSPORT_ANALYSIS.md#23-boot-m-predeclared-2026-10-25-depth-12-once-then-stop):
 depth 12 once, 24.6 predicted at a 5.66 ms wait, then the sweep stops.
+Boot M's image was written and read back from Gemian (boot `9721fff5…`),
+preflight passed, and the device shut down cleanly.
 
 # Historical: boot L predeclared (depth 8 restored, receive measured over the send window, the queue's per-second series and receive gaps, the verdict's stale gates replaced) is staged on boot2 at 7fddd16f (image c0f4a6f1…, predecessor 5f5a187c…); the owner selects boot2
 
