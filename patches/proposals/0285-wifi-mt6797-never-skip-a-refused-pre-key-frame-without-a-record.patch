@@ -1,0 +1,109 @@
+From f140d93d94b9b496b64bf5e1aba55f75654d5702 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 16:30:54 -0400
+Subject: [PATCH] wifi: mt6797: never skip a refused pre-key frame without a
+ record
+
+Boot O's handshake failed with no EAPOL-Key reaching the supplicant.
+In the stable-epoch receive path a pre-key data frame the EAPOL gate
+refuses is traced and then skipped, which is correct for the join but
+leaves the refusal's only record in the trace. That trace shared one
+bound of 64 lines with every examined frame, and its header line (the
+layout the gate read) existed only with WMM configured.
+
+Give refusals their own bound of 64 per lifetime, with a notice when it
+is reached, and emit the header line (the descriptor's header-length
+field, frame control, QoS control, EtherType, BSS tag, verdict and
+predicate) for every traced frame regardless of configuration. Any
+future handshake failure then names the frames it refused. Logging
+only; admission is unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 28 ++++++++++++++--------
+ 1 file changed, 18 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c920f4d55..a2e671a6b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -329,6 +329,7 @@ struct mt6797_mac {
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+ 	unsigned int join_eapol_seen, join_eapol_tx, join_group_discarded;
+ 	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
++	unsigned int join_eapol_refused; /* refused pre-key frames, their own bound */
+ 	unsigned int join_action_discarded, join_group_action_discarded;
+ 	unsigned int join_keyed_beacons;
+ 	unsigned int join_beacons_delivered;
+@@ -1937,6 +1938,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_group_key_id = 0;
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_eapol_trace = 0;
++	mac->join_eapol_refused = 0;
+ 	mac->join_eapol_tx = 0;
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+@@ -3713,18 +3715,24 @@ static void mt6797_mac_eapol_trace(struct mt6797_mac *mac, size_t bytes,
+ 	const u8 *p = mac->join_packet;
+ 	u8 header[32] = {0};
+ 	size_t descriptor, copied, offset, frame_bytes = 0;
+-#ifdef CONFIG_MT6797_WMM_QOS_DATA
+-	/* 0284: the header the gate reads, so a refusal names its layout. The
+-	 * 0x10000 sentinel marks a field the packet does not hold whole.
++	/* The header the gate read, so a refusal names its layout (0284, 0285).
++	 * The 0x10000 sentinel marks a field the packet does not hold whole.
+ 	 */
+ 	unsigned int hl = p[6] & 63, fc = 0x10000, qos = 0x10000, type = 0x10000;
+ 	const u8 *f;
+-#endif
++	bool refused;
+ 
+ 	if (mac->join_key_pairwise_submitted || bytes < 16 ||
+ 	    (mt6797_join_le16(p + 2) >> 13) != 2)
+ 		return;
+-	if (++mac->join_eapol_trace > 64) {
++	refused = !strcmp(verdict, "refused");
++	if (refused && ++mac->join_eapol_refused > 64) {
++		if (mac->join_eapol_refused == 65)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN EAPOL refusal record suppressed: limit=64\n");
++		return;
++	}
++	if (!refused && ++mac->join_eapol_trace > 64) {
+ 		if (mac->join_eapol_trace == 65)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN EAPOL trace suppressed: limit=64\n");
+@@ -3736,7 +3744,6 @@ static void mt6797_mac_eapol_trace(struct mt6797_mac *mac, size_t bytes,
+ 	offset = descriptor + ((p[6] & 0x40) ? 2 : 0);
+ 	if (descriptor && offset <= bytes)
+ 		frame_bytes = bytes - offset;
+-#ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	f = p + offset;
+ 	if (!frame_bytes) {
+ 		;
+@@ -3756,12 +3763,12 @@ static void mt6797_mac_eapol_trace(struct mt6797_mac *mac, size_t bytes,
+ 	}
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN EAPOL header: ordinal=%u verdict=%s predicate=%s translated=%u hl=%u fc=0x%04x qos=0x%04x ethertype=0x%04x bss=%u format=0x%02x p9=0x%02x prefix=0x%04x\n",
+-		 mac->join_eapol_trace, verdict, predicate, !!(p[6] & 0x80), hl, fc,
+-		 qos, type, p[7] >> 2, p[8], p[9], mt6797_join_le16(p + 10));
+-#endif
++		 refused ? mac->join_eapol_refused : mac->join_eapol_trace, verdict, predicate,
++		 !!(p[6] & 0x80), hl, fc, qos, type, p[7] >> 2, p[8], p[9],
++		 mt6797_join_le16(p + 10));
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN EAPOL admission: ordinal=%u verdict=%s predicate=%s candidate=%u body_examined=%u body_valid=%u activated=%u bss_configured=%u seen=%u bss=%u msdu_format=%u format=0x%02x p8=0x%02x p9=0x%02x prefix=0x%04x rx_bytes=%zu frame_bytes=%zu eapol_bytes=%zu channel=%u translated=%u header_bytes=%zu rxd32=%*phN\n",
+-		 mac->join_eapol_trace, verdict, predicate,
++		 refused ? mac->join_eapol_refused : mac->join_eapol_trace, verdict, predicate,
+ 		 mt6797_eapol_candidate(p, bytes),
+ 		 gate == MT6797_EAPOL_OK || gate >= MT6797_EAPOL_EAPOL_VERSION,
+ 		 gate == MT6797_EAPOL_OK, mac->join_sta_active,
+@@ -5758,6 +5765,7 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_peer_used = true;
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_eapol_trace = 0;
++	mac->join_eapol_refused = 0;
+ 	mac->join_group_discarded = 0;
+ 	mac->join_action_discarded = 0;
+ 	mac->join_group_action_discarded = 0;
+-- 
+2.43.0
+

@@ -1,0 +1,78 @@
+From 1b799036734b059e2b7ab498de7a05755bf5fa2e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 16:35:04 -0400
+Subject: [PATCH] wifi: mt6797: admit the access point's QoS EAPOL-Key whatever
+ its TID
+
+Boot P's trace named the cause of the handshake failures under WMM. The
+access point sends EAPOL-Key message 1 as QoS data on TID 6 (AC_VO),
+the firmware translates it to Ethernet (EtherType 0x888e), and the gate
+refused it at descriptor byte 9. On every refused EAPOL-Key that byte
+equals the QoS TID (0x06, against 0x00 on non-QoS frames); its high
+nibble is the cipher, which the data path already reads as 0x40 for
+CCMP.
+
+With WMM, admit any TID in byte 9's low nibble and keep the cipher
+nibble required zero for a clear EAPOL-Key. Record the admitted TID on
+the delivery line. Every other predicate is unchanged: the protected
+frames refused at byte 4 are not the handshake and stay refused.
+Without the option byte 9 must still be zero.
+---
+ drivers/net/wireless/mediatek/mt6797/eapol-rx.h | 9 ++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.c      | 4 ++--
+ 2 files changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+index 89dfc2260..411e11a8d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/eapol-rx.h
+@@ -48,6 +48,7 @@ struct mt6797_eapol_rx {
+ 	unsigned char prefix[32 + MT6797_EAPOL_RX_QOS_EXTRA];
+ 	size_t prefix_bytes, offset, bytes;
+ 	int signal_dbm;
++	unsigned char tid; /* descriptor byte 9's low nibble */
+ 	bool signal_valid; /* False when the firmware omitted RX vector group 3. */
+ 	unsigned char bss_index; /* RXD BSSID field as received: 1 or 15. */
+ };
+@@ -95,7 +96,12 @@ mt6797_eapol_rx_gate(const unsigned char *packet, size_t bytes,
+ 		return MT6797_EAPOL_BSS;
+ 	if (packet[8] != 1)
+ 		return MT6797_EAPOL_FORMAT;
+-	if (packet[9])
++	/* Descriptor byte 9: the cipher in its high nibble (none for a clear
++	 * EAPOL-Key) and, observed on boot P, the frame's TID in its low nibble
++	 * (6 for the access point's QoS EAPOL-Key, 0 for non-QoS). With WMM the
++	 * TID is admitted whatever it is and recorded (0286).
++	 */
++	if (packet[9] & ~(MT6797_EAPOL_RX_QOS_BIT ? 0x0fU : 0U))
+ 		return MT6797_EAPOL_SECURITY;
+ 	if (mt6797_join_le16(packet + 10) != 0xc000)
+ 		return MT6797_EAPOL_PREFIX;
+@@ -205,6 +211,7 @@ mt6797_eapol_rx_gate(const unsigned char *packet, size_t bytes,
+ 		return MT6797_EAPOL_KEY_DATA_LENGTH;
+ 
+ 	r.bytes = bytes - r.offset;
++	r.tid = packet[9] & 15;
+ 	r.signal_valid = vector != 0;
+ 	r.signal_dbm = vector ? (int)packet[vector + 9] / 2 - 110 : 0;
+ 	*out = r;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a2e671a6b..a63c9db24 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -4720,10 +4720,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				__skb_queue_tail(&received, skb);
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join eapol delivered: translated=%u frame=%zu activated=%u vector=%u bss=%u\n",
++					 "one-shot WLAN join eapol delivered: translated=%u frame=%zu activated=%u vector=%u bss=%u tid=%u\n",
+ 					 eapol.prefix_bytes != 0, eapol.bytes,
+ 					 mac->join_sta_active, eapol.signal_valid,
+-					 eapol.bss_index);
++					 eapol.bss_index, eapol.tid);
+ #endif
+ 				continue;
+ 			}
+-- 
+2.43.0
+

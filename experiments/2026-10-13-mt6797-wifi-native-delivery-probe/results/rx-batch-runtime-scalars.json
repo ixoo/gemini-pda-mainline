@@ -2649,6 +2649,59 @@
    "preserve_and_return_exit": 1,
    "post_session_quiescence_exit": 62,
    "reading": "first named failure mode of HIF section 25: the handshake stopped; 0284 reverted from the fragment; the causes (gate refusal, firmware delivery under the QoS record, the AP not sending) cannot be separated without the kernel record"
+  },
+  "boot-p": {
+   "run": "PIO-throughput-bootp-1",
+   "session": "2026-10-25 20:30 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot O tree, 0284 v2, WMM_QOS_RECORDS off)",
+   "kernel_build_commit": "c65b59373c75e8594f8f3f9bcb6711d8623f5ee3",
+   "boot2_sha256": "48bec39b154aea794d5d8579fdb678865ddafc246810646cbb1d417a754813f4",
+   "predecessor_boot2_sha256": "8c813def3bfe9ce981fd91539007ad06e0e6d757c580aa8b61b84ed2e2f3ae02",
+   "mainline_boot_id": "7e90a7c2-9e77-46df-a395-b8567635fd59",
+   "previous_gemian_boot_id": "27f35470-63f5-45b2-a9ad-8ae2a70dfc57",
+   "returned_gemian_boot_id": "86417b2f-311b-4266-a08c-524a4a5ed746",
+   "returned_by": "session's reviewed return",
+   "classification": "void: join failed at the four-way handshake (cause named)",
+   "sealed_log_bytes": 174307,
+   "series_row": true,
+   "wmm": {
+    "requested": 1,
+    "accepted": 1,
+    "records_qos": 0
+   },
+   "eapol_key_frames": {
+    "count": 4,
+    "trace_ordinals": [
+     1,
+     3,
+     14,
+     22
+    ],
+    "translated": 1,
+    "hl": 14,
+    "fc": "0x0288",
+    "qos": "0x0006",
+    "ethertype": "0x888e",
+    "rxd_byte9": "0x06",
+    "baseline_rxd_byte9": "0x00",
+    "refused_predicate": "rxd-byte9"
+   },
+   "other_refusals": {
+    "rxd-byte4": 19,
+    "fc": [
+     "0x4208",
+     "0x6208"
+    ]
+   },
+   "evidence_path": {
+    "join_failure_exit": "supplicant",
+    "elapsed_s": 5,
+    "supplicant_processes": 0,
+    "quiesced": true,
+    "log": "complete-log-through-seal",
+    "second_layer_used": false
+   },
+   "reading": "HIF section 26 first row: the AP's EAPOL-Key arrives as QoS on TID 6 and is refused at descriptor byte 9, which carries the TID; boot O attributed to the same refusal; the evidence fix worked"
   }
  }
 }

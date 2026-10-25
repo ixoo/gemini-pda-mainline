@@ -56,6 +56,12 @@ Items 4–5 need the firmware's interfaces for the station record and
 aggregation, read and reviewed under the same rules as the existing
 commands.
 
+**The first concrete obstacle (2026-10-25).** It was not aggregation but the
+access category of the handshake frames: the access point sends its
+EAPOL-Key on TID 6 (AC_VO) once WMM is negotiated, and the gate refused
+the descriptor's TID (boots O and P). The same detail will recur in
+roaming, in 802.1X and with any access point that puts EAPOL on AC_VO.
+
 ## Boundaries
 
 - The admitted lifecycle tree (depth 12, the 64-frame queue, credit

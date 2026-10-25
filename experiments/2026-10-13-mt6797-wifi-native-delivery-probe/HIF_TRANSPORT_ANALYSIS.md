@@ -3260,3 +3260,104 @@ status 0, no refusals, the verdict green). Either way the kernel record
 now reaches the laptop: on a failed join through the leaf's exit and
 the seal, and behind it through the session's stop or export and the
 watcher's export-before-proof.
+
+### Boot P result (2026-10-25, 20:30 UTC): the access point sends EAPOL-Key on TID 6; the gate refused it at descriptor byte 9; the evidence survived
+
+Build `c65b5937` (0284 v2, WMM on, records non-QoS), boot2 `48bec39b…`
+over boot O's `8c813def…`, mainline boot `7e90a7c2…`, returned to Gemian
+`86417b2f…` by the session's own reviewed return (recovery confirmed,
+live identity checked afterwards); session `ram-service-regression-pass`,
+log complete through the seal (174,307 bytes). The verdict was red, as a
+failed join must be, and named itself: no received bytes, no core
+disconnect, and the classifier gates that follow from them.
+
+**The cause, as the trace states it.** The association carried WMM
+(`requested=1 accepted=1 records_qos=0`, four parameter sets). The access
+point then sent EAPOL-Key message 1 four times (trace ordinals 1, 3, 14
+and 22), each a QoS data frame on TID 6 (AC_VO) that the firmware
+translated to Ethernet: `translated=1 hl=14 fc=0x0288 qos=0x0006
+ethertype=0x888e bss=1`. Every descriptor field matches the non-WMM
+baseline's message 1 (boots L and N: format `0xce`, byte 8 `0x01`,
+prefix `0xc000`, 147 bytes) except one: descriptor byte 9 read `0x06`
+where the baseline reads `0x00`, and the gate refused all four at it
+(`predicate=rxd-byte9`, the check that byte 9 is zero). Byte 9 carries
+the frame's TID in its low nibble (it equals the QoS TID on all four;
+its high nibble is the cipher, `0x40` for the CCMP data the data path
+admits). The other 19 traced frames were protected non-QoS data refused
+at byte 4 (`fc=0x4208`/`0x6208`), not the handshake. The supplicant
+received nothing and the join ended.
+
+**Boot O's three causes, attributed.** Boot O ran the same gate on the
+same access point, so its silent handshake was this refusal: the AP sent
+message 1, the firmware delivered it, the gate refused it at byte 9. The
+records' QoS declaration (boot O's other difference) is not implicated.
+
+**The evidence fix worked.** The join failed and the kernel record
+survived with the trace intact: the leaf saw the supplicant's end of
+join 5 s into its data-phase wait (`join_failure_exit reason=supplicant`),
+quiesced its supplicant (count 0, quiescence record clean), the session
+sealed the log and ran the reviewed return. The session's second layer
+(stop, re-check, or export before refusing) was not needed.
+
+**Against §26: the first row.** The EAPOL-Key arrives as QoS and is
+refused, the predicate named; next, admit it as its own change, the
+records still non-QoS, and re-run.
+
+**The measurement freeze for the HT chain (owner, 2026-10-25).** From
+boot Q, the fix of boot P, the instrument is frozen until the HT chain
+is complete: the chunk protocol (5 chunks each way, 16 MiB or 3 s, the
+device bound 6 s, the drain recorded to 2.5 s), the verdict's gates
+(throughput_verdict.py as of `c65b5937`, with the transmit close rule),
+the receive basis (the device's count primary, the TCP flow beside it),
+the receive-gap windows (inside each direction's markers), the receive
+stream and per-second series as recorded, and the two failure-
+preservation layers. Any change to these is a freeze break: named,
+approved by the owner and recorded before the boot that carries it.
+
+## 27. Boot Q (predeclared, 2026-10-25): the QoS EAPOL-Key admitted, our EAPOL on TID 6, records still non-QoS
+
+**The change.** Three proposals on boot P's tree, the records still
+non-QoS:
+
+- [0286](../../patches/proposals/0286-wifi-mt6797-admit-the-access-point-s-QoS-EAPOL-Key-whatever-its-TID.patch):
+  with WMM the EAPOL gate admits any TID in descriptor byte 9's low
+  nibble, on both layouts, and keeps the cipher nibble required zero for
+  a clear EAPOL-Key; the delivery line records the admitted TID. Every
+  other predicate is unchanged; the protected frames refused at byte 4
+  stay refused, so the record shows how narrow the widening is.
+- [0287](../../patches/proposals/0287-wifi-mt6797-send-the-control-port-s-EAPOL-on-TID-6-with-WMM.patch):
+  our own EAPOL frames carry TID 6 (AC_VO) in the security descriptor
+  (byte 6, bits 4-6), the TID the access point uses. **The queue,
+  confirmed from source:** the descriptor names its queue explicitly in
+  byte 3 (`0x88`: the MCU port, TC4, the pool the ledger already
+  provisions for security frames; public gen3 `TX_DESC_QUEUE_INDEX` bits
+  3-6 and `TX_DESC_PORT_INDEX` bit 7), so the TID does not select the
+  queue and a TID 6 submission cannot vanish into an unprovisioned
+  traffic class; nothing was rerouted or provisioned. Note: the vendor's
+  security-frame path redirects these frames to TID 0
+  (`nicTxComposeSecurityFrameDesc`), and with the station record
+  non-QoS the firmware builds a non-QoS header, so on this boot the TID
+  is unlikely to reach the air at all.
+- [0285](../../patches/proposals/0285-wifi-mt6797-never-skip-a-refused-pre-key-frame-without-a-record.patch)
+  (logging only): a refused pre-key frame always leaves a record, with
+  refusals on their own bound of 64 and the header line independent of
+  configuration.
+
+**Success is a completed four-way handshake and nothing else moved.**
+
+| Reading | Required |
+|---|---|
+| handshake | the AP's EAPOL-Key admitted (`join eapol delivered: ... tid=6`), the four messages in the supplicant's phrase counts, keys installed |
+| association, lifetimes, ledger | unchanged: `requested=1 accepted=1 records_qos=0`, `expired=0`, `pid_faults=0`, `left_pages=0`, `dropped_full=0`, `tx_failed=0` |
+| rate | the sampled reports all at `0x4c` status 0 |
+| TX / RX | about 23 Mbit/s per chunk / about 19 device-side |
+| refusals | only the protected frames at byte 4, no `rxd-byte9` |
+| verdict | `session_exit=0`, or `verdict_failed` naming the check |
+
+| Reading | Cause | Next |
+|---|---|---|
+| the handshake completes and nothing else moved | the gate was the downlink's only obstacle | boot R: the records' QoS declaration, its own variable |
+| the AP's EAPOL-Key is admitted but the handshake stops after message 2 | our message 2 (TID 6, non-QoS records) is not accepted by the access point | revert 0287 (the vendor's TID 0) as its own change before anything else |
+| a refusal at another predicate | a second field differs for QoS frames | named by 0285's record; admit it as its own change |
+
+After boot R, HT capability advertisement is the next step.

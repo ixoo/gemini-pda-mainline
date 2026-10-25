@@ -1,0 +1,49 @@
+From b805a59b5377365260ab15f1136496a8c899ea8a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 16:35:11 -0400
+Subject: [PATCH] wifi: mt6797: send the control port's EAPOL on TID 6 with WMM
+
+Boot P showed the access point sending its EAPOL-Key on TID 6 (AC_VO).
+With WMM, give our own EAPOL frames the same TID in the security
+descriptor (byte 6, bits 4-6), so both directions of the handshake use
+the same access category. The queue is unchanged: the descriptor names
+the TC4 MCU port explicitly in byte 3, and the TID does not select it.
+The vendor's security-frame path uses TID 0. Without the option the TID
+stays 0.
+---
+ drivers/net/wireless/mediatek/mt6797/join-tx.h | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-tx.h b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+index eec4321bb..161df4dc6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-tx.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-tx.h
+@@ -77,6 +77,17 @@ mt6797_join_tx_descriptor(const unsigned char *frame, size_t bytes,
+ #define MT6797_JOIN_ETH_MAX_BYTES 1518U
+ #define MT6797_JOIN_ETH_MIN_BYTES 14U
+ 
++/* The control port's EAPOL frames carry TID 6 (AC_VO) with WMM, the TID the
++ * access point uses for its own (boot P), so both directions of the
++ * handshake take the same access category (0287). The queue stays the
++ * explicit TC4 MCU port of byte 3; the vendor's security path uses TID 0.
++ */
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++#define MT6797_JOIN_TX_SECURITY_TID 6U
++#else
++#define MT6797_JOIN_TX_SECURITY_TID 0U
++#endif
++
+ /* Original encoder from the pinned public gen3 nicTxComposeSecurityFrameDesc
+  * path: one Ethernet II EAPOL frame on the same TC4 owner, header format
+  * non-802.11 with the Ethernet II flag, Ethernet-type offset after the
+@@ -115,6 +126,7 @@ mt6797_join_tx_security_descriptor(const unsigned char *frame, size_t bytes,
+ 	d[3] = 0x88; /* TC4: MCU port, queue 1. */
+ 	d[4] = wlan;
+ 	d[5] = 0x90; /* Long descriptor, non-802.11 header, Ethernet II. */
++	d[6] = MT6797_JOIN_TX_SECURITY_TID << 4; /* TID, bits 4-6. */
+ 	d[7] = 1U << 2; /* Own-MAC 1. */
+ 	d[10] = lifetime;
+ 	d[11] = 0x80; /* Fixed rate enabled, zero power offset. */
+-- 
+2.43.0
+
