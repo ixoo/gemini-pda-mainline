@@ -1,4 +1,4 @@
-# Current: the HT project starts: boot O (0284, WMM and QoS data at the legacy rate, success is that nothing moves) predeclared and building
+# Current: the HT project starts: boot O (0284, WMM and QoS data at the legacy rate, success is that nothing moves) is staged on boot2 at 1882d5d3 (image 8c813def…, predecessor 95f81866…); the owner selects boot2
 
 [§25](HIF_TRANSPORT_ANALYSIS.md#25-boot-o-predeclared-2026-10-25-wmm-and-qos-data-at-the-legacy-rate-a-de-risking-step-whose-success-is-that-nothing-moves):
 [0284](../../patches/proposals/0284-wifi-mt6797-negotiate-WMM-and-carry-data-as-QoS-data-at-the-legacy-rate.patch)
@@ -10,6 +10,11 @@ are unchanged. The AAD of the 26-byte header is the firmware's on both
 paths, not the host's; the host's risks are the admissions, the QoS
 EAPOL-Key of the handshake first. No throughput expectation: success
 is that nothing moved.
+Boot O's image was written and read back from Gemian (boot `a8d4e94f…`)
+over boot N's depth-16 image, so its composition is checked against boot
+N with two symbols (the depth back to 12 and the WMM option): one
+variable against boot M's configuration. Preflight passed; the device
+shut down cleanly.
 
 # Historical: depth is finished; transmit on the legacy rate sits at its wall (~23.5 Mbit/s, depth 12 the setting); the receive slowdowns are link-side; HT is the project; the next step is the owner's decision
 
