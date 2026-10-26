@@ -7,8 +7,12 @@
  * descriptor carries FIX_BW_40 in byte 25 only after the HIF is told the
  * join is HT40, and is otherwise unchanged. With CONFIG_MT6797_HT_SGI_TX
  * (0327) it carries the guard interval bit (byte 27 bit 7) only after the
- * HIF is told short GI, and only for an HT mixed-mode fixed rate. Built by
- * run-ht40-hif-test.py with and without each option.
+ * HIF is told short GI, and only for an HT mixed-mode fixed rate. The
+ * state-3 station record carries the peer HT capability at the vendor
+ * offsets, and with CONFIG_MT6797_HT_STA_RECORD_FULL also its rx highest
+ * rate, transmit rate info, beamforming, A-MPDU parameters and ASEL
+ * (34-39, 44-49), nothing else changed. Built by run-ht40-hif-test.py with
+ * and without each option.
  * The bus is a capture: the setup word and the data words of each command.
  */
 #define MT6797_HIF_HOST_TEST
@@ -134,6 +138,52 @@ int main(void)
 		assert(sent[8 + 71] == 0);
 #endif
 	}
+	/* The state-3 station record: legacy, then with a distinct-byte HT
+	 * capability body. Outside the HT fields the two are identical.
+	 */
+	{
+		static const u8 ap[6] = { 2, 0, 0, 0, 0, 1 };
+		u8 ht_cap[26], legacy[124], *ht = sent + 8;
+
+		for (unsigned int i = 0; i < sizeof(ht_cap); i++)
+			ht_cap[i] = 0xa0 + i;
+		fresh(&hif);
+		assert(!mt6797_hif_join_station_qos(&hif, 21, ap, 3, 1, 0x3fc0, 0x540, true,
+						   NULL, 1000000));
+		memcpy(legacy, sent + 8, sizeof(legacy));
+		assert(legacy[13] == 8 && legacy[74] == 0x4b);
+		fresh(&hif);
+		assert(!mt6797_hif_join_station_qos(&hif, 21, ap, 3, 1, 0x3fc0, 0x540, true,
+						   ht_cap, 1000000));
+		for (unsigned int i = 0; i < sizeof(legacy); i++) {
+			bool full = (i >= 34 && i <= 39) || (i >= 44 && i <= 49);
+
+			if (i == 13)
+				assert(ht[i] == 0x18);
+			else if (i == 21)
+				assert(ht[i] == ht_cap[3]);
+			else if (i == 22)
+				assert(ht[i] == (ht_cap[7] & 1));
+			else if (i >= 24 && i <= 33)
+				assert(ht[i] == ht_cap[i - 21]);
+			else if (i >= 40 && i <= 41)
+				assert(ht[i] == ht_cap[i - 40]);
+			else if (i >= 42 && i <= 43)
+				assert(ht[i] == ht_cap[i - 23]);
+#ifdef CONFIG_MT6797_HT_STA_RECORD_FULL
+			else if (i >= 34 && i <= 39)
+				assert(ht[i] == ht_cap[i - 21]);
+			else if (i >= 44 && i <= 47)
+				assert(ht[i] == ht_cap[i - 23]);
+			else if (i == 48)
+				assert(ht[i] == ht_cap[2]);
+			else if (i == 49)
+				assert(ht[i] == ht_cap[25]);
+#endif
+			else
+				assert(ht[i] == legacy[i] && (!full || !ht[i]));
+		}
+	}
 #ifdef CONFIG_MT6797_HT40_TX
 	/* An ordinary data frame: the descriptor at 20 MHz, then at 40 MHz. */
 	{
@@ -181,7 +231,9 @@ int main(void)
 	}
 #endif
 	free(mapping);
-#if defined(CONFIG_MT6797_HT_SGI_TX)
+#if defined(CONFIG_MT6797_HT_STA_RECORD_FULL)
+	printf("ht40-hif-test: PASS (complete HT station record)\n");
+#elif defined(CONFIG_MT6797_HT_SGI_TX)
 	printf("ht40-hif-test: PASS (HT40, transmit at 40 MHz, short GI, rate code 0x%x)\n",
 	       (unsigned int)MT6797_DATA_FIXED_RATE_CODE);
 #elif defined(CONFIG_MT6797_HT40_TX)

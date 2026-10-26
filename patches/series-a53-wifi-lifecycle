@@ -794,3 +794,4 @@ proposals/0324-wifi-mt6797-transmit-ordinary-data-at-40-MHz-on-an-H.patch
 proposals/0325-wifi-mt6797-record-the-attempt-counts-of-the-sampled.patch
 proposals/0326-wifi-mt6797-advertise-the-short-guard-interval-on-re.patch
 proposals/0327-wifi-mt6797-transmit-ordinary-data-with-the-short-gu.patch
+proposals/0328-wifi-mt6797-complete-the-peer-HT-capability-in-the-s.patch

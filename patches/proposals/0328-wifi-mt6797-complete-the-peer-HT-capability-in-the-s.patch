@@ -1,0 +1,118 @@
+From 8c660fc797e018fb45f322612c546d74d84d249e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 19:08:05 -0400
+Subject: [PATCH] wifi: mt6797: complete the peer HT capability in the station
+ record
+
+The state-3 CMD_UPDATE_STA_RECORD declares the access point's HT
+capability only in part: ucMcsSet, ucSupMcs32, aucRxMcsBitmask,
+u2HtCapInfo and u2HtExtendedCap. The vendor rlm.c fills the station
+record from the whole HT capability element, and cnm_mem.c copies all
+of it into the command. That includes u2RxHighestSupportedRate and
+u4TxRateInfo from the supported MCS set (bytes 34-39),
+u4TxBeamformingCap (44-47), ucAmpduParam (48) and ucAselCap (49). This
+driver leaves those fields zero. ucAmpduParam is written only with
+CONFIG_MT6797_TX_AMPDU, and that option is off in the profile.
+
+With CONFIG_MT6797_HT_STA_RECORD_FULL, the record also copies those
+fields from the received capability body, little-endian as received.
+The legacy rate sets were already declared (14-17), and no other byte
+changes. When the record is HT, the join logs the copied values.
+
+It is unknown which of these fields the firmware's rate selector reads
+when the data descriptor carries no fixed rate. This change makes the
+record complete, so that a selector which stays at its default rate can
+no longer be blamed on a partial record.
+
+The option is off by default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 13 +++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 15 +++++++++++++--
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 10 +++++++++-
+ 3 files changed, 35 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 50b5594ea..f44aa1600 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -246,6 +246,19 @@ config MT6797_HT_RECORDS
+ 	  descriptor's fixed rate is unchanged. A compatibility step that
+ 	  isolates the record declaration from the aggregation after it.
+ 
++config MT6797_HT_STA_RECORD_FULL
++	bool "MT6797 Wi-Fi: complete the peer HT capability in the station record"
++	depends on MT6797_HT_RECORDS
++	help
++	  In the state-3 CMD_UPDATE_STA_RECORD, also copy the rest of the
++	  access point's HT capability as the vendor rlm.c and cnm_mem.c do:
++	  u2RxHighestSupportedRate (34-35) and u4TxRateInfo (36-39) from the
++	  supported MCS set, u4TxBeamformingCap (44-47), ucAmpduParam (48)
++	  and ucAselCap (49). Without it those fields stay zero. Which fields
++	  the firmware rate selector reads with rate code 0 is not known;
++	  this completes the record so a stalled selector cannot be blamed
++	  on a partial one.
++
+ config MT6797_TX_AMPDU
+ 	bool "MT6797 Wi-Fi: let the firmware aggregate transmit (block-ack initiator)"
+ 	depends on MT6797_HT_RECORDS
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index a5b028425..dd8294790 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1416,8 +1416,8 @@ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+  * receives), ucSupMcs32 (22, MCS 32), aucRxMcsBitmask (24-33, the peer's
+  * receive bitmask), u2HtCapInfo (40) and u2HtExtendedCap (42). The rx
+  * highest rate, transmit rate info, beamforming, ASEL and A-MPDU
+- * parameters stay zero, and ucTxAmpdu/ucRxAmpdu stay 1 (block-ack
+- * disabled) (0295).
++ * parameters stay zero unless CONFIG_MT6797_HT_STA_RECORD_FULL, and
++ * ucTxAmpdu/ucRxAmpdu stay 1 (block-ack disabled) (0295).
+  */
+ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, unsigned int state, unsigned int aid,
+@@ -1437,6 +1437,17 @@ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 		memcpy(payload + 24, ht_cap + 3, 10);
+ 		payload[40] = ht_cap[0]; payload[41] = ht_cap[1];
+ 		payload[42] = ht_cap[19]; payload[43] = ht_cap[20];
++#ifdef CONFIG_MT6797_HT_STA_RECORD_FULL
++		/* The rest of the peer HT capability (rlm.c, cnm_mem.c): rx
++		 * highest rate and transmit rate info (34-39), beamforming
++		 * (44-47), A-MPDU parameters (48) and ASEL (49), little-endian
++		 * as received.
++		 */
++		memcpy(payload + 34, ht_cap + 13, 6);
++		memcpy(payload + 44, ht_cap + 21, 4);
++		payload[48] = ht_cap[2];
++		payload[49] = ht_cap[25];
++#endif
+ #ifdef CONFIG_MT6797_TX_AMPDU
+ 		/* Transmit aggregation, firmware-side (0296): the peer's A-MPDU
+ 		 * parameters (48), ucTxAmpdu FEATURE_OPT_CMD_ENABLED (76, 2) and
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 6962d6dfa..740429ed4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -6706,11 +6706,19 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 		 ht_op ? ht_op[2] & 3 : 0, ht_op ? ht_op[1] : 0,
+ 		 ht_op ? get_unaligned_le16(ht_op + 2) : 0,
+ 		 ht_op ? get_unaligned_le16(ht_op + 4) : 0,
+-		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? ht_cap[2] : 0,
++		 ht_cap && (IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ||
++			    IS_ENABLED(CONFIG_MT6797_HT_STA_RECORD_FULL)) ? ht_cap[2] : 0,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 2 : 1,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 64 : 0,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_RX_AMPDU) ? 2 : 1,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_RX_AMPDU) ? 64 : 0);
++#ifdef CONFIG_MT6797_HT_STA_RECORD_FULL
++	if (ht_cap)
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN join HT station record: rx_highest=0x%04x tx_rate_info=0x%08x txbf=0x%08x asel=0x%02x\n",
++			 get_unaligned_le16(ht_cap + 13), get_unaligned_le32(ht_cap + 15),
++			 get_unaligned_le32(ht_cap + 21), ht_cap[25]);
++#endif
+ #endif
+ 	ret = mt6797_hif_join_bss_qos(mac->hif, mac->sequence++, mac->join_ap,
+ 				     mac->join_ssid, mac->join_ssid_bytes,
+-- 
+2.43.0
+

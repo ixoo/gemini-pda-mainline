@@ -7819,3 +7819,97 @@ first row's no-regression condition fails. Until a discriminating run,
 the two options are off again in the profile and 0326–0327 stay in the
 series. The profile returns to AR's configuration, MCS5 at 40 MHz with
 the long GI.
+
+## 65. Why the automatic rate stopped at OFDM 6 Mbit/s: a partial station record (predeclared, 2026-10-26)
+
+**The correction to AQ's reading (owner).** AQ showed the firmware's
+selector holding `0x004b` (`RATE_OFDM_6M`, the record's default fixed
+rate code) on an HT record. That boot does not show that the automatic
+rate "does not work". It shows that the selector never left its default
+on a record we only partly wrote. The fields it may read are not a
+hidden setting. They are station-record fields this driver never wrote.
+
+**The record against the vendor (verified).** The vendor `rlm.c` fills
+the station record from the peer's whole HT capability element, and
+`cnm_mem.c` copies every field into `CMD_UPDATE_STA_RECORD`. Our
+state-3 record, as built for AQ and AR:
+
+| Offset | Field | Vendor source | Ours before 0328 |
+|---|---|---|---|
+| 13 | ucDesiredPhyTypeSet | the BSS PHY | `0x18` (OFDM, HT) |
+| 14–15, 16–17 | desired and basic legacy rate sets | the joined BSS | written |
+| 21, 22 | ucMcsSet, ucSupMcs32 | the MCS bitmask | written |
+| 24–33 | aucRxMcsBitmask | the MCS set, bytes 0–9 | written |
+| **34–35** | **u2RxHighestSupportedRate** | **the MCS set, bytes 10–11** | **zero** |
+| **36–39** | **u4TxRateInfo** | **the MCS set, bytes 12–15** | **zero** |
+| 40–43 | u2HtCapInfo, u2HtExtendedCap | the capability, as received | written |
+| **44–47** | **u4TxBeamformingCap** | **the capability** | **zero** |
+| **48** | **ucAmpduParam** | **the capability** | **zero** (only with `CONFIG_MT6797_TX_AMPDU`, off in the profile) |
+| **49** | **ucAselCap** | **the capability** | **zero** |
+| 74–75 | u2HwDefaultFixedRateCode | the lowest basic rate (`nic_tx.c`) | `0x4b`, the same |
+
+So the legacy rate sets and the receive bitmask were already declared.
+The gap is 34–39 and 44–49. These are the bytes 0328 fills.
+
+**Recorded as the reason the automatic rate stopped, pending the boot:**
+- The firmware's selector sat at `RATE_OFDM_6M` while the station record
+  lacked these fields.
+- Which of them the selector reads is not known.
+- The boot below tests whether completing the record lets it climb.
+
+**The change (0328, `CONFIG_MT6797_HT_STA_RECORD_FULL`, off by default).**
+- With an HT peer, the state-3 record copies the rx highest rate and
+  transmit rate info (34–39), beamforming (44–47), A-MPDU parameters (48)
+  and ASEL (49) from the received capability body, little-endian as
+  received.
+- No other byte changes, and no new parsing: the 26-byte body is the one
+  already admitted and stored.
+- The join logs the copied values:
+  `join HT station record: rx_highest=… tx_rate_info=… txbf=… asel=…`.
+- `tests/run-ht40-hif-test.py` adds a build with the option. It
+  compares the record byte by byte against the legacy record, using a
+  capability body of distinct bytes:
+  - every HT field at its offset;
+  - the new fields only with the option, zero without it;
+  - everything else identical.
+- The test caught three mutations: the 34–39 copy dropped, the
+  beamforming copy shifted by one, and ASEL written at 50.
+- The driver compiles cleanly at `W=1` with the option on.
+
+**The boot: auto rate with the completed record (AT).** AQ is the
+reference for the selector and AR (15.01 Mbit/s) for transmit. No new
+control.
+- *Image:* today's profile (HT40 receive, receive aggregation, the peek)
+  with:
+  - 0277 (state 2) at its canonical place after 0276;
+  - `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x0`;
+  - `CONFIG_MT6797_HT_STA_RECORD_FULL=y`.
+- `CONFIG_MT6797_HT40_TX` stays on but is inert, because FIX_BW applies
+  only with a fixed rate (`hif.c`). So the image is AQ's plus the
+  completed record. AQ had no HT40 transmit option, and with rate code 0
+  that option changes nothing.
+- *Harness:* the five-chunk throughput harness, as AQ and AR.
+
+**Unique observation.**
+- `join HT station record:`, the bytes actually sent;
+- `join station state 2: status=`;
+- the `TX rates:` rate words (mode in bits 6–8, MCS in 0–5);
+- `TX attempts:`;
+- TX against AR's 15.01;
+- receive and the ledger, recorded.
+
+**Predicted:** HT MCS rate words (mode 2) that change as loss changes,
+TX ≥ 15.01, and the ledger unchanged.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| HT MCS rate words, several values; TX ≥ 15.01; ledger unchanged | the partial record was why the selector stopped | retire the fixed-rate ladder; auto rate becomes the profile's transmit; MCS5/40 stays the documented fallback |
+| HT MCS rate words but TX below 15.01 | the selector climbs and is slower than the best constant | record it; keep MCS5/40; owner decides |
+| still `0x004b` throughout, with the logged record complete | the selector is dead on this firmware path, the full record as evidence | record it so; keep MCS5/40; no further record fields to try |
+| state 2 refused, status 3, a stall or the ledger moves | the record disturbs the join or the pump | revert; preserve the log |
+
+**What stays.** MCS5 at 40 MHz (`0x85` with `CONFIG_MT6797_HT40_TX`) is
+the standing fixed fallback. The profile returns to it after AT unless
+the first row holds and the owner adopts auto rate. Short GI stays off.
+If it is revisited, it runs as a same-air pair with the `rx_refused`
+gate (§64).

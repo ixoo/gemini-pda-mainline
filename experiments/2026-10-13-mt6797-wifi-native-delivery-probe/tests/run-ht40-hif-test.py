@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""HT40 join commands (0323): the actual hif.c channel and BSS commands; host behaviour only."""
+"""HT40 join commands (0323) and the HT station record: the actual hif.c commands; host behaviour only."""
 import argparse
 from pathlib import Path
 import subprocess
@@ -17,6 +17,7 @@ kconfig = (driver / 'Kconfig').read_text()
 ht40 = 'config MT6797_HT40\n' in kconfig
 ht40_tx = 'config MT6797_HT40_TX' in kconfig
 sgi_tx = 'config MT6797_HT_SGI_TX' in kconfig
+sta_full = 'config MT6797_HT_STA_RECORD_FULL' in kconfig
 pie = ['-fno-pie', '-no-pie'] if sys.platform.startswith('linux') else []
 with tempfile.TemporaryDirectory(prefix='mt6797-ht40-') as directory:
     runs = [[]] + ([['-DCONFIG_MT6797_HT40']] if ht40 else []) + \
@@ -25,6 +26,7 @@ with tempfile.TemporaryDirectory(prefix='mt6797-ht40-') as directory:
            '-DCONFIG_MT6797_DATA_FIXED_RATE_CODE=0x85'],
           ['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX', '-DCONFIG_MT6797_HT_SGI_TX']]
          if sgi_tx else [])
+    runs += [['-DCONFIG_MT6797_HT_STA_RECORD_FULL']] if sta_full else []
     for defines in runs:
         binary = Path(directory) / ('test-%d' % runs.index(defines))
         subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-DIS_ENABLED(x)=0',
