@@ -1,4 +1,10 @@
-# Current: §58's good-air control, boot AK (build 00d07727: the peek on, receive aggregation off), staged on boot2 under the five-chunk harness; boot AL (35f9d3bf, aggregation on) building
+# Current: §58's control (boot AK) out of band (TX 11.45, RX 12.00, a software-frame burst); no comparison; AL built (35f9d3bf) and not staged; the confirmation repeats on another day, control first
+
+[Boot AK](HIF_TRANSPORT_ANALYSIS.md#boot-ak-result-2026-10-26-1930-utc-the-control-is-out-of-band-no-comparison-al-not-staged).
+The profile stands with receive aggregation and the peek on. The device
+is on Gemian (`f193bfb3…`); boot2 holds AK's `4280a8e5…`.
+
+# Historical: §58's good-air control, boot AK (build 00d07727: the peek on, receive aggregation off), staged on boot2 under the five-chunk harness; boot AL (35f9d3bf, aggregation on) building
 
 Boot2 holds `4280a8e5…`, written over AJ2's `a7f2b300…` and read back
 in full. Gemian (`a3746c2c…`) is shut down for the owner's boot2

@@ -7118,3 +7118,26 @@ They mark the hour in which the air ran about 30 % under band; a
 correlation with failed runs is not established. They are kept as a
 run-validity signal. A run whose control shows them in such a burst is
 read as off-band air, whatever its outcome.
+
+### Boot AK result (2026-10-26, 19:30 UTC): the control is out of band; no comparison; AL not staged
+
+Build `00d07727` (the peek on, receive aggregation off), boot2
+`4280a8e5…` (written over AJ2's `a7f2b300…` and read back in full),
+mainline boot `49b92072…`. Five-chunk harness. Graded `all_pass`,
+`session_exit=0`. The reviewed return reached Gemian `f193bfb3…`, live
+identity confirmed.
+
+- *Transmit:* 11.45 Mbit/s (chunks 12.63, 11.27, 11.12, 13.22, 13.86)
+  against the band's 17.9.
+- *Receive:* 12.00 aggregate. Chunks 1–4 ran 15.84–16.45; chunk 5 ran
+  3.14 and ended on the device-side timeout (exit 143).
+- *Driver:* 3 failed transmit statuses; credit wait maximum 31 ms; no
+  expired frame, PID fault or page left.
+- *The peek:* 261,299 of 282,137 passes skipped the block, with no
+  batch failure.
+- *Software frames:* the burst class again, 1,032 refusals (all logged
+  ones `prefix=0xe000`, none QoS).
+
+**Reading, by §58's fourth row:** not good air. There is no comparison,
+and boot AL (`35f9d3bf`, aggregation on) is built and not staged. The
+confirmation is repeated on another day, control first.
