@@ -1,4 +1,10 @@
-# Current: §60's HT40 receive boot, AM (build d587f977), staged on boot2 (7533e245…); read on receive against AL's 19.87
+# Current: boot AM graded; 40 MHz receive works (grant SCB, all frames at 40 MHz), RX 26.68 = 1.34× AL, short of 1.4×; the owner decides on keeping the option
+
+[Boot AM](HIF_TRANSPORT_ANALYSIS.md#boot-am-result-2026-10-26-2103-utc-receive-at-40-mhz-works-receive-134-the-20-mhz-control-short-of-the-14-predicted).
+The profile has `CONFIG_MT6797_HT40` on. The device is on Gemian
+(`c580366e…`); boot2 holds AM's `7533e245…`.
+
+# Historical: §60's HT40 receive boot, AM (build d587f977), staged on boot2 (7533e245…); read on receive against AL's 19.87
 
 The composer admits exactly `CONFIG_MT6797_HT40` (absent→y) and no
 tree change against AL's image. Gemian (`ee596b2e…`) is shut down for

@@ -4349,6 +4349,48 @@
     "batch_failures": 0
    },
    "reading": "HIF section 57, fourth row: the peek removes the empty block reads (HIF receive per pass -84 %) and the rates do not move; kept for its cost; the cost line off"
+  },
+  "boot-am": {
+   "run": "PIO-throughput-bootam-1",
+   "session": "2026-10-26 21:03 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (0323 HT40, RX_AMPDU, peek, depth 12)",
+   "kernel_build_commit": "d587f97771e37387cd11921f4f1d30d8bf681942",
+   "boot2_sha256": "7533e245397947e900390ea879ad55b9a205db7655ad2098b69117c9f2b061f6",
+   "predecessor_boot2_sha256": "4a864d0f9c7215ee1faf13c3a79392c1f61108d4085819459167f135e726158e",
+   "previous_gemian_boot_id": "ee596b2e-d53e-43cb-aa62-c3383d927163",
+   "returned_gemian_boot_id": "c580366e-fa40-4cb5-ac5e-1214d717f2f6",
+   "classification": "graded: all_pass; read on receive against boot AL",
+   "series_row": true,
+   "ht40": {
+    "grant_sco": 3,
+    "rx_rates": {
+     "mcs4_40": 4,
+     "mcs5_40": 20612,
+     "mcs6_40": 27755,
+     "mcs7_40": 334,
+     "legacy": 158
+    }
+   },
+   "throughput": {
+    "rx_aggregate_mbit_s": 26.68,
+    "rx_device_chunk_mbit_s": [
+     26.6,
+     28.66,
+     31.01,
+     24.6,
+     29.05
+    ],
+    "control_rx_aggregate_mbit_s": 19.87,
+    "rx_ratio": 1.34,
+    "tx_aggregate_mbit_s_ungraded": 13.79
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 1
+   },
+   "reading": "HIF section 60: 40 MHz receive works (grant SCB, all frames at 40 MHz), receive 1.34x the 20 MHz control, short of the 1.4x predicted; keeping the option is the owner's decision"
   }
  }
 }

@@ -7318,3 +7318,47 @@ owner's decision, taken before the HT40 boot runs.
 **Owner's reading rule for §60, before the HT40 boot.** 0323 changes
 receive only, so the pair is read on receive against AL's 19.87 Mbit/s,
 which was in band. Transmit is recorded and not graded.
+
+### Boot AM result (2026-10-26, 21:03 UTC): receive at 40 MHz works; receive 1.34× the 20 MHz control, short of the 1.4× predicted
+
+Build `d587f977` (0323 with `CONFIG_MT6797_HT40`, receive aggregation
+and the peek on), boot2 `7533e245…` (written over AL's `4a864d0f…` and
+read back in full), mainline boot `e4f39c90…`. Five-chunk harness, about
+seven minutes after AL. Graded `all_pass`, `session_exit=0`. The
+reviewed return reached Gemian `c580366e…`, live identity confirmed.
+
+```
+join grant: channel=40 sco=3 interval_ms=9000
+RX rates: mode/rate=count 1/11=158,2/4/40=4,2/5/40=20612,2/6/40=27755,2/7/40=334 other=0 absent=0
+RX BA: active=0x61 starts=3 stops=0 frames=48705 held=2775 released=2775 holes=0 timeouts=0 duplicates=0 behind=3 plain=0 max_held=18 dropped=0
+join data phase end: reason=disconnect elapsed_ms=43771 rx_delivered=48903 tx_queued=46664 tx_done=46663 tx_failed=1
+```
+
+- *Observed: the firmware granted HT40,* echoing SCB (3). mac80211
+  admitted channel 40's HT40- definition; no `join channel refused`
+  line.
+- *Observed: every HT data frame arrived at 40 MHz.* Bit 15 is the
+  frame mode, as mt7603 places it. The access point chose lower MCS at
+  40 MHz: MCS6 27,755, MCS5 20,612, MCS7 334, where AL received mostly
+  MCS7 at 20 MHz. The PHY rates of those frames (108–121.5 Mbit/s) are
+  about 1.7–1.9× MCS7 20 MHz's 65.
+- *Receive (graded):* 26.68 Mbit/s aggregate (chunks 26.60, 28.66,
+  31.01, 24.60, 29.05) against AL's 19.87 (14.02–24.32). That is
+  1.34× aggregate and 1.32× on the chunk means (27.98 against 21.12),
+  under §60's 1.4× prediction. The best chunk, 31.01, is above any
+  earlier receive chunk in the series. The window held 2,775 frames
+  and released them all, with no hole skipped and no deadline fired.
+- *Transmit (recorded, not graded):* 13.79 (chunks 14.27–15.39) against
+  AL's 12.29, at the fixed 20 MHz rate; 1 failed status. Ledger clean:
+  no expired frame, PID fault or page left.
+- *Software frames:* 902 refusals (none QoS).
+
+**Reading.** In substance this is §60's first row: 40 MHz receive works
+and pays, with no fault on any path. It misses the predeclared 1.4×
+threshold, at 1.34×. Two observed causes bound the gain below the PHY
+ratio:
+- the access point's lower MCS at 40 MHz (MCS5/6 against MCS7);
+- air the transmit direction placed out of band in both runs.
+
+Keeping the option as the result is the owner's decision. The profile
+has it on, as built for this boot.
