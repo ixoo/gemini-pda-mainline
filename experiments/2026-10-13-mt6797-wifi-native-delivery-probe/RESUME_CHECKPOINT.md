@@ -1,4 +1,11 @@
-# Current: the separating run (§52) predeclared: AE's tree with RX_AMPDU off, on the same air; awaiting approval to build and stage
+# Current: boot AF, the separating run (§52), staged on boot2 (build db2b7733: AE's tree, RX_AMPDU off)
+
+Boot2 holds `220a431b…`, written over AE's `25865da4…` and read back in
+full. The composer admits one config change against AE's image
+(`CONFIG_MT6797_RX_AMPDU` y→absent) and no tree change. Gemian
+(`c78edf17…`) is shut down for the owner's boot2 selection.
+
+# Historical: the separating run (§52) predeclared: AE's tree with RX_AMPDU off, on the same air; awaiting approval to build and stage
 
 A transmit collapse here points at the air, and the window is cleared.
 A normal transmit leaves AE's collapse unexplained, and AE's image
