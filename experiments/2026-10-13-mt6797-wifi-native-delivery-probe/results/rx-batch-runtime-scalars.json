@@ -4295,6 +4295,60 @@
     "tx_air_losses": 4
    },
    "reading": "HIF section 52: no collapse with the option off, but both directions about a quarter below their bands; the air moved; the window is neither cleared nor implicated; RX_AMPDU stays off"
+  },
+  "boot-aj2": {
+   "run": "PIO-lifecycle-1 (bootaj2)",
+   "session": "2026-10-26 19:06 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (0322 peek, RX_AMPDU on, PASS_COST on, depth 12)",
+   "kernel_build_commit": "0ac0f8e06bc25257604cb626171a5254804429ef",
+   "boot2_sha256": "a7f2b30056de7211f7255bc59350a8fc460b4dd24c94b57903b2a3846259bb6d",
+   "predecessor_boot2_sha256": "220a431bbb2a2dfa79aaf1f60e8cd2c20064ab849d203259973e3d236d506a09",
+   "previous_gemian_boot_id": "0f5a7d5a-de75-4f42-861e-78db070fff59",
+   "returned_gemian_boot_id": "a3746c2c-1593-4210-a19d-81df1a5e13f4",
+   "classification": "graded: all_pass; lifecycle harness, three lifetimes",
+   "series_row": true,
+   "peek": {
+    "peeks": [
+     40297,
+     42457,
+     46482
+    ],
+    "skips": [
+     39007,
+     40798,
+     45077
+    ],
+    "hif_receive_us_per_pass": [
+     2.9,
+     3.8,
+     2.8
+    ],
+    "ah_hif_receive_us_per_pass": [
+     17.87,
+     13.86,
+     16.99
+    ]
+   },
+   "throughput": {
+    "tx_lifetime_mbit_s": [
+     14.54,
+     14.67,
+     8.19
+    ],
+    "rx_lifetime_mbit_s": [
+     11.81,
+     11.18,
+     11.04
+    ]
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0,
+    "batch_failures": 0
+   },
+   "reading": "HIF section 57, fourth row: the peek removes the empty block reads (HIF receive per pass -84 %) and the rates do not move; kept for its cost; the cost line off"
   }
  }
 }

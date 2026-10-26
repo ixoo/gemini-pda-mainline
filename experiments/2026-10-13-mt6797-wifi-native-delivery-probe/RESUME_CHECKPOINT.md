@@ -1,4 +1,12 @@
-# Current: the WHISR peek boot staged as AJ2 (§57; build 0ac0f8e0, boot2 a7f2b300…); watcher armed
+# Current: boot AJ2 graded; the WHISR peek kept for its cost (HIF receive per pass −84 %, rates unchanged); CONFIG_MT6797_HIF_RX_PEEK and RX_AMPDU on in the profile, the cost line off
+
+[Boot AJ2](HIF_TRANSPORT_ANALYSIS.md#boot-aj2-result-2026-10-26-1906-utc-the-peek-skips-97--of-passes-and-cuts-the-hif-receive-time-per-pass-by-84--the-rates-do-not-move-57s-fourth-row):
+`all_pass`. 97 % of passes skipped the block, with no failure or
+stall. TX was 14.54/14.67/8.19 (the last a 1 s chunk 23 KB short of
+its cap, not explained). The device is on Gemian (`a3746c2c…`); boot2
+holds `a7f2b300…`.
+
+# Historical: the WHISR peek boot staged as AJ2 (§57; build 0ac0f8e0, boot2 a7f2b300…); watcher armed
 
 Boot AJ's install wrote boot2 (`a7f2b300…`, over AF's `220a431b…`) and
 read it back in full. Gemian's shutdown then hung: logind reported a

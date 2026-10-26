@@ -7016,3 +7016,50 @@ TX, RX, the credit wait and the window's counters against AH and AI.
 The software-frame gate of §55 does not apply. This boot is compared
 on per-pass cost and on the absence of stalls, not as a bracketed
 pair. The software-frame count is recorded.
+
+### Boot AJ2 result (2026-10-26, 19:06 UTC): the peek skips 97 % of passes and cuts the HIF receive time per pass by 84 %; the rates do not move; §57's fourth row
+
+Build `0ac0f8e0`, boot2 `a7f2b300…`. Boot AJ's install wrote and verified
+it, but Gemian's shutdown hung (logind reported a shutdown in progress
+while systemd stopped answering). The receipt stayed incomplete, the
+harness refused the deployment, and that boot ran nothing. After the
+owner's power cycle, AJ2's install skipped the write as matching and
+confirmed the shutdown. Mainline boot `44b4049c…`. The lifecycle
+harness ran three lifetimes, one chunk each. Graded `all_pass`,
+`session_exit=0`. The reviewed return reached Gemian `a3746c2c…`, live
+identity confirmed.
+
+| Lifetime | Peeks / skipped | HIF receive per pass, AJ2 / AH | Busy fraction, AJ2 / AH | TX, AJ2 / AH | RX, AJ2 / AH |
+|---|---|---|---|---|---|
+| 1 | 40,297 / 39,007 (96.8 %) | 2.90 / 17.87 µs | 9.6 / 19.6 % | 14.54 / 15.43 | 11.81 / 13.53 |
+| 2 | 42,457 / 40,798 (96.1 %) | 3.80 / 13.86 µs | 12.5 / 14.7 % | 14.67 / 15.20 | 11.18 / 11.65 |
+| 3 | 46,482 / 45,077 (97.0 %) | 2.80 / 16.99 µs | 8.9 / 18.3 % | 8.19 / 14.92 | 11.04 / 11.49 |
+
+(The batch line's counts are cumulative over the boot; the rows are
+their differences.)
+
+- *Observed: the peek is correct.* No batch failure, no abnormal, no
+  stall. Every lifetime delivered about the same number of frames as
+  AH (1,000–1,027 against 1,021–1,048). The window held 15 frames over
+  the boot and released them all, with no hole skipped and no deadline
+  fired. No transmit status failed; the credit wait maximum was
+  24–35 ms.
+- *Observed: it removes the empty block reads.* The HIF receive time
+  per pass fell from 13.9–17.9 µs to 2.8–3.8 µs, and the worker's busy
+  fraction roughly halved in lifetimes 1 and 3.
+- *Observed: the rates did not rise.* TX ran 14.54 and 14.67 in
+  lifetimes 1 and 2, about 5 % under AH's, and 8.19 in lifetime 3,
+  whose 1 s chunk ended 23 KB short of its 1 MiB cap (no failed send,
+  credits normal). RX ran 11.0–11.8 against AH's 11.5–13.5. The peek
+  cannot slow transmit: the credits come from the status path, which is
+  unchanged. The lifetime-3 dip is recorded and not explained. It is
+  one 1 s chunk on an air that ran ~15 Mbit/s for both images an hour
+  earlier.
+- *The software-frame class persists:* 192–227 refusals per data
+  phase, none QoS.
+
+**Branch taken: the fourth row.** The poll was not the limit at these
+rates, so the peek is kept for its cost.
+`CONFIG_MT6797_HIF_RX_PEEK` stays on in the lifecycle profile, and the
+per-phase cost line is off again. The transmit limit remains the
+firmware's concurrency (§48).
