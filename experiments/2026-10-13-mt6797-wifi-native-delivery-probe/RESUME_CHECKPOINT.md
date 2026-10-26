@@ -1,14 +1,13 @@
-# Current: boot AB2 graded; transmit is bound by the firmware's per-frame service, not the host; aggregation's firmware question is next (offline)
+# Current: boot AB2's reading corrected (the pipeline holds its full depth; not yet "firmware-bound"); the depth-24 boot (§48, 0316) predeclared, under review
 
-[Boot AB2](HIF_TRANSPORT_ANALYSIS.md#boot-ab2-result-2026-10-26-1226-utc-at-normal-rates-the-host-is-not-the-transmit-limit-the-firmwares-per-frame-service-is):
-`all_pass` at normal rates (TX 21.99 with chunks 23.0–23.7, RX 17.63).
-The worker was busy 59.5 % of the data phase, 69 % of that HIF reads
-on 95 %-empty passes. The host spends about 90 µs per transmitted
-frame (submit 71, completion 20). Transmit frames waited 4.44 ms in the
-firmware at up to 12 in flight, so the rate (~2,000 frames/s) is the
-firmware's per-frame service. Aggregation is the only lever; its ADDBA
-question goes to the RE VM. 0315 is off again in the fragment. The
-device is on Gemian (`fa9518ef…`); boot2 holds `8f481a70…`.
+The transmit pipeline ran at its full depth of 12 (4.44 ms per frame
+in the firmware, about 2,000 frames/s), with the host spending about
+100 µs per frame and idling 40 %. That fits a depth cap as well as a
+firmware concurrency limit, and depth 24 decides. 0316 raises the
+range to 24 (ledger 312 of 468 pages). The verdict admits depth 24.
+Receive's only lever is a cheaper or rarer status read. Under review,
+not built. The device is on Gemian (`fa9518ef…`); boot2 holds
+`8f481a70…`.
 
 # Historical: boot AB2, the per-frame cost boot repeated on boot AB's image, staged (boot2 verified, not rewritten)
 

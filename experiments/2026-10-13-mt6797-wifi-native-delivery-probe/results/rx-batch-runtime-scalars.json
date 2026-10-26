@@ -4088,7 +4088,7 @@
     "left_pages": 0,
     "tx_air_losses": 0
    },
-   "reading": "HIF section 47: the transmit rate is bound by the firmware's per-frame service (credit wait 4.44 ms at 12 in flight, worker idle 40 %); aggregation is the only lever"
+   "reading": "HIF section 47: host work about 100 us per transmitted frame against 0.5 ms of wall time; the pipeline holds its full depth of 12 at 4.44 ms per frame; depth cap or firmware concurrency, decided by depth 24 (section 48)"
   }
  }
 }

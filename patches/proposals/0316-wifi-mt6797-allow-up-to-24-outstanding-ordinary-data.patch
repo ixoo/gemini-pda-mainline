@@ -1,0 +1,47 @@
+From a091d05d9ef8c464ce5a1dde786e2be55935b5bc Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 08:41:57 -0400
+Subject: [PATCH] wifi: mt6797: allow up to 24 outstanding ordinary data frames
+
+At depth 12 the transmit pipeline holds its full depth: inflight_max
+was 12 in every HT boot, and frames waited 4.44 ms on average in the
+firmware before their credits returned, at about 2,000 frames a second
+(boot AB2). A rate equal to depth over latency is what a pipeline
+capped by its depth gives. It is also what a firmware that cannot serve
+more frames at once gives, and only a deeper pipeline separates the
+two. Depth 12 was chosen when the worker was the limit. The worker is
+now idle about 40 % of the time at full transmit rate.
+
+Raise the option's range to 24. The TC1 ledger derives from the depth
+at 13 pages per frame (312 pages at 24, within the firmware's 468-page
+budget), the PID pool spans 1-126, and the data slots are sized by the
+depth, so nothing else changes. The default stays 4.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 4fe56cb9c..6d935603a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -319,7 +319,7 @@ config MT6797_DATA_CREDIT_RETIRE
+ config MT6797_CCMP_TX_DEPTH
+ 	int "MT6797 Wi-Fi: outstanding ordinary data frames"
+ 	depends on MT6797_CCMP_TX_PUMP
+-	range 1 16
++	range 1 24
+ 	default 4
+ 	help
+ 	  Maximum outstanding ordinary data frames, bounded by PID ownership and
+@@ -327,5 +327,6 @@ config MT6797_CCMP_TX_DEPTH
+ 	  single owner. A measurement variable: with ordinary data retired on
+ 	  credit arrival the depth sets the frames the firmware may hold for
+ 	  the air. The TC1 ledger admits 13 pages per frame of depth (52 at
+-	  the default four, 104 at eight, 156 at twelve) of the firmware's
+-	  468-page budget; it derives from this value and cannot disagree.
++	  the default four, 104 at eight, 156 at twelve, 312 at twenty-four)
++	  of the firmware's 468-page budget; it derives from this value and
++	  cannot disagree.
+-- 
+2.43.0
+

@@ -93,8 +93,8 @@ def cleanup_record(kmsg):
 
 
 def classify(kmsg, receipt, verified_boot, protocol=None, data_depth=1):
-    if data_depth not in (1, 4, 8, 12, 16):
-        raise ValueError('only reviewed data depths one, four, eight, twelve and sixteen are supported')
+    if data_depth not in (1, 4, 8, 12, 16, 24):
+        raise ValueError('only reviewed data depths one, four, eight, twelve, sixteen and twenty-four are supported')
     value = base['classify'](kmsg,receipt,verified_boot,protocol)
     # The immutable cohort predates the delivery suffix. Adapt only its cleanup
     # grammar; all ledger, sequence, counter, fault and receipt gates stay live.

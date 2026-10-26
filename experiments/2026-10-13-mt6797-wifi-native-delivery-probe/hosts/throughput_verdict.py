@@ -50,7 +50,7 @@ def apply(path):
         s = s.replace(old, new)
 
     literal("    if data_depth not in (1, 4):\n        raise ValueError('only reviewed data depths one and four are supported')\n",
-            "    if data_depth not in (1, 4, 8, 12, 16):\n        raise ValueError('only reviewed data depths one, four, eight, twelve and sixteen are supported')\n")
+            "    if data_depth not in (1, 4, 8, 12, 16, 24):\n        raise ValueError('only reviewed data depths one, four, eight, twelve, sixteen and twenty-four are supported')\n")
     literal("    ledger_ok = True\n    if data_depth == 4:\n",
             "    ledger_ok = True\n    retire = credit_retire_record(kmsg)\n    if retire is not None:\n"
             "        # ordinary data carries no PID under credit retire (0278): its end record is the ownership proof\n"

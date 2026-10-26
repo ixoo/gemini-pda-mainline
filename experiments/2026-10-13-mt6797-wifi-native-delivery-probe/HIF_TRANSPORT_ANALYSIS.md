@@ -6048,7 +6048,7 @@ pass cost: passes=397794 status_us=5446494 submit_us=1507611 receive_us=9421257 
   run, so before it decides anything it is repeated on the same image.
   Boot2 already holds that image, and the installer verifies it.
 
-### Boot AB2 result (2026-10-26, 12:26 UTC): at normal rates the host is not the transmit limit; the firmware's per-frame service is
+### Boot AB2 result (2026-10-26, 12:26 UTC): at normal rates the host is not the transmit limit; the pipeline holds its full depth
 
 Boot AB's image repeated (boot2 `8f481a70…`, verified, not rewritten).
 Mainline boot recorded in the session, returned to Gemian `fa9518ef…`
@@ -6081,22 +6081,58 @@ credit retire end: retired=52144 expired=0 pid_faults=0 wait_avg_us=4439 wait_ma
   per-pass reads, about 33 µs a pass at roughly six passes per
   transmitted frame. Even so, the worker is idle about 40 % of the wall
   at full transmit rate.
-- *Where the time goes:* the transmit frames waited on average 4.44 ms
-  in the firmware before their credits returned (max 18.2 ms), with up
-  to 12 in flight and the queue at its bound (mac80211's queues
-  stopped). At about 2,000 frames a second, the firmware is completing
-  about one frame every 0.5 ms while the host keeps it fed. MCS7 air is
-  0.19 ms of that.
-- *Reading, against §47's table:* the transmit frame rate is bound by
-  the firmware's per-frame service, not by any host phase. Batching
-  the commands would cut host CPU, and removing the copies would cut
-  host CPU, but neither moves a firmware-bound rate. This is the third
-  row in substance. **Aggregation is the only lever**, and its firmware
-  question (the ADDBA behaviour and the undelivered aggregates of boot
-  Y) goes to the front, as an RE-VM question with the image retained.
-- *Receive* is not decided by this boot. Its dips come with the
-  laptop's own send rate (AA7), and its host cost (43 µs delivery per
-  frame plus the reads) is well inside the wall time.
+- *Where the time goes:* transmit frames waited on average 4.44 ms in
+  the firmware before their credits returned (max 18.2 ms), over every
+  retired frame. Up to 12 were in flight (`inflight_max=12`, the
+  configured depth), with the driver's queue at its bound and
+  mac80211's queues stopped. At about 2,000 frames a second and 4.4 ms
+  a frame, roughly 9–12 frames are in service at once. So the firmware
+  serves frames concurrently, not one 4.4 ms frame at a time (that
+  would cap it near 225 frames a second).
+- *Reading (corrected by the owner, 2026-10-26):* the first version of
+  this note concluded "the transmit rate is the firmware's per-frame
+  service; aggregation is the only lever". The evidence does not
+  support that. A rate equal to depth over latency is what a pipeline
+  capped by its own depth gives, and the depth (12) has never been
+  lifted at HT. It was chosen when the worker was the limit, and the
+  worker is now idle 40 % at full rate. The same numbers fit a firmware
+  that serves at most about this many frames at once. Only a deeper
+  pipeline separates the two: §48.
+- *The per-frame figures, stated accurately:* host work is about
+  100 µs per frame (submit 71, completion 20, plus a share of the
+  reads) against about 0.5 ms of wall time per transmitted frame. The
+  earlier "98.7 % of our own ceiling" reading took wall time for cost.
+  The time per frame does not go into our per-frame code. Boot AB2 is
+  the reference split, and boot AB the degraded repeat.
+- *Receive is a different situation (owner, 2026-10-26).* It delivered
+  about 1,500 frames a second at 17.6 Mbit/s. Each costs about 43 µs of
+  delivery plus its share of the status reads, which run on every pass
+  whether a frame arrived or not. With the interrupt closed, the only
+  receive lever is a cheaper or rarer status read. Its dips also follow
+  the laptop's own send rate (AA7). So transmit has a host knob left to
+  try (the depth) and receive has none of the same kind.
 - *Reverted:* the lifecycle fragment turns
   `CONFIG_MT6797_PASS_COST_RECORD` off again. 0315 stays in the series
   as the instrument.
+
+## 48. The depth-24 boot (predeclared, 2026-10-26): is the transmit pipeline capped by our depth?
+
+**The change.** `CONFIG_MT6797_CCMP_TX_DEPTH=24`, with everything else
+unchanged:
+
+- *0316* raises the option's range to 24. The TC1 ledger derives
+  312 pages, within the firmware's 468, and the PID pool spans 1–126.
+- *The verdict* admits depth 24. Under credit retire the retire record
+  is the ownership proof at any depth.
+- *0315* stays off. The image is the AB2 tree plus 0316, read with the
+  AA throughput harness.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| TX rises toward 30–40 Mbit/s, chunks climbing, `inflight_max=24`, waits longer, RX unchanged | the pipeline was latency-bound and the depth was the defect | keep the depth; re-run the legacy sweep's conclusion at HT; aggregation drops behind this |
+| TX unchanged at ~22, `inflight_max=24` | the firmware's concurrent service is the limit, not our depth | then aggregation is the only lever, and its firmware question goes to the front |
+| new `pid_faults`, `expired`, or a lost completion | the firmware cannot hold 24 outstanding | record the ceiling it does hold (try 16) and keep the largest safe value |
+| air losses rise (retries, sampled status 3) | the air limit, the outcome to want | record the air-limited rate as the new ceiling |
+
+"Aggregation is the only lever" is not recorded until the second row
+is observed.
