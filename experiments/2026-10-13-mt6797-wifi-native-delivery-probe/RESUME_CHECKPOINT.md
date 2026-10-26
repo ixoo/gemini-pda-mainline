@@ -1,4 +1,8 @@
-# Current: §61's transmit-at-40-MHz pair approved: AM's image as the control (no write), then the HT40 transmit image (0324)
+# Current: §61's control, boot AN (AM's image, no write), armed on boot2; the HT40 transmit image building (CONFIG_MT6797_HT40_TX on in the profile for that boot)
+
+Gemian (`c580366e…`) is shut down for the owner's boot2 selection.
+
+# Historical: §61's transmit-at-40-MHz pair approved: AM's image as the control (no write), then the HT40 transmit image (0324)
 
 The device is on Gemian (`c580366e…`); boot2 holds AM's `7533e245…`.
 
