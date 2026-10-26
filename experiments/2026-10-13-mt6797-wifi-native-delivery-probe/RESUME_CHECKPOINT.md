@@ -1,4 +1,8 @@
-# Current: §62's MCS5-at-40-MHz image (boot AR) building, graded against AP; the fragment sets HT40_TX and rate code 0x85 for that boot
+# Current: §62's MCS5-at-40-MHz boot, AR (aa1e0436), staged on boot2 (936c5e65…); graded against AP's 12.96
+
+Gemian (`de14e6c5…`) is shut down for the owner's boot2 selection.
+
+# Historical: §62's MCS5-at-40-MHz image (boot AR) building, graded against AP; the fragment sets HT40_TX and rate code 0x85 for that boot
 
 # Historical: boot AQ graded; the firmware's automatic rate stays at OFDM 6 Mbit/s on the HT record (TX 3.60 against 12.96); the fixed MCS7 restored, 0277 out of the series; §62's MCS5 at 40 MHz is the next transmit constant
 
