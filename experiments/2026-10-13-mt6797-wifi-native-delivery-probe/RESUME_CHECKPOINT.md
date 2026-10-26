@@ -1,4 +1,9 @@
-# Current: §65's auto-rate boot AT approved: 0277 back in the lifecycle series, rate code 0 and `CONFIG_MT6797_HT_STA_RECORD_FULL=y` (0328) in the fragment; building, graded on transmit against AR's 15.01
+# Current: §65's auto-rate boot, AT (9d6e2543), staged on boot2 (34a86969…); graded on transmit against AR's 15.01
+
+Written over AS's `5a3ae9f4…` and read back in full. Gemian
+(`29a3a27a…`) is shut down for the owner's boot2 selection.
+
+# Historical: §65's auto-rate boot AT approved: 0277 back in the lifecycle series, rate code 0 and `CONFIG_MT6797_HT_STA_RECORD_FULL=y` (0328) in the fragment; building, graded on transmit against AR's 15.01
 
 The fragment returns to MCS5 at 40 MHz (`0x85`), and 0277 leaves the
 lifecycle series, after AT, unless §65's first row holds and the owner
