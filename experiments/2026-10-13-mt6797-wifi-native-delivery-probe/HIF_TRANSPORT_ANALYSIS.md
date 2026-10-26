@@ -7531,3 +7531,69 @@ the control; receive and the software frames are recorded.
 | TX at or below 0.54×, attempts high | the uplink SNR at 40 MHz is the limit even at MCS5 | MCS4 once; if that also fails, HT40 receive only |
 | TX at or below 0.54×, attempts near 1 | not retries: the channel access at 40 MHz (secondary channel 36 busy) or the firmware | keep HT40 receive only; record transmit at 40 MHz as refused on this channel |
 | a stall, expired frames, or the ledger moves | the descriptor or rate code is not as expected | revert; preserve the log |
+
+## 63. The firmware's automatic rate, retested on today's tree (predeclared, 2026-10-26; before any further fixed rate)
+
+**The framing (owner).** Capabilities are negotiated, and that layer has
+worked since boot U: HT capability, HT operation (this BSS is 40 MHz),
+WMM, and ADDBA per TID. The per-frame rate is not negotiated; each side
+runs its own adaptation. The access point uses its own, hence MCS5/6 at
+40 MHz in AM. We use a build-time constant (`0x87`, HT MCS7): mac80211's
+minstrel_ht is selected and ignored by this driver, and the firmware's
+selector was retired in a tree with no HT, no WMM and no block-ack.
+That conclusion cannot be assumed to hold for a tree that negotiates
+40 MHz and block-ack. The fixed rate stays the default until this boot
+passes. MCS5 at 40 MHz (§62) is the fixed fallback, the last constant
+chosen, not the next.
+
+**What the October record says (corrections).** Five boots, not one,
+on 2026-10-24 and 25 ([TX_AUTORATE_RESULT](TX_AUTORATE_RESULT.md)):
+- *Status 3 (0242 and 0255).* Clearing the fixed-rate bit, and then the
+  vendor's whole data descriptor, gave status 3 on every data frame.
+- *Rate word 0 (0262).* The rate-visibility boot showed the firmware
+  sending at rate word `0x0000`: an empty rate table.
+- *Encoder refusal (0266).* The first state-2 attempt was refused by
+  our own encoder.
+- *The state-2 update (0277).* It was accepted, and every data frame
+  without a fixed rate was then acknowledged: 1,463 of 1,463. The
+  firmware's selection sat at OFDM 6 Mbit/s (`0x004b`) for all of them.
+  The record then was legacy-only (OFDM PHY, the 6–54 set, no HT).
+
+So the acknowledgement failure was solved by the vendor's state
+sequence (1, 2, 3), and what stayed open was why the selector never
+climbed. 0277 is not in today's lifecycle series. Without it, this
+retest would reproduce the empty table (status 3), the result the
+owner's third row describes and October already explains. 0277 applies
+to today's tree with offsets only.
+
+The vendor's record carries the same default fixed rate code we send,
+`u2HwDefaultFixedRateCode = RATE_OFDM_6M` (`nic_tx.c`), so that field
+is not the difference.
+
+**The boot: a same-session pair under the five-chunk harness.**
+1. *Control:* boot AP's image (`f73f4bf6`), already built: HT40
+   receive, the fixed HT MCS7 at 20 MHz, and 0325's attempts record.
+2. *Then:* the same plus 0277 (the state-2 update after
+   authentication) and `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x0`
+   (ordinary data without a fixed rate; management and security frames
+   keep OFDM 6 Mbit/s).
+
+0277 is a precondition for rate code 0, not an independent variable on
+the control. A fixed-rate descriptor does not use the firmware's table,
+so 0277 cannot change the control's transmit. It is added to the
+lifecycle series at its canonical place, after 0276.
+
+**Unique observation.**
+- `join station state 2: status=`;
+- the `TX rates:` histogram's rate words: mode in bits 6–8 (2 HT mixed),
+  MCS in bits 0–5; it does not carry the bandwidth;
+- the `TX attempts:` histogram;
+- TX against the control's;
+- receive and the ledger, recorded.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| data flows; the rate words show HT MCS (mode 2), several values; TX at or above the control's | the firmware's selector works on today's record | retire the fixed-rate constant; drop §62's MCS5 experiment; check whether the selector uses 40 MHz (descriptor-free, so it needs the access point's view or a bandwidth record) |
+| data flows; the selector sits at a low rate (OFDM, or a low MCS) | it works and is conservative | keep the fixed rate; compare with the vendor's same-air behaviour before judging |
+| state 2 refused, or data unacknowledged (status 3, rate word 0) while the fixed frames succeed | the October defect returns on this tree | read the vendor's station-record path against our command for the fields the HT record now carries |
+| a stall, expired frames, or the ledger moves | the unforced path disturbs the pump | revert; preserve the log |

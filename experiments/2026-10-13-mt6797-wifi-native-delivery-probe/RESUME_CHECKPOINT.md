@@ -1,4 +1,12 @@
-# Current: §62 approved: the control (AP: HT40 receive, MCS7 at 20 MHz, 0325's attempts record) building, then HT40 transmit at a fixed MCS5 (AQ)
+# Current: §63's auto-rate pair approved: the control, boot AP (f73f4bf6, fixed MCS7 at 20 MHz), staged on boot2 (863c01f2…); the auto-rate image (0277 and rate code 0) building
+
+0277 (the state-2 station-record update) is in the lifecycle series at
+its canonical place, and the fragment sets
+`CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x0` for that boot. The fixed rate
+stays the default unless §63 passes. Gemian (`61502d44…`) is shut down
+for the owner's boot2 selection.
+
+# Historical: §62 approved: the control (AP: HT40 receive, MCS7 at 20 MHz, 0325's attempts record) building, then HT40 transmit at a fixed MCS5 (AQ)
 
 The device is on Gemian (`61502d44…`); boot2 holds AO's `0988dc59…`.
 
