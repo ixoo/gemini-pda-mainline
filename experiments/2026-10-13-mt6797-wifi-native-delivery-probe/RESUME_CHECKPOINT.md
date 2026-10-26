@@ -1,4 +1,4 @@
-# Current: boot AA's WLAN HIF interrupt arms cleanly and never fires (taken=0); recorded and not chased; boot AB waits on the line
+# Current: boot AA's interrupt never fired (taken=0); boot AA2 (boot AA plus 0301, the wrapper line mask unmasked) staged on boot2
 
 [Boot AA](HIF_TRANSPORT_ANALYSIS.md#boot-aa-result-2026-10-26-0028-utc-the-interrupt-arms-cleanly-and-never-fires-38s-taken--0-row-stopped-there):
 attached as irq 218; armed `whier=0x00000000>0x00000007
@@ -11,7 +11,12 @@ boot AB depends on the line. Owner: the missing register is the vendor's
 wrapper line mask at 0x200 (`sdio.h` __enable_irq/__disable_irq); 0301
 writes and records it (mask=) in the arm and disarm paths; boot AA2 is
 boot AA plus 0301. If taken stays 0, the poll's read-clear is the cause
-and boot AB's slow poll is next. The device is on Gemian (`9a690b5a…`).
+and boot AB's slow poll is next. The composer and validator admit no
+config change and an identical tree (the parent, boot AA, already
+carries the 0298 interrupt). Boot AA2 is staged on boot2 at 82717df4
+(image 561e2025…, predecessor 6f24c213…), written and read back from
+Gemian (boot `9a690b5a…`), device command 4,074 of 4,096 bytes,
+preflight passed, the device shut down cleanly; the owner selects boot2.
 
 # Historical: boot AA (the WLAN HIF interrupt as a wake source; tests the line) staged on boot2
 
