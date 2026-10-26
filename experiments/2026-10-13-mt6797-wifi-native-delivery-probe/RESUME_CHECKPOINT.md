@@ -1,4 +1,9 @@
-# Current: §62's MCS5-at-40-MHz boot, AR (aa1e0436), staged on boot2 (936c5e65…); graded against AP's 12.96
+# Current: boot AR graded; MCS5 at 40 MHz transmits 1.16× MCS7 at 20 MHz (15.01 against 12.96) with fewer retries; kept in the profile pending the owner
+
+[Boot AR](HIF_TRANSPORT_ANALYSIS.md#boot-ar-result-2026-10-26-2223-utc-mcs5-at-40-mhz-transmits-116-the-mcs7-20-mhz-control-with-fewer-retries).
+The device is on Gemian (`e1400235…`); boot2 holds AR's `936c5e65…`.
+
+# Historical: §62's MCS5-at-40-MHz boot, AR (aa1e0436), staged on boot2 (936c5e65…); graded against AP's 12.96
 
 Gemian (`de14e6c5…`) is shut down for the owner's boot2 selection.
 

@@ -7663,3 +7663,48 @@ owner named, now the next constant.
 (`CONFIG_MT6797_HT40_TX=y`, rate code `0x85`) is graded on transmit
 against boot AP's 12.96 Mbit/s and its attempts baseline (93 %
 first-attempt), taken about half an hour earlier. No new control.
+
+### Boot AR result (2026-10-26, 22:23 UTC): MCS5 at 40 MHz transmits 1.16× the MCS7 20 MHz control, with fewer retries
+
+Build `aa1e0436` (`CONFIG_MT6797_HT40_TX=y`, rate code `0x85`), boot2
+`936c5e65…` (written over AQ's `be5a5e82…` and read back in full),
+mainline boot `87081263…`, about 28 minutes after AP. Graded
+`all_pass`, `session_exit=0`. The reviewed return reached Gemian
+`e1400235…`, live identity confirmed.
+
+```
+join data TX: first pid=5 pages=3 bytes=342 rate=0x85 report=0 bw40=1
+TX rates: status/rate=count 0/0x0085=749 other=0 first=0x0085 last=0x0085 n=749
+TX attempts: none=0 1=710 2=37 3=2 4=0 5=0 6=0 7=0 8+=0
+join data credit retire end: retired=47241 expired=0 pid_faults=0 wait_avg_us=6535 wait_max_us=147288 left_pages=0 inflight_max=12
+```
+
+| | AR: MCS5, 40 MHz | AP: MCS7, 20 MHz | AO: MCS7, 40 MHz |
+|---|---|---|---|
+| TX aggregate | 15.01 | 12.96 | 7.34 |
+| TX chunk mean | 16.32 (15.35–17.78) | 13.95 (11.12–15.99) | 7.98 (3.76–11.01) |
+| first-attempt | 94.8 % (710/749) | 93.3 % (615/659) | not recorded |
+| failed statuses | 0 | 0 | 4 |
+
+- *Observed: the descriptor took 40 MHz and MCS5* (`bw40=1`, every
+  sampled rate word `0x0085`). The frames went out cleaner than the
+  control's: 94.8 % on the first attempt against 93.3 %, and none
+  failed.
+- *Transmit (graded):* 1.16× AP's aggregate, 1.17× on the chunk means,
+  higher in every chunk. It is under §62's 1.3–1.4× expectation: the
+  PHY ratio (108 against 65, 1.66×) does not carry through, as §61
+  expected, because the firmware's service per frame is only partly air
+  time. It is 2.0× AO, the same bandwidth at MCS7. So AO's loss was the
+  rate, not the band, as the owner read it.
+- *Receive (recorded):* 25.80 Mbit/s (chunks 24.32–29.25), at 40 MHz
+  (MCS7 30,559, MCS6 17,052). The window held every frame and released
+  it; the ledger is clean.
+
+**Reading against §62.** It is between the first row (1.3–1.4×) and the
+second (between the control and 1.3×). The second row's condition,
+attempts above the control's, does not hold: MCS5 at 40 MHz is not
+marginal, it is cleaner than MCS7 at 20 MHz. MCS4 at 40 MHz would lower
+the PHY with no retry to remove, so it is not the next step. If any
+step is next, it is up: MCS6 at 40 MHz (`0x86`, 121.5 Mbit/s), once,
+with these attempts as its baseline. The profile keeps MCS5 at 40 MHz,
+as built for this boot, pending the owner's decision.

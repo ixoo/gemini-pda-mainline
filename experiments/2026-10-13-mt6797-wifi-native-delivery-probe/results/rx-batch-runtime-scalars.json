@@ -4391,6 +4391,57 @@
     "tx_air_losses": 1
    },
    "reading": "HIF section 60: 40 MHz receive works (grant SCB, all frames at 40 MHz), receive 1.34x the 20 MHz control, short of the 1.4x predicted; keeping the option is the owner's decision"
+  },
+  "boot-ar": {
+   "run": "PIO-throughput-bootar-1",
+   "session": "2026-10-26 22:23 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (HT40 receive and transmit, rate code 0x85, 0325)",
+   "kernel_build_commit": "aa1e0436bf95333872ce59940ac5da545fe04ae0",
+   "boot2_sha256": "936c5e657931dbe94948ed7192cea2b7e565c5bbc9a5166be15d5266c3bd67df",
+   "predecessor_boot2_sha256": "be5a5e824a033f1420e988576c84e9fc062fa0efed28f5153dcbfbdd9c93b79c",
+   "previous_gemian_boot_id": "de14e6c5-b0d0-47cf-bb7d-11e9491accad",
+   "returned_gemian_boot_id": "e1400235-bd74-4551-95cb-451e24532c23",
+   "classification": "graded: all_pass; against boot AP",
+   "series_row": true,
+   "tx": {
+    "rate_word": "0x0085",
+    "bw40": true,
+    "attempts": {
+     "1": 710,
+     "2": 37,
+     "3": 2
+    },
+    "first_attempt_fraction": 0.948,
+    "failed": 0
+   },
+   "control_ap": {
+    "tx_mbit_s": 12.96,
+    "attempts": {
+     "1": 615,
+     "2": 40,
+     "3": 4
+    },
+    "first_attempt_fraction": 0.933
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 15.01,
+    "tx_chunk_mbit_s": [
+     17.78,
+     15.54,
+     15.35,
+     17.18,
+     15.73
+    ],
+    "tx_ratio_to_ap": 1.16,
+    "rx_aggregate_mbit_s_recorded": 25.8
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "reading": "HIF section 62: MCS5 at 40 MHz transmits 1.16x MCS7 at 20 MHz with fewer retries, 2.0x MCS7 at 40 MHz; under the 1.3x expected; not marginal, so MCS6 at 40 MHz, not MCS4, is the next step if any"
   }
  }
 }
