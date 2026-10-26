@@ -905,3 +905,6 @@ proposals/0312-wifi-mt6797-record-each-scan-request-and-its-outcome.patch
 proposals/0313-wifi-mt6797-add-a-one-shot-diagnostic-that-drops-an-.patch
 proposals/0315-wifi-mt6797-record-the-worker-s-cost-per-phase-in-th.patch
 proposals/0316-wifi-mt6797-allow-up-to-24-outstanding-ordinary-data.patch
+proposals/0317-wifi-mt6797-enable-receive-aggregation-in-the-statio.patch
+proposals/0318-wifi-mt6797-record-the-firmware-s-receive-block-ack-.patch
+proposals/0319-wifi-mt6797-admit-block-ack-sub-frames-in-the-pairwi.patch

@@ -1,0 +1,96 @@
+From 5fd463192ce724861785012d36881617ff37428e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 09:23:20 -0400
+Subject: [PATCH] wifi: mt6797: enable receive aggregation in the station
+ record
+
+The vendor driver receives 31.5-38.5 Mbit/s on the same access point
+where this one receives 17.6-20.5, and the difference is receive
+aggregation. Block-ack is firmware-managed in the vendor build
+(CFG_M0VE_BA_TO_DRIVER is 0): the firmware answers the access point's
+ADDBA request itself, and the host's only enable is the station record.
+The vendor sends ucRxAmpdu = FEATURE_OPT_IN_COMMAND(FEATURE_ENABLED) = 2
+and its HT receive window ucRxBaSize = 64 (cnm_mem.c). This driver sends
+ucRxAmpdu = 1, disabled, so the firmware declines and the access point
+never aggregates toward the station.
+
+Under CONFIG_MT6797_RX_AMPDU, the state-3 station record that declares
+the access point's HT sets ucRxAmpdu 2 and ucRxBaSize 64. The HT records
+line reports both. Transmit A-MPDU is unchanged. The session events and
+the sub-frames' status word follow in their own changes.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 13 +++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   |  8 ++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   |  6 ++++--
+ 3 files changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 6d935603a..a52c8f770 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -247,6 +247,19 @@ config MT6797_TX_AMPDU
+ 	  0): a receive session would need host reordering and admission of
+ 	  the block-ack status words, its own change.
+ 
++config MT6797_RX_AMPDU
++	bool "MT6797 Wi-Fi: accept the access point's receive aggregation (firmware block-ack)"
++	depends on MT6797_HT_RECORDS && MT6797_CCMP_STABLE_EPOCH
++	help
++	  In the state-3 CMD_UPDATE_STA_RECORD that declares the access
++	  point's HT, enable receive A-MPDU as the vendor does: ucRxAmpdu
++	  FEATURE_OPT_CMD_ENABLED (2) and its HT receive block-ack window,
++	  ucRxBaSize 64. Block-ack is firmware-managed in the vendor build
++	  (CFG_M0VE_BA_TO_DRIVER 0): the firmware answers the access point's
++	  ADDBA itself and reports the session as EVENT_ID_RX_ADDBA and
++	  EVENT_ID_RX_DELBA, which the driver records, and the driver admits
++	  the block-ack sub-frames' status word. Transmit A-MPDU is unaffected.
++
+ config MT6797_WMM_QOS_RECORDS
+ 	bool "MT6797 Wi-Fi: declare the station and the BSS QoS to the firmware under WMM"
+ 	depends on MT6797_WMM_QOS_DATA
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index cf05392f6..cee980a07 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1405,6 +1405,14 @@ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 		payload[48] = ht_cap[2];
+ 		payload[76] = 2;
+ 		payload[92] = 64;
++#endif
++#ifdef CONFIG_MT6797_RX_AMPDU
++		/* Receive aggregation, firmware block-ack (0317): ucRxAmpdu
++		 * FEATURE_OPT_CMD_ENABLED (77, 2) and the vendor's HT ucRxBaSize
++		 * 64 (93), as cnm_mem.c sends them.
++		 */
++		payload[77] = 2;
++		payload[93] = 64;
+ #endif
+ 	}
+ 	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1188bbaf2..29588a98c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -6357,7 +6357,7 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 		ht_op = mac->join_ht_op;
+ 	}
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join HT records: declared=%u sta_phy=0x%02x mcs=0x%02x mcs32=%u cap=0x%04x ext=0x%04x bss_phy=0x%02x protect=%u op1=0x%02x op2=0x%04x op3=0x%04x ampdu=0x%02x tx_ampdu=%u tx_ba=%u rx_ampdu=1\n",
++		 "one-shot WLAN join HT records: declared=%u sta_phy=0x%02x mcs=0x%02x mcs32=%u cap=0x%04x ext=0x%04x bss_phy=0x%02x protect=%u op1=0x%02x op2=0x%04x op3=0x%04x ampdu=0x%02x tx_ampdu=%u tx_ba=%u rx_ampdu=%u rx_ba=%u\n",
+ 		 !!ht_cap, ht_cap ? 0x18 : 0x08, ht_cap ? ht_cap[3] : 0,
+ 		 ht_cap ? ht_cap[7] & 1 : 0,
+ 		 ht_cap ? get_unaligned_le16(ht_cap) : 0,
+@@ -6367,7 +6367,9 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 		 ht_op ? get_unaligned_le16(ht_op + 4) : 0,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? ht_cap[2] : 0,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 2 : 1,
+-		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 64 : 0);
++		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 64 : 0,
++		 ht_cap && IS_ENABLED(CONFIG_MT6797_RX_AMPDU) ? 2 : 1,
++		 ht_cap && IS_ENABLED(CONFIG_MT6797_RX_AMPDU) ? 64 : 0);
+ #endif
+ 	ret = mt6797_hif_join_bss_qos(mac->hif, mac->sequence++, mac->join_ap,
+ 				     mac->join_ssid, mac->join_ssid_bytes,
+-- 
+2.43.0
+

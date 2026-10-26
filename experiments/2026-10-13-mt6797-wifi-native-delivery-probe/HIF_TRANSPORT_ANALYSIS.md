@@ -6262,3 +6262,51 @@ together:
 
 The per-frame receive cost work (a cheaper or rarer status read) stays
 behind this, not interleaved.
+
+## 50. The receive-aggregation boot (predeclared, 2026-10-26)
+
+**What was found while writing the patches.** mac80211's offloaded
+receive block-ack cannot own the window here. This driver delivers
+unicast data to mac80211 as 802.3 frames (`RX_FLAG_8023 |
+RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED`, RX decap offload).
+mac80211's 802.3 receive path does not reorder; drivers with decap
+offload reorder themselves. A session started with
+`ieee80211_start_rx_ba_session_offl()` would build a reorder buffer our
+frames never pass through. So the mac80211 part is left out: no
+`ampdu_action` change, and no `AMPDU_AGGREGATION` flag, which would only
+disable fast-rx. One more constraint follows from the same reading. The
+pairwise check enforces a strict per-TID PN as each frame arrives,
+before any reordering. A retransmitted hole that arrives after higher
+sequence numbers is refused at `pn=lower`. If reordering is needed, it
+belongs in the driver ahead of that check.
+
+**The patches.** `CONFIG_MT6797_RX_AMPDU`, default off, set in the
+profile for this boot:
+
+- *0317:* the state-3 station record sets `ucRxAmpdu = 2` and
+  `ucRxBaSize = 64`, as `cnm_mem.c` does. The HT records line reports
+  them.
+- *0318:* `EVENT_ID_RX_ADDBA` (0x0a) and `EVENT_ID_RX_DELBA` (0x0b) are
+  accepted by the control-event dispatcher, which would otherwise end
+  the lifetime on an unknown event. ADDBA records the TID, the window
+  and the starting sequence. Both are logged as `RX BA start:` and
+  `RX BA stop:`.
+- *0319:* the pairwise receive check admits `(status & 0xffbf) == 0`
+  beside `0xc000`. Every other check is unchanged, the strict PN among
+  them. Admitted sub-frames are counted, and printed as `RX BA:
+  active= starts= stops= frames=` when the data phase ends. The group,
+  EAPOL and legacy paths keep `0xc000`. The host test
+  `tests/run-ccmp-ba-status-test.py` passes on the parent (refused), on
+  the change with the option off (refused) and with it on (admitted,
+  identical to the `0xc000` decision, strict PN kept). Two mask
+  mutations fail it.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `RX BA start: tid=… window=64`, `frames` in the tens of thousands, few `pn=lower` refusals, RX rising toward ~30 | the firmware delivers sub-frames in sequence order, and the strict check costs little | keep the straight-through delivery; RX aggregation is done |
+| `RX BA start`, many `pn=lower` refusals on the session's TID, RX flat or lower | the firmware delivers out of order | a bounded per-TID reorder window in the driver ahead of the PN check, with a timeout flush and a drop counter |
+| no `RX BA start` and `frames=0` | the firmware did not accept the access point's ADDBA, or the access point did not offer one | read the station record's echo and the access point's behaviour before any further change |
+| a refusal naming a sub-frame status not admitted, a lifetime stop on an event, or any join, refusal or ledger change | the classification or the event handling is incomplete | fix that site first |
+
+Transmit is predicted unchanged at ~22.6 Mbit/s, with
+`CONFIG_MT6797_TX_AMPDU` off and transmit aggregation parked.

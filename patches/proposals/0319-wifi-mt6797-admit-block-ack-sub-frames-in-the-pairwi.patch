@@ -1,0 +1,93 @@
+From e9164439cc6be4d63135d3982fef8b471a9f2e7f Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 09:23:20 -0400
+Subject: [PATCH] wifi: mt6797: admit block-ack sub-frames in the pairwise
+ receive check
+
+The pairwise CCMP receive check admits only the status word 0xc000. In
+the pinned vendor macros the A-MPDU bits 14 and 15 are inverted, so
+0xc000 is a non-aggregated frame, and a block-ack sub-frame (either bit
+clear) is refused. The vendor's nic_rx.c sends a frame to its reorder
+buffer when (status & RXS_DW2_AMPDU_nERR_BITMAP 0xffbf) == 0: every
+flag clear except LEN_MISMATCH (bit 6).
+
+Under CONFIG_MT6797_RX_AMPDU the check also admits that word. Every
+other check is unchanged, the strict per-TID PN among them: a sub-frame
+that arrives after a higher sequence on its TID is still refused at the
+PN and named so. That makes the first boot's question measurable
+without relaxing the replay check: does the firmware deliver sub-frames
+in sequence order? The admitted sub-frames are counted and printed with
+the session counts when the data phase ends. The group, EAPOL and
+legacy data paths keep 0xc000.
+---
+ drivers/net/wireless/mediatek/mt6797/ccmp-rx.h | 18 +++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.c     | 10 ++++++++++
+ 2 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+index c5ca91500..1c514fc9e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
++++ b/drivers/net/wireless/mediatek/mt6797/ccmp-rx.h
+@@ -67,6 +67,22 @@ struct mt6797_ccmp_rx {
+  * No flags/delivery/logging/MMIO. False preserves ALL context/output bytes;
+  * true commits only the validated PN and Ethernet view, under caller locking.
+  */
++/* The admitted status words: 0xc000, the non-aggregated shape; and, with
++ * receive aggregation (0319), a block-ack sub-frame as the vendor's
++ * nic_rx.c classifies it, (status & RXS_DW2_AMPDU_nERR_BITMAP 0xffbf) == 0:
++ * every flag clear but LEN_MISMATCH (bit 6), the inverted A-MPDU bits
++ * 14/15 included. Every other check, the strict per-TID PN among them,
++ * applies unchanged.
++ */
++static inline bool mt6797_ccmp_rx_status_ok(unsigned int status)
++{
++#ifdef CONFIG_MT6797_RX_AMPDU
++	if (!(status & 0xffbf))
++		return true;
++#endif
++	return status == 0xc000;
++}
++
+ static inline bool
+ mt6797_ccmp_rx_check(const unsigned char *packet, size_t bytes,
+ 		     struct mt6797_ccmp_rx_context *context,
+@@ -97,7 +113,7 @@ mt6797_ccmp_rx_check(const unsigned char *packet, size_t bytes,
+ 	    (packet[6] & 0xbf) != 0x8e ||
+ 	    packet[7] != (unsigned int)context->rxd_bssid << 2 ||
+ 	    packet[8] != context->wlan_index || (packet[9] & 0xf0) != 0x40 ||
+-	    mt6797_join_le16(packet + 10) != 0xc000)
++	    !mt6797_ccmp_rx_status_ok(mt6797_join_le16(packet + 10)))
+ 		return false;
+ 	groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
+ 	if ((groups & 9) != 9)
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 1db34dcb9..bfa777618 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -973,6 +973,11 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	}
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ checked:
++#ifdef CONFIG_MT6797_RX_AMPDU
++	/* A block-ack sub-frame that passed the same checks (0319). */
++	if (!group && mt6797_join_le16(mac->join_packet + 10) != 0xc000)
++		mac->rx_ba_frames++;
++#endif
+ 	if (group)
+ 		mac->ccmp_gtk_queued++;
+ 	if (group && !mac->ccmp_gtk_seen) {
+@@ -3574,6 +3579,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 MT6797_JOIN_DATA_TX_QUEUE);
+ #endif
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
++#ifdef CONFIG_MT6797_RX_AMPDU
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN RX BA: active=0x%02x starts=%u stops=%u frames=%u\n",
++		 mac->rx_ba_active, mac->rx_ba_starts, mac->rx_ba_stops, mac->rx_ba_frames);
++#endif
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u tx_tid=%u/%u/%u/%u/%u/%u/%u/%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u rx_llc_mis=%u\n",
+ 		 mac->join_wmm_requested, mac->join_wmm_accepted, mac->qos_ac_params,
+-- 
+2.43.0
+

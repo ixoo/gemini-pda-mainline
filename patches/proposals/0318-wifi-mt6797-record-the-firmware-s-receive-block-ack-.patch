@@ -1,0 +1,115 @@
+From 0428b4400dd15f38b75b88a599f1165ccf2346c1 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 09:23:20 -0400
+Subject: [PATCH] wifi: mt6797: record the firmware's receive block-ack
+ sessions
+
+With receive aggregation enabled in the station record (0317), the
+firmware answers the access point's ADDBA request itself and reports the
+session to the host as the unsolicited EVENT_ID_RX_ADDBA (0x0a), and a
+teardown as EVENT_ID_RX_DELBA (0x0b) (the vendor's
+qmHandleEventRxAddBa() and qmHandleEventRxDelBa()). The control-event
+dispatcher refuses any event it does not know, and a refusal ends the
+lifetime, so the first session would stop the join.
+
+Both events are now accepted under CONFIG_MT6797_RX_AMPDU. ADDBA records
+the TID, the window and the starting sequence number. DELBA clears the
+TID. Each is logged, and neither ends the lifetime. Sessions are cleared
+with the lifetime.
+
+mac80211 is not told of the session. This driver delivers unicast data
+as 802.3 frames (RX decap offload), and mac80211 does not reorder on
+that path, so its reorder buffer would never see them. Whether the
+firmware delivers sub-frames in sequence order is the first boot's
+question; reordering, if needed, belongs in the driver ahead of the
+replay check.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 51 ++++++++++++++++++++++
+ 1 file changed, 51 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 29588a98c..1db34dcb9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -270,6 +270,14 @@ struct mt6797_mac {
+ 	 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
+ 	 */
+ 	unsigned int join_auth_attempts, join_assoc_attempts;
++#ifdef CONFIG_MT6797_RX_AMPDU
++	/* The firmware's receive block-ack sessions per TID, and their
++	 * sub-frames (0318, 0319).
++	 */
++	u8 rx_ba_active;
++	u16 rx_ba_window[8], rx_ba_ssn[8];
++	unsigned int rx_ba_starts, rx_ba_stops, rx_ba_frames;
++#endif
+ 	/* The scan requests of a lifetime, timed from its rearm (0312). */
+ 	u64 scan_rearm_ns;
+ 	unsigned int scan_calls;
+@@ -2293,6 +2301,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_seen = 0;
+ 	mac->join_auth_attempts = 0;
+ 	mac->join_assoc_attempts = 0;
++#ifdef CONFIG_MT6797_RX_AMPDU
++	mac->rx_ba_active = 0;
++#endif
+ 	mac->join_tx_allowed = 0;
+ 	mac->join_rx_allowed = 0;
+ 	mac->join_deadline = 0;
+@@ -2616,6 +2627,9 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ 	mac->join_seen = 0;
+ 	mac->join_auth_attempts = 0;
+ 	mac->join_assoc_attempts = 0;
++#ifdef CONFIG_MT6797_RX_AMPDU
++	mac->rx_ba_active = 0;
++#endif
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+@@ -2872,6 +2886,43 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ #endif
+ 		return 0;
+ 	}
++#ifdef CONFIG_MT6797_RX_AMPDU
++	/* The firmware answered the access point's ADDBA itself (block-ack
++	 * is firmware-managed) and reports the receive session (0318):
++	 * EVENT_ID_RX_ADDBA (0x0a) carries the station record index, the
++	 * dialog token, the BA parameter set (TID bits 2-5, window bits
++	 * 6-15), the timeout and the starting sequence control;
++	 * EVENT_ID_RX_DELBA (0x0b) the station record index and the TID.
++	 * Each is recorded and never ends the lifetime.
++	 */
++	if (mac->join_packet[4] == 0x0a && bytes >= 16) {
++		const u8 *e = mac->join_packet + 8;
++		unsigned int param = get_unaligned_le16(e + 2), tid = (param >> 2) & 15;
++
++		mac->rx_ba_starts++;
++		if (tid < 8) {
++			mac->rx_ba_active |= BIT(tid);
++			mac->rx_ba_window[tid] = param >> 6;
++			mac->rx_ba_ssn[tid] = get_unaligned_le16(e + 6) >> 4;
++		}
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN RX BA start: sta=%u dialog=%u tid=%u window=%u ssn=%u timeout=%u bytes=%zu count=%u\n",
++			 e[0], e[1], tid, param >> 6, get_unaligned_le16(e + 6) >> 4,
++			 get_unaligned_le16(e + 4), bytes, mac->rx_ba_starts);
++		return 0;
++	}
++	if (mac->join_packet[4] == 0x0b && bytes >= 10) {
++		const u8 *e = mac->join_packet + 8;
++
++		mac->rx_ba_stops++;
++		if (e[1] < 8)
++			mac->rx_ba_active &= ~BIT(e[1]);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN RX BA stop: sta=%u tid=%u bytes=%zu count=%u\n",
++			 e[0], e[1], bytes, mac->rx_ba_stops);
++		return 0;
++	}
++#endif
+ 	return -EPROTO;
+ }
+ 
+-- 
+2.43.0
+
