@@ -631,3 +631,60 @@ ledger matches the reconnect gate: `tx_failed=0`, slot summaries with
 nothing pending, no `-90`, and `window_505_508` counted. Lifetime 3's
 join takes one association timeout longer than the gate's (the
 dropped response), and its reconnect time is read with that.
+
+## Reconnect gate 2: result (2026-10-26, 11:13 UTC) — the classifier grades in session; the scan delay is the stack's; 0304 absorbs a lost association response on hardware
+
+Build `1f8d19ae` (0312, 0313 at lifetime 3), boot2 `425c7c56…` (written
+over `e4783dff…` and read back in full). Mainline boot `2a3d6680…`,
+returned by the session's reviewed return to Gemian `2a4ce560…`, with
+the log complete through the seal.
+
+**The verdict, in session.** `session_exit=0`. The session's own record
+reads `cycles=3 loss_cycle=2 lifecycle_pass=true`, `first_failure` is
+null and every gate is true. The receipt reads `all_pass` with
+`cycles_passed=3`. The classifier fix holds: no regrade was needed. The
+loss came in cycle 2 after 366.0 s, `source=monitor reason=4 class=air`.
+
+**The scan delay: stack policy, not the driver.**
+
+```
+lifetime 1: scan request: call=1 since_rearm_ms=0   ret=0 why=admitted n_ssids=0 n_channels=1 flags=0x0
+lifetime 2: scan request: call=1 since_rearm_ms=712 ret=0 why=admitted n_ssids=0 n_channels=1 flags=0x0
+lifetime 3: scan request: call=1 since_rearm_ms=911 ret=0 why=admitted n_ssids=0 n_channels=1 flags=0x0
+```
+
+In each lifetime the hook was called once, and that first call was
+admitted. Nothing was refused before it. After the clean disconnect
+the first request arrived 712 ms after the rearm, and after the loss
+911 ms after. So the ~0.9 s before the scan is the supplicant's or
+mac80211's scheduling of the scan request. It is recorded as stack
+policy, and there is nothing to fix in the driver.
+
+**0304 on hardware: the lost association response is absorbed.**
+
+| Event (lifetime 3) | Time (s) |
+|---|---|
+| association request (first attempt) admitted | 391.439 |
+| association response dropped (diagnostic, `attempts=1`) | 391.467 |
+| first EAPOL-Key refused at `association`, none received yet | 391.491 |
+| mac80211's retry admitted: `subtype=0 auth_attempts=1 assoc_attempts=1 admitted=1` | 391.571 |
+| association response (second attempt) | 391.599 |
+| first EAPOL-Key admitted on `bss=1` | 391.623 |
+| group key credit | 391.819 |
+
+The retry came 104 ms after the drop, and the join completed. This is
+boot AA2's failure, a lost association response, now survived on
+hardware. The §44 row "a lost management frame on a rejoin" is closed.
+From the loss report (389.690) to the group key took 2.13 s, the
+reconnect gate's 1.97 s plus the one lost response (about 0.13 s).
+
+**The ledger.** Every lifetime ended with `tx_failed=0`, and each
+cleanup slot summary had completions equal to allocations, with
+`pending=0 unowned=0`. There was no `join stopped`, no `-90`, and
+`failures=0`. The batch counters are boot-cumulative: one 505–508-byte
+aggregate occurred, in lifetime 1, and transferred, and
+`max_bytes=25,600`.
+
+**Reverted.** The lifecycle fragment's
+`CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME` is back to 0. 0313 stays
+in the series as a diagnostic that compiles out.

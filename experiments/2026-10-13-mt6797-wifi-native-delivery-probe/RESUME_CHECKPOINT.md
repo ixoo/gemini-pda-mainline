@@ -1,4 +1,16 @@
-# Current: reconnect gate 2 staged on boot2 (build 1f8d19ae: the scan-request record, the association-response drop at lifetime 3, the plan-aware lifecycle classifier)
+# Current: reconnect gate 2 passed in session; the scan delay is stack policy; 0304 absorbs a lost association response on hardware; next: the WHIER-order boot (§45)
+
+[Reconnect gate 2](LIFECYCLE_RESULT.md#reconnect-gate-2-result-2026-10-26-1113-utc--the-classifier-grades-in-session-the-scan-delay-is-the-stacks-0304-absorbs-a-lost-association-response-on-hardware):
+`session_exit=0`, with the in-session classification at `cycles=3
+loss_cycle=2 lifecycle_pass=true`. Each lifetime's first scan request
+reached the hook 0/712/911 ms after the rearm and was admitted, so the
+~0.9 s is the supplicant's or mac80211's. The dropped association
+response of lifetime 3 was followed by mac80211's retry 104 ms later,
+admitted by 0304, and the join completed. The ledger was clean. The
+drop option is reverted to 0 in the fragment. The device is on Gemian
+(`2a4ce560…`); boot2 holds `425c7c56…`.
+
+# Historical: reconnect gate 2 staged on boot2 (build 1f8d19ae: the scan-request record, the association-response drop at lifetime 3, the plan-aware lifecycle classifier)
 
 Boot2 holds `425c7c56…`, written over boot AA7's `e4783dff…` and read
 back in full. The composer and validator admit exactly the drop option
