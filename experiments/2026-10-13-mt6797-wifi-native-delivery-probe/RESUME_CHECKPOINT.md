@@ -1,4 +1,14 @@
-# Current: boot AC, the depth-24 boot (§48), staged on boot2 (build a1347edc: 0316, depth 24)
+# Current: boot AC graded; depth 24 fills and the rate does not move; the firmware's concurrency is the transmit limit; aggregation's firmware question is next (offline); depth back to 12
+
+[Boot AC](HIF_TRANSPORT_ANALYSIS.md#boot-ac-result-2026-10-26-1252-utc-depth-24-fills-and-the-rate-does-not-move-the-firmwares-concurrency-is-the-transmit-limit):
+`all_pass`, `inflight_max=24` with no fault, expiry or lost
+completion. The credit wait went from 4.44 to 7.15 ms and TX was 18.5
+(chunks 19.3–20.5), not higher than depth 12's 21.99. §48's second
+row: aggregation is the only transmit lever, and its ADDBA question
+goes to the RE VM. The profile's depth is back to 12; 0316's range
+stays. The device is on Gemian (`6a7f2948…`); boot2 holds `e723ddfb…`.
+
+# Historical: boot AC, the depth-24 boot (§48), staged on boot2 (build a1347edc: 0316, depth 24)
 
 Boot2 holds `e723ddfb…`, written over boot AB's `8f481a70…` and read
 back in full. The composer admits two config changes (depth 12→24, the

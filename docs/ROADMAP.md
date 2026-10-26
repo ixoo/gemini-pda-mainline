@@ -70,9 +70,11 @@ Keep this file under 200 lines; move anything else to an experiment record.
   The frame rate did not move with it. The per-phase measurement shows the host
   spends about 100 µs per transmitted frame and idles 40 % of the time, while the
   transmit pipeline holds its full depth of 12 (4.4 ms per frame in the firmware).
-  Next: depth 24, one boot. If transmit rises, the depth was the cap; if not, the
-  firmware's concurrency is, and aggregation (an offline firmware question) is the
-  lever. Receive has no host knob of that kind: with the interrupt closed only a
+  Depth 24 filled with no fault and the rate did not rise (latency rose instead,
+  [HIF §48](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ac-result-2026-10-26-1252-utc-depth-24-fills-and-the-rate-does-not-move-the-firmwares-concurrency-is-the-transmit-limit)):
+  the firmware's concurrency is the transmit limit, so aggregation is the only lever
+  and its firmware question (ADDBA behaviour, boot Y's undelivered aggregates) is
+  next, offline in the RE VM. Receive has no host knob of that kind: with the interrupt closed only a
   cheaper or rarer status read remains
   ([HIF analysis §47](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ab2-result-2026-10-26-1226-utc-at-normal-rates-the-host-is-not-the-transmit-limit-the-pipeline-holds-its-full-depth)). The receive
   engine is a poll; the HIF interrupt is closed for this configuration.

@@ -6136,3 +6136,41 @@ unchanged:
 
 "Aggregation is the only lever" is not recorded until the second row
 is observed.
+
+### Boot AC result (2026-10-26, 12:52 UTC): depth 24 fills and the rate does not move; the firmware's concurrency is the transmit limit
+
+Build `a1347edc`, boot2 `e723ddfb…` (written over AB's `8f481a70…` and
+read back in full). Graded `all_pass`, `session_exit=0`. The session's
+reviewed return reached Gemian `6a7f2948…` with the log complete.
+
+```
+credit retire end: retired=48910 expired=0 pid_faults=0 wait_avg_us=7149 wait_max_us=36950 left_pages=0 inflight_max=24 samples=776 reports=776
+TX slot summary: phase=cleanup allocations=49690 completions=49690 pending=0 unowned=0
+```
+
+| | Boot AB2 (depth 12) | Boot AC (depth 24) |
+|---|---|---|
+| `inflight_max` | 12 | 24 |
+| credit wait, mean (max) | 4.44 ms (18.2) | 7.15 ms (37.0) |
+| TX aggregate (chunks) | 21.99 (23.05–23.67) | 18.50 (19.29–20.53) |
+| RX aggregate | 17.63 | 16.93 |
+| device TCP retransmissions, TX | 590 | 854 |
+| sampled air losses | 0 of 827 | 0 of 776 |
+| `expired`/`pid_faults`/`left_pages` | 0/0/0 | 0/0/0 |
+
+- *Observed:* the pipeline filled to the new depth (`inflight_max=24`,
+  `max_per_pass=24`). The firmware held 24 outstanding with no fault,
+  no expiry and every slot completed.
+- *Observed:* the transmit rate did not rise. It ran 18.5 Mbit/s,
+  inside the typical band and below AB2's best. The latency per frame
+  rose about 1.6-fold, so the extra depth went into the queue rather
+  than into throughput.
+- *Branch taken: the second row.* The firmware's concurrent service is
+  the transmit limit, not our depth. With the host idle about 40 % and
+  its per-frame work about 100 µs (AB2), no host setting moves the
+  transmit rate. **Aggregation is the only lever.** Its firmware
+  question, the ADDBA behaviour and boot Y's undelivered aggregates,
+  goes to the front as an RE-VM question with the image retained.
+- *The depth goes back to 12.* 24 is safe but bought no rate. It added
+  latency and more TCP retransmissions, so the profile returns to 12.
+  0316's wider range stays, so a later aggregation test can use it.

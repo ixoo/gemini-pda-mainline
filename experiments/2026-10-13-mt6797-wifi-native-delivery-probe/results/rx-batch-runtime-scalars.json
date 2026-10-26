@@ -4089,6 +4089,54 @@
     "tx_air_losses": 0
    },
    "reading": "HIF section 47: host work about 100 us per transmitted frame against 0.5 ms of wall time; the pipeline holds its full depth of 12 at 4.44 ms per frame; depth cap or firmware concurrency, decided by depth 24 (section 48)"
+  },
+  "boot-ac": {
+   "run": "PIO-throughput-bootac-1",
+   "session": "2026-10-26 12:52 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (AB tree + 0316; depth 24)",
+   "kernel_build_commit": "a1347edc4f3cff2fbb90af496c64ea7eadb28d47",
+   "boot2_sha256": "e723ddfb15477dd25ec6e0ab670db503df1c273eb0d9e5119cc7c828c284b093",
+   "predecessor_boot2_sha256": "8f481a70942486f0af01a51cdd6a60e3847748abb982bc55a668e787441c5fff",
+   "previous_gemian_boot_id": "fa9518ef-1b04-43ef-99e7-8e2ab11a0680",
+   "returned_gemian_boot_id": "6a7f2948-e5f5-40c8-9f93-afe995ca5adf",
+   "classification": "graded: all_pass; depth 24 filled with no fault and the transmit rate did not rise",
+   "series_row": true,
+   "credit_retire": {
+    "retired": 48910,
+    "wait_avg_us": 7149,
+    "wait_max_us": 36950,
+    "inflight_max": 24
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 18.5,
+    "tx_chunk_mbit_s": [
+     20.32,
+     19.51,
+     19.72,
+     19.29,
+     20.53
+    ],
+    "rx_aggregate_mbit_s": 16.93,
+    "rx_device_chunk_mbit_s": [
+     20.8,
+     19.24,
+     19.02,
+     21.31,
+     10.1
+    ],
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 854
+    },
+    "passes_per_s": 11106
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "reading": "HIF section 48, second row: the firmware's concurrent service is the transmit limit; aggregation is the only lever; depth back to 12"
   }
  }
 }
