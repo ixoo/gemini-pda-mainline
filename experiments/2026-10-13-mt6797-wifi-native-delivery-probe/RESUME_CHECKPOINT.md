@@ -1,4 +1,8 @@
-# Current: §64's short-GI boot (AS: 0326 receive, 0327 transmit) approved and building, graded against AR
+# Current: §64's short-GI boot, AS (a9e05489), staged on boot2 (5a3ae9f4…); graded against AR
+
+Gemian (`e1400235…`) is shut down for the owner's boot2 selection.
+
+# Historical: §64's short-GI boot (AS: 0326 receive, 0327 transmit) approved and building, graded against AR
 
 The fragment enables `CONFIG_MT6797_HT_SGI_RX` and
 `CONFIG_MT6797_HT_SGI_TX` for that boot. The device is on Gemian
