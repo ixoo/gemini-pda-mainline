@@ -67,10 +67,12 @@ Keep this file under 200 lines; move anything else to an experiment record.
   ([throughput series](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-25-after-boot-l)).
   HT is done: WMM/QoS data and MCS7 in both directions (boot W onward,
   [scope](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HT_PROJECT_SCOPE.md)).
-  The frame rate did not move with it, so the next throughput work is the
-  per-frame host cost, judged in microseconds per frame
-  ([HIF analysis §46–47](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#46-the-interrupt-closure-and-the-per-frame-cost-2026-10-26));
-  aggregation is an offline firmware question in parallel. The receive
+  The frame rate did not move with it. The per-phase measurement shows why:
+  the host spends about 90 µs per transmitted frame and idles 40 % of the time,
+  while frames wait 4.4 ms in the firmware at 12 in flight. Transmit is bound by
+  the firmware's per-frame service, so aggregation is the only lever; its
+  firmware question (ADDBA behaviour) is next, offline in the RE VM
+  ([HIF analysis §47](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ab2-result-2026-10-26-1226-utc-at-normal-rates-the-host-is-not-the-transmit-limit-the-firmwares-per-frame-service-is)). The receive
   engine is a poll; the HIF interrupt is closed for this configuration.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot
   (reconnection after the access point's own loss has passed twice, the second time with a lost association response absorbed by the bounded retry; a radio that vanishes and returns is untested); replay

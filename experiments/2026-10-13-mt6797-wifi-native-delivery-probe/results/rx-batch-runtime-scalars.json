@@ -4030,6 +4030,65 @@
     "tx_air_losses": 5
    },
    "reading": "HIF section 47: the worker is idle 61 % of the wall and its busy time is mostly HIF reads on empty passes; direct per-frame work is a fifth of the wall time per frame; repeat on the same image before a decision"
+  },
+  "boot-ab2": {
+   "run": "PIO-throughput-bootab2-1",
+   "session": "2026-10-26 12:26 UTC",
+   "profile": "boot AB's image, unchanged",
+   "kernel_build_commit": "c412175c8a9532d6f3471a69c0503229e470ef82",
+   "boot2_sha256": "8f481a70942486f0af01a51cdd6a60e3847748abb982bc55a668e787441c5fff",
+   "install_result": "skipped-already-matching",
+   "previous_gemian_boot_id": "189177e6-3fc8-4fca-9682-6a730488ee29",
+   "returned_gemian_boot_id": "fa9518ef-1b04-43ef-99e7-8e2ab11a0680",
+   "classification": "graded: all_pass; the per-phase split at normal rates",
+   "series_row": true,
+   "pass_cost_us": {
+    "passes": 535578,
+    "status": 7341802,
+    "submit": 3763561,
+    "receive": 12254015,
+    "hif_receive": 10571224,
+    "completion": 1068190,
+    "delivery": 1572845,
+    "data_phase_ms": 43715,
+    "busy_share": 0.595
+   },
+   "credit_retire": {
+    "retired": 52144,
+    "wait_avg_us": 4439,
+    "wait_max_us": 18234,
+    "inflight_max": 12
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 21.99,
+    "tx_chunk_mbit_s": [
+     23.53,
+     23.67,
+     23.1,
+     23.05,
+     23.13
+    ],
+    "rx_aggregate_mbit_s": 17.63,
+    "rx_device_chunk_mbit_s": [
+     20.76,
+     20.94,
+     19.75,
+     21.69,
+     9.73
+    ],
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 590
+    },
+    "passes_per_s": 12251
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "reading": "HIF section 47: the transmit rate is bound by the firmware's per-frame service (credit wait 4.44 ms at 12 in flight, worker idle 40 %); aggregation is the only lever"
   }
  }
 }

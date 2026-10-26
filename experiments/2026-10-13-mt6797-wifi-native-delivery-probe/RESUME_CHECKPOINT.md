@@ -1,4 +1,16 @@
-# Current: boot AB2, the per-frame cost boot repeated on boot AB's image, staged (boot2 verified, not rewritten)
+# Current: boot AB2 graded; transmit is bound by the firmware's per-frame service, not the host; aggregation's firmware question is next (offline)
+
+[Boot AB2](HIF_TRANSPORT_ANALYSIS.md#boot-ab2-result-2026-10-26-1226-utc-at-normal-rates-the-host-is-not-the-transmit-limit-the-firmwares-per-frame-service-is):
+`all_pass` at normal rates (TX 21.99 with chunks 23.0–23.7, RX 17.63).
+The worker was busy 59.5 % of the data phase, 69 % of that HIF reads
+on 95 %-empty passes. The host spends about 90 µs per transmitted
+frame (submit 71, completion 20). Transmit frames waited 4.44 ms in the
+firmware at up to 12 in flight, so the rate (~2,000 frames/s) is the
+firmware's per-frame service. Aggregation is the only lever; its ADDBA
+question goes to the RE VM. 0315 is off again in the fragment. The
+device is on Gemian (`fa9518ef…`); boot2 holds `8f481a70…`.
+
+# Historical: boot AB2, the per-frame cost boot repeated on boot AB's image, staged (boot2 verified, not rewritten)
 
 The installer read boot2's full partition as `8f481a70…`
 (`skipped-already-matching`). The composer admits no change over boot

@@ -6047,3 +6047,56 @@ pass cost: passes=397794 status_us=5446494 submit_us=1507611 receive_us=9421257 
   does not separate them. The split above was measured in a degraded
   run, so before it decides anything it is repeated on the same image.
   Boot2 already holds that image, and the installer verifies it.
+
+### Boot AB2 result (2026-10-26, 12:26 UTC): at normal rates the host is not the transmit limit; the firmware's per-frame service is
+
+Boot AB's image repeated (boot2 `8f481a70…`, verified, not rewritten).
+Mainline boot recorded in the session, returned to Gemian `fa9518ef…`
+with the log complete. Graded `all_pass`, `session_exit=0`.
+
+**The rates were normal.** TX was 21.99 Mbit/s, every chunk at
+23.05–23.67 (the series' best transmit chunks). RX was 17.63 (20.76,
+20.94, 19.75, 21.69, then 9.73 on the last chunk). There were 0 air
+losses of 827 sampled reports. So boot AB's slump was the path, and the
+instrument costs nothing measurable (12,251 passes/s).
+
+```
+pass cost: passes=535578 status_us=7341802 submit_us=3763561 receive_us=12254015 hif_receive_us=10571224 completion_us=1068190 delivery_us=1572845
+credit retire end: retired=52144 expired=0 pid_faults=0 wait_avg_us=4439 wait_max_us=18234 left_pages=0 inflight_max=12
+```
+
+| Phase | Seconds | Share of busy | Per pass | Per frame |
+|---|---|---|---|---|
+| status | 7.34 | 28.2 % | 13.7 µs | — |
+| submit | 3.76 | 14.5 % | 7.0 µs | 71 µs per transmitted frame |
+| receive, of which HIF receive | 12.25, 10.57 | 47.1 %, 40.7 % | 22.9, 19.7 µs | — |
+| completion | 1.07 | 4.1 % | 2.0 µs | 20 µs per transmit completion |
+| delivery | 1.57 | 6.0 % | 2.9 µs | 43 µs per delivered frame |
+
+- *The split confirms boot AB's shape at full rate.* The worker was
+  busy 59.5 % of the 43.7 s data phase. HIF register reads are 69 % of
+  that, on block reads that are 95 % empty.
+- *The host's own cost per transmitted frame* is about 90 µs (submit
+  71, completion 20). On top of that, each frame carries a share of the
+  per-pass reads, about 33 µs a pass at roughly six passes per
+  transmitted frame. Even so, the worker is idle about 40 % of the wall
+  at full transmit rate.
+- *Where the time goes:* the transmit frames waited on average 4.44 ms
+  in the firmware before their credits returned (max 18.2 ms), with up
+  to 12 in flight and the queue at its bound (mac80211's queues
+  stopped). At about 2,000 frames a second, the firmware is completing
+  about one frame every 0.5 ms while the host keeps it fed. MCS7 air is
+  0.19 ms of that.
+- *Reading, against §47's table:* the transmit frame rate is bound by
+  the firmware's per-frame service, not by any host phase. Batching
+  the commands would cut host CPU, and removing the copies would cut
+  host CPU, but neither moves a firmware-bound rate. This is the third
+  row in substance. **Aggregation is the only lever**, and its firmware
+  question (the ADDBA behaviour and the undelivered aggregates of boot
+  Y) goes to the front, as an RE-VM question with the image retained.
+- *Receive* is not decided by this boot. Its dips come with the
+  laptop's own send rate (AA7), and its host cost (43 µs delivery per
+  frame plus the reads) is well inside the wall time.
+- *Reverted:* the lifecycle fragment turns
+  `CONFIG_MT6797_PASS_COST_RECORD` off again. 0315 stays in the series
+  as the instrument.
