@@ -1,4 +1,12 @@
-# Current: boot AB2's reading corrected (the pipeline holds its full depth; not yet "firmware-bound"); the depth-24 boot (§48, 0316) predeclared, under review
+# Current: boot AC, the depth-24 boot (§48), staged on boot2 (build a1347edc: 0316, depth 24)
+
+Boot2 holds `e723ddfb…`, written over boot AB's `8f481a70…` and read
+back in full. The composer admits two config changes (depth 12→24, the
+per-phase cost y→absent) and no tree change. The work's depth pins are
+24 (compose, validator, bind, review, prepare plan). Gemian
+(`fa9518ef…`) is shut down for the owner's boot2 selection.
+
+# Historical: boot AB2's reading corrected (the pipeline holds its full depth; not yet "firmware-bound"); the depth-24 boot (§48, 0316) predeclared, under review
 
 The transmit pipeline ran at its full depth of 12 (4.44 ms per frame
 in the firmware, about 2,000 frames/s), with the host spending about
