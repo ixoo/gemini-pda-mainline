@@ -1,6 +1,6 @@
-From 9bb4255504ba964da0ee6c9b5d25db5fbbb8d884 Mon Sep 17 00:00:00 2001
+From 757124a757d7b78b1cc7e3b3330c012a370f6e7d Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 25 Oct 2026 21:00:18 -0400
+Date: Sun, 25 Oct 2026 21:14:53 -0400
 Subject: [PATCH] wifi: mt6797: admit the first EAPOL-Key on the station tag
  before activation
 
@@ -26,10 +26,10 @@ queue until the station activation, and it still is.
  1 file changed, 10 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index e85f9b484..bbe6a4750 100644
+index 85197533b..ff9cdf4ce 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -5013,18 +5013,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -5014,18 +5014,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
  			    mac->join_eapol_seen < 2 &&
  			    /* BSSID tag 15, observed before the station activation
  			     * (runtimes 12 and 15, message 1), is admitted only until the

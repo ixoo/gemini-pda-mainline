@@ -1,13 +1,16 @@
-# Current: boot AA4 graded (SPI 283 never pending: the HIF line does not reach the controller); interrupt work stopped pending an offline routing answer; 0304–0305 next
+# Current: the HIF interrupt defect named (WHIER 0x7 where the working system arms 0x1e00); boot AA5 (0306 + reworked 0303 + 0304–0305) predeclared, under review
 
-[Boot AA4](HIF_TRANSPORT_ANALYSIS.md#boot-aa4-result-2026-10-26-0109-utc-the-line-never-reaches-the-controller-39s-second-row):
-`all_pass`. `pending=0/30980` on frame-bearing status blocks (sampled
-before the drain) and `idle_pending=0/7651`, with `probe_errors=0`.
-WHIER held at 0x7 through the phase and the wrapper mask stayed 0. The
-HIF output does not reach SPI 283, so the poll work stops and the
-routing is answered offline. RX 20.46 and TX 22.58: the probe is free.
-Next: 0304–0305 (join retry, early M1) into the lifecycle profile as
-their own boot, then the reconnect gate. The device is on Gemian
+The Gemian reading (HIF §40): WHIER `0x00001e00` (the firmware's
+software interrupts 9–12), WHLPCR `0x101`, the wrapper mask 0, and SPI
+283 level-low live at about 70 interrupts a second. Our `0x7` (the done
+bits) could not drive the line. Boot AA4's `pending=0/30980` is
+uninformative and its line conclusion is withdrawn; its data path
+stands (TX 22.58, RX 20.46).
+
+Boot AA5 (§41) is predeclared: 0306 arms `0x1e00`, and 0303 is reworked
+to sample before and after the block read. 0304–0305 carry the join
+retry and the early M1. All of them are in the lifecycle profile; it is
+under owner review and not built. The device is on Gemian
 (`129a25b3…`); boot2 holds `fc08179f…`.
 
 # Historical: boot AA4 (the HIF line's pending state at the controller, 0302–0303) staged on boot2; 0304–0305 committed, outside the profile until after AA4

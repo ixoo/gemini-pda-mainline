@@ -5172,7 +5172,7 @@ The rest is read against boot AA3: transmit and receive rates, refusals
 and the transmit ledger. A regression beyond the noise band means the
 probe is not free, and it is removed.
 
-### Boot AA4 result (2026-10-26, 01:09 UTC): the line never reaches the controller; §39's second row
+### Boot AA4 result (2026-10-26, 01:09 UTC): the probe is inert; the line reading is uninformative
 
 Mainline boot `73487b02…`, build `0c803c25`, boot2 `fc08179f…` (written
 over `561e2025…` and read back in full). Graded `all_pass`, with
@@ -5185,20 +5185,23 @@ HIF interrupt disarmed: irq=218 status=0 taken=0 rearmed=0 pending=0/30980 idle_
 ```
 
 - *Observed:* the controller's pending state of SPI 283 read 0 on all
-  30,980 status blocks that named frames, sampled before their drain,
-  and on all 7,651 idle samples. No sample failed.
+  30,980 frame-bearing samples and all 7,651 idle samples. No sample
+  failed.
 - *Observed:* WHIER was still `0x7` at disarm, so the firmware did not
   clear it during the 42.9 s data phase. WHLPCR INT_EN read 1 until the
   disarm, and the wrapper mask stayed 0, untouched by 0302's disarm.
-- *Result:* with every known device-side gate open on more than 30,000
-  occasions, the line never asserted at the interrupt controller. The
-  HIF output does not reach SPI 283 as this kernel describes it. It is
-  misrouted, or gated outside the four known gates.
+- *Withdrawn (owner, 2026-10-26):* the first version of this note
+  concluded "the line never reaches the controller". With WHIER `0x7`
+  armed the line could not assert (§41: the done bits do not drive the
+  host line here). The probe also sampled after the status block read,
+  which acknowledges the sources. So `pending=0/30980` is uninformative,
+  not a negative. The Gemian reading (§41) supersedes it.
+- *Established:* 0302 works (the mask is untouched on disarm, and
+  `whier=0x7>0x7`). The firmware never clears WHIER during the data
+  phase. The probe is free: no change in rates, ledger or refusals.
 
-**Branch taken: the second row.** The poll work stops here. The
-routing (the SPI number, the sysirq polarity, or a gate between the
-connsys HIF and the GIC) is answered offline before any further
-interrupt patch. The pump's polled cadence stays the receive path.
+**Branch: none taken.** The data-path conclusions stand: TX 22.58 and
+RX 20.46, with no regression.
 
 **The rest, against boot AA3.** Nothing regressed, so the probe is free.
 
@@ -5217,3 +5220,85 @@ The one refusal is boot R's 442-byte software-frame class
 frame; boot Y recorded it too. It is not a probe effect. The first EAPOL-Key again waited about one
 second for the access point's retransmission. The fix, 0305, was
 deliberately not in this boot.
+
+## 40. The working system's interrupt registers (Gemian, 2026-10-26): WHIER is the defect
+
+Owner reading on Gemian (vendor kernel 3.18.41+, WLAN-GEN3), read-only
+(`/proc/interrupts`, the device tree, `devmem` reads of the direct
+aperture):
+
+- *The line is live on this board.* `315: … GICv3 315 AHB_SLAVE_HIF`
+  takes about 70 interrupts a second at idle.
+- *Routing and polarity are ours.* The vendor DT's `wifi@180f0000` has
+  `interrupts = <0 0x11b 0x8>` (SPI 283, level-low) and
+  `reg = <0x180f0000 0x1100>`, identical to 0298.
+- *The registers,* stable over six samples:
+
+| Register | Gemian | Ours, armed (AA–AA4) |
+|---|---|---|
+| WHLPCR (`0x180f0004`) | `0x00000101` | `0x00000101` |
+| wrapper line mask (`0x180f0200`) | `0x00000000` | `0x00000000` |
+| WHIER (`0x180f0014`) | `0x00001e00` | `0x00000007` |
+| WHCR | `0xa07f0000` | `0x00000000` |
+
+**The defect: the armed mask.** `0x1e00` enables WHISR bits 9–12, the
+firmware's device-to-host software interrupts, and none of the RX0,
+RX1 or TX done bits. On this configuration the firmware notifies the
+host through software interrupts, and the done bits do not drive the
+host line. With `0x7` armed, every gate we knew of was open and the line
+still could not assert. That is what boots AA, AA3 and AA4 measured.
+The wrapper mask, the read-clear and the SPI number were never the
+cause. §37 chose `0x7` by keeping only the done bits of the vendor's
+`WHIER_DEFAULT` and dropping its software bits. Those dropped bits were
+the host line's source.
+
+WHCR is the one other difference: Gemian runs RX-enhance (bit 16) with
+a length count set. It is held for the case below where the line still
+does not fire.
+
+## 41. Boot AA5 (predeclared, 2026-10-26): WHIER 0x1e00, the probe both sides of the status read, and the join changes
+
+**The interrupt half.**
+
+- *0306:* arm WHIER `0x00001e00`. The handler still only masks and
+  wakes. The worker's block read still clears WHISR's software bits, so
+  no per-bit dispatch is added.
+- *0302 is kept:* no disarm write of the mask, and `whier=` on both
+  lines.
+- *0303 (reworked):* reads the pending state of SPI 283 immediately
+  before each status block read, and after it before the drain. Each
+  sample is classified by that block's frame counts. The disarmed line
+  prints `pending_before= pending_after= idle_before= probe_errors=`.
+  With the right mask, `pending_before` confirms that the assertion
+  precedes our drain. The sample after the read follows the
+  acknowledgement, so it can only read 0, whatever the line does.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `taken > 0` and `rearmed > 0` in the data phase, `whier=0x00001e00>0x00001e00`, rates, ledger and refusals unchanged | the line works; the mask was the defect | the slow poll: while armed, poll receive only on a wake plus a ~10 ms fallback; predict +15–25 % receive |
+| `taken = 0` with `whier=0x1e00>0x1e00` | one difference remains: WHCR (Gemian `0xa07f0000`, ours `0x00000000`) | compare the two modes before any further poll work |
+| a storm (`taken` far above the passes) | the software bits re-assert faster than the drain | the handler already masks; record it and disarm |
+
+**The join half (0304, 0305; owner, 2026-10-26).** The probe was inert
+in boot AA4, so one boot can carry these without losing attribution. A
+join failure would be 0304's or 0305's, and the interrupt half reads
+independently of the join. The roughly one-second EAPOL stall appeared
+in boots AA, AA3 and AA4, every clean boot since the join changes were
+written.
+
+- *Predicted:* the first EAPOL-Key is admitted on the station tag
+  (`bss=1`) within 10 ms of the association response, instead of
+  996 ms later on the retransmission.
+- *Unchanged:* `join_eapol_seen < 2`, the key handshake, refusals and
+  rates.
+- *Read only if it occurs:* the `join prepare:` lines record each
+  authentication and association admission. A second association
+  attempt is admitted only if a response is lost.
+- *Revert:* any join failure, handshake change or refusal attributable
+  to 0304 or 0305 reverts that patch.
+
+The rates are read against boots AA3 and AA4, where the ceiling stands
+at TX ≈ 22.6 and RX ≈ 20.5 Mbit/s aggregate. One coupling is
+predeclared: a working line changes worker wake timing on the shared
+worker, so a transmit move in this boot is read with the interrupt
+half, not the join half.

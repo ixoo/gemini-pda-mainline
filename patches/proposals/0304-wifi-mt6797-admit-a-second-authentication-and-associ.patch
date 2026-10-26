@@ -1,6 +1,6 @@
-From cf436ef8a2674fbd198ac8db8da6c294034195e6 Mon Sep 17 00:00:00 2001
+From 6a2bfaaa518678fa45d64eaf47bcddd78c19e3ee Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 25 Oct 2026 21:00:16 -0400
+Date: Sun, 25 Oct 2026 21:14:52 -0400
 Subject: [PATCH] wifi: mt6797: admit a second authentication and association
  attempt
 
@@ -30,7 +30,7 @@ sent. mgd_prepare_tx records each admission decision with both counts.
  1 file changed, 49 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 09b648d6f..e85f9b484 100644
+index 77e3b1e80..85197533b 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
 @@ -272,6 +272,10 @@ struct mt6797_mac {
@@ -111,7 +111,7 @@ index 09b648d6f..e85f9b484 100644
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	mac->join_running = false;
  	mac->join_open = false;
-@@ -6459,10 +6502,13 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+@@ -6460,10 +6503,13 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
  		    (info->subtype == IEEE80211_STYPE_ASSOC_REQ &&
  		     mac->join_authenticated && !mac->join_assoc_received));
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
@@ -126,7 +126,7 @@ index 09b648d6f..e85f9b484 100644
  	if (admitted) {
  		mac->join_rx_allowed = BIT(info->subtype == IEEE80211_STYPE_AUTH ? 11 : 1) |
  				       BIT(10) | BIT(12);
-@@ -7230,13 +7276,13 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -7231,13 +7277,13 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  		spin_lock_irqsave(&mac->join_queue.lock, flags);
  		if (mac->join_open && !(fc & 0xff0f) &&
  		    (mac->join_tx_allowed & BIT(subtype)) &&

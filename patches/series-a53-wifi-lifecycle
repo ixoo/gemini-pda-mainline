@@ -780,4 +780,7 @@ proposals/0299-wifi-mt6797-arm-and-disarm-the-HIF-interrupt-sources.patch
 proposals/0300-wifi-mt6797-wake-the-worker-on-the-WLAN-HIF-interrupt.patch
 proposals/0301-wifi-mt6797-also-unmask-the-HIF-wrapper-s-interrupt-line.patch
 proposals/0302-wifi-mt6797-leave-the-HIF-wrapper-line-mask-alone-on.patch
-proposals/0303-wifi-mt6797-sample-the-HIF-line-s-pending-state-at-t.patch
+proposals/0303-wifi-mt6797-sample-the-HIF-line-s-pending-state-arou.patch
+proposals/0304-wifi-mt6797-admit-a-second-authentication-and-associ.patch
+proposals/0305-wifi-mt6797-admit-the-first-EAPOL-Key-on-the-station.patch
+proposals/0306-wifi-mt6797-arm-the-firmware-s-software-interrupts-i.patch

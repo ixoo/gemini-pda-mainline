@@ -3595,7 +3595,7 @@
    "previous_gemian_boot_id": "cfbcce3f-1dc0-48a4-a25c-ced13ac3b0b8",
    "returned_gemian_boot_id": "129a25b3-a490-4245-a4d0-b1c44121c162",
    "returned_by": "session's reviewed return",
-   "classification": "graded: all_pass, verdict_failed empty; SPI 283 never pending at the controller",
+   "classification": "graded: all_pass, verdict_failed empty; the probe is inert; pending 0 is uninformative (WHIER 0x7 could not drive the line; the sample followed the acknowledgement)",
    "sealed_log_bytes": 197137,
    "series_row": true,
    "hif_irq": {
@@ -3676,7 +3676,7 @@
     "left_pages": 0,
     "tx_air_losses": 0
    },
-   "reading": "HIF section 39, second row: the HIF output does not reach SPI 283; the poll work stops; the routing is answered offline before any further interrupt patch"
+   "reading": "HIF sections 39-40: the never-reaches conclusion is withdrawn; the Gemian reading (WHIER 0x1e00) supersedes it; 0302 works, WHIER held, the probe free; boot AA5 arms 0x1e00 (section 41)"
   }
  }
 }
