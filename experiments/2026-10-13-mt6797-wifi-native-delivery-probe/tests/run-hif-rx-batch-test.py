@@ -4,6 +4,7 @@
 from pathlib import Path
 import argparse
 import subprocess
+import sys
 import tempfile
 
 parser = argparse.ArgumentParser()
@@ -17,11 +18,15 @@ if "mt6797_hif_rx_batch_fill(" not in source or "mt6797_hif_rx_batch_pass(" not 
     parser.error("apply the receive batching proposal first")
 here = Path(__file__).resolve().parent
 compat = args.compat or here.parents[1] / "2026-10-01-mt6797-normal-sets/tests"
+pie = ["-fno-pie", "-no-pie"] if sys.platform.startswith("linux") else []
+peek = "config MT6797_HIF_RX_PEEK" in (driver / "Kconfig").read_text()
 with tempfile.TemporaryDirectory(prefix="mt6797-hif-rx-batch-") as directory:
-    binary = Path(directory) / "test"
-    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
-                    "-DIS_ENABLED(x)=0", "-fsanitize=address,undefined",
-                    "-fno-pie", "-no-pie", "-I", str(compat), "-I", str(driver),
-                    str(here / "hif-rx-batch-test.c"), "-o", str(binary)], check=True)
-    subprocess.run([str(binary)], check=True, timeout=10)
-print("receive batching fixtures: PASS (ASan/UBSan, non-PIE)")
+    # Without the WHISR peek, and with it when the tree has it (0322).
+    for defines in ([], ["-DCONFIG_MT6797_HIF_RX_PEEK"])[:2 if peek else 1]:
+        binary = Path(directory) / ("test-peek" if defines else "test")
+        subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
+                        "-DIS_ENABLED(x)=0", *defines, "-fsanitize=address,undefined",
+                        *pie, "-I", str(compat), "-I", str(driver),
+                        str(here / "hif-rx-batch-test.c"), "-o", str(binary)], check=True)
+        subprocess.run([str(binary)], check=True, timeout=10)
+print("receive batching fixtures: PASS (ASan/UBSan%s)" % (", with and without the WHISR peek" if peek else ""))

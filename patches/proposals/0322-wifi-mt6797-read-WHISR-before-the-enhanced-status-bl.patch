@@ -1,0 +1,145 @@
+From 842f0f48bea96529e828689ca0253849436ba383 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 13:46:46 -0400
+Subject: [PATCH] wifi: mt6797: read WHISR before the enhanced status block
+
+Every worker pass reads the 112-byte enhanced status block, about
+20.5 us of indirect register reads, and boot AB found nothing in 94.9 %
+of those reads. The pass cost record puts the block read at 44 % of the
+worker's busy time.
+
+With CONFIG_MT6797_HIF_RX_PEEK, the pass first reads WHISR alone (four
+bytes) and skips the block when the word is zero. The transmit-done and
+receive-done bits are read-only. Receive-done follows the receive length
+FIFO and falls only when the queue is read down; transmit-done follows
+the release counts. A zero word therefore means no frame and no count
+is waiting, and the block would have reported nothing. A non-zero word
+reads the block exactly as before. Credits are unaffected either way:
+the transmit status acquisition reads the WTQCR counts itself and
+merges what the block consumed.
+
+The peek may consume the abnormal (bit 6) and firmware-assert (bit 31)
+bits before the block sees them, so it checks them itself and fails the
+HIF the same way the block does. The record of the receive batch gains
+the number of peeks and of blocks skipped.
+
+The option depends on CONFIG_MT6797_HIF_RX_BATCH and is off by default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 12 ++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 29 ++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  2 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c   |  5 ++--
+ 4 files changed, 46 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 49e14599d..a1459a075 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -95,6 +95,18 @@ config MT6797_HIF_RX_BATCH
+ 	  per-frame length register read or guard. The vendor's receive
+ 	  path by polling; a measurement variable for the receive ceiling.
+ 
++config MT6797_HIF_RX_PEEK
++	bool "MT6797 Wi-Fi HIF: read WHISR before the enhanced status block"
++	depends on MT6797_HIF_RX_BATCH
++	help
++	  Before each pass's 112-byte enhanced status block, read WHISR alone
++	  (four bytes) and skip the block when the word is zero. The
++	  transmit-done and receive-done bits are read-only: they follow the
++	  release counts and the receive length FIFO, so a zero word means
++	  no frame and no count is waiting. The abnormal (bit 6) and
++	  firmware-assert (bit 31) bits fail the HIF here as they do in the
++	  block.
++
+ config MT6797_PASS_COST_RECORD
+ 	bool "MT6797 Wi-Fi diagnostic: record the worker's cost per phase"
+ 	depends on MT6797_STATION_JOIN
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index cee980a07..0d3c7d3b9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -106,6 +106,7 @@ struct mt6797_hif {
+ 	unsigned int rx_batch_refused_queue, rx_batch_refused_frames;
+ 	unsigned int rx_batch_refused_bytes, rx_batch_refused_read;
+ 	unsigned int rx_batch_refused_first_length;
++	unsigned int rx_batch_peeks, rx_batch_peek_skips;
+ 	/* Two queues of up to sixteen frames each, as the block reports them. */
+ 	struct {
+ 		u8 port;
+@@ -561,6 +562,32 @@ static int mt6797_hif_rx_batch_fill(struct mt6797_hif *hif)
+ 	size_t total, offset;
+ 	int error;
+ 
++#ifdef CONFIG_MT6797_HIF_RX_PEEK
++	{
++		u32 whisr;
++
++		/* WHISR alone first (0322): its done bits are read-only and
++		 * follow what is waiting, so a zero word means the block would
++		 * report nothing. Its abnormal and assert bits are checked here,
++		 * since the read may consume them before the block's.
++		 */
++		error = mt6797_hif_read32_locked(hif, 0x10, &whisr);
++		if (error)
++			return error;
++		hif->rx_batch_peeks++;
++		if (whisr & (BIT(6) | BIT(31))) {
++			hif->rx_batch_block_whisr = whisr;
++			hif->rx_batch_block_abnormal = whisr;
++			return -EIO;
++		}
++		if (!whisr) {
++			hif->rx_batch_peek_skips++;
++			hif->rx_batch_count = 0;
++			hif->rx_batch_next = 0;
++			return 0;
++		}
++	}
++#endif
+ 	error = mt6797_hif_rx_batch_block(hif);
+ 	if (error)
+ 		return error;
+@@ -695,6 +722,8 @@ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ 	stats->refused_read = hif->rx_batch_refused_read;
+ 	stats->refused_first_length = hif->rx_batch_refused_first_length;
+ 	stats->refused_capacity = MT6797_HIF_RX_BATCH_QUEUE_BYTES;
++	stats->peeks = hif->rx_batch_peeks;
++	stats->peek_skips = hif->rx_batch_peek_skips;
+ }
+ 
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index b5a5b215f..a6eda1643 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -149,6 +149,8 @@ struct mt6797_hif_rx_batch_stats {
+ 	int refused_error;
+ 	unsigned int refused_queue, refused_frames, refused_bytes, refused_read;
+ 	unsigned int refused_first_length, refused_capacity;
++	/* WHISR reads before the block, and the blocks they skipped (0322). */
++	unsigned int peeks, peek_skips;
+ };
+ 
+ void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index cdc3d5bf1..b86efa141 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3861,11 +3861,12 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 
+ 		mt6797_hif_rx_batch_stats(mac->hif, &batch);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u max_bytes=%u window_505_508=%u failures=%u credits=%u block_abnormal=0x%08x\n",
++			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u max_bytes=%u window_505_508=%u failures=%u credits=%u block_abnormal=0x%08x peeks=%u peek_skips=%u\n",
+ 			 batch.on, batch.whcr_after, batch.reads,
+ 			 batch.aggregates, batch.frames, batch.empty, batch.max_frames,
+ 			 batch.max_bytes, batch.window_505_508,
+-			 batch.failures, batch.credit_blocks, batch.block_abnormal);
++			 batch.failures, batch.credit_blocks, batch.block_abnormal,
++			 batch.peeks, batch.peek_skips);
+ 		if (batch.refused_error)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+ 				 "one-shot WLAN HIF RX batch refused: error=%d queue=%u frames=%u bytes=%u first_length=%u capacity=%u dma=%u read=%u\n",
+-- 
+2.43.0
+

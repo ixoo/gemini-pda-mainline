@@ -4,7 +4,10 @@
  * non-empty queue split by the reported lengths, frames served in order
  * across passes, -EAGAIN when the cache is empty, one block read per pass,
  * and the refusals (count over sixteen, header mismatch). PIO only; no
- * hardware.
+ * hardware. With CONFIG_MT6797_HIF_RX_PEEK (0322) the WHISR register reads
+ * as the hardware's read-only done bits (transmit done while a release
+ * count is waiting, receive done while a queue reports frames) beside the
+ * clear-on-read others, and the pass reads WHISR before the block.
  */
 #define MT6797_HIF_HOST_TEST
 #include <string.h>
@@ -58,6 +61,24 @@ static bool inject_release_on_whisr_read;
 static void put16(u8 *p, unsigned int v) { p[0] = v; p[1] = v >> 8; }
 static void release(unsigned int q, unsigned int n) { hw_tq[q] += n; hw_whisr |= BIT(0); }
 
+/* The read-only done bits (0322's model): transmit done while a release
+ * count waits, receive done while a queue reports frames. Without the peek
+ * the model keeps them in hw_whisr, clear-on-read, as before.
+ */
+static u32 whisr_level(void)
+{
+#ifdef CONFIG_MT6797_HIF_RX_PEEK
+	unsigned int i, tq = 0;
+
+	for (i = 0; i < 16; i++)
+		tq |= hw_tq[i];
+	return (tq ? BIT(0) : 0) | (block[36] | block[37] ? BIT(1) : 0) |
+	       (block[38] | block[39] ? BIT(2) : 0);
+#else
+	return 0;
+#endif
+}
+
 u64 ktime_get_ns(void) { return 1000; }
 void usleep_range(unsigned long a, unsigned long b) { (void)a; (void)b; assert(false); }
 int mt6797_test_write(unsigned int value, void *address)
@@ -90,7 +111,8 @@ int mt6797_test_read(void *address, unsigned int *value)
 
 		if (!pending_offset) {	/* the block read consumes the counts */
 			memcpy(image, block, sizeof(image));
-			put16(image, hw_whisr); put16(image + 2, hw_whisr >> 16);
+			put16(image, hw_whisr | whisr_level());
+			put16(image + 2, (hw_whisr | whisr_level()) >> 16);
 			for (i = 0; i < 16; i++)
 				put16(image + 4 + 2 * i, hw_tq[i]);
 			hw_whisr = 0;
@@ -100,6 +122,7 @@ int mt6797_test_read(void *address, unsigned int *value)
 		memcpy(value, image + pending_offset, 4);
 	} else if (pending_port == 0x10) {
 		*value = hw_whisr;	/* the register read consumes it too */
+		*value |= whisr_level();
 		hw_whisr = 0;
 		if (inject_release_on_whisr_read) {
 			inject_release_on_whisr_read = false;
@@ -230,7 +253,12 @@ int main(void)
 	assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
 	assert(mt6797_hif_receive_runtime_packet(hif, 1, 1000000, out, sizeof(out), &rx) == -EAGAIN);
 	mt6797_hif_rx_batch_stats(hif, &stats);
+#ifdef CONFIG_MT6797_HIF_RX_PEEK
+	/* The zero WHISR skips the block. */
+	assert(block_reads == 1 && stats.reads == 1 && stats.peek_skips == 1 && stats.frames == 3);
+#else
 	assert(block_reads == 2 && stats.reads == 2 && stats.empty == 1 && stats.frames == 3);
+#endif
 
 	/* 3. A count over sixteen is served as sixteen (counted once in failures,
 	 * never poison); the seventeenth frame drains on the next pass.
@@ -298,6 +326,7 @@ int main(void)
 	fresh();
 	{
 		struct mt6797_hif_tx_status st;
+		unsigned int whisr_before = whisr_reads;
 
 		announce(0, l0, 0, l1);
 		release(1, 1);			/* TQ1: one AC1 page */
@@ -312,7 +341,12 @@ int main(void)
 		 * copied back: the acquisition's own word is zero and the done
 		 * bit the counts imply is synthesised beside it.
 		 */
-		assert(whisr_reads == 1 && st.whisr == 0 && st.synthesized == 0x1 &&
+#ifdef CONFIG_MT6797_HIF_RX_PEEK
+		assert(whisr_reads == whisr_before + 2);	/* the pass's, then the acquisition's */
+#else
+		assert(whisr_reads == whisr_before + 1 && whisr_reads == 1);
+#endif
+		assert(st.whisr == 0 && st.synthesized == 0x1 &&
 		       st.wtqcr[0] == 0x00010000 && st.wtqcr[7] == 0x00000002 && st.wtqcr[1] == 0);
 		mt6797_hif_rx_batch_stats(hif, &stats);
 		assert(!stats.pending_wtqcr0 && !stats.pending_wtqcr7 && !hif->first_error);
@@ -450,6 +484,49 @@ int main(void)
 	}
 	mt6797_hif_free(hif);
 	free(window);
+#ifdef CONFIG_MT6797_HIF_RX_PEEK
+	/* 12. The WHISR peek (0322). */
+	fresh();
+	hif = make(true);
+	{
+		unsigned int blocks = block_reads, skips;
+
+		/* nothing waiting: no block read, counted as skipped */
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(block_reads == blocks && stats.peeks == 1 && stats.peek_skips == 1);
+		skips = stats.peek_skips;
+		/* a frame waiting on queue 1: receive done is set, the block is read */
+		frame(queue_stream[1], 0, 100, 40);
+		announce(0, l0, 1, l1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(!mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx));
+		assert(rx.logical_bytes == 100 && rx.selected_port == 1 && block_reads == blocks + 1);
+		/* a release count alone: transmit done is set, the block is read
+		 * and the count merged
+		 */
+		announce(0, l0, 0, l1);
+		release(14, 1);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(block_reads == blocks + 2 && stats.pending_wtqcr7 == 0x1 && stats.peek_skips == skips);
+		/* a clear-on-read bit alone still reads the block */
+		hw_whisr = BIT(8);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		assert(block_reads == blocks + 3 && !hif->first_error);
+		/* the firmware assert the peek consumes fails the HIF without a block read */
+		hw_whisr = BIT(31);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EIO);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(block_reads == blocks + 3 && stats.block_abnormal == BIT(31) && hif->first_error == -EIO);
+	}
+	mt6797_hif_free(hif);
+	free(window);
+#endif
 	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge, interleavings, block abnormal, join replay, mode off)\n");
 	return 0;
 }

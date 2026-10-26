@@ -788,3 +788,4 @@ proposals/0318-wifi-mt6797-record-the-firmware-s-receive-block-ack-.patch
 proposals/0319-wifi-mt6797-admit-block-ack-sub-frames-in-the-pairwi.patch
 proposals/0320-wifi-mt6797-name-a-refused-block-ack-sub-frame-by-it.patch
 proposals/0321-wifi-mt6797-reorder-each-block-ack-session-s-frames-.patch
+proposals/0322-wifi-mt6797-read-WHISR-before-the-enhanced-status-bl.patch

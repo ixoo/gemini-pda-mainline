@@ -1,4 +1,12 @@
-# Current: receive aggregation taken as local support (owner decision on the AH/AI pair); RX_AMPDU on in the profile, the cost line off; the WHISR peek next
+# Current: the WHISR peek boot AJ (§57; 0322) approved; building
+
+0322 reads WHISR alone before the enhanced status block and skips the
+block on a zero word. The boot is AH's configuration on the same
+lifecycle harness plus the peek; the per-phase cost line is on for this
+boot only. The device is on Gemian (`7c247ff2…`); boot2 holds AF's
+`220a431b…`.
+
+# Historical: receive aggregation taken as local support (owner decision on the AH/AI pair); RX_AMPDU on in the profile, the cost line off; the WHISR peek next
 
 Transmit was unchanged with receive aggregation active (15.18 against
 14.90 Mbit/s on the same air), receive was 44 % higher, and AE's

@@ -6955,3 +6955,64 @@ as local support against the same-air pair, bounded by one hour's air
 and the short harness. Sustained aggregated throughput under the
 five-chunk harness has not been measured since AE. The next change is
 the WHISR peek.
+
+## 57. The WHISR peek (predeclared, 2026-10-26)
+
+**The patch.** 0322, `CONFIG_MT6797_HIF_RX_PEEK` (depends on
+`CONFIG_MT6797_HIF_RX_BATCH`, off by default). Each pass reads WHISR
+alone (four bytes) before the 112-byte enhanced status block, and
+skips the block when the word is zero.
+
+- *Why that is safe.* The transmit-done and receive-done bits are
+  read-only (the owner's correction in boot AA3's result): receive-done follows the receive length
+  FIFO and falls only when the queue is read down, and transmit-done
+  follows the release counts. A zero word means the block would have
+  reported nothing.
+- *Credits are unaffected.* The transmit status acquisition reads the
+  WTQCR counts itself and merges what the block consumed, as before.
+- *The clear-on-read bits are checked in the peek.* The peek may consume
+  them before the block sees them, so it checks the abnormal (bit 6) and
+  firmware-assert (bit 31) bits itself and fails the HIF the same way.
+- *The record.* The receive batch line gains `peeks=` and `peek_skips=`.
+
+**Tests.** `tests/run-hif-rx-batch-test.py` now runs its fixture both
+without and with the peek. The peek build models the done bits as
+read-only, beside the clear-on-read bits. It passes every earlier case
+and a new one:
+- nothing waiting skips the block;
+- a frame on queue 1 is read;
+- a release count alone reads the block and merges the count;
+- a clear-on-read bit alone reads the block;
+- a firmware assert in the peek fails the HIF without a block read.
+
+Dropping the peek's assert check, or never skipping, each fails the
+test. The runner now adds `-no-pie` on Linux only, as the other runners
+do, so it also runs on the macOS host. The driver builds with W=1 with
+the peek on and off, and checkpatch is clean.
+
+**The boot.** It is AH's configuration, on the same lifecycle harness
+(three lifetimes, one chunk each, no loss cycle), plus the peek:
+`CONFIG_MT6797_RX_AMPDU` on, the per-phase cost line on for this boot
+only, depth 12. The cost line makes the per-pass HIF time comparable
+with AH's directly.
+
+**Hypothesis.** About 95 % of block reads found nothing (boot AB). With
+the peek those become 4-byte reads, so `hif_receive_us` per pass falls
+by roughly an order of magnitude, with no frame stranded.
+
+**Unique observation.** On the receive batch line, `peeks`,
+`peek_skips`, `reads`, `failures` and `block_abnormal`. From the cost
+line, `hif_receive_us`/`passes` and the busy fraction against AH's
+(704,037 µs over 39,395 passes, 17.9 µs per pass, in lifetime 1). Then
+TX, RX, the credit wait and the window's counters against AH and AI.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `peek_skips` most of `peeks`, `hif_receive_us` per pass well below AH's, no batch failure, TX and RX at least AH's on the same kind of air, the window clean | the peek is correct and removes the empty block reads | enable `CONFIG_MT6797_HIF_RX_PEEK` in the profile; the cost line off again |
+| receive stalls, data-phase timeouts, or RX well below AH with skips high | a done bit is not level as assumed: frames were stranded behind a zero word | revert the option; read the done-bit semantics before any change |
+| the peek trips the abnormal or assert path | a clear-on-read edge the block used to carry | preserve the log; keep the option off |
+| HIF time per pass falls but the rates do not move | the poll was not the limit at these rates | keep the peek for its cost; the transmit limit stays the firmware's concurrency |
+
+The software-frame gate of §55 does not apply. This boot is compared
+on per-pass cost and on the absence of stalls, not as a bracketed
+pair. The software-frame count is recorded.
