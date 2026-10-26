@@ -5302,3 +5302,72 @@ at TX ≈ 22.6 and RX ≈ 20.5 Mbit/s aggregate. One coupling is
 predeclared: a working line changes worker wake timing on the shared
 worker, so a transmit move in this boot is read with the interrupt
 half, not the join half.
+
+### Boot AA5 result (2026-10-26, 01:28 UTC): early M1 works; the lifetime stopped at 6.1 s (-90 in the receive batch); the probe is no longer inert; the interrupt half is void
+
+Mainline boot `8ec5ee88…`, build `3a2d28b8`, boot2 `345753c1…` (written
+over `fc08179f…` and read back in full). The session failed
+(`session_exit=1`). Its own reviewed return reached Gemian `8dbc2cc3…`
+with the log sealed complete (171,203 bytes).
+
+**The join half: as predicted, except the 10 ms figure.**
+
+- One authentication and one association attempt (`join prepare:
+  … admitted=1` twice), so 0304's retry was not needed.
+- The first EAPOL-Key was admitted on `bss=1` before the activation
+  (`activated=0 bss_configured=0 seen=0`) and delivered. Message 3
+  followed (`seen=1`, activated).
+- The association response arrived at 14.9506 s and message 1 at
+  14.9751 s: 24.5 ms. That is its arrival time, the same 24 ms after
+  which boots AA, AA3 and AA4 refused it. The 996 ms wait for the
+  retransmission is gone. The predeclared "within 10 ms" was the wrong
+  figure: the access point sends message 1 about 24 ms after its
+  response.
+
+**The interrupt half: void.**
+
+- Armed: `whier=0x00000000>0x00001e00 whlpcr=0x00000100>0x00000101
+  mask=0>0`. 0306's value reads back.
+- Disarmed: `status=-5`, after the lifetime had failed, so its register
+  fields are the zeroed record and not readings. `taken=0 rearmed=0`.
+- `pending_before=0/721`, `pending_after=0/721`, `idle_before=0/33919`,
+  `probe_errors=0`.
+- Not read: the frame-bearing count is far below the 20,000 the table
+  needs, and the disarm read nothing. The zero over 34,640 "before"
+  samples in 6 s is recorded and not graded.
+
+**The stop.** `join stopped: status=-90 … branch=4`, 6,098 ms into the
+data phase, with `CCMP receive observation: port=0 … status=-90` and
+`RX batch: … failures=1`.
+
+- *The source:* `-EMSGSIZE` on the receive path can come only from
+  `mt6797_hif_transfer_size()`, on the batch's aggregated port read.
+  The size check passes per-frame lengths up to 2,352 and at most 16
+  frames, but the buffer is exactly 16 × 2,356 = 37,696 bytes. A block
+  transfer rounds up to 512-byte blocks, so any aggregate over 37,376
+  bytes becomes 37,888 and is refused as a bus failure, which poisons
+  the HIF.
+- *The trigger:* reaching that needs an average above 2,336 bytes per
+  frame over 16 frames. That is implausible for 1,500-byte MSDUs. The
+  likely trigger is one block with an out-of-range count (the single
+  counted failure, clamped to 16) and lengths that are not real.
+  Whether 0306's software interrupts make such a block possible is not
+  shown.
+- *Defect regardless of trigger:* the bound is the driver's. The comment
+  that "only a bus failure is returned" is wrong for this case.
+
+**The probe is no longer free.**
+
+- *Observed:* 34,640 worker passes in 6.1 s (5,680/s) against boot AA4's
+  12,139/s. Every pass took one "before" read. TX chunk 1 ran at
+  12.86 Mbit/s against boot AA4's 25.20.
+- *Inference, not separated:* AA4 sampled about 900 times a second and
+  its pass rate fell 2.4 % from AA3, which suggests about 27 µs per
+  `irq_get_irqchip_state()` call. One call per pass plausibly explains
+  much of the 94 µs added per pass. 0306 (the firmware's software
+  interrupts) cannot be excluded from one boot.
+
+**What stands.** 0305 removes the one-second EAPOL stall. 0304 was not
+exercised. 0306's WHIER value arms and reads back. The interrupt
+reading, the rates and the stop's attribution between 0306 and the
+probe are open.

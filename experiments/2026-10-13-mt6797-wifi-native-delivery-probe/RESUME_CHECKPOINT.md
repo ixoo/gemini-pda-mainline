@@ -1,4 +1,17 @@
-# Current: boot AA5 (WHIER 0x1e00, the two-point probe, the join changes) staged on boot2
+# Current: boot AA5 void (lifetime stopped at 6.1 s, -90 in the receive batch); early M1 confirmed; the per-pass probe halved the pass rate; next boot is the owner's call
+
+[Boot AA5](HIF_TRANSPORT_ANALYSIS.md#boot-aa5-result-2026-10-26-0128-utc-early-m1-works-the-lifetime-stopped-at-61-s--90-in-the-receive-batch-the-probe-is-no-longer-inert-the-interrupt-half-is-void):
+the first EAPOL-Key was admitted on arrival (24.5 ms after the
+association response), so the one-second stall is gone; 0304 was not
+exercised. The worker ran 5,680 passes/s against AA4's 12,139, with one
+pending-state read per pass, and TX chunk 1 ran at 12.86. The lifetime
+stopped at 6.1 s with -90 from the batch's transfer sizing: the
+37,696-byte buffer does not cover a 512-byte-rounded aggregate. The
+interrupt half is void: WHIER 0x1e00 armed and read back, `taken=0`,
+the disarm was unreadable. The device is on Gemian (`8dbc2cc3…`); boot2
+holds `345753c1…`.
+
+# Historical: boot AA5 (WHIER 0x1e00, the two-point probe, the join changes) staged on boot2
 
 The Gemian reading (HIF §40): WHIER `0x00001e00` (the firmware's
 software interrupts 9–12), WHLPCR `0x101`, the wrapper mask 0, and SPI

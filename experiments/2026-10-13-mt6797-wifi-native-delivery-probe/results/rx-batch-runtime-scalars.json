@@ -3677,6 +3677,79 @@
     "tx_air_losses": 0
    },
    "reading": "HIF sections 39-40: the never-reaches conclusion is withdrawn; the Gemian reading (WHIER 0x1e00) supersedes it; 0302 works, WHIER held, the probe free; boot AA5 arms 0x1e00 (section 41)"
+  },
+  "boot-aa5": {
+   "run": "PIO-throughput-bootaa5-1",
+   "session": "2026-10-26 01:28 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot AA4 tree, 0303 reworked, + 0304-0306)",
+   "kernel_build_commit": "3a2d28b85f6d24da6f233686fa721ca7ba57c3c8",
+   "boot2_sha256": "345753c116961291e23695a6bde2663528a164c652a849eb904cdcac1e4e2fdd",
+   "predecessor_boot2_sha256": "fc08179f6d9eaff9c729536e93ff5f0e049185387e256f1e866b6b1d3d3e3a95",
+   "mainline_boot_id": "8ec5ee88-9a33-4def-8711-5b318a5000de",
+   "previous_gemian_boot_id": "129a25b3-a490-4245-a4d0-b1c44121c162",
+   "returned_gemian_boot_id": "8dbc2cc3-a474-4d63-bb27-43aac0168bef",
+   "returned_by": "session's reviewed return",
+   "classification": "void: the lifetime stopped (-90, branch 4) 6.1 s into the data phase in the receive batch's transfer sizing",
+   "sealed_log_bytes": 171203,
+   "series_row": true,
+   "join": {
+    "auth_attempts": 1,
+    "assoc_attempts": 1,
+    "first_eapol": "admitted on bss=1 before activation, 24.5 ms after the association response",
+    "stall_removed": true
+   },
+   "hif_irq": {
+    "irq": 218,
+    "whier_arm": [
+     "0x00000000",
+     "0x00001e00"
+    ],
+    "whlpcr_arm": [
+     "0x00000100",
+     "0x00000101"
+    ],
+    "disarm_status": -5,
+    "taken": 0,
+    "rearmed": 0,
+    "pending_before": [
+     0,
+     721
+    ],
+    "pending_after": [
+     0,
+     721
+    ],
+    "idle_before": [
+     0,
+     33919
+    ],
+    "probe_errors": 0
+   },
+   "worker": {
+    "passes": 34640,
+    "data_phase_ms": 6098,
+    "passes_per_s": 5680,
+    "boot_aa4_passes_per_s": 12139
+   },
+   "throughput": {
+    "tx_chunk_mbit_s": [
+     12.86,
+     0.09
+    ]
+   },
+   "rx_batch": {
+    "reads": 35013,
+    "aggregates": 764,
+    "frames": 1497,
+    "failures": 1,
+    "max": 12
+   },
+   "stop": {
+    "status": -90,
+    "branch": 4,
+    "site": "receive batch aggregated port read, transfer sizing (-EMSGSIZE)"
+   },
+   "reading": "HIF section 41: 0305 removes the EAPOL stall; the per-pass probe is not free; the receive batch's buffer bound refuses rounded aggregates above 37,376 bytes as a bus failure; interrupt half void"
   }
  }
 }
