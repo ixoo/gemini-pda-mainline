@@ -1,4 +1,14 @@
-# Current: the interrupt patches retired (the line is closed); the per-frame cost boot (§47, 0315) predeclared, under review
+# Current: boot AB, the per-frame cost boot (§47), staged on boot2 (build c412175c: 0315 on, the interrupt patches retired)
+
+Boot2 holds `8f481a70…`, written over boot AA8's `c924d5c2…` and read
+back in full. The composer admits two config changes
+(`CONFIG_MT6797_HIF_RX_IRQ` y→absent, `CONFIG_MT6797_PASS_COST_RECORD`
+absent→y) and one tree difference, the wifi child's `interrupts`
+removed with 0298. Gemian (`e800691c…`) is shut down for the owner's
+boot2 selection. After this boot the fragment turns the per-phase cost
+off again.
+
+# Historical: the interrupt patches retired (the line is closed); the per-frame cost boot (§47, 0315) predeclared, under review
 
 The interrupt patches 0297–0303, 0306, 0308, 0309 and 0314 are
 retired. 0304, 0305, 0307 and 0310–0313 are rebased onto 0296, and
