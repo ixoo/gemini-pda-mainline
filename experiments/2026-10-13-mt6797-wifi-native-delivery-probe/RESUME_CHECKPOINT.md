@@ -1,4 +1,15 @@
-# Current: the WHISR peek boot AJ (§57; 0322) approved; building
+# Current: the WHISR peek boot staged as AJ2 (§57; build 0ac0f8e0, boot2 a7f2b300…); watcher armed
+
+Boot AJ's install wrote boot2 (`a7f2b300…`, over AF's `220a431b…`) and
+read it back in full. Gemian's shutdown then hung: logind reported a
+shutdown in progress while systemd stopped answering. The receipt
+stayed incomplete, the harness refused the deployment, and the
+owner's boot2 selection ran no measurement. The owner power-cycled the
+device to Gemian (`0f5a7d5a…`). AJ2's install read the full partition,
+skipped the write as matching, and recorded a confirmed shutdown.
+Gemian is down for the owner's boot2 selection.
+
+# Historical: the WHISR peek boot AJ (§57; 0322) approved; building
 
 0322 reads WHISR alone before the enhanced status block and skips the
 block on a zero word. The boot is AH's configuration on the same
