@@ -4251,6 +4251,50 @@
     "tx_air_losses": 30
    },
    "reading": "HIF section 51, fourth row: the window released every frame in order with no pn=lower, but TX collapsed (30 failed transmit statuses, 208 ms credit wait); cause not established; RX_AMPDU off in the profile"
+  },
+  "boot-af": {
+   "run": "PIO-throughput-bootaf-1",
+   "session": "2026-10-26 15:28 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (0317-0321 present, RX_AMPDU off, depth 12)",
+   "kernel_build_commit": "db2b773349b6899bfe1072a3e2e2b3cd41923d93",
+   "boot2_sha256": "220a431bbb2a2dfa79aaf1f60e8cd2c20064ab849d203259973e3d236d506a09",
+   "predecessor_boot2_sha256": "25865da4a559071a4ad23253cf3175408c2f4e4b4d3dc89273aa2bb391478265",
+   "previous_gemian_boot_id": "c78edf17-55ca-4fcc-8d4b-2ad12f43358d",
+   "returned_gemian_boot_id": "3910a501-3db3-4437-940f-6f9b6627dfeb",
+   "classification": "graded: all_pass; no block-ack session; no transmit collapse; both directions below band",
+   "series_row": true,
+   "credit_retire": {
+    "retired": 41083,
+    "wait_avg_us": 6002,
+    "wait_max_us": 86650,
+    "inflight_max": 12
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 15.07,
+    "tx_chunk_mbit_s": [
+     16.64,
+     16.99,
+     16.54,
+     15.78,
+     13.91
+    ],
+    "rx_aggregate_mbit_s": 13.74,
+    "rx_device_chunk_mbit_s": [
+     15.68,
+     14.54,
+     15.4,
+     15.17,
+     10.93
+    ],
+    "rx_delivered": 35632
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 4
+   },
+   "reading": "HIF section 52: no collapse with the option off, but both directions about a quarter below their bands; the air moved; the window is neither cleared nor implicated; RX_AMPDU stays off"
   }
  }
 }

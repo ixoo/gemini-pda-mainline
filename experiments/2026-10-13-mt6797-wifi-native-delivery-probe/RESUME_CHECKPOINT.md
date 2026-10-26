@@ -1,4 +1,13 @@
-# Current: boot AF, the separating run (§52), staged on boot2 (build db2b7733: AE's tree, RX_AMPDU off)
+# Current: boot AF graded; no collapse with the option off, but both directions below their bands; the air moved; the window is neither cleared nor implicated
+
+[Boot AF](HIF_TRANSPORT_ANALYSIS.md#boot-af-result-2026-10-26-1528-utc-no-collapse-without-the-option-but-both-directions-below-their-band-no-row-matches-cleanly):
+`all_pass`. TX 15.07 Mbit/s (4 failed sends, credit wait max 87 ms) and
+RX 13.74, both about a quarter below their non-aggregated bands, with
+the option off. AE's collapse did not recur, and no §52 row matches
+cleanly. `CONFIG_MT6797_RX_AMPDU` stays off. The device is on Gemian
+(`3910a501…`); boot2 holds `220a431b…`.
+
+# Historical: boot AF, the separating run (§52), staged on boot2 (build db2b7733: AE's tree, RX_AMPDU off)
 
 Boot2 holds `220a431b…`, written over AE's `25865da4…` and read back in
 full. The composer admits one config change against AE's image

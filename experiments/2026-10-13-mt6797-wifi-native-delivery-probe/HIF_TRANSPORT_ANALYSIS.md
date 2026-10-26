@@ -6536,3 +6536,48 @@ AE (0.018 Mbit/s, 30 failed, 8.4/208 ms, 1,015 stops) and AD (21.45,
 The run is asymmetric. A collapse here clears the window. A normal
 transmit does not convict it: the air may have recovered between the
 runs, so that branch needs AE's image itself.
+
+### Boot AF result (2026-10-26, 15:28 UTC): no collapse without the option, but both directions below their band; no row matches cleanly
+
+Build `db2b7733`, boot2 `220a431b…` (written over AE's `25865da4…` and
+read back in full). Graded `all_pass`, `session_exit=0`. The session's
+reviewed return reached Gemian `3910a501…`, live identity confirmed.
+
+```
+join HT records: … tx_ampdu=1 tx_ba=0 rx_ampdu=1 rx_ba=0
+join data phase end: reason=disconnect elapsed_ms=47392 rx_delivered=35632 tx_queued=41735 tx_done=41731 tx_failed=4
+join data credit retire end: retired=41083 expired=0 pid_faults=0 wait_avg_us=6002 wait_max_us=86650 left_pages=0 inflight_max=12
+join data backpressure: stops=3 wakes=3 dropped_full=0 …
+data qos: … rx_qos=35425 rx_nonqos=170 rx_refused=1 rx_refused_qos=0 rx_llc_mis=0
+```
+
+- *Observed: the option is off as built.* No block-ack session was
+  negotiated (`rx_ampdu=1 rx_ba=0`, no `RX BA` line), and one refusal
+  remained, the software-frame shape.
+- *Observed: transmit did not collapse.* TX ran 15.07 Mbit/s (chunks
+  16.64, 16.99, 16.54, 15.78, 13.91). The driver failed 4 transmit
+  statuses, against AE's 30. The credit wait was 6.0 ms average and
+  86.7 ms maximum (AE 8.4/208, AD 4.6/21), with 3 queue stops (AE
+  1,015).
+- *Observed: both directions sit below their band.* RX ran 13.74
+  (chunks 15.68, 14.54, 15.40, 15.17, 10.93), against the
+  non-aggregated band of ~17–20. TX's 15.07 sits against its band of
+  ≥18. The receive TCP round-trip median was 403–506 ms.
+- *Reading against §52's table.* It is not the first row: TX did not
+  collapse. It is not the second either: TX is not in its band. The
+  nearest is the third, "the baseline itself moved": with the
+  non-aggregated configuration unchanged in effect since AB2, both
+  directions ran about a quarter below their earlier bands on this
+  air, with more failed sends and longer credit waits than AD.
+- *What this establishes.* The air varied across these runs. AE's
+  collapse did not recur with the option off, but this run does not
+  clear the window either. A degraded air that lowers both directions
+  here is not shown to be the full collapse AE saw. One run cannot
+  tell whether AE's collapse was a worse moment of the same air or
+  the change.
+
+**Branch taken: none of §52's next steps yet.** The baseline moved on
+this air. Before another aggregation run, a run needs to show the air
+back in band, or an aggregation result needs to be graded against a
+same-session baseline. `CONFIG_MT6797_RX_AMPDU` stays off in the
+profile.
