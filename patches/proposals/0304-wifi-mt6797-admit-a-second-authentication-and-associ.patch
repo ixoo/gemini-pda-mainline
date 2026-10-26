@@ -1,0 +1,147 @@
+From cf436ef8a2674fbd198ac8db8da6c294034195e6 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:00:16 -0400
+Subject: [PATCH] wifi: mt6797: admit a second authentication and association
+ attempt
+
+Boot AA2 stopped its join with -EOPNOTSUPP when one association
+response was lost. mac80211 retries the association request when no
+response arrives (three tries), but mgd_prepare_tx admitted a join
+management subtype only while its join_seen bit was clear, and the
+transmit path set that bit when it queued the first request. The retry
+failed the admission, set first_error and closed the lifetime before
+the second request was queued.
+
+Authentication and the association request now carry an attempt
+count, bounded at two each. A retry is admitted only under the existing
+window: the join running and not closing, the channel granted, 850 ms
+left before the join and grant deadlines, and, for the association
+request, authenticated with no association response received. Every
+other refusal is unchanged and still fails closed, the third attempt
+of either subtype among them. The deauthentication and every other
+subtype stay one frame per lifetime.
+
+The validator now clears the WMM and HT "requested" flags at the start
+of each association request, so a retried request with the same
+elements passes, and the response is read against the last request
+sent. mgd_prepare_tx records each admission decision with both counts.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 52 ++++++++++++++++++++--
+ 1 file changed, 49 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 09b648d6f..e85f9b484 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -272,6 +272,10 @@ struct mt6797_mac {
+ 	unsigned int join_teardown_framing_drops;
+ 	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+ 	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
++	/* Authentication and association request frames queued in this
++	 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
++	 */
++	unsigned int join_auth_attempts, join_assoc_attempts;
+ #ifdef CONFIG_MT6797_TX_BACKPRESSURE
+ 	/* mac80211's queues stopped while the data queue is at its bound (0282). */
+ 	bool tx_queues_stopped;
+@@ -1862,6 +1866,32 @@ static void mt6797_mac_join_refused_frame(struct mt6797_mac *mac, size_t bytes)
+ /* Initial queue is closed. Only the forthcoming owned join state callbacks
+ 	* may open it after the scan/peer/channel gates; there is no device admission.
+ 	*/
++/* mac80211 retries authentication and the association request when no
++ * response arrives (three tries each). The driver queues up to two of each,
++ * inside the same join window; every other management subtype stays one
++ * frame per lifetime (0304).
++ */
++#define MT6797_JOIN_ATTEMPTS 2
++
++/* Called with join_queue.lock held. */
++static bool mt6797_join_attempt_open(const struct mt6797_mac *mac,
++				     unsigned int subtype)
++{
++	if (subtype == 11)
++		return mac->join_auth_attempts < MT6797_JOIN_ATTEMPTS;
++	if (subtype == 0)
++		return mac->join_assoc_attempts < MT6797_JOIN_ATTEMPTS;
++	return !(mac->join_seen & BIT(subtype));
++}
++
++/* Called with join_queue.lock held, for the frame being queued. */
++static void mt6797_join_attempt_note(struct mt6797_mac *mac, unsigned int subtype)
++{
++	mac->join_seen |= BIT(subtype);
++	mac->join_auth_attempts += subtype == 11;
++	mac->join_assoc_attempts += subtype == 0;
++}
++
+ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ {
+ 	const u8 *f = skb->data;
+@@ -1884,6 +1914,15 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 12 ? 26 : 0;
+ 	if (!minimum || n < minimum)
+ 		return false;
++	/* A retried association request is validated afresh (0304). */
++	if (subtype == 0) {
++#ifdef CONFIG_MT6797_WMM_QOS_DATA
++		mac->join_wmm_requested = false;
++#endif
++#ifdef CONFIG_MT6797_HT_CAPABILITY
++		mac->join_ht_requested = false;
++#endif
++	}
+ 	if (subtype == 11)
+ 		return n == 30 && !mt6797_join_le16(f + 24) &&
+ 	 mt6797_join_le16(f + 26) == 1 && !mt6797_join_le16(f + 28);
+@@ -2247,6 +2286,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_polls = 0;
+ 	mac->join_packets = 0;
+ 	mac->join_seen = 0;
++	mac->join_auth_attempts = 0;
++	mac->join_assoc_attempts = 0;
+ 	mac->join_tx_allowed = 0;
+ 	mac->join_rx_allowed = 0;
+ 	mac->join_deadline = 0;
+@@ -2566,6 +2607,8 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ 	mac->join_polls = 0;
+ 	mac->join_packets = 0;
+ 	mac->join_seen = 0;
++	mac->join_auth_attempts = 0;
++	mac->join_assoc_attempts = 0;
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+ 	mac->join_open = false;
+@@ -6459,10 +6502,13 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+ 		    (info->subtype == IEEE80211_STYPE_ASSOC_REQ &&
+ 		     mac->join_authenticated && !mac->join_assoc_received));
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+-	admitted = admitted && !(mac->join_seen & BIT(subtype));
++	admitted = admitted && mt6797_join_attempt_open(mac, subtype);
+ 	mac->join_open = admitted;
+ 	mac->join_tx_allowed = admitted ? BIT(subtype) : 0;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	dev_info(wiphy_dev(hw->wiphy),
++		 "one-shot WLAN join prepare: subtype=%u auth_attempts=%u assoc_attempts=%u admitted=%u\n",
++		 subtype, mac->join_auth_attempts, mac->join_assoc_attempts, admitted);
+ 	if (admitted) {
+ 		mac->join_rx_allowed = BIT(info->subtype == IEEE80211_STYPE_AUTH ? 11 : 1) |
+ 				       BIT(10) | BIT(12);
+@@ -7230,13 +7276,13 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 		spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 		if (mac->join_open && !(fc & 0xff0f) &&
+ 		    (mac->join_tx_allowed & BIT(subtype)) &&
+-		    !(mac->join_seen & BIT(subtype)) &&
++		    mt6797_join_attempt_open(mac, subtype) &&
+ 		    ether_addr_equal(header + 4, mac->join_ap) &&
+ 		    ether_addr_equal(header + 10, hw->wiphy->perm_addr) &&
+ 		    ether_addr_equal(header + 16, mac->join_ap) &&
+ 		    skb_queue_len(&mac->join_queue) < 3 &&
+ 		    mac->join_queue_bytes + skb->len <= 3 * 2304) {
+-			mac->join_seen |= BIT(subtype);
++			mt6797_join_attempt_note(mac, subtype);
+ 			mac->join_queue_bytes += skb->len;
+ 			__skb_queue_tail(&mac->join_queue, skb);
+ 			schedule_delayed_work(&mac->join_work, 0);
+-- 
+2.43.0
+

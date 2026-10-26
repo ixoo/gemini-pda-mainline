@@ -188,6 +188,13 @@ is depth 12, once.
 
 ## Where throughput stands (2026-10-25, after boot L)
 
+**Update, boot AA3 (2026-10-26).** Since boot L, HT MCS7, receive
+batching and the depth-12 pump moved both directions. The measured
+design ceiling without aggregation is now TX 22.6 and RX 20.5 Mbit/s
+aggregate, the best pair in the series
+([HIF §38](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row)).
+The figures below are boot L's.
+
 - **Transmit:** about 23–23.5 Mbit/s, the legacy wall: depth 12 (boot M,
   22.7–24.1 per chunk) and depth 16 (boot N, 23.2–23.8) carry the same
   frames a second, so the air binds and depth 12 is the setting; 19 ± 2 at

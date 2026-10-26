@@ -1,0 +1,188 @@
+From 60f4a52f55793f9c20d8d317c209905399761708 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:00:15 -0400
+Subject: [PATCH] wifi: mt6797: sample the HIF line's pending state at the
+ interrupt controller
+
+Boots AA and AA3 armed the HIF interrupt sources (WHIER 0x7, WHLPCR
+INT_EN set, the wrapper line mask 0) and never took the interrupt,
+while about 22,000 block reads per data phase found frames waiting.
+Nothing so far shows whether the line reaches the interrupt controller.
+
+While the interrupt is armed, the driver now reads the controller's
+pending state of the line with irq_get_irqchip_state() right after each
+enhanced status block read, and before the queues the block names are
+read. It samples every block that names frames and one in 64 of the
+others, and counts samples that cannot be read as errors. For a
+level-sensitive SPI the pending state of this SoC's GICv3 follows the
+input line, so this observes the line itself rather than the handler.
+The disarmed line prints pending=<set>/<samples> for blocks with
+frames, the same for the others, and the error count.
+
+This adds a diagnostic and nothing else: the poll cadence, the handler
+and the arm/disarm sequence are unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 55 ++++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h | 15 ++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 10 +++-
+ 3 files changed, 78 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index ecfa99a90..97993fba1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -9,6 +9,7 @@
+ #include <linux/delay.h>
+ #include <linux/dma-mapping.h>
+ #include <linux/err.h>
++#include <linux/interrupt.h>
+ #include <linux/io.h>
+ #include <linux/ktime.h>
+ #include <linux/mutex.h>
+@@ -103,6 +104,12 @@ struct mt6797_hif {
+ 
+ 	u8 rx_batch_block[MT6797_HIF_RX_BATCH_BLOCK_BYTES];
+ 	u8 *rx_batch_agg;
++#ifdef CONFIG_MT6797_HIF_RX_IRQ
++	/* The pending-state probe (0303), under the HIF mutex. */
++	int irq_probe;
++	unsigned int irq_probe_skip;
++	struct mt6797_hif_irq_probe irq_probe_counts;
++#endif
+ };
+ 
+ /* AP-DMA HIF channel 0 registers (window offsets) and fields, as the vendor
+@@ -604,6 +611,49 @@ static int mt6797_hif_rx_batch_enable(struct mt6797_hif *hif)
+ 	return hif->rx_batch_on ? 0 : -EIO;
+ }
+ 
++#ifdef CONFIG_MT6797_HIF_RX_IRQ
++void mt6797_hif_irq_probe_start(struct mt6797_hif *hif, int irq)
++{
++	if (!hif)
++		return;
++	mutex_lock(&hif->mutex);
++	hif->irq_probe = irq;
++	hif->irq_probe_skip = 0;
++	memset(&hif->irq_probe_counts, 0, sizeof(hif->irq_probe_counts));
++	mutex_unlock(&hif->mutex);
++}
++
++void mt6797_hif_irq_probe_stop(struct mt6797_hif *hif,
++			       struct mt6797_hif_irq_probe *counts)
++{
++	memset(counts, 0, sizeof(*counts));
++	if (!hif)
++		return;
++	mutex_lock(&hif->mutex);
++	hif->irq_probe = 0;
++	*counts = hif->irq_probe_counts;
++	mutex_unlock(&hif->mutex);
++}
++
++static void mt6797_hif_irq_probe_sample(struct mt6797_hif *hif, bool frames)
++{
++	struct mt6797_hif_irq_probe *counts = &hif->irq_probe_counts;
++	bool state;
++
++	if (hif->irq_probe <= 0 || (!frames && ++hif->irq_probe_skip % 64))
++		return;
++	if (irq_get_irqchip_state(hif->irq_probe, IRQCHIP_STATE_PENDING, &state)) {
++		counts->errors++;
++	} else if (frames) {
++		counts->samples++;
++		counts->set += state;
++	} else {
++		counts->idle_samples++;
++		counts->idle_set += state;
++	}
++}
++#endif
++
+ /* Two sixteen-bit counts in one word (the WTQCR layout), added half by half. */
+ static u32 mt6797_hif_add16x2(u32 a, u32 b)
+ {
+@@ -655,6 +705,11 @@ static int mt6797_hif_rx_batch_fill(struct mt6797_hif *hif)
+ 		hif->rx_batch_block_abnormal = hif->rx_batch_block_whisr;
+ 		return -EIO;
+ 	}
++#ifdef CONFIG_MT6797_HIF_RX_IRQ
++	/* While the frames the block names are still in the device. */
++	mt6797_hif_irq_probe_sample(hif, get_unaligned_le16(hif->rx_batch_block + 36) ||
++				    get_unaligned_le16(hif->rx_batch_block + 38));
++#endif
+ 	for (i = 0; i < 8; i++) {
+ 		u32 word = get_unaligned_le32(hif->rx_batch_block + 4 + 4 * i);
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index c5c85d80d..0dcb17e39 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -160,6 +160,21 @@ struct mt6797_hif_irq_record {
+  */
+ int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
+ 			     u64 deadline_ns, struct mt6797_hif_irq_record *record);
++
++/* The interrupt controller's pending state of the HIF line, sampled after
++ * each enhanced status block read and before the queues it names are read
++ * (0303): on every block that names frames, and on one in 64 of the
++ * others. A sample whose state cannot be read counts as an error, not as
++ * a sample.
++ */
++struct mt6797_hif_irq_probe {
++	unsigned int set, samples, idle_set, idle_samples, errors;
++};
++
++/* Start sampling irq with zeroed counts; stop and return the counts. */
++void mt6797_hif_irq_probe_start(struct mt6797_hif *hif, int irq);
++void mt6797_hif_irq_probe_stop(struct mt6797_hif *hif,
++			       struct mt6797_hif_irq_probe *counts);
+ #endif
+ void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
+ 			  unsigned int *rx, unsigned int *poll_max,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 2b6bd53ca..09b648d6f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -228,6 +228,7 @@ struct mt6797_mac {
+ 	unsigned int hif_irq_taken, hif_irq_rearmed;
+ 	int hif_irq_arm_status, hif_irq_disarm_status;
+ 	struct mt6797_hif_irq_record hif_irq_on, hif_irq_off;
++	struct mt6797_hif_irq_probe hif_irq_probe;
+ #endif
+ #ifdef CONFIG_MT6797_HT_CAPABILITY
+ 	bool join_ht_requested, join_ht_accepted;
+@@ -3438,6 +3439,7 @@ static void mt6797_mac_hif_irq_pass(struct mt6797_mac *mac)
+ 		if (!mac->hif_irq_arm_status) {
+ 			mac->hif_irq_armed = true;
+ 			enable_irq(mac->hif_irq);
++			mt6797_hif_irq_probe_start(mac->hif, mac->hif_irq);
+ 		}
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN HIF interrupt armed: irq=%d status=%d whier=0x%08x>0x%08x whlpcr=0x%08x>0x%08x mask=0x%08x>0x%08x\n",
+@@ -3448,6 +3450,7 @@ static void mt6797_mac_hif_irq_pass(struct mt6797_mac *mac)
+ 		return;
+ 	}
+ 	if (mac->hif_irq_armed && !want) {
++		mt6797_hif_irq_probe_stop(mac->hif, &mac->hif_irq_probe);
+ 		disable_irq(mac->hif_irq);
+ 		if (atomic_xchg(&mac->hif_irq_masked, 0))
+ 			enable_irq(mac->hif_irq);
+@@ -3455,9 +3458,12 @@ static void mt6797_mac_hif_irq_pass(struct mt6797_mac *mac)
+ 		mac->hif_irq_disarm_status = mt6797_hif_set_interrupt(mac->hif, false, deadline,
+ 								      &mac->hif_irq_off);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN HIF interrupt disarmed: irq=%d status=%d taken=%u rearmed=%u whier=0x%08x>0x%08x whlpcr=0x%08x>0x%08x mask=0x%08x>0x%08x\n",
++			 "one-shot WLAN HIF interrupt disarmed: irq=%d status=%d taken=%u rearmed=%u pending=%u/%u idle_pending=%u/%u probe_errors=%u whier=0x%08x>0x%08x whlpcr=0x%08x>0x%08x mask=0x%08x>0x%08x\n",
+ 			 mac->hif_irq, mac->hif_irq_disarm_status, READ_ONCE(mac->hif_irq_taken),
+-			 mac->hif_irq_rearmed, mac->hif_irq_off.whier_before,
++			 mac->hif_irq_rearmed, mac->hif_irq_probe.set,
++			 mac->hif_irq_probe.samples, mac->hif_irq_probe.idle_set,
++			 mac->hif_irq_probe.idle_samples, mac->hif_irq_probe.errors,
++			 mac->hif_irq_off.whier_before,
+ 			 mac->hif_irq_off.whier_after, mac->hif_irq_off.whlpcr_before,
+ 			 mac->hif_irq_off.whlpcr_after, mac->hif_irq_off.mask_before,
+ 			 mac->hif_irq_off.mask_after);
+-- 
+2.43.0
+

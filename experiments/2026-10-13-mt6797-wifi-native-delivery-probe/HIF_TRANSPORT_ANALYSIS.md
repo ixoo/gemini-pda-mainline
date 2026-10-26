@@ -5077,15 +5077,23 @@ HIF interrupt disarmed: irq=218 status=0 taken=0 rearmed=0 whlpcr=0x00000101>0x0
   register is live and writable. It was unmasked at arm time.
 - *Observed:* `taken=0` across a 41.6 s data phase, with WHIER `0x7`,
   WHLPCR `INT_EN` set and the wrapper unmasked.
-- *Inference:* boot AA's silence was not the wrapper mask. 0301's arm
-  write changes nothing on this firmware state. None of the three
-  device-side enables the vendor sets withholds the line, so the
-  remaining suspect is the one §38 named: the poll's block read clears
-  the status before the line can assert.
-- *Not shown:* whether the GIC line itself (SPI 283, level low through
-  the sysirq inverter) would ever assert. No read in this boot
-  separates "the status is cleared first" from "the line is routed
-  elsewhere".
+- *Result (the negative that matters):* the wrapper mask was never the
+  cause, and the three device-side enables are not sufficient. 0301's
+  arm write changes nothing on this firmware state.
+- *Withdrawn inference (owner correction, 2026-10-26):* this record first
+  named the poll's read-clear as the remaining suspect. That cannot
+  explain the boot. The block read clears only the firmware's software
+  interrupts and the own-back interrupt. The three enabled sources (TX
+  done, RX0 done, RX1 done) are read-only: receive-done follows the
+  length FIFO's occupancy and falls only when the queue is read down.
+  So every source we armed stayed asserted from the firmware's write
+  until our drain. At 12,438 passes a second that is up to about 80 µs,
+  on each of the 22,090 reads that found frames. WHIER `0x7`, WHLPCR
+  bit 0 reading back 1 and the wrapper mask at 0 held all 22,090 times,
+  and the interrupt controller delivered none of them.
+- *Open:* whether the line reaches SPI 283 at all (level low through the
+  sysirq inverter). Boot AA4 (§39) reads the controller's pending state
+  to decide it.
 
 **The rest, against boot AA.** Nothing regressed.
 
@@ -5115,33 +5123,51 @@ access point's retransmission at 15.22 s, a 996 ms stall. That is the
 same sequence and the same 996 ms as boot AA, now on two consecutive
 clean boots. The early-M1 change below is predicted to remove it.
 
-**Branch taken: §38's second row.** The predeclared first row needed
-`mask=0x…1>0x…0`. The mask read `0>0`, so that row's premise does not
-exist on this device. `taken=0` with the wrapper unmasked selects the
-second row. Boot AA4 therefore runs with the changed purpose below: it
-decides whether the block read's read-clear suppresses the line, under
-the explicit revert. The interrupt work is not extended in this boot.
+**The branches, read honestly.**
 
-## 39. Boot AA4 (predeclared, 2026-10-25; renumbered 2026-10-26): the receive poll on a wake
+- *First row, not taken:* it needed `mask=0x…1>0x…0`, and the mask never
+  read 1.
+- *Third row, not taken:* the rates rose, and the 16 refusals are Retry
+  duplicates with the PN equal, correct refusals rather than a
+  regression.
+- *Second row, taken:* `taken=0` with the wrapper unmasked. Its planned
+  follow-up, the slow poll as a read-clear test, rested on the withdrawn
+  inference. It is replaced by the controller-side probe (§39, owner,
+  2026-10-26).
 
-**The change, after boot AA shows the line fires.** While the interrupt
-is armed, the receive status-block read runs only on an interrupt wake
-plus a slow fallback timer (about 10 ms), not on every pass. That is the
-change that removes the empty block reads (96 % of about 12,500 a
-second). Boot AA keeps it out, so the line and the cadence are
-attributable separately.
+**The measured design ceiling without aggregation (owner, 2026-10-26).**
+TX 22.6 and RX 20.5 Mbit/s aggregate, both on the fixed HT MCS7 rate
+with the depth-12 pump. This is the best pair in the series.
 
-**The prediction:** +15–25 % device-side receive, read as frames per
-second and Mbit/s, with the empty-read ratio falling. Transmit is read
-against the shared-worker coupling. Any refusal, `device_timeout`, or a
-transmit regression beyond the noise band reverts, as boot B
-established.
 
-**Its purpose depends on boot AA3 (owner, 2026-10-26).**
+## 39. Boot AA4 (predeclared, 2026-10-26): the HIF line at the interrupt controller
 
-- *If the line fires in AA3:* as written (not taken: the line did not fire), capture the 15–25 %.
-- *If `taken = 0` with the wrapper unmasked (the AA3 result):* AA4 no longer captures a
-  gain. It decides whether the block read's read-clear suppresses the
-  line at all. Its revert condition is then explicit: any fall in
-  device-side receive rate returns the poll to full cadence, and the
-  interrupt work is retired rather than extended.
+The slow-poll boot first declared here is held. Its premise, that the
+block read clears the sources, is withdrawn (§38, boot AA3). One probe
+decides the question that remains: does the HIF output reach SPI 283?
+
+**The change (0303, with 0302).** Nothing in the poll changes. While
+the interrupt is armed, the driver reads the controller's pending state
+of the line with `irq_get_irqchip_state(…, IRQCHIP_STATE_PENDING, …)`
+right after each status block read and before the queues it names are
+read. It samples every block that names frames and one in 64 of the
+others. The disarmed line prints `pending=<set>/<samples>` for blocks
+with frames, `idle_pending=` for the others, and `probe_errors=`. For a
+level-sensitive SPI the pending state of this SoC's GICv3 follows the
+input line, so this observes the line, not our handler. 0302 removes
+0301's disarm write (the vendor's disable path never writes the
+wrapper mask), keeps `mask=` on both lines as the record, and adds
+`whier=` to the disarmed line, so a firmware clear of WHIER during the
+data phase would show. The join changes (0304, 0305) are not in this
+boot.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `pending > 0` with `taken = 0` | the input asserts and is not delivered: the fault is on our side of the distributor (descriptor mask state, CPU interface, priority) | inspect the irq descriptor and the `enable_irq` accounting; the HIF side is right |
+| `pending = 0` over ≥ 20,000 sampled blocks that named frames | the HIF output does not reach SPI 283 | stop the poll work; the line is misrouted or gated outside the four known gates; answer it offline before any further interrupt patch |
+| `taken > 0` | contradicts AA3 | record it and re-open §38 |
+| `probe_errors > 0` with no samples | the controller does not report the state | the boot does not decide; record it |
+
+The rest is read against boot AA3: transmit and receive rates, refusals
+and the transmit ledger. A regression beyond the noise band means the
+probe is not free, and it is removed.

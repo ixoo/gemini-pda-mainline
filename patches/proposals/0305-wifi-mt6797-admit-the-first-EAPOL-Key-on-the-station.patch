@@ -1,0 +1,63 @@
+From 9bb4255504ba964da0ee6c9b5d25db5fbbb8d884 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:00:18 -0400
+Subject: [PATCH] wifi: mt6797: admit the first EAPOL-Key on the station tag
+ before activation
+
+In boots AA and AA3 the access point's first EAPOL-Key arrived 24 ms
+after the status-0 association response. It carried the firmware's
+BSSID tag 1, the station record the association created, before the
+driver had activated that record: the post-association path waits for
+the BSS record's credit and then the station record's before it sets
+join_sta_active. The receive gate admitted tag 1 only while the station
+was active, so the frame was refused at bss-interval. The handshake
+resumed only on the access point's retransmission 996 ms later, on half
+of the retained connects.
+
+Tag 1 is now admitted from the accepted association on, with every
+other condition unchanged: a status-0 association response received,
+the deauthentication not done, no cleanup, and at most two delivered
+EAPOL-Key frames per lifetime. Tag 15 keeps its interval (only until
+the BSS command's credit), and any other tag is still refused. Only the
+timing relaxes. The supplicant's reply was already held in the transmit
+queue until the station activation, and it still is.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index e85f9b484..bbe6a4750 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -5013,18 +5013,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			    mac->join_eapol_seen < 2 &&
+ 			    /* BSSID tag 15, observed before the station activation
+ 			     * (runtimes 12 and 15, message 1), is admitted only until the
+-			     * successful BSS command credit completion is recorded; tag 1,
+-			     * observed after the station activation (runtime 15, the next
+-			     * EAPOL-shaped packet after the activation event, refused at
+-			     * this field; expected to be message 3, unvalidated), only
+-			     * while the station is active. The field is filled by the
+-			     * firmware and unused by the pinned receive path; each value is
+-			     * bound to the interval in which it was measured, and any other
++			     * successful BSS command credit completion is recorded; tag 1
++			     * from the accepted association on. Tag 1 was first observed
++			     * after the station activation (runtime 15, message 3), and
++			     * boots AA and AA3 observed it on message 1, 24 ms after the
++			     * association response and before the activation, where waiting
++			     * for the activation cost the access point's one-second
++			     * retransmission (0305). The supplicant's reply still waits for
++			     * the activation in the transmit queue. The field is filled by
++			     * the firmware and unused by the pinned receive path; any other
+ 			     * value is refused and named by the frame gate below. The rest
+ 			     * of the decoder's framing gates verify that packet next.
+ 			     */
+ 			    ((eapol.bss_index == 15 && !mac->join_bss_configured) ||
+-			     (eapol.bss_index == 1 && mac->join_sta_active))) {
++			     eapol.bss_index == 1)) {
+ 				mt6797_mac_eapol_trace(mac, rx.logical_bytes, "admitted", "ok",
+ 						       eapol_gate, eapol.bytes);
+ 				mac->join_eapol_seen++;
+-- 
+2.43.0
+

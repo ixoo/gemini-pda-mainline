@@ -1,15 +1,26 @@
-# Current: boot AA3 graded (§38 second row: the wrapper was never masked, the line still silent); the join retry patch (0302) under review; early M1 next
+# Current: boot AA3 graded; boot AA4 (the HIF line's pending state at the controller) predeclared, patches 0302–0305 under owner review, nothing built
 
 [Boot AA3](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row):
 boot AA2's image re-run (boot2 verified, `skipped-already-matching`);
-`all_pass`. Armed `mask=0x00000000>0x00000000`: the wrapper line was
-already unmasked, and `taken=0` held with WHIER 0x7 and INT_EN set. Boot
-AA4 (§39) now decides whether the block read's read-clear suppresses the
-line, under the explicit revert. RX 20.48, TX 22.57; 16 `pn=equal` Retry
-refusals. The first EAPOL-Key stalled 996 ms again (bss-interval). Join
-fixes in order: the bounded authentication/association retry (0302), the
-early M1 admission, then the reconnect gate. The device is on Gemian
-(`cfbcce3f…`); boot2 holds `561e2025…`.
+`all_pass`. The wrapper mask read 0 before arm. `taken=0` held with
+WHIER 0x7 and INT_EN set. The read-clear inference is withdrawn: the
+enabled sources are read-only. RX 20.5 and TX 22.6 aggregate are the
+measured design ceiling without aggregation. The first EAPOL-Key
+stalled 996 ms again.
+
+Under review, not committed to a build:
+
+- 0302: the disarm leaves the wrapper mask alone, and `whier=` is
+  printed on disarm.
+- 0303: the pending-state probe (boot AA4, §39).
+- 0304: two authentication and association attempts (host test
+  `tests/run-join-attempt-test.py`).
+- 0305: the first EAPOL-Key on tag 1 from the accepted association on
+  (host test `tests/run-early-m1-test.py`).
+
+The lifecycle profile carries 0302–0303 only. 0304–0305 join it after
+AA4, then the reconnect gate. The device is on Gemian (`cfbcce3f…`);
+boot2 holds `561e2025…`.
 
 # Historical: boot AA2 void; boot AA3 (§38 re-run on the unchanged image) predeclared and being staged; two join defects named, to be fixed before the reconnect gate
 
