@@ -1,4 +1,9 @@
-# Current: §58 predeclared: the good-air confirmation (control first, then aggregation on, five-chunk harness, nothing else changed); the transmit status read queued as a power item
+# Current: §58's good-air confirmation building; the control (boot AK: the peek on, receive aggregation off) first, then boot AL (aggregation on)
+
+The fragment turns `CONFIG_MT6797_RX_AMPDU` off for the control's
+build only; the next commit turns it back on for AL and the profile.
+
+# Historical: §58 predeclared: the good-air confirmation (control first, then aggregation on, five-chunk harness, nothing else changed); the transmit status read queued as a power item
 
 Receive aggregation stands as +44 % on the same air (12.22 against
 8.46, AH/AI), with transmit unchanged; the absolute figure in good air
