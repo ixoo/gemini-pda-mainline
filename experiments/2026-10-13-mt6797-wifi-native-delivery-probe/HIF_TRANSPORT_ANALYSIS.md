@@ -7913,3 +7913,65 @@ the standing fixed fallback. The profile returns to it after AT unless
 the first row holds and the owner adopts auto rate. Short GI stays off.
 If it is revisited, it runs as a same-air pair with the `rx_refused`
 gate (§64).
+
+### Boot AT result (2026-10-26, 23:21 UTC): the selector stays at OFDM 6 Mbit/s with the complete record; recorded as dead on this path
+
+Build `9d6e2543` (0277, rate code 0, `CONFIG_MT6797_HT_STA_RECORD_FULL=y`;
+short GI off), boot2 `34a86969…` (written over AS's `5a3ae9f4…` and
+read back in full), mainline boot `629b8cc8…`. Five-chunk harness.
+Graded `all_pass`, `session_exit=0`, no failed verdict. The reviewed
+return reached Gemian `d2df3c53…`, live identity confirmed.
+
+```
+join HT records: declared=1 sta_phy=0x18 mcs=0xff mcs32=0 cap=0x09ef ext=0x0000 ... ampdu=0x1b tx_ampdu=1 tx_ba=0 rx_ampdu=2 rx_ba=64
+join HT station record: rx_highest=0x0000 tx_rate_info=0x00000001 txbf=0x00000000 asel=0x00
+join station state 2: status=0 sequence=20
+join data TX: first pid=5 pages=3 bytes=342 rate=0x00 report=0 bw40=1 sgi=0
+TX rates: status/rate=count 0/0x004b=231 other=0 first=0x004b last=0x004b n=231
+TX attempts: none=0 1=195 2=35 3=1 4=0 5=0 6=0 7=0 8+=0
+join data credit retire end: retired=14570 expired=0 pid_faults=0 wait_avg_us=21613 wait_max_us=111450 left_pages=0 inflight_max=12
+```
+
+- *Observed: the record went out complete.* Every HT field the vendor
+  copies is now copied. The access point's own values are mostly zero:
+  - rx highest rate 0;
+  - beamforming 0;
+  - ASEL 0;
+  - transmit rate info `0x01` (Tx MCS set defined, same as receive).
+
+  So against AQ the bytes that changed are ucAmpduParam (`0x1b`) and
+  u4TxRateInfo (`0x01`). The record is the one the vendor would send for
+  this peer.
+- *Observed: the selector does not move.* All 231 sampled rate words
+  are `0x004b`, as in AQ and October. State 2 was accepted, and every
+  frame was acknowledged (231 of 231 status 0, none failed, none
+  expired).
+- *Transmit (graded):*
+  - 3.54 Mbit/s (chunks 3.67–3.96) against AR's 15.01: 0.24×;
+  - AQ's 3.60, within its noise;
+  - 84.4 % first-attempt (195/231), against AQ's 85 % and AR's 94.8 %;
+  - credit wait 21.6 ms average, as in AQ.
+- *Receive (recorded):* 34.97 Mbit/s (chunks 34.86–37.96), at 40 MHz
+  (MCS7 53,385 of 55,433 QoS frames). The window held 2,207 frames and
+  released them all, with no holes and no drops. As in AQ, this is the
+  best receive aggregate; the transmit direction is idle at 6 Mbit/s.
+  Not attributed. Refusals: 863 software frames (none QoS).
+- *Ledger:* clean (expired 0, pid faults 0, left pages 0).
+
+**Reading against §65: the third row.** With every field the vendor
+fills from the peer's HT capability now in the record, the selector
+still never leaves `RATE_OFDM_6M`. So the partial record was not why it
+stopped. Recorded:
+- **Firmware rate selector:** dead on this firmware path from the host
+  side, for rate code 0 with the vendor's state sequence (1, 2, 3) and
+  the vendor's complete HT station record.
+- **Evidence:** the logged record above, AQ, and October's five boots.
+- **What is left:** whatever the firmware needs is not in
+  `CMD_UPDATE_STA_RECORD`. It is a firmware-side question for the RE VM,
+  not another record field.
+
+The fixed-rate ladder stays. MCS5 at 40 MHz (`0x85` with
+`CONFIG_MT6797_HT40_TX`) returns to the lifecycle profile as the
+documented transmit rate. 0277 leaves the lifecycle series again (a
+precondition for rate code 0 only). 0328 stays in both series with its
+option off, and the profile no longer sets it. Short GI stays off.

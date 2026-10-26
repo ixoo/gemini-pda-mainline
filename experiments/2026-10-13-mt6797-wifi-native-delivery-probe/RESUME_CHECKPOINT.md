@@ -1,4 +1,11 @@
-# Current: §65's auto-rate boot, AT (9d6e2543), staged on boot2 (34a86969…); graded on transmit against AR's 15.01
+# Current: boot AT graded; the firmware's selector stays at OFDM 6 Mbit/s with the complete HT station record (TX 3.54 against AR's 15.01); recorded as dead on this path; the profile back to MCS5 at 40 MHz
+
+[Boot AT](HIF_TRANSPORT_ANALYSIS.md#boot-at-result-2026-10-26-2321-utc-the-selector-stays-at-ofdm-6-mbits-with-the-complete-record-recorded-as-dead-on-this-path).
+0277 is out of the lifecycle series. 0328 stays in both series with its
+option off. The device is on Gemian (`d2df3c53…`); boot2 holds AT's
+`34a86969…`.
+
+# Historical: §65's auto-rate boot, AT (9d6e2543), staged on boot2 (34a86969…); graded on transmit against AR's 15.01
 
 Written over AS's `5a3ae9f4…` and read back in full. Gemian
 (`29a3a27a…`) is shut down for the owner's boot2 selection.
