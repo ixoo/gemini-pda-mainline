@@ -7367,3 +7367,51 @@ has it on, as built for this boot.
 `CONFIG_MT6797_HT40` stays on in the lifecycle profile and is recorded
 as local support: receive was 1.34× the same-session 20 MHz control.
 Transmit at 40 MHz is next.
+
+## 61. Transmit at 40 MHz (predeclared, 2026-10-26)
+
+**The patch.** 0324, `CONFIG_MT6797_HT40_TX` (depends on
+`CONFIG_MT6797_HT40`, off by default). The vendor's fixed-rate option
+(`nicTxSetPktFixedRateOption`) writes the bandwidth in DW6 byte 25,
+bits 0–2, beside the rate code: `FIX_BW_20` is 4, `FIX_BW_40` is 5.
+
+When the firmware grants the join channel with the HT40 offset echoed,
+the HIF marks that lifetime's ordinary data as 40 MHz, and each
+prepared data descriptor gets byte 25 = 5. The rate code is unchanged
+(HT MCS7). The flag is set again at every grant, so a 20 MHz join sends
+as before. A rate code of 0 is left alone. Management and security
+frames keep OFDM 6 Mbit/s at 20 MHz. The first data line reports `bw40`.
+
+**Tests.** `tests/run-ht40-hif-test.py` now runs three builds: neither
+option, HT40, and HT40 with transmit. In the third, the data descriptor
+as captured on the bus is the 20 MHz one with byte 25 = 5 and nothing
+else changed, and it reverts exactly when the HIF is told 20 MHz.
+Dropping the byte fails the test. Receive batching and the reorder
+window still pass on the tree. The driver builds with W=1 with the
+option on and off, and checkpatch is clean.
+
+**The boot: a same-session pair under the five-chunk harness.**
+
+1. *Control:* AM's image (`d587f977`: HT40 receive, transmit at
+   20 MHz). It is already on boot2, so no write.
+2. *Then:* the same profile with `CONFIG_MT6797_HT40_TX` on.
+
+The pair is graded on transmit against the control run minutes before,
+not against the absolute band; the owner read §60 the same way. If the
+control's transmit is under 10 Mbit/s, or a stall ends it, there is no
+comparison. Receive is recorded.
+
+**Expectation.** MCS7 at 40 MHz is 135 Mbit/s PHY against 65; the air
+time of a 1,518-byte frame falls from about 0.19 to 0.09 ms. Transmit
+has been limited by the firmware's service per frame (about 0.43 ms,
+§48), of which the air is one part, so the gain is bounded: about
++10–30 %. The access point chose MCS5/6 at 40 MHz for its own frames
+(AM), so MCS7 at 40 MHz from us may cost retries.
+
+| Reading (control not dead) | Meaning | Next |
+|---|---|---|
+| TX ≥ 1.15× the control's, `tx_failed` and the credit wait of the control's order, ledger clean | 40 MHz transmit works and pays | keep the option; short guard interval next |
+| TX not above the control's, with `tx_failed` or the credit wait clearly up | MCS7 at 40 MHz is too high for this link | the same image with rate code 0x86 (MCS6), one variable |
+| TX not above the control's, failures and credit wait unchanged | the firmware's per-frame service is not air-bound at these rates | keep the option off; the transmit limit stays the firmware's concurrency |
+| a transmit stall, expired frames, or the ledger moves | the descriptor field is not what the firmware expects | revert the option; preserve the log |
+| receive changes beyond the air's variation | the transmit bandwidth disturbs receive | read the window and rate counters before any change |

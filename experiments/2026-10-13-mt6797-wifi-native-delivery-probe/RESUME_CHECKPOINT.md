@@ -1,4 +1,8 @@
-# Current: HT40 receive taken as local support (1.34× the same-session 20 MHz control); transmit at 40 MHz being written
+# Current: §61's transmit-at-40-MHz pair approved: AM's image as the control (no write), then the HT40 transmit image (0324)
+
+The device is on Gemian (`c580366e…`); boot2 holds AM's `7533e245…`.
+
+# Historical: HT40 receive taken as local support (1.34× the same-session 20 MHz control); transmit at 40 MHz being written
 
 The device is on Gemian (`c580366e…`); boot2 holds AM's `7533e245…`.
 

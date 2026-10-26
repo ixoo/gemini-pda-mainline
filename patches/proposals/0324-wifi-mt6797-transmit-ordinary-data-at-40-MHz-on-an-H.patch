@@ -1,0 +1,147 @@
+From 4481a6009c128bd3a64e7d67384c444dd002dda9 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 17:10:02 -0400
+Subject: [PATCH] wifi: mt6797: transmit ordinary data at 40 MHz on an HT40
+ join
+
+0323 receives at 40 MHz. Transmit still sends every ordinary data frame
+at the fixed HT MCS7 rate with no bandwidth in the descriptor, which is
+20 MHz.
+
+The vendor's fixed-rate option (nicTxSetPktFixedRateOption) writes the
+bandwidth in DW6 byte 25, bits 0-2, beside the rate code in bytes
+26-27. FIX_BW_20 is 4 and FIX_BW_40 is 5.
+
+With CONFIG_MT6797_HT40_TX, the channel grant decides the bandwidth.
+When the firmware grants the join channel with the HT40 secondary offset
+echoed, the HIF marks this lifetime's ordinary data as 40 MHz: each data
+descriptor, as prepared, gets byte 25 = FIX_BW_40. The rate code is
+unchanged. The flag is set again at every grant, so a 20 MHz join, or a
+later lifetime without HT40, sends as before. A fixed rate code of 0
+(no fixed rate) is left alone. Management and security frames keep
+OFDM 6 Mbit/s at 20 MHz. The first data line reports bw40.
+
+The descriptor builder and its callers are unchanged; the field is set
+on the prepared copy in the HIF scratch buffer, under the HIF mutex.
+The option depends on CONFIG_MT6797_HT40 and is off by default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 11 +++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 19 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  4 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 10 ++++++++--
+ 4 files changed, 42 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index d06065897..b831e997f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -287,6 +287,17 @@ config MT6797_HT40
+ 	  Transmit keeps its fixed 20 MHz rate: only the access point's
+ 	  frames to this station can use the 40 MHz channel.
+ 
++config MT6797_HT40_TX
++	bool "MT6797 Wi-Fi: transmit ordinary data at 40 MHz on an HT40 join"
++	depends on MT6797_HT40
++	help
++	  When the firmware granted the join channel at HT40 (the secondary
++	  offset echoed), every ordinary data descriptor of that lifetime
++	  sets the fixed-rate bandwidth to 40 MHz: DW6 byte 25 bits 0-2,
++	  the vendor's FIX_BW_40 (5), beside the unchanged fixed rate code.
++	  A 20 MHz join, a fixed rate code of 0, management and security
++	  frames keep the descriptor as before.
++
+ config MT6797_WMM_QOS_RECORDS
+ 	bool "MT6797 Wi-Fi: declare the station and the BSS QoS to the firmware under WMM"
+ 	depends on MT6797_WMM_QOS_DATA
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 44a57633f..6d88eb490 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -81,6 +81,9 @@ struct mt6797_hif {
+ 	bool dma_addr2;
+ 	unsigned int dma_tx, dma_rx, dma_poll_max, dma_failures;
+ 	u8 scratch[2560];
++#ifdef CONFIG_MT6797_HT40_TX
++	bool data_bw40;	/* under the mutex (0324) */
++#endif
+ 	/* Receive batching (0268): the enhanced status block read once per
+ 	 * worker pass, the aggregated data-port read per queue it names, and
+ 	 * the frames served from that cache without per-frame register work.
+@@ -1695,6 +1698,11 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 						&command);
+ 	if (error)
+ 		goto unlock;
++#ifdef CONFIG_MT6797_HT40_TX
++	/* DW6 byte 25: the fixed rate's bandwidth, FIX_BW_40 (0324). */
++	if (hif->data_bw40 && MT6797_DATA_FIXED_RATE_CODE)
++		hif->scratch[25] = 5;
++#endif
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto fail;
+@@ -1713,6 +1721,17 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 	return error;
+ }
+ 
++#ifdef CONFIG_MT6797_HT40_TX
++void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40)
++{
++	if (!hif)
++		return;
++	mutex_lock(&hif->mutex);
++	hif->data_bw40 = bw40;
++	mutex_unlock(&hif->mutex);
++}
++#endif
++
+ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 			 size_t frame_bytes, u8 wlan, u8 pid,
+ 			 unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 852ec130a..5360df9cb 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -332,6 +332,10 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 			 size_t frame_bytes, u8 wlan, u8 pid,
+ 			 unsigned int lifetime_ms, unsigned int attempt_count,
+ 			 u64 deadline_ns);
++#ifdef CONFIG_MT6797_HT40_TX
++/* Ordinary data descriptors carry the fixed-rate bandwidth FIX_BW_40 (0324). */
++void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40);
++#endif
+ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 				size_t frame_bytes, u8 wlan, u8 pid,
+ 				bool status_report,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index c329b4eb7..ebd3160fa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2901,6 +2901,10 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 			ktime_get_ns() + (u64)interval * NSEC_PER_MSEC);
+ #endif
+ 		complete_all(&mac->join_channel_done);
++#ifdef CONFIG_MT6797_HT40_TX
++		/* This lifetime's data at 40 MHz only on the HT40 grant (0324). */
++		mt6797_hif_set_data_bw40(mac->hif, mac->join_sco == 3);
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join grant: channel=40 sco=%u interval_ms=%u\n",
+@@ -4783,10 +4787,12 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					mac->join_data_page_debt += pages;
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+-							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u\n",
++							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u bw40=%u\n",
+ 							 mac->join_pid, pages, eth_bytes,
+ 							 MT6797_DATA_FIXED_RATE_CODE,
+-							 !credit_retire);
++							 !credit_retire,
++							 IS_ENABLED(CONFIG_MT6797_HT40_TX) &&
++							 mac->join_sco == 3);
+ 					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 					mac->ccmp_observation.submit_pid = mac->join_pid;
+-- 
+2.43.0
+

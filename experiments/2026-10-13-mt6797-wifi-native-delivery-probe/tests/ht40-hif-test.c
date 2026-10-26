@@ -3,7 +3,10 @@
  * request with ucRfSco 3 is the 20 MHz request with byte 4 set and nothing
  * else; only SCN, or SCB on channel 40, is accepted, and a refusal reaches no
  * bus; the BSS command's RLM ucRfSco (byte 71) follows the HT operation's
- * info 1 as sent. Built by run-ht40-hif-test.py with and without the option.
+ * info 1 as sent. With CONFIG_MT6797_HT40_TX (0324) an ordinary data
+ * descriptor carries FIX_BW_40 in byte 25 only after the HIF is told the
+ * join is HT40, and is otherwise unchanged. Built by run-ht40-hif-test.py
+ * with and without each option.
  * The bus is a capture: the setup word and the data words of each command.
  */
 #define MT6797_HIF_HOST_TEST
@@ -34,6 +37,7 @@ static void dma_free_coherent(struct device *d, size_t n, void *v, dma_addr_t p)
 { (void)d; (void)n; (void)p; free(v); }
 int mt6797_test_dma_read(void *address, unsigned int *value) { (void)address; (void)value; assert(false); return -EIO; }
 int mt6797_test_dma_write(unsigned int value, void *address) { (void)value; (void)address; assert(false); return -EIO; }
+static inline __attribute__((unused)) void mutex_lock(struct mutex *m) { assert(!m->held); m->held = true; }
 #include "hif.c"
 
 static u8 *mapping;
@@ -128,8 +132,41 @@ int main(void)
 		assert(sent[8 + 71] == 0);
 #endif
 	}
+#ifdef CONFIG_MT6797_HT40_TX
+	/* An ordinary data frame: the descriptor at 20 MHz, then at 40 MHz. */
+	{
+		u8 frame[60] = { 2, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 2, 0x08, 0x00 }, d20[64];
+
+		fresh(&hif);
+		hif.normal.tc1_limit = hif.normal.tc1_free = 12;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		memcpy(d20, sent, sizeof(d20));
+		assert(d20[25] == 0 && d20[11] == 0x80);	/* fixed rate, no bandwidth */
+		mt6797_hif_set_data_bw40(&hif, true);
+		memset(sent, 0, sizeof(sent));
+		calls = 0;
+		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif.normal.tc1_free = hif.normal.tc1_limit;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		for (unsigned int i = 0; i < sizeof(d20); i++)
+			assert(i == 25 ? sent[i] == 5 : sent[i] == d20[i]);
+		/* told 20 MHz again: back to the 20 MHz descriptor */
+		mt6797_hif_set_data_bw40(&hif, false);
+		memset(sent, 0, sizeof(sent));
+		calls = 0;
+		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif.normal.tc1_free = hif.normal.tc1_limit;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		assert(!memcmp(sent, d20, sizeof(d20)));
+	}
+#endif
 	free(mapping);
-#ifdef CONFIG_MT6797_HT40
+#if defined(CONFIG_MT6797_HT40_TX)
+	printf("ht40-hif-test: PASS (HT40, transmit at 40 MHz)\n");
+#elif defined(CONFIG_MT6797_HT40)
 	printf("ht40-hif-test: PASS (HT40)\n");
 #else
 	printf("ht40-hif-test: PASS (option off)\n");
