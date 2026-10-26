@@ -4756,3 +4756,104 @@ device-side receive rate and frames per second, not the aggregate. The
 UDP probe stays retired. Any refusal, `device_timeout`, or a transmit
 regression beyond the noise band reverts immediately, as boot B
 established.
+
+## 37. The receive interrupt, scoped (2026-10-25): the vendor's shape, ours, and the smallest bridge
+
+**The vendor's shape (`59e00a91`).**
+
+- *The line.* The vendor device tree gives the WLAN HIF a line of its
+  own: `wifi@180f0000` (the same window as our `wifi-hif`),
+  `interrupts = <GIC_SPI 283 IRQ_TYPE_LEVEL_LOW>`. `ahb.c` maps it from
+  that node and calls `request_irq(irq, HifAhbISR, flags)`.
+- *The ISR.* `HifAhbISR` touches no HIF register. It counts, masks the
+  line (`__disable_irq()`), sets `GLUE_FLAG_INT_BIT` and wakes the HIF
+  thread.
+- *The thread.* It runs `nicProcessIST`: up to `u4HifIstLoopCount`
+  (`CFG_IST_LOOP_COUNT`, 1 or 32 by build) passes of read-status-then-
+  handle. The status is the enhanced block in an `CFG_SDIO_INTR_ENHANCE`
+  build, the same 112-byte block 0268 reads. Then `nicEnableInterrupt`
+  re-arms: `WHLPCR` (`0x04`) `INT_EN_SET` (bit 0), then `__enable_irq()`.
+- *The sources.* `WHIER` (`0x14`) is programmed to `WHIER_DEFAULT`: RX0
+  done (bit 1), RX1 done (bit 2), TX done (bit 0), abnormal (bit 6), and
+  the firmware's software interrupts (bits 8–31). `WHISR` (`0x10`)
+  carries the same bits. `WHLPCR` `INT_EN_CLR` (bit 1) disables.
+
+**Ours today.**
+
+- *No interrupt at all.* The mac80211 driver is registered on the consys
+  device (`mt6797_mac_register(dev, owner->fw_hif, ...)`). The consys
+  node's single interrupt is SPI 130 through `mediatek,mt6797-sysirq`,
+  the WMT/BTIF line, and the consys probe requires exactly that one
+  (`of_irq_count == 1`, SPI 130). The WLAN HIF's SPI 283 is not
+  described anywhere in our device tree. The `wifi` child
+  (`mediatek,mt6797-wlan`) carries no interrupt and is disabled.
+- *The cadence, from `join-pump.h` at `CONFIG_HZ=250`.* With nothing
+  pending (no transmit queued, in flight or owed), the worker re-queues
+  after 20 ms, which is 5 jiffies. Pending without progress, it makes 32
+  immediate passes, then sleeps 1 ms, which rounds to one 4 ms jiffy.
+  Frames that arrive while the transmit side is idle or stalled wait up
+  to 4–20 ms before any pass reads them. Otherwise the worker spins:
+  about 10,000 passes a second, 96 % of block reads empty (boots V–X).
+
+**The smallest bridge: the interrupt as a wake source, the poll kept as
+the safety net.**
+
+1. *Device tree:* `interrupts = <GIC_SPI 283 IRQ_TYPE_LEVEL_LOW>` on
+   the `wifi` child node, through the same sysirq parent. The consys
+   node and its single-interrupt check stay as they are.
+2. *Consys:* parse the child's interrupt (`of_irq_get` on the child) and
+   pass it to `mt6797_mac_register`. A missing interrupt keeps today's
+   polled behaviour.
+3. *HIF:* a locked 32-bit write for `WHIER` and `WHLPCR`, through the
+   same command-setup path the reads use. At the data phase's opening,
+   `WHIER = WHIER_DEFAULT` and `WHLPCR = INT_EN_SET`, each read back and
+   recorded. At its end, `WHLPCR = INT_EN_CLR`.
+4. *mac80211 driver:* `request_irq` with a hard handler that, like the
+   vendor's, touches no HIF register: `disable_irq_nosync`, count, and
+   `mod_delayed_work(join_work, 0)`. At the end of each pass the worker
+   re-enables the line if it had been masked, the vendor's
+   `nicEnableInterrupt` point. `WHISR` is read-cleared by the passes
+   already in place (the block read, or the transmit status read).
+5. *Unchanged:* the pump's delays stay as the fallback, so a missed
+   interrupt costs today's latency, never a stall. Batching, the
+   ledger, depth 12, `0x87`, HT and the records stay too, and transmit
+   aggregation stays off.
+6. *Records:* interrupts taken, worker wakes they caused, wakes that
+   found work, `WHIER` and `WHLPCR` before and after, passes a second,
+   empty block reads.
+
+**Risks named before the code.**
+
+- *An interrupt storm.* The line is level-low; the hard handler masks it
+  before returning, so a storm is bounded to one wake per pass.
+- *Concurrent HIF access.* No HIF register is touched in hard-interrupt
+  context; every access stays in the serialized worker.
+- *Ownership.* The interrupt is armed only in the data phase, under
+  driver ownership, and cleared before the lifetime's cleanup.
+- *Unbalanced enable.* One flag set by the handler and cleared by the
+  worker's single `enable_irq`.
+- *Two unknowns, measured by the boot itself:* whether the firmware
+  already left `WHIER`/`INT_EN` armed (the before values), and whether
+  SPI 283 fires at all on this board (the interrupt count).
+
+## 38. Boot AA (predeclared, 2026-10-25, to be implemented after review): the receive interrupt as a wake source
+
+**The change.** §37's bridge, behind `CONFIG_MT6797_HIF_RX_IRQ` in the
+lifecycle fragment, on boot X's admitted profile (batching, HT, the
+records, `0x87`, depth 12; no transmit aggregation). It touches the
+device tree's `wifi` child, the consys owner, the HIF register writes
+and the mac80211 worker.
+
+**The reading: the device-side receive rate and frames per second, not
+the aggregate.**
+
+| Reading | Cause | Next |
+|---|---|---|
+| interrupts taken, the wakes finding work; receive frames/s and device-side Mbit/s up, passes/s down, idle up | the poll cadence was the receive cost | keep it; receive is then bound by the next stage (the firmware's ring or the access point) |
+| interrupts taken, receive unchanged | the cadence was not the binding cost at this load | receive is at its ceiling for this design; record it |
+| no interrupt taken (count 0) | SPI 283 is not this line on this board, or `WHIER`/`INT_EN` did not arm | the record names which; no throughput read |
+| any refusal, any `device_timeout`, or transmit below 20 Mbit/s aggregate (the boots W–X band is 21.3–22.6) | the interrupt path changed more than the wake | revert immediately, as boot B established |
+
+The UDP probe stays retired. The precondition and stop rule of §35 apply
+in their general form: the link carries boot X's volume (about 1,200
+frames a second in transmit), or the boot stops and nothing is graded.

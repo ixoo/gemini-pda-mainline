@@ -1,4 +1,4 @@
-# Current: boot Z shows the aggregation declaration harmless and the aggregate undelivered; aggregation parked behind a firmware read; the receive interrupt is next, to be scoped
+# Current: boot Z recorded; aggregation parked; the receive interrupt scoped (§37) and boot AA predeclared (§38), awaiting the owner's review before implementation
 
 [Boot Z](HIF_TRANSPORT_ANALYSIS.md#boot-z-result-2026-10-25-2351-utc-the-declaration-is-harmless-at-depth-one-the-aggregate-is-what-goes-undelivered-the-lifetime-then-stopped-on-missing-transmit-reports):
 depth one under boot Y's declaration delivered (five transmit chunks at
@@ -9,7 +9,15 @@ stopped mid-receive (join stopped, branch 4): not a harness truncation.
 Ceiling without aggregation about 1,950 frames/s, 23.6 Mbit/s. TX_AMPDU
 leaves the fragment and the depth returns to 12. Aggregation waits on
 one bounded firmware question; the receive interrupt is the next boot.
-Nothing is staged; the device is on Gemian (`3885482b…`).
+[§37](HIF_TRANSPORT_ANALYSIS.md#37-the-receive-interrupt-scoped-2026-10-25-the-vendors-shape-ours-and-the-smallest-bridge):
+the vendor's WLAN HIF line is SPI 283 on `wifi@180f0000` (not in our DT;
+our consys line SPI 130 is WMT/BTIF); its ISR touches no register,
+masks the line and wakes the thread, which reads the status block and
+re-arms (`WHLPCR` INT_EN_SET, `WHIER_DEFAULT`). Our pump sleeps 4-20 ms
+when idle or stalled. [§38](HIF_TRANSPORT_ANALYSIS.md#38-boot-aa-predeclared-2026-10-25-to-be-implemented-after-review-the-receive-interrupt-as-a-wake-source):
+the interrupt as a wake source with the poll kept as the safety net,
+behind `MT6797_HIF_RX_IRQ`. Not implemented. Nothing is staged; the
+device is on Gemian (`3885482b…`).
 
 # Historical: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
 
