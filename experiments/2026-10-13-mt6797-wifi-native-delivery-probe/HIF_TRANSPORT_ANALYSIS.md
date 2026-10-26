@@ -6792,3 +6792,62 @@ frames AG refused are recorded as a class (148 in one data phase). The
 gate is right to refuse non-data packet types. A later session can
 decide from the count whether any of that class should have been
 delivered, for example as group data the stack wanted.
+
+## 56. The vendor's thread split, a named firmware mechanism, and §55's follow-ups decided before the run (2026-10-26)
+
+**Architecture, from the pinned vendor source.** `CFG_SUPPORT_MULTITHREAD`
+is 1, and `gl_init.c` starts three threads.
+
+- *`hif_thread`* runs the IST. `nicProcessIST` reads the enhanced
+  status block (`CFG_SDIO_INTR_ENHANCE` 1), as this driver does each
+  pass. It dispatches TX-done and RX-done, breaks when the status is
+  zero, and loops up to `CFG_IST_LOOP_COUNT` (32, `"IstLoop"`). Its
+  RX-done handler, `nicProcessRxInterrupt`, reads the frames over the
+  HIF (`nicRxSDIOAggReceiveRFBs`, `CFG_SDIO_RX_AGG` 1), queues them on
+  `rReceivedRfbList` and wakes the main thread. No classification,
+  reordering or delivery happens there.
+- *`tx_thread`* (the main thread) runs the transmit requests and
+  `nicRxProcessRFBs`: classification and `qmProcessPktWithReordering`.
+- *`rx_thread`* only hands frames to the OS (`kalRxIndicateOnePkt`).
+
+So the vendor reorders in its main thread, not in `rx_thread`.
+
+This driver's single worker does all three. Its transmit completion
+cadence is therefore the poll pass rate, and any per-pass receive work
+lowers it. That is the structural difference behind the coupling AE
+exposed, whichever branch AE′ takes.
+
+**If AE′ shows the worker saturated, the remedy is that split in
+miniature.** The status read and the credit merge stay unconditional
+at the top of every pass. Receive delivery per pass is bounded by a
+documented cap, for example 32 frames, or delivery moves into its own
+work item (the vendor's thread shape).
+
+**A firmware mechanism, named as a hypothesis.** The retained firmware
+image carries warnings for block-ack management frames that cannot be
+sent for lack of a packet-info entry: an ADDBA request
+(`MSDU_INFO Unavailable`), a DELBA, and an ADDBA response (allocation
+failure). Block-ack signalling and transmit therefore draw on the
+firmware's packet-info pool. That fits AE's dead transmit chunks: the
+sessions were up from 16.8 s, the transmit chunks ran from 19.2 s
+with almost no receive load, the host was idle, credits came late,
+and receive was fine.
+
+It is not established. The warnings show block-ack frames competing
+for the pool, not that an active receive session holds entries of it.
+AF and AG show the air varying across the same afternoon. AE′'s cost
+line and credit wait are what can support or rule out the mechanism.
+
+**The follow-up, decided before the run** (refining §55's table):
+
+| AE′ result (control in band, both runs valid) | Branch | Next boot |
+|---|---|---|
+| TX dead, worker saturated | host | bound per-pass receive delivery, or move delivery out of the status pass; re-run the short pair |
+| TX dead, worker idle, credits late | firmware | `ucRxBaSize` 16, a one-line change: the access point grants a smaller window and the firmware allocates less; the driver's window becomes 16 + 4. If TX survives, keep it: a smaller window still aggregates and keeps part of the receive gain. If TX still dies, disable receive aggregation and record it as blocked on a firmware behaviour the host cannot change |
+| TX in band | air | take receive aggregation as a result; keep 64 and the window |
+
+**The cost line is mandatory for AE′.** AE′'s image (`93d2dc56`)
+carries `CONFIG_MT6797_PASS_COST_RECORD=y`. Without `submit_us` against
+`receive_us` and the busy fraction, AE′ would repeat AE: a symptom with
+no side of the host/firmware line. The stage refuses an image whose
+kernel configuration lacks the option.

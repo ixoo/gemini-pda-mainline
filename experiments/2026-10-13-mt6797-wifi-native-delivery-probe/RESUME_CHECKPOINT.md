@@ -1,4 +1,4 @@
-# Current: §55 predeclared (supersedes §54's bracket): AE′ then the control under the lifecycle harness, gated on the software-frame class; awaiting approval to stage AE′
+# Current: §55 predeclared (supersedes §54's bracket), follow-ups decided in §56: AE′ then the control under the lifecycle harness, gated on the software-frame class; awaiting approval to stage AE′
 
 Three lifetimes, one 1 s / 1 MiB chunk per direction, no loss cycle.
 A run whose first data phase logs more than 8 software-frame refusals
