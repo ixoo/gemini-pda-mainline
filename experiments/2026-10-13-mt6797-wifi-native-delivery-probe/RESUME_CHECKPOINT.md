@@ -17,8 +17,11 @@ re-arms (`WHLPCR` INT_EN_SET, `WHIER_DEFAULT`). Our pump sleeps 4-20 ms
 when idle or stalled. [§38](HIF_TRANSPORT_ANALYSIS.md#38-boot-aa-predeclared-2026-10-25-to-be-implemented-after-review-the-receive-interrupt-as-a-wake-source):
 the interrupt as a wake source with the poll kept as the safety net,
 behind `MT6797_HIF_RX_IRQ`. Owner, 2026-10-25: implemented as 0297-0300
-and approved; the fragment sets `CONFIG_MT6797_HIF_RX_IRQ=y`. The device
-is on Gemian (`3885482b…`).
+and approved; the fragment sets `CONFIG_MT6797_HIF_RX_IRQ=y`. Owner,
+before the build: WHIER arms only TX, RX0 and RX1 done (0x00000007);
+boot AA tests the line, not the throughput (the poll is unchanged); the
+throughput step is boot AB (§39, the receive poll on a wake plus a 10 ms
+fallback). The device is on Gemian (`3885482b…`).
 
 # Historical: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
 

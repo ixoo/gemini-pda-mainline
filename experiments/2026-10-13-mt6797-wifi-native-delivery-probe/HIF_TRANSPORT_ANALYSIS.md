@@ -4848,8 +4848,12 @@ the safety net.**
   unchanged.
 - [0299](../../patches/proposals/0299-wifi-mt6797-arm-and-disarm-the-HIF-interrupt-sources.patch):
   `MT6797_HIF_RX_IRQ`; the locked function-1 register write and
-  `mt6797_hif_set_interrupt()` (`WHIER = 0xffffff47`, `WHLPCR`
-  `INT_EN_SET`/`INT_EN_CLR`, both read before and after).
+  `mt6797_hif_set_interrupt()` (`WHLPCR` `INT_EN_SET`/`INT_EN_CLR`, both
+  registers read before and after). Owner, before the build: only TX
+  done, RX0 done and RX1 done are armed, `WHIER = 0x00000007`. The
+  vendor's `WHIER_DEFAULT` adds the abnormal source and the firmware's
+  software interrupts, conditions the poll already catches, and the
+  abnormal source is what poisoned the HIF in boot 3 of 0268.
 - [0300](../../patches/proposals/0300-wifi-mt6797-wake-the-worker-on-the-WLAN-HIF-interrupt.patch):
   consys hands the child's interrupt to the client, which requests it
   masked. The hard handler masks the line and re-queues the worker. The
@@ -4857,7 +4861,13 @@ the safety net.**
   delays stay.
 
 Built warning-free at W=1 with the option off and on; checkpatch,
-`dt_binding_check` and `CHECK_DTBS` clean for these changes. "Wakes that
+`dt_binding_check` and `CHECK_DTBS` clean for these changes.
+
+*Arming happens once per data phase, not once per boot.*
+`hif_irq_arm_tried` is cleared at every data phase's opening, beside
+the per-lifetime counters (`taken`, `rearmed`). So the interrupt is live
+in every lifetime's data phase, including the three lifetimes of the
+access-point-loss gate. "Wakes that
 found work" is read from the batch counters (empty against total block
 reads), beside interrupts taken and the pass census. The lifecycle
 fragment sets `CONFIG_MT6797_HIF_RX_IRQ=y` on boot X's admitted profile.
@@ -4871,13 +4881,39 @@ and the mac80211 worker.
 **The reading: the device-side receive rate and frames per second, not
 the aggregate.**
 
-| Reading | Cause | Next |
-|---|---|---|
-| interrupts taken, the wakes finding work; receive frames/s and device-side Mbit/s up, passes/s down, idle up | the poll cadence was the receive cost | keep it; receive is then bound by the next stage (the firmware's ring or the access point) |
-| interrupts taken, receive unchanged | the cadence was not the binding cost at this load | receive is at its ceiling for this design; record it |
-| no interrupt taken (count 0) | SPI 283 is not this line on this board, or `WHIER`/`INT_EN` did not arm | the record names which; no throughput read |
-| any refusal, any `device_timeout`, or transmit below 20 Mbit/s aggregate (the boots W–X band is 21.3–22.6) | the interrupt path changed more than the wake | revert immediately, as boot B established |
+**The prediction, corrected by the owner (2026-10-25): this boot tests
+the line, not the throughput.** The pump's delays are unchanged, so the
+worker still polls at full rate. It still performs about 12,500 block
+reads a second with 96 % empty, the cost §37 identified. The interrupt
+adds at most about 200 µs of wake latency against a 600 µs per-frame
+service. No throughput change is expected.
+
+| Reading | Meaning |
+|---|---|
+| `HIF interrupt armed: status=0 whier=…>0x00000007 whlpcr=…>…` (INT_EN set) and `taken > 0` | the line fires on this board: **the boot's real result** |
+| `taken = 0` with a clean data phase | the firmware did not assert it, or the enable path is incomplete: record both register pairs and stop; do not chase it in the same session |
+| any regression in refusals, refusals per TID, the ledger, or frames per second | arming perturbs the path: revert |
+| arm or disarm `status != 0`, or a mask-count warning from the interrupt core | the register path or the enable/disable accounting is wrong |
+
+`taken`, `rearmed` and the pass census are quoted separately. With the
+poll unchanged, the empty-read ratio will look identical to boot X's,
+and that must not be read as "the interrupt did nothing".
 
 The UDP probe stays retired. The precondition and stop rule of §35 apply
 in their general form: the link carries boot X's volume (about 1,200
 frames a second in transmit), or the boot stops and nothing is graded.
+
+## 39. Boot AB (predeclared, 2026-10-25): the receive poll on a wake, where the gain lives
+
+**The change, after boot AA shows the line fires.** While the interrupt
+is armed, the receive status-block read runs only on an interrupt wake
+plus a slow fallback timer (about 10 ms), not on every pass. That is the
+change that removes the empty block reads (96 % of about 12,500 a
+second). Boot AA keeps it out, so the line and the cadence are
+attributable separately.
+
+**The prediction:** +15–25 % device-side receive, read as frames per
+second and Mbit/s, with the empty-read ratio falling. Transmit is read
+against the shared-worker coupling. Any refusal, `device_timeout`, or a
+transmit regression beyond the noise band reverts, as boot B
+established.

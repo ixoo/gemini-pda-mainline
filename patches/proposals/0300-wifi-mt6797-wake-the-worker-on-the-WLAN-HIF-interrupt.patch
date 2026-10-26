@@ -1,4 +1,4 @@
-From b86b7e4b58311c573cb06718d0d026881f0503ca Mon Sep 17 00:00:00 2001
+From 4b348a34000fbfd4eea07bfcc31230234bfdec6e Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 20:08:44 -0400
 Subject: [PATCH] wifi: mt6797: wake the worker on the WLAN HIF interrupt
@@ -13,7 +13,7 @@ ISR that touches no HIF register, masks the line and wakes the thread,
 which reads the status block and re-arms). The CONSYS owner reads the
 interrupt from the wifi child and hands it to the mac80211 client,
 which requests it masked. For the data phase the worker arms the
-sources (WHIER_DEFAULT, INT_EN_SET) and unmasks the line; the hard
+sources (TX, RX0 and RX1 done; INT_EN_SET) and unmasks the line; the hard
 handler masks it, counts and queues the worker at once; the worker
 unmasks it at the end of its pass, and disarms at the data phase's end
 or a failed lifetime. The pump's delays stay as the fallback, so a

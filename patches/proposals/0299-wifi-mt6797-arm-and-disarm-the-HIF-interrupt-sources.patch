@@ -1,25 +1,28 @@
-From d57ad7e667130aba38cabdc7fbd4179b07acf0ac Mon Sep 17 00:00:00 2001
+From 623d1e9deb989c104c069eb0a688ca5fdfbf96c2 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 25 Oct 2026 20:08:44 -0400
+Date: Sun, 25 Oct 2026 20:15:42 -0400
 Subject: [PATCH] wifi: mt6797: arm and disarm the HIF interrupt sources
 
-The vendor driver programs WHIER with WHIER_DEFAULT (RX0, RX1 and TX
-done, abnormal, and the firmware's software interrupts) and enables the
-HIF interrupt with WHLPCR INT_EN_SET, disabling it with INT_EN_CLR
-(nicEnableInterrupt, nicDisableInterrupt; mt6630_reg.h).
+The vendor driver enables the HIF interrupt with WHLPCR INT_EN_SET and
+disables it with INT_EN_CLR (nicEnableInterrupt, nicDisableInterrupt;
+mt6630_reg.h), and programs WHIER with WHIER_DEFAULT.
 
 Add a locked function-1 register write and mt6797_hif_set_interrupt(),
-which arms (WHIER_DEFAULT, then INT_EN_SET) or disarms (INT_EN_CLR) the
-sources and records WHIER and WHLPCR before and after, behind the new
-option MT6797_HIF_RX_IRQ. Nothing calls it yet.
+which arms (WHIER, then INT_EN_SET) or disarms (INT_EN_CLR) the sources
+and records WHIER and WHLPCR before and after, behind the new option
+MT6797_HIF_RX_IRQ. Only the TX done, RX0 done and RX1 done sources are
+armed (WHIER 0x00000007): the vendor's default also arms the abnormal
+source and the firmware's software interrupts, conditions the polled
+status reads already catch, and the abnormal source is what poisoned the
+HIF in an earlier batching run. Nothing calls it yet.
 ---
- drivers/net/wireless/mediatek/mt6797/Kconfig | 13 +++++
- drivers/net/wireless/mediatek/mt6797/hif.c   | 60 ++++++++++++++++++++
- drivers/net/wireless/mediatek/mt6797/hif.h   | 13 +++++
- 3 files changed, 86 insertions(+)
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 13 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 63 ++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   | 13 ++++
+ 3 files changed, 89 insertions(+)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
-index 01535ccec..7b0f3f2e4 100644
+index 01535ccec..b0d859a0d 100644
 --- a/drivers/net/wireless/mediatek/mt6797/Kconfig
 +++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
 @@ -95,6 +95,19 @@ config MT6797_HIF_RX_BATCH
@@ -31,8 +34,8 @@ index 01535ccec..7b0f3f2e4 100644
 +	depends on MT6797_HIF_RX_BATCH
 +	help
 +	  Arm the HIF interrupt for the data phase as the vendor driver does
-+	  (WHIER_DEFAULT: RX0, RX1 and TX done, abnormal, the firmware's
-+	  software interrupts; WHLPCR INT_EN_SET), and use the WLAN HIF
++	  (WHLPCR INT_EN_SET), with only its RX0, RX1 and TX done sources in
++	  WHIER (not the abnormal or software sources), and use the WLAN HIF
 +	  interrupt line from the device tree to wake the worker at once. The
 +	  hard handler touches no HIF register: it masks the line and queues
 +	  the worker, which re-arms it at the end of its pass. The polled
@@ -43,23 +46,26 @@ index 01535ccec..7b0f3f2e4 100644
  	bool "MT6797 Wi-Fi: record the received rate word (logging only)"
  	help
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 7cdea12a3..c375de413 100644
+index 7cdea12a3..9bf85cec2 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
-@@ -465,6 +465,66 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+@@ -465,6 +465,69 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
  	return mt6797_hif_read(hif, 0x1000, value);
  }
  
 +#ifdef CONFIG_MT6797_HIF_RX_IRQ
-+/* The vendor's interrupt registers (mt6630_reg.h): WHIER at 0x14 with
-+ * WHIER_DEFAULT (RX0 done bit 1, RX1 done bit 2, TX done bit 0, abnormal
-+ * bit 6, the firmware's software interrupts bits 8-31), and WHLPCR at 0x04
-+ * whose bit 0 sets and bit 1 clears the interrupt enable
-+ * (nicEnableInterrupt, nicDisableInterrupt).
++/* The vendor's interrupt registers (mt6630_reg.h): WHIER at 0x14, and
++ * WHLPCR at 0x04 whose bit 0 sets and bit 1 clears the interrupt enable
++ * (nicEnableInterrupt, nicDisableInterrupt). Only the vendor's TX done
++ * (bit 0), RX0 done (bit 1) and RX1 done (bit 2) sources are armed: its
++ * WHIER_DEFAULT also arms the abnormal source (bit 6) and the firmware's
++ * software interrupts (bits 8-31), conditions the polled status reads
++ * already catch, and the abnormal source is what poisoned the HIF in boot
++ * 3 of 0268.
 + */
 +#define MT6797_HIF_WHLPCR_REG 0x04U
 +#define MT6797_HIF_WHIER_REG 0x14U
-+#define MT6797_HIF_WHIER_DEFAULT 0xffffff47U
++#define MT6797_HIF_WHIER_ARMED 0x00000007U
 +#define MT6797_HIF_WHLPCR_INT_EN_SET BIT(0)
 +#define MT6797_HIF_WHLPCR_INT_EN_CLR BIT(1)
 +
@@ -94,7 +100,7 @@ index 7cdea12a3..c375de413 100644
 +						 &record->whlpcr_before);
 +	if (!error && enable)
 +		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHIER_REG,
-+						  MT6797_HIF_WHIER_DEFAULT);
++						  MT6797_HIF_WHIER_ARMED);
 +	if (!error)
 +		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHLPCR_REG,
 +						  enable ? MT6797_HIF_WHLPCR_INT_EN_SET :
@@ -114,7 +120,7 @@ index 7cdea12a3..c375de413 100644
   * sixteen TX queue counts, the two receive queues' packet counts and up to
   * sixteen lengths each, two mailboxes; 112 bytes as one byte-mode read of
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
-index c160068e4..08e528b80 100644
+index c160068e4..3ada984e3 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.h
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.h
 @@ -147,6 +147,19 @@ struct mt6797_hif_rx_batch_stats {
@@ -128,7 +134,7 @@ index c160068e4..08e528b80 100644
 +	u32 whier_before, whier_after, whlpcr_before, whlpcr_after;
 +};
 +
-+/* Arm (WHIER_DEFAULT, then WHLPCR INT_EN_SET) or disarm (WHLPCR
++/* Arm (WHIER TX, RX0 and RX1 done, then WHLPCR INT_EN_SET) or disarm (WHLPCR
 + * INT_EN_CLR) the HIF interrupt sources; busy callers refuse.
 + */
 +int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
