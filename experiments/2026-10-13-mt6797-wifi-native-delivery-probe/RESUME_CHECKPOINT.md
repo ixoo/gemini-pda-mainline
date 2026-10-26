@@ -1,4 +1,11 @@
-# Current: boot AE graded; the reorder window delivers every frame in order (no pn=lower, RX chunks up to 25.6), but transmit collapsed; §51's fourth row; RX_AMPDU off in the profile
+# Current: the separating run (§52) predeclared: AE's tree with RX_AMPDU off, on the same air; awaiting approval to build and stage
+
+A transmit collapse here points at the air, and the window is cleared.
+A normal transmit leaves AE's collapse unexplained, and AE's image
+itself decides. The device is on Gemian (`c78edf17…`); boot2 holds
+AE's `25865da4…`.
+
+# Historical: boot AE graded; the reorder window delivers every frame in order (no pn=lower, RX chunks up to 25.6), but transmit collapsed; §51's fourth row; RX_AMPDU off in the profile
 
 [Boot AE](HIF_TRANSPORT_ANALYSIS.md#boot-ae-result-2026-10-26-1416-utc-the-window-holds-and-releases-every-frame-in-order-but-transmit-collapses-51s-fourth-row):
 `session_exit=1`. 2,377 frames held and released in order, no hole

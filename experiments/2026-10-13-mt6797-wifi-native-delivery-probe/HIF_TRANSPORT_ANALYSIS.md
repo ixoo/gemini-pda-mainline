@@ -6503,3 +6503,36 @@ join data backpressure: stops=1015 wakes=1015 dropped_full=0 …
 window is treated as interfering with the pump. `CONFIG_MT6797_RX_AMPDU`
 is off again in the profile; 0320–0321 compile out with it. Receive
 aggregation is not recorded as support.
+
+## 52. The separating run (predeclared, 2026-10-26): boot AE's twin with the option off, on the same air
+
+**The image.** It uses the tree at `eb5e5ebf`, the same patch series as
+boot AE (0320–0321 included), and the lifecycle profile with
+`CONFIG_MT6797_RX_AMPDU` off. That compiles out 0317's station-record
+enable, 0318's event handling, 0319's sub-frame admission, 0320 and
+0321. The firmware then negotiates no receive block-ack, and the
+configuration is the depth-12 baseline that preceded AD (AB2's: TX
+~21–22.6, RX ~17–20). Against AE's image, the composer admits exactly
+one config change: `CONFIG_MT6797_RX_AMPDU` y→absent. It admits no
+tree change. The run follows AE as closely as the owner's boot2
+selection allows, with the same access point, laptop and placement.
+
+**Hypothesis.** AE's transmit collapse came from the air or the access
+point, not from the window. If so, it should recur here, where no
+window or block-ack session exists.
+
+**Unique observation.** The TX direction's rate and chunks, the
+driver's `tx_failed`, and the credit wait (average and maximum).
+Beside them: the queue stops and the netdev packet counts, set against
+AE (0.018 Mbit/s, 30 failed, 8.4/208 ms, 1,015 stops) and AD (21.45,
+0, 4.6/21 ms, 183).
+
+| Reading | Meaning | Next |
+|---|---|---|
+| TX collapses again (well under 5 Mbit/s, `tx_failed` > 0, credit wait max ≳ 100 ms) | the air or the access point, independent of the window and of block-ack | AE's transmit result is not evidence against the window; re-run AE's image once the air is back to AD's band |
+| TX back in its band (≥ 18 Mbit/s, `tx_failed` ≈ 0) and RX in the non-aggregated band | the air is normal now; AE's collapse is unexplained, and the window is not cleared | one run of AE's image as built, on this air, decides: a collapse there implicates 0317–0321, a normal TX clears the window |
+| TX normal and RX outside its band, or any join, refusal or ledger change | the baseline itself moved | read that change before any aggregation run |
+
+The run is asymmetric. A collapse here clears the window. A normal
+transmit does not convict it: the air may have recovered between the
+runs, so that branch needs AE's image itself.
