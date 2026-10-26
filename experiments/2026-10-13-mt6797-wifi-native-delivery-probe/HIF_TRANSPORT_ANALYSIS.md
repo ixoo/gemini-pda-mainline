@@ -5830,8 +5830,29 @@ data-phase arm is unchanged.
   firmware's mask is set by an initialization command. That is a
   question for the RE VM and the firmware image, not for a boot.
 
-The patch is written and shown for review after the second reconnect
-gate. The AHB variant's CCCR `IENx` lead (§42) stays recorded; it is
+**The patch (0314) and the run (written 2026-10-26).**
+
+- *0314:* with `CONFIG_MT6797_HIF_RX_IRQ`, the consys start sequence
+  writes WHIER `0xffffff47` just before the firmware download, the
+  vendor's `nicInitializeAdapter()` point (driver ownership, MCR init,
+  WHIER, then the download in `wlanAdapterStart`). It logs `HIF WHIER
+  at initialization: status= whier=<before>><after>`. A bus failure
+  stops the start, as a failed download would. The data-phase arm is
+  unchanged (`0x7fffff07`, with WHIER read first).
+- *The run:* the AA7 throughput harness, with the interrupt option on
+  for this boot only. 0302, 0303/0309 (the probe before one read in
+  eight, and WHISR at the first take), 0306/0308 and 0310–0313 are all
+  as built. The drop option stays 0.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| initialization `whier=…>0xffffff47`, then `taken > 0` and `rearmed > 0` in the data phase, the first take naming its WHISR bit | the order was the defect: the host side of the line is closed | the poll-on-wake work, with that source |
+| initialization `>0xffffff47`, `taken = 0`, the arm reading WHIER `0xffffff47` | the value survived the firmware's start and the line still did not assert | the interrupt line is closed for this configuration; the support row says so, and no further boots go to it |
+| initialization `>0xffffff47`, `taken = 0`, the arm reading WHIER `0` | the firmware cleared WHIER at its start | the same conclusion, with the clear recorded |
+| initialization `status != 0`, or the value does not read back | the register refuses the write before the download | record it; the order cannot be tested this way |
+| any regression in the rates, the ledger or the refusals | the write or the option costs something | revert the option |
+
+The patch is shown for review before any build. The AHB variant's CCCR `IENx` lead (§42) stays recorded; it is
 not this boot's variable.
 
 **The two outcomes, stated for the support row (owner, 2026-10-26).**

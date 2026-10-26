@@ -913,3 +913,4 @@ proposals/0310-wifi-mt6797-round-a-DMA-receive-before-choosing-the-.patch
 proposals/0311-wifi-mt6797-record-a-refused-receive-batch-transfer.patch
 proposals/0312-wifi-mt6797-record-each-scan-request-and-its-outcome.patch
 proposals/0313-wifi-mt6797-add-a-one-shot-diagnostic-that-drops-an-.patch
+proposals/0314-wifi-mt6797-write-WHIER-before-the-firmware-download.patch

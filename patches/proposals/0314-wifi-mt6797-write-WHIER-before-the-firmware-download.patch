@@ -1,0 +1,141 @@
+From b3a7115002f6f75ed125bfa9247486ab8d78db26 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 07:32:48 -0400
+Subject: [PATCH] wifi: mt6797: write WHIER before the firmware download, as
+ the vendor does
+
+The HIF interrupt line never asserted in boots AA to AA6. That held with
+every legal WHIER source armed (0x7fffff07), an enabled source set at
+the driver's own read (WHISR 0x2), WHLPCR INT_EN set and the wrapper
+mask at 0. One host-side difference from the vendor driver remains
+untested. The vendor's wlanAdapterStart() takes driver ownership, and
+nicInitializeAdapter() then writes WHIER = WHIER_DEFAULT (0xffffff47)
+before the firmware download. Our only WHIER write is at the data-phase
+arm, about four seconds after the firmware boots, so a firmware that
+reads its host-interrupt mask at initialization finds WHIER at 0.
+
+With CONFIG_MT6797_HIF_RX_IRQ, the start sequence now writes WHIER =
+0xffffff47 just before the firmware download and logs WHIER before and
+after the write. A bus failure stops the start as a failed download
+would. The data-phase arm is unchanged: it still writes 0x7fffff07 and
+records WHIER beforehand, so whether the initialization value survives
+the firmware's start is visible.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  2 ++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 35 ++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  6 ++++
+ drivers/soc/mediatek/mt6797-consys.c         | 15 +++++++++
+ 4 files changed, 58 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 9f0195b7f..d0b539c75 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -108,6 +108,8 @@ config MT6797_HIF_RX_IRQ
+ 	  the worker, which re-arms it at the end of its pass. The polled
+ 	  cadence stays as the fallback, so a missed interrupt costs only
+ 	  latency. Without the interrupt in the device tree nothing changes.
++	  WHIER is also written with the vendor's default before the
++	  firmware download, as the vendor's adapter initialization does.
+ 
+ config MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
+ 	int "MT6797 Wi-Fi diagnostic: drop the first association response of one lifetime"
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index f683e1751..b4d746949 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -499,6 +499,10 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+ #define MT6797_HIF_WHLPCR_REG 0x04U
+ #define MT6797_HIF_WHIER_REG 0x14U
+ #define MT6797_HIF_WHIER_ARMED 0x7fffff07U
++/* WHIER_DEFAULT (mt6630_reg.h), the value nicInitializeAdapter() writes
++ * before the firmware download (0314).
++ */
++#define MT6797_HIF_WHIER_INIT 0xffffff47U
+ #define MT6797_HIF_WHLPCR_INT_EN_SET BIT(0)
+ #define MT6797_HIF_WHLPCR_INT_EN_CLR BIT(1)
+ /* The wrapper's line mask in the direct window (sdio.h: __enable_irq()
+@@ -575,6 +579,37 @@ int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++
++/* The vendor writes WHIER at adapter initialization, after driver ownership
++ * and before the firmware download, and the data-phase arm writes it again
++ * (0314). A bus failure here stops the start, as one in the download would.
++ */
++int mt6797_hif_init_interrupt_sources(struct mt6797_hif *hif, u64 deadline_ns,
++				      u32 *before, u32 *after)
++{
++	int error;
++
++	if (!before || !after)
++		return -EINVAL;
++	*before = 0;
++	*after = 0;
++	if (!hif)
++		return -EINVAL;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (!error)
++		error = mt6797_hif_read32_locked(hif, MT6797_HIF_WHIER_REG, before);
++	if (!error)
++		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHIER_REG,
++						  MT6797_HIF_WHIER_INIT);
++	if (!error)
++		error = mt6797_hif_read32_locked(hif, MT6797_HIF_WHIER_REG, after);
++	if (error)
++		error = mt6797_hif_fail(hif, error);
++	mutex_unlock(&hif->mutex);
++	return error;
++}
+ #endif
+ 
+ /* The enhanced status block (the vendor's ENHANCE_MODE_DATA_STRUCT_T): WHISR,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index d27d64940..73378b65a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -169,6 +169,12 @@ struct mt6797_hif_irq_record {
+ int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
+ 			     u64 deadline_ns, struct mt6797_hif_irq_record *record);
+ 
++/* WHIER = the vendor's WHIER_DEFAULT, written before the firmware download
++ * as nicInitializeAdapter() does; WHIER is read before and after (0314).
++ */
++int mt6797_hif_init_interrupt_sources(struct mt6797_hif *hif, u64 deadline_ns,
++				      u32 *before, u32 *after);
++
+ /* The interrupt controller's pending state of the HIF line (0303),
+  * sampled immediately before one enhanced status block read in eight (the
+  * read acknowledges the sources, so a later sample could only read 0) and
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 22a807af3..672b61592 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1057,6 +1057,21 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_TX),
+ 			 IS_ENABLED(CONFIG_MT6797_HIF_DMA_RX));
+ 	}
++#ifdef CONFIG_MT6797_HIF_RX_IRQ
++	{
++		/* WHIER as the vendor writes it, before the download (0314). */
++		u32 before, after;
++
++		ret = mt6797_hif_init_interrupt_sources(owner->fw_hif,
++							ktime_get_ns() + NSEC_PER_SEC,
++							&before, &after);
++		dev_info(dev,
++			 "one-shot WLAN HIF WHIER at initialization: status=%d whier=0x%08x>0x%08x\n",
++			 ret, before, after);
++		if (ret)
++			goto stopped;
++	}
++#endif
+ 	ret = mt6797_wlan_firmware_submit_ordinary(owner->wlan_image,
+ 						 owner->fw_hif, &ordinary);
+ 	dev_info(dev,
+-- 
+2.43.0
+
