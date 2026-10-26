@@ -3821,6 +3821,81 @@
     "site": "receive batch DMA read: transfer-size rounding refuses 505-508 bytes"
    },
    "reading": "HIF section 42, fourth row: void; the -EMSGSIZE source is the receive rounding after the mode choice (0310); the probe at one read in eight restores the pass rate; interrupt half inconclusive"
+  },
+  "boot-aa7": {
+   "run": "PIO-throughput-bootaa7-1",
+   "session": "2026-10-26 02:10 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot AA6 tree + 0310-0311; HIF_RX_IRQ off)",
+   "kernel_build_commit": "7eeb2c263992aee5701bf3489687a9260a8a6c5f",
+   "boot2_sha256": "e4783dff369bd120fa93d2578b05be17432284b7ace97bd3ea89408084506c48",
+   "predecessor_boot2_sha256": "ccb73bae0feda2a7723b9f71e26bc72a5b5e83af0ed36797f34a3a8840220b24",
+   "mainline_boot_id": "f4666284-c947-4b52-a8e2-783245ef6473",
+   "previous_gemian_boot_id": "34cabf67-c122-40f4-967f-0a716017d83f",
+   "returned_gemian_boot_id": "fea5bf2d-25b8-4bd4-98ce-629ec260ef10",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty; no -90; one 505-508-byte aggregate transferred as a 512-byte block",
+   "sealed_log_bytes": 187930,
+   "series_row": true,
+   "rx_batch": {
+    "reads": 474225,
+    "aggregates": 24500,
+    "frames": 37750,
+    "empty": 449725,
+    "max": 16,
+    "max_bytes": 25600,
+    "window_505_508": 1,
+    "failures": 0
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 17.94,
+    "tx_chunk_mbit_s": [
+     7.88,
+     19.04,
+     22.88,
+     22.95,
+     22.45
+    ],
+    "rx_aggregate_mbit_s": 15.42,
+    "rx_device_chunk_mbit_s": [
+     12.65,
+     15.38,
+     16.99,
+     21.75,
+     14.49
+    ],
+    "rx_host_chunk_mbit_s": [
+     15.21,
+     17.31,
+     21.73,
+     25.01,
+     21.88
+    ],
+    "tcp_retrans_segs": {
+     "before": 1,
+     "after": 444
+    },
+    "passes": 473838,
+    "data_phase_ms": 43011
+   },
+   "qos": {
+    "tx_qos": 46947,
+    "tx_tid_refused": 0,
+    "rx_qos": 36020,
+    "rx_refused": 1,
+    "rx_llc_mis": 14
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "join": {
+    "auth_attempts": 1,
+    "assoc_attempts": 1,
+    "first_eapol": "admitted on bss=1 before activation, in the pass of the association response"
+   },
+   "reading": "HIF section 43, first row: 0310 is the fix; the window was reached and passed; rates below AA3/AA4 with no air loss and sender-side receive dips, not attributed to the change"
   }
  }
 }

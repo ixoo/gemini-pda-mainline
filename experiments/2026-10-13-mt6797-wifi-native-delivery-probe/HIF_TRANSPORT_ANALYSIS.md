@@ -5676,3 +5676,65 @@ gone:
 The two cannot be separated in one clean boot. A clean AA7 is
 consistent with both, so it closes the receive stop, not the
 attribution.
+
+### Boot AA7 result (2026-10-26, 02:10 UTC): clean; 0310's window was reached once and passed; the receive stop is closed
+
+Mainline boot `f4666284…`, build `7eeb2c26`, boot2 `e4783dff…` (written
+over `ccb73bae…` and read back in full). Graded `all_pass`, with
+`verdict_failed` empty. The session's reviewed return reached Gemian
+`fea5bf2d…` with the log sealed complete (187,930 bytes).
+
+**The receive batch.**
+
+```
+HIF RX batch: on=1 whcr=0x00000000 reads=474225 aggregates=24500 frames=37750 empty=449725 max=16 max_bytes=25600 window_505_508=1 failures=0 credits=49730
+```
+
+- *Observed:* no `-90` and no `RX batch refused:` line, with
+  `failures=0` over 24,500 aggregates.
+- *Observed:* one aggregate of 505–508 bytes. Before 0310 that size was
+  refused with `-EMSGSIZE` and stopped the lifetime. Here it moved as
+  one 512-byte block, and no failure or header mismatch was counted. So
+  the device accepts the block read (§43's added row did not occur).
+- *Observed:* the largest aggregate was 25,600 bytes. 0307's bound was
+  never approached, which is what a correct bound change looks like
+  when the cause is elsewhere.
+- *The discriminator, resolved:* the window was reached in a run without
+  the probe, and only 0310 let that aggregate pass. So the AA5/AA6 stop
+  was the data path's rounding, not the pre-read probe. It was rare
+  (one aggregate in 24,500 here) and present in every boot. AA5 and AA6
+  met it and earlier boots happened not to.
+
+**Branch taken: the first row.** 0310 is the fix. The receive stop is
+closed.
+
+**The rates: below boots AA3/AA4, not attributed to the change.**
+
+| | Boot AA4 | Boot AA7 |
+|---|---|---|
+| TX aggregate (chunks) | 22.58 (25.20, 25.17, 25.26, 21.93, 21.81) | 17.94 (7.88, 19.04, 22.88, 22.95, 22.45) |
+| RX aggregate (device chunks) | 20.46 (21.03–21.69) | 15.42 (12.65, 15.38, 16.99, 21.75, 14.49) |
+| device TCP retransmissions, TX | 8 | 444 |
+| sampled transmit status 3 (air loss) | 0 of 829 | 0 of 733 |
+| passes/s | 12,139 | 11,016 |
+| transmit `expired`/`pid_faults`/`left_pages` | 0/0/0 | 0/0/0 |
+
+- *Transmit:* the loss is in chunks 1–2. Chunks 3–5 ran at 22.45–22.95,
+  AA4's band. The firmware reported every sampled frame delivered
+  (status 0), so the 444 retransmissions are end-to-end losses with no
+  air-loss signature at the radio.
+- *Receive:* the dips came with an empty device receive queue, and with
+  the laptop's own send rate low in the same chunks (host 15.21, 17.31,
+  21.73, 25.01, 21.88). The flow slowed at the sender, as boots T, U
+  and V recorded.
+- *Inference:* nothing in this boot's changes acts on these frames.
+  0310 alters one aggregate size, 0311 only records, and the interrupt
+  code is compiled out. The run reads as path variance. A repeat on the
+  same image would test that, and the ceiling statement (TX ≈ 22.6,
+  RX ≈ 20.5) stands.
+
+**The join, a third time.** One authentication and one association
+attempt. The first EAPOL-Key arrived with the association response (it
+was admitted 0.12 ms later, in the same pass) and was admitted on
+`bss=1` before the activation. One receive refusal, boot R's 442-byte
+software-frame class.

@@ -1,4 +1,17 @@
-# Current: boot AA7 (the DMA receive rounding, the refused-transfer record, the interrupt option off) staged on boot2
+# Current: boot AA7 clean (0310 fixed the receive stop; its window reached once and passed); next is the owner's call: the reconnect gate, or the WHIER-order boot
+
+[Boot AA7](HIF_TRANSPORT_ANALYSIS.md#boot-aa7-result-2026-10-26-0210-utc-clean-0310s-window-was-reached-once-and-passed-the-receive-stop-is-closed):
+`all_pass`, no `-90`, `failures=0` over 24,500 aggregates, and
+`window_505_508=1`. A 505–508-byte aggregate (fatal before 0310) moved
+as one 512-byte block. `max_bytes=25,600`. Rates were TX 17.94 (chunks
+1–2 slow, 444 TCP retransmissions, no air loss) and RX 15.42 (the dips
+were sender-side). Neither is attributed to the change. The join was
+validated a third time. The interrupt option is off; its open leads
+are the WHIER initialization order, the AHB variant's CCCR `IENx` and
+the firmware host mask. The device is on Gemian (`fea5bf2d…`); boot2
+holds `e4783dff…`.
+
+# Historical: boot AA7 (the DMA receive rounding, the refused-transfer record, the interrupt option off) staged on boot2
 
 [Boot AA6](HIF_TRANSPORT_ANALYSIS.md#boot-aa6-result-2026-10-26-0152-utc-void-again-on--90-in-the-receive-batch-the-cause-is-the-transfer-size-rounding-not-the-buffer):
 transmit ran five chunks (22.8–21.0), then the lifetime stopped at the
