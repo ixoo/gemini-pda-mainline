@@ -1,0 +1,142 @@
+From d57ad7e667130aba38cabdc7fbd4179b07acf0ac Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 20:08:44 -0400
+Subject: [PATCH] wifi: mt6797: arm and disarm the HIF interrupt sources
+
+The vendor driver programs WHIER with WHIER_DEFAULT (RX0, RX1 and TX
+done, abnormal, and the firmware's software interrupts) and enables the
+HIF interrupt with WHLPCR INT_EN_SET, disabling it with INT_EN_CLR
+(nicEnableInterrupt, nicDisableInterrupt; mt6630_reg.h).
+
+Add a locked function-1 register write and mt6797_hif_set_interrupt(),
+which arms (WHIER_DEFAULT, then INT_EN_SET) or disarms (INT_EN_CLR) the
+sources and records WHIER and WHLPCR before and after, behind the new
+option MT6797_HIF_RX_IRQ. Nothing calls it yet.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 13 +++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 60 ++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   | 13 +++++
+ 3 files changed, 86 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 01535ccec..7b0f3f2e4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -95,6 +95,19 @@ config MT6797_HIF_RX_BATCH
+ 	  per-frame length register read or guard. The vendor's receive
+ 	  path by polling; a measurement variable for the receive ceiling.
+ 
++config MT6797_HIF_RX_IRQ
++	bool "MT6797 Wi-Fi HIF: wake the worker on the HIF interrupt"
++	depends on MT6797_HIF_RX_BATCH
++	help
++	  Arm the HIF interrupt for the data phase as the vendor driver does
++	  (WHIER_DEFAULT: RX0, RX1 and TX done, abnormal, the firmware's
++	  software interrupts; WHLPCR INT_EN_SET), and use the WLAN HIF
++	  interrupt line from the device tree to wake the worker at once. The
++	  hard handler touches no HIF register: it masks the line and queues
++	  the worker, which re-arms it at the end of its pass. The polled
++	  cadence stays as the fallback, so a missed interrupt costs only
++	  latency. Without the interrupt in the device tree nothing changes.
++
+ config MT6797_RX_RATE_RECORD
+ 	bool "MT6797 Wi-Fi: record the received rate word (logging only)"
+ 	help
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 7cdea12a3..c375de413 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -465,6 +465,66 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+ 	return mt6797_hif_read(hif, 0x1000, value);
+ }
+ 
++#ifdef CONFIG_MT6797_HIF_RX_IRQ
++/* The vendor's interrupt registers (mt6630_reg.h): WHIER at 0x14 with
++ * WHIER_DEFAULT (RX0 done bit 1, RX1 done bit 2, TX done bit 0, abnormal
++ * bit 6, the firmware's software interrupts bits 8-31), and WHLPCR at 0x04
++ * whose bit 0 sets and bit 1 clears the interrupt enable
++ * (nicEnableInterrupt, nicDisableInterrupt).
++ */
++#define MT6797_HIF_WHLPCR_REG 0x04U
++#define MT6797_HIF_WHIER_REG 0x14U
++#define MT6797_HIF_WHIER_DEFAULT 0xffffff47U
++#define MT6797_HIF_WHLPCR_INT_EN_SET BIT(0)
++#define MT6797_HIF_WHLPCR_INT_EN_CLR BIT(1)
++
++static int mt6797_hif_write32_locked(struct mt6797_hif *hif, unsigned int reg,
++				     u32 value)
++{
++	int error;
++
++	/* Function 1, WRITE, byte mode, fixed port, four bytes. */
++	error = mt6797_hif_write(hif, 0, BIT(31) | (1U << 28) | (reg << 9) | 4U);
++	if (error)
++		return error;
++	return mt6797_hif_write(hif, 0x1000, value);
++}
++
++int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
++			     u64 deadline_ns, struct mt6797_hif_irq_record *record)
++{
++	int error;
++
++	if (!hif || !record)
++		return -EINVAL;
++	memset(record, 0, sizeof(*record));
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (!error)
++		error = mt6797_hif_read32_locked(hif, MT6797_HIF_WHIER_REG,
++						 &record->whier_before);
++	if (!error)
++		error = mt6797_hif_read32_locked(hif, MT6797_HIF_WHLPCR_REG,
++						 &record->whlpcr_before);
++	if (!error && enable)
++		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHIER_REG,
++						  MT6797_HIF_WHIER_DEFAULT);
++	if (!error)
++		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHLPCR_REG,
++						  enable ? MT6797_HIF_WHLPCR_INT_EN_SET :
++						  MT6797_HIF_WHLPCR_INT_EN_CLR);
++	if (!error)
++		error = mt6797_hif_read32_locked(hif, MT6797_HIF_WHIER_REG,
++						 &record->whier_after);
++	if (!error)
++		error = mt6797_hif_read32_locked(hif, MT6797_HIF_WHLPCR_REG,
++						 &record->whlpcr_after);
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++#endif
++
+ /* The enhanced status block (the vendor's ENHANCE_MODE_DATA_STRUCT_T): WHISR,
+  * sixteen TX queue counts, the two receive queues' packet counts and up to
+  * sixteen lengths each, two mailboxes; 112 bytes as one byte-mode read of
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index c160068e4..08e528b80 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -147,6 +147,19 @@ struct mt6797_hif_rx_batch_stats {
+ void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif);
+ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ 			       struct mt6797_hif_rx_batch_stats *stats);
++
++#ifdef CONFIG_MT6797_HIF_RX_IRQ
++/* WHIER and WHLPCR read before and after one arm or disarm. */
++struct mt6797_hif_irq_record {
++	u32 whier_before, whier_after, whlpcr_before, whlpcr_after;
++};
++
++/* Arm (WHIER_DEFAULT, then WHLPCR INT_EN_SET) or disarm (WHLPCR
++ * INT_EN_CLR) the HIF interrupt sources; busy callers refuse.
++ */
++int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
++			     u64 deadline_ns, struct mt6797_hif_irq_record *record);
++#endif
+ void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
+ 			  unsigned int *rx, unsigned int *poll_max,
+ 			  unsigned int *failures);
+-- 
+2.43.0
+

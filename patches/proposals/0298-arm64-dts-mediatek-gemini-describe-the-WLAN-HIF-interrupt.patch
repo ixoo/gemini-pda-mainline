@@ -1,0 +1,28 @@
+From b5c2b85bb84896b25f5237d9684d7276ca346f97 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 20:08:44 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: describe the WLAN HIF interrupt
+
+Give the CONSYS wifi child the WLAN HIF interrupt, GIC SPI 283 level
+low through the system interrupt controller, as the vendor device tree
+describes it for the HIF at 0x180f0000. The child stays disabled; the
+CONSYS owner reads the interrupt from it.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 96528e66b..a96294b3f 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -110,6 +110,7 @@ consys@10001340 {
+ 
+ 		wifi {
+ 			compatible = "mediatek,mt6797-wlan";
++			interrupts = <GIC_SPI 283 IRQ_TYPE_LEVEL_LOW>;
+ 			status = "disabled";
+ 		};
+ 	};
+-- 
+2.43.0
+

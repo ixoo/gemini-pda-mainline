@@ -896,3 +896,7 @@ proposals/0293-wifi-mt6797-advertise-HT-on-5-GHz-with-the-data-rate-still-fixed.
 proposals/0294-wifi-mt6797-admit-an-HT-rate-code-as-the-fixed-data-rate.patch
 proposals/0295-wifi-mt6797-declare-the-access-point-s-HT-in-the-post-association-records.patch
 proposals/0296-wifi-mt6797-let-the-firmware-aggregate-transmit-to-an-HT-access-point.patch
+proposals/0297-dt-bindings-soc-mediatek-mt6797-consys-allow-the-WLAN-HIF-interrupt.patch
+proposals/0298-arm64-dts-mediatek-gemini-describe-the-WLAN-HIF-interrupt.patch
+proposals/0299-wifi-mt6797-arm-and-disarm-the-HIF-interrupt-sources.patch
+proposals/0300-wifi-mt6797-wake-the-worker-on-the-WLAN-HIF-interrupt.patch

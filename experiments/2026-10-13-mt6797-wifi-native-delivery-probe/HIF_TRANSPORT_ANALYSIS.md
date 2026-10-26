@@ -4838,6 +4838,30 @@ the safety net.**
 
 ## 38. Boot AA (predeclared, 2026-10-25, to be implemented after review): the receive interrupt as a wake source
 
+**Implemented (owner-reviewed, 2026-10-25).**
+
+- [0297](../../patches/proposals/0297-dt-bindings-soc-mediatek-mt6797-consys-allow-the-WLAN-HIF-interrupt.patch):
+  the binding allows one optional interrupt on the `wifi` child.
+- [0298](../../patches/proposals/0298-arm64-dts-mediatek-gemini-describe-the-WLAN-HIF-interrupt.patch):
+  the Gemini device tree describes SPI 283, level low, through sysirq;
+  compiled `<0x00 0x11b 0x08>`, with the consys node's SPI 130
+  unchanged.
+- [0299](../../patches/proposals/0299-wifi-mt6797-arm-and-disarm-the-HIF-interrupt-sources.patch):
+  `MT6797_HIF_RX_IRQ`; the locked function-1 register write and
+  `mt6797_hif_set_interrupt()` (`WHIER = 0xffffff47`, `WHLPCR`
+  `INT_EN_SET`/`INT_EN_CLR`, both read before and after).
+- [0300](../../patches/proposals/0300-wifi-mt6797-wake-the-worker-on-the-WLAN-HIF-interrupt.patch):
+  consys hands the child's interrupt to the client, which requests it
+  masked. The hard handler masks the line and re-queues the worker. The
+  worker arms, re-arms and disarms at the end of its pass. The pump's
+  delays stay.
+
+Built warning-free at W=1 with the option off and on; checkpatch,
+`dt_binding_check` and `CHECK_DTBS` clean for these changes. "Wakes that
+found work" is read from the batch counters (empty against total block
+reads), beside interrupts taken and the pass census. The lifecycle
+fragment sets `CONFIG_MT6797_HIF_RX_IRQ=y` on boot X's admitted profile.
+
 **The change.** §37's bridge, behind `CONFIG_MT6797_HIF_RX_IRQ` in the
 lifecycle fragment, on boot X's admitted profile (batching, HT, the
 records, `0x87`, depth 12; no transmit aggregation). It touches the

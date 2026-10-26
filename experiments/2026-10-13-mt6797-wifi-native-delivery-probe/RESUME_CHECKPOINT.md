@@ -1,4 +1,4 @@
-# Current: boot Z recorded; aggregation parked; the receive interrupt scoped (§37) and boot AA predeclared (§38), awaiting the owner's review before implementation
+# Current: boot Z recorded; aggregation parked; the receive interrupt implemented (0297-0300) and boot AA predeclared (§38), approved for build and staging
 
 [Boot Z](HIF_TRANSPORT_ANALYSIS.md#boot-z-result-2026-10-25-2351-utc-the-declaration-is-harmless-at-depth-one-the-aggregate-is-what-goes-undelivered-the-lifetime-then-stopped-on-missing-transmit-reports):
 depth one under boot Y's declaration delivered (five transmit chunks at
@@ -16,8 +16,9 @@ masks the line and wakes the thread, which reads the status block and
 re-arms (`WHLPCR` INT_EN_SET, `WHIER_DEFAULT`). Our pump sleeps 4-20 ms
 when idle or stalled. [§38](HIF_TRANSPORT_ANALYSIS.md#38-boot-aa-predeclared-2026-10-25-to-be-implemented-after-review-the-receive-interrupt-as-a-wake-source):
 the interrupt as a wake source with the poll kept as the safety net,
-behind `MT6797_HIF_RX_IRQ`. Not implemented. Nothing is staged; the
-device is on Gemian (`3885482b…`).
+behind `MT6797_HIF_RX_IRQ`. Owner, 2026-10-25: implemented as 0297-0300
+and approved; the fragment sets `CONFIG_MT6797_HIF_RX_IRQ=y`. The device
+is on Gemian (`3885482b…`).
 
 # Historical: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
 
