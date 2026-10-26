@@ -1,4 +1,9 @@
-# Current: §61's control (AN) graded: TX 13.50, valid; boot AO (HT40 transmit, 7878a677) staged on boot2 (0988dc59…)
+# Current: boot AO graded; transmit at 40 MHz ran 0.54× the control (frames acknowledged, slower each); CONFIG_MT6797_HT40_TX off again, HT40 receive kept
+
+[Boot AO](HIF_TRANSPORT_ANALYSIS.md#boot-ao-result-2026-10-26-2122-utc-transmit-at-40-mhz-runs-at-054-the-control-the-option-off-again).
+The device is on Gemian (`61502d44…`); boot2 holds AO's `0988dc59…`.
+
+# Historical: §61's control (AN) graded: TX 13.50, valid; boot AO (HT40 transmit, 7878a677) staged on boot2 (0988dc59…)
 
 Gemian (`ee54858a…`) is shut down for the owner's boot2 selection.
 

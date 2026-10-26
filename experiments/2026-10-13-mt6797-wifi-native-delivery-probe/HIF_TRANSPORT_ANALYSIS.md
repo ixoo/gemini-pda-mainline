@@ -7435,3 +7435,46 @@ confirmed.
   MCS6). The window held 3,399 frames and released them all, with no
   hole skipped and no deadline fired.
 - *Software frames:* 875 refusals (none QoS).
+
+### Boot AO result (2026-10-26, 21:22 UTC): transmit at 40 MHz runs at 0.54× the control; the option off again
+
+Build `7878a677` (0324 with `CONFIG_MT6797_HT40_TX` on AM's
+configuration), boot2 `0988dc59…` (written over AM's `7533e245…` and
+read back in full), mainline boot `e34233ea…`, about six minutes after
+AN. Graded `all_pass`, `session_exit=0`. The reviewed return reached
+Gemian `61502d44…`, live identity confirmed.
+
+```
+join grant: channel=40 sco=3 interval_ms=9000
+join data TX: first pid=5 pages=3 bytes=342 rate=0x87 report=0 bw40=1
+TX rates: status/rate=count 0/0x0087=607,3/0x0087=4 other=0
+join data credit retire end: retired=38539 expired=0 pid_faults=0 wait_avg_us=6639 wait_max_us=89147 left_pages=0 inflight_max=12
+```
+
+- *Observed: the descriptor field took effect.* The grant echoed SCB
+  and the first data line reports `bw40=1`.
+- *Transmit (graded):* 7.34 Mbit/s (chunks 5.66, 8.59, 10.86, 11.01,
+  3.76) against AN's 13.50 (13.75–15.13): 0.54×, lower in every chunk.
+- *What does not explain it:*
+  - failed sends: 4 of 611 sampled statuses failed (AN: 0);
+  - the credit wait: 6.6 ms average and 89 ms maximum (AN: 6.6 and
+    178);
+  - the ledger: no expired frame, PID fault or page left;
+  - the queue: 1,042 backpressure stops (AN: 1,028).
+
+  The frames are acknowledged; each simply takes longer.
+- *Receive (recorded):* 24.53 Mbit/s (chunks 17.61–29.89), all HT at
+  40 MHz, now mostly MCS7 (39,444) and MCS6 (11,070). The window held
+  5,522 frames and released them all.
+- *Not established:* why each 40 MHz frame takes longer. One hypothesis
+  is that the secondary channel (36) is busy. A 40 MHz transmission
+  needs both channels idle, so contention on 36 delays every frame;
+  receive does not show it, because the access point does its own
+  channel access. The other is air-level retries at MCS7 40 MHz, which
+  the firmware absorbs before reporting status.
+
+**Reading against §61.** It is not the first row: TX fell. It sits
+between the second (failures up slightly, credit wait not up) and the
+third (the gain does not exist). Both keep the option off.
+`CONFIG_MT6797_HT40_TX` is off again in the profile; HT40 receive
+stays.
