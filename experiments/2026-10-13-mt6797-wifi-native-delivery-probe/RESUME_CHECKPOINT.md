@@ -1,4 +1,10 @@
-# Current: 40 MHz done in both directions; transmit at a documented fixed MCS5 at 40 MHz (1.16× the MCS7 20 MHz control), receive 1.34×; the profile holds HT40, HT40 transmit, rate code 0x85, receive aggregation and the peek
+# Current: §64's short-GI boot (AS: 0326 receive, 0327 transmit) approved and building, graded against AR
+
+The fragment enables `CONFIG_MT6797_HT_SGI_RX` and
+`CONFIG_MT6797_HT_SGI_TX` for that boot. The device is on Gemian
+(`e1400235…`); boot2 holds AR's `936c5e65…`.
+
+# Historical: 40 MHz done in both directions; transmit at a documented fixed MCS5 at 40 MHz (1.16× the MCS7 20 MHz control), receive 1.34×; the profile holds HT40, HT40 transmit, rate code 0x85, receive aggregation and the peek
 
 Next on the roadmap: short GI and VHT; the transmit status read as a
 power item; power management for the idle disconnect. The device is on

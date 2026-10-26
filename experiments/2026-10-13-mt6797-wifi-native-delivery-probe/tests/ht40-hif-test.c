@@ -5,8 +5,10 @@
  * bus; the BSS command's RLM ucRfSco (byte 71) follows the HT operation's
  * info 1 as sent. With CONFIG_MT6797_HT40_TX (0324) an ordinary data
  * descriptor carries FIX_BW_40 in byte 25 only after the HIF is told the
- * join is HT40, and is otherwise unchanged. Built by run-ht40-hif-test.py
- * with and without each option.
+ * join is HT40, and is otherwise unchanged. With CONFIG_MT6797_HT_SGI_TX
+ * (0327) it carries the guard interval bit (byte 27 bit 7) only after the
+ * HIF is told short GI, and only for an HT mixed-mode fixed rate. Built by
+ * run-ht40-hif-test.py with and without each option.
  * The bus is a capture: the setup word and the data words of each command.
  */
 #define MT6797_HIF_HOST_TEST
@@ -161,10 +163,28 @@ int main(void)
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
 						    500, 3, 1000000));
 		assert(!memcmp(sent, d20, sizeof(d20)));
+#ifdef CONFIG_MT6797_HT_SGI_TX
+		/* short GI on: byte 27 bit 7, and only for an HT mixed-mode code */
+		mt6797_hif_set_data_sgi(&hif, true);
+		memset(sent, 0, sizeof(sent));
+		calls = 0;
+		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif.normal.tc1_free = hif.normal.tc1_limit;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		for (unsigned int i = 0; i < sizeof(d20); i++)
+			assert(i != 27 ? sent[i] == d20[i] :
+			       ((MT6797_DATA_FIXED_RATE_CODE >> 6) & 7) == 2 ?
+			       sent[i] == (d20[i] | 0x80) : sent[i] == d20[i]);
+		mt6797_hif_set_data_sgi(&hif, false);
+#endif
 	}
 #endif
 	free(mapping);
-#if defined(CONFIG_MT6797_HT40_TX)
+#if defined(CONFIG_MT6797_HT_SGI_TX)
+	printf("ht40-hif-test: PASS (HT40, transmit at 40 MHz, short GI, rate code 0x%x)\n",
+	       (unsigned int)MT6797_DATA_FIXED_RATE_CODE);
+#elif defined(CONFIG_MT6797_HT40_TX)
 	printf("ht40-hif-test: PASS (HT40, transmit at 40 MHz)\n");
 #elif defined(CONFIG_MT6797_HT40)
 	printf("ht40-hif-test: PASS (HT40)\n");

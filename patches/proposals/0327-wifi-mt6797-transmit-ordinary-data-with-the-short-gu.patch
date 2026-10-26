@@ -1,0 +1,176 @@
+From 274cf9488b449037155d7fae69cfa892d040f9ae Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 18:31:47 -0400
+Subject: [PATCH] wifi: mt6797: transmit ordinary data with the short guard
+ interval
+
+Every ordinary data frame is sent at its fixed rate with the 800 ns
+guard interval. The vendor's fixed-rate option sets the 400 ns guard
+interval with u2FixedRate bit 15 (TX_DESC_GUARD_INTERVAL,
+HAL_MAC_TX_DESC_SET_FR_SHORT_GI), which is DW6 byte 27 bit 7. Its
+default SgiTx is enabled, and rlm.c clears the peer's short-GI bits
+only when it is not.
+
+With CONFIG_MT6797_HT_SGI_TX, short GI follows the peer's capability.
+At each lifetime's channel grant the HIF stops using it. When the
+state-3 station record declares the peer's HT capability, short GI is
+turned on for the width this lifetime transmits at, if the peer
+advertises it: SGI_40 at an HT40 transmit, SGI_20 otherwise. Each
+ordinary data descriptor with an HT mixed-mode fixed rate then gets the
+guard interval bit, on the prepared copy in the HIF scratch buffer,
+under the HIF mutex. A legacy fixed rate, a rate code of 0, and
+management and security frames are unchanged. The first data line
+reports sgi.
+
+The option depends on CONFIG_MT6797_HT40 and is off by default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 11 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 21 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  4 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 22 ++++++++++++++++++--
+ 4 files changed, 56 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 9d1e27bf4..50b5594ea 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -301,6 +301,17 @@ config MT6797_HT_SGI_RX
+ 	  short-GI bit (19, mt7603's MT_RXV1_HT_SHORT_GI) and marks those
+ 	  frames. Transmit is unchanged.
+ 
++config MT6797_HT_SGI_TX
++	bool "MT6797 Wi-Fi: transmit ordinary data with the short guard interval"
++	depends on MT6797_HT40
++	help
++	  When the access point's HT capability advertises short GI for the
++	  bandwidth this lifetime transmits at (SGI_40 at an HT40 transmit,
++	  SGI_20 otherwise), every ordinary data descriptor with an HT fixed
++	  rate sets the guard interval bit: u2FixedRate bit 15, DW6 byte 27
++	  bit 7, the vendor's TX_DESC_GUARD_INTERVAL. Management and security
++	  frames, a legacy fixed rate and a rate code of 0 are unchanged.
++
+ config MT6797_HT40_TX
+ 	bool "MT6797 Wi-Fi: transmit ordinary data at 40 MHz on an HT40 join"
+ 	depends on MT6797_HT40
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 6d88eb490..a5b028425 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -83,6 +83,9 @@ struct mt6797_hif {
+ 	u8 scratch[2560];
+ #ifdef CONFIG_MT6797_HT40_TX
+ 	bool data_bw40;	/* under the mutex (0324) */
++#endif
++#ifdef CONFIG_MT6797_HT_SGI_TX
++	bool data_sgi;	/* under the mutex (0327) */
+ #endif
+ 	/* Receive batching (0268): the enhanced status block read once per
+ 	 * worker pass, the aggregated data-port read per queue it names, and
+@@ -1702,6 +1705,13 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 	/* DW6 byte 25: the fixed rate's bandwidth, FIX_BW_40 (0324). */
+ 	if (hif->data_bw40 && MT6797_DATA_FIXED_RATE_CODE)
+ 		hif->scratch[25] = 5;
++#endif
++#ifdef CONFIG_MT6797_HT_SGI_TX
++	/* DW6 byte 27 bit 7: u2FixedRate's guard interval, for an HT mixed
++	 * mode fixed rate only (0327).
++	 */
++	if (hif->data_sgi && ((MT6797_DATA_FIXED_RATE_CODE >> 6) & 7) == 2)
++		hif->scratch[27] |= 0x80;
+ #endif
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+@@ -1721,6 +1731,17 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 	return error;
+ }
+ 
++#ifdef CONFIG_MT6797_HT_SGI_TX
++void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
++{
++	if (!hif)
++		return;
++	mutex_lock(&hif->mutex);
++	hif->data_sgi = sgi;
++	mutex_unlock(&hif->mutex);
++}
++#endif
++
+ #ifdef CONFIG_MT6797_HT40_TX
+ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 5360df9cb..2243e72b8 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -336,6 +336,10 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ /* Ordinary data descriptors carry the fixed-rate bandwidth FIX_BW_40 (0324). */
+ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40);
+ #endif
++#ifdef CONFIG_MT6797_HT_SGI_TX
++/* Ordinary data descriptors with an HT fixed rate set the short GI bit (0327). */
++void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi);
++#endif
+ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 				size_t frame_bytes, u8 wlan, u8 pid,
+ 				bool status_report,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 168ade35f..6962d6dfa 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -351,6 +351,8 @@ struct mt6797_mac {
+ 	bool join_bss_valid, join_channel_valid;
+ 	/* The join channel's secondary offset: 3 (below) at HT40, else 0 (0323). */
+ 	u8 join_sco;
++	/* This lifetime's data with the short guard interval (0327). */
++	bool join_data_sgi;
+ 	bool join_scan_ready, join_peer_used, join_peer_ready;
+ 	bool join_auth_received, join_auth_ok, join_authenticated;
+ 	bool join_assoc_received;
+@@ -2921,6 +2923,11 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		/* This lifetime's data at 40 MHz only on the HT40 grant (0324). */
+ 		mt6797_hif_set_data_bw40(mac->hif, mac->join_sco == 3);
+ #endif
++#ifdef CONFIG_MT6797_HT_SGI_TX
++		/* No short GI until the peer's HT capability says so (0327). */
++		mac->join_data_sgi = false;
++		mt6797_hif_set_data_sgi(mac->hif, false);
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN join grant: channel=40 sco=%u interval_ms=%u\n",
+@@ -4809,12 +4816,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					mac->join_data_page_debt += pages;
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+-							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u bw40=%u\n",
++							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u bw40=%u sgi=%u\n",
+ 							 mac->join_pid, pages, eth_bytes,
+ 							 MT6797_DATA_FIXED_RATE_CODE,
+ 							 !credit_retire,
+ 							 IS_ENABLED(CONFIG_MT6797_HT40_TX) &&
+-							 mac->join_sco == 3);
++							 mac->join_sco == 3,
++							 IS_ENABLED(CONFIG_MT6797_HT_SGI_TX) &&
++							 mac->join_data_sgi);
+ 					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 					mac->ccmp_observation.submit_pid = mac->join_pid;
+@@ -6669,6 +6678,15 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	    mac->join_ht_op_seen && mac->join_ht_peer_cap_seen) {
+ 		ht_cap = mac->join_ht_peer_cap;
+ 		ht_op = mac->join_ht_op;
++#ifdef CONFIG_MT6797_HT_SGI_TX
++		/* Short GI for the width this lifetime transmits at, if the
++		 * peer advertises it (0327).
++		 */
++		mac->join_data_sgi = get_unaligned_le16(ht_cap) &
++			(IS_ENABLED(CONFIG_MT6797_HT40_TX) && mac->join_sco == 3 ?
++			 IEEE80211_HT_CAP_SGI_40 : IEEE80211_HT_CAP_SGI_20);
++		mt6797_hif_set_data_sgi(mac->hif, mac->join_data_sgi);
++#endif
+ #ifdef CONFIG_MT6797_HT40
+ 		/* As rlm.c does when 40 MHz is not allowed: without an HT40
+ 		 * join, info 1 drops its secondary offset and channel width.
+-- 
+2.43.0
+

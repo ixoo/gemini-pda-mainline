@@ -7714,3 +7714,66 @@ transmit rate.** `CONFIG_MT6797_HT40_TX=y` with
 `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x85` stays in the lifecycle profile,
 recorded as local support against boot AP's same-evening control: 1.16×,
 with fewer retries. MCS6 at 40 MHz is not tried.
+
+## 64. The short guard interval, receive and transmit (predeclared, 2026-10-26)
+
+**Why.** The 400 ns guard interval shortens every OFDM symbol from
+4.0 to 3.6 µs: about 11 % more PHY rate at any MCS. MCS7 at 40 MHz goes
+from 135 to 150 Mbit/s, MCS5 at 40 MHz from 108 to 120. The vendor
+enables it in both directions by default (`SgiRx`, `SgiTx`
+FEATURE_ENABLED). The access point advertises SGI_20 and SGI_40 in its
+HT capability (`cap=0x09ef`).
+
+**The patches.**
+- *0326, `CONFIG_MT6797_HT_SGI_RX`* (depends on HT40). The 5 GHz HT
+  capability adds SGI_20 and SGI_40, as `rlmFillHtCapIE` does. The
+  advertised element is still admitted exactly. The receive rate
+  record keeps the receive vector's short-GI bit, bit 19 as mt7603's
+  `MT_RXV1_HT_SHORT_GI` places it, in the same word whose bit 15 proved
+  to be the frame mode (AM), and marks those frames `/sgi`.
+- *0327, `CONFIG_MT6797_HT_SGI_TX`* (depends on HT40). The data
+  descriptor's guard-interval bit is `u2FixedRate` bit 15, DW6 byte 27
+  bit 7, the vendor's `TX_DESC_GUARD_INTERVAL` and mt7603's
+  `MT_TXD6_SGI`.
+  - It is off at each lifetime's grant.
+  - It goes on when the state-3 record declares the peer's HT
+    capability, if the peer advertises short GI for the width this
+    lifetime transmits at: SGI_40 at an HT40 transmit, SGI_20
+    otherwise.
+  - Only an HT mixed-mode fixed rate gets the bit. Management,
+    security and legacy-rate frames are unchanged.
+  - The first data line reports `sgi`.
+
+**Tests.** `tests/run-ht40-hif-test.py` now runs five builds; two of
+them add short GI on transmit:
+- at rate code `0x85` (HT), the data descriptor is the 40 MHz one with
+  byte 27 bit 7 set and nothing else, and it reverts when the HIF is
+  told off;
+- at the default `0x4b` (OFDM), the bit stays clear.
+
+Dropping the bit fails the test. Receive batching and the reorder
+window still pass. Both patches are clean under checkpatch and build
+with W=1 in four configurations. 0326's capability is admitted by the
+existing exact check, which no host test covers at HT40. The air and
+the access point's use of short GI are not host-testable.
+
+**The boot: one image with both options, under the five-chunk
+harness.** Each direction is graded on its own option: receive on
+0326, transmit on 0327. The cross-talk is the reverse direction's TCP
+ACKs only. The reference is boot AR (MCS5 at 40 MHz, long GI: TX 15.01
+at 94.8 % first-attempt, RX 25.80). If the boot runs on another day,
+AR's image is re-run first as the control, with no write (it is on
+boot2 now).
+
+**Expectation.** Short GI is worth at most about 11 % of air time.
+After the firmware's per-frame service it is worth less in throughput,
+inside the series' run-to-run variation (±10–15 % in an evening). So
+the boot is graded on the mechanism, and throughput is read only for
+regressions.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `/sgi` receive rates dominate, RX not below the reference beyond the air's variation; `sgi=1`, attempts not worse than AR's, no failures, TX not below the reference | short GI works in both directions | keep both options; the profile gains them; VHT is next |
+| no `/sgi` receive rates | the access point does not use short GI to us, or bit 19 is not the flag | keep 0326 off; read the association request's capability |
+| `sgi=1` but attempts clearly worse (first-attempt well under AR's), or failures | short GI at MCS5/40 MHz is above the uplink's margin | keep 0327 off (or step to MCS4 with short GI, one variable) |
+| a stall, expired frames, or the ledger moves | a descriptor or capability field is not as expected | revert the option involved; preserve the log |

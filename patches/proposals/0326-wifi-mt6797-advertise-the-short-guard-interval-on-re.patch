@@ -1,0 +1,99 @@
+From aee0631990fd1a5e2210305d32eb0fdf027f16a2 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 18:31:47 -0400
+Subject: [PATCH] wifi: mt6797: advertise the short guard interval on receive
+
+The station advertises HT with the long guard interval only (0293), so
+the access point sends every frame to it with the 800 ns guard
+interval. The vendor's default (SgiRx FEATURE_ENABLED, wlan_lib.c)
+advertises short GI for 20 and 40 MHz (rlmFillHtCapIE). The 400 ns
+guard interval raises the PHY rate of every MCS by about 11 %: MCS7 at
+40 MHz goes from 135 to 150 Mbit/s.
+
+With CONFIG_MT6797_HT_SGI_RX, the 5 GHz HT capability adds SGI_20 and
+SGI_40. The advertised element is still admitted exactly, by the same
+check. The receive rate record keeps the receive vector's short-GI bit,
+bit 19 as mt7603's MT_RXV1_HT_SHORT_GI places it (the same word whose
+bit 15 proved to be the frame mode). Short-GI frames print with a
+"/sgi" suffix.
+
+Transmit is unchanged. The option depends on CONFIG_MT6797_HT40 and is
+off by default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 12 ++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 17 +++++++++++++----
+ 2 files changed, 25 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 77c48451e..9d1e27bf4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -289,6 +289,18 @@ config MT6797_HT40
+ 	  Transmit keeps its fixed 20 MHz rate: only the access point's
+ 	  frames to this station can use the 40 MHz channel.
+ 
++config MT6797_HT_SGI_RX
++	bool "MT6797 Wi-Fi: advertise the short guard interval on receive"
++	depends on MT6797_HT40
++	help
++	  Advertise short GI for 20 and 40 MHz (IEEE80211_HT_CAP_SGI_20 and
++	  SGI_40) in the 5 GHz HT capability, as the vendor does with its
++	  default SgiRx FEATURE_ENABLED, so the access point may send to this
++	  station with the 400 ns guard interval: about 11 % more PHY rate
++	  at any MCS. The receive rate record keeps the receive vector's
++	  short-GI bit (19, mt7603's MT_RXV1_HT_SHORT_GI) and marks those
++	  frames. Transmit is unchanged.
++
+ config MT6797_HT40_TX
+ 	bool "MT6797 Wi-Fi: transmit ordinary data at 40 MHz on an HT40 join"
+ 	depends on MT6797_HT40
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d71cd3b1f..168ade35f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1039,10 +1039,12 @@ static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
+ 		mac->rx_rates_absent++;
+ 	} else {
+ 		/* With HT40 the key keeps the frame mode, bit 15 (20/40 MHz,
+-		 * mt7603's MT_RXV1_FRAME_MODE) (0323).
++		 * mt7603's MT_RXV1_FRAME_MODE) (0323); with short GI on
++		 * receive, the short-GI bit 19 (MT_RXV1_HT_SHORT_GI) (0326).
+ 		 */
+ 		unsigned int key = rate_word & (0x707fU |
+-			(IS_ENABLED(CONFIG_MT6797_HT40) ? BIT(15) : 0)), k;
++			(IS_ENABLED(CONFIG_MT6797_HT40) ? BIT(15) : 0) |
++			(IS_ENABLED(CONFIG_MT6797_HT_SGI_RX) ? BIT(19) : 0)), k;
+ 
+ 		for (k = 0; k < ARRAY_SIZE(mac->rx_rates); k++) {
+ 			if (mac->rx_rates[k].count && mac->rx_rates[k].word != key)
+@@ -1478,7 +1480,13 @@ static int mt6797_series_second(struct mt6797_mac *mac, u64 now)
+ #define MT6797_HT_CAP_INFO (WLAN_HT_CAP_SM_PS_DISABLED << IEEE80211_HT_CAP_SM_PS_SHIFT)
+ #else
+ #define MT6797_HT_CAP_INFO ((WLAN_HT_CAP_SM_PS_DISABLED << IEEE80211_HT_CAP_SM_PS_SHIFT) | \
+-			    IEEE80211_HT_CAP_SUP_WIDTH_20_40)
++			    IEEE80211_HT_CAP_SUP_WIDTH_20_40 | MT6797_HT_CAP_SGI)
++#endif
++/* Short GI on receive, 20 and 40 MHz (0326). */
++#ifdef CONFIG_MT6797_HT_SGI_RX
++#define MT6797_HT_CAP_SGI (IEEE80211_HT_CAP_SGI_20 | IEEE80211_HT_CAP_SGI_40)
++#else
++#define MT6797_HT_CAP_SGI 0
+ #endif
+ #define MT6797_HT_AMPDU_PARAMS \
+ 	(IEEE80211_HT_MAX_AMPDU_8K | \
+@@ -3878,10 +3886,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		unsigned int k, n = 0;
+ 
+ 		for (k = 0; k < ARRAY_SIZE(mac->rx_rates) && mac->rx_rates[k].count; k++)
+-			n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/%u%s=%u",
++			n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/%u%s%s=%u",
+ 				       k ? "," : "", (mac->rx_rates[k].word >> 12) & 7,
+ 				       mac->rx_rates[k].word & 0x7f,
+ 				       mac->rx_rates[k].word & BIT(15) ? "/40" : "",
++				       mac->rx_rates[k].word & BIT(19) ? "/sgi" : "",
+ 				       mac->rx_rates[k].count);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN RX rates: mode/rate=count %s other=%u absent=%u\n",
+-- 
+2.43.0
+

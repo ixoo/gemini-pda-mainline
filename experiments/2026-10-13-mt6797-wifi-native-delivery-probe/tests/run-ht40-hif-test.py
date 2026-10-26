@@ -16,12 +16,17 @@ compat = here.parents[1] / '2026-10-01-mt6797-normal-sets/tests'
 kconfig = (driver / 'Kconfig').read_text()
 ht40 = 'config MT6797_HT40\n' in kconfig
 ht40_tx = 'config MT6797_HT40_TX' in kconfig
+sgi_tx = 'config MT6797_HT_SGI_TX' in kconfig
 pie = ['-fno-pie', '-no-pie'] if sys.platform.startswith('linux') else []
 with tempfile.TemporaryDirectory(prefix='mt6797-ht40-') as directory:
     runs = [[]] + ([['-DCONFIG_MT6797_HT40']] if ht40 else []) + \
-        ([['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX']] if ht40_tx else [])
+        ([['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX']] if ht40_tx else []) + \
+        ([['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX', '-DCONFIG_MT6797_HT_SGI_TX',
+           '-DCONFIG_MT6797_DATA_FIXED_RATE_CODE=0x85'],
+          ['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX', '-DCONFIG_MT6797_HT_SGI_TX']]
+         if sgi_tx else [])
     for defines in runs:
-        binary = Path(directory) / ('test-%d' % len(defines))
+        binary = Path(directory) / ('test-%d' % runs.index(defines))
         subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-DIS_ENABLED(x)=0',
                         '-DCONFIG_MT6797_WMM_QOS_DATA', *defines, '-fsanitize=address,undefined',
                         *pie, '-I', str(compat), '-I', str(driver), str(here / 'ht40-hif-test.c'),
