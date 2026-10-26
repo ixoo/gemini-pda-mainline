@@ -6851,3 +6851,44 @@ carries `CONFIG_MT6797_PASS_COST_RECORD=y`. Without `submit_us` against
 `receive_us` and the busy fraction, AE′ would repeat AE: a symptom with
 no side of the host/firmware line. The stage refuses an image whose
 kernel configuration lacks the option.
+
+### Boot AH result (2026-10-26, 17:27 UTC): AE′ discarded by the software-frame gate; transmit did not collapse
+
+Build `93d2dc56` (`CONFIG_MT6797_RX_AMPDU` and
+`CONFIG_MT6797_PASS_COST_RECORD` on), boot2 `850638d0…` (written over
+AF's `220a431b…` and read back in full), mainline boot `33d0c46b…`.
+The lifecycle harness ran three lifetimes, one chunk each. Graded
+`all_pass`, `session_exit=0`. The reviewed return reached Gemian
+`0dfd3785…`, live identity confirmed.
+
+**The gate fails, so the run is discarded.** The first data phase
+refused 268 frames, none QoS (`rx_refused=268 rx_refused_qos=0`),
+against §55's limit of 8. The next two refused 280 and 304. Of the 192
+logged, 154 are the 728-byte `p4=0x08` software-frame class AG showed,
+34 a 690-byte `p4=0x08` variant, and 4 the usual 84-byte `p4=0x02`.
+By §55's rule this run is neither a control nor evidence. The control
+was not staged.
+
+**Recorded, not evidence: what the run showed.**
+
+| Lifetime | TX Mbit/s | RX Mbit/s | tx_failed | Credit wait avg / max | Busy fraction | Window |
+|---|---|---|---|---|---|---|
+| 1 | 15.43 | 13.53 | 0 | 7.2 / 31.9 ms | 19.6 % | held 5, released 5 |
+| 2 | 15.20 | 11.65 | 0 | 7.6 / 41.7 ms | 14.7 % | held 5, released 5 |
+| 3 | 14.92 | 11.49 | 0 | 7.1 / 48.0 ms | 18.3 % | held 5, released 5 |
+
+- The busy fraction is the sum of the cost line's phases over the data
+  phase.
+- Each lifetime reached the 1 MiB cap in both directions.
+- Each lifetime negotiated three block-ack sessions (TIDs 0, 5 and 6),
+  with no hole skipped and no deadline fired.
+- Transmit did not collapse with receive aggregation active. The
+  worker was mostly idle, the credit waits stayed under 50 ms, and no
+  transmit status failed. That is what the third row of §55's table
+  (TX in band) would read as. The gate voids that reading here,
+  however; the run has to be repeated before any branch is taken.
+- *A pattern across the gate's failures.* The software-frame class
+  first appeared in AG (16:35 UTC, aggregation off: 148) and recurs
+  here (aggregation on: 268–304 per data phase). It was absent in AD,
+  AE and AF (1–3), so it follows the hour, not the option. While it
+  persists, §55's gate will keep discarding runs.

@@ -1,4 +1,14 @@
-# Current: boot AH, AE′ of the short pair (§55/§56), staged on boot2 under the lifecycle harness (build 93d2dc56)
+# Current: boot AH (AE′) discarded by §55's software-frame gate (268 refusals in the first data phase); transmit did not collapse, recorded only; the control not staged
+
+[Boot AH](HIF_TRANSPORT_ANALYSIS.md#boot-ah-result-2026-10-26-1727-utc-ae-discarded-by-the-software-frame-gate-transmit-did-not-collapse):
+`all_pass`. Three lifetimes ran TX 15.43/15.20/14.92 with no failed
+send, a credit wait maximum ≤ 48 ms and a 15–20 % busy fraction. The
+728-byte software-frame class has persisted since 16:35 UTC with
+either image. A repeat needs the owner's word. The fragment still
+enables both options for AE′. The device is on Gemian (`0dfd3785…`);
+boot2 holds AE′'s `850638d0…`.
+
+# Historical: boot AH, AE′ of the short pair (§55/§56), staged on boot2 under the lifecycle harness (build 93d2dc56)
 
 Boot2 holds `850638d0…`, written over AF's `220a431b…` and read back in
 full. The composer admits exactly `CONFIG_MT6797_RX_AMPDU` and
