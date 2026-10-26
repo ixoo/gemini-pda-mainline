@@ -3974,6 +3974,62 @@
     "tx_air_losses": 0
    },
    "reading": "HIF section 45, second row: the interrupt line is closed for this configuration; the receive engine is the poll"
+  },
+  "boot-ab": {
+   "run": "PIO-throughput-bootab-1",
+   "session": "2026-10-26 12:15 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (interrupt patches retired; 0315 on for this boot)",
+   "kernel_build_commit": "c412175c8a9532d6f3471a69c0503229e470ef82",
+   "boot2_sha256": "8f481a70942486f0af01a51cdd6a60e3847748abb982bc55a668e787441c5fff",
+   "predecessor_boot2_sha256": "c924d5c2938719138d83337ae8f54b8aa8c8e2d55062a43177d93da026f294a2",
+   "mainline_boot_id": "147105c6-0de9-4ef5-9f7d-59957cf0e39b",
+   "previous_gemian_boot_id": "e800691c-e2d0-4d22-a1d2-5ea0a5932af0",
+   "returned_gemian_boot_id": "189177e6-3fc8-4fca-9682-6a730488ee29",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass; the per-phase split measured in a run with degraded rates",
+   "sealed_log_bytes": 187934,
+   "series_row": true,
+   "pass_cost_us": {
+    "passes": 397794,
+    "status": 5446494,
+    "submit": 1507611,
+    "receive": 9421257,
+    "hif_receive": 8148829,
+    "completion": 542375,
+    "delivery": 1461848,
+    "data_phase_ms": 46851,
+    "busy_share": 0.392
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 10.13,
+    "tx_chunk_mbit_s": [
+     11.05,
+     4.83,
+     8.15,
+     15.53,
+     14.21
+    ],
+    "rx_aggregate_mbit_s": 14.13,
+    "rx_device_chunk_mbit_s": [
+     17.76,
+     7.93,
+     14.69,
+     16.91,
+     16.49
+    ],
+    "tcp_retrans_segs": {
+     "before": 1,
+     "after": 243
+    },
+    "passes_per_s": 8490
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 5
+   },
+   "reading": "HIF section 47: the worker is idle 61 % of the wall and its busy time is mostly HIF reads on empty passes; direct per-frame work is a fifth of the wall time per frame; repeat on the same image before a decision"
   }
  }
 }

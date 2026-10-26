@@ -5996,3 +5996,54 @@ The run is the AA throughput harness on the retired-interrupt tree.
 The phases are read per transmitted and received frame, against about
 0.5 ms of wall time per frame. The rates are read against AA3, AA4, AA7
 and AA8, as a check that the instrument costs nothing.
+
+### Boot AB result (2026-10-26, 12:15 UTC): the worker is idle 61 % of the wall; its busy time is HIF reads on empty passes; the rates were degraded, so it is repeated before a decision
+
+Mainline boot `147105c6…`, build `c412175c`, boot2 `8f481a70…` (written
+over AA8's `c924d5c2…` and read back in full). Graded `all_pass`,
+`session_exit=0`. The session's reviewed return reached Gemian
+`189177e6…` with the log sealed complete (187,934 bytes).
+
+```
+pass cost: passes=397794 status_us=5446494 submit_us=1507611 receive_us=9421257 hif_receive_us=8148829 completion_us=542375 delivery_us=1461848
+```
+
+| Phase | Seconds | Share of busy | Per pass | Per frame |
+|---|---|---|---|---|
+| status (the guard's status and credit reads) | 5.45 | 29.6 % | 13.7 µs | — |
+| submit | 1.51 | 8.2 % | 3.8 µs | 42 µs per transmitted frame |
+| receive, of which HIF receive | 9.42, 8.15 | 51.3 %, 44.3 % | 23.7, 20.5 µs | — |
+| completion | 0.54 | 3.0 % | 1.4 µs | 15 µs per transmit completion |
+| delivery (CCMP check, mac80211) | 1.46 | 8.0 % | 3.7 µs | 41 µs per delivered frame |
+
+- *Observed:* the phases sum to 18.38 s of the 46.85 s data phase. The
+  worker was busy 39.2 % of the wall and idle (between passes) the
+  rest.
+- *Observed:* 74 % of the busy time is HIF register reads: the guard's
+  status reads, plus the 112-byte status block read at 20.5 µs. 94.9 %
+  of those block reads found nothing.
+- *Observed:* the direct per-frame work is small: submission about
+  42 µs per transmitted frame, completion about 15 µs, delivery about
+  41 µs per received frame. At about 0.5 ms of wall time per frame,
+  that is roughly a fifth.
+- *Reading, against §47's table:* none of its rows holds as written.
+  The bus reads dominate the busy time, but the worker is not saturated
+  (61 % idle). So batching the commands would cut CPU without raising
+  the frame rate, unless the reads delay a credit return. The time per
+  frame sits mostly between passes: the pump's delays, or the wait for
+  the firmware's credits and status. The next measurement names that
+  idle time (the pump delay taken per pass, and the passes with frames
+  queued but no credit), before any fix.
+- *The rates were not normal.* TX was 10.13 Mbit/s (chunks 11.05, 4.83,
+  8.15, 15.53, 14.21) and RX 14.13 (17.76, 7.93, 14.69, 16.91, 16.49),
+  both far below the typical band. There were 5 sampled air losses of
+  563 and 243 TCP retransmissions. The pass rate was 8,490/s, which
+  falls when the queue is empty and the pump sleeps longer, so it
+  follows the traffic.
+- *Attribution:* the instrument adds about six clock reads per pass,
+  under 0.5 µs against the 46 µs of a busy pass, so it is not a
+  plausible cause. The interrupt code it replaced was already compiled
+  out in AA7. The air losses point at the path, as in AA7, but one boot
+  does not separate them. The split above was measured in a degraded
+  run, so before it decides anything it is repeated on the same image.
+  Boot2 already holds that image, and the installer verifies it.

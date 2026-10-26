@@ -1,4 +1,17 @@
-# Current: boot AB, the per-frame cost boot (§47), staged on boot2 (build c412175c: 0315 on, the interrupt patches retired)
+# Current: boot AB graded (the worker is idle 61 % of the wall; its busy time is HIF reads on empty passes); rates degraded, a repeat on the same image proposed
+
+[Boot AB](HIF_TRANSPORT_ANALYSIS.md#boot-ab-result-2026-10-26-1215-utc-the-worker-is-idle-61--of-the-wall-its-busy-time-is-hif-reads-on-empty-passes-the-rates-were-degraded-so-it-is-repeated-before-a-decision):
+`all_pass`. The worker was busy 18.4 s of the 46.9 s data phase. 74 %
+of that was HIF register reads (status 13.7 µs per pass, the block read
+20.5 µs, 95 % of them empty). Direct per-frame work was about 42 µs
+submit, 15 µs completion and 41 µs delivery, a fifth of the ~0.5 ms
+wall time per frame, so the time sits between passes. TX 10.13 and RX
+14.13 are far below the band (5 air losses, 243 retransmissions), so
+the split is repeated on the same image before a decision. The
+fragment keeps 0315 on for that repeat. The device is on Gemian
+(`189177e6…`); boot2 holds `8f481a70…`.
+
+# Historical: boot AB, the per-frame cost boot (§47), staged on boot2 (build c412175c: 0315 on, the interrupt patches retired)
 
 Boot2 holds `8f481a70…`, written over boot AA8's `c924d5c2…` and read
 back in full. The composer admits two config changes
