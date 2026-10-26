@@ -7616,3 +7616,45 @@ identity confirmed.
   30.77, 34.01). 50,297 of 50,757 QoS frames at MCS7 40 MHz. The 34.01
   chunk is the best of the series.
 - *Software frames:* 961 refusals (none QoS).
+
+### Boot AQ result (2026-10-26, 22:01 UTC): the firmware's automatic rate still sits at OFDM 6 Mbit/s on the HT record
+
+Build `0c5232b9` (0277's state-2 update and rate code 0 on AP's
+configuration), boot2 `be5a5e82…` (written over AP's `863c01f2…` and
+read back in full), mainline boot `5b1933b6…`, about six minutes after
+AP. Graded `all_pass`, `session_exit=0`. The reviewed return reached
+Gemian `de14e6c5…`, live identity confirmed.
+
+```
+join station state 2: status=0 sequence=20
+join data TX: first pid=5 pages=3 bytes=342 rate=0x00 report=0 bw40=0
+TX rates: status/rate=count 0/0x004b=233,3/0x004b=1 other=0 first=0x004b last=0x004b n=234
+TX attempts: none=0 1=200 2=30 3=4 4=0 5=0 6=0 7=0 8+=0
+```
+
+- *Observed: state 2 is accepted on today's tree,* and data without a
+  fixed rate is acknowledged (233 of 234 sampled statuses 0).
+- *Observed: the selector does not leave OFDM 6 Mbit/s.* Every sampled
+  rate word is `0x004b`, as in October, now with a station record that
+  declares HT (PHY `0x18`, the peer's MCS set and HT capability), WMM
+  and receive block-ack. No HT rate was chosen.
+- *Transmit (graded):* 3.60 Mbit/s (chunks 3.87–3.97) against AP's
+  12.96. 85 % of frames succeeded on the first attempt (200 of 234),
+  against AP's 93 %. Credit wait 22.5 ms average.
+- *Receive (recorded):* 33.81 Mbit/s (chunks 32.76–37.44), the best
+  receive aggregate of the series, at 40 MHz (MCS6 42,139, MCS7
+  11,713). Not attributed to the rate change: the transmit direction's
+  ACKs at 6 Mbit/s are fewer, not faster, and the air varies by more.
+
+**Reading against §63: the second row in form, October's result in
+substance.** The selector "works" only in that frames are acknowledged.
+It never climbs past table entry 0, with HT declared or not, so it is
+not adaptation. The HT, WMM and block-ack record did not change the
+firmware's selection. What makes it climb is still unnamed, a
+firmware-side question for the RE VM, as October concluded.
+
+The fixed rate stays the default. `CONFIG_MT6797_DATA_FIXED_RATE_CODE`
+returns to `0x87`, and 0277 leaves the lifecycle series again (it is a
+precondition for rate code 0 only). The fixed-rate ladder at 40 MHz
+(§62, MCS5) is the remaining transmit lever: the fixed fallback the
+owner named, now the next constant.
