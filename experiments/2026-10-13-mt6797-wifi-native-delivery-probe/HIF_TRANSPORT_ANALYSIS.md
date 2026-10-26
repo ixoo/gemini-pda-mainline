@@ -6892,3 +6892,11 @@ was not staged.
   here (aggregation on: 268–304 per data phase). It was absent in AD,
   AE and AF (1–3), so it follows the hour, not the option. While it
   persists, §55's gate will keep discarding runs.
+
+**Amendment to §55's gate (owner, 2026-10-26, before the control).**
+The control, AF's image under the same lifecycle harness, runs now on
+the same air. If it also refuses hundreds of software frames yet
+transmits in band, the gate is measuring the hour rather than either
+image. The pair is then read on transmit alone: AE′ (15.43/15.20/14.92,
+no failed send) against the control. If the control's transmit is not
+in band, nothing is concluded.
