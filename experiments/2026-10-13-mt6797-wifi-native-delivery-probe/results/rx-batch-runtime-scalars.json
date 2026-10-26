@@ -3583,6 +3583,100 @@
     "tx_air_losses": 2
    },
    "reading": "HIF section 38, second row: the wrapper was never masked, so the silence is not the mask; boot AA4 decides whether the block read's read-clear suppresses the line, under the explicit revert"
+  },
+  "boot-aa4": {
+   "run": "PIO-throughput-bootaa4-1",
+   "session": "2026-10-26 01:09 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot AA2 tree + 0302-0303)",
+   "kernel_build_commit": "0c803c25a30d9fb5ec066b391afd567bfa004cf5",
+   "boot2_sha256": "fc08179f6d9eaff9c729536e93ff5f0e049185387e256f1e866b6b1d3d3e3a95",
+   "predecessor_boot2_sha256": "561e202508ba17243e51dce8c0c0f1e01e32e29eef8eb870c41ca484ab531b0e",
+   "mainline_boot_id": "73487b02-a336-4e2d-9b74-868737369cc3",
+   "previous_gemian_boot_id": "cfbcce3f-1dc0-48a4-a25c-ced13ac3b0b8",
+   "returned_gemian_boot_id": "129a25b3-a490-4245-a4d0-b1c44121c162",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty; SPI 283 never pending at the controller",
+   "sealed_log_bytes": 197137,
+   "series_row": true,
+   "hif_irq": {
+    "irq": 218,
+    "whier_arm": [
+     "0x00000000",
+     "0x00000007"
+    ],
+    "whier_disarm": [
+     "0x00000007",
+     "0x00000007"
+    ],
+    "whlpcr_arm": [
+     "0x00000100",
+     "0x00000101"
+    ],
+    "whlpcr_disarm": [
+     "0x00000101",
+     "0x00000100"
+    ],
+    "mask_arm": [
+     "0x00000000",
+     "0x00000000"
+    ],
+    "mask_disarm": [
+     "0x00000000",
+     "0x00000000"
+    ],
+    "taken": 0,
+    "rearmed": 0,
+    "pending": [
+     0,
+     30980
+    ],
+    "idle_pending": [
+     0,
+     7651
+    ],
+    "probe_errors": 0
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 22.58,
+    "tx_chunk_mbit_s": [
+     25.2,
+     25.17,
+     25.26,
+     21.93,
+     21.81
+    ],
+    "rx_aggregate_mbit_s": 20.46,
+    "rx_device_chunk_mbit_s": [
+     21.03,
+     21.69,
+     21.5,
+     21.52,
+     21.48
+    ],
+    "passes": 520701,
+    "block_reads": 524465,
+    "block_reads_empty": 493446,
+    "data_phase_ms": 42895,
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 8
+    }
+   },
+   "qos": {
+    "tx_qos": 53068,
+    "tx_tid_refused": 0,
+    "rx_qos": 45247,
+    "rx_refused": 1,
+    "rx_refused_shape": "packet-type, prefix 0xe004 cipher-mismatch+data, wlan 2 (the known group shape)",
+    "rx_llc_mis": 10
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "reading": "HIF section 39, second row: the HIF output does not reach SPI 283; the poll work stops; the routing is answered offline before any further interrupt patch"
   }
  }
 }

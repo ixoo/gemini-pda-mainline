@@ -1,4 +1,16 @@
-# Current: boot AA4 (the HIF line's pending state at the controller, 0302–0303) staged on boot2; 0304–0305 committed, outside the profile until after AA4
+# Current: boot AA4 graded (SPI 283 never pending: the HIF line does not reach the controller); interrupt work stopped pending an offline routing answer; 0304–0305 next
+
+[Boot AA4](HIF_TRANSPORT_ANALYSIS.md#boot-aa4-result-2026-10-26-0109-utc-the-line-never-reaches-the-controller-39s-second-row):
+`all_pass`. `pending=0/30980` on frame-bearing status blocks (sampled
+before the drain) and `idle_pending=0/7651`, with `probe_errors=0`.
+WHIER held at 0x7 through the phase and the wrapper mask stayed 0. The
+HIF output does not reach SPI 283, so the poll work stops and the
+routing is answered offline. RX 20.46 and TX 22.58: the probe is free.
+Next: 0304–0305 (join retry, early M1) into the lifecycle profile as
+their own boot, then the reconnect gate. The device is on Gemian
+(`129a25b3…`); boot2 holds `fc08179f…`.
+
+# Historical: boot AA4 (the HIF line's pending state at the controller, 0302–0303) staged on boot2; 0304–0305 committed, outside the profile until after AA4
 
 [Boot AA3](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row):
 boot AA2's image re-run (boot2 verified, `skipped-already-matching`);

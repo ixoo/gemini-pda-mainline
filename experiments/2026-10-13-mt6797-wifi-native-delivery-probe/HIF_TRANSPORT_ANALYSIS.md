@@ -5171,3 +5171,49 @@ boot.
 The rest is read against boot AA3: transmit and receive rates, refusals
 and the transmit ledger. A regression beyond the noise band means the
 probe is not free, and it is removed.
+
+### Boot AA4 result (2026-10-26, 01:09 UTC): the line never reaches the controller; §39's second row
+
+Mainline boot `73487b02…`, build `0c803c25`, boot2 `fc08179f…` (written
+over `561e2025…` and read back in full). Graded `all_pass`, with
+`verdict_failed` empty. The session's reviewed return reached Gemian
+`129a25b3…`.
+
+```
+HIF interrupt armed:    irq=218 status=0 whier=0x00000000>0x00000007 whlpcr=0x00000100>0x00000101 mask=0x00000000>0x00000000
+HIF interrupt disarmed: irq=218 status=0 taken=0 rearmed=0 pending=0/30980 idle_pending=0/7651 probe_errors=0 whier=0x00000007>0x00000007 whlpcr=0x00000101>0x00000100 mask=0x00000000>0x00000000
+```
+
+- *Observed:* the controller's pending state of SPI 283 read 0 on all
+  30,980 status blocks that named frames, sampled before their drain,
+  and on all 7,651 idle samples. No sample failed.
+- *Observed:* WHIER was still `0x7` at disarm, so the firmware did not
+  clear it during the 42.9 s data phase. WHLPCR INT_EN read 1 until the
+  disarm, and the wrapper mask stayed 0, untouched by 0302's disarm.
+- *Result:* with every known device-side gate open on more than 30,000
+  occasions, the line never asserted at the interrupt controller. The
+  HIF output does not reach SPI 283 as this kernel describes it. It is
+  misrouted, or gated outside the four known gates.
+
+**Branch taken: the second row.** The poll work stops here. The
+routing (the SPI number, the sysirq polarity, or a gate between the
+connsys HIF and the GIC) is answered offline before any further
+interrupt patch. The pump's polled cadence stays the receive path.
+
+**The rest, against boot AA3.** Nothing regressed, so the probe is free.
+
+| | Boot AA3 | Boot AA4 |
+|---|---|---|
+| TX aggregate (chunks) | 22.57 (21.8–24.9) | 22.58 (21.8–25.3) |
+| RX aggregate (device chunks) | 20.48 (17.95–22.96) | 20.46 (21.03–21.69) |
+| block reads, empty | 521,463, 95.8 % | 524,465, 94.1 % |
+| passes/s | 12,438 | 12,139 |
+| transmit `expired`/`pid_faults`/`left_pages` | 0/0/0 | 0/0/0 |
+| sampled status 3 (air loss) | 2 of 779 | 0 of 829 |
+| receive refusals | 16, `pn=equal` Retry | 1, `field=packet-type` |
+
+The one refusal is the known group-key shape: `prefix=0xe004
+status=cipher-mismatch+data`, 442 bytes, `wlan=2`, as recorded for boot
+Y. It is not a probe effect. The first EAPOL-Key again waited about one
+second for the access point's retransmission. The fix, 0305, was
+deliberately not in this boot.
