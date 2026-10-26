@@ -1,0 +1,129 @@
+From 4fc72ac0455d368cee5370df89b8fc46da6e3d2e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:58:14 -0400
+Subject: [PATCH] wifi: mt6797: record a refused receive batch transfer
+
+Boots AA5 and AA6 stopped on -EMSGSIZE from the receive batch, and
+their logs could not name the transfer. The cause was found offline
+(0310), but the next refusal of this kind should name itself.
+
+The first aggregate read whose transfer is refused records its error,
+queue, frame count, aggregate bytes, first reported length and the
+ordinal of its status block read. The end-of-lifetime batch record
+prints them, with the buffer capacity and whether the size takes the
+DMA path, on one line. Nothing is printed when no transfer was refused.
+
+The batch record also gains the largest aggregate read and the count of
+aggregates of 505-508 bytes, so a clean run shows whether 0310's window
+is reached.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 32 +++++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h |  7 +++++
+ drivers/net/wireless/mediatek/mt6797/mac.c | 11 +++++++-
+ 3 files changed, 48 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 17f56fccc..f683e1751 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -99,6 +99,14 @@ struct mt6797_hif {
+ 	u32 rx_batch_pending_wtqcr[8];
+ 	u32 rx_batch_block_whisr, rx_batch_block_abnormal;
+ 	unsigned int rx_batch_credit_blocks;
++	/* The largest aggregate, the 505-508-byte ones, and the first refused
++	 * aggregate read, for the record (0311).
++	 */
++	unsigned int rx_batch_max_bytes, rx_batch_window_505_508;
++	int rx_batch_refused_error;
++	unsigned int rx_batch_refused_queue, rx_batch_refused_frames;
++	unsigned int rx_batch_refused_bytes, rx_batch_refused_read;
++	unsigned int rx_batch_refused_first_length;
+ 	/* Two queues of up to sixteen frames each, as the block reports them. */
+ 	struct {
+ 		u8 port;
+@@ -771,9 +779,22 @@ static int mt6797_hif_rx_batch_fill(struct mt6797_hif *hif)
+ 						 MT6797_HIF_READ, agg, total,
+ 						 MT6797_HIF_RX_BATCH_QUEUE_BYTES,
+ 						 &transfer);
+-		if (error)
++		if (error) {
++			if (!hif->rx_batch_refused_error) {
++				hif->rx_batch_refused_error = error;
++				hif->rx_batch_refused_queue = queue;
++				hif->rx_batch_refused_frames = n;
++				hif->rx_batch_refused_bytes = total;
++				hif->rx_batch_refused_read = hif->rx_batch_reads;
++				hif->rx_batch_refused_first_length =
++					mt6797_hif_rx_batch_length(hif, queue, 0);
++			}
+ 			return error;
++		}
+ 		hif->rx_batch_aggregates++;
++		if (total > hif->rx_batch_max_bytes)
++			hif->rx_batch_max_bytes = total;
++		hif->rx_batch_window_505_508 += total >= 505 && total <= 508;
+ 		first = count;
+ 		offset = 0;
+ 		for (i = 0; i < n; i++) {
+@@ -829,6 +850,15 @@ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ 	stats->pending_wtqcr0 = hif->rx_batch_pending_wtqcr[0];
+ 	stats->pending_wtqcr7 = hif->rx_batch_pending_wtqcr[7];
+ 	stats->error = hif->first_error;
++	stats->max_bytes = hif->rx_batch_max_bytes;
++	stats->window_505_508 = hif->rx_batch_window_505_508;
++	stats->refused_error = hif->rx_batch_refused_error;
++	stats->refused_queue = hif->rx_batch_refused_queue;
++	stats->refused_frames = hif->rx_batch_refused_frames;
++	stats->refused_bytes = hif->rx_batch_refused_bytes;
++	stats->refused_read = hif->rx_batch_refused_read;
++	stats->refused_first_length = hif->rx_batch_refused_first_length;
++	stats->refused_capacity = MT6797_HIF_RX_BATCH_QUEUE_BYTES;
+ }
+ 
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 5fcff039e..d27d64940 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -142,6 +142,13 @@ struct mt6797_hif_rx_batch_stats {
+ 	unsigned int credit_blocks;
+ 	u32 block_whisr, block_abnormal, pending_wtqcr0, pending_wtqcr7;
+ 	int error;
++	/* The largest aggregate read, the count of 505-508 bytes (0310's
++	 * window), and the first aggregate read the transfer refused (0311).
++	 */
++	unsigned int max_bytes, window_505_508;
++	int refused_error;
++	unsigned int refused_queue, refused_frames, refused_bytes, refused_read;
++	unsigned int refused_first_length, refused_capacity;
+ };
+ 
+ void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 830749033..59efb3a86 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3674,10 +3674,19 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 
+ 		mt6797_hif_rx_batch_stats(mac->hif, &batch);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u failures=%u credits=%u block_abnormal=0x%08x\n",
++			 "one-shot WLAN HIF RX batch: on=%u whcr=0x%08x reads=%u aggregates=%u frames=%u empty=%u max=%u max_bytes=%u window_505_508=%u failures=%u credits=%u block_abnormal=0x%08x\n",
+ 			 batch.on, batch.whcr_after, batch.reads,
+ 			 batch.aggregates, batch.frames, batch.empty, batch.max_frames,
++			 batch.max_bytes, batch.window_505_508,
+ 			 batch.failures, batch.credit_blocks, batch.block_abnormal);
++		if (batch.refused_error)
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN HIF RX batch refused: error=%d queue=%u frames=%u bytes=%u first_length=%u capacity=%u dma=%u read=%u\n",
++				 batch.refused_error, batch.refused_queue, batch.refused_frames,
++				 batch.refused_bytes, batch.refused_first_length,
++				 batch.refused_capacity,
++				 batch.refused_bytes >= MT6797_HIF_DMA_MIN_BYTES,
++				 batch.refused_read);
+ 	}
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join pass census: passes=%u submissions=%u max_per_pass=%u elapsed_ms=%llu\n",
+-- 
+2.43.0
+

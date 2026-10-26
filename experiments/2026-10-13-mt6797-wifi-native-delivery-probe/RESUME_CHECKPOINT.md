@@ -1,4 +1,29 @@
-# Current: boot AA6 (full WHIER 0x7fffff07, the probe 1 in 8, the batch bound) staged on boot2
+# Current: boot AA6 void (-90: a 505–508-byte DMA receive refused by the transfer-size rounding); 0310 fixes it; boot AA7 predeclared, under review
+
+[Boot AA6](HIF_TRANSPORT_ANALYSIS.md#boot-aa6-result-2026-10-26-0152-utc-void-again-on--90-in-the-receive-batch-the-cause-is-the-transfer-size-rounding-not-the-buffer):
+transmit ran five chunks (22.8–21.0), then the lifetime stopped at the
+receive direction's start with -90 again. The cause is
+`mt6797_hif_transfer_size()` choosing the mode before the receive's
+eight-byte rounding: 505–508 bytes became a 512-count byte command. The
+host sweep shows exactly 505–508 refused. 0310 rounds first (host test
+`tests/run-transfer-size-test.py`). The probe at one read in eight
+restored 12,763 passes/s. Owner: the interrupt question closes on
+what it excludes (the mask, wrapper, order, read-clear and SPI). The
+option is off in the profile and the receive stays the poll. The
+enable is open, with three leads:
+
+- the AHB variant's `sdio_open()` (built for MT6797, per the pinned
+  Makefile) sets CCCR `IENx`, which our driver never writes;
+- the vendor writes WHIER at adapter initialization, before the
+  firmware starts, where we write it about 4 s after;
+- the firmware keeps its own host-interrupt mask.
+
+The vendor's separate DMA interrupt is compiled off
+(`CONF_HIF_DMA_INT 0`). Boot AA7 (§43) is AA6 plus
+0310 and 0311 with the option off, under review and not built. The device is on Gemian
+(`34cabf67…`); boot2 holds `ccb73bae…`.
+
+# Historical: boot AA6 (full WHIER 0x7fffff07, the probe 1 in 8, the batch bound) staged on boot2
 
 The direct aperture is the HIF command interface, so the Gemian WHIER
 and WHCR numbers are transaction leftovers. Those reads restarted the

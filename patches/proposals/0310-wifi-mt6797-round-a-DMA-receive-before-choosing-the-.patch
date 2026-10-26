@@ -1,0 +1,51 @@
+From 3e065e5ec3197cc4aaf55a6aaaf108115830c9e7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:55:58 -0400
+Subject: [PATCH] wifi: mt6797: round a DMA receive before choosing the
+ transfer mode
+
+Boots AA5 and AA6 each stopped a lifetime with -EMSGSIZE from the
+receive batch, and 0307's larger buffer did not prevent the second.
+mt6797_hif_transfer_size() chose block mode on the four-byte-rounded
+size and only then rounded a byte-mode receive to eight bytes. A DMA
+receive of 505-508 bytes therefore became a byte-mode command of 512,
+above the 511 the count field holds, and was refused. The batch's
+aggregates are multiples of four, so a 508-byte aggregate (one frame of
+501-504 bytes, or several summing to it) stopped the lifetime.
+
+Round a receive to eight bytes first and choose the mode on that size,
+so 505-508 bytes moves as one 512-byte block. Every other size keeps
+its transfer: below 505 the same byte-mode count, and from 512 up the
+same blocks. Transmit and PIO-only receive are unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/hif_transfer_size.h | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif_transfer_size.h b/drivers/net/wireless/mediatek/mt6797/hif_transfer_size.h
+index 71e13718f..b4b5f2f65 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif_transfer_size.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif_transfer_size.h
+@@ -38,14 +38,17 @@ mt6797_hif_transfer_size(size_t payload_bytes, size_t capacity, bool receive,
+ 	if (!payload_bytes || payload_bytes > 511U * 512U)
+ 		return -EMSGSIZE;
+ 
+-	bytes = (payload_bytes + 3U) & ~(size_t)3U;
++	/* Receive rounds to eight bytes before the mode is chosen: a DMA read
++	 * of 505-508 bytes is one 512-byte block, never a byte-mode command
++	 * of 512, which exceeds the count field (boots AA5, AA6) (0310).
++	 */
++	bytes = receive ? (payload_bytes + 7U) & ~(size_t)7U :
++			  (payload_bytes + 3U) & ~(size_t)3U;
+ 	blocks = bytes >= 512U;
+ 	if (blocks) {
+ 		count = (bytes + 511U) / 512U;
+ 		bytes = count * 512U;
+ 	} else {
+-		if (receive)
+-			bytes = (payload_bytes + 7U) & ~(size_t)7U;
+ 		count = bytes;
+ 	}
+ 	if (!count || count > 511U || bytes > 0xfffffU || bytes > capacity)
+-- 
+2.43.0
+

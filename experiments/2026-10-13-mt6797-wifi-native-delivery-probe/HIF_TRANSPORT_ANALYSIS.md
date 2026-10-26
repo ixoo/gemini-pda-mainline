@@ -5499,3 +5499,180 @@ a self-inflicted abnormal path that the block read then treats as fatal.
   ownership.
 - *Open:* where rxbatch3's single `0x42` happened, relative to
   ownership.
+
+### Boot AA6 result (2026-10-26, 01:52 UTC): void again on -90 in the receive batch; the cause is the transfer-size rounding, not the buffer
+
+Mainline boot `df1db510…`, build `4496c9b6`, boot2 `ccb73bae…` (written
+over `345753c1…` and read back in full). The first stage attempt was
+refused before any device action, because the preceding Gemian boot
+had changed to `88a02dda…` after the aperture-read restarts. It was
+re-derived with that pin. The session failed (`session_exit=1`). Its
+own reviewed return reached Gemian `34cabf67…` with the log sealed
+complete (174,384 bytes).
+
+**The row taken: the fourth.** The lifetime stopped in the receive
+batch again: `join stopped: status=-90 … branch=4` at 29.11 s,
+15.15 s into the data phase, with `CCMP receive observation: port=0 …
+status=-90` and `RX batch: … failures=1`. Transmit had completed its
+five chunks (22.79, 22.39, 21.59, 20.96, then 0.04 at the stop). The
+receive direction never opened its first chunk. Void, as
+predeclared.
+
+**The cause, found offline, and 0307's diagnosis corrected.** 0307 was
+right that the buffer could not hold a block-rounded maximum aggregate,
+but that was not what stopped these boots. `mt6797_hif_transfer_size()`
+chose block mode on the four-byte-rounded size and only then rounded a
+byte-mode receive to eight bytes. A DMA receive of 505–508 bytes
+therefore became a byte-mode command of 512, above the 511 the count
+field holds, and was refused with `-EMSGSIZE`. The batch's aggregates
+are multiples of four, so the one failing size below 512 is 508: a
+single frame of 501–504 bytes, or several summing to it.
+
+- *Shown on the host:* the actual helper, swept over every payload up
+  to 37,696 bytes at the 37,888-byte capacity, refuses exactly 505–508
+  on receive and nothing else (`tests/run-transfer-size-test.py`).
+- *Inference:* both stops were a 508-byte aggregate. The log keeps no
+  block, so the size itself is not recorded.
+- *Not shown:* why only AA5 and AA6 met it. No earlier session stopped
+  with `-90`, though DMA receive and batching ran in every boot since V.
+  The armed software-interrupt bits (0306, 0308) are new in exactly
+  these two boots, and a firmware that then posts other packets would
+  fit, but nothing here shows it.
+
+0310 rounds a receive to eight bytes before the mode is chosen, so
+505–508 bytes moves as one 512-byte block. Every other size keeps its
+transfer. It is an inference that the device tolerates a 512-byte block
+read for a 508-byte queue: the driver already reads padded whole blocks
+for every receive of 512 bytes or more.
+
+**The interrupt half: inconclusive again, now with the pass rate
+restored.**
+
+- Armed: `whier=0x00000000>0x7fffff07 whlpcr=0x00000100>0x00000101
+  mask=0>0`. 0308's value reads back.
+- Disarmed (`status=-5`, after the stop): `taken=0 rearmed=0`, last
+  block `whisr=0x00000002` (RX0 done), `pending_before=0/456`,
+  `idle_before=0/23716`, `probe_errors=0`. 456 frame-bearing samples is
+  short of the 10,000 the table needs.
+- *Observed:* the worker ran 193,373 passes in 15.15 s, 12,763/s, with
+  the probe at one read in eight. AA5's 5,680/s was the per-pass probe,
+  not its stop. The rates are comparable with boots AA3 and AA4 again:
+  TX chunks 22.79–20.96 Mbit/s.
+
+**The join half again as validated.** One authentication and one
+association attempt. The first EAPOL-Key was admitted on `bss=1` before
+the activation, 24.2 ms after the association response
+(13.7706 → 13.7949 s), with no stall. One receive refusal, boot R's
+442-byte software-frame class.
+
+**The interrupt conclusion (owner, 2026-10-26): decisive for what it
+excludes.**
+
+- *The run:* `whier=0x7fffff07`, every bit the vendor default allows,
+  with an enabled source set at the driver's own read
+  (`whisr=0x00000002`), WHLPCR INT_EN set and the wrapper mask at 0.
+- *The reading:* `pending_before=0/456`, `idle_before=0/23716` and
+  `taken=0` over 15 s. The pending state follows a level SPI and
+  latches for an edge, so the line never asserted once.
+- *What the conclusion rests on (owner, 2026-10-26):* 456 frame-bearing
+  samples is short of the 10,000 the table asked for. So the mask
+  conclusion rests on the state at disarm, `whisr=0x00000002` with
+  every legal bit armed and `taken=0`, not on the sample count. The
+  arming order (below) is the untested half.
+- *Excluded:* the mask, the wrapper mask, the arming order, the
+  read-clear race and SPI 283.
+- *What remains:* the HIF's output is not driven, on our side or by the
+  firmware, in this run.
+
+The interrupt experiment is retired from the profile:
+`CONFIG_MT6797_HIF_RX_IRQ` is off. 0297–0303, 0306, 0308 and 0309 stay
+in the series as diagnostics that cost nothing while the option is off.
+The receive engine remains the poll.
+
+**Where the enable lives: two candidates, both offline.**
+
+- *Host side (the pinned public vendor source).* The vendor opens the
+  WLAN function as an SDIO function behind the AHB bridge before it
+  reads the chip ID: `glBusInit` calls `sdio_open()`, which runs three
+  steps.
+  - `ahb_sdio_enable_func`: CCCR `0x02` I/O enable `|= 1 << 1`, then
+    waits for CCCR `0x03` I/O ready.
+  - `sdio_set_block_size`: 512.
+  - `ahb_sdio_claim_irq`: CCCR `0x04` (`SDIO_CCCR_IENx`) `|= (1 << 1)
+    | 1`, function 1 and the master interrupt enable.
+
+  The CCCR accesses are command-52 function-0 transactions (setup word
+  at offset 0: data in bits 0–7, register address from bit 9, function
+  0, the write flag in bit 31; the data at offset 4). Our driver makes
+  no function-0 access at all: no I/O enable and no interrupt enable.
+  On SDIO a function's interrupt reaches the host only with both
+  `IENx` bits set. This is a concrete write the vendor makes and we do
+  not, between bus open and `nicEnableInterrupt`. The vendor source
+  has no other wrapper write besides `0x200`, which `__disable_irq` and
+  `__enable_irq` write around every command transaction.
+
+  *This is the AHB variant's code, checked against the pinned tree
+  (owner query, 2026-10-26).* The owner read `sdio_bus_driver.c` as the
+  real-SDIO build's. The gen3 Makefile selects
+  `HIF_DIR := os/linux/hif/ahb_sdioLike/` for `WLAN_CHIP_ID MT6797`,
+  and builds `$(HIF_DIR)ahb.o $(HIF_DIR)ahb_pdma.o
+  $(HIF_DIR)sdio_bus_driver.o`. `ahb_sdioLike/ahb.c` calls
+  `sdio_open()` under `#if defined(MT6797)` (line 354, in the bus
+  init, before the chip-ID read), and `sdio_open()` in
+  `ahb_sdioLike/sdio_bus_driver.c` writes `SDIO_CCCR_IENx` (line 443).
+  The function-0 writes are made by the variant this board runs, and
+  the lead stands.
+- *Host side, the order (owner, 2026-10-26).* `nicInitializeAdapter()`
+  writes `WHIER = WHIER_DEFAULT` (`nic/nic.c:680`), called early in
+  `wlanAdapterStart` (`common/wlan_lib.c:374`), long before
+  `nicEnableInterrupt`. Our only WHIER write is at the data-phase arm,
+  about four seconds after the firmware boots. That ordering difference
+  is untested. AA7 has the option off, so it needs its own boot.
+- *The DMA engine's interrupt (owner lead, checked).* The AHB variant
+  can register a second, level-low line for AP-DMA completion
+  (`request_irq(MT_GDMA2_IRQ_ID, HifDmaISR, IRQF_TRIGGER_LOW, "AHB_DMA",
+  …)`). In the pinned build it sits under `#if (CONF_HIF_DMA_INT == 1)`,
+  and `ahb_sdioLike/include/hif.h` defines `CONF_HIF_DMA_INT 0`. The
+  vendor polls DMA completion as we do. Recorded so it is not
+  rediscovered as a difference.
+- *Firmware side (owner).* The retained firmware's log strings name a
+  host-interrupt mask of its own (`HIF INT MASK TO HOST TX/RX[%u/%u]`,
+  with `HIF_ISR`, `HIF_IER`, `MAIL` and `SW_INT_CNT`). Which register or
+  command feeds it is the firmware question, answered with the binary
+  in the RE VM and the register table.
+- *The test, when one register is named:* a single write in the arming
+  path and one boot, read as §42. The CCCR `IENx` read alone, recorded
+  at arm before any write, already says whether the host-side enable
+  is 0.
+
+## 43. Boot AA7 (predeclared, 2026-10-26): the receive fix, with the interrupt option off
+
+The AA6 tree plus 0310 (receive rounding) and 0311 (a refused batch
+transfer names itself), with `CONFIG_MT6797_HIF_RX_IRQ` off. The
+interrupt code and the probe are compiled out. 0304–0305 and 0307 stay
+in.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| the run completes both directions with no `-90`, rates as boots AA3/AA4 | 0310 is the fix | the reconnect gate |
+| `-90` recurs, and the `RX batch refused:` line names a 505–508-byte aggregate | 0310 did not take effect | read the build |
+| `-90` recurs with any other size or site | another transfer refuses; the line names it | fix that site |
+| `failures > 0` or a header mismatch on a 505–508-byte aggregate, no `-90` | the device objects to a 512-byte block read for a 508-byte queue (owner, 2026-10-26): the driver had only ever issued block reads for 512 bytes or more | revisit 0310's mode choice |
+
+On a clean run the batch line also records `max_bytes`, the largest
+aggregate, and `window_505_508`, the count of aggregates of 505–508
+bytes. These confirm whether the window is reachable-but-rare rather
+than assumed (owner, 2026-10-26).
+
+**The discriminator (owner, 2026-10-26).** The two boots that died this
+way are the two with the probe before the block read. Boot AA4's probe
+sat after it and ran 42 s clean. With the option off, that variable is
+gone:
+
+- `-90` without the probe places the cause in the data path;
+- no `-90` leaves the pre-read probe inside the fill implicated, as
+  well as 0310's fix.
+
+The two cannot be separated in one clean boot. A clean AA7 is
+consistent with both, so it closes the receive stop, not the
+attribution.

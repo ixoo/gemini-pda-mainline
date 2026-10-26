@@ -3750,6 +3750,77 @@
     "site": "receive batch aggregated port read, transfer sizing (-EMSGSIZE)"
    },
    "reading": "HIF section 41: 0305 removes the EAPOL stall; the per-pass probe is not free; the receive batch's buffer bound refuses rounded aggregates above 37,376 bytes as a bus failure; interrupt half void"
+  },
+  "boot-aa6": {
+   "run": "PIO-throughput-bootaa6-1",
+   "session": "2026-10-26 01:52 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot AA5 tree + 0307-0309)",
+   "kernel_build_commit": "4496c9b65723c3765cdf68c240df77f5cbb2bb72",
+   "boot2_sha256": "ccb73bae0feda2a7723b9f71e26bc72a5b5e83af0ed36797f34a3a8840220b24",
+   "predecessor_boot2_sha256": "345753c116961291e23695a6bde2663528a164c652a849eb904cdcac1e4e2fdd",
+   "mainline_boot_id": "df1db510-cda3-4659-a645-179fefde3835",
+   "previous_gemian_boot_id": "88a02dda-c4c3-4354-89d8-2813c511b548",
+   "returned_gemian_boot_id": "34cabf67-c122-40f4-967f-0a716017d83f",
+   "returned_by": "session's reviewed return",
+   "classification": "void: the lifetime stopped (-90, branch 4) at the receive direction's start; a 505-508-byte DMA receive refused by the transfer-size rounding",
+   "sealed_log_bytes": 174384,
+   "series_row": true,
+   "join": {
+    "auth_attempts": 1,
+    "assoc_attempts": 1,
+    "first_eapol": "admitted on bss=1 before activation, 24.2 ms after the association response"
+   },
+   "hif_irq": {
+    "irq": 218,
+    "whier_arm": [
+     "0x00000000",
+     "0x7fffff07"
+    ],
+    "whlpcr_arm": [
+     "0x00000100",
+     "0x00000101"
+    ],
+    "disarm_status": -5,
+    "taken": 0,
+    "rearmed": 0,
+    "whisr_last": "0x00000002",
+    "pending_before": [
+     0,
+     456
+    ],
+    "idle_before": [
+     0,
+     23716
+    ],
+    "probe_errors": 0
+   },
+   "worker": {
+    "passes": 193373,
+    "data_phase_ms": 15152,
+    "passes_per_s": 12763
+   },
+   "throughput": {
+    "tx_chunk_mbit_s": [
+     22.79,
+     22.39,
+     21.59,
+     20.96,
+     0.04
+    ]
+   },
+   "rx_batch": {
+    "reads": 193775,
+    "aggregates": 3386,
+    "frames": 4168,
+    "failures": 1,
+    "max": 11
+   },
+   "stop": {
+    "status": -90,
+    "branch": 4,
+    "site": "receive batch DMA read: transfer-size rounding refuses 505-508 bytes"
+   },
+   "reading": "HIF section 42, fourth row: void; the -EMSGSIZE source is the receive rounding after the mode choice (0310); the probe at one read in eight restores the pass rate; interrupt half inconclusive"
   }
  }
 }
