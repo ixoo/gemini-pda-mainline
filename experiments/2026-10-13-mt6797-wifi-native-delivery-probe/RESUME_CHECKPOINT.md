@@ -1,4 +1,10 @@
-# Current: boot AB graded (the worker is idle 61 % of the wall; its busy time is HIF reads on empty passes); rates degraded, a repeat on the same image proposed
+# Current: boot AB2, the per-frame cost boot repeated on boot AB's image, staged (boot2 verified, not rewritten)
+
+The installer read boot2's full partition as `8f481a70…`
+(`skipped-already-matching`). The composer admits no change over boot
+AB. Gemian (`189177e6…`) is shut down for the owner's boot2 selection.
+
+# Historical: boot AB graded (the worker is idle 61 % of the wall; its busy time is HIF reads on empty passes); rates degraded, a repeat on the same image proposed
 
 [Boot AB](HIF_TRANSPORT_ANALYSIS.md#boot-ab-result-2026-10-26-1215-utc-the-worker-is-idle-61--of-the-wall-its-busy-time-is-hif-reads-on-empty-passes-the-rates-were-degraded-so-it-is-repeated-before-a-decision):
 `all_pass`. The worker was busy 18.4 s of the 46.9 s data phase. 74 %
