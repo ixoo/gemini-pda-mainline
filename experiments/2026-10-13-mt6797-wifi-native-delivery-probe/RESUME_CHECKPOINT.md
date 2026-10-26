@@ -1,4 +1,17 @@
-# Current: boot AA2 void; boot AA3 (§38 re-run on the unchanged image) predeclared and being staged; two join defects named, to be fixed before the reconnect gate
+# Current: boot AA3 graded (§38 second row: the wrapper was never masked, the line still silent); the join retry patch (0302) under review; early M1 next
+
+[Boot AA3](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row):
+boot AA2's image re-run (boot2 verified, `skipped-already-matching`);
+`all_pass`. Armed `mask=0x00000000>0x00000000`: the wrapper line was
+already unmasked, and `taken=0` held with WHIER 0x7 and INT_EN set. Boot
+AA4 (§39) now decides whether the block read's read-clear suppresses the
+line, under the explicit revert. RX 20.48, TX 22.57; 16 `pn=equal` Retry
+refusals. The first EAPOL-Key stalled 996 ms again (bss-interval). Join
+fixes in order: the bounded authentication/association retry (0302), the
+early M1 admission, then the reconnect gate. The device is on Gemian
+(`cfbcce3f…`); boot2 holds `561e2025…`.
+
+# Historical: boot AA2 void; boot AA3 (§38 re-run on the unchanged image) predeclared and being staged; two join defects named, to be fixed before the reconnect gate
 
 [Boot AA2](HIF_TRANSPORT_ANALYSIS.md#boot-aa2-result-2026-10-26-0038-utc-void-the-join-failed-before-the-data-phase-the-interrupt-never-reached-its-arming-point):
 authentication completed and the association request was acknowledged,

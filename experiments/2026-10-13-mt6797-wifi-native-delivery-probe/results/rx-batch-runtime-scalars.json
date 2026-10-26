@@ -514,7 +514,7 @@
   },
   "boot-c": {
    "run": "PIO-throughput-bootc-1",
-   "session": "2026-10-25 13:14 UTC (66 min after boot B; cross-session, \u00b140 % floor)",
+   "session": "2026-10-25 13:14 UTC (66 min after boot B; cross-session, ±40 % floor)",
    "profile": "mt6797-a53-wifi-lifecycle",
    "kernel_build_commit": "9ea1a37c7f6fe70366a6f6e0ecbc65a7a8ace225",
    "boot2_sha256": "8cd3631403875135077f9002b49e3a7af0471d4dcb3d084d1786fe8cd0a3ab07",
@@ -676,7 +676,7 @@
   },
   "boot-d": {
    "run": "PIO-throughput-bootd-1",
-   "session": "2026-10-25 15:06 UTC (1 h 50 min after boot C; cross-session, \u00b140 % floor)",
+   "session": "2026-10-25 15:06 UTC (1 h 50 min after boot C; cross-session, ±40 % floor)",
    "profile": "mt6797-a53-wifi-rate",
    "kernel_build_commit": "e1e67f78462ddce857b89d9f83c59c1b4c7f9157",
    "boot2_sha256": "df7d6e651c32fa3b91767e4a01fda9fa54228c646bbe19c92190ebc4d218dd52",
@@ -1194,7 +1194,7 @@
     "snd_wnd_max_bytes": 2036736
    },
    "watcher_note": "started by hand 13 s after the endpoint came up (staged watcher lacked the executable bit; fixed)",
-   "reading": "depth 8: no change, the service rate is fixed (service time 1.24 ms/frame at both depths, utilisation 0.99): the firmware's per-frame transmit processing limits at ~800 frames/s; fragment back to depth 4, sweep stopped, boot G cancelled; stalls named (TX chunk 3 at 40.94\u201343.95 s, RX chunk 5 at 59.20\u201362.22 s device clock); next boot H: sampled status report 1 in 64 (0281); HT aggregation is the throughput lever",
+   "reading": "depth 8: no change, the service rate is fixed (service time 1.24 ms/frame at both depths, utilisation 0.99): the firmware's per-frame transmit processing limits at ~800 frames/s; fragment back to depth 4, sweep stopped, boot G cancelled; stalls named (TX chunk 3 at 40.94–43.95 s, RX chunk 5 at 59.20–62.22 s device clock); next boot H: sampled status report 1 in 64 (0281); HT aggregation is the throughput lever",
    "stalls": [
     {
      "direction": "TX",
@@ -3500,6 +3500,89 @@
     "armed": false
    },
    "reading": "void for HIF section 38: the interrupt never reached its arming point; a first-of-series join failure, not attributable to 0301"
+  },
+  "boot-aa3": {
+   "run": "PIO-throughput-bootaa3-1",
+   "session": "2026-10-26 00:49 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot AA2 image, unchanged)",
+   "kernel_build_commit": "82717df4d8bd737436ed711093fc66edcb2b08dd",
+   "boot2_sha256": "561e202508ba17243e51dce8c0c0f1e01e32e29eef8eb870c41ca484ab531b0e",
+   "predecessor_boot2_sha256": "561e202508ba17243e51dce8c0c0f1e01e32e29eef8eb870c41ca484ab531b0e",
+   "install_result": "skipped-already-matching",
+   "mainline_boot_id": "ee702c23-ffa9-45f7-baa4-d80c33a58831",
+   "previous_gemian_boot_id": "27ee846e-1676-4263-9b70-957cb8910e44",
+   "returned_gemian_boot_id": "cfbcce3f-1dc0-48a4-a25c-ced13ac3b0b8",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty; the wrapper mask already 0 at arm; the line never taken",
+   "sealed_log_bytes": 200046,
+   "series_row": true,
+   "hif_irq": {
+    "irq": 218,
+    "arm_status": 0,
+    "whier": [
+     "0x00000000",
+     "0x00000007"
+    ],
+    "whlpcr_arm": [
+     "0x00000100",
+     "0x00000101"
+    ],
+    "mask_arm": [
+     "0x00000000",
+     "0x00000000"
+    ],
+    "disarm_status": 0,
+    "whlpcr_disarm": [
+     "0x00000101",
+     "0x00000100"
+    ],
+    "mask_disarm": [
+     "0x00000000",
+     "0x00000001"
+    ],
+    "taken": 0,
+    "rearmed": 0
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 22.57,
+    "tx_chunk_mbit_s": [
+     23.88,
+     24.63,
+     24.94,
+     21.8,
+     24.24
+    ],
+    "rx_aggregate_mbit_s": 20.48,
+    "rx_device_chunk_mbit_s": [
+     22.45,
+     22.62,
+     22.96,
+     21.38,
+     17.95
+    ],
+    "passes": 517279,
+    "block_reads": 521463,
+    "block_reads_empty": 499373,
+    "data_phase_ms": 41587
+   },
+   "qos": {
+    "tx_qos": 49877,
+    "tx_tid_refused": 0,
+    "rx_qos": 44306,
+    "rx_refused": 16,
+    "rx_refused_shape": "pn=equal, Retry, TID 0 pairwise (all 16)",
+    "rx_llc_mis": 13
+   },
+   "join": {
+    "first_eapol": "refused at bss-interval 24 ms after the association response; admitted on the retransmission 996 ms later"
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 2
+   },
+   "reading": "HIF section 38, second row: the wrapper was never masked, so the silence is not the mask; boot AA4 decides whether the block read's read-clear suppresses the line, under the explicit revert"
   }
  }
 }

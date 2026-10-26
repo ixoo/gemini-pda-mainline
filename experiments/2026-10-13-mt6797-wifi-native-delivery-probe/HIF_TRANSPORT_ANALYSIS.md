@@ -5057,6 +5057,71 @@ and reads it back otherwise. The branches are §38's, as written:
 | arm or disarm `status != 0`, a mask-count warning, or any regression | revert |
 | the join fails before the data phase again | void again; the bounded-retry change comes first |
 
+### Boot AA3 result (2026-10-26, 00:49 UTC): the wrapper was never masked; the line stays silent; §38's second row
+
+Mainline boot `ee702c23…`, build `82717df4`. Boot2 was verified, not
+written: the installer read the full partition as `561e2025…` and
+reported `skipped-already-matching`. Graded `all_pass`, with
+`verdict_failed` empty. The session's reviewed return reached Gemian
+`cfbcce3f…`.
+
+**The interrupt.**
+
+```
+HIF interrupt armed:    irq=218 status=0 whier=0x00000000>0x00000007 whlpcr=0x00000100>0x00000101 mask=0x00000000>0x00000000
+HIF interrupt disarmed: irq=218 status=0 taken=0 rearmed=0 whlpcr=0x00000101>0x00000100 mask=0x00000000>0x00000001
+```
+
+- *Observed:* the wrapper line mask at `0x200` already reads 0 before
+  0301's arm write, and the disarm write of `0x01` reads back as 1. The
+  register is live and writable. It was unmasked at arm time.
+- *Observed:* `taken=0` across a 41.6 s data phase, with WHIER `0x7`,
+  WHLPCR `INT_EN` set and the wrapper unmasked.
+- *Inference:* boot AA's silence was not the wrapper mask. 0301's arm
+  write changes nothing on this firmware state. None of the three
+  device-side enables the vendor sets withholds the line, so the
+  remaining suspect is the one §38 named: the poll's block read clears
+  the status before the line can assert.
+- *Not shown:* whether the GIC line itself (SPI 283, level low through
+  the sysirq inverter) would ever assert. No read in this boot
+  separates "the status is cleared first" from "the line is routed
+  elsewhere".
+
+**The rest, against boot AA.** Nothing regressed.
+
+| | Boot AA | Boot AA3 |
+|---|---|---|
+| TX aggregate (chunks) | 22.16 (20.9–24.3) | 22.57 (21.8–24.9) |
+| RX aggregate | 16.22 | 20.48 |
+| RX device chunks | 19.67, 21.61, 10.12, 20.94, 13.96 | 22.45, 22.62, 22.96, 21.38, 17.95 |
+| block reads, empty | 530,073, 94.3 % | 521,463, 95.8 % |
+| passes/s | — | 12,438 |
+| transmit `expired`/`pid_faults`/`left_pages` | 0/0/0 | 0/0/0 |
+| sampled status 3 (air loss) | 0 | 2 of 779 (warning `tx_air_losses=2`) |
+| receive refusals | 0 | 16, all `pn=equal` Retry |
+
+- The receive rise matches boot V's good chunks (19.5–22.3). Boot AA's
+  low aggregate came from two sender-side dips, not the interrupt; the
+  image is the same. This is noise between runs, not a gain.
+- The 16 refusals are one shape: `fc=0x4a88`, Retry set, the PN equal
+  to the TID-0 pairwise counter. They are retransmissions of frames
+  already delivered, refused as they must be (boot V's single refusal
+  had the same shape). No other field was refused. `rx_llc_mis=13`.
+
+**The join, for the next patch.** The association response arrived at
+14.20 s. The first EAPOL-Key was refused at `predicate=bss-interval`
+24 ms later (`activated=0 bss_configured=0`) and admitted only on the
+access point's retransmission at 15.22 s, a 996 ms stall. That is the
+same sequence and the same 996 ms as boot AA, now on two consecutive
+clean boots. The early-M1 change below is predicted to remove it.
+
+**Branch taken: §38's second row.** The predeclared first row needed
+`mask=0x…1>0x…0`. The mask read `0>0`, so that row's premise does not
+exist on this device. `taken=0` with the wrapper unmasked selects the
+second row. Boot AA4 therefore runs with the changed purpose below: it
+decides whether the block read's read-clear suppresses the line, under
+the explicit revert. The interrupt work is not extended in this boot.
+
 ## 39. Boot AA4 (predeclared, 2026-10-25; renumbered 2026-10-26): the receive poll on a wake
 
 **The change, after boot AA shows the line fires.** While the interrupt
@@ -5074,8 +5139,8 @@ established.
 
 **Its purpose depends on boot AA3 (owner, 2026-10-26).**
 
-- *If the line fires in AA3:* as written, capture the 15–25 %.
-- *If `taken = 0` with the wrapper unmasked:* AA4 no longer captures a
+- *If the line fires in AA3:* as written (not taken: the line did not fire), capture the 15–25 %.
+- *If `taken = 0` with the wrapper unmasked (the AA3 result):* AA4 no longer captures a
   gain. It decides whether the block read's read-clear suppresses the
   line at all. Its revert condition is then explicit: any fall in
   device-side receive rate returns the poll to full cadence, and the
