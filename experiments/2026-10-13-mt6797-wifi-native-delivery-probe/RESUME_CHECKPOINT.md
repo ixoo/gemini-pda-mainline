@@ -1,4 +1,11 @@
-# Current: boot AF graded; no collapse with the option off, but both directions below their bands; the air moved; the window is neither cleared nor implicated
+# Current: the paired AE run (§53) predeclared: AE's image right after AF on the same air, graded against AF's 15.07/13.74; awaiting approval to stage
+
+The boot2 write must reproduce AE's `25865da4…`. Only a transmit
+collapse reverts 0321; only TX within 15 % of AF with RX at least
+20 % above it enables the option. The device is on Gemian
+(`3910a501…`); boot2 holds AF's `220a431b…`.
+
+# Historical: boot AF graded; no collapse with the option off, but both directions below their bands; the air moved; the window is neither cleared nor implicated
 
 [Boot AF](HIF_TRANSPORT_ANALYSIS.md#boot-af-result-2026-10-26-1528-utc-no-collapse-without-the-option-but-both-directions-below-their-band-no-row-matches-cleanly):
 `all_pass`. TX 15.07 Mbit/s (4 failed sends, credit wait max 87 ms) and

@@ -6581,3 +6581,38 @@ this air. Before another aggregation run, a run needs to show the air
 back in band, or an aggregation result needs to be graded against a
 same-session baseline. `CONFIG_MT6797_RX_AMPDU` stays off in the
 profile.
+
+## 53. AE's image, paired with AF on the same air (predeclared, 2026-10-26)
+
+**Why a repeat.** AE and AF differ by one option, and their results
+cannot be compared, because the air moved between them (§52, AF's
+result). The image is unchanged. The decision-changing part is the
+pairing: AE's image runs right after AF's baseline, and it is graded
+against AF, not against the older bands.
+
+**The image.** It is boot AE's build, `63aba59d`, with the package
+already fetched. The windowed configuration is
+`CONFIG_MT6797_RX_AMPDU=y` with 0317–0321, at depth 12. Against AF's
+image, the composer admits one config change: `CONFIG_MT6797_RX_AMPDU`
+absent→y. It admits no tree change. The composed boot2 should be
+byte-identical to AE's `25865da4…`, and the stage refuses any other
+digest. The device-side measurement plan is AF's, unchanged. The gap
+between AF's run (15:28 UTC) and this one is recorded.
+
+**Baseline.** AF: TX 15.07 Mbit/s, 4 failed transmit statuses, credit
+wait 6.0/86.7 ms, 3 queue stops; RX 13.74.
+
+**Unique observation.** TX rate and chunks, `tx_failed`, the credit
+wait and queue stops, each against AF's. On the `RX BA:` line,
+`held`, `released`, `holes`, `timeouts` and `behind`. The data qos
+line's `rx_refused` and the refusals' `field=`/`pn=` classes. RX rate
+and chunks.
+
+| Reading (against AF) | Meaning | Next |
+|---|---|---|
+| TX within 15 % of AF (≥ 12.8), `tx_failed` of AF's order, RX at least 20 % above AF (≥ 16.5), no `pn=lower` | receive aggregation with the window helps on this air and costs transmit nothing; AE's collapse was the air | re-enable `CONFIG_MT6797_RX_AMPDU` in the profile and record RX aggregation as local support, stated against the same-air baseline, with the vendor's 31.5 as the reference |
+| TX collapses (under 5 Mbit/s, `tx_failed` well above AF's 4, credit wait max ≳ 100 ms) | the change collapses transmit, since AF did not on the same air; AD's image (aggregation, no window) kept TX, so the window or its interaction is implicated | revert 0321; keep the option off; any further aggregation work starts from AD's image paired the same way |
+| TX within 15 % of AF, RX not above AF by 20 % | on this air the window does not pay | keep the option off; read the refusal classes and the window counters before any change |
+| both directions far below AF (under 70 % of AF in each) without a collapse | the air moved again within the pair | no conclusion; the pair is repeated in the other order before anything else |
+
+Only the second row reverts code. Only the first enables the option.
