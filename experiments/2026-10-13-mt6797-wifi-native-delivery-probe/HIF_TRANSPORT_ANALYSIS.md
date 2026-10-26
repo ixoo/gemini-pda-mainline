@@ -7141,3 +7141,73 @@ identity confirmed.
 **Reading, by §58's fourth row:** not good air. There is no comparison,
 and boot AL (`35f9d3bf`, aggregation on) is built and not staged. The
 confirmation is repeated on another day, control first.
+
+## 59. The vendor comparisons are not width-matched (2026-10-26)
+
+**The measurement problem.** The vendor figures and ours came from two
+different links. The vendor's Gemian link was a different BSSID of the
+owner's network, on 5805 MHz, seen by the owner at 135 Mbit/s PHY
+(MCS7, 40 MHz). A read-only wireless-extensions query in Gemian today
+gave 200 Mbit/s on the same 5805 MHz BSS. Ours is the 5200 MHz BSSID at
+HT MCS7, 20 MHz, 65 Mbit/s PHY. 0293's capability element deliberately
+excludes 40 MHz, short GI and greenfield. Every vendor-against-mainline
+figure in this series compares two links of different width, on
+different BSSIDs, at different times. That includes 14.6/31.5
+(control 1, 2026-10-23) and 45.1/38.5 (control 2, 2026-10-24), whose
+band, width and MCS were never measured: the vendor driver has no
+nl80211.
+
+The receive gain of receive aggregation is not one of them. Its +44 %
+compares mainline with mainline (AH against AI), both 20 MHz, on the
+same BSS, in the same hour.
+
+**Percent of PHY, as a normalisation.**
+
+| | TX | RX |
+|---|---|---|
+| vendor control 1, against 135 | 14.6, 10.8 % | 31.5, 23.3 % |
+| vendor control 2, against 135 | 45.1, 33.4 % | 38.5, 28.5 % |
+| mainline, against 65 | 22.6, 34.8 % | 20.5, 31.5 % |
+| mainline, receive aggregation best chunk (AE), against 65 | — | 25.6, 39.4 % |
+
+Three limits apply:
+- The vendor rows divide by a rate nobody logged at the time of either
+  control. Today's reading (200) would lower them further.
+- Percent of PHY favours the narrower link: per-frame overhead is
+  fixed, so a 65 Mbit/s link spends a larger share of its airtime on
+  payload than a 135 one.
+- It does not show a driver gap in either direction. On this
+  normalisation the vendor's raw receive advantage is consistent with
+  channel width, and our driver is not behind.
+
+Only a matched benchmark shows more: the vendor on our BSSID, in the
+same hour. Until then, raw Mbit/s are not quoted against the vendor.
+
+**The matched benchmark is not yet possible as asked.** Gemian manages
+Wi-Fi through connman, which drives wpa_supplicant over D-Bus. There is
+no supplicant configuration with `bssid=`, there is no `wpa_cli`, `iw`
+or `iwconfig`, and the LAN SSH that runs the harness rides the same
+link. A wireless-extensions read (rate, frequency, BSSID) works
+read-only from Python and can log the link before and after each
+direction.
+
+**40 MHz, decided on its facts.** Our BSS's HT operation (`op1=0x07`)
+puts the secondary channel below the primary channel 40, which is
+channel 36: 5170–5210 MHz. That is non-DFS and inside the fixed
+channel set, UNII-1 36–48. No DFS channel is involved.
+
+40 MHz was retired at boot W as "air-only, low value", when the service
+time (0.43 ms a frame) was well above MCS7's air time (0.19 ms). With
+receive aggregation the air is a larger share of the receive cost, so
+40 MHz is worth up to 2× PHY in both directions, and it composes with
+everything accepted so far.
+
+The host work is real:
+- the HT capability's supported-width bit;
+- the secondary channel offset in the channel and BSS commands;
+- the station record's bandwidth fields;
+- a 40 MHz channel definition beside the fixed 20 MHz set.
+
+It is scheduled as a project, after the matched benchmark, with its own
+predeclaration. 2.4 GHz is not part of it (20/40 coexistence applies
+there).

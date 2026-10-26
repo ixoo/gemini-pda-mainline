@@ -88,7 +88,10 @@ Keep this file under 200 lines; move anything else to an experiment record.
   - the transmit status read (about half of each pass after the peek),
     queued as a power item that needs its own predeclaration with the
     ledger as the failure signal;
-  - transmit aggregation, parked (vendor 14.6 against our 22.6);
+  - a matched vendor benchmark on our BSSID (the vendor figures so far
+    were 40 MHz on another BSSID, HIF §59), then 40 MHz as a project:
+    channels 36+40, non-DFS, up to 2× PHY;
+  - transmit aggregation, parked;
   - power management for the idle disconnect.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot
   (reconnection after the access point's own loss has passed twice, the second time with a lost association response absorbed by the bounded retry; a radio that vanishes and returns is untested); replay

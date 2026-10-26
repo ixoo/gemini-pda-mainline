@@ -92,6 +92,14 @@ against the adjacent boot in the same session or A/B inside one boot, and
 
 Runs before 2026-10-24 booted an inherited `board.dtb` that no build produced; proposal 0261 reproduces it from source and the [equivalence boot](DEVICE_TREE_PROVENANCE.md#equivalence-boot-passed-2026-10-24) confirmed the series' results stand on it.
 
+**Not width-matched ([HIF §59](HIF_TRANSPORT_ANALYSIS.md#59-the-vendor-comparisons-are-not-width-matched-2026-10-26)).** Both vendor
+controls ran on a different BSSID at 5805 MHz and 40 MHz (PHY unlogged;
+135 and 200 Mbit/s seen since). Mainline runs on the 5200 MHz BSSID at
+20 MHz (65 Mbit/s PHY). As a percentage of PHY, vendor TX is 10.8–33.4 %
+and RX 23.3–28.5 % (against 135); mainline TX 34.8 % and RX 31.5 %
+(39.4 % with receive aggregation). These rows do not show a driver gap;
+a matched benchmark on the same BSSID is the comparison.
+
 Protocol in every column: five chunks per direction, 1 s or 1 MiB per chunk,
 plain TCP for data, SSH only for control, prompt standard disconnect. The
 vendor control used the same laptop as the far end.
