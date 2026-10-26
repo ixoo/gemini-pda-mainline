@@ -1,4 +1,12 @@
-# Current: the paired AE run (§53) predeclared: AE's image right after AF on the same air, graded against AF's 15.07/13.74; awaiting approval to stage
+# Current: §54 predeclared (supersedes §53): control (AF's image) → AE′ (AE + per-phase cost) → control, same air; awaiting approval to run control 1
+
+AE proved the window. The station record matches the vendor, and
+receive aggregates did not starve the transmit pool (TX ran first,
+with 141 receive packets). The triple is compared only if both
+controls are in band (TX ≥ 17.9, RX ≥ 15.4). The device is on Gemian
+(`3910a501…`); boot2 holds AF's `220a431b…`, which is control 1.
+
+# Historical: the paired AE run (§53) predeclared: AE's image right after AF on the same air, graded against AF's 15.07/13.74; awaiting approval to stage
 
 The boot2 write must reproduce AE's `25865da4…`. Only a transmit
 collapse reverts 0321; only TX within 15 % of AF with RX at least

@@ -6616,3 +6616,79 @@ and chunks.
 | both directions far below AF (under 70 % of AF in each) without a collapse | the air moved again within the pair | no conclusion; the pair is repeated in the other order before anything else |
 
 Only the second row reverts code. Only the first enables the option.
+
+## 54. What AE proved, two explanations closed, and the bracketed instrumented repeat (predeclared, 2026-10-26; supersedes §53)
+
+**What AE proved.** The reorder window is correct: 2,377 held
+sub-frames were all released in sequence order. No hole was skipped
+and no bubble deadline fired. No `pn=lower` remained, and of the three
+refusals none was QoS. Receive ran 25.56 Mbit/s on its best chunk and
+19.9–22.8 on the others. That is at or above the non-aggregated band
+(15.4–20.5 typical, 20.5 best), the first sign the aggregation gain
+is real. The window code stays (0320, 0321), and 0317–0319 stay too.
+Only the enablement decision is open.
+
+**Two explanations closed.**
+
+- *The station record is not mis-set.* The pinned vendor source sets
+  `ucRxAmpdu = FEATURE_OPT_IN_COMMAND(ucAmpduRx)`, and `ucAmpduRx`
+  defaults to `FEATURE_ENABLED` (`wlan_lib.c`, `"AmpduRx"`), so the
+  value is 2. `ucRxBaSize` is `ucRxHtBaSize`, default 64
+  (`"RxHtBaSize"`). 0317 writes exactly these values.
+- *Receive aggregates did not starve the transmit pool.* AE ran its
+  TX chunks first (device 19.2–35.4 s), before the RX chunks (from
+  35.4 s), and all five were dead from the first. The block-ack
+  sessions were already up (TID 0 from 16.8 s), and the laptop's TCP
+  ACKs arrived as sub-frames, but only 141 packets in those 16 s. That
+  receive volume is far too small to have exhausted anything, and
+  received frames do not draw on the transmit pages.
+
+**The repeat.** The discriminator already in the tree is the per-phase
+cost line (0315, `CONFIG_MT6797_PASS_COST_RECORD`). AE ran with it
+off. The instrumented image is AE's configuration plus
+`CONFIG_MT6797_PASS_COST_RECORD=y`, for this boot only: 0317–0321 and
+`CONFIG_MT6797_RX_AMPDU=y` at depth 12. Nothing else changes: no
+window tuning, no block-ack size change.
+
+It is bracketed on the same air with the same harness, in this order:
+
+1. *Control 1:* AF's image, aggregation off, `220a431b…`. It is
+   already on boot2, so the install skips the write as matching.
+2. *AE′:* the instrumented image.
+3. *Control 2:* AF's image again, written back.
+
+AF shows why: at 15.07/13.74 against a 22.6/20.5 band, an unbracketed
+run decides nothing. The three runs are compared only if both controls
+are in band, meaning TX ≥ 17.9 and RX ≥ 15.4 (the typical clean-run
+band). If either control falls out of band, the triple is void and
+nothing is concluded.
+
+**Limits of the instrument, stated before the run.**
+
+- The cost line is one total over the whole data phase, both
+  directions, not per chunk. AE′'s TX chunks run first, so a transmit
+  stall shows as a long data phase with a low busy fraction only if
+  the receive direction does not dominate the total.
+- The busy fraction is the sum of the phases over the data phase's
+  elapsed time.
+- The window's own time falls inside `receive_us`.
+- The controls run without the cost line (AF's image), so there is no
+  same-air cost reference. The busy fraction is read against AB2's
+  59.5 % at normal rates.
+
+**Unique observation.** AE′'s `pass cost:` line, with the busy
+fraction, `submit_us` and `receive_us` against AB2's. Beside it: the
+credit wait maximum, `tx_failed`, the TX chunks, the window's
+counters, and both controls' TX and RX.
+
+| Reading (both controls in band) | Meaning | Next |
+|---|---|---|
+| TX dead again; the worker idle (small `submit_us`, low busy fraction) while the credit wait maximum is hundreds of ms | firmware-side: transmit completion degrades while a receive block-ack session is active | analyse the firmware's transmit completion and HIF page accounting under a receive block-ack session (`CFG_NUM_OF_QM_RX_PKT_NUM` 512, `CFG_TX_MAX_PKT_NUM` 1024, the 468-page pool); no host change will fix it |
+| TX dead again; the worker saturated (`receive_us`, which holds the window's time, dominating the pass) | host-side: the window costs per pass even with no frames | make the window event-driven, touching only the arriving frame's TID with no table scan, and re-run |
+| TX in band with aggregation on | AE's collapse was the air | take RX aggregation as a result; keep the window; re-enable the option in the profile |
+| TX dead, but the credit wait maximum normal | the stall is above the credit layer (TCP, the ACK path) | read the reverse-direction ACK timing during the TX chunks |
+
+**If the firmware-side row holds, the project stops there.** The record
+would then read: the window works; the firmware's transmit path does
+not tolerate a receive block-ack session; RX aggregation stays off;
+and the 20.5 band is the ceiling.
