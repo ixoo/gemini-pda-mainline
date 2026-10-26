@@ -1,4 +1,4 @@
-# Current: boot AA3 graded; boot AA4 (the HIF line's pending state at the controller) predeclared, patches 0302–0305 under owner review, nothing built
+# Current: boot AA4 (the HIF line's pending state at the controller, 0302–0303) staged on boot2; 0304–0305 committed, outside the profile until after AA4
 
 [Boot AA3](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row):
 boot AA2's image re-run (boot2 verified, `skipped-already-matching`);
@@ -19,8 +19,11 @@ Under review, not committed to a build:
   (host test `tests/run-early-m1-test.py`).
 
 The lifecycle profile carries 0302–0303 only. 0304–0305 join it after
-AA4, then the reconnect gate. The device is on Gemian (`cfbcce3f…`);
-boot2 holds `561e2025…`.
+AA4, then the reconnect gate.
+
+Boot AA4 (build `0c803c25`, boot2 `fc08179f…`, predecessor `561e2025…`,
+written and read back in full) is staged. Gemian (`cfbcce3f…`) is shut
+down for the owner's boot2 selection.
 
 # Historical: boot AA2 void; boot AA3 (§38 re-run on the unchanged image) predeclared and being staged; two join defects named, to be fixed before the reconnect gate
 
