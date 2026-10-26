@@ -6726,3 +6726,69 @@ data qos: … rx_qos=637 rx_nonqos=12 rx_refused=148 rx_refused_qos=0 rx_llc_mis
   control 2. AE′'s image (`93d2dc56`: `CONFIG_MT6797_RX_AMPDU` and
   `CONFIG_MT6797_PASS_COST_RECORD` on) is built and fetched, and not
   staged.
+
+## 55. The short pair: AE′ then the control, under the lifecycle harness, gated on the software-frame class (predeclared, 2026-10-26; supersedes §54's bracket)
+
+**What stands from AE, unchanged.** The window works. 2,377 held
+sub-frames were released in order, with no bubble deadline and no
+`pn=lower`. The best receive chunk was 25.56 Mbit/s, the others
+19.9–22.8. This part of the project has already succeeded. Only the
+transmit interaction is open.
+
+**The instrument.** The lifecycle harness replaces the five-chunk
+throughput harness. It runs three lifetimes with one chunk per
+direction: 1 s, capped at 1 MiB. There is no loss cycle
+(`loss_cycle` unset), so no lifetime waits for the access point. The
+question is binary: does transmit collapse while receive aggregation
+is active? The per-phase cost line resets at each data phase's start
+and prints at its end, so each image gives three samples, one per
+lifetime.
+
+On the WMM/HT tree, this harness ran each lifetime's transmit at
+17.9–25.8 Mbit/s, reaching the 1 MiB cap every time (reconnect gates
+1 and 2). Its receive chunk is too short for aggregation's gain to
+show (9.6–12.5), so receive is recorded here but decides nothing.
+
+**The order.** AE′ first, the control immediately after.
+
+- *AE′:* `93d2dc56`, built and fetched, with `CONFIG_MT6797_RX_AMPDU`
+  and `CONFIG_MT6797_PASS_COST_RECORD` on (0317–0321, depth 12).
+- *Control:* AF's image, `220a431b…`, aggregation off.
+
+Each image is its own boot: a boot2 write, Gemian's shutdown, the
+owner's boot2 selection, the run, and the reviewed return. The two
+data phases are therefore minutes apart, not seconds: the return, the
+stage and the selection take roughly ten minutes. Each run itself,
+with no loss cycle, should take about two. The gap is recorded.
+
+**Validity gate: the software-frame class.** The first data phase of
+each run is checked for the `wlan=255` software-frame class (`prefix=0xe000`,
+`field=layout` or `field=packet-type`), counted as that data phase's
+`rx_refused − rx_refused_qos`. Earlier runs logged 1–3 (AD 3, AE 3,
+AF 1); AG logged 148 in 5 s, as 728-byte `p4=0x08` frames. More than
+8 discards the run before any comparison, so it is neither a control
+nor evidence. A discarded run is recorded as such and repeated only
+on the owner's word.
+
+**Reading a lifetime's transmit.** *In band:* TX ≥ 15 Mbit/s with the
+1 MiB cap reached. *Dead:* under 2 Mbit/s, or the cap not reached in
+the chunk. The pair is interpreted only if the control's three
+lifetimes are all in band.
+
+| Reading (control in band, both runs valid) | Meaning | Next |
+|---|---|---|
+| AE′ TX dead; the worker idle (small `submit_us`, low busy fraction) while the credit wait maximum is hundreds of ms | firmware-side: transmit completion degrades while a receive block-ack session is active | analyse the firmware's transmit completion and page accounting under a receive block-ack session; record receive aggregation as blocked; keep the option off; stop the aggregation project there |
+| AE′ TX dead; the worker saturated (`receive_us`, which holds the window, dominating the pass) | host-side: the window costs per pass even with few frames | make the window event-driven (touch only the arriving TID, no table walk) and re-run the same short pair |
+| AE′ TX in band | AE's collapse was the air | take receive aggregation as a result: the window is proven, and the best receive chunk is already 25.56 |
+| AE′ TX dead, the credit wait maximum normal | the stall is above the credit layer | examine the reverse-direction ACK delivery during the TX chunk |
+
+If AE′ collapses and the control is in band, the pair still answers
+the question: collapse with aggregation on, no collapse with it off.
+If the control is out of band, or either run fails the gate, nothing
+is concluded.
+
+**A separate note, not a change.** The 728-byte `p4=0x08` software
+frames AG refused are recorded as a class (148 in one data phase). The
+gate is right to refuse non-data packet types. A later session can
+decide from the count whether any of that class should have been
+delivered, for example as group data the stack wanted.

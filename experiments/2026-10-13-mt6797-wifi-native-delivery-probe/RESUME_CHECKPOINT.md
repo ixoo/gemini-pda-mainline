@@ -1,4 +1,11 @@
-# Current: §54's control 1 (boot AG) void, the device-side supplicant left 5.2 s into the data phase; the bracket is void; AE′ built, not staged
+# Current: §55 predeclared (supersedes §54's bracket): AE′ then the control under the lifecycle harness, gated on the software-frame class; awaiting approval to stage AE′
+
+Three lifetimes, one 1 s / 1 MiB chunk per direction, no loss cycle.
+A run whose first data phase logs more than 8 software-frame refusals
+is discarded. AE′ (`93d2dc56`) is built; the control is AF's image
+(`220a431b…`, on boot2 now). The device is on Gemian (`e166aa6e…`).
+
+# Historical: §54's control 1 (boot AG) void, the device-side supplicant left 5.2 s into the data phase; the bracket is void; AE′ built, not staged
 
 [Boot AG](HIF_TRANSPORT_ANALYSIS.md#boot-ag-result-2026-10-26-1635-utc-control-1-did-not-complete-the-bracket-is-void-under-54s-rule):
 `session_exit=1` after one TX chunk (10.18 Mbit/s), with 148 refusals
