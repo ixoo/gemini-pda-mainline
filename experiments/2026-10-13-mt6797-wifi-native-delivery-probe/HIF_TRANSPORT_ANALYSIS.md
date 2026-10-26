@@ -4903,6 +4903,15 @@ The UDP probe stays retired. The precondition and stop rule of §35 apply
 in their general form: the link carries boot X's volume (about 1,200
 frames a second in transmit), or the boot stops and nothing is graded.
 
+**A fragment defect caught before staging (2026-10-26).** The first
+build of boot AA carried `CONFIG_MT6797_TX_AMPDU=y`. Withdrawing
+aggregation after boot Y deleted the fragment line, and 0296's option
+defaults to `y`, so the deletion re-enabled it. No boot ran with it
+unintentionally: boot Z set it on purpose, and nothing was built from
+the fragment in between. The fragment now says `# CONFIG_MT6797_TX_AMPDU
+is not set` explicitly, and the build's config is checked for it before
+staging. That package was not staged.
+
 ## 39. Boot AB (predeclared, 2026-10-25): the receive poll on a wake, where the gain lives
 
 **The change, after boot AA shows the line fires.** While the interrupt
