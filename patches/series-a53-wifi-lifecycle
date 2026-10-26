@@ -778,3 +778,4 @@ proposals/0297-dt-bindings-soc-mediatek-mt6797-consys-allow-the-WLAN-HIF-interru
 proposals/0298-arm64-dts-mediatek-gemini-describe-the-WLAN-HIF-interrupt.patch
 proposals/0299-wifi-mt6797-arm-and-disarm-the-HIF-interrupt-sources.patch
 proposals/0300-wifi-mt6797-wake-the-worker-on-the-WLAN-HIF-interrupt.patch
+proposals/0301-wifi-mt6797-also-unmask-the-HIF-wrapper-s-interrupt-line.patch

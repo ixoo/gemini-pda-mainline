@@ -7,8 +7,11 @@ rearmed=0` across a clean 44.3 s data phase. Nothing else moved (no
 refusal, ledger exact, about 1,191 frames/s, TX 22.16, RX 16.22). The
 candidates (the poll read-clearing WHISR first, a further CONSYS or
 infra gate, the line or its polarity) wait for a later bounded look;
-boot AB depends on the line. Nothing is staged; the device is on Gemian
-(`9a690b5a…`).
+boot AB depends on the line. Owner: the missing register is the vendor's
+wrapper line mask at 0x200 (`sdio.h` __enable_irq/__disable_irq); 0301
+writes and records it (mask=) in the arm and disarm paths; boot AA2 is
+boot AA plus 0301. If taken stays 0, the poll's read-clear is the cause
+and boot AB's slow poll is next. The device is on Gemian (`9a690b5a…`).
 
 # Historical: boot AA (the WLAN HIF interrupt as a wake source; tests the line) staged on boot2
 

@@ -4964,6 +4964,41 @@ Boot AB (§39) depends on the line firing and waits on that look. The
 option stays in the profile, harmless as measured; whether it stays, or
 leaves until the line is understood, is the owner's call.
 
+**Owner, 2026-10-26: the driver half works, the source half does not.**
+`irq=218`, `whier 0x0>0x7`, `whlpcr 0x100>0x101`, disarmed cleanly,
+`taken=0 rearmed=0`, zero refusals, the ledger exact. Arming and
+disarming perturb nothing: transmit at 22.16 (chunks to 24.28) is within
+the series' best. Boot W's 22.58 remains the highest aggregate. So the
+patches cost nothing when they do nothing, which matters when a gain is
+later attributed.
+
+**The missing register: the wrapper's line mask at `0x200`.** The
+vendor's `sdio.h` defines `__disable_irq()` as `writel(0x01, base +
+0x200)` and `__enable_irq()` as `writel(0, base + 0x200)`.
+`nicEnableInterrupt` calls `__enable_irq()` right after `WHLPCR
+INT_EN_SET`, and the ISR calls `__disable_irq()`, the one raw write its
+top half makes. The vendor also brackets every register access in
+`sdio_bus_driver.c` with the pair, which our handler does not need
+because it touches no register. Neither 0299 nor 0300 writes `0x200`, so
+the line was most likely masked at the wrapper.
+
+[0301](../../patches/proposals/0301-wifi-mt6797-also-unmask-the-HIF-wrapper-s-interrupt-line.patch)
+adds exactly that to the arm and disarm paths. Arm writes `0x200 = 0`
+after `INT_EN_SET`; disarm writes `0x200 = 0x01` before `INT_EN_CLR`.
+Each is read back and recorded as `mask=before>after` on the `armed` and
+`disarmed` lines. No other change. Built warning-free at W=1 with the
+option off and on; checkpatch clean but for the policy `Signed-off-by`.
+
+### Boot AA2 (predeclared, 2026-10-26): boot AA with the wrapper unmasked
+
+The same profile as boot AA plus 0301.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `mask=0x00000001>0x00000000` (or already 0), `taken > 0`, `rearmed > 0`, no change in refusals, ledger or rates | the line fires and is re-armed: the interrupt is a real wake source | boot AB (§39) proves it usable |
+| `taken = 0` with the wrapper unmasked | the poll's read-clear: the block read clears `WHISR` about 12,500 times a second (499,834 of 530,073 empty in boot AA) before the line is latched | the next step is not another register but boot AB's design change: while armed, the receive poll runs only on a wake plus a slow (about 10 ms) fallback. That is also where the 15–25 % receive gain lives, so both outcomes converge on the same change |
+| arm or disarm `status != 0`, a mask-count warning, or any regression in refusals, ledger or frames per second | the wrapper write perturbs the path | revert |
+
 ## 39. Boot AB (predeclared, 2026-10-25): the receive poll on a wake, where the gain lives
 
 **The change, after boot AA shows the line fires.** While the interrupt
