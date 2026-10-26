@@ -1,4 +1,4 @@
-# Current: boot AA2 void (the join failed before the data phase); the same image answers §38 on a re-run
+# Current: boot AA2 void; boot AA3 (§38 re-run on the unchanged image) predeclared and being staged; two join defects named, to be fixed before the reconnect gate
 
 [Boot AA2](HIF_TRANSPORT_ANALYSIS.md#boot-aa2-result-2026-10-26-0038-utc-void-the-join-failed-before-the-data-phase-the-interrupt-never-reached-its-arming-point):
 authentication completed and the association request was acknowledged,
@@ -6,9 +6,13 @@ but no association response was received; the access point's first
 EAPOL-Key was refused at predicate=association and the join stopped
 (-95, branch 1) before the data phase. First such failure in the series;
 the interrupt was attached masked and never armed, so 0301 is not
-involved. Boot2 still holds the boot AA2 image (561e2025…); a re-run
-needs only a fresh measurement namespace. The device is on Gemian
-(`27ee846e…`).
+involved. Owner: the -95 is the driver's, not the air's
+(mgd_prepare_tx admits one attempt per join subtype; mac80211's retry
+failed it); a bounded retry and an earlier M1 admission (the 1 s EAPOL
+stall on half of connects) follow as separate patches with host tests,
+before the reconnect gate. Boot AA3 re-runs §38 on the same image
+(installer verifies boot2); the slow-poll boot is renumbered AA4. The
+device is on Gemian (`27ee846e…`).
 
 # Historical: boot AA's interrupt never fired (taken=0); boot AA2 (boot AA plus 0301, the wrapper line mask unmasked) staged on boot2
 

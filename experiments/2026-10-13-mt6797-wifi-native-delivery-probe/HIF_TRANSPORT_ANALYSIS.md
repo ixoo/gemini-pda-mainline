@@ -5031,7 +5031,33 @@ reached. There is no `armed` line, and the wrapper mask at `0x200` was
 never written. The boot is void for §38's question; the same image
 answers it on a re-run.
 
-## 39. Boot AB (predeclared, 2026-10-25): the receive poll on a wake, where the gain lives
+**What boot AA2 found in the driver (owner, 2026-10-26, checked against
+the source).** The `-95` stop came from `mt6797_mac_mgd_prepare_tx`
+(0136). Its admission requires `!(mac->join_seen & BIT(subtype))`, and
+`mt6797_mac_tx` (0129) sets that bit when it queues the frame. So
+mac80211's association retry ("try 2/3") failed the predicate, set
+`first_error = -EOPNOTSUPP` and `closing = true`, and the worker stopped
+before the retry was queued: there is no second association request in
+the log. The lost association response is a normal radio event, one in
+the 94 retained logs; the defect is that the driver permits one
+association attempt where mac80211 permits three. It is fixed as its own
+change before the reconnect gate (below).
+
+### Boot AA3 (predeclared, 2026-10-26): §38 re-run on the unchanged image
+
+The same image as boot AA2 (`561e2025…`, build `82717df4`), no build.
+The reviewed installer reads boot2's full partition first. It reports
+`skipped-already-matching` if boot2 still holds the image, and writes
+and reads it back otherwise. The branches are §38's, as written:
+
+| Reading | Next |
+|---|---|
+| `mask=0x…1>0x…0` with `taken > 0` (and `rearmed > 0`), no change in refusals, ledger or rates | boot AA4 (§39) as written: capture the receive gain |
+| `taken = 0` with the wrapper unmasked | the poll's read-clear is the suspect: boot AA4 changes purpose (below) |
+| arm or disarm `status != 0`, a mask-count warning, or any regression | revert |
+| the join fails before the data phase again | void again; the bounded-retry change comes first |
+
+## 39. Boot AA4 (predeclared, 2026-10-25; renumbered 2026-10-26): the receive poll on a wake
 
 **The change, after boot AA shows the line fires.** While the interrupt
 is armed, the receive status-block read runs only on an interrupt wake
@@ -5045,3 +5071,12 @@ second and Mbit/s, with the empty-read ratio falling. Transmit is read
 against the shared-worker coupling. Any refusal, `device_timeout`, or a
 transmit regression beyond the noise band reverts, as boot B
 established.
+
+**Its purpose depends on boot AA3 (owner, 2026-10-26).**
+
+- *If the line fires in AA3:* as written, capture the 15–25 %.
+- *If `taken = 0` with the wrapper unmasked:* AA4 no longer captures a
+  gain. It decides whether the block read's read-clear suppresses the
+  line at all. Its revert condition is then explicit: any fall in
+  device-side receive rate returns the poll to full cadence, and the
+  interrupt work is retired rather than extended.
