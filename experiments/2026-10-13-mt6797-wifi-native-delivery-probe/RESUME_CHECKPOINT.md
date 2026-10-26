@@ -1,4 +1,6 @@
-# Current: boot AQ graded; the firmware's automatic rate stays at OFDM 6 Mbit/s on the HT record (TX 3.60 against 12.96); the fixed MCS7 restored, 0277 out of the series; §62's MCS5 at 40 MHz is the next transmit constant
+# Current: §62's MCS5-at-40-MHz image (boot AR) building, graded against AP; the fragment sets HT40_TX and rate code 0x85 for that boot
+
+# Historical: boot AQ graded; the firmware's automatic rate stays at OFDM 6 Mbit/s on the HT record (TX 3.60 against 12.96); the fixed MCS7 restored, 0277 out of the series; §62's MCS5 at 40 MHz is the next transmit constant
 
 [Boot AQ](HIF_TRANSPORT_ANALYSIS.md#boot-aq-result-2026-10-26-2201-utc-the-firmwares-automatic-rate-still-sits-at-ofdm-6-mbits-on-the-ht-record).
 The device is on Gemian (`de14e6c5…`); boot2 holds AQ's `be5a5e82…`.

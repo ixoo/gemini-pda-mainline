@@ -7658,3 +7658,8 @@ returns to `0x87`, and 0277 leaves the lifecycle series again (it is a
 precondition for rate code 0 only). The fixed-rate ladder at 40 MHz
 (§62, MCS5) is the remaining transmit lever: the fixed fallback the
 owner named, now the next constant.
+
+**§62 runs now, graded against AP (owner).** The MCS5-at-40-MHz image
+(`CONFIG_MT6797_HT40_TX=y`, rate code `0x85`) is graded on transmit
+against boot AP's 12.96 Mbit/s and its attempts baseline (93 %
+first-attempt), taken about half an hour earlier. No new control.
