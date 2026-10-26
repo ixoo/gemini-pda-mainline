@@ -1,4 +1,11 @@
-# Current: §58's good-air confirmation building; the control (boot AK: the peek on, receive aggregation off) first, then boot AL (aggregation on)
+# Current: §58's good-air control, boot AK (build 00d07727: the peek on, receive aggregation off), staged on boot2 under the five-chunk harness; boot AL (35f9d3bf, aggregation on) building
+
+Boot2 holds `4280a8e5…`, written over AJ2's `a7f2b300…` and read back
+in full. Gemian (`a3746c2c…`) is shut down for the owner's boot2
+selection. If the control is in band (TX ≥ 17.9, RX ≥ 15.4), AL
+follows.
+
+# Historical: §58's good-air confirmation building; the control (boot AK: the peek on, receive aggregation off) first, then boot AL (aggregation on)
 
 The fragment turns `CONFIG_MT6797_RX_AMPDU` off for the control's
 build only; the next commit turns it back on for AL and the profile.
