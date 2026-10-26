@@ -7314,3 +7314,7 @@ identity confirmed.
 band on receive. 0323 changes receive only, and transmit stays at its
 fixed 20 MHz rate. Whether the pair may be read on receive alone is the
 owner's decision, taken before the HT40 boot runs.
+
+**Owner's reading rule for §60, before the HT40 boot.** 0323 changes
+receive only, so the pair is read on receive against AL's 19.87 Mbit/s,
+which was in band. Transmit is recorded and not graded.
