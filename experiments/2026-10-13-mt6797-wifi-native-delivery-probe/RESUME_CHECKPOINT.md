@@ -1,4 +1,11 @@
-# Current: the receive-reorder boot AE (§51; 0320–0321) predeclared and approved; building
+# Current: boot AE, the receive-reorder boot (§51), staged on boot2 (build 63aba59d: 0320–0321)
+
+Boot2 holds `25865da4…`, written over boot AD's `ffa6c506…` and read
+back in full. The composer admits no config change and no tree change
+against AD's image; the change is 0320–0321 in the kernel. Gemian
+(`735dc1c6…`) is shut down for the owner's boot2 selection.
+
+# Historical: the receive-reorder boot AE (§51; 0320–0321) predeclared and approved; building
 
 0320 names a refused block-ack sub-frame by the gate that refused it
 (`field=pn`). 0321 puts a per-TID reorder window with the vendor's
