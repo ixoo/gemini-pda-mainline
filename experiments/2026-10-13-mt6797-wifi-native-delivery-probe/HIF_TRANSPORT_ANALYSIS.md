@@ -6692,3 +6692,37 @@ counters, and both controls' TX and RX.
 would then read: the window works; the firmware's transmit path does
 not tolerate a receive block-ack session; RX aggregation stays off;
 and the 20.5 band is the ceiling.
+
+### Boot AG result (2026-10-26, 16:35 UTC): control 1 did not complete; the bracket is void under §54's rule
+
+AF's unchanged image, boot2 `220a431b…`: the installer read the full
+partition and skipped the write as matching. Mainline boot
+`7073ceb6…`. `session_exit=1`. The session's reviewed return reached
+Gemian `e166aa6e…`, live identity confirmed, with the log complete.
+
+```
+join data phase end: reason=disconnect elapsed_ms=5179 rx_delivered=685 tx_queued=2691 tx_done=2691 tx_failed=0
+join data credit retire end: retired=2649 expired=0 pid_faults=0 wait_avg_us=7085 wait_max_us=19166 left_pages=0 inflight_max=12
+data qos: … rx_qos=637 rx_nonqos=12 rx_refused=148 rx_refused_qos=0 rx_llc_mis=0
+```
+
+- *Observed:* the join, the keys and the data phase opened normally.
+  TX chunk 1 ran 10.18 Mbit/s as the host counted it, with no failed
+  transmit status and a credit wait maximum of 19 ms. Then, 2.6 s
+  into the TX direction and 5.2 s into the data phase, the device's
+  supplicant deauthenticated by local choice (reason 3, leaving). The
+  driver's cleanup ran all three stages and returned every credit.
+  The device-side measurement output stops at chunk 1's start, and the
+  host cancelled "while waiting for the device to open chunk 2". No
+  RX chunk ran.
+- *Observed: a new refusal shape.* All 64 logged refusals of 148 are
+  728-byte `wlan=255` frames with `p4=0x08` (`field=packet-type`,
+  `prefix=0xe000`), not the 84-byte `p4=0x02` shape of AD, AE and AF.
+  None is QoS. Recorded and not chased.
+- *Not established:* why the device-side session left. Nothing in the
+  driver's record shows a fault before the supplicant's own deauth.
+- *Reading:* control 1 is out of band (it did not complete). By §54's
+  rule the triple is void, and nothing is concluded from AE′ or
+  control 2. AE′'s image (`93d2dc56`: `CONFIG_MT6797_RX_AMPDU` and
+  `CONFIG_MT6797_PASS_COST_RECORD` on) is built and fetched, and not
+  staged.

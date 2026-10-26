@@ -1,4 +1,13 @@
-# Current: §54's control 1 (boot AG, AF's image) armed on boot2; AE′ (RX_AMPDU and the per-phase cost line on, for that boot only) building
+# Current: §54's control 1 (boot AG) void, the device-side supplicant left 5.2 s into the data phase; the bracket is void; AE′ built, not staged
+
+[Boot AG](HIF_TRANSPORT_ANALYSIS.md#boot-ag-result-2026-10-26-1635-utc-control-1-did-not-complete-the-bracket-is-void-under-54s-rule):
+`session_exit=1` after one TX chunk (10.18 Mbit/s), with 148 refusals
+of a new 728-byte software-frame shape. The fragment still enables
+`CONFIG_MT6797_RX_AMPDU` and `CONFIG_MT6797_PASS_COST_RECORD` for AE′,
+which is built (`93d2dc56`) and not staged. The device is on Gemian
+(`e166aa6e…`); boot2 holds AF's `220a431b…`.
+
+# Historical: §54's control 1 (boot AG, AF's image) armed on boot2; AE′ (RX_AMPDU and the per-phase cost line on, for that boot only) building
 
 Control 1 needed no write (boot2 matched AF's `220a431b…`). Gemian
 (`3910a501…`) is shut down for the owner's boot2 selection. The
