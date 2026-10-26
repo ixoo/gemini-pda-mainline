@@ -77,17 +77,19 @@ Keep this file under 200 lines; move anything else to an experiment record.
   17.6–20.5, and our own station record disables receive A-MPDU. Block-ack is
   firmware-managed; the plan is in
   [HIF §49](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#49-aggregation-re-read-from-the-vendor-source-2026-10-26-receive-first-firmware-managed).
-  Receive aggregation is now local support (2026-10-26): the firmware's
-  block-ack sessions with a per-TID reorder window ahead of the PN check
-  ([boot AE](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ae-result-2026-10-26-1416-utc-the-window-holds-and-releases-every-frame-in-order-but-transmit-collapses-51s-fourth-row): 2,377 held frames released in order, no `pn=lower`, best
-  receive chunk 25.56 Mbit/s against the 20.5 baseline; vendor 31.5). The
-  same-air pair ([boots AH/AI](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ai-result-2026-10-26-1732-utc-the-control-refuses-the-same-software-frames-and-transmits-the-same-aggregation-does-not-collapse-transmit-on-this-air)) showed transmit unchanged with it
-  active (15.18 against 14.90 Mbit/s) and receive 44 % higher; it is on in
-  the lifecycle profile.
-  Transmit aggregation is parked. Receive has no host knob of that kind: with the interrupt closed only a
-  cheaper or rarer status read remains
-  ([HIF analysis §47](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ab2-result-2026-10-26-1226-utc-at-normal-rates-the-host-is-not-the-transmit-limit-the-pipeline-holds-its-full-depth)). The receive
-  engine is a poll; the HIF interrupt is closed for this configuration.
+  Done (2026-10-26): receive aggregation, with the firmware's block-ack
+  sessions reordered per TID ahead of the PN check ([boot AE](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ae-result-2026-10-26-1416-utc-the-window-holds-and-releases-every-frame-in-order-but-transmit-collapses-51s-fourth-row));
+  on a same-air pair receive was 44 % higher and transmit unchanged
+  ([boots AH/AI](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ai-result-2026-10-26-1732-utc-the-control-refuses-the-same-software-frames-and-transmits-the-same-aggregation-does-not-collapse-transmit-on-this-air)). The WHISR peek gates the status block read
+  ([boot AJ2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-aj2-result-2026-10-26-1906-utc-the-peek-skips-97--of-passes-and-cuts-the-hif-receive-time-per-pass-by-84--the-rates-do-not-move-57s-fourth-row)). The HIF interrupt line is closed for this
+  configuration. Remaining:
+  - the good-air confirmation of receive aggregation, an absolute
+    number (HIF §58);
+  - the transmit status read (about half of each pass after the peek),
+    queued as a power item that needs its own predeclaration with the
+    ledger as the failure signal;
+  - transmit aggregation, parked (vendor 14.6 against our 22.6);
+  - power management for the idle disconnect.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot
   (reconnection after the access point's own loss has passed twice, the second time with a lost association response absorbed by the bounded retry; a radio that vanishes and returns is untested); replay
   enforcement in firmware is unknown. The device tree the Wi-Fi boots ran

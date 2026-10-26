@@ -1,4 +1,12 @@
-# Current: boot AJ2 graded; the WHISR peek kept for its cost (HIF receive per pass −84 %, rates unchanged); CONFIG_MT6797_HIF_RX_PEEK and RX_AMPDU on in the profile, the cost line off
+# Current: §58 predeclared: the good-air confirmation (control first, then aggregation on, five-chunk harness, nothing else changed); the transmit status read queued as a power item
+
+Receive aggregation stands as +44 % on the same air (12.22 against
+8.46, AH/AI), with transmit unchanged; the absolute figure in good air
+is the next measurement. The software-frame bursts are a run-validity
+signal. The device is on Gemian (`a3746c2c…`); boot2 holds AJ2's
+`a7f2b300…`.
+
+# Historical: boot AJ2 graded; the WHISR peek kept for its cost (HIF receive per pass −84 %, rates unchanged); CONFIG_MT6797_HIF_RX_PEEK and RX_AMPDU on in the profile, the cost line off
 
 [Boot AJ2](HIF_TRANSPORT_ANALYSIS.md#boot-aj2-result-2026-10-26-1906-utc-the-peek-skips-97--of-passes-and-cuts-the-hif-receive-time-per-pass-by-84--the-rates-do-not-move-57s-fourth-row):
 `all_pass`. 97 % of passes skipped the block, with no failure or

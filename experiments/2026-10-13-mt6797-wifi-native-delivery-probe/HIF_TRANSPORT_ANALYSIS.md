@@ -7063,3 +7063,58 @@ rates, so the peek is kept for its cost.
 `CONFIG_MT6797_HIF_RX_PEEK` stays on in the lifecycle profile, and the
 per-phase cost line is off again. The transmit limit remains the
 firmware's concurrency (§48).
+
+## 58. Receive aggregation stated with its baseline; the good-air confirmation predeclared; the status read queued (2026-10-26)
+
+**The receive claim, with its baseline and its limit.** Receive was
+44 % higher than on the same air without aggregation (12.22 against
+8.46 Mbit/s on the AH/AI pair, short harness), and transmit was
+unchanged (15.18 against 14.90). Absolute receive with aggregation in
+good air is not yet measured. AH and AI both ran about 30 % under the
+transmit band, so 12.22 is not comparable with the non-aggregated best
+of 20.5, and reading it against that band would show a regression that
+is not there. AE's own five-chunk receive (19.9–25.6, best 25.56) is
+the expectation for the confirmation run.
+
+**The good-air confirmation, the next measurement, nothing else
+changed.** It is the current profile at depth 12 with the WHISR peek
+on, run as a pair:
+
+1. *Control first:* `CONFIG_MT6797_RX_AMPDU` off.
+2. *Then the profile as it stands:* `CONFIG_MT6797_RX_AMPDU` on.
+
+It runs under the five-chunk throughput harness, not the short one. The
+short harness's receive chunk is 1 s, capped at 1 MiB, and it peaked at
+13.53 Mbit/s with aggregation (AH); the reconnect gates ran 9.6–12.5
+without it. That harness cannot produce the absolute figure this
+measurement exists for. The five-chunk harness gave AE's 19.9–25.6.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| Control in band (TX ≥ 17.9, RX ≥ 15.4); aggregation on: RX ≈ 25–30, TX ≈ 22; `RX BA:` held = released, no timeouts; `window_505_508` still counted | the gain is absolute in good air | record receive aggregation as measured support with that figure; the aggregation project closes |
+| Control in band; RX with aggregation within the non-aggregated band | the relative gain does not hold in good air | read the window's counters and the refusal classes before any change |
+| Control in band; TX with aggregation clearly under the control's | the transmit interaction returns in good air | §56's firmware branch |
+| Control out of band | not good air | no comparison; repeat on another day |
+
+A run cut short by the session's scheduled disconnect, as AE's fifth
+chunk was, is graded on the chunks it completed and recorded as such.
+
+**Queued, not in the confirmation boot: the transmit status read as a
+power item.** With the peek in, the status read takes 10.8–13.8 µs of a
+19.3–26.3 µs busy pass (52–56 % of AJ2's busy time). That is more than
+all per-frame work combined (submit, completion and delivery,
+3.6–5.4 µs per pass). Gating it on "a transmit frame in flight or WHISR
+bit 0 set" would roughly halve the pass again. It guards the credit
+path, however, so it needs its own predeclaration with the ledger as
+the failure signal: expired frames, PID faults and pages left. It is
+not done in the confirmation boot, which keeps one variable.
+
+**The software-frame bursts, as a run-validity signal.** Every one
+logged is `wlan=255 prefix=0xe000`, packet type 7: a firmware event
+frame, not data, so refusing it is right, and the class is left alone.
+They appeared in bursts of 148–304 per data phase in AG (void) and in
+AH, AI and AJ2 (all `all_pass`), and in none of AD, AE and AF (1–3).
+They mark the hour in which the air ran about 30 % under band; a
+correlation with failed runs is not established. They are kept as a
+run-validity signal. A run whose control shows them in such a burst is
+read as off-band air, whatever its outcome.
