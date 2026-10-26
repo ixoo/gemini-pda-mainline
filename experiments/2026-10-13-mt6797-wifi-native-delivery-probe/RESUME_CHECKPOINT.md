@@ -1,4 +1,16 @@
-# Current: boot AE, the receive-reorder boot (§51), staged on boot2 (build 63aba59d: 0320–0321)
+# Current: boot AE graded; the reorder window delivers every frame in order (no pn=lower, RX chunks up to 25.6), but transmit collapsed; §51's fourth row; RX_AMPDU off in the profile
+
+[Boot AE](HIF_TRANSPORT_ANALYSIS.md#boot-ae-result-2026-10-26-1416-utc-the-window-holds-and-releases-every-frame-in-order-but-transmit-collapses-51s-fourth-row):
+`session_exit=1`. 2,377 frames held and released in order, no hole
+skipped, no deadline fired, 3 refusals (none QoS). RX chunks 25.56,
+22.79, 19.91 and 20.92; the fifth was cut by the scheduled disconnect.
+TX fell to 0.018 Mbit/s with 30 failed transmit statuses and a 208 ms
+credit wait, cause not established. The option is off again; the
+owner decides between dropping 0320–0321 and a run that separates the
+air from the window. The device is on Gemian (`c78edf17…`); boot2
+holds `25865da4…`.
+
+# Historical: boot AE, the receive-reorder boot (§51), staged on boot2 (build 63aba59d: 0320–0321)
 
 Boot2 holds `25865da4…`, written over boot AD's `ffa6c506…` and read
 back in full. The composer admits no config change and no tree change

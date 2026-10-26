@@ -4198,6 +4198,59 @@
     "tx_air_losses": 0
    },
    "reading": "HIF section 50, second row: the firmware delivers retransmitted holes out of order; a bounded per-TID reorder window in the driver ahead of the PN check is next; RX_AMPDU off in the profile until then"
+  },
+  "boot-ae": {
+   "run": "PIO-throughput-bootae-1",
+   "session": "2026-10-26 14:16 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (0320-0321, RX_AMPDU on, depth 12)",
+   "kernel_build_commit": "63aba59d7736453463d1af691e361509987810f6",
+   "boot2_sha256": "25865da4a559071a4ad23253cf3175408c2f4e4b4d3dc89273aa2bb391478265",
+   "predecessor_boot2_sha256": "ffa6c506e11bf4f20b31557666b374af8ed3335bb16ce0fcd35dc8369444c1b3",
+   "previous_gemian_boot_id": "735dc1c6-6124-4388-b7a6-b451da92fb19",
+   "returned_gemian_boot_id": "c78edf17-55ca-4fcc-8d4b-2ad12f43358d",
+   "classification": "session_exit 1: receipt failed the RX direction (fifth chunk cut by the scheduled disconnect); TX collapsed",
+   "series_row": true,
+   "rx_reorder": {
+    "frames": 36868,
+    "held": 2377,
+    "released": 2377,
+    "holes": 0,
+    "timeouts": 0,
+    "duplicates": 0,
+    "behind": 3,
+    "plain": 0,
+    "max_held": 20,
+    "dropped": 0,
+    "refused": 3,
+    "refused_qos": 0
+   },
+   "credit_retire": {
+    "retired": 26322,
+    "wait_avg_us": 8444,
+    "wait_max_us": 208295,
+    "inflight_max": 12
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 0.018,
+    "tx_packets": 173,
+    "rx_packets_during_tx": 141,
+    "rx_aggregate_mbit_s": null,
+    "rx_device_chunk_mbit_s": [
+     25.56,
+     22.79,
+     19.91,
+     20.92,
+     null
+    ],
+    "rx_delivered": 37126
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 30
+   },
+   "reading": "HIF section 51, fourth row: the window released every frame in order with no pn=lower, but TX collapsed (30 failed transmit statuses, 208 ms credit wait); cause not established; RX_AMPDU off in the profile"
   }
  }
 }

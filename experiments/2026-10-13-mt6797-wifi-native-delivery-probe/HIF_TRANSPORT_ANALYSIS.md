@@ -6451,3 +6451,55 @@ record's `field=`/`pn=` classes.
 
 Transmit is predicted unchanged at ~21.5–22.6 Mbit/s: transmit
 aggregation stays parked.
+
+### Boot AE result (2026-10-26, 14:16 UTC): the window holds and releases every frame in order, but transmit collapses; §51's fourth row
+
+Build `63aba59d`, boot2 `25865da4…` (written over AD's `ffa6c506…` and
+read back in full). `session_exit=1`: the receipt failed the RX
+direction's checks and the session was not graded `all_pass`. The
+reviewed return reached Gemian `c78edf17…`, live identity confirmed,
+with the log complete through its seal.
+
+```
+RX BA start: sta=1 dialog=1 tid=6 window=64 ssn=2 … count=1
+RX BA start: sta=1 dialog=1 tid=0 window=64 ssn=0 … count=2
+RX BA start: sta=1 dialog=1 tid=5 window=64 ssn=0 … count=3
+RX BA: active=0x61 starts=3 stops=0 frames=36868 held=2377 released=2377 holes=0 timeouts=0 duplicates=0 behind=3 plain=0 max_held=20 dropped=0
+data qos: … rx_qos=36868 rx_nonqos=218 rx_refused=3 rx_refused_qos=0 rx_llc_mis=0
+join data phase end: reason=disconnect elapsed_ms=59238 rx_delivered=37126 tx_queued=26739 tx_done=26709 tx_failed=30
+join data credit retire end: retired=26322 expired=0 pid_faults=0 wait_avg_us=8444 wait_max_us=208295 left_pages=0 inflight_max=12
+join data backpressure: stops=1015 wakes=1015 dropped_full=0 …
+```
+
+- *Observed: the window does what it was written to do.* 36,868
+  sub-frames passed the check, against AD's 17,594, and 2,377 of them
+  were held and all released in order. No hole was skipped and no
+  deadline expired; at most 20 frames were held at once. The PN
+  refusals are gone: of 3 refusals, none is QoS, and all three are the
+  84-byte `wlan=255` software-frame shape AD also showed (`field=layout`,
+  `pn=n/a`). No `pn=lower`.
+- *The receive rates:* chunks 25.56, 22.79, 19.91 and 20.92 Mbit/s
+  (device-counted; mean 22.3), against AD's 8.74 and the
+  non-aggregated best of 20.5. The fifth chunk did not complete, and
+  the receipt has no RX aggregate: the session's scheduled disconnect
+  (its interval opened at 57.4 s) cut it. The RX direction failed the
+  receipt for that missing chunk, not for a fault in the data path.
+- *Observed: transmit collapsed.* The TX direction ran first and sent
+  28.5 KB in its first chunk and about 1 KB in each of the others:
+  0.018 Mbit/s against AD's 21.45. The device sent 173 packets and
+  received 141 in those 16 s, against AD's 30,651 and 4,014. In the
+  driver, 30 data frames failed their transmit status (AD: 0). The
+  credit wait averaged 8.4 ms with a maximum of 208 ms (AD: 4.6 and
+  21 ms), and the queue stopped 1,015 times (AD: 183). The ledger
+  itself closed: no expired frame, no PID fault, no page left.
+- *Not established: the cause of the transmit collapse.* The window's
+  counters show nothing held behind a hole and no deadline fired,
+  which rules out one mechanism: ACKs stuck in the window. Nothing in
+  0320–0321 touches the transmit path or the station record.
+  Thirty failed transmit statuses point at the air, but one boot cannot
+  separate an air or access-point condition from the change.
+
+**Branch taken: the fourth row, as predeclared.** TX moved, so the
+window is treated as interfering with the pump. `CONFIG_MT6797_RX_AMPDU`
+is off again in the profile; 0320–0321 compile out with it. Receive
+aggregation is not recorded as support.
