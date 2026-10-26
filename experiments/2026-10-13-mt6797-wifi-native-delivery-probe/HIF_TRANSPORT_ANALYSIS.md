@@ -7777,3 +7777,45 @@ regressions.
 | no `/sgi` receive rates | the access point does not use short GI to us, or bit 19 is not the flag | keep 0326 off; read the association request's capability |
 | `sgi=1` but attempts clearly worse (first-attempt well under AR's), or failures | short GI at MCS5/40 MHz is above the uplink's margin | keep 0327 off (or step to MCS4 with short GI, one variable) |
 | a stall, expired frames, or the ledger moves | a descriptor or capability field is not as expected | revert the option involved; preserve the log |
+
+### Boot AS result (2026-10-26, 22:47 UTC): short GI takes effect; both directions collapse after the first chunk; not attributed
+
+Build `a9e05489` (0326 and 0327 on AR's configuration), boot2
+`5a3ae9f4…` (written over AR's `936c5e65…` and read back in full),
+mainline boot `5bf28dee…`, about 24 minutes after AR. Graded `all_pass`,
+`session_exit=0`. The reviewed return reached Gemian `29a3a27a…`, live
+identity confirmed.
+
+```
+join data TX: first pid=5 pages=3 bytes=342 rate=0x85 report=0 bw40=1 sgi=1
+TX attempts: none=0 1=376 2=34 3=1 4=0 5=0 6=0 7=0 8+=0
+RX rates: mode/rate=count 2/4/40=4,1/11=137,2/5/40=39,2/6/40=22168,2/7/40/sgi=2912,2/7/40=584 other=0 absent=0
+join data credit retire end: retired=25923 expired=0 pid_faults=0 wait_avg_us=10156 wait_max_us=101178 left_pages=0 inflight_max=12
+```
+
+- *The mechanism, both directions.* Transmit carried short GI
+  (`sgi=1`). The access point used short GI to us at MCS7 40 MHz (2,912
+  frames, `/sgi` marked) and sent most frames at MCS6 40 MHz with the
+  long GI (22,168). So bit 19 is the flag, and the access point's own
+  rate control chooses when to use it.
+- *Transmit:* 6.27 Mbit/s against AR's 15.01. Chunk 1 ran 17.81, the
+  best MCS5 chunk of the series; chunks 2–5 ran 2.30, 2.98, 3.93, 7.69.
+  Attempts were 91.5 % first (376/411) against AR's 94.8 %, with no
+  failure. Credit wait 10.2 ms average against 6.5. Ledger clean.
+- *Receive:* 13.82 Mbit/s against AR's 25.80 (chunks 5.31, 14.00,
+  16.11, 9.94, 26.96). The window held 2,112 frames and released them
+  all.
+- *Not established:* whether short GI or the air caused the collapse.
+  Against short GI: the attempts are close to AR's, nothing failed, and
+  receive collapsed as well, where the access point picks its own GI
+  and MCS (mostly long GI). For the air: the collapse began within
+  seconds of a strong first chunk in both directions, and the
+  software-frame class was present (816 refusals). One run cannot
+  separate them.
+
+**Reading against §64.** No row holds cleanly. The mechanism works, but
+throughput fell beyond the air's variation in both directions, so the
+first row's no-regression condition fails. Until a discriminating run,
+the two options are off again in the profile and 0326–0327 stay in the
+series. The profile returns to AR's configuration, MCS5 at 40 MHz with
+the long GI.

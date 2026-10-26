@@ -1,4 +1,9 @@
-# Current: §64's short-GI boot, AS (a9e05489), staged on boot2 (5a3ae9f4…); graded against AR
+# Current: boot AS graded; short GI takes effect both ways, but both directions collapsed after a strong first chunk (TX 6.27, RX 13.82 against AR's 15.01/25.80); not attributed; the options off again, the profile back to AR's
+
+[Boot AS](HIF_TRANSPORT_ANALYSIS.md#boot-as-result-2026-10-26-2247-utc-short-gi-takes-effect-both-directions-collapse-after-the-first-chunk-not-attributed).
+The device is on Gemian (`29a3a27a…`); boot2 holds AS's `5a3ae9f4…`.
+
+# Historical: §64's short-GI boot, AS (a9e05489), staged on boot2 (5a3ae9f4…); graded against AR
 
 Gemian (`e1400235…`) is shut down for the owner's boot2 selection.
 
