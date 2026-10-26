@@ -1,4 +1,14 @@
-# Current: boot AD graded; receive aggregation is established, but the firmware delivers retransmitted holes out of order and the strict PN check drops them; a driver reorder window is next; RX_AMPDU off in the profile
+# Current: the receive-reorder boot AE (§51; 0320–0321) predeclared and approved; building
+
+0320 names a refused block-ack sub-frame by the gate that refused it
+(`field=pn`). 0321 puts a per-TID reorder window with the vendor's
+parameters ahead of the strict PN check: the ADDBA start, size 64+4, a
+200 ms first-hole deadline checked each worker pass, and a flush on
+ADDBA/DELBA, reset and close. Host test `tests/run-rx-reorder-test.py`.
+`CONFIG_MT6797_RX_AMPDU` is on in the fragment for this boot only. The
+device is on Gemian (`735dc1c6…`); boot2 holds `ffa6c506…`.
+
+# Historical: boot AD graded; receive aggregation is established, but the firmware delivers retransmitted holes out of order and the strict PN check drops them; a driver reorder window is next; RX_AMPDU off in the profile
 
 [Boot AD](HIF_TRANSPORT_ANALYSIS.md#boot-ad-result-2026-10-26-1333-utc-the-access-point-aggregates-toward-us-the-firmware-delivers-retransmitted-holes-out-of-order-50s-second-row):
 `all_pass`. With `ucRxAmpdu=2` the firmware accepted ADDBA on TIDs 6,

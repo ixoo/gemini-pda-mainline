@@ -1,0 +1,51 @@
+From 425cee1a40c02108c856b06172df260bcd40af77 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 09:54:38 -0400
+Subject: [PATCH] wifi: mt6797: name a refused block-ack sub-frame by its
+ refusing gate
+
+The data receive refusal record (0288) names the first descriptor or
+header field that differs from the admitted shape. Its status rung
+compares the status word with 0xc000, the non-aggregated shape, while
+the check itself has admitted block-ack sub-frames since 0319. Every
+refused sub-frame therefore reads field=prefix whatever refused it:
+boot AD's 341 refusals all read field=prefix with pn=lower, and the
+PN was the cause.
+
+The status rung now asks the check's own status predicate,
+mt6797_ccmp_rx_status_ok(), so the ladder names the gate that refused
+the frame: pn for a sub-frame whose PN is not above its TID's counter.
+Without CONFIG_MT6797_RX_AMPDU the predicate is status == 0xc000 and
+the record is unchanged. The status= bit names still list every bit
+that differs from 0xc000.
+
+Diagnostic only: no admission changes.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index bfa777618..54a95851c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -855,6 +855,8 @@ static bool mt6797_ccmp_llc_mismatch(struct mt6797_mac *mac, size_t bytes)
+  * word's bits that differ from the admitted 0xc000 are named as the pinned
+  * nic_rx.h names them (0290). The PN's order is against the counter of the
+  * frame's own TID in the context its WLAN index selects, both named (0292).
++ * The status rung is the check's own status gate, so a block-ack
++ * sub-frame the gate admits is named by the gate that refused it (0320).
+  */
+ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ {
+@@ -916,7 +918,7 @@ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ 		(p[6] & 0xbf) != 0x8e ? "layout" :
+ 		p[8] != 1 && p[8] != 2 ? "wlan-index" :
+ 		(p[9] & 0xf0) != 0x40 ? "cipher" :
+-		mt6797_join_le16(p + 10) != 0xc000 ? "prefix" :
++		!mt6797_ccmp_rx_status_ok(mt6797_join_le16(p + 10)) ? "prefix" :
+ 		(groups & 9) != 9 ? "groups" :
+ 		(fc & ~(0x2800U | MT6797_CCMP_RX_QOS_BIT)) != 0x4208 ? "frame-control" :
+ 		((fc & 0x0080) ? (qos & ~0x000fU) || (qos & 15) != (p[9] & 15) :
+-- 
+2.43.0
+

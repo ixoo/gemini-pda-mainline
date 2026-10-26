@@ -908,3 +908,5 @@ proposals/0316-wifi-mt6797-allow-up-to-24-outstanding-ordinary-data.patch
 proposals/0317-wifi-mt6797-enable-receive-aggregation-in-the-statio.patch
 proposals/0318-wifi-mt6797-record-the-firmware-s-receive-block-ack-.patch
 proposals/0319-wifi-mt6797-admit-block-ack-sub-frames-in-the-pairwi.patch
+proposals/0320-wifi-mt6797-name-a-refused-block-ack-sub-frame-by-it.patch
+proposals/0321-wifi-mt6797-reorder-each-block-ack-session-s-frames-.patch

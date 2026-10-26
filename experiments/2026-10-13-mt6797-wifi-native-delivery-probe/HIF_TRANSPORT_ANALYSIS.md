@@ -6355,3 +6355,99 @@ sequence, with in-order release to the existing check, a timeout flush
 and a drop counter, so a stuck window cannot stall the queue. Until it
 exists, the profile turns `CONFIG_MT6797_RX_AMPDU` off again, and
 0317–0319 stay in the series.
+
+## 51. The receive-reorder boot (predeclared, 2026-10-26)
+
+**The patches.** Both are under `CONFIG_MT6797_RX_AMPDU`, which stays
+off in the lifecycle profile. This boot alone enables it, as boot AD
+did.
+
+- *0320, the diagnostic first.* The refusal record's status rung asked
+  `status != 0xc000`. A block-ack sub-frame carries `0x0000`, so every
+  refused sub-frame read `field=prefix` whatever refused it. The rung
+  now asks the check's own status predicate,
+  `mt6797_ccmp_rx_status_ok()`. A sub-frame refused for its PN reads
+  `field=pn`, and `pn=` keeps its order (`lower`, `equal`). With the
+  option off the record is unchanged.
+- *0321, the window.* `rx-reorder.h` keeps one window per TID with the
+  vendor's `que_mgt.c` parameters:
+  - Start: the ADDBA starting sequence number.
+  - Size: the ADDBA buffer size plus `CFG_RX_BA_INC_SIZE` (4), so 68
+    on this access point.
+  - Until a frame falls in the window, the first one in it sets the
+    start, and one behind it passes (`QM_RX_WIN_SSN_AUTO_ADVANCING`,
+    `QM_RX_INIT_FALL_BEHIND_PASS`).
+  - A frame in the window is held until every earlier one has left; a
+    duplicate is dropped.
+  - A frame ahead of the window moves it to end there, releasing what
+    falls out and skipping the holes.
+  - A frame behind the window is dropped.
+  - The first hole arms a 200 ms deadline
+    (`QM_RX_BA_ENTRY_MISS_TIMEOUT_MS`). At the deadline everything held
+    is released if that hole is still open, and the deadline restarts
+    from the new first hole if it was filled
+    (`qmHandleEventCheckReorderBubble`).
+
+  Held frames are the descriptors as received. On release each passes
+  the unchanged receive checks, so the PN counter advances only on
+  released frames, and `pn=lower` should be zero by construction.
+  Every pairwise QoS data frame on a session's TID passes the window,
+  plain (`0xc000`) or aggregated, so a retransmission sent outside an
+  A-MPDU cannot overtake the frames it was missing from. The vendor
+  reorders only the aggregated class, and `plain=` counts the
+  difference.
+
+  ADDBA and DELBA deliver what their TID holds, then start or end the
+  window (`qmDelRxBaEntry` flushes to the host). A lifetime reset and
+  the close count and free what is held. Each worker pass checks the
+  deadlines after its receive loop: no timer object, no lock held
+  while waiting, no wait in the pass. A pass comes at least every
+  20 ms, so a hole is released 200–220 ms after it opens.
+
+  Each slot holds one sequence number, 128 slots per TID. Held frames
+  are allocated per frame up to the full window, about 68 × 8 × 2.4 KB
+  ≈ 1.3 MB worst case; none is dropped for want of a slot.
+- *Tests.* `tests/run-rx-reorder-test.py` builds the actual header and
+  the actual `mac.c` glue (extracted from the tree) ahead of the
+  actual strict PN check on the frozen PTK fixture. It covers:
+  - without a session, boot AD's late hole is refused;
+  - with a session, the same arrivals are delivered in sequence order
+    with zero refusals, one of them a plain retransmission;
+  - a lost hole is released at 200 ms and not at 199;
+  - the late copy then falls behind and is dropped, not refused;
+  - duplicates are dropped;
+  - the deadline restarts when the first hole fills;
+  - an ahead frame moves the window;
+  - a full window of 67 is held behind one hole;
+  - the window wraps at 4096;
+  - ADDBA and DELBA flush;
+  - group, non-QoS, error-status and closed-epoch frames bypass the
+    window;
+  - an allocation failure is an error and changes nothing;
+  - a reset frees everything.
+
+  A 100 ms timeout and holding the frame before the drain each fail
+  the test. `tests/run-ccmp-ba-status-test.py` still passes. The
+  driver builds with W=1, with the option on and off. 0320 has no host
+  test of its own: it is a one-line substitution of the predicate
+  that test already covers.
+
+**Hypothesis.** AD's loss is the strict per-TID PN check refusing
+holes the firmware delivers late. With the window ahead of the check,
+those holes are delivered in order, and RX recovers past the
+non-aggregated baseline toward the vendor's.
+
+**Unique observation.** On the `RX BA:` line: `held`, `released`,
+`holes`, `timeouts`, `duplicates`, `behind`, `plain`, `max_held` and
+`dropped`, beside the `data qos` line's `rx_refused` and the refusal
+record's `field=`/`pn=` classes.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| RX ≥ 25 Mbit/s, `rx_refused` ≈ 0, `pn=lower` = 0, TX unchanged | the window is right | re-enable `CONFIG_MT6797_RX_AMPDU` in the profile and record RX aggregation as local support, against the vendor's 31.5 and our 20.5 |
+| RX rises, but `rx_refused` is still non-zero | a class other than holes is refused | read the new `field=`/`pn=` classes; do not tune the window |
+| RX falls, or a TID stalls | the release rule holds a window open | shorten to release at the window end, or add the vendor's no-wait queue; never raise the timeout first |
+| TX or the ledger moves at all | the window interferes with the pump | revert the window and keep the option off |
+
+Transmit is predicted unchanged at ~21.5–22.6 Mbit/s: transmit
+aggregation stays parked.

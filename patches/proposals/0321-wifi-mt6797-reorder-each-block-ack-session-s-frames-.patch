@@ -1,0 +1,562 @@
+From 12c808ae4e9da9e5cc095c5a1fd43e2e74aaf6e8 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 09:56:55 -0400
+Subject: [PATCH] wifi: mt6797: reorder each block-ack session's frames before
+ the PN check
+
+Boot AD established receive aggregation and refused 341 frames, all
+retransmissions on TID 0 whose PN was below the TID's counter: the
+firmware delivers a retransmitted hole after the sub-frames that
+followed it, the frames reach mac80211 as 802.3 with the PN validated,
+mac80211 does not reorder that path, and the strict per-TID PN check
+refuses every late hole. The vendor driver reorders in the host
+(que_mgt.c), so this does too, ahead of the PN check.
+
+rx-reorder.h keeps one window per TID with the vendor's parameters:
+ - The start is the ADDBA starting sequence number.
+ - The size is the ADDBA buffer size plus CFG_RX_BA_INC_SIZE (4); a
+   size of 0 or above the station record's 64 counts as 64.
+ - The first frame in the window sets its start, and a frame behind it
+   passes until then (QM_RX_WIN_SSN_AUTO_ADVANCING,
+   QM_RX_INIT_FALL_BEHIND_PASS).
+ - A frame in the window is held until every earlier sequence number
+   has left; a duplicate is dropped.
+ - A frame ahead of the window moves it to end there and releases what
+   falls out, skipping the holes.
+ - A frame behind the window is dropped.
+ - The first hole arms a 200 ms deadline (QM_RX_BA_ENTRY_MISS_TIMEOUT_MS).
+   At the deadline everything held is released if that hole is still
+   open; if it was filled while frames remain held, the deadline
+   restarts from the hole now first (qmHandleEventCheckReorderBubble).
+Each slot holds one sequence number: 128 slots exceed the widest window
+(68) and divide 4096.
+
+The driver passes every pairwise QoS data frame on a TID with a session
+through its window, aggregated (0xffbf clear) or not (0xc000). The
+vendor reorders only the first class; a retransmission sent outside an
+A-MPDU would otherwise reach the PN check ahead of the frames it was
+missing from. A held frame is the descriptor as received; on release it
+is copied back into join_packet and passes the unchanged receive
+checks, so the PN counter advances only on released frames and the
+strict check stays the check. Held frames are allocated per frame, up
+to the full window: no frame is dropped for want of a slot.
+
+ADDBA and DELBA mark their TID; right after the event the TID's held
+frames are delivered and the new session is started or the window
+ended, as qmDelRxBaEntry flushes to the host. Each worker pass checks
+the deadlines after its receive loop: there is no timer and no wait,
+and a pass comes at least every 20 ms while the lifetime runs. A
+lifetime reset and the close count and free what is held.
+
+The record of the session gains held, released, skipped holes,
+timeouts, duplicates, frames behind, non-aggregated frames through a
+window, the most held at once and the frames dropped at reset.
+
+All of it is under CONFIG_MT6797_RX_AMPDU, which stays off in the
+lifecycle profile until a boot shows the window works.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |   4 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 201 +++++++++++++++++-
+ .../net/wireless/mediatek/mt6797/rx-reorder.h | 185 ++++++++++++++++
+ 3 files changed, 383 insertions(+), 7 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/rx-reorder.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index a52c8f770..49e14599d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -258,7 +258,9 @@ config MT6797_RX_AMPDU
+ 	  (CFG_M0VE_BA_TO_DRIVER 0): the firmware answers the access point's
+ 	  ADDBA itself and reports the session as EVENT_ID_RX_ADDBA and
+ 	  EVENT_ID_RX_DELBA, which the driver records, and the driver admits
+-	  the block-ack sub-frames' status word. Transmit A-MPDU is unaffected.
++	  the block-ack sub-frames' status word. Each session's frames pass a
++	  per-TID reorder window with the vendor's parameters before the
++	  strict PN check. Transmit A-MPDU is unaffected.
+ 
+ config MT6797_WMM_QOS_RECORDS
+ 	bool "MT6797 Wi-Fi: declare the station and the BSS QoS to the firmware under WMM"
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 54a95851c..cdc3d5bf1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -43,6 +43,9 @@ MODULE_PARM_DESC(native_delivery_diag, "Retired diagnostic; reported only, alway
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ #include <linux/rcupdate.h>
+ #include "ccmp-rx.h"
++#ifdef CONFIG_MT6797_RX_AMPDU
++#include "rx-reorder.h"
++#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ #include "ccmp-gtk-rx.h"
+ #endif
+@@ -277,6 +280,14 @@ struct mt6797_mac {
+ 	u8 rx_ba_active;
+ 	u16 rx_ba_window[8], rx_ba_ssn[8];
+ 	unsigned int rx_ba_starts, rx_ba_stops, rx_ba_frames;
++	/* The receive reorder windows (0321), under the MAC mutex; pending
++	 * marks a TID whose session an ADDBA or DELBA event changed.
++	 */
++	struct mt6797_rx_reorder rx_reorder[MT6797_RX_REORDER_TIDS];
++	u8 rx_reorder_pending;
++	unsigned int rx_reorder_held, rx_reorder_released, rx_reorder_timeouts;
++	unsigned int rx_reorder_duplicates, rx_reorder_behind, rx_reorder_dropped;
++	unsigned int rx_reorder_plain, rx_reorder_max;
+ #endif
+ 	/* The scan requests of a lifetime, timed from its rearm (0312). */
+ 	u64 scan_rearm_ns;
+@@ -934,8 +945,8 @@ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ }
+ 
+ /* Caller holds the MAC mutex and has already admitted this ACTIVE RX. */
+-static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+-				struct sk_buff_head *received)
++static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
++				  struct sk_buff_head *received)
+ {
+ 	struct mt6797_ccmp_rx view;
+ 	struct sk_buff *skb;
+@@ -1040,6 +1051,153 @@ static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	return 0;
+ }
+ 
++#ifdef CONFIG_MT6797_RX_AMPDU
++/* Drain a window through the receive checks, each held descriptor copied
++ * back into join_packet, which its caller no longer needs. The PN counter
++ * advances only here and for frames delivered in place.
++ */
++static int mt6797_rx_reorder_release(struct mt6797_mac *mac, struct mt6797_rx_reorder *r,
++				     struct sk_buff_head *received)
++{
++	struct sk_buff *skb;
++	int ret = 0;
++
++	while (!ret && (skb = mt6797_rx_reorder_next(r))) {
++		memcpy(mac->join_packet, skb->data, skb->len);
++		mac->rx_reorder_released++;
++		ret = mt6797_ccmp_deliver_rx(mac, skb->len, received);
++		dev_kfree_skb(skb);
++	}
++	mt6797_rx_reorder_arm(r, ktime_get_ns());
++	return ret;
++}
++
++/* After an ADDBA or DELBA event: deliver what the TID's window holds, then
++ * start the new session or end it (qmDelRxBaEntry flushes to the host).
++ */
++static int mt6797_rx_reorder_apply(struct mt6797_mac *mac, struct sk_buff_head *received)
++{
++	unsigned int tid;
++	int ret;
++
++	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++) {
++		struct mt6797_rx_reorder *r = &mac->rx_reorder[tid];
++
++		if (!(mac->rx_reorder_pending & BIT(tid)))
++			continue;
++		mac->rx_reorder_pending &= ~BIT(tid);
++		mt6797_rx_reorder_flush(r);
++		ret = mt6797_rx_reorder_release(mac, r, received);
++		if (ret)
++			return ret;
++		r->valid = false;
++		if (mac->rx_ba_active & BIT(tid))
++			mt6797_rx_reorder_start(r, mac->rx_ba_ssn[tid], mac->rx_ba_window[tid]);
++	}
++	return 0;
++}
++
++/* Once per worker pass: windows whose first hole outlived the timeout. */
++static int mt6797_rx_reorder_expire_all(struct mt6797_mac *mac,
++					struct sk_buff_head *received)
++{
++	u64 now = ktime_get_ns();
++	unsigned int tid;
++	int ret;
++
++	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++) {
++		if (!mt6797_rx_reorder_expire(&mac->rx_reorder[tid], now))
++			continue;
++		mac->rx_reorder_timeouts++;
++		ret = mt6797_rx_reorder_release(mac, &mac->rx_reorder[tid], received);
++		if (ret)
++			return ret;
++	}
++	return 0;
++}
++
++/* Lifetime reset and close: what is held is counted and freed. */
++static void mt6797_rx_reorder_drop(struct mt6797_mac *mac)
++{
++	struct sk_buff *skb;
++	unsigned int tid;
++
++	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++) {
++		struct mt6797_rx_reorder *r = &mac->rx_reorder[tid];
++
++		mt6797_rx_reorder_flush(r);
++		while ((skb = mt6797_rx_reorder_next(r))) {
++			mac->rx_reorder_dropped++;
++			dev_kfree_skb(skb);
++		}
++		r->valid = r->waiting = r->has_bubble = false;
++	}
++	mac->rx_reorder_pending = 0;
++}
++#endif
++
++/* A pairwise QoS data frame on a TID with a block-ack session passes its
++ * window first (0321), aggregated or not, so that its TID's frames reach
++ * the PN check in sequence order; every other frame goes to the checks
++ * directly. A held frame is copied, because the drain reuses join_packet.
++ */
++static int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
++				struct sk_buff_head *received)
++{
++#ifdef CONFIG_MT6797_RX_AMPDU
++	const u8 *p = mac->join_packet;
++	struct mt6797_rx_reorder *r;
++	struct sk_buff *skb = NULL;
++	unsigned int seq;
++	int ret = 0;
++
++	if (!mt6797_ccmp_rx_ready(mac) || bytes < 48 || p[8] != 1 ||
++	    (mt6797_join_le16(p + 2) >> 13) != 2 ||
++	    !((mt6797_join_le16(p + 2) >> 9) & 8) ||
++	    (mt6797_join_le16(p + 16) & 0x008c) != 0x0088 ||
++	    (p[9] & 15) >= MT6797_RX_REORDER_TIDS || !mac->rx_reorder[p[9] & 15].valid ||
++	    !mt6797_ccmp_rx_status_ok(mt6797_join_le16(p + 10)))
++		return mt6797_ccmp_deliver_rx(mac, bytes, received);
++	r = &mac->rx_reorder[p[9] & 15];
++	seq = mt6797_join_le16(p + 24) >> 4;
++	if (mt6797_join_le16(p + 10) == 0xc000)
++		mac->rx_reorder_plain++;
++	switch (mt6797_rx_reorder_place(r, seq)) {
++	case MT6797_RX_REORDER_DUPLICATE:
++		mac->rx_reorder_duplicates++;
++		return 0;
++	case MT6797_RX_REORDER_BEHIND:
++		mac->rx_reorder_behind++;
++		return 0;
++	case MT6797_RX_REORDER_NOW:
++		ret = mt6797_ccmp_deliver_rx(mac, bytes, received);
++		break;
++	case MT6797_RX_REORDER_HOLD:
++		skb = dev_alloc_skb(bytes);
++		if (!skb)
++			return -ENOMEM;
++		skb_put_data(skb, p, bytes);
++		break;
++	}
++	if (!ret)
++		ret = mt6797_rx_reorder_release(mac, r, received);
++	if (skb) {
++		if (ret) {
++			dev_kfree_skb(skb);
++			return ret;
++		}
++		mt6797_rx_reorder_hold(r, seq, skb);
++		mac->rx_reorder_held++;
++		if (r->count > mac->rx_reorder_max)
++			mac->rx_reorder_max = r->count;
++		ret = mt6797_rx_reorder_release(mac, r, received);
++	}
++	return ret;
++#else
++	return mt6797_ccmp_deliver_rx(mac, bytes, received);
++#endif
++}
++
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ /* Observe only the already acquired timeout body, preserving its fatal refusal.
+  * The host queue clock covers strictly checked PTK/GTK, not firmware beacons
+@@ -2310,6 +2468,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_assoc_attempts = 0;
+ #ifdef CONFIG_MT6797_RX_AMPDU
+ 	mac->rx_ba_active = 0;
++	mt6797_rx_reorder_drop(mac);
+ #endif
+ 	mac->join_tx_allowed = 0;
+ 	mac->join_rx_allowed = 0;
+@@ -2377,6 +2536,9 @@ static void mt6797_mac_join_close(struct mt6797_mac *mac)
+ 	/* Neither this mutex nor the queue lock may be held while cancelling. */
+ 	cancel_delayed_work_sync(&mac->join_work);
+ 	mutex_lock(&mac->mutex);
++#ifdef CONFIG_MT6797_RX_AMPDU
++	mt6797_rx_reorder_drop(mac);
++#endif
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 	{
+ 		int ret = mt6797_mac_join_retire_idle_bss(mac);
+@@ -2636,6 +2798,7 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ 	mac->join_assoc_attempts = 0;
+ #ifdef CONFIG_MT6797_RX_AMPDU
+ 	mac->rx_ba_active = 0;
++	mt6797_rx_reorder_drop(mac);
+ #endif
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	mac->join_running = false;
+@@ -2908,6 +3071,7 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 
+ 		mac->rx_ba_starts++;
+ 		if (tid < 8) {
++			mac->rx_reorder_pending |= BIT(tid);
+ 			mac->rx_ba_active |= BIT(tid);
+ 			mac->rx_ba_window[tid] = param >> 6;
+ 			mac->rx_ba_ssn[tid] = get_unaligned_le16(e + 6) >> 4;
+@@ -2922,8 +3086,10 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		const u8 *e = mac->join_packet + 8;
+ 
+ 		mac->rx_ba_stops++;
+-		if (e[1] < 8)
++		if (e[1] < 8) {
++			mac->rx_reorder_pending |= BIT(e[1]);
+ 			mac->rx_ba_active &= ~BIT(e[1]);
++		}
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN RX BA stop: sta=%u tid=%u bytes=%zu count=%u\n",
+ 			 e[0], e[1], bytes, mac->rx_ba_stops);
+@@ -3582,9 +3748,19 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ #endif
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ #ifdef CONFIG_MT6797_RX_AMPDU
+-	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN RX BA: active=0x%02x starts=%u stops=%u frames=%u\n",
+-		 mac->rx_ba_active, mac->rx_ba_starts, mac->rx_ba_stops, mac->rx_ba_frames);
++	{
++		unsigned int tid, holes = 0;
++
++		for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
++			holes += mac->rx_reorder[tid].holes;
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN RX BA: active=0x%02x starts=%u stops=%u frames=%u held=%u released=%u holes=%u timeouts=%u duplicates=%u behind=%u plain=%u max_held=%u dropped=%u\n",
++			 mac->rx_ba_active, mac->rx_ba_starts, mac->rx_ba_stops, mac->rx_ba_frames,
++			 mac->rx_reorder_held, mac->rx_reorder_released, holes,
++			 mac->rx_reorder_timeouts, mac->rx_reorder_duplicates,
++			 mac->rx_reorder_behind, mac->rx_reorder_plain, mac->rx_reorder_max,
++			 mac->rx_reorder_dropped);
++	}
+ #endif
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN data qos: wmm_requested=%u wmm_accepted=%u ac_params=%u tx_qos=%u tx_nonqos=%u tx_tid_refused=%u tx_tid=%u/%u/%u/%u/%u/%u/%u/%u rx_qos=%u rx_nonqos=%u rx_refused=%u rx_refused_qos=%u rx_llc_mis=%u\n",
+@@ -5000,6 +5176,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 							 mac->join_packet[10], mac->join_packet[11]);
+ 					goto failed;
+ 				}
++#ifdef CONFIG_MT6797_RX_AMPDU
++				ret = mt6797_rx_reorder_apply(mac, &received);
++				if (ret)
++					goto failed;
++#endif
+ 				continue;
+ 			}
+ 			/* Parseable beacons are asynchronous, never an epoch fence. */
+@@ -5538,6 +5719,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		if (!got)
+ 			break;
+ 	}
++#ifdef CONFIG_MT6797_RX_AMPDU
++	/* The bubble deadline is checked here, on every pass: no timer and
++	 * no wait; a pass comes at least every 20 ms while the lifetime runs.
++	 */
++	ret = mt6797_rx_reorder_expire_all(mac, &received);
++	if (ret)
++		goto failed;
++#endif
+ 	ret = mt6797_snapshot_tick(mac->snapshot);
+ 	if (ret)
+ 		goto failed;
+diff --git a/drivers/net/wireless/mediatek/mt6797/rx-reorder.h b/drivers/net/wireless/mediatek/mt6797/rx-reorder.h
+new file mode 100644
+index 000000000..35eeede05
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/rx-reorder.h
+@@ -0,0 +1,185 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_RX_REORDER_H
++#define MT6797_RX_REORDER_H
++
++/* The receive reorder window of one block-ack session (0321), kept per TID
++ * as the vendor's que_mgt.c keeps it (qmAddRxBaEntry,
++ * qmProcessPktWithReordering, qmPopOutDueToFallWithin and FallAhead,
++ * qmHandleEventCheckReorderBubble). The window starts at the ADDBA starting
++ * sequence number and spans the ADDBA buffer size plus CFG_RX_BA_INC_SIZE.
++ * Until a frame falls in it, the first frame in the window sets its start
++ * (QM_RX_WIN_SSN_AUTO_ADVANCING) and a frame behind it passes
++ * (QM_RX_INIT_FALL_BEHIND_PASS). Afterwards a frame in the window is held
++ * until every earlier sequence number has been released or skipped, a
++ * frame ahead of it moves the window to end there and releases what falls
++ * out, a frame behind it is dropped, and a hole that stays
++ * QM_RX_BA_ENTRY_MISS_TIMEOUT_MS releases everything held. Frames leave in
++ * sequence order, so the strict per-TID PN check after the window sees
++ * them in order.
++ *
++ * Decisions only: no allocation, clock or lock. The caller owns the frames
++ * and serializes every call.
++ */
++#define MT6797_RX_REORDER_TIDS 8U
++#define MT6797_RX_REORDER_BUFFER 64U	/* the station record's ucRxBaSize (0317) */
++#define MT6797_RX_REORDER_INC 4U	/* CFG_RX_BA_INC_SIZE */
++/* One slot per sequence number held. The slot count exceeds the widest
++ * window and divides 4096, so no two held sequence numbers share a slot.
++ */
++#define MT6797_RX_REORDER_SLOTS 128U
++#define MT6797_RX_REORDER_TIMEOUT_NS (200ULL * 1000000ULL)
++#define MT6797_RX_SEQ 4096U
++
++struct sk_buff;
++
++struct mt6797_rx_reorder {
++	struct sk_buff *held[MT6797_RX_REORDER_SLOTS];
++	unsigned long long deadline;
++	unsigned int count, holes;
++	/* start is the next sequence number to leave. While start != until
++	 * the window is being moved to until and holes are skipped.
++	 */
++	unsigned short start, until, size, bubble;
++	bool valid, waiting, has_bubble;
++};
++
++enum mt6797_rx_reorder_place {
++	MT6797_RX_REORDER_NOW,		/* deliver it, then drain */
++	MT6797_RX_REORDER_HOLD,		/* drain, then hold it, then drain */
++	MT6797_RX_REORDER_DUPLICATE,	/* already held: drop */
++	MT6797_RX_REORDER_BEHIND,	/* behind the window: drop */
++};
++
++static inline unsigned int mt6797_rx_seq_after(unsigned int from, unsigned int to)
++{
++	return (to - from) & (MT6797_RX_SEQ - 1);
++}
++
++/* On ADDBA, with nothing held. */
++static inline void mt6797_rx_reorder_start(struct mt6797_rx_reorder *r,
++					   unsigned int ssn, unsigned int buffer)
++{
++	if (!buffer || buffer > MT6797_RX_REORDER_BUFFER)
++		buffer = MT6797_RX_REORDER_BUFFER;
++	r->start = r->until = ssn & (MT6797_RX_SEQ - 1);
++	r->size = buffer + MT6797_RX_REORDER_INC;
++	r->valid = r->waiting = true;
++	r->has_bubble = false;
++}
++
++static inline enum mt6797_rx_reorder_place
++mt6797_rx_reorder_place(struct mt6797_rx_reorder *r, unsigned int seq)
++{
++	unsigned int d = mt6797_rx_seq_after(r->start, seq);
++
++	if (r->waiting) {
++		if (d >= MT6797_RX_SEQ / 2)
++			return MT6797_RX_REORDER_NOW;
++		if (d < r->size) {
++			r->start = r->until = seq;
++			d = 0;
++		}
++		r->waiting = false;
++	}
++	if (d >= MT6797_RX_SEQ / 2)
++		return MT6797_RX_REORDER_BEHIND;
++	if (d >= r->size) {
++		/* Ahead: the window will end at seq once the drain moves it. */
++		r->until = (seq - r->size + 1) & (MT6797_RX_SEQ - 1);
++		return MT6797_RX_REORDER_HOLD;
++	}
++	if (r->held[seq % MT6797_RX_REORDER_SLOTS])
++		return MT6797_RX_REORDER_DUPLICATE;
++	if (!d) {
++		r->start = r->until = (seq + 1) & (MT6797_RX_SEQ - 1);
++		return MT6797_RX_REORDER_NOW;
++	}
++	return MT6797_RX_REORDER_HOLD;
++}
++
++/* After the drain that follows a HOLD placement. */
++static inline void mt6797_rx_reorder_hold(struct mt6797_rx_reorder *r,
++					  unsigned int seq, struct sk_buff *skb)
++{
++	r->held[seq % MT6797_RX_REORDER_SLOTS] = skb;
++	r->count++;
++}
++
++/* The next frame to leave, or NULL. Skipping a hole while a later frame
++ * is held counts it; once nothing is held the window moves straight to
++ * until.
++ */
++static inline struct sk_buff *mt6797_rx_reorder_next(struct mt6797_rx_reorder *r)
++{
++	while (r->count) {
++		unsigned int slot = r->start % MT6797_RX_REORDER_SLOTS;
++		struct sk_buff *skb = r->held[slot];
++		bool moving = r->start != r->until;
++
++		if (!skb && !moving)
++			return NULL;
++		r->start = (r->start + 1) & (MT6797_RX_SEQ - 1);
++		if (!moving)
++			r->until = r->start;
++		if (skb) {
++			r->held[slot] = NULL;
++			r->count--;
++			return skb;
++		}
++		r->holes++;
++	}
++	r->start = r->until;
++	return NULL;
++}
++
++/* After every drain: a hole with frames held behind it arms the bubble
++ * deadline once, from the first hole, as cnmTimerStartTimer does.
++ */
++static inline void mt6797_rx_reorder_arm(struct mt6797_rx_reorder *r,
++					 unsigned long long now)
++{
++	if (!r->count) {
++		r->has_bubble = false;
++	} else if (!r->has_bubble) {
++		r->has_bubble = true;
++		r->bubble = r->start;
++		r->deadline = now + MT6797_RX_REORDER_TIMEOUT_NS;
++	}
++}
++
++/* Release everything held at the next drain: the window starts after the
++ * last held frame.
++ */
++static inline void mt6797_rx_reorder_flush(struct mt6797_rx_reorder *r)
++{
++	unsigned int d;
++
++	for (d = r->count ? r->size : 0; d; d--)
++		if (r->held[(r->start + d - 1) % MT6797_RX_REORDER_SLOTS])
++			break;
++	r->until = (r->start + d) & (MT6797_RX_SEQ - 1);
++}
++
++/* At the bubble deadline: true if the caller drains a flush. The first
++ * hole still open flushes; if it has been filled but frames are still
++ * held, the deadline restarts from the hole now first.
++ */
++static inline bool mt6797_rx_reorder_expire(struct mt6797_rx_reorder *r,
++					    unsigned long long now)
++{
++	if (!r->has_bubble || now < r->deadline)
++		return false;
++	if (!r->count) {
++		r->has_bubble = false;
++		return false;
++	}
++	if (r->bubble != r->start) {
++		r->bubble = r->start;
++		r->deadline = now + MT6797_RX_REORDER_TIMEOUT_NS;
++		return false;
++	}
++	r->has_bubble = false;
++	mt6797_rx_reorder_flush(r);
++	return true;
++}
++#endif
+-- 
+2.43.0
+
