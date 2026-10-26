@@ -1,4 +1,10 @@
-# Current: §60's control (boot AL) graded: RX 19.87 in band, TX 12.29 out of band; the HT40 boot (AM, d587f977) waits on the owner's reading rule
+# Current: §60's HT40 receive boot, AM (build d587f977), staged on boot2 (7533e245…); read on receive against AL's 19.87
+
+The composer admits exactly `CONFIG_MT6797_HT40` (absent→y) and no
+tree change against AL's image. Gemian (`ee596b2e…`) is shut down for
+the owner's boot2 selection.
+
+# Historical: §60's control (boot AL) graded: RX 19.87 in band, TX 12.29 out of band; the HT40 boot (AM, d587f977) waits on the owner's reading rule
 
 [Boot AL](HIF_TRANSPORT_ANALYSIS.md#boot-al-result-2026-10-26-2056-utc-the-20-mhz-control-receive-in-band-transmit-out-of-band).
 The device is on Gemian (`ee596b2e…`); boot2 holds AL's `4a864d0f…`.
