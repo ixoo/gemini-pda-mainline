@@ -1,4 +1,12 @@
-# Current: §54 predeclared (supersedes §53): control (AF's image) → AE′ (AE + per-phase cost) → control, same air; awaiting approval to run control 1
+# Current: §54's control 1 (boot AG, AF's image) armed on boot2; AE′ (RX_AMPDU and the per-phase cost line on, for that boot only) building
+
+Control 1 needed no write (boot2 matched AF's `220a431b…`). Gemian
+(`3910a501…`) is shut down for the owner's boot2 selection. The
+fragment enables `CONFIG_MT6797_RX_AMPDU` and
+`CONFIG_MT6797_PASS_COST_RECORD` for AE′ only. Control 2 is AF's image
+written back.
+
+# Historical: §54 predeclared (supersedes §53): control (AF's image) → AE′ (AE + per-phase cost) → control, same air; awaiting approval to run control 1
 
 AE proved the window. The station record matches the vendor, and
 receive aggregates did not starve the transmit pool (TX ran first,
