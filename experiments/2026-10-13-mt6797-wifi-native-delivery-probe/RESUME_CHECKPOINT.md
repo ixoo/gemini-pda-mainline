@@ -1,4 +1,12 @@
-# Current: the receive-aggregation boot (§50; 0317–0319) predeclared, under review; mac80211's offloaded RX BA left out (802.3 delivery is not reordered)
+# Current: boot AD, the receive-aggregation boot (§50), staged on boot2 (build f704d72a: 0317–0319, depth back to 12)
+
+Boot2 holds `ffa6c506…`, written over boot AC's `e723ddfb…` and read
+back in full. The composer admits two config changes (depth 24→12,
+`CONFIG_MT6797_RX_AMPDU` absent→y) and no tree change. The work's
+depth pins are back to 12. Gemian (`6a7f2948…`) is shut down for the
+owner's boot2 selection.
+
+# Historical: the receive-aggregation boot (§50; 0317–0319) predeclared, under review; mac80211's offloaded RX BA left out (802.3 delivery is not reordered)
 
 0317 enables receive A-MPDU in the station record (`ucRxAmpdu=2`,
 `ucRxBaSize=64`). 0318 records the firmware's `EVENT_ID_RX_ADDBA` and
