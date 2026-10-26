@@ -5212,8 +5212,8 @@ interrupt patch. The pump's polled cadence stays the receive path.
 | sampled status 3 (air loss) | 2 of 779 | 0 of 829 |
 | receive refusals | 16, `pn=equal` Retry | 1, `field=packet-type` |
 
-The one refusal is the known group-key shape: `prefix=0xe004
-status=cipher-mismatch+data`, 442 bytes, `wlan=2`, as recorded for boot
-Y. It is not a probe effect. The first EAPOL-Key again waited about one
+The one refusal is boot R's 442-byte software-frame class
+(`prefix=0xe004 status=cipher-mismatch+data`, `wlan=2`), not a data
+frame; boot Y recorded it too. It is not a probe effect. The first EAPOL-Key again waited about one
 second for the access point's retransmission. The fix, 0305, was
 deliberately not in this boot.
