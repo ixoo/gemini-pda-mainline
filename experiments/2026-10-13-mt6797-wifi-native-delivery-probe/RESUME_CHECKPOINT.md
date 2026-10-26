@@ -1,4 +1,4 @@
-# Current: the HIF interrupt defect named (WHIER 0x7 where the working system arms 0x1e00); boot AA5 (0306 + reworked 0303 + 0304–0305) predeclared, under review
+# Current: boot AA5 (WHIER 0x1e00, the two-point probe, the join changes) staged on boot2
 
 The Gemian reading (HIF §40): WHIER `0x00001e00` (the firmware's
 software interrupts 9–12), WHLPCR `0x101`, the wrapper mask 0, and SPI
@@ -9,9 +9,11 @@ stands (TX 22.58, RX 20.46).
 
 Boot AA5 (§41) is predeclared: 0306 arms `0x1e00`, and 0303 is reworked
 to sample before and after the block read. 0304–0305 carry the join
-retry and the early M1. All of them are in the lifecycle profile; it is
-under owner review and not built. The device is on Gemian
-(`129a25b3…`); boot2 holds `fc08179f…`.
+retry and the early M1. All of them are in the lifecycle profile.
+
+Boot AA5 is staged: build `3a2d28b8`, boot2 `345753c1…` over
+`fc08179f…`, written and read back in full. Gemian (`129a25b3…`) is
+shut down for the owner's boot2 selection.
 
 # Historical: boot AA4 (the HIF line's pending state at the controller, 0302–0303) staged on boot2; 0304–0305 committed, outside the profile until after AA4
 
