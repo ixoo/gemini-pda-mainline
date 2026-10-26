@@ -1,4 +1,4 @@
-From 3e065e5ec3197cc4aaf55a6aaaf108115830c9e7 Mon Sep 17 00:00:00 2001
+From 5662cb729bc95e7a06cebaa35c87dac60eaa4825 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 21:55:58 -0400
 Subject: [PATCH] wifi: mt6797: round a DMA receive before choosing the

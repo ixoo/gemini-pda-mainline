@@ -653,12 +653,11 @@ lifetime 2: scan request: call=1 since_rearm_ms=712 ret=0 why=admitted n_ssids=0
 lifetime 3: scan request: call=1 since_rearm_ms=911 ret=0 why=admitted n_ssids=0 n_channels=1 flags=0x0
 ```
 
-In each lifetime the hook was called once, and that first call was
-admitted. Nothing was refused before it. After the clean disconnect
-the first request arrived 712 ms after the rearm, and after the loss
-911 ms after. So the ~0.9 s before the scan is the supplicant's or
-mac80211's scheduling of the scan request. It is recorded as stack
-policy, and there is nothing to fix in the driver.
+**A measured statement (owner, 2026-10-26).** The scan request reaches
+the hook at `since_rearm_ms=0/712/911`, once per lifetime, and each is
+admitted. No refusal precedes it. So the rejoin's ~0.9 s before the
+scan is supplicant or mac80211 policy, not a driver lever, and this is
+now measured rather than inferred.
 
 **0304 on hardware: the lost association response is absorbed.**
 
@@ -685,6 +684,13 @@ cleanup slot summary had completions equal to allocations, with
 aggregate occurred, in lifetime 1, and transferred, and
 `max_bytes=25,600`.
 
-**Reverted.** The lifecycle fragment's
-`CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME` is back to 0. 0313 stays
-in the series as a diagnostic that compiles out.
+**The hardware proof of 0304.** `join RX dropped (diagnostic): subtype=1
+lifetime=3 … attempts=1`, followed 104 ms later by `join prepare:
+subtype=0 auth_attempts=1 assoc_attempts=1 admitted=1` and a completed
+join. This is the hardware result boot AA2 was missing.
+
+**The drop option is now a test tool.** The lifecycle fragment's
+`CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME` is back to 0, and 0313
+stays in the series. Set to a lifetime number, it drops that lifetime's
+first association response once per boot. It reruns this retry test on
+any later tree that touches the join.

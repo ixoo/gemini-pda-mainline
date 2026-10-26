@@ -1,4 +1,4 @@
-From e5d23ac0c52159d9325d44f25bf11931aba08f05 Mon Sep 17 00:00:00 2001
+From 281751316eac8f58124ca7062d3c8bdbb0cde3f0 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Mon, 26 Oct 2026 07:02:58 -0400
 Subject: [PATCH] wifi: mt6797: record each scan request and its outcome
@@ -23,10 +23,10 @@ it is the supplicant's or mac80211's.
  1 file changed, 28 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 59efb3a86..e9d1fc997 100644
+index f4650b46d..b355d3d06 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -276,6 +276,9 @@ struct mt6797_mac {
+@@ -263,6 +263,9 @@ struct mt6797_mac {
  	 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
  	 */
  	unsigned int join_auth_attempts, join_assoc_attempts;
@@ -36,7 +36,7 @@ index 59efb3a86..e9d1fc997 100644
  #ifdef CONFIG_MT6797_TX_BACKPRESSURE
  	/* mac80211's queues stopped while the data queue is at its bound (0282). */
  	bool tx_queues_stopped;
-@@ -2313,6 +2316,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+@@ -2300,6 +2303,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
  	mac->join_queue_bytes = 0;
  	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
  	mac->join_retired = false;
@@ -45,7 +45,7 @@ index 59efb3a86..e9d1fc997 100644
  	dev_info(wiphy_dev(mac->hw->wiphy),
  		 "one-shot WLAN join rearm: lifetime=%u token=%u sta_seq=%u sequence=%u\n",
  		 mac->join_lifetimes, mac->join_channel_token, mac->join_sta_sequence,
-@@ -5698,17 +5703,24 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+@@ -5590,17 +5595,24 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
  	u8 payload[MT6797_PASSIVE_SCAN_BYTES], bss[12];
  	u8 broadcast[4] = {8, 0, 0, 0};
  	int ret = -EOPNOTSUPP, slot;
@@ -71,7 +71,7 @@ index 59efb3a86..e9d1fc997 100644
  		goto out;
  	}
  	/* mac80211 may append supported-rate IEs internally. There are no
-@@ -5723,8 +5735,11 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+@@ -5615,8 +5627,11 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
  	    request->req.duration_mandatory || request->req.scan_6ghz ||
  	    request->req.n_6ghz_params ||
  	    !is_broadcast_ether_addr(request->req.bssid) ||
@@ -84,7 +84,7 @@ index 59efb3a86..e9d1fc997 100644
  	for (i = 0; i < request->req.n_channels; i++) {
  		channel = request->req.channels[i];
  		if (!channel)
-@@ -5739,6 +5754,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+@@ -5631,6 +5646,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
  		channels[i] = channel->hw_value;
  		mask |= BIT(slot);
  	}
@@ -92,7 +92,7 @@ index 59efb3a86..e9d1fc997 100644
  	ret = mt6797_scan_request(1, channels, request->req.n_channels, payload);
  	if (ret)
  		goto out;
-@@ -5777,9 +5793,19 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+@@ -5669,9 +5685,19 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
  	mac->scan_count = request->req.n_channels;
  	mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC;
  	mac->scan_active = true;

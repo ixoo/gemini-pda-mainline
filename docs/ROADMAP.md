@@ -50,7 +50,7 @@ Keep this file under 200 lines; move anything else to an experiment record.
   which also observed the received-PN group absent on that one sample — an availability
   fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
   false and no operational, reliability, persistence or replay-protection claim follows.
-- **Next (owner-directed group-first, 2026-10-18 UTC).** Prepare the
+- **Earlier next step (owner-directed group-first, 2026-10-18 UTC; superseded by the throughput and lifecycle work below).** Prepare the
   [strict initial-GTK path](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation)
   with independent PN/key ownership and the approved independent 60-second window.
   [D3](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#evidence-and-later-work)
@@ -65,13 +65,15 @@ Keep this file under 200 lines; move anything else to an experiment record.
   MCS7 rate with the depth-12 pump, the measured design ceiling without aggregation;
   aggregation is parked behind a firmware question
   ([throughput series](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-25-after-boot-l)).
-  The legacy path is near its wall; HT is the next throughput project
-  ([scope](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HT_PROJECT_SCOPE.md)),
-  starting with WMM and QoS data (mac80211 negotiates HT only with WMM),
-  host-only but on the data path. The access-point vanish-and-return test
-  remains the robustness item.
-- **Open.** Wi-Fi station operation beyond two bounded lifetimes on one boot
-  (reconnection after access-point loss is untested); replay
+  HT is done: WMM/QoS data and MCS7 in both directions (boot W onward,
+  [scope](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HT_PROJECT_SCOPE.md)).
+  The frame rate did not move with it, so the next throughput work is the
+  per-frame host cost, judged in microseconds per frame
+  ([HIF analysis §46–47](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#46-the-interrupt-closure-and-the-per-frame-cost-2026-10-26));
+  aggregation is an offline firmware question in parallel. The receive
+  engine is a poll; the HIF interrupt is closed for this configuration.
+- **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot
+  (reconnection after the access point's own loss has passed twice, the second time with a lost association response absorbed by the bounded retry; a radio that vanishes and returns is untested); replay
   enforcement in firmware is unknown. The device tree the Wi-Fi boots ran
   until 2026-10-24 was an inherited binary that no build reproduced;
   proposal 0261 reproduces it from source and the equivalence boot

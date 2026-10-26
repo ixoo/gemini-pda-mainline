@@ -4840,13 +4840,13 @@ the safety net.**
 
 **Implemented (owner-reviewed, 2026-10-25).**
 
-- [0297](../../patches/proposals/0297-dt-bindings-soc-mediatek-mt6797-consys-allow-the-WLAN-HIF-interrupt.patch):
+- 0297 (retired; in history through `e9f5a106`):
   the binding allows one optional interrupt on the `wifi` child.
-- [0298](../../patches/proposals/0298-arm64-dts-mediatek-gemini-describe-the-WLAN-HIF-interrupt.patch):
+- 0298 (retired; in history through `e9f5a106`):
   the Gemini device tree describes SPI 283, level low, through sysirq;
   compiled `<0x00 0x11b 0x08>`, with the consys node's SPI 130
   unchanged.
-- [0299](../../patches/proposals/0299-wifi-mt6797-arm-and-disarm-the-HIF-interrupt-sources.patch):
+- 0299 (retired; in history through `e9f5a106`):
   `MT6797_HIF_RX_IRQ`; the locked function-1 register write and
   `mt6797_hif_set_interrupt()` (`WHLPCR` `INT_EN_SET`/`INT_EN_CLR`, both
   registers read before and after). Owner, before the build: only TX
@@ -4854,7 +4854,7 @@ the safety net.**
   vendor's `WHIER_DEFAULT` adds the abnormal source and the firmware's
   software interrupts, conditions the poll already catches, and the
   abnormal source is what poisoned the HIF in boot 3 of 0268.
-- [0300](../../patches/proposals/0300-wifi-mt6797-wake-the-worker-on-the-WLAN-HIF-interrupt.patch):
+- 0300 (retired; in history through `e9f5a106`):
   consys hands the child's interrupt to the client, which requests it
   masked. The hard handler masks the line and re-queues the worker. The
   worker arms, re-arms and disarms at the end of its pass. The pump's
@@ -4982,7 +4982,7 @@ top half makes. The vendor also brackets every register access in
 because it touches no register. Neither 0299 nor 0300 writes `0x200`, so
 the line was most likely masked at the wrapper.
 
-[0301](../../patches/proposals/0301-wifi-mt6797-also-unmask-the-HIF-wrapper-s-interrupt-line.patch)
+0301 (retired; in history through `e9f5a106`)
 adds exactly that to the arm and disarm paths. Arm writes `0x200 = 0`
 after `INT_EN_SET`; disarm writes `0x200 = 0x01` before `INT_EN_CLR`.
 Each is read back and recorded as `mask=before>after` on the `armed` and
@@ -5917,3 +5917,82 @@ Makefile sets `HIF_DIR := os/linux/hif/ahb_sdioLike/` for
 `ahb_sdioLike/ahb.c:354` calls `sdio_open()` under
 `#if defined(MT6797)`. The lead is kept here, with that evidence. The
 support row names only the testable ordering item.
+
+## 46. The interrupt closure, and the per-frame cost (2026-10-26)
+
+**The interrupt line is closed for this configuration (a result).** The
+WLAN HIF interrupt never asserted in any run. The evidence:
+
+- *The wrapper:* the line mask at `0x200` reads 0 before any write
+  (AA3), and 0302 leaves it untouched (AA4).
+- *Every legal WHIER bit:* `0x7fffff07` armed (AA6), with an enabled
+  source set at the driver's own read (`whisr=0x00000002`) and `taken=0`.
+- *The read-clear:* the pending state was sampled before the status
+  read, the read that acknowledges the sources (AA5, AA6, AA8). It read
+  0 on every frame-bearing sample.
+- *The SPI and polarity:* the vendor's device tree names SPI 283
+  level-low, identical to ours.
+- *The vendor's order:* WHIER `0xffffff47` written before the firmware
+  download survived to the data phase (AA8).
+
+The receive engine is the poll by design.
+
+**Retired from the series (owner, 2026-10-26).** The option is off and
+the feature is closed, so its patches are removed: 0297–0303, 0306,
+0308, 0309 and 0314 (all in history through `e9f5a106`). 0304, 0305,
+0307 and 0310–0313 are rebased onto 0296, with the interrupt code gone
+and nothing else changed (a 425-line deletion). Their host tests pass.
+This analysis stays as the evidence.
+
+**The per-frame cost, with the arithmetic corrected.** Boot AA8's
+`tx_queued=54,295` counts every transmitted frame of the 43.8 s data
+phase. It includes the TCP acknowledgements sent during the receive
+chunks (22,641 frames over those 20 s), so it cannot be divided by the
+15.9 s transmit window.
+
+- *The transmit window:* the per-second series shows 1,509–2,132
+  frames a second (seconds 10–17), so about 0.5 ms of wall time per
+  frame. Boot W's credit-retire service time was about 0.43 ms a frame.
+- *The air:* MCS7 air is about 0.19 ms a frame.
+- *The vendor:* its 45.1 Mbit/s is about 0.26 ms a frame, with firmware
+  aggregation.
+- *The gap:* about 0.2–0.25 ms per frame is ours to find. The 284 µs
+  and 90 µs figures do not come from these runs.
+
+**The attribution (owner, 2026-10-26).** The legacy 54 Mbit/s series
+ran at the same frame rate: about 2,000 frames a second at 23 Mbit/s,
+with 386 µs of air. At MCS7 the air time halved and the frame rate did
+not move. So the cost is host and firmware work per frame, and the HT
+project bought air time without touching the bottleneck. The next step
+is judged by microseconds per frame, not Mbit/s.
+
+**Aggregation (owner, 2026-10-26)** is a parallel offline question, not
+a boot. It amortises the per-frame cost rather than removing it, and it
+is blocked on the firmware's ADDBA behaviour. That is a question for
+the RE VM, with the firmware image already retained.
+
+## 47. The per-frame cost boot (predeclared, 2026-10-26)
+
+**0315,** `CONFIG_MT6797_PASS_COST_RECORD` for this boot only. Every
+worker pass that starts in the data phase adds its nanoseconds to six
+phases, printed once at the data phase's end:
+
+- *status:* the guard's status and credit reads, up to frame selection;
+- *submit:* frame selection and submission;
+- *receive:* the receive loop and the pass's bookkeeping, and inside it
+  *hif_receive*, the HIF receive call (status block, aggregate
+  transfer, copy);
+- *completion:* the transmit completions to mac80211;
+- *delivery:* the receive delivery to mac80211, with the CCMP check.
+
+The run is the AA throughput harness on the retired-interrupt tree.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| status and submit (the HIF command round-trips) dominate | the bus transactions per frame are the cost | batch the WTQCR and data commands |
+| receive or delivery (the copies, mac80211) dominate | the delivery path is the cost | the receive path's copies and handoff |
+| spread evenly | no single phase to remove | aggregation is the only lever; its firmware question goes to the front |
+
+The phases are read per transmitted and received frame, against about
+0.5 ms of wall time per frame. The rates are read against AA3, AA4, AA7
+and AA8, as a check that the instrument costs nothing.

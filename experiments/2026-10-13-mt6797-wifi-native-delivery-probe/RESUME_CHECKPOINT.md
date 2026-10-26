@@ -1,4 +1,16 @@
-# Current: boot AA8 graded; the interrupt line is closed for this configuration (the receive engine is the poll); the interrupt option is off again
+# Current: the interrupt patches retired (the line is closed); the per-frame cost boot (§47, 0315) predeclared, under review
+
+The interrupt patches 0297–0303, 0306, 0308, 0309 and 0314 are
+retired. 0304, 0305, 0307 and 0310–0313 are rebased onto 0296, and
+their host tests pass. The per-frame arithmetic is corrected in §46:
+about 0.5 ms of wall time per transmitted frame, against MCS7 air of
+0.19 ms and the vendor's about 0.26 ms, so 0.2–0.25 ms is ours. The
+legacy series ran at the same frame rate. 0315 records the worker's
+cost per phase. The ROADMAP's stale HT and reconnect lines are fixed.
+Under owner review, not built. The device is on Gemian (`e800691c…`);
+boot2 holds `c924d5c2…`.
+
+# Historical: boot AA8 graded; the interrupt line is closed for this configuration (the receive engine is the poll); the interrupt option is off again
 
 [Boot AA8](HIF_TRANSPORT_ANALYSIS.md#boot-aa8-result-2026-10-26-1149-utc-the-vendors-order-changes-nothing-the-interrupt-line-is-closed-for-this-configuration):
 `all_pass`. WHIER `0xffffff47` was written before the firmware download

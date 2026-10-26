@@ -1,4 +1,4 @@
-From 6a2bfaaa518678fa45d64eaf47bcddd78c19e3ee Mon Sep 17 00:00:00 2001
+From c315f263f735dba0eeca62e7675bd8707ff7f3f9 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 21:14:52 -0400
 Subject: [PATCH] wifi: mt6797: admit a second authentication and association
@@ -30,10 +30,10 @@ sent. mgd_prepare_tx records each admission decision with both counts.
  1 file changed, 49 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 77e3b1e80..85197533b 100644
+index 37a7f8a98..d59b14ea5 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -272,6 +272,10 @@ struct mt6797_mac {
+@@ -259,6 +259,10 @@ struct mt6797_mac {
  	unsigned int join_teardown_framing_drops;
  	u8 join_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
  	unsigned int join_queue_bytes, join_seen, join_tx_allowed, join_rx_allowed;
@@ -44,7 +44,7 @@ index 77e3b1e80..85197533b 100644
  #ifdef CONFIG_MT6797_TX_BACKPRESSURE
  	/* mac80211's queues stopped while the data queue is at its bound (0282). */
  	bool tx_queues_stopped;
-@@ -1862,6 +1866,32 @@ static void mt6797_mac_join_refused_frame(struct mt6797_mac *mac, size_t bytes)
+@@ -1849,6 +1853,32 @@ static void mt6797_mac_join_refused_frame(struct mt6797_mac *mac, size_t bytes)
  /* Initial queue is closed. Only the forthcoming owned join state callbacks
  	* may open it after the scan/peer/channel gates; there is no device admission.
  	*/
@@ -77,7 +77,7 @@ index 77e3b1e80..85197533b 100644
  static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
  {
  	const u8 *f = skb->data;
-@@ -1884,6 +1914,15 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+@@ -1871,6 +1901,15 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
  	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 12 ? 26 : 0;
  	if (!minimum || n < minimum)
  		return false;
@@ -93,7 +93,7 @@ index 77e3b1e80..85197533b 100644
  	if (subtype == 11)
  		return n == 30 && !mt6797_join_le16(f + 24) &&
  	 mt6797_join_le16(f + 26) == 1 && !mt6797_join_le16(f + 28);
-@@ -2247,6 +2286,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+@@ -2234,6 +2273,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
  	mac->join_polls = 0;
  	mac->join_packets = 0;
  	mac->join_seen = 0;
@@ -102,7 +102,7 @@ index 77e3b1e80..85197533b 100644
  	mac->join_tx_allowed = 0;
  	mac->join_rx_allowed = 0;
  	mac->join_deadline = 0;
-@@ -2566,6 +2607,8 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+@@ -2553,6 +2594,8 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
  	mac->join_polls = 0;
  	mac->join_packets = 0;
  	mac->join_seen = 0;
@@ -111,7 +111,7 @@ index 77e3b1e80..85197533b 100644
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
  	mac->join_running = false;
  	mac->join_open = false;
-@@ -6460,10 +6503,13 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+@@ -6365,10 +6408,13 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
  		    (info->subtype == IEEE80211_STYPE_ASSOC_REQ &&
  		     mac->join_authenticated && !mac->join_assoc_received));
  	spin_lock_irqsave(&mac->join_queue.lock, flags);
@@ -126,7 +126,7 @@ index 77e3b1e80..85197533b 100644
  	if (admitted) {
  		mac->join_rx_allowed = BIT(info->subtype == IEEE80211_STYPE_AUTH ? 11 : 1) |
  				       BIT(10) | BIT(12);
-@@ -7231,13 +7277,13 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+@@ -7136,13 +7182,13 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
  		spin_lock_irqsave(&mac->join_queue.lock, flags);
  		if (mac->join_open && !(fc & 0xff0f) &&
  		    (mac->join_tx_allowed & BIT(subtype)) &&

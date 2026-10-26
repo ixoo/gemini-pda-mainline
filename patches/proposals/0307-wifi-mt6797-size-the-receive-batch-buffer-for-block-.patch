@@ -1,4 +1,4 @@
-From 9dc993b013ed392c3745dcdea12579c540f6622b Mon Sep 17 00:00:00 2001
+From e0c36af2f7ac20cf4aa4f94ba2fa16371c3a02c5 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sun, 25 Oct 2026 21:35:17 -0400
 Subject: [PATCH] wifi: mt6797: size the receive batch buffer for block-rounded
@@ -24,10 +24,10 @@ counted as before, and nothing else changes.
  1 file changed, 7 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 7592d2282..d08803fb7 100644
+index 7cdea12a3..af08846d3 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
-@@ -40,10 +40,14 @@
+@@ -39,10 +39,14 @@
  #define MT6797_RX_SW_FRAME 0xe001U
  #define MT6797_RX_DATA_TYPE 2U
  

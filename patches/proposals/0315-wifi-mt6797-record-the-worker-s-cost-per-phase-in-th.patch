@@ -1,0 +1,215 @@
+From c875ab71d7f3eb21b8555b3726bcd0d6552a7a68 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 08:03:39 -0400
+Subject: [PATCH] wifi: mt6797: record the worker's cost per phase in the data
+ phase
+
+Transmit holds at about 1,900-2,100 frames a second at the fixed HT
+MCS7 rate: about 0.5 ms of wall time per frame, where MCS7 air is about
+0.19 ms. The legacy 54 Mbit/s series ran at the same frame rate, so the
+cost is host work that the faster radio did not reduce. The worker
+spends that time in several places, and nothing yet says which
+dominates.
+
+CONFIG_MT6797_PASS_COST_RECORD accumulates, for every worker pass that
+starts in the data phase, the nanoseconds of each phase:
+
+- status: the guard, with its status and credit reads, up to frame
+  selection;
+- submit: frame selection and submission, descriptor and data transfer;
+- receive: the receive loop and the pass's own bookkeeping, and, within
+  it, hif_receive, the time inside the HIF receive call (the status
+  block read, the aggregate transfer and the copy);
+- completion: the transmit completions handed to mac80211;
+- delivery: the receive delivery to mac80211, including the CCMP check.
+
+They are printed once, in microseconds, when the data phase ends,
+beside the pass count. The option is off by default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 12 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 64 ++++++++++++++++++++
+ 2 files changed, 76 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index bbabe76af..4fe56cb9c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -95,6 +95,18 @@ config MT6797_HIF_RX_BATCH
+ 	  per-frame length register read or guard. The vendor's receive
+ 	  path by polling; a measurement variable for the receive ceiling.
+ 
++config MT6797_PASS_COST_RECORD
++	bool "MT6797 Wi-Fi diagnostic: record the worker's cost per phase"
++	depends on MT6797_STATION_JOIN
++	help
++	  Accumulate, for every worker pass that starts in the data phase, the
++	  nanoseconds spent in each phase: the status and credit reads up to
++	  frame selection, frame selection and submission, the receive loop
++	  (and, within it, the time inside the HIF receive call), the
++	  transmit completions handed to mac80211, and the receive delivery
++	  to mac80211. Printed once when the data phase ends. A measurement
++	  for the per-frame cost; off for normal use.
++
+ config MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
+ 	int "MT6797 Wi-Fi diagnostic: drop the first association response of one lifetime"
+ 	depends on MT6797_STATION_JOIN
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 7cd34b949..1188bbaf2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -390,6 +390,11 @@ struct mt6797_mac {
+ 	 * and the most submitted in one pass.
+ 	 */
+ 	unsigned int join_data_passes, join_data_submissions, join_data_pass_max;
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	/* Nanoseconds per worker phase in the data phase (0315). */
++	u64 cost_ns[6];
++	unsigned int cost_passes;
++#endif
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ 	unsigned char native_diag_state;
+ 	unsigned int native_diag_total, native_diag_native, native_diag_bytes;
+@@ -2618,6 +2623,21 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ }
+ #endif
+ 
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++enum { MT6797_COST_STATUS, MT6797_COST_SUBMIT, MT6797_COST_RECEIVE,
++	MT6797_COST_HIF_RX, MT6797_COST_COMPLETION, MT6797_COST_DELIVERY };
++
++/* Close one phase that started at mark; returns the next phase's mark. */
++static u64 mt6797_cost(struct mt6797_mac *mac, bool on, unsigned int phase, u64 mark)
++{
++	u64 now = ktime_get_ns();
++
++	if (on && mark)
++		mac->cost_ns[phase] += now - mark;
++	return now;
++}
++#endif
++
+ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason);
+ 
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+@@ -3485,6 +3505,16 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->ccmp_rx_delivered,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN pass cost: passes=%u status_us=%llu submit_us=%llu receive_us=%llu hif_receive_us=%llu completion_us=%llu delivery_us=%llu\n",
++		 mac->cost_passes, mac->cost_ns[MT6797_COST_STATUS] / NSEC_PER_USEC,
++		 mac->cost_ns[MT6797_COST_SUBMIT] / NSEC_PER_USEC,
++		 mac->cost_ns[MT6797_COST_RECEIVE] / NSEC_PER_USEC,
++		 mac->cost_ns[MT6797_COST_HIF_RX] / NSEC_PER_USEC,
++		 mac->cost_ns[MT6797_COST_COMPLETION] / NSEC_PER_USEC,
++		 mac->cost_ns[MT6797_COST_DELIVERY] / NSEC_PER_USEC);
++#endif
+ #ifdef CONFIG_MT6797_TX_BACKPRESSURE
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join data backpressure: stops=%u wakes=%u dropped_full=%u stopped=%u high_water=%u bound=%u\n",
+@@ -3696,6 +3726,10 @@ static int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 	mac->join_data_ended = false;
+ 	mac->join_data_started = now;
+ 	mac->join_data_passes = 0;
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	memset(mac->cost_ns, 0, sizeof(mac->cost_ns));
++	mac->cost_passes = 0;
++#endif
+ 	mac->join_data_submissions = 0;
+ 	mac->join_data_pass_max = 0;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+@@ -4070,6 +4104,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ 	bool running, ack = false, completed_internal = false, select;
+ 	unsigned int submits = 0;
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	bool costed = false;
++	u64 mark = 0, hif_mark;
++#endif
+ #ifdef CONFIG_MT6797_CCMP_TX_PUMP
+ 	bool pump_progress = false;
+ #endif
+@@ -4172,6 +4210,11 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	}
+ 	now = ktime_get_ns();
+ 	branch = 1;
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	costed = mac->join_data_phase && !mac->join_data_ended;
++	mark = now;
++	mac->cost_passes += costed;
++#endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	mt6797_ccmp_deauth_retire(mac, now, &discard, &internal);
+ #endif
+@@ -4290,6 +4333,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	channel_release_holds_tx = ret;
+ 	ret = 0;
+ #endif
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	mark = mt6797_cost(mac, costed, MT6797_COST_STATUS, mark);
++#endif
+ select_more:
+ 	branch = 3;
+ 	select = !mac->join_inflight && !mac->join_page_debt;
+@@ -4577,6 +4623,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			}
+ 		}
+ 	}
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	mark = mt6797_cost(mac, costed, MT6797_COST_SUBMIT, mark);
++#endif
+ 	mt6797_hif_rx_batch_pass(mac->hif);
+ 	for (n = 0; n < 8; n++) {
+ 		bool got = false;
+@@ -4613,11 +4662,17 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				if (rx.selected_port_valid)
+ 					rx_port = rx.selected_port;
+ 			} else {
++#endif
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++				hif_mark = ktime_get_ns();
+ #endif
+ 				ret = mt6797_hif_receive_runtime_packet(mac->hif, port, deadline,
+ 									mac->join_packet,
+ 									sizeof(mac->join_packet),
+ 									&rx);
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++				mt6797_cost(mac, costed, MT6797_COST_HIF_RX, hif_mark);
++#endif
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 			}
+ 			mt6797_ccmp_observe_rx(&mac->ccmp_observation, rx_port, ret, &rx);
+@@ -5472,6 +5527,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ failed:
+ 	ret = mt6797_mac_join_fail_stop(mac, ret, branch, &discard, &internal);
+ unlock:
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	mark = mt6797_cost(mac, costed, MT6797_COST_RECEIVE, mark);
++#endif
+ 	mutex_unlock(&mac->mutex);
+ 	/* One worker serializes RX_ni and TX_status_ni, outside driver locks. */
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+@@ -5490,6 +5548,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		else
+ 			ieee80211_tx_status_ni(mac->hw, completed);
+ 	}
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	mark = mt6797_cost(mac, costed, MT6797_COST_COMPLETION, mark);
++#endif
+ 	while ((skb = __skb_dequeue(&received))) {
+ 		if (ret)
+ 			dev_kfree_skb(skb);
+@@ -5503,6 +5564,9 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch)
+ 		mutex_unlock(&mac->ccmp_receive_mutex);
++#endif
++#ifdef CONFIG_MT6797_PASS_COST_RECORD
++	mt6797_cost(mac, costed, MT6797_COST_DELIVERY, mark);
+ #endif
+ 	while ((skb = __skb_dequeue(&discard))) {
+ 		if (skb == internal)
+-- 
+2.43.0
+
