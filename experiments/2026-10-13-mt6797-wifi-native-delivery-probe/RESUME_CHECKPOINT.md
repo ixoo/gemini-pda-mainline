@@ -1,4 +1,15 @@
-# Current: reconnect gate 2 passed in session; the scan delay is stack policy; 0304 absorbs a lost association response on hardware; next: the WHIER-order boot (§45)
+# Current: boot AA8, the WHIER-order boot (§45), staged on boot2 (build ff54fe80: 0314, the interrupt option on for this boot only)
+
+Boot2 holds `c924d5c2…`, written over reconnect gate 2's `425c7c56…`
+and read back in full. It was composed over that installed image: the
+first attempt used AA7's candidate as the parent and was refused at
+binding, before any device action. The composer and validator admit
+exactly two changes: `CONFIG_MT6797_HIF_RX_IRQ` none→y and the drop
+diagnostic 3→0. Gemian (`2a4ce560…`) is shut down for the owner's boot2
+selection. After this boot the fragment turns the interrupt option off
+again.
+
+# Historical: reconnect gate 2 passed in session; the scan delay is stack policy; 0304 absorbs a lost association response on hardware; next: the WHIER-order boot (§45)
 
 [Reconnect gate 2](LIFECYCLE_RESULT.md#reconnect-gate-2-result-2026-10-26-1113-utc--the-classifier-grades-in-session-the-scan-delay-is-the-stacks-0304-absorbs-a-lost-association-response-on-hardware):
 `session_exit=0`, with the in-session classification at `cycles=3
