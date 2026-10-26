@@ -7211,3 +7211,83 @@ The host work is real:
 It is scheduled as a project, after the matched benchmark, with its own
 predeclaration. 2.4 GHz is not part of it (20/40 coexistence applies
 there).
+
+## 60. Receive at 40 MHz (predeclared, 2026-10-26)
+
+**Why now.** The vendor's link runs at 40 MHz. Ours advertises HT20
+only (0293), so the access point sends to us at half the PHY rate. The
+owner's decision is to close capability gaps in the driver rather than
+benchmark the vendor. 40 MHz is the largest gap: it doubles PHY, from
+65 to 135 Mbit/s at MCS7. Short GI and VHT follow.
+
+**The patch.** 0323, `CONFIG_MT6797_HT40` (depends on
+`CONFIG_MT6797_HT_RECORDS`, off by default), from the vendor's AIS join
+and RLM code:
+
+- *Capability.* The 5 GHz HT capability adds 20/40 MHz. The 5 GHz
+  channels pair as 36/40 and 44/48 for mac80211's HT40 decision;
+  2.4 GHz stays 20 MHz.
+- *Admission.* The join channel admits mac80211's HT40 definition of
+  channel 40 (centre 5190, HT40-), beside the 20 MHz one, and records
+  the secondary offset: SCB (3) at HT40, SCN (0) otherwise.
+- *Channel request.* The channel privilege request carries the offset
+  in `ucRfSco` (byte 4), as `ais_fsm.c` does from the target BSS. The
+  grant must echo it, or the join ends through the existing grant
+  check.
+- *BSS RLM.* The post-association parameters carry it in `ucRfSco`
+  (byte 71), as `rlmFillSyncCmdParam` does. Without HT40, the access
+  point's info 1 drops its offset and width bits, as `rlm.c` does when
+  40 MHz is not allowed.
+- *Rate record.* It keeps the receive vector's frame mode, bit 15 as
+  mt7603's `MT_RXV1_FRAME_MODE` places it. 40 MHz frames print as
+  `mode/rate/40`. The bit position is taken from the sibling chip, and
+  the boot checks it.
+
+Transmit keeps its fixed 20 MHz rate; the descriptor's bandwidth is the
+next change. The station record keeps the peer's HT capability.
+
+**Tests.** `tests/run-ht40-hif-test.py` runs the actual `hif.c` with
+and without the option, through a capturing bus:
+- the HT40 channel request is the 20 MHz request with byte 4 set, and
+  nothing else;
+- SCN through the new entry point is the 20 MHz request exactly;
+- SCA, the reserved value, or SCB off channel 40 are refused before any
+  bus access, with no credit taken;
+- the BSS command's byte 71 follows the HT operation as sent, and stays
+  0 without the option.
+
+Dropping either byte fails the test. The join-attempt fixture's child
+case, receive batching, the reorder window and the block-ack status
+tests still pass on the tree. The driver builds with W=1 with the
+option on and off. Checkpatch reports two alignment notes that match
+the surrounding prototypes. mac80211's HT40 admission and the
+firmware's grant are not host-testable here.
+
+An older fixture, `2026-10-07-…/tests/run-hif-test.py`, no longer
+builds against the current `hif.c` (missing type and DMA stubs) and,
+once stubbed, fails on its stale expectations for the unpatched tree.
+It is left as it was and recorded here.
+
+**The boot: a same-session pair under the five-chunk harness.**
+
+1. *Control:* boot AL's image (`35f9d3bf`: receive aggregation and the
+   peek on, 20 MHz), already built.
+2. *Then:* the same profile with `CONFIG_MT6797_HT40` on.
+
+The control must be in band (TX ≥ 17.9, RX ≥ 15.4), or there is no
+comparison. A software-frame burst in the control marks off-band air.
+
+**Unique observation.**
+- the `join grant:` line's `sco=`;
+- the absence of a `join channel refused` line;
+- the `RX rates:` line's `/40` entries against the rest;
+- RX and TX against the control's;
+- the window's counters, `rx_refused`, and the ledger.
+
+| Reading (control in band) | Meaning | Next |
+|---|---|---|
+| `sco=3`, mostly `/40` receive rates, RX ≥ 1.4× the control's, TX within 15 % | 40 MHz receive works and pays | keep the option; next, transmit at 40 MHz (the descriptor's bandwidth), then short GI |
+| the join ends at the grant, or `join channel refused` with `width=` 40 | the firmware or mac80211 declined HT40 | preserve the log; read the grant's bytes or the channel flags; keep the option off |
+| `sco=3`, but no `/40` rates and RX about the control's | the access point does not send us 40 MHz, or bit 15 is not the frame mode | read the association request's HT capability and the rate words before any change |
+| `/40` rates, but RX not above the control's | the host path, not the air, is the receive limit at 40 MHz | the per-phase cost line on the same image next |
+| RX falls, a stall, or TX or the ledger moves | the 40 MHz channel disturbs the pump or the receive path | revert the option |

@@ -1,0 +1,292 @@
+From 81380ea2d48f27865128ecd985f801c5002d34b2 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 16:43:15 -0400
+Subject: [PATCH] wifi: mt6797: receive at 40 MHz on the join channel
+
+The access point runs its 5 GHz BSS at 40 MHz. Its HT operation puts
+the secondary channel below primary 40, so the pair is channels 36 and
+40, 5170-5210 MHz, which is non-DFS and inside the fixed channel set.
+This driver advertises HT20 only (0293), so the access point sends to
+it at 20 MHz, which halves the PHY rate of every received frame.
+
+With CONFIG_MT6797_HT40:
+
+- The 5 GHz HT capability adds 20/40 MHz. The 5 GHz channels pair as
+  36/40 and 44/48 for mac80211's HT40 decision; 2.4 GHz stays 20 MHz.
+- The join channel admits mac80211's HT40 definition of channel 40,
+  with centre 5190 (HT40-), beside the 20 MHz one. It records the
+  secondary channel offset: SCB (3) at HT40, otherwise SCN (0).
+- The channel privilege request carries that offset in ucRfSco, as
+  the vendor's AIS join does from the target BSS (ais_fsm.c). The
+  grant must echo it exactly: a firmware that grants another offset
+  ends the join through the existing grant check.
+- The post-association BSS RLM parameters carry the same offset in
+  ucRfSco, as rlmFillSyncCmdParam does.
+- The access point's HT operation info 1 drops its secondary offset
+  and channel width bits when the join is not HT40, as rlm.c does when
+  40 MHz is not allowed.
+
+The receive rate record keeps the receive vector's frame mode, bit 15,
+as mt7603's MT_RXV1_FRAME_MODE places it. A frame received at 40 MHz is
+counted apart and printed with a "/40" suffix.
+
+The station record keeps the peer's HT capability, as before.
+Transmit keeps its fixed 20 MHz rate: the descriptor's bandwidth is a
+separate change. With the option off nothing changes; it is off by
+default.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 13 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 21 +++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  5 ++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 65 +++++++++++++++++---
+ 4 files changed, 95 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index a1459a075..d06065897 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -274,6 +274,19 @@ config MT6797_RX_AMPDU
+ 	  per-TID reorder window with the vendor's parameters before the
+ 	  strict PN check. Transmit A-MPDU is unaffected.
+ 
++config MT6797_HT40
++	bool "MT6797 Wi-Fi: receive at 40 MHz on the join channel"
++	depends on MT6797_HT_RECORDS
++	help
++	  Advertise 20/40 MHz in the HT capability and admit the join
++	  channel's HT40 definition, channel 40 with its secondary channel
++	  36 below (HT40-, 5170-5210 MHz, non-DFS). The channel privilege
++	  request, and the post-association BSS RLM parameters, then carry
++	  the secondary channel offset (SCB, 3), as the vendor's AIS join
++	  and rlmFillSyncCmdParam do; the firmware's grant must echo it.
++	  Transmit keeps its fixed 20 MHz rate: only the access point's
++	  frames to this station can use the 40 MHz channel.
++
+ config MT6797_WMM_QOS_RECORDS
+ 	bool "MT6797 Wi-Fi: declare the station and the BSS QoS to the firmware under WMM"
+ 	depends on MT6797_WMM_QOS_DATA
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 0d3c7d3b9..44a57633f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1388,6 +1388,12 @@ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	payload[42] = qos;
+ 	if (ht_op) {
+ 		payload[55] = 0x18;
++#ifdef CONFIG_MT6797_HT40
++		/* ucRfSco (71) from the HT operation as sent: its info 1 keeps
++		 * the secondary offset only when the join is HT40 (0323).
++		 */
++		payload[71] = ht_op[1] & 3;
++#endif
+ 		payload[73] = ht_op[2] & 3;
+ 		payload[76] = ht_op[4]; payload[77] = ht_op[5];
+ 		payload[78] = ht_op[2]; payload[79] = ht_op[3];
+@@ -1484,6 +1490,21 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 					   sizeof(payload), false, deadline_ns);
+ }
+ 
++#ifdef CONFIG_MT6797_HT40
++int mt6797_hif_join_channel_sco(struct mt6797_hif *hif, unsigned int sequence,
++	u8 token, u8 channel, u8 sco, unsigned int interval_ms, u64 deadline_ns)
++{
++	u8 payload[16];
++
++	if ((sco && (sco != 3 || channel != 40)) ||
++	    !mt6797_join_channel_payload(token, channel, interval_ms, false, payload))
++		return -EINVAL;
++	payload[4] = sco;
++	return mt6797_hif_send_join_command(hif, 0x1c, sequence, payload,
++					   sizeof(payload), false, deadline_ns);
++}
++#endif
++
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ /* The pinned 16-byte SET_MONITOR (CMD_ID_SET_MONITOR 0xFC), one enable or one
+  * disable, through the same TC4 PIO owner and credit discipline as the join
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index a6eda1643..852ec130a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -289,6 +289,11 @@ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 	unsigned int sequence, u64 deadline_ns);
+ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 	u8 token, u8 channel, unsigned int interval_ms, bool abort, u64 deadline_ns);
++#ifdef CONFIG_MT6797_HT40
++/* The same request with ucRfSco (byte 4) set: 0, or 3 (below) on channel 40. */
++int mt6797_hif_join_channel_sco(struct mt6797_hif *hif, unsigned int sequence,
++	u8 token, u8 channel, u8 sco, unsigned int interval_ms, u64 deadline_ns);
++#endif
+ 
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+ /* Default-off diagnostic: one 16-byte SET_MONITOR enable or disable (CID 0xFC). */
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index b86efa141..c329b4eb7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -349,6 +349,8 @@ struct mt6797_mac {
+ 	unsigned int join_desired_rates, join_peer_basic_rates;
+ 	u16 join_beacon_interval;
+ 	bool join_bss_valid, join_channel_valid;
++	/* The join channel's secondary offset: 3 (below) at HT40, else 0 (0323). */
++	u8 join_sco;
+ 	bool join_scan_ready, join_peer_used, join_peer_ready;
+ 	bool join_auth_received, join_auth_ok, join_authenticated;
+ 	bool join_assoc_received;
+@@ -1031,7 +1033,11 @@ static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
+ 	if (!mt6797_rx_vector_word(mac->join_packet, bytes, &rate_word)) {
+ 		mac->rx_rates_absent++;
+ 	} else {
+-		unsigned int key = rate_word & 0x707fU, k;
++		/* With HT40 the key keeps the frame mode, bit 15 (20/40 MHz,
++		 * mt7603's MT_RXV1_FRAME_MODE) (0323).
++		 */
++		unsigned int key = rate_word & (0x707fU |
++			(IS_ENABLED(CONFIG_MT6797_HT40) ? BIT(15) : 0)), k;
+ 
+ 		for (k = 0; k < ARRAY_SIZE(mac->rx_rates); k++) {
+ 			if (mac->rx_rates[k].count && mac->rx_rates[k].word != key)
+@@ -1459,8 +1465,14 @@ static int mt6797_series_second(struct mt6797_mac *mac, u64 now)
+ /* HT20, one stream, MCS 0-7; no short GI, greenfield, STBC, LDPC or 40 MHz;
+  * the smallest A-MPDU window (0293). mac80211 sets the SM power save field
+  * from its own mode, so the admission below leaves those two bits free.
++ * With CONFIG_MT6797_HT40 the capability adds 20/40 MHz (0323).
+  */
++#ifndef CONFIG_MT6797_HT40
+ #define MT6797_HT_CAP_INFO (WLAN_HT_CAP_SM_PS_DISABLED << IEEE80211_HT_CAP_SM_PS_SHIFT)
++#else
++#define MT6797_HT_CAP_INFO ((WLAN_HT_CAP_SM_PS_DISABLED << IEEE80211_HT_CAP_SM_PS_SHIFT) | \
++			    IEEE80211_HT_CAP_SUP_WIDTH_20_40)
++#endif
+ #define MT6797_HT_AMPDU_PARAMS \
+ 	(IEEE80211_HT_MAX_AMPDU_8K | \
+ 	 (IEEE80211_HT_MPDU_DENSITY_8 << IEEE80211_HT_AMPDU_PARM_DENSITY_SHIFT))
+@@ -2322,6 +2334,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_aid = 0;
+ 	mac->join_bss_valid = false;
+ 	mac->join_channel_valid = false;
++	mac->join_sco = 0;
+ 	mac->join_bss_configured = false;
+ 	mac->join_short_preamble = false;
+ 	mac->join_channel_pending = false;
+@@ -2828,7 +2841,7 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_channel expected = {
+ 		.bss = 0, .token = mac->join_channel_token, .channel = 40,
+-		.band = 2, .max_ms = mac->join_requested_ms,
++		.sco = mac->join_sco, .band = 2, .max_ms = mac->join_requested_ms,
+ 	};
+ 	unsigned long flags;
+ 	u32 interval, own;
+@@ -2890,7 +2903,8 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		complete_all(&mac->join_channel_done);
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN join grant: channel=40 interval_ms=%u\n", interval);
++			 "one-shot WLAN join grant: channel=40 sco=%u interval_ms=%u\n",
++			 mac->join_sco, interval);
+ #endif
+ 		return 0;
+ 	}
+@@ -3847,9 +3861,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		unsigned int k, n = 0;
+ 
+ 		for (k = 0; k < ARRAY_SIZE(mac->rx_rates) && mac->rx_rates[k].count; k++)
+-			n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/%u=%u",
++			n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/%u%s=%u",
+ 				       k ? "," : "", (mac->rx_rates[k].word >> 12) & 7,
+-				       mac->rx_rates[k].word & 0x7f, mac->rx_rates[k].count);
++				       mac->rx_rates[k].word & 0x7f,
++				       mac->rx_rates[k].word & BIT(15) ? "/40" : "",
++				       mac->rx_rates[k].count);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN RX rates: mode/rate=count %s other=%u absent=%u\n",
+ 			 n ? rates : "-", mac->rx_rates_other,
+@@ -6184,10 +6200,14 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 			channel == &mac->channels[slot] &&
+ 			channel->band == NL80211_BAND_5GHZ &&
+ 			channel->hw_value == 40 && channel->center_freq == 5200 &&
+-			(def->width == NL80211_CHAN_WIDTH_20_NOHT ||
+-			 (IS_ENABLED(CONFIG_MT6797_HT_CAPABILITY) &&
+-			  def->width == NL80211_CHAN_WIDTH_20)) &&
+-			def->center_freq1 == 5200 && !def->center_freq2 &&
++			(((def->width == NL80211_CHAN_WIDTH_20_NOHT ||
++			   (IS_ENABLED(CONFIG_MT6797_HT_CAPABILITY) &&
++			    def->width == NL80211_CHAN_WIDTH_20)) &&
++			  def->center_freq1 == 5200) ||
++			 /* HT40 below: secondary channel 36 (0323). */
++			 (IS_ENABLED(CONFIG_MT6797_HT40) &&
++			  def->width == NL80211_CHAN_WIDTH_40 &&
++			  def->center_freq1 == 5190)) && !def->center_freq2 &&
+ 			!(channel->flags & (IEEE80211_CHAN_DISABLED |
+ 				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
+ 				IEEE80211_CHAN_RADAR));
+@@ -6203,6 +6223,8 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 				 channel->hw_value, channel->center_freq, def->width,
+ 				 def->center_freq1, def->center_freq2, channel->flags, ret);
+ 		}
++		mac->join_sco = mac->join_channel_valid &&
++			def->width == NL80211_CHAN_WIDTH_40 ? 3 : 0;
+ 	}
+ #endif
+ 	mutex_unlock(&mac->mutex);
+@@ -6430,10 +6452,17 @@ static int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	reinit_completion(&mac->join_credit_done);
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 1;
++#ifdef CONFIG_MT6797_HT40
++	ret = mt6797_hif_join_channel_sco(mac->hif, mac->sequence++,
++					  mac->join_channel_token, 40, mac->join_sco,
++					  mac->join_requested_ms,
++					  mac->join_credit_deadline);
++#else
+ 	ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
+ 				      mac->join_channel_token, 40,
+ 				      mac->join_requested_ms, false,
+ 				      mac->join_credit_deadline);
++#endif
+ 	mt6797_mac_join_refused(mac, ret);
+ 	if (!ret)
+ 		ret = mt6797_mac_join_wait_credit(mac);
+@@ -6575,6 +6604,9 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	int ret;
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	const u8 *ht_cap = NULL, *ht_op = NULL;
++#ifdef CONFIG_MT6797_HT40
++	u8 ht_op40[22];
++#endif
+ #endif
+ 
+ 	if (!mac->join_assoc_received || mac->join_assoc_status ||
+@@ -6608,6 +6640,15 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	    mac->join_ht_op_seen && mac->join_ht_peer_cap_seen) {
+ 		ht_cap = mac->join_ht_peer_cap;
+ 		ht_op = mac->join_ht_op;
++#ifdef CONFIG_MT6797_HT40
++		/* As rlm.c does when 40 MHz is not allowed: without an HT40
++		 * join, info 1 drops its secondary offset and channel width.
++		 */
++		memcpy(ht_op40, mac->join_ht_op, sizeof(ht_op40));
++		if (mac->join_sco != 3)
++			ht_op40[1] &= ~0x07;
++		ht_op = ht_op40;
++#endif
+ 	}
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join HT records: declared=%u sta_phy=0x%02x mcs=0x%02x mcs32=%u cap=0x%04x ext=0x%04x bss_phy=0x%02x protect=%u op1=0x%02x op2=0x%04x op3=0x%04x ampdu=0x%02x tx_ampdu=%u tx_ba=%u rx_ampdu=%u rx_ba=%u\n",
+@@ -7807,6 +7848,12 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		mac->channels[i].max_power = 20;
+ 		mac->channels[i].flags = IEEE80211_CHAN_NO_HT40 |
+ 			IEEE80211_CHAN_NO_80MHZ | IEEE80211_CHAN_NO_160MHZ;
++#ifdef CONFIG_MT6797_HT40
++		/* 5 GHz pairs 36/40 and 44/48 (0323); 2.4 GHz stays 20 MHz. */
++		if (i >= MT6797_2G_CHANNELS)
++			mac->channels[i].flags ^= (i - MT6797_2G_CHANNELS) % 2 ?
++				IEEE80211_CHAN_NO_HT40MINUS : IEEE80211_CHAN_NO_HT40PLUS;
++#endif
+ 		if (i >= MT6797_2G_CHANNELS && !enable_5g)
+ 			mac->channels[i].flags |= IEEE80211_CHAN_DISABLED;
+ 	}
+-- 
+2.43.0
+
