@@ -1,4 +1,4 @@
-# Current: §40's Gemian register values unverified (aperture leftovers); boot AA6 (full WHIER 0x7fffff07, the probe 1 in 8, 0307) predeclared, under review
+# Current: boot AA6 (full WHIER 0x7fffff07, the probe 1 in 8, the batch bound) staged on boot2
 
 The direct aperture is the HIF command interface, so the Gemian WHIER
 and WHCR numbers are transaction leftovers. Those reads restarted the
@@ -8,8 +8,14 @@ fire. 0308 arms the vendor default less ABNORMAL and firmware-assert
 (`0x7fffff07`; the value first given, `0xbfffff07`, withheld bit 30
 instead of 31). 0309 samples the line before one read in eight and
 logs WHISR at the first take and at disarm. 0307 bounds the receive
-batch, and 0304–0305 are validated. Under review, not built. The
-device is on Gemian (`8dbc2cc3…`); boot2 holds `345753c1…`.
+batch, and 0304–0305 are validated.
+
+Boot AA6 is staged: build `4496c9b6`, boot2 `ccb73bae…` over
+`345753c1…`, written and read back in full. The first stage attempt was
+refused before any device action: the preceding Gemian boot had
+changed to `88a02dda…` after the aperture-read restarts. It was
+re-derived with that pin. Gemian is shut down for the owner's boot2
+selection.
 
 # Historical: boot AA5 (WHIER 0x1e00, the two-point probe, the join changes) staged on boot2
 
