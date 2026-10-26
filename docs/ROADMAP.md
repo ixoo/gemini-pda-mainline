@@ -88,8 +88,9 @@ Keep this file under 200 lines; move anything else to an experiment record.
   - the transmit status read (about half of each pass after the peek),
     queued as a power item that needs its own predeclaration with the
     ledger as the failure signal;
-  - 40 MHz: receive done (1.34× a same-session 20 MHz control,
-    [boot AM](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-am-result-2026-10-26-2103-utc-receive-at-40-mhz-works-receive-134-the-20-mhz-control-short-of-the-14-predicted)); transmit at 40 MHz next, then short GI and VHT;
+  - 40 MHz: receive done (1.34× a same-session 20 MHz control, boot AM);
+    transmit at a fixed MCS7 ran 0.54× (boot AO) and is off; the fixed-rate
+    ladder at 40 MHz (MCS5, then MCS4) is next, then short GI and VHT;
   - transmit aggregation, parked;
   - power management for the idle disconnect.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot

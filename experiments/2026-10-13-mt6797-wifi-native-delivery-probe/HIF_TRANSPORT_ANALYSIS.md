@@ -7478,3 +7478,56 @@ between the second (failures up slightly, credit wait not up) and the
 third (the gain does not exist). Both keep the option off.
 `CONFIG_MT6797_HT40_TX` is off again in the profile; HT40 receive
 stays.
+
+## 62. AO read as a rate problem; HT40 transmit at a fixed MCS5, with the attempts measured (predeclared, 2026-10-26)
+
+**AO, read correctly (owner, with corrections).**
+- *What AO showed.* `bw40=1` took on the grant's SCB, and the frames
+  were sent and acknowledged. 4 of 39,146 completions failed (4 of the
+  611 sampled statuses), credit waits were normal, the ledger was
+  clean, and transmit ran 0.54× the control.
+- *The conclusion.* It is not "HT40 transmit fails". Our transmit is
+  fixed-rate at MCS7 and cannot step down as a rate controller would.
+  The hypothesis is that MCS7 at 40 MHz is above the uplink channel's
+  SNR: the 3 dB that doubling the width costs, paid in air retries
+  that `tx_failed` does not count.
+- *Three corrections.*
+  - AO ran under the five-chunk harness and sampled statuses; what it
+    lacked was the attempt count.
+  - The access point's own MCS at 40 MHz varied between runs: mostly
+    MCS5/6 in AM, MCS6 in AN, MCS7 in AO (39,444 of 50,526). So
+    downlink MCS7 at 40 MHz worked in AO; the uplink, at our transmit
+    power, may differ.
+  - MCS5 at 40 MHz is 108 Mbit/s PHY (1.66× MCS7 at 20 MHz, 65), and
+    MCS4 is 81 (1.25×). 90 is MCS4 at 40 MHz with short GI.
+
+**The measurement, added first: 0325.** EVENT_TX_DONE carries
+`ucTxCount`, which the TX-done parser already reads (valid with flag
+bit 0). The TX rates record now also counts the sampled data
+completions by attempts: 1 to 7, then 8 or more, and "none" without a
+valid count. It prints as `TX attempts:` at the data-phase end; logging
+only. The descriptor allows 3 attempts per frame (`u2TxCountLimit` 3),
+so a frame needing more fails as status 3. The driver builds with W=1
+with the record on and off, and checkpatch is clean. It has no host
+test: a histogram increment on a field already parsed and printed.
+
+**The boot: a same-session pair under the five-chunk harness, both
+images with 0325.**
+
+1. *Control:* the profile as it stands. HT40 receive; transmit at the
+   fixed HT MCS7 (`0x87`) at 20 MHz.
+2. *Then:* the same with `CONFIG_MT6797_HT40_TX=y` and
+   `CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x85` (HT mixed mode, MCS5).
+
+The test image therefore changes the rate code as well as the
+bandwidth. That is the owner's design: the question is whether a lower
+fixed step at 40 MHz beats MCS7 at 20 MHz. Graded on transmit against
+the control; receive and the software frames are recorded.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| TX ≈ 1.3–1.4× the control's, attempts near the control's, ledger clean, RX unchanged | the uplink supports 40 MHz at MCS5 | accept HT40 transmit at a documented fixed MCS5: a second fixed step, not a control loop |
+| TX between the control's and 1.3×, attempts above the control's | MCS5 is partly marginal | MCS4 at 40 MHz (`0x84`) once; keep the best fixed step |
+| TX at or below 0.54×, attempts high | the uplink SNR at 40 MHz is the limit even at MCS5 | MCS4 once; if that also fails, HT40 receive only |
+| TX at or below 0.54×, attempts near 1 | not retries: the channel access at 40 MHz (secondary channel 36 busy) or the firmware | keep HT40 receive only; record transmit at 40 MHz as refused on this channel |
+| a stall, expired frames, or the ledger moves | the descriptor or rate code is not as expected | revert; preserve the log |

@@ -1,4 +1,8 @@
-# Current: boot AO graded; transmit at 40 MHz ran 0.54× the control (frames acknowledged, slower each); CONFIG_MT6797_HT40_TX off again, HT40 receive kept
+# Current: §62 approved: the control (AP: HT40 receive, MCS7 at 20 MHz, 0325's attempts record) building, then HT40 transmit at a fixed MCS5 (AQ)
+
+The device is on Gemian (`61502d44…`); boot2 holds AO's `0988dc59…`.
+
+# Historical: boot AO graded; transmit at 40 MHz ran 0.54× the control (frames acknowledged, slower each); CONFIG_MT6797_HT40_TX off again, HT40 receive kept
 
 [Boot AO](HIF_TRANSPORT_ANALYSIS.md#boot-ao-result-2026-10-26-2122-utc-transmit-at-40-mhz-runs-at-054-the-control-the-option-off-again).
 The device is on Gemian (`61502d44…`); boot2 holds AO's `0988dc59…`.

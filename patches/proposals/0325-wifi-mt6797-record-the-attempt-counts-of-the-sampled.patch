@@ -1,0 +1,100 @@
+From 79d2a903d9885fe09ae7c0b065bc4847cc16ad27 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 17:36:52 -0400
+Subject: [PATCH] wifi: mt6797: record the attempt counts of the sampled data
+ completions
+
+Boot AO transmitted at 40 MHz and ran at 0.54x the 20 MHz control, with
+its frames acknowledged and only 4 of 611 sampled statuses failed. Air
+retries would explain it, and the firmware reports them: EVENT_TX_DONE
+carries ucTxCount, valid with flag bit 0, which the TX-done parser
+already reads. The TX rates record keeps only status and rate.
+
+The same sampled data completions now also count their attempts: 1 to
+7, then 8 or more, with "none" for completions without a valid count.
+The histogram prints at the data-phase end beside the rate histogram,
+and resets with it each lifetime. Logging only: no frame, credit or
+timing changes.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  4 +++-
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 18 ++++++++++++++++--
+ 2 files changed, 19 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index b831e997f..77c48451e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -149,7 +149,9 @@ config MT6797_TX_DONE_RATE_RECORD
+ 	  the firmware reports (valid with flag bit 0), keep the first and
+ 	  last words, and print the histogram once at the data-phase end; no
+ 	  per-frame line. Says what rate the firmware sent at, within the
+-	  sealed logger's byte cap at any chunk count. Logging only.
++	  sealed logger's byte cap at any chunk count. The same completions'
++	  attempt counts (ucTxCount) print as a second histogram, the air
++	  retries of the sampled frames. Logging only.
+ 
+ config MT6797_DATA_FIXED_RATE_CODE
+ 	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index ebd3160fa..d71cd3b1f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -451,6 +451,11 @@ struct mt6797_mac {
+ 	 */
+ 	struct { unsigned int key, count; } tx_rates[8];
+ 	unsigned int tx_rates_other, tx_rate_first, tx_rate_last, tx_rate_n;
++	/* The firmware's attempt count (ucTxCount, valid with flag bit 0) of
++	 * the same completions: 1-7, then 8 or more; 0 counts no valid count
++	 * (0325).
++	 */
++	unsigned int tx_attempts[9];
+ #endif
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+ 	/* Received-rate record (logging only): the first receive-vector word's
+@@ -1324,10 +1329,12 @@ static void mt6797_ccmp_tx_timing(struct mt6797_mac *mac, unsigned int pid,
+ #if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
+ /* One ordinary data completion into the per-phase rate histogram. */
+ static void mt6797_tx_rate_record(struct mt6797_mac *mac, unsigned int status,
+-				  unsigned int rate)
++				  unsigned int rate, unsigned int attempts)
+ {
+ 	unsigned int key = ((status & 0xff) << 16) | (rate & 0xffff), k;
+ 
++	mac->tx_attempts[min(attempts, 8U)]++;
++
+ 	if (!mac->tx_rate_n++)
+ 		mac->tx_rate_first = rate & 0xffff;
+ 	mac->tx_rate_last = rate & 0xffff;
+@@ -2387,6 +2394,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->tx_latency_max_ns = 0;
+ #if IS_ENABLED(CONFIG_MT6797_TX_DONE_RATE_RECORD)
+ 	memset(mac->tx_rates, 0, sizeof(mac->tx_rates));
++	memset(mac->tx_attempts, 0, sizeof(mac->tx_attempts));
+ 	mac->tx_rates_other = 0;
+ 	mac->tx_rate_first = 0;
+ 	mac->tx_rate_last = 0;
+@@ -3857,6 +3865,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 			 "one-shot WLAN TX rates: status/rate=count %s other=%u first=0x%04x last=0x%04x n=%u\n",
+ 			 n ? rates : "-", mac->tx_rates_other, mac->tx_rate_first,
+ 			 mac->tx_rate_last, mac->tx_rate_n);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN TX attempts: none=%u 1=%u 2=%u 3=%u 4=%u 5=%u 6=%u 7=%u 8+=%u\n",
++			 mac->tx_attempts[0], mac->tx_attempts[1], mac->tx_attempts[2],
++			 mac->tx_attempts[3], mac->tx_attempts[4], mac->tx_attempts[5],
++			 mac->tx_attempts[6], mac->tx_attempts[7], mac->tx_attempts[8]);
+ 	}
+ #endif
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+@@ -5104,7 +5117,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				 * data phase's histogram (ordinary data only).
+ 				 */
+ 				if (mac->join_inflight_data)
+-					mt6797_tx_rate_record(mac, result.status, result.rate);
++					mt6797_tx_rate_record(mac, result.status, result.rate,
++							      result.count);
+ #endif
+ #endif
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+-- 
+2.43.0
+
