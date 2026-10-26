@@ -1,4 +1,4 @@
-# Current: boot Z recorded; aggregation parked; the receive interrupt implemented (0297-0300) and boot AA predeclared (§38), approved for build and staging
+# Current: boot AA (the WLAN HIF interrupt as a wake source; tests the line) staged on boot2
 
 [Boot Z](HIF_TRANSPORT_ANALYSIS.md#boot-z-result-2026-10-25-2351-utc-the-declaration-is-harmless-at-depth-one-the-aggregate-is-what-goes-undelivered-the-lifetime-then-stopped-on-missing-transmit-reports):
 depth one under boot Y's declaration delivered (five transmit chunks at
@@ -21,7 +21,14 @@ and approved; the fragment sets `CONFIG_MT6797_HIF_RX_IRQ=y`. Owner,
 before the build: WHIER arms only TX, RX0 and RX1 done (0x00000007);
 boot AA tests the line, not the throughput (the poll is unchanged); the
 throughput step is boot AB (§39, the receive poll on a wake plus a 10 ms
-fallback). The device is on Gemian (`3885482b…`).
+fallback). The first package carried `TX_AMPDU=y` by default (the
+withdrawal had deleted the fragment line) and was not staged; the
+fragment now disables it explicitly. The composer admits exactly one
+declared tree difference (0298's wifi interrupt). Boot AA is staged on
+boot2 at 348be4c6 (image 6f24c213…, predecessor f775c477…), written and
+read back from Gemian (boot `3885482b…`), device command 4,074 of 4,096
+bytes, preflight passed, the device shut down cleanly; the owner selects
+boot2.
 
 # Historical: boot Y's firmware transmit aggregation regressed; the declaration checked correct (PHY 0x18 = OFDM|HT at the pin; ampdu=0x1b is the peer's); boot Z (aggregation declared, depth one) staged on boot2
 
