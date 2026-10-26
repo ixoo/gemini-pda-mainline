@@ -1,4 +1,16 @@
-# Current: boot AA8, the WHIER-order boot (§45), staged on boot2 (build ff54fe80: 0314, the interrupt option on for this boot only)
+# Current: boot AA8 graded; the interrupt line is closed for this configuration (the receive engine is the poll); the interrupt option is off again
+
+[Boot AA8](HIF_TRANSPORT_ANALYSIS.md#boot-aa8-result-2026-10-26-1149-utc-the-vendors-order-changes-nothing-the-interrupt-line-is-closed-for-this-configuration):
+`all_pass`. WHIER `0xffffff47` was written before the firmware download
+(`0x00000000>0xffffff47`) and survived to the data-phase arm
+(`whier=0xffffff47>0x7fffff07`). `taken=0`, pending 0/3,301
+frame-bearing and 0/62,877 idle. §45's second row: no host-side
+difference this series could name makes the line assert, so no further
+boots go to it. The firmware's host mask stays an RE question. Data
+path: TX 21.48 (chunks 22.5–22.9), RX 16.82, clean ledger. The device
+is on Gemian (`e800691c…`); boot2 holds `c924d5c2…`.
+
+# Historical: boot AA8, the WHIER-order boot (§45), staged on boot2 (build ff54fe80: 0314, the interrupt option on for this boot only)
 
 Boot2 holds `c924d5c2…`, written over reconnect gate 2's `425c7c56…`
 and read back in full. It was composed over that installed image: the

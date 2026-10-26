@@ -3896,6 +3896,84 @@
     "first_eapol": "admitted on bss=1 before activation, in the pass of the association response"
    },
    "reading": "HIF section 43, first row: 0310 is the fix; the window was reached and passed; rates below AA3/AA4 with no air loss and sender-side receive dips, not attributed to the change"
+  },
+  "boot-aa8": {
+   "run": "PIO-throughput-bootaa8-1",
+   "session": "2026-10-26 11:49 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (reconnect gate 2 tree + 0314; HIF_RX_IRQ on for this boot, drop diagnostic 0)",
+   "kernel_build_commit": "ff54fe80f9d24472fd7081ee7f190002967d684e",
+   "boot2_sha256": "c924d5c2938719138d83337ae8f54b8aa8c8e2d55062a43177d93da026f294a2",
+   "predecessor_boot2_sha256": "425c7c56bda743f91c7fcfb2d386021ebe7f219bfc2b041077a178821a7ca46a",
+   "mainline_boot_id": "91fe7694-4b5f-437c-a49c-639383ae1d11",
+   "previous_gemian_boot_id": "2a4ce560-a231-4774-a7a3-c9d65f3e2d27",
+   "returned_gemian_boot_id": "e800691c-e2d0-4d22-a1d2-5ea0a5932af0",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty; WHIER written before the download and surviving to the arm; the line never asserted",
+   "sealed_log_bytes": 189066,
+   "series_row": true,
+   "hif_irq": {
+    "irq": 218,
+    "whier_init": [
+     "0x00000000",
+     "0xffffff47"
+    ],
+    "whier_arm": [
+     "0xffffff47",
+     "0x7fffff07"
+    ],
+    "whlpcr_arm": [
+     "0x00000100",
+     "0x00000101"
+    ],
+    "taken": 0,
+    "rearmed": 0,
+    "pending_before": [
+     0,
+     3301
+    ],
+    "idle_before": [
+     0,
+     62877
+    ],
+    "probe_errors": 0
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 21.48,
+    "tx_chunk_mbit_s": [
+     22.86,
+     22.52,
+     22.51,
+     22.88,
+     22.94
+    ],
+    "rx_aggregate_mbit_s": 16.82,
+    "rx_device_chunk_mbit_s": [
+     13.98,
+     17.83,
+     17.18,
+     17.97,
+     20.94
+    ],
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 420
+    },
+    "passes": 529419,
+    "data_phase_ms": 43758
+   },
+   "rx_batch": {
+    "aggregates": 25347,
+    "max_bytes": 25600,
+    "window_505_508": 0,
+    "failures": 0
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "reading": "HIF section 45, second row: the interrupt line is closed for this configuration; the receive engine is the poll"
   }
  }
 }

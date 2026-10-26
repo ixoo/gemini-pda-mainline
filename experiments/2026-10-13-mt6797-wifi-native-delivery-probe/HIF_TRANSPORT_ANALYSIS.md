@@ -5852,7 +5852,56 @@ data-phase arm is unchanged.
 | initialization `status != 0`, or the value does not read back | the register refuses the write before the download | record it; the order cannot be tested this way |
 | any regression in the rates, the ledger or the refusals | the write or the option costs something | revert the option |
 
-The patch is shown for review before any build. The AHB variant's CCCR `IENx` lead (§42) stays recorded; it is
+The patch is shown for review before any build.
+
+### Boot AA8 result (2026-10-26, 11:49 UTC): the vendor's order changes nothing; the interrupt line is closed for this configuration
+
+Mainline boot `91fe7694…`, build `ff54fe80`, boot2 `c924d5c2…` (written
+over reconnect gate 2's `425c7c56…` and read back in full). Graded
+`all_pass`, with `verdict_failed` empty. The session's reviewed return
+reached Gemian `e800691c…` with the log sealed complete (189,066
+bytes).
+
+```
+HIF WHIER at initialization: status=0 whier=0x00000000>0xffffff47
+HIF interrupt armed:    irq=218 status=0 whier=0xffffff47>0x7fffff07 whlpcr=0x00000100>0x00000101 mask=0x00000000>0x00000000
+HIF interrupt disarmed: irq=218 status=0 taken=0 rearmed=0 whisr=0x00000000 pending_before=0/3301 idle_before=0/62877 probe_errors=0 whier=0x7fffff07>0x7fffff07
+```
+
+- *Observed:* the vendor's `WHIER_DEFAULT` was written before the
+  firmware download and read back. It was still `0xffffff47` at the
+  data-phase arm, about four seconds later, so the firmware's start did
+  not clear it.
+- *Observed:* `taken=0` over the 43.8 s data phase. The pending state
+  read 0 on all 3,301 frame-bearing samples taken before the status
+  read and on all 62,877 idle samples, with no probe error.
+- *Branch taken: the second row.* The value survived the firmware's
+  start and the line still did not assert. Every host-side difference
+  from the vendor driver that this series could name has now been
+  tested:
+  - the mask (`0x7`, `0x1e00`, `0x7fffff07`);
+  - the wrapper mask;
+  - the arming order;
+  - the read-clear race;
+  - SPI 283;
+  - the initialization order (WHIER before the download).
+
+  None makes the line assert. **The interrupt line is closed for this
+  configuration.** The receive engine is the poll, the support row says
+  so, and no further boots are spent on it. The firmware's own
+  host-interrupt mask stays a question for the RE VM and the firmware
+  image, not for a boot. The CCCR `IENx` lead (§42) is recorded with
+  its evidence and untested.
+- *The data path, against AA3/AA4/AA7:* TX 21.48 aggregate (chunks
+  22.51–22.94, the steadiest set in the series) and RX 16.82 (13.98,
+  17.83, 17.18, 17.97, 20.94). Both are inside the typical band. 420 TCP
+  retransmissions during transmit, again with 0 of 848 sampled statuses
+  at air loss (as in AA7). No refusal, `failures=0`, 12,098 passes/s,
+  and a clean transmit ledger. The option costs nothing measurable.
+- *Reverted:* the lifecycle fragment turns `CONFIG_MT6797_HIF_RX_IRQ`
+  off again. 0297–0303, 0306, 0308, 0309 and 0314 stay in the series as
+  diagnostics that compile out.
+ The AHB variant's CCCR `IENx` lead (§42) stays recorded; it is
 not this boot's variable.
 
 **The two outcomes, stated for the support row (owner, 2026-10-26).**
