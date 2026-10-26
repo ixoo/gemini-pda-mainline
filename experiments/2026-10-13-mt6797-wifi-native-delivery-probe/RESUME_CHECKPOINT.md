@@ -1,4 +1,16 @@
-# Current: boot AA (the WLAN HIF interrupt as a wake source; tests the line) staged on boot2
+# Current: boot AA's WLAN HIF interrupt arms cleanly and never fires (taken=0); recorded and not chased; boot AB waits on the line
+
+[Boot AA](HIF_TRANSPORT_ANALYSIS.md#boot-aa-result-2026-10-26-0028-utc-the-interrupt-arms-cleanly-and-never-fires-38s-taken--0-row-stopped-there):
+attached as irq 218; armed `whier=0x00000000>0x00000007
+whlpcr=0x00000100>0x00000101` status 0; disarmed status 0; `taken=0
+rearmed=0` across a clean 44.3 s data phase. Nothing else moved (no
+refusal, ledger exact, about 1,191 frames/s, TX 22.16, RX 16.22). The
+candidates (the poll read-clearing WHISR first, a further CONSYS or
+infra gate, the line or its polarity) wait for a later bounded look;
+boot AB depends on the line. Nothing is staged; the device is on Gemian
+(`9a690b5a…`).
+
+# Historical: boot AA (the WLAN HIF interrupt as a wake source; tests the line) staged on boot2
 
 [Boot Z](HIF_TRANSPORT_ANALYSIS.md#boot-z-result-2026-10-25-2351-utc-the-declaration-is-harmless-at-depth-one-the-aggregate-is-what-goes-undelivered-the-lifetime-then-stopped-on-missing-transmit-reports):
 depth one under boot Y's declaration delivered (five transmit chunks at

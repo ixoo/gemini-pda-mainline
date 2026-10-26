@@ -4912,6 +4912,58 @@ the fragment in between. The fragment now says `# CONFIG_MT6797_TX_AMPDU
 is not set` explicitly, and the build's config is checked for it before
 staging. That package was not staged.
 
+### Boot AA result (2026-10-26, 00:28 UTC): the interrupt arms cleanly and never fires; §38's `taken = 0` row; stopped there
+
+Build `348be4c6` (0297–0300, `HIF_RX_IRQ` with `WHIER` `0x00000007`,
+transmit aggregation off, boot X's profile), boot2 `6f24c213…` over boot
+Z's `f775c477…`, mainline boot `600b600e…`, returned to Gemian
+`9a690b5a…` by the session's own reviewed return (live identity checked
+afterwards); log complete through the seal (189,496 bytes). Clean
+verdict: `session_exit=0`, `all_pass=True`, `verdict_failed=[]`, no
+warning.
+
+**The line.**
+
+- Attached: `one-shot WLAN HIF interrupt attached: irq=218 status=0` (SPI
+  283 mapped through sysirq).
+- Armed at the data phase's opening: `status=0
+  whier=0x00000000>0x00000007 whlpcr=0x00000100>0x00000101`. The firmware
+  had left every source disarmed, the write armed TX, RX0 and RX1 done,
+  and the enable bit now reads set.
+- Disarmed at its end: `status=0 taken=0 rearmed=0
+  whlpcr=0x00000101>0x00000100`.
+- **No interrupt was taken** in a 44.3 s data phase that received 45,673
+  frames and completed 52,739 transmits. No interrupt-core warning
+  (unbalanced enable, spurious or unhandled interrupt) appears in the
+  log.
+
+**Nothing else moved.** `rx_refused=0`, `tx_tid_refused=0`, the ledger
+exact (`expired=0 pid_faults=0 left_pages=0 dropped_full=0
+tx_failed=0`), sampled reports 824 of 824 at status 0 and `0x0087`. About
+1,191 transmit frames a second (52,739 in 44.3 s), as in boot X. TX
+22.16 (chunks 23.6, 24.3, 20.9, 24.2, 24.0), RX 16.22 (19.7, 21.6, 10.1,
+20.9, 14.0, the laptop's own send rate falling in both dips), within
+the series' spread. As predicted with the poll unchanged, the pass census
+(526,017 passes in 44.3 s) and the empty-read ratio (499,834 of 530,073
+block reads, 94 %) are as before. That says nothing about the
+interrupt, which was never taken.
+
+**Against §38's table: the `taken = 0` row.** "The firmware did not assert
+it, or the enable path is incomplete": both register pairs are recorded
+above, and the line is not chased in this session. Candidates for the
+later, bounded look:
+
+- the continuous poll read-clears `WHISR` (in the block read) before the
+  level reaches the interrupt controller;
+- a further gate between the HIF and the AP's interrupt controller (a
+  CONSYS or infra mask the vendor sets elsewhere);
+- the line itself: SPI 283 and its polarity through sysirq on this
+  board.
+
+Boot AB (§39) depends on the line firing and waits on that look. The
+option stays in the profile, harmless as measured; whether it stays, or
+leaves until the line is understood, is the owner's call.
+
 ## 39. Boot AB (predeclared, 2026-10-25): the receive poll on a wake, where the gain lives
 
 **The change, after boot AA shows the line fires.** While the interrupt

@@ -3398,6 +3398,81 @@
     "rx_llc_mis": 7
    },
    "reading": "HIF section 36: the aggregation declaration does not break framing; the aggregate fails (boot Y); under the declaration per-frame transmit status is incomplete, which stalled depth one; aggregation parked behind a firmware read; the receive interrupt next"
+  },
+  "boot-aa": {
+   "run": "PIO-throughput-bootaa-1",
+   "session": "2026-10-26 00:28 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot X profile + 0297-0300; HIF_RX_IRQ on, WHIER 0x7, TX_AMPDU off)",
+   "kernel_build_commit": "348be4c6bbe01e0c1057983b405174266a9edf29",
+   "boot2_sha256": "6f24c213ac88676d40d1895d5502ffc282d72d746de2f8c5eb225f6f773d0557",
+   "predecessor_boot2_sha256": "f775c4778608d687af46af5e6a86545e3f85e0968d704570183d61346e702be4",
+   "mainline_boot_id": "600b600e-a383-4f4c-95fe-4b928ff2010c",
+   "previous_gemian_boot_id": "3885482b-4178-4fb9-8d6a-5bd87c469b16",
+   "returned_gemian_boot_id": "9a690b5a-cfd2-44c2-b7d0-742426c2e851",
+   "returned_by": "session's reviewed return",
+   "classification": "graded: all_pass, verdict_failed empty; the interrupt armed and never taken",
+   "sealed_log_bytes": 189496,
+   "series_row": true,
+   "hif_irq": {
+    "irq": 218,
+    "arm_status": 0,
+    "whier": [
+     "0x00000000",
+     "0x00000007"
+    ],
+    "whlpcr_arm": [
+     "0x00000100",
+     "0x00000101"
+    ],
+    "disarm_status": 0,
+    "whlpcr_disarm": [
+     "0x00000101",
+     "0x00000100"
+    ],
+    "taken": 0,
+    "rearmed": 0
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 22.16,
+    "tx_chunk_mbit_s": [
+     23.64,
+     24.28,
+     20.91,
+     24.23,
+     24.01
+    ],
+    "rx_aggregate_mbit_s": 16.22,
+    "rx_device_chunk_mbit_s": [
+     19.67,
+     21.61,
+     10.12,
+     20.94,
+     13.96
+    ],
+    "tx_frames_per_s": 1191,
+    "passes": 526017,
+    "block_reads": 530073,
+    "block_reads_empty": 499834,
+    "tcp_retrans_segs": {
+     "before": 0,
+     "after": 16
+    }
+   },
+   "qos": {
+    "tx_qos": 52739,
+    "tx_tid_refused": 0,
+    "rx_qos": 45498,
+    "rx_refused": 0,
+    "rx_llc_mis": 11
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "dropped_full": 0,
+    "tx_failed": 0
+   },
+   "reading": "HIF section 38: the interrupt sources arm cleanly (WHIER 0 to 0x7, WHLPCR INT_EN set) and the line is never taken in a clean data phase; recorded and not chased; boot AB waits on it"
   }
  }
 }
