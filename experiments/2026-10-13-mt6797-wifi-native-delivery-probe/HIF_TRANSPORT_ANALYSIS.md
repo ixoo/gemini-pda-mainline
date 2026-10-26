@@ -6900,3 +6900,50 @@ transmits in band, the gate is measuring the hour rather than either
 image. The pair is then read on transmit alone: AE′ (15.43/15.20/14.92,
 no failed send) against the control. If the control's transmit is not
 in band, nothing is concluded.
+
+### Boot AI result (2026-10-26, 17:32 UTC): the control refuses the same software frames and transmits the same; aggregation does not collapse transmit on this air
+
+AF's image (build `db2b7733`), boot2 `220a431b…` (written back over
+AE′'s `850638d0…` and read back in full), mainline boot `882ddf5f…`.
+The lifecycle harness ran three lifetimes, one chunk each. Graded
+`all_pass`, `session_exit=0`. The reviewed return reached Gemian
+`7c247ff2…`, live identity confirmed. The control's data phases
+started about 5 minutes after AE′'s (17:27 → 17:32 UTC endpoints).
+
+**The gate, under the amendment.** The control refused 270, 287 and
+285 software frames per data phase (none QoS). Of the 192 logged, 160
+are the 728-byte class and 32 the 690-byte one: the same as AE′, with
+aggregation off. The gate measures the hour, not either image, so the
+pair is read on transmit.
+
+| Lifetime | AE′ TX (agg on) | Control TX (agg off) | AE′ RX | Control RX | Credit wait max, AE′ / control |
+|---|---|---|---|---|---|
+| 1 | 15.43 | 15.83 | 13.53 | 8.83 | 31.9 / 16.7 ms |
+| 2 | 15.20 | 14.22 | 11.65 | 8.07 | 41.7 / 18.3 ms |
+| 3 | 14.92 | 14.64 | 11.49 | 8.47 | 48.0 / 19.1 ms |
+| mean | 15.18 | 14.90 | 12.22 | 8.46 | — |
+
+- *Observed: transmit is the same with receive aggregation active.*
+  The means are 15.18 against 14.90 Mbit/s. No transmit status failed
+  in either run, and every chunk reached its 1 MiB cap. AE's collapse
+  did not recur with aggregation on, on the same air, five minutes
+  apart.
+- *Observed: the credit wait maximum roughly doubles with aggregation
+  on* (32–48 against 17–19 ms) while the rate holds. AE′'s worker was
+  15–20 % busy.
+- *Observed: receive is higher with aggregation on even in the 1 s
+  chunk:* 12.22 against 8.46 Mbit/s (+44 %). That is against §55's
+  expectation that this harness's receive chunk could not show the
+  gain.
+- *Against the letter of §55:* the control's lifetimes 2 and 3
+  (14.22, 14.64) sit just under the 15 Mbit/s "in band" line, as does
+  AE′'s lifetime 3. The air ran about 15 Mbit/s for both images. The
+  pair is the same air for both, and it shows no transmit difference.
+  It does not meet the absolute band §55 set.
+
+**Reading.** The table's third row in substance: AE's collapse was the
+air, not receive aggregation, and the window is proven. The pair was
+not run in the band §55 named, so taking receive aggregation as a
+result is the owner's decision. Until then `CONFIG_MT6797_RX_AMPDU`
+stays as the fragment has it for AE′ (on, with the cost line) and is
+not recorded as support.

@@ -1,4 +1,13 @@
-# Current: boot AH (AE′) discarded by §55's software-frame gate (268 refusals in the first data phase); transmit did not collapse, recorded only; the control not staged
+# Current: the short pair read on transmit (boots AH and AI): transmit 15.18 with receive aggregation against 14.90 without, on the same air; receive 12.22 against 8.46; the owner decides on taking receive aggregation
+
+[Boot AI](HIF_TRANSPORT_ANALYSIS.md#boot-ai-result-2026-10-26-1732-utc-the-control-refuses-the-same-software-frames-and-transmits-the-same-aggregation-does-not-collapse-transmit-on-this-air):
+both runs refused the same software-frame class, so the gate measured
+the hour. AE's collapse did not recur. Both images ran at about
+15 Mbit/s, just under §55's band. The device is on Gemian
+(`7c247ff2…`); boot2 holds AF's `220a431b…`. The fragment still
+enables both options for AE′.
+
+# Historical: boot AH (AE′) discarded by §55's software-frame gate (268 refusals in the first data phase); transmit did not collapse, recorded only; the control not staged
 
 [Boot AH](HIF_TRANSPORT_ANALYSIS.md#boot-ah-result-2026-10-26-1727-utc-ae-discarded-by-the-software-frame-gate-transmit-did-not-collapse):
 `all_pass`. Three lifetimes ran TX 15.43/15.20/14.92 with no failed
