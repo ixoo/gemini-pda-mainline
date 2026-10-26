@@ -1,0 +1,96 @@
+From 8a23127ea1b33f8ce50816ea469a34209cdd9380 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 07:03:55 -0400
+Subject: [PATCH] wifi: mt6797: add a one-shot diagnostic that drops an
+ association response
+
+0304 admits a second authentication and association attempt, so a lost
+association response no longer ends the lifetime as it did in boot AA2.
+That is shown only by the host test: in every boot since, each join
+needed one attempt, so the retry has never run on hardware.
+
+CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME names one lifetime (1 is
+the boot's first). In that lifetime the first association response
+received is logged and discarded before the driver records it or
+mac80211 sees it, once per boot. mac80211 then times out and retries
+the association request, which 0304 must admit. The default 0 compiles
+the drop out.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig | 13 ++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 22 ++++++++++++++++++++
+ 2 files changed, 35 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index c0288acca..9f0195b7f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -109,6 +109,19 @@ config MT6797_HIF_RX_IRQ
+ 	  cadence stays as the fallback, so a missed interrupt costs only
+ 	  latency. Without the interrupt in the device tree nothing changes.
+ 
++config MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
++	int "MT6797 Wi-Fi diagnostic: drop the first association response of one lifetime"
++	depends on MT6797_STATION_JOIN
++	range 0 3
++	default 0
++	help
++	  A hardware test of the bounded association retry. In the lifetime
++	  with this number (1 is the boot's first), the first association
++	  response received is logged and discarded before the driver or
++	  mac80211 sees it, once per boot. mac80211 then retries the
++	  association request, which the retry admission must accept. 0
++	  disables it; a diagnostic, never for normal use.
++
+ config MT6797_RX_RATE_RECORD
+ 	bool "MT6797 Wi-Fi: record the received rate word (logging only)"
+ 	help
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index e9d1fc997..77866df16 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -212,6 +212,13 @@ struct mt6797_ccmp_observation {
+ };
+ #endif
+ 
++/* The lifetime whose first association response the diagnostic drops (0313). */
++#ifdef CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
++#define MT6797_DIAG_DROP_LIFETIME CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
++#else
++#define MT6797_DIAG_DROP_LIFETIME 0
++#endif
++
+ struct mt6797_mac {
+ 	struct mt6797_hif *hif;
+ 	struct mt6797_snapshot *snapshot;
+@@ -279,6 +286,9 @@ struct mt6797_mac {
+ 	/* The scan requests of a lifetime, timed from its rearm (0312). */
+ 	u64 scan_rearm_ns;
+ 	unsigned int scan_calls;
++#if MT6797_DIAG_DROP_LIFETIME
++	bool diag_assoc_dropped;
++#endif
+ #ifdef CONFIG_MT6797_TX_BACKPRESSURE
+ 	/* mac80211's queues stopped while the data queue is at its bound (0282). */
+ 	bool tx_queues_stopped;
+@@ -5461,6 +5471,18 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 					 "one-shot WLAN join RX: subtype=11 status=%u\n",
+ 					 get_unaligned_le16(body + 28));
+ 			} else if (frame.subtype == 1) {
++#if MT6797_DIAG_DROP_LIFETIME
++				/* Diagnostic: lose this lifetime's first response (0313). */
++				if (mac->join_lifetimes == MT6797_DIAG_DROP_LIFETIME &&
++				    !mac->diag_assoc_dropped) {
++					mac->diag_assoc_dropped = true;
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join RX dropped (diagnostic): subtype=1 lifetime=%u status=%u attempts=%u\n",
++						 mac->join_lifetimes, get_unaligned_le16(body + 26),
++						 mac->join_assoc_attempts);
++					continue;
++				}
++#endif
+ 				if (!(mac->join_submitted & BIT(0)) || mac->join_assoc_received) {
+ 					ret = -EPROTO;
+ 					goto failed;
+-- 
+2.43.0
+

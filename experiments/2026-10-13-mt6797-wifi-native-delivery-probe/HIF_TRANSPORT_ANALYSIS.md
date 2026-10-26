@@ -5830,6 +5830,20 @@ data-phase arm is unchanged.
   firmware's mask is set by an initialization command. That is a
   question for the RE VM and the firmware image, not for a boot.
 
-The patch is written and shown for review after §44 runs. The AHB
-variant's CCCR `IENx` lead (§42) stays recorded; it is not this boot's
-variable.
+The patch is written and shown for review after the second reconnect
+gate. The AHB variant's CCCR `IENx` lead (§42) stays recorded; it is
+not this boot's variable.
+
+**The two outcomes, stated for the support row (owner, 2026-10-26).**
+`taken > 0` closes the interrupt line's host side. `taken = 0` closes
+the interrupt line for this configuration altogether. The support row
+then says so, and no further boots are spent on it.
+
+**On the CCCR lead (2026-10-26).** The owner read
+`sdio_bus_driver.c` as belonging to a real-SDIO variant. The pinned
+tree builds it as part of the AHB variant for this chip: the gen3
+Makefile sets `HIF_DIR := os/linux/hif/ahb_sdioLike/` for
+`WLAN_CHIP_ID MT6797` and builds `$(HIF_DIR)sdio_bus_driver.o`, and
+`ahb_sdioLike/ahb.c:354` calls `sdio_open()` under
+`#if defined(MT6797)`. The lead is kept here, with that evidence. The
+support row names only the testable ordering item.

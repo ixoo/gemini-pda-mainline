@@ -573,10 +573,61 @@ no `join stopped`, no `-90` and no refused batch transfer. The batch
 counted `failures=0` and `window_505_508=0` in all three lifetimes, and
 `max_bytes=25,600`.
 
-**Not exercised.** One authentication and one association attempt per
-lifetime, so 0304's retry was not needed. A lost management frame on a
-rejoin is still untested on hardware. Before the authentication of
+**The remaining second, decomposed (owner, 2026-10-26).**
+
+| | Cycle 1 → 2 (clean disconnect) | Cycle 2 → 3 (the loss) |
+|---|---|---|
+| data end → rearm | 22.139 → 22.259 (0.12 s) | 389.531 → 389.647 (0.12 s) |
+| rearm → scan admitted | 0.917 s (23.176) | 0.885 s (390.532) |
+| scan dwell (firmware timing) | 0.543 s | 0.527 s |
+| grant and peer | about 0.10 s | about 0.10 s |
+| authentication and association | about 0.08 s | about 0.08 s |
+| association response → group key | 0.20 s | 0.26 s |
+
+The same ~0.9 s between the rearm and the scan's admission follows a
+clean disconnect, so it is a delay on the reconnect path itself, not a
+cost of the loss. The hook admits one scan per lifetime and schedules
+its work at once. So the gap is either the supplicant or mac80211
+deferring the scan request, or the hook refusing it silently (not
+ready, busy, or a request that is not a one-channel passive broadcast
+scan) and the supplicant retrying. 0312 records every request with its
+time since the rearm and the refusing predicate, which settles it.
+
+**Not exercised, stated plainly.** One authentication and one
+association attempt per lifetime, as in every boot since 0304. Its
+protection against boot AA2's failure, a lost association response
+turning a join into a dead lifetime, is a host-test claim only. It has
+not run on hardware. 0313 makes it a hardware result. A lost
+management frame on a rejoin is therefore also untested. Before the authentication of
 lifetime 3, one EAPOL-shaped packet was refused at `rxd-byte4`
 (`candidate=0`), before any association, as on earlier joins. A radio
 that vanishes and returns, as opposed to an access-point
 disassociation, is still untested.
+
+## Reconnect gate 2 (predeclared, 2026-10-26): the rejoin's scan delay named, 0304 on hardware, the classifier fix proved
+
+The reconnect gate's harness and access-point loss, with three
+additions:
+
+- *0312* records every scan request of a lifetime, timed from the
+  rearm, with the refusing predicate.
+- *0313,* with `CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME=3`, drops
+  the first association response of lifetime 3, the rejoin after the
+  loss, once.
+- *The lifecycle classifier* takes its cycles and loss cycle from the
+  prepared plan when the session calls it positionally.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| a scan request refused before the admission (`why=` not `admitted`) | the hook's refusal is the ~0.9 s | admit that request shape or state: about a second off every reconnect |
+| the first request arrives about 0.9 s after the rearm and is admitted | the delay is the supplicant's or mac80211's scan scheduling | record it as stack policy; nothing to fix in the driver |
+| `join RX dropped (diagnostic): subtype=1 lifetime=3`, then `join prepare: subtype=0 … assoc_attempts=1 admitted=1` and a completed join | 0304 absorbs a lost association response on hardware | the §44 row "a lost management frame on a rejoin" is closed |
+| the drop, then `join stopped` | 0304 does not cover the hardware sequence | fix before anything else |
+
+**Requirements.** The run passes only with `session_exit=0` from the
+in-session classification itself (`lifecycle_pass=true` with
+`cycles=3 loss_cycle=2` in the session's record, not a regrade). The
+ledger matches the reconnect gate: `tx_failed=0`, slot summaries with
+nothing pending, no `-90`, and `window_505_508` counted. Lifetime 3's
+join takes one association timeout longer than the gate's (the
+dropped response), and its reconnect time is read with that.

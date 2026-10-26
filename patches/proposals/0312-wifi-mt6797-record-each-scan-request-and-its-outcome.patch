@@ -1,0 +1,117 @@
+From e5d23ac0c52159d9325d44f25bf11931aba08f05 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 07:02:58 -0400
+Subject: [PATCH] wifi: mt6797: record each scan request and its outcome
+
+After both the access point's loss and a clean disconnect, the scan
+that opens the next lifetime was admitted about 0.9 s after the rearm
+(0.885 s and 0.917 s in the reconnect gate), the largest single delay
+in the rejoin. The hook admits one scan per lifetime and starts it at
+once, but it refuses a request silently: a lifetime not yet ready, a
+scan already used (-EBUSY), or a request that is not a one-channel
+broadcast passive scan (-EOPNOTSUPP). The supplicant answers a refusal
+by retrying later.
+
+Each request of a lifetime, up to eight, now prints its ordinal, the
+milliseconds since the lifetime's rearm, the return value, the
+predicate that decided it and the request's SSID count, channel count
+and flags. A refusal before the admission shows whether the delay is
+the hook's; a first request arriving about 0.9 s after the rearm shows
+it is the supplicant's or mac80211's.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 30 ++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 59efb3a86..e9d1fc997 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -276,6 +276,9 @@ struct mt6797_mac {
+ 	 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
+ 	 */
+ 	unsigned int join_auth_attempts, join_assoc_attempts;
++	/* The scan requests of a lifetime, timed from its rearm (0312). */
++	u64 scan_rearm_ns;
++	unsigned int scan_calls;
+ #ifdef CONFIG_MT6797_TX_BACKPRESSURE
+ 	/* mac80211's queues stopped while the data queue is at its bound (0282). */
+ 	bool tx_queues_stopped;
+@@ -2313,6 +2316,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_queue_bytes = 0;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	mac->join_retired = false;
++	mac->scan_rearm_ns = ktime_get_ns();
++	mac->scan_calls = 0;
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join rearm: lifetime=%u token=%u sta_seq=%u sequence=%u\n",
+ 		 mac->join_lifetimes, mac->join_channel_token, mac->join_sta_sequence,
+@@ -5698,17 +5703,24 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	u8 payload[MT6797_PASSIVE_SCAN_BYTES], bss[12];
+ 	u8 broadcast[4] = {8, 0, 0, 0};
+ 	int ret = -EOPNOTSUPP, slot;
++	const char *why = "admitted";
+ 
+ 	mutex_lock(&mac->mutex);
++	mac->scan_calls++;
+ 	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
+-	    mac->closing || mac->first_error || mac->join_closed)
++	    mac->closing || mac->first_error || mac->join_closed) {
++		why = !mac->scan_ready ? "not-ready" : !mac->started ? "not-started" :
++		      mac->vif != vif ? "vif" : mac->closing ? "closing" :
++		      mac->first_error ? "error" : "closed";
+ 		goto out;
++	}
+ 	/* One scan per lifetime: a request while this lifetime's scan is live
+ 	 * or still awaiting its join is busy, not a submission fault. mac80211
+ 	 * reports it and the supplicant retries.
+ 	 */
+ 	if (mac->scan_used) {
+ 		ret = -EBUSY;
++		why = "busy";
+ 		goto out;
+ 	}
+ 	/* mac80211 may append supported-rate IEs internally. There are no
+@@ -5723,8 +5735,11 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	    request->req.duration_mandatory || request->req.scan_6ghz ||
+ 	    request->req.n_6ghz_params ||
+ 	    !is_broadcast_ether_addr(request->req.bssid) ||
+-	    request->req.n_channels != 1)
++	    request->req.n_channels != 1) {
++		why = "shape";
+ 		goto out;
++	}
++	why = "channel";
+ 	for (i = 0; i < request->req.n_channels; i++) {
+ 		channel = request->req.channels[i];
+ 		if (!channel)
+@@ -5739,6 +5754,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		channels[i] = channel->hw_value;
+ 		mask |= BIT(slot);
+ 	}
++	why = "submit";
+ 	ret = mt6797_scan_request(1, channels, request->req.n_channels, payload);
+ 	if (ret)
+ 		goto out;
+@@ -5777,9 +5793,19 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	mac->scan_count = request->req.n_channels;
+ 	mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC;
+ 	mac->scan_active = true;
++	why = "admitted";
+ 	dev_info(wiphy_dev(hw->wiphy), "one-shot passive WLAN scan: admitted=1\n");
+ 	schedule_delayed_work(&mac->scan_work, 0);
+ out:
++	/* Every request of a lifetime, up to eight, with its outcome (0312). */
++	if (mac->scan_calls <= 8)
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot passive WLAN scan request: call=%u since_rearm_ms=%llu ret=%d why=%s n_ssids=%u n_channels=%u flags=0x%x\n",
++			 mac->scan_calls,
++			 mac->scan_rearm_ns ?
++			 (ktime_get_ns() - mac->scan_rearm_ns) / NSEC_PER_MSEC : 0,
++			 ret, why, request->req.n_ssids, request->req.n_channels,
++			 request->req.flags);
+ 	if (ret && ret != -EBUSY && mac->scan_used)
+ 		dev_err(wiphy_dev(hw->wiphy),
+ 			"one-shot passive WLAN submission stopped: status=%d\n", ret);
+-- 
+2.43.0
+

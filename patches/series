@@ -911,3 +911,5 @@ proposals/0308-wifi-mt6797-arm-the-vendor-s-default-WHIER-less-the-.patch
 proposals/0309-wifi-mt6797-sample-the-HIF-line-once-in-eight-reads-.patch
 proposals/0310-wifi-mt6797-round-a-DMA-receive-before-choosing-the-.patch
 proposals/0311-wifi-mt6797-record-a-refused-receive-batch-transfer.patch
+proposals/0312-wifi-mt6797-record-each-scan-request-and-its-outcome.patch
+proposals/0313-wifi-mt6797-add-a-one-shot-diagnostic-that-drops-an-.patch
