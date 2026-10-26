@@ -5807,6 +5807,16 @@ current image. Only the measurement harness is the lifecycle one.
 | loss but no rejoin, or a `join stopped` on the rejoin | read the rejoin's scan, prepare and join records | fix that site before anything else |
 | `-90` or a refused batch transfer | 0310/0311 did not cover a case | void; the refusal line names it |
 
+**Result (2026-10-26, 02:25 UTC): the first row.** The access point's
+own loss (`reason=4`), the rearm and the rejoin. The ledger was clean
+across the loss, with no `-90`, and `window_505_508` was counted in
+every lifetime. The loss report to the group key took 1.97 s, against
+the AP-loss gate's 2.94 s. The full record is in
+[the lifecycle result](LIFECYCLE_RESULT.md#reconnect-gate-result-2026-10-26-0225-utc--the-access-points-own-loss-on-the-wmmht-tree-rejoin-with-keys-197-s-after-the-loss-report-about-a-second-faster-than-the-ap-loss-gate).
+The session's `session_exit=1` is the lifecycle classifier's two-cycle
+default; regraded with the pinned cycles, it passes. 0304's retry was
+not exercised.
+
 ## 45. The WHIER-order boot (predeclared, 2026-10-26; after §44): one variable
 
 The interrupt option is re-enabled for this boot only. WHIER is written

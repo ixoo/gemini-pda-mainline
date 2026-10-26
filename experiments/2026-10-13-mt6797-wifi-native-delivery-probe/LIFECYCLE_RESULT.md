@@ -512,3 +512,71 @@ any boot; the owner's recorded power times close the delay figures. The
 gate needs no new mechanism; a second run with the access point kept off
 for longer than the keep-alive judgement would separate the two branches
 cleanly if the configuration reading leaves them joined.
+
+## Reconnect gate: result (2026-10-26, 02:25 UTC) — the access point's own loss on the WMM/HT tree; rejoin with keys 1.97 s after the loss report, about a second faster than the AP-loss gate
+
+Boot AA7's image (build `7eeb2c26`, boot2 `e4783dff…`, verified by full
+readback and not rewritten: `skipped-already-matching`). Mainline boot
+`af1ef81f…`, returned by the session's reviewed return to Gemian
+`a031c555…` (changed-ID, confirmed). The log is complete through the
+seal. The predeclaration is
+[HIF §44](HIF_TRANSPORT_ANALYSIS.md#44-the-reconnect-gate-predeclared-2026-10-26-the-access-points-own-loss-on-the-aa7-image).
+
+**The verdict, regraded with the pinned cycles.**
+
+- *The session's own record:* `session_exit=1`, with the lifecycle
+  classifier's record showing `cycles=2 loss_cycle=None
+  lifecycle_pass=false` and a first failure at `rearms`. The AP-loss
+  gate's session recorded exactly the same (`session_exit=1`, cycles 2,
+  no loss cycle). The in-session classification runs without the plan
+  (`TP_PLAN`), so it falls back to two cycles and no loss cycle. That
+  is a harness gap, not a run failure.
+- *The same classifier on the sealed log and receipt, with the pins
+  (`cycles=3`, `loss_cycle=2`):* `lifecycle_pass=true`, every gate true
+  (rearms, lifetimes, data phases, terminals, the loss, keys removed
+  and re-added, second-cycle PN seeding, scans, no fault, receipt). The
+  receipt reads `all_pass`, `cycles_passed=3`, every cycle
+  boot-matched and acknowledged. The harness gap is fixed before the
+  next lifecycle run.
+
+**The loss.** Cycle 2's data phase ran 365.4 s and ended by
+`connection-loss`, with the firmware's monitor reporting `reason=4
+class=air` (the access point's inactivity disassociation, as in the
+AP-loss gate). The harness waited 359.1 s over 135 polls (`loss-wait`
+accepted).
+
+**The rejoin (device clock).**
+
+| Event | Time (s) |
+|---|---|
+| loss report | 389.534 |
+| rearm (after one deferred key removal) | 389.647 |
+| authentication prepared (scan done) | 391.155 |
+| association response | 391.235 |
+| message 1 admitted on `bss=1`, before activation | 391.259 |
+| activation | 391.283 |
+| message 3 delivered | 391.447 |
+| pairwise key credit | 391.475 |
+| group key credit | 391.499 |
+
+From the loss report to the group key took 1.97 s, against the AP-loss
+gate's 2.94 s. From the association response it took 0.26 s, against
+1.10 s. The predeclared figures were about 1.9–2.0 s and about 0.1 s:
+the first holds, and the second is 0.26 s because message 3 arrived
+0.16 s after the activation. Cycle 3's data phase ran 8.9 s and ended by
+the standard disconnect.
+
+**The ledger across the loss.** Every lifetime ended with
+`tx_failed=0`, and each TX slot summary (window and cleanup) had
+completions equal to allocations, with `pending=0 unowned=0`. There was
+no `join stopped`, no `-90` and no refused batch transfer. The batch
+counted `failures=0` and `window_505_508=0` in all three lifetimes, and
+`max_bytes=25,600`.
+
+**Not exercised.** One authentication and one association attempt per
+lifetime, so 0304's retry was not needed. A lost management frame on a
+rejoin is still untested on hardware. Before the authentication of
+lifetime 3, one EAPOL-shaped packet was refused at `rxd-byte4`
+(`candidate=0`), before any association, as on earlier joins. A radio
+that vanishes and returns, as opposed to an access-point
+disassociation, is still untested.

@@ -1,4 +1,16 @@
-# Current: the reconnect gate (§44) staged on boot2 (boot AA7's image, verified, not rewritten); the WHIER-order boot (§45) after it
+# Current: the reconnect gate passed (regraded with its pins; rejoin with keys 1.97 s after the loss); next: fix the lifecycle classifier's cycle default, then the WHIER-order boot (§45)
+
+[Reconnect gate](LIFECYCLE_RESULT.md#reconnect-gate-result-2026-10-26-0225-utc--the-access-points-own-loss-on-the-wmmht-tree-rejoin-with-keys-197-s-after-the-loss-report-about-a-second-faster-than-the-ap-loss-gate):
+the access point's own `reason=4` loss after 365 s, the rearm, and a
+rejoin with both keys 1.97 s after the loss report (2.94 s in the
+AP-loss gate). The ledger was clean, with no `-90` and
+`window_505_508=0` in all three lifetimes. The session's exit 1 is the
+in-session classifier running without the plan (two-cycle default),
+also present in the AP-loss gate. Regraded with `cycles=3
+loss_cycle=2`, every gate passes. 0304 was not exercised. The device is
+on Gemian (`a031c555…`); boot2 holds `e4783dff…`.
+
+# Historical: the reconnect gate (§44) staged on boot2 (boot AA7's image, verified, not rewritten); the WHIER-order boot (§45) after it
 
 The reconnect gate runs on the AP-loss gate's lifecycle harness: three
 lifetimes, one chunk each, with cycle 2 waiting for the access point's
