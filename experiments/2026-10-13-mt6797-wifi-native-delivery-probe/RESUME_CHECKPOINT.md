@@ -1,4 +1,15 @@
-# Current: boot AD, the receive-aggregation boot (§50), staged on boot2 (build f704d72a: 0317–0319, depth back to 12)
+# Current: boot AD graded; receive aggregation is established, but the firmware delivers retransmitted holes out of order and the strict PN check drops them; a driver reorder window is next; RX_AMPDU off in the profile
+
+[Boot AD](HIF_TRANSPORT_ANALYSIS.md#boot-ad-result-2026-10-26-1333-utc-the-access-point-aggregates-toward-us-the-firmware-delivers-retransmitted-holes-out-of-order-50s-second-row):
+`all_pass`. With `ucRxAmpdu=2` the firmware accepted ADDBA on TIDs 6,
+0 and 5 (window 64), and all 17,594 QoS frames were sub-frames. 341
+were refused, the logged ones all Retry sub-frames at `pn=lower`, and
+RX fell to 8.74 (TX 21.45 unchanged). Next is a bounded per-TID
+reorder window ahead of the PN check, with a timeout flush and a drop
+counter, plus refusal naming by PN for sub-frames. The device is on
+Gemian (`735dc1c6…`); boot2 holds `ffa6c506…`.
+
+# Historical: boot AD, the receive-aggregation boot (§50), staged on boot2 (build f704d72a: 0317–0319, depth back to 12)
 
 Boot2 holds `ffa6c506…`, written over boot AC's `e723ddfb…` and read
 back in full. The composer admits two config changes (depth 24→12,

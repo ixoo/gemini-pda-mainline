@@ -4137,6 +4137,67 @@
     "tx_air_losses": 0
    },
    "reading": "HIF section 48, second row: the firmware's concurrent service is the transmit limit; aggregation is the only lever; depth back to 12"
+  },
+  "boot-ad": {
+   "run": "PIO-throughput-bootad-1",
+   "session": "2026-10-26 13:33 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (0317-0319, RX_AMPDU on, depth 12)",
+   "kernel_build_commit": "f704d72af8c78ea13014fb7e11e1b03b7ec69d67",
+   "boot2_sha256": "ffa6c506e11bf4f20b31557666b374af8ed3335bb16ce0fcd35dc8369444c1b3",
+   "predecessor_boot2_sha256": "e723ddfb15477dd25ec6e0ab670db503df1c273eb0d9e5119cc7c828c284b093",
+   "previous_gemian_boot_id": "6a7f2948-e5f5-40c8-9f93-afe995ca5adf",
+   "returned_gemian_boot_id": "735dc1c6-6124-4388-b7a6-b451da92fb19",
+   "classification": "graded: all_pass; RX BA sessions established; retransmitted holes refused at pn=lower",
+   "series_row": true,
+   "rx_ba": {
+    "sessions": [
+     {
+      "tid": 6,
+      "window": 64,
+      "ssn": 2
+     },
+     {
+      "tid": 0,
+      "window": 64,
+      "ssn": 0
+     },
+     {
+      "tid": 5,
+      "window": 64,
+      "ssn": 0
+     }
+    ],
+    "frames": 17594,
+    "refused": 341,
+    "refused_qos": 338,
+    "refused_shape": "sub-frame, fc 0x4a88 (Retry), pn=lower on TID 0"
+   },
+   "throughput": {
+    "tx_aggregate_mbit_s": 21.45,
+    "tx_chunk_mbit_s": [
+     22.3,
+     22.68,
+     23.26,
+     23.48,
+     22.9
+    ],
+    "rx_aggregate_mbit_s": 8.74,
+    "rx_device_chunk_mbit_s": [
+     9.27,
+     13.93,
+     8.45,
+     7.53,
+     7.08
+    ],
+    "rx_delivered": 17783
+   },
+   "safety": {
+    "expired": 0,
+    "pid_faults": 0,
+    "left_pages": 0,
+    "tx_air_losses": 0
+   },
+   "reading": "HIF section 50, second row: the firmware delivers retransmitted holes out of order; a bounded per-TID reorder window in the driver ahead of the PN check is next; RX_AMPDU off in the profile until then"
   }
  }
 }

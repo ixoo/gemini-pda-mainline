@@ -6310,3 +6310,48 @@ profile for this boot:
 
 Transmit is predicted unchanged at ~22.6 Mbit/s, with
 `CONFIG_MT6797_TX_AMPDU` off and transmit aggregation parked.
+
+### Boot AD result (2026-10-26, 13:33 UTC): the access point aggregates toward us; the firmware delivers retransmitted holes out of order; §50's second row
+
+Build `f704d72a`, boot2 `ffa6c506…` (written over AC's `e723ddfb…`
+and read back in full). Graded `all_pass`, `session_exit=0`. The
+session's reviewed return reached Gemian `735dc1c6…` with the log
+complete.
+
+```
+join HT records: … ampdu=0x00 tx_ampdu=1 tx_ba=0 rx_ampdu=2 rx_ba=64
+RX BA start: sta=1 dialog=1 tid=6 window=64 ssn=2 timeout=0 bytes=16 count=1
+RX BA start: sta=1 dialog=1 tid=0 window=64 ssn=0 timeout=0 bytes=16 count=2
+RX BA start: sta=1 dialog=1 tid=5 window=64 ssn=0 timeout=0 bytes=16 count=3
+RX BA: active=0x61 starts=3 stops=0 frames=17594
+data qos: … rx_qos=17594 rx_nonqos=149 rx_refused=341 rx_refused_qos=338 rx_llc_mis=3
+```
+
+- *Observed: the enable works.* With `ucRxAmpdu=2`, the firmware
+  accepted the access point's ADDBA on TIDs 6, 0 and 5 (window 64) and
+  reported each as `EVENT_ID_RX_ADDBA` (16 bytes, as laid out). Every
+  QoS frame received (17,594) was a block-ack sub-frame (status
+  `0x0000`) and passed the check. No event ended the lifetime.
+- *Observed: the firmware does not reorder.* All 64 logged refusals
+  are one shape: a sub-frame (`prefix=0x0000 status=ampdu-sub+ampdu-format`)
+  with `fc=0x4a88` (QoS data, Retry set) refused at `pn=lower` on
+  TID 0's pairwise counter. These are retransmitted holes arriving after
+  higher sequence numbers, and the strict per-TID check drops each one.
+  Of 341 refusals, 338 were QoS. The other three were an 84-byte
+  `wlan=255` software-frame shape (`layout`, `prefix=0xe000`), recorded
+  and not chased.
+- *The rates:* RX fell to 8.74 Mbit/s (chunks 9.27, 13.93, 8.45, 7.53,
+  7.08) against AB2's 17.63, with 17,783 frames delivered against
+  36,628. Every lost hole stalls its TCP window. TX was unchanged at
+  21.45 (chunks 22.3–23.5), with 0 air losses.
+- *The refusal record names these "prefix"*, its first difference from
+  `0xc000`. The PN field on the same line is the real reason, and the
+  next change names sub-frames by it.
+
+**Branch taken: the second row.** Reordering is needed, and it belongs
+in the driver ahead of the PN check. That means a bounded per-TID
+window per session, from the event's window (64) and starting
+sequence, with in-order release to the existing check, a timeout flush
+and a drop counter, so a stuck window cannot stall the queue. Until it
+exists, the profile turns `CONFIG_MT6797_RX_AMPDU` off again, and
+0317–0319 stay in the series.
