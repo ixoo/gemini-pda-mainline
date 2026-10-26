@@ -1,4 +1,9 @@
-# Current: §60's 20 MHz control, boot AL (35f9d3bf), staged on boot2 (4a864d0f…); the HT40 image building (CONFIG_MT6797_HT40 on in the profile for that boot)
+# Current: §60's control (boot AL) graded: RX 19.87 in band, TX 12.29 out of band; the HT40 boot (AM, d587f977) waits on the owner's reading rule
+
+[Boot AL](HIF_TRANSPORT_ANALYSIS.md#boot-al-result-2026-10-26-2056-utc-the-20-mhz-control-receive-in-band-transmit-out-of-band).
+The device is on Gemian (`ee596b2e…`); boot2 holds AL's `4a864d0f…`.
+
+# Historical: §60's 20 MHz control, boot AL (35f9d3bf), staged on boot2 (4a864d0f…); the HT40 image building (CONFIG_MT6797_HT40 on in the profile for that boot)
 
 Gemian (`f193bfb3…`) is shut down for the owner's boot2 selection. If
 AL is in band, the HT40 boot follows.

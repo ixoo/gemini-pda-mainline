@@ -7291,3 +7291,26 @@ comparison. A software-frame burst in the control marks off-band air.
 | `sco=3`, but no `/40` rates and RX about the control's | the access point does not send us 40 MHz, or bit 15 is not the frame mode | read the association request's HT capability and the rate words before any change |
 | `/40` rates, but RX not above the control's | the host path, not the air, is the receive limit at 40 MHz | the per-phase cost line on the same image next |
 | RX falls, a stall, or TX or the ledger moves | the 40 MHz channel disturbs the pump or the receive path | revert the option |
+
+### Boot AL result (2026-10-26, 20:56 UTC): the 20 MHz control; receive in band, transmit out of band
+
+Build `35f9d3bf` (receive aggregation and the peek on, 20 MHz), boot2
+`4a864d0f…` (written over AK's `4280a8e5…` and read back in full),
+mainline boot `e15effd2…`. Five-chunk harness. Graded `all_pass`,
+`session_exit=0`. The reviewed return reached Gemian `ee596b2e…`, live
+identity confirmed.
+
+- *Receive:* 19.87 Mbit/s aggregate (chunks 14.02, 21.67, 22.30,
+  23.31, 24.32), in band. The window held 209 frames and released them
+  all, with no hole skipped and no deadline fired; 8 duplicates and 52
+  frames behind the window were dropped. The receive rates were
+  34,849 of 36,138 frames at HT MCS7 (`2/7`) and 1,121 at MCS6.
+- *Transmit:* 12.29 Mbit/s (chunks 12.57–14.38), against the band's
+  17.9. No failed transmit status. The credit wait was 8.3 ms average
+  and 187 ms maximum; no expired frame, PID fault or page left.
+- *Software frames:* a burst, 853 refusals (none QoS).
+
+**Reading against §60:** the control is out of band on transmit and in
+band on receive. 0323 changes receive only, and transmit stays at its
+fixed 20 MHz rate. Whether the pair may be read on receive alone is the
+owner's decision, taken before the HT40 boot runs.
