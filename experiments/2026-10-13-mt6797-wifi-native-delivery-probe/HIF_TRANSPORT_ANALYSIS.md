@@ -7415,3 +7415,23 @@ has been limited by the firmware's service per frame (about 0.43 ms,
 | TX not above the control's, failures and credit wait unchanged | the firmware's per-frame service is not air-bound at these rates | keep the option off; the transmit limit stays the firmware's concurrency |
 | a transmit stall, expired frames, or the ledger moves | the descriptor field is not what the firmware expects | revert the option; preserve the log |
 | receive changes beyond the air's variation | the transmit bandwidth disturbs receive | read the window and rate counters before any change |
+
+### Boot AN result (2026-10-26, 21:17 UTC): §61's control; transmit 13.50, valid for the pair; the device-side receive record lost
+
+AM's unchanged image (`d587f977`, boot2 `7533e245…`, the write skipped
+as matching), mainline boot `33866f3e…`. Five-chunk harness.
+`session_exit=1`: the receipt failed the receive direction's checks.
+The reviewed return reached Gemian `ee54858a…`, live identity
+confirmed.
+
+- *Transmit (graded for §61):* 13.50 Mbit/s (chunks 15.13, 14.25,
+  14.60, 13.75, 13.98). No failed status. Credit wait 6.6 ms average,
+  178 ms maximum; no expired frame, PID fault or page left. The
+  control is not dead, so the pair stands.
+- *Receive (recorded):* the device-side measurement output stops after
+  receive chunk 1's start, the shape AG showed, so the receipt has no
+  device count. The host sent 60.2 MB at 26.7 Mbit/s (TCP flow 26.8),
+  and the driver delivered 46,260 frames, all HT at 40 MHz (mostly
+  MCS6). The window held 3,399 frames and released them all, with no
+  hole skipped and no deadline fired.
+- *Software frames:* 875 refusals (none QoS).

@@ -1,4 +1,8 @@
-# Current: §61's control, boot AN (AM's image, no write), armed on boot2; the HT40 transmit image building (CONFIG_MT6797_HT40_TX on in the profile for that boot)
+# Current: §61's control (AN) graded: TX 13.50, valid; boot AO (HT40 transmit, 7878a677) staged on boot2 (0988dc59…)
+
+Gemian (`ee54858a…`) is shut down for the owner's boot2 selection.
+
+# Historical: §61's control, boot AN (AM's image, no write), armed on boot2; the HT40 transmit image building (CONFIG_MT6797_HT40_TX on in the profile for that boot)
 
 Gemian (`c580366e…`) is shut down for the owner's boot2 selection.
 
