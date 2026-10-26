@@ -1,4 +1,13 @@
-# Current: §55 predeclared (supersedes §54's bracket), follow-ups decided in §56: AE′ then the control under the lifecycle harness, gated on the software-frame class; awaiting approval to stage AE′
+# Current: boot AH, AE′ of the short pair (§55/§56), staged on boot2 under the lifecycle harness (build 93d2dc56)
+
+Boot2 holds `850638d0…`, written over AF's `220a431b…` and read back in
+full. The composer admits exactly `CONFIG_MT6797_RX_AMPDU` and
+`CONFIG_MT6797_PASS_COST_RECORD` (absent→y) and no tree change. The plan
+is three lifetimes, one chunk each, with no loss cycle. Gemian
+(`e166aa6e…`) is shut down for the owner's boot2 selection. The
+control (AF's image) follows.
+
+# Historical: §55 predeclared (supersedes §54's bracket), follow-ups decided in §56: AE′ then the control under the lifecycle harness, gated on the software-frame class; awaiting approval to stage AE′
 
 Three lifetimes, one 1 s / 1 MiB chunk per direction, no loss cycle.
 A run whose first data phase logs more than 8 software-frame refusals
