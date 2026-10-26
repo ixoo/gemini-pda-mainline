@@ -7597,3 +7597,22 @@ lifecycle series at its canonical place, after 0276.
 | data flows; the selector sits at a low rate (OFDM, or a low MCS) | it works and is conservative | keep the fixed rate; compare with the vendor's same-air behaviour before judging |
 | state 2 refused, or data unacknowledged (status 3, rate word 0) while the fixed frames succeed | the October defect returns on this tree | read the vendor's station-record path against our command for the fields the HT record now carries |
 | a stall, expired frames, or the ledger moves | the unforced path disturbs the pump | revert; preserve the log |
+
+### Boot AP result (2026-10-26, 21:55 UTC): §63's control; fixed MCS7 at 20 MHz with the attempts measured
+
+Build `f73f4bf6` (HT40 receive, fixed HT MCS7 at 20 MHz, 0325), boot2
+`863c01f2…` (written over AO's `0988dc59…` and read back in full),
+mainline boot `2ddd5de2…`. Five-chunk harness. Graded `all_pass`,
+`session_exit=0`. The reviewed return reached Gemian `2434157c…`, live
+identity confirmed.
+
+- *Transmit:* 12.96 Mbit/s (chunks 15.99, 13.46, 11.12, 14.13, 15.04).
+  All 659 sampled completions were status 0 at `0x0087`. No failed
+  status. Credit wait 7.1 ms average, 139 ms maximum. Ledger clean.
+- *Attempts, the first measured:* 1 = 615, 2 = 40, 3 = 4 of 659
+  (93.3 % first-attempt). This is the 20 MHz MCS7 baseline for §62 and
+  §63.
+- *Receive (recorded):* 25.75 Mbit/s (chunks 32.76, 31.45, 14.17,
+  30.77, 34.01). 50,297 of 50,757 QoS frames at MCS7 40 MHz. The 34.01
+  chunk is the best of the series.
+- *Software frames:* 961 refusals (none QoS).

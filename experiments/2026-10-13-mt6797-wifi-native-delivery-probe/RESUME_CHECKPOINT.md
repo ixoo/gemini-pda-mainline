@@ -1,4 +1,8 @@
-# Current: §63's auto-rate pair approved: the control, boot AP (f73f4bf6, fixed MCS7 at 20 MHz), staged on boot2 (863c01f2…); the auto-rate image (0277 and rate code 0) building
+# Current: §63's control (AP) graded: TX 12.96, attempts 93 % first; boot AQ (auto rate, 0c5232b9) staged on boot2 (be5a5e82…)
+
+Gemian (`2434157c…`) is shut down for the owner's boot2 selection.
+
+# Historical: §63's auto-rate pair approved: the control, boot AP (f73f4bf6, fixed MCS7 at 20 MHz), staged on boot2 (863c01f2…); the auto-rate image (0277 and rate code 0) building
 
 0277 (the state-2 station-record update) is in the lifecycle series at
 its canonical place, and the fragment sets
