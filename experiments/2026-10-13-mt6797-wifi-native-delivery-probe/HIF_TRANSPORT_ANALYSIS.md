@@ -7362,3 +7362,8 @@ ratio:
 
 Keeping the option as the result is the owner's decision. The profile
 has it on, as built for this boot.
+
+**Decision (owner, 2026-10-26): HT40 receive is taken as a result.**
+`CONFIG_MT6797_HT40` stays on in the lifecycle profile and is recorded
+as local support: receive was 1.34× the same-session 20 MHz control.
+Transmit at 40 MHz is next.
