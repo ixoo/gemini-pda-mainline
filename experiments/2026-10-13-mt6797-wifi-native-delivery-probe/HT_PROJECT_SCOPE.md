@@ -132,9 +132,11 @@ does it report success for undelivered aggregates). The design's
 measured ceiling without aggregation is about 1,950 frames a second,
 23.6 Mbit/s. The receive interrupt is next.
 
-**Boot AA3 (2026-10-26): the measured design ceiling without
-aggregation.** TX 22.6 and RX 20.5 Mbit/s aggregate, both on the fixed
-HT MCS7 rate with the depth-12 pump, the best pair in the series
+**Boots AA3/AA4 (2026-10-26): the measured design ceiling without
+aggregation, as a best case.** TX 22.6 and RX 20.5 Mbit/s aggregate,
+both on the fixed HT MCS7 rate with the depth-12 pump, the best pair in
+the series. The typical band over the clean runs (AA, AA3, AA4, AA7) is
+TX 17.9–22.6 and RX 15.4–20.5
 ([HIF §38](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row)).
 
 **Boot W's answer, and the next project (owner, 2026-10-25).** The

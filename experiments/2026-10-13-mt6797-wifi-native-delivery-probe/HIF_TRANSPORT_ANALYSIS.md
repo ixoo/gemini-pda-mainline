@@ -5699,11 +5699,17 @@ HIF RX batch: on=1 whcr=0x00000000 reads=474225 aggregates=24500 frames=37750 em
 - *Observed:* the largest aggregate was 25,600 bytes. 0307's bound was
   never approached, which is what a correct bound change looks like
   when the cause is elsewhere.
-- *The discriminator, resolved:* the window was reached in a run without
-  the probe, and only 0310 let that aggregate pass. So the AA5/AA6 stop
-  was the data path's rounding, not the pre-read probe. It was rare
-  (one aggregate in 24,500 here) and present in every boot. AA5 and AA6
-  met it and earlier boots happened not to.
+- *The discriminator, resolved in 0310's favour (owner, 2026-10-26).*
+  §43's caveat, that the probe and the fix cannot be separated, no
+  longer stands. The exact size 0310 makes safe occurred once in 43 s
+  and transferred as a 512-byte block, with the interrupt code
+  compiled out. So the fault was size-specific, and the size occurs
+  harmlessly now. One occurrence per roughly 40 s matches AA5 stopping
+  6 s into its data phase and AA6 at 15 s. It was present in every
+  boot, and earlier boots happened not to meet it.
+- *Permanent instruments:* 0310, 0311 and the `max_bytes` and
+  `window_505_508` counters stay. Each data phase gives one number for
+  whether and how often the window recurs, at no cost when it does not.
 
 **Branch taken: the first row.** 0310 is the fix. The receive stop is
 closed.
@@ -5729,12 +5735,91 @@ closed.
   and V recorded.
 - *Inference:* nothing in this boot's changes acts on these frames.
   0310 alters one aggregate size, 0311 only records, and the interrupt
-  code is compiled out. The run reads as path variance. A repeat on the
-  same image would test that, and the ceiling statement (TX ≈ 22.6,
-  RX ≈ 20.5) stands.
+  code is compiled out. The run reads as path variance.
+- *Stated plainly (owner, 2026-10-26):* AA7 is 17.94 TX (7.88 on chunk
+  1, then 19.0–23.0) and 15.42 RX. AA3 and AA4 were 22.6/20.5 and AA
+  was 22.2/16.2. Its first transmit chunk is a third of its last four,
+  so it is not "rates as AA3/AA4". No cold start is established that
+  would justify excluding chunk 1: AA4's chunk 1 was 25.2. So the
+  ceiling statement becomes a best case with a typical band. Best case:
+  TX 22.6 and RX 20.5 Mbit/s aggregate (AA3, AA4). Typical band over
+  the clean HT-MCS7 depth-12 runs (AA, AA3, AA4, AA7): TX 17.9–22.6 and
+  RX 15.4–20.5.
+- *Informational flags:* `counts_ok`, `duration_pass` and
+  `connected_lifetime_trial_pass` read false on this clean run, as on
+  every clean run since boot S. They are retained fields from earlier
+  protocols, not gates (`retained_not_gated` in the verdict), and
+  `verdict_gates` were all true. A pass is not a failure because they
+  are false.
 
 **The join, a third time.** One authentication and one association
 attempt. The first EAPOL-Key arrived with the association response (it
 was admitted 0.12 ms later, in the same pass) and was admitted on
 `bss=1` before the activation. One receive refusal, boot R's 442-byte
 software-frame class.
+
+## 44. The reconnect gate (predeclared, 2026-10-26): the access point's own loss on the AA7 image
+
+The only user-facing path untested since the WMM rewrite. It costs no
+new mechanism, and it is the first boot that can exercise 0304's retry
+admission under real loss (owner, 2026-10-26).
+
+**The run.** The lifecycle harness of the
+[AP-loss gate](LIFECYCLE_RESULT.md#ap-loss-gate-result-2026-10-25-1548-utc--three-lifetimes-the-loss-was-the-access-points-own-inactivity-disassociation-reported-as-reason-4-and-the-station-rejoined-within-2-s-of-its-rearm):
+three supplicant-driven lifetimes, one chunk per direction. Cycle 2 is
+kept connected under the harness's light periodic probes until the
+access point's own inactivity disassociation (about six minutes; no
+owner action). Cycle 3 must rejoin. The image is boot AA7's
+(`e4783dff…`, build `7eeb2c26`), which boot2 already holds, so the
+installer should report `skipped-already-matching`. The candidate is
+composed through the AA7 chain, whose composer and validator know the
+current image. Only the measurement harness is the lifecycle one.
+
+**Predicted.**
+
+- The loss is reported (`connection loss report: source=monitor
+  reason=4 class=air`). The driver ends the data phase with
+  `connection-loss`, runs the three-stage cleanup with credits
+  returned and slots retired, removes both keys and re-arms
+  (`lifetime=2`). Cycle 3 scans, joins, completes the handshake and
+  DHCP, and its data phase opens with its probes answered. The log is
+  complete through the seal.
+- The ledger is clean across the loss: every lifetime ends with
+  `expired=0 pid_faults=0 left_pages=0`. There is no `join stopped`,
+  no `-90`, and `window_505_508` is still counted, in each lifetime.
+- *Reconnect time,* now that the one-second EAPOL stall is gone. In the
+  AP-loss gate the loss report (386.695 s) was followed by the rearm
+  (386.827 s), the association response (388.531 s), message 1 refused
+  24 ms later and delivered only at 389.559 s, and the group key's
+  credit (389.635 s). That is 2.94 s from loss to group key, 1.10 s of
+  it from association response to group key. Predicted here: about
+  0.1 s from association response to group key, and about 1.9–2.0 s
+  from loss to group key, roughly a second less.
+- *A lost management frame on the rejoin* must be absorbed by 0304's
+  second attempt (`join prepare: … assoc_attempts=1 admitted=1`)
+  rather than stopping the join, the property boot AA2 showed missing.
+  This is read only if it occurs.
+
+| Reading | Meaning | Next |
+|---|---|---|
+| the loss, the rearm and the rejoin as predicted, the ledger clean, reconnect about a second faster | the reconnect path holds on the WMM/HT tree, and early M1 shortens it | the WHIER-order boot (§45) |
+| no loss within the harness's wait | the access point kept the station (its timer, or the probes) | record it; the gate is not tested |
+| loss but no rejoin, or a `join stopped` on the rejoin | read the rejoin's scan, prepare and join records | fix that site before anything else |
+| `-90` or a refused batch transfer | 0310/0311 did not cover a case | void; the refusal line names it |
+
+## 45. The WHIER-order boot (predeclared, 2026-10-26; after §44): one variable
+
+The interrupt option is re-enabled for this boot only. WHIER is written
+`0xffffff47` (the vendor `WHIER_DEFAULT`) in the start path before the
+firmware boots, in the vendor's `nicInitializeAdapter` order. The
+data-phase arm is unchanged.
+
+- *Predicted:* `taken > 0`, if the firmware's own host-interrupt mask is
+  set at its initialization from the WHIER it finds.
+- *If `taken = 0` again:* the ordering is not it either, and the
+  firmware's mask is set by an initialization command. That is a
+  question for the RE VM and the firmware image, not for a boot.
+
+The patch is written and shown for review after §44 runs. The AHB
+variant's CCCR `IENx` lead (§42) stays recorded; it is not this boot's
+variable.

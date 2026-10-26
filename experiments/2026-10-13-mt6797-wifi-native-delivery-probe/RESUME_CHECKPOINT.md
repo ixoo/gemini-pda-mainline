@@ -1,4 +1,4 @@
-# Current: boot AA7 clean (0310 fixed the receive stop; its window reached once and passed); next is the owner's call: the reconnect gate, or the WHIER-order boot
+# Current: boot AA7 clean (0310 fixed the receive stop); the reconnect gate (§44) predeclared and being prepared; the WHIER-order boot (§45) after it
 
 [Boot AA7](HIF_TRANSPORT_ANALYSIS.md#boot-aa7-result-2026-10-26-0210-utc-clean-0310s-window-was-reached-once-and-passed-the-receive-stop-is-closed):
 `all_pass`, no `-90`, `failures=0` over 24,500 aggregates, and

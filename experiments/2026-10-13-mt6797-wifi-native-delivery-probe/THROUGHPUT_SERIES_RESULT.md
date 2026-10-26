@@ -128,6 +128,12 @@ vendor control used the same laptop as the far end.
 
 ## Measurement protocol and floors (owner, 2026-10-25)
 
+**Informational flags (owner, 2026-10-26).** `counts_ok`,
+`duration_pass` and `connected_lifetime_trial_pass` are retained fields
+from earlier protocols (`retained_not_gated` in the verdict). They read
+false on clean runs; the verdict gates and `verdict_failed` decide the
+pass.
+
 **Floors.** The 1 MiB-per-chunk cap, set for the 6 Mbit/s era, ended every
 receive chunk from rx-batch-4 onward before its second (0.45–0.99 s) and
 every transmit chunk of boot E (0.91 s): those rates are rates over a
@@ -195,7 +201,8 @@ is depth 12, once.
 **Update, boot AA3 (2026-10-26).** Since boot L, HT MCS7, receive
 batching and the depth-12 pump moved both directions. The measured
 design ceiling without aggregation is now TX 22.6 and RX 20.5 Mbit/s
-aggregate, the best pair in the series
+aggregate as a best case (AA3, AA4), with a typical band over the clean
+runs (AA, AA3, AA4, AA7) of TX 17.9–22.6 and RX 15.4–20.5
 ([HIF §38](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row)).
 The figures below are boot L's.
 
