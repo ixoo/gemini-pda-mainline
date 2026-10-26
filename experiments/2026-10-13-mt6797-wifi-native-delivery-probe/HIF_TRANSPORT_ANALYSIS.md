@@ -6174,3 +6174,91 @@ TX slot summary: phase=cleanup allocations=49690 completions=49690 pending=0 uno
 - *The depth goes back to 12.* 24 is safe but bought no rate. It added
   latency and more TCP retransmissions, so the profile returns to 12.
   0316's wider range stays, so a later aggregation test can use it.
+
+## 49. Aggregation, re-read from the vendor source (2026-10-26): receive first, firmware-managed
+
+**The firmware facts** (pinned public source `59e00a91`; the owner's
+reverse engineering where marked):
+
+- *Block-ack is firmware-managed.* `CFG_M0VE_BA_TO_DRIVER` is 0, and
+  the firmware initiates the transmit ADDBA (owner). The host-side
+  ADDBA Response code is compiled out with it (`que_mgt.c:5273`
+  onward), so the vendor host never transmits an ADDBA Response. The
+  firmware answers the access point's request itself. It reports an
+  accepted receive session as the unsolicited `EVENT_ID_RX_ADDBA`
+  (0x0a), carrying the TID, the starting sequence and the window, and
+  a teardown as `EVENT_ID_RX_DELBA` (0x0b). The host only creates its
+  reorder entry (`qmHandleEventRxAddBa()` → `qmAddRxBaEntry()`) and
+  reorders in software (`qmProcessPktWithReordering()`).
+- *The host's enable is the station record.* `ucAmpduRx` defaults to
+  `FEATURE_ENABLED` (`wlan_lib.c:5360`), sent through
+  `FEATURE_OPT_IN_COMMAND()` as `ucRxAmpdu = 2` (`cnm_mem.c:919`).
+  Ours sends `ucRxAmpdu = 1` (disabled). The host-facing enable
+  commands (`CMD_ID_TX_AMPDU` 0x1F, `CMD_ID_ADDBA_REJECT` 0x20) are
+  dead code in the vendor tree and are not sent (owner).
+- *The receive classification* (`nic_rx.c:1341`, masks at
+  `nic_rx.h:434–447`). A frame with `(status & 0xFFBF) == 0` is a
+  block-ack sub-frame and goes to the reorder buffer: every flag clear
+  except bit 6, `LEN_MISMATCH`, with the inverted A-MPDU bits 14/15
+  clear. A frame with `(status & 0x07F8) == 0` is non-BA. Anything
+  else is dropped. Our gate admits only `0xc000`, the non-aggregated
+  shape.
+- *mac80211:* `mt6797_mac_ampdu_action()` returns `-EOPNOTSUPP` for
+  every action.
+
+**What this changes in the record.**
+
+- *Boot Y is not explained by the receive gate.* Its log has one
+  receive refusal (the 442-byte software-frame class) and
+  `rx_ampdu=1`. No aggregated frame reached the gate, so none was
+  dropped there. Its finding stands: the firmware reported transmit
+  aggregates delivered while the peer's TCP collapsed.
+- *The access point has never aggregated toward us.* Our station record
+  disables receive A-MPDU, so the firmware declines its ADDBA, and no
+  aggregated-status frame appears in any session.
+- *The vendor controls disagree on transmit.* Control 1 measured
+  14.59 TX / 31.54 RX, and control 2 (a day later, RSSI −54 dBm)
+  45.1 TX / 38.5 RX. Both used 1 MiB chunks, not the current
+  3 s / 16 MiB ones. So "the vendor transmits slower than we do" holds
+  only against control 1. The receive gap (vendor 31.5–38.5 against
+  our 17.6–20.5) holds against both.
+- *The owner's priority (2026-10-26):* aggregation is a receive project
+  first, with transmit aggregation set aside. That is the order here.
+  Whether transmit aggregation is closed for good rests on the
+  disagreeing controls and on boot Y's unexplained collapse, so it is
+  recorded as parked, not as disproved.
+
+**The receive project, revised to the firmware-managed model.** The
+host never answers the ADDBA itself, so the parts are these:
+
+1. *Enable:* the station record's `ucRxAmpdu = 2`, the vendor default.
+   Without it the access point never aggregates, and a receive gate
+   change alone would be inert.
+2. *The events:* handle `EVENT_ID_RX_ADDBA` and `EVENT_ID_RX_DELBA`.
+   Record the session (TID, starting sequence, window), and tell
+   mac80211 through `ieee80211_start_rx_ba_session_offl()` /
+   `ieee80211_stop_rx_ba_session_offl()`, so that mac80211's reorder
+   buffer owns the window. An unsolicited event the worker does not
+   expect must not fail the lifetime.
+3. *ampdu_action:* accept `IEEE80211_AMPDU_RX_START` / `RX_STOP` for
+   those offloaded sessions (return 0, record them), keep every
+   transmit action refused, and keep `CONFIG_MT6797_TX_AMPDU=n`.
+4. *The receive gate:* admit `(status & 0xFFBF) == 0` as a block-ack
+   sub-frame beside the existing `0xc000` shape, counting both. The
+   frames reach mac80211 with their sequence numbers for its reorder.
+   A bounded per-TID window of our own is needed only if mac80211's
+   reorder cannot see them (a translated frame without its sequence
+   control).
+
+These are one change in practice, because none of them is observable
+without the others. So the first boot carries 1–4 and reads them
+together:
+
+- the `EVENT_ID_RX_ADDBA` record;
+- the count of BA sub-frames admitted;
+- the receive rate (predicted 20.5 → about 30);
+- transmit unchanged at about 22.6, and no change in the join, the
+  refusals or the ledger.
+
+The per-frame receive cost work (a cheaper or rarer status read) stays
+behind this, not interleaved.

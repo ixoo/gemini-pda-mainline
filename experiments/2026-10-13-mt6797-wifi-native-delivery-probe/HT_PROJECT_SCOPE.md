@@ -194,3 +194,13 @@ the path to a working WMM data path needs them.
   of this scope.
 - Independent of this project: the access-point vanish-and-return test,
   the one remaining robustness item.
+
+**Firmware facts for aggregation (2026-10-26; [HIF §49](HIF_TRANSPORT_ANALYSIS.md#49-aggregation-re-read-from-the-vendor-source-2026-10-26-receive-first-firmware-managed)).**
+Block-ack is firmware-managed (`CFG_M0VE_BA_TO_DRIVER 0`), and the
+firmware initiates the transmit ADDBA. It also answers the access
+point's receive ADDBA itself and reports the session as
+`EVENT_ID_RX_ADDBA` (0x0a) / `EVENT_ID_RX_DELBA` (0x0b). The vendor
+host never sends an ADDBA Response, nor `CMD_ID_TX_AMPDU` (0x1F) or
+`CMD_ID_ADDBA_REJECT` (0x20). The host's one enable is the station
+record's `ucRxAmpdu` (vendor 2, ours 1). Do not repeat the
+transmit-side search for host knobs.

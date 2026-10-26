@@ -1,4 +1,17 @@
-# Current: boot AC graded; depth 24 fills and the rate does not move; the firmware's concurrency is the transmit limit; aggregation's firmware question is next (offline); depth back to 12
+# Current: aggregation re-read from the vendor source (§49): a receive project first, firmware-managed; the revised four parts await the owner's decision
+
+Receive A-MPDU is disabled in our own station record (`ucRxAmpdu=1`;
+vendor 2). The firmware answers the access point's ADDBA itself and
+reports `EVENT_ID_RX_ADDBA`/`DELBA` (0x0a/0x0b). The vendor host never
+sends an ADDBA Response. Boot Y saw no aggregated receive frame, so
+the receive gate does not explain it. The vendor controls disagree on
+transmit (14.6 and 45.1). Revised parts: enable `ucRxAmpdu`, handle the
+two events with mac80211's offloaded receive BA, accept RX_START/STOP,
+and admit `(status & 0xFFBF)==0` sub-frames. They are one boot, since
+none is observable alone. No code is written yet. The device is on
+Gemian (`6a7f2948…`).
+
+# Historical: boot AC graded; depth 24 fills and the rate does not move; the firmware's concurrency is the transmit limit; aggregation's firmware question is next (offline); depth back to 12
 
 [Boot AC](HIF_TRANSPORT_ANALYSIS.md#boot-ac-result-2026-10-26-1252-utc-depth-24-fills-and-the-rate-does-not-move-the-firmwares-concurrency-is-the-transmit-limit):
 `all_pass`, `inflight_max=24` with no fault, expiry or lost
