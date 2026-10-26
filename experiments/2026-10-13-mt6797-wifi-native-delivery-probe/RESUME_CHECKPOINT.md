@@ -1,4 +1,11 @@
-# Current: boot AS graded; short GI takes effect both ways, but both directions collapsed after a strong first chunk (TX 6.27, RX 13.82 against AR's 15.01/25.80); not attributed; the options off again, the profile back to AR's
+# Current: §65's auto-rate boot AT approved: 0277 back in the lifecycle series, rate code 0 and `CONFIG_MT6797_HT_STA_RECORD_FULL=y` (0328) in the fragment; building, graded on transmit against AR's 15.01
+
+The fragment returns to MCS5 at 40 MHz (`0x85`), and 0277 leaves the
+lifecycle series, after AT, unless §65's first row holds and the owner
+adopts the automatic rate. Short GI stays off. The device is on Gemian
+(`29a3a27a…`); boot2 holds AS's `5a3ae9f4…`.
+
+# Historical: boot AS graded; short GI takes effect both ways, but both directions collapsed after a strong first chunk (TX 6.27, RX 13.82 against AR's 15.01/25.80); not attributed; the options off again, the profile back to AR's
 
 [Boot AS](HIF_TRANSPORT_ANALYSIS.md#boot-as-result-2026-10-26-2247-utc-short-gi-takes-effect-both-directions-collapse-after-the-first-chunk-not-attributed).
 The device is on Gemian (`29a3a27a…`); boot2 holds AS's `5a3ae9f4…`.
