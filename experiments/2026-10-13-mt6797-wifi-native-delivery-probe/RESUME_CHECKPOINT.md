@@ -1,4 +1,13 @@
-# Current: the reconnect gate passed (regraded with its pins; rejoin with keys 1.97 s after the loss); next: fix the lifecycle classifier's cycle default, then the WHIER-order boot (§45)
+# Current: reconnect gate 2 staged on boot2 (build 1f8d19ae: the scan-request record, the association-response drop at lifetime 3, the plan-aware lifecycle classifier)
+
+Boot2 holds `425c7c56…`, written over boot AA7's `e4783dff…` and read
+back in full. The composer and validator admit exactly the drop option
+(`CONFIG_MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME` none→3). The offline
+preparation passed first. Gemian (`a031c555…`) is shut down for the
+owner's boot2 selection. The run takes about seven minutes. It passes
+only with `session_exit=0` from the in-session grading.
+
+# Historical: the reconnect gate passed (regraded with its pins; rejoin with keys 1.97 s after the loss); next: fix the lifecycle classifier's cycle default, then the WHIER-order boot (§45)
 
 [Reconnect gate](LIFECYCLE_RESULT.md#reconnect-gate-result-2026-10-26-0225-utc--the-access-points-own-loss-on-the-wmmht-tree-rejoin-with-keys-197-s-after-the-loss-report-about-a-second-faster-than-the-ap-loss-gate):
 the access point's own `reason=4` loss after 365 s, the rearm, and a
