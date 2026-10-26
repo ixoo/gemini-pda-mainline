@@ -1,15 +1,15 @@
-# Current: boot AA5 void (lifetime stopped at 6.1 s, -90 in the receive batch); early M1 confirmed; the per-pass probe halved the pass rate; next boot is the owner's call
+# Current: §40's Gemian register values unverified (aperture leftovers); boot AA6 (full WHIER 0x7fffff07, the probe 1 in 8, 0307) predeclared, under review
 
-[Boot AA5](HIF_TRANSPORT_ANALYSIS.md#boot-aa5-result-2026-10-26-0128-utc-early-m1-works-the-lifetime-stopped-at-61-s--90-in-the-receive-batch-the-probe-is-no-longer-inert-the-interrupt-half-is-void):
-the first EAPOL-Key was admitted on arrival (24.5 ms after the
-association response), so the one-second stall is gone; 0304 was not
-exercised. The worker ran 5,680 passes/s against AA4's 12,139, with one
-pending-state read per pass, and TX chunk 1 ran at 12.86. The lifetime
-stopped at 6.1 s with -90 from the batch's transfer sizing: the
-37,696-byte buffer does not cover a 512-byte-rounded aggregate. The
-interrupt half is void: WHIER 0x1e00 armed and read back, `taken=0`,
-the disarm was unreadable. The device is on Gemian (`8dbc2cc3…`); boot2
-holds `345753c1…`.
+The direct aperture is the HIF command interface, so the Gemian WHIER
+and WHCR numbers are transaction leftovers. Those reads restarted the
+device twice, and there are no further Gemian register reads. No WHISR
+bit at or above 8 appears in any session, so 0306's `0x1e00` cannot
+fire. 0308 arms the vendor default less ABNORMAL and firmware-assert
+(`0x7fffff07`; the value first given, `0xbfffff07`, withheld bit 30
+instead of 31). 0309 samples the line before one read in eight and
+logs WHISR at the first take and at disarm. 0307 bounds the receive
+batch, and 0304–0305 are validated. Under review, not built. The
+device is on Gemian (`8dbc2cc3…`); boot2 holds `345753c1…`.
 
 # Historical: boot AA5 (WHIER 0x1e00, the two-point probe, the join changes) staged on boot2
 

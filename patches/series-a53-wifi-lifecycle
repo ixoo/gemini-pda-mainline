@@ -784,3 +784,6 @@ proposals/0303-wifi-mt6797-sample-the-HIF-line-s-pending-state-arou.patch
 proposals/0304-wifi-mt6797-admit-a-second-authentication-and-associ.patch
 proposals/0305-wifi-mt6797-admit-the-first-EAPOL-Key-on-the-station.patch
 proposals/0306-wifi-mt6797-arm-the-firmware-s-software-interrupts-i.patch
+proposals/0307-wifi-mt6797-size-the-receive-batch-buffer-for-block-.patch
+proposals/0308-wifi-mt6797-arm-the-vendor-s-default-WHIER-less-the-.patch
+proposals/0309-wifi-mt6797-sample-the-HIF-line-once-in-eight-reads-.patch

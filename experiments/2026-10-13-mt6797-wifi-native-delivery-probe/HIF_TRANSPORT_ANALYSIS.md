@@ -5221,7 +5221,32 @@ frame; boot Y recorded it too. It is not a probe effect. The first EAPOL-Key aga
 second for the access point's retransmission. The fix, 0305, was
 deliberately not in this boot.
 
-## 40. The working system's interrupt registers (Gemian, 2026-10-26): WHIER is the defect
+## 40. The working system's interrupt registers (Gemian, 2026-10-26): unverified
+
+**Status (owner, 2026-10-26): the register claim is not established.**
+The Gemian values below were read through the direct aperture at
+`0x180f0000`. That aperture is the HIF's command interface, not a
+mirror of the MCR registers:
+
+- `0x180f0008` returned `0x00010000`, `0x00020000`, `0x00030000`,
+  `0x00040000` and `0x00050000` on successive reads, a counter that
+  advances by `0x10000` per access.
+- `0x180f0000` held `0x90000804`: the command setup for register 4
+  (WHLPCR), length 4.
+- `0x180f0004` held `0x101`, the last data word (INT_EN_SET with
+  FW_OWN_REQ).
+
+So "WHIER `0x1e00`" and "WHCR `0xa07f0000`" are leftovers of the last
+transactions, not register values, and no decision rests on them. The
+interrupt counts from `/proc/interrupts` and the vendor DT stand.
+Those aperture accesses are also what restarted the device twice:
+while the firmware owns the HIF, the host may touch only the
+ownership, interrupt-enable and bus-status class of registers, and
+anything else raises an abnormal interrupt, on which the vendor resets
+the chip. **No further Gemian register reads.**
+
+The original record follows, kept for the history.
+
 
 Owner reading on Gemian (vendor kernel 3.18.41+, WLAN-GEN3), read-only
 (`/proc/interrupts`, the device tree, `devmem` reads of the direct
@@ -5241,7 +5266,7 @@ aperture):
 | WHIER (`0x180f0014`) | `0x00001e00` | `0x00000007` |
 | WHCR | `0xa07f0000` | `0x00000000` |
 
-**The defect: the armed mask.** `0x1e00` enables WHISR bits 9–12, the
+**As first recorded (superseded above): the armed mask.** `0x1e00` enables WHISR bits 9–12, the
 firmware's device-to-host software interrupts, and none of the RX0,
 RX1 or TX done bits. On this configuration the firmware notifies the
 host through software interrupts, and the done bits do not drive the
@@ -5332,9 +5357,11 @@ with the log sealed complete (171,203 bytes).
   fields are the zeroed record and not readings. `taken=0 rearmed=0`.
 - `pending_before=0/721`, `pending_after=0/721`, `idle_before=0/33919`,
   `probe_errors=0`.
-- Not read: the frame-bearing count is far below the 20,000 the table
-  needs, and the disarm read nothing. The zero over 34,640 "before"
-  samples in 6 s is recorded and not graded.
+- *Inconclusive (owner, 2026-10-26):* 721 frame-bearing samples are 721
+  opportunities, not the 20,000 the table needs. This is not "the mask
+  is not the defect". The arm is verified (`whier 0x0→0x1e00`). The
+  disarm's `status=-5`, with every field 0, is the HIF already closing
+  after the lifetime stop, not evidence that WHIER was cleared.
 
 **The stop.** `join stopped: status=-90 … branch=4`, 6,098 ms into the
 data phase, with `CCMP receive observation: port=0 … status=-90` and
@@ -5355,6 +5382,17 @@ data phase, with `CCMP receive observation: port=0 … status=-90` and
   shown.
 - *Defect regardless of trigger:* the bound is the driver's. The comment
   that "only a bus failure is returned" is wrong for this case.
+- *Not a repeating wedge:* the receive caller increments
+  `rx_batch_failures` on the fill's own error before it poisons
+  (`if (error) { hif->rx_batch_failures++; goto poison; }`). So
+  `failures=1` is the terminal `-90` itself, and no `i < n` skip
+  occurred: a skipped queue would have counted again on each pass. One
+  block was refused once, and that refusal poisoned the HIF. The
+  receive observation's repeated `-90` is the poisoned state's return
+  value. The fix is the buffer bound (0307): every aggregate the length
+  and count checks admit then transfers, and its frames are verified
+  against their lengths as before. Sizing refusals are unreachable
+  after it, so no worker-side relaxation is needed.
 
 **The probe is no longer free.**
 
@@ -5367,7 +5405,97 @@ data phase, with `CCMP receive observation: port=0 … status=-90` and
   much of the 94 µs added per pass. 0306 (the firmware's software
   interrupts) cannot be excluded from one boot.
 
-**What stands.** 0305 removes the one-second EAPOL stall. 0304 was not
-exercised. 0306's WHIER value arms and reads back. The interrupt
-reading, the rates and the stop's attribution between 0306 and the
-probe are open.
+**What stands (owner, 2026-10-26).** 0304 and 0305 are validated and
+kept. The first EAPOL-Key was admitted 24 ms after the association
+response, the pairwise key followed at 15.1025 s, and there was no
+stall: the 996 ms seen in boots AA, AA3 and AA4 is gone. 0304 was not
+exercised (one attempt each). 0306's WHIER value arms and reads back.
+The interrupt reading and the rates are open.
+
+**The live lead: the firmware's HIF mode (owner, 2026-10-26).** On
+Gemian the HIF line takes about 9 interrupts a second at idle and about
+8,310 a second while receiving 20 MB (about 80 Mbit/s): one per frame or
+small burst. So the software interrupts are the data notification. Ours
+raised none with the same mask, so the remaining difference is the
+firmware-side configuration. §40's held case is now the case: Gemian's
+WHCR reads `0xa07f0000`, ours `0x00000000`.
+
+*Offline, the pinned public vendor source.*
+
+- Its WHCR writes are these. `nicSDIOInit` clears the length count
+  (`WHCR_MAX_HIF_RX_LEN_NUM`, bits 8–13) and sets it to
+  `SDIO_MAXIMUM_RX_LEN_NUM`. It clears RX-enhance (bit 16), because
+  `CFG_SDIO_RX_ENHANCE` is 0. `nicRxInitialize` sets the count to
+  `CFG_SDIO_MAX_RX_AGG_NUM` (0). At the end of `wlanAdapterStart`, after
+  firmware ready, `HAL_SET_INTR_STATUS_READ_CLEAR` clears
+  `W_INT_CLR_CTRL` (bit 1) and `HAL_SET_MAILBOX_READ_CLEAR(FALSE)`
+  clears `RECV_MAILBOX_RD_CLR_EN` (bit 2). Then `nicEnableInterrupt`
+  runs.
+- On a WHCR that reads 0, every one of those writes is a no-op, and none
+  sets bits 16–22, 29 or 31. As published, the driver does not produce
+  `0xa07f0000`.
+- So those bits are set by the firmware, by a vendor build that differs
+  from the pinned source, or they are not the mt6630 fields at all on
+  this AHB HIF.
+- One cheap discriminator before any mode change: our WHCR is read
+  through the indirect function-1 path, and Gemian's through the direct
+  aperture at `0x180f000c`. Reading both views on our side shows
+  whether the two numbers are comparable.
+
+**The throughput consequence (owner, 2026-10-26).** With the vendor's
+mask, the receive path is interrupt-driven at roughly one interrupt per
+frame: about 2,000 a second at our rates. So the wake-versus-poll
+question becomes worth measuring, but only after the line fires.
+
+**The probe's cost, for the next boot.** AA5's per-pass "before" read
+coincided with the pass rate halving (5,680/s against 12,139/s). If the
+probe is kept at that cadence, the next boot's rates are read against
+that cost, not against AA3 and AA4.
+
+## 42. Boot AA6 (predeclared, 2026-10-26): the mask taken out of the unknowns
+
+**Why not `0x1e00` (owner, 2026-10-26).** WHISR in the retained logs has
+read only `0x0`, `0x2`, `0x3` and once `0x42` (ABNORMAL with RX0 done,
+at rxbatch3's guard failure). No bit at or above 8, and so no
+device-to-host software interrupt, has been set in any of our sessions,
+so `0x1e00` enables sources this firmware never raises. Conversely,
+with `0x7` armed the enabled bits were set (`0x2`, `0x3`) for 40 s and
+the line still never fired. The defect is not a bit choice we can see.
+
+**The change.**
+
+- *0308:* arm the vendor's `WHIER_DEFAULT` (`0xffffff47`) with ABNORMAL
+  (bit 6) and the firmware-assert software interrupt (bit 31) withheld.
+  The block read fails the HIF on either, and neither is a
+  notification: `0xffffff47 & ~(BIT(6) | BIT(31)) = 0x7fffff07`. The
+  value first given, `0xbfffff07`, clears bit 30 rather than bit 31
+  and would have armed the firmware-assert source.
+- *0309:* the pending-state read now runs before one block read in
+  eight, classified by that block's frame counts, so the pass rate
+  stays near boot AA4's. The sample after the read is gone. The first
+  take prints `first take: taken= whisr=` with the WHISR word of the
+  block read in the pass the interrupt woke. The disarmed line prints
+  the last block's `whisr=` beside the counts.
+- *Also in this boot:* 0307 (the batch bound) and 0304–0305 (validated).
+
+| Reading | Meaning | Next |
+|---|---|---|
+| `taken > 0`, with `whisr` at the first take naming the source bit | the line works and the source is identified | the poll-on-wake work, with only that bit enabled |
+| `taken = 0` over ≥ 10,000 frame-bearing samples while WHISR shows `0x2`/`0x3` | an enabled bit is set and the line still does not assert | the output path or the firmware's HIF mode, never another mask; this boot closes the mask question |
+| a storm | the full mask re-asserts faster than the drain | the handler masks; record it and disarm |
+| the lifetime stops in the receive batch again | 0307 did not cover the cause | void |
+
+The rates are read against boots AA3 and AA4.
+
+**Offline item (owner, 2026-10-26).** ABNORMAL is what a host access to
+a register outside the firmware-ownership whitelist raises, and the
+block read touches WHCR, WHISR and the WTQCRs. So check whether any of
+our status reads can run while the firmware owns the HIF. That would be
+a self-inflicted abnormal path that the block read then treats as fatal.
+
+- *What is known so far:* `hif.c` never writes the WHLPCR ownership
+  bits, and every arm line read WHLPCR `0x100` (driver-own) at the start
+  of the data phase, so data-phase status reads run under driver
+  ownership.
+- *Open:* where rxbatch3's single `0x42` happened, relative to
+  ownership.

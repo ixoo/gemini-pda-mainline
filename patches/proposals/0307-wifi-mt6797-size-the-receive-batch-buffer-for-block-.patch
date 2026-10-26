@@ -1,0 +1,50 @@
+From 9dc993b013ed392c3745dcdea12579c540f6622b Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:35:17 -0400
+Subject: [PATCH] wifi: mt6797: size the receive batch buffer for block-rounded
+ transfers
+
+Boot AA5 stopped its lifetime 6.1 s into the data phase with -EMSGSIZE
+from the receive batch. The fill checks each reported length (up to
+2,352 bytes) and at most sixteen frames per queue, so an aggregate is at
+most 16 x 2,356 = 37,696 bytes, and the per-queue buffer was exactly
+that. But a transfer of 512 bytes or more moves whole 512-byte blocks,
+and mt6797_hif_transfer_size() refuses a rounded size above the
+capacity. Any aggregate above 37,376 bytes therefore rounded to 37,888,
+was refused before a bus command was issued, and returned to the
+caller, which poisons the HIF for a bus failure.
+
+Round the per-queue buffer up to whole blocks (37,888 bytes; the DMA
+bounce buffer is 40,960). Every aggregate the length and count checks
+admit now transfers. Its frames are still verified against their
+reported lengths, so an aggregate whose header disagrees is dropped and
+counted as before, and nothing else changes.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 7592d2282..d08803fb7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -40,10 +40,14 @@
+ #define MT6797_RX_SW_FRAME 0xe001U
+ #define MT6797_RX_DATA_TYPE 2U
+ 
+-/* Receive batching (0268): one queue's aggregate of sixteen maximum frames, and
+- * the enhanced status block.
++/* Receive batching (0268): one queue's aggregate of sixteen maximum frames,
++ * rounded up to the 512-byte blocks a transfer of 512 bytes or more moves
++ * (mt6797_hif_transfer_size), and the enhanced status block. Without the
++ * rounding an aggregate above 37,376 bytes is refused as -EMSGSIZE, which
++ * the caller treats as a bus failure (boot AA5) (0307).
+  */
+-#define MT6797_HIF_RX_BATCH_QUEUE_BYTES	(16U * ALIGN(MT6797_HIF_RX_MAX_PACKET + 4U, 4))
++#define MT6797_HIF_RX_BATCH_QUEUE_BYTES \
++	ALIGN(16U * ALIGN(MT6797_HIF_RX_MAX_PACKET + 4U, 4), 512)
+ #define MT6797_HIF_RX_BATCH_BLOCK_BYTES	112U
+ 
+ struct mt6797_hif {
+-- 
+2.43.0
+

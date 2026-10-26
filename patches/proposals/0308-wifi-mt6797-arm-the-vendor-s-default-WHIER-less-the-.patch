@@ -1,0 +1,97 @@
+From 558b41639a8cbc7c1db2fbd7452e203e9541ac37 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 25 Oct 2026 21:44:27 -0400
+Subject: [PATCH] wifi: mt6797: arm the vendor's default WHIER less the fatal
+ sources
+
+0306 armed WHIER 0x00001e00, a value read on Gemian through the direct
+aperture. That aperture is the HIF's command interface, not a register
+mirror: the words it returned are leftovers of the last transactions,
+not WHIER. The value has no basis. It also cannot fire here. Across
+every retained session, WHISR has read only 0x0, 0x2, 0x3 and once
+0x42, and no bit at or above 8 has ever been set, so 0x1e00 enables
+sources this firmware never raises. Conversely, with the done bits
+armed (0x7), those bits were set and the line still never fired.
+
+Arm the vendor's WHIER_DEFAULT (0xffffff47) without the abnormal source
+(bit 6) and the firmware-assert software interrupt (bit 31):
+0xffffff47 & ~(BIT(6) | BIT(31)) = 0x7fffff07.
+The status block read fails the HIF on either of those, and neither is
+a notification. Every other source the vendor arms is armed, which takes
+the mask out of the unknowns. The handler still only masks and wakes,
+and nothing else changes.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  7 +++----
+ drivers/net/wireless/mediatek/mt6797/hif.c   | 17 ++++++++---------
+ drivers/net/wireless/mediatek/mt6797/hif.h   |  6 +++---
+ 3 files changed, 14 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 8e4c11f8b..c0288acca 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -100,10 +100,9 @@ config MT6797_HIF_RX_IRQ
+ 	depends on MT6797_HIF_RX_BATCH
+ 	help
+ 	  Arm the HIF interrupt for the data phase as the vendor driver does
+-	  (WHLPCR INT_EN_SET), with the firmware's software interrupt sources
+-	  9-12 in WHIER as the vendor system runs them (not the abnormal
+-	  source, and not the done bits, which do not drive the host line
+-	  here), and use the WLAN HIF
++	  (WHLPCR INT_EN_SET), with the vendor's default WHIER sources less
++	  the abnormal and firmware-assert ones, which the status read treats
++	  as fatal, and use the WLAN HIF
+ 	  interrupt line from the device tree to wake the worker at once. The
+ 	  hard handler touches no HIF register: it masks the line and queues
+ 	  the worker, which re-arms it at the end of its pass. The polled
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index d08803fb7..ba8eab656 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -479,18 +479,17 @@ static int mt6797_hif_read32_locked(struct mt6797_hif *hif, unsigned int reg,
+ /* The vendor's interrupt registers (mt6630_reg.h): WHIER at 0x14, and
+  * WHLPCR at 0x04 whose bit 0 sets and bit 1 clears the interrupt enable
+  * (nicEnableInterrupt, nicDisableInterrupt). The armed sources are the
+- * firmware's software interrupts in WHISR bits 9-12, the value the
+- * working vendor system runs (WHIER read 0x00001e00 on Gemian, stable
+- * over six samples, with WHLPCR 0x101). On this configuration the
+- * firmware signals the host through those software interrupts; the TX
+- * and RX done bits (0-2) do not drive the host line, and with only them
+- * armed the line never fired (boots AA, AA3, AA4). The abnormal source
+- * (bit 6), which poisoned the HIF in boot 3 of 0268, stays unarmed. The
+- * worker's status block read clears the software bits (0306).
++ * vendor's WHIER_DEFAULT (0xffffff47) with the abnormal source (bit 6) and
++ * the firmware-assert software interrupt (bit 31) withheld: the status
++ * block read fails the HIF on either, and neither is a notification. The
++ * done bits alone never fired the line although WHISR showed them set
++ * (boots AA, AA3, AA4), and no WHISR bit at or above 8 has been seen in
++ * any session, so arming everything else takes the mask out of the
++ * unknowns (0308).
+  */
+ #define MT6797_HIF_WHLPCR_REG 0x04U
+ #define MT6797_HIF_WHIER_REG 0x14U
+-#define MT6797_HIF_WHIER_ARMED 0x00001e00U
++#define MT6797_HIF_WHIER_ARMED 0x7fffff07U
+ #define MT6797_HIF_WHLPCR_INT_EN_SET BIT(0)
+ #define MT6797_HIF_WHLPCR_INT_EN_CLR BIT(1)
+ /* The wrapper's line mask in the direct window (sdio.h: __enable_irq()
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index eadb4b07e..55b5d7813 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -155,9 +155,9 @@ struct mt6797_hif_irq_record {
+ 	u32 mask_before, mask_after;	/* the wrapper line mask at 0x200 (0301) */
+ };
+ 
+-/* Arm (WHIER the firmware's software interrupts 9-12, then WHLPCR
+- * INT_EN_SET) or disarm (WHLPCR INT_EN_CLR) the HIF interrupt sources; busy
+- * callers refuse.
++/* Arm (WHIER the vendor default less the abnormal and firmware-assert
++ * sources, then WHLPCR INT_EN_SET) or disarm (WHLPCR INT_EN_CLR) the HIF
++ * interrupt sources; busy callers refuse.
+  */
+ int mt6797_hif_set_interrupt(struct mt6797_hif *hif, bool enable,
+ 			     u64 deadline_ns, struct mt6797_hif_irq_record *record);
+-- 
+2.43.0
+
