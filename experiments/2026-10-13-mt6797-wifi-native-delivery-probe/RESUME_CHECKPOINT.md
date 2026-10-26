@@ -1,4 +1,9 @@
-# Current: §60's HT40 receive pair approved: AL (20 MHz, receive aggregation and the peek) first, then the HT40 image (0323)
+# Current: §60's 20 MHz control, boot AL (35f9d3bf), staged on boot2 (4a864d0f…); the HT40 image building (CONFIG_MT6797_HT40 on in the profile for that boot)
+
+Gemian (`f193bfb3…`) is shut down for the owner's boot2 selection. If
+AL is in band, the HT40 boot follows.
+
+# Historical: §60's HT40 receive pair approved: AL (20 MHz, receive aggregation and the peek) first, then the HT40 image (0323)
 
 0323 is in the series behind `CONFIG_MT6797_HT40`, off in the profile
 until the HT40 boot's build commit. The device is on Gemian
