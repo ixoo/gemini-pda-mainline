@@ -6947,3 +6947,11 @@ not run in the band §55 named, so taking receive aggregation as a
 result is the owner's decision. Until then `CONFIG_MT6797_RX_AMPDU`
 stays as the fragment has it for AE′ (on, with the cost line) and is
 not recorded as support.
+
+**Decision (owner, 2026-10-26): receive aggregation is taken as a
+result.** `CONFIG_MT6797_RX_AMPDU` stays on in the lifecycle profile.
+The per-phase cost line is off again. Receive aggregation is recorded
+as local support against the same-air pair, bounded by one hour's air
+and the short harness. Sustained aggregated throughput under the
+five-chunk harness has not been measured since AE. The next change is
+the WHISR peek.

@@ -77,6 +77,13 @@ Keep this file under 200 lines; move anything else to an experiment record.
   17.6–20.5, and our own station record disables receive A-MPDU. Block-ack is
   firmware-managed; the plan is in
   [HIF §49](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#49-aggregation-re-read-from-the-vendor-source-2026-10-26-receive-first-firmware-managed).
+  Receive aggregation is now local support (2026-10-26): the firmware's
+  block-ack sessions with a per-TID reorder window ahead of the PN check
+  ([boot AE](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ae-result-2026-10-26-1416-utc-the-window-holds-and-releases-every-frame-in-order-but-transmit-collapses-51s-fourth-row): 2,377 held frames released in order, no `pn=lower`, best
+  receive chunk 25.56 Mbit/s against the 20.5 baseline; vendor 31.5). The
+  same-air pair ([boots AH/AI](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ai-result-2026-10-26-1732-utc-the-control-refuses-the-same-software-frames-and-transmits-the-same-aggregation-does-not-collapse-transmit-on-this-air)) showed transmit unchanged with it
+  active (15.18 against 14.90 Mbit/s) and receive 44 % higher; it is on in
+  the lifecycle profile.
   Transmit aggregation is parked. Receive has no host knob of that kind: with the interrupt closed only a
   cheaper or rarer status read remains
   ([HIF analysis §47](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ab2-result-2026-10-26-1226-utc-at-normal-rates-the-host-is-not-the-transmit-limit-the-pipeline-holds-its-full-depth)). The receive

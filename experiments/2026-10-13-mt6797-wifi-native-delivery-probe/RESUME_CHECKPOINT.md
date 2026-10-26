@@ -1,4 +1,11 @@
-# Current: the short pair read on transmit (boots AH and AI): transmit 15.18 with receive aggregation against 14.90 without, on the same air; receive 12.22 against 8.46; the owner decides on taking receive aggregation
+# Current: receive aggregation taken as local support (owner decision on the AH/AI pair); RX_AMPDU on in the profile, the cost line off; the WHISR peek next
+
+Transmit was unchanged with receive aggregation active (15.18 against
+14.90 Mbit/s on the same air), receive was 44 % higher, and AE's
+window released every frame in order. The device is on Gemian
+(`7c247ff2…`); boot2 holds AF's `220a431b…`.
+
+# Historical: the short pair read on transmit (boots AH and AI): transmit 15.18 with receive aggregation against 14.90 without, on the same air; receive 12.22 against 8.46; the owner decides on taking receive aggregation
 
 [Boot AI](HIF_TRANSPORT_ANALYSIS.md#boot-ai-result-2026-10-26-1732-utc-the-control-refuses-the-same-software-frames-and-transmits-the-same-aggregation-does-not-collapse-transmit-on-this-air):
 both runs refused the same software-frame class, so the gate measured
