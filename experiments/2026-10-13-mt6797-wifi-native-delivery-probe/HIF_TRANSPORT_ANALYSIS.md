@@ -7708,3 +7708,9 @@ the PHY with no retry to remove, so it is not the next step. If any
 step is next, it is up: MCS6 at 40 MHz (`0x86`, 121.5 Mbit/s), once,
 with these attempts as its baseline. The profile keeps MCS5 at 40 MHz,
 as built for this boot, pending the owner's decision.
+
+**Decision (owner, 2026-10-26): MCS5 at 40 MHz is the documented fixed
+transmit rate.** `CONFIG_MT6797_HT40_TX=y` with
+`CONFIG_MT6797_DATA_FIXED_RATE_CODE=0x85` stays in the lifecycle profile,
+recorded as local support against boot AP's same-evening control: 1.16×,
+with fewer retries. MCS6 at 40 MHz is not tried.

@@ -88,9 +88,11 @@ Keep this file under 200 lines; move anything else to an experiment record.
   - the transmit status read (about half of each pass after the peek),
     queued as a power item that needs its own predeclaration with the
     ledger as the failure signal;
-  - 40 MHz: receive done (1.34× a same-session 20 MHz control, boot AM);
-    transmit at a fixed MCS7 ran 0.54× (boot AO) and is off; the fixed-rate
-    ladder at 40 MHz (MCS5, then MCS4) is next, then short GI and VHT;
+  - 40 MHz: done in both directions. Receive 1.34× a same-session
+    20 MHz control (boot AM); transmit at a documented fixed MCS5, 1.16×
+    a same-evening MCS7 20 MHz control with fewer retries
+    ([boot AR](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ar-result-2026-10-26-2223-utc-mcs5-at-40-mhz-transmits-116-the-mcs7-20-mhz-control-with-fewer-retries)). The firmware's automatic rate stays at 6 Mbit/s
+    (boot AQ). Short GI and VHT are next;
   - transmit aggregation, parked;
   - power management for the idle disconnect.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot

@@ -1,4 +1,10 @@
-# Current: boot AR graded; MCS5 at 40 MHz transmits 1.16× MCS7 at 20 MHz (15.01 against 12.96) with fewer retries; kept in the profile pending the owner
+# Current: 40 MHz done in both directions; transmit at a documented fixed MCS5 at 40 MHz (1.16× the MCS7 20 MHz control), receive 1.34×; the profile holds HT40, HT40 transmit, rate code 0x85, receive aggregation and the peek
+
+Next on the roadmap: short GI and VHT; the transmit status read as a
+power item; power management for the idle disconnect. The device is on
+Gemian (`e1400235…`); boot2 holds AR's `936c5e65…`.
+
+# Historical: boot AR graded; MCS5 at 40 MHz transmits 1.16× MCS7 at 20 MHz (15.01 against 12.96) with fewer retries; kept in the profile pending the owner
 
 [Boot AR](HIF_TRANSPORT_ANALYSIS.md#boot-ar-result-2026-10-26-2223-utc-mcs5-at-40-mhz-transmits-116-the-mcs7-20-mhz-control-with-fewer-retries).
 The device is on Gemian (`e1400235…`); boot2 holds AR's `936c5e65…`.
