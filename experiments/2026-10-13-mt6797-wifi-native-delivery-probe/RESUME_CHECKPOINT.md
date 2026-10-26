@@ -1,4 +1,16 @@
-# Current: boot AA7 clean (0310 fixed the receive stop); the reconnect gate (§44) predeclared and being prepared; the WHIER-order boot (§45) after it
+# Current: the reconnect gate (§44) staged on boot2 (boot AA7's image, verified, not rewritten); the WHIER-order boot (§45) after it
+
+The reconnect gate runs on the AP-loss gate's lifecycle harness: three
+lifetimes, one chunk each, with cycle 2 waiting for the access point's
+own loss. It is pinned to boot AA7's candidate, composed through the
+AA7 chain with no configuration change. Its record patterns were
+checked against boot AA7's log, and every per-lifetime record matched
+once. The plan's recorded depth is corrected to 12. The installer read
+boot2 as `e4783dff…` (`skipped-already-matching`), and Gemian
+(`fea5bf2d…`) is shut down for the owner's boot2 selection. The run
+takes about seven minutes, most of it the idle wait for the loss.
+
+# Historical: boot AA7 clean (0310 fixed the receive stop); the reconnect gate (§44) predeclared and being prepared; the WHIER-order boot (§45) after it
 
 [Boot AA7](HIF_TRANSPORT_ANALYSIS.md#boot-aa7-result-2026-10-26-0210-utc-clean-0310s-window-was-reached-once-and-passed-the-receive-stop-is-closed):
 `all_pass`, no `-90`, `failures=0` over 24,500 aggregates, and
