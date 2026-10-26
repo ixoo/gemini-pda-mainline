@@ -1,4 +1,4 @@
-# Current: boot AA6 void (-90: a 505–508-byte DMA receive refused by the transfer-size rounding); 0310 fixes it; boot AA7 predeclared, under review
+# Current: boot AA7 (the DMA receive rounding, the refused-transfer record, the interrupt option off) staged on boot2
 
 [Boot AA6](HIF_TRANSPORT_ANALYSIS.md#boot-aa6-result-2026-10-26-0152-utc-void-again-on--90-in-the-receive-batch-the-cause-is-the-transfer-size-rounding-not-the-buffer):
 transmit ran five chunks (22.8–21.0), then the lifetime stopped at the
@@ -20,7 +20,11 @@ enable is open, with three leads:
 
 The vendor's separate DMA interrupt is compiled off
 (`CONF_HIF_DMA_INT 0`). Boot AA7 (§43) is AA6 plus
-0310 and 0311 with the option off, under review and not built. The device is on Gemian
+0310 and 0311 with the option off. It is staged: build `7eeb2c26`,
+boot2 `e4783dff…` over `ccb73bae…`, written and read back in full. The
+composer and validator admit exactly one config change,
+`CONFIG_MT6797_HIF_RX_IRQ` y→unset. Gemian (`34cabf67…`) is shut down
+for the owner's boot2 selection. The device is on Gemian
 (`34cabf67…`); boot2 holds `ccb73bae…`.
 
 # Historical: boot AA6 (full WHIER 0x7fffff07, the probe 1 in 8, the batch bound) staged on boot2
