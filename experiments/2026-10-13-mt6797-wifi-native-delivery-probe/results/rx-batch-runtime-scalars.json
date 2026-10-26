@@ -3473,6 +3473,33 @@
     "tx_failed": 0
    },
    "reading": "HIF section 38: the interrupt sources arm cleanly (WHIER 0 to 0x7, WHLPCR INT_EN set) and the line is never taken in a clean data phase; recorded and not chased; boot AB waits on it"
+  },
+  "boot-aa2": {
+   "run": "PIO-throughput-bootaa2-1",
+   "session": "2026-10-26 00:38 UTC",
+   "profile": "mt6797-a53-wifi-lifecycle (boot AA + 0301)",
+   "kernel_build_commit": "82717df4d8bd737436ed711093fc66edcb2b08dd",
+   "boot2_sha256": "561e202508ba17243e51dce8c0c0f1e01e32e29eef8eb870c41ca484ab531b0e",
+   "predecessor_boot2_sha256": "6f24c213ac88676d40d1895d5502ffc282d72d746de2f8c5eb225f6f773d0557",
+   "mainline_boot_id": "3399b0a9-20af-40c9-9a20-28f1b1de1ddb",
+   "previous_gemian_boot_id": "9a690b5a-cfd2-44c2-b7d0-742426c2e851",
+   "returned_gemian_boot_id": "27ee846e-1676-4263-9b70-957cb8910e44",
+   "returned_by": "session's reviewed return",
+   "classification": "void: the association response was not received; the join stopped (-95) before the data phase",
+   "sealed_log_bytes": 148778,
+   "series_row": true,
+   "join": {
+    "auth": "completed",
+    "assoc_request": "acknowledged",
+    "assoc_response": "not received",
+    "first_eapol": "refused at predicate=association",
+    "stop": "status=-95 branch=1"
+   },
+   "hif_irq": {
+    "attached": 218,
+    "armed": false
+   },
+   "reading": "void for HIF section 38: the interrupt never reached its arming point; a first-of-series join failure, not attributable to 0301"
   }
  }
 }

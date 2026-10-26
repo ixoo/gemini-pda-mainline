@@ -1,4 +1,16 @@
-# Current: boot AA's interrupt never fired (taken=0); boot AA2 (boot AA plus 0301, the wrapper line mask unmasked) staged on boot2
+# Current: boot AA2 void (the join failed before the data phase); the same image answers §38 on a re-run
+
+[Boot AA2](HIF_TRANSPORT_ANALYSIS.md#boot-aa2-result-2026-10-26-0038-utc-void-the-join-failed-before-the-data-phase-the-interrupt-never-reached-its-arming-point):
+authentication completed and the association request was acknowledged,
+but no association response was received; the access point's first
+EAPOL-Key was refused at predicate=association and the join stopped
+(-95, branch 1) before the data phase. First such failure in the series;
+the interrupt was attached masked and never armed, so 0301 is not
+involved. Boot2 still holds the boot AA2 image (561e2025…); a re-run
+needs only a fresh measurement namespace. The device is on Gemian
+(`27ee846e…`).
+
+# Historical: boot AA's interrupt never fired (taken=0); boot AA2 (boot AA plus 0301, the wrapper line mask unmasked) staged on boot2
 
 [Boot AA](HIF_TRANSPORT_ANALYSIS.md#boot-aa-result-2026-10-26-0028-utc-the-interrupt-arms-cleanly-and-never-fires-38s-taken--0-row-stopped-there):
 attached as irq 218; armed `whier=0x00000000>0x00000007

@@ -4999,6 +4999,38 @@ The same profile as boot AA plus 0301.
 | `taken = 0` with the wrapper unmasked | the poll's read-clear: the block read clears `WHISR` about 12,500 times a second (499,834 of 530,073 empty in boot AA) before the line is latched | the next step is not another register but boot AB's design change: while armed, the receive poll runs only on a wake plus a slow (about 10 ms) fallback. That is also where the 15–25 % receive gain lives, so both outcomes converge on the same change |
 | arm or disarm `status != 0`, a mask-count warning, or any regression in refusals, ledger or frames per second | the wrapper write perturbs the path | revert |
 
+### Boot AA2 result (2026-10-26, 00:38 UTC): void, the join failed before the data phase; the interrupt never reached its arming point
+
+Build `82717df4` (boot AA plus 0301), boot2 `561e2025…` over boot AA's
+`6f24c213…`, mainline boot `3399b0a9…`, returned to Gemian `27ee846e…` by
+the session's own reviewed return (live identity checked afterwards);
+log complete through the seal (148,778 bytes). Verdict failed: no data
+phase, so nothing was measured.
+
+**What happened.**
+
+- The authentication exchange completed (`join TX: subtype=11`, done
+  status 0; `join RX: subtype=11 status=0`).
+- Our association request was sent and acknowledged (`join TX:
+  subtype=0 pid=2`, done status 0).
+- No association response was received. The access point's first
+  EAPOL-Key frame then arrived and was refused at `predicate=association`
+  (`bss=15 activated=0 bss_configured=0`), and the join stopped: `join
+  stopped: status=-95 first=-95 ... branch=1`. mac80211 retried the
+  association once and aborted when the driver had stopped.
+- The access point evidently accepted the association, since it began
+  the four-way handshake; our receive path never saw its response.
+
+This is the first such join failure in the series: no earlier boot's
+log carries `predicate=association` or a `-95` stop.
+
+**Not attributable to 0301 or the interrupt.** The interrupt was
+attached masked at registration (`attached: irq=218 status=0`) and is
+armed only at the data phase's opening, which this lifetime never
+reached. There is no `armed` line, and the wrapper mask at `0x200` was
+never written. The boot is void for §38's question; the same image
+answers it on a re-run.
+
 ## 39. Boot AB (predeclared, 2026-10-25): the receive poll on a wake, where the gain lives
 
 **The change, after boot AA shows the line fires.** While the interrupt
