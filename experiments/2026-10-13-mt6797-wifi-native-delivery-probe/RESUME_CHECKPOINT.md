@@ -1,4 +1,8 @@
-# Current: boot AU graded; the per-join surface applied every entry, but every lifetime is void by §66's software-frame gate (rx_refused 204–292 against 50); the gate or the air decides the rerun
+# Current: §67 committed: 0330, the entries-equal-cycles preflight and the six-entry seed; the air probe's rate criterion and the vendor hour dropped; the rx_refused gate is next
+
+The device is on Gemian (`c2584408…`); boot2 holds AU's `2d45a751…`.
+
+# Historical: boot AU graded; the per-join surface applied every entry, but every lifetime is void by §66's software-frame gate (rx_refused 204–292 against 50); the gate or the air decides the rerun
 
 [Boot AU](HIF_TRANSPORT_ANALYSIS.md#boot-au-result-2026-10-27-0014-utc-the-surface-applied-every-entry-every-lifetime-void-by-the-software-frame-gate).
 The stats line's reorder counts are per boot, not per lifetime; to be

@@ -8222,3 +8222,77 @@ Read with that caveat:
   waits for air without it.
 - The surface itself needs only the per-lifetime reorder differences
   before it is rerun.
+
+## 67. AU as the infrastructure result; three surface fixes; the low-rate reading corrected (2026-10-27)
+
+**AU is the infrastructure result (owner).** It ran six cycles in one
+boot:
+- the schedule was applied per join, each lifetime confirmed by its own
+  `testcfg:` line and its first data line;
+- the rate codes were visible per lifetime as scheduled (`0x85`, `0x87`,
+  `0x86`);
+- first-attempt fractions were recorded;
+- the ledger was clean;
+- the fail-safe fallback ran at the exhausted schedule.
+
+That is the surface working. The grading failure is the air, and the
+gate was right: 204–292 non-QoS refusals in every lifetime.
+
+**Fix 1: per-lifetime counters (0330).** The rearm already resets every
+count the data phase records except the block-ack session counts and the
+reorder window's counts, which ran per boot (AU's held and released
+climbed from 281 to 1189). 0330 resets them, including the per-TID
+holes, at the rearm after the teardown drop. Frames dropped at teardown
+count in no lifetime's row.
+- Every other field of the stats line was already reset per lifetime:
+  frames and bytes, rate words and attempts, `rx_refused`, the ledger,
+  and the cost per pass, which resets at the data phase start.
+- Compiles cleanly at `W=1` with the option on and off; checkpatch clean.
+- No host test: the rearm is not host-built. The next boot shows it,
+  because each row's `held` and `released` stop climbing.
+
+**Fix 2: one entry per cycle, enforced in the preflight.** The lifecycle
+prepare step reads the candidate's `kernel.config` (checked against the
+candidate receipt). For a measurement build it refuses a schedule whose
+entry count is not the pinned cycle count, and it records the schedule
+in the plan. Checked against AU's candidate, five entries for six cycles
+is refused. The driver's past-the-schedule fallback stays as the
+fail-safe. The profile's seed now names the closing control:
+`default,20M7,40M5,40M6,40M5+sgi,default`, six entries for six
+lifetimes, the control first and last (item 5).
+
+**Correction: AU's air was not slow.** The 2.10, 1.79, 1.62, 1.59, 1.79
+and 1.41 Mbit/s figures are the stats line's `tx_mbps`. That is the
+driver's bytes over the whole data phase, idle time included. Each one
+times its lifetime's data phase (9.0–12.9 s) gives 18.1–19.6 Mbit,
+which is the harness's fixed two 1 MiB transmit chunks with their
+framing. So the figure is two mebibytes divided by how long the
+association stayed up, not a link rate.
+- The harness's chunk rates for the same lifetimes were 13.4–16.9 Mbit/s
+  transmit and 19.5–32.3 receive, normal for this tree and this access
+  point.
+- The ordering 20M7 1.79 > 40M5 1.62 is the 10.3 s against the 11.7 s
+  data phase, so it carries no width or SNR signal.
+- Nothing in AU hints that HT40 transmit loses on this air. On the
+  harness's rates, 20M7 was 0.84× the 40M5 controls.
+
+The driver's Mbit/s stays in the stats line only as a cross-check. The
+harness's chunk rates are what is graded.
+
+**Held for the owner: items 2c (the air probe) and 4 (the vendor hour).**
+Both were framed on the reading corrected above.
+- *The probe's rate criterion has nothing to catch.* AU's rates were
+  usable. Its `rx_refused` criterion is what voided AU, but the class
+  was present at 204–292 in every lifetime, and at 268–304 in AH. A
+  60–120 s re-probe, three times, may never clear it. In the leaf the
+  probe would also need its own lifetime before the matrix (a seventh
+  cycle) plus up to 360 s of waits inside the shared 720 s leaf wall.
+- *The vendor hour's two outcomes assume a slow mainline.* Mainline was
+  at 13–17 / 20–32. A same-hour vendor run would still say whether
+  the vendor sees the same air. It cannot show whether the vendor
+  receives the software-frame class, which the vendor driver handles
+  without a counter we can read. Pinning Gemian to one BSSID is a radio
+  change on Gemian, outside the standing read-only inspection.
+
+**Decision (owner, 2026-10-27).** The air probe's rate criterion and the
+vendor hour are dropped. The `rx_refused` gate is decided next.
