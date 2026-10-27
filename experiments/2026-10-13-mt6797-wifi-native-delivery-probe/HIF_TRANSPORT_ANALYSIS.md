@@ -8358,3 +8358,11 @@ report a rate the frame was not sent at.
   `run-ht40-hif-test.py` (seven builds) and `run-hif-rx-batch-test.py`.
 - `build-kernel` has no W=1 switch, so the Buildbox build is the
   lifecycle profile as pinned, with the option off.
+
+**Staged (2026-10-27).** Built on Buildbox at 70f2ba83 (package inventory
+`cd4b8b2a…`), with the five-leg seed in the build and
+`CONFIG_MT6797_DATA_RATE_CONTROL` not set. Written to boot2 from Gemian
+boot `c2584408…` over AU's image (`2d45a751…`); full readback
+`12174396…` verified, clean shutdown. The lifecycle harness is pinned to
+five lifetimes, two chunks each, no loss cycle. Waiting for the owner's
+boot2 selection.
