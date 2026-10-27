@@ -8131,3 +8131,20 @@ ledger.
 which the profile has had off since boot AJ2 (§57). Every lifetime of the boot
 carries it, so in-boot comparisons are fair; against AR they are not
 like for like.
+
+**Staged (2026-10-27, 00:1x UTC).** Build `144a3e9d` (the seed in the
+built config, 0277 absent, rate `0x85`), boot2 `2d45a751…` (written over
+AT's `34a86969…` and read back in full) from Gemian `d2df3c53…`, then a
+clean shutdown. The harness widening:
+- five checks admit two to six cycles instead of two or three: prepare,
+  helper, run, adapter, and the classifier (whose `--cycles` choices
+  widen with it);
+- `derive-leaf.py` has the words FOUR to SIX;
+- the derived six-cycle leaf differs from the three-cycle one only in
+  its count words and loop bounds, and passes `bash -n`;
+- the harness's synthetic classifier and helper-argv tests pass;
+- the pins: six cycles, two chunks, no loss cycle;
+- the plan was verified, with leaf loop bound 6.
+
+AH's cycles took about 11 s each, so six of them with two chunks fit the
+shared 720 s leaf wall.

@@ -1,4 +1,9 @@
-# Current: §66 written for review: 0329 (the per-join test configuration, Level 1) and the matrix boot AU predeclared; nothing committed or built
+# Current: §66's matrix boot, AU (144a3e9d), staged on boot2 (2d45a751…); six lifecycle cycles, graded per lifetime
+
+Written over AT's `34a86969…` and read back in full. Gemian
+(`d2df3c53…`) is shut down for the owner's boot2 selection.
+
+# Historical: §66 written for review: 0329 (the per-join test configuration, Level 1) and the matrix boot AU predeclared; nothing committed or built
 
 0329 is in both series. The lifecycle fragment turns on
 `CONFIG_MT6797_WIFI_TESTCONFIG` with the seed
