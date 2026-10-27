@@ -84,15 +84,17 @@ Keep this file under 200 lines; move anything else to an experiment record.
   ([boot AJ2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-aj2-result-2026-10-26-1906-utc-the-peek-skips-97--of-passes-and-cuts-the-hif-receive-time-per-pass-by-84--the-rates-do-not-move-57s-fourth-row)). The HIF interrupt line is closed for this
   configuration. Remaining:
   - the good-air confirmation of receive aggregation, an absolute
-    number (HIF §58);
+    number (HIF §58) — partially answered by the matrix boot below;
   - the transmit status read (about half of each pass after the peek),
     queued as a power item that needs its own predeclaration with the
     ledger as the failure signal;
-  - 40 MHz: done in both directions. Receive 1.34× a same-session
-    20 MHz control (boot AM); transmit at a documented fixed MCS5, 1.16×
-    a same-evening MCS7 20 MHz control with fewer retries
-    ([boot AR](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ar-result-2026-10-26-2223-utc-mcs5-at-40-mhz-transmits-116-the-mcs7-20-mhz-control-with-fewer-retries)). The firmware's automatic rate stays at 6 Mbit/s,
-    even with the complete HT station record (boots AQ and AT). Short GI and VHT are next;
+  - 40 MHz: done in both directions, and confirmed in one boot with the
+    legs interleaved ([boot AU](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-27-the-40-mhz-matrix-graded-from-the-receipt)):
+    40 MHz MCS5 transmitted 16.2–16.9 against 20 MHz MCS7's 13.4–13.9,
+    MCS6 bought nothing, short GI was neutral, receive repeated at 28–32
+    Mbit/s. The firmware's automatic rate stays at 6 Mbit/s even with the
+    complete HT station record (boots AQ and AT), so the fixed rate stays
+    MCS5 at 40 MHz; VHT is next;
   - transmit aggregation, parked;
   - power management for the idle disconnect.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot

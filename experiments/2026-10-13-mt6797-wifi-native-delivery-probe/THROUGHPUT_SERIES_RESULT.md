@@ -294,6 +294,51 @@ The next experiment should change exactly one of those and measure against
 0.876 Mbit/s. Everything else — depth, scheduling, the idle timer — has been
 measured and is now either implemented or excluded.
 
+## Where throughput stands (2026-10-27): the 40 MHz matrix, graded from the receipt
+
+Boot AU carried six lifetimes in one boot with the per-join configuration of
+0329 (`default,20M7,40M5,40M6,40M5+sgi`), each applied at its own join and
+confirmed by its own data line. It was first recorded as void because every
+lifetime refused 204–292 software frames against a predeclared limit of 50,
+and because the driver's `testcfg stats` reported `tx_mbps` of 1.4–2.1. Both
+readings were wrong for the question: the refusal count is the firmware's
+software-frame chatter and tracked a link that moved 16–32 Mbit/s, and
+`tx_mbps` is two MiB over the data phase's length, not throughput. The
+receipt's per-lifetime measurements were valid throughout.
+
+| lifetime | configuration | transmit chunks (Mbit/s) | receive chunks (device) |
+|---|---|---|---|
+| 1 | default — 40 MHz MCS5 | 16.22, 16.58 | 31.07, 32.26 |
+| 2 | 20 MHz MCS7 | 13.41, 13.85 | 24.67, 32.26 |
+| 3 | 40 MHz MCS5 | 15.84, 16.28 | 19.51, 27.96 |
+| 4 | 40 MHz MCS6 | 16.26, 16.22 | 21.51, 28.93 |
+| 5 | 40 MHz MCS5, short GI | 16.40, 16.90 | 23.97, 28.93 |
+| 6 | default (schedule exhausted) | 16.37, 9.53 | 19.97, 29.96 |
+
+Read from that boot alone, with the legs interleaved and the control first:
+
+- **40 MHz at MCS5 transmits ~20 % faster than 20 MHz at MCS7** (16.2–16.9
+  against 13.4–13.9). This is the same-boot control that boot AR's cross-boot
+  1.16× could not provide; HT40 transmit is a real gain, not a below-band
+  artefact.
+- **MCS6 buys nothing over MCS5** (16.26/16.22 against 15.84/16.28), so the
+  fixed rate stays at MCS5.
+- **Short GI is neutral here** (16.40/16.90, receive unchanged), which supports
+  reading boot AS's collapse as air rather than guard interval.
+- **Receive repeats at 28–32 Mbit/s** in four of six lifetimes (best chunk
+  32.26 here, 38.0 in boot AT): the 40 MHz and aggregation gain is
+  reproducible, not a lucky boot.
+
+The control lifetime ran at 73 % of the 22.6 Mbit/s transmit band, so the
+absolute figures are not comparable with the 20 MHz best; the comparisons
+between lifetimes of that boot are. The rule is now explicit: grade every
+lifetime from the receipt, compare legs of one boot with each other, and use
+the standing band only to say whether a boot can be compared with the series
+at all. `grade-matrix.py` in this directory prints that table — per-lifetime
+configuration, chunk rates, rate words, refusals, and a verdict from the
+receipt — and states the control's share of the band rather than applying a
+silent threshold.
+
 ## Evidence
 
 - `artifacts/wifi-throughput-baseline-2/`, `-pump-1/`, `-depth-1/`, `-yield-1/`,
