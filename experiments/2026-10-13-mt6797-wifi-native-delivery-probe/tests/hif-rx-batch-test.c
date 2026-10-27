@@ -37,6 +37,9 @@ static void dma_free_coherent(struct device *d, size_t n, void *v, dma_addr_t p)
 { (void)d; (void)n; (void)p; free(v); }
 int mt6797_test_dma_read(void *address, unsigned int *value) { (void)address; (void)value; assert(false); return -EIO; }
 int mt6797_test_dma_write(unsigned int value, void *address) { (void)value; (void)address; assert(false); return -EIO; }
+#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+static inline void mutex_lock(struct mutex *m) { assert(!m->held); m->held = true; }
+#endif
 #include "hif.c"
 
 /* Modelled HIF window: the setup word selects a register or port; data
@@ -526,6 +529,29 @@ int main(void)
 	}
 	mt6797_hif_free(hif);
 	free(window);
+#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+	/* 13. A join's peek=0 (the measurement build): nothing waiting, the
+	 * block is read and WHISR is not; peek=1 skips it again.
+	 */
+	fresh();
+	hif = make(true);
+	{
+		unsigned int blocks = block_reads;
+
+		mt6797_hif_set_testcfg(hif, 0x85, true, false);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(block_reads == blocks + 1 && stats.peeks == 0 && stats.peek_skips == 0);
+		mt6797_hif_set_testcfg(hif, 0x85, true, true);
+		mt6797_hif_rx_batch_pass(hif);
+		assert(mt6797_hif_receive_runtime_packet(hif, 0, 1000000, out, sizeof(out), &rx) == -EAGAIN);
+		mt6797_hif_rx_batch_stats(hif, &stats);
+		assert(block_reads == blocks + 1 && stats.peeks == 1 && stats.peek_skips == 1);
+	}
+	mt6797_hif_free(hif);
+	free(window);
+#endif
 #endif
 	printf("hif-rx-batch-test: PASS (clamp, bad length, dropped aggregate, credit merge, interleavings, block abnormal, join replay, mode off)\n");
 	return 0;

@@ -22,8 +22,12 @@ pie = ["-fno-pie", "-no-pie"] if sys.platform.startswith("linux") else []
 peek = "config MT6797_HIF_RX_PEEK" in (driver / "Kconfig").read_text()
 with tempfile.TemporaryDirectory(prefix="mt6797-hif-rx-batch-") as directory:
     # Without the WHISR peek, and with it when the tree has it (0322).
-    for defines in ([], ["-DCONFIG_MT6797_HIF_RX_PEEK"])[:2 if peek else 1]:
-        binary = Path(directory) / ("test-peek" if defines else "test")
+    testcfg = "config MT6797_WIFI_TESTCONFIG" in (driver / "Kconfig").read_text()
+    runs = ([], ["-DCONFIG_MT6797_HIF_RX_PEEK"])[:2 if peek else 1]
+    # and with a join's peek turned off in the measurement build
+    runs += (["-DCONFIG_MT6797_HIF_RX_PEEK", "-DCONFIG_MT6797_WIFI_TESTCONFIG"],) if testcfg else ()
+    for defines in runs:
+        binary = Path(directory) / ("test-%d" % runs.index(defines))
         subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Werror",
                         "-DIS_ENABLED(x)=0", *defines, "-fsanitize=address,undefined",
                         *pie, "-I", str(compat), "-I", str(driver),

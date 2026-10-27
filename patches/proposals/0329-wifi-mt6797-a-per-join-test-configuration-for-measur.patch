@@ -1,0 +1,1103 @@
+From 661ecc08490e85bc45cc1091b5130deb70bbcb28 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 26 Oct 2026 19:56:13 -0400
+Subject: [PATCH] wifi: mt6797: a per-join test configuration for measurement
+ builds
+
+Each comparison of a transmit or receive variable has cost one boot:
+build, boot2 write, the owner's selection, one measured lifetime and
+the return. The lifecycle harness already cycles the association within
+one boot (disconnect, teardown, rearm, rejoin). Let each lifetime run
+its own configuration, so that one boot measures a whole matrix.
+
+CONFIG_MT6797_WIFI_TESTCONFIG adds /sys/kernel/debug/mt6797_wifi:
+- testcfg takes a comma-separated schedule. Each join takes the next
+  entry at its channel grant. An entry is items joined by '+':
+  - 20M<k> or 40M<k>: HT MCS k at that transmit width;
+  - bw=20|40;
+  - rate=fixed:0xNN;
+  - sgi[=0|1];
+  - agg=0|1: receive A-MPDU in the state-3 station record;
+  - peek=0|1: the WHISR peek;
+  - default.
+  Each entry applies over the build's configuration.
+- applied holds one line per lifetime: the entry, the resolved values
+  and their source. The same line is logged at the grant.
+- stats holds one line per lifetime, appended and logged at the data
+  phase end:
+  - frames and Mbit/s each way over the data phase;
+  - the first three sampled transmit rate words;
+  - first-attempt completions;
+  - refused receive frames;
+  - the reorder window's held, released, timeouts and holes;
+  - the worker's cost per pass;
+  - the ledger.
+- reset clears applied and stats and restarts the schedule.
+
+CONFIG_MT6797_WIFI_TESTCONFIG_SCHEDULE seeds the schedule at probe and
+logs it. One build can then carry its whole matrix, with no write from
+the device side.
+
+Only the transmit side changes. The advertised HT capability, the
+receive width and the join channel stay as built. The entry's rate
+code replaces the build's in the ordinary data descriptor (bytes 11,
+26-27). The width (byte 25) and the guard interval (byte 27 bit 7)
+follow it, at an HT40 grant and when the peer advertises short GI.
+
+The rules keep a typo or a failed lifetime from voiding a boot:
+- An empty schedule is the build throughout.
+- A refused entry is logged with its reason and keeps the previous
+  configuration.
+- A lifetime that did not end by disconnect with a clean ledger, or
+  that was never measured, is followed by one at the build's
+  configuration, and the waiting entry runs after it.
+- Rate code 0 is refused, because the firmware's selector needs the
+  state-2 record. Minstrel is refused, because ordinary data frames
+  carry no per-frame transmit status.
+
+The option also turns on the per-phase cost, transmit rate-word and
+attempt, and receive rate-word records, which lose their own prompts.
+With it off there is no debugfs directory and none of those records.
+It depends on HT40 transmit, receive aggregation, the WHISR peek and
+credit retirement. Short GI on ordinary data is compiled in when
+either CONFIG_MT6797_HT_SGI_TX or this option is set.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  46 +++-
+ drivers/net/wireless/mediatek/mt6797/Makefile |   1 +
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  63 ++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  14 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 186 +++++++++++++-
+ .../wireless/mediatek/mt6797/testcfg-parse.h  | 189 ++++++++++++++
+ .../net/wireless/mediatek/mt6797/testcfg.c    | 237 ++++++++++++++++++
+ .../net/wireless/mediatek/mt6797/testcfg.h    |  28 +++
+ 8 files changed, 739 insertions(+), 25 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/testcfg.c
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/testcfg.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index f44aa1600..e00c06ab1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -107,8 +107,38 @@ config MT6797_HIF_RX_PEEK
+ 	  firmware-assert (bit 31) bits fail the HIF here as they do in the
+ 	  block.
+ 
++config MT6797_WIFI_TESTCONFIG
++	bool "MT6797 Wi-Fi measurement build: per-join test configuration and records"
++	depends on MT6797_STATION_JOIN && DEBUG_FS && MT6797_HT40_TX && \
++		   MT6797_RX_AMPDU && MT6797_HIF_RX_PEEK && MT6797_DATA_CREDIT_RETIRE
++	help
++	  A measurement build. /sys/kernel/debug/mt6797_wifi holds testcfg, a
++	  comma-separated schedule of which each join takes the next entry,
++	  and applied and stats, one line per lifetime; writing reset clears
++	  them and starts the schedule again. An entry is items joined by
++	  '+': 20M<k> or 40M<k> (HT MCS k at that transmit width), bw=20|40,
++	  rate=fixed:0xNN, sgi[=0|1], agg=0|1 (receive A-MPDU), peek=0|1 or
++	  default, each over the build's configuration. Transmit side only:
++	  the advertised HT capability and the receive width stay as built.
++	  An empty schedule is the build throughout; a refused entry keeps the
++	  previous configuration, and a lifetime that did not end cleanly is
++	  followed by one at the build's. It also turns on the per-phase cost,
++	  transmit rate-word and attempt, and receive rate records. Off for
++	  normal use: no debugfs directory and none of those records.
++
++config MT6797_WIFI_TESTCONFIG_SCHEDULE
++	string "MT6797 Wi-Fi measurement build: the schedule at boot"
++	depends on MT6797_WIFI_TESTCONFIG
++	default ""
++	help
++	  The testcfg schedule the driver starts with, as if written before
++	  the first join, so that one build carries its whole matrix with no
++	  write from the device side. Empty is the build's configuration
++	  throughout; a schedule that does not fit is logged and left empty.
++
+ config MT6797_PASS_COST_RECORD
+-	bool "MT6797 Wi-Fi diagnostic: record the worker's cost per phase"
++	bool
++	default MT6797_WIFI_TESTCONFIG
+ 	depends on MT6797_STATION_JOIN
+ 	help
+ 	  Accumulate, for every worker pass that starts in the data phase, the
+@@ -117,7 +147,7 @@ config MT6797_PASS_COST_RECORD
+ 	  (and, within it, the time inside the HIF receive call), the
+ 	  transmit completions handed to mac80211, and the receive delivery
+ 	  to mac80211. Printed once when the data phase ends. A measurement
+-	  for the per-frame cost; off for normal use.
++	  for the per-frame cost, on with CONFIG_MT6797_WIFI_TESTCONFIG.
+ 
+ config MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
+ 	int "MT6797 Wi-Fi diagnostic: drop the first association response of one lifetime"
+@@ -133,16 +163,19 @@ config MT6797_DIAG_DROP_ASSOC_RESP_LIFETIME
+ 	  disables it; a diagnostic, never for normal use.
+ 
+ config MT6797_RX_RATE_RECORD
+-	bool "MT6797 Wi-Fi: record the received rate word (logging only)"
++	bool
++	default MT6797_WIFI_TESTCONFIG
+ 	help
+ 	  Count the receive vector's mode and rate of every queued data frame
+ 	  and print the distinct values at the data-phase end. The rate the
+ 	  access point sends toward this station, which decides whether a
+ 	  receive ceiling is the path or the station's own capability
+-	  advertisement. No behaviour changes.
++	  advertisement. No behaviour changes. On with
++	  CONFIG_MT6797_WIFI_TESTCONFIG.
+ 
+ config MT6797_TX_DONE_RATE_RECORD
+-	bool "MT6797 Wi-Fi: record the firmware rate words of the data phase (per-phase histogram)"
++	bool
++	default MT6797_WIFI_TESTCONFIG
+ 	depends on MT6797_STATION_JOIN
+ 	help
+ 	  Count every ordinary data completion by its status and the rate word
+@@ -151,7 +184,8 @@ config MT6797_TX_DONE_RATE_RECORD
+ 	  per-frame line. Says what rate the firmware sent at, within the
+ 	  sealed logger's byte cap at any chunk count. The same completions'
+ 	  attempt counts (ucTxCount) print as a second histogram, the air
+-	  retries of the sampled frames. Logging only.
++	  retries of the sampled frames. Logging only; on with
++	  CONFIG_MT6797_WIFI_TESTCONFIG.
+ 
+ config MT6797_DATA_FIXED_RATE_CODE
+ 	hex "MT6797 Wi-Fi: fixed rate code of ordinary data descriptors"
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 25cbb2521..aecbc5628 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -13,3 +13,4 @@ obj-y += firmware-probe.o
+ obj-y += record-prepare.o
+ obj-$(CONFIG_MT6797_MAC80211) += mac.o
+ obj-$(CONFIG_MT6797_MAC80211) += snapshot.o
++obj-$(CONFIG_MT6797_WIFI_TESTCONFIG) += testcfg.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index dd8294790..b4e8aa76a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -84,8 +84,13 @@ struct mt6797_hif {
+ #ifdef CONFIG_MT6797_HT40_TX
+ 	bool data_bw40;	/* under the mutex (0324) */
+ #endif
+-#ifdef CONFIG_MT6797_HT_SGI_TX
++#ifdef MT6797_DATA_SGI
+ 	bool data_sgi;	/* under the mutex (0327) */
++#endif
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	/* This join's test configuration, under the mutex. */
++	u8 data_rate;
++	bool rx_ampdu, rx_peek;
+ #endif
+ 	/* Receive batching (0268): the enhanced status block read once per
+ 	 * worker pass, the aggregated data-port read per queue it names, and
+@@ -270,9 +275,27 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
+ 		.read = mt6797_hif_read,
+ 	};
+ 	mutex_init(&hif->mutex);
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	hif->data_rate = MT6797_DATA_FIXED_RATE_CODE;
++	hif->rx_ampdu = true;
++	hif->rx_peek = true;
++#endif
+ 	return hif;
+ }
+ 
++/* The ordinary data rate code, receive A-MPDU and the WHISR peek: this
++ * join's in a measurement build, else the build's.
++ */
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++#define mt6797_hif_data_rate(hif) ((hif)->data_rate)
++#define mt6797_hif_rx_ampdu(hif) ((hif)->rx_ampdu)
++#define mt6797_hif_rx_peek(hif) ((hif)->rx_peek)
++#else
++#define mt6797_hif_data_rate(hif) ((void)(hif), MT6797_DATA_FIXED_RATE_CODE)
++#define mt6797_hif_rx_ampdu(hif) ((void)(hif), true)
++#define mt6797_hif_rx_peek(hif) ((void)(hif), true)
++#endif
++
+ void mt6797_hif_free(struct mt6797_hif *hif)
+ {
+ 	if (hif && hif->dma) {
+@@ -569,7 +592,7 @@ static int mt6797_hif_rx_batch_fill(struct mt6797_hif *hif)
+ 	int error;
+ 
+ #ifdef CONFIG_MT6797_HIF_RX_PEEK
+-	{
++	if (mt6797_hif_rx_peek(hif)) {
+ 		u32 whisr;
+ 
+ 		/* WHISR alone first (0322): its done bits are read-only and
+@@ -1463,8 +1486,10 @@ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 		 * FEATURE_OPT_CMD_ENABLED (77, 2) and the vendor's HT ucRxBaSize
+ 		 * 64 (93), as cnm_mem.c sends them.
+ 		 */
+-		payload[77] = 2;
+-		payload[93] = 64;
++		if (mt6797_hif_rx_ampdu(hif)) {
++			payload[77] = 2;
++			payload[93] = 64;
++		}
+ #endif
+ 	}
+ 	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
+@@ -1712,16 +1737,24 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 						&command);
+ 	if (error)
+ 		goto unlock;
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	/* This join's rate code over the build's: the fixed-rate bit (byte
++	 * 11) and u2FixedRate (bytes 26-27).
++	 */
++	hif->scratch[11] = hif->data_rate ? 0x80 : 0;
++	hif->scratch[26] = (hif->data_rate << 2) & 255;
++	hif->scratch[27] = (hif->data_rate << 2) >> 8;
++#endif
+ #ifdef CONFIG_MT6797_HT40_TX
+ 	/* DW6 byte 25: the fixed rate's bandwidth, FIX_BW_40 (0324). */
+-	if (hif->data_bw40 && MT6797_DATA_FIXED_RATE_CODE)
++	if (hif->data_bw40 && mt6797_hif_data_rate(hif))
+ 		hif->scratch[25] = 5;
+ #endif
+-#ifdef CONFIG_MT6797_HT_SGI_TX
++#ifdef MT6797_DATA_SGI
+ 	/* DW6 byte 27 bit 7: u2FixedRate's guard interval, for an HT mixed
+ 	 * mode fixed rate only (0327).
+ 	 */
+-	if (hif->data_sgi && ((MT6797_DATA_FIXED_RATE_CODE >> 6) & 7) == 2)
++	if (hif->data_sgi && ((mt6797_hif_data_rate(hif) >> 6) & 7) == 2)
+ 		hif->scratch[27] |= 0x80;
+ #endif
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+@@ -1742,7 +1775,7 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 	return error;
+ }
+ 
+-#ifdef CONFIG_MT6797_HT_SGI_TX
++#ifdef MT6797_DATA_SGI
+ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
+ {
+ 	if (!hif)
+@@ -1753,6 +1786,20 @@ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
+ }
+ #endif
+ 
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++void mt6797_hif_set_testcfg(struct mt6797_hif *hif, unsigned int rate, bool agg,
++			    bool peek)
++{
++	if (!hif)
++		return;
++	mutex_lock(&hif->mutex);
++	hif->data_rate = rate;
++	hif->rx_ampdu = agg;
++	hif->rx_peek = peek;
++	mutex_unlock(&hif->mutex);
++}
++#endif
++
+ #ifdef CONFIG_MT6797_HT40_TX
+ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 2243e72b8..cd818119e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -11,6 +11,13 @@
+ #include "hif_ordinary_section.h"
+ #include "normal_command.h"
+ 
++/* Short GI on ordinary data: by the peer's capability (0327), or per join
++ * in a measurement build.
++ */
++#if defined(CONFIG_MT6797_HT_SGI_TX) || defined(CONFIG_MT6797_WIFI_TESTCONFIG)
++#define MT6797_DATA_SGI
++#endif
++
+ struct mt6797_hif;
+ 
+ struct mt6797_hif_section_request {
+@@ -336,10 +343,15 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ /* Ordinary data descriptors carry the fixed-rate bandwidth FIX_BW_40 (0324). */
+ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40);
+ #endif
+-#ifdef CONFIG_MT6797_HT_SGI_TX
++#ifdef MT6797_DATA_SGI
+ /* Ordinary data descriptors with an HT fixed rate set the short GI bit (0327). */
+ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi);
+ #endif
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++/* This join's data rate code, receive A-MPDU and WHISR peek. */
++void mt6797_hif_set_testcfg(struct mt6797_hif *hif, unsigned int rate, bool agg,
++			    bool peek);
++#endif
+ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 				size_t frame_bytes, u8 wlan, u8 pid,
+ 				bool status_report,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 740429ed4..faaa5da04 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -12,6 +12,9 @@
+ #include <net/mac80211.h>
+ 
+ #include "snapshot.h"
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++#include "testcfg.h"
++#endif
+ #include "hif.h"
+ #include "mac.h"
+ #include "record-prepare.h"
+@@ -353,6 +356,15 @@ struct mt6797_mac {
+ 	u8 join_sco;
+ 	/* This lifetime's data with the short guard interval (0327). */
+ 	bool join_data_sgi;
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	/* The per-join test surface, this lifetime's configuration (applied
++	 * at its channel grant), and the data bytes the driver moved.
++	 */
++	struct mt6797_testcfg_state *testcfg;
++	struct mt6797_testcfg testcfg_now;
++	u8 testcfg_lifetime;
++	u64 testcfg_tx_bytes, testcfg_rx_bytes;
++#endif
+ 	bool join_scan_ready, join_peer_used, join_peer_ready;
+ 	bool join_auth_received, join_auth_ok, join_authenticated;
+ 	bool join_assoc_received;
+@@ -1590,6 +1602,10 @@ static void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	}
+ 	if (ready)
+ 		mac->ccmp_rx_delivered++;
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	if (ready)
++		mac->testcfg_rx_bytes += skb->len;
++#endif
+ #ifdef CONFIG_MT6797_DATA_PHASE_SERIES
+ 	if (ready && ethernet) {
+ 		u64 now = ktime_get_ns();
+@@ -2315,6 +2331,60 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	mac->ccmp_key_disables = 0;
+ }
+ 
++/* This lifetime's data width and receive A-MPDU: the build's, narrowed by
++ * the per-join test configuration in a measurement build.
++ */
++static bool __maybe_unused mt6797_mac_data_bw40(const struct mt6797_mac *mac)
++{
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	if (!mac->testcfg_now.bw40)
++		return false;
++#endif
++	return IS_ENABLED(CONFIG_MT6797_HT40_TX) && mac->join_sco == 3;
++}
++
++static bool __maybe_unused mt6797_mac_rx_ampdu(const struct mt6797_mac *mac)
++{
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	if (!mac->testcfg_now.agg)
++		return false;
++#endif
++	return IS_ENABLED(CONFIG_MT6797_RX_AMPDU);
++}
++
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++static void mt6797_mac_testcfg_build(struct mt6797_testcfg *c)
++{
++	*c = (struct mt6797_testcfg){
++		.rate = MT6797_DATA_FIXED_RATE_CODE,
++		.bw40 = true,
++		.sgi = IS_ENABLED(CONFIG_MT6797_HT_SGI_TX),
++		.agg = true,
++		.peek = true,
++	};
++}
++
++/* Once per lifetime, at its channel grant: the next schedule entry. */
++static void mt6797_mac_testcfg_apply(struct mt6797_mac *mac)
++{
++	char line[160];
++
++	if (mac->testcfg_lifetime == mac->join_lifetimes)
++		return;
++	mac->testcfg_lifetime = mac->join_lifetimes;
++	if (mac->testcfg) {
++		mt6797_testcfg_next(mac->testcfg, mac->join_lifetimes,
++				    &mac->testcfg_now, line, sizeof(line));
++	} else {
++		mt6797_mac_testcfg_build(&mac->testcfg_now);
++		strscpy(line, "no test surface: the build", sizeof(line));
++	}
++	mt6797_hif_set_testcfg(mac->hif, mac->testcfg_now.rate,
++			       mac->testcfg_now.agg, mac->testcfg_now.peek);
++	dev_info(wiphy_dev(mac->hw->wiphy), "one-shot WLAN testcfg: %s\n", line);
++}
++#endif
++
+ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ {
+ 	unsigned long flags;
+@@ -2398,6 +2468,10 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_rx_group = 0;
+ 	mac->join_data_rx_dropped = 0;
+ 	mac->ccmp_rx_delivered = 0;
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	mac->testcfg_tx_bytes = 0;
++	mac->testcfg_rx_bytes = 0;
++#endif
+ 	mac->ccmp_queued_beyond = 0;
+ 	memset(mac->tx_latency, 0, sizeof(mac->tx_latency));
+ 	mac->tx_latency_n = 0;
+@@ -2919,11 +2993,14 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 			ktime_get_ns() + (u64)interval * NSEC_PER_MSEC);
+ #endif
+ 		complete_all(&mac->join_channel_done);
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++		mt6797_mac_testcfg_apply(mac);
++#endif
+ #ifdef CONFIG_MT6797_HT40_TX
+ 		/* This lifetime's data at 40 MHz only on the HT40 grant (0324). */
+-		mt6797_hif_set_data_bw40(mac->hif, mac->join_sco == 3);
++		mt6797_hif_set_data_bw40(mac->hif, mt6797_mac_data_bw40(mac));
+ #endif
+-#ifdef CONFIG_MT6797_HT_SGI_TX
++#ifdef MT6797_DATA_SGI
+ 		/* No short GI until the peer's HT capability says so (0327). */
+ 		mac->join_data_sgi = false;
+ 		mt6797_hif_set_data_sgi(mac->hif, false);
+@@ -3733,6 +3810,58 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ }
+ #endif
+ 
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++/* The lifetime's measurements as far as the driver sees them, over its data
++ * phase: frames and Mbit/s each way, the first three sampled rate words,
++ * first-attempt completions, refused receive frames, the reorder window, the
++ * worker's cost per pass and the ledger. A lifetime is ok when it ended by
++ * disconnect with nothing failed, expired, faulted or left.
++ */
++static void mt6797_mac_testcfg_stats(struct mt6797_mac *mac, const char *reason)
++{
++	u64 ns = max_t(u64, ktime_get_ns() - mac->join_data_started, 1);
++	u64 tx = div64_u64(mac->testcfg_tx_bytes * 800000ULL, ns);
++	u64 rx = div64_u64(mac->testcfg_rx_bytes * 800000ULL, ns);
++	u64 cost = mac->cost_ns[MT6797_COST_STATUS] + mac->cost_ns[MT6797_COST_SUBMIT] +
++		   mac->cost_ns[MT6797_COST_RECEIVE] +
++		   mac->cost_ns[MT6797_COST_COMPLETION] +
++		   mac->cost_ns[MT6797_COST_DELIVERY];
++	unsigned int k, tid, attempts = 0, holes = 0;
++	char rates[72], body[384];
++	const char *line;
++	size_t n = 0;
++	bool ok;
++
++	if (!mac->testcfg)
++		return;
++	for (k = 0; k < 3 && k < ARRAY_SIZE(mac->tx_rates) && mac->tx_rates[k].count; k++)
++		n += scnprintf(rates + n, sizeof(rates) - n, "%s%u/0x%04x=%u",
++			       k ? "," : "", mac->tx_rates[k].key >> 16,
++			       mac->tx_rates[k].key & 0xffff, mac->tx_rates[k].count);
++	for (k = 0; k < ARRAY_SIZE(mac->tx_attempts); k++)
++		attempts += mac->tx_attempts[k];
++	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
++		holes += mac->rx_reorder[tid].holes;
++	ok = !strcmp(reason, "disconnect") && !mac->join_data_tx_failed &&
++	     !mac->credit_retire_expired && !mac->credit_retire_pid_faults &&
++	     !mac->credit_retire_pages;
++	scnprintf(body, sizeof(body),
++		  "reason=%s elapsed_ms=%llu tx_frames=%u tx_mbps=%llu.%02llu rx_frames=%u rx_mbps=%llu.%02llu rates=%s first_attempt=%u/%u rx_refused=%u held=%u released=%u timeouts=%u holes=%u passes=%u pass_ns=%llu tx_failed=%u expired=%u pid_faults=%u left_pages=%u",
++		  reason, ns / NSEC_PER_MSEC, mac->join_data_tx_queued, tx / 100,
++		  tx % 100, mac->ccmp_rx_delivered, rx / 100, rx % 100,
++		  n ? rates : "-", mac->tx_attempts[1], attempts, mac->qos_rx_refused,
++		  mac->rx_reorder_held, mac->rx_reorder_released,
++		  mac->rx_reorder_timeouts, holes, mac->cost_passes,
++		  mac->cost_passes ? div_u64(cost, mac->cost_passes) : 0,
++		  mac->join_data_tx_failed, mac->credit_retire_expired,
++		  mac->credit_retire_pid_faults, mac->credit_retire_pages);
++	line = mt6797_testcfg_stats(mac->testcfg, body, ok);
++	if (line)
++		dev_info(wiphy_dev(mac->hw->wiphy), "one-shot WLAN testcfg stats: %s\n",
++			 line);
++}
++#endif
++
+ /* End the data phase once: the reserved deauthentication's hold ends now and
+  * the poller sends it, then the teardown follows. Called with the mutex held.
+  */
+@@ -3929,6 +4058,9 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 "one-shot WLAN join pass census: passes=%u submissions=%u max_per_pass=%u elapsed_ms=%llu\n",
+ 		 mac->join_data_passes, mac->join_data_submissions, mac->join_data_pass_max,
+ 		 (ktime_get_ns() - mac->join_data_started) / NSEC_PER_MSEC);
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	mt6797_mac_testcfg_stats(mac, reason);
++#endif
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 	if (ccmp_stable_epoch)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -4814,15 +4946,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 						goto failed;
+ 					mac->join_inflight_data = true;
+ 					mac->join_data_page_debt += pages;
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++					mac->testcfg_tx_bytes += eth_bytes;
++#endif
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+ 							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u bw40=%u sgi=%u\n",
+ 							 mac->join_pid, pages, eth_bytes,
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++							 mac->testcfg_now.rate,
++#else
+ 							 MT6797_DATA_FIXED_RATE_CODE,
++#endif
+ 							 !credit_retire,
+-							 IS_ENABLED(CONFIG_MT6797_HT40_TX) &&
+-							 mac->join_sco == 3,
+-							 IS_ENABLED(CONFIG_MT6797_HT_SGI_TX) &&
++							 mt6797_mac_data_bw40(mac),
+ 							 mac->join_data_sgi);
+ 					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+@@ -6678,13 +6815,17 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 	    mac->join_ht_op_seen && mac->join_ht_peer_cap_seen) {
+ 		ht_cap = mac->join_ht_peer_cap;
+ 		ht_op = mac->join_ht_op;
+-#ifdef CONFIG_MT6797_HT_SGI_TX
++#ifdef MT6797_DATA_SGI
+ 		/* Short GI for the width this lifetime transmits at, if the
+-		 * peer advertises it (0327).
++		 * peer advertises it (0327), and in a measurement build only
++		 * when this join's configuration asks for it.
+ 		 */
+ 		mac->join_data_sgi = get_unaligned_le16(ht_cap) &
+-			(IS_ENABLED(CONFIG_MT6797_HT40_TX) && mac->join_sco == 3 ?
++			(mt6797_mac_data_bw40(mac) ?
+ 			 IEEE80211_HT_CAP_SGI_40 : IEEE80211_HT_CAP_SGI_20);
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++		mac->join_data_sgi = mac->join_data_sgi && mac->testcfg_now.sgi;
++#endif
+ 		mt6797_hif_set_data_sgi(mac->hif, mac->join_data_sgi);
+ #endif
+ #ifdef CONFIG_MT6797_HT40
+@@ -6710,8 +6851,8 @@ static int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 			    IS_ENABLED(CONFIG_MT6797_HT_STA_RECORD_FULL)) ? ht_cap[2] : 0,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 2 : 1,
+ 		 ht_cap && IS_ENABLED(CONFIG_MT6797_TX_AMPDU) ? 64 : 0,
+-		 ht_cap && IS_ENABLED(CONFIG_MT6797_RX_AMPDU) ? 2 : 1,
+-		 ht_cap && IS_ENABLED(CONFIG_MT6797_RX_AMPDU) ? 64 : 0);
++		 ht_cap && mt6797_mac_rx_ampdu(mac) ? 2 : 1,
++		 ht_cap && mt6797_mac_rx_ampdu(mac) ? 64 : 0);
+ #ifdef CONFIG_MT6797_HT_STA_RECORD_FULL
+ 	if (ht_cap)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -7939,6 +8080,28 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ #endif
+ 		hw->wiphy->bands[NL80211_BAND_5GHZ] = &mac->band_5g;
+ 	}
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	{
++		struct mt6797_testcfg build;
++
++		mt6797_mac_testcfg_build(&build);
++		mt6797_mac_testcfg_build(&mac->testcfg_now);
++		mac->testcfg = mt6797_testcfg_register(&build);
++		if (IS_ERR(mac->testcfg)) {
++			dev_warn(dev, "test surface unavailable: %ld\n",
++				 PTR_ERR(mac->testcfg));
++			mac->testcfg = NULL;
++		} else {
++			char *seed = kstrdup(CONFIG_MT6797_WIFI_TESTCONFIG_SCHEDULE,
++					     GFP_KERNEL);
++
++			ret = seed ? mt6797_testcfg_set(mac->testcfg, seed) : -ENOMEM;
++			kfree(seed);
++			dev_info(dev, "one-shot WLAN testcfg schedule: entries=%d \"%s\"\n",
++				 ret, CONFIG_MT6797_WIFI_TESTCONFIG_SCHEDULE);
++		}
++	}
++#endif
+ 	ret = ieee80211_register_hw(hw);
+ 	if (ret)
+ 		goto free_hw;
+@@ -7976,6 +8139,9 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	*out = hw;
+ 	return 0;
+ free_hw:
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	mt6797_testcfg_unregister(mac->testcfg);
++#endif
+ 	ieee80211_free_hw(hw);
+ 	return ret;
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h b/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+new file mode 100644
+index 000000000..a25cd7f08
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+@@ -0,0 +1,189 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_TESTCFG_PARSE_H
++#define MT6797_TESTCFG_PARSE_H
++
++/* One join's test configuration (CONFIG_MT6797_WIFI_TESTCONFIG): the
++ * class-B variables only, each overriding the build for one association.
++ * Transmit side only: the advertised HT capability, the receive width and
++ * the join channel stay as built.
++ */
++struct mt6797_testcfg {
++	unsigned char rate;	/* the data descriptor's fixed rate code */
++	bool bw40;		/* FIX_BW_40, on an HT40 grant only */
++	bool sgi;		/* short GI, when the peer advertises it */
++	bool agg;		/* receive A-MPDU in the station record */
++	bool peek;		/* the WHISR peek before the status block */
++};
++
++#define MT6797_TESTCFG_ENTRIES 16U
++#define MT6797_TESTCFG_NAME 32U
++
++/* A schedule entry as written, with its verdict. */
++struct mt6797_testcfg_entry {
++	struct mt6797_testcfg cfg;
++	char name[MT6797_TESTCFG_NAME];
++	const char *refused;	/* NULL when valid */
++};
++
++static inline bool mt6797_testcfg_is(const char *s, size_t n, const char *word)
++{
++	size_t i;
++
++	for (i = 0; word[i]; i++)
++		if (i >= n || s[i] != word[i])
++			return false;
++	return i == n;
++}
++
++/* "x=0" or "x=1" for the word x; -1 when s is not that item. */
++static inline int mt6797_testcfg_flag(const char *s, size_t n, const char *word)
++{
++	size_t w = 0;
++
++	while (word[w])
++		w++;
++	if (n != w + 2 || s[w] != '=' || !mt6797_testcfg_is(s, w, word))
++		return -1;
++	return s[w + 1] == '0' ? 0 : s[w + 1] == '1' ? 1 : -1;
++}
++
++static inline int mt6797_testcfg_hex(char c)
++{
++	return c >= '0' && c <= '9' ? c - '0' :
++	       c >= 'a' && c <= 'f' ? c - 'a' + 10 :
++	       c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1;
++}
++
++/* One item of an entry: 20M<k> or 40M<k> (HT MCS k at that transmit width),
++ * bw=20|40, rate=fixed:0xNN, sgi[=0|1], agg=0|1, peek=0|1, or default (the
++ * build). NULL on success, else why the item is refused.
++ */
++static inline const char *
++mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
++		    struct mt6797_testcfg *c)
++{
++	int v;
++
++	if (n == 4 && (s[0] == '2' || s[0] == '4') && s[1] == '0' && s[2] == 'M' &&
++	    s[3] >= '0' && s[3] <= '7') {
++		c->bw40 = s[0] == '4';
++		c->rate = 0x80 | (s[3] - '0');
++		return NULL;
++	}
++	if (mt6797_testcfg_is(s, n, "default")) {
++		*c = *base;
++		return NULL;
++	}
++	if (mt6797_testcfg_is(s, n, "sgi")) {
++		c->sgi = true;
++		return NULL;
++	}
++	v = mt6797_testcfg_flag(s, n, "sgi");
++	if (v >= 0) {
++		c->sgi = v;
++		return NULL;
++	}
++	v = mt6797_testcfg_flag(s, n, "agg");
++	if (v >= 0) {
++		c->agg = v;
++		return NULL;
++	}
++	v = mt6797_testcfg_flag(s, n, "peek");
++	if (v >= 0) {
++		c->peek = v;
++		return NULL;
++	}
++	if (mt6797_testcfg_is(s, n, "bw=20") || mt6797_testcfg_is(s, n, "bw=40")) {
++		c->bw40 = s[3] == '4';
++		return NULL;
++	}
++	if (n > 13 && mt6797_testcfg_is(s, 13, "rate=fixed:0x")) {
++		int hi = mt6797_testcfg_hex(s[13]);
++		int lo = n == 15 ? mt6797_testcfg_hex(s[14]) : 0;
++
++		if (n > 15 || hi < 0 || lo < 0)
++			return "bad rate code";
++		v = n == 15 ? hi << 4 | lo : hi;
++		/* 0 is the firmware's selector, which needs 0277's state 2. */
++		if (!v)
++			return "rate code 0";
++		c->rate = v;
++		return NULL;
++	}
++	if (mt6797_testcfg_is(s, n, "rate=minstrel") ||
++	    (n >= 8 && mt6797_testcfg_is(s, 8, "minstrel")))
++		return "minstrel needs per-frame transmit status";
++	return "unknown item";
++}
++
++/* One entry: items joined by '+', applied over the build's configuration.
++ * NULL on success, else why it is refused; *c is then unspecified.
++ */
++static inline const char *
++mt6797_testcfg_entry(const char *s, size_t n, const struct mt6797_testcfg *base,
++		     struct mt6797_testcfg *c)
++{
++	const char *why;
++	size_t i = 0, j;
++
++	*c = *base;
++	if (!n)
++		return "empty entry";
++	while (i <= n) {
++		for (j = i; j < n && s[j] != '+'; j++)
++			;
++		if (j == i)
++			return "empty item";
++		why = mt6797_testcfg_item(s + i, j - i, base, c);
++		if (why)
++			return why;
++		i = j + 1;
++	}
++	return NULL;
++}
++
++static inline bool mt6797_testcfg_space(char c)
++{
++	return c == ' ' || c == '\t' || c == '\n' || c == '\r';
++}
++
++/* A schedule: entries separated by ',', blanks around them ignored. An
++ * empty schedule has no entries (the build's configuration for every join).
++ * Every entry is kept with its verdict; a refused one is applied as the
++ * previous configuration. Returns the entry count, or -1 when there are
++ * more than MT6797_TESTCFG_ENTRIES or an entry's name does not fit.
++ */
++static inline int
++mt6797_testcfg_schedule(const char *s, size_t n, const struct mt6797_testcfg *base,
++			struct mt6797_testcfg_entry *out)
++{
++	size_t i = 0, j, a, b, k;
++	unsigned int count = 0;
++
++	while (n && mt6797_testcfg_space(s[n - 1]))
++		n--;
++	while (i < n && mt6797_testcfg_space(s[i]))
++		i++;
++	if (i == n)
++		return 0;
++	while (i <= n) {
++		for (j = i; j < n && s[j] != ','; j++)
++			;
++		for (a = i; a < j && mt6797_testcfg_space(s[a]); a++)
++			;
++		for (b = j; b > a && mt6797_testcfg_space(s[b - 1]); b--)
++			;
++		if (count == MT6797_TESTCFG_ENTRIES || b - a >= MT6797_TESTCFG_NAME)
++			return -1;
++		for (k = 0; k < b - a; k++)
++			out[count].name[k] = s[a + k];
++		out[count].name[k] = 0;
++		out[count].refused = mt6797_testcfg_entry(s + a, b - a, base,
++							  &out[count].cfg);
++		count++;
++		i = j + 1;
++	}
++	return count;
++}
++
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg.c b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+new file mode 100644
+index 000000000..6fd8571d1
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+@@ -0,0 +1,237 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* The per-join test surface (CONFIG_MT6797_WIFI_TESTCONFIG). The harness
++ * cycles the association; each join takes the next schedule entry, and each
++ * data phase end appends that lifetime's measurements. No device access.
++ */
++#include <linux/debugfs.h>
++#include <linux/err.h>
++#include <linux/fs.h>
++#include <linux/kernel.h>
++#include <linux/mutex.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++#include <linux/uaccess.h>
++
++#include "testcfg.h"
++
++#define MT6797_TESTCFG_LINES 16U
++#define MT6797_TESTCFG_APPLIED 160U
++#define MT6797_TESTCFG_STATS 448U
++#define MT6797_TESTCFG_TEXT 512U
++
++struct mt6797_testcfg_state {
++	struct mutex lock;	/* everything below */
++	struct dentry *dir;
++	struct mt6797_testcfg build, last;
++	struct mt6797_testcfg_entry entries[MT6797_TESTCFG_ENTRIES];
++	unsigned int count, next, lifetime;
++	/* applied and not yet measured; the previous one not ok */
++	bool pending, recover;
++	char name[MT6797_TESTCFG_NAME];
++	char schedule[MT6797_TESTCFG_TEXT];
++	char applied[MT6797_TESTCFG_LINES][MT6797_TESTCFG_APPLIED];
++	char stats[MT6797_TESTCFG_LINES][MT6797_TESTCFG_STATS];
++	unsigned int applied_n, stats_n, dropped;
++};
++
++static void mt6797_testcfg_rewind(struct mt6797_testcfg_state *t)
++{
++	t->next = 0;
++	t->pending = false;
++	t->recover = false;
++	t->last = t->build;
++	t->applied_n = 0;
++	t->stats_n = 0;
++	t->dropped = 0;
++}
++
++void mt6797_testcfg_next(struct mt6797_testcfg_state *t, unsigned int lifetime,
++			 struct mt6797_testcfg *cfg, char *line, size_t bytes)
++{
++	const struct mt6797_testcfg_entry *e = NULL;
++	const char *source;
++	unsigned int index = 0;
++
++	mutex_lock(&t->lock);
++	/* A lifetime applied but never measured ended before its data phase. */
++	if (t->pending)
++		t->recover = true;
++	if (!t->count) {
++		*cfg = t->build;
++		source = "build";
++	} else if (t->recover) {
++		*cfg = t->build;
++		source = "recovery";
++	} else if (t->next >= t->count) {
++		*cfg = t->build;
++		source = "after-schedule";
++	} else {
++		index = t->next + 1;
++		e = &t->entries[t->next++];
++		*cfg = e->refused ? t->last : e->cfg;
++		source = e->refused ?: "schedule";
++	}
++	t->recover = false;
++	t->pending = true;
++	t->last = *cfg;
++	t->lifetime = lifetime;
++	strscpy(t->name, e ? e->name : "-", sizeof(t->name));
++	scnprintf(line, bytes,
++		  "lifetime=%u entry=%u config=%s rate=0x%02x bw=%u sgi=%u agg=%u peek=%u source=%s%s",
++		  lifetime, index, t->name, cfg->rate, cfg->bw40 ? 40 : 20, cfg->sgi,
++		  cfg->agg, cfg->peek, e && e->refused ? "refused:" : "", source);
++	if (t->applied_n < MT6797_TESTCFG_LINES)
++		strscpy(t->applied[t->applied_n++], line, MT6797_TESTCFG_APPLIED);
++	else
++		t->dropped++;
++	mutex_unlock(&t->lock);
++}
++
++const char *mt6797_testcfg_stats(struct mt6797_testcfg_state *t, const char *body,
++				 bool ok)
++{
++	char *line = NULL;
++
++	mutex_lock(&t->lock);
++	if (t->pending) {
++		t->pending = false;
++		t->recover = !ok;
++		if (t->stats_n < MT6797_TESTCFG_LINES) {
++			line = t->stats[t->stats_n++];
++			scnprintf(line, MT6797_TESTCFG_STATS,
++				  "lifetime=%u config=%s ok=%u %s", t->lifetime,
++				  t->name, ok, body);
++		} else {
++			t->dropped++;
++		}
++	}
++	mutex_unlock(&t->lock);
++	return line;
++}
++
++/* The file's text, composed under the lock; read in one or more pieces. */
++static ssize_t mt6797_testcfg_read(struct file *file, char __user *buf,
++				   size_t size, loff_t *pos)
++{
++	struct mt6797_testcfg_state *t = file->private_data;
++	const char *name = file->f_path.dentry->d_name.name;
++	size_t cap = MT6797_TESTCFG_LINES * MT6797_TESTCFG_STATS + 64;
++	unsigned int i;
++	size_t n = 0;
++	ssize_t ret;
++	char *text;
++
++	text = kmalloc(cap, GFP_KERNEL);
++	if (!text)
++		return -ENOMEM;
++	mutex_lock(&t->lock);
++	if (!strcmp(name, "testcfg")) {
++		n = scnprintf(text, cap, "%s\nentries=%u next=%u\n", t->schedule,
++			      t->count, t->next);
++		for (i = 0; i < t->count; i++)
++			if (t->entries[i].refused)
++				n += scnprintf(text + n, cap - n, "entry=%u config=%s refused=%s\n",
++					       i + 1, t->entries[i].name, t->entries[i].refused);
++	} else if (!strcmp(name, "applied")) {
++		for (i = 0; i < t->applied_n; i++)
++			n += scnprintf(text + n, cap - n, "%s\n", t->applied[i]);
++	} else {
++		for (i = 0; i < t->stats_n; i++)
++			n += scnprintf(text + n, cap - n, "%s\n", t->stats[i]);
++		if (t->dropped)
++			n += scnprintf(text + n, cap - n, "dropped=%u\n", t->dropped);
++	}
++	mutex_unlock(&t->lock);
++	ret = simple_read_from_buffer(buf, size, pos, text, n);
++	kfree(text);
++	return ret;
++}
++
++/* A whole schedule, started at its first entry; the previous one stays
++ * if this one does not fit. Returns the entry count or an error.
++ */
++int mt6797_testcfg_set(struct mt6797_testcfg_state *t, char *text)
++{
++	struct mt6797_testcfg_entry *entries;
++	size_t size = strlen(text);
++	int count;
++
++	if (size >= MT6797_TESTCFG_TEXT)
++		return -EINVAL;
++	entries = kcalloc(MT6797_TESTCFG_ENTRIES, sizeof(*entries), GFP_KERNEL);
++	if (!entries)
++		return -ENOMEM;
++	count = mt6797_testcfg_schedule(text, size, &t->build, entries);
++	if (count >= 0) {
++		mutex_lock(&t->lock);
++		memcpy(t->entries, entries, sizeof(t->entries));
++		t->count = count;
++		t->next = 0;
++		strscpy(t->schedule, strim(text), sizeof(t->schedule));
++		mutex_unlock(&t->lock);
++	}
++	kfree(entries);
++	return count < 0 ? -EINVAL : count;
++}
++
++/* testcfg takes a whole schedule; reset clears applied and stats and
++ * starts the schedule again.
++ */
++static ssize_t mt6797_testcfg_write(struct file *file, const char __user *buf,
++				    size_t size, loff_t *pos)
++{
++	struct mt6797_testcfg_state *t = file->private_data;
++	char *text;
++	int ret;
++
++	if (*pos || size >= MT6797_TESTCFG_TEXT)
++		return -EINVAL;
++	if (strcmp(file->f_path.dentry->d_name.name, "testcfg")) {
++		mutex_lock(&t->lock);
++		mt6797_testcfg_rewind(t);
++		mutex_unlock(&t->lock);
++		return size;
++	}
++	text = memdup_user_nul(buf, size);
++	if (IS_ERR(text))
++		return PTR_ERR(text);
++	ret = mt6797_testcfg_set(t, text);
++	kfree(text);
++	if (ret < 0)
++		return ret;
++	return size;
++}
++
++static const struct file_operations mt6797_testcfg_ops = {
++	.owner = THIS_MODULE,
++	.open = simple_open,
++	.read = mt6797_testcfg_read,
++	.write = mt6797_testcfg_write,
++	.llseek = default_llseek,
++};
++
++struct mt6797_testcfg_state *mt6797_testcfg_register(const struct mt6797_testcfg *build)
++{
++	struct mt6797_testcfg_state *t;
++
++	t = kzalloc_obj(*t, GFP_KERNEL);
++	if (!t)
++		return ERR_PTR(-ENOMEM);
++	mutex_init(&t->lock);
++	t->build = *build;
++	mt6797_testcfg_rewind(t);
++	t->dir = debugfs_create_dir("mt6797_wifi", NULL);
++	debugfs_create_file("testcfg", 0600, t->dir, t, &mt6797_testcfg_ops);
++	debugfs_create_file("applied", 0400, t->dir, t, &mt6797_testcfg_ops);
++	debugfs_create_file("stats", 0400, t->dir, t, &mt6797_testcfg_ops);
++	debugfs_create_file("reset", 0200, t->dir, t, &mt6797_testcfg_ops);
++	return t;
++}
++
++void mt6797_testcfg_unregister(struct mt6797_testcfg_state *t)
++{
++	if (IS_ERR_OR_NULL(t))
++		return;
++	debugfs_remove_recursive(t->dir);
++	kfree(t);
++}
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg.h b/drivers/net/wireless/mediatek/mt6797/testcfg.h
+new file mode 100644
+index 000000000..19adafde2
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg.h
+@@ -0,0 +1,28 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_TESTCFG_H
++#define MT6797_TESTCFG_H
++
++#include <linux/types.h>
++
++#include "testcfg-parse.h"
++
++/* The per-join test surface (CONFIG_MT6797_WIFI_TESTCONFIG), at
++ * /sys/kernel/debug/mt6797_wifi: testcfg (the schedule, one entry per
++ * join), applied and stats (one line per lifetime) and reset.
++ */
++struct mt6797_testcfg_state;
++
++struct mt6797_testcfg_state *mt6797_testcfg_register(const struct mt6797_testcfg *build);
++void mt6797_testcfg_unregister(struct mt6797_testcfg_state *t);
++/* A whole schedule, as testcfg takes it; the entry count or an error. */
++int mt6797_testcfg_set(struct mt6797_testcfg_state *t, char *text);
++/* This lifetime's configuration, and its applied line for the log. */
++void mt6797_testcfg_next(struct mt6797_testcfg_state *t, unsigned int lifetime,
++			 struct mt6797_testcfg *cfg, char *line, size_t bytes);
++/* The lifetime's measurements; a lifetime that is not ok runs the build's
++ * configuration next. Returns the stored line for the log.
++ */
++const char *mt6797_testcfg_stats(struct mt6797_testcfg_state *t, const char *body,
++				 bool ok);
++
++#endif
+-- 
+2.43.0
+

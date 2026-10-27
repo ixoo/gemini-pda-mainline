@@ -7975,3 +7975,159 @@ The fixed-rate ladder stays. MCS5 at 40 MHz (`0x85` with
 documented transmit rate. 0277 leaves the lifecycle series again (a
 precondition for rate code 0 only). 0328 stays in both series with its
 option off, and the profile no longer sets it. Short GI stays off.
+
+## 66. One boot, one matrix: a per-join test configuration (predeclared, 2026-10-26)
+
+**Why.** Each class-B comparison has cost a boot: a build, a boot2 write,
+the owner's selection, one measured lifetime and the return, about ten
+minutes between legs. Air drift between boots has blurred every recent
+pair (AS, AH). The lifecycle harness already cycles the association
+inside one boot (disconnect, teardown, rearm, rejoin), so each lifetime
+can carry its own configuration (owner).
+
+**Level 1 (0329, `CONFIG_MT6797_WIFI_TESTCONFIG`).** The harness cycles
+and the driver rotates; there is no new state machine and no change to
+the reviewed teardown.
+- `/sys/kernel/debug/mt6797_wifi/`:
+  - `testcfg`: a comma-separated schedule; each join takes the next entry
+    at its channel grant.
+  - `applied`: one line per lifetime, also logged at the grant, as
+    `testcfg: lifetime=N entry=E config=… rate=… bw=… sgi=… agg=… peek=…
+    source=…`.
+  - `stats`: one line per lifetime, also logged at the data phase end.
+  - `reset`.
+- *Grammar.* Items joined by `+`, each over the build's configuration:
+  - `20M<k>` or `40M<k>`: HT MCS k at that transmit width;
+  - `bw=20|40`;
+  - `rate=fixed:0xNN`;
+  - `sgi[=0|1]`;
+  - `agg=0|1`: receive A-MPDU in the state-3 record;
+  - `peek=0|1`: the WHISR peek;
+  - `default`.
+- *Rules,* so that a typo or one failure cannot void a boot:
+  - an empty schedule is the build throughout;
+  - a refused entry is logged with its reason and keeps the previous
+    configuration;
+  - a lifetime that did not end by `disconnect` with a clean ledger, or
+    was never measured, is followed by one at the build's configuration,
+    and the waiting entry runs after it;
+  - past the schedule, lifetimes run the build.
+- *Stats,* as far as the driver sees, over the data phase including its
+  idle time:
+  - frames and Mbit/s each way;
+  - the first three sampled transmit rate words;
+  - first-attempt completions;
+  - `rx_refused`;
+  - reorder held, released, timeouts and holes;
+  - the worker's cost per pass;
+  - the ledger (`tx_failed`, `expired`, `pid_faults`, `left_pages`).
+- `CONFIG_MT6797_WIFI_TESTCONFIG_SCHEDULE` seeds the schedule at probe and
+  logs it. One build then carries its matrix with no write from the
+  device side, so the reviewed leaf is unchanged.
+- *Compiled out of the daily driver.* With the option off there is no
+  debugfs directory and no instrumentation. The per-phase cost, transmit
+  rate-word and attempt, and receive rate-word records lose their
+  prompts and follow the option. The lifecycle profile turns it on: it is
+  the measurement profile, and no daily profile exists yet.
+
+**Two decisions (owner, 2026-10-26).**
+- *Fixed rates only.* `rate=minstrel` and `minstrel:NN` are refused with
+  the reason logged. Ordinary data is retired on credit as
+  `NOACK_TRANSMITTED`, with a real TX-done for only one frame in 64, so
+  mac80211's rate control would get no acknowledgement or retry
+  feedback, and the descriptor never reads its rate. Minstrel needs
+  per-frame reports and the descriptor taking mac80211's rate: its own
+  step. Rate code 0 is refused too, because the firmware's selector
+  needs 0277's state 2, which is not in the lifecycle series.
+- *Transmit side only.* The HT capability is registered with mac80211 once.
+  `bw` sets FIX_BW_40 at an HT40 grant, and `sgi` sets the descriptor's
+  guard interval when the peer advertises it. Receive stays at 40 MHz
+  without short GI, as shipped, so `20M7` is exactly AP's image.
+
+**Level 2 (deferred).** Driver-driven cycling (a dwell, then a
+synthesised loss through the AP-loss path) waits until scripting Level 1
+is shown to be the bottleneck. It would make the driver a test conductor
+competing with the supplicant's timing.
+
+**Host tests.**
+- `run-testcfg-test.py`:
+  - the parser: every form, every refusal with its reason, the 16-entry
+    and 32-byte bounds;
+  - `testcfg.c` through its file operations: the schedule order, a
+    refused entry keeping the previous configuration, recovery after a
+    failed or unmeasured lifetime without consuming the entry, past the
+    schedule, reset, the seed and an oversized write.
+- `run-ht40-hif-test.py`, a seventh build: a join's `0x86` replaces the
+  build's code in bytes 11 and 26–27 with nothing else moving; byte 25
+  follows the width and byte 27 bit 7 the guard interval (not for a
+  legacy code); `agg=0` sends `ucRxAmpdu` 1 and `ucRxBaSize` 0.
+- `run-hif-rx-batch-test.py`, a fourth build: `peek=0` reads the block and
+  not WHISR, and `peek=1` skips it again.
+- Five mutations are caught:
+  - the agg gate removed;
+  - the byte-26 override dropped;
+  - the peek gate removed;
+  - recovery not triggered by an unmeasured lifetime;
+  - a refused entry falling to the build instead of the previous.
+- The driver compiles cleanly at `W=1` with the option off, on, on with
+  `CONFIG_MT6797_HT_SGI_TX`, and with the seed. checkpatch reports
+  nothing but the new-file `MAINTAINERS` note.
+- The earlier host tests pass unchanged on macOS and on the Linux VM
+  (data descriptor, AP-DMA, receive reorder, block-ack status). Not run:
+  `run-native-hif-test.py`, which fails to build on the base tree too
+  (stale), and the 0304 join-attempt test, which needs its pre-0304
+  parent.
+
+### The matrix boot (AU), predeclared
+
+**Image.** Today's lifecycle profile with
+`CONFIG_MT6797_WIFI_TESTCONFIG=y` and the seed
+`default,20M7,40M5,40M6,40M5+sgi`. One build carries the whole matrix.
+`default` is the shipping MCS5 at 40 MHz (`0x85`).
+
+**Instrument.** The lifecycle harness, raised from three cycles to six:
+- the classifier already reads the count from the plan;
+- prepare, the helper, the run, the adapter and the classifier admit two
+  to six cycles instead of two or three;
+- `derive-leaf.py` gains the words FOUR to SIX;
+- two chunks per direction (1 s or 1 MiB each), no loss cycle;
+- budget: three one-chunk lifetimes logged 317 KB against the 2 MiB
+  limit, and six cycles at 40–90 s each fit the helper's shared 710 s
+  window.
+
+These are edits to the ignored harness files, recorded with the run.
+
+| Lifetime | Entry | Purpose |
+|---|---|---|
+| 1 | `default` (40M5) | the control, first |
+| 2 | `20M7` | AP's configuration on the same air |
+| 3 | `40M5` | the control repeated: drift inside the boot |
+| 4 | `40M6` | MCS6 at 40 MHz (§62's next step up) |
+| 5 | `40M5+sgi` | short GI, as the same-air pair §64 asked for, under the `rx_refused` gate |
+| 6 | past the schedule: the build | the closing control; it absorbs one recovery |
+
+**Predeclared per lifetime, not per boot:** TX and RX (the harness's
+chunk rates, graded; the driver's stats line recorded),
+`rx_refused`, the first-attempt fraction, the rate words and the
+ledger.
+- A lifetime with `rx_refused` above 50 is void; the others count.
+- A failed lifetime is followed by the build's configuration, and the
+  waiting entry runs after it. If that pushes `40M5+sgi` out of the six
+  cycles, it is recorded as not run.
+- The control is the mean of the clean `40M5` lifetimes (1, 3, 6). If
+  they differ from each other by more than 25 %, the boot is read for
+  gross effects only.
+
+| Reading | Next |
+|---|---|
+| `20M7` below the control, about AR's 1/1.16 | the same-air confirmation of MCS5/40 over MCS7/20; nothing changes |
+| `40M6` TX at least 1.05× the control with first-attempt ≥ 90 % | a five-chunk confirmation of `0x86` before any profile change |
+| `40M6` below that, or with more retries | MCS5/40 stays; the fixed-rate ladder ends at MCS5 |
+| `40M5+sgi` within the control's spread, `rx_refused` under the gate | AS's collapse was the air; short GI gets a five-chunk boot |
+| `40M5+sgi` collapses on the same air as the controls | AS's collapse is attributed to short GI, recorded as negative, and the options stay off |
+| the surface misapplies an entry (the `testcfg:` line disagrees with the first data line's `rate=`/`bw40=`/`sgi=`) | revert the build; preserve the log |
+
+**Comparability.** The option turns the per-phase cost record back on,
+which the profile has had off since boot AJ2 (§57). Every lifetime of the boot
+carries it, so in-boot comparisons are fair; against AR they are not
+like for like.

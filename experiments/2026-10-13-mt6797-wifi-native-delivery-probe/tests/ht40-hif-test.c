@@ -11,8 +11,11 @@
  * state-3 station record carries the peer HT capability at the vendor
  * offsets, and with CONFIG_MT6797_HT_STA_RECORD_FULL also its rx highest
  * rate, transmit rate info, beamforming, A-MPDU parameters and ASEL
- * (34-39, 44-49), nothing else changed. Built by run-ht40-hif-test.py with
- * and without each option.
+ * (34-39, 44-49), nothing else changed. With CONFIG_MT6797_WIFI_TESTCONFIG
+ * a join's configuration replaces the build's rate code in the descriptor
+ * (bytes 11, 26-27; the width and guard interval follow it) and turns
+ * receive A-MPDU off in the record (77, 93). Built by run-ht40-hif-test.py
+ * with and without each option.
  * The bus is a capture: the setup word and the data words of each command.
  */
 #define MT6797_HIF_HOST_TEST
@@ -81,6 +84,11 @@ static void fresh(struct mt6797_hif *hif)
 					     .read = mt6797_hif_read };
 	assert(!mt6797_normal_admit(&hif->normal, 4, 4, history));
 	hif->normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+	hif->data_rate = MT6797_DATA_FIXED_RATE_CODE;
+	hif->rx_ampdu = true;
+	hif->rx_peek = true;
+#endif
 	memset(sent, 0, sizeof(sent));
 	calls = 0;
 }
@@ -152,7 +160,17 @@ int main(void)
 						   NULL, 1000000));
 		memcpy(legacy, sent + 8, sizeof(legacy));
 		assert(legacy[13] == 8 && legacy[74] == 0x4b);
+#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+		for (unsigned int agg = 0; agg < 2; agg++) {
+#else
+		for (unsigned int agg = 1; agg < 2; agg++) {
+#endif
 		fresh(&hif);
+#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+		hif.data_rate = MT6797_DATA_FIXED_RATE_CODE;
+		hif.rx_ampdu = agg;
+		hif.rx_peek = true;
+#endif
 		assert(!mt6797_hif_join_station_qos(&hif, 21, ap, 3, 1, 0x3fc0, 0x540, true,
 						   ht_cap, 1000000));
 		for (unsigned int i = 0; i < sizeof(legacy); i++) {
@@ -180,8 +198,15 @@ int main(void)
 			else if (i == 49)
 				assert(ht[i] == ht_cap[25]);
 #endif
+#ifdef CONFIG_MT6797_RX_AMPDU
+			else if (i == 77)
+				assert(ht[i] == (agg ? 2 : 1));
+			else if (i == 93)
+				assert(ht[i] == (agg ? 64 : 0));
+#endif
 			else
 				assert(ht[i] == legacy[i] && (!full || !ht[i]));
+		}
 		}
 	}
 #ifdef CONFIG_MT6797_HT40_TX
@@ -228,10 +253,51 @@ int main(void)
 			       sent[i] == (d20[i] | 0x80) : sent[i] == d20[i]);
 		mt6797_hif_set_data_sgi(&hif, false);
 #endif
+#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+		/* A join's MCS6 at 40 MHz over the build's code: bytes 11 and
+		 * 26-27 carry 0x86, byte 25 FIX_BW_40, nothing else moves; short
+		 * GI then sets byte 27 bit 7 for it, and not for a legacy code.
+		 */
+		mt6797_hif_set_data_bw40(&hif, true);
+		mt6797_hif_set_testcfg(&hif, 0x86, true, true);
+		memset(sent, 0, sizeof(sent));
+		calls = 0;
+		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif.normal.tc1_free = hif.normal.tc1_limit;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		for (unsigned int i = 0; i < sizeof(d20); i++)
+			assert(i == 25 ? sent[i] == 5 :
+			       i == 11 ? sent[i] == 0x80 :
+			       i == 26 ? sent[i] == ((0x86 << 2) & 255) :
+			       i == 27 ? sent[i] == ((0x86 << 2) >> 8) :
+			       sent[i] == d20[i]);
+		mt6797_hif_set_data_sgi(&hif, true);
+		memset(sent, 0, sizeof(sent));
+		calls = 0;
+		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif.normal.tc1_free = hif.normal.tc1_limit;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		assert(sent[27] == (((0x86 << 2) >> 8) | 0x80));
+		mt6797_hif_set_testcfg(&hif, 0x4b, true, true);
+		memset(sent, 0, sizeof(sent));
+		calls = 0;
+		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+		hif.normal.tc1_free = hif.normal.tc1_limit;
+		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+						    500, 3, 1000000));
+		assert(sent[11] == 0x80 && sent[26] == ((0x4b << 2) & 255) &&
+		       sent[27] == ((0x4b << 2) >> 8) && sent[25] == 5);
+		mt6797_hif_set_data_sgi(&hif, false);
+		mt6797_hif_set_data_bw40(&hif, false);
+#endif
 	}
 #endif
 	free(mapping);
-#if defined(CONFIG_MT6797_HT_STA_RECORD_FULL)
+#if defined(CONFIG_MT6797_WIFI_TESTCONFIG)
+	printf("ht40-hif-test: PASS (a join's rate code, width, short GI and receive A-MPDU)\n");
+#elif defined(CONFIG_MT6797_HT_STA_RECORD_FULL)
 	printf("ht40-hif-test: PASS (complete HT station record)\n");
 #elif defined(CONFIG_MT6797_HT_SGI_TX)
 	printf("ht40-hif-test: PASS (HT40, transmit at 40 MHz, short GI, rate code 0x%x)\n",

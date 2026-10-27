@@ -27,6 +27,8 @@ with tempfile.TemporaryDirectory(prefix='mt6797-ht40-') as directory:
           ['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX', '-DCONFIG_MT6797_HT_SGI_TX']]
          if sgi_tx else [])
     runs += [['-DCONFIG_MT6797_HT_STA_RECORD_FULL']] if sta_full else []
+    runs += [['-DCONFIG_MT6797_HT40', '-DCONFIG_MT6797_HT40_TX', '-DCONFIG_MT6797_RX_AMPDU',
+              '-DCONFIG_MT6797_WIFI_TESTCONFIG']] if 'config MT6797_WIFI_TESTCONFIG' in kconfig else []
     for defines in runs:
         binary = Path(directory) / ('test-%d' % runs.index(defines))
         subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-DIS_ENABLED(x)=0',

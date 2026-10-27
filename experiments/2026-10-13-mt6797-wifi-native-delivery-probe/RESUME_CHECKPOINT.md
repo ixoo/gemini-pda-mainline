@@ -1,4 +1,12 @@
-# Current: boot AT graded; the firmware's selector stays at OFDM 6 Mbit/s with the complete HT station record (TX 3.54 against AR's 15.01); recorded as dead on this path; the profile back to MCS5 at 40 MHz
+# Current: §66 written for review: 0329 (the per-join test configuration, Level 1) and the matrix boot AU predeclared; nothing committed or built
+
+0329 is in both series. The lifecycle fragment turns on
+`CONFIG_MT6797_WIFI_TESTCONFIG` with the seed
+`default,20M7,40M5,40M6,40M5+sgi`. The lifecycle harness still admits
+only two or three cycles; widening it to six is part of staging AU. The
+device is on Gemian (`d2df3c53…`); boot2 holds AT's `34a86969…`.
+
+# Historical: boot AT graded; the firmware's selector stays at OFDM 6 Mbit/s with the complete HT station record (TX 3.54 against AR's 15.01); recorded as dead on this path; the profile back to MCS5 at 40 MHz
 
 [Boot AT](HIF_TRANSPORT_ANALYSIS.md#boot-at-result-2026-10-26-2321-utc-the-selector-stays-at-ofdm-6-mbits-with-the-complete-record-recorded-as-dead-on-this-path).
 0277 is out of the lifecycle series. 0328 stays in both series with its
