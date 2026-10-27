@@ -1,4 +1,4 @@
-From 8b320957eb604a5e9368264e55763a2ce208ccbb Mon Sep 17 00:00:00 2001
+From 27d076146f86ede5db18973e4ce053bf036c6976 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Tue, 27 Oct 2026 06:29:52 -0400
 Subject: [PATCH] wifi: mt6797: send ordinary data at mac80211's rate control
@@ -31,15 +31,36 @@ With credit retire, only the 1-in-N sampled frames carry a status
 report. So every rate-control probe now requests one as well; otherwise
 no probe's result would ever be learnt. Management, security and EAPOL
 frames keep their fixed rates.
+
+The rate sent is reported through storage the two fields share:
+info->control.rates and info->status.rates are the same bytes of one
+union, and ieee80211_tx_info_clear_status keeps the rates. So a reported
+frame's status already names the rate it was sent at, and only the
+count is set. A BUILD_BUG_ON fails the build if that layout ever
+changes. For the same reason, a frame that falls back to the fixed rate
+reports no rate by setting that index to -1.
+
+The data path should never take the fallback while rate control is
+enabled. If it does, the frame is counted in rate_fallbacks on the test
+stats line, reset per lifetime. A 40 MHz rate is used only on the HT40
+join (secondary offset 3). On a 20 MHz association a stray width flag
+takes the fallback instead of putting wide frames, or a wrong status
+rate, on the link.
+
+Tested on a W=1 arm64 build of the driver with
+CONFIG_MT6797_DATA_RATE_CONTROL off and on. Host tests:
+run-transfer-size-test.py against its pre-0310 parent,
+run-testcfg-test.py (including the tx-rate mapping test),
+run-ht40-hif-test.py (seven builds) and run-hif-rx-batch-test.py.
 ---
- drivers/net/wireless/mediatek/mt6797/Kconfig  | 15 +++-
- drivers/net/wireless/mediatek/mt6797/hif.c    |  7 +-
- drivers/net/wireless/mediatek/mt6797/hif.h    |  4 +-
- drivers/net/wireless/mediatek/mt6797/mac.c    | 82 +++++++++++++++++--
- .../wireless/mediatek/mt6797/testcfg-parse.h  | 15 ++--
- .../net/wireless/mediatek/mt6797/testcfg.c    |  5 +-
- .../net/wireless/mediatek/mt6797/tx-rate.h    | 60 ++++++++++++++
- 7 files changed, 171 insertions(+), 17 deletions(-)
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  15 ++-
+ drivers/net/wireless/mediatek/mt6797/hif.c    |   7 +-
+ drivers/net/wireless/mediatek/mt6797/hif.h    |   4 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 103 ++++++++++++++++--
+ .../wireless/mediatek/mt6797/testcfg-parse.h  |  15 ++-
+ .../net/wireless/mediatek/mt6797/testcfg.c    |   5 +-
+ .../net/wireless/mediatek/mt6797/tx-rate.h    |  60 ++++++++++
+ 7 files changed, 190 insertions(+), 19 deletions(-)
  create mode 100644 drivers/net/wireless/mediatek/mt6797/tx-rate.h
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
@@ -134,10 +155,19 @@ index cd818119e..1402d9884 100644
  			     size_t frame_bytes, u8 wlan, u8 pid,
  			     unsigned int lifetime_ms, unsigned int attempt_count,
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index d2a1a7303..c8a7928ea 100644
+index d2a1a7303..ddf5ba258 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -2344,6 +2344,54 @@ static bool __maybe_unused mt6797_mac_data_bw40(const struct mt6797_mac *mac)
+@@ -471,6 +471,8 @@ struct mt6797_mac {
+ 	 */
+ 	unsigned int tx_attempts[9];
+ #endif
++	/* Rate control lifetime frames sent at the fixed rate (0333). */
++	unsigned int tx_rate_fallbacks;
+ #ifdef CONFIG_MT6797_RX_RATE_RECORD
+ 	/* Received-rate record (logging only): the first receive-vector word's
+ 	 * mode and rate of each queued data frame, by distinct value.
+@@ -2344,6 +2346,68 @@ static bool __maybe_unused mt6797_mac_data_bw40(const struct mt6797_mac *mac)
  	return IS_ENABLED(CONFIG_MT6797_HT40_TX) && mac->join_sco == 3;
  }
  
@@ -152,12 +182,14 @@ index d2a1a7303..c8a7928ea 100644
 +}
 +
 +/* One ordinary data frame's rate: mac80211's first choice in a rate control
-+ * lifetime, as the descriptor carries it. Otherwise, or when the descriptor
-+ * cannot carry it, the frame goes at the fixed rate and its status names no
-+ * rate (index -1), so the rate control learns nothing from it.
++ * lifetime, as the descriptor carries it; 40 MHz only on the HT40 join, so
++ * a stray width flag cannot put wide frames on a 20 MHz association.
++ * Otherwise the frame goes at the fixed rate and its status names no rate
++ * (index -1), so the rate control learns nothing from it; in a rate control
++ * lifetime that fallback is counted, since it should never be taken.
 + */
 +static const struct mt6797_tx_rate * __maybe_unused
-+mt6797_mac_tx_rate(const struct mt6797_mac *mac, struct sk_buff *skb,
++mt6797_mac_tx_rate(struct mt6797_mac *mac, struct sk_buff *skb,
 +		   struct mt6797_tx_rate *r)
 +{
 +	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
@@ -166,22 +198,34 @@ index d2a1a7303..c8a7928ea 100644
 +	int legacy = sband && rate->idx >= 0 && rate->idx < sband->n_bitrates ?
 +		     sband->bitrates[rate->idx].hw_value : -1;
 +
-+	if (mt6797_mac_data_minstrel(mac) &&
++	bool w40 = rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH;
++
++	if (!mt6797_mac_data_minstrel(mac))
++		goto fixed;
++	if ((!w40 || mac->join_sco == 3) &&
 +	    mt6797_tx_rate_map(rate->idx, rate->flags & IEEE80211_TX_RC_MCS,
-+			       rate->flags & IEEE80211_TX_RC_VHT_MCS,
-+			       rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH,
++			       rate->flags & IEEE80211_TX_RC_VHT_MCS, w40,
 +			       rate->flags & IEEE80211_TX_RC_SHORT_GI, legacy, r))
 +		return r;
++	mac->tx_rate_fallbacks++;
++fixed:
++	/* control.rates is status.rates (one union): this is the status. */
 +	rate->idx = -1;
 +	return NULL;
 +}
 +
 +/* The status of a reported frame sent at its own rate: that one rate, for
-+ * the attempts the MCU counted.
++ * the attempts the MCU counted. mac80211's rate choice and the status rates
++ * share their storage, so the rate sent is already in status.rates[0]
++ * (ieee80211_tx_info_clear_status keeps it); the build fails if that ever
++ * stops being true.
 + */
 +static void __maybe_unused mt6797_mac_tx_rate_status(struct sk_buff *skb, unsigned int attempts)
 +{
 +	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++
++	BUILD_BUG_ON(offsetof(struct ieee80211_tx_info, control.rates) !=
++		     offsetof(struct ieee80211_tx_info, status.rates));
 +
 +	if (info->status.rates[0].idx < 0)
 +		return;
@@ -192,7 +236,7 @@ index d2a1a7303..c8a7928ea 100644
  static bool __maybe_unused mt6797_mac_rx_ampdu(const struct mt6797_mac *mac)
  {
  #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
-@@ -2358,6 +2406,7 @@ static void mt6797_mac_testcfg_build(struct mt6797_testcfg *c)
+@@ -2358,6 +2422,7 @@ static void mt6797_mac_testcfg_build(struct mt6797_testcfg *c)
  {
  	*c = (struct mt6797_testcfg){
  		.rate = MT6797_DATA_FIXED_RATE_CODE,
@@ -200,7 +244,32 @@ index d2a1a7303..c8a7928ea 100644
  		.txbw40 = true,
  		.rxbw40 = true,
  		.sgi = IS_ENABLED(CONFIG_MT6797_HT_SGI_TX),
-@@ -4537,6 +4586,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -2510,6 +2575,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_tx_failed = 0;
+ 	mac->join_data_tx_failures_in_row = 0;
+ 	mac->join_data_expired = 0;
++	mac->tx_rate_fallbacks = 0;
+ #ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
+ 	mac->credit_retire_pages = 0;
+ 	mac->credit_retired = 0;
+@@ -3870,14 +3936,14 @@ static void mt6797_mac_testcfg_stats(struct mt6797_mac *mac, const char *reason)
+ 	     !mac->credit_retire_expired && !mac->credit_retire_pid_faults &&
+ 	     !mac->credit_retire_pages;
+ 	scnprintf(body, sizeof(body),
+-		  "reason=%s elapsed_ms=%llu tx_frames=%u tx_bytes=%llu rx_frames=%u rx_bytes=%llu rates=%s first_attempt=%u/%u rx_refused=%u held=%u released=%u timeouts=%u holes=%u passes=%u pass_ns=%llu tx_failed=%u expired=%u pid_faults=%u left_pages=%u",
++		  "reason=%s elapsed_ms=%llu tx_frames=%u tx_bytes=%llu rx_frames=%u rx_bytes=%llu rates=%s first_attempt=%u/%u rx_refused=%u held=%u released=%u timeouts=%u holes=%u passes=%u pass_ns=%llu rate_fallbacks=%u tx_failed=%u expired=%u pid_faults=%u left_pages=%u",
+ 		  reason, div_u64(ns, NSEC_PER_MSEC), mac->join_data_tx_queued,
+ 		  mac->testcfg_tx_bytes, mac->ccmp_rx_delivered, mac->testcfg_rx_bytes,
+ 		  n ? rates : "-", mac->tx_attempts[1], attempts, mac->qos_rx_refused,
+ 		  mac->rx_reorder_held, mac->rx_reorder_released,
+ 		  mac->rx_reorder_timeouts, holes, mac->cost_passes,
+ 		  mac->cost_passes ? div_u64(cost, mac->cost_passes) : 0,
+-		  mac->join_data_tx_failed, mac->credit_retire_expired,
++		  mac->tx_rate_fallbacks, mac->join_data_tx_failed, mac->credit_retire_expired,
+ 		  mac->credit_retire_pid_faults, mac->credit_retire_pages);
+ 	line = mt6797_testcfg_stats(mac->testcfg, body, ok);
+ 	if (line)
+@@ -4537,6 +4603,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
  	struct sk_buff *skb, *completed = NULL, *internal = NULL;
  	const bool credit_retire = IS_ENABLED(CONFIG_MT6797_DATA_CREDIT_RETIRE) &&
  				   MT6797_DATA_DEPTH > 1;
@@ -209,7 +278,7 @@ index d2a1a7303..c8a7928ea 100644
  	bool sample = false;
  #ifdef CONFIG_MT6797_TX_BACKPRESSURE
  	bool wake = false;
-@@ -4943,6 +4994,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -4943,6 +5011,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				reinit_completion(&mac->join_frame_done);
  				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
  				if (!port) {
@@ -217,7 +286,7 @@ index d2a1a7303..c8a7928ea 100644
  					/* Retired on credit arrival: no PID in the descriptor
  					 * and no status report; the host PID keys the slot.
  					 */
-@@ -4955,17 +5007,25 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -4955,17 +5024,25 @@ static void mt6797_mac_join_work(struct work_struct *work)
  						 CONFIG_MT6797_TX_REPORT_SAMPLE &&
  						 ++mac->tx_sample_counter >=
  						 CONFIG_MT6797_TX_REPORT_SAMPLE;
@@ -246,7 +315,7 @@ index d2a1a7303..c8a7928ea 100644
  					if (ret)
  						goto failed;
  					mac->join_inflight_data = true;
-@@ -4975,16 +5035,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -4975,16 +5052,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
  #endif
  					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
  						dev_info(wiphy_dev(mac->hw->wiphy),
@@ -269,7 +338,7 @@ index d2a1a7303..c8a7928ea 100644
  					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
  #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
  					mac->ccmp_observation.submit_pid = mac->join_pid;
-@@ -5325,6 +5389,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+@@ -5325,6 +5406,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
  				if (ack)
  					IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
  #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
@@ -278,7 +347,7 @@ index d2a1a7303..c8a7928ea 100644
  				if (mac->join_inflight_data) {
  					/* A data frame the AP did not acknowledge is reported
  					 * to mac80211 and counted, never a fault by itself;
-@@ -7976,6 +8042,7 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+@@ -7976,6 +8059,7 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
  	static const int bitrates[] = {
  		10, 20, 55, 110, 60, 90, 120, 180, 240, 360, 480, 540,
  	};
@@ -286,7 +355,7 @@ index d2a1a7303..c8a7928ea 100644
  	struct ieee80211_hw *hw;
  	struct mt6797_mac *mac;
  	const u8 *data;
-@@ -8088,8 +8155,11 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+@@ -8088,8 +8172,11 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
  	}
  	for (i = 0; i < ARRAY_SIZE(bitrates); i++) {
  		mac->rates[i].bitrate = bitrates[i];

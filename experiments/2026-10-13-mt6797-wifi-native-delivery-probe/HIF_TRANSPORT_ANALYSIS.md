@@ -8296,3 +8296,65 @@ Both were framed on the reading corrected above.
 
 **Decision (owner, 2026-10-27).** The air probe's rate criterion and the
 vendor hour are dropped. The `rx_refused` gate is decided next.
+
+## 68. Rate control against the fixed ladder, and receive width: boot AV (predeclared, 2026-10-27)
+
+**Inputs.**
+- 0331 splits the test configuration's width into `txbw` and `rxbw`.
+  At `rxbw=20` the advertised capability drops 40 MHz, mac80211
+  associates at 20 MHz, and an HT40 join is refused.
+- 0332 reports the stats traffic as bytes.
+- 0333 sends ordinary data at minstrel_ht's choice (`rate=minstrel`).
+  A reported frame's status carries that rate and the MCU's attempt
+  count, and every rate-control probe requests a report under credit
+  retire. A 40 MHz rate is used only on the HT40 join. In a rate-control
+  lifetime the fixed-rate fallback is counted (`rate_fallbacks`) and
+  reports no rate.
+- The profile stays on fixed MCS5 at 40 MHz (`0x85`) with
+  `CONFIG_MT6797_DATA_RATE_CONTROL` off, and the minstrel legs come from
+  the schedule.
+
+**A review point that did not hold.** The owner's review asked for
+`info->control.rates[0]` to be copied into `info->status.rates[0]`,
+reading the two as separate fields. In this tree they are the same
+bytes. Both arrays sit at offset 0 of one union in
+`struct ieee80211_tx_info`, and `ieee80211_tx_info_clear_status` keeps
+the rates. So the status already names the rate sent, and a copy would
+copy the field onto itself. 0333 now carries a `BUILD_BUG_ON` on that
+layout instead. For the same reason, the fallback's index of -1 is
+written into the shared field: keeping mac80211's choice there would
+report a rate the frame was not sent at.
+
+**Schedule, one entry per lifetime (five cycles).**
+
+| Life | Entry | Question |
+|---|---|---|
+| 1 | `default` (fixed 40M5, rxbw 40) | control |
+| 2 | `rate=minstrel` | does rate control meet or beat fixed MCS5 at 40 MHz? |
+| 3 | `rate=minstrel+txbw=20+rxbw=20` | does a 20 MHz association serve transmit better in this air? |
+| 4 | `txbw=20+rxbw=20` (fixed MCS5) | the same-association control for life 3 |
+| 5 | `default` | drift since life 1 |
+
+**Predeclared reading (owner).**
+- Lives 1 and 5 within about 10 % of each other, or the boot is
+  drift-limited.
+- Life 2's rate words must span more than one MCS (5–7), with a
+  first-attempt fraction no worse than the control's.
+- Life 3 against life 4 answers whether the wide channel costs
+  transmit, the question AO/AE left open.
+- A leg whose rate words never vary means the status path or the
+  mapping is still wrong, not that rate control failed. A non-zero
+  `rate_fallbacks` points the same way.
+- Graded with `grade-matrix.py` from the receipt, with `--band-rx` set
+  for the 40 MHz legs.
+- The profile stays on fixed MCS5/40 until life 2 shows rate control at
+  least matching it. Only then does the ladder retire.
+
+**Tested before the build.**
+- The driver at W=1 (arm64) with `CONFIG_MT6797_DATA_RATE_CONTROL` off
+  and on; checkpatch clean.
+- Host tests: `run-transfer-size-test.py` against its pre-0310 parent,
+  `run-testcfg-test.py` (with the tx-rate mapping test),
+  `run-ht40-hif-test.py` (seven builds) and `run-hif-rx-batch-test.py`.
+- `build-kernel` has no W=1 switch, so the Buildbox build is the
+  lifecycle profile as pinned, with the option off.
