@@ -1,0 +1,259 @@
+From fd9cad4f82ce72406f925fa81b31a35a2eebe9dd Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 27 Oct 2026 06:22:52 -0400
+Subject: [PATCH] wifi: mt6797: split the test configuration's width into
+ transmit and receive
+
+The per-join test configuration's bw item set only the data descriptor's
+transmit width. The association stayed at HT40 whatever the entry said,
+so in boot AU the 20 MHz lifetime still received at 40 MHz, and receive
+width could not be a per-lifetime variable.
+
+Split it into txbw and rxbw. rxbw=20 removes the 20/40 MHz channel width
+and 40 MHz short GI from the advertised HT capability, so mac80211
+associates at 20 MHz and the access point sends 20 MHz. An HT40 join is
+then refused rather than granted at secondary offset 0. txbw=40 needs
+rxbw=40, since a 20 MHz association has no 40 MHz transmission, and the
+old bw item is refused so that a schedule cannot keep its earlier
+meaning.
+
+mac80211 chooses the join's width before the channel grant, so the
+entry is now taken at the lifetime's scan, the first effectful
+submission of each lifetime. The applied line reports both widths.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  6 +--
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 30 +++++++++----
+ .../wireless/mediatek/mt6797/testcfg-parse.h  | 44 +++++++++++++++----
+ .../net/wireless/mediatek/mt6797/testcfg.c    |  7 +--
+ 4 files changed, 64 insertions(+), 23 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index e00c06ab1..c0f441ec0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -116,10 +116,10 @@ config MT6797_WIFI_TESTCONFIG
+ 	  comma-separated schedule of which each join takes the next entry,
+ 	  and applied and stats, one line per lifetime; writing reset clears
+ 	  them and starts the schedule again. An entry is items joined by
+-	  '+': 20M<k> or 40M<k> (HT MCS k at that transmit width), bw=20|40,
++	  '+': 20M<k> or 40M<k> (HT MCS k at that transmit width),
++	  txbw=20|40, rxbw=20|40 (the advertised width and the join accepted),
+ 	  rate=fixed:0xNN, sgi[=0|1], agg=0|1 (receive A-MPDU), peek=0|1 or
+-	  default, each over the build's configuration. Transmit side only:
+-	  the advertised HT capability and the receive width stay as built.
++	  default, each over the build's configuration.
+ 	  An empty schedule is the build throughout; a refused entry keeps the
+ 	  previous configuration, and a lifetime that did not end cleanly is
+ 	  followed by one at the build's. It also turns on the per-phase cost,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 7f9b43921..5f10650be 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -1507,12 +1507,12 @@ static int mt6797_series_second(struct mt6797_mac *mac, u64 now)
+ 	 (IEEE80211_HT_MPDU_DENSITY_8 << IEEE80211_HT_AMPDU_PARM_DENSITY_SHIFT))
+ 
+ /* Exactly the advertised HT capability element body (26 bytes). */
+-static bool mt6797_join_ht_cap_ok(const u8 *b)
++static bool mt6797_join_ht_cap_ok(const u8 *b, u16 cap)
+ {
+ 	unsigned int i;
+ 
+ 	if ((get_unaligned_le16(b) & ~IEEE80211_HT_CAP_SM_PS) !=
+-	    (MT6797_HT_CAP_INFO & ~IEEE80211_HT_CAP_SM_PS) ||
++	    (cap & ~IEEE80211_HT_CAP_SM_PS) ||
+ 	    b[2] != MT6797_HT_AMPDU_PARAMS || b[3] != 0xff ||
+ 	    b[15] != IEEE80211_HT_MCS_TX_DEFINED)
+ 		return false;
+@@ -2204,7 +2204,8 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ #ifdef CONFIG_MT6797_HT_CAPABILITY
+ 		/* One HT capability element, exactly the advertised one. */
+ 		if (subtype == 0 && f[ie] == WLAN_EID_HT_CAPABILITY &&
+-		    f[ie + 1] == 26 && mt6797_join_ht_cap_ok(f + ie + 2) &&
++		    f[ie + 1] == 26 &&
++		    mt6797_join_ht_cap_ok(f + ie + 2, mac->band_5g.ht_cap.cap) &&
+ 		    !mac->join_ht_requested) {
+ 			mac->join_ht_requested = true;
+ 			ie += 2 + f[ie + 1];
+@@ -2337,7 +2338,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ static bool __maybe_unused mt6797_mac_data_bw40(const struct mt6797_mac *mac)
+ {
+ #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+-	if (!mac->testcfg_now.bw40)
++	if (!mac->testcfg_now.txbw40)
+ 		return false;
+ #endif
+ 	return IS_ENABLED(CONFIG_MT6797_HT40_TX) && mac->join_sco == 3;
+@@ -2357,14 +2358,17 @@ static void mt6797_mac_testcfg_build(struct mt6797_testcfg *c)
+ {
+ 	*c = (struct mt6797_testcfg){
+ 		.rate = MT6797_DATA_FIXED_RATE_CODE,
+-		.bw40 = true,
++		.txbw40 = true,
++		.rxbw40 = true,
+ 		.sgi = IS_ENABLED(CONFIG_MT6797_HT_SGI_TX),
+ 		.agg = true,
+ 		.peek = true,
+ 	};
+ }
+ 
+-/* Once per lifetime, at its channel grant: the next schedule entry. */
++/* Once per lifetime, at its scan: the next schedule entry, before mac80211
++ * chooses the join's width from the capability set here.
++ */
+ static void mt6797_mac_testcfg_apply(struct mt6797_mac *mac)
+ {
+ 	char line[160];
+@@ -2381,6 +2385,8 @@ static void mt6797_mac_testcfg_apply(struct mt6797_mac *mac)
+ 	}
+ 	mt6797_hif_set_testcfg(mac->hif, mac->testcfg_now.rate,
+ 			       mac->testcfg_now.agg, mac->testcfg_now.peek);
++	mac->band_5g.ht_cap.cap = mt6797_testcfg_ht_cap(&mac->testcfg_now,
++							MT6797_HT_CAP_INFO);
+ 	dev_info(wiphy_dev(mac->hw->wiphy), "one-shot WLAN testcfg: %s\n", line);
+ }
+ #endif
+@@ -3014,9 +3020,6 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 			ktime_get_ns() + (u64)interval * NSEC_PER_MSEC);
+ #endif
+ 		complete_all(&mac->join_channel_done);
+-#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+-		mt6797_mac_testcfg_apply(mac);
+-#endif
+ #ifdef CONFIG_MT6797_HT40_TX
+ 		/* This lifetime's data at 40 MHz only on the HT40 grant (0324). */
+ 		mt6797_hif_set_data_bw40(mac->hif, mt6797_mac_data_bw40(mac));
+@@ -6210,6 +6213,9 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 */
+ 	if (mac->join_lifetimes < U8_MAX)
+ 		mac->join_lifetimes++;
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	mt6797_mac_testcfg_apply(mac);
++#endif
+ 	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
+ 	if (ret) {
+ 		mac->first_error = ret;
+@@ -6407,6 +6413,12 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 			!(channel->flags & (IEEE80211_CHAN_DISABLED |
+ 				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
+ 				IEEE80211_CHAN_RADAR));
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++		/* At rxbw=20 the HT40 join is refused, never granted at sco 0. */
++		if (mt6797_testcfg_join_sco(&mac->testcfg_now,
++					    def->width == NL80211_CHAN_WIDTH_40) < 0)
++			mac->join_channel_valid = false;
++#endif
+ 		/* Diagnostic only: name the first rejected 5 GHz operating
+ 		 * channel so a refused join can be attributed offline.
+ 		 */
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h b/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+index a25cd7f08..48354f5b4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+@@ -4,12 +4,13 @@
+ 
+ /* One join's test configuration (CONFIG_MT6797_WIFI_TESTCONFIG): the
+  * class-B variables only, each overriding the build for one association.
+- * Transmit side only: the advertised HT capability, the receive width and
+- * the join channel stay as built.
++ * The receive width is the advertised 20/40 MHz capability and the width
++ * the join accepts; the join channel stays as built.
+  */
+ struct mt6797_testcfg {
+ 	unsigned char rate;	/* the data descriptor's fixed rate code */
+-	bool bw40;		/* FIX_BW_40, on an HT40 grant only */
++	bool txbw40;		/* FIX_BW_40, on an HT40 join only */
++	bool rxbw40;		/* advertise and accept the HT40 join */
+ 	bool sgi;		/* short GI, when the peer advertises it */
+ 	bool agg;		/* receive A-MPDU in the station record */
+ 	bool peek;		/* the WHISR peek before the status block */
+@@ -55,8 +56,8 @@ static inline int mt6797_testcfg_hex(char c)
+ }
+ 
+ /* One item of an entry: 20M<k> or 40M<k> (HT MCS k at that transmit width),
+- * bw=20|40, rate=fixed:0xNN, sgi[=0|1], agg=0|1, peek=0|1, or default (the
+- * build). NULL on success, else why the item is refused.
++ * txbw=20|40, rxbw=20|40, rate=fixed:0xNN, sgi[=0|1], agg=0|1, peek=0|1, or
++ * default (the build). NULL on success, else why the item is refused.
+  */
+ static inline const char *
+ mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
+@@ -66,7 +67,7 @@ mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
+ 
+ 	if (n == 4 && (s[0] == '2' || s[0] == '4') && s[1] == '0' && s[2] == 'M' &&
+ 	    s[3] >= '0' && s[3] <= '7') {
+-		c->bw40 = s[0] == '4';
++		c->txbw40 = s[0] == '4';
+ 		c->rate = 0x80 | (s[3] - '0');
+ 		return NULL;
+ 	}
+@@ -93,10 +94,16 @@ mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
+ 		c->peek = v;
+ 		return NULL;
+ 	}
+-	if (mt6797_testcfg_is(s, n, "bw=20") || mt6797_testcfg_is(s, n, "bw=40")) {
+-		c->bw40 = s[3] == '4';
++	if (mt6797_testcfg_is(s, n, "txbw=20") || mt6797_testcfg_is(s, n, "txbw=40")) {
++		c->txbw40 = s[5] == '4';
+ 		return NULL;
+ 	}
++	if (mt6797_testcfg_is(s, n, "rxbw=20") || mt6797_testcfg_is(s, n, "rxbw=40")) {
++		c->rxbw40 = s[5] == '4';
++		return NULL;
++	}
++	if (n >= 3 && mt6797_testcfg_is(s, 3, "bw="))
++		return "bw is txbw or rxbw";
+ 	if (n > 13 && mt6797_testcfg_is(s, 13, "rate=fixed:0x")) {
+ 		int hi = mt6797_testcfg_hex(s[13]);
+ 		int lo = n == 15 ? mt6797_testcfg_hex(s[14]) : 0;
+@@ -139,9 +146,30 @@ mt6797_testcfg_entry(const char *s, size_t n, const struct mt6797_testcfg *base,
+ 			return why;
+ 		i = j + 1;
+ 	}
++	/* A 20 MHz association has no 40 MHz transmission. */
++	if (c->txbw40 && !c->rxbw40)
++		return "txbw=40 needs rxbw=40";
+ 	return NULL;
+ }
+ 
++/* The advertised HT capability information for this lifetime: without
++ * rxbw=40, no 20/40 MHz channel width (bit 1) or 40 MHz short GI (bit 6),
++ * so mac80211 associates at 20 MHz and the access point sends 20 MHz.
++ */
++static inline unsigned short
++mt6797_testcfg_ht_cap(const struct mt6797_testcfg *c, unsigned short cap)
++{
++	return c->rxbw40 ? cap : cap & ~(0x0002 | 0x0040);
++}
++
++/* The join's secondary channel offset for mac80211's width: 3 (below) at
++ * 40 MHz, 0 at 20 MHz, and -1, a refused join, at 40 MHz without rxbw=40.
++ */
++static inline int mt6797_testcfg_join_sco(const struct mt6797_testcfg *c, bool ht40)
++{
++	return !ht40 ? 0 : c->rxbw40 ? 3 : -1;
++}
++
+ static inline bool mt6797_testcfg_space(char c)
+ {
+ 	return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg.c b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+index 6fd8571d1..8bc2664d9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/testcfg.c
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+@@ -77,9 +77,10 @@ void mt6797_testcfg_next(struct mt6797_testcfg_state *t, unsigned int lifetime,
+ 	t->lifetime = lifetime;
+ 	strscpy(t->name, e ? e->name : "-", sizeof(t->name));
+ 	scnprintf(line, bytes,
+-		  "lifetime=%u entry=%u config=%s rate=0x%02x bw=%u sgi=%u agg=%u peek=%u source=%s%s",
+-		  lifetime, index, t->name, cfg->rate, cfg->bw40 ? 40 : 20, cfg->sgi,
+-		  cfg->agg, cfg->peek, e && e->refused ? "refused:" : "", source);
++		  "lifetime=%u entry=%u config=%s rate=0x%02x txbw=%u rxbw=%u sgi=%u agg=%u peek=%u source=%s%s",
++		  lifetime, index, t->name, cfg->rate, cfg->txbw40 ? 40 : 20,
++		  cfg->rxbw40 ? 40 : 20, cfg->sgi, cfg->agg, cfg->peek,
++		  e && e->refused ? "refused:" : "", source);
+ 	if (t->applied_n < MT6797_TESTCFG_LINES)
+ 		strscpy(t->applied[t->applied_n++], line, MT6797_TESTCFG_APPLIED);
+ 	else
+-- 
+2.43.0
+

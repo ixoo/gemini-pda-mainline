@@ -1,0 +1,435 @@
+From 8b320957eb604a5e9368264e55763a2ce208ccbb Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 27 Oct 2026 06:29:52 -0400
+Subject: [PATCH] wifi: mt6797: send ordinary data at mac80211's rate control
+ choice
+
+mac80211 already runs minstrel_ht for this hardware: the driver does not
+claim its own rate control. But every ordinary data frame was sent at
+the fixed descriptor rate, and the status counts were cleared, so the
+rate control's choice was discarded and it never learnt anything.
+
+Wire it up behind CONFIG_MT6797_DATA_RATE_CONTROL, or rate=minstrel in a
+measurement build's per-join schedule. The latter was refused until now
+because the wiring was missing.
+- An ordinary data frame's descriptor takes info->control.rates[0]:
+  - an HT MCS of one stream as HT mixed mode, 0x80 | MCS;
+  - IEEE80211_TX_RC_40_MHZ_WIDTH as FIX_BW_40;
+  - IEEE80211_TX_RC_SHORT_GI as u2FixedRate's guard-interval bit;
+  - a legacy rate as its bitrate's hw_value, which now carries the
+    vendor rate code (CCK long preamble and OFDM 6-54 Mbit/s) instead of
+    the table index.
+- A reported frame's status names that rate with the MCU's attempt
+  count.
+- A frame sent at the fixed rate, or at a rate the descriptor cannot
+  carry, reports rate index -1, so the rate control learns nothing
+  false from it.
+- hw->max_rates is 1 and max_rate_tries matches the descriptor's three
+  attempts.
+
+With credit retire, only the 1-in-N sampled frames carry a status
+report. So every rate-control probe now requests one as well; otherwise
+no probe's result would ever be learnt. Management, security and EAPOL
+frames keep their fixed rates.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  | 15 +++-
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  7 +-
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  4 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 82 +++++++++++++++++--
+ .../wireless/mediatek/mt6797/testcfg-parse.h  | 15 ++--
+ .../net/wireless/mediatek/mt6797/testcfg.c    |  5 +-
+ .../net/wireless/mediatek/mt6797/tx-rate.h    | 60 ++++++++++++++
+ 7 files changed, 171 insertions(+), 17 deletions(-)
+ create mode 100644 drivers/net/wireless/mediatek/mt6797/tx-rate.h
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index c0f441ec0..e9642d100 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -118,7 +118,7 @@ config MT6797_WIFI_TESTCONFIG
+ 	  them and starts the schedule again. An entry is items joined by
+ 	  '+': 20M<k> or 40M<k> (HT MCS k at that transmit width),
+ 	  txbw=20|40, rxbw=20|40 (the advertised width and the join accepted),
+-	  rate=fixed:0xNN, sgi[=0|1], agg=0|1 (receive A-MPDU), peek=0|1 or
++	  rate=fixed:0xNN, rate=minstrel (mac80211's rate control), sgi[=0|1], agg=0|1 (receive A-MPDU), peek=0|1 or
+ 	  default, each over the build's configuration.
+ 	  An empty schedule is the build throughout; a refused entry keeps the
+ 	  previous configuration, and a lifetime that did not end cleanly is
+@@ -126,6 +126,19 @@ config MT6797_WIFI_TESTCONFIG
+ 	  transmit rate-word and attempt, and receive rate records. Off for
+ 	  normal use: no debugfs directory and none of those records.
+ 
++config MT6797_DATA_RATE_CONTROL
++	bool "MT6797 Wi-Fi: ordinary data at mac80211's rate control choice"
++	depends on MT6797_STATION_JOIN
++	help
++	  Send each ordinary data frame at the rate mac80211's rate control
++	  (minstrel_ht) chose for it, with its width and guard interval,
++	  instead of the fixed rate code, and report that rate and the MCU's
++	  attempt count in the frame's status. With credit retire only the
++	  sampled frames and the rate control's probes carry a status report,
++	  so the rate control learns from those. Management, security and
++	  EAPOL frames keep their fixed rate. In a measurement build this is
++	  the build's configuration; rate=minstrel selects it per join.
++
+ config MT6797_WIFI_TESTCONFIG_SCHEDULE
+ 	string "MT6797 Wi-Fi measurement build: the schedule at boot"
+ 	depends on MT6797_WIFI_TESTCONFIG
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index b4e8aa76a..bfebfcef5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1714,7 +1714,7 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 				size_t frame_bytes, u8 wlan, u8 pid,
+ 				bool status_report,
+ 				unsigned int lifetime_ms, unsigned int attempt_count,
+-				u64 deadline_ns)
++				const struct mt6797_tx_rate *rate, u64 deadline_ns)
+ {
+ 	struct mt6797_hif_pio_result transfer;
+ 	struct mt6797_hif_command command;
+@@ -1757,6 +1757,9 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 	if (hif->data_sgi && ((mt6797_hif_data_rate(hif) >> 6) & 7) == 2)
+ 		hif->scratch[27] |= 0x80;
+ #endif
++	/* mac80211's rate control choice for this frame, over all of those. */
++	if (rate)
++		mt6797_tx_rate_descriptor(rate, hif->scratch);
+ 	error = mt6797_hif_enter(hif, deadline_ns);
+ 	if (error)
+ 		goto fail;
+@@ -1817,7 +1820,7 @@ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+ 			 u64 deadline_ns)
+ {
+ 	return mt6797_hif_send_data_report(hif, frame, frame_bytes, wlan, pid, true,
+-					   lifetime_ms, attempt_count, deadline_ns);
++					   lifetime_ms, attempt_count, NULL, deadline_ns);
+ }
+ 
+ int mt6797_hif_send_config(struct mt6797_hif *hif,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index cd818119e..1402d9884 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -10,6 +10,7 @@
+ #endif
+ #include "hif_ordinary_section.h"
+ #include "normal_command.h"
++#include "tx-rate.h"
+ 
+ /* Short GI on ordinary data: by the peer's capability (0327), or per join
+  * in a measurement build.
+@@ -352,11 +353,12 @@ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi);
+ void mt6797_hif_set_testcfg(struct mt6797_hif *hif, unsigned int rate, bool agg,
+ 			    bool peek);
+ #endif
++/* rate: this frame's rate over the fixed one, or NULL. */
+ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 				size_t frame_bytes, u8 wlan, u8 pid,
+ 				bool status_report,
+ 				unsigned int lifetime_ms, unsigned int attempt_count,
+-				u64 deadline_ns);
++				const struct mt6797_tx_rate *rate, u64 deadline_ns);
+ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
+ 			     size_t frame_bytes, u8 wlan, u8 pid,
+ 			     unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d2a1a7303..c8a7928ea 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -2344,6 +2344,54 @@ static bool __maybe_unused mt6797_mac_data_bw40(const struct mt6797_mac *mac)
+ 	return IS_ENABLED(CONFIG_MT6797_HT40_TX) && mac->join_sco == 3;
+ }
+ 
++/* This lifetime's ordinary data at mac80211's rate control choice. */
++static bool __maybe_unused mt6797_mac_data_minstrel(const struct mt6797_mac *mac)
++{
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	return mac->testcfg_now.minstrel;
++#else
++	return IS_ENABLED(CONFIG_MT6797_DATA_RATE_CONTROL);
++#endif
++}
++
++/* One ordinary data frame's rate: mac80211's first choice in a rate control
++ * lifetime, as the descriptor carries it. Otherwise, or when the descriptor
++ * cannot carry it, the frame goes at the fixed rate and its status names no
++ * rate (index -1), so the rate control learns nothing from it.
++ */
++static const struct mt6797_tx_rate * __maybe_unused
++mt6797_mac_tx_rate(const struct mt6797_mac *mac, struct sk_buff *skb,
++		   struct mt6797_tx_rate *r)
++{
++	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++	struct ieee80211_tx_rate *rate = &info->control.rates[0];
++	const struct ieee80211_supported_band *sband = mac->hw->wiphy->bands[info->band];
++	int legacy = sband && rate->idx >= 0 && rate->idx < sband->n_bitrates ?
++		     sband->bitrates[rate->idx].hw_value : -1;
++
++	if (mt6797_mac_data_minstrel(mac) &&
++	    mt6797_tx_rate_map(rate->idx, rate->flags & IEEE80211_TX_RC_MCS,
++			       rate->flags & IEEE80211_TX_RC_VHT_MCS,
++			       rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH,
++			       rate->flags & IEEE80211_TX_RC_SHORT_GI, legacy, r))
++		return r;
++	rate->idx = -1;
++	return NULL;
++}
++
++/* The status of a reported frame sent at its own rate: that one rate, for
++ * the attempts the MCU counted.
++ */
++static void __maybe_unused mt6797_mac_tx_rate_status(struct sk_buff *skb, unsigned int attempts)
++{
++	struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++
++	if (info->status.rates[0].idx < 0)
++		return;
++	info->status.rates[0].count = clamp(attempts, 1U, 31U);
++	info->status.rates[1].idx = -1;
++}
++
+ static bool __maybe_unused mt6797_mac_rx_ampdu(const struct mt6797_mac *mac)
+ {
+ #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+@@ -2358,6 +2406,7 @@ static void mt6797_mac_testcfg_build(struct mt6797_testcfg *c)
+ {
+ 	*c = (struct mt6797_testcfg){
+ 		.rate = MT6797_DATA_FIXED_RATE_CODE,
++		.minstrel = IS_ENABLED(CONFIG_MT6797_DATA_RATE_CONTROL),
+ 		.txbw40 = true,
+ 		.rxbw40 = true,
+ 		.sgi = IS_ENABLED(CONFIG_MT6797_HT_SGI_TX),
+@@ -4537,6 +4586,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 	struct sk_buff *skb, *completed = NULL, *internal = NULL;
+ 	const bool credit_retire = IS_ENABLED(CONFIG_MT6797_DATA_CREDIT_RETIRE) &&
+ 				   MT6797_DATA_DEPTH > 1;
++	const struct mt6797_tx_rate *per_frame;
++	struct mt6797_tx_rate rate;
+ 	bool sample = false;
+ #ifdef CONFIG_MT6797_TX_BACKPRESSURE
+ 	bool wake = false;
+@@ -4943,6 +4994,7 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				reinit_completion(&mac->join_frame_done);
+ 				pages = (MT6797_JOIN_TX_DESC_BYTES + eth_bytes + 127) / 128;
+ 				if (!port) {
++					per_frame = mt6797_mac_tx_rate(mac, skb, &rate);
+ 					/* Retired on credit arrival: no PID in the descriptor
+ 					 * and no status report; the host PID keys the slot.
+ 					 */
+@@ -4955,17 +5007,25 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 						 CONFIG_MT6797_TX_REPORT_SAMPLE &&
+ 						 ++mac->tx_sample_counter >=
+ 						 CONFIG_MT6797_TX_REPORT_SAMPLE;
+-					if (sample) {
++					if (sample)
+ 						mac->tx_sample_counter = 0;
++					/* A rate control probe always reports, or its rate
++					 * is never learnt.
++					 */
++					if (credit_retire && per_frame &&
++					    (IEEE80211_SKB_CB(skb)->flags &
++					     IEEE80211_TX_CTL_RATE_CTRL_PROBE))
++						sample = true;
++					if (sample)
+ 						mac->tx_samples++;
+-					}
+ #endif
+ 					ret = mt6797_hif_send_data_report(mac->hif, mac->join_eth,
+ 									  eth_bytes, 1,
+ 									  (credit_retire && !sample) ?
+ 									  0 : mac->join_pid,
+ 									  !credit_retire || sample,
+-									  500, 3, deadline);
++									  500, 3, per_frame,
++									  deadline);
+ 					if (ret)
+ 						goto failed;
+ 					mac->join_inflight_data = true;
+@@ -4975,16 +5035,20 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ #endif
+ 					if (!mac->join_data_tx_done && !mac->join_data_tx_failed)
+ 						dev_info(wiphy_dev(mac->hw->wiphy),
+-							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u bw40=%u sgi=%u\n",
++							 "one-shot WLAN join data TX: first pid=%u pages=%u bytes=%zu rate=0x%02x report=%u bw40=%u sgi=%u minstrel=%u\n",
+ 							 mac->join_pid, pages, eth_bytes,
++							 per_frame ? per_frame->code :
+ #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+ 							 mac->testcfg_now.rate,
+ #else
+ 							 MT6797_DATA_FIXED_RATE_CODE,
+ #endif
+ 							 !credit_retire,
++							 per_frame ? per_frame->bw40 :
+ 							 mt6797_mac_data_bw40(mac),
+-							 mac->join_data_sgi);
++							 per_frame ? per_frame->sgi :
++							 mac->join_data_sgi,
++							 mt6797_mac_data_minstrel(mac));
+ 					mac->join_frame_deadline = ktime_get_ns() + 750 * NSEC_PER_MSEC;
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 					mac->ccmp_observation.submit_pid = mac->join_pid;
+@@ -5325,6 +5389,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				if (ack)
+ 					IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
+ #if IS_ENABLED(CONFIG_MT6797_STATION_JOIN)
++				if (mac->join_inflight_data)
++					mt6797_mac_tx_rate_status(completed, result.count);
+ 				if (mac->join_inflight_data) {
+ 					/* A data frame the AP did not acknowledge is reported
+ 					 * to mac80211 and counted, never a fault by itself;
+@@ -7976,6 +8042,7 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	static const int bitrates[] = {
+ 		10, 20, 55, 110, 60, 90, 120, 180, 240, 360, 480, 540,
+ 	};
++	static const u16 codes[] = MT6797_LEGACY_RATE_CODES;
+ 	struct ieee80211_hw *hw;
+ 	struct mt6797_mac *mac;
+ 	const u8 *data;
+@@ -8088,8 +8155,11 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	}
+ 	for (i = 0; i < ARRAY_SIZE(bitrates); i++) {
+ 		mac->rates[i].bitrate = bitrates[i];
+-		mac->rates[i].hw_value = i;
++		mac->rates[i].hw_value = codes[i];
+ 	}
++	/* One rate per ordinary data frame, at the descriptor's three attempts. */
++	hw->max_rates = 1;
++	hw->max_rate_tries = 3;
+ 	mac->band.band = NL80211_BAND_2GHZ;
+ 	mac->band.channels = mac->channels;
+ 	mac->band.n_channels = MT6797_2G_CHANNELS;
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h b/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+index 48354f5b4..8390bea06 100644
+--- a/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg-parse.h
+@@ -9,6 +9,7 @@
+  */
+ struct mt6797_testcfg {
+ 	unsigned char rate;	/* the data descriptor's fixed rate code */
++	bool minstrel;		/* mac80211's rate control choice instead */
+ 	bool txbw40;		/* FIX_BW_40, on an HT40 join only */
+ 	bool rxbw40;		/* advertise and accept the HT40 join */
+ 	bool sgi;		/* short GI, when the peer advertises it */
+@@ -56,8 +57,9 @@ static inline int mt6797_testcfg_hex(char c)
+ }
+ 
+ /* One item of an entry: 20M<k> or 40M<k> (HT MCS k at that transmit width),
+- * txbw=20|40, rxbw=20|40, rate=fixed:0xNN, sgi[=0|1], agg=0|1, peek=0|1, or
+- * default (the build). NULL on success, else why the item is refused.
++ * txbw=20|40, rxbw=20|40, rate=fixed:0xNN, rate=minstrel (mac80211's rate
++ * control: its width and guard interval too), sgi[=0|1], agg=0|1, peek=0|1,
++ * or default (the build). NULL on success, else why the item is refused.
+  */
+ static inline const char *
+ mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
+@@ -69,6 +71,7 @@ mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
+ 	    s[3] >= '0' && s[3] <= '7') {
+ 		c->txbw40 = s[0] == '4';
+ 		c->rate = 0x80 | (s[3] - '0');
++		c->minstrel = false;
+ 		return NULL;
+ 	}
+ 	if (mt6797_testcfg_is(s, n, "default")) {
+@@ -115,11 +118,13 @@ mt6797_testcfg_item(const char *s, size_t n, const struct mt6797_testcfg *base,
+ 		if (!v)
+ 			return "rate code 0";
+ 		c->rate = v;
++		c->minstrel = false;
++		return NULL;
++	}
++	if (mt6797_testcfg_is(s, n, "rate=minstrel")) {
++		c->minstrel = true;
+ 		return NULL;
+ 	}
+-	if (mt6797_testcfg_is(s, n, "rate=minstrel") ||
+-	    (n >= 8 && mt6797_testcfg_is(s, 8, "minstrel")))
+-		return "minstrel needs per-frame transmit status";
+ 	return "unknown item";
+ }
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg.c b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+index 8bc2664d9..ab60c59e2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/testcfg.c
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+@@ -77,8 +77,9 @@ void mt6797_testcfg_next(struct mt6797_testcfg_state *t, unsigned int lifetime,
+ 	t->lifetime = lifetime;
+ 	strscpy(t->name, e ? e->name : "-", sizeof(t->name));
+ 	scnprintf(line, bytes,
+-		  "lifetime=%u entry=%u config=%s rate=0x%02x txbw=%u rxbw=%u sgi=%u agg=%u peek=%u source=%s%s",
+-		  lifetime, index, t->name, cfg->rate, cfg->txbw40 ? 40 : 20,
++		  "lifetime=%u entry=%u config=%s rate=%s0x%02x txbw=%u rxbw=%u sgi=%u agg=%u peek=%u source=%s%s",
++		  lifetime, index, t->name, cfg->minstrel ? "minstrel/" : "",
++		  cfg->rate, cfg->txbw40 ? 40 : 20,
+ 		  cfg->rxbw40 ? 40 : 20, cfg->sgi, cfg->agg, cfg->peek,
+ 		  e && e->refused ? "refused:" : "", source);
+ 	if (t->applied_n < MT6797_TESTCFG_LINES)
+diff --git a/drivers/net/wireless/mediatek/mt6797/tx-rate.h b/drivers/net/wireless/mediatek/mt6797/tx-rate.h
+new file mode 100644
+index 000000000..77376bc07
+--- /dev/null
++++ b/drivers/net/wireless/mediatek/mt6797/tx-rate.h
+@@ -0,0 +1,60 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_TX_RATE_H
++#define MT6797_TX_RATE_H
++
++/* The vendor rate codes (transmit mode in bits 6-8, the PHY rate below) in
++ * the order of the driver's bitrate table: CCK 1, 2, 5.5 and 11 Mbit/s with
++ * the long preamble, then OFDM 6, 9, 12, 18, 24, 36, 48 and 54 Mbit/s.
++ */
++#define MT6797_LEGACY_RATE_CODES \
++	{ 0x00, 0x01, 0x02, 0x03, 0x4b, 0x4f, 0x4a, 0x4e, 0x49, 0x4d, 0x48, 0x4c }
++
++/* One ordinary data frame's rate as the descriptor carries it. */
++struct mt6797_tx_rate {
++	unsigned short code;	/* u2FixedRate's rate code */
++	bool bw40;		/* FIX_BW_40 */
++	bool sgi;		/* u2FixedRate's short GI bit */
++};
++
++/* mac80211's first rate for a frame: an HT MCS of one stream (0-7) is HT
++ * mixed mode, 0x80 | MCS, with its width and guard interval; a legacy rate
++ * is its bitrate's hw_value, the vendor code (legacy, -1 when the index is
++ * outside the band). false for what the descriptor cannot carry: no rate,
++ * VHT, a second stream, or a legacy rate at 40 MHz or short GI.
++ */
++static inline bool
++mt6797_tx_rate_map(int idx, bool mcs, bool vht, bool w40, bool sgi, int legacy,
++		   struct mt6797_tx_rate *r)
++{
++	if (idx < 0 || vht)
++		return false;
++	if (mcs) {
++		if (idx > 7)
++			return false;
++		r->code = 0x80 | idx;
++		r->bw40 = w40;
++		r->sgi = sgi;
++		return true;
++	}
++	if (legacy < 0 || w40 || sgi)
++		return false;
++	r->code = legacy;
++	r->bw40 = false;
++	r->sgi = false;
++	return true;
++}
++
++/* The descriptor bytes the rate sets over the built ones: the fixed-rate
++ * bit (11), FIX_BW_40 (25) and u2FixedRate with its guard interval in bit
++ * 15 (26-27).
++ */
++static inline void mt6797_tx_rate_descriptor(const struct mt6797_tx_rate *r,
++					     unsigned char *d)
++{
++	d[11] = 0x80;
++	d[25] = r->bw40 ? 5 : 0;
++	d[26] = (r->code << 2) & 255;
++	d[27] = ((r->code << 2) >> 8) | (r->sgi ? 0x80 : 0);
++}
++
++#endif
+-- 
+2.43.0
+

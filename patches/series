@@ -919,3 +919,6 @@ proposals/0327-wifi-mt6797-transmit-ordinary-data-with-the-short-gu.patch
 proposals/0328-wifi-mt6797-complete-the-peer-HT-capability-in-the-s.patch
 proposals/0329-wifi-mt6797-a-per-join-test-configuration-for-measur.patch
 proposals/0330-wifi-mt6797-count-the-block-ack-and-reorder-records-.patch
+proposals/0331-wifi-mt6797-split-the-test-configuration-s-width-int.patch
+proposals/0332-wifi-mt6797-report-the-test-stats-traffic-as-bytes-n.patch
+proposals/0333-wifi-mt6797-send-ordinary-data-at-mac80211-s-rate-co.patch

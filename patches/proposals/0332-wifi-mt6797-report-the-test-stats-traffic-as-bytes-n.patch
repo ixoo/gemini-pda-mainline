@@ -1,0 +1,59 @@
+From 13dd1c158332e68868558198310bbc2a44c6f9b7 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 27 Oct 2026 06:23:02 -0400
+Subject: [PATCH] wifi: mt6797: report the test stats' traffic as bytes, not a
+ rate
+
+The per-join stats line gave tx_mbps and rx_mbps: the lifetime's bytes
+over the whole data phase, including the idle time around the
+harness's transfer chunks. The figure is not a throughput, and boot AU
+was misgraded on it, reading about 2 Mbit/s where the harness had
+measured 13-17 Mbit/s transmit and 20-32 Mbit/s receive.
+
+Report tx_bytes and rx_bytes instead. elapsed_ms already gives the
+phase length, and throughput is graded from the harness's receipt.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 14 +++++++-------
+ 1 file changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 5f10650be..d2a1a7303 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -3836,16 +3836,16 @@ static void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 
+ #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+ /* The lifetime's measurements as far as the driver sees them, over its data
+- * phase: frames and Mbit/s each way, the first three sampled rate words,
++ * phase: frames and bytes each way (no rate: the phase includes the idle
++ * time around the harness's chunks, so throughput is graded from the
++ * receipt), the first three sampled rate words,
+  * first-attempt completions, refused receive frames, the reorder window, the
+  * worker's cost per pass and the ledger. A lifetime is ok when it ended by
+  * disconnect with nothing failed, expired, faulted or left.
+  */
+ static void mt6797_mac_testcfg_stats(struct mt6797_mac *mac, const char *reason)
+ {
+-	u64 ns = max_t(u64, ktime_get_ns() - mac->join_data_started, 1);
+-	u64 tx = div64_u64(mac->testcfg_tx_bytes * 800000ULL, ns);
+-	u64 rx = div64_u64(mac->testcfg_rx_bytes * 800000ULL, ns);
++	u64 ns = ktime_get_ns() - mac->join_data_started;
+ 	u64 cost = mac->cost_ns[MT6797_COST_STATUS] + mac->cost_ns[MT6797_COST_SUBMIT] +
+ 		   mac->cost_ns[MT6797_COST_RECEIVE] +
+ 		   mac->cost_ns[MT6797_COST_COMPLETION] +
+@@ -3870,9 +3870,9 @@ static void mt6797_mac_testcfg_stats(struct mt6797_mac *mac, const char *reason)
+ 	     !mac->credit_retire_expired && !mac->credit_retire_pid_faults &&
+ 	     !mac->credit_retire_pages;
+ 	scnprintf(body, sizeof(body),
+-		  "reason=%s elapsed_ms=%llu tx_frames=%u tx_mbps=%llu.%02llu rx_frames=%u rx_mbps=%llu.%02llu rates=%s first_attempt=%u/%u rx_refused=%u held=%u released=%u timeouts=%u holes=%u passes=%u pass_ns=%llu tx_failed=%u expired=%u pid_faults=%u left_pages=%u",
+-		  reason, ns / NSEC_PER_MSEC, mac->join_data_tx_queued, tx / 100,
+-		  tx % 100, mac->ccmp_rx_delivered, rx / 100, rx % 100,
++		  "reason=%s elapsed_ms=%llu tx_frames=%u tx_bytes=%llu rx_frames=%u rx_bytes=%llu rates=%s first_attempt=%u/%u rx_refused=%u held=%u released=%u timeouts=%u holes=%u passes=%u pass_ns=%llu tx_failed=%u expired=%u pid_faults=%u left_pages=%u",
++		  reason, div_u64(ns, NSEC_PER_MSEC), mac->join_data_tx_queued,
++		  mac->testcfg_tx_bytes, mac->ccmp_rx_delivered, mac->testcfg_rx_bytes,
+ 		  n ? rates : "-", mac->tx_attempts[1], attempts, mac->qos_rx_refused,
+ 		  mac->rx_reorder_held, mac->rx_reorder_released,
+ 		  mac->rx_reorder_timeouts, holes, mac->cost_passes,
+-- 
+2.43.0
+

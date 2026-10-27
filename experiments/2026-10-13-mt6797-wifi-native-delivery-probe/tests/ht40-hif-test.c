@@ -14,8 +14,9 @@
  * (34-39, 44-49), nothing else changed. With CONFIG_MT6797_WIFI_TESTCONFIG
  * a join's configuration replaces the build's rate code in the descriptor
  * (bytes 11, 26-27; the width and guard interval follow it) and turns
- * receive A-MPDU off in the record (77, 93). Built by run-ht40-hif-test.py
- * with and without each option.
+ * receive A-MPDU off in the record (77, 93), and a frame's own rate
+ * (mac80211's choice) replaces the rate, width and guard interval. Built
+ * by run-ht40-hif-test.py with and without each option.
  * The bus is a capture: the setup word and the data words of each command.
  */
 #define MT6797_HIF_HOST_TEST
@@ -217,7 +218,7 @@ int main(void)
 		fresh(&hif);
 		hif.normal.tc1_limit = hif.normal.tc1_free = 12;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		memcpy(d20, sent, sizeof(d20));
 		assert(d20[25] == 0 && d20[11] == 0x80);	/* fixed rate, no bandwidth */
 		mt6797_hif_set_data_bw40(&hif, true);
@@ -226,7 +227,7 @@ int main(void)
 		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
 		hif.normal.tc1_free = hif.normal.tc1_limit;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		for (unsigned int i = 0; i < sizeof(d20); i++)
 			assert(i == 25 ? sent[i] == 5 : sent[i] == d20[i]);
 		/* told 20 MHz again: back to the 20 MHz descriptor */
@@ -236,7 +237,7 @@ int main(void)
 		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
 		hif.normal.tc1_free = hif.normal.tc1_limit;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		assert(!memcmp(sent, d20, sizeof(d20)));
 #ifdef CONFIG_MT6797_HT_SGI_TX
 		/* short GI on: byte 27 bit 7, and only for an HT mixed-mode code */
@@ -246,7 +247,7 @@ int main(void)
 		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
 		hif.normal.tc1_free = hif.normal.tc1_limit;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		for (unsigned int i = 0; i < sizeof(d20); i++)
 			assert(i != 27 ? sent[i] == d20[i] :
 			       ((MT6797_DATA_FIXED_RATE_CODE >> 6) & 7) == 2 ?
@@ -265,7 +266,7 @@ int main(void)
 		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
 		hif.normal.tc1_free = hif.normal.tc1_limit;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		for (unsigned int i = 0; i < sizeof(d20); i++)
 			assert(i == 25 ? sent[i] == 5 :
 			       i == 11 ? sent[i] == 0x80 :
@@ -278,7 +279,7 @@ int main(void)
 		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
 		hif.normal.tc1_free = hif.normal.tc1_limit;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		assert(sent[27] == (((0x86 << 2) >> 8) | 0x80));
 		mt6797_hif_set_testcfg(&hif, 0x4b, true, true);
 		memset(sent, 0, sizeof(sent));
@@ -286,9 +287,37 @@ int main(void)
 		hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
 		hif.normal.tc1_free = hif.normal.tc1_limit;
 		assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
-						    500, 3, 1000000));
+						    500, 3, NULL, 1000000));
 		assert(sent[11] == 0x80 && sent[26] == ((0x4b << 2) & 255) &&
 		       sent[27] == ((0x4b << 2) >> 8) && sent[25] == 5);
+		/* mac80211's rate for one frame replaces all of that: MCS7 at
+		 * 20 MHz with short GI, then OFDM 6 Mbit/s with no width or GI.
+		 */
+		{
+			struct mt6797_tx_rate r = { .code = 0x87, .bw40 = false, .sgi = true };
+
+			memset(sent, 0, sizeof(sent));
+			calls = 0;
+			hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+			hif.normal.tc1_free = hif.normal.tc1_limit;
+			assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+							    500, 3, &r, 1000000));
+			for (unsigned int i = 0; i < sizeof(d20); i++)
+				assert(i == 25 ? sent[i] == 0 :
+				       i == 11 ? sent[i] == 0x80 :
+				       i == 26 ? sent[i] == ((0x87 << 2) & 255) :
+				       i == 27 ? sent[i] == (((0x87 << 2) >> 8) | 0x80) :
+				       sent[i] == d20[i]);
+			r = (struct mt6797_tx_rate){ .code = 0x4b };
+			memset(sent, 0, sizeof(sent));
+			calls = 0;
+			hif.normal.phase = MT6797_NORMAL_NVRAM_SUBMITTED;
+			hif.normal.tc1_free = hif.normal.tc1_limit;
+			assert(!mt6797_hif_send_data_report(&hif, frame, sizeof(frame), 1, 0, false,
+							    500, 3, &r, 1000000));
+			assert(sent[11] == 0x80 && sent[25] == 0 &&
+			       sent[26] == ((0x4b << 2) & 255) && sent[27] == ((0x4b << 2) >> 8));
+		}
 		mt6797_hif_set_data_sgi(&hif, false);
 		mt6797_hif_set_data_bw40(&hif, false);
 #endif

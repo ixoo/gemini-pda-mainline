@@ -156,7 +156,7 @@ static const char *get(const char *name)
 }
 
 static const struct mt6797_testcfg build = {
-	.rate = 0x85, .bw40 = true, .sgi = false, .agg = true, .peek = true,
+	.rate = 0x85, .minstrel = false, .txbw40 = true, .rxbw40 = true, .sgi = false, .agg = true, .peek = true,
 };
 
 static char line[160];
@@ -179,7 +179,7 @@ int main(void)
 	/* No schedule: the build, every lifetime. */
 	c = next(t, 1);
 	assert(!memcmp(&c, &build, sizeof(c)));
-	assert(!strcmp(line, "lifetime=1 entry=0 config=- rate=0x85 bw=40 sgi=0 agg=1 peek=1 source=build"));
+	assert(!strcmp(line, "lifetime=1 entry=0 config=- rate=0x85 txbw=40 rxbw=40 sgi=0 agg=1 peek=1 source=build"));
 	assert(mt6797_testcfg_stats(t, "reason=disconnect", true));
 	/* A second stats line for the same lifetime is not recorded. */
 	assert(!mt6797_testcfg_stats(t, "reason=again", true));
@@ -192,8 +192,8 @@ int main(void)
 	assert(strstr(s, "entry=2 config=bogus refused=unknown item\n"));
 	/* lifetime 2: entry 1, which then fails */
 	c = next(t, 2);
-	assert(c.rate == 0x87 && !c.bw40);
-	assert(!strcmp(line, "lifetime=2 entry=1 config=20M7 rate=0x87 bw=20 sgi=0 agg=1 peek=1 source=schedule"));
+	assert(c.rate == 0x87 && !c.txbw40);
+	assert(!strcmp(line, "lifetime=2 entry=1 config=20M7 rate=0x87 txbw=20 rxbw=40 sgi=0 agg=1 peek=1 source=schedule"));
 	s = mt6797_testcfg_stats(t, "reason=txfail", false);
 	assert(s && !strcmp(s, "lifetime=2 config=20M7 ok=0 reason=txfail"));
 	/* lifetime 3: the build, and entry 2 still waits */
@@ -209,13 +209,13 @@ int main(void)
 	assert(mt6797_testcfg_stats(t, "reason=disconnect", true));
 	/* lifetime 5: entry 3; then lifetime 6 begins with 5 never measured */
 	c = next(t, 5);
-	assert(c.rate == 0x85 && c.bw40 && !c.sgi);
+	assert(c.rate == 0x85 && c.txbw40 && !c.sgi);
 	c = next(t, 6);
 	assert(!memcmp(&c, &build, sizeof(c)) && strstr(line, "source=recovery"));
 	assert(mt6797_testcfg_stats(t, "reason=disconnect", true));
 	/* lifetime 7: entry 4; lifetime 8: after the schedule */
 	c = next(t, 7);
-	assert(c.rate == 0x86 && c.bw40 && c.sgi && strstr(line, "entry=4 config=40M6+sgi"));
+	assert(c.rate == 0x86 && c.txbw40 && c.sgi && strstr(line, "entry=4 config=40M6+sgi"));
 	assert(mt6797_testcfg_stats(t, "reason=disconnect", true));
 	c = next(t, 8);
 	assert(!memcmp(&c, &build, sizeof(c)) && strstr(line, "source=after-schedule"));
@@ -234,7 +234,7 @@ int main(void)
 	assert(mt6797_testcfg_stats(t, "reason=disconnect", true));
 	/* a refused entry after a scheduled one keeps that one's configuration */
 	c = next(t, 10);
-	assert(c.rate == 0x87 && !c.bw40 && strstr(line, "source=refused:unknown item"));
+	assert(c.rate == 0x87 && !c.txbw40 && strstr(line, "source=refused:unknown item"));
 	/* an empty schedule is the build again */
 	assert(put("testcfg", "\n") > 0);
 	assert(strstr(get("testcfg"), "\nentries=0 next=0\n"));

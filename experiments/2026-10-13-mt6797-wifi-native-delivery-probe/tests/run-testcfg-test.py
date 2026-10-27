@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Per-join test schedule (CONFIG_MT6797_WIFI_TESTCONFIG): the actual testcfg-parse.h; host behaviour only."""
+"""Per-join test schedule (CONFIG_MT6797_WIFI_TESTCONFIG) and the data rate mapping: the actual testcfg-parse.h and tx-rate.h; host behaviour only."""
 import argparse
 from pathlib import Path
 import subprocess
@@ -19,6 +19,11 @@ with tempfile.TemporaryDirectory(prefix='mt6797-testcfg-') as directory:
                     *pie, '-I', str(driver), str(here / 'testcfg-parse-test.c'), '-o', str(binary)],
                    check=True, timeout=120)
     subprocess.run([str(binary)], check=True, timeout=10)
+    binary = Path(directory) / 'tx-rate'
+    subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Werror', '-fsanitize=address,undefined',
+                    *pie, '-I', str(driver), str(here / 'tx-rate-test.c'), '-o', str(binary)],
+                   check=True, timeout=120)
+    subprocess.run([str(binary)], check=True, timeout=10)
     # testcfg.c over stubs of the kernel calls it makes; empty kernel headers.
     stub = Path(directory) / 'include'
     (stub / 'linux').mkdir(parents=True)
@@ -29,4 +34,4 @@ with tempfile.TemporaryDirectory(prefix='mt6797-testcfg-') as directory:
                     '-fsanitize=address,undefined', *pie, '-I', str(stub), '-I', str(driver),
                     str(here / 'testcfg-state-test.c'), '-o', str(binary)], check=True, timeout=120)
     subprocess.run([str(binary)], check=True, timeout=10)
-print('PASS the per-join schedule parser and testcfg.c through its file operations; the join and the air are not proved here')
+print('PASS the per-join schedule parser, testcfg.c through its file operations and the data rate mapping; the join, the rate control and the air are not proved here')
