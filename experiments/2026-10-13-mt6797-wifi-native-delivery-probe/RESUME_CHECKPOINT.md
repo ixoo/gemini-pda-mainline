@@ -1,4 +1,11 @@
-# Current: §66's matrix boot, AU (144a3e9d), staged on boot2 (2d45a751…); six lifecycle cycles, graded per lifetime
+# Current: boot AU graded; the per-join surface applied every entry, but every lifetime is void by §66's software-frame gate (rx_refused 204–292 against 50); the gate or the air decides the rerun
+
+[Boot AU](HIF_TRANSPORT_ANALYSIS.md#boot-au-result-2026-10-27-0014-utc-the-surface-applied-every-entry-every-lifetime-void-by-the-software-frame-gate).
+The stats line's reorder counts are per boot, not per lifetime; to be
+fixed before a rerun. The device is on Gemian (`c2584408…`); boot2
+holds AU's `2d45a751…`.
+
+# Historical: §66's matrix boot, AU (144a3e9d), staged on boot2 (2d45a751…); six lifecycle cycles, graded per lifetime
 
 Written over AT's `34a86969…` and read back in full. Gemian
 (`d2df3c53…`) is shut down for the owner's boot2 selection.

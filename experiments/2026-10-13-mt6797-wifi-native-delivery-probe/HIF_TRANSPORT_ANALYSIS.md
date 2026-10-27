@@ -8148,3 +8148,77 @@ clean shutdown. The harness widening:
 
 AH's cycles took about 11 s each, so six of them with two chunks fit the
 shared 720 s leaf wall.
+
+### Boot AU result (2026-10-27, 00:14 UTC): the surface applied every entry; every lifetime void by the software-frame gate
+
+Build `144a3e9d`, boot2 `2d45a751…`, mainline boot `419d5991…`. The
+lifecycle harness ran six cycles, two chunks each, and the receipt is
+`all_pass` (`cycles_passed=6`, `session_exit=0`). The reviewed return
+reached Gemian `c2584408…` (changed identity, two collector attempts,
+recovery confirmed); live identity confirmed.
+
+**Observed: the surface works as built.**
+- The seed loaded (`testcfg schedule: entries=5`).
+- Each lifetime took its entry in order, and the sixth ran the build
+  (`source=after-schedule`).
+- Every lifetime's first data line agrees with its `testcfg:` line:
+  - `rate=0x85 bw40=1`;
+  - `rate=0x87 bw40=0`;
+  - `0x85/1`;
+  - `rate=0x86 bw40=1`;
+  - `rate=0x85 bw40=1 sgi=1`;
+  - `0x85/1`.
+- The sampled rate words match the entries (`0x0085`, `0x0087`, `0x0086`).
+- Every lifetime ended by `disconnect` with a clean ledger (`ok=1`; no
+  failed, expired, faulted or left frames), so no recovery lifetime was
+  needed.
+
+**The gate: all six lifetimes are void.** `rx_refused` per lifetime was
+204, 234, 265, 270, 250 and 292, all with `rx_refused_qos=0`. That is
+the non-QoS software-frame class at AH's level (268–304), against §66's
+limit of 50. By the predeclared rule, no lifetime is graded. On today's
+air the class is present in every lifetime, so a limit of 50 voids every
+lifetime this harness can produce.
+
+**Recorded, not graded.** TX and RX are the harness's two chunks per
+lifetime, 1 s or 1 MiB each. First-attempt is from about 40 sampled
+completions per lifetime.
+
+| Lifetime | Entry | TX chunks | RX chunks | first-attempt | `rx_refused` |
+|---|---|---|---|---|---|
+| 1 | default (40M5) | 16.22, 16.58 | 31.07, 32.26 | 40/42 | 204 |
+| 2 | 20M7 | 13.41, 13.85 | 24.67, 32.26 | 37/37 | 234 |
+| 3 | 40M5 | 15.84, 16.28 | 19.51, 27.96 | 36/39 | 265 |
+| 4 | 40M6 | 16.26, 16.22 | 21.51, 28.93 | 37/40 | 270 |
+| 5 | 40M5+sgi | 16.40, 16.90 | 23.97, 28.93 | 34/39 | 250 |
+| 6 | the build (40M5) | 16.37, 9.53 | 19.97, 29.96 | 38/40 | 292 |
+
+Read with that caveat:
+- *Transmit.* 20M7 sits about 0.84× the first two controls, near AR's
+  1/1.16, on the same air.
+- *40M6.* It matches 40M5; nothing suggests MCS6 is worth a profile
+  change.
+- *Short GI.* It did not collapse within these two short chunks. AS
+  collapsed only after its first five-chunk chunk, so this harness may
+  be too short to show it.
+- *Controls.* The closing control's second TX chunk (9.53) puts the
+  three controls' spread at 1.27×, beyond §66's 25 % drift limit, even
+  without the gate.
+
+**Two defects in the stats line, from this boot.**
+- The reorder window's `held` and `released` are counters for the whole
+  boot, not per lifetime: 281, 454, 520, 939, 1133, 1189. `rearm` does
+  not reset them (the `RX BA:` line has always been per boot). The stats
+  line should carry each lifetime's difference.
+- The driver's Mbit/s (1.4–2.1) averages over the whole data phase,
+  idle time included, as documented. It is useless next to the
+  harness's chunk rates.
+
+**What decides the next step (owner).**
+- §66's gate voids every lifetime on today's air, so the matrix cannot be
+  graded as declared.
+- Either the gate is recalibrated for the class as it now is (it is
+  non-QoS and present in every lifetime of this boot), or the matrix
+  waits for air without it.
+- The surface itself needs only the per-lifetime reorder differences
+  before it is rerun.
