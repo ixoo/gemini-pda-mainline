@@ -8413,3 +8413,114 @@ Against the predeclared reading:
 - Records only: the software-frame refusal class stayed at 28–54 per
   lifetime. The reorder window held 208–329 frames per 40 MHz lifetime
   and 15 per 20 MHz lifetime.
+
+## 69. The soak: one hour on AV's kernel (predeclared, 2026-10-28)
+
+**Why a new RAM root.** AV's image ends every session at 900 s of uptime:
+its USB SSH server runs with `-M 900`, and its kernel logger seals at
+900000 ms. A 45-minute traffic stretch and a 15-minute idle stretch cannot
+fit, whatever the host does. The kernel stays AV's (70f2ba83: fixed MCS5
+at a 40 MHz association, receive aggregation and the peek, rate control
+off), byte for byte, with AV's kernel config and board tree.
+
+**The soak RAM root.** AV's 64-member RAM root with three members changed:
+- `bin/kmsg-capture` is the soak observer, built on Buildbox by
+  `build-soak-logger.py` at 8b35f600 from the same reviewed source:
+  `DEADLINE_MS` 4500000 and `LOG_LIMIT` 16 MiB, everything else unchanged.
+  Its fixtures pass with their limits moved to match, and the two static
+  AArch64 replicas are identical (helper `a9d8205e…`, package
+  `5af939ea…`).
+- `bin/usb-auth` runs the USB SSH server with `-M 4500`.
+- `init` mounts `/run`, where the logger writes, at 24 MiB instead of 8, so
+  the 16 MiB cap can actually be reached.
+
+The other 61 members are unchanged. The candidate (boot2 `bae3f131…`)
+declares the envelope: logger and USB 4500 s, logger 16 MiB, leaf wall
+3800 s, 650 s reserved after it.
+
+**The harness (ignored work directory, derived by counted rewrites).**
+- *Leaf:* the retained one-lifetime P2 leaf, with:
+  - the wall at 3800 s and the Wi-Fi SSH listener at 3700 s;
+  - one ping to the router every 10 s for 2700 s from the PM clock (270),
+    recorded but not gating; a closed window or a changed boot still fails;
+  - the per-join schedule reset to `default` before the only select, so
+    every lifetime of the soak runs the build's configuration.
+- *Helper:* one Wi-Fi exchange spans both measurement rounds:
+  - round 1 is two 1 MiB chunks each way at the data-phase start;
+  - the device script then waits, checking for a fault or data end every
+    10 s;
+  - round 2 is two chunks each way about 2700 s after the PM clock, on its
+    own host endpoints;
+  - after the exchange the host waits up to 900 s for the driver's own
+    data-phase end, polling read-only over USB every 10 s;
+  - without one, it sends the guarded standard disconnect, bound to a fresh
+    read of the device's PM clock.
+- *Session:* the helper window is 3760 s (join 3820 s), the scan phase that
+  carries the leaf 3900 s, and the log export 60 s / 17 MiB. The
+  complete-log decoder takes the soak logger's bounds (4500000 ms, 16 MiB),
+  and the installer validation takes the soak envelope. Every other check
+  is unchanged.
+
+**Bounds that still apply.** A connected lifetime fails beyond 65536
+received packets (`MT6797_JOIN_MAX_PACKETS`). The 600 s gate and the 367 s
+idle run received 8–11 packets/s, so about 40000 are expected for the hour,
+measurement included. The log grew about 500 B/s in the 600 s gate, so
+about 1.5 MB is expected.
+
+**Hypothesis.** On this tree a single association carries light traffic
+for 45 minutes and then idles, with a clean ledger throughout:
+- round 2 measures what round 1 did;
+- idle, the link is lost after about six minutes as on lifecycle boot 10.
+
+**Unique observations.**
+- the two rounds' chunk rates;
+- the 270 periodic replies;
+- the lifetime's `testcfg stats` ledger (`tx_failed`, `expired`,
+  `pid_faults`, `left_pages`);
+- the data-phase end reason and the time from the end of round 2 to it.
+
+**Predeclared reading.**
+- Round 2 within about 10 % of round 1 on both directions: throughput
+  holds over the hour. Below that with round 1 near AV's 30/38: it
+  degrades. Both rounds low: the air.
+- The ledger all zero, and no `join stopped`, `rearm refused` or
+  `rearm wrap`: the hour is clean.
+- Missed periodic replies are counted. More than 5 % lost, or any run of
+  six or more in a row, means the link did not hold under light traffic,
+  even if the lifetime survived.
+- A data-phase end during the traffic stretch fails Gate 2 for this tree,
+  and its reason names the cause. The driver has no GTK rekey; an access
+  point that rekeys within the hour would show here.
+- Idle: an end by `connection-loss` (monitor, reason 4) reproduces the idle
+  disconnect, with its delay recorded. No loss within 900 s means it does
+  not reproduce on this tree.
+- Graded from the receipt and the classifier's soak block. The control is
+  the boot's own round 1; there is no cross-boot comparison.
+
+**Decision branches.**
+- *Pass:* clean hour, round 2 holding. The first honest "usable under
+  light traffic" claim for this tree goes into the support row, with the
+  idle result stated.
+- *Traffic-stretch failure:* the reason decides the next item (rekey,
+  loss, ledger).
+- *Idle loss reproduced:* power management or a keep-alive stays the
+  open item.
+
+**Tested offline, before any staging.**
+- The logger derivation and fixtures (Linux), and the Buildbox build.
+- The RAM root re-encoding: exactly three members change, and the
+  kernel, config and board tree are AV's exact bytes.
+- The soak leaf: `bash -n` and ShellCheck clean.
+- The helper through the real retained chain with faked device I/O, for
+  both endings (idle loss, and disconnect after the bound): command 3918
+  of 4096 bytes, and the rendered chunk script ShellCheck clean.
+- The round-2 endpoints opening and stopping.
+- The soak decoder on synthetic logs: it accepts a sealed 3.4 MiB,
+  3700 s log, and refuses the 900 s status, a log at the deadline and a
+  log over 16 MiB.
+- The full offline prepare.
+- The session constructor through preparation, with a synthetic
+  soak-bound summary in a throwaway namespace.
+
+Not tested: a real 45-minute exchange, real `nc` rounds, and the device
+side of the leaf.
