@@ -1,5 +1,14 @@
 # Throughput series — where the driver stands and what limits it
 
+**Current ceiling (2026-10-27, [boot AV](#rate-control-against-the-fixed-rate-2026-10-27-boot-av)).**
+Fixed HT MCS5 at a 40 MHz association, with receive aggregation and the
+peek, transmits 29.7–30.9 and receives 35.0–38.1 Mbit/s. The two control
+lifetimes agree within 2.5 %.
+- This supersedes the 20 MHz ceiling of 22.6/20.5 (boots AA3/AA4).
+- The earlier 40 MHz figures (AR 15.0, AU 16.2–16.9 transmit) were
+  measured with the air at about 66–75 % of the 20 MHz band.
+- The sections below are the history that led here.
+
 Result record, 2026-10-23. Five sealed measurement runs on the same laptop, AP
 and TCP protocol, plus one control on the vendor driver. No new device action is
 described here; each run's own artefacts are named.
@@ -226,9 +235,10 @@ is depth 12, once.
 
 ## Where throughput stands (2026-10-25, after boot L)
 
-**Update, boot AA3 (2026-10-26).** Since boot L, HT MCS7, receive
-batching and the depth-12 pump moved both directions. The measured
-design ceiling without aggregation is now TX 22.6 and RX 20.5 Mbit/s
+**Update, boot AA3 (2026-10-26; superseded at 40 MHz by boot AV).**
+Since boot L, HT MCS7, receive batching and the depth-12 pump moved both
+directions. The 20 MHz ceiling without aggregation was TX 22.6 and RX
+20.5 Mbit/s
 aggregate as a best case (AA3, AA4), with a typical band over the clean
 runs (AA, AA3, AA4, AA7) of TX 17.9–22.6 and RX 15.4–20.5
 ([HIF §38](HIF_TRANSPORT_ANALYSIS.md#boot-aa3-result-2026-10-26-0049-utc-the-wrapper-was-never-masked-the-line-stays-silent-38s-second-row)).
@@ -362,6 +372,30 @@ receipt with `grade-matrix.py` ([HIF §68](HIF_TRANSPORT_ANALYSIS.md#68-rate-con
 - Fixed MCS5 at 40 MHz is 1.36× fixed MCS5 at 20 MHz, with both widths
   matched. The wide channel does not cost transmit in this air.
 - **Best mainline figures so far: 30.9 Mbit/s transmit, 38.1 receive.**
+
+**Rate control: working, and losing at 40 MHz on tuning.** It is enabled
+end to end:
+- the rate words ramp;
+- no frame fell back to the fixed rate;
+- it beats fixed MCS5 at a 20 MHz association (1.16×).
+
+Its 0.83× at 40 MHz comes from settling on MCS7, with 86 % of frames on
+their first attempt against the fixed rate's 95–100 %. Retry cost and
+air time are not in minstrel_ht's throughput model, so this is a tuning
+question. The access point's own choice of MCS5–7 at 40 MHz (boot AM)
+corroborates it.
+
+**Policy.**
+- Fixed MCS5 at a 40 MHz association is the best measured
+  configuration.
+- A 20 MHz association is worse even with rate control (about 26/31
+  against 30/38).
+- The ladder stays at 40 MHz, and rate control remains available per
+  join (`rate=minstrel`).
+- No further width or rate matrix is warranted until minstrel's retry
+  model is tuned, which is a separate project with its own
+  predeclaration.
+- The next boot is the soak.
 
 ## Evidence
 

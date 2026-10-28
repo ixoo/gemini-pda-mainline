@@ -60,10 +60,29 @@ Keep this file under 200 lines; move anything else to an experiment record.
   separate for the framing fault, preserving equality/poison/no-copy.
   Builds/device work stay on hold; rekey/reuse/reconnect remain disabled.
   Sustained 60 s / 2 min / 10 min acceptance remains untested.
-- **Wi-Fi throughput (2026-10-26).** Transmit 22.6 and receive 20.5 Mbit/s
-  aggregate at best (boots AA3/AA4; typical band 17.9–22.6 and 15.4–20.5) on the fixed HT
-  MCS7 rate with the depth-12 pump, the measured design ceiling without aggregation;
-  aggregation is parked behind a firmware question
+- **Wi-Fi throughput (2026-10-27).** The measured ceiling is fixed HT MCS5
+  at a 40 MHz association with receive aggregation and the peek. It
+  transmits 29.7–30.9 and receives 35.0–38.1 Mbit/s, with the controls
+  within 2.5 % ([boot AV](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av)).
+  - The earlier 40 MHz figures (AR 15.0, AU 16.2–16.9) were measured with
+    the air at about 66–75 % of the 20 MHz band.
+  - The 20 MHz figure below (22.6/20.5, boots AA3/AA4) was the ceiling
+    without aggregation at 20 MHz.
+  - mac80211's rate control works end to end, and wins at a 20 MHz
+    association (1.16× fixed MCS5). At 40 MHz it loses (0.83×), settling
+    on MCS7 with 86 % first-attempt against 95–100 %. That is minstrel
+    tuning (retry cost and air time are not in its model), not
+    enablement.
+  - Policy: the ladder stays at fixed MCS5/40, and rate control stays
+    available per join.
+  - No further width or rate matrix until minstrel's retry model is
+    tuned. That is a separate project with its own predeclaration.
+  - Next is the soak (daily-use Gate 2).
+
+  Earlier: transmit 22.6 and receive 20.5 Mbit/s aggregate at best at
+  20 MHz (boots AA3/AA4; typical band 17.9–22.6 and 15.4–20.5) on the
+  fixed HT MCS7 rate with the depth-12 pump, without aggregation;
+  transmit aggregation is parked behind a firmware question
   ([throughput series](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-25-after-boot-l)).
   HT is done: WMM/QoS data and MCS7 in both directions (boot W onward,
   [scope](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HT_PROJECT_SCOPE.md)).
