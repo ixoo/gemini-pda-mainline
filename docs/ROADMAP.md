@@ -93,8 +93,10 @@ Keep this file under 200 lines; move anything else to an experiment record.
     40 MHz MCS5 transmitted 16.2–16.9 against 20 MHz MCS7's 13.4–13.9,
     MCS6 bought nothing, short GI was neutral, receive repeated at 28–32
     Mbit/s. The firmware's automatic rate stays at 6 Mbit/s even with the
-    complete HT station record (boots AQ and AT), so the fixed rate stays
-    MCS5 at 40 MHz; VHT is next;
+    complete HT station record (boots AQ and AT). mac80211's rate control
+    now drives the descriptor (0333) but transmits 0.83× fixed MCS5 at
+    40 MHz, settling on MCS7 with more retries ([boot AV](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av)),
+    so the fixed rate stays MCS5 at 40 MHz; VHT is next;
   - transmit aggregation, parked;
   - power management for the idle disconnect.
 - **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot

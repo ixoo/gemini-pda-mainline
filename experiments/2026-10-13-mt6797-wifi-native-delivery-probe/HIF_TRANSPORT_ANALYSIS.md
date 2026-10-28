@@ -8366,3 +8366,50 @@ boot `c2584408…` over AU's image (`2d45a751…`); full readback
 `12174396…` verified, clean shutdown. The lifecycle harness is pinned to
 five lifetimes, two chunks each, no loss cycle. Waiting for the owner's
 boot2 selection.
+
+### Boot AV result (2026-10-27, 23:19 UTC): rate control works and loses to fixed MCS5 at 40 MHz; 20 MHz goes to rate control
+
+Mainline boot `29a77442…`, five lifetimes, each applied as scheduled and
+ended by disconnect with a clean ledger (`ok=1` throughout,
+`rate_fallbacks=0` in every leg). The session returned through the
+reviewed recovery to changed-boot Gemian `95072975…`. Graded with
+`grade-matrix.py` from the receipt:
+
+| Life | Entry | TX chunks (Mbit/s) | RX chunks | First attempt | Rate words (sampled reports) |
+|---|---|---|---|---|---|
+| 1 | default (fixed 40M5) | 30.9, 29.7 | 36.5, 38.1 | 38/40 | MCS5 ×40 |
+| 2 | `rate=minstrel` | 25.9, 23.6 | 28.0, 36.5 | 50/58 | MCS1→MCS6 once or twice each, MCS7 ×41 |
+| 3 | `rate=minstrel+txbw=20+rxbw=20` | 25.8, 25.2 | 28.9, 31.1 | 46/46 | MCS1→MCS6 once each, MCS7 ×40 |
+| 4 | `txbw=20+rxbw=20` (fixed MCS5) | 20.9, 23.1 | 30.0, 31.1 | 37/38 | MCS5 ×38 |
+| 5 | default | 30.8, 28.3 | 38.1, 35.0 | 36/36 | MCS5 ×36 |
+
+Against the predeclared reading:
+- **Drift: not drift-limited.** Lives 1 and 5 agree within 2.5 % on
+  transmit (30.3 and 29.6 Mbit/s mean) and 2 % on receive.
+- **The status path and the mapping work.** In both rate-control legs
+  the rate words vary: a ramp from MCS1 through MCS6, then mostly MCS7.
+  No frame took the fixed-rate fallback.
+- **Life 2 fails the bar.** Rate control at a 40 MHz association
+  transmitted 0.83× the control (24.8 against 29.9 mean). Its
+  first-attempt fraction (86 %) is worse than the control's (95–100 %).
+  minstrel_ht settles on MCS7 and pays for it in retries, as fixed MCS7
+  did at 40 MHz in boot AO. The fixed MCS5/40 stays, and the ladder does
+  not retire.
+- **At a 20 MHz association, rate control beats the fixed rate.** Life 3
+  transmitted 1.16× life 4 (25.5 against 22.0), with every sampled
+  frame delivered on its first attempt.
+- **The wide-channel question is only partly answered.** Lives 3 and 4
+  share a 20 MHz association, so they compare rate selection, not
+  width. Across width, fixed MCS5 at 40 MHz (lives 1/5, 29.9) beats
+  fixed MCS5 at 20 MHz (life 4, 22.0) by 1.36×. That is the AU result
+  again, now with the receive width matched to the transmit width. In
+  this air the wide channel costs transmit nothing. Under rate control
+  the two associations come out level (24.8 against 25.5).
+- The sampled rate word does not encode the bandwidth. So these records
+  cannot show how often minstrel_ht chose its 40 MHz group in life 2.
+- **This is the best mainline run yet:** transmit 29.7–30.9 Mbit/s and
+  receive 35.0–38.1 at 40 MHz with fixed MCS5. That is 1.34× the
+  standing 22.6 transmit band, so the air was good.
+- Records only: the software-frame refusal class stayed at 28–54 per
+  lifetime. The reorder window held 208–329 frames per 40 MHz lifetime
+  and 15 per 20 MHz lifetime.

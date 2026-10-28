@@ -339,6 +339,30 @@ configuration, chunk rates, rate words, refusals, and a verdict from the
 receipt — and states the control's share of the band rather than applying a
 silent threshold.
 
+## Rate control against the fixed rate (2026-10-27, boot AV)
+
+One boot, five lifetimes, control first and repeated last; graded from the
+receipt with `grade-matrix.py` ([HIF §68](HIF_TRANSPORT_ANALYSIS.md#68-rate-control-against-the-fixed-ladder-and-receive-width-boot-av-predeclared-2026-10-27)).
+
+| lifetime | configuration | transmit chunks (Mbit/s) | receive chunks |
+|---|---|---|---|
+| 1 | default — fixed 40 MHz MCS5 | 30.9, 29.7 | 36.5, 38.1 |
+| 2 | minstrel_ht, 40 MHz association | 25.9, 23.6 | 28.0, 36.5 |
+| 3 | minstrel_ht, 20 MHz association | 25.8, 25.2 | 28.9, 31.1 |
+| 4 | fixed MCS5, 20 MHz association | 20.9, 23.1 | 30.0, 31.1 |
+| 5 | default | 30.8, 28.3 | 38.1, 35.0 |
+
+- Not drift-limited: the two controls agree within 2.5 %.
+- **mac80211's rate control works end to end.** Its rate words ramp from
+  MCS1 to MCS7, and no frame fell back to the fixed rate. But at 40 MHz
+  it transmits 0.83× the fixed MCS5. It settles on MCS7, with 86 % of
+  frames on their first attempt against 95–100 %. The profile keeps
+  fixed MCS5/40.
+- At a 20 MHz association, rate control is 1.16× the fixed MCS5.
+- Fixed MCS5 at 40 MHz is 1.36× fixed MCS5 at 20 MHz, with both widths
+  matched. The wide channel does not cost transmit in this air.
+- **Best mainline figures so far: 30.9 Mbit/s transmit, 38.1 receive.**
+
 ## Evidence
 
 - `artifacts/wifi-throughput-baseline-2/`, `-pump-1/`, `-depth-1/`, `-yield-1/`,
