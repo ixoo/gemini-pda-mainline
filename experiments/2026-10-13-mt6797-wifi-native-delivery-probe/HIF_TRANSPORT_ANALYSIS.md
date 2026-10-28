@@ -8524,3 +8524,165 @@ for 45 minutes and then idles, with a clean ledger throughout:
 
 Not tested: a real 45-minute exchange, real `nc` rounds, and the device
 side of the leaf.
+
+## 70. The daily-use fixes and the soak's idle record (predeclared, 2026-10-28)
+
+Proposals 0334 and 0335 are structural. If either is wrong, the driver is
+poisoned or the lifetime fails, and that would contaminate anything else
+in the same boot. So each is tested on the kernel that carries exactly
+the two of them over AV: the lifecycle profile at `f2a97fb1`
+(`linux-7.1.3-gemini-2d3aaa97…`, image gzip `314af76c…`, built on
+Buildbox). No other change rides with them. In each boot the other fix
+is inert:
+- twelve short lifetimes stay far below 65536 packets each;
+- one lifetime never reaches the recycle point.
+
+The soak carries 0336 instead, and neither of them.
+
+### 70.1 The soak carries the idle record (amends §69)
+
+§69's kernel was AV's, byte for byte. It is now the `mt6797-a53-wifi-soak`
+profile: AV's series (through 0333) plus 0336, and not 0334 or 0335. The
+config fragments are AV's. 0336 is diagnostic only. It changes no
+delivery, transmit or refusal, so §69's other readings stand. The RAM
+root is unchanged. The candidate must be recomposed on the new kernel and
+its offline checks re-run: the "kernel, config and board tree are AV's
+exact bytes" check becomes the same check against the soak profile's
+build. One hour stays under the packet budget (about 40000 expected), so
+0335's absence does not touch the soak.
+
+**What 0336 records.**
+- `one-shot WLAN idle null rx`: each refused receive frame that is a Null
+  or QoS Null data frame (data type, subtype 4 or 12), or that the
+  descriptor's status marks null. Only the first 16 per lifetime are
+  named, and only those arriving after 30 s without unicast traffic either
+  way. Each line carries the silence since the last unicast frame each
+  way.
+- `one-shot WLAN idle record`, at the data-phase end:
+  - the lifetime's null count;
+  - its idle-null count, which keeps counting past 16;
+  - the time since the last unicast frame each way.
+
+  When the end is the reason-4 loss, that time is the silence from last
+  traffic to the loss. It is measured to the driver's data end, which
+  follows the firmware's loss report.
+- Why a counter: the refusal record cannot carry this count. Its cap of
+  64 is spent by the software-frame class within seconds (204–304 such
+  refusals per lifetime in AH and AU). Its counter `ccmp_rx_refused` is
+  never reset, so the cap applies to the whole boot, not to each lifetime
+  as its comment says. 0336 does not change that.
+
+**What it cannot see.**
+- The acknowledgement. The firmware's MAC generates it, and the host never
+  sees whether a probe was acknowledged.
+- A null frame the firmware consumes without forwarding it. Vendor
+  firmware may handle null frames itself.
+
+So "no null frame at the host" does not by itself mean "not received".
+
+**Predeclared reading of the idle stretch.** Two outcomes, with the limits
+above:
+
+| Idle record | Reading | Next |
+|---|---|---|
+| One or more idle nulls before the reason-4 loss | The access point probed an idle station, and the firmware received and forwarded the probe; the access point still dropped it. Either its inactivity is data-based, or our acknowledgement did not reach it; the host cannot separate the two. A station keep-alive resets the access point's inactivity timer in both cases. | the idle keep-alive is the fix |
+| No idle null, but nulls earlier in the lifetime (`null_rx` > 0) | The host does see null frames, and none arrived in the idle window. Either the access point does not probe before ageing a station out (common, and benign), or its probe was not received. | the keep-alive still holds the link; a receive fault is only suspected, and an air capture or the access point's own log is needed to separate the two |
+| `null_rx` = 0 for the whole lifetime | The firmware may never forward null frames; the absence is uninformative | the keep-alive is tested on its own merits |
+| No loss within 900 s | §69's no-reproduction row | idle loss is not this tree's open item |
+
+The silence from last traffic to the loss is recorded in every row.
+Earlier boots put it at about 362–383 s.
+
+### 70.2 The 0334 boot: twelve lifetimes on one boot (predeclared)
+
+**Hypothesis.** With 0334, the twelfth lifetime of a boot joins and
+carries traffic like the first. Before 0334, the re-arm gate refused at
+lifetime 12 and poisoned the driver.
+
+**Kernel.** `f2a97fb1`, the lifecycle profile.
+
+**Harness.** The lifecycle leaf and helper, parameters only:
+- twelve cycles, with no loss cycle;
+- the soak RAM root's 4500 s envelope, because twelve cycles at
+  40–90 s each overrun the 720 s wall;
+- a leaf wall of about 1500 s.
+
+No new mechanism.
+
+**Unique observations.**
+- One `one-shot WLAN join rearm sequence recycle: from=… to=10 ret=0`, at
+  the re-arm before lifetime 10. The sequence is 208 there, and one
+  lifetime uses 22.
+- No second recycle within twelve lifetimes. The next one is due before
+  lifetime 19.
+- No `rearm wrap` and no `rearm refused`.
+- Twelve `join rearm:` lines, the last for lifetime 12, and the twelfth
+  lifetime's chunks.
+
+**Graded.**
+- Pass: the twelfth lifetime joins and carries traffic like the first:
+  - its chunk rates are within lifetime 1's band;
+  - its ledger is all zero;
+  - there is no exhausted-sequence refusal;
+  - there is exactly one recycle, and it returned 0.
+- Fail:
+  - the recycle returns non-zero, which falls through to the wrap and
+    poisons the driver;
+  - or a lifetime after the recycle fails its join or its commands.
+
+  Either failure means a firmware command or completion depended on the
+  sequence after all. The completion-matching claim is then wrong, and
+  0334 is withdrawn.
+
+### 70.3 The 0335 boot: one connected lifetime past 2.5 hours (predeclared)
+
+**Hypothesis.** With 0335, a connected lifetime outlives 65536 received
+packets. Before 0335 it failed there, after about 1.7–2.3 hours at 8–11
+packets a second.
+
+**Kernel.** `f2a97fb1`, its own session. The soak cannot carry this:
+- its kernel lacks 0335;
+- a longer soak traffic phase would only reproduce the failure.
+
+**Harness.** The soak's leaf and helper, parameters only:
+- the traffic phase at 9000 s, with the periodic ping every 10 s kept
+  throughout, so the six-minute idle loss cannot end the lifetime first;
+- the logger, the USB session and the leaf wall stretched to fit:
+  - about 10800 s each;
+  - a log of about 5 MB, under the 16 MiB limit;
+- round 2 at the traffic phase's end.
+
+No new mechanism.
+
+**The crossing.** The driver does not log its packet count. At 8–11
+packets a second, 9000 s is 72000–99000 packets, past 65536 by 10 % or
+more. The data end's `HIF RX batch` frame count corroborates it.
+
+**Graded.**
+- Pass: the data phase runs past 9000 s with:
+  - no `join stopped`;
+  - an end by the standard disconnect;
+  - the `testcfg stats` ledger intact at the end (`tx_failed`, `expired`,
+    `pid_faults` and `left_pages` all zero);
+  - round 2 measured.
+- Fail:
+  - a lifetime failure before 9000 s;
+  - or a ledger fault.
+
+  The reason names the next item. A rekey or loss end is not a 0335
+  failure: it is recorded against those items, and the boot is repeated
+  once.
+
+### 70.4 Order
+
+1. The soak, with 0336 (§69, §70.1).
+2. The 0334 boot.
+3. The 0335 boot.
+
+Each is a separate boot2 handoff. The two fixes enter the soak's
+successor only after both pass.
+
+Tested for 0336: a W=1 driver build and checkpatch in the VM, on top of
+0335. A clean `git apply --check` on 0333 alone. Not tested: the soak
+profile's Buildbox build, the recomposed candidate and any device run.
+Neither fix boot's harness parameters are prepared yet.

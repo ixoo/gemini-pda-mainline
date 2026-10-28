@@ -1,0 +1,143 @@
+From 790945806554f2eaa8b5cbcba6a24c745ea4ff52 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 28 Oct 2026 16:54:14 -0400
+Subject: [PATCH] wifi: mt6797: count null frames and the unicast silence
+ before a data end
+
+An idle connected lifetime ends after about six minutes with the access
+point's inactivity disassociation (reason 4). Whether the access point
+probed the station first is not observable today: a Null or QoS Null
+frame it sends reaches the CCMP receive refusal, whose record is spent
+by the software-frame class within seconds.
+
+Count refused frames that are Null or QoS Null data (subtype 4 or 12),
+or that the descriptor's status marks null, per lifetime. Name the first
+16 that arrive after 30 s without unicast traffic either way, with that
+silence. At the data-phase end, record both counts and the time since
+the last unicast frame each way.
+
+Diagnostic only: no frame is delivered, sent or refused differently.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 64 ++++++++++++++++++++++
+ 1 file changed, 64 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 45edf5846..37e75eabc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -394,6 +394,11 @@ struct mt6797_mac {
+ 	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
+ 	unsigned int join_eapol_refused; /* refused pre-key frames, their own bound */
+ 	unsigned int ccmp_rx_refused; /* data frames both receive checks refused */
++	/* Null and QoS Null data frames among them, and those after 30 s of
++	 * unicast silence (0336); the last unicast frame each way.
++	 */
++	unsigned int rx_null, rx_null_idle;
++	u64 last_unicast_tx, last_unicast_rx;
+ 	unsigned int join_action_discarded, join_group_action_discarded;
+ 	unsigned int join_keyed_beacons;
+ 	unsigned int join_beacons_delivered;
+@@ -882,6 +887,38 @@ static bool mt6797_ccmp_llc_mismatch(struct mt6797_mac *mac, size_t bytes)
+ }
+ #endif
+ 
++/* A refused data frame that is a Null or QoS Null (data type, subtype 4 or
++ * 12, read where the refusal record reads its frame control) or that the
++ * descriptor's status marks null (0336). An access point probes an idle
++ * station with one. Counted per lifetime; the first 16 that arrive after
++ * 30 s without unicast traffic either way are named with that silence.
++ * Frame control and status only; no address or payload byte.
++ */
++static void mt6797_rx_null_note(struct mt6797_mac *mac, size_t bytes)
++{
++	const u8 *p = mac->join_packet;
++	unsigned int fc = 0, status;
++	u64 now, last;
++
++	if (bytes < 18)
++		return;
++	status = mt6797_join_le16(p + 10);
++	if ((mt6797_join_le16(p + 2) >> 9) & 8)
++		fc = mt6797_join_le16(p + 16);
++	if ((fc & 0x007c) != 0x0048 && !(status & BIT(12)))
++		return;
++	mac->rx_null++;
++	now = ktime_get_ns();
++	last = max(mac->last_unicast_tx, mac->last_unicast_rx);
++	if (now - last < 30 * NSEC_PER_SEC || ++mac->rx_null_idle > 16)
++		return;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN idle null rx: n=%u fc=0x%04x status=0x%04x since_tx_ms=%llu since_rx_ms=%llu\n",
++		 mac->rx_null_idle, fc, status,
++		 div_u64(now - mac->last_unicast_tx, NSEC_PER_MSEC),
++		 div_u64(now - mac->last_unicast_rx, NSEC_PER_MSEC));
++}
++
+ /* A data frame both receive checks refused (0288): counted, and named for the
+  * first 64 of a lifetime by the descriptor and header fields the checks fix,
+  * with the first of them that differs from the admitted shape. Lengths,
+@@ -906,6 +943,7 @@ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ 	const unsigned char *last;
+ 	char status[144];
+ 
++	mt6797_rx_null_note(mac, bytes);
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 	mac->qos_rx_refused++;
+ 	if (bytes >= 18 && (mt6797_join_le16(p + 16) & 0x0080))
+@@ -1076,6 +1114,8 @@ static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
+ #ifdef CONFIG_MT6797_CCMP_INITIAL_GTK
+ 	mac->ccmp_last_checked_rx = ktime_get_ns();
+ #endif
++	if (mac->join_packet[8] == 1)
++		mac->last_unicast_rx = ktime_get_ns();
+ 	__skb_queue_tail(received, skb);
+ 	return 0;
+ }
+@@ -2574,6 +2614,10 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_tx_done = 0;
+ 	mac->join_data_tx_failed = 0;
+ 	mac->join_data_tx_failures_in_row = 0;
++	mac->rx_null = 0;
++	mac->rx_null_idle = 0;
++	mac->last_unicast_tx = 0;
++	mac->last_unicast_rx = 0;
+ 	mac->join_data_expired = 0;
+ 	mac->tx_rate_fallbacks = 0;
+ #ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
+@@ -3989,6 +4033,23 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->ccmp_rx_delivered,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+ 		 mac->join_data_credits);
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++	/* The silence before this end, from the last unicast frame each way;
++	 * -1 when there was none (0336).
++	 */
++	if (ccmp_stable_epoch) {
++		u64 end = ktime_get_ns();
++		s64 tx = -1, rx = -1;
++
++		if (mac->last_unicast_tx)
++			tx = div_u64(end - mac->last_unicast_tx, NSEC_PER_MSEC);
++		if (mac->last_unicast_rx)
++			rx = div_u64(end - mac->last_unicast_rx, NSEC_PER_MSEC);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN idle record: null_rx=%u idle_null_rx=%u since_tx_ms=%lld since_rx_ms=%lld\n",
++			 mac->rx_null, mac->rx_null_idle, tx, rx);
++	}
++#endif
+ #ifdef CONFIG_MT6797_PASS_COST_RECORD
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN pass cost: passes=%u status_us=%llu submit_us=%llu receive_us=%llu hif_receive_us=%llu completion_us=%llu delivery_us=%llu\n",
+@@ -7876,6 +7937,9 @@ static void mt6797_mac_tx(struct ieee80211_hw *hw,
+ 		    skb_queue_len(&mac->join_queue) < MT6797_JOIN_DATA_TX_QUEUE &&
+ 		    mac->join_queue_bytes + skb->len <= MT6797_JOIN_DATA_TX_QUEUE_BYTES) {
+ 			mac->join_data_tx_queued++;
++#ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
++			mac->last_unicast_tx = ktime_get_ns();
++#endif
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ 			if (hl == 26) {
+ 				mac->qos_tx++;
+-- 
+2.43.0
+
