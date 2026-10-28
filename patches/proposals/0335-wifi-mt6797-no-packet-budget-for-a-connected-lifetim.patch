@@ -1,0 +1,67 @@
+From a56a6040afe868966c447bdf3f3e28c106b25917 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 28 Oct 2026 06:08:09 -0400
+Subject: [PATCH] wifi: mt6797: no packet budget for a connected lifetime
+
+A lifetime failed once it read more than MT6797_JOIN_MAX_PACKETS HIF
+packets, 65536 under CONFIG_MT6797_CCMP_CONNECTED_LIFETIME. Beacons and
+the group frames alone arrive at about 8-11 a second, so a connected
+lifetime failed after about two hours however little it was used.
+
+A connected lifetime has no deadline: its owner ends it with a
+disconnect, or the access point with a loss. Its packets are now
+counted, not fenced. The diagnostic counts already saturate rather than
+stop, so this was the last count that ended one. Finite lifetimes keep
+their 32768 budget.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 811c792e5..45edf5846 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -152,12 +152,10 @@ static inline bool mt6797_join_pid_complete(struct mt6797_join_pid_pool *p,
+  */
+ #define MT6797_JOIN_DATA_CREDIT_RECORDS 8U
+ #define MT6797_JOIN_MAX_POLLS 4096U
+-#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
+-/* Covers the connected observation plus pre-data and bounded retirement RX. */
+-#define MT6797_JOIN_MAX_PACKETS 65536U
+-#else
++/* A finite lifetime's packet budget. A connected lifetime has none: its
++ * owner (disconnect, loss) ends it, and its count is only a record.
++ */
+ #define MT6797_JOIN_MAX_PACKETS 32768U
+-#endif
+ #define MT6797_JOIN_DATA_RX_MAX 16384U
+ #ifdef CONFIG_MT6797_DATA_TX_QUEUE_FRAMES
+ #define MT6797_JOIN_DATA_TX_QUEUE ((unsigned int)CONFIG_MT6797_DATA_TX_QUEUE_FRAMES)
+@@ -5263,8 +5261,14 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				ret = 0;
+ 				continue;
+ 			}
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++			if (ret)
++				goto failed;
++			mac->join_packets++;
++#else
+ 			if (ret || ++mac->join_packets > MT6797_JOIN_MAX_PACKETS)
+ 				goto failed;
++#endif
+ 			got = true;
+ 			branch = 5;
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+@@ -5907,7 +5911,8 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			 * a cap of its own, the first eight recorded by their descriptor
+ 			 * and header fields and the total before the stage-3 record;
+ 			 * the lifetime's existing packet budget (MT6797_JOIN_MAX_PACKETS)
+-			 * bounds it, as it bounds the clear and keyed beacons. The
++			 * bounds it, as it bounds the clear and keyed beacons, in a
++			 * finite lifetime; a connected one is bounded by its owner. The
+ 			 * directed class keeps its own eight.
+ 			 */
+ 			if (!mac->join_cleanup_done &&
+-- 
+2.43.0
+

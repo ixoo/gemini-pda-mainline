@@ -922,3 +922,5 @@ proposals/0330-wifi-mt6797-count-the-block-ack-and-reorder-records-.patch
 proposals/0331-wifi-mt6797-split-the-test-configuration-s-width-int.patch
 proposals/0332-wifi-mt6797-report-the-test-stats-traffic-as-bytes-n.patch
 proposals/0333-wifi-mt6797-send-ordinary-data-at-mac80211-s-rate-co.patch
+proposals/0334-wifi-mt6797-recycle-the-join-command-sequences-at-th.patch
+proposals/0335-wifi-mt6797-no-packet-budget-for-a-connected-lifetim.patch

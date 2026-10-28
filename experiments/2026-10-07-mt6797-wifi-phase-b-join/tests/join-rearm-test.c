@@ -4,9 +4,10 @@
 #include <stdio.h>
 #include "join-rearm.h"
 
-/* Exercises the bounded two-lifetime re-arm decision (proposal 0180): the
- * rendezvous in both orders, the quiescent gate, the two-lifetime cap, the
- * poison short-circuit and the wire-identity wrap. No kernel, synthetic only.
+/* Exercises the re-arm decision (proposal 0180, later 0240, 0334): the
+ * rendezvous in both orders, the quiescent gate, the poison short-circuit,
+ * the wire-identity wrap and the command-sequence recycle. The two-lifetime
+ * cap (0240) and the PID wrap (cyclic PID) are gone. No kernel, synthetic.
  */
 static struct mt6797_join_rearm_state healthy(void)
 {
@@ -29,6 +30,7 @@ static struct mt6797_join_rearm_state healthy(void)
 	s.channel_token = 1;
 	s.sta_sequence = 1;
 	s.sequence = 30;
+	s.sequence_base = 10;
 	s.next_pid = 33;  /* lifetime 1 consumed ~32 pids; room remains */
 	return s;
 }
@@ -49,9 +51,9 @@ int main(void)
 	s = healthy(); s.poisoned = true;
 	assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
 
-	/* Two-lifetime cap: a third is refused. */
-	s = healthy(); s.lifetimes = 2;
-	assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
+	/* No lifetime cap: the eleventh re-arms like the first. */
+	s = healthy(); s.lifetimes = 11; s.sequence = 196;
+	assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_YES);
 
 	/* Each quiescent/obligation gate blocks re-arm individually. */
 	s = healthy(); s.key_pairwise = 1; assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
@@ -64,17 +66,27 @@ int main(void)
 	s = healthy(); s.credit_pending = true; assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
 	s = healthy(); s.queue_empty = false; assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
 
-	/* A u8 wire-identity wrap or an exhausted command sequence refuses
-	 * (the caller poisons) rather than reuse a value.
-	 */
+	/* A u8 wire-identity wrap refuses (the caller poisons). */
 	s = healthy(); s.channel_token = 255; assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP);
 	s = healthy(); s.sta_sequence = 255;  assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP);
-	s = healthy(); s.sequence = 249;      assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP);
-	s = healthy(); s.next_pid = 64;       assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP); /* pid space too low */
+	s = healthy(); s.next_pid = 64;       assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_YES); /* the PID is cyclic */
+	/* The command sequence recycles to the base once two lifetimes no longer
+	 * fit (22 commands each), and only with a valid base; else the old wrap.
+	 */
+	s = healthy(); s.sequence = 200;      assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_YES);
+	s = healthy(); s.sequence = 201;      assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_RECYCLE);
+	s = healthy(); s.sequence = 252;      assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_RECYCLE);
+	s = healthy(); s.sequence = 230; s.sequence_base = 0;   assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_YES);
+	s = healthy(); s.sequence = 249; s.sequence_base = 0;   assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP);
+	s = healthy(); s.sequence = 249; s.sequence_base = 129; assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP);
+	s = healthy(); s.sequence = 252; s.channel_token = 255; assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_WRAP);
+	/* Recycle, like wrap, is decided only once the rendezvous and gate pass. */
+	s = healthy(); s.sequence = 240; s.credit_pending = true;
+	assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
 	/* Wrap is only decided once the rendezvous and gate otherwise pass. */
 	s = healthy(); s.channel_token = 255; s.sta_removed = false;
 	assert(mt6797_join_rearm_ready(&s) == MT6797_JOIN_REARM_NO);
 
-	puts("join-rearm: PASS (rendezvous both orders; cap; poison; each gate; token/sta/sequence wrap)");
+	puts("join-rearm: PASS (rendezvous both orders; no cap; poison; each gate; token/sta wrap; sequence recycle)");
 	return 0;
 }

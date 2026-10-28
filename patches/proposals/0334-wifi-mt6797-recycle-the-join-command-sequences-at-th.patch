@@ -1,0 +1,187 @@
+From 4e1781012b7977ace9ded668a804a002a0a48dc2 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 28 Oct 2026 06:07:51 -0400
+Subject: [PATCH] wifi: mt6797: recycle the join command sequences at the
+ quiescent re-arm
+
+Every command takes a single-use sequence number from the adapter-wide
+history, and nothing ever released one. A lifetime uses 22 commands
+(boot AV: lifetime 1 starts at 10, each re-arm adds 22), so the re-arm
+gate met its exhausted-sequence refusal after the eleventh lifetime and
+poisoned the driver: no more Wi-Fi until reboot. An idle link is lost
+after about six minutes, so that is roughly an hour of daily use.
+
+Recycle the sequences instead, at the re-arm barrier that already
+proves the lifetime quiescent: healthy stage-3 cleanup, station removed,
+both key removals credited, no frame in flight, no page debt, no credit
+pending. Join completions are matched by credit and channel token, not
+by command sequence, so no live attribution depends on a released one.
+- The first scan records the base: the first sequence of lifetime 1.
+- The pure gate returns RECYCLE once the sequence passes 200, while two
+  lifetimes still fit below the in-lifetime refusals at 253, and only
+  with a base at or below 128; otherwise the old wrap refusal stands.
+- mt6797_hif_recycle_sequences() releases base..255 of the history only
+  while the normal owner is idle (every page returned), else -EBUSY,
+  which the caller treats as the old wrap and poisons.
+
+Lifetimes 1-9 are unchanged; the channel token and station sequence wrap
+refusals stay.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 23 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  4 ++++
+ .../net/wireless/mediatek/mt6797/join-rearm.h | 17 ++++++++++----
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 17 ++++++++++++++
+ 4 files changed, 57 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index bfebfcef5..78a9eb1a5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1599,6 +1599,29 @@ bool mt6797_hif_normal_idle(struct mt6797_hif *hif)
+ 	return idle;
+ }
+ 
++int mt6797_hif_recycle_sequences(struct mt6797_hif *hif, unsigned int first)
++{
++	struct mt6797_normal_transaction *t;
++	unsigned int sequence;
++	int error = -EBUSY;
++
++	if (!hif || !first || first > 255)
++		return -EINVAL;
++	mutex_lock(&hif->mutex);
++	t = &hif->normal;
++	if (t->phase == MT6797_NORMAL_NVRAM_SUBMITTED && t->used_sequences &&
++	    t->tc4_limit && t->tc4_limit <= 0xffffU && !t->tc4_pending_cpu &&
++	    !t->tc4_pending_ffa && t->tc4_free == t->tc4_limit &&
++	    t->tc1_free == t->tc1_limit && !t->tc1_pending) {
++		for (sequence = first; sequence <= 255; sequence++)
++			t->used_sequences[sequence / 8] &=
++				(unsigned char)~(1U << (sequence % 8));
++		error = 0;
++	}
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++
+ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out)
+ {
+ 	const struct mt6797_normal_transaction *t;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 1402d9884..d0c07cefd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -319,6 +319,10 @@ int mt6797_hif_diag_mask(struct mt6797_hif *hif, unsigned int sequence,
+  * Zero proves PIO submission only; credit returns and TXdone remain separate.
+  */
+ bool mt6797_hif_normal_idle(struct mt6797_hif *hif);
++/* Release sequences first..255 of the adapter history for reuse, only while
++ * the normal owner is idle (every page returned); -EBUSY otherwise.
++ */
++int mt6797_hif_recycle_sequences(struct mt6797_hif *hif, unsigned int first);
+ 
+ /* Diagnostic snapshot of the normal transaction's page ledger. */
+ struct mt6797_hif_ledger {
+diff --git a/drivers/net/wireless/mediatek/mt6797/join-rearm.h b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+index d0e1445fd..2c0bcf8e1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join-rearm.h
++++ b/drivers/net/wireless/mediatek/mt6797/join-rearm.h
+@@ -9,8 +9,11 @@
+  * both are seen, the lifetime is quiescent (empty queue implied by cleanup_done,
+  * no debt, no in-flight frame, no credit pending), exactly the two expected key
+  * removals are credited with both key-done windows and no third, and the
+- * two-lifetime cap is not reached. A u8 wire-identity wrap or an exhausted
+- * command sequence refuses re-arm (the caller poisons) rather than reuse a value.
++ * two-lifetime cap is not reached. A u8 wire-identity wrap refuses re-arm (the
++ * caller poisons) rather than reuse a value. An exhausted command sequence is
++ * recycled instead (RECYCLE): at this barrier no command is owed, and join
++ * completions are matched by credit and token, never by command sequence.
++ * The caller restarts at `sequence_base`, the first sequence of lifetime 1.
+  * `poisoned` is the device-wide fatal state (first_error or closing or an ambiguous
+  * ownership loss), NOT the healthy stage-3 stop (which also sets join_retired); the
+  * caller must pass first_error||closing so a healthy retirement can still re-arm.
+@@ -21,6 +24,7 @@ enum mt6797_join_rearm_decision {
+ 	MT6797_JOIN_REARM_NO = 0,
+ 	MT6797_JOIN_REARM_YES,
+ 	MT6797_JOIN_REARM_WRAP,
++	MT6797_JOIN_REARM_RECYCLE,
+ };
+ 
+ struct mt6797_join_rearm_state {
+@@ -30,7 +34,7 @@ struct mt6797_join_rearm_state {
+ 	unsigned int key_pairwise, key_group;
+ 	unsigned int page_debt, data_page_debt;
+ 	unsigned char lifetimes, channel_token, sta_sequence;
+-	unsigned int sequence, next_pid;
++	unsigned int sequence, sequence_base, next_pid;
+ };
+ 
+ static inline enum mt6797_join_rearm_decision
+@@ -47,7 +51,12 @@ mt6797_join_rearm_ready(const struct mt6797_join_rearm_state *s)
+ 	 * is not a boot-scoped identity: the fifth lifecycle boot stopped its
+ 	 * data phase at PID 82 and was refused here as a wrap.
+ 	 */
+-	if (s->channel_token == 255 || s->sta_sequence == 255 || s->sequence > 248)
++	if (s->channel_token == 255 || s->sta_sequence == 255)
++		return MT6797_JOIN_REARM_WRAP;
++	/* A lifetime uses 22 commands (boot AV); recycle while two still fit. */
++	if (s->sequence > 200 && s->sequence_base && s->sequence_base <= 128)
++		return MT6797_JOIN_REARM_RECYCLE;
++	if (s->sequence > 248)
+ 		return MT6797_JOIN_REARM_WRAP;
+ 	return MT6797_JOIN_REARM_YES;
+ }
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index ddf5ba258..811c792e5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -244,6 +244,8 @@ struct mt6797_mac {
+ 	struct ieee80211_rate rates[12];
+ 	char alpha2[2];
+ 	unsigned int sequence;
++	/* The first command sequence of lifetime 1, where a recycle restarts. */
++	unsigned int sequence_base;
+ 	bool configured, closing;
+ 	int first_error;
+ 	bool join_deauth_status_valid, join_deauth_status_late;
+@@ -4671,8 +4673,10 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			.channel_token = mac->join_channel_token,
+ 			.sta_sequence = mac->join_sta_sequence,
+ 			.sequence = mac->sequence,
++			.sequence_base = mac->sequence_base,
+ 			.next_pid = mac->join_next_pid,
+ 		};
++		int recycled;
+ 
+ #ifdef CONFIG_MT6797_CCMP_STABLE_EPOCH
+ 		/* mac80211 still owns a key of this lifetime: its removal cancels
+@@ -4693,6 +4697,17 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 		case MT6797_JOIN_REARM_YES:
+ 			mt6797_mac_join_rearm(mac);
+ 			break;
++		case MT6797_JOIN_REARM_RECYCLE:
++			recycled = mt6797_hif_recycle_sequences(mac->hif, mac->sequence_base);
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN join rearm sequence recycle: from=%u to=%u ret=%d\n",
++				 mac->sequence, mac->sequence_base, recycled);
++			if (!recycled) {
++				mac->sequence = mac->sequence_base;
++				mt6797_mac_join_rearm(mac);
++				break;
++			}
++			fallthrough;
+ 		case MT6797_JOIN_REARM_WRAP:
+ 			if (!mac->first_error)
+ 				mac->first_error = -EOWNERDEAD;
+@@ -6284,6 +6299,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		mask |= BIT(slot);
+ 	}
+ 	why = "submit";
++	if (!mac->sequence_base)
++		mac->sequence_base = mac->sequence;
+ 	ret = mt6797_scan_request(1, channels, request->req.n_channels, payload);
+ 	if (ret)
+ 		goto out;
+-- 
+2.43.0
+

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-only
-"""Exercise the bounded two-lifetime re-arm decision (proposal 0180) with sanitizers."""
+"""Exercise the re-arm decision (proposals 0180, 0240, 0334) with sanitizers."""
 from pathlib import Path
 import argparse
 import subprocess
