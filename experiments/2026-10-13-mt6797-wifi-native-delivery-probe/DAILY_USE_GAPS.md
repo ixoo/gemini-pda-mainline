@@ -36,8 +36,8 @@ lifetime 1 starts at 10, and each re-arm adds 22). After lifetime 11 the
 sequence is 252. The re-arm gate refused the next lifetime as exhausted
 and poisoned the driver until reboot.
 
-An idle link is lost after about six minutes, so on an idle station that
-is about an hour of use.
+The link is lost after about six minutes, idle or not, so that is about
+an hour of use.
 
 **The fix.** 0334 recycles the sequences at the quiescent re-arm barrier,
 before lifetime 10. Join completions are matched by credit and channel
@@ -82,26 +82,27 @@ Not tested: any device run.
 ## Open, in order
 
 Two of these hit the owner at home every day:
-- the idle loss, about six minutes after the link goes quiet;
+- the six-minute loss, with or without traffic;
 - the group-key rekey, hourly if the access point rekeys.
 
 The single channel only matters when joining a different network.
 
-1. **Idle keep-alive.** The access point disassociates an idle station
-   with reason 4 (inactivity), while light periodic traffic holds the
-   link. Reconnection makes this a drop, not a failure, but it is the
-   most visible gap.
-   - **The cause is not identified.** Either the access point's poll goes
-     unanswered, or its inactivity is data-based.
-   - **0336 measures it in the soak's idle stretch.** It records the
-     Null and QoS Null frames that reach the host and the exact silence
-     from the last traffic to the loss
-     ([§70.1](HIF_TRANSPORT_ANALYSIS.md#701-the-soak-carries-the-idle-record-amends-69)).
-   - **Readings.** Probes that arrive mean a station keep-alive is the
-     fix. No probe at the host is weaker evidence. The host cannot see
-     its own acknowledgement, and the firmware may consume null frames,
-     so it points to a receive fault only if null frames reach the host
-     at other times.
+1. **The six-minute loss.** The firmware reports a reason-4 BSS
+   timeout and loses the connection about six minutes after the join,
+   whether or not there is traffic. Reconnection makes this a drop, not a failure, but
+   it is the most visible gap.
+   - **It is not inactivity.** In the soak, a ping every 10 s was
+     answered throughout, and the last unicast frame each way was under
+     a second before the loss at 361 s
+     ([§70.5](HIF_TRANSPORT_ANALYSIS.md#705-soak-result-2026-10-29-the-link-was-lost-at-361-s-under-traffic-nothing-measured)).
+     Lifecycle boot 10, with no traffic, was lost at 367 s. So a
+     keep-alive is not the fix.
+   - **The cause is not identified.** The host's beacon count stopped
+     about 2 s into the data phase. That may be firmware beacon filtering,
+     not loss. Whether the firmware's BSS timeout counts beacons the host
+     never sees, or times a session, is next, for an offline source read.
+   - An earlier 600 s gate on an older tree held under light traffic.
+     What differs between the two trees is part of the question.
 2. **Group-key rekey.** A rekey's first message arrives PTK-protected with
    the EAPOL type, and today it is dropped:
    - the CCMP receive classifier excludes that type;

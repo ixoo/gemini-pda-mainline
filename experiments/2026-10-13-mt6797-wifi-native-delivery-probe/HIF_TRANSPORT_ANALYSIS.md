@@ -8686,3 +8686,67 @@ Tested for 0336: a W=1 driver build and checkpatch in the VM, on top of
 0335. A clean `git apply --check` on 0333 alone. Not tested: the soak
 profile's Buildbox build, the recomposed candidate and any device run.
 Neither fix boot's harness parameters are prepared yet.
+
+### 70.5 Soak result (2026-10-29): the link was lost at 361 s under traffic; nothing measured
+
+Mainline boot `7727dfe6…` on the soak profile at `678abd8c` (AV's series
+plus 0336). The session returned through the reviewed preservation path to
+changed-boot Gemian `6c3e31d2…`. One lifetime; neither round ran.
+
+**Harness: three faults, none caught offline.** The offline helper test
+calls the helper's `execute()` directly and skips the retained argument
+parser, the same gap as lifecycle boot 10.
+1. The helper exited 2 before any Wi-Fi exchange. The retained parser
+   admits a host poll of at most 710 s, and the soak passes 3760 s. With
+   no exchange there was no round 1 and no host acknowledgement, so the
+   session had no quiescence result and refused export.
+2. Both soak candidates' file tables carry AV's hashes for `init`,
+   `bin/kmsg-capture` and `bin/usb-auth`. The retained identity guard
+   refuses every seal and recovery step on them. The first preservation
+   attempt refused there, before any device action. The second ran with
+   the two members it checks corrected to the candidate's own bytes.
+3. The retained log export stops at 2 MiB, so a full soak log of up to
+   16 MiB would be cut short. This boot's log is 227 KB, so it was not
+   affected.
+
+All three must be fixed before a rerun.
+
+**Device.**
+- The station joined (data phase at 14.9 s uptime) and took DHCP. The
+  leaf's ping to the router every 10 s was answered 36 times out of 36.
+- At 361.0 s into the data phase, the firmware reported
+  `CCMP BSS timeout observation: reason=4 … checked_rx_age_ms=184
+  beacon_count=21 beacon_age_ms=359108`. Then came
+  `connection loss report: source=monitor reason=4 class=air`, a clean
+  cleanup and the re-arm.
+- The idle record at the data end was `null_rx=0 idle_null_rx=0
+  since_tx_ms=865 since_rx_ms=863`.
+- The lifetime ledger: 50 frames queued, 50 done, and `tx_failed`,
+  `expired`, `pid_faults` and `left_pages` all zero.
+- Named refusals: 2 of the layout class, then 62 of 690-byte frames refused
+  as `packet-type`. Those started at 211 s uptime, about one a second in
+  bursts, until the boot-wide cap of 64 at 326 s. The lifetime counted 213
+  refusals. What those frames are is not identified.
+
+**Grade.** §69: a data-phase end during the traffic stretch fails Gate 2
+for this tree. Throughput over the hour is not measured.
+
+**Reading.**
+- This is not inactivity. Unicast traffic flowed both ways every 10 s,
+  and the last of it was under a second before the loss. Lifecycle boot 10
+  sent nothing and was lost at 366.7 s. The loss comes at about six
+  minutes whether or not there is traffic.
+- So §70.1's table does not apply. Its rows assume an idle stretch. The
+  `null_rx` = 0 row's "uninformative" holds.
+- This contradicts boot 10's finding that light periodic traffic holds
+  the link. That rested on the 600 s P2E-D2 gate on an older tree, and
+  the difference between the two trees is not identified.
+- Observed, meaning open: the host's beacon count stopped at 21, the last
+  one about 2 s into the data phase. Firmware beacon filtering after the
+  join would give the same count, so this alone does not show missed
+  beacons. Whether the firmware's own BSS timeout counts beacons the
+  host never sees, or times a session, is the next question, for an
+  offline source read.
+- §70.3's harness assumes the 10 s ping keeps the six-minute loss from
+  ending the lifetime first. This result removes that assumption, so the
+  0335 boot cannot run as predeclared until the loss is understood.
