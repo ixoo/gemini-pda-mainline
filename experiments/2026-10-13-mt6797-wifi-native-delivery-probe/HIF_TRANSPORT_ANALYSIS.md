@@ -8750,3 +8750,94 @@ for this tree. Throughput over the hour is not measured.
 - §70.3's harness assumes the 10 s ping keeps the six-minute loss from
   ending the lifetime first. This result removes that assumption, so the
   0335 boot cannot run as predeclared until the loss is understood.
+
+## 71. The six-minute loss is the driver's choice: 0337 and the soak rerun (predeclared, 2026-10-29)
+
+**Source read.** The firmware's unsolicited 0x13 event is a beacon-timeout
+notice to the host, not a disconnect. Its body is a BSS index and the
+firmware's own reason byte. Reason 4 is not the 802.11 inactivity code,
+and its meaning is not defined in any source read. In the vendor's gen3
+driver (`nic/nic_rx.c`, the beacon-timeout event handler):
+- reason 8 (no TX-done event) is dropped;
+- the event is ignored when a packet for the station reached the host
+  within the last 2 s;
+- only otherwise does the host abort the connection as radio lost.
+
+The firmware does not drop the link by itself in that driver; the host
+decides. 0221 made every owned 0x13 during data a connection loss.
+
+**The retained record.** Seven reason-4 events: AV baseline, probe 3,
+AP-loss, reconnect, reconnect 2, lifecycle boot 10 and the soak.
+- Each arrived 361–376 s into the data phase.
+- In each, a checked PTK/GTK frame had reached the host 143–911 ms
+  before, so the vendor rule would have ignored every one.
+- In each, the host had counted 20–22 beacons, the last 2–12 s into the
+  data phase. A beacon-loss count at the vendor's ten-beacon threshold
+  would fire within about a second of beacons stopping, not six minutes
+  later.
+
+So the loss looks like a firmware notice at a fixed time after the join,
+acted on by our driver. Not shown: whether the link still works after
+the event, and whether the firmware repeats it.
+
+### 71.1 Proposal 0337
+
+An owned reason-4 0x13 that passes every 0221 check, and arrives while
+the checked-receive clock is under 2 s old, is consumed:
+- the first 16 are named with the existing timeout observation and
+  `one-shot WLAN BSS timeout ignored: reason=4 checked_rx_age_ms=…
+  data_ms=… ignored=N`;
+- every one is counted, and the data end records
+  `one-shot WLAN BSS timeout ignore record: ignored=N`.
+
+Every other owned 0x13, including reason 6 and a reason-4 event on a
+stale clock, stays a connection loss. The checked-receive clock admits
+fewer frames than the vendor's, so 0337 ignores nothing the vendor would
+act on.
+
+Kernel: the soak profile, now AV's series plus 0336 and 0337, not 0334
+or 0335. The RAM root is unchanged.
+
+Tested: a W=1 build of the driver and checkpatch in the VM, on top of
+0336 on 0335. A clean apply on 0333 plus 0336. Not tested: the soak
+profile's Buildbox build and any device run.
+
+### 71.2 The boot: the soak, rerun on 0337 (predeclared)
+
+**Preconditions, all offline, before staging.** The three harness faults
+of §70.5:
+- the helper's retained parser must take the soak's 3760 s poll;
+- the candidate's file table must carry the soak RAM root's own hashes;
+- the log export must take a log of up to 16 MiB.
+
+Each fix must be tested through the path that failed: the helper through
+its real argument parser, not `execute()` alone. The candidate is
+recomposed on the 0337 build.
+
+**Hypothesis.** The six-minute event is a firmware notice on a working
+link. With 0337, the lifetime carries the leaf's 10 s pings past 400 s
+and through the 45-minute traffic stretch.
+
+**Unique observations.**
+- the `BSS timeout ignored` lines: count, cadence and checked-receive
+  age;
+- the 10 s pings answered after the first ignored event;
+- round 2 at about 2700 s;
+- the data-phase end reason and the ignore record.
+
+**Predeclared reading.**
+
+| Observation | Reading | Next |
+|---|---|---|
+| First event ignored near 360 s; pings keep answering; round 2 measured | The loss was the driver's choice, not the air | 0337 enters the daily-use set; the soak is graded under §69 |
+| Event ignored, then pings stop and the checked clock ages; a later event ends the lifetime as a loss | The firmware's judgement was right; the link really fails near six minutes | 0337 is withdrawn; the firmware's link monitor is the open item |
+| Event ignored, then the lifetime ends another way (a deauthentication or another reason) | Ignoring the notice does not hold the link; its cause is upstream of the host | that end's reason names the next item |
+| Event repeats | Its cadence is recorded; with pings answering, it is benign | the named limit of 16 is enough at a cadence of a minute or more; otherwise only the count is kept |
+| No 0x13 before 900 s | The event did not recur on this boot | no reading for 0337; the soak is graded as is |
+
+The §69 readings for the rounds, the ledger and the pings stand. A
+traffic-stretch end other than reason 4 still fails Gate 2.
+
+**Decision.** A pass feeds §70.3: the 0335 boot then takes 0337 as well,
+since its plan needs a lifetime that outlasts six minutes. Neither 0334
+nor 0335 rides with this boot.

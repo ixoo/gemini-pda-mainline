@@ -1,0 +1,109 @@
+From bc8ac6e0bbc2ffa468846d3ec7b0fb7155571957 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 29 Oct 2026 16:55:12 -0400
+Subject: [PATCH] wifi: mt6797: ignore a reason-4 BSS timeout while receive is
+ fresh
+
+Every connected lifetime so far ended about six minutes into its data
+phase on the firmware's unsolicited 0x13 event with reason 4, with or
+without traffic. In all seven retained cases a strictly checked PTK/GTK
+frame had reached the host under a second before the event, and in the
+soak the station had answered a ping every 10 s up to it. The driver
+turns every owned 0x13 during data into a connection loss. The vendor
+driver does not: it drops a beacon-timeout event when a packet reached
+the host within the last two seconds, and disconnects only otherwise.
+
+Apply that rule to reason 4 only. When the checked-receive clock is
+under 2 s old, log the event (the first 16 with the existing timeout
+observation), count it and consume it. Record the count at the
+data-phase end. Every other owned 0x13, and a reason-4 event on a stale
+clock, stays a connection loss as before.
+
+The checked-receive clock covers fewer frames than the vendor's, so
+this ignores no event the vendor would act on. A link that is really
+gone stops that clock, and its next event is a loss. Whether the
+firmware repeats the event is not known.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 35 ++++++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 37e75eabc..849360920 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -487,6 +487,7 @@ struct mt6797_mac {
+ #endif
+ 	u64 ccmp_last_checked_rx, ccmp_last_beacon_rx;
+ 	unsigned int ccmp_timeout_observed;
++	unsigned int ccmp_timeout_ignored;
+ 	struct completion ccmp_dtim_done;
+ 	u8 ccmp_dtim_period;
+ 	int ccmp_dtim_status;
+@@ -2324,6 +2325,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	mac->ccmp_last_checked_rx = 0;
+ 	mac->ccmp_last_beacon_rx = 0;
+ 	mac->ccmp_timeout_observed = 0;
++	mac->ccmp_timeout_ignored = 0;
+ 	reinit_completion(&mac->ccmp_dtim_done);
+ 	mac->ccmp_dtim_period = 0;
+ 	mac->ccmp_dtim_status = 0;
+@@ -4048,6 +4050,11 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+ 			 "one-shot WLAN idle record: null_rx=%u idle_null_rx=%u since_tx_ms=%lld since_rx_ms=%lld\n",
+ 			 mac->rx_null, mac->rx_null_idle, tx, rx);
++#ifdef CONFIG_MT6797_CCMP_CONNECTED_LIFETIME
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN BSS timeout ignore record: ignored=%u\n",
++			 mac->ccmp_timeout_ignored);
++#endif
+ 	}
+ #endif
+ #ifdef CONFIG_MT6797_PASS_COST_RECORD
+@@ -4229,9 +4236,22 @@ static void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ /* A current, owned monitor notification is a normal connection loss, not a
+  * malformed transport event. End traffic and queue standard core teardown;
+  * native disable and resource cleanup still run under their existing bounds.
++ *
++ * Except reason 4 while the link is visibly alive: the vendor receiver drops a
++ * beacon-timeout event when a packet reached the host within the last two
++ * seconds, and every reason-4 event seen so far arrived six minutes into the
++ * data phase with checked receive under a second old. Such an event is logged,
++ * counted and consumed. The checked-receive clock is narrower than the vendor's
++ * (strictly checked PTK/GTK admissions only), so it ignores no more than the
++ * vendor would. A dead link stops that clock, and its next event is a loss.
+  */
++#define MT6797_CCMP_TIMEOUT_FRESH_RX_MS	2000
++#define MT6797_CCMP_TIMEOUT_IGNORE_NAMED	16
++
+ static bool mt6797_ccmp_owned_loss(struct mt6797_mac *mac, size_t bytes)
+ {
++	u64 now;
++
+ 	if (!ccmp_stable_epoch || !mt6797_join_event(mac->join_packet, bytes, 0x13, 4) ||
+ 	    mac->join_packet[5] || mac->join_packet[8] || !mt6797_ccmp_rx_ready(mac) ||
+ 	    !mac->started || !mac->vif ||
+@@ -4239,6 +4259,21 @@ static bool mt6797_ccmp_owned_loss(struct mt6797_mac *mac, size_t bytes)
+ 	    !mac->join_bss_configured || !mac->ccmp_pm_connected || !mac->ccmp_pm_credit_ns ||
+ 	    mac->join_key_pairwise != 1 || mac->join_key_group != 1 || mac->ccmp_loss_reported)
+ 		return false;
++	now = ktime_get_ns();
++	if (mac->join_packet[9] == 4 && mac->ccmp_queued &&
++	    mac->ccmp_last_checked_rx <= now &&
++	    now - mac->ccmp_last_checked_rx < MT6797_CCMP_TIMEOUT_FRESH_RX_MS * NSEC_PER_MSEC) {
++		if (++mac->ccmp_timeout_ignored <= MT6797_CCMP_TIMEOUT_IGNORE_NAMED) {
++			mt6797_ccmp_timeout_observe(mac, bytes);
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN BSS timeout ignored: reason=4 checked_rx_age_ms=%llu data_ms=%llu ignored=%u\n",
++				 (now - mac->ccmp_last_checked_rx) / NSEC_PER_MSEC,
++				 now > mac->join_data_started ?
++				 (now - mac->join_data_started) / NSEC_PER_MSEC : 0,
++				 mac->ccmp_timeout_ignored);
++		}
++		return true;
++	}
+ 	mt6797_ccmp_timeout_observe(mac, bytes);
+ 	mt6797_mac_join_end_data(mac, "connection-loss");
+ 	mt6797_ccmp_connection_lost(mac, "monitor", mac->join_packet[9]);
+-- 
+2.43.0
+

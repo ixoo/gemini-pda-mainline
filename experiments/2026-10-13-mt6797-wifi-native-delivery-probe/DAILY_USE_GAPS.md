@@ -97,12 +97,14 @@ The single channel only matters when joining a different network.
      ([§70.5](HIF_TRANSPORT_ANALYSIS.md#705-soak-result-2026-10-29-the-link-was-lost-at-361-s-under-traffic-nothing-measured)).
      Lifecycle boot 10, with no traffic, was lost at 367 s. So a
      keep-alive is not the fix.
-   - **The cause is not identified.** The host's beacon count stopped
-     about 2 s into the data phase. That may be firmware beacon filtering,
-     not loss. Whether the firmware's BSS timeout counts beacons the host
-     never sees, or times a session, is next, for an offline source read.
-   - An earlier 600 s gate on an older tree held under light traffic.
-     What differs between the two trees is part of the question.
+   - **It may be the driver's choice.** The firmware's event is a notice
+     to the host. The vendor driver ignores it when a packet reached the
+     host within 2 s, which held for all seven reason-4 events we have.
+     Our driver ends the lifetime on every one. 0337 applies the vendor
+     rule to reason 4, and the soak rerun tests whether the link then
+     outlasts six minutes
+     ([§71](HIF_TRANSPORT_ANALYSIS.md#71-the-six-minute-loss-is-the-drivers-choice-0337-and-the-soak-rerun-predeclared-2026-10-29)).
+     It needs the soak's three harness fixes first.
 2. **Group-key rekey.** A rekey's first message arrives PTK-protected with
    the EAPOL type, and today it is dropped:
    - the CCMP receive classifier excludes that type;
