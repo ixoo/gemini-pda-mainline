@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mainline-dev-station` |
-| Status | `running`: station boot `eda50de3…` up; all six hypothesis items observed (2026-10-30) |
+| Status | `running`: boot `eda50de3…` passed all six items and returned cleanly; lid handling built for the next boot (2026-10-30) |
 | Subsystem | development method; RAM root; eMMC data mount; kernel modules |
 | Device variant | named Gemini PDA (MT6797X), boot2 |
 | Date(s) | 2026-10-30 |
@@ -108,6 +108,22 @@ a 1 MiB log buffer.
 - The parent's logger, seal, reboot wrapper and bounded session scripts are
   dropped. `mac.ko` is placed under `lib/modules/<release>/`.
 
+**Lid handling (owner request after the first boot).**
+- [`station-dt.sh`](station-dt.sh) derives the station board tree from the
+  package's `wifi-service` tree with exactly three changes:
+  - the disabled hall `gpio-keys` node from 0074 is enabled: GPIO66,
+    active-low, `EV_SW/SW_LID`, 64 ms debounce, GPIO mode, no pull setting;
+  - the simple framebuffer holds the MM power domain (display H2);
+  - the PWM backlight is enabled (display H8): `pwm_sel` on the 26 MHz
+    oscillator, 1024 levels at 39385 ns, default level 512.
+- [`lid-guard.c`](lid-guard.c) is a small static program, respawned by init:
+  - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
+    (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
+    the console. Open undoes all three.
+  - It acts only after it has seen the lid open, so a misread or floating
+    lid input at boot cannot take the console away.
+  - Each transition goes to the kernel log.
+
 ## Safety assessment
 
 - **Writes to the device:** boot2 only, through the reviewed installer,
@@ -130,6 +146,18 @@ a 1 MiB log buffer.
   run. As on every Wi-Fi boot so far, the CONSYS owner starts the firmware
   only when userspace writes its `wmt_negotiate` attribute. The soak
   harness did that; the station does not.
+- **Lid boot (second boot), effects beyond the first boot:**
+  - the GPIO66 interrupt;
+  - the framebuffer's hold on the MM power domain;
+  - one `pwm_sel` mux write to the 26 MHz oscillator;
+  - the PWM register writes of the backlight's first apply, at level 512,
+    then at levels 0 and 512 through `bl_power`.
+  - There is no ULPOSC, panel or sleep-controller access.
+  - H2 and H8 are booted for the first time here. If the screen goes dark
+    after the PWM probe, the console is lost but SSH is not: record
+    `/sys/class/backlight/backlight/*` and return.
+  - GPIO66 has no mainline pull setting, so under mainline it may read
+    wrong. `lid-guard`'s wait-for-open rule and SSH cover that.
 - **Heat and battery:** there is no thermal driver or charger telemetry. A
   long session is attended. Stop on noticeable heat, a battery warning, or
   the owner's word.
@@ -142,8 +170,12 @@ a 1 MiB log buffer.
   [`series-a53-station`](../../patches/series-a53-station), and the
   `mt6797-a53-station` profile in [`kernel/manifest.json`](../../kernel/manifest.json).
 - [`gemini-a53-station.fragment`](../../configs/gemini-a53-station.fragment).
-- [`initramfs/`](initramfs/), [`build-station-initramfs.py`](build-station-initramfs.py)
-  and [`compose-station.py`](compose-station.py).
+- [`initramfs/`](initramfs/), [`build-station-initramfs.py`](build-station-initramfs.py),
+  [`station-dt.sh`](station-dt.sh), [`lid-guard.c`](lid-guard.c) and
+  [`compose-station.py`](compose-station.py).
+- `lid-guard` is built with `gcc -static -O2 -Wall -Wextra -Werror` on
+  aarch64 (in the VM) and passed to the composer:
+  `compose-station.py PACKAGE PARENT_INITRAMFS LID_GUARD OUTPUT_DIR`.
 
 ## Tested offline (2026-10-30)
 
@@ -247,6 +279,29 @@ the LK checks.
 - **Wi-Fi:** one CONSYS one-shot record, the region 19 read; no WMT or WLAN
   start.
 
+**End of boot `eda50de3…`.** The console record in pstore, preserved from
+Gemian, ends with `reboot: Restarting system` at 1519.8 s. This was an
+orderly busybox `reboot`, presumably the owner's.
+- Gemian then booted as `b6866994-dad2-4cb0-a28a-20090081bf6b`.
+- Gemian mounted `mmcblk0p29` without journal recovery, so the station's
+  shutdown unmounted `/mnt/data` cleanly.
+
+**Lid change, tested offline (2026-10-30).**
+- `station-dt.sh` is reproducible (`0f4085a9…`): the delta is exactly the
+  three changes above, with no new `dtc` warning.
+- `lid-guard` builds clean with `-Werror`. It was run in QEMU on a VM station
+  `Image` with `uinput` added for the test only, against a fake `gpio-keys`
+  lid and a fake `keyboard-matrix`:
+  - with no devices it retries;
+  - started closed, it waits;
+  - after the first open it arms;
+  - close sets `inhibited` = 1 and reopen sets it back to 0;
+  - console blanking returns 0, and the backlight write returns `-ENOENT`,
+    as QEMU has no backlight.
+- The composed image is 12.74 MB, and the LK checks pass.
+- **Not tested:** GPIO66 under mainline, the real backlight, and any device
+  boot of the lid change.
+
 ## Analysis
 
 All six hypothesis items hold on one boot. Two facts were found only on
@@ -263,9 +318,21 @@ inference. Still open:
 
 ## Conclusion
 
-Confirmed so far, for the named Gemini and boot `eda50de3…`: the station
-boots with all six items. Long uptime and the return through `reboot` are
-not yet observed.
+Confirmed for the named Gemini and boot `eda50de3…`: the station boots with
+all six items.
+- It ran for 25 minutes and returned through an orderly `reboot`, leaving
+  the data partition clean.
+- Longer uptime is not yet observed.
+- The lid handling awaits its boot.
+
+## Lid boot readings (predeclared)
+
+| Observation | Reading |
+|---|---|
+| `gpio-keys` and `backlight` bound; close: screen dark, keys ignored; open: both back | The lid works |
+| Lid events, but the screen stays lit on close | Backlight control is the item; the record is `/sys/class/backlight/backlight/*` and the `bl_power` result in `lid-guard`'s log line |
+| No `SW_LID` events, or events with the lid still | GPIO66 under mainline (pull, polarity) is the item; `lid-guard` stays waiting or is stopped over SSH |
+| Screen dark after the PWM probe | H8's dark branch: record the backlight values over SSH, then return |
 
 ## Follow-up
 

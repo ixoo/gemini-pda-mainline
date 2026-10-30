@@ -4,10 +4,11 @@
 
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
-adds the mac module under lib/modules/<release>/. Writes a newc archive with
+adds the mac module under lib/modules/<release>/ and the lid-guard binary
+(built from lid-guard.c). Writes a newc archive with
 zero timestamps, compressed with gzip -n -9 like the parent.
 
-usage: build-station-initramfs.py PARENT_INITRAMFS MAC_KO RELEASE OUTPUT
+usage: build-station-initramfs.py PARENT_INITRAMFS MAC_KO LID_GUARD RELEASE OUTPUT
 """
 import hashlib
 import runpy
@@ -43,7 +44,7 @@ def newc(entries):
     return bytes(out + bytes(-len(out) % 512))
 
 
-def main(parent, module, release, output):
+def main(parent, module, lid_guard, release, output):
     ram = parse_newc(Path(parent).read_bytes())
     missing = DROP - set(ram)
     assert not missing, ('parent lacks', sorted(missing))
@@ -59,6 +60,7 @@ def main(parent, module, release, output):
     files['etc/shells'] = (FILE | 0o644, b'/bin/sh\n')
     files['bin/usb-ssh'] = (FILE | 0o755, (src/'usb-ssh').read_bytes())
     files['bin/console-shell'] = (FILE | 0o755, (src/'console-shell').read_bytes())
+    files['bin/lid-guard'] = (FILE | 0o755, Path(lid_guard).read_bytes())
     for d in ['mnt', 'mnt/data', 'tmp', 'lib/modules', 'lib/modules/' + release]:
         files[d] = (DIR | 0o755, b'')
     files['lib/modules/%s/mac.ko' % release] = (FILE | 0o644, Path(module).read_bytes())
@@ -77,6 +79,6 @@ def main(parent, module, release, output):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
+    if len(sys.argv) != 6:
         sys.exit(__doc__)
     main(*sys.argv[1:])
