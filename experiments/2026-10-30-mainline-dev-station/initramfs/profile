@@ -1,0 +1,3 @@
+# shellcheck shell=dash
+export PATH=/bin
+export PS1='station# '

@@ -1,0 +1,17 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Key-only SSH on the USB gadget, no session limits; init respawns it.
+export PATH=/bin
+bb=/bin/busybox
+waited=0
+while [ ! -d /sys/class/net/usb0 ] && [ "$waited" -lt 30 ]; do
+    $bb sleep 1
+    waited=$((waited + 1))
+done
+[ -d /sys/class/net/usb0 ] || exec $bb sleep 30
+$bb ip link set usb0 up
+$bb ip address replace 10.15.19.82/24 dev usb0
+exec /bin/dropbear -F -s -j -k -l usb0 -p 10.15.19.82:22 \
+    -D /root/.ssh -r /etc/dropbear/host_key -P /run/station/ssh-pid \
+    -T 2 2>>/run/station/ssh.log

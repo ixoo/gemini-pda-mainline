@@ -1,0 +1,5 @@
+::respawn:/bin/usb-ssh
+tty1::respawn:/bin/console-shell
+::ctrlaltdel:/bin/busybox true
+::shutdown:/bin/busybox sync
+::shutdown:/bin/busybox umount -r /mnt/data

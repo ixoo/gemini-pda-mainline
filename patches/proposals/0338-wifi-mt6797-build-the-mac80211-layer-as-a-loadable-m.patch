@@ -1,0 +1,580 @@
+From f9ab2faf3e292983033d80d9804976ef915676f8 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 30 Oct 2026 17:11:40 -0400
+Subject: [PATCH] wifi: mt6797: build the mac80211 layer as a loadable module
+
+MT6797_MAC80211 becomes tristate. Built in, nothing changes: the CONSYS
+owner starts the firmware and attaches the mac80211 layer in the same
+work as before (private record, registration, the initial TC4
+accounting pair, scan ready), now through mt6797_consys_wlan_attach().
+
+As a module (mac), the CONSYS owner still starts the firmware at boot,
+keeps the started HIF and its capability, and logs that the module
+attaches on load. Loading mac runs the same attach once. A second attach,
+or one before the firmware is ready, is refused; a failed attach is not
+retried, since it may leave firmware state behind. There is no detach
+yet, so the module has no exit and stays loaded.
+
+The module keeps the name mac, so its parameters stay under
+/sys/module/mac/parameters. Its debugfs helpers (snapshot, testcfg) stay
+built in, and the HIF, record, snapshot and testcfg functions it calls
+are exported GPL-only.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  6 +-
+ drivers/net/wireless/mediatek/mt6797/Makefile |  3 +-
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 30 +++++++
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 17 ++++
+ drivers/net/wireless/mediatek/mt6797/mac.h    | 17 ++++
+ .../wireless/mediatek/mt6797/record-prepare.c |  2 +
+ .../net/wireless/mediatek/mt6797/snapshot.c   |  3 +
+ .../net/wireless/mediatek/mt6797/testcfg.c    |  5 ++
+ drivers/soc/mediatek/mt6797-consys.c          | 86 +++++++++++++++----
+ 9 files changed, 149 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index e9642d100..7266be589 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -11,7 +11,7 @@ config MT6797_HIF_CORE
+ 	  and exclusion; this option alone provides no Wi-Fi device.
+ 
+ config MT6797_MAC80211
+-	bool "MT6797 WLAN mac80211 station driver"
++	tristate "MT6797 WLAN mac80211 station driver"
+ 	depends on MT6797_HIF_CORE && MAC80211
+ 	default n
+ 	help
+@@ -22,6 +22,10 @@ config MT6797_MAC80211
+ 	  programmed-I/O data path. Reconnect, rekey and power save are not yet
+ 	  supported.
+ 
++	  As a module (mac) the CONSYS owner still starts the firmware at
++	  boot; loading the module attaches this layer once. It cannot be
++	  unloaded yet.
++
+ # The following symbols are build-structure facts of the station driver, not
+ # user choices. They follow MT6797_MAC80211 and keep the source's existing
+ # compile-time structure while the experiment arms are retired one by one.
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index aecbc5628..5bbfcf18f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -12,5 +12,6 @@ obj-y += firmware-prepare.o
+ obj-y += firmware-probe.o
+ obj-y += record-prepare.o
+ obj-$(CONFIG_MT6797_MAC80211) += mac.o
+-obj-$(CONFIG_MT6797_MAC80211) += snapshot.o
++# Built in even when mac is a module; mac.ko uses their exports.
++obj-$(subst m,y,$(CONFIG_MT6797_MAC80211)) += snapshot.o
+ obj-$(CONFIG_MT6797_WIFI_TESTCONFIG) += testcfg.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index bfebfcef5..4a791d214 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -450,6 +450,7 @@ void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
+ 	*poll_max = hif ? hif->dma_poll_max : 0;
+ 	*failures = hif ? hif->dma_failures : 0;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_dma_stats);
+ 
+ /* The data-port transfer: DMA where attached, built for the direction and
+  * large enough to be worth it; the PIO encoder otherwise.
+@@ -720,6 +721,7 @@ void mt6797_hif_rx_batch_pass(struct mt6797_hif *hif)
+ 	if (hif)
+ 		hif->rx_batch_refill = true;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_rx_batch_pass);
+ 
+ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ 			       struct mt6797_hif_rx_batch_stats *stats)
+@@ -754,6 +756,7 @@ void mt6797_hif_rx_batch_stats(const struct mt6797_hif *hif,
+ 	stats->peeks = hif->rx_batch_peeks;
+ 	stats->peek_skips = hif->rx_batch_peek_skips;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_rx_batch_stats);
+ 
+ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 		      u32 *value)
+@@ -783,6 +786,7 @@ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_read32);
+ 
+ int
+ mt6797_hif_download_section(struct mt6797_hif *hif,
+@@ -1075,6 +1079,7 @@ int mt6797_hif_reconcile_runtime(struct mt6797_hif *hif, u64 deadline_ns,
+ 		return -EINVAL;
+ 	return mt6797_hif_tx_status(hif, deadline_ns, 1, status, account, true);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_reconcile_runtime);
+ 
+ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 				u64 deadline_ns,
+@@ -1289,6 +1294,7 @@ int mt6797_hif_join_filter(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x0a, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_filter);
+ 
+ int mt6797_hif_join_bss(struct mt6797_hif *hif, unsigned int sequence,
+ 	const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
+@@ -1316,6 +1322,7 @@ int mt6797_hif_join_pm_connected(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x16, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_pm_connected);
+ 
+ int mt6797_hif_join_pm_abort(struct mt6797_hif *hif, unsigned int sequence,
+ 			     u64 deadline_ns)
+@@ -1326,6 +1333,7 @@ int mt6797_hif_join_pm_abort(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x17, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_pm_abort);
+ 
+ int mt6797_hif_join_pm_abort_debt(struct mt6797_hif *hif, unsigned int sequence,
+ 				  unsigned int deauth_pages, u64 deadline_ns)
+@@ -1337,6 +1345,7 @@ int mt6797_hif_join_pm_abort_debt(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command_debt(hif, 0x17, sequence, payload,
+ 						 sizeof(payload), false, deadline_ns, deauth_pages);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_pm_abort_debt);
+ 
+ bool mt6797_hif_cleanup_abort_ready(struct mt6797_hif *hif)
+ {
+@@ -1365,6 +1374,7 @@ int mt6797_hif_retain_cleanup_page(struct mt6797_hif *hif)
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_retain_cleanup_page);
+ 
+ bool mt6797_hif_cleanup_ready(struct mt6797_hif *hif)
+ {
+@@ -1376,6 +1386,7 @@ bool mt6797_hif_cleanup_ready(struct mt6797_hif *hif)
+ 	mutex_unlock(&hif->mutex);
+ 	return ready;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_cleanup_ready);
+ 
+ #endif
+ 
+@@ -1391,6 +1402,7 @@ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_station);
+ 
+ #ifdef CONFIG_MT6797_WMM_QOS_DATA
+ /* CMD_SET_BSS_INFO byte 42 ucIsQBSS and CMD_UPDATE_STA_RECORD byte 18
+@@ -1431,6 +1443,7 @@ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x12, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_bss_qos);
+ 
+ /* With the peer's HT capability element body from the association
+  * response (26 bytes: capability info, A-MPDU parameters, the 16-byte MCS
+@@ -1495,6 +1508,7 @@ int mt6797_hif_join_station_qos(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x13, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_station_qos);
+ #endif
+ 
+ int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
+@@ -1511,6 +1525,7 @@ int mt6797_hif_join_key(struct mt6797_hif *hif, unsigned int sequence,
+ 	memzero_explicit(payload, sizeof(payload));
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_key);
+ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 	unsigned int sequence, u64 deadline_ns)
+ {
+@@ -1520,6 +1535,7 @@ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ 	return mt6797_hif_send_join_command(hif, 0x14, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_remove_station);
+ 
+ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 	u8 token, u8 channel, unsigned int interval_ms, bool abort, u64 deadline_ns)
+@@ -1531,6 +1547,7 @@ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x1c, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_channel);
+ 
+ #ifdef CONFIG_MT6797_HT40
+ int mt6797_hif_join_channel_sco(struct mt6797_hif *hif, unsigned int sequence,
+@@ -1545,6 +1562,7 @@ int mt6797_hif_join_channel_sco(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0x1c, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_join_channel_sco);
+ #endif
+ 
+ #ifdef CONFIG_MT6797_NATIVE_DELIVERY_DIAG
+@@ -1577,6 +1595,7 @@ int mt6797_hif_diag_mask(struct mt6797_hif *hif, unsigned int sequence,
+ 	return mt6797_hif_send_join_command(hif, 0xc0, sequence, payload,
+ 					   sizeof(payload), false, deadline_ns);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_diag_mask);
+ 
+ 
+ /*
+@@ -1598,6 +1617,7 @@ bool mt6797_hif_normal_idle(struct mt6797_hif *hif)
+ 	mutex_unlock(&hif->mutex);
+ 	return idle;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_normal_idle);
+ 
+ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out)
+ {
+@@ -1620,6 +1640,7 @@ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *
+ 	out->sequences = !!t->used_sequences;
+ 	mutex_unlock(&hif->mutex);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_normal_ledger);
+ 
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+@@ -1666,6 +1687,7 @@ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_send_management);
+ 
+ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
+ 			     size_t frame_bytes, u8 wlan, u8 pid,
+@@ -1709,6 +1731,7 @@ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_send_security);
+ 
+ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 				size_t frame_bytes, u8 wlan, u8 pid,
+@@ -1777,6 +1800,7 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_send_data_report);
+ 
+ #ifdef MT6797_DATA_SGI
+ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
+@@ -1787,6 +1811,7 @@ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
+ 	hif->data_sgi = sgi;
+ 	mutex_unlock(&hif->mutex);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_set_data_sgi);
+ #endif
+ 
+ #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
+@@ -1801,6 +1826,7 @@ void mt6797_hif_set_testcfg(struct mt6797_hif *hif, unsigned int rate, bool agg,
+ 	hif->rx_peek = peek;
+ 	mutex_unlock(&hif->mutex);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_set_testcfg);
+ #endif
+ 
+ #ifdef CONFIG_MT6797_HT40_TX
+@@ -1812,6 +1838,7 @@ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40)
+ 	hif->data_bw40 = bw40;
+ 	mutex_unlock(&hif->mutex);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_set_data_bw40);
+ #endif
+ 
+ int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
+@@ -1865,6 +1892,7 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_send_config);
+ 
+ 
+ /* Read one port-0 packet only when its earlier 89-byte length is unchanged.
+@@ -2121,6 +2149,7 @@ int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
+ 	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity,
+ 				  result, false, false);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_receive_runtime_packet);
+ 
+ int mt6797_hif_receive_selected(struct mt6797_hif *hif,
+ 				u64 deadline_ns, u8 *buffer,
+@@ -2130,3 +2159,4 @@ int mt6797_hif_receive_selected(struct mt6797_hif *hif,
+ 	return mt6797_hif_receive(hif, 0, deadline_ns, buffer, capacity, result,
+ 				  false, true);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_receive_selected);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 97a25af4a..a7e09e16c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -8376,3 +8376,20 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
+ 	mutex_unlock(&mac->mutex);
+ #endif
+ }
++
++const struct mt6797_mac_ops mt6797_mac_attach_ops = {
++	.reg = mt6797_mac_register,
++	.scan_ready = mt6797_mac_scan_ready,
++};
++
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++/* No module_exit: there is no detach yet, so the module stays loaded. */
++static int __init mt6797_mac_module_init(void)
++{
++	return mt6797_consys_wlan_attach(&mt6797_mac_attach_ops);
++}
++module_init(mt6797_mac_module_init);
++
++MODULE_DESCRIPTION("MT6797 WLAN mac80211 station driver");
++MODULE_LICENSE("GPL");
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index 6fa6aa9e7..e1855ef4f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -26,4 +26,21 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+  */
+ void mt6797_mac_scan_ready(struct ieee80211_hw *hw);
+ 
++/* The mac80211 layer's entry points, built in or in the mac module. */
++struct mt6797_mac_ops {
++	int (*reg)(struct device *dev, struct mt6797_hif *hif,
++		   const struct mt6797_normal_capability *capability,
++		   const struct mt6797_wifi_record *record,
++		   struct ieee80211_hw **out);
++	void (*scan_ready)(struct ieee80211_hw *hw);
++};
++
++extern const struct mt6797_mac_ops mt6797_mac_attach_ops;
++
++/* Attach the mac80211 layer once to the firmware the CONSYS owner started:
++ * record, registration, the initial TC4 accounting pair, then scan ready.
++ * -ENODEV before the firmware is ready, -EBUSY after any attach.
++ */
++int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops);
++
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/record-prepare.c b/drivers/net/wireless/mediatek/mt6797/record-prepare.c
+index e8e561ac3..6bfa2123c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/record-prepare.c
++++ b/drivers/net/wireless/mediatek/mt6797/record-prepare.c
+@@ -49,12 +49,14 @@ const u8 *mt6797_wifi_record_data(const struct mt6797_wifi_record *record)
+ {
+ 	return record ? record->blob->data : NULL;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wifi_record_data);
+ 
+ const struct mt6797_record_commands *
+ mt6797_wifi_record_commands(const struct mt6797_wifi_record *record)
+ {
+ 	return record ? &record->commands : NULL;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wifi_record_commands);
+ 
+ void mt6797_wifi_record_release(struct mt6797_wifi_record *record)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/snapshot.c b/drivers/net/wireless/mediatek/mt6797/snapshot.c
+index 1e0828ca6..79a630f6a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/snapshot.c
++++ b/drivers/net/wireless/mediatek/mt6797/snapshot.c
+@@ -500,6 +500,7 @@ int mt6797_snapshot_tick(struct mt6797_snapshot *s)
+ 	kref_put(&r->ref, mt6797_snapshot_result_free);
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(mt6797_snapshot_tick);
+ 
+ void mt6797_snapshot_fail(struct mt6797_snapshot *s, int error)
+ {
+@@ -510,6 +511,7 @@ void mt6797_snapshot_fail(struct mt6797_snapshot *s, int error)
+ 	mutex_unlock(&s->lock);
+ 	mt6797_snapshot_abort_result(s, error);
+ }
++EXPORT_SYMBOL_GPL(mt6797_snapshot_fail);
+ 
+ bool mt6797_snapshot_active(struct mt6797_snapshot *s)
+ {
+@@ -522,6 +524,7 @@ bool mt6797_snapshot_active(struct mt6797_snapshot *s)
+ 	mutex_unlock(&s->lock);
+ 	return active;
+ }
++EXPORT_SYMBOL_GPL(mt6797_snapshot_active);
+ 
+ void mt6797_snapshot_disable(struct mt6797_snapshot *s)
+ {
+diff --git a/drivers/net/wireless/mediatek/mt6797/testcfg.c b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+index ab60c59e2..110003ad9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/testcfg.c
++++ b/drivers/net/wireless/mediatek/mt6797/testcfg.c
+@@ -88,6 +88,7 @@ void mt6797_testcfg_next(struct mt6797_testcfg_state *t, unsigned int lifetime,
+ 		t->dropped++;
+ 	mutex_unlock(&t->lock);
+ }
++EXPORT_SYMBOL_GPL(mt6797_testcfg_next);
+ 
+ const char *mt6797_testcfg_stats(struct mt6797_testcfg_state *t, const char *body,
+ 				 bool ok)
+@@ -110,6 +111,7 @@ const char *mt6797_testcfg_stats(struct mt6797_testcfg_state *t, const char *bod
+ 	mutex_unlock(&t->lock);
+ 	return line;
+ }
++EXPORT_SYMBOL_GPL(mt6797_testcfg_stats);
+ 
+ /* The file's text, composed under the lock; read in one or more pieces. */
+ static ssize_t mt6797_testcfg_read(struct file *file, char __user *buf,
+@@ -175,6 +177,7 @@ int mt6797_testcfg_set(struct mt6797_testcfg_state *t, char *text)
+ 	kfree(entries);
+ 	return count < 0 ? -EINVAL : count;
+ }
++EXPORT_SYMBOL_GPL(mt6797_testcfg_set);
+ 
+ /* testcfg takes a whole schedule; reset clears applied and stats and
+  * starts the schedule again.
+@@ -229,6 +232,7 @@ struct mt6797_testcfg_state *mt6797_testcfg_register(const struct mt6797_testcfg
+ 	debugfs_create_file("reset", 0200, t->dir, t, &mt6797_testcfg_ops);
+ 	return t;
+ }
++EXPORT_SYMBOL_GPL(mt6797_testcfg_register);
+ 
+ void mt6797_testcfg_unregister(struct mt6797_testcfg_state *t)
+ {
+@@ -237,3 +241,4 @@ void mt6797_testcfg_unregister(struct mt6797_testcfg_state *t)
+ 	debugfs_remove_recursive(t->dir);
+ 	kfree(t);
+ }
++EXPORT_SYMBOL_GPL(mt6797_testcfg_unregister);
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 72811cc62..4f748cfc8 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -101,6 +101,11 @@ struct mt6797_consys {
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+ 	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
+ 	struct ieee80211_hw *wlan_hw;
++	/* The started firmware, kept for the one mac80211 attach. */
++	struct device *wlan_dev;
++	struct mt6797_normal_capability wlan_capability;
++	bool wlan_ready;
++	bool wlan_attached;
+ #endif
+ 	struct mt6797_wmt_query wmt_query;
+ 	struct mt6797_wmt_negotiate wmt_negotiate;
+@@ -153,6 +158,9 @@ struct mt6797_consys {
+ 
+ static DEFINE_MUTEX(mt6797_consys_lock);
+ static struct mt6797_consys mt6797_consys;
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++static DEFINE_MUTEX(mt6797_consys_wlan_lock);
++#endif
+ 
+ static int mt6797_consys_check_supplies(struct device_node *node)
+ {
+@@ -956,11 +964,57 @@ static int mt6797_consys_drain_boot_events(struct device *dev,
+ 	return ret;
+ }
+ 
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	struct mt6797_wifi_record *record = NULL;
++	struct device *dev;
++	int ret;
++
++	mutex_lock(&mt6797_consys_wlan_lock);
++	ret = !owner->wlan_ready ? -ENODEV : owner->wlan_attached ? -EBUSY : 0;
++	if (ret)
++		goto out;
++	/* One attempt: a failed attach may leave firmware state behind. */
++	owner->wlan_attached = true;
++	dev = owner->wlan_dev;
++	ret = mt6797_wifi_record_prepare(dev, &record);
++	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++	if (!ret) {
++		ret = ops->reg(dev, owner->fw_hif, &owner->wlan_capability,
++			       record, &owner->wlan_hw);
++		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d\n",
++			 ret);
++	}
++	mt6797_wifi_record_release(record);
++	if (ret)
++		goto out;
++#if IS_ENABLED(CONFIG_MT6797_HIF_TX_STATUS_PROBE)
++	/* The only later normal sender is the RTNL-serialized notifier. */
++	rtnl_lock();
++	ret = mt6797_consys_observe_tx_status(dev, owner, true);
++	rtnl_unlock();
++	if (ret)
++		goto out;
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	ops->scan_ready(owner->wlan_hw);
++#endif
++#endif
++out:
++	mutex_unlock(&mt6797_consys_wlan_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_wlan_attach);
++#endif
++
+ /* No IRQ consumer or competing HIF driver is registered in this one-shot boot. */
+ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 					       struct mt6797_consys *owner)
+ {
++#if !IS_ENABLED(CONFIG_MT6797_MAC80211)
+ 	struct mt6797_wifi_record *record = NULL;
++#endif
+ 	static const u8 start[16] = {
+ 		16, 0, 0, 0x80, 2, 0xa0, 0, 3,
+ 	};
+@@ -1126,29 +1180,25 @@ static void mt6797_consys_probe_firmware_start(struct device *dev,
+ 	ret = mt6797_consys_drain_boot_events(dev, owner);
+ 	if (ret)
+ 		goto stopped;
+-	ret = mt6797_wifi_record_prepare(dev, &record);
+-	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+-	if (!ret) {
+-		ret = mt6797_mac_register(dev, owner->fw_hif, &capability,
+-					 record, &owner->wlan_hw);
+-		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d\n",
+-			 ret);
+-	}
+-#endif
+-	mt6797_wifi_record_release(record);
++	mutex_lock(&mt6797_consys_wlan_lock);
++	owner->wlan_dev = dev;
++	owner->wlan_capability = capability;
++	owner->wlan_ready = true;
++	mutex_unlock(&mt6797_consys_wlan_lock);
++#if IS_BUILTIN(CONFIG_MT6797_MAC80211)
++	ret = mt6797_consys_wlan_attach(&mt6797_mac_attach_ops);
+ 	if (ret)
+ 		goto stopped;
+-#if IS_ENABLED(CONFIG_MT6797_HIF_TX_STATUS_PROBE)
+-	/* The only later normal sender is the RTNL-serialized notifier. */
+-	rtnl_lock();
+-	ret = mt6797_consys_observe_tx_status(dev, owner, true);
+-	rtnl_unlock();
++#else
++	dev_info(dev, "one-shot WLAN firmware ready; the mac module attaches on load\n");
++#endif
++#else
++	ret = mt6797_wifi_record_prepare(dev, &record);
++	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++	mt6797_wifi_record_release(record);
+ 	if (ret)
+ 		goto stopped;
+-#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+-	mt6797_mac_scan_ready(owner->wlan_hw);
+-#endif
+ #endif
+ 	return;
+ 
+-- 
+2.43.0
+

@@ -1,0 +1,47 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Development station: a RAM root that stays up, Gemian's linux partition at
+# /mnt/data, SSH on USB and a shell on the console. Nothing here holds the
+# boot: a failed step is recorded in /run/station/status and the rest runs.
+export PATH=/bin
+bb=/bin/busybox
+$bb mount -t devtmpfs -o nosuid,mode=0755 devtmpfs /dev
+$bb mount -t proc -o nosuid,nodev,noexec proc /proc
+$bb mount -t sysfs -o nosuid,nodev,noexec sysfs /sys
+$bb mkdir -p /dev/pts /run /tmp /mnt/data
+$bb mount -t devpts -o nosuid,noexec,mode=0620 devpts /dev/pts
+$bb mount -t tmpfs -o nosuid,nodev,mode=0755 tmpfs /run
+$bb mkdir -p /run/station
+status() { $bb echo "$*" >>/run/station/status; }
+$bb --install -s /bin
+# The initramfs root is tmpfs when the kernel has it; cap it at 1 GiB.
+if $bb mount -o remount,size=1g /; then status root=tmpfs-1g; else status root=unbounded; fi
+status "cpus_online=$($bb cat /sys/devices/system/cpu/online)"
+status "release=$($bb uname -r)"
+status "boot_id=$($bb cat /proc/sys/kernel/random/boot_id)"
+# Gemian's linux partition, found by its GPT name, never by number.
+data=
+waited=0
+while [ "$waited" -lt 30 ]; do
+    data=
+    count=0
+    for uevent in /sys/class/block/mmcblk0p*/uevent; do
+        [ -f "$uevent" ] || continue
+        if $bb grep -qx PARTNAME=linux "$uevent"; then
+            data=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
+            count=$((count + 1))
+        fi
+    done
+    [ "$count" -eq 1 ] && break
+    $bb sleep 1
+    waited=$((waited + 1))
+done
+if [ "$count" -ne 1 ]; then
+    status "data=not-found count=$count"
+elif $bb mount -t ext4 -o rw,noatime "$data" /mnt/data; then
+    status "data=mounted device=$data"
+else
+    status "data=mount-failed device=$data"
+fi
+exec $bb init

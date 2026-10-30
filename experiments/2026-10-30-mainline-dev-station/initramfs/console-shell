@@ -1,0 +1,12 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# The local shell on tty1, with the Gemini keymap; init respawns it.
+export PATH=/bin TERM=linux
+bb=/bin/busybox
+$bb chvt 1
+$bb stty sane
+/bin/console-unicode-mode >/dev/null 2>&1
+$bb loadkmap </etc/gemini-us.bkeymap
+cd /root || cd /
+exec $bb sh -l

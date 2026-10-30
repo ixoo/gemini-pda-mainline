@@ -926,3 +926,4 @@ proposals/0334-wifi-mt6797-recycle-the-join-command-sequences-at-th.patch
 proposals/0335-wifi-mt6797-no-packet-budget-for-a-connected-lifetim.patch
 proposals/0336-wifi-mt6797-count-null-frames-and-the-unicast-silenc.patch
 proposals/0337-wifi-mt6797-ignore-a-reason-4-BSS-timeout-while-rece.patch
+proposals/0338-wifi-mt6797-build-the-mac80211-layer-as-a-loadable-m.patch
