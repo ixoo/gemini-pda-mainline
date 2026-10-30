@@ -1,19 +1,23 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
 # Derive the station DTB from the package's wifi-service DTB:
-#   /gpio-keys                    the hall lid switch (0074), enabled;
-#   /chosen/framebuffer@7dfb0000  holds the MM power domain (display H2), so
-#                                 the PWM below cannot let it switch off;
-#   /pwm@1100f000, /backlight     the PWM backlight (display H8): pwm_sel on
-#                                 the 26 MHz oscillator, 1024 levels at
-#                                 39385 ns, default level 512.
+#   /gpio-keys                the hall lid switch (0074), enabled as
+#                             gpio-keys-polled every 100 ms: GPIO66's level
+#                             follows the lid on mainline, but EINT5 has never
+#                             fired (C1 to C1-5 boots, and station boot
+#                             bac0f387);
+#   /pwm@1100f000, /backlight the PWM backlight (display H8): pwm_sel on the
+#                             26 MHz oscillator, 1024 levels at 39385 ns,
+#                             default level 512. The PWM's MM power-domains
+#                             reference is removed: this kernel registers only
+#                             the CONN domain, so an MM consumer waits forever
+#                             (bac0f387), and nothing here can switch MM off.
+# The framebuffer is left as the package has it.
 # Usage: station-dt.sh PARENT.dtb OUTPUT.dtb
 set -eu
 
 KEYS=/gpio-keys
-FB=/chosen/framebuffer@7dfb0000
-SCPSYS=/power-controller@10006000
-MM_DOMAIN=3
+POLL_MS=100
 PWM=/pwm@1100f000
 TOP=/topckgen@10000000
 OSC=/oscillator-26m
@@ -40,12 +44,10 @@ dtb=$work/out.dtb
 [ "$(fdtget -t s "$dtb" "$KEYS/hall-switch" label)" = "Hall lid" ]
 [ "$(fdtget -t u "$dtb" "$KEYS/hall-switch" linux,input-type)" = 5 ]
 [ "$(fdtget -t u "$dtb" "$KEYS/hall-switch" linux,code)" = 0 ]
-fdtget -t s "$dtb" "$SCPSYS" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-scpsys
-[ "$(fdtget -t u "$dtb" "$SCPSYS" '#power-domain-cells')" = 1 ]
-[ "$(fdtget -t s "$dtb" "$FB" compatible)" = simple-framebuffer ]
-if fdtget "$dtb" "$FB" power-domains >/dev/null 2>&1; then exit 1; fi
+if fdtget "$dtb" "$KEYS" poll-interval >/dev/null 2>&1; then exit 1; fi
 [ "$(fdtget -t s "$dtb" "$PWM" compatible)" = mediatek,mt6797-disp-pwm ]
 [ "$(fdtget -t s "$dtb" "$PWM" status)" = disabled ]
+[ "$(fdtget -t u "$dtb" "$PWM" power-domains | tr ' ' ,)" = 11,3 ]
 if fdtget "$dtb" "$PWM" phandle >/dev/null 2>&1; then exit 1; fi
 fdtget -t s "$dtb" "$TOP" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-topckgen
 [ "$(fdtget -t u "$dtb" "$TOP" '#clock-cells')" = 1 ]
@@ -53,15 +55,16 @@ fdtget -t s "$dtb" "$TOP" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-to
 [ "$(fdtget -t s "$dtb" "$OSC" clock-output-names)" = clk26m ]
 [ "$(fdtget -t u "$dtb" "$OSC" clock-frequency)" = 26000000 ]
 if fdtget "$dtb" "$BL" compatible >/dev/null 2>&1; then exit 1; fi
-scpsys=$(fdtget -t u "$dtb" "$SCPSYS" phandle)
 top=$(fdtget -t u "$dtb" "$TOP" phandle)
 osc=$(fdtget -t u "$dtb" "$OSC" phandle)
 max=$(dtc -q -I dtb -O dts "$dtb" | sed -n 's/.*phandle = <\(0x[0-9a-f]*\)>;.*/\1/p' |
 	while read -r h; do printf '%d\n' "$h"; done | sort -n | tail -1)
 pwm=$((max + 1))
 
+fdtput -t s "$dtb" "$KEYS" compatible gpio-keys-polled
+fdtput -t u "$dtb" "$KEYS" poll-interval "$POLL_MS"
 fdtput -t s "$dtb" "$KEYS" status okay
-fdtput -t u "$dtb" "$FB" power-domains "$scpsys" "$MM_DOMAIN"
+fdtput -d "$dtb" "$PWM" power-domains
 fdtput -t s "$dtb" "$PWM" status okay
 fdtput -t u "$dtb" "$PWM" phandle "$pwm"
 fdtput -t u "$dtb" "$PWM" assigned-clocks "$top" "$MUX_PWM"
@@ -79,11 +82,14 @@ diff "$work/parent.dts" "$work/out.dts" | grep '^[<>]' |
 	sed 's/^\([<>]\)[[:space:]]*/\1 /; s/[[:space:]]*$//' | LC_ALL=C sort > "$work/delta"
 hex() { printf '0x%02x' "$1"; }
 LC_ALL=C sort > "$work/expected" <<DELTA
+< compatible = "gpio-keys";
+> compatible = "gpio-keys-polled";
+> poll-interval = <$(hex "$POLL_MS")>;
 < status = "disabled";
 < status = "disabled";
 > status = "okay";
 > status = "okay";
-> power-domains = <$(hex "$scpsys") $(hex "$MM_DOMAIN")>;
+< power-domains = <0x0b 0x03>;
 > phandle = <$(hex "$pwm")>;
 > assigned-clocks = <$(hex "$top") $(hex "$MUX_PWM")>;
 > assigned-clock-parents = <$(hex "$osc")>;

@@ -110,12 +110,22 @@ a 1 MiB log buffer.
 
 **Lid handling (owner request after the first boot).**
 - [`station-dt.sh`](station-dt.sh) derives the station board tree from the
-  package's `wifi-service` tree with exactly three changes:
-  - the disabled hall `gpio-keys` node from 0074 is enabled: GPIO66,
-    active-low, `EV_SW/SW_LID`, 64 ms debounce, GPIO mode, no pull setting;
-  - the simple framebuffer holds the MM power domain (display H2);
+  package's `wifi-service` tree (revised after boot `bac0f387`, below):
+  - the hall node from 0074 is enabled as `gpio-keys-polled`, read every
+    100 ms: GPIO66, active-low, `EV_SW/SW_LID`, 64 ms debounce, GPIO mode,
+    no pull setting;
   - the PWM backlight is enabled (display H8): `pwm_sel` on the 26 MHz
-    oscillator, 1024 levels at 39385 ns, default level 512.
+    oscillator, 1024 levels at 39385 ns, default level 512. The PWM node's
+    MM `power-domains` reference is removed;
+  - the framebuffer is left as the package has it.
+- **Why polled.** On five C1 boots
+  ([C1 record](../2026-10-04-gemini-c1-preparation/README.md)) GPIO66's
+  level followed the lid (high open, low closed), but EINT5 never fired. A
+  pull-up, input-enable, no debounce and Schmitt were each ruled out, and
+  boot `bac0f387` repeated the zero count. Polling uses the level, which works.
+- **Why no MM reference.** This kernel registers only the CONN power domain
+  (proposals 0012 and 0029). So every consumer of the MM domain defers
+  forever, and nothing here can switch MM off.
 - [`lid-guard.c`](lid-guard.c) is a small static program, respawned by init:
   - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
     (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
@@ -146,18 +156,18 @@ a 1 MiB log buffer.
   run. As on every Wi-Fi boot so far, the CONSYS owner starts the firmware
   only when userspace writes its `wmt_negotiate` attribute. The soak
   harness did that; the station does not.
-- **Lid boot (second boot), effects beyond the first boot:**
-  - the GPIO66 interrupt;
-  - the framebuffer's hold on the MM power domain;
+- **Lid boot (third boot, revised DT), effects beyond the first boot:**
+  - GPIO66 read every 100 ms (no interrupt);
   - one `pwm_sel` mux write to the 26 MHz oscillator;
   - the PWM register writes of the backlight's first apply, at level 512,
     then at levels 0 and 512 through `bl_power`.
   - There is no ULPOSC, panel or sleep-controller access.
-  - H2 and H8 are booted for the first time here. If the screen goes dark
+  - H8 is booted here without H2. If the screen goes dark
     after the PWM probe, the console is lost but SSH is not: record
     `/sys/class/backlight/backlight/*` and return.
-  - GPIO66 has no mainline pull setting, so under mainline it may read
-    wrong. `lid-guard`'s wait-for-open rule and SSH cover that.
+  - GPIO66 has no mainline pull setting. Its level followed the lid on
+    the C1 boots, and `lid-guard`'s wait-for-open rule and SSH cover a
+    misread.
 - **Heat and battery:** there is no thermal driver or charger telemetry. A
   long session is attended. Stop on noticeable heat, a battery warning, or
   the owner's word.
@@ -302,6 +312,25 @@ orderly busybox `reboot`, presumably the owner's.
 - **Not tested:** GPIO66 under mainline, the real backlight, and any device
   boot of the lid change.
 
+**Lid boot `bac0f387-783a-4bd1-99de-398549103302`** (boot2 `c4946751…`,
+first DT revision, with display H2).
+- **No console.** The owner saw the boot logo stay on the screen. The
+  framebuffer and the PWM both deferred forever: `supplier
+  10006000.power-controller not ready`. The `10006000.power-controller`
+  probe returned 19, while its child `power-controller` node bound.
+  `/proc/fb` was empty.
+- **The station otherwise worked:** CPUs 0–7, a 1 GiB root, `/mnt/data`
+  mounted read-write, and SSH.
+- **The lid:**
+  - `gpio-keys` bound, and `lid-guard` started with the lid open and
+    armed.
+  - One close and reopen by the owner gave EINT5 ("Hall lid", edge) a
+    count of 0 and no `SW_LID` event.
+  - GPIO66 read `hi` with the lid open. The pin's pull fields read
+    `-ENOTSUPP`.
+- The kernel log, the status file and the lid test are retained
+  privately.
+
 ## Analysis
 
 All six hypothesis items hold on one boot. Two facts were found only on
@@ -323,16 +352,18 @@ all six items.
 - It ran for 25 minutes and returned through an orderly `reboot`, leaving
   the data partition clean.
 - Longer uptime is not yet observed.
-- The lid handling awaits its boot.
+- The first lid boot gave the lid input, but no console and no backlight.
+  The DT is revised to a polled lid and a PWM without the MM reference, and
+  awaits its boot.
 
 ## Lid boot readings (predeclared)
 
 | Observation | Reading |
 |---|---|
-| `gpio-keys` and `backlight` bound; close: screen dark, keys ignored; open: both back | The lid works |
-| Lid events, but the screen stays lit on close | Backlight control is the item; the record is `/sys/class/backlight/backlight/*` and the `bl_power` result in `lid-guard`'s log line |
-| No `SW_LID` events, or events with the lid still | GPIO66 under mainline (pull, polarity) is the item; `lid-guard` stays waiting or is stopped over SSH |
-| Screen dark after the PWM probe | H8's dark branch: record the backlight values over SSH, then return |
+| Console up; `gpio-keys` (polled) and `backlight` bound; close: screen dark, keys ignored; open: both back | The lid works |
+| Lid events, but the screen stays lit on close | Backlight control is the item: `/sys/class/backlight/backlight/*` and the `bl_power` result in `lid-guard`'s log line |
+| No `SW_LID` events | The polled level is the item: compare GPIO66 in `/sys/kernel/debug/gpio` with the lid state |
+| Screen dark after the PWM probe, or the console lost | H8's dark branch, or MM is not held: record the backlight, clock and `/proc/fb` state over SSH, then return |
 
 ## Follow-up
 
