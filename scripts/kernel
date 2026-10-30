@@ -631,6 +631,10 @@ package_artifacts() (
     kernel_make \
       INSTALL_MOD_PATH="${PACKAGE_DIR}/modules" \
       modules_install
+    # modules_install links build (and source) back to the build tree; the
+    # package holds regular files only.
+    find "${PACKAGE_DIR}/modules/lib/modules" -mindepth 2 -maxdepth 2 -type l \
+      \( -name build -o -name source \) -delete
   fi
   rsync -a \
     --include='*/' --include='*.dtb' --exclude='*' \
