@@ -82,29 +82,29 @@ Not tested: any device run.
 ## Open, in order
 
 Two of these hit the owner at home every day:
-- the six-minute loss, with or without traffic;
+- the six-minute loss, with or without traffic (fixed by 0337);
 - the group-key rekey, hourly if the access point rekeys.
 
 The single channel only matters when joining a different network.
 
-1. **The six-minute loss.** The firmware reports a reason-4 BSS
-   timeout and loses the connection about six minutes after the join,
-   whether or not there is traffic. Reconnection makes this a drop, not a failure, but
-   it is the most visible gap.
+1. **The six-minute loss (fixed by 0337).** The firmware reports a
+   reason-4 BSS timeout about six minutes after the join, whether or not
+   there is traffic. Before 0337 the driver ended the connection on it.
    - **It is not inactivity.** In the soak, a ping every 10 s was
      answered throughout, and the last unicast frame each way was under
      a second before the loss at 361 s
      ([§70.5](HIF_TRANSPORT_ANALYSIS.md#705-soak-result-2026-10-29-the-link-was-lost-at-361-s-under-traffic-nothing-measured)).
      Lifecycle boot 10, with no traffic, was lost at 367 s. So a
      keep-alive is not the fix.
-   - **It may be the driver's choice.** The firmware's event is a notice
+   - **It was the driver's choice.** The firmware's event is a notice
      to the host. The vendor driver ignores it when a packet reached the
      host within 2 s, which held for all seven reason-4 events we have.
-     Our driver ends the lifetime on every one. 0337 applies the vendor
-     rule to reason 4, and the soak rerun tests whether the link then
-     outlasts six minutes
-     ([§71](HIF_TRANSPORT_ANALYSIS.md#71-the-six-minute-loss-is-the-drivers-choice-0337-and-the-soak-rerun-predeclared-2026-10-29)).
-     It needs the soak's three harness fixes first.
+     0337 applies that rule to reason 4. On the soak rerun the notice came
+     at 361 s and repeated, 97 times in all, each on a fresh clock;
+     the link carried 45 minutes of traffic and 15 idle without a loss
+     ([§71.3](HIF_TRANSPORT_ANALYSIS.md#713-soak-rerun-result-2026-10-30-the-link-held-the-hour-the-notice-repeats-and-is-benign)).
+     0337 is in the daily-use set. Open: what reason 4 means, and a
+     daily-length run with idle stretches.
 2. **Group-key rekey.** A rekey's first message arrives PTK-protected with
    the EAPOL type, and today it is dropped:
    - the CCMP receive classifier excludes that type;

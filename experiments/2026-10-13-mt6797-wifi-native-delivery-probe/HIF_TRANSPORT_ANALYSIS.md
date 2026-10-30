@@ -8841,3 +8841,75 @@ traffic-stretch end other than reason 4 still fails Gate 2.
 **Decision.** A pass feeds §70.3: the 0335 boot then takes 0337 as well,
 since its plan needs a lifetime that outlasts six minutes. Neither 0334
 nor 0335 rides with this boot.
+
+### 71.3 Soak rerun result (2026-10-30): the link held the hour; the notice repeats and is benign
+
+Mainline boot `60f50b77…` on the soak profile at `ddcd1f40` (AV's series
+plus 0336 and 0337), boot2 `d05536e8…`. The session returned through the
+reviewed preservation path to changed-boot Gemian `9afe57a1…`. One
+lifetime, both rounds measured.
+
+**Harness.** Two of §71.2's three fixes held: the helper took the 3760 s
+poll, and the identity guard passed on the derived file table. The third
+did not.
+1. The session's export step refused before any device action: its 24 MiB
+   stdout budget exceeds the SSH runner's fixed 16 MiB cap. The offline
+   export test ran the shell export only, not the runner. The log was
+   235 KB.
+2. The log was exported by hand with the same retained seal script over
+   the same SSH command, before the owned Wi-Fi stop, so the stop's own
+   records are not in it. It sealed on SIGTERM, stable, not truncated.
+3. The seal is single-shot, so the preservation's first attempt refused
+   on its own second seal, before recovery. The third attempt parsed the
+   hand export, proved quiescence and returned. The refused attempts are
+   retained.
+4. The leaf's ping log is cut at its 128 KiB export cap at 2090 s.
+
+Faults 1 and 4 must be fixed before the next soak. Neither changes this
+reading. The session graded an empty log; the same grader, rerun offline
+on the sealed log with the session's receipt, is the grade below.
+
+**Device.**
+- The data phase opened at 48.2 s uptime and lasted 3607.7 s.
+- At 361.0 s into it, `BSS timeout ignored: reason=4
+  checked_rx_age_ms=287 data_ms=361003 ignored=1`. The 16 named events
+  run to 881.0 s, at 30 s steps or their multiples (gaps of 30–57 s),
+  with checked receive 0–543 ms old and the host's beacon count still 20.
+  The data end records `BSS timeout ignore record: ignored=97`. The rule
+  consumes only events on a fresh clock, so all 97 came while receive was
+  fresh.
+- The leaf's 10 s pings: 209 of 209 retained were answered, through
+  2090 s.
+- Traffic: the SSH session carried both rounds and exited 0 at 2697.5 s.
+- Idle: 909 s with no data-phase end and no loss report. Nothing was
+  received in it (`null_rx=0 idle_null_rx=0 since_tx_ms=912810
+  since_rx_ms=912796`), so the idle shows the link was kept, not used.
+- End: the harness's disconnect, a local leave. Ledger: 5909 frames
+  queued and done, `tx_failed`, `expired`, `pid_faults` and `left_pages`
+  zero; 17188 frames delivered.
+- Named refusals as in §70.5: 2 of the layout class, then 690-byte frames
+  refused as `packet-type` until the boot-wide cap of 64 at 152 s uptime.
+
+| Round | TX (Mbit/s) | RX (Mbit/s) |
+|---|---|---|
+| 1 | 22.7, 23.4 | 35.0, 36.5 |
+| 2 (about 2700 s) | 20.6, 20.9 | 32.3, 31.1 |
+
+**Grade.** §69, offline on the sealed log: every gate passes, including
+round 2, the soak end and the ledger. Gate 2 holds: the traffic stretch
+ended by the harness, not reason 4.
+
+**Reading.** §71.2's first row, with its fourth:
+- The six-minute loss was the driver's choice. The firmware's reason-4
+  notice arrives on a working link, and consuming it while receive is
+  fresh keeps the lifetime through 45 minutes of traffic.
+- The notice repeats: the 16 named at 30 s steps, 97 in all. The named
+  limit covers its first eight minutes; past that only the count is kept,
+  as predeclared, so the later cadence is not recorded.
+- Not shown: what reason 4 means, and why the firmware repeats it. With
+  no receive in the idle stretch, whether the firmware still sent it there
+  is not recorded: the named records had stopped at 16, and a notice on a
+  stale clock would have been a loss.
+
+**Decision.** 0337 enters the daily-use set. Per §71.2, the 0335 boot
+takes 0337 as well. The 0334 boot is unchanged.
