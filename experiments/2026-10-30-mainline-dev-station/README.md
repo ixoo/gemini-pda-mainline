@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mainline-dev-station` |
-| Status | `planned`: kernel change, profile and RAM root for review; tested in the VM and QEMU; not built on Buildbox or booted |
+| Status | `running`: station boot `eda50de3…` up; all six hypothesis items observed (2026-10-30) |
 | Subsystem | development method; RAM root; eMMC data mount; kernel modules |
 | Device variant | named Gemini PDA (MT6797X), boot2 |
 | Date(s) | 2026-10-30 |
@@ -62,7 +62,8 @@ tristate.
   the same code: private record, registration, the initial TC4 accounting
   pair, then scan ready.
 - **As the module `mac`**:
-  - the firmware still starts at boot, and CONSYS keeps the started HIF;
+  - CONSYS still starts the firmware (on the `wmt_negotiate` trigger, as
+    before) and keeps the started HIF;
   - loading `mac` runs that attach once;
   - a second attach is refused, as is one before the firmware is ready, and
     a failed attach is not retried;
@@ -125,8 +126,10 @@ a 1 MiB log buffer.
 - **Return to Gemian:** `reboot` from either shell. Without the button, LK
   boots the primary boot partition, which is Gemian. Afterwards, confirm a
   changed boot ID through the known-good LAN endpoint.
-- **No radio action:** `mac` is not loaded. The CONSYS owner starts the
-  firmware at boot, as on every Wi-Fi boot so far.
+- **No radio action:** `mac` is not loaded, and the WMT/WLAN start is not
+  run. As on every Wi-Fi boot so far, the CONSYS owner starts the firmware
+  only when userspace writes its `wmt_negotiate` attribute. The soak
+  harness did that; the station does not.
 - **Heat and battery:** there is no thermal driver or charger telemetry. A
   long session is attended. Stop on noticeable heat, a battery warning, or
   the owner's word.
@@ -202,11 +205,67 @@ the LK checks.
 
 ## Observations
 
-None yet.
+**Build and install (2026-10-30).**
+- **Buildbox build at `d6bba526`:**
+  - 805 patches, `modules_built=true`;
+  - config `d8890f4e…`, image gzip `3f5e8532…`;
+  - the resolved config differs from the soak kernel's exactly as listed
+    above;
+  - `mac.ko` has vermagic `7.1.3-gemini-a53-station SMP preempt mod_unload
+    aarch64`.
+- **Packaging fix.** The first build at `350b95e8` compiled, then failed
+  package validation: `modules_install` linked `lib/modules/<release>/build`
+  back into Buildbox's build tree. `scripts/kernel` now removes that link.
+- **The boot image:**
+  - boot2 `eb860aba…`, 12.45 MB, LK checks passed;
+  - the decompressed kernel is 19.9 MB (soak: 16.0 MB), effective size
+    21.4 MB, against the 50 MiB MT6797 decompression limit.
+- **Install** through the reviewed installer, bound by identity lines only:
+  - from Gemian `9afe57a1…`, predecessor `d05536e8…`;
+  - write, sync and flush, with matching full readback;
+  - clean shutdown, confirmed unreachable.
+
+**Station boot `eda50de3-60a5-4693-bf66-f60f23b953d3`** (release
+`7.1.3-gemini-a53-station`):
+- `/run/station/status`: `root=tmpfs-1g`, `cpus_online=0-7`,
+  `data=mounted device=/dev/mmcblk0p29`.
+- **Root:** `rootfs rw,size=1048576k`.
+- **CPUs:** `/sys/devices/system/cpu/online` reads `0-7`.
+- **`/mnt/data`:** `/dev/mmcblk0p29 ext4 rw,noatime`, 56.5G, 49.6G free.
+  - The kernel logged `EXT4-fs (mmcblk0p29): recovery complete`, then the
+    read-write mount. So Gemian's journal was replayed at mount, although
+    Gemian had shut down through `systemctl poweroff`.
+- **SSH:** reachable at 10.15.19.82 under 30 s after boot, key-only.
+  - A 20 MB file pushed over SSH into `/mnt/data/station/` took 3 s and its
+    SHA-256 matches. The test file was then removed.
+- **Console:** the owner reports that the console shell and keyboard work.
+- **Module:** `mac.ko` is in `/lib/modules/7.1.3-gemini-a53-station/`, and
+  `lsmod` is empty.
+- **Kernel log:** no Oops, BUG, WARNING or panic. The two error lines are
+  the soak boots' own: `regulatory.db` is absent, and the I2C6 guard is
+  denied.
+- **Wi-Fi:** one CONSYS one-shot record, the region 19 read; no WMT or WLAN
+  start.
+
+## Analysis
+
+All six hypothesis items hold on one boot. Two facts were found only on
+the device:
+- the firmware start is a userspace trigger, not a boot step;
+- the data partition's journal needed recovery at mount.
+
+The cause of that recovery is not identified. Gemian's root is mounted
+`data=journal`, so a clean poweroff may still leave journal work; this is
+inference. Still open:
+- uptime beyond the first minutes;
+- shutdown through `reboot`, with `/mnt/data` unmounted, and Gemian's next
+  mount of the partition.
 
 ## Conclusion
 
-Not run.
+Confirmed so far, for the named Gemini and boot `eda50de3…`: the station
+boots with all six items. Long uptime and the return through `reboot` are
+not yet observed.
 
 ## Follow-up
 
