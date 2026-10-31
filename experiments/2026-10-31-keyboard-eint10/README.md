@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `running`: station 15 failed B3 (EINT10 never fired); diagnosed as the EINT pad mode; fix 0377–0378 built, not yet booted |
+| Status | `running`: station 16 shows EINT10 delivering after the pad-mode fix 0377, but row-interrupt scans report wrong keys; diagnosis in progress |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -208,9 +208,35 @@ the EINT10 line, plus:
   - `lo` means INT reaches the pad and the EINT block does not see it.
   - `hi` means the expander does not assert INT, or INT is wired elsewhere.
 
+**Station 16, boot `f7f9a221-8d26-4641-bbc6-23c68362e1cb`.** Built at
+`41216047`: Image.gz `6e7f8b49…`, DTB `591aca1b…`, boot2 `ce9886e2…`, same RAM
+root. Run by the device session with the owner. Raw files are retained
+privately with its station 16 evidence.
+
+| Step | Result |
+| --- | --- |
+| A1 | No `Ignoring 3 default trigger` warning (0378). Pins line `087: 1001-…`: **mode 1**. GPIO66 is still mode 0, because the lid is a polled GPIO, not an IRQ |
+| A2 | Idle 3 × 10 s: `1-005b` 0. I2C5 19245, 33700, 48124 and 62575, about 1445 a second |
+| B1 | `row interrupt mode`. GPIO87 stays in mode 1 after the request, so 0377 holds. Rows are IRQs 218–225 |
+| B2 | Idle 20 s: I2C5 constant at 76699, `1-005b` 0 |
+| B3/B4 | **EINT10 delivers:** `1-005b` went from 0 to 155 while the owner typed. The 8 row IRQs stayed at **0**. The first A press reported A (scan 21). The next four A presses each reported `KEY_RIGHT` (45) and Enter (53) together instead. The rest of B4 gave multi-key garbage, such as 1, S, 8 and Left Shift together. The owner: "things appear, but not the correct key mapping clearly" |
+| After B4 | In row-interrupt mode at idle, I2C5 ran at about 271 a second with `1-005b` unchanged. After returning to polling, about 1745 a second against the 1445 baseline. A 20 ms debugfs GPIO sampler run by the device session was active, and it may account for the extra |
+| Restore | `poll_override=0`, unbind, bind and `killall lid-guard` gave polling mode again |
+
+The kernel log retained for station 16 ends at 11 s, before the interrupt
+phase.
+
 ## Conclusion
 
-Hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
+0377 makes EINT10 deliver: GPIO87 stays in mux mode 1, and the line counted
+key activity. Row-interrupt mode is **not** usable yet. The scan reports wrong
+keys after the first press. The row interrupts never counted, so the rows were
+still disabled each time EINT10 dispatched to them. The station keeps
+polling. `matrix_keypad` disables and enables its row IRQs under a spinlock,
+which a sleeping I2C irqchip like the AW9523's cannot serve. This is under
+investigation from the kernel log of that phase.
+
+Earlier: hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
 and stays at zero while polling. Hypothesis 2 failed on station 15. The
 leading explanation is the pad-mode bug in 0005, and 0377 is its candidate
 fix, not yet booted.
