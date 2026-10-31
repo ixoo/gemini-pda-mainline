@@ -454,6 +454,16 @@ revised DT `609fc172…`, pushed at `4c771b06`).
   | Re-attach registers, but the scan is refused or times out | Something per lifetime beyond the record is needed; the scan refusal names it |
   | `mt6797_hif_next_sequence` returns `-EIO` | The HIF failed during the first lifetime or its teardown; the log names when |
 
+**Station 6, composed for the restart R1 test, not yet flashed.**
+- **Build:** Buildbox at `f328f438` (with 0341, the
+  [restart](../2026-10-30-mt6797-consys-restart/README.md) stop half). The
+  config is identical to station 5's. `mac.ko` is unchanged (`335f2ec8…`):
+  0341 changes only built-in code.
+- **Image:** boot2 `fb6d3f13…`, with the same RAM root inputs as station 5.
+- **Order:** boot station 5 and run the 0340 cycles; then flash station 6
+  from it with `flash-boot2` and power off. On station 6, run
+  `CYCLES=1 STOP=1`: one cycle, then the stop.
+
 **Station 5, flashed from boot `caac239d…`, ready for its boot.**
 - **Build:** Buildbox at `21fa2220` (807 patches, with 0340). The config is
   identical to station 4's, and `mac.ko` is `335f2ec8…`.
