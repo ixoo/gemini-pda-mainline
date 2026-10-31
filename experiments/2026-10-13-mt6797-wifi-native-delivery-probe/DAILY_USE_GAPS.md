@@ -79,6 +79,13 @@ Tested so far:
 
 Not tested: any device run.
 
+**Device result (2026-10-31, station 9):** both blockers are closed.
+- With 0334 and its fix 0352, 25 reconnects in a row passed: 26 lifetimes
+  on one firmware start.
+- With 0335, one connected lifetime ran 2.79 h with 307 reason-4 notices
+  consumed and no loss
+  ([station record](../2026-10-30-mainline-dev-station/README.md#observations)).
+
 ## Open, in order
 
 Two of these hit the owner at home every day:

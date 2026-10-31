@@ -510,6 +510,31 @@ on one firmware start.**
   connected. A hold with a gateway ping every 30 s started at 1234 s of
   uptime.
 
+**The hold (same boot, 1234-11282 s).**
+- **Pings:** 335 gateway pings at 30 s, all answered, with `wpa_state`
+  `COMPLETED` throughout.
+- **One lifetime, ended by the custodian's `DOWN=1`:**
+  `join data phase end: reason=disconnect elapsed_ms=10058076 rx_delivered=40044
+  tx_queued=598 tx_done=598 tx_failed=0`.
+- **Reason-4 notices:** `BSS timeout ignore record: ignored=307`, every one
+  consumed while receive was fresh.
+- **Kernel log:** no packet-budget stop, connection-loss report (before the
+  disconnect), Oops, warning or call trace.
+- **Station:** stayed up, attended by the owner.
+
+**Reading:**
+- **0335 holds:** a connected lifetime ran 2.79 h, past the 1.7-2.3 h at
+  which the old 65536-packet budget ended it. The HIF packet count itself
+  is not logged; at the 8-11 beacon and group frames a second recorded
+  before, it passed the old budget (inference).
+- **Together with 0334 and 0352:** the station's Wi-Fi now survives both
+  the connection limit and the two-hour limit on the owner's access point.
+- **No group-key rekey was seen** in 2.8 h, so the access point's rekey
+  interval is longer, or it does not rekey. Rekey support remains the open
+  daily-use item
+  ([gaps](../2026-10-13-mt6797-wifi-native-delivery-probe/DAILY_USE_GAPS.md)).
+
+
 **Station 8, boot `bb6c4873-f0f7-4a7a-a37d-8fe1c0d3e3a2`: power-off B
 passed.**
 - **Power-off B, cable attached:** a plain `poweroff`, after the kernel log
