@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-power-status` |
-| Status | `running`: S1 power and charge state and S1b live ADC readings work; the unplugged reading is not yet observed |
+| Status | `running`: S1 power and charge state and S1b live ADC readings work, plugged and unplugged |
 | Subsystem | BQ25896 charger (I2C0 `0x6b`), MT6351 PMIC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -251,3 +251,28 @@ write.
   register was not read.
 - **Percentage:** the voltage estimate saturates at 100% here, so it says
   nothing more than "full".
+
+**Station 8, boot `aa795da9…`: cable removed and reinserted.**
+- **Method:** `power-status -r` ran every 5 s, started over SSH and detached
+  from it, into `/run/station`. The owner unplugged the cable for about 45 s
+  and plugged it back in. The file was fetched after SSH came back, in the
+  same boot (uptime 372 s).
+- **Results:** 14 reads, all `rc=0`, all `adc=live`.
+
+  | Uptime | Power | Good | Charge state | Battery | SYS | Raw `0b` / `11` |
+  |---|---|---|---|---|---|---|
+  | 305–315 s | usb-sdp | 1 | fast | 4.22 V | 4.18 V | `36` / `9a` |
+  | 320–361 s | none | 0 | no | 4.22 V | 4.20–4.22 V | `02` / `00` |
+  | 366–371 s | usb-sdp | 1 | fast | 4.22 V | 4.18–4.20 V | `36` / `9a` |
+
+**Readings:**
+- **Power status follows the cable:** the VBUS type, power good, VBUS good
+  (REG11 bit 7) and charge state all changed within one 5 s read of each
+  change.
+- Unplugged, VBUS reads the ADC floor (2.6 V, field 0) and SYS rises to the
+  battery voltage. Bit 1 of REG0B, which reads 1 unplugged, is not decoded.
+- **Replug:** the charge state went straight to `fast`, with no delay like
+  the one after boot. That fits a chip that already runs on its own defaults
+  (inference).
+- **Battery voltage:** unchanged at 4.22 V through the unplug, so the drop
+  recorded at boot did not come back.
