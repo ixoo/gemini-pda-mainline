@@ -7,7 +7,7 @@ is the package's wifi-service tree through station-dt.sh; the RAM root is
 built from a retained soak RAM root by build-station-initramfs.py.
 The container and its LK checks are the soak candidates' own.
 
-usage: compose-station.py PACKAGE PARENT_INITRAMFS LID_GUARD OUTPUT_DIR
+usage: compose-station.py PACKAGE PARENT_INITRAMFS TOOLS OUTPUT_DIR
 """
 import hashlib
 import json
@@ -26,7 +26,7 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def main(package, parent, lid_guard, output):
+def main(package, parent, tools, output):
     package, output = Path(package), Path(output)
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = sorted(package.glob('modules/lib/modules/*/kernel/drivers/net/wireless/mediatek/mt6797/mac.ko'))
@@ -43,7 +43,7 @@ def main(package, parent, lid_guard, output):
                    check=True, stdout=subprocess.DEVNULL)
     ram = output/'initramfs.img'
     subprocess.run([sys.executable, str(HERE/'build-station-initramfs.py'), str(parent), str(module),
-                    str(lid_guard), release, str(ram)], check=True)
+                    str(tools), release, str(ram)], check=True)
     boot = output/'boot.img'
     subprocess.run([sys.executable, str(BOOT/'build-android-boot-v0.py'),
                     '--kernel', str(package/'Image.gz'), '--ramdisk', str(ram), '--dtb', str(dtb),
@@ -61,7 +61,8 @@ def main(package, parent, lid_guard, output):
     padded.write_bytes(raw + bytes(16777216 - len(raw)))
     record = {'release': release, 'package': str(package.name), 'parent_initramfs_sha256': sha(parent),
               'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'mac_ko_sha256': sha(module),
-              'lid_guard_sha256': sha(lid_guard),
+              'lid_guard_sha256': sha(Path(tools)/'lid-guard'),
+              'power_status_sha256': sha(Path(tools)/'power-status'),
               'initramfs_sha256': sha(ram), 'boot_img_bytes': len(raw), 'boot2_sha256': sha(padded)}
     (output/'station.json').write_text(json.dumps(record, indent=2) + '\n')
     print(json.dumps(record, indent=2))

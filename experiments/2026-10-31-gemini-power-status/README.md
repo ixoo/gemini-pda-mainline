@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-power-status` |
-| Status | `planned`: design for owner review; nothing implemented or run |
+| Status | `running`: S1 approved and implemented; not yet run on the device |
 | Subsystem | BQ25896 charger (I2C0 `0x6b`), MT6351 PMIC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -120,6 +120,26 @@ power state on the console or behind a hotkey. That is not part of S1.
 - Heat or swelling stops the session, as [SAFETY](../../docs/SAFETY.md)
   requires.
 
+## Implementation (S1)
+
+The owner approved S1 on 2026-10-31.
+- [`power-status.c`](../2026-10-30-mainline-dev-station/power-status.c):
+  - finds the adapter under `11007000.i2c`;
+  - uses SMBus byte reads only;
+  - REG14 is read first, and the program stops unless the part number is
+    BQ25896's;
+  - `-r` adds the raw registers.
+  - Built with `gcc -static -O2 -Wall -Wextra -Werror` on the VM (aarch64).
+- **Host test:** a scratch harness swapped in a fake register bus. It checked
+  the decoding, that REG0C is never read, that every access is a read, and
+  that a wrong part number stops the run.
+- **Station DT:** [`station-dt.sh`](../2026-10-30-mainline-dev-station/station-dt.sh)
+  enables I2C0. The FAN49101 child stays disabled, and the DT delta is
+  checked exactly.
+- **Station profile:** `CONFIG_I2C_CHARDEV=y`.
+- **RAM root:** the station builder now takes a tools directory holding
+  `lid-guard` and `power-status`.
+
 ## Observations
 
-None. Not implemented or run.
+None. Not run on the device.

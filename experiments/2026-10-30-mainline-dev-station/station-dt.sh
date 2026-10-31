@@ -12,6 +12,10 @@
 #                             reference is removed: this kernel registers only
 #                             the CONN domain, so an MM consumer waits forever
 #                             (bac0f387), and nothing here can switch MM off.
+#   /i2c@11007000             I2C0 enabled with no child bound (its FAN49101
+#                             node stays disabled), for power-status's
+#                             read-only charger reads through i2c-dev
+#                             (2026-10-31-gemini-power-status).
 # The framebuffer is left as the package has it.
 # Usage: station-dt.sh PARENT.dtb OUTPUT.dtb
 set -eu
@@ -24,6 +28,7 @@ OSC=/oscillator-26m
 BL=/backlight
 MUX_PWM=7
 PERIOD_NS=39385
+I2C0=/i2c@11007000
 
 [ "$#" -eq 2 ] || { echo "usage: $0 PARENT.dtb OUTPUT.dtb" >&2; exit 2; }
 output=$2
@@ -55,6 +60,9 @@ fdtget -t s "$dtb" "$TOP" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-to
 [ "$(fdtget -t s "$dtb" "$OSC" clock-output-names)" = clk26m ]
 [ "$(fdtget -t u "$dtb" "$OSC" clock-frequency)" = 26000000 ]
 if fdtget "$dtb" "$BL" compatible >/dev/null 2>&1; then exit 1; fi
+fdtget -t s "$dtb" "$I2C0" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-i2c
+[ "$(fdtget -t s "$dtb" "$I2C0" status)" = disabled ]
+[ "$(fdtget -t s "$dtb" "$I2C0/regulator@70" status)" = disabled ]
 top=$(fdtget -t u "$dtb" "$TOP" phandle)
 osc=$(fdtget -t u "$dtb" "$OSC" phandle)
 max=$(dtc -q -I dtb -O dts "$dtb" | sed -n 's/.*phandle = <\(0x[0-9a-f]*\)>;.*/\1/p' |
@@ -75,6 +83,7 @@ fdtput -t u "$dtb" "$BL" pwms "$pwm" 0 "$PERIOD_NS"
 fdtput -t u "$dtb" "$BL" brightness-levels 0 1023
 fdtput -t u "$dtb" "$BL" num-interpolated-steps 1023
 fdtput -t u "$dtb" "$BL" default-brightness-level 512
+fdtput -t s "$dtb" "$I2C0" status okay
 
 dtc -q -I dtb -O dts -s "$work/parent.dtb" > "$work/parent.dts"
 dtc -q -I dtb -O dts -s "$dtb" > "$work/out.dts"
@@ -87,6 +96,8 @@ LC_ALL=C sort > "$work/expected" <<DELTA
 > poll-interval = <$(hex "$POLL_MS")>;
 < status = "disabled";
 < status = "disabled";
+< status = "disabled";
+> status = "okay";
 > status = "okay";
 > status = "okay";
 < power-domains = <0x0b 0x03>;

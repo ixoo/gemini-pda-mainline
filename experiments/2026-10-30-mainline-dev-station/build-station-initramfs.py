@@ -4,12 +4,13 @@
 
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
-adds the mac module under lib/modules/<release>/ and the lid-guard binary
-(built from lid-guard.c); gives Fn+B and Fn+N no console action, since
-lid-guard uses them for brightness. Writes a newc archive with
-zero timestamps, compressed with gzip -n -9 like the parent.
+adds the mac module under lib/modules/<release>/ and, from TOOLS, the static
+lid-guard and power-status binaries (built from lid-guard.c and
+power-status.c); gives Fn+B and Fn+N no console action, since lid-guard
+uses them for brightness. Writes a newc archive with zero timestamps,
+compressed with gzip -n -9 like the parent.
 
-usage: build-station-initramfs.py PARENT_INITRAMFS MAC_KO LID_GUARD RELEASE OUTPUT
+usage: build-station-initramfs.py PARENT_INITRAMFS MAC_KO TOOLS RELEASE OUTPUT
 """
 import hashlib
 import struct
@@ -61,7 +62,7 @@ def quiet_brightness_keys(keymap):
     return keymap[:offset] + struct.pack('<128H', *table) + keymap[offset + 256:]
 
 
-def main(parent, module, lid_guard, release, output):
+def main(parent, module, tools, release, output):
     ram = parse_newc(Path(parent).read_bytes())
     missing = DROP - set(ram)
     assert not missing, ('parent lacks', sorted(missing))
@@ -79,7 +80,8 @@ def main(parent, module, lid_guard, release, output):
     files['bin/console-shell'] = (FILE | 0o755, (src/'console-shell').read_bytes())
     files['bin/setterm'] = (FILE | 0o755, (src/'setterm').read_bytes())
     files['bin/flash-boot2'] = (FILE | 0o755, (src/'flash-boot2').read_bytes())
-    files['bin/lid-guard'] = (FILE | 0o755, Path(lid_guard).read_bytes())
+    for tool in ['lid-guard', 'power-status']:
+        files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
     mode, keymap = files['etc/gemini-us.bkeymap']
     files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))
     for d in ['mnt', 'mnt/data', 'tmp', 'lib/modules', 'lib/modules/' + release]:
