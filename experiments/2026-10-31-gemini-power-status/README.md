@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-power-status` |
-| Status | `running`: S1 approved and implemented; not yet run on the device |
+| Status | `running`: S1 works for power and charge state; ADC values are stale |
 | Subsystem | BQ25896 charger (I2C0 `0x6b`), MT6351 PMIC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -145,4 +145,29 @@ flashed and ready to boot.
 
 ## Observations
 
-None. Not run on the device.
+**Station 8, boots `975af37c…` and `bb6c4873…`.**
+- **Identity:** I2C0 is `i2c-0`. REG14 read `0x06`, part number 000 and
+  revision 10: the BQ25896, the same value as the earlier Gemian read.
+- **Cable in, about 20 s after boot:**
+  - `power=usb-sdp good=1 charging=no adc=stale`;
+  - raw `02=11 0b=26 0e=5e 0f=5d 10=3e 11=9a 12=00`.
+- **Two minutes later:**
+  - `charging=fast` (`0b=36`);
+  - every ADC register unchanged.
+- **Next boot, about 15 s after it:** `charging=no` again (`0b=26`).
+- **Unplugged read:** inconclusive. It was scheduled 45 s ahead, but the
+  cable was most likely still in at that moment.
+- **Errors:** no read failed, and the program read REG0C at no point.
+
+**Readings:**
+- The right chip answers, and power-good and VBUS type report USB SDP.
+  Their response to removing the cable is not yet observed.
+- **Charging on its defaults:** the charger starts idle after boot, then
+  fast-charges within two minutes with no mainline kernel programming it.
+  That matches its 40 s I2C watchdog expiring and the chip returning to its
+  defaults (inference from the datasheet; the register defaults were not
+  read). It supports doing C2b, so charging runs on reviewed limits.
+- **The ADC is idle:** REG02 is one-shot, and the values never changed. So
+  battery voltage, VBUS and current here are from an unknown earlier
+  conversion. Live values need S2 (MT6351 AUXADC) or an admitted
+  conversion start.

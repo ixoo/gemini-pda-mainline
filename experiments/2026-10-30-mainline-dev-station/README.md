@@ -471,6 +471,19 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Limit:** the boot's command sequences still run out after about 250
   commands (about 22 per lifetime, so roughly ten lifetimes).
 
+**Station 8, boot `bb6c4873-f0f7-4a7a-a37d-8fe1c0d3e3a2`: power-off B
+passed.**
+- **Power-off B, cable attached:** a plain `poweroff`, after the kernel log
+  was saved. The owner saw the charging screen, as after a Gemian shutdown
+  with a charger.
+- **Reading:** the second row. With a charger, the PMIC re-powers into
+  charging mode by itself, so Gemian's watchdog restart step is not needed.
+- **Result:** both cases now match Gemian's power-off.
+- **Unplugged power-status read:** inconclusive. The read scheduled 45 s
+  before power-off A still showed USB power good and fast charging
+  (`0b=36`), most likely because the cable was still in at that moment. The
+  next boot started with charging `no` again (`0b=26`).
+
 **Station 8, boot `975af37c-6283-4cbf-903e-9fd42a5047ee`: power-off A
 passed.**
 - **Identity:** boot2 `62ae2230…`, `power-status` `361d522a…`.
