@@ -852,3 +852,4 @@ proposals/0377-pinctrl-mediatek-mt6797-use-the-EINT-mux-mode-on-ded.patch
 proposals/0378-pinctrl-aw9523-do-not-set-a-default-IRQ-trigger.patch
 proposals/0379-Input-matrix_keypad-add-experiment-only-scan-tracing.patch
 proposals/0380-pinctrl-aw9523-add-experiment-only-interrupt-tracing.patch
+proposals/0381-pinctrl-aw9523-serialize-the-interrupt-thread-s-port.patch

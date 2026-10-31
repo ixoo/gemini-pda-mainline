@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `running`: station 16 shows EINT10 delivering after the pad-mode fix 0377, but row-interrupt scans report wrong keys; diagnosis in progress |
+| Status | `running`: station 17 traced the wrong keys to an unlocked register read in `pinctrl-aw9523`; fix 0381 built for station 18, not yet booted |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -285,6 +285,77 @@ What the log decides:
 - `row irq` present: the count reading was wrong.
 - The `scan … cols` words for a single A press show directly whether the
   rows are read wrong, compared with polling's correct reading.
+
+**Station 17, boot `4235af32-408a-4d0d-9f93-417b051f6c74`.** Built at
+`9788c425`: Image.gz `32244528…`, DTB `591aca1b…`, boot2 `7623630d…`, same RAM
+root. The device session ran the trace test with the owner. The verbatim
+kernel log and the capture are retained privately with its station 17
+evidence. The owner saw no "a".
+
+- **Polling.** I2C5 at 1438 a second, with no warning and the pad in mode 1.
+  After the trace test and the return to polling, the rate was again 1438
+  a second. With no sampler running this time, the station 16 excess did
+  not recur.
+- **Interrupt-mode idle.** I2C5 was flat and no trace lines appeared.
+- **A press, verbatim excerpt:**
+
+```text
+195.347013 aw9523: trace: irq in 80fb changed 7f04
+195.347056 matrix-keypad: trace: row irq 220 pending 0 stopped 0
+195.352432 aw9523: trace: irq in dffb changed 6004
+195.353750 matrix-keypad: trace: scan init 04 err 0 cols 00 00 00 00 00 20 00
+195.355863 matrix-keypad: trace: scan end 04
+195.508784 matrix-keypad: trace: row irq 220 pending 0 stopped 0
+195.514402 matrix-keypad: trace: scan init 00 err 0 cols 00 00 00 00 00 00 00
+```
+
+  The row interrupt and the start-of-scan read agree: row 2 (`init 04`). The
+  interrupt thread read `dffb` during the scan: P1 `0xdf` (column 5 driven)
+  and P0 `0xfb` (row 2 low), which is correct for A at (2,5). The scan
+  stored `cols[5] = 0x20`, which is P1 inverted, not P0. The other columns
+  read 00. Both A presses gave `KEY_RIGHT` (scan 45).
+- **Wake key, held.** About 20 scans, 8.7 ms apart, each ending in
+  `scan end 7f rescan`. `7f` is P1 `0x80` inverted.
+- **Counts.** `1-005b` went from 0 to 74. The row lines in `/proc/interrupts`
+  stayed at 0 although the trace shows their handlers running. On this
+  kernel, the nested interrupt counts do not appear there, so the station
+  16 reading of "rows never ran" was wrong.
+
+**Cause.** The AW9523 regmap sets `.disable_locking = true` and relies on the
+driver's `i2c_lock`. `aw9523_irq_thread_func()` reads IN0 and IN1 through
+that regmap without taking the lock. Regmap formats and receives every read
+through the shared `map->work_buf`, so the thread's concurrent IN1 read
+overwrote the scan's IN0 result. Only the column being read when the thread
+ran is corrupted, which matches the single wrong column per scan. The same
+race explains station 16's Right arrow + Enter: P1 `0x9f` inverted.
+
+**Fix,
+[0381](../../patches/proposals/0381-pinctrl-aw9523-serialize-the-interrupt-thread-s-port.patch).**
+Take `i2c_lock` around the thread's port reads, and release it before the
+nested dispatch. The mask and unmask callbacks also call regmap without
+`i2c_lock`. They are left unchanged: `matrix_keypad` calls `enable_irq()`
+under a spinlock, so a mutex there could sleep in atomic context. In this
+trace, the lazy disable never masked and the unmask found the bits already
+clear, so neither wrote.
+
+**Station 18 test (predeclared).** Station 17 plus 0381, traces still
+available.
+1. Polling: A1–A2 as before.
+2. With traces on, switch to interrupt mode. The owner presses A twice,
+   2 s apart, then holds A for 2 s.
+   - Expect `cols … 04` in column 5 (`00 00 00 00 00 04 00`), A (scan 21) in
+     the capture, and `scan end` matching `init`.
+   - A held key gives one scan per change, not a rescan storm.
+3. Traces off. B4 as on station 14: a sentence, autorepeat, Left Shift+Z,
+   Ctrl+Alt, Fn+B/N, and a lid close and open. Then idle 10 s and take the
+   I2C5 delta, expected under 10 a second.
+4. Return to polling at the end.
+
+**Decisions.**
+- If 2 and 3 pass, interrupt mode works. The next candidate makes it the
+  station default (drop `poll-interval`) and removes 0375, 0379 and 0380.
+- If any wrong key remains, keep the traces and compare the column words
+  with the thread's port reads again.
 
 Earlier: hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
 and stays at zero while polling. Hypothesis 2 failed on station 15. The

@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 17:36:28 -0400
+Subject: [PATCH] pinctrl: aw9523: serialize the interrupt thread's port reads
+
+The driver's regmap sets disable_locking and relies on i2c_lock to
+serialize register access. aw9523_irq_thread_func() reads both input
+ports through that regmap without taking the lock. A GPIO consumer can
+be reading at the same moment, for example a matrix keypad scanning in
+the work its row interrupt scheduled. The two reads then share regmap's
+unlocked work buffer, and one can return the other's register.
+
+The Gemini PDA keyboard shows this: an AW9523 matrix in row interrupt
+mode. While the scan read the rows (port 0) with column 5 driven, the
+interrupt thread read port 1. The scan received port 1's value: 0xdf,
+column 5 low, instead of 0xfb, row 2 low. So A was reported as the key in
+row 5. The read at the end of the scan returned port 1 as well. It never
+matched the start, so a held key kept rescheduling scans.
+
+Take i2c_lock around the thread's port reads, as the GPIO callbacks do.
+Release it before dispatching nested interrupts, whose handlers may use
+the GPIO callbacks themselves.
+
+Not yet run on hardware with this change.
+---
+ drivers/pinctrl/pinctrl-aw9523.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/pinctrl/pinctrl-aw9523.c b/drivers/pinctrl/pinctrl-aw9523.c
+index 9a7e7c989..c8169258b 100644
+--- a/drivers/pinctrl/pinctrl-aw9523.c
++++ b/drivers/pinctrl/pinctrl-aw9523.c
+@@ -462,15 +462,20 @@ static irqreturn_t aw9523_irq_thread_func(int irq, void *dev_id)
+ 	unsigned long changed_gpio;
+ 	unsigned int tmp, port_pin, i, ret;
+ 
++	/* The regmap has no locking of its own; i2c_lock serializes it. */
++	mutex_lock(&awi->i2c_lock);
+ 	for (i = 0; i < AW9523_NUM_PORTS; i++) {
+ 		port_pin = i * AW9523_PINS_PER_PORT;
+ 		ret = regmap_read(awi->regmap,
+ 				  AW9523_REG_IN_STATE(port_pin),
+ 				  &tmp);
+-		if (ret)
++		if (ret) {
++			mutex_unlock(&awi->i2c_lock);
+ 			return ret;
++		}
+ 		val |= (u8)tmp << (i * 8);
+ 	}
++	mutex_unlock(&awi->i2c_lock);
+ 
+ 	/* Handle GPIO input release interrupt as well */
+ 	changed_gpio = awi->irq->cached_gpio ^ val;
