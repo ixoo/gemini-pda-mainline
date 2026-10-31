@@ -450,6 +450,12 @@ is doing:
 - W=1 is clean in `drivers/thermal` and `drivers/iio/adc`;
 - the DTB carries the zone, the table and the trip.
 
+**The image:**
+- built at `1372e8fc` (835 patches): `Image.gz` `13980228…`, boot DTB
+  `4894ae7c…`, boot2 `cc588624…`;
+- Wi-Fi modules unchanged;
+- flashed from station 11b with a matching readback.
+
 **Readings (predeclared):**
 
 | Observation | Reading |
