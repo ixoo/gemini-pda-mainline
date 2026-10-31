@@ -106,7 +106,21 @@ Shift with the same letters does not ghost, because Right Shift is at (5,3).
 
 ## Build
 
-Pending until the Buildbox result is recorded.
+The Buildbox build from commit `d71114b0` passed. It applied all 840
+`series-a53-station` patches, including 0362–0366, and the package passed
+validation:
+
+| Field | Value |
+| --- | --- |
+| Profile | `mt6797-a53-station`, release `7.1.3-gemini-a53-station` |
+| Package | `linux-7.1.3-gemini-3880bdeabaf9b4688e7e513e93a762bedfa0607126985d1790ef3f90e6ca31c8` |
+| `patchset_sha256` | `8247cd8a89caf74dcbb0967ce459b7b4fc8dd0a6092a80bc5b2f76eca2ea8824` |
+| `config_sha256` | `d9fcfee20d204c4d50291e55a0b75fdfb0da3b0f78d7f500a9a8c4b65a64b3e7` |
+| `image_gzip_sha256` | `1c312e7c4c80a512c816924303702bf13850d7023f6683dca23cebe16b6eecc8` |
+
+Not done: fetching the package, assembling a boot2 image and the
+`station-dt.sh` DTB, flashing and booting. Each needs the device custodian,
+and boot2 selection needs the owner.
 
 ## Safety assessment
 
