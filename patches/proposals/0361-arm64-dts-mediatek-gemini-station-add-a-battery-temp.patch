@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 14:43:39 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini station: add a battery
+ temperature zone
+
+Describe the battery NTC on the MT6351 BATON channel as a generic ADC
+thermal sensor, with the vendor's 10 kOhm table behind its 24 kOhm
+pull-up to VBIF28, and a zone polled every 10 s whose critical trip at
+60 C, the vendor battery zone's critical point, powers the system off.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 56 ++++++++++++++++++-
+ 1 file changed, 54 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 509936cb5..87a6afc93 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -3,14 +3,66 @@
+  * Copyright (c) 2026 Julien Etienne
+  *
+  * The Gemini PDA development station: the Wi-Fi service board with SoC
+- * temperature, a critical trip that powers the system off, and the
+- * controller's 117 C hardware reset armed through TOPRGU.
++ * temperature, a critical trip that powers the system off, the
++ * controller's 117 C hardware reset armed through TOPRGU, and a battery
++ * NTC zone whose critical trip at 60 C powers the system off.
+  */
+ 
+ #include "mt6797-gemini-pda-wifi-service.dts"
++#include <dt-bindings/iio/adc/mediatek,mt6351-auxadc.h>
+ 
+ / {
++	/*
++	 * The battery NTC on the MT6351 BATON channel: the vendor's 10 kOhm
++	 * table behind a 24 kOhm pull-up to VBIF28 (2.8 V). The values are the
++	 * IIO processed reading, raw x 3600 (the channel's x2 against 1.8 V),
++	 * that is the node voltage in mV x 4096.
++	 */
++	battery_ntc: thermal-sensor-battery {
++		compatible = "generic-adc-thermal";
++		#thermal-sensor-cells = <0>;
++		io-channels = <&pmic_adc MT6351_AUXADC_BAT_TEMP>;
++		io-channel-names = "sensor-channel";
++		temperature-lookup-table = <
++			(-20000) 8484626
++			(-15000) 7924032
++			(-10000) 7330057
++			(-5000) 6714236
++			0 6094794
++			5000 5487808
++			10000 4903632
++			15000 4351584
++			20000 3840097
++			25000 3373176
++			30000 2951046
++			35000 2574810
++			40000 2242708
++			45000 1950136
++			50000 1694601
++			55000 1472388
++			60000 1279594>;
++	};
++
+ 	thermal-zones {
++		/*
++		 * A kernel backstop under the userspace charging stop: at the
++		 * table's 60 C end, the vendor battery zone's critical point,
++		 * the system powers off whatever userspace is doing.
++		 */
++		battery-thermal {
++			polling-delay-passive = <0>;
++			polling-delay = <10000>;
++			thermal-sensors = <&battery_ntc>;
++
++			trips {
++				battery-critical {
++					temperature = <60000>;
++					hysteresis = <2000>;
++					type = "critical";
++				};
++			};
++		};
++
+ 		soc-thermal {
+ 			polling-delay-passive = <0>;
+ 			polling-delay = <1000>;
+-- 
+2.43.0
+

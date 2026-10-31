@@ -421,6 +421,43 @@ with a new RAM root `9cea3734…`: boot2 `86445297…`.
 handoff's disabled state at its first pass, and holds the 50/47 °C window
 from then on.
 
+## Station 12: protection in the kernel (owner decision, 2026-10-31)
+
+Two changes, so a hot SoC or battery ends in a power-off whatever userspace
+is doing:
+1. **The SoC driver and the PMIC ADC driver are built in**
+   (`MTK_SOC_THERMAL=y`, `MEDIATEK_MT6359_AUXADC=y`):
+   - the 117 °C reset arms during boot, before init;
+   - an `rmmod` can no longer disarm it;
+   - init only records the zones.
+2. **A kernel battery zone,**
+   [0361](../../patches/proposals/0361-arm64-dts-mediatek-gemini-station-add-a-battery-temp.patch):
+   - the upstream `generic-adc-thermal` driver on the BATON channel, with
+     the vendor table converted to the IIO processed value (raw × 3600,
+     the node voltage in mV × 4096);
+   - a zone polled every 10 s, with a critical trip at 60 °C, the table's
+     end and the vendor battery zone's critical point;
+   - **why it is needed:** a dead or hung `charge-guard` stops its watchdog
+     kicks, and the charger then resumes charging within 40 s. This trip
+     covers that.
+   - **Limits:** readings beyond 60 °C clamp to 60 °C, so a shorted NTC
+     powers off (fail-safe), while an open NTC reads −20 °C and does not.
+
+`charge-guard` keeps the 50/47 °C window.
+
+**Tested in the VM:**
+- the station profile builds;
+- W=1 is clean in `drivers/thermal` and `drivers/iio/adc`;
+- the DTB carries the zone, the table and the trip.
+
+**Readings (predeclared):**
+
+| Observation | Reading |
+|---|---|
+| Two zones in init's status: `soc-thermal` near 33 °C and the battery zone within 2 °C of `power-status`'s `batt_temp`; the arm logged during boot | Both kernel backstops are in place |
+| The battery zone missing, or reading −20 or 60 °C at room temperature | The IIO scale or the lookup units are wrong; the zone is the item |
+| No arm line | Built in, the driver probed before a supplier; the log names the deferral |
+
 ## Step 3 design: a battery-temperature charging stop
 
 The charger cannot see the battery, so the stop needs two things:

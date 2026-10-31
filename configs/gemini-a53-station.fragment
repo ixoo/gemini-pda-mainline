@@ -21,21 +21,24 @@ CONFIG_DEVMEM=y
 CONFIG_STRICT_DEVMEM=y
 # CONFIG_IO_STRICT_DEVMEM is not set
 # SoC temperature and protection (2026-10-31-gemini-thermal-protection): the
-# thermal core, the MT6797 AUXADC thermal variant as a module, and LK's
-# devinfo calibration. A critical trip in the station DT powers off; the
-# station DT also arms the 117 C hardware reset.
+# thermal core, the MT6797 AUXADC thermal variant and LK's devinfo
+# calibration, all built in so protection is armed before userspace. A
+# critical trip in the station DT powers off; the station DT also arms the
+# 117 C hardware reset.
 CONFIG_THERMAL=y
 CONFIG_THERMAL_OF=y
 CONFIG_THERMAL_HWMON=y
 CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS=10000
-CONFIG_MTK_THERMAL=m
-CONFIG_MTK_SOC_THERMAL=m
+CONFIG_MTK_THERMAL=y
+CONFIG_MTK_SOC_THERMAL=y
 # CONFIG_MTK_LVTS_THERMAL is not set
 CONFIG_NVMEM=y
 CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
-# The battery NTC through the MT6351 AUXADC, as a module.
+# The battery NTC through the MT6351 AUXADC, and a kernel battery zone on it
+# (generic ADC thermal) whose critical trip powers off, built in.
 CONFIG_IIO=y
-CONFIG_MEDIATEK_MT6359_AUXADC=m
+CONFIG_MEDIATEK_MT6359_AUXADC=y
+CONFIG_GENERIC_ADC_THERMAL=y
 # With modules on, defconfig's =m options would become modules that nothing
 # loads. Keep each one built in, as in the soak kernel without modules.
 CONFIG_ALTERA_FREEZE_BRIDGE=y

@@ -949,3 +949,4 @@ proposals/0357-dt-bindings-iio-adc-mt6359-auxadc-add-MT6351.patch
 proposals/0358-iio-adc-mt6359-auxadc-add-the-MT6351-battery-tempera.patch
 proposals/0359-mfd-mt6397-add-the-MT6351-AUXADC-cell.patch
 proposals/0360-arm64-dts-mediatek-mt6797-add-the-MT6351-AUXADC.patch
+proposals/0361-arm64-dts-mediatek-gemini-station-add-a-battery-temp.patch
