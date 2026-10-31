@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-fuel-gauge` |
-| Status | `completed` for the static source, datasheet and boot-chain study; no runtime measurement is claimed |
+| Status | `running`: the static study is complete; the mainline gauge (0367-0373) reads correctly on station 13b, capacity uncalibrated |
 | Subsystem | MT6351 FGADC coulomb counter, HAFG_20 SOC algorithm, OCV/Qmax/aging tables, RTC persistence |
 | Device variant | Planet Computers Gemini PDA, MT6797X, vendor Android/Gemian 3.18 stack |
 | Date(s) | 2026-10-31 |
@@ -225,3 +225,29 @@ write): LK leaves the gauge running.
 - **74 mA from the gauge against about 150 mA from the charger's ICHG:**
   the charger's 50 mA steps, and the system load drawn through the power
   path, make an exact match unlikely. This is not resolved.
+
+### Station 13b, boot `a930528e…`: the gauge works
+
+- **Identity:** built at `1347c1ec` (0373 added), `Image.gz` `3af32c3c…`,
+  boot2 `696cbc66…`, flashed with a matching readback.
+- **Three reads, 5 s apart, from 12 s of uptime,** cable in; the charger
+  read `fast` at 4.32 V:
+
+  | `status` | `voltage_now` | `current_now` | `charge_counter` | `capacity` | `temp` |
+  |---|---|---|---|---|---|
+  | Charging | 4315814 | 114559 | −206 | 95 | 276 |
+  | Charging | 4315484 | 79282 | 0 | 94 | 277 |
+  | Charging | 4312188 | 72372 | 103 | 95 | 276 |
+
+**Reading:** every predeclared row of the first table holds.
+- **Current:** positive while charging, 72-115 mA as the top-off tapers.
+- **Charge counter:** it steps by the expected resolution, 44.98 µAh ×
+  20/10 × 1.15 = 103.4 µAh.
+- **Capacity:** 94-95 % at 4.31 V on the charger.
+- **Voltage and temperature** agree with the charger and the battery zone.
+
+**Not shown:**
+- a calibrated capacity, which needs a full discharge against the coulomb
+  count;
+- the CAR_TUNE choice (115) against a reference current;
+- behaviour on battery alone.
