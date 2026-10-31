@@ -15,7 +15,7 @@ the linked experiments.
 | Interrupt | GPIO87 maps to EINT10 | Observed in the vendor topology and active vendor interrupt state. The accepted mainline path uses polling, so parent-IRQ delivery remains untested |
 | Matrix | AW9523 port 0 provides eight rows; port 1 bits 0–6 provide seven columns | Source-derived 8×7 wiring; complete electrical contact coverage remains unverified |
 | Polarity | The selected column is driven low, inactive columns high, and a low row is pressed | Source-derived. The generic matrix consumer therefore needs `gpio-activelow` and `drive-inactive-cols` |
-| Keycodes | The active vendor binary contains 52 assigned positions and four `KEY_UNKNOWN` positions in the 56-position matrix | The four unproven positions remain omitted as `KEY_RESERVED` in the reusable Linux map until a physical trace identifies them |
+| Keycodes | The active vendor binary contains 52 assigned positions and four `KEY_UNKNOWN` positions in the 56-position matrix, all on row `P0_7` at columns `P1_3`–`P1_6`; the shared Planet keyboard documentation calls those four unconnected | The four positions remain omitted as `KEY_RESERVED` in the reusable Linux map until a physical trace identifies them |
 | Accepted runtime | H, E, L, P, Enter, A, and S press/release events have been retained across bounded runs; the owner separately reported working physical typing and the current VT map | This is partial legend coverage, not a complete keyboard certification |
 
 The complete sanitized coordinate table is
@@ -29,12 +29,14 @@ not evidence that those contacts are electrically absent.
 
 ### Physical Fn-key discrepancy
 
-The retained source checkout labels physical matrix position
-`(row=4,col=3)` as `KEY_FN`, but the exact active vendor boot binary compiles
-that position as `KEY_LEFTMETA`. Its live capability bitmap also advertises
-`KEY_LEFTMETA` and `KEY_UNKNOWN`, not `KEY_FN`. The source and running binary
-are different snapshots; the active binary is authoritative for the captured
-unit.
+The modifier at physical matrix position `(row=4,col=3)` is
+`KEY_LEFTMETA` on Gemini. The vendor source table names it `META-L`
+(`aw9523_key.c:163`) and the active vendor binary advertises `KEY_LEFTMETA`,
+so source and binary agree. `KEY_FN` at the same electrical position belongs to
+the Astro Slide variant of the shared keyboard; the earlier "source says
+`KEY_FN`" reading was a device-family mix-up, not a snapshot difference. The
+shared Planet keyboard documentation states the same split: Gemini and Cosmo
+report `KEY_LEFTMETA`, Astro reports `KEY_FN`.
 
 The installed XKB symbols independently treat `<LWIN>`/`KEY_LEFTMETA` as the
 Gemini function-layer modifier. No retained evdev trace isolates a physical Fn
@@ -157,6 +159,53 @@ Gemini unit. They support the architecture and integration direction, but do
 not prove this unit's exact electrical behavior or justify importing the
 custom driver, platform-data API, or reset polarity.
 
+## Vendor scan, ghosting, lid and wake
+
+The active vendor source (`aw9523_key.c`) adds several behaviours beyond the
+retained timing policy above:
+
+- **Scan cadence.** The EINT handler schedules work after 1 ms; the work
+  performs a fast scan (1 ms period) while the matrix changes and a slow scan
+  (10 ms) while keys are held.
+- **Ghosting is explicitly limited.** The driver blocks ambiguous positions
+  until a modifier is released; the source comment names Ctrl+Left Shift+N as
+  a combination that also shows M. A dedicated branch masks z/x/c/v during
+  Ctrl+Shift so those shortcuts still work. This is a firmware workaround, not
+  evidence of diode isolation between keys.
+- **Event ordering.** Presses are reported before releases so a release that
+  unblocks a key cannot drop a held modifier. Columns 3 and 6 are swapped
+  before event generation, with an "I'm not sure why" source comment.
+- **Lid suppression is active in source.** The driver registers a hall
+  notifier, and while the lid is closed it ignores scans and forces all keys
+  released. The hall device is built (`CONFIG_MTK_HALL=y`) and its pin is
+  **GPIO66**, the same signal as the project's lid work. Screen-off gating
+  (`CONFIG_AW9523_FB`) is commented out, so display state does not gate the
+  matrix.
+- **The matrix is not a wake source.** The driver registers no
+  `device_init_wakeup`, `enable_irq_wake` or input-device wakeup capability.
+  Wake belongs to the PMIC power key.
+
+The shared Planet keyboard documentation agrees on the matrix, the Meta key and
+the scan timing, but lists hall suppression as absent on Gemini and claims an
+FM-radio wakeup guard that this file does not contain. Those two rows are
+unverified; the source above is the vendor behaviour.
+
+## Power key, boot chain and backlight
+
+- The physical power button is a PMIC key, not a matrix position. On Android a
+  bare press reports `KEY_ESC`, and `Meta + Esc` is the power action; the Gemini
+  HAL does not implement that interlock, so the combination is userspace
+  policy. Treat power routing as a PMIC/input-policy topic, not a keyboard-map
+  entry.
+- The preloader detects the power key, logs PMIC press/release, sets KPD GPIO
+  mode and uses power state in RTC and USB-enumeration decisions. LK calls
+  `set_kpd_pmic_mode()`, detects the PMIC power key, and drives boot menus with
+  PMIC volume keys. Neither bootloader stage scans the AW9523 matrix.
+- Gemini has **no keyboard backlight**. The AW9523 LED-mode and `DIM0..15`
+  registers are defined but never written by the keyboard driver.
+- The legacy header value `IIC_ADDRESS_WRITE 0xB0` is a stale 7-bit `0x58`; the
+  driver uses the device-tree `reg = <0x5b>`, which matches the live device.
+
 ## Observation and inference limits
 
 Directly observed on the named unit:
@@ -182,10 +231,13 @@ Source- or binary-derived rather than electrically measured:
 
 Not established:
 
-- complete physical legend coverage or the function of the four unknown
-  contacts;
-- IRQ-driven scanning, debounce, latency, rollover, ghosting, autorepeat,
-  keyboard LEDs, wake, suspend/resume, or long-duration repeatability; and
+- electrical confirmation that the four unconnected positions are truly
+  unpopulated (the shared PCB documentation says so, but this unit was not
+  measured);
+- IRQ-driven scanning latency, debounce, rollover, autorepeat, suspend/resume,
+  or long-duration repeatability;
+- hardware confirmation of lid-closed suppression, and the independent Planet
+  table's conflicting hall and FM-wakeup rows; and
 - equivalence across all Gemini hardware revisions.
 
 The [roadmap](../ROADMAP.md#parallel-work-that-does-not-block-the-a72-sequence)
@@ -233,3 +285,6 @@ bounded mapping observations, not rollover, wake or long-duration acceptance.
 - [Independent bsg100 comparison](../../experiments/2026-07-13-bsg100-gemini-linux-comparison/results/audit-current-20260714.txt)
 - [Vendor-kernel input boundary](vendor-kernel-abi.md#input-and-keyboard)
   and [Gemian hardware baseline](gemini-gemian-baseline.md)
+- [2026-10-31 keyboard input research](../../experiments/2026-10-31-gemini-keyboard-input/README.md)
+  — vendor scan/ghosting, lid suppression, power-key routing, boot-chain keys
+  and the independent Planet keyboard documentation.
