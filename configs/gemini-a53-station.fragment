@@ -1,9 +1,12 @@
-# Development station: the soak kernel with loadable modules and the MT6797
-# mac80211 layer as the mac module, not loaded at boot.
+# Development station: the soak kernel with loadable modules. The MT6797
+# Wi-Fi stack is three modules, none loaded at boot: the host interface core,
+# the CONSYS owner (unloading it powers CONN off) and the mac80211 layer.
 CONFIG_MODULES=y
 CONFIG_MODULE_UNLOAD=y
 # CONFIG_MODVERSIONS is not set
 # CONFIG_MODULE_SIG is not set
+CONFIG_MT6797_HIF_CORE=m
+CONFIG_MTK_MT6797_CONSYS=m
 CONFIG_MT6797_MAC80211=m
 CONFIG_LOCALVERSION="-gemini-a53-station"
 CONFIG_LOG_BUF_SHIFT=20

@@ -1,7 +1,23 @@
 # R2 calibration protocol
 
-Status: draft for owner review, 2026-10-31. Nothing is implemented or run
-under it.
+Status: admitted by the owner on 2026-10-31, with the restart implemented as
+a module reload ([R2](README.md#r2-as-a-module-reload-2026-10-31)). Not yet
+run.
+
+**Amendment on admission.** The owner chose the full module split, so that
+any Wi-Fi change is tested by reloading modules. That needs more than one
+restart per boot, so the "at most one R2 per boot" precondition below is
+replaced:
+- Each restart follows a completed unload: CONN powered off, its domain
+  confirmed off and every vote returned.
+- A failed step ends restarts for that boot.
+- Every other bound and precondition stands.
+
+The checks map onto the module form as follows:
+- The unload performs R1 and the power-off.
+- The next load's existing checks refuse a CONN that is not confirmed off,
+  VCN18, VCN28 or either VCN33 still active, or an EMI state other than
+  boot-clear or the earlier start's own.
 
 R2 restarts the CONN subsystem within one boot. Its start half reruns the WMT
 common initialization: ROM patches, MCU clock, LTE coexistence, PA rails,
@@ -55,7 +71,8 @@ fails:
   held BT vote refuses.
 - **CONN is off before power-on:** the domain was confirmed off after the
   stop, with CONMCU reset asserted.
-- **At most one R2 per boot.** A second attempt needs a reboot.
+- **At most one R2 per boot** (replaced on admission; see the amendment
+  above).
 
 The custodian also checks these before triggering it:
 - the session is attended by the owner, and the lid is open;

@@ -1,4 +1,4 @@
-From bc8ac6e0bbc2ffa468846d3ec7b0fb7155571957 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 29 Oct 2026 16:55:12 -0400
 Subject: [PATCH] wifi: mt6797: ignore a reason-4 BSS timeout while receive is

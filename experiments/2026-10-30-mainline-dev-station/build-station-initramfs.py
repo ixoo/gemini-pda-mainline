@@ -4,13 +4,14 @@
 
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
-adds the mac module under lib/modules/<release>/ and, from TOOLS, the static
+adds the Wi-Fi modules under lib/modules/<release>/ and, from TOOLS, the static
 lid-guard and power-status binaries (built from lid-guard.c and
 power-status.c); gives Fn+B and Fn+N no console action, since lid-guard
 uses them for brightness. Writes a newc archive with zero timestamps,
 compressed with gzip -n -9 like the parent.
 
-usage: build-station-initramfs.py PARENT_INITRAMFS MAC_KO TOOLS RELEASE OUTPUT
+usage: build-station-initramfs.py PARENT_INITRAMFS MODULES TOOLS RELEASE OUTPUT
+(MODULES: colon-separated .ko paths, each kept under its own name)
 """
 import hashlib
 import struct
@@ -62,7 +63,7 @@ def quiet_brightness_keys(keymap):
     return keymap[:offset] + struct.pack('<128H', *table) + keymap[offset + 256:]
 
 
-def main(parent, module, tools, release, output):
+def main(parent, modules, tools, release, output):
     ram = parse_newc(Path(parent).read_bytes())
     missing = DROP - set(ram)
     assert not missing, ('parent lacks', sorted(missing))
@@ -86,7 +87,8 @@ def main(parent, module, tools, release, output):
     files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))
     for d in ['mnt', 'mnt/data', 'tmp', 'lib/modules', 'lib/modules/' + release]:
         files[d] = (DIR | 0o755, b'')
-    files['lib/modules/%s/mac.ko' % release] = (FILE | 0o644, Path(module).read_bytes())
+    for module in modules.split(':'):
+        files['lib/modules/%s/%s' % (release, Path(module).name)] = (FILE | 0o644, Path(module).read_bytes())
     assert 'dev/console' not in files
     files[CONSOLE[0]] = (CONSOLE[1], b'')
     for name in files:

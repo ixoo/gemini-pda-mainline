@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mt6797-consys-restart` |
-| Status | `running`: R1 (stop) works on the device; R2 not implemented |
+| Status | `running`: R1 (stop) works on the device; R2 as a module reload implemented, not run |
 | Subsystem | CONSYS power, WMT/STP, EMI, WLAN HIF |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-30, 2026-10-31 |
@@ -243,8 +243,66 @@ This only shows that the firmware stops on request. It does not show that
 the CONN MCU stopped running WLAN code, nor that a start can follow. R2 can
 now follow, and it still needs a calibration protocol.
 
+## R2 as a module reload (2026-10-31)
+
+The owner admitted the [calibration protocol](CALIBRATION_PROTOCOL.md) on
+2026-10-31 and chose the full split: every Wi-Fi layer loadable, so a change
+to any of them is tested by unloading and loading modules, not by flashing.
+R2 is therefore no separate restart path. Unloading the CONSYS owner stops
+the firmware and powers CONN off; loading it again is an ordinary start, the
+second common init included.
+
+**Patches:**
+- [0346](../../patches/proposals/0346-wifi-mt6797-build-the-host-interface-and-firmware-lo.patch):
+  the host interface, firmware loaders and snapshot helper build as one
+  module, `mt6797-wlan-core`. CONSYS is the only caller of the 15 functions
+  this patch exports, and nothing calls back into CONSYS.
+- [0347](../../patches/proposals/0347-soc-mediatek-mt6797-consys-power-CONN-off-when-the-m.patch):
+  CONSYS builds as a module, `mt6797-consys`. Its unload:
+  - runs the R1 stop if the firmware is running;
+  - asserts the CONN MCU reset and switches the domain off;
+  - clears VCN28 hardware control and switches VCN28 and VCN18 off;
+  - returns the other votes the start took (PA rails, HIF VCN33, BTIF and
+    AP-DMA clocks).
+
+  This is the order of the vendor's `mtk_wcn_consys_hw_reg_ctrl(0)`, and like
+  that function it powers off even after a failed stop. The `mac` module
+  holds CONSYS, so it is always detached first.
+- [0348](../../patches/proposals/0348-soc-mediatek-mt6797-consys-accept-its-own-EMI-setup-.patch):
+  a later start accepts the EMI state its earlier start left:
+  - region 19 at its copy policy, region 18 sealed, region 23 clear, and the
+    remap set. Any other state is still refused.
+  - **From the vendor source:** it keeps region 19 across CONN power cycles,
+    and sets region 18 open, copies and seals it again on every WLAN
+    firmware download.
+  - **On a kept start:** the WMT setup skips its SMC and remap write, but
+    still clears and verifies the window. The EMI set reopens, refills and
+    reseals region 18.
+- **In the station series:** 0334 (sequence recycling, now with the export
+  `mac.ko` needs) and 0335 (no packet budget for a connected lifetime), in
+  canonical order. 0336-0345 were regenerated on top of them; only 0338's
+  context changed.
+
+**Tested in the VM:**
+- the station profile builds with all three as modules;
+- the soak profile, all built in, still builds;
+- W=1 is clean on both directories;
+- the station series applies to exactly the tested tree.
+
+Not tested: any device run.
+
+**Device test (predeclared):** station 9, `CYCLES=1 RESTARTS=3`
+[`wifi-cycles.sh`](../2026-10-30-mainline-dev-station/wifi-cycles.sh).
+
+| Observation | Reading |
+|---|---|
+| Each restart: `CONN power-off ... domain off=0`, `CONSYS unloaded`, then `WMT setup kept from an earlier start`, common init `completed` equal to the first, firmware ready and a scan with BSS | R2 works; any Wi-Fi layer can be reloaded on a running station |
+| The unload's stop or power-off line reports an error, and the next load refuses (domain not confirmed off) | The power-off is incomplete; the refusal names the check, and the station needs a reboot |
+| The kept WMT setup or the EMI set refuses | The earlier start left a state the acceptance does not name; that line names it |
+| A common init step fails | Per the [calibration protocol](CALIBRATION_PROTOCOL.md): that step named, PA rails per its stop rule |
+| Firmware ready, but the scan fails or times out | The start survives the restart, but the WLAN path does not; the cycle log names it |
+
 ## Follow-up
 
-R2 (full CONN restart) after owner review of its
-[calibration protocol](CALIBRATION_PROTOCOL.md) (draft, 2026-10-31). Until then, a firmware, HIF or WMT change still needs a
-reboot; a `mac` change does not.
+Station 9 boot as above. A `mac` change already needs no reboot; after R2
+passes, neither does a HIF, loader or CONSYS change.

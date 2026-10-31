@@ -1,4 +1,4 @@
-From f9ab2faf3e292983033d80d9804976ef915676f8 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Fri, 30 Oct 2026 17:11:40 -0400
 Subject: [PATCH] wifi: mt6797: build the mac80211 layer as a loadable module
@@ -68,7 +68,7 @@ index aecbc5628..5bbfcf18f 100644
 +obj-$(subst m,y,$(CONFIG_MT6797_MAC80211)) += snapshot.o
  obj-$(CONFIG_MT6797_WIFI_TESTCONFIG) += testcfg.o
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index bfebfcef5..4a791d214 100644
+index 864805096..af3f67dff 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
 @@ -450,6 +450,7 @@ void mt6797_hif_dma_stats(const struct mt6797_hif *hif, unsigned int *tx,
@@ -229,9 +229,9 @@ index bfebfcef5..4a791d214 100644
  }
 +EXPORT_SYMBOL_GPL(mt6797_hif_normal_idle);
  
- void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out)
+ int mt6797_hif_recycle_sequences(struct mt6797_hif *hif, unsigned int first)
  {
-@@ -1620,6 +1640,7 @@ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *
+@@ -1644,6 +1664,7 @@ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *
  	out->sequences = !!t->used_sequences;
  	mutex_unlock(&hif->mutex);
  }
@@ -239,7 +239,7 @@ index bfebfcef5..4a791d214 100644
  
  int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
  			      size_t frame_bytes, u8 wlan, u8 pid,
-@@ -1666,6 +1687,7 @@ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+@@ -1690,6 +1711,7 @@ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
  	mutex_unlock(&hif->mutex);
  	return error;
  }
@@ -247,7 +247,7 @@ index bfebfcef5..4a791d214 100644
  
  int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
  			     size_t frame_bytes, u8 wlan, u8 pid,
-@@ -1709,6 +1731,7 @@ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
+@@ -1733,6 +1755,7 @@ int mt6797_hif_send_security(struct mt6797_hif *hif, const u8 *frame,
  	mutex_unlock(&hif->mutex);
  	return error;
  }
@@ -255,7 +255,7 @@ index bfebfcef5..4a791d214 100644
  
  int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
  				size_t frame_bytes, u8 wlan, u8 pid,
-@@ -1777,6 +1800,7 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
+@@ -1801,6 +1824,7 @@ int mt6797_hif_send_data_report(struct mt6797_hif *hif, const u8 *frame,
  	mutex_unlock(&hif->mutex);
  	return error;
  }
@@ -263,7 +263,7 @@ index bfebfcef5..4a791d214 100644
  
  #ifdef MT6797_DATA_SGI
  void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
-@@ -1787,6 +1811,7 @@ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
+@@ -1811,6 +1835,7 @@ void mt6797_hif_set_data_sgi(struct mt6797_hif *hif, bool sgi)
  	hif->data_sgi = sgi;
  	mutex_unlock(&hif->mutex);
  }
@@ -271,7 +271,7 @@ index bfebfcef5..4a791d214 100644
  #endif
  
  #ifdef CONFIG_MT6797_WIFI_TESTCONFIG
-@@ -1801,6 +1826,7 @@ void mt6797_hif_set_testcfg(struct mt6797_hif *hif, unsigned int rate, bool agg,
+@@ -1825,6 +1850,7 @@ void mt6797_hif_set_testcfg(struct mt6797_hif *hif, unsigned int rate, bool agg,
  	hif->rx_peek = peek;
  	mutex_unlock(&hif->mutex);
  }
@@ -279,7 +279,7 @@ index bfebfcef5..4a791d214 100644
  #endif
  
  #ifdef CONFIG_MT6797_HT40_TX
-@@ -1812,6 +1838,7 @@ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40)
+@@ -1836,6 +1862,7 @@ void mt6797_hif_set_data_bw40(struct mt6797_hif *hif, bool bw40)
  	hif->data_bw40 = bw40;
  	mutex_unlock(&hif->mutex);
  }
@@ -287,7 +287,7 @@ index bfebfcef5..4a791d214 100644
  #endif
  
  int mt6797_hif_send_data(struct mt6797_hif *hif, const u8 *frame,
-@@ -1865,6 +1892,7 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
+@@ -1889,6 +1916,7 @@ int mt6797_hif_send_config(struct mt6797_hif *hif,
  	mutex_unlock(&hif->mutex);
  	return error;
  }
@@ -295,7 +295,7 @@ index bfebfcef5..4a791d214 100644
  
  
  /* Read one port-0 packet only when its earlier 89-byte length is unchanged.
-@@ -2121,6 +2149,7 @@ int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
+@@ -2145,6 +2173,7 @@ int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
  	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity,
  				  result, false, false);
  }
@@ -303,16 +303,16 @@ index bfebfcef5..4a791d214 100644
  
  int mt6797_hif_receive_selected(struct mt6797_hif *hif,
  				u64 deadline_ns, u8 *buffer,
-@@ -2130,3 +2159,4 @@ int mt6797_hif_receive_selected(struct mt6797_hif *hif,
+@@ -2154,3 +2183,4 @@ int mt6797_hif_receive_selected(struct mt6797_hif *hif,
  	return mt6797_hif_receive(hif, 0, deadline_ns, buffer, capacity, result,
  				  false, true);
  }
 +EXPORT_SYMBOL_GPL(mt6797_hif_receive_selected);
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index 97a25af4a..a7e09e16c 100644
+index 849360920..b7d3af587 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -8376,3 +8376,20 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
+@@ -8398,3 +8398,20 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
  	mutex_unlock(&mac->mutex);
  #endif
  }

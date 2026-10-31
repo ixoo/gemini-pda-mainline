@@ -800,6 +800,8 @@ proposals/0330-wifi-mt6797-count-the-block-ack-and-reorder-records-.patch
 proposals/0331-wifi-mt6797-split-the-test-configuration-s-width-int.patch
 proposals/0332-wifi-mt6797-report-the-test-stats-traffic-as-bytes-n.patch
 proposals/0333-wifi-mt6797-send-ordinary-data-at-mac80211-s-rate-co.patch
+proposals/0334-wifi-mt6797-recycle-the-join-command-sequences-at-th.patch
+proposals/0335-wifi-mt6797-no-packet-budget-for-a-connected-lifetim.patch
 proposals/0336-wifi-mt6797-count-null-frames-and-the-unicast-silenc.patch
 proposals/0337-wifi-mt6797-ignore-a-reason-4-BSS-timeout-while-rece.patch
 proposals/0338-wifi-mt6797-build-the-mac80211-layer-as-a-loadable-m.patch
@@ -810,3 +812,6 @@ proposals/0342-dt-bindings-mfd-mediatek-mt6397-add-MT6351-power-con.patch
 proposals/0343-mfd-mt6397-add-the-MT6351-power-controller-cell.patch
 proposals/0344-power-reset-mt6323-poweroff-support-the-MT6351-PMIC.patch
 proposals/0345-arm64-dts-mediatek-mt6797-add-the-MT6351-power-contr.patch
+proposals/0346-wifi-mt6797-build-the-host-interface-and-firmware-lo.patch
+proposals/0347-soc-mediatek-mt6797-consys-power-CONN-off-when-the-m.patch
+proposals/0348-soc-mediatek-mt6797-consys-accept-its-own-EMI-setup-.patch

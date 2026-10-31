@@ -1,4 +1,4 @@
-From 790945806554f2eaa8b5cbcba6a24c745ea4ff52 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Wed, 28 Oct 2026 16:54:14 -0400
 Subject: [PATCH] wifi: mt6797: count null frames and the unicast silence

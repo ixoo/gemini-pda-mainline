@@ -1,4 +1,4 @@
-From 42fc44a241ea41c4bb4ddc2f8818a8320e9cf921 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 31 Oct 2026 07:29:58 -0400
 Subject: [PATCH] dt-bindings: mfd: mediatek: mt6397: add MT6351 power

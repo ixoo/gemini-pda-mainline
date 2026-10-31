@@ -1,4 +1,4 @@
-From 90871c4261649574313703070802b8d454acb9e3 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Fri, 30 Oct 2026 20:56:33 -0400
 Subject: [PATCH] wifi: mt6797: detach the mac80211 layer on module unload
@@ -41,10 +41,10 @@ index 7266be589..a1ae03d0d 100644
  # The following symbols are build-structure facts of the station driver, not
  # user choices. They follow MT6797_MAC80211 and keep the source's existing
 diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
-index a7e09e16c..d04d2ff44 100644
+index b7d3af587..cab8da321 100644
 --- a/drivers/net/wireless/mediatek/mt6797/mac.c
 +++ b/drivers/net/wireless/mediatek/mt6797/mac.c
-@@ -8377,19 +8377,52 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
+@@ -8399,19 +8399,52 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
  #endif
  }
  

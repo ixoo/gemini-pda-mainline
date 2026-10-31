@@ -1,0 +1,151 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 10:43:43 -0400
+Subject: [PATCH] soc: mediatek: mt6797-consys: accept its own EMI setup on a
+ later start
+
+A start refuses unless the EMI MPU regions 18, 19 and 23 are clear and
+the remap holds its reset value, the state a boot leaves. After a module
+unload, region 19 (copy policy over the WMT window), region 18 (sealed
+over the WLAN window) and the remap stay as the earlier start set them,
+as the vendor keeps them across CONN power cycles, so a reload could
+never start again.
+
+Accept exactly that state as well. The WMT setup then skips its SMC and
+remap write, and still clears and verifies the WMT window; the deferred
+start, the powered EMI check and the EMI set admit a sealed region 18,
+which the EMI set opens, refills and seals again, as the vendor does on
+every WLAN firmware download. Any other state is refused as before.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 67 ++++++++++++++++++++++++----
+ 1 file changed, 58 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index e2e87f0fd..f4078e402 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -398,6 +398,43 @@ static BIN_ATTR_ADMIN_RO(region19_snapshot, SZ_512K);
+ 
+ static u32 mt6797_consys_read_emi(u32 offset);
+ 
++/* Region 18 as an earlier start sealed it over the WLAN firmware window. */
++static bool mt6797_consys_region18_sealed(struct mt6797_consys *owner,
++					  u32 range, u32 policy)
++{
++	phys_addr_t start = owner->reservation.start;
++	phys_addr_t end = start + SZ_512K - 1;
++
++	return range == (((u32)(start >> 16) << 16) | (u32)(end >> 16)) &&
++	       policy == MT6797_EMI_FINAL_POLICY;
++}
++
++/*
++ * The EMI protection and remap that an earlier start in this boot left,
++ * which an unload keeps: region 19 at its copy policy over the WMT window,
++ * region 18 sealed, region 23 clear and the remap set. A later start
++ * accepts exactly this state as well as the boot's clear one, as the
++ * vendor keeps both regions across CONN power cycles.
++ */
++static bool mt6797_consys_emi_kept(struct mt6797_consys *owner)
++{
++	phys_addr_t start = owner->reservation.start + SZ_512K;
++	phys_addr_t end = start + SZ_512K - 1;
++
++	return mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE) == 0x44604460 &&
++	       mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) ==
++		(((u32)(start >> 16) << 16) | (u32)(end >> 16)) &&
++	       mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) ==
++		MT6797_EMI_COPY_POLICY &&
++	       mt6797_consys_region18_sealed(owner,
++			mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE),
++			mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY)) &&
++	       !mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) &&
++	       !mt6797_consys_read_emi(MT6797_EMI_REGION23_POLICY) &&
++	       readl(owner->remap) == (MT6797_REMAP_OFF_VALUE |
++		((u32)owner->reservation.start >> 20) | BIT(12));
++}
++
+ /* Called with the owner lock held; no CONN power or firmware action. */
+ static int mt6797_consys_prepare_wmt(struct device *dev,
+ 				    struct mt6797_consys *owner)
+@@ -430,16 +467,22 @@ static int mt6797_consys_prepare_wmt(struct device *dev,
+ 		 remap_before, region1, range18, policy18);
+ 	dev_info(dev, "one-shot WMT before: region19=0x%08x/0x%08x region23=0x%08x/0x%08x CONN=off\n",
+ 		 range19, policy19, range23, policy23);
++	start = owner->reservation.start + SZ_512K;
++	end = start + SZ_512K - 1;
++	expected_range = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
++	requested = ((u32)owner->reservation.start >> 20) | BIT(12);
++	if (mt6797_consys_emi_kept(owner)) {
++		dev_info(dev, "WMT setup kept from an earlier start: region 19, region 18 and remap as set\n");
++		owner->wmt_init_attempted = true;
++		remap_after = remap_before;
++		goto clear;
++	}
+ 	if (remap_before != MT6797_REMAP_OFF_VALUE ||
+ 	    region1 != 0x44604460 || range18 || policy18 || range19 ||
+ 	    policy19 || range23 || policy23) {
+ 		ret = -EBUSY;
+ 		goto out;
+ 	}
+-	start = owner->reservation.start + SZ_512K;
+-	end = start + SZ_512K - 1;
+-	expected_range = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
+-	requested = ((u32)owner->reservation.start >> 20) | BIT(12);
+ 	owner->wmt_init_attempted = true;
+ 	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
+ 		      (MT6797_EMI_REGION19 << 27) | MT6797_EMI_COPY_POLICY,
+@@ -465,6 +508,7 @@ static int mt6797_consys_prepare_wmt(struct device *dev,
+ 		ret = -EIO;
+ 		goto stopped;
+ 	}
++clear:
+ 	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
+ 	if (ret)
+ 		goto stopped;
+@@ -612,7 +656,9 @@ static bool mt6797_consys_probe_powered_emi(struct device *dev,
+ 		 "one-shot CONN EMI powered: region18=0x%08x policy18=0x%08x region19=0x%08x policy19=0x%08x policy23=0x%08x\n",
+ 		 region18, policy18, region19, policy19, policy23);
+ 	return control == 0x44604460 && !region23_before && !region23_after &&
+-	       !region18 && !policy18 && !policy23 && region19_admitted;
++	       ((!region18 && !policy18) ||
++		mt6797_consys_region18_sealed(owner, region18, policy18)) &&
++	       !policy23 && region19_admitted;
+ 
+ skipped:
+ 	dev_err(dev, "one-shot CONN EMI powered skipped: owner status %d\n", ret);
+@@ -1366,8 +1412,10 @@ static void mt6797_consys_probe_emi_set(struct device *dev,
+ 	before19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
+ 	before19_policy = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
+ 	before23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE);
+-	if (before18 || before23 ||
+-	    mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY) ||
++	if (before23 ||
++	    ((before18 || mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY)) &&
++	     !mt6797_consys_region18_sealed(owner, before18,
++			mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY))) ||
+ 	    !mt6797_consys_region19_admitted(owner, before19, before19_policy)) {
+ 		ret = -EBUSY;
+ 		goto stopped;
+@@ -1969,7 +2017,8 @@ static ssize_t firmware_start_after_wmt_store(struct device *dev,
+ 	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
+ 	if (ret)
+ 		goto out;
+-	if (mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) !=
++	if (!mt6797_consys_emi_kept(owner) &&
++	    (mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) !=
+ 	    (((u32)((owner->reservation.start + SZ_512K) >> 16) << 16) |
+ 	     (u32)((owner->reservation.start + SZ_1M - 1) >> 16)) ||
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) !=
+@@ -1981,7 +2030,7 @@ static ssize_t firmware_start_after_wmt_store(struct device *dev,
+ 	    mt6797_consys_read_emi(MT6797_EMI_REGION23_POLICY) ||
+ 	    readl(owner->remap) !=
+ 		(MT6797_REMAP_OFF_VALUE |
+-		 ((u32)owner->reservation.start >> 20) | BIT(12))) {
++		 ((u32)owner->reservation.start >> 20) | BIT(12)))) {
+ 		ret = -EBUSY;
+ 		goto out;
+ 	}
+-- 
+2.43.0
+

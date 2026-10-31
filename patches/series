@@ -934,3 +934,6 @@ proposals/0342-dt-bindings-mfd-mediatek-mt6397-add-MT6351-power-con.patch
 proposals/0343-mfd-mt6397-add-the-MT6351-power-controller-cell.patch
 proposals/0344-power-reset-mt6323-poweroff-support-the-MT6351-PMIC.patch
 proposals/0345-arm64-dts-mediatek-mt6797-add-the-MT6351-power-contr.patch
+proposals/0346-wifi-mt6797-build-the-host-interface-and-firmware-lo.patch
+proposals/0347-soc-mediatek-mt6797-consys-power-CONN-off-when-the-m.patch
+proposals/0348-soc-mediatek-mt6797-consys-accept-its-own-EMI-setup-.patch

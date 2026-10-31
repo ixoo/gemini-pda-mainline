@@ -1,4 +1,4 @@
-From 4e1781012b7977ace9ded668a804a002a0a48dc2 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Wed, 28 Oct 2026 06:07:51 -0400
 Subject: [PATCH] wifi: mt6797: recycle the join command sequences at the
@@ -27,17 +27,17 @@ by command sequence, so no live attribution depends on a released one.
 Lifetimes 1-9 are unchanged; the channel token and station sequence wrap
 refusals stay.
 ---
- drivers/net/wireless/mediatek/mt6797/hif.c    | 23 +++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 24 +++++++++++++++++++
  drivers/net/wireless/mediatek/mt6797/hif.h    |  4 ++++
- .../net/wireless/mediatek/mt6797/join-rearm.h | 17 ++++++++++----
- drivers/net/wireless/mediatek/mt6797/mac.c    | 17 ++++++++++++++
- 4 files changed, 57 insertions(+), 4 deletions(-)
+ .../net/wireless/mediatek/mt6797/join-rearm.h | 17 +++++++++----
+ drivers/net/wireless/mediatek/mt6797/mac.c    | 17 +++++++++++++
+ 4 files changed, 58 insertions(+), 4 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index bfebfcef5..78a9eb1a5 100644
+index bfebfcef5..864805096 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
-@@ -1599,6 +1599,29 @@ bool mt6797_hif_normal_idle(struct mt6797_hif *hif)
+@@ -1599,6 +1599,30 @@ bool mt6797_hif_normal_idle(struct mt6797_hif *hif)
  	return idle;
  }
  
@@ -63,6 +63,7 @@ index bfebfcef5..78a9eb1a5 100644
 +	mutex_unlock(&hif->mutex);
 +	return error;
 +}
++EXPORT_SYMBOL_GPL(mt6797_hif_recycle_sequences);
 +
  void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out)
  {

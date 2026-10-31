@@ -1,0 +1,289 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 10:42:46 -0400
+Subject: [PATCH] soc: mediatek: mt6797-consys: power CONN off when the module
+ unloads
+
+The CONSYS owner was built in and kept CONN powered for the whole boot,
+so a change to it, or a second firmware start, needed a reboot. Let it
+build as a module, and power CONN off when it unloads, as the vendor
+hardware power-off does, so the next load starts from the same off
+state as a boot.
+
+The unload first stops a running WLAN firmware with the existing R1
+stop (moved into a helper the wlan_stop attribute also uses), and powers
+CONN off even if that stop fails, as the vendor chip reset does. Then it
+asserts the CONN MCU reset, switches the domain off, clears VCN28
+hardware control and switches VCN28 and VCN18 off, and returns every
+other vote the start took: the PA rails, the HIF VCN33, and the BTIF and
+AP-DMA clocks. The start now records those votes. The EMI protection and
+the remap stay as they are.
+
+Built in, the driver binds as before and has no remove.
+---
+ drivers/soc/mediatek/Kconfig            |   6 +-
+ drivers/soc/mediatek/mt6797-consys.c    | 117 +++++++++++++++++++++---
+ drivers/soc/mediatek/mt6797-wmt-query.h |   2 +
+ 3 files changed, 112 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index d14bc58e1..a33ab375c 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -46,14 +46,18 @@ config MTK_INFRACFG
+ 	  directly associated to any device.
+ 
+ config MTK_MT6797_CONSYS
+-	bool "MediaTek MT6797 shared CONSYS reservation owner"
++	tristate "MediaTek MT6797 shared CONSYS reservation owner"
+ 	depends on ARM64 && OF && OF_RESERVED_MEM
++	depends on MT6797_HIF_CORE || !MT6797_HIF_CORE
+ 	select CRYPTO_LIB_SHA256
+ 	help
+ 	  Claim the boot-allocated no-map CONSYS firmware reservation on MT6797.
+ 	  The claim is retained for the built-in owner's lifetime. This does not
+ 	  power CONSYS, set a remap or grant a WLAN firmware load.
+ 
++	  As a module (mt6797-consys), unloading it stops the WLAN firmware
++	  and powers CONN off, so the next load starts it again.
++
+ config MTK_MT6797_A72_POWER
+ 	bool "MediaTek MT6797 Cortex-A72 power resource observer"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 79b4950c4..e2e87f0fd 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -11,6 +11,7 @@
+ #include <linux/ktime.h>
+ #include <linux/limits.h>
+ #include <linux/minmax.h>
++#include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/printk.h>
+ #include <linux/mfd/mt6351/registers.h>
+@@ -25,6 +26,7 @@
+ #include <linux/regmap.h>
+ #include <linux/regulator/consumer.h>
+ #include <linux/firmware.h>
++#include <linux/clk.h>
+ #include <crypto/sha2.h>
+ #include <linux/reset.h>
+ #include <linux/rtnetlink.h>
+@@ -156,6 +158,8 @@ struct mt6797_consys {
+ 	bool wmt_init_complete;
+ 	bool deferred_start_armed;
+ 	bool deferred_start_attempted;
++	/* Votes taken by the start, returned on unload. */
++	bool vcn18_on, vcn28_on, conn_on, hif_vcn33_on;
+ };
+ 
+ static DEFINE_MUTEX(mt6797_consys_lock);
+@@ -770,6 +774,7 @@ static bool mt6797_consys_probe_hif(struct device *dev,
+ 	ret = regulator_enable(owner->vcn33_wifi);
+ 	if (ret)
+ 		goto stopped;
++	owner->hif_vcn33_on = true;
+ 	ret = regulator_is_enabled(owner->vcn33_wifi);
+ 	if (ret != 1) {
+ 		ret = ret < 0 ? ret : -EIO;
+@@ -1038,21 +1043,17 @@ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
+  * mode 1, then WLAN_READY polled for at most one second. Only when it
+  * clears are FW own set and VCN33-WIFI switched off. A timeout stops here
+  * with nothing more done; no mailbox interrupt, assert or reset follows.
+- * The firmware stays stopped until the next boot either way.
++ * The firmware stays stopped until CONN is powered off and on again.
+  */
+-static ssize_t wlan_stop_store(struct device *dev, struct device_attribute *attr,
+-			       const char *buf, size_t count)
++static int mt6797_consys_wlan_stop(struct device *dev, struct mt6797_consys *owner)
+ {
+-	struct mt6797_consys *owner = &mt6797_consys;
+ 	u32 wcir = 0, whlpcr;
+ 	int sequence, ret;
+ 
+-	if (count != 2 || memcmp(buf, "1\n", 2))
+-		return -EINVAL;
+-	mutex_lock(&mt6797_consys_wlan_lock);
++	lockdep_assert_held(&mt6797_consys_wlan_lock);
+ 	ret = !owner->wlan_ready ? -ENODEV : owner->wlan_attached ? -EBUSY : 0;
+ 	if (ret)
+-		goto out;
++		return ret;
+ 	owner->wlan_ready = false;
+ 	sequence = mt6797_hif_next_sequence(owner->fw_hif);
+ 	if (sequence < 0) {
+@@ -1070,15 +1071,28 @@ static ssize_t wlan_stop_store(struct device *dev, struct device_attribute *attr
+ 	usleep_range(1000, 1500);
+ 	whlpcr = mt6797_consys_hif_f1_read(owner, MT6797_HIF_WHLPCR);
+ 	ret = regulator_disable(owner->vcn33_wifi);
++	if (!ret)
++		owner->hif_vcn33_on = false;
+ 	dev_info(dev, "WLAN stop: FW own WHLPCR=0x%08x, VCN33-WIFI off=%d enabled=%d\n",
+ 		 whlpcr, ret, regulator_is_enabled(owner->vcn33_wifi));
+ 	if (ret)
+ 		goto stopped;
+-	dev_info(dev, "WLAN stopped; a restart needs the next boot\n");
+-	goto out;
++	dev_info(dev, "WLAN stopped\n");
++	return 0;
+ stopped:
+ 	dev_err(dev, "WLAN stop stopped (%d); nothing escalated, state retained\n", ret);
+-out:
++	return ret;
++}
++
++static ssize_t wlan_stop_store(struct device *dev, struct device_attribute *attr,
++			       const char *buf, size_t count)
++{
++	int ret;
++
++	if (count != 2 || memcmp(buf, "1\n", 2))
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_wlan_lock);
++	ret = mt6797_consys_wlan_stop(dev, &mt6797_consys);
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+ 	return ret ?: count;
+ }
+@@ -1795,6 +1809,7 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 	ret = regulator_enable(owner->vcn18);
+ 	if (ret)
+ 		goto held;
++	owner->vcn18_on = true;
+ 	usleep_range(240, 300);
+ 	ret = regmap_update_bits(pmic, MT6351_LDO_VCN28_CON0,
+ 				 MT6351_VCN28_HW_CONTROL,
+@@ -1804,6 +1819,7 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 	ret = regulator_enable(owner->vcn28);
+ 	if (ret)
+ 		goto held;
++	owner->vcn28_on = true;
+ 	ret = regmap_read(pmic, MT6351_LDO_VCN28_CON0, &vcn28);
+ 	if (ret)
+ 		goto held;
+@@ -1837,6 +1853,7 @@ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consy
+ 	pm_runtime_disable(dev);
+ 	if (ret)
+ 		goto held;
++	owner->conn_on = true;
+ 	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
+ 	if (ret)
+ 		goto held;
+@@ -2430,17 +2447,93 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 	return ret;
+ }
+ 
++#if IS_MODULE(CONFIG_MTK_MT6797_CONSYS)
++/*
++ * Unload powers CONN off as the vendor's hardware power-off does, so the next
++ * load starts from the off state a boot starts from. The mac module holds this
++ * one, so it is already detached. A running WLAN firmware is stopped first
++ * (R1); CONN is powered off even if that stop fails, as the vendor's chip
++ * reset does. Then the CONN MCU reset is asserted, the domain switched off,
++ * VCN28 (hardware control cleared first) and VCN18 off, and every other vote
++ * the start took is returned. The EMI protection and remap stay as set: the
++ * next start accepts its own earlier setup.
++ */
++static void mt6797_consys_remove(struct platform_device *pdev)
++{
++	struct mt6797_consys *owner = platform_get_drvdata(pdev);
++	struct device *dev = &pdev->dev;
++	int stop = -ENODEV, off = 0, ret;
++
++	mutex_lock(&mt6797_consys_lock);
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++	mutex_lock(&mt6797_consys_wlan_lock);
++	if (owner->wlan_ready)
++		stop = mt6797_consys_wlan_stop(dev, owner);
++	mutex_unlock(&mt6797_consys_wlan_lock);
++#endif
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++	mt6797_hif_free(owner->fw_hif);
++	mt6797_wlan_firmware_release(owner->wlan_image);
++#endif
++	if (owner->emi_window)
++		iounmap(owner->emi_window);
++	if (owner->region19_window)
++		iounmap(owner->region19_window);
++	if (owner->common_init.bt_rail)
++		regulator_disable(owner->vcn33_bt);
++	if (owner->common_init.wifi_rail)
++		regulator_disable(owner->vcn33_wifi);
++	if (owner->hif_vcn33_on)
++		regulator_disable(owner->vcn33_wifi);
++	if (owner->conn_on) {
++		reset_control_assert(owner->conmcu_reset);
++		pm_runtime_enable(dev);
++		ret = pm_runtime_put_sync(dev);
++		pm_runtime_disable(dev);
++		off = mtk_pm_domain_confirmed_off(owner->conn_domain);
++		dev_info(dev, "CONN power-off: runtime put=%d domain off=%d\n", ret, off);
++	}
++	if (owner->vcn28_on) {
++		struct regmap *pmic = regulator_get_regmap(owner->vcn28);
++
++		if (!IS_ERR(pmic))
++			regmap_update_bits(pmic, MT6351_LDO_VCN28_CON0,
++					   MT6351_VCN28_HW_CONTROL, 0);
++		regulator_disable(owner->vcn28);
++	}
++	if (owner->vcn18_on)
++		regulator_disable(owner->vcn18);
++	if (owner->wmt_query.btif_clock_held)
++		clk_disable_unprepare(owner->wmt_query.btif_clk);
++	if (owner->wmt_query.clocks_held)
++		clk_disable_unprepare(owner->wmt_query.dma_clk);
++	pm_genpd_remove_device(dev);
++	dev_info(dev, "CONSYS unloaded: WLAN stop=%d, CONN %s, VCN28 %s, VCN18 %s\n",
++		 stop, !owner->conn_on ? "never on" : off ? "NOT confirmed off" : "off",
++		 owner->vcn28_on ? "off" : "never on", owner->vcn18_on ? "off" : "never on");
++	memset(owner, 0, sizeof(*owner));
++	mutex_unlock(&mt6797_consys_lock);
++}
++#endif
++
+ static const struct of_device_id mt6797_consys_of_match[] = {
+ 	{ .compatible = "mediatek,mt6797-consys" },
+ 	{}
+ };
++MODULE_DEVICE_TABLE(of, mt6797_consys_of_match);
+ 
+ static struct platform_driver mt6797_consys_driver = {
+ 	.probe = mt6797_consys_probe,
++#if IS_MODULE(CONFIG_MTK_MT6797_CONSYS)
++	.remove = mt6797_consys_remove,
++#endif
+ 	.driver = {
+ 		.name = "mt6797-consys",
+ 		.of_match_table = mt6797_consys_of_match,
+ 		.suppress_bind_attrs = true,
+ 	},
+ };
+-builtin_platform_driver(mt6797_consys_driver);
++module_platform_driver(mt6797_consys_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 CONSYS owner");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-wmt-query.h b/drivers/soc/mediatek/mt6797-wmt-query.h
+index 3bb10496b..0d17827d3 100644
+--- a/drivers/soc/mediatek/mt6797-wmt-query.h
++++ b/drivers/soc/mediatek/mt6797-wmt-query.h
+@@ -45,6 +45,7 @@ struct mt6797_wmt_query {
+ 	bool tx_written;
+ 	bool terminal;
+ 	bool clocks_held;
++	bool btif_clock_held;
+ };
+ 
+ /* No reset, stop, flush, descriptor, interrupt-ack or DMA-enable writes. */
+@@ -158,6 +159,7 @@ static int mt6797_wmt_query_setup(struct mt6797_wmt_query *query)
+ 	ret = clk_prepare_enable(query->btif_clk);
+ 	if (ret)
+ 		return ret;
++	query->btif_clock_held = true;
+ 
+ 	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
+ 		return -ETIMEDOUT;
+-- 
+2.43.0
+

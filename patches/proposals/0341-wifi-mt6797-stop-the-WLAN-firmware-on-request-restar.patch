@@ -1,4 +1,4 @@
-From e4060d42a3153f7040d6a5626c5e0438b859463c Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 31 Oct 2026 07:03:42 -0400
 Subject: [PATCH] wifi: mt6797: stop the WLAN firmware on request (restart R1)
@@ -32,10 +32,10 @@ layer is a module; built-in profiles are unchanged.
  4 files changed, 134 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
-index 0dffa3abd..f96043617 100644
+index 67ae58b8d..3e5fff224 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.c
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.c
-@@ -1672,6 +1672,64 @@ int mt6797_hif_next_sequence(struct mt6797_hif *hif)
+@@ -1696,6 +1696,64 @@ int mt6797_hif_next_sequence(struct mt6797_hif *hif)
  }
  EXPORT_SYMBOL_GPL(mt6797_hif_next_sequence);
  
@@ -101,10 +101,10 @@ index 0dffa3abd..f96043617 100644
  			      size_t frame_bytes, u8 wlan, u8 pid,
  			      unsigned int lifetime_ms, unsigned int attempt_count,
 diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
-index a3eb6ad75..cd325e145 100644
+index 6f65e9867..d8b7009ad 100644
 --- a/drivers/net/wireless/mediatek/mt6797/hif.h
 +++ b/drivers/net/wireless/mediatek/mt6797/hif.h
-@@ -329,6 +329,8 @@ struct mt6797_hif_ledger {
+@@ -333,6 +333,8 @@ struct mt6797_hif_ledger {
  
  void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out);
  int mt6797_hif_next_sequence(struct mt6797_hif *hif);

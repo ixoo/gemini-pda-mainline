@@ -29,20 +29,25 @@ def sha(path):
 def main(package, parent, tools, output):
     package, output = Path(package), Path(output)
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
-    modules = sorted(package.glob('modules/lib/modules/*/kernel/drivers/net/wireless/mediatek/mt6797/mac.ko'))
-    assert len(modules) == 1, ('one mac.ko expected in the package', modules)
+    modules = []
+    for path in ['net/wireless/mediatek/mt6797/mac.ko', 'net/wireless/mediatek/mt6797/mt6797-wlan-core.ko',
+                 'soc/mediatek/mt6797-consys.ko']:
+        found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
+        assert len(found) == 1, ('one module expected in the package', path, found)
+        modules += found
     module = modules[0]
     release = release or module.parts[module.parts.index('modules') + 3]
     assert release.endswith('-gemini-a53-station'), release
     config = (package/'kernel.config').read_text()
-    for line in ['CONFIG_MODULES=y', 'CONFIG_MT6797_MAC80211=m', 'CONFIG_EXT4_FS=y']:
+    for line in ['CONFIG_MODULES=y', 'CONFIG_MT6797_MAC80211=m', 'CONFIG_MT6797_HIF_CORE=m',
+                 'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_EXT4_FS=y']:
         assert line in config.splitlines(), line
     output.mkdir(mode=0o700)
     dtb = output/'board.dtb'
     subprocess.run(['sh', str(HERE/'station-dt.sh'), str(package/'dtbs/mediatek'/DTB), str(dtb)],
                    check=True, stdout=subprocess.DEVNULL)
     ram = output/'initramfs.img'
-    subprocess.run([sys.executable, str(HERE/'build-station-initramfs.py'), str(parent), str(module),
+    subprocess.run([sys.executable, str(HERE/'build-station-initramfs.py'), str(parent), ':'.join(map(str, modules)),
                     str(tools), release, str(ram)], check=True)
     boot = output/'boot.img'
     subprocess.run([sys.executable, str(BOOT/'build-android-boot-v0.py'),
@@ -60,7 +65,7 @@ def main(package, parent, tools, output):
     padded = output/'boot2-padded.img'
     padded.write_bytes(raw + bytes(16777216 - len(raw)))
     record = {'release': release, 'package': str(package.name), 'parent_initramfs_sha256': sha(parent),
-              'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'mac_ko_sha256': sha(module),
+              'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
               'lid_guard_sha256': sha(Path(tools)/'lid-guard'),
               'power_status_sha256': sha(Path(tools)/'power-status'),
               'initramfs_sha256': sha(ram), 'boot_img_bytes': len(raw), 'boot2_sha256': sha(padded)}

@@ -1,4 +1,4 @@
-From d8bbcf0d0dbeab3b75b5505587b1430ae350c8e6 Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 31 Oct 2026 07:29:58 -0400
 Subject: [PATCH] arm64: dts: mediatek: mt6797: add the MT6351 power controller

@@ -1,0 +1,239 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 10:42:45 -0400
+Subject: [PATCH] wifi: mt6797: build the host interface and firmware loaders
+ as a module
+
+The host interface, the firmware image loaders and the snapshot helper
+were built in, so every change to them needed a new kernel image and a
+reboot. Let them build as one module, mt6797-wlan-core, under the
+existing MT6797_HIF_CORE option, now tristate.
+
+Export the functions the CONSYS owner calls, so it can be a module too,
+and make the mac80211 layer depend on that owner, whose exports it uses.
+Built in, nothing changes.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig  |  6 ++--
+ drivers/net/wireless/mediatek/mt6797/Makefile | 31 ++++++++++---------
+ .../mediatek/mt6797/firmware-prepare.c        |  6 ++++
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 14 +++++++++
+ .../wireless/mediatek/mt6797/record-prepare.c |  2 ++
+ 5 files changed, 42 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index a1ae03d0d..604924488 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -1,6 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ config MT6797_HIF_CORE
+-	bool "MT6797 WLAN host interface transport"
++	tristate "MT6797 WLAN host interface transport"
+ 	depends on ARM64 && FW_LOADER
+ 	select CRC32
+ 	default n
+@@ -10,9 +10,11 @@ config MT6797_HIF_CORE
+ 	  connectivity subsystem. The CONSYS owner supplies the powered mapping
+ 	  and exclusion; this option alone provides no Wi-Fi device.
+ 
++	  As a module (mt6797-wlan-core) it loads before the CONSYS owner.
++
+ config MT6797_MAC80211
+ 	tristate "MT6797 WLAN mac80211 station driver"
+-	depends on MT6797_HIF_CORE && MAC80211
++	depends on MT6797_HIF_CORE && MTK_MT6797_CONSYS && MAC80211
+ 	default n
+ 	help
+ 	  Register the MT6797 WLAN function with mac80211 as a managed-mode
+diff --git a/drivers/net/wireless/mediatek/mt6797/Makefile b/drivers/net/wireless/mediatek/mt6797/Makefile
+index 5bbfcf18f..fadb762b5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Makefile
++++ b/drivers/net/wireless/mediatek/mt6797/Makefile
+@@ -1,17 +1,18 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-obj-y += hif.o
+-obj-y += mtke.o crc-kernel.o
+-obj-y += image-plan.o
+-obj-y += image-binding.o
+-obj-y += emi-abi.o
+-obj-y += remap-fields.o
+-obj-y += resource-layout.o
+-obj-y += ordinary-transfer.o
+-obj-y += emi-service-gate.o
+-obj-y += firmware-prepare.o
+-obj-y += firmware-probe.o
+-obj-y += record-prepare.o
++obj-$(CONFIG_MT6797_HIF_CORE) += mt6797-wlan-core.o
++mt6797-wlan-core-y := hif.o
++mt6797-wlan-core-y += mtke.o crc-kernel.o
++mt6797-wlan-core-y += image-plan.o
++mt6797-wlan-core-y += image-binding.o
++mt6797-wlan-core-y += emi-abi.o
++mt6797-wlan-core-y += remap-fields.o
++mt6797-wlan-core-y += resource-layout.o
++mt6797-wlan-core-y += ordinary-transfer.o
++mt6797-wlan-core-y += emi-service-gate.o
++mt6797-wlan-core-y += firmware-prepare.o
++mt6797-wlan-core-y += firmware-probe.o
++mt6797-wlan-core-y += record-prepare.o
++# In the core even when mac is a module; mac.ko uses their exports.
++mt6797-wlan-core-$(if $(CONFIG_MT6797_MAC80211),y) += snapshot.o
++mt6797-wlan-core-$(CONFIG_MT6797_WIFI_TESTCONFIG) += testcfg.o
+ obj-$(CONFIG_MT6797_MAC80211) += mac.o
+-# Built in even when mac is a module; mac.ko uses their exports.
+-obj-$(subst m,y,$(CONFIG_MT6797_MAC80211)) += snapshot.o
+-obj-$(CONFIG_MT6797_WIFI_TESTCONFIG) += testcfg.o
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+index 4463c0530..15624a0ce 100644
+--- a/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-prepare.c
+@@ -2,6 +2,7 @@
+ /* Passive MT6797 WLAN firmware acquisition and complete-plan validation. */
+ 
+ #include <linux/errno.h>
++#include <linux/export.h>
+ #include <linux/firmware.h>
+ #include <linux/bits.h>
+ #include <linux/ktime.h>
+@@ -54,6 +55,7 @@ int mt6797_wlan_firmware_prepare(struct device *dev,
+ 	kfree(image);
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wlan_firmware_prepare);
+ 
+ int mt6797_wlan_firmware_describe(const struct mt6797_wlan_firmware *image,
+ 				  unsigned int index,
+@@ -79,6 +81,7 @@ int mt6797_wlan_firmware_summary(const struct mt6797_wlan_firmware *image,
+ 	};
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wlan_firmware_summary);
+ 
+ int mt6797_wlan_firmware_copy_emi(const struct mt6797_wlan_firmware *image,
+ 				  int (*copy)(void *owner, unsigned int index,
+@@ -111,6 +114,7 @@ int mt6797_wlan_firmware_copy_emi(const struct mt6797_wlan_firmware *image,
+ 		return -EIO;
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wlan_firmware_copy_emi);
+ 
+ int mt6797_wlan_firmware_submit_ordinary(const struct mt6797_wlan_firmware *image,
+ 					 struct mt6797_hif *hif,
+@@ -177,6 +181,7 @@ int mt6797_wlan_firmware_submit_ordinary(const struct mt6797_wlan_firmware *imag
+ 		return -EIO;
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wlan_firmware_submit_ordinary);
+ 
+ void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image)
+ {
+@@ -185,3 +190,4 @@ void mt6797_wlan_firmware_release(struct mt6797_wlan_firmware *image)
+ 	release_firmware(image->blob);
+ 	kfree(image);
+ }
++EXPORT_SYMBOL_GPL(mt6797_wlan_firmware_release);
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 3e5fff224..a7fd52ecd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -11,6 +11,7 @@
+ #include <linux/err.h>
+ #include <linux/io.h>
+ #include <linux/ktime.h>
++#include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/unaligned.h>
+ #include <linux/slab.h>
+@@ -282,6 +283,7 @@ struct mt6797_hif *mt6797_hif_alloc(void __iomem *base, size_t span,
+ #endif
+ 	return hif;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_alloc);
+ 
+ /* The ordinary data rate code, receive A-MPDU and the WHISR peek: this
+  * join's in a measurement build, else the build's.
+@@ -307,6 +309,7 @@ void mt6797_hif_free(struct mt6797_hif *hif)
+ 		kfree(hif->rx_batch_agg);
+ 	kfree(hif);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_free);
+ 
+ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
+ 			  phys_addr_t fifo, struct device *dev, struct clk *clk,
+@@ -343,6 +346,7 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
+ 	hif->dma = window;
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_attach_dma);
+ 
+ /* One data-port transfer through AP-DMA channel 0, vendor sequence: the
+  * CMD53 setup word on the window, then CON/SRC/DST/LEN, the extension bits,
+@@ -885,6 +889,7 @@ int mt6797_hif_start_submit(struct mt6797_hif *hif, const u8 *command,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_start_submit);
+ 
+ int mt6797_hif_start_observe_ready(struct mt6797_hif *hif, u32 *wcir)
+ {
+@@ -923,6 +928,7 @@ int mt6797_hif_start_observe_ready(struct mt6797_hif *hif, u32 *wcir)
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_start_observe_ready);
+ 
+ static int mt6797_hif_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 				unsigned int count,
+@@ -1070,6 +1076,7 @@ int mt6797_hif_account_tx_status(struct mt6797_hif *hif, u64 deadline_ns,
+ 		return -EINVAL;
+ 	return mt6797_hif_tx_status(hif, deadline_ns, count, status, account, false);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_account_tx_status);
+ 
+ int mt6797_hif_reconcile_runtime(struct mt6797_hif *hif, u64 deadline_ns,
+ 				 struct mt6797_hif_tx_status *status,
+@@ -1217,6 +1224,7 @@ int mt6797_hif_query_capability(struct mt6797_hif *hif, unsigned int sequence,
+ 	mutex_unlock(&hif->mutex);
+ 	return error;
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_query_capability);
+ 
+ static int
+ mt6797_hif_send_join_command_debt(struct mt6797_hif *hif,
+@@ -2253,6 +2261,7 @@ int mt6797_hif_receive_packet(struct mt6797_hif *hif, unsigned int port,
+ 	return mt6797_hif_receive(hif, port, deadline_ns, buffer, capacity,
+ 				  result, true, false);
+ }
++EXPORT_SYMBOL_GPL(mt6797_hif_receive_packet);
+ 
+ int mt6797_hif_receive_runtime_packet(struct mt6797_hif *hif, unsigned int port,
+ 				      u64 deadline_ns, u8 *buffer, size_t capacity,
+@@ -2272,3 +2281,8 @@ int mt6797_hif_receive_selected(struct mt6797_hif *hif,
+ 				  false, true);
+ }
+ EXPORT_SYMBOL_GPL(mt6797_hif_receive_selected);
++
++#ifndef MT6797_HIF_HOST_TEST
++MODULE_DESCRIPTION("MediaTek MT6797 WLAN host interface and firmware loaders");
++MODULE_LICENSE("GPL");
++#endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/record-prepare.c b/drivers/net/wireless/mediatek/mt6797/record-prepare.c
+index 6bfa2123c..bfbf6ba36 100644
+--- a/drivers/net/wireless/mediatek/mt6797/record-prepare.c
++++ b/drivers/net/wireless/mediatek/mt6797/record-prepare.c
+@@ -44,6 +44,7 @@ int mt6797_wifi_record_prepare(struct device *dev,
+ 	kfree(record);
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(mt6797_wifi_record_prepare);
+ 
+ const u8 *mt6797_wifi_record_data(const struct mt6797_wifi_record *record)
+ {
+@@ -66,3 +67,4 @@ void mt6797_wifi_record_release(struct mt6797_wifi_record *record)
+ 	memzero_explicit(&record->commands, sizeof(record->commands));
+ 	kfree(record);
+ }
++EXPORT_SYMBOL_GPL(mt6797_wifi_record_release);
+-- 
+2.43.0
+
