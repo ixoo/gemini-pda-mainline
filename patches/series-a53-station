@@ -818,3 +818,4 @@ proposals/0348-soc-mediatek-mt6797-consys-accept-its-own-EMI-setup-.patch
 proposals/0349-wifi-mt6797-let-the-firmware-probe-unload-with-the-c.patch
 proposals/0350-soc-mediatek-mt6797-consys-remove-the-probe-attribut.patch
 proposals/0351-wifi-mt6797-log-the-HIF-ledger-when-a-sequence-recyc.patch
+proposals/0352-wifi-mt6797-reconcile-TC4-credits-before-a-sequence-.patch

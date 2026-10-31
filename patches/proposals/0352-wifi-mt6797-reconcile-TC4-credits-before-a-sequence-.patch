@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 11:13:57 -0400
+Subject: [PATCH] wifi: mt6797: reconcile TC4 credits before a sequence recycle
+
+On station 9 the recycle at the tenth lifetime was refused with TC4 at
+23 of 26 pages, nothing pending and TC1 complete: the cleanup's last
+command pages had not been reconciled yet. An ordinary re-arm never
+meets this, because the next scan's guard reconciles the credits
+before its first command; the recycle checks the ledger before that.
+
+Reconcile first, as the scan guard does, and while TC4 is still short
+wait for it, up to 25 re-arm passes 20 ms apart, before the old wrap
+refusal. The recycle line now reports the passes waited.
+---
+ drivers/net/wireless/mediatek/mt6797/mac.c | 27 ++++++++++++++++++++--
+ 1 file changed, 25 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 8bfd0e16c..e2c019f5b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -244,6 +244,8 @@ struct mt6797_mac {
+ 	unsigned int sequence;
+ 	/* The first command sequence of lifetime 1, where a recycle restarts. */
+ 	unsigned int sequence_base;
++	/* Re-arm passes a recycle has waited for TC4 credits, at most 25. */
++	unsigned int join_recycle_waits;
+ 	bool configured, closing;
+ 	int first_error;
+ 	bool join_deauth_status_valid, join_deauth_status_late;
+@@ -4792,10 +4794,31 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 			mt6797_mac_join_rearm(mac);
+ 			break;
+ 		case MT6797_JOIN_REARM_RECYCLE:
++			{
++				struct mt6797_hif_tx_status status;
++				struct mt6797_normal_release account;
++
++				/* The cleanup's last command pages may not be reconciled
++				 * yet; the next scan's guard would reconcile them before
++				 * its command, so do the same here. While TC4 is still
++				 * short, wait for it: 25 passes 20 ms apart.
++				 */
++				mt6797_hif_reconcile_runtime(mac->hif,
++							     ktime_get_ns() + 20 * NSEC_PER_MSEC,
++							     &status, &account);
++			}
+ 			recycled = mt6797_hif_recycle_sequences(mac->hif, mac->sequence_base);
++			if (recycled == -EBUSY && mac->join_recycle_waits < 25) {
++				mac->join_recycle_waits++;
++				mac->join_rearm_pending = true;
++				schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
++				break;
++			}
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot WLAN join rearm sequence recycle: from=%u to=%u ret=%d\n",
+-				 mac->sequence, mac->sequence_base, recycled);
++				 "one-shot WLAN join rearm sequence recycle: from=%u to=%u ret=%d waits=%u\n",
++				 mac->sequence, mac->sequence_base, recycled,
++				 mac->join_recycle_waits);
++			mac->join_recycle_waits = 0;
+ 			if (!recycled) {
+ 				mac->sequence = mac->sequence_base;
+ 				mt6797_mac_join_rearm(mac);
+-- 
+2.43.0
+
