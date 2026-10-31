@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mt6797-consys-restart` |
-| Status | `running`: R1 (stop) works on the device; R2 as a module reload implemented, not run |
+| Status | `running`: R1 and R2 work on the device; every Wi-Fi layer reloads on a running station |
 | Subsystem | CONSYS power, WMT/STP, EMI, WLAN HIF |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-30, 2026-10-31 |
@@ -347,7 +347,48 @@ Neither changes built-in code, so the rebuilt modules load into the
 station 9 kernel: the next run copies them over `/lib/modules` and needs
 no reflash.
 
+### Station 9, boot `960b9505…`: R2 works, three restarts in one boot
+
+- **Identity:** the same boot2 `1bb3d739…`. After boot, the core and CONSYS
+  modules were replaced over SSH from the package built at `6e720e50`
+  (0349 and 0350): core `abffb56a…`, CONSYS `72147b51…`, `mac` unchanged
+  at `01d14de5…`.
+  - That package's `Image.gz` is byte-identical to the flashed one
+    (`678da35c…`), so the built-in kernel is the same.
+- **Run:** `CYCLES=1 RESTARTS=3` [`wifi-cycles.sh`](../2026-10-30-mainline-dev-station/wifi-cycles.sh),
+  from 129 s to 145 s of uptime.
+- **First start:** common init `completed=285/285`, region 18 sealed, then
+  cycle 1 with a scan of 3 BSS.
+- **Each of the three restarts:**
+  - **Unload:** core and CONSYS both rmmod 0. The R1 stop logged `status=0
+    sequence=17 WCIR=0x00100279`, then `CONN power-off: runtime put=0 domain
+    off=0` and `CONSYS unloaded: WLAN stop=0, CONN off, VCN28 off, VCN18 off`.
+  - **Load:** `WMT setup kept from an earlier start`, common init
+    `completed=285/285` with both rails off after, then region 18 reopened,
+    refilled and sealed (`status=0`, the same range and policy).
+  - **WLAN:** firmware ready, then a `mac` cycle on a new phy (`phy1`-`phy3`):
+    regulatory configuration 0, a scan of 3 BSS, rmmod 0.
+- **Calibration:** the four calibration events in this boot are of equal
+  length, and their bytes are `same` in all four (the bytes stay private).
+- **Each restart took about 4.6 s,** unload to firmware ready.
+- **Kernel log:** no Oops, BUG, WARNING, call trace or refusal; the kernel
+  is not tainted.
+
+**Reading.** The first predeclared row: R2 works. Every Wi-Fi layer can now
+be reloaded on a running station, so a change to the HIF, the loaders or
+CONSYS is tested by replacing a module, like a `mac` change. The second
+calibration matching the first, three times, was not predicted either way;
+the protocol's `different` row did not occur.
+
+**Not shown:**
+- a restart while associated or carrying traffic: every restart here
+  followed a scan only;
+- a restart after a failed start;
+- a long run of restarts.
+
 ## Follow-up
 
-Boot station 9 again, copy the 0349/0350 modules, and rerun the predeclared test. A `mac` change already needs no reboot; after R2
+Daily-use Wi-Fi on the station, now iterated by module reload: a persistent
+WPA2 join with 0334 and 0335 in place, as proposed in the dev-station
+record. A `mac` change already needs no reboot; after R2
 passes, neither does a HIF, loader or CONSYS change.
