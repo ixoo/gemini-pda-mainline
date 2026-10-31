@@ -260,6 +260,13 @@ keys. Rather than guess, station 17 adds tracing:
 
 Both are experiment only and off by default.
 
+**Station 17 build.** The Buildbox modules build from `9788c425` passed:
+job `9788c4253944645e5fd73dc099fb46a966ce5f21-mt6797-a53-station-m1`, 854
+patches. Package
+`linux-7.1.3-gemini-b44aa040149ab5454b966dde72d824dc903b36fb802f4e3b0ff7354caf11aa26`,
+`patchset_sha256` `5b2808df…`, Image.gz
+`322445285b27305a860940896a33f097eee4dde52b7363ed55707df089a6fedd`.
+
 **Station 17 test (predeclared).**
 1. Boot (polling). Repeat A1–A2 with `1-005b`. Record the I2C5 baseline.
 2. `echo 1 > /sys/module/matrix_keypad/parameters/trace_scans`,
