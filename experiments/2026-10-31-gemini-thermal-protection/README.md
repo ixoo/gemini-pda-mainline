@@ -273,6 +273,13 @@ connected.
   - with no reading it stopped;
   - the dry run and a wrong part number wrote nothing.
 
+**Station 11 image:**
+- built at `6ed7637e` (834 patches): `Image.gz` `993149dc…`, boot2
+  `cf4a2196…`;
+- `mt6359-auxadc.ko` `78d033bb…`; the other modules are unchanged;
+- flashed from station 10 with a matching readback (predecessor
+  `862af578…`).
+
 **Device tests (predeclared):**
 
 *S3a, read-only, on the first station 11 boot:*
