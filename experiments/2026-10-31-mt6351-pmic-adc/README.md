@@ -78,9 +78,10 @@ Key observations:
    gauge; the fuel-gauge ADC is used for current only.
 4. Channel 4 is shared between the PMIC die temperature and the DCXO/TSX
    crystal through a mux; the thermal driver uses the die-temperature setting.
-5. The wrapper programs a modem share: command address `AUXADC_RQST1_SET`,
-   latest result `ADC32`, write pointer `MDBG_1`, and a 32-entry ring of
-   `AUXADC_BUF0..31`. The AP does not read the ring; the modem firmware does and
+5. The wrapper programs a modem share whose command selects channel 8, the
+   GPS/DCXO crystal temperature (result `ADC16`), with the newest sample in the
+   `MDRT` register (`ADC32`), a write pointer in `MDBG_1`, and a 32-entry
+   `BUF0..31` ring. The AP does not read the ring; the modem firmware does and
    applies its own NVRAM calibration (`l1cal_temperatureADC_T`).
 6. The preloader carries its own copy of the immediate helper; the SCP and TEE
    images contain no PMIC ADC code.
@@ -93,12 +94,14 @@ The hypothesis held. The block is a conventional polled ADC; the unusual parts
 are the fixed (uncalibrated) scaling and the modem ring, which makes the block
 shared state rather than an AP-only peripheral. That sharing is the main design
 constraint for a future driver: any AP request engine must not disturb the
-wrapper-programmed modem pointers, and the ring's channel selection is not
-documented in the extractable register text.
+wrapper-programmed modem pointers, and the ring's GPS/DCXO channel must keep
+its own request and result path.
 
 The absence of software calibration also bounds accuracy claims: the datasheet's
 ±1 % full-scale and ±2 LSB figures are the only specification, and the vendor
-does not improve on them.
+does not improve on them. The ring carries the GPS/DCXO crystal temperature,
+not a battery or die-temperature signal, so its name ("thermal data") reflects
+clock compensation rather than power-management throttling.
 
 ## Conclusion
 
@@ -110,8 +113,9 @@ does not improve on them.
 - the wrapper-configured modem ring and the AP's non-use of it;
 - the upstream coverage gap.
 
-Not established: which channel the modem ring samples, whether `ADC32` is the
-THR_MD result, the channel-2 divider, and any runtime value on this unit.
+Not established: which channels the bootloader requests, who enables the MDBG
+detection engine, whether `THR_MD` has a separate output register, and any
+runtime value on this unit.
 
 ## Follow-up
 

@@ -78,12 +78,18 @@ reference: 15-bit channels divide by 32768, 12-bit channels by 4096, and channel
 | 9 | audio | raw, unscaled | raw code |
 | 10-16 | - | raw × 1800 / 4096 | 12-bit |
 
-The datasheet application table gives different input windows: channels 0 and 1
-2.5-4.8 V, channel 2 0-1.5 V, channel 3 0.1-2.7 V, channel 5 0-1.8 V, channel 7
-0-1.8 V, others internal. The vendor scaling for channel 2 therefore implies
-either an external divider or a datasheet/vendor mismatch; the vendor comment
-next to the channel enum claims 4-14 V. Treat channel 2's absolute scaling as
-unresolved.
+The datasheet application table gives the characterised input windows:
+channels 0 and 1 2.5-4.8 V, channel 2 0-1.5 V, channel 3 0.1-2.7 V, channel 5
+0-1.8 V, channel 7 0-1.8 V, others internal.
+
+Channel 2 is not a mismatch. The converter keeps the 1.8 V transfer function,
+the 1.5 V figure is the characterised linear window (about 14.2 V at the
+connector), and the board divider sets the range: the device tree gives
+`r_charger_1 = 330` and `r_charger_2 = 39` (kΩ) in `mt6797.dtsi:1042-1043`, a
+9.46:1 ratio, and the battery meter restores the pack voltage by multiplying
+the channel reading by `(r_charger_1 + r_charger_2) / r_charger_2`
+(`battery_meter_hal.c:1175-1180`). The vendor comment "4-14 V" describes that
+post-divider range.
 
 Channel 4 is time-multiplexed: a control bit selects the PMIC die temperature or
 the 26 MHz crystal temperature for DCXO compensation
@@ -176,17 +182,42 @@ The retained modem image carries its own calibration table for these samples
 `+EADC`, `MmiATADC` plus the diagnostic "AP ADC Query is abnormal". Byte-level
 decoding of the table was not attempted.
 
-What the modem samples is not established: `RQST1` is absent from the
-extractable datasheet register text, and the single `0x0100` command bit does
-not map to a channel through the documented `RQST0` layout. The THR_MD status
-bit exists but its result register was not identified; `ADC32` (the "latest"
-pointer target) is the most likely candidate. Recorded as an open question.
+What the modem samples is now resolved. The PMIC driver's modem helper
+`PMIC_IMM_GetOneChannelValueMD()` (`pmic_auxadc.c:599`) documents the
+`RQST1` channel map and shows that it is the same bit-per-channel layout as
+`RQST0`:
+
+```
+CH0 BATSNS   CH1 ISENSE   CH4 PMIC TEMP   CH7 TSX by MD   CH8 TSX by GPS
+```
+
+It writes `1 << channel` to `AUXADC_RQST1_SET` and reads `_BY_MD` results
+(channels 0, 1, 4, 7) or `ADC_OUT_CH7_BY_GPS` (channel 8). The wrapper's
+command `0x0100` is therefore bit 8, **channel 8, the 26 MHz TSX/GPS crystal
+temperature**, and the matching result register is `ADC16` (0x0E20) — which is
+exactly what `ADC_RDATA_ADDR` points at.
+
+The ring is not the PMIC die temperature and not the battery NTC. It is the
+crystal temperature used for GPS/radio clock compensation, which is why the
+datasheet calls the wrapper registers "thermal data" and why the modem firmware
+holds a temperature ADC calibration table.
+
+`ADC32` is resolved too: it is `ADC_OUT_MDRT` / `ADC_RDY_MDRT` (0x0E40), the
+modem real-time result, so `MD_ADC_RDATA_ADDR_LATEST` points at the newest
+sample rather than at an inert snapshot. `ADC33` is the separate `MDBG` debug
+result, with its busy bit in `STA1`. `MDBG_0` (0x0F16) holds the detection
+period and enable, `MDBG_1` (0x0F18) is the pointer the wrapper writes, and
+`BUF0..31` are the ring entries.
+
+Who enables the detection engine is not visible in the AP code: `_pwrap_adc_set`
+writes only the pointers, and no built file configures `MDBG_DET_EN`,
+`AUTORPT0` or `LBAT`. That remains open (modem firmware or hardware default).
 
 ## 7. Firmware observations
 
 | Image | ADC content |
 | --- | --- |
-| Preloader | contains the same immediate-conversion routine and charger/battery strings (`[PMIC_PRELOADER][AUXADC] ch=%d raw=%d data=%d`, invalid-channel message); exact channels not decoded |
+| Preloader | ARM32 Thumb-2 image (no AArch64 code) containing the same immediate-conversion routine and charger/battery strings; exact channels not decoded (see open questions) |
 | SCP | no PMIC ADC strings; PWRAP is used for DVFS/clock registers only |
 | ATF/TEE | no PMIC ADC strings |
 | Modem | `l1cal_temperatureADC_T` NVRAM calibration, `+EADC`/`MmiATADC` commands, AP-query diagnostic |
@@ -219,11 +250,19 @@ users of the same PMIC register space.
 
 ## 9. Open questions
 
-1. Which channel the modem ring samples (`RQST1` bit 8 / `0x0100`).
-2. Whether `ADC32` is the THR_MD result or only a snapshot register.
-3. The true channel-2 divider and the mismatch with the datasheet window.
-4. Which channels the preloader requests, and whether it applies any trim.
-5. Whether the `AUTORPT`/`LBAT`/`DET` engines are used anywhere on this product.
+1. Which channels the preloader requests. The image is ARM32 Thumb-2 (no
+   AArch64 `ret` anywhere, 151 Thumb `bx lr`), and its file layout does not map
+   linearly to the runtime addresses: no literal-pool or `adr` reference to the
+   ADC strings resolves under any candidate base. Its messages imply battery
+   voltage, charger voltage and charging current (channels 0, 2 and 1), but
+   that is inference.
+2. Who enables the MDBG detection engine, `AUTORPT0` or `LBAT`: the AP
+   configures only the pointer registers.
+3. Whether `THR_MD` has a dedicated output register distinct from `MDRT`.
+
+Resolved since the first version of this document: the modem ring samples the
+GPS/DCXO crystal temperature (channel 8), `ADC32` is the MDRT result, and the
+channel-2 range is set by the 330/39 kΩ board divider.
 
 ## Evidence index
 

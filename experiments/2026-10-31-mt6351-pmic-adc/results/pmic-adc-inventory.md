@@ -82,9 +82,11 @@ Constants: `VOLTAGE_FULL_RANGE = 1800`, `ADC_PRECISE = 32768` (15-bit),
 | 10-16 | - | raw × 1800 / 4096 | mV |
 
 Datasheet application ranges (`Table 3-4`): 0/1 2.5-4.8 V, 2 0-1.5 V, 3
-0.1-2.7 V, 5 0-1.8 V, 7 0-1.8 V, others internal. The channel-2 vendor scaling
-(1.8 V full scale) and the vendor comment claiming 4-14 V disagree with the
-datasheet window; recorded as unresolved.
+0.1-2.7 V, 5 0-1.8 V, 7 0-1.8 V, others internal. Channel 2 uses the 1.8 V
+converter transfer with a 1.5 V characterised window; the board divider
+(`r_charger_1 = 330`, `r_charger_2 = 39` in `mt6797.dtsi:1042-1043`, 9.46:1)
+sets the 4-14 V range quoted by the vendor comment, and
+`battery_meter_hal.c:1175-1180` restores the pack voltage.
 
 Accuracy (datasheet Table 2-15): 15-bit on `AUXADC_VIN`, 12-bit on the others,
 100 kHz sample rate, offset/gain error ±1 % FS, INL/DNL ±2 LSB.
@@ -134,15 +136,25 @@ The modem firmware consumes it and applies its own NVRAM calibration; the AP can
 query modem ADC values through CCCI RPC (`FEATURE_GET_MD_ADC_NUM`/`_VAL`,
 `eccci/port_rpc.c:71-102`).
 
-`RQST1` is absent from the extractable datasheet register text, so the channel
-selected by command `0x0100` is not established. `ADC32` is the "latest" pointer
-target and is the most plausible THR_MD result, but that is inference.
+`RQST1` uses the same bit-per-channel layout as `RQST0`: the modem helper
+`PMIC_IMM_GetOneChannelValueMD()` (`pmic_auxadc.c:599`) documents channels 0
+(BATSNS), 1 (ISENSE), 4 (PMIC temp), 7 (TSX by MD) and 8 (TSX by GPS), and
+writes `1 << channel` to `AUXADC_RQST1_SET`. Command `0x0100` is therefore
+channel 8, the GPS/DCXO crystal temperature, whose result register is
+`ADC_OUT_CH7_BY_GPS` = `ADC16` — the address the wrapper puts in
+`ADC_RDATA_ADDR`.
+
+`ADC32` is `ADC_OUT_MDRT`/`ADC_RDY_MDRT` (0x0E40), the modem real-time result,
+so `MD_ADC_RDATA_ADDR_LATEST` points at the newest modem sample. `ADC33` is the
+separate `MDBG` debug result (busy bit in `STA1`). `MDBG_0` (0x0F16) holds the
+detection period/enable and `MDBG_1` (0x0F18) the pointer. No built AP file
+enables `MDBG_DET_EN`, `AUTORPT0` or `LBAT`.
 
 ## 7. Firmware strings
 
 | Image | Strings / findings |
 | --- | --- |
-| Preloader `boot0`/`boot1` | `[PMIC_PRELOADER][AUXADC] ch=%d raw=%d data=%d`, `[PMIC_PRELOADER][AUXADC] Invalid channel value(%d,%d)`, charger/battery detection messages; contains the same helper |
+| Preloader `boot0`/`boot1` | ARM32 Thumb-2 image; `[PMIC_PRELOADER][AUXADC] ch=%d raw=%d data=%d`, invalid-channel message, charger/battery detection messages, and its own copy of the helper. No AArch64 `ret` in the whole image; no resolvable literal/`adr` reference to the ADC strings under any candidate base, so channels are not decoded |
 | SCP `scp1`/`scp2` | no PMIC ADC strings; PWRAP used for DVFS/clock only |
 | ATF/TEE `tee1`/`tee2` | no PMIC ADC strings |
 | Modem `md1img`/`md3img` | `l1cal_temperatureADC_T` size check, `+EADC`, `MmiATADC`, `[MMRF_DRDI] AP ADC Query is abnormal` |
@@ -162,8 +174,11 @@ target and is the most plausible THR_MD result, but that is inference.
 ## 9. Limits
 
 - Static reading only; no register was read on hardware.
-- The datasheet register chapter is partly unextractable (tables), so `RQST1`,
-  `CON`, `AUTORPT`, `LBAT` and `DET` semantics are not documented here beyond
-  their existence and the vendor's use of `RQST0`.
-- Channel-2 scaling, the modem channel, `ADC32` semantics and preloader channel
-  choices remain open.
+- The datasheet register chapter is partly unextractable (tables), so `CON`,
+  `AUTORPT`, `LBAT` and `DET` semantics are not documented here beyond their
+  existence and the vendor's use of `RQST0`/`RQST1`.
+- Preloader channel use stays undecoded: the image is ARM32 Thumb-2 and its
+  file layout does not map linearly to runtime addresses.
+- Resolved in this revision: the modem ring channel (8, GPS/DCXO TSX), the
+  `ADC32` meaning (MDRT real-time result), and channel 2 (board divider
+  330/39 kΩ, 1.5 V characterised window).
