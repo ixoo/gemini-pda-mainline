@@ -379,6 +379,8 @@ output 2 at the minimum 3.5 mA current and capped PWM, after an attended Gemian
 visibility check. The exact evidence, safe command composition, and screen-first
 decision are recorded in the
 [screen-marker path selection](../../experiments/2026-07-16-screen-marker-diagnostic/results/display-path-selection-20260716.txt).
+The register file, SRAM instruction protocol, Gemian daemon behavior and
+mainline gap are detailed in [AW9120 indicator LEDs](aw9120-led.md).
 
 The generic camera wrapper labels above are not sensor identities. A read-only
 runtime capture reports `/proc/AEON_CAMERA0=non_sensor` and

@@ -38,6 +38,7 @@ that preceded this table is preserved at
 | 2026-10-31 | [gemini-keyboard-input](2026-10-31-gemini-keyboard-input/README.md) | `completed` | Gemini keyboard input research |
 | 2026-10-31 | [gemini-fuel-gauge](2026-10-31-gemini-fuel-gauge/README.md) | `running` | Gemini fuel gauge |
 | 2026-10-31 | [gemini-charging-chain](2026-10-31-gemini-charging-chain/README.md) | `completed` | Gemini charging logic across the boot chain and kernel |
+| 2026-10-31 | [gemian-aw9120-led](2026-10-31-gemian-aw9120-led/README.md) | `completed` | AW9120 LED controller and Gemian usage |
 | 2026-10-30 | [mt6797-consys-restart](2026-10-30-mt6797-consys-restart/README.md) | `running` | restarting the MT6797 Wi-Fi firmware within one boot |
 | 2026-10-30 | [mainline-dev-station](2026-10-30-mainline-dev-station/README.md) | `running` | a long-running mainline development station |
 | 2026-10-20 | [read-only-diagnostic](2026-10-20-read-only-diagnostic/README.md) | `inconclusive` | Separate read-only diagnostic |
