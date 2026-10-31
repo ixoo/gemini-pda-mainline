@@ -382,6 +382,30 @@ ramoops lines and the known I2C6 guard message.
   - `charge-guard` running at boot, which the station image does not do
     yet.
 
+### Station 11b: `charge-guard` at boot (owner decision, 2026-10-31)
+
+**The change:**
+- the station's inittab respawns `charge-guard -q`, logging to
+  `/run/station/charge-guard.log`;
+- `-q` logs only the passes that act, plus one every 60 passes (10 min);
+- `charge-guard` `b3eb2fb9…`; its host tests are unchanged.
+
+**The image:** the same kernel package (`6ed7637e`, `Image.gz` `993149dc…`)
+with a new RAM root `9cea3734…`: boot2 `86445297…`.
+
+**Effect at boot:**
+- the first pass sets `CHG_CONFIG`, so charging starts within seconds of
+  init instead of after the 40 s watchdog;
+- from then on the 50/47 °C window holds.
+
+**Readings (predeclared):**
+
+| Observation | Reading |
+|---|---|
+| The log's first line shows `action=resume` with REG03 `0x0a`, then one line per 10 min with `none` | The guard runs from boot and ends the handoff's disabled state |
+| The log shows repeated starts | The guard exits; it is respawned, and its exit is the item |
+| No log | inittab did not start it |
+
 ## Step 3 design: a battery-temperature charging stop
 
 The charger cannot see the battery, so the stop needs two things:

@@ -1,6 +1,7 @@
 ::respawn:/bin/usb-ssh
 tty1::respawn:/bin/console-shell
 ::respawn:/bin/lid-guard
+::respawn:/bin/busybox sh -c 'exec /bin/charge-guard -q >>/run/station/charge-guard.log 2>&1'
 ::ctrlaltdel:/bin/busybox true
 ::shutdown:/bin/busybox sync
 ::shutdown:/bin/busybox umount -r /mnt/data

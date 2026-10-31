@@ -6,7 +6,7 @@ Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
 adds the Wi-Fi modules under lib/modules/<release>/ and, from TOOLS, the static
 lid-guard, power-status and charge-guard binaries (built from their .c
-files; charge-guard is not started); gives Fn+B and Fn+N no console action, since lid-guard
+files; inittab starts charge-guard); gives Fn+B and Fn+N no console action, since lid-guard
 uses them for brightness. Writes a newc archive with zero timestamps,
 compressed with gzip -n -9 like the parent.
 

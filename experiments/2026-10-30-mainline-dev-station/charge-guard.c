@@ -15,8 +15,9 @@
  * bootloader's disabled state ends at the first pass rather than at the
  * chip's watchdog. Every other bit of REG03 is written back as read.
  *
- * usage: charge-guard [-n] [-s STOP_DC] [-r RESUME_DC] [-p SECONDS] [-c PASSES]
+ * usage: charge-guard [-n] [-q] [-s STOP_DC] [-r RESUME_DC] [-p SECONDS] [-c PASSES]
  *   -n  dry run: decide and log, never write
+ *   -q  log only the passes that act, plus one every 60 passes
  *   -s/-r  stop and resume thresholds in 0.1 C (default 500 and 470)
  *   -p  seconds between passes (default 10, at most 30)
  *   -c  stop after this many passes (default: run until killed)
@@ -132,12 +133,14 @@ static int open_charger(void)
 
 int main(int argc, char **argv)
 {
-	int dry = 0, stop_dc = 500, resume_dc = 470, period = 10, passes = -1, opt;
+	int dry = 0, quiet = 0, stop_dc = 500, resume_dc = 470, period = 10, passes = -1, opt;
 	int stopped = 0;
+	unsigned long pass = 0;
 
-	while ((opt = getopt(argc, argv, "ns:r:p:c:")) != -1) {
+	while ((opt = getopt(argc, argv, "nqs:r:p:c:")) != -1) {
 		switch (opt) {
 		case 'n': dry = 1; break;
+		case 'q': quiet = 1; break;
 		case 's': stop_dc = atoi(optarg); break;
 		case 'r': resume_dc = atoi(optarg); break;
 		case 'p': period = atoi(optarg); break;
@@ -173,9 +176,11 @@ int main(int argc, char **argv)
 			action = "write-failed";
 		else if (fd >= 0 && reg03 >= 0)
 			stopped = want_stop;
-		printf("t=%ld temp=%d raw=%d reg03=0x%02x action=%s%s\n",
-		       (long)time(NULL), t == INT_MIN ? -9999 : t, raw, reg03 & 0xff,
-		       action, dry && value != reg03 ? " (dry)" : "");
+		if (!quiet || strcmp(action, "none") || pass % 60 == 0)
+			printf("t=%ld temp=%d raw=%d reg03=0x%02x action=%s%s\n",
+			       (long)time(NULL), t == INT_MIN ? -9999 : t, raw, reg03 & 0xff,
+			       action, dry && value != reg03 ? " (dry)" : "");
+		pass++;
 		if (fd >= 0)
 			close(fd);
 		if (passes > 0)
