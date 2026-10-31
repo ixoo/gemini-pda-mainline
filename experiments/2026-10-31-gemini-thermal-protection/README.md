@@ -115,10 +115,16 @@ read, was not read.
 ## What mainline needs (proposal, not admitted)
 
 In order:
-1. **One valid SoC temperature reading.** The
-   [thermal series](../2026-09-04-mt6797-thermal-snapshot/README.md)
-   (0057, 0512-0542) never produced one on the device. Everything below
-   depends on the calibrated conversion.
+1. **The SoC temperature on the station.**
+   - The corrected V4 observer of the
+     [thermal series](../2026-09-04-mt6797-thermal-snapshot/README.md#corrected-v4-runtime-result)
+     (0535-0542) read all seven slots validly on one boot: 34.9-35.4 °C at
+     rest.
+   - Still unresolved: the conversion age and the calibrated accuracy.
+   - The station series carries the sensor driver only up to 0513, so the
+     next step is the V4 reading on the station, as a module, next to a known
+     load.
+   - Everything below depends on the calibrated conversion.
 2. **The 117 °C hardware reset:**
    - program TEMPPROTCTL, TEMPPROTTC and the hot request as the vendor
      does, reading every bank first;
