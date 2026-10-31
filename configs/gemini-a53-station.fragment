@@ -14,6 +14,12 @@ CONFIG_LOG_BUF_SHIFT=20
 CONFIG_POWER_RESET_MT6323=y
 # Read-only charger status through /dev/i2c-N (2026-10-31-gemini-power-status).
 CONFIG_I2C_CHARDEV=y
+# Reviewed device-register reads with busybox devmem
+# (2026-10-31-gemini-thermal-protection). RAM stays off-limits; driver-owned
+# ranges such as TOPRGU stay reachable. Every write needs its own review.
+CONFIG_DEVMEM=y
+CONFIG_STRICT_DEVMEM=y
+# CONFIG_IO_STRICT_DEVMEM is not set
 # With modules on, defconfig's =m options would become modules that nothing
 # loads. Keep each one built in, as in the soak kernel without modules.
 CONFIG_ALTERA_FREEZE_BRIDGE=y
