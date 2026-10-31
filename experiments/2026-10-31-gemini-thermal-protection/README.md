@@ -309,6 +309,37 @@ a C2b charger write.*
 | The state stays `fast` with REG03 bit 4 clear | `CHG_CONFIG` alone does not stop this chip; stop and record |
 | REG03 returns to `0x1a` by itself while held | The watchdog kick does not hold; stop and record |
 
+### Station 11, boot `b4cde2f8…`: S3a, the battery temperature reads
+
+- **Identity:**
+  - release `7.1.3-gemini-a53-station`;
+  - `/run/station/status` shows `thermal=loaded zone=34500` and
+    `battery-adc=loaded`;
+  - `mt6359-auxadc.ko` `78d033bb…`, `charge-guard` `c23f655b…`,
+    `power-status` `d43534da…`.
+- **The driver:** `mt6359-auxadc` probed in 317 µs. IIO device 0 is
+  `MT6351`, with `in_temp0_raw` (labelled `batt_temp`).
+- **Readings at 16-41 s:** `batt_temp` 29.1-29.4 °C (raw 837-843), steady
+  across three `power-status` reads and six `charge-guard` passes. The SoC
+  zone read 32.9 °C.
+- **`charge-guard -n -p 2 -c 6`:** six passes, all `action=none`, and no
+  write.
+- **REG03 changed by itself** during those passes:
+  - it read `0x0a` (`CHG_CONFIG` clear) up to 39 s and `0x1a` at 41 s;
+  - REG0B went from `0x26` (not charging) to `0x36` (fast).
+
+**Reading:**
+- **The first S3a row:** the NTC path works and reads plausibly, a few
+  degrees under the SoC at rest.
+- **Inference:** the bootloader leaves charging disabled (`CHG_CONFIG` = 0)
+  under host mode, and the chip's 40 s I2C watchdog then returns it to its
+  defaults, which charge. That explains the `no`-then-`fast` pattern on
+  every mainline boot so far
+  ([power status record](../2026-10-31-gemini-power-status/README.md)).
+- **It also shows `CHG_CONFIG` = 0 stops charging** on this chip, since the
+  bootloader's own write did. S3b still tests the guard's write and its
+  watchdog kick.
+
 ## Step 3 design: a battery-temperature charging stop
 
 The charger cannot see the battery, so the stop needs two things:
