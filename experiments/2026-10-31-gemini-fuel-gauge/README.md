@@ -186,3 +186,42 @@ write): LK leaves the gauge running.
 | `current_now` negative while the charger reads `fast` | The sign or the power-path wiring differs; the raw `FG_CURRENT_OUT` decides |
 | `capacity` between 85 and 100 at 4.2 V on the charger | The OCV lookup and the I × R correction are plausible; a calibrated capacity needs a full discharge |
 | `-ENODATA`, `-ETIMEDOUT` or no device | `FG_ON`, the latch or the probe order is the item; the log names it |
+
+### Station 13, boot `66b68797…`: the gauge reads, one units bug
+
+- **Identity:**
+  - built at `dad24105` (846 patches, including keyboard 0362-0366), boot2
+    `61b1218e…`;
+  - `mt6351-fuel-gauge` deferred twice, then probed at 1.04 s, after the
+    battery zone;
+  - `/sys/class/power_supply/battery` is present. The power-supply core also
+    registers a `battery` thermal zone from its temperature.
+- **One read with the cable in, the charger `fast` at about 150 mA
+  (REG12 `0x03`):**
+
+  | Property | Gauge | Cross-check |
+  |---|---|---|
+  | `voltage_now` | 4314166 µV | BQ25896 4.32 V |
+  | `temp` | 277 (27.7 °C) | battery zone 27.7 °C, `power-status` 27.8 °C |
+  | `capacity` | 96 | 4.31 V near the top of the 25 °C profile |
+  | `current_now` | 74 | see below |
+  | `charge_counter` | 0 | see below |
+  | `status` | Not charging | the charger reads `fast` |
+  | `charge_full_design` | 4268000 | |
+
+**Reading:**
+- **Voltage, temperature and capacity** match the predeclared rows: within
+  6 mV, within 0.1 °C, and 96 % at 4.31 V on the charger.
+- **The current's sign is right,** positive while charging.
+- **A units bug:** the scale helper already returns µA and µAh, and the
+  callers divided by 1000 again.
+  - So `current_now` read 74 mA as `74`, and `charge_counter` was under
+    1 mAh.
+  - The 20 mA threshold then saw a charging current as idle.
+  - **Fix:** [0373](../../patches/proposals/0373-power-supply-mt6351-fuel-gauge-report-microamps-and-.patch)
+    drops the second division; W=1 is clean.
+  - At 74 mA the I × R correction is about 12 mV, under 1 % of capacity,
+    so the capacity above stands.
+- **74 mA from the gauge against about 150 mA from the charger's ICHG:**
+  the charger's 50 mA steps, and the system load drawn through the power
+  path, make an exact match unlikely. This is not resolved.

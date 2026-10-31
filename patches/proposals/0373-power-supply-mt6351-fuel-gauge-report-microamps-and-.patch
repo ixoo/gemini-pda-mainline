@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:28:01 -0400
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: report microamps and
+ microamp-hours
+
+The scale helper already turns the nA and nAh per-count units into uA and
+uAh; the callers divided by 1000 again, so current_now and charge_counter
+read in mA and mAh and the status thresholds never met a charging current.
+Station 13 read current_now 74 (74 mA) and status Not charging while the
+charger charged. Drop the second division.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 3ba4fdaed..36e347e37 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -59,7 +59,10 @@ struct mt6351_fg {
+ 	u32 resistance_mohm;
+ };
+ 
+-/* Scale a raw FGADC count for this board's sense resistor and CAR tune. */
++/*
++ * Scale a raw FGADC count in nA (or nAh) per count to uA (or uAh), for this
++ * board's sense resistor and CAR tune.
++ */
+ static s64 mt6351_fg_scale(struct mt6351_fg *fg, s64 count, s64 unit)
+ {
+ 	return div_s64(count * unit * MT6351_FG_SENSE_BASE_MOHM * fg->car_tune,
+@@ -111,7 +114,7 @@ static int mt6351_fg_read(struct mt6351_fg *fg, int *current_ua, int *charge_uah
+ 
+ 	/* A 16-bit sign-magnitude-like code: above 32767 is discharge. */
+ 	count = cur > 32767 ? -(s64)(65535 - cur) : (s64)cur;
+-	*current_ua = mt6351_fg_scale(fg, count, MT6351_FG_CURRENT_NA) / 1000;
++	*current_ua = mt6351_fg_scale(fg, count, MT6351_FG_CURRENT_NA);
+ 
+ 	/*
+ 	 * The vendor's 17-bit slice of the 35-bit counter, with the sign in
+@@ -124,7 +127,7 @@ static int mt6351_fg_read(struct mt6351_fg *fg, int *current_ua, int *charge_uah
+ 		count = -(s64)(0x1ffff - raw);
+ 	else
+ 		count = raw;
+-	*charge_uah = mt6351_fg_scale(fg, count, MT6351_FG_CHARGE_NAH) / 1000;
++	*charge_uah = mt6351_fg_scale(fg, count, MT6351_FG_CHARGE_NAH);
+ 
+ 	return 0;
+ }
+-- 
+2.43.0
+
