@@ -1,0 +1,31 @@
+From 42fc44a241ea41c4bb4ddc2f8818a8320e9cf921 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 07:29:58 -0400
+Subject: [PATCH] dt-bindings: mfd: mediatek: mt6397: add MT6351 power
+ controller
+
+The MT6351 PMIC powers the system off through the same RTC BBPU
+register as the MT6323, at its own RTC base. Allow its power
+controller node.
+---
+ Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml b/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml
+index d635ac718..a247dc007 100644
+--- a/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml
++++ b/Documentation/devicetree/bindings/mfd/mediatek,mt6397.yaml
+@@ -217,7 +217,9 @@ properties:
+ 
+     properties:
+       compatible:
+-        const: mediatek,mt6323-pwrc
++        enum:
++          - mediatek,mt6323-pwrc
++          - mediatek,mt6351-pwrc
+ 
+       '#power-domain-cells':
+         const: 0
+-- 
+2.43.0
+

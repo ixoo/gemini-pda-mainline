@@ -1,0 +1,119 @@
+From 4d43a87de02cdf7ef43be860db355fab1c2e2d7f Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 07:29:58 -0400
+Subject: [PATCH] power: reset: mt6323-poweroff: support the MT6351 PMIC
+
+The MT6797 vendor kernel powers off through the MT6351 RTC, not PSCI:
+it clears the RTC's two-second reboot (AL_SEC bits 8 and 6), then
+writes BBPU with the key, AUTO and PWREN (0x4309), leaving the BBPU
+power bit clear, and triggers each write. Mainline instead falls back
+to PSCI SYSTEM_OFF, a path the vendor kernel never takes on this SoC.
+
+Add per-compatible data and an MT6351 entry with the vendor's sequence.
+PWREN stays set so an RTC alarm can still power the system on. The
+MT6323 write is unchanged.
+---
+ drivers/power/reset/mt6323-poweroff.c | 58 +++++++++++++++++++++++----
+ 1 file changed, 51 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/power/reset/mt6323-poweroff.c b/drivers/power/reset/mt6323-poweroff.c
+index c66334754..ff259c0d5 100644
+--- a/drivers/power/reset/mt6323-poweroff.c
++++ b/drivers/power/reset/mt6323-poweroff.c
+@@ -16,26 +16,52 @@
+ #include <linux/mfd/mt6397/rtc.h>
+ #include <linux/reboot.h>
+ 
++#define RTC_AL_SEC_2SEC_EN		BIT(8)
++#define RTC_AL_SEC_AUTO_PDN_SEL		BIT(6)
++#define RTC_BBPU_PWREN			BIT(0)
++#define RTC_BBPU_AUTO			BIT(3)
++
++struct mt6323_pwrc_data {
++	/* The BBPU value written to power down; BBPU bit 2 stays clear. */
++	u16 bbpu;
++	/* Clear the RTC's two-second reboot first. */
++	bool clear_2sec_reboot;
++};
++
+ struct mt6323_pwrc {
+ 	struct device *dev;
+ 	struct regmap *regmap;
++	const struct mt6323_pwrc_data *data;
+ 	u32 base;
+ };
+ 
+-static int mt6323_do_pwroff(struct sys_off_data *data)
++static int mt6323_pwrc_trigger(struct mt6323_pwrc *pwrc)
+ {
+-	struct mt6323_pwrc *pwrc = data->cb_data;
+ 	unsigned int val;
+-	int ret;
+ 
+-	regmap_write(pwrc->regmap, pwrc->base + RTC_BBPU, RTC_BBPU_KEY);
+ 	regmap_write(pwrc->regmap, pwrc->base + RTC_WRTGR_MT6323, 1);
+-
+-	ret = regmap_read_poll_timeout(pwrc->regmap,
++	return regmap_read_poll_timeout(pwrc->regmap,
+ 					pwrc->base + RTC_BBPU, val,
+ 					!(val & RTC_BBPU_CBUSY),
+ 					MTK_RTC_POLL_DELAY_US,
+ 					MTK_RTC_POLL_TIMEOUT);
++}
++
++static int mt6323_do_pwroff(struct sys_off_data *data)
++{
++	struct mt6323_pwrc *pwrc = data->cb_data;
++	int ret;
++
++	if (pwrc->data->clear_2sec_reboot) {
++		regmap_clear_bits(pwrc->regmap, pwrc->base + RTC_AL_SEC,
++				  RTC_AL_SEC_2SEC_EN | RTC_AL_SEC_AUTO_PDN_SEL);
++		ret = mt6323_pwrc_trigger(pwrc);
++		if (ret)
++			dev_err(pwrc->dev, "failed to write AL_SEC: %d\n", ret);
++	}
++
++	regmap_write(pwrc->regmap, pwrc->base + RTC_BBPU, pwrc->data->bbpu);
++	ret = mt6323_pwrc_trigger(pwrc);
+ 	if (ret)
+ 		dev_err(pwrc->dev, "failed to write BBPU: %d\n", ret);
+ 
+@@ -65,6 +91,9 @@ static int mt6323_pwrc_probe(struct platform_device *pdev)
+ 	pwrc->base = res->start;
+ 	pwrc->regmap = mt6397_chip->regmap;
+ 	pwrc->dev = &pdev->dev;
++	pwrc->data = of_device_get_match_data(&pdev->dev);
++	if (!pwrc->data)
++		return -EINVAL;
+ 
+ 	ret = devm_register_sys_off_handler(pwrc->dev,
+ 					    SYS_OFF_MODE_POWER_OFF,
+@@ -77,8 +106,23 @@ static int mt6323_pwrc_probe(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
++static const struct mt6323_pwrc_data mt6323_pwrc_data = {
++	.bbpu = RTC_BBPU_KEY,
++};
++
++/*
++ * As the MT6797 vendor kernel powers off: the two-second reboot cleared,
++ * then BBPU written with AUTO and PWREN kept, so an RTC alarm can still
++ * power the system on.
++ */
++static const struct mt6323_pwrc_data mt6351_pwrc_data = {
++	.bbpu = RTC_BBPU_KEY | RTC_BBPU_AUTO | RTC_BBPU_PWREN,
++	.clear_2sec_reboot = true,
++};
++
+ static const struct of_device_id mt6323_pwrc_dt_match[] = {
+-	{ .compatible = "mediatek,mt6323-pwrc" },
++	{ .compatible = "mediatek,mt6323-pwrc", .data = &mt6323_pwrc_data },
++	{ .compatible = "mediatek,mt6351-pwrc", .data = &mt6351_pwrc_data },
+ 	{},
+ };
+ MODULE_DEVICE_TABLE(of, mt6323_pwrc_dt_match);
+-- 
+2.43.0
+

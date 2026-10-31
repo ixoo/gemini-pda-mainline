@@ -471,6 +471,51 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Limit:** the boot's command sequences still run out after about 250
   commands (about 22 per lifetime, so roughly ten lifetimes).
 
+**Power-off like Gemian: proposals 0342 to 0345, for station 7.**
+- **Problem:** the station powers off through PSCI `SYSTEM_OFF` into the
+  retained ATF. The owner observed that the resulting off state is not the
+  one Gemian's shutdown leaves.
+- **Gemian's path:** the vendor kernel never takes the PSCI path on MT6797
+  ([PMIC findings F19 to F21](../2026-10-04-gemini-pmic-basics-re/README.md#restart-and-power-off)).
+  Its `mt_power_off()`:
+  1. clears the RTC two-second reboot (AL_SEC bits 8 and 6);
+  2. without a charger only, sets the 32 kHz export off and drives
+     `SRCLKEN` low;
+  3. writes `BBPU = 0x4309` (key, AUTO and PWREN, power bit clear) and
+     triggers it;
+  4. with a charger, if still running after about 1.1 s, restarts
+     through the watchdog without the reboot flag, which LK takes as a
+     charging start.
+- **The change:**
+  - 0342: the binding.
+  - 0343: an MT6351 power-controller cell at the RTC base `0x4000`.
+  - 0344: an MT6351 entry in mainline's `mt6323-poweroff` driver, doing
+    steps 1 and 3.
+  - 0345: the DT node.
+  - The station profile enables `CONFIG_POWER_RESET_MT6323`.
+  - Steps 2 and 4 are not included. If the PMIC stays up after the
+    write, the driver waits 1 s, warns `Unable to power off system` on
+    the console, and the PSCI path runs as before.
+- **VM checks:**
+  - W=1 is clean for the driver and MFD, and the station image links;
+  - the binding passes `dt_binding_check`;
+  - the station DTB carries the node;
+  - checkpatch reports only the absent Signed-off-by, which is never
+    invented here.
+- **Not run on the device.**
+- **Device test, predeclared:** two power-offs on station 7. The owner
+  watches the screen, and the PMIC write is Gemian's own shutdown write.
+  - **A, cable detached:** `sleep 20; poweroff` started over SSH, then the
+    cable is unplugged.
+  - **B, cable attached:** a plain `poweroff`.
+
+  | Observation | Reading |
+  |---|---|
+  | A: off, the power key boots normally | The PMIC write powers off without a charger, as Gemian |
+  | B: charging screen, as after a Gemian shutdown | With a charger, the PMIC re-powers into charging mode by itself; no restart step is needed |
+  | B: `Unable to power off system` on the console, then the old off state | The charger holds the PMIC on; Gemian's watchdog restart (step 4) is needed next |
+  | Either: an immediate reboot into the system | The two-second reboot or AUTO behaves differently; stop and record |
+
 **Station 6, boot `967d17be…`: the R1 stop works (0341).** One cycle as
 before (3 BSS), then the stop: WLAN_READY cleared, FW own was taken,
 VCN33-WIFI went off, and a later `insmod mac` was refused with

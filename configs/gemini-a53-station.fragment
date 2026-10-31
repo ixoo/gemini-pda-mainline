@@ -7,6 +7,8 @@ CONFIG_MODULE_UNLOAD=y
 CONFIG_MT6797_MAC80211=m
 CONFIG_LOCALVERSION="-gemini-a53-station"
 CONFIG_LOG_BUF_SHIFT=20
+# Power off through the MT6351 RTC, as Gemian does (0342-0345), not PSCI.
+CONFIG_POWER_RESET_MT6323=y
 # With modules on, defconfig's =m options would become modules that nothing
 # loads. Keep each one built in, as in the soak kernel without modules.
 CONFIG_ALTERA_FREEZE_BRIDGE=y

@@ -806,3 +806,7 @@ proposals/0338-wifi-mt6797-build-the-mac80211-layer-as-a-loadable-m.patch
 proposals/0339-wifi-mt6797-detach-the-mac80211-layer-on-module-unl.patch
 proposals/0340-wifi-mt6797-re-attach-the-mac80211-layer-to-the-conf.patch
 proposals/0341-wifi-mt6797-stop-the-WLAN-firmware-on-request-restar.patch
+proposals/0342-dt-bindings-mfd-mediatek-mt6397-add-MT6351-power-con.patch
+proposals/0343-mfd-mt6397-add-the-MT6351-power-controller-cell.patch
+proposals/0344-power-reset-mt6323-poweroff-support-the-MT6351-PMIC.patch
+proposals/0345-arm64-dts-mediatek-mt6797-add-the-MT6351-power-contr.patch

@@ -1,0 +1,30 @@
+From d8bbcf0d0dbeab3b75b5505587b1430ae350c8e6 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 07:29:58 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add the MT6351 power controller
+
+Describe the MT6351 power controller so the system powers off through
+the PMIC RTC, as the vendor kernel does, rather than PSCI.
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 15a92c42e..adc32da1c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -443,6 +443,11 @@ mt6351regulator: regulators {
+ 			rtc {
+ 				compatible = "mediatek,mt6351-rtc";
+ 			};
++
++			power-controller {
++				compatible = "mediatek,mt6351-pwrc";
++				#power-domain-cells = <0>;
++			};
+ 		};
+ 	};
+ 
+-- 
+2.43.0
+
