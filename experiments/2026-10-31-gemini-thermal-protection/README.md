@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: steps 1 and 2 implemented for station 10, not run; step 3 designed |
+| Status | `running`: steps 1 and 2 work on station 10 (temperature live, 117 °C reset armed, untriggered); step 3 designed |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -157,6 +157,76 @@ Not run on the device.
 | The zone reads, but `not armed` names a bank | Protection rests on the software trip; that bank's reading is the item |
 | `MT6797 transaction failed` or no valid first sample | No temperature; the station runs as before, and the log names the step |
 | An unexpected reset shortly after the load | A false hot request: boot without the module, and record it |
+
+## Station 10, boot `e7139954…`: temperature live, reset armed
+
+**Identity:**
+- boot2 `862af578…`, release `7.1.3-gemini-a53-station`, 8 CPUs, data
+  partition mounted;
+- modules match the package: `auxadc_thermal` `4a92c807…`, `mac`
+  `b0a49e5c…`, CONSYS `72147b51…`, core `fbb2407b…`.
+
+**Thermal at boot:** `/run/station/status` reported
+`thermal=loaded zone=33900`, and the driver logged:
+
+> `hardware thermal reset armed at 117000 mC: raw 2759/2737/2742/2742/2742/2742, REQ_MODE=0x003c0003 REQ_IRQ_EN=0x00300004`
+
+- **The zone:** `soc-thermal`, enabled, read 33.5 °C, with its hot (95 °C)
+  and critical (110 °C) trips.
+- **The raw codes:** banks 2-5 share sensor MCU2, so they carry the same
+  code.
+
+**TOPRGU, read with `devmem` after the arm:**
+
+| Register | Value | Decoded |
+|---|---|---|
+| `WDT_MODE` `0x10007000` | `0x00000015` | enabled, external reset, auto-start |
+| `WDT_STATUS` `0x1000700c` | `0x00000000` | no thermal (or other) reset recorded |
+| `REQ_MODE` `0x10007030` | `0x003c0003` | bit 18 (thermal, set by 0354), plus bits 0, 1 and 19-21 |
+| `REQ_IRQ_EN` `0x10007034` | `0x00300004` | bit 18 clear: a thermal request resets the chip |
+
+- **Deviation from the predeclared read:** the station's init loads the
+  driver before any SSH command, so the registers were read after the arm,
+  not before it.
+- **What that leaves unknown:**
+  - whether the bootloader had already set bit 18 (0354 ORs it in);
+  - who set bits 0 (SPM thermal), 1 (SPM/SCPSYS) and 19-21, which were not
+    written here and must come from before Linux. Bit 0's interrupt bit is
+    clear, so an SPM thermal request would also reset.
+- **The watchdog runs** (`WDT_MODE` bit 0), which the reset route needs.
+
+**Wi-Fi:** joined from the image's own modules (no SSH copy), with a lease
+and 3 of 3 gateway pings.
+
+**Bounded load** (Wi-Fi connected, 8 busy loops for 180 s, a reading every
+5 s, a stop at 80 °C):
+
+| Time | Temperature |
+|---|---|
+| rest | 34.5 °C |
+| 15 s | 47.6 °C |
+| 60 s | 49.5 °C |
+| 120 s | 50.9 °C |
+| 180 s | 51.7 °C (load stopped by time) |
+| 10 s after | 37.6 °C |
+| 60 s after | 35.9 °C |
+
+No trip fired, no reset occurred, and the station stayed up with Wi-Fi
+connected.
+
+**Readings:**
+- **The first predeclared row:** steps 1 and 2 are in place. The reset is
+  armed, and the arm itself raised no false request.
+- **The readings are live:** they respond within one 5-10 s sample, rising
+  13 °C in 15 s and falling 14 °C in 10 s. That rules out the stale-value
+  worry for this use, though it does not measure conversion age.
+- **About 52 °C after 3 minutes of full A53 load** at a fixed frequency,
+  far below the 95 °C hot trip. Accuracy against a reference thermometer is
+  still unmeasured.
+- **Not tested, on purpose:**
+  - whether the 117 °C reset fires;
+  - whether the 110 °C critical trip powers off.
+  Both would need the SoC heated to those temperatures.
 
 ## Step 3 design: a battery-temperature charging stop (not implemented)
 
