@@ -57,49 +57,62 @@ anchor values are recorded.
 
 Decisive observations:
 
-1. The gauge is the MT6351 FGADC: 16-bit, 1/16 s, ±60 mV, with a 35-bit charge
-   counter (`FG_CAR`) and a 33-bit charge-time counter (`FG_NTER`), read with a
-   latch transaction through `FGADC_CON0`.
-2. Current uses a 158.122 µA LSB for a 20 mΩ base, rescaled by
-   `20 / R_FG_VALUE` (×2 on this 10 mΩ board) and by `CAR_TUNE / 100`.
-3. Qmax is interpolated across temperature anchors and corrected by an aging
-   table; OCV is a four-profile, 82-point table with ZCV tracking.
-4. The kernel persists a coarse SOC in the RTC spare byte; LK clears that byte
-   when entering a low-battery charging cycle instead of storing its own.
-5. LK applies the factory per-chip gain trim from the undocumented
-   `0xCB8[11:7]`; the kernel hard-codes the neutral trim, and LK's
-   `CAR_TUNE = 86` differs from the kernel DT's 118.
-6. Battery temperature is the PMIC `BATON` NTC, not a gauge sensor; shutdown
-   and wake thresholds come from the board DT.
-7. Upstream has no MT6351 gauge driver; the closest power-supply drivers cover
+1. The gauge is the MT6351 FGADC: 16-bit, 1/16 s, ±60 mV, with a charge
+   counter read as a 17-bit slice plus a sign bit and 0/0x1ffff sentinels; each
+   count is ~44.98 µAh after the OSR-8 division.
+2. The **SOC estimator is userspace**: `fuelgauged`/`libfgauge.so` writes SOC,
+   UI SOC, DOD, Rbat and Qmax over `NETLINK_FGD`, and the kernel republishes
+   `UI_SOC2` as capacity. The in-kernel Qmax interpolator has no caller.
+3. The published pack voltage is a table lookup at the reported SOC
+   (`MTK_POWER_SMOOTH_SUPPORT`), not the ADC reading; UI-SOC smoothing is
+   compiled out.
+4. The battery DT parser is disabled and its checks are inverted, so the
+   effective calibration is the header set: `CAR_TUNE 115`,
+   `FG_METER_RESISTANCE 75`, NTC pull-up 2800 mV, ~96-point OCV tables — not
+   the DT's 118/0/1800/82.
+5. With `SWCHR_POWER_PATH` the ADC reads are swapped: the kernel's "battery
+   voltage" comes from `ISENSE` (channel 1), not `BATSNS`.
+6. Current uses a separate 158.122 µA LSB for `FG_CURRENT_OUT`, rescaled by
+   `20/R_FG` (×2 on 10 mΩ) and `CAR_TUNE`; LK applies the factory per-chip
+   trim from undocumented `0xCB8[11:7]` while the kernel hard-codes neutral,
+   and LK uses `CAR_TUNE 86`.
+7. The kernel persists a coarse SOC in the RTC spare byte; LK clears it on a
+   low-battery charging recovery and never seeds SOC itself.
+8. No kernel SOC shutdown and no `bat_low` flag: shutdown thresholds and the
+   PMIC low-battery path are userspace/unimplemented.
+9. Upstream has no MT6351 gauge driver; the closest power-supply drivers cover
    other PMIC families.
 
 ## Analysis
 
-The measurement chain is conventional coulomb counting anchored by an OCV
-profile, but the product depends heavily on vendor calibration: the OCV
-profiles, Qmax tables, aging curve and per-chip trim are the actual model, and
-none of them is a portable hardware constant. The LK/kernel divergence is the
-most concrete finding: the same physical current is scaled differently in the
-two stages, and the factory trim is applied only in the bootloader. That is
-consistent with the bootloader using its own conservative charge decisions and
-the kernel relying on its own `CAR_TUNE`; it also means any mainline gauge
-should not blindly copy either constant.
+The hardware is conventional coulomb counting anchored by an OCV profile, but
+the *model* is not in the kernel: a proprietary userspace daemon owns SOC,
+Qmax and Rbat, and the kernel is a hardware accessor and publisher. That
+changes what a mainline implementation would replace: not just a driver, but
+the estimator and its OCV/Qmax tables.
+
+Two source defects dominate the calibration picture: the battery DT parser is
+disabled and inverted (so board values lost to header defaults), and the
+factory per-chip trim is applied only by the bootloader. The LK/kernel
+`CAR_TUNE` split (86 vs 115) is a third disagreement. Any mainline gauge
+should pick one calibration path deliberately rather than copying either.
 
 The RTC spare handoff is one-way in the bootloader (clear on recovery) and
-kernel-owned otherwise, so a reboot without charging preserves the coarse SOC
-but a low-battery recovery intentionally invalidates it.
+daemon-owned otherwise, so a normal reboot preserves the coarse SOC while a
+low-battery charging recovery intentionally invalidates it.
 
 ## Conclusion
 
-`confirmed`, scoped to the vendor tree, LK tree, datasheet and retained logs:
-the FGADC register model, counter read path and units, the Qmax/OCV/aging
-structure, the RTC persistence split, the per-chip trim divergence and the
-absence of an upstream driver.
+`confirmed`, scoped to the vendor tree, LK tree, datasheet, vendor userspace
+identities and retained logs: the counter model and units, the userspace
+estimator and netlink split, the table-lookup voltage publication, the DT
+parser defect, the ADC channel swap, the per-chip trim and CAR_TUNE
+divergences, the RTC persistence split and the absence of an upstream driver.
 
-Not established: the counter's absolute/wrap behaviour by measurement, the
-true encoding of the undocumented trim register, the origin/rights of the OCV
-profiles, and whether the LK/kernel tune difference is intentional.
+Not established: the estimators inside `fuelgauged`/`libfgauge.so`, the
+counter's absolute/wrap behaviour by measurement, the trim encoding, the
+origin/rights of the OCV tables, and whether any of the calibration splits are
+intentional.
 
 ## Follow-up
 

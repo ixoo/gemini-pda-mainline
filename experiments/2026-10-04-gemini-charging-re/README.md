@@ -273,6 +273,11 @@ marked as such.
   `FG_METER_RESISTANCE 75`, `mt_battery_meter.h` lines 40, 74–84). A 10 mΩ
   battery sense resistor with an 18 % software gain correction is the
   vendor's own model; it is not a measured fact about this unit.
+  *Correction (2026-10-31):* the gauge DT parser is disabled and inverted, so
+  these DT values do not reach the running kernel; the effective values are
+  the header defaults `CAR_TUNE_VALUE 115`, `FG_METER_RESISTANCE 75`, and a
+  2800 mV NTC pull-up. See the
+  [fuel-gauge record](../2026-10-31-gemini-fuel-gauge/README.md).
 - **F17. Battery voltage uses PMIC AUXADC channel 0 (`BATSNS`), 15-bit,
   ratio 3 (5.4 V full scale); charge current uses channel 1 (`ISENSE`), same
   scale.** Channel table and ratios at
@@ -284,6 +289,9 @@ marked as such.
   ([`pmic_irq.c` lines 358–360](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/pmic_irq.c#L358-L360)).
   Boot-time OCV comes from `AUXADC_ADC_OUT_WAKEUP_PCHR`/`SWCHR`
   (`AUXADC_ADC20`/`ADC21`, `battery_meter_hal.c` lines 195–225).
+  *Correction (2026-10-31):* with `SWCHR_POWER_PATH` (this BQ25896 build) the
+  two reads are swapped — the kernel's "battery voltage" call uses `ISENSE`
+  (channel 1) and the current call uses `BATSNS` (channel 0).
 - **F18. Battery temperature uses PMIC AUXADC channel 3 (`BATON`), 12-bit,
   ratio 2, with `BATON_TDET_EN`/`RG_BATON_EN` enabled, converted through a
   pull-up model and an NTC table.** `read_adc_v_bat_temp()` reads
@@ -300,6 +308,9 @@ marked as such.
   stock kernel does measure temperature. Charging stops outside 0–50 °C
   (DT lines 1004–1007). Note the BQ25896 `TS` pin is **not** the vendor's
   temperature source; the charger HAL only sets JEITA register fields (F11).
+  *Correction (2026-10-31):* the NTC pull-up that actually applies is the
+  header 2800 mV, not the DT's 1800 mV, and a `BATON` reading above 2600 mV
+  forces 20 °C without consulting the NTC table.
 - **F19. The battery profile is a four-temperature, 82-point OCV/capacity
   table with `q_max_pos_25 = 2707` mAh (public DT lines 1052 and 1129
   onward).** The roadmap's rule stands: these tables are the vendor's
@@ -308,6 +319,9 @@ marked as such.
   temperature) is recorded here because it maps onto the mainline
   `monitored-battery` schema (`ocv-capacity-table-*`, `charge-full-design-microamp-hours`,
   `resistance-temp-table`; `battery.yaml` in the pinned tree).
+  *Correction (2026-10-31):* the gauge DT parser is disabled, so the effective
+  OCV tables are the header's ~96-point profiles, not the DT's 82-point ones;
+  the SOC estimator itself runs in the vendor userspace daemon.
 
 ### Mainline 7.1.3 and this repository
 

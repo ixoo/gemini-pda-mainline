@@ -1,113 +1,138 @@
 # Fuel-gauge inventory
 
-Scope: the MT6351 FGADC and the vendor HAFG_20 algorithm on the named Gemini
-PDA. Vendor paths are relative to commit `8cfe6596`; LK paths to `f4988d74`.
-The hardware identity and basic register configuration are already in the
+Scope: the MT6351 FGADC and the vendor gauge layer on the named Gemini PDA.
+Vendor paths are relative to commit `8cfe6596`; LK paths to `f4988d74`. The
+identity and basic register set are in the
 [2026-10-04 charging record](../../2026-10-04-gemini-charging-re/README.md)
-(F15-F19); this file adds the counter read path, the algorithm structure, the
-calibration divergence and the boot-chain behaviour.
+(F15-F19); this file records the counter model, where the estimator actually
+runs, the calibration that reaches the hardware, and the persistence split.
 
 ## 1. Hardware
 
 Datasheet (MT6351 v12 table 2-16, section 3.2.10): 16-bit output, 1/16 s
 conversion, over-sampling 2^11-2^18, input ±60 mV, 2.8 V supply, gain error
-±2 %, accuracy 0.03 %.
+±2 %, accuracy 0.03 %. The driver uses `FG_OSR = 8`.
 
 | Offset | Register | Contents |
 | --- | --- | --- |
-| `0x0CA4` | `FGADC_CON0` | enable/calibration/read control; latch status bit 10; clear |
-| `0x0CA6`-`0x0CAA` | `CON1`-`CON3` | `FG_CAR[34:19]`, `[18:3]`, `[2:0]` (35-bit charge) |
-| `0x0CAC`-`0x0CB0` | `CON4`-`CON6` | `FG_NTER[32:17]`, `[16:1]`, `[0]` (33-bit charge time) |
+| `0x0CA4` | `FGADC_CON0` | enable/calibration/latch control; status bit 10; clear |
+| `0x0CA6`-`0x0CAA` | `CON1`-`CON3` | `FG_CAR[34:19]`, `[18:3]`, `[2:0]` |
+| `0x0CAC`-`0x0CB0` | `CON4`-`CON6` | `FG_NTER[32:17]`, `[16:1]`, `[0]` |
 | `0x0CBA` | `CON11` | `FG_CURRENT_OUT[15:0]` |
 | `0x0CC2` | `CON15` | OSR/filter control |
-| `0x0CD6` | `CON25` | `FG_R_CURR` (resistance/IM path) |
-| `0x0CB8` | undocumented | per-chip gain trim at bits 11:7 (used by LK only) |
-| `0x02D4`/`0x02E6` | `FG_BAT_H/L` enable/status | battery voltage comparator interrupts |
+| `0x0CD6` | `CON25` | `FG_R_CURR` |
+| `0x0CB8` | undocumented | per-chip gain trim at bits 11:7 |
+| `0x02D4`/`0x02E6` | `FG_BAT_H/L` | battery voltage comparator interrupts |
 
-Reading is a latched transaction: write the read command to `FGADC_CON0`, poll
-the latch status, read the counter/current registers, clear the latch. LK
-implements exactly this sequence (`lk/platform/mt6797/mt_battery.c:685-760`).
+## 2. Counter model and units
 
-## 2. Counter and current read path
+The driver does not read a plain 35-bit number. It builds a 17-bit slice and
+takes the sign from `FG_CAR[34:19]` bit 15 (`battery_meter_hal.c:930-934`):
 
-- LSB: `UNIT_FGCURRENT = 158.122 µA` for a 20 mΩ sense base
-  (`battery_meter_hal.c:36`), rescaled by `20 / R_FG_VALUE` and then by
-  `CAR_TUNE_VALUE / 100`. With the board's 10 mΩ resistor the first factor is
-  ×2.
-- Sign: a 16-bit value above 32767 is negative (`LK:733-745`).
-- Kernel counter read: `battery_meter_get_car()` issues
-  `BATTERY_METER_CMD_GET_HW_FG_CAR_ACT` and rounds the result by 10
-  (`battery_meter_fg_20.c:2231-2248`); the HAL performs the latched register
-  access.
-- Instantaneous current: `FG_CURRENT_OUT` through the same latch, with the
-  charge/discharge sign reported separately
-  (`battery_meter_get_battery_current_sign`).
+```
+raw   = (FG_CAR[18:3] >> 11) | ((FG_CAR[34:19] & 0xFFF) << 5)
+zero  if raw == 0 or raw == 0x1ffff
+value = raw, or (0x1ffff - raw) when the sign bit says discharging
+```
 
-## 3. Qmax, OCV and aging
+Scale chain (`battery_meter_hal.c:995-1050`):
 
-- **Qmax** is interpolated over four temperature anchors: below 0 °C between
-  `Q_MAX_NEG_10` and `Q_MAX_POS_0`, then 0→25 °C and 25→50 °C
-  (`fgauge_get_Q_max`, `:1534-1596`). A high-current variant uses the
-  `_h_current` table entries. The board DT gives `q_max_pos_25 = 2707` mAh and
-  the anchors at `temperature_t0..t3` = 110/0/25/50 (the first is an invalid
-  marker; the effective cold anchor is −10 °C).
-- **OCV/ZCV** is a four-profile, 82-point table (one profile per anchor
-  temperature). `fgauge_read_v_by_capacity()` and
-  `fgauge_read_capacity_by_v()` interpolate between adjacent points
-  (`:2312-2394`); out-of-range inputs clamp to 3700 mV or 100 %.
-- **Tracking**: `gFG_voltage` is the ZCV, `gFG_15_vlot` the 15 % ZCV used for
-  tracking, and `g_tracking_point` the capacity tracking point
-  (`battery_meter_get_battery_zcv`, `_nPercent_zcv`, `_nPercent_UI_SOC`).
-- **Aging**: `get_battery_aging_factor(cycle)` interpolates a
-  `battery_aging_table` (cycle → factor, 100 = new) and the cycle counter is
-  exposed through a `FG_Battery_Cycle` sysfs attribute (`:2659-2697`,
-  `:2698-2740`). The algorithm enabling flag and load/update SOC thresholds
-  come from the DT (`mtk_enable_aging_algorithm`, `aging1_load_soc`,
-  `aging1_update_soc`, `aging_tuning_value`).
-- **Smoothing**: `battery_meter_smooth_uisoc2()` filters the second UI SOC
-  (`:2529-2585`), which is what the periodic log prints as the three-value
-  `SOC a:b:c` field.
+```
+counts = value * 35986 / 10 / 10          /* 359.86 µAh per count */
+counts = counts / 8                       /* FG_OSR = 8 -> ~44.98 µAh/count */
+counts = counts * 20 / r_fg_value         /* x2 on the 10 mOhm board */
+counts = counts * car_tune_value / 100
+counts = counts * chip_trim / 1000        /* kernel forces 1000 */
+```
 
-## 4. Initialisation and persistence
+`precise = 0` returns mAh, `precise = 1` deci-mAh. The maximum magnitude is
+about 2.95 Ah. The counter free-runs and is cleared only by an explicit
+hardware reset (`fgauge_hw_reset`), not by reads; reads pulse the software
+latch. Sampling is the 10 s battery task plus daemon requests and the PMIC
+`FG_BAT_H/L` wake in suspend.
 
-- `battery_meter_initial()` runs the hardware FG init, then
-  `wakeup_fg_algo(FG_MAIN)`; if the work queue is not up it falls back to
-  `fgauge_algo_run_get_init_data()` (`:2394-2432`). `SOC_BY_HW_FG` is defined,
-  so the hardware counter is the primary source.
-- The first reading establishes `gFG_voltage_init`, `gFG_current_init` and
-  `gFG_Is_Charging_init` (the retained logs show these values).
-- The kernel stores a coarse SOC in the RTC spare FG byte and reads it back on
-  the next boot (`get/set_rtc_spare_fg_value`, `:4192`, `:4532`, `:4732`).
-- LK does not store SOC; it clears the spare byte when entering a low-battery
-  charging cycle (`lk_set_rtc_to_zero()`, `LK:275-283`), so a stale value does
-  not survive a charger-assisted recovery.
+The instantaneous current is a separate register: `FG_CURRENT_OUT` uses a
+**158.122 µA LSB** for a 20 mΩ base (`battery_meter_hal.c:36`), with the same
+rescaling. That LSB does not apply to the counter.
 
-## 5. Calibration and the LK/kernel divergence
+## 3. Where the estimator runs
 
-- The FGADC has a factory per-chip gain trim in the undocumented register
-  `0xCB8[11:7]`, mapping to factors 1000…1081 and 995/990 for the top codes
-  (`battery_meter_hal.c:61-130`, `LK:539-650`).
-- **LK applies it** (`fgauge_read_current`, `:733-780`); the **kernel does
-  not**: `chip_diff_trim_value_4_0` is hard-coded to 0, which selects the
-  neutral 1000 (`battery_meter_hal.c:67-73`).
-- LK uses `CAR_TUNE_VALUE = 86` (`LK:522`) while the kernel DT supplies
-  `car_tune_value = 118`. The two stages disagree by about 27 % on current
-  scaling.
-- Board parameters in the DT: `r_fg_value = 10` mΩ, `cust_r_sense = 56`
-  (0.01 Ω), `fg_meter_resistance = 0`, `vbat_low_power_wakeup = 3500` mV,
-  `rbat_pull_up_r = 24000`, `rbat_pull_up_volt = 1800`.
+The kernel is not the estimator. Userspace `fuelgauged`/`libfgauge.so` owns
+SOC, UI SOC, DOD, Rbat and Qmax and writes them into the kernel over
+`NETLINK_FGD` (26) with `SET_SOC`, `SET_UI_SOC2`, `SET_QMAX` and `SET_RBAT`
+(`battery_meter_fg_20.c:4481-4590`). The kernel republishes
+`BAT_CAPACITY = UI_SOC2` (`battery_common_fg_20.c:1653`).
 
-## 6. Temperature and shutdown
+Publication is gated on `g_battery_soc_ready`, set by the first `SET_UI_SOC2`;
+before that the capacity stays `-1`. In-kernel fallbacks:
 
-- Temperature comes from PMIC AUXADC channel 3 (`BATON`) through the NTC divider
-  and `BattVoltToTemp()`; it is not a gauge temperature.
-- `shutdown_system_voltage`, `shutdown_gauge0`/`1` and the low-battery wake
-  threshold (3500 mV) are board values; the battery task uses them to raise
-  `bat_low` and to trigger the shutdown path.
+- `fgauge_algo_run_get_init_data()` reads the first voltage/current pair;
+- `dod_init_in_kernel()` reconciles the RTC spare SOC, a software SOC and the
+  hardware SOC with 10/30-point rules.
+
+`MTK_POWER_SMOOTH_SUPPORT` is **defined**, so the published pack voltage is
+`fgauge_read_v_by_capacity(100 - UI_SOC2, temperature)` — a table lookup at the
+reported SOC, not the ADC reading (`battery_common_fg_20.c:1645-1710`).
+`USING_SMOOTH_UI_SOC2` is undefined, so the UI-SOC smoothing function is
+compiled out, and `nPercent_ZCV` is a constant 3700 mV.
+
+## 4. Qmax, OCV and aging
+
+- The in-kernel `fgauge_get_Q_max()` interpolates 4211/4268/4312/4336 mAh over
+  −10/0/25/50 °C but has **no caller** in the built path; the high-current
+  variant is unreachable.
+- Runtime Qmax is `gFG_BATT_CAPACITY_aging`, default **1200 mAh**, otherwise
+  supplied by `SET_QMAX`.
+- All `aging_*` state is dead; `aging1_load_soc`, `aging_tuning_value` and
+  `mtk_enable_aging_algorithm` are only ABI constants, and lifetime-data
+  support is not built.
+- OCV profiles: the effective tables are the header's four ~96-point
+  `{%, mV}` tables, selected at hardcoded 0/15/40/65 °C steps with linear
+  interpolation inside a table. The DT's 82-point profiles never load because
+  the parser is disabled (below).
+
+## 5. Calibration and the device-tree defect
+
+`batt_meter_init_cust_data()` returns the compile-time header path; the DT
+parser call is commented out (`battery_meter_fg_20.c:1330-1338`), and its
+property-read checks are inverted, so it would not apply even if called. The
+effective values are the header defaults:
+
+| Parameter | DT | Effective |
+| --- | --- | --- |
+| `R_FG_VALUE` | 10 mΩ | 10 mΩ |
+| `CAR_TUNE_VALUE` | 118 | **115** |
+| `FG_METER_RESISTANCE` | 0 | **75** |
+| NTC pull-up voltage | 1800 mV | **2800 mV** |
+| OCV / Qmax profiles | 82 points | **~96-point header tables** |
+
+The factory per-chip trim lives in undocumented `0xCB8[11:7]` (factors
+990-1081). **LK applies it** (`mt_battery.c:539-650`, `:733-780`); the kernel
+hard-codes the selector to 0, i.e. neutral 1000
+(`battery_meter_hal.c:67-73`). LK also uses `CAR_TUNE_VALUE = 86` (`LK:522`),
+so the bootloader and the kernel scale current differently.
+
+Temperature: a `BATON` reading above 2600 mV forces 20 °C and skips the NTC
+table (`battery_meter_fg_20.c:1345-1375`).
+
+## 6. Persistence, suspend and shutdown
+
+- Only SOC 0-100 is persisted, in the RTC spare FG byte: the daemon writes it
+  (`mtk_rtc_common.c:198-228`, setter rejects >100), and
+  `dod_init_in_kernel()` reads it.
+- LK does not seed SOC; it clears the spare byte when entering a low-battery
+  charging cycle (`lk_set_rtc_to_zero`, `LK:275-283`).
+- There is no `battery_meter_reset`; the daemon issues the FGADC reset.
+- Suspend arms a PMIC coulomb window from `q_max_pos_25/100 × 0x4d14`; resume
+  wakes the daemon lightly below the 600 s timer.
+- No kernel SOC shutdown (`DLPT_POWER_OFF_EN` undefined). `kernel_power_off`
+  comes from `SET_POWEROFF` (daemon) and KPOC charger removal;
+  `shutdown_system_voltage` (3100 mV) and `shutdown_gauge0/1` are exported
+  constants compared in userspace.
+- There is no `bat_low` flag, and the FG_20 HAL does not implement the PMIC
+  low-battery status command, so the PMIC LBAT wake path is always false.
 
 ## 7. Live evidence
-
-Retained Gemian logs show the initialisation split and the published triple:
 
 ```
 [fgauge_algo_run_get_init_data](gFG_voltage_init 4129, gFG_current_init 5234, gFG_Is_Charging_init 0)
@@ -115,24 +140,17 @@ Retained Gemian logs show the initialisation split and the published triple:
 [kernel]AvgVbat 4346, bat_vol 4346, AvgI 479, I -125, VChr 4957, AvgT 23, ZCV 0, CHR_Type 1, SOC 100:100:100
 ```
 
-`-100` in the middle field and `ZCV 0` are the not-ready sentinels; they clear
-once the gauge has run. This confirms the init path but is not a calibration
-measurement.
+The `-100` middle and `ZCV 0` are the not-ready state before the daemon's first
+`SET_UI_SOC2`.
 
-## 8. Mainline position
-
-No MT6351 gauge driver exists upstream. The PMIC is an MFD/regulator child and
-`drivers/power/supply` has only MT6360/MT6370 chargers. A mainline gauge would
-need a wrapper regmap, the latched 35-bit counter, the OCV/Qmax tables
-(vendor calibration) and a power-supply presentation; the vendor SOC model is
-not portable as-is.
-
-## 9. Limits
+## 8. Limits
 
 - Static reading only; no gauge register was read and no discharge curve was
   measured.
-- The counter's absolute unit and wrap behaviour are inferred from the vendor
-  scaling and the rounding in `battery_meter_get_car()`, not measured.
-- The battery profile tables are intentionally not reproduced; only their shape
-  and public anchor values are recorded.
-- The per-chip trim's true encoding is undocumented in the public datasheet.
+- The counter unit and sentinels are source-derived; wrap behaviour was not
+  observed.
+- The userspace estimator (`fuelgauged`/`libfgauge.so`) was not analysed; only
+  the netlink interface is documented here.
+- Battery profile tables are not reproduced.
+- The DT-parser defect means the public board values in F16/F18 do not
+  describe the running kernel; the header values above do.
