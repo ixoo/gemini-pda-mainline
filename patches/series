@@ -965,3 +965,5 @@ proposals/0373-power-supply-mt6351-fuel-gauge-report-microamps-and-.patch
 proposals/0374-arm64-dts-mediatek-gemini-leave-inactive-keyboard-co.patch
 proposals/0375-Input-matrix_keypad-add-an-experiment-only-scan-mode.patch
 proposals/0376-arm64-dts-mediatek-gemini-station-describe-the-keybo.patch
+proposals/0377-pinctrl-mediatek-mt6797-use-the-EINT-mux-mode-on-ded.patch
+proposals/0378-pinctrl-aw9523-do-not-set-a-default-IRQ-trigger.patch

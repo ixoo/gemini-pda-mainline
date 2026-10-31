@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `planned`: patches 0375–0376 built for the station; not yet booted |
+| Status | `running`: station 15 failed B3 (EINT10 never fired); diagnosed as the EINT pad mode; fix 0377–0378 built, not yet booted |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -143,8 +143,67 @@ are named `matrix-keypad`.
 
 ## Observations
 
-None yet.
+**Station 15, boot `64f8483d-8bee-4383-9f7b-cfe3d6fb2d2f`.** Built at
+`712b5d97`: Image.gz `827cfb41…`, DTB `591aca1b…`, boot2 `9bdf9e98…`, and the
+same RAM root as station 14. The device session ran the procedure with the
+owner. Raw files are retained privately with its station 15 evidence. The
+EINT10 line is named `1-005b`, because the AW9523 is on Linux I2C bus 1, not
+`5-005b` as this record predicted.
+
+| Step | Result |
+| --- | --- |
+| A1 | The DT node carries the interrupt properties. AW9523 bound, `polling mode, interval 20 ms`, with no IRQ request error. `/proc/interrupts`: `25: mt-eint 10 Level 1-005b`. gpiolib warned once: `/i2c@1101c000/gpio-expander@5b: Ignoring 3 default trigger` (`gpiolib.c:2217`), from `aw9523_probe` |
+| A2 | Idle: `1-005b` +0. I2C5 16710, 31130, 45480 and 59993 at 10 s steps, about 1440 a second |
+| A3 | The owner typed a line and the console worked. `1-005b` stayed 0 |
+| B1 | `row interrupt mode`, as `input2` on `event1`. 8 lines `aw9523 0..7 Edge matrix-keypad` (IRQs 218–225). `lid-guard` restarted |
+| B2 | Idle 30 s: I2C5 constant at 2520349, `1-005b` and the row IRQs 0 |
+| B3/B4 | **Fail.** The owner typed the full list and nothing appeared. `1-005b` and all 8 row IRQs stayed 0. I2C5 +65 in total. The `dd` capture was empty. The lid close and open were seen by `lid-guard` |
+| Chip state (after typing, `i2cget -f`) | IN0 `0xff`, IN1 `0x80`, OUT1 `0x80` (columns 0–6 driven low), CFG0 `0xff` (rows input), CFG1 `0x80`, INT0 `0x00` (row interrupts enabled), INT1 `0xff`, GCR `0x00`. Reading IN0 clears any pending latch, so a latch could not be seen |
+| GPIO87 (debugfs) | `pin 87 (GPIO87): 1-005b (GPIO UNCLAIMED) function func1 group GPIO87`. Pins line `087: 0001-524-524-52400`: **mode 0**, input, data in 1. gpiolib: `gpio-87 (|interrupt) in hi IRQ` |
+| Restore | `poll_override=0`, unbind, bind and `killall lid-guard` gave `polling mode, interval 20 ms` and about 1445 I2C5 interrupts a second |
+
+## Analysis
+
+The expander was armed: row interrupts were enabled and the columns driven
+low, so a key press pulls a row low and should latch INT. EINT10 never
+counted. The debugfs mode explains it. The pinctrl state selected func1
+(EINT10, mux mode 1), but the pad read back in **mode 0** (GPIO).
+
+Patch 0005 gives every EINT-capable MT6797 pin `MTK_EINT_FUNCTION(0, n)`.
+When an EINT is requested, `mtk_xt_set_gpio_as_eint()` writes that `eint_m`
+into the pad mode. That replaces the DT's EINT10 function with GPIO, so the
+pad no longer reaches the EINT block. 17 pads, GPIO61–68 and GPIO85–93,
+list a dedicated `EINT0`–`EINT16` function at mode 1. The lid's GPIO66 (EINT5)
+is one of them, which explains why its level followed the lid as a GPIO but
+EINT5 never fired. The PMIC's EINT176 is virtual, so the pad write is skipped,
+which is why it works.
+
+This is inferred from the table, the readback and the two failures. Whether
+the INT pin went low during a press was not sampled.
+
+**Fix candidate.**
+- [0377](../../patches/proposals/0377-pinctrl-mediatek-mt6797-use-the-EINT-mux-mode-on-ded.patch)
+  sets `eint_m = 1` for those 17 pads. The other 155 lines keep mode 0
+  until their routing is known.
+- [0378](../../patches/proposals/0378-pinctrl-aw9523-do-not-set-a-default-IRQ-trigger.patch)
+  removes the gpiolib warning by leaving the AW9523 default trigger as
+  `IRQ_TYPE_NONE`.
+
+**Station 16 test (predeclared).** Run steps A and B again, with `1-005b` as
+the EINT10 line, plus:
+- **A1:** the debugfs pins line for 087 starts with mode **1**, and no
+  `Ignoring 3 default trigger` warning appears.
+- **B3:** `1-005b` and row IRQs count on each press and release, and 5 A
+  pairs appear in the capture.
+- **Discriminator if B3 still fails:** with the keyboard in interrupt mode,
+  the owner holds one key. Read `gpio-87` in debugfs before any AW9523
+  register read: the latch is not cleared until IN0 is read.
+  - `lo` means INT reaches the pad and the EINT block does not see it.
+  - `hi` means the expander does not assert INT, or INT is wired elsewhere.
 
 ## Conclusion
 
-Not run.
+Hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
+and stays at zero while polling. Hypothesis 2 failed on station 15. The
+leading explanation is the pad-mode bug in 0005, and 0377 is its candidate
+fix, not yet booted.

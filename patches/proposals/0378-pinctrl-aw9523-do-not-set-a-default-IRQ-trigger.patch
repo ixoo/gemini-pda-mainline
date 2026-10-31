@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 16:57:35 -0400
+Subject: [PATCH 378/378] pinctrl: aw9523: do not set a default IRQ trigger
+
+When the expander is described in the device tree with an interrupt
+parent, gpiolib warns at probe:
+
+  /i2c@1101c000/gpio-expander@5b: Ignoring 3 default trigger
+
+With a firmware node, the default trigger is ignored anyway. Consumers
+set the trigger when they request a pin interrupt, and
+aw9523_gpio_irq_type() accepts IRQ_TYPE_NONE. Leave default_type as
+IRQ_TYPE_NONE, as gpiolib expects for firmware-described chips.
+
+Observed on the Gemini PDA station with the AW9523 interrupt described.
+Not yet run on hardware with this change.
+---
+ drivers/pinctrl/pinctrl-aw9523.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/pinctrl/pinctrl-aw9523.c b/drivers/pinctrl/pinctrl-aw9523.c
+index 02a24ac87..5ccacef1d 100644
+--- a/drivers/pinctrl/pinctrl-aw9523.c
++++ b/drivers/pinctrl/pinctrl-aw9523.c
+@@ -824,7 +824,7 @@ static int aw9523_init_irq(struct aw9523 *awi, int irq)
+ 	girq->parent_handler = NULL;
+ 	girq->num_parents = 0;
+ 	girq->parents = NULL;
+-	girq->default_type = IRQ_TYPE_EDGE_BOTH;
++	girq->default_type = IRQ_TYPE_NONE;
+ 	girq->handler = handle_simple_irq;
+ 	girq->threaded = true;
+ 
