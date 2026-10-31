@@ -471,6 +471,45 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Limit:** the boot's command sequences still run out after about 250
   commands (about 22 per lifetime, so roughly ten lifetimes).
 
+**Station 9, boot `960b9505…`: a persistent WPA2 join, and 26 connections
+on one firmware start.**
+- **Setup:**
+  - modules from the packages at `aa4f5a58` (0351), then `bcc82edd` (0352),
+    loaded through R2 reloads
+    ([restart record](../2026-10-30-mt6797-consys-restart/README.md#station-9-boot-960b9505-r2-works-three-restarts-in-one-boot));
+  - [`wifi-up.sh`](wifi-up.sh), with the private join inputs sent to
+    `/run/station` (RAM only);
+  - the access point is the owner's, on channel 40 (5200 MHz).
+- **Join:** `wpa_state=COMPLETED`, WPA2-PSK with CCMP, a DHCP lease and the
+  gateway answering 3 of 3 pings. A ping to a public address answered in
+  about 7.7 ms.
+- **Kernel log:** only the named refusals known from the soak boots (EAPOL
+  admission and RX classification of protected frames); no Oops, warning or
+  call trace.
+- **Reconnects** (`wpa_cli disconnect`, then `reconnect`; each one a new
+  driver lifetime):
+  - **On 0334 alone:**
+    - lifetimes 1-9 joined within 2 s each;
+    - at the tenth, `sequence recycle: from=215 to=17 ret=-16`, then the
+      old wrap refusal, which poisoned `mac` until a reload;
+    - a second R2 reload with 0351 repeated it at the same point. The
+      logged ledger showed TC4 at 23 of 26 pages, nothing pending, and TC1
+      complete (156/156).
+  - **With 0352:** 25 reconnects in a row, all `COMPLETED` within 2 s and
+    answering a gateway ping, so 26 lifetimes on one firmware start. The
+    recycle ran twice: `ret=0 waits=1`, then `ret=0 waits=0`.
+
+**Reading:**
+- **0334 was right in its gate and wrong in its timing.** The cleanup's
+  last command pages are reconciled only by the next scan's guard, so
+  the recycle saw them as owed.
+- **[0352](../../patches/proposals/0352-wifi-mt6797-reconcile-TC4-credits-before-a-sequence-.patch)**
+  reconciles first and waits a bounded time for TC4. The connection limit
+  (about an hour of daily use) is gone.
+- **0335** (no packet budget for a connected lifetime) needs more than 2.3 h
+  connected. A hold with a gateway ping every 30 s started at 1234 s of
+  uptime.
+
 **Station 8, boot `bb6c4873-f0f7-4a7a-a37d-8fe1c0d3e3a2`: power-off B
 passed.**
 - **Power-off B, cable attached:** a plain `poweroff`, after the kernel log
