@@ -46,10 +46,21 @@ the public tree; the live values must be read before writing a mainline node.
 - The trim table maps ID bytes to memory maps. The live Gemini bytes select
   **NT36772**: event buffer `0x11E00`, flash checksum `0x14000`, raw/diff pipes
   at `0x10000`/`0x12000`.
-- `novatek_ts_fw.bin` (118,784 bytes) is requested at probe only when the IC's
-  checksum or firmware version says an update is needed. Its header starts with
-  `0x30 0x0 0xa038 0xe060 0x17700 0x188 0x1000 0x2fff`, and its firmware
-  version at offset `0x1A000` is **0x05** with complement **0xFA** (sum 0xFF).
+- `novatek_ts_fw.bin` (118,784 bytes) lives in Gemian's `/etc/firmware`. A
+  delayed work item requests it **14 s after every probe**, then compares each
+  64 KiB block's flash checksum (read from `0x14000`) and the IC firmware
+  version against the file. It flashes when the checksum cannot be read, or
+  when it mismatches and the file's version is not older than the IC's. The
+  file's version at offset `0x1A000` is **0x05** with complement **0xFA**
+  (sum 0xFF); its header starts with
+  `0x30 0x0 0xa038 0xe060 0x17700 0x188 0x1000 0x2fff`.
+- On the 2026-07-14 Gemian capture the IC reported version `0x05`/`0xFA`, the
+  driver logged `firmware checksum match`, and it therefore took the
+  no-update branch. That boot **read the blob but did not write it**; the
+  capture records the request and the checksum comparison, not a flash.
+- Whether an earlier boot flashed the controller is unrecorded. The IC's flash
+  content is consistent with the Gemian image, but its flash provenance is
+  unknown.
 - The blob is proprietary and has no redistribution grant; the vendor driver
   is the only path that flashes it.
 
@@ -76,8 +87,8 @@ flash firmware, and the retained blob is not redistributable.
    (which would make a compatible-only mainline path possible)?
 2. What are the live resolution, touch count and filter settings?
 3. Which rails power the controller, and are they always on?
-4. Does the existing firmware version (5) match the controller's flashed
-   version, i.e. does the vendor update path ever run on this unit?
+4. When, if ever, did a vendor stack flash this controller? The 2026-07-14
+   Gemian boot only verified the checksum and did not write flash.
 
 ## 6. Evidence index
 

@@ -33,7 +33,9 @@ upstream compatible list does not cover it.
 - Retained `novatek_ts_fw.bin` (118,784 bytes, private archive).
 - Live baseline: [Gemian hardware baseline](../../docs/hardware/gemini-gemian-baseline.md)
   (NVT-ts at 4/`0x62`, EINT8, trim bytes, event map).
-- Prior record: [input and backlight recovery](../2026-07-12-input-backlight-recovery/README.md).
+- Prior record: [input and backlight recovery](../2026-07-12-input-backlight-recovery/README.md),
+  including its live NVT identity and firmware-request capture
+  ([`nvt-live-trim-identity-20260714.txt`](../2026-07-12-input-backlight-recovery/results/nvt-live-trim-identity-20260714.txt)).
 
 ## Safety assessment
 
@@ -65,8 +67,9 @@ Decisive observations:
 3. The chip's trim bytes `…0x72,0x66,0x03` select the **NT36772** memory map
    (event buffer `0x11E00`, checksum `0x14000`), matching the live baseline.
 4. The retained firmware is 118,784 bytes with version **0x05** at offset
-   `0x1A000` and complement `0xFA`; it is requested only when the checksum or
-   version check says the IC needs an update.
+   `0x1A000` and complement `0xFA`. It is requested 14 s after every probe and
+   flashed only if the checksum or version check requires it; the 2026-07-14
+   Gemian capture showed `firmware checksum match` and no update.
 5. The upstream `novatek-nvt-ts` driver supports only NT11205/NT36672A via a
    `0x78` parameter block and `0x00` touch records, has no firmware update and
    no NT36772 compatible — a different interface from the vendor event-buffer

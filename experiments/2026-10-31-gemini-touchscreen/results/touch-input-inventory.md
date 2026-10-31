@@ -60,6 +60,14 @@ coverage for the named Gemini PDA. Vendor paths are relative to commit
   (first words `0x30 0x0 0xa038 0xe060 0x17700 0x188 0x1000 0x2fff`), and its
   firmware version at offset `0x1A000` is **0x05** with the complement
   **0xFA** (sum 0xFF, the driver's validity rule).
+- The blob is requested by delayed work **14 s after every probe**, then
+  checked against each 64 KiB block's flash checksum and the IC version; a
+  flash write is attempted when the checksum cannot be read, or when it
+  mismatches and the file version is not older (`nt36xxx.c:1587-1592`,
+  `nt36xxx_fw_update.c:887-915`).
+- The 2026-07-14 Gemian capture (`nvt-live-trim-identity-20260714.txt`) shows
+  the IC at `0x05`/`0xFA` and logs `firmware checksum match`, so that boot read
+  the blob but took the no-update branch.
 - The firmware is proprietary; only the version/checksum contract and the
   absence of a redistribution grant are recorded here.
 
