@@ -838,3 +838,9 @@ proposals/0363-Input-matrix_keypad-leave-columns-inactive-between-p.patch
 proposals/0364-dt-bindings-input-gpio-matrix-keypad-add-needs-ghost.patch
 proposals/0365-Input-matrix_keypad-add-an-optional-ghost-filter.patch
 proposals/0366-arm64-dts-mediatek-gemini-enable-the-keyboard-ghost-.patch
+proposals/0367-dt-bindings-iio-adc-mt6351-auxadc-add-the-battery-vo.patch
+proposals/0368-iio-adc-mt6359-auxadc-add-the-MT6351-battery-voltage.patch
+proposals/0369-dt-bindings-power-supply-add-the-MediaTek-MT6351-fue.patch
+proposals/0370-power-supply-add-the-MediaTek-MT6351-fuel-gauge.patch
+proposals/0371-mfd-mt6397-add-the-MT6351-fuel-gauge-cell.patch
+proposals/0372-arm64-dts-mediatek-gemini-station-add-the-battery-an.patch

@@ -120,3 +120,69 @@ intentional.
 - Next discriminating step: a read-only counter comparison against a known
   discharge current (for example over USB gadget load) before proposing any
   mainline gauge or power-supply integration.
+
+## Mainline implementation (2026-10-31, owner request)
+
+The owner cleared the calibration profiles for use in the kernel: they were
+measured independently. The gauge reports what the MT6351 measures and uses
+those profiles for capacity. No vendor estimator is involved.
+
+**Read-only check on station 12** (boot `7750236b…`, regmap debugfs, no
+write): LK leaves the gauge running.
+- `FGADC_CON0` `0x0029`: `FG_ON` and the vendor's calibration bits;
+- `FGADC_CON15` `0x0008`: OSR 8;
+- `TOP_CKPDN_CON2` `0x3270`: the FGADC clocks on;
+- `FG_CURRENT_OUT` `0xfdf2`: a latched value, discharging;
+- `ADC25`, the AP's channel 1 result: `0xe404`, about 4219 mV, the pack
+  voltage, agreeing with the BQ25896's 4.20-4.26 V.
+
+**Patches:**
+- [0367](../../patches/proposals/0367-dt-bindings-iio-adc-mt6351-auxadc-add-the-battery-vo.patch)-[0368](../../patches/proposals/0368-iio-adc-mt6359-auxadc-add-the-MT6351-battery-voltage.patch),
+  the battery voltage channel:
+  - channel 1 (ISENSE, the pack voltage on this power-path board);
+  - the RQST0 request bit, and the AP's 15-bit result in ADC25;
+  - scaled ×3 against 1.8 V.
+- [0369](../../patches/proposals/0369-dt-bindings-power-supply-add-the-MediaTek-MT6351-fue.patch)-[0371](../../patches/proposals/0371-mfd-mt6397-add-the-MT6351-fuel-gauge-cell.patch),
+  `mt6351-fuel-gauge`, its binding and MFD cell. It registers the
+  `battery` power supply:
+  - **voltage** from the channel above;
+  - **current and charge counter** from one latched FGADC read, the vendor
+    sequence: `0x0200` to `CON0`'s upper byte, wait for latch status bit 10,
+    read, `0x0800`, wait for the bit to clear, `0x0000`. The lower byte and
+    the reset bits are never written.
+    - Current: 158.122 µA per count, the vendor sign rule, charging
+      positive.
+    - Counter: the vendor's 17-bit slice and sentinels, 44.98 µAh per step.
+    - Both are scaled by 20/10 mΩ and by `CAR_TUNE` 115, the vendor
+      kernel's effective value. LK uses 86, and the per-chip trim is not
+      applied, as in the vendor kernel.
+  - **temperature** from the `battery-thermal` zone;
+  - **capacity** from the monitored battery's OCV table nearest the
+    temperature, at `V − I × R`;
+  - **status** from the current: ±20 mA.
+- [0372](../../patches/proposals/0372-arm64-dts-mediatek-gemini-station-add-the-battery-an.patch),
+  the station's `simple-battery`:
+  - 4268 mAh, 3.4-4.352 V;
+  - the four OCV profiles (−10, 0, 25, 50 °C; 85-94 points each, from the
+    vendor `battery_profile_t0`-`t3`);
+  - an internal resistance of 165 mΩ: the 25 °C profile's mid-range 90 mΩ
+    plus the 75 mΩ meter path.
+
+**Tested in the VM:**
+- the station profile builds with the gauge built in;
+- W=1 is clean in `drivers/power/supply`, `drivers/iio/adc` and
+  `drivers/mfd`;
+- the DTB carries the battery and the gauge;
+- the station series tail, with the keyboard patches, applies to exactly
+  that tree.
+
+**Not tested:** any device run.
+
+**Readings (predeclared, station 13):**
+
+| Observation | Reading |
+|---|---|
+| `/sys/class/power_supply/battery` present; `voltage_now` within 50 mV of `power-status`; `temp` within 1 °C of the battery zone; `current_now` positive while charging (`charging=fast`) | The gauge reads correctly |
+| `current_now` negative while the charger reads `fast` | The sign or the power-path wiring differs; the raw `FG_CURRENT_OUT` decides |
+| `capacity` between 85 and 100 at 4.2 V on the charger | The OCV lookup and the I × R correction are plausible; a calibrated capacity needs a full discharge |
+| `-ENODATA`, `-ETIMEDOUT` or no device | `FG_ON`, the latch or the probe order is the item; the log names it |

@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:18:47 -0400
+Subject: [PATCH] mfd: mt6397: add the MT6351 fuel gauge cell
+
+Expose the MT6351 fuel gauge as a cell so its driver can bind to it.
+---
+ drivers/mfd/mt6397-core.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index 278fad50d..c562d4ee6 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -228,6 +228,9 @@ static const struct mfd_cell mt6351_devs[] = {
+ 	{
+ 		.name = "mt6359-auxadc",
+ 		.of_compatible = "mediatek,mt6351-auxadc",
++	}, {
++		.name = "mt6351-fuel-gauge",
++		.of_compatible = "mediatek,mt6351-fuel-gauge",
+ 	}, {
+ 		.name = "mt6351-regulator",
+ 		.of_compatible = "mediatek,mt6351-regulator",
+-- 
+2.43.0
+

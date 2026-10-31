@@ -39,6 +39,9 @@ CONFIG_NVMEM_MTK_ATAG_DEVINFO=y
 CONFIG_IIO=y
 CONFIG_MEDIATEK_MT6359_AUXADC=y
 CONFIG_GENERIC_ADC_THERMAL=y
+# The MT6351 fuel gauge as /sys/class/power_supply/battery (2026-10-31-gemini-fuel-gauge).
+CONFIG_POWER_SUPPLY=y
+CONFIG_BATTERY_MT6351=y
 # With modules on, defconfig's =m options would become modules that nothing
 # loads. Keep each one built in, as in the soak kernel without modules.
 CONFIG_ALTERA_FREEZE_BRIDGE=y

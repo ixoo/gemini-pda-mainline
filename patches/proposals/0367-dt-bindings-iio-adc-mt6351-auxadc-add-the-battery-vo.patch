@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:19:47 -0400
+Subject: [PATCH] dt-bindings: iio: adc: mt6351-auxadc: add the battery voltage
+ channel
+
+Add the index of the MT6351 battery voltage (BATADC) channel.
+---
+ include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h b/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h
+index e546457a6..eaa5724a3 100644
+--- a/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h
++++ b/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h
+@@ -5,5 +5,6 @@
+ 
+ /* ADC Channel Index */
+ #define MT6351_AUXADC_BAT_TEMP		0
++#define MT6351_AUXADC_BATADC		1
+ 
+ #endif
+-- 
+2.43.0
+
