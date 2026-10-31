@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mt6797-consys-restart` |
-| Status | `running`: design approved; R1 implemented (0341), not yet run |
+| Status | `running`: R1 (stop) works on the device; R2 not implemented |
 | Subsystem | CONSYS power, WMT/STP, EMI, WLAN HIF |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-30, 2026-10-31 |
@@ -210,13 +210,41 @@ runs it after the cycles when `STOP=1` is set.
 
 ## Observations
 
-None. Not implemented or run.
+**R1 on station 6, boot `967d17be-e447-4e4c-b084-194e5eb7a0b4`** (boot2
+`fb6d3f13…`, built at `f328f438`, `mac.ko` `335f2ec8…`; 8 CPUs, RAM root,
+`/mnt/data` mounted).
+- **Run:** `CYCLES=1 STOP=1` of the station's cycle script, about 20 s
+  after boot.
+- **Before the stop:** firmware start 0/0. One cycle: insmod 0,
+  configuration `status=0`, scan with 3 BSS, rmmod 0, `mac detached;
+  firmware kept`.
+- **Stop:** `echo 1 > wlan_stop` returned success.
+  - `WLAN stop: power-off status=0 sequence=17 WCIR=0x00100279`.
+    WLAN_READY (bit 21) was clear by the time the logged WCIR was read. The
+    whole stop took under 2 ms by the log stamps. Bit 20 was set in that
+    read, which it is not in the ready value; its meaning is not
+    established.
+  - `FW own WHLPCR=0x00000000`: the driver-own bit cleared after the FW own
+    write.
+  - `VCN33-WIFI off=0 enabled=0`: the rail is off.
+  - `WLAN stopped; a restart needs the next boot`.
+- **After the stop:** `insmod mac` failed with `No such device` (-ENODEV),
+  and nothing was loaded. The station stayed up over SSH with no Oops, BUG,
+  WARNING or call trace in the kernel log.
 
 ## Conclusion
 
-Not run.
+R1 gives the first predeclared reading: the firmware honours NIC_POWER_CTRL
+power mode 1, and WLAN_READY clears within milliseconds. The third R1 row
+(the stop is contained) also holds. The second (bit 21 never clears) and
+the FW-own anomaly row did not occur.
+
+This only shows that the firmware stops on request. It does not show that
+the CONN MCU stopped running WLAN code, nor that a start can follow. R2 can
+now follow, and it still needs a calibration protocol.
 
 ## Follow-up
 
-R1 on the next station boot, after the 0340 reload cycles. R2 only after
-R1's reading and a calibration protocol.
+R2 (full CONN restart) after a calibration protocol for the repeated RF
+calibration. Until then, a firmware, HIF or WMT change still needs a
+reboot; a `mac` change does not.

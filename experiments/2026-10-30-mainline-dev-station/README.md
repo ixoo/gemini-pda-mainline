@@ -471,7 +471,13 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Limit:** the boot's command sequences still run out after about 250
   commands (about 22 per lifetime, so roughly ten lifetimes).
 
-**Station 6, flashed from boot `8fe8a9cc…`, ready for the restart R1 test.**
+**Station 6, boot `967d17be…`: the R1 stop works (0341).** One cycle as
+before (3 BSS), then the stop: WLAN_READY cleared, FW own was taken,
+VCN33-WIFI went off, and a later `insmod mac` was refused with
+`-ENODEV`, with no kernel fault. Details are in the
+[restart record](../2026-10-30-mt6797-consys-restart/README.md#observations).
+
+**Station 6, flashed from boot `8fe8a9cc…`.**
 - **Flash:** `flash-boot2` over station 5's `2ffbe478…`,
   `written-synced-readback-verified` `fb6d3f13…`. The image stays on the
   data partition under `station/`. Boot `8fe8a9cc…` was then powered off.
