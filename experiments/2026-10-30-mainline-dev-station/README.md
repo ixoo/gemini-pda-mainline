@@ -126,6 +126,13 @@ a 1 MiB log buffer.
 - **Why no MM reference.** This kernel registers only the CONN power domain
   (proposals 0012 and 0029). So every consumer of the MM domain defers
   forever, and nothing here can switch MM off.
+- **Brightness keys.** `lid-guard` also reads the keyboard. With Fn
+  (`KEY_LEFTMETA`) held, N steps the backlight up and B steps it down,
+  through levels 16, 32, 64, 96, 128, 192, 256, 384, 512, 640, 768 and 1023,
+  never fully dark. Autorepeat steps too.
+  - The RAM root builder sets the console keymap's Fn entries for B and N to
+    no action (`K_HOLE`). Before, Fn+B was a hex digit for typed code input,
+    emitting U+000B on Fn release, and Fn+N typed `n`.
 - [`lid-guard.c`](lid-guard.c) is a small static program, respawned by init:
   - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
     (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
@@ -350,6 +357,19 @@ revised DT `609fc172…`, pushed at `4c771b06`).
     keyboard is ignored, and both come back on open.
 - The status file again shows CPUs 0–7, the 1 GiB root and `/mnt/data`.
   There is no Oops, BUG or WARNING.
+
+**Brightness keys, live on boot `13055ae9…` (no rebuild, no reboot).**
+- The new `lid-guard` (`9936014b…`, built `-Werror` in the VM) and the
+  adjusted keymap (made by the builder's own function) were pushed over USB
+  SSH.
+- The binary was renamed over the running one, since a plain copy failed
+  with "text file busy", and restarted through init's respawn. It armed
+  with the lid open. The keymap was loaded with `loadkmap`.
+- **Owner:** Fn+N brightens and Fn+B dims, with no characters reaching the
+  shell. Brightness read 384 afterwards. There is no Oops, BUG or WARNING.
+- This is the first change deployed on the running station. It went from
+  edit to running on the hardware in minutes, with no build or boot. The
+  boot image does not carry it until the next compose.
 
 ## Analysis
 

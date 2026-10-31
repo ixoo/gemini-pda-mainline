@@ -5,12 +5,14 @@
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
 adds the mac module under lib/modules/<release>/ and the lid-guard binary
-(built from lid-guard.c). Writes a newc archive with
+(built from lid-guard.c); gives Fn+B and Fn+N no console action, since
+lid-guard uses them for brightness. Writes a newc archive with
 zero timestamps, compressed with gzip -n -9 like the parent.
 
 usage: build-station-initramfs.py PARENT_INITRAMFS MAC_KO LID_GUARD RELEASE OUTPUT
 """
 import hashlib
+import struct
 import runpy
 import subprocess
 import sys
@@ -26,6 +28,7 @@ DROP = {'init', 'etc/inittab', 'etc/passwd', 'etc/shells', 'bin/usb-auth',
         'bin/reboot', 'bin/reboot-dispatch.env', 'bin/admin-shell',
         'bin/console-status', 'bin/kmsg-capture', 'bin/kmsg-seal', 'bin/x-record'}
 DIR, FILE, CHR = 0o040000, 0o100000, 0o020000
+KEY_B, KEY_N, K_HOLE = 48, 49, 0x0200
 # The kernel opens /dev/console from the archive before init mounts devtmpfs.
 CONSOLE = ('dev/console', CHR | 0o600, (5, 1))
 
@@ -42,6 +45,20 @@ def newc(entries):
         out += data
         out += bytes(-len(out) % 4)
     return bytes(out + bytes(-len(out) % 512))
+
+
+def quiet_brightness_keys(keymap):
+    """In the busybox bkeymap, set AltGr (Fn) + B and + N to K_HOLE."""
+    assert keymap[:7] == b'bkeymap'
+    flags = keymap[7:263]
+    altgr = 2
+    assert flags[altgr]
+    offset = 263 + 256 * sum(1 for t in range(altgr) if flags[t])
+    table = list(struct.unpack('<128H', keymap[offset:offset + 256]))
+    # Fn+B was the hex digit B for typed code input, Fn+N the letter n.
+    assert (table[KEY_B], table[KEY_N]) == (0x0915, 0x0b6e), (hex(table[KEY_B]), hex(table[KEY_N]))
+    table[KEY_B] = table[KEY_N] = K_HOLE
+    return keymap[:offset] + struct.pack('<128H', *table) + keymap[offset + 256:]
 
 
 def main(parent, module, lid_guard, release, output):
@@ -61,6 +78,8 @@ def main(parent, module, lid_guard, release, output):
     files['bin/usb-ssh'] = (FILE | 0o755, (src/'usb-ssh').read_bytes())
     files['bin/console-shell'] = (FILE | 0o755, (src/'console-shell').read_bytes())
     files['bin/lid-guard'] = (FILE | 0o755, Path(lid_guard).read_bytes())
+    mode, keymap = files['etc/gemini-us.bkeymap']
+    files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))
     for d in ['mnt', 'mnt/data', 'tmp', 'lib/modules', 'lib/modules/' + release]:
         files[d] = (DIR | 0o755, b'')
     files['lib/modules/%s/mac.ko' % release] = (FILE | 0o644, Path(module).read_bytes())

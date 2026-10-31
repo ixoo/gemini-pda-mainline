@@ -1,16 +1,20 @@
 // SPDX-License-Identifier: MIT
 /*
- * Lid policy for the station. On SW_LID closed: inhibit the keyboard input
- * device, power the backlight down and blank the console; on open, undo all
- * three. Nothing is done until the lid has been seen open once, so a misread
- * or floating lid input at boot cannot lock the console out. Each transition
- * is logged to the kernel log. init respawns this program.
+ * Lid and brightness policy for the station. On SW_LID closed: inhibit the
+ * keyboard input device, power the backlight down and blank the console; on
+ * open, undo all three. Nothing is done until the lid has been seen open
+ * once, so a misread or floating lid input at boot cannot lock the console
+ * out. Each transition is logged to the kernel log. Fn+B and Fn+N (Fn is
+ * KEY_LEFTMETA) step the backlight down and up, autorepeat included; the
+ * console keymap gives those two keys no Fn action. init respawns this
+ * program.
  */
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <linux/tiocl.h>
+#include <poll.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -20,6 +24,7 @@
 #define LID_NAME "gpio-keys"
 #define KEYBOARD_NAME "keyboard-matrix"
 #define BL_POWER "/sys/class/backlight/backlight/bl_power"
+#define BL_BRIGHTNESS "/sys/class/backlight/backlight/brightness"
 #define CONSOLE "/dev/tty1"
 
 static void say(const char *fmt, ...)
@@ -129,12 +134,43 @@ static void apply(const char *keyboard, int closed)
 	    closed ? "closed" : "open", k, b, c);
 }
 
+/* Brightness steps, never fully dark; the backlight has levels 0 to 1023. */
+static const int steps[] = { 16, 32, 64, 96, 128, 192, 256, 384, 512, 640, 768, 1023 };
+#define STEPS (int)(sizeof(steps) / sizeof(steps[0]))
+
+static void step_brightness(int up)
+{
+	char text[16];
+	int fd, n, level = -1, i;
+
+	fd = open(BL_BRIGHTNESS, O_RDONLY | O_CLOEXEC);
+	if (fd >= 0) {
+		n = read(fd, text, sizeof(text) - 1);
+		if (n > 0) {
+			text[n] = 0;
+			sscanf(text, "%d", &level);
+		}
+		close(fd);
+	}
+	if (level < 0)
+		return;
+	/* The next step strictly above or below the current level. */
+	for (i = up ? 0 : STEPS - 1; i >= 0 && i < STEPS; i += up ? 1 : -1)
+		if (up ? steps[i] > level : steps[i] < level)
+			break;
+	if (i < 0 || i >= STEPS)
+		return;
+	snprintf(text, sizeof(text), "%d", steps[i]);
+	put(BL_BRIGHTNESS, text);
+}
+
 int main(void)
 {
 	char lid[512], keyboard[512];
 	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
 	struct input_event ev;
-	int fd, closed, armed;
+	struct pollfd fds[2];
+	int fd, kfd, closed, armed, fn = 0;
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
 	    !find_input(KEYBOARD_NAME, keyboard, sizeof(keyboard))) {
@@ -154,7 +190,23 @@ int main(void)
 	    armed ? "armed" : "waiting for the lid to open");
 	if (armed)
 		apply(keyboard, 0);
-	while (read(fd, &ev, sizeof(ev)) == sizeof(ev)) {
+	kfd = open_events(keyboard);
+	if (kfd < 0)
+		say("no keyboard events; brightness keys off\n");
+	fds[0] = (struct pollfd){ .fd = fd, .events = POLLIN };
+	fds[1] = (struct pollfd){ .fd = kfd, .events = POLLIN };
+	while (poll(fds, kfd < 0 ? 1 : 2, -1) >= 0) {
+		if ((fds[1].revents & POLLIN) && read(kfd, &ev, sizeof(ev)) == sizeof(ev) &&
+		    ev.type == EV_KEY) {
+			if (ev.code == KEY_LEFTMETA)
+				fn = ev.value != 0;
+			else if (fn && ev.value && (ev.code == KEY_B || ev.code == KEY_N))
+				step_brightness(ev.code == KEY_N);
+		}
+		if (!(fds[0].revents & POLLIN))
+			continue;
+		if (read(fd, &ev, sizeof(ev)) != sizeof(ev))
+			break;
 		if (ev.type != EV_SW || ev.code != SW_LID)
 			continue;
 		closed = !!ev.value;
