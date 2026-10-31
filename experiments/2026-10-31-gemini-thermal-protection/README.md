@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: vendor policy read; charger temperature settings read on the device; no protection implemented |
+| Status | `running`: charger temperature settings read on the device; TOPRGU read prepared; no protection implemented |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -19,59 +19,22 @@ thermal driver.
 **Question:** what does Gemian protect against, and what is the minimum
 mainline needs?
 
-## The Gemian vendor kernel
+## Vendor policy
 
-From a source read of the Gemian 3.18 kernel at `8cfe6596`. Paths are in
-that tree.
-
-**Hardware reset at 117 °C:**
-- `THERMAL_CONTROLLER_HW_TP=1`
-  (`drivers/misc/mediatek/thermal/mt6797/inc/tscpu_settings.h`).
-- At probe, the kernel thermal driver programs each bank of the SoC
-  thermal controller (`0x1100b000`):
-  - TEMPPROTCTL `+0x0c0` set to `0x20000`;
-  - TEMPPROTTC `+0x0cc` set to the 117 °C threshold, converted with the
-    efuse calibration;
-  - TEMPMONINT `+0x00c` bit 31 set, the hot request
-    (`set_tc_trigger_hw_protect`, `mt6797/src/mtk_tc.c`).
-- The thermal request is then routed to a reset on the TOPRGU watchdog
-  (`0x10007000`): REQ_MODE `+0x30` and REQ_IRQ_EN `+0x34`, thermal bit 18
-  (`drivers/watchdog/mediatek/wdk/wd_api.c`, `wdt/mt6797/mt_wdt.h`).
-- The source notes that every bank must be read before the threshold is
-  written, or a false reset request reaches the watchdog
-  (`common/thermal_zones/mtk_ts_cpu.c`).
-- This tree has no bootloader source, so whether the preloader or LK also
-  arms it is unknown.
-
-**Software, the CPU zone only:**
-- polled every 40 ms, with four trips (`mt6797/inc/tzcpu_initcfg.h`):
-
-  | Trip | Action |
-  |---|---|
-  | 65 °C | adaptive power limit |
-  | 85 °C | CPU frequency limit |
-  | 95 °C | CPU frequency limit |
-  | 117 °C | deliberate crash-reset |
-
-- **Other zones:** battery, board NTCs, PMIC, PA, Wi-Fi, DA9214 and DRAM
-  are built, but have no trips unless a userspace daemon configures them.
-- **The cooling actions that exist:** charge current (BCCT), modem TX and
-  backlight. None is configured by default.
-
-**Charging:**
-- **Software stop:** charging stops at 50 °C and resumes below 47 °C, with
-  the battery NTC read through the PMIC and fuel gauge (`mt6797.dtsi`
-  `max_charge_temperature`).
-- **Off:** the low-temperature stop and software JEITA.
-- **Not used by the vendor:** the BQ25896's own TS input.
-
-**Reading:** on Gemian, the effective protection is the CPU zone, the
-117 °C hardware reset and the 50 °C charging stop. On mainline, none of the
-three exists:
-- the station's thermal node is disabled;
-- upstream `mtk_wdt` never sets the thermal request;
-- nothing programs TEMPPROTTC;
-- no charger driver runs.
+The durable source and firmware facts are in
+[MT6797 thermal management](../../docs/hardware/mt6797-thermal-management.md):
+sensors, calibration, conversion, thresholds, firmware roles and the Android
+userspace policy. What matters for the station:
+- **Gemian's effective protection** (no Android thermal manager runs) is the
+  kernel default set:
+  - the 117 °C hardware reset through TEMPPROTTC and TOPRGU;
+  - the CPU zone's 95/85 °C clamps;
+  - the device tree's 50/47 °C charging window.
+- **Mainline has none of the three:**
+  - the station's thermal node is disabled;
+  - upstream `mtk_wdt` never sets the thermal request;
+  - nothing programs TEMPPROTTC;
+  - no charger driver runs.
 
 ## Device reads on station 9 (boot `960b9505…`)
 
@@ -112,60 +75,6 @@ read, was not read.
   120 °C regulation and the 12 h safety timer. The schematic would settle
   it.
 
-## Conversion details (source read, 2026-10-31)
-
-**Freshness: the vendor has a first-valid gate only.**
-- **Timing per bank** (`mt6797/src/mtk_tc.c`, `thermal_reset_and_initial`).
-  Mainline's `auxadc_thermal` uses the same values:
-  - TEMPMONCTL1 `0xc`: a period unit of about 39.4 µs;
-  - TEMPMONCTL2 `0x000101ad`: a sensing interval of 429 units, about
-    18.1 ms;
-  - TEMPMSRCTL0 `0x492`: a 2-of-4 sample filter;
-  - TEMPADCVALIDMASK `0x2c`: the AUXADC channel 11 data valid bit (bit 12),
-    which the controller checks before storing a sample. Nothing tells
-    software that a TEMPMSR reading is fresh.
-- **Reads** are polled TEMPMSR values masked to 12 bits, with no status
-  check. The interrupt serves thresholds only.
-- **The one freshness mechanism:**
-  - Before the real setup, `tscpu_thermal_fast_init` points every bank at
-    a spare register seeded with the sentinel `THERMAL_INIT_VALUE` (`0xda1`,
-    `mt6797/inc/tscpu_settings.h`). It then waits until each TEMPMSR reads
-    `0xda1`, and only then starts real sensing.
-  - `check_all_temp_valid` (`common/thermal_zones/mtk_ts_cpu.c`) declares
-    the temperatures valid once no TEMPMSR still holds the sentinel.
-  - That proves one real conversion per sensor since setup. It is the same
-    "read every bank first" ordering that keeps the 117 °C arm from
-    raising a false reset request.
-- **Our driver lacks this gate.** Earlier records reached the same limits:
-  - [freshness audit](../2026-09-04-mt6797-thermal-snapshot/SENSOR_FRESHNESS_AUDIT.md);
-  - [register contract](../2026-09-04-mt6797-thermal-snapshot/REGISTER_CONTRACT.md);
-  - [no passive discriminator](../2026-09-04-mt6797-thermal-snapshot/PASSIVE_DISCRIMINATOR_DECISION.md).
-- **Inference:** a per-read age check is not possible. The sentinel gate is
-  portable, and the configured timing bounds a reading's age at about four
-  18 ms intervals; that bound is not measured.
-
-**Accuracy: the formula is complete, but no figure is given.**
-- **Calibration source:** LK's devinfo words 32, 31 and 33 (`mtk_tc.c`,
-  `tscpu_settings.h`). They give ADC gain and offset, a room temperature,
-  a slope with its sign, one room-temperature voltage per sensor (MCU1-4 and
-  ABB), and an ID bit that forces the slope to zero.
-- **Defaults when calibration is off:** GE and OE 512, VTS 260, 40 °C,
-  slope 0.
-- **The conversion** is the vendor `raw_to_temperature_roomt`. 0541 made
-  sensors 1-4 match it
-  ([V4 correction](../2026-09-04-mt6797-thermal-snapshot/README.md#corrected-v4-runtime-result)).
-- **Not stated:** no source gives an accuracy or tolerance. Absolute
-  accuracy needs a reference measurement.
-
-**Bootloader:**
-- **Watchdog:** the project's LK record lists the watchdog setup writes,
-  REQ_MODE and REQ_IRQ_EN among them, but not their values
-  ([provenance record](../2026-08-21-mainline-a72-a34-provenance-owner-audit/results/provenance-20260821.txt)).
-- **Thermal controller:** nothing shows a bootloader programming it; LK
-  only supplies the calibration.
-- So whether thermal request bit 18 is armed under mainline is still
-  unknown, and one read of `0x10007030` settles it.
-
 ## Station 10: the TOPRGU read (predeclared)
 
 **The image:**
@@ -176,20 +85,19 @@ read, was not read.
 - its modules are byte-identical to the ones station 9 ran its hold on:
   `mac` `b0a49e5c…`, core `fbb2407b…`, CONSYS `72147b51…`.
 
-**The read:** after boot and before Wi-Fi starts, two reads with
-`busybox devmem` and no write:
-- REQ_MODE at `0x10007030`;
-- REQ_IRQ_EN at `0x10007034`.
-
-The thermal request is bit 18 in each. In the vendor headers, the
-REQ_MODE bit selects a reset, and the REQ_IRQ_EN bit selects an interrupt
-instead.
+**The read:** after boot and before Wi-Fi starts, three reads with
+`busybox devmem` and no write. Bit 18 is the thermal request in each
+([register map](../../docs/hardware/mt6797-thermal-management.md#4-protection-thresholds-and-actions)):
+- `0x1000700c`: status, a thermal reset asserted;
+- `0x10007030`: request enable;
+- `0x10007034`: an IRQ instead of a reset.
 
 | Observation | Reading |
 |---|---|
-| REQ_MODE bit 18 set | A thermal request resets the chip under mainline, as the bootloader left it; the protection still needs TEMPPROTTC armed |
-| Bit 18 clear in both | Thermal requests are ignored; the reset must be enabled by mainline itself |
-| REQ_IRQ_EN bit 18 set | A request raises the watchdog interrupt, and what mainline does with it decides the outcome |
+| `0x10007030` bit 18 set, `0x10007034` bit 18 clear | A thermal request resets the chip under mainline, as the bootloader left it; protection still needs TEMPPROTTC armed |
+| `0x10007030` bit 18 clear | Thermal requests are ignored; mainline must enable the route itself |
+| `0x10007034` bit 18 set | A request raises the watchdog interrupt instead, and what mainline does with it decides the outcome |
+| `0x1000700c` bit 18 set | The last reset was a thermal one; record it |
 | A read fails or the station stops responding | `devmem` cannot reach TOPRGU this way; record and stop |
 
 ## What mainline needs (proposal, not admitted)
@@ -225,6 +133,8 @@ In order:
 - keep charging on USB host power (500 mA input).
 
 **Still unknown:**
-- the MT6351's own over-temperature threshold;
-- the TOPRGU request state under mainline;
-- the calibrated sensor accuracy.
+- the TOPRGU request state under mainline (station 10);
+- the calibrated sensor accuracy;
+- whether the BQ25896 TS pin is really on a fixed divider (the schematic).
+
+The MT6351 shuts down in hardware at 150 °C per its datasheet.

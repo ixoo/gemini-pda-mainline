@@ -33,6 +33,15 @@ Vendor source: `drivers/misc/mediatek/thermal/mt6797/src/mtk_tc.c`
 (`TEMPMSRCTL0 = 0x492`), about 18 ms sensor interval, with a different interval
 for bank 0.
 
+Freshness: the driver reads `TEMPMSR0..3 & 0xfff` with no status bit. Its
+only validity mechanism is a first-valid gate. `tscpu_thermal_fast_init`
+seeds every bank with the sentinel `0xDA1` (`THERMAL_INIT_VALUE`,
+`tscpu_settings.h:106`; `mtk_tc.c:990-1080`), and `check_all_temp_valid`
+treats temperatures as valid once no reading still equals it
+(`mtk_ts_cpu.c:2170-2184`). This proves one conversion per sensor since
+setup, and is the same read-before-arm order the 117 °C trip needs. It gives
+no per-read age. The mainline variant has no such gate yet.
+
 The public MT6797 documents do **not** enumerate these sensors. The functional
 specification says only that "several embedded temperature sensors" feed the
 thermal controller (FS v1.0 p.188) and marks AUXADC channels 10 and 11
@@ -292,6 +301,8 @@ overrides were applied.
 | PMIC die-temperature monitoring | No mainline driver; MT6351 is only an MFD/regulator child |
 | Modem / Wi-Fi thermal interaction | Outside mainline scope; no CCCI or WMT consumer |
 | Board NTC and battery temperature | No mainline mechanism yet |
+| BQ25896 TS input (hardware JEITA) | TS read 49.8% of REGN in all 54 reads across four boots, charging or not (likely a fixed divider, not the NTC; inference), so the charger's own temperature cutoffs most likely never act |
+| TOPRGU thermal route under mainline | Unread; one `devmem` read on the next station boot |
 
 ## 9. Open questions
 
