@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 11:07:58 -0400
+Subject: [PATCH] wifi: mt6797: log the HIF ledger when a sequence recycle is
+ refused
+
+On the first device run of the sequence recycle, the tenth lifetime met
+a refused recycle (-EBUSY) right after a cleanup the re-arm gate had
+found quiescent, and the driver fell back to the wrap and poisoned. The
+refusal names no predicate. Add the TC1 limit and pending count to the
+ledger snapshot and print it when a recycle is refused.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c |  2 ++
+ drivers/net/wireless/mediatek/mt6797/hif.h |  2 +-
+ drivers/net/wireless/mediatek/mt6797/mac.c | 12 ++++++++++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index a7fd52ecd..8e958726d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1666,6 +1666,8 @@ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *
+ 	out->phase = t->phase;
+ 	out->tc4_free = t->tc4_free;
+ 	out->tc1_free = t->tc1_free;
++	out->tc1_limit = t->tc1_limit;
++	out->tc1_pending = t->tc1_pending;
+ 	out->tc4_limit = t->tc4_limit;
+ 	out->pending_cpu = t->tc4_pending_cpu;
+ 	out->pending_ffa = t->tc4_pending_ffa;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index d8b7009ad..3bc250c3a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -327,7 +327,7 @@ int mt6797_hif_recycle_sequences(struct mt6797_hif *hif, unsigned int first);
+ /* Diagnostic snapshot of the normal transaction's page ledger. */
+ struct mt6797_hif_ledger {
+ 	unsigned int phase, tc4_free, tc4_limit, pending_cpu, pending_ffa;
+-	unsigned int tc1_free;
++	unsigned int tc1_free, tc1_limit, tc1_pending;
+ 	bool sequences, locked;
+ };
+ 
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index 35286697e..8bfd0e16c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -4801,6 +4801,18 @@ static void mt6797_mac_join_work(struct work_struct *work)
+ 				mt6797_mac_join_rearm(mac);
+ 				break;
+ 			}
++			{
++				struct mt6797_hif_ledger ledger;
++
++				/* Just after the refusal, not an atomic proof of it. */
++				mt6797_hif_normal_ledger(mac->hif, &ledger);
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join recycle refused: phase=%u tc4=%u/%u pending_cpu=%u pending_ffa=%u tc1=%u/%u tc1_pending=%u sequences=%u locked=%u\n",
++					 ledger.phase, ledger.tc4_free, ledger.tc4_limit,
++					 ledger.pending_cpu, ledger.pending_ffa,
++					 ledger.tc1_free, ledger.tc1_limit,
++					 ledger.tc1_pending, ledger.sequences, ledger.locked);
++			}
+ 			fallthrough;
+ 		case MT6797_JOIN_REARM_WRAP:
+ 			if (!mac->first_error)
+-- 
+2.43.0
+
