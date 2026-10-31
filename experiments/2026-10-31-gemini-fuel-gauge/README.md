@@ -251,3 +251,51 @@ write): LK leaves the gauge running.
   count;
 - the CAR_TUNE choice (115) against a reference current;
 - behaviour on battery alone.
+
+## Charge limit (2026-10-31, owner request)
+
+**The request:** stop charging at a set capacity, 80 % by default and
+configurable, to slow the cell's aging.
+
+**The change:** [`charge-guard`](../2026-10-30-mainline-dev-station/charge-guard.c)
+(`46c7695a…`) gains a capacity stop beside its 50/47 °C window:
+- it stops charging when the gauge's `capacity` reaches the limit and
+  resumes 5 points below it, through the same REG03 `CHG_CONFIG` write;
+- the limit is `-l` (default 80), or the number in
+  `/run/station/charge-limit` whenever that file exists, read at every
+  pass; 100 turns the limit off;
+- an unreadable capacity does not stop charging, since only the
+  temperature window is a safety stop;
+- with `-q`, holding passes are no longer logged, only stops and resumes.
+
+**Tested live on station 13b** (boot `a930528e…`), by replacing
+`/bin/charge-guard` in the RAM root and letting init respawn it; the boot2
+image still holds `b3eb2fb9…`:
+
+| Step | REG03 | REG0B | `status` | `capacity` |
+|---|---|---|---|---|
+| New guard starts, limit 80 | `0x0a` | `0x26` | Not charging | 93 |
+| `charge-limit` 100 | `0x1a` | `0x36` | Discharging | 90 |
+| `charge-limit` 96, then 90 | `0x1a` | `0x36` | Discharging | 89-90 |
+| File removed (80 again) | `0x0a` | `0x26` | Not charging | 92 |
+
+- **The log shows** `action=stop full` at start, `action=resume` with
+  `limit=100`, and `action=stop full` once the file was removed.
+- **Limit 90 did not stop** because the capacity read 89 while the charger
+  ran; that is the rule, not the hysteresis. The hysteresis itself
+  (stopped, then a limit between the capacity and capacity + 5) was not
+  exercised.
+
+**An observation with charging enabled at 92 %:** the battery discharged.
+- With `CHG_CONFIG` set, `current_now` read −190 to −210 mA and the battery
+  fell from 4.27 to 4.20 V.
+- With it clear, it read about 0 mA, and the system ran from USB.
+- **Inference:** the battery sat above the charger's default 4.208 V
+  regulation (REG06 `0x5e` after the watchdog restores defaults), so an
+  enabled charger lets the system draw it toward that voltage. This was
+  not investigated further.
+- The capacity reads about 3 points lower under that load than at rest,
+  so in practice the resume point sits further below the limit.
+
+**Not shown:** a stop reached by charging up to the limit, and a resume
+after discharging below it.

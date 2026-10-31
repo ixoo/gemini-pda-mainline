@@ -175,8 +175,12 @@ thermally constrained subsystem.
 - the battery NTC reads through the MT6351 AUXADC (0357-0360) and
   `power-status`;
 - `charge-guard` implements gate 1, the 50/47 °C window, by REG03
-  `CHG_CONFIG` with watchdog kicks while stopped. It is tested on the
-  device, and not yet started at boot.
+  `CHG_CONFIG` with watchdog kicks while stopped. It runs at boot.
+- `charge-guard` also stops charging at a capacity limit from the fuel
+  gauge, 80 % by default and set in `/run/station/charge-limit`, resuming
+  5 points lower
+  ([fuel-gauge record](../../experiments/2026-10-31-gemini-fuel-gauge/README.md)).
+  This is a longevity policy, not a safety stop.
 
 Gates 2 and 3 are not implemented. The 500 mA SDP input limit bounds the
 current meanwhile.

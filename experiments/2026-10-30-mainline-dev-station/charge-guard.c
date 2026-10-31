@@ -15,10 +15,18 @@
  * bootloader's disabled state ends at the first pass rather than at the
  * chip's watchdog. Every other bit of REG03 is written back as read.
  *
- * usage: charge-guard [-n] [-q] [-s STOP_DC] [-r RESUME_DC] [-p SECONDS] [-c PASSES]
+ * Charging also stops at a capacity limit, to slow the cell's aging: it stops
+ * when the fuel gauge's capacity reaches the limit and resumes 5 points
+ * below it. The limit is -l, or the number in /run/station/charge-limit
+ * whenever that file exists, read at every pass; 100 turns it off. An
+ * unreadable capacity does not stop charging, since only the temperature
+ * window is a safety stop.
+ *
+ * usage: charge-guard [-n] [-q] [-s STOP_DC] [-r RESUME_DC] [-l PERCENT] [-p SECONDS] [-c PASSES]
  *   -n  dry run: decide and log, never write
- *   -q  log only the passes that act, plus one every 60 passes
+ *   -q  log only the passes that stop or resume, plus one every 60 passes
  *   -s/-r  stop and resume thresholds in 0.1 C (default 500 and 470)
+ *   -l  capacity limit in percent, 50 to 100 (default 80)
  *   -p  seconds between passes (default 10, at most 30)
  *   -c  stop after this many passes (default: run until killed)
  */
@@ -36,6 +44,8 @@
 #define ADDR 0x6b
 #define REG03_CHG_CONFIG 0x10
 #define REG03_WD_RST 0x40
+#define LIMIT_FILE "/run/station/charge-limit"
+#define LIMIT_HYSTERESIS 5
 
 static const int ntc_ohms[] = {
 	68237, 53650, 42506, 33892, 27219, 22021, 17926, 14674, 12081,
@@ -87,6 +97,20 @@ static int batt_raw(void)
 	return raw;
 }
 
+/* The first integer in a file, or -1. */
+static int read_int(const char *path)
+{
+	FILE *f = fopen(path, "r");
+	int value = -1;
+
+	if (f) {
+		if (fscanf(f, "%d", &value) != 1)
+			value = -1;
+		fclose(f);
+	}
+	return value;
+}
+
 static int smbus(int fd, char rw, unsigned char reg, union i2c_smbus_data *data)
 {
 	struct i2c_smbus_ioctl_data args = {
@@ -133,36 +157,43 @@ static int open_charger(void)
 
 int main(int argc, char **argv)
 {
-	int dry = 0, quiet = 0, stop_dc = 500, resume_dc = 470, period = 10, passes = -1, opt;
-	int stopped = 0;
+	int dry = 0, quiet = 0, stop_dc = 500, resume_dc = 470, limit_arg = 80, period = 10;
+	int passes = -1, opt, stopped = 0, hot = 0, full = 0;
 	unsigned long pass = 0;
 
-	while ((opt = getopt(argc, argv, "nqs:r:p:c:")) != -1) {
+	while ((opt = getopt(argc, argv, "nqs:r:l:p:c:")) != -1) {
 		switch (opt) {
 		case 'n': dry = 1; break;
 		case 'q': quiet = 1; break;
 		case 's': stop_dc = atoi(optarg); break;
 		case 'r': resume_dc = atoi(optarg); break;
+		case 'l': limit_arg = atoi(optarg); break;
 		case 'p': period = atoi(optarg); break;
 		case 'c': passes = atoi(optarg); break;
 		default: return 2;
 		}
 	}
-	if (period < 1 || period > 30 || resume_dc >= stop_dc) {
-		fprintf(stderr, "charge-guard: period 1-30 s and resume below stop\n");
+	if (period < 1 || period > 30 || resume_dc >= stop_dc || limit_arg < 50 || limit_arg > 100) {
+		fprintf(stderr, "charge-guard: period 1-30 s, resume below stop, limit 50-100\n");
 		return 2;
 	}
 	setvbuf(stdout, NULL, _IOLBF, 0);
-	printf("charge-guard: stop=%d resume=%d (0.1 C) period=%ds%s\n",
-	       stop_dc, resume_dc, period, dry ? " dry-run" : "");
+	printf("charge-guard: stop=%d resume=%d (0.1 C) limit=%d%% period=%ds%s\n",
+	       stop_dc, resume_dc, limit_arg, period, dry ? " dry-run" : "");
 	while (passes) {
 		int raw = batt_raw(), t = raw < 0 ? INT_MIN : batt_decicelsius(raw);
 		int fd = open_charger(), reg03 = fd < 0 ? -1 : read_reg(fd, 0x03);
-		int want_stop = t == INT_MIN || t >= stop_dc ? 1 :
-				t < resume_dc ? 0 : stopped;
+		int limit = read_int(LIMIT_FILE), cap = read_int("/sys/class/power_supply/battery/capacity");
+		int want_hot = t == INT_MIN || t >= stop_dc ? 1 : t < resume_dc ? 0 : hot;
+		int want_full, want_stop;
 		const char *action = "none";
 		int value = reg03;
 
+		if (limit < 50 || limit > 100)
+			limit = limit_arg;
+		want_full = limit == 100 || cap < 0 ? 0 : cap >= limit ? 1 :
+			    cap <= limit - LIMIT_HYSTERESIS ? 0 : full;
+		want_stop = want_hot || want_full;
 		if (fd < 0 || reg03 < 0) {
 			action = "no-charger";
 		} else if (want_stop) {
@@ -174,12 +205,16 @@ int main(int argc, char **argv)
 		}
 		if (value != reg03 && !dry && fd >= 0 && write_reg(fd, 0x03, value))
 			action = "write-failed";
-		else if (fd >= 0 && reg03 >= 0)
+		else if (fd >= 0 && reg03 >= 0) {
 			stopped = want_stop;
-		if (!quiet || strcmp(action, "none") || pass % 60 == 0)
-			printf("t=%ld temp=%d raw=%d reg03=0x%02x action=%s%s\n",
-			       (long)time(NULL), t == INT_MIN ? -9999 : t, raw, reg03 & 0xff,
-			       action, dry && value != reg03 ? " (dry)" : "");
+			hot = want_hot;
+			full = want_full;
+		}
+		if (!quiet || (strcmp(action, "none") && strcmp(action, "hold")) || pass % 60 == 0)
+			printf("t=%ld temp=%d raw=%d cap=%d limit=%d reg03=0x%02x action=%s%s%s%s\n",
+			       (long)time(NULL), t == INT_MIN ? -9999 : t, raw, cap, limit,
+			       reg03 & 0xff, action, want_hot ? " hot" : "", want_full ? " full" : "",
+			       dry && value != reg03 ? " (dry)" : "");
 		pass++;
 		if (fd >= 0)
 			close(fd);
