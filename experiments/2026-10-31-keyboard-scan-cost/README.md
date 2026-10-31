@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-scan-cost` |
-| Status | `running`: station 13 boot `66b68797…` passed steps A1–A4; the typing steps have not run |
+| Status | `completed`: station 13 boot `66b68797…`; ghost filter confirmed on Ctrl+Left Shift+N, scan-cost reduction consistent but not measured against a baseline |
 | Subsystem | input: `gpio-matrix-keypad` over the AW9523 expander on I2C5 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -179,9 +179,24 @@ privately with that session's station 13 evidence.
 | A3, I2C5 rate | `1101c000.i2c` (IRQ 216) read 30787, 39544, 48301 and 57058 at uptimes 36, 46, 56 and 66 s. That is +8757 per 10 s each time, about 876 interrupts a second, with the lid open and no key held |
 | A4, node | `keyboard-matrix` is `/dev/input/event1`. `evtest` is absent and `hexdump` is present |
 
-Steps 1 and 3–5 of the original procedure (the baseline, typing, ghosting
-and unconnected positions) have not run. No station 12 interrupt count
-exists, so step 1 has no measured "before".
+**Typing checks on the same boot.** The owner typed while the device
+session dumped `/dev/input/event1`. It read the device with
+`od -An -v -tx1 -w24` and decoded `struct input_event` on the host. The
+busybox `hexdump` format in this record's message captured nothing. `od`
+block-buffers, so the tail of a capture is lost when the reader is killed.
+Results are given as keycode (`MSC_SCAN`):
+
+| Step | Result |
+| --- | --- |
+| B5, typing | Seven letters each reported once. Key 36 (J) was held from 283.98 to 287.58 s with steady autorepeat. Shift+Fn+1 reported 125 (35), 42 (30) and 2 (0). The console text was not compared |
+| B6a, Ctrl+Left Shift+N | 29 (38) and 42 (30) held, and Shift repeated and was pressed again afterwards. Neither `KEY_N` nor scan 34 (M) was reported |
+| B6b, Ctrl+Alt+7 | **Not exercised.** The first attempt pressed 7 alone, then Alt. In the second, 7 went down at 574.96 s after Ctrl had been released, and the rest of the capture was lost to buffering |
+| B6c, Ctrl+Right Shift+V | 29 (38) and 54 (43) held, and 47 (28, V) was reported |
+| B7, unconnected | Scans seen: 0, 6, 8, 14, 16, 17, 19, 22, 28, 30, 33, 35, 38, 43, 56. None in 59–62 |
+
+All observed scan codes match the map: (row << 3) + column. Step 1 (the
+baseline) did not run. No station 12 interrupt count exists, so the scan cost
+has no measured "before".
 
 ## Analysis
 
@@ -194,14 +209,35 @@ transfers per scan, at one I2C5 interrupt per transfer:
 - 876 / 21 gives about 41.7 scans a second, or a period of about 24 ms.
   That fits a scan of a few milliseconds plus the re-arm delay.
 
-This is consistency, not proof. One interrupt per transfer is assumed, not
+This is consistency, not proof for the scan cost. One interrupt per transfer is assumed, not
 measured, and nothing else on I2C5 was ruled out. Without a measured
 baseline, the size of the reduction from the old code (84 transfers per
 scan, about 2400 a second at a longer period) remains an inference. It has
 no measurement on this unit.
 
+**Ghost filter.** In B6a, events kept arriving after N was pressed: Shift
+repeated and was pressed again. So the missing N is not a lost buffer tail.
+An unambiguous scan would have reported N. Its suppression means the
+scanned state contained the Ctrl/Shift/N rectangle with M as its fourth
+corner. That is electrical ghosting on this unit, as the vendor comment
+said, and the filter dropped it. B6c shows that a non-ghosting three-key
+combination with the same letter row still works.
+
 ## Conclusion
 
-Inconclusive. The candidate binds, polls at 20 ms, carries the ghost
-filter and reports no read errors, at about 876 I2C5 interrupts a second.
-Typing and the ghost-filter behaviour are still untested.
+- **Hypothesis 2: confirmed** on the named unit, station 13 boot
+  `66b68797…`, for Ctrl+Left Shift+N, with Ctrl+Right Shift+V unaffected.
+  Ctrl+Alt+7 was not exercised. 0364–0366 stay in the station.
+- **Hypothesis 1: inconclusive.** The candidate binds, polls without read
+  errors and types normally, with autorepeat. Its I2C5 rate of about 876
+  interrupts a second fits 21 transfers per scan. There is no measured
+  baseline, so the reduction itself is inferred. 0362 and 0363 stay, because
+  no regression was seen.
+- No unconnected position reported a scan.
+
+## Follow-up
+
+- If a measured scan-cost reduction is ever needed, boot a station kernel
+  without 0362–0363 and repeat step A3.
+- Event dumps on the station need an unbuffered reader. Plain `od` loses the
+  tail of a killed capture.

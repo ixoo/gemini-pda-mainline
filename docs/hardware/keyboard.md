@@ -248,8 +248,12 @@ Directly observed on the named unit:
 - AW9523, the matrix consumer, and the matrix-owned input device bound;
 - bounded H/E/L/P/Enter and A/S press/release events;
 - a live exact VT-map query passed while the expected input device was active;
-- the owner reported working physical typing and the current map; and
-- a typed command reached the shell and kernel restart path.
+- the owner reported working physical typing and the current map;
+- a typed command reached the shell and kernel restart path; and
+- with the ghost filter enabled, Ctrl+Left Shift+N reported no N while later
+  events still arrived. The scan therefore held the ghost rectangle, so the
+  matrix ghosts electrically
+  ([keyboard scan cost and ghosting](../../experiments/2026-10-31-keyboard-scan-cost/README.md)).
 
 High-confidence implementation inference:
 
