@@ -115,7 +115,9 @@ calibration also defines the voltage controller's temperature scale.
 ### 3.2 PMIC die temperature (MT6351)
 
 A separate Vbe-based conversion uses PMIC OTP/efuse words 0 and 1
-(`thermal/mt6797/src/mtk_pmic_efuse.c:62-183`):
+(`thermal/mt6797/src/mtk_pmic_efuse.c:62-183`); the channel and register
+interface of the PMIC ADC itself are documented in
+[MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md):
 
 ```
 O_VTS       = (word1[3:0] << 9) | (word0[15:7])
@@ -140,7 +142,7 @@ the zone wrapper expects millidegrees; the arithmetic itself is unverified.
 | Source | Method | Evidence |
 | --- | --- | --- |
 | Board NTC (`mtktsAP`, `mtktsbtsmdpa`) | AUXADC NTC channel, 390 kΩ pull-up, `mV = raw*1500/4096`, `R = 390000*mV/(1800-mV)`, interpolated over a −40…125 °C table | `common/thermal_zones/mtk_ts_bts.c:123-130, 472-577` |
-| Battery pack | value supplied by the charger/fuel-gauge driver | `common/thermal_zones/mtk_ts_battery.c:39,149` |
+| Battery pack | battery NTC read on PMIC ADC channel 3 (`BATON`), converted with the board NTC table | [PMIC ADC](mt6351-pmic-adc.md); `power/mt6797/battery_meter_hal.c:1140-1180` |
 | Modem RF/PA | modem-reported `RFTEMP_*` attributes; −127 °C when unavailable | `common/thermal_zones/mtk_ts_pa.c:170-218` |
 | Modem ADC | baseband NVRAM table (`l1cal_temperatureADC_T`), exposed over the PMIC-wrapper modem ADC path | retained modem image strings; register table part 1 p.608, 662 (`MD_ADC_STA0[31:16]`) |
 | Wi-Fi/BT combo | WMT command (`WMT_THERM_READ_CMD`) returning a raw value; observed live as `[Thermal] current_temp = 0x12/0x15` | vendor `mtk_ts_wmt.c`; retained Gemian log |

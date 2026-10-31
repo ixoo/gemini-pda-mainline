@@ -18,6 +18,7 @@ the experiments that support or challenge it.
 | [MT6797 live resource map](mt6797-live-resource-map.md) | Register, IRQ, clock, rail, storage, display, GPU, connectivity, and USB resources mapped to Linux boundaries. |
 | [MT6797 thermal observation](mt6797-thermal-observation.md) | Aggregate temperature semantics, shared bank ownership, precision and freshness limits. |
 | [MT6797 thermal management](mt6797-thermal-management.md) | Sensor banks, efuse/LK calibration handoff, conversion formulas, trips, cooling policy, and firmware ownership. |
+| [MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md) | Register window, channel scaling, consumers, modem share ring, and upstream coverage. |
 | [MT6797 integrated Wi-Fi](mt6797-wifi.md) | Platform ancestry, selected gen3 AHB transport, firmware structure and shared connectivity ownership. |
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Vendor kernel ABI](vendor-kernel-abi.md) | Private interfaces used by the working stack and their standard Linux replacements. |
