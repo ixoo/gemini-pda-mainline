@@ -119,6 +119,37 @@ description should preserve:
 - `gpio-activelow` and `drive-inactive-cols`; and
 - the normalized 52-entry matrix map with the four unknown positions omitted.
 
+## Interrupt chain
+
+The vendor path is two-level:
+
+1. The AW9523B latches an input change on its row port and asserts the shared
+   INT pin; reading `P0_INPUT` clears the latch. The driver enables the port
+   interrupt through `P0_INT` (`0x00` enables, `0xff` disables).
+2. The INT pin is muxed to **GPIO87 as EINT10** and reaches the GIC through the
+   MTK `pio` controller. The mainline board DTS expresses this as
+   `interrupt-parent = <&pio>; interrupts = <10 IRQ_TYPE_LEVEL_LOW>` on the
+   AW9523 node, with `interrupt-controller` and `#interrupt-cells = <2>`.
+
+The vendor driver requests the EINT from a separate
+`mediatek,aw9523-eint` node, disables the IRQ in the handler, schedules work
+after 1 ms, disables the AW9523 port interrupt, reads `P0_INPUT` to clear the
+latch, and runs a fast scan. When the matrix returns to idle it restores the
+column state, clears the latch again, re-enables the port interrupt and calls
+`enable_irq()`.
+
+Two limits matter:
+
+- In the public vendor DTS the `mediatek,aw9523-eint` node carries only a
+  `compatible` — no `interrupts`, no `interrupt-parent`, no `debounce`. The
+  driver ignores the setup failure, so the public tree would bind the keyboard
+  without ever scanning. The live vendor DTB must carry the real node, in the
+  same way its charger node differs from the public one.
+- Upstream `pinctrl-aw9523` does implement a threaded per-pin IRQ chip
+  (both-edge, shared parent INT), and `matrix-keypad` requests one IRQ per row
+  plus `enable_irq_wake`. The accepted Gemini path uses polling instead, so
+  neither the row-IRQ path nor its wake capability has been exercised.
+
 ## Timing, IRQ, and polling boundary
 
 The retained vendor source uses this policy:

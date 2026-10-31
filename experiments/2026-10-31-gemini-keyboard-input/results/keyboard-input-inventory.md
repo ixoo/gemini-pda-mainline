@@ -29,11 +29,31 @@ The same table shows the modifier at `P0_4/P1_3` as `META-L` =
 discrepancy is therefore a device-family mix-up, not two snapshots of the same
 board.
 
-## 2. Scan, timing and ghosting
+## 2. Interrupt chain, scan and ghosting
 
-- Monitor mode arms the AW9523 port interrupts; the EINT handler disables the
-  IRQ, schedules work after 1 ms, and the work disables the port interrupt,
-  clears it, and schedules a fast rescan (`:566-577`, `:543-563`).
+- **Two-level interrupt.** The AW9523B latches a row-port input change and
+  asserts its INT pin; reading `P0_INPUT` clears the latch. The driver enables
+  the port interrupt through `P0_INT` (`0x00` enable, `0xff` disable) in
+  monitor mode (`aw9523_reset_to_monitor_for_state_change`, `:318-333`).
+- **SoC side.** The INT pin is muxed to GPIO87 as EINT10. The mainline board
+  DTS wires `interrupts = <10 IRQ_TYPE_LEVEL_LOW>` to `&pio`,
+  `interrupt-controller`, and the pinctrl state selects
+  `MT6797_GPIO87__FUNC_EINT10`.
+- **Vendor request path.** `aw9523_key_setup_eint()` looks up a separate
+  `mediatek,aw9523-eint` node, reads its `debounce` tuple, selects the INT pin
+  state, maps the IRQ and requests it with `IRQ_TYPE_NONE` (`:581-621`). The
+  public DTS node carries only a compatible, so this fails and the probe
+  ignores the return value (`:932`); the live DTB must carry the real node.
+- **Handler and re-arm.** The EINT handler disables the IRQ and schedules work
+  after 1 ms; the work disables the port interrupt, reads `P0_INPUT` to clear,
+  and schedules a fast rescan (`:566-577`, `:543-563`). Idle returns to monitor
+  mode, clearing the latch and re-enabling the IRQ.
+- **Mainline alternative.** Upstream `pinctrl-aw9523.c` has a threaded per-pin
+  IRQ chip (`aw9523_irq_chip`, both-edge only, parent INT thread,
+  `:400-425`, `:791-830`), and `matrix_keypad.c` requests a row IRQ per row and
+  uses `enable_irq_wake`. The accepted Gemini profile polls instead, so the
+  row-IRQ and wake paths are untested.
+
 - Two rescan periods: `MATRIX_SCAN_NANO_SECONDS_FAST` 1 ms and
   `MATRIX_SCAN_NANO_SECONDS_SLOW` 10 ms (`:126-127`). Held keys rescan slowly;
   fresh changes rescan fast.
