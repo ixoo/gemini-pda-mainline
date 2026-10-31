@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-scan-cost` |
-| Status | `planned`: patches 0362–0366 are in the station series; the device test below has not run |
+| Status | `running`: station 13 boot `66b68797…` passed steps A1–A4; the typing steps have not run |
 | Subsystem | input: `gpio-matrix-keypad` over the AW9523 expander on I2C5 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -166,9 +166,42 @@ boot2 installation rules in `AGENTS.md`.
 
 ## Observations
 
-None yet. No device boot or device access was made for this record.
+**Station 13, boot `66b68797-9d46-4f09-bd83-2e4a0aac9813`.** Built at
+`dad24105` (846 patches, with 0362–0366 and the fuel-gauge proposals
+0367–0372), on boot2 `61b1218e…`. The device session ran these read-only
+checks and reported them to this record. The raw output is retained
+privately with that session's station 13 evidence.
+
+| Step | Result |
+| --- | --- |
+| A1, driver | The first probe deferred (`-517`) at 0.830 s. At 1.017 s, `keyboard-matrix` registered as `input1` and logged `polling mode, interval 20 ms`. There was no `failed to read rows` line, and `aw9523_driver_init` returned 0 |
+| A2, DT | `/proc/device-tree/keyboard-matrix/needs-ghost-filter` is present |
+| A3, I2C5 rate | `1101c000.i2c` (IRQ 216) read 30787, 39544, 48301 and 57058 at uptimes 36, 46, 56 and 66 s. That is +8757 per 10 s each time, about 876 interrupts a second, with the lid open and no key held |
+| A4, node | `keyboard-matrix` is `/dev/input/event1`. `evtest` is absent and `hexdump` is present |
+
+Steps 1 and 3–5 of the original procedure (the baseline, typing, ghosting
+and unconnected positions) have not run. No station 12 interrupt count
+exists, so step 1 has no measured "before".
+
+## Analysis
+
+The 876 interrupts a second are consistent with the code-derived 21
+transfers per scan, at one I2C5 interrupt per transfer:
+
+- Polling re-arms `poll-interval` after each scan ends, so the scan period
+  is the scan time plus 20–24 ms. At the default `HZ=250`, 20 ms is
+  5 jiffies, rounded up to the next tick.
+- 876 / 21 gives about 41.7 scans a second, or a period of about 24 ms.
+  That fits a scan of a few milliseconds plus the re-arm delay.
+
+This is consistency, not proof. One interrupt per transfer is assumed, not
+measured, and nothing else on I2C5 was ruled out. Without a measured
+baseline, the size of the reduction from the old code (84 transfers per
+scan, about 2400 a second at a longer period) remains an inference. It has
+no measurement on this unit.
 
 ## Conclusion
 
-Inconclusive until the device test runs. The build shows only that the
-patches compile.
+Inconclusive. The candidate binds, polls at 20 ms, carries the ghost
+filter and reports no read errors, at about 876 I2C5 interrupts a second.
+Typing and the ghost-filter behaviour are still untested.
