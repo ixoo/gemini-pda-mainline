@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: steps 1-3 work on the device; `charge-guard` is not yet started at boot |
+| Status | `running`: steps 1-3 work on the device and run from boot |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -405,6 +405,21 @@ with a new RAM root `9cea3734…`: boot2 `86445297…`.
 | The log's first line shows `action=resume` with REG03 `0x0a`, then one line per 10 min with `none` | The guard runs from boot and ends the handoff's disabled state |
 | The log shows repeated starts | The guard exits; it is respawned, and its exit is the item |
 | No log | inittab did not start it |
+
+**Station 11b, boot `82e5d1a2…`:**
+- **Identity:** `thermal=loaded zone=33800`, `battery-adc=loaded`, and
+  `charge-guard` `b3eb2fb9…` running as PID 163 (`-q`).
+- **The log at 14 s of uptime:**
+  - `charge-guard: stop=500 resume=470 (0.1 C) period=10s`;
+  - `t=1 temp=296 raw=831 reg03=0x0a action=resume`.
+- **`power-status` at 14 s:**
+  - `charging=fast`, REG0B `0x36`, battery 4.30 V, `batt_temp` 28.8 °C;
+  - `ichg=0.15A` (REG12 `0x03`), the first nonzero charge current read on
+    mainline: charging now starts early, before the battery tops off.
+
+**Reading:** the first predeclared row. The guard runs from boot, ends the
+handoff's disabled state at its first pass, and holds the 50/47 °C window
+from then on.
 
 ## Step 3 design: a battery-temperature charging stop
 
