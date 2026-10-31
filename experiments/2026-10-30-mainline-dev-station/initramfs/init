@@ -20,6 +20,13 @@ if $bb mount -o remount,size=1g /; then status root=tmpfs-1g; else status root=u
 status "cpus_online=$($bb cat /sys/devices/system/cpu/online)"
 status "release=$($bb uname -r)"
 status "boot_id=$($bb cat /proc/sys/kernel/random/boot_id)"
+# SoC temperature first: the station DT's critical trip powers off, and the
+# driver arms the 117 C hardware reset only when every bank reads valid.
+if $bb insmod /lib/modules/"$($bb uname -r)"/auxadc_thermal.ko; then
+    status "thermal=loaded zone=$($bb cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null)"
+else
+    status thermal=load-failed
+fi
 # Gemian's linux partition, found by its GPT name, never by number.
 data=
 waited=0

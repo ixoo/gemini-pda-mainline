@@ -1,0 +1,244 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 13:25:59 -0400
+Subject: [PATCH] thermal: mediatek: arm the MT6797 hardware thermal reset
+
+The vendor kernel protects the MT6797 with a hardware reset: each bank
+raises a hot request at 117 C (TEMPPROTCTL, TEMPPROTTC and the TEMPMONINT
+hot bit), and TOPRGU turns the request into a chip reset (thermal bit 18
+of its request mode and interrupt registers) with no software running.
+Mainline arms nothing, so a hang at high temperature has no backstop.
+
+When the board names TOPRGU and a threshold, arm the same: the route off,
+each bank programmed with the highest raw code that still converts to
+the threshold, then the route on as a reset. The transaction has already
+taken a valid first sample from every bank, so no stale value raises a
+request when the threshold is written. Refuse unless every bank reads
+valid and at least 20 C below the threshold. TOPRGU belongs to the
+watchdog driver, so it is mapped, never claimed; the watchdog driver
+never touches these registers.
+
+On unload, disarm first, then unregister the zone before the transaction
+closes and stops the clocks, so no temperature read reaches an unclocked
+bank.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c | 156 +++++++++++++++++++++-
+ 1 file changed, 154 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 67babb75b..32d18a954 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -48,6 +48,9 @@
+ #define TEMP_MONIDET1		0x018
+ #define TEMP_MSRCTL0		0x038
+ #define TEMP_MSRCTL1		0x03c
++#define TEMP_MONINT		0x00c
++#define TEMP_PROTCTL		0x0c0
++#define TEMP_PROTTC		0x0cc
+ #define TEMP_AHBPOLL		0x040
+ #define TEMP_AHBTO		0x044
+ #define TEMP_ADCPNP0		0x048
+@@ -87,6 +90,17 @@
+ #define MT6797_PERIODIC_PAUSE_MASK	0x10e
+ #define MT6797_FIRST_SAMPLE_ATTEMPTS	100
+ 
++/* MT6797 hardware thermal reset: the hot request and its TOPRGU route. */
++#define MT6797_MONINT_HOT		BIT(31)
++#define MT6797_PROTCTL_HOT		0x20000
++#define MT6797_TOPRGU_REQ_MODE		0x30
++#define MT6797_TOPRGU_REQ_IRQ_EN	0x34
++#define MT6797_TOPRGU_REQ_MODE_KEY	0x33000000
++#define MT6797_TOPRGU_REQ_IRQ_KEY	0x44000000
++#define MT6797_TOPRGU_THERMAL		BIT(18)
++/* Arm only while every bank reads at least this far below the threshold. */
++#define MT6797_PROTECT_MARGIN		20000
++
+ /* MT6797 EEM/PTP registers share thermal_base and PTPCORESEL. */
+ #define MT6797_EEM_FREQPCT30		0x218
+ #define MT6797_EEM_FREQPCT74		0x21c
+@@ -399,6 +413,12 @@ struct mtk_thermal {
+ 	struct mtk_thermal_bank banks[MAX_NUM_ZONES];
+ 
+ 	int (*raw_to_mcelsius)(struct mtk_thermal *mt, int sensno, s32 raw);
++
++	struct thermal_zone_device *tzdev;
++	/* MT6797 hardware reset: the TOPRGU window and the armed threshold. */
++	void __iomem *toprgu;
++	u32 protect_mcelsius;
++	bool protect_armed;
+ };
+ 
+ /* MT8183 thermal sensor data */
+@@ -1831,6 +1851,115 @@ mt6797_thermal_transaction_ops = {
+ 	.first_sample = mt6797_thermal_first_sample,
+ };
+ 
++/* The highest raw code that still converts to at least @mcelsius. */
++static int mt6797_thermal_raw_at(struct mtk_thermal *mt, int sensno, int mcelsius)
++{
++	int lo = 1, hi = 4095, best = -EINVAL;
++
++	/* The V4 conversion falls as the raw code rises. */
++	while (lo <= hi) {
++		int mid = (lo + hi) / 2;
++		int temp = mt->raw_to_mcelsius(mt, sensno, mid);
++
++		if (temp == THERMAL_TEMP_INVALID)
++			return -EINVAL;
++		if (temp >= mcelsius) {
++			best = mid;
++			lo = mid + 1;
++		} else {
++			hi = mid - 1;
++		}
++	}
++	return best;
++}
++
++static void mt6797_thermal_toprgu_route(struct mtk_thermal *mt, bool reset)
++{
++	u32 mode = readl(mt->toprgu + MT6797_TOPRGU_REQ_MODE);
++	u32 irq = readl(mt->toprgu + MT6797_TOPRGU_REQ_IRQ_EN);
++
++	if (reset)
++		mode |= MT6797_TOPRGU_THERMAL;
++	else
++		mode &= ~MT6797_TOPRGU_THERMAL;
++	/* A thermal request resets the chip; it never becomes an interrupt. */
++	writel(mode | MT6797_TOPRGU_REQ_MODE_KEY,
++	       mt->toprgu + MT6797_TOPRGU_REQ_MODE);
++	writel((irq & ~MT6797_TOPRGU_THERMAL) | MT6797_TOPRGU_REQ_IRQ_KEY,
++	       mt->toprgu + MT6797_TOPRGU_REQ_IRQ_EN);
++}
++
++/*
++ * The vendor's hardware thermal reset: each bank raises a hot request at
++ * the threshold, and TOPRGU turns that request into a chip reset, with no
++ * software running. As the vendor does, the route is off while the banks are
++ * programmed, and every bank has already produced a valid sample (the
++ * transaction's first-sample step), so no stale value raises a request when
++ * the threshold is written. Refused unless every bank now reads valid and
++ * at least MT6797_PROTECT_MARGIN below the threshold.
++ */
++static int mt6797_thermal_protect_arm(struct mtk_thermal *mt)
++{
++	const struct mtk_thermal_data *conf = mt->conf;
++	int raw[MAX_NUM_ZONES], i;
++
++	for (i = 0; i < conf->num_banks; i++) {
++		int temp;
++
++		mtk_thermal_get_bank(&mt->banks[i]);
++		temp = mtk_thermal_bank_temperature(&mt->banks[i]);
++		mtk_thermal_put_bank(&mt->banks[i]);
++		raw[i] = mt6797_thermal_raw_at(mt, conf->bank_data[i].sensors[0],
++					       mt->protect_mcelsius);
++		if (temp == THERMAL_TEMP_INVALID || temp == INT_MIN ||
++		    temp > (int)mt->protect_mcelsius - MT6797_PROTECT_MARGIN ||
++		    raw[i] < 0) {
++			dev_err(mt->dev,
++				"hardware thermal reset not armed: bank %d at %d mC, raw %d\n",
++				i, temp, raw[i]);
++			return -EINVAL;
++		}
++	}
++	mt6797_thermal_toprgu_route(mt, false);
++	for (i = 0; i < conf->num_banks; i++) {
++		u32 monint;
++
++		mtk_thermal_get_bank(&mt->banks[i]);
++		monint = readl(mt->thermal_base + TEMP_MONINT);
++		writel(0, mt->thermal_base + TEMP_MONINT);
++		writel(MT6797_PROTCTL_HOT, mt->thermal_base + TEMP_PROTCTL);
++		writel(raw[i], mt->thermal_base + TEMP_PROTTC);
++		writel(monint | MT6797_MONINT_HOT, mt->thermal_base + TEMP_MONINT);
++		mtk_thermal_put_bank(&mt->banks[i]);
++	}
++	mt6797_thermal_toprgu_route(mt, true);
++	mt->protect_armed = true;
++	dev_info(mt->dev,
++		 "hardware thermal reset armed at %u mC: raw %d/%d/%d/%d/%d/%d, REQ_MODE=0x%08x REQ_IRQ_EN=0x%08x\n",
++		 mt->protect_mcelsius, raw[0], raw[1], raw[2], raw[3], raw[4], raw[5],
++		 readl(mt->toprgu + MT6797_TOPRGU_REQ_MODE),
++		 readl(mt->toprgu + MT6797_TOPRGU_REQ_IRQ_EN));
++	return 0;
++}
++
++/* Before the clocks stop: the route off, then every bank's hot request. */
++static void mt6797_thermal_protect_disarm(struct mtk_thermal *mt)
++{
++	int i;
++
++	if (!mt->protect_armed)
++		return;
++	mt6797_thermal_toprgu_route(mt, false);
++	for (i = 0; i < mt->conf->num_banks; i++) {
++		mtk_thermal_get_bank(&mt->banks[i]);
++		writel(readl(mt->thermal_base + TEMP_MONINT) & ~MT6797_MONINT_HOT,
++		       mt->thermal_base + TEMP_MONINT);
++		mtk_thermal_put_bank(&mt->banks[i]);
++	}
++	mt->protect_armed = false;
++	dev_info(mt->dev, "hardware thermal reset disarmed\n");
++}
++
+ static void mtk_thermal_iounmap(void *base)
+ {
+ 	iounmap(base);
+@@ -2186,6 +2315,22 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 		if (ret)
+ 			return dev_err_probe(&pdev->dev, ret,
+ 					     "MT6797 transaction failed\n");
++
++		if (!of_property_read_u32(np, "mediatek,hw-reset-millicelsius",
++					  &mt->protect_mcelsius)) {
++			struct device_node *rgu;
++
++			rgu = of_parse_phandle(np, "mediatek,toprgu", 0);
++			/* TOPRGU belongs to the watchdog driver: map, never claim. */
++			mt->toprgu = rgu ? of_iomap(rgu, 0) : NULL;
++			of_node_put(rgu);
++			if (mt->toprgu &&
++			    !devm_add_action_or_reset(&pdev->dev, mtk_thermal_iounmap,
++						      mt->toprgu))
++				mt6797_thermal_protect_arm(mt);
++			else
++				dev_err(&pdev->dev, "hardware thermal reset: no TOPRGU\n");
++		}
+ 	} else {
+ 		ret = device_reset_optional(&pdev->dev);
+ 		if (ret)
+@@ -2227,10 +2372,13 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 					      &mtk_thermal_ops);
+ 	if (IS_ERR(tzdev)) {
+ 		ret = PTR_ERR(tzdev);
+-		if (mt->conf->version == MTK_THERMAL_V4)
++		if (mt->conf->version == MTK_THERMAL_V4) {
++			mt6797_thermal_protect_disarm(mt);
+ 			mtk_thermal_transaction_close(mt, ops, &mt->transaction);
++		}
+ 		return ret;
+ 	}
++	mt->tzdev = tzdev;
+ 
+ 	ret = devm_thermal_add_hwmon_sysfs(&pdev->dev, tzdev);
+ 	if (ret)
+@@ -2243,9 +2391,13 @@ static void mtk_thermal_remove(struct platform_device *pdev)
+ {
+ 	struct mtk_thermal *mt = platform_get_drvdata(pdev);
+ 
+-	if (mt && mt->conf->version == MTK_THERMAL_V4)
++	if (mt && mt->conf->version == MTK_THERMAL_V4) {
++		mt6797_thermal_protect_disarm(mt);
++		/* No temperature read may reach the bank once its clocks stop. */
++		devm_thermal_of_zone_unregister(&pdev->dev, mt->tzdev);
+ 		mtk_thermal_transaction_close(mt, &mt6797_thermal_transaction_ops,
+ 					      &mt->transaction);
++	}
+ }
+ 
+ static struct platform_driver mtk_thermal_driver = {
+-- 
+2.43.0
+

@@ -1,6 +1,6 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# Derive the station DTB from the package's wifi-service DTB:
+# Derive the boot DTB from the package's station DTB (wifi-service plus SoC thermal):
 #   /gpio-keys                the hall lid switch (0074), enabled as
 #                             gpio-keys-polled every 100 ms: GPIO66's level
 #                             follows the lid on mainline, but EINT5 has never

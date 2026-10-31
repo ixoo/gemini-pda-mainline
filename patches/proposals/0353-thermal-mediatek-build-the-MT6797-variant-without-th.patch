@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 13:25:59 -0400
+Subject: [PATCH] thermal: mediatek: build the MT6797 variant without the DVFSP
+ handoff
+
+The MT6797 EEM calibration check validates the DVFSP PPM snapshot and
+policy, which the DVFSP handoff provides. A kernel without the handoff
+cannot link the driver as a module. Refuse that check when the handoff
+is not built, so the temperature path builds on its own; the check is
+only reached from the handoff side.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 9e0904fca..67babb75b 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -1203,6 +1203,9 @@ static int mt6797_eem_calibration_ppm_check(
+ 
+ 	if (!input || !input->ppm_snapshot || !input->ppm_policy)
+ 		return -EINVAL;
++	/* The PPM tables come from the DVFSP handoff; without it, no check. */
++	if (!IS_ENABLED(CONFIG_MTK_MT6797_DVFSP_HANDOFF))
++		return -EOPNOTSUPP;
+ 	ret = mt6797_dvfsp_ppm_snapshot_validate(input->ppm_snapshot);
+ 	if (ret)
+ 		return ret;
+-- 
+2.43.0
+

@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 13:25:59 -0400
+Subject: [PATCH] arm64: dts: mediatek: add the Gemini PDA development station
+ board
+
+The Wi-Fi service board with the SoC thermal controller enabled, one
+zone polled every second with a hot trip at 95 C and a critical trip at
+110 C, and the 117 C hardware reset armed through TOPRGU.
+---
+ arch/arm64/boot/dts/mediatek/Makefile         |  1 +
+ .../mediatek/mt6797-gemini-pda-station.dts    | 40 +++++++++++++++++++
+ 2 files changed, 41 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+index 61c1a31cf..5bcf54c65 100644
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -12,6 +12,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-protected-readback.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-physical-source.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-admission.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-wifi-service.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-station.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-bananapi-bpi-r64.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+new file mode 100644
+index 000000000..509936cb5
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -0,0 +1,40 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ *
++ * The Gemini PDA development station: the Wi-Fi service board with SoC
++ * temperature, a critical trip that powers the system off, and the
++ * controller's 117 C hardware reset armed through TOPRGU.
++ */
++
++#include "mt6797-gemini-pda-wifi-service.dts"
++
++/ {
++	thermal-zones {
++		soc-thermal {
++			polling-delay-passive = <0>;
++			polling-delay = <1000>;
++			thermal-sensors = <&thermal>;
++
++			trips {
++				soc-hot {
++					temperature = <95000>;
++					hysteresis = <2000>;
++					type = "hot";
++				};
++
++				soc-critical {
++					temperature = <110000>;
++					hysteresis = <2000>;
++					type = "critical";
++				};
++			};
++		};
++	};
++};
++
++&thermal {
++	mediatek,toprgu = <&watchdog>;
++	mediatek,hw-reset-millicelsius = <117000>;
++	status = "okay";
++};
+-- 
+2.43.0
+

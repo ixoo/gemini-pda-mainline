@@ -3,7 +3,8 @@
 """Compose the station boot2 image from a station kernel package.
 
 The kernel and modules come from the Buildbox package, and the board tree
-is the package's wifi-service tree through station-dt.sh; the RAM root is
+is the package's station tree (the wifi-service tree with SoC thermal)
+through station-dt.sh; the RAM root is
 built from a retained soak RAM root by build-station-initramfs.py.
 The container and its LK checks are the soak candidates' own.
 
@@ -19,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 BOOT = REPO/'experiments/2026-07-12-boot-contract-recovery/scripts'
 NAME, CMDLINE = 'gemini-obs-P', 'bootopt=64S3,32N2,64N2'
-DTB = 'mt6797-gemini-pda-wifi-service.dtb'
+DTB = 'mt6797-gemini-pda-station.dtb'
 
 
 def sha(path):
@@ -31,7 +32,7 @@ def main(package, parent, tools, output):
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = []
     for path in ['net/wireless/mediatek/mt6797/mac.ko', 'net/wireless/mediatek/mt6797/mt6797-wlan-core.ko',
-                 'soc/mediatek/mt6797-consys.ko']:
+                 'soc/mediatek/mt6797-consys.ko', 'thermal/mediatek/auxadc_thermal.ko']:
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
@@ -40,7 +41,8 @@ def main(package, parent, tools, output):
     assert release.endswith('-gemini-a53-station'), release
     config = (package/'kernel.config').read_text()
     for line in ['CONFIG_MODULES=y', 'CONFIG_MT6797_MAC80211=m', 'CONFIG_MT6797_HIF_CORE=m',
-                 'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_EXT4_FS=y']:
+                 'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_MTK_SOC_THERMAL=m', 'CONFIG_THERMAL=y',
+                 'CONFIG_EXT4_FS=y']:
         assert line in config.splitlines(), line
     output.mkdir(mode=0o700)
     dtb = output/'board.dtb'

@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: charger temperature settings read on the device; TOPRGU read prepared; no protection implemented |
+| Status | `running`: steps 1 and 2 implemented for station 10, not run; step 3 designed |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -99,6 +99,79 @@ read, was not read.
 | `0x10007034` bit 18 set | A request raises the watchdog interrupt instead, and what mainline does with it decides the outcome |
 | `0x1000700c` bit 18 set | The last reset was a thermal one; record it |
 | A read fails or the station stops responding | `devmem` cannot reach TOPRGU this way; record and stop |
+
+## Implementation for station 10 (2026-10-31, owner request)
+
+**Steps 1 and 2, in the station series:**
+- **The sensor driver:**
+  - from the earlier series: 0517 (ordered start with a valid first sample
+    from every bank), 0518 (its test), 0519 (the thermal reset in the
+    DTSI), 0520, and 0541 (the V4 conversion fix);
+  - [0353](../../patches/proposals/0353-thermal-mediatek-build-the-MT6797-variant-without-th.patch):
+    the driver links as a module without the DVFSP handoff;
+  - it is built as the `auxadc_thermal` module and loaded first by the
+    station's init.
+  - **The first-valid gate:** 0517's first-sample check takes one valid
+    sample from every bank right after a controller reset. It rejects raw 0
+    and out-of-range values, so it serves as the gate as long as the reset
+    clears TEMPMSR, which is not verified. The vendor's `0xda1` sentinel is
+    not added.
+- **[0354](../../patches/proposals/0354-thermal-mediatek-arm-the-MT6797-hardware-thermal-res.patch),
+  the 117 °C hardware reset:**
+  - **When it arms:** only when the board names TOPRGU and a threshold, and
+    only while every bank reads valid and at least 20 °C below it.
+  - **The threshold code** is the highest raw value that still converts to
+    117 °C, found with the driver's own conversion.
+  - **Order:** the vendor's. The TOPRGU route goes off, each bank's
+    TEMPPROTCTL and TEMPPROTTC are written and its hot bit set, then the
+    route goes back on as a reset.
+  - **On unload:** it disarms, then unregisters the zone before the clocks
+    stop.
+- **[0355](../../patches/proposals/0355-dt-bindings-thermal-mediatek-add-the-hardware-reset-.patch):**
+  the binding for `mediatek,toprgu` and `mediatek,hw-reset-millicelsius`.
+- **[0356](../../patches/proposals/0356-arm64-dts-mediatek-add-the-Gemini-PDA-development-st.patch),
+  the station board** (the wifi-service board plus):
+  - one zone, polled every second;
+  - a hot trip at 95 °C, which only notifies;
+  - a critical trip at 110 °C, an orderly power-off forced after 10 s
+    (`CONFIG_THERMAL_EMERGENCY_POWEROFF_DELAY_MS`);
+  - the reset armed at 117 °C.
+- **Station fragment:** `THERMAL`, `THERMAL_OF`, `THERMAL_HWMON`, `NVMEM` and
+  the LK devinfo provider built in; the sensor driver as a module.
+
+**Tested in the VM:**
+- the station profile builds;
+- W=1 is clean in `drivers/thermal/mediatek` and `drivers/nvmem`;
+- the station DTB carries the zone, both trips and the reset properties;
+- `station-dt.sh` passes on it.
+
+Not run on the device.
+
+**Readings on station 10 (predeclared),** after the TOPRGU read above:
+
+| Observation | Reading |
+|---|---|
+| `thermal=loaded`, zone 0 between 25 and 60 °C, `hardware thermal reset armed at 117000 mC` with six raw codes | Steps 1 and 2 are in place; the raw codes are recorded against the TOPRGU read |
+| The zone reads, but `not armed` names a bank | Protection rests on the software trip; that bank's reading is the item |
+| `MT6797 transaction failed` or no valid first sample | No temperature; the station runs as before, and the log names the step |
+| An unexpected reset shortly after the load | A false hot request: boot without the module, and record it |
+
+## Step 3 design: a battery-temperature charging stop (not implemented)
+
+The charger cannot see the battery, so the stop needs two things:
+- **A reading:** the battery NTC through the MT6351 AUXADC, as the vendor
+  reads it. Mainline has no MT6351 AUXADC driver: the upstream
+  `mt6359-auxadc` covers the MT6357/58/59 only.
+- **An action:** stopping charging is a BQ25896 write (`CHG_CONFIG`, REG03
+  bit 4). That is charge control, so it belongs to C2b and its review.
+
+**The smallest form:**
+- a read-only IIO driver for the battery NTC channel;
+- the vendor's NTC table, converting to °C, which `power-status` reports;
+- in C2b, charging stopped at 50 °C and resumed below 47 °C, as Gemian does.
+
+**Until then:** charge only from a USB host port (500 mA input), and keep
+sessions attended.
 
 ## What mainline needs (proposal, not admitted)
 
