@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-power-status` |
-| Status | `running`: S1 works for power and charge state; ADC values are stale |
+| Status | `running`: S1 works for power and charge state; S1b (one conversion start) implemented, not run |
 | Subsystem | BQ25896 charger (I2C0 `0x6b`), MT6351 PMIC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -142,6 +142,36 @@ The owner approved S1 on 2026-10-31.
 
 Station 8 (boot2 `62ae2230…`, built at `0b3bb43f`) carries S1. It is
 flashed and ready to boot.
+
+## S1b: one conversion start
+
+The owner chose live charger readings on 2026-10-31, which admits this one
+write.
+- **The write:** before reading, `power-status` writes REG02 back with only
+  `CONV_START` (bit 7) added to the value it just read. It then polls REG02
+  every 100 ms, for at most 2 s, until the bit clears, and reads as before.
+  - In continuous mode (`CONV_RATE` set), nothing is written.
+  - If the bit never clears, the values are printed `stale`.
+- **Unchanged:** no other register is written, and REG0C is never read.
+- **Expected side effect, from the datasheet and unverified:**
+  - a write may take the BQ25896 out of its default mode until its 40 s
+    I2C watchdog expires again;
+  - no charge parameter is changed, because REG02's other bits are written
+    back as read.
+- **Host test** (fake bus):
+  - the only write is REG02 `0x11` becoming `0x91`;
+  - continuous mode writes nothing;
+  - REG0C is never read, and a wrong part number still stops before any
+    access.
+- **Binary:** `22b223ac…`, to be deployed live to the station over SSH.
+
+**Readings (predeclared):**
+
+| Observation | Reading |
+|---|---|
+| `adc=live`, with REG0E/REG11/REG12 changed from the stale `5e/9a/00` | The conversion gives live battery voltage, VBUS and charge current |
+| `adc=stale` (the bit never clears) | The ADC does not convert on request in this state; stop and record |
+| The charge state or power good changes right after the write | The write affected charger mode; stop and record |
 
 ## Observations
 
