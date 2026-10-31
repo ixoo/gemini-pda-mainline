@@ -166,6 +166,32 @@ read, was not read.
 - So whether thermal request bit 18 is armed under mainline is still
   unknown, and one read of `0x10007030` settles it.
 
+## Station 10: the TOPRGU read (predeclared)
+
+**The image:**
+- built at `0e082142`: boot2 `4a32af25…`, `Image.gz` `176badf3…`;
+- the station profile with `CONFIG_DEVMEM=y`, `CONFIG_STRICT_DEVMEM=y` and
+  no `IO_STRICT_DEVMEM`, so RAM stays off-limits while driver-owned
+  registers can be read;
+- its modules are byte-identical to the ones station 9 ran its hold on:
+  `mac` `b0a49e5c…`, core `fbb2407b…`, CONSYS `72147b51…`.
+
+**The read:** after boot and before Wi-Fi starts, two reads with
+`busybox devmem` and no write:
+- REQ_MODE at `0x10007030`;
+- REQ_IRQ_EN at `0x10007034`.
+
+The thermal request is bit 18 in each. In the vendor headers, the
+REQ_MODE bit selects a reset, and the REQ_IRQ_EN bit selects an interrupt
+instead.
+
+| Observation | Reading |
+|---|---|
+| REQ_MODE bit 18 set | A thermal request resets the chip under mainline, as the bootloader left it; the protection still needs TEMPPROTTC armed |
+| Bit 18 clear in both | Thermal requests are ignored; the reset must be enabled by mainline itself |
+| REQ_IRQ_EN bit 18 set | A request raises the watchdog interrupt, and what mainline does with it decides the outcome |
+| A read fails or the station stops responding | `devmem` cannot reach TOPRGU this way; record and stop |
+
 ## What mainline needs (proposal, not admitted)
 
 In order:
