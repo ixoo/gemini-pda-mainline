@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: steps 1-3 work on the device and run from boot |
+| Status | `running`: steps 1-3 run from boot; the SoC and battery backstops are in the kernel (station 12) |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -463,6 +463,29 @@ is doing:
 | Two zones in init's status: `soc-thermal` near 33 °C and the battery zone within 2 °C of `power-status`'s `batt_temp`; the arm logged during boot | Both kernel backstops are in place |
 | The battery zone missing, or reading −20 or 60 °C at room temperature | The IIO scale or the lookup units are wrong; the zone is the item |
 | No arm line | Built in, the driver probed before a supplier; the log names the deferral |
+
+### Station 12, boot `7750236b…`: both backstops in the kernel
+
+- **Built in:** `lsmod` lists nothing.
+- **During boot:**
+  - `1100b000.thermal` and `thermal-sensor-battery` deferred once, at
+    0.85 s, until `mt6359-auxadc` probed (0.86 s);
+  - then `hardware thermal reset armed at 117000 mC: raw
+    2759/2737/2742/2742/2742/2742` at 1.13 s, before init. The codes and the
+    TOPRGU values match station 10.
+- **Zones:**
+  - `soc-thermal` 31.1 °C, with trips hot 95 °C and critical 110 °C;
+  - `battery-thermal` 27.8 °C, with a critical trip at 60 °C;
+  - `power-status` read `batt_temp=27.9C` at the same time.
+- **`charge-guard`:** `t=2 … reg03=0x0a action=resume`, as on station 11b.
+
+**Reading:** the first predeclared row.
+- **The battery zone agrees** with the userspace conversion to within
+  0.1 °C, so the IIO processed units and the lookup table are right.
+- **Protection now holds without userspace:** the SoC (110 °C power-off,
+  117 °C reset) and the battery (60 °C power-off) are covered by the
+  kernel, and `charge-guard` keeps the gentler 50/47 °C charging window.
+- **Still not exercised:** every trip and the reset firing.
 
 ## Step 3 design: a battery-temperature charging stop
 
