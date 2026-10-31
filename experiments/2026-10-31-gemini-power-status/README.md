@@ -276,3 +276,35 @@ write.
   (inference).
 - **Battery voltage:** unchanged at 4.22 V through the unplug, so the drop
   recorded at boot did not come back.
+
+**Station 8, boot `aa795da9…`: owner's fast USB charger.**
+- **Method:** the same 5 s reads, detached from SSH. The owner moved the
+  phone from the computer cable to a fast USB charger (one the owner
+  describes as charging faster than typical USB), left it attended for about
+  100 s, then moved it back. The file was fetched in the same boot.
+- **Results:** 29 reads, all `rc=0`, all `adc=live`; no kernel warning.
+
+  | Uptime | Source | Power (`0b`) | Charge state | VBUS (`11`) | Battery | ICHG |
+  |---|---|---|---|---|---|---|
+  | 554–574 s | computer | usb-sdp (`36`) | fast | 5.2 V (`9a`) | 4.22 V | 0 |
+  | 579 s | none | none (`02`) | no | ADC floor (`00`) | 4.22 V | 0 |
+  | 584–686 s | fast charger | usb-sdp (`36`) | fast | 5.0 V (`98`), 5.1 V once | 4.18–4.22 V | 0 |
+  | 691 s | none | none (`02`) | no | ADC floor (`00`) | 4.16 V | 0 |
+  | 697 s | computer | usb-sdp (`36`) | fast | 5.1 V (`99`) | 4.22 V | 0 |
+
+**Readings:**
+- **No high-voltage input:** VBUS stayed at 5.0–5.1 V on the fast charger.
+  That matches REG02 `0x11`, with the high-voltage modes off.
+- **The charger chip classifies the fast charger as a standard USB port:**
+  `usb-sdp`, the same type as the computer, not `usb-dcp` or `hvdcp`. If the
+  chip's defaults apply, an SDP gets a 500 mA input limit, so on mainline the
+  fast charger would most likely be used like a computer port. That limit is
+  inference from the datasheet: REG00 was not read.
+- **Why it reads SDP is not established.** The vendor detects the charger
+  type on the MT6351 through the USB PHY, not on the BQ25896
+  ([charging RE](../2026-10-04-gemini-charging-re/README.md), F6). One
+  possibility is that the BQ25896 does not see the adapter's D+/D- signalling
+  here. Confirming it needs the schematic or a REG00 read.
+- **Charge current:** below the 50 mA step throughout, as expected on a full
+  battery. This test therefore says nothing about charge current on a
+  partly discharged battery.
