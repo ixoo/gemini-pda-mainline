@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mainline-dev-station` |
-| Status | `running`: boots `eda50de3…` (six items) and `13055ae9…` (lid) pass; lid closed blanks the screen and ignores the keyboard (2026-10-30) |
+| Status | `running`: station, lid, brightness, blanking and Wi-Fi load work; unload works, re-attach is refused by the HIF's one-time configuration window (boot `caac239d…`, 2026-10-30) |
 | Subsystem | development method; RAM root; eMMC data mount; kernel modules |
 | Device variant | named Gemini PDA (MT6797X), boot2 |
 | Date(s) | 2026-10-30 |
@@ -393,6 +393,38 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - This is the first change deployed on the running station. It went from
   edit to running on the hardware in minutes, with no build or boot. The
   boot image does not carry it until the next compose.
+
+**Wi-Fi unload test, station 4 boot `caac239d-fa37-4d3d-8d83-e6f8e941ac7a`.**
+- **Boot:** booted manually by the owner after an orderly `poweroff` of
+  `13055ae9…`. `lid-guard` `4a935e33…` and `mac.ko` `ef248a48…` as built;
+  console, backlight and lid up.
+- **Firmware start:** `region19_prepare` then `wmt_negotiate`. Common init
+  completed 285/285, `START ready`, then `the mac module attaches on load`.
+- **Cycle 1 passed:**
+  - `insmod` 0; record prepare 0; regulatory configuration 0;
+  - the TC4 pair (free 14); `phy0`; `wlan0` added and up;
+  - a passive scan of 5200 MHz admitted and complete, with 3 BSS;
+  - `rmmod` 0, logging `one-shot WLAN mac detached; firmware kept`;
+  - `phy0` and `wlan0` gone, `mac` not in `lsmod`.
+- **Cycle 2 failed at re-attach:** `insmod` returned `EBUSY`. Record
+  prepare was 0 and `phy1` registered, but the regulatory configuration
+  returned -5 about 18 ms later.
+- **Cycle 3:** `insmod` `EBUSY`, as designed. A failed attach is not
+  retried.
+- There is no Oops, BUG or WARNING. The logs are retained privately.
+- **Reading** (the second predeclared row, located on the host):
+  - `mt6797_hif_send_config()` admits configuration commands only while the
+    built-in HIF's normal phase is `CAP_RECEIVED` or `NVRAM_SUBMITTED`, the
+    one-time init window. After the first lifetime it has left that window.
+  - So the second load's first configuration command was refused with
+    `-EIO` before any transfer. Nothing reached the firmware.
+  - That path returns before `mt6797_hif_fail()`, so the HIF is not
+    poisoned.
+- **What CONSYS must keep across loads:** the fact that the firmware is
+  already configured. A re-attach must not replay the one-time
+  configuration (TX power, edges, domains, NVRAM settings, TX control);
+  the firmware keeps it. Whether anything in it must be re-sent per
+  lifetime is open.
 
 **Station 4, flashed from the station (boot `13055ae9…`).**
 - **Build:** Buildbox at `51a5fb6e` (806 patches with 0339,
