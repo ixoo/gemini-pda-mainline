@@ -189,6 +189,13 @@ the INT pin went low during a press was not sampled.
   removes the gpiolib warning by leaving the AW9523 default trigger as
   `IRQ_TYPE_NONE`.
 
+**Station 16 build.** The Buildbox modules build from `41216047` passed:
+job `41216047d2fa5bd7e62ab4bb77da1cae16aa1bd0-mt6797-a53-station-m1`, 852
+patches. Package
+`linux-7.1.3-gemini-ff3485136dddbaef11b0b19bea1666bc123c4b117eae974b7ec310f9f3ff79ef`,
+`patchset_sha256` `1808212b…`, `config_sha256` `d3077e53…` (unchanged),
+Image.gz `6e7f8b49159acc478332351c191827ba74d4962c6fe70945b4a83ac1acf0487c`.
+
 **Station 16 test (predeclared).** Run steps A and B again, with `1-005b` as
 the EINT10 line, plus:
 - **A1:** the debugfs pins line for 087 starts with mode **1**, and no
