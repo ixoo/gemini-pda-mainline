@@ -1,0 +1,251 @@
+From e4060d42a3153f7040d6a5626c5e0438b859463c Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 07:03:42 -0400
+Subject: [PATCH] wifi: mt6797: stop the WLAN firmware on request (restart R1)
+
+The firmware is started once per boot and has no stop path, so any
+firmware, HIF or WMT change needs a reboot. This is the stop half of a
+restart, following the vendor's adapter stop: with the mac80211 layer
+detached, writing 1 to the CONSYS wlan_stop attribute sends
+NIC_POWER_CTRL (0x04) with power mode 1 on TC4, with no reply, at the
+next unused command sequence, then polls WCIR every millisecond for at
+most one second until WLAN_READY (bit 21) clears. Only when it clears
+is FW own set and VCN33-WIFI switched off.
+
+Unlike the vendor driver, nothing escalates: a timeout stops with the
+state as it is, and no mailbox interrupt, firmware assert or chip reset
+follows. The HIF context ends with the request either way and refuses
+every later command; the attribute admits one attempt per boot, and only
+while the firmware is ready and the layer detached. Starting again is
+not part of this change. The vendor's one TX-done drain before the poll
+is not repeated: this HIF has no interrupt or worker left once the layer
+is detached.
+
+The normal-command state admits the request after the record, with its
+exact four-byte payload only. The attribute exists only when the mac
+layer is a module; built-in profiles are unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c    | 58 ++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  2 +
+ .../wireless/mediatek/mt6797/normal_command.h | 15 ++++-
+ drivers/soc/mediatek/mt6797-consys.c          | 61 +++++++++++++++++++
+ 4 files changed, 134 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 0dffa3abd..f96043617 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1672,6 +1672,64 @@ int mt6797_hif_next_sequence(struct mt6797_hif *hif)
+ }
+ EXPORT_SYMBOL_GPL(mt6797_hif_next_sequence);
+ 
++/*
++ * Ask the firmware to power WLAN off, as the vendor's adapter stop does:
++ * NIC_POWER_CTRL (0x04) with power mode 1 on TC4, no reply, then WCIR is
++ * polled every millisecond until WLAN_READY (bit 21) clears or the deadline
++ * passes. Whatever the result, this firmware session ends here: the context
++ * refuses every later command. -ETIMEDOUT when the bit never cleared; the
++ * caller escalates nothing. *wcir holds the last WCIR read.
++ */
++int mt6797_hif_power_off(struct mt6797_hif *hif, unsigned int sequence,
++			 u64 deadline_ns, u32 *wcir)
++{
++	static const u8 power_off[4] = { 1 };
++	struct mt6797_hif_pio_result transfer;
++	struct mt6797_hif_command command;
++	int error;
++
++	if (!hif || !wcir || sequence > 255)
++		return -EINVAL;
++	*wcir = 0;
++	if (!mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	if (!hif->firmware_ready || !hif->capability_complete ||
++	    hif->transaction->phase != MT6797_INIT_IDLE ||
++	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++		error = -EIO;
++		goto unlock;
++	}
++	error = mt6797_hif_enter(hif, deadline_ns);
++	if (error)
++		goto out;
++	error = mt6797_normal_prepare_config(&hif->normal,
++					     MT6797_NORMAL_NIC_POWER_CTRL,
++					     sequence, power_off,
++					     sizeof(power_off), hif->scratch,
++					     sizeof(hif->scratch), &command);
++	if (error)
++		goto out;
++	error = mt6797_hif_pio_transfer(&hif->io, 0x34, MT6797_HIF_WRITE,
++					hif->scratch, 8 + sizeof(power_off),
++					sizeof(hif->scratch), &transfer);
++	error = mt6797_normal_submitted(&hif->normal, error);
++	while (!error) {
++		error = mt6797_hif_read32_locked(hif, 0, wcir);
++		if (error || !(*wcir & BIT(21)))
++			break;
++		usleep_range(1000, 1500);
++	}
++out:
++	hif->firmware_ready = false;
++	error = mt6797_hif_fail(hif, error ?: -ESHUTDOWN);
++	if (error == -ESHUTDOWN)
++		error = 0;
++unlock:
++	mutex_unlock(&hif->mutex);
++	return error;
++}
++EXPORT_SYMBOL_GPL(mt6797_hif_power_off);
++
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index a3eb6ad75..cd325e145 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -329,6 +329,8 @@ struct mt6797_hif_ledger {
+ 
+ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out);
+ int mt6797_hif_next_sequence(struct mt6797_hif *hif);
++int mt6797_hif_power_off(struct mt6797_hif *hif, unsigned int sequence,
++			 u64 deadline_ns, u32 *wcir);
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/normal_command.h b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+index 26dc78f39..c23b7cfd5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/normal_command.h
++++ b/drivers/net/wireless/mediatek/mt6797/normal_command.h
+@@ -11,6 +11,7 @@ enum mt6797_normal_kind { MT6797_NORMAL_CAPABILITY, MT6797_NORMAL_NVRAM };
+ /* Selected configuration sets and the bounded passive-scan command owner. */
+ enum mt6797_normal_config_kind {
+ 	MT6797_NORMAL_SCAN_V2 = 0x03,
++	MT6797_NORMAL_NIC_POWER_CTRL = 0x04,
+ 	MT6797_NORMAL_SCAN_BROADCAST = 0x0a,
+ 	MT6797_NORMAL_BSS_ACTIVE = 0x11,
+ 	MT6797_NORMAL_SCAN_CANCEL = 0x1b,
+@@ -331,11 +332,13 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 	if (previous != MT6797_NORMAL_CAP_RECEIVED &&
+ 	    previous != MT6797_NORMAL_NVRAM_SUBMITTED)
+ 		return mt6797_normal_abort(t);
+-	/* After the immutable record, admit regulatory updates and the
+-	 * bounded scan owner only. Never replay manufacture data.
++	/* After the immutable record, admit regulatory updates, the bounded
++	 * scan owner and the power-off request only. Never replay manufacture
++	 * data.
+ 	 */
+ 	if (previous == MT6797_NORMAL_NVRAM_SUBMITTED &&
+ 	    kind != MT6797_NORMAL_DOMAIN && kind != MT6797_NORMAL_TX_CTRL &&
++	    kind != MT6797_NORMAL_NIC_POWER_CTRL &&
+ 	    kind != MT6797_NORMAL_SCAN_V2 && kind != MT6797_NORMAL_BSS_ACTIVE &&
+ 	    kind != MT6797_NORMAL_SCAN_CANCEL &&
+ 	    kind != MT6797_NORMAL_SCAN_BROADCAST)
+@@ -344,10 +347,18 @@ mt6797_normal_prepare_config(struct mt6797_normal_transaction *t,
+ 		return -EINVAL;
+ 	if ((kind == MT6797_NORMAL_SCAN_V2 || kind == MT6797_NORMAL_BSS_ACTIVE ||
+ 	     kind == MT6797_NORMAL_SCAN_CANCEL ||
++	     kind == MT6797_NORMAL_NIC_POWER_CTRL ||
+ 	     kind == MT6797_NORMAL_SCAN_BROADCAST) &&
+ 	    previous != MT6797_NORMAL_NVRAM_SUBMITTED)
+ 		return mt6797_normal_abort(t);
+ 	switch (kind) {
++	case MT6797_NORMAL_NIC_POWER_CTRL:
++		/* The vendor's power-off request: power mode 1, reserved zero. */
++		if (payload_bytes != 4 || payload[0] != 1 || payload[1] ||
++		    payload[2] || payload[3])
++			return -EINVAL;
++		required = 4;
++		break;
+ 	case MT6797_NORMAL_SCAN_BROADCAST:
+ 		/* Only the source-defined broadcast request for this scan owner. */
+ 		if (payload_bytes != 4 || payload[0] != 8 || payload[1] ||
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index d7fcb1ea6..79b4950c4 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -72,6 +72,7 @@
+ #define MT6797_HIF_WRPLR	0x0090
+ #define MT6797_HIF_DRIVER_OWN	BIT(8)
+ #define MT6797_HIF_DRIVER_OWN_REQUEST	BIT(9)
++#define MT6797_HIF_FW_OWN_SET	BIT(8)
+ #define MT6797_HIF_WLAN_READY	BIT(21)
+ #define MT6797_BOOT_EVENT_MAX	8U
+ #define MT6797_BOOT_DEBUG_EVENT	0x27U
+@@ -1029,6 +1030,61 @@ void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
++
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++/*
++ * The stop half of a firmware restart (experiment R1), once per boot, with
++ * the mac layer detached: the vendor's adapter stop, NIC_POWER_CTRL power
++ * mode 1, then WLAN_READY polled for at most one second. Only when it
++ * clears are FW own set and VCN33-WIFI switched off. A timeout stops here
++ * with nothing more done; no mailbox interrupt, assert or reset follows.
++ * The firmware stays stopped until the next boot either way.
++ */
++static ssize_t wlan_stop_store(struct device *dev, struct device_attribute *attr,
++			       const char *buf, size_t count)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	u32 wcir = 0, whlpcr;
++	int sequence, ret;
++
++	if (count != 2 || memcmp(buf, "1\n", 2))
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_wlan_lock);
++	ret = !owner->wlan_ready ? -ENODEV : owner->wlan_attached ? -EBUSY : 0;
++	if (ret)
++		goto out;
++	owner->wlan_ready = false;
++	sequence = mt6797_hif_next_sequence(owner->fw_hif);
++	if (sequence < 0) {
++		ret = sequence;
++		goto stopped;
++	}
++	sequence = max(sequence, 5);
++	ret = mt6797_hif_power_off(owner->fw_hif, sequence,
++				   ktime_get_ns() + NSEC_PER_SEC, &wcir);
++	dev_info(dev, "WLAN stop: power-off status=%d sequence=%d WCIR=0x%08x\n",
++		 ret, sequence, wcir);
++	if (ret)
++		goto stopped;
++	mt6797_consys_hif_f1_write(owner, MT6797_HIF_WHLPCR, MT6797_HIF_FW_OWN_SET);
++	usleep_range(1000, 1500);
++	whlpcr = mt6797_consys_hif_f1_read(owner, MT6797_HIF_WHLPCR);
++	ret = regulator_disable(owner->vcn33_wifi);
++	dev_info(dev, "WLAN stop: FW own WHLPCR=0x%08x, VCN33-WIFI off=%d enabled=%d\n",
++		 whlpcr, ret, regulator_is_enabled(owner->vcn33_wifi));
++	if (ret)
++		goto stopped;
++	dev_info(dev, "WLAN stopped; a restart needs the next boot\n");
++	goto out;
++stopped:
++	dev_err(dev, "WLAN stop stopped (%d); nothing escalated, state retained\n", ret);
++out:
++	mutex_unlock(&mt6797_consys_wlan_lock);
++	return ret ?: count;
++}
++
++static DEVICE_ATTR_WO(wlan_stop);
++#endif
+ #endif
+ 
+ /* No IRQ consumer or competing HIF driver is registered in this one-shot boot. */
+@@ -2355,6 +2411,11 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		if (ret)
+ 			dev_err(&pdev->dev,
+ 				"one-shot WMT firmware trigger unavailable (%d)\n", ret);
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++		ret = device_create_file(&pdev->dev, &dev_attr_wlan_stop);
++		if (ret)
++			dev_err(&pdev->dev, "WLAN stop trigger unavailable (%d)\n", ret);
++#endif
+ 		ret = 0;
+ 	}
+ 	dev_info(&pdev->dev,
+-- 
+2.43.0
+

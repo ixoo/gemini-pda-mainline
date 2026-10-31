@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mt6797-consys-restart` |
-| Status | `planned`: design for owner review; nothing implemented or run |
+| Status | `running`: design approved; R1 implemented (0341), not yet run |
 | Subsystem | CONSYS power, WMT/STP, EMI, WLAN HIF |
 | Device variant | named Gemini PDA (MT6797X), development station |
-| Date(s) | 2026-10-30 |
+| Date(s) | 2026-10-30, 2026-10-31 |
 | Investigator(s) | project custodian |
 | Tracking issue | none |
 
@@ -160,12 +160,51 @@ These are new operations under [SAFETY](../../docs/SAFETY.md):
 - **Recovery:** a reboot, as for any station boot. The watchdog covers a
   hang.
 
-## Readings (predeclared, for after review)
+## Approval
+
+The owner approved this design on 2026-10-31, including the effects listed
+above. R2's repeated RF calibration still needs its own protocol before R2
+runs.
+
+## R1 implementation
+
+Patch 0341, in the station series after 0340. VM checks: W=1 builds with
+`mac` built in and as a module, without warnings; the station image and
+modules link; checkpatch is clean. Not run on the device.
+
+- **Trigger:** `echo 1 > /sys/bus/platform/devices/10001340.consys/wlan_stop`.
+  It exists only when `mac` is a module. It is refused unless the firmware is
+  ready and the layer is detached (`rmmod mac` first), and admits one attempt
+  per boot.
+- **Request:** NIC_POWER_CTRL (0x04), power mode 1, four bytes, at the next
+  unused command sequence (at least 5). The normal-command state admits it
+  after the record with that exact payload only.
+- **Poll:** WCIR every millisecond, within a one-second HIF deadline, until
+  bit 21 clears.
+- **Then, only if it cleared:** FW own (WHLPCR bit 8 written), one WHLPCR
+  read after a millisecond, and VCN33-WIFI disabled. The HIF probe holds the
+  only enable of that rail: common init leaves it off (`wifi-rail=0`).
+- **Either way:** the HIF context refuses every later command, and the
+  firmware stays stopped until the next boot.
+- **Not done:** the vendor's one TX-done drain. With the layer detached,
+  this HIF has no interrupt or worker left.
+- **Kernel log:**
+  - `WLAN stop: power-off status=S sequence=N WCIR=…`
+  - `WLAN stop: FW own WHLPCR=…, VCN33-WIFI off=R enabled=E`
+  - then `WLAN stopped; a restart needs the next boot`, or
+    `WLAN stop stopped (E); nothing escalated, state retained`.
+
+The station's [cycle script](../2026-10-30-mainline-dev-station/wifi-cycles.sh)
+runs it after the cycles when `STOP=1` is set.
+
+## Readings (predeclared)
 
 | Observation | Reading |
 |---|---|
 | R1: WCIR bit 21 clears within 1 s | The firmware honours 0x04; R2 can follow |
 | R1: bit 21 never clears | 0x04 does not stop this firmware; R2 is the only boundary, and R1's evidence goes into its design |
+| R1: bit 21 clears, then `insmod mac` is refused with `-ENODEV` and the station stays up | The stop is contained: the HIF and attach refuse a stopped firmware |
+| R1: WHLPCR bit 8 reads set after FW own | FW own is not taken by the firmware once powered off; recorded, not retried |
 | R2: chip ID, WMT, common init and START all succeed a second time, and a scan works | The firmware restarts within one boot; CONSYS as a module becomes possible |
 | R2: the second START or calibration fails | That step names what does not survive a power cycle; stop and record |
 
@@ -179,5 +218,5 @@ Not run.
 
 ## Follow-up
 
-Owner review of the effects above, then R1 as its own patch and station
-boot.
+R1 on the next station boot, after the 0340 reload cycles. R2 only after
+R1's reading and a calibration protocol.

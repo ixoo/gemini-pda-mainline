@@ -8,6 +8,8 @@
 # one passive scan of the pinned 5200 MHz channel, rmmod. Prints one line
 # per step and keeps each cycle's kernel log in /run/station/. The kernel
 # log is never cleared: the firmware-ready line marks a started firmware.
+# With STOP=1 (0341), the firmware is then stopped through wlan_stop and a
+# further insmod must be refused.
 export PATH=/bin LD_LIBRARY_PATH=/lib
 CYCLES=${CYCLES:-3}
 C=/sys/bus/platform/devices/10001340.consys
@@ -48,3 +50,12 @@ while [ $c -le "$CYCLES" ]; do
 	since > /run/station/wifi-cycle-$c.txt
 	c=$((c + 1))
 done
+
+if [ "${STOP:-0}" = 1 ]; then
+	mark=$(dmesg | wc -l)
+	if echo 1 > $C/wlan_stop; then echo "stop=0"; else echo "stop=failed"; fi
+	insmod "$M"; echo "after-stop insmod=$?"
+	lsmod | grep -q '^mac ' && { timeout 30 rmmod mac; echo "after-stop rmmod=$?"; }
+	since | grep -E "WLAN stop|Oops|BUG|WARNING|Call trace|attach|regulatory" | sed "s/^/stop /" | cut -c1-160
+	since > /run/station/wifi-stop.txt
+fi
