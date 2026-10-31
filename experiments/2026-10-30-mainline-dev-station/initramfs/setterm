@@ -1,0 +1,17 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# The station's setterm: only the blank timeout, as util-linux sets it.
+#   setterm --blank N   blank the console after N idle minutes (0 to 60;
+#                       0 turns blanking off)
+# It writes to tty1, the station's console, so it works from SSH too.
+# lid-guard powers the backlight down while the console is blanked.
+case "${1:-}" in
+--blank|-blank) ;;
+*) echo "usage: setterm --blank MINUTES (0-60)" >&2; exit 2 ;;
+esac
+case "${2:-}" in
+''|*[!0-9]*) echo "setterm: blank takes minutes, 0 to 60" >&2; exit 2 ;;
+esac
+[ "$2" -le 60 ] || { echo "setterm: blank takes minutes, 0 to 60" >&2; exit 2; }
+printf '\033[9;%s]' "$2" >/dev/tty1

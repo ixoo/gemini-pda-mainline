@@ -1,0 +1,156 @@
+From 90871c4261649574313703070802b8d454acb9e3 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 30 Oct 2026 20:56:33 -0400
+Subject: [PATCH] wifi: mt6797: detach the mac80211 layer on module unload
+
+Unloading the mac module now detaches the layer instead of being
+refused. mt6797_mac_unregister() is the reverse of registration:
+unregistering the hardware stops it, which closes any join and cancels
+the scan; then the scan and join work are cancelled, the join and
+credit-retire queues purged, the snapshot shutdown action released when
+debugfs snapshots are built, the test configuration unregistered and the
+hardware freed.
+
+The CONSYS owner exports mt6797_consys_wlan_detach(), which runs that
+unregister for an attached layer and clears the attached state, so a
+later load attaches again to the same started firmware. A failed attach
+still leaves the attached state set and is not retried. Built in,
+nothing calls the detach.
+---
+ drivers/net/wireless/mediatek/mt6797/Kconfig |  6 ++--
+ drivers/net/wireless/mediatek/mt6797/mac.c   | 35 +++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/mac.h   |  9 ++++-
+ drivers/soc/mediatek/mt6797-consys.c         | 15 +++++++++
+ 4 files changed, 60 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/Kconfig b/drivers/net/wireless/mediatek/mt6797/Kconfig
+index 7266be589..a1ae03d0d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/Kconfig
++++ b/drivers/net/wireless/mediatek/mt6797/Kconfig
+@@ -22,9 +22,9 @@ config MT6797_MAC80211
+ 	  programmed-I/O data path. Reconnect, rekey and power save are not yet
+ 	  supported.
+ 
+-	  As a module (mac) the CONSYS owner still starts the firmware at
+-	  boot; loading the module attaches this layer once. It cannot be
+-	  unloaded yet.
++	  As a module (mac) the CONSYS owner still starts the firmware;
++	  loading the module attaches this layer to it, and unloading it
++	  detaches the layer, so a later load attaches again.
+ 
+ # The following symbols are build-structure facts of the station driver, not
+ # user choices. They follow MT6797_MAC80211 and keep the source's existing
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index a7e09e16c..d04d2ff44 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -8377,19 +8377,52 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw)
+ #endif
+ }
+ 
++/* The reverse of mt6797_mac_register(). Unregistering stops the hardware,
++ * which closes any join and cancels the scan; the rest is host state.
++ */
++static void mt6797_mac_unregister(struct ieee80211_hw *hw)
++{
++	struct mt6797_mac *mac = hw->priv;
++
++	ieee80211_unregister_hw(hw);
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
++	cancel_delayed_work_sync(&mac->scan_work);
++	cancel_delayed_work_sync(&mac->join_work);
++	skb_queue_purge(&mac->join_queue);
++#ifdef CONFIG_MT6797_DATA_CREDIT_RETIRE
++	skb_queue_purge(&mac->credit_retired_queue);
++#endif
++#endif
++#if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN) && IS_ENABLED(CONFIG_CFG80211_DEBUGFS)
++	if (mac->snapshot)
++		devm_release_action(wiphy_dev(hw->wiphy),
++				    mt6797_mac_snapshot_shutdown, mac);
++#endif
++#ifdef CONFIG_MT6797_WIFI_TESTCONFIG
++	mt6797_testcfg_unregister(mac->testcfg);
++#endif
++	ieee80211_free_hw(hw);
++}
++
+ const struct mt6797_mac_ops mt6797_mac_attach_ops = {
+ 	.reg = mt6797_mac_register,
+ 	.scan_ready = mt6797_mac_scan_ready,
++	.unreg = mt6797_mac_unregister,
+ };
+ 
+ #if IS_MODULE(CONFIG_MT6797_MAC80211)
+-/* No module_exit: there is no detach yet, so the module stays loaded. */
+ static int __init mt6797_mac_module_init(void)
+ {
+ 	return mt6797_consys_wlan_attach(&mt6797_mac_attach_ops);
+ }
+ module_init(mt6797_mac_module_init);
+ 
++static void __exit mt6797_mac_module_exit(void)
++{
++	mt6797_consys_wlan_detach(&mt6797_mac_attach_ops);
++}
++module_exit(mt6797_mac_module_exit);
++
+ MODULE_DESCRIPTION("MT6797 WLAN mac80211 station driver");
+ MODULE_LICENSE("GPL");
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index e1855ef4f..7c0236ab5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -33,14 +33,21 @@ struct mt6797_mac_ops {
+ 		   const struct mt6797_wifi_record *record,
+ 		   struct ieee80211_hw **out);
+ 	void (*scan_ready)(struct ieee80211_hw *hw);
++	void (*unreg)(struct ieee80211_hw *hw);
+ };
+ 
+ extern const struct mt6797_mac_ops mt6797_mac_attach_ops;
+ 
+ /* Attach the mac80211 layer once to the firmware the CONSYS owner started:
+  * record, registration, the initial TC4 accounting pair, then scan ready.
+- * -ENODEV before the firmware is ready, -EBUSY after any attach.
++ * -ENODEV before the firmware is ready, -EBUSY while attached or after a
++ * failed attach.
+  */
+ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops);
+ 
++/* Detach a successfully attached mac80211 layer: unregister and free it,
++ * then allow a new attach. The firmware stays started.
++ */
++void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops);
++
+ #endif
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 4f748cfc8..2d0d6dd49 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1006,6 +1006,21 @@ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops)
+ 	return ret;
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_attach);
++
++void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++
++	mutex_lock(&mt6797_consys_wlan_lock);
++	if (owner->wlan_attached && owner->wlan_hw) {
++		ops->unreg(owner->wlan_hw);
++		owner->wlan_hw = NULL;
++		owner->wlan_attached = false;
++		dev_info(owner->wlan_dev, "one-shot WLAN mac detached; firmware kept\n");
++	}
++	mutex_unlock(&mt6797_consys_wlan_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
+ #endif
+ 
+ /* No IRQ consumer or competing HIF driver is registered in this one-shot boot. */
+-- 
+2.43.0
+

@@ -8,5 +8,7 @@ $bb chvt 1
 $bb stty sane
 /bin/console-unicode-mode >/dev/null 2>&1
 $bb loadkmap </etc/gemini-us.bkeymap
+# Blank after 2 idle minutes; setterm --blank changes it.
+printf '\033[9;2]'
 cd /root || cd /
 exec $bb sh -l

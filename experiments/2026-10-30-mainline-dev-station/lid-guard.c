@@ -6,8 +6,10 @@
  * once, so a misread or floating lid input at boot cannot lock the console
  * out. Each transition is logged to the kernel log. Fn+B and Fn+N (Fn is
  * KEY_LEFTMETA) step the backlight down and up, autorepeat included; the
- * console keymap gives those two keys no Fn action. init respawns this
- * program.
+ * console keymap gives those two keys no Fn action. The backlight also
+ * follows the console's own blanking (setterm --blank), which the simple
+ * framebuffer cannot do itself: it is powered down while the console is
+ * blanked, checked once a second. init respawns this program.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -121,6 +123,34 @@ static int blank(int on)
 	return ret;
 }
 
+/* The console number the kernel has blanked, 0 if none. */
+static int console_blanked(void)
+{
+	char arg = TIOCL_BLANKEDSCREEN;
+	int fd = open(CONSOLE, O_RDWR | O_CLOEXEC);
+	int ret;
+
+	if (fd < 0)
+		return 0;
+	ret = ioctl(fd, TIOCLINUX, &arg);
+	close(fd);
+	return ret > 0 ? ret : 0;
+}
+
+static int backlight_off = -1;
+
+static int set_backlight(int off)
+{
+	int ret = 0;
+
+	if (off != backlight_off) {
+		ret = put(BL_POWER, off ? "4" : "0");
+		if (!ret)
+			backlight_off = off;
+	}
+	return ret;
+}
+
 static void apply(const char *keyboard, int closed)
 {
 	char inhibited[600];
@@ -128,8 +158,8 @@ static void apply(const char *keyboard, int closed)
 
 	snprintf(inhibited, sizeof(inhibited), "%s/inhibited", keyboard);
 	k = put(inhibited, closed ? "1" : "0");
-	b = put(BL_POWER, closed ? "4" : "0");
 	c = blank(closed);
+	b = set_backlight(closed);
 	say("lid %s: keyboard_inhibit=%d backlight=%d console_blank=%d\n",
 	    closed ? "closed" : "open", k, b, c);
 }
@@ -195,7 +225,12 @@ int main(void)
 		say("no keyboard events; brightness keys off\n");
 	fds[0] = (struct pollfd){ .fd = fd, .events = POLLIN };
 	fds[1] = (struct pollfd){ .fd = kfd, .events = POLLIN };
-	while (poll(fds, kfd < 0 ? 1 : 2, -1) >= 0) {
+	while (poll(fds, kfd < 0 ? 1 : 2, 1000) >= 0) {
+		int blanked = console_blanked();
+
+		if (!(armed && closed) && !!blanked != backlight_off)
+			say("console %s: backlight=%d\n", blanked ? "blanked" : "unblanked",
+			    set_backlight(!!blanked));
 		if ((fds[1].revents & POLLIN) && read(kfd, &ev, sizeof(ev)) == sizeof(ev) &&
 		    ev.type == EV_KEY) {
 			if (ev.code == KEY_LEFTMETA)

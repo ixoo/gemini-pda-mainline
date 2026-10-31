@@ -77,6 +77,7 @@ def main(parent, module, lid_guard, release, output):
     files['etc/shells'] = (FILE | 0o644, b'/bin/sh\n')
     files['bin/usb-ssh'] = (FILE | 0o755, (src/'usb-ssh').read_bytes())
     files['bin/console-shell'] = (FILE | 0o755, (src/'console-shell').read_bytes())
+    files['bin/setterm'] = (FILE | 0o755, (src/'setterm').read_bytes())
     files['bin/lid-guard'] = (FILE | 0o755, Path(lid_guard).read_bytes())
     mode, keymap = files['etc/gemini-us.bkeymap']
     files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))

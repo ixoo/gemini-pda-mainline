@@ -133,6 +133,16 @@ a 1 MiB log buffer.
   - The RAM root builder sets the console keymap's Fn entries for B and N to
     no action (`K_HOLE`). Before, Fn+B was a hex digit for typed code input,
     emitting U+000B on Fn release, and Fn+N typed `n`.
+- **Screen blanking.** The kernel's console blank timer (`ESC [9;N]`,
+  what `setterm --blank N` sends) blanks tty1 after 2 idle minutes, set by
+  `console-shell`. Any key unblanks it.
+  - The simple framebuffer cannot blank, so `lid-guard` checks the blanked
+    console (`TIOCL_BLANKEDSCREEN`) once a second and powers the backlight
+    down while it is blanked. The backlight is therefore off while the lid
+    is closed or the console is blanked.
+  - busybox has no `setterm`, so [`initramfs/setterm`](initramfs/setterm)
+    implements `--blank N` (0 to 60 minutes, 0 off) and writes to tty1, so
+    it works from SSH too.
 - [`lid-guard.c`](lid-guard.c) is a small static program, respawned by init:
   - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
     (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
@@ -370,6 +380,65 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - This is the first change deployed on the running station. It went from
   edit to running on the hardware in minutes, with no build or boot. The
   boot image does not carry it until the next compose.
+
+**Screen blanking, live on boot `13055ae9…`.**
+- The new `lid-guard` (`4a935e33…`) and `/bin/setterm` were pushed over SSH
+  and swapped in.
+- With `setterm --blank 1`, the console blanked about 63 s later.
+  `lid-guard` logged `console blanked`, and `bl_power` read 4.
+- **Owner:** a key press wakes the screen. The log shows `console unblanked`
+  20 s later, with `bl_power` back to 0.
+- `setterm --blank 2` restored the default, and `--blank 99` is refused.
+
+**Wi-Fi module load, live on boot `13055ae9…` (no rebuild, no reboot).**
+- **Firmware start.** It is two userspace writes of `1`, as in the soak
+  harness:
+  - `region19_prepare` logged `WMT setup complete: clear=351232 verified,
+    CONN held off`;
+  - then `wmt_negotiate` passed prepower admission. WMT common init
+    completed 285/285, then `START ready`, then `firmware ready; the mac
+    module attaches on load`.
+  - A first `wmt_negotiate` write before the prepare was refused with
+    `ENODEV`, with nothing attempted.
+- **`insmod mac.ko`** returned 0:
+  - private record prepare 0, regulatory configuration 0;
+  - the TX-status and TC4 accounting pair: released 1, free 14;
+  - `phy0` registered;
+  - `lsmod` shows `mac` as `[permanent]`, having no exit in 0338.
+- **Scan.** `iw phy phy0 interface add wlan0 type managed` and link up
+  worked.
+  - A default passive scan was refused with `ret=-95 why=shape`: 13
+    channels, while the driver admits only its pinned channel.
+  - `iw dev wlan0 scan freq 5200 passive` was admitted and completed,
+    finding 3 BSS on 5200 MHz.
+  - There is no Oops, BUG or WARNING. The logs are retained privately.
+
+**Unload: proposal
+[0339](../../patches/proposals/0339-wifi-mt6797-detach-the-mac80211-layer-on-module-unl.patch).**
+- `mac` gets a module exit. `mt6797_mac_unregister()` reverses
+  registration:
+  - unregister the hardware (which stops it: joins closed, scan
+    cancelled);
+  - cancel the scan and join work, and purge their queues;
+  - release the snapshot action when built;
+  - unregister the test configuration;
+  - free the hardware.
+- CONSYS exports `mt6797_consys_wlan_detach()`, which runs that unregister
+  and clears the attached state, so the next `insmod` attaches again to the
+  same started firmware.
+- **Tested in the VM:** the build links; W=1 is clean built in and as a
+  module; checkpatch is clean; `mac.ko` has `cleanup_module`.
+- **Not tested:** the device. CONSYS is built in, so this needs a station
+  kernel rebuild and one boot. After that, fixes to the teardown are
+  module-only and can be pushed live.
+- **Device test, predeclared.** Start the firmware, then load, add
+  `wlan0`, scan, and `rmmod`, three times on one boot.
+
+  | Observation | Reading |
+  |---|---|
+  | Each cycle: insmod 0, record and regulatory 0, scan admitted with BSS found; rmmod 0, `mac detached; firmware kept`, `phy0` gone | Load and unload work on one firmware start |
+  | The second load's regulatory configuration or scan fails | The firmware does not accept a second configuration; that names what CONSYS must keep across loads |
+  | `rmmod` hangs, or an Oops in teardown | The log names the step; fix in `mac.ko` and push it live |
 
 ## Analysis
 
