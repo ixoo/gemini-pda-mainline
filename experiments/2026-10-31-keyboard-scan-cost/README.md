@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-scan-cost` |
-| Status | `running`: station 13b capture `a930528e…` showed two keys in one row cancel (`drive-inactive-cols`); fix 0374 built, not yet booted. The earlier ghost-filter confirmation is withdrawn |
+| Status | `completed`: station 14 boot `42cfede4…` confirms the same-row fix 0374; the ghost filter's action is consistent but not isolated; the scan-cost reduction is inferred |
 | Subsystem | input: `gpio-matrix-keypad` over the AW9523 expander on I2C5 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -232,6 +232,30 @@ and nothing with Ctrl+Alt. The default kernel tables are kept for those
 states. A complete Ctrl+Alt+7 therefore prints nothing, filter or not. The
 "7" on the console was the bare 7 in the first row.
 
+**Station 14, boot `42cfede4-a526-4a99-b4a2-eb60e6829920`.** It was built
+at `b2e08e97` with modules: the kernel inputs of `3aeb8d9b`, including 0374,
+plus a new charge-guard binary. Image.gz `3af32c3c…`, DTB `29121cf7…`, boot2
+`65df6579…`. The device session flashed it with the owner's approval, ran
+the 0374 test while the owner typed, and captured `/dev/input/event1`
+through `dd`. The raw and decoded captures are retained privately with that
+session's station 14 evidence. The owner reported that the keyboard "seems
+to work as expected".
+
+| Check | Result |
+| --- | --- |
+| DT | `needs-ghost-filter` present, `drive-inactive-cols` absent |
+| Left Shift+Z, 4 times | Each time: Left Shift (30) down, Z (24) down, Z up, Shift up, with no Shift release while held. The fourth had Shift and Z in one scan |
+| Ctrl+Alt+7, 4 groups | Ctrl and Alt were held together every time. In the group at 12.880 s, Alt, 7 and Ctrl went down in one scan, then 7, Ctrl and Alt up. The other three groups (held 0.65 s, 48 ms, and Alt then Ctrl) reported no 7. No bare 7 and no scan 1 (`KEY_2`) anywhere |
+| Ctrl+Shift+N, 2 times | The owner used **Right** Shift (43). Ctrl, Right Shift, then N (26) with autorepeat. No scan 34 (M) anywhere. Ctrl+Left Shift+N was not exercised |
+| Typing | A sentence with clean press/release pairs and a Right Shift capital, with no stray keys. Autorepeat: first repeat at 252 ms, then every 40 ms. Fn (125, scan 35) with N (26) and B (29) gave key events while Fn was held |
+| I2C5 rate | Idle: 30920 to 45200 over 10 s, 1428 a second. About 1320 a second on average over the 137 s capture, typing included |
+
+**Correction to the handover expectation.** The 0374 test sent to the device
+session expected Ctrl+Alt+7 to report 7. That contradicts this record's own
+[ghost model](results/ghost-model.txt): Ctrl (4,6), Alt (4,1) and 7 (0,6)
+form a rectangle with a phantom 2 at (0,1), which the filter drops. The
+model, not the handover, is the expectation used below.
+
 ## Analysis
 
 The 876 interrupts a second are consistent with the code-derived 21
@@ -278,15 +302,40 @@ possible, which is the case 0364–0366 filter. The cost is two more AW9523
 writes per column (direction changes), about 35 transfers per scan instead
 of 21.
 
+**Station 14.** Left Shift+Z (4 of 4) and Ctrl+Alt held together show that
+two keys in one row now read correctly. Before 0374, both kept dropping out.
+
+Ctrl+Alt+7 matches the ghost filter: three of four groups reported no 7, and
+no phantom 2 appeared anywhere. The one group that reported 7 had all three
+keys arrive in one scan. A ghost-free reading is possible there if the keys
+changed while the scan was between columns. A dropped scan leaves no event,
+and the owner's key presses were not recorded separately. So "the filter
+dropped 7" cannot be told apart from "7 was not pressed". The filter's action
+is therefore consistent, not isolated.
+
+The idle I2C5 rate of 1428 a second matches the prediction for 0374: about
+35/21 × 876 ≈ 1460 at one interrupt per transfer. Station 13 with
+`drive-inactive-cols` and station 14 without it differ only in that property.
+This supports the per-scan transfer counts, though one interrupt per
+transfer is still assumed.
+
 ## Conclusion
 
 - **Same-row fault: confirmed** on the named unit, station 13b boot
   `a930528e…`. With `drive-inactive-cols`, Left Shift+Z and Ctrl+Alt lose
-  both keys. 0374 is the candidate fix, built but not yet booted.
+  both keys.
+- **Hypothesis 3 (0374): confirmed** on station 14 boot `42cfede4…`. Left
+  Shift+Z and Ctrl+Alt are reported together, and typing, autorepeat and
+  Fn+B/N work.
 - **Hypothesis 2: inconclusive (corrected).** It was first recorded as
-  confirmed from B6a. Same-row cancellation explains the missing N, so the
-  filter was never shown to act. 0364–0366 stay, because they are needed once
-  0374 makes ghosting possible.
+  confirmed from B6a. Same-row cancellation explains the missing N. On
+  station 14, Ctrl+Alt+7 behaved as the filter predicts, with no phantom
+  key, but the dropped scans cannot be told apart from 7 not being pressed.
+  Ctrl+Left Shift+N was not exercised. 0364–0366 stay.
+- **Trade-off now live:** chords that form a rectangle, such as Ctrl+Alt+7,
+  Ctrl+Left Shift+Z/X/C/V/N, deliver nothing for the
+  last key while all three are held. Ctrl+Right Shift with those letters
+  works.
 - **Hypothesis 1: inconclusive.** The candidate binds, polls without read
   errors and types normally, with autorepeat. Its I2C5 rate of about 876
   interrupts a second fits 21 transfers per scan. There is no measured
@@ -296,7 +345,7 @@ of 21.
 
 ## Follow-up
 
-- **0374 test (predeclared).** Boot a station kernel with 0374 and capture
+- **0374 test (predeclared; run on station 14, see Observations).** Boot a station kernel with 0374 and capture
   `/dev/input/event1` with `dd bs=24`.
   - Left Shift+Z and Ctrl+Alt+7: expect both modifiers and Z or 7 reported.
     Ctrl+Alt+7 then prints nothing, because its VT entry is empty.
@@ -307,6 +356,9 @@ of 21.
     of the current rate, at a slightly longer period.
   - If typing regresses, return to station 13b.
 
+- To isolate the ghost filter, a debug-only counter of dropped scans, or a
+  kernel without 0366, would show the phantom directly. Do this only if the
+  trade-off is ever questioned.
 - If a measured scan-cost reduction is ever needed, boot a station kernel
   without 0362–0363 and repeat step A3.
 - Event dumps on the station need an unbuffered reader. Plain `od` loses the
