@@ -815,3 +815,5 @@ proposals/0345-arm64-dts-mediatek-mt6797-add-the-MT6351-power-contr.patch
 proposals/0346-wifi-mt6797-build-the-host-interface-and-firmware-lo.patch
 proposals/0347-soc-mediatek-mt6797-consys-power-CONN-off-when-the-m.patch
 proposals/0348-soc-mediatek-mt6797-consys-accept-its-own-EMI-setup-.patch
+proposals/0349-wifi-mt6797-let-the-firmware-probe-unload-with-the-c.patch
+proposals/0350-soc-mediatek-mt6797-consys-remove-the-probe-attribut.patch

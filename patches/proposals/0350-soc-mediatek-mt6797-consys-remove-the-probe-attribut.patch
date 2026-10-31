@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 10:56:51 -0400
+Subject: [PATCH] soc: mediatek: mt6797-consys: remove the probe attributes on
+ unload
+
+The probe adds its region 19, firmware start and WLAN stop attributes
+to the platform device by hand, and the unload left them there. After
+an unload they pointed into freed module code: the next load could not
+create them again (-EEXIST), and a write to region19_prepare crashed
+in the unloaded module.
+
+Remove them at the start of the unload, before it takes the locks
+their writers take.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index f4078e402..3ce82fdf4 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2513,6 +2513,16 @@ static void mt6797_consys_remove(struct platform_device *pdev)
+ 	struct device *dev = &pdev->dev;
+ 	int stop = -ENODEV, off = 0, ret;
+ 
++	/* The probe's files first: their writers take the locks below. */
++	device_remove_bin_file(dev, &bin_attr_region19_snapshot);
++	device_remove_file(dev, &dev_attr_region19_prepare);
++	device_remove_file(dev, &dev_attr_wmt_versions);
++	device_remove_file(dev, &dev_attr_wmt_negotiate);
++	device_remove_file(dev, &dev_attr_wmt_default_query);
++	device_remove_file(dev, &dev_attr_firmware_start_after_wmt);
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++	device_remove_file(dev, &dev_attr_wlan_stop);
++#endif
+ 	mutex_lock(&mt6797_consys_lock);
+ #if IS_MODULE(CONFIG_MT6797_MAC80211)
+ 	mutex_lock(&mt6797_consys_wlan_lock);
+-- 
+2.43.0
+

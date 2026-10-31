@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 10:56:51 -0400
+Subject: [PATCH] wifi: mt6797: let the firmware probe unload with the core
+ module
+
+The firmware probe registered with builtin_platform_driver(), which in
+a module gives an init without an exit, so mt6797-wlan-core loaded as
+permanent and could never be unloaded. Register it as an ordinary
+module platform driver; its only resource is device-managed.
+---
+ drivers/net/wireless/mediatek/mt6797/firmware-probe.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/firmware-probe.c b/drivers/net/wireless/mediatek/mt6797/firmware-probe.c
+index b848e6f24..e7293f5f0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/firmware-probe.c
++++ b/drivers/net/wireless/mediatek/mt6797/firmware-probe.c
+@@ -2,6 +2,7 @@
+ /* Passive MT6797 WLAN firmware probe below the shared CONSYS owner. */
+ 
+ #include <linux/errno.h>
++#include <linux/module.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ 
+@@ -57,4 +58,4 @@ static struct platform_driver mt6797_wlan_firmware_driver = {
+ 		.suppress_bind_attrs = true,
+ 	},
+ };
+-builtin_platform_driver(mt6797_wlan_firmware_driver);
++module_platform_driver(mt6797_wlan_firmware_driver);
+-- 
+2.43.0
+

@@ -302,7 +302,52 @@ Not tested: any device run.
 | A common init step fails | Per the [calibration protocol](CALIBRATION_PROTOCOL.md): that step named, PA rails per its stop rule |
 | Firmware ready, but the scan fails or times out | The start survives the restart, but the WLAN path does not; the cycle log names it |
 
+### Station 9, boot `e0e9320c…`: the unload works, the reload crashed
+
+- **Identity:**
+  - boot2 `1bb3d739…`, built at `477b11d0`, release
+    `7.1.3-gemini-a53-station`, 8 CPUs;
+  - the three module checksums match the package: `mac` `01d14de5…`, core
+    `1127d8d0…`, CONSYS `770f472f…`.
+- **Boot:** 54 log lines match the fault patterns, all initcall names
+  containing "debug", the same count as station 8.
+- **First start and cycle 1:** common init `completed=285/285`, region 18
+  sealed (`range=0xbfa0bfa7 policy=0x00b6da2d`), firmware ready, `mac`
+  insmod 0, scan with 3 BSS, rmmod 0.
+- **Restart 1, unload:** the CONSYS unload stopped and powered off cleanly.
+  - The R1 stop logged `power-off status=0 sequence=17 WCIR=0x00100279`,
+    FW own `WHLPCR=0`, then `VCN33-WIFI off=0 enabled=0`.
+  - Then `CONN power-off: runtime put=0 domain off=0` and `CONSYS unloaded:
+    WLAN stop=0, CONN off, VCN28 off, VCN18 off`.
+- **The core did not unload:** `mt6797_wlan_core` showed `[permanent]`. Its
+  firmware probe was registered with `builtin_platform_driver()`, which in
+  a module gives an init with no exit.
+- **Restart 1, reload:**
+  - CONSYS bound again; the domain was confirmed off.
+  - `sysfs: cannot create duplicate filename .../region19_snapshot`: the
+    unload had left the probe's hand-added attributes in place.
+  - The `region19_prepare` write then ran a stale attribute into the
+    unloaded module's code: `SP/PC alignment exception`, an Oops in
+    process context, with the PC in freed module text.
+  - No CONN power was on: the reload had only bound, and the deferred start
+    never ran.
+- **End:** the log and `/run/station` were saved, and the station powered
+  off.
+
+**Reading.** The power-off half of R2 works, and gives a later load a
+confirmed-off domain. The predeclared reload rows were not reached. Two
+unload bugs, both in module code:
+- [0349](../../patches/proposals/0349-wifi-mt6797-let-the-firmware-probe-unload-with-the-c.patch)
+  registers the firmware probe with `module_platform_driver()`;
+- [0350](../../patches/proposals/0350-soc-mediatek-mt6797-consys-remove-the-probe-attribut.patch)
+  removes the probe's attributes first in the unload.
+
+Both build W=1-clean in the station (modules) and soak (built-in) profiles.
+Neither changes built-in code, so the rebuilt modules load into the
+station 9 kernel: the next run copies them over `/lib/modules` and needs
+no reflash.
+
 ## Follow-up
 
-Station 9 boot as above. A `mac` change already needs no reboot; after R2
+Boot station 9 again, copy the 0349/0350 modules, and rerun the predeclared test. A `mac` change already needs no reboot; after R2
 passes, neither does a HIF, loader or CONSYS change.
