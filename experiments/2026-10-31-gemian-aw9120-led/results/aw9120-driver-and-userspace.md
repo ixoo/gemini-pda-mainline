@@ -15,7 +15,7 @@ boundary, and the mainline gap. Vendor paths are relative to commit
 | Chip ID | Register `0x00` reads `0xb223` |
 | Enable/reset | GPIO245, active-high PDN (low = shutdown) |
 | Interrupt | INTN pin exists but is not wired to an IRQ in this design |
-| Default current | code `1` = 3.5 mA per channel; maximum code `7` = 24.5 mA |
+| Stack default current | code `1` = 3.5 mA per channel; maximum code `7` = 24.5 mA |
 | SRAM | 256 instructions, 16 bit each, volatile; reloaded over I2C |
 
 - The public `mt6797.dtsi` declares a platform node
