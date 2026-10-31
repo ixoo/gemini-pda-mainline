@@ -454,15 +454,33 @@ revised DT `609fc172…`, pushed at `4c771b06`).
   | Re-attach registers, but the scan is refused or times out | Something per lifetime beyond the record is needed; the scan refusal names it |
   | `mt6797_hif_next_sequence` returns `-EIO` | The HIF failed during the first lifetime or its teardown; the log names when |
 
-**Station 6, composed for the restart R1 test, not yet flashed.**
+**Station 5, boot `8fe8a9cc…`: reload works (0340).**
+- **Identity:** release `7.1.3-gemini-a53-station`, boot2 `2ffbe478…`,
+  `mac.ko` `335f2ec8…`; 8 CPUs, 1 GiB RAM root, `/mnt/data` mounted.
+- **Run:** `CYCLES=3` [`wifi-cycles.sh`](wifi-cycles.sh) about 30 s after
+  boot. The firmware start returned 0 for both steps.
+- **Cycle 1:** insmod 0, record prepare and regulatory configuration
+  `status=0`, `phy0`, scan 0 with 3 BSS, rmmod 0, `mac detached; firmware
+  kept`.
+- **Cycles 2 and 3:** the same, with `regulatory configuration: status=0
+  (kept from the first attach)`, on `phy1` and `phy2`; each scan completed
+  (`complete=1 frame=1 beacon=1 credit=1 retired=1`) with 3 BSS.
+- **Kernel log:** no Oops, BUG, WARNING, call trace, refusal or stop.
+- **Reading:** the first predeclared row. Reload works on one firmware
+  start; a `mac` change now needs only `rmmod` and `insmod`, not a reboot.
+- **Limit:** the boot's command sequences still run out after about 250
+  commands (about 22 per lifetime, so roughly ten lifetimes).
+
+**Station 6, flashed from boot `8fe8a9cc…`, ready for the restart R1 test.**
+- **Flash:** `flash-boot2` over station 5's `2ffbe478…`,
+  `written-synced-readback-verified` `fb6d3f13…`. The image stays on the
+  data partition under `station/`. Boot `8fe8a9cc…` was then powered off.
 - **Build:** Buildbox at `f328f438` (with 0341, the
   [restart](../2026-10-30-mt6797-consys-restart/README.md) stop half). The
   config is identical to station 5's. `mac.ko` is unchanged (`335f2ec8…`):
   0341 changes only built-in code.
 - **Image:** boot2 `fb6d3f13…`, with the same RAM root inputs as station 5.
-- **Order:** boot station 5 and run the 0340 cycles; then flash station 6
-  from it with `flash-boot2` and power off. On station 6, run
-  `CYCLES=1 STOP=1`: one cycle, then the stop.
+- **Test:** `CYCLES=1 STOP=1`: one cycle, then the stop.
 
 **Station 5, flashed from boot `caac239d…`, ready for its boot.**
 - **Build:** Buildbox at `21fa2220` (807 patches, with 0340). The config is
