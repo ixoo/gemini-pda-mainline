@@ -170,7 +170,13 @@ The charger cannot see the battery, so the stop needs two things:
   bit 4). That is charge control, so it belongs to C2b and its review.
 
 **The smallest form:**
-- a read-only IIO driver for the battery NTC channel;
+- a read-only IIO driver for the battery NTC channel:
+  - it requests through `AUXADC_RQST0` and reads the AP result registers;
+  - it never touches `RQST1`, the wrapper's ring pointers or the MDBG
+    engine, which belong to the modem's GPS/crystal temperature channel
+    ([modem share](../../docs/hardware/mt6351-pmic-adc.md#6-sharing-the-adc-with-the-modem));
+  - its timeout allows for a modem-side engine that may run from a
+    hardware default, since who enables it is still open;
 - the vendor's conversion (24 kΩ to VBIF28 and the 17-entry 10 kΩ table),
   which `power-status` reports;
 - in C2b, charging stopped at 50 °C and resumed below 47 °C, as Gemian does.
