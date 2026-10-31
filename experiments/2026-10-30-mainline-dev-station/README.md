@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-30-mainline-dev-station` |
-| Status | `running`: boot `eda50de3…` passed all six items and returned cleanly; lid handling built for the next boot (2026-10-30) |
+| Status | `running`: boots `eda50de3…` (six items) and `13055ae9…` (lid) pass; lid closed blanks the screen and ignores the keyboard (2026-10-30) |
 | Subsystem | development method; RAM root; eMMC data mount; kernel modules |
 | Device variant | named Gemini PDA (MT6797X), boot2 |
 | Date(s) | 2026-10-30 |
@@ -331,6 +331,26 @@ first DT revision, with display H2).
 - The kernel log, the status file and the lid test are retained
   privately.
 
+**Lid boot `13055ae9-6f43-4b81-80a2-f2c365be1e2e`** (boot2 `0bdcd90f…`,
+revised DT `609fc172…`, pushed at `4c771b06`).
+- **Return from `bac0f387`.** An orderly `reboot` over SSH after its log was
+  saved. Gemian came back as `34357248-944c-496b-8e0e-56227242925e` and
+  mounted `mmcblk0p29` without journal recovery.
+- **Console:** `simple-framebuffer` registered `fb0` (1080x2160) at 0.77 s.
+- **Backlight:** `1100f000.pwm` and `backlight` probed with return 0.
+  `brightness` and `actual_brightness` read 512 of `max_brightness` 1023,
+  with `bl_power` 0.
+- **Lid:**
+  - `gpio-keys` (polled) bound, and `lid-guard` started with the lid open
+    and armed.
+  - The owner closed the lid at 9.45 s and opened it at 14.04 s, logged as
+    `lid closed: keyboard_inhibit=0 backlight=0 console_blank=0` and the
+    matching open line.
+  - The owner reports that it works: the screen goes off while closed, the
+    keyboard is ignored, and both come back on open.
+- The status file again shows CPUs 0–7, the 1 GiB root and `/mnt/data`.
+  There is no Oops, BUG or WARNING.
+
 ## Analysis
 
 All six hypothesis items hold on one boot. Two facts were found only on
@@ -353,8 +373,10 @@ all six items.
   the data partition clean.
 - Longer uptime is not yet observed.
 - The first lid boot gave the lid input, but no console and no backlight.
-  The DT is revised to a polled lid and a PWM without the MM reference, and
-  awaits its boot.
+- With the revised DT (polled lid, PWM without the MM reference), boot
+  `13055ae9…` keeps the console. Closing the lid powers the backlight down
+  and ignores the keyboard, and opening it restores both. This is a polled
+  lid; EINT5 is still unresolved.
 
 ## Lid boot readings (predeclared)
 
