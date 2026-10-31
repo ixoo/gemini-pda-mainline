@@ -91,6 +91,34 @@ the 26 MHz crystal temperature for DCXO compensation
 selection and converts it with PMIC OTP constants (see
 [thermal management](mt6797-thermal-management.md)).
 
+### 3.1 Battery NTC conversion (vendor fuel-gauge path)
+
+The built path (`CONFIG_MTK_HAFG_20=y`) converts the `BATON` voltage in
+`BattVoltToTemp()` (`drivers/power/mediatek/battery_meter_fg_20.c:1659-1690`):
+- **The NTC:** a 10 kΩ part (`BAT_NTC_10`) behind a 24 kΩ pull-up
+  (`RBAT_PULL_UP_R` for a non-MT6353 PMIC, `mt_battery_meter_table.h:21-36`),
+  with no pull-down defined.
+- **The pull-up voltage:** `RBAT_PULL_UP_VOLT_BY_BIF` is defined
+  (`upmu_sw.h:21`), so it is the VBIF28 rail as measured by
+  `pmic_get_vbif28_volt()` through channel 11, not a constant:
+  `R_ntc = 24000 × V_baton / (V_bif28 − V_baton)`.
+- **The table:** `R_ntc` is interpolated over the 17-entry table
+  (−20 to 60 °C in 5 °C steps, 10000 Ω at 25 °C).
+- **Not used here:** the device tree's battery node also carries
+  `rbat_pull_up_r = <24000>`, `rbat_pull_up_volt = <1800>` and a 17-entry
+  table (`mt6797.dtsi:1115-1131`). `battery_meter.c` parses them, but the
+  built fuel-gauge formula uses the compile-time macros, so the 1800 mV
+  value is not the effective pull-up (inference from the source).
+- **The header's own constant:** `RBAT_PULL_UP_VOLT` (2800 mV) is the
+  fallback only without `_BY_BIF`.
+
+### 3.2 ADC clock
+
+The immediate helper forces the ADC clocks on before a request
+(`RG_AUXADC_CK_PDN`, `RG_AUXADC_SMPS_CK_PDN` and its hardware-enable,
+`pmic_auxadc.c:171-174`, `:270-273`). A mainline driver must do the same,
+and in the same order, before its first request.
+
 ## 4. Calibration
 
 The vendor ADC path performs **no** gain or offset calibration. The `deCount`

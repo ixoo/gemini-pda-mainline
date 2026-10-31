@@ -161,15 +161,18 @@ Not run on the device.
 ## Step 3 design: a battery-temperature charging stop (not implemented)
 
 The charger cannot see the battery, so the stop needs two things:
-- **A reading:** the battery NTC through the MT6351 AUXADC, as the vendor
-  reads it. Mainline has no MT6351 AUXADC driver: the upstream
-  `mt6359-auxadc` covers the MT6357/58/59 only.
+- **A reading:** the battery NTC on MT6351 AUXADC channel 3 (`BATON`), as the
+  vendor reads it, converted against the measured VBIF28 rail
+  ([PMIC ADC](../../docs/hardware/mt6351-pmic-adc.md#31-battery-ntc-conversion-vendor-fuel-gauge-path)).
+  Mainline has no MT6351 ADC driver; the nearest, `mt6359-auxadc`, has a
+  different register layout.
 - **An action:** stopping charging is a BQ25896 write (`CHG_CONFIG`, REG03
   bit 4). That is charge control, so it belongs to C2b and its review.
 
 **The smallest form:**
 - a read-only IIO driver for the battery NTC channel;
-- the vendor's NTC table, converting to °C, which `power-status` reports;
+- the vendor's conversion (24 kΩ to VBIF28 and the 17-entry 10 kΩ table),
+  which `power-status` reports;
 - in C2b, charging stopped at 50 °C and resumed below 47 °C, as Gemian does.
 
 **Until then:** charge only from a USB host port (500 mA input), and keep
