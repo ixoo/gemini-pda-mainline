@@ -72,8 +72,10 @@ Key observations:
    `AUXADC_RQST0_SET` (PMIC `0x0E98`), poll bit 15 of the channel result
    register, read the data.
 2. Scaling is fixed in code: 1800 mV reference, ÷32768 for 15-bit channels,
-   ÷4096 for 12-bit channels, and ×3 for `BATSNS`/`ISENSE`. No gain/offset
-   calibration is applied; the `deCount`/`trimd` arguments are unused.
+   ÷4096 for 12-bit channels, ×3 for `BATSNS`/`ISENSE`, and ×2 for the
+   `BATON` NTC and VBIF28 channels — the ×2 exists only in the built MT6797
+   file, not in the non-built MT6353 copy. No gain/offset calibration is
+   applied; the `deCount`/`trimd` arguments are unused.
 3. Battery temperature is measured on channel 3 (`BATON`), not by the fuel
    gauge; the fuel-gauge ADC is used for current only.
 4. Channel 4 is shared between the PMIC die temperature and the DCXO/TSX
@@ -87,6 +89,10 @@ Key observations:
    images contain no PMIC ADC code.
 7. Upstream covers MT6351 only as an MFD/regulator child; the nearest ADC model
    is `mt6359-auxadc`, and the MT6797 wrapper table has no ADC-modem registers.
+8. Channel 11 is a VBIF28 pad measurement, not a passive read: it switches the
+   pad onto the ADC and restores it, and its value feeds the battery-NTC
+   denominator. The vendor substitutes 2770 mV when the result is outside
+   2700-2912 mV, which also masks an unpowered rail.
 
 ## Analysis
 

@@ -69,14 +69,21 @@ reference: 15-bit channels divide by 32768, 12-bit channels by 4096, and channel
 | 0 | `BATSNS` | raw × 3 × 1800 / 32768 | 5.4 V, 15-bit |
 | 1 | `ISENSE` | raw × 3 × 1800 / 32768 | 5.4 V, 15-bit |
 | 2 | `VCDT` | raw × 1800 / 4096 | 1.8 V, 12-bit |
-| 3 | `BATON` / BIF | raw × 1800 / 4096 | 1.8 V, 12-bit |
+| 3 | `BATON` / BIF (battery NTC) | raw × 2 × 1800 / 4096 | 3.6 V, 12-bit |
 | 4 | PMIC die temperature (or DCXO/TSX via mux) | raw × 1800 / 4096 | 1.8 V, 12-bit |
 | 5 | `ACCDET` | raw × 1800 / 4096 | 1.8 V, 12-bit |
 | 6 | reserved | raw × 1800 / 4096 | 1.8 V, 12-bit |
 | 7 | `TSX` | raw × 1800 / 32768 | 1.8 V, 15-bit |
 | 8 | - | raw × 1800 / 4096 | 12-bit |
 | 9 | audio | raw, unscaled | raw code |
-| 10-16 | - | raw × 1800 / 4096 | 12-bit |
+| 11 | VBIF28 pad | raw × 2 × 1800 / 4096 | 3.6 V, 12-bit |
+| 10, 12-16 | - | raw × 1800 / 4096 | 12-bit |
+
+The ×2 on channels 3 and 11 is easy to miss: the non-built MT6353 copy under
+`drivers/misc/mediatek/pmic/mt6353/` has it commented out
+(`/*r_val_temp = 2;*/ r_val_temp = 1; /*--VTREF--*/`) while the built MT6797
+path (`power/mt6797/pmic_auxadc.c:499-506`, `:541-560`) sets
+`r_val_temp = 2`. Read the built file for the product contract.
 
 The datasheet application table gives the characterised input windows:
 channels 0 and 1 2.5-4.8 V, channel 2 0-1.5 V, channel 3 0.1-2.7 V, channel 5
@@ -124,6 +131,29 @@ The immediate helper forces the ADC clocks on before a request
 (`RG_AUXADC_CK_PDN`, `RG_AUXADC_SMPS_CK_PDN` and its hardware-enable,
 `pmic_auxadc.c:171-174`, `:270-273`). A mainline driver must do the same,
 and in the same order, before its first request.
+
+### 3.2 Channel 11 is not a passive measurement
+
+Reading channel 11 switches the VBIF28 pad onto the ADC input and then puts it
+back (`pmic_auxadc.c:441-460`, `:541-560`):
+
+- before the conversion (only while `g_pmic_pad_vbif28_vol == 1`, the
+  "not measured" sentinel): `BATON_TDET_EN = 0`, `CKPDN_CON2_CLR = 0x70`,
+  `RG_ADCIN_VSEN_MUX_EN = 1`, 3 ms delay;
+- after the conversion, every time: `RG_ADCIN_VSEN_MUX_EN = 0`,
+  `RG_VBIF28_ON_CTRL = 1`, `RG_VBIF28_MODE_CTRL = 1`, `RG_VBIF28_EN = 0`,
+  `TOP_CKPDN_CON2_SET = 0x70`, 3 ms delay, `BATON_TDET_EN = 1`.
+
+So a channel-11 read touches the VBIF28 pad path and battery-on detection. It
+is also why the vendor validates the result: outside 2700-2912 mV it logs
+`VBIF28_def_volt` and substitutes **2770 mV** (`:543-548`).
+
+The measured value has exactly one consumer: `BattVoltToTemp()` divides the
+battery NTC by `pmic_get_vbif28_volt() - V_baton`
+(`drivers/power/mediatek/battery_meter_fg_20.c:1670`). The battery NTC divider
+is therefore fed from VBIF28, and the temperature conversion is wrong if that
+rail is off or if the substitute differs materially from the real rail.
+`pmic_read_vbif28_volt()` keeps the sentinel-1 semantics of "not measured".
 
 ## 4. Calibration
 

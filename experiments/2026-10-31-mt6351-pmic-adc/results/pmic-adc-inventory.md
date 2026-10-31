@@ -19,13 +19,24 @@ retained firmware images. All paths are relative to the vendor tree at commit
 
 Special cases inside the same function:
 
+- channel 3 and channel 11 are scaled by `r_val_temp = 2` in the built MT6797
+  file (`:499-506`, `:541-560`); the non-built MT6353 copy uses ×1;
 - channel 4 mux: `PMIC_AUXADC_DCXO_CH4_MUX_AP_SEL` selects die temperature or
   DCXO/TSX (`:277-280`);
-- channel 11: an MT6351 workaround disables `BATON_TDET_EN`, toggles the
-  `PAD_VBIF28` switch and `RG_ADCIN_VSEN_MUX_EN`, waits 1-3 ms, and rejects the
-  reading outside 2700-2912 mV (`:441-460`, `:520-560`);
+- channel 11 is not passive: before the conversion it disables
+  `BATON_TDET_EN`, clears clock gating and enables `RG_ADCIN_VSEN_MUX_EN`;
+  after it, every time, it restores the mux, writes
+  `RG_VBIF28_ON_CTRL=1`, `RG_VBIF28_MODE_CTRL=1`, `RG_VBIF28_EN=0`, re-gates
+  the clocks and re-arms `BATON_TDET_EN` (`:441-460`, `:541-560`). Results
+  outside 2700-2912 mV are replaced with **2770 mV** (`:543-548`);
 - channel 9 is returned unscaled (audio);
 - unknown channels return -1.
+
+`pmic_get_vbif28_volt()` has one consumer:
+`BattVoltToTemp()` divides the battery NTC equation by
+`pmic_get_vbif28_volt() - V_baton` (`battery_meter_fg_20.c:1670`), so the NTC
+divider is fed from VBIF28 and the temperature conversion depends on that rail
+and on the 2770 mV substitute.
 
 ## 2. Register window (PMIC 16-bit register space)
 
@@ -72,14 +83,20 @@ Constants: `VOLTAGE_FULL_RANGE = 1800`, `ADC_PRECISE = 32768` (15-bit),
 | 0 | `BATSNS` | raw × 3 × 1800 / 32768 | mV |
 | 1 | `ISENSE` | raw × 3 × 1800 / 32768 | mV |
 | 2 | `VCDT` | raw × 1800 / 4096 | mV |
-| 3 | `BATON` / BIF | raw × 1800 / 4096 | mV (battery NTC) |
+| 3 | `BATON` / BIF | raw × 2 × 1800 / 4096 | mV (battery NTC) |
 | 4 | PMIC temperature / DCXO | raw × 1800 / 4096 | mV or thermal code |
 | 5 | `ACCDET` | raw × 1800 / 4096 | mV |
 | 6 | reserved | raw × 1800 / 4096 | mV |
 | 7 | `TSX` | raw × 1800 / 32768 | mV |
 | 8 | - | raw × 1800 / 4096 | mV |
 | 9 | audio | raw | code |
-| 10-16 | - | raw × 1800 / 4096 | mV |
+| 11 | VBIF28 pad | raw × 2 × 1800 / 4096 | mV |
+| 10, 12-16 | - | raw × 1800 / 4096 | mV |
+
+The built MT6797 file sets `r_val_temp = 2` for channels 3 and 11
+(`power/mt6797/pmic_auxadc.c:499-506`, `:541-560`). The non-built MT6353 copy
+has the ×2 commented out and uses ×1, which is a trap when citing the wrong
+file.
 
 Datasheet application ranges (`Table 3-4`): 0/1 2.5-4.8 V, 2 0-1.5 V, 3
 0.1-2.7 V, 5 0-1.8 V, 7 0-1.8 V, others internal. Channel 2 uses the 1.8 V
