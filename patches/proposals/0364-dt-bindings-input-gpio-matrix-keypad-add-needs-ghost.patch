@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:10:16 -0400
+Subject: [PATCH 364/366] dt-bindings: input: gpio-matrix-keypad: add
+ needs-ghost-filter
+
+A key matrix without a diode per key ghosts. When three pressed keys sit
+on three corners of a rectangle, the fourth corner also reads as
+pressed. The scan cannot tell that phantom from a real fourth key.
+
+Add a boolean that marks such a matrix, so the driver can ignore
+ambiguous scans. The name and meaning follow google,needs-ghost-filter
+in the cros-ec-keyb binding.
+
+Not yet run on hardware.
+---
+ .../devicetree/bindings/input/gpio-matrix-keypad.yaml     | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+index 7a0de5648..a9fab526b 100644
+--- a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
++++ b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+@@ -82,6 +82,14 @@ properties:
+       Drive inactive columns during scan,
+       default is to turn inactive columns into inputs.
+ 
++  needs-ghost-filter:
++    type: boolean
++    description:
++      The matrix has no diode per key, so three pressed keys on the corners
++      of a rectangle make the fourth corner read as pressed. Ignore any scan
++      in which two columns share more than one pressed key, until the
++      ambiguity clears.
++
+   wakeup-source: true
+ 
+ required:

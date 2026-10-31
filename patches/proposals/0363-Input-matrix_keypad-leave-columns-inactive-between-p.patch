@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:07:03 -0400
+Subject: [PATCH 363/366] Input: matrix_keypad: leave columns inactive between
+ polled scans
+
+After each scan the driver drives every column active. That lets any
+key press pull a row low and raise a row interrupt. Polling mode
+requests no row interrupts, so the state serves no purpose there. It
+still costs a write per column after the scan and another before the
+next one. Behind an I2C expander such as the Gemini PDA's AW9523, the
+Gemini's seven columns cost 14 bus writes per scan, or 700 a second at
+a 20 ms interval.
+
+In polling mode, leave the columns in their inactive state after the
+scan. The next scan's deactivation then finds them already inactive,
+and a caching GPIO provider skips those writes. Interrupt mode is
+unchanged.
+
+This refines the optional polling mode added earlier in this series.
+Upstream, it belongs in that patch.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index 03c3f5839..f15811231 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -192,9 +192,12 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 	memcpy(keypad->last_key_state, new_state, sizeof(new_state));
+ 
+ out:
+-	activate_all_cols(keypad, true);
+-
+ 	if (keypad->poll_interval_ms) {
++		/*
++		 * Columns are only held active between scans so that a key
++		 * press can raise a row interrupt. Polling needs no such
++		 * interrupt, so leave them inactive until the next scan.
++		 */
+ 		scoped_guard(spinlock_irq, &keypad->lock) {
+ 			keypad->scan_pending = false;
+ 			if (!keypad->stopped)
+@@ -205,6 +208,8 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 		return;
+ 	}
+ 
++	activate_all_cols(keypad, true);
++
+ 	/* Enable IRQs again */
+ 	scoped_guard(spinlock_irq, &keypad->lock) {
+ 		keypad->scan_pending = false;

@@ -833,3 +833,8 @@ proposals/0358-iio-adc-mt6359-auxadc-add-the-MT6351-battery-tempera.patch
 proposals/0359-mfd-mt6397-add-the-MT6351-AUXADC-cell.patch
 proposals/0360-arm64-dts-mediatek-mt6797-add-the-MT6351-AUXADC.patch
 proposals/0361-arm64-dts-mediatek-gemini-station-add-a-battery-temp.patch
+proposals/0362-Input-matrix_keypad-read-each-column-s-rows-with-one.patch
+proposals/0363-Input-matrix_keypad-leave-columns-inactive-between-p.patch
+proposals/0364-dt-bindings-input-gpio-matrix-keypad-add-needs-ghost.patch
+proposals/0365-Input-matrix_keypad-add-an-optional-ghost-filter.patch
+proposals/0366-arm64-dts-mediatek-gemini-enable-the-keyboard-ghost-.patch

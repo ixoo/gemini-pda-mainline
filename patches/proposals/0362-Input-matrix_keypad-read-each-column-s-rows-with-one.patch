@@ -1,0 +1,121 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:06:49 -0400
+Subject: [PATCH 362/366] Input: matrix_keypad: read each column's rows with
+ one array call
+
+The scan read every row GPIO separately. Behind an I2C expander such as
+the Gemini PDA's AW9523, each of those reads is a separate bus transfer.
+The Gemini's 8x7 matrix therefore cost 56 row reads per scan, which
+is 2800 reads a second at the station's 20 ms polling interval.
+
+Read the rows with gpiod_get_array_value_cansleep(), so that a provider
+that implements get_multiple() is read once per column. The AW9523 rows
+share one port, so the eight reads become one. Active-low handling is
+unchanged, because the array call applies each descriptor's polarity.
+
+The old per-row read treated a failed read as an asserted row, so an I2C
+error appeared as several pressed keys. The array call returns one error
+for the column, so stop the scan there, log the error and keep the last
+reported key state.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 42 +++++++++++++++++---------
+ 1 file changed, 28 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index 07b11a7db..03c3f5839 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -84,11 +84,6 @@ static void activate_all_cols(struct matrix_keypad *keypad, bool on)
+ 		fsleep(keypad->all_cols_on_delay_us);
+ }
+ 
+-static bool row_asserted(struct matrix_keypad *keypad, int row)
+-{
+-	return gpiod_get_value_cansleep(keypad->row_gpios[row]);
+-}
+-
+ static void enable_row_irqs(struct matrix_keypad *keypad)
+ {
+ 	int i;
+@@ -111,14 +106,21 @@ static void disable_row_irqs(struct matrix_keypad *keypad)
+ 		disable_irq_nosync(keypad->row_irqs[i]);
+ }
+ 
+-static uint32_t read_row_state(struct matrix_keypad *keypad)
++/*
++ * Read all rows with one array call, so that a GPIO provider that implements
++ * get_multiple() (an I2C expander, for example) is accessed once per column
++ * rather than once per row.
++ */
++static int read_row_state(struct matrix_keypad *keypad, u32 *row_state)
+ {
+-	int row;
+-	u32 row_state = 0;
++	DECLARE_BITMAP(values, MATRIX_MAX_ROWS) = { };
++	int err;
+ 
+-	for (row = 0; row < keypad->num_row_gpios; row++)
+-		row_state |= row_asserted(keypad, row) ? BIT(row) : 0;
+-	return row_state;
++	err = gpiod_get_array_value_cansleep(keypad->num_row_gpios,
++					     keypad->row_gpios, NULL, values);
++	*row_state = err ? 0 : values[0];
++
++	return err;
+ }
+ 
+ /*
+@@ -133,10 +135,11 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 	uint32_t new_state[MATRIX_MAX_COLS];
+ 	int row, col, code;
+ 	u32 init_row_state, new_row_state;
++	int err = 0;
+ 
+ 	/* read initial row state to detect changes between scan */
+ 	if (!keypad->poll_interval_ms)
+-		init_row_state = read_row_state(keypad);
++		read_row_state(keypad, &init_row_state);
+ 
+ 	/* de-activate all columns for scanning */
+ 	activate_all_cols(keypad, false);
+@@ -151,9 +154,19 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 
+ 		activate_col(keypad, col, true);
+ 
+-		new_state[col] = read_row_state(keypad);
++		err = read_row_state(keypad, &new_state[col]);
+ 
+ 		activate_col(keypad, col, false);
++
++		if (err)
++			break;
++	}
++
++	/* report nothing from an incomplete scan; keep the last key state */
++	if (err) {
++		dev_err_ratelimited(input_dev->dev.parent,
++				    "failed to read rows: %d\n", err);
++		goto out;
+ 	}
+ 
+ 	for (col = 0; col < keypad->num_col_gpios; col++) {
+@@ -178,6 +191,7 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 
+ 	memcpy(keypad->last_key_state, new_state, sizeof(new_state));
+ 
++out:
+ 	activate_all_cols(keypad, true);
+ 
+ 	if (keypad->poll_interval_ms) {
+@@ -198,7 +212,7 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 	}
+ 
+ 	/* read new row state and detect if value has changed */
+-	new_row_state = read_row_state(keypad);
++	read_row_state(keypad, &new_row_state);
+ 	if (init_row_state != new_row_state) {
+ 		guard(spinlock_irq)(&keypad->lock);
+ 		if (unlikely(keypad->scan_pending || keypad->stopped))

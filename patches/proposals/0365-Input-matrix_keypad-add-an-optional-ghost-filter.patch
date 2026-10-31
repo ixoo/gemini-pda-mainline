@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:10:17 -0400
+Subject: [PATCH 365/366] Input: matrix_keypad: add an optional ghost filter
+
+A matrix without per-key diodes reports a phantom key when three pressed
+keys form three corners of a rectangle. On the Gemini PDA keyboard,
+Ctrl+Left Shift+N also reads M, as the vendor driver's comment says. With
+the current map, Ctrl+Shift+X adds the Fn modifier, Ctrl+Shift+C adds
+Alt and Ctrl+Shift+V adds Space.
+
+When the matrix is marked with needs-ghost-filter, look for two columns
+that share more than one pressed row. Count only positions that carry a
+key, because a phantom where there is no key reports nothing. Skip such a
+scan and keep the last reported state. The ambiguous key is reported once
+a key is released and the scan is unambiguous again. This is the policy
+of cros_ec_keyb and tegra-kbc.
+
+Matrices without the property are unchanged.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 38 ++++++++++++++++++++++++++
+ 1 file changed, 38 insertions(+)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index f15811231..4635ad7f3 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -31,6 +31,7 @@ struct matrix_keypad {
+ 	unsigned int debounce_ms;
+ 	unsigned int poll_interval_ms;
+ 	bool drive_inactive_cols;
++	bool needs_ghost_filter;
+ 
+ 	struct gpio_desc *row_gpios[MATRIX_MAX_ROWS];
+ 	unsigned int num_row_gpios;
+@@ -123,6 +124,36 @@ static int read_row_state(struct matrix_keypad *keypad, u32 *row_state)
+ 	return err;
+ }
+ 
++/*
++ * Without a diode per key, three pressed keys on the corners of a rectangle
++ * also connect the fourth corner, which then reads as pressed. Two columns
++ * that share more than one pressed row form such a rectangle. Only positions
++ * that carry a key count; a phantom where there is no key reports nothing.
++ */
++static bool matrix_keypad_has_ghosting(struct matrix_keypad *keypad,
++				       const u32 *state)
++{
++	const unsigned short *keycodes = keypad->input_dev->keycode;
++	u32 keys[MATRIX_MAX_COLS];
++	int row, col, other, code;
++
++	for (col = 0; col < keypad->num_col_gpios; col++) {
++		keys[col] = 0;
++		for (row = 0; row < keypad->num_row_gpios; row++) {
++			code = MATRIX_SCAN_CODE(row, col, keypad->row_shift);
++			if ((state[col] & BIT(row)) &&
++			    keycodes[code] != KEY_RESERVED)
++				keys[col] |= BIT(row);
++		}
++
++		for (other = 0; other < col; other++)
++			if (hweight32(keys[col] & keys[other]) > 1)
++				return true;
++	}
++
++	return false;
++}
++
+ /*
+  * This gets the keys from keyboard and reports it to input subsystem
+  */
+@@ -169,6 +200,11 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 		goto out;
+ 	}
+ 
++	/* an ambiguous scan reports nothing until a key is released */
++	if (keypad->needs_ghost_filter &&
++	    matrix_keypad_has_ghosting(keypad, new_state))
++		goto out;
++
+ 	for (col = 0; col < keypad->num_col_gpios; col++) {
+ 		uint32_t bits_changed;
+ 
+@@ -491,6 +527,8 @@ static int matrix_keypad_probe(struct platform_device *pdev)
+ 				 &keypad->all_cols_on_delay_us);
+ 	device_property_read_u32(&pdev->dev, "poll-interval",
+ 				 &keypad->poll_interval_ms);
++	keypad->needs_ghost_filter =
++		device_property_read_bool(&pdev->dev, "needs-ghost-filter");
+ 
+ 	err = matrix_keypad_init_gpio(pdev, keypad);
+ 	if (err)

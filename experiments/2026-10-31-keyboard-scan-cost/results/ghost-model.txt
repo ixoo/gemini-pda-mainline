@@ -1,0 +1,14 @@
+LEFTCTRL+LEFTSHIFT+N             phantom=M                            filtered=True
+LEFTCTRL+LEFTSHIFT+X             phantom=LEFTMETA                     filtered=True
+LEFTCTRL+LEFTSHIFT+C             phantom=LEFTALT                      filtered=True
+LEFTCTRL+LEFTSHIFT+V             phantom=SPACE                        filtered=True
+LEFTCTRL+LEFTSHIFT+Z             phantom=COMMA                        filtered=True
+LEFTCTRL+LEFTALT+7               phantom=2                            filtered=True
+LEFTCTRL+LEFTALT+K               phantom=none@7,6                     filtered=False
+LEFTSHIFT+LEFTMETA+1             phantom=-                            filtered=False
+LEFTCTRL+A                       phantom=-                            filtered=False
+LEFTALT+A                        phantom=-                            filtered=False
+LEFTMETA+B                       phantom=-                            filtered=False
+LEFTMETA+N                       phantom=-                            filtered=False
+RIGHTSHIFT+LEFTMETA+5            phantom=-                            filtered=False
+LEFTCTRL+RIGHTSHIFT+T            phantom=-                            filtered=False

@@ -116,7 +116,11 @@ description should preserve:
 - `gpio-ranges = <&aw9523 0 0 16>`;
 - GPIO58 with the upstream driver's active-high logical reset contract;
 - GPIO87/EINT10 for a later IRQ-specific experiment;
-- `gpio-activelow` and `drive-inactive-cols`; and
+- `gpio-activelow` and `drive-inactive-cols`;
+- `needs-ghost-filter`, because the vendor's ghosting workaround shows the
+  matrix has no per-key diodes (see
+  [keyboard scan cost and ghosting](../../experiments/2026-10-31-keyboard-scan-cost/README.md));
+  and
 - the normalized 52-entry matrix map with the four unknown positions omitted.
 
 ## Interrupt chain

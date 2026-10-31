@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:10:17 -0400
+Subject: [PATCH 366/366] arm64: dts: mediatek: gemini: enable the keyboard
+ ghost filter
+
+The Gemini PDA keyboard matrix has no per-key diodes. The vendor driver
+explicitly blocks ghosted positions, and its comment says Ctrl+Left
+Shift+N also reads M. That is the fourth corner of the rectangle formed
+by LeftCtrl (4,6), LeftShift (3,6) and N (3,2) in this map.
+
+Mark the matrix with needs-ghost-filter so ambiguous scans are dropped
+instead of reporting a phantom key.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 96528e66b..337aac1d5 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -469,6 +469,8 @@ keyboard-matrix {
+ 		pinctrl-names = "default";
+ 		gpio-activelow;
+ 		drive-inactive-cols;
++		/* No per-key diodes: Ctrl+Left Shift+N also reads M. */
++		needs-ghost-filter;
+ 		pinctrl-0 = <&keyboard_matrix_row_pins
+ 				     &keyboard_matrix_col_pins>;
+ 		row-gpios = <&aw9523 0 GPIO_ACTIVE_HIGH>,
