@@ -962,3 +962,4 @@ proposals/0370-power-supply-add-the-MediaTek-MT6351-fuel-gauge.patch
 proposals/0371-mfd-mt6397-add-the-MT6351-fuel-gauge-cell.patch
 proposals/0372-arm64-dts-mediatek-gemini-station-add-the-battery-an.patch
 proposals/0373-power-supply-mt6351-fuel-gauge-report-microamps-and-.patch
+proposals/0374-arm64-dts-mediatek-gemini-leave-inactive-keyboard-co.patch

@@ -14,7 +14,7 @@ the linked experiments.
 | Reset | GPIO58 is the expander shutdown/reset signal | The upstream driver's active-high logical contract is intentional: its logical low-to-high sequence produces the required physical low pulse and high release |
 | Interrupt | GPIO87 maps to EINT10 | Observed in the vendor topology and active vendor interrupt state. The accepted mainline path uses polling, so parent-IRQ delivery remains untested |
 | Matrix | AW9523 port 0 provides eight rows; port 1 bits 0–6 provide seven columns | Source-derived 8×7 wiring; complete electrical contact coverage remains unverified |
-| Polarity | The selected column is driven low, inactive columns high, and a low row is pressed | Source-derived. The generic matrix consumer therefore needs `gpio-activelow` and `drive-inactive-cols` |
+| Polarity | The selected column is driven low, inactive columns high, and a low row is pressed | Source-derived. The generic matrix consumer needs `gpio-activelow`. `drive-inactive-cols` was used to copy the inactive-high level, but on the named unit it makes two keys in one row cancel; 0374 removes it |
 | Keycodes | The active vendor binary contains 52 assigned positions and four `KEY_UNKNOWN` positions in the 56-position matrix, all on row `P0_7` at columns `P1_3`–`P1_6`; the shared Planet keyboard documentation calls those four unconnected | The four positions remain omitted as `KEY_RESERVED` in the reusable Linux map until a physical trace identifies them |
 | Accepted runtime | H, E, L, P, Enter, A, and S press/release events have been retained across bounded runs; the owner separately reported working physical typing and the current VT map | This is partial legend coverage, not a complete keyboard certification |
 
@@ -116,11 +116,12 @@ description should preserve:
 - `gpio-ranges = <&aw9523 0 0 16>`;
 - GPIO58 with the upstream driver's active-high logical reset contract;
 - GPIO87/EINT10 for a later IRQ-specific experiment;
-- `gpio-activelow` and `drive-inactive-cols`;
-- `needs-ghost-filter`, because the vendor's ghosting workaround shows the
-  matrix has no per-key diodes (see
+- `gpio-activelow`, without `drive-inactive-cols`: driven-high inactive
+  columns make two keys in one row cancel, which was observed for Left
+  Shift+Z and Ctrl+Alt (see
   [keyboard scan cost and ghosting](../../experiments/2026-10-31-keyboard-scan-cost/README.md));
-  and
+- `needs-ghost-filter`, because the vendor's ghosting workaround indicates
+  the matrix has no per-key diodes; and
 - the normalized 52-entry matrix map with the four unknown positions omitted.
 
 ## Interrupt chain
@@ -250,9 +251,9 @@ Directly observed on the named unit:
 - a live exact VT-map query passed while the expected input device was active;
 - the owner reported working physical typing and the current map;
 - a typed command reached the shell and kernel restart path; and
-- with the ghost filter enabled, Ctrl+Left Shift+N reported no N while later
-  events still arrived. The scan therefore held the ghost rectangle, so the
-  matrix ghosts electrically
+- with `drive-inactive-cols`, two pressed keys in one row both read as
+  released: Left Shift+Z and Ctrl+Alt lost both keys, while keys in different
+  rows worked
   ([keyboard scan cost and ghosting](../../experiments/2026-10-31-keyboard-scan-cost/README.md)).
 
 High-confidence implementation inference:

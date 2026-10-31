@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 15:48:33 -0400
+Subject: [PATCH] arm64: dts: mediatek: gemini: leave inactive keyboard columns
+ undriven
+
+With drive-inactive-cols, the matrix scan drives the selected AW9523
+column low and every other column high. Two pressed keys in the same row
+then join a low column to a high one. The row sits between the two and
+reads as released, so both keys disappear.
+
+The named unit shows this. With the station kernel and an event capture,
+holding Left Shift (row 3, column 6) and pressing Z (row 3, column 0)
+reported Shift released and never reported Z; Shift returned once Z was
+released. Right Shift+Z and Left Shift+Q were reported correctly.
+Ctrl+Alt behaves the same, since both are in row 4. Every Left Shift
+capital in row 3 (Z, X, C, V, B, N) and every Ctrl or Alt combination
+with another row-4 key is therefore lost.
+
+Drop drive-inactive-cols so the scan turns inactive columns into inputs.
+A pressed key then only connects its row to the one driven column. The
+cost is the usual one for an undiodded matrix: three keys on the corners
+of a rectangle produce a phantom fourth. The ghost filter already enabled
+on this node drops those scans.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 337aac1d5..48aee99ad 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -468,8 +468,10 @@ keyboard-matrix {
+ 		compatible = "gpio-matrix-keypad";
+ 		pinctrl-names = "default";
+ 		gpio-activelow;
+-		drive-inactive-cols;
+-		/* No per-key diodes: Ctrl+Left Shift+N also reads M. */
++		/*
++		 * Inactive columns stay undriven: driving them high makes two
++		 * keys in one row cancel. No per-key diodes, so filter ghosts.
++		 */
+ 		needs-ghost-filter;
+ 		pinctrl-0 = <&keyboard_matrix_row_pins
+ 				     &keyboard_matrix_col_pins>;

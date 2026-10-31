@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-scan-cost` |
-| Status | `completed`: station 13 boot `66b68797…`; ghost filter confirmed on Ctrl+Left Shift+N, scan-cost reduction consistent but not measured against a baseline |
+| Status | `running`: station 13b capture `a930528e…` showed two keys in one row cancel (`drive-inactive-cols`); fix 0374 built, not yet booted. The earlier ghost-filter confirmation is withdrawn |
 | Subsystem | input: `gpio-matrix-keypad` over the AW9523 expander on I2C5 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -24,6 +24,8 @@ in the generic driver without new hardware evidence.
    84 to 21, with no change to the reported keys.
 2. With patches 0364–0366, Ctrl+Left Shift+N, Z, X, C and V report no phantom
    key. Combinations that do not ghost are unchanged.
+3. (Added after the station 13b capture.) With 0374, two keys in one matrix
+   row are both reported, for example Left Shift+Z and Ctrl+Alt.
 
 ## Gap list
 
@@ -37,6 +39,7 @@ overlay leaves the keyboard nodes alone.
 | Meta/Fn | `KEY_LEFTMETA` at (4,3) on Gemini | Same. The VT map and `lid-guard` treat it as Fn | None |
 | **Ghosting** | The vendor driver blocks ghosted positions. Its comment says Ctrl+Left Shift+N also shows M, and it has a z/x/c/v exception for Ctrl+Shift | No ghost filter. In the Linux map, LeftCtrl (4,6), LeftShift (3,6) and N (3,2) put the phantom at (4,2) = M, matching the vendor comment | **Source-documented and consistent with the map.** Phantom Fn, Alt, Space or comma on Ctrl+Shift+X/C/V/Z, and `2` on Ctrl+Alt+7 ([model](results/ghost-model.txt)). **Fixed by 0364–0366** |
 | **Scan bus cost** | Not measured | Every scan reads each of 8 rows on its own (56 reads). It also turns all 7 columns off before the scan and on after it (14 writes), besides the 14 per-column writes | **Code-derived.** About 84 transfers per scan, about 4200 a second, polled continuously while the lid is open. **Fixed by 0362 and 0363** |
+| **Same-row keys** (found on the device, not in the research) | Vendor scan drives inactive columns high | `drive-inactive-cols` (from 0076) drives every unscanned column high | **Observed** on station 13b: Left Shift+Z lost both keys; Ctrl+Alt the same. **Fixed by 0374**, not yet booted |
 | **Read error** | — | A failed row read counts as a pressed row, so an I2C error types several phantom keys | **Code-derived**, never observed. **Fixed by 0362**: an incomplete scan is dropped and the last state is kept |
 | Scan mode | Vendor: EINT10, then 1 ms fast and 10 ms slow rescans | 20 ms polling; parent IRQ removed in `wifi-service` | EINT10 is untested, and the hall EINT5 never fired on mainline. That is a separate IRQ-versus-polling experiment. Not changed here |
 | Event order | Vendor reports presses before releases within a scan | One `input_sync` frame per scan, in column order | Not changed. The frame is atomic for evdev, but the order within it differs from the vendor's. No failure observed |
@@ -189,7 +192,7 @@ Results are given as keycode (`MSC_SCAN`):
 | Step | Result |
 | --- | --- |
 | B5, typing | Seven letters each reported once. Key 36 (J) was held from 283.98 to 287.58 s with steady autorepeat. Shift+Fn+1 reported 125 (35), 42 (30) and 2 (0). The console text was not compared |
-| B6a, Ctrl+Left Shift+N | 29 (38) and 42 (30) held, and Shift repeated and was pressed again afterwards. Neither `KEY_N` nor scan 34 (M) was reported |
+| B6a, Ctrl+Left Shift+N | 29 (38) and 42 (30) held, and Shift repeated and was pressed again afterwards. Neither `KEY_N` nor scan 34 (M) was reported. **Reinterpreted below:** Shift and N share row 3 |
 | B6b, Ctrl+Alt+7 | **Not exercised.** The first attempt pressed 7 alone, then Alt. In the second, 7 went down at 574.96 s after Ctrl had been released, and the rest of the capture was lost to buffering |
 | B6c, Ctrl+Right Shift+V | 29 (38) and 54 (43) held, and 47 (28, V) was reported |
 | B7, unconnected | Scans seen: 0, 6, 8, 14, 16, 17, 19, 22, 28, 30, 33, 35, 38, 43, 56. None in 59–62 |
@@ -197,6 +200,27 @@ Results are given as keycode (`MSC_SCAN`):
 All observed scan codes match the map: (row << 3) + column. Step 1 (the
 baseline) did not run. No station 12 interrupt count exists, so the scan cost
 has no measured "before".
+
+**Ctrl+Alt+7 and same-row keys, station 13b.** Afterwards the owner reported
+that Ctrl+Alt+7 printed "7" on the console. Station 13b, boot
+`a930528e-cf16-4afd-915e-792018a67e02`, carries the same keyboard patches.
+With the device free, `/dev/input/event1` was captured read-only through
+`dd bs=24`, which writes every event as it arrives, while the owner typed.
+The decoded capture is in
+[`results/same-row-capture-a930528e.txt`](results/same-row-capture-a930528e.txt).
+
+| Sequence typed | Events reported |
+| --- | --- |
+| Hold Ctrl, hold Alt, hold 7, release Ctrl, then 7 and Alt | Ctrl down at 294.63 s and **up at 295.09 s while still held**, as Alt went down. 7 down at 295.73 s with no modifier. Alt down at 297.75 s, once Ctrl was released |
+| Ctrl+Alt+7, other orders | 7 alone. Ctrl alone. Alt and 7 in the same scan. Ctrl and Alt were never reported held together |
+| Hold Left Shift, tap Z | Shift down at 545.13 s, **up at 545.75 s** as Z went down, down again at 546.11 s. Z was never reported |
+| Hold Right Shift, tap Z | Right Shift, then Z down and up, then Right Shift up |
+| Hold Left Shift, tap Q | Shift, then Q down and up, then Shift up |
+
+In the Linux VT map, keycode 8 gives "7" plain, `^_` with Ctrl, ESC 7 with Alt
+and nothing with Ctrl+Alt. The default kernel tables are kept for those
+states. A complete Ctrl+Alt+7 therefore prints nothing, filter or not. The
+"7" on the console was the bare 7 in the first row.
 
 ## Analysis
 
@@ -215,19 +239,44 @@ baseline, the size of the reduction from the old code (84 transfers per
 scan, about 2400 a second at a longer period) remains an inference. It has
 no measurement on this unit.
 
-**Ghost filter.** In B6a, events kept arriving after N was pressed: Shift
-repeated and was pressed again. So the missing N is not a lost buffer tail.
-An unambiguous scan would have reported N. Its suppression means the
-scanned state contained the Ctrl/Shift/N rectangle with M as its fourth
-corner. That is electrical ghosting on this unit, as the vendor comment
-said, and the filter dropped it. B6c shows that a non-ghosting three-key
-combination with the same letter row still works.
+**Same-row cancellation.** Every lost key pairs with another pressed key in
+the same matrix row and a different column: Ctrl (4,6) with Alt (4,1), and
+Left Shift (3,6) with Z (3,0). Pairs in different rows work, such as Right
+Shift (5,3)+Z and Left Shift+Q (1,5). Ctrl+Alt alone is no ghost-filter
+rectangle, so the filter cannot explain it.
+
+The likely mechanism is inferred, not measured. `drive-inactive-cols` drives
+every unscanned column high while the scanned column is low. Two pressed
+keys in one row then join a low column to a high one through the row. The
+row settles between the two levels and reads high, as released, whichever of
+the two columns is scanned. The fault is in the board description from
+patch 0076. It predates 0362–0366, which do not change the column levels
+during a scan.
+
+**The B6a ghost conclusion is withdrawn.** Left Shift and N also share
+row 3, and B6a showed Shift dropping and returning, so the missing N fits
+the same cancellation. Driven-high columns also block the path that would
+make a phantom: the fourth corner is reached through a column that is
+driven high. On station 13 the ghost filter therefore probably never
+triggered. Whether the matrix ghosts is open again. The vendor comment
+still says it does.
+
+**Fix, 0374.** Drop `drive-inactive-cols`, so the scan turns inactive
+columns into inputs. A pressed key then only connects its row to the one
+driven column, and two keys in one row read correctly. Real ghosting becomes
+possible, which is the case 0364–0366 filter. The cost is two more AW9523
+writes per column (direction changes), about 35 transfers per scan instead
+of 21.
 
 ## Conclusion
 
-- **Hypothesis 2: confirmed** on the named unit, station 13 boot
-  `66b68797…`, for Ctrl+Left Shift+N, with Ctrl+Right Shift+V unaffected.
-  Ctrl+Alt+7 was not exercised. 0364–0366 stay in the station.
+- **Same-row fault: confirmed** on the named unit, station 13b boot
+  `a930528e…`. With `drive-inactive-cols`, Left Shift+Z and Ctrl+Alt lose
+  both keys. 0374 is the candidate fix, built but not yet booted.
+- **Hypothesis 2: inconclusive (corrected).** It was first recorded as
+  confirmed from B6a. Same-row cancellation explains the missing N, so the
+  filter was never shown to act. 0364–0366 stay, because they are needed once
+  0374 makes ghosting possible.
 - **Hypothesis 1: inconclusive.** The candidate binds, polls without read
   errors and types normally, with autorepeat. Its I2C5 rate of about 876
   interrupts a second fits 21 transfers per scan. There is no measured
@@ -236,6 +285,17 @@ combination with the same letter row still works.
 - No unconnected position reported a scan.
 
 ## Follow-up
+
+- **0374 test (predeclared).** Boot a station kernel with 0374 and capture
+  `/dev/input/event1` with `dd bs=24`.
+  - Left Shift+Z and Ctrl+Alt+7: expect both modifiers and Z or 7 reported.
+    Ctrl+Alt+7 then prints nothing, because its VT entry is empty.
+  - Ctrl+Left Shift+N: expect N and M both absent (the filter drops the
+    rectangle). If M is reported, the filter has failed. If N is reported
+    with no M, the matrix does not ghost.
+  - Typing, autorepeat and Fn+B/N as before. I2C5 rate: expect about 35/21
+    of the current rate, at a slightly longer period.
+  - If typing regresses, return to station 13b.
 
 - If a measured scan-cost reduction is ever needed, boot a station kernel
   without 0362–0363 and repeat step A3.
