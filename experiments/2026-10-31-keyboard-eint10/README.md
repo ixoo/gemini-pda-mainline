@@ -408,6 +408,13 @@ keeps rescanning while keys are held, which avoids this.
   `poll_override` (0375) and the traces (0379, 0380) remain, so a fault can
   be corrected over SSH.
 
+**Station 19 build.** The Buildbox modules build from `ddd82585` passed:
+job `ddd8258508cd493fbc696e3b9d86d1d27cc954ad-mt6797-a53-station-m1`, 858
+patches. Package
+`linux-7.1.3-gemini-1c7c73617f050a4721495a598266cba1641fbd5ec29fe8523f2ea5f19d194334`,
+`patchset_sha256` `cbe16424…`, Image.gz
+`e36e682c15473adde5b4a3bcd3c0e4958f0dc3c07a42effeaef5eb19cbefd54a`.
+
 **Station 19 test (predeclared).**
 1. **Boot.**
    - The kernel log says `row interrupt mode`, and the console takes typing
