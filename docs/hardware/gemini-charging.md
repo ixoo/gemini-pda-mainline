@@ -49,6 +49,29 @@ under 100 mA at under 4.4 V.
 
 **Kernel.** Takes over with the state machine below.
 
+**Observed at a mainline handoff** (station 11, boot `b4cde2f8…`; plain
+SMBus reads and the
+[S3b test](../../experiments/2026-10-31-gemini-thermal-protection/README.md)):
+- **Charging is disabled at handoff.** REG03 read `0x0a` (`CHG_CONFIG`
+  clear) and REG0B `0x26` (not charging) at every read from 16 to 39 s of
+  uptime.
+- **The watchdog then restores the defaults:** at 41 s REG03 read `0x1a`
+  and REG0B `0x36` (fast). No mainline code had written the charger. That
+  is the 40 s I2C watchdog expiring, and it ends whatever LK programmed.
+- **The settings after that** are the power-on defaults, as read on
+  station 9:
+  - REG04 `0x20`, 2048 mA;
+  - REG06 `0x5e`, 4.208 V;
+  - REG07 `0x9d`, termination on and a 12 h timer;
+  - REG00 `0x48`, a 500 mA input limit with the computer and the owner's
+    fast charger both classified SDP.
+- **Inference:** a step before the kernel leaves `CHG_CONFIG` off, against
+  the "enables charging" reading of the LK source above. This was seen on
+  a boot2 mainline handoff only; whether a Gemian boot sees the same is
+  not established, and the Gemian kernel would rewrite it anyway.
+- **What it explains:** the `no`-then-`fast` pattern seen on every mainline
+  boot.
+
 ## 3. Kernel charging algorithm
 
 `mt_battery_charging_algorithm()` runs every battery-task period and performs,
@@ -134,6 +157,17 @@ thermally constrained subsystem.
 
 ## 8. Mainline position
 
+**On the development station (2026-10-31):**
+- the battery NTC reads through the MT6351 AUXADC (0357-0360) and
+  `power-status`;
+- `charge-guard` implements gate 1, the 50/47 °C window, by REG03
+  `CHG_CONFIG` with watchdog kicks while stopped. It is tested on the
+  device, and not yet started at boot.
+
+Gates 2 and 3 are not implemented. The 500 mA SDP input limit bounds the
+current meanwhile.
+
+
 Upstream `bq25890_charger` matches the silicon and most of the vendor register
 configuration, but mainline has no MT6351 ADC, gauge, BC1.1, charger-detect or
 board-NTC consumer, and the current Gemini DT has no charger, gauge, host
@@ -148,6 +182,8 @@ driver would omit charge-enable policy and the BC1.1 result entirely.
 3. Which `.tp` policy a SKU selects, and the exact `clbcct` parameter mapping.
 4. The preloader's exact thresholds and whether it writes any PMIC charger
    register before LK.
+5. Which boot stage leaves `CHG_CONFIG` clear at a mainline handoff
+   (§2, observed), against LK's charge enable.
 
 ## Evidence index
 
