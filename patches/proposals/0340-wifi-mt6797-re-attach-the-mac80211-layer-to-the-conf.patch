@@ -1,0 +1,244 @@
+From 85a493f2f95ca063c59df96d8339fc600b9b03b5 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 30 Oct 2026 21:28:33 -0400
+Subject: [PATCH] wifi: mt6797: re-attach the mac80211 layer to the configured
+ firmware
+
+A second load of the mac module failed: its first configuration command
+was manufacture data (TX power) after the record, which the normal
+command state refuses ("never replay manufacture data"), and its command
+sequence restarted at 5, which the boot-wide sequence history also
+refuses. Either refusal aborts the normal transaction and fails the HIF
+for the rest of the boot; nothing reaches the firmware.
+
+The CONSYS owner now remembers that the firmware was configured by the
+first successful attach and passes a re-attach flag to registration. A
+re-attached layer marks itself configured without replaying the record,
+continues the command sequence from mt6797_hif_next_sequence() (one past
+the highest used this boot), and CONSYS skips the once-per-boot TC4
+accounting pair, whose baseline the HIF keeps. The first attach, and so
+every built-in profile, is unchanged.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 30 ++++++++++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/hif.h |  1 +
+ drivers/net/wireless/mediatek/mt6797/mac.c | 20 ++++++++++++---
+ drivers/net/wireless/mediatek/mt6797/mac.h | 12 +++++----
+ drivers/soc/mediatek/mt6797-consys.c       | 26 ++++++++++++-------
+ 5 files changed, 72 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 4a791d214..0dffa3abd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1642,6 +1642,36 @@ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *
+ }
+ EXPORT_SYMBOL_GPL(mt6797_hif_normal_ledger);
+ 
++/*
++ * One past the highest command sequence used this boot, from the shared
++ * history that refuses reuse; 256 when none is left. A re-attached mac80211
++ * layer continues from here. -EBUSY when the context is busy, -EIO once the
++ * HIF has failed or outside the post-record normal phase.
++ */
++int mt6797_hif_next_sequence(struct mt6797_hif *hif)
++{
++	const unsigned char *used;
++	int next = 0, i;
++
++	if (!hif || !mutex_trylock(&hif->mutex))
++		return -EBUSY;
++	used = hif->normal.used_sequences;
++	if (hif->first_error || !used ||
++	    hif->normal.phase != MT6797_NORMAL_NVRAM_SUBMITTED) {
++		mutex_unlock(&hif->mutex);
++		return -EIO;
++	}
++	for (i = 255; i >= 0; i--) {
++		if (used[i / 8] & (1U << (i % 8))) {
++			next = i + 1;
++			break;
++		}
++	}
++	mutex_unlock(&hif->mutex);
++	return next;
++}
++EXPORT_SYMBOL_GPL(mt6797_hif_next_sequence);
++
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 1402d9884..a3eb6ad75 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -328,6 +328,7 @@ struct mt6797_hif_ledger {
+ };
+ 
+ void mt6797_hif_normal_ledger(struct mt6797_hif *hif, struct mt6797_hif_ledger *out);
++int mt6797_hif_next_sequence(struct mt6797_hif *hif);
+ int mt6797_hif_send_management(struct mt6797_hif *hif, const u8 *frame,
+ 			      size_t frame_bytes, u8 wlan, u8 pid,
+ 			      unsigned int lifetime_ms, unsigned int attempt_count,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.c b/drivers/net/wireless/mediatek/mt6797/mac.c
+index d04d2ff44..3bca5dcba 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.c
++++ b/drivers/net/wireless/mediatek/mt6797/mac.c
+@@ -8152,7 +8152,7 @@ static int mt6797_mac_load_record(struct mt6797_mac *mac,
+ 
+ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 			const struct mt6797_normal_capability *capability,
+-			const struct mt6797_wifi_record *record,
++			const struct mt6797_wifi_record *record, bool reattach,
+ 			struct ieee80211_hw **out)
+ {
+ 	static const int bitrates[] = {
+@@ -8164,6 +8164,7 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	const u8 *data;
+ 	unsigned int i;
+ 	bool enable_5g;
++	int sequence = 5;
+ 	int ret;
+ 
+ 	if (!out)
+@@ -8184,12 +8185,19 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		return -EINVAL;
+ 	/* Validated record support/enable bytes and the firmware hardware gate. */
+ 	enable_5g = !capability->hw_5g_disabled && data[197] && data[262];
++	/* The boot's sequence history refuses reuse: a re-attach continues it. */
++	if (reattach) {
++		sequence = mt6797_hif_next_sequence(hif);
++		if (sequence < 0)
++			return sequence;
++		sequence = max(sequence, 5);
++	}
+ 	hw = ieee80211_alloc_hw(sizeof(*mac), &mt6797_mac_ops);
+ 	if (!hw)
+ 		return -ENOMEM;
+ 	mac = hw->priv;
+ 	mac->hif = hif;
+-	mac->sequence = 5;
++	mac->sequence = sequence;
+ 	memcpy(mac->alpha2, "00", 2);
+ 	mutex_init(&mac->mutex);
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+@@ -8329,7 +8337,13 @@ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	 */
+ 	rtnl_lock();
+ 	mutex_lock(&mac->mutex);
+-	ret = mt6797_mac_load_record(mac, record);
++	/* A re-attach finds the firmware configured; never replay the record. */
++	if (reattach) {
++		mac->configured = true;
++		ret = 0;
++	} else {
++		ret = mt6797_mac_load_record(mac, record);
++	}
+ 	if (ret) {
+ 		mac->first_error = ret;
+ 		mac->closing = true;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index 7c0236ab5..4700bfbc0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -17,7 +17,7 @@ struct mt6797_wifi_record;
+  */
+ int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 			const struct mt6797_normal_capability *capability,
+-			const struct mt6797_wifi_record *record,
++			const struct mt6797_wifi_record *record, bool reattach,
+ 			struct ieee80211_hw **out);
+ 
+ /* Called by the retained CONSYS owner only after the complete initial TC4
+@@ -30,7 +30,7 @@ void mt6797_mac_scan_ready(struct ieee80211_hw *hw);
+ struct mt6797_mac_ops {
+ 	int (*reg)(struct device *dev, struct mt6797_hif *hif,
+ 		   const struct mt6797_normal_capability *capability,
+-		   const struct mt6797_wifi_record *record,
++		   const struct mt6797_wifi_record *record, bool reattach,
+ 		   struct ieee80211_hw **out);
+ 	void (*scan_ready)(struct ieee80211_hw *hw);
+ 	void (*unreg)(struct ieee80211_hw *hw);
+@@ -38,10 +38,12 @@ struct mt6797_mac_ops {
+ 
+ extern const struct mt6797_mac_ops mt6797_mac_attach_ops;
+ 
+-/* Attach the mac80211 layer once to the firmware the CONSYS owner started:
++/* Attach the mac80211 layer to the firmware the CONSYS owner started:
+  * record, registration, the initial TC4 accounting pair, then scan ready.
+- * -ENODEV before the firmware is ready, -EBUSY while attached or after a
+- * failed attach.
++ * A re-attach after a detach keeps the firmware's configuration and the
++ * TC4 baseline: the layer neither replays the record nor repeats the pair,
++ * and continues the boot's command sequence. -ENODEV before the firmware is
++ * ready, -EBUSY while attached or after a failed attach.
+  */
+ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops);
+ 
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 2d0d6dd49..d7fcb1ea6 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -106,6 +106,7 @@ struct mt6797_consys {
+ 	struct mt6797_normal_capability wlan_capability;
+ 	bool wlan_ready;
+ 	bool wlan_attached;
++	bool wlan_configured;
+ #endif
+ 	struct mt6797_wmt_query wmt_query;
+ 	struct mt6797_wmt_negotiate wmt_negotiate;
+@@ -970,6 +971,7 @@ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops)
+ 	struct mt6797_consys *owner = &mt6797_consys;
+ 	struct mt6797_wifi_record *record = NULL;
+ 	struct device *dev;
++	bool reattach;
+ 	int ret;
+ 
+ 	mutex_lock(&mt6797_consys_wlan_lock);
+@@ -978,29 +980,35 @@ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops)
+ 		goto out;
+ 	/* One attempt: a failed attach may leave firmware state behind. */
+ 	owner->wlan_attached = true;
++	reattach = owner->wlan_configured;
+ 	dev = owner->wlan_dev;
+ 	ret = mt6797_wifi_record_prepare(dev, &record);
+ 	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
+ 	if (!ret) {
+ 		ret = ops->reg(dev, owner->fw_hif, &owner->wlan_capability,
+-			       record, &owner->wlan_hw);
+-		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d\n",
+-			 ret);
++			       record, reattach, &owner->wlan_hw);
++		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d%s\n",
++			 ret, reattach ? " (kept from the first attach)" : "");
+ 	}
+ 	mt6797_wifi_record_release(record);
+ 	if (ret)
+ 		goto out;
+ #if IS_ENABLED(CONFIG_MT6797_HIF_TX_STATUS_PROBE)
+-	/* The only later normal sender is the RTNL-serialized notifier. */
+-	rtnl_lock();
+-	ret = mt6797_consys_observe_tx_status(dev, owner, true);
+-	rtnl_unlock();
+-	if (ret)
+-		goto out;
++	/* The accounting pair sets the TC4 baseline once per boot. The only
++	 * later normal sender is the RTNL-serialized notifier.
++	 */
++	if (!reattach) {
++		rtnl_lock();
++		ret = mt6797_consys_observe_tx_status(dev, owner, true);
++		rtnl_unlock();
++		if (ret)
++			goto out;
++	}
+ #if IS_ENABLED(CONFIG_MT6797_PASSIVE_SCAN)
+ 	ops->scan_ready(owner->wlan_hw);
+ #endif
+ #endif
++	owner->wlan_configured = true;
+ out:
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+ 	return ret;
+-- 
+2.43.0
+

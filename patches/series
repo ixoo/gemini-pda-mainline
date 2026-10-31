@@ -928,3 +928,4 @@ proposals/0336-wifi-mt6797-count-null-frames-and-the-unicast-silenc.patch
 proposals/0337-wifi-mt6797-ignore-a-reason-4-BSS-timeout-while-rece.patch
 proposals/0338-wifi-mt6797-build-the-mac80211-layer-as-a-loadable-m.patch
 proposals/0339-wifi-mt6797-detach-the-mac80211-layer-on-module-unl.patch
+proposals/0340-wifi-mt6797-re-attach-the-mac80211-layer-to-the-conf.patch

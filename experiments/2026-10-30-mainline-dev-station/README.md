@@ -412,19 +412,47 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Cycle 3:** `insmod` `EBUSY`, as designed. A failed attach is not
   retried.
 - There is no Oops, BUG or WARNING. The logs are retained privately.
-- **Reading** (the second predeclared row, located on the host):
-  - `mt6797_hif_send_config()` admits configuration commands only while the
-    built-in HIF's normal phase is `CAP_RECEIVED` or `NVRAM_SUBMITTED`, the
-    one-time init window. After the first lifetime it has left that window.
-  - So the second load's first configuration command was refused with
-    `-EIO` before any transfer. Nothing reached the firmware.
-  - That path returns before `mt6797_hif_fail()`, so the HIF is not
-    poisoned.
-- **What CONSYS must keep across loads:** the fact that the firmware is
-  already configured. A re-attach must not replay the one-time
-  configuration (TX power, edges, domains, NVRAM settings, TX control);
-  the firmware keeps it. Whether anything in it must be re-sent per
-  lifetime is open.
+- **Reading** (the second predeclared row, located on the host; corrected
+  after reading the source):
+  - Two boot-wide rules in the built-in HIF's normal-command state refuse a
+    reloaded layer.
+  - After the record (`NVRAM_SUBMITTED`), `mt6797_normal_prepare_config()`
+    admits only domain, TX-control and scan commands: "never replay
+    manufacture data". The reload's first command was TX power.
+  - The command sequence history (32 bytes, the whole boot, never cleared)
+    refuses reuse, and a fresh layer restarts at sequence 5.
+  - The refusal aborts the normal transaction (`FAILED`), and
+    `mt6797_hif_send_config()` then runs `mt6797_hif_fail()`. So the HIF
+    is failed for the rest of boot `caac239d…`. Nothing reached the
+    firmware.
+- **What CONSYS must keep across loads:**
+  - the fact that the firmware is configured, so a re-attach does not
+    replay the record;
+  - the TC4 baseline from the once-per-boot accounting pair;
+  - and the re-attached layer must continue the boot's command sequence.
+
+**Re-attach: proposal
+[0340](../../patches/proposals/0340-wifi-mt6797-re-attach-the-mac80211-layer-to-the-conf.patch).**
+- **CONSYS** sets `wlan_configured` after the first successful attach and
+  passes a `reattach` flag to registration.
+- **On re-attach, `mac`:**
+  - marks itself configured without the record load;
+  - continues from `mt6797_hif_next_sequence()`, a new HIF export: one past
+    the highest used sequence, or `-EIO` once the HIF has failed;
+  - and CONSYS skips the TC4 accounting pair.
+- The first attach, and every built-in profile, is unchanged.
+- **Tested in the VM:** W=1 is clean built in and as a module; the station
+  `Image` and modules link; checkpatch is clean.
+- **Not tested on the device.**
+- **Sequence budget:** without 0334 the boot's sequences still run out
+  after about 250 commands. One lifetime uses about 22.
+- **Device test, predeclared** (the same three cycles as station 4):
+
+  | Observation | Reading |
+  |---|---|
+  | Cycles 2 and 3: insmod 0, `regulatory configuration: status=0 (kept from the first attach)`, scan admitted with BSS found, rmmod 0 | Reload works on one firmware start |
+  | Re-attach registers, but the scan is refused or times out | Something per lifetime beyond the record is needed; the scan refusal names it |
+  | `mt6797_hif_next_sequence` returns `-EIO` | The HIF failed during the first lifetime or its teardown; the log names when |
 
 **Station 4, flashed from the station (boot `13055ae9…`).**
 - **Build:** Buildbox at `51a5fb6e` (806 patches with 0339,
