@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-power-status` |
-| Status | `running`: S1 works for power and charge state; S1b (one conversion start) implemented, not run |
+| Status | `running`: S1 power and charge state and S1b live ADC readings work; the unplugged reading is not yet observed |
 | Subsystem | BQ25896 charger (I2C0 `0x6b`), MT6351 PMIC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -163,7 +163,8 @@ write.
   - continuous mode writes nothing;
   - REG0C is never read, and a wrong part number still stops before any
     access.
-- **Binary:** `22b223ac…`, to be deployed live to the station over SSH.
+- **Binary:** `22b223ac…`, deployed live to station 8 over SSH (boot
+  `aa795da9…`); the next station image carries it.
 
 **Readings (predeclared):**
 
@@ -209,3 +210,44 @@ write.
   battery voltage, VBUS and current here are from an unknown earlier
   conversion. Live values need S2 (MT6351 AUXADC) or an admitted
   conversion start.
+
+**Station 8, boot `aa795da9…`: S1b deployed live.**
+- **Identity:** the same station 8 image. `/bin/power-status` was replaced
+  over SSH by `22b223ac…` at 25 s uptime, after one S1 read.
+- **S1 read just before (24 s):** `adc=stale`, raw `02=11 0b=26 0e=61 0f=60
+  10=3e 11=9a 12=00`. The stale values differ from the previous boot's
+  `5e/5d`, so some earlier conversion left them.
+- **S1b reads, cable in:**
+
+  | Uptime | Charge state (`0b`) | Battery | SYS | VBUS | ICHG | `adc` |
+  |---|---|---|---|---|---|---|
+  | 25 s | no (`26`) | 4.34 V (`66`) | 4.38 V | 5.1 V (`99`) | 0.00 A | live |
+  | 28 s | no (`26`) | 4.34 V | 4.38 V | 5.1 V | 0.00 A | live |
+  | 36 s | no (`26`) | 4.34 V | 4.38 V | 5.1 V | 0.00 A | live |
+  | 66 s | fast (`36`) | 4.20 V (`5f`) | 4.16 V | 5.2 V (`9a`) | 0.00 A | live |
+  | 96 s | fast (`36`) | 4.20 V | 4.16 V | 5.2 V | 0.00 A | live |
+  | 126 s | fast (`36`) | 4.22 V (`60`) | 4.20 V | 5.2 V | 0.00 A | live |
+
+- REG02 read `0x11` after every conversion: the start bit cleared and no
+  other bit changed. Every read returned, and the kernel log shows no I2C
+  error or warning.
+
+**Readings:**
+- **The conversion gives live values** (first row of the S1b table): battery,
+  SYS and VBUS change between reads and from the stale values.
+- **The write did not change the charger mode:** the charge state and power
+  good were unchanged in the reads taken right after each write, at 25, 28
+  and 36 s.
+- **Charge state change:** it moved to `fast` between 36 s and 66 s. That is
+  the same timing as the earlier boots, which made no writes, so it is not
+  attributed to S1b.
+- **Charge current:** reads 0 in `fast`. ICHGR has a 50 mA step, so the
+  current is below 50 mA. That fits a top-off of a full battery (owner
+  report).
+- **Battery voltage drop, unexplained:** the battery read 4.34 V before the
+  change and about 4.20 V after. One possible reason is the chip returning
+  to its 4.208 V default target after a battery charged higher under
+  Gemian's 4.416 V setting. That is not established: the charge-voltage
+  register was not read.
+- **Percentage:** the voltage estimate saturates at 100% here, so it says
+  nothing more than "full".
