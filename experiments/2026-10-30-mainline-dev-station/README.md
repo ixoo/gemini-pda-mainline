@@ -454,6 +454,20 @@ revised DT `609fc172…`, pushed at `4c771b06`).
   | Re-attach registers, but the scan is refused or times out | Something per lifetime beyond the record is needed; the scan refusal names it |
   | `mt6797_hif_next_sequence` returns `-EIO` | The HIF failed during the first lifetime or its teardown; the log names when |
 
+**Station 5, flashed from boot `caac239d…`, ready for its boot.**
+- **Build:** Buildbox at `21fa2220` (807 patches, with 0340). The config is
+  identical to station 4's, and `mac.ko` is `335f2ec8…`.
+- **Image:** boot2 `2ffbe478…`, with the same RAM root inputs as station 4
+  (`lid-guard` `4a935e33…`).
+- **Flash:** `flash-boot2` over station 4's `a3e68ff9…`,
+  `written-synced-readback-verified`.
+- **Test:** [`wifi-cycles.sh`](wifi-cycles.sh) runs the predeclared cycles
+  over SSH (`CYCLES=3 /bin/busybox sh -s`). It starts the firmware once per
+  boot, never clears the kernel log, and prints one line per step.
+  - A first draft cleared the log between cycles, which erased the
+    firmware-ready line. A dry run on `caac239d…` showed this, so the
+    script was fixed before use.
+
 **Station 4, flashed from the station (boot `13055ae9…`).**
 - **Build:** Buildbox at `51a5fb6e` (806 patches with 0339,
   `modules_built=true`). The config is identical to the previous station
