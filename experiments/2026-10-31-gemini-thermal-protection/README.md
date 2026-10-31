@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: steps 1 and 2 work on station 10; step 3 implemented for station 11, not run |
+| Status | `running`: steps 1-3 work on the device; `charge-guard` is not yet started at boot |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -339,6 +339,48 @@ a C2b charger write.*
 - **It also shows `CHG_CONFIG` = 0 stops charging** on this chip, since the
   bootloader's own write did. S3b still tests the guard's write and its
   watchdog kick.
+
+### Station 11, boot `b4cde2f8…`: S3b, the charger write (owner-approved)
+
+**Run 1, `charge-guard` `c23f655b…`, cable in, battery at 29.2 °C:**
+- **The hold:** `-s 273 -r 250 -p 10 -c 9`, so thresholds below the present
+  temperature:
+  - the first pass `action=stop` read REG03 `0x1a` and wrote `0x4a`
+    (`CHG_CONFIG` clear, `WD_RST`);
+  - eight `hold` passes followed, 10 s apart, each reading REG03 `0x0a`;
+  - while held: `charging=no`, REG0B `0x26`.
+- **The resume:** `-s 600 -r 550 -c 2` reported `action=none` twice and
+  left REG03 at `0x0a`.
+  - **A bug:** a new run started with no memory of the stop, so it never
+    set `CHG_CONFIG` again.
+  - With the kicks gone, the chip's watchdog returned it to its defaults
+    about 47 s after the last write: `charging=fast`, REG0B `0x36`.
+
+**Fix:** whenever charging is allowed and `CHG_CONFIG` reads clear,
+`charge-guard` sets it (`dc4d00db…`).
+- **Host test:** a fresh run at 25 °C finds `0x0a` and restores `0x1a` with
+  one write. The other cases are unchanged.
+- **Deployed** to `/bin` on the running station.
+
+**Run 2, `dc4d00db…`:**
+- **The hold:** `stop` at 280 s, then three `hold` passes with REG03 `0x0a`.
+  While held: `charging=no`, REG0B `0x26`.
+- **The resume:** `action=resume` read `0x0a` and wrote `0x1a`. The next
+  pass read `0x1a` and did nothing.
+- **Right after, and 15 s later:** `charging=fast`, REG0B `0x36`.
+
+**Kernel log:** no I2C error and no fault. The only matches are the
+ramoops lines and the known I2C6 guard message.
+
+**Reading (first S3b row):**
+- **The stop works and is reversible:** clearing `CHG_CONFIG` stops
+  charging, and the `WD_RST` kicks hold it there past the 40 s watchdog.
+- **Two ways back:** setting `CHG_CONFIG` resumes charging at once, and
+  without the guard the chip resumes on its own within about 47 s.
+- **Not shown:**
+  - a real 50 °C battery, not heated on purpose;
+  - `charge-guard` running at boot, which the station image does not do
+    yet.
 
 ## Step 3 design: a battery-temperature charging stop
 

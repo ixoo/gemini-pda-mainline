@@ -10,7 +10,10 @@
  * part number 000: stopping clears CHG_CONFIG (bit 4); while stopped, every
  * pass rewrites it with WD_RST (bit 6) so the chip's 40 s I2C watchdog never
  * returns it to its defaults; resuming sets CHG_CONFIG again once and stops
- * the kicks. Every other bit of REG03 is written back as read.
+ * the kicks. Whenever charging is allowed and CHG_CONFIG reads clear, it is
+ * set, so a new run also restores what an earlier one stopped, and the
+ * bootloader's disabled state ends at the first pass rather than at the
+ * chip's watchdog. Every other bit of REG03 is written back as read.
  *
  * usage: charge-guard [-n] [-s STOP_DC] [-r RESUME_DC] [-p SECONDS] [-c PASSES]
  *   -n  dry run: decide and log, never write
@@ -162,7 +165,7 @@ int main(int argc, char **argv)
 		} else if (want_stop) {
 			value = (reg03 & ~REG03_CHG_CONFIG) | REG03_WD_RST;
 			action = stopped ? "hold" : "stop";
-		} else if (stopped) {
+		} else if (!(reg03 & REG03_CHG_CONFIG)) {
 			value = reg03 | REG03_CHG_CONFIG;
 			action = "resume";
 		}
