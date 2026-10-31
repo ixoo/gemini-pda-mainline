@@ -114,7 +114,9 @@ The built path (`CONFIG_MTK_HAFG_20=y`) converts the `BATON` voltage in
 - **The pull-up voltage:** `RBAT_PULL_UP_VOLT_BY_BIF` is defined
   (`upmu_sw.h:21`), so it is the VBIF28 rail as measured by
   `pmic_get_vbif28_volt()` through channel 11, not a constant:
-  `R_ntc = 24000 × V_baton / (V_bif28 − V_baton)`.
+  `R_ntc = 24000 × V_baton / (V_bif28 − V_baton)`. `V_baton` is the channel-3
+  result after the ×2 in §3 — the NTC node voltage, not the raw ADC pin
+  voltage.
 - **The table:** `R_ntc` is interpolated over the 17-entry table
   (−20 to 60 °C in 5 °C steps, 10000 Ω at 25 °C).
 - **Not used here:** the device tree's battery node also carries
