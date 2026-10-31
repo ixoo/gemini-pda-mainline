@@ -121,7 +121,17 @@ validation:
 | `config_sha256` | `d9fcfee20d204c4d50291e55a0b75fdfb0da3b0f78d7f500a9a8c4b65a64b3e7` |
 | `image_gzip_sha256` | `1c312e7c4c80a512c816924303702bf13850d7023f6683dca23cebe16b6eecc8` |
 
-Not done: fetching the package, assembling a boot2 image and the
+The Buildbox build with 0374, from commit `3aeb8d9b`, also passed. It applied
+848 patches and the package passed validation:
+
+| Field | Value |
+| --- | --- |
+| Package | `linux-7.1.3-gemini-a1c5a72405a6caf2249d40408e6b254cb4be5e099e623978057492d819633f65` |
+| `patchset_sha256` | `aaaa46a03c239f544e4b80aa98546e7035ecd3b1dbc1ab27db6e736418cfc38c` |
+| `config_sha256` | `d3077e5390307842b1dec29f9ca64cab8bd2b069d0f0ec2433cd36ddb29f8924` |
+| `image_gzip_sha256` | `3af32c3ce0011332cce286a056e97afacb45e2c38ff3610b74e2ad51a6375418` |
+
+Not done for either package: fetching it, assembling a boot2 image and the
 `station-dt.sh` DTB, flashing and booting. Each needs the device custodian,
 and boot2 selection needs the owner.
 
