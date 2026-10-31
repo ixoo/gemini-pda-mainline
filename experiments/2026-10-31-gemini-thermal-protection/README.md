@@ -112,6 +112,60 @@ read, was not read.
   120 °C regulation and the 12 h safety timer. The schematic would settle
   it.
 
+## Conversion details (source read, 2026-10-31)
+
+**Freshness: the vendor has a first-valid gate only.**
+- **Timing per bank** (`mt6797/src/mtk_tc.c`, `thermal_reset_and_initial`).
+  Mainline's `auxadc_thermal` uses the same values:
+  - TEMPMONCTL1 `0xc`: a period unit of about 39.4 µs;
+  - TEMPMONCTL2 `0x000101ad`: a sensing interval of 429 units, about
+    18.1 ms;
+  - TEMPMSRCTL0 `0x492`: a 2-of-4 sample filter;
+  - TEMPADCVALIDMASK `0x2c`: the AUXADC channel 11 data valid bit (bit 12),
+    which the controller checks before storing a sample. Nothing tells
+    software that a TEMPMSR reading is fresh.
+- **Reads** are polled TEMPMSR values masked to 12 bits, with no status
+  check. The interrupt serves thresholds only.
+- **The one freshness mechanism:**
+  - Before the real setup, `tscpu_thermal_fast_init` points every bank at
+    a spare register seeded with the sentinel `THERMAL_INIT_VALUE` (`0xda1`,
+    `mt6797/inc/tscpu_settings.h`). It then waits until each TEMPMSR reads
+    `0xda1`, and only then starts real sensing.
+  - `check_all_temp_valid` (`common/thermal_zones/mtk_ts_cpu.c`) declares
+    the temperatures valid once no TEMPMSR still holds the sentinel.
+  - That proves one real conversion per sensor since setup. It is the same
+    "read every bank first" ordering that keeps the 117 °C arm from
+    raising a false reset request.
+- **Our driver lacks this gate.** Earlier records reached the same limits:
+  - [freshness audit](../2026-09-04-mt6797-thermal-snapshot/SENSOR_FRESHNESS_AUDIT.md);
+  - [register contract](../2026-09-04-mt6797-thermal-snapshot/REGISTER_CONTRACT.md);
+  - [no passive discriminator](../2026-09-04-mt6797-thermal-snapshot/PASSIVE_DISCRIMINATOR_DECISION.md).
+- **Inference:** a per-read age check is not possible. The sentinel gate is
+  portable, and the configured timing bounds a reading's age at about four
+  18 ms intervals; that bound is not measured.
+
+**Accuracy: the formula is complete, but no figure is given.**
+- **Calibration source:** LK's devinfo words 32, 31 and 33 (`mtk_tc.c`,
+  `tscpu_settings.h`). They give ADC gain and offset, a room temperature,
+  a slope with its sign, one room-temperature voltage per sensor (MCU1-4 and
+  ABB), and an ID bit that forces the slope to zero.
+- **Defaults when calibration is off:** GE and OE 512, VTS 260, 40 °C,
+  slope 0.
+- **The conversion** is the vendor `raw_to_temperature_roomt`. 0541 made
+  sensors 1-4 match it
+  ([V4 correction](../2026-09-04-mt6797-thermal-snapshot/README.md#corrected-v4-runtime-result)).
+- **Not stated:** no source gives an accuracy or tolerance. Absolute
+  accuracy needs a reference measurement.
+
+**Bootloader:**
+- **Watchdog:** the project's LK record lists the watchdog setup writes,
+  REQ_MODE and REQ_IRQ_EN among them, but not their values
+  ([provenance record](../2026-08-21-mainline-a72-a34-provenance-owner-audit/results/provenance-20260821.txt)).
+- **Thermal controller:** nothing shows a bootloader programming it; LK
+  only supplies the calibration.
+- So whether thermal request bit 18 is armed under mainline is still
+  unknown, and one read of `0x10007030` settles it.
+
 ## What mainline needs (proposal, not admitted)
 
 In order:
@@ -124,6 +178,8 @@ In order:
    - The station series carries the sensor driver only up to 0513, so the
      next step is the V4 reading on the station, as a module, next to a known
      load.
+   - Add the vendor's `0xda1` first-valid gate, which protection needs
+     anyway.
    - Everything below depends on the calibrated conversion.
 2. **The 117 °C hardware reset:**
    - program TEMPPROTCTL, TEMPPROTTC and the hot request as the vendor
