@@ -23,6 +23,7 @@ the experiments that support or challenge it.
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Gemini charging](gemini-charging.md) | Switch charger, boot-chain policy, charge state machine, thermal current gates, and safety limits. |
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
+| [Gemini touchscreen](touchscreen.md) | Controller wiring, vendor TPD/NT36xxx stack, firmware contract, and mainline driver gap. |
 | [Vendor kernel ABI](vendor-kernel-abi.md) | Private interfaces used by the working stack and their standard Linux replacements. |
 | [Vendor userspace](vendor-userspace.md) | Android HALs, services, libraries, compatibility bridges, and migration implications. |
 | [Firmware boundary](firmware.md) | Installed firmware evidence, licensing/redistribution limits, and protected exclusions. |
