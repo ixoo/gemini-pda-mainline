@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `running`: station 17 traced the wrong keys to an unlocked register read in `pinctrl-aw9523`; fix 0381 built for station 18, not yet booted |
+| Status | `running`: station 18 confirms 0381 (correct keys, idle I2C5 0/s) but misses same-row keys pressed in sequence; 0382–0384 built for station 19, not yet booted |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -363,6 +363,76 @@ available.
   station default (drop `poll-interval`) and removes 0375, 0379 and 0380.
 - If any wrong key remains, keep the traces and compare the column words
   with the thread's port reads again.
+
+**Station 18, boot `feb511fb-45ba-4be8-b0d5-11ccde05f032`.** Built at
+`c3cf556a`: Image.gz `e6bc5893…`, DTB `591aca1b…`, boot2 `1a90ccff…`, same RAM
+root. Run by the device session with the owner, who reported "it worked".
+Raw files are retained privately with its station 18 evidence.
+
+| Step | Result |
+| --- | --- |
+| Polling | No warning, pad in mode 1, I2C5 1449 a second, `1-005b` 0 |
+| Traced A presses | Both: `scan init 04 err 0 cols 00 00 00 00 00 04 00`, `scan end 04`, and A (code 30, scan 21) in the capture. No `rescan` line anywhere. Idle I2C5 was flat. The 2 s hold was not captured, probably owner timing |
+| Sentence, traces off | "hello world" exactly, with clean press/release pairs |
+| Autorepeat | H held: first repeat after 255 ms |
+| Left Shift+Z | First: Z alone, **no Shift**. Second: Shift and Z in one scan, correct |
+| Ctrl+Alt+7 | First: 7, then Alt 18 ms later, then Ctrl only as 7 was released. Second: all three in one scan, correct |
+| Fn+B, Fn+N | Each letter reported about 10 ms before Fn |
+| Lid | Close and open seen by `lid-guard` |
+| Idle I2C5, interrupt mode | 54819 to 54819 over 10 s: **0 a second**, against about 1449 polling. `1-005b` totalled 1035 |
+
+**0381 confirmed.** With the thread's reads serialized, the scan reads the
+right rows, and the held-key rescan storm is gone.
+
+**Same-row keys.** Between interrupt scans, every column is driven, so a
+held key keeps its row low. A second key in that row produces no edge on
+the row line, no AW9523 interrupt and no scan. Left Shift and Z share
+row 3, and Ctrl and Alt share row 4. Each failed when pressed one after the
+other, and worked only when they landed in the same scan. Polling never
+missed them. Whether the Fn+B and Fn+N order is the same effect or owner
+timing is undetermined: Fn is in row 4, B and N in row 3. The vendor driver
+keeps rescanning while keys are held, which avoids this.
+
+**Fix, station 19.**
+- [0382](../../patches/proposals/0382-dt-bindings-input-gpio-matrix-keypad-add-held-poll-i.patch)
+  adds `held-poll-interval` to the binding.
+- [0383](../../patches/proposals/0383-Input-matrix_keypad-keep-scanning-while-a-key-is-hel.patch)
+  makes `matrix_keypad` keep scanning at that interval while any key is
+  held, with the row interrupts off and the columns inactive. Row interrupts
+  return once a scan finds every key released. A stopped device always
+  takes the normal path, which keeps the IRQ disable depth balanced across
+  stop and start.
+- [0384](../../patches/proposals/0384-arm64-dts-mediatek-gemini-station-scan-the-keyboard-.patch)
+  removes `poll-interval` from the station's keyboard and sets
+  `held-poll-interval = <20>`. **Station 19 boots in interrupt mode.**
+  `poll_override` (0375) and the traces (0379, 0380) remain, so a fault can
+  be corrected over SSH.
+
+**Station 19 test (predeclared).**
+1. **Boot.**
+   - The kernel log says `row interrupt mode`, and the console takes typing
+     from the start.
+   - Idle 3 × 10 s: I2C5 under 10 a second, `1-005b` flat.
+   - Fallback if the console fails:
+     `echo 20 > /sys/module/matrix_keypad/parameters/poll_override`, unbind,
+     bind, `killall lid-guard`.
+2. **Same-row keys, pressed one after the other.**
+   - Hold Left Shift, then press Z: expect Shift down, then Z.
+   - Hold Ctrl, then Alt, then press 7: expect Ctrl, Alt, then 7. The
+     ghost filter may drop the 7.
+   - Hold Fn, then press B and N: brightness steps, with Fn reported before
+     the letter.
+3. **The rest.**
+   - A typed sentence.
+   - A 2 s held key, checking autorepeat and the I2C5 delta during the hold
+     (about the polling rate).
+   - A lid close and open, and the I2C5 delta afterwards at idle.
+
+**Decisions.**
+- If 1–3 pass, interrupt mode is the station default. A cleanup candidate
+  removes 0375, 0379 and 0380.
+- If the boot console fails, use the fallback and return to station 18
+  behaviour by DT.
 
 Earlier: hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
 and stays at zero while polling. Hypothesis 2 failed on station 15. The

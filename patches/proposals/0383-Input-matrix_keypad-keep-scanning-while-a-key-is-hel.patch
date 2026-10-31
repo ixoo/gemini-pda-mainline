@@ -1,0 +1,79 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 17:47:46 -0400
+Subject: [PATCH 383/384] Input: matrix_keypad: keep scanning while a key is
+ held
+
+In row interrupt mode, a key held between scans keeps its row asserted.
+A second key in the same row then raises no row interrupt and is not
+scanned. On the Gemini PDA keyboard, an AW9523 matrix with row
+interrupts, Left Shift held before Z went unreported because both are
+in row 3. Ctrl and Alt, both in row 4, behaved the same. Both
+combinations work in polling mode.
+
+When held-poll-interval is set and any key is held after a scan, keep
+the row interrupts disabled and the columns inactive. Schedule the next
+scan after that interval. Once a scan finds every key released, drive
+the columns and enable the row interrupts as before. A stopped device
+always takes the normal path, so stop and start keep the disable depth
+balanced.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 22 ++++++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index bfd3b5418..6f8b8f00e 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -30,6 +30,7 @@ struct matrix_keypad {
+ 	/* key debounce interval in milli-second */
+ 	unsigned int debounce_ms;
+ 	unsigned int poll_interval_ms;
++	unsigned int held_poll_ms;
+ 	bool drive_inactive_cols;
+ 	bool needs_ghost_filter;
+ 
+@@ -182,6 +183,7 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 	uint32_t new_state[MATRIX_MAX_COLS];
+ 	int row, col, code;
+ 	u32 init_row_state, new_row_state;
++	u32 held = 0;
+ 	int err = 0;
+ 
+ 	/* read initial row state to detect changes between scan */
+@@ -272,6 +274,24 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 		return;
+ 	}
+ 
++	/*
++	 * A held key keeps its row asserted, so a second key in the same row
++	 * raises no row interrupt. While any key is held, keep the row
++	 * interrupts off and scan again after the held-key interval.
++	 */
++	for (col = 0; col < keypad->num_col_gpios; col++)
++		held |= new_state[col] | keypad->last_key_state[col];
++
++	if (held && keypad->held_poll_ms) {
++		scoped_guard(spinlock_irq, &keypad->lock) {
++			if (!keypad->stopped) {
++				schedule_delayed_work(&keypad->work,
++						      msecs_to_jiffies(keypad->held_poll_ms));
++				return;
++			}
++		}
++	}
++
+ 	activate_all_cols(keypad, true);
+ 
+ 	/* Enable IRQs again */
+@@ -567,6 +587,8 @@ static int matrix_keypad_probe(struct platform_device *pdev)
+ 				 &keypad->all_cols_on_delay_us);
+ 	device_property_read_u32(&pdev->dev, "poll-interval",
+ 				 &keypad->poll_interval_ms);
++	device_property_read_u32(&pdev->dev, "held-poll-interval",
++				 &keypad->held_poll_ms);
+ 	if (poll_override < 0)
+ 		keypad->poll_interval_ms = 0;
+ 	else if (poll_override > 0)

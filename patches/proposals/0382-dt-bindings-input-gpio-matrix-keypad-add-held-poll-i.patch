@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 17:47:46 -0400
+Subject: [PATCH 382/384] dt-bindings: input: gpio-matrix-keypad: add
+ held-poll-interval
+
+In row interrupt mode, the matrix drives every column between scans, so
+a pressed key holds its row asserted. A second key pressed in that row
+changes nothing on the row line and raises no interrupt. Keyboards put
+modifiers in rows with letters, so the second key is lost.
+
+Add an optional interval at which the matrix keeps being scanned while
+any key is held. Row interrupts take over again once all keys are
+released.
+
+Not yet run on hardware.
+---
+ .../devicetree/bindings/input/gpio-matrix-keypad.yaml    | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+index a9fab526b..9181ad3a0 100644
+--- a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
++++ b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+@@ -76,6 +76,15 @@ properties:
+       interval instead of requesting interrupts for the row GPIOs. Polling
+       cannot wake a suspended system.
+ 
++  held-poll-interval:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    minimum: 1
++    description:
++      With row interrupts, keep scanning the matrix at this interval in
++      milliseconds while any key is held, and return to row interrupts once
++      all keys are released. A held key keeps its row asserted, so a second
++      key in the same row raises no row interrupt and is otherwise missed.
++
+   drive-inactive-cols:
+     type: boolean
+     description:

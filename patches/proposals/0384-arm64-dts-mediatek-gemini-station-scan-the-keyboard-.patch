@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 17:47:46 -0400
+Subject: [PATCH 384/384] arm64: dts: mediatek: gemini station: scan the
+ keyboard on interrupts
+
+EINT10 now delivers the AW9523 interrupt. With the expander's interrupt
+thread serialized, row interrupt scans read the right keys. Switch the
+station keyboard from 20 ms polling to row interrupts. Keep scanning
+every 20 ms while a key is held, so that same-row combinations such as
+Left Shift+Z and Ctrl+Alt are seen.
+
+The experiment-only matrix_keypad.poll_override can still return a
+running station to polling.
+
+Not yet run on hardware.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts      | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 1e3d607c6..52aa9ef07 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -208,6 +208,15 @@ &aw9523 {
+ 	#interrupt-cells = <2>;
+ };
+ 
++/*
++ * Scan the keyboard on row interrupts, and poll only while a key is held,
++ * so that a second key in an already asserted row is still seen.
++ */
++&{/keyboard-matrix} {
++	/delete-property/ poll-interval;
++	held-poll-interval = <20>;
++};
++
+ &thermal {
+ 	mediatek,toprgu = <&watchdog>;
+ 	mediatek,hw-reset-millicelsius = <117000>;

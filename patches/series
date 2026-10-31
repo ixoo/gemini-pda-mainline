@@ -970,3 +970,6 @@ proposals/0378-pinctrl-aw9523-do-not-set-a-default-IRQ-trigger.patch
 proposals/0379-Input-matrix_keypad-add-experiment-only-scan-tracing.patch
 proposals/0380-pinctrl-aw9523-add-experiment-only-interrupt-tracing.patch
 proposals/0381-pinctrl-aw9523-serialize-the-interrupt-thread-s-port.patch
+proposals/0382-dt-bindings-input-gpio-matrix-keypad-add-held-poll-i.patch
+proposals/0383-Input-matrix_keypad-keep-scanning-while-a-key-is-hel.patch
+proposals/0384-arm64-dts-mediatek-gemini-station-scan-the-keyboard-.patch
