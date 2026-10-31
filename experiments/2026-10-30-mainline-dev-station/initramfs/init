@@ -27,6 +27,11 @@ if $bb insmod /lib/modules/"$($bb uname -r)"/auxadc_thermal.ko; then
 else
     status thermal=load-failed
 fi
+if $bb insmod /lib/modules/"$($bb uname -r)"/mt6359-auxadc.ko; then
+    status battery-adc=loaded
+else
+    status battery-adc=load-failed
+fi
 # Gemian's linux partition, found by its GPT name, never by number.
 data=
 waited=0

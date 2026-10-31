@@ -32,7 +32,8 @@ def main(package, parent, tools, output):
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = []
     for path in ['net/wireless/mediatek/mt6797/mac.ko', 'net/wireless/mediatek/mt6797/mt6797-wlan-core.ko',
-                 'soc/mediatek/mt6797-consys.ko', 'thermal/mediatek/auxadc_thermal.ko']:
+                 'soc/mediatek/mt6797-consys.ko', 'thermal/mediatek/auxadc_thermal.ko',
+                 'iio/adc/mt6359-auxadc.ko']:
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
@@ -70,6 +71,7 @@ def main(package, parent, tools, output):
               'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
               'lid_guard_sha256': sha(Path(tools)/'lid-guard'),
               'power_status_sha256': sha(Path(tools)/'power-status'),
+              'charge_guard_sha256': sha(Path(tools)/'charge-guard'),
               'initramfs_sha256': sha(ram), 'boot_img_bytes': len(raw), 'boot2_sha256': sha(padded)}
     (output/'station.json').write_text(json.dumps(record, indent=2) + '\n')
     print(json.dumps(record, indent=2))

@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 14:19:37 -0400
+Subject: [PATCH] dt-bindings: iio: adc: mt6359-auxadc: add MT6351
+
+The MT6351 PMIC has the same request, ready and result shape as the
+MT6357 AUXADC at its own register offsets. Add its compatible and a
+channel index header.
+---
+ .../bindings/iio/adc/mediatek,mt6359-auxadc.yaml         | 1 +
+ include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h     | 9 +++++++++
+ 2 files changed, 10 insertions(+)
+ create mode 100644 include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h
+
+diff --git a/Documentation/devicetree/bindings/iio/adc/mediatek,mt6359-auxadc.yaml b/Documentation/devicetree/bindings/iio/adc/mediatek,mt6359-auxadc.yaml
+index 5d4ab701f..a2da80978 100644
+--- a/Documentation/devicetree/bindings/iio/adc/mediatek,mt6359-auxadc.yaml
++++ b/Documentation/devicetree/bindings/iio/adc/mediatek,mt6359-auxadc.yaml
+@@ -19,6 +19,7 @@ description:
+ properties:
+   compatible:
+     enum:
++      - mediatek,mt6351-auxadc
+       - mediatek,mt6357-auxadc
+       - mediatek,mt6358-auxadc
+       - mediatek,mt6359-auxadc
+diff --git a/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h b/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h
+new file mode 100644
+index 000000000..e546457a6
+--- /dev/null
++++ b/include/dt-bindings/iio/adc/mediatek,mt6351-auxadc.h
+@@ -0,0 +1,9 @@
++/* SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause */
++
++#ifndef _DT_BINDINGS_MEDIATEK_MT6351_AUXADC_H
++#define _DT_BINDINGS_MEDIATEK_MT6351_AUXADC_H
++
++/* ADC Channel Index */
++#define MT6351_AUXADC_BAT_TEMP		0
++
++#endif
+-- 
+2.43.0
+

@@ -945,3 +945,7 @@ proposals/0353-thermal-mediatek-build-the-MT6797-variant-without-th.patch
 proposals/0354-thermal-mediatek-arm-the-MT6797-hardware-thermal-res.patch
 proposals/0355-dt-bindings-thermal-mediatek-add-the-hardware-reset-.patch
 proposals/0356-arm64-dts-mediatek-add-the-Gemini-PDA-development-st.patch
+proposals/0357-dt-bindings-iio-adc-mt6359-auxadc-add-MT6351.patch
+proposals/0358-iio-adc-mt6359-auxadc-add-the-MT6351-battery-tempera.patch
+proposals/0359-mfd-mt6397-add-the-MT6351-AUXADC-cell.patch
+proposals/0360-arm64-dts-mediatek-mt6797-add-the-MT6351-AUXADC.patch

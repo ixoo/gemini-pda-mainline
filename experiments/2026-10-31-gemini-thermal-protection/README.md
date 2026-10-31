@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-gemini-thermal-protection` |
-| Status | `running`: steps 1 and 2 work on station 10 (temperature live, 117 °C reset armed, untriggered); step 3 designed |
+| Status | `running`: steps 1 and 2 work on station 10; step 3 implemented for station 11, not run |
 | Subsystem | SoC thermal controller, TOPRGU, BQ25896, MT6351 |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-10-31 |
@@ -228,7 +228,81 @@ connected.
   - whether the 110 °C critical trip powers off.
   Both would need the SoC heated to those temperatures.
 
-## Step 3 design: a battery-temperature charging stop (not implemented)
+## Step 3 implementation for station 11 (2026-10-31, owner request)
+
+**The reading:**
+- [0357](../../patches/proposals/0357-dt-bindings-iio-adc-mt6359-auxadc-add-MT6351.patch)-[0360](../../patches/proposals/0360-arm64-dts-mediatek-mt6797-add-the-MT6351-AUXADC.patch)
+  add the MT6351 to the upstream `mt6359-auxadc` IIO driver, with its
+  binding, its MFD cell and the DT node.
+- **One channel,** the battery NTC:
+  - request: channel 3's bit in `AUXADC_RQST0` through its set alias
+    (`0x0e98`);
+  - result: ready bit 15 of `AUXADC_ADC3` (`0x0e06`), 12 bits;
+  - scale: ×2 against 1.8 V.
+- **What it never touches:**
+  - channel 11, whose read switches the VBIF28 pad;
+  - the modem's `RQST1` and the ring;
+  - the clocks, which LK leaves on (the
+    [PMIC ADC doc](../../docs/hardware/mt6351-pmic-adc.md#32-adc-clock)
+    has the reads).
+- **Wiring:**
+  - the station loads the driver as `mt6359-auxadc` after the thermal
+    module;
+  - `IIO` is built in.
+- **Conversion in `power-status` (`d43534da…`):**
+  - `R = 24000 × V / (2800 − V)`, with `V = raw × 3600 / 4096`;
+  - the 17-entry vendor table;
+  - 2.8 V is VBIF28's set voltage, where the vendor measures it and falls
+    back to 2.77 V (about 0.3 °C apart here).
+  - **Host test:** within 0.1 °C of the table at 25, 50 and 55.5 °C; codes
+    outside the range read as unavailable.
+
+**The stop:** [`charge-guard`](../2026-10-30-mainline-dev-station/charge-guard.c)
+(`c23f655b…`), in the RAM root and not started at boot.
+- **A pass every 10 s:**
+  - at 50 °C or more, or with no reading, it clears `CHG_CONFIG` (REG03
+    bit 4);
+  - while stopped, it rewrites REG03 with `WD_RST` (bit 6), so the chip's
+    40 s I2C watchdog never returns it to its defaults;
+  - below 47 °C it sets `CHG_CONFIG` once and stops the kicks.
+- **Its only write is REG03,** after REG14 confirms the BQ25896, with every
+  other bit written back as read. `-n` makes it a dry run.
+- **Host test (fake bus):**
+  - 25 → 51 → 51 → 46.6 → 44 → 25 °C gave three writes, all to REG03, and
+    REG03 ended at `0x1a`, as it started;
+  - with no reading it stopped;
+  - the dry run and a wrong part number wrote nothing.
+
+**Device tests (predeclared):**
+
+*S3a, read-only, on the first station 11 boot:*
+- `battery-adc=loaded`;
+- `power-status` shows `batt_temp` between 15 and 40 °C, a few degrees
+  under the SoC zone at rest;
+- `charge-guard -n -c 6` logs `none` six times.
+
+| Observation | Reading |
+|---|---|
+| `batt_temp` plausible and steady within 1 °C across reads | The NTC path works |
+| `batt_temp=unavailable` or an ADC timeout | The request or the clocks are the item; the raw code names it |
+| A value outside 0-60 °C at room temperature | The scaling or the pull-up assumption is wrong; stop before S3b |
+
+*S3b, the first charger write. It needs the owner's approval first: it is
+a C2b charger write.*
+- **The run:** cable in, `charge-guard -s <current-20> -r <current-40> -c 9`.
+  The thresholds sit below the present temperature, so it stops and holds
+  for about 80 s.
+- **The restore:** then thresholds above it, `-s 600 -r 550 -c 2`, so it
+  resumes.
+- **The check:** read REG03 and REG0B with `power-status -r` after each.
+
+| Observation | Reading |
+|---|---|
+| REG03 `0x0a` and charge state `no` while held; REG03 `0x1a` and the state back to `pre` or `fast` after the resume | The stop works and is reversible |
+| The state stays `fast` with REG03 bit 4 clear | `CHG_CONFIG` alone does not stop this chip; stop and record |
+| REG03 returns to `0x1a` by itself while held | The watchdog kick does not hold; stop and record |
+
+## Step 3 design: a battery-temperature charging stop
 
 The charger cannot see the battery, so the stop needs two things:
 - **A reading:** the battery NTC on MT6351 AUXADC channel 3 (`BATON`), as the

@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 14:19:37 -0400
+Subject: [PATCH] arm64: dts: mediatek: mt6797: add the MT6351 AUXADC
+
+Describe the MT6351 auxiliary ADC, which reads the battery NTC.
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 5535edd7d..93ee647c4 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -448,6 +448,11 @@ power-controller {
+ 				compatible = "mediatek,mt6351-pwrc";
+ 				#power-domain-cells = <0>;
+ 			};
++
++			pmic_adc: adc {
++				compatible = "mediatek,mt6351-auxadc";
++				#io-channel-cells = <1>;
++			};
+ 		};
+ 	};
+ 
+-- 
+2.43.0
+

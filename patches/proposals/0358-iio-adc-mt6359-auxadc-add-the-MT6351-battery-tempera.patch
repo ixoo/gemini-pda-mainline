@@ -1,0 +1,80 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 14:19:37 -0400
+Subject: [PATCH] iio: adc: mt6359-auxadc: add the MT6351 battery temperature
+ channel
+
+Add the MT6351 PMIC with one channel, the battery NTC input (channel 3,
+BATON), as the MT6797 vendor kernel reads it: a request bit in RQST0
+through its set alias, ready bit 15 in ADC3, 12-bit data, scaled by two
+against the 1.8 V reference. The MT6351 has no ADC reset block, and
+the driver leaves the ADC clocks as the bootloader set them.
+---
+ drivers/iio/adc/mt6359-auxadc.c | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/drivers/iio/adc/mt6359-auxadc.c b/drivers/iio/adc/mt6359-auxadc.c
+index 1d9724ef0..8508887c4 100644
+--- a/drivers/iio/adc/mt6359-auxadc.c
++++ b/drivers/iio/adc/mt6359-auxadc.c
+@@ -22,6 +22,7 @@
+ 
+ #include <linux/mfd/mt6397/core.h>
+ 
++#include <dt-bindings/iio/adc/mediatek,mt6351-auxadc.h>
+ #include <dt-bindings/iio/adc/mediatek,mt6357-auxadc.h>
+ #include <dt-bindings/iio/adc/mediatek,mt6358-auxadc.h>
+ #include <dt-bindings/iio/adc/mediatek,mt6359-auxadc.h>
+@@ -205,6 +206,24 @@ struct mtk_pmic_auxadc_info {
+ 	.info_mask_separate = BIT(IIO_CHAN_INFO_RAW) | BIT(IIO_CHAN_INFO_SCALE)	\
+ }
+ 
++static const struct iio_chan_spec mt6351_auxadc_channels[] = {
++	MTK_PMIC_IIO_CHAN(MT6351, batt_temp, BAT_TEMP, 3, 12, IIO_TEMP),
++};
++
++static const struct mtk_pmic_auxadc_chan mt6351_auxadc_ch_desc[] = {
++	MTK_PMIC_ADC_CHAN(BAT_TEMP, PMIC_AUXADC_RQST0, 3, PMIC_AUXADC_IMP0, 8, 8, 2, 1),
++};
++
++/*
++ * MT6351 requests go through the RQST0 set alias (0x0e98), as the vendor
++ * driver does; the stop write of 0 to it changes nothing. The ADC has no
++ * reset block, and its clocks are left as the bootloader set them.
++ */
++static const u16 mt6351_auxadc_regs[] = {
++	[PMIC_AUXADC_ADC0]	= 0x0e00,
++	[PMIC_AUXADC_RQST0]	= 0x0e98,
++};
++
+ static const struct iio_chan_spec mt6357_auxadc_channels[] = {
+ 	MTK_PMIC_IIO_CHAN(MT6357, bat_adc, BATADC, 0, 15, IIO_RESISTANCE),
+ 	MTK_PMIC_IIO_CHAN(MT6357, isense, ISENSE, 1, 12, IIO_CURRENT),
+@@ -549,6 +568,16 @@ static int mt6359_read_imp(struct mt6359_auxadc *adc_dev,
+ 	return 0;
+ }
+ 
++static const struct mtk_pmic_auxadc_info mt6351_chip_info = {
++	.model_name = "MT6351",
++	.channels = mt6351_auxadc_channels,
++	.num_channels = ARRAY_SIZE(mt6351_auxadc_channels),
++	.desc = mt6351_auxadc_ch_desc,
++	.regs = mt6351_auxadc_regs,
++	.no_reset = true,
++	.vref_mV = 1800,
++};
++
+ static const struct mtk_pmic_auxadc_info mt6357_chip_info = {
+ 	.model_name = "MT6357",
+ 	.channels = mt6357_auxadc_channels,
+@@ -886,6 +915,7 @@ static int mt6359_auxadc_probe(struct platform_device *pdev)
+ }
+ 
+ static const struct of_device_id mt6359_auxadc_of_match[] = {
++	{ .compatible = "mediatek,mt6351-auxadc", .data = &mt6351_chip_info },
+ 	{ .compatible = "mediatek,mt6357-auxadc", .data = &mt6357_chip_info },
+ 	{ .compatible = "mediatek,mt6358-auxadc", .data = &mt6358_chip_info },
+ 	{ .compatible = "mediatek,mt6359-auxadc", .data = &mt6359_chip_info },
+-- 
+2.43.0
+

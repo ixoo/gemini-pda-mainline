@@ -134,7 +134,22 @@ The immediate helper forces the ADC clocks on before a request
 `pmic_auxadc.c:171-174`, `:270-273`). A mainline driver must do the same,
 and in the same order, before its first request.
 
-### 3.2 Channel 11 is not a passive measurement
+**Observed under mainline** (station 10, boot `e7139954…`): the bootloader
+leaves those clocks exactly as the helper sets them. These are single
+register reads through regmap debugfs, with no write
+([thermal record](../../experiments/2026-10-31-gemini-thermal-protection/README.md)):
+
+| Register | Value | Field |
+|---|---|---|
+| `TOP_CKPDN_CON0` | `0xdc04` | bit 9 (`SMPS_CK_PDN`) clear |
+| `TOP_CKPDN_CON1` | `0x00a0` | bit 10 (`CK_PDN`) clear |
+| `TOP_CKHWEN_CON0` | `0x30e7` | bits 3 and 4 (the `_HWEN` pair) clear |
+| `AUXADC_CON0` | `0x8014` | bit 15 (`CK_AON`) set |
+
+The station driver therefore requests without clock writes. A driver for a
+boot that does not pass through LK would still need them.
+
+### 3.3 Channel 11 is not a passive measurement
 
 Reading channel 11 switches the VBIF28 pad onto the ADC input and then puts it
 back (`pmic_auxadc.c:441-460`, `:541-560`):

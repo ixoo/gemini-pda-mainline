@@ -5,8 +5,8 @@
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
 adds the Wi-Fi modules under lib/modules/<release>/ and, from TOOLS, the static
-lid-guard and power-status binaries (built from lid-guard.c and
-power-status.c); gives Fn+B and Fn+N no console action, since lid-guard
+lid-guard, power-status and charge-guard binaries (built from their .c
+files; charge-guard is not started); gives Fn+B and Fn+N no console action, since lid-guard
 uses them for brightness. Writes a newc archive with zero timestamps,
 compressed with gzip -n -9 like the parent.
 
@@ -81,7 +81,7 @@ def main(parent, modules, tools, release, output):
     files['bin/console-shell'] = (FILE | 0o755, (src/'console-shell').read_bytes())
     files['bin/setterm'] = (FILE | 0o755, (src/'setterm').read_bytes())
     files['bin/flash-boot2'] = (FILE | 0o755, (src/'flash-boot2').read_bytes())
-    for tool in ['lid-guard', 'power-status']:
+    for tool in ['lid-guard', 'power-status', 'charge-guard']:
         files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
     mode, keymap = files['etc/gemini-us.bkeymap']
     files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))

@@ -8,11 +8,14 @@
  * bit clears. Then REG02, REG0B and REG0E to REG12 are read, one SMBus byte
  * each. REG0C, whose fault bits clear on read, is never read. Battery
  * percentage is a coarse estimate from voltage alone. ADC fields are marked
- * stale if no conversion completed.
+ * stale if no conversion completed. The battery temperature comes from the
+ * MT6351 BATON channel through IIO when that driver is loaded: the vendor's
+ * 24 kOhm pull-up to VBIF28 (2.8 V) and its 10 kOhm NTC table.
  * usage: power-status [-r] [BUS]   (-r adds the raw registers; BUS defaults
  * to the adapter under the 11007000.i2c platform device)
  */
 #include <dirent.h>
+#include <limits.h>
 #include <fcntl.h>
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
@@ -88,6 +91,63 @@ static int find_bus(void)
 	return bus;
 }
 
+/* The vendor's 10 kOhm battery NTC table (ohms at -20..60 C, 5 C steps). */
+static const int ntc_ohms[] = {
+	68237, 53650, 42506, 33892, 27219, 22021, 17926, 14674, 12081,
+	10000, 8315, 6948, 5834, 4917, 4161, 3535, 3014,
+};
+
+/*
+ * Battery temperature in 0.1 C from the MT6351 BATON raw code, or INT_MIN.
+ * The code is scaled by two against the 1.8 V reference; the NTC sits
+ * below a 24 kOhm pull-up to VBIF28, 2.8 V (the vendor measures VBIF28 and
+ * falls back to 2.77 V; the difference is about 0.3 C here).
+ */
+static int batt_decicelsius(int raw)
+{
+	long mv = raw * 3600L / 4096, ohms;
+	unsigned int i;
+
+	if (raw <= 0 || mv >= 2800)
+		return INT_MIN;
+	ohms = 24000L * mv / (2800 - mv);
+	if (ohms >= ntc_ohms[0])
+		return -200;
+	for (i = 1; i < sizeof(ntc_ohms) / sizeof(ntc_ohms[0]); i++)
+		if (ohms >= ntc_ohms[i])
+			return -200 + 50 * (int)i - (int)(50 * (ohms - ntc_ohms[i]) /
+				(ntc_ohms[i - 1] - ntc_ohms[i]));
+	return 600;
+}
+
+/* The MT6351 IIO device's BATON raw code, or -1. */
+static int batt_raw(void)
+{
+	char path[96], name[16] = "";
+	int dev, raw = -1;
+	FILE *f;
+
+	for (dev = 0; dev < 8 && raw < 0; dev++) {
+		snprintf(path, sizeof(path), "/sys/bus/iio/devices/iio:device%d/name", dev);
+		f = fopen(path, "r");
+		if (!f)
+			continue;
+		if (!fgets(name, sizeof(name), f))
+			name[0] = 0;
+		fclose(f);
+		if (strncmp(name, "MT6351", 6))
+			continue;
+		snprintf(path, sizeof(path), "/sys/bus/iio/devices/iio:device%d/in_temp0_raw", dev);
+		f = fopen(path, "r");
+		if (f) {
+			if (fscanf(f, "%d", &raw) != 1)
+				raw = -1;
+			fclose(f);
+		}
+	}
+	return raw;
+}
+
 /* Rough resting Li-ion curve; not the vendor profile. */
 static int estimate(int mv)
 {
@@ -155,6 +215,14 @@ int main(int argc, char **argv)
 	       (2304 + 20 * (v[2] & 0x7f)) / 1000.0, estimate(2304 + 20 * (v[2] & 0x7f)),
 	       (2304 + 20 * (v[3] & 0x7f)) / 1000.0, (2600 + 100 * (v[5] & 0x7f)) / 1000.0,
 	       50 * (v[6] & 0x7f) / 1000.0, 21 + 0.465 * (v[4] & 0x7f), !!(v[2] & 0x80), adc);
+	{
+		int braw = batt_raw(), bt = braw < 0 ? INT_MIN : batt_decicelsius(braw);
+
+		if (bt == INT_MIN)
+			printf("batt_temp=unavailable (raw %d)\n", braw);
+		else
+			printf("batt_temp=%d.%dC (NTC raw %d)\n", bt / 10, bt < 0 ? -bt % 10 : bt % 10, braw);
+	}
 	if (raw) {
 		printf("raw 14=%02x", id);
 		for (i = 0; i < sizeof(regs); i++)
