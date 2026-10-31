@@ -1,0 +1,65 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Write a station image to boot2 from the running station (owner decision,
+# 2026-10-30). usage: flash-boot2 IMAGE SHA256
+# Refuses unless the image is exactly 16 MiB with that SHA-256, and exactly
+# one mmcblk0 partition is named boot2: matching sysfs and node numbers,
+# 16 MiB, writable, not mounted, not swap. Records the predecessor checksum,
+# skips an already matching partition, writes with fsync, drops the page
+# cache and requires a matching full readback. Selecting boot2 at the next
+# boot stays a physical owner action.
+export PATH=/bin
+set -eu
+bb=/bin/busybox
+SIZE=16777216
+log() { $bb echo "flash-boot2: $*" | $bb tee -a /run/station/flash-boot2.log >/dev/kmsg; }
+fail() { log "refused: $*"; $bb echo "flash-boot2: refused: $*" >&2; exit 2; }
+
+[ "$#" -eq 2 ] || { $bb echo "usage: flash-boot2 IMAGE SHA256" >&2; exit 2; }
+image=$1
+expected=$2
+case "$expected" in *[!0-9a-f]*|'') fail "malformed checksum" ;; esac
+[ "${#expected}" -eq 64 ] || fail "malformed checksum"
+[ -f "$image" ] && [ ! -L "$image" ] || fail "image is not a regular file"
+[ "$($bb stat -c %s "$image")" -eq "$SIZE" ] || fail "image is not 16 MiB"
+actual=$($bb sha256sum "$image")
+[ "${actual%% *}" = "$expected" ] || fail "image checksum mismatch"
+
+count=0
+part=
+for uevent in /sys/class/block/mmcblk0p*/uevent; do
+	[ -f "$uevent" ] || continue
+	if $bb grep -qx PARTNAME=boot2 "$uevent"; then
+		part=$($bb sed -n 's/^DEVNAME=//p' "$uevent")
+		count=$((count + 1))
+	fi
+done
+[ "$count" -eq 1 ] || fail "found $count partitions named boot2"
+sys=/sys/class/block/$part
+dev=/dev/$part
+[ -b "$dev" ] && [ ! -L "$dev" ] || fail "$dev is not a block device"
+number=$($bb cat "$sys/dev")
+node=$($bb stat -c '%t:%T' "$dev")
+[ "$number" = "$((0x${node%:*})):$((0x${node#*:}))" ] || fail "$dev does not match sysfs"
+[ "$(($($bb cat "$sys/size") * 512))" -eq "$SIZE" ] || fail "$dev is not 16 MiB"
+[ "$($bb cat "$sys/ro")" = 0 ] || fail "$dev is read-only"
+# shellcheck disable=SC2016 # an awk program, not shell
+if $bb awk -v d="$dev" '$1 == d {f = 1} END {exit !f}' /proc/mounts /proc/swaps; then
+	fail "$dev is mounted or swap"
+fi
+
+before=$($bb sha256sum "$dev")
+before=${before%% *}
+log "target=$dev ($number) predecessor=$before candidate=$expected"
+if [ "$before" = "$expected" ]; then
+	log "already current"
+	exit 0
+fi
+$bb dd if="$image" of="$dev" bs=1048576 conv=fsync 2>/dev/null
+$bb sync
+$bb echo 3 > /proc/sys/vm/drop_caches
+after=$($bb sha256sum "$dev")
+after=${after%% *}
+[ "$after" = "$expected" ] || fail "readback $after does not match"
+log "result=written-synced-readback-verified readback=$after"

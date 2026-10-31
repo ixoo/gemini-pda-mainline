@@ -143,6 +143,19 @@ a 1 MiB log buffer.
   - busybox has no `setterm`, so [`initramfs/setterm`](initramfs/setterm)
     implements `--blank N` (0 to 60 minutes, 0 off) and writes to tty1, so
     it works from SSH too.
+- **Flashing boot2 from the station** (owner decision, 2026-10-30):
+  [`initramfs/flash-boot2`](initramfs/flash-boot2) `IMAGE SHA256`.
+  - **It refuses unless:**
+    - the image is exactly 16 MiB with that SHA-256;
+    - exactly one `mmcblk0` partition is named `boot2`;
+    - that partition's sysfs and device-node numbers agree;
+    - it is 16 MiB, writable, and neither mounted nor swap.
+  - It records the predecessor checksum and skips an already matching
+    partition.
+  - It writes with `fsync`, syncs, drops the page cache and requires a
+    matching full readback.
+  - Selecting boot2 at the next boot stays a physical owner action. This
+    replaces the round trip through Gemian's installer for station images.
 - [`lid-guard.c`](lid-guard.c) is a small static program, respawned by init:
   - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
     (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
@@ -380,6 +393,22 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - This is the first change deployed on the running station. It went from
   edit to running on the hardware in minutes, with no build or boot. The
   boot image does not carry it until the next compose.
+
+**Station 4, flashed from the station (boot `13055ae9…`).**
+- **Build:** Buildbox at `51a5fb6e` (806 patches with 0339,
+  `modules_built=true`). The config is identical to the previous station
+  package, and `mac.ko` (`ef248a48…`) now has `cleanup_module`.
+- **Composition:** boot2 `a3e68ff9…`. The RAM root carries `lid-guard`
+  `4a935e33…`, `setterm`, `flash-boot2` and the keymap with Fn+B/N set to
+  no action.
+- **Flasher refusals,** tested on the station:
+  - a malformed checksum, an image that is not 16 MiB, and a checksum
+    mismatch were each refused;
+  - with the installed station 3 image, every partition guard passed on
+    `/dev/mmcblk0p30` (179:30), and it stopped at `already current`.
+- **Flash:** predecessor `0bdcd90f…`, then
+  `result=written-synced-readback-verified` with readback `a3e68ff9…`. It
+  took 3 s.
 
 **Screen blanking, live on boot `13055ae9…`.**
 - The new `lid-guard` (`4a935e33…`) and `/bin/setterm` were pushed over SSH
