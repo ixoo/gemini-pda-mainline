@@ -1,0 +1,69 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 16:13:38 -0400
+Subject: [PATCH 375/376] Input: matrix_keypad: add an experiment-only scan
+ mode override
+
+The Gemini PDA station polls its AW9523 keyboard matrix every 20 ms
+because the expander's interrupt path (GPIO87, EINT10) has never been
+tested on mainline. To test row interrupts without risking the console,
+both modes must be reachable on one boot.
+
+Add a writable poll_override module parameter that is read at probe:
+- 0 keeps the firmware poll-interval;
+- a negative value forces row interrupts;
+- a positive value forces that polling interval.
+Unbinding and binding the keyboard-matrix device applies it, so a
+failed interrupt mode returns to polling over SSH, without a reboot.
+Also log when the device probes in row interrupt mode.
+
+Experiment only and not for upstream: the scan mode belongs in the
+firmware description. Remove this once the station settles on one mode.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index 4635ad7f3..e6ec7f1e1 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -49,6 +49,17 @@ struct matrix_keypad {
+ 	bool stopped;
+ };
+ 
++/*
++ * Experiment only, not for upstream. 0 keeps the firmware poll-interval, a
++ * negative value forces row interrupts and a positive value forces polling at
++ * that interval in milliseconds. It is read at probe, so unbind and bind the
++ * device to switch modes without a reboot.
++ */
++static int poll_override;
++module_param(poll_override, int, 0644);
++MODULE_PARM_DESC(poll_override,
++		 "0: firmware poll-interval, <0: row interrupts, >0: poll interval (ms)");
++
+ /*
+  * NOTE: If drive_inactive_cols is false, then the GPIO has to be put into
+  * HiZ when de-activated to cause minmal side effect when scanning other
+@@ -527,6 +538,10 @@ static int matrix_keypad_probe(struct platform_device *pdev)
+ 				 &keypad->all_cols_on_delay_us);
+ 	device_property_read_u32(&pdev->dev, "poll-interval",
+ 				 &keypad->poll_interval_ms);
++	if (poll_override < 0)
++		keypad->poll_interval_ms = 0;
++	else if (poll_override > 0)
++		keypad->poll_interval_ms = poll_override;
+ 	keypad->needs_ghost_filter =
+ 		device_property_read_bool(&pdev->dev, "needs-ghost-filter");
+ 
+@@ -583,6 +598,8 @@ static int matrix_keypad_probe(struct platform_device *pdev)
+ 	if (keypad->poll_interval_ms)
+ 		dev_info(&pdev->dev, "polling mode, interval %u ms\n",
+ 			 keypad->poll_interval_ms);
++	else
++		dev_info(&pdev->dev, "row interrupt mode\n");
+ 
+ 	return 0;
+ }

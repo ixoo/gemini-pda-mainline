@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 16:13:39 -0400
+Subject: [PATCH 376/376] arm64: dts: mediatek: gemini station: describe the
+ keyboard expander IRQ
+
+The Wi-Fi service board deletes the AW9523 interrupt properties. That
+keeps an unproven EINT out of the console path. No real-pad EINT has yet
+been shown to fire on mainline MT6797: the lid's EINT5 never did, while
+the PMIC's virtual EINT176 works.
+
+Restore the INT description on the station: GPIO87 as EINT10, level
+low, with the expander as an interrupt controller. pinctrl-aw9523 then
+requests EINT10 at probe. It masks every pin interrupt until a consumer
+requests one, so the line should stay idle while the matrix polls. The
+keyboard keeps polling by default. Row interrupt mode is selected only
+by rebinding the keyboard with the experiment-only override.
+
+Not yet run on hardware.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index e4578be77..1e3d607c6 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -195,6 +195,19 @@ soc-critical {
+ 	};
+ };
+ 
++/*
++ * Describe the AW9523 INT output again (GPIO87, EINT10, level low), which the
++ * Wi-Fi service board removes. The matrix still polls by default, and the
++ * expander masks every pin interrupt until a consumer requests one, so the
++ * line stays idle unless the keyboard is rebound in row interrupt mode.
++ */
++&aw9523 {
++	interrupt-parent = <&pio>;
++	interrupts = <10 IRQ_TYPE_LEVEL_LOW>;
++	interrupt-controller;
++	#interrupt-cells = <2>;
++};
++
+ &thermal {
+ 	mediatek,toprgu = <&watchdog>;
+ 	mediatek,hw-reset-millicelsius = <117000>;
