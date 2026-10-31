@@ -471,6 +471,19 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Limit:** the boot's command sequences still run out after about 250
   commands (about 22 per lifetime, so roughly ten lifetimes).
 
+**Station 8, boot `975af37c-6283-4cbf-903e-9fd42a5047ee`: power-off A
+passed.**
+- **Identity:** boot2 `62ae2230…`, `power-status` `361d522a…`.
+  `mt6351-pwrc` bound to the `mt6323-pwrc` driver, and I2C0 is `i2c-0`.
+- **Power-off A, cable detached:**
+  1. The power-status read and a `poweroff` were scheduled on the device,
+     then the owner unplugged the cable.
+  2. The owner reported that the device powered off.
+- **Reading:** the first row. The MT6351 RTC write powers off without a
+  charger.
+- **Comparison with Gemian:** the boot-up and charging-screen checks
+  against Gemian's off state are pending.
+
 **Station 8, flashed from station 6 (boot `967d17be…`): power-off and
 power status.**
 - **Build:** Buildbox at `0b3bb43f`. It is station 7 plus `CONFIG_I2C_CHARDEV`,
