@@ -78,7 +78,9 @@ read, was not read.
 ## Station 10: the TOPRGU read (predeclared)
 
 **The image:**
-- built at `0e082142`: boot2 `4a32af25…`, `Image.gz` `176badf3…`;
+- built at `cb64339d` (830 patches): boot2 `862af578…`, `Image.gz`
+  `1a900bf3…`, boot DTB `8fc41f04…`, `auxadc_thermal.ko` `4a92c807…`. It
+  replaces the `0e082142` image that had `/dev/mem` only;
 - the station profile with `CONFIG_DEVMEM=y`, `CONFIG_STRICT_DEVMEM=y` and
   no `IO_STRICT_DEVMEM`, so RAM stays off-limits while driver-owned
   registers can be read;
