@@ -140,6 +140,9 @@ The owner approved S1 on 2026-10-31.
 - **RAM root:** the station builder now takes a tools directory holding
   `lid-guard` and `power-status`.
 
+Station 8 (boot2 `62ae2230…`, built at `0b3bb43f`) carries S1. It is
+flashed and ready to boot.
+
 ## Observations
 
 None. Not run on the device.

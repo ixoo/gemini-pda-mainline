@@ -471,6 +471,20 @@ revised DT `609fc172…`, pushed at `4c771b06`).
 - **Limit:** the boot's command sequences still run out after about 250
   commands (about 22 per lifetime, so roughly ten lifetimes).
 
+**Station 8, flashed from station 6 (boot `967d17be…`): power-off and
+power status.**
+- **Build:** Buildbox at `0b3bb43f`. It is station 7 plus `CONFIG_I2C_CHARDEV`,
+  I2C0 enabled with no child bound, and `power-status` (`361d522a…`) in the
+  RAM root, for the
+  [power-status experiment](../2026-10-31-gemini-power-status/README.md).
+- **Flash:** boot2 `62ae2230…` over station 7's `e0825b6f…`,
+  `written-synced-readback-verified`. Station 7 never booted; station 8
+  carries its power-off change.
+- **Test order on station 8:**
+  1. The power-status runs, cable in and then unplugged.
+  2. Power-off A, cable detached.
+  3. After a boot: power-off B, cable attached.
+
 **Power-off like Gemian: proposals 0342 to 0345, for station 7.**
 - **Problem:** the station powers off through PSCI `SYSTEM_OFF` into the
   retained ATF. The owner observed that the resulting off state is not the
