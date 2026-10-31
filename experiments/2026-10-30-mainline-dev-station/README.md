@@ -481,8 +481,9 @@ passed.**
   2. The owner reported that the device powered off.
 - **Reading:** the first row. The MT6351 RTC write powers off without a
   charger.
-- **Comparison with Gemian:** the boot-up and charging-screen checks
-  against Gemian's off state are pending.
+- **Comparison with Gemian:** plugging USB into the powered-off device
+  brought up the charging screen, as after a Gemian shutdown (owner
+  observation). The off state now matches Gemian's for this case.
 
 **Station 8, flashed from station 6 (boot `967d17be…`): power-off and
 power status.**
