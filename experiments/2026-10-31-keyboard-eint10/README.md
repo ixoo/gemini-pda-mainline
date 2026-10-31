@@ -236,6 +236,49 @@ polling. `matrix_keypad` disables and enables its row IRQs under a spinlock,
 which a sleeping I2C irqchip like the AW9523's cannot serve. This is under
 investigation from the kernel log of that phase.
 
+**Station 16 follow-up (read-only, same boot, uptime 412 s).**
+- The kernel log after 50 s has only the probe, mode and `lid-guard` lines:
+  no BUG, WARN, scheduling-while-atomic or driver error. This kernel lacks
+  `CONFIG_DEBUG_ATOMIC_SLEEP`, so it would not report a mutex taken under a
+  spinlock without contention.
+- The 20 ms sampler had ended with its SSH session. In polling mode, I2C5
+  still ran at about 1749 a second against the 1445 boot baseline, with
+  `1-005b` unchanged at 160. About 300 a second of extra traffic has
+  persisted since the interrupt phase, unexplained.
+- `/sys/kernel/debug/irq` is absent, and the kernel has no ftrace or kprobes.
+
+The counters contradict the expected path. `handle_nested_irq()` counts
+only a row interrupt that is enabled, so rows that never counted were
+disabled whenever EINT10 dispatched to them. Yet scans ran and reported
+keys. Rather than guess, station 17 adds tracing:
+- [0379](../../patches/proposals/0379-Input-matrix_keypad-add-experiment-only-scan-tracing.patch):
+  `matrix_keypad.trace_scans` logs each row IRQ, start, and interrupt-mode
+  scan with its row words;
+- [0380](../../patches/proposals/0380-pinctrl-aw9523-add-experiment-only-interrupt-tracing.patch):
+  `pinctrl_aw9523.trace_irq` logs each expander interrupt thread run with
+  its port values, changed bits and nested dispatches.
+
+Both are experiment only and off by default.
+
+**Station 17 test (predeclared).**
+1. Boot (polling). Repeat A1–A2 with `1-005b`. Record the I2C5 baseline.
+2. `echo 1 > /sys/module/matrix_keypad/parameters/trace_scans`,
+   `echo 1 > /sys/module/pinctrl_aw9523/parameters/trace_irq`, then switch
+   to interrupt mode as in B1 (including `killall lid-guard`). The rebind
+   should log `trace: start`, one scan, and `scan end ff`, or `00`
+   depending on polarity.
+3. Idle 10 s: count new trace lines and the I2C5 delta.
+4. The owner presses and releases A once, waits 2 s, then once more.
+   Save `dmesg`, `/proc/interrupts` and the event capture.
+5. Return to polling, turn both traces off, and take one I2C5 delta.
+
+What the log decides:
+- `irq in` lines with no `nested` line: no changed row bits, or no mapping.
+- `nested` lines with no `row irq` line: the row was disabled (pending).
+- `row irq` present: the count reading was wrong.
+- The `scan … cols` words for a single A press show directly whether the
+  rows are read wrong, compared with polling's correct reading.
+
 Earlier: hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
 and stays at zero while polling. Hypothesis 2 failed on station 15. The
 leading explanation is the pad-mode bug in 0005, and 0377 is its candidate

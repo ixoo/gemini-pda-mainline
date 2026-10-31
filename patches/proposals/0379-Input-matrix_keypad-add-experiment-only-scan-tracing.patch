@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 17:15:31 -0400
+Subject: [PATCH 379/380] Input: matrix_keypad: add experiment-only scan
+ tracing
+
+On the Gemini PDA station, row interrupt mode reports wrong keys after
+the first press. The row interrupt counts also stay at zero while the
+parent EINT10 counts key activity. The station kernel has no tracing, so
+the scan path cannot be followed on a running boot.
+
+Add a writable trace_scans module parameter, off by default. When set,
+log each row interrupt (with the pending and stopped state), each input
+start, and each row interrupt scan's initial row word, per-column row
+words, error and final row word. Polling scans are not logged.
+
+Experiment only and not for upstream. Remove it once the row interrupt
+path is understood.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 29 ++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index e6ec7f1e1..bfd3b5418 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -60,6 +60,11 @@ module_param(poll_override, int, 0644);
+ MODULE_PARM_DESC(poll_override,
+ 		 "0: firmware poll-interval, <0: row interrupts, >0: poll interval (ms)");
+ 
++/* Experiment only, not for upstream: log row interrupts and their scans. */
++static bool trace_scans;
++module_param(trace_scans, bool, 0644);
++MODULE_PARM_DESC(trace_scans, "log row interrupts and row interrupt scans");
++
+ /*
+  * NOTE: If drive_inactive_cols is false, then the GPIO has to be put into
+  * HiZ when de-activated to cause minmal side effect when scanning other
+@@ -204,6 +209,18 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 			break;
+ 	}
+ 
++	if (trace_scans && !keypad->poll_interval_ms) {
++		char buf[3 * MATRIX_MAX_COLS + 1];
++		int len = 0;
++
++		for (col = 0; col < keypad->num_col_gpios; col++)
++			len += scnprintf(buf + len, sizeof(buf) - len, " %02x",
++					 new_state[col]);
++		dev_info(input_dev->dev.parent,
++			 "trace: scan init %02x err %d cols%s\n",
++			 init_row_state, err, buf);
++	}
++
+ 	/* report nothing from an incomplete scan; keep the last key state */
+ 	if (err) {
+ 		dev_err_ratelimited(input_dev->dev.parent,
+@@ -265,6 +282,10 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 
+ 	/* read new row state and detect if value has changed */
+ 	read_row_state(keypad, &new_row_state);
++	if (trace_scans)
++		dev_info(input_dev->dev.parent, "trace: scan end %02x%s\n",
++			 new_row_state,
++			 init_row_state != new_row_state ? " rescan" : "");
+ 	if (init_row_state != new_row_state) {
+ 		guard(spinlock_irq)(&keypad->lock);
+ 		if (unlikely(keypad->scan_pending || keypad->stopped))
+@@ -282,6 +303,11 @@ static irqreturn_t matrix_keypad_interrupt(int irq, void *id)
+ 
+ 	guard(spinlock_irqsave)(&keypad->lock);
+ 
++	if (trace_scans)
++		dev_info(keypad->input_dev->dev.parent,
++			 "trace: row irq %d pending %d stopped %d\n", irq,
++			 keypad->scan_pending, keypad->stopped);
++
+ 	/*
+ 	 * See if another IRQ beaten us to it and scheduled the
+ 	 * scan already. In that case we should not try to
+@@ -306,6 +332,9 @@ static int matrix_keypad_start(struct input_dev *dev)
+ 	keypad->stopped = false;
+ 	mb();
+ 
++	if (trace_scans)
++		dev_info(dev->dev.parent, "trace: start\n");
++
+ 	/*
+ 	 * Schedule an immediate key scan to capture current key state;
+ 	 * columns will be activated and IRQs be enabled after the scan.

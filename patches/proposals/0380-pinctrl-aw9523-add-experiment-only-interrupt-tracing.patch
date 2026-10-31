@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 17:15:31 -0400
+Subject: [PATCH 380/380] pinctrl: aw9523: add experiment-only interrupt
+ tracing
+
+To follow the Gemini PDA keyboard's row interrupt path, log each run of
+the expander's interrupt thread. Each log line shows both input ports,
+the bits that changed since the last run, and each nested interrupt it
+dispatches. A writable trace_irq module parameter, off by default,
+enables it.
+
+Experiment only and not for upstream. Remove it once the row interrupt
+path is understood.
+
+Compile-tested only; not yet run on hardware.
+---
+ drivers/pinctrl/pinctrl-aw9523.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/pinctrl/pinctrl-aw9523.c b/drivers/pinctrl/pinctrl-aw9523.c
+index 5ccacef1d..9a7e7c989 100644
+--- a/drivers/pinctrl/pinctrl-aw9523.c
++++ b/drivers/pinctrl/pinctrl-aw9523.c
+@@ -450,6 +450,11 @@ static void aw9523_irq_unmask(struct irq_data *d)
+ 			   BIT(n), 0);
+ }
+ 
++/* Experiment only, not for upstream: log each interrupt thread run. */
++static bool trace_irq;
++module_param(trace_irq, bool, 0644);
++MODULE_PARM_DESC(trace_irq, "log interrupt thread runs and nested dispatch");
++
+ static irqreturn_t aw9523_irq_thread_func(int irq, void *dev_id)
+ {
+ 	struct aw9523 *awi = (struct aw9523 *)dev_id;
+@@ -471,6 +476,10 @@ static irqreturn_t aw9523_irq_thread_func(int irq, void *dev_id)
+ 	changed_gpio = awi->irq->cached_gpio ^ val;
+ 	awi->irq->cached_gpio = val;
+ 
++	if (trace_irq)
++		dev_info(awi->dev, "trace: irq in %04lx changed %04lx\n", val,
++			 changed_gpio);
++
+ 	/*
+ 	 * To avoid up to four *slow* i2c reads from any driver hooked
+ 	 * up to our interrupts, just check for the irq_find_mapping
+@@ -481,6 +490,8 @@ static irqreturn_t aw9523_irq_thread_func(int irq, void *dev_id)
+ 		tmp = irq_find_mapping(awi->gpio.irq.domain, n);
+ 		if (tmp <= 0)
+ 			continue;
++		if (trace_irq)
++			dev_info(awi->dev, "trace: nested %lu irq %u\n", n, tmp);
+ 		handle_nested_irq(tmp);
+ 	}
+ 
