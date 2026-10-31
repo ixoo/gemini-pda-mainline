@@ -245,6 +245,6 @@ now follow, and it still needs a calibration protocol.
 
 ## Follow-up
 
-R2 (full CONN restart) after a calibration protocol for the repeated RF
-calibration. Until then, a firmware, HIF or WMT change still needs a
+R2 (full CONN restart) after owner review of its
+[calibration protocol](CALIBRATION_PROTOCOL.md) (draft, 2026-10-31). Until then, a firmware, HIF or WMT change still needs a
 reboot; a `mac` change does not.
