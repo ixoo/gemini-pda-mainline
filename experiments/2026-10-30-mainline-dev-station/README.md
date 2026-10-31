@@ -503,6 +503,12 @@ revised DT `609fc172…`, pushed at `4c771b06`).
   - checkpatch reports only the absent Signed-off-by, which is never
     invented here.
 - **Not run on the device.**
+- **Station 7:**
+  - Built on Buildbox at `8315ea93`. The config differs from station 6's
+    only by `CONFIG_POWER_RESET_MT6323=y`; `mac.ko` is unchanged.
+  - The DTB (`1099d931…`) carries the `mediatek,mt6351-pwrc` node.
+  - boot2 image `e0825b6f…`, flashed from station 6 (boot `967d17be…`)
+    over `fb6d3f13…`, `written-synced-readback-verified`.
 - **Device test, predeclared:** two power-offs on station 7. The owner
   watches the screen, and the PMIC write is Gemian's own shutdown write.
   - **A, cable detached:** `sleep 20; poweroff` started over SSH, then the
