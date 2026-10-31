@@ -59,6 +59,23 @@ emulation. A negative result narrows that problem too.
   probe fails and the keyboard is absent. Polling would not save it. SSH
   stays. That is the main risk this candidate adds over station 14.
 
+## Build
+
+The Buildbox modules build from commit `712b5d97` passed. It applied 850
+patches and the package passed validation:
+
+| Field | Value |
+| --- | --- |
+| Job | `712b5d97de31fb76d5b3671039edf0b1d2d54aa9-mt6797-a53-station-m1` |
+| Package | `linux-7.1.3-gemini-6d6a06d938c159e44f6fa3f73ef4f0364120872ff1ab3dfa2923bf485a463da4` |
+| `patchset_sha256` | `ec5825ac4eb958e24c4dbcefb6593bde3ffae202c723fe3b4764504e5fe2f668` |
+| `config_sha256` | `d3077e5390307842b1dec29f9ca64cab8bd2b069d0f0ec2433cd36ddb29f8924` (same as station 14) |
+| `image_gzip_sha256` | `827cfb41431e880fb8f73dad8cb2af7128eb19eb32494f84ebfaaa50cc6c3c0b` |
+
+The VM compile test was clean: `W=1` on `matrix_keypad.o`, checkpatch on
+both patches, and `CHECK_DTBS` on the station DTB with no AW9523 finding.
+The DTB has `interrupts = <10 8>` on `gpio-expander@5b`.
+
 ## Safety assessment
 
 All state changes are a boot2 flash under the standing rules and two sysfs
