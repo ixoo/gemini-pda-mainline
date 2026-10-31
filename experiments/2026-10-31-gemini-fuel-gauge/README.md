@@ -299,3 +299,11 @@ image still holds `b3eb2fb9…`:
 
 **Not shown:** a stop reached by charging up to the limit, and a resume
 after discharging below it.
+
+**At boot on station 14** (boot `42cfede4…`; built at `b2e08e97`, boot2
+`65df6579…`, RAM root `a3b2486…` with `charge-guard` `46c7695a…`):
+- the log's first pass, at 2 s of uptime, reads
+  `cap=87 limit=80 reg03=0x0a action=stop full`;
+- REG03 stays `0x0a` and `status` reads Not charging at 92 %.
+
+The limit now survives a reboot.
