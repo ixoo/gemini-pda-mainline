@@ -338,6 +338,13 @@ under a spinlock, so a mutex there could sleep in atomic context. In this
 trace, the lazy disable never masked and the unmask found the bits already
 clear, so neither wrote.
 
+**Station 18 build.** The Buildbox modules build from `c3cf556a` passed:
+job `c3cf556a43f7cc2d792adabf117eba8bc37279ea-mt6797-a53-station-m1`, 855
+patches. Package
+`linux-7.1.3-gemini-cd8b1f9f175ffb87506a137c9cd46a6ce2a83b65db1161c4cd2bcae8aec0b8de`,
+`patchset_sha256` `633abc1c…`, Image.gz
+`e6bc5893353b45aa44a78d1e027bf742d86beb86472c4bfbff82fb5e053aa91a`.
+
 **Station 18 test (predeclared).** Station 17 plus 0381, traces still
 available.
 1. Polling: A1–A2 as before.
