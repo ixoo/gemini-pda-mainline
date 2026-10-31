@@ -162,11 +162,19 @@ flashed and ready to boot.
 **Readings:**
 - The right chip answers, and power-good and VBUS type report USB SDP.
   Their response to removing the cable is not yet observed.
-- **Charging on its defaults:** the charger starts idle after boot, then
-  fast-charges within two minutes with no mainline kernel programming it.
-  That matches its 40 s I2C watchdog expiring and the chip returning to its
-  defaults (inference from the datasheet; the register defaults were not
-  read). It supports doing C2b, so charging runs on reviewed limits.
+- **The charge state field changes on its own:** the field starts at `no`
+  after boot, then reads `fast` within two minutes with no mainline kernel
+  programming the charger. That matches its 40 s I2C watchdog expiring and
+  the chip returning to its defaults (inference from the datasheet; the
+  register defaults were not read).
+  - The field names the charger's state, not the current. The current
+    reading is stale.
+  - The owner reports the battery at 100%, so the charge was most likely a
+    constant-voltage top-off at little current, not heavy charging.
+  - It still means the chip, not reviewed limits, sets the charge voltage
+    on mainline: 4.208 V by datasheet default, against Gemian's 4.416 V
+    setting and C2b's planned 4.192 V. This argues for C2b, and is not
+    evidence of a fault.
 - **The ADC is idle:** REG02 is one-shot, and the values never changed. So
   battery voltage, VBUS and current here are from an unknown earlier
   conversion. Live values need S2 (MT6351 AUXADC) or an admitted
