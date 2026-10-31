@@ -134,8 +134,9 @@ marked as such.
   ([defconfig line 389](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig#L389)).
   For a DCP the switch-charging policy calls the PE+ hooks
   ([`switch_charging.c` lines 758–762](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/switch_charging.c#L758-L762)),
-  which raise adapter VBUS to 7 V and then try 9 V and 12 V
-  ([`mtk_pep_intf.c` lines 233–234, 466–490](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/mtk_pep_intf.c#L466-L490))
+  which raise adapter VBUS to 7 V and then 9 V; 12 V is compiled out
+  (`TA_12V_SUPPORT` is commented in `mt_pe.h:25` and no DT property enables
+  `ta_12v_support`) ([`mtk_pep_intf.c` lines 233–234, 466–490](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/mtk_pep_intf.c#L466-L490))
   using the BQ25896 `PUMPX_UP`/`PUMPX_DN` current-pulse pattern
   (`charging_set_ta_current_pattern`, `charging_hw_bq25890.c` line 656 onward;
   `bq25890_pumpx_up`, `bq25890.c` lines 656–672). The vendor `VINDPM` table
@@ -185,7 +186,7 @@ marked as such.
   | REG06 `VRECHG` | 0 | Recharge at VREG − 100 mV |
   | REG05 `IPRECHG` | `0x1` | 128 mA precharge |
   | REG05 `ITERM` | `0x1` | 128 mA termination current |
-  | REG07 `EN_TERM` | **0** | Hardware termination **disabled**; software decides "full" (F13) |
+  | REG07 `EN_TERM` | **1** | Hardware termination **enabled** (`charging_sw_init` writes bit 7 = 1 at `charging_hw_bq25890.c:1058`; its "disable ICHG termination detect" comment is wrong) |
   | REG07 `WATCHDOG` | `0x1` | 40 s I2C watchdog **enabled**, kicked from the battery thread |
   | REG07 `EN_TIMER`=1, `CHG_TIMER`=`0x2` | 12 h | Safety timer on |
   | REG07 `JEITA_ISET` | 1 | 20 % × ICHG in JEITA cool region |
@@ -234,10 +235,14 @@ marked as such.
   requires `FULL_CHECK_TIMES` consecutive readings
   ([`charging_hw_bq25890.c` lines 433–445](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/charging_hw_bq25890.c#L433-L445),
   [`switch_charging.c` `charging_full_check`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/power/mediatek/switch_charging.c)).
-  With `EN_TERM = 0` (F11) the chip never reaches that state on its own, so the
-  stock kernel also uses the gauge current (`charging_full_current = 100 mA`,
-  DT line 1013) and voltage thresholds (`v_cc2topoff_thres = 4050`,
-  `recharging_voltage = 4110` mV, DT lines 1011–1012) in `BAT_thread`.
+  With `EN_TERM = 1` the chip terminates at the programmed current and
+  `CHRG_STAT` reaches `0x3`; the battery task additionally forces full when
+  `UI_SOC2 == 100` with a charger present. *Correction (2026-10-31):* the
+  earlier reading that termination was disabled came from the misleading
+  vendor comment; the write sets bit 7 = 1. The software recharge constants
+  (`v_cc2topoff_thres`, `recharging_voltage`) are parsed by the HAFG_20 path
+  but not used, and recharge is the chip's `VREG − 100 mV`. See the
+  [charging chain record](../2026-10-31-gemini-charging-chain/README.md).
 - **F14. A `BATFET_DIS` workaround exists for the RT5735 SDA-low fault.**
   `battery_disable_batfet()` sets REG09[5]
   ([`bq25890.c` lines 1063–1070](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/power/mt6797/bq25890.c#L1063-L1070)).

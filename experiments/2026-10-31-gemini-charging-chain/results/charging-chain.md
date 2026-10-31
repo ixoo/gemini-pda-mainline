@@ -64,15 +64,18 @@ the PE+ check, dispatch the state, and dump the charger registers.
 | `CHR_ERROR` | `BAT_BatteryStatusFailAction()` (`:1222-1256`): charger off, PE+ reset | only after error clears (JEITA recovery or battery status) |
 
 `charging_full_check()` (`:629-646`) asks the charger for its status and
-requires `FULL_CHECK_TIMES` consecutive "full" readings. With `EN_TERM = 0`
-(F11) the chip does not terminate by itself, so the vendor also uses gauge
-current (`charging_full_current = 100 mA`), `v_cc2topoff_thres = 4050 mV` and
-`recharging_voltage = 4110 mV` from the DT (F13).
+requires `FULL_CHECK_TIMES` (6) consecutive "full" readings — 60 s at the 10 s
+battery tick — and the battery task also forces `CHR_BATFULL` when
+`UI_SOC2 == 100` with a charger present. Hardware termination is enabled:
+`charging_sw_init()` writes `CON7 bit7 = 1` (`charging_hw_bq25890.c:1058`) with
+the misleading comment "disable ICHG termination detect"; bit 7 is `EN_TERM`.
+The software recharge constants (`v_cc2topoff_thres`, `recharging_voltage`) are
+parsed by the HAFG_20 path but unused; recharge is the chip's `VREG − 100 mV`.
 
-PE+ 1.0 (`drivers/power/mediatek/mtk_pep_intf.c`): started from pre-charge,
-first target 7 V with 3 retries and ±1 V tolerance (`:192-245`), then the
-higher steps recorded in F8, exit resets the adapter to the original voltage
-(`:310-340`). PE+ raises the allowed charge/input current (F8).
+PE+ 1.0 (`drivers/power/mediatek/mtk_pep_intf.c`): starts from pre-charge,
+5 → 7 V with 3 retries and ±1 V tolerance (`:192-245`), then 9 V when
+`ta_9v_support` is set; 12 V is compiled out (`TA_12V_SUPPORT` commented in
+`mt_pe.h:25`, no DT property), and exit resets the adapter (`:310-340`).
 
 ## 3. Thermal gates
 
@@ -89,10 +92,12 @@ charger driver.
    reads `mtk_thermal_get_temp(MTK_THERMAL_SENSOR_AP)` — the board NTC — and
    returns a level: <42 °C → 0, <44 °C → 1, `<44 °C` again → 2 (duplicated
    branch, unreachable), ≤45 °C → 3, else 4. It returns 0 when the backlight
-   is below 5. Levels 1/2/3/other map to charge-current caps 1500/1400/1350/
-   1300 mA (900/800/700/650 mA with PE+ or VBUS above 6 V) in
-   `pchr_turn_on_charging()` (`:968-1060`). Level 4 has no explicit mapping and
-   falls into the most restrictive branch.
+   is below 5. Levels map to charge-current caps 1500/1400/1350/1300 mA
+   (900/800/700/650 mA with PE+ or VBUS above 6 V) in `pchr_turn_on_charging()`
+   (`:968-1060`). The cap is **ineffective**: it runs after
+   `mtk_select_ichg_aicr()` has recomputed the currents and written REG00/REG04
+   in the same call, and only changes in-memory values with no second write;
+   the next tick recomputes them from the cable type again.
 3. **Thermal-zone coolers** (`.tp` policy, see the
    [thermal document](../../../docs/hardware/mt6797-thermal-management.md)):
    battery-zone trips at 46/47/48 °C drive `mtk-cl-bcct00/01/02`, which call
@@ -116,8 +121,11 @@ BQ25896 (TI SLUSC76C):
   the vendor enables JEITA (`JEITA_ISET = 1`, `JEITA_VSET = 0`), but the live
   TS register has read a fixed `0x3e` across many sessions, consistent with a
   fixed divider rather than a thermistor, so hardware JEITA does not trip;
-- `EN_TERM = 0` in the vendor kernel, so termination is a software decision;
-  `CHRG_STAT` still reports the chip's own state for the full check.
+- termination is enabled (`EN_TERM = 1`), so `CHRG_STAT` reaches 3 and drives
+  the full check;
+- per-cable requests are rounded down to 64 mA (charge) and 50 mA (input)
+  steps; a DCP uses 800 mA charge (→768) but the 3200 mA input default, because
+  the DT omits `ac_charger_input_current`.
 
 ## 5. Safety and presence
 

@@ -87,26 +87,31 @@ charge state; dump registers.
 | `CHR_HOLD` | Charger off during a call | call idle or voltage below talking-recharge → CC |
 | `CHR_ERROR` | Charger off, PE+ reset | error clears → pre-charge |
 
-PE+ 1.0 starts in pre-charge: 7 V target with three retries and ±1 V
-tolerance, then higher steps, and an exit that restores the adapter voltage.
-PE+ raises the permitted charge and input currents.
+PE+ 1.0 starts in pre-charge: 5 → 7 V (three retries, ±1 V tolerance) → 9 V;
+12 V is compiled out (`TA_12V_SUPPORT` commented out, no DT property), and the
+exit restores the adapter voltage. PE+ raises the permitted charge and input
+currents.
 
-"Full" is software-decided: the charger reports `CHRG_STAT`, and the policy
-requires several consecutive full readings plus gauge current and voltage
-thresholds. Hardware termination is disabled in the vendor configuration.
+"Full" is decided from the charger's own `CHRG_STAT`: six consecutive
+"termination done" readings (60 s at the 10 s tick) plus an SOC-100 path in the
+battery task. Hardware termination is enabled (see §6).
 
 ## 4. Current and voltage policy
 
-- Per-cable currents are fixed in the board DT and applied to both charge and
-  input limits: SDP 500 mA (70 mA unconfigured), CDP 650 mA, DCP/AC 800 mA
-  (2050 mA in the header default), non-standard 500 mA, Apple 0.5/1.0/2.1 A →
-  500/650/800 mA. PE+ raises them for a DCP.
+- Per-cable charge currents come from the board DT: SDP 500 mA (70 mA
+  unconfigured), CDP 650 mA, DCP/AC 800 mA (2050 mA header default),
+  non-standard 500 mA, Apple 0.5/1.0/2.1 A → 500/650/800 mA. Requests are
+  rounded down to the chip's 64 mA (charge) and 50 mA (input) steps, so 800 mA
+  becomes 768 mA and 650 mA becomes 640 mA.
+- The AC **input** limit is separate: the DT omits `ac_charger_input_current`,
+  so the header default **3200 mA** applies for a DCP even though the charge
+  current is 768 mA. SDP/CDP/non-standard use the same value for both.
 - Voltage regulation is nominally 4.352 V with IR compensation; the vendor
-  policy enum also carries a 4.34 V class, and the public `charging_set_cv_voltage()`
-  writes a fixed code that decodes to 4.416 V, which does not match the live
-  4.336 V readback. The CV value is therefore not a safe source for a mainline
-  `ti,battery-regulation-voltage`; treat the cell as a 4.35 V-class part and
-  start any mainline test at 4.2 V.
+  policy enum also carries a 4.34 V class, and `charging_set_cv_voltage()`
+  computes the correct code but then writes a fixed `0x24` that decodes to
+  4.416 V, which does not match the live 4.336 V readback. The CV value is
+  therefore not a safe source for a mainline `ti,battery-regulation-voltage`;
+  treat the cell as a 4.35 V-class part and start any mainline test at 4.2 V.
 - Input voltage protection is absolute 4.5 V VINDPM plus the PMIC `VCDT` high
   threshold; outside PE+ the charger voltage ceiling is 6500 mV.
 
@@ -120,14 +125,19 @@ the charger hardware.
    the retained DT (`bat_low_temp_protect_enable = 0`), and the error
    temperature is 255 (disabled), so a missing NTC does not stop charging.
 2. **PCB-temperature limiter.** With the backlight on, the board NTC
-   (`mtktsAP`) selects a charge-current cap: below 42 °C none, 42-44 °C
+   (`mtktsAP`) computes a charge-current cap: below 42 °C none, 42-44 °C
    1500 mA, 44-45 °C 1350 mA, above 45 °C 1300 mA (lower with PE+ or VBUS above
-   6 V). The implementation has a duplicated 44 °C branch, so its second level
-   is unreachable, and an unhandled level 4 that falls into the most
-   restrictive cap.
+   6 V). In this build the cap is **ineffective**: it runs inside
+   `pchr_turn_on_charging()` *after* `mtk_select_ichg_aicr()` has already
+   recomputed the currents from the cable type and written REG00/REG04, and it
+   only modifies the in-memory values with no second write. The next tick
+   recomputes them again. The function also has a duplicated 44 °C branch
+   (level 2 unreachable) and an unhandled level 4.
 3. **Thermal-zone coolers.** The Android `.tp` policy drives staged charge
    current from 46 °C on the battery zone (`mtk-cl-bcct00/01/02`), plus adaptive
    charge current at 47 °C and an LCD-off variant at 56 °C on the board zone.
+   This is the path that actually reaches REG04, through
+   `set_bat_charging_current_limit()` → `select_charging_current_bcct()`.
 
 The BQ25896's own JEITA is configured by the vendor but the board's TS input
 reads as a fixed divider, so hardware JEITA does not trip; the software gates
@@ -136,11 +146,15 @@ thermally constrained subsystem.
 
 ## 6. Termination and recharge
 
-- Hardware termination is disabled (`EN_TERM = 0`); "full" comes from the
-  charger status plus gauge current (100 mA) and voltage (`v_cc2topoff_thres`
-  4050 mV, `recharging_voltage` 4110 mV).
-- The chip's own recharge threshold is VREG − 100 mV (`VRECHG = 0`), and the
-  policy re-enters CC when the full check fails.
+- Hardware termination is **enabled**. `charging_sw_init()` writes
+  `CON7 bit7 = 1` with the comment "disable ICHG termination detect"; the
+  comment is wrong, since bit 7 is `EN_TERM`. The chip therefore terminates at
+  the programmed 128 mA, and the policy confirms "full" with six consecutive
+  `REG0B CHRG_STAT == 3` readings (60 s at the 10 s tick), plus an
+  SOC 100 + charger-present path in the battery task.
+- The software recharge constants (`v_cc2topoff_thres` 4050 mV,
+  `recharging_voltage` 4110 mV) are parsed by the HAFG_20 battery path but not
+  used; recharge is the chip's own `VREG − 100 mV` (`VRECHG = 0`).
 - The BQ25896 safety timer is 12 h in fast charge (4 h below `VBATLOWV`),
   counting at half rate while in input or thermal regulation; expiry reports
   `CHRG_FAULT = 11`.

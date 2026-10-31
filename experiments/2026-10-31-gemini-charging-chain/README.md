@@ -65,9 +65,9 @@ source citations are recorded.
 The decisive observations:
 
 1. The kernel algorithm is a five-state loop (`CHR_PRE`, `CHR_CC`,
-   `CHR_BATFULL`, `CHR_HOLD`, `CHR_ERROR`) driven every battery-task period; it
-   kicks the charger watchdog, runs AICL, starts PE+ in pre-charge and decides
-   "full" in software because hardware termination is disabled.
+   `CHR_BATFULL`, `CHR_HOLD`, `CHR_ERROR`) driven every 10 s; it kicks the
+   charger watchdog, runs AICL, starts PE+ in pre-charge and confirms "full"
+   from six consecutive termination-status readings (plus an SOC-100 path).
 2. LK charges before Linux exists: it initialises the BQ25896 (2.048 A, 4.352 V,
    128 mA pre-charge and termination, 3.25 A input, 4.5 V VINDPM), runs BC1.2
    through the MT6351, and holds the device in a low-battery loop until the
@@ -76,8 +76,9 @@ The decisive observations:
    relies on the charger's power-on defaults until LK takes over.
 4. There are three independent thermal gates: the battery NTC window (high
    gate 50 °C, low gate disabled by DT), a PCB-temperature charger-current
-   limiter at 42/44/45 °C that only runs with the backlight on, and the
-   thermal-zone `bcct`/`abcct` coolers from the `.tp` policy.
+   limiter at 42/44/45 °C that only runs with the backlight on and is
+   ineffective in this build because it runs after the current registers are
+   written, and the thermal-zone `bcct`/`abcct` coolers from the `.tp` policy.
 5. The PCB limiter has a duplicated `else if` branch, so its level 2 is
    unreachable, and a level 4 with no explicit current mapping.
 6. Hardware JEITA is configured but the board's TS input is a fixed divider, so
