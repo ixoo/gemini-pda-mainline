@@ -311,8 +311,10 @@ too, that alone does not explain the quiet stock listen, so the mainline AFE,
 clocks and AUDIO domain staying on, the ACCDET setup and Wi-Fi power save remain
 candidates. The planned
 [audio reload experiment](../../experiments/2026-11-01-gemini-audio-reload/README.md)
-compares idle, a silent stream for 90 s and idle again on a fresh boot, then
-listens with all audio modules removed.
+has since found, on one boot of station 33, no noise before the first playback,
+noise from just after it, and noise still present with AUDIO off and all modules
+removed. That points to state the first stream leaves in the MT6351, not to the
+loaded idle state or the AUDIO domain; which state is not yet read.
 
 No periodic audio work exists in the vendor code. The nearest timers are the
 ANC IPC wait (1 s, unused on Gemini), the ACCDET MICBIAS1 off timer (6 s), the
@@ -488,9 +490,9 @@ unplug. Microphone placement, headset classification, the buttons and trim remai
 7. Are the configured ACCDET thresholds and debounce correct for the actual
    Gemini headset, beyond matching the live dmesg values?
 8. Why is the idle headphone path quieter on stock Gemian than on mainline?
-   The 30 s noise follows Wi-Fi and is present with every DAPM widget off. The
-   planned reload experiment tests whether a silent stream suppresses it and
-   whether it remains with all audio modules removed.
+   The 30 s noise follows Wi-Fi, is present with every DAPM widget off, and on
+   one boot began at the first playback and outlasted module removal. The
+   reload experiment reads the MT6351 registers to find what that stream changes.
 
 The ordered first-boot checks for all of these are in the
 [audio RE runtime sequence](../../experiments/2026-10-04-gemini-audio-re/README.md#first-runtime-sequence).
@@ -503,7 +505,7 @@ The ordered first-boot checks for all of these are in the
   station 31 loads audio at boot, the AUDIO domain never idles, and the 30 s
   headphone noise follows Wi-Fi while every DAPM widget is off.
 - [Audio reload](../../experiments/2026-11-01-gemini-audio-reload/README.md) —
-  planned AUDIO-domain clock fix and the idle/silent-stream noise comparison.
+  the AUDIO-domain clock fix, and the noise starting at the first playback.
 - [Audio AFE recovery](../../experiments/2026-07-12-audio-afe-recovery/README.md)
   and [runtime summary](../../experiments/2026-07-12-audio-afe-recovery/results/runtime-summary.txt)
   — live card, 31 PCM devices and AFE identity.

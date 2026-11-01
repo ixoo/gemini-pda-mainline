@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-reload` |
-| Status | `planned`: package built, device test requested; not booted |
+| Status | `running`: AUDIO powers fully off on removal; the 30 s noise starts at the first playback and survives removal; reload playback pending |
 | Subsystem | audio; MT6797 AUDIO power domain |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -77,17 +77,59 @@ Run by the custodian with the owner present and the headphones in, on a fresh bo
 | Same half-off state | These clocks are not the acknowledge clock; find which is |
 | Hang at removal or reload | Stop, preserve evidence, revert the patch |
 
+Added after the first results on station 33, to find what the first playback leaves behind, using
+the read-only [`pmic-audio-read.sh`](pmic-audio-read.sh):
+
+8. On the current boot, with the noise present: read with the modules out, then read again after
+   the reload and after its tone.
+9. Now that the noise is present, run step 6 on the reloaded card.
+10. On the next fresh boot, with the headphones in: listen for 60 s and read, play one tone and read,
+    then read again 30 s later while the owner says when the noise starts.
+
+| Observation | Next |
+| --- | --- |
+| Bits differ after the tone and match the noisy read | Clear those in the driver's power-down, one candidate at a time |
+| Nothing differs, noise follows the tone again | Look on the SoC side: pins and clocks to the PMIC |
+| No noise after the tone on the fresh boot | The tone is not the trigger; station 33 was a coincidence |
+
 ## Observations
 
-None yet: no boot.
+**Interim, station 33 (boot `a4984df3`, boot2 `857a19ae`, package `24857504`), run by the custodian,
+owner listening with the headphones in from power-on:**
+
+- Idle from boot to about 790 s: no noise. That includes 14 `BSS timeout ignored` lines at 30 s
+  spacing from 388 s to 783 s, and a replug (`jack out` 703.64 s, `jack in` 705.86 s) followed by a
+  90 s listen. All four bias levels off, `HPL Power` and `HPR Power` off, `0x10006180` =
+  `0x2B00005E`, `0x10006314` = `0x3330000D`.
+- Tone at 799.67 s, `aplay` rc 0, heard. Those two registers were unchanged afterwards.
+- The owner, asked after the removal: the noise is back, it started "Right after the tone", and it
+  is the same 1 s every 30 s.
+- Removal at 815.40 s: no `rmmod` failed, `0x10006180` = `0x2A00005E` (bit 24 clear), `0x10006314`
+  = `0x3330FF12`, the off value. No hang, not tainted, Wi-Fi associated.
+- With all modules removed and AUDIO off, the owner still hears the noise.
 
 ## Analysis
 
-None yet.
+Interim. The first half of the hypothesis holds on one removal: with the clocks on the domain,
+AUDIO powers fully off.
+
+On this one boot the noise was absent before any playback and present from just after it, and it
+stayed with the AFE off and the modules gone. So the loaded idle state and the AUDIO domain are not
+what carries it, and playing once is the trigger. This also fits station 31, whose first report came
+after a tone played with the headphones out, and the quiet stock listen, where nothing had played.
+Wi-Fi remains the likely source from station 31; on this reading playback opens the path it reaches
+the headphones through.
+
+Inference: the first stream changes state in the MT6351, which is outside the AUDIO domain and which
+removal does not reset. The driver's power-up writes registers that its power-down does not restore:
+`AUDDEC_ANA_CON1` stays `0x2000`, which the code comments as the output stability enhancement, and
+`AFUNC_AUD_CON0` and `AFUNC_AUD_CON2` keep their values. Those are candidates from reading the code,
+not measurements. The change could also be a bit that was set before Linux and that the first stream
+clears.
 
 ## Conclusion
 
-`inconclusive`: nothing here establishes hardware behavior.
+`inconclusive` so far: reload playback and the register reads are pending.
 
 ## Follow-up
 
