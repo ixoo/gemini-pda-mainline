@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive and wildcard active scan work; 0414 joins channels 40 and 161. Channel 11 joins and carries data but loses bursts of transmit frames. A transmit stall after receive and teardown faults are open; 0441-0443 are built and untested |
+| Status | `running`: passive and active scan work, including named SSIDs and a supplicant join. 0414 joins channels 40 and 161, and 0443 recovers from faults by itself. Channel 11 transmits poorly, channel 6 failed, and teardown faults and a stall after receive are open |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -634,3 +634,33 @@ the air or this driver causes it is not separated.
 
 Run 3's disconnect closed the lifetime with `status=-5`, branch 2, as in the
 table above: the fourth such closure after heavy traffic.
+
+### Result: restart and active scan, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian: Buildbox at ed4992be, inventory `8a88b356…`, `mac` `949602c4…`,
+CONSYS `28b5435c…`, core `425b8add…`. Not tainted throughout, temperatures unremarkable.
+
+**Restart.** Five cycles of 60 s transmit, 60 s receive and stopping the supplicant. Four
+faulted: `status=-5` at branch 2 twice, `-110` at branch 5, `-5` at branch 8. Each ended in
+`WLAN restart: status=0` about 0.2 s after it began, with negotiation result 0 at about
+0.3 s and `wlan0` back; `wifi-up.sh` then joined, ping 3/3, with no reload. The fifth cycle had
+no fault. The predeclared first row holds: recovery works for these faults.
+
+**Active scan.** One passive scan and two wildcard and two named scans, all exit 0 in
+about 4 s with `channels=36 probing=20`, no closure. The second done event did not recur
+as a fault. Against the passive scan's 21 BSSes they found 20-22; no gain is visible, and
+no hidden network exists here to test. `wpa_supplicant` with active scan joined by name
+on channel 161, ping 3/3; one reconnect in 1.08 s. `wifi-up.sh` now scans actively by default.
+
+**Budget overrun.** That join and reconnect went past channel 161's budget, which was spent.
+The cause is my request: its frequency list included 5805 MHz. All frames took one attempt.
+The owner has been told.
+
+**Throughput figures on channel 40.** The laptop is on Wi-Fi on the same channel, so every
+transfer there crosses that channel twice. These figures describe that shared path, not the
+device's link. Channels 161 and 11 share less.
+
+**Stall.** Device to gateway, 1400-byte ping at 20 ms, no laptop in the path: straight after
+a 10 s receive 835/1000 with 122 ms average; after a 30 s idle 1000/1000 with 11.7 ms. So
+the stall is not the laptop's hop, or at least not only that. Open question: whether receive
+actually stops when the test kills `wget`. Queued data may still arrive.

@@ -6,7 +6,7 @@
 # Needs /run/station/wifi.env (mode 0600, RAM only, never in the image or
 # the repository) with TARGET_SSID_HEX and WPA_PSK_HEX. TARGET_BSSID and
 # TARGET_FREQ (MHz) are optional and pin one access point or channel.
-# PASSIVE_SCAN=0 lets wpa_supplicant scan actively.
+# PASSIVE_SCAN=1 keeps wpa_supplicant from sending probe requests.
 # Loads the Wi-Fi modules if the boot did not, waits for the phy (CONSYS
 # starts the firmware after probe), brings wlan0 up and leaves wpa_supplicant (auto-reconnect on) and udhcpc
 # (lease renewal) running. Prints the connection state without the network's
@@ -45,7 +45,7 @@ mkdir -p $CTRL
 (
 	# shellcheck source=/dev/null
 	. $R/wifi.env
-	printf 'ctrl_interface=%s\npassive_scan=%s\nap_scan=1\n' $CTRL "${PASSIVE_SCAN:-1}"
+	printf 'ctrl_interface=%s\npassive_scan=%s\nap_scan=1\n' $CTRL "${PASSIVE_SCAN:-0}"
 	printf 'network={\n\tssid=%s\n' "$TARGET_SSID_HEX"
 	[ -z "${TARGET_BSSID:-}" ] || printf '\tbssid=%s\n' "$TARGET_BSSID"
 	[ -z "${TARGET_FREQ:-}" ] || printf '\tscan_freq=%s\n\tfreq_list=%s\n' "$TARGET_FREQ" "$TARGET_FREQ"
