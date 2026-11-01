@@ -239,6 +239,80 @@ sequence: it is not safe to guess the efuse row/engine registers or to write
 them without a bounded capture. The codec-side write is known; the PMIC-side
 read is the remaining dependency.
 
+### 2.4 Output shutdown and idle behaviour
+
+The stock stack does **not** keep the output driven when nothing is playing.
+There is no silent stream, keep-alive timer or periodic refresh in the vendor
+audio code: the last PCM close and the HAL's route close both power the path
+down.
+
+On PCM close, `mtk_soc_pcm_dl1_close()` disables the I2S→DAC memory path,
+removes the DL1 memif substream, calls `EnableAfe(false)` and then
+`AudDrv_Clk_Off()`. `AudDrv_Clk_Off()` clears the AFE IRQ status, gates the AFE,
+DAC, DAC-predistortion and 26 MHz clocks, and on the last user disables
+`CLOCK_SCP_SYS_AUD`, the AUDIO MTCMOS domain itself. The machine driver's
+`mt_machine_trigger()` also calls `EnableAfe(false)` on stop or suspend.
+
+The codec side (`Audio_Amp_Change(false)`) then:
+
+1. disables HP ZCD and restores the volume state;
+2. ramps the HP gain to about −40 dB (`setHpGainZero()`);
+3. switches the HP output to ground with the codec's internal switch
+   (`HP_Switch_to_Ground()`, not the disabled `hpdepop` GPIO flow);
+4. disables HPL/HPR and opens the HP mux;
+5. disables DC compensation and releases the ground switch;
+6. disables the audio DAC, resets the decoder, disables IBIST, the NV regulator
+   and the cap-less LDOs, and clears the HP `De_OSC` bit;
+7. calls `TurnOffDacPower()`.
+
+`TurnOffDacPower()` stops the DL MTKIF source, turns the AFE off when no ADC is
+running, powers down the down-link block, disables NCP, and turns off AUDGLB,
+CLKSQ 26 MHz, the top audio clock and the audio clock buffer. The board
+amplifier is a separate path: `Ext_Speaker_Amp_Change(false)` drives GPIO243
+and GPIO244 low and waits 500 µs; only the enable path emits the AW8736 mode-3
+pulse train and waits 25 ms. The stock HAL has the matching
+`CloseSpeakerPath`, which reverses the open order: `ext_speaker_output` off,
+then `headphone_output` off.
+
+The one special idle handling is around system suspend.
+`mtk_routing_pm_ops_suspend()` skips it during a voice call, FM, offload or
+ANC (`ConditionEnterSuspend()`), then calls `SetAnalogSuspend(true)` and
+`AudDrv_Suspend_Clk_Off()`. `SetAnalogSuspend(true)` saves the logical analogue
+power state and turns off the codec headphone, earpiece and LOL speaker paths;
+resume calls `AudDrv_Suspend_Clk_On()` and `SetAnalogSuspend(false)` to restore
+them. The external AW8736 is not part of `SetAnalogSuspend`; it remains on the
+HAL/kcontrol path.
+
+Consequences for mainline:
+
+- The vendor idle state is AFE off, audio clocks and AUDIO domain off, DAC off,
+  HP output off and amplifier off. A mainline card that leaves a DAPM pin
+  switch (`Headphone` or `Speaker`) on with no stream keeps the DAC/HP and the
+  AW8736 powered, which the stock HAL explicitly closes. That is an idle-power
+  difference, but it is not the observed 30 s headphone noise: see below.
+- Mainline `mt6797-afe-pcm.c` takes a runtime-PM reference at probe and never
+  drops it, so the AFE and its domain stay on; `mt6797_afe_runtime_suspend()`
+  only runs at remove. This is not a keep-alive, but it is a different power
+  state from the stock close path.
+
+The station's 30 s headphone noise is a separate coupling question. On station
+31 it was present with all four DAPM bias levels off, no widget on, and
+`HPL Power`/`HPR Power` off; it stopped when Wi-Fi was disconnected for 90 s
+and returned on reconnect. Stock Gemian was quiet in one 90 s listen early in
+that boot, with Wi-Fi up, headphones in and nothing playing; one listen does not
+clear the board. The 30 s rhythm matched a
+`WLAN BSS timeout ignored` line, but the source is not proven; the owner also
+reports the noise is absent during playback. The working hypothesis is that
+the idle, undriven output couples more than a driven one. The planned
+[audio reload experiment](../../experiments/2026-11-01-gemini-audio-reload/README.md)
+compares idle, a silent stream for 90 s and idle again on a fresh boot.
+
+No periodic audio work exists in the vendor code. The nearest timers are the
+ANC IPC wait (1 s, unused on Gemini), the ACCDET MICBIAS1 off timer (6 s), the
+BQ25896 watchdog (40 s) and the battery task (about 10 s unless the project
+overrides `BAT_TASK_PERIOD_SECOND`). `CLOSE_POWEROFF_WAKEUP_PERIOD` is 30 s,
+but only for the critically-low-battery/poweroff wake period.
+
 ## 3. Inputs
 
 | Input | Codec path | Bias | HAL path |
@@ -385,6 +459,7 @@ unplug. Microphone placement, headset classification, the buttons and trim remai
 | Headphone trim | Live Gemian `dmesg` records `Audio_Hpl_Offset_Get` and `GetAudioTrimOffset channels = 1`; the stock path applies trim, mainline does not. |
 | Audio pinctrl | Only GPIO243/244 need a mainline pinmux: they are the vendor "hpdepop" pads and the AW8736 mode lines. The Gemini DTS comments out every AUD/VOW/ANC pinmux and the stock only requests them for VOW. GPIO234 is DCC-only, GPIO235 a debug knob. |
 | High-rate clocking | The ADDA path uses `clk26m` up to 48 kHz and `top_sys_pll3_d4` at >= 96 kHz; the APLLs serve HDMI/I2S only. Mainline clobbered the hires `NEWIF_CFG2` divider and never powered the ADC hires gate; `0403`/`0404` correct both. |
+| Output shutdown / idle | No silent stream or keep-alive. PCM close disables the AFE and I2S→DAC path, gates the AFE/DAC/26 MHz clocks and the AUDIO MTCMOS, ramps and grounds the HP output, disables the DAC and powers it down, and drives the board amplifier low. System suspend saves the analogue state, turns off the codec output paths and gates the AFE clocks, then restores on resume. |
 
 ## 7. Still open
 
@@ -405,6 +480,10 @@ unplug. Microphone placement, headset classification, the buttons and trim remai
    the `speaker_amp@31` node?
 7. Are the configured ACCDET thresholds and debounce correct for the actual
    Gemini headset, beyond matching the live dmesg values?
+8. Why is the idle headphone path quieter on stock Gemian than on mainline?
+   The 30 s noise follows Wi-Fi and is present with every DAPM widget off, so
+   the stock quiet listen may reflect a different idle output state. The
+   planned reload experiment tests whether a silent stream suppresses it.
 
 The ordered first-boot checks for all of these are in the
 [audio RE runtime sequence](../../experiments/2026-10-04-gemini-audio-re/README.md#first-runtime-sequence).
@@ -413,13 +492,19 @@ The ordered first-boot checks for all of these are in the
 
 - [Gemini audio RE](../../experiments/2026-10-04-gemini-audio-re/README.md) —
   full vendor line citations, F1-F16, and the ranked hypotheses.
+- [Audio at boot](../../experiments/2026-11-01-gemini-audio-boot/README.md) —
+  station 31 loads audio at boot, the AUDIO domain never idles, and the 30 s
+  headphone noise follows Wi-Fi while every DAPM widget is off.
+- [Audio reload](../../experiments/2026-11-01-gemini-audio-reload/README.md) —
+  planned AUDIO-domain clock fix and the idle/silent-stream noise comparison.
 - [Audio AFE recovery](../../experiments/2026-07-12-audio-afe-recovery/README.md)
   and [runtime summary](../../experiments/2026-07-12-audio-afe-recovery/results/runtime-summary.txt)
   — live card, 31 PCM devices and AFE identity.
 - [MT6797 audio upstream architecture](../../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)
   — AFE binding, clock and dependency map.
-- Vendor `mt_soc_codec_63xx.c`, `mt_soc_machine.c`, `AudDrv_Gpio.c`,
-  `accdet.c`, `max98926.c`; HAL `audio_device.xml`,
+- Vendor `mt_soc_codec_63xx.c`, `mt_soc_machine.c`, `mt_soc_pcm_dl1.c`,
+  `mt_soc_pcm_routing.c`, `AudDrv_Clk.c`, `AudDrv_Gpio.c`, `accdet.c`,
+  `max98926.c`; HAL `audio_device.xml`,
   `audio_policy_configuration.xml` and `audio.primary.mt6797.so`
   (`OpenSpeakerPath` disassembly); retained Gemian `dmesg` for
   `max98926L is not find` and `Audio_Hpl_Offset_Get`.

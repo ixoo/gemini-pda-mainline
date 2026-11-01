@@ -551,6 +551,14 @@ Further offline closures from the same review:
 - GPIO234 is asserted only in `TurnOnADcPowerDCC`; it is the DCC microphone
   path, not playback. GPIO235 is only a manual `/proc/headphone_cs` knob and
   has no HAL or kernel audio-path consumer.
+- The stock stack has no idle keep-alive. `mtk_soc_pcm_dl1_close()` disables
+  the I2S→DAC path, calls `EnableAfe(false)` and `AudDrv_Clk_Off()`;
+  `Audio_Amp_Change(false)` ramps and grounds the HP output, disables the DAC
+  and calls `TurnOffDacPower()`; `Ext_Speaker_Amp_Change(false)` drives
+  GPIO243/244 low. System suspend saves the analogue state, turns off the codec
+  output paths and gates the AFE clocks, then restores on resume. The durable
+  summary is in [Gemini audio input and
+  output](../../docs/hardware/gemini-audio.md#24-output-shutdown-and-idle-behaviour).
 - The live Gemian `dmesg` confirms the ACCDET configured values
   (`mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`) and
   the efuse offset (`0xffffff80`, `-2`). These are configured values, not an
