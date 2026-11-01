@@ -17,7 +17,7 @@ the firmware-image boundary.
 The mainline driver path is the CONSYS offload path: the position engine runs
 on the connectivity microcontroller, the application processor sends GFNS
 frames on STP task 2 and receives NMEA text in return. The stock Gemian path is
-not settled; the latest inference is a host-side engine in `libmnl`, which
+not fully settled; the first second of a trace fits a host-side engine in `libmnl`, which
 would still use the CONSYS transport and is not a kernel driver.
 
 The engine is not in either retained `ROMv3` patch. The patch contains the
@@ -40,8 +40,9 @@ public stock Gemini Android 8.1 base also has no `MNL.bin`: its `system.img`
 contains `libmnl.so`, `mnld` and `gps.conf`, but not the engine image. So this
 specification cannot be demonstrated on this Gemini, and the work is parked. If
 the engine is indeed absent, stock must use the host-side engine in `libmnl`,
-which is userspace and not a kernel driver; that remains an inference until a
-stock trace confirms it.
+which is userspace and not a kernel driver. A
+[stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) saw that path's DSP boot and no
+GFNS frame in its first second; it stopped before any measurement data.
 
 ## What `libmnl` does, mapped to the kernel
 

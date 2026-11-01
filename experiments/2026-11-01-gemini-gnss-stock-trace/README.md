@@ -168,6 +168,14 @@ stock assets, are both inferences.
 **Still open:** measurements, navigation bits, how much host control the DSP needs, and whether stock
 reaches a fix.
 
+## Next run (not admitted)
+
+Measurements need a longer run without the connection. `mnld` reads `EPO_enabled`, `BEE_enabled` and
+`SUPL_enabled` from `mnl.prop` when it starts, so the off settings would need a new
+`/data/misc/gps/mnl.prop` and an `mnld` restart. The exact file format is read from the decompile only;
+`mnld`'s own startup log would confirm the values took effect before any start. The watcher stays on.
+The files now in `/data/misc/gps` might also change behaviour, and would stay as they are.
+
 ## Privacy and rights
 
 The capture is location data, and it stays private under `artifacts/` with mode 600, as do logcat
