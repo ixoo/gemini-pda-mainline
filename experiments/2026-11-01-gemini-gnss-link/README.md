@@ -425,6 +425,9 @@ date as a suspect.
 bytes in hex, which could hold sentence text if a failure came after a fix, so they
 stay private until read.
 
+**Package:** Buildbox-2, commit `16865d12`, inventory `c4b94b38…`, `Image.gz`
+`933a7d70…`, `gnss-mt6797.ko` `1e424b045b306286c7ca6255d822fa028ff1ab05d5f8096e128f12823e90652c`, `mt6797-consys.ko` `7a1bb9dbc9c651e4bfb87506f731ca8d1266729f9e75c38401256c5087efbeaa`. Validated, not run.
+
 **Known risk:** Wi-Fi may drop again. A CONSYS reload with 0429 recovered it, so an
 outage should not need a reboot, though this was seen once.
 
