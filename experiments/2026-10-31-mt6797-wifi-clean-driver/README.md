@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-mt6797-wifi-clean-driver` |
-| Status | `running`: checkpoint 0389 (configuration folded, test surface removed) is built into station 24 and not yet booted |
+| Status | `running`: checkpoint 0389 (configuration folded, test surface removed) passed on the device by module swap; the structural steps follow |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mt6797-wlan-core`, `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -75,7 +75,8 @@ What the inventory showed, and how 0389 handles it:
 ## Procedure
 
 Station 24: the station 23 image with 0389, through the usual boot2 path.
-Then, over USB SSH:
+(Run instead as a module swap on station 23 at the owner's prompt; see
+Observations.) Then, over USB SSH:
 1. `wifi-up.sh`: firmware start, `mac` load, join, DHCP.
 2. Gateway ping, 10 at 1 s.
 3. Ten reconnects (`wpa_cli disconnect`, then `reconnect`). Each must
@@ -95,15 +96,53 @@ Then, over USB SSH:
 
 ## Observations
 
-None yet.
+**Module swap on station 23, boot `f9097bd5` (2026-10-31).** The owner
+asked why a reboot was needed when Wi-Fi is modular. None was needed.
+- **The package.** Built at e977755c (inventory `95b7a67f`). Its
+  `Image.gz` (`b3d5757e…`) is byte-identical to the running station 23
+  kernel's, and the vermagic matches.
+- **The new modules** were copied over USB SSH into the RAM root's module
+  directory: `mac` `21bd162f…`, core `5ee46803…`, CONSYS `fb4ea795…`.
+  Station 23's own modules were kept in `/run`.
+
+| Step | Result |
+| --- | --- |
+| 1. `wifi-up.sh` | Common init `completed=285/285`; firmware ready; `mac` insmod 0; `COMPLETED` on 5200 MHz, WPA2-PSK/CCMP; a lease; gateway 3/3 |
+| 2. Gateway ping, 10 at 1 s | 10/10, 0 % loss, average 13.8 ms |
+| 3. Ten reconnects | 10/10 `COMPLETED` in 0.88-1.12 s, each answering a 2/2 gateway ping |
+| 4. Throughput, 10 s each, interface counters | Device receive (HTTP download from the laptop) 41 and 38 Mbit/s. Device transmit (`nc` to the laptop) 22 and 23 Mbit/s |
+| 4b. Control: station 23's modules, same harness, same air, minutes later | Receive 40 and 45, transmit 18 and 22 Mbit/s |
+| 5. `rate_control=1`, then a reconnect | `COMPLETED`, gateway 3/3. The transmit bitrate went from MCS1 to MCS7 at 40 MHz, and transmit was 23 Mbit/s. Reset to 0 afterwards |
+| 6. Kernel log | No Oops, warning or call trace, and the kernel is not tainted. The only refusals are the known EAPOL-trace and early data-layout lines at the join |
+
+The swap used the R2 reload: `rmmod` of `mac`, then CONSYS (CONN powered
+off), then the core, followed by a normal start. One harness detail: after
+a manual unload, `wifi-cycles.sh` keeps its `/run/station/firmware-started`
+marker. It then skips the start, and `mac` refuses with `-ENODEV`. Removing
+the marker fixed that. The script's own `RESTARTS` path clears it.
 
 ## Analysis
 
-None yet.
+- **Behaviour holds.** 0389 joins, renews and reconnects like the station
+  modules, with reconnects in about 1 s.
+- **Throughput.** It is within the control's band in both directions under
+  the same harness. This `nc` and `wget` harness reads lower for transmit
+  than the [boot AV](../2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av)
+  figures (29.7-30.9 Mbit/s). The same-session control shows that the gap
+  comes from the harness and the air, not from 0389.
+- **The new parameter works.** `rate_control` hands transmit to minstrel.
+- **Every association now uses the build configuration.** Before 0389,
+  associations 2-4 used the test schedule's settings. That made no
+  difference to the joins here.
 
 ## Conclusion
 
-Pending the station 24 boot.
+Checkpoint 0389 passes the predeclared first row: folding the
+configuration and removing the measurement surface kept the station's
+Wi-Fi behaviour. That covers join, DHCP, ten reconnects, throughput within
+the same-session control, and the minstrel option. Only 0389's module
+files ran, under station 23's kernel, which the package matches byte for
+byte.
 
 ## Follow-up
 
