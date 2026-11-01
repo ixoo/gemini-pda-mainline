@@ -981,3 +981,5 @@ proposals/0392-wifi-mediatek-add-the-MT6797-WLAN-driver.patch
 proposals/0393-soc-mediatek-add-the-MT6797-CONSYS-owner.patch
 proposals/0394-arm64-dts-mediatek-gemini-pda-describe-the-connectiv.patch
 proposals/0395-ASoC-aw8738-add-the-AW8736-compatible.patch
+proposals/0396-ASoC-mt6351-resolve-the-PMIC-regmap-through-the-MFD-parent.patch
+proposals/0397-arm64-dts-mediatek-add-a-minimal-Gemini-audio-card.patch

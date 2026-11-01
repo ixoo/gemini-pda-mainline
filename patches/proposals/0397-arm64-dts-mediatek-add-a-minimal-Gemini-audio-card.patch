@@ -1,0 +1,53 @@
+From e1ad027ad89833556a49043f20a392c33777e72b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:09:00 -0500
+Subject: [PATCH] arm64: dts: mediatek: add a minimal Gemini audio card
+
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 10 ++++++++++
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi           |  4 ++++
+ 2 files changed, 14 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index d0be334..d2b706c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -19,6 +19,12 @@
+ 		serial0 = &uart0;
+ 	};
+ 
++	sound {
++		compatible = "mediatek,mt6797-mt6351-sound";
++		mediatek,platform = <&afe>;
++		mediatek,audio-codec = <&mt6351_snd>;
++	};
++
+ 	chosen {
+ 		stdout-path = "serial0:921600n8";
+ 	};
+@@ -486,3 +492,7 @@
+ 		};
+ 	};
+ };
++
++&afe {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index ab0b8f6..d4c96a7 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -394,6 +394,10 @@
+ 			rtc {
+ 				compatible = "mediatek,mt6351-rtc";
+ 			};
++
++			mt6351_snd: audio-codec {
++				compatible = "mediatek,mt6351-sound";
++			};
+ 		};
+ 	};
+ 
+-- 
+2.54.0 (Apple Git-157)
+

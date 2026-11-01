@@ -1,0 +1,32 @@
+From 5287c6c3757cd31db27ff62da5a9b738e1c2117f Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:08:55 -0500
+Subject: [PATCH] ASoC: mt6351: resolve the PMIC regmap through the MFD parent
+
+---
+ sound/soc/codecs/mt6351.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/sound/soc/codecs/mt6351.c b/sound/soc/codecs/mt6351.c
+index 2a5e963..081a277 100644
+--- a/sound/soc/codecs/mt6351.c
++++ b/sound/soc/codecs/mt6351.c
+@@ -1462,7 +1462,15 @@ static int mt6351_codec_driver_probe(struct platform_device *pdev)
+ 
+ 	priv->dev = &pdev->dev;
+ 
++	/*
++	 * The codec is an MFD child of the PMIC, while the PMIC regmap is
++	 * owned by the PWRAP grandparent.  Accept either placement so the
++	 * same driver works for a direct PWRAP child and an MT6397-family
++	 * MFD child.
++	 */
+ 	priv->regmap = dev_get_regmap(pdev->dev.parent, NULL);
++	if (!priv->regmap && pdev->dev.parent->parent)
++		priv->regmap = dev_get_regmap(pdev->dev.parent->parent, NULL);
+ 	if (!priv->regmap)
+ 		return -ENODEV;
+ 
+-- 
+2.54.0 (Apple Git-157)
+
