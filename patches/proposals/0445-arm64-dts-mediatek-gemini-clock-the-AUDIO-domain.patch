@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 13:33:07 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: clock the AUDIO domain
+
+Removing the audio modules stops the AFE clocks before the domain powers
+off. The SRAM power-down was then not acknowledged, the power-off gave up
+with the domain still on and its SRAM down, and a reloaded card played
+silence.
+
+Give the domain the audio bus and infra gates, as mt8183 and mt8192 do, so
+they run across its power sequences.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 06c1ddb..ec2a641 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -26,6 +26,10 @@
+ 
+ 		power-domain@4 {
+ 			reg = <MT6797_POWER_DOMAIN_AUDIO>;
++			clocks = <&topckgen CLK_TOP_MUX_AUD_INTBUS>,
++				 <&infrasys CLK_INFRA_AUDIO>,
++				 <&infrasys CLK_INFRA_AUDIO_26M>;
++			clock-names = "audio", "audio1", "audio2";
+ 			#power-domain-cells = <0>;
+ 		};
+ 

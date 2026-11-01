@@ -1,0 +1,77 @@
+# Experiment: audio survives a module reload
+
+## Record
+
+| Field | Value |
+| --- | --- |
+| ID | `2026-11-02-gemini-audio-reload` |
+| Status | `planned`: patch written; not booted |
+| Subsystem | audio; MT6797 AUDIO power domain |
+| Device variant | named Gemini PDA (MT6797X), boot2 station |
+| Date(s) | 2026-11-02 |
+| Investigator(s) | audio session; device runs by the project custodian |
+| Tracking issue | none |
+
+## Question or hypothesis
+
+On station 31, [removing the audio modules left the domain on with its SRAM powered down, and
+after a reload `aplay` succeeded in silence](../2026-11-01-gemini-audio-boot/README.md). The
+inference there was that the SRAM power-down acknowledge needs the audio clocks, which the AFE
+had already stopped, so the power-off timed out.
+
+Hypothesis: with the audio clocks on `power-domain@4`, removing the modules turns AUDIO
+fully off (bit 24 of `0x10006180` clear, `0x10006314` back to its off value), and after a reload
+the tone is heard.
+
+## Design
+
+The domain gets the same three clocks `mt8183` and `mt8192` give their audio domains: the audio
+bus and the two infra audio gates. `mtk-pm-domains` holds them across its power-on and power-off
+sequences. That is the only change, in the device tree.
+
+The domain still stays on while the card is loaded, because the AFE probe holds it. Letting it
+idle would need a register cache as well, and is not part of this.
+
+## Safety assessment
+
+Module removal runs the first complete AUDIO power-off by mainline, and a reload its first
+power-on from that state. A stuck poll times out and reports through the existing path; a
+hang is possible, so keep the console, preserve evidence and reboot. The boot image changes
+through the reviewed boot2 path. At boot this adds three clock references for the
+domain and should otherwise behave as station 31. No NVRAM, calibration, radio or eMMC writes.
+
+## Associated code
+
+- The device-tree patch in the [series](../../patches/series-a53-station).
+
+## Procedure
+
+Run by the custodian with the owner present and the headphones in, on a fresh boot:
+
+1. Confirm `audio=ready` and hear a tone: no regression at boot.
+2. Remove all ten modules and read `0x10006180` and `0x10006314`.
+3. `/bin/audio-start`, then play a tone; the owner listens.
+4. Repeat steps 2 and 3 once.
+
+| Observation | Next |
+| --- | --- |
+| Bit 24 clear after removal, tone heard after reload, twice | Record; reload is safe for development |
+| Domain fully off, reload silent | The cause is elsewhere; read what differs |
+| Same half-off state | These clocks are not the acknowledge clock; find which is |
+| Hang at removal or reload | Stop, preserve evidence, revert the patch |
+
+## Observations
+
+None yet: no boot.
+
+## Analysis
+
+None yet.
+
+## Conclusion
+
+`inconclusive`: nothing here establishes hardware behavior.
+
+## Follow-up
+
+- [Audio at boot](../2026-11-01-gemini-audio-boot/README.md)
