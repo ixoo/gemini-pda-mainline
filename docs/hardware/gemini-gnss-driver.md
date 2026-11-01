@@ -233,7 +233,7 @@ duplicate those.
 | NMEA channel mapping | `byte1 >> 5`; per-channel behavior unproven |
 | GPIO 69 / LNA population | board pin exists; physical LNA not established |
 | Coexistence de-sense packet | not implemented; may matter with Wi-Fi/BT active |
-| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet |
+| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot was [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md), nothing after it |
 
 ## Evidence
 
