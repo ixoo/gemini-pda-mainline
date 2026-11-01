@@ -26,7 +26,8 @@ mkdir -p /run/station
 
 load_owner() {
 	lsmod | grep -q '^mt6797_wlan_core ' || { insmod "$D/mt6797-wlan-core.ko"; echo "$1 load core=$?"; }
-	lsmod | grep -q '^mt6797_consys ' || { insmod "$D/mt6797-consys.ko"; echo "$1 load consys=$?"; }
+	# A CONSYS load starts from CONN off, so any earlier start is gone.
+	lsmod | grep -q '^mt6797_consys ' || { rm -f $STARTED; insmod "$D/mt6797-consys.ko"; echo "$1 load consys=$?"; }
 }
 
 start_firmware() {

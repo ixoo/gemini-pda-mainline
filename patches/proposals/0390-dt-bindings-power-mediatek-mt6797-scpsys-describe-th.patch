@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 05:42:32 -0500
+Subject: [PATCH 390/394] dt-bindings: power: mediatek: mt6797-scpsys: describe
+ the CONN power controller
+
+The MT6797 SCPSYS node also carries a power-controller child that
+registers the CONN domain, which the connectivity subsystem owner
+attaches to without powering it. Allow the simple-mfd compatible, the
+child node and the address cells it needs.
+
+Part of the clean MT6797 Wi-Fi series (Wi-Fi daily-use plan, phase 1).
+The content is the station series' CONN-domain binding, unchanged.
+---
+ .../bindings/power/mediatek,mt6797-scpsys.yaml        | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml b/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml
+index fc1e99df3..6696af5bf 100644
+--- a/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml
++++ b/Documentation/devicetree/bindings/power/mediatek,mt6797-scpsys.yaml
+@@ -24,6 +24,8 @@ properties:
+     items:
+       - const: mediatek,mt6797-scpsys
+       - const: syscon
++      - const: simple-mfd
++    minItems: 2
+ 
+   reg:
+     maxItems: 1
+@@ -35,6 +37,15 @@ properties:
+   '#power-domain-cells':
+     const: 1
+ 
++  '#address-cells':
++    const: 1
++
++  '#size-cells':
++    const: 0
++
++  power-controller:
++    $ref: /schemas/power/mediatek,power-controller.yaml#
++
+   clocks:
+     minItems: 4
+     maxItems: 4
+-- 
+2.43.0
+

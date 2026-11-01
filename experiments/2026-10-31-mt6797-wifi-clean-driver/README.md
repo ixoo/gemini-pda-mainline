@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-mt6797-wifi-clean-driver` |
-| Status | `running`: checkpoint 0389 (configuration folded, test surface removed) passed on the device by module swap; the structural steps follow |
+| Status | `running`: checkpoint 0389 passed on the device by module swap; the clean series 0390-0394 replaces the station's Wi-Fi patches and awaits its device test |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mt6797-wlan-core`, `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -119,7 +119,8 @@ The swap used the R2 reload: `rmmod` of `mac`, then CONSYS (CONN powered
 off), then the core, followed by a normal start. One harness detail: after
 a manual unload, `wifi-cycles.sh` keeps its `/run/station/firmware-started`
 marker. It then skips the start, and `mac` refuses with `-ENODEV`. Removing
-the marker fixed that. The script's own `RESTARTS` path clears it.
+the marker fixed that. The script's own `RESTARTS` path clears it, and
+the script now also clears it whenever it loads CONSYS itself.
 
 ## Analysis
 
@@ -144,11 +145,59 @@ the same-session control, and the minstrel option. Only 0389's module
 files ran, under station 23's kernel, which the package matches byte for
 byte.
 
+## Clean series 0390-0394
+
+The structural steps, built on 0389 and compile-checked with W=1 in the
+dev VM after each step. The station series drops the 300 patches that
+touch the Wi-Fi stack, 0389 included, and ends with five patches:
+
+| Patch | Content |
+| --- | --- |
+| [0390](../../patches/proposals/0390-dt-bindings-power-mediatek-mt6797-scpsys-describe-th.patch) | The SCPSYS binding's CONN power-controller child, unchanged from the station |
+| [0391](../../patches/proposals/0391-dt-bindings-soc-mediatek-add-the-MT6797-CONSYS-owner.patch) | The CONSYS binding without the `one-shot-*` and `deferred-*` properties |
+| [0392](../../patches/proposals/0392-wifi-mediatek-add-the-MT6797-WLAN-driver.patch) | The WLAN driver: `mt6797-wlan-core` and `mac` |
+| [0393](../../patches/proposals/0393-soc-mediatek-add-the-MT6797-CONSYS-owner.patch) | The CONSYS owner, with the start chain fixed |
+| [0394](../../patches/proposals/0394-arm64-dts-mediatek-gemini-pda-describe-the-connectiv.patch) | The board's CONN domain, regulators and CONSYS node |
+
+What changed after 0389:
+- **Kconfig.** Three options remain: `MTK_MT6797_CONSYS`,
+  `MT6797_HIF_CORE` and `MT6797_MAC80211`.
+- **CONSYS.** The driver no longer reads the eleven start-mode
+  properties; it always runs the chain the station selected. The
+  station's device tree differs from the old one only by those
+  properties, and it passes the new schema.
+- **Dead code.** The image-binding and EMI helper layers had no caller
+  and are gone, with a few unused functions. The host-test shims are
+  gone. The transmit data depth is folded at 12. The channel token and
+  station sequence no longer refuse at 255: every join assigns them
+  afresh, so the refusal could not trigger.
+- **Layout.** `mt6797-wlan-core` is four files (`hif.c`, `firmware.c`,
+  `ordinary-transfer.c`, `record-prepare.c`) with two wire-format
+  headers, down from thirteen objects and twenty headers. `mac` is
+  `main.c`, `join.c` and `data.c` with `mac-priv.h`; a comparison of all
+  224 definitions shows the move changed none of them. CONSYS has one
+  WMT header instead of fourteen.
+- **Style.** checkpatch reports no errors or warnings; `--strict` leaves
+  nine notes, mostly long lines in the join worker.
+- **Series.** All 565 patches of the new station series apply to Linux
+  7.1.3. The resulting Wi-Fi files match the edited source byte for byte.
+
+Not done: the separate debug patch. Nothing needs it yet; the station
+series keeps the measurement code's history.
+
+Hypothesis: the clean modules behave like 0389 on station 23. Test by
+module swap if the package's `Image.gz` matches station 23's, with
+0389's procedure (steps 1-6) and 0389's figures as the control.
+
+| Observation | Decision |
+| --- | --- |
+| Steps 1-3 and 6 pass, throughput within 0389's band | Phase 1's code is done; the station 9 hold and reconnect counts come next on a booted image |
+| Join or data fails | Bisect the post-0389 steps in the dev VM by diff, then rebuild |
+| `Image.gz` differs from station 23's | Boot a new station image instead of swapping modules |
+
 ## Follow-up
 
 The rest of phase 1:
-- the file layout, splitting `mac.c` and merging the small headers;
-- three Kconfig tristates;
-- a CONSYS binding without the `one-shot-*` staging;
-- the clean series replacing the station's Wi-Fi patches;
-- the debug patch.
+- the device test of 0390-0394 (above);
+- the station 9 repeat: 26 reconnects and a 2.5 h hold;
+- the debug patch, if a measurement needs it.

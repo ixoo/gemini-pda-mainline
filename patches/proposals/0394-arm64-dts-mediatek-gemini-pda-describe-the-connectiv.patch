@@ -1,0 +1,155 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 05:42:32 -0500
+Subject: [PATCH 394/394] arm64: dts: mediatek: gemini-pda: describe the
+ connectivity subsystem
+
+Register the CONN power controller under SCPSYS, name the MT6351
+connectivity regulators, label the CONSYS reservation and add the
+CONSYS node with its WLAN child, in the shape the station uses. The
+Wi-Fi service tree no longer overrides the node.
+
+Part of the clean MT6797 Wi-Fi series (Wi-Fi daily-use plan, phase 1).
+The station's device tree changes only by the removed one-shot
+properties.
+---
+ .../mt6797-gemini-pda-wifi-service.dts        | 21 ------
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   | 69 ++++++++++++++++++-
+ 2 files changed, 68 insertions(+), 22 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts
+index 37235b2c8..b1e2ed7cf 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-wifi-service.dts
+@@ -34,27 +34,6 @@ framebuffer@7dfb0000 {
+ 
+ 	/delete-node/ ram-console;
+ 
+-	consys@10001340 {
+-		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
+-		      <0 0x18070008 0 4>, <0 0x18070110 0 4>,
+-		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>,
+-		      <0 0x1100c000 0 0x1000>, <0 0x11000a00 0 0x80>,
+-		      <0 0x11000a80 0 0x80>, <0 0x11000080 0 0x80>,
+-		      <0 0x180b6000 0 0x100>;
+-		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
+-			    "wifi-hif", "emi-selector",
+-			    "btif", "btif-dma-tx", "btif-dma-rx", "wifi-hif-dma",
+-			    "afe";
+-		/delete-property/ mediatek,one-shot-wmt-identity-capture;
+-		mediatek,one-shot-wmt-negotiate;
+-		mediatek,one-shot-wmt-common-init;
+-		mediatek,coex-antenna-mode = <1>;
+-
+-		wifi {
+-			/delete-property/ status;
+-		};
+-	};
+-
+ 	firmware {
+ 		atag-devinfo {
+ 			/delete-node/ ptp-calibration-data@c;
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 7942a4f6d..ddf5ab30d 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -9,6 +9,27 @@
+ #include <dt-bindings/gpio/gpio.h>
+ #include <dt-bindings/input/input.h>
+ #include <dt-bindings/interrupt-controller/irq.h>
++#include <dt-bindings/power/mt6797-power.h>
++#include <dt-bindings/reset/mt6797-resets.h>
++
++&scpsys {
++	compatible = "mediatek,mt6797-scpsys", "syscon", "simple-mfd";
++	#address-cells = <1>;
++	#size-cells = <0>;
++
++	conn_power: power-controller {
++		compatible = "mediatek,mt6797-power-controller";
++		#address-cells = <1>;
++		#size-cells = <0>;
++		#power-domain-cells = <1>;
++		access-controllers = <&infrasys>;
++
++		power-domain@c {
++			reg = <MT6797_POWER_DOMAIN_CONN>;
++			#power-domain-cells = <0>;
++		};
++	};
++};
+ 
+ / {
+ 	model = "Planet Computers Gemini PDA";
+@@ -55,6 +76,36 @@ ram-console {
+ 		status = "disabled";
+ 	};
+ 
++	consys@10001340 {
++		compatible = "mediatek,mt6797-consys";
++		reg = <0 0x10001340 0 4>, <0 0x10001350 0 4>,
++		      <0 0x18070008 0 4>, <0 0x18070110 0 4>,
++		      <0 0x180f0000 0 0x1100>, <0 0x10001f00 0 4>,
++		      <0 0x1100c000 0 0x1000>, <0 0x11000a00 0 0x80>,
++		      <0 0x11000a80 0 0x80>, <0 0x11000080 0 0x80>,
++		      <0 0x180b6000 0 0x100>;
++		reg-names = "remap", "conn2ap-sleep-mask", "chip-id", "mcu-acr",
++			    "wifi-hif", "emi-selector",
++			    "btif", "btif-dma-tx", "btif-dma-rx", "wifi-hif-dma",
++			    "afe";
++		clocks = <&infrasys CLK_INFRA_BTIF>, <&infrasys CLK_INFRA_AP_DMA>;
++		clock-names = "btif", "ap-dma";
++		interrupts = <GIC_SPI 130 IRQ_TYPE_LEVEL_LOW>;
++		memory-region = <&consys_reserved>;
++		vcn18-supply = <&mt6351_vcn18_reg>;
++		vcn28-supply = <&mt6351_vcn28_reg>;
++		vcn33-wifi-supply = <&mt6351_vcn33_wifi_reg>;
++		vcn33-bt-supply = <&mt6351_vcn33_bt_reg>;
++		resets = <&watchdog MT6797_TOPRGU_CONMCU_SW_RST>;
++		reset-names = "con-mcu";
++		mediatek,conn-power-domain = <&conn_power MT6797_POWER_DOMAIN_CONN>;
++		mediatek,coex-antenna-mode = <1>;
++
++		wifi {
++			compatible = "mediatek,mt6797-wlan";
++		};
++	};
++
+ 	reserved-memory {
+ 		#address-cells = <2>;
+ 		#size-cells = <2>;
+@@ -127,7 +178,7 @@ reserve-memory-ccci_share {
+ 			alloc-ranges = <0 0x40000000 0 0x50000000>;
+ 		};
+ 
+-		consys-reserve-memory {
++		consys_reserved: consys-reserve-memory {
+ 			compatible = "mediatek,consys-reserve-memory";
+ 			no-map;
+ 			size = <0 0x200000>;
+@@ -194,6 +245,22 @@ &cpu9 {
+ };
+ 
+ &mt6351regulator {
++	mt6351_vcn18_reg: ldo-vcn18 {
++		regulator-name = "vcn18";
++	};
++
++	mt6351_vcn28_reg: ldo-vcn28 {
++		regulator-name = "vcn28";
++	};
++
++	mt6351_vcn33_bt_reg: ldo-vcn33-bt {
++		regulator-name = "vcn33-bt";
++	};
++
++	mt6351_vcn33_wifi_reg: ldo-vcn33-wifi {
++		regulator-name = "vcn33-wifi";
++	};
++
+ 	mt6351_vemc_reg: ldo-vemc {
+ 		regulator-name = "vemc_3v3";
+ 		regulator-min-microvolt = <3000000>;
+-- 
+2.43.0
+

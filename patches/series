@@ -975,3 +975,8 @@ proposals/0386-Input-misc-add-a-Gemini-PDA-lid-policy.patch
 proposals/0387-Input-export-input_inhibit_device-and-input_uninhibi.patch
 proposals/0388-Input-gemini-lid-inhibit-the-keyboard-instead-of-fil.patch
 proposals/0389-wifi-mt6797-fold-the-station-configuration-and-remov.patch
+proposals/0390-dt-bindings-power-mediatek-mt6797-scpsys-describe-th.patch
+proposals/0391-dt-bindings-soc-mediatek-add-the-MT6797-CONSYS-owner.patch
+proposals/0392-wifi-mediatek-add-the-MT6797-WLAN-driver.patch
+proposals/0393-soc-mediatek-add-the-MT6797-CONSYS-owner.patch
+proposals/0394-arm64-dts-mediatek-gemini-pda-describe-the-connectiv.patch

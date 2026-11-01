@@ -1,0 +1,4102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 05:42:32 -0500
+Subject: [PATCH 393/394] soc: mediatek: add the MT6797 CONSYS owner
+
+Claim the shared CONSYS resources at probe and start the connectivity
+subsystem on request. A root write to region19_prepare and then to
+wmt_negotiate runs the start chain: CONN power with the chip ID check,
+the CONMCU reset release, WMT negotiation over BTIF, the common
+initialization (ROM patches, coexistence, RF calibration), the WLAN host
+interface, the firmware copy into the protected EMI window and the WLAN
+firmware start. The mac module then attaches. wlan_stop stops the
+firmware, and unloading the module powers CONN off so that a later load
+starts again from off.
+
+The station series selected each stage with a device tree property; the
+chain is now fixed and the driver reads none of them. The WMT and STP
+helpers move into one header, mt6797-wmt.h.
+
+Part of the clean MT6797 Wi-Fi series (Wi-Fi daily-use plan, phase 1).
+---
+ drivers/soc/mediatek/Kconfig         |   13 +
+ drivers/soc/mediatek/Makefile        |    1 +
+ drivers/soc/mediatek/mt6797-consys.c | 2251 ++++++++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-wmt.h    | 1771 ++++++++++++++++++++
+ 4 files changed, 4036 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-consys.c
+ create mode 100644 drivers/soc/mediatek/mt6797-wmt.h
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 0ab2e061f..a33ab375c 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -45,6 +45,19 @@ config MTK_INFRACFG
+ 	  INFRACFG controller contains various infrastructure registers not
+ 	  directly associated to any device.
+ 
++config MTK_MT6797_CONSYS
++	tristate "MediaTek MT6797 shared CONSYS reservation owner"
++	depends on ARM64 && OF && OF_RESERVED_MEM
++	depends on MT6797_HIF_CORE || !MT6797_HIF_CORE
++	select CRYPTO_LIB_SHA256
++	help
++	  Claim the boot-allocated no-map CONSYS firmware reservation on MT6797.
++	  The claim is retained for the built-in owner's lifetime. This does not
++	  power CONSYS, set a remap or grant a WLAN firmware load.
++
++	  As a module (mt6797-consys), unloading it stops the WLAN firmware
++	  and powers CONN off, so the next load starts it again.
++
+ config MTK_MT6797_A72_POWER
+ 	bool "MediaTek MT6797 Cortex-A72 power resource observer"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index fedbe07dd..6dc3bbcff 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -32,6 +32,7 @@ obj-$(CONFIG_MTK_CMDQ) += mtk-cmdq-helper.o
+ obj-$(CONFIG_MTK_DEVAPC) += mtk-devapc.o
+ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
++obj-$(CONFIG_MTK_MT6797_CONSYS) += mt6797-consys.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR) += mt6797-a72-transition.o
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+new file mode 100644
+index 000000000..a456e45c4
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -0,0 +1,2251 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* MT6797 shared CONSYS reservation owner. */
++
++#include <linux/align.h>
++#include <linux/arm-smccc.h>
++#include <linux/delay.h>
++#include <linux/errno.h>
++#include <linux/io.h>
++#include <linux/ioport.h>
++#include <linux/kernel.h>
++#include <linux/ktime.h>
++#include <linux/limits.h>
++#include <linux/minmax.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/printk.h>
++#include <linux/mfd/mt6351/registers.h>
++#include <linux/of.h>
++#include <linux/of_reserved_mem.h>
++#include <linux/of_platform.h>
++#include <linux/of_irq.h>
++#include <linux/irq.h>
++#include <linux/pm_domain.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/regmap.h>
++#include <linux/regulator/consumer.h>
++#include <linux/firmware.h>
++#include <linux/clk.h>
++#include <crypto/sha2.h>
++#include <linux/reset.h>
++#include <linux/rtnetlink.h>
++#include <linux/sizes.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++#include <linux/sysfs.h>
++#include <linux/soc/mediatek/mtk-pm-domains.h>
++#include <dt-bindings/power/mt6797-power.h>
++
++#include "../../net/wireless/mediatek/mt6797/firmware.h"
++#include "../../net/wireless/mediatek/mt6797/hif.h"
++#include "../../net/wireless/mediatek/mt6797/record-prepare.h"
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++#include "../../net/wireless/mediatek/mt6797/mac.h"
++#endif
++#include "mt6797-wmt.h"
++
++#define MT6797_CONSYS_REMAP_REG	0x10001340
++#define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
++#define MT6797_CONSYS_SLEEP_MASK	BIT(8)
++#define MT6797_CONSYS_CHIP_ID_REG	0x18070008
++#define MT6797_CONSYS_MCU_ACR_REG	0x18070110
++#define MT6797_CONSYS_MCU_ACR_MBIST	BIT(18)
++#define MT6797_CONSYS_AFE_REG	0x180b6000
++#define MT6797_CONSYS_AFE_SIZE	0x100
++#define MT6797_CONSYS_HIF_REG	0x180f0000
++#define MT6797_CONSYS_HIF_SIZE	0x1100
++#define MT6797_CONSYS_HIF_DMA_REG	0x11000080
++#define MT6797_CONSYS_HIF_DMA_SIZE	0x80
++#define MT6797_CONSYS_HIF_DATA_PORT	0x1000
++#define MT6797_CONSYS_EMI_SELECTOR_REG	0x10001f00
++#define MT6797_HIF_CMD_SETUP	0x0000
++#define MT6797_HIF_CMD52_DATA	0x0004
++#define MT6797_HIF_CMD53_DATA	0x1000
++#define MT6797_HIF_CCCR_IOEX	0x0002
++#define MT6797_HIF_CCCR_IORX	0x0003
++#define MT6797_HIF_WIFI_FUNCTION	BIT(1)
++#define MT6797_HIF_WCIR_ID	0x0279
++#define MT6797_HIF_WHLPCR	0x0004
++#define MT6797_HIF_WRPLR	0x0090
++#define MT6797_HIF_DRIVER_OWN	BIT(8)
++#define MT6797_HIF_DRIVER_OWN_REQUEST	BIT(9)
++#define MT6797_HIF_FW_OWN_SET	BIT(8)
++#define MT6797_HIF_WLAN_READY	BIT(21)
++#define MT6797_BOOT_EVENT_MAX	8U
++#define MT6797_BOOT_DEBUG_EVENT	0x27U
++#define MT6797_BOOT_SLEEPY_EVENT	0x07U
++#define MT6797_EMI_MPU_READ	0x82000208
++#define MT6797_EMI_MPU_SET	0x82000209
++#define MT6797_EMI_REGION18	18U
++#define MT6797_EMI_REGION18_RANGE	0x0370
++#define MT6797_EMI_REGION18_POLICY	0x03b0
++#define MT6797_EMI_REGION19_RANGE	0x0378
++#define MT6797_EMI_REGION19_POLICY	0x03b8
++#define MT6797_EMI_REGION23_RANGE	0x0398
++#define MT6797_EMI_REGION23_POLICY	0x03bc
++#define MT6797_EMI_REGION1_RANGE	0x0168
++#define MT6797_EMI_REGION19	19U
++#define MT6797_EMI_COPY_POLICY	0x00b6da28
++#define MT6797_EMI_FINAL_POLICY	0x00b6da2d
++#define MT6797_WMT_CLEAR_BYTES	(343 * SZ_1K)
++#define MT6797_REMAP_OFF_VALUE	0x180e0000
++#define MT6351_VCN33_ACTIVE	(BIT(3) | BIT(1))
++#define MT6351_VCN28_HW_CONTROL	BIT(3)
++#define MT6351_VCN28_ENABLE	BIT(1)
++#define MT6351_VCN28_CLOCK_SELECT	(GENMASK(7, 5) | GENMASK(13, 11))
++#define MT6351_VCN28_CLOCK_EXPECTED	((3 << 5) | (3 << 11))
++
++struct mt6797_consys {
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
++	struct ieee80211_hw *wlan_hw;
++	/* The started firmware, kept for the one mac80211 attach. */
++	struct device *wlan_dev;
++	struct mt6797_normal_capability wlan_capability;
++	bool wlan_ready;
++	bool wlan_attached;
++	bool wlan_configured;
++#endif
++	struct mt6797_wmt_query wmt_query;
++	struct mt6797_wmt_negotiate wmt_negotiate;
++	struct {
++		struct mt6797_wmt_full_io io;
++		unsigned char command[WMT_FULL_MAX_PAYLOAD];
++		unsigned char calibration[8];
++		struct wmt_init_step step;
++		unsigned int completed, antenna_mode, calibration_bytes;
++		int result;
++		bool bt_rail, wifi_rail;
++	} common_init;
++	int wmt_query_result;
++	void __iomem *remap;
++	void __iomem *sleep_mask;
++	void __iomem *chip_id;
++	void __iomem *mcu_acr;
++	void __iomem *afe;
++	void __iomem *hif;
++	void __iomem *hif_dma;
++	void __iomem *emi_selector;
++	void __iomem *emi_window;
++	u8 __iomem *region19_window;
++	struct mt6797_wlan_firmware *wlan_image;
++	struct resource reservation;
++	struct regulator *vcn18;
++	struct regulator *vcn28;
++	struct regulator *vcn33_wifi;
++	struct regulator *vcn33_bt;
++	struct reset_control *conmcu_reset;
++	struct generic_pm_domain *conn_domain;
++	bool bound;
++	bool emi_set_attempted;
++	bool emi_sealed;
++	bool emi_copy_attempted;
++	struct mt6797_init_transaction fw_transaction;
++	struct mt6797_hif *fw_hif;
++	bool fw_start_attempted;
++	bool wmt_init_attempted;
++	bool wmt_init_complete;
++	bool deferred_start_attempted;
++	/* Votes taken by the start, returned on unload. */
++	bool vcn18_on, vcn28_on, conn_on, hif_vcn33_on;
++};
++
++static DEFINE_MUTEX(mt6797_consys_lock);
++static struct mt6797_consys mt6797_consys;
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++static DEFINE_MUTEX(mt6797_consys_wlan_lock);
++#endif
++
++static int mt6797_consys_check_supplies(struct device_node *node)
++{
++	static const char * const names[] = {
++		"vcn18-supply", "vcn28-supply", "vcn33-wifi-supply",
++	};
++	struct device_node *supply;
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(names); i++) {
++		supply = of_parse_phandle(node, names[i], 0);
++		if (!supply)
++			return -EINVAL;
++		of_node_put(supply);
++	}
++
++	return 0;
++}
++
++/* The power probe writes an MT6351-specific bit outside regulator enable. */
++static int mt6797_consys_check_vcn28_source(struct device_node *consumer)
++{
++	struct device_node *supply, *regulators, *pmic;
++	int ret;
++
++	supply = of_parse_phandle(consumer, "vcn28-supply", 0);
++	if (!supply)
++		return -EINVAL;
++	regulators = of_get_parent(supply);
++	pmic = regulators ? of_get_parent(regulators) : NULL;
++	ret = of_node_name_eq(supply, "ldo-vcn28") &&
++	      regulators && of_device_is_compatible(regulators,
++						     "mediatek,mt6351-regulator") &&
++	      pmic && of_device_is_compatible(pmic, "mediatek,mt6351") ?
++	      0 : -EINVAL;
++	of_node_put(pmic);
++	of_node_put(regulators);
++	of_node_put(supply);
++	return ret;
++}
++
++static int mt6797_consys_check_other_regions(struct device_node *root,
++					     struct device_node *target,
++					      u64 base, u64 end)
++{
++	struct device_node *node;
++	struct reserved_mem *other;
++	u64 other_end;
++
++	for_each_child_of_node(root, node) {
++		if (node == target)
++			continue;
++		other = of_reserved_mem_lookup(node);
++		if (!other || !other->size)
++			continue;
++		if (other->size - 1 > ~(u64)0 - other->base) {
++			of_node_put(node);
++			return -ERANGE;
++		}
++		other_end = other->base + other->size - 1;
++		if (base <= other_end && other->base <= end) {
++			of_node_put(node);
++			return -EBUSY;
++		}
++	}
++
++	return 0;
++}
++
++static int mt6797_consys_resolve(struct device_node *consumer,
++				 struct resource *reservation)
++{
++	struct device_node *target, *parent, *root;
++	struct resource boot = {};
++	struct reserved_mem *rmem;
++	u64 end;
++	int address_cells, size_cells;
++	int ret = -EINVAL;
++
++	if (of_reserved_mem_region_count(consumer) != 1 ||
++	    !of_device_is_available(consumer) ||
++	    of_node_check_flag(consumer, OF_DYNAMIC) ||
++	    of_node_check_flag(consumer, OF_DETACHED))
++		return -EINVAL;
++
++	target = of_parse_phandle(consumer, "memory-region", 0);
++	if (!target)
++		return -ENODEV;
++	parent = of_get_parent(target);
++	root = of_find_node_by_path("/reserved-memory");
++	if (!root || parent != root || !of_device_is_available(root) ||
++	    !of_device_is_available(target) ||
++	    of_node_check_flag(root, OF_DYNAMIC) ||
++	    of_node_check_flag(root, OF_DETACHED) ||
++	    of_node_check_flag(target, OF_DYNAMIC) ||
++	    of_node_check_flag(target, OF_DETACHED) ||
++	    !of_device_is_compatible(target, "mediatek,consys-reserve-memory") ||
++	    !of_property_read_bool(target, "no-map") ||
++	    of_property_read_bool(target, "reusable") ||
++	    of_property_read_bool(target, "no-map-fixup") ||
++	    of_device_is_compatible(target, "shared-dma-pool") ||
++	    of_device_is_compatible(target, "restricted-dma-pool"))
++		goto out;
++	address_cells = of_n_addr_cells(target);
++	size_cells = of_n_size_cells(target);
++	/* Match the boot-allocated form, whose node has no static reg. */
++	if (address_cells < 1 || address_cells > 2 ||
++	    size_cells < 1 || size_cells > 2 ||
++	    of_find_property(target, "reg", NULL) ||
++	    of_property_count_u32_elems(target, "size") != size_cells ||
++	    of_property_count_u32_elems(target, "alignment") != address_cells ||
++	    of_property_count_u32_elems(target, "alloc-ranges") !=
++						address_cells + size_cells)
++		goto out;
++
++	rmem = of_reserved_mem_lookup(target);
++	if (!rmem) {
++		ret = -ENODEV;
++		goto out;
++	}
++	if (rmem->ops || rmem->priv) {
++		ret = -EOPNOTSUPP;
++		goto out;
++	}
++	if (rmem->size < SZ_1M || !IS_ALIGNED(rmem->base, SZ_1M) ||
++	    rmem->base > U32_MAX || SZ_1M - 1 > U32_MAX - rmem->base ||
++	    rmem->size - 1 > ~(u64)0 - rmem->base) {
++		ret = -ERANGE;
++		goto out;
++	}
++	end = rmem->base + rmem->size - 1;
++	ret = of_reserved_mem_region_to_resource(consumer, 0, &boot);
++	if (ret)
++		goto out;
++	if (resource_type(&boot) != IORESOURCE_MEM ||
++	    boot.start != rmem->base || boot.end != end) {
++		ret = -ESTALE;
++		goto out;
++	}
++	ret = mt6797_consys_check_other_regions(root, target, rmem->base, end);
++	if (!ret)
++		*reservation = boot;
++out:
++	of_node_put(root);
++	of_node_put(parent);
++	of_node_put(target);
++	return ret;
++}
++
++/* Match the entire no-map boot reservation, not just its first MiB. */
++static int mt6797_consys_check_boot_resource(struct resource *res, void *arg)
++{
++	const struct resource *reservation = arg;
++
++	if (res->start != reservation->start ||
++	    res->end != reservation->end ||
++	    resource_type(res) != IORESOURCE_MEM ||
++	    (res->flags & IORESOURCE_SYSRAM))
++		return -EBUSY;
++
++	return 1;
++}
++
++static int mt6797_consys_boot_reserved(struct resource *reservation)
++{
++	int ret;
++
++	ret = walk_iomem_res_desc(IORES_DESC_NONE,
++				  IORESOURCE_MEM | IORESOURCE_BUSY,
++				  reservation->start, reservation->end,
++				  reservation,
++				  mt6797_consys_check_boot_resource);
++	if (ret == 1)
++		return 0;
++	return ret < 0 ? ret : -ENODEV;
++}
++
++/* Sample only the neighboring WMT window; preserve every byte for its owner. */
++static int mt6797_consys_observe_region19(struct device *dev,
++					  struct mt6797_consys *owner)
++{
++	phys_addr_t start = owner->reservation.start + SZ_512K;
++	u8 __iomem *window;
++	u32 nonzero_bytes = 0;
++	unsigned int populated_pages = 0, page, offset;
++	int first_page = -1, last_page = -1;
++
++	window = ioremap(start, SZ_512K);
++	if (!window)
++		return -ENOMEM;
++	for (page = 0; page < SZ_512K / SZ_4K; page++) {
++		unsigned int page_nonzero = 0;
++
++		for (offset = 0; offset < SZ_4K; offset++)
++			page_nonzero += !!readb(window + page * SZ_4K + offset);
++		nonzero_bytes += page_nonzero;
++		if (page_nonzero) {
++			populated_pages++;
++			if (first_page < 0)
++				first_page = page;
++			last_page = page;
++		}
++	}
++	owner->region19_window = window;
++	dev_info(dev,
++		 "one-shot region 19 read-only: start=%pa bytes=%u nonzero=%u pages=%u first=%d last=%d\n",
++		 &start, SZ_512K, nonzero_bytes, populated_pages,
++		 first_page, last_page);
++	return 0;
++}
++
++static u32 mt6797_consys_read_emi(u32 offset);
++
++/* Region 18 as an earlier start sealed it over the WLAN firmware window. */
++static bool mt6797_consys_region18_sealed(struct mt6797_consys *owner,
++					  u32 range, u32 policy)
++{
++	phys_addr_t start = owner->reservation.start;
++	phys_addr_t end = start + SZ_512K - 1;
++
++	return range == (((u32)(start >> 16) << 16) | (u32)(end >> 16)) &&
++	       policy == MT6797_EMI_FINAL_POLICY;
++}
++
++/*
++ * The EMI protection and remap that an earlier start in this boot left,
++ * which an unload keeps: region 19 at its copy policy over the WMT window,
++ * region 18 sealed, region 23 clear and the remap set. A later start
++ * accepts exactly this state as well as the boot's clear one, as the
++ * vendor keeps both regions across CONN power cycles.
++ */
++static bool mt6797_consys_emi_kept(struct mt6797_consys *owner)
++{
++	phys_addr_t start = owner->reservation.start + SZ_512K;
++	phys_addr_t end = start + SZ_512K - 1;
++
++	return mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE) == 0x44604460 &&
++	       mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) ==
++		(((u32)(start >> 16) << 16) | (u32)(end >> 16)) &&
++	       mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) ==
++		MT6797_EMI_COPY_POLICY &&
++	       mt6797_consys_region18_sealed(owner,
++					     mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE),
++			mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY)) &&
++	       !mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) &&
++	       !mt6797_consys_read_emi(MT6797_EMI_REGION23_POLICY) &&
++	       readl(owner->remap) == (MT6797_REMAP_OFF_VALUE |
++		((u32)owner->reservation.start >> 20) | BIT(12));
++}
++
++/* Called with the owner lock held; no CONN power or firmware action. */
++static int mt6797_consys_prepare_wmt(struct device *dev,
++				     struct mt6797_consys *owner)
++{
++	struct arm_smccc_res res;
++	phys_addr_t start, end;
++	u32 remap_before, remap_after, requested, expected_range;
++	u32 region1, range18, policy18, range19, policy19;
++	u32 range23, policy23, range, policy;
++	unsigned int i;
++	int ret;
++
++	if (owner != &mt6797_consys || !owner->bound ||
++	    !owner->region19_window || owner->wmt_init_attempted) {
++		ret = -ENODEV;
++		goto out;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto out;
++	remap_before = readl(owner->remap);
++	region1 = mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE);
++	range18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	policy18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY);
++	range19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	policy19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
++	range23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE);
++	policy23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_POLICY);
++	dev_info(dev, "one-shot WMT before: remap=0x%08x region1=0x%08x region18=0x%08x/0x%08x\n",
++		 remap_before, region1, range18, policy18);
++	dev_info(dev, "one-shot WMT before: region19=0x%08x/0x%08x region23=0x%08x/0x%08x CONN=off\n",
++		 range19, policy19, range23, policy23);
++	start = owner->reservation.start + SZ_512K;
++	end = start + SZ_512K - 1;
++	expected_range = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
++	requested = ((u32)owner->reservation.start >> 20) | BIT(12);
++	if (mt6797_consys_emi_kept(owner)) {
++		dev_info(dev, "WMT setup kept from an earlier start: region 19, region 18 and remap as set\n");
++		owner->wmt_init_attempted = true;
++		remap_after = remap_before;
++		goto clear;
++	}
++	if (remap_before != MT6797_REMAP_OFF_VALUE ||
++	    region1 != 0x44604460 || range18 || policy18 || range19 ||
++	    policy19 || range23 || policy23) {
++		ret = -EBUSY;
++		goto out;
++	}
++	owner->wmt_init_attempted = true;
++	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
++		      (MT6797_EMI_REGION19 << 27) | MT6797_EMI_COPY_POLICY,
++		      0, 0, 0, 0, &res);
++	ret = (s32)(u32)res.a0;
++	range = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	policy = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
++	dev_info(dev, "one-shot WMT region19: status=%d range=0x%08x policy=0x%08x\n",
++		 ret, range, policy);
++	if (ret || range != expected_range ||
++	    policy != MT6797_EMI_COPY_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	writel(remap_before | requested, owner->remap);
++	remap_after = readl(owner->remap);
++	dev_info(dev, "one-shot WMT remap: before=0x%08x after=0x%08x expected=0x%08x\n",
++		 remap_before, remap_after, remap_before | requested);
++	if (remap_after != (remap_before | requested)) {
++		ret = -EIO;
++		goto stopped;
++	}
++clear:
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	memset_io(owner->region19_window, 0, MT6797_WMT_CLEAR_BYTES);
++	/* Complete the AP clear before checking every byte through the mapping. */
++	mb();
++	for (i = 0; i < MT6797_WMT_CLEAR_BYTES; i++) {
++		if (readb(owner->region19_window + i)) {
++			ret = -EIO;
++			goto stopped;
++		}
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret || readl(owner->remap) != remap_after ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) != expected_range ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) !=
++						MT6797_EMI_COPY_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	dev_info(dev, "one-shot WMT setup complete: clear=%u verified, CONN held off\n",
++		 MT6797_WMT_CLEAR_BYTES);
++	owner->wmt_init_complete = true;
++	ret = 0;
++	goto out;
++
++stopped:
++	dev_err(dev, "one-shot WMT setup stopped (%d); state retained\n", ret);
++out:
++	return ret;
++}
++
++static ssize_t region19_prepare_store(struct device *dev,
++				      struct device_attribute *attr,
++				      const char *buf, size_t count)
++{
++	int ret;
++
++	if (count != 2 || memcmp(buf, "1\n", 2))
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_lock);
++	ret = mt6797_consys_prepare_wmt(dev, dev_get_drvdata(dev));
++	mutex_unlock(&mt6797_consys_lock);
++	return ret ?: count;
++}
++
++static DEVICE_ATTR_WO(region19_prepare);
++
++/* Associate with CONN only after acquiring the independent shared resources. */
++static int mt6797_consys_attach_off_domain(struct device *dev,
++					   struct generic_pm_domain **domain)
++{
++	struct of_phandle_args spec;
++	int ret;
++
++	if (dev->pm_domain)
++		return -EINVAL;
++
++	ret = of_parse_phandle_with_args(dev->of_node,
++					 "mediatek,conn-power-domain",
++					 "#power-domain-cells", 0, &spec);
++	if (ret)
++		return ret;
++	if (spec.args_count != 1 || spec.args[0] != MT6797_POWER_DOMAIN_CONN ||
++	    !of_device_is_compatible(spec.np, "mediatek,mt6797-power-controller")) {
++		ret = -EINVAL;
++		goto put_node;
++	}
++	ret = of_genpd_add_device(&spec, dev);
++	if (ret == -ENOENT)
++		ret = -EPROBE_DEFER;
++	if (ret)
++		goto put_node;
++	*domain = pd_to_genpd(dev->pm_domain);
++	ret = mtk_pm_domain_confirmed_off(*domain);
++	if (ret)
++		pm_genpd_remove_device(dev);
++put_node:
++	of_node_put(spec.np);
++	return ret;
++}
++
++/* This service reads one EMI MPU register; it does not change protection. */
++static u32 mt6797_consys_read_emi(u32 offset)
++{
++	struct arm_smccc_res res;
++
++	arm_smccc_smc(MT6797_EMI_MPU_READ, offset, 0, 0, 0, 0, 0, 0, &res);
++	return (u32)res.a0;
++}
++
++/* WMT leaves region 19 protected; the WLAN start expects exactly that. */
++static bool mt6797_consys_region19_admitted(struct mt6797_consys *owner,
++					    u32 range, u32 policy)
++{
++	return owner->wmt_init_complete && owner->deferred_start_attempted &&
++	       range ==
++	       (((u32)((owner->reservation.start + SZ_512K) >> 16) << 16) |
++		(u32)((owner->reservation.start + SZ_1M - 1) >> 16)) &&
++	       policy == MT6797_EMI_COPY_POLICY;
++}
++
++/* Sample the first-load protection premise only after powered ID admission. */
++static bool mt6797_consys_probe_powered_emi(struct device *dev,
++					    struct mt6797_consys *owner)
++{
++	u32 region23_before, region23_after, control;
++	u32 region18, policy18, region19, policy19, policy23;
++	bool region19_admitted;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto skipped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto skipped;
++	}
++	region23_before = mt6797_consys_read_emi(0x0398);
++	control = mt6797_consys_read_emi(0x0168);
++	region18 = mt6797_consys_read_emi(0x0370);
++	policy18 = mt6797_consys_read_emi(0x03b0);
++	region19 = mt6797_consys_read_emi(0x0378);
++	policy19 = mt6797_consys_read_emi(0x03b8);
++	policy23 = mt6797_consys_read_emi(0x03bc);
++	region23_after = mt6797_consys_read_emi(0x0398);
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto skipped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto skipped;
++	}
++	region19_admitted = mt6797_consys_region19_admitted(owner, region19,
++							    policy19);
++	dev_info(dev,
++		 "one-shot CONN EMI powered: control1=0x%08x region23-before=0x%08x region23-after=0x%08x\n",
++		 control, region23_before, region23_after);
++	dev_info(dev,
++		 "one-shot CONN EMI powered: region18=0x%08x policy18=0x%08x region19=0x%08x policy19=0x%08x policy23=0x%08x\n",
++		 region18, policy18, region19, policy19, policy23);
++	return control == 0x44604460 && !region23_before && !region23_after &&
++	       ((!region18 && !policy18) ||
++		mt6797_consys_region18_sealed(owner, region18, policy18)) &&
++	       !policy23 && region19_admitted;
++
++skipped:
++	dev_err(dev, "one-shot CONN EMI powered skipped: owner status %d\n", ret);
++	return false;
++}
++
++/* Caller has confirmed CONN power, chip identity and asserted MCU reset. */
++static void mt6797_consys_init_afe(struct mt6797_consys *owner)
++{
++	static const struct {
++		u32 offset;
++		u32 value;
++	} settings[] = {
++		{ 0x20, 0x180b0160 },
++		{ 0x50, 0xb8925421 },
++		{ 0x54, 0x00006401 },
++		{ 0x60, 0xb8925421 },
++		{ 0x64, 0x00006401 },
++		{ 0x68, 0x08400000 },
++		{ 0x6c, 0x0c110200 },
++		{ 0x70, 0x012a020a },
++		{ 0x84, 0x00006401 },
++		{ 0x88, 0x08400000 },
++		{ 0x90, 0x012a020a },
++	};
++	unsigned int i;
++
++	if (!owner->afe)
++		return;
++
++	for (i = 0; i < ARRAY_SIZE(settings); i++)
++		writel(settings[i].value, owner->afe + settings[i].offset);
++}
++
++/* Do not undo an uncertain MCU write or reset transition in this one-shot boot. */
++static bool mt6797_consys_probe_reset_release(struct device *dev,
++					      struct mt6797_consys *owner)
++{
++	u32 before, after, chip_id;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	chip_id = readl(owner->chip_id);
++	if (chip_id != 0x0279) {
++		ret = -ENODEV;
++		goto stopped;
++	}
++	before = readl(owner->mcu_acr);
++	writel(before | MT6797_CONSYS_MCU_ACR_MBIST, owner->mcu_acr);
++	after = readl(owner->mcu_acr);
++	dev_info(dev, "one-shot CONN MCU ACR: before=0x%08x after=0x%08x\n",
++		 before, after);
++	if (after != (before | MT6797_CONSYS_MCU_ACR_MBIST)) {
++		ret = -EIO;
++		goto stopped;
++	}
++	mt6797_consys_init_afe(owner);
++	ret = reset_control_deassert(owner->conmcu_reset);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	msleep(20);
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	chip_id = readl(owner->chip_id);
++	dev_info(dev, "one-shot CONN MCU reset released: chip-id=0x%08x, domain ON\n",
++		 chip_id);
++	if (chip_id != 0x0279) {
++		dev_err(dev, "one-shot CONN MCU reset release: unexpected chip ID; state retained\n");
++		return false;
++	}
++	return true;
++
++stopped:
++	dev_err(dev, "one-shot CONN MCU reset release stopped (%d); state retained\n",
++		ret);
++	return false;
++}
++
++/* CMD52 function-zero access through the claimed AHB SDIO-like aperture. */
++static u8 mt6797_consys_hif_cccr_read(struct mt6797_consys *owner, u32 reg)
++{
++	writel(reg << 9, owner->hif + MT6797_HIF_CMD_SETUP);
++	return readl(owner->hif + MT6797_HIF_CMD52_DATA);
++}
++
++static void mt6797_consys_hif_cccr_write(struct mt6797_consys *owner,
++					 u32 reg, u8 value)
++{
++	writel(BIT(31) | (reg << 9) | value,
++	       owner->hif + MT6797_HIF_CMD_SETUP);
++	writel(value, owner->hif + MT6797_HIF_CMD52_DATA);
++}
++
++/* Match only the Gemian PALDO, function-enable and pre-DMA WCIR path. */
++static bool mt6797_consys_probe_hif(struct device *dev,
++				    struct mt6797_consys *owner)
++{
++	struct regmap *pmic;
++	unsigned int bt_control, wifi_control;
++	u32 wcir;
++	u8 ioex, iorx;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	if (readl(owner->chip_id) != MT6797_HIF_WCIR_ID) {
++		ret = -ENODEV;
++		goto stopped;
++	}
++	ret = regulator_is_enabled(owner->vcn33_wifi);
++	if (ret) {
++		ret = ret < 0 ? ret : -EBUSY;
++		goto stopped;
++	}
++	pmic = regulator_get_regmap(owner->vcn33_wifi);
++	if (IS_ERR(pmic)) {
++		ret = PTR_ERR(pmic);
++		goto stopped;
++	}
++	ret = regmap_read(pmic, MT6351_LDO_VCN33_BT_CON0, &bt_control);
++	if (ret)
++		goto stopped;
++	ret = regmap_read(pmic, MT6351_LDO_VCN33_WIFI_CON0, &wifi_control);
++	if (ret)
++		goto stopped;
++	dev_info(dev, "one-shot HIF VCN33 before: BT=0x%04x WiFi=0x%04x\n",
++		 bt_control, wifi_control);
++	if ((bt_control | wifi_control) & MT6351_VCN33_ACTIVE) {
++		ret = -EBUSY;
++		goto stopped;
++	}
++	ret = regulator_set_voltage(owner->vcn33_wifi, 3300000, 3300000);
++	if (ret)
++		goto stopped;
++	ret = regulator_enable(owner->vcn33_wifi);
++	if (ret)
++		goto stopped;
++	owner->hif_vcn33_on = true;
++	ret = regulator_is_enabled(owner->vcn33_wifi);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	ioex = mt6797_consys_hif_cccr_read(owner, MT6797_HIF_CCCR_IOEX);
++	iorx = mt6797_consys_hif_cccr_read(owner, MT6797_HIF_CCCR_IORX);
++	dev_info(dev, "one-shot HIF before enable: IOEx=0x%02x IORx=0x%02x\n",
++		 ioex, iorx);
++	if (ioex || iorx) {
++		ret = -EBUSY;
++		goto stopped;
++	}
++	mt6797_consys_hif_cccr_write(owner, MT6797_HIF_CCCR_IOEX,
++				     MT6797_HIF_WIFI_FUNCTION);
++	ioex = mt6797_consys_hif_cccr_read(owner, MT6797_HIF_CCCR_IOEX);
++	iorx = mt6797_consys_hif_cccr_read(owner, MT6797_HIF_CCCR_IORX);
++	dev_info(dev, "one-shot HIF after enable: IOEx=0x%02x IORx=0x%02x\n",
++		 ioex, iorx);
++	if (ioex != MT6797_HIF_WIFI_FUNCTION ||
++	    iorx != MT6797_HIF_WIFI_FUNCTION) {
++		ret = -EIO;
++		goto stopped;
++	}
++	writel(BIT(28) | 4, owner->hif + MT6797_HIF_CMD_SETUP);
++	wcir = readl(owner->hif + MT6797_HIF_CMD53_DATA);
++	dev_info(dev, "one-shot HIF WCIR=0x%08x\n", wcir);
++	if ((wcir & 0xffff) != MT6797_HIF_WCIR_ID) {
++		ret = -ENODEV;
++		goto stopped;
++	}
++	dev_info(dev, "one-shot HIF function ready; firmware and DMA held\n");
++	return true;
++
++stopped:
++	dev_err(dev, "one-shot HIF stopped (%d); state retained\n", ret);
++	return false;
++}
++
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++/* These function-1 CMD53 accesses share the owner's serial setup/data pair. */
++static u32 mt6797_consys_hif_f1_read(struct mt6797_consys *owner, u32 reg)
++{
++	writel(BIT(28) | (reg << 9) | 4, owner->hif + MT6797_HIF_CMD_SETUP);
++	return readl(owner->hif + MT6797_HIF_CMD53_DATA);
++}
++
++static void mt6797_consys_hif_f1_write(struct mt6797_consys *owner,
++				       u32 reg, u32 value)
++{
++	writel(BIT(31) | BIT(28) | (reg << 9) | 4,
++	       owner->hif + MT6797_HIF_CMD_SETUP);
++	writel(value, owner->hif + MT6797_HIF_CMD53_DATA);
++}
++
++static int mt6797_consys_observe_tx_status(struct device *dev,
++					   struct mt6797_consys *owner, bool post)
++{
++	struct mt6797_hif_tx_status status[2];
++	struct mt6797_normal_release account[2];
++	unsigned int count = post ? 2 : 1;
++	unsigned int n, i, snapshot;
++	int ret;
++
++	if (1)
++		ret = mt6797_hif_account_tx_status(owner->fw_hif,
++						   ktime_get_ns() + NSEC_PER_SEC, count, status,
++				account);
++	else
++		ret = mt6797_hif_observe_tx_status(owner->fw_hif,
++						   ktime_get_ns() + NSEC_PER_SEC, count, status);
++	for (n = 0; n < count; n++) {
++		snapshot = n + (post ? 1 : 0);
++		dev_info(dev,
++			 "one-shot WLAN TX status: snapshot=%u status=%d valid=0x%03x WHCR=0x%08x WHISR=0x%08x\n",
++			 snapshot, ret, status[n].valid_words,
++			 status[n].whcr, status[n].whisr);
++		for (i = 0; i < 8; i++)
++			if (status[n].valid_words & (1U << (i + 2)))
++				dev_info(dev,
++					 "one-shot WLAN returned pages: snapshot=%u word=%u value=0x%08x\n",
++					 snapshot, i, status[n].wtqcr[i]);
++	}
++	if (1) {
++		for (n = 0; n < count; n++)
++			dev_info(dev,
++				 "one-shot WLAN TC4 reconciliation: snapshot=%u status=%d released=%u free=%u pending_cpu=%u pending_ffa=%u\n",
++				 n + (post ? 1 : 0), ret,
++				 account[n].released_pages, account[n].tc4_free,
++				 account[n].pending_cpu, account[n].pending_ffa);
++	}
++	return ret;
++}
++
++/* Debug and sleepy notices precede normal configuration. Keep active host
++ * ownership through the exact sleepy notice; no low-power handoff is made.
++ * Any other event or malformed notice stops this bounded session.
++ */
++static int mt6797_consys_drain_boot_events(struct device *dev,
++					   struct mt6797_consys *owner)
++{
++	struct mt6797_hif_rx_result rx;
++	u64 deadline = ktime_get_ns() + NSEC_PER_SEC;
++	u8 *packet;
++	u32 last = 0, whlpcr;
++	unsigned int count = 0;
++	unsigned int debug = 0, sleepy = 0;
++	int ret = -E2BIG;
++
++	packet = kmalloc(MT6797_HIF_RX_MAX_PACKET, GFP_KERNEL);
++	if (!packet)
++		return -ENOMEM;
++	while (count < MT6797_BOOT_EVENT_MAX) {
++		ret = mt6797_hif_receive_packet(owner->fw_hif, 0, deadline,
++						packet, MT6797_HIF_RX_MAX_PACKET,
++						&rx);
++		/* Keep metadata from this existing read before admission refuses it.
++		 * Do not dump event bodies or consume another packet for diagnosis.
++		 */
++		dev_info(dev,
++			 "one-shot WLAN boot RX: attempt=%u status=%d pre_valid=%u pre=0x%08x setup=%u complete=%u staging=%zu post_valid=%u post=0x%08x len=%zu type=0x%04x\n",
++			 count + 1, ret, rx.pre_valid, rx.pre_wrplr,
++			 rx.rx_setup, rx.rx_complete, rx.staging_bytes,
++			 rx.post_valid, rx.post_wrplr, rx.logical_bytes,
++			 rx.packet_type);
++		if (!ret && rx.logical_bytes >= 8 && rx.packet_type == 0xe000)
++			dev_info(dev,
++				 "one-shot WLAN boot event: attempt=%u id=0x%02x seq=%u\n",
++				 count + 1, packet[4], packet[5]);
++		if (ret == -EAGAIN) {
++			last = rx.pre_wrplr;
++			ret = last >> 16 ? -EBUSY : 0;
++			break;
++		}
++		if (ret)
++			break;
++		last = rx.post_wrplr;
++		if (rx.logical_bytes < 8 || rx.packet_type != 0xe000) {
++			ret = -EPROTO;
++			break;
++		}
++		if (packet[4] == MT6797_BOOT_DEBUG_EVENT) {
++			debug++;
++		} else if (packet[4] == MT6797_BOOT_SLEEPY_EVENT) {
++			if (rx.logical_bytes != 12) {
++				ret = -EPROTO;
++				break;
++			}
++			/* Admit only boolean state values; retain the active owner.
++			 * Reserved bytes and unsolicited sequence are not an ACK.
++			 */
++			whlpcr = 0;
++			ret = -EPROTO;
++			if (packet[8] <= 1)
++				ret = mt6797_hif_read32(owner->fw_hif,
++							MT6797_HIF_WHLPCR,
++						       deadline, &whlpcr);
++			if (!ret && !(whlpcr & MT6797_HIF_DRIVER_OWN))
++				ret = -EACCES;
++			dev_info(dev,
++				 "one-shot WLAN boot sleepy: status=%d state=%u WHLPCR=0x%08x\n",
++				 ret, packet[8], whlpcr);
++			if (ret)
++				break;
++			sleepy++;
++		} else {
++			ret = -EPROTO;
++			break;
++		}
++		count++;
++		if (!last)
++			break;
++		if (last >> 16) {
++			ret = -EBUSY;
++			break;
++		}
++	}
++	if (!ret && count == MT6797_BOOT_EVENT_MAX && last)
++		ret = -E2BIG;
++	dev_info(dev,
++		 "one-shot WLAN boot event drain: status=%d count=%u debug=%u sleepy=%u post=0x%08x\n",
++		 ret, count, debug, sleepy, last);
++	kfree_sensitive(packet);
++	return ret;
++}
++
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	struct mt6797_wifi_record *record = NULL;
++	struct device *dev;
++	bool reattach;
++	int ret;
++
++	mutex_lock(&mt6797_consys_wlan_lock);
++	ret = !owner->wlan_ready ? -ENODEV : owner->wlan_attached ? -EBUSY : 0;
++	if (ret)
++		goto out;
++	/* One attempt: a failed attach may leave firmware state behind. */
++	owner->wlan_attached = true;
++	reattach = owner->wlan_configured;
++	dev = owner->wlan_dev;
++	ret = mt6797_wifi_record_prepare(dev, &record);
++	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++	if (!ret) {
++		ret = ops->reg(dev, owner->fw_hif, &owner->wlan_capability,
++			       record, reattach, &owner->wlan_hw);
++		dev_info(dev, "one-shot WLAN regulatory configuration: status=%d%s\n",
++			 ret, reattach ? " (kept from the first attach)" : "");
++	}
++	mt6797_wifi_record_release(record);
++	if (ret)
++		goto out;
++	/* The accounting pair sets the TC4 baseline once per boot. The only
++	 * later normal sender is the RTNL-serialized notifier.
++	 */
++	if (!reattach) {
++		rtnl_lock();
++		ret = mt6797_consys_observe_tx_status(dev, owner, true);
++		rtnl_unlock();
++		if (ret)
++			goto out;
++	}
++	ops->scan_ready(owner->wlan_hw);
++	owner->wlan_configured = true;
++out:
++	mutex_unlock(&mt6797_consys_wlan_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_wlan_attach);
++
++void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++
++	mutex_lock(&mt6797_consys_wlan_lock);
++	if (owner->wlan_attached && owner->wlan_hw) {
++		ops->unreg(owner->wlan_hw);
++		owner->wlan_hw = NULL;
++		owner->wlan_attached = false;
++		dev_info(owner->wlan_dev, "one-shot WLAN mac detached; firmware kept\n");
++	}
++	mutex_unlock(&mt6797_consys_wlan_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
++
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++/*
++ * The stop half of a firmware restart (experiment R1), once per boot, with
++ * the mac layer detached: the vendor's adapter stop, NIC_POWER_CTRL power
++ * mode 1, then WLAN_READY polled for at most one second. Only when it
++ * clears are FW own set and VCN33-WIFI switched off. A timeout stops here
++ * with nothing more done; no mailbox interrupt, assert or reset follows.
++ * The firmware stays stopped until CONN is powered off and on again.
++ */
++static int mt6797_consys_wlan_stop(struct device *dev, struct mt6797_consys *owner)
++{
++	u32 wcir = 0, whlpcr;
++	int sequence, ret;
++
++	lockdep_assert_held(&mt6797_consys_wlan_lock);
++	ret = !owner->wlan_ready ? -ENODEV : owner->wlan_attached ? -EBUSY : 0;
++	if (ret)
++		return ret;
++	owner->wlan_ready = false;
++	sequence = mt6797_hif_next_sequence(owner->fw_hif);
++	if (sequence < 0) {
++		ret = sequence;
++		goto stopped;
++	}
++	sequence = max(sequence, 5);
++	ret = mt6797_hif_power_off(owner->fw_hif, sequence,
++				   ktime_get_ns() + NSEC_PER_SEC, &wcir);
++	dev_info(dev, "WLAN stop: power-off status=%d sequence=%d WCIR=0x%08x\n",
++		 ret, sequence, wcir);
++	if (ret)
++		goto stopped;
++	mt6797_consys_hif_f1_write(owner, MT6797_HIF_WHLPCR, MT6797_HIF_FW_OWN_SET);
++	usleep_range(1000, 1500);
++	whlpcr = mt6797_consys_hif_f1_read(owner, MT6797_HIF_WHLPCR);
++	ret = regulator_disable(owner->vcn33_wifi);
++	if (!ret)
++		owner->hif_vcn33_on = false;
++	dev_info(dev, "WLAN stop: FW own WHLPCR=0x%08x, VCN33-WIFI off=%d enabled=%d\n",
++		 whlpcr, ret, regulator_is_enabled(owner->vcn33_wifi));
++	if (ret)
++		goto stopped;
++	dev_info(dev, "WLAN stopped\n");
++	return 0;
++stopped:
++	dev_err(dev, "WLAN stop stopped (%d); nothing escalated, state retained\n", ret);
++	return ret;
++}
++
++static ssize_t wlan_stop_store(struct device *dev, struct device_attribute *attr,
++			       const char *buf, size_t count)
++{
++	int ret;
++
++	if (count != 2 || memcmp(buf, "1\n", 2))
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_wlan_lock);
++	ret = mt6797_consys_wlan_stop(dev, &mt6797_consys);
++	mutex_unlock(&mt6797_consys_wlan_lock);
++	return ret ?: count;
++}
++
++static DEVICE_ATTR_WO(wlan_stop);
++#endif
++#endif
++
++/* No IRQ consumer or competing HIF driver is registered in this one-shot boot. */
++static void mt6797_consys_probe_firmware_start(struct device *dev,
++					       struct mt6797_consys *owner)
++{
++#if !IS_ENABLED(CONFIG_MT6797_MAC80211)
++	struct mt6797_wifi_record *record = NULL;
++#endif
++	static const u8 start[16] = {
++		16, 0, 0, 0x80, 2, 0xa0, 0, 3,
++	};
++	struct mt6797_wlan_ordinary_result ordinary = {};
++	struct mt6797_normal_capability capability;
++	struct mt6797_capability_trace cap_trace;
++	u64 deadline;
++	u32 whlpcr, wrplr, wcir = 0;
++	unsigned int i;
++	bool own_requested = false;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	if (!owner->emi_sealed || !owner->emi_window || !owner->wlan_image ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY) !=
++	    MT6797_EMI_FINAL_POLICY) {
++		ret = -EINVAL;
++		goto stopped;
++	}
++	whlpcr = mt6797_consys_hif_f1_read(owner, MT6797_HIF_WHLPCR);
++	dev_info(dev, "one-shot WLAN HIF ownership before: WHLPCR=0x%08x\n",
++		 whlpcr);
++	if (!(whlpcr & MT6797_HIF_DRIVER_OWN)) {
++		own_requested = true;
++		mt6797_consys_hif_f1_write(owner, MT6797_HIF_WHLPCR,
++					   MT6797_HIF_DRIVER_OWN_REQUEST);
++		for (i = 0; i < 2048; i++) {
++			usleep_range(1000, 1500);
++			whlpcr = mt6797_consys_hif_f1_read(owner,
++							   MT6797_HIF_WHLPCR);
++			if (whlpcr & MT6797_HIF_DRIVER_OWN)
++				break;
++		}
++	}
++	dev_info(dev,
++		 "one-shot WLAN HIF ownership after: WHLPCR=0x%08x requested=%d\n",
++		 whlpcr, own_requested);
++	if (!(whlpcr & MT6797_HIF_DRIVER_OWN)) {
++		ret = -ETIMEDOUT;
++		goto stopped;
++	}
++	wrplr = mt6797_consys_hif_f1_read(owner, MT6797_HIF_WRPLR);
++	wcir = mt6797_consys_hif_f1_read(owner, 0);
++	dev_info(dev,
++		 "one-shot WLAN INIT before: WRPLR=0x%08x WCIR=0x%08x\n",
++		 wrplr, wcir);
++	if (wrplr || (wcir & 0xffff) != MT6797_HIF_WCIR_ID ||
++	    (wcir & MT6797_HIF_WLAN_READY)) {
++		ret = -EBUSY;
++		goto stopped;
++	}
++	/* This is the first INIT transaction after function enable in this boot. */
++	owner->fw_transaction.free_pages = 104;
++	owner->fw_transaction.start_free_pages = 104;
++	owner->fw_hif = mt6797_hif_alloc(owner->hif,
++					 MT6797_CONSYS_HIF_SIZE,
++					  &owner->fw_transaction);
++	if (IS_ERR(owner->fw_hif)) {
++		ret = PTR_ERR(owner->fw_hif);
++		owner->fw_hif = NULL;
++		goto stopped;
++	}
++	if (owner->hif_dma && owner->emi_selector && owner->wmt_query.dma_clk) {
++		/* The vendor driver sets both address-extension bits on every
++		 * start; its working configuration on this device had the 4 GiB
++		 * selector set and host addresses below 4 GiB. The same is done
++		 * here, recorded with the selector; a refusal leaves PIO.
++		 */
++		u32 selector = readl(owner->emi_selector);
++
++		ret = mt6797_hif_attach_dma(owner->fw_hif, owner->hif_dma,
++					    MT6797_CONSYS_HIF_REG + MT6797_CONSYS_HIF_DATA_PORT,
++					    dev, owner->wmt_query.dma_clk,
++					    !!(selector & BIT(13)));
++		dev_info(dev,
++			 "one-shot WLAN HIF DMA: attached=%d selector=0x%08x addr2=%u tx=%d rx=%d\n",
++			 ret == 0, selector, !!(selector & BIT(13)),
++			 1,
++			 1);
++		ret = 0;
++	} else {
++		dev_info(dev,
++			 "one-shot WLAN HIF DMA: not attached: channel=%d selector=%d clock=%d tx=%d rx=%d\n",
++			 !!owner->hif_dma, !!owner->emi_selector,
++			 !!owner->wmt_query.dma_clk,
++			 1,
++			 1);
++	}
++	ret = mt6797_wlan_firmware_submit_ordinary(owner->wlan_image,
++						   owner->fw_hif, &ordinary);
++	dev_info(dev,
++		 "one-shot WLAN ordinary transfer: status=%d completed=%u/2 bytes=%zu/14832 failed_index=%u firmware_status=%u partial=%zu\n",
++		 ret, ordinary.sections, ordinary.bytes, ordinary.failed_index,
++		 ordinary.firmware_status, ordinary.partial_submitted);
++	if (ret)
++		goto stopped;
++	ret = mt6797_hif_read32(owner->fw_hif, 0,
++				ktime_get_ns() + NSEC_PER_SEC, &wcir);
++	if (ret || (wcir & MT6797_HIF_WLAN_READY) ||
++	    (wcir & 0xffff) != MT6797_HIF_WCIR_ID ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY) !=
++	    MT6797_EMI_FINAL_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++	owner->fw_start_attempted = true;
++	deadline = ktime_get_ns() + NSEC_PER_SEC;
++	ret = mt6797_hif_start_submit(owner->fw_hif, start, sizeof(start), 3,
++				      deadline);
++	dev_info(dev, "one-shot WLAN START submit: status=%d\n", ret);
++	if (ret)
++		goto stopped;
++	do {
++		ret = mt6797_hif_start_observe_ready(owner->fw_hif, &wcir);
++		if (ret == -EAGAIN)
++			usleep_range(10000, 12000);
++	} while (ret == -EAGAIN);
++	dev_info(dev, "one-shot WLAN START ready: status=%d WCIR=0x%08x\n",
++		 ret, wcir);
++	if (ret || (wcir & 0xffff) != MT6797_HIF_WCIR_ID) {
++		ret = ret ?: -ENODEV;
++		goto stopped;
++	}
++	dev_info(dev, "one-shot WLAN firmware ready; radio commands and DMA held\n");
++	ret = mt6797_consys_observe_tx_status(dev, owner, false);
++	if (ret)
++		goto stopped;
++	ret = mt6797_hif_query_capability(owner->fw_hif, 4,
++					  ktime_get_ns() + NSEC_PER_SEC,
++					  &capability, &cap_trace);
++	dev_info(dev, "one-shot WLAN capability query: status=%d\n", ret);
++	dev_info(dev,
++		 "one-shot WLAN capability trace: stage=%u pre_valid=%d pre=0x%08x tx_setup=%d tx_complete=%d tx_bytes=%zu post_valid=%d post=0x%08x rx_setup=%d rx_complete=%d rx_bytes=%zu\n",
++		 (unsigned int)cap_trace.stage, cap_trace.pre_valid, cap_trace.pre_wrplr,
++		 cap_trace.tx_setup, cap_trace.tx_complete, cap_trace.tx_bytes,
++		 cap_trace.post_valid, cap_trace.post_wrplr, cap_trace.rx_setup,
++		 cap_trace.rx_complete, cap_trace.rx_bytes);
++	if (cap_trace.rx_complete)
++		dev_info(dev,
++			 "one-shot WLAN capability event header: len=%u type=0x%04x id=%u seq=%u\n",
++			 cap_trace.event_length, cap_trace.packet_type,
++			 (unsigned int)cap_trace.event_id,
++			 (unsigned int)cap_trace.event_sequence);
++	if (!ret)
++		dev_info(dev,
++			 "one-shot WLAN capability: product=0x%04x own=0x%04x peer=0x%04x 5g_disabled=%u eeprom_used=%u rf_fail=%u bb_fail=%u\n",
++			 capability.product, capability.firmware_own,
++			 capability.firmware_peer, capability.hw_5g_disabled,
++			 capability.eeprom_used, capability.rf_cal_fail,
++			 capability.bb_cal_fail);
++	if (ret)
++		goto stopped;
++	ret = mt6797_consys_drain_boot_events(dev, owner);
++	if (ret)
++		goto stopped;
++#if IS_ENABLED(CONFIG_MT6797_MAC80211)
++	mutex_lock(&mt6797_consys_wlan_lock);
++	owner->wlan_dev = dev;
++	owner->wlan_capability = capability;
++	owner->wlan_ready = true;
++	mutex_unlock(&mt6797_consys_wlan_lock);
++#if IS_BUILTIN(CONFIG_MT6797_MAC80211)
++	ret = mt6797_consys_wlan_attach(&mt6797_mac_attach_ops);
++	if (ret)
++		goto stopped;
++#else
++	dev_info(dev, "one-shot WLAN firmware ready; the mac module attaches on load\n");
++#endif
++#else
++	ret = mt6797_wifi_record_prepare(dev, &record);
++	dev_info(dev, "one-shot WLAN private record prepare: status=%d\n", ret);
++	mt6797_wifi_record_release(record);
++	if (ret)
++		goto stopped;
++#endif
++	return;
++
++stopped:
++	dev_err(dev,
++		"one-shot WLAN firmware stopped (%d); ordinary=%u/2 start=%d, state retained\n",
++		ret, ordinary.sections, owner->fw_start_attempted);
++}
++#endif
++
++/* One diagnostic SMC pair; retain the reserved window and powered owner. */
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++static int mt6797_consys_copy_emi_section(void *context, unsigned int index,
++					  u32 offset, const u8 *data, size_t bytes)
++{
++	struct mt6797_consys *owner = context;
++	u8 verify[256];
++	size_t done = 0;
++
++	if (!owner || !owner->emi_window || !data || index < 2 || index > 3 ||
++	    offset >= SZ_512K || !bytes || bytes > SZ_512K - offset)
++		return -EINVAL;
++	while (done < bytes) {
++		size_t length = min(sizeof(verify), bytes - done);
++		void __iomem *destination = (u8 __iomem *)owner->emi_window +
++					    offset + done;
++
++		owner->emi_copy_attempted = true;
++		memcpy_toio(destination, data + done, length);
++		/* Complete these AP stores before checking the reserved window. */
++		wmb();
++		memcpy_fromio(verify, destination, length);
++		if (memcmp(verify, data + done, length))
++			return -EIO;
++		done += length;
++	}
++	return 0;
++}
++#endif
++
++static void mt6797_consys_probe_emi_set(struct device *dev,
++					struct mt6797_consys *owner)
++{
++	struct arm_smccc_res res;
++	struct mt6797_wlan_firmware_summary summary;
++	struct mt6797_wlan_emi_copy_result copied = {};
++	phys_addr_t start = owner->reservation.start;
++	phys_addr_t end = start + SZ_512K - 1;
++	u32 expected = ((u32)(start >> 16) << 16) | (u32)(end >> 16);
++	u32 before18, before19, before19_policy, before23, range, policy;
++	u32 selector;
++	unsigned long raw;
++	int ret, copy_ret = 0;
++
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto stopped;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 0) {
++		ret = ret < 0 ? ret : -EIO;
++		goto stopped;
++	}
++	selector = readl(owner->emi_selector);
++	if (readl(owner->chip_id) != MT6797_HIF_WCIR_ID ||
++	    !(selector & BIT(13)) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE) != 0x44604460) {
++		ret = -ENODEV;
++		goto stopped;
++	}
++	before18 = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	before19 = mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE);
++	before19_policy = mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY);
++	before23 = mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE);
++	if (before23 ||
++	    ((before18 || mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY)) &&
++	     !mt6797_consys_region18_sealed(owner, before18,
++			mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY))) ||
++	    !mt6797_consys_region19_admitted(owner, before19, before19_policy)) {
++		ret = -EBUSY;
++		goto stopped;
++	}
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++	ret = mt6797_wlan_firmware_prepare(dev, &owner->wlan_image);
++	if (ret)
++		goto stopped;
++	ret = mt6797_wlan_firmware_summary(owner->wlan_image, &summary);
++	if (ret || summary.sections != 4 ||
++	    summary.ordinary_sections != 2 ||
++	    summary.ordinary_bytes != 14832 ||
++	    summary.emi_sections != 2 ||
++	    summary.emi_bytes != 396688) {
++		ret = ret ?: -EINVAL;
++		goto stopped;
++	}
++	owner->emi_window = ioremap(start, SZ_512K);
++	if (!owner->emi_window) {
++		ret = -ENOMEM;
++		goto stopped;
++	}
++#else
++	ret = -EOPNOTSUPP;
++	goto stopped;
++#endif
++	dev_info(dev,
++		 "one-shot EMI before: selector=0x%08x region18=0x%08x region19=0x%08x region23=0x%08x\n",
++		 selector, before18, before19, before23);
++	owner->emi_set_attempted = true;
++	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
++		      (MT6797_EMI_REGION18 << 27) | MT6797_EMI_COPY_POLICY,
++		      0, 0, 0, 0, &res);
++	raw = res.a0;
++	ret = (s32)(u32)raw;
++	range = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	policy = mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY);
++	dev_info(dev,
++		 "one-shot EMI copy policy: raw=0x%016lx status=%d range=0x%08x policy=0x%08x\n",
++		 raw, ret, range, policy);
++	if (ret || range != expected || policy != MT6797_EMI_COPY_POLICY) {
++		ret = ret ?: -EIO;
++		goto stopped;
++	}
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++	copy_ret = mt6797_wlan_firmware_copy_emi(owner->wlan_image,
++						 mt6797_consys_copy_emi_section,
++				      owner, &copied);
++	dev_info(dev,
++		 "one-shot EMI firmware copy: status=%d completed=%u/%u bytes=%zu/%zu attempted=%d\n",
++		 copy_ret, copied.sections, summary.emi_sections,
++		 copied.bytes, summary.emi_bytes,
++		 owner->emi_copy_attempted);
++	/* After an admitted copy attempt, seal even if readback failed. */
++	if (copy_ret)
++		goto seal;
++	/* Publish the verified bytes before the secure policy transition. */
++	mb();
++#endif
++seal:
++	arm_smccc_smc(MT6797_EMI_MPU_SET, start, end,
++		      (MT6797_EMI_REGION18 << 27) | MT6797_EMI_FINAL_POLICY,
++		      0, 0, 0, 0, &res);
++	raw = res.a0;
++	ret = (s32)(u32)raw;
++	range = mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE);
++	policy = mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY);
++	dev_info(dev,
++		 "one-shot EMI final policy: raw=0x%016lx status=%d range=0x%08x policy=0x%08x\n",
++		 raw, ret, range, policy);
++	if (ret || copy_ret ||
++	    copied.sections != summary.emi_sections ||
++	    copied.bytes != summary.emi_bytes ||
++	    range != expected || policy != MT6797_EMI_FINAL_POLICY ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) != before19 ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) != before19_policy ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) != before23 ||
++	    readl(owner->emi_selector) != selector) {
++		ret = ret ?: (copy_ret ?: -EIO);
++		goto stopped;
++	}
++	owner->emi_sealed = true;
++	dev_info(dev,
++		 "one-shot EMI region 18 sealed; firmware start gated and DMA held\n");
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++	mt6797_consys_probe_firmware_start(dev, owner);
++#else
++	dev_err(dev, "one-shot WLAN firmware unavailable: HIF core disabled\n");
++#endif
++	return;
++
++stopped:
++	if (!owner->emi_set_attempted) {
++		if (owner->emi_window) {
++			iounmap(owner->emi_window);
++			owner->emi_window = NULL;
++		}
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++		mt6797_wlan_firmware_release(owner->wlan_image);
++		owner->wlan_image = NULL;
++#endif
++	}
++	dev_err(dev,
++		"one-shot EMI set stopped (%d); attempted=%d copied=%d sealed=%d, state retained\n",
++		ret, owner->emi_set_attempted, owner->emi_copy_attempted,
++		owner->emi_sealed);
++}
++
++#define MT6797_WMT_INIT_BUDGET_MS 60000U
++/* Vendor WMT_LIB_RX_TIMEOUT, used for every WMT event including calibration. */
++#define MT6797_WMT_INIT_EXCHANGE_MS 2000U
++
++/* Retained Gemian pair, in download order; contents stay outside the kernel. */
++static const struct {
++	const char *name;
++	u8 sha256[SHA256_DIGEST_SIZE];
++} mt6797_rom_patches[2] = {
++	{ "mediatek/mt6797/ROMv3_patch_1_1_hdr.bin", {
++		0x57, 0x32, 0xc0, 0x73, 0x03, 0x80, 0xe9, 0x37, 0xb4, 0x8a, 0xd1, 0x69,
++		0xf2, 0x80, 0x5b, 0x65, 0xe8, 0xd4, 0xa1, 0x78, 0x26, 0x55, 0x66, 0xc5,
++		0x08, 0x3c, 0xb2, 0xcc, 0x2d, 0x24, 0x9f, 0x1e } },
++	{ "mediatek/mt6797/ROMv3_patch_1_0_hdr.bin", {
++		0x45, 0x0c, 0x2b, 0x09, 0x49, 0xcf, 0x87, 0x92, 0x17, 0xac, 0x9a, 0xef,
++		0x81, 0xb1, 0x8b, 0x86, 0x09, 0x82, 0xf0, 0xe6, 0x93, 0x40, 0x78, 0x4b,
++		0x44, 0x8b, 0x54, 0x36, 0x5d, 0x8c, 0xf6, 0x30 } },
++};
++
++static int mt6797_consys_init_rail(struct regulator *rail, bool on, bool *state)
++{
++	int ret;
++
++	if (*state == on)
++		return -EPROTO;
++	if (!on) {
++		ret = regulator_disable(rail);
++		if (!ret)
++			*state = false;
++		return ret;
++	}
++	ret = regulator_is_enabled(rail);
++	if (ret)
++		return ret < 0 ? ret : -EBUSY;
++	ret = regulator_set_voltage(rail, 3300000, 3300000);
++	if (!ret)
++		ret = regulator_enable(rail);
++	if (ret)
++		return ret;
++	*state = true;
++	ret = regulator_is_enabled(rail);
++	return ret == 1 ? 0 : (ret < 0 ? ret : -EIO);
++}
++
++/*
++ * Fixed common initialization on the negotiated link. The first failure
++ * stops the sequence; power, clocks and rails stay as they are for reviewed
++ * recovery. WLAN START and scan are not part of this sequence.
++ */
++static int mt6797_consys_common_init(struct device *dev, struct mt6797_consys *owner)
++{
++	struct mt6797_wmt_negotiate *n = &owner->wmt_negotiate;
++	typeof(owner->common_init) *ci = &owner->common_init;
++	const struct firmware *fw[2] = {};
++	struct wmt_rom_patch pair[2];
++	u8 digest[SHA256_DIGEST_SIZE];
++	unsigned long budget, wait;
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < 2; i++) {
++		ret = request_firmware(&fw[i], mt6797_rom_patches[i].name, dev);
++		if (ret)
++			goto out;
++		sha256(fw[i]->data, fw[i]->size, digest);
++		if (memcmp(digest, mt6797_rom_patches[i].sha256, sizeof(digest)) ||
++		    wmt_rom_patch_parse(fw[i]->data, fw[i]->size, i + 1, &pair[i])) {
++			ret = -EINVAL;
++			goto out;
++		}
++	}
++	budget = jiffies + msecs_to_jiffies(MT6797_WMT_INIT_BUDGET_MS);
++	wait = msecs_to_jiffies(MT6797_WMT_INIT_EXCHANGE_MS);
++	for (i = 0; i < WMT_INIT_STEPS; i++) {
++		if (time_after_eq(jiffies, budget)) {
++			ret = -ETIMEDOUT;
++			goto out;
++		}
++		ret = mt6797_wmt_init_step(pair, ci->antenna_mode, i, ci->command,
++					   sizeof(ci->command), &ci->step) ? -EINVAL : 0;
++		if (ret)
++			goto out;
++		switch (ci->step.kind) {
++		case WMT_INIT_BT_RAIL_ON:
++		case WMT_INIT_BT_RAIL_OFF:
++			ret = mt6797_consys_init_rail(owner->vcn33_bt,
++						      ci->step.kind == WMT_INIT_BT_RAIL_ON,
++						      &ci->bt_rail);
++			break;
++		case WMT_INIT_WIFI_RAIL_ON:
++		case WMT_INIT_WIFI_RAIL_OFF:
++			ret = mt6797_consys_init_rail(owner->vcn33_wifi,
++						      ci->step.kind == WMT_INIT_WIFI_RAIL_ON,
++						      &ci->wifi_rail);
++			break;
++		default:
++			ret = mt6797_stp_task_prepare(&ci->io, n->first.btif, n->first.irq,
++						      &n->link, STP_FULL_TASK_WMT,
++						      ci->command, ci->step.length,
++						      ci->step.expected, ci->step.prefix,
++						      ci->step.expected_length,
++						      jiffies + wait);
++			if (!ret)
++				ret = mt6797_wmt_full_exchange(&ci->io);
++			if (!ret && i == WMT_INIT_CALIBRATION) {
++				ci->calibration_bytes = min_t(unsigned int, ci->io.rx_count,
++							      sizeof(ci->calibration));
++				memcpy(ci->calibration, ci->io.received,
++				       ci->calibration_bytes);
++			}
++		}
++		if (ret)
++			goto out;
++		ci->completed = i + 1;
++	}
++out:
++	ci->result = ret;
++	for (i = 0; i < 2; i++)
++		release_firmware(fw[i]);
++	dev_info(dev,
++		 "one-shot WMT common init: result=%d completed=%u/%u bt-rail=%d wifi-rail=%d link=%u/%u/%u/%u\n",
++		 ret, ci->completed, WMT_INIT_STEPS, ci->bt_rail, ci->wifi_rail,
++		 n->link.transport.tx_next, n->link.transport.rx_next,
++		 n->link.transport.peer_ack, n->link.transport.local_ack);
++	if (ret && ci->completed < WMT_INIT_STEPS && ci->io.prepared) {
++		dev_info(dev,
++			 "WMT common init failed step %u: tx=%u rx=%u services=%u frames=%u iir=0x%08x no-source=%u\n",
++			 ci->completed, ci->io.tx_count, ci->io.rx_count,
++			 ci->io.services, ci->io.frames, ci->io.last_iir,
++			 ci->io.no_source_services);
++	}
++	return ret;
++}
++
++static int mt6797_consys_wmt_exchange(struct device *dev,
++				      struct mt6797_consys *owner)
++{
++	struct mt6797_wmt_negotiate *n = &owner->wmt_negotiate;
++	int ret;
++
++	ret = platform_get_irq(to_platform_device(dev), 0);
++	if (ret < 0)
++		return ret;
++	owner->wmt_query.irq = ret;
++	n->first = owner->wmt_query;
++	ret = mt6797_wmt_negotiate_once(n);
++	dev_info(dev,
++		 "one-shot WMT negotiation: result=%d phase=%u clocks-held=%d\n",
++		 ret, (unsigned int)n->phase, n->first.clocks_held);
++	dev_info(dev,
++		 "WMT negotiation mandatory: default-rx=%u default-irqs=%u set-tx=%u set-rx=%u set-services=%u\n",
++		 n->first.rx_count, n->first.irq_count,
++		 n->set.tx_count, n->set.rx_count, n->set.services);
++	dev_info(dev,
++		 "WMT negotiation full: tx=%u rx=%u services=%u frames=%u tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
++		 n->full.tx_count, n->full.rx_count, n->full.services, n->full.frames,
++		 n->link.transport.tx_next, n->link.transport.rx_next,
++		 n->link.transport.peer_ack, n->link.transport.local_ack);
++	if (!ret)
++		ret = mt6797_consys_common_init(dev, owner);
++	return ret;
++}
++
++static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner)
++{
++	struct regmap *pmic;
++	unsigned int vcn28;
++	u32 sleep_mask, chip_id;
++	int ret;
++
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto held;
++	pmic = regulator_get_regmap(owner->vcn28);
++	if (IS_ERR(pmic)) {
++		ret = PTR_ERR(pmic);
++		goto held;
++	}
++	ret = regulator_is_enabled(owner->vcn18);
++	if (ret) {
++		ret = ret < 0 ? ret : -EBUSY;
++		goto held;
++	}
++	ret = regulator_is_enabled(owner->vcn28);
++	if (ret) {
++		ret = ret < 0 ? ret : -EBUSY;
++		goto held;
++	}
++	ret = regmap_read(pmic, MT6351_LDO_VCN28_CON0, &vcn28);
++	if (ret)
++		goto held;
++	if (vcn28 & (MT6351_VCN28_HW_CONTROL | MT6351_VCN28_ENABLE)) {
++		ret = -EBUSY;
++		goto held;
++	}
++	if ((vcn28 & MT6351_VCN28_CLOCK_SELECT) !=
++	    MT6351_VCN28_CLOCK_EXPECTED) {
++		ret = -EINVAL;
++		goto held;
++	}
++	ret = regulator_set_voltage(owner->vcn18, 1800000, 1800000);
++	if (ret)
++		goto held;
++	ret = regulator_set_voltage(owner->vcn28, 2800000, 2800000);
++	if (ret)
++		goto held;
++
++	ret = regulator_enable(owner->vcn18);
++	if (ret)
++		goto held;
++	owner->vcn18_on = true;
++	usleep_range(240, 300);
++	ret = regmap_update_bits(pmic, MT6351_LDO_VCN28_CON0,
++				 MT6351_VCN28_HW_CONTROL,
++				 MT6351_VCN28_HW_CONTROL);
++	if (ret)
++		goto held;
++	ret = regulator_enable(owner->vcn28);
++	if (ret)
++		goto held;
++	owner->vcn28_on = true;
++	ret = regmap_read(pmic, MT6351_LDO_VCN28_CON0, &vcn28);
++	if (ret)
++		goto held;
++	if ((vcn28 & (MT6351_VCN28_HW_CONTROL | MT6351_VCN28_ENABLE)) !=
++	    (MT6351_VCN28_HW_CONTROL | MT6351_VCN28_ENABLE)) {
++		ret = -EIO;
++		goto held;
++	}
++
++	sleep_mask = readl(owner->sleep_mask);
++	writel(sleep_mask | MT6797_CONSYS_SLEEP_MASK, owner->sleep_mask);
++	if (!(readl(owner->sleep_mask) & MT6797_CONSYS_SLEEP_MASK)) {
++		ret = -EIO;
++		goto held;
++	}
++	ret = reset_control_assert(owner->conmcu_reset);
++	if (ret)
++		goto held;
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		ret = ret < 0 ? ret : -EIO;
++		goto held;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto held;
++
++	pm_runtime_enable(dev);
++	ret = pm_runtime_resume_and_get(dev);
++	/* This diagnostic admits exactly one request, including on failure. */
++	pm_runtime_disable(dev);
++	if (ret)
++		goto held;
++	owner->conn_on = true;
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret)
++		goto held;
++
++	dev_info(dev, "one-shot CONN power probe: domain confirmed ON, reset held\n");
++	udelay(30);
++	ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++	if (ret) {
++		dev_err(dev, "one-shot CONN chip ID skipped: domain status %d\n", ret);
++		return;
++	}
++	ret = reset_control_status(owner->conmcu_reset);
++	if (ret != 1) {
++		dev_err(dev, "one-shot CONN chip ID skipped: reset status %d\n", ret);
++		return;
++	}
++	chip_id = readl(owner->chip_id);
++	dev_info(dev, "one-shot CONN chip ID: 0x%08x, reset held\n", chip_id);
++	if (chip_id != 0x0279) {
++		msleep(20);
++		ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++		if (ret) {
++			dev_err(dev, "one-shot CONN chip ID skipped: delayed domain status %d\n",
++				ret);
++			return;
++		}
++		ret = reset_control_status(owner->conmcu_reset);
++		if (ret != 1) {
++			dev_err(dev, "one-shot CONN chip ID skipped: delayed reset status %d\n",
++				ret);
++			return;
++		}
++		chip_id = readl(owner->chip_id);
++		dev_info(dev,
++			 "one-shot CONN chip ID after 20 ms: 0x%08x, reset held\n",
++			 chip_id);
++	}
++	if (chip_id != 0x0279) {
++		msleep(20);
++		ret = mtk_pm_domain_confirmed_on(owner->conn_domain);
++		if (ret) {
++			dev_err(dev, "one-shot CONN chip ID skipped: final domain status %d\n",
++				ret);
++			return;
++		}
++		ret = reset_control_status(owner->conmcu_reset);
++		if (ret != 1) {
++			dev_err(dev, "one-shot CONN chip ID skipped: final reset status %d\n",
++				ret);
++			return;
++		}
++		chip_id = readl(owner->chip_id);
++		dev_info(dev,
++			 "one-shot CONN chip ID after 40 ms: 0x%08x, reset held\n",
++			 chip_id);
++	}
++	if (chip_id == 0x0279) {
++		bool emi_clear = mt6797_consys_probe_powered_emi(dev, owner);
++
++		if (!emi_clear) {
++			dev_err(dev, "one-shot CONN MCU reset release skipped: EMI gate\n");
++			return;
++		}
++		if (!mt6797_consys_probe_reset_release(dev, owner))
++			return;
++		owner->wmt_query_result = mt6797_consys_wmt_exchange(dev, owner);
++		/* Only completed common init continues to WLAN. */
++		if (owner->wmt_query_result)
++			return;
++		dev_info(dev, "WMT common init complete; continuing to WLAN HIF\n");
++		if (mt6797_consys_probe_hif(dev, owner))
++			mt6797_consys_probe_emi_set(dev, owner);
++	}
++	return;
++
++held:
++	dev_err(dev, "one-shot CONN power probe stopped (%d); state retained\n", ret);
++}
++
++/* One root request after the caller preserved and prepared the WMT window. */
++static ssize_t wmt_negotiate_store(struct device *dev,
++				   struct device_attribute *attr,
++				   const char *buf, size_t count)
++{
++	struct mt6797_consys *owner = dev_get_drvdata(dev);
++	int ret;
++
++	if (count != 2 || memcmp(buf, "1\n", 2))
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_lock);
++	if (owner != &mt6797_consys || !owner->bound ||
++	    !owner->wmt_init_complete ||
++	    owner->deferred_start_attempted) {
++		ret = -ENODEV;
++		goto out;
++	}
++	ret = mtk_pm_domain_confirmed_off(owner->conn_domain);
++	if (ret)
++		goto out;
++	if (!mt6797_consys_emi_kept(owner) &&
++	    (mt6797_consys_read_emi(MT6797_EMI_REGION19_RANGE) !=
++	    (((u32)((owner->reservation.start + SZ_512K) >> 16) << 16) |
++	     (u32)((owner->reservation.start + SZ_1M - 1) >> 16)) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION19_POLICY) !=
++						MT6797_EMI_COPY_POLICY ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION1_RANGE) != 0x44604460 ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION18_RANGE) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION18_POLICY) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION23_RANGE) ||
++	    mt6797_consys_read_emi(MT6797_EMI_REGION23_POLICY) ||
++	    readl(owner->remap) !=
++		(MT6797_REMAP_OFF_VALUE |
++		 ((u32)owner->reservation.start >> 20) | BIT(12)))) {
++		ret = -EBUSY;
++		goto out;
++	}
++	owner->deferred_start_attempted = true;
++	dev_info(dev, "one-shot CONSYS after WMT: prepower admission passed\n");
++	owner->wmt_query_result = -ENODEV;
++	mt6797_consys_probe_power_on(dev, owner);
++	ret = owner->wmt_query_result;
++out:
++	mutex_unlock(&mt6797_consys_lock);
++	return ret ?: count;
++}
++
++static DEVICE_ATTR_WO(wmt_negotiate);
++
++static int mt6797_consys_probe(struct platform_device *pdev)
++{
++	struct resource *remap_resource, *sleep_resource, *chip_resource, *acr_resource;
++	struct resource *hif_resource;
++	struct resource *selector_resource, *afe_resource;
++	struct regulator *vcn18, *vcn28, *vcn33_wifi, *vcn33_bt = NULL;
++	struct reset_control *conmcu_reset;
++	struct generic_pm_domain *conn_domain;
++	void __iomem *remap;
++	void __iomem *sleep_mask = NULL, *chip_id = NULL, *mcu_acr = NULL;
++	void __iomem *hif = NULL, *emi_selector = NULL, *afe = NULL;
++	u32 antenna_mode = 0;
++	struct resource reservation = {};
++	int ret;
++
++	mutex_lock(&mt6797_consys_lock);
++	if (mt6797_consys.bound) {
++		ret = -EBUSY;
++		goto out_unlock;
++	}
++	ret = mt6797_consys_resolve(pdev->dev.of_node, &reservation);
++	if (ret)
++		goto out_unlock;
++	ret = mt6797_consys_boot_reserved(&reservation);
++	if (ret)
++		goto out_unlock;
++	ret = mt6797_consys_check_supplies(pdev->dev.of_node);
++	if (ret)
++		goto out_unlock;
++	vcn18 = devm_regulator_get_optional(&pdev->dev, "vcn18");
++	if (IS_ERR(vcn18)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn18),
++				    "failed to get VCN18 supply\n");
++		goto out_unlock;
++	}
++	vcn28 = devm_regulator_get_optional(&pdev->dev, "vcn28");
++	if (IS_ERR(vcn28)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn28),
++				    "failed to get VCN28 supply\n");
++		goto out_unlock;
++	}
++	vcn33_wifi = devm_regulator_get_optional(&pdev->dev, "vcn33-wifi");
++	if (IS_ERR(vcn33_wifi)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_wifi),
++				    "failed to get VCN33 Wi-Fi supply\n");
++		goto out_unlock;
++	}
++	if (of_property_read_u32(pdev->dev.of_node, "mediatek,coex-antenna-mode",
++				 &antenna_mode) || antenna_mode > 255) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	vcn33_bt = devm_regulator_get(&pdev->dev, "vcn33-bt");
++	if (IS_ERR(vcn33_bt)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(vcn33_bt),
++				    "failed to get VCN33 BT supply\n");
++		goto out_unlock;
++	}
++	conmcu_reset = devm_reset_control_get_exclusive(&pdev->dev, "con-mcu");
++	if (IS_ERR(conmcu_reset)) {
++		ret = dev_err_probe(&pdev->dev, PTR_ERR(conmcu_reset),
++				    "failed to get CONMCU reset\n");
++		goto out_unlock;
++	}
++	remap_resource = platform_get_resource(pdev, IORESOURCE_MEM, 0);
++	if (!remap_resource ||
++	    remap_resource->start != MT6797_CONSYS_REMAP_REG ||
++	    resource_size(remap_resource) != sizeof(u32)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	remap = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(remap)) {
++		ret = PTR_ERR(remap);
++		goto out_unlock;
++	}
++	sleep_resource = platform_get_resource(pdev, IORESOURCE_MEM, 1);
++	if (!sleep_resource ||
++	    sleep_resource->start != MT6797_CONSYS_SLEEP_MASK_REG ||
++	    resource_size(sleep_resource) != sizeof(u32)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	ret = mt6797_consys_check_vcn28_source(pdev->dev.of_node);
++	if (ret)
++		goto out_unlock;
++	sleep_mask = devm_platform_ioremap_resource(pdev, 1);
++	if (IS_ERR(sleep_mask)) {
++		ret = PTR_ERR(sleep_mask);
++		goto out_unlock;
++	}
++	chip_resource = platform_get_resource(pdev, IORESOURCE_MEM, 2);
++	if (!chip_resource ||
++	    chip_resource->start != MT6797_CONSYS_CHIP_ID_REG ||
++	    resource_size(chip_resource) != sizeof(u32)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	chip_id = devm_platform_ioremap_resource(pdev, 2);
++	if (IS_ERR(chip_id)) {
++		ret = PTR_ERR(chip_id);
++		goto out_unlock;
++	}
++	acr_resource = platform_get_resource(pdev, IORESOURCE_MEM, 3);
++	if (!acr_resource ||
++	    acr_resource->start != MT6797_CONSYS_MCU_ACR_REG ||
++	    resource_size(acr_resource) != sizeof(u32)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	mcu_acr = devm_platform_ioremap_resource(pdev, 3);
++	if (IS_ERR(mcu_acr)) {
++		ret = PTR_ERR(mcu_acr);
++		goto out_unlock;
++	}
++	hif_resource = platform_get_resource(pdev, IORESOURCE_MEM, 4);
++	if (!hif_resource ||
++	    hif_resource->start != MT6797_CONSYS_HIF_REG ||
++	    resource_size(hif_resource) != MT6797_CONSYS_HIF_SIZE) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	hif = devm_platform_ioremap_resource(pdev, 4);
++	if (IS_ERR(hif)) {
++		ret = PTR_ERR(hif);
++		goto out_unlock;
++	}
++	selector_resource = platform_get_resource(pdev, IORESOURCE_MEM, 5);
++	if (!selector_resource ||
++	    selector_resource->start != MT6797_CONSYS_EMI_SELECTOR_REG ||
++	    resource_size(selector_resource) != sizeof(u32)) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	emi_selector = devm_platform_ioremap_resource(pdev, 5);
++	if (IS_ERR(emi_selector)) {
++		ret = PTR_ERR(emi_selector);
++		goto out_unlock;
++	}
++	afe_resource = platform_get_resource_byname(pdev, IORESOURCE_MEM, "afe");
++	/* Common init owns the AFE stage unconditionally. */
++	if (!afe_resource) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	if (!afe_resource->name ||
++	    strcmp(afe_resource->name, "afe") ||
++	    afe_resource->start != MT6797_CONSYS_AFE_REG ||
++	    resource_size(afe_resource) != MT6797_CONSYS_AFE_SIZE) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	afe = devm_ioremap_resource(&pdev->dev, afe_resource);
++	if (IS_ERR(afe)) {
++		ret = PTR_ERR(afe);
++		goto out_unlock;
++	}
++	ret = mt6797_consys_attach_off_domain(&pdev->dev, &conn_domain);
++	if (ret)
++		goto out_unlock;
++	mt6797_consys.reservation = reservation;
++	mt6797_consys.remap = remap;
++	mt6797_consys.sleep_mask = sleep_mask;
++	mt6797_consys.chip_id = chip_id;
++	mt6797_consys.mcu_acr = mcu_acr;
++	mt6797_consys.hif = hif;
++	mt6797_consys.emi_selector = emi_selector;
++	/* The Wi-Fi HIF's AP-DMA channel 0, optional: the data ports move by
++	 * DMA when it is present and the driver is built for it; PIO otherwise.
++	 */
++	if (hif) {
++		struct resource *dma_resource =
++			platform_get_resource_byname(pdev, IORESOURCE_MEM, "wifi-hif-dma");
++
++		if (dma_resource) {
++			if (dma_resource->start != MT6797_CONSYS_HIF_DMA_REG ||
++			    resource_size(dma_resource) != MT6797_CONSYS_HIF_DMA_SIZE) {
++				ret = -EINVAL;
++				goto out_unlock;
++			}
++			mt6797_consys.hif_dma = devm_ioremap_resource(&pdev->dev, dma_resource);
++			if (IS_ERR(mt6797_consys.hif_dma)) {
++				ret = PTR_ERR(mt6797_consys.hif_dma);
++				mt6797_consys.hif_dma = NULL;
++				goto out_unlock;
++			}
++		}
++	}
++	static const resource_size_t bases[] = {
++		0x1100c000, 0x11000a00, 0x11000a80
++	};
++	struct of_phandle_args irq_spec;
++	void __iomem *mapped[3];
++	unsigned int i;
++
++	if (platform_get_resource(pdev, IORESOURCE_MEM, 11) ||
++	    of_irq_count(pdev->dev.of_node) != 1) {
++		ret = -EINVAL;
++		goto out_unlock;
++	}
++	ret = of_irq_parse_one(pdev->dev.of_node, 0, &irq_spec);
++	if (ret)
++		goto out_unlock;
++	ret = irq_spec.args_count == 3 && irq_spec.args[0] == 0 &&
++	      irq_spec.args[1] == 130 && irq_spec.args[2] == IRQ_TYPE_LEVEL_LOW &&
++	      of_device_is_compatible(irq_spec.np,
++				      "mediatek,mt6797-sysirq") ? 0 : -EINVAL;
++	of_node_put(irq_spec.np);
++	if (ret)
++		goto out_unlock;
++	for (i = 0; i < ARRAY_SIZE(bases); i++) {
++		struct resource *resource;
++
++		resource = platform_get_resource(pdev, IORESOURCE_MEM, i + 6);
++		if (!resource || resource->start != bases[i] ||
++		    resource_size(resource) != (i ? 0x80 : 0x1000)) {
++			ret = -EINVAL;
++			goto out_unlock;
++		}
++		mapped[i] = devm_platform_ioremap_resource(pdev, i + 6);
++		if (IS_ERR(mapped[i])) {
++			ret = PTR_ERR(mapped[i]);
++			goto out_unlock;
++		}
++	}
++	mt6797_consys.wmt_query.btif_clk = devm_clk_get(&pdev->dev, "btif");
++	if (IS_ERR(mt6797_consys.wmt_query.btif_clk)) {
++		ret = PTR_ERR(mt6797_consys.wmt_query.btif_clk);
++		goto out_unlock;
++	}
++	mt6797_consys.wmt_query.dma_clk = devm_clk_get(&pdev->dev, "ap-dma");
++	if (IS_ERR(mt6797_consys.wmt_query.dma_clk)) {
++		ret = PTR_ERR(mt6797_consys.wmt_query.dma_clk);
++		goto out_unlock;
++	}
++	mt6797_consys.wmt_query.btif = mapped[0];
++	mt6797_consys.wmt_query.dma_tx = mapped[1];
++	mt6797_consys.wmt_query.dma_rx = mapped[2];
++	mt6797_consys.afe = afe;
++	mt6797_consys.vcn18 = vcn18;
++	mt6797_consys.vcn28 = vcn28;
++	mt6797_consys.vcn33_wifi = vcn33_wifi;
++	mt6797_consys.vcn33_bt = vcn33_bt;
++	mt6797_consys.common_init.antenna_mode = antenna_mode;
++	mt6797_consys.conmcu_reset = conmcu_reset;
++	mt6797_consys.conn_domain = conn_domain;
++	mt6797_consys.bound = true;
++	platform_set_drvdata(pdev, &mt6797_consys);
++	ret = devm_of_platform_populate(&pdev->dev);
++	if (ret) {
++		platform_set_drvdata(pdev, NULL);
++		memset(&mt6797_consys, 0, sizeof(mt6797_consys));
++		pm_genpd_remove_device(&pdev->dev);
++		goto out_unlock;
++	}
++	int observed = mt6797_consys_observe_region19(&pdev->dev,
++						&mt6797_consys);
++
++	if (!observed)
++		observed = device_create_file(&pdev->dev,
++					      &dev_attr_region19_prepare);
++	if (observed) {
++		if (mt6797_consys.region19_window) {
++			iounmap(mt6797_consys.region19_window);
++			mt6797_consys.region19_window = NULL;
++		}
++		dev_err(&pdev->dev,
++			"one-shot region 19 private export failed (%d)\n", observed);
++	}
++	if (mt6797_consys.region19_window) {
++		ret = device_create_file(&pdev->dev, &dev_attr_wmt_negotiate);
++		if (ret)
++			dev_err(&pdev->dev,
++				"one-shot WMT firmware trigger unavailable (%d)\n", ret);
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++		ret = device_create_file(&pdev->dev, &dev_attr_wlan_stop);
++		if (ret)
++			dev_err(&pdev->dev, "WLAN stop trigger unavailable (%d)\n", ret);
++#endif
++		ret = 0;
++	}
++	dev_info(&pdev->dev,
++		 "bound boot CONSYS reserve, remap, VCN, CONMCU reset and checked-OFF CONN domain; populated passive children\n");
++out_unlock:
++	mutex_unlock(&mt6797_consys_lock);
++	return ret;
++}
++
++#if IS_MODULE(CONFIG_MTK_MT6797_CONSYS)
++/*
++ * Unload powers CONN off as the vendor's hardware power-off does, so the next
++ * load starts from the off state a boot starts from. The mac module holds this
++ * one, so it is already detached. A running WLAN firmware is stopped first
++ * (R1); CONN is powered off even if that stop fails, as the vendor's chip
++ * reset does. Then the CONN MCU reset is asserted, the domain switched off,
++ * VCN28 (hardware control cleared first) and VCN18 off, and every other vote
++ * the start took is returned. The EMI protection and remap stay as set: the
++ * next start accepts its own earlier setup.
++ */
++static void mt6797_consys_remove(struct platform_device *pdev)
++{
++	struct mt6797_consys *owner = platform_get_drvdata(pdev);
++	struct device *dev = &pdev->dev;
++	int stop = -ENODEV, off = 0, ret;
++
++	/* The probe's files first: their writers take the locks below. */
++	device_remove_file(dev, &dev_attr_region19_prepare);
++	device_remove_file(dev, &dev_attr_wmt_negotiate);
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++	device_remove_file(dev, &dev_attr_wlan_stop);
++#endif
++	mutex_lock(&mt6797_consys_lock);
++#if IS_MODULE(CONFIG_MT6797_MAC80211)
++	mutex_lock(&mt6797_consys_wlan_lock);
++	if (owner->wlan_ready)
++		stop = mt6797_consys_wlan_stop(dev, owner);
++	mutex_unlock(&mt6797_consys_wlan_lock);
++#endif
++#if IS_ENABLED(CONFIG_MT6797_HIF_CORE)
++	mt6797_hif_free(owner->fw_hif);
++	mt6797_wlan_firmware_release(owner->wlan_image);
++#endif
++	if (owner->emi_window)
++		iounmap(owner->emi_window);
++	if (owner->region19_window)
++		iounmap(owner->region19_window);
++	if (owner->common_init.bt_rail)
++		regulator_disable(owner->vcn33_bt);
++	if (owner->common_init.wifi_rail)
++		regulator_disable(owner->vcn33_wifi);
++	if (owner->hif_vcn33_on)
++		regulator_disable(owner->vcn33_wifi);
++	if (owner->conn_on) {
++		reset_control_assert(owner->conmcu_reset);
++		pm_runtime_enable(dev);
++		ret = pm_runtime_put_sync(dev);
++		pm_runtime_disable(dev);
++		off = mtk_pm_domain_confirmed_off(owner->conn_domain);
++		dev_info(dev, "CONN power-off: runtime put=%d domain off=%d\n", ret, off);
++	}
++	if (owner->vcn28_on) {
++		struct regmap *pmic = regulator_get_regmap(owner->vcn28);
++
++		if (!IS_ERR(pmic))
++			regmap_update_bits(pmic, MT6351_LDO_VCN28_CON0,
++					   MT6351_VCN28_HW_CONTROL, 0);
++		regulator_disable(owner->vcn28);
++	}
++	if (owner->vcn18_on)
++		regulator_disable(owner->vcn18);
++	if (owner->wmt_query.btif_clock_held)
++		clk_disable_unprepare(owner->wmt_query.btif_clk);
++	if (owner->wmt_query.clocks_held)
++		clk_disable_unprepare(owner->wmt_query.dma_clk);
++	pm_genpd_remove_device(dev);
++	dev_info(dev, "CONSYS unloaded: WLAN stop=%d, CONN %s, VCN28 %s, VCN18 %s\n",
++		 stop, !owner->conn_on ? "never on" : off ? "NOT confirmed off" : "off",
++		 owner->vcn28_on ? "off" : "never on", owner->vcn18_on ? "off" : "never on");
++	memset(owner, 0, sizeof(*owner));
++	mutex_unlock(&mt6797_consys_lock);
++}
++#endif
++
++static const struct of_device_id mt6797_consys_of_match[] = {
++	{ .compatible = "mediatek,mt6797-consys" },
++	{}
++};
++MODULE_DEVICE_TABLE(of, mt6797_consys_of_match);
++
++static struct platform_driver mt6797_consys_driver = {
++	.probe = mt6797_consys_probe,
++#if IS_MODULE(CONFIG_MTK_MT6797_CONSYS)
++	.remove = mt6797_consys_remove,
++#endif
++	.driver = {
++		.name = "mt6797-consys",
++		.of_match_table = mt6797_consys_of_match,
++		.suppress_bind_attrs = true,
++	},
++};
++module_platform_driver(mt6797_consys_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 CONSYS owner");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/soc/mediatek/mt6797-wmt.h b/drivers/soc/mediatek/mt6797-wmt.h
+new file mode 100644
+index 000000000..8206b1506
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-wmt.h
+@@ -0,0 +1,1771 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_WMT_H
++#define MT6797_WMT_H
++
++#include <linux/clk.h>
++#include <linux/completion.h>
++#include <linux/delay.h>
++#include <linux/errno.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/jiffies.h>
++#include <linux/spinlock.h>
++#include <linux/string.h>
++
++/* Selected Gemian full-mode parser ceiling, despite the 12-bit wire length. */
++#define STP_FULL_MAX_PAYLOAD 2048U
++#define STP_FULL_MAX_FRAME (STP_FULL_MAX_PAYLOAD + 6U)
++#define STP_FULL_TASK_BT 0U
++#define STP_FULL_TASK_GPS 2U
++#define STP_FULL_TASK_WMT 4U
++#define STP_FULL_TASK_NONE 8U
++
++struct stp_full_frame {
++	unsigned int sequence, acknowledgment, task, length;
++	const unsigned char *payload;
++};
++
++/* Tasks 5/6 are firmware messages with a separate vendor framing path. */
++static inline int stp_full_task(unsigned int task)
++{
++	return task <= 4 || task == 7;
++}
++
++static inline unsigned int stp_full_crc(const unsigned char *data,
++					unsigned int length)
++{
++	unsigned int crc = 0;
++	unsigned int i, bit;
++
++	for (i = 0; i < length; i++) {
++		crc ^= data[i];
++		for (bit = 0; bit < 8; bit++)
++			crc = (crc >> 1) ^ ((crc & 1) ? 0xa001U : 0);
++	}
++	return crc;
++}
++
++/* Disjoint caller buffers. No output mutation on invalid arguments. */
++static inline int stp_full_encode(unsigned char *out, unsigned int capacity,
++				  const unsigned char *payload, unsigned int length,
++				  unsigned int task, unsigned int sequence,
++				  unsigned int acknowledgment)
++{
++	unsigned int crc, i;
++
++	if (!out || !payload || !length || length > STP_FULL_MAX_PAYLOAD ||
++	    !stp_full_task(task) || sequence > 7 || acknowledgment > 7 ||
++	    capacity < length + 6)
++		return -1;
++	crc = stp_full_crc(payload, length);
++	out[0] = 0x80 | (sequence << 3) | acknowledgment;
++	out[1] = (task << 4) | (length >> 8);
++	out[2] = length & 0xff;
++	out[3] = (out[0] + out[1] + out[2]) & 0xff;
++	for (i = 0; i < length; i++)
++		out[i + 4] = payload[i];
++	out[length + 4] = crc & 0xff;
++	out[length + 5] = crc >> 8;
++	return length + 6;
++}
++
++static inline int stp_full_ack(unsigned char *out, unsigned int capacity,
++			       unsigned int acknowledgment)
++{
++	if (!out || capacity < 4 || acknowledgment > 7)
++		return -1;
++	out[0] = 0x80 | acknowledgment;
++	out[1] = 0;
++	out[2] = 0;
++	out[3] = out[0];
++	return 4;
++}
++
++/*
++ * Checks ordinary full-mode headers only. NAK/resync/firmware-message traffic
++ * needs a separately reviewed path. Length changes only after acceptance.
++ */
++static inline int stp_full_header(const unsigned char *frame, unsigned int bytes,
++				  unsigned int *length)
++{
++	unsigned int n;
++
++	if (!frame || !length || bytes < 4 || (frame[0] & 0xc0) != 0x80 ||
++	    (frame[1] & 0x80) ||
++	    ((frame[0] + frame[1] + frame[2]) & 0xff) != frame[3])
++		return -1;
++	n = ((frame[1] & 15) << 8) | frame[2];
++	if ((!n && frame[1]) || n > STP_FULL_MAX_PAYLOAD ||
++	    (n && !stp_full_task((frame[1] >> 4) & 7)))
++		return -1;
++	*length = n;
++	return 0;
++}
++
++/*
++ * ACK=0, data=1, refusal=-1 with result unchanged. No link state mutation;
++ * payload aliases input. Owner validates shared sequence/ACK and task lifetime.
++ */
++static inline int stp_full_decode(const unsigned char *frame, unsigned int bytes,
++				  struct stp_full_frame *result)
++{
++	unsigned int length, crc;
++
++	if (!result || stp_full_header(frame, bytes, &length))
++		return -1;
++	if (bytes != (length ? length + 6 : 4))
++		return -1;
++	if (length) {
++		crc = frame[length + 4] | (frame[length + 5] << 8);
++		if (crc != stp_full_crc(frame + 4, length))
++			return -1;
++	}
++	result->sequence = (frame[0] >> 3) & 7;
++	result->acknowledgment = frame[0] & 7;
++	result->task = length ? (frame[1] >> 4) & 7 : STP_FULL_TASK_NONE;
++	result->length = length;
++	result->payload = length ? frame + 4 : 0;
++	return length ? 1 : 0;
++}
++
++#define STP_FULL_WINDOW 7U
++
++/*
++ * One serialized owner for every task. Initialize only at an admitted full-mode
++ * boundary after retiring the old transport; ordinary WMT reset is not one.
++ * TX bytes, retransmission storage/timers, client queues and IRQ lifetime are
++ * owned by the transport, not this pure sequence/credit helper.
++ */
++struct stp_full_link {
++	unsigned int tx_next, rx_next, peer_ack, local_ack;
++	unsigned int tx_pending, rx_pending, host_ack, rx_history, ack_owed;
++};
++
++static inline void stp_full_link_init(struct stp_full_link *link)
++{
++	struct stp_full_link initial = {
++		.peer_ack = 7, .local_ack = 7, .host_ack = 7,
++	};
++
++	*link = initial;
++}
++
++/*
++ * Completion of an actual wire ACK, including a piggyback ACK. An older ACK
++ * snapshot may complete while newer RX data is already accepted. It returns
++ * only its own credit; the latest ACK remains owed until transmitted.
++ */
++static inline int stp_full_link_ack_complete(struct stp_full_link *link,
++					     unsigned int ack)
++{
++	unsigned int credit;
++
++	if (ack > 7)
++		return -1;
++	credit = (ack - link->host_ack) & 7;
++	if (credit > link->rx_pending)
++		return -1;
++	link->rx_pending -= credit;
++	link->host_ack = ack;
++	if (ack == link->local_ack)
++		link->ack_owed = 0;
++	return 0;
++}
++
++/* Call only after a new complete data frame, never a retransmitted copy. */
++static inline int stp_full_link_sent(struct stp_full_link *link,
++				     unsigned int sequence, unsigned int ack)
++{
++	struct stp_full_link next;
++
++	if (!link || sequence != link->tx_next || link->tx_pending == STP_FULL_WINDOW)
++		return -1;
++	next = *link;
++	if (stp_full_link_ack_complete(&next, ack))
++		return -1;
++	next.tx_next = (sequence + 1) & 7;
++	next.tx_pending++;
++	*link = next;
++	return 0;
++}
++
++/*
++ * ACK=0, new data=1, duplicate data=2, refusal=-1. A duplicate requests another
++ * cumulative ACK but never redelivers payload or grants piggyback TX credit.
++ * Caller reserves delivery storage before this transition, or explicitly drops
++ * an inactive task. Results alias input; consume them before buffer reuse.
++ * ACKs outside the transmitted window grant no credit, including stale ACKs
++ * on retried data. Every refusal leaves link/result unchanged; no implicit reset.
++ */
++static inline int stp_full_link_receive(struct stp_full_link *link,
++					const unsigned char *frame, unsigned int bytes,
++					struct stp_full_frame *result)
++{
++	struct stp_full_frame decoded;
++	struct stp_full_link next;
++	unsigned int credit, age;
++	int kind;
++
++	if (!link || !result)
++		return -1;
++	kind = stp_full_decode(frame, bytes, &decoded);
++	if (kind < 0)
++		return -1;
++	next = *link;
++	if (kind && decoded.sequence != link->rx_next) {
++		age = (link->rx_next - decoded.sequence) & 7;
++		if (!age || age > link->rx_history)
++			return -1;
++		next.ack_owed = 1;
++		*link = next;
++		*result = decoded;
++		return 2;
++	}
++	credit = (decoded.acknowledgment - link->peer_ack) & 7;
++	if (kind && link->rx_pending == STP_FULL_WINDOW)
++		return -1;
++	if (credit <= link->tx_pending) {
++		next.peer_ack = decoded.acknowledgment;
++		next.tx_pending -= credit;
++	}
++	if (kind) {
++		next.local_ack = decoded.sequence;
++		next.rx_next = (decoded.sequence + 1) & 7;
++		next.rx_pending++;
++		if (next.rx_history < STP_FULL_WINDOW)
++			next.rx_history++;
++		next.ack_owed = 1;
++	}
++	*link = next;
++	*result = decoded;
++	return kind;
++}
++
++/* Standalone ACK completes only after all four bytes reach the transport. */
++static inline int stp_full_link_ack_sent(struct stp_full_link *link,
++					 unsigned int ack)
++{
++	if (!link || !link->ack_owed)
++		return -1;
++	return stp_full_link_ack_complete(link, ack);
++}
++
++#define STP_FULL_MAX_CLIENTS 6U
++
++/*
++ * Immutable bindings during one serialized receive call. Context and callback
++ * must outlive that call; IRQ callers permit neither sleep nor owner reentry.
++ * Callback returns zero only after consuming/copying the whole packet, or an
++ * explicit discard decision. A refusal
++ * must publish no packet, because link credit will remain unchanged.
++ */
++struct stp_full_client {
++	unsigned int task;
++	int (*receive)(void *context, const unsigned char *payload, unsigned int length);
++	void *context;
++};
++
++/* Validate the complete binding set before calling a unique ordinary task. */
++static inline int stp_full_task_deliver(const struct stp_full_frame *frame,
++					const struct stp_full_client *clients,
++					unsigned int count)
++{
++	const struct stp_full_client *selected = 0;
++	unsigned int i, j;
++
++	if (!frame || !frame->payload || !frame->length ||
++	    frame->length > STP_FULL_MAX_PAYLOAD || !stp_full_task(frame->task) ||
++	    !clients || !count || count > STP_FULL_MAX_CLIENTS)
++		return -1;
++	for (i = 0; i < count; i++) {
++		if (!stp_full_task(clients[i].task) || !clients[i].receive)
++			return -1;
++		for (j = 0; j < i; j++)
++			if (clients[j].task == clients[i].task)
++				return -1;
++		if (clients[i].task == frame->task)
++			selected = &clients[i];
++	}
++	if (!selected || selected->receive(selected->context, frame->payload, frame->length))
++		return -1;
++	return 0;
++}
++
++/*
++ * Same result kinds as link receive. Only new data reaches the task callback.
++ * Unknown/new task or queue refusal grants no TX or RX credit. Duplicate data
++ * is not redelivered even after its task unbinds; ACK traffic needs no client.
++ * Caller owns binding lifetime, serialization and explicit inactive-task policy.
++ */
++static inline int stp_full_task_receive(struct stp_full_link *link,
++					const unsigned char *wire, unsigned int bytes,
++					const struct stp_full_client *clients,
++					unsigned int count, struct stp_full_frame *result)
++{
++	struct stp_full_link next;
++	struct stp_full_frame decoded;
++	int kind;
++
++	if (!link || !result)
++		return -1;
++	next = *link;
++	kind = stp_full_link_receive(&next, wire, bytes, &decoded);
++	if (kind < 0 || (kind == 1 && stp_full_task_deliver(&decoded, clients, count)))
++		return -1;
++	*link = next;
++	*result = decoded;
++	return kind;
++}
++
++/* Selected WMT command limit: five-byte patch header plus 1000-byte body. */
++#define WMT_FULL_MAX_PAYLOAD 1005U
++#define WMT_FULL_MAX_FRAME (WMT_FULL_MAX_PAYLOAD + 6U)
++
++struct wmt_full_frame {
++	unsigned int sequence;
++	unsigned int acknowledgment;
++	unsigned int length;
++	const unsigned char *payload;
++};
++
++/* Preserve the WMT-only view and command limit over the shared wire codec. */
++static inline unsigned int wmt_full_crc(const unsigned char *data,
++					unsigned int length)
++{
++	return stp_full_crc(data, length);
++}
++
++static inline int wmt_full_encode(unsigned char *out, unsigned int capacity,
++				  const unsigned char *payload, unsigned int length,
++				  unsigned int sequence, unsigned int acknowledgment)
++{
++	if (length > WMT_FULL_MAX_PAYLOAD)
++		return -1;
++	return stp_full_encode(out, capacity, payload, length, STP_FULL_TASK_WMT,
++			       sequence, acknowledgment);
++}
++
++static inline int wmt_full_ack(unsigned char *out, unsigned int capacity,
++			       unsigned int acknowledgment)
++{
++	return stp_full_ack(out, capacity, acknowledgment);
++}
++
++/* Keep refusing non-WMT data without modifying the caller's result. */
++static inline int wmt_full_decode(const unsigned char *frame, unsigned int bytes,
++				  struct wmt_full_frame *result)
++{
++	struct stp_full_frame decoded;
++	int kind;
++
++	if (!result)
++		return -1;
++	kind = stp_full_decode(frame, bytes, &decoded);
++	if (kind < 0 || decoded.length > WMT_FULL_MAX_PAYLOAD ||
++	    (kind && decoded.task != STP_FULL_TASK_WMT))
++		return -1;
++	result->sequence = decoded.sequence;
++	result->acknowledgment = decoded.acknowledgment;
++	result->length = decoded.length;
++	result->payload = decoded.payload;
++	return kind;
++}
++
++/*
++ * Single command client over one shared link: one outstanding command on one
++ * ordinary task at a time. No queue, retransmission or long-lived client.
++ */
++struct wmt_full_state {
++	struct stp_full_link transport;
++	unsigned int active, sent_sequence, acknowledged, event_seen;
++};
++
++static inline void wmt_full_state_init(struct wmt_full_state *state)
++{
++	struct wmt_full_state initial = { 0 };
++
++	stp_full_link_init(&initial.transport);
++	*state = initial;
++}
++
++/* Call only after all encoded command bytes were transmitted successfully. */
++static inline int wmt_full_sent(struct wmt_full_state *state, unsigned int sequence)
++{
++	if (!state || state->active ||
++	    stp_full_link_sent(&state->transport, sequence, state->transport.local_ack))
++		return -1;
++	state->active = 1;
++	state->sent_sequence = sequence;
++	state->acknowledged = 0;
++	state->event_seen = 0;
++	return 0;
++}
++
++/*
++ * Immutable expected reply, valid throughout the serialized IRQ exchange.
++ * The first prefix bytes must match exactly; the rest are captured as sent.
++ */
++struct wmt_full_expect {
++	const struct wmt_full_state *state;
++	const unsigned char *payload;
++	unsigned int prefix, length;
++};
++
++static inline int wmt_full_event(void *context, const unsigned char *payload,
++				 unsigned int length)
++{
++	const struct wmt_full_expect *expected = context;
++	unsigned int i;
++
++	if (!expected->payload || expected->state->event_seen ||
++	    length > WMT_FULL_MAX_PAYLOAD || expected->prefix > length)
++		return -1;
++	/* Length 0: a WMT event of any size whose own length field is exact. */
++	if (expected->length ? length != expected->length :
++	    length < 4 || (unsigned int)(payload[2] | payload[3] << 8) != length - 4)
++		return -1;
++	for (i = 0; i < expected->prefix; i++)
++		if (payload[i] != expected->payload[i])
++			return -1;
++	return 0;
++}
++
++/*
++ * One reply on one ordinary task, routed before committing shared link credit.
++ * WMT keeps its exact whole-event match through wmt_full_receive().
++ */
++static inline int wmt_full_receive_task(struct wmt_full_state *state,
++					const unsigned char *frame, unsigned int bytes,
++					unsigned int task, const unsigned char *expected,
++					unsigned int prefix, unsigned int expected_length)
++{
++	struct wmt_full_expect event = { state, expected, prefix, expected_length };
++	struct stp_full_client client = {
++		.task = task, .receive = wmt_full_event, .context = &event,
++	};
++	struct stp_full_link next;
++	struct stp_full_frame received;
++	int kind;
++
++	if (!state || !state->active)
++		return -1;
++	next = state->transport;
++	kind = stp_full_task_receive(&next, frame, bytes, &client, 1, &received);
++	if (kind < 0 || kind == 2)
++		return -1;
++	if (received.acknowledgment != state->transport.peer_ack &&
++	    received.acknowledgment != state->sent_sequence)
++		return -1;
++	state->transport = next;
++	if (state->transport.peer_ack == state->sent_sequence)
++		state->acknowledged = 1;
++	if (kind)
++		state->event_seen = 1;
++	return kind;
++}
++
++static inline int wmt_full_receive(struct wmt_full_state *state,
++				   const unsigned char *frame, unsigned int bytes,
++				   const unsigned char *expected,
++				   unsigned int expected_length)
++{
++	return wmt_full_receive_task(state, frame, bytes, STP_FULL_TASK_WMT,
++				     expected, expected_length, expected_length);
++}
++
++/* Call only after the four-byte host ACK was transmitted completely. */
++static inline int wmt_full_ack_sent(struct wmt_full_state *state, unsigned int ack)
++{
++	if (!state || !state->active || ack != state->transport.local_ack)
++		return -1;
++	return stp_full_link_ack_sent(&state->transport, ack);
++}
++
++static inline int wmt_full_finish(struct wmt_full_state *state)
++{
++	if (!state || !state->active || !state->acknowledged ||
++	    !state->event_seen || state->transport.ack_owed)
++		return -1;
++	state->active = 0;
++	return 0;
++}
++
++/* Persistent caller storage; decoded payload aliases this buffer. Consume the
++ * completed frame before initializing for the next frame. No resynchronization.
++ */
++struct wmt_full_stream {
++	unsigned char frame[WMT_FULL_MAX_FRAME];
++	unsigned int used, needed;
++	int terminal;
++};
++
++static inline void wmt_full_stream_init(struct wmt_full_stream *stream)
++{
++	stream->used = 0;
++	stream->needed = 4;
++	stream->terminal = 0;
++}
++
++/* 0: incomplete, 1: ACK, 2: data, -1: terminal refusal. Data must carry the
++ * caller's single expected task. The owner also limits aggregate bytes, frame
++ * count, IRQ work and elapsed time across exchanges.
++ */
++static inline int stp_task_stream_byte(struct wmt_full_stream *stream,
++				       unsigned int task, unsigned char byte,
++				       struct wmt_full_frame *result)
++{
++	struct stp_full_frame decoded;
++	unsigned int length;
++	int kind;
++
++	if (!stream || !result || (task != STP_FULL_TASK_WMT && task != STP_FULL_TASK_BT))
++		return -1;
++	if (stream->terminal || stream->used >= sizeof(stream->frame))
++		goto refuse;
++	stream->frame[stream->used++] = byte;
++	if (stream->used == 4) {
++		const unsigned char *h = stream->frame;
++
++		length = ((h[1] & 15) << 8) | h[2];
++		if ((h[0] & 0xc0) != 0x80 || (h[1] & 0x80) ||
++		    ((h[0] + h[1] + h[2]) & 255) != h[3] ||
++		    length > WMT_FULL_MAX_PAYLOAD ||
++		    (!length && h[1]) || (length && ((h[1] >> 4) & 7) != task))
++			goto refuse;
++		stream->needed = length ? length + 6 : 4;
++	}
++	if (stream->used < stream->needed)
++		return 0;
++	kind = stp_full_decode(stream->frame, stream->used, &decoded);
++	if (kind < 0 || decoded.length > WMT_FULL_MAX_PAYLOAD ||
++	    (kind && decoded.task != task))
++		goto refuse;
++	result->sequence = decoded.sequence;
++	result->acknowledgment = decoded.acknowledgment;
++	result->length = decoded.length;
++	result->payload = decoded.payload;
++	stream->terminal = 1;
++	return kind + 1;
++refuse:
++	stream->terminal = -1;
++	return -1;
++}
++
++static inline int wmt_full_stream_byte(struct wmt_full_stream *stream,
++				       unsigned char byte, struct wmt_full_frame *result)
++{
++	return stp_task_stream_byte(stream, STP_FULL_TASK_WMT, byte, result);
++}
++
++#define WMT_FULL_TX_OBSERVATIONS 256U
++
++/* Caller owns immutable encoded bytes throughout this span. Serial access;
++ * no MMIO, retries, timers or IRQ masking are performed by this helper.
++ */
++struct wmt_full_tx {
++	const unsigned char *frame;
++	unsigned int length, written, offered, observations;
++	int retired;
++};
++
++/* Any ordinary-task full-STP frame or ACK; the caller selects the task. */
++static inline int wmt_full_tx_init(struct wmt_full_tx *tx,
++				   const unsigned char *frame, unsigned int length)
++{
++	struct stp_full_frame decoded;
++	struct wmt_full_tx initial = { .frame = frame, .length = length };
++
++	if (!tx || stp_full_decode(frame, length, &decoded) < 0 ||
++	    decoded.length > WMT_FULL_MAX_PAYLOAD)
++		return -1;
++	*tx = initial;
++	return 0;
++}
++
++static inline int wmt_full_tx_done(const struct wmt_full_tx *tx)
++{
++	return tx && !tx->retired && !tx->offered && tx->written == tx->length;
++}
++
++/* Fresh, normal-bank LSR observation for exactly one batch. Caller checks its
++ * deadline under the ownership lock and supplies the corresponding expiry.
++ * Returns offered bytes, zero for no room/completion, or terminal -1.
++ */
++static inline int wmt_full_tx_batch(struct wmt_full_tx *tx, unsigned int lsr,
++				    int expired, const unsigned char **bytes)
++{
++	unsigned int room, remaining;
++
++	if (!tx || !bytes)
++		return -1;
++	if (tx->retired || tx->offered || expired)
++		goto retire;
++	if (wmt_full_tx_done(tx))
++		return 0;
++	if (tx->observations == WMT_FULL_TX_OBSERVATIONS)
++		goto retire;
++	tx->observations++;
++	room = lsr & 0x40 ? 16 : lsr & 0x20 ? 8 : 0;
++	if (!room)
++		return 0;
++	remaining = tx->length - tx->written;
++	tx->offered = remaining < room ? remaining : room;
++	*bytes = tx->frame + tx->written;
++	return tx->offered;
++retire:
++	tx->retired = 1;
++	return -1;
++}
++
++/* Report actual THR writes once. Partial or late completion preserves its byte
++ * count but retires without claiming command submission or replaying a suffix.
++ */
++static inline int wmt_full_tx_commit(struct wmt_full_tx *tx,
++				     unsigned int actual, int expired)
++{
++	if (!tx)
++		return -1;
++	if (tx->retired || !tx->offered || actual > tx->offered) {
++		tx->retired = 1;
++		return -1;
++	}
++	tx->written += actual;
++	if (actual != tx->offered || expired) {
++		tx->retired = 1;
++		return -1;
++	}
++	tx->offered = 0;
++	return 0;
++}
++
++/* Fixed mandatory-mode set request. The selected mandatory TX path does not
++ * increment its debug sequence; full-mode enable separately reseeds state.
++ * No register, mode, clock, IRQ or transport operations are performed here.
++ */
++static const unsigned char wmt_stp_set_options[15] = {
++	0x80, 0x40, 0x09, 0x00, 0x01, 0x04, 0x05, 0x00,
++	0x03, 0xdf, 0x0e, 0x68, 0x01, 0x00, 0x00
++};
++
++/* Payloads for the existing full-STP codec/owner after the checked set event,
++ * admitted full-mode boundary, sequence initialization and switch delay.
++ */
++static const unsigned char wmt_stp_full_query[5] = {
++	0x01, 0x04, 0x01, 0x00, 0x04
++};
++
++static const unsigned char wmt_stp_full_options[10] = {
++	0x02, 0x04, 0x06, 0x00, 0x00, 0x04, 0xdf, 0x0e, 0x68, 0x01
++};
++
++struct wmt_stp_set_reply {
++	unsigned int received;
++	int failed;
++};
++
++/* One consumed byte: 1 complete, 0 incomplete, -1 failed. Caller enforces
++ * finite byte/time/IRQ budgets and retires on refusal or extra input.
++ */
++static inline int wmt_stp_set_reply_byte(struct wmt_stp_set_reply *reply,
++					 unsigned char byte)
++{
++	static const unsigned char suffix[11] = {
++		0x40, 0x06, 0x00, 0x02, 0x04, 0x02, 0x00, 0x00,
++		0x03, 0x00, 0x00
++	};
++
++	if (!reply || reply->failed)
++		return -1;
++	if (reply->received >= 12) {
++		reply->failed = 1;
++		return -1;
++	}
++	if (reply->received ? byte != suffix[reply->received - 1] :
++	    !(byte & 0x80)) {
++		reply->failed = 1;
++		return -1;
++	}
++	reply->received++;
++	return reply->received == 12;
++}
++
++/* Fixed mandatory-STP WMT query; no register or transport operations. */
++static const unsigned char wmt_default_query[11] = {
++	0x80, 0x40, 0x05, 0x00, 0x01, 0x04, 0x01, 0x00, 0x04, 0x00, 0x00
++};
++
++struct wmt_default_reply {
++	unsigned int received;
++	int failed;
++};
++
++/* Feed exactly one consumed byte. 1 means complete, 0 incomplete, -1 failed.
++ * Caller owns deadline, read budget and single-use transport lifetime.
++ */
++static inline int wmt_default_reply_byte(struct wmt_default_reply *reply,
++					 unsigned char byte)
++{
++	static const unsigned char suffix[15] = {
++		0x40, 0x0a, 0x00, 0x02, 0x04, 0x06, 0x00, 0x00,
++		0x04, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00
++	};
++
++	if (!reply || reply->failed || reply->received >= 16)
++		return -1;
++	if (reply->received ? byte != suffix[reply->received - 1] :
++	    !(byte & 0x80)) {
++		reply->failed = 1;
++		return -1;
++	}
++	reply->received++;
++	return reply->received == 16;
++}
++
++#define WMT_BTIF_IER		0x04
++#define WMT_BTIF_IIR		0x08
++#define WMT_BTIF_FAKELCR		0x0c
++#define WMT_BTIF_LSR		0x14
++#define WMT_BTIF_DMA_EN		0x4c
++#define WMT_BTIF_TRI_LVL		0x60
++#define WMT_BTIF_HANDSHAKE	0x6c
++#define WMT_BTIF_RX_CAUSE	0x44
++#define WMT_BTIF_IRQ_BUDGET	32
++#define WMT_BTIF_RX_BUDGET	17
++
++/* Zero-initialized CONSYS storage; never stack allocated or reused. */
++struct mt6797_wmt_query {
++	void __iomem *btif;
++	void __iomem *dma_tx;
++	void __iomem *dma_rx;
++	struct clk *btif_clk;
++	struct clk *dma_clk;
++	struct completion done;
++	/* Serializes TX commit, RX terminal state and timeout retirement. */
++	spinlock_t lock;
++	struct wmt_default_reply reply;
++	unsigned int irq_count;
++	unsigned int rx_count;
++	unsigned char received[WMT_BTIF_RX_BUDGET];
++	unsigned long deadline;
++	bool deadline_supplied;
++	int irq;
++	int result;
++	bool attempted;
++	bool tx_written;
++	bool terminal;
++	bool clocks_held;
++	bool btif_clock_held;
++};
++
++/* No reset, stop, flush, descriptor, interrupt-ack or DMA-enable writes. */
++static bool mt6797_wmt_dma_idle(void __iomem *base)
++{
++	return !readl(base + 0x08) && !readl(base + 0x10) &&
++	       !readl(base + 0x14) && !readl(base + 0x38) &&
++	       !readl(base + 0x3c);
++}
++
++/* Called with the lock held and an installed, enabled exclusive IRQ. */
++static void mt6797_wmt_query_finish(struct mt6797_wmt_query *query, int result)
++{
++	writel(0, query->btif + WMT_BTIF_IER);
++	query->result = result;
++	query->terminal = true;
++	disable_irq_nosync(query->irq);
++	complete(&query->done);
++}
++
++static irqreturn_t mt6797_wmt_query_irq(int irq, void *data)
++{
++	struct mt6797_wmt_query *query = data;
++	unsigned long flags;
++	unsigned int iir;
++	int parsed;
++
++	if (irq != query->irq)
++		return IRQ_NONE;
++	spin_lock_irqsave(&query->lock, flags);
++	if (query->terminal)
++		goto out;
++	if (!query->tx_written) {
++		mt6797_wmt_query_finish(query, -EBUSY);
++		goto out;
++	}
++	if (++query->irq_count >= WMT_BTIF_IRQ_BUDGET ||
++	    time_after_eq(jiffies, query->deadline)) {
++		mt6797_wmt_query_finish(query, -ETIMEDOUT);
++		goto out;
++	}
++	iir = readl(query->btif + WMT_BTIF_IIR);
++	if (!(iir & WMT_BTIF_RX_CAUSE)) {
++		mt6797_wmt_query_finish(query, -EPROTO);
++		goto out;
++	}
++	while (iir & WMT_BTIF_RX_CAUSE) {
++		if (query->rx_count == WMT_BTIF_RX_BUDGET) {
++			mt6797_wmt_query_finish(query, -EOVERFLOW);
++			goto out;
++		}
++		query->received[query->rx_count++] = readb(query->btif);
++		parsed = wmt_default_reply_byte(&query->reply,
++						query->received[query->rx_count - 1]);
++		if (parsed < 0) {
++			mt6797_wmt_query_finish(query, -EPROTO);
++			goto out;
++		}
++		iir = readl(query->btif + WMT_BTIF_IIR);
++		if (parsed) {
++			/* A queued extra byte is a failure; never consume or resync it. */
++			parsed = iir & WMT_BTIF_RX_CAUSE ? -EOVERFLOW : 0;
++			mt6797_wmt_query_finish(query, parsed);
++			goto out;
++		}
++	}
++out:
++	spin_unlock_irqrestore(&query->lock, flags);
++	return IRQ_HANDLED;
++}
++
++/*
++ * Reproduce the selected source's four aliased IIR/FIFOCTRL operations.
++ * These reads are interrupt identifiers, never control-value readbacks.
++ * Register-table bit assignments conflict; this needs explicit admission.
++ */
++static void mt6797_wmt_fifo_clear(void __iomem *base)
++{
++	writel(readl(base + WMT_BTIF_IIR) | BIT(1), base + WMT_BTIF_IIR);
++	writel(readl(base + WMT_BTIF_IIR) & ~BIT(1), base + WMT_BTIF_IIR);
++	writel(readl(base + WMT_BTIF_IIR) | BIT(2), base + WMT_BTIF_IIR);
++	writel(readl(base + WMT_BTIF_IIR) & ~BIT(2), base + WMT_BTIF_IIR);
++}
++
++/*
++ * Caller holds the shared CONSYS lock, after fresh power/reset release and
++ * before HIF or a sleep command. No transport retry or shutdown is attempted.
++ * After any clock enable, retain acquired clocks for reviewed system recovery.
++ */
++static int mt6797_wmt_query_setup(struct mt6797_wmt_query *query)
++{
++	unsigned int dma;
++	int ret;
++
++	if (query->attempted)
++		return -EALREADY;
++	query->attempted = true;
++	init_completion(&query->done);
++	spin_lock_init(&query->lock);
++	query->result = -ETIMEDOUT;
++	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
++		return -ETIMEDOUT;
++
++	ret = clk_prepare_enable(query->dma_clk);
++	if (ret)
++		return ret;
++	query->clocks_held = true;
++	if (!mt6797_wmt_dma_idle(query->dma_tx) ||
++	    !mt6797_wmt_dma_idle(query->dma_rx))
++		return -EBUSY;
++	ret = clk_prepare_enable(query->btif_clk);
++	if (ret)
++		return ret;
++	query->btif_clock_held = true;
++
++	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
++		return -ETIMEDOUT;
++
++	/* Normal bank first; reject nonempty FIFOs before any clear. */
++	writel(0, query->btif + WMT_BTIF_FAKELCR);
++	if ((readl(query->btif + WMT_BTIF_LSR) & 0x41) != 0x40)
++		return -EBUSY;
++	/* One admitted timeout acknowledgment if auto-reset was off. */
++	dma = readl(query->btif + WMT_BTIF_DMA_EN);
++	if (dma & (BIT(0) | BIT(1)))
++		return -EBUSY;
++	writel(0, query->btif + WMT_BTIF_IER);
++	writel(readl(query->btif + WMT_BTIF_HANDSHAKE) | BIT(0),
++	       query->btif + WMT_BTIF_HANDSHAKE);
++	mt6797_wmt_fifo_clear(query->btif);
++	writel(0x18, query->btif + WMT_BTIF_TRI_LVL);
++	/* Preserve other fields; requests already proved off. */
++	writel(dma | BIT(2), query->btif + WMT_BTIF_DMA_EN);
++	if ((readl(query->btif + WMT_BTIF_LSR) & 0x61) != 0x60)
++		return -EBUSY;
++
++	return 0;
++}
++
++static int mt6797_wmt_query_once(struct mt6797_wmt_query *query)
++{
++	unsigned long flags;
++	unsigned int i;
++	unsigned long now, remaining;
++	int ret;
++
++	ret = mt6797_wmt_query_setup(query);
++	if (ret)
++		return ret;
++
++	ret = request_irq(query->irq, mt6797_wmt_query_irq, IRQF_NO_AUTOEN,
++			  "mt6797-wmt-query", query);
++	if (ret)
++		return ret;
++	if (!query->deadline_supplied)
++		query->deadline = jiffies + msecs_to_jiffies(500);
++	/* RX only, as in the revision-matched PIO path. */
++	writel(BIT(0), query->btif + WMT_BTIF_IER);
++	if (readl(query->btif + WMT_BTIF_IIR) & WMT_BTIF_RX_CAUSE) {
++		ret = -EBUSY;
++		goto stop;
++	}
++
++	/* Arm RX first. The full 11-byte request fits the empty 16-byte TX FIFO. */
++	enable_irq(query->irq);
++	spin_lock_irqsave(&query->lock, flags);
++	if (!query->terminal && time_after_eq(jiffies, query->deadline))
++		mt6797_wmt_query_finish(query, -ETIMEDOUT);
++	if (!query->terminal) {
++		for (i = 0; i < sizeof(wmt_default_query); i++)
++			writeb(wmt_default_query[i], query->btif);
++		query->tx_written = true;
++	}
++	spin_unlock_irqrestore(&query->lock, flags);
++	now = jiffies;
++	remaining = time_before(now, query->deadline) ? query->deadline - now : 0;
++	wait_for_completion_timeout(&query->done, remaining);
++	/* Synchronize before reading result or releasing handler storage. */
++	disable_irq(query->irq);
++	spin_lock_irqsave(&query->lock, flags);
++	ret = query->terminal ? query->result : -ETIMEDOUT;
++	query->terminal = true;
++	spin_unlock_irqrestore(&query->lock, flags);
++stop:
++	writel(0, query->btif + WMT_BTIF_IER);
++	free_irq(query->irq, query);
++	return ret;
++}
++
++#define WMT_FULL_IO_SERVICES 512U
++#define WMT_SET_IO_SERVICES 32U
++#define WMT_SET_IO_RX_BYTES 13U
++#define WMT_FULL_IO_RX_QUOTA 8U
++#define WMT_FULL_IO_FRAMES 8U
++#define WMT_FULL_IO_RX_BYTES (WMT_FULL_MAX_FRAME + 32U)
++
++/* CONSYS-owned persistent storage, never stack allocated. Caller establishes
++ * full mode, clocks, DMA exclusion, normal bank and exclusive IRQ availability.
++ * The wrapper owns registration; resource setup/admission has no kernel caller.
++ */
++struct mt6797_wmt_full_io {
++	void __iomem *btif;
++	struct wmt_full_state *link;
++	struct wmt_full_stream stream;
++	struct wmt_full_tx tx;
++	struct wmt_stp_set_reply set_reply;
++	int mandatory_set;
++	unsigned char command[WMT_FULL_MAX_FRAME], ack[4];
++	unsigned char received[WMT_FULL_IO_RX_BYTES];
++	const unsigned char *expected;
++	unsigned int task, prefix;
++	unsigned int expected_length, rx_count, consumed, frames, services, tx_count;
++	unsigned int last_iir, no_source_services;
++	unsigned long deadline;
++	/* Serializes FIFO progress, terminal state and process timeout. */
++	spinlock_t lock;
++	struct completion done;
++	int irq, ack_phase, sent, terminal, result, prepared, irq_armed;
++};
++
++/* No effects; caller provides fresh/synchronized storage and an inactive link.
++ * Expected reply storage remains immutable throughout this command lifetime.
++ * The reply must have expected_length bytes and match its first prefix bytes.
++ * expected_length 0 admits a WMT event of any size whose length field matches;
++ * its prefix covers at most the four-byte WMT header.
++ */
++static int mt6797_stp_task_prepare(struct mt6797_wmt_full_io *io,
++				   void __iomem *btif, int irq, struct wmt_full_state *link,
++				   unsigned int task,
++				   const unsigned char *command, unsigned int length,
++				   const unsigned char *expected, unsigned int prefix,
++				   unsigned int expected_length, unsigned long deadline)
++{
++	int bytes;
++
++	if (!io || !btif || irq <= 0 || !link || link->active || !command || !length ||
++	    length > WMT_FULL_MAX_PAYLOAD || !expected ||
++	    expected_length > WMT_FULL_MAX_PAYLOAD || !prefix ||
++	    prefix > (expected_length ? expected_length : 4) ||
++	    (!expected_length && task != STP_FULL_TASK_WMT) ||
++	    (task != STP_FULL_TASK_WMT &&
++					task != STP_FULL_TASK_BT))
++		return -EINVAL;
++	if (io->prepared && (!io->terminal || io->result))
++		return -EBUSY;
++	memset(io, 0, sizeof(*io));
++	io->prepared = 1;
++	io->btif = btif;
++	io->irq = irq;
++	io->link = link;
++	io->expected = expected;
++	io->task = task;
++	io->prefix = prefix;
++	io->expected_length = expected_length;
++	io->deadline = deadline;
++	init_completion(&io->done);
++	spin_lock_init(&io->lock);
++	wmt_full_stream_init(&io->stream);
++	bytes = stp_full_encode(io->command, sizeof(io->command), command, length,
++				task, link->transport.tx_next, link->transport.local_ack);
++	if (bytes < 0)
++		return -EINVAL;
++	return wmt_full_tx_init(&io->tx, io->command, bytes) ? -EINVAL : 0;
++}
++
++/* Exact whole-event WMT command; unchanged contract for existing callers. */
++static int mt6797_wmt_full_prepare(struct mt6797_wmt_full_io *io,
++				   void __iomem *btif, int irq, struct wmt_full_state *link,
++				   const unsigned char *command, unsigned int length,
++				   const unsigned char *expected, unsigned int expected_length,
++				   unsigned long deadline)
++{
++	return mt6797_stp_task_prepare(io, btif, irq, link, STP_FULL_TASK_WMT,
++				       command, length, expected, expected_length,
++				       expected_length, deadline);
++}
++
++/* Fixed next mandatory exchange only, after a successful initial query.
++ * The owner proves retained clocks, DMA exclusion, empty RX/TX and normal bank.
++ * Separate persistent storage preserves both command records across the switch.
++ * No clock setup, mode change or FIFO clear occurs here.
++ */
++static int mt6797_wmt_set_prepare(struct mt6797_wmt_full_io *io,
++				  void __iomem *btif, int irq, unsigned long deadline)
++{
++	if (!io || !btif || irq <= 0)
++		return -EINVAL;
++	if (io->prepared)
++		return -EBUSY;
++	memset(io, 0, sizeof(*io));
++	io->prepared = 1;
++	io->mandatory_set = 1;
++	io->btif = btif;
++	io->irq = irq;
++	io->deadline = deadline;
++	init_completion(&io->done);
++	spin_lock_init(&io->lock);
++	memcpy(io->command, wmt_stp_set_options, sizeof(wmt_stp_set_options));
++	/* The fixed source-checked mandatory frame has no full-STP CRC/checksum.
++	 * Reuse byte accounting, not the full-frame validator at TX initialization.
++	 */
++	io->tx.frame = io->command;
++	io->tx.length = sizeof(wmt_stp_set_options);
++	return 0;
++}
++
++/* Caller holds the same lock used by IRQ progress. Resources remain retained;
++ * caller synchronizes/frees the IRQ only after evidence and terminal state.
++ */
++static void mt6797_wmt_full_retire(struct mt6797_wmt_full_io *io, int result)
++{
++	if (io->terminal)
++		return;
++	writel(0, io->btif + 4);
++	io->result = result;
++	io->terminal = 1;
++	if (io->irq_armed) {
++		disable_irq_nosync(io->irq);
++		io->irq_armed = 0;
++	}
++	complete(&io->done);
++}
++
++static int mt6797_wmt_full_tx_progress(struct mt6797_wmt_full_io *io)
++{
++	const unsigned char *bytes;
++	unsigned int actual = 0, lsr;
++	int offered;
++
++	if (wmt_full_tx_done(&io->tx))
++		return 0;
++	if (time_after_eq(jiffies, io->deadline))
++		return -ETIMEDOUT;
++	lsr = readl(io->btif + 0x14);
++	offered = wmt_full_tx_batch(&io->tx, lsr,
++				    time_after_eq(jiffies, io->deadline), &bytes);
++	if (offered < 0)
++		return -ETIMEDOUT;
++	while (actual < (unsigned int)offered) {
++		if (time_after_eq(jiffies, io->deadline))
++			break;
++		writeb(bytes[actual++], io->btif);
++		io->tx_count++;
++	}
++	if (offered && wmt_full_tx_commit(&io->tx, actual,
++					  time_after_eq(jiffies, io->deadline)))
++		return -ETIMEDOUT;
++	return 0;
++}
++
++/* One bounded service, caller holds lock. Initial kick occurs with CPU IRQ
++ * disabled after reviewed empty-RX/setup checks. Subsequent calls are IRQs.
++ * Per-service RX quota gives TX an opportunity despite continuously pending RX.
++ */
++static void mt6797_wmt_full_service(struct mt6797_wmt_full_io *io, int initial)
++{
++	struct wmt_full_frame frame;
++	unsigned int iir, quota = 0;
++	int ret, parsed;
++
++	if (io->terminal)
++		return;
++	if (time_after_eq(jiffies, io->deadline) ||
++	    io->services == (io->mandatory_set ? WMT_SET_IO_SERVICES :
++			    WMT_FULL_IO_SERVICES)) {
++		mt6797_wmt_full_retire(io, -ETIMEDOUT);
++		return;
++	}
++	if (initial && io->services) {
++		mt6797_wmt_full_retire(io, -EPROTO);
++		return;
++	}
++	if (initial && io->mandatory_set &&
++	    (readl(io->btif + 0x14) & 0x61) != 0x60) {
++		mt6797_wmt_full_retire(io, -EBUSY);
++		return;
++	}
++	io->services++;
++	iir = readl(io->btif + 8);
++	io->last_iir = iir;
++	/* An already-delivered IRQ can outlive its FIFO source. It conveys no
++	 * bytes or protocol event. Keep the same service/deadline budget and
++	 * wait for a pending source; never retransmit or fabricate progress.
++	 */
++	if (!initial && (iir & 0x47) == 1) {
++		io->no_source_services++;
++		return;
++	}
++	if ((initial && (iir & 0x44)) || (!initial && !(iir & 0x46))) {
++		mt6797_wmt_full_retire(io, -EPROTO);
++		return;
++	}
++	while ((iir & 0x44) && quota < WMT_FULL_IO_RX_QUOTA) {
++		if (io->rx_count == (io->mandatory_set ? WMT_SET_IO_RX_BYTES :
++				     sizeof(io->received))) {
++			mt6797_wmt_full_retire(io, -EOVERFLOW);
++			return;
++		}
++		if (time_after_eq(jiffies, io->deadline)) {
++			mt6797_wmt_full_retire(io, -ETIMEDOUT);
++			return;
++		}
++		io->received[io->rx_count++] = readb(io->btif);
++		quota++;
++		iir = readl(io->btif + 8);
++	}
++	ret = mt6797_wmt_full_tx_progress(io);
++	if (ret)
++		goto fail;
++	if (!io->sent && wmt_full_tx_done(&io->tx)) {
++		if (!io->mandatory_set &&
++		    wmt_full_sent(io->link, (io->command[0] >> 3) & 7)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		io->sent = 1;
++		writel(1, io->btif + 4);
++	}
++	if (!io->sent)
++		return;
++	if (io->mandatory_set) {
++		while (io->consumed < io->rx_count) {
++			if (time_after_eq(jiffies, io->deadline)) {
++				ret = -ETIMEDOUT;
++				goto fail;
++			}
++			parsed = wmt_stp_set_reply_byte(&io->set_reply,
++							io->received[io->consumed++]);
++			if (parsed < 0) {
++				ret = -EPROTO;
++				goto fail;
++			}
++			if (!parsed)
++				continue;
++			if (io->consumed != io->rx_count ||
++			    (readl(io->btif + 8) & 0x44)) {
++				ret = -EPROTO;
++				goto fail;
++			}
++			if (time_after_eq(jiffies, io->deadline)) {
++				ret = -ETIMEDOUT;
++				goto fail;
++			}
++			io->frames = 1;
++			mt6797_wmt_full_retire(io, 0);
++			return;
++		}
++		return;
++	}
++	while (io->consumed < io->rx_count) {
++		if (time_after_eq(jiffies, io->deadline)) {
++			ret = -ETIMEDOUT;
++			goto fail;
++		}
++		parsed = stp_task_stream_byte(&io->stream, io->task,
++					      io->received[io->consumed++], &frame);
++		if (parsed < 0 || (parsed && io->frames == WMT_FULL_IO_FRAMES)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		if (!parsed)
++			continue;
++		io->frames++;
++		if (wmt_full_receive_task(io->link, io->stream.frame,
++					  io->stream.used, io->task, io->expected,
++					  io->prefix, io->expected_length) < 0) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		wmt_full_stream_init(&io->stream);
++	}
++	/* Once both reply and peer credit are known, further input is unexpected.
++	 * Refuse it before adding host ACK writes to a failed lifetime.
++	 */
++	if (io->link->acknowledged && io->link->event_seen &&
++	    (io->stream.used || (readl(io->btif + 8) & 0x44))) {
++		ret = -EPROTO;
++		goto fail;
++	}
++	if (io->link->transport.ack_owed && !io->ack_phase) {
++		if (wmt_full_ack(io->ack, sizeof(io->ack),
++				 io->link->transport.local_ack) != 4 ||
++		    wmt_full_tx_init(&io->tx, io->ack, sizeof(io->ack))) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		io->ack_phase = 1;
++		writel(3, io->btif + 4);
++	}
++	if (io->ack_phase && io->link->transport.ack_owed) {
++		ret = mt6797_wmt_full_tx_progress(io);
++		if (ret)
++			goto fail;
++		if (wmt_full_tx_done(&io->tx)) {
++			if (wmt_full_ack_sent(io->link, io->link->transport.local_ack)) {
++				ret = -EPROTO;
++				goto fail;
++			}
++			writel(1, io->btif + 4);
++		}
++	}
++	if (io->link->acknowledged && io->link->event_seen &&
++	    !io->link->transport.ack_owed) {
++		/* Refuse queued or partial extra data before successful retirement. */
++		if (io->stream.used || (readl(io->btif + 8) & 0x44)) {
++			ret = -EPROTO;
++			goto fail;
++		}
++		if (time_after_eq(jiffies, io->deadline)) {
++			ret = -ETIMEDOUT;
++			goto fail;
++		}
++		ret = wmt_full_finish(io->link) ? -EPROTO : 0;
++		mt6797_wmt_full_retire(io, ret);
++	}
++	return;
++fail:
++	mt6797_wmt_full_retire(io, ret);
++}
++
++static irqreturn_t mt6797_wmt_full_irq(int irq, void *data)
++{
++	struct mt6797_wmt_full_io *io = data;
++	unsigned long flags;
++
++	if (irq != io->irq)
++		return IRQ_NONE;
++	spin_lock_irqsave(&io->lock, flags);
++	mt6797_wmt_full_service(io, 0);
++	spin_unlock_irqrestore(&io->lock, flags);
++	return IRQ_HANDLED;
++}
++
++/* Process-context caller; exclusive resources and the selected transport mode are prerequisites.
++ * NO_AUTOEN owns the initial disabled depth. No other timeout/start caller may
++ * run concurrently. Evidence/storage and transport clocks outlive this call.
++ */
++static int mt6797_wmt_full_exchange(struct mt6797_wmt_full_io *io)
++{
++	unsigned long flags, now, remaining;
++	int ret;
++
++	if (!io || !io->prepared || io->services || io->terminal || io->irq_armed)
++		return -EINVAL;
++	ret = request_irq(io->irq, mt6797_wmt_full_irq, IRQF_NO_AUTOEN,
++			  "mt6797-wmt-full", io);
++	if (ret)
++		return ret;
++	spin_lock_irqsave(&io->lock, flags);
++	writel(3, io->btif + 4);
++	mt6797_wmt_full_service(io, 1);
++	if (!io->terminal)
++		io->irq_armed = 1;
++	spin_unlock_irqrestore(&io->lock, flags);
++	/* Only this process can retire between initial kick and CPU IRQ enable.
++	 * It does not start timeout retirement until after enable_irq returns.
++	 */
++	if (io->irq_armed) {
++		enable_irq(io->irq);
++		now = jiffies;
++		remaining = time_after_eq(now, io->deadline) ? 0 : io->deadline - now;
++		wait_for_completion_timeout(&io->done, remaining);
++		spin_lock_irqsave(&io->lock, flags);
++		if (!io->terminal)
++			mt6797_wmt_full_retire(io, -ETIMEDOUT);
++		spin_unlock_irqrestore(&io->lock, flags);
++	}
++	/* Handler may have completed while still holding its lock. Join it before
++	 * freeing the registration or allowing the caller to inspect/reuse data.
++	 */
++	synchronize_irq(io->irq);
++	ret = io->result;
++	free_irq(io->irq, io);
++	return ret;
++}
++
++#define WMT_NEGOTIATE_BUDGET_MS 1600U
++#define WMT_NEGOTIATE_EXCHANGE_MS 500U
++
++enum mt6797_wmt_phase {
++	WMT_PHASE_UNUSED,
++	WMT_PHASE_DEFAULT,
++	WMT_PHASE_SET,
++	WMT_PHASE_SWITCH,
++	WMT_PHASE_FULL,
++	WMT_PHASE_DONE,
++};
++
++/* Zeroed persistent CONSYS-owned storage. Caller fills the first query's exact
++ * mappings, clock handles and exclusive IRQ, after fresh power/reset release.
++ * Its shared owner lock serializes this entire lifetime. All records/resources
++ * survive failure for preservation and reviewed recovery, never stack allocated.
++ */
++struct mt6797_wmt_negotiate {
++	struct mt6797_wmt_query first;
++	struct mt6797_wmt_full_io set, full;
++	struct wmt_full_state link;
++	unsigned long deadline;
++	enum mt6797_wmt_phase phase;
++	int attempted, full_initialized, result;
++};
++
++static unsigned long mt6797_wmt_phase_deadline(struct mt6797_wmt_negotiate *owner)
++{
++	unsigned long end = jiffies + msecs_to_jiffies(WMT_NEGOTIATE_EXCHANGE_MS);
++
++	return time_before(owner->deadline, end) ? owner->deadline : end;
++}
++
++/* Software framing changes only at the checked set event. There is no mode
++ * register write, repeated FIFO clear, wake, patch, calibration or WLAN start.
++ */
++static int mt6797_wmt_negotiate_once(struct mt6797_wmt_negotiate *owner)
++{
++	int ret;
++
++	if (!owner || !owner->first.btif || !owner->first.dma_tx ||
++	    !owner->first.dma_rx || !owner->first.btif_clk ||
++	    !owner->first.dma_clk || owner->first.irq <= 0)
++		return -EINVAL;
++	if (owner->attempted || owner->first.attempted || owner->set.prepared ||
++	    owner->full.prepared)
++		return -EALREADY;
++	owner->attempted = 1;
++	owner->deadline = jiffies + msecs_to_jiffies(WMT_NEGOTIATE_BUDGET_MS);
++	owner->phase = WMT_PHASE_DEFAULT;
++	owner->first.deadline = mt6797_wmt_phase_deadline(owner);
++	owner->first.deadline_supplied = true;
++	ret = mt6797_wmt_query_once(&owner->first);
++	if (ret)
++		goto out;
++	if (!owner->first.clocks_held || owner->first.rx_count != 16 ||
++	    !owner->first.irq_count || owner->first.irq_count >= 32) {
++		ret = -EPROTO;
++		goto out;
++	}
++	if (time_after_eq(jiffies, owner->deadline)) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	owner->phase = WMT_PHASE_SET;
++	ret = mt6797_wmt_set_prepare(&owner->set, owner->first.btif,
++				     owner->first.irq, mt6797_wmt_phase_deadline(owner));
++	if (!ret)
++		ret = mt6797_wmt_full_exchange(&owner->set);
++	if (ret)
++		goto out;
++	if (time_after_eq(jiffies, owner->deadline)) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	owner->phase = WMT_PHASE_SWITCH;
++	wmt_full_state_init(&owner->link);
++	owner->full_initialized = 1;
++	/* Selected source delay, not a measured peer timing guarantee. */
++	usleep_range(10000, 11000);
++	if (time_after_eq(jiffies, owner->deadline)) {
++		ret = -ETIMEDOUT;
++		goto out;
++	}
++	owner->phase = WMT_PHASE_FULL;
++	ret = mt6797_wmt_full_prepare(&owner->full, owner->first.btif,
++				      owner->first.irq, &owner->link,
++				      wmt_stp_full_query, sizeof(wmt_stp_full_query),
++				      wmt_stp_full_options, sizeof(wmt_stp_full_options),
++				      mt6797_wmt_phase_deadline(owner));
++	if (!ret)
++		ret = mt6797_wmt_full_exchange(&owner->full);
++	if (!ret && time_after_eq(jiffies, owner->deadline))
++		ret = -ETIMEDOUT;
++	if (!ret)
++		owner->phase = WMT_PHASE_DONE;
++out:
++	owner->result = ret;
++	return ret;
++}
++
++struct wmt_rom_patch {
++	const unsigned char *body;
++	unsigned int length, sequence;
++	unsigned char address[4];
++};
++
++/* Selected retained pair only. Caller verifies exact full-file digest and
++ * applicability separately; metadata alone is not firmware authentication.
++ * Result aliases immutable input. Refusal leaves output unchanged.
++ */
++static inline int wmt_rom_patch_parse(const unsigned char *file, unsigned int bytes,
++				      unsigned int sequence, struct wmt_rom_patch *result)
++{
++	static const unsigned int lengths[] = { 46444, 210876 };
++	static const unsigned char addresses[][4] = {
++		{ 0, 0, 0x0a, 0xf0 }, { 0, 0, 9, 0 }
++	};
++	unsigned int i;
++
++	if (!file || !result || sequence < 1 || sequence > 2 ||
++	    bytes != lengths[sequence - 1] + 28 || file[24] != (0x20 | sequence))
++		return -1;
++	for (i = 1; i < 4; i++)
++		if (file[24 + i] != addresses[sequence - 1][i])
++			return -1;
++	result->body = file + 28;
++	result->length = bytes - 28;
++	result->sequence = sequence;
++	for (i = 0; i < 4; i++)
++		result->address[i] = addresses[sequence - 1][i];
++	return 0;
++}
++
++/* Construct one WMT payload, not an STP frame or a transfer. Input/output must
++ * be disjoint. Index is zero-based; caller advances only after checked event.
++ */
++static inline int wmt_rom_patch_fragment(const struct wmt_rom_patch *patch,
++					 unsigned int index, unsigned char *out,
++					 unsigned int capacity)
++{
++	unsigned int count, offset, length, i;
++
++	if (!patch || !patch->body || !patch->length || patch->length > 210876 || !out)
++		return -1;
++	count = (patch->length + 999) / 1000;
++	if (index >= count)
++		return -1;
++	offset = index * 1000;
++	length = patch->length - offset;
++	if (length > 1000)
++		length = 1000;
++	if (capacity < length + 5)
++		return -1;
++	out[0] = 1;
++	out[1] = 1;
++	out[2] = (length + 1) & 255;
++	out[3] = (length + 1) >> 8;
++	out[4] = index == count - 1 ? 3 : index == 0 ? 1 : 2;
++	for (i = 0; i < length; i++)
++		out[5 + i] = patch->body[offset + i];
++	return length + 5;
++}
++
++/* MT6797 selected pair: two addresses, body fragments, ordinary WMT reset,
++ * then the second patch. Constructor only; ordinal advances after a complete
++ * checked transport exchange, never on construction or partial submission.
++ * Caller supplies disjoint immutable inputs and separate command/event output.
++ */
++static inline int mt6797_wmt_rom_step(const struct wmt_rom_patch pair[2],
++				      unsigned int ordinal, unsigned char *out,
++				      unsigned int capacity, unsigned char expected[8],
++				      unsigned int *expected_length)
++{
++	static const unsigned int lengths[2] = { 46444, 210876 };
++	static const unsigned char addresses[2][4] = {
++		{ 0, 0, 10, 240 }, { 0, 0, 9, 0 }
++	};
++	unsigned int i, j, sequence, step, count, bytes, event_bytes;
++
++	if (!pair || !out || !expected || !expected_length || ordinal >= 264)
++		return -1;
++	for (i = 0; i < 2; i++) {
++		if (!pair[i].body || pair[i].sequence != i + 1 ||
++		    pair[i].length != lengths[i])
++			return -1;
++		for (j = 0; j < 4; j++)
++			if (pair[i].address[j] != addresses[i][j])
++				return -1;
++	}
++	sequence = ordinal < 50 ? 0 : 1;
++	step = sequence ? ordinal - 50 : ordinal;
++	count = (lengths[sequence] + 999) / 1000;
++	if (step < 2) {
++		if (capacity < 20)
++			return -1;
++		/* Opcode 8, one masked firmware register operation. */
++		out[0] = 1;
++		out[1] = 8;
++		out[2] = 16;
++		out[3] = 0;
++		out[4] = 1;
++		out[5] = 1;
++		out[6] = 0;
++		out[7] = 1;
++		out[8] = step ? 0x2c : 8;
++		out[9] = step ? 0x0b : 5;
++		out[10] = 9;
++		out[11] = 2;
++		for (i = 0; i < 4; i++) {
++			out[12 + i] = step ? pair[sequence].address[i] : 0;
++			out[16 + i] = 255;
++		}
++		bytes = 20;
++		event_bytes = 8;
++	} else if (step < count + 2) {
++		int result = wmt_rom_patch_fragment(&pair[sequence], step - 2, out, capacity);
++
++		if (result < 0)
++			return -1;
++		bytes = result;
++		event_bytes = 5;
++	} else {
++		if (capacity < 5)
++			return -1;
++		out[0] = 1;
++		out[1] = 7;
++		out[2] = 1;
++		out[3] = 0;
++		out[4] = 4;
++		bytes = 5;
++		event_bytes = 5;
++	}
++	expected[0] = 2;
++	expected[1] = out[1];
++	expected[2] = event_bytes - 4;
++	expected[3] = 0;
++	for (i = 4; i < event_bytes; i++)
++		expected[i] = 0;
++	if (event_bytes == 8)
++		expected[7] = 1;
++	*expected_length = event_bytes;
++	return bytes;
++}
++
++/*
++ * Fixed MT6797 (chip 0x0279) WMT common initialization after full-mode
++ * negotiation, in the selected vendor order: DLM power, MCU clock raise,
++ * both ROM patches each followed by a WMT reset, MCU clock restore, LTE
++ * coexistence, PA rails on, RF calibration, PA rails off, antenna mode.
++ * Crystal trim, co-clock, merged PCM and FM strap are not selected.
++ */
++enum wmt_init_kind {
++	WMT_INIT_EXCHANGE,
++	WMT_INIT_BT_RAIL_ON,
++	WMT_INIT_WIFI_RAIL_ON,
++	WMT_INIT_BT_RAIL_OFF,
++	WMT_INIT_WIFI_RAIL_OFF,
++};
++
++#define WMT_INIT_PRE 7U
++#define WMT_INIT_PATCH 264U
++#define WMT_INIT_POST 8U
++#define WMT_INIT_STEPS (WMT_INIT_PRE + WMT_INIT_PATCH + WMT_INIT_POST + 6U)
++#define WMT_INIT_CALIBRATION (WMT_INIT_PRE + WMT_INIT_PATCH + WMT_INIT_POST + 2U)
++
++struct wmt_init_step {
++	enum wmt_init_kind kind;
++	unsigned int length, prefix, expected_length;
++	unsigned char expected[8];
++};
++
++static const unsigned char wmt_init_reg_event[] = {
++	0x02, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x01,
++};
++
++static const unsigned char wmt_init_coex_event[] = { 0x02, 0x10, 0x01, 0x00, 0x00 };
++
++/* Masked firmware register writes: header, address, value, mask. */
++static const unsigned char wmt_init_reg[WMT_INIT_PRE + 3][12] = {
++	/* DLM power: 0x80100060 clear 0xf00, 0xf0, then 0x8. */
++	{ 0x60, 0x00, 0x10, 0x80, 0, 0, 0, 0, 0x00, 0x0f, 0x00, 0x00 },
++	{ 0x60, 0x00, 0x10, 0x80, 0, 0, 0, 0, 0xf0, 0x00, 0x00, 0x00 },
++	{ 0x60, 0x00, 0x10, 0x80, 0, 0, 0, 0, 0x08, 0x00, 0x00, 0x00 },
++	/* MCU clock raise: enable, ratio, divider, HCLK. */
++	{ 0x10, 0x11, 0x02, 0x81, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x10 },
++	{ 0x0c, 0x01, 0x00, 0x80, 0x40, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00 },
++	{ 0x18, 0x11, 0x02, 0x80, 0x07, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0x00 },
++	{ 0x00, 0x11, 0x02, 0x81, 0x04, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00 },
++	/* MCU clock restore: HCLK, ratio, enable. */
++	{ 0x00, 0x11, 0x02, 0x81, 0x00, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00 },
++	{ 0x0c, 0x01, 0x00, 0x80, 0x00, 0x00, 0x00, 0x00, 0xc0, 0x00, 0x00, 0x00 },
++	{ 0x10, 0x11, 0x02, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10 },
++};
++
++/* Selected LTE coexistence table for chip 0x0279, external component zero. */
++static const unsigned char wmt_init_lte_ext[] = {
++	0x01, 0x10, 0x03, 0x00, 0x0d, 0x00, 0x00,
++};
++
++static const unsigned char wmt_init_lte_filter[] = {
++	0x01, 0x10, 0x45, 0x00, 0x11, 0x00, 0x00, 0x01,
++	0x00, 0x11, 0x11, 0x16, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x63, 0x63, 0x63, 0x00, 0x39, 0x43, 0x63,
++	0x63, 0x02, 0x02, 0x03, 0x00, 0x01, 0x01, 0x01,
++	0x01, 0x0e, 0x0e, 0x0e, 0x00, 0x0a, 0x0c, 0x0e,
++	0x0e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
++};
++
++static const unsigned char wmt_init_lte_freq[] = {
++	0x01, 0x10, 0x21, 0x00, 0x12, 0xfc, 0x08, 0x15,
++	0x09, 0x2e, 0x09, 0x47, 0x09, 0xc4, 0x09, 0xd4,
++	0x09, 0xe3, 0x09, 0x5a, 0x0a, 0x14, 0x09, 0x2d,
++	0x09, 0x46, 0x09, 0x60, 0x09, 0xd3, 0x09, 0xe2,
++	0x09, 0x59, 0x0a, 0x8b, 0x0a,
++};
++
++static const unsigned char wmt_init_lte_unsafe[] = { 0x01, 0x10, 0x02, 0x00, 0x13, 0x00 };
++
++static const unsigned char wmt_init_lte_l[] = { 0x01, 0x10, 0x02, 0x00, 0x21, 0x01 };
++
++static const unsigned char wmt_init_calibration[] = { 0x01, 0x14, 0x01, 0x00, 0x01 };
++/* Vendor expects 02 14 02 00 00 01 but never compares content; capture both. */
++/* The event carries RF calibration data of firmware-defined size. */
++static const unsigned char wmt_init_calibration_prefix[] = { 0x02, 0x14 };
++
++static int wmt_init_copy(unsigned char *out, unsigned int capacity,
++			 const unsigned char *src, unsigned int length)
++{
++	unsigned int i;
++
++	if (capacity < length)
++		return -1;
++	for (i = 0; i < length; i++)
++		out[i] = src[i];
++	return length;
++}
++
++static void wmt_init_expect(struct wmt_init_step *step, const unsigned char *event,
++			    unsigned int prefix, unsigned int length)
++{
++	unsigned int i;
++
++	for (i = 0; i < prefix; i++)
++		step->expected[i] = event[i];
++	step->prefix = prefix;
++	step->expected_length = length;
++}
++
++/*
++ * Build step index into out/step. No effects; pair must be the two parsed,
++ * digest-checked ROM patches. Returns 0, or -1 with outputs unchanged.
++ */
++static inline int mt6797_wmt_init_step(const struct wmt_rom_patch pair[2],
++				       unsigned int antenna_mode, unsigned int index,
++				       unsigned char *out, unsigned int capacity,
++				       struct wmt_init_step *step)
++{
++	static const unsigned char *lte[] = {
++		wmt_init_lte_ext, wmt_init_lte_filter, wmt_init_lte_freq,
++		wmt_init_lte_unsafe, wmt_init_lte_l,
++	};
++	static const unsigned int lte_length[] = {
++		sizeof(wmt_init_lte_ext), sizeof(wmt_init_lte_filter),
++		sizeof(wmt_init_lte_freq), sizeof(wmt_init_lte_unsafe),
++		sizeof(wmt_init_lte_l),
++	};
++	struct wmt_init_step next = { .kind = WMT_INIT_EXCHANGE };
++	unsigned int i, base, reg, expected_length;
++	int bytes;
++
++	if (!pair || !out || !step || antenna_mode > 255 || index >= WMT_INIT_STEPS)
++		return -1;
++	if (index < WMT_INIT_PRE ||
++	    (index >= WMT_INIT_PRE + WMT_INIT_PATCH &&
++	     index < WMT_INIT_PRE + WMT_INIT_PATCH + 3)) {
++		reg = index < WMT_INIT_PRE ? index :
++			WMT_INIT_PRE + index - (WMT_INIT_PRE + WMT_INIT_PATCH);
++		if (capacity < 20)
++			return -1;
++		out[0] = 0x01;
++		out[1] = 0x08;
++		out[2] = 0x10;
++		out[3] = 0x00;
++		out[4] = 0x01;
++		out[5] = 0x01;
++		out[6] = 0x00;
++		out[7] = 0x01;
++		for (i = 0; i < 12; i++)
++			out[8 + i] = wmt_init_reg[reg][i];
++		bytes = 20;
++		wmt_init_expect(&next, wmt_init_reg_event, 8, 8);
++	} else if (index < WMT_INIT_PRE + WMT_INIT_PATCH) {
++		bytes = mt6797_wmt_rom_step(pair, index - WMT_INIT_PRE, out, capacity,
++					    next.expected, &expected_length);
++		if (bytes < 0)
++			return -1;
++		next.prefix = expected_length;
++		next.expected_length = expected_length;
++	} else {
++		base = index - (WMT_INIT_PRE + WMT_INIT_PATCH + 3);
++		if (base < 5) {
++			bytes = wmt_init_copy(out, capacity, lte[base], lte_length[base]);
++			wmt_init_expect(&next, wmt_init_coex_event, 5, 5);
++		} else if (base == 5 || base == 6 || base == 8 || base == 9) {
++			next.kind = base == 5 ? WMT_INIT_BT_RAIL_ON :
++				    base == 6 ? WMT_INIT_WIFI_RAIL_ON :
++				    base == 8 ? WMT_INIT_BT_RAIL_OFF :
++						WMT_INIT_WIFI_RAIL_OFF;
++			bytes = 0;
++		} else if (base == 7) {
++			bytes = wmt_init_copy(out, capacity, wmt_init_calibration,
++					      sizeof(wmt_init_calibration));
++			wmt_init_expect(&next, wmt_init_calibration_prefix, 2, 0);
++		} else {
++			if (capacity < 6)
++				return -1;
++			out[0] = 0x01;
++			out[1] = 0x10;
++			out[2] = 0x02;
++			out[3] = 0x00;
++			out[4] = 0x01;
++			out[5] = antenna_mode;
++			bytes = 6;
++			wmt_init_expect(&next, wmt_init_coex_event, 5, 5);
++		}
++		if (bytes < 0)
++			return -1;
++	}
++	next.length = bytes;
++	*step = next;
++	return 0;
++}
++
++#endif /* MT6797_WMT_H */
+-- 
+2.43.0
+
