@@ -109,6 +109,19 @@ disagree, the live capture wins.
   The vendor codec node carries two board knobs, `use_hp_depop_flow = <0>`
   and `use_ul_260k = <1>`
   ([`mt6797.dtsi` lines 2877–2881](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi#L2877-L2881)).
+  The parent switch is rate-driven: `SetDLSrc2()` calls `AudDrv_AUD_Sel(1)`
+  (that is, `top_sys_pll3_d4`) only for downlink rates >= 96 kHz
+  ([`mt_soc_afe_control.c` lines 1785–1793](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1785-L1793)),
+  and returns to `clk26m` on disable (line 2293). APLL1/APLL2 are enabled by
+  `EnableALLbySampleRate()` from `EnableAfe()` (lines 698–760, 1005–1035);
+  the live Gemian boot only logs `EnableApll1/2` around HDMI open/close, so
+  the ADDA path itself does not use them. High-rate capture instead sets the
+  hires NEWIF format and powers `AUDIO_TOP_CON1` bits 16/17
+  (`AudDrv_ADC_Hires_Clk_On`, `AudDrv_Clk.c` lines 861–902).
+  Mainline has two concrete defects there: an unconditional trailing write
+  puts `AFE_ADDA_NEWIF_CFG2` back on the 260 kHz divider after the hires
+  value, and the AFE never powers the hires gate. Proposals `0403` and
+  `0404` fix both and add the rate-driven `top_mux_audio` switch.
 - **F4. The codec digital interface uses five dedicated MT6797 pads, switched
   per direction.** `AUD_CLK_MOSI` (GPIO146, pin state commented out),
   `AUD_DAT_MISO` GPIO147, `AUD_DAT_MOSI` GPIO148, `VOW_CLK_MISO` GPIO149 and
@@ -505,8 +518,10 @@ Further offline closures from the same review:
   `mt6351-sound` child, the AFE is enabled, the board declares the
   `mediatek,mt6797-mt6351-sound` card, and `audio-routing` provides headphone,
   main/headset/back microphone and two-AW8736 speaker routes, and the two
-  amplifier mode pads get default GPIO pinmux states. Physical amplifier
-  population, jack wiring and the ACCDET driver remain. The
+  amplifier mode pads get default GPIO pinmux states. Proposals `0403` and
+  `0404` fix the high-rate ADDA divider and gate the AFE from `clk26m` to
+  `top_sys_pll3_d4` at 96 kHz and above. Physical amplifier population,
+  jack wiring and the ACCDET driver remain. The
   MT6351 ACCDET contract and driver plan are in
   `docs/hardware/mt6351-accdet.md`; the MT6359 driver is not reusable.
 - `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini

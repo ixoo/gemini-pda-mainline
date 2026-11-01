@@ -1,0 +1,158 @@
+From c6af4942b5c490fc26a4fa9d7554f211841e50db Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:30:48 -0500
+Subject: [PATCH] ASoC: mt6797: clock the ADDA path for 96 kHz and above
+
+The vendor switches top_mux_audio from clk26m to top_sys_pll3_d4 for
+downlink rates of 96 kHz and above, and powers the ADC hires clock for
+the matching capture rates. Mainline always leaves the mux on clk26m and
+never touches the hires gate, so the high-rate ADDA path is misclocked.
+
+Add a small AFE clock helper that records the parent across runtime
+suspend/resume and select it from the ADDA playback hw_params. Power the
+ADC hires gate for high-rate capture and close it again on shutdown.
+---
+ sound/soc/mediatek/mt6797/mt6797-afe-clk.c    | 31 ++++++++++++++++---
+ sound/soc/mediatek/mt6797/mt6797-afe-clk.h    |  1 +
+ sound/soc/mediatek/mt6797/mt6797-afe-common.h |  1 +
+ sound/soc/mediatek/mt6797/mt6797-dai-adda.c   | 31 +++++++++++++++++++
+ 4 files changed, 60 insertions(+), 4 deletions(-)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-clk.c b/sound/soc/mediatek/mt6797/mt6797-afe-clk.c
+index 6f3e6ac..2c18211 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-clk.c
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-clk.c
+@@ -81,11 +81,11 @@ int mt6797_afe_enable_clock(struct mtk_base_afe *afe)
+ 	}
+ 
+ 	ret = clk_set_parent(afe_priv->clk[CLK_TOP_MUX_AUD],
+-			     afe_priv->clk[CLK_CLK26M]);
++			     afe_priv->clk[afe_priv->high_rate ?
++					   CLK_TOP_SYSPLL3_D4 : CLK_CLK26M]);
+ 	if (ret) {
+-		dev_err(afe->dev, "%s(), clk_set_parent %s-%s fail %d\n",
+-			__func__, aud_clks[CLK_TOP_MUX_AUD],
+-			aud_clks[CLK_CLK26M], ret);
++		dev_err(afe->dev, "%s(), clk_set_parent %s fail %d\n",
++			__func__, aud_clks[CLK_TOP_MUX_AUD], ret);
+ 		goto CLK_MUX_AUDIO_ERR;
+ 	}
+ 
+@@ -110,6 +110,29 @@ CLK_INFRA_SYS_AUDIO_ERR:
+ 	return 0;
+ }
+ 
++/*
++ * The AFE bus clock must run from a higher parent once the ADDA path is
++ * clocked at 96 kHz or more, matching the vendor's AudDrv_AUD_Sel(1).
++ * Keep the choice so a runtime-resume restores the same parent.
++ */
++int mt6797_afe_set_high_rate(struct mtk_base_afe *afe, bool high_rate)
++{
++	struct mt6797_afe_private *afe_priv = afe->platform_priv;
++	struct clk *parent;
++	int ret;
++
++	afe_priv->high_rate = high_rate;
++	parent = afe_priv->clk[high_rate ? CLK_TOP_SYSPLL3_D4 : CLK_CLK26M];
++
++	ret = clk_set_parent(afe_priv->clk[CLK_TOP_MUX_AUD], parent);
++	if (ret)
++		dev_err(afe->dev, "%s(), clk_set_parent %s fail %d\n",
++			__func__, high_rate ? aud_clks[CLK_TOP_SYSPLL3_D4] :
++			aud_clks[CLK_CLK26M], ret);
++
++	return ret;
++}
++
+ int mt6797_afe_disable_clock(struct mtk_base_afe *afe)
+ {
+ 	struct mt6797_afe_private *afe_priv = afe->platform_priv;
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-clk.h b/sound/soc/mediatek/mt6797/mt6797-afe-clk.h
+index a6f0cb5..6c01e16 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-clk.h
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-clk.h
+@@ -14,4 +14,5 @@ struct mtk_base_afe;
+ int mt6797_init_clock(struct mtk_base_afe *afe);
+ int mt6797_afe_enable_clock(struct mtk_base_afe *afe);
+ int mt6797_afe_disable_clock(struct mtk_base_afe *afe);
++int mt6797_afe_set_high_rate(struct mtk_base_afe *afe, bool high_rate);
+ #endif
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-common.h b/sound/soc/mediatek/mt6797/mt6797-afe-common.h
+index 4eac997..68bd7d8 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-common.h
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-common.h
+@@ -45,6 +45,7 @@ struct clk;
+ 
+ struct mt6797_afe_private {
+ 	struct clk **clk;
++	bool high_rate;
+ };
+ 
+ unsigned int mt6797_general_rate_transform(struct device *dev,
+diff --git a/sound/soc/mediatek/mt6797/mt6797-dai-adda.c b/sound/soc/mediatek/mt6797/mt6797-dai-adda.c
+index b8eecba..b28853f 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-dai-adda.c
++++ b/sound/soc/mediatek/mt6797/mt6797-dai-adda.c
+@@ -7,6 +7,7 @@
+ 
+ #include <linux/regmap.h>
+ #include <linux/delay.h>
++#include "mt6797-afe-clk.h"
+ #include "mt6797-afe-common.h"
+ #include "mt6797-interconnection.h"
+ #include "mt6797-reg.h"
+@@ -161,6 +162,11 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
+ 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+ 		unsigned int dl_src2_con0 = 0;
+ 		unsigned int dl_src2_con1 = 0;
++		int ret;
++
++		ret = mt6797_afe_set_high_rate(afe, rate >= 96000);
++		if (ret)
++			return ret;
+ 
+ 		/* clean predistortion */
+ 		regmap_write(afe->regmap, AFE_ADDA_PREDIS_CON0, 0);
+@@ -250,13 +256,38 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
+ 				   AFE_ADDA_UL_SRC_CON0,
+ 				   0xfffffffe,
+ 				   ul_src_con0);
++
++		/*
++		 * Hires capture needs the ADC hires clock, which the vendor
++		 * powers only for 96 kHz and above.
++		 */
++		regmap_update_bits(afe->regmap, AUDIO_TOP_CON1,
++				   PDN_ADC_HIRES_MASK_SFT |
++				   PDN_ADC_HIRES_TML_MASK_SFT,
++				   rate >= 96000 ? 0 :
++				   PDN_ADC_HIRES_MASK_SFT |
++				   PDN_ADC_HIRES_TML_MASK_SFT);
+ 	}
+ 
+ 	return 0;
+ }
+ 
++static void mtk_dai_adda_shutdown(struct snd_pcm_substream *substream,
++				  struct snd_soc_dai *dai)
++{
++	struct mtk_base_afe *afe = snd_soc_dai_get_drvdata(dai);
++
++	if (substream->stream == SNDRV_PCM_STREAM_CAPTURE)
++		regmap_update_bits(afe->regmap, AUDIO_TOP_CON1,
++				   PDN_ADC_HIRES_MASK_SFT |
++				   PDN_ADC_HIRES_TML_MASK_SFT,
++				   PDN_ADC_HIRES_MASK_SFT |
++				   PDN_ADC_HIRES_TML_MASK_SFT);
++}
++
+ static const struct snd_soc_dai_ops mtk_dai_adda_ops = {
+ 	.hw_params = mtk_dai_adda_hw_params,
++	.shutdown = mtk_dai_adda_shutdown,
+ };
+ 
+ /* dai driver */
+-- 
+2.54.0 (Apple Git-157)
+

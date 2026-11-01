@@ -59,6 +59,26 @@ to GPIO mode when the GPIO is requested. Proposal `0401` adds one default
 pinmux state per amplifier. GPIO234/235 need no state: GPIO234 is only driven
 by the unused DCC capture path and GPIO235 is only a manual debug knob.
 
+### 1.1 Clocking and high-rate audio
+
+The vendor `top_mux_audio` parent is `clk26m` for rates up to 48 kHz and
+`top_sys_pll3_d4` once the downlink rate reaches 96 kHz
+(`AudDrv_AUD_Sel(1)` in `SetDLSrc2`). The APLLs are a separate path:
+APLL1 (180.6336 MHz) and APLL2 (196.608 MHz) feed `aud_mux1/2`, giving
+22.5792/24.576 MHz, and `EnableALLbySampleRate()` enables them from
+`EnableAfe()` only while `mtk_soc_always_hd` is set. The live Gemian boot
+shows `EnableApll1/2` only around HDMI open/close, not on the ADDA path, so
+the Gemini codec card does not need the APLLs. 48 kHz from `clk26m` is the
+correct first-card configuration.
+
+High-rate capture additionally uses the ADC hires format and the
+`AUDIO_TOP_CON1` PDN_ADC_HIRES/PDN_ADC_HIRES_TML gates (`0x10000` and
+`0x20000` in `mt6797-reg.h`). Mainline has the format code but a later
+unconditional write put `AFE_ADDA_NEWIF_CFG2` back on the 260 kHz ANC
+divider, and it never powers the hires gate. Proposals `0403` and `0404`
+fix the clobber, select `top_sys_pll3_d4` at >= 96 kHz, and power the hires
+gate for high-rate capture.
+
 The vendor card is `mt-snd-card` with 31 links. Mainline has the AFE, MT6351
 codec and `mt6797-mt6351` machine drivers, but no Gemini card node, board DAPM
 routes, amplifier, jack or microphone wiring. The MT6351 MFD child is also
@@ -282,7 +302,10 @@ Present in current mainline:
   enable, the `mediatek,mt6797-mt6351-sound` card node, headphone/main
   mic/headset mic/back mic DAPM routes, two AW8736FCR speaker amplifiers
   with HPL/HPR → amp → speaker routes, and default GPIO pinmux states for
-  the two amplifier mode lines.
+  the two amplifier mode lines;
+- high-rate ADDA preparation (proposals `0403`/`0404`): keep the hires
+  `NEWIF_CFG2` divider, switch `top_mux_audio` to `top_sys_pll3_d4` at
+  96 kHz and above, and power the ADC hires gate.
 
 Missing or board-specific:
 
@@ -298,8 +321,9 @@ Missing or board-specific:
 The first safe mainline card is the AFE + MT6351 codec +
 `mt6797-mt6351` machine link with **headphone output, microphone capture and
 the two-amplifier speaker path**, all PGA gains at minimum. Proposals
-`0396`-`0401` prepare that card; they have not been built or run.
-Headset-jack and physical amplifier confirmation remain.
+`0396`-`0401` prepare that card; `0403`/`0404` prepare the high-rate path.
+None has been built or run. The first validation target is 48 kHz;
+headset-jack and physical amplifier confirmation remain.
 
 ## 6. Offline review results
 
@@ -314,6 +338,7 @@ Headset-jack and physical amplifier confirmation remain.
 | ACCDET thresholds | Live Gemian `dmesg` confirms `mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`, `efusevalue=0xffffff80`, offset `-2`. These are configured values, not an acoustic calibration. |
 | Headphone trim | Live Gemian `dmesg` records `Audio_Hpl_Offset_Get` and `GetAudioTrimOffset channels = 1`; the stock path applies trim, mainline does not. |
 | Audio pinctrl | Only GPIO243/244 need a mainline pinmux: they are the vendor "hpdepop" pads and the AW8736 mode lines. The Gemini DTS comments out every AUD/VOW/ANC pinmux and the stock only requests them for VOW. GPIO234 is DCC-only, GPIO235 a debug knob. |
+| High-rate clocking | The ADDA path uses `clk26m` up to 48 kHz and `top_sys_pll3_d4` at >= 96 kHz; the APLLs serve HDMI/I2S only. Mainline clobbered the hires `NEWIF_CFG2` divider and never powered the ADC hires gate; `0403`/`0404` correct both. |
 
 ## 7. Still open
 

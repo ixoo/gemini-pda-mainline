@@ -1,0 +1,35 @@
+From 2f3d8f419a4063b076b0c5e09be13aa67a2ebdbd Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:30:32 -0500
+Subject: [PATCH] ASoC: mt6797: keep the ADDA hires rate in NEWIF_CFG2
+
+The capture hw_params sets the hires divider in AFE_ADDA_NEWIF_CFG2 for
+96 kHz and 192 kHz, but then writes the fixed 8 (260 kHz ANC path) value
+unconditionally. That clobbers both the hires value and the value just
+programmed in the normal-rate branch.
+
+Drop the redundant write. 48 kHz and below already take the normal
+branch, so this only restores the hires configuration.
+---
+ sound/soc/mediatek/mt6797/mt6797-dai-adda.c | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-dai-adda.c b/sound/soc/mediatek/mt6797/mt6797-dai-adda.c
+index 78f3ad7..b8eecba 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-dai-adda.c
++++ b/sound/soc/mediatek/mt6797/mt6797-dai-adda.c
+@@ -246,11 +246,6 @@ static int mtk_dai_adda_hw_params(struct snd_pcm_substream *substream,
+ 			ul_src_con0 |= 0x1 << 20;
+ 		}
+ 
+-		regmap_update_bits(afe->regmap,
+-				   AFE_ADDA_NEWIF_CFG2,
+-				   0xf << 28,
+-				   8 << 28);
+-
+ 		regmap_update_bits(afe->regmap,
+ 				   AFE_ADDA_UL_SRC_CON0,
+ 				   0xfffffffe,
+-- 
+2.54.0 (Apple Git-157)
+
