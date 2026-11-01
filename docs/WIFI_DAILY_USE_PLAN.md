@@ -75,19 +75,21 @@ series is W=1- and checkpatch-clean. The old station profile retires.
 - **Firmware and calibration.** The driver already loads all four files
   from `/lib/firmware/mediatek/mt6797/`. The
   [firmware page](hardware/firmware.md#files-the-mainline-wi-fi-driver-loads)
-  lists them, their Gemian source paths and how they are checked; owners
-  copy them from their own device. The repository cannot ship the
-  firmware (`required-nonfree`, no redistribution right), and
-  `WIFI.storage` is per-device calibration. Take the permanent MAC address
-  from the device rather than a fixed value.
+  lists them, their Gemian source paths and how they are checked. Owners
+  copy the three firmware files from their own device; the repository
+  cannot ship them (`required-nonfree`, no redistribution right).
+  `WIFI.storage` is not copied: the system mounts the `nvdata` partition
+  read-only at `/nvdata` and links the record into the firmware directory.
+  The station's RAM root does the same. Take the permanent MAC address
+  from that record rather than a fixed value.
 - **Start.** Power and firmware start happen in the driver: at probe, or
   on the first `ifup` with an idle power-off. The two userspace writes go.
 - **Regulatory.** Ship with `regulatory.db` and follow the country
   through cfg80211, using the existing country-power encoder. Remove the
   fixed channel set.
 
-**Exit:** on a freshly installed system, the four documented files, a
-reboot and `nmcli device wifi connect <owner AP>` work without SSH or a
+**Exit:** on a freshly installed system, the three documented firmware
+files, the `nvdata` mount and link, a reboot and `nmcli device wifi connect <owner AP>` work without SSH or a
 custom `wpa_supplicant.conf`.
 
 ### 3. Any network, any channel

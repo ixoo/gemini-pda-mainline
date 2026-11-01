@@ -59,23 +59,33 @@ FM files have no active mainline Gemini consumer.
 
 The mainline Wi-Fi stack (CONSYS owner and WLAN driver, patches 0390-0394)
 requests four files through the kernel firmware loader, all from the
-standard directory `/lib/firmware/mediatek/mt6797/`. Copy them there from
-the device's own Gemian system; the repository does not ship them.
+standard directory `/lib/firmware/mediatek/mt6797/`. Copy the three
+firmware files there from the device's Gemian system; the repository does
+not ship them.
 
 | File in `/lib/firmware/mediatek/mt6797/` | Copy from (Gemian) | Bytes | SHA-256 | Check by the driver |
 | --- | --- | --- | --- | --- |
 | `ROMv3_patch_1_0_hdr.bin` | `/vendor/firmware/ROMv3_patch_1_0_hdr.bin` | 210,904 | `450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630` | Exact hash; any other file is refused |
 | `ROMv3_patch_1_1_hdr.bin` | `/vendor/firmware/ROMv3_patch_1_1_hdr.bin` | 46,472 | `5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e` | Exact hash; any other file is refused |
 | `WIFI_RAM_CODE_6797` | `/vendor/firmware/WIFI_RAM_CODE_6797` | 411,632 | `a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd` | Container structure: four sections, two ordinary (14,832 bytes) and two EMI (396,688 bytes) |
-| `WIFI.storage` | `/nvdata/APCFG/APRDEB/WIFI` (also reached as `/data/nvram/APCFG/APRDEB/WIFI`) | 514 | Differs per device | Record envelope only |
+| `WIFI.storage` | Not copied: a symlink to `/nvdata/APCFG/APRDEB/WIFI` | 514 | Differs per device | Record envelope only |
 
 The first three are the same on every Gemini running the 2019 Gemian
 vendor set (see the [firmware inventory](../../experiments/2026-07-11-gemian-firmware-inventory/README.md)).
 `WIFI.storage` is not firmware: it is the device's own Wi-Fi NVRAM record,
-with the board's RF calibration. Use the file from the same device, never
-one copied from another Gemini; its provenance is in the
-[storage contract](../../experiments/2026-09-05-mt6797-wifi-contract/PROVENANCE.md).
-`WMT_SOC.cfg` and `WIFI_CUSTOM` are not read.
+with the board's RF calibration, and it is read in place from the `nvdata`
+partition, which every Gemini has. The system mounts that partition
+read-only at `/nvdata`, as Gemian does, and links the record into the
+firmware directory:
+
+```text
+PARTLABEL=nvdata  /nvdata  ext4  ro,nosuid,nodev,noexec  0  0
+ln -s /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
+```
+
+The record therefore always belongs to the same device. Its provenance is
+in the [storage contract](../../experiments/2026-09-05-mt6797-wifi-contract/PROVENANCE.md).
+`WMT_SOC.cfg`, `WIFI_CUSTOM` and the raw `nvram` partition are not read.
 
 A missing file stops the start chain with the loader's error in the kernel
 log; nothing falls back to another path.
