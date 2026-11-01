@@ -616,4 +616,4 @@ proposals/0444-wifi-mt6797-leave-the-monitor-mask-until-the-next-sc.patch
 proposals/0445-arm64-dts-mediatek-gemini-clock-the-AUDIO-domain.patch
 proposals/0446-soc-mediatek-stop-the-DVFSP-handoff-holding-up-init.patch
 proposals/0448-arm64-record-the-late-MT6797-A72s-as-vulnerable-at-b.patch
-proposals/449-*
+proposals/0449-ASoC-mt6351-test-which-idle-registers-bring-the-head.patch
