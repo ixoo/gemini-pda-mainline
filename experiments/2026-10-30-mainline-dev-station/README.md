@@ -861,3 +861,25 @@ and not by a userspace service.
   (row interrupts, plus the 20 ms held-key rescan while a key is down).
   They are dropped, not prevented. Inhibiting the device would stop the
   scans, but the input core does not export that to modules.
+
+## Keyboard fully stopped while the lid is closed (station 23, owner request)
+
+Owner request: ignoring the keys is not enough. No keyboard processing
+should run while the lid is closed, and the interrupt should be masked.
+
+- 0387 exports `input_inhibit_device()` and `input_uninhibit_device()` from
+  the input core. These are the functions behind the `inhibited` sysfs
+  attribute.
+- 0388 makes `gemini-lid` inhibit the keyboard on close instead of
+  filtering its events. The core closes `matrix_keypad`, which stops its
+  scan work and disables its row interrupts. The AW9523 then sets those
+  pins in its interrupt-disable register, so its INT line and EINT10 stay
+  quiet. The interrupts are disabled lazily: the first press on each row
+  after closing still raises one EINT10, which masks that row. That is at
+  most 8 per closure. On open, the keyboard is reopened.
+
+| Observation on station 23 | Decision |
+| --- | --- |
+| On close, dmesg shows "keyboard inhibited 0" and `inhibited` reads 1. Pressing the closed keyboard for 10 s adds at most 8 EINT10 interrupts and little I2C5 traffic; on open, typing works | Keep it |
+| EINT10 keeps counting while the lid is closed | The rows are not masked. Look at `matrix_keypad_stop` and the AW9523 mask path |
+| Typing is dead after opening | The uninhibit failed. Its error is in the dmesg line, and `inhibited` can be cleared through sysfs |

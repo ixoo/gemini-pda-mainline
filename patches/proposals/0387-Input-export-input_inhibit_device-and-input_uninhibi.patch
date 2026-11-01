@@ -1,0 +1,94 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 22:30:00 -0400
+Subject: [PATCH 387/388] Input: export input_inhibit_device() and
+ input_uninhibit_device()
+
+Userspace can stop an input device through its inhibited attribute: the
+core closes the device, which lets its driver stop scanning and mask its
+interrupts, releases its keys and drops its events. A kernel input
+handler has no way to do the same.
+
+The Gemini PDA lid closes the keyboard against the screen. Its lid
+handler should stop the keyboard entirely, not only ignore it, so that a
+closed lid causes no matrix scans. Make the two functions non-static,
+export them and declare them in input.h. Their behaviour is unchanged.
+
+Not yet run on hardware.
+---
+ drivers/input/input.c | 23 ++++++++++++++++++-----
+ include/linux/input.h |  2 ++
+ 2 files changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/input/input.c b/drivers/input/input.c
+index 39d9d2b..d9e115c 100644
+--- a/drivers/input/input.c
++++ b/drivers/input/input.c
+@@ -1413,9 +1413,6 @@ static ssize_t input_dev_show_properties(struct device *dev,
+ }
+ static DEVICE_ATTR(properties, S_IRUGO, input_dev_show_properties, NULL);
+ 
+-static int input_inhibit_device(struct input_dev *dev);
+-static int input_uninhibit_device(struct input_dev *dev);
+-
+ static ssize_t inhibited_show(struct device *dev,
+ 			      struct device_attribute *attr,
+ 			      char *buf)
+@@ -1752,7 +1749,15 @@ void input_reset_device(struct input_dev *dev)
+ }
+ EXPORT_SYMBOL(input_reset_device);
+ 
+-static int input_inhibit_device(struct input_dev *dev)
++/**
++ * input_inhibit_device - stop a device and drop its events
++ * @dev: input device to inhibit
++ *
++ * Closes the device if it has users, releases its keys and drops its
++ * events until input_uninhibit_device(). The device's inhibited attribute
++ * does the same from userspace.
++ */
++int input_inhibit_device(struct input_dev *dev)
+ {
+ 	guard(mutex)(&dev->mutex);
+ 
+@@ -1777,8 +1782,15 @@ static int input_inhibit_device(struct input_dev *dev)
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(input_inhibit_device);
+ 
+-static int input_uninhibit_device(struct input_dev *dev)
++/**
++ * input_uninhibit_device - restart an inhibited device
++ * @dev: input device to restart
++ *
++ * Reopens the device if it has users and delivers its events again.
++ */
++int input_uninhibit_device(struct input_dev *dev)
+ {
+ 	int error;
+ 
+@@ -1804,6 +1816,7 @@ static int input_uninhibit_device(struct input_dev *dev)
+ 
+ 	return 0;
+ }
++EXPORT_SYMBOL_GPL(input_uninhibit_device);
+ 
+ static int input_dev_suspend(struct device *dev)
+ {
+diff --git a/include/linux/input.h b/include/linux/input.h
+index 06ca623..2517e8c 100644
+--- a/include/linux/input.h
++++ b/include/linux/input.h
+@@ -399,6 +399,8 @@ int __must_check input_register_device(struct input_dev *);
+ void input_unregister_device(struct input_dev *);
+ 
+ void input_reset_device(struct input_dev *);
++int input_inhibit_device(struct input_dev *dev);
++int input_uninhibit_device(struct input_dev *dev);
+ 
+ int input_setup_polling(struct input_dev *dev,
+ 			void (*poll_fn)(struct input_dev *dev));
+-- 
+2.54.0 (Apple Git-157)
+

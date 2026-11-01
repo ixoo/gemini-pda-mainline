@@ -49,6 +49,6 @@ elif $bb mount -t ext4 -o rw,noatime "$data" /mnt/data; then
 else
     status "data=mount-failed device=$data"
 fi
-# The lid policy (backlight off, keyboard ignored while closed).
+# The lid policy (backlight off, keyboard inhibited while closed).
 if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemini-lid; else status lid=insmod-failed; fi
 exec $bb init
