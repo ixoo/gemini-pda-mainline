@@ -250,8 +250,8 @@ counterpart; the two "inferred" rows follow from the protocol symmetry only.
 fields in order: `if_type`, `pps_mode`, `datum`, `dgps_mode`, `tcxo_mode`,
 `pps_duty`, `pps_port`, `u1ClockType`, `hw_Clock_Drift`, `hw_Clock_Freq`,
 `if_link_spd`, `fix_interval`, `Int_LNA_Config`, two reserved words,
-`GNSSOPMode`, `initU`, `lastU`. The values come from `mnl.prop`, the chip
-capability table and the NVRAM calibration.
+`GNSSOPMode`, `initU`, `lastU`. The vendor's packer also carries `C0` and `C1`
+before `initU`. The values come from `mnl.prop`, the chip capability table and the NVRAM calibration.
 
 ### MCU→host message types (RSP)
 

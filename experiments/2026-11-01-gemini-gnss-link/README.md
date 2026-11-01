@@ -501,9 +501,11 @@ the same fault.
 
 ## Options
 
-1. **Look for `MNL.bin`.** A bounded read-only check on live Gemian (`/vendor/firmware`,
-   `/dev/gps_emi`, H0), and any other firmware image the owner has. If it exists, the start
-   can resume, with new memory handling and redistribution questions.
+1. **Look for `MNL.bin`.** A later search of the private Gemian dump did not find it either
+   ([driver note](../../docs/hardware/gemini-gnss-driver.md#scope-and-the-current-blocker)).
+   What remains is any other firmware image the owner has, and a bounded read-only check on
+   live Gemian (`/vendor/firmware`, `/dev/gps_emi`, H0). If it exists, the start can resume,
+   with new memory handling and redistribution questions.
 2. **Capture a stock session.** A Gemian `/dev/stpgps` trace would confirm or refute the
    stock-path inference. This is a radio action on Gemian and needs its own protocol.
 3. **Run the vendor engine** under a shim: proprietary, not a standard stack.
