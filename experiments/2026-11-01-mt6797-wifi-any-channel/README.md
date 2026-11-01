@@ -730,7 +730,7 @@ covers it, at the cost of recreating `wlan0`.
 | 30, round 1 | 22.3 22.3 21.3 22.2 21.9 21.9 | 30.8 | 0 | 39.1 46.1 49.2 48.9 44.9 44.9 |
 | 3, round 1 | 21.9 22.0 21.8 21.6 21.4 20.0 | 30.0 | 1 | 42.8 53.7 51.7 46.0 54.6 49.1 |
 | 30, round 2 | 21.5 21.5 21.5 21.4 21.8 21.8 | 31.5 | 0 | 42.6 54.7 50.9 49.1 56.2 51.3 |
-| 3, round 2 | 21.5 21.9 22.2 22.1 22.1 22.1 | 28.4 | not reported yet | not reported yet |
+| 3, round 2 | 21.5 21.9 22.2 22.1 22.1 22.1 | 28.4 | 0 | 39.8 50.9 57.8 44.7 47.4 48.1 |
 
 No slow first window in any run, which confirms the stall was the left-over download. 30
 attempts for data is no worse here, and 0438's stated reason does not hold. The driver
@@ -742,7 +742,9 @@ Clean figures, as the custodian counts them: the above, transmit from idle at 20
 ## Where this stopped
 
 The owner decided on 2026-11-01 to consider the Wi-Fi test successful and move on, so no
-further device requests are open.
+further device requests are open. The device has returned to Gemian. The next station image,
+composed from b36b2f7f and not flashed, carries `mac` `773e1694…`, CONSYS `28b5435c…` and core
+`425b8add…`, with data at 3 attempts.
 
 Demonstrated on this boot, on the named device, on the owner's network:
 - passive and active scan over both bands (36 channels), named SSIDs included;
