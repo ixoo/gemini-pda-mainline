@@ -491,3 +491,30 @@ and spacing are newer than station 24's and not yet separated from the driver: `
 [0438](../../patches/proposals/0438-wifi-mt6797-keep-data-at-three-transmit-attempts.patch) takes the predeclared fallback: 30 attempts for
 management and EAPOL, 3 for data. A same-harness run of `4218fbd8…` is requested as the
 control for that.
+
+### Result: transmit comparison, boot `4ac95e75` (2026-11-01)
+
+Same tool and spacing on channel 40: a 10 s receive, then three 10 s transmits counted at
+the laptop.
+
+| `mac` | Data attempts | Receive | Transmit 1 | Transmit 2 | Transmit 3 |
+| --- | --- | --- | --- | --- | --- |
+| `6ecb54a7…` (0436) | 30 | 37.7 | 0.5 | 0.6 | 9.5 |
+| `4218fbd8…` | 3 | 38.7 | 1.2 | 0.6 | 21.7 |
+
+One sequence each, in Mbit/s. A slow first 20 s or so predates 0436. The earlier figures
+of 21-23 Mbit/s came from 60 s runs or runs with no receive transfer first, so they don't
+compare with these. Run 3 suggests 30 attempts for data costs throughput, without proving it.
+
+Hypothesis, untested: after a receive transfer, the receive reorder state holds the
+acknowledgements of the sending TCP connection for its 200 ms timeout.
+
+Predeclared next test, `mac` with 0438, on channel 40, no new channel: 60 s transmits
+counted every 10 s, with a gateway ping alongside, with and without a receive transfer
+first.
+
+| Observation | Decision |
+| --- | --- |
+| Slow only after a receive transfer, ping delayed by about 200 ms | Read the reorder state at the end of a receive transfer |
+| Slow in both cases | Rate or TCP start, not the reorder; read rate and data status |
+| Slow in neither | The earlier sequence's spacing or the tool; record it and go on |
