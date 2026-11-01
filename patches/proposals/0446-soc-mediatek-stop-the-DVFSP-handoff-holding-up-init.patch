@@ -1,0 +1,173 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 15:59:49 -0500
+Subject: [PATCH] soc: mediatek: stop the DVFSP handoff holding up /init
+
+The handoff probes asynchronously and waits for its late check, and
+kernel_init() waits for async probes before it runs /init, so the 45 s
+check delayed /init by 45 s on the A72 station.
+
+Run the check after 100 ms. A check 45 s after boot says little about a
+write that can come much later, so let the A72 module repeat it just
+before that write, and refuse on a mismatch.
+---
+ .../mt6797-gemini-pda-station-a72.dts         |  1 +
+ drivers/soc/mediatek/Kconfig                  |  2 +-
+ drivers/soc/mediatek/mt6797-a72.c             | 12 ++++++
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c   | 41 ++++++++++++++++++-
+ .../linux/soc/mediatek/mt6797-dvfsp-handoff.h |  7 ++++
+ 5 files changed, 61 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 0114b713f..0311c131c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -21,6 +21,7 @@ a72-power@10222000 {
+ 		mediatek,spm = <&scpsys>;
+ 		mediatek,pwrap = <&pwrap>;
+ 		mediatek,buck = <&da9214>;
++		access-controllers = <&dvfsp_handoff>;
+ 		resets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
+ 		reset-names = "pwrap";
+ 	};
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index e69692467..984fba8f1 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -261,7 +261,7 @@ config MTK_MT6797_DVFSP_HANDOFF
+ 	  validates the exact retained CSPM signature observed by the preceding
+ 	  read-only experiment, balances one temporary I2C_APPM clock reference
+ 	  through the common clock framework, verifies the physical gate
+-	  independently, and repeats the read-only validation after 45 seconds.
++	  independently, and repeats the read-only validation 100 ms later.
+ 
+ 	  Any observed mismatch is sticky until reboot. An already-gated
+ 	  initial clock is reported as inconclusive without changing clock
+diff --git a/drivers/soc/mediatek/mt6797-a72.c b/drivers/soc/mediatek/mt6797-a72.c
+index 37e18e89b..60edca088 100644
+--- a/drivers/soc/mediatek/mt6797-a72.c
++++ b/drivers/soc/mediatek/mt6797-a72.c
+@@ -28,6 +28,7 @@
+ #include <linux/platform_device.h>
+ #include <linux/regmap.h>
+ #include <linux/reset.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/soc/mediatek/mtk-pmic-wrap.h>
+ 
+ #include <asm/mt6797_psci.h>
+@@ -72,6 +73,7 @@ struct mt6797_a72 {
+ 	struct reset_control *pwrap_reset;
+ 	struct i2c_client *buck;
+ 	struct device *pwrap;
++	struct mt6797_dvfsp_handoff *handoff;
+ };
+ 
+ static int spm_expect(struct mt6797_a72 *a72, u32 reg, u32 expected)
+@@ -133,6 +135,13 @@ static int mt6797_a72_check_off(struct mt6797_a72 *a72)
+ 	if (cpu_online(8) || cpu_online(9))
+ 		return -EBUSY;
+ 
++	/* The firmware that also drives this bus must still read as stopped. */
++	ret = mt6797_dvfsp_handoff_revalidate(a72->handoff);
++	if (ret) {
++		dev_err(a72->dev, "DVFSP firmware check failed: %d\n", ret);
++		return ret;
++	}
++
+ 	ret = regmap_read(a72->spm, SPM_CPU_PWR_STATUS, &status);
+ 	if (ret)
+ 		return ret;
+@@ -308,6 +317,9 @@ static int mt6797_a72_probe(struct platform_device *pdev)
+ 	a72->pwrap_reset = devm_reset_control_get_exclusive(dev, "pwrap");
+ 	if (IS_ERR(a72->pwrap_reset))
+ 		return PTR_ERR(a72->pwrap_reset);
++	a72->handoff = mt6797_dvfsp_handoff_get(dev);
++	if (IS_ERR(a72->handoff))
++		return PTR_ERR(a72->handoff);
+ 
+ 	np = of_parse_phandle(dev->of_node, "mediatek,buck", 0);
+ 	if (!np)
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 4dc31652d..3012afcd4 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -73,7 +73,8 @@
+ #define MT6797_DVFSP_POST_DELAY_MIN_US	1000
+ #define MT6797_DVFSP_POST_DELAY_MAX_US	1250
+ #define MT6797_DVFSP_SW_RSV_COUNT	7
+-#define MT6797_DVFSP_LATE_DELAY_MS	45000
++/* Boot waits for this async probe, so /init waits for this delay. */
++#define MT6797_DVFSP_LATE_DELAY_MS	100
+ #define MT6797_DVFSP_PROBE_TIMEOUT_MS	50000
+ #define MT6797_DVFSP_TRANSFER_COOKIE_XOR	0x4d54363739495452ULL
+ 
+@@ -1594,6 +1595,44 @@ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+ }
+ EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_require_ready);
+ 
++/**
++ * mt6797_dvfsp_handoff_revalidate() - repeat the stopped-firmware check
++ * @handoff: the handoff
++ *
++ * For a caller about to use I2C6 for a write that matters, long after boot.
++ * A mismatch is sticky, as it is at boot.
++ *
++ * Return: 0 if the firmware still reads as stopped and the clock as gated.
++ */
++int mt6797_dvfsp_handoff_revalidate(struct mt6797_dvfsp_handoff *handoff)
++{
++	const struct mt6797_dvfsp_snapshot *baseline, *late;
++	int ret = 0;
++
++	if (!handoff)
++		return -EINVAL;
++
++	baseline = &handoff->samples[MT6797_DVFSP_PRE0];
++	late = &handoff->samples[MT6797_DVFSP_LATE];
++
++	mutex_lock(&handoff->lock);
++	if (handoff->state != MT6797_DVFSP_READY) {
++		ret = -EHOSTDOWN;
++		goto unlock;
++	}
++	mt6797_dvfsp_take_snapshot(handoff, MT6797_DVFSP_LATE);
++	if (!mt6797_dvfsp_snapshot_matches_an(late) ||
++	    !mt6797_dvfsp_pcm_equal(baseline, late) ||
++	    !mt6797_dvfsp_gate_is(late, true)) {
++		mt6797_dvfsp_fault_locked(handoff, "revalidation-failed");
++		ret = -EHOSTDOWN;
++	}
++unlock:
++	mutex_unlock(&handoff->lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_dvfsp_handoff_revalidate);
++
+ bool
+ mt6797_dvfsp_handoff_is_ready_atomic(struct mt6797_dvfsp_handoff *handoff)
+ {
+diff --git a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+index 23a6fd13f..b99c0e90d 100644
+--- a/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
++++ b/include/linux/soc/mediatek/mt6797-dvfsp-handoff.h
+@@ -429,6 +429,7 @@ struct mt6797_dvfsp_i2c6_fw_ops {
+ struct mt6797_dvfsp_handoff *
+ mt6797_dvfsp_handoff_get(struct device *consumer);
+ int mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff);
++int mt6797_dvfsp_handoff_revalidate(struct mt6797_dvfsp_handoff *handoff);
+ int mt6797_dvfsp_cspm_execute(struct mt6797_dvfsp_handoff *handoff,
+ 			      mt6797_dvfsp_cspm_execute_t execute, void *context);
+ int mt6797_dvfsp_handoff_begin_i2c6_transfer(
+@@ -516,6 +517,12 @@ mt6797_dvfsp_handoff_get(struct device *consumer)
+ 	return ERR_PTR(-ENODEV);
+ }
+ 
++static inline int
++mt6797_dvfsp_handoff_revalidate(struct mt6797_dvfsp_handoff *handoff)
++{
++	return -ENODEV;
++}
++
+ static inline int
+ mt6797_dvfsp_handoff_require_ready(struct mt6797_dvfsp_handoff *handoff)
+ {

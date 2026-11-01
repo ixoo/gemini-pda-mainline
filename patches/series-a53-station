@@ -614,3 +614,4 @@ proposals/0442-wifi-mt6797-create-wlan0-by-itself.patch
 proposals/0443-wifi-mt6797-restart-the-firmware-after-a-fault.patch
 proposals/0444-wifi-mt6797-leave-the-monitor-mask-until-the-next-sc.patch
 proposals/0445-arm64-dts-mediatek-gemini-clock-the-AUDIO-domain.patch
+proposals/0446-soc-mediatek-stop-the-DVFSP-handoff-holding-up-init.patch

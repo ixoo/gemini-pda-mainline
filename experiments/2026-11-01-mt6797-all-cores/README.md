@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `planned`; patches 0424-0428 written on the owner's approval and built, not run; one module-free boot of the opt-in `mt6797-a53-station-a72` profile is owner-approved and queued after audio and Wi-Fi; the bring-up test is not admitted |
+| Status | `running`; the module-free boot of the opt-in `mt6797-a53-station-a72` profile passed with a 44 s `/init` delay, now fixed in 0446 and not yet booted, and one Wi-Fi fault not attributed; the bring-up test is not admitted |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -201,7 +201,7 @@ the same handoff, but never beside Wi-Fi, audio and GNSS.
 | --- | --- | --- |
 | DA9214 | **No transfer and no write.** The adapter registers and the client appears, with no bus traffic | `REGULATOR_DA9211` and `REGULATOR_DA9213_LEGACY` are off and no such module is packaged. The adapter sets no detect class, so nothing scans the bus. The only kernel writer is `mt6797-a72.ko` |
 | Any regulator or PMIC | No access. The handoff and I2C code call no regulator or PMIC function | Absent from the code path |
-| DVFS and PCM (CSPM) | Reads only: exact stopped-signature samples at probe and 45 s later | No `writel` in the handoff source. The object's only register-map import is `regmap_read`. `mt6797_dvfsp_cspm_execute` exists, but its only caller (the clock backend) is not built |
+| DVFS and PCM (CSPM) | Reads only: exact stopped-signature samples at probe and 100 ms later (45 s before 0446) | No `writel` in the handoff source. The object's only register-map import is `regmap_read`. `mt6797_dvfsp_cspm_execute` exists, but its only caller (the clock backend) is not built |
 | Infracfg | Reads only, to observe the clock gate | As above |
 | Clocks | **Yes.** `I2C_APPM` goes one balanced enable and disable through the clock framework, so firmware's ungated clock ends gated. I2C6 then enables and disables its main and AP-DMA clocks once at probe | The gate is the point of the handoff. A mismatch faults it and I2C6 stays unusable. The AP-DMA clock is reference-counted, and by source the keyboard's I2C already toggles it |
 | I2C6 controller | **Yes, its own registers only.** `mtk_i2c_init_hw()` clears flags and sets timing. It writes `0` to the start register, which starts nothing | Existing driver behaviour, the same as the other I2C buses |
@@ -210,8 +210,13 @@ the same handoff, but never beside Wi-Fi, audio and GNSS.
 
 Behaviour worth noting:
 
-- The handoff probes asynchronously and waits up to 50 s, so boot does not wait on it.
-  I2C6 binds after its 45 s check, and only if the CSPM signature matches exactly. On a
+- **Correction:** this record first said boot does not wait on the handoff. That was
+  wrong, and boot `7dd24578` showed it: `kernel_init()` calls `async_synchronize_full()`
+  before `/init`, so the async probe's wait held `/init` for its whole late check.
+  [0446](../../patches/proposals/0446-soc-mediatek-stop-the-DVFSP-handoff-holding-up-init.patch)
+  runs that check after 100 ms instead of 45 s, and the module repeats it just before
+  its write, refusing on a mismatch.
+- I2C6 binds after that check, and only if the CSPM signature matches exactly. On a
   mismatch it reports `access_grant=denied`, I2C6 stays unusable, and the module refuses.
 - **A new path exists for root.** `I2C_CHARDEV=y` makes the bus reachable as a new
   `/dev/i2c-N`, so `i2cset` from a shell could write the DA9214, including changing a
@@ -364,7 +369,7 @@ What differs from the plain package:
 1. Build the `mt6797-a53-station-a72` profile from a pushed commit on Buildbox, with
    `BUILD_MODULES=1`, and boot `mt6797-gemini-pda-station-a72.dtb`.
 2. Boot it with the module not loaded, and confirm Wi-Fi, audio, GNSS and PMIC
-   readings are unchanged, and that I2C6 bound after about 45 s. That covers the
+   readings are unchanged, and that I2C6 bound soon after boot. That covers the
    built-in changes on their own.
 3. Hypothesis: `insmod mt6797-a72.ko` brings up both cores. Unique observation:
    the first time this sequence runs beside live PMIC traffic.
@@ -405,6 +410,33 @@ modules loaded and idle. No hang, write or module action.
 
 So the prestate table applies on this station. The driver's checks are the same ones
 compared here, and it would refuse on any difference.
+
+Boot-only test, boot `7dd24578`, image boot2 `e99adaa3...`, package `af871fff...`,
+compared with plain boot `24465562`. Module absent from the root and not loaded; no I2C
+tools on the new bus and no register writes. Evidence stays with the custodian's private
+station work.
+
+- **Handoff and I2C6:** `access_grant=ready` at 46.05 s, `1100e000.i2c` bound with zero
+  clock validation failures. Existing buses kept their numbers; I2C6 is `i2c-2`, with a
+  `2-0068` client and no driver or log line for it.
+- **Registers:** `0x10006218`, `0x10006240`, `0x10006244`, `0x10006290` and `0x10222274`
+  match the reading at both 62.89 s and 637.39 s. `0x10006188` and `0x1000618c` changed
+  between those two reads (`003D8408`/`003D82FF`, then `003D8208`/`003DA0FF`), so their
+  bits outside the A72 mask are live, whatever they mean. A72 bits 7:6 stayed off.
+- **Regression:** USB SSH, keyboard, display and audio passed, untainted, no Oops or
+  warning by the custodian's filter. **GNSS was not tested**, because it is not in this
+  image. `spectre_v2` and `spec_store_bypass` stayed `Not affected`.
+- **Finding 1, `/init` delayed 44 s (cause confirmed).** `probe of
+  11015000.dvfsp-handoff returned 0 after 45270453 usecs`, and `/init` ran only then. The
+  owner saw a frozen console with a cursor. The decision table had no row for this, and
+  the record had claimed the opposite. Fixed in 0446, which has not booted.
+- **Finding 2, one Wi-Fi fault at the first join (not attributed).** Authenticated at
+  101.61 s, then `join stopped: status=-110 first=0 submitted=0x800` at 102.36 s and a
+  driver restart, rejoined at 107.69 s; `udhcpc` had exited, so `wifi-up.sh` was rerun, and
+  ping passed 5/5 twice. One sample. The same failure form appears in
+  [older Wi-Fi records](../2026-10-13-mt6797-wifi-native-delivery-probe/TX_AUTORATE_RESULT.md)
+  with no A72 code. No mechanism connects it to these changes, but this boot does not
+  exclude one, so the next boot counts first joins.
 
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
