@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, is admitted and has not run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -401,6 +401,31 @@ device left Wi-Fi at about 20:12 UTC, though it had finished; it restarted `mnld
 **Not mapped:** pseudorange and carrier fields of `0xFE29` are still candidates only. Private notes hold them. One step-per-second counter looks like carrier phase, but nothing has been checked against a computed solution yet.
 
 **Owner's rule from this step:** all GNSS data, including position and route, stays private and may be used to investigate. It is never committed publicly.
+
+## Step 5: 30 minutes stationary under open sky (radio action; owner approved)
+
+Approved by the owner on 2026-11-01, in the words "let's do the 30min gnss run", relayed by the custodian session, for the drafted plan.
+
+**Question:** does stock Gemian reach a first fix with assistance off, given time and a still device? With a fix, the position and time give a reference to check the raw
+fields of `0xFE29` against privately.
+
+**Effects:** as step 4, with `timeout.init=2400000`, 40 minutes, so the timer can't fire during the run, and up to 1800 s of radio time, not stopped early by a fix.
+The saved state in `/data/misc/gps` from earlier runs stays in place, so this is not strictly a cold start. A fix puts precise position in the private capture, listener output
+and `mtkgps.dat`. None of it is published.
+
+**Procedure:** start the script over Wi-Fi with a 3 minute delay, battery above 50%. The owner leaves the device outside, open and screen up on a stable surface, away from walls and
+tall buildings, in shade if sunny. Back in range, copy the evidence and restore as in step 3. Restore waits until the device is back, because a restore over SSH stalled in step 4
+when the device left Wi-Fi.
+
+**Budget:** one start in the current Gemian boot. No retry. Stops: step 4's. Direct sun is the main risk to the run, through the temperature stop.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| A fix holding for several minutes | Stock GNSS works end to end | Map the raw fields against it privately, then decide on an open stack |
+| A fix late or intermittent | Works, but weak | The same mapping, and note the antenna limit |
+| Many satellites, no fix | Something the engine needs is missing, such as good navigation data or usable time | Compare with step 4 offline before any further run |
+| Few satellites | Sky view or antenna limit | Decide whether another site is worth trying |
+| The script stops early | Depends on the reason | Keep the evidence; another start needs a new request |
 
 ## Privacy and rights
 
