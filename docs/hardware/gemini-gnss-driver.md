@@ -43,7 +43,7 @@ the engine is indeed absent, stock must use the host-side engine in `libmnl`,
 which is userspace and not a kernel driver. A
 [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) saw that path's DSP boot and no
 GFNS frame. With assistance off and `mnld`'s start timer raised, 20 minutes of steady once-a-second DSP packets followed, including
-what look like per-channel frames, not yet decoded; whether a fix came is not known.
+per-channel records, and one satellite's live navigation subframes. No fix is likely to have come at that placement.
 
 ## What `libmnl` does, mapped to the kernel
 
@@ -207,6 +207,27 @@ The owner remains responsible for common initialization, the ROM patches, the
 calibration exchange, the rails and the AFE GPS words. The driver must not
 duplicate those.
 
+## DSP packets on the host path
+
+Read from `libmnl` and checked against the [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md): all 10717 captured
+DSP frames pass the checksum. This is the `AA F0` path, not the GFNS offload path.
+
+Frame: `AA F0`, a little-endian u16 whose low 12 bits are payload length plus 4 and high 4 bits a sequence number, a little-endian u16 ID, the
+payload, a little-endian u16 sum of those four header bytes and the payload bytes, then `AA 0F`. Inside a frame, `DE DF` stands for `AA` and
+`DE E0` for `DE`.
+
+DSP payload bytes are scrambled, and the checksum covers the scrambled bytes: descramble with a rotate right by 3, then XOR `0x59`. Host-to-DSP frames
+were not checked for this.
+
+| ID | Payload | Content |
+| --- | --- | --- |
+| `0xFE28` | 8 bytes | Epoch header, first of each second |
+| `0xFE29` | 57 bytes | One channel: byte 0 channel, 1 satellite, 2 constellation code (1 is GPS), 3 signal level (inferred C/N0 in dB-Hz), 5 inferred bandwidth, 6 state; `0x40` is required by the measurement API. The rest is not mapped |
+| `0xFE2A` | 10 bytes | Sent just before `0xFE2B`, meaning not mapped |
+| `0xFE2B` | 46 bytes | One navigation subframe: bytes 2 and 3 satellite, 4 subframe ID, and from byte 6 ten 4-byte words. Within a word, bytes 0, 3 and 2 hold the 24 data bits, most significant first |
+| `0xFE2C` | 44 bytes | Closes the epoch |
+| `0xFE30`, `0xFE37` | 57, 61 bytes | Once a second, not mapped |
+
 ## Safety and privacy
 
 - The start is a radio action and a firmware action. It stays opt-in until the
@@ -234,7 +255,7 @@ duplicate those.
 | NMEA channel mapping | `byte1 >> 5`; per-channel behavior unproven |
 | GPIO 69 / LNA population | board pin exists; physical LNA not established |
 | Coexistence de-sense packet | not implemented; may matter with Wi-Fi/BT active |
-| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and 20 minutes of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md), not yet decoded; whether a fix came is not known |
+| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and 20 minutes of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and partly decoded; one satellite tracked, no fix likely |
 
 ## Evidence
 

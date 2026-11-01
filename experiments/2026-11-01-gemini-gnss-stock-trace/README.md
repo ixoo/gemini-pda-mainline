@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; the packets are not decoded and whether a fix came is not known; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -326,6 +326,36 @@ the close sequence. `mnld` was then restarted on defaults.
 
 **Not known:** what the fields mean, whether a fix came, since no client listened and the engine's output was not traced, and
 which host messages the DSP needs.
+
+### Decode (2026-11-01)
+
+Offline, from step 3's capture and the decompile of `libmnl`. The format is in the
+[driver document](../../docs/hardware/gemini-gnss-driver.md#dsp-packets-on-the-host-path). No payload is published here;
+decoders and field notes are private under `artifacts/gemian-a0b54f1d/gnss-step3/decode/`.
+
+**Correction:** the XOR `0xCA` reading from step 2 was incomplete. The real transform is a rotate right by 3, then XOR `0x59`, which
+maps `0xCA` to zero. Earlier offsets were also unreliable, since frames were not yet unstuffed.
+
+**Observed in the capture:**
+- **The format is right:** all 10717 DSP frames pass `libmnl`'s checksum after unstuffing, and all 5804 `0xFE29` payloads are 57 bytes.
+- **`0xFE29` is one record per channel,** with the same satellite numbers and channel numbers `libmnl` unpacks.
+- **One GPS satellite was tracked.** Only GPS SV 4 reached state `0x40`, the value `libmnl`'s measurement API requires, in 152 records from
+  261 to 415 s, with a signal level of 16 to 27. Other records move between satellites and show mostly zero signal, which looks like searching.
+- **Live GPS navigation data arrived.** All 28 `0xFE2B` frames name SV 4, about 6 s apart, the length of a GPS subframe, from 268 to 430 s. Their
+  subframe field cycles 1 to 5 in all 27 steps. 20 of 28 start with the GPS preamble, in either polarity. Among those, the
+  subframe ID inside the data matches in 16 of 20, and 12 pairs of consecutive good frames step the time count by exactly 1. The
+  rest look like bit errors at this weak signal; that part is inferred.
+
+**So:** the antenna, LNA, RF path and DSP receive real GPS signals on this device, which is the first evidence of that on record. It is on
+stock Gemian, not mainline.
+
+**Inferred:**
+- **No fix came.** No second GPS satellite reached that state, and a fix needs four. Nothing listened for the engine's output, so this is not
+  directly observed. A window placement is the likely limit.
+- The signal level is C/N0 in dB-Hz, from how the measurement API uses it.
+
+**Still open for an open stack:** the pseudorange and time fields of `0xFE29`, which need several tracked satellites to check; which host messages the DSP
+needs; the meaning of `0xFE30` and `0xFE37`; and redistribution rights for the DSP image, which only exists inside `libmnl`.
 
 ## Privacy and rights
 
