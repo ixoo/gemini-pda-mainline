@@ -1,0 +1,88 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 10:28:05 -0500
+Subject: [PATCH] wifi: mt6797: log the receive reorder counters
+
+After a receive transfer, transmit on channel 40 stayed near 3 Mbit/s for
+60 s, with ping times above 245 ms. Each hole in the reorder window holds
+frames for 200 ms, which would fit. Log each TID's holes, expiries,
+duplicates and frames behind the window when a data phase ends.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c     |  3 +++
+ drivers/net/wireless/mediatek/mt6797/join.c     | 13 +++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h |  2 +-
+ 3 files changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index 464f46b0f..69fbed681 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -962,6 +962,7 @@ static inline bool mt6797_rx_reorder_expire(struct mt6797_rx_reorder *r,
+ 		return false;
+ 	}
+ 	r->has_bubble = false;
++	r->expiries++;
+ 	mt6797_rx_reorder_flush(r);
+ 	return true;
+ }
+@@ -1431,8 +1432,10 @@ int mt6797_ccmp_queue_rx(struct mt6797_mac *mac, size_t bytes,
+ 	seq = mt6797_join_le16(p + 24) >> 4;
+ 	switch (mt6797_rx_reorder_place(r, seq)) {
+ 	case MT6797_RX_REORDER_DUPLICATE:
++		r->duplicates++;
+ 		return 0;
+ 	case MT6797_RX_REORDER_BEHIND:
++		r->behind++;
+ 		return 0;
+ 	case MT6797_RX_REORDER_NOW:
+ 		ret = mt6797_ccmp_deliver_rx(mac, bytes, received);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 4ee84a183..55b89492f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -737,6 +737,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 
+ 		for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
+ 			mac->rx_reorder[tid].holes = 0;
++			mac->rx_reorder[tid].expiries = 0;
++			mac->rx_reorder[tid].duplicates = 0;
++			mac->rx_reorder[tid].behind = 0;
+ 	}
+ 	mac->join_tx_allowed = 0;
+ 	mac->join_rx_allowed = 0;
+@@ -1649,7 +1652,17 @@ void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 		 mac->qos_rx_refused_qos, mac->join_data_llc_discarded);
+ 	{
+ 		struct mt6797_hif_rx_batch_stats batch;
++		unsigned int tid;
++
++		for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++) {
++			const struct mt6797_rx_reorder *r = &mac->rx_reorder[tid];
+ 
++			if (r->valid)
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN RX reorder: tid=%u holes=%u expiries=%u duplicates=%u behind=%u held=%u\n",
++					 tid, r->holes, r->expiries, r->duplicates, r->behind,
++					 r->count);
++		}
+ 		mt6797_hif_rx_batch_stats(mac->hif, &batch);
+ 		if (batch.refused_error)
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 95ea9652e..0eab02fca 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -315,7 +315,7 @@ struct sk_buff;
+ struct mt6797_rx_reorder {
+ 	struct sk_buff *held[MT6797_RX_REORDER_SLOTS];
+ 	unsigned long long deadline;
+-	unsigned int count, holes;
++	unsigned int count, holes, expiries, duplicates, behind;
+ 	/* start is the next sequence number to leave. While start != until
+ 	 * the window is being moved to until and holes are skipped.
+ 	 */
+-- 
+2.43.0
+

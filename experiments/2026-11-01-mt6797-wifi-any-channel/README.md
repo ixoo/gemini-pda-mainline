@@ -518,3 +518,36 @@ first.
 | Slow only after a receive transfer, ping delayed by about 200 ms | Read the reorder state at the end of a receive transfer |
 | Slow in both cases | Rate or TCP start, not the reorder; read rate and data status |
 | Slow in neither | The earlier sequence's spacing or the tool; record it and go on |
+
+### Result: the slow transmit test, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian on channel 40, `mac` `ba28eb81…` (0438), with a gateway ping
+at 1 s. Throughput per 10 s, in Mbit/s:
+
+| Run | Before | Throughput | Ping min/avg/max, ms | `tx failed` |
+| --- | --- | --- | --- | --- |
+| 1. Transmit 60 s | Fresh reconnect, 30 s idle | 20.7 21.1 20.8 20.6 20.4 20.4 | 13.7/32.2/209.8 | 0 |
+| 2. Transmit 60 s | 10 s receive at 19.4 | 3.1 3.2 3.2 3.1 2.6 2.3 | 245.8/360.9/468.3 | 0 |
+| 3. Receive 60 s | 10 s receive at 22.0 | 21.2 21.1 21.9 21.6 22.8 20.1 | 198.0/308.5/408.4 | 0 |
+
+No new ADDBA in runs 2 and 3. Few PN refusals.
+
+- **Transmit itself is fine.** Run 1 holds 21 Mbit/s with data at 3 attempts, so
+  0438's data limit is good.
+- **The stall lasts past 60 s,** not the 20 s the shorter runs suggested.
+- **Latency is high in runs 2 and 3,** a floor near 200 ms. That fits frames waiting on
+  the reorder timeout, but doesn't prove it. Receive also ran at about half its fresh-join
+  rate here. So the condition may belong to the receive path, not to transmit.
+
+The two predeclared rows conflicted: "slow only after a receive" and "settled below
+15 Mbit/s". Run 1 shows the second was not its intended case, so channel 11 and active
+scan went ahead.
+
+[0440](../../patches/proposals/0440-wifi-mt6797-log-the-receive-reorder-counters.patch) logs each TID's holes, expiries, duplicates and frames
+behind the window. Next, once it is loaded: the same runs, each ended by a reconnect so the
+counters print.
+
+| Observation | Decision |
+| --- | --- |
+| Expiries near one per 200 ms in runs 2 and 3, few in run 1 | The reorder window has a recurring hole: find which frames leave it |
+| Few expiries, with latency unchanged | Not the reorder; read the worker's polling and the receive batching |
