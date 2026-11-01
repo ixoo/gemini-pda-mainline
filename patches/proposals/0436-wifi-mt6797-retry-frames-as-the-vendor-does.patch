@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 10:08:17 -0500
+Subject: [PATCH 436/437] wifi: mt6797: retry frames as the vendor does
+
+Every frame had a limit of three attempts, against the vendor's 30. On
+channel 11, at -65 dBm, the first message 2 failed after its three
+attempts and then a resend got through, and two association requests
+were lost the same way. A busy 2.4 GHz channel can easily use up three
+attempts in about 30 ms.
+
+Use the vendor's limit for management frames, EAPOL and data at the fixed
+rate. Frames at mac80211's rate control choice keep three, which is what
+it was told. Allow mac80211's three authentication and association tries,
+since its third try used to close the lifetime.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c     | 14 ++++++++++----
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h | 10 ++++++++--
+ drivers/net/wireless/mediatek/mt6797/main.c     |  2 +-
+ 3 files changed, 19 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 7b01c41b3..421bf7a15 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2259,7 +2259,11 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 									  eth_bytes, 1,
+ 									  sample ? mac->join_pid : 0,
+ 									  sample,
+-									  500, 3, per_frame,
++									  500,
++									  per_frame ?
++									  MT6797_TX_ATTEMPTS_RATE_CONTROL :
++									  MT6797_TX_ATTEMPTS,
++									  per_frame,
+ 									  deadline);
+ 					if (ret)
+ 						goto failed;
+@@ -2269,7 +2273,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 					goto submitted;
+ 				}
+ 				ret = mt6797_hif_send_security(mac->hif, mac->join_eth, eth_bytes,
+-							       1, mac->join_pid, 500, 3, deadline);
++							       1, mac->join_pid, 500,
++							       MT6797_TX_ATTEMPTS, deadline);
+ 				if (ret)
+ 					goto failed;
+ 				mac->join_page_debt = pages;
+@@ -2286,12 +2291,13 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			mac->join_last_acked = false;
+ 			reinit_completion(&mac->join_frame_done);
+ 			pages = (MT6797_JOIN_TX_DESC_BYTES + skb->len + 127) / 128;
+-			/* Single submission, count 3, 500ms encodes 15*32TU (491.52ms).
++			/* Single submission, 500ms encodes 15*32TU (491.52ms).
+ 			 * The live grant must cover submission plus the bounded
+ 			 * completion wait.
+ 			 */
+ 			ret = mt6797_hif_send_management(mac->hif, skb->data, skb->len,
+-							 1, mac->join_pid, 500, 3, deadline);
++							 1, mac->join_pid, 500,
++							 MT6797_TX_ATTEMPTS, deadline);
+ 			if (ret)
+ 				goto failed;
+ 			mac->join_submitted |= BIT((get_unaligned_le16(skb->data) >> 4) & 15);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 5da2244e1..143820c44 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -653,11 +653,17 @@ struct mt6797_mac {
+  * may open it after the scan/peer/channel gates; there is no device admission.
+  */
+ /* mac80211 retries authentication and the association request when no
+- * response arrives (three tries each). The driver queues up to two of each,
++ * response arrives (three tries each). The driver queues them all,
+  * inside the same join window; every other management subtype stays one
+  * frame per lifetime (0304).
+  */
+-#define MT6797_JOIN_ATTEMPTS 2
++#define MT6797_JOIN_ATTEMPTS 3
++
++/* Transmit attempts per frame: the vendor's retry limit, which a busy channel
++ * needs. Frames at a rate control choice keep mac80211's own limit.
++ */
++#define MT6797_TX_ATTEMPTS 30U
++#define MT6797_TX_ATTEMPTS_RATE_CONTROL 3U
+ 
+ /* A current, owned monitor notification is a normal connection loss, not a
+  * malformed transport event. End traffic and queue standard core teardown;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 08a0c9471..4ed621a69 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -2160,7 +2160,7 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		mac->rates[i].bitrate = bitrates[i];
+ 		mac->rates[i].hw_value = codes[i];
+ 	}
+-	/* One rate per ordinary data frame, at the descriptor's three attempts. */
++	/* One rate per ordinary data frame, at MT6797_TX_ATTEMPTS_RATE_CONTROL. */
+ 	hw->max_rates = 1;
+ 	hw->max_rate_tries = 3;
+ 	mac->band.band = NL80211_BAND_2GHZ;
+-- 
+2.43.0
+

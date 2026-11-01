@@ -1021,3 +1021,5 @@ proposals/0432-gnss-mt6797-add-a-parameter-to-stop-after-GPS-functi.patch
 proposals/0433-wifi-mt6797-log-the-transmit-status-of-join-frames.patch
 proposals/0434-wifi-mt6797-survive-a-frame-the-air-lost.patch
 proposals/0435-gnss-mt6797-do-not-start-the-receiver-by-default.patch
+proposals/0436-wifi-mt6797-retry-frames-as-the-vendor-does.patch
+proposals/0437-wifi-mt6797-advertise-the-scan-SSIDs.patch

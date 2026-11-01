@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 10:08:18 -0500
+Subject: [PATCH 437/437] wifi: mt6797: advertise the scan SSIDs
+
+0423 made the scan path accept SSIDs but left max_scan_ssids at zero, so
+cfg80211 refused every active scan before it reached the driver. Advertise
+the four the firmware's command carries.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 4ed621a69..17c1c93c3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -2119,12 +2119,12 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	 * Normal profiles do not advertise this experimental ownership.
+ 	 */
+ 	ieee80211_hw_set(hw, CONNECTION_MONITOR);
+-	hw->wiphy->max_scan_ssids = 0;
++	hw->wiphy->max_scan_ssids = MT6797_SCAN_SSIDS;
+ 	/* Userspace may attach elements to a scan request (the standard
+ 	 * supplicant always does); with a hw_scan operation mac80211 keeps a
+ 	 * zero limit, and cfg80211 would then reject every such request. The
+-	 * one admitted scan is passive and transmits no probe request, so the
+-	 * elements are accepted here and never read; mac80211 subtracts its own.
++	 * firmware builds its own probe requests, so the elements are accepted
++	 * here and never read; mac80211 subtracts its own.
+ 	 */
+ 	hw->wiphy->max_scan_ie_len = 256;
+ 	ieee80211_hw_set(hw, SIGNAL_DBM);
+-- 
+2.43.0
+

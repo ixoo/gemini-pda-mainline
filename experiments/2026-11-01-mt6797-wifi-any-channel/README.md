@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channels 40 and 161 with data both ways. The first 2.4 GHz join (channel 6) failed in the 4-way handshake; active scan and 0430 have not run |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channels 40 and 161. 2.4 GHz joins once but loses frames; 0436 and 0437 are built to fix that and active scan; neither has run |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -435,3 +435,45 @@ seen once. Recovery without a reload belongs to phase 4.
 
 The driver's scan refusal after a closed lifetime reads as "unsupported" (`-95`). It
 means the lifetime is closed.
+
+### Result: channel 11 and active scan, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian on station 30: Buildbox at cde254b1, package inventory
+`2115826b…`, `mac` `4218fbd8…`, CONSYS `7a1bb9db…`, core `425b8add…`.
+
+| Part | Result |
+| --- | --- |
+| Channel 40 control | Ping 10/10, reconnects 10/10 (5.76 s, then 1.41-1.49 s), receive 45 Mbit/s. Transmit 1.3 Mbit/s on a first run, 21 on a repeat: the first run used a new script, and the low figure is unexplained and not repeated. Join frames all status 0, one attempt |
+| Channel 11, first join | `join grant: channel=11 sco=0`, `COMPLETED`, a lease, ping 3/3, -65 dBm. The first message 2 failed with status 3 after 3 attempts; a resend 0.86 s later went through. Ping 9/10 |
+| Channel 11, first reconnect | Disconnect clean. Authentication acknowledged. Two association requests failed with status 3 after 3 attempts each. The third try ended the lifetime with `-EOPNOTSUPP` |
+| Channel 11, the rest | Scans refused until a full reload. No transfer ran |
+| Active scan | Not run: `iw` got `-EINVAL`, because `max_scan_ssids` was still 0 |
+| Passive baseline | 5.16 s, 20 BSSes on both bands, 36 channels |
+
+Status 3 is taken to mean the MPDU retry limit was reached, per the vendor's result
+codes; its name was not checked against the header.
+
+Analysis:
+- **The 2.4 GHz band works.** Authentication, association and data all ran.
+- **The driver allowed 3 transmit attempts; the vendor's limit is 30**
+  ([`nic_tx.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/include/nic/nic_tx.h)).
+  On a busy channel three attempts can fail within tens of milliseconds. That fits
+  every lost frame here, and may fit channel 6 too, although channel 6's message 2
+  frames were not seen. [0436](../../patches/proposals/0436-wifi-mt6797-retry-frames-as-the-vendor-does.patch)
+  raises it, also for data at the fixed rate, so channel 40's throughput
+  needs a fresh control. This is inference until tested.
+- **mac80211 makes three association tries; the driver admitted two.** The third
+  closed the lifetime. 0436 admits three.
+- **`max_scan_ssids`.** 0423 did not raise it, so its active path has never run.
+  [0437](../../patches/proposals/0437-wifi-mt6797-advertise-the-scan-SSIDs.patch)
+  does. My earlier belief that mac80211 sets it was wrong.
+
+Still open: a lifetime that does end this way needs a module reload.
+
+Next, each within the protocol's budget, on channels the owner names:
+
+| Observation | Decision |
+| --- | --- |
+| Channel 11 passes with one or two attempts per frame | Lost frames were the problem; go on to channel 1 and active scan |
+| Frames still need most of 30 attempts | Check coexistence and the transmit power on 2.4 GHz |
+| Channel 40's throughput falls with the higher limit | Keep the limit for management and EAPOL only |
