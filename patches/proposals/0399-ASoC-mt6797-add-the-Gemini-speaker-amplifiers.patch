@@ -1,0 +1,69 @@
+From 0074bfcd73941c573566d4fc8cdfe3fe21cf2062 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:13:33 -0500
+Subject: [PATCH] ASoC: mt6797: add the Gemini speaker amplifiers
+
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts    | 18 ++++++++++++++++++
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c      |  2 ++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index dacd495..b9c4362 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -27,6 +27,10 @@
+ 		audio-routing =
+ 			"Headphone", "Headphone L",
+ 			"Headphone", "Headphone R",
++			"Speaker Amp L IN", "Headphone L",
++			"Speaker Amp R IN", "Headphone R",
++			"Speaker", "Speaker Amp L OUT",
++			"Speaker", "Speaker Amp R OUT",
+ 			"AIN0", "Main Mic",
+ 			"AIN1", "Headset Mic",
+ 			"AIN2", "Back Mic";
+@@ -36,6 +40,20 @@
+ 		stdout-path = "serial0:921600n8";
+ 	};
+ 
++	speaker_amp_left: audio-amplifier-left {
++		compatible = "awinic,aw8736";
++		mode-gpios = <&pio 243 GPIO_ACTIVE_HIGH>;
++		awinic,mode = <3>;
++		sound-name-prefix = "Speaker Amp L";
++	};
++
++	speaker_amp_right: audio-amplifier-right {
++		compatible = "awinic,aw8736";
++		mode-gpios = <&pio 244 GPIO_ACTIVE_HIGH>;
++		awinic,mode = <3>;
++		sound-name-prefix = "Speaker Amp R";
++	};
++
+ 	firmware {
+ 		mt6797_atag_devinfo: atag-devinfo {
+ 			compatible = "mediatek,mt6797-atag-devinfo";
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index 08d6183..db3b325 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -12,6 +12,7 @@
+ 
+ static const struct snd_soc_dapm_widget mt6797_mt6351_widgets[] = {
+ 	SND_SOC_DAPM_HP("Headphone", NULL),
++	SND_SOC_DAPM_SPK("Speaker", NULL),
+ 	SND_SOC_DAPM_MIC("Main Mic", NULL),
+ 	SND_SOC_DAPM_MIC("Headset Mic", NULL),
+ 	SND_SOC_DAPM_MIC("Back Mic", NULL),
+@@ -19,6 +20,7 @@ static const struct snd_soc_dapm_widget mt6797_mt6351_widgets[] = {
+ 
+ static const struct snd_kcontrol_new mt6797_mt6351_controls[] = {
+ 	SOC_DAPM_PIN_SWITCH("Headphone"),
++	SOC_DAPM_PIN_SWITCH("Speaker"),
+ 	SOC_DAPM_PIN_SWITCH("Main Mic"),
+ 	SOC_DAPM_PIN_SWITCH("Headset Mic"),
+ 	SOC_DAPM_PIN_SWITCH("Back Mic"),
+-- 
+2.54.0 (Apple Git-157)
+
