@@ -243,3 +243,16 @@ the extra 0.3-0.4 s over a 500 ms one-channel scan.
 
 This shows 0414 keeps channel 40. It does not test another channel, HT40 with the
 secondary channel above, or a join by name without a BSSID.
+
+### Channel 161: predeclared (2026-11-01)
+
+A passive scan heard the owner's network name on other channels, and the owner
+confirmed those access points are theirs and named channel 161 (5805 MHz) for this
+test, so it needs no router change. The RAM copy of the private file sets
+`TARGET_FREQ=5805` and drops the BSSID pin, so this is also the first join by name.
+
+Hypothesis: the operating channel is 161 and `join grant: channel=161` appears
+with `sco=3` at HT40 (secondary channel 157) or `sco=0` at 20 MHz. Then `COMPLETED`, a
+lease, a gateway ping, ten reconnects and a 60 s transfer each way. The decision
+table above applies. This does not test a secondary channel above; that needs
+a channel such as 149 at a usable signal.
