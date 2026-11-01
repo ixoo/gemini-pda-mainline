@@ -228,9 +228,14 @@ each 2/2, through three command-sequence recycles: 26 re-arms, none
 deferred, no delivery-cap refusal, no handshake failure. No Oops, warning
 or call trace; not tainted.
 
+Throughput on station 28, same boot, at -62 dBm, 10 s each: receive 39, 41
+and 39 Mbit/s, transmit 22, 23 and 23 Mbit/s. 0406 costs nothing here. Station
+25 read 42-43 and 22, and station 26 read 43-47 and 21-23.
+
 ## Follow-up
 
 - Station 9's 2.5 h hold, not yet repeated on the clean driver.
+- A real lost handshake frame followed by a successful handshake, not yet seen.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
 - A country change during a lifetime still ends it (phase 4, recovery).

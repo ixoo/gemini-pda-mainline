@@ -1,0 +1,300 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 07:33:46 -0500
+Subject: [PATCH] wifi: mt6797: scan many channels in one request
+
+A scan took one channel and had to be channel 40. Take every channel
+the request lists, so that a scan reports the networks of both bands.
+The firmware's command lists at most 32 channels and the US channel set
+has 36, so a longer scan submits further requests as each one completes.
+A sweep stays 130 ms per channel, just over one beacon interval; a
+one-channel scan keeps its 500 ms.
+
+The scan stays passive, with no SSIDs, and join stays pinned to channel
+40, so transmission does not change. Passive scanning is also admitted
+on DFS channels. A frame still queued from a channel outside the request
+is dropped rather than ending the lifetime. Each request's deadline
+replaces the fixed poll count, which a sweep would exceed. FLUSH is
+accepted, since wpa_supplicant and iw ask for it.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |  8 +-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   | 13 ++-
+ drivers/net/wireless/mediatek/mt6797/main.c   | 90 +++++++++++++------
+ 3 files changed, 79 insertions(+), 32 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 03283765c..dafe06c31 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -626,7 +626,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->bss_active = false;
+ 	mac->scan_count = 0;
+ 	mac->scan_channels = 0;
+-	mac->scan_polls = 0;
++	mac->scan_total = 0;
++	mac->scan_next = 0;
++	mac->scan_sequence = 0;
+ 	mac->scan_packets = 0;
+ 	mac->scan_beacon = false;
+ 	mac->scan_credit = false;
+@@ -980,7 +982,9 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ 	mac->scan_active = false;
+ 	mac->scan_count = 0;
+ 	mac->scan_channels = 0;
+-	mac->scan_polls = 0;
++	mac->scan_total = 0;
++	mac->scan_next = 0;
++	mac->scan_sequence = 0;
+ 	mac->scan_packets = 0;
+ 	mac->scan_beacon = false;
+ 	mac->scan_credit = false;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 48543b13b..195f6d7e2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -41,9 +41,16 @@ struct mt6797_regulatory_payloads {
+ 
+ #define MT6797_PASSIVE_SCAN_BYTES 226U
+ 
++/* A one-channel scan stays several beacon intervals; a sweep stays just over
++ * one, so that all channels fit a few seconds.
++ */
+ #define MT6797_PASSIVE_SCAN_DWELL_MS 500U
++#define MT6797_PASSIVE_SWEEP_DWELL_MS 130U
+ 
+-#define MT6797_PASSIVE_SCAN_CHANNELS MT6797_CHANNELS
++/* CMD_SCAN_REQ_V2 lists at most this many channels; a longer scan takes
++ * several requests.
++ */
++#define MT6797_SCAN_REQUEST_CHANNELS 32U
+ 
+ struct mt6797_scan_frame {
+ 	size_t offset, bytes;
+@@ -611,7 +618,9 @@ struct mt6797_mac {
+ 
+ 	u64 scan_deadline;
+ 	u64 scan_channels;
+-	unsigned int scan_count, scan_polls, scan_packets;
++	unsigned int scan_list[MT6797_CHANNELS];
++	unsigned int scan_total, scan_next, scan_sequence, scan_count, scan_dwell_ms;
++	unsigned int scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 015a1f352..d244ab9ba 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -177,22 +177,25 @@ mt6797_scan_bss(const unsigned char *mac, bool active, unsigned char output[12])
+  */
+ static inline int
+ mt6797_scan_request(unsigned int sequence, const unsigned int *channels,
+-		    unsigned int count, unsigned char *output)
++		    unsigned int count, unsigned int dwell_ms, unsigned char *output)
+ {
+ 	unsigned int i;
+ 
+ 	if (!output || !channels || !sequence || sequence > 255 ||
+-	    count != 1 || mt6797_channel_slot(channels[0]) < 0)
++	    !count || count > MT6797_SCAN_REQUEST_CHANNELS)
+ 		return -EINVAL;
++	for (i = 0; i < count; i++)
++		if (mt6797_channel_slot(channels[i]) < 0)
++			return -EINVAL;
+ 	for (i = 0; i < MT6797_PASSIVE_SCAN_BYTES; i++)
+ 		output[i] = 0;
+ 	output[0] = sequence;
+ 	/* The retained passive decoder carries this halfword into a timer
+-	 * that converts milliseconds to 32768 Hz ticks. Request several
+-	 * beacon intervals on one channel; this does not prove RF tuning.
++	 * that converts milliseconds to 32768 Hz ticks. This does not prove
++	 * RF tuning.
+ 	 */
+-	output[154] = MT6797_PASSIVE_SCAN_DWELL_MS & 0xff;
+-	output[155] = MT6797_PASSIVE_SCAN_DWELL_MS >> 8;
++	output[154] = dwell_ms & 0xff;
++	output[155] = dwell_ms >> 8;
+ 	output[158] = 4; /* SCAN_CHANNEL_SPECIFIED */
+ 	output[159] = count;
+ 	for (i = 0; i < count; i++) {
+@@ -213,7 +216,7 @@ mt6797_scan_done(const unsigned char *packet, size_t bytes,
+ 	if (!packet || bytes != 24 || mt6797_normal_le16(packet) != bytes ||
+ 	    mt6797_normal_le16(packet + 2) != 0xe000 || packet[4] != 0x0d ||
+ 	    packet[5] || !sequence || sequence > 255 ||
+-	    !channel_count || channel_count > MT6797_PASSIVE_SCAN_CHANNELS)
++	    !channel_count || channel_count > MT6797_SCAN_REQUEST_CHANNELS)
+ 		return -EPROTO;
+ 	if (packet[8] != sequence)
+ 		return -EAGAIN;
+@@ -493,7 +496,7 @@ static int mt6797_mac_scan_guard(struct mt6797_mac *mac, u64 deadline)
+ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel)
+ {
+-	u8 bss[12], abort[4] = {1, 0, 0, 0};
++	u8 bss[12], abort[4] = {mac->scan_sequence, 0, 0, 0};
+ 	bool retain = false;
+ 	int ret;
+ 
+@@ -505,8 +508,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 	mac->scan_active = false;
+ 	mac->join_scan_ready = false;
+ 	if (!cancel && !*status && !mac->first_error) {
+-		if (!mac->bss_active || mac->join_retired || mac->scan_count != 1 ||
+-		    mac->scan_channels != BIT_ULL(mt6797_channel_slot(40)) ||
++		if (!mac->bss_active || mac->join_retired ||
+ 		    !mt6797_hif_normal_idle(mac->hif)) {
+ 			*status = -EPROTO;
+ 			mac->first_error = *status;
+@@ -568,7 +570,8 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 			return -EPROTO;
+ 		switch (packet[4]) {
+ 		case 0x0d:
+-			ret = mt6797_scan_done(packet, bytes, 1, mac->scan_count);
++			ret = mt6797_scan_done(packet, bytes, mac->scan_sequence,
++					       mac->scan_count);
+ 			if (ret == -EAGAIN)
+ 				return 0;
+ 			if (!ret)
+@@ -604,12 +607,12 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 		return 0; /* unsupported data/control frames are never delivered */
+ 	if (ret)
+ 		return ret;
++	/* A frame still queued from another channel is not part of this scan. */
+ 	slot = mt6797_channel_slot(frame.channel);
+ 	if (slot < 0 || !(mac->scan_channels & BIT_ULL(slot)))
+-		return -EPROTO;
++		return 0;
+ 	channel = &mac->channels[slot];
+-	if (channel->flags & (IEEE80211_CHAN_DISABLED |
+-			      IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR))
++	if (channel->flags & (IEEE80211_CHAN_DISABLED | IEEE80211_CHAN_NO_20MHZ))
+ 		return -EACCES;
+ 	/* Hand the validated beacon or probe response to mac80211 as a received
+ 	 * frame instead of informing cfg80211 directly: mac80211 then creates
+@@ -634,6 +637,30 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 	return 0;
+ }
+ 
++/* Submit the next request of this scan, with its own deadline. */
++static int mt6797_mac_scan_submit(struct mt6797_mac *mac)
++{
++	u8 payload[MT6797_PASSIVE_SCAN_BYTES];
++	unsigned int count;
++	int ret;
++
++	count = min(mac->scan_total - mac->scan_next, MT6797_SCAN_REQUEST_CHANNELS);
++	ret = mt6797_scan_request(mac->scan_sequence + 1,
++				  mac->scan_list + mac->scan_next, count,
++				  mac->scan_dwell_ms, payload);
++	if (!ret)
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload,
++				      sizeof(payload));
++	if (ret)
++		return ret;
++	mac->scan_sequence++;
++	mac->scan_next += count;
++	mac->scan_count = count;
++	mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC +
++			     count * mac->scan_dwell_ms * NSEC_PER_MSEC;
++	return 0;
++}
++
+ static void mt6797_mac_scan_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+@@ -652,7 +679,7 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 	if (!mac->scan_active)
+ 		goto out;
+ 	now = ktime_get_ns();
+-	if (now >= mac->scan_deadline || ++mac->scan_polls > 256) {
++	if (now >= mac->scan_deadline) {
+ 		ret = -ETIMEDOUT;
+ 		cancel = true;
+ 		goto finish;
+@@ -692,8 +719,13 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		if (!got)
+ 			break;
+ 	}
+-	if (done)
++	if (done && mac->scan_next == mac->scan_total)
+ 		goto finish;
++	if (done) {
++		ret = mt6797_mac_scan_submit(mac);
++		if (ret)
++			goto failed;
++	}
+ 	schedule_delayed_work(&mac->scan_work, msecs_to_jiffies(20));
+ 	goto out;
+ failed:
+@@ -725,9 +757,9 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ {
+ 	struct mt6797_mac *mac = hw->priv;
+ 	struct ieee80211_channel *channel;
+-	unsigned int channels[MT6797_PASSIVE_SCAN_CHANNELS], i;
++	unsigned int i;
+ 	u64 mask = 0;
+-	u8 payload[MT6797_PASSIVE_SCAN_BYTES], bss[12];
++	u8 bss[12];
+ 	u8 broadcast[4] = {8, 0, 0, 0};
+ 	int ret = -EOPNOTSUPP, slot;
+ 
+@@ -750,12 +782,14 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 * parameter is admitted below, so it adds no firmware operation.
+ 	 */
+ 	if (request->req.n_ssids ||
+-	    (request->req.flags & ~NL80211_SCAN_FLAG_COLOCATED_6GHZ) ||
++	    (request->req.flags & ~(NL80211_SCAN_FLAG_COLOCATED_6GHZ |
++				    NL80211_SCAN_FLAG_FLUSH)) ||
+ 	    request->req.duration ||
+ 	    request->req.duration_mandatory || request->req.scan_6ghz ||
+ 	    request->req.n_6ghz_params ||
+ 	    !is_broadcast_ether_addr(request->req.bssid) ||
+-	    request->req.n_channels != 1)
++	    !request->req.n_channels ||
++	    request->req.n_channels > MT6797_CHANNELS)
+ 		goto out;
+ 	for (i = 0; i < request->req.n_channels; i++) {
+ 		channel = request->req.channels[i];
+@@ -766,16 +800,13 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		    channel->band != (slot < MT6797_2G_CHANNELS ?
+ 				      NL80211_BAND_2GHZ : NL80211_BAND_5GHZ) ||
+ 		    (channel->flags & (IEEE80211_CHAN_DISABLED |
+-				      IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR)))
++				      IEEE80211_CHAN_NO_20MHZ)))
+ 			goto out;
+-		channels[i] = channel->hw_value;
++		mac->scan_list[i] = channel->hw_value;
+ 		mask |= BIT_ULL(slot);
+ 	}
+ 	if (!mac->sequence_base)
+ 		mac->sequence_base = mac->sequence;
+-	ret = mt6797_scan_request(1, channels, request->req.n_channels, payload);
+-	if (ret)
+-		goto out;
+ 	/* Retire before the first write: an uncertain activation/submission
+ 	 * cannot be retried or treated as an effect-free rejection.
+ 	 */
+@@ -803,12 +834,15 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	if (ret)
+ 		goto out;
+ 	mac->bss_active = true;
+-	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload, sizeof(payload));
++	mac->scan_total = request->req.n_channels;
++	mac->scan_next = 0;
++	mac->scan_sequence = 0;
++	mac->scan_dwell_ms = mac->scan_total == 1 ? MT6797_PASSIVE_SCAN_DWELL_MS :
++						    MT6797_PASSIVE_SWEEP_DWELL_MS;
++	ret = mt6797_mac_scan_submit(mac);
+ 	if (ret)
+ 		goto out;
+ 	mac->scan_channels = mask;
+-	mac->scan_count = request->req.n_channels;
+-	mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC;
+ 	mac->scan_active = true;
+ 	dev_info(wiphy_dev(hw->wiphy), "one-shot passive WLAN scan: admitted=1\n");
+ 	schedule_delayed_work(&mac->scan_work, 0);
+-- 
+2.43.0
+

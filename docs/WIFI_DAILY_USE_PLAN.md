@@ -1,8 +1,15 @@
 # Wi-Fi for daily use, for anyone: plan
 
-Status: plan, 2026-10-31. Phase 1 (one clean driver) is implemented and
-passed on station 24 ([record](../experiments/2026-10-31-mt6797-wifi-clean-driver/README.md));
-its 2.5 h hold was not repeated. Phases 2-6 are not started.
+Status: plan, updated 2026-11-01.
+- Phase 1 (one clean driver) passed on station 24
+  ([record](../experiments/2026-10-31-mt6797-wifi-clean-driver/README.md));
+  its 2.5 h hold was not repeated.
+- Phase 2's code passed on station 28
+  ([record](../experiments/2026-11-01-mt6797-wifi-self-start/README.md)): the
+  driver starts by itself and follows the US country. Its `nmcli` exit test
+  needs phase 3.
+- Phase 3 has started ([record](../experiments/2026-11-01-mt6797-wifi-any-channel/README.md)).
+- Phases 4-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and
 states what "done" means at each step.
@@ -36,15 +43,13 @@ What keeps it from being anyone's Wi-Fi:
 
 | Gap | Today |
 | --- | --- |
-| Channel | Scan, join and the receive status check are pinned to channel 40 (5200 MHz); the channel set is fixed to UNII-1 36–48 |
+| Channel | Scan, join and the receive status check are pinned to channel 40 (5200 MHz). The channel list follows the regulatory domain |
 | Network choice | `wifi-up.sh` pins one BSSID and one frequency in `wpa_supplicant`, from a private file sent over SSH |
 | Scan | Passive, one channel per request; no active probe, no hidden SSID |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |
 | Roaming | None: there is no scan while associated, and the BSSID is pinned |
-| Start | Firmware start is two userspace writes, then `insmod`. Nothing comes up at boot |
-| Firmware and calibration | Taken from the owner's retained Gemian image and private board record. Nothing for another owner to follow |
+| Regulatory | An update that really changes the domain during a lifetime, such as an access point advertising another country than the one set, ends the lifetime until a module reload |
 | Battery | Receive is polled, since the HIF interrupt line never asserted. No 802.11 power save, and no system suspend on this kernel |
-| Code shape | About 290 patches in the station series touch CONSYS, WMT and WLAN, including test schedules, debugfs records and diagnostic gates. Fixed-rate and fixed-channel choices are Kconfig switches |
 
 ## Phases
 
