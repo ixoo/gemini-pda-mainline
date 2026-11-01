@@ -340,7 +340,7 @@ Missing or board-specific:
 
 - MT6351 MFD parent/cell in current upstream; local patches 0008/0010 add it;
 - a BOM line item for the two AW8736FCR amplifiers (by ear, each channel reaches its own speaker);
-- MT6351 ACCDET driver (only MT6359 ACCDET exists); see the
+- headset classification and buttons on the MT6351 ACCDET (plug detection is done); see the
   [MT6351 ACCDET contract and driver plan](mt6351-accdet.md);
 - headphone offset trim;
 - MT6797 I2S DAI for a MAX98926 path;
@@ -363,7 +363,8 @@ station carries the audio stack as unloaded modules. See
 [first audio on the station](../../experiments/2026-11-01-gemini-audio-station/README.md).
 With `0411` as well, a 48 kHz tone is heard in both headphone ears and from the
 matching left and right speakers, and capture from AIN0 and AIN2 follows a tone
-and speech. Microphone placement, the jack and trim remain open.
+and speech. With `0415`-`0417`, the `Headphone Jack` control follows plug and
+unplug. Microphone placement, headset classification, the buttons and trim remain open.
 
 ## 6. Offline review results
 

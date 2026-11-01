@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-jack-detect` |
-| Status | `running`: booted on station 30; plug cycles not yet observed |
+| Status | `completed`: the jack control follows plug and unplug on station 30 |
 | Subsystem | audio: MT6351 ACCDET EINT, card jack |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -105,6 +105,20 @@ control, and `cget name=` looks on the mixer interface. No plug cycle was logged
 - Regression: `audio-test.sh` exit 0 twice; tone heard in both ears on the second run,
   with the headphones in. No oops or warning, Wi-Fi `COMPLETED`.
 
+**Run 2, same boot, `jack-test.sh` `299073d4…`, run by the custodian; times from `dmesg`:**
+
+| Event | Time (s) | Interrupt count after |
+| --- | --- | --- |
+| Plug, from a known off state | 1345.88 | 3 |
+| Three owner cycles: out, in, out, in, out, in | 1390.39, 1393.57, 1396.66, 1399.38, 1402.11, 1404.55 | 4 to 9 |
+| Unplug | 1430.22 | 10 |
+| 2 s tone with the headphones out, 1463-1465 | no event | 10, `aplay` rc 0 |
+| Plug | 1533.66 | 11 |
+| `RELOAD=1`: `rmmod` and reload with the headphones in | 1547.62 | 12, control on 2 s after load |
+
+Both scripts exit 0. No oops, warning, call trace or `nobody cared`; not tainted; Wi-Fi
+`COMPLETED` throughout. Playback was not repeated after the reload.
+
 ## Analysis
 
 Run 1 cannot separate two readings of the one interrupt: the owner's plug, or a false
@@ -116,10 +130,26 @@ The unplug shows the unplug EINT works with the detection unit off, which remove
 decision branch. It does not separate the two readings: a false `in` at 156 s, a plug that
 raises nothing and a real unplug would log the same sequence.
 
+Run 2 confirms the hypothesis: twelve changes, twelve `jack` lines, twelve interrupts, each
+with the control following. Headphones in at load are seen, because the EINT is level
+triggered. Module removal and reload work.
+
+Playback with the headphones out raised nothing, so playback is not a general source of
+false EINTs, and the 156 s event was probably the owner's plug. That is an inference: run 2
+did not repeat the card's first power-up on a boot, which is when that event happened.
+
 ## Conclusion
 
-`inconclusive`: nothing here establishes hardware behavior.
+`confirmed` for the named Gemini, Linux 7.1.3 and package `b3cfdeb6`: the `Headphone Jack`
+control and input device follow plug and unplug, with the plug used here. Only one set of
+headphones was tried, and the debounce values are the board's, not measured.
+
+Not established: a false EINT at the first power-up on a boot, telling a headset from
+headphones, the headset microphone, the buttons, and suspend. Nothing switches audio paths on
+a jack event yet.
 
 ## Follow-up
 
 - [MT6351 ACCDET contract and driver plan](../../docs/hardware/mt6351-accdet.md)
+- Cheap check on any fresh boot: load and play once with the headphones out, then read the count.
+- Next stages: headset classification with the detection unit, the headset microphone, the buttons.

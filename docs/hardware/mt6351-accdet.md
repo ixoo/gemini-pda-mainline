@@ -116,8 +116,9 @@ jack through `set_jack()`, and the existing `mt6351-sound` cell carries interrup
 13, so there is no new cell, DT node or binding. Only the EINT is armed, and plug
 and unplug are reported as `SND_JACK_HEADPHONE`. A separate driver is worth
 revisiting if classification and buttons outgrow the codec. See the
-[jack experiment](../../experiments/2026-11-01-gemini-jack-detect/README.md); it has
-not been booted.
+[jack experiment](../../experiments/2026-11-01-gemini-jack-detect/README.md): plug and
+unplug are followed on station 30, one interrupt per change, with the detection unit
+off and no re-initialisation after a plug.
 
 ## 5. Preconditions
 
