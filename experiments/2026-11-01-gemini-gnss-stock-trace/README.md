@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2, one start with assistance off, is admitted and has not run |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2's first attempt stopped at its gate, with no start; step 2 is corrected and admitted, and has not run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -181,21 +181,21 @@ has expired. It logs the network state but does not test it, which explains why 
 - `gps.conf`: `EPO_ENABLE=0`
 - `mnl.prop`: `EPO_enabled=0`, `BEE_enabled=0`, `SUPL_enabled=0`, `SUPLSI_enabled=0`
 
-Both are `key=value`, one per line. `mnl.prop` is read when `mnld` starts, so `mnld` restarts once. No start
-command is sent for that restart.
+Both are `key=value`, one per line. `mnld` loads `mnl.prop` in its GPS start path, and that load holds the values
+the start uses, so no restart is needed. The owner approved this correction after the attempt below.
 
 **Network:** this should prevent the download rather than catch it; that is read from the decompile and not
 yet seen. The quarter-EPO download has no host-side switch found, so that the engine will not request it with
 EPO off is an inference. The watcher stays on, with step 1's limits.
 
 **Procedure:** device near a window, on stable power, Wi-Fi up.
-1. Verify identity, one `mnld`, the clock and Wi-Fi. Write the two files through the container, and restart `mnld`.
-2. Confirm the new `mnld` read `mnl.prop`: its `mnl_linux` log lines give the file and all four values at 0. In
-   step 1, logcat kept only warnings and errors from `mnld`, so these debug lines may be filtered out. In that
-   case, an access time on `mnl.prop` that advanced across the restart shows the read, but not the values. With
-   neither, stop here: no start.
-3. Run step 1's sequence: `strace`, watcher for 1200 s, init, 2 s, start, hold, stop, cleanup, detach. Also stop
-   if the RAM directory falls under 32 MiB free.
+1. Verify identity, one `mnld`, the clock and Wi-Fi. Write the two files through the container. Do not read them
+   back; check size and owner only.
+2. Run step 1's sequence: `strace`, watcher for 1200 s, init, 2 s, start, hold, stop, cleanup, detach. `strace` also
+   watches the two files. Stop if the RAM directory falls under 32 MiB free.
+3. **Gate, during the start:** the settings cannot be confirmed earlier, because `mnld` reads them as it starts. If
+   the trace does not show both files opened within 5 s of the start command, send stop and cleanup. That uses
+   the start. Until then the receiver may run on default settings, with assistance on; the watcher still applies.
 4. Copy the capture and logs to private artifacts.
 5. **Restore:** delete the two files, restart `mnld`, and confirm `mnld` is running with one process. Other files in
    `/data/misc/gps` stay; `mnld` may change them during the run. Their use with EPO off is unknown.
@@ -208,8 +208,22 @@ a position in `mtkgps.dat`, which stays on the device, unread.
 | DSP packets beyond the boot exchange | The packets can be decoded | Decode offline; decide on the open stack |
 | A fix arrives | Stock GNSS works, the first time on record | Keep the capture as the reference |
 | Boot, then keep-alives only | No signal at this placement, or the engine waits for something | Check offline; a further start needs a new request |
+| The gate stops the run | `mnld` did not open the files as read from the decompile | Check offline; a further start needs a new request |
 | The watcher fires | These settings do not hold the connection back | Identify the path offline; a further start needs a new request |
 | Assert or `mnld` failure | Maybe the settings, the seven files, or `strace` | Compare with step 1; a further start needs a new request |
+
+### First attempt (2026-11-01): stopped at its gate
+
+Boot `a0b54f1d`, run by the custodian; evidence is private under `artifacts/gemian-a0b54f1d/gnss-step2/`. The attempt
+used an earlier gate: restart `mnld`, then require `mnld`'s log lines or an advanced access time on `mnl.prop`. Neither
+appeared, so no start was sent. No `strace` or watcher ran. The two files were removed and `mnld` restarted.
+
+**Observed:** `/data` is `relatime`. The access time stayed unchanged across the restart, and logcat held no `mnld`
+line at all.
+
+**Inferred, not tested:** the gate could not pass, so this does not show that `mnld` skipped the file. The requested read-back
+most likely left the access time just after the modification time, and `relatime` then does not update it. The
+gate was also at the wrong moment, since the values a start uses come from the load in the start path.
 
 ## Privacy and rights
 
