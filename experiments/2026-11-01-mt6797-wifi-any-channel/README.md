@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 passes its channel 40 control; no other channel has been joined yet |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channel 40 and channel 161 with data both ways. A secondary channel above and 2.4 GHz are not tested |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -256,3 +256,30 @@ with `sco=3` at HT40 (secondary channel 157) or `sco=0` at 20 MHz. Then `COMPLET
 lease, a gateway ping, ten reconnects and a 60 s transfer each way. The decision
 table above applies. This does not test a secondary channel above; that needs
 a channel such as 149 at a usable signal.
+
+### Result: channel 161, boot `c08cf8d4` (2026-11-01)
+
+Run by the device custodian, on the 0414 modules, within the protocol's budget.
+
+| Check | Result |
+| --- | --- |
+| Join by name, no BSSID pin | `COMPLETED` on 5805 MHz, WPA2-PSK/CCMP, a lease, gateway 3/3, 40 MHz, -60 dBm |
+| Grant | `join grant: channel=161 sco=3` on all 11 joins |
+| Ping | 10/10, 9.9 ms average |
+| Ten reconnects | 10/10 in 1.00-1.13 s, each 2/2, all on 5805 MHz |
+| 60 s each way | Receive 56, transmit 22 Mbit/s |
+| Temperature | SoC 30.7 to 31.4 C, battery 24.1 C throughout |
+| Kernel log | No Oops, warning, call trace, branch 9, "submission stopped", "channel refused" or "join stopped"; not tainted |
+| Back on channel 40 | With the unchanged private file: `COMPLETED`, a lease, gateway 3/3 |
+
+The first decision row holds: the station joined a channel other than 40 for the
+first time, in the other UNII group, and carried data both ways.
+
+- **Reconnect time.** 1.00-1.13 s matches the earlier pinned runs. `TARGET_FREQ`
+  gives a one-channel scan, against about seven channels in the channel 40
+  control, so the difference comes from the private file (inferred).
+- **Throughput.** Receive is above channel 40's range and transmit is the same.
+  The access point differs, so this says nothing about the driver.
+
+Not tested: a secondary channel above (`sco=1`), channel 149 or 48, 2.4 GHz, and
+a join with no frequency pin that picks among access points of one name.

@@ -43,7 +43,7 @@ What keeps it from being anyone's Wi-Fi:
 
 | Gap | Today |
 | --- | --- |
-| Channel | Join and receive are coded for any non-DFS 5 GHz channel (0414), but only channel 40 has been joined. 2.4 GHz and DFS joins are refused. The channel list follows the regulatory domain |
+| Channel | Joins any non-DFS 5 GHz channel in code (0414); channels 40 and 161 tested. 2.4 GHz and DFS joins are refused. The channel list follows the regulatory domain |
 | Network choice | `wifi-up.sh` joins by name, from a private file sent over SSH, with an optional BSSID or frequency pin. No NetworkManager test yet |
 | Scan | Passive on all channels of both bands, about 5 s; no active probe, no hidden SSID |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |
