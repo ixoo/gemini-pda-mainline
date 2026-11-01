@@ -185,19 +185,25 @@ jack line in this build. ACCDET uses:
 
 The vendor debounces plug-in at 256 ms and plug-out at 1 ms, leaves MICBIAS1
 on for 6 s after an event, and maps button thresholds at 0/80/220/400 mV to
-`KEY_PLAYPAUSE`, `KEY_VOLUMEUP` and `KEY_VOLUMEDOWN`. Those are MediaTek
-reference defaults, not Gemini measurements. The live PMIC interrupt snapshot
-showed ACCDET sources 12-14 at count 0, so no live jack event was captured.
+`KEY_PLAYPAUSE`, `KEY_VOLUMEUP` and `KEY_VOLUMEDOWN`. The live Gemian `dmesg`
+confirms the configured values (`mid-Key=80`, `up=220`, `down=400`,
+`pwm_width=500`, `pwm_thresh=500`, efuse `0xffffff80`, offset `-2`); these are
+configured values, not an acoustic calibration. The live PMIC interrupt
+snapshot showed ACCDET sources 12-14 at count 0, so no live jack event was
+captured.
 
 Two board GPIOs remain associated with the headset path:
 
 - **GPIO234 `headphone_en`**: driven high with the DCC-mode microphone ADC
   path, not with playback.
-- **GPIO235 `headphone_cs`**: a world-writable `/proc/headphone_cs` knob.
+- **GPIO235 `headphone_cs`**: a world-writable `/proc/headphone_cs` manual
+  knob; no HAL or kernel audio path uses it.
 
-Their electrical target is not recorded. GPIO234/235 are also SPI1 alternate
-pads, so SPI1 and this use are mutually exclusive. The codec style differs
-from the surrounding MediaTek code, so they are board-vendor additions.
+GPIO234's DCC-mic function is confirmed. GPIO235's electrical target is not,
+but it has no audio-path consumer, so mainline can leave it unclaimed.
+GPIO234/235 are also SPI1 alternate pads, so SPI1 and this use are mutually
+exclusive. The codec style differs from the surrounding MediaTek code, so
+they are board-vendor additions.
 
 ## 5. Mainline status
 
@@ -224,22 +230,36 @@ The first safe mainline card is therefore the AFE + MT6351 codec +
 minimum and the amplifier GPIOs left as the loader left them. Speaker,
 headset-mic and jack work need board evidence first.
 
-## 6. Unresolved questions
+## 6. Offline review results
 
-1. Which AW87xx/AW8736-class part sits behind GPIO243/244, and is the
-   MAX98926-compatible I2C0 `0x31` node populated but unused?
-2. Is the earpiece/RCV driver physically populated?
-3. Is the back/reference microphone populated?
-4. What is GPIO235's electrical target? GPIO234 is confirmed as the DCC
-   microphone-path enable, not a playback control.
-5. What are the measured ACCDET button thresholds and plug debounce on the
-   Gemini, rather than the MediaTek reference values?
+| Open point | Offline result |
+| --- | --- |
+| Speaker amplifier family | Vendor `mt_soc_codec_63xx.c` defines `AW8736_MODE_CTRL` and the `AW8736_MODE3` pulse sequence; the GPIO243/244 protocol matches the AW8736. The populated BOM variant is not proven. |
+| MAX98926 node | The stock machine driver logs `max98926L is not find`; `OpenSpeakerPath` never selects the I2C node. The node is not part of the stock path. |
+| Earpiece / two-in-one | `OpenReceiverPath` checks `persist.af.feature.2in1spk`; no Gemini config sets it, so the stock path is `receiver_output`, not the two-in-one speaker route. Physical earpiece population is still not proven. |
+| Back/reference mic | The HAL has a `Built-In Back Mic` port and `builtin_Mic_BackMic` route, but the policy's `attachedDevices` does not include it and no board evidence proves a second capsule. |
+| GPIO234 `headphone_en` | Confirmed DCC microphone-path enable; not a playback control. |
+| GPIO235 `headphone_cs` | Only exposed as a world-writable `/proc/headphone_cs` manual knob; no HAL or kernel audio path uses it. Leave it unclaimed in mainline. |
+| ACCDET thresholds | Live Gemian `dmesg` confirms `mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`, `efusevalue=0xffffff80`, offset `-2`. These are configured values, not an acoustic calibration. |
+| Headphone trim | Live Gemian `dmesg` records `Audio_Hpl_Offset_Get` and `GetAudioTrimOffset channels = 1`; the stock path applies trim, mainline does not. |
+
+## 7. Still open
+
+1. Which AW8736 variant is populated behind GPIO243/244? The vendor code
+   names AW8736 and the pulse protocol matches; a board BOM or inspection is
+   still needed.
+2. Is the MAX98926-compatible I2C0 `0x31` node populated at all? It is not
+   used by the stock speaker path.
+3. Is the earpiece/RCV driver physically populated?
+4. Is the back/reference microphone populated?
+5. Is the headphone efuse offset trim needed for acceptable DC offset on
+   mainline, or only for the stock path?
 6. Does the live DTB's audio section differ from the public board DTS beyond
    the `speaker_amp@31` node?
-7. Is the headphone efuse offset trim needed for acceptable DC offset on
-   mainline?
+7. Are the configured ACCDET thresholds and debounce correct for the actual
+   Gemini headset, beyond matching the live dmesg values?
 
-## 7. Evidence
+## 8. Evidence
 
 - [Gemini audio RE](../../experiments/2026-10-04-gemini-audio-re/README.md) —
   full vendor line citations, F1-F16, and the ranked hypotheses.

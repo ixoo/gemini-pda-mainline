@@ -479,6 +479,25 @@ Consequences:
 - H1 is therefore the stock path; H2 is not. The amplifier part behind
   GPIO243/244 and the MAX98926 population still need board evidence.
 
+Further offline closures from the same review:
+
+- The speaker amplifier family is named in the vendor source: `AW8736_MODE_CTRL`
+  and the `AW8736_MODE3` pulse sequence. The exact populated variant still
+  needs a BOM or inspection.
+- `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini
+  config sets it, so `OpenReceiverPath` uses `receiver_output`, not
+  `two_in_one_speaker_output`.
+- `startInputDevice` contains a `builtin_Mic_BackMic` route and the policy
+  exposes `Built-In Back Mic`, but the policy's `attachedDevices` does not
+  include it. A second capsule is not proven.
+- GPIO234 is asserted only in `TurnOnADcPowerDCC`; it is the DCC microphone
+  path, not playback. GPIO235 is only a manual `/proc/headphone_cs` knob and
+  has no HAL or kernel audio-path consumer.
+- The live Gemian `dmesg` confirms the ACCDET configured values
+  (`mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`) and
+  the efuse offset (`0xffffff80`, `-2`). These are configured values, not an
+  acoustic calibration.
+
 ## Validation
 
 Documentation-only change: `./scripts/check-repository` and link checks apply;
