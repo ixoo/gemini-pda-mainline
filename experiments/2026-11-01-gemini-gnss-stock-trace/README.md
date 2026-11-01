@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `planned`: step 0 done; step 1 approved by the owner on 2026-11-01 but held on the network question; no start sent |
+| Status | `planned`: step 0 done; step 1 admitted on 2026-11-01 with the owner's monitor-and-stop decision; no start sent |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -81,15 +81,18 @@ Only their presence and size are noted.
 - No partition, NVRAM, boot or firmware write by this procedure. No new firmware file.
 
 **Network:** assistance can send data off the device. EPO downloads from MediaTek's servers, and SUPL
-can send cell and location data. The run goes ahead only with those off in the configuration seen at
-step 0, or after the owner decides otherwise. SSH uses the known-good Wi-Fi as usual.
+can send cell and location data. Step 0 found no configuration, so both default to on. The owner decided
+on monitor and stop: [watch-net.py](watch-net.py) sends stop and cleanup as soon as uid 1021 has a socket
+with a remote peer. This reduces exposure but does not prevent a first connection, and DNS through the
+container's resolver would not show under uid 1021. SSH uses the known-good Wi-Fi as usual.
 
 **Procedure:** device near a window or outdoors, on stable power, Wi-Fi up.
 1. Attach `strace -f -tt -xx -s 65536 -P /dev/stpgps -o <RAM file> -p <mnld pid>`, and confirm it
    is capturing.
-2. Send init and start. Hold for at most 20 minutes, or until 2 minutes after the first fix.
-3. Send stop and cleanup. Detach `strace`, confirm a gateway ping, and copy the capture to private
-   artifacts.
+2. Start `watch-net.py` for 1200 s, send init, wait 2 s, then send start.
+3. Hold until the watcher exits, at most 20 minutes.
+4. Send stop and cleanup, if the watcher did not. Detach `strace`, confirm a gateway ping, and copy the
+   capture and the `mnld` logcat lines to private artifacts.
 
 **Budget:** one start in one Gemian boot. No retry.
 
@@ -100,6 +103,7 @@ step 0, or after the owner decides otherwise. SSH uses the known-good Wi-Fi as u
 | No traffic, or `mnld` fails or uses a serial path | Stock GNSS does not start this way | Check the trigger offline; a further start needs a new request |
 | Boot works, packets flow, no fix | Normal if indoors or a cold start | The protocol is still decodable; a fix is not needed |
 | A fix arrives | Stock GNSS works, the first time on record | Keep the capture as the reference |
+| The watcher fires | Assistance ran despite the missing HAL state | The trace so far is still used; a further start needs a new request |
 
 **Stop rules:** firmware assert or whole-chip reset in the log; Wi-Fi lost beyond a normal gap; any
 Oops; unusual battery or SoC temperature; `mnld` restart loop. On a stop: send stop, detach `strace`,
