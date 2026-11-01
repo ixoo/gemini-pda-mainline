@@ -62,20 +62,29 @@ local-patch-only in the current package.
 | --- | --- | --- | --- |
 | Earpiece | `DACL -> RCV Mux -> RCV Buffer` | MT6351 HS driver | `Voice_Amp_Switch` |
 | Headphones | `DACL/DACR -> HPL/HPR Mux -> HPL/HPR` | cap-less HP jack | `Audio_Amp_L/R_Switch` |
-| Speaker, analog path | `DACL -> LOL Mux -> LOL Buffer` | line-out to an external amplifier | `Speaker_Amp_Switch` |
-| External speaker | same LOL source, board amplifier | pulse-coded GPIO243/244 | `Ext_Speaker_Amp_Switch` |
+| Speaker | `DACL/DACR -> HPL/HPR Mux -> HPL/HPR` | HP outputs into a board amplifier, GPIO243/244 enable | `Audio_Amp_L/R_Switch` + `Ext_Speaker_Amp_Switch` |
+| LOL / `speaker_output` | `DACL -> LOL Mux -> LOL Buffer` | line-out buffer | `Speaker_Amp_Switch` |
 | Headphone as loudspeaker | HP outputs re-used | headset speaker mode | `Headset_Speaker_Amp_Switch` |
 | Bluetooth SCO/A2DP | BTCVSD / host PCM | BT transport | separate |
 | FM / HDMI / dock | digital or hostless | separate transport | separate |
 
-The MT6351 has **no on-PMIC class-D speaker amplifier**. The "Speaker" path is
-the LOL line-out buffer; it needs a board amplifier. The vendor code enables
-the speaker path with `Speaker_Amp_Switch`, which only programs LOL and its
-gain. The separate `Ext_Speaker_Amp_Switch` calls
-`AudDrv_GPIO_EXTAMP_Select()` / `EXTAMP2_Select()`, which emit a three-pulse
-sequence on **GPIO243** and **GPIO244** and wait 25 ms. That pulse-count
-protocol matches the AW87xx/AW8736 analog amplifier family, but no public
-source records which part is populated.
+The MT6351 has **no on-PMIC class-D speaker amplifier**. The stock HAL's
+speaker path is now resolved by disassembly: `OpenSpeakerPath` and
+`OpenHeadphoneSpeakerPath` are aliases at the same address, and the body
+applies `headphone_output` followed by `ext_speaker_output`. `CloseSpeakerPath`
+reverses that order. It never applies `speaker_output` / `Speaker_Amp_Switch`
+and never touches the I2C MAX98926 node.
+
+So the internal speaker is driven from **HPL/HPR into a board amplifier**,
+enabled by `Ext_Speaker_Amp_Switch` → `AudDrv_GPIO_EXTAMP_Select()` /
+`EXTAMP2_Select()`. Those helpers emit a three-pulse sequence on **GPIO243**
+and **GPIO244** and wait 25 ms. The pulse-count protocol matches the
+AW87xx/AW8736 analog amplifier family, but no public source records which part
+is populated.
+
+The MT6351 LOL path remains a codec capability and the `speaker_output` HAL
+path exists, but the stock speaker alias does not select it. It may be unused
+on this board or reserved for another route.
 
 The RCV/earpiece driver exists in the codec and the stock HAL exposes an
 Earpiece port. Whether the Gemini physically fits an earpiece speaker, rather
@@ -90,16 +99,16 @@ The stock HAL exposes these mixer paths:
 ```text
 headphone_output       Audio_Amp_L/R_Switch
 receiver_output        Voice_Amp_Switch
-speaker_output         Speaker_Amp_Switch
-two_in_one_speaker     Speaker_Amp_Switch + Audio_Speaker_class_Switch=CLASSAB
-ext_speaker_output     Ext_Speaker_Amp_Switch
+speaker_output         Speaker_Amp_Switch          (not used by OpenSpeakerPath)
+two_in_one_speaker     Speaker_Amp_Switch + class AB
+ext_speaker_output     Ext_Speaker_Amp_Switch      (selected by OpenSpeakerPath)
 headphoneSpeaker       Headset_Speaker_Amp_Switch
 ```
 
-The stock kernel's speaker path is therefore ambiguous in the public source:
-`speaker_output` selects only LOL, while `ext_speaker_output` selects the
-GPIO243/244 amplifier. Whether the internal speaker is driven directly from
-LOL, from the GPIO amplifier, or from the I2C smart amplifier is unresolved.
+`OpenSpeakerPath` = `OpenHeadphoneSpeakerPath` = `headphone_output` +
+`ext_speaker_output`. The earlier ambiguity between LOL, the GPIO amplifier and
+the I2C smart amplifier is therefore closed for the stock HAL: it uses the
+headphone DAC path and the GPIO243/244 amplifier.
 
 ### 2.1 The I2C smart-amplifier alternative
 
@@ -107,12 +116,17 @@ The live Gemini DTB has an I2C0 `0x31` node named `speaker_amp` with
 compatible `mediatek,speaker_amp`. The vendor source matches that compatible
 to a MediaTek-adapted **MAX98926** driver (`max98926L`); its Kconfig symbol is
 unset in the stock build, and the machine driver looks for a different
-compatible (`maxim,max98926L`). The live client is therefore unbound.
+compatible (`maxim,max98926L`). The live client is therefore unbound, and the
+retained Gemian boot log records `max98926L is not find`.
 
 If that part is populated, it needs an I2S0 feed and board pins that the
 public DTS comments out. Mainline has the MAX98926 driver but no MT6797 I2S
 DAI and no board wiring, so the smart-amplifier path is a larger prerequisite
-than the analog LOL path.
+than the GPIO-enabled headphone-output speaker path.
+
+The retained Gemian boot also records `Audio_Hpl_Offset_Get` and
+`GetAudioTrimOffset channels = 1`, confirming that the stock path applies the
+headphone offset trim. Mainline has no equivalent.
 
 ## 3. Inputs
 
@@ -212,11 +226,12 @@ headset-mic and jack work need board evidence first.
 
 ## 6. Unresolved questions
 
-1. Is the internal speaker driven by LOL plus the GPIO243/244 amplifier, or
-   by a populated MAX98926 on I2C0 `0x31`?
+1. Which AW87xx/AW8736-class part sits behind GPIO243/244, and is the
+   MAX98926-compatible I2C0 `0x31` node populated but unused?
 2. Is the earpiece/RCV driver physically populated?
 3. Is the back/reference microphone populated?
-4. Do GPIO234/235 switch the headset mic/line, or another analog function?
+4. What is GPIO235's electrical target? GPIO234 is confirmed as the DCC
+   microphone-path enable, not a playback control.
 5. What are the measured ACCDET button thresholds and plug debounce on the
    Gemini, rather than the MediaTek reference values?
 6. Does the live DTB's audio section differ from the public board DTS beyond
@@ -234,7 +249,9 @@ headset-mic and jack work need board evidence first.
 - [MT6797 audio upstream architecture](../../experiments/2026-09-07-mt6797-audio-upstream-architecture/README.md)
   — AFE binding, clock and dependency map.
 - Vendor `mt_soc_codec_63xx.c`, `mt_soc_machine.c`, `AudDrv_Gpio.c`,
-  `accdet.c`, `max98926.c`; HAL `audio_device.xml` and
-  `audio_policy_configuration.xml`.
+  `accdet.c`, `max98926.c`; HAL `audio_device.xml`,
+  `audio_policy_configuration.xml` and `audio.primary.mt6797.so`
+  (`OpenSpeakerPath` disassembly); retained Gemian `dmesg` for
+  `max98926L is not find` and `Audio_Hpl_Offset_Get`.
 - Mainline `mt6797-afe-pcm.c`, `mt6351.c`, `mt6797-mt6351.c`,
   `max98926.c`.

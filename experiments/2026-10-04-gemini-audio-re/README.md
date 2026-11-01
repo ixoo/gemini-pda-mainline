@@ -367,9 +367,11 @@ Any playback test must start with every PGA at its minimum and the amplifier
 off.
 
 1. **H1. The Gemini speakers are driven by analog amplifier(s) fed from the
-   MT6351 LOL line-out, enabled by pulse-coded GPIO243 and GPIO244, and the
-   I2C0 `0x31` MAX98926 node is an unpopulated reference-board leftover
-   (F5, F6, F7).** Two enable GPIOs with one mono source fit a stereo pair of
+   MT6351 headphone outputs, enabled by pulse-coded GPIO243 and GPIO244, and
+   the I2C0 `0x31` MAX98926 node is an unpopulated reference-board leftover
+   (F5, F6, F7).** Confirmed offline on 2026-11-01: the stock HAL's
+   `OpenSpeakerPath` selects `headphone_output` + `ext_speaker_output`, not
+   LOL. Two enable GPIOs with one mono source fit a stereo pair of
    AW87xx-class amplifiers. Test, in order: (a) Gemian read of
    `/sys/kernel/debug/gpio` or the pinctrl debug files for GPIO243/244
    direction and level while idle and while a short low-volume tone plays
@@ -435,12 +437,12 @@ off.
 
 ## Consequences for the roadmap (no changes applied here)
 
-- The roadmap's two audio unknowns resolve as: the `0x31` device is, by the
-  vendor's own driver and node name, a Maxim MAX98926 smart amplifier node
-  that the stock kernel never binds or links, while the stock speaker path
-  is the MT6351 LOL line-out plus a pulse-enabled GPIO243/GPIO244 amplifier
-  pair; one attended Gemian read (H1) decides which is real. Jack detection
-  is MT6351 ACCDET with the PMIC's internal EINT on `MT6351_IRQ_ACCDET`
+- The speaker-path ambiguity is now resolved offline: the `0x31` device is a
+  Maxim MAX98926-compatible node that the stock machine driver does not link,
+  while `OpenSpeakerPath` applies `headphone_output` plus
+  `ext_speaker_output`, i.e. HPL/HPR into the pulse-enabled GPIO243/GPIO244
+  amplifier pair. The MT6351 LOL path is not selected. Jack detection is
+  MT6351 ACCDET with the PMIC's internal EINT on `MT6351_IRQ_ACCDET`
   / `MT6351_IRQ_ACCDET_EINT`; no AP EINT is used.
 - Audio depends on the PMIC step twice: the `mt6351-sound` child and regmap
   for the codec, and the MFD IRQ domain for ACCDET. Nothing here changes the
@@ -451,6 +453,31 @@ off.
   a MAX98926 node is added only after H1/H2.
 - If H2 wins, the MT6797 I2S DAI becomes a prerequisite and should be scoped
   as its own upstream topic next to the AFE schema conversion.
+
+## Offline closure (2026-11-01)
+
+The stock HAL disassembly resolves the speaker-path ambiguity without a device
+run. In `audio.primary.mt6797.so`, `OpenSpeakerPath` and
+`OpenHeadphoneSpeakerPath` are the same function at `0x717e0`. Its body applies
+the `headphone_output` path then the `ext_speaker_output` path; the matching
+`CloseSpeakerPath` reverses those two calls. It does not apply
+`speaker_output` / `Speaker_Amp_Switch` and does not touch the I2C0 `0x31`
+node.
+
+Consequences:
+
+- The stock speaker path is **HPL/HPR -> board amplifier**, enabled by
+  `Ext_Speaker_Amp_Switch` and the GPIO243/244 pulse sequence.
+- The MT6351 LOL / `speaker_output` path is not selected by the stock speaker
+  alias. It may be unused on this board.
+- The MAX98926-compatible I2C0 `0x31` node is not part of the stock speaker
+  path. The retained boot log also records `max98926L is not find`, so the
+  machine driver did not link it. Whether the part is populated remains
+  unresolved, but it is not the stock internal-speaker route.
+- The same boot log records `Audio_Hpl_Offset_Get` and
+  `GetAudioTrimOffset channels = 1`, confirming the stock headphone trim path.
+- H1 is therefore the stock path; H2 is not. The amplifier part behind
+  GPIO243/244 and the MAX98926 population still need board evidence.
 
 ## Validation
 
