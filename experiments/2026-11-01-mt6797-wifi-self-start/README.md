@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-self-start` |
-| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); station 27 hit a handshake failure that stalls the re-arm |
+| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); 0406 passes 26 reconnects by module swap and awaits a station image |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mac`; station init |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -194,10 +194,30 @@ predate it. Two driver gaps are exposed:
   not admit the access point's retransmissions;
 - a lifetime that never installs keys can never re-arm.
 
+### Result: 0406 by module swap on station 27 (2026-11-01)
+
+[0406](../../patches/proposals/0406-wifi-mt6797-survive-a-lost-handshake-frame.patch)
+admits up to four EAPOL frames each way until the pairwise key is
+submitted (two after that, as before), and lets a lifetime that never
+submitted a key re-arm. `mac` `d5a41fb1…` from the 2170f1ce package
+(`Image.gz` and the other modules unchanged), loaded after a full reload,
+boot `778ff91c`.
+
+| Check | Result |
+| --- | --- |
+| 26 reconnects | 26/26 `COMPLETED` in 0.96-1.20 s, each 2/2 gateway pings, through three command-sequence recycles. No handshake failure, no deferred re-arm, no delivery-cap refusal: no frame was lost in this run, so neither new path ran here |
+| One attempt with a deliberately wrong PSK on the owner's access point | Both new paths ran. Six EAPOL frames were admitted across that attempt and the following good join, none refused by the cap. The supplicant reported the handshake failure, the lifetime ended without keys, and `join rearm: lifetime=28` followed with no deferral. With the real key restored, `COMPLETED` in 2 s and gateway 3/3, with no reload |
+| Kernel log | No Oops, warning or call trace; not tainted |
+
+Not measured: throughput with 0406, and a real lost frame followed by a
+successful handshake (the wrong key exercises the retransmissions and the
+re-arm, not message 3 arriving after them). boot2 still holds station 27,
+whose `mac` lacks 0406.
+
 ## Follow-up
 
-- Let a keyless lifetime re-arm, and admit the access point's EAPOL
-  retransmissions within a bound; then repeat station 9's 26 reconnects.
+- A station image with 0406.
+- Station 9's 2.5 h hold, not yet repeated on the clean driver.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
 - A country change during a lifetime still ends it (phase 4, recovery).
