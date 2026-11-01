@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-station` |
-| Status | `planned`: station package and test bundle built; device test requested; not booted |
+| Status | `running`: card binds and AUDIO powers on (station 29); no tone played yet |
 | Subsystem | audio: MT6797 AFE, MT6351 codec, AW8736 amplifiers |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -129,11 +129,31 @@ audio in that kernel:
 
 The same read found no `amixer`, `aplay` or Python in the RAM root.
 
+**Run 1, station 29 (boot `feb2831c`, package `70d0a621`, `Image.gz` `8ef83b55…`),
+run by the custodian:**
+
+- Wi-Fi before audio load matched station 28: join, ping 10/10, reconnects 10/10.
+- All 10 modules loaded. Card 0 is `mt6797mt6351`, playback device 0, capture device 3.
+  Both amplifiers, the codec and the AFE probed. No hang, oops or warning.
+- AUDIO powered on: `0x10006180` `0x2A00005E` to `0x2B00005E`, `0x10006184`
+  `0x2A00004E` to `0x2B00004E`, `0x10006314` `0x3330FF12` to `0x3330000D`.
+- `audio-test.sh` stopped at its first mixer call (exit 1), so **no tone played** and
+  no capture ran. The owner heard nothing, as expected.
+
+Two script bugs, both fixed since:
+
+- `amixer sset` takes simple names (`Speaker`), not `Speaker Switch`. It now uses
+  `cset name=` with the exact control names, which run 1 listed.
+- The exit trap ran `cat run.log >&2` with stderr on that same file, and busybox
+  `cat` does not refuse. The log filled the 1 GiB RAM root until the custodian
+  truncated it. The trap now writes one line to the original stderr.
+
 ## Analysis
 
-Source review, a compile and DTB check, and the register read above.
+Run 1 confirms that the card binds with `0407` and that `0408`/`0409` power AUDIO
+through `mtk-pm-domains` without a hang. It says nothing about sound yet.
 
-Bit 24 is clear in both status registers, so the loader leaves AUDIO off.
+Before load, bit 24 is clear in both status registers, so the loader leaves AUDIO off.
 `KEEP_DEFAULT_OFF` therefore matches the hardware, and loading the modules is a
 real off-to-on transition, not an adoption. Inference: the low bits of `PWR_CON`
 read as isolated, in reset and clock-disabled, with bits 8-15 set. That fits the

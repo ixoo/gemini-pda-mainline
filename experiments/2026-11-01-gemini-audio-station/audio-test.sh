@@ -15,21 +15,21 @@ PATH=$B/bin:$PATH
 export ALSA_CONFIG_DIR="$B/alsa" ALSA_CONFIG_PATH="$B/alsa/alsa.conf"
 CARD=
 mkdir -p "$OUT" || exit 1
-exec >"$OUT/run.log" 2>&1
+exec 3>&2 >"$OUT/run.log" 2>&1
 
 finish() {
 	rc=$?
 	if [ -n "$CARD" ]; then
 		for c in Speaker Headphone 'Main Mic' 'Back Mic' 'Headset Mic'; do
-			amixer -c "$CARD" -q sset "$c Switch" off
+			amixer -c "$CARD" -q cset "name=$c Switch" off
 		done
-		amixer -c "$CARD" -q sset 'ADDA_DL_CH1 DL1_CH1' off
-		amixer -c "$CARD" -q sset 'ADDA_DL_CH2 DL1_CH2' off
-		amixer -c "$CARD" -q sset 'HPL Mux' Open
-		amixer -c "$CARD" -q sset 'HPR Mux' Open
+		amixer -c "$CARD" -q cset 'name=ADDA_DL_CH1 DL1_CH1' off
+		amixer -c "$CARD" -q cset 'name=ADDA_DL_CH2 DL1_CH2' off
+		amixer -c "$CARD" -q cset 'name=HPL Mux' Open
+		amixer -c "$CARD" -q cset 'name=HPR Mux' Open
 	fi
 	echo "exit=$rc out=$OUT"
-	cat "$OUT/run.log" >&2
+	echo "exit=$rc log=$OUT/run.log" >&3
 }
 trap finish EXIT
 
@@ -37,11 +37,11 @@ say() { printf '\n== %s ==\n' "$1"; }
 fail() {
 	echo "STOP: $1"
 	say dmesg
-	dmesg | grep -iE 'mt6797|mt6351|aw873|asoc|afe|audio|snd' | tail -60
+	dmesg | grep -iE 'mt6351|aw873|asoc|afe|audio|snd' | tail -60
 	exit "${2:-1}"
 }
 mix() {
-	amixer -c "$CARD" -q sset "$1" "$2" || fail "control '$1' refused '$2'"
+	amixer -c "$CARD" -q cset "name=$1" "$2" || fail "control '$1' refused '$2'"
 	echo "set $1=$2"
 }
 power() {
@@ -79,16 +79,16 @@ PDEV=$(aplay -l | sed -n "s/^card $CARD:.*device \([0-9]*\): Playback_1.*/\1/p")
 CDEV=$(arecord -l | sed -n "s/^card $CARD:.*device \([0-9]*\): Capture_1.*/\1/p")
 echo "playback=$PDEV capture=$CDEV"
 [ -n "$PDEV" ] && [ -n "$CDEV" ] || fail "PCM devices not found" 3
-amixer -c "$CARD" scontrols
+amixer -c "$CARD" controls
 
 say safe-defaults
 mix 'Speaker Switch' off
 mix 'Headset Mic Switch' off
-mix 'Headphone Volume' 0
-mix 'Lineout Volume' 0
+mix 'Headphone Volume' 0,0
+mix 'Lineout Volume' 0,0
 mix 'Handset Volume' 0
-mix 'PGA Volume' 0
-amixer -c "$CARD" sget 'Headphone Volume'
+mix 'PGA Volume' 0,0
+amixer -c "$CARD" cget 'name=Headphone Volume'
 
 say headphone
 mix 'DAC In Mux' 'Normal Path'
@@ -143,4 +143,4 @@ for f in /sys/kernel/debug/pinctrl/*/pinmux-pins; do
 done
 
 say dmesg
-dmesg | grep -iE 'mt6797|mt6351|aw873|asoc|afe|audio|snd' | tail -80
+dmesg | grep -iE 'mt6351|aw873|asoc|afe|audio|snd' | tail -80
