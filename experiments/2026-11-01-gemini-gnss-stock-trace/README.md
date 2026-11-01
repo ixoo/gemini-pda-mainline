@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; offline, the raw fields alone give a position on almost every epoch using only over-the-air orbit data; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; offline, the raw fields alone give a position on almost every epoch using only over-the-air orbit data; step 6, a minimal host with `mnld` stopped, is admitted and has not run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -481,6 +481,28 @@ The three medians agree closely with stock's early fixes. The only independent c
 ### Boot map (2026-11-01)
 
 No device action. The boot and running sequence from the step 5 capture and `libmnl` is in the [driver notes](../../docs/hardware/gemini-gnss-driver.md#booting-and-running-the-dsp-on-the-host-path). The 61440-byte DSP image that crossed the wire is byte-for-byte inside `libmnl.so` on the device, which settles where this path gets its code. No start is admitted to test it.
+
+## Step 6: a minimal host with `mnld` stopped (radio and firmware action; owner approved)
+
+Approved by the owner on 2026-11-01, in the words "Approve the run", for the drafted plan.
+
+**Question:** does the DSP boot and track satellites with no vendor host code running? The DSP image itself remains vendor firmware.
+
+**Effects:** [gnss-minihost.py](gnss-minihost.py) replaces `mnld` and `libmnl` for one session. It reads the DSP image from the device's own `libmnl.so` and checks its hash, opens `/dev/stpgps` with the same four ioctls as stock, sends the same boot header, fragments and setup commands, then the per-second frames without `0xFE02`, and without later `0xFE04`, `0xFE07`, `0xFE09`, `0xFE0A` or `0xFE05` 0x0C and 0x1C. Time comes from the device clock. It records both directions in RAM, and sends the stop command at the end. A private settings file holds the image location, hash, boot header and first-second values: they are not published. The session makes no network connection and writes no partition, NVRAM or firmware file. The capture can hold position, so it stays private.
+
+**Risks:** the firmware could assert or reset, which also affects Wi-Fi on the shared chip. Recovery is an ordinary Gemian reboot after preserving evidence. `mnld` may do setup the trace does not show.
+
+**Procedure:** with the device on Gemian, write nothing to `/data/misc/gps`. Start the script over Wi-Fi with a 3 minute delay. The owner leaves the device outside, stationary, as in step 5. The script stops `mnld` after the delay, and runs for up to 600 s. Back in range, copy the evidence and restart `mnld`.
+
+**Budget:** one start, no retry. Stops: step 4's, without the network watcher, checked each second for faults; a failed boot; the DSP silent for 10 s. Tested offline against a fake DSP and stub commands, and its frames match all host bytes in the step 5 capture. Not tested on hardware.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| No answer to the header or a fragment | `mnld` does setup not captured | Find it in the decompile and trace |
+| Boots, no measurements | The DSP needs a frame left out | Compare with stock; add frames one at a time, each a new request |
+| Tracks, then loses satellites | Long-term tracking needs `0xFE02` | Implement aiding |
+| Tracks with navigation frames | A free host works on stock | Compute the position offline, then look at the mainline transport |
+| Firmware assert or reset | The frames or their timing broke something | Keep the evidence; reboot; no retry until understood |
 
 ## Privacy and rights
 
