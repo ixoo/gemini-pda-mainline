@@ -66,6 +66,9 @@ Run by the custodian with the owner present and the headphones in, on a fresh bo
    picks up the noise. With the headphones in, Wi-Fi up and the noise present, compare 60 s idle, a
    silent stream for 90 s, and 60 s idle again. If it stops only during the stream, the idle output
    state is the mechanism and the fix is in audio, whatever the source is.
+7. The closest mainline gets to the stock idle state: with all ten modules removed and bit 24 of
+   `0x10006180` clear, Wi-Fi up and the headphones in, listen for 90 s. The output is still undriven.
+   If the noise goes, our loaded idle state matters; if it stays, the undriven line or Wi-Fi does.
 
 | Observation | Next |
 | --- | --- |
