@@ -854,7 +854,8 @@ and not by a userspace service.
     x, y and z (90.31-91.07 s). Nothing reached it while the lid was
     closed, although EINT10 counted 2834 interrupts over the boot, most of
     them from the closed-lid presses.
-  - After opening, `bl_power` was 0.
+  - The owner confirmed that the screen went dark while the lid was closed.
+    After opening, `bl_power` was 0.
 - The lid policy now runs in the kernel from the interrupt.
 - Limitation: keys pressed by the closed lid still trigger matrix scans
   (row interrupts, plus the 20 ms held-key rescan while a key is down).
