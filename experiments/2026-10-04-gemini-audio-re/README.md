@@ -412,8 +412,9 @@ off.
    restricted to address `0x31` (a quick-write probe is bounded and
    non-destructive for an unpowered or absent part; an ACK proves a device
    exists, no ACK with VIO on proves absence or a shut-down part); (c) only if
-   (a) shows no GPIO activity, treat H2 as primary. Confidence: medium-high
-   for the GPIO pulse path, medium for which part.
+   (a) shows no GPIO activity, treat H2 as primary. The part and the stereo
+   topology are now resolved offline; the remaining runtime measurement is
+   GPIO243/244 activity and whether one or both parts are loaded.
 2. **H2. A MAX98926 is populated at I2C0 `0x31` and the stock Gemian speaker
    path is dead or userspace-driven (F7, F8).** If `i2cdetect` ACKs `0x31`,
    a Gemian read of register `0xFF` (MAX98926 revision ID; a one-byte read)
@@ -425,18 +426,20 @@ off.
    AFE + MT6351 codec + `mt6797-mt6351` machine card, with the DAC routed to
    `Headphone L/R` for a bounded headphone test and `LINEOUT L` left muted
    (F5, F15, F16).** Prerequisites: the MT6351 MFD child `mediatek,mt6351-sound`
-   (owned by the PMIC step), the five audio pads held in their audio function
-   (F4), the AFE node enabled, and the fragment modules. Test: a mainline boot
-   that probes the card, lists controls, and plays a −40 dB tone to
-   headphones only with the amplifier GPIOs left as the loader left them;
-   measure `/proc/asound` state and the PMIC `AUDDEC_ANA_CON0` readback.
-   Confidence: high that the card registers; medium that the pads and clock
-   parents are in a usable state without the vendor's APLL handling.
+   (owned by the PMIC step), the AFE node enabled, and the fragment modules.
+   The five AUD/VOW/ANC pads stay at the loader state (F4), the amp pads get
+   their default GPIO mux (proposal `0401`) and the clock mux is handled by
+   `0403`/`0404`. Test: a mainline boot that probes the card, lists controls,
+   and plays a −40 dB tone to headphones only; measure `/proc/asound` state
+   and the PMIC `AUDDEC_ANA_CON0` readback. Confidence: high that the card
+   registers.
 4. **H4. Microphone capture works on `AIN0` with Mic Bias 0 on mainline
    without board data (F14).** Test: in the H3 boot, select `PGA L Mux =
    AIN0`, `ADC L Mux = Left Preamplifier`, record 2 s at 48 kHz and check for
-   non-silence; repeat with `AIN2`/Mic Bias 2 to learn whether a second mic is
-   populated. Confidence: high for AIN0, unknown for AIN2.
+   non-silence; repeat with `AIN2`/Mic Bias 2 to confirm the reference
+   capsule. Public dual-microphone documentation resolves population; the
+   runtime test resolves routing and level. Confidence: high for AIN0,
+   medium-high for AIN2.
 5. **H5. The jack can be detected on mainline by a small MT6351 ACCDET driver
    using the existing MFD IRQ domain, modelled on `mt6359-accdet.c` with the
    MT6351 register map from F10 and the parameters from F12 (F9–F12).**
@@ -479,10 +482,9 @@ off.
 - Audio depends on the PMIC step twice: the `mt6351-sound` child and regmap
   for the codec, and the MFD IRQ domain for ACCDET. Nothing here changes the
   After-Wi-Fi order.
-- The first mainline sound card should be headphone-only with the amplifier
-  GPIOs untouched; an external-amplifier widget (GPIO-enabled, as
-  `simple-amplifier` or a card-level `SND_SOC_DAPM_SPK` with a GPIO event) or
-  a MAX98926 node is added only after H1/H2.
+- The first mainline sound card includes headphone, microphone capture and
+  the guarded two-amplifier speaker path. The amplifier GPIOs are pulsed only
+  by the `aw8738` DAPM widget; the MAX98926 node is not part of the card.
 - If H2 wins, the MT6797 I2S DAI becomes a prerequisite and should be scoped
   as its own upstream topic next to the AFE schema conversion.
 
@@ -556,8 +558,35 @@ Further offline closures from the same review:
   the PMIC efuse read remains a reviewed-capture dependency; mainline must not
   guess the efuse engine sequence.
 
+## First runtime sequence
+
+This is the gap-5 checklist for the first card boot, in order. It is blocked
+on a clean pushed HEAD and a reachable device; nothing below was run offline.
+
+1. Build the audio profile on Buildbox from the clean commit, then confirm the
+   composed DTB contains the card node, the `mt6351-sound` child, the two
+   `awinic,aw8736` nodes and the GPIO243/244 pinmux states.
+2. Boot with the console retained and check `dmesg` for the card, codec and
+   both amplifier probes; `cat /sys/kernel/debug/asoc/cards` and
+   `amixer -c <card> controls` should list `Headphone`, `Speaker`, the three
+   microphone widgets and their routes.
+3. Headphone only, every PGA at minimum: play a short −40 dB 48 kHz tone and
+   verify the DAPM path reaches `HPOUTL/HPOUTR` and that the analog registers
+   read back as expected.
+4. Capture 2 s from `Main Mic` (AIN0/MICBIAS0) and from `Back Mic`
+   (AIN2/MICBIAS2); check for non-silence and sensible levels.
+5. Speaker only, low volume: confirm GPIO243/244 pulse three times in mode 3
+   and that sound appears. This is also the one/two-populated-parts check.
+6. Jack: on the stock Gemian side, read the ACCDET IRQ counts across one
+   plug/unplug and the `switch`/key events. Only then implement the MT6351
+   ACCDET driver.
+7. Headphone trim: after the card works, perform the reviewed PMIC efuse read,
+   derive the four fields and write `AUDDEC_ANA_CON2`; measure DC offset
+   before and after.
+
 ## Validation
 
-Documentation-only change: `./scripts/check-repository` and link checks apply;
-no kernel build, DT check or device action was performed. Line numbers were
-taken from the exact fetched files recorded in `source-inputs.json`.
+Documentation and proposal changes: `./scripts/check-repository` and link
+checks pass; the two proposals passed `patch --dry-run` in sequence. No kernel
+build, DT check, checkpatch run or device action was performed. Line numbers
+were taken from the exact fetched files recorded in `source-inputs.json`.

@@ -386,6 +386,9 @@ headset-jack and physical amplifier confirmation remain.
 7. Are the configured ACCDET thresholds and debounce correct for the actual
    Gemini headset, beyond matching the live dmesg values?
 
+The ordered first-boot checks for all of these are in the
+[audio RE runtime sequence](../../experiments/2026-10-04-gemini-audio-re/README.md#first-runtime-sequence).
+
 ## 8. Evidence
 
 - [Gemini audio RE](../../experiments/2026-10-04-gemini-audio-re/README.md) —
