@@ -351,8 +351,11 @@ The first safe mainline card is the AFE + MT6351 codec +
 `mt6797-mt6351` machine link with **headphone output, microphone capture and
 the two-amplifier speaker path**, all PGA gains at minimum. Proposals
 `0396`-`0401` prepare that card; `0403`/`0404` prepare the high-rate path.
-None has been built or run. The first validation target is 48 kHz;
-headset-jack and physical amplifier confirmation remain.
+The build profile `mt6797-a53-audio-card-compile` compiled the series and the
+composed DTB contains the card, codec child, both amplifiers and the 243/244
+pinmux states (commit `9cf7001f`). It has not been booted or probed. The first
+validation target is 48 kHz; headset-jack and physical amplifier confirmation
+remain.
 
 ## 6. Offline review results
 

@@ -585,9 +585,42 @@ on a clean pushed HEAD and a reachable device; nothing below was run offline.
    derive the four fields and write `AUDDEC_ANA_CON2`; measure DC offset
    before and after.
 
+## Build and DTB check (2026-11-01)
+
+| Item | Value |
+| --- | --- |
+| Input commit | `9cf7001f4e82bcd258c31eb95c4d4e9319a177ad` |
+| Profile | `mt6797-a53-audio-card-compile` |
+| Series | `patches/series-a53-audio-card-compile` (116 patches) |
+| Buildbox job | `9cf7001f…-mt6797-a53-audio-card-compile-m0` |
+| Package | `linux-7.1.3-gemini-f3942288…`, 119 DTBs |
+| Kernel release | `7.1.3-gemini-a53-audio-card-compile` |
+| Device action | None |
+
+The profile is the display-H2 base plus proposals `0395`-`0404` and the
+AW8738 driver. Compilation, package validation, fetch and checksums pass with
+no compiler error. The resolved config has `SND_SOC_MT6797`,
+`SND_SOC_MT6797_MT6351`, `SND_SOC_MT6351`, `SND_SOC_AW8738` and SCPSYS adopt
+mode built in.
+
+The composed `mt6797-gemini-pda.dtb` decompiles to:
+
+- `sound` with `compatible = "mediatek,mt6797-mt6351-sound"`, the AFE and
+  `mt6351-sound` phandles, and headphone, speaker and three-microphone
+  `audio-routing` entries;
+- `audio-amplifier-left/right` with `awinic,aw8736`, `awinic,mode = <3>`,
+  `pinctrl-names = "default"` and `mode-gpios` on pins 243/244;
+- `audio-amp-left-pins` pinmux `0xf300` (pin 243, function 0) and
+  `audio-amp-right-pins` pinmux `0xf400` (pin 244, function 0);
+- the PMIC `audio-codec` child and the AFE node with `status = "okay"`.
+
+This proves the patches apply, compile and compose. It is not a boot, a probe
+or hardware support; the ordered runtime checks are below.
+
 ## Validation
 
-Documentation and proposal changes: `./scripts/check-repository` and link
-checks pass; the two proposals passed `patch --dry-run` in sequence. No kernel
-build, DT check, checkpatch run or device action was performed. Line numbers
-were taken from the exact fetched files recorded in `source-inputs.json`.
+Documentation and proposal changes: `./scripts/check-repository`, link checks
+and the manifest/series invariant pass; proposals `0402`-`0404` passed
+`patch --dry-run` in sequence. The build above is the only kernel compile.
+No device action was performed. Line numbers were taken from the exact fetched
+files recorded in `source-inputs.json`.
