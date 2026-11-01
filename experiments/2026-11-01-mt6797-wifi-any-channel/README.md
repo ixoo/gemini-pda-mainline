@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. Stage 1's join patch is built; its channel 40 control is requested, and the other channels wait for an access point from the owner |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 passes its channel 40 control; no other channel has been joined yet |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -218,3 +218,28 @@ lease, gateway ping, ten reconnects, 60 s transfer each way.
 | The firmware refuses the grant | Stop. Compare the channel with the firmware's domain list |
 | Join passes, data fails | Stop. Read the receive status lines for the descriptor's channel |
 | HT40 fails, 20 MHz passes | Keep 20 MHz for that secondary offset and read the secondary channel path |
+
+### Result: channel 40 control, boot `c08cf8d4` (2026-11-01)
+
+Run by the device custodian. Buildbox at beef6040, package inventory `de177d6b…`,
+`mac` `1b64ede6…`, core `e37a1686…`, `Image.gz` `8ef83b55…`, full module reload.
+The private file pins the BSSID, not the frequency. The audio modules were loaded,
+and no audio ran.
+
+| Check | Result |
+| --- | --- |
+| Join | `COMPLETED` on 5200 MHz WPA2-PSK/CCMP, a lease, gateway 3/3; `join grant: channel=40 sco=3` on all 11 joins |
+| Ping | 10/10, 8.2 ms average |
+| Ten reconnects | 10/10, each 2/2. The first took 5.70 s, the rest 1.36-1.47 s |
+| Throughput | Receive 40 and 42, transmit 22 and 23 Mbit/s |
+| Kernel log | No Oops, warning, call trace, branch 9 or "submission stopped"; not tainted |
+
+The first decision row holds. The prediction of 6-7 s per reconnect was wrong:
+only the first reconnect took about 5 s. Every reconnect still scanned, and the
+later scans lasted about 0.88 s, which fits about seven channels at 130 ms.
+`wpa_supplicant` probably narrows the list to channels it has recently seen
+networks on (inferred, since the request's list isn't logged). That accounts for
+the extra 0.3-0.4 s over a 500 ms one-channel scan.
+
+This shows 0414 keeps channel 40. It does not test another channel, HT40 with the
+secondary channel above, or a join by name without a BSSID.
