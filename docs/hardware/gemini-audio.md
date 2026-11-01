@@ -339,7 +339,7 @@ Present in current mainline:
 Missing or board-specific:
 
 - MT6351 MFD parent/cell in current upstream; local patches 0008/0010 add it;
-- physical confirmation that one or two AW8736FCR amplifiers are populated;
+- a BOM line item for the two AW8736FCR amplifiers (by ear, each channel reaches its own speaker);
 - MT6351 ACCDET driver (only MT6359 ACCDET exists); see the
   [MT6351 ACCDET contract and driver plan](mt6351-accdet.md);
 - headphone offset trim;
@@ -361,9 +361,9 @@ That candidate could not bind its card and cannot run on the station. Proposals
 `0407`-`0409` bind the amplifiers and give the station an AUDIO domain, and the
 station carries the audio stack as unloaded modules. See
 [first audio on the station](../../experiments/2026-11-01-gemini-audio-station/README.md).
-With `0411` as well, the owner heard a 48 kHz tone in both headphone ears and
-from the speakers. Microphones, the split between speakers, the jack and trim
-remain open.
+With `0411` as well, a 48 kHz tone is heard in both headphone ears and from the
+matching left and right speakers, and capture from AIN0 and AIN2 follows a tone
+and speech. Microphone placement, the jack and trim remain open.
 
 ## 6. Offline review results
 
@@ -382,10 +382,10 @@ remain open.
 
 ## 7. Still open
 
-1. Does the Gemini BOM line item say one or two AW8736FCR amplifiers behind
-   GPIO243/244? Planet's stereo-speaker specification and the two independent
-   mode lines make two the consistent reading; the exact BOM/schematic line
-   item is still a visual check.
+1. Is each speaker behind its own AW8736FCR? On station 29 the left channel
+   reaches only the left speaker and the right only the right, with GPIO243/244
+   switching together. Two parts is the consistent reading; the BOM line item
+   is still a visual check.
 2. Is the MAX98926-compatible I2C0 `0x31` node populated at all? It is not
    used by the stock speaker path.
 3. Which transducer is on the MT6351 RCV/HS driver, and is it one of the two

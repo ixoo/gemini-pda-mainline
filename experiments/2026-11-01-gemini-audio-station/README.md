@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-station` |
-| Status | `running`: headphones heard in both ears and speaker sound heard (station 29); speaker split and microphones open |
+| Status | `completed`: headphones, both speakers and microphone capture work at 48 kHz on station 29 |
 | Subsystem | audio: MT6797 AFE, MT6351 codec, AW8736 amplifiers |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -176,7 +176,24 @@ reading the PCM status appeared to hang. Wi-Fi stayed associated.
 - `/sys/kernel/debug/gpio` was absent because the station does not mount debugfs, so
   GPIO243/244 were not logged.
 
-Raw captures stay private: they may hold room audio.
+**Run 5, same boot, `audio-channels.sh` `5f55eb82…`, bundle `72685974…`, device on a
+surface, headphones unplugged:** exit 0, every `aplay` and `arecord` rc 0.
+
+- The owner: "left came from left and right came from right."
+- GPIO243 and GPIO244 read `out lo` before, `out hi` during both tones, `out lo` after.
+  Both stay on func0, owned by `audio-amplifier-left` and `-right`.
+- Captures at 18 dB PGA, L = AIN0, R = AIN2, first 0.5 s skipped, DC removed; figures
+  rechecked from the files:
+
+| Capture | RMS L / R | Peak L / R | 1 kHz L / R | L/R correlation |
+| --- | --- | --- | --- | --- |
+| quiet, 3 s | 39.6 / 41.3 | 145 / 147 | 0.1 / 0.3 | 0.933 |
+| speakers playing, 2 s | 46.3 / 43.4 | 191 / 183 | 20.8 / 8.2 | 0.855 |
+| owner speaking, 5 s | 335.4 / 314.1 | 4294 / 3940 | 0.6 / 1.1 | 0.876 |
+
+- No oops or warning, not tainted, Wi-Fi `COMPLETED` throughout.
+
+Raw captures stay private: they may hold room audio, and `speech.wav` holds the owner's voice.
 
 ## Analysis
 
@@ -199,6 +216,13 @@ few LSB. Inference: the high L/R correlation is shared settling, not sound, sinc
 two channels are meant to be different microphones. A live microphone needs a known
 sound during capture, which [`audio-channels.sh`](audio-channels.sh) provides.
 
+Run 5 settles both. Each channel reaches its own speaker, and both amplifiers switch
+together, so the split is in the audio path, not the pins. Each input shows the 1 kHz
+tone only when it plays and rises about 8 times with speech, so sound reaches AIN0 and
+AIN2 through the AFE. Inference: the 2.5:1 tone ratio suggests two separate microphones,
+but the two channels stay highly correlated even in the quiet capture, so shared noise
+is present and this does not prove independence or say which physical microphone is which.
+
 Before load, bit 24 is clear in both status registers, so the loader leaves AUDIO off.
 `KEEP_DEFAULT_OFF` therefore matches the hardware, and loading the modules is a
 real off-to-on transition, not an adoption. Inference: the low bits of `PWR_CON`
@@ -211,9 +235,17 @@ sequence works.
 Scoped to the named Gemini, Linux 7.1.3 and package `7d25f0a6`:
 
 - headphones: `confirmed` for a 48 kHz tone by ear; level, distortion and DC offset are not measured;
-- speakers: sound heard, split between channels `inconclusive`;
-- microphones: `inconclusive`.
+- speakers: `confirmed` by ear, left channel to the left speaker and right to the right;
+- microphone capture: `confirmed` on AIN0 and AIN2 for a tone and speech; their physical
+  placement and independence, and audio quality, are not established.
+
+Not tested: rates other than 48 kHz (`0403`, `0404`), the headset microphone, the earpiece,
+jack detection, headphone trim, and unbinding or suspend. Audio is loaded by hand from a
+temporary bundle, not by the station at boot.
 
 ## Follow-up
 
 - [Gemini audio](../../docs/hardware/gemini-audio.md)
+- Next, in the [runtime sequence](../2026-10-04-gemini-audio-re/README.md#first-runtime-sequence):
+  jack detection and headphone trim. Tapping each end of the device during a capture would
+  map AIN0 and AIN2 when the owner is next present.
