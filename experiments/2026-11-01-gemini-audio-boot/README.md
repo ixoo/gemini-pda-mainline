@@ -168,12 +168,21 @@ domain on and its SRAM powered down until a reboot.
 is heard. Inference: the SRAM state is the cause; one on/off pair of boots would prove it. A normal
 boot never unloads audio, so this affects development, not use. A likely fix is giving
 `power-domain@4` the audio clocks, so they run during its power-off, as other MediaTek SoCs do;
-that is untested.
+see the [reload experiment](../2026-11-01-gemini-audio-reload/README.md).
 
 **The headphone noise follows Wi-Fi**, on one off/on sequence, and is audible with the HP path reading
 off. The codec is not holding it on, so this is coupling from the radio or its supply, not an
 audio driver fault. Whether stock Gemian has it too is not known yet. The 30 s rhythm matches the
 `BSS timeout ignored` line, which is only a matching period so far.
+
+On stock Gemian (boot `a0b54f1d`, kernel 3.18.41+), with Wi-Fi up, headphones in and nothing playing,
+the owner reported "No noise" in one 90 s listen, early in that boot. So the noise looks specific to
+mainline, though stock may hold the HP path differently, so the board is not cleared. The
+owner also reports that it is absent during playback: "I think when the audio driver is driving
+output, it doesn't pick up sound". Inference: an off amplifier leaves the line floating and easier
+to couple into. The Wi-Fi session finds no 30 s timer in the driver; a firmware notice repeats at
+about 30-37 s but starts about 6 minutes after a join, and the noise returned inside a 90 s listen
+after a reconnect, which is a weak timing against it.
 
 ## Conclusion
 

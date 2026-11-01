@@ -4,11 +4,11 @@
 
 | Field | Value |
 | --- | --- |
-| ID | `2026-11-02-gemini-audio-reload` |
-| Status | `planned`: patch written; not booted |
+| ID | `2026-11-01-gemini-audio-reload` |
+| Status | `planned`: package built, device test requested; not booted |
 | Subsystem | audio; MT6797 AUDIO power domain |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
-| Date(s) | 2026-11-02 |
+| Date(s) | 2026-11-01 |
 | Investigator(s) | audio session; device runs by the project custodian |
 | Tracking issue | none |
 
@@ -32,6 +32,13 @@ sequences. That is the only change, in the device tree.
 The domain still stays on while the card is loaded, because the AFE probe holds it. Letting it
 idle would need a register cache as well, and is not part of this.
 
+## Build
+
+Buildbox-3, commit `32280cd99e6ccd88fb579d6c6867fa8a961ab004`, job `32280cd9…-mt6797-a53-station-m1`,
+inventory `24857504…`, `Image.gz` `933a7d70…`, the same image as station 31. The composed station DTB
+has the three clocks on `power-domain@4`. An offline compose gives a 15,175,680-byte boot image.
+Device action: none.
+
 ## Safety assessment
 
 Module removal runs the first complete AUDIO power-off by mainline, and a reload its first
@@ -52,6 +59,9 @@ Run by the custodian with the owner present and the headphones in, on a fresh bo
 2. Remove all ten modules and read `0x10006180` and `0x10006314`.
 3. `/bin/audio-start`, then play a tone; the owner listens.
 4. Repeat steps 2 and 3 once.
+5. Separately, the noise lead: reconnect Wi-Fi and have the owner note how long after the join
+   the noise is first heard. The firmware notice that repeats on this period starts about 6
+   minutes after a join, so noise well before that rules it out.
 
 | Observation | Next |
 | --- | --- |

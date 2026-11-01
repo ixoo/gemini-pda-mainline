@@ -28,7 +28,6 @@ that preceded this table is preserved at
 
 | Date | Record | Status | Title |
 | --- | --- | --- | --- |
-| 2026-11-02 | [gemini-audio-reload](2026-11-02-gemini-audio-reload/README.md) | `planned` | audio survives a module reload |
 | 2026-11-01 | [mt6797-wifi-self-start](2026-11-01-mt6797-wifi-self-start/README.md) | `running` | Wi-Fi comes up by itself (daily-use plan, phase 2) |
 | 2026-11-01 | [mt6797-wifi-any-channel](2026-11-01-mt6797-wifi-any-channel/README.md) | `parked` | Wi-Fi on any network and channel (daily-use plan, phase 3) |
 | 2026-11-01 | [mt6797-connectivity-coexistence-re](2026-11-01-mt6797-connectivity-coexistence-re/README.md) | `completed` | MT6797 Wi-Fi, Bluetooth and LTE coexistence reverse engineering |
@@ -41,6 +40,7 @@ that preceded this table is preserved at
 | 2026-11-01 | [gemini-gnss-host-engine-study](2026-11-01-gemini-gnss-host-engine-study/README.md) | `completed` | can an open GNSS stack be built from what `libmnl` shows? |
 | 2026-11-01 | [gemini-bluetooth-audio-re](2026-11-01-gemini-bluetooth-audio-re/README.md) | `completed` | Gemini Bluetooth userspace, firmware and audio reverse engineering |
 | 2026-11-01 | [gemini-audio-station](2026-11-01-gemini-audio-station/README.md) | `completed` | first audio on the development station |
+| 2026-11-01 | [gemini-audio-reload](2026-11-01-gemini-audio-reload/README.md) | `planned` | audio survives a module reload |
 | 2026-11-01 | [gemini-audio-boot](2026-11-01-gemini-audio-boot/README.md) | `completed` | audio ready at station boot |
 | 2026-10-31 | [mt6797-wifi-clean-driver](2026-10-31-mt6797-wifi-clean-driver/README.md) | `running` | one clean MT6797 Wi-Fi driver (daily-use plan, phase 1) |
 | 2026-10-31 | [mt6797-vendor-cpu-policy-re](2026-10-31-mt6797-vendor-cpu-policy-re/README.md) | `completed` | MT6797 vendor CPU policy and PCM/iDVFS reverse engineering |
