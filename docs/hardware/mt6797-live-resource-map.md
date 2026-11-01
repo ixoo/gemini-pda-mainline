@@ -1648,6 +1648,10 @@ shows an ARM32 SUPL/TLS daemon with local `agpsd2`/`agpsd3` sockets and matching
 boundary. Linux 7.1.3's `gnss-mtk` driver is a serial `globaltop,pa6h`
 consumer with `vcc`/`vbackup`, so it is not a direct match.
 
+A [device test](../../experiments/2026-11-01-gemini-gnss-link/README.md) puts the
+next paragraph in doubt: the GFNS start asserted the firmware, inferred because it needs
+`MNL.bin`.
+
 The later binary and firmware review resolved the message routing: `/dev/stpgps`
 carries MediaTek GFNS frames on STP task 2, and those frames carry NMEA text
 produced by the CONSYS/BORA engine. The Android daemon, `libmnl`, the SUPL

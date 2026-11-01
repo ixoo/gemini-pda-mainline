@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:53:13 -0500
+Subject: [PATCH] gnss: mt6797: do not start the receiver by default
+
+The GFNS start asserts the firmware: it reaches a call through a pointer
+1 MiB above the CONSYS memory base, where the vendor's gps_emi driver would
+copy MNL.bin, an image this device does not have. The firmware it brings
+down also runs Wi-Fi, so anything that opens /dev/gnss0 would cost Wi-Fi.
+
+Make the start opt-in, and leave GPS function-on to the same parameter, so
+a plain open only checks the link and stays silent again.
+---
+ drivers/gnss/Kconfig  |  3 ++-
+ drivers/gnss/mt6797.c | 16 +++++++++-------
+ 2 files changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gnss/Kconfig b/drivers/gnss/Kconfig
+index 5545e073e..24dbc920b 100644
+--- a/drivers/gnss/Kconfig
++++ b/drivers/gnss/Kconfig
+@@ -36,7 +36,8 @@ config GNSS_MT6797
+ 	  Say Y here for the GNSS receiver inside the MT6797 connectivity
+ 	  subsystem, which sends NMEA text over the shared STP link.
+ 
+-	  Opening the device turns the receiver on; closing turns it off.
++	  It does not start the receiver by default: the firmware needs an
++	  MNL.bin image that this device does not have.
+ 
+ 	  To compile this driver as a module, choose M here: the module will
+ 	  be called gnss-mt6797.
+diff --git a/drivers/gnss/mt6797.c b/drivers/gnss/mt6797.c
+index 6f5b82a74..66a009b54 100644
+--- a/drivers/gnss/mt6797.c
++++ b/drivers/gnss/mt6797.c
+@@ -5,8 +5,9 @@
+  * The receiver is part of CONSYS and runs its position engine on the CONSYS
+  * microcontroller. It sends NMEA text inside GFNS frames on STP task 2.
+  *
+- * Opening the device turns the receiver on with the firmware's default
+- * configuration and no stored NVRAM data; closing turns it off.
++ * Opening the device attaches to the link and stays silent. On this firmware the
++ * GFNS start asserts: it calls into MNL.bin, an image the device does not have, so
++ * the start runs only on request and takes Wi-Fi's firmware down with it.
+  */
+ 
+ #include <linux/delay.h>
+@@ -24,9 +25,10 @@
+ 
+ #define MT6797_GNSS_STOP_MS 100
+ 
+-static bool start_engine = true;
++static bool start_engine;
+ module_param(start_engine, bool, 0444);
+-MODULE_PARM_DESC(start_engine, "Send the GFNS start after GPS function-on");
++MODULE_PARM_DESC(start_engine,
++		 "Switch on GPS and send the GFNS start; asserts the firmware without MNL.bin");
+ 
+ struct mt6797_gnss {
+ 	struct device *dev;
+@@ -176,11 +178,11 @@ static int mt6797_gnss_open(struct gnss_device *gdev)
+ 	ret = mt6797_consys_stp_attach(MT6797_STP_TASK_GPS, mt6797_gnss_receive, gnss);
+ 	if (ret)
+ 		return ret;
++	if (!start_engine)
++		return 0;
+ 	ret = mt6797_consys_gps_function(true);
+ 	if (ret)
+ 		goto detach;
+-	if (!start_engine)
+-		return 0;
+ 	ret = mt6797_gnss_start(gnss);
+ 	if (ret) {
+ 		mt6797_consys_gps_function(false);
+@@ -205,8 +207,8 @@ static void mt6797_gnss_close(struct gnss_device *gdev)
+ 	if (start_engine) {
+ 		mt6797_gnss_send(gnss, GFNS_REQ_STOP, NULL, 0);
+ 		msleep(MT6797_GNSS_STOP_MS);
++		mt6797_consys_gps_function(false);
+ 	}
+-	mt6797_consys_gps_function(false);
+ 	mt6797_consys_stp_detach(MT6797_STP_TASK_GPS);
+ 	for (i = 0; i < ARRAY_SIZE(gnss->types); i++)
+ 		if (gnss->types[i])

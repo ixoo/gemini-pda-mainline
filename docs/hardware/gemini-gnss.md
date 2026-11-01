@@ -5,6 +5,15 @@ receiver on, moves its data, computes and reports a position, and what else on
 the device participates in navigation. It is a description of the working
 vendor stack, not a Linux implementation.
 
+> **Correction, 2026-11-01.** A device test contradicts this page's main conclusion.
+> The GFNS start asserted the firmware at a call that the
+> [link record](../../experiments/2026-11-01-gemini-gnss-link/README.md#t3-result-the-start-sequence-asserts-the-firmware-2026-11-01)
+> infers goes through `MNL.bin`, an image this device lacks. So a GFNS client alone is not
+> a path to a fix, and the stock path is probably the engine in `libmnl` on the
+> application processor. Sections below describe the offload design as read from the
+> binaries; "What is *not* required" and the claims that `mnld` falls back to a
+> serial port and that sentences come from ROM are in doubt.
+
 The evidence is a static review of the retained 2019 vendor binaries and the two
 CONSYS ROM patch images in the private artifact set, plus the pinned GPL vendor
 kernel and the repository's Wi-Fi/connectivity records. See the

@@ -12,6 +12,13 @@
 | Investigator(s) | Gemini mainline project |
 | Tracking issue | M6 connectivity documentation; no implementation |
 
+> **Follow-up, 2026-11-01.** The first device start contradicts this record's
+> planning conclusions. See the
+> [link record](../2026-11-01-gemini-gnss-link/README.md#t3-result-the-start-sequence-asserts-the-firmware-2026-11-01):
+> offload is inferred to need `MNL.bin`, so F7's ROM inference, F2's serial fallback and
+> "What this changes" are in doubt. The frame format itself did work: the firmware
+> acknowledged the frames at link level and reached the handler.
+
 ## Question
 
 The [2026-10-04 GNSS source review](../2026-10-04-gemini-gps-re/README.md)

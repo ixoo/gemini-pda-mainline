@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T1 passed; T2 stage A stopped 5 ms after GPS function-on and took Wi-Fi down; D1 recovered Wi-Fi without a reboot; no receiver data; retry T3 approved and admitted, not yet run |
+| Status | `parked`: T1 passed; T3 found that the GFNS start asserts the firmware, inferred because it needs `MNL.bin`, which this device lacks; the receiver has produced no data; owner decision pending |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -433,6 +433,83 @@ stay private until read.
 
 **Known risk:** Wi-Fi may drop again. A CONSYS reload with 0429 recovered it, so an
 outage should not need a reboot, though this was seen once.
+
+## T3 result: the start sequence asserts the firmware (2026-11-01)
+
+Station 30, boot `4ac95e75`, kernel `Image.gz` `ee620135…`, `gnss-mt6797` `1e424b04…`,
+`mt6797-consys` `7a1bb9db…`, core `425b8add…`, `mac` `79808dd7…`, clock set to real UTC.
+Private evidence under `artifacts/station-work-30/boot-4ac95e75/gnss-t3/`.
+
+**Observed:**
+- **A1, function-on only, 60 s:** on and off both `result=0`. No frame on any task,
+  no firmware message, gateway ping 5/5. Function-on alone did no visible harm.
+- **A2, full start, same CONSYS lifetime:** the five frames were acknowledged at STP
+  level, then, 5 ms after function-on, task 5 messages: `{ast_t=3478346}`,
+  `{LP=0xF00A6708}`, `{ITYPE=0x10}`, `{EVA=0xF00A6706}`, and more cut off by the 64-byte
+  buffer. This is what T2 stage A hit: its `-71` was this message, and the stale `7b`
+  was its `{`. The clock is no longer a suspect.
+- Ping still passed right after the assert, but Wi-Fi teardown timed out. A CONSYS
+  reload recovered with no stale byte; channel 40 rejoined, no reboot. The second
+  open (A2b) was not run.
+
+**Read from the retained patch image, by hand; no NDS32 disassembler was available:**
+- Patch 1_1 loads at `0xf00a0000`, so `EVA` is file offset `0x6722`. The surrounding
+  code is the end of `mtk_gps_init_api_bora`, right after its `Ok` message: load a
+  function pointer from `0xf0100008`, set two arguments, and call it. That call is at
+  `EVA`, and `LP` is the next instruction.
+- `GFNS_REQ_MNL_INIT_API` calls this function with no other setup in between, and
+  on success reads `0xf010000c` as `mnl_ver`.
+- The patch itself never writes `0xf0100008`.
+
+**Read from the public vendor source:** `gps_emi.c` sets
+`gGpsEmiPhyBase = gConEmiPhyBase + SZ_1M`, zeroes that 1 MiB and copies
+`/vendor/firmware/MNL.bin` into it on an ioctl.
+
+**Searched, and not found:** `MNL.bin` in any retained extraction or firmware
+set. `mnld` does have `thread_emi_download`, which opens `/dev/gps_emi`, under the log
+tag `mnl_flp_test`.
+
+**Inferred (strong, not proven):**
+- `0xf0100000` in the firmware's view is the CONSYS memory base plus 1 MiB, so this
+  call jumps through a header word of `MNL.bin`. On this device that memory holds
+  whatever the reservation holds. `ITYPE=0x10` fits an instruction-fetch fault
+  (from memory of the NDS32 definition, not checked here).
+- So the GFNS engine on the microcontroller needs an image this device does not
+  have. That also explains why neither patch has NMEA formatters: they would be in
+  `MNL.bin`, not in ROM as the reverse-engineering record assumed.
+- **The stock path is then the other one.** With offload off, `libmnl` runs the
+  engine on the application processor and feeds `/dev/stpgps` bytes to
+  `mtk_gps_data_input` (seen in the decompile). That is the earlier record's original
+  claim: a binary protocol, with positions only through MediaTek's library. `mnld`
+  has a code path selecting `/dev/stpgps`, which also contradicts the claim that it
+  falls back to a serial port.
+
+**What this overturns:** the plan that a small GFNS client plus the `gnss` core gives
+a standard receiver. It holds only if `MNL.bin` exists for this firmware.
+
+**Still unknown:** whether `MNL.bin` exists anywhere for this firmware; what is on
+`/dev/stpgps` in a real Gemian session; whether Gemian's GNSS has ever worked on this
+device. The cut-off remainder of the dump is unknown too, but it would not change the above.
+
+**Made safe:** [0435](../../patches/proposals/0435-gnss-mt6797-do-not-start-the-receiver-by-default.patch) makes the start
+and function-on opt-in, because the firmware that asserts also runs Wi-Fi. A plain
+open again only checks the link. Compile-checked, not run. The link work (0418-0419)
+and 0429 stand; 0429 is useful to Wi-Fi by itself.
+
+## Options
+
+1. **Look for `MNL.bin`.** A bounded read-only check on live Gemian (`/vendor/firmware`,
+   `/dev/gps_emi`, H0). If the owner has another image of this firmware, search it. If
+   it exists: T2 can resume, with new EMI handling and redistribution questions.
+2. **Capture a stock session.** Without `MNL.bin`, a Gemian `/dev/stpgps` capture would
+   show the real protocol and whether stock GNSS works at all. This is a radio action
+   on Gemian and needs its own protocol.
+3. **Run the vendor engine.** Expose raw task 2 and run ARM32 Android `libmnl` under
+   a shim. Not a standard stack, and proprietary.
+4. **Park GNSS.** Keep the link and records, and stop here.
+
+Recommendation: 1, then park unless it finds the image. 2 and 3 cost far more and
+lead away from an upstream driver.
 
 ## Associated code
 
