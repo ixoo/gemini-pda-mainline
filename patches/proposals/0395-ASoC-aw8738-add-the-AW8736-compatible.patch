@@ -1,0 +1,93 @@
+From 834d2730467eec03bfc79e1a4662151e1cf06f62 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:03:10 -0500
+Subject: [PATCH] ASoC: aw8738: add the AW8736 compatible
+
+---
+ .../bindings/sound/awinic,aw8738.yaml         | 21 ++++++++++++++-----
+ sound/soc/codecs/Kconfig                      |  4 ++--
+ sound/soc/codecs/aw8738.c                     |  3 ++-
+ 3 files changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/sound/awinic,aw8738.yaml b/Documentation/devicetree/bindings/sound/awinic,aw8738.yaml
+index bc6c6b1..3bfa3fa 100644
+--- a/Documentation/devicetree/bindings/sound/awinic,aw8738.yaml
++++ b/Documentation/devicetree/bindings/sound/awinic,aw8738.yaml
+@@ -4,22 +4,33 @@
+ $id: http://devicetree.org/schemas/sound/awinic,aw8738.yaml#
+ $schema: http://devicetree.org/meta-schemas/core.yaml#
+ 
+-title: Awinic AW8738 Audio Amplifier
++title: Awinic AW8736/AW8738 Audio Amplifier
+ 
+ maintainers:
+   - Stephan Gerhold <stephan@gerhold.net>
+ 
+ description:
+-  The Awinic AW8738 is a simple audio amplifier with different operation modes
+-  (set using one-wire pulse control). The mode configures the speaker-guard
+-  function (primarily the power limit for the amplifier).
++  The Awinic AW8736/AW8738 are simple audio amplifiers with different
++  operation modes (set using one-wire pulse control). The mode configures
++  the speaker-guard function (primarily the power limit for the amplifier).
+ 
+ allOf:
+   - $ref: dai-common.yaml#
++  - if:
++      properties:
++        compatible:
++          contains:
++            const: awinic,aw8736
++    then:
++      properties:
++        awinic,mode:
++          maximum: 4
+ 
+ properties:
+   compatible:
+-    const: awinic,aw8738
++    enum:
++      - awinic,aw8736
++      - awinic,aw8738
+ 
+   mode-gpios:
+     description:
+diff --git a/sound/soc/codecs/Kconfig b/sound/soc/codecs/Kconfig
+index 269c31c..fa7280f 100644
+--- a/sound/soc/codecs/Kconfig
++++ b/sound/soc/codecs/Kconfig
+@@ -650,10 +650,10 @@ config SND_SOC_AUDIO_IIO_AUX
+ 	  will be called snd-soc-audio-iio-aux.
+ 
+ config SND_SOC_AW8738
+-	tristate "Awinic AW8738 Audio Amplifier"
++	tristate "Awinic AW8736/AW8738 Audio Amplifier"
+ 	select GPIOLIB
+ 	help
+-	  Enable support for the Awinic AW8738 audio amplifier (or similar).
++	  Enable support for the Awinic AW8736/AW8738 audio amplifier (or similar).
+ 	  The driver supports simple audio amplifiers similar to
+ 	  SND_SOC_SIMPLE_AMPLIFIER, but additionally allows setting the
+ 	  operation mode using the Awinic-specific one-wire pulse control.
+diff --git a/sound/soc/codecs/aw8738.c b/sound/soc/codecs/aw8738.c
+index 0fe8af1..aa0a48e 100644
+--- a/sound/soc/codecs/aw8738.c
++++ b/sound/soc/codecs/aw8738.c
+@@ -85,6 +85,7 @@ static int aw8738_probe(struct platform_device *pdev)
+ 
+ #ifdef CONFIG_OF
+ static const struct of_device_id aw8738_of_match[] = {
++	{ .compatible = "awinic,aw8736" },
+ 	{ .compatible = "awinic,aw8738" },
+ 	{ }
+ };
+@@ -100,5 +101,5 @@ static struct platform_driver aw8738_driver = {
+ };
+ module_platform_driver(aw8738_driver);
+ 
+-MODULE_DESCRIPTION("Awinic AW8738 Amplifier Driver");
++MODULE_DESCRIPTION("Awinic AW8736/AW8738 Amplifier Driver");
+ MODULE_LICENSE("GPL v2");
+-- 
+2.54.0 (Apple Git-157)
+

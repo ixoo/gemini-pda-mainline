@@ -486,6 +486,10 @@ Further offline closures from the same review:
   code selects mode 3: three pulses, 0.8 W NCN. Physical BOM population still
   needs confirmation. The code's 25 ms warm-up is shorter than the datasheet's
   40 ms start-up time.
+- The sequencer gap is closed by reusing mainline `aw8738.c`: proposal `0395`
+  adds the `awinic,aw8736` compatible, and `awinic,mode = <3>` selects the
+  three-pulse 0.8 W mode. No new driver is required; the board DT node and
+  card route remain.
 - `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini
   config sets it, so `OpenReceiverPath` uses `receiver_output`, not
   `two_in_one_speaker_output`.

@@ -233,13 +233,16 @@ Present in current mainline:
 - MT6351 codec driver with the analog output/input DAPM topology;
 - `mt6797-mt6351` machine driver with playback/capture, hostless and `PCM
   1`/`PCM 2` links;
-- MAX98926 codec driver.
+- MAX98926 codec driver;
+- AW8736 one-wire pulse sequencing, reusing `aw8738.c` with an
+  `awinic,aw8736` compatible (proposal `0395`): `awinic,mode = <3>` gives
+  three pulses and the driver waits the datasheet's 40 ms start-up.
 
 Missing or board-specific:
 
 - MT6351 MFD parent/cell in current upstream; local patches 0008/0010 add it;
 - Gemini sound-card node and DAPM routes;
-- speaker amplifier node and enable sequence;
+- speaker amplifier DT node (driver support exists after `0395`);
 - MT6351 ACCDET driver (only MT6359 ACCDET exists);
 - headphone offset trim;
 - MT6797 I2S DAI for a MAX98926 path;
@@ -295,5 +298,6 @@ headset-mic and jack work need board evidence first.
   `max98926L is not find` and `Audio_Hpl_Offset_Get`.
 - [AWINIC AW8736FCR product page](https://www.awinic.com/en/productDetail/AW8736FCR)
   and the AW8736 datasheet mode table (1.2/1.0/0.8 W NCN, mode 4 NCN off).
+- Proposal `0395` (`sound/soc/codecs/aw8738.c`, binding and Kconfig).
 - Mainline `mt6797-afe-pcm.c`, `mt6351.c`, `mt6797-mt6351.c`,
   `max98926.c`.
