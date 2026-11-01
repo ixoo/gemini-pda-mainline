@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channel 40 and channel 161 with data both ways. A secondary channel above and 2.4 GHz are not tested |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channels 40 and 161 with data both ways; 0420 and 0423 pass their channel 40 control, and channel 6 and active scan are requested |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -362,3 +362,25 @@ with some ping delay during the scan. Measured:
 | Scan never completes, aborted at its deadline | Read the done events the worker saw |
 | Data stalls past the scan | Stop. Read the ledger lines: the scan's pages may not be returning |
 | Recycling refused under load | Scans are refused past 230 by design; check they resume when idle |
+
+### Result: channel 40 control for 0420 and 0423, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian on station 30 by full module reload: Buildbox at 799b873d,
+package inventory `56673cc5…`, `mac` `79808dd7…`, CONSYS `c944a664…`, core `425b8add…`,
+`Image.gz` `ee620135…`. This boot had a failed GNSS start before it, cleared
+by a GNSS diagnostic module. Audio modules were loaded and idle.
+
+| Check | Result |
+| --- | --- |
+| Join | `COMPLETED` on 5200 MHz WPA2-PSK/CCMP, a lease, gateway 3/3; grants `channel=40 sco=3` |
+| Ping | 10/10, 3.5 ms average |
+| Ten reconnects | 10/10, each 2/2: 5.71 s, then 1.34-1.46 s |
+| Throughput | Receive 39 and 41, transmit 21 and 23 Mbit/s |
+| Scan lines | All 11 show `probing=0 ssids=0`: 2 with `channels=36`, 9 with `channels=6` |
+| Kernel log | No Oops, warning, call trace, branch 9 or "submission stopped"; not tainted |
+
+The first decision row holds. The reconnect scans' `channels=6` confirms that
+`wpa_supplicant` narrows later scans, which the channel 40 control could only infer.
+
+Stage 3's test script prints no names: one passive baseline, two wildcard and two named
+scans, so five scans plus one join and one reconnect, inside the budget of ten.
