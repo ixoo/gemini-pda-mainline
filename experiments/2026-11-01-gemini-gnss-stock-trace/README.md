@@ -478,6 +478,10 @@ The three medians agree closely with stock's early fixes. The only independent c
 
 **Not resolved:** the 2019 dates, the BeiDou offset, carrier-phase quality, and absolute accuracy. No live or on-device solver exists: all of this ran on a stored capture from stock Gemian with `mnld` booting the DSP.
 
+### Boot map (2026-11-01)
+
+No device action. The boot and running sequence from the step 5 capture and `libmnl` is in the [driver notes](../../docs/hardware/gemini-gnss-driver.md#booting-and-running-the-dsp-on-the-host-path). The 61440-byte DSP image that crossed the wire is byte-for-byte inside `libmnl.so` on the device, which settles where this path gets its code. No start is admitted to test it.
+
 ## Privacy and rights
 
 The capture is location data, and it stays private under `artifacts/` with mode 600, as do logcat

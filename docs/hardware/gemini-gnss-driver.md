@@ -216,8 +216,8 @@ Frame: `AA F0`, a little-endian u16 whose low 12 bits are payload length plus 4 
 payload, a little-endian u16 sum of those four header bytes and the payload bytes, then `AA 0F`. Inside a frame, `DE DF` stands for `AA` and
 `DE E0` for `DE`.
 
-DSP payload bytes are scrambled, and the checksum covers the scrambled bytes: descramble with a rotate right by 3, then XOR `0x59`. Host-to-DSP frames
-were not checked for this.
+DSP measurement payload bytes are scrambled, and the checksum covers the scrambled bytes: descramble with a rotate right by 3, then XOR `0x59`. Host-to-DSP frames and the boot
+acknowledgements `0xFE31` and `0xFE32` are not scrambled.
 
 | ID | Payload | Content |
 | --- | --- | --- |
@@ -248,6 +248,35 @@ With `T` the common receive time, the GPS pseudorange is `c * (T - (1.5 * r21 + 
 Byte 1 of each `0xFE2B` word holds the 6 parity bits, computed from the previous word's last 2 parity bits in the standard GPS way. Check them: 39% of frames failed in the capture.
 
 Those GLONASS bits matched broadcast position and velocity exactly on 3 satellites.
+
+## Booting and running the DSP on the host path
+
+From the [step 5 capture](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and `libmnl`. Step 1's trace adds the stop. All 72737 frames in step 5 pass the checksum. This is what stock does, on stock Gemian: none of it has been reproduced by other code.
+
+1. **Open.** Open `/dev/stpgps`, then ioctls 11, 10, 7 and 8 in that order. The terminal ioctls `mnld` then tries fail with `EFAULT` and do not stop it.
+2. **Boot header.** Send `0xFE08` with a 106-byte header, which `libmnl` fills with the image's size and addresses and with chip-dependent settings. The DSP answers `0xFE31`.
+3. **Image.** Send the image as `0xFE0C` fragments: a little-endian u16 sequence number from 1, then up to 1400 bytes. Wait for `0xFE32` carrying that sequence number before the next one. On a failed try `libmnl` retries up to 5 times. Step 5 sent 44 fragments, 61440 bytes in all, in about 0.5 s. The whole image is embedded in `libmnl.so`: no separate `MNL.bin` was used.
+4. **Started.** `0xFE2C` arrives first, about 7 ms after the last fragment.
+5. **Setup.** Send `0xFE05` commands, each a little-endian u16 command then arguments. Step 5's order was 0x32, 0x0A, 0x32, 0x36, 0x2A, 0x34, 0x0F, 0x15.
+6. **Every second,** in this order:
+
+| ID | Payload | Content |
+| --- | --- | --- |
+| `0xFE00` | 4 bytes | A millisecond counter in bytes 2 and 3, +1000 a second, wrapping |
+| `0xFE01` | 17 bytes | Host status, with the time of week in 1.5 s units at bytes 9 to 12, or all ones when unknown |
+| `0xFE02` | 20 bytes, one per aided channel | Satellite, constellation, then predicted code phase and Doppler in Hz, and flags. The Doppler matched the following measurement within about 2 Hz. Mapped only in part |
+| `0xFE03` | Lists of 2-byte pairs | Satellite and constellation, one list for tracking and one for search |
+| `0xFE08` | 10 bytes | A setting, nearly constant, not mapped |
+| `0xFE1C` | Empty | Ends the commands for the second |
+| `0xFE05` | 2 bytes | Command 0x29 |
+
+Less often: `0xFE04` (28-byte masks, all ones at start, 10 later), `0xFE07` (3 bytes, per satellite), `0xFE09` (45 bytes, per satellite, not mapped), `0xFE0A` (16 bytes, time-like), and `0xFE05` commands 0x0C and 0x1C. Host traffic is about 350 bytes a second and DSP traffic about 1200.
+
+**Stop:** `0xFE05` with command 4. On a boot failure, `libmnl` sends it three times.
+
+**Acquisition does not depend on `0xFE02`.** Most satellites first became valid before their first `0xFE02`, and none was sent until 38 s: satellite 7 was valid at 3 s. The search list alone seems to be enough to start. This run had saved state and host time, which may help. Whether the DSP keeps tracking without `0xFE02`, or runs at all without the other per-second frames, is not known. Their timeouts are not known either.
+
+A free host would need: this transport, an image (vendor firmware, whose redistribution rights are unresolved), the frames above, and the [position solution](#dsp-packets-on-the-host-path) from the measurements.
 
 ## Safety and privacy
 
