@@ -61,6 +61,10 @@ Second test: Buildbox-3, commit `290d58ad36c3e70524bcde7df1edbe37ee6239db`, job
 `290d58ad…-mt6797-a53-station-a72-m1`, inventory `562d37d0…`, `Image.gz` `0bb6ad36…`,
 `snd-soc-mt6351.ko` `735d6fa9…`, without `0447`, with `0449`. Compiled, checksums pass. Device action: none.
 
+The fix: Buildbox-3, commit `c62b26a08df7c425233d8137b1dae7765320381c`, job
+`c62b26a0…-mt6797-a53-station-a72-m1`, inventory `96c93db8…`, `Image.gz` `0bb6ad36…`,
+`snd-soc-mt6351.ko` `59282b91…`, with `0450`. Compiled, checksums pass. Device action: none.
+
 ## Safety assessment
 
 `0447` writes one more MT6351 audio register, to the value it read before the first power-up, after
@@ -108,6 +112,19 @@ kernel change beyond the module:
 | 15 quiet, 0 noisy, one group quiet | Make that restore the real power-down; remove the parameter |
 | 15 quiet, 0 stays quiet | The first tone's state is not reproduced later; retest each group from a fresh boot |
 | 15 noisy, registers as expected | Not these registers; hold the output on while headphones are in, or compare stock after playback |
+
+Fix confirmation, on a fresh boot with no tone yet, Wi-Fi up, notices firing, headphones in:
+
+1. Load `0450`, by the image or by swapping the module before any tone. Read.
+2. Tone, read, and listen for 5 minutes. Expect `0x0CF4` at `0000`.
+3. Second tone, read, and listen for 2 minutes. Ask about pops at each tone's start and end.
+
+| Observation | Next |
+| --- | --- |
+| `0000`, quiet, tones heard, no pops | Record; `0450` fixes the noise |
+| `0000`, noise | The first stream differs from later ones; read what else changed |
+| `2000` | `0450` did not run; check what was loaded |
+| A new pop | Compare with the old module; order the clear differently |
 
 ## Observations
 
