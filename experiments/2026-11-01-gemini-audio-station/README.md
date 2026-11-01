@@ -118,11 +118,27 @@ Run by the custodian, in one boot:
 
 ## Observations
 
-None yet: no boot.
+No audio boot yet. One read-only SPM read on station 27 (boot `778ff91c`), with no
+audio in that kernel:
+
+| Register | Value |
+| --- | --- |
+| `PWR_STATUS` `0x10006180` | `0x2A00005E` |
+| `PWR_STATUS_2ND` `0x10006184` | `0x2A00004E` |
+| AUDIO `PWR_CON` `0x10006314` | `0x3330FF12` |
+
+The same read found no `amixer`, `aplay` or Python in the RAM root.
 
 ## Analysis
 
-Source review and a compile and DTB check only.
+Source review, a compile and DTB check, and the register read above.
+
+Bit 24 is clear in both status registers, so the loader leaves AUDIO off.
+`KEEP_DEFAULT_OFF` therefore matches the hardware, and loading the modules is a
+real off-to-on transition, not an adoption. Inference: the low bits of `PWR_CON`
+read as isolated, in reset and clock-disabled, with bits 8-15 set. That fits the
+SRAM power-down and acknowledge masks in `0408`, but it does not prove the
+sequence works.
 
 ## Conclusion
 
