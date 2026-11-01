@@ -802,7 +802,8 @@ The kernel package (e80e197a) is unchanged; only the composed DTB differs.
 - The owner closed and opened the lid twice. EINT5 counted exactly 4
   interrupts, and `/dev/input/event1` carried `SW_LID` = 1, 0, 1, 0 at
   55.95, 65.42, 69.32 and 76.62 s, one event per movement with no bounce.
-- `lid-guard` logged each close and open with zero results.
+- `lid-guard` logged each close and open with zero results. The owner
+  confirmed that the screen turned off on close and came back on open.
 - The input numbering changed: the keyboard is now `event0` and the lid
   `event1`. `lid-guard` finds both by name.
 
