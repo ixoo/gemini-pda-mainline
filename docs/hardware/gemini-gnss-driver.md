@@ -10,7 +10,8 @@ confidence marks are in the
 [GNSS reverse-engineering record](../../experiments/2026-11-01-gemini-gnss-re/README.md)
 and the [link record](../../experiments/2026-11-01-gemini-gnss-link/README.md).
 This note adds the part those records do not own: the driver state machine and
-the firmware-image boundary.
+the firmware-image boundary. The sections on the host path below supersede this offload plan for this
+device: see [Mainline transport for the host path](#mainline-transport-for-the-host-path).
 
 ## Scope and the current blocker
 
@@ -279,6 +280,31 @@ Less often: `0xFE04` (28-byte masks, all ones at start, 10 later), `0xFE07` (3 b
 **Tracking does not depend on it either.** Step 6 sent no `0xFE02`, `0xFE07`, `0xFE09` or `0xFE0A`, only the first `0xFE04`, and no `0xFE05` 0x0C or 0x1C. The DSP tracked up to 13 satellites for 600 s. It still got correct host time in `0xFE01`. Whether it runs without the remaining per-second frames, and any timeouts, are not known. Sending on an independent timer probably caused about 45 extra epochs in 600 s; it may be better to send just after each epoch.
 
 A free host would need: this transport, an image (vendor firmware, whose redistribution rights are unresolved), the frames above, and the [position solution](#dsp-packets-on-the-host-path) from the measurements.
+
+## Mainline transport for the host path
+
+Read from the patches, the kernel source and [step 6](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved). Nothing here has run. The host path needs bytes on STP task 2, GPS function-on and the LNA pin, not GFNS and not an image in the kernel. Userspace keeps the protocol and supplies the DSP image from a file.
+
+| Need | Stock, step 6 | Mainline now | Gap |
+| --- | --- | --- | --- |
+| CONSYS power, ROM patches, calibration exchange, rails, AFE GPS words | Vendor WMT | Done by the owner for Wi-Fi | None known; that the DSP accepts this state is untested |
+| STP task 2 attach, receive | `/dev/stpgps`, blocking read | `mt6797_consys_stp_attach` (0418), proved in one boot | None known |
+| Send on task 2 | `write`, whole frames | `mt6797_consys_stp_send` (0421), up to 2048 bytes, waits for queue room up to 1 s | Reachable only from the driver |
+| Function on and off | `01 06 02 00 02 01`, seen via vendor log | Same command, answered `02 06 01 00 00` on a station | None |
+| LNA pin, GPIO 69 | Vendor log shows it set while on and restored while off | **Not handled:** no patch touches it | Drive it high while on. Whether an LNA is fitted is not established, so this can decide sensitivity or nothing |
+| Userspace access | Read, write, 4 ioctls that only read flags and versions | `/dev/gnss0` exists with read, write and poll, but `write_raw` returns `-EOPNOTSUPP` | Implement write |
+| Receive payload | Raw `AA F0` frames | `mt6797_gnss_receive` parses GFNS | Pass raw bytes to `gnss_insert_raw` |
+| Function-on at open | Always | Opt-in `start_engine=1`, which also sends GFNS that asserted the firmware (T2, T3) | Separate the two: **the GFNS start must not run on this path** |
+| Coexistence | Vendor sends a Bluetooth/Wi-Fi desense command at function-on | Not implemented | Unknown effect. Watch Wi-Fi and signal levels |
+
+**Differences that matter:**
+- **Frame splitting:** the gnss core splits writes at 1024 bytes, so 1424-byte boot fragments arrive as two STP messages. Stock sends them as one write, and the DSP protocol is a byte stream by its markers, but that the DSP accepts a split is untested. Sending boot fragments unsplit would need a larger buffer or a device outside the gnss core.
+- **Read buffer:** the gnss core's FIFO is 4 KiB and drops on overflow. At about 1.2 kB/s a healthy reader is safe, but a stalled one loses frames.
+- **Failure:** the link stops on a firmware assert, and it costs Wi-Fi until the CONSYS is reloaded, as T2 and T3 showed. A device test needs the USB path.
+
+**Smallest change:** in `gnss-mt6797`, a mode where open attaches and switches the function on with the LNA pin high, receive passes raw bytes, write sends on task 2, and close reverses that. The GFNS code then has no user on this device. Run the same [minimal host](../../experiments/2026-11-01-gemini-gnss-stock-trace/gnss-minihost.py) against `/dev/gnss0`, without the ioctls. Nothing in the kernel carries firmware or protocol.
+
+**Test order, each stage needing its own protocol and approval:** first the boot only, then 10 minutes outdoors with the same decoding as step 6.
 
 ## Safety and privacy
 
