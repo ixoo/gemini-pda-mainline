@@ -1,0 +1,306 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:23:35 -0500
+Subject: [PATCH] wifi: mt6797: scan while connected
+
+A scan during a connection was refused as busy, so results went stale
+and a better access point could never be found.
+
+Admit a scan once the connection has returned its channel privilege. The
+join worker owns the receive path by then, so it submits the requests,
+reads the done events and hands the frames to mac80211, with the
+firmware's default dwell. The scan's command pages go on the worker's
+ledger. A timeout or a cancel ends the scan, never the connection, and a
+lifetime that ends completes its scan as aborted.
+
+During such a scan, the firmware's absence notice and its reason 4 notice
+describe the scan itself, so neither ends the connection. Command
+sequences are recycled when idle past 200, as a re-arm does, and a scan
+is refused past 230 so that the teardown keeps its commands.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c   |   3 +
+ drivers/net/wireless/mediatek/mt6797/join.c   |  19 ++-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |   8 ++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 128 +++++++++++++++++-
+ 4 files changed, 154 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index d704ffc5e..464f46b0f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -1695,6 +1695,9 @@ bool mt6797_ccmp_owned_loss(struct mt6797_mac *mac, size_t bytes)
+ 				 mac->ccmp_timeout_ignored);
+ 		return true;
+ 	}
++	/* The firmware away on a scan: its notice is not a lost connection. */
++	if (mac->join_packet[9] == 4 && mac->scan_online)
++		return true;
+ 	mt6797_mac_join_end_data(mac, "connection-loss");
+ 	mt6797_ccmp_connection_lost(mac, "monitor", mac->join_packet[9]);
+ 	return true;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 038f064bc..2692e1653 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1024,6 +1024,13 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 	/* Same bounded notifications as the proven scan consumer; no body log. */
+ 	if (mac->join_packet[4] == 0x27)
+ 		return 0;
++	/* EVENT_ID_SCAN_DONE; one from a scan just cancelled is not owed. */
++	if (mac->join_packet[4] == 0x0d) {
++		if (!mac->join_data_phase)
++			return -EPROTO;
++		mt6797_mac_online_scan_done(mac, bytes);
++		return 0;
++	}
+ 	if (mac->join_packet[4] == 0x07) {
+ 		if (bytes != 12 || mac->join_packet[8] > 1)
+ 			return -EPROTO;
+@@ -1207,7 +1214,8 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 					 "one-shot WLAN join bss absence outside teardown: absent=%u quota=%u data_phase=%u count=%u\n",
+ 					 body[1], body[2], (unsigned int)in_data,
+ 					 mac->join_absence_outside);
+-			if (body[1] == 1 && in_data)
++			/* A scan while connected leaves the channel and says so. */
++			if (body[1] == 1 && in_data && !mac->scan_online)
+ 				mt6797_mac_join_end_data(mac, "bss-absence");
+ 			return 0;
+ 		}
+@@ -1780,6 +1788,7 @@ int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 
+ 	mt6797_ccmp_withdraw(mac);
+ 	complete_all(&mac->ccmp_cleanup_done);
++	mt6797_mac_online_scan_end(mac, true);
+ 
+ 	dev_err(wiphy_dev(mac->hw->wiphy),
+ 		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+@@ -2080,6 +2089,9 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	}
+ 	branch = 2;
+ 	ret = mt6797_mac_join_guard(mac, deadline);
++	if (ret)
++		goto failed;
++	ret = mt6797_mac_online_scan_step(mac);
+ 	if (ret)
+ 		goto failed;
+ 	mt6797_native_diag_step(mac);
+@@ -2536,6 +2548,11 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				 */
+ 				const u8 *f = mac->join_packet + beacon.offset;
+ 
++				/* A frame for a scan while connected, the access
++				 * point's own beacon included: mac80211 gets it once.
++				 */
++				if (mt6797_mac_online_scan_frame(mac, &beacon, &received))
++					continue;
+ 				if (mac->join_assoc_received && !mac->join_assoc_status &&
+ 				    !mac->join_cleanup_done && beacon.channel == mac->join_chan_number &&
+ 				    (mt6797_join_le16(f) & 0x00ff) == 0x0080 &&
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 67d37cad4..89ee8f52c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -630,6 +630,8 @@ struct mt6797_mac {
+ 	struct cfg80211_ssid scan_ssids[MT6797_SCAN_SSIDS];
+ 	unsigned int scan_n_ssids;
+ 	unsigned int scan_packets;
++	/* A scan while connected: the worker submits it and reads its events. */
++	bool scan_online, scan_online_ready, scan_online_cancel;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+@@ -786,6 +788,12 @@ bool mt6797_ccmp_owned_loss(struct mt6797_mac *mac, size_t bytes);
+ 
+ int mt6797_mac_join_release_channel(struct mt6797_mac *mac);
+ 
++int mt6797_mac_online_scan_step(struct mt6797_mac *mac);
++void mt6797_mac_online_scan_end(struct mt6797_mac *mac, bool aborted);
++void mt6797_mac_online_scan_done(struct mt6797_mac *mac, size_t bytes);
++bool mt6797_mac_online_scan_frame(struct mt6797_mac *mac,
++				  const struct mt6797_scan_frame *frame,
++				  struct sk_buff_head *received);
+ int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 			      unsigned int branch,
+ 				     struct sk_buff_head *discard,
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 5d8803497..08a0c9471 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -690,10 +690,96 @@ static int mt6797_mac_scan_submit(struct mt6797_mac *mac)
+ 	mac->scan_next += count;
+ 	mac->scan_count = count;
+ 	mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC +
+-			     count * mac->scan_dwell_ms * NSEC_PER_MSEC;
++			     count * max(mac->scan_dwell_ms, MT6797_PASSIVE_SWEEP_DWELL_MS) *
++			     NSEC_PER_MSEC;
+ 	return 0;
+ }
+ 
++/* Each scan command returns its TC4 pages to the worker's ledger. */
++#define MT6797_SCAN_COMMAND_PAGES 2U
++
++void mt6797_mac_online_scan_end(struct mt6797_mac *mac, bool aborted)
++{
++	struct cfg80211_scan_info info = {.aborted = aborted};
++
++	if (!mac->scan_online)
++		return;
++	mac->scan_online = false;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN connected scan: requests=%u aborted=%u\n",
++		 mac->scan_sequence, aborted);
++	ieee80211_scan_completed(mac->hw, &info);
++}
++
++/* One step per worker pass, with the guard done and the MAC mutex held: the
++ * first or next request, or the end of the scan. Frames from the last pass have
++ * reached mac80211 by now. A timeout ends the scan, never the connection.
++ */
++int mt6797_mac_online_scan_step(struct mt6797_mac *mac)
++{
++	u8 abort[4] = {mac->scan_sequence, 0, 0, 0};
++	int ret;
++
++	if (!mac->scan_online && !mac->scan_online_cancel)
++		return 0;
++	if (mac->join_page_debt || mac->join_credit_pending || mac->join_inflight)
++		return 0;
++	if (mac->scan_online_cancel) {
++		mac->scan_online_cancel = false;
++		mac->join_page_debt += 1;
++		return mt6797_mac_send(mac, MT6797_NORMAL_SCAN_CANCEL, abort, sizeof(abort));
++	}
++	if (mac->join_data_ended || ktime_get_ns() >= mac->scan_deadline) {
++		mac->scan_online_cancel = !!mac->scan_sequence;
++		mt6797_mac_online_scan_end(mac, true);
++		return 0;
++	}
++	if (!mac->scan_online_ready)
++		return 0;
++	mac->scan_online_ready = false;
++	if (mac->scan_next == mac->scan_total) {
++		mt6797_mac_online_scan_end(mac, false);
++		return 0;
++	}
++	mac->join_page_debt += MT6797_SCAN_COMMAND_PAGES;
++	ret = mt6797_mac_scan_submit(mac);
++	return ret;
++}
++
++void mt6797_mac_online_scan_done(struct mt6797_mac *mac, size_t bytes)
++{
++	if (mac->scan_online &&
++	    !mt6797_scan_done(mac->join_packet, bytes, mac->scan_sequence, mac->scan_count))
++		mac->scan_online_ready = true;
++}
++
++bool mt6797_mac_online_scan_frame(struct mt6797_mac *mac,
++				  const struct mt6797_scan_frame *frame,
++				  struct sk_buff_head *received)
++{
++	struct ieee80211_rx_status *status;
++	struct ieee80211_channel *channel;
++	struct sk_buff *skb;
++	int slot = mt6797_channel_slot(frame->channel);
++
++	if (!mac->scan_online || slot < 0 || !(mac->scan_channels & BIT_ULL(slot)))
++		return false;
++	channel = &mac->channels[slot];
++	if (channel->flags & IEEE80211_CHAN_DISABLED)
++		return false;
++	skb = dev_alloc_skb(frame->bytes);
++	if (!skb)
++		return false;
++	skb_put_data(skb, mac->join_packet + frame->offset, frame->bytes);
++	status = IEEE80211_SKB_RXCB(skb);
++	memset(status, 0, sizeof(*status));
++	status->band = channel->band;
++	status->freq = channel->center_freq;
++	status->signal = (int)frame->rcpi / 2 - 110;
++	__skb_queue_tail(received, skb);
++	return true;
++}
++
+ static void mt6797_mac_scan_work(struct work_struct *work)
+ {
+ 	struct mt6797_mac *mac = container_of(to_delayed_work(work),
+@@ -791,6 +877,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	struct mt6797_mac *mac = hw->priv;
+ 	struct ieee80211_channel *channel;
+ 	unsigned int passive_list[MT6797_CHANNELS];
++	bool online;
+ 	unsigned int i, probing = 0, passive = 0;
+ 	u64 mask = 0;
+ 	u8 bss[12];
+@@ -805,7 +892,9 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 * or still awaiting its join is busy, not a submission fault. mac80211
+ 	 * reports it and the supplicant retries.
+ 	 */
+-	if (mac->scan_used) {
++	online = mac->join_data_phase && !mac->join_data_ended &&
++		 mac->join_channel_released && mac->join_sta_active && !mac->join_cleanup_requested;
++	if ((mac->scan_used && !online) || mac->scan_online || mac->scan_online_cancel) {
+ 		ret = -EBUSY;
+ 		goto out;
+ 	}
+@@ -852,6 +941,32 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		       request->req.n_ssids * sizeof(mac->scan_ssids[0]));
+ 	if (!mac->sequence_base)
+ 		mac->sequence_base = mac->sequence;
++	if (online) {
++		/* The teardown still needs its commands: recycle while nothing is
++		 * in flight, as a re-arm does, or refuse this scan.
++		 */
++		if (mac->sequence > 200 && !mac->join_page_debt && !mac->join_data_page_debt &&
++		    !mt6797_hif_recycle_sequences(mac->hif, mac->sequence_base))
++			mac->sequence = mac->sequence_base;
++		if (mac->sequence > 230) {
++			ret = -EBUSY;
++			goto out;
++		}
++		mac->scan_total = request->req.n_channels;
++		mac->scan_next = 0;
++		mac->scan_sequence = 0;
++		/* The firmware's default dwell: it keeps returning to the channel. */
++		mac->scan_dwell_ms = 0;
++		mac->scan_channels = mask;
++		mac->scan_deadline = ktime_get_ns() + 5 * NSEC_PER_SEC;
++		mac->scan_online_ready = true;
++		mac->scan_online = true;
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN connected scan: admitted=1 channels=%u probing=%u ssids=%u\n",
++			 mac->scan_total, mac->scan_probing, mac->scan_n_ssids);
++		ret = 0;
++		goto out;
++	}
+ 	/* Retire before the first write: an uncertain activation/submission
+ 	 * cannot be retried or treated as an effect-free rejection.
+ 	 */
+@@ -894,7 +1009,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		 mac->scan_total, mac->scan_probing, mac->scan_n_ssids);
+ 	schedule_delayed_work(&mac->scan_work, 0);
+ out:
+-	if (ret && ret != -EBUSY && mac->scan_used)
++	if (ret && ret != -EBUSY && mac->scan_used && !mac->join_data_phase)
+ 		dev_err(wiphy_dev(hw->wiphy),
+ 			"one-shot passive WLAN submission stopped: status=%d\n", ret);
+ 	mutex_unlock(&mac->mutex);
+@@ -912,6 +1027,13 @@ static void mt6797_mac_cancel_scan(struct ieee80211_hw *hw,
+ 	unsigned long flags;
+ 
+ 	mutex_lock(&mac->mutex);
++	if (mac->scan_online) {
++		/* The connection stays; the worker sends the firmware's cancel. */
++		mac->scan_online_cancel = !!mac->scan_sequence;
++		mt6797_mac_online_scan_end(mac, true);
++		mutex_unlock(&mac->mutex);
++		return;
++	}
+ 	/* Cancellation can race the queued host completion after scan_active clears. */
+ 	mac->join_retired = true;
+ 	close_join = mac->join_scan_ready || mac->join_running || mac->join_peer_used;
+-- 
+2.43.0
+

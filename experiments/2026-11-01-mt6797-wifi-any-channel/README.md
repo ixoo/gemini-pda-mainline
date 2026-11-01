@@ -340,3 +340,25 @@ request list in the kernel log and the firmware honouring the passive type.
 | Scan rejected or never completes | Stop. Read the request's bytes against the vendor's |
 | Wildcard works, a named SSID finds nothing | Try the SSID count byte set, since the vendor leaves it zero |
 | Finds fewer BSSes than passive | Compare the firmware's default dwell with passive's 130 ms |
+
+## Scan while connected (phase 4, predeclared)
+
+[0430](../../patches/proposals/0430-wifi-mt6797-scan-while-connected.patch) lets a scan run during a connection. This is the
+first half of roaming; reassociation is not written. Compile-checked only. It
+follows stage 3, and a scan counts against that stage's budget.
+
+Hypothesis: with a connection up and a ping running, `iw dev wlan0 scan` and
+`iw dev wlan0 scan passive` complete, list both bands, and the connection stays,
+with some ping delay during the scan. Measured:
+- the scan's duration and the longest ping gap;
+- that a 10 s transfer continues, at lower throughput, through a scan;
+- that 300 scans in a row cross the command sequence recycling. That many active
+  scans exceed the protocol's budget, so this count runs with passive scans.
+
+| Observation | Decision |
+| --- | --- |
+| All pass | Scan while connected works; reassociation is next |
+| The connection ends during a scan | Read which notice ended it, then the firmware's absence events |
+| Scan never completes, aborted at its deadline | Read the done events the worker saw |
+| Data stalls past the scan | Stop. Read the ledger lines: the scan's pages may not be returning |
+| Recycling refused under load | Scans are refused past 230 by design; check they resume when idle |
