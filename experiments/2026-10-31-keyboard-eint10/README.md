@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `running`: station 18 confirms 0381 (correct keys, idle I2C5 0/s) but misses same-row keys pressed in sequence; 0382–0384 built for station 19, not yet booted |
+| Status | `completed`: station 19 boots in row-interrupt mode with correct keys, same-row sequences and idle I2C5 at 0 a second; a cleanup candidate without the experiment-only 0375, 0379 and 0380 is not yet built |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -440,6 +440,42 @@ patches. Package
   removes 0375, 0379 and 0380.
 - If the boot console fails, use the fallback and return to station 18
   behaviour by DT.
+
+**Station 19, boot `c15cd13f`.** Built at `ddd82585`: Image.gz
+`e36e682c…`, boot2 `533c4018…`, same RAM root. Run by the device session with
+the owner, who saw the right characters on the console, including a capital Z
+and the sentence. Raw files are retained privately with its station 19
+evidence. The first round's capture was lost when its `dd` died with the SSH
+session. The table is from the second round.
+
+| Step | Result |
+| --- | --- |
+| Boot | `matrix-keypad keyboard-matrix: row interrupt mode` at 1.127 s, `poll_override` 0. The console took typing |
+| Idle | I2C5 0 per 10 s, three times before typing and again after. `1-005b` flat |
+| Left Shift, then Z | Shift down 229.750 s, Z down 230.149, Z up 230.429, Shift up 230.568. **Correct** |
+| Ctrl, Alt, then 7 | Ctrl down 235.126, Alt down 235.517, both up 236.272. **No 7 event** |
+| Fn, then B and N | Fn (125) down 239.480. B 239.929–240.097, N 240.685–240.825. Fn up 241.384. **Fn before each letter** |
+| Sentence | "hello world", every key correct, no duplicates, no rescan storm |
+| Held `2` | 18 repeats over 0.95 s and a clean release |
+| Lid | Closed and opened twice. `lid-guard` logged both, and typing worked afterwards |
+| Counts, second round | `1-005b` +456, I2C5 about +9900, mostly during held keys at the 20 ms rescan |
+
+**Analysis.** 0383 closes the same-row gap. While a key is held, the driver
+scans every 20 ms, so Z after Left Shift and the letters after Fn are seen.
+The station 18 Fn ordering was the same effect. With no key held, the
+keyboard costs no I2C traffic.
+
+The missing 7 is the ghost filter, as predeclared. Ctrl (4,6), Alt (4,1)
+and 7 make a rectangle whose fourth corner is `2`
+([model](../2026-10-31-keyboard-scan-cost/results/ghost-model.txt)). The
+filter drops a scan that might hold a phantom, and does so in polling mode
+too. That makes it a limit of the diode-less matrix, not of interrupt mode.
+The station 18 run where all three keys appeared in one scan does not fit
+this model, and it remains unexplained.
+
+**Decision.** Interrupt mode with `held-poll-interval` is the station
+default. The next candidate removes the experiment-only 0375, 0379 and 0380
+and needs one boot to confirm that typing still works.
 
 Earlier: hypothesis 1 confirmed on station 15: EINT10 is requested without a storm
 and stays at zero while polling. Hypothesis 2 failed on station 15. The
