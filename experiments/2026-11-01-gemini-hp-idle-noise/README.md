@@ -47,7 +47,9 @@ after playback is untested, and its idle state differs in other ways.
 
 ## Build
 
-Pending; see the request to the custodian.
+Buildbox-3, commit `4da5aa369ce4b2df8b1dad9db19ee029a5e7b2f1`, job `4da5aa36…-mt6797-a53-station-a72-m1`,
+inventory `617668a7…`, `Image.gz` `3e637a85…`, `snd-soc-mt6351.ko` `f0988b91…`, release
+`7.1.3-gemini-a53-station`. Compiled, checksums pass. Device action: none.
 
 ## Safety assessment
 
