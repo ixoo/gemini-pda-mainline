@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-station` |
-| Status | `running`: card binds and AUDIO powers on (station 29); no tone played yet |
+| Status | `running`: card binds and AUDIO powers on (station 29); playback oops fixed by `0411`, untested; no tone played yet |
 | Subsystem | audio: MT6797 AFE, MT6351 codec, AW8736 amplifiers |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -76,6 +76,11 @@ anywhere. The bundle is not in Git.
 `modules/load-order` follows `modules.dep`: `snd`, `snd-timer`, `snd-pcm`,
 `snd-pcm-dmaengine`, `snd-soc-core`, `snd-soc-mtk-common`, `snd-soc-mt6351`,
 `snd-soc-aw8738`, `snd-soc-mt6797-afe`, `mt6797-mt6351`.
+
+The `0411` package is commit `7d25f0a6`, job `7d25f0a6…-mt6797-a53-station-m1`,
+inventory `fd7ac9c7…`. Its `Image.gz` and Gemini DTB match the `70d0a621` package
+byte for byte. Of all the modules, only `mt6797-mt6351.ko` (`61599019…`) and the
+Wi-Fi `mac.ko` (`0410`) differ, so a clean boot of station 29 can run it.
 
 ## Safety assessment
 
