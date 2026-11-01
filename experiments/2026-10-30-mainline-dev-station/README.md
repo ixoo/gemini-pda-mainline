@@ -919,4 +919,4 @@ Keyboard, from the first SSH session: `gemini-lid` loaded; no
 "row interrupt mode" line, and the `poll_override`, `trace_scans` and
 `trace_irq` parameters are absent. Over 20 s idle, EINT10 stayed at 0
 and the keyboard's I2C bus (`1101c000.i2c`) stayed at 173 interrupts.
-Typing from boot awaits the owner's report.
+The owner reports that typing works from boot.
