@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-self-start` |
-| Status | `running`: station 25 starts Wi-Fi by itself with the record read from `nvdata`; station 26 (regulatory) awaits its boot |
+| Status | `complete`: Wi-Fi starts by itself (station 25), follows the US country over the whole 5 GHz range (station 26 with 0405) |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mac`; station init |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -141,7 +141,31 @@ Procedure:
 | The database does not load | Check the signature keys; the station can fall back to the world domain meanwhile |
 | The domain or power submission fails | Compare the payloads with the host check; return to station 25's channel set if the firmware refuses the new classes |
 
+### Result: station 26, boot `6b0273db` (2026-11-01)
+
+| Step | Result |
+| --- | --- |
+| 1. Regulatory | `regulatory.db` loaded (no "failed to load"); status `reg=US`; `iw reg get` shows `country US: DFS-FCC`; the firmware accepted the domain and power at attach (`regulatory configuration: status=0`) and no submission stopped |
+| 2. Channels | 1-11 enabled, 12-13 disabled; 36-165 listed, 52-144 with radar detection |
+| 3. Wi-Fi (0402's `mac`) | Failed. The join reached association, then stopped with `-ECANCELED`, branch 9 (a regulatory update during the lifetime): the access point's country element (US, the country already set) reached the notifier. Later scans were refused (`-EOPNOTSUPP`). Without `regulatory.db`, cfg80211 never acted on that element |
+| 3b. Wi-Fi with [0405](../../patches/proposals/0405-wifi-mt6797-ignore-regulatory-updates-that-change-no.patch) | `mac` swapped from the b7774d77 package (`27cc2ea3…`; `Image.gz` and the other modules unchanged), after a full reload that powered CONN off and started the firmware afresh. Join `COMPLETED`, a lease, ping 10/10 (6.4 ms average), ten reconnects 10/10 in 0.97-1.14 s, each 2/2. The country element arrived at each of the 11 associations and ended none. Receive 47 and 43 Mbit/s, transmit 21, 23 and 23 Mbit/s at -58 dBm |
+| 4. Kernel log | No Oops, warning or call trace after the reload; not tainted |
+
+A swap without the reload first failed (scan `-71`, channel refused):
+the poisoned first lifetime had left firmware state behind, which the
+reload cleared.
+
+0405 skips an update whose domain and power payloads equal those last
+sent. An update that changes them during a lifetime, for example an
+access point advertising another country than the one set, still ends
+the lifetime as before; recovering from that belongs to phase 4.
+
+The boot2 image is still station 26's, whose `mac` lacks 0405; the next
+station image carries it.
+
 ## Follow-up
 
+- The next station image with 0405.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
+- A country change during a lifetime still ends it (phase 4, recovery).
