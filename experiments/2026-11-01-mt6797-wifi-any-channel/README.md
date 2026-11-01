@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413); joining another channel waits for the owner's approval of the radio protocol below |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. Stage 1's join patch is built; its channel 40 control is requested, and the other channels wait for an access point from the owner |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -152,10 +152,10 @@ Not shown:
 - that no frame was transmitted during the scans, since nothing measures the air;
 - a hidden network, since these scans send no probes.
 
-## Proposed radio protocol (awaiting the owner)
+## Radio protocol (approved by the owner, 2026-11-01)
 
-Everything so far transmits only on channel 40. This is the protocol for
-transmitting elsewhere. Nothing below runs before the owner approves it.
+Everything before this section transmits only on channel 40. This is the
+protocol for transmitting elsewhere.
 
 Scope, in order, each stage on its own driver patch and hypothesis:
 1. **Join on another 5 GHz channel**, non-DFS (36-48 or 149-165), on the owner's
@@ -183,3 +183,38 @@ Limits:
 
 Known limit: an access point advertising a country other than US still ends
 the lifetime until a module reload, so test access points should advertise US.
+
+## Stage 1: join on other 5 GHz channels
+
+[0414](../../patches/proposals/0414-wifi-mt6797-join-any-non-DFS-5-GHz-channel.patch) takes the channel from mac80211's
+operating channel in the join commands and on every receive path, and adds HT40
+with the secondary channel above. `mac` still refuses 2.4 GHz and channels
+marked no-IR or radar, before any command reaches the firmware.
+[`wifi-up.sh`](../2026-10-30-mainline-dev-station/wifi-up.sh) no longer pins the
+frequency, and pins the BSSID only if the private file names one.
+
+The core module's exported join call changes, so this needs a full module
+reload. A join now starts from a full scan of about 5 s unless `TARGET_FREQ`
+is set.
+
+**Control on channel 40**, on the owner's access point, no new transmission.
+Hypothesis: `grant: channel=40 sco=3`, with join, ten reconnects and throughput
+as before.
+
+| Observation | Decision |
+| --- | --- |
+| Join, reconnects and throughput as before | The change kept channel 40; go to another channel when the owner's access point is ready |
+| Grant refused or join fails on channel 40 | Stop and read the log; compare the commands with 0413's |
+| Reconnects fail with the full scan but pass with `TARGET_FREQ=5200` | Read the post-scan path: the join must start inside the 10 s after the scan |
+
+**Other channels**, within the protocol's budget. First a non-DFS 5 GHz channel on
+an access point the owner names, with a private file pinning its BSSID and
+frequency. Hypothesis: `grant: channel=N` with the matching `sco`, `COMPLETED`, a
+lease, gateway ping, ten reconnects, 60 s transfer each way.
+
+| Observation | Decision |
+| --- | --- |
+| All pass at 20 and 40 MHz | Stage 1 is done for that channel. Repeat on one UNII-3 channel if the owner has one, then stage 2 |
+| The firmware refuses the grant | Stop. Compare the channel with the firmware's domain list |
+| Join passes, data fails | Stop. Read the receive status lines for the descriptor's channel |
+| HT40 fails, 20 MHz passes | Keep 20 MHz for that secondary offset and read the secondary channel path |

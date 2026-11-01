@@ -4,7 +4,8 @@
 # A persistent Wi-Fi station on the running station, fed over SSH:
 #   ssh root@station 'sh -s' < wifi-up.sh
 # Needs /run/station/wifi.env (mode 0600, RAM only, never in the image or
-# the repository) with TARGET_SSID_HEX, TARGET_BSSID and WPA_PSK_HEX.
+# the repository) with TARGET_SSID_HEX and WPA_PSK_HEX. TARGET_BSSID and
+# TARGET_FREQ (MHz) are optional and pin one access point or channel.
 # Loads the Wi-Fi modules if the boot did not, waits for the phy (CONSYS
 # starts the firmware after probe), brings wlan0 up and leaves wpa_supplicant (auto-reconnect on) and udhcpc
 # (lease renewal) running. Prints the connection state without the network's
@@ -44,7 +45,9 @@ mkdir -p $CTRL
 	# shellcheck source=/dev/null
 	. $R/wifi.env
 	printf 'ctrl_interface=%s\npassive_scan=1\nap_scan=1\n' $CTRL
-	printf 'network={\n\tssid=%s\n\tbssid=%s\n\tscan_freq=5200\n\tfreq_list=5200\n' "$TARGET_SSID_HEX" "$TARGET_BSSID"
+	printf 'network={\n\tssid=%s\n' "$TARGET_SSID_HEX"
+	[ -z "${TARGET_BSSID:-}" ] || printf '\tbssid=%s\n' "$TARGET_BSSID"
+	[ -z "${TARGET_FREQ:-}" ] || printf '\tscan_freq=%s\n\tfreq_list=%s\n' "$TARGET_FREQ" "$TARGET_FREQ"
 	printf '\tproto=RSN\n\tkey_mgmt=WPA-PSK\n\tpairwise=CCMP\n\tgroup=CCMP\n\tieee80211w=0\n\tpsk=%s\n}\n' "$WPA_PSK_HEX"
 ) > $R/wpa.conf
 cat > $R/dhcp.sh <<'EOF'

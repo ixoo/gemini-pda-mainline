@@ -1,0 +1,396 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 08:17:43 -0500
+Subject: [PATCH] wifi: mt6797: join any non-DFS 5 GHz channel
+
+Join, its firmware commands and the receive path were pinned to channel
+40. Take the channel from mac80211's operating channel instead: the
+channel request, the BSS record, the descriptor comparison on every
+receive path, and the frequency reported to mac80211. HT40 now works
+with the secondary channel above as well as below.
+
+Keep refusing what the admitted radio protocol excludes: 2.4 GHz, which
+needs its own band and rate handling, and channels marked no-IR or
+radar, so no DFS channel is joined.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c   | 11 +++---
+ drivers/net/wireless/mediatek/mt6797/hif.c    |  9 ++---
+ drivers/net/wireless/mediatek/mt6797/hif.h    |  4 +-
+ drivers/net/wireless/mediatek/mt6797/join.c   | 39 ++++++++++++-------
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  5 ++-
+ drivers/net/wireless/mediatek/mt6797/main.c   | 23 +++++++----
+ drivers/net/wireless/mediatek/mt6797/mcu.h    |  9 +++--
+ 7 files changed, 61 insertions(+), 39 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index dcf4e0e0a..02bb63e29 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -1186,7 +1186,8 @@ static bool mt6797_ccmp_llc_mismatch(struct mt6797_mac *mac, size_t bytes)
+ 	struct mt6797_data_rx view;
+ 
+ 	if (!mac->ccmp_gtk || mac->join_key_group != 1 ||
+-	    !mt6797_data_rx_llc_mismatch(mac->join_packet, bytes, 40, mac->join_ap,
++	    !mt6797_data_rx_llc_mismatch(mac->join_packet, bytes,
++					 mac->join_chan_number, mac->join_ap,
+ 					 MT6797_JOIN_BMC_WLAN_INDEX, &view) ||
+ 	    view.key_id != mac->join_group_key_id)
+ 		return false;
+@@ -1314,7 +1315,7 @@ static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
+ 	skb_put_data(skb, mac->join_packet + view.offset, view.bytes);
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+ 	IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-	IEEE80211_SKB_RXCB(skb)->freq = 5200;
++	IEEE80211_SKB_RXCB(skb)->freq = mac->join_chan_freq;
+ 	IEEE80211_SKB_RXCB(skb)->flag = rx_flags;
+ 	/* The queued-frame count saturates; it never limits delivery. */
+ 	if (mac->ccmp_queued < MT6797_CCMP_DIAG_CHECKED_MAX)
+@@ -1610,7 +1611,7 @@ void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb)
+ /* This lifetime's data width and receive A-MPDU. */
+ bool __maybe_unused mt6797_mac_data_bw40(const struct mt6797_mac *mac)
+ {
+-	return mac->join_sco == 3;
++	return mac->join_sco;
+ }
+ 
+ /* This lifetime's ordinary data at mac80211's rate control choice. */
+@@ -1640,7 +1641,7 @@ mt6797_mac_tx_rate(struct mt6797_mac *mac, struct sk_buff *skb,
+ 
+ 	if (!mt6797_mac_data_minstrel(mac))
+ 		goto fixed;
+-	if ((!w40 || mac->join_sco == 3) &&
++	if ((!w40 || mac->join_sco) &&
+ 	    mt6797_tx_rate_map(rate->idx, rate->flags & IEEE80211_TX_RC_MCS,
+ 			       rate->flags & IEEE80211_TX_RC_VHT_MCS, w40,
+ 			       rate->flags & IEEE80211_TX_RC_SHORT_GI, legacy, r))
+@@ -1747,7 +1748,7 @@ int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 	skb_put_data(skb, mac->join_packet + offset, bytes);
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+ 	IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-	IEEE80211_SKB_RXCB(skb)->freq = 5200;
++	IEEE80211_SKB_RXCB(skb)->freq = mac->join_chan_freq;
+ 	if (rcpi <= 220)
+ 		IEEE80211_SKB_RXCB(skb)->signal = (int)rcpi / 2 - 110;
+ 	else
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index a51eb11f7..2039770df 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -1544,18 +1544,17 @@ EXPORT_SYMBOL_GPL(mt6797_hif_join_station);
+  * PHY (byte 55, PHY_TYPE_BIT_OFDM | PHY_TYPE_BIT_HT) and, in the RLM tail at
+  * byte 68, ucHtProtectMode (73, the operating mode of info 2, the vendor's
+  * ENUM_HT_PROTECT_MODE values), u2HtOpInfo3 (76), u2HtOpInfo2 (78) and
+- * ucHtOpInfo1 (80). The secondary channel, greenfield and RIFS fields stay
+- * zero: the join is HT20 at the fixed channel (0295).
++ * ucHtOpInfo1 (80). Greenfield and RIFS stay zero (0295).
+  */
+ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+-			    const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
++			    const u8 *ap, u8 channel, const u8 *ssid, unsigned int ssid_bytes,
+ 	unsigned int desired_rates, unsigned int basic_rates,
+ 	bool short_preamble, bool wpa2, bool qos, const u8 *ht_op,
+ 	u64 deadline_ns)
+ {
+ 	u8 payload[MT6797_JOIN_BSS_BYTES];
+ 
+-	if (!mt6797_join_bss_payload(ap, ssid, ssid_bytes, desired_rates,
++	if (!mt6797_join_bss_payload(ap, channel, ssid, ssid_bytes, desired_rates,
+ 				     basic_rates, short_preamble, wpa2, payload))
+ 		return -EINVAL;
+ 	payload[42] = qos;
+@@ -1660,7 +1659,7 @@ int mt6797_hif_join_channel_sco(struct mt6797_hif *hif, unsigned int sequence,
+ {
+ 	u8 payload[16];
+ 
+-	if ((sco && (sco != 3 || channel != 40)) ||
++	if ((sco != 0 && sco != 1 && sco != 3) ||
+ 	    !mt6797_join_channel_payload(token, channel, interval_ms, false, payload))
+ 		return -EINVAL;
+ 	payload[4] = sco;
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index 47110f8fb..2cf60f97a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -232,7 +232,7 @@ int mt6797_hif_join_station(struct mt6797_hif *hif, unsigned int sequence,
+ 			    const u8 *ap, unsigned int state, unsigned int aid,
+ 	unsigned int desired_rates, unsigned int basic_rates, u64 deadline_ns);
+ int mt6797_hif_join_bss_qos(struct mt6797_hif *hif, unsigned int sequence,
+-			    const u8 *ap, const u8 *ssid, unsigned int ssid_bytes,
++			    const u8 *ap, u8 channel, const u8 *ssid, unsigned int ssid_bytes,
+ 	unsigned int desired_rates, unsigned int basic_rates,
+ 	bool short_preamble, bool wpa2, bool qos, const u8 *ht_op,
+ 	u64 deadline_ns);
+@@ -245,7 +245,7 @@ int mt6797_hif_join_remove_station(struct mt6797_hif *hif,
+ int mt6797_hif_join_channel(struct mt6797_hif *hif, unsigned int sequence,
+ 			    u8 token, u8 channel, unsigned int interval_ms, bool abort,
+ 			    u64 deadline_ns);
+-/* The same request with ucRfSco (byte 4) set: 0, or 3 (below) on channel 40. */
++/* The same request with ucRfSco (byte 4) set: 0, 1 (above) or 3 (below). */
+ int mt6797_hif_join_channel_sco(struct mt6797_hif *hif, unsigned int sequence,
+ 				u8 token, u8 channel, u8 sco, unsigned int interval_ms,
+ 				u64 deadline_ns);
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index dafe06c31..c22e70a70 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -644,6 +644,8 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_aid = 0;
+ 	mac->join_bss_valid = false;
+ 	mac->join_channel_valid = false;
++	mac->join_chan_number = 0;
++	mac->join_chan_freq = 0;
+ 	mac->join_sco = 0;
+ 	mac->join_bss_configured = false;
+ 	mac->join_short_preamble = false;
+@@ -1005,7 +1007,8 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_channel expected = {
+-		.bss = 0, .token = mac->join_channel_token, .channel = 40,
++		.bss = 0, .token = mac->join_channel_token,
++		.channel = mac->join_chan_number,
+ 		.sco = mac->join_sco, .band = 2, .max_ms = mac->join_requested_ms,
+ 	};
+ 	unsigned long flags;
+@@ -1055,8 +1058,8 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 		/* The rate_control parameter, once per lifetime. */
+ 		mac->join_data_minstrel = READ_ONCE(rate_control);
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN join grant: channel=40 sco=%u interval_ms=%u\n",
+-			 mac->join_sco, interval);
++			 "one-shot WLAN join grant: channel=%u sco=%u interval_ms=%u\n",
++			 mac->join_chan_number, mac->join_sco, interval);
+ 		return 0;
+ 	}
+ 	if (mt6797_join_event(mac->join_packet, bytes, 0x0c, 8)) {
+@@ -1445,7 +1448,8 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 			return 0;
+ 		}
+ 		ret = mt6797_hif_join_channel(mac->hif, mac->sequence++,
+-					      mac->join_channel_token, 40, 0, true, deadline);
++					      mac->join_channel_token, mac->join_chan_number,
++					      0, true, deadline);
+ 		break;
+ 	default:
+ 		mt6797_scan_bss(mac->hw->wiphy->perm_addr, false, bss);
+@@ -1744,7 +1748,8 @@ static int mt6797_ccmp_channel_release_step(struct mt6797_mac *mac, u64 now)
+ 	mac->ccmp_channel_release_pending = true;
+ 	mac->ccmp_channel_release_sequence = mac->sequence++;
+ 	ret = mt6797_hif_join_channel(mac->hif, mac->ccmp_channel_release_sequence,
+-				      mac->join_channel_token, 40, 0, true, deadline);
++				      mac->join_channel_token, mac->join_chan_number,
++					      0, true, deadline);
+ 	mt6797_mac_join_refused(mac, ret);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN connected channel release: credited=0 sequence=%u status=%d observed_ns=%llu pm_offset_ns=%llu debt=%u\n",
+@@ -2529,7 +2534,7 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				const u8 *f = mac->join_packet + beacon.offset;
+ 
+ 				if (mac->join_assoc_received && !mac->join_assoc_status &&
+-				    !mac->join_cleanup_done && beacon.channel == 40 &&
++				    !mac->join_cleanup_done && beacon.channel == mac->join_chan_number &&
+ 				    (mt6797_join_le16(f) & 0x00ff) == 0x0080 &&
+ 				    ether_addr_equal(f + 10, mac->join_ap) &&
+ 				    ether_addr_equal(f + 16, mac->join_ap)) {
+@@ -2550,7 +2555,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			 * (0176), counted; a beacon cannot be a fence either.
+ 			 */
+ 			if (mac->join_key_group == 1 && !mac->join_cleanup_done &&
+-			    mt6797_join_keyed_beacon(mac->join_packet, rx.logical_bytes, 40,
++			    mt6797_join_keyed_beacon(mac->join_packet, rx.logical_bytes,
++						     mac->join_chan_number,
+ 						     mac->join_ap, MT6797_JOIN_BMC_WLAN_INDEX,
+ 						     &action)) {
+ 				ret = mt6797_mac_join_deliver_beacon(mac, 16 + 16 + 8 + 24,
+@@ -2571,7 +2577,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			 * other shape, or a frame past the bound, reaches the refusal below.
+ 			 */
+ 			eapol_gate = mt6797_eapol_rx_gate(mac->join_packet, rx.logical_bytes,
+-							  40, mac->hw->wiphy->perm_addr,
++							  mac->join_chan_number,
++							  mac->hw->wiphy->perm_addr,
+ 							mac->join_ap, &eapol);
+ 			if (eapol_gate == MT6797_EAPOL_OK &&
+ 			    mac->join_assoc_received && !mac->join_assoc_status &&
+@@ -2609,7 +2616,7 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				memset(IEEE80211_SKB_RXCB(skb), 0,
+ 				       sizeof(struct ieee80211_rx_status));
+ 				IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-				IEEE80211_SKB_RXCB(skb)->freq = 5200;
++				IEEE80211_SKB_RXCB(skb)->freq = mac->join_chan_freq;
+ 				if (eapol.signal_valid)
+ 					IEEE80211_SKB_RXCB(skb)->signal = eapol.signal_dbm;
+ 				else
+@@ -2661,7 +2668,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				    !mac->join_assoc_status && !mac->join_cleanup_done &&
+ 				    !mac->join_deauth_done &&
+ 				    mt6797_native_beacon(mac->join_packet, rx.logical_bytes,
+-							 40, mac->join_ap, &nbcn)) {
++							 mac->join_chan_number,
++							 mac->join_ap, &nbcn)) {
+ 					ret = mt6797_mac_join_deliver_beacon(mac, nbcn.offset,
+ 									     nbcn.bytes, nbcn.rcpi,
+ 									     false, &received);
+@@ -2679,7 +2687,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			/* The strict directed management path; no ordinary legacy
+ 			 * data fallback.
+ 			 */
+-			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes, 40,
++			if (!mt6797_join_rx_frame(mac->join_packet, rx.logical_bytes,
++						  mac->join_chan_number,
+ 						  mac->hw->wiphy->perm_addr, mac->join_ap,
+ 						  mac->join_rx_allowed, &frame))
+ 				continue;
+@@ -2722,7 +2731,7 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			skb_put_data(skb, mac->join_packet + frame.offset, frame.bytes);
+ 			memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+ 			IEEE80211_SKB_RXCB(skb)->band = NL80211_BAND_5GHZ;
+-			IEEE80211_SKB_RXCB(skb)->freq = 5200;
++			IEEE80211_SKB_RXCB(skb)->freq = mac->join_chan_freq;
+ 			IEEE80211_SKB_RXCB(skb)->signal = frame.signal_dbm;
+ 			__skb_queue_tail(&received, skb);
+ 		}
+@@ -2981,7 +2990,8 @@ int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_credit_pending = true;
+ 	mac->join_page_debt = 1;
+ 	ret = mt6797_hif_join_channel_sco(mac->hif, mac->sequence++,
+-					  mac->join_channel_token, 40, mac->join_sco,
++					  mac->join_channel_token, mac->join_chan_number,
++					  mac->join_sco,
+ 					  mac->join_requested_ms,
+ 					  mac->join_credit_deadline);
+ 	mt6797_mac_join_refused(mac, ret);
+@@ -3148,11 +3158,12 @@ int mt6797_mac_join_associate(struct mt6797_mac *mac, unsigned int aid)
+ 		 * join, info 1 drops its secondary offset and channel width.
+ 		 */
+ 		memcpy(ht_op40, mac->join_ht_op, sizeof(ht_op40));
+-		if (mac->join_sco != 3)
++		if (!mac->join_sco)
+ 			ht_op40[1] &= ~0x07;
+ 		ht_op = ht_op40;
+ 	}
+ 	ret = mt6797_hif_join_bss_qos(mac->hif, mac->sequence++, mac->join_ap,
++				      mac->join_chan_number,
+ 				      mac->join_ssid, mac->join_ssid_bytes,
+ 				     mac->join_desired_rates, mac->join_peer_basic_rates,
+ 				     mac->join_short_preamble, mac->join_rsn,
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 195f6d7e2..0a986cdc1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -507,7 +507,10 @@ struct mt6797_mac {
+ 	unsigned int join_desired_rates, join_peer_basic_rates;
+ 	u16 join_beacon_interval;
+ 	bool join_bss_valid, join_channel_valid;
+-	/* The join channel's secondary offset: 3 (below) at HT40, else 0 (0323). */
++	/* The join channel, from the last valid operating channel. */
++	u8 join_chan_number;
++	u16 join_chan_freq;
++	/* Its secondary offset at HT40: 1 (above) or 3 (below), else 0 (0323). */
+ 	u8 join_sco;
+ 	/* This lifetime's data at mac80211's rate control choice. */
+ 	bool join_data_minstrel;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 2c7b6ce31..007c9cd32 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -978,13 +978,14 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 			slot < MT6797_CHANNELS &&
+ 			channel == &mac->channels[slot] &&
+ 			channel->band == NL80211_BAND_5GHZ &&
+-			channel->hw_value == 40 && channel->center_freq == 5200 &&
+ 			(((def->width == NL80211_CHAN_WIDTH_20_NOHT ||
+ 			   def->width == NL80211_CHAN_WIDTH_20) &&
+-			  def->center_freq1 == 5200) ||
+-			 /* HT40 below: secondary channel 36 (0323). */
++			  def->center_freq1 == channel->center_freq) ||
++			 /* HT40 with the secondary channel above or below (0323). */
+ 			 (def->width == NL80211_CHAN_WIDTH_40 &&
+-			  def->center_freq1 == 5190)) && !def->center_freq2 &&
++			  (def->center_freq1 == channel->center_freq + 10 ||
++			   def->center_freq1 == channel->center_freq - 10))) &&
++			!def->center_freq2 &&
+ 			!(channel->flags & (IEEE80211_CHAN_DISABLED |
+ 				IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_NO_20MHZ |
+ 				IEEE80211_CHAN_RADAR));
+@@ -1000,8 +1001,14 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 				 channel->hw_value, channel->center_freq, def->width,
+ 				 def->center_freq1, def->center_freq2, channel->flags, ret);
+ 		}
+-		mac->join_sco = mac->join_channel_valid &&
+-			def->width == NL80211_CHAN_WIDTH_40 ? 3 : 0;
++		mac->join_sco = 0;
++		if (mac->join_channel_valid) {
++			mac->join_chan_number = channel->hw_value;
++			mac->join_chan_freq = channel->center_freq;
++			if (def->width == NL80211_CHAN_WIDTH_40)
++				mac->join_sco = def->center_freq1 >
++						channel->center_freq ? 1 : 3;
++		}
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+@@ -1339,7 +1346,7 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		mac->ccmp_rx.key_id = key->keyidx;
+ 		mac->ccmp_rx.wlan_index = 1;
+ 		mac->ccmp_rx.rxd_bssid = 1; /* measured tag, not command BSS arithmetic */
+-		mac->ccmp_rx.channel = 40;
++		mac->ccmp_rx.channel = mac->join_chan_number;
+ 		mac->ccmp_rx.pairwise = true;
+ 		mac->ccmp_rx.seeded = true;
+ 		mac->ccmp_rx.active = true;
+@@ -1368,7 +1375,7 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		mac->ccmp_gtk_rx.key_id = key->keyidx;
+ 		mac->ccmp_gtk_rx.wlan_index = MT6797_JOIN_BMC_WLAN_INDEX;
+ 		mac->ccmp_gtk_rx.rxd_bssid = 1;
+-		mac->ccmp_gtk_rx.channel = 40;
++		mac->ccmp_gtk_rx.channel = mac->join_chan_number;
+ 		mac->ccmp_gtk_rx.pairwise = false;
+ 		mac->ccmp_gtk_rx.seeded = true;
+ 		mac->ccmp_gtk_rx.authorized = mac->ccmp_rx.authorized;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mcu.h b/drivers/net/wireless/mediatek/mt6797/mcu.h
+index 07504ad80..68cfd0c43 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mcu.h
++++ b/drivers/net/wireless/mediatek/mt6797/mcu.h
+@@ -945,7 +945,8 @@ mt6797_join_station_payload(const unsigned char *ap, unsigned int state,
+  * Natural alignment leaves reserved bytes at 49 and 61..63.
+  */
+ static inline bool
+-mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
++mt6797_join_bss_payload(const unsigned char *ap, unsigned char channel,
++			const unsigned char *ssid,
+ 			unsigned int ssid_bytes, unsigned int desired_rates,
+ 	unsigned int basic_rates, bool short_preamble, bool wpa2,
+ 	unsigned char output[MT6797_JOIN_BSS_BYTES])
+@@ -953,7 +954,7 @@ mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
+ 	unsigned char p[MT6797_JOIN_BSS_BYTES] = {0};
+ 	unsigned int i, any = 0;
+ 
+-	if (!ap || !ssid || !output || !ssid_bytes || ssid_bytes > 32 ||
++	if (!ap || !ssid || !output || channel <= 14 || !ssid_bytes || ssid_bytes > 32 ||
+ 	    (ap[0] & 1) || !desired_rates || (desired_rates & ~0x3fc0U) ||
+ 	    !basic_rates || (basic_rates & ~desired_rates) ||
+ 	    !(desired_rates & (1U << 6)))
+@@ -986,7 +987,7 @@ mt6797_join_bss_payload(const unsigned char *ap, const unsigned char *ssid,
+ 	 * is declared in the station record), private AIS index 0, disconnect
+ 	 * threshold default 0.
+ 	 */
+-	p[69] = 2; p[70] = 40;
++	p[69] = 2; p[70] = channel;
+ 	p[81] = short_preamble;
+ 	p[82] = 1; /* 5 GHz always uses short slot time. */
+ 	/* Public rlmFillSyncCmdParam uses the legacy basic set here too. */
+@@ -1016,7 +1017,7 @@ mt6797_join_channel_payload(unsigned char token, unsigned char channel,
+ 	unsigned int i;
+ 
+ 	if (!output || !token || (!abort &&
+-				  (channel != 40 || !interval_ms ||
++				  (channel <= 14 || !interval_ms ||
+ 	     (interval_ms > 10000 && interval_ms != 65000))))
+ 		return false;
+ 	p[1] = token; /* BSS 0, project-owned single-use token. */
+-- 
+2.43.0
+
