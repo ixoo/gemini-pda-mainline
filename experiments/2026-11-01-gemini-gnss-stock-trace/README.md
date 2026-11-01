@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2, one start with assistance off, is admitted and has not run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -129,7 +129,7 @@ Boot `d999c089`, kernel `3.18.41+`, Debian 9. Run by the custodian; raw output i
 
 **Read from the decompile of `mnld`:** with no config file, EPO, BEE and SUPL all default to on. The
 EPO download goes through a check that includes network state, which the HAL normally reports and
-this procedure does not. So EPO should not start, but that is inferred.
+this procedure does not. So EPO should not start, but that is inferred. Step 1 showed this wrong; see step 2 for why.
 
 **So step 1's network precondition is not met as written:** those features cannot be shown off.
 
@@ -168,13 +168,48 @@ stock assets, are both inferences.
 **Still open:** measurements, navigation bits, how much host control the DSP needs, and whether stock
 reaches a fix.
 
-## Next run (not admitted)
+## Step 2: one traced start with assistance off (radio action; owner approved)
 
-Measurements need a longer run without the connection. `mnld` reads `EPO_enabled`, `BEE_enabled` and
-`SUPL_enabled` from `mnl.prop` when it starts, so the off settings would need a new
-`/data/misc/gps/mnl.prop` and an `mnld` restart. The exact file format is read from the decompile only;
-`mnld`'s own startup log would confirm the values took effect before any start. The watcher stays on.
-The files now in `/data/misc/gps` might also change behaviour, and would stay as they are.
+Approved by the owner on 2026-11-01, near a window. Measurements need a longer run without the connection.
+
+**Correction to the earlier plan:** this section said `mnl.prop` would turn the EPO download off. Read from
+the decompile, it does not. `EPO_enabled` in `mnl.prop` goes into the profile sent to the engine. The download
+at start checks `EPO_ENABLE` from `/data/misc/gps/gps.conf`, read again at each start, and whether the EPO data
+has expired. It logs the network state but does not test it, which explains why step 0's inference failed.
+
+**Writes,** both new files in `/data/misc/gps`, owned by `gps`:
+- `gps.conf`: `EPO_ENABLE=0`
+- `mnl.prop`: `EPO_enabled=0`, `BEE_enabled=0`, `SUPL_enabled=0`, `SUPLSI_enabled=0`
+
+Both are `key=value`, one per line. `mnl.prop` is read when `mnld` starts, so `mnld` restarts once. No start
+command is sent for that restart.
+
+**Network:** this should prevent the download rather than catch it; that is read from the decompile and not
+yet seen. The quarter-EPO download has no host-side switch found, so that the engine will not request it with
+EPO off is an inference. The watcher stays on, with step 1's limits.
+
+**Procedure:** device near a window, on stable power, Wi-Fi up.
+1. Verify identity, one `mnld`, the clock and Wi-Fi. Write the two files through the container, and restart `mnld`.
+2. Confirm the new `mnld` read `mnl.prop`: its `mnl_linux` log lines give the file and all four values at 0. In
+   step 1, logcat kept only warnings and errors from `mnld`, so these debug lines may be filtered out. In that
+   case, an access time on `mnl.prop` that advanced across the restart shows the read, but not the values. With
+   neither, stop here: no start.
+3. Run step 1's sequence: `strace`, watcher for 1200 s, init, 2 s, start, hold, stop, cleanup, detach. Also stop
+   if the RAM directory falls under 32 MiB free.
+4. Copy the capture and logs to private artifacts.
+5. **Restore:** delete the two files, restart `mnld`, and confirm `mnld` is running with one process. Other files in
+   `/data/misc/gps` stay; `mnld` may change them during the run. Their use with EPO off is unknown.
+
+**Budget:** one start in Gemian boot `a0b54f1d`. No retry. Effects and stop rules are step 1's. A fix would store
+a position in `mtkgps.dat`, which stays on the device, unread.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| DSP packets beyond the boot exchange | The packets can be decoded | Decode offline; decide on the open stack |
+| A fix arrives | Stock GNSS works, the first time on record | Keep the capture as the reference |
+| Boot, then keep-alives only | No signal at this placement, or the engine waits for something | Check offline; a further start needs a new request |
+| The watcher fires | These settings do not hold the connection back | Identify the path offline; a further start needs a new request |
+| Assert or `mnld` failure | Maybe the settings, the seven files, or `strace` | Compare with step 1; a further start needs a new request |
 
 ## Privacy and rights
 
