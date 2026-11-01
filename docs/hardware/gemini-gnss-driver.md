@@ -34,9 +34,12 @@ That is strong evidence, not proof.
 
 `MNL.bin` is not in the retained 2019 vendor firmware set, the device
 userspace extraction, the private reference archive or the mainline artifact
-set. A driver can be written and built now, but it cannot produce a fix until
-the image is available. The first decision is therefore to find the image on
-the live Gemian vendor partition, or to establish that this unit never had it.
+set. The private Gemian dump is the complete vendor filesystem for this unit,
+so the image is absent from the unit, not merely from a partial subset. A
+driver can be written and built for a unit or image set that has the engine,
+but the offload path cannot be demonstrated on this Gemini running Gemian.
+The only remaining stock path is the host-side engine in `libmnl`, which is
+userspace and not a kernel driver.
 
 ## What `libmnl` does, mapped to the kernel
 
@@ -190,7 +193,7 @@ duplicate those.
 
 | Item | Status |
 | --- | --- |
-| `MNL.bin` availability on the live unit | unknown; the retained set does not contain it |
+| `MNL.bin` on this unit | absent from the private Gemian dump; the offload path is unavailable |
 | Real 49-byte `MNL_INIT_CFG` values | `mnld` defaults are in patch 0439; a real `mnl.prop`/calibration record was not retained |
 | NVRAM tolerance and the correct `0x44` bitmap | unknown |
 | `0x7e`/`0x35` field layout and ACK cadence | types and 28-byte size known; fields unproven |
