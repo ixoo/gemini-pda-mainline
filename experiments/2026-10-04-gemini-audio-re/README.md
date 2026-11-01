@@ -490,11 +490,12 @@ Further offline closures from the same review:
   adds the `awinic,aw8736` compatible, and `awinic,mode = <3>` selects the
   three-pulse 0.8 W mode. No new driver is required; the board DT node and
   card route remain.
-- The minimal card is prepared by proposals `0396`/`0397`: the codec resolves
+- The minimal card is prepared by proposals `0396`-`0398`: the codec resolves
   the PMIC regmap through the PWRAP grandparent, the PMIC exposes the
-  `mt6351-sound` child, the AFE is enabled, and the board declares the
-  `mediatek,mt6797-mt6351-sound` card. Board DAPM routes, amplifier nodes and
-  jack/mic wiring remain.
+  `mt6351-sound` child, the AFE is enabled, the board declares the
+  `mediatek,mt6797-mt6351-sound` card, and `audio-routing` provides headphone
+  and main/headset/back microphone routes. Speaker amplifier nodes, jack
+  wiring and the ACCDET driver remain.
 - `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini
   config sets it, so `OpenReceiverPath` uses `receiver_output`, not
   `two_in_one_speaker_output`.

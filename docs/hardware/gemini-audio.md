@@ -237,25 +237,26 @@ Present in current mainline:
 - AW8736 one-wire pulse sequencing, reusing `aw8738.c` with an
   `awinic,aw8736` compatible (proposal `0395`): `awinic,mode = <3>` gives
   three pulses and the driver waits the datasheet's 40 ms start-up;
-- minimal Gemini card preparation (proposals `0396`/`0397`): MT6351 regmap
+- minimal Gemini card preparation (proposals `0396`/`0398`): MT6351 regmap
   fallback through the PWRAP grandparent, `mt6351-sound` MFD child, AFE
-  enable, and the `mediatek,mt6797-mt6351-sound` card node.
+  enable, the `mediatek,mt6797-mt6351-sound` card node, and headphone/main
+  mic/headset mic/back mic DAPM widgets and routes.
 
 Missing or board-specific:
 
 - MT6351 MFD parent/cell in current upstream; local patches 0008/0010 add it;
-- card DAPM routes for headphones, speaker, microphones and the amplifier;
-- speaker amplifier DT node (driver support exists after `0395`);
+- speaker amplifier DT node and its card route;
 - MT6351 ACCDET driver (only MT6359 ACCDET exists);
 - headphone offset trim;
 - MT6797 I2S DAI for a MAX98926 path;
 - any Gemini microphone, jack or amplifier pinctrl state.
 
 The first safe mainline card is the AFE + MT6351 codec +
-`mt6797-mt6351` machine link with **headphone output only**, all PGA gains at
-minimum and the amplifier GPIOs left as the loader left them. Proposals
-`0396`/`0397` prepare that card; they have not been built or run. Speaker,
-headset-mic and jack work still need board routes and evidence.
+`mt6797-mt6351` machine link with **headphone output and microphone capture**,
+all PGA gains at minimum and the amplifier GPIOs left as the loader left
+them. Proposals `0396`-`0398` prepare that card; they have not been built or
+run. Speaker, headset-jack and amplifier work still need board routes and
+evidence.
 
 ## 6. Offline review results
 
@@ -303,7 +304,7 @@ headset-mic and jack work still need board routes and evidence.
 - [AWINIC AW8736FCR product page](https://www.awinic.com/en/productDetail/AW8736FCR)
   and the AW8736 datasheet mode table (1.2/1.0/0.8 W NCN, mode 4 NCN off).
 - Proposal `0395` (`sound/soc/codecs/aw8738.c`, binding and Kconfig).
-- Proposals `0396` (`mt6351.c` regmap fallback) and `0397` (minimal Gemini
-  audio card and AFE enable).
+- Proposals `0396` (`mt6351.c` regmap fallback), `0397` (minimal Gemini
+  audio card and AFE enable) and `0398` (headphone/microphone card routes).
 - Mainline `mt6797-afe-pcm.c`, `mt6351.c`, `mt6797-mt6351.c`,
   `max98926.c`.

@@ -1,0 +1,99 @@
+From 712b6ea392a7004e673d243f0bdc613ac6b20ee2 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:11:33 -0500
+Subject: [PATCH] ASoC: mt6797: add Gemini card routing
+
+---
+ .../bindings/sound/mt6797-mt6351.txt          |  1 +
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   |  7 ++++++
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c     | 25 +++++++++++++++++++
+ 3 files changed, 33 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt b/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt
+index 1d95a88..5444420 100644
+--- a/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt
++++ b/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt
+@@ -4,6 +4,7 @@ Required properties:
+ - compatible: "mediatek,mt6797-mt6351-sound"
+ - mediatek,platform: the phandle of MT6797 ASoC platform
+ - mediatek,audio-codec: the phandles of MT6351 codec
++- audio-routing: optional card-level DAPM routes
+ 
+ Example:
+ 
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index d2b706c..dacd495 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -23,6 +23,13 @@
+ 		compatible = "mediatek,mt6797-mt6351-sound";
+ 		mediatek,platform = <&afe>;
+ 		mediatek,audio-codec = <&mt6351_snd>;
++
++		audio-routing =
++			"Headphone", "Headphone L",
++			"Headphone", "Headphone R",
++			"AIN0", "Main Mic",
++			"AIN1", "Headset Mic",
++			"AIN2", "Back Mic";
+ 	};
+ 
+ 	chosen {
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index daad954..08d6183 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -10,6 +10,20 @@
+ 
+ #include "mt6797-afe-common.h"
+ 
++static const struct snd_soc_dapm_widget mt6797_mt6351_widgets[] = {
++	SND_SOC_DAPM_HP("Headphone", NULL),
++	SND_SOC_DAPM_MIC("Main Mic", NULL),
++	SND_SOC_DAPM_MIC("Headset Mic", NULL),
++	SND_SOC_DAPM_MIC("Back Mic", NULL),
++};
++
++static const struct snd_kcontrol_new mt6797_mt6351_controls[] = {
++	SOC_DAPM_PIN_SWITCH("Headphone"),
++	SOC_DAPM_PIN_SWITCH("Main Mic"),
++	SOC_DAPM_PIN_SWITCH("Headset Mic"),
++	SOC_DAPM_PIN_SWITCH("Back Mic"),
++};
++
+ SND_SOC_DAILINK_DEFS(playback_1,
+ 	DAILINK_COMP_ARRAY(COMP_CPU("DL1")),
+ 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
+@@ -179,6 +193,10 @@ static struct snd_soc_card mt6797_mt6351_card = {
+ 	.owner = THIS_MODULE,
+ 	.dai_link = mt6797_mt6351_dai_links,
+ 	.num_links = ARRAY_SIZE(mt6797_mt6351_dai_links),
++	.controls = mt6797_mt6351_controls,
++	.num_controls = ARRAY_SIZE(mt6797_mt6351_controls),
++	.dapm_widgets = mt6797_mt6351_widgets,
++	.num_dapm_widgets = ARRAY_SIZE(mt6797_mt6351_widgets),
+ };
+ 
+ static int mt6797_mt6351_dev_probe(struct platform_device *pdev)
+@@ -216,11 +234,18 @@ static int mt6797_mt6351_dev_probe(struct platform_device *pdev)
+ 		dai_link->codecs->of_node = codec_node;
+ 	}
+ 
++	ret = snd_soc_of_parse_audio_routing(card, "audio-routing");
++	if (ret && ret != -ENOENT) {
++		dev_err(&pdev->dev, "failed to parse audio-routing: %d\n", ret);
++		goto put_codec_node;
++	}
++
+ 	ret = devm_snd_soc_register_card(&pdev->dev, card);
+ 	if (ret)
+ 		dev_err(&pdev->dev, "%s snd_soc_register_card fail %d\n",
+ 			__func__, ret);
+ 
++put_codec_node:
+ 	of_node_put(codec_node);
+ put_platform_node:
+ 	of_node_put(platform_node);
+-- 
+2.54.0 (Apple Git-157)
+
