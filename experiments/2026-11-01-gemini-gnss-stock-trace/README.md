@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3, one start with that timer raised, is admitted and has not run |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; the packets are not decoded and whether a fix came is not known; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -294,6 +294,38 @@ place of a HAL stop. A failed gate or a crash uses the start.
 | Packets continue, no fix in 20 minutes | Normal for a cold start at a window, or the engine lacks something | Decode what arrived; a fix is not needed |
 | The watcher fires | SUPL off does not hold every connection back | Identify the path offline; a further start needs a new request |
 | GPS stays powered after the service stop | The service stop is not a clean end | Reboot Gemian; rethink before another run |
+
+### Result (2026-11-01)
+
+Boot `a0b54f1d`, run by the custodian, near a window. Evidence is private under `artifacts/gemian-a0b54f1d/gnss-step3/`. One start,
+gate passed.
+
+**Observed:**
+- **It ran past 15 s.** The trace covers 1203 s with no signal, assert, whole-chip reset or Oops, on the same `mnld`, with no
+  core. CPU stayed under 30 C and the battery at 25 C. Ping held.
+- **No remote connection seen** in the watcher's 1200 s.
+- **Steady DSP packets throughout,** about one each per second of `0xFE28`, `0xFE2C`, `0xFE30` and `0xFE37`, and `0xFE29` at 4.1 to
+  6.3 per second, 5804 in all.
+- **New traffic later:** `0xFE2A` (14 bytes) and `0xFE2B` (50 bytes) first appear at 268 s, 28 of each. The host also sent
+  `0xFE02` 152 times, not seen in step 2's 15 s, with a different `0xFE03` size in those seconds.
+- `mtkgps.dat` kept its size. Its contents were not read.
+
+**Deviation, my error:** the script's `stop mnld` ran with no `PATH` and failed with rc 127, so the service stop did not
+happen. My stubbed test could not catch this. `mnld` kept GPS running for about 82 s after the window, with no watcher
+and no trace, until the custodian stopped it by hand. Radio time was about 21 min 20 s, over the 20 minute budget. The
+restore deleted the two files about 50 s before that stop. No connection was open at the check, but a short
+one in that gap would not have been seen. The manual stop worked: no process held the device afterward, and `dmesg` shows
+the close sequence. `mnld` was then restarted on defaults.
+
+**Inferred:**
+- **The crash explanation holds:** with the timer raised, the same SUPL-off settings ran past 15 s. Whether start-done arrives with
+  SUPL on is still untested.
+- **Measurement packets:** step 2's reading of `0xFE29` still fits, with the same three first-byte values every second and a
+  block of bytes that nearly always differs. It is not tied to `libmnl`'s parser yet.
+- `0xFE2A` and `0xFE2B` may relate to navigation data, from their sparse and late arrival only.
+
+**Not known:** what the fields mean, whether a fix came, since no client listened and the engine's output was not traced, and
+which host messages the DSP needs.
 
 ## Privacy and rights
 

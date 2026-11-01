@@ -42,8 +42,8 @@ specification cannot be demonstrated on this Gemini, and the work is parked. If
 the engine is indeed absent, stock must use the host-side engine in `libmnl`,
 which is userspace and not a kernel driver. A
 [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) saw that path's DSP boot and no
-GFNS frame. With assistance off, about 15 s of once-a-second DSP packets followed, including what look like
-per-channel frames, not yet decoded, until `mnld` hit its own start timeout, most likely because of the SUPL-off setting used.
+GFNS frame. With assistance off and `mnld`'s start timer raised, 20 minutes of steady once-a-second DSP packets followed, including
+what look like per-channel frames, not yet decoded; whether a fix came is not known.
 
 ## What `libmnl` does, mapped to the kernel
 
@@ -234,7 +234,7 @@ duplicate those.
 | NMEA channel mapping | `byte1 >> 5`; per-channel behavior unproven |
 | GPIO 69 / LNA population | board pin exists; physical LNA not established |
 | Coexistence de-sense packet | not implemented; may matter with Wi-Fi/BT active |
-| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and about 15 s of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md), not yet decoded, ending in `mnld`'s own start timeout; no fix seen |
+| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and 20 minutes of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md), not yet decoded; whether a fix came is not known |
 
 ## Evidence
 
