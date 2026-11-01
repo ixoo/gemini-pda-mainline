@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; the module-free boot of the opt-in `mt6797-a53-station-a72` profile passed with a 44 s `/init` delay, fixed in 0446 with a second module-free boot approved and queued, and one Wi-Fi fault not attributed; the bring-up test is not admitted |
+| Status | `running`; two module-free boots of the opt-in profile are done, the second confirming 0446; the bring-up test is proposed and waits for the owner |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -382,33 +382,65 @@ Also check GNSS if the image carries it. Candidate: package `db7b42af...` (job
 `access-controllers` line, and the AUDIO domain clocks from 0445, another session's
 station patch. All other modules and the configuration are identical.
 
-### Bring-up test (draft, not admitted)
+### Bring-up test (proposed, needs the owner's approval)
 
-1. Build the `mt6797-a53-station-a72` profile from a pushed commit on Buildbox, with
-   `BUILD_MODULES=1`, and boot `mt6797-gemini-pda-station-a72.dtb`.
-2. Boot it with the module not loaded, and confirm Wi-Fi, audio, GNSS and PMIC
-   readings are unchanged, and that I2C6 bound soon after boot. That covers the
-   built-in changes on their own.
-3. Hypothesis: `insmod mt6797-a72.ko` brings up both cores. Unique observation:
-   the first time this sequence runs beside live PMIC traffic.
-4. Check `online` is `0-9`, per-CPU accounting under a pinned load,
-   a fuel-gauge reading and AUXADC after the window, and temperature.
-5. Finite load: pinned work on both A72s for a fixed time, watching temperature.
-   Stop at 75 C SoC, a limit proposed here that the owner can change.
+This writes the DA9214 enable bit, SPM, the PWRAP reset and MCUCFG DCM, and makes the
+secure SRAM-LDO call, for the first time beside live PMIC traffic. It changes no voltage
+selector or clock. It is one load of `mt6797-a72.ko`, once, with no retry.
+
+No new image is needed: boot `e1706072` runs package `db7b42af...`, whose module has
+SHA-256 `1e13d34d...`. Copy that file to RAM on the running station and verify the hash.
+
+Hypothesis: the load brings CPU8 and CPU9 online, and the station keeps working. Unique
+observation: the sequence beside Wi-Fi, audio and PMIC users, on this kernel.
+
+Before the load: the owner is present and can force power off; external power is stable;
+Wi-Fi is associated and the fuel gauge and thermal zones are running as normal; a `dmesg
+-w` from a second USB SSH session is logging to the host, so a hang still leaves a log;
+and busybox `taskset` is confirmed present.
+
+```sh
+# Baseline, then the load, which blocks until done
+for f in online offline; do echo "$f $(cat /sys/devices/system/cpu/$f)"; done
+insmod /tmp/mt6797-a72.ko; echo "insmod=$?"
+for f in online offline; do echo "$f $(cat /sys/devices/system/cpu/$f)"; done
+cat /sys/devices/system/cpu/vulnerabilities/spectre_v2 /proc/sys/kernel/tainted
+dmesg | grep -iE 'mt6797-a72|CPU[89]|conflict|SANITY|pwrap|Oops|WARNING'
+for f in voltage_now temp status; do echo "$f $(cat /sys/class/power_supply/battery/$f)"; done
+grep . /sys/class/thermal/thermal_zone*/temp; grep -E '^cpu[89] ' /proc/stat
+# Finite load: 60 rounds per A72, counted rather than timed, in the background
+for c in 8 9; do taskset -c $c sh -c 'i=0; while [ $i -lt 60 ]; do
+  dd if=/dev/zero bs=1M count=64 2>/dev/null | sha256sum >/dev/null; i=$((i+1)); done' & done
+# Every 10 s until both finish: SoC zone temperature. Then confirm no loop is left
+```
+
+Then check `/proc/stat` advanced on both A72s, repeat the PMIC reads, run the regression
+(keyboard, USB SSH, Wi-Fi ping, audio tone), and leave it idle for 10 minutes with the same
+reads at the end. Finish with one clean reboot to show that path, which has never run with
+A72s up. `taint` `S` and a `SANITY CHECK` line about CPU feature differences are expected
+with mixed cores, and are not by themselves a failure. So is `spectre_v2` turning
+`Vulnerable`.
+
+Stop rules: one load only, never retried. Stop the load loop and report at 75 C on the SoC
+zone, a limit proposed here that the owner can change. Stop on unexpected heat, charging
+anomalies, repeated filesystem errors or watchdog loops. No I2C tools on the new bus.
 
 | Result | Meaning | Next |
 | --- | --- | --- |
-| `0-9`, PMIC readings fine | Works on the station | Soak, then measure idle cost, then load at init |
-| Module refuses on prestate | No hardware changed | Read the logged value, no retry |
-| CPU8 rejected on a capability conflict | Patch 0424 incomplete; the CPU parks | Read the log, fix, new boot |
+| `0-9`, PMIC reads fine, regression and reboot pass | Works on the station | Soak, then measure idle cost, then ask about loading at init |
+| Load fails on the off-state or firmware check | No hardware changed | Read the logged value, no retry |
+| Load fails before the isolation clear | Sequence undone, by source | Keep logs, no retry; a reboot is the clean state |
+| Failure after the isolation clear | Rail left on with nothing to undo it | Keep logs, reboot, no retry |
+| CPU8 rejected on a capability conflict | 0424 incomplete; the CPU parks | Read the log, fix, new boot |
 | `CPU_ON` returns, core never arrives | Sequence differs from the proven runs | Stop, compare, no retry |
-| PMIC errors after the window | Patch 0426 insufficient | Stop, keep logs, recover |
-| Hang | Unknown | Watchdog to Gemian if the whole system stops; a single stuck CPU may not trigger it, so the owner may need to force power off |
+| PMIC errors after the window | 0426 insufficient | Stop, keep logs, reboot |
+| A72s online, a later fault under load | Stability problem, the real unknown here | Stop, keep logs, no repeat until explained |
+| `insmod` never returns, others still running | A CPU may be stuck in secure firmware, as CPU_ON is unbounded there | Save the log, reboot if it still can, else owner forces power off |
+| Whole system hangs | Unknown | Watchdog to Gemian; if it does not fire, owner forces power off |
 
-Recovery after a failed module load: the module is not loaded at boot, so a
-reboot and the owner's boot2 selection return a working station. Only the built-in
-changes and the DT change can stop boot2 booting. Step 2 tests those, and a
-failure there means returning to Gemian and reinstalling the previous boot2 image.
+Recovery: the module is not in the image, so any reboot returns a station without it,
+once the owner selects boot2. If the force-off path is needed, it is the owner's physical
+action.
 
 ## Observations
 
@@ -455,6 +487,20 @@ station work.
   [older Wi-Fi records](../2026-10-13-mt6797-wifi-native-delivery-probe/TX_AUTORATE_RESULT.md)
   with no A72 code. No mechanism connects it to these changes, but this boot does not
   exclude one, so the next boot counts first joins.
+
+Second boot-only test, boot `e1706072`, image boot2 `01280137...`, package `db7b42af...`.
+Module absent; no I2C tools, no writes.
+
+- **0446 works:** `Run /init` at 1.293 s, against about 1.25 s on plain stations and 46 s
+  before. The handoff probe took 126 ms; `access_grant=ready` at 0.90 s and I2C6 bound.
+- **Wi-Fi:** one first join, clean, ping 5/5 twice. Finding 2 stays one fault in two boots,
+  one join each, which is too few to say anything about its cause.
+- **Registers:** the same five match. `0x10006188` and `0x1000618c` moved again within the
+  boot, so the bits above the A72 mask are live; what they mean is still unknown, and
+  the module does not use them. A72 bits 7:6 read off.
+- **Regression:** USB SSH, keyboard and audio passed, untainted, no Oops or warning by the
+  custodian's filter. The owner saw no lag at startup. **GNSS is still untested on this
+  profile**, because it is not in the image.
 
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
