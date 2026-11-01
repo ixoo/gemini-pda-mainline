@@ -811,3 +811,31 @@ The kernel package (e80e197a) is unchanged; only the composed DTB differs.
 mode. The lid is interrupt-driven from station 21. No bounce appeared
 without debounce, so none is added. Hardware debounce on the dual-edge
 line remains untested.
+
+## Lid policy in the kernel (station 22, owner request)
+
+Owner request: the lid is core to the device, so closing it should turn the
+screen off and make the kernel ignore the keyboard, driven by the interrupt
+and not by a userspace service.
+
+- 0386 adds the `gemini-lid` input handler as a module
+  (`CONFIG_INPUT_GEMINI_LID=m` in the station fragment), and `init` loads it
+  before `init` hands over. It follows `SW_LID`:
+  - on close, the raw backlight goes to `BACKLIGHT_POWER_OFF`, and key
+    presses and repeats from the `gpio-matrix-keypad` keyboard are dropped;
+    releases still pass;
+  - on open, both are undone;
+  - nothing happens before the lid has been seen open once.
+- `lid-guard` no longer acts on the lid. It keeps the Fn+B/Fn+N brightness
+  keys and the console-blank backlight sync, and it skips that sync while
+  the lid is closed. It no longer blanks the console on close. The backlight
+  being off is the screen-off state.
+- The keyboard is no longer inhibited, so the matrix scan still runs on its
+  row interrupt while the lid is closed. With nothing pressed, that costs
+  nothing.
+
+| Observation on station 22 | Decision |
+| --- | --- |
+| `status` shows `lid=gemini-lid`; on close the kernel logs "gemini-lid: lid closed", the screen goes dark and typed keys do nothing; on open, the screen returns and typing works | Keep the policy in the kernel |
+| Screen dark but keys still typed, or the reverse | Check the handler binding (`/proc/bus/input/handlers`) and the backlight type |
+| `lid=insmod-failed` | Read the module error in dmesg. The lid then has no policy for this boot |

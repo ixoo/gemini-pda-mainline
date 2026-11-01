@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 /*
- * Lid and brightness policy for the station. On SW_LID closed: inhibit the
- * keyboard input device, power the backlight down and blank the console; on
- * open, undo all three. Nothing is done until the lid has been seen open
- * once, so a misread or floating lid input at boot cannot lock the console
- * out. Each transition is logged to the kernel log. Fn+B and Fn+N (Fn is
+ * Brightness policy for the station. The lid itself is the kernel's
+ * gemini-lid module: backlight off and keyboard ignored while it is closed.
+ * This program only follows the lid so that it leaves the backlight alone
+ * while the lid is closed. Fn+B and Fn+N (Fn is
  * KEY_LEFTMETA) step the backlight down and up, autorepeat included; the
  * console keymap gives those two keys no Fn action. The backlight also
  * follows the console's own blanking (setterm --blank), which the simple
@@ -110,19 +109,6 @@ static int put(const char *path, const char *value)
 	return ok ? 0 : -EIO;
 }
 
-static int blank(int on)
-{
-	char arg = on ? TIOCL_BLANKSCREEN : TIOCL_UNBLANKSCREEN;
-	int fd = open(CONSOLE, O_RDWR | O_CLOEXEC);
-	int ret;
-
-	if (fd < 0)
-		return -errno;
-	ret = ioctl(fd, TIOCLINUX, &arg) ? -errno : 0;
-	close(fd);
-	return ret;
-}
-
 /* The console number the kernel has blanked, 0 if none. */
 static int console_blanked(void)
 {
@@ -149,19 +135,6 @@ static int set_backlight(int off)
 			backlight_off = off;
 	}
 	return ret;
-}
-
-static void apply(const char *keyboard, int closed)
-{
-	char inhibited[600];
-	int k, b, c;
-
-	snprintf(inhibited, sizeof(inhibited), "%s/inhibited", keyboard);
-	k = put(inhibited, closed ? "1" : "0");
-	c = blank(closed);
-	b = set_backlight(closed);
-	say("lid %s: keyboard_inhibit=%d backlight=%d console_blank=%d\n",
-	    closed ? "closed" : "open", k, b, c);
 }
 
 /* Brightness steps, never fully dark; the backlight has levels 0 to 1023. */
@@ -200,7 +173,7 @@ int main(void)
 	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
 	struct input_event ev;
 	struct pollfd fds[2];
-	int fd, kfd, closed, armed, fn = 0;
+	int fd, kfd, closed, fn = 0;
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
 	    !find_input(KEYBOARD_NAME, keyboard, sizeof(keyboard))) {
@@ -215,11 +188,7 @@ int main(void)
 		return 1;
 	}
 	closed = !!(sw[SW_LID / (8 * sizeof(long))] & (1UL << (SW_LID % (8 * sizeof(long)))));
-	armed = !closed;
-	say("start: lid %s, %s\n", closed ? "closed" : "open",
-	    armed ? "armed" : "waiting for the lid to open");
-	if (armed)
-		apply(keyboard, 0);
+	say("start: lid %s\n", closed ? "closed" : "open");
 	kfd = open_events(keyboard);
 	if (kfd < 0)
 		say("no keyboard events; brightness keys off\n");
@@ -228,7 +197,7 @@ int main(void)
 	while (poll(fds, kfd < 0 ? 1 : 2, 1000) >= 0) {
 		int blanked = console_blanked();
 
-		if (!(armed && closed) && !!blanked != backlight_off)
+		if (!closed && !!blanked != backlight_off)
 			say("console %s: backlight=%d\n", blanked ? "blanked" : "unblanked",
 			    set_backlight(!!blanked));
 		if ((fds[1].revents & POLLIN) && read(kfd, &ev, sizeof(ev)) == sizeof(ev) &&
@@ -245,12 +214,8 @@ int main(void)
 		if (ev.type != EV_SW || ev.code != SW_LID)
 			continue;
 		closed = !!ev.value;
-		if (!armed && !closed) {
-			armed = 1;
-			say("armed\n");
-		}
-		if (armed)
-			apply(keyboard, closed);
+		/* gemini-lid powered the backlight on or off with the lid. */
+		backlight_off = closed;
 	}
 	say("lid event stream ended\n");
 	return 1;

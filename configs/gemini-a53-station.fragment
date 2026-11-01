@@ -8,6 +8,9 @@ CONFIG_MODULE_UNLOAD=y
 CONFIG_MT6797_HIF_CORE=m
 CONFIG_MTK_MT6797_CONSYS=m
 CONFIG_MT6797_MAC80211=m
+# Lid policy: backlight off and keyboard ignored while closed. A module, so it
+# can be reloaded without a boot; init loads it.
+CONFIG_INPUT_GEMINI_LID=m
 CONFIG_LOCALVERSION="-gemini-a53-station"
 CONFIG_LOG_BUF_SHIFT=20
 # Power off through the MT6351 RTC, as Gemian does (0342-0345), not PSCI.

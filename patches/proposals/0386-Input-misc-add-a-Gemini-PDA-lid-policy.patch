@@ -1,0 +1,229 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 21:30:00 -0400
+Subject: [PATCH] Input: misc: add a Gemini PDA lid policy
+
+The Gemini PDA's lid closes the keyboard against the screen. While it is
+closed, the backlight should be off and the keys pressed by the closed
+lid must not reach the system. The station did this from userspace, by
+reading the switch and writing the keyboard's inhibited attribute and
+bl_power. Make it a kernel input handler, so that it follows the lid's
+EINT5 interrupt directly and needs no userspace service.
+
+The handler binds to devices with SW_LID and to the built-in matrix
+keyboard (its parent is a gpio-matrix-keypad). On a lid change it
+powers the raw backlight down or up from a work item. While the lid is
+closed, it filters the keyboard's key presses and repeats. Releases
+still pass, so a key held as the lid closes is not left pressed. Nothing
+happens until the lid has been seen open once, so a lid that reads
+closed at boot cannot lock the keyboard out.
+
+This is board policy, which upstream usually leaves to userspace
+(logind, a compositor). It is kept as a module so that it can be
+replaced without a boot.
+
+Not yet run on hardware.
+---
+ drivers/input/misc/Kconfig      |  10 +++
+ drivers/input/misc/Makefile     |   1 +
+ drivers/input/misc/gemini-lid.c | 155 ++++++++++++++++++++++++++++++++
+ 3 files changed, 166 insertions(+)
+ create mode 100644 drivers/input/misc/gemini-lid.c
+
+diff --git a/drivers/input/misc/Kconfig b/drivers/input/misc/Kconfig
+index 94a753f..fee4274 100644
+--- a/drivers/input/misc/Kconfig
++++ b/drivers/input/misc/Kconfig
+@@ -357,6 +357,16 @@ config INPUT_GPIO_DECODER
+ 	 To compile this driver as a module, choose M here: the module
+ 	 will be called gpio_decoder.
+ 
++config INPUT_GEMINI_LID
++	tristate "Gemini PDA lid policy"
++	depends on OF && BACKLIGHT_CLASS_DEVICE
++	help
++	  Say Y here to power the backlight down and ignore the built-in
++	  keyboard while the Gemini PDA lid is closed.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called gemini-lid.
++
+ config INPUT_GPIO_VIBRA
+ 	tristate "GPIO vibrator support"
+ 	depends on GPIOLIB || COMPILE_TEST
+diff --git a/drivers/input/misc/Makefile b/drivers/input/misc/Makefile
+index 415fc4e..ee323b9 100644
+--- a/drivers/input/misc/Makefile
++++ b/drivers/input/misc/Makefile
+@@ -39,6 +39,7 @@ obj-$(CONFIG_INPUT_E3X0_BUTTON)		+= e3x0-button.o
+ obj-$(CONFIG_INPUT_DRV260X_HAPTICS)	+= drv260x.o
+ obj-$(CONFIG_INPUT_DRV2665_HAPTICS)	+= drv2665.o
+ obj-$(CONFIG_INPUT_DRV2667_HAPTICS)	+= drv2667.o
++obj-$(CONFIG_INPUT_GEMINI_LID)		+= gemini-lid.o
+ obj-$(CONFIG_INPUT_GPIO_BEEPER)		+= gpio-beeper.o
+ obj-$(CONFIG_INPUT_GPIO_DECODER)	+= gpio_decoder.o
+ obj-$(CONFIG_INPUT_GPIO_VIBRA)		+= gpio-vibra.o
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+new file mode 100644
+index 0000000..b947178
+--- /dev/null
++++ b/drivers/input/misc/gemini-lid.c
+@@ -0,0 +1,155 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Gemini PDA lid policy. The lid closes the keyboard against the screen, so
++ * while it is closed, power the backlight down and drop key presses from the
++ * built-in keyboard. Key releases still pass, so a key held while the lid
++ * closes is not left pressed. Nothing happens until the lid has been seen
++ * open once, so a lid that reads closed at boot cannot lock the keyboard out.
++ */
++
++#include <linux/backlight.h>
++#include <linux/input.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/slab.h>
++#include <linux/workqueue.h>
++
++static bool lid_armed;
++static bool lid_closed;
++
++static void gemini_lid_backlight(struct work_struct *work)
++{
++	struct backlight_device *bd = backlight_device_get_by_type(BACKLIGHT_RAW);
++	bool closed = READ_ONCE(lid_closed);
++
++	pr_info("gemini-lid: lid %s\n", closed ? "closed" : "open");
++	if (!bd)
++		return;
++
++	mutex_lock(&bd->ops_lock);
++	if (bd->ops) {
++		if (closed)
++			backlight_disable(bd);
++		else
++			backlight_enable(bd);
++	}
++	mutex_unlock(&bd->ops_lock);
++	put_device(&bd->dev);
++}
++
++static DECLARE_WORK(gemini_lid_work, gemini_lid_backlight);
++
++static bool gemini_lid_is_keyboard(struct input_dev *dev)
++{
++	return dev->dev.parent &&
++	       of_device_is_compatible(dev->dev.parent->of_node,
++				       "gpio-matrix-keypad");
++}
++
++static bool gemini_lid_filter(struct input_handle *handle, unsigned int type,
++			      unsigned int code, int value)
++{
++	if (handle->private)
++		return READ_ONCE(lid_closed) && type == EV_KEY && value;
++
++	if (type != EV_SW || code != SW_LID)
++		return false;
++
++	if (!value)
++		lid_armed = true;
++	if (lid_armed && lid_closed != !!value) {
++		WRITE_ONCE(lid_closed, !!value);
++		schedule_work(&gemini_lid_work);
++	}
++
++	return false;
++}
++
++static int gemini_lid_connect(struct input_handler *handler,
++			      struct input_dev *dev,
++			      const struct input_device_id *id)
++{
++	bool keyboard = gemini_lid_is_keyboard(dev);
++	struct input_handle *handle;
++	int err;
++
++	if (!keyboard && !test_bit(SW_LID, dev->swbit))
++		return -ENODEV;
++
++	handle = kzalloc(sizeof(*handle), GFP_KERNEL);
++	if (!handle)
++		return -ENOMEM;
++
++	handle->dev = dev;
++	handle->handler = handler;
++	handle->name = "gemini-lid";
++	handle->private = keyboard ? handle : NULL;
++
++	err = input_register_handle(handle);
++	if (err)
++		goto err_free;
++
++	err = input_open_device(handle);
++	if (err)
++		goto err_unregister;
++
++	if (!keyboard && !test_bit(SW_LID, dev->sw))
++		lid_armed = true;
++
++	return 0;
++
++err_unregister:
++	input_unregister_handle(handle);
++err_free:
++	kfree(handle);
++	return err;
++}
++
++static void gemini_lid_disconnect(struct input_handle *handle)
++{
++	input_close_device(handle);
++	input_unregister_handle(handle);
++	kfree(handle);
++}
++
++static const struct input_device_id gemini_lid_ids[] = {
++	{
++		.flags = INPUT_DEVICE_ID_MATCH_EVBIT | INPUT_DEVICE_ID_MATCH_SWBIT,
++		.evbit = { BIT_MASK(EV_SW) },
++		.swbit = { [BIT_WORD(SW_LID)] = BIT_MASK(SW_LID) },
++	},
++	{
++		.flags = INPUT_DEVICE_ID_MATCH_EVBIT,
++		.evbit = { BIT_MASK(EV_KEY) },
++	},
++	{ }
++};
++MODULE_DEVICE_TABLE(input, gemini_lid_ids);
++
++static struct input_handler gemini_lid_handler = {
++	.filter = gemini_lid_filter,
++	.connect = gemini_lid_connect,
++	.disconnect = gemini_lid_disconnect,
++	.name = "gemini-lid",
++	.id_table = gemini_lid_ids,
++};
++
++static int __init gemini_lid_init(void)
++{
++	return input_register_handler(&gemini_lid_handler);
++}
++module_init(gemini_lid_init);
++
++static void __exit gemini_lid_exit(void)
++{
++	input_unregister_handler(&gemini_lid_handler);
++	cancel_work_sync(&gemini_lid_work);
++	if (lid_closed) {
++		WRITE_ONCE(lid_closed, false);
++		gemini_lid_backlight(NULL);
++	}
++}
++module_exit(gemini_lid_exit);
++
++MODULE_DESCRIPTION("Gemini PDA lid policy: backlight off and keyboard ignored while closed");
++MODULE_LICENSE("GPL");
+-- 
+2.54.0 (Apple Git-157)
+

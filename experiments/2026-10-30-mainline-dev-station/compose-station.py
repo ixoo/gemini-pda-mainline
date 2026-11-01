@@ -32,7 +32,7 @@ def main(package, parent, tools, output):
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = []
     for path in ['net/wireless/mediatek/mt6797/mac.ko', 'net/wireless/mediatek/mt6797/mt6797-wlan-core.ko',
-                 'soc/mediatek/mt6797-consys.ko']:
+                 'soc/mediatek/mt6797-consys.ko', 'input/misc/gemini-lid.ko']:
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
@@ -41,7 +41,7 @@ def main(package, parent, tools, output):
     assert release.endswith('-gemini-a53-station'), release
     config = (package/'kernel.config').read_text()
     for line in ['CONFIG_MODULES=y', 'CONFIG_MT6797_MAC80211=m', 'CONFIG_MT6797_HIF_CORE=m',
-                 'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_MTK_SOC_THERMAL=y', 'CONFIG_THERMAL=y',
+                 'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_INPUT_GEMINI_LID=m', 'CONFIG_MTK_SOC_THERMAL=y', 'CONFIG_THERMAL=y',
                  'CONFIG_MEDIATEK_MT6359_AUXADC=y', 'CONFIG_GENERIC_ADC_THERMAL=y',
                  'CONFIG_EXT4_FS=y']:
         assert line in config.splitlines(), line
