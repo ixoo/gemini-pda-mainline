@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. Soak, idle cost and loading at init remain, each its own owner decision |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A soak is drafted below and not yet approved. Idle cost and loading at init follow, each its own owner decision |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -465,6 +465,72 @@ Image.gz `0bb6ad36...`. Against `db7b42af...`: 0448 in the Image, and another se
   loop runs until that shell ends, because busybox shows them under other names.
 - If an A72 stops again, go to `sync` and `reboot -f`. Plain `reboot` can block on RCU.
 
+### Soak (proposed, not admitted, not run)
+
+This needs the owner's approval, because it repeats the bring-up writes on a new boot. It
+changes no voltage selector or clock. One boot, one module load, no retry.
+
+Candidate: the same package `932520bc...`, Image.gz `0bb6ad36...`, DTB `91ca8aae...`,
+module `1e13d34d...`, so a result compares directly with attempt 2. No new build. Newer
+audio and GNSS patches stay out on purpose. If boot2 no longer holds this image, reinstall
+it under the standing boot2 approval.
+
+Hypothesis: both A72s stay online and compute correctly for hours, with Wi-Fi, audio and
+PMIC traffic running. Three observations attempt 2 could not give:
+
+- **Duration:** 2 hours of load and 2 hours of idle, against 2 minutes and 20 minutes.
+- **Correct results:** attempt 2 discarded its hashes, so a wrong answer would not have
+  shown. BUCKB's voltage on the pin has never been measured, so silent errors are the
+  failure to look for. Each round now compares against one reference hash.
+- **Concurrency:** load, Wi-Fi and audio at the same time, which has not run.
+
+[`soak.sh`](soak.sh) runs from RAM on the device and stops itself, so it does not depend on
+the host link. It hashes a 64 MiB random file in a loop on CPU8 and CPU9, and on CPU7 as an
+A53 control, so a mismatch can be placed. Every 15 min it runs a ping, a finite download
+and a tone. Logic checked in the dev VM with substituted CPU and sysfs paths: normal end,
+temperature stop and hash mismatch all behaved. Not run on the device's busybox, and the
+fault-line stop was not exercised, because the VM denies `dmesg`.
+
+Before the load: the owner is present for the module load and the first 30 min, can force
+power off, and stays reachable after that; USB power is stable; Wi-Fi is associated; a
+`dmesg -w` from a second USB SSH session logs to the host; `tail -f /tmp/soak-load.log`
+logs to the host; the module hash is verified on the device.
+
+```sh
+insmod /tmp/mt6797-a72.ko; echo "insmod=$?"; cat /sys/devices/system/cpu/online
+export PING_TARGET=<gateway> WGET_URL=<finite file on a LAN host> TONE_CMD=<usual tone command>
+/tmp/soak.sh load 7200; echo "load=$?"
+# Only if load=0
+/tmp/soak.sh idle 7200; echo "idle=$?"
+```
+
+Run `load` and `idle` so that they outlive the SSH session. Afterwards: repeat the
+registers and PMIC reads, read the Wi-Fi restart count, and have the owner confirm the
+keyboard, display and one tone by ear. Finish with one clean reboot.
+
+Stop rules, enforced by the script: SoC zone at 75 C, the owner's limit from the earlier
+attempts; battery at 45 C, proposed here; capacity under 30%; a hash mismatch; an A72 quiet
+for 10 s; `online` other than `0-9`; a taint change; any new `WARNING`, Oops, stall or
+wrapper error line. No `end` line within 5 min of the deadline also counts as a stop. Then
+keep the logs and go to `sync` and `reboot`, or `reboot -f` if an A72 stopped. No I2C tools
+on the new bus.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| Both phases finish, regression and reboot pass | Stable over this window on one boot | Measure idle cost |
+| Mismatch on an A72, none on CPU7 | Silent errors on the A72s at firmware's voltage and clock | Stop. Do not load at init. Explain before any repeat |
+| Mismatch on CPU7 too | Memory or the file, not specific to the A72s | Keep logs, look at memory first, no repeat until explained |
+| 75 C reached | Load needs cooling the station does not have for these CPUs | Record the curve. Cooling comes before loading at init |
+| A72 frozen, or stall lines | The stability problem | Keep logs, no repeat until explained |
+| New wrapper or PMIC errors | 0426 insufficient under long traffic | Stop, keep logs, reboot |
+| New `WARNING` or Oops, taint change | Depends on the trace | Keep logs, read it, no repeat until explained |
+| Wi-Fi restart or tone failure, A72s fine | Not attributed from one sample | Compare with the plain station before blaming the A72s |
+| Capacity under 30% | Power budget, not a fault | Record the rate, recharge, then decide |
+| Whole system hangs | Unknown | Watchdog to Gemian; if it does not fire, owner forces power off |
+
+Recovery: as for the bring-up attempts. The module is not in the image, so any reboot
+returns a station without it, once the owner selects boot2.
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
@@ -641,6 +707,6 @@ idle cost stay open, GNSS has not run beside it, and the whole system now report
 
 ## Follow-up
 
-Next, in order, each its own owner decision: soak; idle power; load at init; then, as
+Next, in order, each its own owner decision: soak (drafted above); idle power; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
