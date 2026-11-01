@@ -116,8 +116,11 @@ Afterwards `audio-start` printed `ready`. Playback after that was not tried.
 
 The owner also reports low noise in the headphones for about 1 s every 30 s, since plugging them
 in. The custodian found a `WLAN BSS timeout ignored` log line exactly every 30 s, and no audio or
-ACCDET interrupt on that cycle. A `jack out` was logged at 554.02 s, before the removal, which
-the owner has not yet accounted for; the count stayed 2 through the reload.
+ACCDET interrupt on that cycle. A `jack out` at 554.02 s, before the removal, was the owner
+unplugging. No noise has been reported with the headphones out.
+
+Read at 935.8 s, headphones out, reloaded, no stream: `0x10006314` = `0x3330FF0D`, the jack off,
+all four DAPM bias levels off, no widget on, and `HPL Power` and `HPR Power` off.
 
 ## Analysis
 
@@ -144,7 +147,9 @@ bits (8-11) are set, but their acknowledge bits (12-15) are not, and they were a
 off state before load. Inference: `scpsys_sram_disable()` timed out waiting for the
 acknowledge, possibly because the AFE clocks were already off, so `scpsys_power_off()` gave up
 with no message and the domain stayed on with its SRAM bits set. Any patch that lets the domain
-idle has to fix this first. Until a reboot, a reloaded card may run in that state.
+idle has to fix this first. By 935.8 s, after the reload had turned the AFE clocks back on, the
+acknowledge bits had appeared too, which fits the clock reading. So the reloaded card sits with its
+domain on and its SRAM powered down until a reboot.
 
 ## Conclusion
 
