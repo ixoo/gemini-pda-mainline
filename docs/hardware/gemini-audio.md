@@ -148,6 +148,38 @@ The retained Gemian boot also records `Audio_Hpl_Offset_Get` and
 `GetAudioTrimOffset channels = 1`, confirming that the stock path applies the
 headphone offset trim. Mainline has no equivalent.
 
+### 2.2 Headphone offset trim
+
+The vendor `Auddrv_Read_Efuse_HPOffset()` reads the PMIC efuse rows
+`0xe`–`0x10` through the efuse engine (`0x0C00`, `0x0C10`, `0x0C18`,
+`0x0C1A`) and derives two coarse and two fine fields:
+
+```text
+HPL coarse = (word0 >> 10) & 0xf
+HPR coarse = ((word0 >> 14) & 0x3) | ((word1 & 0x3) << 2)
+HPL fine   = (word1 >> 3) & 0x3
+HPR fine   = (word1 >> 5) & 0x3
+```
+
+It writes them into `AUDDEC_ANA_CON2` (`0x0CF6`):
+
+```text
+bit 11      trim circuit enable
+bits 6:3    HPL coarse
+bits 10:7   HPR coarse
+bits 13:12  HPL fine
+bits 15:14  HPR fine
+```
+
+The live Gemian boot calls `Auddrv_Read_Efuse_HPOffset` and later uses the
+trim buffer, so this is the active stock path.
+
+Mainline `mt6351.c` already knows `MT6351_AUDDEC_ANA_CON2` but never reads or
+writes these fields. Closing this gap requires a reviewed PMIC efuse read
+sequence: it is not safe to guess the efuse row/engine registers or to write
+them without a bounded capture. The codec-side write is known; the PMIC-side
+read is the remaining dependency.
+
 ## 3. Inputs
 
 | Input | Codec path | Bias | HAL path |

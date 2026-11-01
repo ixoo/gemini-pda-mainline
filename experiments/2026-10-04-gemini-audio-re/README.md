@@ -511,6 +511,9 @@ Further offline closures from the same review:
   (`mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`) and
   the efuse offset (`0xffffff80`, `-2`). These are configured values, not an
   acoustic calibration.
+- The headphone trim formula and `AUDDEC_ANA_CON2` fields are recovered, but
+  the PMIC efuse read remains a reviewed-capture dependency; mainline must not
+  guess the efuse engine sequence.
 
 ## Validation
 
