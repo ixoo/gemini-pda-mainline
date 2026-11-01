@@ -361,7 +361,9 @@ That candidate could not bind its card and cannot run on the station. Proposals
 `0407`-`0409` bind the amplifiers and give the station an AUDIO domain, and the
 station carries the audio stack as unloaded modules. See
 [first audio on the station](../../experiments/2026-11-01-gemini-audio-station/README.md).
-Nothing here has been booted.
+With `0411` as well, the owner heard a 48 kHz tone in both headphone ears and
+from the speakers. Microphones, the split between speakers, the jack and trim
+remain open.
 
 ## 6. Offline review results
 

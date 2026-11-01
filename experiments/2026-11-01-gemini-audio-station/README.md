@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-station` |
-| Status | `running`: card binds and AUDIO powers on (station 29); playback oops fixed by `0411`, untested; no tone played yet |
+| Status | `running`: headphones heard in both ears and speaker sound heard (station 29); speaker split and microphones open |
 | Subsystem | audio: MT6797 AFE, MT6351 codec, AW8736 amplifiers |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -102,6 +102,9 @@ error, and return only through the reviewed recovery path.
 
 - [`audio-test.sh`](audio-test.sh): device test, root. It stops on a wrong release,
   a refused control or a missing card, and closes the path on exit.
+- [`audio-channels.sh`](audio-channels.sh): device test, root, after `audio-test.sh`. Each
+  channel alone for 8 s with printed prompts, GPIO243/244 during playback, then captures
+  at 18 dB PGA: quiet, with the speakers playing, and with the owner speaking.
 - [`build-alsa-tools.sh`](build-alsa-tools.sh): Buildbox only.
 - `0395`-`0399`, `0401`, `0403`, `0404`, `0407`-`0409`.
 
@@ -158,6 +161,23 @@ Two script bugs, both fixed since:
 during `HW_PARAMS`. Nothing was played. The kernel was tainted, `aplay` stuck and
 reading the PCM status appeared to hang. Wi-Fi stayed associated.
 
+**Runs 3 and 4, station 29 (boot `c08cf8d4`, package `7d25f0a6`, card module
+`61599019…`, `mac` `a2b6fd46…`), run by the custodian:**
+
+- Run 3, headphones: exit 0, `aplay` rc 0, `state: RUNNING`, `hw_ptr` 47584 at 1 s.
+  **The owner heard the −40 dBFS tone in both ears** at −10 dB gain.
+- Run 3 capture, 2 s at 0 dB PGA: L peak 6850, RMS 802.7; R peak 6901, RMS 657.2 over
+  the whole file. Per 100 ms, L RMS is 1993, 499, 119, 19, then 2-15 to the end; R is 1394, 273,
+  51, 8, then 3-12. After 0.5 s: L/R correlation 0.998, no line at 50 Hz to 16 kHz above
+  about 0.6 LSB.
+- Run 4, `TEST_SPEAKER=1`: exit 0, `aplay` rc 0. The owner: "I heard the tone, but it
+  was too short for me to know where it came from."
+- No oops or warning, not tainted, Wi-Fi stayed `COMPLETED` through both runs.
+- `/sys/kernel/debug/gpio` was absent because the station does not mount debugfs, so
+  GPIO243/244 were not logged.
+
+Raw captures stay private: they may hold room audio.
+
 ## Analysis
 
 Run 1 confirms that the card binds with `0407` and that `0408`/`0409` power AUDIO
@@ -169,6 +189,16 @@ the built module `playback_2_codecs` and `playback_1_platforms` have the same ad
 (`0x1b8`, from `nm`), so Playback_1 bound the MT6351 as its platform and the lookup of
 `mtk-afe-pcm` returned NULL. `0411` skips links with no codec entries.
 
+Runs 3 and 4 confirm headphone playback by ear, through the AFE memory interface, the
+MT6351 DACs and both HP drivers. The speaker path makes sound, but one or two speakers
+is not established.
+
+Microphones are **not** established. The capture path runs and returns samples, but the
+non-silence is a start-up transient that decays in about 300 ms, and what follows is a
+few LSB. Inference: the high L/R correlation is shared settling, not sound, since the
+two channels are meant to be different microphones. A live microphone needs a known
+sound during capture, which [`audio-channels.sh`](audio-channels.sh) provides.
+
 Before load, bit 24 is clear in both status registers, so the loader leaves AUDIO off.
 `KEEP_DEFAULT_OFF` therefore matches the hardware, and loading the modules is a
 real off-to-on transition, not an adoption. Inference: the low bits of `PWR_CON`
@@ -178,7 +208,11 @@ sequence works.
 
 ## Conclusion
 
-`inconclusive`: nothing here establishes hardware behavior.
+Scoped to the named Gemini, Linux 7.1.3 and package `7d25f0a6`:
+
+- headphones: `confirmed` for a 48 kHz tone by ear; level, distortion and DC offset are not measured;
+- speakers: sound heard, split between channels `inconclusive`;
+- microphones: `inconclusive`.
 
 ## Follow-up
 
