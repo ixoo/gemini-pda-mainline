@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-reload` |
-| Status | `running`: reload confirmed on station 33; the 30 s noise starts at the first playback and survives removal; register reads pending |
+| Status | `running`: reload confirmed on station 33; the 30 s noise starts at the first playback and stops during a stream; fresh-boot baseline pending |
 | Subsystem | audio; MT6797 AUDIO power domain |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -120,7 +120,35 @@ Reload, same boot, Wi-Fi associated on channel 40 throughout, not tainted at any
 | 982.36 | Reload 2, `audio-start` `ready` | `0x2B00005E` | `0x3330000D` | |
 | 986.58 | Tone, rc 0; jack on, ping 2/2 | | | "Heard it" |
 
-Whether the noise continued after the reloads has not been reported.
+Noise, same boot, after three tones and the reloads, with the owner pressing a key at each burst
+(first line of each press, by a small logger):
+
+- Presses at 1167.58, 1197.73, 1227.59 and 1257.62 s, a period of 30.0 s to within 0.15 s.
+- Silent stream 1278.57-1368.59 s, `aplay` rc 0, `HPL Power` and `HPR Power` on: no press, where the
+  period predicts three. The owner: "now it is really silent", "it works".
+- Presses resume at 1407.63 and 1437.62 s, `HP Power` off. The slot at 1377.6 s has no press, about
+  9 s after the stream, but the custodian was speaking to the owner then, so it may be a miss.
+- `BSS timeout ignored` printed last at 838.48 s (print limit). Extrapolated by the custodian over 12
+  cycles, it falls about 0.85 s after each press, including reaction time.
+- No pop was reported at the stream's start or end; this was not asked specifically.
+
+[`pmic-audio-read.sh`](pmic-audio-read.sh) at `a13a5aab` ran in 0.2 s per read, 141 lines, with no
+format stop. Selected registers, all after playback:
+
+| Register | Loaded, idle, noise | During stream, no noise | Modules out |
+| --- | --- | --- | --- |
+| `0x0CF2` `AUDDEC_ANA_CON0` | `f400` | `f46f` | `f400` |
+| `0x0CF4` `AUDDEC_ANA_CON1` | `2000` | `2000` | `2000` |
+| `0x0CF6` `AUDDEC_ANA_CON2` | `0004` | `0005` | `0004` |
+| `0x0D04` `AUDDEC_ANA_CON9` | `1155` | `a255` | `1155` |
+| `0x201C` `AFUNC_AUD_CON0` | `c3a1` | `c3a1` | `c3a1` |
+| `0x2020` `AFUNC_AUD_CON2` | `000b` | `000b` | `000b` |
+| `0x0D1C` `AUDENC_ANA_CON10` | `00f0` | `00f0` | `0000` |
+| `0x0D1E` `AUDENC_ANA_CON11` | `080f` | `080f` | `0000` |
+| `0x0F48` `ACCDET_CON1` | `0004` | `0004` | `0000` |
+
+Two idle reads 288 s apart differ only in the uptime line. The noise was not asked about at the
+modules-out read; it was reported with modules out after removal 1, with no register read then.
 
 ## Analysis
 
@@ -136,6 +164,18 @@ after a tone played with the headphones out, and the quiet stock listen, where n
 Wi-Fi remains the likely source from station 31; on this reading playback opens the path it reaches
 the headphones through.
 
+A driven output stops the noise, which supports the owner's reading: the idle output picks it up, and
+the source is outside the audio path. "It's like before we were picking electrical noise", as they
+put it. The stream changes the path, not the source: nothing here shows that Wi-Fi stopped. The
+timing fits a beacon-window event, but the phase rests on an extrapolation.
+
+The ACCDET setup looks excluded. Removal clears it, and the noise was reported with the modules out,
+though that report and the read showing it cleared came from different removals.
+
+These reads cannot say what the first tone changed, because all of them follow a tone. They show
+which values persist through idle and removal, including all three candidates below. That needs
+the fresh-boot baseline in step 10.
+
 Inference: the first stream changes state in the MT6351, which is outside the AUDIO domain and which
 removal does not reset. The driver's power-up writes registers that its power-down does not restore:
 `AUDDEC_ANA_CON1` stays `0x2000`, which the code comments as the output stability enhancement, and
@@ -146,8 +186,8 @@ clears.
 ## Conclusion
 
 `confirmed` for the named Gemini, Linux 7.1.3 and package `24857504`: reload is safe for development,
-with two removal and reload pairs on one boot. The cause of the noise is not established; the
-register reads are pending.
+with two heard removal and reload pairs on one boot. The noise stops while a stream drives the
+output; one silent stream on one boot. What the first tone changes is not established.
 
 ## Follow-up
 

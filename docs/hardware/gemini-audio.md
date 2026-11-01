@@ -314,7 +314,9 @@ candidates. The planned
 has since found, on one boot of station 33, no noise before the first playback,
 noise from just after it, and noise still present with AUDIO off and all modules
 removed. That points to state the first stream leaves in the MT6351, not to the
-loaded idle state or the AUDIO domain; which state is not yet read.
+loaded idle state or the AUDIO domain. A silent stream stopped it for 90 s with
+the HP path on, so the idle output is what picks it up. What the first stream
+changes needs a read from before any playback.
 
 No periodic audio work exists in the vendor code. The nearest timers are the
 ANC IPC wait (1 s, unused on Gemini), the ACCDET MICBIAS1 off timer (6 s), the
@@ -492,7 +494,8 @@ unplug. Microphone placement, headset classification, the buttons and trim remai
 8. Why is the idle headphone path quieter on stock Gemian than on mainline?
    The 30 s noise follows Wi-Fi, is present with every DAPM widget off, and on
    one boot began at the first playback and outlasted module removal. The
-   reload experiment reads the MT6351 registers to find what that stream changes.
+   silent stream stopped it. A read from before any playback should show what the
+   first stream changes.
 
 The ordered first-boot checks for all of these are in the
 [audio RE runtime sequence](../../experiments/2026-10-04-gemini-audio-re/README.md#first-runtime-sequence).
