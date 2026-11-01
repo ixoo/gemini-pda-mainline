@@ -502,3 +502,22 @@ Prediction for the next station boot:
 - Left Shift+Z and the Fn combinations are unchanged.
 
 Not yet run on hardware.
+
+### Station 20 result
+
+- Build: e80e197a, package inventory `4f760d85`.
+- boot2 `f41edbd1`, RAM root `a3b24863` unchanged, boot `329a2acb`.
+- Row interrupt mode, idle I2C5 0/10 s.
+
+| Sequence | Events |
+| --- | --- |
+| Ctrl, Alt, then 7 | Ctrl down, Alt down, 7 down and up, Alt and Ctrl up. No phantom `2` |
+| Ctrl, Alt, then 2 | Ctrl down, Alt down, 2 down and up, Alt and Ctrl up. No phantom `7` |
+| Left Shift, then Z | Shift, then Z, unchanged from station 19 |
+| Fn, then B | Fn, then B, unchanged |
+| Sentence | Correct, including one backspace correction |
+
+The owner saw the correct characters on the console. Ctrl+Alt+digit prints
+nothing on the Linux console, which is expected. The driven rescan settles
+the 7/2 rectangle in both directions, as predicted, and 0385 stays in the
+station series.
