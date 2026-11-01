@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-boot` |
-| Status | `completed`: station 31 boots with audio ready; AUDIO stays on when idle, cost being measured |
+| Status | `running`: station 31 boots with audio ready; idle cost within noise; periodic headphone noise open |
 | Subsystem | audio; station RAM root |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -100,7 +100,24 @@ by the custodian, owner present, headphones out at power-on:**
 - `0x10006180` = `0x2B00005E` and `0x10006314` = `0x3330000D` in every reading: before any tone,
   after it, and after 30 s idle.
 
-Not tried on this boot: speakers, microphones, unplug.
+Not tried on this boot: speakers, microphones.
+
+Same boot, with battery status `Not charging`, USB attached and Wi-Fi associated, 60 one-second
+samples of `current_now` in the units sysfs reports:
+
+| State | Mean | Min | Max | `0x10006180` |
+| --- | --- | --- | --- | --- |
+| Loaded | 339.35 | -1091 | 1818 | `0x2B00005E` |
+| All ten modules removed | 163.6 | -1818 | 2182 | `0x2B00005E` |
+| Loaded again | 490.817 | -1454 | 2182 | `0x2B00005E` |
+
+Removal raised no error in `dmesg`, and `0x10006314` went from `0x3330000D` to `0x33300F0D`.
+Afterwards `audio-start` printed `ready`. Playback after that was not tried.
+
+The owner also reports low noise in the headphones for about 1 s every 30 s, since plugging them
+in. The custodian found a `WLAN BSS timeout ignored` log line exactly every 30 s, and no audio or
+ACCDET interrupt on that cycle. A `jack out` was logged at 554.02 s, before the removal, which
+the owner has not yet accounted for; the count stayed 2 through the reload.
 
 ## Analysis
 
@@ -117,13 +134,25 @@ and 29), and `PWR_CON` reads powered. The reason is in the mainline driver:
 so the domain and the AFE clocks never idle. Inference: simply dropping that hold is unsafe, because
 the AFE regmap has no cache, and a mixer write with the domain off would reach an unpowered
 block. Letting it idle needs a register cache, as `mt8183` has, and that needs its own test.
-The cost in battery is not measured yet.
+
+**The cost did not show up.** The two loaded means differ from each other by about as much as they
+differ from the unloaded one, and each range spans 3,000-4,000, so this is within the noise. By the
+decision rule, we leave it. That bound is weak: it was taken on USB with Wi-Fi up.
+
+**Removal does not turn AUDIO off.** The status bit stayed set. In `PWR_CON` the SRAM power-down
+bits (8-11) are set, but their acknowledge bits (12-15) are not, and they were all set in the real
+off state before load. Inference: `scpsys_sram_disable()` timed out waiting for the
+acknowledge, possibly because the AFE clocks were already off, so `scpsys_power_off()` gave up
+with no message and the domain stayed on with its SRAM bits set. Any patch that lets the domain
+idle has to fix this first. Until a reboot, a reloaded card may run in that state.
 
 ## Conclusion
 
 `confirmed` for the named Gemini, Linux 7.1.3 and package `b36b2f7f`: audio is ready after boot
 and plays through the headphones with no setup. Audio holds its power domain and clocks on
-for the whole uptime, at a cost still to be measured.
+for the whole uptime, at a cost too small to see in this measurement.
+
+Open: the periodic headphone noise, and whether the card plays after a module reload.
 
 ## Follow-up
 

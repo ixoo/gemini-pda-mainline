@@ -132,7 +132,8 @@ raises nothing and a real unplug would log the same sequence.
 
 Run 2 confirms the hypothesis: twelve changes, twelve `jack` lines, twelve interrupts, each
 with the control following. Headphones in at load are seen, because the EINT is level
-triggered. Module removal and reload work.
+triggered. Module removal and reload run without error, but [removal leaves the AUDIO domain
+half off](../2026-11-01-gemini-audio-boot/README.md), and playback after a reload is untested.
 
 Playback with the headphones out raised nothing, so playback is not a general source of
 false EINTs, and the 156 s event was probably the owner's plug. That is an inference: run 2
