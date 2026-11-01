@@ -251,7 +251,7 @@ Those GLONASS bits matched broadcast position and velocity exactly on 3 satellit
 
 ## Booting and running the DSP on the host path
 
-From the [step 5 capture](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and `libmnl`. Step 1's trace adds the stop. All 72737 frames in step 5 pass the checksum. This is what stock does, on stock Gemian: none of it has been reproduced by other code.
+From the [step 5 capture](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and `libmnl`. Step 1's trace adds the stop. All 72737 frames in step 5 pass the checksum. This is what stock does, on stock Gemian. [Step 6](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved) reproduced the boot and the per-second frames from other code, with `mnld` stopped, on the stock kernel only.
 
 1. **Open.** Open `/dev/stpgps`, then ioctls 11 (co-clock flag), 10 (RTC flag), 7 and 8 (chip versions) in that order. The terminal ioctls `mnld` then tries fail with `EFAULT` and do not stop it.
 2. **Boot header.** Send `0xFE08` with a 106-byte header, which `libmnl` fills with the image's size and addresses and with chip-dependent settings. The DSP answers `0xFE31`.
@@ -274,7 +274,9 @@ Less often: `0xFE04` (28-byte masks, all ones at start, 10 later), `0xFE07` (3 b
 
 **Stop:** `0xFE05` with command 4. On a boot failure, `libmnl` sends it three times.
 
-**Acquisition does not depend on `0xFE02`.** Most satellites first became valid before their first `0xFE02`, and none was sent until 38 s: satellite 7 was valid at 3 s. The search list alone seems to be enough to start. This run had saved state and host time, which may help. Whether the DSP keeps tracking without `0xFE02`, or runs at all without the other per-second frames, is not known. Their timeouts are not known either.
+**Acquisition does not depend on `0xFE02`.** Most satellites first became valid before their first `0xFE02`, and none was sent until 38 s: satellite 7 was valid at 3 s. The search list alone seems to be enough to start. The stock run had saved state and host time, which may help.
+
+**Tracking does not depend on it either.** Step 6 sent no `0xFE02`, `0xFE07`, `0xFE09` or `0xFE0A`, only the first `0xFE04`, and no `0xFE05` 0x0C or 0x1C. The DSP tracked up to 13 satellites for 600 s. It still got correct host time in `0xFE01`. Whether it runs without the remaining per-second frames, and any timeouts, are not known. Sending on an independent timer probably caused about 45 extra epochs in 600 s; it may be better to send just after each epoch.
 
 A free host would need: this transport, an image (vendor firmware, whose redistribution rights are unresolved), the frames above, and the [position solution](#dsp-packets-on-the-host-path) from the measurements.
 

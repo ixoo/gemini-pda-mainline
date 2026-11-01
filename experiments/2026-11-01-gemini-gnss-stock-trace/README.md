@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; offline, the raw fields alone give a position on almost every epoch using only over-the-air orbit data; step 6, a minimal host with `mnld` stopped, is admitted and has not run |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; offline, the raw fields alone give a position on almost every epoch using only over-the-air orbit data; step 6, a minimal host with `mnld` stopped, booted the DSP and gave positions from its output, with only the vendor DSP image left on the stock kernel path; restored; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -503,6 +503,31 @@ Approved by the owner on 2026-11-01, in the words "Approve the run", for the dra
 | Tracks, then loses satellites | Long-term tracking needs `0xFE02` | Implement aiding |
 | Tracks with navigation frames | A free host works on stock | Compute the position offline, then look at the mainline transport |
 | Firmware assert or reset | The frames or their timing broke something | Keep the evidence; reboot; no retry until understood |
+
+### Result (2026-11-01)
+
+Boot `30f405b2`, run by the custodian, device stationary outdoors. Evidence is private under `artifacts/gemian-30f405b2/gnss-step6/`. One start, full 600 s window, host exit 0, no assert, whole-chip reset, Oops or BUG in `dmesg`. Wi-Fi stayed reachable. After the device returned, the custodian restored `mnld`, and the eight files in `/data/misc/gps` kept their sizes. `libmnl.so` was only read for its image.
+
+**Observed:**
+- **The DSP booted on the first try:** header answered, all 44 fragments acknowledged. All 14375 DSP frames pass the checksum.
+- **It tracked with no vendor host code and no `0xFE02`.** The first satellite was valid at 1.3 s. Valid satellites rose to 13 at once: 7 GPS, 5 GLONASS and 1 BeiDou, for 600 s without losing tracking.
+- **Navigation data arrived:** 648 GPS frames, 552 passing parity (15% failed, against 39% in step 5), and all 15 GLONASS strings for 5 satellites.
+- **Epochs are less regular.** 636 epochs in 600 s: about 45 extra ones, 0.2 s after a normal one, and a few 1.8 s gaps. Measurement times follow these steps, so positions were not affected. Step 5, driven by stock, had almost none.
+
+| Solution, all on this capture | Orbit data | First position | Positions | Horizontal scatter (p50, p90) | Vertical (p50, p90) |
+| --- | --- | --- | --- | --- | --- |
+| Own solver, GPS | Over the air only | 69 s | 568 | 2.8 m, 5.4 m | 5.2 m, 13.2 m |
+| RTKLIB, GPS | Broadcast file | not recorded | 591 | 2.8 m, 5.3 m | 4.7 m, 12.7 m |
+| RTKLIB, GPS and GLONASS, median 11 satellites | Broadcast file | not recorded | 592 | 2.4 m, 4.5 m | 4.0 m, 8.8 m |
+
+Medians agree with step 5's within a few metres. The only independent check of the absolute position is still the owner's rough one in step 5. Adding BeiDou changed nothing here: one satellite, with little data. Scatter is not accuracy, and the sky differed from step 5, so these do not measure the stock engine against this host.
+
+**Inferred:**
+- A free host is workable on the stock kernel: tracking and navigation data need only the frames sent here.
+- The extra epochs probably come from sending host frames on an independent timer, while stock sends them just after each epoch. Not tested.
+- Stock's dropped GLONASS satellites and short fixes come from the engine, not the DSP or signal. This run tracked 5 GLONASS satellites steadily, though on a different sky.
+
+**Not tested:** the mainline transport, a truly cold start (the host still supplied correct time, and any state kept by the DSP was not examined), longer runs, and a live solver on the device: positions were computed afterwards on another machine. The DSP image is still vendor firmware, with redistribution rights unresolved.
 
 ## Privacy and rights
 
