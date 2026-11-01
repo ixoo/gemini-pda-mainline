@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3, one start with that timer raised, is admitted and has not run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -257,6 +257,43 @@ the crash, and neither the engine nor `strace` did. That is inferred: no run has
 **Not known:** whether a fix was near. Step 1 stopped too early to compare.
 
 **Not settled:** navigation bits and a fix. The study's gate on measurement content is partly answered.
+
+## Step 3: one longer start with SUPL off and the timer raised (radio action; owner approved)
+
+Approved by the owner on 2026-11-01, near a window. Step 2 stopped at `mnld`'s start timer before any long run.
+
+**Writes:** the same two files as step 2, plus `timeout.init=1500000` in `mnl.prop`, 25 minutes in milliseconds. `mnld`
+reads this value only when the process starts, so it restarts once before the start.
+
+**Consequence, read from the decompile:** `mnld` stays in its starting state, where it ignores a HAL stop. The script
+therefore ends every run by stopping the `mnld` service, and checks the watcher and `mnld` once a second. Step 2's
+crash shows the kernel powering GPS down when `mnld` dies. A service stop during a run is untested, and the script logs
+whether that shutdown appeared.
+
+**Core dumps:** set up at the owner's instruction, in case of another crash. `/data/core` persists, `core_pattern` writes
+there until a reboot, and the core limit is raised on the running `mnld` just before the start. A core may hold
+position, so it stays private on the device and is removed only on the owner's word. A real fault in a 32-bit
+Android process has not been shown to produce one.
+
+**Procedure:** device near a window, on stable power, Wi-Fi up.
+1. Verify identity, one `mnld`, the clock and Wi-Fi. Write the two files through the container, checking size and owner
+   only. Restart `mnld` and confirm a stable new process.
+2. Raise the core limit, check `core_pattern`, then run step 2's sequence for up to 1200 s, with the same gate at 5 s.
+3. Stop the service, copy the evidence to private artifacts.
+4. **Restore:** delete the two files and start `mnld`. Other files in `/data/misc/gps` stay.
+
+**Budget:** one start in Gemian boot `a0b54f1d`. No retry. Effects and stop rules are step 1's, with a service stop in
+place of a HAL stop. A failed gate or a crash uses the start.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Runs past 15 s | The raised timer took effect, confirming the cause | Continue to the limit |
+| `mnld` still dies at 15 s | The setting did not take effect | Check offline; a further start needs a new request |
+| `0xFE29` count and content evolve over time | More measurement data to decode | Decode offline |
+| A fix arrives | Stock GNSS works, the first time on record | Keep the capture as the reference |
+| Packets continue, no fix in 20 minutes | Normal for a cold start at a window, or the engine lacks something | Decode what arrived; a fix is not needed |
+| The watcher fires | SUPL off does not hold every connection back | Identify the path offline; a further start needs a new request |
+| GPS stays powered after the service stop | The service stop is not a clean end | Reboot Gemian; rethink before another run |
 
 ## Privacy and rights
 
