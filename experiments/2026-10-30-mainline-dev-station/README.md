@@ -883,3 +883,25 @@ should run while the lid is closed, and the interrupt should be masked.
 | On close, dmesg shows "keyboard inhibited 0" and `inhibited` reads 1. Pressing the closed keyboard for 10 s adds at most 8 EINT10 interrupts and little I2C5 traffic; on open, typing works | Keep it |
 | EINT10 keeps counting while the lid is closed | The rows are not masked. Look at `matrix_keypad_stop` and the AW9523 mask path |
 | Typing is dead after opening | The uninhibit failed. Its error is in the dmesg line, and `inhibited` can be cleared through sysfs |
+
+**Station 23 result.**
+- Package 32bf670a (inventory `a421591b`), boot2 `bd14c0e9`, boot
+  `f9097bd5`, sampled once per second.
+- The owner typed `abc`, closed the lid, pressed the closed keyboard,
+  opened it and typed `xyz`.
+
+| Interval | EINT5 | EINT10 | I2C5 | `inhibited` |
+| --- | --- | --- | --- | --- |
+| Typing `abc` (47.5-48.1 s) | 0 | +28 | +827 | 0 |
+| Close, at 55.25 s "lid closed, keyboard inhibited 0" | +1 | +3 | +6 | 0 → 1 |
+| Lid closed, 55.9-76.1 s | 0 | **+1** | **+2** | 1 |
+| Open, at 76.36 s "lid open, keyboard restored 0" | +1 | +2 | +69 | 1 → 0 |
+| Typing `xyz` (81.7-82.5 s) | 0 | +31 | +797 | 0 |
+
+- `event0` carried only a, b and c, then x, y and z.
+- On station 22, the closed-lid presses gave about 2800 EINT10 interrupts.
+  Here the closed keyboard caused one EINT10, with its two I2C transfers,
+  over 20 s. That fits the predicted lazy mask: the first press on a row
+  fires once, and that row stays masked in the AW9523.
+- With the lid closed, the keyboard is inhibited, its scan stopped and its
+  interrupts masked. On open, it is restored. 0387 and 0388 stay.
