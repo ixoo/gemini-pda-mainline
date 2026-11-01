@@ -776,3 +776,8 @@ what the firmware does around it is not known. Wlan0's counters show almost no t
 radio burst is not host traffic. A shared supply or a firmware event are untested
 candidates. A 30 s event while idle would also matter for battery (phase 5). Not investigated,
 since Wi-Fi is parked.
+
+On stock Gemian, boot `a0b54f1d`, with Wi-Fi up and headphones in, the owner heard no noise
+over about 90 s, in one listen. So the noise appears only on mainline so far, which points at
+this driver or how it uses the firmware. It does not clear the board: stock's audio stack may
+hold the headphone path differently.
