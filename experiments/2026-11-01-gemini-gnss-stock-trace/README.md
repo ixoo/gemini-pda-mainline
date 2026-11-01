@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `planned`: draft protocol; not admitted; step 1 is a radio action and needs the owner's approval |
+| Status | `planned`: owner approved steps 0 and 1 on 2026-11-01; not yet run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | not run |
@@ -34,13 +34,18 @@ Trace `mnld` from outside, with stock software unchanged:
   `/dev/stpgps`, with full bytes. The kernel is untouched, so no boot2 write is needed.
 - `strace` runs from a RAM directory and leaves no file on persistent storage. If it is not already
   on the device, a static AArch64 build is pinned by hash in this record before use.
-- Nothing on the device runs a GPS client today, so the start comes from one datagram per command
-  to `mnld`'s `mtk_hal2mnl` socket, which is what the Android HAL does. The handler reads a first
-  field and then a command: `0x65` init, `0x66` start, `0x67` stop, `0x68` cleanup.
+- Nothing on the device is known to run a GPS client, so the start comes from one datagram per
+  command to `mnld`'s socket, which is what the Android HAL does. [hal-send.py](hal-send.py) does this.
+  Read from `mnld`: an abstract `AF_UNIX` datagram socket named `mtk_hal2mnl`, bound with the whole
+  110-byte address, and a message of two little-endian words, the first ignored, then the
+  command: `0x65` init, `0x66` start, `0x67` stop, `0x68` cleanup.
 
-**To settle offline before admission:** the socket's exact path and namespace, and the message's
-exact bytes (from `gps.mt6797.so`), plus any other command the HAL sends first, such as position
-mode; and how the sender runs in the container.
+**Still unknown:**
+- Whether the socket is reachable from the Gemian host. Abstract names are per network namespace, so
+  the sender may need `nsenter -t <mnld pid> -n`. Step 0 checks.
+- Whether stock needs the HAL's position-mode command (`0x6c`) before start. The first run leaves it
+  out. No listener is bound on `mtk_mnl2hal`, so `mnld`'s replies have nowhere to go; that this is
+  harmless is untested.
 
 ## Step 0: read-only inspection (no radio action; standing Gemian authorization)
 
@@ -52,7 +57,9 @@ Verify the OS, kernel and boot identity first. Then record:
 - `/dev/stpgps`, `/dev/gps_emi`, `/vendor/firmware`, and `mnld`'s retained log lines if any;
 - the contents of `mnl.prop` and `gps.conf` wherever they exist: `EPO_enabled`, `BEE_enabled`,
   `SUPL_enabled`, `OFFLOAD_enabled`, and any clock settings;
-- whether `strace` is present, and the time source, because the engine uses the host clock.
+- whether `strace`, `python3` and `nsenter` are present, whether `@mtk_hal2mnl` shows in
+  `/proc/net/unix` and in `/proc/<mnld pid>/net/unix`, and the time source, because the engine uses
+  the host clock.
 
 Do not copy `mtkgps.dat`, which can hold a last position, or `ML4A_000`, which is calibration.
 Only their presence and size are noted.
@@ -78,7 +85,8 @@ can send cell and location data. The run goes ahead only with those off in the c
 step 0, or after the owner decides otherwise. SSH uses the known-good Wi-Fi as usual.
 
 **Procedure:** device near a window or outdoors, on stable power, Wi-Fi up.
-1. Attach `strace` to `mnld`, writing to RAM, and confirm it is capturing.
+1. Attach `strace -f -tt -xx -s 65536 -P /dev/stpgps -o <RAM file> -p <mnld pid>`, and confirm it
+   is capturing.
 2. Send init and start. Hold for at most 20 minutes, or until 2 minutes after the first fix.
 3. Send stop and cleanup. Detach `strace`, confirm a gateway ping, and copy the capture to private
    artifacts.
