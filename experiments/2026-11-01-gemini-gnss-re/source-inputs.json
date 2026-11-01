@@ -1,0 +1,167 @@
+{
+  "purpose": "Exact inputs inspected for experiments/2026-11-01-gemini-gnss-re. Private vendor binaries and firmware are analysed in place; no content is copied into the repository.",
+  "private_payload": {
+    "root": "artifacts/device-userspace/gemian-2019/",
+    "provenance": "read-only extraction of the installed Gemian/Android system, 2026-07-12",
+    "files": [
+      {
+        "path": "system/vendor/bin/mnld",
+        "size": 171228,
+        "sha256": "ecae74f8a03094dc95a91878b13e924215b9e21c9173aa3153735c55641f2d71"
+      },
+      {
+        "path": "system/vendor/lib/libmnl.so",
+        "size": 2411928,
+        "sha256": "a2e3fe692215352f4d27646e72aa1c439ba60d60883c26d8bcc3227fdb5d330f"
+      },
+      {
+        "path": "system/vendor/lib/hw/gps.mt6797.so",
+        "size": 46936,
+        "sha256": "e6aeed49842a8c4b32a46b4cd7716e9b9de0d321151c87c9a523a328012039cf"
+      },
+      {
+        "path": "system/vendor/lib64/hw/gps.mt6797.so",
+        "size": 51832,
+        "sha256": "a461bbe5ab075565435299a067a7c82eee75fb559569b6f6dd8e245f761fb5b3"
+      },
+      {
+        "path": "system/vendor/bin/mtk_agpsd",
+        "size": 1494624,
+        "sha256": "1ab44c91859ed105f3a4b4d8e4e5e51b07197972b55c6e410e2d5c9430c9477f"
+      },
+      {
+        "path": "system/vendor/bin/wifi2agps",
+        "size": 18624,
+        "sha256": "7029ad4d8b88b502b8b70b3d2fcb8e6869ee6037fab4b7c35940a246cb2e87f3"
+      },
+      {
+        "path": "system/vendor/bin/MPED",
+        "size": 30388,
+        "sha256": "44f04443612dd7e86f2a4e7405ca6fd7313eed7b6ba31183a5f0f2cbed5e9faf"
+      },
+      {
+        "path": "system/vendor/lib/libDR.so",
+        "size": 22220,
+        "sha256": "cad69beb4f1f53d4f8bb463fdc7964d0742aac98e890d355c49b9f7a0ff1ef01"
+      },
+      {
+        "path": "system/vendor/lib/libmpe.driver.so",
+        "size": 42788,
+        "sha256": "a4e93f64419cf1547685c133a8da7e472d2341403a5fcb9b753dbc0c6b14ad1d"
+      },
+      {
+        "path": "system/vendor/lib/libmpe.sensorlistener.so",
+        "size": 26272,
+        "sha256": "190e1fbeeefb0ed7744f99adc081cb8e327ced229a2ff99b6086f8eebcde65a9"
+      },
+      {
+        "path": "system/vendor/lib/libviagpsrpc.so",
+        "size": 143648,
+        "sha256": "615b0125ee14224bcaa3b1a214d4d16716a707dd9e5fc2b0fdf13c02803535b3"
+      }
+    ]
+  },
+  "private_firmware": {
+    "root": "artifacts/firmware/gemian-2019-vendor/",
+    "files": [
+      {
+        "path": "ROMv3_patch_1_0_hdr.bin",
+        "size": 210904,
+        "sha256": "450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630"
+      },
+      {
+        "path": "ROMv3_patch_1_1_hdr.bin",
+        "size": 46472,
+        "sha256": "5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e"
+      },
+      {
+        "path": "WMT_SOC.cfg",
+        "size": 80,
+        "sha256": "f4a59b622a4e0c1470e475ce33f3edae43b27f1fbdeba54dc7cf07503d132880"
+      }
+    ]
+  },
+  "vendor_kernel": {
+    "repository": "https://github.com/gemian/gemini-linux-kernel-3.18",
+    "commit": "8cfe6596a503612e3332d9c26e292a19525a7f07",
+    "files": [
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps.c",
+        "size": 32323,
+        "sha256": "e8cff970f66f86c41318db448ac3f3c9e82d02fc9cbe637926e66278813e49b4",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c",
+        "size": 16478,
+        "sha256": "0cd498a248dce5dd0a0809ab884229c3d034a4e8f0299caea78ba34abcbb8fb7",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/stp_chrdev_gps.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps_emi.c",
+        "size": 10495,
+        "sha256": "1809b36948cdb333a3a2fa291a9addb589f5f65382ceaa96ae6b20c6ff5aa530",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps_emi.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/gps/gps.h",
+        "size": 799,
+        "sha256": "c709dbba2cce3345ebbd4802ff530f5c13336e0052b08533d52e70174b33e3a5",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/gps/gps.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h",
+        "size": 9556,
+        "sha256": "9c1daca8fa5e30468865d42fb778bf070ac09e0adebf6735852631d5dc89ec42",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/include/stp_exp.h"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c",
+        "size": 110325,
+        "sha256": "79d03346c95e2d233f2a384fa4490d3b89acdfd1c1d6b9c2026709358dbcbf65",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/stp_core.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c",
+        "size": 20783,
+        "sha256": "c57079b29491338fa635dd36f550f3be53b4a2cee343b1dce1c9e4d365b4589d",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_func.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c",
+        "size": 31505,
+        "sha256": "4fdc36fab251ba206c580268be73d9b9161005821bffe0ad01f3bf8a6b8800ec",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/core/wmt_ctrl.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c",
+        "size": 30244,
+        "sha256": "b81db9778bfebf0230cf67a924f25270112ef2c369fb221328f3f4aef3bea1ec",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/wmt_plat_alps.c"
+      },
+      {
+        "path": "drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c",
+        "size": 42002,
+        "sha256": "0ec8e9c1594626d0b31f2d2623927d614f63af4437c16df838e10e11258663ce",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/connectivity/common/common_main/mt6797/mtk_wcn_consys_hw.c"
+      },
+      {
+        "path": "arch/arm64/configs/aeon6797_6m_n_defconfig",
+        "size": 14304,
+        "sha256": "83f33ed07c17abe8dceaee64afd26de0cc970c0bae93681b68906636e21e883f",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/configs/aeon6797_6m_n_defconfig"
+      },
+      {
+        "path": "arch/arm64/boot/dts/mt6797.dtsi",
+        "size": 104424,
+        "sha256": "eaac86c8752ebd8ddf18b831eb3bc52a08f87475a213bb521650bf95dabb3e5e",
+        "url": "https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/mt6797.dtsi"
+      }
+    ]
+  },
+  "tools": {
+    "ghidra": "12.1.2 headless",
+    "radare2": "5.5.0",
+    "readelf_binutils": "AArch64/ARM32 binutils in the project RE VM"
+  }
+}

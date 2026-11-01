@@ -179,7 +179,9 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    H7 is closed. simplefb with the MM domain so
    `clk_ignore_unused` can go, backlight, the I2C1 boot (sensors and panel
    bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS after
-   proven common init. Cellular and cameras stay feasibility work. The
+   proven common init (its transport and NMEA-carrying protocol are already
+   mapped in [GNSS and navigation](hardware/gemini-gnss.md)). Cellular and
+   cameras stay feasibility work. The
    per-block detail, shared dependencies and grouped device tests are in
    [After Wi-Fi gaps](../experiments/2026-10-03-project-review/AFTER_WIFI_GAPS.md).
 

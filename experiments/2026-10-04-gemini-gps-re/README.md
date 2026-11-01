@@ -12,6 +12,15 @@
 | Investigator(s) | Claude (owner-requested investigation) |
 | Tracking issue | [#25](https://github.com/ixoo/gemini-pda-mainline/issues/25) (M6 connectivity) |
 
+> **Follow-up, 2026-11-01.** `mnld` and `libmnl.so` were subsequently found in
+> the retained userspace extraction and reverse-engineered, together with the
+> two ROMv3 patch images. The result supersedes F16 and H5 below: the payload on
+> `/dev/stpgps` is a MediaTek GFNS binary frame that carries **NMEA text**, not
+> a binary position protocol, and the position engine runs on the CONSYS
+> microcontroller. See the
+> [GNSS userspace, firmware and protocol record](../2026-11-01-gemini-gnss-re/README.md)
+> and the durable [GNSS document](../../docs/hardware/gemini-gnss.md).
+
 ## Question
 
 What does the stock Gemian kernel actually do to turn the GNSS receiver on,

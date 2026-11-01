@@ -1646,8 +1646,16 @@ strings include GNSS/geofence/FLP code. The static userspace audit additionally
 shows an ARM32 SUPL/TLS daemon with local `agpsd2`/`agpsd3` sockets and matching
 32/64-bit `gps.mt6797.so` HAL exports, so this is not a serial GNSS device
 boundary. Linux 7.1.3's `gnss-mtk` driver is a serial `globaltop,pa6h`
-consumer with `vcc`/`vbackup`, so it is not a direct match. Ownership and
-message routing must be established before adding a standard GNSS interface.
+consumer with `vcc`/`vbackup`, so it is not a direct match.
+
+The later binary and firmware review resolved the message routing: `/dev/stpgps`
+carries MediaTek GFNS frames on STP task 2, and those frames carry NMEA text
+produced by the CONSYS/BORA engine. The Android daemon, `libmnl`, the SUPL
+daemon, EPO, FLP and the sensor engine sit above that transport and are not
+required to receive a fix. See the [GNSS document](gemini-gnss.md). The
+remaining prerequisite is the shared CONSYS initialization owner, as for Wi-Fi.
+`/dev/gps` (the `gps.c` mailbox and `gpsdrv` sysfs) is unused by this stack, and
+`gps_emi`/`MNL.bin` are absent because `CONFIG_MTK_GPS_EMI` is unset.
 FM is likewise separate: MT6631 configuration, coefficient, and patch files
 accompany a vendor `/dev/fm` and FM-I2S path; no MT6631 FM driver is present
 upstream.

@@ -25,6 +25,7 @@ the experiments that support or challenge it.
 | [MT6797 thermal management](mt6797-thermal-management.md) | Sensor banks, efuse/LK calibration handoff, conversion formulas, trips, cooling policy, and firmware ownership. |
 | [MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md) | Register window, channel scaling, consumers, modem share ring, and upstream coverage. |
 | [MT6797 integrated Wi-Fi](mt6797-wifi.md) | Platform ancestry, selected gen3 AHB transport, firmware structure and shared connectivity ownership. |
+| [Gemini GNSS and navigation](gemini-gnss.md) | CONSYS/BORA receiver ownership, the STP task-2 GFNS protocol, NMEA delivery, and the daemon, SUPL, EPO, FLP and sensor-fusion layers. |
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Gemini charging](gemini-charging.md) | Switch charger, boot-chain policy, charge state machine, thermal current gates, and safety limits. |
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
