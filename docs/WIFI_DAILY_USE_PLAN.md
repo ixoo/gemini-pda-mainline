@@ -8,8 +8,11 @@ Status: plan, updated 2026-11-01.
   ([record](../experiments/2026-11-01-mt6797-wifi-self-start/README.md)): the
   driver starts by itself and follows the US country. Its `nmcli` exit test
   needs phase 3.
-- Phase 3 has started ([record](../experiments/2026-11-01-mt6797-wifi-any-channel/README.md)).
-- Phases 4-6 are not started.
+- Phase 3 is partly done ([record](../experiments/2026-11-01-mt6797-wifi-any-channel/README.md)):
+  scan and 5 GHz joins work; 2.4 GHz does not yet carry usable transmit, and security modes are
+  not started. Phase 4 has its recovery restart and an untested scan while connected. The
+  owner parked this testing on 2026-11-01.
+- Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and
 states what "done" means at each step.

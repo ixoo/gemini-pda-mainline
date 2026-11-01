@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: passive and active scan work, including named SSIDs and a supplicant join. 0414 joins channels 40 and 161, and 0443 recovers from faults by itself. Channel 11 transmits poorly, channel 6 failed, and faults at disconnect under traffic are open |
+| Status | `parked`: the owner closed this round of Wi-Fi testing on 2026-11-01. Passive and active scan, joins on channels 40 and 161, and restart after a fault work; channel 11 transmits poorly and channel 6 failed. 0430 has never run. See "Where this stopped" |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -707,3 +707,55 @@ counts, the restart results, the active scans.
 The faults at disconnect probably happened with a download running, which fits light
 use not faulting. So they are faults under traffic, not after it. That gives a repeatable
 trigger: stop the supplicant during a download.
+
+### Result: 0444 under traffic and a clean retry comparison, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian on channel 40, `mac` `773e1694…`, CONSYS `28b5435c…`, core
+`425b8add…`, with `pidof` checked before each measurement.
+
+**Stopping the supplicant under traffic.**
+- A download running, 5 cycles: 4 faults, all `status=-110` at branch 5, each with
+  `WLAN restart: status=0` in about 0.2 s.
+- A transmit running, 3 cycles: no fault.
+- `status=-5`: none in the 8 cycles, against 3 of the 5 cycles before 0444.
+
+The row "`-5` gone" holds, with the caveat that these cycles ran no scan beyond the joins'
+own. The `-110` remains when stopping during a download and is not understood. The restart
+covers it, at the cost of recreating `wlan0`.
+
+**Data attempts, from idle, 60 s, Mbit/s per 10 s** (through the shared channel):
+
+| Attempts | Transmit | Ping avg, ms | `tx failed` | Receive |
+| --- | --- | --- | --- | --- |
+| 30, round 1 | 22.3 22.3 21.3 22.2 21.9 21.9 | 30.8 | 0 | 39.1 46.1 49.2 48.9 44.9 44.9 |
+| 3, round 1 | 21.9 22.0 21.8 21.6 21.4 20.0 | 30.0 | 1 | 42.8 53.7 51.7 46.0 54.6 49.1 |
+| 30, round 2 | 21.5 21.5 21.5 21.4 21.8 21.8 | 31.5 | 0 | 42.6 54.7 50.9 49.1 56.2 51.3 |
+| 3, round 2 | 21.5 21.9 22.2 22.1 22.1 22.1 | 28.4 | not reported yet | not reported yet |
+
+No slow first window in any run, which confirms the stall was the left-over download. 30
+attempts for data is no worse here, and 0438's stated reason does not hold. The driver
+still has 3; whether 30 helps channel 11 was not tested.
+
+Clean figures, as the custodian counts them: the above, transmit from idle at 20.4-22.4, a
+30 MB fetch at about 35 Mbit/s, and channel 11. The older 21-23 figures are unverified.
+
+## Where this stopped
+
+The owner decided on 2026-11-01 to consider the Wi-Fi test successful and move on, so no
+further device requests are open.
+
+Demonstrated on this boot, on the named device, on the owner's network:
+- passive and active scan over both bands (36 channels), named SSIDs included;
+- joins on channels 40 and 161 with data both ways, by name, with active scan;
+- a firmware restart from the driver after faults, 8 times, each `status=0`.
+
+Not working or not shown:
+- channel 11 joins and receives at 32-40 Mbit/s but transmits about 2 Mbit/s, with bursts
+  of lost frames; channel 6 failed its handshake, and was not retried with the later fixes;
+- a lost message 4 left channel 11's first join without a lease for 90 s;
+- `status=-110` when stopping during a download;
+- scan while connected (0430) has never run; reassociation is not written;
+- no DFS join, no WPA3 or PMF, no group-key rekey, no 2.5 h hold on the clean driver, no
+  `nmcli` test;
+- the patches after 0406 have run only by module swap on RAM roots, never from a booted
+  image holding them.
