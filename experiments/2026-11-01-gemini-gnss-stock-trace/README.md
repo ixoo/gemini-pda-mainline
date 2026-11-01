@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `planned`: owner approved steps 0 and 1 on 2026-11-01; not yet run |
+| Status | `planned`: step 0 done; step 1 approved by the owner on 2026-11-01 but held on the network question and device permissions; no start sent |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
-| Date(s) | not run |
+| Date(s) | 2026-11-01 (step 0) |
 | Investigator(s) | project session, device custody with the custodian session |
 | Tracking issue | none |
 
@@ -104,6 +104,33 @@ step 0, or after the owner decides otherwise. SSH uses the known-good Wi-Fi as u
 **Stop rules:** firmware assert or whole-chip reset in the log; Wi-Fi lost beyond a normal gap; any
 Oops; unusual battery or SoC temperature; `mnld` restart loop. On a stop: send stop, detach `strace`,
 keep the evidence. Recovery is an ordinary Gemian reboot, and the primary boot path is not changed.
+
+## Step 0 result (2026-11-01)
+
+Boot `d999c089`, kernel `3.18.41+`, Debian 9. Run by the custodian; raw output is private under
+`artifacts/gemian-d999c089/gnss-step0/`. Nothing was sent to `mnld`, and nothing was written or copied.
+
+**Observed:**
+- `mnld`, `mtk_agpsd` and `MPED` run as uid 1021. No process named `flp` showed.
+- `/dev/gps_emi` is absent. The firmware directories hold no file matching `mnl`.
+- No `mnl.prop` or `gps.conf` turned up in the bounded search. `/data/misc/gps` is empty, with no
+  `mtkgps.dat`, which suggests stock GNSS may never have run from this data state.
+- `/dev/stpgps` on the host is `crw------- root root`. `mnld` runs as uid 1021, so this may stop it
+  opening the device, unless the container's own `/dev` differs. Not yet checked.
+- `strace` is absent; `python3` and `nsenter` are present. `mtk_hal2mnl` appears in both `/proc/net/unix`
+  and `mnld`'s, so the sender can run from the host. The clock is right.
+- Logcat gave no matching lines; whether that means none or no logcat was not separated.
+
+**Read from the decompile of `mnld`:** with no config file, EPO, BEE and SUPL all default to on. The
+EPO download goes through a check that includes network state, which the HAL normally reports and
+this procedure does not. So EPO should not start, but that is inferred.
+
+**So step 1's network precondition is not met as written:** those features cannot be shown off.
+
+**`strace`:** Debian 9's `strace_4.15-2_arm64.deb`, SHA-256
+`c9ce5695e4ffef8b52ab79445a0fa4babbbebda8cdea7a4a3ac9118f922860ba`, needs only `libc6`. The hash matches
+Debian's package index, which matches its `Release` file; the `Release` signature was not checked. It
+would be unpacked into a RAM directory, not installed. Tracing a 32-bit `mnld` with it is untested.
 
 ## Privacy and rights
 
