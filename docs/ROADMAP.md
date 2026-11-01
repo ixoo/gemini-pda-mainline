@@ -249,6 +249,8 @@ Association through mac80211, bounded PIO traffic, packet DMA and interrupts,
 then unbind and restart without a fault. Usable means WPA2 association, DHCP,
 ping and a ten-minute SSH session on a clean profile. Then one CONSYS/WMT
 owner, one WLAN driver and one profile; retired diagnostics leave the series.
+The ordered path from the station's Wi-Fi to daily use by any owner is the
+[daily-use plan](WIFI_DAILY_USE_PLAN.md).
 
 Bounded four-frame TX ownership is demonstrated in the finite
 [depth comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_DEPTH_RESULT.md).
