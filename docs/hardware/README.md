@@ -15,6 +15,7 @@ the experiments that support or challenge it.
 | --- | --- |
 | [Gemian hardware baseline](gemini-gemian-baseline.md) | Sanitized read-only observations from the working vendor kernel on the named unit. |
 | [Gemini audio input/output](gemini-audio.md) | AFE/codec topology, speaker/earpiece/headphone outputs, microphone inputs, headset jack, amplifier and mainline gaps. |
+| [MT6351 ACCDET](mt6351-accdet.md) | Headset-jack register contract, MICBIAS1, button AUXADC channel, and the new-driver plan. |
 | [MT6797 CPU clusters](mt6797-cpu-clusters.md) | Ten-core identity, three-cluster topology, firmware/vendor ownership, per-cluster clocks, rails, OPP selection, hotplug, and mainline gaps. |
 | [DA921x, I2C6, and Cortex-A72](da921x-i2c6-a72.md) | Current regulator/transport/CPU boundary, evidence limits, and safety invariants. |
 | [MT6797 live resource map](mt6797-live-resource-map.md) | Register, IRQ, clock, rail, storage, display, GPU, connectivity, and USB resources mapped to Linux boundaries. |

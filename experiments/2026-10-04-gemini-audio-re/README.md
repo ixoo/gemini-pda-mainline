@@ -495,7 +495,9 @@ Further offline closures from the same review:
   `mt6351-sound` child, the AFE is enabled, the board declares the
   `mediatek,mt6797-mt6351-sound` card, and `audio-routing` provides headphone,
   main/headset/back microphone and two-AW8736 speaker routes. Physical
-  amplifier population, jack wiring and the ACCDET driver remain.
+  amplifier population, jack wiring and the ACCDET driver remain. The
+  MT6351 ACCDET contract and driver plan are in
+  `docs/hardware/mt6351-accdet.md`; the MT6359 driver is not reusable.
 - `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini
   config sets it, so `OpenReceiverPath` uses `receiver_output`, not
   `two_in_one_speaker_output`.

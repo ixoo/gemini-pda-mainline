@@ -247,7 +247,8 @@ Missing or board-specific:
 
 - MT6351 MFD parent/cell in current upstream; local patches 0008/0010 add it;
 - physical confirmation that one or two AW8736FCR amplifiers are populated;
-- MT6351 ACCDET driver (only MT6359 ACCDET exists);
+- MT6351 ACCDET driver (only MT6359 ACCDET exists); see the
+  [MT6351 ACCDET contract and driver plan](mt6351-accdet.md);
 - headphone offset trim;
 - MT6797 I2S DAI for a MAX98926 path;
 - any Gemini microphone, jack or amplifier pinctrl state.
