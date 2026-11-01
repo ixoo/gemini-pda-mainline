@@ -341,6 +341,24 @@ conditions: unexpected heat, charging anomalies, repeated filesystem errors or
 watchdog loops. Recovery that needs the owner: selecting boot2, and returning to Gemian
 if the boot fails.
 
+Candidate for this boot: package `af871fff...` (job
+`39fde673...-mt6797-a53-station-a72-m1`, Buildbox-2), Image.gz `42b794d6...`, against
+the plain package `3700c7b9...` from `b36b2f7f`, Image.gz `933a7d70...`, which passed
+boot `24465562`. `scripts/buildbox` builds only a branch tip, so this came from main's
+`39fde673`, whose `patches`, `configs`, `kernel` and `scripts` are identical to
+`b36b2f7f`; the two packages record the same patchset `d96acd6b...`.
+
+What differs from the plain package:
+
+- Configuration: `ARM64_MT6797_LATE_A72=y`, `MTK_MT6797_DVFSP_HANDOFF=y`,
+  `MTK_MT6797_A72=m`, and `MTK_MT6797_DVFSP_STATE_DECODERS=y`, which the handoff brings.
+- Image: those options' code, which includes the taken wrapper mutex and the handoff's
+  I2C paths.
+- Device tree: `mt6797-gemini-pda-station-a72.dtb` (`417250d9...`) differs from the
+  plain station DTB by the I2C6 compatible, the `a72-power` node and its phandles.
+- Modules: `mt6797-a72.ko` is added, to be left out of the image; every other module
+  is byte-identical.
+
 ### Bring-up test (draft, not admitted)
 
 1. Build the `mt6797-a53-station-a72` profile from a pushed commit on Buildbox, with
