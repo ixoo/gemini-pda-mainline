@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `planned`: step 0 done; step 1 admitted on 2026-11-01 with the owner's monitor-and-stop decision; no start sent |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -137,6 +137,36 @@ this procedure does not. So EPO should not start, but that is inferred.
 archive on 2026-11-01, as the only package change, so `/usr/bin/strace` is a new file on Gemian's root
 filesystem, not a RAM copy. It has not been run. The Method above is updated accordingly. Tracing a
 32-bit `mnld` with it is untested.
+
+## Step 1 result (2026-11-01)
+
+Boot `d999c089`, `mnld` pid 1637, device in place by the owner's word. Run by the custodian, with script
+hashes checked. Evidence is private under `artifacts/gemian-d999c089/gnss-step1/`. One start, as budgeted; no
+retry.
+
+**Observed:**
+- `hal-send.py` works: `mnld` opened `/dev/stpgps` and ran function-on, with the GPS LNA call in `dmesg`.
+- **Every frame is `AA F0 ... AA 0F`. No GFNS frame was sent.** So stock's start is the host path, as
+  hypothesized. No assert, whole-chip reset or Oops.
+- **The DSP boots over STP:** a header frame, then 43 fragment frames of up to 1400 bytes plus stuffing, each
+  acknowledged by one DSP frame carrying its number, in under 0.6 s. The header matches the image header in
+  `libmnl`, and the payload compared matches that image byte for byte up to the first stuffed byte.
+- **The DSP then answers** with a first-message packet, ID `0xFE2C`, 54 bytes. The host follows with control
+  frames, IDs `0xFE05` and `0xFE03`, including one long `0xFE03` frame.
+- **The watcher fired about 1 s after start,** on an established TCP connection from `mnld`'s uid to a public
+  CloudFront address, port 443. The trace ends about 0.74 s after open. **No measurement packet was seen,
+  so whether the DSP's data is usable is still unanswered.**
+- `/data/misc/gps` was empty and now holds `ARC.BIN`, `BEE.BIN`, `EPO.DAT`, `EPOHAL.DAT`, `QEPOHAL.DAT`,
+  `cache.dat` and `mtkgps.dat`. These remain on the device; they were not read or copied.
+
+**Wrong in this record:** step 0's "EPO should not start" was an inference, and it was wrong in practice:
+the network check did not hold it back. What was sent over that connection is not known, since only
+`/dev/stpgps` was traced. That the host is an EPO server, and that the files came from it rather than from
+stock assets, are both inferences.
+
+**Settled by this:** the `strace` method works at this timing, and the boot transport is STP, not UART.
+**Still open:** measurements, navigation bits, how much host control the DSP needs, and whether stock
+reaches a fix.
 
 ## Privacy and rights
 

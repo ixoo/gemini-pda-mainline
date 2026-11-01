@@ -72,6 +72,9 @@ because the kernel only carries bytes; an open userspace daemon; and a DSP image
 from their own `libmnl`, never distributed by this repository. It would be written independently
 from protocol facts, and would not be a standard NMEA `gnss` device at the kernel boundary.
 
+**Update:** the [stock trace](../2026-11-01-gemini-gnss-stock-trace/README.md) observed the DSP boot over STP
+with these frames. It stopped before any measurement packet.
+
 ## Next gate
 
 A stock trace is the most informative next step: `/dev/stpgps` traffic from a Gemian GNSS

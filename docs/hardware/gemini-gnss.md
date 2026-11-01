@@ -9,8 +9,9 @@ vendor stack, not a Linux implementation.
 > [link record](../../experiments/2026-11-01-gemini-gnss-link/README.md#t3-result-the-start-sequence-causes-a-firmware-exception-2026-11-01)
 > infers the first cause is an `MNL.bin` image this device lacks. If so, a GFNS client alone
 > is no path to a fix, and "What is *not* required" and the claims that `mnld` falls back to
-> a serial port and that sentences come from ROM are wrong. That the stock path is the
-> `libmnl` engine remains an inference until a stock trace confirms it.
+> a serial port and that sentences come from ROM are wrong. A
+> [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) then saw stock start with
+> `libmnl`'s DSP boot and `AA F0` frames over STP task 2, with no GFNS frame in its first second.
 
 The evidence is a static review of the retained 2019 vendor binaries and the two
 CONSYS ROM patch images in the private artifact set, plus the pinned GPL vendor
