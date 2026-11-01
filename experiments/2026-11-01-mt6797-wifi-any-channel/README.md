@@ -413,7 +413,8 @@ Analysis, from the log and source:
 - [0434](../../patches/proposals/0434-wifi-mt6797-survive-a-frame-the-air-lost.patch)
   stops a lost frame from ending the lifetime, the cause of the `-ENOLINK` here.
 
-Next: one join on a channel the owner names, with 0433 and 0434 loaded.
+Next: one join on channel 11, the access point the owner chose on 2026-11-01, with
+0433 and 0434 loaded, then active scan.
 
 | Observation | Decision |
 | --- | --- |
