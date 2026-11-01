@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T1 passed; T2 stage A stopped 5 ms after GPS function-on and took Wi-Fi down; D1 recovered Wi-Fi without a reboot; no receiver data; retry T3 not admitted |
+| Status | `running`: T1 passed; T2 stage A stopped 5 ms after GPS function-on and took Wi-Fi down; D1 recovered Wi-Fi without a reboot; no receiver data; retry T3 approved and admitted, not yet run |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -394,7 +394,10 @@ Private evidence under `artifacts/station-work-30/boot-4ac95e75/gnss-d1/`.
 **Unknown:** what the refused bytes were. None of the table's first three rows can
 be chosen; only the recovery row applies.
 
-## T3: proposed retry (radio action, not admitted)
+## T3: retry (radio action, admitted)
+
+The owner approved steps A1 and A2 on 2026-11-01. One open each, plus A2's second
+open with ping; anything else needs asking again.
 
 [0431](../../patches/proposals/0431-soc-mediatek-mt6797-consys-read-firmware-messages-an.patch) parses tasks 5 and 6 as the
 vendor does and logs them in hex, keeps the 64 bytes before a failure and 64 after
