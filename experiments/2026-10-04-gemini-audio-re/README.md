@@ -372,7 +372,7 @@ off.
    (F5, F6, F7).** Confirmed offline on 2026-11-01: the stock HAL's
    `OpenSpeakerPath` selects `headphone_output` + `ext_speaker_output`, not
    LOL. Two enable GPIOs with one mono source fit a stereo pair of
-   AW87xx-class amplifiers. Test, in order: (a) Gemian read of
+   AW8736FCR amplifiers in mode 3 (0.8 W NCN). Test, in order: (a) Gemian read of
    `/sys/kernel/debug/gpio` or the pinctrl debug files for GPIO243/244
    direction and level while idle and while a short low-volume tone plays
    through the stock stack (one attended play; this is the single
@@ -481,9 +481,11 @@ Consequences:
 
 Further offline closures from the same review:
 
-- The speaker amplifier family is named in the vendor source: `AW8736_MODE_CTRL`
-  and the `AW8736_MODE3` pulse sequence. The exact populated variant still
-  needs a BOM or inspection.
+- The speaker amplifier is identified as **AW8736FCR** (AWINIC, FC-16). The
+  vendor `AW8736_MODE*` table matches the AW8736 datasheet exactly, and the
+  code selects mode 3: three pulses, 0.8 W NCN. Physical BOM population still
+  needs confirmation. The code's 25 ms warm-up is shorter than the datasheet's
+  40 ms start-up time.
 - `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini
   config sets it, so `OpenReceiverPath` uses `receiver_output`, not
   `two_in_one_speaker_output`.

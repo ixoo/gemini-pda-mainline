@@ -78,9 +78,29 @@ and never touches the I2C MAX98926 node.
 So the internal speaker is driven from **HPL/HPR into a board amplifier**,
 enabled by `Ext_Speaker_Amp_Switch` → `AudDrv_GPIO_EXTAMP_Select()` /
 `EXTAMP2_Select()`. Those helpers emit a three-pulse sequence on **GPIO243**
-and **GPIO244** and wait 25 ms. The pulse-count protocol matches the
-AW87xx/AW8736 analog amplifier family, but no public source records which part
-is populated.
+and **GPIO244** and wait 25 ms.
+
+The amplifier identity is now resolved from the code and the public
+datasheet: it is an **AW8736FCR** (AWINIC, FC-16 package), not a generic
+AW87xx. The vendor `AW8736_MODE*` definitions match the AW8736 mode table
+exactly:
+
+| Mode | Pulses | NCN output |
+| --- | ---: | --- |
+| `AW8736_MODE1` | 1 | 1.2 W |
+| `AW8736_MODE2` | 2 | 1.0 W |
+| `AW8736_MODE3` | 3 | 0.8 W |
+| `AW8736_MODE4` | 4 | NCN off, 1.65 W at THD 1% |
+
+The code selects **mode 3**, the 0.8 W NCN setting, on both control lines.
+AWINIC's own selector lists `AW8736FCR` as the FC-16 orderable variant; the
+mode table and package match the vendor code. The populated BOM still needs
+physical confirmation.
+
+The pulse timing matches the datasheet (`TH`/`TL` 0.75-10 µs; the code uses
+2 µs). The vendor then waits 25 ms before audio, while the AW8736 datasheet
+lists a 40 ms start-up time; mainline should use at least the datasheet value
+or measure the actual turn-on.
 
 The MT6351 LOL path remains a codec capability and the `speaker_output` HAL
 path exists, but the stock speaker alias does not select it. It may be unused
@@ -234,7 +254,7 @@ headset-mic and jack work need board evidence first.
 
 | Open point | Offline result |
 | --- | --- |
-| Speaker amplifier family | Vendor `mt_soc_codec_63xx.c` defines `AW8736_MODE_CTRL` and the `AW8736_MODE3` pulse sequence; the GPIO243/244 protocol matches the AW8736. The populated BOM variant is not proven. |
+| Speaker amplifier family | Resolved to **AW8736FCR** (FC-16): the vendor `AW8736_MODE*` table matches the AW8736 datasheet and the code selects mode 3, 0.8 W NCN. Physical BOM confirmation remains. |
 | MAX98926 node | The stock machine driver logs `max98926L is not find`; `OpenSpeakerPath` never selects the I2C node. The node is not part of the stock path. |
 | Earpiece / two-in-one | `OpenReceiverPath` checks `persist.af.feature.2in1spk`; no Gemini config sets it, so the stock path is `receiver_output`, not the two-in-one speaker route. Physical earpiece population is still not proven. |
 | Back/reference mic | The HAL has a `Built-In Back Mic` port and `builtin_Mic_BackMic` route, but the policy's `attachedDevices` does not include it and no board evidence proves a second capsule. |
@@ -245,9 +265,9 @@ headset-mic and jack work need board evidence first.
 
 ## 7. Still open
 
-1. Which AW8736 variant is populated behind GPIO243/244? The vendor code
-   names AW8736 and the pulse protocol matches; a board BOM or inspection is
-   still needed.
+1. Does the Gemini BOM actually populate one or two AW8736FCR amplifiers
+   behind GPIO243/244? The code and datasheet identify the part; physical
+   population is still unconfirmed.
 2. Is the MAX98926-compatible I2C0 `0x31` node populated at all? It is not
    used by the stock speaker path.
 3. Is the earpiece/RCV driver physically populated?
@@ -273,5 +293,7 @@ headset-mic and jack work need board evidence first.
   `audio_policy_configuration.xml` and `audio.primary.mt6797.so`
   (`OpenSpeakerPath` disassembly); retained Gemian `dmesg` for
   `max98926L is not find` and `Audio_Hpl_Offset_Get`.
+- [AWINIC AW8736FCR product page](https://www.awinic.com/en/productDetail/AW8736FCR)
+  and the AW8736 datasheet mode table (1.2/1.0/0.8 W NCN, mode 4 NCN off).
 - Mainline `mt6797-afe-pcm.c`, `mt6351.c`, `mt6797-mt6351.c`,
   `max98926.c`.
