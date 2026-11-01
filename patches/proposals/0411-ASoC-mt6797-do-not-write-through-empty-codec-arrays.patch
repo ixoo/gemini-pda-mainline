@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 07:51:31 -0500
+Subject: [PATCH] ASoC: mt6797: do not write through empty codec arrays
+
+The front-end links use COMP_DUMMY(), which leaves the codec array empty
+until the core fills in the dummy. The probe still writes the codec node
+through dai_link->codecs on those links, into whatever follows the
+zero-length array. In the built module that is the platform entry of
+another link: playback_2_codecs and playback_1_platforms share an address.
+
+Playback_1 therefore binds the MT6351 as its platform instead of the AFE,
+snd_soc_rtdcom_lookup() finds no "mtk-afe-pcm" component, and hw_params
+dereferences NULL in mtk_memif_set_rate_substream().
+
+Skip links that have no codec entries.
+---
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index a904398..fbb7e70 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -231,7 +231,11 @@ static int mt6797_mt6351_dev_probe(struct platform_device *pdev)
+ 		goto put_platform_node;
+ 	}
+ 	for_each_card_prelinks(card, i, dai_link) {
+-		if (dai_link->codecs->name)
++		/*
++		 * A COMP_DUMMY() codec array has no entries, so its address
++		 * belongs to whatever object the linker placed next.
++		 */
++		if (!dai_link->num_codecs || dai_link->codecs->name)
+ 			continue;
+ 		dai_link->codecs->of_node = codec_node;
+ 	}

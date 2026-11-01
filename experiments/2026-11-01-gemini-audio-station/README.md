@@ -148,10 +148,21 @@ Two script bugs, both fixed since:
   `cat` does not refuse. The log filled the 1 GiB RAM root until the custodian
   truncated it. The trap now writes one line to the original stderr.
 
+**Run 2, same boot, script `3809057f`:** every mixer setting was accepted, then
+`aplay` hit a NULL dereference at offset 0x10 in `mtk_memif_set_rate_substream()`
+during `HW_PARAMS`. Nothing was played. The kernel was tainted, `aplay` stuck and
+reading the PCM status appeared to hang. Wi-Fi stayed associated.
+
 ## Analysis
 
 Run 1 confirms that the card binds with `0407` and that `0408`/`0409` power AUDIO
 through `mtk-pm-domains` without a hang. It says nothing about sound yet.
+
+Run 2 is a machine driver bug, not a hardware result. `COMP_DUMMY()` leaves a front
+end's codec array empty, but the probe writes the codec node through it anyway. In
+the built module `playback_2_codecs` and `playback_1_platforms` have the same address
+(`0x1b8`, from `nm`), so Playback_1 bound the MT6351 as its platform and the lookup of
+`mtk-afe-pcm` returned NULL. `0411` skips links with no codec entries.
 
 Before load, bit 24 is clear in both status registers, so the loader leaves AUDIO off.
 `KEEP_DEFAULT_OFF` therefore matches the hardware, and loading the modules is a
