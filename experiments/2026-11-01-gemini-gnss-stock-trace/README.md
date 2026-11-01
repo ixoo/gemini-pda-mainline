@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, is admitted and has not run |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -356,6 +356,31 @@ stock Gemian, not mainline.
 
 **Still open for an open stack:** the pseudorange and time fields of `0xFE29`, which need several tracked satellites to check; which host messages the DSP
 needs; the meaning of `0xFE30` and `0xFE37`; and redistribution rights for the DSP image, which only exists inside `libmnl`.
+
+## Step 4: a 5 minute outdoor walk (radio action; owner approved)
+
+Approved by the owner on 2026-11-01, in the words "5 min total run", choosing the 5 minute version of the drafted plan.
+
+**Question:** does open sky give several satellites at once, so the pseudorange and time fields of `0xFE29` can be checked? A fix in 5 minutes
+from a cold start is unlikely and not required.
+
+**Effects:** as step 3, with `timeout.init=600000`. Also:
+- [hal-listen.py](hal-listen.py) receives what `mnld` sends to its HAL socket, so a fix can be seen directly. That this changes nothing in `mnld` is inferred.
+- A wake lock holds the device awake on battery, and is released at the end.
+- Network is not needed. If Wi-Fi drops, the run continues and nobody can intervene until it ends; the watcher still applies.
+- The capture, listener output and logs can hold precise position and the walked route. They stay in private artifacts and may be used to investigate. None of it is published.
+
+**Procedure:** start the script over Wi-Fi with a 3 minute delay. The owner carries the device outside, open and in hand, and walks for the 5 minutes at normal pace.
+Back in range, copy the evidence and restore as in step 3.
+
+**Budget:** one start in the current Gemian boot. No retry. Stops: step 3's, without the Wi-Fi rule, and battery under 20%. The script ends with a service stop, killing `mnld` if that fails.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| A fix in the listener output | Stock GNSS works end to end | Keep as the reference |
+| Four or more satellites, no fix | Enough to map the pseudorange fields | Decode offline |
+| One or two satellites under open sky | Short run, or an antenna or engine limit | Decode; decide whether to run longer while stationary |
+| The script stops early | Depends on the reason | Keep the evidence; another start needs a new request |
 
 ## Privacy and rights
 
