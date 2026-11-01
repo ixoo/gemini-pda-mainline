@@ -46,10 +46,18 @@ The codec digital interface uses five dedicated pads:
 | `VOW_CLK_MISO` | 149 | voice-wake clock |
 | `ANC_DAT_MOSI` | 150 | active-noise data |
 
-The vendor `AudDrv_GPIO_Request()` switches MOSI/MISO between GPIO and audio
-function on each stream open/close. Mainline has the same pinctrl functions
-but neither the AFE nor the MT6351 codec driver touches pinctrl, so a board DT
-must hold these pads in their audio function statically.
+The vendor knows these pads, but the Gemini board DTS leaves every
+`aud_clk_mosi`/`aud_dat_mosi`/`aud_dat_miso` pinmux entry commented out, and
+`AudDrv_GPIO_Request()` is only called for the VOW path, which the Gemini
+build does not use. The ADDA codec link is internal to the SoC/PMIC, so these
+five pads are **not** part of the Gemini audio path and mainline should leave
+them at the boot state.
+
+The only audio pads that need mainline pinctrl are the two amplifier mode
+lines (GPIO243/244), because the MT6797 pin controller does not switch a pad
+to GPIO mode when the GPIO is requested. Proposal `0401` adds one default
+pinmux state per amplifier. GPIO234/235 need no state: GPIO234 is only driven
+by the unused DCC capture path and GPIO235 is only a manual debug knob.
 
 The vendor card is `mt-snd-card` with 31 links. Mainline has the AFE, MT6351
 codec and `mt6797-mt6351` machine drivers, but no Gemini card node, board DAPM
@@ -269,11 +277,12 @@ Present in current mainline:
 - AW8736 one-wire pulse sequencing, reusing `aw8738.c` with an
   `awinic,aw8736` compatible (proposal `0395`): `awinic,mode = <3>` gives
   three pulses and the driver waits the datasheet's 40 ms start-up;
-- minimal Gemini card preparation (proposals `0396`-`0399`): MT6351 regmap
+- minimal Gemini card preparation (proposals `0396`-`0401`): MT6351 regmap
   fallback through the PWRAP grandparent, `mt6351-sound` MFD child, AFE
   enable, the `mediatek,mt6797-mt6351-sound` card node, headphone/main
-  mic/headset mic/back mic DAPM routes, and two AW8736FCR speaker amplifiers
-  with HPL/HPR → amp → speaker routes.
+  mic/headset mic/back mic DAPM routes, two AW8736FCR speaker amplifiers
+  with HPL/HPR → amp → speaker routes, and default GPIO pinmux states for
+  the two amplifier mode lines.
 
 Missing or board-specific:
 
@@ -283,12 +292,13 @@ Missing or board-specific:
   [MT6351 ACCDET contract and driver plan](mt6351-accdet.md);
 - headphone offset trim;
 - MT6797 I2S DAI for a MAX98926 path;
-- any Gemini microphone, jack or amplifier pinctrl state.
+- pinctrl for the unused AUD/VOW/ANC pads, GPIO234 and GPIO235, which the
+  Gemini path does not need (left at the boot state).
 
 The first safe mainline card is the AFE + MT6351 codec +
 `mt6797-mt6351` machine link with **headphone output, microphone capture and
 the two-amplifier speaker path**, all PGA gains at minimum. Proposals
-`0396`-`0399` prepare that card; they have not been built or run.
+`0396`-`0401` prepare that card; they have not been built or run.
 Headset-jack and physical amplifier confirmation remain.
 
 ## 6. Offline review results
@@ -303,6 +313,7 @@ Headset-jack and physical amplifier confirmation remain.
 | GPIO235 `headphone_cs` | Only exposed as a world-writable `/proc/headphone_cs` manual knob; no HAL or kernel audio path uses it. Leave it unclaimed in mainline. |
 | ACCDET thresholds | Live Gemian `dmesg` confirms `mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`, `efusevalue=0xffffff80`, offset `-2`. These are configured values, not an acoustic calibration. |
 | Headphone trim | Live Gemian `dmesg` records `Audio_Hpl_Offset_Get` and `GetAudioTrimOffset channels = 1`; the stock path applies trim, mainline does not. |
+| Audio pinctrl | Only GPIO243/244 need a mainline pinmux: they are the vendor "hpdepop" pads and the AW8736 mode lines. The Gemini DTS comments out every AUD/VOW/ANC pinmux and the stock only requests them for VOW. GPIO234 is DCC-only, GPIO235 a debug knob. |
 
 ## 7. Still open
 

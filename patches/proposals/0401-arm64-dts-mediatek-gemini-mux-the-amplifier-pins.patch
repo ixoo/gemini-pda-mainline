@@ -1,0 +1,64 @@
+From de1bf4ea40e18c4f3e2236aa792fb9fc29ebe92a Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 06:26:42 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: mux the speaker amplifier mode
+ pins
+
+The vendor audio driver drives GPIO243/244 as the AW8736 one-wire mode
+control (its "hpdepop" pinctrl states) and emits three low/high pulses
+in mode 3. Mainline's aw8738 driver reproduces that sequence, but the
+MT6797 pin controller does not switch a pad to the GPIO function when the
+GPIO is requested, so the pads must be muxed explicitly.
+
+Give each amplifier its own default pinmux state. The remaining audio
+pads are deliberately not claimed: the vendor Gemini DTS leaves the
+AUD_CLK_MOSI/AUD_DAT_MOSI/AUD_DAT_MISO and VOW/ANC pinmux empty and the
+stock code only requests them for VOW, GPIO234 is only driven by the
+unused DCC capture path, and GPIO235 is only a manual debug knob.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts    | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index b9c4362..2eed2eb 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -42,6 +42,8 @@
+ 
+ 	speaker_amp_left: audio-amplifier-left {
+ 		compatible = "awinic,aw8736";
++		pinctrl-names = "default";
++		pinctrl-0 = <&audio_amp_left_pins>;
+ 		mode-gpios = <&pio 243 GPIO_ACTIVE_HIGH>;
+ 		awinic,mode = <3>;
+ 		sound-name-prefix = "Speaker Amp L";
+@@ -49,6 +51,8 @@
+ 
+ 	speaker_amp_right: audio-amplifier-right {
+ 		compatible = "awinic,aw8736";
++		pinctrl-names = "default";
++		pinctrl-0 = <&audio_amp_right_pins>;
+ 		mode-gpios = <&pio 244 GPIO_ACTIVE_HIGH>;
+ 		awinic,mode = <3>;
+ 		sound-name-prefix = "Speaker Amp R";
+@@ -521,3 +525,17 @@
+ &afe {
+ 	status = "okay";
+ };
++
++&pio {
++	audio_amp_left_pins: audio-amp-left-pins {
++		pins {
++			pinmux = <MT6797_GPIO243__FUNC_GPIO243>;
++		};
++	};
++
++	audio_amp_right_pins: audio-amp-right-pins {
++		pins {
++			pinmux = <MT6797_GPIO244__FUNC_GPIO244>;
++		};
++	};
++};
+-- 
+2.54.0 (Apple Git-157)
+

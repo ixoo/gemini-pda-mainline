@@ -119,12 +119,17 @@ disagree, the live capture wins.
   ([`AudDrv_Gpio.c` lines 304–328](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/AudDrv_Gpio.c#L304-L328)),
   called from the AFE ADDA enable paths
   ([`mt_soc_afe_control.c` lines 1757, 2300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1757)).
-  Mainline's MT6797 pinctrl data has the same functions (`AUD_CLK_MOSI`,
+  The vendor does call this for the ADDA downlink and uplink
+  ([`mt_soc_afe_control.c` lines 1757, 2300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1757)),
+  but every Gemini `aud_clk_mosi`/`aud_dat_mosi`/`aud_dat_miso` pinmux entry
+  is commented out (lines 843–1008), so those selections are empty no-ops and
+  the stock kernel runs with whatever mux the loader left. Mainline inherits
+  the same LK handoff and therefore does not need to claim these pads.
+  Mainline's MT6797 pinctrl data does provide the functions (`AUD_CLK_MOSI`,
   `AUD_DAT_MISO`, `AUD_DAT_MOSI`, `VOW_CLK_MISO`, `ANC_DAT_MOSI` at
   [`pinctrl-mtk-mt6797.h` lines 1422–1453](https://github.com/gregkh/linux/blob/v7.1.3/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h#L1422-L1453)),
-  but neither the mainline AFE nor the codec driver touches pinctrl: a
-  mainline board DT must hold these pads in their audio function statically.
-  Whether the retained loader leaves them there is not recorded.
+  so a static state remains available if a runtime check shows the boot state
+  is wrong.
 
 ### Codec outputs (what the PMIC can drive)
 
@@ -184,6 +189,10 @@ disagree, the live capture wins.
   (lines 530–553). The board DTS maps those states to **GPIO243** and
   **GPIO244** as push-pull outputs
   ([`aeon6797_6m_n.dts` lines 924–954](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L924-L954)).
+  These are the only audio pads the Gemini board actually configures, and the
+  mainline MT6797 pin controller does not switch a pad to GPIO mode when the
+  GPIO is requested, so proposal `0401` adds one default pinmux state per
+  amplifier.
   Because `use_hp_depop_flow = <0>` (F3), `hasHpDepopHw()` is false and the
   same two GPIOs are never used for headphone de-pop
   (`HP_Switch_to_Ground/Release`, lines 919–933). A pulse-count enable with a
@@ -354,8 +363,9 @@ disagree, the live capture wins.
   `configs/gemini.fragment` selects `CONFIG_SND_SOC_MT6797=m` and
   `CONFIG_SND_SOC_MT6797_MT6351=m` (lines 74–77); patch 0045 adds the
   disabled `audio-controller@11220000`; the PMIC node from patch 0007 has no
-  sound or accdet child; no I2C0 amplifier, no GPIO243/244/234/235 consumer,
-  no audio pinctrl state and no sound card node exist in the Gemini DTS.
+  sound or accdet child. Proposals `0396`-`0401` add the card, codec child,
+  the two AW8736 nodes, the GPIO243/244 pinmux states and the card routes;
+  GPIO234/235 and the AUD/VOW/ANC pads remain unclaimed.
 
 ## Part 2: hypotheses, ranked by value per device minute
 
@@ -490,12 +500,13 @@ Further offline closures from the same review:
   adds the `awinic,aw8736` compatible, and `awinic,mode = <3>` selects the
   three-pulse 0.8 W mode. No new driver is required; the board DT node and
   card route remain.
-- The minimal card is prepared by proposals `0396`-`0399`: the codec resolves
+- The minimal card is prepared by proposals `0396`-`0401`: the codec resolves
   the PMIC regmap through the PWRAP grandparent, the PMIC exposes the
   `mt6351-sound` child, the AFE is enabled, the board declares the
   `mediatek,mt6797-mt6351-sound` card, and `audio-routing` provides headphone,
-  main/headset/back microphone and two-AW8736 speaker routes. Physical
-  amplifier population, jack wiring and the ACCDET driver remain. The
+  main/headset/back microphone and two-AW8736 speaker routes, and the two
+  amplifier mode pads get default GPIO pinmux states. Physical amplifier
+  population, jack wiring and the ACCDET driver remain. The
   MT6351 ACCDET contract and driver plan are in
   `docs/hardware/mt6351-accdet.md`; the MT6359 driver is not reusable.
 - `IsAudioSupportFeature(2)` reads `persist.af.feature.2in1spk`; no Gemini
