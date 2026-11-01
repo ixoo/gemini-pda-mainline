@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-self-start` |
-| Status | `complete`: station 25 starts Wi-Fi by itself with the record read from `nvdata`; regulatory remains for phase 2 |
+| Status | `running`: station 25 starts Wi-Fi by itself with the record read from `nvdata`; station 26 (regulatory) awaits its boot |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mac`; station init |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -105,9 +105,43 @@ the calibration record and the MAC address from `nvdata`, and behaves as
 before across reconnects and module reloads. Joining still needs
 `wifi-up.sh` (the pinned network and supplicant configuration).
 
+## Regulatory (station 26)
+
+[0402](../../patches/proposals/0402-wifi-mt6797-advertise-UNII-2A-UNII-2C-and-UNII-3.patch)
+advertises 52-64, 100-144 and 149-165 besides 1-13 and 36-48. The
+firmware domain is encoded by operating class (81, 115, 118, 121, 125),
+as the vendor's domain table does, with DFS channels in the passive list,
+and CID 0x38 carries one limit per UNII group. A host check of the
+encoder with a US channel set gave the classes, ranges and limits
+expected. The station RAM root carries wireless-regdb 2026.09.03's
+signed `regulatory.db` (release hash checked against kernel.org's signed
+list), and init runs `iw reg set US`. Scan and join stay on channel 40,
+so transmission is unchanged.
+
+Build: Buildbox at 82106b72, 567 patches, package inventory `bccf6f69…`;
+`Image.gz` unchanged (`0d4d6d74…`). `regulatory.db` `7e236cae…`. boot2
+`c8cf0aaf…`, written over station 25 with a matching readback.
+
+Hypothesis: on station 26, cfg80211 loads the database, the country is
+US, the driver submits US's domain and power without error, and Wi-Fi
+behaves as on station 25.
+
+Procedure:
+1. Kernel log: `regulatory.db` loaded and no "regulatory submission
+   stopped". Status `reg=US`. `iw reg get` shows `country US` for the
+   phy as well as globally.
+2. `iw phy phy0 channels`: 1-11 enabled, 12-13 disabled, 36-165 listed
+   with 52-144 marked radar detection.
+3. `wifi-up.sh`, ping, ten reconnects, throughput, as on station 25.
+4. Kernel log: no Oops, warning or call trace.
+
+| Observation | Decision |
+| --- | --- |
+| Steps 1-4 pass | Phase 2's code is done; the exit test on a full system follows phase 3's channel unpinning |
+| The database does not load | Check the signature keys; the station can fall back to the world domain meanwhile |
+| The domain or power submission fails | Compare the payloads with the host check; return to station 25's channel set if the firmware refuses the new classes |
+
 ## Follow-up
 
-- Regulatory: follow the country through cfg80211 and `regulatory.db`,
-  dropping the fixed channel set (phase 2's last part).
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
