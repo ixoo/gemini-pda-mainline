@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: 0410 (multi-channel passive scan) built, device test predeclared |
+| Status | `running`: 0410 (multi-channel passive scan) built, device test requested from the custodian |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -40,9 +40,10 @@ of a radio protocol, and is not part of this step.
 
 ## Procedure
 
-By module swap, if the 0410 package's `Image.gz` is byte-identical to station
-28's: copy `mac.ko` to the RAM root, `rmmod mac`, `mt6797_consys` and
-`mt6797_wlan_core`, reload. Otherwise a new station image.
+By module swap on station 29. Buildbox at a4851e47, 581 patches, package
+inventory `c362711b…`: `Image.gz` (`8ef83b55…`), CONSYS and core are
+byte-identical to station 29's, and only `mac` differs (`a0bcb958…`, was
+`d5a41fb1…`). Copy `mac.ko` to the RAM root, `rmmod mac`, `insmod` it.
 
 Scan output is reduced to counts per frequency; no network name or address
 leaves the device.
