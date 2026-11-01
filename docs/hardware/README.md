@@ -28,6 +28,7 @@ the experiments that support or challenge it.
 | [MT6797 Bluetooth and Bluetooth audio](mt6797-bluetooth.md) | CONSYS WMT function 0, STP task-0 HCI, both userspace stacks, and the CVSD-over-SRAM voice path. |
 | [MT6797 connectivity coexistence](mt6797-connectivity-coexistence.md) | How Wi-Fi, Bluetooth and LTE share the 2.4 GHz medium and the CONSYS subsystem. |
 | [Gemini GNSS and navigation](gemini-gnss.md) | CONSYS/BORA receiver ownership, the STP task-2 GFNS protocol, NMEA delivery, and the daemon, SUPL, EPO, FLP and sensor-fusion layers. |
+| [GNSS kernel driver specification](gemini-gnss-driver.md) | The `libmnl` protocol mapped to a `drivers/gnss` client, the start/stop state machine, the `MNL.bin` firmware boundary and the current blocker. |
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Gemini charging](gemini-charging.md) | Switch charger, boot-chain policy, charge state machine, thermal current gates, and safety limits. |
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
