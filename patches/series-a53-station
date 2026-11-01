@@ -591,3 +591,4 @@ proposals/0419-gnss-add-the-MT6797-CONSYS-receiver-link-only.patch
 proposals/0420-wifi-mt6797-join-2.4-GHz-channels-at-20-MHz.patch
 proposals/0421-soc-mediatek-mt6797-consys-let-a-client-send-and-swi.patch
 proposals/0422-gnss-mt6797-turn-the-receiver-on-while-the-device-is.patch
+proposals/0423-wifi-mt6797-scan-actively-with-SSIDs-where-probing-i.patch

@@ -316,3 +316,27 @@ ten reconnects, 60 s transfer each way.
 | The firmware refuses the grant or the join | Stop. Compare with the firmware's domain list and the records |
 | Association passes, handshake or data fails | Stop. Read the receive refusal lines for what differs on 2.4 GHz |
 | Works with poor throughput | Record it. Check the rate first: the fixed rate may not suit the access point |
+
+## Stage 3: active scan
+
+[0423](../../patches/proposals/0423-wifi-mt6797-scan-actively-with-SSIDs-where-probing-i.patch) sends probe requests on channels cfg80211
+marks usable, for the wildcard or up to four named SSIDs. Channels marked no-IR or
+radar stay in passive requests of their own, enforced in `mac`.
+
+Runs after stages 1 and 2, within the protocol's budget of ten scans in a session.
+
+Hypothesis, by `iw`, with `wpa_supplicant` stopped:
+- `iw dev wlan0 scan` reports `probing=N` with N below `channels`, and lists at
+  least the BSSes of a passive scan, in less time or about the same;
+- `iw dev wlan0 scan ssid <owner's network>` finds that network;
+- with `passive_scan=1` removed from the supplicant's configuration, a join works.
+
+Nothing measures the air, so the absence of probes on a no-IR channel rests on the
+request list in the kernel log and the firmware honouring the passive type.
+
+| Observation | Decision |
+| --- | --- |
+| All pass | `wifi-up.sh` drops `passive_scan=1`; go to a hidden network if the owner has one |
+| Scan rejected or never completes | Stop. Read the request's bytes against the vendor's |
+| Wildcard works, a named SSID finds nothing | Try the SSID count byte set, since the vendor leaves it zero |
+| Finds fewer BSSes than passive | Compare the firmware's default dwell with passive's 130 ms |

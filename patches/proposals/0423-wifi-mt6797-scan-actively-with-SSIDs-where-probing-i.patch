@@ -1,0 +1,173 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:11:02 -0500
+Subject: [PATCH] wifi: mt6797: scan actively, with SSIDs, where probing is
+ allowed
+
+Accept up to four SSIDs in a scan, as the firmware's command carries.
+A lone empty SSID is the wildcard. Anything else goes as specified SSIDs,
+so a hidden network can be found. As the vendor does, the SSID count byte
+stays zero, the firmware builds its own probe requests from the command,
+and it picks its default dwell.
+
+Channels marked no-IR or radar stay passive. They go last, in requests
+of their own, so this does not depend on the firmware's domain list.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  5 ++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 60 +++++++++++++++----
+ 2 files changed, 53 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 16bd137de..67d37cad4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -51,6 +51,7 @@ struct mt6797_regulatory_payloads {
+  * several requests.
+  */
+ #define MT6797_SCAN_REQUEST_CHANNELS 32U
++#define MT6797_SCAN_SSIDS 4U
+ 
+ struct mt6797_scan_frame {
+ 	size_t offset, bytes;
+@@ -624,6 +625,10 @@ struct mt6797_mac {
+ 	u64 scan_channels;
+ 	unsigned int scan_list[MT6797_CHANNELS];
+ 	unsigned int scan_total, scan_next, scan_sequence, scan_count, scan_dwell_ms;
++	/* The first scan_probing channels of the list may send probe requests. */
++	unsigned int scan_probing;
++	struct cfg80211_ssid scan_ssids[MT6797_SCAN_SSIDS];
++	unsigned int scan_n_ssids;
+ 	unsigned int scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 1b3893c99..5d8803497 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -172,12 +172,15 @@ mt6797_scan_bss(const unsigned char *mac, bool active, unsigned char output[12])
+ 		output[4 + i] = mac[i];
+ }
+ 
+-/* Passive-only V2, no SSID, probe, IE, random address or reserved extension.
++/* V2, passive or with probe requests, as scan_fsm.c fills it; no IE, random
++ * address or reserved extension: the firmware builds its own probe requests.
+  * Caller has checked each channel against current cfg80211 permissions.
+  */
+ static inline int
+ mt6797_scan_request(unsigned int sequence, const unsigned int *channels,
+-		    unsigned int count, unsigned int dwell_ms, unsigned char *output)
++		    unsigned int count, unsigned int dwell_ms, bool probing,
++		    const struct cfg80211_ssid *ssids, unsigned int n_ssids,
++		    unsigned char *output)
+ {
+ 	unsigned int i;
+ 
+@@ -190,6 +193,20 @@ mt6797_scan_request(unsigned int sequence, const unsigned int *channels,
+ 	for (i = 0; i < MT6797_PASSIVE_SCAN_BYTES; i++)
+ 		output[i] = 0;
+ 	output[0] = sequence;
++	if (probing) {
++		output[2] = 1; /* SCAN_TYPE_ACTIVE_SCAN */
++		/* A lone empty SSID is the wildcard; ucSSIDNum stays zero. */
++		if (n_ssids == 1 && !ssids[0].ssid_len) {
++			output[3] = BIT(0); /* SCAN_REQ_SSID_WILDCARD */
++		} else {
++			output[3] = BIT(2); /* SCAN_REQ_SSID_SPECIFIED */
++			for (i = 0; i < n_ssids; i++) {
++				output[8 + 36 * i] = ssids[i].ssid_len;
++				memcpy(output + 12 + 36 * i, ssids[i].ssid,
++				       ssids[i].ssid_len);
++			}
++		}
++	}
+ 	/* The retained passive decoder carries this halfword into a timer
+ 	 * that converts milliseconds to 32768 Hz ticks. This does not prove
+ 	 * RF tuning.
+@@ -652,13 +669,18 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ static int mt6797_mac_scan_submit(struct mt6797_mac *mac)
+ {
+ 	u8 payload[MT6797_PASSIVE_SCAN_BYTES];
++	bool probing = mac->scan_next < mac->scan_probing;
+ 	unsigned int count;
+ 	int ret;
+ 
+-	count = min(mac->scan_total - mac->scan_next, MT6797_SCAN_REQUEST_CHANNELS);
++	/* A request is all probing or all passive. */
++	count = min((probing ? mac->scan_probing : mac->scan_total) - mac->scan_next,
++		    MT6797_SCAN_REQUEST_CHANNELS);
++	/* The firmware's default dwell for probing, as the vendor asks. */
+ 	ret = mt6797_scan_request(mac->scan_sequence + 1,
+ 				  mac->scan_list + mac->scan_next, count,
+-				  mac->scan_dwell_ms, payload);
++				  probing ? 0 : mac->scan_dwell_ms, probing,
++				  mac->scan_ssids, mac->scan_n_ssids, payload);
+ 	if (!ret)
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_V2, payload,
+ 				      sizeof(payload));
+@@ -768,7 +790,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ {
+ 	struct mt6797_mac *mac = hw->priv;
+ 	struct ieee80211_channel *channel;
+-	unsigned int i;
++	unsigned int passive_list[MT6797_CHANNELS];
++	unsigned int i, probing = 0, passive = 0;
+ 	u64 mask = 0;
+ 	u8 bss[12];
+ 	u8 broadcast[4] = {8, 0, 0, 0};
+@@ -786,13 +809,11 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		ret = -EBUSY;
+ 		goto out;
+ 	}
+-	/* mac80211 may append supported-rate IEs internally. There are no
+-	 * probe requests in this passive form, so no IEs are transmitted.
+-	 */
++	/* mac80211's IEs are not sent: the firmware builds its probe requests. */
+ 	/* This hint only selects a 6 GHz follow-up. No 6 GHz channel or
+ 	 * parameter is admitted below, so it adds no firmware operation.
+ 	 */
+-	if (request->req.n_ssids ||
++	if (request->req.n_ssids > MT6797_SCAN_SSIDS ||
+ 	    (request->req.flags & ~(NL80211_SCAN_FLAG_COLOCATED_6GHZ |
+ 				    NL80211_SCAN_FLAG_FLUSH)) ||
+ 	    request->req.duration ||
+@@ -813,9 +834,22 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		    (channel->flags & (IEEE80211_CHAN_DISABLED |
+ 				      IEEE80211_CHAN_NO_20MHZ)))
+ 			goto out;
+-		mac->scan_list[i] = channel->hw_value;
+ 		mask |= BIT_ULL(slot);
+-	}
++		/* No probe request on a no-IR or radar channel: those come last,
++		 * in passive requests, whatever the firmware's own domain says.
++		 */
++		if (request->req.n_ssids &&
++		    !(channel->flags & (IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_RADAR)))
++			mac->scan_list[probing++] = channel->hw_value;
++		else
++			passive_list[passive++] = channel->hw_value;
++	}
++	memcpy(mac->scan_list + probing, passive_list, passive * sizeof(passive_list[0]));
++	mac->scan_probing = probing;
++	mac->scan_n_ssids = request->req.n_ssids;
++	if (request->req.n_ssids)
++		memcpy(mac->scan_ssids, request->req.ssids,
++		       request->req.n_ssids * sizeof(mac->scan_ssids[0]));
+ 	if (!mac->sequence_base)
+ 		mac->sequence_base = mac->sequence;
+ 	/* Retire before the first write: an uncertain activation/submission
+@@ -855,7 +889,9 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		goto out;
+ 	mac->scan_channels = mask;
+ 	mac->scan_active = true;
+-	dev_info(wiphy_dev(hw->wiphy), "one-shot passive WLAN scan: admitted=1\n");
++	dev_info(wiphy_dev(hw->wiphy),
++		 "one-shot passive WLAN scan: admitted=1 channels=%u probing=%u ssids=%u\n",
++		 mac->scan_total, mac->scan_probing, mac->scan_n_ssids);
+ 	schedule_delayed_work(&mac->scan_work, 0);
+ out:
+ 	if (ret && ret != -EBUSY && mac->scan_used)
+-- 
+2.43.0
+
