@@ -43,7 +43,7 @@ the engine is indeed absent, stock must use the host-side engine in `libmnl`,
 which is userspace and not a kernel driver. A
 [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) saw that path's DSP boot and no
 GFNS frame. With assistance off and `mnld`'s start timer raised, 20 minutes of steady once-a-second DSP packets followed, including
-per-channel records, and one satellite's live navigation subframes. No fix is likely to have come at that placement.
+per-channel records, and one satellite's live navigation subframes. Outdoors for 5 minutes it tracked up to 10 satellites, with no fix in that time.
 
 ## What `libmnl` does, mapped to the kernel
 
@@ -227,6 +227,7 @@ were not checked for this.
 | `0xFE2B` | 46 bytes | One navigation subframe: bytes 2 and 3 satellite, 4 subframe ID, and from byte 6 ten 4-byte words. Within a word, bytes 0, 3 and 2 hold the 24 data bits, most significant first |
 | `0xFE2C` | 44 bytes | Closes the epoch |
 | `0xFE30`, `0xFE37` | 57, 61 bytes | Once a second, not mapped |
+| `0xFE3A`, `0xFE3B` | | Seen only with several satellites tracked, not mapped |
 
 ## Safety and privacy
 
@@ -255,7 +256,7 @@ were not checked for this.
 | NMEA channel mapping | `byte1 >> 5`; per-channel behavior unproven |
 | GPIO 69 / LNA population | board pin exists; physical LNA not established |
 | Coexistence de-sense packet | not implemented; may matter with Wi-Fi/BT active |
-| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and 20 minutes of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and partly decoded; one satellite tracked, no fix likely |
+| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and 20 minutes of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and partly decoded; up to 10 satellites tracked outdoors, no fix in 5 minutes |
 
 ## Evidence
 

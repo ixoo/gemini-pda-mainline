@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, is admitted and has not run |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -381,6 +381,26 @@ Back in range, copy the evidence and restore as in step 3.
 | Four or more satellites, no fix | Enough to map the pseudorange fields | Decode offline |
 | One or two satellites under open sky | Short run, or an antenna or engine limit | Decode; decide whether to run longer while stationary |
 | The script stops early | Depends on the reason | Keep the evidence; another start needs a new request |
+
+### Result (2026-11-01)
+
+Boot `a347cdcf`, run by the custodian, owner walking outdoors. Evidence is private under `artifacts/gemian-a347cdcf/gnss-step4/`. One start, gate passed, 300 s, stopped by the
+script's service stop, with no fault, crash, or connection seen. The wake lock was released and the two files removed. The custodian's first restore stalled when the
+device left Wi-Fi at about 20:12 UTC, though it had finished; it restarted `mnld` once more to be clean.
+
+**Observed:**
+- **Several satellites at once.** Records in state `0x40` rose from 2 satellites per 30 s window up to about 150 s, to 5, 8 and then 10 from about 180 s to the end. First at 47 s. All 4554 DSP frames pass the checksum.
+- **Navigation subframes from four GPS satellites:** SV 27 (40 frames), 26 (16), 8 (11), 9 (8).
+- **The listener works.** `mnld` sent 4296 messages to it, including NMEA with no checksum failures in 4035 messages, and its satellite reports list 4 GPS and 10 GLONASS satellites with signal, none for BeiDou.
+- **No fix in 5 minutes:** every one of the 306 `GNGGA` sentences has quality 0, and every `GNRMC` has status `V`.
+
+**Inferred:**
+- Constellation code 16 is GLONASS, from the matching counts of satellites in the reports. Code 32 is not settled.
+- **A fix was probably close.** The fourth GPS satellite only appeared near the end, and the engine needs enough of each satellite's navigation data. Cold start, with no assistance, in 5 minutes on the move, is hard. A longer run under open sky would test this.
+
+**Not mapped:** pseudorange and carrier fields of `0xFE29` are still candidates only. Private notes hold them. One step-per-second counter looks like carrier phase, but nothing has been checked against a computed solution yet.
+
+**Owner's rule from this step:** all GNSS data, including position and route, stays private and may be used to investigate. It is never committed publicly.
 
 ## Privacy and rights
 
