@@ -123,6 +123,10 @@ intentional.
 
 ## Mainline implementation (2026-10-31, owner request)
 
+Design proposal: [battery gauge event and polling](DESIGN.md) — one cached
+snapshot, one coalesced 30 s refresh, PMIC threshold IRQs, a two-stage
+`BAT_L` powersave/forced-poweroff policy, and no polling in suspend.
+
 The owner cleared the calibration profiles for use in the kernel: they were
 measured independently. The gauge reports what the MT6351 measures and uses
 those profiles for capacity. No vendor estimator is involved.
