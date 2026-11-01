@@ -135,9 +135,10 @@ disagree, the live capture wins.
   The vendor does call this for the ADDA downlink and uplink
   ([`mt_soc_afe_control.c` lines 1757, 2300](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_afe_control.c#L1757)),
   but every Gemini `aud_clk_mosi`/`aud_dat_mosi`/`aud_dat_miso` pinmux entry
-  is commented out (lines 843–1008), so those selections are empty no-ops and
-  the stock kernel runs with whatever mux the loader left. Mainline inherits
-  the same LK handoff and therefore does not need to claim these pads.
+  is commented out (lines 843–1008), so those selections are empty no-ops.
+  The board DWS sets the five pads to mode 1 and the preloader applies that
+  default, so the stock kernel runs on the loader state; mainline inherits the
+  same LK handoff and does not need to claim these pads.
   Mainline's MT6797 pinctrl data does provide the functions (`AUD_CLK_MOSI`,
   `AUD_DAT_MISO`, `AUD_DAT_MOSI`, `VOW_CLK_MISO`, `ANC_DAT_MOSI` at
   [`pinctrl-mtk-mt6797.h` lines 1422–1453](https://github.com/gregkh/linux/blob/v7.1.3/drivers/pinctrl/mediatek/pinctrl-mtk-mt6797.h#L1422-L1453)),

@@ -49,9 +49,12 @@ The codec digital interface uses five dedicated pads:
 The vendor knows these pads, but the Gemini board DTS leaves every
 `aud_clk_mosi`/`aud_dat_mosi`/`aud_dat_miso` pinmux entry commented out, and
 `AudDrv_GPIO_Request()` is only called for the VOW path, which the Gemini
-build does not use. The ADDA codec link is internal to the SoC/PMIC, so these
-five pads are **not** part of the Gemini audio path and mainline should leave
-them at the boot state.
+build does not use. The board DWS sets these five pads to mode 1
+(`AUD_CLK_MOSI`, `AUD_DAT_MISO`, `AUD_DAT_MOSI`, `VOW_CLK_MISO`,
+`ANC_DAT_MOSI`) and the preloader applies that default, which is why the
+commented-out states still work. The ADDA codec link is internal to the
+SoC/PMIC, so these five pads are **not** part of the Gemini audio path and
+mainline should leave them at the boot state.
 
 The only audio pads that need mainline pinctrl are the two amplifier mode
 lines (GPIO243/244), because the MT6797 pin controller does not switch a pad
