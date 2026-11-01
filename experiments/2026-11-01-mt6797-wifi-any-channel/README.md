@@ -781,3 +781,39 @@ On stock Gemian, boot `a0b54f1d`, with Wi-Fi up and headphones in, the owner hea
 over about 90 s, in one listen. So the noise appears only on mainline so far, which points at
 this driver or how it uses the firmware. It does not clear the board: stock's audio stack may
 hold the headphone path differently.
+
+### Later note: the noise keeps the notice's schedule (2026-11-01)
+
+Station 33, boot `a4984df3`, `mac` `773e1694`, channel 40, run by the custodian. The owner marked
+the noise with key presses. The log has six groups of three events, spanning about 0.83 s. The
+first events have a 30.00 s period from 1167.58 s to 1437.62 s.
+
+The 16 `BSS timeout ignored: reason=4` lines from 388.44 s to 838.48 s fit a 30.002 s period with
+residuals under 0.02 s. The first line came 361 s after the join. The print limit then stops them,
+so the times below are extrapolated, 11 to 20 periods past the last line:
+
+| Fitted notice (s) | First event | Second | Third |
+| --- | --- | --- | --- |
+| 1168.49 | -0.91 | -0.50 | -0.08 |
+| 1198.49 | -0.76 | -0.36 | +0.05 |
+| 1228.49 | -0.90 | -0.50 | -0.10 |
+| 1258.49 | -0.87 | -0.47 | -0.06 |
+| 1408.50 | -0.87 | -0.43 | -0.01 |
+| 1438.50 | -0.88 | -0.48 | -0.07 |
+
+So the noise holds both the period and the phase of the notice across 270 s. Each group begins
+about 0.9 s before the fitted notice and ends at about that time. If the owner pressed in reaction
+to the sound, the noise begins before the host sees the notice, so the driver's handling of the
+notice is not what makes it. That rests on the extrapolation and on what the three presses
+marked, which this record does not say. A timer in the firmware behind both is the simplest
+reading, and it has not been observed directly.
+
+The notice does not decide audibility. On this boot it printed from 388 s with no noise until the
+first playback at 799.67 s
+([audio record](../2026-11-01-gemini-audio-reload/README.md)). No marks fall in the silent stream
+from 1278.57 s to 1368.59 s, when the owner reports the noise stops; none falls at about 1378 s
+either, after the stream ended, and that gap is unexplained. Audibility therefore belongs to the
+audio work.
+
+Still open on the Wi-Fi side: what the firmware does every 30 s, and its power cost (phase 5). Not
+investigated, since Wi-Fi is parked.
