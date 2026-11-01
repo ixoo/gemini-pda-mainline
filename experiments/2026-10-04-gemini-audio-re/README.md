@@ -24,6 +24,8 @@ wiring. This record answers what the public vendor source can answer, separates
 verified facts from hypotheses, and ranks the hypotheses by how they should be
 tested. It changes no patch, profile, candidate or device state.
 
+Durable summary: [Gemini audio input and output](../../docs/hardware/gemini-audio.md).
+
 Earlier records own the live observations this builds on: the
 [audio AFE recovery](../2026-07-12-audio-afe-recovery/README.md) (live card
 and PCM inventory, AFE node, mainline reuse boundary), the
