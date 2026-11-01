@@ -761,3 +761,18 @@ Not working or not shown:
   `nmcli` test;
 - the patches after 0406 have run only by module swap on RAM roots, never from a booted
   image holding them.
+
+### Later note: noise in the headphones follows Wi-Fi (2026-11-01)
+
+Reported by the device custodian, station 31, boot `24465562`, channel 40. The owner hears
+low noise in plugged-in headphones for about 1 s every 30 s while associated. It stopped for
+90 s after `wpa_cli disconnect` and returned after a reconnect, in one on/off/on sequence.
+
+`BSS timeout ignored: reason=4` prints at exactly 30 s spacing in the same period, and the print
+is limited per lifetime. That match is by timing only. Reason 4 is the firmware's BSS timeout
+notice, which the driver ignores while packets are arriving
+([gaps record](../2026-10-13-mt6797-wifi-native-delivery-probe/DAILY_USE_GAPS.md));
+what the firmware does around it is not known. Wlan0's counters show almost no transmit, so any
+radio burst is not host traffic. A shared supply or a firmware event are untested
+candidates. A 30 s event while idle would also matter for battery (phase 5). Not investigated,
+since Wi-Fi is parked.
