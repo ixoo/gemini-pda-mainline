@@ -12,6 +12,16 @@
 | Investigator(s) | Claude (owner-requested investigation) |
 | Tracking issue | Not yet assigned |
 
+## Subsequent review (2026-11-01)
+
+The [source and active-ELF cross-check](../2026-11-01-mali-t880-research-review/README.md)
+corrects F11's clock flags, H1's sequence-equivalence claim and the later
+fixed-point/DVFS recipe. Panfrost remains the reuse target, but the current
+profile is compile-only: SCPSYS can power MFG domains even with the GPU node
+disabled. The hardware record carries the corrected recipe. No mainline GPU
+runtime result has been added. The review also verified T880 model coverage
+against Mesa's official documentation, closing the Inputs caveat below.
+
 ## Question
 
 What does the stock Gemian kernel actually do to power, clock, supply and
@@ -131,9 +141,8 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   the ack. Mainline `scpsys_power_off()` orders `ISO=1`, `RST_B=0`,
   `CLK_DIS=1`, `ON=0`, `ON_2ND=0`
   ([`mtk-scpsys.c` lines 311–357, 361–400](https://github.com/gregkh/linux/blob/v7.1.3/drivers/pmdomain/mediatek/mtk-scpsys.c#L311-L400)),
-  i.e. the MFG order. Inference, not fact: because the vendor applies the
-  mainline order to MFG and the other order to the cores, the difference is
-  unlikely to matter; it is recorded so a future hang is not misattributed.
+  which also differs from the vendor MFG order in the relative position of
+  `RST_B` and `CLK_DIS`. The effect of either ordering difference is untested.
 - **F5. MFG bus protection is performed by the vendor Mali platform driver,
   not by the MTCMOS driver, and the local patches omit it.** In the power-gate
   driver the MFG protect/unprotect code is commented out
@@ -239,16 +248,15 @@ userspace support for T880 is recalled, not re-verified, and is marked as such.
   the same fields the vendor writes, so CCF `clk_set_rate()` on `mfgpll` can
   reproduce the programming; the generic PLL driver does not park the consumer
   mux.
-- **F11. The mainline MFG clock tree cannot propagate a rate request yet.**
-  `mfg_sel` (CLK_CFG `0x50` bits 25:24, gate bit 31) has parents `clk26m`,
-  `mfgpll_ck`, `syspll_d3`, `univpll_d3` and no `CLK_SET_RATE_PARENT`
-  ([`clk-mt6797.c` lines 143–148, 336](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mt6797.c#L336)),
-  and the local `mfg_bg3d` gate is a plain `GATE_MTK` on `mfg_sel`
-  (patch 0048). Panfrost's devfreq calls `dev_pm_opp_set_rate()` on its single
-  `core` clock ([`panfrost_devfreq.c` lines 35–43](https://github.com/gregkh/linux/blob/v7.1.3/drivers/gpu/drm/panfrost/panfrost_devfreq.c#L35-L43)),
-  so with the pinned flags an OPP table with more than the boot frequency
-  cannot be applied; a single fixed operating point that equals the rate the
-  tree already runs at is the only form that works unchanged.
+- **F11. Corrected 2026-11-01: the mainline MFG clock tree already propagates
+  rate requests.** `mfg_sel` has parents `clk26m`, `mfgpll_ck`, `syspll_d3`,
+  `univpll_d3`. Its `MUX_GATE` macro supplies `CLK_SET_RATE_PARENT`
+  ([`clk-mtk.h`](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-mtk.h#L139-L149));
+  the gate registration also adds that flag
+  ([`clk-gate.c`](https://github.com/gregkh/linux/blob/v7.1.3/drivers/clk/mediatek/clk-gate.c#L205-L225)).
+  The earlier reading missed both macro/registration defaults. No flag-only
+  patch is required; actual parent/rate and safe divider transitions still
+  require validation.
 - **F12. Vendor ordering of a frequency/voltage change.** Going up, voltage is
   raised first and the clock switched second; going down, the clock is switched
   first ([`mt_gpufreq.c` lines 1853–1872](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/base/power/mt6797/mt_gpufreq.c#L1853-L1872)).
@@ -444,19 +452,21 @@ specifically with a serial console or pstore path so an MFG bus hang is
 attributable. None is admitted by this record.
 
 1. **H1. The MFG domain needs `bus_prot_mask = BIT(21) | BIT(23)` in patch
-   0047, and without it the first MFG access after a power cycle can hang the
+   0047, and without protection MFG access after a power cycle might hang the
    AXI fabric (F5).** The vendor asserts these INFRA_TOPAXI bits around every
    power transition and MT8173 mainline puts the equivalent bits on its MFG
    domain. Test: offline, add the mask to `MT6797_POWER_DOMAIN_MFG` (mainline
-   handles it after SRAM power-up on the way on and before SRAM power-down on
-   the way off, matching the vendor order); then, in the H3 boot, read
+   handles it at the MFG boundary, which does not match the vendor's position
+   around cores/BG3D; see the November 1 review); only after that ordering
+   question is resolved, in a reviewed H3 boot, read
    `0x10001228` bits 21/23 with the GPU runtime-suspended (expect set) and
-   active (expect clear). Confidence: high that it is harmless, medium that it
-   is required for stability.
+   active (expect clear). The mask has source support; safety of its placement
+   at the MFG boundary remains untested.
    **Prepared, 2026-10-06:** [gpu/0001](../../patches/v7.1.3/gpu/0001-pmdomain-mediatek-scpsys-protect-the-MT6797-MFG-bus-on-power-transitions.patch)
    sets `bus_prot_mask = BIT(21) | BIT(23)` on `MT6797_POWER_DOMAIN_MFG`
-   (W=1 clean, checkpatch strict clean). It is in the canonical series but no
-   profile selects it yet; a GPU candidate profile will.
+   (W=1 clean, checkpatch strict clean). It is in the canonical series.
+   The later offline GPU profile selects it;
+   neither that selection nor a compile establishes sequencing safety.
 2. **H2. The GPU SRAM LDO controls at `0x10001fbc–0x10001fe4` must hold the
    vendor values before the MFG and core SRAMs power up, and the retained
    loader does not set them (F7).** If true, mainline needs a small
@@ -511,11 +521,11 @@ attributable. None is admitted by this record.
    <&infrasys CLK_INFRA_MFG_VCG>` with `clock-names = "core", "bus"`, which
    Panfrost already supports. Confidence: high that the parent read resolves
    the discrepancy, medium that the gate is required.
-6. **H6. Dynamic GPU DVFS needs clock-tree flags, not new drivers: give
-   `mfg_sel` `CLK_SET_RATE_PARENT` (and the `mfg_bg3d` gate the same) so
-   `dev_pm_opp_set_rate()` reaches `mfgpll`, then use the type-12 static table
-   below 780 MHz with its *uncalibrated* voltages as the first OPP table (F10,
-   F11, F18).** The uncalibrated voltages are 25–45 mV above the EEM-adjusted
+6. **H6. Corrected 2026-11-01: rate propagation already exists (F11). Dynamic
+   GPU DVFS still needs validated PLL transitions and representable voltages.**
+   The type-12 vendor requests must not be copied directly into scalar OPP
+   entries: six of seven are not RT5735 selectors. See the
+   [voltage cross-check](../2026-11-01-mali-t880-research-review/README.md#4-voltage-requests-and-representable-outputs-differ). The uncalibrated voltages are 25–45 mV above the EEM-adjusted
    live values, i.e. conservative; `VMAX 1.15 V` bounds them. The open risk is
    the post-divider transition without the vendor's 26 MHz parking; the mainline
    PLL driver changes PCW and post-divider in place. Test: offline first; on

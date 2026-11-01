@@ -12,6 +12,15 @@
 | Investigator(s) | Gemini mainline project |
 | Tracking issue | GPU step in the roadmap |
 
+## Review correction (2026-11-01)
+
+The [source/ELF and validator review](../2026-11-01-mali-t880-research-review/README.md)
+found unresolved sequencing and validation gaps. Legacy SCPSYS powers MFG
+at provider probe even with the GPU node disabled; this profile must remain
+compile-only. A validator PASS checks selected properties, not provider
+availability or correct core-clock/domain references, and does not admit a boot.
+The composition requests 520 MHz but has no runtime rate evidence.
+
 ## Question
 
 What is the minimum offline change set that builds the MT6797 GPU platform
@@ -57,7 +66,9 @@ fixed-point 520 MHz / 1.0 V Panfrost probe?
 | `scripts/test-validator.py` | Positive/negative fixture test |
 
 The composition helper deliberately does not add an OPP table, devfreq
-governor, reset, IOMMU or thermal cooling. Those are later gates.
+governor, IOMMU or thermal cooling. It does add a TOPRGU reset reference;
+Panfrost initially deasserts that line, which does not reproduce the vendor's
+init pulse. Reset sequencing remains unresolved.
 
 ## Procedure
 
@@ -92,15 +103,17 @@ governor, reset, IOMMU or thermal cooling. Those are later gates.
         --config <build>/.config --dtb <build>/board-gpu.dtb --expect enabled'
    ```
 
-5. Only after the build/DT checks pass may a separate reviewed experiment
-   assemble the candidate for inactive `boot2`.
+5. Build/DT checks alone do not admit a candidate. Resolve the provider-probe,
+   LDO/rail/clock/protection ordering and validator gaps before designing a
+   separate reviewed experiment for inactive `boot2`.
 
 ## Safety
 
 No device, partition, regulator, clock, power domain or GPU register was
 touched. The composition helper mutates a temporary DTB copy only. The
 profile keeps the GPU node disabled until the composition step; no default
-profile enables it.
+profile enables it. This describes the files, not the effects of booting them:
+SCPSYS provider probe would still power the MFG domains.
 
 ## Limits
 
@@ -114,9 +127,12 @@ profile enables it.
 
 ## Follow-up
 
-1. Add the MT6797 LDO init to SCPSYS (`CTRL_1/2/3/7/10`, `CTRL_0` on
-   `MFG` power on/off) and set `MFG_ASYNC_CON=0x5` at 520 MHz.
+1. Resolve rail/LDO/domain/protection ownership and rollback, including SCPSYS
+   probe. MFG callbacks alone do not reproduce the vendor sequence. The vendor
+   chooses `MFG_ASYNC_CON` from the table maximum: type 12 selects `0xa`,
+   even at 520 MHz; do not select `0x5` just from the fixed frequency.
 2. Build the profile on Buildbox.
-3. Run the base-DTB and composed-DTB validators on that exact package.
+3. Repair provider/reference validation and run the base-DTB and composed-DTB
+   checks on that exact package.
 4. Perform the read-only Gemian register capture from the hardware record.
 5. Only then design the fixed-point boot candidate.

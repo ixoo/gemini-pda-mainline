@@ -7,7 +7,7 @@ mainline Panfrost configuration needed to bring it up safely.
 | Field | Value |
 | --- | --- |
 | Device | Named Gemini PDA development unit (MT6797X) |
-| Last verified | 2026-10-31 |
+| Last verified | 2026-11-01 (offline review) |
 | GPU identity | Mali-T88x MP4 r1p0, product `0x0880`, four cores |
 | Mainline model | Panfrost `GPU_MODEL(t880, 0x880)` |
 | Vendor source | Gemian `8cfe6596` / `59e00a91` lineage |
@@ -18,7 +18,10 @@ mainline Panfrost configuration needed to bring it up safely.
 The detailed vendor-side evidence is in the
 [GPU RE record](../../experiments/2026-10-04-gemini-gpu-re/README.md) and the
 [GPU/Panfrost recovery record](../../experiments/2026-07-12-mt6797-gpu-panfrost-recovery/README.md).
-This document keeps the durable configuration facts and the bring-up recipe.
+This document keeps the durable configuration facts and the proposed bring-up
+recipe. The [November 1 review](../../experiments/2026-11-01-mali-t880-research-review/README.md)
+corrects the clock, voltage and sequencing claims below. The existing profile
+and composed DTB remain offline preparation; they are not ready for a GPU boot.
 
 ## 1. Identity and mainline coverage
 
@@ -33,7 +36,9 @@ This document keeps the durable configuration facts and the bring-up recipe.
 The live `0x0880` ID is the authority, not the vendor's `arm,malit860`
 compatible. Panfrost uses the GPU ID and model table, so the core register
 model is supported. The missing work is MT6797 platform integration, not a new
-GPU silicon driver.
+GPU silicon driver. [Mesa's Panfrost support table](https://docs.mesa3d.org/drivers/panfrost.html)
+(checked 2026-11-01) lists T880 with OpenGL ES 3.1 and OpenGL 3.1, with no
+Midgard Vulkan support. This is driver model coverage, not Gemini runtime evidence.
 
 ## 2. Register, interrupt, clock and power map
 
@@ -53,7 +58,7 @@ GPU silicon driver.
 | SRAM power | `MFG_SRAM_CON` `0x33c` | MFG bits 1:0/17:16; core bits 8/20-23 |
 | MFG bus protection | `INFRA_TOPAXI_PROTECTEN` bits 21 and 23 | Vendor Kbase and `gpu/0001` patch |
 | GPU SRAM LDO | `0x10001fbc`-`0x10001fe4` | Vendor writes; LK pre-sets a modem-boot subset |
-| TOPRGU MFG reset | `SWSYSRST` bit 2 | Optional; no mainline reset provider yet |
+| TOPRGU MFG reset | `SWSYSRST` bit 2 | Composition references the local provider; no vendor-equivalent init pulse |
 | GPU MMU | Panfrost's own MMU | No `iommus`; MT6797 M4U has no GPU port |
 
 The GPU has no standard M4U `iommus` property. The vendor Mali block exposes
@@ -98,13 +103,15 @@ use a fixed 1.0 V rail and accept the idle cost.
 
 ## 4. Operating points and DVFS
 
-The live vendor GPU table is type 12, selected by efuse function code 4:
+The live table is type 12, selected by efuse function code 4. These are the
+public source table's voltage requests and corresponding truncated RT5735
+selectors, before per-unit EEM adjustment:
 
-| Frequency | Vendor voltage | RT5735 code |
+| Frequency | Vendor voltage request | RT5735 code |
 | --- | --- | --- |
-| 900 MHz | 1.1545 V | rounded by regulator |
-| 780 MHz | 1.1032 V | rounded |
-| 610 MHz | 1.0134 V | rounded |
+| 900 MHz | 1.1545 V | 88 |
+| 780 MHz | 1.1032 V | 80 |
+| 610 MHz | 1.0134 V | 66 |
 | 520 MHz | 0.9750 V | 60 |
 | 442.5 MHz | 0.9365 V | 53 |
 | 365 MHz | 0.9108 V | 49 |
@@ -112,20 +119,23 @@ The live vendor GPU table is type 12, selected by efuse function code 4:
 
 EEM recalibrates these values; the live sample had lower voltages
 (1.1125/1.06875/1.0125/0.975/0.93125/0.90625/0.84375 V). Before EEM is ready,
-the vendor runs **520 MHz at 1.0006 V**. That is the safest first mainline
-operating point: above the low-battery cap, below the top OPP, and the point the
-stock kernel itself uses before calibration.
+the vendor requests **520 MHz at 1.0006 V**. Its RT5735 conversion truncates
+that request to selector 64, **1.0000 V nominal**. This supports investigating
+520 MHz / 1.0 V as a first fixed point, but does not establish safe mainline
+sequencing or physical voltage. It is above the 442.5 MHz low-battery cap.
 
 The vendor also uses:
+
 - `dynamic-power-coefficient` equivalent `1461` uW/MHz/V^2;
 - thermal, PBM and low-battery OPP limiting;
 - MFGPLL post-divider parking when the divider changes;
 - `Vsram`/`VGPU` sequencing with voltage-first up and clock-first down.
 
-Mainline does not have the MT6797 EEM/SVS driver. For the first boot, use a
-single fixed OPP (520 MHz / 1.0 V) and no devfreq. For dynamic DVFS later, use
-the conservative type-12 table with an OPP table and enable clock-rate
-propagation through `mfg_sel`/`mfg_bg3d`.
+Mainline does not have the MT6797 EEM/SVS driver. The proposed first probe
+targets a fixed 520 MHz / 1.0 V point without an OPP table or devfreq policy. For dynamic DVFS later, review
+representable voltages and ceilings rather than copying vendor requests into
+scalar OPP entries. Rate propagation through `mfg_sel`/`mfg_bg3d` already exists;
+PLL parking, actual parent selection and rate verification remain necessary.
 
 The thermal policy is not a kernel unknown. The stock Android `.tp` files
 contain the complete zone/trip/cooler tables, and the `clctm` cooler record
@@ -163,8 +173,8 @@ GPU LDO reserve (0x10001fbc = 0x1ff)
  -> G3D timing/PMU writes
 ```
 
-Vendor power-off reverses that order after polling MFG idle, asserting bus
-protection, and disabling VGPU.
+Vendor power-off polls MFG idle, asserts bus protection, disables BG3D, then
+cores, MFG, ASYNC and VCG, and finally disables VGPU and the LDO enables.
 
 The vendor platform init programs the full GPU SRAM LDO set once, before any
 GPU power sequence. The MT6797 register table names these as `GPULDO_CTRL_0..10`
@@ -179,7 +189,8 @@ in INFRACFG AO and confirms the field layout:
 | `0x10001fd8` | `RSV_H_0..7` | `0xffffffff` | `0x88888888` | untouched |
 | `0x10001fe4` | `RSV_H_8` (3:0) | `0x0` | `0x00000008` | untouched |
 
-`VOSEL` is bits `[3:0]` of each nibble and `LP` is bit 4. LDO 8 lives in
+`VOSEL` and `LP` are separate fields; the repeated `0x0f` programming
+does not enable the `LP` bit. LDO 8 lives in
 `GPULDO_CTRL_3` and its high trim in `GPULDO_CTRL_10`. `GPULDO_CTRL_4`
 (`CAL_0..7`), `CTRL_5` (`NDIS/STB/BYPASS`), `CTRL_8` (`RSV_M`) and `CTRL_9`
 (`RSV_L`) are left at reset by the vendor; mainline should not invent values
@@ -193,10 +204,12 @@ power-on:  fbc=0x1ff
 power-off: fbc=0x0
 ```
 
-A minimal mainline owner is the MT6797 SCPSYS driver, which already has the
-INFRACFG regmap: write `CTRL_1/2/3/7/10` once at probe, set `CTRL_0=0x1ff`
-when the `MFG` domain powers on, and clear it when `MFG` powers off. This keeps
-the LDO tied to the same domain that owns the SRAM and bus protection.
+The MT6797 SCPSYS driver has the INFRACFG regmap, but placing the writes
+in its MFG callback is only a proposal. The vendor enables LDOs before VGPU
+and MFG_ASYNC; MFG callbacks run after ASYNC and do not coordinate Panfrost
+supply enable. Legacy SCPSYS also powers every domain at provider probe,
+independently of GPU-node status. The owner and rollback sequence must be
+designed before implementing these writes.
 
 LK only pre-sets `fc0/fc4=0x0d0d0d0d` and `fbc=0xff`, so LDO 8 and all high
 trims are missing before a mainline probe. This is a concrete, source-backed
@@ -210,21 +223,23 @@ driver home. The reset is `TOPRGUWDT_SWSYSRST` (`0x10007018`) bit 2
 
 `MFG_ASYNC_CON` at `0x1300001c` is the other concrete write. Its `MEM_MST_SEL`
 and `MEM_SLV_SEL` fields select the async-FIFO delay (`1T` reset, `2T` = 1,
-`3T` = 2); the vendor uses `0x5` (2T/2T) at 520 MHz and `0xa` (3T/3T) at
-780 MHz and above. Panfrost does not write it, so the GPU would inherit the
-1T reset value.
+`3T` = 2). The vendor chooses `0xa` when the **table maximum** is at
+least 780 MHz, otherwise `0x5`, and ORs it into this register at power-on.
+Type 12 therefore selects `0xa` even at 520 MHz. Panfrost does not write it;
+the inherited value is unverified, not necessarily the reset value.
 
 The 52 MHz preclock is likewise explicit in the register table:
 `CLK_MISC_CFG_0` (`0x10000104`) bits `[2:1]` select `00=26M`, `01=52M`,
 `10/11=104M`, and the reset value is `00`. Bit 0 (`pdn_mfg_52m_ck`) resets to
-0 (clock enabled). The vendor selects `univpll2_d8` (52M); without the
-composition's `assigned-clock-parents`, mainline would run this path at 26M.
+0 (clock enabled). The vendor selects `univpll2_d8`; its clock name is not a
+measurement of frequency. The earlier live 156 MHz report remains unexplained, so both the
+selected parent and actual rate need verification after assignment.
 
 The GPU core mux is `CLK_CFG_1` (`0x10000050`): bits `[25:24]` select
 `0=clk26m`, `1=mfgpll_ck`, `2=syspll_d3`, `3=univpll_d3`, and bit 31
-`pdn_mfg` resets to 0 (clock enabled). The reset value therefore selects
-**26 MHz**, not a high rate; without the composition's
-`assigned-clock-rates = <520000000>`, Panfrost would probe a 26 MHz GPU.
+`pdn_mfg` resets to 0 (clock enabled). The reset value selects **26 MHz**,
+but the loader can change it. Neither the reset value nor a requested `assigned-clock-rates = <520000000>` proves
+the actual parent/rate at probe.
 
 The loader is not neutral here. Planet LK's `md1_boot()` / `md1_pmic_setting()`
 writes a modem-boot subset before Linux:
@@ -258,30 +273,30 @@ attach core0..3 genpd links -> parent MFG/MFG_ASYNC power
  -> GPU soft reset
 ```
 
-The composition helper now sets the core rate to 520 MHz and the SCPSYS
-`mfg_52m_sel` parent to `univpll2_d8`; Panfrost does not set a rate without an
-OPP table. The remaining order difference is real: Panfrost enables the core
-clock before VGPU and before the power domains, while the vendor enables VGPU,
+The composition helper requests a core rate of 520 MHz and the SCPSYS
+`mfg_52m_sel` parent `univpll2_d8`; Panfrost does not set a rate without an
+OPP table. Panfrost requests the domains first,
+then deasserts reset, enables clocks and enables VGPU; the vendor enables VGPU,
 the 52 MHz VCG clock, the domains, and only then `mfg_bg3d`.
 
-The MT6797 platform data deliberately keeps `pm_features = 0`. With no OPP
-table, `GPU_PM_VREG_OFF` would call `dev_pm_opp_set_opp(NULL)` without an OPP
-and `GPU_PM_CLK_DIS` would need the matching resume ordering; the safe first
-step is to leave VGPU and the clocks enabled across runtime suspend. Add those
-flags only together with the OPP table.
+The MT6797 platform data keeps `pm_features = 0`. Consequently clocks and
+VGPU remain enabled across runtime suspend, and TOPRGU is not toggled by
+runtime PM. Initial reset handling deasserts the line; teardown asserts it.
+This does not reproduce the vendor init pulse. Any change to `GPU_PM_RT`,
+`GPU_PM_CLK_DIS` or `GPU_PM_VREG_OFF` needs a separate ordering review.
 
 Missing or unvalidated relative to the vendor:
 
 | Item | State | Consequence |
 | --- | --- | --- |
-| Bus protection bits 21/23 | `gpu/0001` prepared; bits are `mfg_m0_prot_en` and `mfg_snoop_out_prot_en` | Required for safe MFG power transitions |
+| Bus protection bits 21/23 | `gpu/0001` prepared on MFG | Correct mask, but releases before cores/BG3D and protects after child shutdown; vendor ordering not reproduced |
 | GPU SRAM LDO reserve writes | Exact values known, not implemented | Possible SCPSYS/SRAM power-up failure |
-| Fixed 520 MHz core rate | Set by composition helper | Reset mux selects 26 MHz, so without it Panfrost probes a 26 MHz GPU |
+| Fixed 520 MHz core rate | Requested by composition helper | Verify actual parent/rate and safe PLL transition; assignment is not runtime evidence |
 | `mfg_52m_sel` parent | Set by composition helper | Vendor explicitly selects `univpll2_d8` |
-| G3D timing/PMU writes | Not implemented | Vendor sets `MFG_ASYNC_CON` (`0x1300001c`) to `0x5` at 520 MHz and enables `MFG_PERF_EN`; unverified |
-| TOPRGU MFG reset | Composition adds `resets`; Panfrost asserts/deasserts, not the vendor init pulse | Reset state is controlled, but no one-shot pulse |
+| G3D timing/PMU writes | Not implemented | Vendor ORs `0xa` for the type-12 table, independent of current frequency, and enables PMU counters; runtime necessity unverified |
+| TOPRGU MFG reset | Composition adds `resets`; initial probe deasserts only | No vendor-equivalent init pulse or runtime-PM reset with current platform data |
 | VGPU/domain/clock order | Panfrost order differs | First-boot risk if a gate needs VGPU or a domain |
-| VGPU off at idle | Not implemented | Idle power cost only |
+| VGPU off at idle | Not implemented | Idle power cost; rail/domain combination has not been validated |
 
 The first GPU boot must not assume all of these are harmless. The bus
 protection mask is the highest-value prerequisite; the SRAM LDO words and the
@@ -326,16 +341,20 @@ The offline profile `mt6797-a53-gpu-bringup` now exists:
 - `patches/series-a53-gpu-bringup` (A53 foundation plus `gpu/0001`)
 - `kernel/manifest.json` profile `mt6797-a53-gpu-bringup`
 
-It compiles the GPU platform providers but does not enable the GPU node. The
-enabled DTB is produced separately by
+It selects the GPU platform providers but has not been built in its experiment
+record. The GPU node stays disabled, but SCPSYS can still power the MFG domains
+at provider probe. Do not boot this profile as an inert GPU-disabled baseline.
+The enabled DTB is produced separately by
 [`compose-gpu-dtb.py`](../../experiments/2026-10-31-mali-t880-offline-bringup/scripts/compose-gpu-dtb.py)
 after a reviewed build.
 
 ### 6.2 Device tree: first fixed point
 
-Enable `mfgsys`, `i2c7`, the RT5735 regulator and the GPU. Keep the GPU at
-520 MHz / 1.0 V, no OPP table, no devfreq, no `iommus`; reference the TOPRGU
-MFG reset.
+The existing offline composition enables `mfgsys`, `i2c7`, RT5735 and GPU,
+requests 520 MHz / 1.0 V, omits the OPP table and `iommus`, and references
+TOPRGU MFG reset. The fragment below describes that proposal, not a
+runtime-ready recipe; the sequencing and validator blockers in the
+[review](../../experiments/2026-11-01-mali-t880-research-review/README.md) must be resolved first.
 
 ```dts
 &mfgsys {
@@ -378,9 +397,9 @@ MFG reset.
 ```
 
 `CLK_MFG_BG3D` is a gate with `CLK_SET_RATE_PARENT`, so the rate request
-propagates through `mfg_sel` to `mfgpll`. The `mfg_52m_sel` parent is a mux
-whose reset value is 26 MHz; set it explicitly. Do not put the rate on
-`mfg_sel` itself.
+can propagate through `mfg_sel`; `MUX_GATE` already supplies the same flag.
+This does not guarantee the selected parent is `mfgpll` or the rate is exactly
+520 MHz. The parent choice, PLL transition and measured rate require validation.
 
 The base GPU node from patch 0059 supplies the register, interrupts and
 `core0..3` domains:
@@ -410,37 +429,20 @@ those as device links.
 
 ### 6.3 Later OPP table
 
-After the fixed-point boot works, add a standard OPP table. Use the
-conservative type-12 voltages and let the regulator round to RT5735 steps:
+After fixed-point sequencing and runtime have been established, derive a standard
+OPP table with reviewed voltage ceilings and RT5735-representable outputs.
+The vendor request table in section 4 is evidence, not ready-to-use DTS.
 
-```dts
-gpu_opp_table: opp-table {
-	compatible = "operating-points-v2";
+A scalar `opp-microvolt` sets target, minimum and maximum equal. For example,
+`<846700>` cannot round to 850000 µV because that exceeds its maximum. Six of
+the seven earlier example scalar values were unrepresentable; that example is
+withdrawn. Explicit supported selectors or reviewed target/min/max triplets
+are required. The 900 MHz vendor request also exceeds the cited 1.15 V
+software ceiling, so it must not be admitted merely because it is in the table.
+See the [voltage review](../../experiments/2026-11-01-mali-t880-research-review/README.md#4-voltage-requests-and-representable-outputs-differ).
 
-	opp-238000000 { opp-hz = /bits/ 64 <238000000>; opp-microvolt = <846700>; };
-	opp-365000000 { opp-hz = /bits/ 64 <365000000>; opp-microvolt = <910800>; };
-	opp-442500000 { opp-hz = /bits/ 64 <442500000>; opp-microvolt = <936500>; };
-	opp-520000000 { opp-hz = /bits/ 64 <520000000>; opp-microvolt = <975000>; };
-	opp-610000000 { opp-hz = /bits/ 64 <610000000>; opp-microvolt = <1013400>; };
-	opp-780000000 { opp-hz = /bits/ 64 <780000000>; opp-microvolt = <1103200>; };
-	opp-900000000 { opp-hz = /bits/ 64 <900000000>; opp-microvolt = <1154500>; };
-};
-```
-
-Then:
-
-```dts
-&gpu {
-	operating-points-v2 = <&gpu_opp_table>;
-	dynamic-power-coefficient = <1461>;
-	#cooling-cells = <2>;
-};
-```
-
-For dynamic DVFS, the MFG mux and gate need `CLK_SET_RATE_PARENT`, and the
-regulator range must cover the table. Keep the devfreq governor in `userspace`
-or `simple_ondemand` only after the fixed point has passed and the voltage
-readback is verified.
+No rate-propagation flag change is needed. Divider-change parking, regulator
+settling and thermal cooling remain separate requirements before dynamic DVFS.
 
 ### 6.4 Required profile/series
 
@@ -458,9 +460,8 @@ The local patches are:
 | `gpu/0001` | MFG bus protection bits 21/23 |
 
 A GPU profile must include these in canonical order and must not be mixed with
-the A53 handoff profile's `CONFIG_DRM=n`. No current manifest profile selects
-the GPU patches as a runtime profile; `gpu/0001` is in the canonical series but
-the node remains disabled.
+the A53 handoff profile's final `CONFIG_DRM=n`. The offline
+`mt6797-a53-gpu-bringup` profile selects `gpu/0001`; it has no GPU runtime validation and the base GPU node remains disabled.
 
 ## 7. Firmware and userspace boundary
 
@@ -489,8 +490,9 @@ the node remains disabled.
 
 ## 8. Bring-up order and validation
 
-1. Offline: apply `gpu/0001`, confirm the MFG SRAM LDO values and bus-protect
-   behavior, and add a GPU profile. Keep the node disabled.
+1. Offline: resolve provider-probe effects and rail/LDO/domain/clock/protection
+   ordering, and repair the validator's provider/reference checks. The existing
+   profile and `gpu/0001` do not yet establish a safe power sequence.
 2. First boot: enable `mfgsys`, `i2c7`, RT5735 and GPU at fixed 520 MHz /
    1.0 V. Confirm:
    - `panfrost 13040000.gpu: Mali-T880` (or `mali-t880` model);
@@ -508,7 +510,8 @@ console. The first GPU boot is a reviewed experiment, not a default profile.
 
 ## 9. Implementation readiness
 
-Enough is known to implement the first **fixed-point** DT/profile:
+Enough is known to describe a proposed **fixed-point** DT/profile, but the
+current composition is not ready for a first probe:
 
 - Panfrost T880 model, GPU ID, register window and three interrupt lines
 - MFG `mfg_bg3d`/`infra_mfg_vcg` clocks and MFG PLL/mux
@@ -521,13 +524,13 @@ Still needed before a safe first probe:
 
 | Missing information | Why it matters | How to obtain |
 | --- | --- | --- |
-| MFG SRAM LDO reserve state | Exact vendor values known, mainline does not program them | Add reviewed LDO init or verify inherited readback |
-| Bus-protection enforcement | Potential AXI hang at power cycle | Read `0x10001228` bits 21/23 with GPU off/on |
+| MFG SRAM LDO and supply ordering | Exact writes known, owner and rollback unresolved | Design across SCPSYS probe and Panfrost runtime PM; inherited values alone do not prove ordering |
+| Bus-protection enforcement/order | Mask placement differs from vendor sequence | Resolve release/assert position and bound any later readback protocol |
 | `mfg_52m_sel` parent and VCG gate | Composition sets `univpll2_d8`; verify runtime | `clk_summary` and CLK_CFG `0x10000104[2:1]` |
 | RT5735 actual voltage/current/timing | Live Gemian shows 975 mV at 520 MHz; mainline targets 1.0 V | Regulator summary or reviewed read-only I2C/register read |
 | Exact efuse speed bin/function code | OPP selection and PLL post-divider | Read `atag,devinfo` words 8/22/61 (publish decoded fields only) |
-| GPU clock rate inherited at boot | Composition sets 520 MHz; verify after probe | `clk_summary` / Panfrost `clock rate` log |
-| TOPRGU MFG reset necessity | Recovery from a hung GPU | Add optional reset provider, compare first probe |
+| GPU clock rate inherited at boot | Composition requests 520 MHz; verify actual rate | `clk_summary` / Panfrost `clock rate` log |
+| TOPRGU MFG reset necessity | A reference alone does not pulse it | Review initial pulse and provider before comparing attributable probes |
 
 Still needed before dynamic DVFS/thermal:
 
@@ -557,18 +560,19 @@ Not required:
 | GPU SRAM LDO init not implemented | Vendor programs `fd8/fe4/fc0/fc4/fc8`; LK only pre-sets a subset |
 | MFG bus-protect mask prepared but not runtime-verified | Potential AXI hang on power cycle |
 | `mfg_52m_sel` parent set by composition, `infra_mfg_vcg` gate unverified | Possible async/SRAM handshake issue |
-| TOPRGU MFG reset exposed in composition, no one-shot pulse | Vendor pulses reset at init; Panfrost only asserts/deasserts |
-| Fixed 520 MHz rate set by composition, not yet proven | Reset selects 26 MHz; runtime rate still needs verification |
+| TOPRGU MFG reset exposed in composition, no one-shot pulse | Initial Panfrost probe deasserts; current runtime PM does not toggle it |
+| Fixed 520 MHz rate requested by composition, not yet proven | Actual parent/rate and PLL transition still need verification |
 | Panfrost clock/regulator/domain order differs from vendor | First-boot risk if a gate needs VGPU or a domain |
-| G3D timing/PMU writes absent | Vendor sets `MFG_ASYNC_CON=0x5` at 520 MHz and enables `MFG_PERF_EN` |
-| RT5735 DVS slew/LIMCONF init absent | Static 1.0 V is unaffected; DVFS ramp is |
-| EEM NVMEM cell and EEM driver absent | Only conservative OPPs are possible |
-| EEM/thermal calibration absent | Dynamic OPP table is conservative, not calibrated; trips/NTC policy are known from `.tp` |
+| G3D timing/PMU writes absent | Vendor ORs `0xa` for type 12 regardless of current frequency, and enables PMU counters |
+| RT5735 DVS slew/LIMCONF init absent | Validate enable/settling timing and inherited protection state before probe or DVFS |
+| EEM NVMEM cell and EEM driver absent | Calibrated dynamic OPPs unavailable; even static OPPs require voltage/ceiling review |
+| EEM/thermal calibration absent | Dynamic table not admitted; trips/NTC policy are known from `.tp` |
 | Exact GPU speed bin/efuse words not captured | `cid`/post-divider and `opp-supported-hw` cannot be finalized |
 | No GPU runtime result | Panfrost support is still unproven on this unit |
 
 ## 11. Evidence index
 
+- [November 1 research review](../../experiments/2026-11-01-mali-t880-research-review/README.md)
 - [GPU offline bring-up preparation](../../experiments/2026-10-31-mali-t880-offline-bringup/README.md)
 - [GPU RE record](../../experiments/2026-10-04-gemini-gpu-re/README.md)
 - [GPU/Panfrost recovery](../../experiments/2026-07-12-mt6797-gpu-panfrost-recovery/README.md)
