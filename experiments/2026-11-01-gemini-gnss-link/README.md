@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T1 passed on station 30; T2 approved by the owner and admitted; stage A code written, not yet run, so the receiver has never been started |
+| Status | `running`: T1 passed on station 30; T2 stage A hit a stop rule 5 ms after GPS function-on and took Wi-Fi down; no receiver data; retry not admitted |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -311,6 +311,68 @@ longitude and time-of-fix text are not.
 
 **Separate:** the read-only Gemian check (H0) tells whether stock could serve as a
 reference. It is not needed for T2.
+
+## T2 stage A result: stopped (2026-11-01)
+
+Station 30, boot `4ac95e75`, modules from `fff5cf30` (`gnss-mt6797` `047d7da2…`,
+`mt6797-consys` `c944a664…`, `mac` `6f626e6c…`, core `425b8add…`). Run by the
+custodian; private evidence under `artifacts/station-work-30/boot-4ac95e75/gnss-t2a/`.
+The one approved open was used and not retried. No sentence was produced.
+
+**Observed:**
+- Link check passed, and `WMT GPS function on: result=0 reply=5 bytes 02 06 01 00 00`.
+  The firmware accepted function-on, the first time on mainline.
+- About 5 ms later: `STP link stopped (-71)`. The start sequence had gone out
+  (`tx=7`, `sent=51`). No frame reached the GFNS client (`received=0`), and the log
+  does not hold the refused bytes.
+- About 1.2 s later Wi-Fi's command path stopped answering: `join stopped:
+  status=-110`, connection lost, scans refused. `wlan0` had been idle.
+- Function-off then returned `-5`, because the link had stopped. CONN was never told.
+- Unloading all three modules powered CONN off, but two reloads, one including the
+  core, each stopped with `WMT negotiation: result=-16 phase=1` before sending
+  anything. No Oops or warning. The soc read 30.7-31.4 C.
+- The system clock read 1970, so `0x83` carried that date.
+
+**Read from the public vendor parser (`stp_core.c`):**
+- Tasks 5 and 6 use their own framing: no checksum check, payload, then two CRC
+  bytes that are discarded. Outside debug mode, task 5 is a firmware assert that
+  starts a whole-chip reset. In debug mode, task 6 is the runtime firmware log.
+- My engine refuses both tasks with `-71`, the error seen. So do other shapes it
+  counts as malformed, such as a sequence outside the window. The vendor skips bytes
+  until it sees a frame start.
+
+**Inferred; the bytes are what decides:**
+1. The firmware sent a task 5 assert, caused by something in the start sequence
+   (an empty `0x14` and the 1970 date are the suspects). That alone explains Wi-Fi
+   dying.
+2. Or it sent a harmless frame that my engine refused. Then Wi-Fi died because
+   the host stopped reading and acknowledging, which left firmware blocked.
+
+**Wrong in this record:** "Wi-Fi does not use this link" held only for host code.
+The firmware shares one microcontroller, so a failed GNSS link can take Wi-Fi with
+it. Stopping interrupts on a link failure is the wrong policy once GNSS runs.
+
+**Inferred cause of the `-16`:** of the checks that return `-EBUSY` at that point,
+with `default-rx=0`, the likely one is the setup's refusal of a nonempty BTIF RX FIFO. BTIF sits outside CONN, so an unload does not clear it. T1 left it
+empty, which is why T1's reload worked.
+
+## D1: read the stale bytes and recover (no radio action beyond a normal start)
+
+[0429](../../patches/proposals/0429-soc-mediatek-mt6797-consys-start-despite-stale-BTIF-.patch)
+logs up to 64 stale BTIF bytes at start and lets the existing clear remove them.
+
+**Hypothesis:** the FIFO holds the firmware's next bytes, and CONSYS then starts.
+**Unique observation:** those bytes, which survive only until this boot ends.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Text or a task 5 header in the bytes | Firmware assert likely | Find the cause offline before any new start |
+| Task 6 header or plain log text | Harmless firmware log | Teach the engine tasks 5 and 6, then ask the owner about a retry |
+| Task 2 frame or other STP data | The engine refused a real frame | Keep the bytes; fix the refusal offline, then ask |
+| No stale bytes, `-16` persists | The inference above is wrong | The new refusal message names the cause, or else it is the DMA or post-clear check; a reboot recovers |
+| Bytes logged, Wi-Fi back | Recovery holds without a reboot | Run one join and a gateway ping |
+
+**Stop rules:** one load; any Oops, warning or assert; no GNSS open.
 
 ## Associated code
 

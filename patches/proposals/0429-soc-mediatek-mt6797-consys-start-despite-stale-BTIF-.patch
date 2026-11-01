@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:21:57 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: start despite stale BTIF
+ receive bytes
+
+BTIF is outside CONN, so a CONN power-off leaves its FIFOs as they are. If
+the firmware sent bytes nobody read, every later CONSYS start refuses with
+-EBUSY before it sends anything, and only a reboot recovers. Station 30
+reached this state after the GNSS link stopped with bytes pending.
+
+Log those bytes, since they are the firmware's last words, and let the
+existing clear remove them. A transmitter that is still busy stays a
+refusal, now with a message. A start with an empty FIFO behaves as before.
+---
+ drivers/soc/mediatek/mt6797-wmt.h | 24 ++++++++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-wmt.h b/drivers/soc/mediatek/mt6797-wmt.h
+index 8206b1506..07979eefe 100644
+--- a/drivers/soc/mediatek/mt6797-wmt.h
++++ b/drivers/soc/mediatek/mt6797-wmt.h
+@@ -839,6 +839,19 @@ static void mt6797_wmt_fifo_clear(void __iomem *base)
+ 	writel(readl(base + WMT_BTIF_IIR) & ~BIT(2), base + WMT_BTIF_IIR);
+ }
+ 
++#define WMT_BTIF_STALE_MAX 64
++
++static void mt6797_wmt_stale_rx(void __iomem *base)
++{
++	unsigned char stale[WMT_BTIF_STALE_MAX];
++	unsigned int count = 0;
++
++	while (count < sizeof(stale) && (readl(base + WMT_BTIF_LSR) & 1))
++		stale[count++] = readb(base);
++	if (count)
++		pr_warn("mt6797-consys: %u stale BTIF bytes: %*ph\n", count, count, stale);
++}
++
+ /*
+  * Caller holds the shared CONSYS lock, after fresh power/reset release and
+  * before HIF or a sleep command. No transport retry or shutdown is attempted.
+@@ -873,10 +886,17 @@ static int mt6797_wmt_query_setup(struct mt6797_wmt_query *query)
+ 	if (query->deadline_supplied && time_after_eq(jiffies, query->deadline))
+ 		return -ETIMEDOUT;
+ 
+-	/* Normal bank first; reject nonempty FIFOs before any clear. */
++	/* Normal bank first. BTIF outlives a CONN power-off, and with it whatever
++	 * the firmware sent last: keep those bytes in the log, then clear them.
++	 * A transmitter still busy is refused.
++	 */
+ 	writel(0, query->btif + WMT_BTIF_FAKELCR);
+-	if ((readl(query->btif + WMT_BTIF_LSR) & 0x41) != 0x40)
++	mt6797_wmt_stale_rx(query->btif);
++	if (!(readl(query->btif + WMT_BTIF_LSR) & 0x40)) {
++		pr_err("mt6797-consys: BTIF transmitter busy: LSR=0x%02x\n",
++		       readl(query->btif + WMT_BTIF_LSR));
+ 		return -EBUSY;
++	}
+ 	/* One admitted timeout acknowledgment if auto-reset was off. */
+ 	dma = readl(query->btif + WMT_BTIF_DMA_EN);
+ 	if (dma & (BIT(0) | BIT(1)))
