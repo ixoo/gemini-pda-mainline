@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-reload` |
-| Status | `running`: reload confirmed on station 33; the 30 s noise starts at the first playback and stops during a stream; fresh-boot baseline pending |
+| Status | `completed`: module reload confirmed on station 33; the noise work continues in its own experiment |
 | Subsystem | audio; MT6797 AUDIO power domain |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -203,5 +203,8 @@ with two heard removal and reload pairs on one boot. The noise stops while a str
 output; one silent stream on one boot. What the first tone changes is not established.
 
 ## Follow-up
+
+- [Idle headphone noise](../2026-11-01-gemini-hp-idle-noise/README.md): the fresh-boot baseline and the
+  first candidate fix.
 
 - [Audio at boot](../2026-11-01-gemini-audio-boot/README.md)
