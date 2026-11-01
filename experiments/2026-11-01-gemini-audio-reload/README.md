@@ -62,6 +62,10 @@ Run by the custodian with the owner present and the headphones in, on a fresh bo
 5. Separately, the noise lead: reconnect Wi-Fi and have the owner note how long after the join
    the noise is first heard. The firmware notice that repeats on this period starts about 6
    minutes after a join, so noise well before that rules it out.
+6. The noise mechanism, on a fresh boot before any reload. The owner suspects the undriven output
+   picks up the noise. With the headphones in, Wi-Fi up and the noise present, compare 60 s idle, a
+   silent stream for 90 s, and 60 s idle again. If it stops only during the stream, the idle output
+   state is the mechanism and the fix is in audio, whatever the source is.
 
 | Observation | Next |
 | --- | --- |
