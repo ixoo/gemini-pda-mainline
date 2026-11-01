@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-station` |
-| Status | `planned`: station package built; ALSA tools missing; not booted |
+| Status | `planned`: station package and test bundle built; device test requested; not booted |
 | Subsystem | audio: MT6797 AFE, MT6351 codec, AW8736 amplifiers |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -66,8 +66,12 @@ now goes before `rtc`, whose context both trees share.
 
 The composed `mt6797-gemini-pda.dtb` decompiles to `power-domain@4`, the AFE on
 that domain with `status = "okay"`, `audio-aux-devs` with two phandles, both
-`awinic,aw8736` nodes and the `mt6351-sound` child. No test bundle exists yet:
-the ALSA tools are not built, so `audio-test.sh` has not run anywhere.
+`awinic,aw8736` nodes and the `mt6351-sound` child.
+
+The ALSA tools built on Buildbox-2 from checksummed alsa-lib and alsa-utils
+1.2.12: `amixer` `15b00b10…` and `aplay` `6fa19355…`, both statically linked and
+checked with `file` and `readelf`, never yet run. `audio-test.sh` has not run
+anywhere. The bundle is not in Git.
 
 `modules/load-order` follows `modules.dep`: `snd`, `snd-timer`, `snd-pcm`,
 `snd-pcm-dmaengine`, `snd-soc-core`, `snd-soc-mtk-common`, `snd-soc-mt6351`,

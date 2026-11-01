@@ -28,16 +28,21 @@ prefix=$PWD/prefix
 	--enable-static --disable-shared --disable-ucm --disable-topology \
 	--disable-rawmidi --disable-hwdep --disable-seq --disable-python \
 	>/dev/null && make -j8 install >/dev/null)
-(cd "$UTILS" && CPPFLAGS=-I"$prefix/include" LDFLAGS="-L$prefix/lib -static" \
+# libtool drops -static; only -all-static reaches the linker.
+(cd "$UTILS" && CPPFLAGS=-I"$prefix/include" LDFLAGS="-L$prefix/lib" \
 	./configure --host=$HOST --with-alsa-prefix="$prefix/lib" \
 	--with-alsa-inc-prefix="$prefix/include" --disable-alsamixer \
 	--disable-alsaconf --disable-alsaloop --disable-alsaucm --disable-alsatest \
 	--disable-bat --disable-topology --disable-nls --disable-rst2man \
-	--disable-xmlto >/dev/null && make -C amixer >/dev/null && make -C aplay >/dev/null)
+	--disable-xmlto >/dev/null &&
+	make -C amixer LDFLAGS="-L$prefix/lib -all-static" >/dev/null &&
+	make -C aplay LDFLAGS="-L$prefix/lib -all-static" >/dev/null)
 mkdir -p out/bin
 cp "$UTILS/amixer/amixer" "$UTILS/aplay/aplay" out/bin/
 $HOST-strip out/bin/amixer out/bin/aplay
 ln -s aplay out/bin/arecord
 cp -R "$prefix/share/alsa" out/alsa
 sha256sum out/bin/amixer out/bin/aplay
-file out/bin/amixer out/bin/aplay
+for t in amixer aplay; do
+	file "out/bin/$t" | grep -q "statically linked" || { echo "$t is not static" >&2; exit 1; }
+done
