@@ -990,3 +990,4 @@ proposals/0401-arm64-dts-mediatek-gemini-mux-the-amplifier-pins.patch
 proposals/0402-wifi-mt6797-advertise-UNII-2A-UNII-2C-and-UNII-3.patch
 proposals/0403-ASoC-mt6797-keep-the-ADDA-hires-rate-in-NEWIF-CFG2.patch
 proposals/0404-ASoC-mt6797-clock-the-ADDA-path-for-96-kHz-and-above.patch
+proposals/0405-wifi-mt6797-ignore-regulatory-updates-that-change-no.patch

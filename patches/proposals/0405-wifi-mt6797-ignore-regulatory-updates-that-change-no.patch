@@ -1,0 +1,117 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 06:42:30 -0500
+Subject: [PATCH] wifi: mt6797: ignore regulatory updates that change nothing
+
+With regulatory.db present, cfg80211 acts on the access point's country
+element right after association. On the station the element repeats
+the country already set (US), but the notifier still ended the station
+lifetime (branch 9) and left the driver refusing every later scan.
+
+Remember the domain and power payloads the firmware last accepted, and
+return early when an update computes the same payloads: no command is
+sent and a lifetime in use continues. An update that does change them
+during a lifetime still ends it, as before.
+
+Part of the Wi-Fi daily-use plan, phase 2.
+---
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  3 ++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 39 +++++++++++++++----
+ 2 files changed, 35 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index d7cbd16f6..5f21ddb69 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -418,6 +418,9 @@ struct mt6797_mac {
+ 	struct ieee80211_channel channels[MT6797_CHANNELS];
+ 	struct ieee80211_rate rates[12];
+ 	char alpha2[2];
++	/* The domain and power the firmware last accepted. */
++	struct mt6797_regulatory_payloads reg_sent;
++	bool reg_sent_valid;
+ 	unsigned int sequence;
+ 	/* The first command sequence of lifetime 1, where a recycle restarts. */
+ 	unsigned int sequence_base;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index b94f6d17a..5c8c0322e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -381,6 +381,16 @@ static bool mt6797_mac_join_regulatory_stop(struct mt6797_mac *mac,
+ 	return true;
+ }
+ 
++static void mt6797_mac_set_alpha2(struct mt6797_mac *mac, const char *alpha2)
++{
++	if ((alpha2[0] >= 'A' && alpha2[0] <= 'Z' &&
++	     alpha2[1] >= 'A' && alpha2[1] <= 'Z') ||
++	    (alpha2[0] == '0' && alpha2[1] == '0'))
++		memcpy(mac->alpha2, alpha2, 2);
++	else
++		memcpy(mac->alpha2, "00", 2);
++}
++
+ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 				  struct regulatory_request *request)
+ {
+@@ -399,6 +409,20 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	mutex_lock(&mac->mutex);
+ 	if (mac->closing || mac->first_error)
+ 		goto out;
++	/* An update that leaves the firmware's domain and power as they are,
++	 * such as the access point's country element repeating the country
++	 * already set, needs no command and leaves a lifetime in use alone.
++	 */
++	if (mac->configured && mac->reg_sent_valid) {
++		char saved[2];
++
++		memcpy(saved, mac->alpha2, 2);
++		mt6797_mac_set_alpha2(mac, request->alpha2);
++		if (!mt6797_mac_policy(mac, &policy) &&
++		    !memcmp(&policy, &mac->reg_sent, sizeof(policy)))
++			goto out;
++		memcpy(mac->alpha2, saved, 2);
++	}
+ 	if (mt6797_mac_join_regulatory_stop(mac, &discard, &internal))
+ 		goto out;
+ 	/* Regulatory changes retire an accepted scan before submitting updates.
+@@ -412,12 +436,7 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 		ieee80211_scan_completed(mac->hw, &info);
+ 		goto out;
+ 	}
+-	if ((request->alpha2[0] >= 'A' && request->alpha2[0] <= 'Z' &&
+-	     request->alpha2[1] >= 'A' && request->alpha2[1] <= 'Z') ||
+-	    (request->alpha2[0] == '0' && request->alpha2[1] == '0'))
+-		memcpy(mac->alpha2, request->alpha2, 2);
+-	else
+-		memcpy(mac->alpha2, "00", 2);
++	mt6797_mac_set_alpha2(mac, request->alpha2);
+ 	/* Before configuration, save the tag only. The initial transaction
+ 	 * reads the effective channels again under RTNL, after registration.
+ 	 */
+@@ -432,6 +451,9 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	if (ret) {
+ 		mac->first_error = ret;
+ 		dev_err(wiphy_dev(wiphy), "regulatory submission stopped (%d)\n", ret);
++	} else {
++		mac->reg_sent = policy;
++		mac->reg_sent_valid = true;
+ 	}
+ out:
+ 	mutex_unlock(&mac->mutex);
+@@ -1808,8 +1830,11 @@ static int mt6797_mac_load_record(struct mt6797_mac *mac,
+ 	if (!ret)
+ 		ret = mt6797_mac_send(mac, MT6797_NORMAL_TX_CTRL,
+ 				      policy.power, sizeof(policy.power));
+-	if (!ret)
++	if (!ret) {
+ 		mac->configured = true;
++		mac->reg_sent = policy;
++		mac->reg_sent_valid = true;
++	}
+ 	return ret;
+ }
+ 
+-- 
+2.43.0
+
