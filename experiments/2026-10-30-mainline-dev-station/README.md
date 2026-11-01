@@ -111,9 +111,11 @@ a 1 MiB log buffer.
 **Lid handling (owner request after the first boot).**
 - [`station-dt.sh`](station-dt.sh) derives the station board tree from the
   package's `wifi-service` tree (revised after boot `bac0f387`, below):
-  - the hall node from 0074 is enabled as `gpio-keys-polled`, read every
-    100 ms: GPIO66, active-low, `EV_SW/SW_LID`, 64 ms debounce, GPIO mode,
-    no pull setting;
+  - the hall node from 0074 is enabled: GPIO66, active-low,
+    `EV_SW/SW_LID`, GPIO mode, no pull setting. Until station 20 it was
+    `gpio-keys-polled`, read every 100 ms with a 64 ms debounce. From
+    station 21 it is `gpio-keys` on EINT5 with no debounce (see
+    [lid interrupt](#lid-interrupt-station-21-owner-request));
   - the PWM backlight is enabled (display H8): `pwm_sel` on the 26 MHz
     oscillator, 1024 levels at 39385 ns, default level 512. The PWM node's
     MM `power-domains` reference is removed;
@@ -773,3 +775,21 @@ all six items.
 
 If it holds: load `mac` on the station; then module unload and reload
 (a detach in 0338's place); then the methodology change.
+
+## Lid interrupt (station 21, owner request)
+
+Owner request: make the lid detection interrupt-based. Until now the kernel
+polled GPIO66 every 100 ms, because EINT5 never fired on C1 to C1-5 or on
+station boot `bac0f387`. Patch 0377 since restored the EINT mux mode on
+EINT0-16 pads, and fixed the same silence on the keyboard's EINT10 (station
+16). `station-dt.sh` now keeps the hall node as `gpio-keys` on its
+interrupt and sets the debounce to 0. That avoids asking `mtk-eint` for
+hardware debounce on a dual-edge line, which C1 suspected.
+
+The kernel package (e80e197a) is unchanged; only the composed DTB differs.
+
+| Observation on station 21 | Decision |
+| --- | --- |
+| `gpio-keys` bound; the EINT5 count in `/proc/interrupts` rises on close and open; `SW_LID` events arrive and `lid-guard` blanks and restores | Keep the interrupt. Debounce stays an open item |
+| No EINT5 count and no `SW_LID` events, while the GPIO66 level follows the lid | 0377 alone is not enough. Check the pad mode and debounce state, then return to station 20 (polled) |
+| Repeated events for a single close or open | The Hall output bounces. Add a software debounce |

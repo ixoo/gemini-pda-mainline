@@ -1,11 +1,12 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
 # Derive the boot DTB from the package's station DTB (wifi-service plus SoC thermal):
-#   /gpio-keys                the hall lid switch (0074), enabled as
-#                             gpio-keys-polled every 100 ms: GPIO66's level
-#                             follows the lid on mainline, but EINT5 has never
-#                             fired (C1 to C1-5 boots, and station boot
-#                             bac0f387);
+#   /gpio-keys                the hall lid switch (0074), enabled on its
+#                             EINT5 interrupt. EINT5 never fired before 0377
+#                             restored the pad's EINT mux mode (C1 to C1-5
+#                             boots, station boot bac0f387). Debounce is 0:
+#                             gpio-keys would otherwise ask mtk-eint for
+#                             hardware debounce on the dual-edge line;
 #   /pwm@1100f000, /backlight the PWM backlight (display H8): pwm_sel on the
 #                             26 MHz oscillator, 1024 levels at 39385 ns,
 #                             default level 512. The PWM's MM power-domains
@@ -21,7 +22,6 @@
 set -eu
 
 KEYS=/gpio-keys
-POLL_MS=100
 PWM=/pwm@1100f000
 TOP=/topckgen@10000000
 OSC=/oscillator-26m
@@ -49,6 +49,7 @@ dtb=$work/out.dtb
 [ "$(fdtget -t s "$dtb" "$KEYS/hall-switch" label)" = "Hall lid" ]
 [ "$(fdtget -t u "$dtb" "$KEYS/hall-switch" linux,input-type)" = 5 ]
 [ "$(fdtget -t u "$dtb" "$KEYS/hall-switch" linux,code)" = 0 ]
+[ "$(fdtget -t u "$dtb" "$KEYS/hall-switch" debounce-interval)" = 64 ]
 if fdtget "$dtb" "$KEYS" poll-interval >/dev/null 2>&1; then exit 1; fi
 [ "$(fdtget -t s "$dtb" "$PWM" compatible)" = mediatek,mt6797-disp-pwm ]
 [ "$(fdtget -t s "$dtb" "$PWM" status)" = disabled ]
@@ -69,8 +70,7 @@ max=$(dtc -q -I dtb -O dts "$dtb" | sed -n 's/.*phandle = <\(0x[0-9a-f]*\)>;.*/\
 	while read -r h; do printf '%d\n' "$h"; done | sort -n | tail -1)
 pwm=$((max + 1))
 
-fdtput -t s "$dtb" "$KEYS" compatible gpio-keys-polled
-fdtput -t u "$dtb" "$KEYS" poll-interval "$POLL_MS"
+fdtput -t u "$dtb" "$KEYS/hall-switch" debounce-interval 0
 fdtput -t s "$dtb" "$KEYS" status okay
 fdtput -d "$dtb" "$PWM" power-domains
 fdtput -t s "$dtb" "$PWM" status okay
@@ -91,9 +91,8 @@ diff "$work/parent.dts" "$work/out.dts" | grep '^[<>]' |
 	sed 's/^\([<>]\)[[:space:]]*/\1 /; s/[[:space:]]*$//' | LC_ALL=C sort > "$work/delta"
 hex() { printf '0x%02x' "$1"; }
 LC_ALL=C sort > "$work/expected" <<DELTA
-< compatible = "gpio-keys";
-> compatible = "gpio-keys-polled";
-> poll-interval = <$(hex "$POLL_MS")>;
+< debounce-interval = <0x40>;
+> debounce-interval = <0x00>;
 < status = "disabled";
 < status = "disabled";
 < status = "disabled";
