@@ -20,8 +20,8 @@
 > microcontroller. See the
 > [GNSS userspace, firmware and protocol record](../2026-11-01-gemini-gnss-re/README.md)
 > and the durable [GNSS document](../../docs/hardware/gemini-gnss.md).
-> A later [device test](../2026-11-01-gemini-gnss-link/README.md) makes that
-> supersession doubtful: F16 may be right for the path stock actually uses.
+> A later [device test](../2026-11-01-gemini-gnss-link/README.md) leaves that
+> supersession open: F16 may be right for the path stock actually uses.
 
 ## Question
 

@@ -134,6 +134,23 @@ int main(void)
 		assert(utc[4] == 13 && utc[5] == 5 && utc[6] == 9 && !utc[7] && !utc[11]);
 	}
 
+	/* The start configuration, against mnld's field layout. */
+	{
+		unsigned char cfg[GFNS_CFG_BYTES], out[GFNS_CFG_BYTES + GFNS_OVERHEAD];
+
+		gfns_cfg(cfg);
+		assert(cfg[0] == 1 && cfg[3] == 2 && cfg[5] == 100 && cfg[8] == 0xff);
+		assert(cfg[9] == 0xd0 && cfg[10] == 0x07);
+		assert(gfns_get32(cfg + 11) == 26000000 && gfns_get32(cfg + 15) == 115200);
+		assert(gfns_get32(cfg + 19) == 1000 && gfns_get32(cfg + 24) == 0x800000f0);
+		assert(gfns_get32(cfg + 28) == 0xffff6797 && cfg[32] == 2);
+		for (i = 33; i < GFNS_CFG_BYTES; i++)
+			assert(!cfg[i]);
+		assert(gfns_encode(out, sizeof(out), GFNS_REQ_MNL_INIT_CFG, cfg, sizeof(cfg)) ==
+		       sizeof(out));
+		assert(out[2] == 0x14 && out[4] == 49 && out[5] == 0x45);
+	}
+
 	/* Refused bytes are counted, and a start byte kept for the next frame is not. */
 	gfns_rx_init(&rx);
 	assert(feed(bad_sum, 6, &f, NULL) == 0 && rx.dropped == 6);

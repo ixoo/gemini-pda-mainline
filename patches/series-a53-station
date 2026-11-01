@@ -607,3 +607,4 @@ proposals/0435-gnss-mt6797-do-not-start-the-receiver-by-default.patch
 proposals/0436-wifi-mt6797-retry-frames-as-the-vendor-does.patch
 proposals/0437-wifi-mt6797-advertise-the-scan-SSIDs.patch
 proposals/0438-wifi-mt6797-keep-data-at-three-transmit-attempts.patch
+proposals/0439-gnss-mt6797-send-the-vendor-s-start-configuration.patch

@@ -266,9 +266,9 @@ int main(void)
 		for (i = 0; i < 3; i++)
 			assert(stp_engine_rx(&e, 0x00, 3) == 0);
 		assert(stp_engine_rx(&e, 0x00, 3) == STP_ENGINE_EPROTO);
-		for (i = 0; i < STP_ENGINE_TRAIL + 5; i++)
+		for (i = 0; i < STP_ENGINE_AFTER + 5; i++)
 			assert(stp_engine_rx(&e, 0x7b, 3) == STP_ENGINE_EPROTO);
-		assert(e.after_count == STP_ENGINE_TRAIL && e.after[0] == 0x7b);
+		assert(e.after_count == STP_ENGINE_AFTER && e.after[0] == 0x7b);
 		n = stp_engine_trail(&e, trail);
 		assert(trail[n - 1] == 0x00 && e.trail_count == n);
 
