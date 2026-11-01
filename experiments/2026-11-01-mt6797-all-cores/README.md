@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `planned`; patches 0424-0427 written on the owner's approval and compile-checked, not run; the bring-up test below is not admitted and waits for the owner, and one read-only station reading is outstanding |
+| Status | `planned`; patches 0424-0428 written on the owner's approval and built, not run; the opt-in `mt6797-a53-station-a72` profile's boot-time activity and the bring-up test both wait for the owner |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -174,20 +174,66 @@ Choices that keep it small:
 - **Refuse on any mismatch.** The module checks the prestate in the table and does
   nothing if it differs. Nothing is retried.
 
-This costs the Image and DTB a rebuild once, which other sessions share, so it
-combines with their next boot. Patch 0424 takes effect at every boot, including on
-the A53s: their capability callbacks run and report them unaffected, by source.
-Patch 0425 changes nothing until the module loads, and 0426 adds only an
-uncontended mutex until then. The handoff and the I2C6 compatible do change boot:
-I2C6 binds about 45 s after boot, once the handoff's late check passes.
+All of this is opt-in, through the `mt6797-a53-station-a72` profile and
+`mt6797-gemini-pda-station-a72.dtb` ([0428](../../patches/proposals/0428-soc-mediatek-keep-the-MT6797-A72-boot-changes-opt-in.patch)).
+The plain station carries the patches with their options off, keeps its device tree,
+and gains only three unused exported functions, an unused flag and an unused mutex. Its accessors
+take no new lock. What the opt-in profile does at every boot is the next section.
 
 What the A72s would lack: Spectre v2, v4 and BHB mitigation (firmware has none, if
 the inference holds). The A53s are not affected either way.
 
+## What the A72 profile does at every boot
+
+The custodian asked this before flashing anything with the handoff on, and the owner
+must decide it: approving the patches did not approve this running at each boot. It
+applies only to the `mt6797-a53-station-a72` profile with its device tree, and it
+applies even if the module is never loaded.
+
+Evidence: source of the station series, undefined symbols of the compiled handoff
+object, and the resolved `kernel.config` and `System.map` of Buildbox package
+`eff98241...` (job `e1add137...-mt6797-a53-station-m1`), whose options match this
+profile. **None of this has booted on the station configuration.** Older candidates ran
+the same handoff, but never beside Wi-Fi, audio and GNSS.
+
+| Target | At boot | What stops anything more |
+| --- | --- | --- |
+| DA9214 | **No transfer and no write.** The adapter registers and the client appears, with no bus traffic | `REGULATOR_DA9211` and `REGULATOR_DA9213_LEGACY` are off and no such module is packaged. The adapter sets no detect class, so nothing scans the bus. The only kernel writer is `mt6797-a72.ko` |
+| Any regulator or PMIC | No access. The handoff and I2C code call no regulator or PMIC function | Absent from the code path |
+| DVFS and PCM (CSPM) | Reads only: exact stopped-signature samples at probe and 45 s later | No `writel` in the handoff source. The object's only register-map import is `regmap_read`. `mt6797_dvfsp_cspm_execute` exists, but its only caller (the clock backend) is not built |
+| Infracfg | Reads only, to observe the clock gate | As above |
+| Clocks | **Yes.** `I2C_APPM` goes one balanced enable and disable through the clock framework, so firmware's ungated clock ends gated. I2C6 then enables and disables its main and AP-DMA clocks once at probe | The gate is the point of the handoff. A mismatch faults it and I2C6 stays unusable. The AP-DMA clock is reference-counted, and by source the keyboard's I2C already toggles it |
+| I2C6 controller | **Yes, its own registers only.** `mtk_i2c_init_hw()` clears flags and sets timing. It writes `0` to the start register, which starts nothing | Existing driver behaviour, the same as the other I2C buses |
+| SCP | No access | The firmware-writer attestation option is **off**, so this configuration does not check the SCP is stopped. Binding I2C6 does not start or signal it |
+| Secure firmware | No SMC from the handoff or I2C driver. 0424's A53 callbacks make no SMC with no SMCCC conduit | Conduit check in 0424 |
+
+Behaviour worth noting:
+
+- The handoff probes asynchronously and waits up to 50 s, so boot does not wait on it.
+  I2C6 binds after its 45 s check, and only if the CSPM signature matches exactly. On a
+  mismatch it reports `access_grant=denied`, I2C6 stays unusable, and the module refuses.
+- **A new path exists for root.** `I2C_CHARDEV=y` makes the bus reachable as a new
+  `/dev/i2c-N`, so `i2cset` from a shell could write the DA9214, including changing a
+  voltage selector. Nothing does this, and the kernel guards above do not cover
+  it. **Do not point I2C tools at that bus.** It should number after the existing two,
+  because it binds last; confirm on the first boot.
+- 0424 sets five capability bits at boot and runs each one's callback on the A53s, which
+  read ID registers and report unaffected. No device register is touched, by source.
+
+Unproven until a boot shows it: that the clock change disturbs nothing else, that these
+effects hold together beside the station's other drivers, and that the CSPM signature
+still matches on this kernel. The first check on that boot is the handoff's log line and
+`0x1100e000.i2c` binding, with everything else unchanged.
+
+## Boot order
+
+Agreed with the custodian's default: boot the audio and Wi-Fi work first without this
+profile, then this profile alone as its own boot, so a failure can be attributed. Main's
+plain station no longer carries these effects, so nothing needs backing out.
+
 ## Associated code
 
-Patches 0424-0427, and the options at the end of
-[the station fragment](../../configs/gemini-a53-station.fragment). The module has
+Patches 0424-0428, and [the opt-in fragment](../../configs/gemini-a53-station-a72.fragment). The module has
 no DT binding document yet; that belongs with upstream work.
 
 Choices made while writing them:
@@ -211,7 +257,7 @@ the owner. Nothing built in the VM is booted.
 
 ## Procedure
 
-### Read-only reading on the running station (requested)
+### Read-only reading on the running station (done)
 
 Unique observation: the station's own state, which no earlier run could show.
 
@@ -246,7 +292,8 @@ The current and temperature lines are the baseline for the battery cost.
 
 ### Bring-up test (draft, not admitted)
 
-1. Build the station from a pushed commit on Buildbox, with the module `=m`.
+1. Build the `mt6797-a53-station-a72` profile from a pushed commit on Buildbox, with
+   `BUILD_MODULES=1`, and boot `mt6797-gemini-pda-station-a72.dtb`.
 2. Boot it with the module not loaded, and confirm Wi-Fi, audio, GNSS and PMIC
    readings are unchanged, and that I2C6 bound after about 45 s. That covers the
    built-in changes on their own.
@@ -273,7 +320,26 @@ failure there means returning to Gemian and reinstalling the previous boot2 imag
 
 ## Observations
 
-No device work yet. The reading above is the next observation.
+One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
+modules loaded and idle. No hang, write or module action.
+
+| Check | Value | Against the proven state |
+| --- | --- | --- |
+| `0x10006218`, `0x10006240`, `0x10006244` | `00010132`, `00010332`, `00010332` | Exact match |
+| `0x10006290`, `0x10222274` | `00000002`, `00000000` | Exact match |
+| `0x10006188`, `0x1000618c` | `003D8108`, `003DC2FF` | A72 bits 7:6 give the same off result. Bits 8, 9 and 14 differ and are not explained; the module does not read them |
+| `0x10006180`, `0x10006184` | `2B00005E`, `2B00004E` with audio | Bit 24 is AUDIO and bit 1 is CONN, which fits audio and Wi-Fi on. The module does not read them |
+| PSCI | `PSCIv0.2 detected`, no SMCCC version line | Supports the capability design |
+| CPUs | present `0-9`, online `0-7` | As expected |
+| `1100e000.i2c` | No driver bound | Expected: the handoff is off there. Whether it was deferred was not checked |
+| Battery | `current_now` 0, Not charging, 4338720 uV | **Not a usable idle baseline**, so the A72 idle cost needs another method |
+
+So the prestate table applies on this station. The driver's checks are the same ones
+compared here, and it would refuse on any difference.
+
+Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
+the Image with the earlier version of the options. It is an audit input, and superseded
+for booting because the plain station no longer carries these options.
 
 ## Analysis
 

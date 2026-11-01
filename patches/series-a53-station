@@ -596,3 +596,4 @@ proposals/0424-arm64-set-the-capabilities-of-the-late-MT6797-A72s.patch
 proposals/0425-arm64-mediatek-let-the-MT6797-A72-gate-open.patch
 proposals/0426-soc-mediatek-pmic-wrap-let-a-caller-hold-PMIC-access.patch
 proposals/0427-soc-mediatek-bring-up-the-MT6797-A72-pair-from-a-mod.patch
+proposals/0428-soc-mediatek-keep-the-MT6797-A72-boot-changes-opt-in.patch

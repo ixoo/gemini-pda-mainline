@@ -1,0 +1,151 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:16:03 -0500
+Subject: [PATCH] soc: mediatek: keep the MT6797 A72 boot changes opt-in
+
+Rebinding I2C6 behind the DVFSP handoff is new boot-time activity on the
+bus of a voltage regulator, and it should not reach every station build.
+Move it, and the module's node, to a separate station-a72 device tree.
+Take the wrapper's mutex only when the A72 module is configured.
+---
+ arch/arm64/boot/dts/mediatek/Makefile         |  1 +
+ .../mt6797-gemini-pda-station-a72.dts         | 32 +++++++++++++++++++
+ .../mediatek/mt6797-gemini-pda-station.dts    | 19 -----------
+ drivers/soc/mediatek/mtk-pmic-wrap.c          | 26 ++++++++++++---
+ 4 files changed, 55 insertions(+), 23 deletions(-)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+index 5bcf54c65..35554fd8d 100644
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -13,6 +13,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-physical-source.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-admission.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-wifi-service.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-station.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-station-a72.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-bananapi-bpi-r64.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+new file mode 100644
+index 000000000..0114b713f
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -0,0 +1,32 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ *
++ * The station with the A72 pair available: I2C6 back on the transport the
++ * proven DA9214 writes used, behind the DVFSP handoff, and the node the
++ * bring-up module binds to. Nothing here writes the DA9214 until that module
++ * loads.
++ */
++
++#include "mt6797-gemini-pda-station.dts"
++
++/ {
++	/*
++	 * Brings up the A72 pair when its module loads. The DA9214 stays on
++	 * the selector firmware left.
++	 */
++	a72-power@10222000 {
++		compatible = "mediatek,mt6797-a72-power";
++		reg = <0 0x10222000 0 0x1000>;
++		mediatek,spm = <&scpsys>;
++		mediatek,pwrap = <&pwrap>;
++		mediatek,buck = <&da9214>;
++		resets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
++		reset-names = "pwrap";
++	};
++};
++
++/* The transport the proven A72 writes used, in place of the generic one. */
++&i2c6 {
++	compatible = "mediatek,mt6797-idvfs-i2c";
++};
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 989def728..52aa9ef07 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -18,20 +18,6 @@ / {
+ 	 * IIO processed reading, raw x 3600 (the channel's x2 against 1.8 V),
+ 	 * that is the node voltage in mV x 4096.
+ 	 */
+-	/*
+-	 * Brings up the A72 pair when its module loads. The DA9214 stays on
+-	 * the selector firmware left.
+-	 */
+-	a72-power@10222000 {
+-		compatible = "mediatek,mt6797-a72-power";
+-		reg = <0 0x10222000 0 0x1000>;
+-		mediatek,spm = <&scpsys>;
+-		mediatek,pwrap = <&pwrap>;
+-		mediatek,buck = <&da9214>;
+-		resets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
+-		reset-names = "pwrap";
+-	};
+-
+ 	battery_ntc: thermal-sensor-battery {
+ 		compatible = "generic-adc-thermal";
+ 		#thermal-sensor-cells = <0>;
+@@ -237,11 +223,6 @@ &thermal {
+ 	status = "okay";
+ };
+ 
+-/* The transport the proven A72 writes used, in place of the generic one. */
+-&i2c6 {
+-	compatible = "mediatek,mt6797-idvfs-i2c";
+-};
+-
+ &pmic {
+ 	fuel-gauge {
+ 		compatible = "mediatek,mt6351-fuel-gauge";
+diff --git a/drivers/soc/mediatek/mtk-pmic-wrap.c b/drivers/soc/mediatek/mtk-pmic-wrap.c
+index 702e1f1d6..53bc58aaf 100644
+--- a/drivers/soc/mediatek/mtk-pmic-wrap.c
++++ b/drivers/soc/mediatek/mtk-pmic-wrap.c
+@@ -1578,20 +1578,38 @@ static int pwrap_write(struct pmic_wrapper *wrp, u32 adr, u32 wdata)
+ 	return wrp->slave->regops->pwrap_write(wrp, adr, wdata);
+ }
+ 
++static void pwrap_accessor_lock(struct pmic_wrapper *wrp)
++{
++	if (IS_ENABLED(CONFIG_MTK_MT6797_A72))
++		mutex_lock(&wrp->hold);
++}
++
++static void pwrap_accessor_unlock(struct pmic_wrapper *wrp)
++{
++	if (IS_ENABLED(CONFIG_MTK_MT6797_A72))
++		mutex_unlock(&wrp->hold);
++}
++
+ static int pwrap_regmap_read(void *context, u32 adr, u32 *rdata)
+ {
+ 	struct pmic_wrapper *wrp = context;
++	int ret;
+ 
+-	guard(mutex)(&wrp->hold);
+-	return pwrap_read(wrp, adr, rdata);
++	pwrap_accessor_lock(wrp);
++	ret = pwrap_read(wrp, adr, rdata);
++	pwrap_accessor_unlock(wrp);
++	return ret;
+ }
+ 
+ static int pwrap_regmap_write(void *context, u32 adr, u32 wdata)
+ {
+ 	struct pmic_wrapper *wrp = context;
++	int ret;
+ 
+-	guard(mutex)(&wrp->hold);
+-	return pwrap_write(wrp, adr, wdata);
++	pwrap_accessor_lock(wrp);
++	ret = pwrap_write(wrp, adr, wdata);
++	pwrap_accessor_unlock(wrp);
++	return ret;
+ }
+ 
+ /**

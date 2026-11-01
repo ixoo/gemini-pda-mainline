@@ -172,9 +172,3 @@ CONFIG_SND_SOC_MT6797=m
 CONFIG_SND_SOC_MT6797_MT6351=m
 CONFIG_SND_SOC_MT6351=m
 CONFIG_SND_SOC_AW8738=m
-# All ten cores (2026-11-01-mt6797-all-cores): the A72 capabilities must be set
-# at boot and the DVFSP handoff owns I2C6, so both are built in. The bring-up is
-# a module: loading it brings CPU8 and CPU9 online, and nothing loads it yet.
-CONFIG_ARM64_MT6797_LATE_A72=y
-CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
-CONFIG_MTK_MT6797_A72=m
