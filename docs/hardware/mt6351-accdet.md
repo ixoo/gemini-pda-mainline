@@ -109,6 +109,16 @@ Implementation stages:
 Do not copy the vendor moisture, four-key, AP-EINT or debug paths. They are
 not needed for the Gemini and would add unverified state.
 
+### 4.1 What was built first
+
+Proposals `0415`-`0417` are smaller than the shape above. The codec driver owns the
+jack through `set_jack()`, and the existing `mt6351-sound` cell carries interrupt
+13, so there is no new cell, DT node or binding. Only the EINT is armed, and plug
+and unplug are reported as `SND_JACK_HEADPHONE`. A separate driver is worth
+revisiting if classification and buttons outgrow the codec. See the
+[jack experiment](../../experiments/2026-11-01-gemini-jack-detect/README.md); it has
+not been booted.
+
 ## 5. Preconditions
 
 The driver should not be written before the card probes:

@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 08:30:48 -0500
+Subject: [PATCH] ASoC: mt6797: expose the MT6351 headphone jack
+
+Create a Headphone Jack on the card and hand it to the codec.
+---
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index fbb7e70..4622c46 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -6,6 +6,7 @@
+ // Author: KaiChieh Chuang <kaichieh.chuang@mediatek.com>
+ 
+ #include <linux/module.h>
++#include <sound/jack.h>
+ #include <sound/soc.h>
+ 
+ #include "mt6797-afe-common.h"
+@@ -26,6 +27,21 @@ static const struct snd_kcontrol_new mt6797_mt6351_controls[] = {
+ 	SOC_DAPM_PIN_SWITCH("Back Mic"),
+ };
+ 
++static struct snd_soc_jack mt6797_mt6351_jack;
++
++static int mt6797_mt6351_codec_init(struct snd_soc_pcm_runtime *rtd)
++{
++	struct snd_soc_component *codec = snd_soc_rtd_to_codec(rtd, 0)->component;
++	int ret;
++
++	ret = snd_soc_card_jack_new(rtd->card, "Headphone Jack",
++				    SND_JACK_HEADPHONE, &mt6797_mt6351_jack);
++	if (ret)
++		return ret;
++
++	return snd_soc_component_set_jack(codec, &mt6797_mt6351_jack, NULL);
++}
++
+ SND_SOC_DAILINK_DEFS(playback_1,
+ 	DAILINK_COMP_ARRAY(COMP_CPU("DL1")),
+ 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
+@@ -173,6 +189,7 @@ static struct snd_soc_dai_link mt6797_mt6351_dai_links[] = {
+ 	{
+ 		.name = "Primary Codec",
+ 		.no_pcm = 1,
++		.init = mt6797_mt6351_codec_init,
+ 		.ignore_suspend = 1,
+ 		SND_SOC_DAILINK_REG(primary_codec),
+ 	},

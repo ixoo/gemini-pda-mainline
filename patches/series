@@ -1000,3 +1000,6 @@ proposals/0411-ASoC-mt6797-do-not-write-through-empty-codec-arrays.patch
 proposals/0412-wifi-mt6797-scan-both-bands-in-one-hardware-scan.patch
 proposals/0413-wifi-mt6797-send-the-regulatory-state-on-a-re-attach.patch
 proposals/0414-wifi-mt6797-join-any-non-DFS-5-GHz-channel.patch
+proposals/0415-mfd-mt6397-pass-the-MT6351-ACCDET-EINT-to-the-codec.patch
+proposals/0416-ASoC-mt6351-report-the-jack-from-the-ACCDET-EINT.patch
+proposals/0417-ASoC-mt6797-expose-the-MT6351-headphone-jack.patch

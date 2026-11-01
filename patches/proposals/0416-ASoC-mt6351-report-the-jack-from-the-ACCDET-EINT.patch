@@ -1,0 +1,250 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 08:30:48 -0500
+Subject: [PATCH] ASoC: mt6351: report the jack from the ACCDET EINT
+
+The MT6351 accessory-detect block signals a jack change on its EINT. Run
+that part of the block through the set_jack() op and report plug and
+unplug as SND_JACK_HEADPHONE.
+
+The sequence follows the Gemini board values and only arms the EINT. The
+detection unit, which would tell a headset from headphones, stays off, as
+do microphone detection and the headset buttons.
+---
+ sound/soc/codecs/mt6351.c | 157 ++++++++++++++++++++++++++++++++++++++
+ sound/soc/codecs/mt6351.h |  17 +++++
+ 2 files changed, 174 insertions(+)
+
+diff --git a/sound/soc/codecs/mt6351.c b/sound/soc/codecs/mt6351.c
+index 081a277..976770c 100644
+--- a/sound/soc/codecs/mt6351.c
++++ b/sound/soc/codecs/mt6351.c
+@@ -6,13 +6,16 @@
+ // Author: KaiChieh Chuang <kaichieh.chuang@mediatek.com>
+ 
+ #include <linux/dma-mapping.h>
++#include <linux/interrupt.h>
+ #include <linux/platform_device.h>
++#include <linux/regmap.h>
+ #include <linux/slab.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/delay.h>
+ 
+ #include <sound/core.h>
++#include <sound/jack.h>
+ #include <sound/pcm.h>
+ #include <sound/soc.h>
+ #include <sound/tlv.h>
+@@ -195,6 +198,10 @@ struct mt6351_priv {
+ 	int ana_gain[AUDIO_ANALOG_VOLUME_TYPE_MAX];
+ 
+ 	int hp_en_counter;
++
++	int accdet_irq;
++	struct snd_soc_jack *jack;
++	bool jack_in;
+ };
+ 
+ static void set_hp_gain_zero(struct snd_soc_component *cmpnt)
+@@ -1437,8 +1444,146 @@ static int mt6351_codec_probe(struct snd_soc_component *cmpnt)
+ 	return 0;
+ }
+ 
++/* MT6351_TOP_CKPDN_CON2 */
++#define RG_ACCDET_CK_PDN		BIT(9)
++/* MT6351_TOP_RST_CON0 */
++#define RG_ACCDET_RST			BIT(4)
++/* MT6351_ACCDET_CON1 */
++#define ACCDET_EINT_EN			BIT(2)
++/* MT6351_ACCDET_CON2 */
++#define ACCDET_SWCTRL_EN		GENMASK(2, 0)
++#define ACCDET_EINT_PWM_EN		BIT(3)
++/* MT6351_ACCDET_CON12 */
++#define ACCDET_EINT_STATUS		BIT(2)
++#define ACCDET_EINT_CLR			BIT(10)
++#define ACCDET_EINT_POL_HIGH		BIT(15)
++/* MT6351_ACCDET_CON15 */
++#define ACCDET_EINT_DEBOUNCE		GENMASK(6, 4)
++#define ACCDET_EINT_DEBOUNCE_IN		(6 << 4)	/* 256 ms */
++#define ACCDET_EINT_DEBOUNCE_OUT	(0 << 4)	/* 1 ms */
++#define ACCDET_EINT_PWM_THRESH		BIT(10)
++/* MT6351_AUDENC_ANA_CON10: reference and low power, not MICBIAS1 power */
++#define ACCDET_MICBIAS1_BITS		GENMASK(7, 4)
++/* MT6351_AUDENC_ANA_CON11 */
++#define ACCDET_ANALOG_BITS		GENMASK(3, 0)
++#define ACCDET_EINT_CON_EN		BIT(11)
++
++static void mt6351_accdet_enable(struct mt6351_priv *priv)
++{
++	struct regmap *map = priv->regmap;
++
++	regmap_write(map, MT6351_TOP_CKPDN_CON2_CLR, RG_ACCDET_CK_PDN);
++	regmap_write(map, MT6351_TOP_RST_CON0_SET, RG_ACCDET_RST);
++	regmap_write(map, MT6351_TOP_RST_CON0_CLR, RG_ACCDET_RST);
++
++	/* PWM and debounce values from the Gemini board description. */
++	regmap_write(map, MT6351_ACCDET_CON3, 0x500 - 1);
++	regmap_write(map, MT6351_ACCDET_CON4, 0x500 - 1);
++	regmap_write(map, MT6351_ACCDET_CON2, ACCDET_SWCTRL_EN);
++	regmap_write(map, MT6351_ACCDET_CON5, BIT(15) | 0x1f0);
++	regmap_write(map, MT6351_ACCDET_CON6, 0x800);
++	regmap_write(map, MT6351_ACCDET_CON7, 0x800);
++	regmap_write(map, MT6351_ACCDET_CON9, 0x20);
++	regmap_write(map, MT6351_ACCDET_CON10, 0x42);
++
++	/* Wait for a plug: the EINT is active low until one is seen. */
++	regmap_update_bits(map, MT6351_ACCDET_CON12,
++			   ACCDET_EINT_POL_HIGH | ACCDET_EINT_CLR, 0);
++	priv->jack_in = false;
++
++	regmap_set_bits(map, MT6351_AUDENC_ANA_CON11, ACCDET_ANALOG_BITS);
++	regmap_set_bits(map, MT6351_AUDENC_ANA_CON10, ACCDET_MICBIAS1_BITS);
++	regmap_write(map, MT6351_ACCDET_CON0, 0x10);
++	regmap_set_bits(map, MT6351_AUDENC_ANA_CON11, ACCDET_EINT_CON_EN);
++
++	regmap_update_bits(map, MT6351_ACCDET_CON15, ACCDET_EINT_DEBOUNCE,
++			   ACCDET_EINT_DEBOUNCE_IN);
++	regmap_set_bits(map, MT6351_ACCDET_CON15, ACCDET_EINT_PWM_THRESH);
++
++	/* EINT only: the detection unit itself stays off. */
++	regmap_write(map, MT6351_ACCDET_CON2, ACCDET_EINT_PWM_EN);
++	regmap_set_bits(map, MT6351_ACCDET_CON1, ACCDET_EINT_EN);
++}
++
++static void mt6351_accdet_disable(struct mt6351_priv *priv)
++{
++	struct regmap *map = priv->regmap;
++
++	regmap_clear_bits(map, MT6351_ACCDET_CON1, ACCDET_EINT_EN);
++	regmap_write(map, MT6351_ACCDET_CON2, 0);
++	regmap_clear_bits(map, MT6351_AUDENC_ANA_CON11,
++			  ACCDET_EINT_CON_EN | ACCDET_ANALOG_BITS);
++	regmap_clear_bits(map, MT6351_AUDENC_ANA_CON10, ACCDET_MICBIAS1_BITS);
++	regmap_write(map, MT6351_TOP_CKPDN_CON2_SET, RG_ACCDET_CK_PDN);
++}
++
++static irqreturn_t mt6351_accdet_eint(int irq, void *data)
++{
++	struct mt6351_priv *priv = data;
++	struct regmap *map = priv->regmap;
++	unsigned int sts;
++	int ret;
++
++	ret = regmap_read(map, MT6351_ACCDET_CON12, &sts);
++	if (ret || !(sts & ACCDET_EINT_STATUS))
++		return IRQ_NONE;
++
++	priv->jack_in = !priv->jack_in;
++
++	/* Wait for the opposite level; a removal needs only a short debounce. */
++	regmap_update_bits(map, MT6351_ACCDET_CON12, ACCDET_EINT_POL_HIGH,
++			   priv->jack_in ? ACCDET_EINT_POL_HIGH : 0);
++	regmap_update_bits(map, MT6351_ACCDET_CON15, ACCDET_EINT_DEBOUNCE,
++			   priv->jack_in ? ACCDET_EINT_DEBOUNCE_OUT :
++					   ACCDET_EINT_DEBOUNCE_IN);
++
++	regmap_set_bits(map, MT6351_ACCDET_CON12, ACCDET_EINT_CLR);
++	ret = regmap_read_poll_timeout(map, MT6351_ACCDET_CON12, sts,
++				       !(sts & ACCDET_EINT_STATUS), 100, 2000);
++	if (ret)
++		dev_warn(priv->dev, "ACCDET EINT stuck: 0x%x\n", sts);
++	regmap_clear_bits(map, MT6351_ACCDET_CON12, ACCDET_EINT_CLR);
++
++	dev_info(priv->dev, "jack %s\n", priv->jack_in ? "in" : "out");
++	snd_soc_jack_report(priv->jack, priv->jack_in ? SND_JACK_HEADPHONE : 0,
++			    SND_JACK_HEADPHONE);
++
++	return IRQ_HANDLED;
++}
++
++static int mt6351_set_jack(struct snd_soc_component *cmpnt,
++			   struct snd_soc_jack *jack, void *data)
++{
++	struct mt6351_priv *priv = snd_soc_component_get_drvdata(cmpnt);
++
++	if (priv->accdet_irq <= 0 || jack == priv->jack)
++		return 0;
++
++	if (priv->jack) {
++		disable_irq(priv->accdet_irq);
++		mt6351_accdet_disable(priv);
++	}
++
++	priv->jack = jack;
++
++	if (jack) {
++		snd_soc_jack_report(jack, 0, SND_JACK_HEADPHONE);
++		mt6351_accdet_enable(priv);
++		enable_irq(priv->accdet_irq);
++	}
++
++	return 0;
++}
++
++static void mt6351_codec_remove(struct snd_soc_component *cmpnt)
++{
++	mt6351_set_jack(cmpnt, NULL, NULL);
++}
++
+ static const struct snd_soc_component_driver mt6351_soc_component_driver = {
+ 	.probe = mt6351_codec_probe,
++	.remove = mt6351_codec_remove,
++	.set_jack = mt6351_set_jack,
+ 	.controls = mt6351_snd_controls,
+ 	.num_controls = ARRAY_SIZE(mt6351_snd_controls),
+ 	.dapm_widgets = mt6351_dapm_widgets,
+@@ -1451,6 +1596,7 @@ static const struct snd_soc_component_driver mt6351_soc_component_driver = {
+ static int mt6351_codec_driver_probe(struct platform_device *pdev)
+ {
+ 	struct mt6351_priv *priv;
++	int ret;
+ 
+ 	priv = devm_kzalloc(&pdev->dev,
+ 			    sizeof(struct mt6351_priv),
+@@ -1477,6 +1623,17 @@ static int mt6351_codec_driver_probe(struct platform_device *pdev)
+ 	dev_dbg(priv->dev, "%s(), dev name %s\n",
+ 		__func__, dev_name(&pdev->dev));
+ 
++	/* Enabled once the card provides a jack. */
++	priv->accdet_irq = platform_get_irq_byname_optional(pdev, "accdet_eint");
++	if (priv->accdet_irq > 0) {
++		ret = devm_request_threaded_irq(&pdev->dev, priv->accdet_irq,
++						NULL, mt6351_accdet_eint,
++						IRQF_ONESHOT | IRQF_NO_AUTOEN,
++						"mt6351-accdet", priv);
++		if (ret)
++			return ret;
++	}
++
+ 	return devm_snd_soc_register_component(&pdev->dev,
+ 					       &mt6351_soc_component_driver,
+ 					       mt6351_dai_driver,
+diff --git a/sound/soc/codecs/mt6351.h b/sound/soc/codecs/mt6351.h
+index 04b2ab6..7241da7 100644
+--- a/sound/soc/codecs/mt6351.h
++++ b/sound/soc/codecs/mt6351.h
+@@ -97,6 +97,23 @@
+ #define MT6351_AUDENC_ANA_CON9     0x0D1A
+ #define MT6351_AUDENC_ANA_CON10    0x0D1C
+ #define MT6351_AUDENC_ANA_CON11    0x0D1E
++
++#define MT6351_TOP_CKPDN_CON2_SET  0x0248
++#define MT6351_TOP_CKPDN_CON2_CLR  0x024A
++#define MT6351_TOP_RST_CON0_SET    0x02AA
++#define MT6351_TOP_RST_CON0_CLR    0x02AC
++#define MT6351_ACCDET_CON0         0x0F46
++#define MT6351_ACCDET_CON1         0x0F48
++#define MT6351_ACCDET_CON2         0x0F4A
++#define MT6351_ACCDET_CON3         0x0F4C
++#define MT6351_ACCDET_CON4         0x0F4E
++#define MT6351_ACCDET_CON5         0x0F50
++#define MT6351_ACCDET_CON6         0x0F52
++#define MT6351_ACCDET_CON7         0x0F54
++#define MT6351_ACCDET_CON9         0x0F58
++#define MT6351_ACCDET_CON10        0x0F5A
++#define MT6351_ACCDET_CON12        0x0F5E
++#define MT6351_ACCDET_CON15        0x0F64
+ #define MT6351_AUDENC_ANA_CON12    0x0D20
+ #define MT6351_AUDENC_ANA_CON13    0x0D22
+ #define MT6351_AUDENC_ANA_CON14    0x0D24

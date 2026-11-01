@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 08:30:48 -0500
+Subject: [PATCH] mfd: mt6397: pass the MT6351 ACCDET EINT to the codec
+
+The MT6351 accessory-detect block raises PMIC interrupt 13 on a jack
+change. Hand it to the mt6351-sound cell, which owns the jack.
+---
+ drivers/mfd/mt6397-core.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index c562d4e..807d2bb 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -124,6 +124,10 @@ static const struct resource mt6331_keys_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6331_IRQ_STATUS_HOMEKEY, "homekey"),
+ };
+ 
++static const struct resource mt6351_sound_resources[] = {
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_ACCDET_EINT, "accdet_eint"),
++};
++
+ static const struct resource mt6351_keys_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_PWRKEY, "powerkey"),
+ 	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_HOMEKEY, "homekey"),
+@@ -241,6 +245,8 @@ static const struct mfd_cell mt6351_devs[] = {
+ 		.of_compatible = "mediatek,mt6351-rtc",
+ 	}, {
+ 		.name = "mt6351-sound",
++		.num_resources = ARRAY_SIZE(mt6351_sound_resources),
++		.resources = mt6351_sound_resources,
+ 		.of_compatible = "mediatek,mt6351-sound",
+ 	}, {
+ 		.name = "mt6351-keys",
