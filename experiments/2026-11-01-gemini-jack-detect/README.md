@@ -48,6 +48,11 @@ the unplug EINT needs either is one thing this test shows.
 
 Buildbox-3, commit `d053ffd13f6dace0c32e3423b9c8f7672b0c1fd4`, job `d053ffd1…-mt6797-a53-station-m1`, inventory `13d0656e…`. Compiled, checksums pass. Device action: none.
 
+At the custodian's request, so that one image carries audio, Wi-Fi and GNSS, the test
+package is commit `b3cfdeb6cb720a7570839f201ec4772a8346b8e9`, job
+`b3cfdeb6…-mt6797-a53-station-m1`, inventory `ca1802df…`, `Image.gz` `ee620135…`, with
+`0415`-`0419`. Its audio modules match the `d053ffd1` package. Device action: none.
+
 ## Safety assessment
 
 The kernel image changes, so this needs a boot2 write through the reviewed path.
