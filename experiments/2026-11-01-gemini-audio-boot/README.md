@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-boot` |
-| Status | `planned`: RAM root composed offline, device test requested; not booted |
+| Status | `completed`: station 31 boots with audio ready; AUDIO stays on when idle, cost being measured |
 | Subsystem | audio; station RAM root |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -88,15 +88,42 @@ See the request to the custodian; run on one boot with the headphones out at pow
 
 ## Observations
 
-None yet: no boot.
+**Station 31 (boot `24465562`, boot2 `293a0dbc`, package `b36b2f7f`, `Image.gz` `933a7d70`), run
+by the custodian, owner present, headphones out at power-on:**
+
+- `/run/station/status` holds `audio=ready`; card 0 present at 24.5 s; SSH with no delay;
+  `mt6351-accdet` count 0; CPUs 0-7; not tainted.
+- Wi-Fi joined channel 40 through `wifi-up.sh`, signal -61 dBm, ping 5/5, and 3/3 afterwards.
+- Tone with the headphones out: `aplay` rc 0, count stayed 0, jack off.
+- Owner plug: `jack in` at 308.44 s, count 1. Three tones at the minimum gain, rc 0 each, count
+  stayed 1. The owner: "Heard in both ears".
+- `0x10006180` = `0x2B00005E` and `0x10006314` = `0x3330000D` in every reading: before any tone,
+  after it, and after 30 s idle.
+
+Not tried on this boot: speakers, microphones, unplug.
 
 ## Analysis
 
-None yet.
+The hypothesis holds. Plain `aplay` plays with no setup, every boot reaches `audio=ready`, and
+Wi-Fi is unchanged.
+
+**The first-power-up false interrupt is ruled out for this case.** This boot took the card
+through load and a first tone with the headphones out and raised nothing, then saw the first
+plug. So the 156 s event on station 30 was most likely the owner's plug, too.
+
+**AUDIO stays on from load.** Bit 24 is set in every reading (`0x2A…` before load on stations 27
+and 29), and `PWR_CON` reads powered. The reason is in the mainline driver:
+`mt6797_afe_pcm_dev_probe()` calls `pm_runtime_get_sync()` with no matching put until removal,
+so the domain and the AFE clocks never idle. Inference: simply dropping that hold is unsafe, because
+the AFE regmap has no cache, and a mixer write with the domain off would reach an unpowered
+block. Letting it idle needs a register cache, as `mt8183` has, and that needs its own test.
+The cost in battery is not measured yet.
 
 ## Conclusion
 
-`inconclusive`: nothing here establishes hardware behavior.
+`confirmed` for the named Gemini, Linux 7.1.3 and package `b36b2f7f`: audio is ready after boot
+and plays through the headphones with no setup. Audio holds its power domain and clocks on
+for the whole uptime, at a cost still to be measured.
 
 ## Follow-up
 
