@@ -860,3 +860,4 @@ proposals/0385-Input-matrix_keypad-settle-ghost-rectangles-with-a-d.patch
 proposals/0386-Input-misc-add-a-Gemini-PDA-lid-policy.patch
 proposals/0387-Input-export-input_inhibit_device-and-input_uninhibi.patch
 proposals/0388-Input-gemini-lid-inhibit-the-keyboard-instead-of-fil.patch
+proposals/0389-wifi-mt6797-fold-the-station-configuration-and-remov.patch
