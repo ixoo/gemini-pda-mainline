@@ -44,8 +44,9 @@ driver needs. Checked against the clean series (0390-0414):
 - **This is the missing prerequisite.** A GNSS receiver sends frames whenever it
   likes, so it needs a receive path that stays on.
 - No code in the clean series sends GPS function-on or drives GPIO 69.
-- `CONFIG_GNSS=y` is already in the station configuration, so a GNSS driver adds
-  a module and should not change `Image`.
+- `CONFIG_GNSS=y` is already in the station configuration, so the driver only
+  adds a module. `Image` still changes, because it embeds the configuration
+  (see [Build](#build)).
 
 **Read from the retained decompile this session:**
 - The vendor receiver's GFNS checksum covers bytes 1 to 4 of the header
@@ -116,13 +117,29 @@ adds the `gnss-mt6797` module and its GFNS receive parser.
 | `run-tests.sh` on the actual headers, ASan and UBSan, in the dev VM | passes: routing, window, ACK retirement, unbind, largest frame, stream across unbind, fail-stops; GFNS framing, channel, split at every chunk size, refusal and restart |
 | `mt6797-consys.o`, `mt6797.o` in the dev VM, W=1, station configuration | no warnings |
 | `checkpatch --strict` on both patches | only the MAINTAINERS note for new files |
-| Buildbox build | see [Build](#build) |
+| Buildbox build | passes; see [Build](#build) |
 | Interrupt handler, timer, teardown | review only |
 | On the device | nothing |
 
 ## Build
 
-Pending at this commit.
+Buildbox-2, commit `7ab57de0`, job `7ab57de0…-mt6797-a53-station-m1`, 590
+patches, inventory `0877cb7d…`, validated and fetched. No device action.
+
+| File | SHA-256 |
+| --- | --- |
+| `Image.gz` | `ee620135256732d4d095d6210a7bb177c3cc55daf82b01c5327e2b57951a41c6` |
+| `gnss-mt6797.ko` | `024591361ab5819a6fdb5ca2d26f09d0150f366dea7baab88d6ab1b865d9e483` |
+| `mt6797-consys.ko` | `9c47dacad5bd70d62ac6af235d650904608fb871432456e1549fdd748e7fdd42` |
+
+Compared with the jack-detection package `d053ffd1` (inventory `13d0656e…`), the
+series before these patches:
+- Observed: the configuration differs by the one `CONFIG_GNSS_MT6797=m` line, the
+  Gemini DTBs are identical, and among modules only `mt6797-consys.ko` changes and
+  `gnss-mt6797.ko` is new.
+- `Image.gz` differs (`51e5c1f8…` there). Inferred: only through the embedded
+  configuration (`CONFIG_IKCONFIG=y`), whose size shifts later symbols. The byte
+  differences were not walked one by one.
 
 ## Device test T1 (no radio action)
 
@@ -130,8 +147,10 @@ Run by the parent session as custodian. Hypothesis as above. The unique
 observation is what the firmware has sent on BTIF since the start chain ended,
 and whether the link answers next to a running Wi-Fi.
 
-Setup: a station with Wi-Fi up, then the modules from the package, swapped by the
-reviewed reload path. Record `uname -a`, the boot ID and the module hashes.
+Setup: a station with Wi-Fi up, either booted from this package or from
+`d053ffd1` with the two modules above swapped in by the reviewed reload path. The
+release string matches and the station has no module versioning. Record
+`uname -a`, the boot ID and the module hashes.
 
 ```sh
 grep -c mt6797-stp /proc/interrupts       # 0 before any open
