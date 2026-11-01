@@ -6,7 +6,8 @@ Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
 adds the Wi-Fi and gemini-lid modules under lib/modules/<release>/ and, from TOOLS, the static
 lid-guard, power-status and charge-guard binaries (built from their .c
-files; inittab starts charge-guard); gives Fn+B and Fn+N no console action, since lid-guard
+files; inittab starts charge-guard), the static ALSA tools and their alsa/
+configuration (from build-alsa-tools.sh); gives Fn+B and Fn+N no console action, since lid-guard
 uses them for brightness. Writes a newc archive with zero timestamps,
 compressed with gzip -n -9 like the parent.
 
@@ -29,7 +30,7 @@ parse_newc = runpy.run_path(
 DROP = {'init', 'etc/inittab', 'etc/passwd', 'etc/shells', 'bin/usb-auth',
         'bin/reboot', 'bin/reboot-dispatch.env', 'bin/admin-shell',
         'bin/console-status', 'bin/kmsg-capture', 'bin/kmsg-seal', 'bin/x-record'}
-DIR, FILE, CHR = 0o040000, 0o100000, 0o020000
+DIR, FILE, CHR, LNK = 0o040000, 0o100000, 0o020000, 0o120000
 KEY_B, KEY_N, K_HOLE = 48, 49, 0x0200
 # The kernel opens /dev/console from the archive before init mounts devtmpfs.
 CONSOLE = ('dev/console', CHR | 0o600, (5, 1))
@@ -81,7 +82,16 @@ def main(parent, modules, tools, release, output):
     files['bin/console-shell'] = (FILE | 0o755, (src/'console-shell').read_bytes())
     files['bin/setterm'] = (FILE | 0o755, (src/'setterm').read_bytes())
     files['bin/flash-boot2'] = (FILE | 0o755, (src/'flash-boot2').read_bytes())
-    for tool in ['lid-guard', 'power-status', 'charge-guard']:
+    files['bin/audio-start'] = (FILE | 0o755, (src/'audio-start').read_bytes())
+    files['bin/arecord'] = (LNK | 0o777, b'aplay')
+    for d in ['usr', 'usr/share']:
+        files.setdefault(d, (DIR | 0o755, b''))
+    alsa = Path(tools)/'alsa'
+    assert (alsa/'alsa.conf').is_file(), ('tools lack', alsa)
+    for path in [alsa, *sorted(alsa.rglob('*'))]:
+        name = 'usr/share/alsa/' + str(path.relative_to(alsa)) if path != alsa else 'usr/share/alsa'
+        files[name] = (DIR | 0o755, b'') if path.is_dir() else (FILE | 0o644, path.read_bytes())
+    for tool in ['lid-guard', 'power-status', 'charge-guard', 'amixer', 'aplay']:
         files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
     # wireless-regdb's signed database, for cfg80211's country rules.
     for name in ['regulatory.db', 'regulatory.db.p7s']:

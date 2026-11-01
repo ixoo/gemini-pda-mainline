@@ -36,6 +36,14 @@ def main(package, parent, tools, output):
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
+    # Loaded by audio-start, in its order.
+    for path in ['core/snd.ko', 'core/snd-timer.ko', 'core/snd-pcm.ko', 'core/snd-pcm-dmaengine.ko',
+                 'soc/snd-soc-core.ko', 'soc/mediatek/common/snd-soc-mtk-common.ko',
+                 'soc/codecs/snd-soc-mt6351.ko', 'soc/codecs/snd-soc-aw8738.ko',
+                 'soc/mediatek/mt6797/snd-soc-mt6797-afe.ko', 'soc/mediatek/mt6797/mt6797-mt6351.ko']:
+        found = sorted(package.glob('modules/lib/modules/*/kernel/sound/' + path))
+        assert len(found) == 1, ('one module expected in the package', path, found)
+        modules += found
     module = modules[0]
     release = release or module.parts[module.parts.index('modules') + 3]
     assert release.endswith('-gemini-a53-station'), release
@@ -73,6 +81,7 @@ def main(package, parent, tools, output):
               'power_status_sha256': sha(Path(tools)/'power-status'),
               'regulatory_db_sha256': sha(Path(tools)/'regulatory.db'),
               'charge_guard_sha256': sha(Path(tools)/'charge-guard'),
+              'amixer_sha256': sha(Path(tools)/'amixer'), 'aplay_sha256': sha(Path(tools)/'aplay'),
               'initramfs_sha256': sha(ram), 'boot_img_bytes': len(raw), 'boot2_sha256': sha(padded)}
     (output/'station.json').write_text(json.dumps(record, indent=2) + '\n')
     print(json.dumps(record, indent=2))

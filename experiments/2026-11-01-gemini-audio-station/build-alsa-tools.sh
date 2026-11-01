@@ -22,12 +22,14 @@ echo "$UTILS_SHA  $UTILS.tar.bz2" | sha256sum -c -
 rm -rf "$LIB" "$UTILS" prefix out
 tar xf "$LIB.tar.bz2"
 tar xf "$UTILS.tar.bz2"
-prefix=$PWD/prefix
+# Installed under a stage, so the tools look for their configuration in /usr/share/alsa.
+stage=$PWD/prefix
+prefix=$stage/usr
 
-(cd "$LIB" && ./configure --host=$HOST --prefix="$prefix" \
+(cd "$LIB" && ./configure --host=$HOST --prefix=/usr \
 	--enable-static --disable-shared --disable-ucm --disable-topology \
 	--disable-rawmidi --disable-hwdep --disable-seq --disable-python \
-	>/dev/null && make -j8 install >/dev/null)
+	>/dev/null && make -j8 DESTDIR="$stage" install >/dev/null)
 # libtool drops -static; only -all-static reaches the linker.
 (cd "$UTILS" && CPPFLAGS=-I"$prefix/include" LDFLAGS="-L$prefix/lib" \
 	./configure --host=$HOST --with-alsa-prefix="$prefix/lib" \

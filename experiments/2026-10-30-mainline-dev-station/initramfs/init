@@ -69,4 +69,6 @@ for module in mt6797-wlan-core mt6797-consys mac; do
 done
 # The owner's regulatory country; cfg80211 applies it from regulatory.db.
 if LD_LIBRARY_PATH=/lib /bin/iw reg set US; then status reg=US; else status reg=set-failed; fi
+# Audio, quiet until a stream runs.
+status "audio=$(/bin/audio-start)"
 exec $bb init

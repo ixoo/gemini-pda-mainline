@@ -1,0 +1,47 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Load the audio stack and leave it quiet: gains at the minimum, speakers and
+# microphones off, playback routed to the headphones. Nothing is powered until
+# a stream runs. Prints one word for the station status; see
+# experiments/2026-11-01-gemini-audio-boot.
+dir=/lib/modules/$(uname -r)
+for module in snd snd-timer snd-pcm snd-pcm-dmaengine snd-soc-core \
+    snd-soc-mtk-common snd-soc-mt6351 snd-soc-aw8738 snd-soc-mt6797-afe mt6797-mt6351; do
+    if ! insmod "$dir/$module.ko" 2>/dev/null; then
+        echo "$module-failed"
+        exit 1
+    fi
+done
+waited=0
+while ! grep -q mt6797 /proc/asound/cards 2>/dev/null; do
+    if [ "$waited" -ge 5 ]; then
+        echo no-card
+        exit 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+done
+card=$(sed -n 's/^ *\([0-9][0-9]*\) \[mt6797.*/\1/p' /proc/asound/cards | head -1)
+while IFS='=' read -r control value; do
+    if ! amixer -c "$card" -q cset "name=$control" "$value" 2>/dev/null; then
+        echo "mixer-failed"
+        exit 1
+    fi
+done <<EOF
+Speaker Switch=off
+Main Mic Switch=off
+Back Mic Switch=off
+Headset Mic Switch=off
+Headphone Volume=0,0
+Lineout Volume=0,0
+Handset Volume=0
+PGA Volume=0,0
+DAC In Mux=Normal Path
+HPL Mux=Audio Playback
+HPR Mux=Audio Playback
+ADDA_DL_CH1 DL1_CH1=on
+ADDA_DL_CH2 DL1_CH2=on
+Headphone Switch=on
+EOF
+echo ready
