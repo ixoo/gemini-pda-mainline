@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 31 Oct 2026 20:20:00 -0400
+Subject: [PATCH] Input: matrix_keypad: settle ghost rectangles with a driven
+ rescan
+
+The ghost filter drops any scan where three keys form three corners of a
+rectangle. On the Gemini PDA that loses every Ctrl+Alt combination with a
+key in Ctrl's or Alt's column: Ctrl (row 4, column 6), Alt (row 4, column
+1) and 7 (row 0, column 6) also read 2 (row 0, column 1), so the 7 is
+never reported. With inactive columns undriven, 7 and 2 are electrically
+symmetric and that scan cannot tell them apart.
+
+When a scan is ambiguous, scan once more with every inactive column
+driven to its inactive level. A row then connects only to the columns of
+its own pressed keys, so no phantom appears. A row with keys in two
+columns sits between the two levels and reads as released, which is why
+the undriven scan stays the default. Take each row that the driven scan
+reads with a key from it, keep the undriven result for the others, and
+apply the ghost filter to the result. Scans without a rectangle are
+unchanged.
+
+Not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 42 +++++++++++++++++++++++++-
+ 1 file changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index 6f8b8f0..39fe7b9 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -171,6 +171,44 @@ static bool matrix_keypad_has_ghosting(struct matrix_keypad *keypad,
+ 	return false;
+ }
+ 
++/*
++ * Settle a ghost rectangle with a second scan that drives every inactive
++ * column to its inactive level. A row then connects only to the columns of
++ * its own pressed keys, so no phantom appears, but a row with keys in two
++ * columns sits between both levels and reads as released. Each row that this
++ * scan reads with a key therefore has exactly that key; take those rows from
++ * it and keep the undriven result for the others.
++ */
++static int matrix_keypad_resolve_ghosting(struct matrix_keypad *keypad,
++					  u32 *state)
++{
++	u32 driven[MATRIX_MAX_COLS], rows = 0;
++	int col, err = 0;
++
++	for (col = 0; col < keypad->num_col_gpios; col++)
++		gpiod_direction_output(keypad->col_gpios[col], 0);
++
++	for (col = 0; col < keypad->num_col_gpios; col++) {
++		gpiod_set_value_cansleep(keypad->col_gpios[col], 1);
++		if (keypad->col_scan_delay_us)
++			fsleep(keypad->col_scan_delay_us);
++		err = read_row_state(keypad, &driven[col]);
++		gpiod_set_value_cansleep(keypad->col_gpios[col], 0);
++		if (err)
++			break;
++		rows |= driven[col];
++	}
++
++	activate_all_cols(keypad, false);
++	if (err)
++		return err;
++
++	for (col = 0; col < keypad->num_col_gpios; col++)
++		state[col] = (state[col] & ~rows) | driven[col];
++
++	return 0;
++}
++
+ /*
+  * This gets the keys from keyboard and reports it to input subsystem
+  */
+@@ -232,7 +270,9 @@ static void matrix_keypad_scan(struct work_struct *work)
+ 
+ 	/* an ambiguous scan reports nothing until a key is released */
+ 	if (keypad->needs_ghost_filter &&
+-	    matrix_keypad_has_ghosting(keypad, new_state))
++	    matrix_keypad_has_ghosting(keypad, new_state) &&
++	    (matrix_keypad_resolve_ghosting(keypad, new_state) ||
++	     matrix_keypad_has_ghosting(keypad, new_state)))
+ 		goto out;
+ 
+ 	for (col = 0; col < keypad->num_col_gpios; col++) {
+-- 
+2.54.0 (Apple Git-157)
+

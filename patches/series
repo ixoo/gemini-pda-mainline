@@ -973,3 +973,4 @@ proposals/0381-pinctrl-aw9523-serialize-the-interrupt-thread-s-port.patch
 proposals/0382-dt-bindings-input-gpio-matrix-keypad-add-held-poll-i.patch
 proposals/0383-Input-matrix_keypad-keep-scanning-while-a-key-is-hel.patch
 proposals/0384-arm64-dts-mediatek-gemini-station-scan-the-keyboard-.patch
+proposals/0385-Input-matrix_keypad-settle-ghost-rectangles-with-a-d.patch

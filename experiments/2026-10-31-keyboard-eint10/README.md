@@ -481,3 +481,24 @@ Earlier: hypothesis 1 confirmed on station 15: EINT10 is requested without a sto
 and stays at zero while polling. Hypothesis 2 failed on station 15. The
 leading explanation is the pad-mode bug in 0005, and 0377 is its candidate
 fix, not yet booted.
+
+## Ctrl+Alt+7 candidate (0385, owner request)
+
+Owner request: fix Ctrl+Alt+7. With inactive columns undriven, 7 and its
+phantom `2` are electrically symmetric, so the filter alone cannot keep the
+7. With inactive columns driven, no phantom appears, but a row with two
+pressed keys reads as released. That second effect is the one 0374 removed.
+
+0385 keeps the undriven scan as the default. Only when a scan contains a
+rectangle does it rescan once with the inactive columns driven, and it
+takes each row that this scan reads from it. For Ctrl+Alt+7, that scan
+reads row 0 as column 6 only (the 7), while row 4 (Ctrl and Alt) cancels
+and keeps its undriven value. The ghost filter still drops anything that
+stays ambiguous, for example a row holding two keys plus a phantom.
+
+Prediction for the next station boot:
+- Ctrl+Alt+7 reports Ctrl, Alt, then 7.
+- Ctrl+Alt+2 reports Ctrl, Alt, then 2.
+- Left Shift+Z and the Fn combinations are unchanged.
+
+Not yet run on hardware.
