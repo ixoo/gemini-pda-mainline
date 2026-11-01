@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T1 passed on station 30; T2 stage A hit a stop rule 5 ms after GPS function-on and took Wi-Fi down; no receiver data; retry not admitted |
+| Status | `running`: T1 passed; T2 stage A stopped 5 ms after GPS function-on and took Wi-Fi down; D1 recovered Wi-Fi without a reboot; no receiver data; retry T3 not admitted |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -373,6 +373,60 @@ logs up to 64 stale BTIF bytes at start and lets the existing clear remove them.
 | Bytes logged, Wi-Fi back | Recovery holds without a reboot | Run one join and a gateway ping |
 
 **Stop rules:** one load; any Oops, warning or assert; no GNSS open.
+
+## D1 result: recovered, firmware message still unknown (2026-11-01)
+
+Station 30, boot `4ac95e75`, `mt6797-consys.ko` `25571312…`, one load, no GNSS open.
+Private evidence under `artifacts/station-work-30/boot-4ac95e75/gnss-d1/`.
+
+**Observed:** `1 stale BTIF bytes: 7b`, then negotiation `result=0`, common init
+285/285, join on 5200 MHz, lease, gateway 3/3. No Oops, warning or assert. So the
+`-16` inference holds, and a stale RX byte alone can block every later start.
+
+**Inferred, from reading the code path:**
+- The two refused reloads returned before any FIFO clear, so that byte was
+  probably left from the original failure.
+- One byte in a FIFO that had 30 s to fill means the firmware sent almost
+  nothing after the refusal: no long text, and no retransmissions, though its frame
+  was never acknowledged. That leans toward firmware that stopped running (cause 1),
+  but does not prove it. `0x7b` has no STP start bit, so it starts no frame.
+
+**Unknown:** what the refused bytes were. None of the table's first three rows can
+be chosen; only the recovery row applies.
+
+## T3: proposed retry (radio action, not admitted)
+
+[0431](../../patches/proposals/0431-soc-mediatek-mt6797-consys-read-firmware-messages-an.patch) parses tasks 5 and 6 as the
+vendor does and logs them in hex, keeps the 64 bytes before a failure and 64 after
+it, and keeps reading after a failure so the firmware is not left blocked.
+[0432](../../patches/proposals/0432-gnss-mt6797-add-a-parameter-to-stop-after-GPS-functi.patch) adds `start_engine=0`, which
+stops after function-on. The effects are those of T2 stage A, split in two, and
+nothing new reaches the firmware.
+
+**Hypothesis:** function-on alone is harmless, and the frame after it tells cause 1
+from cause 2.
+
+**Before either open:** set the system clock to the real time, which removes the 1970
+date as a suspect.
+
+| Step | Open | Decides |
+| --- | --- | --- |
+| A1 | `start_engine=0`, 60 s, `wlan0` idle | Is function-on alone what the firmware reacts to? |
+| A2, only if A1 is clean | `start_engine=1`, 5 minutes, `wlan0` idle, then one with ping | Do frames arrive? |
+
+| Observation | Next |
+| --- | --- |
+| A1 logs an assert or stops | Function-on itself is the problem; stop and read the bytes offline |
+| A1 clean, A2 logs an assert or stops | The start sequence is the problem; read the bytes, and vary only what they point to, with a new request |
+| Firmware log messages only, link alive | Harmless; continue |
+| A2 gets `0x0a` frames with `$G` sentences | Stage A's question is answered; go to stage B |
+
+**Stop rules and privacy:** as in T2. The new failure logs hold up to 128 received
+bytes in hex, which could hold sentence text if a failure came after a fix, so they
+stay private until read.
+
+**Known risk:** Wi-Fi may drop again. A CONSYS reload with 0429 recovered it, so an
+outage should not need a reboot, though this was seen once.
 
 ## Associated code
 

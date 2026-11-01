@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:28:44 -0500
+Subject: [PATCH] gnss: mt6797: add a parameter to stop after GPS function-on
+
+The first start stopped the link within 5 ms of function-on and the GFNS
+start sequence, which went out together. start_engine=0 leaves out the
+sequence, so the next test can tell which of the two the firmware reacted to.
+---
+ drivers/gnss/mt6797.c | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gnss/mt6797.c b/drivers/gnss/mt6797.c
+index afb1849b5..6f5b82a74 100644
+--- a/drivers/gnss/mt6797.c
++++ b/drivers/gnss/mt6797.c
+@@ -24,6 +24,10 @@
+ 
+ #define MT6797_GNSS_STOP_MS 100
+ 
++static bool start_engine = true;
++module_param(start_engine, bool, 0444);
++MODULE_PARM_DESC(start_engine, "Send the GFNS start after GPS function-on");
++
+ struct mt6797_gnss {
+ 	struct device *dev;
+ 	struct gnss_device *gdev;
+@@ -175,6 +179,8 @@ static int mt6797_gnss_open(struct gnss_device *gdev)
+ 	ret = mt6797_consys_gps_function(true);
+ 	if (ret)
+ 		goto detach;
++	if (!start_engine)
++		return 0;
+ 	ret = mt6797_gnss_start(gnss);
+ 	if (ret) {
+ 		mt6797_consys_gps_function(false);
+@@ -196,8 +202,10 @@ static void mt6797_gnss_close(struct gnss_device *gdev)
+ 	gnss->stopping = true;
+ 	spin_unlock_irqrestore(&gnss->lock, flags);
+ 	cancel_work_sync(&gnss->ack_work);
+-	mt6797_gnss_send(gnss, GFNS_REQ_STOP, NULL, 0);
+-	msleep(MT6797_GNSS_STOP_MS);
++	if (start_engine) {
++		mt6797_gnss_send(gnss, GFNS_REQ_STOP, NULL, 0);
++		msleep(MT6797_GNSS_STOP_MS);
++	}
+ 	mt6797_consys_gps_function(false);
+ 	mt6797_consys_stp_detach(MT6797_STP_TASK_GPS);
+ 	for (i = 0; i < ARRAY_SIZE(gnss->types); i++)

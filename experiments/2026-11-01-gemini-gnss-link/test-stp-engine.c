@@ -22,6 +22,24 @@ static int deliver(void *context, const unsigned char *payload, unsigned int len
 	return 0;
 }
 
+struct message_sink {
+	unsigned int task, length, count;
+	unsigned char text[16];
+};
+
+static struct message_sink messages;
+
+static void on_message(void *context, unsigned int task, const unsigned char *payload,
+		       unsigned int length)
+{
+	struct message_sink *m = context;
+
+	m->task = task;
+	m->length = length;
+	m->count++;
+	memcpy(m->text, payload, length < sizeof(m->text) ? length : sizeof(m->text));
+}
+
 static unsigned char peer_seq;
 
 /* Feed one peer data frame carrying ack, byte by byte. */
@@ -213,6 +231,55 @@ int main(void)
 		assert(stp_engine_rx(&e, 0x00, 1) == 0);
 	assert(stp_engine_rx(&e, 0x00, 1) == STP_ENGINE_EPROTO);
 	assert(stp_engine_fail(&e, 0) == 0 && e.failed == STP_ENGINE_EPROTO);
+	/* Tasks 5 and 6: no checksum, no sequence, CRC ignored; the link is untouched. */
+	stp_full_link_init(&link);
+	stp_engine_init(&e, &link, 0);
+	e.message = on_message;
+	e.message_context = &messages;
+	{
+		static const unsigned char log[] = {
+			0x80, 0x60, 0x02, 0xff, 'h', 'i', 0xee, 0xee,
+		};
+		static const unsigned char empty[] = { 0x80, 0x50, 0x00, 0x00, 0xee, 0xee };
+		unsigned char trail[STP_ENGINE_TRAIL];
+
+		for (i = 0; i < sizeof(log); i++)
+			assert(stp_engine_rx(&e, log[i], 1) == 0);
+		assert(messages.task == 6 && messages.length == 2 && messages.count == 1);
+		assert(!memcmp(messages.text, "hi", 2));
+		assert(!e.link.ack_owed && e.link.rx_next == 0 && !e.failed);
+		for (i = 0; i < sizeof(empty); i++)
+			assert(stp_engine_rx(&e, empty[i], 1) == 0);
+		assert(messages.task == 5 && messages.length == 0 && messages.count == 2);
+
+		/* An ordinary frame still follows. */
+		peer_seq = 0;
+		assert(stp_engine_bind(&e, STP_FULL_TASK_BT, deliver, &bt) == 0);
+		i = bt.packets;
+		assert(peer_send(&e, STP_FULL_TASK_BT, ev1, sizeof(ev1), 7, 2) == 0);
+		assert(bt.packets == i + 1);
+
+		/* A failure keeps the bytes before it and collects those after it. */
+		n = stp_engine_trail(&e, trail);
+		assert(n == sizeof(log) + sizeof(empty) + sizeof(ev1) + 6);
+		assert(trail[0] == 0x80 && trail[1] == 0x60);
+		for (i = 0; i < 3; i++)
+			assert(stp_engine_rx(&e, 0x00, 3) == 0);
+		assert(stp_engine_rx(&e, 0x00, 3) == STP_ENGINE_EPROTO);
+		for (i = 0; i < STP_ENGINE_TRAIL + 5; i++)
+			assert(stp_engine_rx(&e, 0x7b, 3) == STP_ENGINE_EPROTO);
+		assert(e.after_count == STP_ENGINE_TRAIL && e.after[0] == 0x7b);
+		n = stp_engine_trail(&e, trail);
+		assert(trail[n - 1] == 0x00 && e.trail_count == n);
+
+		/* The trail keeps only the newest bytes, in order. */
+		e.failed = 0;
+		e.trail_count = 0;
+		for (i = 0; i < STP_ENGINE_TRAIL + 3; i++)
+			e.trail[e.trail_count++ % STP_ENGINE_TRAIL] = i;
+		assert(stp_engine_trail(&e, trail) == STP_ENGINE_TRAIL);
+		assert(trail[0] == 3 && trail[STP_ENGINE_TRAIL - 1] == STP_ENGINE_TRAIL + 2);
+	}
 	puts("stp engine: routing, window, retirement, unbind, bounds, failures pass");
 	return 0;
 }

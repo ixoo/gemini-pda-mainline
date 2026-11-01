@@ -1,0 +1,250 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:28:44 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: read firmware messages and keep
+ failure bytes
+
+STP tasks 5 and 6 carry firmware asserts and logs in their own framing: no
+header checksum, no link state, and a CRC the vendor discards. The engine
+refused them as malformed, so the first GNSS start stopped the link with -71
+and left no record of what the firmware had sent.
+
+Parse those two tasks and log them, in hex, up to eight per task. An assert
+stops the link. Also keep the last 64 bytes before any failure and the first
+64 after it, and log them.
+
+After a failure, stop transmitting but keep reading until the last detach.
+Otherwise a full FIFO can leave the firmware blocked, and the shared firmware
+then takes Wi-Fi down with it.
+---
+ drivers/soc/mediatek/mt6797-consys.c     | 48 ++++++++++++++++-----
+ drivers/soc/mediatek/mt6797-stp-engine.h | 53 ++++++++++++++++++++++--
+ 2 files changed, 87 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 1ca42e66b..7997a9403 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -115,6 +115,7 @@ struct mt6797_stp {
+ 	unsigned int wmt_prefix;
+ 	unsigned char wmt_event[16], wmt_first[16];
+ 	unsigned int wmt_event_length, wmt_first_length, wmt_unsolicited;
++	unsigned int messages[2];
+ };
+ 
+ struct mt6797_consys {
+@@ -1685,6 +1686,7 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ #define MT6797_STP_RX_BUDGET 256U
+ #define MT6797_STP_DRAIN_MS 200U
+ #define MT6797_STP_SEND_WAIT_MS 1000U
++#define MT6797_STP_MESSAGES_LOGGED 8U
+ 
+ /* The answer to wmt_stp_full_query, before the options the firmware reports. */
+ static const unsigned char mt6797_stp_check_event[] = {
+@@ -1714,19 +1716,28 @@ static void mt6797_stp_pump(struct mt6797_stp *s)
+ 		if (stp_engine_tx_done(&s->engine, n, jiffies))
+ 			break;
+ 	}
+-	writel(s->engine.failed ? 0 : stp_engine_tx_pending(&s->engine) ? 3 : 1,
+-	       s->btif + WMT_BTIF_IER);
++	writel(stp_engine_tx_pending(&s->engine) ? 3 : 1, s->btif + WMT_BTIF_IER);
+ }
+ 
+-/* Lock held. Fail-stop: no retry or resync; power and clocks stay as they are. */
++/*
++ * Lock held. Fail-stop: no transmit, retry or resync; power and clocks stay as
++ * they are. Receive keeps draining until the last detach, so the firmware is not
++ * left blocked on a full FIFO and the bytes after the failure are kept.
++ */
+ static void mt6797_stp_stop_locked(struct mt6797_stp *s)
+ {
++	unsigned char trail[STP_ENGINE_TRAIL];
++	unsigned int count;
++
+ 	if (s->stopped)
+ 		return;
+ 	s->stopped = true;
+ 	if (!s->engine.failed)
+ 		stp_engine_fail(&s->engine, STP_ENGINE_EIO);
+-	writel(0, s->btif + WMT_BTIF_IER);
++	writel(1, s->btif + WMT_BTIF_IER);
++	count = stp_engine_trail(&s->engine, trail);
++	pr_err("mt6797-consys: STP link trail, %u of %u bytes: %*ph\n", count,
++	       s->engine.trail_count, count, trail);
+ 	if (s->wmt_waiting) {
+ 		s->wmt_waiting = false;
+ 		complete(&s->wmt_done);
+@@ -1743,10 +1754,6 @@ static irqreturn_t mt6797_stp_irq(int irq, void *data)
+ 	unsigned long flags;
+ 
+ 	spin_lock_irqsave(&s->lock, flags);
+-	if (s->stopped) {
+-		writel(0, s->btif + WMT_BTIF_IER);
+-		goto out;
+-	}
+ 	iir = readl(s->btif + WMT_BTIF_IIR);
+ 	/* No source: let the core notice a stuck line instead of hiding it. */
+ 	if ((iir & 0x47) == 1) {
+@@ -1754,11 +1761,11 @@ static irqreturn_t mt6797_stp_irq(int irq, void *data)
+ 		goto out;
+ 	}
+ 	while ((iir & WMT_BTIF_RX_CAUSE) && budget++ < MT6797_STP_RX_BUDGET) {
+-		if (stp_engine_rx(&s->engine, readb(s->btif), jiffies))
+-			break;
++		stp_engine_rx(&s->engine, readb(s->btif), jiffies);
+ 		iir = readl(s->btif + WMT_BTIF_IIR);
+ 	}
+-	mt6797_stp_pump(s);
++	if (!s->stopped)
++		mt6797_stp_pump(s);
+ 	if (s->engine.failed)
+ 		mt6797_stp_stop_locked(s);
+ 	else if (s->engine.count < STP_ENGINE_QUEUE)
+@@ -1784,6 +1791,20 @@ static void mt6797_stp_tick(struct timer_list *t)
+ 	spin_unlock_irqrestore(&s->lock, flags);
+ }
+ 
++/* Interrupt context, lock held. An assert ends the link; its text is in the log. */
++static void mt6797_stp_message(void *context, unsigned int task,
++			       const unsigned char *payload, unsigned int length)
++{
++	struct mt6797_stp *s = context;
++	unsigned int count = s->messages[task - STP_ENGINE_TASK_ASSERT]++;
++
++	if (count < MT6797_STP_MESSAGES_LOGGED)
++		pr_warn("mt6797-consys: firmware message, task %u, %u bytes: %*ph\n", task,
++			length, min_t(int, length, 64), payload);
++	if (task == STP_ENGINE_TASK_ASSERT)
++		stp_engine_fail(&s->engine, STP_ENGINE_EIO);
++}
++
+ /* Interrupt context, lock held: take the awaited event; keep the first other. */
+ static int mt6797_stp_wmt_rx(void *context, const unsigned char *payload,
+ 			     unsigned int length)
+@@ -1885,6 +1906,8 @@ static int mt6797_stp_run(struct device *dev, struct mt6797_consys *owner)
+ 		ret = stp_engine_bind(&s->engine, STP_FULL_TASK_WMT, mt6797_stp_wmt_rx, s);
+ 		if (ret)
+ 			return ret;
++		s->engine.message = mt6797_stp_message;
++		s->engine.message_context = s;
+ 		s->adopted = true;
+ 	}
+ 	if (s->stopped)
+@@ -1934,6 +1957,9 @@ static void mt6797_stp_halt(struct device *dev, struct mt6797_stp *s)
+ 		 s->engine.rx_duplicates, s->engine.tx_frames, s->engine.tx_acks,
+ 		 s->wmt_unsolicited, s->wmt_first_length,
+ 		 min_t(int, s->wmt_first_length, sizeof(s->wmt_first)), s->wmt_first);
++	dev_info(dev, "STP link firmware messages: assert=%u log=%u; after failure %u bytes: %*ph\n",
++		 s->messages[0], s->messages[1], s->engine.after_count,
++		 s->engine.after_count, s->engine.after);
+ }
+ 
+ /*
+diff --git a/drivers/soc/mediatek/mt6797-stp-engine.h b/drivers/soc/mediatek/mt6797-stp-engine.h
+index 6b5508685..922ae78f2 100644
+--- a/drivers/soc/mediatek/mt6797-stp-engine.h
++++ b/drivers/soc/mediatek/mt6797-stp-engine.h
+@@ -17,6 +17,9 @@
+  * counted in rx_discarded, so a departed consumer cannot stall the link.
+  */
+ #define STP_ENGINE_QUEUE 8U
++#define STP_ENGINE_TASK_ASSERT 5U
++#define STP_ENGINE_TASK_LOG 6U
++#define STP_ENGINE_TRAIL 64U
+ 
+ enum stp_engine_error {
+ 	STP_ENGINE_OK,
+@@ -46,6 +49,14 @@ struct stp_engine {
+ 	/* The frame being received; payloads delivered from it alias it. */
+ 	unsigned char rx[STP_FULL_MAX_FRAME];
+ 	unsigned int rx_used, rx_needed;
++	/* Firmware messages: tasks 5 and 6 have no checksum and no link state. */
++	int rx_message;
++	void (*message)(void *context, unsigned int task, const unsigned char *payload,
++			unsigned int length);
++	void *message_context;
++	/* The last bytes received before a failure, and the first ones after it. */
++	unsigned char trail[STP_ENGINE_TRAIL], after[STP_ENGINE_TRAIL];
++	unsigned int trail_count, after_count;
+ 	/* Bound clients; route[] holds one entry per ordinary task. */
+ 	struct stp_engine_binding bindings[STP_FULL_MAX_CLIENTS];
+ 	unsigned int client_count;
+@@ -66,6 +77,7 @@ static inline void stp_engine_rx_reset(struct stp_engine *e)
+ {
+ 	e->rx_used = 0;
+ 	e->rx_needed = 4;
++	e->rx_message = 0;
+ }
+ 
+ /* Bound tasks route to their client; every other ordinary task discards. */
+@@ -116,6 +128,9 @@ static inline void stp_engine_init(struct stp_engine *e,
+ {
+ 	e->link = *link;
+ 	stp_engine_rx_reset(e);
++	e->message = 0;
++	e->trail_count = 0;
++	e->after_count = 0;
+ 	e->client_count = 0;
+ 	e->client_refused = 0;
+ 	e->head = 0;
+@@ -213,18 +228,37 @@ static inline int stp_engine_rx(struct stp_engine *e, unsigned char byte,
+ 	unsigned int before = e->link.tx_pending, length;
+ 	int kind;
+ 
+-	if (e->failed)
++	if (e->failed) {
++		if (e->after_count < STP_ENGINE_TRAIL)
++			e->after[e->after_count++] = byte;
+ 		return e->failed;
++	}
++	e->trail[e->trail_count++ % STP_ENGINE_TRAIL] = byte;
+ 	e->rx[e->rx_used++] = byte;
+ 	if (e->rx_used == 4) {
+-		if (stp_full_header(e->rx, 4, &length)) {
++		length = ((e->rx[1] & 15) << 8) | e->rx[2];
++		kind = (e->rx[1] >> 4) & 7;
++		if ((e->rx[0] & 0xc0) == 0x80 && !(e->rx[1] & 0x80) &&
++		    (kind == STP_ENGINE_TASK_ASSERT || kind == STP_ENGINE_TASK_LOG) &&
++		    length <= STP_FULL_MAX_PAYLOAD) {
++			e->rx_message = 1;
++			e->rx_needed = length + 6;
++		} else if (stp_full_header(e->rx, 4, &length)) {
+ 			stp_engine_fail(e, STP_ENGINE_EPROTO);
+ 			return e->failed;
++		} else {
++			e->rx_needed = length ? length + 6 : 4;
+ 		}
+-		e->rx_needed = length ? length + 6 : 4;
+ 	}
+ 	if (e->rx_used < e->rx_needed)
+ 		return 0;
++	if (e->rx_message) {
++		if (e->message)
++			e->message(e->message_context, (e->rx[1] >> 4) & 7, e->rx + 4,
++				   e->rx_used - 6);
++		stp_engine_rx_reset(e);
++		return e->failed;
++	}
+ 	e->client_refused = 0;
+ 	kind = stp_full_task_receive(&e->link, e->rx, e->rx_used,
+ 				     e->route, STP_FULL_MAX_CLIENTS, &frame);
+@@ -243,6 +277,19 @@ static inline int stp_engine_rx(struct stp_engine *e, unsigned char byte,
+ 	return 0;
+ }
+ 
++/* The bytes before a failure in arrival order; returns how many. */
++static inline unsigned int stp_engine_trail(const struct stp_engine *e,
++					    unsigned char out[STP_ENGINE_TRAIL])
++{
++	unsigned int count = e->trail_count < STP_ENGINE_TRAIL ?
++			     e->trail_count : STP_ENGINE_TRAIL;
++	unsigned int first = e->trail_count - count, i;
++
++	for (i = 0; i < count; i++)
++		out[i] = e->trail[(first + i) % STP_ENGINE_TRAIL];
++	return count;
++}
++
+ /* Bytes of the current frame still to write, building the next one if idle. */
+ static inline unsigned int stp_engine_tx_pending(struct stp_engine *e)
+ {

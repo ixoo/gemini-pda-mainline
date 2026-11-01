@@ -599,3 +599,5 @@ proposals/0427-soc-mediatek-bring-up-the-MT6797-A72-pair-from-a-mod.patch
 proposals/0428-soc-mediatek-keep-the-MT6797-A72-boot-changes-opt-in.patch
 proposals/0429-soc-mediatek-mt6797-consys-start-despite-stale-BTIF-.patch
 proposals/0430-wifi-mt6797-scan-while-connected.patch
+proposals/0431-soc-mediatek-mt6797-consys-read-firmware-messages-an.patch
+proposals/0432-gnss-mt6797-add-a-parameter-to-stop-after-GPS-functi.patch
