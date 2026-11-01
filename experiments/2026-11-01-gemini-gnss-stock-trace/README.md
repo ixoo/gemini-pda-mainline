@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; offline, the raw fields alone give a position on almost every epoch using only over-the-air orbit data; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -441,14 +441,42 @@ script's service stop, with no fault, crash, or connection seen. After the devic
 - **The Doppler offset common to all satellites moved by about 150 Hz** from the early minutes to the whole-run median, while the CPU sensor fell from 30 C to about 11 C.
 
 **Checked against a public broadcast navigation file (IGS, BKG mirror):**
-- GPS orbit data decoded from `0xFE2B` equals the broadcast values for satellites 2, 7, 8 and 9. Satellites 1 and 27 did not match: 1 looks like a mixed-up decode, since subframe parity is not checked, and 27 is not explained.
+- GPS orbit data decoded from `0xFE2B` equals the broadcast values for satellites 2, 7, 8 and 9. The first pass did not match satellites 1 and 27; the offline analysis below explains both.
 - `0xFE29` holds Doppler, carrier phase and transmit time, and `0xFE3B` holds GLONASS strings. The [driver notes](../../docs/hardware/gemini-gnss-driver.md#dsp-packets-on-the-host-path) carry the layouts.
 
 **Inferred:**
 - The date error is in the vendor engine, not the device clock: `libmnl` has a path that adds a fixed 1024 weeks to the 10-bit GPS week, which gives this date. Its link to the NMEA date is not traced. No HAL answered `mnld`'s time requests in these runs, which may matter.
-- GLONASS complete orbit data arrived before the first GPS fix, so missing data does not explain why it stays out of the solution. The date error is one untested possibility.
+- GLONASS orbit data arrived before the first GPS fix, so missing data does not explain why it stays out of the solution.
 
-**Not resolved:** why the fix comes and goes every 30 s, the fine part of the code phase and the exact measurement time, which block an independent position.
+### Offline analysis (2026-11-01)
+
+No device action. All from the step 5 capture, the decompile, and the public broadcast file. Scripts and intermediate files are private.
+
+**An independent position works.** The raw `0xFE29` fields alone give a position, starting from no prior position or stock output. The [driver notes](../../docs/hardware/gemini-gnss-driver.md#dsp-packets-on-the-host-path) carry the layout.
+
+| Solution | Orbit data | First position | Epochs with a position | Horizontal scatter around its own median (p50, p90) |
+| --- | --- | --- | --- | --- |
+| Stock engine | over the air | 158 s | 310 of 1799 | about 10 to 20 m (p50) |
+| Own least-squares solver, GPS | broadcast file | 121 s | 1670 of 1798 | not computed separately |
+| Own least-squares solver, GPS | **over the air only**, with parity checks | 157 s | 1620 of the 1641 after that | 4.6 m, 10.6 m |
+| RTKLIB `rnx2rtkp`, GPS, from a RINEX conversion | broadcast file | not recorded | 1619 | 4.3 m, 9.4 m |
+| RTKLIB, GPS, GLONASS and BeiDou | broadcast file | not recorded | 1609 | 4.3 m, 9.6 m |
+
+The three medians agree closely with stock's early fixes. The only independent check of the absolute position is still the owner's rough one. The RTKLIB run uses single-point mode with broadcast ionosphere and tropospheric models. Scatter is not accuracy, and these runs were one stationary device in one place.
+
+**Observed:**
+- **The measurements hold up.** GPS residuals were typically 1 to 5 m when the own solver had more than 4 satellites. GLONASS and BeiDou fit too: against a GPS-only clock, GLONASS satellites sit within about 5 m of zero median, and BeiDou 11 near -16 m.
+- **Every fix pulse follows subframe 3.** All 42 stock fix-on events after 480 s begin as subframe 3 of the current GPS frames arrives, and the engine's reported ephemeris count then drops to zero about 2 s later. So the 30 s rhythm is the GPS frame, not GLONASS.
+- **The engine's GLONASS sky is wrong.** Satellites it reports as high were below or near the horizon by the broadcast orbits, for example 66 to 72 degrees against -3 to 1 degrees for one. Those it lists have no signal. The satellites actually high were tracked at first, then dropped, and do not appear high in its reports. Its GPS elevations match the orbits within about 1 degree.
+- **39% of navigation frames fail parity** (701 of 1801). Byte 1 of each `0xFE2B` word holds the 6 parity bits. Parity checks were needed for the over-the-air solution above: without them, it gave wild outliers.
+- **Satellite 27 is explained:** its decoded set differs from the file's only in labels, with the orbit within about 1 m and the same clock. Satellite 1's first mismatch was bit errors, which parity now rejects.
+
+**Inferred:**
+- **The stock engine's intermittent fix is an engine problem, not a signal one.** The same measurements give a position almost every second, using the same orbit data.
+- **The date error probably drives it, but this is not proved.** The engine computes ages from week and time of week, and it clears ephemeris it finds too old. Time flips between the correct date and the date 1024 weeks behind, in step with fixes. New ephemeris would then look valid until the next age check. I found these pieces in the decompile, not the whole path, and did not test it by running the engine.
+- **The wrong GLONASS sky may come from the same date error,** through almanac data computed for the wrong date. I did not reproduce the reported positions.
+
+**Not resolved:** the 2019 dates, the BeiDou offset, carrier-phase quality, and absolute accuracy. No live or on-device solver exists: all of this ran on a stored capture from stock Gemian with `mnld` booting the DSP.
 
 ## Privacy and rights
 

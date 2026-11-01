@@ -11,7 +11,7 @@ vendor stack, not a Linux implementation.
 > is no path to a fix, and "What is *not* required" and the claims that `mnld` falls back to
 > a serial port and that sentences come from ROM are wrong. A
 > [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) then saw stock start with
-> `libmnl`'s DSP boot and `AA F0` frames over STP task 2, with no GFNS frame, then, with assistance off, 20 minutes of DSP packets, including one GPS satellite's live navigation subframes, so the RF path works on stock. Stationary under open sky, stock later got an intermittent GPS-only fix after 158 s.
+> `libmnl`'s DSP boot and `AA F0` frames over STP task 2, with no GFNS frame, then, with assistance off, 20 minutes of DSP packets, including one GPS satellite's live navigation subframes, so the RF path works on stock. Stationary under open sky, stock later got an intermittent GPS-only fix after 158 s. Offline, that capture's raw measurements alone gave a position on almost every second.
 
 The evidence is a static review of the retained 2019 vendor binaries and the two
 CONSYS ROM patch images in the private artifact set, plus the pinned GPL vendor

@@ -224,7 +224,7 @@ were not checked for this.
 | `0xFE28` | 8 bytes | Epoch header, first of each second |
 | `0xFE29` | 57 bytes | One channel: byte 0 channel, 1 satellite, 2 constellation code (1 is GPS), 3 signal level (inferred C/N0 in dB-Hz), 5 inferred bandwidth, 6 state; `0x40` is required by the measurement API. The rest is not mapped |
 | `0xFE2A` | 10 bytes | Header for a batch of `0xFE2B` frames |
-| `0xFE2B` | 46 bytes | One navigation subframe: bytes 2 and 3 satellite, 4 subframe ID, and from byte 6 ten 4-byte words. Within a word, bytes 0, 3 and 2 hold the 24 data bits, most significant first |
+| `0xFE2B` | 46 bytes | One navigation subframe: bytes 2 and 3 satellite, 4 subframe ID, and from byte 6 ten 4-byte words. Within a word, bytes 0, 3 and 2 hold the 24 data bits, most significant first, and byte 1 the parity |
 | `0xFE2C` | 44 bytes | Closes the epoch |
 | `0xFE30`, `0xFE37` | 57, 61 bytes | Once a second, not mapped; `0xFE30` carries one channel per epoch |
 | `0xFE3A` | 5 bytes | Header for a batch of `0xFE3B` frames: byte 0 frame count, bytes 1 to 4 a millisecond counter in the layout below |
@@ -235,13 +235,19 @@ Fields of `0xFE29`, from [step 5](../../experiments/2026-11-01-gemini-gnss-stock
 
 | Offset | Content | Check |
 | --- | --- | --- |
-| 1 | Satellite. For GLONASS, the frequency channel plus 8, not the slot | Slot field of string 4 and Doppler, 3 satellites |
-| 2 | Constellation code: 1 GPS, 16 GLONASS, 2 probably SBAS, 32 probably BeiDou | GPS and GLONASS checked; the others inferred from the satellite reports |
-| 25 | Transmit time in whole chips, wrapping at 1534500 for GPS (1.5 s) and apparently 511000 for GLONASS (1 s) | GPS within about 1.6 chips of computed ranges, not accounting for the fine part; GLONASS from range and steps only |
-| 31 | Signed 16-bit Doppler in Hz, including the common clock drift | GPS slope -5.246 per m/s against 5.255 from theory; over the whole run 9 GPS satellites agree within about 25 Hz of a common offset; 3 GLONASS within about 11 Hz over the first minutes |
-| 35 | Accumulated carrier phase in cycles, with steps following range rate | GPS slope 5.243 per m/s, 4 satellites |
+| 1 | Satellite. For GLONASS, the frequency channel plus 8, not the slot; a channel can be reused by another satellite, so take the slot from string 4 | Slot field and Doppler, 4 satellites |
+| 2 | Constellation code: 1 GPS, 16 GLONASS, 32 BeiDou, 2 probably SBAS | GPS, GLONASS and BeiDou 11 by range; SBAS inferred |
+| 21 | Whole transmit time: 1.5 s units for GPS; seconds of the day in Moscow time for GLONASS; BeiDou seconds of the week | Position solution for GPS; range fit for the others |
+| 25 | Transmit time within that unit, in whole chips, 1534500 per 1.5 s for GPS, 511000 per second for GLONASS, 2046000 per second for BeiDou | As above |
+| 29 | Fraction of a chip, u16 over 65536 | Residuals fall from tens of metres to a few |
+| 31 | Doppler in Hz including the common clock drift: the signed 32-bit value over 65536 | 9 GPS satellites within about 25 Hz of a common offset over the run |
+| 35 | Accumulated carrier phase, whole cycles; steps follow range rate | GPS slope 5.243 per m/s; quality not assessed |
 
-The fine part of the code phase and the exact measurement time are not mapped, so an independent position has not been computed. Those GLONASS bits matched broadcast position and velocity exactly on 3 satellites.
+With `T` the common receive time, the GPS pseudorange is `c * (T - (1.5 * r21 + (r25 + r29 / 65536) / 1023000))`. In [offline tests](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md#offline-analysis-2026-11-01), these fields alone gave a position in 1620 of 1641 seconds, using orbit data decoded from the same stream, and RTKLIB agreed. This ran on a stored capture from stock Gemian, not on a device, and nothing has run on mainline.
+
+Byte 1 of each `0xFE2B` word holds the 6 parity bits, computed from the previous word's last 2 parity bits in the standard GPS way. Check them: 39% of frames failed in the capture.
+
+Those GLONASS bits matched broadcast position and velocity exactly on 3 satellites.
 
 ## Safety and privacy
 
