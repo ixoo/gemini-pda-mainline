@@ -839,3 +839,24 @@ and not by a userspace service.
 | `status` shows `lid=gemini-lid`; on close the kernel logs "gemini-lid: lid closed", the screen goes dark and typed keys do nothing; on open, the screen returns and typing works | Keep the policy in the kernel |
 | Screen dark but keys still typed, or the reverse | Check the handler binding (`/proc/bus/input/handlers`) and the backlight type |
 | `lid=insmod-failed` | Read the module error in dmesg. The lid then has no policy for this boot |
+
+**Station 22 result.**
+- Package c79829b1 (inventory `e746f703`), boot2 `fee767b9`, RAM root
+  `333a5883`, boot `24d5c3ea`.
+- `status` showed `lid=gemini-lid`. The module was loaded, and
+  `/proc/bus/input/devices` listed `gemini-lid` first among the handlers on
+  both `keyboard-matrix` and `gpio-keys`.
+- The owner typed `abc`, closed the lid, pressed the closed keyboard for
+  about 10 s, opened it and typed `xyz`.
+  - The kernel logged "gemini-lid: lid closed" at 74.88 s and "lid open" at
+    85.14 s, from 2 EINT5 interrupts.
+  - The keyboard's `event0` carried only a, b and c (71.86-72.51 s) and
+    x, y and z (90.31-91.07 s). Nothing reached it while the lid was
+    closed, although EINT10 counted 2834 interrupts over the boot, most of
+    them from the closed-lid presses.
+  - After opening, `bl_power` was 0.
+- The lid policy now runs in the kernel from the interrupt.
+- Limitation: keys pressed by the closed lid still trigger matrix scans
+  (row interrupts, plus the 20 ms held-key rescan while a key is down).
+  They are dropped, not prevented. Inhibiting the device would stop the
+  scans, but the input core does not export that to modules.
