@@ -513,7 +513,8 @@ Routes left, neither started and each needing its own decision:
   stock-path inference. This is a radio action on Gemian and needs its own protocol.
 - **Run the vendor engine** under a shim: proprietary, not a standard stack.
 
-The persistent STP link (0418-0419) and 0429 stay. The link is available to other STP
+A later [offline study](../2026-11-01-gemini-gnss-host-engine-study/README.md) gives a conditional
+go for an open stack on the host path. The persistent STP link (0418-0419) and 0429 stay. The link is available to other STP
 clients, and 0429 helps Wi-Fi recover.
 
 ## Associated code
