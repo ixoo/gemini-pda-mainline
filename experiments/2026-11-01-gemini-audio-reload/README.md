@@ -156,6 +156,9 @@ owner reports the noise here too. Headphones out at power-on, `jack in` at 240.7
 supports nor contradicts the first playback as the trigger. It does show the noise does not need
 `0445`.
 
+The owner also reports that the noise seems limited to the headphones and the speakers are not
+affected. No boot or listening condition was recorded for this.
+
 ## Analysis
 
 The hypothesis holds on both pairs: with the clocks on the domain, AUDIO powers fully off on
@@ -177,6 +180,10 @@ timing fits a beacon-window event, but the phase rests on an extrapolation.
 
 The ACCDET setup looks excluded. Removal clears it, and the noise was reported with the modules out,
 though that report and the read showing it cleared came from different removals.
+
+The speakers fit this. They sit behind the AW8736 amplifiers, which are off when idle, while the
+headphones connect directly to the MT6351 outputs through a long cable. That is an inference, and
+speakers are also far less sensitive, so it does not separate the two explanations.
 
 These reads cannot say what the first tone changed, because all of them follow a tone. They show
 which values persist through idle and removal, including all three candidates below. That needs
