@@ -341,6 +341,11 @@ Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the mo
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
 
+Package `e1eeb6a7...` (job `f33b84a6...-mt6797-a53-station-a72-m1`, Buildbox-2) is the
+opt-in profile: Image.gz `42b794d6...`, the module, and
+`mt6797-gemini-pda-station-a72.dtb`, with its checksums passing. A build authorizes no
+boot.
+
 ## Analysis
 
 The project's [2026-10-03 review](../2026-10-03-project-review/README.md) parked
