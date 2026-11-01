@@ -420,12 +420,13 @@ patch loading and calibration now runs on the station for Wi-Fi. What remained
 below the protocol was a receive path that stays on: the start chain's STP
 exchanges are one-shot. The
 [GNSS link record](../../experiments/2026-11-01-gemini-gnss-link/README.md) adds
-that link and a silent `gnss` device; it has not run on the device.
+that link and a silent `gnss` device; one boot passed with Wi-Fi running. The
+receiver has not been started.
 
 A first standards-shaped GNSS implementation needs, in order:
 
 1. The shared CONSYS/WMT owner (done for Wi-Fi) and a persistent STP link
-   (written, not yet tested on the device).
+   (passed one boot).
 2. GPS function-on (`01 06 02 00 02 01`), the GPIO 69 LNA state, and the VCN28
    and AFE prerequisites provided by that owner.
 3. A GFNS endpoint that sends `MNL_INIT`, `MNL_INIT_CFG`, `MNL_UTC_INIT`,
@@ -459,7 +460,9 @@ record and no fix was observed.
 Not established: whether an FLP client runs in the Gemian container, which is
 what selects the offload path in the vendor daemon; whether a physical LNA is
 populated; the exact meaning of every GFNS type in the `0x25`–`0x33` range; the
-keep-alive period in milliseconds; the exact 28-byte ACK field layout beyond
-its logged semantics; and the properties of a mainline GNSS session. See the
+exact counter behind the keep-alive; and the properties of a mainline GNSS
+session. See the
 [experiment](../../experiments/2026-11-01-gemini-gnss-re/README.md) for the
-per-fact confidence and the proposed measurements that would close them.
+per-fact confidence and the proposed measurements that would close them. The
+[link record](../../experiments/2026-11-01-gemini-gnss-link/README.md) has the
+`0x14`, `0x83`, `0x7e` and keep-alive details read for the first start.

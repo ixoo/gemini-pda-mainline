@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: patches 0418-0419 written and host-tested; no device test yet; the receiver is not started by this code |
+| Status | `running`: T1 passed on station 30 (link only); the receiver has never been started; T2 is proposed and not admitted |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -118,8 +118,8 @@ adds the `gnss-mt6797` module and its GFNS receive parser.
 | `mt6797-consys.o`, `mt6797.o` in the dev VM, W=1, station configuration | no warnings |
 | `checkpatch --strict` on both patches | only the MAINTAINERS note for new files |
 | Buildbox build | passes; see [Build](#build) |
-| Interrupt handler, timer, teardown | review only |
-| On the device | nothing |
+| Interrupt handler and teardown | exercised by T1; the failure paths and the ACK timer's expiry were not triggered |
+| On the device | T1, below. The receiver was not started |
 
 ## Build
 
@@ -186,36 +186,110 @@ ping's normal gap; or any firmware assert. On a stop, keep the log, close the
 device and remove the module. A timeout does not authorize a retry in the same
 CONSYS lifetime.
 
-## Next step, T2 (radio action: not admitted)
+## T1 result: passed (2026-11-01)
 
-Nothing below is in the code, and nothing runs until the owner approves it. The
-protocol to review would be:
+Station 30, boot `4ac95e75`, package `b3cfdeb6`, `Image.gz` `ee620135…`, with the
+same `gnss-mt6797.ko` and `mt6797-consys.ko` hashes as above. Run by the custodian;
+log and full `dmesg` are private under `artifacts/station-work-30/boot-4ac95e75/gnss-t1/`.
+Audio modules were loaded and idle.
 
-- **Effect.** WMT GPS function-on (`01 06 02 00 02 01`), GPIO 69 high, then the
-  GFNS sequence: `MNL_INIT`, `MNL_INIT_CFG`, `MNL_UTC_INIT`, keep-alive,
-  `HOST_START_GNSS`; on close the reverse, ending with function-off and
-  GPIO 69 low.
-- **Hypothesis.** H1 of the
-  [reverse-engineering record](../2026-11-01-gemini-gnss-re/README.md): type
-  `0x0a` frames carrying NMEA text appear without an NVRAM exchange.
-- **RF.** GNSS only receives (inferred from the documents; no transmit path is
-  known for it). The firmware's coexistence with a running Wi-Fi is unknown, so
-  the first run keeps Wi-Fi up with `wlan0` idle.
-- **Firmware and calibration.** No new file. `MNL_INIT_CFG` needs its 49 bytes,
-  which include clock values normally read from `ML4A_000` in `nvdata`. The first
-  run would use the documented defaults (26 MHz, 2000 ppb), so no calibration is
-  read or written.
-- **Privacy.** A fix is location data. Logs would keep frame types, counts and
-  sentence names only, never sentence text. Sentences stay in a private path.
-- **Bounds.** One open, a fixed run length, a stop on any firmware assert, no
-  retry in one lifetime.
-- **Still to do offline first:** recover the exact `MNL_INIT_CFG` field offsets
-  and the `0x7e` and `0x35` ACK layouts from the retained decompile, and add the
-  GFNS transmit path with host tests.
+**Observed:**
+- Loaded but not opened, `mt6797-stp` is absent from `/proc/interrupts`.
+  `/dev/gnss0` exists with type NMEA.
+- Three 60 s opens and one 600 s open each read 0 bytes and logged
+  `result=0 reply=10 bytes 02 04 06 00 00 04 df 0e 68 01`, the same option bytes
+  as at negotiation.
+- The link's sequence numbers continued across opens (tx 2, 3, 4, 5). Every halt
+  shows `failed=0 busy=0 discarded=0 dup=0 wmt-unsolicited=0`, with rx, tx and ACK
+  counts rising by exactly the one query per open. No GFNS frame arrived.
+- The interrupt count held at 17171 for all 20 samples of the 600 s open. The line
+  is gone after each close, and there was no `nobody cared`.
+- During the 600 s open: ping through `wlan0` 300/300, 11.9 ms average, state
+  `COMPLETED`.
+- `rmmod` of `gnss-mt6797`, `mac` and `mt6797-consys`, then reload: common init
+  285/285, join on 5200 MHz, lease, gateway 3/3. No Oops, warning or call trace.
 
-The cheap read-only Gemian check from the GNSS record (H0: does any FLP client
-enable the offload path) is separate. It tells whether a stock session could
-serve as a reference, and it needs the parent session as custodian.
+**What this settles:** the firmware sent nothing on BTIF between the start chain
+and the first open, or in up to 600 s of listening. The link answers next to a
+running Wi-Fi, and task 2 is silent without function-on.
+
+**Limits:** one boot. Wi-Fi was checked by ping only, not throughput. There was
+little link traffic, so a loaded link and all failure paths remain untested. The
+longest idle before an open was about 5 minutes.
+
+## Offline findings for T2 (retained `libmnl` decompile, firmware strings)
+
+- **The configuration can be left out.** The vendor sender `FUN_0001b846` sends
+  type `0x14` with zero length when it has no configuration. The firmware has
+  both `GFNS_REQ_MNL_INIT: Use AP cfg` and `Use Default cfg`. Inferred: zero length
+  selects its defaults, so a first start needs none of the 49 bytes, and no
+  clock calibration. This replaces H3 for the first run.
+- **Vendor order** (`mtk_gps_ofl_mode_update`): `0x13`, `0x14`, `0x44` (bitmap),
+  `0x83`, NV download open, then `0x40`. Stop is `0x41`.
+- **`0x83` payload** (`FUN_0001ee60`): `u16` year minus 1900, then `u8` month from
+  zero, day, hour, minute, second, in UTC. Bytes 8-9 are zero. Bytes 7, 10 and 11
+  are never written, so they are stack contents there.
+- **`0x7e` payload** (`FUN_00018ed8`), 28 bytes in order: `recv` as two `u32`s
+  (low, then multiples of 0x10000), `proc`, `pdrop`, `rdrop` (always 0), `pkt`,
+  window (always 0x10). It is sent once 0x800 new bytes arrived, or right after
+  the firmware's `0x36`, which also resets the counters and enables these ACKs.
+- **Keep-alive** (`FUN_0001b0bc`) has no timer: type `0x76` goes out when a progress
+  counter passes 0x400 bytes more than at the last one. Which counter
+  `FUN_0001a3d0` returns is not established.
+- The GPS AFE words are already written by the CONSYS start, and no patch in the
+  tree uses GPIO 69.
+
+**Still unknown:** whether the engine runs without the NV download; whether the
+keep-alive matters at this traffic level; whether a physical LNA exists; whether
+Wi-Fi and GNSS tolerate each other without the vendor's de-sense packet.
+
+## Proposed T2: first receiver start (radio action, not admitted)
+
+Nothing below is in the code, and nothing runs until the owner approves it.
+
+**Hypothesis:** H1 of the [reverse-engineering
+record](../2026-11-01-gemini-gnss-re/README.md), with default configuration: type
+`0x0a` frames carrying NMEA text appear without an NV download.
+
+**Effects, on open of `/dev/gnss0`:** WMT GPS function-on (`01 06 02 00 02 01`,
+already used for other functions with its own flag byte); then `0x13`, zero-length
+`0x14`, `0x44` with bitmap 0 (delete nothing), `0x83` from the system clock, and
+`0x40`. The `0x7e` ACKs and `0x76` keep-alive follow as above. On close: `0x41`,
+then function-off.
+
+**Not used:** no firmware file beyond what every start loads; no calibration read
+or written, including `ML4A_000` and NVRAM; no EPO, SUPL or network; NV requests
+from the firmware are counted and not answered; no partition write.
+
+**RF:** GNSS only receives (inferred: no transmit path is documented for it). Wi-Fi
+stays on as the owner's access point allows, with no new channel or transmit power.
+
+**Two stages, one boot each at most:**
+
+| Stage | Change | Length | Decides |
+| --- | --- | --- | --- |
+| A | Module only, GPIO 69 left alone | One 5 minute open, `wlan0` idle, then one with ping | Does the firmware produce frames, and does Wi-Fi survive function-on and function-off? |
+| B | GPIO 69 high while open (needs a DT patch and a boot2 write) | One open of at most 20 minutes, with the device near a window or outdoors | Does a fix arrive, and does the GPIO change signal levels? |
+
+| Observation in A | Next |
+| --- | --- |
+| `0x0a` frames with `$G` sentences | Go to B |
+| Frames, but only NV requests (`0x40`-`0x49`) | The engine waits for NV: H1 is refuted; design the NV exchange offline |
+| Function-on answers, then silence | Check the default-config path offline; no blind retries |
+| Function-on refused or timed out | Stop; function-off; CONSYS reload |
+
+**Stop rules:** any firmware assert, link stop, Oops or warning; Wi-Fi lost for more
+than the normal ping gap; battery or SoC temperature outside the station's usual
+range. On a stop: close the device, unload, CONSYS reload. No retry in one CONSYS
+lifetime.
+
+**Privacy:** a fix is location data. Kernel logs keep frame types and counts only.
+Sentences are read through a private path under `artifacts/`, and only sentence
+names, satellite counts and carrier-to-noise summaries are published. Latitude,
+longitude and time-of-fix text are not.
+
+**Separate:** the read-only Gemian check (H0) tells whether stock could serve as a
+reference. It is not needed for T2.
 
 ## Associated code
 
