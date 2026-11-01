@@ -253,7 +253,7 @@ Those GLONASS bits matched broadcast position and velocity exactly on 3 satellit
 
 From the [step 5 capture](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and `libmnl`. Step 1's trace adds the stop. All 72737 frames in step 5 pass the checksum. This is what stock does, on stock Gemian: none of it has been reproduced by other code.
 
-1. **Open.** Open `/dev/stpgps`, then ioctls 11, 10, 7 and 8 in that order. The terminal ioctls `mnld` then tries fail with `EFAULT` and do not stop it.
+1. **Open.** Open `/dev/stpgps`, then ioctls 11 (co-clock flag), 10 (RTC flag), 7 and 8 (chip versions) in that order. The terminal ioctls `mnld` then tries fail with `EFAULT` and do not stop it.
 2. **Boot header.** Send `0xFE08` with a 106-byte header, which `libmnl` fills with the image's size and addresses and with chip-dependent settings. The DSP answers `0xFE31`.
 3. **Image.** Send the image as `0xFE0C` fragments: a little-endian u16 sequence number from 1, then up to 1400 bytes. Wait for `0xFE32` carrying that sequence number before the next one. On a failed try `libmnl` retries up to 5 times. Step 5 sent 44 fragments, 61440 bytes in all, in about 0.5 s. The whole image is embedded in `libmnl.so`: no separate `MNL.bin` was used.
 4. **Started.** `0xFE2C` arrives first, about 7 ms after the last fragment.
@@ -263,7 +263,7 @@ From the [step 5 capture](../../experiments/2026-11-01-gemini-gnss-stock-trace/R
 | ID | Payload | Content |
 | --- | --- | --- |
 | `0xFE00` | 4 bytes | A millisecond counter in bytes 2 and 3, +1000 a second, wrapping |
-| `0xFE01` | 17 bytes | Host status, with the time of week in 1.5 s units at bytes 9 to 12, or all ones when unknown |
+| `0xFE01` | 17 bytes | Host status, with the time of week in 1.5 s units at bytes 11 to 14, high half first, or all ones when unknown |
 | `0xFE02` | 20 bytes, one per aided channel | Satellite, constellation, then predicted code phase and Doppler in Hz, and flags. The Doppler matched the following measurement within about 2 Hz. Mapped only in part |
 | `0xFE03` | Lists of 2-byte pairs | Satellite and constellation, one list for tracking and one for search |
 | `0xFE08` | 10 bytes | A setting, nearly constant, not mapped |
