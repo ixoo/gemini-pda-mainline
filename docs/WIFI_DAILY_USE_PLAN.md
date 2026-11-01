@@ -1,6 +1,8 @@
 # Wi-Fi for daily use, for anyone: plan
 
-Status: plan, 2026-10-31. Nothing here is implemented or booted yet.
+Status: plan, 2026-10-31. Phase 1 (one clean driver) is implemented and
+passed on station 24 ([record](../experiments/2026-10-31-mt6797-wifi-clean-driver/README.md));
+its 2.5 h hold was not repeated. Phases 2-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and
 states what "done" means at each step.
@@ -70,23 +72,23 @@ series is W=1- and checkpatch-clean. The old station profile retires.
 
 ### 2. Comes up by itself, from files anyone can get
 
-- **Firmware.** Load `WIFI_RAM_CODE_6797` and the ROMv3 patches from
-  `/lib/firmware/mediatek/mt6797/`, with no private path. Write an extraction script that copies them, and checks their
-  hashes, from the owner's own Gemian or Android vendor partition. The
-  repository cannot ship them: they are `required-nonfree`, with no
-  redistribution right.
-- **Calibration.** Read `WIFI.storage` (the NVRAM board record) from the
-  device's own nvdata partition with the same script, never from another
-  device. Take the permanent MAC address from it.
+- **Firmware and calibration.** The driver already loads all four files
+  from `/lib/firmware/mediatek/mt6797/`. The
+  [firmware page](hardware/firmware.md#files-the-mainline-wi-fi-driver-loads)
+  lists them, their Gemian source paths and how they are checked; owners
+  copy them from their own device. The repository cannot ship the
+  firmware (`required-nonfree`, no redistribution right), and
+  `WIFI.storage` is per-device calibration. Take the permanent MAC address
+  from the device rather than a fixed value.
 - **Start.** Power and firmware start happen in the driver: at probe, or
   on the first `ifup` with an idle power-off. The two userspace writes go.
 - **Regulatory.** Ship with `regulatory.db` and follow the country
   through cfg80211, using the existing country-power encoder. Remove the
   fixed channel set.
 
-**Exit:** on a freshly installed system, the extraction script, a reboot
-and `nmcli device wifi connect <owner AP>` work without SSH or a custom
-`wpa_supplicant.conf`.
+**Exit:** on a freshly installed system, the four documented files, a
+reboot and `nmcli device wifi connect <owner AP>` work without SSH or a
+custom `wpa_supplicant.conf`.
 
 ### 3. Any network, any channel
 
@@ -156,15 +158,15 @@ link is idle.
 
 ### 6. Hand-over to users and upstream
 
-- **Docs.** A page in `docs/` for owners: the extraction script, the
-  supported security modes and bands, and the known limits.
+- **Docs.** A page in `docs/` for owners: the firmware files to copy,
+  the supported security modes and bands, and the known limits.
 - **Distribution.** A kernel config fragment for distributions
   (postmarketOS, Mobian, Gemian successors), with the driver as modules.
 - **Upstream.** DT bindings for the CONSYS owner and WMT, the STP and BTIF
   transport, and the WLAN driver, each with a real author and a truthful
   certification (see the [upstream gate](ROADMAP.md#upstream-delivery-gate)).
 - **Firmware rights.** Ask MediaTek, or linux-firmware, about
-  redistributing the firmware, so that the extraction step can go away.
+  redistributing the firmware, so that owners no longer copy it.
 
 ## Order and size
 
