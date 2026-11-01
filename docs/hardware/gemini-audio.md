@@ -318,7 +318,7 @@ loaded idle state or the AUDIO domain. A silent stream stopped it for 90 s with
 the HP path on, so the idle output is what picks it up. What the first stream
 changes is in the
 [idle noise experiment](../../experiments/2026-11-01-gemini-hp-idle-noise/README.md),
-which tests restoring the charge pump configuration first.
+which ruled out the charge pump configuration on one boot and tests the rest.
 
 No periodic audio work exists in the vendor code. The nearest timers are the
 ANC IPC wait (1 s, unused on Gemini), the ACCDET MICBIAS1 off timer (6 s), the

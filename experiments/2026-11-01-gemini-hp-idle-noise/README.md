@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-hp-idle-noise` |
-| Status | `planned`: first candidate `0447` built for test; not run on the device |
+| Status | `running`: `0447` falsified on a fresh boot; a switchable restore test is next |
 | Subsystem | audio: MT6351 headphone path |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -21,7 +21,12 @@ output, and stays with the modules removed.
 Hypothesis: the charge pump configuration that the first stream leaves behind opens that path.
 Restoring `AFE_NCP_CFG0` to `0x4600` at power-down, as the vendor driver does, removes the noise.
 
-It is falsified if the noise continues after a tone once that register reads `0x4600`.
+It is falsified if the noise continues after a tone once that register reads `0x4600`. It was, on
+station 35, and `0447` is withdrawn.
+
+Second hypothesis: the noise comes from one of the other registers the tone changes. Putting all of them
+back after a tone stops it, and putting back groups singles it out. It is falsified if the noise
+continues with all of them back; then the cause is not in a writable register these reads cover.
 
 ## Why this candidate first
 
@@ -41,7 +46,8 @@ from reading the code, for the registers the tone changed on station 34:
 | `0x0806` `ZCD_CON3` | `0012` | `001f` | not compared |
 | `0x080A` `ZCD_CON5`, `0x2026` `AFUNC_AUD_MON0` | `3f3f`, `0000` | `3232`, `ffff` | mainline never writes them; read-back |
 
-This is a ranking, not a mechanism. Nothing here explains how a charge pump setting with the pump's
+Station 35 removes `0x2096` and also `0x2026`, which stayed `0000` there. This is a ranking, not a
+mechanism. Nothing here explains how a charge pump setting with the pump's
 enable bit clear would couple noise. Stock's own quiet listen also came with nothing played, so stock
 after playback is untested, and its idle state differs in other ways.
 
@@ -59,7 +65,9 @@ the reviewed boot2 path. Swapping the codec module needs none. Stop on an oops, 
 
 ## Associated code
 
-- [`0447`](../../patches/proposals/0447-ASoC-mt6351-restore-the-charge-pump-configuration-at.patch)
+- `0447`, withdrawn; in Git history. It was built at `4da5aa36`.
+- [`0449`](../../patches/proposals/0449-ASoC-mt6351-test-which-idle-registers-bring-the-head.patch): test only. Default 0 changes nothing. Remove it when
+  this experiment ends.
 - [`pmic-audio-read.sh`](../2026-11-01-gemini-audio-reload/pmic-audio-read.sh)
 
 ## Procedure
@@ -78,6 +86,25 @@ Run by the custodian on any station boot of the same release, owner listening wi
 | `2096` reads `8c00` | The new module did not run; check what was loaded |
 | Second tone silent | Revert `0447`; the pump needs its configuration another way |
 
+`0447` ran on a fresh boot instead of with the swap above; see the observations.
+
+Second test. `idle_restore` applies when a stream ends, so it is set before the tone, and it needs no
+kernel change beyond the module:
+
+1. On a boot with no tone yet, Wi-Fi up, notices firing, owner reporting no noise: swap
+   `snd-soc-mt6351.ko` for the package's and set `idle_restore=15`.
+2. Tone, read, and listen for 2 minutes. Expect the read to match the values from before the tone,
+   except the read-back `0x080A`.
+3. If quiet, set `idle_restore=0`, tone, listen 2 minutes for the noise to come back.
+4. If it does: `idle_restore` of 1, 2, 4 and 8 in turn, each with a tone, a read and 2 minutes, with a
+   `0` tone between them if the noise is gone.
+
+| Observation | Next |
+| --- | --- |
+| 15 quiet, 0 noisy, one group quiet | Make that restore the real power-down; remove the parameter |
+| 15 quiet, 0 stays quiet | The first tone's state is not reproduced later; retest each group from a fresh boot |
+| 15 noisy, registers as expected | Not these registers; hold the output on while headphones are in, or compare stock after playback |
+
 ## Observations
 
 **Station 34 (boot `e1706072`, boot2 `01280137`, package `db7b42af`, A72 profile), run by the custodian,
@@ -93,15 +120,31 @@ headphones plugged in at 115.94 s, Wi-Fi joined at 67.46 s:**
 
 The values after the tone match station 33's noisy reads for `0x0CF4`, `0x201C` and `0x2020`.
 
+**Station 35 (boot `04cc38ee`, boot2 `38116570`, package `932520bc`, `snd-soc-mt6351.ko` `f0988b91…` with
+`0447`), run by the custodian, headphones in at power-on, joined at 28.65 s, associated throughout, no
+restarts, CPUs 0-7:**
+
+- Notices from 390.05 s at 30 s spacing. The owner, at about 760 s: "No noise, play".
+- Tone ended 763.24 s, rc 0: "Heard, no pop". Then "ok the noise is back 1s every 30s". Key presses at
+  809.41 and 839.40 s. The owner then unplugged to try another plug.
+- `0x2096` read `4600` at 763.25 s and 947.34 s. The other registers of the table changed as on
+  station 34, except `0x2026`, which stayed `0000`.
+
+A second tone was not played. The notice schedule past about 840 s is extrapolated (print limit).
+
 ## Analysis
 
-The first-playback trigger repeats, on a second boot and a second CPU profile. That makes two boots with
-the same order of events. Registers do change with the tone, so the SoC-side branch of the reload
+The first-playback trigger repeats: stations 33, 34 and 35 show the same order of events, on two CPU
+profiles.
+
+`0447` did not help. With the charge pump configuration at its original value, the noise still came
+back, so comparing with stock's close path did not find the cause. Stock leaves the other candidates
+set too, so it gives no ranking among them, and stock after playback is still untested. Registers do change with the tone, so the SoC-side branch of the reload
 experiment does not apply first.
 
 ## Conclusion
 
-`inconclusive`: the candidate has not been tested.
+`0447` is `refuted` for the named Gemini on one fresh boot. The cause is not established.
 
 ## Follow-up
 
