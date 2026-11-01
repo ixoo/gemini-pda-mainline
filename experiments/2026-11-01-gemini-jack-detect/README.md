@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-jack-detect` |
-| Status | `planned`: patches written; not booted |
+| Status | `planned`: package built, device test requested; not booted |
 | Subsystem | audio: MT6351 ACCDET EINT, card jack |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -43,6 +43,10 @@ codec's own card:
 The ACCDET detection unit stays off. The vendor runs it after a plug to classify
 the cable, and re-initialises the block then; this driver does neither. Whether
 the unplug EINT needs either is one thing this test shows.
+
+## Build
+
+Buildbox-3, commit `d053ffd13f6dace0c32e3423b9c8f7672b0c1fd4`, job `d053ffd1…-mt6797-a53-station-m1`, inventory `13d0656e…`. Compiled, checksums pass. Device action: none.
 
 ## Safety assessment
 
