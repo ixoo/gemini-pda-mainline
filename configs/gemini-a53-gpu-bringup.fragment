@@ -1,0 +1,24 @@
+# Offline-only GPU/Panfrost bring-up profile options.
+#
+# This does not enable the GPU node by itself. It builds the MT6797 platform
+# providers and Panfrost so a separately reviewed DT composition can enable
+# the disabled GPU node. Keep the first runtime attempt at a fixed
+# 520 MHz / 1.0 V point; no OPP table or devfreq policy is enabled here.
+CONFIG_DRM=y
+CONFIG_DRM_PANFROST=m
+CONFIG_PM_DEVFREQ=y
+CONFIG_PM_OPP=y
+CONFIG_ENERGY_MODEL=y
+
+# MT6797 MFG power hierarchy and gate. Use the legacy mtk-scpsys driver;
+# the newer mtk-pm-domains driver has no MT6797 MFG entries.
+CONFIG_MTK_SCPSYS=y
+CONFIG_COMMON_CLK_MT6797_MFGSYS=y
+
+# External VGPU rail on I2C7.
+CONFIG_I2C=y
+CONFIG_I2C_MT65XX=y
+CONFIG_REGULATOR_RT5735=y
+
+# Keep the profile identifiable.
+CONFIG_LOCALVERSION="-gemini-a53-gpu-bringup"

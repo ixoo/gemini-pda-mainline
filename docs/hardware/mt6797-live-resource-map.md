@@ -44,7 +44,8 @@ mainline-ready DTS and not proof that its untested nodes work.
 
 GIC interrupt numbers below are SPI numbers. `LOW` and `HIGH` are the trigger
 polarity encoded by the vendor tree; they still require runtime validation
-before upstream submission.
+before upstream submission. The complete GIC/EINT/PPI map and handler audit is
+in [MT6797 and Gemini interrupts](mt6797-interrupts.md).
 
 | Block | Register windows | IRQ | Live clock/resource evidence | Linux 7.1.x consequence |
 | --- | --- | --- | --- | --- |
@@ -155,6 +156,8 @@ DVFS, idle, suspend, thermal behavior, or scheduler policy.
 
 See the [CPU/PSCI/timer recovery experiment](../../experiments/2026-07-13-cpu-psci-timer-recovery/README.md)
 and its [source validation](../../experiments/2026-07-13-cpu-psci-timer-recovery/results/mainline-cpu-psci-timer-validation.txt).
+The per-cluster firmware, clock, regulator, OPP, and hotplug map is in
+[MT6797 CPU clusters](mt6797-cpu-clusters.md).
 The current Cortex-A72 safety boundary is in the
 [DA921x, I2C6, and Cortex-A72 record](da921x-i2c6-a72.md); individual
 candidate construction and negative results remain in the

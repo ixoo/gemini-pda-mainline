@@ -1,0 +1,68 @@
+/dts-v1/;
+
+/ {
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	mfgsys: syscon@13000000 {
+		compatible = "mediatek,mt6797-mfgsys", "syscon";
+		reg = <0 0x13000000 0 0x1000>;
+		#clock-cells = <1>;
+		status = "disabled";
+	};
+
+	infrasys: syscon@10001000 {
+		compatible = "mediatek,mt6797-infracfg", "syscon";
+		reg = <0 0x10001000 0 0x1000>;
+		#clock-cells = <1>;
+		phandle = <0x2>;
+	};
+
+	scpsys: power-controller@10006000 {
+		compatible = "mediatek,mt6797-scpsys";
+		reg = <0 0x10006000 0 0x1000>;
+		#power-domain-cells = <1>;
+		phandle = <0x4>;
+	};
+
+	topckgen: topckgen@10000000 {
+		compatible = "mediatek,mt6797-topckgen", "syscon";
+		reg = <0 0x10000000 0 0x1000>;
+		#clock-cells = <1>;
+		phandle = <0x5>;
+	};
+
+	watchdog: watchdog@10007000 {
+		compatible = "mediatek,mt6797-wdt", "mediatek,mt6589-wdt";
+		reg = <0 0x10007000 0 0x100>;
+		#reset-cells = <1>;
+		phandle = <0x6>;
+	};
+
+	i2c7: i2c@11010000 {
+		compatible = "mediatek,mt6797-i2c";
+		reg = <0 0x11010000 0 0x1000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "disabled";
+
+		rt5735_vgpu: regulator@1c {
+			compatible = "richtek,rt5735";
+			reg = <0x1c>;
+			phandle = <0x3>;
+			status = "disabled";
+		};
+	};
+
+	gpu: gpu@13040000 {
+		compatible = "mediatek,mt6797-mali", "arm,mali-t880";
+		reg = <0 0x13040000 0 0x4000>;
+		interrupts = <0 264 8>, <0 263 8>, <0 262 8>;
+		interrupt-names = "job", "mmu", "gpu";
+		clocks = <&mfgsys 1>;
+		clock-names = "core";
+		power-domains = <&scpsys 7>, <&scpsys 8>, <&scpsys 9>, <&scpsys 10>;
+		power-domain-names = "core0", "core1", "core2", "core3";
+		status = "disabled";
+	};
+};
