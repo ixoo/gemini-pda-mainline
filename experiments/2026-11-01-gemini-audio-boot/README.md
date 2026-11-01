@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-boot` |
-| Status | `running`: station 31 boots with audio ready; idle cost within noise; periodic headphone noise open |
+| Status | `completed`: audio ready at boot on station 31; a module reload silences playback; 30 s noise follows Wi-Fi |
 | Subsystem | audio; station RAM root |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -122,6 +122,19 @@ unplugging. No noise has been reported with the headphones out.
 Read at 935.8 s, headphones out, reloaded, no stream: `0x10006314` = `0x3330FF0D`, the jack off,
 all four DAPM bias levels off, no widget on, and `HPL Power` and `HPR Power` off.
 
+Noise, owner listening with the headphones in, on the reloaded card:
+
+| Condition | Owner |
+| --- | --- |
+| Baseline | "Yes, still there" |
+| Wi-Fi disconnected for 90 s, 3463.9-3554.1 s | "no noise" |
+| Wi-Fi reconnected, next 90 s | "Yes, it's back" |
+
+With the noise present at 3125.9 s the jack read on, all bias levels off, and no widget on.
+
+Playback on the reloaded card: three tones at 5788.94-5796.99 s, `aplay` rc 0 each. The owner:
+"Silence". `0x10006314` stayed `0x3330FF0D`, nothing in `dmesg`, not tainted.
+
 ## Analysis
 
 The hypothesis holds. Plain `aplay` plays with no setup, every boot reaches `audio=ready`, and
@@ -151,13 +164,25 @@ idle has to fix this first. By 935.8 s, after the reload had turned the AFE cloc
 acknowledge bits had appeared too, which fits the clock reading. So the reloaded card sits with its
 domain on and its SRAM powered down until a reboot.
 
+**So a module reload silently breaks playback until a reboot.** `aplay` reports success and nothing
+is heard. Inference: the SRAM state is the cause; one on/off pair of boots would prove it. A normal
+boot never unloads audio, so this affects development, not use. A likely fix is giving
+`power-domain@4` the audio clocks, so they run during its power-off, as other MediaTek SoCs do;
+that is untested.
+
+**The headphone noise follows Wi-Fi**, on one off/on sequence, and is audible with the HP path reading
+off. The codec is not holding it on, so this is coupling from the radio or its supply, not an
+audio driver fault. Whether stock Gemian has it too is not known yet. The 30 s rhythm matches the
+`BSS timeout ignored` line, which is only a matching period so far.
+
 ## Conclusion
 
 `confirmed` for the named Gemini, Linux 7.1.3 and package `b36b2f7f`: audio is ready after boot
 and plays through the headphones with no setup. Audio holds its power domain and clocks on
 for the whole uptime, at a cost too small to see in this measurement.
 
-Open: the periodic headphone noise, and whether the card plays after a module reload.
+Open: playback after a module reload is silent until a reboot, and the 30 s Wi-Fi noise is not
+yet compared with stock.
 
 ## Follow-up
 
