@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; two module-free boots of the opt-in profile are done, the second confirming 0446; the bring-up test is proposed and waits for the owner |
+| Status | `running`; two module-free boots of the opt-in profile are done, the second confirming 0446; the bring-up test is owner-approved and with the custodian |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -382,7 +382,10 @@ Also check GNSS if the image carries it. Candidate: package `db7b42af...` (job
 `access-controllers` line, and the AUDIO domain clocks from 0445, another session's
 station patch. All other modules and the configuration are identical.
 
-### Bring-up test (proposed, needs the owner's approval)
+### Bring-up test (owner-approved, one module load, not run)
+
+The owner approved this on 2026-11-01, keeping the proposed 75 C limit, for one module
+load on boot `e1706072`.
 
 This writes the DA9214 enable bit, SPM, the PWRAP reset and MCUCFG DCM, and makes the
 secure SRAM-LDO call, for the first time beside live PMIC traffic. It changes no voltage
