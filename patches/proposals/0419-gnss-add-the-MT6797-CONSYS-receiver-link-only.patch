@@ -1,0 +1,287 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 08:30:53 -0500
+Subject: [PATCH] gnss: add the MT6797 CONSYS receiver, link only
+
+The MT6797 GNSS receiver is part of CONSYS and has no port of its own.
+Its firmware sends NMEA text inside GFNS frames on STP task 2.
+
+Add a gnss device on the CONSYS STP link. Opening it attaches to task 2,
+and closing it detaches, so a loaded module touches nothing. Received
+frames are parsed and counted by type, and type 0x0a payloads go to the
+device. The checksum covers the channel byte, as the vendor receiver
+reads it.
+
+This version does not turn the receiver on, so the device stays silent.
+WMT GPS function-on, the LNA GPIO and the GFNS start sequence are radio
+actions and need their own protocol. Writes are refused until then.
+---
+ drivers/gnss/Kconfig       |  15 +++++
+ drivers/gnss/Makefile      |   3 +
+ drivers/gnss/mt6797-gfns.h |  80 +++++++++++++++++++++++
+ drivers/gnss/mt6797.c      | 129 +++++++++++++++++++++++++++++++++++++
+ 4 files changed, 227 insertions(+)
+ create mode 100644 drivers/gnss/mt6797-gfns.h
+ create mode 100644 drivers/gnss/mt6797.c
+
+diff --git a/drivers/gnss/Kconfig b/drivers/gnss/Kconfig
+index d7fe265c2..ba0055df4 100644
+--- a/drivers/gnss/Kconfig
++++ b/drivers/gnss/Kconfig
+@@ -29,6 +29,21 @@ config GNSS_MTK_SERIAL
+ 
+ 	  If unsure, say N.
+ 
++config GNSS_MT6797
++	tristate "MediaTek MT6797 CONSYS GNSS receiver support"
++	depends on MTK_MT6797_CONSYS
++	help
++	  Say Y here for the GNSS receiver inside the MT6797 connectivity
++	  subsystem, which sends NMEA text over the shared STP link.
++
++	  This version opens the link and receives only; it does not turn
++	  the receiver on yet, so its device stays silent.
++
++	  To compile this driver as a module, choose M here: the module will
++	  be called gnss-mt6797.
++
++	  If unsure, say N.
++
+ config GNSS_SIRF_SERIAL
+ 	tristate "SiRFstar GNSS receiver support"
+ 	depends on SERIAL_DEV_BUS
+diff --git a/drivers/gnss/Makefile b/drivers/gnss/Makefile
+index bb2cbada3..bcb94295e 100644
+--- a/drivers/gnss/Makefile
++++ b/drivers/gnss/Makefile
+@@ -12,6 +12,9 @@ gnss-serial-y := serial.o
+ obj-$(CONFIG_GNSS_MTK_SERIAL)		+= gnss-mtk.o
+ gnss-mtk-y := mtk.o
+ 
++obj-$(CONFIG_GNSS_MT6797)		+= gnss-mt6797.o
++gnss-mt6797-y := mt6797.o
++
+ obj-$(CONFIG_GNSS_SIRF_SERIAL)		+= gnss-sirf.o
+ gnss-sirf-y := sirf.o
+ 
+diff --git a/drivers/gnss/mt6797-gfns.h b/drivers/gnss/mt6797-gfns.h
+new file mode 100644
+index 000000000..8683f56a4
+--- /dev/null
++++ b/drivers/gnss/mt6797-gfns.h
+@@ -0,0 +1,80 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_GFNS_H
++#define MT6797_GFNS_H
++
++/*
++ * The frames the CONSYS GNSS firmware sends on STP task 2:
++ *
++ *   A5 CH TYPE LEN_HI LEN_LO SUM <LEN bytes> A3
++ *
++ * SUM is the low byte of the sum of CH, TYPE, LEN_HI and LEN_LO. The top three
++ * bits of CH select an output channel. Pure state: the caller serializes.
++ */
++#define GFNS_START		0xa5
++#define GFNS_END		0xa3
++#define GFNS_HEADER		6U
++#define GFNS_MAX_PAYLOAD	2048U
++#define GFNS_RSP_NMEA		0x0a
++
++struct gfns_rx {
++	unsigned char frame[GFNS_HEADER + GFNS_MAX_PAYLOAD + 1];
++	unsigned int used, needed, bad;
++};
++
++struct gfns_frame {
++	unsigned int channel, type, length;
++	const unsigned char *payload;
++};
++
++static inline void gfns_rx_init(struct gfns_rx *rx)
++{
++	rx->used = 0;
++	rx->needed = GFNS_HEADER;
++	rx->bad = 0;
++}
++
++/* Drop the frame in progress; its failing byte may start the next one. */
++static inline void gfns_rx_refuse(struct gfns_rx *rx, unsigned char byte)
++{
++	rx->bad++;
++	rx->used = byte == GFNS_START;
++	if (rx->used)
++		rx->frame[0] = byte;
++	rx->needed = GFNS_HEADER;
++}
++
++/* 1 with a frame that aliases rx until the next byte; otherwise 0. */
++static inline int gfns_rx_byte(struct gfns_rx *rx, unsigned char byte,
++			       struct gfns_frame *result)
++{
++	const unsigned char *f = rx->frame;
++	unsigned int length;
++
++	if (!rx->used && byte != GFNS_START)
++		return 0;
++	rx->frame[rx->used++] = byte;
++	if (rx->used == GFNS_HEADER) {
++		length = (f[3] << 8) | f[4];
++		if (((f[1] + f[2] + f[3] + f[4]) & 0xff) != f[5] ||
++		    length > GFNS_MAX_PAYLOAD) {
++			gfns_rx_refuse(rx, byte);
++			return 0;
++		}
++		rx->needed = GFNS_HEADER + length + 1;
++	}
++	if (rx->used < rx->needed)
++		return 0;
++	if (byte != GFNS_END) {
++		gfns_rx_refuse(rx, byte);
++		return 0;
++	}
++	result->channel = f[1] >> 5;
++	result->type = f[2];
++	result->length = rx->used - GFNS_HEADER - 1;
++	result->payload = f + GFNS_HEADER;
++	rx->used = 0;
++	rx->needed = GFNS_HEADER;
++	return 1;
++}
++
++#endif
+diff --git a/drivers/gnss/mt6797.c b/drivers/gnss/mt6797.c
+new file mode 100644
+index 000000000..ffa0083a5
+--- /dev/null
++++ b/drivers/gnss/mt6797.c
+@@ -0,0 +1,129 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MediaTek MT6797 CONSYS GNSS receiver.
++ *
++ * The receiver is part of CONSYS and runs its position engine on the CONSYS
++ * microcontroller. It sends NMEA text inside GFNS frames on STP task 2.
++ *
++ * This version opens the STP link and receives only. It does not turn the
++ * receiver on, so the device stays silent: the WMT GPS function-on, the LNA
++ * GPIO and the GFNS start sequence are radio actions of their own.
++ */
++
++#include <linux/errno.h>
++#include <linux/gnss.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/soc/mediatek/mt6797-stp.h>
++
++#include "mt6797-gfns.h"
++
++struct mt6797_gnss {
++	struct device *dev;
++	struct gnss_device *gdev;
++	struct gfns_rx rx;
++	unsigned int types[256];
++	unsigned int dropped;
++};
++
++/* Hard interrupt context, serialized by the link lock. */
++static int mt6797_gnss_receive(void *context, const u8 *payload, unsigned int length)
++{
++	struct mt6797_gnss *gnss = context;
++	struct gfns_frame frame;
++	unsigned int i;
++
++	for (i = 0; i < length; i++) {
++		if (!gfns_rx_byte(&gnss->rx, payload[i], &frame))
++			continue;
++		gnss->types[frame.type]++;
++		if (frame.type == GFNS_RSP_NMEA && frame.length &&
++		    gnss_insert_raw(gnss->gdev, frame.payload, frame.length) !=
++		    frame.length)
++			gnss->dropped++;
++	}
++	return 0;
++}
++
++static int mt6797_gnss_open(struct gnss_device *gdev)
++{
++	struct mt6797_gnss *gnss = gnss_get_drvdata(gdev);
++
++	gfns_rx_init(&gnss->rx);
++	memset(gnss->types, 0, sizeof(gnss->types));
++	gnss->dropped = 0;
++	return mt6797_consys_stp_attach(MT6797_STP_TASK_GPS, mt6797_gnss_receive, gnss);
++}
++
++static void mt6797_gnss_close(struct gnss_device *gdev)
++{
++	struct mt6797_gnss *gnss = gnss_get_drvdata(gdev);
++	unsigned int i, frames = 0;
++
++	mt6797_consys_stp_detach(MT6797_STP_TASK_GPS);
++	for (i = 0; i < ARRAY_SIZE(gnss->types); i++) {
++		if (!gnss->types[i])
++			continue;
++		frames += gnss->types[i];
++		dev_info(gnss->dev, "GFNS type 0x%02x: %u frames\n", i, gnss->types[i]);
++	}
++	dev_info(gnss->dev, "closed: %u GFNS frames, %u refused, %u dropped\n",
++		 frames, gnss->rx.bad, gnss->dropped);
++}
++
++static int mt6797_gnss_write_raw(struct gnss_device *gdev, const unsigned char *buf,
++				 size_t count)
++{
++	return -EOPNOTSUPP;
++}
++
++static const struct gnss_operations mt6797_gnss_ops = {
++	.open = mt6797_gnss_open,
++	.close = mt6797_gnss_close,
++	.write_raw = mt6797_gnss_write_raw,
++};
++
++static int mt6797_gnss_probe(struct platform_device *pdev)
++{
++	struct mt6797_gnss *gnss;
++	struct gnss_device *gdev;
++	int ret;
++
++	gnss = devm_kzalloc(&pdev->dev, sizeof(*gnss), GFP_KERNEL);
++	if (!gnss)
++		return -ENOMEM;
++	gdev = gnss_allocate_device(&pdev->dev);
++	if (!gdev)
++		return -ENOMEM;
++	gdev->type = GNSS_TYPE_NMEA;
++	gdev->ops = &mt6797_gnss_ops;
++	gnss_set_drvdata(gdev, gnss);
++	gnss->dev = &pdev->dev;
++	gnss->gdev = gdev;
++	platform_set_drvdata(pdev, gnss);
++	ret = gnss_register_device(gdev);
++	if (ret)
++		gnss_put_device(gdev);
++	return ret;
++}
++
++static void mt6797_gnss_remove(struct platform_device *pdev)
++{
++	struct mt6797_gnss *gnss = platform_get_drvdata(pdev);
++
++	gnss_deregister_device(gnss->gdev);
++	gnss_put_device(gnss->gdev);
++}
++
++static struct platform_driver mt6797_gnss_driver = {
++	.probe = mt6797_gnss_probe,
++	.remove = mt6797_gnss_remove,
++	.driver = {
++		.name = "mt6797-gnss",
++	},
++};
++module_platform_driver(mt6797_gnss_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 CONSYS GNSS receiver");
++MODULE_LICENSE("GPL");
++MODULE_ALIAS("platform:mt6797-gnss");

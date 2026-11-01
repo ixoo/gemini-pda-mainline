@@ -194,7 +194,9 @@ transport; the same frames carry locations, NVRAM and debug traffic.
 A5 00 TYPE LEN_HI LEN_LO SUM  <LEN bytes of payload>  A3
 ```
 
-- `SUM = (0x00 + TYPE + LEN_HI + LEN_LO) & 0xff`
+- `SUM` is the low byte of the sum of header bytes 1 to 4. The vendor receiver
+  checks exactly that, so on MCU→host frames the channel byte counts; on
+  host→MCU frames that byte is zero, giving `(TYPE + LEN_HI + LEN_LO) & 0xff`.
 - `LEN` is the payload length; the sender splits user data into chunks of at
   most `0x1ff` bytes.
 - Total frame size is `6 + LEN + 1`.
@@ -413,13 +415,17 @@ reopen the device.
 
 ## Mainline translation
 
-The honest position is: the transport and protocol are now known, but the
-mainline prerequisite (common CONSYS initialization with ROM patch loading and
-calibration) is still the same blocker as for Wi-Fi.
+The transport and protocol are known, and common CONSYS initialization with ROM
+patch loading and calibration now runs on the station for Wi-Fi. What remained
+below the protocol was a receive path that stays on: the start chain's STP
+exchanges are one-shot. The
+[GNSS link record](../../experiments/2026-11-01-gemini-gnss-link/README.md) adds
+that link and a silent `gnss` device; it has not run on the device.
 
-A first standards-shaped GNSS implementation would need, in order:
+A first standards-shaped GNSS implementation needs, in order:
 
-1. The shared CONSYS/WMT owner proven (ROM patches applied, calibration run).
+1. The shared CONSYS/WMT owner (done for Wi-Fi) and a persistent STP link
+   (written, not yet tested on the device).
 2. GPS function-on (`01 06 02 00 02 01`), the GPIO 69 LNA state, and the VCN28
    and AFE prerequisites provided by that owner.
 3. A GFNS endpoint that sends `MNL_INIT`, `MNL_INIT_CFG`, `MNL_UTC_INIT`,

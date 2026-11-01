@@ -1,0 +1,784 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 08:30:53 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: run the STP link for task
+ clients
+
+The start chain talks to the firmware one WMT command at a time: each
+exchange takes the BTIF interrupt, waits for one reply and frees it.
+After the chain nothing listens on BTIF. A GNSS receiver sends frames on
+STP task 2 whenever it likes, so it needs a receive path that stays on.
+
+Add a link engine and export attach and detach for task clients. The
+engine continues the sequence numbers the start chain left. The hard
+interrupt handler drains receive, routes frames by task, sends the ACKs
+and refills the transmit FIFO under one spinlock. A timer enforces a
+2 s ACK timeout. There is no retransmission or resynchronization, so
+malformed input, a refused frame or a timeout stop the link for this
+power lifetime; power, clocks and rails stay as they are.
+
+The link runs only while a client is attached. Until then the interrupt
+stays released and no code path changes, so Wi-Fi sees no difference.
+On attach, the owner repeats the STP option query the start chain sent
+during negotiation, which proves both directions and changes no
+firmware state. Only task 2 may attach for now.
+
+The engine derives from the persistent link drafted for Bluetooth, which
+never ran on hardware: it keeps a frame in progress across attaches and
+uses the same FIFO room rule as the one-shot path.
+
+Also register a child platform device for the GNSS driver.
+---
+ drivers/soc/mediatek/mt6797-consys.c     | 325 ++++++++++++++++++++++
+ drivers/soc/mediatek/mt6797-stp-engine.h | 335 +++++++++++++++++++++++
+ include/linux/soc/mediatek/mt6797-stp.h  |  20 ++
+ 3 files changed, 680 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-stp-engine.h
+ create mode 100644 include/linux/soc/mediatek/mt6797-stp.h
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index d6bafbcf1..9ee86c964 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -34,7 +34,9 @@
+ #include <linux/slab.h>
+ #include <linux/string.h>
+ #include <linux/sysfs.h>
++#include <linux/timer.h>
+ #include <linux/workqueue.h>
++#include <linux/soc/mediatek/mt6797-stp.h>
+ #include <linux/soc/mediatek/mtk-pm-domains.h>
+ #include <dt-bindings/power/mt6797-power.h>
+ 
+@@ -45,6 +47,7 @@
+ #include "../../net/wireless/mediatek/mt6797/mac.h"
+ #endif
+ #include "mt6797-wmt.h"
++#include "mt6797-stp-engine.h"
+ 
+ #define MT6797_CONSYS_REMAP_REG	0x10001340
+ #define MT6797_CONSYS_SLEEP_MASK_REG	0x10001350
+@@ -97,6 +100,19 @@
+ #define MT6351_VCN28_CLOCK_SELECT	(GENMASK(7, 5) | GENMASK(13, 11))
+ #define MT6351_VCN28_CLOCK_EXPECTED	((3 << 5) | (3 << 11))
+ 
++/* The persistent STP link, kept across attaches for this power lifetime. */
++struct mt6797_stp {
++	spinlock_t lock;	/* engine, IER, the WMT fields, stopped */
++	struct stp_engine engine;
++	void __iomem *btif;
++	int irq;
++	bool adopted, running, stopped, wmt_waiting;
++	struct timer_list tick;
++	struct completion wmt_done;
++	unsigned char wmt_event[16], wmt_first[16];
++	unsigned int wmt_event_length, wmt_first_length, wmt_unsolicited;
++};
++
+ struct mt6797_consys {
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+ 	/* Built-in owner retains powered HIF and wiphy for the whole boot. */
+@@ -115,6 +131,8 @@ struct mt6797_consys {
+ 	struct work_struct start_work;
+ 	struct mt6797_wmt_query wmt_query;
+ 	struct mt6797_wmt_negotiate wmt_negotiate;
++	struct mt6797_stp stp;
++	struct platform_device *gnss;
+ 	struct {
+ 		struct mt6797_wmt_full_io io;
+ 		unsigned char command[WMT_FULL_MAX_PAYLOAD];
+@@ -1657,6 +1675,304 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 	return ret;
+ }
+ 
++#define MT6797_STP_ACK_TIMEOUT_MS 2000U
++#define MT6797_STP_WMT_TIMEOUT_MS 2000U
++#define MT6797_STP_TICK_MS 100U
++#define MT6797_STP_RX_BUDGET 256U
++#define MT6797_STP_DRAIN_MS 200U
++
++/* The answer to wmt_stp_full_query, before the options the firmware reports. */
++static const unsigned char mt6797_stp_check_event[] = {
++	0x02, 0x04, 0x06, 0x00, 0x00, 0x04,
++};
++
++/* Lock held. TX-empty interrupt only while bytes wait for the FIFO. */
++static void mt6797_stp_pump(struct mt6797_stp *s)
++{
++	const unsigned char *bytes;
++	unsigned int pending, room, n, i, lsr;
++
++	while ((pending = stp_engine_tx_pending(&s->engine))) {
++		lsr = readl(s->btif + WMT_BTIF_LSR);
++		room = lsr & 0x40 ? 16 : lsr & 0x20 ? 8 : 0;
++		if (!room)
++			break;
++		n = min(pending, room);
++		bytes = stp_engine_tx_bytes(&s->engine);
++		for (i = 0; i < n; i++)
++			writeb(bytes[i], s->btif);
++		if (stp_engine_tx_done(&s->engine, n, jiffies))
++			break;
++	}
++	writel(s->engine.failed ? 0 : stp_engine_tx_pending(&s->engine) ? 3 : 1,
++	       s->btif + WMT_BTIF_IER);
++}
++
++/* Lock held. Fail-stop: no retry or resync; power and clocks stay as they are. */
++static void mt6797_stp_stop_locked(struct mt6797_stp *s)
++{
++	if (s->stopped)
++		return;
++	s->stopped = true;
++	if (!s->engine.failed)
++		stp_engine_fail(&s->engine, STP_ENGINE_EIO);
++	writel(0, s->btif + WMT_BTIF_IER);
++	if (s->wmt_waiting) {
++		s->wmt_waiting = false;
++		complete(&s->wmt_done);
++	}
++	pr_err("mt6797-consys: STP link stopped (%d)\n", s->engine.failed);
++}
++
++static irqreturn_t mt6797_stp_irq(int irq, void *data)
++{
++	struct mt6797_stp *s = data;
++	unsigned int iir, budget = 0;
++	irqreturn_t ret = IRQ_HANDLED;
++	unsigned long flags;
++
++	spin_lock_irqsave(&s->lock, flags);
++	if (s->stopped) {
++		writel(0, s->btif + WMT_BTIF_IER);
++		goto out;
++	}
++	iir = readl(s->btif + WMT_BTIF_IIR);
++	/* No source: let the core notice a stuck line instead of hiding it. */
++	if ((iir & 0x47) == 1) {
++		ret = IRQ_NONE;
++		goto out;
++	}
++	while ((iir & WMT_BTIF_RX_CAUSE) && budget++ < MT6797_STP_RX_BUDGET) {
++		if (stp_engine_rx(&s->engine, readb(s->btif), jiffies))
++			break;
++		iir = readl(s->btif + WMT_BTIF_IIR);
++	}
++	mt6797_stp_pump(s);
++	if (s->engine.failed)
++		mt6797_stp_stop_locked(s);
++out:
++	spin_unlock_irqrestore(&s->lock, flags);
++	return ret;
++}
++
++static void mt6797_stp_tick(struct timer_list *t)
++{
++	struct mt6797_stp *s = timer_container_of(s, t, tick);
++	unsigned long flags;
++
++	spin_lock_irqsave(&s->lock, flags);
++	if (!s->stopped) {
++		if (stp_engine_tick(&s->engine, jiffies,
++				    msecs_to_jiffies(MT6797_STP_ACK_TIMEOUT_MS)))
++			mt6797_stp_stop_locked(s);
++		else
++			mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
++	}
++	spin_unlock_irqrestore(&s->lock, flags);
++}
++
++/* Interrupt context, lock held: take the awaited event; keep the first other. */
++static int mt6797_stp_wmt_rx(void *context, const unsigned char *payload,
++			     unsigned int length)
++{
++	struct mt6797_stp *s = context;
++	unsigned int n = min_t(unsigned int, length, sizeof(s->wmt_event));
++
++	if (s->wmt_waiting && length >= sizeof(mt6797_stp_check_event) &&
++	    !memcmp(payload, mt6797_stp_check_event, sizeof(mt6797_stp_check_event))) {
++		memcpy(s->wmt_event, payload, n);
++		s->wmt_event_length = length;
++		s->wmt_waiting = false;
++		complete(&s->wmt_done);
++		return 0;
++	}
++	if (!s->wmt_unsolicited++) {
++		memcpy(s->wmt_first, payload, min_t(unsigned int, length, sizeof(s->wmt_first)));
++		s->wmt_first_length = length;
++	}
++	return 0;
++}
++
++/*
++ * The firmware's answer proves the link in both directions before any client
++ * relies on it. This query is the read the start chain already sent during
++ * negotiation; it changes no firmware state.
++ */
++static int mt6797_stp_check(struct device *dev, struct mt6797_stp *s)
++{
++	unsigned long flags;
++	int ret;
++
++	reinit_completion(&s->wmt_done);
++	spin_lock_irqsave(&s->lock, flags);
++	s->wmt_waiting = true;
++	ret = stp_engine_queue_msg(&s->engine, STP_FULL_TASK_WMT, wmt_stp_full_query,
++				   sizeof(wmt_stp_full_query));
++	if (ret)
++		s->wmt_waiting = false;
++	else
++		mt6797_stp_pump(s);
++	spin_unlock_irqrestore(&s->lock, flags);
++	if (ret)
++		return ret;
++	wait_for_completion_timeout(&s->wmt_done,
++				    msecs_to_jiffies(MT6797_STP_WMT_TIMEOUT_MS));
++	spin_lock_irqsave(&s->lock, flags);
++	if (s->wmt_waiting) {
++		s->wmt_waiting = false;
++		stp_engine_fail(&s->engine, STP_ENGINE_ETIMEDOUT);
++		mt6797_stp_stop_locked(s);
++		ret = -ETIMEDOUT;
++	} else if (s->stopped) {
++		ret = -EIO;
++	} else if (s->wmt_event_length != sizeof(wmt_stp_full_options)) {
++		ret = -EPROTO;
++	}
++	spin_unlock_irqrestore(&s->lock, flags);
++	dev_info(dev, "STP link check: result=%d reply=%u bytes %*ph\n", ret,
++		 s->wmt_event_length,
++		 min_t(int, s->wmt_event_length, sizeof(s->wmt_event)), s->wmt_event);
++	return ret;
++}
++
++/* Owner lock held. Take the BTIF interrupt, which the start chain released. */
++static int mt6797_stp_run(struct device *dev, struct mt6797_consys *owner)
++{
++	struct mt6797_stp *s = &owner->stp;
++	struct mt6797_wmt_negotiate *n = &owner->wmt_negotiate;
++	unsigned long flags;
++	int ret;
++
++	if (!s->adopted) {
++		spin_lock_init(&s->lock);
++		init_completion(&s->wmt_done);
++		timer_setup(&s->tick, mt6797_stp_tick, 0);
++		s->btif = n->first.btif;
++		s->irq = n->first.irq;
++		/* The link continues; the firmware keeps its sequence numbers. */
++		stp_engine_init(&s->engine, &n->link.transport, jiffies);
++		ret = stp_engine_bind(&s->engine, STP_FULL_TASK_WMT, mt6797_stp_wmt_rx, s);
++		if (ret)
++			return ret;
++		s->adopted = true;
++	}
++	if (s->stopped)
++		return -EIO;
++	writel(0, s->btif + WMT_BTIF_IER);
++	ret = request_irq(s->irq, mt6797_stp_irq, 0, "mt6797-stp", s);
++	if (ret)
++		return ret;
++	spin_lock_irqsave(&s->lock, flags);
++	s->engine.ack_progress = jiffies;
++	writel(1, s->btif + WMT_BTIF_IER);
++	spin_unlock_irqrestore(&s->lock, flags);
++	mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
++	s->running = true;
++	dev_info(dev, "STP link running: tx-seq=%u rx-seq=%u peer-ack=%u local-ack=%u\n",
++		 s->engine.link.tx_next, s->engine.link.rx_next,
++		 s->engine.link.peer_ack, s->engine.link.local_ack);
++	return 0;
++}
++
++/* Owner lock held, no client left. Give the interrupt back; state is kept. */
++static void mt6797_stp_halt(struct device *dev, struct mt6797_stp *s)
++{
++	unsigned long deadline = jiffies + msecs_to_jiffies(MT6797_STP_DRAIN_MS);
++	unsigned long flags;
++	bool busy;
++
++	/* Let the last frames and ACKs leave and be acknowledged. */
++	for (;;) {
++		spin_lock_irqsave(&s->lock, flags);
++		busy = !s->stopped && (s->engine.count || s->engine.frame_length ||
++				       s->engine.link.tx_pending || s->engine.link.ack_owed);
++		spin_unlock_irqrestore(&s->lock, flags);
++		if (!busy || time_after_eq(jiffies, deadline))
++			break;
++		msleep(20);
++	}
++	spin_lock_irqsave(&s->lock, flags);
++	writel(0, s->btif + WMT_BTIF_IER);
++	spin_unlock_irqrestore(&s->lock, flags);
++	timer_delete_sync(&s->tick);
++	free_irq(s->irq, s);
++	s->running = false;
++	dev_info(dev,
++		 "STP link halted: failed=%d busy=%d rx=%u discarded=%u dup=%u tx=%u acks=%u wmt-unsolicited=%u first=%u bytes %*ph\n",
++		 s->engine.failed, busy, s->engine.rx_frames, s->engine.rx_discarded,
++		 s->engine.rx_duplicates, s->engine.tx_frames, s->engine.tx_acks,
++		 s->wmt_unsolicited, s->wmt_first_length,
++		 min_t(int, s->wmt_first_length, sizeof(s->wmt_first)), s->wmt_first);
++}
++
++/*
++ * The STP link runs only while a client is attached, so the start chain and a
++ * running Wi-Fi see no difference until then. A client's module holds this one,
++ * so the owner cannot unload under it.
++ */
++int mt6797_consys_stp_attach(unsigned int task,
++			     int (*receive)(void *context, const u8 *payload,
++					    unsigned int length),
++			     void *context)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	struct mt6797_stp *s = &owner->stp;
++	unsigned long flags;
++	int ret;
++
++	if (task != MT6797_STP_TASK_GPS || !receive)
++		return -EINVAL;
++	mutex_lock(&mt6797_consys_lock);
++	if (!owner->bound || !owner->dev) {
++		ret = -ENODEV;
++		goto out;
++	}
++	if (owner->common_init.result ||
++	    owner->common_init.completed != WMT_INIT_STEPS) {
++		ret = -EAGAIN;
++		goto out;
++	}
++	if (s->running) {
++		ret = -EBUSY;
++		goto out;
++	}
++	ret = mt6797_stp_run(owner->dev, owner);
++	if (ret)
++		goto out;
++	spin_lock_irqsave(&s->lock, flags);
++	ret = stp_engine_bind(&s->engine, task, receive, context);
++	spin_unlock_irqrestore(&s->lock, flags);
++	if (!ret)
++		ret = mt6797_stp_check(owner->dev, s);
++	if (ret) {
++		spin_lock_irqsave(&s->lock, flags);
++		stp_engine_unbind(&s->engine, task);
++		spin_unlock_irqrestore(&s->lock, flags);
++		mt6797_stp_halt(owner->dev, s);
++	}
++out:
++	mutex_unlock(&mt6797_consys_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_stp_attach);
++
++void mt6797_consys_stp_detach(unsigned int task)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	struct mt6797_stp *s = &owner->stp;
++	unsigned long flags;
++
++	mutex_lock(&mt6797_consys_lock);
++	if (s->running) {
++		spin_lock_irqsave(&s->lock, flags);
++		stp_engine_unbind(&s->engine, task);
++		spin_unlock_irqrestore(&s->lock, flags);
++		mt6797_stp_halt(owner->dev, s);
++	}
++	mutex_unlock(&mt6797_consys_lock);
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_stp_detach);
++
+ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner)
+ {
+ 	struct regmap *pmic;
+@@ -2157,6 +2473,13 @@ static int mt6797_consys_probe(struct platform_device *pdev)
+ 		mt6797_consys.dev = &pdev->dev;
+ 		INIT_WORK(&mt6797_consys.start_work, mt6797_consys_start_work);
+ 		schedule_work(&mt6797_consys.start_work);
++		mt6797_consys.gnss = platform_device_register_data(&pdev->dev, "mt6797-gnss",
++								   PLATFORM_DEVID_NONE, NULL, 0);
++		if (IS_ERR(mt6797_consys.gnss)) {
++			dev_err(&pdev->dev, "GNSS device unavailable (%ld)\n",
++				PTR_ERR(mt6797_consys.gnss));
++			mt6797_consys.gnss = NULL;
++		}
+ #if IS_MODULE(CONFIG_MT6797_MAC80211)
+ 		ret = device_create_file(&pdev->dev, &dev_attr_wlan_stop);
+ 		if (ret)
+@@ -2191,6 +2514,8 @@ static void mt6797_consys_remove(struct platform_device *pdev)
+ 	/* The start and the stop file first: they take the locks below. */
+ 	if (owner->dev)
+ 		cancel_work_sync(&owner->start_work);
++	if (owner->gnss)
++		platform_device_unregister(owner->gnss);
+ #if IS_MODULE(CONFIG_MT6797_MAC80211)
+ 	device_remove_file(dev, &dev_attr_wlan_stop);
+ #endif
+diff --git a/drivers/soc/mediatek/mt6797-stp-engine.h b/drivers/soc/mediatek/mt6797-stp-engine.h
+new file mode 100644
+index 000000000..6b5508685
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-stp-engine.h
+@@ -0,0 +1,335 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef MT6797_STP_ENGINE_H
++#define MT6797_STP_ENGINE_H
++
++#include "mt6797-wmt.h"
++
++/*
++ * Persistent full-STP link for one powered CONSYS lifetime: continuous RX
++ * routed by task, a bounded TX queue gated by the shared seven-frame window,
++ * ACK generation, and fail-stop on malformed input or ACK timeout. There is
++ * no retransmission or resynchronization. Pure state; the owner supplies
++ * serialization, FIFO access, time and client lifetime. No call sleeps.
++ *
++ * Receive policy: a frame for a bound task goes to its client; if the client
++ * refuses it, or the link state refuses it, the link fails rather than relying
++ * on the peer to resend. A frame for an unbound task is ACKed and discarded,
++ * counted in rx_discarded, so a departed consumer cannot stall the link.
++ */
++#define STP_ENGINE_QUEUE 8U
++
++enum stp_engine_error {
++	STP_ENGINE_OK,
++	STP_ENGINE_EINVAL = -22,
++	STP_ENGINE_ENOSPC = -28,
++	STP_ENGINE_EIO = -5,
++	STP_ENGINE_EPROTO = -71,
++	STP_ENGINE_ETIMEDOUT = -110,
++};
++
++struct stp_engine_msg {
++	unsigned int task, length;
++	unsigned char data[STP_FULL_MAX_PAYLOAD];
++};
++
++struct stp_engine;
++
++struct stp_engine_binding {
++	struct stp_engine *engine;
++	unsigned int task;
++	int (*receive)(void *context, const unsigned char *payload, unsigned int length);
++	void *context;
++};
++
++struct stp_engine {
++	struct stp_full_link link;
++	/* The frame being received; payloads delivered from it alias it. */
++	unsigned char rx[STP_FULL_MAX_FRAME];
++	unsigned int rx_used, rx_needed;
++	/* Bound clients; route[] holds one entry per ordinary task. */
++	struct stp_engine_binding bindings[STP_FULL_MAX_CLIENTS];
++	unsigned int client_count;
++	struct stp_full_client route[STP_FULL_MAX_CLIENTS];
++	int client_refused;
++	struct stp_engine_msg queue[STP_ENGINE_QUEUE];
++	unsigned int head, count;
++	/* Frame being written to the FIFO; its fields are fixed at build time. */
++	unsigned char frame[STP_FULL_MAX_FRAME];
++	unsigned int frame_length, frame_written, frame_sequence, frame_ack;
++	int frame_data;
++	unsigned long ack_progress;
++	unsigned int rx_frames, rx_discarded, rx_duplicates, tx_frames, tx_acks;
++	int failed;
++};
++
++static inline void stp_engine_rx_reset(struct stp_engine *e)
++{
++	e->rx_used = 0;
++	e->rx_needed = 4;
++}
++
++/* Bound tasks route to their client; every other ordinary task discards. */
++static inline int stp_engine_discard(void *context, const unsigned char *payload,
++				     unsigned int length)
++{
++	struct stp_engine *e = context;
++
++	(void)payload;
++	(void)length;
++	e->rx_discarded++;
++	return 0;
++}
++
++static inline int stp_engine_deliver(void *context, const unsigned char *payload,
++				     unsigned int length)
++{
++	struct stp_engine_binding *b = context;
++
++	if (b->receive(b->context, payload, length)) {
++		b->engine->client_refused = 1;
++		return -1;
++	}
++	return 0;
++}
++
++static inline void stp_engine_route(struct stp_engine *e)
++{
++	static const unsigned int tasks[STP_FULL_MAX_CLIENTS] = { 0, 1, 2, 3, 4, 7 };
++	unsigned int i, j;
++
++	for (i = 0; i < STP_FULL_MAX_CLIENTS; i++) {
++		e->route[i].task = tasks[i];
++		e->route[i].receive = stp_engine_discard;
++		e->route[i].context = e;
++		for (j = 0; j < e->client_count; j++) {
++			if (e->bindings[j].task != tasks[i])
++				continue;
++			e->route[i].receive = stp_engine_deliver;
++			e->route[i].context = &e->bindings[j];
++		}
++	}
++}
++
++/* Continue a link the one-shot exchanges left; storage need not be zeroed. */
++static inline void stp_engine_init(struct stp_engine *e,
++				   const struct stp_full_link *link, unsigned long now)
++{
++	e->link = *link;
++	stp_engine_rx_reset(e);
++	e->client_count = 0;
++	e->client_refused = 0;
++	e->head = 0;
++	e->count = 0;
++	e->frame_length = 0;
++	e->frame_written = 0;
++	e->frame_data = 0;
++	e->ack_progress = now;
++	e->rx_frames = 0;
++	e->rx_discarded = 0;
++	e->rx_duplicates = 0;
++	e->tx_frames = 0;
++	e->tx_acks = 0;
++	e->failed = 0;
++	stp_engine_route(e);
++}
++
++static inline int stp_engine_bind(struct stp_engine *e, unsigned int task,
++				  int (*receive)(void *, const unsigned char *,
++						 unsigned int),
++				  void *context)
++{
++	unsigned int i;
++
++	if (!receive || !stp_full_task(task) ||
++	    e->client_count == STP_FULL_MAX_CLIENTS)
++		return STP_ENGINE_EINVAL;
++	for (i = 0; i < e->client_count; i++)
++		if (e->bindings[i].task == task)
++			return STP_ENGINE_EINVAL;
++	e->bindings[e->client_count].engine = e;
++	e->bindings[e->client_count].task = task;
++	e->bindings[e->client_count].receive = receive;
++	e->bindings[e->client_count].context = context;
++	e->client_count++;
++	stp_engine_route(e);
++	return STP_ENGINE_OK;
++}
++
++/* After unbind, new frames for the task are ACKed and discarded. */
++static inline int stp_engine_unbind(struct stp_engine *e, unsigned int task)
++{
++	unsigned int i;
++
++	for (i = 0; i < e->client_count; i++) {
++		if (e->bindings[i].task != task)
++			continue;
++		e->bindings[i] = e->bindings[--e->client_count];
++		stp_engine_route(e);
++		return STP_ENGINE_OK;
++	}
++	return STP_ENGINE_EINVAL;
++}
++
++static inline int stp_engine_queue_msg(struct stp_engine *e, unsigned int task,
++				       const unsigned char *payload,
++				       unsigned int length)
++{
++	struct stp_engine_msg *m;
++	unsigned int i;
++
++	if (e->failed)
++		return STP_ENGINE_EIO;
++	if (!payload || !length || length > STP_FULL_MAX_PAYLOAD || !stp_full_task(task))
++		return STP_ENGINE_EINVAL;
++	if (e->count == STP_ENGINE_QUEUE)
++		return STP_ENGINE_ENOSPC;
++	m = &e->queue[(e->head + e->count) % STP_ENGINE_QUEUE];
++	m->task = task;
++	m->length = length;
++	for (i = 0; i < length; i++)
++		m->data[i] = payload[i];
++	e->count++;
++	return STP_ENGINE_OK;
++}
++
++/* Terminal: drop queued messages and return how many were dropped. */
++static inline unsigned int stp_engine_fail(struct stp_engine *e, int reason)
++{
++	unsigned int dropped = e->count;
++
++	if (!e->failed)
++		e->failed = reason ? reason : STP_ENGINE_EIO;
++	e->count = 0;
++	e->frame_length = 0;
++	e->frame_written = 0;
++	return dropped;
++}
++
++/* One received byte. Returns 0, or a negative error once the link failed. */
++static inline int stp_engine_rx(struct stp_engine *e, unsigned char byte,
++				unsigned long now)
++{
++	struct stp_full_frame frame;
++	unsigned int before = e->link.tx_pending, length;
++	int kind;
++
++	if (e->failed)
++		return e->failed;
++	e->rx[e->rx_used++] = byte;
++	if (e->rx_used == 4) {
++		if (stp_full_header(e->rx, 4, &length)) {
++			stp_engine_fail(e, STP_ENGINE_EPROTO);
++			return e->failed;
++		}
++		e->rx_needed = length ? length + 6 : 4;
++	}
++	if (e->rx_used < e->rx_needed)
++		return 0;
++	e->client_refused = 0;
++	kind = stp_full_task_receive(&e->link, e->rx, e->rx_used,
++				     e->route, STP_FULL_MAX_CLIENTS, &frame);
++	stp_engine_rx_reset(e);
++	if (kind < 0) {
++		/* Never rely on a resend: a refused frame stops the link. */
++		stp_engine_fail(e, e->client_refused ? STP_ENGINE_ENOSPC : STP_ENGINE_EPROTO);
++		return e->failed;
++	}
++	if (kind == 1)
++		e->rx_frames++;
++	else if (kind == 2)
++		e->rx_duplicates++;
++	if (e->link.tx_pending < before)
++		e->ack_progress = now;
++	return 0;
++}
++
++/* Bytes of the current frame still to write, building the next one if idle. */
++static inline unsigned int stp_engine_tx_pending(struct stp_engine *e)
++{
++	struct stp_engine_msg *m;
++	int bytes;
++
++	if (e->failed)
++		return 0;
++	if (e->frame_written < e->frame_length)
++		return e->frame_length - e->frame_written;
++	if (e->count && e->link.tx_pending < STP_FULL_WINDOW) {
++		m = &e->queue[e->head];
++		bytes = stp_full_encode(e->frame, sizeof(e->frame), m->data, m->length,
++					m->task, e->link.tx_next, e->link.local_ack);
++		if (bytes < 0) {
++			stp_engine_fail(e, STP_ENGINE_EINVAL);
++			return 0;
++		}
++		e->frame_data = 1;
++	} else if (e->link.ack_owed) {
++		bytes = stp_full_ack(e->frame, sizeof(e->frame), e->link.local_ack);
++		e->frame_data = 0;
++	} else {
++		return 0;
++	}
++	e->frame_length = bytes;
++	e->frame_written = 0;
++	e->frame_sequence = e->link.tx_next;
++	e->frame_ack = e->link.local_ack;
++	return e->frame_length;
++}
++
++static inline const unsigned char *stp_engine_tx_bytes(const struct stp_engine *e)
++{
++	return e->frame + e->frame_written;
++}
++
++/* Account written bytes; commit link state only once a frame is complete. */
++static inline int stp_engine_tx_done(struct stp_engine *e, unsigned int written,
++				     unsigned long now)
++{
++	int ret;
++
++	if (e->failed)
++		return e->failed;
++	if (written > e->frame_length - e->frame_written) {
++		stp_engine_fail(e, STP_ENGINE_EINVAL);
++		return e->failed;
++	}
++	e->frame_written += written;
++	if (e->frame_written < e->frame_length)
++		return 0;
++	if (e->frame_data) {
++		if (!e->link.tx_pending)
++			e->ack_progress = now;
++		ret = stp_full_link_sent(&e->link, e->frame_sequence, e->frame_ack);
++		if (!ret) {
++			e->head = (e->head + 1) % STP_ENGINE_QUEUE;
++			e->count--;
++			e->tx_frames++;
++		}
++	} else {
++		ret = stp_full_link_ack_sent(&e->link, e->frame_ack);
++		/* A newer data frame may already have carried this ACK. */
++		if (ret && !e->link.ack_owed)
++			ret = 0;
++		if (!ret)
++			e->tx_acks++;
++	}
++	e->frame_length = 0;
++	e->frame_written = 0;
++	if (ret) {
++		stp_engine_fail(e, STP_ENGINE_EPROTO);
++		return e->failed;
++	}
++	return 0;
++}
++
++/* Fail-stop when sent frames see no ACK progress for timeout units. */
++static inline int stp_engine_tick(struct stp_engine *e, unsigned long now,
++				  unsigned long timeout)
++{
++	if (e->failed)
++		return e->failed;
++	if (e->link.tx_pending && now - e->ack_progress >= timeout)
++		stp_engine_fail(e, STP_ENGINE_ETIMEDOUT);
++	return e->failed;
++}
++
++#endif
+diff --git a/include/linux/soc/mediatek/mt6797-stp.h b/include/linux/soc/mediatek/mt6797-stp.h
+new file mode 100644
+index 000000000..93b11918e
+--- /dev/null
++++ b/include/linux/soc/mediatek/mt6797-stp.h
+@@ -0,0 +1,20 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __SOC_MEDIATEK_MT6797_STP_H
++#define __SOC_MEDIATEK_MT6797_STP_H
++
++#include <linux/types.h>
++
++#define MT6797_STP_TASK_GPS	2U
++
++/*
++ * Clients of the CONSYS STP link. The link runs only while a client is attached;
++ * receive is called in hard interrupt context with the link lock held, and must
++ * consume or copy the payload. Returning nonzero stops the link for good.
++ */
++int mt6797_consys_stp_attach(unsigned int task,
++			     int (*receive)(void *context, const u8 *payload,
++					    unsigned int length),
++			     void *context);
++void mt6797_consys_stp_detach(unsigned int task);
++
++#endif
