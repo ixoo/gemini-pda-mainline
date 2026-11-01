@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`, which this device lacks; the receiver has produced no data |
+| Status | `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -499,17 +499,22 @@ before a failure and 1024 after. Host tests pass and it compiles with W=1; it ha
 Buildbox package and has not run. No device run is proposed: by the above, it would reach
 the same fault.
 
-## Options
+## Decision: parked (2026-11-01)
 
-1. **Look for `MNL.bin`.** A later search of the private Gemian dump did not find it either
-   ([driver note](../../docs/hardware/gemini-gnss-driver.md#scope-and-the-current-blocker)).
-   What remains is any other firmware image the owner has, and a bounded read-only check on
-   live Gemian (`/vendor/firmware`, `/dev/gps_emi`, H0). If it exists, the start can resume,
-   with new memory handling and redistribution questions.
-2. **Capture a stock session.** A Gemian `/dev/stpgps` trace would confirm or refute the
-   stock-path inference. This is a radio action on Gemian and needs its own protocol.
-3. **Run the vendor engine** under a shim: proprietary, not a standard stack.
-4. **Stay parked**, with the link and records kept.
+A later search of the private Gemian dump did not find `MNL.bin`
+([driver note](../../docs/hardware/gemini-gnss-driver.md#scope-and-the-current-blocker)), and
+the owner states that it does not exist. So the offload start has no image to run,
+no further GFNS start is proposed, and 0439 stays unused. No read-only Gemian check
+for the file is requested. That the engine needs this image, and that stock uses
+`libmnl`, remain inferences.
+
+Routes left, neither started and each needing its own decision:
+- **Capture a stock session.** A Gemian `/dev/stpgps` trace would confirm or refute the
+  stock-path inference. This is a radio action on Gemian and needs its own protocol.
+- **Run the vendor engine** under a shim: proprietary, not a standard stack.
+
+The persistent STP link (0418-0419) and 0429 stay. The link is available to other STP
+clients, and 0429 helps Wi-Fi recover.
 
 ## Associated code
 
