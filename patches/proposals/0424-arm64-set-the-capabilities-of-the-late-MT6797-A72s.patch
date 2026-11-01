@@ -1,0 +1,99 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:09:53 -0500
+Subject: [PATCH 423/426] arm64: set the capabilities of the late MT6797 A72s
+
+The A72s can only come online after boot, and boot detects capabilities
+on the A53s alone. Five local capabilities are then new to the system
+and the A72s are rejected. Set them before finalization on this SoC.
+
+The firmware has PSCI v0.2 and no SMCCC 1.1, so the Spectre callbacks
+install nothing on an A72. If SMCCC 1.1 does appear, leave the bits
+clear: the A72s are rejected instead of running unpatched vectors.
+---
+ arch/arm64/Kconfig.platforms   | 13 +++++++++++++
+ arch/arm64/kernel/cpufeature.c | 35 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 48 insertions(+)
+
+diff --git a/arch/arm64/Kconfig.platforms b/arch/arm64/Kconfig.platforms
+index 504cc5c77..40d1ee96c 100644
+--- a/arch/arm64/Kconfig.platforms
++++ b/arch/arm64/Kconfig.platforms
+@@ -182,6 +182,19 @@ config ARCH_MEDIATEK
+ 	  This enables support for MediaTek MT27xx, MT65xx, MT76xx
+ 	  & MT81xx ARMv8 SoCs
+ 
++config ARM64_MT6797_LATE_A72
++	bool "Admit the MT6797 Cortex-A72 pair after boot"
++	depends on ARCH_MEDIATEK && !RANDOMIZE_BASE
++	help
++	  The MT6797 boots on its A53s, and its two A72s can only come online
++	  after boot. Set the capabilities those A72s have and the A53s do
++	  not before the kernel finalizes them, so that the late CPUs are not
++	  rejected.
++
++	  With RANDOMIZE_BASE the A72s would also need Spectre-v3a.
++
++	  If unsure, say N.
++
+ config ARM64_MT6797_A72_CAPABILITY_PROFILE
+ 	bool "Fail-closed MT6797 late Cortex-A72 capability profile"
+ 	depends on ARCH_MEDIATEK && SMP && CMDLINE_FORCE
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index a15c9ca62..159ba294e 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -62,7 +62,9 @@
+ 
+ #define pr_fmt(fmt) "CPU features: " fmt
+ 
++#include <linux/arm-smccc.h>
+ #include <linux/bsearch.h>
++#include <linux/of.h>
+ #include <linux/cpumask.h>
+ #include <linux/crash_dump.h>
+ #include <linux/kstrtox.h>
+@@ -5441,10 +5443,43 @@ void __init setup_boot_cpu_features(void)
+ 	setup_boot_cpu_capabilities();
+ }
+ 
++#ifdef CONFIG_ARM64_MT6797_LATE_A72
++/*
++ * Boot detects capabilities on the A53s alone. The A72s then bring these local
++ * ones, and verify_local_cpu_caps() would reject them. Without SMCCC 1.1 the
++ * Spectre callbacks install nothing on an A72, so the bits are all they need.
++ * With it the callbacks would select vectors nothing patched at boot, so leave
++ * the bits clear and let the A72s be rejected.
++ */
++static void __init mt6797_set_late_a72_caps(void)
++{
++	static const u16 caps[] __initconst = {
++		ARM64_SPECTRE_V2,
++		ARM64_SPECTRE_V4,
++		ARM64_SPECTRE_BHB,
++		ARM64_WORKAROUND_1742098,
++		ARM64_WORKAROUND_SPECULATIVE_AT,
++	};
++	int i;
++
++	if (!of_machine_is_compatible("mediatek,mt6797"))
++		return;
++	if (arm_smccc_1_1_get_conduit() != SMCCC_CONDUIT_NONE) {
++		pr_warn("MT6797: SMCCC 1.1 present, late A72s not admitted\n");
++		return;
++	}
++	for (i = 0; i < ARRAY_SIZE(caps); i++)
++		set_bit(caps[i], system_cpucaps);
++}
++#else
++static inline void mt6797_set_late_a72_caps(void) { }
++#endif
++
+ static void __init setup_system_capabilities(void)
+ {
+ 	/* Any late-target plan must commit before capability finalization. */
+ 	arm64_commit_late_cpu_profile();
++	mt6797_set_late_a72_caps();
+ 
+ 	/*
+ 	 * The system-wide safe feature register values have been finalized.

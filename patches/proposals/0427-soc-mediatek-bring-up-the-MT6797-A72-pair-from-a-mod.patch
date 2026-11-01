@@ -1,0 +1,502 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:09:53 -0500
+Subject: [PATCH 426/426] soc: mediatek: bring up the MT6797 A72 pair from a
+ module
+
+Loading the module runs the vendor board sequence and then add_cpu() for
+CPU8 and CPU9. It refuses anything but the expected off state, restores
+that state on a failure before the isolation clear, and never retries.
+It changes no voltage selector or clock, and it is one-way: no module
+exit and no CPU offline.
+
+The station device tree gets the node, and I2C6 returns to the transport
+those writes were proven on.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    |  19 +
+ drivers/soc/mediatek/Kconfig                  |  13 +
+ drivers/soc/mediatek/Makefile                 |   1 +
+ drivers/soc/mediatek/mt6797-a72.c             | 401 ++++++++++++++++++
+ 4 files changed, 434 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-a72.c
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 52aa9ef07..989def728 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -18,6 +18,20 @@ / {
+ 	 * IIO processed reading, raw x 3600 (the channel's x2 against 1.8 V),
+ 	 * that is the node voltage in mV x 4096.
+ 	 */
++	/*
++	 * Brings up the A72 pair when its module loads. The DA9214 stays on
++	 * the selector firmware left.
++	 */
++	a72-power@10222000 {
++		compatible = "mediatek,mt6797-a72-power";
++		reg = <0 0x10222000 0 0x1000>;
++		mediatek,spm = <&scpsys>;
++		mediatek,pwrap = <&pwrap>;
++		mediatek,buck = <&da9214>;
++		resets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
++		reset-names = "pwrap";
++	};
++
+ 	battery_ntc: thermal-sensor-battery {
+ 		compatible = "generic-adc-thermal";
+ 		#thermal-sensor-cells = <0>;
+@@ -223,6 +237,11 @@ &thermal {
+ 	status = "okay";
+ };
+ 
++/* The transport the proven A72 writes used, in place of the generic one. */
++&i2c6 {
++	compatible = "mediatek,mt6797-idvfs-i2c";
++};
++
+ &pmic {
+ 	fuel-gauge {
+ 		compatible = "mediatek,mt6351-fuel-gauge";
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index a33ab375c..e69692467 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -238,6 +238,19 @@ config MTK_MT6797_A72_DEFAULT_OFF_BINDER_KUNIT_TEST
+ 	  injected operations only. No MMIO, secure call, watchdog, retained
+ 	  RAM, PSCI, CPU request, CPU_OFF, retry, or device action is used.
+ 
++config MTK_MT6797_A72
++	tristate "MediaTek MT6797 Cortex-A72 cluster bring-up"
++	depends on ARM64_MT6797_LATE_A72 && HOTPLUG_CPU
++	depends on MTK_PMIC_WRAP && I2C && RESET_CONTROLLER && MFD_SYSCON
++	depends on MTK_MT6797_DVFSP_HANDOFF
++	help
++	  Bring CPU8 and CPU9 online when this module loads: the MP2 reset,
++	  the DA9214 BUCKB rail, its isolation and the cluster SRAM LDO, then
++	  PSCI CPU_ON. It changes no voltage selector or clock. It is one-way:
++	  it cannot be unloaded and the two CPUs cannot go offline.
++
++	  If unsure, say N.
++
+ config MTK_MT6797_DVFSP_HANDOFF
+ 	bool "MediaTek MT6797 stopped DVFSP firmware handoff"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF && COMMON_CLK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 6dc3bbcff..2b6d5041d 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -34,6 +34,7 @@ obj-$(CONFIG_MTK_DVFSRC) += mtk-dvfsrc.o
+ obj-$(CONFIG_MTK_INFRACFG) += mtk-infracfg.o
+ obj-$(CONFIG_MTK_MT6797_CONSYS) += mt6797-consys.o
+ obj-$(CONFIG_MTK_MT6797_A72_POWER) += mt6797-a72-power.o
++obj-$(CONFIG_MTK_MT6797_A72) += mt6797-a72.o
+ obj-$(CONFIG_MTK_MT6797_A72_PLATFORM_STATE) += mt6797-a72-platform-state.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR) += mt6797-a72-transition.o
+ obj-$(CONFIG_MTK_MT6797_A72_TRANSITION_EXECUTOR_KUNIT_TEST) += mt6797-a72-transition-test.o
+diff --git a/drivers/soc/mediatek/mt6797-a72.c b/drivers/soc/mediatek/mt6797-a72.c
+new file mode 100644
+index 000000000..37e18e89b
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-a72.c
+@@ -0,0 +1,401 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 Cortex-A72 cluster bring-up
++ *
++ * Copyright (c) 2026 Julien Etienne
++ *
++ * PSCI CPU_ON powers an A72 only after the board side is ready: the MP2
++ * cluster reset released, the DA9214 BUCKB rail on, its isolation cleared and
++ * the cluster's SRAM LDO set. BUCKB is reached over I2C6, which does not exist
++ * when the kernel starts its CPUs, so CPU8 and CPU9 boot offline and come
++ * online here, when this module loads.
++ *
++ * This is one-way. The vendor sequence has no proven inverse past the
++ * isolation clear, so the module cannot be unloaded and the two CPUs cannot be
++ * taken offline. The voltage selector and the clock stay as firmware left them.
++ */
++
++#include <linux/arm-smccc.h>
++#include <linux/bits.h>
++#include <linux/cpu.h>
++#include <linux/delay.h>
++#include <linux/i2c.h>
++#include <linux/io.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/reset.h>
++#include <linux/soc/mediatek/mtk-pmic-wrap.h>
++
++#include <asm/mt6797_psci.h>
++
++#define SPM_CPU_PWR_STATUS		0x188
++#define SPM_CPU_PWR_STATUS_2ND		0x18c
++#define  A72_PWR_STATUS_MASK		GENMASK(7, 6)
++#define SPM_MP2_CPUSYS_PWR_CON		0x218
++#define  MP2_CPUSYS_OFF			0x00010132
++#define  MP2_CPUSYS_RESET_RELEASED	0x00010133
++#define SPM_CPU_EXT_BUCK_ISO		0x290
++#define  EXT_BUCK_ISO_MASK		GENMASK(1, 0)
++#define  EXT_BUCK_ISO_B_ASSERTED	0x2
++
++#define MCUCFG_MP2_SYNC_DCM		0x274
++#define  MP2_SYNC_DCM_MASK		GENMASK(6, 0)
++#define  MP2_SYNC_DCM_TOGGLE		0x0f
++#define MCUCFG_BPLL			0x4a0
++
++#define DA9214_BUCKB_CONT		0x5e
++#define  DA9214_BUCKB_EN		BIT(0)
++#define DA9214_VBUCKB_A			0xd9
++#define DA9214_VBUCKB_B			0xda
++#define  DA9214_VBUCKB_1000MV		0x46
++
++#define SMC_REG_READ			0xc200035fUL
++#define SMC_SRAM_LDO_SET		0xc20003bfUL
++#define  SRAM_LDO_1100MV		110000
++#define SRAM_SELECTOR			0x102222b0
++#define  SRAM_SELECTOR_MASK		GENMASK(11, 0)
++#define  SRAM_SELECTOR_1100MV		0x8fb
++#define SRAM_CALIBRATION		0x102222b4
++#define  SRAM_CALIBRATION_MASK		GENMASK(15, 0)
++
++#define BUCK_SETTLE_US			1000
++#define GUARD_US			240
++
++struct mt6797_a72 {
++	struct device *dev;
++	struct regmap *spm;
++	void __iomem *mcucfg;
++	struct reset_control *pwrap_reset;
++	struct i2c_client *buck;
++	struct device *pwrap;
++};
++
++static int spm_expect(struct mt6797_a72 *a72, u32 reg, u32 expected)
++{
++	u32 val;
++	int ret;
++
++	ret = regmap_read(a72->spm, reg, &val);
++	if (ret)
++		return ret;
++	if (val != expected) {
++		dev_err(a72->dev, "SPM 0x%x is 0x%08x, expected 0x%08x\n",
++			reg, val, expected);
++		return -ERANGE;
++	}
++	return 0;
++}
++
++static int buck_expect(struct mt6797_a72 *a72, u8 reg, u8 expected)
++{
++	int val = i2c_smbus_read_byte_data(a72->buck, reg);
++
++	if (val < 0)
++		return val;
++	if (val != expected) {
++		dev_err(a72->dev, "DA9214 0x%02x is 0x%02x, expected 0x%02x\n",
++			reg, val, expected);
++		return -ERANGE;
++	}
++	return 0;
++}
++
++static int pwrap_reset_expect(struct mt6797_a72 *a72, int expected)
++{
++	int status = reset_control_status(a72->pwrap_reset);
++
++	if (status < 0)
++		return status;
++	return status == expected ? 0 : -EIO;
++}
++
++static int secure_read(unsigned long addr, u32 *val)
++{
++	struct arm_smccc_res res;
++
++	arm_smccc_smc(SMC_REG_READ, addr, 0, 0, 0, 0, 0, 0, &res);
++	if (res.a0 >> 32)
++		return -EIO;
++	*val = res.a0;
++	return 0;
++}
++
++/* Refuse anything but the off state the sequence was proven from. */
++static int mt6797_a72_check_off(struct mt6797_a72 *a72)
++{
++	u32 status, status_2nd;
++	int ret;
++
++	if (cpu_online(8) || cpu_online(9))
++		return -EBUSY;
++
++	ret = regmap_read(a72->spm, SPM_CPU_PWR_STATUS, &status);
++	if (ret)
++		return ret;
++	ret = regmap_read(a72->spm, SPM_CPU_PWR_STATUS_2ND, &status_2nd);
++	if (ret)
++		return ret;
++	if (status & status_2nd & A72_PWR_STATUS_MASK) {
++		dev_err(a72->dev, "an A72 reports power on: 0x%08x 0x%08x\n",
++			status, status_2nd);
++		return -ERANGE;
++	}
++
++	ret = spm_expect(a72, SPM_MP2_CPUSYS_PWR_CON, MP2_CPUSYS_OFF);
++	if (ret)
++		return ret;
++	ret = spm_expect(a72, SPM_CPU_EXT_BUCK_ISO, EXT_BUCK_ISO_B_ASSERTED);
++	if (ret)
++		return ret;
++	if (readl(a72->mcucfg + MCUCFG_MP2_SYNC_DCM) & MP2_SYNC_DCM_MASK) {
++		dev_err(a72->dev, "MP2 DCM is already on\n");
++		return -ERANGE;
++	}
++	ret = pwrap_reset_expect(a72, 0);
++	if (ret)
++		return ret;
++
++	ret = buck_expect(a72, DA9214_BUCKB_CONT, 0);
++	if (ret)
++		return ret;
++	ret = buck_expect(a72, DA9214_VBUCKB_A, DA9214_VBUCKB_1000MV);
++	if (ret)
++		return ret;
++	return buck_expect(a72, DA9214_VBUCKB_B, DA9214_VBUCKB_1000MV);
++}
++
++/*
++ * The part that holds the PMIC wrapper's SPI side in reset. Until the
++ * isolation clear each step has an inverse, so a failure there restores the
++ * off state. Past the clear a failure leaves the rail on: there is no inverse
++ * to run.
++ */
++static int mt6797_a72_rail_on(struct mt6797_a72 *a72)
++{
++	int undo, ret;
++
++	ret = mtk_pwrap_hold(a72->pwrap);
++	if (ret)
++		return ret;
++
++	ret = regmap_update_bits(a72->spm, SPM_MP2_CPUSYS_PWR_CON, BIT(0), BIT(0));
++	if (ret)
++		goto release;
++	ret = spm_expect(a72, SPM_MP2_CPUSYS_PWR_CON, MP2_CPUSYS_RESET_RELEASED);
++	if (ret)
++		goto restore_reset;
++
++	/* The vendor sequence orders this read before the wrapper reset. */
++	readl(a72->mcucfg + MCUCFG_BPLL);
++
++	ret = reset_control_assert(a72->pwrap_reset);
++	if (ret)
++		goto restore_reset;
++	ret = pwrap_reset_expect(a72, 1);
++	if (ret)
++		goto deassert;
++
++	ret = i2c_smbus_write_byte_data(a72->buck, DA9214_BUCKB_CONT,
++					DA9214_BUCKB_EN);
++	if (ret)
++		goto buck_off;
++	ret = buck_expect(a72, DA9214_BUCKB_CONT, DA9214_BUCKB_EN);
++	if (ret)
++		goto buck_off;
++	usleep_range(BUCK_SETTLE_US, BUCK_SETTLE_US + 100);
++
++	ret = spm_expect(a72, SPM_CPU_EXT_BUCK_ISO, EXT_BUCK_ISO_B_ASSERTED);
++	if (ret)
++		goto buck_off;
++
++	/* One-way from here. */
++	ret = regmap_update_bits(a72->spm, SPM_CPU_EXT_BUCK_ISO,
++				 EXT_BUCK_ISO_MASK, 0);
++	if (!ret)
++		ret = spm_expect(a72, SPM_CPU_EXT_BUCK_ISO, 0);
++	undo = reset_control_deassert(a72->pwrap_reset);
++	if (!undo)
++		undo = pwrap_reset_expect(a72, 0);
++	mtk_pwrap_release(a72->pwrap);
++	if (ret || undo) {
++		dev_crit(a72->dev, "isolation clear failed (%d, %d), rail left on\n",
++			 ret, undo);
++		return ret ?: undo;
++	}
++	usleep_range(GUARD_US, GUARD_US + 20);
++	return 0;
++
++buck_off:
++	undo = i2c_smbus_write_byte_data(a72->buck, DA9214_BUCKB_CONT, 0);
++	if (undo)
++		dev_crit(a72->dev, "BUCKB off failed: %d\n", undo);
++deassert:
++	undo = reset_control_deassert(a72->pwrap_reset);
++	if (undo)
++		dev_crit(a72->dev, "wrapper reset release failed: %d\n", undo);
++restore_reset:
++	undo = regmap_update_bits(a72->spm, SPM_MP2_CPUSYS_PWR_CON, BIT(0), 0);
++	if (undo)
++		dev_crit(a72->dev, "MP2 reset restore failed: %d\n", undo);
++release:
++	mtk_pwrap_release(a72->pwrap);
++	return ret;
++}
++
++static int mt6797_a72_sram_on(struct mt6797_a72 *a72)
++{
++	struct arm_smccc_res res;
++	u32 selector[2], calibration[2];
++	int i, ret;
++
++	arm_smccc_smc(SMC_SRAM_LDO_SET, SRAM_LDO_1100MV, 0, 0, 0, 0, 0, 0, &res);
++	if (res.a0)
++		return -EIO;
++	usleep_range(GUARD_US, GUARD_US + 20);
++
++	for (i = 0; i < 2; i++) {
++		ret = secure_read(SRAM_SELECTOR, &selector[i]);
++		if (ret)
++			return ret;
++		ret = secure_read(SRAM_CALIBRATION, &calibration[i]);
++		if (ret)
++			return ret;
++	}
++	if (selector[0] != selector[1] || calibration[0] != calibration[1] ||
++	    (selector[1] & SRAM_SELECTOR_MASK) != SRAM_SELECTOR_1100MV ||
++	    !(calibration[1] & SRAM_CALIBRATION_MASK) ||
++	    (calibration[1] & ~SRAM_CALIBRATION_MASK)) {
++		dev_err(a72->dev, "SRAM LDO reads 0x%08x 0x%08x, 0x%08x 0x%08x\n",
++			selector[0], selector[1], calibration[0], calibration[1]);
++		return -ERANGE;
++	}
++	return 0;
++}
++
++static void mt6797_a72_dcm_on(struct mt6797_a72 *a72)
++{
++	u32 val = readl(a72->mcucfg + MCUCFG_MP2_SYNC_DCM) & ~MP2_SYNC_DCM_MASK;
++
++	val |= MP2_SYNC_DCM_TOGGLE;
++	writel(val, a72->mcucfg + MCUCFG_MP2_SYNC_DCM);
++	val &= ~BIT(1);
++	writel(val, a72->mcucfg + MCUCFG_MP2_SYNC_DCM);
++}
++
++static int mt6797_a72_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct device_node *np;
++	struct platform_device *pwrap;
++	struct mt6797_a72 *a72;
++	int ret;
++
++	a72 = devm_kzalloc(dev, sizeof(*a72), GFP_KERNEL);
++	if (!a72)
++		return -ENOMEM;
++	a72->dev = dev;
++
++	a72->mcucfg = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(a72->mcucfg))
++		return PTR_ERR(a72->mcucfg);
++	a72->spm = syscon_regmap_lookup_by_phandle(dev->of_node, "mediatek,spm");
++	if (IS_ERR(a72->spm))
++		return PTR_ERR(a72->spm);
++	a72->pwrap_reset = devm_reset_control_get_exclusive(dev, "pwrap");
++	if (IS_ERR(a72->pwrap_reset))
++		return PTR_ERR(a72->pwrap_reset);
++
++	np = of_parse_phandle(dev->of_node, "mediatek,buck", 0);
++	if (!np)
++		return -EINVAL;
++	a72->buck = of_find_i2c_device_by_node(np);
++	of_node_put(np);
++	if (!a72->buck) {
++		dev_err(dev, "DA9214 is not on I2C6 yet, load again later\n");
++		return -ENODEV;
++	}
++
++	np = of_parse_phandle(dev->of_node, "mediatek,pwrap", 0);
++	if (!np) {
++		ret = -EINVAL;
++		goto put_buck;
++	}
++	pwrap = of_find_device_by_node(np);
++	of_node_put(np);
++	if (!pwrap) {
++		ret = -ENODEV;
++		goto put_buck;
++	}
++	a72->pwrap = &pwrap->dev;
++
++	ret = mt6797_a72_check_off(a72);
++	if (ret) {
++		dev_err(dev, "not in the expected off state: %d\n", ret);
++		goto put_pwrap;
++	}
++
++	ret = mt6797_a72_rail_on(a72);
++	if (ret) {
++		dev_err(dev, "rail sequence failed: %d\n", ret);
++		goto put_pwrap;
++	}
++
++	ret = mt6797_a72_sram_on(a72);
++	if (ret) {
++		dev_crit(dev, "SRAM LDO failed: %d, rail left on\n", ret);
++		goto put_pwrap;
++	}
++
++	mt6797_psci_open_a72_gate();
++
++	ret = add_cpu(8);
++	if (ret) {
++		dev_crit(dev, "CPU8 did not come online: %d\n", ret);
++		goto put_pwrap;
++	}
++	mt6797_a72_dcm_on(a72);
++
++	ret = add_cpu(9);
++	if (ret) {
++		dev_crit(dev, "CPU9 did not come online: %d\n", ret);
++		goto put_pwrap;
++	}
++
++	dev_info(dev, "CPU8 and CPU9 online\n");
++
++put_pwrap:
++	put_device(a72->pwrap);
++put_buck:
++	put_device(&a72->buck->dev);
++	return ret;
++}
++
++static const struct of_device_id mt6797_a72_of_match[] = {
++	{ .compatible = "mediatek,mt6797-a72-power" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_a72_of_match);
++
++static struct platform_driver mt6797_a72_driver = {
++	.driver = {
++		.name = "mt6797-a72",
++		.of_match_table = mt6797_a72_of_match,
++	},
++};
++
++/*
++ * No module_exit: the bring-up cannot be undone. A probe that fails leaves no
++ * driver behind, so the load fails and the reason is in the log.
++ */
++static int __init mt6797_a72_init(void)
++{
++	return platform_driver_probe(&mt6797_a72_driver, mt6797_a72_probe);
++}
++module_init(mt6797_a72_init);
++
++MODULE_DESCRIPTION("MediaTek MT6797 Cortex-A72 cluster bring-up");
++MODULE_LICENSE("GPL");

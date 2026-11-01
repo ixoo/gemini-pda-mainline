@@ -1,0 +1,118 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:09:53 -0500
+Subject: [PATCH 425/426] soc: mediatek: pmic-wrap: let a caller hold PMIC
+ accesses off
+
+The MT6797 A72 rail sequence resets the wrapper's SPI side for over a
+millisecond while the fuel gauge, AUXADC and regulators can use it. Add
+a mutex in the regmap accessors, which already run under regmap's own
+mutex, so that a caller can keep them out for that window.
+---
+ drivers/soc/mediatek/mtk-pmic-wrap.c       | 47 +++++++++++++++++++++-
+ include/linux/soc/mediatek/mtk-pmic-wrap.h | 10 +++++
+ 2 files changed, 55 insertions(+), 2 deletions(-)
+ create mode 100644 include/linux/soc/mediatek/mtk-pmic-wrap.h
+
+diff --git a/drivers/soc/mediatek/mtk-pmic-wrap.c b/drivers/soc/mediatek/mtk-pmic-wrap.c
+index 0bcd85826..702e1f1d6 100644
+--- a/drivers/soc/mediatek/mtk-pmic-wrap.c
++++ b/drivers/soc/mediatek/mtk-pmic-wrap.c
+@@ -8,8 +8,10 @@
+ #include <linux/io.h>
+ #include <linux/kernel.h>
+ #include <linux/module.h>
++#include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/of_platform.h>
++#include <linux/soc/mediatek/mtk-pmic-wrap.h>
+ #include <linux/platform_device.h>
+ #include <linux/regmap.h>
+ #include <linux/reset.h>
+@@ -1367,6 +1369,7 @@ struct pmic_wrapper {
+ 	const struct pmic_wrapper_type *master;
+ 	const struct pwrap_slv_type *slave;
+ 	struct reset_control *rstc;
++	struct mutex hold; /* See mtk_pwrap_hold() */
+ 
+ 	struct reset_control *rstc_bridge;
+ 	void __iomem *bridge_base;
+@@ -1577,13 +1580,52 @@ static int pwrap_write(struct pmic_wrapper *wrp, u32 adr, u32 wdata)
+ 
+ static int pwrap_regmap_read(void *context, u32 adr, u32 *rdata)
+ {
+-	return pwrap_read(context, adr, rdata);
++	struct pmic_wrapper *wrp = context;
++
++	guard(mutex)(&wrp->hold);
++	return pwrap_read(wrp, adr, rdata);
+ }
+ 
+ static int pwrap_regmap_write(void *context, u32 adr, u32 wdata)
+ {
+-	return pwrap_write(context, adr, wdata);
++	struct pmic_wrapper *wrp = context;
++
++	guard(mutex)(&wrp->hold);
++	return pwrap_write(wrp, adr, wdata);
++}
++
++/**
++ * mtk_pwrap_hold() - keep PMIC accesses out of the wrapper
++ * @dev: the wrapper device
++ *
++ * Bringing up the MT6797 A72 rail resets the wrapper's SPI side. A regmap
++ * access waits here until mtk_pwrap_release(), and none is in flight on return.
++ * The caller may sleep, and must not access the PMIC meanwhile.
++ *
++ * Return: 0, or -ENODEV if the wrapper driver is not bound.
++ */
++int mtk_pwrap_hold(struct device *dev)
++{
++	struct pmic_wrapper *wrp = dev_get_drvdata(dev);
++
++	if (!wrp)
++		return -ENODEV;
++	mutex_lock(&wrp->hold);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(mtk_pwrap_hold);
++
++/**
++ * mtk_pwrap_release() - end mtk_pwrap_hold()
++ * @dev: the wrapper device
++ */
++void mtk_pwrap_release(struct device *dev)
++{
++	struct pmic_wrapper *wrp = dev_get_drvdata(dev);
++
++	mutex_unlock(&wrp->hold);
+ }
++EXPORT_SYMBOL_GPL(mtk_pwrap_release);
+ 
+ static bool pwrap_pmic_read_test(struct pmic_wrapper *wrp, const u32 *dew_regs,
+ 				 u16 read_test_val)
+@@ -2484,6 +2526,7 @@ static int pwrap_probe(struct platform_device *pdev)
+ 	if (!wrp)
+ 		return -ENOMEM;
+ 
++	mutex_init(&wrp->hold);
+ 	platform_set_drvdata(pdev, wrp);
+ 
+ 	wrp->master = of_device_get_match_data(&pdev->dev);
+diff --git a/include/linux/soc/mediatek/mtk-pmic-wrap.h b/include/linux/soc/mediatek/mtk-pmic-wrap.h
+new file mode 100644
+index 000000000..0dacceec1
+--- /dev/null
++++ b/include/linux/soc/mediatek/mtk-pmic-wrap.h
+@@ -0,0 +1,10 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __SOC_MEDIATEK_MTK_PMIC_WRAP_H
++#define __SOC_MEDIATEK_MTK_PMIC_WRAP_H
++
++struct device;
++
++int mtk_pwrap_hold(struct device *dev);
++void mtk_pwrap_release(struct device *dev);
++
++#endif /* __SOC_MEDIATEK_MTK_PMIC_WRAP_H */

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `planned`; offline analysis done, no patch written, no device access; the design below waits for the owner's answer and one read-only station reading |
+| Status | `planned`; patches 0424-0427 written on the owner's approval and compile-checked, not run; the bring-up test below is not admitted and waits for the owner, and one read-only station reading is outstanding |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -76,7 +76,7 @@ protection stays as it is on the station.
   | 1 | SPM `0x10006218` bit 0 set (MP2 reset release) | `0x00010132` to `0x00010133` |
   | 2 | Ordering read of `0x102224a0` | |
   | 3 | Assert TOPRGU PWRAP SPI reset | status 1 |
-  | 4 | DA9214 `0x5e` from `0x00` to `0x01` over I2C6 at `0x68`, then wait about 1 ms | selectors stay `0x46` |
+  | 4 | DA9214 `0x5e` from `0x00` to `0x01` over I2C6 at `0x68`, then wait | selectors stay `0x46` |
   | 5 | SPM `0x10006290` clear bits 1:0 | `0x2` to `0x0` |
   | 6 | Deassert PWRAP reset, wait 240 to 260 us | status 0 |
   | 7 | SMC `0xc20003bf` with 110000 (SRAM LDO 1.1 V), wait 240 us | selector `0x102222b0` bits 11:0 reads `0x8fb` twice |
@@ -144,14 +144,15 @@ protection stays as it is on the station.
 
 ## Proposed design
 
-Four small patches, new work on the station series:
+Four patches, new work on the station series, written after the owner approved
+this design on 2026-11-01:
 
 | Patch | What | Where |
 | --- | --- | --- |
-| A | Set the five capability bits before finalization, on this board only | Built in: capabilities cannot change after boot |
-| B | A gate-open call, so `cpu_boot` reaches PSCI only after the sequence ran | Built in: `cpu_ops` is in the Image |
-| C | A short hold in the PMIC wrapper across steps 3 to 6: later accessors wait, bounded to the window | Built in: the wrapper driver is built in |
-| D | `mt6797-a72`: runs steps 1 to 10, then `add_cpu(8)` and `add_cpu(9)` | A module, so it can be retried across loads without a boot |
+| [0424](../../patches/proposals/0424-arm64-set-the-capabilities-of-the-late-MT6797-A72s.patch) | Set the five capability bits before finalization, on this board only | Built in: capabilities cannot change after boot |
+| [0425](../../patches/proposals/0425-arm64-mediatek-let-the-MT6797-A72-gate-open.patch) | A gate-open call, so `cpu_boot` reaches PSCI only after the sequence ran | Built in: `cpu_ops` is in the Image |
+| [0426](../../patches/proposals/0426-soc-mediatek-pmic-wrap-let-a-caller-hold-PMIC-access.patch) | A mutex in the PMIC wrapper's regmap accessors, held across steps 1 to 6 (regmap already sleeps here, so waiters just sleep) | Built in: the wrapper driver is built in |
+| [0427](../../patches/proposals/0427-soc-mediatek-bring-up-the-MT6797-A72-pair-from-a-mod.patch) | `mt6797-a72`: runs steps 1 to 10, then `add_cpu(8)` and `add_cpu(9)` | A module, so it can be retried across loads without a boot |
 
 Loading the module is the only trigger. Later the station's init loads it, and
 that is "all cores online in normal use".
@@ -174,17 +175,39 @@ Choices that keep it small:
   nothing if it differs. Nothing is retried.
 
 This costs the Image and DTB a rebuild once, which other sessions share, so it
-combines with their next boot. Patch A takes effect at every boot, including on
+combines with their next boot. Patch 0424 takes effect at every boot, including on
 the A53s: their capability callbacks run and report them unaffected, by source.
-Patches B and C change nothing until the module loads.
+Patch 0425 changes nothing until the module loads, and 0426 adds only an
+uncontended mutex until then. The handoff and the I2C6 compatible do change boot:
+I2C6 binds about 45 s after boot, once the handoff's late check passes.
 
 What the A72s would lack: Spectre v2, v4 and BHB mitigation (firmware has none, if
 the inference holds). The A53s are not affected either way.
 
 ## Associated code
 
-None yet. Patches are written after the owner's answer, because the answer and
-the reading can change them.
+Patches 0424-0427, and the options at the end of
+[the station fragment](../../configs/gemini-a53-station.fragment). The module has
+no DT binding document yet; that belongs with upstream work.
+
+Choices made while writing them:
+
+- **Capabilities:** an audit of every A72 match in the errata tables gives the five
+  bits for this configuration. `ARM64_SPECTRE_V3A` also matches A72 but only exists
+  with `RANDOMIZE_BASE`, which the station has off, so the option depends on it being
+  off. If SMCCC 1.1 is present the bits stay clear and the A72s are rejected, rather
+  than run with vectors nothing patched.
+- **BUCKB settle:** 1 ms, the vendor's value. The old code carries both a 100 us and
+  a 1000 us constant, and which one ran was not resolved. Longer is the cautious side.
+- **Topology:** the station tree deletes `cpu-map`, so the cores come up flat. That is
+  the state of the proven [RAM run](../2026-09-02-mainline-dual-a72-ram-coherency/README.md).
+  Restoring 4+4+2 changes A53 scheduling too, so it stays a follow-up.
+- **Load failure:** a failed probe fails the load and leaves no driver. A retry is safe
+  only before the isolation clear, and the off-state check refuses any retry after it.
+
+Tested: compile only, in the development VM, for the changed objects and the station
+DTB, and strict checkpatch reports only the missing `Signed-off-by`, which is left for
+the owner. Nothing built in the VM is booted.
 
 ## Procedure
 
@@ -225,10 +248,11 @@ The current and temperature lines are the baseline for the battery cost.
 
 1. Build the station from a pushed commit on Buildbox, with the module `=m`.
 2. Boot it with the module not loaded, and confirm Wi-Fi, audio, GNSS and PMIC
-   readings are unchanged. That covers patches A to C on their own.
+   readings are unchanged, and that I2C6 bound after about 45 s. That covers the
+   built-in changes on their own.
 3. Hypothesis: `insmod mt6797-a72.ko` brings up both cores. Unique observation:
    the first time this sequence runs beside live PMIC traffic.
-4. Check `online` is `0-9`, the `cpu-map`, per-CPU accounting under a pinned load,
+4. Check `online` is `0-9`, per-CPU accounting under a pinned load,
    a fuel-gauge reading and AUXADC after the window, and temperature.
 5. Finite load: pinned work on both A72s for a fixed time, watching temperature.
    Stop at 75 C SoC, a limit proposed here that the owner can change.
@@ -237,14 +261,14 @@ The current and temperature lines are the baseline for the battery cost.
 | --- | --- | --- |
 | `0-9`, PMIC readings fine | Works on the station | Soak, then measure idle cost, then load at init |
 | Module refuses on prestate | No hardware changed | Read the logged value, no retry |
-| CPU8 rejected on a capability conflict | Patch A incomplete; the CPU parks | Read the log, fix, new boot |
+| CPU8 rejected on a capability conflict | Patch 0424 incomplete; the CPU parks | Read the log, fix, new boot |
 | `CPU_ON` returns, core never arrives | Sequence differs from the proven runs | Stop, compare, no retry |
-| PMIC errors after the window | Patch C insufficient | Stop, keep logs, recover |
+| PMIC errors after the window | Patch 0426 insufficient | Stop, keep logs, recover |
 | Hang | Unknown | Watchdog to Gemian if the whole system stops; a single stuck CPU may not trigger it, so the owner may need to force power off |
 
 Recovery after a failed module load: the module is not loaded at boot, so a
 reboot and the owner's boot2 selection return a working station. Only the built-in
-patches A to C and the DT change can stop boot2 booting. Step 2 tests those, and a
+changes and the DT change can stop boot2 booting. Step 2 tests those, and a
 failure there means returning to Gemian and reinstalling the previous boot2 image.
 
 ## Observations

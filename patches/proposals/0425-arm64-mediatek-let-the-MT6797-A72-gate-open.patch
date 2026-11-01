@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:09:53 -0500
+Subject: [PATCH 424/426] arm64: mediatek: let the MT6797 A72 gate open
+
+The A72 boot method refuses CPU_ON unless an experiment binder claims it.
+Add a plain way to open it, for a caller that has made the board side
+ready. The default stays closed.
+---
+ arch/arm64/include/asm/mt6797_psci.h |  7 +++++++
+ arch/arm64/kernel/mt6797_psci.c      | 13 +++++++++++++
+ 2 files changed, 20 insertions(+)
+ create mode 100644 arch/arm64/include/asm/mt6797_psci.h
+
+diff --git a/arch/arm64/include/asm/mt6797_psci.h b/arch/arm64/include/asm/mt6797_psci.h
+new file mode 100644
+index 000000000..5126500f6
+--- /dev/null
++++ b/arch/arm64/include/asm/mt6797_psci.h
+@@ -0,0 +1,7 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef __ASM_MT6797_PSCI_H
++#define __ASM_MT6797_PSCI_H
++
++void mt6797_psci_open_a72_gate(void);
++
++#endif /* __ASM_MT6797_PSCI_H */
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index c49d49cfb..391202921 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -11,6 +11,7 @@
+ #include <linux/bitmap.h>
+ #include <linux/cpu.h>
+ #include <linux/errno.h>
++#include <linux/export.h>
+ #include <linux/init.h>
+ #include <linux/kernel.h>
+ #include <linux/of.h>
+@@ -26,6 +27,7 @@
+ #include <asm/cputype.h>
+ #include <asm/late_cpu_profile.h>
+ #include <asm/mt6797_a72_membership.h>
++#include <asm/mt6797_psci.h>
+ #include <asm/smp.h>
+ 
+ extern const struct cpu_operations cpu_psci_ops;
+@@ -1943,8 +1945,19 @@ static int mt6797_psci_cpu_up_complete(unsigned int cpu,
+ }
+ #endif
+ 
++static bool mt6797_a72_gate_open;
++
++/* The caller has made the board side ready for PSCI CPU_ON. */
++void mt6797_psci_open_a72_gate(void)
++{
++	WRITE_ONCE(mt6797_a72_gate_open, true);
++}
++EXPORT_SYMBOL_GPL(mt6797_psci_open_a72_gate);
++
+ static int mt6797_psci_cpu_boot(unsigned int cpu)
+ {
++	if (READ_ONCE(mt6797_a72_gate_open))
++		return cpu_psci_ops.cpu_boot(cpu);
+ 	if (mt6797_a72_hotplug_binding_restore_active(cpu))
+ 		return mt6797_a72_hotplug_binding_restore_boot(
+ 			cpu, cpu_psci_ops.cpu_boot);
