@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; the first bring-up on the station brought CPU8 and CPU9 online, then both stopped within about a second, and the source-derived cause is fixed in 0448, which has not run; another test needs the owner |
+| Status | `running`; the first bring-up on the station brought CPU8 and CPU9 online, then both stopped within about a second, and the source-derived cause is fixed in 0448, which has not run; attempt 2 is owner-approved and with the custodian |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -445,10 +445,16 @@ Recovery: the module is not in the image, so any reboot returns a station withou
 once the owner selects boot2. If the force-off path is needed, it is the owner's physical
 action.
 
-### Bring-up test, attempt 2 (proposed, needs the owner's approval)
+### Bring-up test, attempt 2 (owner-approved, one boot and one load, not run)
 
-The same writes, steps, stop rules and table as attempt 1, on a new image with 0448,
+The owner approved this on 2026-11-01. The same writes, steps, stop rules and table as attempt 1, on a new image with 0448,
 compared with the module-free results above. One boot and one load, no retry. Changes:
+
+Candidate: package `932520bc...` (job `7fc89f36...-mt6797-a53-station-a72-m1`, Buildbox-2),
+Image.gz `0bb6ad36...`. Against `db7b42af...`: 0448 in the Image, and another session's
+0447 in `snd-soc-mt6351.ko`. The configuration, the DTB (`91ca8aae...`), `mt6797-a72.ko`
+(`1e13d34d...`) and every other module are identical.
+
 
 - Before the load, `spectre_v2` and `spec_store_bypass` should read `Vulnerable`, and
   everything else as in the module-free boots.
