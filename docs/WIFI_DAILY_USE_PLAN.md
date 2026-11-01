@@ -35,8 +35,9 @@ Measured on the owner's access point only, on the development-station
 kernel ([status](HARDWARE_SUPPORT.md), [gaps record](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DAILY_USE_GAPS.md)):
 - **Connection:** WPA2-PSK/CCMP, DHCP and automatic reconnects. 26 joins
   ran on one firmware start, and one connection held 2.8 h.
-- **Throughput:** about 30 Mbit/s transmit and 35–38 Mbit/s receive, with
-  HT40, receive A-MPDU and a fixed transmit rate of MCS5.
+- **Throughput:** about 22 Mbit/s transmit and 40-50 Mbit/s receive on channel 40, with
+  HT40, receive A-MPDU and a fixed transmit rate of MCS5, through a laptop on Wi-Fi on the
+  same channel.
 - **Reloading:** every layer reloads as a module.
 
 What keeps it from being anyone's Wi-Fi:
@@ -44,8 +45,7 @@ What keeps it from being anyone's Wi-Fi:
 | Gap | Today |
 | --- | --- |
 | Channel | Joins any non-DFS channel in code; 40 and 161 tested. On 2.4 GHz, channel 11 joins and receives well but transmits about 2 Mbit/s, and channel 6 failed its handshake. DFS joins are refused. The channel list follows the regulatory domain |
-| Throughput | Transmit falls to about 3 Mbit/s after a receive transfer, from 21 at idle. Not understood |
-| Recovery | A fault ends the lifetime. A restart in the driver is written (0443), untested |
+| Recovery | A fault ends the lifetime and the driver restarts the firmware (0443), tested on faults at disconnect under traffic. `wlan0` is recreated |
 | Network choice | `wifi-up.sh` joins by name, from a private file sent over SSH, with an optional BSSID or frequency pin. No NetworkManager test yet |
 | Scan | Passive on all channels of both bands, about 5 s. Wildcard active scan has run once; a named SSID has not |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |

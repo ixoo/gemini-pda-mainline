@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: passive and active scan work, including named SSIDs and a supplicant join. 0414 joins channels 40 and 161, and 0443 recovers from faults by itself. Channel 11 transmits poorly, channel 6 failed, and teardown faults and a stall after receive are open |
+| Status | `running`: passive and active scan work, including named SSIDs and a supplicant join. 0414 joins channels 40 and 161, and 0443 recovers from faults by itself. Channel 11 transmits poorly, channel 6 failed, and faults at disconnect under traffic are open |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -681,3 +681,29 @@ Hypothesis: 5 of the same cycles (60 s transmit, 60 s receive, stop) give few or
 | `-5` gone, scans and reconnects unchanged | The abnormal fault was the mask; look at the `-110` next |
 | `-5` remains, with no mask line before it | The mask was incidental; look at the receive batch next |
 | Scans find nothing or reconnects fail | The mask matters to the next lifetime's setup; revert 0444 |
+
+### Correction: there was no stall (2026-11-01)
+
+The device custodian found the cause. `timeout` killed the test's shell loop and left its
+`wget` running, so a "10 s receive" went on until the 200 MB file finished. `rx_bytes`
+kept climbing at 50-60 Mbit/s for 25 s after the "end" of the receive. Killing `wget`
+outright stopped traffic within a second. A 30 MB fetch run to completion, followed at once
+by the 1400-byte ping, gave 1000/1000 at 11.7 ms average, the same as idle.
+
+Invalid, because a download was running during them:
+- every "transmit after receive" figure above, in the transmit comparison, the slow
+  transmit test and the stall with counters;
+- the ping with 16% loss;
+- the reasoning that followed: the reorder hypothesis had no real basis, and the
+  restart cycles' first transmit windows may overlap a download.
+
+[0438](../../patches/proposals/0438-wifi-mt6797-keep-data-at-three-transmit-attempts.patch)
+rested on those figures, so its commit message overstates the case. Whether data should
+keep 3 attempts or take 30 is open and needs a clean comparison.
+
+Still valid: transmit from idle at 21-22 Mbit/s, channel 11's poor transmit and its frame
+counts, the restart results, the active scans.
+
+The faults at disconnect probably happened with a download running, which fits light
+use not faulting. So they are faults under traffic, not after it. That gives a repeatable
+trigger: stop the supplicant during a download.
