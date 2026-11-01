@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-self-start` |
-| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); 0406 passes 26 reconnects by module swap; station 28 with it is on boot2 and awaits its boot |
+| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); station 28 passes from a clean boot: self-start, US country, join and 26 reconnects |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mac`; station init |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -217,9 +217,19 @@ Station 28, from the 2170f1ce package with 0406's `mac` (`d5a41fb1…`) and
 otherwise station 27's inputs, is on boot2 (`83fd0f91…`, written over
 station 27 with a matching readback).
 
+### Result: station 28, boot `a4079e78` (2026-11-01)
+
+No module swap. `mac` `d5a41fb1…` as composed; status `nvdata=mounted`,
+all three `wifi=` lines, `reg=US`; `country US: DFS-FCC`; firmware ready at
+3.9 s and `phy0` present with no SSH step; `WIFI.storage` the link to
+`nvdata`. `wifi-up.sh`: `COMPLETED` on 5200 MHz WPA2-PSK/CCMP, a lease,
+gateway 3/3. Ping 10/10 (6.5 ms average). 26 reconnects 26/26 in 0.99-1.17 s,
+each 2/2, through three command-sequence recycles: 26 re-arms, none
+deferred, no delivery-cap refusal, no handshake failure. No Oops, warning
+or call trace; not tainted.
+
 ## Follow-up
 
-- Boot station 28 and repeat the join and reconnects without a swap.
 - Station 9's 2.5 h hold, not yet repeated on the clean driver.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
