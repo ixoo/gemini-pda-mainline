@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; two module-free boots of the opt-in profile are done, the second confirming 0446; the bring-up test is owner-approved and with the custodian |
+| Status | `running`; the first bring-up on the station brought CPU8 and CPU9 online, then both stopped within about a second, and the source-derived cause is fixed in 0448, which has not run; another test needs the owner |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -382,7 +382,7 @@ Also check GNSS if the image carries it. Candidate: package `db7b42af...` (job
 `access-controllers` line, and the AUDIO domain clocks from 0445, another session's
 station patch. All other modules and the configuration are identical.
 
-### Bring-up test (owner-approved, one module load, not run)
+### Bring-up test, attempt 1 (owner-approved, run; see Observations)
 
 The owner approved this on 2026-11-01, keeping the proposed 75 C limit, for one module
 load on boot `e1706072`.
@@ -445,6 +445,20 @@ Recovery: the module is not in the image, so any reboot returns a station withou
 once the owner selects boot2. If the force-off path is needed, it is the owner's physical
 action.
 
+### Bring-up test, attempt 2 (proposed, needs the owner's approval)
+
+The same writes, steps, stop rules and table as attempt 1, on a new image with 0448,
+compared with the module-free results above. One boot and one load, no retry. Changes:
+
+- Before the load, `spectre_v2` and `spec_store_bypass` should read `Vulnerable`, and
+  everything else as in the module-free boots.
+- **Any new `WARNING` is now a failure**, as is an A72 going quiet: `/proc/stat` is read
+  every 10 s from the load onward, and a CPU frozen for 15 s stops the test.
+- Taint `S` was not seen in attempt 1, so it is reported rather than assumed.
+- Workers are started by one shell that records their PIDs and `wait`s, and the temperature
+  loop runs until that shell ends, because busybox shows them under other names.
+- If an A72 stops again, go to `sync` and `reboot -f`. Plain `reboot` can block on RCU.
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
@@ -491,6 +505,27 @@ station work.
   with no A72 code. No mechanism connects it to these changes, but this boot does not
   exclude one, so the next boot counts first joins.
 
+Bring-up attempt 1, boot `e1706072`, package `db7b42af...`, module `1e13d34d...`. The
+owner was present, 75 C limit, USB power. One load, no retry. Evidence stays with the
+custodian's private station work.
+
+- **Came online:** `insmod=0` in about 60 ms, `online 0-9`, `CPU8 and CPU9 online`, with
+  both CPUs booted as `0x410fd081`. This is the first run of this sequence beside live
+  PMIC traffic, and no PMIC error appeared by the custodian's filter.
+- **Six warnings:** `update_mitigation_state` at `proton-pack.c:52`, from the v2, v4 and
+  BHB callbacks on each A72. Taint `W`. `spectre_v2` still read `Not affected`.
+- **Then both stopped:** by 1102 s their `/proc/stat` had frozen, and timer counts stayed
+  at 11 and 12. Pinned workers stayed `R` without running a round, so **no load ever ran
+  on an A72**. RCU reported stalls on 8 and 9 from at most about 1086 s, `softirq=8/8`,
+  and the NMI gave no backtrace. The nesting field read `/1/0x4000000000000000`, so RCU
+  saw them as not idle.
+- **A53s kept going:** SSH, Wi-Fi ping 2/2, SoC at most 41.9 C. The custodian stopped
+  there, so audio, keyboard and PMIC repeats did not run. Their temperature monitor had
+  also stopped at 1104 s through a script fault, though nothing was loading the A72s.
+- **Reboot:** a clean reboot blocked over 280 s in `umount`, presumably on RCU.
+  `reboot -f` at 1482 s worked, and Gemian came up by itself as boot `4252396b`, with an
+  ext4 journal recovery on its root. No force-off was needed.
+
 Second boot-only test, boot `e1706072`, image boot2 `01280137...`, package `db7b42af...`.
 Module absent; no I2C tools, no writes.
 
@@ -515,6 +550,30 @@ opt-in profile: Image.gz `42b794d6...`, the module, and
 boot.
 
 ## Analysis
+
+**Why the A72s stopped (derived from source, fits every log above, not yet shown by a
+run).** This was a defect in 0424, and the design text above was wrong to say the
+capability bits were all the A72s need:
+
+1. After capabilities are final, `update_mitigation_state()` warns and refuses any change.
+   That is the six warnings, and why `spectre_v2` stayed `Not affected`.
+2. `spectre_bhb_enable_mitigation()` gives up only if Spectre-v2 reads vulnerable. It read
+   unaffected, so an A72 went on and selected `EL1_VECTOR_BHB_LOOP`.
+3. That vector's loop runs `mov x30, #max_bhb_k` then counts down to zero. The immediate is
+   patched at boot, when only A53s had been seen, so it is 0. The count wraps, and the
+   loop runs about 2^64 times with interrupts masked.
+4. Kernel exceptions use other vector entries, so an A72 kept working until its first entry
+   from userspace. That fits about a second of life, the not-idle RCU state, no
+   interrupts, no NMI backtrace, and sshd dropping when it landed there.
+
+The old stack avoided this because it recorded these states as vulnerable before
+finalization, which this design dropped as unnecessary.
+[0448](../../patches/proposals/0448-arm64-record-the-late-MT6797-A72s-as-vulnerable-at-b.patch)
+does the same in three lines. The system then reports `Vulnerable` from boot, including
+on the A53s, which are themselves unaffected. The kernel cannot report per-CPU here.
+
+The bring-up sequence itself gave no sign of trouble, but a stop this early says nothing
+about stability under load.
 
 The project's [2026-10-03 review](../2026-10-03-project-review/README.md) parked
 this work because it had consumed the most effort for the least usability, and

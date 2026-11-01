@@ -1,0 +1,85 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 16:34:49 -0500
+Subject: [PATCH] arm64: record the late MT6797 A72s as vulnerable at boot
+
+After capabilities are final, update_mitigation_state() warns and refuses a
+change, so an A72 coming online left Spectre-v2 reading as unaffected. The
+BHB callback then selected the loop vector, whose count was patched to zero
+at boot because no affected CPU had been seen. The count wraps, so the
+first entry from userspace on an A72 spun with interrupts masked. Both A72s
+stopped after about a second, with RCU stalls.
+
+Record the three states as vulnerable before finalization, which is what
+the A72s are without firmware workarounds. Their callbacks then install
+nothing and do not warn.
+---
+ arch/arm64/include/asm/spectre.h |  1 +
+ arch/arm64/kernel/cpufeature.c   |  9 +++++----
+ arch/arm64/kernel/proton-pack.c  | 17 +++++++++++++++++
+ 3 files changed, 23 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/include/asm/spectre.h b/arch/arm64/include/asm/spectre.h
+index 296ae3420..7f7317b35 100644
+--- a/arch/arm64/include/asm/spectre.h
++++ b/arch/arm64/include/asm/spectre.h
+@@ -84,6 +84,7 @@ static __always_inline void arm64_apply_bp_hardening(void)
+ enum mitigation_state arm64_get_spectre_v2_state(void);
+ bool has_spectre_v2(const struct arm64_cpu_capabilities *cap, int scope);
+ void spectre_v2_enable_mitigation(const struct arm64_cpu_capabilities *__unused);
++void spectre_set_late_a72_state(void);
+ 
+ bool has_spectre_v3a(const struct arm64_cpu_capabilities *cap, int scope);
+ void spectre_v3a_enable_mitigation(const struct arm64_cpu_capabilities *__unused);
+diff --git a/arch/arm64/kernel/cpufeature.c b/arch/arm64/kernel/cpufeature.c
+index 159ba294e..33ed9fc80 100644
+--- a/arch/arm64/kernel/cpufeature.c
++++ b/arch/arm64/kernel/cpufeature.c
+@@ -5446,10 +5446,10 @@ void __init setup_boot_cpu_features(void)
+ #ifdef CONFIG_ARM64_MT6797_LATE_A72
+ /*
+  * Boot detects capabilities on the A53s alone. The A72s then bring these local
+- * ones, and verify_local_cpu_caps() would reject them. Without SMCCC 1.1 the
+- * Spectre callbacks install nothing on an A72, so the bits are all they need.
+- * With it the callbacks would select vectors nothing patched at boot, so leave
+- * the bits clear and let the A72s be rejected.
++ * ones, and verify_local_cpu_caps() would reject them. Without SMCCC 1.1 an A72
++ * has no Spectre workaround, so with the state recorded as vulnerable its
++ * callbacks install nothing. With SMCCC 1.1 they would select vectors nothing
++ * patched at boot, so leave the bits clear and let the A72s be rejected.
+  */
+ static void __init mt6797_set_late_a72_caps(void)
+ {
+@@ -5468,6 +5468,7 @@ static void __init mt6797_set_late_a72_caps(void)
+ 		pr_warn("MT6797: SMCCC 1.1 present, late A72s not admitted\n");
+ 		return;
+ 	}
++	spectre_set_late_a72_state();
+ 	for (i = 0; i < ARRAY_SIZE(caps); i++)
+ 		set_bit(caps[i], system_cpucaps);
+ }
+diff --git a/arch/arm64/kernel/proton-pack.c b/arch/arm64/kernel/proton-pack.c
+index ed181b9d4..50047ea73 100644
+--- a/arch/arm64/kernel/proton-pack.c
++++ b/arch/arm64/kernel/proton-pack.c
+@@ -1965,3 +1965,20 @@ void spectre_print_disabled_mitigations(void)
+ 	if (__nospectre_bhb || cpu_mitigations_off())
+ 		pr_info("spectre-bhb %s", spectre_disabled_suffix);
+ }
++
++#ifdef CONFIG_ARM64_MT6797_LATE_A72
++/*
++ * The MT6797 A72s come online after boot, with no firmware workaround to call,
++ * and each is vulnerable. Their callbacks cannot record that once capabilities
++ * are final, so record it now. Otherwise the BHB callback sees Spectre-v2 as
++ * unaffected and selects the loop vector, whose count was patched to zero at
++ * boot because no affected CPU had been seen. That loop wraps, and the first
++ * entry from userspace never finishes it.
++ */
++void __init spectre_set_late_a72_state(void)
++{
++	update_mitigation_state(&spectre_v2_state, SPECTRE_VULNERABLE);
++	update_mitigation_state(&spectre_v4_state, SPECTRE_VULNERABLE);
++	update_mitigation_state(&spectre_bhb_state, SPECTRE_VULNERABLE);
++}
++#endif
