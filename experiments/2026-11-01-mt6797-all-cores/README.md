@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; the first bring-up on the station brought CPU8 and CPU9 online, then both stopped within about a second, and the source-derived cause is fixed in 0448, which has not run; attempt 2 is owner-approved and with the custodian |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. Soak, idle cost and loading at init remain, each its own owner decision |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -106,8 +106,8 @@ protection stays as it is on the station.
   hold the PMIC wrapper's SPI side in reset for over a millisecond. Those runs
   were quiet. The station has the fuel gauge, the battery-temperature AUXADC, and
   audio and Wi-Fi regulators all using the wrapper. A transaction during the
-  window could time out or leave the wrapper stuck. It has not been observed,
-  because nothing has tried it.
+  window could time out or leave the wrapper stuck. Two bring-ups beside that
+  traffic showed no PMIC error, which is too few to exclude it.
 - A correction to [the PCM study](../2026-10-31-mt6797-vendor-cpu-policy-re/results/pcm-idvfs-ownership.md):
   it labels `0x1100e000` as PWRAP, but the device tree has I2C6 there. That fits
   the PCM's job of driving the DA9214 directly. The evidence file stays as
@@ -445,7 +445,7 @@ Recovery: the module is not in the image, so any reboot returns a station withou
 once the owner selects boot2. If the force-off path is needed, it is the owner's physical
 action.
 
-### Bring-up test, attempt 2 (owner-approved, one boot and one load, not run)
+### Bring-up test, attempt 2 (owner-approved, run; see Observations)
 
 The owner approved this on 2026-11-01. The same writes, steps, stop rules and table as attempt 1, on a new image with 0448,
 compared with the module-free results above. One boot and one load, no retry. Changes:
@@ -546,6 +546,46 @@ Module absent; no I2C tools, no writes.
   custodian's filter. The owner saw no lag at startup. **GNSS is still untested on this
   profile**, because it is not in the image.
 
+Bring-up attempt 2, boot `04cc38ee`, image boot2 `38116570...`, package `932520bc...`,
+module `1e13d34d...` verified on the device. The owner was present, 75 C limit, not
+charging at 95%. One load, no retry. Evidence stays with the custodian's private station
+work.
+
+- **Before the load:** `Run /init` at 1.216 s, `spectre_v2` and `spec_store_bypass` read
+  `Vulnerable`, no `proton-pack.c` line, taint 0. One first Wi-Fi join, clean. Finding 2
+  stays one fault in three boots, one join each.
+- **Came online:** `insmod=0` at 1535.20 s, `online 0-9`, taint 0, no warning. Both CPUs
+  booted as `0x410fd081`. The module's firmware recheck and probe took 36 ms in all.
+- **Load:** 60 of 60 rounds on each A72, 1565.47 to 1686.06 s, with no `WARNING` and no
+  frozen 10 s sample. Each CPU accounted about 113 s user and 7 s system by the end of
+  the load, against none in attempt 1. SoC at most 43.9 C from 30.5 C; battery at most
+  24.2 C.
+- **After the load:** timer interrupts 30545 and 30493 on CPU8 and CPU9, against 11 and 12
+  in attempt 1. PMIC read rc=0 with no wrapper error line. Ping 3/3.
+- **Idle:** by 2882.40 s, 1347 s online with no event, 1196 s of it after the load. Taint
+  0, no warning, and no match for `rcu_preempt detected|self-detected|Sending NMI`. Each
+  A72's `/proc/stat` sums to the full 1347 s, nearly all of the rest idle. Ping 5/5 at
+  2396.93 s. **This was not pure idle:** at the owner's choice, another session removed and
+  reloaded the audio modules at about 2016 s and played tones during it. The load had
+  already ended, and no load ran on an A72 afterwards.
+- **Registers with the A72s up:** `0x10006218=00010127`, `0x10006290=00000000`,
+  `0x10222274=0000000D`, `0x10006240` and `0x10006244` `00010337`, unchanged from 1710 s to
+  2397 s. Bits 7:6 now read on in both `0x10006188` (`003F80C8`, then `003FA0C8`) and
+  `0x1000618c` (`003D80FF`, then `003D90FF`); the bits above the mask moved again.
+  `00010127` also appears with CPU8 up in the
+  [first-cycle run](../2026-08-02-gemian-a72-first-cycle-latch/results/runtime-first-natural-pair-20260802.txt),
+  in the field that reads `00010132` with it off. That the field is this register is
+  inferred from those values.
+- **Regression:** USB SSH and the host's log stream held from before the load to the
+  reboot. The owner: "keyboard fine", and the tone at 1779.41 s "Heard in both ears". Five
+  more tones on the audio tests returned rc=0. The display was not asked about, and
+  **GNSS is still untested on this profile**, because it is not in the image.
+- **Reboot:** plain `reboot` after stopping the workload and unmounting data, with no `-f`.
+  `EXT4 ... unmounting` logged, and Gemian came up as boot `30f405b2`, reachable about 20 s
+  later, with no journal recovery line by the custodian's filter. One clean reboot.
+- **Not covered:** A72 load together with audio or Wi-Fi traffic, soak, idle battery cost,
+  suspend, and any down path. Frequency and voltage were not measured on this run.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -557,8 +597,9 @@ boot.
 
 ## Analysis
 
-**Why the A72s stopped (derived from source, fits every log above, not yet shown by a
-run).** This was a defect in 0424, and the design text above was wrong to say the
+**Why the A72s stopped (derived from source, fits every log above, and attempt 2 fits the
+fix).** Only 0448 changed in the Image, and the warnings and the stop both went away, so the
+fix is observed; the mechanism below is still read from source, not traced. This was a defect in 0424, and the design text above was wrong to say the
 capability bits were all the A72s need:
 
 1. After capabilities are final, `update_mitigation_state()` warns and refuses any change.
@@ -578,8 +619,9 @@ finalization, which this design dropped as unnecessary.
 does the same in three lines. The system then reports `Vulnerable` from boot, including
 on the A53s, which are themselves unaffected. The kernel cannot report per-CPU here.
 
-The bring-up sequence itself gave no sign of trouble, but a stop this early says nothing
-about stability under load.
+The bring-up sequence itself gave no sign of trouble. Attempt 2 is a first answer on
+stability: two minutes of load and about twenty minutes online, on one boot and one unit.
+It says nothing yet about hours of use, cold boots or load beside other traffic.
 
 The project's [2026-10-03 review](../2026-10-03-project-review/README.md) parked
 this work because it had consumed the most effort for the least usability, and
@@ -590,11 +632,15 @@ those results as given and stops at what the cores need.
 
 ## Conclusion
 
-No result yet. The gap is integration, not missing hardware knowledge, with one
-new risk (PWRAP concurrency) and a few open costs.
+All ten cores can run on the station kernel: the opt-in `mt6797-a53-station-a72` profile
+brought CPU8 and CPU9 online from a module, ran a finite load on both, kept Wi-Fi, audio
+and the keyboard working, and rebooted cleanly. This is one boot on one unit, loaded by
+hand, at firmware's B clock. It is not default integration: PWRAP concurrency, soak and
+idle cost stay open, GNSS has not run beside it, and the whole system now reports
+`Vulnerable` for Spectre-v2 and speculative store bypass.
 
 ## Follow-up
 
-After the first working boot, in order: soak; idle power; load at init; then, as
+Next, in order, each its own owner decision: soak; idle power; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
