@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 18:09:50 -0500
+Subject: [PATCH] ASoC: mt6351: clear the headphone output STBENH at power-down
+
+Headphone power-up sets bit 13 of AUDDEC_ANA_CON1, and nothing clears it
+again. On the Gemini PDA the idle headphone output then picks up a burst
+of noise every 30 s while Wi-Fi is associated, from the first stream on,
+and until the next reboot.
+
+Clear the bit once the output is off. The next power-up sets it again.
+---
+ sound/soc/codecs/mt6351.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/sound/soc/codecs/mt6351.c b/sound/soc/codecs/mt6351.c
+index 976770c..51ee0da 100644
+--- a/sound/soc/codecs/mt6351.c
++++ b/sound/soc/codecs/mt6351.c
+@@ -829,6 +829,11 @@ static int mt_hp_event(struct snd_soc_dapm_widget *w,
+ 				   MT6351_AUDDEC_ANA_CON2,
+ 				   0x0001,
+ 				   0x0000);
++		/* disable output STBENH, or the idle output picks up noise */
++		regmap_update_bits(cmpnt->regmap,
++				   MT6351_AUDDEC_ANA_CON1,
++				   0x2000,
++				   0x0000);
+ 
+ 		/* apply volume setting */
+ 		hp_gain_ramp_set(cmpnt, HP_GAIN_RESTORE);

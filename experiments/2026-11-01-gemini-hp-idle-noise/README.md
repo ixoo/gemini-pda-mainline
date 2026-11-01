@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-hp-idle-noise` |
-| Status | `running`: `0447` falsified on a fresh boot; a switchable restore test is next |
+| Status | `running`: `0450` built; bit 13 of `AUDDEC_ANA_CON1` found as the cause on one boot; fresh-boot confirmation pending |
 | Subsystem | audio: MT6351 headphone path |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,8 +70,8 @@ the reviewed boot2 path. Swapping the codec module needs none. Stop on an oops, 
 ## Associated code
 
 - `0447`, withdrawn; in Git history. It was built at `4da5aa36`.
-- [`0449`](../../patches/proposals/0449-ASoC-mt6351-test-which-idle-registers-bring-the-head.patch): test only. Default 0 changes nothing. Remove it when
-  this experiment ends.
+- `0449`, test only, withdrawn; in Git history. It was built at `290d58ad`.
+- [`0450`](../../patches/proposals/0450-ASoC-mt6351-clear-the-headphone-output-STBENH-at-pow.patch): the fix.
 - [`pmic-audio-read.sh`](../2026-11-01-gemini-audio-reload/pmic-audio-read.sh)
 
 ## Procedure
@@ -136,10 +136,38 @@ restarts, CPUs 0-7:**
 
 A second tone was not played. The notice schedule past about 840 s is extrapolated (print limit).
 
+**`0449` rounds, same boot `04cc38ee`, starting with the noise present, run by the custodian.** Codec
+module `735d6fa9…` swapped in at 2016.16 s; AUDIO read fully off at removal; the registers kept their
+after-tone values through the reload. Headphones in, Wi-Fi associated, CPUs 0-9 online with the A72
+module running, not tainted, no restarts. Each round is a tone, rc 0, a read about 7 s later and 2
+minutes with key presses:
+
+| `idle_restore` | Tone (s) | `0x0CF4` after | Key presses (s) | Owner |
+| --- | --- | --- | --- | --- |
+| 15 | 2057.90 | `0000` | 2076.59, off schedule | "Tone heard, quiet" |
+| 0 | 2219.81 | `2000` | 2249.89, 2279.79, 2309.50, 2341.51 | "Noise came back" |
+| 1 | 2368.97 | `0000` | none | "Quiet" |
+| 0 | 2515.17 | `2000` | 2520.01, 2549.71, 2609.83, 2639.76 | "ok it came back" |
+| 1 | 2651.39 | `0000` | none | "Quiet" |
+
+The reads for 0 and 1 differ only in `0x0CF4`, and in the uptime line. `0x2096` read `8c00` in all
+rounds, and `0x080A` read `3232`. Pops were not asked about on these rounds and none were reported.
+Groups 2, 4 and 8 were not run alone.
+
 ## Analysis
 
 The first-playback trigger repeats: stations 33, 34 and 35 show the same order of events, on two CPU
 profiles.
+
+**Bit 13 of `AUDDEC_ANA_CON1` controls the noise.** Setting it brought the noise back twice and clearing
+it stopped the noise twice, with that bit the only difference between the reads, so this is a direct
+result, not a correlation. The driver comments the bit as the output stability enhancement. How it
+lets the noise in is not known. Inference: with the output off, it leaves the line more exposed to
+the same source, which Wi-Fi is still the likely one. Whether the other groups could also quiet the
+noise is untested, and not needed for the fix.
+
+Stock's close path does not clear this bit either, so stock after playback may be noisy too. That
+remains untested. The fix does not depend on it.
 
 `0447` did not help. With the charge pump configuration at its original value, the noise still came
 back, so comparing with stock's close path did not find the cause. Stock leaves the other candidates
@@ -148,7 +176,8 @@ experiment does not apply first.
 
 ## Conclusion
 
-`0447` is `refuted` for the named Gemini on one fresh boot. The cause is not established.
+`0447` is `refuted` for the named Gemini on one fresh boot. Bit 13 of `AUDDEC_ANA_CON1` is `confirmed` as
+controlling the noise on one boot of Linux 7.1.3, with two on and off pairs. `0450` itself has not run.
 
 ## Follow-up
 

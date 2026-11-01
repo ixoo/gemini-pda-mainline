@@ -318,7 +318,8 @@ loaded idle state or the AUDIO domain. A silent stream stopped it for 90 s with
 the HP path on, so the idle output is what picks it up. What the first stream
 changes is in the
 [idle noise experiment](../../experiments/2026-11-01-gemini-hp-idle-noise/README.md),
-which ruled out the charge pump configuration on one boot and tests the rest.
+which found bit 13 of `AUDDEC_ANA_CON1` controls it on one boot. The stream sets the
+bit and nothing clears it; `0450` clears it at power-down, not yet run.
 
 No periodic audio work exists in the vendor code. The nearest timers are the
 ANC IPC wait (1 s, unused on Gemini), the ACCDET MICBIAS1 off timer (6 s), the
@@ -496,8 +497,9 @@ unplug. Microphone placement, headset classification, the buttons and trim remai
 8. Why is the idle headphone path quieter on stock Gemian than on mainline?
    The 30 s noise follows Wi-Fi, is present with every DAPM widget off, and on
    one boot began at the first playback and outlasted module removal. The
-   silent stream stopped it. The registers the first stream changes are read, and
-   the idle noise experiment tests them.
+   silent stream stopped it. The registers the first stream changes were read, and
+   clearing bit 13 of `AUDDEC_ANA_CON1` stops the noise on one boot. Stock's close
+   path doesn't clear it either, so whether stock is noisy after playback is open.
 
 The ordered first-boot checks for all of these are in the
 [audio RE runtime sequence](../../experiments/2026-10-04-gemini-audio-re/README.md#first-runtime-sequence).
