@@ -394,7 +394,7 @@
           "configs/gemini-a53-wifi-emi-copy-probe.fragment",
           "configs/gemini-a53-wifi-wmt-start.fragment",
           "configs/gemini-a53-wmt-default-query.fragment",
-          "configs/gemini-a53-wifi-lifecycle.fragment",
+          "configs/gemini-a53-station-wifi.fragment",
           "configs/gemini-a53-station.fragment"
         ]
       },
