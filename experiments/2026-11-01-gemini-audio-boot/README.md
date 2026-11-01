@@ -190,8 +190,10 @@ after a reconnect, which is a weak timing against it.
 and plays through the headphones with no setup. Audio holds its power domain and clocks on
 for the whole uptime, at a cost too small to see in this measurement.
 
-Open: playback after a module reload is silent until a reboot, and the 30 s Wi-Fi noise is not
-yet compared with stock.
+Open at the time: playback after a module reload was silent until a reboot, and the 30 s Wi-Fi noise
+was not compared with stock. The [reload experiment](../2026-11-01-gemini-audio-reload/README.md) has
+since fixed the first and found the noise begins at the first playback, which revises the reading above
+that the audio driver is not involved.
 
 ## Follow-up
 

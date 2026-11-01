@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-reload` |
-| Status | `running`: AUDIO powers fully off on removal; the 30 s noise starts at the first playback and survives removal; reload playback pending |
+| Status | `running`: reload confirmed on station 33; the 30 s noise starts at the first playback and survives removal; register reads pending |
 | Subsystem | audio; MT6797 AUDIO power domain |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -108,10 +108,26 @@ owner listening with the headphones in from power-on:**
   = `0x3330FF12`, the off value. No hang, not tainted, Wi-Fi associated.
 - With all modules removed and AUDIO off, the owner still hears the noise.
 
+Reload, same boot, Wi-Fi associated on channel 40 throughout, not tainted at any read, no hang, no
+`rmmod` failure:
+
+| Time (s) | Step | `0x10006180` | `0x10006314` | Owner |
+| --- | --- | --- | --- | --- |
+| 815.40 | Removal 1 | `0x2A00005E` | `0x3330FF12` | |
+| 931.31 | Reload 1, `audio-start` `ready`, jack in at 931.617 | `0x2B00005E` | `0x3330000D` | |
+| 935.52 | Tone, rc 0 | unchanged | unchanged | "Heard it" |
+| 957.66 | Removal 2 | `0x2A00005E` | `0x3330FF12` | |
+| 982.36 | Reload 2, `audio-start` `ready` | `0x2B00005E` | `0x3330000D` | |
+| 986.58 | Tone, rc 0; jack on, ping 2/2 | | | "Heard it" |
+
+Whether the noise continued after the reloads has not been reported.
+
 ## Analysis
 
-Interim. The first half of the hypothesis holds on one removal: with the clocks on the domain,
-AUDIO powers fully off.
+The hypothesis holds on both pairs: with the clocks on the domain, AUDIO powers fully off on
+removal, and the tone is heard after a reload.
+
+The noise is still interim.
 
 On this one boot the noise was absent before any playback and present from just after it, and it
 stayed with the AFE off and the modules gone. So the loaded idle state and the AUDIO domain are not
@@ -129,7 +145,9 @@ clears.
 
 ## Conclusion
 
-`inconclusive` so far: reload playback and the register reads are pending.
+`confirmed` for the named Gemini, Linux 7.1.3 and package `24857504`: reload is safe for development,
+with two removal and reload pairs on one boot. The cause of the noise is not established; the
+register reads are pending.
 
 ## Follow-up
 

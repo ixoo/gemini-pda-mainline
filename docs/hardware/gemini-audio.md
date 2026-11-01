@@ -505,7 +505,7 @@ The ordered first-boot checks for all of these are in the
   station 31 loads audio at boot, the AUDIO domain never idles, and the 30 s
   headphone noise follows Wi-Fi while every DAPM widget is off.
 - [Audio reload](../../experiments/2026-11-01-gemini-audio-reload/README.md) —
-  the AUDIO-domain clock fix, and the noise starting at the first playback.
+  the AUDIO-domain clock fix makes reload work, and the noise starts at the first playback.
 - [Audio AFE recovery](../../experiments/2026-07-12-audio-afe-recovery/README.md)
   and [runtime summary](../../experiments/2026-07-12-audio-afe-recovery/results/runtime-summary.txt)
   — live card, 31 PCM devices and AFE identity.
