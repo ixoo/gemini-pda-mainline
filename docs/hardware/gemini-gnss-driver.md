@@ -33,13 +33,15 @@ firmware set does not contain the file; the call site is the fault address.
 That is strong evidence, not proof.
 
 `MNL.bin` was not found in the retained 2019 vendor firmware set, the device
-userspace extraction, the private Gemian dump or the mainline artifact set, and the
-project owner states that it does not exist. The stock kernel also leaves
-`CONFIG_MTK_GPS_EMI` unset, so its load path was not built for this unit. So this
-specification cannot be demonstrated on this Gemini, and the work is parked. If the
-engine is indeed absent, stock must use the
-host-side engine in `libmnl`, which is userspace and not a kernel driver; that
-remains an inference until a stock trace confirms it.
+userspace extraction, the private Gemian dump or the mainline artifact set, and
+the project owner states that it does not exist. The stock kernel also leaves
+`CONFIG_MTK_GPS_EMI` unset, so its load path was not built for this unit. The
+public stock Gemini Android 8.1 base also has no `MNL.bin`: its `system.img`
+contains `libmnl.so`, `mnld` and `gps.conf`, but not the engine image. So this
+specification cannot be demonstrated on this Gemini, and the work is parked. If
+the engine is indeed absent, stock must use the host-side engine in `libmnl`,
+which is userspace and not a kernel driver; that remains an inference until a
+stock trace confirms it.
 
 ## What `libmnl` does, mapped to the kernel
 
@@ -221,7 +223,7 @@ duplicate those.
 
 | Item | Status |
 | --- | --- |
-| `MNL.bin` | not found in the retained sets or the private Gemian dump, and the owner states it does not exist; the offload path is unavailable |
+| `MNL.bin` | not found in the retained sets, the private Gemian dump or the public stock Gemini Android base, and the owner states it does not exist; the offload path is unavailable |
 | Image load | EMI protection, load timing and whether a flat copy is enough are unproven |
 | Real 49-byte `MNL_INIT_CFG` values | `mnld` defaults are in patch 0439; a real `mnl.prop`/calibration record was not retained |
 | NVRAM tolerance and the correct `0x44` bitmap | unknown |
@@ -230,7 +232,7 @@ duplicate those.
 | NMEA channel mapping | `byte1 >> 5`; per-channel behavior unproven |
 | GPIO 69 / LNA population | board pin exists; physical LNA not established |
 | Coexistence de-sense packet | not implemented; may matter with Wi-Fi/BT active |
-| Stock Gemian path | inferred AP-side `libmnl`; needs a stock trace |
+| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet |
 
 ## Evidence
 
@@ -245,3 +247,7 @@ duplicate those.
   `gps_emi.c`, `stp_chrdev_gps.c`, `stp_core.c`.
 - Retained `ROMv3_patch_1_1_hdr.bin` and its load address; the patch
   call-through was cross-checked with Ghidra NDS32 in the private RE VM.
+- [Stock Gemini Android 8.1 base](https://github.com/Wenri/planet-pda-archive/releases/tag/firmware-2020):
+  `gemini_x25_x27_base.zip`, SHA-256 `dd04e310459e6cbd9043ae0165e17261c27543f3707a221237c1bcb7aba354b1`.
+  Its `system.img` contains `libmnl.so`, `mnld` and `gps.conf`, and no
+  `MNL.bin`.
