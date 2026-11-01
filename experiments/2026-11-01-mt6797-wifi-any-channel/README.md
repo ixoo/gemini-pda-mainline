@@ -664,3 +664,20 @@ device's link. Channels 161 and 11 share less.
 a 10 s receive 835/1000 with 122 ms average; after a 30 s idle 1000/1000 with 11.7 ms. So
 the stall is not the laptop's hop, or at least not only that. Open question: whether receive
 actually stops when the test kills `wget`. Queued data may still arrive.
+
+### Teardown faults: predeclared test of 0444
+
+On the two evidence logs read, a `status=-5` stop came 1-16 ms after `mask-control
+submission: enable=0`, with WHISR's abnormal bit set. The log's order is mask off, PM abort,
+fault, all before the deauthentication goes out, so the access point is still sending.
+[0444](../../patches/proposals/0444-wifi-mt6797-leave-the-monitor-mask-until-the-next-sc.patch) leaves the mask until the next scan. This is a correlation
+in a few samples, not an explanation.
+
+Hypothesis: 5 of the same cycles (60 s transmit, 60 s receive, stop) give few or no
+`status=-5`; later scans and joins still work with the mask turned off before the scan.
+
+| Observation | Decision |
+| --- | --- |
+| `-5` gone, scans and reconnects unchanged | The abnormal fault was the mask; look at the `-110` next |
+| `-5` remains, with no mask line before it | The mask was incidental; look at the receive batch next |
+| Scans find nothing or reconnects fail | The mask matters to the next lifetime's setup; revert 0444 |

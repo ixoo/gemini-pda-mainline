@@ -612,3 +612,4 @@ proposals/0440-wifi-mt6797-log-the-receive-reorder-counters.patch
 proposals/0441-wifi-mt6797-ignore-a-scan-done-event-nothing-waits-f.patch
 proposals/0442-wifi-mt6797-create-wlan0-by-itself.patch
 proposals/0443-wifi-mt6797-restart-the-firmware-after-a-fault.patch
+proposals/0444-wifi-mt6797-leave-the-monitor-mask-until-the-next-sc.patch

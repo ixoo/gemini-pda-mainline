@@ -1,0 +1,110 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 11:12:34 -0500
+Subject: [PATCH] wifi: mt6797: leave the monitor mask until the next scan
+
+Four of five disconnects after heavy traffic faulted, and most of those
+followed turning the firmware's monitor mask off at the end of the data
+phase by a few milliseconds: WHISR then showed its abnormal bit, for which
+the vendor resets the chip. The access point is still sending at that
+point, since the deauthentication has not gone out.
+
+Don't turn the mask off under traffic. Turn it off before the next scan,
+when nothing arrives. A re-attached layer assumes it may be on.
+
+Whether this removes the fault is to be tested. The -ETIMEDOUT stops at
+branch 5 do not follow the mask and are not addressed.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c     | 17 +++++++++++------
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h |  2 ++
+ drivers/net/wireless/mediatek/mt6797/main.c     | 13 +++++++++++++
+ 3 files changed, 26 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index a4c8c7fe4..ac8e9cecd 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1580,14 +1580,20 @@ void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 		mt6797_ccmp_diag_budget_step(&b) == MT6797_NATIVE_DIAG_STOP;
+ 	act = mt6797_native_diag_transition(&c);
+ 	mac->native_diag_state = c.state;
+-	if (act == MT6797_ND_ACT_SUBMIT_ENABLE || act == MT6797_ND_ACT_SUBMIT_DISABLE) {
++	/* Traffic still arrives until the deauthentication goes out, and turning
++	 * the monitor mask off under it raised WHISR's abnormal bit. Leave it for
++	 * the next scan, when nothing arrives.
++	 */
++	if (act == MT6797_ND_ACT_SUBMIT_DISABLE) {
++		mac->monitor_left_on = true;
++		mac->native_diag_state = MT6797_ND_CLOSED;
++	} else if (act == MT6797_ND_ACT_SUBMIT_ENABLE) {
+ 		rc = mt6797_hif_diag_mask(mac->hif, mac->sequence++,
+-					  act == MT6797_ND_ACT_SUBMIT_ENABLE,
++					  true,
+ 					  min_t(u64, mac->join_deadline,
+ 						ktime_get_ns() + 100 * NSEC_PER_MSEC));
+ 		dev_info(wiphy_dev(mac->hw->wiphy),
+-			 "one-shot WLAN mask-control submission: enable=%u status=%d\n",
+-			 (unsigned int)(act == MT6797_ND_ACT_SUBMIT_ENABLE), rc);
++			 "one-shot WLAN mask-control submission: enable=1 status=%d\n", rc);
+ 		if (rc) {
+ 			if (!mac->first_error)
+ 				mac->first_error = rc;
+@@ -1601,8 +1607,7 @@ void mt6797_native_diag_step(struct mt6797_mac *mac)
+ 			reinit_completion(&mac->join_credit_done);
+ 			mac->join_credit_pending = true;
+ 			mac->join_page_debt = 1;
+-			if (act == MT6797_ND_ACT_SUBMIT_ENABLE)
+-				mac->native_diag_engaged = true;  /* sticky: no legacy RX again */
++			mac->native_diag_engaged = true;  /* sticky: no legacy RX again */
+ 		}
+ 	} else if (act == MT6797_ND_ACT_LATCH_NORADIO) {
+ 		if (!mac->first_error)
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 0eab02fca..f4834eafe 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -632,6 +632,8 @@ struct mt6797_mac {
+ 	unsigned int scan_packets;
+ 	/* A scan while connected: the worker submits it and reads its events. */
+ 	bool scan_online, scan_online_ready, scan_online_cancel;
++	/* The firmware's monitor mask is still on from an earlier data phase. */
++	bool monitor_left_on;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 8e002f3e1..107219443 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -984,6 +984,17 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		mac->first_error = ret;
+ 		goto out;
+ 	}
++	if (mac->monitor_left_on) {
++		ret = mt6797_hif_diag_mask(mac->hif, mac->sequence++, false,
++					   ktime_get_ns() + NSEC_PER_SEC);
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN mask-control submission: enable=0 status=%d\n", ret);
++		if (ret) {
++			mac->first_error = ret;
++			goto out;
++		}
++		mac->monitor_left_on = false;
++	}
+ 	/* The normal gen3 RX-mode path requests broadcast reception. Send
+ 	 * only that supported filter word; no native/monitor selector is used.
+ 	 * Submission and returned command credit do not prove application.
+@@ -2201,6 +2212,8 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	 */
+ 	rtnl_lock();
+ 	mutex_lock(&mac->mutex);
++	/* An earlier layer may have left the monitor mask on. */
++	mac->monitor_left_on = reattach;
+ 	/* A re-attach finds the firmware configured; never replay the record.
+ 	 * The country may have changed while no driver was loaded, and the
+ 	 * notifier compares later updates with what this instance sent.
+-- 
+2.43.0
+
