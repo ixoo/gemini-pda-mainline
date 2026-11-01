@@ -160,12 +160,13 @@ sent. An update that changes them during a lifetime, for example an
 access point advertising another country than the one set, still ends
 the lifetime as before; recovering from that belongs to phase 4.
 
-The boot2 image is still station 26's, whose `mac` lacks 0405; the next
-station image carries it.
+Station 27, from the b7774d77 package with 0405's `mac` (`27cc2ea3…`)
+and otherwise station 26's inputs, is on boot2 (`6af3c678…`, written over
+station 26 with a matching readback).
 
 ## Follow-up
 
-- The next station image with 0405.
+- Boot station 27 and repeat the Wi-Fi checks.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
 - A country change during a lifetime still ends it (phase 4, recovery).
