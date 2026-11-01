@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; the module-free boot of the opt-in `mt6797-a53-station-a72` profile passed with a 44 s `/init` delay, now fixed in 0446 and not yet booted, and one Wi-Fi fault not attributed; the bring-up test is not admitted |
+| Status | `running`; the module-free boot of the opt-in `mt6797-a53-station-a72` profile passed with a 44 s `/init` delay, fixed in 0446 with a second module-free boot approved and queued, and one Wi-Fi fault not attributed; the bring-up test is not admitted |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -363,6 +363,24 @@ What differs from the plain package:
   plain station DTB by the I2C6 compatible, the `a72-power` node and its phandles.
 - Modules: `mt6797-a72.ko` is added, to be left out of the image; every other module
   is byte-identical.
+
+### Second module-free boot (owner-approved, one boot, not run)
+
+The owner approved one more module-free boot on 2026-11-01, to confirm 0446. The
+reads, stop rules and table above apply, with these added:
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| `/init` within about 1 s of the plain image's time, `access_grant=ready`, I2C6 bound | The fix works | Ask the owner to admit the bring-up test |
+| `/init` still late | 0446 is incomplete | Read the log, no repeat |
+| Fault on a first join again | Stronger reason to suspect these changes | Compare with plain over several joins before the bring-up test |
+| First joins clean | Finding 2 stays one unexplained sample | Keep counting in later boots |
+
+Also check GNSS if the image carries it. Candidate: package `db7b42af...` (job
+`d20613ad...-mt6797-a53-station-a72-m1`, Buildbox-2), Image.gz `3e637a85...`, DTB
+`91ca8aae...`. Against `af871fff...`: the handoff change in the Image, the module, the
+`access-controllers` line, and the AUDIO domain clocks from 0445, another session's
+station patch. All other modules and the configuration are identical.
 
 ### Bring-up test (draft, not admitted)
 
