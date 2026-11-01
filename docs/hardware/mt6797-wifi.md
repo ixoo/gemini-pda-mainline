@@ -190,3 +190,12 @@ fragment transfers, generic TX interrupt service or production transport ownersh
 ROM patch transfer, RF calibration, management reception, association and traffic
 remain unproved.
 The experiment owns the exact candidate, boot identities and chronology.
+
+## Coexistence with Bluetooth and LTE
+
+Wi-Fi does not get the 2.4 GHz medium to itself: the co-located Bluetooth
+baseband and the LTE modem arbitrate against it inside the connectivity
+firmware. The host sends the antenna mode and the LTE filter tables during WMT
+common initialization and otherwise only reacts to firmware decisions. The
+shared resources, message set, firmware behaviour and current gaps are in
+[MT6797 connectivity coexistence](mt6797-connectivity-coexistence.md).

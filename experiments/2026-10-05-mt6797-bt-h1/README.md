@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-05-mt6797-bt-h1` |
-| Status | Driver draft; host and schema checks pass; runtime untested |
+| Status | `completed` for C3-3: all five steps passed in one bounded boot ([runtime 3](RUNTIME_3.md)) |
 | Profile | `mt6797-a53-stp-task-routing-compile` |
 | Subsystem | MT6797 CONSYS WMT and STP task 0 |
 | Date | 2026-10-05 |
@@ -107,3 +107,11 @@ A C3 candidate still needs the private RAM root and the last booted WMT
 parent, a protocol, and the owner's physical boot2 selection. It is composed
 like the [WMT version candidate](../2026-10-03-mt6797-wmt-versions/README.md),
 adding the negotiation and Bluetooth flags to the consys node.
+
+## Later protocol revisions
+
+The C3 protocol above was superseded before any device action.
+[C3-2](PROTOCOL_2.md) changed the candidate and the task-0 preparation, and
+[C3-3](PROTOCOL_3.md) fixed the task-0 transmit path and ran the sequence. All
+five steps passed in one bounded boot ([runtime 3](RUNTIME_3.md)), followed by
+the A53 regression and a reviewed return to Gemian.

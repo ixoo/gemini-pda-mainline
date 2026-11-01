@@ -99,6 +99,11 @@ local-patch-only in the current package.
 | Bluetooth SCO/A2DP | BTCVSD / host PCM | BT transport | separate |
 | FM / HDMI / dock | digital or hostless | separate transport | separate |
 
+Bluetooth voice does not pass through the AFE or MT6351 on this board: the
+kernel exchanges encoded SCO payloads with CONSYS through shared SRAM, and the
+stock HAL codes them in userspace. The transport, packet contract and HFP/A2DP
+split are in [MT6797 Bluetooth and Bluetooth audio](mt6797-bluetooth.md).
+
 The MT6351 has **no on-PMIC class-D speaker amplifier**. The stock HAL's
 speaker path is now resolved by disassembly: `OpenSpeakerPath` and
 `OpenHeadphoneSpeakerPath` are aliases at the same address, and the body

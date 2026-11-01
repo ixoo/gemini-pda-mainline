@@ -511,3 +511,33 @@ H6 is answered for this unit: the controller supplies a non-placeholder
 address, so a first mainline driver does not need to set one. Whether that
 address is unique per unit cannot be shown from one device. The controller
 may hold a programmed eFUSE value or a ROM-derived default.
+
+## H6 correction (2026-11-01)
+
+The 2026-11-01 userspace study re-read `hci_stp_dev_init_work()` in full and
+found that the H6 inference above does not follow from its evidence. The driver
+initializes its config to `00:00:46:66:20:01`, distinct from `sDefaultCfg`'s
+`00:00:46:02:79:01`, and only issues `Read BD_ADDR` when the *internal config
+file* exists or is created and its address equals `sDefaultCfg`. With no file
+and no writable `/data/bluetooth`, the driver keeps the `66:20:01` default and
+skips the controller read. A non-placeholder `hci0` address is therefore
+consistent with that fixed default and does not by itself prove an eFUSE reply.
+
+The transport conclusions of this record are unaffected. What changes is the
+address provenance: whether this unit reports its own eFUSE value or the shared
+compiled default is open, and can be settled privately by comparing the observed
+address with the two constants, or by a debug-level reread. See
+[F3 of the audio study](../2026-11-01-gemini-bluetooth-audio-re/README.md#f3-the-bd-address-path-has-two-compiled-values-and-a-failed-write-fallback)
+and [the durable Bluetooth document](../../docs/hardware/mt6797-bluetooth.md#bd-address).
+
+## Coexistence correction (2026-11-01)
+
+The same study re-read the WMT coexistence code. F4 above says Bluetooth
+firmware configuration is "limited to the `coex_bt` WMT command". That command
+is present in the source but compiled out: `CFG_SUBSYS_COEX_NEED` is `0` in this
+tree, so the `coex_bt`, `coex_wifi`, `coex_ext_pta` and `coex_misc` commands are
+not in the active table. The only 2.4 GHz policy the host sends is the one-byte
+antenna mode (`01 10 02 00 01 <mode>`), plus the LTE coexistence tables.
+H10's premise is therefore outdated; the current description is in
+[MT6797 connectivity coexistence](../../docs/hardware/mt6797-connectivity-coexistence.md)
+and the [coexistence record](../2026-11-01-mt6797-connectivity-coexistence-re/README.md).
