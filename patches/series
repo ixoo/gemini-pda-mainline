@@ -997,3 +997,5 @@ proposals/0408-pmdomain-mediatek-describe-the-MT6797-AUDIO-domain.patch
 proposals/0409-arm64-dts-mediatek-gemini-power-the-AFE-from-the-AUD.patch
 proposals/0410-wifi-mt6797-scan-many-channels-in-one-request.patch
 proposals/0411-ASoC-mt6797-do-not-write-through-empty-codec-arrays.patch
+proposals/0412-wifi-mt6797-scan-both-bands-in-one-hardware-scan.patch
+proposals/0413-wifi-mt6797-send-the-regulatory-state-on-a-re-attach.patch

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: 0410 (multi-channel passive scan) built, device test requested from the custodian |
+| Status | `running`: 0410's first device test failed for two identified reasons; fixes built, repeat requested from the custodian |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -64,3 +64,58 @@ leaves the device.
 | The second request's done event does not arrive, or its count differs | Split no further: read the event, then decide between one request per band and a shorter list |
 | Few BSSes compared with a 500 ms one-channel scan on the same channel | Raise the sweep dwell and repeat |
 | Join or reconnect regresses on channel 40 | Stop; a scan must leave no state behind. Read the post-scan path |
+
+## Observations
+
+Run by the device custodian on station 29, boot `c08cf8d4`, `mac` `a0bcb958…`
+swapped in with `rmmod mac` and `insmod` (2026-11-01).
+
+| Step | Result |
+| --- | --- |
+| 1. Three full scans | Exit status 0, 1.53-1.55 s each, no BSS listed. One admitted and one completed scan each, `complete=1 frame=1 beacon=1` |
+| 2. Subset scans | Did not run: the test script had `passive` before `freq`, a usage error |
+| 3. Join after the scans | Failed. Authentication, association and the first EAPOL frame went through, then `join stopped: status=-125 ... branch=9` right after `associated`. Later scans were refused with `-EOPNOTSUPP` |
+| 3b. Full module reload, keeping 0410, no scans first (the custodian's addition) | `COMPLETED` on 5200 MHz, a lease, gateway 3/3. Ping 10/10, ten reconnects 10/10. Receive 45 and 43, transmit 21 and 23 Mbit/s |
+| 4. Kernel log | No Oops, warning or call trace; not tainted |
+
+## Analysis
+
+These explanations come from the log and a source read; neither has been run.
+
+- **The empty scans.** mac80211 calls `hw_scan` once per band unless the driver
+  sets `SINGLE_SCAN_ON_ALL_BANDS`. The first call covered 2.4 GHz: 11 channels
+  at 130 ms is 1.43 s, against the 1.53 s measured. The second call, for 5 GHz,
+  got `-EBUSY`, since a lifetime takes one scan, so mac80211 reported the scan
+  aborted. `iw` then prints "scan aborted!", lists nothing and exits 0. So
+  `bss=0` does not show an empty scan table. `beacon=1` suggests 2.4 GHz frames
+  did arrive, but no per-frequency count exists yet, and 5 GHz sweeps have not run.
+- **The failed join.** Branch 9 is a regulatory update during a lifetime, not
+  a scan effect. A `mac` re-attach never records what the firmware was sent
+  (`reg_sent_valid` stays false), so 0405's comparison cannot run and the access
+  point's country element ends the lifetime. A full reload sends the record,
+  which sets it, so step 3b differs from step 3 in the reload as well as in the
+  scans. This predicts that the failure follows the `mac`-only reload and needs
+  no scan, and that older `mac` builds with 0405 fail the same way.
+- **The dwell.** The firmware appears to honour it: 500 ms for one channel took
+  0.53 s, and the 2.4 GHz sweep fits 130 ms per channel.
+
+## Second test
+
+Patches:
+- [0412](../../patches/proposals/0412-wifi-mt6797-scan-both-bands-in-one-hardware-scan.patch) sets `SINGLE_SCAN_ON_ALL_BANDS`.
+- [0413](../../patches/proposals/0413-wifi-mt6797-send-the-regulatory-state-on-a-re-attach.patch) sends the domain and power on a re-attach and records them.
+
+Hypothesis: a full scan takes about 5 s and lists BSSes on both bands, and a
+join after a `mac`-only reload and idle scans completes.
+
+The procedure is unchanged, with the script fixed, and swaps `mac` only, so
+step 3 tests 0413 directly.
+
+| Observation | Decision |
+| --- | --- |
+| Full scan near 5 s with BSSes on both bands, join and reconnects pass | Multi-channel scan works; ask the owner about the transmit protocol, then unpin join |
+| Scan near 5 s, one band empty | Ask the owner what a phone sees there, then compare the firmware's regulatory lists with the request |
+| Second firmware request never completes, or its count differs | Read the event; stop and recover with a full reload, no retry |
+| Fewer BSSes on 5200 in the sweep than in the 500 ms scan | Raise the sweep dwell |
+| Join still ends with branch 9 after the `mac`-only reload | The analysis is wrong; read the notifier's inputs before any change |
+| Join fails only after idle scans, in some other way | Read the post-scan path |

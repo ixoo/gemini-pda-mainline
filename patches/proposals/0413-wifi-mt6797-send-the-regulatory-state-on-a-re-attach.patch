@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 07:59:51 -0500
+Subject: [PATCH 413/413] wifi: mt6797: send the regulatory state on a
+ re-attach
+
+A mac module loaded while the firmware stays up skips the configuration
+and so has no record of the domain and power it sent. 0405 compares each
+regulatory update with that record, so the access point's country
+element at association, which changes nothing, counted as a change and
+ended the lifetime.
+
+Send the current domain and power on a re-attach, as the notifier would,
+and remember them. This also covers a country changed while no driver
+was loaded.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 36 ++++++++++++++-------
+ 1 file changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index b3b5cb322..2c7b6ce31 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -338,6 +338,25 @@ static int mt6797_mac_domains(struct mt6797_mac *mac,
+ 	return ret;
+ }
+ 
++/* Send the effective domain and power, and remember them for the notifier. */
++static int mt6797_mac_send_regulatory(struct mt6797_mac *mac)
++{
++	struct mt6797_regulatory_payloads policy;
++	int ret;
++
++	ret = mt6797_mac_policy(mac, &policy);
++	if (!ret)
++		ret = mt6797_mac_domains(mac, &policy);
++	if (!ret)
++		ret = mt6797_mac_send(mac, MT6797_NORMAL_TX_CTRL,
++				      policy.power, sizeof(policy.power));
++	if (!ret) {
++		mac->reg_sent = policy;
++		mac->reg_sent_valid = true;
++	}
++	return ret;
++}
++
+ /* A regulatory update while the join lifetime is in use. cfg80211 calls the
+  * notifier when it restores its regulatory settings after every interface
+  * has disconnected (regulatory_hint_disconnect), so this callback can retire
+@@ -445,18 +464,10 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 	 */
+ 	if (!mac->configured)
+ 		goto out;
+-	ret = mt6797_mac_policy(mac, &policy);
+-	if (!ret)
+-		ret = mt6797_mac_domains(mac, &policy);
+-	if (!ret)
+-		ret = mt6797_mac_send(mac, MT6797_NORMAL_TX_CTRL,
+-				      policy.power, sizeof(policy.power));
++	ret = mt6797_mac_send_regulatory(mac);
+ 	if (ret) {
+ 		mac->first_error = ret;
+ 		dev_err(wiphy_dev(wiphy), "regulatory submission stopped (%d)\n", ret);
+-	} else {
+-		mac->reg_sent = policy;
+-		mac->reg_sent_valid = true;
+ 	}
+ out:
+ 	mutex_unlock(&mac->mutex);
+@@ -2017,10 +2028,13 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	 */
+ 	rtnl_lock();
+ 	mutex_lock(&mac->mutex);
+-	/* A re-attach finds the firmware configured; never replay the record. */
++	/* A re-attach finds the firmware configured; never replay the record.
++	 * The country may have changed while no driver was loaded, and the
++	 * notifier compares later updates with what this instance sent.
++	 */
+ 	if (reattach) {
+ 		mac->configured = true;
+-		ret = 0;
++		ret = mt6797_mac_send_regulatory(mac);
+ 	} else {
+ 		ret = mt6797_mac_load_record(mac, record);
+ 	}
+-- 
+2.43.0
+

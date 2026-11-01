@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 07:59:51 -0500
+Subject: [PATCH 412/413] wifi: mt6797: scan both bands in one hardware scan
+
+0410 lists every channel in one scan, but mac80211 still called hw_scan
+once per band. The first call scanned 2.4 GHz; the second, for 5 GHz, was
+refused because a lifetime takes one scan, which aborted the whole scan
+with no results. On the device a full scan took 1.5 s, eleven channels'
+worth, and iw reported nothing.
+
+Ask mac80211 for one call covering all bands.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index d244ab9ba..b3b5cb322 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1958,6 +1958,7 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	ieee80211_hw_set(hw, NO_AUTO_VIF);
+ 	hw->queues = 4;
+ 	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
++	ieee80211_hw_set(hw, SINGLE_SCAN_ON_ALL_BANDS);
+ 	hw->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION);
+ 	hw->wiphy->reg_notifier = mt6797_mac_regulatory;
+ 	/* No private country hint, custom regdomain or self-managed flag. */
+-- 
+2.43.0
+
