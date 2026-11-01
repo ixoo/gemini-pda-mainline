@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `planned`; patches 0424-0428 written on the owner's approval and built, not run; the opt-in `mt6797-a53-station-a72` profile's boot-time activity and the bring-up test both wait for the owner |
+| Status | `planned`; patches 0424-0428 written on the owner's approval and built, not run; one module-free boot of the opt-in `mt6797-a53-station-a72` profile is owner-approved and queued after audio and Wi-Fi; the bring-up test is not admitted |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -185,8 +185,9 @@ the inference holds). The A53s are not affected either way.
 
 ## What the A72 profile does at every boot
 
-The custodian asked this before flashing anything with the handoff on, and the owner
-must decide it: approving the patches did not approve this running at each boot. It
+The custodian asked this before flashing anything with the handoff on. Approving the
+patches did not approve this running at each boot, and the owner has since approved it
+for one test boot only. It
 applies only to the `mt6797-a53-station-a72` profile with its device tree, and it
 applies even if the module is never loaded.
 
@@ -289,6 +290,56 @@ physical boot2 selection brings the station back.
 | `1100e000.i2c` bound or deferred | Sets what the DT change must undo |
 
 The current and temperature lines are the baseline for the battery cost.
+
+### Boot-only test (owner-approved, one boot, not run)
+
+The owner approved on 2026-11-01 one boot of the `mt6797-a53-station-a72` profile with
+the module not loaded, after the audio and Wi-Fi boot. This approves the at-every-boot
+effects above for this one boot, and no module load.
+
+Hypothesis: with the handoff on and I2C6 rebound, the station behaves as before, I2C6
+binds and the DA9214 sees no traffic. Unique observation: these effects on the station's
+own configuration, beside its other drivers.
+
+Attribution: build the profile from the same commit as the last good plain-station boot
+(if that commit has 0424-0428), so the options and device tree are the only difference.
+Compose with `station-dt.sh` from `mt6797-gemini-pda-station-a72.dtb`, and leave
+`mt6797-a72.ko` out of the initramfs module list. Station init loads only named modules,
+and `UEVENT_HELPER` is off, so nothing can then load it.
+
+After at least 60 s of uptime, read:
+
+```sh
+uname -r; cat /proc/sys/kernel/random/boot_id; cat /proc/cmdline
+for f in present online offline; do echo "$f $(cat /sys/devices/system/cpu/$f)"; done
+dmesg | grep -iE 'dvfsp|1100e000|I2C6_GUARD|mt6797-a72|CPU features: detected|SMCCC'
+ls -l /sys/bus/platform/devices/1100e000.i2c/driver /sys/bus/i2c/devices/
+grep . /sys/devices/system/cpu/vulnerabilities/spectre_v2 /sys/devices/system/cpu/vulnerabilities/spec_store_bypass
+for a in 0x10006188 0x1000618c 0x10006218 0x10006240 0x10006244 0x10006290 0x10222274; do
+  echo "$a $(busybox devmem $a 32)"
+done
+for f in voltage_now temp status; do echo "$f $(cat /sys/class/power_supply/battery/$f)"; done
+grep . /sys/class/thermal/thermal_zone*/temp
+```
+
+Then the custodian's usual regression: keyboard, USB SSH, Wi-Fi, audio, GNSS and display,
+and about 10 minutes of normal use with the same reads repeated at the end.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| `access_grant=ready`, `1100e000.i2c` bound, registers as before, regression passes | Boot effects are acceptable | Ask the owner to admit the bring-up test |
+| `access_grant=denied` or another handoff fault, station otherwise fine | The module would refuse; no harm shown | Keep the log, explain it, no repeat boot |
+| I2C6 does not bind and no handoff line appears | Probe or dependency problem | Keep the log and read the deferred list, no repeat boot |
+| The existing I2C bus numbers change | A tool may read the wrong bus | Stop those tools and fix numbering first |
+| Registers differ from the reading | Boot changed A72 state | Stop, explain before any module test |
+| Regression fails: keyboard, Wi-Fi, audio, GNSS or PMIC reads | Attributable to these effects | Return to the previous image, investigate offline |
+| No boot | Built-in change or DT | Watchdog or owner to Gemian, reinstall the previous boot2, no repeat |
+
+Stop rules: do not load the module, do not use I2C tools on the new bus, make no register
+writes, and do not repeat the boot without a new decision. Stop on the safety document's
+conditions: unexpected heat, charging anomalies, repeated filesystem errors or
+watchdog loops. Recovery that needs the owner: selecting boot2, and returning to Gemian
+if the boot fails.
 
 ### Bring-up test (draft, not admitted)
 
