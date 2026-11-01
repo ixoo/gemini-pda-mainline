@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-audio-station` |
-| Status | `planned`: source review and patches done; not booted |
+| Status | `planned`: station package built; ALSA tools missing; not booted |
 | Subsystem | audio: MT6797 AFE, MT6351 codec, AW8736 amplifiers |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -53,6 +53,26 @@ now goes before `rtc`, whose context both trees share.
 - Tools: alsa-lib and alsa-utils 1.2.12, static, not in Git.
 - AUDIO domain values: the `mtk-scpsys` entry for the same domain.
 
+## Build
+
+| Item | Value |
+| --- | --- |
+| Input commit | `70d0a621810665291b79f3e9a1716ef2d343567b` |
+| Buildbox job | `70d0a621…-mt6797-a53-station-m1` on Buildbox-3 |
+| Package inventory | `f4dec3d3…`, 126 DTBs, checksums pass |
+| `Image.gz` | `8ef83b55…` |
+| Config | `b4a26966…`; `SND`, `SND_SOC`, the AFE, card, codec and `AW8738` are all `m`; `MTK_SCPSYS` stays off |
+| Device action | None |
+
+The composed `mt6797-gemini-pda.dtb` decompiles to `power-domain@4`, the AFE on
+that domain with `status = "okay"`, `audio-aux-devs` with two phandles, both
+`awinic,aw8736` nodes and the `mt6351-sound` child. No test bundle exists yet:
+the ALSA tools are not built, so `audio-test.sh` has not run anywhere.
+
+`modules/load-order` follows `modules.dep`: `snd`, `snd-timer`, `snd-pcm`,
+`snd-pcm-dmaengine`, `snd-soc-core`, `snd-soc-mtk-common`, `snd-soc-mt6351`,
+`snd-soc-aw8738`, `snd-soc-mt6797-afe`, `mt6797-mt6351`.
+
 ## Safety assessment
 
 The modules are not loaded at boot. The station boots as before, except that
@@ -98,7 +118,7 @@ None yet: no boot.
 
 ## Analysis
 
-Source review only so far.
+Source review and a compile and DTB check only.
 
 ## Conclusion
 
