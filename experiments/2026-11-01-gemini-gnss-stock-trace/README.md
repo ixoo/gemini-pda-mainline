@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `planned`: step 0 done; step 1 approved by the owner on 2026-11-01 but held on the network question and device permissions; no start sent |
+| Status | `planned`: step 0 done; step 1 approved by the owner on 2026-11-01 but held on the network question; no start sent |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -115,11 +115,13 @@ Boot `d999c089`, kernel `3.18.41+`, Debian 9. Run by the custodian; raw output i
 - `/dev/gps_emi` is absent. The firmware directories hold no file matching `mnl`.
 - No `mnl.prop` or `gps.conf` turned up in the bounded search. `/data/misc/gps` is empty, with no
   `mtkgps.dat`, which suggests stock GNSS may never have run from this data state.
-- `/dev/stpgps` on the host is `crw------- root root`. `mnld` runs as uid 1021, so this may stop it
-  opening the device, unless the container's own `/dev` differs. Not yet checked.
+- `/dev/stpgps` is root-only on the host, but the container has its own node owned by `gps` (uid 1021),
+  so `mnld` can open it. `persist.mtk.wcn.combo.chipid` is `0x6797`, and `persist.radio.mnl.prop` is empty.
 - `strace` is absent; `python3` and `nsenter` are present. `mtk_hal2mnl` appears in both `/proc/net/unix`
   and `mnld`'s, so the sender can run from the host. The clock is right.
-- Logcat gave no matching lines; whether that means none or no logcat was not separated.
+- Logcat works, with 4442 lines, and has no line for the offload option, `flp_mnl_mode` or `EPO_enabled`.
+- The default route is through `wlan0`, so the internet is reachable. oFono reports the modem powered but
+  offline, so no cellular registration now; SIM presence was not read.
 
 **Read from the decompile of `mnld`:** with no config file, EPO, BEE and SUPL all default to on. The
 EPO download goes through a check that includes network state, which the HAL normally reports and
