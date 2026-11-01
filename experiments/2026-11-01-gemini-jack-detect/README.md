@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-jack-detect` |
-| Status | `planned`: package built, device test requested; not booted |
+| Status | `running`: booted on station 30; plug cycles not yet observed |
 | Subsystem | audio: MT6351 ACCDET EINT, card jack |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -75,9 +75,10 @@ a stuck line, so stop and unload.
 Run by the custodian on a fresh boot, with the owner present:
 
 1. Plug the headphones in before loading anything.
-2. Run `jack-test.sh`, and follow the prompts for three unplug and replug cycles.
-3. Run the existing `audio-test.sh` once as a playback regression; the owner
-   listens for the tone.
+2. Run `jack-test.sh`: follow the prompts for three unplug and replug cycles, then unplug,
+   a tone with the headphones out, then plug in. It reuses loaded modules.
+3. On a boot where the modules were already loaded, `RELOAD=1 jack-test.sh` covers the
+   headphones-in-at-load case and module removal.
 
 | Observation | Next |
 | --- | --- |
@@ -86,14 +87,29 @@ Run by the custodian on a fresh boot, with the owner present:
 | Plug seen, unplug not | Run the detection unit as the vendor does |
 | No interrupt at all | Read the stock counts on Gemian; check the sequence |
 | Interrupt storm | Stop; check polarity and the clear sequence |
+| Interrupt during playback with the headphones out | False EINT from the HP driver; read the level, do not toggle |
 
 ## Observations
 
-None yet: no boot.
+**Run 1, station 30 (boot `4ac95e75`, package `b3cfdeb6`, `Image.gz` `ee620135…`), run by the
+custodian.** `jack-test.sh` stopped before its 60 s window: `Headphone Jack` is a card
+control, and `cget name=` looks on the mixer interface. No plug cycle was logged.
+
+- The control and the input device (`event2`) exist. `mt6351-accdet` read 0 from load at
+  115 s.
+- At 156.22 s the count went to 1 with `jack in`, about when the first `audio-test.sh` tone
+  started. The headphones were not in at load, contrary to the request, and the owner
+  plugged them in at an unknown time up to about 200 s. The count stayed 1 afterwards, through a
+  later full playback run with the headphones in.
+- Regression: `audio-test.sh` exit 0 twice; tone heard in both ears on the second run,
+  with the headphones in. No oops or warning, Wi-Fi `COMPLETED`.
 
 ## Analysis
 
-None yet.
+Run 1 cannot separate two readings of the one interrupt: the owner's plug, or a false
+EINT from the first headphone power-up, after which the driver would wait for an unplug
+and the real plug would raise nothing. The script now logs every state and count change
+against uptime, and plays with the headphones out to test the second reading.
 
 ## Conclusion
 
