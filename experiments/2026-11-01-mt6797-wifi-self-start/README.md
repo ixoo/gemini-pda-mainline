@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-self-start` |
-| Status | `complete`: Wi-Fi starts by itself (station 25), follows the US country over the whole 5 GHz range (station 26 with 0405) |
+| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); station 27 hit a handshake failure that stalls the re-arm |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mac`; station init |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -164,9 +164,40 @@ Station 27, from the b7774d77 package with 0405's `mac` (`27cc2ea3…`)
 and otherwise station 26's inputs, is on boot2 (`6af3c678…`, written over
 station 26 with a matching readback).
 
+### Result: station 27, boot `778ff91c` (2026-11-01)
+
+The b7774d77 image booted as composed: 0405's `mac` (`27cc2ea3…`),
+`reg=US`, `country US: DFS-FCC`, the firmware ready at 3.9 s.
+`wifi-up.sh` joined (WPA2-PSK/CCMP, a lease, gateway 3/3), ping 10/10.
+Reconnects 1-7 completed in 0.97-1.12 s; 8-10 did not.
+
+Lifetime 9 (the eighth reconnect), traced in the kernel log:
+- it followed a command-sequence recycle (213 to 13), as station 9's
+  long runs did;
+- association succeeded and the access point's country element ended
+  nothing (0405);
+- only two EAPOL frames reached the supplicant. Later EAPOL frames from
+  the access point were refused by the driver's per-lifetime delivery
+  cap ("delivery-cap"), and the supplicant reported a 4-way handshake
+  failure. The frame pattern fits a lost handshake frame that the
+  access point retransmitted;
+- the lifetime ended without keys, so the re-arm, which waits for
+  exactly two key removals, stayed deferred (`key_removals=0`). Every
+  scan after that was refused with `-EBUSY` until a full module reload,
+  which restored Wi-Fi.
+
+In stations 25 and 26 the first EAPOL frame also arrived before the
+lifetime's activation; that ordering is normal and not the cause. Nothing
+in this path depends on the regulatory change: the cap and the re-arm gate
+predate it. Two driver gaps are exposed:
+- a single lost handshake frame ends the lifetime, because the cap does
+  not admit the access point's retransmissions;
+- a lifetime that never installs keys can never re-arm.
+
 ## Follow-up
 
-- Boot station 27 and repeat the Wi-Fi checks.
+- Let a keyless lifetime re-arm, and admit the access point's EAPOL
+  retransmissions within a bound; then repeat station 9's 26 reconnects.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
 - A country change during a lifetime still ends it (phase 4, recovery).
