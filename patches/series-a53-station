@@ -846,12 +846,9 @@ proposals/0371-mfd-mt6397-add-the-MT6351-fuel-gauge-cell.patch
 proposals/0372-arm64-dts-mediatek-gemini-station-add-the-battery-an.patch
 proposals/0373-power-supply-mt6351-fuel-gauge-report-microamps-and-.patch
 proposals/0374-arm64-dts-mediatek-gemini-leave-inactive-keyboard-co.patch
-proposals/0375-Input-matrix_keypad-add-an-experiment-only-scan-mode.patch
 proposals/0376-arm64-dts-mediatek-gemini-station-describe-the-keybo.patch
 proposals/0377-pinctrl-mediatek-mt6797-use-the-EINT-mux-mode-on-ded.patch
 proposals/0378-pinctrl-aw9523-do-not-set-a-default-IRQ-trigger.patch
-proposals/0379-Input-matrix_keypad-add-experiment-only-scan-tracing.patch
-proposals/0380-pinctrl-aw9523-add-experiment-only-interrupt-tracing.patch
 proposals/0381-pinctrl-aw9523-serialize-the-interrupt-thread-s-port.patch
 proposals/0382-dt-bindings-input-gpio-matrix-keypad-add-held-poll-i.patch
 proposals/0383-Input-matrix_keypad-keep-scanning-while-a-key-is-hel.patch

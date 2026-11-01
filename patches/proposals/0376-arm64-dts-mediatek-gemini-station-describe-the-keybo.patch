@@ -13,8 +13,7 @@ Restore the INT description on the station: GPIO87 as EINT10, level
 low, with the expander as an interrupt controller. pinctrl-aw9523 then
 requests EINT10 at probe. It masks every pin interrupt until a consumer
 requests one, so the line should stay idle while the matrix polls. The
-keyboard keeps polling by default. Row interrupt mode is selected only
-by rebinding the keyboard with the experiment-only override.
+keyboard keeps polling until its DT selects row interrupts.
 
 Not yet run on hardware.
 ---

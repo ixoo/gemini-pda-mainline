@@ -10,9 +10,6 @@ station keyboard from 20 ms polling to row interrupts. Keep scanning
 every 20 ms while a key is held, so that same-row combinations such as
 Left Shift+Z and Ctrl+Alt are seen.
 
-The experiment-only matrix_keypad.poll_override can still return a
-running station to polling.
-
 Not yet run on hardware.
 ---
  .../boot/dts/mediatek/mt6797-gemini-pda-station.dts      | 9 +++++++++

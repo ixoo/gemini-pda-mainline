@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `completed`: station 19 boots in row-interrupt mode with correct keys, same-row sequences and idle I2C5 at 0 a second; a cleanup candidate without the experiment-only 0375, 0379 and 0380 is not yet built |
+| Status | `completed`: station 19 boots in row-interrupt mode with correct keys, same-row sequences and idle I2C5 at 0 a second; station 20 adds 0385 for ghost rectangles; the experiment-only 0375, 0379 and 0380 are removed and wait for the next station build |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -41,7 +41,7 @@ emulation. A negative result narrows that problem too.
 
 ## Design
 
-- **[0375](../../patches/proposals/0375-Input-matrix_keypad-add-an-experiment-only-scan-mode.patch)**
+- **[0375](https://github.com/ixoo/gemini-pda-mainline/blob/85a8f230a11405bd6f36426a5d61f2b5ed169480/patches/proposals/0375-Input-matrix_keypad-add-an-experiment-only-scan-mode.patch)**
   (experiment only) adds a writable `matrix_keypad.poll_override`, read at
   probe: 0 keeps the DT's 20 ms polling, below 0 forces row interrupts.
   Unbinding and binding `keyboard-matrix` switches modes on one boot. A
@@ -251,10 +251,10 @@ The counters contradict the expected path. `handle_nested_irq()` counts
 only a row interrupt that is enabled, so rows that never counted were
 disabled whenever EINT10 dispatched to them. Yet scans ran and reported
 keys. Rather than guess, station 17 adds tracing:
-- [0379](../../patches/proposals/0379-Input-matrix_keypad-add-experiment-only-scan-tracing.patch):
+- [0379](https://github.com/ixoo/gemini-pda-mainline/blob/85a8f230a11405bd6f36426a5d61f2b5ed169480/patches/proposals/0379-Input-matrix_keypad-add-experiment-only-scan-tracing.patch):
   `matrix_keypad.trace_scans` logs each row IRQ, start, and interrupt-mode
   scan with its row words;
-- [0380](../../patches/proposals/0380-pinctrl-aw9523-add-experiment-only-interrupt-tracing.patch):
+- [0380](https://github.com/ixoo/gemini-pda-mainline/blob/85a8f230a11405bd6f36426a5d61f2b5ed169480/patches/proposals/0380-pinctrl-aw9523-add-experiment-only-interrupt-tracing.patch):
   `pinctrl_aw9523.trace_irq` logs each expander interrupt thread run with
   its port values, changed bits and nested dispatches.
 
@@ -521,3 +521,30 @@ The owner saw the correct characters on the console. Ctrl+Alt+digit prints
 nothing on the Linux console, which is expected. The driven rescan settles
 the 7/2 rectangle in both directions, as predicted, and 0385 stays in the
 station series.
+
+## Cleanup (no build of its own)
+
+The experiment-only patches are removed from `patches/series` and
+`patches/series-a53-station`:
+- 0375, the `poll_override` scan-mode parameter;
+- 0379, the `trace_scans` scan tracing;
+- 0380, the `trace_irq` AW9523 interrupt tracing.
+
+Without 0375 the kernel no longer logs `row interrupt mode`, and polling
+can no longer be forced over SSH. The station DT alone selects the mode.
+A return to polling now needs a DT change.
+
+Links to the removed patches point to their last published version.
+
+Refreshed patches:
+- 0383 loses the `poll_override` context;
+- 0376 and 0384 lose the commit-message sentences about the override.
+
+0381 and 0385–0388 apply unchanged.
+
+Checked in the VM only. The keyboard and lid patches, 0374 to 0388 without
+the three, apply to the station tree in order. `matrix_keypad.o`,
+`pinctrl-aw9523.o` and the station DTB build with `W=1` on the station
+config. No Buildbox build or boot yet: the change rides in the next station
+build. That build passes if typing works from boot and the idle I2C5 rate
+stays at 0.

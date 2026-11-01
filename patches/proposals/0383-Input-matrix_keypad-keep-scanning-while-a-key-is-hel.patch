@@ -24,7 +24,7 @@ Compile-tested only; not yet run on hardware.
  1 file changed, 22 insertions(+)
 
 diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
-index bfd3b5418..6f8b8f00e 100644
+index 4635ad7f3..1407013fc 100644
 --- a/drivers/input/keyboard/matrix_keypad.c
 +++ b/drivers/input/keyboard/matrix_keypad.c
 @@ -30,6 +30,7 @@ struct matrix_keypad {
@@ -35,7 +35,7 @@ index bfd3b5418..6f8b8f00e 100644
  	bool drive_inactive_cols;
  	bool needs_ghost_filter;
  
-@@ -182,6 +183,7 @@ static void matrix_keypad_scan(struct work_struct *work)
+@@ -166,6 +167,7 @@ static void matrix_keypad_scan(struct work_struct *work)
  	uint32_t new_state[MATRIX_MAX_COLS];
  	int row, col, code;
  	u32 init_row_state, new_row_state;
@@ -43,7 +43,7 @@ index bfd3b5418..6f8b8f00e 100644
  	int err = 0;
  
  	/* read initial row state to detect changes between scan */
-@@ -272,6 +274,24 @@ static void matrix_keypad_scan(struct work_struct *work)
+@@ -244,6 +246,24 @@ static void matrix_keypad_scan(struct work_struct *work)
  		return;
  	}
  
@@ -68,12 +68,12 @@ index bfd3b5418..6f8b8f00e 100644
  	activate_all_cols(keypad, true);
  
  	/* Enable IRQs again */
-@@ -567,6 +587,8 @@ static int matrix_keypad_probe(struct platform_device *pdev)
+@@ -527,6 +547,8 @@ static int matrix_keypad_probe(struct platform_device *pdev)
  				 &keypad->all_cols_on_delay_us);
  	device_property_read_u32(&pdev->dev, "poll-interval",
  				 &keypad->poll_interval_ms);
 +	device_property_read_u32(&pdev->dev, "held-poll-interval",
 +				 &keypad->held_poll_ms);
- 	if (poll_override < 0)
- 		keypad->poll_interval_ms = 0;
- 	else if (poll_override > 0)
+ 	keypad->needs_ghost_filter =
+ 		device_property_read_bool(&pdev->dev, "needs-ghost-filter");
+ 
