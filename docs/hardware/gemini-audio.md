@@ -122,8 +122,32 @@ exactly:
 
 The code selects **mode 3**, the 0.8 W NCN setting, on both control lines.
 AWINIC's own selector lists `AW8736FCR` as the FC-16 orderable variant; the
-mode table and package match the vendor code. The populated BOM still needs
-physical confirmation.
+mode table and package match the vendor code.
+
+### 2.3 Speaker, earpiece and microphone population
+
+Public Planet Computers documentation resolves the functional population:
+
+- the product specification lists **stereo speakers**, **handset speakers**
+  and **integrated ambient microphones**;
+- the Gemini PDA user guide says the device has "a microphone and speaker at
+  both ends of the Gemini case" and that calls work in either orientation;
+- the Wikipedia entry lists "stereo speakers" and "dual microphones".
+
+Two independent AW8736 mode lines (GPIO243/244), both pulsed in mode 3 for a
+stereo HPL/HPR feed, are consistent with two mono amplifiers — one per
+speaker — rather than one stereo part. A direct BOM or schematic line item
+has not been captured, so the exact orderable count remains a visual check,
+but the functional reading is two amplifiers.
+
+The user guide's handset speaker plus the stock `receiver_output` /
+`Voice_Amp_Switch` path means the MT6351 RCV/HS driver has a physical load.
+This is an earpiece/handset transducer, not an unused codec port.
+
+The dual-microphone specification matches the AIN0 main and AIN2 reference
+paths. The stock policy does not attach `Built-In Back Mic` by default, so the
+second capsule is wired as a reference/secondary mic rather than a selectable
+primary device.
 
 The pulse timing matches the datasheet (`TH`/`TL` 0.75-10 µs; the code uses
 2 µs). The vendor then waits 25 ms before audio, while the AW8736 datasheet
@@ -135,8 +159,7 @@ path exists, but the stock speaker alias does not select it. It may be unused
 on this board or reserved for another route.
 
 The RCV/earpiece driver exists in the codec and the stock HAL exposes an
-Earpiece port. Whether the Gemini physically fits an earpiece speaker, rather
-than routing that port only for voice calls, is not separately recorded.
+Earpiece port; the user guide's handset speaker confirms a load on it.
 
 Headphone output is cap-less and uses PMIC efuse offset trim. The vendor reads
 the trim; mainline `mt6351.c` does not. Headphone gain defaults to −40 dB and
@@ -248,9 +271,12 @@ AIN0/3/2, ADC L/R muxes, Mic Bias 0/1/2) and programs Mic Bias 0/2 VREF code
 2 and Mic Bias 1 VREF code 7. It has no board route or Gemini capture DAPM
 path.
 
-Whether the back/reference microphone is populated is **unresolved**. The
-vendor HAL enables ADC2 and the vendor codec configures AIN2, but no retained
-board measurement proves a second microphone is fitted.
+The back/reference microphone is supported by Planet's **dual-microphone /
+integrated ambient microphone** specification and by the user guide's
+"microphone at both ends" statement. The vendor HAL enables ADC2 and the
+codec configures AIN2, which matches. A direct BOM line item is still not
+captured, and the stock policy does not attach `Built-In Back Mic` as a
+primary capture device.
 
 ## 4. Headset jack, mic and buttons
 
@@ -329,10 +355,10 @@ headset-jack and physical amplifier confirmation remain.
 
 | Open point | Offline result |
 | --- | --- |
-| Speaker amplifier family | Resolved to **AW8736FCR** (FC-16): the vendor `AW8736_MODE*` table matches the AW8736 datasheet and the code selects mode 3, 0.8 W NCN. Physical BOM confirmation remains. |
+| Speaker amplifier family | Resolved to **AW8736FCR** (FC-16): the vendor `AW8736_MODE*` table matches the AW8736 datasheet and the code selects mode 3, 0.8 W NCN. Planet lists stereo speakers and the code drives two independent mode lines, consistent with two mono parts; an exact BOM line item remains a visual check. |
 | MAX98926 node | The stock machine driver logs `max98926L is not find`; `OpenSpeakerPath` never selects the I2C node. The node is not part of the stock path. |
-| Earpiece / two-in-one | `OpenReceiverPath` checks `persist.af.feature.2in1spk`; no Gemini config sets it, so the stock path is `receiver_output`, not the two-in-one speaker route. Physical earpiece population is still not proven. |
-| Back/reference mic | The HAL has a `Built-In Back Mic` port and `builtin_Mic_BackMic` route, but the policy's `attachedDevices` does not include it and no board evidence proves a second capsule. |
+| Earpiece / two-in-one | `OpenReceiverPath` checks `persist.af.feature.2in1spk`; no Gemini config sets it, so the stock path is `receiver_output`, not the two-in-one speaker route. Planet's user guide says there is a handset speaker at each end, so the RCV/HS path has a physical load. |
+| Back/reference mic | Planet's specification lists dual/integrated ambient microphones and the user guide puts a mic at both ends. The HAL has a `Built-In Back Mic` port and `builtin_Mic_BackMic` route, but the policy's `attachedDevices` does not attach it as a primary device. |
 | GPIO234 `headphone_en` | Confirmed DCC microphone-path enable; not a playback control. |
 | GPIO235 `headphone_cs` | Only exposed as a world-writable `/proc/headphone_cs` manual knob; no HAL or kernel audio path uses it. Leave it unclaimed in mainline. |
 | ACCDET thresholds | Live Gemian `dmesg` confirms `mid-Key=80`, `up=220`, `down=400`, `pwm_width=500`, `pwm_thresh=500`, `efusevalue=0xffffff80`, offset `-2`. These are configured values, not an acoustic calibration. |
@@ -342,13 +368,17 @@ headset-jack and physical amplifier confirmation remain.
 
 ## 7. Still open
 
-1. Does the Gemini BOM actually populate one or two AW8736FCR amplifiers
-   behind GPIO243/244? The code and datasheet identify the part; physical
-   population is still unconfirmed.
+1. Does the Gemini BOM line item say one or two AW8736FCR amplifiers behind
+   GPIO243/244? Planet's stereo-speaker specification and the two independent
+   mode lines make two the consistent reading; the exact BOM/schematic line
+   item is still a visual check.
 2. Is the MAX98926-compatible I2C0 `0x31` node populated at all? It is not
    used by the stock speaker path.
-3. Is the earpiece/RCV driver physically populated?
-4. Is the back/reference microphone populated?
+3. Which transducer is on the MT6351 RCV/HS driver, and is it one of the two
+   stereo speakers or a separate handset speaker? Public specs confirm a
+   handset speaker at each end; the wiring split is a schematic question.
+4. Which physical microphone is AIN2 (reference/back) and which end is AIN0?
+   Public specs confirm dual microphones; the mapping is a schematic question.
 5. Is the headphone efuse offset trim needed for acceptable DC offset on
    mainline, or only for the stock path?
 6. Does the live DTB's audio section differ from the public board DTS beyond

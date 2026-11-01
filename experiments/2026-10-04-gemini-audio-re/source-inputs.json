@@ -442,5 +442,25 @@
     "patches/v7.1.3/0010-mfd-mt6397-add-MT6351-core-and-interrupt-support.patch",
     "patches/v7.1.3/0045-arm64-dts-mediatek-mt6797-add-disabled-audio-afe.patch",
     "configs/gemini.fragment"
+  ],
+  "public_documentation": [
+    {
+      "title": "Gemini PDA product specification",
+      "publisher": "Planet Computers",
+      "url": "https://www.www3.planetcom.co.uk/devices-specification",
+      "supports": "stereo speakers, handset speakers, integrated ambient microphones"
+    },
+    {
+      "title": "Gemini PDA User Guide",
+      "publisher": "Planet Computers",
+      "url": "https://support.planetcom.co.uk/download/GeminiPDAUserGuide.pdf",
+      "supports": "a microphone and speaker at both ends of the case; calls work in either orientation"
+    },
+    {
+      "title": "Gemini (PDA)",
+      "publisher": "Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Gemini_(PDA)",
+      "supports": "stereo speakers and dual microphones"
+    }
   ]
 }

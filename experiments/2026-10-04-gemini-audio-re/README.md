@@ -157,7 +157,9 @@ disagree, the live capture wins.
     HP offset trim comes from PMIC efuse words read at `0x0C18`
     (`Auddrv_Read_Efuse_HPOffset`, lines 610–690).
   - Earpiece: `Voice_Amp_Change()` enables the HS driver (`AUDDEC_ANA_CON0`
-    `0xE089 → 0xE119`, `ZCD_CON3` gain), lines 1947–2030.
+    `0xE089 → 0xE119`, `ZCD_CON3` gain), lines 1947–2030. Planet's user guide
+    describes a handset speaker at each end and calls in either orientation,
+    so the RCV/HS path has a physical load.
   - Speaker: `Speaker_Amp_Change()` enables **LOL**, the line-out left buffer
     (`AUDDEC_ANA_CON3 0x4228 → 0x4230 → 0x4234`, `ZCD_CON1` gain), lines
     2036–2105. With `MTK_SPEAKER` unset `Apply_Speaker_Gain()` only writes
@@ -211,8 +213,13 @@ disagree, the live capture wins.
   (`HP_Switch_to_Ground/Release`, lines 919–933). A pulse-count enable with a
   three-pulse default is the mode-select protocol of the AW87xx/AW8736
   analog amplifier family; the source names that family in its own
-  `MT6755_AW8736_REWORK` conditional (lines 85–88, 2161). Nothing in the public tree
-  records which part is populated.
+  `MT6755_AW8736_REWORK` conditional (lines 85–88, 2161).
+  Planet Computers specifies **stereo speakers** and **handset speakers**, and
+  the Gemini user guide says there is "a microphone and speaker at both ends
+  of the Gemini case". Two independent AW8736 mode lines driving a stereo
+  HPL/HPR feed therefore read as two mono AW8736FCR parts, one per speaker.
+  The exact BOM line item is still a visual/schematic check, not a code
+  question.
 - **F7. The live Gemini DTB additionally declares an I2C0 `0x31` device named
   `speaker_amp`, which the public DTS lacks and no live driver binds.** The
   live client list shows `0-0031:speaker_amp/unbound`
@@ -342,9 +349,11 @@ disagree, the live capture wins.
   (`AUDENC_ANA_CON1 0x0331`, `0x5331`); PGA default 18 dB
   ([lines 3140–3260](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/sound/soc/mediatek/mt_soc_audio_6797/mt_soc_codec_63xx.c#L3140-L3260)).
   Mic modes default to ACC (lines 130–132); DMIC code exists only for the
-  voice-wakeup path and the DTS has no DMIC pins. Whether the Gemini
-  populates a second (reference) microphone is not recorded; the ADC2 path
-  is enabled by the HAL, not by DT.
+  voice-wakeup path and the DTS has no DMIC pins. Planet specifies dual /
+  integrated ambient microphones and the user guide places a microphone at
+  both ends, so the AIN2 reference capsule is populated; the HAL, not DT,
+  enables the ADC2 path, and the policy does not attach `Built-In Back Mic`
+  as a primary device.
   Mainline `mt6351.c` has the identical mux topology (`PGA L Mux` AIN0/1/2,
   `PGA R Mux` AIN0/3/2, `ADC L/R Mux`, Mic Bias 0/1/2 supplies;
   [lines 1301–1334](https://github.com/gregkh/linux/blob/v7.1.3/sound/soc/codecs/mt6351.c#L1301-L1334))
@@ -499,8 +508,11 @@ Consequences:
   unresolved, but it is not the stock internal-speaker route.
 - The same boot log records `Audio_Hpl_Offset_Get` and
   `GetAudioTrimOffset channels = 1`, confirming the stock headphone trim path.
-- H1 is therefore the stock path; H2 is not. The amplifier part behind
-  GPIO243/244 and the MAX98926 population still need board evidence.
+- H1 is therefore the stock path; H2 is not. The AW8736FCR part behind
+  GPIO243/244 is identified by the mode table; Planet's stereo-speaker
+  specification and the two mode lines make two parts the consistent reading,
+  with the exact BOM line item left as a visual check. MAX98926 population is
+  independent and still unknown.
 
 Further offline closures from the same review:
 
@@ -520,7 +532,8 @@ Further offline closures from the same review:
   main/headset/back microphone and two-AW8736 speaker routes, and the two
   amplifier mode pads get default GPIO pinmux states. Proposals `0403` and
   `0404` fix the high-rate ADDA divider and gate the AFE from `clk26m` to
-  `top_sys_pll3_d4` at 96 kHz and above. Physical amplifier population,
+  `top_sys_pll3_d4` at 96 kHz and above. Public specs resolve stereo
+  speakers, handset speakers and dual microphones; the exact BOM line items,
   jack wiring and the ACCDET driver remain. The
   MT6351 ACCDET contract and driver plan are in
   `docs/hardware/mt6351-accdet.md`; the MT6359 driver is not reusable.
@@ -529,7 +542,9 @@ Further offline closures from the same review:
   `two_in_one_speaker_output`.
 - `startInputDevice` contains a `builtin_Mic_BackMic` route and the policy
   exposes `Built-In Back Mic`, but the policy's `attachedDevices` does not
-  include it. A second capsule is not proven.
+  attach it as a primary device. Planet's dual-microphone specification and
+  the user guide place a microphone at both ends, so the second capsule is
+  populated as a reference/secondary mic.
 - GPIO234 is asserted only in `TurnOnADcPowerDCC`; it is the DCC microphone
   path, not playback. GPIO235 is only a manual `/proc/headphone_cs` knob and
   has no HAL or kernel audio-path consumer.
