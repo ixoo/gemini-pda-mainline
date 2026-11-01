@@ -793,3 +793,20 @@ The kernel package (e80e197a) is unchanged; only the composed DTB differs.
 | `gpio-keys` bound; the EINT5 count in `/proc/interrupts` rises on close and open; `SW_LID` events arrive and `lid-guard` blanks and restores | Keep the interrupt. Debounce stays an open item |
 | No EINT5 count and no `SW_LID` events, while the GPIO66 level follows the lid | 0377 alone is not enough. Check the pad mode and debounce state, then return to station 20 (polled) |
 | Repeated events for a single close or open | The Hall output bounces. Add a software debounce |
+
+**Station 21 result.**
+- Composed from package e80e197a (inventory `4f760d85`) with the DTB from
+  1e2c4c9b.
+- boot2 `ae3311e9`, RAM root `a3b24863`, boot `073706eb`.
+- `gpio-keys` (not `-polled`) bound, with "Hall lid" on `mt-eint 5 Edge`.
+- The owner closed and opened the lid twice. EINT5 counted exactly 4
+  interrupts, and `/dev/input/event1` carried `SW_LID` = 1, 0, 1, 0 at
+  55.95, 65.42, 69.32 and 76.62 s, one event per movement with no bounce.
+- `lid-guard` logged each close and open with zero results.
+- The input numbering changed: the keyboard is now `event0` and the lid
+  `event1`. `lid-guard` finds both by name.
+
+0377 was the missing piece: EINT5 fires once the pad keeps its EINT mux
+mode. The lid is interrupt-driven from station 21. No bounce appeared
+without debounce, so none is added. Hardware debounce on the dual-edge
+line remains untested.
