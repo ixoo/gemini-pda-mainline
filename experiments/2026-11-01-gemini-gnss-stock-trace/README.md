@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2's first attempt stopped at its gate, with no start; step 2 is corrected and admitted, and has not run |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` died of SIGILL; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -225,6 +225,33 @@ line at all.
 most likely left the access time just after the modification time, and `relatime` then does not update it. The
 gate was also at the wrong moment, since the values a start uses come from the load in the start path.
 
+### Result (2026-11-01)
+
+Boot `a0b54f1d`, run by the custodian, evidence private under `artifacts/gemian-a0b54f1d/gnss-step2/start/`. Near a window,
+one start, gate passed: `mnld` opened and read both files about 0.4 s apart at the start.
+
+**Observed:**
+- **No remote connection seen** by the watcher in the 93 s it ran, which includes the whole time `mnld` was alive.
+- **The DSP boot repeated step 1.** It was all `AA F0` frames with no GFNS frame. No assert, whole-chip reset or Oops.
+- **Steady traffic for about 15 s.** Each second the host sent the same set: `0xFE00`, `0xFE01`, two `0xFE03` (6 and 126
+  bytes), `0xFE08`, `0xFE1C`, `0xFE05`. Each second the DSP sent one each of `0xFE28` (12 bytes), `0xFE30` (61), `0xFE37` (65) and
+  `0xFE2C` (48), plus three to six `0xFE29` frames of 61 bytes, with twelve across the first two seconds. `0xFE37` began after
+  those two seconds.
+- **`mnld` then died of SIGILL.** A worker thread, not the thread on `/dev/stpgps`, hit an illegal instruction about 15 s after the
+  first frame, and init restarted `mnld`. The kernel reports a core dump. The monitor noticed about 78 s later.
+- `EPO.DAT` and a new `QEPO.DAT` changed size at start with no connection seen.
+
+**Inferred:**
+- **The DSP payloads look masked with XOR `0xCA`.** After that, most bytes are zero, for instance 87% of `0xFE37`.
+- **`0xFE29` looks like one frame per tracked channel,** so the hypothesis's measurement packets. A few values of its first
+  byte recur once a second, the count changes over time, and a block of bytes in it differs in nearly every frame.
+  Nothing here has yet tied its fields to `libmnl`'s parser, so this is not decoded.
+
+**Not known:** the crash site, whether `strace`, the settings or the seven files contributed, whether a run
+without them would survive, and whether a fix was near. Step 1 stopped too early to compare.
+
+**Not settled:** navigation bits and a fix. The study's gate on measurement content is partly answered.
+
 ## Privacy and rights
 
 The capture is location data, and it stays private under `artifacts/` with mode 600, as do logcat
@@ -235,6 +262,6 @@ it stays private; it is vendor firmware, and this repository never carries it.
 
 ## Not tested
 
-Nothing here has run. The trigger format is read from the decompile. `strace` may disturb `mnld`'s
+The trigger format is read from the decompile and worked in steps 1 and 2. `strace` may disturb `mnld`'s
 timing, which the keep-alive and ACK flow depend on: a failure under trace does not by itself prove
 stock GNSS fails.

@@ -11,7 +11,7 @@ vendor stack, not a Linux implementation.
 > is no path to a fix, and "What is *not* required" and the claims that `mnld` falls back to
 > a serial port and that sentences come from ROM are wrong. A
 > [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) then saw stock start with
-> `libmnl`'s DSP boot and `AA F0` frames over STP task 2, with no GFNS frame in its first second.
+> `libmnl`'s DSP boot and `AA F0` frames over STP task 2, with no GFNS frame, then, with assistance off, about 15 s of DSP packets until `mnld` crashed.
 
 The evidence is a static review of the retained 2019 vendor binaries and the two
 CONSYS ROM patch images in the private artifact set, plus the pinned GPL vendor
