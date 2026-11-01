@@ -57,6 +57,10 @@ Buildbox-3, commit `4da5aa369ce4b2df8b1dad9db19ee029a5e7b2f1`, job `4da5aa36…-
 inventory `617668a7…`, `Image.gz` `3e637a85…`, `snd-soc-mt6351.ko` `f0988b91…`, release
 `7.1.3-gemini-a53-station`. Compiled, checksums pass. Device action: none.
 
+Second test: Buildbox-3, commit `290d58ad36c3e70524bcde7df1edbe37ee6239db`, job
+`290d58ad…-mt6797-a53-station-a72-m1`, inventory `562d37d0…`, `Image.gz` `0bb6ad36…`,
+`snd-soc-mt6351.ko` `735d6fa9…`, without `0447`, with `0449`. Compiled, checksums pass. Device action: none.
+
 ## Safety assessment
 
 `0447` writes one more MT6351 audio register, to the value it read before the first power-up, after
