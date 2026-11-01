@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-self-start` |
-| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); 0406 passes 26 reconnects by module swap and awaits a station image |
+| Status | `running`: Wi-Fi starts by itself and follows the US country (stations 25-27); 0406 passes 26 reconnects by module swap; station 28 with it is on boot2 and awaits its boot |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mac`; station init |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -211,12 +211,15 @@ boot `778ff91c`.
 
 Not measured: throughput with 0406, and a real lost frame followed by a
 successful handshake (the wrong key exercises the retransmissions and the
-re-arm, not message 3 arriving after them). boot2 still holds station 27,
-whose `mac` lacks 0406.
+re-arm, not message 3 arriving after them).
+
+Station 28, from the 2170f1ce package with 0406's `mac` (`d5a41fb1…`) and
+otherwise station 27's inputs, is on boot2 (`83fd0f91…`, written over
+station 27 with a matching readback).
 
 ## Follow-up
 
-- A station image with 0406.
+- Boot station 28 and repeat the join and reconnects without a swap.
 - Station 9's 2.5 h hold, not yet repeated on the clean driver.
 - The phase 2 exit test, `nmcli` on a full system, once the channel pin
   goes in phase 3.
