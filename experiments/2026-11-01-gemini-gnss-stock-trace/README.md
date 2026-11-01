@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` died of SIGILL; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -247,8 +247,14 @@ one start, gate passed: `mnld` opened and read both files about 0.4 s apart at t
   byte recur once a second, the count changes over time, and a block of bytes in it differs in nearly every frame.
   Nothing here has yet tied its fields to `libmnl`'s parser, so this is not decoded.
 
-**Not known:** the crash site, whether `strace`, the settings or the seven files contributed, whether a run
-without them would survive, and whether a fix was near. Step 1 stopped too early to compare.
+**Crash cause, from the logs and the decompile:** the kernel logged `0xdefe`, Thumb `udf`, at the fault address on a
+thread named `POSIX timer 4`. No core file or usable tombstone exists. That address's page offset and instruction match
+`mnld_gps_start_timeout`, which crashes on purpose. Its timer is 15000 ms by default and it fired about 15.0 s after the
+start. The start-done event cancels that timer. `mnld` sends the event from its "MNL ready" callback, but that branch sits
+behind the `SUPL_enabled` check, so with `SUPL_enabled=0` the event is never sent. So this setting most likely caused
+the crash, and neither the engine nor `strace` did. That is inferred: no run has shown the event arriving with SUPL on and EPO off.
+
+**Not known:** whether a fix was near. Step 1 stopped too early to compare.
 
 **Not settled:** navigation bits and a fix. The study's gate on measurement content is partly answered.
 
