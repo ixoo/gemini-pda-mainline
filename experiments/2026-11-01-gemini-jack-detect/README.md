@@ -84,7 +84,6 @@ Run by the custodian on a fresh boot, with the owner present:
 | --- | --- |
 | Control follows all changes, one interrupt each | Record; then classify headset, mic and buttons |
 | Correct after a change but wrong at load | Read the EINT level at enable |
-| Plug seen, unplug not | Run the detection unit as the vendor does |
 | No interrupt at all | Read the stock counts on Gemian; check the sequence |
 | Interrupt storm | Stop; check polarity and the clear sequence |
 | Interrupt during playback with the headphones out | False EINT from the HP driver; read the level, do not toggle |
@@ -101,6 +100,8 @@ control, and `cget name=` looks on the mixer interface. No plug cycle was logged
   started. The headphones were not in at load, contrary to the request, and the owner
   plugged them in at an unknown time up to about 200 s. The count stayed 1 afterwards, through a
   later full playback run with the headphones in.
+- Unprompted, the owner unplugged the headphones: `jack out` at 272.91 s, count 2, control
+  off, read at 356.7 s by the custodian. One interrupt, no storm.
 - Regression: `audio-test.sh` exit 0 twice; tone heard in both ears on the second run,
   with the headphones in. No oops or warning, Wi-Fi `COMPLETED`.
 
@@ -110,6 +111,10 @@ Run 1 cannot separate two readings of the one interrupt: the owner's plug, or a 
 EINT from the first headphone power-up, after which the driver would wait for an unplug
 and the real plug would raise nothing. The script now logs every state and count change
 against uptime, and plays with the headphones out to test the second reading.
+
+The unplug shows the unplug EINT works with the detection unit off, which removes that
+decision branch. It does not separate the two readings: a false `in` at 156 s, a plug that
+raises nothing and a real unplug would log the same sequence.
 
 ## Conclusion
 
