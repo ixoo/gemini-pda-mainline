@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 10:43:43 -0500
+Subject: [PATCH 442/443] wifi: mt6797: create wlan0 by itself
+
+NO_AUTO_VIF left the phy without an interface until a script added one,
+so a system with no such script has no wlan0. Let mac80211 create it, as
+the daily-use plan's goal says.
+
+Part of the Wi-Fi daily-use plan, phase 2.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 3191cbcbf..dce04e251 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -2130,7 +2130,6 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	ieee80211_hw_set(hw, SIGNAL_DBM);
+ 	SET_IEEE80211_DEV(hw, dev);
+ 	SET_IEEE80211_PERM_ADDR(hw, data + 4);
+-	ieee80211_hw_set(hw, NO_AUTO_VIF);
+ 	hw->queues = 4;
+ 	ieee80211_hw_set(hw, REPORTS_TX_ACK_STATUS);
+ 	ieee80211_hw_set(hw, SINGLE_SCAN_ON_ALL_BANDS);
+-- 
+2.43.0
+

@@ -43,9 +43,11 @@ What keeps it from being anyone's Wi-Fi:
 
 | Gap | Today |
 | --- | --- |
-| Channel | Joins any non-DFS 5 GHz channel in code (0414); channels 40 and 161 tested. 2.4 GHz and DFS joins are refused. The channel list follows the regulatory domain |
+| Channel | Joins any non-DFS channel in code; 40 and 161 tested. On 2.4 GHz, channel 11 joins and receives well but transmits about 2 Mbit/s, and channel 6 failed its handshake. DFS joins are refused. The channel list follows the regulatory domain |
+| Throughput | Transmit falls to about 3 Mbit/s after a receive transfer, from 21 at idle. Not understood |
+| Recovery | A fault ends the lifetime. A restart in the driver is written (0443), untested |
 | Network choice | `wifi-up.sh` joins by name, from a private file sent over SSH, with an optional BSSID or frequency pin. No NetworkManager test yet |
-| Scan | Passive on all channels of both bands, about 5 s; no active probe, no hidden SSID |
+| Scan | Passive on all channels of both bands, about 5 s. Wildcard active scan has run once; a named SSID has not |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |
 | Roaming | None. Scan while associated is written (0430, untested); reassociation is not |
 | Regulatory | An update that really changes the domain during a lifetime, such as an access point advertising another country than the one set, ends the lifetime until a module reload |

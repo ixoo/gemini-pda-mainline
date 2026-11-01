@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 10:43:43 -0500
+Subject: [PATCH 441/443] wifi: mt6797: ignore a scan-done event nothing waits
+ for
+
+Right after the first scan with probe requests, a second done event
+reached the join worker, which refused it as unknown and ended the
+lifetime with -EPROTO. Ignore it: the scan it could belong to is over.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index e83221d17..bbf4b95f4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1029,10 +1029,10 @@ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ 	/* Same bounded notifications as the proven scan consumer; no body log. */
+ 	if (mac->join_packet[4] == 0x27)
+ 		return 0;
+-	/* EVENT_ID_SCAN_DONE; one from a scan just cancelled is not owed. */
++	/* EVENT_ID_SCAN_DONE. One that nothing waits for is not a fault: a scan
++	 * just cancelled, or the extra one that follows a scan with probes.
++	 */
+ 	if (mac->join_packet[4] == 0x0d) {
+-		if (!mac->join_data_phase)
+-			return -EPROTO;
+ 		mt6797_mac_online_scan_done(mac, bytes);
+ 		return 0;
+ 	}
+-- 
+2.43.0
+

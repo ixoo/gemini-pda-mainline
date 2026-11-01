@@ -53,7 +53,7 @@ cycle() {
 	phy=$(phys)
 	phy=${phy%% *}
 	echo "cycle $1 phy=$phy"
-	iw phy "$phy" interface add wlan0 type managed; echo "cycle $1 add=$?"
+	[ -d /sys/class/net/wlan0 ] || iw phy "$phy" interface add wlan0 type managed; echo "cycle $1 add=$?"
 	ip link set wlan0 up; echo "cycle $1 up=$?"
 	iw dev wlan0 scan freq 5200 passive > "/run/station/scan-$1.txt" 2>&1
 	echo "cycle $1 scan=$? bss=$(grep -c '^BSS ' "/run/station/scan-$1.txt")"

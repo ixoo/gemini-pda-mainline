@@ -609,3 +609,6 @@ proposals/0437-wifi-mt6797-advertise-the-scan-SSIDs.patch
 proposals/0438-wifi-mt6797-keep-data-at-three-transmit-attempts.patch
 proposals/0439-gnss-mt6797-send-the-vendor-s-start-configuration.patch
 proposals/0440-wifi-mt6797-log-the-receive-reorder-counters.patch
+proposals/0441-wifi-mt6797-ignore-a-scan-done-event-nothing-waits-f.patch
+proposals/0442-wifi-mt6797-create-wlan0-by-itself.patch
+proposals/0443-wifi-mt6797-restart-the-firmware-after-a-fault.patch

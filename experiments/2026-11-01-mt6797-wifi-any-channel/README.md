@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channels 40 and 161. 2.4 GHz joins once but loses frames; 0436 and 0437 are built to fix that and active scan; neither has run |
+| Status | `running`: multi-channel passive and wildcard active scan work; 0414 joins channels 40 and 161. Channel 11 joins and carries data but loses bursts of transmit frames. A transmit stall after receive and teardown faults are open; 0441-0443 are built and untested |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -551,3 +551,67 @@ counters print.
 | --- | --- |
 | Expiries near one per 200 ms in runs 2 and 3, few in run 1 | The reorder window has a recurring hole: find which frames leave it |
 | Few expiries, with latency unchanged | Not the reorder; read the worker's polling and the receive batching |
+
+### Result: channel 11 retest and active scan, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian, `mac` `ba28eb81…`, full reload between parts, within the
+owner's budget.
+
+Channel 11, `join grant: channel=11 sco=0`, -63 dBm:
+
+| Check | Result |
+| --- | --- |
+| First join | `COMPLETED` but no lease: message 4 failed all 30 attempts, and neither side recovered for about 90 s. A reconnect then worked |
+| Ten reconnects | Nine after that: 8 answered ping, in 0.90-2.73 s, and the slower ones include authentication timeouts |
+| Transmit 60 s, from idle | 3.2 0.9 2.2 1.3 2.3 1.9 Mbit/s; ping 52/60, 12.3 ms average |
+| Receive 60 s | 32.1 37.8 40.1 40.1 35.0 33.9 Mbit/s |
+| Lifetime | Stayed open throughout |
+
+Of 60 join frames at 6 Mbit/s, most took one attempt. Six authentication frames and two
+message 4 frames failed all 30 attempts, and some took 6 or 12. 30 attempts took at most
+about 150 ms, and failures come in bursts lasting seconds. Channel 40 frames on the same
+module took one attempt.
+
+So 2.4 GHz works, and the higher retry limit keeps the lifetime alive, but transmit on
+this channel is poor while receive is good. This fits something that blocks transmit in
+bursts: interference, or coexistence or power on this radio. Which is unknown. Rate
+control has not been tried here.
+
+Active scan, wildcard: exit 0 in 3.91 s, `channels=36 probing=20 ssids=1`, 24 BSSes
+against 20 for the passive scan. This is the first active scan on this driver. A second
+scan-done event 24 ms later (`-EPROTO`) then closed the lifetime, so the two named scans
+and the supplicant join did not run. [0441](../../patches/proposals/0441-wifi-mt6797-ignore-a-scan-done-event-nothing-waits-f.patch)
+ignores that event.
+
+### Teardown faults after heavy traffic
+
+Three of four disconnects after heavy traffic on this boot closed the lifetime:
+
+| When | Log |
+| --- | --- |
+| Channel 40, 163 s, 64246 frames | Deauthentication completion missing, then `-ETIMEDOUT`, branch 8 |
+| Channel 40, 303 s, 242407 frames | `join guard failed: ret=-5`, `whisr=0x00000042`, 1 ms after the PM abort |
+| Channel 11, 184 s, 52022 frames, 172 not done at the end | `-ETIMEDOUT`, branch 5 |
+
+In the second, WHISR bit 6 is the abnormal interrupt; the vendor
+([`nic.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/nic/nic.c))
+reads WASR and resets the chip on it. The causes of these faults are not understood.
+
+[0443](../../patches/proposals/0443-wifi-mt6797-restart-the-firmware-after-a-fault.patch)
+does what the reload did, from inside the driver, without explaining them. It covers every
+fault that reaches the join's stop path, or any scan on a closed lifetime.
+[0442](../../patches/proposals/0442-wifi-mt6797-create-wlan0-by-itself.patch) makes `wlan0`
+appear by itself, which the restart and any plain system need.
+
+Next, compile-checked only, predeclared:
+
+| Test | Hypothesis |
+| --- | --- |
+| Stall, with reorder counters | As in "the slow transmit test" |
+| Heavy traffic, then stop the supplicant, a few times | Faults may recur. Each ends in `WLAN restart: status=0` and `wlan0` back within about 5 s, with `wifi-up.sh` joining again without a manual reload |
+| Active scan, two wildcard, two named, then a supplicant join with `PASSIVE_SCAN=0` | Named scans find the network; no lifetime closure |
+
+| Observation | Decision |
+| --- | --- |
+| Restart works | Phase 4's recovery is started; count 20 forced faults later |
+| Restart fails: CONSYS will not stop or start cleanly, or the attach fails | Stop, read the log; reboot if needed. Keep the reload as the manual path |

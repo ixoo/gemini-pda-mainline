@@ -1,0 +1,172 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 10:43:44 -0500
+Subject: [PATCH 443/443] wifi: mt6797: restart the firmware after a fault
+
+A lifetime that ended in a fault stayed closed until someone reloaded the
+modules: every scan was refused. Three of four disconnects after heavy
+traffic ended this way on one boot, with different statuses, including
+the abnormal bit in WHISR, for which the vendor resets the chip.
+
+Do what the reload did: detach the mac layer, unbind and bind CONSYS,
+which powers CONN off and starts the firmware afresh, and attach again
+once it is ready. The join's fault path asks for this, and so does a scan
+on a closed lifetime. Restarts are at least 30 s apart. wlan0 returns as a
+new interface, so userspace has to bring it up again; a supplicant that
+exits when its interface goes needs restarting.
+
+This does not explain the faults themselves.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c |  1 +
+ drivers/net/wireless/mediatek/mt6797/mac.h  |  5 ++
+ drivers/net/wireless/mediatek/mt6797/main.c |  3 +
+ drivers/soc/mediatek/mt6797-consys.c        | 61 ++++++++++++++++++++-
+ 4 files changed, 69 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index bbf4b95f4..a4c8c7fe4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1804,6 +1804,7 @@ int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	mt6797_ccmp_withdraw(mac);
+ 	complete_all(&mac->ccmp_cleanup_done);
+ 	mt6797_mac_online_scan_end(mac, true);
++	mt6797_consys_wlan_request_restart();
+ 
+ 	dev_err(wiphy_dev(mac->hw->wiphy),
+ 		"one-shot WLAN join stopped: status=%d first=%d submitted=0x%x debt=%u cleanup=%u branch=%u\n",
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac.h b/drivers/net/wireless/mediatek/mt6797/mac.h
+index 93359f8cc..b3b47e020 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac.h
+@@ -37,4 +37,9 @@ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops);
+  */
+ void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops);
+ 
++/* Ask for the firmware to be restarted and the layer attached afresh, after a
++ * fault that left it closed. Runs in its own work, at most every 30 s.
++ */
++void mt6797_consys_wlan_request_restart(void);
++
+ #endif
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index dce04e251..8e002f3e1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -885,6 +885,9 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	int ret = -EOPNOTSUPP, slot;
+ 
+ 	mutex_lock(&mac->mutex);
++	/* A closed lifetime has nothing left to scan with. */
++	if (mac->vif == vif && (mac->closing || mac->first_error || mac->join_closed))
++		mt6797_consys_wlan_request_restart();
+ 	if (!mac->scan_ready || !mac->started || mac->vif != vif ||
+ 	    mac->closing || mac->first_error || mac->join_closed)
+ 		goto out;
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index d6bafbcf1..4fc77743f 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -109,6 +109,8 @@ struct mt6797_consys {
+ 	bool wlan_configured;
+ 	/* A mac layer that loaded before the firmware was ready. */
+ 	const struct mt6797_mac_ops *wlan_pending;
++	/* The attached mac layer, for a restart. */
++	const struct mt6797_mac_ops *wlan_ops;
+ #endif
+ 	/* Starts the subsystem once, after probe. */
+ 	struct device *dev;
+@@ -161,6 +163,8 @@ static DEFINE_MUTEX(mt6797_consys_lock);
+ static struct mt6797_consys mt6797_consys;
+ #if IS_ENABLED(CONFIG_MT6797_MAC80211)
+ static DEFINE_MUTEX(mt6797_consys_wlan_lock);
++
++#define MT6797_CONSYS_RESTART_SPACING_NS (30ULL * NSEC_PER_SEC)
+ #endif
+ 
+ static int mt6797_consys_check_supplies(struct device_node *node)
+@@ -988,6 +992,7 @@ static int mt6797_consys_wlan_attach_locked(const struct mt6797_mac_ops *ops)
+ 		goto out;
+ 	/* One attempt: a failed attach may leave firmware state behind. */
+ 	owner->wlan_attached = true;
++	owner->wlan_ops = ops;
+ 	reattach = owner->wlan_configured;
+ 	dev = owner->wlan_dev;
+ 	ret = mt6797_wifi_record_prepare(dev, &record);
+@@ -1037,7 +1042,7 @@ int mt6797_consys_wlan_attach(const struct mt6797_mac_ops *ops)
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_attach);
+ 
+-void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
++static void mt6797_consys_wlan_detach_now(const struct mt6797_mac_ops *ops)
+ {
+ 	struct mt6797_consys *owner = &mt6797_consys;
+ 
+@@ -1052,8 +1057,62 @@ void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
+ 	}
+ 	mutex_unlock(&mt6797_consys_wlan_lock);
+ }
++
++static void mt6797_consys_wlan_restart_work(struct work_struct *work);
++static DECLARE_WORK(mt6797_consys_wlan_restart, mt6797_consys_wlan_restart_work);
++
++void mt6797_consys_wlan_detach(const struct mt6797_mac_ops *ops)
++{
++	cancel_work_sync(&mt6797_consys_wlan_restart);
++	mt6797_consys_wlan_detach_now(ops);
++}
+ EXPORT_SYMBOL_GPL(mt6797_consys_wlan_detach);
+ 
++/* What a module reload did by hand: detach the mac layer, unbind and bind
++ * CONSYS, which powers CONN off and starts the firmware afresh, and attach
++ * again once it is ready. wlan0 comes back as a new interface. A fault during
++ * the start or the attach leaves Wi-Fi down; nothing here retries.
++ */
++static void mt6797_consys_wlan_restart_work(struct work_struct *work)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	const struct mt6797_mac_ops *ops;
++	struct device *dev;
++	int ret;
++
++	mutex_lock(&mt6797_consys_wlan_lock);
++	ops = owner->wlan_attached && owner->wlan_hw ? owner->wlan_ops : NULL;
++	dev = get_device(owner->dev);
++	mutex_unlock(&mt6797_consys_wlan_lock);
++	if (!ops || !dev) {
++		put_device(dev);
++		return;
++	}
++	dev_info(dev, "WLAN restart: begin\n");
++	mt6797_consys_wlan_detach_now(ops);
++	ret = device_reprobe(dev);
++	if (!ret)
++		ret = mt6797_consys_wlan_attach(ops);
++	dev_info(dev, "WLAN restart: status=%d\n", ret);
++	put_device(dev);
++}
++
++void mt6797_consys_wlan_request_restart(void)
++{
++	static u64 last;
++	u64 now = ktime_get_ns();
++
++	/* Built in, CONSYS has no remove path to restart through. A fault that
++	 * repeats at once stays down between tries.
++	 */
++	if (!IS_MODULE(CONFIG_MTK_MT6797_CONSYS) ||
++	    (last && now - last < MT6797_CONSYS_RESTART_SPACING_NS))
++		return;
++	last = now;
++	schedule_work(&mt6797_consys_wlan_restart);
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_wlan_request_restart);
++
+ #if IS_MODULE(CONFIG_MT6797_MAC80211)
+ /*
+  * The stop half of a firmware restart (experiment R1), once per boot, with
+-- 
+2.43.0
+
