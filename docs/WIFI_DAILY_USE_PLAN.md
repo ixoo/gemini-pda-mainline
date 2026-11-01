@@ -144,6 +144,9 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   10 minutes, with no disconnect at a rekey;
 - an 8 h day that moves between two access points of one SSID, with
   every handover logged and no manual action;
+  the owner can carry the device between access points once roaming is in
+  the driver. USB is then unavailable, so the device logs to its data
+  partition and the log is read afterwards;
 - 20 forced firmware faults, each recovered without a reboot.
 
 ### 5. Battery
