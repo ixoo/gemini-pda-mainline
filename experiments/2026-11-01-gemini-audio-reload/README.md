@@ -150,6 +150,12 @@ format stop. Selected registers, all after playback:
 Two idle reads 288 s apart differ only in the uptime line. The noise was not asked about at the
 modules-out read; it was reported with modules out after removal 1, with no register read then.
 
+**A72 boot `7dd24578` (image `e99adaa3`, package `af871fff`, no `0445`), run by the custodian:** the
+owner reports the noise here too. Headphones out at power-on, `jack in` at 240.76 s, one tone at
+257.03 s, rc 0, heard in both ears. When the noise started was not asked, so this boot neither
+supports nor contradicts the first playback as the trigger. It does show the noise does not need
+`0445`.
+
 ## Analysis
 
 The hypothesis holds on both pairs: with the clocks on the domain, AUDIO powers fully off on
