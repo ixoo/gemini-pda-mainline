@@ -64,14 +64,14 @@ echo "state 2 s after load, plugged in: $last"
 say changes
 tell "for 60 s: unplug, wait 5 s, plug in, wait 5 s; do that three times"
 n=0
-while [ "$n" -lt 120 ]; do
+while [ "$n" -lt 60 ]; do
 	now=$(state)
 	if [ "$now" != "$last" ]; then
-		echo "t=$((n / 2)) s: $last -> $now"
+		echo "t=$n s: $last -> $now"
 		last=$now
 	fi
 	n=$((n + 1))
-	usleep 500000
+	sleep 1
 done
 tell "finished, leave the headphones plugged in"
 echo "final state: $last"
