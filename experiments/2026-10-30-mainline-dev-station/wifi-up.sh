@@ -3,16 +3,14 @@
 # shellcheck shell=dash
 # A persistent Wi-Fi station on the running station, fed over SSH:
 #   ssh root@station 'sh -s' < wifi-up.sh
-# Needs /run/station/wifi-cycles.sh (this directory's) and
-# /run/station/wifi.env (mode 0600, RAM only, never in the image or the
-# repository) with TARGET_SSID_HEX, TARGET_BSSID and WPA_PSK_HEX.
-# Starts the firmware if needed (wifi-cycles.sh with CYCLES=0), loads mac,
-# brings wlan0 up and leaves wpa_supplicant (auto-reconnect on) and udhcpc
+# Needs /run/station/wifi.env (mode 0600, RAM only, never in the image or
+# the repository) with TARGET_SSID_HEX, TARGET_BSSID and WPA_PSK_HEX.
+# Loads the Wi-Fi modules if the boot did not, waits for the phy (CONSYS
+# starts the firmware after probe), brings wlan0 up and leaves wpa_supplicant (auto-reconnect on) and udhcpc
 # (lease renewal) running. Prints the connection state without the network's
 # name, address or keys. With DOWN=1 it stops both and unloads mac instead.
 export PATH=/bin LD_LIBRARY_PATH=/lib
 R=/run/station
-M=/lib/modules/$(uname -r)/mac.ko
 CTRL=$R/wpa
 wpa() { wpa_cli -p $CTRL -i wlan0 "$@"; }
 
@@ -24,8 +22,16 @@ if [ "${DOWN:-0}" = 1 ]; then
 fi
 
 [ -f $R/wifi.env ] || { echo "no $R/wifi.env"; exit 1; }
-CYCLES=0 sh $R/wifi-cycles.sh || exit 1
-lsmod | grep -q '^mac ' || { insmod "$M"; echo "insmod=$?"; sleep 1; }
+D=/lib/modules/$(uname -r)
+for module in mt6797-wlan-core mt6797-consys mac; do
+	lsmod | grep -q "^$(echo $module | tr - _) " || { insmod "$D/$module.ko"; echo "insmod $module=$?"; }
+done
+# CONSYS starts the firmware after probe; mac registers once it is ready.
+has_phy() { for p in /sys/class/ieee80211/*; do [ -e "$p" ] && return 0; done; return 1; }
+i=0
+while [ $i -lt 120 ] && ! has_phy; do sleep 1; i=$((i + 1)); done
+has_phy || { echo "no phy after ${i}s"; exit 1; }
+echo "phy after ${i}s"
 [ -d /sys/class/net/wlan0 ] || {
 	for p in /sys/class/ieee80211/*; do phy=${p##*/}; done
 	iw phy "$phy" interface add wlan0 type managed; echo "add $phy=$?"

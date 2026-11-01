@@ -563,3 +563,4 @@ proposals/0391-dt-bindings-soc-mediatek-add-the-MT6797-CONSYS-owner.patch
 proposals/0392-wifi-mediatek-add-the-MT6797-WLAN-driver.patch
 proposals/0393-soc-mediatek-add-the-MT6797-CONSYS-owner.patch
 proposals/0394-arm64-dts-mediatek-gemini-pda-describe-the-connectiv.patch
+proposals/0400-soc-mediatek-mt6797-consys-start-the-subsystem-after.patch

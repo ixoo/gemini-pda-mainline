@@ -75,11 +75,12 @@ vendor set (see the [firmware inventory](../../experiments/2026-07-11-gemian-fir
 `WIFI.storage` is not firmware: it is the device's own Wi-Fi NVRAM record,
 with the board's RF calibration, and it is read in place from the `nvdata`
 partition, which every Gemini has. The system mounts that partition
-read-only at `/nvdata`, as Gemian does, and links the record into the
+read-only at `/nvdata`, as Gemian does (`noload` keeps an unclean journal
+from being replayed onto the partition), and links the record into the
 firmware directory:
 
 ```text
-PARTLABEL=nvdata  /nvdata  ext4  ro,nosuid,nodev,noexec  0  0
+PARTLABEL=nvdata  /nvdata  ext4  ro,noload,nosuid,nodev,noexec  0  0
 ln -s /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
 ```
 

@@ -985,3 +985,4 @@ proposals/0396-ASoC-mt6351-resolve-the-PMIC-regmap-through-the-MFD-parent.patch
 proposals/0397-arm64-dts-mediatek-add-a-minimal-Gemini-audio-card.patch
 proposals/0398-ASoC-mt6797-add-Gemini-card-routing.patch
 proposals/0399-ASoC-mt6797-add-the-Gemini-speaker-amplifiers.patch
+proposals/0400-soc-mediatek-mt6797-consys-start-the-subsystem-after.patch

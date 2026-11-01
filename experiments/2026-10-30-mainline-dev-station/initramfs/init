@@ -51,4 +51,20 @@ else
 fi
 # The lid policy (backlight off, keyboard inhibited while closed).
 if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemini-lid; else status lid=insmod-failed; fi
+# The Wi-Fi calibration record, read in place from nvdata: read-only, and
+# noload so that an unclean journal is never replayed onto the partition.
+nvdata=
+for uevent in /sys/class/block/mmcblk0p*/uevent; do
+    $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
+done
+if [ -n "$nvdata" ] && $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
+    status "nvdata=mounted device=$nvdata"
+else
+    status "nvdata=mount-failed device=$nvdata"
+fi
+$bb ln -sf /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
+# Wi-Fi: CONSYS starts the firmware after probe and mac attaches when it is ready.
+for module in mt6797-wlan-core mt6797-consys mac; do
+    if $bb insmod "/lib/modules/$($bb uname -r)/$module.ko"; then status "wifi=$module"; else status "wifi=$module-failed"; fi
+done
 exec $bb init

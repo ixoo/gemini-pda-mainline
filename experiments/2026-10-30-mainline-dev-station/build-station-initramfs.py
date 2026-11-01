@@ -85,7 +85,9 @@ def main(parent, modules, tools, release, output):
         files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
     mode, keymap = files['etc/gemini-us.bkeymap']
     files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))
-    for d in ['mnt', 'mnt/data', 'tmp', 'lib/modules', 'lib/modules/' + release]:
+    # The calibration record is linked from nvdata at boot, never carried.
+    files.pop('lib/firmware/mediatek/mt6797/WIFI.storage', None)
+    for d in ['mnt', 'mnt/data', 'nvdata', 'tmp', 'lib/modules', 'lib/modules/' + release]:
         files[d] = (DIR | 0o755, b'')
     for module in modules.split(':'):
         files['lib/modules/%s/%s' % (release, Path(module).name)] = (FILE | 0o644, Path(module).read_bytes())

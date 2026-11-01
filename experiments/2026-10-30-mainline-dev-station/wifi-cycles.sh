@@ -3,12 +3,12 @@
 # shellcheck shell=dash
 # Wi-Fi module cycles on the running station, fed over SSH:
 #   ssh root@station 'CYCLES=3 RESTARTS=2 /bin/busybox sh -s' < wifi-cycles.sh
-# Loads the core and CONSYS modules (0346-0348) and starts the firmware once
-# if needed (region19_prepare, then wmt_negotiate), then CYCLES times: insmod
+# Loads the core and CONSYS modules if needed and waits for the firmware
+# start CONSYS runs after probe, then CYCLES times: insmod
 # mac, add wlan0, bring it up, one passive scan of the pinned 5200 MHz
 # channel, rmmod. Then RESTARTS times: unload mac, CONSYS (which stops the
 # firmware and powers CONN off) and the core, load them again, start the
-# firmware (a second common init and calibration, R2) and run one cycle.
+# firmware again (a second common init and calibration, R2) and run one cycle.
 # Prints one line per step and keeps each step's kernel log in /run/station/.
 # The kernel log is never cleared; each step reads only the lines after its
 # own mark. With STOP=1 (0341), the firmware is then stopped through
@@ -19,24 +19,23 @@ RESTARTS=${RESTARTS:-0}
 C=/sys/bus/platform/devices/10001340.consys
 D=/lib/modules/$(uname -r)
 M=$D/mac.ko
-STARTED=/run/station/firmware-started
 since() { dmesg | tail -n +$((mark + 1)); }
 phys() { for p in /sys/class/ieee80211/*; do [ -e "$p" ] && printf '%s ' "${p##*/}"; done; }
 mkdir -p /run/station
 
 load_owner() {
 	lsmod | grep -q '^mt6797_wlan_core ' || { insmod "$D/mt6797-wlan-core.ko"; echo "$1 load core=$?"; }
-	# A CONSYS load starts from CONN off, so any earlier start is gone.
-	lsmod | grep -q '^mt6797_consys ' || { rm -f $STARTED; insmod "$D/mt6797-consys.ko"; echo "$1 load consys=$?"; }
+	lsmod | grep -q '^mt6797_consys ' || { insmod "$D/mt6797-consys.ko"; echo "$1 load consys=$?"; }
 }
 
+# CONSYS starts the firmware after probe; wait for the end of that start,
+# read from the log since the last CONSYS bind.
 start_firmware() {
-	mark=$(dmesg | wc -l)
-	for step in region19_prepare wmt_negotiate; do
-		if echo 1 > $C/$step; then echo "$1 firmware $step=0"; else echo "$1 firmware $step=failed"; fi
-	done
 	i=0
-	while [ $i -lt 90 ] && ! since | grep -q "mac module attaches on load\|firmware stopped\|stopped ("; do
+	while [ $i -lt 90 ]; do
+		mark=$(dmesg | grep -n "bound boot CONSYS reserve" | tail -1 | cut -d: -f1)
+		mark=$((${mark:-1} - 1))
+		since | grep -q "mac module attaches on load\|start stopped\|stopped (" && break
 		sleep 1
 		i=$((i + 1))
 	done
@@ -44,7 +43,6 @@ start_firmware() {
 	since | grep -E "kept from an earlier|common init: result|EMI final policy|stopped \(" | sed "s/^/$1 /" | cut -c1-160
 	since | grep -q "mac module attaches on load" || { echo "$1 firmware not ready"; exit 1; }
 	echo "$1 firmware ready after ${i}s"
-	: > $STARTED
 }
 
 cycle() {
@@ -67,8 +65,9 @@ cycle() {
 }
 
 load_owner boot
-[ -e $STARTED ] || start_firmware boot
-echo "firmware ready"
+start_firmware boot
+# The station loads mac at boot; the cycles load it themselves.
+lsmod | grep -q '^mac ' && { timeout 30 rmmod mac; echo "boot rmmod mac=$?"; }
 
 c=1
 while [ $c -le "$CYCLES" ]; do
@@ -82,7 +81,6 @@ while [ $r -le "$RESTARTS" ]; do
 	lsmod | grep -q '^mac ' && { timeout 30 rmmod mac; echo "restart $r rmmod mac=$?"; }
 	timeout 30 rmmod mt6797-consys; echo "restart $r rmmod consys=$?"
 	rmmod mt6797-wlan-core; echo "restart $r rmmod core=$?"
-	rm -f $STARTED
 	since | grep -E "WLAN stop|CONN power-off|CONSYS unloaded|Oops|BUG|WARNING|Call trace" | sed "s/^/restart $r /" | cut -c1-160
 	since > "/run/station/unload-$r.txt"
 	load_owner "restart $r"
