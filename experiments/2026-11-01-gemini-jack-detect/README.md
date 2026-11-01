@@ -141,8 +141,9 @@ did not repeat the card's first power-up on a boot, which is when that event hap
 ## Conclusion
 
 `confirmed` for the named Gemini, Linux 7.1.3 and package `b3cfdeb6`: the `Headphone Jack`
-control and input device follow plug and unplug, with the plug used here. Only one set of
-headphones was tried, and the debounce values are the board's, not measured.
+control and input device follow plug and unplug, with the plug used here. The owner reports
+headphones with no microphone, the only set tried, so a headset plug is untested. The debounce
+values are the board's, not measured.
 
 Not established: a false EINT at the first power-up on a boot, telling a headset from
 headphones, the headset microphone, the buttons, and suspend. Nothing switches audio paths on
