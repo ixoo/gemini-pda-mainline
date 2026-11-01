@@ -477,3 +477,17 @@ Next, each within the protocol's budget, on channels the owner names:
 | Channel 11 passes with one or two attempts per frame | Lost frames were the problem; go on to channel 1 and active scan |
 | Frames still need most of 30 attempts | Check coexistence and the transmit power on 2.4 GHz |
 | Channel 40's throughput falls with the higher limit | Keep the limit for management and EAPOL only |
+
+### Result: channel 40 control for 0436 and 0437, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian, `mac` `6ecb54a7…`. Channel 11 and active scan did not run.
+
+Ping 10/10, reconnects 10/10 (5.71 s, then 1.24-1.33 s), receive 37.7 Mbit/s, every
+join frame `status=0 count=1`, `max # scan SSIDs: 4`, not tainted. Transmit read 0.5, 0.6
+and 9.5 Mbit/s. That hit the predeclared stop, under about 15 Mbit/s. The harness
+and spacing are newer than station 24's and not yet separated from the driver: `mac`
+`4218fbd8…`, with data at 3 attempts, read 1.3 and then 21.4 on a first use of it.
+
+[0438](../../patches/proposals/0438-wifi-mt6797-keep-data-at-three-transmit-attempts.patch) takes the predeclared fallback: 30 attempts for
+management and EAPOL, 3 for data. A same-harness run of `4218fbd8…` is requested as the
+control for that.
