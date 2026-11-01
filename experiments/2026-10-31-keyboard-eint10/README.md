@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-keyboard-eint10` |
-| Status | `completed`: station 19 boots in row-interrupt mode with correct keys, same-row sequences and idle I2C5 at 0 a second; station 20 adds 0385 for ghost rectangles; the experiment-only 0375, 0379 and 0380 are removed and wait for the next station build |
+| Status | `completed`: station 19 boots in row-interrupt mode with correct keys, same-row sequences and idle I2C5 at 0 a second; station 20 adds 0385 for ghost rectangles; the experiment-only 0375, 0379 and 0380 are removed, confirmed on station 24 |
 | Subsystem | input: `gpio-matrix-keypad` row interrupts through `pinctrl-aw9523` and MT6797 EINT10 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -548,3 +548,13 @@ the three, apply to the station tree in order. `matrix_keypad.o`,
 config. No Buildbox build or boot yet: the change rides in the next station
 build. That build passes if typing works from boot and the idle I2C5 rate
 stays at 0.
+
+**Station 24, boot `46c10546`.** Built at `6fea0382`, with the cleanup
+`c0758ae6` and the clean Wi-Fi series 0390–0394. The device session recorded
+the run in the [station record](../2026-10-30-mainline-dev-station/README.md).
+- No `row interrupt mode` line.
+- The `poll_override`, `trace_scans` and `trace_irq` parameters are absent.
+- Over 20 s idle, `1-005b` stayed at 0 and the keyboard I2C count held at 173.
+- The owner confirmed typing works from boot.
+
+The cleanup passes.
