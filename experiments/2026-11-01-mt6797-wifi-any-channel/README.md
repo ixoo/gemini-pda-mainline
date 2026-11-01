@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: 0410's first device test failed for two identified reasons; fixes built, repeat requested from the custodian |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413); joining another channel waits for the owner's approval of the radio protocol below |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -119,3 +119,67 @@ step 3 tests 0413 directly.
 | Fewer BSSes on 5200 in the sweep than in the 500 ms scan | Raise the sweep dwell |
 | Join still ends with branch 9 after the `mac`-only reload | The analysis is wrong; read the notifier's inputs before any change |
 | Join fails only after idle scans, in some other way | Read the post-scan path |
+
+### Result: second test, boot `c08cf8d4` (2026-11-01)
+
+Run by the device custodian. Buildbox at a70416e3, package inventory
+`ee5fc0dd…`, `mac` `a2b6fd46…`, `Image.gz` `8ef83b55…`. Swapped with `rmmod mac`
+and `insmod`, with no full reload.
+
+| Step | Result |
+| --- | --- |
+| 1. Three full scans | Exit status 0 in 5.97, 5.30 and 5.30 s. 23, 24 and 22 BSSes: 2412 MHz 3, 2437 7-9, 2462 2, 5200 3, 5240 3, 5745 1, 5805 3 |
+| 2. Subset scans | 2412/2437/2462 in 0.48 s; 5200 in 0.55 s; both with frames. 5260/5500 in 0.33 s, nothing heard |
+| 3. Join after the scans | `COMPLETED` on 5200 MHz WPA2-PSK/CCMP, a lease, gateway 3/3. Ping 10/10 (8.5 ms average), ten reconnects 10/10. Receive 38 and 39, transmit 22 and 23 Mbit/s |
+| 4. Kernel log | No Oops, warning or call trace; no branch 9 or "submission stopped"; not tainted |
+
+The first decision row holds:
+- **Both fixes.** The full scan lists both bands, and a join after a `mac`-only
+  reload and idle scans completes, so both explanations in the analysis fit.
+- **The second firmware request.** The log has one line per scan, not one per
+  request. Still, in the US list the first request ends at channel 149, so
+  5805 MHz (channel 161) can only come from the second.
+- **Dwell.** The sweep found the same three BSSes on 5200 MHz each time, so
+  nothing shows it losing any. The subset counts can't compare dwells, because
+  `iw` lists the kernel's cached results.
+- **Throughput.** Receive here is at the low end of the range since station 24
+  (37-47 Mbit/s), and the same module read 38 and 39 only; 0410's run read 43
+  and 45. These few samples do not separate that from the air.
+
+Not shown:
+- reception on a DFS channel: nothing was heard on any, and whether an access
+  point is there is unknown;
+- that no frame was transmitted during the scans, since nothing measures the air;
+- a hidden network, since these scans send no probes.
+
+## Proposed radio protocol (awaiting the owner)
+
+Everything so far transmits only on channel 40. This is the protocol for
+transmitting elsewhere. Nothing below runs before the owner approves it.
+
+Scope, in order, each stage on its own driver patch and hypothesis:
+1. **Join on another 5 GHz channel**, non-DFS (36-48 or 149-165), on the owner's
+   own access point: 20 MHz, then HT40.
+2. **Join on 2.4 GHz** channels 1, 6 and 11, on the owner's own access point or
+   phone hotspot, 20 MHz only.
+3. **Active scan:** probe requests on channels cfg80211 marks usable, naming only
+   the requested SSIDs. DFS and other no-IR channels stay passive.
+
+Limits:
+- **Networks.** Only access points the owner names. Others are heard in scans
+  and never contacted.
+- **Country.** US, the station's setting. Channels and power come from
+  `regulatory.db` through cfg80211; 12 and 13 stay disabled. The driver has
+  no way to raise them.
+- **Power.** The firmware's existing limits with the device's own calibration
+  record, as on channel 40. Output is not measured by any instrument here.
+- **Excluded.** Joining a DFS channel, access-point mode, monitor mode and
+  injection, which each need their own approval.
+- **Budget per channel.** One join, DHCP, a gateway ping, ten reconnects and a
+  60 s transfer each way. Active scan: at most ten scans in a session.
+- **Stop conditions.** Those of [safety](../../docs/SAFETY.md#stop-conditions),
+  plus any firmware fault or a join that fails twice: stop, recover with a full
+  module reload, and read the log before any retry.
+
+Known limit: an access point advertising a country other than US still ends
+the lifetime until a module reload, so test access points should advertise US.
