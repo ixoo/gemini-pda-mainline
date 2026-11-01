@@ -615,3 +615,22 @@ Next, compile-checked only, predeclared:
 | --- | --- |
 | Restart works | Phase 4's recovery is started; count 20 forced faults later |
 | Restart fails: CONSYS will not stop or start cleanly, or the attach fails | Stop, read the log; reboot if needed. Keep the reload as the manual path |
+
+### Result: the stall with reorder counters, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian on channel 40, `mac` `72e50e13…`, -61 dBm.
+
+| Run | Before | Throughput per 10 s, Mbit/s | Ping avg, ms | Reorder, TID 0 |
+| --- | --- | --- | --- | --- |
+| 1. Transmit 60 s | Reconnect, 30 s idle | 22.0 22.3 22.2 22.4 22.1 21.9 | 29.5 | No holes, expiries or frames behind |
+| 2. Transmit 60 s | 10 s receive at 41.9 | 0.6 0.5 2.3 22.1 22.0 21.8 | 54.7 | 14 behind |
+| 3. Receive 60 s | 10 s receive at 37.4 | 46.7 50.6 49.8 45.6 43.5 42.2 | 86.2 | 568 behind |
+| Transmit 60 s | 70 s receive, then 30 s idle | 21.5 21.6 21.6 21.7 21.9 21.7 | 29.3 | Not read |
+
+The reorder hypothesis is rejected: no holes or expiries in any run. The stall itself is
+real but varies: about 25 s here, over 60 s in the earlier run, with receive rates of 42 and
+19 Mbit/s before them. A 30 s idle cured it on the one sample. Whether the laptop's own TCP,
+the air or this driver causes it is not separated.
+
+Run 3's disconnect closed the lifetime with `status=-5`, branch 2, as in the
+table above: the fourth such closure after heavy traffic.
