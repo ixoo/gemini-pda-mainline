@@ -138,6 +138,23 @@ The single channel only matters when joining a different network.
 
    After that, one boot against an access point that rekeys on a short
    interval.
+   Offline answers, 2026-11-01, from the same public source
+   ([`privacy.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/mgmt/privacy.c),
+   [`wlan_oid.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/59e00a9144d782e148332009a835b99c43382467/drivers/misc/mediatek/connectivity/wlan/gen3/common/wlan_oid.c)).
+   Not tested:
+   - **WLAN index.** `secPrivacySeekForBcEntry` gives each group key id its
+     own entry. It reuses a non-pairwise entry for that BSS and peer whose key
+     id matches or is still unset, and otherwise takes the first free entry. So
+     a rekey from id 1 to id 2 needs a second entry, not an overwrite of the
+     current one. The receive path's single broadcast index (2) and its checks
+     on it have to learn the second entry.
+   - **Key command.** The group key's `CMD_802_11_KEY` has `ucTxKey` 0,
+     `ucKeyType` 0, `ucKeyId`, that `ucWlanIndex`, and the access point's address
+     in `aucPeerAddr`.
+
+   The device test needs an access point that rekeys on a short interval. The
+   owner's router settings can't be changed, so that needs another `hostapd`.
+
 3. **Channel and band reach.** Scan, join and every receive status are
    pinned to channel 40 (5200 MHz), the owner's access point, so the
    station cannot join elsewhere. A multi-channel scan and a per-join

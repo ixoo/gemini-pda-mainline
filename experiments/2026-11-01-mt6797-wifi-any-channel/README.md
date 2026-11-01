@@ -306,8 +306,8 @@ as before.
 | As before | Go to a 2.4 GHz channel the owner names |
 | Grant refused or join fails | Stop, read the log, compare with 0414's commands |
 
-**A 2.4 GHz channel**, within the protocol's budget, on an access point the owner
-names. Hypothesis: `grant: channel=N sco=0`, `COMPLETED`, a lease, gateway ping,
+**A 2.4 GHz channel**, within the protocol's budget, on channel 6 of the owner's
+network, as the owner named on 2026-11-01. Hypothesis: `grant: channel=N sco=0`, `COMPLETED`, a lease, gateway ping,
 ten reconnects, 60 s transfer each way.
 
 | Observation | Decision |
