@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 1 Nov 2026 10:28:05 -0500
+Date: Sun, 1 Nov 2026 10:29:04 -0500
 Subject: [PATCH] wifi: mt6797: log the receive reorder counters
 
 After a receive transfer, transmit on channel 40 stayed near 3 Mbit/s for
@@ -11,9 +11,9 @@ duplicates and frames behind the window when a data phase ends.
 Part of the Wi-Fi daily-use plan, phase 3.
 ---
  drivers/net/wireless/mediatek/mt6797/data.c     |  3 +++
- drivers/net/wireless/mediatek/mt6797/join.c     | 13 +++++++++++++
+ drivers/net/wireless/mediatek/mt6797/join.c     | 16 +++++++++++++++-
  drivers/net/wireless/mediatek/mt6797/mac-priv.h |  2 +-
- 3 files changed, 17 insertions(+), 1 deletion(-)
+ 3 files changed, 19 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
 index 464f46b0f..69fbed681 100644
@@ -39,20 +39,24 @@ index 464f46b0f..69fbed681 100644
  	case MT6797_RX_REORDER_NOW:
  		ret = mt6797_ccmp_deliver_rx(mac, bytes, received);
 diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
-index 4ee84a183..55b89492f 100644
+index 4ee84a183..e83221d17 100644
 --- a/drivers/net/wireless/mediatek/mt6797/join.c
 +++ b/drivers/net/wireless/mediatek/mt6797/join.c
-@@ -737,6 +737,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+@@ -735,8 +735,12 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	{
+ 		unsigned int tid;
  
- 		for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
+-		for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
++		for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++) {
  			mac->rx_reorder[tid].holes = 0;
 +			mac->rx_reorder[tid].expiries = 0;
 +			mac->rx_reorder[tid].duplicates = 0;
 +			mac->rx_reorder[tid].behind = 0;
++		}
  	}
  	mac->join_tx_allowed = 0;
  	mac->join_rx_allowed = 0;
-@@ -1649,7 +1652,17 @@ void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+@@ -1649,7 +1653,17 @@ void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
  		 mac->qos_rx_refused_qos, mac->join_data_llc_discarded);
  	{
  		struct mt6797_hif_rx_batch_stats batch;
