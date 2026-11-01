@@ -83,6 +83,9 @@ def main(parent, modules, tools, release, output):
     files['bin/flash-boot2'] = (FILE | 0o755, (src/'flash-boot2').read_bytes())
     for tool in ['lid-guard', 'power-status', 'charge-guard']:
         files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
+    # wireless-regdb's signed database, for cfg80211's country rules.
+    for name in ['regulatory.db', 'regulatory.db.p7s']:
+        files['lib/firmware/' + name] = (FILE | 0o644, (Path(tools)/name).read_bytes())
     mode, keymap = files['etc/gemini-us.bkeymap']
     files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))
     # The calibration record is linked from nvdata at boot, never carried.

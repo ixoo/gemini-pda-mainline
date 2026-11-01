@@ -67,4 +67,6 @@ $bb ln -sf /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
 for module in mt6797-wlan-core mt6797-consys mac; do
     if $bb insmod "/lib/modules/$($bb uname -r)/$module.ko"; then status "wifi=$module"; else status "wifi=$module-failed"; fi
 done
+# The owner's regulatory country; cfg80211 applies it from regulatory.db.
+if LD_LIBRARY_PATH=/lib /bin/iw reg set US; then status reg=US; else status reg=set-failed; fi
 exec $bb init

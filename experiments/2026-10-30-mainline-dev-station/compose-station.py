@@ -71,6 +71,7 @@ def main(package, parent, tools, output):
               'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
               'lid_guard_sha256': sha(Path(tools)/'lid-guard'),
               'power_status_sha256': sha(Path(tools)/'power-status'),
+              'regulatory_db_sha256': sha(Path(tools)/'regulatory.db'),
               'charge_guard_sha256': sha(Path(tools)/'charge-guard'),
               'initramfs_sha256': sha(ram), 'boot_img_bytes': len(raw), 'boot2_sha256': sha(padded)}
     (output/'station.json').write_text(json.dumps(record, indent=2) + '\n')

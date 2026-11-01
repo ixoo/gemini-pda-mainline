@@ -1,0 +1,263 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 06:30:12 -0500
+Subject: [PATCH] wifi: mt6797: advertise UNII-2A, UNII-2C and UNII-3
+
+The station advertised channels 1-13 and 36-48 only. Add 52-64,
+100-144 and 149-165, so that cfg80211's country rules cover the whole
+5 GHz range the firmware's domain command describes.
+
+The domain encoder now splits its ranges at operating-class boundaries
+(115, 118, 121, 125) as the vendor's domain table does, and lists DFS
+channels in the passive-scan domain instead of leaving them out. CID
+0x38 now carries a power limit for each of the four UNII groups, the
+minimum of the group's enabled channels.
+
+Scan and join stay pinned to channel 40; this changes what the driver
+tells the firmware and cfg80211, not where it transmits.
+
+Part of the Wi-Fi daily-use plan, phase 2.
+---
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |   6 +-
+ drivers/net/wireless/mediatek/mt6797/main.c   | 101 ++++++++++++------
+ 2 files changed, 73 insertions(+), 34 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index f67dd3fd1..d7cbd16f6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -24,7 +24,8 @@
+ 
+ #define MT6797_2G_CHANNELS 13U
+ 
+-#define MT6797_5G_CHANNELS 4U
++/* UNII-1 36-48, UNII-2A 52-64, UNII-2C 100-144 and UNII-3 149-165. */
++#define MT6797_5G_CHANNELS 25U
+ 
+ #define MT6797_CHANNELS (MT6797_2G_CHANNELS + MT6797_5G_CHANNELS)
+ 
+@@ -599,7 +600,8 @@ struct mt6797_mac {
+ 	bool join_inflight_data;
+ 
+ 	u64 scan_deadline;
+-	unsigned int scan_channels, scan_count, scan_polls, scan_packets;
++	u64 scan_channels;
++	unsigned int scan_count, scan_polls, scan_packets;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+ 	bool scan_beacon, scan_credit, scan_frame_seen;
+ 	u8 scan_packet[MT6797_HIF_RX_MAX_PACKET] __aligned(2);
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 535b1d516..b94f6d17a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -8,30 +8,56 @@
+ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 				   bool cancel);
+ 
+-/* Fixed 20 MHz set: channels 1-13 and non-DFS UNII-1 channels 36-48. */
++/* 20 MHz channels 1-13, then the 5 GHz channels of UNII-1 to UNII-3. */
++static const u8 mt6797_5g_channels[MT6797_5G_CHANNELS] = {
++	36, 40, 44, 48, 52, 56, 60, 64,
++	100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144,
++	149, 153, 157, 161, 165,
++};
++
+ static inline unsigned int mt6797_channel_number(unsigned int slot)
+ {
+ 	if (slot < MT6797_2G_CHANNELS)
+ 		return slot + 1;
+ 	if (slot < MT6797_CHANNELS)
+-		return 36 + 4 * (slot - MT6797_2G_CHANNELS);
++		return mt6797_5g_channels[slot - MT6797_2G_CHANNELS];
+ 	return 0;
+ }
+ 
+ static inline int mt6797_channel_slot(unsigned int channel)
+ {
++	unsigned int i;
++
+ 	if (channel >= 1 && channel <= MT6797_2G_CHANNELS)
+ 		return channel - 1;
+-	if (channel >= 36 && channel <= 48 && !(channel % 4))
+-		return MT6797_2G_CHANNELS + (channel - 36) / 4;
++	for (i = 0; i < MT6797_5G_CHANNELS; i++)
++		if (mt6797_5g_channels[i] == channel)
++			return MT6797_2G_CHANNELS + i;
+ 	return -1;
+ }
+ 
++/* The operating class (20 MHz) and the CID 0x38 UNII group of a channel. */
++static inline unsigned int mt6797_channel_class(unsigned int channel)
++{
++	return channel <= 14 ? 81 : channel <= 48 ? 115 : channel <= 64 ? 118 :
++	       channel <= 144 ? 121 : 125;
++}
++
++static inline unsigned int mt6797_channel_group(unsigned int channel)
++{
++	return mt6797_channel_class(channel) == 115 ? 0 :
++	       mt6797_channel_class(channel) == 118 ? 1 :
++	       mt6797_channel_class(channel) == 121 ? 2 : 3;
++}
++
++/* Up to six ranges of consecutive enabled channels, each within one
++ * operating class; the passive list keeps the NO_IR ones only.
++ */
+ static inline int
+ mt6797_regulatory_ranges(const struct mt6797_channel_limit *channels,
+ 			 bool passive, unsigned char *output)
+ {
+-	unsigned int i = 0, slot = 0, first, count;
++	unsigned int i = 0, slot = 0, first, count, number;
+ 	unsigned char *band;
+ 
+ 	while (i < MT6797_CHANNELS) {
+@@ -40,30 +66,33 @@ mt6797_regulatory_ranges(const struct mt6797_channel_limit *channels,
+ 			continue;
+ 		}
+ 		first = i++;
+-		while (i < MT6797_CHANNELS && i != MT6797_2G_CHANNELS &&
++		number = mt6797_channel_number(first);
++		while (i < MT6797_CHANNELS &&
+ 		       channels[i].enabled &&
+-		       (!passive || channels[i].no_ir))
++		       (!passive || channels[i].no_ir) &&
++		       mt6797_channel_class(mt6797_channel_number(i)) ==
++		       mt6797_channel_class(number) &&
++		       mt6797_channel_number(i) ==
++		       mt6797_channel_number(i - 1) + (first < MT6797_2G_CHANNELS ? 1 : 4))
+ 			i++;
+ 		count = i - first;
+ 		if (slot == 6)
+ 			return -E2BIG;
+ 		band = output + 4 + 8 * slot++;
+-		/* Source classes 81 (2.4 GHz) and 115 (non-DFS UNII-1). */
+-		band[0] = first < MT6797_2G_CHANNELS ? 81 : 115;
++		band[0] = mt6797_channel_class(number);
+ 		band[1] = first < MT6797_2G_CHANNELS ? 1 : 2;
+ 		band[2] = first < MT6797_2G_CHANNELS ? 1 : 4;
+-		band[3] = mt6797_channel_number(first);
++		band[3] = number;
+ 		band[4] = count;
+ 	}
+ 	return 0;
+ }
+ 
+ /* Source wire layouts: two 56-byte domains and CID 0x38's 32-byte control.
+- * Only the fixed 2.4 GHz and non-DFS UNII-1 20 MHz set is represented.
+- * Disabled channels are absent from
+- * both domain lists; their minimum power byte is not an RF-disable mechanism.
+- * NO_IR channels appear in the passive list as well as the ordinary list.
+- * A complete failed encoding returns a zero result and must gate all RF.
++ * Disabled channels are absent from both domain lists; their minimum power
++ * byte is not an RF-disable mechanism. NO_IR channels appear in the passive
++ * list as well as the ordinary list. A complete failed encoding returns a
++ * zero result and must gate all RF.
+  */
+ static inline int
+ mt6797_regulatory_encode(const struct mt6797_channel_limit *channels,
+@@ -72,7 +101,7 @@ mt6797_regulatory_encode(const struct mt6797_channel_limit *channels,
+ {
+ 	struct mt6797_regulatory_payloads built = {0};
+ 	unsigned int i;
+-	int error, power, unii1_power = 63;
++	int error, power, group, unii_power[4] = { 63, 63, 63, 63 };
+ 
+ 	if (!result)
+ 		return -EINVAL;
+@@ -101,17 +130,21 @@ mt6797_regulatory_encode(const struct mt6797_channel_limit *channels,
+ 		power = channels[i].max_power_dbm;
+ 		if (power < -32 || power > 31)
+ 			return -ERANGE;
+-		if (i < MT6797_2G_CHANNELS)
++		if (i < MT6797_2G_CHANNELS) {
+ 			built.power[12 + i] = (unsigned char)(2 * power);
+-		else if (2 * power < unii1_power)
+-			unii1_power = 2 * power;
++			continue;
++		}
++		group = mt6797_channel_group(mt6797_channel_number(i));
++		if (2 * power < unii_power[group])
++			unii_power[group] = 2 * power;
+ 	}
+-	/* CID 0x38 has one limit for all four UNII-1 channels, not per-channel
+-	 * 5 GHz limits. Use the minimum of enabled channels; retain -64 when
+-	 * none is enabled. The other three 5 GHz groups stay outside the domain.
++	/* CID 0x38 has one limit per UNII group, not per-channel 5 GHz limits.
++	 * Use the minimum of each group's enabled channels; retain -64 when
++	 * none is enabled.
+ 	 */
+-	if (unii1_power != 63)
+-		built.power[26] = (unsigned char)unii1_power;
++	for (group = 0; group < 4; group++)
++		if (unii_power[group] != 63)
++			built.power[26 + group] = (unsigned char)unii_power[group];
+ 
+ 	error = mt6797_regulatory_ranges(channels, true, built.passive);
+ 	if (!error)
+@@ -279,10 +312,11 @@ static int mt6797_mac_policy(struct mt6797_mac *mac,
+ 	ASSERT_RTNL();
+ 	for (i = 0; i < MT6797_CHANNELS; i++) {
+ 		channel = &mac->channels[i];
++		/* A DFS channel is listed for passive scanning only. */
+ 		limits[i].enabled = !(channel->flags &
+-			(IEEE80211_CHAN_DISABLED | IEEE80211_CHAN_NO_20MHZ |
+-			 IEEE80211_CHAN_RADAR));
+-		limits[i].no_ir = !!(channel->flags & IEEE80211_CHAN_NO_IR);
++			(IEEE80211_CHAN_DISABLED | IEEE80211_CHAN_NO_20MHZ));
++		limits[i].no_ir = !!(channel->flags &
++			(IEEE80211_CHAN_NO_IR | IEEE80211_CHAN_RADAR));
+ 		limits[i].max_power_dbm = channel->max_power;
+ 	}
+ 	return mt6797_regulatory_encode(limits, mac->alpha2, payloads);
+@@ -450,7 +484,7 @@ static bool mt6797_mac_finish_scan(struct mt6797_mac *mac, int *status,
+ 	mac->join_scan_ready = false;
+ 	if (!cancel && !*status && !mac->first_error) {
+ 		if (!mac->bss_active || mac->join_retired || mac->scan_count != 1 ||
+-		    mac->scan_channels != BIT(mt6797_channel_slot(40)) ||
++		    mac->scan_channels != BIT_ULL(mt6797_channel_slot(40)) ||
+ 		    !mt6797_hif_normal_idle(mac->hif)) {
+ 			*status = -EPROTO;
+ 			mac->first_error = *status;
+@@ -549,7 +583,7 @@ static int mt6797_mac_scan_packet(struct mt6797_mac *mac, size_t bytes,
+ 	if (ret)
+ 		return ret;
+ 	slot = mt6797_channel_slot(frame.channel);
+-	if (slot < 0 || !(mac->scan_channels & BIT(slot)))
++	if (slot < 0 || !(mac->scan_channels & BIT_ULL(slot)))
+ 		return -EPROTO;
+ 	channel = &mac->channels[slot];
+ 	if (channel->flags & (IEEE80211_CHAN_DISABLED |
+@@ -669,7 +703,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ {
+ 	struct mt6797_mac *mac = hw->priv;
+ 	struct ieee80211_channel *channel;
+-	unsigned int channels[MT6797_PASSIVE_SCAN_CHANNELS], mask = 0, i;
++	unsigned int channels[MT6797_PASSIVE_SCAN_CHANNELS], i;
++	u64 mask = 0;
+ 	u8 payload[MT6797_PASSIVE_SCAN_BYTES], bss[12];
+ 	u8 broadcast[4] = {8, 0, 0, 0};
+ 	int ret = -EOPNOTSUPP, slot;
+@@ -712,7 +747,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 				      IEEE80211_CHAN_NO_20MHZ | IEEE80211_CHAN_RADAR)))
+ 			goto out;
+ 		channels[i] = channel->hw_value;
+-		mask |= BIT(slot);
++		mask |= BIT_ULL(slot);
+ 	}
+ 	if (!mac->sequence_base)
+ 		mac->sequence_base = mac->sequence;
+@@ -1875,7 +1910,9 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 		mac->channels[i].max_power = 20;
+ 		mac->channels[i].flags = IEEE80211_CHAN_NO_HT40 |
+ 			IEEE80211_CHAN_NO_80MHZ | IEEE80211_CHAN_NO_160MHZ;
+-		/* 5 GHz pairs 36/40 and 44/48 (0323); 2.4 GHz stays 20 MHz. */
++		/* 5 GHz pairs 36/40, 44/48 and so on (0323); 2.4 GHz stays
++		 * 20 MHz. cfg80211 refuses a pair whose partner is missing.
++		 */
+ 		if (i >= MT6797_2G_CHANNELS)
+ 			mac->channels[i].flags ^= (i - MT6797_2G_CHANNELS) % 2 ?
+ 				IEEE80211_CHAN_NO_HT40MINUS : IEEE80211_CHAN_NO_HT40PLUS;
+-- 
+2.43.0
+
