@@ -1018,3 +1018,5 @@ proposals/0429-soc-mediatek-mt6797-consys-start-despite-stale-BTIF-.patch
 proposals/0430-wifi-mt6797-scan-while-connected.patch
 proposals/0431-soc-mediatek-mt6797-consys-read-firmware-messages-an.patch
 proposals/0432-gnss-mt6797-add-a-parameter-to-stop-after-GPS-functi.patch
+proposals/0433-wifi-mt6797-log-the-transmit-status-of-join-frames.patch
+proposals/0434-wifi-mt6797-survive-a-frame-the-air-lost.patch

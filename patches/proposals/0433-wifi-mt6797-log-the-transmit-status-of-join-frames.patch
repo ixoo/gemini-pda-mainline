@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:42:51 -0500
+Subject: [PATCH 433/434] wifi: mt6797: log the transmit status of join frames
+
+A failed 4-way handshake left no record of whether message 2 reached the
+access point. Log the status, attempt count and rate of the first
+sixteen non-data frames in each lifetime.
+
+Part of the Wi-Fi daily-use plan, phase 3.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c     | 10 ++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h |  2 +-
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 2692e1653..86f11fb0c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -680,6 +680,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_eapol_refused = 0;
+ 	mac->ccmp_rx_refused = 0;
+ 	mac->join_eapol_tx = 0;
++	mac->join_tx_status_logged = 0;
+ 	mac->join_data_llc_discarded = 0;
+ 	mac->join_absence_events = 0;
+ 	mac->join_absence_outside = 0;
+@@ -2477,6 +2478,15 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				}
+ 				ack = result.status == 0;
+ 				mac->join_last_acked = ack;
++				/* Handshake and management frames, for the record. */
++				if (!mac->join_inflight_data &&
++				    mac->join_tx_status_logged < 16) {
++					mac->join_tx_status_logged++;
++					dev_info(wiphy_dev(mac->hw->wiphy),
++						 "one-shot WLAN join TX status: pid=%u fc=0x%04x status=%u count=%u rate=0x%04x\n",
++						 mac->join_pid, get_unaligned_le16(completed->data),
++						 result.status, result.count, result.rate);
++				}
+ 				if (completed_internal) {
+ 					mac->join_deauth_done = ack;
+ 					mac->join_deauth_status_valid = true;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 89ee8f52c..5da2244e1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -540,7 +540,7 @@ struct mt6797_mac {
+ 	unsigned int join_absence_events, join_absence_outside;
+ 	unsigned int join_absence_unexpected;
+ 	/* Phase C1: bounded observation of the AP's first clear EAPOL frames. */
+-	unsigned int join_eapol_seen, join_eapol_tx;
++	unsigned int join_eapol_seen, join_eapol_tx, join_tx_status_logged;
+ 	unsigned int join_eapol_trace; /* bounded metadata-only pre-key observation */
+ 	unsigned int join_eapol_refused; /* refused pre-key frames, their own bound */
+ 	unsigned int ccmp_rx_refused; /* data frames both receive checks refused */
+-- 
+2.43.0
+

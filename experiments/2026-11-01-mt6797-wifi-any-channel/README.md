@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-any-channel` |
-| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channels 40 and 161 with data both ways; 0420 and 0423 pass their channel 40 control, and channel 6 and active scan are requested |
+| Status | `running`: multi-channel passive scan passes (0410, 0412, 0413). The owner approved the radio protocol on 2026-11-01. 0414 joins channels 40 and 161 with data both ways. The first 2.4 GHz join (channel 6) failed in the 4-way handshake; active scan and 0430 have not run |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -384,3 +384,53 @@ The first decision row holds. The reconnect scans' `channels=6` confirms that
 
 Stage 3's test script prints no names: one passive baseline, two wildcard and two named
 scans, so five scans plus one join and one reconnect, inside the budget of ten.
+
+### Result: channel 6, boot `4ac95e75` (2026-11-01)
+
+Run by the device custodian, on the 0423 modules, one attempt within the budget. Part B,
+active scan, did not run.
+
+| Check | Result |
+| --- | --- |
+| Scan, grant, join | One-channel passive scan, `join grant: channel=6 sco=0`, authentication and association status 0 |
+| Handshake | Failed. EAPOL message 1 arrived four times about 1 s apart, then the access point deauthenticated with reason 15 (4-way handshake timeout) |
+| Stop | `join stopped: status=-67` (`-ENOLINK`) 24 ms after that deauthentication; later scans refused until a full reload |
+| Kernel log | No Oops, warning or call trace; not tainted. Temperatures unremarkable |
+| Back on channel 40 | After a full reload: `COMPLETED`, a lease, gateway 5/5 |
+
+The decision table's row "association passes, handshake or data fails" applies.
+
+Analysis, from the log and source:
+- 2.4 GHz scan, grant, authentication, association and receive all work. So do the
+  firmware's band and record changes, as far as association.
+- Before 0434, an unacknowledged EAPOL frame ended the lifetime at once with `-ENOLINK`.
+  That came only after the deauthentication, so any message 2 the driver submitted was
+  acknowledged. Either the driver never submitted one, or the access point heard it and
+  rejected it. A message 2 with a wrong MIC gives exactly this pattern. The same key
+  works on channels 40 and 161, but those are other access points.
+- The log has no line for message 2 at all. [0433](../../patches/proposals/0433-wifi-mt6797-log-the-transmit-status-of-join-frames.patch)
+  adds its status, attempts and rate.
+- [0434](../../patches/proposals/0434-wifi-mt6797-survive-a-frame-the-air-lost.patch)
+  stops a lost frame from ending the lifetime, the cause of the `-ENOLINK` here.
+
+Next: one join on a channel the owner names, with 0433 and 0434 loaded.
+
+| Observation | Decision |
+| --- | --- |
+| Another 2.4 GHz access point joins | The band works; the channel 6 access point differs. Ask the owner about its settings |
+| Message 2 logged with status 0, and the same failure | The firmware's frame or the access point's check. Compare the frame with channel 40's, by capture if possible |
+| Message 2 logged unacknowledged | Radio or rate on 2.4 GHz after activation. Read the station and BSS records against the vendor's |
+| No message 2 logged | The supplicant or the driver's EAPOL admission. Read the admission path |
+
+### Separate finding: a lost deauthentication closes the lifetime
+
+On channel 40 on the same boot, stopping `wpa_supplicant` after 163 s and 64246 transmitted
+frames gave `deauth completion missing: pid=127`, then `join stopped: status=-110
+... debt=2 branch=8`. Scans then failed with `-EOPNOTSUPP` until a full reload.
+The missing completion has a retire path by design. Something later in the
+cleanup returned `-ETIMEDOUT` in the same pass. Not understood and not fixed. Which
+command failed and whether the firmware had stopped responding remain open. It has been
+seen once. Recovery without a reload belongs to phase 4.
+
+The driver's scan refusal after a closed lifetime reads as "unsupported" (`-95`). It
+means the lifetime is closed.
