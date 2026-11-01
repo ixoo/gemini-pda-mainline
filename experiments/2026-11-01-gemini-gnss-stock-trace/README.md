@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restore pending; no further start admitted |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restored; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -430,7 +430,7 @@ when the device left Wi-Fi.
 ### Result (2026-11-01)
 
 Boot `4252396b`, run by the custodian, device stationary outdoors and cooling through the run. Evidence is private under `artifacts/gemian-4252396b/gnss-step5/`. One start, gate passed, ran the full window, stopped by the
-script's service stop, with no fault, crash, or connection seen. The custodian's restore waits for the device to return. The owner said the position is about right, which is the only independent check of it, and it is not recorded here.
+script's service stop, with no fault, crash, or connection seen. After the device returned, the custodian removed the two files and restarted `mnld`; the wake lock was released and the other files in the directory kept their sizes. The owner said the position is about right, which is the only independent check of it, and it is not recorded here.
 
 **Observed:**
 - **First fix at 158 s,** with assistance off and saved state from earlier runs in place. All 45843 DSP frames pass the checksum, and all 28038 NMEA sentences checked pass theirs.
