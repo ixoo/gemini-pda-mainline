@@ -992,3 +992,6 @@ proposals/0403-ASoC-mt6797-keep-the-ADDA-hires-rate-in-NEWIF-CFG2.patch
 proposals/0404-ASoC-mt6797-clock-the-ADDA-path-for-96-kHz-and-above.patch
 proposals/0405-wifi-mt6797-ignore-regulatory-updates-that-change-no.patch
 proposals/0406-wifi-mt6797-survive-a-lost-handshake-frame.patch
+proposals/0407-ASoC-mt6797-bind-the-Gemini-speaker-amplifiers-to-th.patch
+proposals/0408-pmdomain-mediatek-describe-the-MT6797-AUDIO-domain.patch
+proposals/0409-arm64-dts-mediatek-gemini-power-the-AFE-from-the-AUD.patch

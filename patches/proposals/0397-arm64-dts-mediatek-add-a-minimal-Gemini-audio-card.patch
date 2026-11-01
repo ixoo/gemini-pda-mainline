@@ -37,17 +37,17 @@ diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/medi
 index ab0b8f6..d4c96a7 100644
 --- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
 +++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
-@@ -394,6 +394,10 @@
- 			rtc {
- 				compatible = "mediatek,mt6351-rtc";
+@@ -391,6 +391,10 @@
+ 				compatible = "mediatek,mt6351-regulator";
  			};
-+
+ 
 +			mt6351_snd: audio-codec {
 +				compatible = "mediatek,mt6351-sound";
 +			};
- 		};
- 	};
- 
++
+ 			rtc {
+ 				compatible = "mediatek,mt6351-rtc";
+ 			};
 -- 
 2.54.0 (Apple Git-157)
 

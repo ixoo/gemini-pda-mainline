@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 07:16:14 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: power the AFE from the AUDIO
+ domain
+
+The station kernel uses the power-controller child, not the legacy SCPSYS
+driver, so the dtsi reference to the SCPSYS node has no provider and the
+AFE would defer forever. Register AUDIO on the child and point the AFE at
+it.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 668f29b..06c1ddb 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -24,6 +24,11 @@
+ 		#power-domain-cells = <1>;
+ 		access-controllers = <&infrasys>;
+ 
++		power-domain@4 {
++			reg = <MT6797_POWER_DOMAIN_AUDIO>;
++			#power-domain-cells = <0>;
++		};
++
+ 		power-domain@c {
+ 			reg = <MT6797_POWER_DOMAIN_CONN>;
+ 			#power-domain-cells = <0>;
+@@ -654,6 +659,7 @@
+ };
+ 
+ &afe {
++	power-domains = <&conn_power MT6797_POWER_DOMAIN_AUDIO>;
+ 	status = "okay";
+ };
+ 

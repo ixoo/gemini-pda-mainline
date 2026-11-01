@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 07:16:14 -0500
+Subject: [PATCH] ASoC: mt6797: bind the Gemini speaker amplifiers to the card
+
+The Gemini audio routes name the two AW8736 amplifiers, but nothing adds
+them to the card. Their components never join it, so their widgets do not
+exist, snd_soc_dapm_add_routes() returns -ENODEV for "Speaker Amp L IN"
+and the card fails to bind, taking headphones and microphones with it.
+
+Parse an audio-aux-devs property, as other ASoC cards do, and list both
+amplifiers in the Gemini card.
+---
+ Documentation/devicetree/bindings/sound/mt6797-mt6351.txt | 1 +
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts        | 2 ++
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c                 | 6 ++++++
+ 3 files changed, 9 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt b/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt
+index 5444420..4e79c1a 100644
+--- a/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt
++++ b/Documentation/devicetree/bindings/sound/mt6797-mt6351.txt
+@@ -5,6 +5,7 @@ Required properties:
+ - mediatek,platform: the phandle of MT6797 ASoC platform
+ - mediatek,audio-codec: the phandles of MT6351 codec
+ - audio-routing: optional card-level DAPM routes
++- audio-aux-devs: optional phandles of amplifiers named in audio-routing
+ 
+ Example:
+ 
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 3d2e9ef..668f29b 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -55,6 +55,8 @@
+ 			"AIN0", "Main Mic",
+ 			"AIN1", "Headset Mic",
+ 			"AIN2", "Back Mic";
++
++		audio-aux-devs = <&speaker_amp_left>, <&speaker_amp_right>;
+ 	};
+ 
+ 	chosen {
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index db3b325..a904398 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -242,6 +242,12 @@ static int mt6797_mt6351_dev_probe(struct platform_device *pdev)
+ 		goto put_codec_node;
+ 	}
+ 
++	ret = snd_soc_of_parse_aux_devs(card, "audio-aux-devs");
++	if (ret) {
++		dev_err(&pdev->dev, "failed to parse audio-aux-devs: %d\n", ret);
++		goto put_codec_node;
++	}
++
+ 	ret = devm_snd_soc_register_card(&pdev->dev, card);
+ 	if (ret)
+ 		dev_err(&pdev->dev, "%s snd_soc_register_card fail %d\n",

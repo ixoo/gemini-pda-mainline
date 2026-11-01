@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 1 Nov 2026 07:16:14 -0500
+Subject: [PATCH] pmdomain: mediatek: describe the MT6797 AUDIO domain
+
+The MT6797 power-controller child registers only the CONN domain, so an
+audio front end that needs AUDIO waits forever. Add the domain with the
+control register, status bit and SRAM bits the legacy mtk-scpsys driver
+already uses for it.
+
+KEEP_DEFAULT_OFF leaves it untouched at probe. It is only sequenced when
+a consumer resumes.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+index b6f4d5f..d11767a 100644
+--- a/drivers/pmdomain/mediatek/mt6797-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -7,6 +7,8 @@
+ #include <dt-bindings/power/mt6797-power.h>
+ 
+ #define MT6797_SPM_POWERON_CONFIG	0x0b160001
++#define MT6797_SPM_AUDIO_PWR_CON	0x314
++#define MT6797_PWR_STATUS_AUDIO		BIT(24)
+ #define MT6797_SPM_CONN_PWR_CON		0x32c
+ #define MT6797_SPM_PWR_STATUS		0x180
+ #define MT6797_SPM_PWR_STATUS_2ND	0x184
+@@ -17,6 +19,17 @@ static enum scpsys_bus_prot_block scpsys_bus_prot_blocks_mt6797[] = {
+ };
+ 
+ static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
++	[MT6797_POWER_DOMAIN_AUDIO] = {
++		.name = "audio",
++		.sta_mask = MT6797_PWR_STATUS_AUDIO,
++		.ctl_offs = MT6797_SPM_AUDIO_PWR_CON,
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.sram_pdn_bits = GENMASK(11, 8),
++		.sram_pdn_ack_bits = GENMASK(15, 12),
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF,
++	},
+ 	[MT6797_POWER_DOMAIN_CONN] = {
+ 		.name = "conn",
+ 		.sta_mask = PWR_STATUS_CONN,

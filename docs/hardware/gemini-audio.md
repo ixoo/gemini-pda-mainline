@@ -357,6 +357,12 @@ pinmux states (commit `9cf7001f`). It has not been booted or probed. The first
 validation target is 48 kHz; headset-jack and physical amplifier confirmation
 remain.
 
+That candidate could not bind its card and cannot run on the station. Proposals
+`0407`-`0409` bind the amplifiers and give the station an AUDIO domain, and the
+station carries the audio stack as unloaded modules. See
+[first audio on the station](../../experiments/2026-11-01-gemini-audio-station/README.md).
+Nothing here has been booted.
+
 ## 6. Offline review results
 
 | Open point | Offline result |
