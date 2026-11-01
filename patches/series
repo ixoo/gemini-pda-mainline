@@ -1005,3 +1005,4 @@ proposals/0416-ASoC-mt6351-report-the-jack-from-the-ACCDET-EINT.patch
 proposals/0417-ASoC-mt6797-expose-the-MT6351-headphone-jack.patch
 proposals/0418-soc-mediatek-mt6797-consys-run-the-STP-link-for-task.patch
 proposals/0419-gnss-add-the-MT6797-CONSYS-receiver-link-only.patch
+proposals/0420-wifi-mt6797-join-2.4-GHz-channels-at-20-MHz.patch

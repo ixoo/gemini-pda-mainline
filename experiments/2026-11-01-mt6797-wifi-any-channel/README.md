@@ -283,3 +283,36 @@ first time, in the other UNII group, and carried data both ways.
 
 Not tested: a secondary channel above (`sco=1`), channel 149 or 48, 2.4 GHz, and
 a join with no frequency pin that picks among access points of one name.
+
+## Stage 2: join on 2.4 GHz
+
+[0420](../../patches/proposals/0420-wifi-mt6797-join-2.4-GHz-channels-at-20-MHz.patch) admits 2.4 GHz channels at 20 MHz. Channel
+and BSS records carry the band, the records carry the ERP PHY type, and the CCK
+rates map to the firmware's own positions, following the public vendor source.
+`mac` still refuses no-IR and radar channels.
+
+Limits by design: every frame goes at OFDM 6 Mbit/s or the fixed MCS 5, so an
+802.11b network is refused. ERP protection stays off, so a transfer beside 802.11b
+stations may suffer. Receive and data descriptor gates were read against 5 GHz
+frames only; a 2.4 GHz frame may need changes there.
+
+**Control on channel 40**, no new channel, since the budget allows no
+repeat on 161.
+Hypothesis: `grant: channel=40 sco=3`, with join, ten reconnects and throughput
+as before.
+
+| Observation | Decision |
+| --- | --- |
+| As before | Go to a 2.4 GHz channel the owner names |
+| Grant refused or join fails | Stop, read the log, compare with 0414's commands |
+
+**A 2.4 GHz channel**, within the protocol's budget, on an access point the owner
+names. Hypothesis: `grant: channel=N sco=0`, `COMPLETED`, a lease, gateway ping,
+ten reconnects, 60 s transfer each way.
+
+| Observation | Decision |
+| --- | --- |
+| All pass | Stage 2 passes on that channel; try the others in the protocol |
+| The firmware refuses the grant or the join | Stop. Compare with the firmware's domain list and the records |
+| Association passes, handshake or data fails | Stop. Read the receive refusal lines for what differs on 2.4 GHz |
+| Works with poor throughput | Record it. Check the rate first: the fixed rate may not suit the access point |
