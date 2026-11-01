@@ -905,3 +905,18 @@ should run while the lid is closed, and the interrupt should be masked.
   fires once, and that row stays masked in the AW9523.
 - With the lid closed, the keyboard is inhibited, its scan stopped and its
   interrupts masked. On open, it is restored. 0387 and 0388 stay.
+
+## Clean Wi-Fi series and keyboard cleanup (station 24)
+
+Built at 6fea0382: the Wi-Fi patches replaced by the clean series
+0390-0394 ([experiment](../2026-10-31-mt6797-wifi-clean-driver/README.md#result-station-24-boot-46c10546-2026-11-01)),
+and the keyboard cleanup c0758ae6 (0375, 0379 and 0380 dropped). The
+station profile now merges its own Wi-Fi fragment,
+`configs/gemini-a53-station-wifi.fragment`, without the retired driver
+options. boot2 `f7761f02…`, boot `46c10546`.
+
+Keyboard, from the first SSH session: `gemini-lid` loaded; no
+"row interrupt mode" line, and the `poll_override`, `trace_scans` and
+`trace_irq` parameters are absent. Over 20 s idle, EINT10 stayed at 0
+and the keyboard's I2C bus (`1101c000.i2c`) stayed at 173 interrupts.
+Typing from boot awaits the owner's report.

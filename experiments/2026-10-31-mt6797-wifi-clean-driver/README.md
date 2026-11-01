@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-31-mt6797-wifi-clean-driver` |
-| Status | `running`: checkpoint 0389 passed on the device by module swap; the clean series 0390-0394 replaces the station's Wi-Fi patches and awaits its device test |
+| Status | `running`: the clean series 0390-0394 passed on station 24; the station 9 hold and reconnect counts remain |
 | Subsystem | Wi-Fi: `mt6797-consys`, `mt6797-wlan-core`, `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-10-31 |
@@ -195,9 +195,34 @@ module swap if the package's `Image.gz` matches station 23's, with
 | Join or data fails | Bisect the post-0389 steps in the dev VM by diff, then rebuild |
 | `Image.gz` differs from station 23's | Boot a new station image instead of swapping modules |
 
+### Result: station 24, boot `46c10546` (2026-11-01)
+
+The keyboard cleanup (c0758ae6) changes built-in code, so `Image.gz`
+(`0d4d6d74…`) differs from station 23's and the test ran on a booted
+image. Built on Buildbox at 6fea0382 (565 patches, package inventory
+`98dfb5e8…`), composed as boot2 `f7761f02…`, written by
+`flash-boot2` with a matching readback. Modules: `mac` `6a331fc3…`,
+CONSYS `832cfcdb…`, core `e4072f87…`. The CONSYS node carries none of the
+`one-shot-*` properties.
+
+| Step | Result |
+| --- | --- |
+| 1. `wifi-up.sh` | Common init `completed=285/285`; firmware ready; `mac` insmod 0; `COMPLETED` on 5200 MHz, WPA2-PSK/CCMP; a lease; gateway 3/3 |
+| 2. Gateway ping, 10 at 1 s | 10/10, 0 % loss, average 5.5 ms |
+| 3. Ten reconnects | 10/10 `COMPLETED` in 0.98-1.15 s, each answering a 2/2 gateway ping |
+| 4. Throughput, 10 s each | Receive 38 and 37 Mbit/s. Transmit 14, 19, 20, 22 and 20 Mbit/s; signal -67 dBm |
+| 5. `rate_control=1`, then a reconnect | `COMPLETED`, gateway 3/3; the transmit rate rose to MCS7 at 40 MHz; one transmit run gave 13 Mbit/s. Reset to 0 |
+| 6. Kernel log | No Oops, warning or call trace; not tainted |
+
+The first decision row holds. Receive matches 0389 (38-41) and the old
+station modules (40-45). Transmit after the first run (20-22) lies in
+the old modules' band (18-22), slightly below 0389's 22-23. The 14 Mbit/s
+first run and the single minstrel run are not separated from the air by
+these few samples. The start chain ran from the device tree without
+any staging property.
+
 ## Follow-up
 
 The rest of phase 1:
-- the device test of 0390-0394 (above);
 - the station 9 repeat: 26 reconnects and a 2.5 h hold;
 - the debug patch, if a measurement needs it.
