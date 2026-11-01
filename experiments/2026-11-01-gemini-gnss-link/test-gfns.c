@@ -105,6 +105,42 @@ int main(void)
 	assert(rx.bad == 1 && rx.used == 1);
 	assert(feed(nmea + 1, sizeof(nmea) - 1, &f, NULL) == 1);
 
-	puts("gfns: framing, channel, checksum, bounds, refusal and restart pass");
+	/* Transmit: the record's keep-alive bytes, and an empty frame. */
+	{
+		static const unsigned char counter[] = { 1, 2, 3, 4 };
+		unsigned char out[32], ack[GFNS_ACK_BYTES], utc[12];
+
+		assert(gfns_encode(out, sizeof(out), GFNS_REQ_KEEP_ALIVE, counter, 4) ==
+		       sizeof(keepalive));
+		assert(!memcmp(out, keepalive, sizeof(keepalive)));
+		assert(gfns_encode(out, sizeof(out), GFNS_REQ_MNL_INIT_CFG, NULL, 0) == 7);
+		assert(out[2] == 0x14 && out[5] == 0x14 && out[6] == 0xa3);
+		assert(gfns_encode(out, 6, GFNS_REQ_STOP, NULL, 0) == 0);
+
+		/* What we send, the parser accepts. */
+		gfns_rx_init(&rx);
+		assert(feed(out, 7, &f, NULL) == 1 && f.type == 0x14 && !f.length);
+
+		/* Received 0x12345 bytes: low 16 bits, then multiples of 0x10000. */
+		gfns_ack(ack, 0x12345, 7, 8, 9);
+		assert(gfns_get32(ack) == 0x2345 && gfns_get32(ack + 4) == 1);
+		assert(gfns_get32(ack + 8) == 7 && gfns_get32(ack + 12) == 8);
+		assert(gfns_get32(ack + 16) == 0 && gfns_get32(ack + 20) == 9);
+		assert(gfns_get32(ack + 24) == 0x10);
+
+		/* 1 November 2026, 13:05:09 UTC. */
+		gfns_utc(utc, 126, 10, 1, 13, 5, 9);
+		assert(utc[0] == 126 && utc[1] == 0 && utc[2] == 10 && utc[3] == 1);
+		assert(utc[4] == 13 && utc[5] == 5 && utc[6] == 9 && !utc[7] && !utc[11]);
+	}
+
+	/* Refused bytes are counted, and a start byte kept for the next frame is not. */
+	gfns_rx_init(&rx);
+	assert(feed(bad_sum, 6, &f, NULL) == 0 && rx.dropped == 6);
+	gfns_rx_init(&rx);
+	assert(feed((const unsigned char *)"\xa5\x00\x00\x00\x01\xa5", 6, &f, NULL) == 0);
+	assert(rx.dropped == 5 && rx.used == 1);
+
+	puts("gfns: framing, channel, checksum, bounds, refusal, restart and transmit pass");
 	return 0;
 }

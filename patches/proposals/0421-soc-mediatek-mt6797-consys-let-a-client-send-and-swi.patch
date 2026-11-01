@@ -1,0 +1,239 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 09:09:34 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: let a client send and switch
+ the GPS function
+
+The GNSS driver has to send GFNS frames and turn the WMT GPS function on
+and off, on the link it is attached to.
+
+Export a send for an attached task and a GPS function control. The
+command is 01 06 02 00 02 and the on or off byte, and the firmware
+answers 02 06 01 00 00. A missing answer stops the link, as the link's
+other timeouts do. Only the GPS function is reachable this way.
+---
+ drivers/soc/mediatek/mt6797-consys.c    | 118 +++++++++++++++++++++---
+ include/linux/soc/mediatek/mt6797-stp.h |   4 +
+ 2 files changed, 110 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 9ee86c964..1ca42e66b 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -35,6 +35,7 @@
+ #include <linux/string.h>
+ #include <linux/sysfs.h>
+ #include <linux/timer.h>
++#include <linux/wait.h>
+ #include <linux/workqueue.h>
+ #include <linux/soc/mediatek/mt6797-stp.h>
+ #include <linux/soc/mediatek/mtk-pm-domains.h>
+@@ -108,7 +109,10 @@ struct mt6797_stp {
+ 	int irq;
+ 	bool adopted, running, stopped, wmt_waiting;
+ 	struct timer_list tick;
++	wait_queue_head_t tx_wait;
+ 	struct completion wmt_done;
++	const unsigned char *wmt_expect;
++	unsigned int wmt_prefix;
+ 	unsigned char wmt_event[16], wmt_first[16];
+ 	unsigned int wmt_event_length, wmt_first_length, wmt_unsolicited;
+ };
+@@ -1680,12 +1684,18 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ #define MT6797_STP_TICK_MS 100U
+ #define MT6797_STP_RX_BUDGET 256U
+ #define MT6797_STP_DRAIN_MS 200U
++#define MT6797_STP_SEND_WAIT_MS 1000U
+ 
+ /* The answer to wmt_stp_full_query, before the options the firmware reports. */
+ static const unsigned char mt6797_stp_check_event[] = {
+ 	0x02, 0x04, 0x06, 0x00, 0x00, 0x04,
+ };
+ 
++/* WMT function control: the flag byte selects GPS, the last byte on or off. */
++static const unsigned char mt6797_stp_gps_on[] = { 0x01, 0x06, 0x02, 0x00, 0x02, 0x01 };
++static const unsigned char mt6797_stp_gps_off[] = { 0x01, 0x06, 0x02, 0x00, 0x02, 0x00 };
++static const unsigned char mt6797_stp_func_event[] = { 0x02, 0x06, 0x01, 0x00, 0x00 };
++
+ /* Lock held. TX-empty interrupt only while bytes wait for the FIFO. */
+ static void mt6797_stp_pump(struct mt6797_stp *s)
+ {
+@@ -1721,6 +1731,7 @@ static void mt6797_stp_stop_locked(struct mt6797_stp *s)
+ 		s->wmt_waiting = false;
+ 		complete(&s->wmt_done);
+ 	}
++	wake_up(&s->tx_wait);
+ 	pr_err("mt6797-consys: STP link stopped (%d)\n", s->engine.failed);
+ }
+ 
+@@ -1750,6 +1761,8 @@ static irqreturn_t mt6797_stp_irq(int irq, void *data)
+ 	mt6797_stp_pump(s);
+ 	if (s->engine.failed)
+ 		mt6797_stp_stop_locked(s);
++	else if (s->engine.count < STP_ENGINE_QUEUE)
++		wake_up(&s->tx_wait);
+ out:
+ 	spin_unlock_irqrestore(&s->lock, flags);
+ 	return ret;
+@@ -1778,8 +1791,8 @@ static int mt6797_stp_wmt_rx(void *context, const unsigned char *payload,
+ 	struct mt6797_stp *s = context;
+ 	unsigned int n = min_t(unsigned int, length, sizeof(s->wmt_event));
+ 
+-	if (s->wmt_waiting && length >= sizeof(mt6797_stp_check_event) &&
+-	    !memcmp(payload, mt6797_stp_check_event, sizeof(mt6797_stp_check_event))) {
++	if (s->wmt_waiting && length >= s->wmt_prefix &&
++	    !memcmp(payload, s->wmt_expect, s->wmt_prefix)) {
+ 		memcpy(s->wmt_event, payload, n);
+ 		s->wmt_event_length = length;
+ 		s->wmt_waiting = false;
+@@ -1793,21 +1806,24 @@ static int mt6797_stp_wmt_rx(void *context, const unsigned char *payload,
+ 	return 0;
+ }
+ 
+-/*
+- * The firmware's answer proves the link in both directions before any client
+- * relies on it. This query is the read the start chain already sent during
+- * negotiation; it changes no firmware state.
+- */
+-static int mt6797_stp_check(struct device *dev, struct mt6797_stp *s)
++/* One WMT command at a time, owner lock held. A timeout stops the link. */
++static int mt6797_stp_wmt(struct mt6797_stp *s, const unsigned char *command,
++			  unsigned int length, const unsigned char *expect, unsigned int prefix)
+ {
+ 	unsigned long flags;
+ 	int ret;
+ 
+ 	reinit_completion(&s->wmt_done);
+ 	spin_lock_irqsave(&s->lock, flags);
++	if (s->stopped) {
++		spin_unlock_irqrestore(&s->lock, flags);
++		return -EIO;
++	}
++	s->wmt_expect = expect;
++	s->wmt_prefix = prefix;
++	s->wmt_event_length = 0;
+ 	s->wmt_waiting = true;
+-	ret = stp_engine_queue_msg(&s->engine, STP_FULL_TASK_WMT, wmt_stp_full_query,
+-				   sizeof(wmt_stp_full_query));
++	ret = stp_engine_queue_msg(&s->engine, STP_FULL_TASK_WMT, command, length);
+ 	if (ret)
+ 		s->wmt_waiting = false;
+ 	else
+@@ -1825,10 +1841,24 @@ static int mt6797_stp_check(struct device *dev, struct mt6797_stp *s)
+ 		ret = -ETIMEDOUT;
+ 	} else if (s->stopped) {
+ 		ret = -EIO;
+-	} else if (s->wmt_event_length != sizeof(wmt_stp_full_options)) {
+-		ret = -EPROTO;
+ 	}
+ 	spin_unlock_irqrestore(&s->lock, flags);
++	return ret;
++}
++
++/*
++ * The firmware's answer proves the link in both directions before any client
++ * relies on it. This query is the read the start chain already sent during
++ * negotiation; it changes no firmware state.
++ */
++static int mt6797_stp_check(struct device *dev, struct mt6797_stp *s)
++{
++	int ret;
++
++	ret = mt6797_stp_wmt(s, wmt_stp_full_query, sizeof(wmt_stp_full_query),
++			     mt6797_stp_check_event, sizeof(mt6797_stp_check_event));
++	if (!ret && s->wmt_event_length != sizeof(wmt_stp_full_options))
++		ret = -EPROTO;
+ 	dev_info(dev, "STP link check: result=%d reply=%u bytes %*ph\n", ret,
+ 		 s->wmt_event_length,
+ 		 min_t(int, s->wmt_event_length, sizeof(s->wmt_event)), s->wmt_event);
+@@ -1846,6 +1876,7 @@ static int mt6797_stp_run(struct device *dev, struct mt6797_consys *owner)
+ 	if (!s->adopted) {
+ 		spin_lock_init(&s->lock);
+ 		init_completion(&s->wmt_done);
++		init_waitqueue_head(&s->tx_wait);
+ 		timer_setup(&s->tick, mt6797_stp_tick, 0);
+ 		s->btif = n->first.btif;
+ 		s->irq = n->first.irq;
+@@ -1973,6 +2004,69 @@ void mt6797_consys_stp_detach(unsigned int task)
+ }
+ EXPORT_SYMBOL_GPL(mt6797_consys_stp_detach);
+ 
++/* Process context, attached client. The firmware answers with five exact bytes. */
++int mt6797_consys_gps_function(bool on)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	struct mt6797_stp *s = &owner->stp;
++	int ret = -ENODEV;
++
++	mutex_lock(&mt6797_consys_lock);
++	if (s->running) {
++		ret = mt6797_stp_wmt(s, on ? mt6797_stp_gps_on : mt6797_stp_gps_off,
++				     sizeof(mt6797_stp_gps_on), mt6797_stp_func_event,
++				     sizeof(mt6797_stp_func_event));
++		if (!ret && s->wmt_event_length != sizeof(mt6797_stp_func_event))
++			ret = -EPROTO;
++		dev_info(owner->dev, "WMT GPS function %s: result=%d reply=%u bytes %*ph\n",
++			 on ? "on" : "off", ret, s->wmt_event_length,
++			 min_t(int, s->wmt_event_length, sizeof(s->wmt_event)), s->wmt_event);
++	}
++	mutex_unlock(&mt6797_consys_lock);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_gps_function);
++
++static bool mt6797_stp_has_room(struct mt6797_stp *s)
++{
++	unsigned long flags;
++	bool room;
++
++	spin_lock_irqsave(&s->lock, flags);
++	room = s->stopped || s->engine.count < STP_ENGINE_QUEUE;
++	spin_unlock_irqrestore(&s->lock, flags);
++	return room;
++}
++
++/* Process context, attached client. Waits for queue room; never resends. */
++int mt6797_consys_stp_send(unsigned int task, const u8 *data, unsigned int length)
++{
++	struct mt6797_stp *s = &mt6797_consys.stp;
++	unsigned long flags;
++	long left = msecs_to_jiffies(MT6797_STP_SEND_WAIT_MS);
++	int ret;
++
++	if (task != MT6797_STP_TASK_GPS)
++		return -EINVAL;
++	for (;;) {
++		spin_lock_irqsave(&s->lock, flags);
++		if (s->stopped) {
++			ret = -EIO;
++		} else {
++			ret = stp_engine_queue_msg(&s->engine, task, data, length);
++			if (!ret)
++				mt6797_stp_pump(s);
++		}
++		spin_unlock_irqrestore(&s->lock, flags);
++		if (ret != STP_ENGINE_ENOSPC)
++			return ret;
++		left = wait_event_timeout(s->tx_wait, mt6797_stp_has_room(s), left);
++		if (!left)
++			return -ETIMEDOUT;
++	}
++}
++EXPORT_SYMBOL_GPL(mt6797_consys_stp_send);
++
+ static void mt6797_consys_probe_power_on(struct device *dev, struct mt6797_consys *owner)
+ {
+ 	struct regmap *pmic;
+diff --git a/include/linux/soc/mediatek/mt6797-stp.h b/include/linux/soc/mediatek/mt6797-stp.h
+index 93b11918e..34bd204c2 100644
+--- a/include/linux/soc/mediatek/mt6797-stp.h
++++ b/include/linux/soc/mediatek/mt6797-stp.h
+@@ -17,4 +17,8 @@ int mt6797_consys_stp_attach(unsigned int task,
+ 			     void *context);
+ void mt6797_consys_stp_detach(unsigned int task);
+ 
++/* Process context, between attach and detach. */
++int mt6797_consys_stp_send(unsigned int task, const u8 *data, unsigned int length);
++int mt6797_consys_gps_function(bool on);
++
+ #endif

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T1 passed on station 30 (link only); the receiver has never been started; T2 is proposed and not admitted |
+| Status | `running`: T1 passed on station 30; T2 approved by the owner and admitted; stage A code written, not yet run, so the receiver has never been started |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -243,19 +243,26 @@ longest idle before an open was about 5 minutes.
 keep-alive matters at this traffic level; whether a physical LNA exists; whether
 Wi-Fi and GNSS tolerate each other without the vendor's de-sense packet.
 
-## Proposed T2: first receiver start (radio action, not admitted)
+## T2: first receiver start (radio action, admitted)
 
-Nothing below is in the code, and nothing runs until the owner approves it.
+The owner approved both stages below on 2026-11-01. This covers exactly these
+effects. Anything else, including a retry outside the stop rules, needs asking
+again. Stage A is
+[0421](../../patches/proposals/0421-soc-mediatek-mt6797-consys-let-a-client-send-and-swi.patch)
+and [0422](../../patches/proposals/0422-gnss-mt6797-turn-the-receiver-on-while-the-device-is.patch).
+Stage B has no code yet.
 
 **Hypothesis:** H1 of the [reverse-engineering
 record](../2026-11-01-gemini-gnss-re/README.md), with default configuration: type
 `0x0a` frames carrying NMEA text appear without an NV download.
 
-**Effects, on open of `/dev/gnss0`:** WMT GPS function-on (`01 06 02 00 02 01`,
-already used for other functions with its own flag byte); then `0x13`, zero-length
-`0x14`, `0x44` with bitmap 0 (delete nothing), `0x83` from the system clock, and
-`0x40`. The `0x7e` ACKs and `0x76` keep-alive follow as above. On close: `0x41`,
-then function-off.
+**Effects, on open of `/dev/gnss0`:** the T1 link check; WMT GPS function-on
+(`01 06 02 00 02 01`, the opcode other functions use with their own flag byte);
+then `0x13`, zero-length `0x14`, `0x44` with bitmap 0 (delete nothing), `0x83` from
+the system clock, and `0x40`. The `0x7e` ACKs and `0x76` keep-alive follow as
+above. On close: `0x41`, 100 ms, function-off, then the link halts.
+
+The vendor's NV download open is left out on purpose; that is what H1 tests.
 
 **Not used:** no firmware file beyond what every start loads; no calibration read
 or written, including `ML4A_000` and NVRAM; no EPO, SUPL or network; NV requests
@@ -277,6 +284,20 @@ stays on as the owner's access point allows, with no new channel or transmit pow
 | Frames, but only NV requests (`0x40`-`0x49`) | The engine waits for NV: H1 is refuted; design the NV exchange offline |
 | Function-on answers, then silence | Check the default-config path offline; no blind retries |
 | Function-on refused or timed out | Stop; function-off; CONSYS reload |
+
+Stage A commands, with the modules from the package loaded after Wi-Fi is up. The
+output file is location-capable, so it stays under private `artifacts/`:
+
+```sh
+timeout 300 cat /dev/gnss0 > gnss-a1.txt          # wlan0 idle
+dmesg | grep -E 'STP link|WMT GPS|GFNS type|closed:|mt6797-gnss'
+# then the same with a ping through wlan0 running, to gnss-a2.txt
+rmmod gnss-mt6797
+```
+
+Finish with one CONSYS and `mac` reload and a gateway ping. Publishable from the
+files: byte counts, sentence names and their counts, and how many lines do not
+start with `$`.
 
 **Stop rules:** any firmware assert, link stop, Oops or warning; Wi-Fi lost for more
 than the normal ping gap; battery or SoC temperature outside the station's usual
