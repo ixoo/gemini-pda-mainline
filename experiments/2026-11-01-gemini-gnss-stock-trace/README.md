@@ -32,8 +32,8 @@ Trace `mnld` from outside, with stock software unchanged:
   running in the `android` container; step 0 checks that.
 - A userspace `strace` attached to its PID records `read`, `write`, `ioctl` and `open` on
   `/dev/stpgps`, with full bytes. The kernel is untouched, so no boot2 write is needed.
-- `strace` runs from a RAM directory and leaves no file on persistent storage. If it is not already
-  on the device, a static AArch64 build is pinned by hash in this record before use.
+- `strace` is the Debian 9 package installed on Gemian at the owner's instruction, run from the host
+  as root against `mnld`'s host PID. Its output goes to a RAM directory.
 - Nothing on the device is known to run a GPS client, so the start comes from one datagram per
   command to `mnld`'s socket, which is what the Android HAL does. [hal-send.py](hal-send.py) does this.
   Read from `mnld`: an abstract `AF_UNIX` datagram socket named `mtk_hal2mnl`, bound with the whole
@@ -127,10 +127,10 @@ this procedure does not. So EPO should not start, but that is inferred.
 
 **So step 1's network precondition is not met as written:** those features cannot be shown off.
 
-**`strace`:** Debian 9's `strace_4.15-2_arm64.deb`, SHA-256
-`c9ce5695e4ffef8b52ab79445a0fa4babbbebda8cdea7a4a3ac9118f922860ba`, needs only `libc6`. The hash matches
-Debian's package index, which matches its `Release` file; the `Release` signature was not checked. It
-would be unpacked into a RAM directory, not installed. Tracing a 32-bit `mnld` with it is untested.
+**`strace`:** on the owner's instruction, the custodian installed Debian 9's `strace` 4.15-2 from the
+archive on 2026-11-01, as the only package change, so `/usr/bin/strace` is a new file on Gemian's root
+filesystem, not a RAM copy. It has not been run. The Method above is updated accordingly. Tracing a
+32-bit `mnld` with it is untested.
 
 ## Privacy and rights
 
