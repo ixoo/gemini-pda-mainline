@@ -43,7 +43,7 @@ the engine is indeed absent, stock must use the host-side engine in `libmnl`,
 which is userspace and not a kernel driver. A
 [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) saw that path's DSP boot and no
 GFNS frame. With assistance off and `mnld`'s start timer raised, 20 minutes of steady once-a-second DSP packets followed, including
-per-channel records, and one satellite's live navigation subframes. Outdoors for 5 minutes it tracked up to 10 satellites, with no fix in that time.
+per-channel records, and one satellite's live navigation subframes. Outdoors for 5 minutes it tracked up to 10 satellites, with no fix in that time. Stationary under open sky for 30 minutes it got a first fix at 158 s, GPS only and mostly intermittent.
 
 ## What `libmnl` does, mapped to the kernel
 
@@ -223,11 +223,25 @@ were not checked for this.
 | --- | --- | --- |
 | `0xFE28` | 8 bytes | Epoch header, first of each second |
 | `0xFE29` | 57 bytes | One channel: byte 0 channel, 1 satellite, 2 constellation code (1 is GPS), 3 signal level (inferred C/N0 in dB-Hz), 5 inferred bandwidth, 6 state; `0x40` is required by the measurement API. The rest is not mapped |
-| `0xFE2A` | 10 bytes | Sent just before `0xFE2B`, meaning not mapped |
+| `0xFE2A` | 10 bytes | Header for a batch of `0xFE2B` frames |
 | `0xFE2B` | 46 bytes | One navigation subframe: bytes 2 and 3 satellite, 4 subframe ID, and from byte 6 ten 4-byte words. Within a word, bytes 0, 3 and 2 hold the 24 data bits, most significant first |
 | `0xFE2C` | 44 bytes | Closes the epoch |
-| `0xFE30`, `0xFE37` | 57, 61 bytes | Once a second, not mapped |
-| `0xFE3A`, `0xFE3B` | | Seen only with several satellites tracked, not mapped |
+| `0xFE30`, `0xFE37` | 57, 61 bytes | Once a second, not mapped; `0xFE30` carries one channel per epoch |
+| `0xFE3A` | 5 bytes | Header for a batch of `0xFE3B` frames: byte 0 frame count, bytes 1 to 4 a millisecond counter in the layout below |
+| `0xFE3B` | 14 bytes | One GLONASS string: byte 0 channel plus 8, bytes 2 and 3 string number, bytes 4 to 13 the 80 bits after the string number, with each byte pair swapped, then in standard GLONASS order |
+| `0xFE4A`, `0xFE4B` | 10, 47 bytes | Same shape as `0xFE2A` and `0xFE2B`, probably BeiDou navigation data; not decoded |
+
+Fields of `0xFE29`, from [step 5](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md#step-5-30-minutes-stationary-under-open-sky-radio-action-owner-approved). A 32-bit value at offset `o` is `r[o+1]<<24 | r[o]<<16 | r[o+3]<<8 | r[o+2]`.
+
+| Offset | Content | Check |
+| --- | --- | --- |
+| 1 | Satellite. For GLONASS, the frequency channel plus 8, not the slot | Slot field of string 4 and Doppler, 3 satellites |
+| 2 | Constellation code: 1 GPS, 16 GLONASS, 2 probably SBAS, 32 probably BeiDou | GPS and GLONASS checked; the others inferred from the satellite reports |
+| 25 | Transmit time in whole chips, wrapping at 1534500 for GPS (1.5 s) and apparently 511000 for GLONASS (1 s) | GPS within about 1.6 chips of computed ranges, not accounting for the fine part; GLONASS from range and steps only |
+| 31 | Signed 16-bit Doppler in Hz, including the common clock drift | GPS slope -5.246 per m/s against 5.255 from theory; over the whole run 9 GPS satellites agree within about 25 Hz of a common offset; 3 GLONASS within about 11 Hz over the first minutes |
+| 35 | Accumulated carrier phase in cycles, with steps following range rate | GPS slope 5.243 per m/s, 4 satellites |
+
+The fine part of the code phase and the exact measurement time are not mapped, so an independent position has not been computed. Those GLONASS bits matched broadcast position and velocity exactly on 3 satellites.
 
 ## Safety and privacy
 

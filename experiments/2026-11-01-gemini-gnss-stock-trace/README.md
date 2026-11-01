@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-stock-trace` |
-| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, is admitted and has not run |
+| Status | `running`: step 1 ran once: the DSP booted over `/dev/stpgps` on `AA F0` frames; the watcher stopped it after about a second on a TCP connection, before any measurement packets; step 2 ran one start with assistance off: 15 s of steady once-a-second DSP packets and no remote connection seen, then `mnld` trapped on its own 15 s start timer, most likely because `SUPL_enabled=0` suppresses its start-done event; step 3 ran 20 minutes with assistance off and that timer raised: steady DSP packets, no crash, no connection seen; decoded offline: one GPS satellite tracked with live navigation subframes, so the RF path works; no fix likely at this placement; step 4, a 5 minute outdoor walk, tracked up to 10 satellites at once and got no fix in that time; step 5, 30 minutes stationary under open sky, gave the first fix on record at 158 s, GPS only and mostly intermittent, and a checked mapping of the raw fields; restore pending; no further start admitted |
 | Subsystem | MT6797 CONSYS GNSS: `mnld`, `/dev/stpgps` on known-good Gemian |
 | Device variant | Gemini PDA (MT6797X), known-good Gemian `3.18.41+` |
 | Date(s) | 2026-11-01 (step 0) |
@@ -426,6 +426,29 @@ when the device left Wi-Fi.
 | Many satellites, no fix | Something the engine needs is missing, such as good navigation data or usable time | Compare with step 4 offline before any further run |
 | Few satellites | Sky view or antenna limit | Decide whether another site is worth trying |
 | The script stops early | Depends on the reason | Keep the evidence; another start needs a new request |
+
+### Result (2026-11-01)
+
+Boot `4252396b`, run by the custodian, device stationary outdoors and cooling through the run. Evidence is private under `artifacts/gemian-4252396b/gnss-step5/`. One start, gate passed, ran the full window, stopped by the
+script's service stop, with no fault, crash, or connection seen. The custodian's restore waits for the device to return. The owner said the position is about right, which is the only independent check of it, and it is not recorded here.
+
+**Observed:**
+- **First fix at 158 s,** with assistance off and saved state from earlier runs in place. All 45843 DSP frames pass the checksum, and all 28038 NMEA sentences checked pass theirs.
+- **The fix mostly did not hold.** 310 of 1799 `GNGGA` sentences have quality 1, and 232 have quality 6. It held for 158 to 269 s, 411 to 473 s and 1131 to 1163 s. Outside those spans from about 500 s, it appeared for about 2 s every 30 s, at UTC seconds 01 to 02 and 31 to 32.
+- **GPS only.** The solution used 3 to 7 GPS satellites, median HDOP 2.62. Fixes stayed within tens of metres of their median.
+- **GLONASS and BeiDou were tracked but never used.** No GLONASS or BeiDou satellite appears in any `GSA` sentence. One GLONASS satellite stayed valid for about 1300 s with its navigation strings arriving, and BeiDou 11 for about 1500 s.
+- **The reported date is wrong during a fix:** 1024 weeks behind, exactly, with time of day within 0.03 s of the host. Without a fix, the date often returns to the correct one. For about 28 s early in the run the reports carried a 2019 date, unexplained.
+- **The Doppler offset common to all satellites moved by about 150 Hz** from the early minutes to the whole-run median, while the CPU sensor fell from 30 C to about 11 C.
+
+**Checked against a public broadcast navigation file (IGS, BKG mirror):**
+- GPS orbit data decoded from `0xFE2B` equals the broadcast values for satellites 2, 7, 8 and 9. Satellites 1 and 27 did not match: 1 looks like a mixed-up decode, since subframe parity is not checked, and 27 is not explained.
+- `0xFE29` holds Doppler, carrier phase and transmit time, and `0xFE3B` holds GLONASS strings. The [driver notes](../../docs/hardware/gemini-gnss-driver.md#dsp-packets-on-the-host-path) carry the layouts.
+
+**Inferred:**
+- The date error is in the vendor engine, not the device clock: `libmnl` has a path that adds a fixed 1024 weeks to the 10-bit GPS week, which gives this date. Its link to the NMEA date is not traced. No HAL answered `mnld`'s time requests in these runs, which may matter.
+- GLONASS complete orbit data arrived before the first GPS fix, so missing data does not explain why it stays out of the solution. The date error is one untested possibility.
+
+**Not resolved:** why the fix comes and goes every 30 s, the fine part of the code phase and the exact measurement time, which block an independent position.
 
 ## Privacy and rights
 
