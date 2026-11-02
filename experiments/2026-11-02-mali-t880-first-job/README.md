@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `completed`: at 1.0 V and 26 MHz, the T880 probes, identifies and completes 100 bounded jobs from modules; no shader or higher clock |
+| Status | `completed`: at 1.0 V and at 26 and about 364 MHz, the T880 probes, identifies and completes 100 bounded jobs from modules; no shader |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -285,11 +285,23 @@ Image and DTB as before, commit `bd3aebd1` for the module, battery 90% and not c
   `STA1`, `mfg_sel` gated, rail off. No module left. Tainted 0, and no fault, Oops, warning or
   scheduler timeout from the GPU in the log.
 
+### Run 4, same boot: `gpu-test.sh job 1`, about 364 MHz
+
+Owner-approved, same modules and image, battery 91% and not charging, one run, exit 0.
+
+- Log: `GPU clock 364000000 Hz`, `VGPU on at 1000000 uV`. `CLK_CFG_1` read `0x02010100`: on, parent
+  `syspll_d3`. MFGPLL stayed off.
+- Identity as before. `job 0: ok in 333 us`, `job 99: ok in 131 us`, both status `0x1`,
+  `passed 100 of 100 jobs`. SoC 31.9 to 32.6 C.
+- After unload: domains and LDO enable off, tainted 0, no GPU fault in the log. `CLK_CFG_1` read
+  `0x82010100`: gated, parent left on `syspll_d3`. That is expected: the module does not restore
+  the mux, and sets it on every load.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
 identifies as `0x880` with four shader cores, and it completes bounded jobs through its own MMU
-and job interrupt, across repeated load and unload on one boot.
+and job interrupt, across repeated load and unload on one boot, at both clocks tested.
 
 Run 3's first-load count of 1 is the forbid's own reference. The old hold would have had the same
 count, so what suspended the device in run 2 is still not explained. `pm_runtime_forbid()` stopped
@@ -297,25 +309,24 @@ it in the one fresh-boot case tested. Upstream's remove leaks one reference on e
 is why the count climbs; it is harmless here.
 
 The Zero job uses no shader core. `shader_present` is what the GPU reports and its power-on did not
-time out, but no shader ran. The temperature range says nothing about real load: about 100 jobs of
-under 1.3 ms each at 26 MHz. The rail is a register value and the clock is a mux register plus the
+time out, but no shader ran. The temperature range says nothing about real load: 100 short memory writes
+with idle gaps at each clock. Job times fell from 754 us to 131 us at the higher clock, which points
+the same way as the registers but does not measure the clock. The rail is a register value and the clock is a mux register plus the
 framework's rate. Neither was measured. Runtime-suspended domain cycling stays forbidden, so no
 idle power saving exists: while loaded, the rail and the domains stay on.
 
 ## Conclusion
 
-`confirmed` for the named unit, at 1.0 V and 26 MHz: probe, identity and 100 bounded jobs, from
-modules, on image `Image.gz` `2af362e9`. Not shown: a shader or render, Mesa, any clock above
-26 MHz, sustained load or thermal behaviour, runtime or system suspend, the display path. Nothing
+`confirmed` for the named unit, at 1.0 V and at each of 26 and about 364 MHz: probe, identity and
+100 bounded jobs, from modules, on image `Image.gz` `2af362e9`. Not shown: a shader or render, Mesa,
+any clock above 364 MHz, a measured clock or rail, sustained load or thermal behaviour, runtime or system suspend, the display path. Nothing
 loads these modules at boot.
 
 ## Follow-up
 
-1. `mt6797_parent=1`, about 364 MHz, needs no boot or new module. It changes only the mux, not the
-   MFGPLL. An owner decision.
-2. A real shader job, through Mesa or a small compute job.
-3. Then a voltage review, an OPP table, a cooling device, and `domain-supply` on MFG_ASYNC, the
+1. A real shader job, through Mesa or a small compute job, at one of the two tested clocks.
+2. Then a voltage review, an OPP table, a cooling device, and `domain-supply` on MFG_ASYNC, the
    upstream shape, once the regulator can be built in.
-4. `clk-mt6797-cam`, `-img`, `-mjc`, `-vdec` and `-venc` use `mtk_clk_simple_probe()` with IDs from 1,
+3. `clk-mt6797-cam`, `-img`, `-mjc`, `-vdec` and `-venc` use `mtk_clk_simple_probe()` with IDs from 1,
    the overrun of run 1 (from the source; none is enabled on the station). They need checking
    before any of them is enabled.
