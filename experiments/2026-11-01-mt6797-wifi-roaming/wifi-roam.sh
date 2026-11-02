@@ -9,7 +9,13 @@
 # roams N:  N roams, alternating between the first two addresses in roam-bss, which
 #           the operator may edit, each after a scan of those two channels, with a
 #           ping running. The network block must not pin a BSSID.
-# Prints no network name, peer address or key.
+# walk [seconds]: copy this script to the station and start it detached, since USB
+#           goes away during it:
+#             setsid /bin/busybox sh /run/station/wifi-roam.sh walk </dev/null >/dev/null 2>&1 &
+#           Needs /run/station/walk.conf (the network, unpinned, with bgscan and the
+#           channels), /run/station/walk-url and /run/station/bg/wpa_supplicant. Logs
+#           to /mnt/data/station/, ends at a limit, and restores the normal supplicant.
+# Prints no network name, peer address or key; walk's supplicant log has the name.
 export PATH=/bin LD_LIBRARY_PATH=/lib
 WPA="wpa_cli -p /run/station/wpa -i wlan0"
 L=/run/station/roam-bss
@@ -90,9 +96,78 @@ roams() {
 	dmesg | grep -cE "join without a scan" | sed 's/^/scanless=/'
 }
 
+# Since this boot's log so far, which /dev/kmsg replays first.
+walk_count() { n=$(grep -cE "$1" "$D/kmsg.txt"); echo $((n - $2)); }
+
+walk() {
+	limit=$1
+	D=/mnt/data/station/walk-$(uptime_s)
+	mkdir -p "$D" || exit 1
+	STOP=$D/stop
+	dmesg > "$D/before.txt"
+	joins0=$(grep -cE 'connected data phase' "$D/before.txt")
+	scans0=$(grep -cE 'probing=[1-9]' "$D/before.txt")
+	restarts0=$(grep -cE 'WLAN restart: begin' "$D/before.txt")
+	stopped0=$(grep -cE 'join stopped' "$D/before.txt")
+	cat /dev/kmsg > "$D/kmsg.txt" &
+	KMSG=$!
+	sleep 2
+	killall wpa_supplicant
+	while pidof wpa_supplicant > /dev/null; do sleep 1; done
+	/run/station/bg/wpa_supplicant -dd -Dnl80211 -iwlan0 -c /run/station/walk.conf > "$D/wpa.log" 2>&1 &
+	(
+		while [ ! -e "$STOP" ]; do
+			ping -i 0.2 "$(gateway)" >> "$D/ping.txt" 2>&1
+			sleep 1
+		done
+	) &
+	(
+		while [ ! -e "$STOP" ]; do
+			t0=$(uptime_s)
+			wget -q -O /dev/null -T 20 "$(cat /run/station/walk-url)" 2> /dev/null
+			rc=$?
+			echo "fetch start=$t0 end=$(uptime_s) rc=$rc" >> "$D/fetch.txt"
+			sleep 1
+		done
+	) &
+	start=$(cut -d. -f1 /proc/uptime)
+	why=
+	while [ -z "$why" ]; do
+		sleep 5
+		now=$(cut -d. -f1 /proc/uptime)
+		# The first data phase is the supplicant's own join.
+		roams=$(($(walk_count 'connected data phase' "$joins0") - 1))
+		scans=$(walk_count 'probing=[1-9]' "$scans0")
+		restarts=$(walk_count 'WLAN restart: begin' "$restarts0")
+		stopped=$(walk_count 'join stopped' "$stopped0")
+		[ $((now - start)) -ge "$limit" ] && why="time"
+		[ "$roams" -ge 20 ] && why=roams
+		[ "$scans" -ge 60 ] && why=scans
+		[ "$restarts" -ge 2 ] && why=restarts
+		[ "$stopped" -ge 2 ] && why=stopped
+		echo "t=$((now - start)) roams=$roams scans=$scans restarts=$restarts stopped=$stopped state=$(field wpa_state) freq=$(field freq)" >> "$D/progress.txt"
+		sync
+	done
+	: > "$STOP"
+	killall wget ping
+	sleep 2
+	killall wget ping 2> /dev/null
+	killall wpa_supplicant
+	while pidof wpa_supplicant > /dev/null; do sleep 1; done
+	wpa_supplicant -Dnl80211 -iwlan0 -c /run/station/wpa.conf > /run/station/wpa.log 2>&1 &
+	sleep 10
+	kill "$KMSG"
+	{
+		echo "end=$why roams=$roams scans=$scans restarts=$restarts stopped=$stopped"
+		echo "wget=$(pidof wget) ping=$(pidof ping) state=$(field wpa_state)"
+	} > "$D/end.txt"
+	sync
+}
+
 case "$1" in
+walk) walk "${2:-1200}" ;;
 map) map ;;
 scans) scans "${2:-70}" ;;
 roams) roams "${2:-10}" ;;
-*) echo "usage: map|scans N|roams N"; exit 2 ;;
+*) echo "usage: map|scans N|roams N|walk [seconds]"; exit 2 ;;
 esac

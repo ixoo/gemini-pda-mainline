@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; one roam by itself at the desk from `bgscan`; the walk is proposed and waits for the owner's budget |
+| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; one roam by itself at the desk from `bgscan`; the walk is approved and not run yet |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -99,7 +99,7 @@ scan follows, and the supplicant moves to the stronger access point.
 ## Stage D: the walk
 
 The owner carries the device between access points with no USB, logging to the data partition, read
-afterwards. Proposed, waiting for the owner's budget.
+afterwards.
 
 Hypothesis: with `bgscan="simple:30:-70:300"`, the rebuilt supplicant and 0470, the device changes access point by itself on the way
 out and back, with a gap near the desk's and no firmware restart, and TCP mostly survives.
@@ -108,8 +108,10 @@ out and back, with a gap near the desk's and no firmware restart, and TCP mostly
   `freq_list` set to the access points' non-DFS channels from the map, then runs a repeating download from the laptop and a 5/s ping
   to the gateway, as at the desk, logging all of it to the data partition. The laptop captures its end of the download.
 - **Walk:** unplug, go to the farthest access point, wait 2 minutes, come back the same way, wait 2 minutes, plug in. 20 minutes at most.
-- **Limits, enforced by the script since nobody can reach the device:** it stops at 20 minutes, 20 roams, 60 active scans or 2 firmware
-  restarts, then restores the normal pinned link. No reboot is needed, and a failure leaves the logs for afterwards.
+- **Budget, approved by the owner on 2026-11-02** ("Approve budget"), for this walk only: 20 roams and 60 active scans, on those channels.
+- **Limits, enforced by the script since nobody can reach the device:** it stops at 20 minutes, 20 roams, 60 active scans, 2 firmware
+  restarts or 2 `join stopped`, then restores the normal pinned link. It counts every data phase after the first as a roam, reconnects
+  included. No reboot is needed, and a failure leaves the logs for afterwards.
 
 | Observation | Next |
 | --- | --- |
