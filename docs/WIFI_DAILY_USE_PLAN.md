@@ -12,6 +12,9 @@ Status: plan, updated 2026-11-01.
   scan and 5 GHz joins work; 2.4 GHz does not yet carry usable transmit, and security modes are
   not started. Phase 4 has its recovery restart and an untested scan while connected. The
   owner parked this testing on 2026-11-01.
+- The owner reopened Wi-Fi on 2026-11-01 for a
+  [baseline on a booted image](../experiments/2026-11-01-mt6797-wifi-booted-baseline/README.md):
+  planned, not yet run.
 - Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and

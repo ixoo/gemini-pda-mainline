@@ -759,8 +759,9 @@ Not working or not shown:
 - scan while connected (0430) has never run; reassociation is not written;
 - no DFS join, no WPA3 or PMF, no group-key rekey, no 2.5 h hold on the clean driver, no
   `nmcli` test;
-- the patches after 0406 have run only by module swap on RAM roots, never from a booted
-  image holding them.
+- the patches after 0406 had run only by module swap on RAM roots when this was written; station
+  images 31 to 35 have since booted with them
+  ([baseline](../2026-11-01-mt6797-wifi-booted-baseline/README.md)).
 
 ### Later note: noise in the headphones follows Wi-Fi (2026-11-01)
 
