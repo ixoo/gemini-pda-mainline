@@ -559,7 +559,7 @@ device has been on that channel. Not tested with the original supplicant.
 beacons arrived and transmits were acknowledged. Average signal in those phases: -83, -78, -79, -80. Every other phase averaged -58 to -70.
 
 - The driver didn't drop these frames: `rx_refused_qos=0` throughout. The `data rx refused` lines are mostly 690-byte frames with `wlan=255`, not from this
-  link's station entry, and a good phase on 5200 had 965 refusals. This also answers the earlier question about those lines, at least for this shape.
+  link's station entry, and a good phase had 965 refusals. This also answers the earlier question about those lines, at least for this shape.
 - From this log alone the unicast frames could be undelivered either way: not sent by the access point because our uplink isn't heard or decrypted, or
   sent and not received. Weak signal correlates, and doesn't obviously explain none at all in 334 s. That is the part to find out.
 - The device was in that state because 5240 had refused it and the supplicant returned to the weak access point, so the two faults compound.
