@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `planned`: patches 0456-0458 compile; nothing has run on the device |
+| Status | `planned`: patches 0456-0458 build; nothing has run on the device |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -36,7 +36,10 @@ Out of scope: 802.11r, k and v, DFS joins and 2.4 GHz until its transmit is fixe
 
 ## Safety assessment
 
-**Stage A** scans passively while connected, on the channel in use, and sends no new frame type.
+**Stage A** sweeps both bands while connected, so the radio leaves the operating channel. The scans
+are passive, so the driver asks for no probe requests. Read from the code, the driver adds no new
+frame type; what the firmware sends when it leaves the channel, such as a power-save frame to the
+access point, is not measured.
 **Stages B to D** move the link between the owner's access points, which the
 [radio protocol](../2026-11-01-mt6797-wifi-any-channel/README.md#radio-protocol-approved-by-the-owner-2026-11-01)
 budgets at one join and ten reconnects per channel. They need a new budget from the owner first:
@@ -63,6 +66,9 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 | Refused past 230 under load | By design; check scans resume when idle |
 
 ## Stage B: roam on request, at the desk
+
+Package: Buildbox at `bd30be80`, inventory `67836f17…`, `mac` `bb830c28…`, CONSYS `28b5435c…`, core
+`425b8add…`, `Image.gz` `e9bad6fb…`.
 
 USB connected. Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam,
 a reassociation response, and no firmware restart. `roams 10`, then the same with a transfer running.
