@@ -24,6 +24,7 @@ set -eu
 KEYS=/gpio-keys
 PWM=/pwm@1100f000
 TOP=/topckgen@10000000
+SPM=/power-controller@10006000
 OSC=/oscillator-26m
 BL=/backlight
 MUX_PWM=7
@@ -53,7 +54,8 @@ dtb=$work/out.dtb
 if fdtget "$dtb" "$KEYS" poll-interval >/dev/null 2>&1; then exit 1; fi
 [ "$(fdtget -t s "$dtb" "$PWM" compatible)" = mediatek,mt6797-disp-pwm ]
 [ "$(fdtget -t s "$dtb" "$PWM" status)" = disabled ]
-[ "$(fdtget -t u "$dtb" "$PWM" power-domains | tr ' ' ,)" = 11,3 ]
+spm=$(fdtget -t u "$dtb" "$SPM" phandle)
+[ "$(fdtget -t u "$dtb" "$PWM" power-domains | tr ' ' ,)" = "$spm,3" ]
 if fdtget "$dtb" "$PWM" phandle >/dev/null 2>&1; then exit 1; fi
 fdtget -t s "$dtb" "$TOP" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-topckgen
 [ "$(fdtget -t u "$dtb" "$TOP" '#clock-cells')" = 1 ]
@@ -99,7 +101,7 @@ LC_ALL=C sort > "$work/expected" <<DELTA
 > status = "okay";
 > status = "okay";
 > status = "okay";
-< power-domains = <0x0b 0x03>;
+< power-domains = <$(hex "$spm") 0x03>;
 > phandle = <$(hex "$pwm")>;
 > assigned-clocks = <$(hex "$top") $(hex "$MUX_PWM")>;
 > assigned-clock-parents = <$(hex "$osc")>;
