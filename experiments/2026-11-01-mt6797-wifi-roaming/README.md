@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; roaming by itself not run |
+| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; signal thresholds work at the desk; roaming by itself not run, and needs the owner |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -440,6 +440,21 @@ not measured, is that beacons stop reaching the host once connected. Data frames
 [0470](../../patches/proposals/0470-wifi-mt6797-take-the-signal-from-data-frames.patch) takes the signal from data frames as well, for the average and for mac80211, and logs
 the threshold with the sample and beacon counts, and the end of the drain. Package: Buildbox at `660a1d87`, inventory `748f64a2…`,
 `mac` `3a6ef88d…`, with CONSYS and core unchanged. Whether data frames carry a usable value is for the run to show.
+
+**Signal thresholds work at the desk: same boot, `mac` `3a6ef88d…` (0470), run by the custodian.** No roams or scans spent,
+36 of 40 still. The rejoin after the swap was one more uncounted supplicant start.
+
+- A threshold 20 dB above the signal gave `event=0` 6 ms after it was set, and 20 dB below gave `event=1`. All 134 events matched
+  `iw event` in count and direction, and the first 30 in value.
+- Samples: 8.0-8.7/s with a 5/s ping, 3.3/s over an idle minute. The idle figure depends on what the access point sends,
+  probably broadcasts, on this network. A quieter one gives fewer.
+- `beacons=` stayed at 20 for the 428 s logged, so beacons do stop reaching the host early in a connection. The samples are data frames.
+- The average moves between about -60 and -66 with the device still, around -65 with the ping and -60 idle. At a 1 dB
+  hysteresis that gave an event every 2.4 s; at 2 dB, idle, none in a minute. What the swing follows, such as frame type or rate,
+  is not known. A trigger needs a hysteresis above it, and repeated events in one direction are the rule's normal behaviour.
+- No taint, restart or `join stopped`, and no ping gap.
+
+This shows the events reach userspace. It doesn't show roaming by itself, which needs a trigger and the device moving.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.

@@ -58,6 +58,9 @@ Once connected, the firmware owns beacon and connection monitoring and reports
 loss by event. The driver must not run a competing beacon monitor; the
 mac80211 flags expressing firmware ownership are the correct model, and the
 driver must act on the firmware's loss event rather than on its own timeout.
+Beacons stop reaching the host early in a connection: 20 and then none over 428 s
+on one boot. A signal average has to come from
+[data frames](../../experiments/2026-11-01-mt6797-wifi-roaming/README.md).
 
 ## Keys
 
