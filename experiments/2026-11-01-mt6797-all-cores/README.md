@@ -810,7 +810,7 @@ close to 897/1274 = 0.70, the clocks read on earlier runs. That fits two A53 clu
 the same way at those clocks, though no clock was read here. All ten CPUs still count as equal
 to the scheduler, so a heavy task on CPU0-3 runs about 30% slower than it could, and the map
 does not change that. The
-[capacity binding](https://docs.kernel.org/devicetree/bindings/cpu/cpu-capacity.html) takes
+capacity binding, `Documentation/devicetree/bindings/cpu/cpu-capacity.txt`, takes
 direct values when there is no cpufreq, so measured figures of about 727, 1024 and 960 could
 express this. They rest on one integer workload, and would need replacing once cpufreq exists.
 
