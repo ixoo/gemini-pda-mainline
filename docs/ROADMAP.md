@@ -178,9 +178,9 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    in the [display H2 record](../experiments/2026-10-06-gemini-display-h2/README.md);
    H7 is closed. simplefb with the MM domain so
    `clk_ignore_unused` can go, backlight, the I2C1 boot (sensors and panel
-   bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS (parked: its
-   [first start](../experiments/2026-11-01-gemini-gnss-link/README.md) caused a firmware
-   exception, inferred to be because the engine needs an image that does not exist; see
+   bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS (the
+   [DSP boots on mainline](../experiments/2026-11-01-gemini-gnss-link/README.md) from a
+   userspace host, with no satellite locked yet; see
    [GNSS and navigation](hardware/gemini-gnss.md)). Cellular and
    cameras stay feasibility work. The
    per-block detail, shared dependencies and grouped device tests are in

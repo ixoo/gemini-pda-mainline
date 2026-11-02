@@ -18,7 +18,9 @@ CONSYS ROM patch images in the private artifact set, plus the pinned GPL vendor
 kernel and the repository's Wi-Fi/connectivity records. See the
 [GNSS reverse-engineering experiment](../../experiments/2026-11-01-gemini-gnss-re/README.md)
 for exact inputs, methods and confidence marks. No GNSS fix has been produced on
-mainline; this document does not change that.
+mainline; this document does not change that. The
+[link record](../../experiments/2026-11-01-gemini-gnss-link/README.md#t4-result-the-dsp-boots-and-reports-on-mainline-2026-11-01)
+has the mainline DSP boot, which reported measurements indoors with no satellite locked.
 
 ## Summary
 

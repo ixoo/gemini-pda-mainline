@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T4, one mainline boot of the DSP through `/dev/gnss0`, is admitted and has not run. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
+| Status | `running`: T4 booted the DSP through `/dev/gnss0` on mainline and it reported measurements, with no satellite locked indoors; the outdoor test is not yet drafted. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -539,6 +539,26 @@ Approved by the owner on 2026-11-01, in the words "Approve the test", for the dr
 | Boots, no epochs | Something in setup differs on mainline | Compare with stock |
 | Boots and sends epochs | The mainline link works | Draft the 10 minute outdoor test |
 | Firmware assert | The bytes or their timing broke something | Keep the evidence; CONSYS reload; no retry until understood |
+
+## T4 result: the DSP boots and reports on mainline (2026-11-01)
+
+Boot `6b3acef8`, image `boot2` `d1a882db`, kernel `7.1.3-gemini-a53-station`, run by the custodian, indoors. Module `gnss-mt6797.ko` from package `34c0e48d`, sha256 starts `d088aefa`, loaded by hand because this image's root lacks it. That package is later than the admitted commit, with patches 0451 to 0454 and this experiment unchanged. Host sha256 starts `e8606bf8`. Evidence is private under `artifacts/station-work-36/boot-6b3acef8/gnss-t4/`; `frames.log` is 211854 bytes, sha256 starts `7c239054d2816cd1`.
+
+One open, full 60 s window, host exit 0, no stop rule fired. An earlier launch failed before the host ran, because this root has no `nohup`, so it did not open the device. Wi-Fi was not on a clean first join: the first-join fault restarted the firmware at 57 s in this boot, and a rerun got a lease before T4.
+
+**Observed:**
+- **Boot:** `0xFE31` answered the header, and all 44 `0xFE32` arrived, in 0.23 s against 0.30 s on stock in step 6. The gnss core's split at 1024 bytes caused no visible problem.
+- **Bytes:** all 495 received and 476 sent frames have good checksums, with no bad frames and no leftover bytes. The driver reports 27721 bytes received and 0 dropped, equal to the host's total, and the link reports 0 discarded and 0 duplicates. The first 53 writes match step 6 byte for byte.
+- **Epochs:** `0xFE28` 53, `0xFE29` 239, `0xFE2C` 54, `0xFE30` 53, `0xFE37` 51.
+- **Satellites:** 53 distinct satellite channels across GPS, GLONASS and BeiDou, and none reached the valid state `0x40`. `0xFE2A`, `0xFE2B`, `0xFE3A` and `0xFE3B` did not appear.
+- **Afterwards:** no assert, Wi-Fi restarts stayed at 1, 3 of 3 gateway pings, not tainted, `gnss0` type `MT6797`.
+- **Missing seconds:** the DSP's millisecond counter in `0xFE2C` stepped by 2000 seven times in the 60 s, and each time no epoch came for that second. The frame sequence field does not jump across these gaps, so they do not look like loss on the link. The same counter never stepped by 2000 in the 600 s of step 6 outdoors, or in the [20 minute stock run](../2026-11-01-gemini-gnss-stock-trace/README.md) at a window, which also had no valid records in its first minute.
+
+**Inferred:** the mainline link and the split work for the boot and for measurements. The DSP probably did not send those seven seconds, which would put the cause on its side of the link and not in the gnss core.
+
+**Not shown:** that mainline can lock a satellite, or that GPIO 69 helps: indoors, no result tells the LNA apart from no signal. The cause of the missing seconds is unknown. Only this mainline run has them, but it differs from the stock runs in several ways at once, including the kernel, the Wi-Fi state and the host's timing against the DSP.
+
+**Next, by the table:** draft the 10 minute outdoor test. Missing seconds matter for position if they persist outdoors, so that test should count them.
 
 ## Associated code
 
