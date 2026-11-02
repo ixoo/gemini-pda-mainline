@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 15:46:05 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: describe the
+ touchscreen
+
+Enable I2C4 and add the NT36772 at 0x62, with its interrupt on GPIO85 as
+EINT8, rising, as the vendor driver requests it.
+
+Name no supplies and no reset line. The vendor's chip driver manages
+neither, and its resume path needs the display up first. Firmware leaves
+the panel on for the retained console, so the rails are expected to be up.
+
+Enabling the bus sends nothing on it. The driver is a module nothing loads.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 30 +++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 52aa9ef..4734865 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -234,3 +234,33 @@
+ 		mediatek,battery-thermal-zone = "battery-thermal";
+ 	};
+ };
++
++&pio {
++	touchscreen_pins: touchscreen-pins {
++		pins-irq {
++			pinmux = <MT6797_GPIO85__FUNC_EINT8>;
++			bias-disable;
++		};
++	};
++};
++
++/*
++ * The touch controller. Firmware leaves the I2C4 pads muxed and the vendor
++ * sets no state for them, so neither does this node. The vendor driver drives
++ * no supply and no reset line, and needs the display up first, so its rails
++ * are taken to be the panel's and GPIO68 stays unclaimed. Only the module
++ * talks to the controller, and nothing loads the module.
++ */
++&i2c4 {
++	clock-frequency = <400000>;
++	status = "okay";
++
++	touchscreen@62 {
++		compatible = "novatek,nt36772-ts";
++		reg = <0x62>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&touchscreen_pins>;
++		interrupt-parent = <&pio>;
++		interrupts = <8 IRQ_TYPE_EDGE_RISING>;
++	};
++};
+-- 
+2.54.0 (Apple Git-157)
+

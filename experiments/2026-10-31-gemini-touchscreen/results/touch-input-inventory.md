@@ -13,7 +13,7 @@ coverage for the named Gemini PDA. Vendor paths are relative to commit
   `aeon6797_6m_n.dts:603-611`); the driver selects the pinctrl state through
   `tpd_gpio_as_int(1)`.
 - Reset: **GPIO68** (`ctp_pins_rst_output0/1`, `aeon6797_6m_n.dts:624-639`);
-  the driver drives it through `tpd_gpio_output(0, level)`.
+  the driver defines `NVT_GPIO_OUTPUT` for it but never calls it at this commit.
 - An alternate Solomon node sits at I2C4 `0x53` (`ssd2092_touch.dtsi`,
   compatible `mediatek,solomon_touch`); the live baseline records it as
   **unbound**.

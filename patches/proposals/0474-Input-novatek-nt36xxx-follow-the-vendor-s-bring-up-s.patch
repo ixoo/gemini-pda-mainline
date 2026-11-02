@@ -1,0 +1,246 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 15:46:05 -0500
+Subject: [PATCH] Input: novatek-nt36xxx: follow the vendor's bring-up
+ sequence
+
+Compared with the vendor driver for the NT36772, this driver differs in
+ways that would stop it on the first run:
+
+The poll of the reset state selected the event page first and gave up on
+the first failed transfer. The vendor polls for up to a second while the
+firmware starts, reads without selecting a page and ignores failed reads.
+Do the same.
+
+The binding required two supplies. The vendor driver manages no rail, and
+its resume path asks for the display reset and DSI commands to come first,
+which points to the panel holding the rails. Make the supplies optional, so
+a board can leave them to the panel.
+
+Stop selecting the event page on each interrupt. It stays selected, the
+vendor never does it again, and it is one more write in the hot path.
+
+Register the input device before requesting the interrupt, so an interrupt
+that is already pending has a device to report to, and remove a call to
+touchscreen_parse_properties() whose result nothing reads.
+
+Log the trim bytes, the firmware information block and the project ID at
+probe, and failed event reads, since those decide what a first run shows.
+
+Not yet run on hardware.
+---
+ .../input/touchscreen/novatek,nt36xxx.yaml    |  9 +--
+ drivers/input/touchscreen/novatek-nt36xxx.c   | 57 ++++++++++++-------
+ 2 files changed, 40 insertions(+), 26 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/input/touchscreen/novatek,nt36xxx.yaml b/Documentation/devicetree/bindings/input/touchscreen/novatek,nt36xxx.yaml
+index 7953675..9e95016 100644
+--- a/Documentation/devicetree/bindings/input/touchscreen/novatek,nt36xxx.yaml
++++ b/Documentation/devicetree/bindings/input/touchscreen/novatek,nt36xxx.yaml
+@@ -9,6 +9,9 @@ title: Novatek NT36772 touchscreen controller
+ maintainers:
+   - Julien Etienne <julien.etienne@gmail.com>
+ 
++description:
++  A board whose panel holds the controller's rails names no supplies here.
++
+ allOf:
+   - $ref: touchscreen.yaml#
+ 
+@@ -32,14 +35,11 @@ required:
+   - compatible
+   - reg
+   - interrupts
+-  - vcc-supply
+-  - iovcc-supply
+ 
+ unevaluatedProperties: false
+ 
+ examples:
+   - |
+-    #include <dt-bindings/gpio/gpio.h>
+     #include <dt-bindings/interrupt-controller/irq.h>
+     i2c {
+         #address-cells = <1>;
+@@ -49,9 +49,6 @@ examples:
+             compatible = "novatek,nt36772-ts";
+             reg = <0x62>;
+             interrupts-extended = <&gpio 85 IRQ_TYPE_EDGE_RISING>;
+-            reset-gpios = <&gpio 68 GPIO_ACTIVE_HIGH>;
+-            vcc-supply = <&touch_vcc>;
+-            iovcc-supply = <&touch_iovcc>;
+         };
+     };
+ ...
+diff --git a/drivers/input/touchscreen/novatek-nt36xxx.c b/drivers/input/touchscreen/novatek-nt36xxx.c
+index de8952e..46c8240 100644
+--- a/drivers/input/touchscreen/novatek-nt36xxx.c
++++ b/drivers/input/touchscreen/novatek-nt36xxx.c
+@@ -13,7 +13,6 @@
+ #include <linux/i2c.h>
+ #include <linux/input.h>
+ #include <linux/input/mt.h>
+-#include <linux/input/touchscreen.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+ #include <linux/regulator/consumer.h>
+@@ -31,6 +30,7 @@
+ #define NVT36XXX_FW_INFO_LEN		16
+ #define NVT36XXX_RESET_STATE_CMD	0x60
+ #define NVT36XXX_RESET_STATE_LEN	5
++#define NVT36XXX_PROJECT_ID_CMD		0x9a
+ #define NVT36XXX_MAX_TOUCHES		10
+ #define NVT36XXX_MAX_COORD		4096
+ #define NVT36XXX_MAX_PRESSURE		1000
+@@ -43,7 +43,6 @@ struct nvt36xxx_data {
+ 	struct input_dev *input;
+ 	struct gpio_desc *reset_gpio;
+ 	struct regulator_bulk_data supplies[2];
+-	struct touchscreen_properties prop;
+ 	u8 event[NVT36XXX_EVENT_DATA_LEN];
+ 	u32 raw_x_max;
+ 	u32 raw_y_max;
+@@ -142,6 +141,7 @@ static int nvt36xxx_reset(struct nvt36xxx_data *data)
+ 
+ static int nvt36xxx_identify(struct nvt36xxx_data *data)
+ {
++	struct device *dev = &data->client->dev;
+ 	u8 trim[NVT36XXX_TRIM_LEN];
+ 	int ret = -ENODEV;
+ 	int attempt;
+@@ -161,9 +161,12 @@ static int nvt36xxx_identify(struct nvt36xxx_data *data)
+ 			continue;
+ 
+ 		/* Source/ELF trim entry 8: FF FF FF 72 66 03. */
+-		if (trim[3] == 0x72 && trim[4] == 0x66 && trim[5] == 0x03)
++		if (trim[3] == 0x72 && trim[4] == 0x66 && trim[5] == 0x03) {
++			dev_info(dev, "trim %*ph\n", NVT36XXX_TRIM_LEN, trim);
+ 			return 0;
++		}
+ 
++		dev_warn(dev, "unknown trim %*ph\n", NVT36XXX_TRIM_LEN, trim);
+ 		ret = -ENODEV;
+ 		usleep_range(10000, 11000);
+ 	}
+@@ -173,31 +176,31 @@ static int nvt36xxx_identify(struct nvt36xxx_data *data)
+ 
+ static int nvt36xxx_wait_reset(struct nvt36xxx_data *data)
+ {
+-	u8 state[NVT36XXX_RESET_STATE_LEN];
+-	int ret;
++	u8 state[NVT36XXX_RESET_STATE_LEN] = { };
++	int ret = 0;
+ 	int i;
+ 
++	/* The firmware is still starting, so a failed read is not an answer. */
+ 	for (i = 0; i < 100; i++) {
+-		ret = nvt36xxx_select_xdata(data, NVT36XXX_EVENT_MAP);
+-		if (ret)
+-			return ret;
++		usleep_range(10000, 11000);
+ 
+ 		ret = nvt36xxx_read(data, NVT36XXX_FW_ADDR,
+ 				    NVT36XXX_RESET_STATE_CMD, state, sizeof(state));
+-		if (ret)
+-			return ret;
+-		if (state[0] >= NVT36XXX_RESET_STATE_INIT && state[0] != 0xff)
++		if (!ret && state[0] >= NVT36XXX_RESET_STATE_INIT &&
++		    state[0] != 0xff)
+ 			return 0;
+-
+-		usleep_range(10000, 11000);
+ 	}
+ 
++	dev_err(&data->client->dev, "reset state %*ph, last read %d\n",
++		NVT36XXX_RESET_STATE_LEN, state, ret);
++
+ 	return -ETIMEDOUT;
+ }
+ 
+ static int nvt36xxx_read_fw_info(struct nvt36xxx_data *data)
+ {
+ 	u8 info[NVT36XXX_FW_INFO_LEN];
++	u8 pid[2];
+ 	int ret;
+ 
+ 	ret = nvt36xxx_select_xdata(data, NVT36XXX_EVENT_MAP);
+@@ -209,6 +212,8 @@ static int nvt36xxx_read_fw_info(struct nvt36xxx_data *data)
+ 	if (ret)
+ 		return ret;
+ 
++	dev_info(&data->client->dev, "firmware information %*ph\n",
++		 NVT36XXX_FW_INFO_LEN, info);
+ 	if ((u8)(info[0] + info[1]) != 0xff)
+ 		return -EIO;
+ 
+@@ -220,6 +225,12 @@ static int nvt36xxx_read_fw_info(struct nvt36xxx_data *data)
+ 	    data->raw_y_max > NVT36XXX_MAX_COORD)
+ 		return -EINVAL;
+ 
++	ret = nvt36xxx_read(data, NVT36XXX_FW_ADDR, NVT36XXX_PROJECT_ID_CMD,
++			    pid, sizeof(pid));
++	if (ret)
++		return ret;
++	data->pid = get_unaligned_le16(pid);
++
+ 	return 0;
+ }
+ 
+@@ -230,14 +241,14 @@ static irqreturn_t nvt36xxx_irq(int irq, void *arg)
+ 	unsigned int active = 0;
+ 	int ret;
+ 
+-	ret = nvt36xxx_select_xdata(data, NVT36XXX_EVENT_MAP);
+-	if (ret)
+-		return IRQ_HANDLED;
+-
++	/* The event page stays selected from the firmware information read. */
+ 	ret = nvt36xxx_read(data, NVT36XXX_FW_ADDR, 0x00,
+ 			    data->event, sizeof(data->event));
+-	if (ret)
++	if (ret) {
++		dev_err_ratelimited(&data->client->dev,
++				    "event read failed: %d\n", ret);
+ 		return IRQ_HANDLED;
++	}
+ 
+ 	for (i = 0; i < NVT36XXX_MAX_TOUCHES; i++) {
+ 		u8 *touch = &data->event[i * 6];
+@@ -339,13 +350,15 @@ static int nvt36xxx_probe(struct i2c_client *client)
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "invalid firmware information\n");
+ 
++	dev_info(dev, "firmware %#04x, project %#06x, %ux%u\n",
++		 data->fw_version, data->pid, data->raw_x_max, data->raw_y_max);
++
+ 	input = devm_input_allocate_device(dev);
+ 	if (!input)
+ 		return -ENOMEM;
+ 
+ 	input->name = "Novatek NT36772 touchscreen";
+ 	input->id.bustype = BUS_I2C;
+-	touchscreen_parse_properties(input, true, &data->prop);
+ 	input_set_abs_params(input, ABS_MT_POSITION_X, 0,
+ 				      data->raw_y_max - 1, 0, 0);
+ 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0,
+@@ -361,12 +374,16 @@ static int nvt36xxx_probe(struct i2c_client *client)
+ 
+ 	data->input = input;
+ 	input_set_drvdata(input, data);
++	ret = input_register_device(input);
++	if (ret)
++		return ret;
++
+ 	ret = devm_request_threaded_irq(dev, client->irq, NULL, nvt36xxx_irq,
+ 					IRQF_ONESHOT, dev_name(dev), data);
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "failed to request IRQ\n");
+ 
+-	return input_register_device(input);
++	return 0;
+ }
+ 
+ static const struct of_device_id nvt36xxx_of_match[] = {
+-- 
+2.54.0 (Apple Git-157)
+

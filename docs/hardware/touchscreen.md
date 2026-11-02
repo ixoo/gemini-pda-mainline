@@ -81,6 +81,15 @@ node. Two paths are possible:
 Either way, the firmware question stays open: the upstream driver does not
 flash firmware, and the retained blob is not redistributable.
 
+The project takes the second path: a separate driver with no firmware path,
+[patch 0075](../../patches/v7.1.3/0075-input-touchscreen-novatek-add-NT36772-backend.patch)
+and its corrections in the
+[touchscreen module experiment](../../experiments/2026-11-02-gemini-touchscreen-module/README.md).
+
+The vendor's chip driver defines a GPIO output macro and never calls it, and
+manages no regulator. `vtouch-supply` in the vendor DTB is `vldo28`, on the
+wrapper node; the Gemian baseline shows that rail disabled with touch working.
+
 ## 5. Open questions
 
 1. Does the Gemini controller also answer the upstream `0x78`/`0x00` interface
