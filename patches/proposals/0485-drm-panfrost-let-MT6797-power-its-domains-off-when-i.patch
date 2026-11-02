@@ -1,0 +1,191 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:22:31 -0500
+Subject: [PATCH] drm/panfrost: let MT6797 power its domains off when idle
+
+The domains stayed on while the module was loaded. Run the vendor order around
+runtime suspend: on the way down, wait for idle, assert bus protection and stop
+BG3D, and the device links then power the domains off. On the way up, the links
+power them on, then BG3D, 100 us, release protection and restore the async
+timing that the power-off lost.
+
+VGPU and the LDOs stay on, because Panfrost has no callback after the domains
+go off. It is off by default, behind mt6797_idle_off, until it has run.
+
+Also drop the reference the remove path leaves on the device. Each unload added
+one, so a later load could not autosuspend. A first load on a boot held none,
+which is the case this hook was written for.
+---
+ drivers/gpu/drm/panfrost/panfrost_device.c | 19 +++++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_device.h | 10 +++++++---
+ drivers/gpu/drm/panfrost/panfrost_drv.c    | 11 ++++++-----
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 12 +++++++++++-
+ 4 files changed, 43 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.c b/drivers/gpu/drm/panfrost/panfrost_device.c
+index 27159c86d..c0395e3d1 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.c
++++ b/drivers/gpu/drm/panfrost/panfrost_device.c
+@@ -445,6 +445,19 @@ static int panfrost_device_runtime_resume(struct device *dev)
+ 	struct panfrost_device *pfdev = dev_get_drvdata(dev);
+ 	int ret;
+ 
++	/* The domains came on before this callback, through their device links. */
++	if (pfdev->comp->platform_ops) {
++		ret = clk_enable(pfdev->clock);
++		if (ret)
++			return ret;
++
++		ret = pfdev->comp->platform_ops->power_late(pfdev);
++		if (ret) {
++			clk_disable(pfdev->clock);
++			return ret;
++		}
++	}
++
+ 	if (pfdev->comp->pm_features & BIT(GPU_PM_RT)) {
+ 		ret = reset_control_deassert(pfdev->rstc);
+ 		if (ret)
+@@ -488,6 +501,12 @@ static int panfrost_device_runtime_suspend(struct device *dev)
+ 	panfrost_gpu_suspend_irq(pfdev);
+ 	panfrost_gpu_power_off(pfdev);
+ 
++	/* The domains go off after this returns, through their device links. */
++	if (pfdev->comp->platform_ops) {
++		pfdev->comp->platform_ops->unpower_early(pfdev);
++		clk_disable(pfdev->clock);
++	}
++
+ 	if (pfdev->comp->pm_features & BIT(GPU_PM_RT)) {
+ 		if (pfdev->bus_clock)
+ 			clk_disable(pfdev->bus_clock);
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+index a98c5f791..47f342c50 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.h
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -100,6 +100,8 @@ struct panfrost_platform_ops {
+ 	void (*unpower_early)(struct panfrost_device *pfdev);
+ 	/* After the domains are off. */
+ 	void (*unpower_late)(struct panfrost_device *pfdev);
++	/* Whether runtime suspend must not power the domains off. */
++	bool (*keep_powered)(void);
+ };
+ 
+ /*
+@@ -127,9 +129,6 @@ struct panfrost_compatible {
+ 	/* Power steps the generic sequence does not cover */
+ 	const struct panfrost_platform_ops *platform_ops;
+ 
+-	/* Keep the power domains on until unbind */
+-	bool no_runtime_suspend;
+-
+ 	/* GPU configuration quirks */
+ 	u8 gpu_quirks;
+ };
+@@ -266,6 +265,11 @@ static inline bool panfrost_model_eq(struct panfrost_device *pfdev, s32 id)
+ 
+ int panfrost_unstable_ioctl_check(void);
+ 
++static inline bool panfrost_keep_powered(struct panfrost_device *pfdev)
++{
++	return pfdev->comp->platform_ops && pfdev->comp->platform_ops->keep_powered();
++}
++
+ int panfrost_device_init(struct panfrost_device *pfdev);
+ void panfrost_device_fini(struct panfrost_device *pfdev);
+ void panfrost_device_reset(struct panfrost_device *pfdev, bool enable_job_int);
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+index cb8e724cb..9f043060b 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_drv.c
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -995,7 +995,7 @@ static int panfrost_probe(struct platform_device *pdev)
+ 	pm_runtime_set_autosuspend_delay(pfdev->base.dev, 50); /* ~3 frames */
+ 	pm_runtime_use_autosuspend(pfdev->base.dev);
+ 	/* Independent of the usage count, which the first load saw drop to zero. */
+-	if (pfdev->comp->no_runtime_suspend)
++	if (panfrost_keep_powered(pfdev))
+ 		pm_runtime_forbid(pfdev->base.dev);
+ 
+ 	/*
+@@ -1010,7 +1010,7 @@ static int panfrost_probe(struct platform_device *pdev)
+ 	if (err)
+ 		goto err_out2;
+ 
+-	if (pfdev->comp->no_runtime_suspend)
++	if (pfdev->comp->platform_ops)
+ 		dev_info(&pdev->dev, "runtime PM usage count %d at the end of probe\n",
+ 			 atomic_read(&pdev->dev.power.usage_count));
+ 
+@@ -1019,7 +1019,7 @@ static int panfrost_probe(struct platform_device *pdev)
+ err_out2:
+ 	drm_dev_unregister(&pfdev->base);
+ err_out1:
+-	if (pfdev->comp->no_runtime_suspend)
++	if (panfrost_keep_powered(pfdev))
+ 		pm_runtime_allow(pfdev->base.dev);
+ 	pm_runtime_disable(pfdev->base.dev);
+ 	panfrost_device_fini(pfdev);
+@@ -1035,12 +1035,14 @@ static void panfrost_remove(struct platform_device *pdev)
+ 	drm_dev_unregister(&pfdev->base);
+ 	panfrost_gem_shrinker_cleanup(&pfdev->base);
+ 
+-	if (pfdev->comp->no_runtime_suspend)
++	if (panfrost_keep_powered(pfdev))
+ 		pm_runtime_allow(pfdev->base.dev);
+ 	pm_runtime_get_sync(pfdev->base.dev);
+ 	pm_runtime_disable(pfdev->base.dev);
+ 	panfrost_device_fini(pfdev);
+ 	pm_runtime_set_suspended(pfdev->base.dev);
++	/* Or each unload leaves a reference on the device for the next load. */
++	pm_runtime_put_noidle(pfdev->base.dev);
+ }
+ 
+ static ssize_t profiling_show(struct device *dev,
+@@ -1112,7 +1114,6 @@ static const struct panfrost_compatible mediatek_mt6797_data = {
+ 	.num_pm_domains = ARRAY_SIZE(mediatek_mt6797_pm_domains),
+ 	.pm_domain_names = mediatek_mt6797_pm_domains,
+ 	.platform_ops = &panfrost_mt6797_ops,
+-	.no_runtime_suspend = true,
+ };
+ 
+ static const char * const mediatek_pm_domains[] = { "core0", "core1", "core2",
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index d1204a109..d58501932 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -76,6 +76,10 @@ static const struct {
+ 	{ MT6797_GPULDO_VOSEL_8, GENMASK(31, 0), 0x0000000f },
+ };
+ 
++static bool mt6797_idle_off;
++module_param_named(mt6797_idle_off, mt6797_idle_off, bool, 0444);
++MODULE_PARM_DESC(mt6797_idle_off, "MT6797: power the GPU domains off when idle (default off)");
++
+ struct panfrost_mt6797 {
+ 	struct regulator *vgpu;
+ 	struct clk *sel;
+@@ -314,7 +318,7 @@ static int mt6797_power_late(struct panfrost_device *pfdev)
+ 			   MT6797_MFG_ASYNC_TIMING);
+ 	regmap_read(mt->mfg, MT6797_MFG_ASYNC_CON, &after);
+ 
+-	dev_info(dev, "mt6797: MFG_ASYNC_CON %#x -> %#x\n", before, after);
++	dev_dbg(dev, "mt6797: MFG_ASYNC_CON %#x -> %#x\n", before, after);
+ 	return 0;
+ }
+ 
+@@ -352,9 +356,15 @@ static void mt6797_unpower_late(struct panfrost_device *pfdev)
+ 		dev_warn(pfdev->base.dev, "mt6797: GPU clock not parked\n");
+ }
+ 
++static bool mt6797_keep_powered(void)
++{
++	return !mt6797_idle_off;
++}
++
+ const struct panfrost_platform_ops panfrost_mt6797_ops = {
+ 	.power_early = mt6797_power_early,
+ 	.power_late = mt6797_power_late,
+ 	.unpower_early = mt6797_unpower_early,
+ 	.unpower_late = mt6797_unpower_late,
++	.keep_powered = mt6797_keep_powered,
+ };

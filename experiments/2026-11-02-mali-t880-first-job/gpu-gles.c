@@ -5,7 +5,8 @@
  * With a surfaceless EGL context, draws a green triangle over a blue clear into
  * a small offscreen image with a compiled vertex and fragment shader, at most
  * --frames times, reading it back each time. Unlike the Write Value job, this
- * runs shaders on the GPU's cores.
+ * runs shaders on the GPU's cores. --gap-ms waits between frames, long enough for
+ * the GPU to suspend and resume around each one.
  *
  * With --seconds it instead runs a sustained load for that long: every pixel of a
  * --size image runs a loop in the fragment shader, reporting the temperatures
@@ -210,8 +211,8 @@ int main(int argc, char **argv)
 	static GLubyte px[SIZE * SIZE * 4];
 	PFNEGLGETPLATFORMDISPLAYEXTPROC get_display;
 	const char *zone = NULL, *battery = NULL;
-	int frames = 20, max_mc = 75000, battery_max_mc = 46000, seconds = 0, size = 512, i, n;
-	int perfcnt = 0;
+	int frames = 20, max_mc = 58000, battery_max_mc = 46000, seconds = 0, size = 512, i, n;
+	int perfcnt = 0, gap_ms = 0;
 	long max_us = 0;
 	EGLConfig cfg;
 	EGLDisplay d;
@@ -235,6 +236,8 @@ int main(int argc, char **argv)
 			seconds = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--size"))
 			size = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--gap-ms"))
+			gap_ms = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--perfcnt"))
 			perfcnt = atoi(argv[i + 1]);
 	}
@@ -315,6 +318,11 @@ int main(int argc, char **argv)
 			printf("frame %d: wrong: mid %d,%d,%d corner %d,%d,%d, wanted red %d\n", i,
 			       mid[0], mid[1], mid[2], corner[0], corner[1], corner[2], red);
 			return 1;
+		}
+		if (gap_ms) {
+			struct timespec gap = { gap_ms / 1000, gap_ms % 1000 * 1000000L };
+
+			nanosleep(&gap, NULL);
 		}
 		if (i == 0 || i == frames - 1)
 			printf("frame %d: ok in %ld us, %d mC\n", i, us, t);

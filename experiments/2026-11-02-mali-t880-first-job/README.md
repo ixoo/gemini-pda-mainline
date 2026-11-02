@@ -363,6 +363,19 @@ why the first load dropped the loader's running PLL. That regmap also enables th
 (from the source; not observed). `0484` parks the mux at unload. Removing the leftover clock is an
 image change, batched below.
 
+### Run 9, same boot: 520 MHz, the vendor's pre-EEM point
+
+`0484`, one run, 60 s, exit 0, no fault. 520000000 Hz in the log, 8226 frames, same pixel. GPU active 453.5 M/s,
+87% of the clock, cores 433 M/s each. Frame gain 1.138 against 1.175 for the clocks, so something outside the
+GPU clock now takes a larger share (read-back or memory, inference). SoC 33.0 to 37.3 C, a rise of 4.3 C,
+against 3.6 and 2.3 C at the lower clocks. Battery 25.9 C at most, 4.231 V.
+
+After unload, `MFGPLL_CON0` `0x0`, `CLK_CFG_1` `0x80010100`, `mfgpll` prepare 0, `mfg_sel` prepare 1: `0484` works.
+The log's usage count grew one per load, 6 here, from the leak in `panfrost_remove`, which `0485` fixes.
+
+The run stop moves to 58 C from here, the first CPU cooling trip in the policy recovered from Gemian's files.
+The source's 75 C target is real, but that policy starts cooling far earlier and there is no cooler here.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -392,7 +405,8 @@ loads these modules at boot.
 
 ## Follow-up
 
-Boot image batch, needing the owner's boot2 selection: drop `clocks` from the station's `scpsys` node.
+Boot image batch, needing the owner's boot2 selection: drop `clocks` from the station's `scpsys` node, and read
+each thermal bank, since `soc-thermal` reports only the maximum and nothing yet shows bank 1 sees the GPU.
 
 
 1. A bounded sustained load at a tested clock, with its temperature curve. This is the next new risk,

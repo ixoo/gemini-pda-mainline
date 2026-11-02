@@ -652,3 +652,4 @@ proposals/0481-drm-panfrost-forbid-runtime-suspend-on-MT6797-instea.patch
 proposals/0482-clk-mediatek-size-the-MT6797-CAM-and-MJC-clock-table.patch
 proposals/0483-drm-panfrost-let-MT6797-run-from-the-MFGPLL-at-a-fix.patch
 proposals/0484-drm-panfrost-stop-the-MT6797-MFGPLL-when-the-GPU-unl.patch
+proposals/0485-drm-panfrost-let-MT6797-power-its-domains-off-when-i.patch

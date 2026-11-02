@@ -11,14 +11,15 @@
 #
 # parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
 # KHZ=442500 or 520000 runs from the MFGPLL instead of parent.
+# IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
-# Limits, from the vendor's adaptive cooler (2026-10-31-mt6797-thermal-management):
-# SoC under its 55 C exit to start (also enforced in the driver), and its 75 C
-# target during a run, since no cooling device exists here. Battery stops at 46 C,
-# where the vendor starts cutting charge current.
+# Limits, from the vendor (2026-10-31-mt6797-thermal-management): SoC under its 55 C
+# cooler exit to start (also enforced in the driver), and stop at 58 C during a run,
+# its recovered policy's first CPU cooling trip, since no cooling device exists here.
+# Battery stops at 46 C, where the vendor starts cutting charge current.
 mode=${1:?probe, job, gles or load}; parent=${2:-0}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
 LOAD_SECONDS=${LOAD_SECONDS:-60}; LOAD_SIZE=${LOAD_SIZE:-512}
-START_MAX_MC=55000; RUN_MAX_MC=75000; BATTERY_MAX_MC=46000
+START_MAX_MC=55000; RUN_MAX_MC=58000; BATTERY_MAX_MC=46000
 here=$(cd "$(dirname "$0")" && pwd)
 MODULES="clk-mt6797-mfg rt5735-regulator drm_panel_orientation_quirks drm drm_shmem_helper gpu-sched panfrost"
 
@@ -69,7 +70,7 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
-  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${PERFCNT:+ unstable_ioctls=1}"
+  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${IDLE_OFF:+ mt6797_idle_off=1}${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
   # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
@@ -88,7 +89,7 @@ if [ $rc = 0 ]; then
   echo "gpu-job exit $rc"
   if [ "$mode" = gles ] && [ $rc = 0 ]; then
     timeout 120 "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" "$here/mesa/gpu-gles" \
-      --zone "$zone" --battery-zone "$battery" --frames "$FRAMES" --max-mc "$RUN_MAX_MC"; rc=$?
+      --zone "$zone" --battery-zone "$battery" --frames "$FRAMES" --max-mc "$RUN_MAX_MC" --gap-ms "${GAP_MS:-0}"; rc=$?
     echo "gpu-gles exit $rc"
   fi
   if [ "$mode" = load ] && [ $rc = 0 ]; then
