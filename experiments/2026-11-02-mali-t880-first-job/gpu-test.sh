@@ -13,6 +13,7 @@
 # KHZ=442500 or 520000 runs from the MFGPLL instead of parent.
 # IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
 # DVFS=1 uses the OPP table, devfreq and cooling instead of a fixed clock.
+# PIN_HZ, with DVFS=1, holds devfreq at one OPP for the run.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
 # Limits, from the vendor (2026-10-31-mt6797-thermal-management): SoC under its 55 C
 # cooler exit to start (also enforced in the driver), and stop at 58 C during a run,
@@ -94,6 +95,16 @@ done
 dmesg | tail -n +$((mark + 1))
 [ $rc = 0 ] && [ -e /dev/dri/renderD128 ] || { echo "no render node"; rc=1; }
 
+if [ $rc = 0 ] && [ -n "${PIN_HZ:-}" ]; then
+  for d in /sys/class/devfreq/*; do
+    case "$d" in *gpu*)
+      # devfreq accepts neither limit past the other, and the current limits are the whole table.
+      echo "$PIN_HZ" > "$d/min_freq"; echo "$PIN_HZ" > "$d/max_freq"; sleep 1
+      echo "pinned $PIN_HZ cur=$(cat "$d/cur_freq")"
+      [ "$(cat "$d/cur_freq")" = "$PIN_HZ" ] || { echo "pin failed"; rc=1; };;
+    esac
+  done
+fi
 if [ $rc = 0 ]; then
   rpm just-loaded
   sleep 1

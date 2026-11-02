@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `running`: sustained load to 520 MHz, idle power-off and per-bank sensing passed; DVFS waits for the owner |
+| Status | `running`: sustained load to 520 MHz, idle power-off, per-bank sensing and live DVFS transitions passed; the OPPs below 520 MHz are not yet validated under load |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -404,6 +404,15 @@ not a measurement. The other banks warm too, from shared heating or the small CP
 
 DVFS, the fourth step, has not run. It waits for the owner, since it is the first run below 1.0 V.
 
+### Run 11, same boot: DVFS, `DVFS=1 ./gpu-test.sh load`
+
+Owner-approved, one run. 8277 frames in 60 s, within 0.6% of fixed 520 MHz, same pixel, no fault, SoC peak 38.0 C.
+`trans_stat`: four transitions, 442.5 to 238, 238 to 520, 520 to 442.5, 442.5 to 238. Time in state: 520 MHz 59956 ms,
+238 MHz about 2.4 s, 442.5 MHz about 120 ms, 365 MHz none. The rail read 850000 uV at 238 MHz while idle.
+
+So rate and voltage changes work on a running GPU, including the parked PLL divider changes. **The points below 520 MHz
+are not validated under load**: no shader work ran below 1.0 V for any length of time this run can show.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -433,8 +442,8 @@ loads these modules at boot.
 
 ## Follow-up
 
-Waiting for the owner: run DVFS (`0487`-`0489`, off by default), the first run below 1.0 V and with rate changes on a
-running GPU. If it passes, make idle power-off and DVFS the defaults.
+Next: a load pinned at each OPP below 520 MHz, then idle power-off and DVFS together. If those pass, make both the
+defaults.
 
 The scpsys clock stays for now. It is what stops the loader's running PLL on first load, so removing it
 needs its own way to stop that PLL, or a boot leaves it running.
