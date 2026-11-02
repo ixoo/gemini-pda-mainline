@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B has not completed a roam; 0468 addresses the latest stop, not yet rerun |
+| Status | `running`: stage A passed on one boot; stage B has not completed a roam: the driver side now reaches the handshake with no restart, and the supplicant drops it; a debug log is next |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -302,6 +302,19 @@ still unsettled at the data phase ends the lifetime as before. The firmware stay
 
 The plain `wpa_cli` disconnect and reconnect still works on this `mac`: `COMPLETED`, gateway 3/3. `No SSID` is
 still untested. After the restart the lease was lost again, as recorded above.
+
+**Stage B, seventh try: same boot, `mac` `a70b0c88…` (0468), run by the custodian.** 10 of the 40 roams used; one
+roam. The driver side now runs through: `disconnect from AP ... for new auth`, re-arm, `join without a
+scan`, `join grant: channel=161 sco=3`, `join RX: subtype=11`, `join TX status: pid=2 fc=0x0020 status=0`,
+`join RX: subtype=3`, about 340 ms after the disconnect, with no loss report before it and no restart. The
+handshake's first message arrived four times, and the supplicant again logged `WPA: No SSID info found
+(msg 1 of 4)` each time. Then it deauthenticated itself (`reason=4 locally_generated=1`), returned to channel
+40, and kept its address and route without help.
+
+So my reading was wrong, or at least incomplete: the early loss report was not what cleared the supplicant's network,
+since it is gone and the message remains. No `CTRL-EVENT-DISCONNECTED` is logged before `Trying to associate`.
+A plain `wpa_cli` disconnect and reconnect still works on this `mac`. Next: one roam with the supplicant at
+`-dd -t`, which should name what cleared its state.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
