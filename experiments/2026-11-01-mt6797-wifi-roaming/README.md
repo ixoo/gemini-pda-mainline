@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot with 0461; the roam patches have not run, and stage B needs the owner's budget |
+| Status | `running`: stage A passed on one boot; stage B's first roams failed and 0463 addresses that, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,8 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `1a8fc61a`, inventory `a5392104…`, `mac` `a8c1a778…`, CONSYS `28b5435c…`, core
-`425b8add…`, `Image.gz` `e9bad6fb…`.
+Package: to be recorded, from the build carrying 0463.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -165,6 +164,46 @@ Not shown:
   logs it, so stage B repeats 100 scans.
 - What the firmware sends when it leaves the channel.
 - A clean first join: this is the boot of the first-join restart.
+
+**Stage B, first try: same boot, `mac` `a8c1a778…`, package `a5392104…`, passive scan, run by the
+custodian.** The 100 scans passed and both roams failed, which is the stop rule. 2 of the 40 roams used.
+
+- `scans 100`: 100/100 rc 0, `COMPLETED`, 5.76 s mean, 3885 ping replies with no gap. The sequence
+  recycled twice, 201 to 110 and 202 to 110. No `scan busy`, none aborted, no restart. That settles
+  recycling on this boot.
+- `roams 2`: neither reached channel 161. Each cost a firmware restart, then a normal scan and a rejoin on
+  channel 40 about 7.5 s later. No `join without a scan` line.
+
+The first roam's log, in order:
+
+```
+4863.735 join data phase end: reason=disconnect
+4863.807 join cleanup: stage=3 ... deauth=1 delivery=transmitted
+4863.807 connection loss report: source=cleanup
+4863.831 wlan0: Connection to AP lost
+4863.848018 join rearm: lifetime=1 token=2 sta_seq=120 sequence=149
+4863.848382 mask-control submission: enable=0 status=-16
+4863.848409 join peer refused: reasons=0x00002 ... sequence=156
+4863.848562 wlan0: failed to insert STA entry for the AP (error -95)
+4863.848583 join channel refused: hw=1 center=2412 ... config=-95
+4863.949 passive WLAN submission stopped: status=-95
+4863.950 WLAN restart: begin
+```
+
+The scanless join ran, as far as its first command, under a millisecond after the re-arm. That command
+returned -EBUSY and ended the lifetime. Read from the code, the command path returns -EBUSY when
+its mutex is busy or, it seems, when the ledger still owes pages; which one is not shown. The re-arm's own
+comment says its last pages may be unreconciled.
+[0463](../../patches/proposals/0463-wifi-mt6797-wait-for-the-ledger-before-a-scanless-jo.patch) waits for the ledger first.
+
+Read from these lines:
+- The link went down before mac80211's `disconnect from AP ... for new auth` could print, and there is no
+  `deauthenticating` line. The data phase ended by another route, probably the supplicant unauthorizing
+  the port, which the driver treats as a disconnect. Inferred, not traced. It reports a connection loss, so
+  the supplicant may also see a disconnect mid-roam.
+- `hw=1 center=2412` is `.config` refusing after the error; the join never tried it, and the log shows no join
+  frame on it. The same line after the first-join fault is the same teardown path.
+- The jump in `sequence` from 149 to 156 across one mask command is not explained.
 
 Also in the first try's log, and again in this run up to 1776.66 s, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.

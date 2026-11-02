@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 22:17:11 -0500
+Subject: [PATCH] wifi: mt6797: wait for the ledger before a scanless join's
+ commands
+
+The first roams failed: the re-arm finished, the scanless join sent its
+first command under a millisecond later, and that command returned -EBUSY
+(mask-control status=-16). The error ended the lifetime and restarted the
+firmware. A scan never met this, since it comes well after the re-arm.
+
+Wait for the ledger to go idle first, within the existing bound.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 30 +++++++++++++++------
+ 1 file changed, 22 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index ebdf99563..520d08e90 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -921,6 +921,19 @@ static int mt6797_mac_lifetime_begin(struct mt6797_mac *mac)
+ 	return 0;
+ }
+ 
++static int mt6797_mac_await_idle(struct mt6797_mac *mac, u64 end)
++{
++	int ret = 0;
++
++	while (!ret && !mt6797_hif_normal_idle(mac->hif)) {
++		if (ktime_get_ns() >= end)
++			return -ETIMEDOUT;
++		usleep_range(1000, 2000);
++		ret = mt6797_mac_scan_guard(mac, end);
++	}
++	return ret;
++}
++
+ /* A join from an earlier scan's results, as in a roam: open the lifetime a scan
+  * would have left. Called with the mutex held, on a re-armed idle driver.
+  */
+@@ -936,15 +949,16 @@ int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac)
+ 		return -EOPNOTSUPP;
+ 	if (!mac->sequence_base)
+ 		mac->sequence_base = mac->sequence;
+-	ret = mt6797_mac_lifetime_begin(mac);
+-	/* The peer commands start from an idle ledger, as after a scan. */
++	/* The re-arm can leave the cleanup's last pages unreconciled, and a
++	 * command then returns -EBUSY, which would end this lifetime.
++	 */
+ 	end = ktime_get_ns() + 500 * NSEC_PER_MSEC;
+-	while (!ret && !mt6797_hif_normal_idle(mac->hif)) {
+-		if (ktime_get_ns() >= end)
+-			ret = -ETIMEDOUT;
+-		else
+-			ret = mt6797_mac_scan_guard(mac, end);
+-	}
++	ret = mt6797_mac_await_idle(mac, end);
++	if (!ret)
++		ret = mt6797_mac_lifetime_begin(mac);
++	/* The peer commands start from an idle ledger, as after a scan. */
++	if (!ret)
++		ret = mt6797_mac_await_idle(mac, ktime_get_ns() + 500 * NSEC_PER_MSEC);
+ 	if (ret) {
+ 		if (!mac->first_error)
+ 			mac->first_error = ret;
+-- 
+2.43.0
+

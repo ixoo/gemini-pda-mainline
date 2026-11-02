@@ -1046,3 +1046,4 @@ proposals/0459-wifi-mt6797-name-why-a-scan-is-busy.patch
 proposals/0460-wifi-mt6797-take-a-management-frame-s-answer-as-its-.patch
 proposals/0461-wifi-mt6797-admit-a-connected-scan-while-cleanup-is-.patch
 proposals/0462-wifi-mt6797-log-the-connected-scan-s-command-sequenc.patch
+proposals/0463-wifi-mt6797-wait-for-the-ledger-before-a-scanless-jo.patch
