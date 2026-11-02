@@ -1,0 +1,83 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 23:10:29 -0500
+Subject: [PATCH] wifi: mt6797: let a join run while the regulatory domain
+ settles
+
+The roam's station came up on the new channel, then the join stopped with
+-ECANCELED just after mac80211 sent the authentication. That is the regulatory
+stop. mac80211's disconnect for the new authentication makes cfg80211 restore
+its settings, through the world domain and back to the country, and that
+takes RTNL as soon as the authentication request returns. The new lifetime
+was in use by then, so it ended.
+
+While a join is starting, let the domain settle: the firmware keeps the
+domain it has, and an update that matches clears the wait. A change still
+unsettled when the data phase starts ends the lifetime there, as a change
+during a lifetime did before.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c     |  3 +++
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h |  2 +-
+ drivers/net/wireless/mediatek/mt6797/main.c     | 15 ++++++++++++++-
+ 3 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 296e9387a..c751590a4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1719,6 +1719,9 @@ int mt6797_mac_join_release_channel(struct mt6797_mac *mac)
+ 
+ 	if (!mac->ccmp_pm_connected || !mac->ccmp_pm_credit_ns)
+ 		return -EOPNOTSUPP;
++	/* The regulatory change did not settle during the join. */
++	if (mac->reg_pending)
++		return -ECANCELED;
+ 	if (!mac->join_channel_granted || mac->join_channel_released ||
+ 	    mac->join_data_phase || mac->join_page_debt || mac->join_credit_pending)
+ 		return -EBUSY;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 9f057d2d0..3a0d7a942 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -438,7 +438,7 @@ struct mt6797_mac {
+ 	char alpha2[2];
+ 	/* The domain and power the firmware last accepted. */
+ 	struct mt6797_regulatory_payloads reg_sent;
+-	bool reg_sent_valid;
++	bool reg_sent_valid, reg_pending;
+ 	unsigned int sequence;
+ 	/* The first command sequence of lifetime 1, where a recycle restarts. */
+ 	unsigned int sequence_base;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 1a8999fc1..0ab135df1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -458,9 +458,22 @@ static void mt6797_mac_regulatory(struct wiphy *wiphy,
+ 		memcpy(saved, mac->alpha2, 2);
+ 		mt6797_mac_set_alpha2(mac, request->alpha2);
+ 		if (!mt6797_mac_policy(mac, &policy) &&
+-		    !memcmp(&policy, &mac->reg_sent, sizeof(policy)))
++		    !memcmp(&policy, &mac->reg_sent, sizeof(policy))) {
++			mac->reg_pending = false;
+ 			goto out;
++		}
+ 		memcpy(mac->alpha2, saved, 2);
++		/* A disconnect makes cfg80211 pass through the world domain and
++		 * back to the country. For a roam that lands just after the
++		 * join starts, so let the join run while it settles; the
++		 * firmware keeps its domain. A change still unsettled when the
++		 * data phase starts ends the lifetime there.
++		 */
++		if (mac->join_running && !mac->join_retired && !mac->join_cleanup_done &&
++		    !mac->join_data_phase && mac->join_scan_ready) {
++			mac->reg_pending = true;
++			goto out;
++		}
+ 	}
+ 	if (mt6797_mac_join_regulatory_stop(mac, &discard, &internal))
+ 		goto out;
+-- 
+2.43.0
+

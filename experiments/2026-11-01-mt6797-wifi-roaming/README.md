@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B has not completed a roam; 0467 addresses the latest stop, not yet rerun |
+| Status | `running`: stage A passed on one boot; stage B has not completed a roam; 0468 addresses the latest stop, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,7 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `d4a9798f`, inventory `bca85308…`, `mac` `239ea341…`, CONSYS `28b5435c…`, core `2542c418…`.
+Package: to be recorded, from the build carrying 0468.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -284,6 +284,24 @@ with no IPv4 address on `wlan0` and no route, while `udhcpc` was still running. 
 printed `lease after 0s` over an empty gateway ping; only killing `udhcpc` first brought it back. That fits
 the earlier `no lease after 60s`, and shows the script's lease check can pass with no address. A real network
 manager may handle a recreated `wlan0` differently; that is not tested.
+
+**Stage B, sixth try: same boot, `mac` `239ea341…` (0467), run by the custodian.** 9 of the 40 roams used; one
+roam. 0467 worked as far as `join grant: channel=161 sco=3` and `join peer: ready=1`. Then:
+
+```
+8147.459735 wlan0: send auth (try 1/3)
+8147.459858 join stopped: status=-125 first=0 submitted=0x0 debt=0 cleanup=0 branch=9
+```
+
+Branch 9 has one source, the regulatory stop. mac80211's disconnect for the new authentication makes cfg80211
+restore its regulatory settings, from world back to the country. Its work needs RTNL, which the request
+holds, so it most likely ran as the request returned, which fits the 123 µs. That also fits try 5's
+`status=-125 branch=9`, whose visible cause was the peer refusal.
+[0468](../../patches/proposals/0468-wifi-mt6797-let-a-join-run-while-the-regulatory-doma.patch) lets a starting join run while the domain settles, and a change
+still unsettled at the data phase ends the lifetime as before. The firmware stays on its domain throughout.
+
+The plain `wpa_cli` disconnect and reconnect still works on this `mac`: `COMPLETED`, gateway 3/3. `No SSID` is
+still untested. After the restart the lease was lost again, as recorded below.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
