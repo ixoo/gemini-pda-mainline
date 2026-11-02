@@ -34,9 +34,11 @@ stop_supplicant() {
 	killall wpa_supplicant
 	while pidof wpa_supplicant > /dev/null; do sleep 1; done
 }
+# The supplicant rejoins by itself, so the test ends at its first disconnect.
+disconnected() { grep -q CTRL-EVENT-DISCONNECTED "$D/wpa.log"; }
 wait_completed() {
 	i=0
-	while [ "$i" -lt 30 ] && [ "$(field wpa_state)" != COMPLETED ]; do
+	while [ "$i" -lt 30 ] && [ "$(field wpa_state)" != COMPLETED ] && ! { [ "$1" = test ] && disconnected; }; do
 		sleep 1
 		i=$((i + 1))
 	done
@@ -80,9 +82,19 @@ sleep 2
 stop_supplicant
 [ "$MODE" != rc ] || echo 1 > "$RC"
 "$SUPPLICANT" -dd -Dnl80211 -iwlan0 -c "$C" > "$D/wpa.log" 2>&1 &
-wait_completed
-if [ "$(field wpa_state)" = COMPLETED ]; then
-	ping -c 300 -i 0.2 "$T" > "$D/ping.txt" 2>&1
+wait_completed test
+if [ "$(field wpa_state)" = COMPLETED ] && ! disconnected; then
+	ping -c 300 -i 0.2 "$T" > "$D/ping.txt" 2>&1 &
+	P=$!
+	while kill -0 "$P" 2> /dev/null; do
+		if disconnected; then
+			echo "stopped at the first disconnect"
+			kill "$P"
+			break
+		fi
+		sleep 1
+	done
+	wait "$P"
 	grep 'packets transmitted' "$D/ping.txt"
 	echo "after ping state=$(field wpa_state) freq=$(field freq) peer_flags=$(awk -v t="$T" '$1 == t { print $3 }' /proc/net/arp)"
 	$WPA signal_poll | grep -E '^(AVG_RSSI|LINKSPEED|WIDTH)='
@@ -91,10 +103,16 @@ fi
 
 stop_supplicant
 rm -f "$C"
+# A firmware restart takes wlan0 away for a while.
+i=0
+while [ "$i" -lt 30 ] && ! ip link show wlan0 > /dev/null 2>&1; do
+	sleep 1
+	i=$((i + 1))
+done
 echo "$RC_WAS" > "$RC"
 [ -z "${PEER:-}" ] || arp -i wlan0 -d "$T"
 wpa_supplicant -Dnl80211 -iwlan0 -c /run/station/wpa.conf > /run/station/wpa.log 2>&1 &
-wait_completed
+wait_completed normal
 sleep 5
 kill "$KMSG"
 echo "disconnect_reasons=$(sed -n 's/.*CTRL-EVENT-DISCONNECTED.* reason=\([0-9]*\).*/\1/p' "$D/wpa.log" | tr '\n' ' ')"

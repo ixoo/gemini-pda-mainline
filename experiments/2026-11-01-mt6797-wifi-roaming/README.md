@@ -556,7 +556,7 @@ not known; a different key on it, or something in our frame that only it checks,
 device has been on that channel. Not tested with the original supplicant.
 
 **The link stayed up with no received data in all four phases at about -78 or below.** `rx_qos=0`, no block-ack start, ping and TCP dead, while broadcasts and
-beacons arrived and transmits were acknowledged. Average signal in those phases: -83, -78, -79, -80. Every other phase averaged -58 to -70.
+beacons arrived and transmits were reported done, which turned out not to mean acknowledged, as below. Average signal in those phases: -83, -78, -79, -80. Every other phase averaged -58 to -70.
 
 - The driver didn't drop these frames: `rx_refused_qos=0` throughout. The `data rx refused` lines are mostly 690-byte frames with `wlan=255`, not from this
   link's station entry, and a good phase had 965 refusals. This also answers the earlier question about those lines, at least for this shape.
@@ -611,7 +611,7 @@ Inference, not yet observed: the access point may not be sending these replies a
 - Across this boot's log, tid 0 block-ack sessions open within about a second of a working link, and tid 6 too. None opened on tid 0 in this run or in the walk's dead phases, though action frames do arrive, as the two on tid 5 and one on tid 6 here show.
 - The two tid 5 sessions opened with start sequence 0 and then 1, about when the two replies arrived. The first reply came about 50 s into the ping. If those replies are tid 5, the access point numbered only those two frames there. Which tid they used isn't logged.
 
-This does not fit all of the "weak signal" reading: our frames are acknowledged by the access point at 13 Mb/s, and the broadcast and action frames we receive show the link itself works.
+This paragraph's first reading, that the access point acknowledged our frames, was wrong; see the fixed-rate result below.
 
 Next, the same join with `PEER` set to the laptop's address on this LAN, reading the laptop's ICMP input counter with `netstat -s -p icmp` before and after, which needs no capture rights.
 
@@ -619,7 +619,7 @@ Next, the same join with `PEER` set to the laptop's address on this LAN, reading
 | --- | --- | --- |
 | About 300 | About 0 | Uplink works; the replies don't reach the device. Back to the receive path |
 | About 300 | About 300 | The fault is on the path to the gateway; the device and access point work |
-| About 0 | About 0 | The frames are acknowledged but not forwarded, for example not decrypted by that access point. Read the key installation and transmit descriptor |
+| About 0 | About 0 | The frames do not get past the access point, for example not decrypted by that access point. Read the key installation and transmit descriptor |
 
 **That run, `PEER` at 40 MHz:** the laptop's echo count rose by 3, the control pings, and 0 of 300 came back. This does not show that the access point fails to forward. The driver queued only 57 frames in 70.8 s, against 331 to the gateway, as the custodian noticed. Losing carrier flushes the neighbour table (`net/ipv4/arp.c`), so the pings waited on an address, and those frames are most likely ARP requests at about 1 a second. No capture confirms that. So my "about 3" row can't be read from this run. It does add something: if those were ARP requests, no unicast reply reached the device in 60 s, with `rx_qos=0`. The gateway's address probably resolved from its own broadcast request, though that isn't observed either. The script's mark also matched the previous run, so its counts spanned both, all zero.
 
@@ -637,3 +637,27 @@ Next, the same join with `rate_control` on for that join only, with the script m
 | Replies, laptop count near 303 | Fixed MCS5 is Fault 2 on this link. Compare throughput, then make rate control the default |
 | Still none, `tx bitrate` stays high | The status misleads minstrel; try a fixed 6 Mbit/s mask |
 | Still none, `tx bitrate` low | Not the rate; encryption or that access point. Read key installation and the descriptor |
+
+**The result, Fault 2: ordinary data at the fixed rate is not getting through, and the counters hid it.** With `rate_control` on for one join on 5745 at -77, data flowed for the first time: 105 of 300 replies, and the laptop counted 108 echoes, the 3 control pings and those 105.
+
+The "acknowledged" puzzle above was my misreading. `tx_done` does not mean acknowledged. At the fixed rate, one frame in 64 asks for a status (0281) and the rest are retired when their credit returns, counted as done. `tx_failed` therefore counts only the sampled frames, and in the dead phases it is about all of them:
+
+| Phase | `tx_queued` | Queued / 64 | `tx_failed` | `rx_qos` |
+| --- | --- | --- | --- | --- |
+| Walk, 149 | 174 | 2.7 | 2 | 0 |
+| Walk, 5200, weak | 754 | 11.8 | 11 | 0 |
+| Walk, 5200, weak | 2026 | 31.7 | 31 | 0 |
+| Desk, 149 | 300 | 4.7 | 4 | 0 |
+| Desk, 149, `ht20` | 292 | 4.6 | 4 | 4 |
+| Walk, 161, strong | 258513 | 4039 | 0 | 1143386 |
+| Before the walk, strong | 223547 | 3493 | 1 | 859029 |
+
+So the sampled frames at the fixed HT MCS5 all failed in those phases and almost none failed on strong links. Management and EAPOL frames go at 6 Mbit/s, and each asks for a status, which is why joins complete. This is one fault across channels. It removes the need for a separate `sco=1` fault, for these results, and it means no evidence remains of frames reaching the access point undelivered. No capture confirms what was on the air, and the rate sent during the rate control run was not read.
+
+**Rate control has its own fault here.** The link dropped every 3 to 4 s with `reason=txfail`, usually after 7 done and 8 failed. Eight failures in a row end the data phase, and with rate control every probe frame reports, while most others are counted done on credit. So I think failing probes of higher rates end a link that is otherwise carrying data; that is from the code and these counts, since the rates were not logged.
+
+**A budget breach, caused by my script.** The supplicant rejoined by itself after each drop, so this run made 15 joins on 149 where I had counted one, taking that channel to 21 against a limit of 10. The script had no cap and my request didn't consider it. The script now ends the test at the first disconnect. The custodian has told the owner, and 149 stays closed until the owner rules.
+
+**A second driver stop, not explained.** The 15th join stopped with `status=-95 first=-95` at `sequence=195`, followed by a firmware restart. It is not the known wrap, which sets `-EOWNERDEAD` at a higher sequence. The normal link was recovered by the custodian with its usual steps, without a module reload.
+
+A possible fix, not yet written: rate control on by default, probe failures not counted toward the eight, and reports frequent enough at low traffic for minstrel to learn from. The earlier [comparison](../2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av) measured rate control at 0.83x the fixed rate's transmit at 40 MHz on a strong link.
