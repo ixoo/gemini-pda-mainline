@@ -7,7 +7,8 @@
 #           this network. Their addresses stay in /run/station/roam-bss.
 # scans N:  N passive scans while connected, with a ping running.
 # roams N:  N roams, alternating between the first two addresses in roam-bss, which
-#           the operator may edit, with a ping running.
+#           the operator may edit, each after a scan of those two channels, with a
+#           ping running. The network block must not pin a BSSID.
 # Prints no network name, peer address or key.
 export PATH=/bin LD_LIBRARY_PATH=/lib
 WPA="wpa_cli -p /run/station/wpa -i wlan0"
@@ -62,10 +63,15 @@ roams() {
 	a=$(sed -n 1p "$L" | cut -d' ' -f1)
 	b=$(sed -n 2p "$L" | cut -d' ' -f1)
 	[ -n "$a" ] && [ -n "$b" ] || { echo "need two addresses"; exit 1; }
+	fa=$(sed -n 1p "$L" | cut -d' ' -f2)
+	fb=$(sed -n 2p "$L" | cut -d' ' -f2)
 	ping_start
 	n=1
 	while [ "$n" -le "$1" ]; do
 		if [ "$(field bssid)" = "$a" ]; then to=$b; else to=$a; fi
+		# cfg80211 ages a BSS entry out, so a roam needs a recent scan.
+		iw dev wlan0 scan freq "$fa" "$fb" passive > /dev/null 2>&1
+		echo "scan rc=$?"
 		t0=$(uptime_s)
 		$WPA roam "$to" > /dev/null
 		sleep 1

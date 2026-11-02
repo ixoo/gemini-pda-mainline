@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B has not completed a roam: the driver side reaches the handshake, and the supplicant dropped it because the test's configuration pinned the first access point; retest without the pin is next |
+| Status | `running`: stage A passed on one boot; first complete roam on one boot, channel 161 to 40, about 1 s, no ping lost; more roams and the other direction are next |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -331,6 +331,31 @@ So on the third, fourth, seventh and this try, `No SSID` said nothing about the 
 were wrong. It follows that 0465 and 0466 were not fixing what I said they fixed, and 0467 and 0468 only
 exist for the order 0466 made. They may still be the better behaviour, but that is not shown, and once a roam
 completes they should be reviewed for removal.
+
+**Stage B, first roam without the pin: same boot and `mac` `a70b0c88…`, the network block limited to 5200 and
+5805 MHz, run by the custodian.** 13 of the 40 roams used. The first complete roam on this driver:
+
+- The supplicant first chose channel 161 by itself, a first join there on this path.
+- Channel 161 to 40: `at=target`, `COMPLETED` in about 1 s, with the 5/s ping keeping its sequence throughout
+  (56 replies, no gap), no restart, same `udhcpc`, same address and route, gateway 3/3. One roam, in one direction.
+  ```
+  9102.788059 disconnect from AP for new auth
+  9102.827627 join without a scan: lifetime=10 sequence=115
+  9102.899698 join grant: channel=40 sco=3 interval_ms=9000
+  9102.955701 join RX: subtype=11 status=0
+  9102.987690 join RX: subtype=3 status=0
+  9103.107994 associated
+  ```
+- No `No SSID` once the pin was gone, which supports the pin reading.
+- The roam back, 36 s later, failed differently: `MLME command failed (auth): ret=-2`, the supplicant's refresh scan refused
+  with -16, and the 2 s loss report then fired as designed. It rejoined channel 40 with no restart, a 2 s ping gap.
+
+The custodian's reading of that failure, which fits but is not checked: cfg80211 had aged out the target's entry, 53 s after the
+last scan that saw it, against 17 s for the roam that worked. So `roams` now scans the two channels first.
+
+A real limit stays in the driver: if the target's entry is stale the keys are already gone, the link goes down, and the
+refresh scan is refused during the teardown, which costs about 2.5 s. `bgscan` should keep results fresh, so this
+may be rare. Not changed.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
