@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T4 booted the DSP through `/dev/gnss0` on mainline and it reported measurements, with no satellite locked indoors; the outdoor test is not yet drafted. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
+| Status | `running`: T4 booted the DSP through `/dev/gnss0` on mainline and it reported measurements, with no satellite locked indoors; T5, 10 minutes outdoors with no cable, is admitted and has not run. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -560,7 +560,29 @@ One open, full 60 s window, host exit 0, no stop rule fired. An earlier launch f
 
 **Next, by the table:** draft the 10 minute outdoor test. Missing seconds matter for position if they persist outdoors, so that test should count them.
 
+## T5: 10 minutes outdoors with no cable (radio and firmware action; owner approved)
+
+Approved by the owner on 2026-11-02, in the words "Approve the test", for the drafted plan.
+
+**Hypothesis:** outdoors, the DSP on mainline locks satellites as it did on stock in [step 6](../2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved), and the logged measurements give a position offline. Unique observations: valid satellites on mainline, a first real test of GPIO 69 and the antenna path there, and whether T4's missing seconds continue.
+
+**Effects:** as T4, with the same host, settings and DSP image, for 600 s. [gnss-outdoor.sh](gnss-outdoor.sh) starts the host 180 s after it is launched, so that the owner can unplug the device and carry it outside, and writes to the data partition. The owner holds the device still, open, under open sky, preferably where Wi-Fi stays in range.
+
+**Risks:** leaving Wi-Fi range is untested on this driver, which cannot reassociate yet. A Wi-Fi warning stops the run and spends the open, even if GNSS is fine. A firmware assert takes Wi-Fi down until a CONSYS reload. The script's limits are the only thermal and charge guard during the run.
+
+**Budget:** one open, no retry. Stops: any firmware assert, `STP link stopped`, Oops, warning or call trace; SoC at 75 °C, battery at 45 °C or capacity under 30%; an unreadable limit; a failed boot, a failed write or the DSP silent for 10 s. A stop before the open does not spend it. The stop paths are tested with stubs in the VM, and the real `dmesg` and the device are not tested.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| At least 4 satellites valid, position close to step 6 | GNSS works on mainline | Plan how applications would use it |
+| Valid but clearly fewer or weaker than step 6 | The RF path differs: LNA, coexistence or Wi-Fi interference | Compare signal levels offline; no retry until there is a specific cause to test |
+| No satellite valid in 10 minutes | The front end is not working as on stock | Compare power and pin state with stock offline |
+| Missing seconds stop outdoors | They were tied to no lock or to T4's state | Note it and move on |
+| Missing seconds continue | Mainline-specific, and they affect positions | Compare them with the logged Wi-Fi state; investigate before relying on positions |
+| Firmware assert or Wi-Fi lost | The longer run or leaving Wi-Fi range broke something | Keep the evidence; CONSYS reload or the reviewed path back to Gemian; no retry until understood |
+
 ## Associated code
 
+- [gnss-outdoor.sh](gnss-outdoor.sh): the T5 run on the station.
 - [test-stp-engine.c](test-stp-engine.c) and
   [run-tests.sh](run-tests.sh): `run-tests.sh PREPARED_LINUX_SOURCE`. No hardware.
