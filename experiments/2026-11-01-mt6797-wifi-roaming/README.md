@@ -70,7 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: to be recorded, from the build carrying 0468.
+Package: Buildbox at `5182bab9`, inventory `307052cd…`, `mac` `a70b0c88…`, CONSYS `28b5435c…`, core `2542c418…`.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -301,7 +301,7 @@ holds, so it most likely ran as the request returned, which fits the 123 µs. Th
 still unsettled at the data phase ends the lifetime as before. The firmware stays on its domain throughout.
 
 The plain `wpa_cli` disconnect and reconnect still works on this `mac`: `COMPLETED`, gateway 3/3. `No SSID` is
-still untested. After the restart the lease was lost again, as recorded below.
+still untested. After the restart the lease was lost again, as recorded above.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
