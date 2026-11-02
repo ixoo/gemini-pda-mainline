@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `completed`: at 1.0 V and at 26 and about 364 MHz, the T880 probes, identifies and completes bounded jobs and correct shader frames through Mesa, from modules; no sustained load |
+| Status | `running`: sustained load to 520 MHz, idle power-off and per-bank sensing passed; DVFS waits for the owner |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -343,9 +343,8 @@ No GPU fault in either. Run 7 used `unstable_ioctls=1`, so `tainted=64` on that 
 - The 139 pixel of run 6 does not match a CPU evaluation (232), so that loop ran on the GPU, with its
   own `sin`.
 
-**Still open.** A 2.3 C rise fits the 0.53 W the vendor's coefficient gives at this point (1461 uW/MHz/V2,
-a calculation), or a sensor far from the GPU. Nothing proves bank 1 sees the GPU, and `soc-thermal` only
-reports the maximum.
+A 2.3 C rise fits the 0.53 W the vendor's coefficient gives at this point (1461 uW/MHz/V2, a calculation). Run 10
+settles the sensor side.
 
 ### Run 8, same boot: 442.5 MHz, first use of the MFGPLL
 
@@ -376,6 +375,35 @@ The log's usage count grew one per load, 6 here, from the leak in `panfrost_remo
 The run stop moves to 58 C from here, the first CPU cooling trip in the policy recovered from Gemian's files.
 The source's 75 C target is real, but that policy starts cooling far earlier and there is no cooler here.
 
+### Run 10, boot `145d8512`: the new image, package `6fe0e33d` (`0483`-`0489`)
+
+Boot normal: Wi-Fi associated, tainted 0, no GPU module, MFG off. Battery 91% and not charging. The loader left
+the MFGPLL running at 500.5 MHz with `mfg_sel` prepared, as run 8's reading predicted.
+
+**Idle power-off**, first load of the boot, about 364 MHz, 200 frames with 100 ms gaps: exit 0, 200 of 200 correct,
+usage count 0 at the end of probe. `runtime_suspended_time` rose 8107 ms during the frames. `PWR_STATUS` read MFG off
+when idle and on after a frame, and the first load stopped the loader's PLL. With the 50 ms autosuspend in a 100 ms
+gap, a suspend lasts at most about 50 ms, so that time took at least 162 power cycles, likely about 200 (arithmetic;
+cycles were not counted). VGPU and the LDOs stayed on throughout, by design.
+
+**Per-bank**, second load, 520 MHz, 60 s: 8328 frames, exit 0, no fault, usage count 1, so the leak is fixed.
+
+| Bank | Start C | After 5 s | End of load | 1 s after unload |
+| --- | --- | --- | --- | --- |
+| 0 | 31.3 | 33.1 | 35.1 | 34.9 |
+| **1** | **30.2** | **35.4** | **37.7** | **34.2** |
+| 2 | 32.9 | 33.8 | 36.2 | 35.7 |
+| 3 | 32.9 | 34.1 | 36.2 | 35.6 |
+| 4 | 32.9 | 33.9 | 36.2 | 35.4 |
+| 5 | 32.6 | 34.1 | 36.5 | 35.3 |
+
+Bank 1 starts coolest, rises 5.2 C in 5 s against 1 to 2 C elsewhere, peaks highest and falls 3.5 C within a
+second of unload. That **answers the sensor question**: bank 1 is the bank nearest the GPU, and `soc-thermal`'s
+maximum follows it, so the 58 C stop does see the GPU. That bank 1's sensor is named `MCU4` is the vendor's source,
+not a measurement. The other banks warm too, from shared heating or the small CPU load.
+
+DVFS, the fourth step, has not run. It waits for the owner, since it is the first run below 1.0 V.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -390,7 +418,7 @@ is why the count climbs; it is harmless here.
 The Zero job uses no shader core; run 5 does, since the compiled vertex and fragment shaders carry the
 uniform to the pixels the tool checks. A correct image at both clocks shows Mesa's compiler, the tiler,
 fragment jobs and shader execution on this GPU. It cannot say how many of the four cores did the work.
-The temperature range says nothing about real load: the runs before run 6, and runs 6 and 7 only reach about 0.5 W by calculation. The sensor question above limits it further. Job times fell from 754 us to 131 us at the higher clock, which points
+The temperature range says nothing about real load: the runs before run 6, and runs 6 and 7 only reach about 0.5 W by calculation.  Job times fell from 754 us to 131 us at the higher clock, which points
 the same way as the registers but does not measure the clock. The rail is a register value and the clock is a mux register plus the
 framework's rate. Neither was measured. Runtime-suspended domain cycling stays forbidden, so no
 idle power saving exists: while loaded, the rail and the domains stay on.
@@ -405,13 +433,8 @@ loads these modules at boot.
 
 ## Follow-up
 
-Built for a boot image, waiting for the owner's boot2 selection, all compile-checked only:
-
-- Idle power-off, `mt6797_idle_off` (`0485`). The usage leak on the running boot blocks suspend, so it needs a boot.
-- Per-bank temperatures in debugfs (`0486`), since `soc-thermal` reports only the maximum and nothing yet shows
-  bank 1 sees the GPU.
-- PLL parking on a running GPU (`0487`), an OPP table from 238 to 520 MHz, devfreq and a cooling map at 58 C (`0488`,
-  `0489`), behind `mt6797_dvfs`.
+Waiting for the owner: run DVFS (`0487`-`0489`, off by default), the first run below 1.0 V and with rate changes on a
+running GPU. If it passes, make idle power-off and DVFS the defaults.
 
 The scpsys clock stays for now. It is what stops the loader's running PLL on first load, so removing it
 needs its own way to stop that PLL, or a boot leaves it running.
