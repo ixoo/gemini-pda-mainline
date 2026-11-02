@@ -70,7 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: to be recorded, from the build carrying 0465.
+Package: Buildbox at `acb6ded0`, inventory `19b51918…`, `mac` `1bd1c32b…`, CONSYS `28b5435c…`, core `2542c418…`.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
