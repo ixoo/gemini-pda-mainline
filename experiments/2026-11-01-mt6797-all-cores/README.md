@@ -534,7 +534,9 @@ on the new bus.
 Recovery: as for the bring-up attempts. The module is not in the image, so any reboot
 returns a station without it, once the owner selects boot2.
 
-### Cluster map (proposed, not admitted, not run)
+### Cluster map (owner-approved, one boot and one load, not run)
+
+The owner approved this on 2026-11-01.
 
 The [topology run](../2026-09-02-mainline-mt6797-cpu-map/README.md) showed the kernel publishing
 4+4+2 from this map on an isolated candidate. 0455 adds the same map to the A72 tree. It writes
@@ -555,7 +557,7 @@ Declaring capacity needs a measured basis, because the
 Hypothesis: on the A72 profile, `cluster_cpus_list` reads `0-3`, `4-7`, `8-9`, with the A72s
 joining their cluster at load, and the station keeps working. Unique observations: the
 domains on this profile with late A72s, and each cluster's single-CPU hash rate, the first
-measured input for capacity. One boot and one module load, needing the owner's approval.
+measured input for capacity. One boot and one module load, no retry.
 
 ```sh
 grep . /sys/devices/system/cpu/cpu[0-7]/topology/cluster_cpus_list   # before the load
@@ -798,6 +800,6 @@ not run beside it, and the whole system now reports
 
 ## Follow-up
 
-Next, in order, each its own owner decision: the cluster map (proposed above); idle power; a longer soak; load at init; then, as
+Next, in order, each its own owner decision: the cluster map (approved above); idle power; a longer soak; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
