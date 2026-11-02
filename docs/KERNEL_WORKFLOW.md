@@ -219,8 +219,8 @@ retention policy. Do not delete partition captures, credentials,
 calibration-bearing data, or the only copy of runtime evidence as routine
 space reclamation. Review their identity and backup status separately.
 
-Set `BUILD_MODULES=1` inside a guest shell only when an experiment requires
-modules. The package then stores them below
+Set `BUILD_MODULES=1` when an experiment requires modules, which is the normal
+case on the station. The package then stores them below
 `modules/lib/modules/<release>/` and records `modules_built=true` in
 `provenance/build.json`.
 
@@ -309,7 +309,9 @@ bypass required LK DT and reserved-memory fixups. See the
 [boot-selection audit](../experiments/2026-07-12-boot-contract-recovery/results/lk-boot2-software-selection-audit-20260718.txt).
 
 Any installation must follow [SAFETY.md](SAFETY.md) and the repository's
-guarded `boot2` policy:
+guarded `boot2` policy. The normal path is `flash-boot2` on the running station;
+[Writing boot2 from the mainline station](SAFETY.md#writing-boot2-from-the-mainline-station)
+says what it checks. No Gemian boot is needed:
 
 - resolve the logical label from the live GPT every time;
 - prove the target is inactive, unmounted, writable, correctly sized, and not
@@ -320,10 +322,37 @@ guarded `boot2` policy:
 - pad only to the exact partition size;
 - write, synchronize, flush, and require a full-partition readback match;
 - never substitute `boot`, `boot3`, preloader, NVRAM, GPT, or a whole device;
-- after a verified write, shut down cleanly so the owner can physically select
-  `boot2`; never reboot automatically.
+- after a verified write, shut down cleanly with `poweroff` so the owner can
+  physically select `boot2`; never reboot automatically.
 
 A partition checksum proves stored bytes, not selection or runtime execution.
+
+## Developing on the station with modules
+
+The [mainline station](../experiments/2026-10-30-mainline-dev-station/README.md)
+is the working system: a RAM root on `boot2`, reached over USB SSH.
+
+- **New drivers are modules.** Build them `=m` in the `mt6797-a53-station-a72`
+  profile, the one boot2 runs. Check the profile before composing an image: the
+  plain `mt6797-a53-station` profile lacks the A72 options.
+- **Iterate without a boot.** Build from a pushed commit, fetch with the same
+  `KERNEL_PROFILE` and `BUILD_MODULES=1`, copy the `.ko` to the station's RAM,
+  check its hash, then `rmmod` and `insmod`. VM compile checks are fine between
+  builds; anything loaded on the device comes from Buildbox. A module only loads
+  on a kernel with a matching build, so compare `Image.gz` with the running image.
+- **Nothing loads at boot until proven.** Keep unproven modules out of the RAM
+  root and init.
+- **A first load is special.** It happens once a boot, and some state only shows
+  there. Later loads on the same boot do not retest it.
+- **A new image is only for what a module can't carry:** built-in code, device
+  tree and kernel config. Batch those, because each needs the owner to select
+  boot2. Compare the composed image's `station.json` with the running image's
+  before writing.
+- **Restarts** use `poweroff`, then the owner selects boot2. A plain `reboot` lands
+  in Gemian unless the owner catches it. Gemian is for investigation and recovery.
+- **One custodian** runs device tests: one exact request at a time, naming package
+  and hashes, every hardware effect, hypothesis, decision table and a finite run.
+  Effects new to the device need the owner's direction or an admitted protocol.
 
 ## Runtime evidence
 

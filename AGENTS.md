@@ -22,6 +22,10 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
   records are historical, not instructions for new work.
 - Preserve unrelated changes. Coordinate all live device access through one
   custodian.
+- Sessions work in the main checkout on `main` and push straight to
+  `origin/main`, without separate worktrees, branches or PRs unless the owner
+  asks. The checkout is shared, so touch only your own files, run
+  `git pull --ff-only` before committing, and keep one writer per set of files.
 
 ## Project knowledge and reproducibility
 
@@ -37,6 +41,10 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
 - Keep reusable board options in `configs/gemini.fragment`; isolate experiments
   in named profiles. Prefer standard upstream drivers and interfaces only when
   the observed chip protocol and resource ownership match.
+- New drivers start as `=m` modules, so they iterate with `rmmod` and `insmod`
+  on the running station and need no boot. Nothing loads them at boot until they
+  are proven. Boot-time protections stay built in. Only built-in code, device
+  tree or config changes need a new image, so batch those.
 - Build kernels with `./scripts/build-kernel --backend buildbox`. Commit and
   push intended inputs first and use a clean checkout. Never copy source trees
   to Buildbox or fall back to a VM build without an explicit owner request.
@@ -63,20 +71,26 @@ repository a small patch, tooling and evidence layer; do not vendor Linux.
 - Standing authorization covers bounded read-only Gemian inspection and private
   analysis of retained captures. Use the RE VM for binary analysis. Retained
   firmware may support private tests; redistribution rights remain separate.
+- The mainline station is the working system. Boot Gemian only for investigation
+  or recovery, not for restarts or boot2 writes. Boot2 restarts use `poweroff`,
+  then the owner selects boot2; a plain `reboot` lands in Gemian unless the owner
+  catches it.
 - Verify live OS and boot identity. Gemian LAN SSH and mainline USB SSH are
   separate paths; check the known-good Gemian endpoint before declaring SSH
   unavailable. Prefer the ignored mode-0600 key
   `artifacts/credentials/gemini_ed25519` with `IdentitiesOnly=yes` and
   `IdentityAgent=none`; never expose it.
-- Standing boot2 installation approval remains: resolve logical `boot2` from
-  live GPT in known-good Gemian, use the reviewed device guard, verify identity,
-  inactive/unmounted/non-root state, size, writability and stable power.
-  Skip an already matching full-partition checksum; otherwise record predecessor,
-  pad to exact size, write, sync/flush and require matching full readback.
-  Rely on the verified project-wide backup; do not make a fresh backup solely
-  for each write. Shut down cleanly after a verified write; the owner selects
-  boot2 physically. Do not replace that handoff with an automatic reboot or
-  substitute another partition.
+- Standing boot2 installation approval remains: from the running station, write
+  with `flash-boot2 IMAGE SHA256`
+  ([station record](experiments/2026-10-30-mainline-dev-station/README.md)). It
+  resolves logical `boot2` from the live GPT and verifies identity, unmounted
+  state, size and writability. Confirm stable power first. It skips an already
+  matching partition; otherwise it records the predecessor, writes, syncs, drops
+  the page cache and requires a matching full readback. Rely on the verified
+  project-wide backup; do not make a fresh backup solely for each write. Power off
+  cleanly after a verified write; the owner selects boot2 physically. Do not
+  replace that handoff with an automatic reboot or substitute another partition.
+  From Gemian, when it is already needed, use the reviewed device guard.
 - Primary boot, boot3, preloader, NVRAM, GPT and whole-device writes are outside
   that approval. Radio actions, calibration and resource writes require their
   own admitted protocols. Follow the detailed safety rules for diagnostics.

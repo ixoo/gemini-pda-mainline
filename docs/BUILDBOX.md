@@ -58,6 +58,10 @@ KERNEL_PROFILE=PROFILE_NAME ./scripts/build-kernel --backend buildbox
 KERNEL_PROFILE=PROFILE_NAME ./scripts/buildbox fetch-package
 ```
 
+Pass the same `BUILD_MODULES=1` to the fetch when the build used it; without it
+the fetch reports no completed job. Sessions normally build from the main checkout
+on `main`. A clean checkout means no other session's uncommitted files either.
+
 The fetched package is written below the ignored path:
 
 ```text

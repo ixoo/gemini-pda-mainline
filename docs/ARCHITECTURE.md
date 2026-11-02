@@ -202,11 +202,12 @@ evidence and negative results remain in the linked experiment directories.
 
 ## Parallel ownership
 
-Independent work uses small repository worktrees with one named owner per
-change. Linux source and build outputs stay on Buildbox; worktrees do not carry
-copies of kernel trees. The integrator alone composes shared manifest/series
-changes and updates the current roadmap. Every worker supplies a pinned parent,
-reviewable delta, evidence, dependencies and an upstream removal condition.
+Independent work shares the main checkout on `main`, pushing straight to
+`origin/main`, with one named owner per change and one writer per set of files.
+Linux source and build outputs stay on Buildbox; the checkout does not carry
+copies of kernel trees. Coordinate shared manifest and series changes, since
+sessions share these files. Every worker supplies a pinned parent, reviewable
+delta, evidence, dependencies and an upstream removal condition.
 
 Hardware-free research and validation may run concurrently. Buildbox serializes
 its managed source/build mutations. A single device custodian admits one exact

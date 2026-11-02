@@ -73,6 +73,24 @@ full readback. Deployment requires a quiescent known-good OS and the complete
 guarded installer; a standalone passing check is not an installation receipt.
 The fixture tests do not establish behavior on the named hardware.
 
+### Writing boot2 from the mainline station
+
+The normal path is the running station's
+[`flash-boot2`](../experiments/2026-10-30-mainline-dev-station/initramfs/flash-boot2),
+by owner decision on 2026-10-30, restated on 2026-11-02: "you can write it
+directly from mainline, no gemian needed". The station's root is RAM, so boot2 is
+not its active root once loaded. No Gemian boot is needed.
+
+`flash-boot2 IMAGE SHA256` refuses unless the image is exactly 16 MiB with that
+SHA-256 and exactly one `mmcblk0` partition is named `boot2`, with matching sysfs
+and device-node numbers, 16 MiB, writable, neither mounted nor swap. It records
+the predecessor, skips a matching partition, writes with `fsync`, drops the page
+cache and requires a matching full readback. The station has no `bash`, so
+`boot2-device-guard.sh` does not run there and `flash-boot2`'s own checks stand in
+for it. They do not cover the guard's holder or mount-namespace checks, so keep
+the station quiescent during a write: no test running, stable power. Afterward use
+`poweroff`; the owner selects boot2. The guard still applies to writes from Gemian.
+
 ## Standing project device authorization
 
 On 2026-09-11 the owner confirmed that the device is fully dedicated to this
@@ -105,7 +123,9 @@ commit raw firmware blobs without verified redistribution rights. Unresolved
 redistribution alone is not a blocker to private analysis or the authorized local test path;
 abandonment does not supply a publishing license.
 
-Returning a completed, attributable mainline session to Gemian is also
+Gemian is for investigation and recovery; routine station restarts and boot2
+writes do not go through it. Returning a completed, attributable mainline
+session to Gemian is
 permitted through its reviewed native recovery path. Assign one device
 custodian, preserve pending unique evidence and verify the exact live kernel,
 boot identity and required recovery binary before requesting that transition.
