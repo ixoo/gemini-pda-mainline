@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `running`: T4 booted the DSP through `/dev/gnss0` on mainline and it reported measurements, with no satellite locked indoors; T5, 10 minutes outdoors with no cable, is admitted and has not run. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
+| Status | `running`: T5 ran at a window, not outdoors: mainline tracked two live satellites and received navigation data, too few for a position; open sky is untested. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -580,6 +580,38 @@ Approved by the owner on 2026-11-02, in the words "Approve the test", for the dr
 | Missing seconds stop outdoors | They were tied to no lock or to T4's state | Note it and move on |
 | Missing seconds continue | Mainline-specific, and they affect positions | Compare them with the logged Wi-Fi state; investigate before relying on positions |
 | Firmware assert or Wi-Fi lost | The longer run or leaving Wi-Fi range broke something | Keep the evidence; CONSYS reload or the reviewed path back to Gemian; no retry until understood |
+
+## T5 result: live satellites at a window, no position (2026-11-02)
+
+**This did not test open sky.** The owner ran it at a window, in their words: "I can't really do outside today, so it's at a window, which should still be good enough to get a fix". So the table above, which compares with step 6 outdoors, does not apply directly. The closest comparison is [step 3](../2026-11-01-gemini-gnss-stock-trace/README.md), stock at a window, probably a different window position and a different sky.
+
+Boot `92cd3b53`, image `boot2` `b8b9256b`, package `114d21cc`, run by the custodian. Module sha256 starts `d088aefa`, host `e8606bf8`, script `9461ac5f`. Opened at about 20:34:45 UTC. One open, full 600 s window, host exit 0, no stop rule fired. The script's own count reads 588 s because its loop runs slower than 1 s. Evidence is private under `artifacts/station-work-37/boot-92cd3b53/gnss-outdoor/`; `frames.log` is 1155292 bytes, sha256 starts `408ea1e45509a646`.
+
+Conditions: a clean first Wi-Fi join, and `wlan0` up for the whole run. This image changes Wi-Fi since T4, with patches 0456 to 0473 and rate control on by default. The blank `power=` field does not prove the cable was out; USB SSH timing out during the run fits that. The custodian tried one LAN connection and one ping about a minute in, so the window has a little extra Wi-Fi traffic. Exactly how still the device was, and when it was placed, are not known.
+
+**Observed:**
+
+| | T5, mainline, window | Step 3, stock, window, first 600 s | Step 6, stock host, outdoors |
+| --- | --- | --- | --- |
+| First valid record | 217 s | 261 s | 1 s |
+| Most valid satellites at once | 2 (GPS 7, GLONASS 1) | 1 | 13 |
+| Seconds with any valid satellite | 382 | 126 | 591 |
+| Median signal field, GPS | 28 | 25 | 31 |
+| GPS `0xFE2B` subframes | 63 | 28 | 648 |
+| GLONASS `0xFE3B` strings | 131 | 0 | 1261 |
+| Two-second steps of the DSP counter | 0 | 0 | 0 |
+
+- **Navigation data:** 60 of the 63 subframes start with the telemetry preamble, and subframe IDs 1 to 5 all appear. Their parity was not checked.
+- **Bytes:** all 6196 received frames have good checksums, 363353 bytes, 0 dropped. The link reports 0 discarded, 0 duplicates and 0 failures.
+- **Afterwards:** no assert, no Oops, not tainted, no Wi-Fi restart, 3 of 3 gateway pings. SoC stayed near 31 °C and capacity went from 86% to 84%. One battery temperature reading of 24.4 °C among readings near 15.5 °C looks like a single bad read.
+
+**Inferred:** the receive path on mainline works with live signals, including the antenna, the front end and the LNA control's high state. With 2 satellites at once, no position can be computed, so the solvers were not run and the orbit file was not fetched.
+
+**Missing seconds:** T4's did not return in 600 s, including the 217 s here with no valid satellite, so no lock alone does not cause them. T4 differed by its restarted Wi-Fi firmware, an older image and its indoor placement. Which of these matters is unknown, and T5 cannot separate them.
+
+**Not shown:** a mainline position; performance under open sky; whether GPIO 69 helps, since nothing here ran with it low.
+
+**Next:** T5's one open is spent, so a position needs a new approved run under open sky, with the same script.
 
 ## Associated code
 

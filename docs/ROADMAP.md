@@ -180,7 +180,7 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    `clk_ignore_unused` can go, backlight, the I2C1 boot (sensors and panel
    bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS (the
    [DSP boots on mainline](../experiments/2026-11-01-gemini-gnss-link/README.md) from a
-   userspace host, with no satellite locked yet; see
+   userspace host and tracks live satellites at a window, with no position yet; see
    [GNSS and navigation](hardware/gemini-gnss.md)). Cellular and
    cameras stay feasibility work. The
    per-block detail, shared dependencies and grouped device tests are in

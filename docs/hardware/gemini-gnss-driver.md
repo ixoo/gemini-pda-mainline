@@ -305,7 +305,7 @@ Read from the patches, the kernel source and [step 6](../../experiments/2026-11-
 
 **The change:** `gnss-mt6797` no longer has a GFNS client. Open attaches and switches the function on with the LNA pin high, receive passes raw bytes, write sends on task 2, and close reverses that. The device reports its own type, `MT6797`, because the protocol is neither NMEA nor the existing `MTK` type. Anything that opens the device switches the function on: function-on alone ran for 60 s without a fault in T3, and it does not start the DSP. Run the same [minimal host](../../experiments/2026-11-01-gemini-gnss-stock-trace/gnss-minihost.py) against `/dev/gnss0`, without the ioctls. Nothing in the kernel carries firmware or protocol.
 
-**Test order, each stage needing its own protocol and approval:** the boot only has passed; next is 10 minutes outdoors with the same decoding as step 6. T4 also had no epoch for seven of its 60 seconds, probably because the DSP did not send them, for a reason not yet known. That test should count them.
+**Test order, each stage needing its own protocol and approval:** the boot has passed, and [T5](../../experiments/2026-11-01-gemini-gnss-link/README.md#t5-result-live-satellites-at-a-window-no-position-2026-11-02) tracked two live satellites at a window, too few for a position. Next is 10 minutes under open sky with the same decoding as step 6. T4 had no epoch for seven of its 60 seconds; T5 had none missing in 600 s, and the cause is not known.
 
 ## Safety and privacy
 
