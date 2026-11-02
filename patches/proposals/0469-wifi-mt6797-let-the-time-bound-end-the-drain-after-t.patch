@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 23:36:18 -0500
+Subject: [PATCH] wifi: mt6797: let the time bound end the drain after the data
+ phase
+
+Stopping during a download ended in status=-110 at "branch 5" and a firmware
+restart, on 4 of 5 cycles before and now on one of three roams under transfer.
+After the data phase the worker drains the receive path until the frames still
+in flight have their status, bounded by 64 reads, 256 KiB or 750 ms. A download
+uses the 64 reads in about 7 ms, with 11 frames still owed. A transmit alone
+does not.
+
+Let the 750 ms bound decide, with the other two raised well past what it allows.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 3a0d7a942..4f22cb65f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -178,9 +178,9 @@ struct mt6797_join_rearm_state {
+  * its own finite ceiling, set below the parent command/frame/grant/lifetime
+  * deadlines, after which an unretired ledger fails through the normal terminal.
+  */
+-#define MT6797_NATIVE_DIAG_RETIRE_READS 64U            /* further all-class reads */
++#define MT6797_NATIVE_DIAG_RETIRE_READS 16384U /* further all-class reads */
+ 
+-#define MT6797_NATIVE_DIAG_RETIRE_BYTES (256U * 1024U) /* 256 KiB drained */
++#define MT6797_NATIVE_DIAG_RETIRE_BYTES (16U * 1024U * 1024U) /* 16 MiB drained */
+ 
+ #define MT6797_NATIVE_DIAG_RETIRE_MS    750U           /* below the parent deadlines */
+ 
+-- 
+2.43.0
+

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; first complete roam on one boot, channel 161 to 40, about 1 s, no ping lost; more roams and the other direction are next |
+| Status | `running`: stage A passed on one boot; 11 clean roams both ways on one boot, 2 of 3 under a download; 0469 addresses the fault on the third, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -356,6 +356,21 @@ last scan that saw it, against 17 s for the roam that worked. So `roams` now sca
 A real limit stays in the driver: if the target's entry is stale the keys are already gone, the link goes down, and the
 refresh scan is refused during the teardown, which costs about 2.5 s. `bgscan` should keep results fresh, so this
 may be rare. Not changed.
+
+**Stage B, repeats with a scan before each roam: same boot and `mac`, run by the custodian.** 25 of the 40 roams used.
+
+- No traffic, one at a time: 9 of 9 at target, both directions, including the first roams to channel 161. No
+  ping gap at 5/s, gateway 3/3 after each, same `udhcpc`, no restart. From the log, `disconnect from AP` to
+  `connected data phase` took 0.37-0.49 s across 11 roams. Both channels ran at 40 MHz.
+- Under a download: 2 of 3. A TCP download survived both of those roams, the longest ping gap 0.6 s.
+- The third stopped with `join stopped: status=-110 submitted=0x804 branch=5`, 7 ms after `data phase end:
+  reason=key-disable`, with 11 frames still owed, and restarted the firmware.
+
+That is the `-110` from [stopping during a download](../2026-11-01-mt6797-wifi-any-channel/README.md), not understood
+there. `branch` is left over from the previous packet: the source is `mt6797_native_diag_pre_read()`, which runs before
+`branch = 4` and allows 64 reads to drain the frames owed after the data phase. A download spends them in milliseconds,
+and a transmit alone does not. That is read from the code, and fits both records.
+[0469](../../patches/proposals/0469-wifi-mt6797-let-the-time-bound-end-the-drain-after-t.patch) lets its existing 750 ms bound decide. Compile-checked; package and rerun to follow.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
