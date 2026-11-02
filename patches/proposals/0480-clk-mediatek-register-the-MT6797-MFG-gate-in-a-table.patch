@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 16:22:28 -0500
+Subject: [PATCH] clk: mediatek: register the MT6797 MFG gate in a table that
+ fits it
+
+mtk_clk_simple_probe() allocates one table slot per clock, but the MFG binding
+numbers its only clock 1. The first GPU load read past the table, reported a
+duplicate clock ID, and left no BG3D clock, so Panfrost failed its first clock
+lookup with -ENOENT. Removing the module then unregistered the garbage and
+oopsed.
+
+Size the table by CLK_MFG_NR with a probe of its own, keeping the binding and
+the DTB as they are.
+---
+ drivers/clk/mediatek/clk-mt6797-mfg.c | 50 +++++++++++++++++++++++----
+ 1 file changed, 43 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-mfg.c b/drivers/clk/mediatek/clk-mt6797-mfg.c
+index 2b6739bc8..e4d58f00b 100644
+--- a/drivers/clk/mediatek/clk-mt6797-mfg.c
++++ b/drivers/clk/mediatek/clk-mt6797-mfg.c
+@@ -19,20 +19,56 @@ static const struct mtk_gate mfg_clks[] = {
+ 		 &mtk_clk_gate_ops_setclr),
+ };
+ 
+-static const struct mtk_clk_desc mfg_desc = {
+-	.clks = mfg_clks,
+-	.num_clks = ARRAY_SIZE(mfg_clks),
+-};
++/*
++ * mtk_clk_simple_probe() sizes its table by the clock count, and this binding's
++ * only ID is 1, so it would register past the end of that table.
++ */
++static int clk_mt6797_mfg_probe(struct platform_device *pdev)
++{
++	struct device_node *node = pdev->dev.of_node;
++	struct clk_hw_onecell_data *clk_data;
++	int ret;
++
++	clk_data = mtk_alloc_clk_data(CLK_MFG_NR);
++	if (!clk_data)
++		return -ENOMEM;
++
++	ret = mtk_clk_register_gates(&pdev->dev, node, mfg_clks, ARRAY_SIZE(mfg_clks), clk_data);
++	if (ret)
++		goto err_free;
++
++	ret = of_clk_add_hw_provider(node, of_clk_hw_onecell_get, clk_data);
++	if (ret)
++		goto err_unregister;
++
++	platform_set_drvdata(pdev, clk_data);
++	return 0;
++
++err_unregister:
++	mtk_clk_unregister_gates(mfg_clks, ARRAY_SIZE(mfg_clks), clk_data);
++err_free:
++	mtk_free_clk_data(clk_data);
++	return ret;
++}
++
++static void clk_mt6797_mfg_remove(struct platform_device *pdev)
++{
++	struct clk_hw_onecell_data *clk_data = platform_get_drvdata(pdev);
++
++	of_clk_del_provider(pdev->dev.of_node);
++	mtk_clk_unregister_gates(mfg_clks, ARRAY_SIZE(mfg_clks), clk_data);
++	mtk_free_clk_data(clk_data);
++}
+ 
+ static const struct of_device_id of_match_clk_mt6797_mfg[] = {
+-	{ .compatible = "mediatek,mt6797-mfgsys", .data = &mfg_desc },
++	{ .compatible = "mediatek,mt6797-mfgsys" },
+ 	{ /* sentinel */ }
+ };
+ MODULE_DEVICE_TABLE(of, of_match_clk_mt6797_mfg);
+ 
+ static struct platform_driver clk_mt6797_mfg_drv = {
+-	.probe = mtk_clk_simple_probe,
+-	.remove = mtk_clk_simple_remove,
++	.probe = clk_mt6797_mfg_probe,
++	.remove = clk_mt6797_mfg_remove,
+ 	.driver = {
+ 		.name = "clk-mt6797-mfg",
+ 		.of_match_table = of_match_clk_mt6797_mfg,

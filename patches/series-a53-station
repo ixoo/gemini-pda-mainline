@@ -646,3 +646,4 @@ proposals/0476-pmdomain-mediatek-describe-the-MT6797-MFG-domains.patch
 proposals/0477-drm-panfrost-add-the-MT6797-power-sequence.patch
 proposals/0478-arm64-dts-mediatek-gemini-enable-the-Mali-T880-on-th.patch
 proposals/0479-arm64-dts-mediatek-gemini-station-drop-the-touchscre.patch
+proposals/0480-clk-mediatek-register-the-MT6797-MFG-gate-in-a-table.patch

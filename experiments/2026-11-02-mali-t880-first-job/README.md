@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `planned`: validated package built and requested from the custodian; no GPU power-on yet |
+| Status | `running`: run 1 stopped on a clock module bug before any GPU power; fix `0480` built for run 2 |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -214,11 +214,33 @@ Each step is a separate custodian request, with the package and hashes.
 
 ## Observations
 
-None yet.
+### Run 1, boot `1f79ebb0`, package `9e652c87`: `gpu-test.sh probe`, 26 MHz
+
+- Image booted, step 1 clean. Battery 91% and not charging by owner approval, SoC 32.5 C.
+- The RT5735 answered with its product ID and bound. It read 975000 uV and disabled, so the
+  loader leaves that set point. The module moved it to 1000000 uV with the rail still off.
+  It is bus `1-001c` on this image, not `7-001c`: only the numbering differs.
+- `clk-mt6797-mfg` logged `Trying to register duplicate clock ID: 1`.
+- `panfrost` logged `of_clk_hw_onecell_get: invalid index 1`, and probe failed with -2.
+- `rmmod clk-mt6797-mfg` oopsed in `clk_hw_unregister` at a garbage address, leaving the
+  module stuck. Device alive, tainted, SoC 32 C. The others unloaded.
+- After: `PWR_STATUS`, `MFG_ASYNC_PWR_CON`, LDO enable and rail read as before the run.
+
+**Cause, from the source.** `mtk_clk_simple_probe()` allocates a table of one slot per clock,
+and the binding's only MFG ID is 1. The gate register read past the table, found garbage and
+refused as a duplicate, so no clock existed. Panfrost's first lookup got -EINVAL, which
+`clk_get()` turns into -ENOENT through clkdev. The removal then unregistered the garbage.
+
+**Effects.** That lookup is the first step in `power_early`, so none of the LDO, reset,
+protection, rail-enable, domain or GPU register steps ran. The only rail write was the set
+point. No GPU register was accessed.
+
+`0480` gives the module a probe of its own, sized by `CLK_MFG_NR`. Binding, DTB and image are
+unchanged, so the same image can run it after a reboot.
 
 ## Analysis
 
-None yet.
+The GPU has not been powered yet. Run 1 tested only the rail provider and the clock module.
 
 ## Conclusion
 
