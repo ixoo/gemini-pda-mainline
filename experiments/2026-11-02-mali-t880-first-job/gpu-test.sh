@@ -10,6 +10,7 @@
 #   gpu-test.sh load [parent]    load, identify, LOAD_SECONDS of shader load, unload
 #
 # parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
+# PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
 # Limits, from the vendor's adaptive cooler (2026-10-31-mt6797-thermal-management):
 # SoC under its 55 C exit to start (also enforced in the driver), and its 75 C
 # target during a run, since no cooling device exists here. Battery stops at 46 C,
@@ -67,9 +68,9 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
-  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent"
+  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
-  # shellcheck disable=SC2086 # args is empty or one word
+  # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
   [ "$m" = rt5735-regulator ] && { sleep 1; rail; }
 done
@@ -92,7 +93,8 @@ if [ $rc = 0 ]; then
   if [ "$mode" = load ] && [ $rc = 0 ]; then
     timeout $((LOAD_SECONDS + 30)) "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" \
       "$here/mesa/gpu-gles" --zone "$zone" --battery-zone "$battery" --seconds "$LOAD_SECONDS" \
-      --size "$LOAD_SIZE" --max-mc "$RUN_MAX_MC" --battery-max-mc "$BATTERY_MAX_MC"; rc=$?
+      --size "$LOAD_SIZE" --max-mc "$RUN_MAX_MC" --battery-max-mc "$BATTERY_MAX_MC" \
+      --perfcnt "${PERFCNT:-0}"; rc=$?
     echo "gpu-gles exit $rc"
   fi
   rpm after-job

@@ -7,10 +7,11 @@
  * --frames times, reading it back each time. Unlike the Write Value job, this
  * runs shaders on the GPU's cores.
  *
- * With --seconds it instead runs a sustained load for that long: a triangle over
- * a --size image with a loop in the fragment shader, reporting the temperatures
+ * With --seconds it instead runs a sustained load for that long: every pixel of a
+ * --size image runs a loop in the fragment shader, reporting the temperatures
  * every 5 s. Every frame must give the first frame's pixel, so a computing error
- * under load fails the run.
+ * under load fails the run. With --perfcnt, a 5 s window of the GPU's counters is
+ * printed raw, by block, for offline reading (needs panfrost unstable_ioctls=1).
  *
  * It stops before any frame if the SoC zone is at or above --max-mc, or the
  * optional --battery-zone at or above --battery-max-mc.
@@ -21,15 +22,34 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <GLES2/gl2.h>
+#include <fcntl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/ioctl.h>
 #include <time.h>
+#include <unistd.h>
 
 #define SIZE		64
 #define MAX_FRAMES	2000
 #define MAX_LOAD_SIZE	1024
 #define MAX_LOAD_SECONDS 600
+
+/* From include/uapi/drm/panfrost_drm.h. JM, tiler, L2 and four core blocks. */
+struct panfrost_perfcnt_enable {
+	uint32_t enable;
+	uint32_t counterset;
+};
+struct panfrost_perfcnt_dump {
+	uint64_t buf_ptr;
+};
+#define IOCTL_PERFCNT_ENABLE	_IOW('d', 0x40 + 0x06, struct panfrost_perfcnt_enable)
+#define IOCTL_PERFCNT_DUMP	_IOW('d', 0x40 + 0x07, struct panfrost_perfcnt_dump)
+#define PERFCNT_COUNTERS	64
+#define PERFCNT_BLOCKS		7
+#define PERFCNT_START_MS	5000
+#define PERFCNT_WINDOW_MS	5000
 
 static const char *vs_src =
 	"attribute vec2 pos;\n"
@@ -43,9 +63,9 @@ static const char *load_fs_src =
 	"precision highp float;\n"
 	"uniform vec4 color;\n"
 	"void main() {\n"
-	/* From the uniform, so the compiler cannot fold the loop away. */
-	"  float x = color.g * 0.25;\n"
-	"  for (int i = 0; i < 16; i++)\n"
+	/* From the pixel and a uniform, so the compiler cannot fold the loop away. */
+	"  float x = color.g * 0.25 + gl_FragCoord.x * 0.001;\n"
+	"  for (int i = 0; i < 32; i++)\n"
 	"    x = fract(sin(x * 12.9898 + 0.5) * 43.5453);\n"
 	"  gl_FragColor = vec4(color.r, x, 0.0, 1.0);\n"
 	"}\n";
@@ -81,9 +101,32 @@ static GLuint compile(GLenum type, const char *src)
 }
 
 /* Exit status as in the header comment. */
-static int run_load(GLint color, int seconds, int size, const char *zone, int max_mc,
-		    const char *battery, int battery_max_mc)
+static void perfcnt_print(int fd, long window_us)
 {
+	static uint32_t buf[PERFCNT_BLOCKS * PERFCNT_COUNTERS];
+	struct panfrost_perfcnt_dump dump = { .buf_ptr = (uintptr_t)buf };
+	int b, c;
+
+	if (ioctl(fd, IOCTL_PERFCNT_DUMP, &dump)) {
+		printf("perfcnt dump failed\n");
+		return;
+	}
+	printf("perfcnt window_us=%ld\n", window_us);
+	for (b = 0; b < PERFCNT_BLOCKS; b++) {
+		printf("perfcnt block %d:", b);
+		for (c = 0; c < PERFCNT_COUNTERS; c++)
+			printf(" %x", buf[b * PERFCNT_COUNTERS + c]);
+		printf("\n");
+	}
+}
+
+static int run_load(GLint color, int seconds, int size, const char *zone, int max_mc,
+		    const char *battery, int battery_max_mc, int perfcnt)
+{
+	struct panfrost_perfcnt_enable en = { .enable = 1 };
+	struct timespec window_start = { 0 };
+	int fd = -1, window = 0;
+
 	GLubyte first[4] = { 0 }, now[4];
 	struct timespec start, b;
 	long frames = 0, slowest = 0, next_report = 0, elapsed_ms, last_ms = 0;
@@ -127,6 +170,24 @@ static int run_load(GLint color, int seconds, int size, const char *zone, int ma
 			fflush(stdout);
 			next_report += 5000;
 		}
+		if (perfcnt && !window && elapsed_ms >= PERFCNT_START_MS) {
+			fd = open("/dev/dri/renderD128", O_RDWR | O_CLOEXEC);
+			if (fd < 0 || ioctl(fd, IOCTL_PERFCNT_ENABLE, &en)) {
+				printf("perfcnt enable failed\n");
+				perfcnt = 0;
+			} else {
+				clock_gettime(CLOCK_MONOTONIC, &window_start);
+				window = 1;
+			}
+		} else if (window == 1 && elapsed_ms >= PERFCNT_START_MS + PERFCNT_WINDOW_MS) {
+			clock_gettime(CLOCK_MONOTONIC, &b);
+			perfcnt_print(fd, (b.tv_sec - window_start.tv_sec) * 1000000 +
+				      (b.tv_nsec - window_start.tv_nsec) / 1000);
+			en.enable = 0;
+			ioctl(fd, IOCTL_PERFCNT_ENABLE, &en);
+			close(fd);
+			window = 2;
+		}
 		if (elapsed_ms >= seconds * 1000L)
 			break;
 	}
@@ -145,10 +206,12 @@ int main(int argc, char **argv)
 	static const EGLint ctx_attr[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
 	EGLint sur_attr[] = { EGL_WIDTH, SIZE, EGL_HEIGHT, SIZE, EGL_NONE };
 	static const GLfloat tri[] = { -0.5f, -0.5f, 0.5f, -0.5f, 0.0f, 0.5f };
+	static const GLfloat full[] = { -1.0f, -1.0f, 3.0f, -1.0f, -1.0f, 3.0f };
 	static GLubyte px[SIZE * SIZE * 4];
 	PFNEGLGETPLATFORMDISPLAYEXTPROC get_display;
 	const char *zone = NULL, *battery = NULL;
 	int frames = 20, max_mc = 75000, battery_max_mc = 46000, seconds = 0, size = 512, i, n;
+	int perfcnt = 0;
 	long max_us = 0;
 	EGLConfig cfg;
 	EGLDisplay d;
@@ -172,6 +235,8 @@ int main(int argc, char **argv)
 			seconds = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--size"))
 			size = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--perfcnt"))
+			perfcnt = atoi(argv[i + 1]);
 	}
 	if (!zone || frames < 0 || frames > MAX_FRAMES || seconds < 0 ||
 	    seconds > MAX_LOAD_SECONDS || size < 16 || size > MAX_LOAD_SIZE) {
@@ -212,12 +277,12 @@ int main(int argc, char **argv)
 	glLinkProgram(prog);
 	glUseProgram(prog);
 	color = glGetUniformLocation(prog, "color");
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, tri);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, seconds ? full : tri);
 	glEnableVertexAttribArray(0);
 	glViewport(0, 0, SIZE, SIZE);
 
 	if (seconds)
-		return run_load(color, seconds, size, zone, max_mc, battery, battery_max_mc);
+		return run_load(color, seconds, size, zone, max_mc, battery, battery_max_mc, perfcnt);
 
 	for (i = 0; i < frames; i++) {
 		/* The red channel changes per frame, so a stale image fails. */
