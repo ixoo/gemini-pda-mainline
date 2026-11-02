@@ -1,0 +1,112 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 2 Nov 2026 14:21:37 -0500
+Subject: [PATCH] wifi: mt6797: keep a weak link until its failures have lasted
+
+Eight data frames failing in a row end the data phase. On a walk at about -83,
+that took a working link down: the device rejoined the same access point in
+under a second and carried data again, with a gap of up to 27 s when it tried
+others first. At low traffic eight frames take under two seconds. Require the
+failures to span three seconds as well.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   | 25 ++++++++++++++-----
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  5 ++++
+ 2 files changed, 24 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 6a8217e..02febf7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -704,6 +704,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_data_tx_failed = 0;
+ 	mac->join_data_tx_failures_in_row = 0;
+ 	mac->join_data_expired = 0;
++	mac->join_data_tx_ok_ns = 0;
+ 	mac->credit_retire_pages = 0;
+ 	mac->credit_retire_ordinal = 0;
+ 	mac->tx_sample_counter = 0;
+@@ -894,6 +895,7 @@ static void mt6797_mac_credit_retire(struct mt6797_mac *mac, unsigned int pages)
+ 		mt6797_join_pid_complete(&mac->ccmp_pid_pool, taken.pid);
+ 		mac->join_data_tx_done++;
+ 		mac->join_data_tx_failures_in_row = 0;
++		mac->join_data_tx_ok_ns = ktime_get_ns();
+ 		ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(skb));
+ 		IEEE80211_SKB_CB(skb)->flags |= IEEE80211_TX_STAT_NOACK_TRANSMITTED;
+ 		skb_queue_tail(&mac->credit_retired_queue, skb);
+@@ -1890,7 +1892,19 @@ int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ 	return ret;
+ }
+ 
+-/* Count one data frame's completion; eight failures in a row end the data
++/* One more failure in a row, which may end the data phase. */
++static void mt6797_mac_data_tx_failure(struct mt6797_mac *mac)
++{
++	u64 now = ktime_get_ns();
++
++	if (!mac->join_data_tx_ok_ns)
++		mac->join_data_tx_ok_ns = now;
++	if (++mac->join_data_tx_failures_in_row >= MT6797_JOIN_DATA_TX_FAILURES &&
++	    now - mac->join_data_tx_ok_ns >= MT6797_JOIN_DATA_TX_FAILURE_NS)
++		mt6797_mac_join_end_data(mac, "txfail");
++}
++
++/* Count one data frame's completion; enough failures in a row end the data
+  * phase, but a probe of another rate failing says nothing about the link.
+  */
+ static void mt6797_mac_data_tx_counted(struct mt6797_mac *mac, bool ack, bool probe)
+@@ -1898,6 +1912,7 @@ static void mt6797_mac_data_tx_counted(struct mt6797_mac *mac, bool ack, bool pr
+ 	if (ack) {
+ 		mac->join_data_tx_done++;
+ 		mac->join_data_tx_failures_in_row = 0;
++		mac->join_data_tx_ok_ns = ktime_get_ns();
+ 		return;
+ 	}
+ 	mac->join_data_tx_failed++;
+@@ -1905,8 +1920,7 @@ static void mt6797_mac_data_tx_counted(struct mt6797_mac *mac, bool ack, bool pr
+ 		mac->join_data_tx_probe_failed++;
+ 		return;
+ 	}
+-	if (++mac->join_data_tx_failures_in_row >= MT6797_JOIN_DATA_TX_FAILURES)
+-		mt6797_mac_join_end_data(mac, "txfail");
++	mt6797_mac_data_tx_failure(mac);
+ }
+ 
+ void mt6797_mac_join_work(struct work_struct *work)
+@@ -2115,9 +2129,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			__skb_queue_tail(&data_completed, skb);
+ 			if (IEEE80211_SKB_CB(skb)->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
+ 				mac->join_data_tx_probe_failed++;
+-			else if (++mac->join_data_tx_failures_in_row >=
+-				 MT6797_JOIN_DATA_TX_FAILURES)
+-				mt6797_mac_join_end_data(mac, "txfail");
++			else
++				mt6797_mac_data_tx_failure(mac);
+ 		}
+ 		skb = NULL;
+ 	}
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index dac663f..8a5c45e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -416,6 +416,10 @@ struct mt6797_join_pid_pool {
+ #define MT6797_JOIN_TX_HDRLEN(fc) ((fc) & MT6797_JOIN_TX_QOS_BIT ? 26U : 24U)
+ 
+ #define MT6797_JOIN_DATA_TX_FAILURES 8U
++/* At low signal eight frames can fail on a link that still works, and they take
++ * under two seconds at low traffic, so they must also span this long.
++ */
++#define MT6797_JOIN_DATA_TX_FAILURE_NS (3ULL * NSEC_PER_SEC)
+ /* One frame carries one rate here, so a failed probe of another rate loses that
+  * frame, and at low traffic minstrel_ht makes most frames probes. At most one
+  * in this many may be one.
+@@ -637,6 +641,7 @@ struct mt6797_mac {
+ 	u64 tx_report_ns;
+ 	unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
+ 	unsigned int join_data_expired;
++	u64 join_data_tx_ok_ns;
+ 	bool join_inflight_data;
+ 
+ 	u64 scan_deadline;
+-- 
+2.54.0 (Apple Git-157)
+

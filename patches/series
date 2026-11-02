@@ -1056,3 +1056,4 @@ proposals/0469-wifi-mt6797-let-the-time-bound-end-the-drain-after-t.patch
 proposals/0470-wifi-mt6797-take-the-signal-from-data-frames.patch
 proposals/0471-wifi-mt6797-send-data-at-the-rate-control-s-choice-b.patch
 proposals/0472-wifi-mt6797-ignore-a-repeated-answer-to-authenticati.patch
+proposals/0473-wifi-mt6797-keep-a-weak-link-until-its-failures-have.patch

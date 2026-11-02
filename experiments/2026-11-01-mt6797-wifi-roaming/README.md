@@ -730,3 +730,19 @@ Hypothesis: with three access points to choose from, the device stays on a usabl
 | Repeated `txfail` with no better choice | The eight-failure limit; read which frames failed |
 | `rx_qos=0` on 149 | The rate wasn't the whole fault there; `sco=1` is back in question |
 | A stop | Read it first; no rerun |
+
+### Third walk, result
+
+`end=time roams=4 scans=19 restarts=0 stopped=0`, the full 20 minutes, with `mac` 8fb6a607. The owner's weak stretch lasted about 2.8 minutes by the signal, and I don't have the route. No `-71`, no firmware restart, and the script restored the normal link. The laptop kept a connection in 1174 of 1181 samples, and 34 of 36 downloads completed.
+
+**The rate fix held on a weak link.** The first phase ran 870 s and delivered about 4 million frames. The rate followed the signal from MCS7 at 40 MHz to MCS0, and data still flowed at -80 and below, where the first walk's links carried nothing. On 149, `rx_qos=15` in one 8.7 s phase, against 0 in every run at the fixed rate, though 36 of 53 frames failed. That phase is too short and weak to settle 149.
+
+**The device stayed on 161 almost throughout, and from the scans that was mostly the right choice.** At the weak end 161 read -77 to -80, 149 -81 to -86 and 5200 -82 to -92, so nothing clearly better was available without 48. At -74 against -76 the supplicant correctly skipped a move. On the first walk 48 read -52 in this area, so what the owner's other devices use here is the one this device can't join.
+
+**The gaps remain, the worst about 27 s by ping.** They came from the driver, not the choice of access point:
+
+- **`txfail` took down working links.** Three of the phases ended `txfail` at about -83, and the device then rejoined the same access point in under a second and carried data. The worst gap went via 149 and 5200 first. 0473 also requires the failures to last 3 s. Compiled only, and it needs a weak link to run.
+- **A very weak access point was chosen.** After a drop the supplicant joined a fifth access point on 161 at about -94, the "-93" in the progress lines, until its next scan moved it to one at -76. That is the supplicant avoiding the one it just left.
+- **Authentication failed three times in 4 s** with `status=3 count=30`, once on 5200 at -92 and twice on 161, which later worked. The 161 failures are not explained.
+
+So 48 is what is left for this area, and it needs a capture near that access point.
