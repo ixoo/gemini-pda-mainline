@@ -413,6 +413,11 @@ Owner-approved, one run. 8277 frames in 60 s, within 0.6% of fixed 520 MHz, same
 So rate and voltage changes work on a running GPU, including the parked PLL divider changes. **The points below 520 MHz
 are not validated under load**: no shader work ran below 1.0 V for any length of time this run can show.
 
+### Run 12, same boot: first pinned load, refused
+
+`panfrost` refused before any power step: `VGPU at 850000 uV`. Run 11's unload left the rail at the lowest point, and the
+DVFS path checked for its start voltage without setting it. No shader work ran. `0490` raises the rail before enabling.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it

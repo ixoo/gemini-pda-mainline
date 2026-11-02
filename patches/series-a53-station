@@ -657,3 +657,4 @@ proposals/0486-thermal-mediatek-read-each-MT6797-bank-through-debug.patch
 proposals/0487-clk-mediatek-mt6797-park-the-GPU-mux-across-an-MFGPL.patch
 proposals/0488-drm-panfrost-add-opt-in-DVFS-for-MT6797.patch
 proposals/0489-arm64-dts-mediatek-gemini-add-the-GPU-OPP-table-and-.patch
+proposals/0490-drm-panfrost-set-the-MT6797-rail-for-the-DVFS-start-.patch

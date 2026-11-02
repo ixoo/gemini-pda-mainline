@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:46:38 -0500
+Subject: [PATCH] drm/panfrost: set the MT6797 rail for the DVFS start rate
+
+A DVFS unload can leave the rail at the lowest point, and the next DVFS load then
+refused, as the rail was below the voltage of its start rate. Raise it before
+enabling, through a handle released at once, so that no request of this driver
+stops devfreq lowering it afterwards.
+---
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 21 +++++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index 4084469a0..84fd7f8f3 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -259,12 +259,25 @@ static int mt6797_power_early(struct panfrost_device *pfdev)
+ 	if (ret)
+ 		goto err_put_reset;
+ 
+-	/* devfreq sets the voltage from the table, so hold no request of ours then. */
+-	if (!mt6797_dvfs) {
+-		ret = regulator_set_voltage(mt->vgpu, MT6797_VGPU_UV, MT6797_VGPU_UV);
+-		if (ret)
++	if (mt6797_dvfs) {
++		/*
++		 * The rail is where the last unload left it, up to the table's
++		 * lowest point. devfreq takes it from the start rate, so a request
++		 * held here would stop it going lower: use a handle that goes away.
++		 */
++		struct regulator *start = regulator_get(dev, "mali");
++
++		if (IS_ERR(start)) {
++			ret = PTR_ERR(start);
+ 			goto err_put_reset;
++		}
++		ret = regulator_set_voltage(start, MT6797_DVFS_START_UV, MT6797_VGPU_UV);
++		regulator_put(start);
++	} else {
++		ret = regulator_set_voltage(mt->vgpu, MT6797_VGPU_UV, MT6797_VGPU_UV);
+ 	}
++	if (ret)
++		goto err_put_reset;
+ 
+ 	ret = regulator_get_voltage(mt->vgpu);
+ 	if (ret < (mt6797_dvfs ? MT6797_DVFS_START_UV : MT6797_VGPU_UV) || ret > MT6797_VGPU_UV) {
