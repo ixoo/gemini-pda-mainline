@@ -564,6 +564,7 @@ beacons arrived and transmits were acknowledged. Average signal in those phases:
   sent and not received. Weak signal correlates, and doesn't obviously explain none at all in 334 s. That is the part to find out.
 - The device was in that state because 5240 had refused it and the supplicant returned to the weak access point, so the two faults compound.
 - `-75 vs -74` moved on estimated throughput, to a worse link than it was leaving.
+- Before the walk, the [channel tests](../2026-11-01-mt6797-wifi-any-channel/README.md) had not run a secondary channel above (`sco=1`), or channels 149 or 48. Both phases on 149 were `sco=1` and had `rx_qos=0`, so those two may be that rather than the signal. The two on 5200 at `sco=3` can't be, since other phases on it worked.
 
 A correction for the earlier stall too: the laptop was on Wi-Fi then as well, so its own link is another candidate. The laptop's sampler shows no TCP connection
 for 495 s from about 48354, so nothing reached it through this outage.
