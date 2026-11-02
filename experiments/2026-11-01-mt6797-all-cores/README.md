@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. The owner has approved a soak, which is with the custodian and has not run. Idle cost and loading at init follow, each its own owner decision |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct. Idle cost, a longer soak and loading at init remain, each its own owner decision |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -465,7 +465,7 @@ Image.gz `0bb6ad36...`. Against `db7b42af...`: 0448 in the Image, and another se
   loop runs until that shell ends, because busybox shows them under other names.
 - If an A72 stops again, go to `sync` and `reboot -f`. Plain `reboot` can block on RCU.
 
-### Soak (owner-approved, one boot and one load, not run)
+### Soak (owner-approved, run; see Observations)
 
 The owner approved this on 2026-11-01 with the limits below, then asked for 30 min rather
 than 4 h. It repeats the bring-up writes on a new boot and changes no voltage selector or
@@ -654,6 +654,37 @@ work.
 - **Not covered:** A72 load together with audio or Wi-Fi traffic, soak, idle battery cost,
   suspend, and any down path. Frequency and voltage were not measured on this run.
 
+Soak, boot `20e1429e`, image boot2 `38116570...`, package `932520bc...`, module
+`1e13d34d...`, `soak.sh` `f3697965...`. The owner was present, on USB. One load, no retry.
+Both phases ended with result 0, and no stop rule fired.
+
+- **Came online:** `insmod=0` at 87.37 s, `online 0-9`, taint 0. One first Wi-Fi join, clean.
+- **Results:** every hash correct. 777 rounds on each of CPU8 and CPU9 and 779 on CPU7, over
+  25 min, or about 1.93 s for 64 MiB. Each A72 accounted about 1494 s of the 1500 s as busy.
+- **Traffic:** three rounds, at 95, 1002 and 1595 s. Ping 5/5, a 4 MiB download over Wi-Fi and
+  a tone, all succeeding each time. Restarts 0 at the end.
+- **Temperature:** the SoC zone rose from 31.1 C to 45.5 C after a minute and 51.0 C after
+  8 min, then stayed between about 51 and 52.5 C, sampled every 60 s, until the load ended.
+  It fell to 38 C within a minute and 34.9 C by the end of idle. The hardware reset stayed
+  armed at 117 C. This load kept three CPUs busy, not ten, so it is not a worst case.
+- **Battery:** the status read `Discharging` under load while the owner's charge guard held
+  charging off. Capacity read 85 to 89% under load and 92% after, tracking voltage (4.11 to
+  4.19 V, then 4.26 V), so these readings do not give a power figure. The temperature read
+  flipped between about 15.5 C and 25 C in both phases, as before on this gauge; no limit
+  was near either value.
+- **After, at 1915 s:** `online 0-9`, taint 0, no warning, stall or wrapper error line, PMIC
+  read rc=0, no `wget` left. Registers as in attempt 2, except for the moving bits above the
+  A72 mask (`0x10006188=003F84C8`, `0x1000618c=003D80FF`).
+- **Regression:** the owner answered "Fine" for keyboard and display, and heard a tone at
+  1970.20 s in both ears. **GNSS is still untested on this profile.**
+- **Reboot:** plain `reboot` at 1989.56 s, with `EXT4 ... unmounting` logged. Gemian answered
+  about 36 s later as boot `220a19fa`, with no journal recovery line by the custodian's
+  filter. That is two clean reboots with the A72s up.
+- **Finding 2 update:** first-join faults on this kernel family stand at 2 of 5 boots, by the
+  custodian's count: `7dd24578` and `c09fb418`, the second with the A72 module not loaded and
+  the first before it. So the module load is not the cause. Whether the profile's boot-time
+  changes matter is still open, because no plain-station count is available to compare.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -691,6 +722,14 @@ The bring-up sequence itself gave no sign of trouble. Attempt 2 is a first answe
 stability: two minutes of load and about twenty minutes online, on one boot and one unit.
 It says nothing yet about hours of use, cold boots or load beside other traffic.
 
+**What the A72s add at this clock (inferred).** They hashed at the same rate as CPU7, an A53.
+That is not a sign of a fault. Earlier runs read B at 750 MHz and L at 1274 MHz, a ratio of
+1.7, and an A72 doing more per clock could close that gap. At about 33 MiB/s this hash is
+probably limited by the core rather than by memory. Neither clock was measured on this run,
+and one integer workload says little about others. So today the A72s add two more CPUs of
+about A53 speed for this work, and no faster one. A faster A72 needs clock and voltage
+writes, which are outside this work and need their own protocol.
+
 The project's [2026-10-03 review](../2026-10-03-project-review/README.md) parked
 this work because it had consumed the most effort for the least usability, and
 because it waited on measurement contracts. The change since then is the
@@ -701,14 +740,15 @@ those results as given and stops at what the cores need.
 ## Conclusion
 
 All ten cores can run on the station kernel: the opt-in `mt6797-a53-station-a72` profile
-brought CPU8 and CPU9 online from a module, ran a finite load on both, kept Wi-Fi, audio
-and the keyboard working, and rebooted cleanly. This is one boot on one unit, loaded by
-hand, at firmware's B clock. It is not default integration: PWRAP concurrency, soak and
-idle cost stay open, GNSS has not run beside it, and the whole system now reports
+brought CPU8 and CPU9 online from a module on two boots. They returned correct results for
+25 min beside Wi-Fi and audio traffic, and the station rebooted cleanly. This is one unit,
+loaded by hand, at firmware's B clock. It is not default integration: PWRAP concurrency,
+runs of hours and idle cost stay open, all ten CPUs have not been loaded at once, GNSS has
+not run beside it, and the whole system now reports
 `Vulnerable` for Spectre-v2 and speculative store bypass.
 
 ## Follow-up
 
-Next, in order, each its own owner decision: 30 min soak (approved above); idle power; a longer soak; load at init; then, as
+Next, in order, each its own owner decision: idle power; a longer soak; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
