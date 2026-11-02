@@ -426,6 +426,12 @@ lifetime; or either end. The previous phase's `behind=26` was the run's highest,
 One stall in 12 roams means the 4 roams left would catch another only about a quarter of the time, so a retest with a
 laptop capture is not worth them. It belongs with the next budget.
 
+**Stage C, first step: no `bgscan` in the RAM root.** The custodian read the binary: `wpa_supplicant` v2.11 here has the
+config field and no `simple` or `learn` module. Nothing ran, and no roam or scan was spent. A rebuild is not the obvious next
+step: as the custodian recalls, not checked against the source, `bgscan_simple` scans with the network's SSID, and the driver
+turns any scan with an SSID into probing on channels that allow it. At a 15 s interval that would use the radio protocol's ten
+active scans in about 3 minutes. Signal thresholds do not need `bgscan`, so 0458 is tested first with `iw`, which sends no frames.
+
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
 
