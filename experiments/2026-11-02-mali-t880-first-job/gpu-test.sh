@@ -1,0 +1,75 @@
+#!/bin/sh
+# The first Panfrost run, driven by the device custodian. Run from a directory
+# holding the modules and gpu-job. It loads the modules in order, runs a finite
+# job count, unloads, and records state after each step. Stops on the first
+# failure and always tries to unload what it loaded.
+#
+#   gpu-test.sh probe [parent]   load, identify, unload
+#   gpu-test.sh job [parent]     load, identify, up to JOBS jobs, unload
+#
+# parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
+# Limits: SoC under 55 C to start (also enforced in the driver), 65 C during jobs.
+mode=${1:?probe or job}; parent=${2:-0}; JOBS=${JOBS:-100}
+START_MAX_MC=55000; RUN_MAX_MC=65000
+here=$(cd "$(dirname "$0")" && pwd)
+MODULES="clk-mt6797-mfg rt5735-regulator drm_panel_orientation_quirks drm drm_shmem_helper gpu-sched panfrost"
+
+zone=
+for z in /sys/class/thermal/thermal_zone*; do
+  [ "$(cat "$z/type")" = soc-thermal ] && zone=$z/temp
+done
+[ -n "$zone" ] || { echo "no soc-thermal zone"; exit 3; }
+
+regs() {
+  echo "--- regs: $1"
+  for a in 10006180 10006184 10006334 10006338 1000633c 10006340 10006344 10006348 1000634c \
+           10001220 10001228 10001094 10001fbc 10001fc0 10001fc4 10001fc8 10001fd8 10001fe4 \
+           10000050 10000104 1000c240 1000c244 10007018; do
+    printf '%s %s\n' "$a" "$(devmem 0x$a 32)"
+  done
+}
+rail() {
+  for r in /sys/class/regulator/regulator.*; do
+    [ "$(cat "$r/name" 2>/dev/null)" = vgpu ] &&
+      echo "vgpu state=$(cat "$r/state") microvolts=$(cat "$r/microvolts")"
+  done
+}
+state() { echo "soc=$(cat "$zone") mC"; rail; regs "$1"; }
+
+unload() {
+  for m in panfrost gpu-sched drm_shmem_helper drm drm_panel_orientation_quirks rt5735-regulator clk-mt6797-mfg; do
+    [ -d "/sys/module/$(echo "$m" | tr - _)" ] && { rmmod "$m" || echo "rmmod $m failed"; }
+  done
+}
+
+uname -r; cat /proc/sys/kernel/random/boot_id
+t=$(cat "$zone"); echo "start soc=$t mC"
+[ "$t" -lt "$START_MAX_MC" ] || { echo "too hot to start"; exit 2; }
+state before
+mark=$(dmesg | wc -l)
+
+rc=0
+for m in $MODULES; do
+  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent"
+  echo "=== insmod $m $args"
+  # shellcheck disable=SC2086 # args is empty or one word
+  insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
+  [ "$m" = rt5735-regulator ] && { sleep 1; rail; }
+done
+dmesg | tail -n +$((mark + 1))
+[ $rc = 0 ] && [ -e /dev/dri/renderD128 ] || { echo "no render node"; rc=1; }
+
+if [ $rc = 0 ]; then
+  state loaded
+  if [ "$mode" = job ]; then jobs=$JOBS; else jobs=0; fi
+  timeout 60 "$here/gpu-job" --zone "$zone" --jobs "$jobs" --max-mc "$RUN_MAX_MC"; rc=$?
+  echo "gpu-job exit $rc"
+  state after-job
+fi
+
+echo "=== unload"
+unload
+dmesg | tail -n +$((mark + 1))
+state unloaded
+echo "result rc=$rc"
+exit $rc

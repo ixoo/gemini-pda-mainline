@@ -1,0 +1,68 @@
+# The Mali-T880 on the station (2026-11-02-mali-t880-first-job). Panfrost, the
+# VGPU regulator, the MFG clock and the DRM core are modules, and nothing loads
+# them at boot. Panfrost selects IOMMU_SUPPORT and IOMMU_IO_PGTABLE_LPAE, which
+# are built in and are the reason this needs a boot image. Keep the IOMMU drivers
+# that exposes off: the GPU has its own MMU and M4U has no GPU port.
+CONFIG_DRM=m
+CONFIG_DRM_PANFROST=m
+CONFIG_REGULATOR_RT5735=m
+CONFIG_COMMON_CLK_MT6797_MFGSYS=m
+# CONFIG_ARM_SMMU is not set
+# CONFIG_ARM_SMMU_V3 is not set
+# CONFIG_IOMMU_IO_PGTABLE_ARMV7S is not set
+# CONFIG_IOMMU_IO_PGTABLE_DART is not set
+# CONFIG_DRM_FBDEV_EMULATION is not set
+# Enabling DRM exposes defconfig's other display and GPU drivers. Nothing here uses them.
+# CONFIG_DRM_CDNS_DSI is not set
+# CONFIG_DRM_CDNS_MHDP8546 is not set
+# CONFIG_DRM_DISPLAY_CONNECTOR is not set
+# CONFIG_DRM_ETNAVIV is not set
+# CONFIG_DRM_HDLCD is not set
+# CONFIG_DRM_HISI_KIRIN is not set
+# CONFIG_DRM_I2C_ADV7511 is not set
+# CONFIG_DRM_I2C_NXP_TDA998X is not set
+# CONFIG_DRM_ITE_IT6263 is not set
+# CONFIG_DRM_ITE_IT66121 is not set
+# CONFIG_DRM_KOMEDA is not set
+# CONFIG_DRM_LIMA is not set
+# CONFIG_DRM_LONTIUM_LT8713SX is not set
+# CONFIG_DRM_LONTIUM_LT8912B is not set
+# CONFIG_DRM_LONTIUM_LT9611 is not set
+# CONFIG_DRM_LONTIUM_LT9611UXC is not set
+# CONFIG_DRM_MALI_DISPLAY is not set
+# CONFIG_DRM_NWL_MIPI_DSI is not set
+# CONFIG_DRM_PANEL_BOE_TV101WUM_NL6 is not set
+# CONFIG_DRM_PANEL_EDP is not set
+# CONFIG_DRM_PANEL_HIMAX_HX8279 is not set
+# CONFIG_DRM_PANEL_HIMAX_HX83112A is not set
+# CONFIG_DRM_PANEL_HIMAX_HX83112B is not set
+# CONFIG_DRM_PANEL_ILITEK_ILI9882T is not set
+# CONFIG_DRM_PANEL_KHADAS_TS050 is not set
+# CONFIG_DRM_PANEL_LVDS is not set
+# CONFIG_DRM_PANEL_MANTIX_MLAF057WE51 is not set
+# CONFIG_DRM_PANEL_NOVATEK_NT36672A is not set
+# CONFIG_DRM_PANEL_NOVATEK_NT36672E is not set
+# CONFIG_DRM_PANEL_NOVATEK_NT37801 is not set
+# CONFIG_DRM_PANEL_RAYDIUM_RM67191 is not set
+# CONFIG_DRM_PANEL_RAYDIUM_RM692E5 is not set
+# CONFIG_DRM_PANEL_SAMSUNG_ATNA33XC20 is not set
+# CONFIG_DRM_PANEL_SIMPLE is not set
+# CONFIG_DRM_PANEL_SITRONIX_ST7703 is not set
+# CONFIG_DRM_PANEL_STARTEK_KD070FHFID015 is not set
+# CONFIG_DRM_PANEL_SUMMIT is not set
+# CONFIG_DRM_PANEL_TRULY_NT35597_WQXGA is not set
+# CONFIG_DRM_PANEL_VISIONOX_VTDR6130 is not set
+# CONFIG_DRM_PANTHOR is not set
+# CONFIG_DRM_PARADE_PS8640 is not set
+# CONFIG_DRM_PL111 is not set
+# CONFIG_DRM_POWERVR is not set
+# CONFIG_DRM_SAMSUNG_DSIM is not set
+# CONFIG_DRM_SII902X is not set
+# CONFIG_DRM_SIMPLE_BRIDGE is not set
+# CONFIG_DRM_THINE_THC63LVD1024 is not set
+# CONFIG_DRM_TIDSS is not set
+# CONFIG_DRM_TI_SN65DSI83 is not set
+# CONFIG_DRM_TI_SN65DSI86 is not set
+# CONFIG_DRM_TI_TFP410 is not set
+# CONFIG_DRM_TOSHIBA_TC358767 is not set
+# CONFIG_DRM_TOSHIBA_TC358768 is not set

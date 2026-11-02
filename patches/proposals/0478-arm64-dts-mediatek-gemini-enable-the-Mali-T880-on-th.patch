@@ -1,0 +1,111 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 16:01:05 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: enable the Mali-T880 on
+ the station
+
+Describe the MFG domains under the power controller, with the VCG gate on
+MFG_ASYNC, whose parent is the 52 MHz clock the vendor runs its domains from.
+The base GPU node names the legacy provider, so point it at this one.
+
+Enable MFGSYS, I2C7, the RT5735 at a fixed 1.0 V and the GPU on the station.
+Only the I2C7 controller binds at boot; the rest wait for their modules.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 39 +++++++++++++++++++
+ .../boot/dts/mediatek/mt6797-gemini-pda.dts   | 36 +++++++++++++++++
+ 2 files changed, 75 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 473486596..72460a45a 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -264,3 +264,42 @@ touchscreen@62 {
+ 		interrupts = <8 IRQ_TYPE_EDGE_RISING>;
+ 	};
+ };
++
++/*
++ * The Mali-T880 at a fixed point: RT5735 at 1.0 V, no OPP table. Enabling these
++ * touches nothing until the modules load, except the I2C7 controller itself.
++ */
++&mfgsys {
++	status = "okay";
++};
++
++&i2c7 {
++	status = "okay";
++};
++
++&rt5735_vgpu {
++	regulator-min-microvolt = <1000000>;
++	regulator-max-microvolt = <1000000>;
++	regulator-enable-ramp-delay = <350>;
++	regulator-ramp-delay = <4000>;
++	status = "okay";
++};
++
++&gpu {
++	clocks = <&mfgsys CLK_MFG_BG3D>,
++		 <&topckgen CLK_TOP_MUX_MFG>,
++		 <&clk26m>,
++		 <&topckgen CLK_TOP_SYSPLL_D3>,
++		 <&topckgen CLK_TOP_MUX_MFG_52M>,
++		 <&topckgen CLK_TOP_UNIVPLL2_D8>;
++	clock-names = "core", "mfg-sel", "mfg-26m", "mfg-syspll-d3",
++		      "mfg-52m-sel", "mfg-52m-parent";
++	power-domains = <&conn_power MT6797_POWER_DOMAIN_MFG_CORE0>,
++			<&conn_power MT6797_POWER_DOMAIN_MFG_CORE1>,
++			<&conn_power MT6797_POWER_DOMAIN_MFG_CORE2>,
++			<&conn_power MT6797_POWER_DOMAIN_MFG_CORE3>;
++	resets = <&watchdog MT6797_TOPRGU_MFG_SW_RST>;
++	mediatek,infracfg = <&infrasys>;
++	mediatek,mfgsys = <&mfgsys>;
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 1d1172d7a..f7925b255 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -33,6 +33,42 @@ power-domain@4 {
+ 			#power-domain-cells = <0>;
+ 		};
+ 
++		power-domain@5 {
++			reg = <MT6797_POWER_DOMAIN_MFG_ASYNC>;
++			clocks = <&infrasys CLK_INFRA_MFG_VCG>;
++			clock-names = "vcg";
++			#address-cells = <1>;
++			#size-cells = <0>;
++			#power-domain-cells = <0>;
++
++			power-domain@6 {
++				reg = <MT6797_POWER_DOMAIN_MFG>;
++				#address-cells = <1>;
++				#size-cells = <0>;
++				#power-domain-cells = <0>;
++
++				power-domain@7 {
++					reg = <MT6797_POWER_DOMAIN_MFG_CORE0>;
++					#power-domain-cells = <0>;
++				};
++
++				power-domain@8 {
++					reg = <MT6797_POWER_DOMAIN_MFG_CORE1>;
++					#power-domain-cells = <0>;
++				};
++
++				power-domain@9 {
++					reg = <MT6797_POWER_DOMAIN_MFG_CORE2>;
++					#power-domain-cells = <0>;
++				};
++
++				power-domain@a {
++					reg = <MT6797_POWER_DOMAIN_MFG_CORE3>;
++					#power-domain-cells = <0>;
++				};
++			};
++		};
++
+ 		power-domain@c {
+ 			reg = <MT6797_POWER_DOMAIN_CONN>;
+ 			#power-domain-cells = <0>;

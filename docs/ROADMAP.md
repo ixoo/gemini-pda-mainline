@@ -185,10 +185,8 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    cameras stay feasibility work. The
    per-block detail, shared dependencies and grouped device tests are in
    [After Wi-Fi gaps](../experiments/2026-10-03-project-review/AFTER_WIFI_GAPS.md). GPU
-   preparation remains offline: first resolve SCPSYS provider-probe effects and
-   LDO/rail/domain/clock/protection ordering, then repair resource validation
-   and verify the built DT/rate contract before designing a fixed-point boot.
-   See the [GPU research review](../experiments/2026-11-01-mali-t880-research-review/README.md).
+   has patches and a first test planned at a fixed low clock, as modules; see
+   [the first job](../experiments/2026-11-02-mali-t880-first-job/README.md).
 
 ## Offline work now, in parallel
 

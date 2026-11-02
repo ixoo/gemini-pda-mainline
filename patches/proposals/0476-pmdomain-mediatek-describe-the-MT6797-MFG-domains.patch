@@ -1,0 +1,176 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 16:01:05 -0500
+Subject: [PATCH] pmdomain: mediatek: describe the MT6797 MFG domains
+
+The GPU needs MFG_ASYNC, MFG and four core domains, and the station's
+mtk-pm-domains provider has only AUDIO and CONN. Add them with the control
+registers, status bits and SRAM bits the legacy mtk-scpsys driver has, which
+match the vendor's.
+
+Unlike the other domains, the SRAM bits of MFG are in a register of their
+own, and every core's SRAM acknowledge is there too. Let a domain name those
+registers.
+
+KEEP_DEFAULT_OFF leaves them untouched at probe, so a station that loads no
+GPU driver powers nothing. They have no bus protection here: the vendor
+releases it after the cores and the GPU clock, so the GPU driver owns it.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h | 52 +++++++++++++++++++
+ drivers/pmdomain/mediatek/mtk-pm-domains.c    | 16 +++---
+ drivers/pmdomain/mediatek/mtk-pm-domains.h    |  4 ++
+ 3 files changed, 66 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+index d11767a62..13d3175d6 100644
+--- a/drivers/pmdomain/mediatek/mt6797-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -10,10 +10,31 @@
+ #define MT6797_SPM_AUDIO_PWR_CON	0x314
+ #define MT6797_PWR_STATUS_AUDIO		BIT(24)
+ #define MT6797_SPM_CONN_PWR_CON		0x32c
++#define MT6797_SPM_MFG_ASYNC_PWR_CON	0x334
++#define MT6797_SPM_MFG_PWR_CON		0x338
++#define MT6797_SPM_MFG_SRAM_CON		0x33c
++#define MT6797_SPM_MFG_CORE_PWR_CON(n)	(0x340 + 4 * (n))
++#define MT6797_PWR_STATUS_MFG_ASYNC	BIT(13)
++#define MT6797_PWR_STATUS_MFG		BIT(12)
++#define MT6797_PWR_STATUS_MFG_CORE(n)	BIT(11 - (n))
+ #define MT6797_SPM_PWR_STATUS		0x180
+ #define MT6797_SPM_PWR_STATUS_2ND	0x184
+ #define MT6797_TOP_AXI_PROT_EN_CONN	(BIT(17) | BIT(18))
+ 
++#define MT6797_MFG_CORE_DOMAIN(n) \
++	[MT6797_POWER_DOMAIN_MFG_CORE##n] = { \
++		.name = "mfg_core" #n, \
++		.sta_mask = MT6797_PWR_STATUS_MFG_CORE(n), \
++		.ctl_offs = MT6797_SPM_MFG_CORE_PWR_CON(n), \
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS, \
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND, \
++		.sram_pdn_bits = BIT(8), \
++		.sram_pdn_ack_bits = BIT(20 + (n)), \
++		.sram_ack_offs = MT6797_SPM_MFG_SRAM_CON, \
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG, \
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF, \
++	}
++
+ static enum scpsys_bus_prot_block scpsys_bus_prot_blocks_mt6797[] = {
+ 	BUS_PROT_BLOCK_INFRA,
+ };
+@@ -30,6 +51,37 @@ static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
+ 		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
+ 		.caps = MTK_SCPD_KEEP_DEFAULT_OFF,
+ 	},
++	/*
++	 * LK can leave MFG_ASYNC on, so these only warn if found on. The bus
++	 * protection stays with the GPU driver: the vendor releases it after
++	 * the cores and the GPU clock, later than any one domain can.
++	 */
++	[MT6797_POWER_DOMAIN_MFG_ASYNC] = {
++		.name = "mfg_async",
++		.sta_mask = MT6797_PWR_STATUS_MFG_ASYNC,
++		.ctl_offs = MT6797_SPM_MFG_ASYNC_PWR_CON,
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF,
++	},
++	[MT6797_POWER_DOMAIN_MFG] = {
++		.name = "mfg",
++		.sta_mask = MT6797_PWR_STATUS_MFG,
++		.ctl_offs = MT6797_SPM_MFG_PWR_CON,
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.sram_pdn_bits = GENMASK(1, 0),
++		.sram_pdn_ack_bits = GENMASK(17, 16),
++		.sram_pdn_offs = MT6797_SPM_MFG_SRAM_CON,
++		.sram_ack_offs = MT6797_SPM_MFG_SRAM_CON,
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF,
++	},
++	MT6797_MFG_CORE_DOMAIN(0),
++	MT6797_MFG_CORE_DOMAIN(1),
++	MT6797_MFG_CORE_DOMAIN(2),
++	MT6797_MFG_CORE_DOMAIN(3),
+ 	[MT6797_POWER_DOMAIN_CONN] = {
+ 		.name = "conn",
+ 		.sta_mask = PWR_STATUS_CONN,
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.c b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+index 60c4b6b54..1a56c4699 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.c
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.c
+@@ -198,19 +198,21 @@ static int scpsys_sram_enable(struct scpsys_domain *pd)
+ {
+ 	u32 expected_ack, pdn_ack = pd->data->sram_pdn_ack_bits;
+ 	struct scpsys *scpsys = pd->scpsys;
++	int pdn_offs = pd->data->sram_pdn_offs ?: pd->data->ctl_offs;
++	int ack_offs = pd->data->sram_ack_offs ?: pd->data->ctl_offs;
+ 	unsigned int tmp;
+ 	int ret;
+ 
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_SRAM_PDN_INVERTED)) {
+-		regmap_set_bits(scpsys->base, pd->data->ctl_offs, pd->data->sram_pdn_bits);
++		regmap_set_bits(scpsys->base, pdn_offs, pd->data->sram_pdn_bits);
+ 		expected_ack = pdn_ack;
+ 	} else {
+-		regmap_clear_bits(scpsys->base, pd->data->ctl_offs, pd->data->sram_pdn_bits);
++		regmap_clear_bits(scpsys->base, pdn_offs, pd->data->sram_pdn_bits);
+ 		expected_ack = 0;
+ 	}
+ 
+ 	/* Either wait until SRAM_PDN_ACK all 1 or 0 */
+-	ret = regmap_read_poll_timeout(scpsys->base, pd->data->ctl_offs, tmp,
++	ret = regmap_read_poll_timeout(scpsys->base, ack_offs, tmp,
+ 				       (tmp & pdn_ack) == expected_ack,
+ 				       MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
+ 	if (ret < 0)
+@@ -229,6 +231,8 @@ static int scpsys_sram_disable(struct scpsys_domain *pd)
+ {
+ 	u32 expected_ack, pdn_ack = pd->data->sram_pdn_ack_bits;
+ 	struct scpsys *scpsys = pd->scpsys;
++	int pdn_offs = pd->data->sram_pdn_offs ?: pd->data->ctl_offs;
++	int ack_offs = pd->data->sram_ack_offs ?: pd->data->ctl_offs;
+ 	unsigned int tmp;
+ 
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_SRAM_ISO)) {
+@@ -238,15 +242,15 @@ static int scpsys_sram_disable(struct scpsys_domain *pd)
+ 	}
+ 
+ 	if (MTK_SCPD_CAPS(pd, MTK_SCPD_SRAM_PDN_INVERTED)) {
+-		regmap_clear_bits(scpsys->base, pd->data->ctl_offs, pd->data->sram_pdn_bits);
++		regmap_clear_bits(scpsys->base, pdn_offs, pd->data->sram_pdn_bits);
+ 		expected_ack = 0;
+ 	} else {
+-		regmap_set_bits(scpsys->base, pd->data->ctl_offs, pd->data->sram_pdn_bits);
++		regmap_set_bits(scpsys->base, pdn_offs, pd->data->sram_pdn_bits);
+ 		expected_ack = pdn_ack;
+ 	}
+ 
+ 	/* Either wait until SRAM_PDN_ACK all 1 or 0 */
+-	return regmap_read_poll_timeout(scpsys->base, pd->data->ctl_offs, tmp,
++	return regmap_read_poll_timeout(scpsys->base, ack_offs, tmp,
+ 					(tmp & pdn_ack) == expected_ack,
+ 					MTK_POLL_DELAY_US, MTK_POLL_TIMEOUT);
+ }
+diff --git a/drivers/pmdomain/mediatek/mtk-pm-domains.h b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+index d7571b990..515073801 100644
+--- a/drivers/pmdomain/mediatek/mtk-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mtk-pm-domains.h
+@@ -160,6 +160,8 @@ enum scpsys_mtcmos_type {
+  * @ctl_offs: The offset for main power control register.
+  * @sram_pdn_bits: The mask for sram power control bits.
+  * @sram_pdn_ack_bits: The mask for sram power control acked bits.
++ * @sram_pdn_offs: The sram power control register, if not @ctl_offs.
++ * @sram_ack_offs: The sram power control ack register, if not @ctl_offs.
+  * @ext_buck_iso_offs: The offset for external buck isolation
+  * @ext_buck_iso_mask: The mask for external buck isolation
+  * @caps: The flag for active wake-up action.
+@@ -175,6 +177,8 @@ struct scpsys_domain_data {
+ 	int ctl_offs;
+ 	u32 sram_pdn_bits;
+ 	u32 sram_pdn_ack_bits;
++	int sram_pdn_offs;
++	int sram_ack_offs;
+ 	int ext_buck_iso_offs;
+ 	u32 ext_buck_iso_mask;
+ 	u16 caps;

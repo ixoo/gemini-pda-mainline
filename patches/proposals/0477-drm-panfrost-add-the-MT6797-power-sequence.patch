@@ -1,0 +1,605 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 16:01:05 -0500
+Subject: [PATCH] drm/panfrost: add the MT6797 power sequence
+
+The vendor brings the T880 up as GPU LDOs, VGPU, VCG, MFG_ASYNC, MFG, cores,
+BG3D, 100 us, bus protection release, async timing. Panfrost starts at the
+domains and has no LDO or protection step, so powering the domains from it
+alone would run them with no rail and no SRAM supply.
+
+Add callbacks before the domains, after the clocks, before the clocks stop and
+after the domains, and use them on MT6797. The first resolves every provider
+before any effect, so a load without the regulator or clock module defers with
+the hardware untouched. It refuses a hot SoC or a rail not at 1.0 V, selects
+a running clock, programs the LDOs with readback, pulses the TOPRGU reset,
+asserts protection, and enables the LDOs and the rail.
+
+This is a fixed point with no OPP table. The GPU clock parent is clk26m, or
+syspll_d3 through a module parameter, and is refused above 365 MHz. MFGPLL is
+not touched. Runtime suspend is held off, so the domains cycle only at unbind.
+
+This keeps all of it in the module, so it can be changed without a boot.
+---
+ .../bindings/gpu/arm,mali-midgard.yaml        |  26 +-
+ drivers/gpu/drm/panfrost/Makefile             |   1 +
+ drivers/gpu/drm/panfrost/panfrost_device.c    |  27 +-
+ drivers/gpu/drm/panfrost/panfrost_device.h    |  18 +
+ drivers/gpu/drm/panfrost/panfrost_drv.c       |   9 +
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c    | 333 ++++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_mt6797.h    |   8 +
+ 7 files changed, 416 insertions(+), 6 deletions(-)
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_mt6797.c
+ create mode 100644 drivers/gpu/drm/panfrost/panfrost_mt6797.h
+
+diff --git a/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml b/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml
+index 1552a4054..f612fc71b 100644
+--- a/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml
++++ b/Documentation/devicetree/bindings/gpu/arm,mali-midgard.yaml
+@@ -78,13 +78,29 @@ properties:
+ 
+   clocks:
+     minItems: 1
+-    maxItems: 2
++    maxItems: 6
+ 
+   clock-names:
+-    minItems: 1
+-    items:
+-      - const: core
+-      - const: bus
++    oneOf:
++      - minItems: 1
++        items:
++          - const: core
++          - const: bus
++      - items:
++          - const: core
++          - const: mfg-sel
++          - const: mfg-26m
++          - const: mfg-syspll-d3
++          - const: mfg-52m-sel
++          - const: mfg-52m-parent
++
++  mediatek,infracfg:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: MT6797 INFRACFG, for the GPU LDOs and the MFG bus protection.
++
++  mediatek,mfgsys:
++    $ref: /schemas/types.yaml#/definitions/phandle
++    description: MT6797 MFG configuration block, for its async timing.
+ 
+   mali-supply: true
+   opp-table:
+diff --git a/drivers/gpu/drm/panfrost/Makefile b/drivers/gpu/drm/panfrost/Makefile
+index 7da2b3f02..71e3f0564 100644
+--- a/drivers/gpu/drm/panfrost/Makefile
++++ b/drivers/gpu/drm/panfrost/Makefile
+@@ -9,6 +9,7 @@ panfrost-y := \
+ 	panfrost_gpu.o \
+ 	panfrost_job.o \
+ 	panfrost_mmu.o \
++	panfrost_mt6797.o \
+ 	panfrost_perfcnt.o \
+ 	panfrost_dump.o
+ 
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.c b/drivers/gpu/drm/panfrost/panfrost_device.c
+index dedc13e56..27159c86d 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.c
++++ b/drivers/gpu/drm/panfrost/panfrost_device.c
+@@ -32,6 +32,10 @@ static int panfrost_reset_init(struct panfrost_device *pfdev)
+ 
+ static void panfrost_reset_fini(struct panfrost_device *pfdev)
+ {
++	/* A platform sequence owns the reset and runs with the domains still on. */
++	if (pfdev->comp->platform_ops)
++		return;
++
+ 	reset_control_assert(pfdev->rstc);
+ }
+ 
+@@ -216,9 +220,15 @@ int panfrost_device_init(struct panfrost_device *pfdev)
+ 	INIT_LIST_HEAD(&pfdev->debugfs.gems_list);
+ #endif
+ 
++	if (pfdev->comp->platform_ops) {
++		err = pfdev->comp->platform_ops->power_early(pfdev);
++		if (err)
++			return err;
++	}
++
+ 	err = panfrost_pm_domain_init(pfdev);
+ 	if (err)
+-		return err;
++		goto out_platform;
+ 
+ 	err = panfrost_reset_init(pfdev);
+ 	if (err) {
+@@ -232,6 +242,12 @@ int panfrost_device_init(struct panfrost_device *pfdev)
+ 		goto out_reset;
+ 	}
+ 
++	if (pfdev->comp->platform_ops) {
++		err = pfdev->comp->platform_ops->power_late(pfdev);
++		if (err)
++			goto out_clk;
++	}
++
+ 	err = panfrost_devfreq_init(pfdev);
+ 	if (err) {
+ 		if (err != -EPROBE_DEFER)
+@@ -282,11 +298,16 @@ int panfrost_device_init(struct panfrost_device *pfdev)
+ out_devfreq:
+ 	panfrost_devfreq_fini(pfdev);
+ out_clk:
++	if (pfdev->comp->platform_ops)
++		pfdev->comp->platform_ops->unpower_early(pfdev);
+ 	panfrost_clk_fini(pfdev);
+ out_reset:
+ 	panfrost_reset_fini(pfdev);
+ out_pm_domain:
+ 	panfrost_pm_domain_fini(pfdev);
++out_platform:
++	if (pfdev->comp->platform_ops)
++		pfdev->comp->platform_ops->unpower_late(pfdev);
+ 	return err;
+ }
+ 
+@@ -298,9 +319,13 @@ void panfrost_device_fini(struct panfrost_device *pfdev)
+ 	panfrost_gpu_fini(pfdev);
+ 	panfrost_devfreq_fini(pfdev);
+ 	panfrost_regulator_fini(pfdev);
++	if (pfdev->comp->platform_ops)
++		pfdev->comp->platform_ops->unpower_early(pfdev);
+ 	panfrost_clk_fini(pfdev);
+ 	panfrost_reset_fini(pfdev);
+ 	panfrost_pm_domain_fini(pfdev);
++	if (pfdev->comp->platform_ops)
++		pfdev->comp->platform_ops->unpower_late(pfdev);
+ }
+ 
+ #define PANFROST_EXCEPTION(id) \
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+index 0f3992412..a98c5f791 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.h
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -91,6 +91,17 @@ struct panfrost_features {
+ 	unsigned long hw_issues[64 / BITS_PER_LONG];
+ };
+ 
++struct panfrost_platform_ops {
++	/* Before the power domains. May defer. */
++	int (*power_early)(struct panfrost_device *pfdev);
++	/* After the domains and clocks, before the first GPU register. */
++	int (*power_late)(struct panfrost_device *pfdev);
++	/* Before the clocks stop. */
++	void (*unpower_early)(struct panfrost_device *pfdev);
++	/* After the domains are off. */
++	void (*unpower_late)(struct panfrost_device *pfdev);
++};
++
+ /*
+  * Features that cannot be automatically detected and need matching using the
+  * compatible string, typically SoC-specific.
+@@ -113,6 +124,12 @@ struct panfrost_compatible {
+ 	/* Allowed PM features */
+ 	u8 pm_features;
+ 
++	/* Power steps the generic sequence does not cover */
++	const struct panfrost_platform_ops *platform_ops;
++
++	/* Keep the power domains on until unbind */
++	bool no_runtime_suspend;
++
+ 	/* GPU configuration quirks */
+ 	u8 gpu_quirks;
+ };
+@@ -145,6 +162,7 @@ struct panfrost_device {
+ 
+ 	struct panfrost_features features;
+ 	const struct panfrost_compatible *comp;
++	void *platform_data;
+ 	DECLARE_BITMAP(is_suspended, PANFROST_COMP_BIT_MAX);
+ 
+ 	spinlock_t as_lock;
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+index 7ee7d2b14..db3fb1227 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_drv.c
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -23,6 +23,7 @@
+ #include "panfrost_device.h"
+ #include "panfrost_gem.h"
+ #include "panfrost_mmu.h"
++#include "panfrost_mt6797.h"
+ #include "panfrost_job.h"
+ #include "panfrost_gpu.h"
+ #include "panfrost_perfcnt.h"
+@@ -993,6 +994,8 @@ static int panfrost_probe(struct platform_device *pdev)
+ 	pm_runtime_enable(pfdev->base.dev);
+ 	pm_runtime_set_autosuspend_delay(pfdev->base.dev, 50); /* ~3 frames */
+ 	pm_runtime_use_autosuspend(pfdev->base.dev);
++	if (pfdev->comp->no_runtime_suspend)
++		pm_runtime_get_noresume(pfdev->base.dev);
+ 
+ 	/*
+ 	 * Register the DRM device with the core and the connectors with
+@@ -1011,6 +1014,8 @@ static int panfrost_probe(struct platform_device *pdev)
+ err_out2:
+ 	drm_dev_unregister(&pfdev->base);
+ err_out1:
++	if (pfdev->comp->no_runtime_suspend)
++		pm_runtime_put_noidle(pfdev->base.dev);
+ 	pm_runtime_disable(pfdev->base.dev);
+ 	panfrost_device_fini(pfdev);
+ 	pm_runtime_set_suspended(pfdev->base.dev);
+@@ -1025,6 +1030,8 @@ static void panfrost_remove(struct platform_device *pdev)
+ 	drm_dev_unregister(&pfdev->base);
+ 	panfrost_gem_shrinker_cleanup(&pfdev->base);
+ 
++	if (pfdev->comp->no_runtime_suspend)
++		pm_runtime_put_noidle(pfdev->base.dev);
+ 	pm_runtime_get_sync(pfdev->base.dev);
+ 	pm_runtime_disable(pfdev->base.dev);
+ 	panfrost_device_fini(pfdev);
+@@ -1099,6 +1106,8 @@ static const struct panfrost_compatible mediatek_mt6797_data = {
+ 	.supply_names = default_supplies,
+ 	.num_pm_domains = ARRAY_SIZE(mediatek_mt6797_pm_domains),
+ 	.pm_domain_names = mediatek_mt6797_pm_domains,
++	.platform_ops = &panfrost_mt6797_ops,
++	.no_runtime_suspend = true,
+ };
+ 
+ static const char * const mediatek_pm_domains[] = { "core0", "core1", "core2",
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+new file mode 100644
+index 000000000..b7353f7c0
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -0,0 +1,333 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * The MT6797 power sequence around Panfrost's generic one.
++ *
++ * The vendor order is GPU LDOs, VGPU, VCG, MFG_ASYNC, MFG, cores, BG3D, 100 us,
++ * bus protection release, async timing. Panfrost powers the domains first and
++ * has no LDO or protection step, so these callbacks supply what comes before
++ * and after. Everything here runs only while this module binds or unbinds.
++ *
++ * This is a fixed point: 1.0 V, the mux on a running clock and no OPP table.
++ * The MFGPLL is not touched. The vendor parks its divider across a change, and
++ * that transition has not been reviewed.
++ */
++
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/regmap.h>
++#include <linux/regulator/consumer.h>
++#include <linux/reset.h>
++#include <linux/soc/mediatek/infracfg.h>
++#include <linux/thermal.h>
++
++#include "panfrost_device.h"
++#include "panfrost_mt6797.h"
++
++#define MT6797_GPULDO_EN		0xfbc
++#define MT6797_GPULDO_EN_ALL		0x1ff
++#define MT6797_GPULDO_VOSEL_0_3		0xfc0
++#define MT6797_GPULDO_VOSEL_4_7		0xfc4
++#define MT6797_GPULDO_VOSEL_8		0xfc8
++#define MT6797_GPULDO_RSV_H_0_7		0xfd8
++#define MT6797_GPULDO_RSV_H_8		0xfe4
++
++#define MT6797_MFG_PROT_MASK		(BIT(21) | BIT(23))
++#define MT6797_MFG_PROT_TIMEOUT_US	10000
++
++#define MT6797_MFG_ASYNC_CON		0x1c
++/* The vendor selects this from the table maximum, not the current rate. */
++#define MT6797_MFG_ASYNC_TIMING		0xa
++#define MT6797_MFG_DEBUG_SEL		0x180
++#define MT6797_MFG_DEBUG_A		0x184
++#define MT6797_MFG_DEBUG_IDLE		BIT(2)
++#define MT6797_MFG_IDLE_TIMEOUT_US	100000
++
++#define MT6797_VGPU_UV			1000000
++/* syspll_d3, the faster parent allowed here, sits at the vendor's 365 MHz point. */
++#define MT6797_MAX_RATE			365000000
++#define MT6797_MAX_START_MCELSIUS	55000
++
++static int mt6797_parent;
++module_param_named(mt6797_parent, mt6797_parent, int, 0444);
++MODULE_PARM_DESC(mt6797_parent, "MT6797 GPU clock: 0 = clk26m (default), 1 = syspll_d3");
++
++/*
++ * RSV_H_8 is bits 3:0. The station read bit 15 of that register set, which the
++ * register table does not describe, so unlike the vendor's write this leaves it.
++ */
++static const struct {
++	u32 reg;
++	u32 mask;
++	u32 val;
++} mt6797_ldo_setup[] = {
++	{ MT6797_GPULDO_RSV_H_0_7, GENMASK(31, 0), 0x88888888 },
++	{ MT6797_GPULDO_RSV_H_8, GENMASK(3, 0), 0x00000008 },
++	{ MT6797_GPULDO_VOSEL_0_3, GENMASK(31, 0), 0x0f0f0f0f },
++	{ MT6797_GPULDO_VOSEL_4_7, GENMASK(31, 0), 0x0f0f0f0f },
++	{ MT6797_GPULDO_VOSEL_8, GENMASK(31, 0), 0x0000000f },
++};
++
++struct panfrost_mt6797 {
++	struct regulator *vgpu;
++	struct regmap *infracfg;
++	struct regmap *mfg;
++};
++
++static int mt6797_check_temperature(struct device *dev)
++{
++	struct thermal_zone_device *tz;
++	int temp, ret;
++
++	tz = thermal_zone_get_zone_by_name("soc-thermal");
++	if (IS_ERR(tz))
++		return dev_err_probe(dev, PTR_ERR(tz), "no SoC thermal zone\n");
++
++	ret = thermal_zone_get_temp(tz, &temp);
++	if (ret)
++		return dev_err_probe(dev, ret, "no SoC temperature\n");
++
++	if (temp >= MT6797_MAX_START_MCELSIUS)
++		return dev_err_probe(dev, -EBUSY, "SoC at %d mC, not starting\n", temp);
++
++	dev_info(dev, "mt6797: SoC at %d mC\n", temp);
++	return 0;
++}
++
++static int mt6797_set_clocks(struct device *dev)
++{
++	struct clk *sel, *parent, *sel_52m, *parent_52m;
++	unsigned long rate;
++	int ret;
++
++	sel = devm_clk_get(dev, "mfg-sel");
++	if (IS_ERR(sel))
++		return PTR_ERR(sel);
++	parent = devm_clk_get(dev, mt6797_parent == 1 ? "mfg-syspll-d3" : "mfg-26m");
++	if (IS_ERR(parent))
++		return PTR_ERR(parent);
++	sel_52m = devm_clk_get(dev, "mfg-52m-sel");
++	if (IS_ERR(sel_52m))
++		return PTR_ERR(sel_52m);
++	parent_52m = devm_clk_get(dev, "mfg-52m-parent");
++	if (IS_ERR(parent_52m))
++		return PTR_ERR(parent_52m);
++
++	ret = clk_set_parent(sel_52m, parent_52m);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to set the 52M parent\n");
++
++	ret = clk_set_parent(sel, parent);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to set the GPU clock parent\n");
++
++	rate = clk_get_rate(sel);
++	if (!rate || rate > MT6797_MAX_RATE)
++		return dev_err_probe(dev, -ERANGE, "GPU clock at %lu Hz\n", rate);
++
++	dev_info(dev, "mt6797: GPU clock %lu Hz, 52M clock %lu Hz\n", rate,
++		 clk_get_rate(sel_52m));
++	return 0;
++}
++
++static void mt6797_log_inherited(struct device *dev, struct panfrost_mt6797 *mt)
++{
++	u32 en = 0, vosel = 0, vosel8 = 0, rsv = 0, rsv8 = 0, prot = 0, sta = 0;
++
++	regmap_read(mt->infracfg, MT6797_GPULDO_EN, &en);
++	regmap_read(mt->infracfg, MT6797_GPULDO_VOSEL_0_3, &vosel);
++	regmap_read(mt->infracfg, MT6797_GPULDO_VOSEL_8, &vosel8);
++	regmap_read(mt->infracfg, MT6797_GPULDO_RSV_H_0_7, &rsv);
++	regmap_read(mt->infracfg, MT6797_GPULDO_RSV_H_8, &rsv8);
++	regmap_read(mt->infracfg, INFRA_TOPAXI_PROTECTEN, &prot);
++	regmap_read(mt->infracfg, INFRA_TOPAXI_PROTECTSTA1, &sta);
++
++	dev_info(dev, "mt6797: inherited LDO en %#x vosel %#x/%#x rsv %#x/%#x, protect %#x/%#x\n",
++		 en, vosel, vosel8, rsv, rsv8, prot, sta);
++}
++
++static int mt6797_setup_ldos(struct device *dev, struct panfrost_mt6797 *mt)
++{
++	u32 val;
++	int i, ret;
++
++	for (i = 0; i < ARRAY_SIZE(mt6797_ldo_setup); i++) {
++		ret = regmap_update_bits(mt->infracfg, mt6797_ldo_setup[i].reg,
++					 mt6797_ldo_setup[i].mask, mt6797_ldo_setup[i].val);
++		if (ret)
++			return ret;
++
++		ret = regmap_read(mt->infracfg, mt6797_ldo_setup[i].reg, &val);
++		if (ret)
++			return ret;
++
++		if ((val & mt6797_ldo_setup[i].mask) != mt6797_ldo_setup[i].val)
++			return dev_err_probe(dev, -EIO, "LDO %#x reads %#x, wrote %#x\n",
++					     mt6797_ldo_setup[i].reg, val, mt6797_ldo_setup[i].val);
++	}
++
++	return 0;
++}
++
++static int mt6797_protect(struct panfrost_mt6797 *mt, bool on)
++{
++	u32 val;
++
++	regmap_update_bits(mt->infracfg, INFRA_TOPAXI_PROTECTEN, MT6797_MFG_PROT_MASK,
++			   on ? MT6797_MFG_PROT_MASK : 0);
++
++	return regmap_read_poll_timeout(mt->infracfg, INFRA_TOPAXI_PROTECTSTA1, val,
++					(val & MT6797_MFG_PROT_MASK) ==
++					(on ? MT6797_MFG_PROT_MASK : 0),
++					10, MT6797_MFG_PROT_TIMEOUT_US);
++}
++
++/* Before the domains. Nothing has touched the hardware when this defers. */
++static int mt6797_power_early(struct panfrost_device *pfdev)
++{
++	struct device *dev = pfdev->base.dev;
++	struct device_node *np = dev->of_node;
++	struct reset_control *rstc;
++	struct panfrost_mt6797 *mt;
++	struct clk *core;
++	u32 en;
++	int ret;
++
++	mt = devm_kzalloc(dev, sizeof(*mt), GFP_KERNEL);
++	if (!mt)
++		return -ENOMEM;
++	pfdev->platform_data = mt;
++
++	/* Panfrost asks for these after the domains; refuse without them here. */
++	core = devm_clk_get(dev, NULL);
++	if (IS_ERR(core))
++		return PTR_ERR(core);
++
++	mt->vgpu = devm_regulator_get(dev, "mali");
++	if (IS_ERR(mt->vgpu))
++		return PTR_ERR(mt->vgpu);
++
++	mt->infracfg = syscon_regmap_lookup_by_phandle(np, "mediatek,infracfg");
++	if (IS_ERR(mt->infracfg))
++		return PTR_ERR(mt->infracfg);
++
++	mt->mfg = syscon_regmap_lookup_by_phandle(np, "mediatek,mfgsys");
++	if (IS_ERR(mt->mfg))
++		return PTR_ERR(mt->mfg);
++
++	rstc = reset_control_get_exclusive(dev, NULL);
++	if (IS_ERR(rstc))
++		return PTR_ERR(rstc);
++
++	ret = mt6797_check_temperature(dev);
++	if (ret)
++		goto err_put_reset;
++
++	ret = regulator_get_voltage(mt->vgpu);
++	if (ret != MT6797_VGPU_UV) {
++		ret = dev_err_probe(dev, -ERANGE, "VGPU at %d uV\n", ret);
++		goto err_put_reset;
++	}
++
++	mt6797_log_inherited(dev, mt);
++
++	ret = mt6797_set_clocks(dev);
++	if (ret)
++		goto err_put_reset;
++
++	ret = mt6797_setup_ldos(dev, mt);
++	if (ret)
++		goto err_put_reset;
++
++	/* The vendor's one pulse at init, with the domains still off. */
++	reset_control_assert(rstc);
++	udelay(1);
++	reset_control_deassert(rstc);
++	reset_control_put(rstc);
++
++	ret = mt6797_protect(mt, true);
++	if (ret)
++		return dev_err_probe(dev, ret, "MFG bus protection not acknowledged\n");
++
++	ret = regmap_write(mt->infracfg, MT6797_GPULDO_EN, MT6797_GPULDO_EN_ALL);
++	if (ret)
++		return ret;
++
++	ret = regmap_read(mt->infracfg, MT6797_GPULDO_EN, &en);
++	if (!ret && en != MT6797_GPULDO_EN_ALL)
++		ret = dev_err_probe(dev, -EIO, "LDO enable reads %#x\n", en);
++	if (ret)
++		goto err_ldo;
++
++	ret = regulator_enable(mt->vgpu);
++	if (ret)
++		goto err_ldo;
++
++	dev_info(dev, "mt6797: VGPU on at %d uV\n", regulator_get_voltage(mt->vgpu));
++	return 0;
++
++err_ldo:
++	regmap_write(mt->infracfg, MT6797_GPULDO_EN, 0);
++	return ret;
++
++err_put_reset:
++	reset_control_put(rstc);
++	return ret;
++}
++
++/* After the domains and BG3D, before the first GPU register. */
++static int mt6797_power_late(struct panfrost_device *pfdev)
++{
++	struct panfrost_mt6797 *mt = pfdev->platform_data;
++	struct device *dev = pfdev->base.dev;
++	u32 before = 0, after = 0;
++	int ret;
++
++	udelay(100);
++
++	ret = mt6797_protect(mt, false);
++	if (ret)
++		return dev_err_probe(dev, ret, "MFG bus protection release not acknowledged\n");
++
++	regmap_read(mt->mfg, MT6797_MFG_ASYNC_CON, &before);
++	regmap_update_bits(mt->mfg, MT6797_MFG_ASYNC_CON, MT6797_MFG_ASYNC_TIMING,
++			   MT6797_MFG_ASYNC_TIMING);
++	regmap_read(mt->mfg, MT6797_MFG_ASYNC_CON, &after);
++
++	dev_info(dev, "mt6797: MFG_ASYNC_CON %#x -> %#x\n", before, after);
++	return 0;
++}
++
++/* Before BG3D stops. */
++static void mt6797_unpower_early(struct panfrost_device *pfdev)
++{
++	struct panfrost_mt6797 *mt = pfdev->platform_data;
++	struct device *dev = pfdev->base.dev;
++	u32 val;
++
++	regmap_write(mt->mfg, MT6797_MFG_DEBUG_SEL, 0x3);
++	if (regmap_read_poll_timeout(mt->mfg, MT6797_MFG_DEBUG_A, val,
++				     val & MT6797_MFG_DEBUG_IDLE, 10,
++				     MT6797_MFG_IDLE_TIMEOUT_US))
++		dev_warn(dev, "mt6797: MFG not idle before power off: %#x\n", val);
++
++	if (mt6797_protect(mt, true))
++		dev_warn(dev, "mt6797: MFG bus protection not acknowledged at power off\n");
++}
++
++/* After the domains. Vendor order: VGPU off, then the LDOs. */
++static void mt6797_unpower_late(struct panfrost_device *pfdev)
++{
++	struct panfrost_mt6797 *mt = pfdev->platform_data;
++
++	regulator_disable(mt->vgpu);
++	regmap_write(mt->infracfg, MT6797_GPULDO_EN, 0);
++}
++
++const struct panfrost_platform_ops panfrost_mt6797_ops = {
++	.power_early = mt6797_power_early,
++	.power_late = mt6797_power_late,
++	.unpower_early = mt6797_unpower_early,
++	.unpower_late = mt6797_unpower_late,
++};
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.h b/drivers/gpu/drm/panfrost/panfrost_mt6797.h
+new file mode 100644
+index 000000000..c0765a2d5
+--- /dev/null
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.h
+@@ -0,0 +1,8 @@
++/* SPDX-License-Identifier: GPL-2.0 */
++
++#ifndef __PANFROST_MT6797_H__
++#define __PANFROST_MT6797_H__
++
++extern const struct panfrost_platform_ops panfrost_mt6797_ops;
++
++#endif

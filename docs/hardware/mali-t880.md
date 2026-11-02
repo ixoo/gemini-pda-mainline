@@ -23,6 +23,11 @@ recipe. The [November 1 review](../../experiments/2026-11-01-mali-t880-research-
 corrects the clock, voltage and sequencing claims below. The existing profile
 and composed DTB remain offline preparation; they are not ready for a GPU boot.
 
+The station runs `mtk-pm-domains`, not legacy SCPSYS, so sections 5, 6.2 and 6.4
+describe a path it does not use. [The first job](../../experiments/2026-11-02-mali-t880-first-job/README.md)
+has the design for the station and a live baseline that differs from the LK state
+recorded here: on that boot the LDOs were at reset and MFG_ASYNC was off.
+
 ## 1. Identity and mainline coverage
 
 | Fact | Confidence | Evidence |
