@@ -6,22 +6,38 @@ Subject: [PATCH] wifi: mt6797: read the new access point's BSS after the
 
 The roam now comes down through mac80211, so the re-arm can finish after
 mac80211 has set up the new access point. The re-arm clears the BSS record,
-and the station was refused with reasons=0x00100.
+and the station was refused with reasons=0x00100. It also clears the
+secondary channel offset, which would have joined at 20 MHz on a 40 MHz
+access point.
 
-Read the record again from mac80211's state once the lifetime opens.
+Read the record again from mac80211's state once the lifetime opens, and
+leave the offset with the channel, which the re-arm already keeps.
 
 Part of the Wi-Fi daily-use plan, phase 4.
 ---
- drivers/net/wireless/mediatek/mt6797/join.c   |  5 +++-
+ drivers/net/wireless/mediatek/mt6797/join.c   | 10 +++++---
  .../net/wireless/mediatek/mt6797/mac-priv.h   |  2 ++
  drivers/net/wireless/mediatek/mt6797/main.c   | 25 ++++++++++++-------
- 3 files changed, 22 insertions(+), 10 deletions(-)
+ 3 files changed, 24 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
-index bc5516a83..1eab0e197 100644
+index bc5516a83..296e9387a 100644
 --- a/drivers/net/wireless/mediatek/mt6797/join.c
 +++ b/drivers/net/wireless/mediatek/mt6797/join.c
-@@ -3028,8 +3028,11 @@ int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+@@ -655,10 +655,9 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_assoc_status = 0;
+ 	mac->join_aid = 0;
+ 	mac->join_bss_valid = false;
+-	/* join_channel_valid follows the operating channel: mac80211 calls
+-	 * config only when that changes, so a re-arm leaves it as it is.
++	/* join_channel_valid and join_sco follow the operating channel: mac80211
++	 * calls config only when that changes, so a re-arm leaves them as they are.
+ 	 */
+-	mac->join_sco = 0;
+ 	mac->join_bss_configured = false;
+ 	mac->join_short_preamble = false;
+ 	mac->join_short_slot = false;
+@@ -3028,8 +3027,11 @@ int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
  	mutex_lock(&mac->mutex);
  	/* A roam joins from an earlier scan, as soon as the old link is down. */
  	mt6797_mac_join_await(mac, false);

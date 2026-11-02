@@ -273,8 +273,7 @@ earlier than on the third and fourth tries, so `No SSID` is not yet tested:
 ```
 
 Bit 8 is `join_bss_valid`. mac80211 now sets up the new access point before the re-arm ends, and the re-arm
-clears the record. [0467](../../patches/proposals/0467-wifi-mt6797-read-the-new-access-point-s-BSS-after-th.patch) reads it again from mac80211's state.
-Nothing was transmitted on channel 161.
+clears the record, and would have cleared the secondary channel offset too. [0467](../../patches/proposals/0467-wifi-mt6797-read-the-new-access-point-s-BSS-after-th.patch) reads the record again from mac80211's state and keeps the offset. Nothing was transmitted on channel 161.
 
 `sta_seq` above `sequence` is not a fault: the station sequence takes the next command sequence, and the
 sequence had recycled since. Module swaps do keep the sequence high on this boot, and a `sequence_base`
