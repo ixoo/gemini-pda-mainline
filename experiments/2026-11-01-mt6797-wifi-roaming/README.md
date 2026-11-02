@@ -675,3 +675,22 @@ Hypothesis: on a strong link 0471 keeps the link, with no `txfail`, ramps as bef
 | Throughput far below those figures | The probe limit or the reports cost more than planned; tune or reconsider |
 
 **Result on 5200, boot `6b3acef8`, `mac` 33fdc4ec, one single run of each:** `rate_control=Y`, no `txfail`, no restart and no active scans. 0 of 300 pings lost at -64 to -66, `tx_failed=2`, `tx_probe_failed=0`, and the rate reached MCS7 at 40 MHz. Receive was 49.1 Mbit/s and transmit 23.6, or 22.2 at the laptop's end. The earlier figures may have used another method, so these are comparable only roughly: transmit is close to the earlier rate control figures, and receive is above them, which this run doesn't explain. So the first row holds, and 0471 stays loaded. The weak-link claim is still untested.
+
+### Second walk: 0471 on a weak link
+
+The owner chose a walk over another join on 149 ("Another walk instead"). Same route, setup and limits as Stage D, with `mac` 33fdc4ec.
+
+Hypothesis: weak phases now carry data. Where the first walk had `rx_qos=0` at about -78 or weaker, data now flows at a lower rate, and the link stays up or moves on without `txfail` repeating.
+
+- **Channels:** only 5200 and 5805, in `scan_freq` and `freq_list`. 149 is closed until the owner rules, and 48 refused every handshake, so a failed join there would hit the protocol's stop condition and hide this result. The device has to reach further on these two, which suits this test, and this walk can't test those two channels.
+- **Before it:** a full module reload, so the sequence starts low and the earlier stops are cleared as the protocol asks.
+- **Logging:** the script's progress line now has the average signal and transmit rate every 5 s, which the last test lacked.
+- **Budget, if the owner approves:** for this walk only, 20 roams and 60 active scans, the script's limits, on those two channels.
+
+| Observation | Next |
+| --- | --- |
+| Data flows in weak phases, no repeated `txfail`, gaps near 1 s | The fix holds on a weak link. Then channel 48's handshake, and a real network manager |
+| Data flows, but repeated `txfail` | The eight failures are too few when the rate has to fall; read which frames failed |
+| `rx_qos=0` again at low rate | Not only the rate; read the phase and reconsider a capture |
+| Low rate is reached, but the link is too slow to use | The threshold should move earlier; tune `bgscan` |
+| Stays on one access point throughout | Not a test of roaming; read the threshold events |

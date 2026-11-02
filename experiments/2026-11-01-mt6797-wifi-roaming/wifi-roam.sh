@@ -152,7 +152,9 @@ walk() {
 		[ "$scans" -ge 60 ] && why=scans
 		[ "$restarts" -ge 2 ] && why=restarts
 		[ "$stopped" -ge 2 ] && why=stopped
-		echo "t=$((now - start)) roams=$roams scans=$scans restarts=$restarts stopped=$stopped inet=$inet state=$(field wpa_state) freq=$(field freq)" >> "$D/progress.txt"
+		rate=$(iw dev wlan0 station dump | sed -n 's/.*tx bitrate:[[:space:]]*//p')
+		avg=$(iw dev wlan0 station dump | sed -n 's/.*signal avg:[[:space:]]*//p')
+		echo "t=$((now - start)) roams=$roams scans=$scans restarts=$restarts stopped=$stopped inet=$inet state=$(field wpa_state) freq=$(field freq) avg=$avg rate=$rate" >> "$D/progress.txt"
 		sync
 	done
 	: > "$STOP"
