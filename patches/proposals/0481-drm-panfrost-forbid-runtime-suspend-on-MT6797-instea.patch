@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 16:36:33 -0500
+Subject: [PATCH] drm/panfrost: forbid runtime suspend on MT6797 instead of
+ counting on usage
+
+The first GPU load after boot autosuspended within a run despite holding a
+usage reference, so the MFG domains powered off with bus protection released
+and BG3D running. The vendor never does that. A later load on the same boot
+stayed active, as an unbalanced count would.
+
+pm_runtime_forbid() blocks suspend regardless of that count. Log the count at
+the end of probe, since what drops it is not yet known.
+---
+ drivers/gpu/drm/panfrost/panfrost_drv.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+index db3fb1227..cb8e724cb 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_drv.c
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -994,8 +994,9 @@ static int panfrost_probe(struct platform_device *pdev)
+ 	pm_runtime_enable(pfdev->base.dev);
+ 	pm_runtime_set_autosuspend_delay(pfdev->base.dev, 50); /* ~3 frames */
+ 	pm_runtime_use_autosuspend(pfdev->base.dev);
++	/* Independent of the usage count, which the first load saw drop to zero. */
+ 	if (pfdev->comp->no_runtime_suspend)
+-		pm_runtime_get_noresume(pfdev->base.dev);
++		pm_runtime_forbid(pfdev->base.dev);
+ 
+ 	/*
+ 	 * Register the DRM device with the core and the connectors with
+@@ -1009,13 +1010,17 @@ static int panfrost_probe(struct platform_device *pdev)
+ 	if (err)
+ 		goto err_out2;
+ 
++	if (pfdev->comp->no_runtime_suspend)
++		dev_info(&pdev->dev, "runtime PM usage count %d at the end of probe\n",
++			 atomic_read(&pdev->dev.power.usage_count));
++
+ 	return 0;
+ 
+ err_out2:
+ 	drm_dev_unregister(&pfdev->base);
+ err_out1:
+ 	if (pfdev->comp->no_runtime_suspend)
+-		pm_runtime_put_noidle(pfdev->base.dev);
++		pm_runtime_allow(pfdev->base.dev);
+ 	pm_runtime_disable(pfdev->base.dev);
+ 	panfrost_device_fini(pfdev);
+ 	pm_runtime_set_suspended(pfdev->base.dev);
+@@ -1031,7 +1036,7 @@ static void panfrost_remove(struct platform_device *pdev)
+ 	panfrost_gem_shrinker_cleanup(&pfdev->base);
+ 
+ 	if (pfdev->comp->no_runtime_suspend)
+-		pm_runtime_put_noidle(pfdev->base.dev);
++		pm_runtime_allow(pfdev->base.dev);
+ 	pm_runtime_get_sync(pfdev->base.dev);
+ 	pm_runtime_disable(pfdev->base.dev);
+ 	panfrost_device_fini(pfdev);

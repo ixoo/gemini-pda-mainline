@@ -1064,3 +1064,4 @@ proposals/0477-drm-panfrost-add-the-MT6797-power-sequence.patch
 proposals/0478-arm64-dts-mediatek-gemini-enable-the-Mali-T880-on-th.patch
 proposals/0479-arm64-dts-mediatek-gemini-station-drop-the-touchscre.patch
 proposals/0480-clk-mediatek-register-the-MT6797-MFG-gate-in-a-table.patch
+proposals/0481-drm-panfrost-forbid-runtime-suspend-on-MT6797-instea.patch

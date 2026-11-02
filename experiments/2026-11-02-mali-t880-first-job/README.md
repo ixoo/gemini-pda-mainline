@@ -258,6 +258,18 @@ start, peak seen 32.4 C. Exit 0, no Oops, tainted 0.
 and came back with protection released and BG3D running, which the vendor never does. Nothing
 faulted. No jobs run until this is explained.
 
+### Run 2b, same boot: a second load, with runtime PM reads
+
+Exit 0, no fault. `runtime_status=active` throughout, domains on at every read until unload,
+then off. `runtime_suspended_time` stayed at 208 ms, and that attribute accrues only while
+runtime PM is enabled and the device suspended, so those 208 ms belong to run 2 (inference). So
+the device itself suspended on the first load, with the usage reference held, and did not on the
+second. Upstream's remove also leaves one reference behind, so an unbalanced drop on each load
+would look like this. What drops it was not found from the source.
+
+`0481` uses `pm_runtime_forbid()`, which blocks suspend regardless of the count, and logs the
+count at the end of probe. Only a first load on a fresh boot can check it.
+
 ## Analysis
 
 Run 1 tested only the rail provider and the clock module. Run 2 shows the power sequence works once, from modules, and the GPU answers with the expected identity. It does not yet show a job.
