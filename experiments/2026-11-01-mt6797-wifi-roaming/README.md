@@ -42,9 +42,12 @@ frame type; what the firmware sends when it leaves the channel, such as a power-
 access point, is not measured.
 **Stages B to D** move the link between the owner's access points, which the
 [radio protocol](../2026-11-01-mt6797-wifi-any-channel/README.md#radio-protocol-approved-by-the-owner-2026-11-01)
-budgets at one join and ten reconnects per channel, and channels 40 and 161 have already used theirs. They need a new budget from the owner first:
-proposed, only access points of the owner's network on non-DFS 5 GHz channels, at most 40 roams a
-session, US country, its other limits and stop conditions unchanged. Not approved yet.
+budgets at one join and ten reconnects per channel, and channels 40 and 161 have already used theirs.
+
+**Roam budget, approved by the owner on 2026-11-01** ("Approve budget"), replacing that limit for these
+tests only: only access points of the owner's network on non-DFS 5 GHz channels, at most 40 roams a
+session, US country, its other limits and stop conditions unchanged. Two failed roams in a row stop
+the test.
 
 ## Stage A: map and scan while connected
 
