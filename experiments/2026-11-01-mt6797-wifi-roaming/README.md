@@ -438,8 +438,8 @@ The likely reason, from the [firmware contract](../../docs/hardware/mt6797-wifi-
 not measured, is that beacons stop reaching the host once connected. Data frames had no signal reported at all, so
 `-60` above is probably left from earlier frames.
 [0470](../../patches/proposals/0470-wifi-mt6797-take-the-signal-from-data-frames.patch) takes the signal from data frames as well, for the average and for mac80211, and logs
-the threshold with the sample and beacon counts, and the end of the drain. Compile-checked; whether data frames carry a
-usable value is for the run to show.
+the threshold with the sample and beacon counts, and the end of the drain. Package: Buildbox at `660a1d87`, inventory `748f64a2…`,
+`mac` `3a6ef88d…`, with CONSYS and core unchanged. Whether data frames carry a usable value is for the run to show.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
