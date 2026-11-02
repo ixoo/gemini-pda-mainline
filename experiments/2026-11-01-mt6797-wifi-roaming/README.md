@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; 11 clean roams both ways on one boot, 2 of 3 under a download; 0469 addresses the fault on the third, not yet rerun |
+| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; roaming by itself not run |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -387,6 +387,44 @@ question was whether to remove them. Kept, because each still has a reason of it
 Whether roams would work without 0465 and 0466 is not shown. What the supplicant does with a deauthentication mid-roam
 is not checked here. Finding out needs a package and roams for each removal, and the 15 left are better spent
 on the rerun and on stage C. The messages of 0465 and 0466 no longer give `No SSID` as the cause; the code is unchanged.
+
+**Stage B, 0469 under a download: same boot, `mac` `3ba824b1…`, run by the custodian.** 10 roams and one reconnect, so
+36 of the 40 used, counting that reconnect because the radio protocol's reconnect limit on these channels is spent and
+the owner's replacement speaks only of roams. Supplicant starts during setup and restore were not counted, in this run
+or earlier ones, which the owner should know.
+
+- 10 of 10 at target, 0.35-0.46 s from disconnect to data phase, longest ping gap 5 pings on one roam and at most 2 on
+  the rest. No new `join stopped`, no restart, same `udhcpc`, gateway 3/3 after each. Addresses were not compared, only
+  that one was present.
+- The stop during a 53 Mbit/s download: cleanup in 74 ms, no `join stopped`, no restart, reconnected in about 1 s.
+- So the `-110` did not recur, against 4 of 5 stops and 1 of 3 roams before, on this small sample.
+- From `data phase end` to `cleanup: stage=3`: 55-156 ms on nine roams, 680 ms on the first. There, 622 ms pass between
+  `PM abort` and the deauthentication's status. The log has no line for the end of the drain, so whether that time counts
+  against the 750 ms bound is open. If it does, that roam was close to a restart.
+
+**One download stalled after roam 7, not explained.** `wget` timed out 20 s after that roam, and the phase after
+it carried almost nothing:
+
+```
+join data phase end: reason=key-disable elapsed_ms=14699 rx_delivered=132 tx_queued=62 tx_done=62 tx_failed=0
+data qos: tx_qos=62 rx_qos=62 rx_nonqos=34 rx_refused=2
+RX reorder: tid=0 holes=0 expiries=0 duplicates=0 behind=0 held=0
+```
+
+Other phases under the download delivered 30-65k frames, one 9.6k. What this shows:
+
+- The driver dropped nothing: no reorder drops and 2 refusals. The TCP frames never reached it, and the station sent
+  none, as a receiver with nothing arriving would not.
+- Pings kept working, but only to the gateway, so the path from the laptop was not measured.
+- A new connection 21 s later, one roam on, ran normally. Roam 8 came only 5 s before the timeout, so it says little
+  about the old connection.
+
+Candidates, none measured: the network still forwarding the laptop's frames toward the old access point, with nothing
+from the station to correct it while TCP waits; the firmware dropping large or aggregated frames on that one
+lifetime; or either end. The previous phase's `behind=26` was the run's highest, a correlation only.
+
+One stall in 12 roams means the 4 roams left would catch another only about a quarter of the time, so a retest with a
+laptop capture is not worth them. It belongs with the next budget.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
