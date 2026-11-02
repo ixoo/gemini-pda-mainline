@@ -13,7 +13,7 @@ mainline Panfrost configuration needed to bring it up safely.
 | Vendor source | Gemian `8cfe6596` / `59e00a91` lineage |
 | Exact vendor DTB | `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9` |
 | Active vmlinux | `cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162` |
-| Current status | Bounded no-shader jobs from modules at 1.0 V, at 26 and about 364 MHz, on the station; see the first job |
+| Current status | Bounded jobs and small shader frames through Mesa, from modules at 1.0 V, at 26 and about 364 MHz, on the station; see the first job |
 
 The detailed vendor-side evidence is in the
 [GPU RE record](../../experiments/2026-10-04-gemini-gpu-re/README.md) and the

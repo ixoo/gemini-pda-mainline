@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `completed`: at 1.0 V and at 26 and about 364 MHz, the T880 probes, identifies and completes 100 bounded jobs from modules; no shader |
+| Status | `completed`: at 1.0 V and at 26 and about 364 MHz, the T880 probes, identifies and completes bounded jobs and correct shader frames through Mesa, from modules; no sustained load |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -297,6 +297,25 @@ Owner-approved, same modules and image, battery 91% and not charging, one run, e
   `0x82010100`: gated, parent left on `syspll_d3`. That is expected: the module does not restore
   the mux, and sets it on every load.
 
+### Run 5, boot `9d0a3335`: first shaders, through Mesa
+
+Image from `f297381e`, `Image.gz` `3bf81854`, package `be518bd1`, with the GPU modules byte-identical
+to run 3 (no GPU change, only other sessions' patches). Tool from `fbe7061d`: [`gpu-gles.c`](gpu-gles.c)
+and [`build-mesa.sh`](build-mesa.sh), Mesa 24.3.4, bundle `SHA256SUMS` `34254eee`, loaded through its
+own loader from `/run`. Battery 91% and not charging. One run at each clock, exit 0 both.
+
+| | 26 MHz | about 364 MHz |
+| --- | --- | --- |
+| Renderer | `Mali-T880 (Panfrost)`, `OpenGL ES 3.1 Mesa 24.3.4` | same |
+| Frames | 20 of 20 correct | 20 of 20 correct |
+| Frame 0 | 21448 us | 5921 us |
+| Frame 19 | 4229 us | 1357 us |
+| SoC | 31.5 to 31.7 C | 31.5 to 31.7 C |
+
+Each frame clears a 64x64 image, draws one triangle and reads it back. The tool fails unless the
+middle holds this frame's red value, from a uniform, and the corner still holds the clear. Domains on
+while loaded, off after, LDO enable off, tainted 0, no GPU fault, reset or timeout in the log.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -308,9 +327,11 @@ count, so what suspended the device in run 2 is still not explained. `pm_runtime
 it in the one fresh-boot case tested. Upstream's remove leaks one reference on each unload, which
 is why the count climbs; it is harmless here.
 
-The Zero job uses no shader core. `shader_present` is what the GPU reports and its power-on did not
-time out, but no shader ran. The temperature range says nothing about real load: 100 short memory writes
-with idle gaps at each clock. Job times fell from 754 us to 131 us at the higher clock, which points
+The Zero job uses no shader core; run 5 does, since the compiled vertex and fragment shaders carry the
+uniform to the pixels the tool checks. A correct image at both clocks shows Mesa's compiler, the tiler,
+fragment jobs and shader execution on this GPU. It cannot say how many of the four cores did the work.
+The temperature range says nothing about real load: 100 short memory writes
+with idle gaps at each clock, then 20 tiny frames, well under a second of GPU work. Job times fell from 754 us to 131 us at the higher clock, which points
 the same way as the registers but does not measure the clock. The rail is a register value and the clock is a mux register plus the
 framework's rate. Neither was measured. Runtime-suspended domain cycling stays forbidden, so no
 idle power saving exists: while loaded, the rail and the domains stay on.
@@ -318,15 +339,15 @@ idle power saving exists: while loaded, the rail and the domains stay on.
 ## Conclusion
 
 `confirmed` for the named unit, at 1.0 V and at each of 26 and about 364 MHz: probe, identity and
-100 bounded jobs, from modules, on image `Image.gz` `2af362e9`. Not shown: a shader or render, Mesa,
+100 bounded jobs from modules on image `Image.gz` `2af362e9`, and 20 correct shader frames through
+Mesa on image `3bf81854`. Not shown: all four cores in use, real-size rendering, the display path,
 any clock above 364 MHz, a measured clock or rail, sustained load or thermal behaviour, runtime or system suspend, the display path. Nothing
 loads these modules at boot.
 
 ## Follow-up
 
-1. A real shader job, through Mesa or a small compute job, at one of the two tested clocks.
-2. Then a voltage review, an OPP table, a cooling device, and `domain-supply` on MFG_ASYNC, the
-   upstream shape, once the regulator can be built in.
-3. `clk-mt6797-cam`, `-img`, `-mjc`, `-vdec` and `-venc` use `mtk_clk_simple_probe()` with IDs from 1,
-   the overrun of run 1 (from the source; none is enabled on the station). They need checking
-   before any of them is enabled.
+1. A bounded sustained load at a tested clock, with its temperature curve. This is the next new risk,
+   and the owner's to admit.
+2. Then a voltage review, an OPP table, a cooling device, and `domain-supply` on MFG_ASYNC, the upstream
+   shape, once the regulator can be built in.
+3. The display path, and whether the RAM root should carry Mesa at all.
