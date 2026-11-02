@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 16:21:53 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: drop the touchscreen
+ pad's bias
+
+MT6797's pin data has no pull registers, so the pad state's bias-disable
+returns -ENOTSUPP. Each probe logged "pin_config_group_set op failed for
+group 85", and the failure dropped the whole pad state, leaving the driver
+core to continue without it. Touch still worked, because requesting the
+interrupt sets the pad's EINT mode itself.
+
+Remove the property, which also matches the keyboard's interrupt pad. The
+pad's bias stays as firmware left it, which is what the touchscreen ran on.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 72460a4..31ebb06 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -239,7 +239,6 @@
+ 	touchscreen_pins: touchscreen-pins {
+ 		pins-irq {
+ 			pinmux = <MT6797_GPIO85__FUNC_EINT8>;
+-			bias-disable;
+ 		};
+ 	};
+ };
+-- 
+2.54.0 (Apple Git-157)
+

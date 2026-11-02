@@ -151,8 +151,11 @@ novatek-nt36xxx 1-0062: firmware 0x05, project 0x0101, 1080x2160
 | After the reload, touching, 60 s | 768 interrupts, 15 contacts, most at once 2, in slots 0 and 1 |
 
 `pin_config_group_set op failed for group 85` appears on both loads, including
-the one that worked. It is the `bias-disable` of the pad state; the pad setup that
+the one that worked. It is the `bias-disable` of the pad state, which returns
+`-ENOTSUPP` because MT6797's pin data has no pull registers; the pad setup that
 matters happens when the interrupt is requested.
+[0479](../../patches/proposals/0479-arm64-dts-mediatek-gemini-station-drop-the-touchscre.patch)
+removes the property. It has not run on the device.
 
 Captures hold positions from x 187 to 2108 and y 157 to 899, inside the declared
 0..2159 and 0..1079. Moves along the long side change x and moves along the short
