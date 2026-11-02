@@ -660,4 +660,16 @@ So the sampled frames at the fixed HT MCS5 all failed in those phases and almost
 
 **A second driver stop, not explained.** The 15th join stopped with `status=-95 first=-95` at `sequence=195`, followed by a firmware restart. It is not the known wrap, which sets `-EOWNERDEAD` at a higher sequence. The normal link was recovered by the custodian with its usual steps, without a module reload.
 
-A possible fix, not yet written: rate control on by default, probe failures not counted toward the eight, and reports frequent enough at low traffic for minstrel to learn from. The earlier [comparison](../2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av) measured rate control at 0.83x the fixed rate's transmit at 40 MHz on a strong link.
+**The fix, 0471, approved by the owner on 2026-11-02 ("Yes, write the fix"):** rate control on by default, probe failures not counted toward the eight, at most one frame in 16 a probe, and at least one report each 100 ms. The code supports the reading above: frames that don't report are counted done on credit, which resets the count of failures in a row, so eight in a row had to be frames that report, nearly all probes. `minstrel_ht` may probe every 20 ms, so at 5 frames a second most frames are probes, and with one rate per frame a failed probe loses its frame. That would also explain why only about half the frames were delivered, on top of the drops. Compiled with `W=1`; not yet run. The earlier [comparison](../2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av) measured rate control at 0.83x the fixed rate's transmit at 40 MHz on a strong link.
+
+### Testing 0471
+
+A strong channel first, since 149 is closed until the owner rules, with `tx_probe_failed` in the phase end line to read.
+
+Hypothesis: on a strong link 0471 keeps the link, with no `txfail`, ramps as before and transmits at about 0.83x the fixed rate or better. The weak-link claim needs a weak link, so this does not test it.
+
+| Observation | Next |
+| --- | --- |
+| No `txfail`, ping clean, throughput near the earlier rate control figures | Ask the owner for a weak link: 149 if allowed, or a walk |
+| `txfail` on a strong link | The reading above is wrong or incomplete; read the failures |
+| Throughput far below those figures | The probe limit or the reports cost more than planned; tune or reconsider |

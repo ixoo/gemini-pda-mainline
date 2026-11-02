@@ -1,0 +1,204 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 2 Nov 2026 12:23:46 -0500
+Subject: [PATCH] wifi: mt6797: send data at the rate control's choice by
+ default
+
+Ordinary data went at a fixed HT MCS5 by default, with no fallback. Below about
+-78 dBm those frames did not get through, though the join completed and
+broadcasts arrived, so the link stayed up and carried nothing. The counters hid
+this: at the fixed rate one frame in 64 asks for a status and the rest count as
+done on credit, and in those phases about all of the reporting ones had failed.
+
+Turn rate_control on by default. It needs three changes to work on a weak link,
+where it otherwise ended the link every few seconds. Each frame here carries one
+rate, so a failed probe of another rate loses that frame, and at low traffic
+minstrel_ht makes most frames probes: allow one frame in 16 to be a probe, and
+send the others at the rate that is working. Don't count a failed probe toward
+the eight failures that end the data phase, and count them separately in the
+phase end line. Report at least one frame each 100 ms, so that at low traffic
+the rate control learns from more than one frame in 64.
+
+The fixed rate transmitted 1.2 times as fast at 40 MHz on a strong link, in the
+one comparison made.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c   | 14 ++++++-
+ drivers/net/wireless/mediatek/mt6797/join.c   | 39 +++++++++++++------
+ .../net/wireless/mediatek/mt6797/mac-priv.h   | 10 +++++
+ 3 files changed, 51 insertions(+), 12 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index eea8d88..888024c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -1695,10 +1695,22 @@ mt6797_mac_tx_rate(struct mt6797_mac *mac, struct sk_buff *skb,
+ 	int legacy = sband && rate->idx >= 0 && rate->idx < sband->n_bitrates ?
+ 		     sband->bitrates[rate->idx].hw_value : -1;
+ 
+-	bool w40 = rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH;
++	bool w40;
+ 
+ 	if (!mt6797_mac_data_minstrel(mac))
+ 		goto fixed;
++	mac->tx_probe_gap++;
++	if (!(info->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)) {
++		mac->tx_rate_settled = *rate;
++	} else if (mac->tx_probe_gap >= MT6797_TX_PROBE_GAP ||
++		   mac->tx_rate_settled.idx < 0) {
++		mac->tx_probe_gap = 0;
++	} else {
++		/* Not this probe: send it at the rate that is working. */
++		info->flags &= ~IEEE80211_TX_CTL_RATE_CTRL_PROBE;
++		*rate = mac->tx_rate_settled;
++	}
++	w40 = rate->flags & IEEE80211_TX_RC_40_MHZ_WIDTH;
+ 	if ((!w40 || mac->join_sco) &&
+ 	    mt6797_tx_rate_map(rate->idx, rate->flags & IEEE80211_TX_RC_MCS,
+ 			       rate->flags & IEEE80211_TX_RC_VHT_MCS, w40,
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index c698291..ee7bdc3 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -147,12 +147,12 @@ static inline int mt6797_native_diag_cleanup_allowed(enum mt6797_native_diag_sta
+ 	return s == MT6797_ND_IDLE || s == MT6797_ND_CLOSED;
+ }
+ 
+-static bool rate_control;
++static bool rate_control = true;
+ 
+ module_param(rate_control, bool, 0644);
+ 
+ MODULE_PARM_DESC(rate_control,
+-		 "Send data at mac80211's rate control (minstrel_ht) choice instead of the fixed HT MCS5 rate; read at each association");
++		 "Send data at mac80211's rate control (minstrel_ht) choice, not the fixed HT MCS5 rate; read at each association");
+ 
+ /* An entry holding neither a frame nor a placeholder's pages. */
+ static inline bool mt6797_data_entry_free(const struct mt6797_data_slots *s)
+@@ -707,6 +707,10 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->credit_retire_pages = 0;
+ 	mac->credit_retire_ordinal = 0;
+ 	mac->tx_sample_counter = 0;
++	mac->tx_probe_gap = 0;
++	mac->join_data_tx_probe_failed = 0;
++	mac->tx_rate_settled.idx = -1;
++	mac->tx_report_ns = 0;
+ 	mac->tx_queue_stops = 0;
+ 	mac->tx_queue_wakes = 0;
+ 	mac->tx_dropped_full = 0;
+@@ -1665,11 +1669,11 @@ void mt6797_mac_join_end_data(struct mt6797_mac *mac, const char *reason)
+ 	mac->join_deadline = min(mac->join_deadline, teardown_end);
+ 	mac->join_hold_until = ktime_get_ns();
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_delivered=%u tx_queued=%u tx_done=%u tx_failed=%u tx_credits=%u\n",
++		 "one-shot WLAN join data phase end: reason=%s elapsed_ms=%llu rx_delivered=%u tx_queued=%u tx_done=%u tx_failed=%u tx_probe_failed=%u tx_credits=%u\n",
+ 		 reason, (ktime_get_ns() - mac->join_data_started) / NSEC_PER_MSEC,
+ 		 mac->ccmp_rx_delivered,
+ 		 mac->join_data_tx_queued, mac->join_data_tx_done, mac->join_data_tx_failed,
+-		 mac->join_data_credits);
++		 mac->join_data_tx_probe_failed, mac->join_data_credits);
+ 	dev_info(wiphy_dev(mac->hw->wiphy),
+ 		 "one-shot WLAN join data backpressure: stops=%u wakes=%u dropped_full=%u stopped=%u high_water=%u bound=%u\n",
+ 		 mac->tx_queue_stops, mac->tx_queue_wakes, mac->tx_dropped_full,
+@@ -1887,9 +1891,9 @@ int mt6797_mac_join_fail_stop(struct mt6797_mac *mac, int ret,
+ }
+ 
+ /* Count one data frame's completion; eight failures in a row end the data
+- * phase.
++ * phase, but a probe of another rate failing says nothing about the link.
+  */
+-static void mt6797_mac_data_tx_counted(struct mt6797_mac *mac, bool ack)
++static void mt6797_mac_data_tx_counted(struct mt6797_mac *mac, bool ack, bool probe)
+ {
+ 	if (ack) {
+ 		mac->join_data_tx_done++;
+@@ -1897,6 +1901,10 @@ static void mt6797_mac_data_tx_counted(struct mt6797_mac *mac, bool ack)
+ 		return;
+ 	}
+ 	mac->join_data_tx_failed++;
++	if (probe) {
++		mac->join_data_tx_probe_failed++;
++		return;
++	}
+ 	if (++mac->join_data_tx_failures_in_row >= MT6797_JOIN_DATA_TX_FAILURES)
+ 		mt6797_mac_join_end_data(mac, "txfail");
+ }
+@@ -2105,8 +2113,10 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(skb));
+ 			IEEE80211_SKB_CB(skb)->flags &= ~IEEE80211_TX_STAT_ACK;
+ 			__skb_queue_tail(&data_completed, skb);
+-			if (++mac->join_data_tx_failures_in_row >=
+-			    MT6797_JOIN_DATA_TX_FAILURES)
++			if (IEEE80211_SKB_CB(skb)->flags & IEEE80211_TX_CTL_RATE_CTRL_PROBE)
++				mac->join_data_tx_probe_failed++;
++			else if (++mac->join_data_tx_failures_in_row >=
++				 MT6797_JOIN_DATA_TX_FAILURES)
+ 				mt6797_mac_join_end_data(mac, "txfail");
+ 		}
+ 		skb = NULL;
+@@ -2297,8 +2307,9 @@ select_more:
+ 					 * slot until the report names its rate and completion.
+ 					 */
+ 					sample = ++mac->tx_sample_counter >= 64;
+-					if (sample)
+-						mac->tx_sample_counter = 0;
++					if (per_frame && ktime_get_ns() - mac->tx_report_ns >=
++					    MT6797_TX_REPORT_INTERVAL_NS)
++						sample = true;
+ 					/* A rate control probe always reports, or its rate
+ 					 * is never learnt.
+ 					 */
+@@ -2306,6 +2317,10 @@ select_more:
+ 					    (IEEE80211_SKB_CB(skb)->flags &
+ 					     IEEE80211_TX_CTL_RATE_CTRL_PROBE))
+ 						sample = true;
++					if (sample) {
++						mac->tx_sample_counter = 0;
++						mac->tx_report_ns = ktime_get_ns();
++					}
+ 					ret = mt6797_hif_send_data_report(mac->hif, mac->join_eth,
+ 									  eth_bytes, 1,
+ 									  sample ? mac->join_pid : 0,
+@@ -2567,9 +2582,11 @@ submitted:
+ 					 * eight in a row end the data phase.
+ 					 */
+ 					mac->join_inflight_data = false;
++					mt6797_mac_data_tx_counted(mac, ack,
++								   IEEE80211_SKB_CB(completed)->flags &
++								   IEEE80211_TX_CTL_RATE_CTRL_PROBE);
+ 					__skb_queue_tail(&data_completed, completed);
+ 					completed = NULL;
+-					mt6797_mac_data_tx_counted(mac, ack);
+ 					continue;
+ 				}
+ 				/* A frame the air lost is mac80211's and the supplicant's
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 9cf50c5..dac663f 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -416,6 +416,13 @@ struct mt6797_join_pid_pool {
+ #define MT6797_JOIN_TX_HDRLEN(fc) ((fc) & MT6797_JOIN_TX_QOS_BIT ? 26U : 24U)
+ 
+ #define MT6797_JOIN_DATA_TX_FAILURES 8U
++/* One frame carries one rate here, so a failed probe of another rate loses that
++ * frame, and at low traffic minstrel_ht makes most frames probes. At most one
++ * in this many may be one.
++ */
++#define MT6797_TX_PROBE_GAP 16U
++/* At low traffic, one frame in 64 would tell the rate control too little. */
++#define MT6797_TX_REPORT_INTERVAL_NS (100 * NSEC_PER_MSEC)
+ 
+ /* PIDs 1..127 are consumed in order by management, security and data frames;
+  * ordinary data stops at 126 so the reserved deauthentication always has one.
+@@ -625,6 +632,9 @@ struct mt6797_mac {
+ 	unsigned int credit_retire_pages, credit_retire_ordinal;
+ 	/* Sampled status reports (0281): one ordinary data frame in N. */
+ 	unsigned int tx_sample_counter;
++	unsigned int tx_probe_gap, join_data_tx_probe_failed;
++	struct ieee80211_tx_rate tx_rate_settled;
++	u64 tx_report_ns;
+ 	unsigned int join_data_tx_failed, join_data_tx_failures_in_row;
+ 	unsigned int join_data_expired;
+ 	bool join_inflight_data;
+-- 
+2.54.0 (Apple Git-157)
+
