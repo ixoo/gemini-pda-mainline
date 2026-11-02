@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `completed`: closed by the owner as a success for now, with limits, on boot `6b3acef8`. `wpa_cli roam` works on one boot; on three walks the device moved by itself on some, weak links carry data with rate control (0471), gaps up to about 27 s, little actual roaming on the third walk. Channel 48's handshake and channel 149 are not understood; 0473 was never run |
+| Status | `completed`: closed by the owner as a success for now, with limits, on boot `6b3acef8`. `wpa_cli roam` works on one boot; on three walks the device moved by itself on some, weak links carry data with rate control (0471), gaps up to about 27 s, little actual roaming on the third walk. Channel 48's handshake and channel 149 are not understood; 0473 run on a strong link only. Fixes written to boot2, not booted yet |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -766,6 +766,14 @@ The owner closed this work, as relayed by the custodian on 2026-11-02: "I think 
 | --- | --- |
 | 0471, rate control by default | Run on `mac` 33fdc4ec and 8fb6a607 |
 | 0472, repeated answers | Loaded on the third walk as `mac` 8fb6a607. Whether a repeat arrived isn't logged, so not shown |
-| 0473, failures must last 3 s | In the series and built at `392ee722`, `mac` dae8a031, inventory `1bc7576b`. Never loaded or run |
+| 0473, failures must last 3 s | Run on a strong link only, as below. Whether it helps a weak link is not known |
 
-The device stays on `mac` 8fb6a607 with `rate_control=Y` until this boot ends. These fixes reach a later boot only through a new boot2 image, which is the owner's choice, and that image would bring 0473 with it untested unless it is removed first.
+### In boot2, as the custodian reports
+
+The owner then asked for the fixes in the image ("I want the fixes in our mainline", then "Yes, test and install"). **Nothing has booted this image yet;** the owner selects it physically.
+
+- **0473 on boot `6b3acef8`, `mac` dae8a031, strong link only:** `rate_control=Y`, no `txfail`, no restart and no `join stopped`. Ping 300 of 300, 7.6/12.1/22.8 ms. One run each: receive 49.6 Mbit/s, transmit 23.4, at MCS7 and 40 MHz. Phase end: `tx_queued=170482 tx_done=170479 tx_failed=3 tx_probe_failed=1`.
+- **Image:** boot2 `b8b9256b31f5140da69dc191186ba1d45ddfdf2aa24f59f1b03182f827de3aa2`, predecessor `d1a882db`, from main `114d21cc`, profile `mt6797-a53-station-a72`, inventory `b1bb8697`. Guard passed and full readback matched. The custodian did not use the `392ee722` package, since its plain profile would have dropped the late A72 setup the running image has.
+- **Against `d1a882db`:** `Image.gz`, DTB and kernel config identical, `mac.ko` 773e1694 to dae8a031, `mt6797-wlan-core.ko` 425b8add to 2542c418, `mt6797-consys.ko` unchanged.
+- **It won't roam by itself:** the normal setup pins one access point, and the image's supplicant has no `bgscan`. The fixes it brings are for the link it holds, and for anything that adds those later.
+- **Not preserved:** the custodian's saved copy of `/run/station` from the old boot came out empty, and that RAM is gone. The scripts are on main, the logs in `/mnt/data/station` and `dmesg` were kept, and the rebuilt supplicants are in private artifacts. The custodian knows of nothing unique lost and can't prove that.
