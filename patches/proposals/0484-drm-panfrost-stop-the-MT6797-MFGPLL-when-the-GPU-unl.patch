@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:14:27 -0500
+Subject: [PATCH] drm/panfrost: stop the MT6797 MFGPLL when the GPU unloads
+
+The MFGPLL kept running at its rate with no consumer after unload. The base DT
+gives the SCPSYS node the GPU mux as its first clock, and its syscon regmap
+holds a prepare on that clock for good, so the mux keeps its parent prepared.
+
+Park the mux on the oscillator at unload, so the PLL stops with the GPU. The
+DT is where this belongs, but changing it needs a new boot image.
+---
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 20 +++++++++++++++++---
+ 1 file changed, 17 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index c7fdf5b24..d1204a109 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -78,6 +78,8 @@ static const struct {
+ 
+ struct panfrost_mt6797 {
+ 	struct regulator *vgpu;
++	struct clk *sel;
++	struct clk *park;
+ 	struct regmap *infracfg;
+ 	struct regmap *mfg;
+ };
+@@ -102,7 +104,7 @@ static int mt6797_check_temperature(struct device *dev)
+ 	return 0;
+ }
+ 
+-static int mt6797_set_clocks(struct device *dev)
++static int mt6797_set_clocks(struct device *dev, struct panfrost_mt6797 *mt)
+ {
+ 	struct clk *sel, *parent, *sel_52m, *parent_52m;
+ 	unsigned long rate;
+@@ -111,7 +113,11 @@ static int mt6797_set_clocks(struct device *dev)
+ 	sel = devm_clk_get(dev, "mfg-sel");
+ 	if (IS_ERR(sel))
+ 		return PTR_ERR(sel);
+-	parent = devm_clk_get(dev, mt6797_parent == 1 ? "mfg-syspll-d3" : "mfg-26m");
++	mt->sel = sel;
++	mt->park = devm_clk_get(dev, "mfg-26m");
++	if (IS_ERR(mt->park))
++		return PTR_ERR(mt->park);
++	parent = mt6797_parent == 1 ? devm_clk_get(dev, "mfg-syspll-d3") : mt->park;
+ 	if (IS_ERR(parent))
+ 		return PTR_ERR(parent);
+ 	sel_52m = devm_clk_get(dev, "mfg-52m-sel");
+@@ -245,7 +251,7 @@ static int mt6797_power_early(struct panfrost_device *pfdev)
+ 
+ 	mt6797_log_inherited(dev, mt);
+ 
+-	ret = mt6797_set_clocks(dev);
++	ret = mt6797_set_clocks(dev, mt);
+ 	if (ret)
+ 		goto err_put_reset;
+ 
+@@ -336,6 +342,14 @@ static void mt6797_unpower_late(struct panfrost_device *pfdev)
+ 
+ 	regulator_disable(mt->vgpu);
+ 	regmap_write(mt->infracfg, MT6797_GPULDO_EN, 0);
++
++	/*
++	 * The SCPSYS syscon holds a prepare on its first clock, which is this
++	 * mux in the base DT, so the mux keeps a parent PLL running. Leave it
++	 * on the oscillator, so the MFGPLL stops with the GPU.
++	 */
++	if (clk_set_parent(mt->sel, mt->park))
++		dev_warn(pfdev->base.dev, "mt6797: GPU clock not parked\n");
+ }
+ 
+ const struct panfrost_platform_ops panfrost_mt6797_ops = {

@@ -347,6 +347,22 @@ No GPU fault in either. Run 7 used `unstable_ioctls=1`, so `tainted=64` on that 
 a calculation), or a sensor far from the GPU. Nothing proves bank 1 sees the GPU, and `soc-thermal` only
 reports the maximum.
 
+### Run 8, same boot: 442.5 MHz, first use of the MFGPLL
+
+`0483`, one run, 60 s, exit 0, no fault. 442499878 Hz in the log, `CLK_CFG_1` bits 25:24 = 1, `MFGPLL_CON1`
+`0x821104EC`. GPU active 394 M/s, cores 377 M/s each, 7228 frames, a ratio of 1.215 to run 7 against
+1.216 for the clocks. Same pixel, 128,66,0. SoC 32.9 to 36.5 C, a rise of 3.6 C against 2.3 C at 364 MHz. That
+is weak evidence, from one comparison, that the sensor sees GPU load.
+
+`MFGPLL_CON0` stayed `0x101` after unload. The counts read `prepare=1 enable=0` on `mfg_sel`, `mfgpll_ck`
+and `mfgpll` with no GPU module loaded, so `mtk_pll_unprepare` never ran. From the source, the holder is
+`of_syscon_register`: it attaches the first clock of a `syscon` node to its regmap, and
+`regmap_mmio_attach_clk` prepares it for good. The `scpsys` node is a `syscon` whose first clock is
+`CLK_TOP_MUX_MFG`, a leftover from the legacy driver. So `mfg_sel` is prepared from boot, which also explains
+why the first load dropped the loader's running PLL. That regmap also enables the mux around each SPM access
+(from the source; not observed). `0484` parks the mux at unload. Removing the leftover clock is an
+image change, batched below.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -375,6 +391,9 @@ any clock above 364 MHz, a measured clock or rail, sustained load or thermal beh
 loads these modules at boot.
 
 ## Follow-up
+
+Boot image batch, needing the owner's boot2 selection: drop `clocks` from the station's `scpsys` node.
+
 
 1. A bounded sustained load at a tested clock, with its temperature curve. This is the next new risk,
    and the owner's to admit.
