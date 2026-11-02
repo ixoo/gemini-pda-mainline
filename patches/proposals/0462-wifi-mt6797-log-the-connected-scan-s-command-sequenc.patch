@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 21:31:44 -0500
+Subject: [PATCH] wifi: mt6797: log the connected scan's command sequence
+
+70 scans ran while connected, but no line shows whether the command
+sequence recycled, and running out of it would refuse scans for good. Log
+the recycle and each scan's sequence.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 344462754..ebdf99563 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1045,8 +1045,12 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		 * in flight, as a re-arm does, or refuse this scan.
+ 		 */
+ 		if (mac->sequence > 200 && !mac->join_page_debt && !mac->join_data_page_debt &&
+-		    !mt6797_hif_recycle_sequences(mac->hif, mac->sequence_base))
++		    !mt6797_hif_recycle_sequences(mac->hif, mac->sequence_base)) {
++			dev_info(wiphy_dev(hw->wiphy),
++				 "one-shot WLAN connected scan sequence recycle: from=%u to=%u\n",
++				 mac->sequence, mac->sequence_base);
+ 			mac->sequence = mac->sequence_base;
++		}
+ 		if (mac->sequence > 230) {
+ 			dev_info_ratelimited(wiphy_dev(hw->wiphy),
+ 					     "one-shot WLAN scan busy: sequence=%u\n", mac->sequence);
+@@ -1063,8 +1067,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		mac->scan_online_ready = true;
+ 		mac->scan_online = true;
+ 		dev_info(wiphy_dev(hw->wiphy),
+-			 "one-shot WLAN connected scan: admitted=1 channels=%u probing=%u ssids=%u\n",
+-			 mac->scan_total, mac->scan_probing, mac->scan_n_ssids);
++			 "one-shot WLAN connected scan: admitted=1 channels=%u probing=%u ssids=%u sequence=%u\n",
++			 mac->scan_total, mac->scan_probing, mac->scan_n_ssids, mac->sequence);
+ 		ret = 0;
+ 		goto out;
+ 	}
+-- 
+2.43.0
+

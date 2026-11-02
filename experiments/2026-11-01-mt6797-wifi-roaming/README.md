@@ -157,7 +157,7 @@ figures above come from the raw file, recomputed here for replies and gap.
 Not shown:
 - Sequence recycling. The README expected 70 scans to cross it, but no line logs it, and at 2
   commands a scan from 84 the sequence stays under the 230 refusal with or without a recycle.
-  [0462](../../patches/proposals/0462-wifi-mt6797-log-the-connected-scan-s-command-sequen.patch)
+  [0462](../../patches/proposals/0462-wifi-mt6797-log-the-connected-scan-s-command-sequenc.patch)
   logs it, so stage B repeats 100 scans.
 - What the firmware sends when it leaves the channel.
 - A clean first join: this is the boot of the first-join restart.
