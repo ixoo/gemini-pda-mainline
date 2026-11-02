@@ -718,7 +718,7 @@ The unfixed items for the next walk are 48's handshake and 149's closure, both o
 
 ### Third walk: 0471 and 0472 across the area
 
-The owner reopened 149 for this walk ("Yes, reopen 149"), when asked whether it should use channels 40, 149 and 161. Same route and limits as Stage D, with `mac` 8fb6a607 from `6702e737` and a full module reload first. 48 stays out, since its handshake fault isn't understood. The script now waits for `wlan0` before restoring the normal link after a firmware restart.
+The owner reopened 149 for this walk ("Yes, reopen 149"), when asked whether it should use channels 40, 149 and 161. Same route and limits as Stage D, with `mac` 8fb6a607 from `6702e737` and a full module reload first. 48 stays out, since its handshake fault isn't understood. The script now waits for `wlan0` before restoring the normal link after a firmware restart. Budget, approved by the owner on 2026-11-02 ("Approve budget"), for this walk only: 20 roams and 60 active scans, on those three channels.
 
 Hypothesis: with three access points to choose from, the device stays on a usable link for the route, 149 carries data, and the `-71` stop doesn't return. Some of the area may remain weak without 48.
 
