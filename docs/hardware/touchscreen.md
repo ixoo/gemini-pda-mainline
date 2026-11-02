@@ -2,8 +2,8 @@
 
 Scope: the capacitive touch controller, its wiring, the vendor input stack, the
 firmware contract and the mainline gap on the named Gemini PDA. This is a
-static source, firmware-header and document study; no touch event has been
-exercised here.
+static source, firmware-header and document study, with live results in the
+[touchscreen module experiment](../../experiments/2026-11-02-gemini-touchscreen-module/README.md).
 
 Evidence chronology is in the
 [2026-10-31 touchscreen experiment](../../experiments/2026-10-31-gemini-touchscreen/README.md);
@@ -90,12 +90,15 @@ The vendor's chip driver defines a GPIO output macro and never calls it, and
 manages no regulator. `vtouch-supply` in the vendor DTB is `vldo28`, on the
 wrapper node; the Gemian baseline shows that rail disabled with touch working.
 
+On mainline the controller's firmware block reports firmware `0x05`/`0xfa`,
+18x32 channels and 1080x2160, and project ID `0x0101`.
+
 ## 5. Open questions
 
 1. Does the Gemini controller also answer the upstream `0x78`/`0x00` interface
-   (which would make a compatible-only mainline path possible)?
-2. What are the live resolution, touch count and filter settings?
-3. Which rails power the controller, and are they always on?
+   at the client address? Its firmware block is at `0x78` on the second target.
+2. Which rails power the controller? It works on mainline with none named.
+3. Why does a second driver load get no interrupts?
 4. When, if ever, did a vendor stack flash this controller? The 2026-07-14
    Gemian boot only verified the checksum and did not write flash.
 

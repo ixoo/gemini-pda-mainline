@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-touchscreen-module` |
-| Status | `planned`: package built and test requested; no device test has run |
+| Status | `running`: T1 showed real multitouch from the module on its first load, and no interrupts after `rmmod` and `insmod`; that reload failure is under test |
 | Subsystem | Novatek NT36772 touch controller, I2C4, EINT8, input multitouch |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -98,7 +98,7 @@ contacts, slots, how many at once and each contact's range.
 
 The request sent to the custodian holds the exact package, hashes and commands.
 
-1. Boot the package; confirm `/sys/bus/i2c/devices/4-0062` exists unbound.
+1. Boot the package; confirm the client exists unbound (`1-0062`: the bus is numbered 1 on mainline).
 2. One `insmod`. Read the probe lines, `/proc/bus/input/devices`, `/proc/interrupts`.
 3. 30 s untouched: the EINT8 count.
 4. Attended, 60 s capture of the event device: one finger at each corner, then
@@ -129,13 +129,59 @@ EINT8 rising. Its patches and configs differ from boot2's `114d21cc` only by 047
 0475 and the config line. The module compiled with no warnings at `W=1`; the DT
 schemas and `dtbs_check` were not run. Request sent to the custodian.
 
+### T1, boot `6c68923b`, boot2 image `cf18cd7f`, module `34328321`
+
+The first load matched the hypothesis on all counts checked:
+
+```text
+novatek-nt36xxx 1-0062: trim 00 00 03 72 66 03
+novatek-nt36xxx 1-0062: firmware information 05 fa 12 20 04 38 08 70 0e 0a 00 01 01 00 08 12
+novatek-nt36xxx 1-0062: firmware 0x05, project 0x0101, 1080x2160
+```
+
+| Step | Result |
+| --- | --- |
+| Probe | `insmod` 0 in 152 ms, on no supply and no reset line; `Edge` on EINT8; tainted 0 |
+| Console | Owner: unchanged after load |
+| Untouched, 30 s | 0 interrupts |
+| One finger, 60 s | 717 interrupts, 10 contacts, most at once 1 |
+| Several fingers, 60 s | 1511 interrupts, 23 contacts, most at once 3, in slots 0, 1 and 2 |
+| `rmmod`, `insmod` | Both 0, the same probe log |
+| After the reload, 15 s, then 30 s more | 0 interrupts and 0 events; whether the owner touched is being confirmed |
+
+`pin_config_group_set op failed for group 85` appears on both loads, including
+the one that worked. It is the `bias-disable` of the pad state; the pad setup that
+matters happens when the interrupt is requested.
+
+Captures hold positions from x 187 to 2108 and y 157 to 899, inside the declared
+0..2159 and 0..1079. Moves along the long side change x and moves along the short
+side change y, and the first three taps of the corner sequence run left to right
+along the top. That suggests the vendor's transform suits the landscape console,
+but no one compared a touch with a mark on the screen. The corners did not reach
+the range's ends, so edge accuracy is unmeasured.
+
+Not shown: reload, a fourth or later contact, positions checked on screen, suspend
+or a panel power cycle.
+
+The second capture and the 30 s capture after reload were the custodian's
+additions, both only reads of the event node.
+
 ## Analysis
 
-None yet.
+The hypothesis holds for a first load: the rails are up without a supply being
+named, the second target answers, EINT8 delivers rising edges, and contacts are
+reported in separate slots. That supports the rails being the panel's or
+otherwise always on; it does not identify them.
+
+The reload does not work, so the module cannot yet be iterated without a boot,
+which was part of the goal. Probe logs are identical on both loads, so the
+controller answers I2C and its reset completes. T2 reads the dead state to place
+the fault at the pad, the EINT controller, the INT line or the firmware.
 
 ## Conclusion
 
-Not yet run.
+Partly `confirmed` on one boot: real multitouch from a loadable module on the
+first load. Not confirmed: reload.
 
 ## Follow-up
 
