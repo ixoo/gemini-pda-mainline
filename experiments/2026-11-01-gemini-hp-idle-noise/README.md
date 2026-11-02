@@ -188,6 +188,13 @@ The notice stopped printing at 859.58 s (print limit), so its schedule during th
 extrapolated. That is a limit of this test: it does not show that the source was active, only that Wi-Fi
 was associated, which is the condition that had the noise on the earlier boots.
 
+**`0450` in a built image, boot `5895e1f1` (boot2 `d1a882db`, `snd-soc-mt6351.ko` `59282b91…`), run by the
+custodian, headphones in, A72 module and a CPU load running.** A tone played at about 156 s, inside the
+load. The notice started at 425.66 s at 30 s spacing, 6 lines by 603 s. The owner, asked once the notice
+was running, listened for about a minute: quiet. A second tone at 601.69-603.71 s, rc 0, was heard, with
+about a minute of quiet after it. `0x0CF4` read `0000` and `0x2096` read `8c00` after the load, before
+the second tone, and `0x2096` read `4600` before any tone.
+
 ## Analysis
 
 The first-playback trigger repeats: stations 33, 34 and 35 show the same order of events, on two CPU
@@ -215,11 +222,12 @@ experiment does not apply first.
 ## Conclusion
 
 `confirmed` for the named Gemini, Linux 7.1.3 and the module in package `96c93db8`, on one fresh boot:
-with `0450` the idle headphones stay quiet after playback, with no pops reported. It was run by swapping the
-module; `0450` has not booted as part of an image. `0447` is `refuted`.
+with `0450` the idle headphones stay quiet after playback, with no pops reported. That was run by swapping
+the module. A boot of a built image with the same module was also quiet, in two windows of about a minute
+each with the notice visibly running. `0447` is `refuted`.
 
 Not established: how the bit lets the noise in, what the noise's source is, whether stock is noisy after
-playback, and long-term behavior beyond about 5 minutes.
+playback, and behavior over long listens.
 
 ## Follow-up
 
