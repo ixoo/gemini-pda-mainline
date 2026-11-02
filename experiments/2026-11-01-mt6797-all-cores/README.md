@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct. Idle cost, a longer soak and loading at init remain, each its own owner decision |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Capacity, idle cost, a longer soak and loading at init remain, each its own owner decision |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -534,7 +534,7 @@ on the new bus.
 Recovery: as for the bring-up attempts. The module is not in the image, so any reboot
 returns a station without it, once the owner selects boot2.
 
-### Cluster map (owner-approved, one boot and one load, not run)
+### Cluster map (owner-approved, run; see Observations)
 
 The owner approved this on 2026-11-01.
 
@@ -736,6 +736,30 @@ Both phases ended with result 0, and no stop rule fired.
   the first before it. So the module load is not the cause. Whether the profile's boot-time
   changes matter is still open, because no plain-station count is available to compare.
 
+Cluster map, boot `5895e1f1`, image boot2 `d1a882db...`, package `976f9716...`, module
+`1e13d34d...`. The owner was present. One load, no retry. `station-dt.sh` first refused this
+tree, because the map moved a phandle it held as a literal; fixed in `ba2c097a` with
+byte-identical output on the trees it already accepted.
+
+- **Topology:** `cluster_cpus_list` read `0-3` and `4-7` before the load. After `insmod=0` at
+  122.73 s, CPU8 and CPU9 read `8-9`, with the A53 lists unchanged. `package_cpus_list` read
+  `0-9` on all ten.
+- **Scheduler domains not read:** debugfs was already mounted, so the mount returned busy,
+  and `sched/domains` was absent. By source, that directory exists only with
+  `sched/verbose` set. So balancing inside a cluster first is still read from source, not
+  seen.
+- **Single-CPU rate, one at a time, 64 MiB, three runs each:** CPU0 about 2.55 s, CPU4 about
+  1.81 s, CPU8 about 1.93 s. Relative to CPU4: CPU0 0.71, CPU8 0.94.
+- **Load, 300 s:** result 0, all hashes correct, CPU7 164 rounds, CPU8 and CPU9 154. SoC 44.5
+  to 48.4 C. Ping, download and tone succeeded. CPU7 took about 1.83 s a round here and about
+  1.93 s over the 25 min soak; the A72s took about 1.95 s and 1.93 s. Not explained, and the
+  images differ.
+- **After:** `online 0-9`, taint 0, no warning, stall or wrapper error line, restarts 0, one
+  clean first join, so finding 2 stands at 2 of 6 boots. Registers as in the soak, except the
+  moving bits above the A72 mask (`0x1000618c=003D82FF`).
+- **Regression and reboot:** the owner confirmed the keyboard and a tone. Plain `reboot`,
+  Gemian about 32 s later as boot `1b08f05b`.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -781,6 +805,15 @@ and one integer workload says little about others. So today the A72s add two mor
 about A53 speed for this work, and no faster one. A faster A72 needs clock and voltage
 writes, which are outside this work and need their own protocol.
 
+**What the clusters look like to the work (inferred).** CPU0's rate against CPU4's, 0.71, is
+close to 897/1274 = 0.70, the clocks read on earlier runs. That fits two A53 clusters running
+the same way at those clocks, though no clock was read here. All ten CPUs still count as equal
+to the scheduler, so a heavy task on CPU0-3 runs about 30% slower than it could, and the map
+does not change that. The
+[capacity binding](https://docs.kernel.org/devicetree/bindings/cpu/cpu-capacity.html) takes
+direct values when there is no cpufreq, so measured figures of about 727, 1024 and 960 could
+express this. They rest on one integer workload, and would need replacing once cpufreq exists.
+
 The project's [2026-10-03 review](../2026-10-03-project-review/README.md) parked
 this work because it had consumed the most effort for the least usability, and
 because it waited on measurement contracts. The change since then is the
@@ -800,6 +833,6 @@ not run beside it, and the whole system now reports
 
 ## Follow-up
 
-Next, in order, each its own owner decision: the cluster map (approved above); idle power; a longer soak; load at init; then, as
+Next, in order, each its own owner decision: CPU capacity; idle power; a longer soak; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
