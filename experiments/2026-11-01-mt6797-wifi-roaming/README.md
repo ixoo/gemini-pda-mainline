@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B's first roams failed and 0463 addresses that, not yet rerun |
+| Status | `running`: stage A passed on one boot; stage B's roams reach the second access point and authenticate; 0464 addresses the next stops, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,7 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `ac373145`, inventory `b38b95ee…`, `mac` `a7045e3a…`, CONSYS `28b5435c…`, core `425b8add…`.
+Package: to be recorded, from the build carrying 0464.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -203,7 +203,28 @@ Read from these lines:
   the supplicant may also see a disconnect mid-roam.
 - `hw=1 center=2412` is `.config` refusing after the error; the join never tried it, and the log shows no join
   frame on it. The same line after the first-join fault is the same teardown path.
-- The jump in `sequence` from 149 to 156 across one mask command is not explained.
+- The jump in `sequence` from 149 to 156 fits six commands from cfg80211's regulatory restore plus the mask
+  itself: the supplicant reports a change to WORLD and back to US around each disconnect. Inferred.
+
+**Stage B, second try: same boot, `mac` `a7045e3a…` (0463), package `b38b95ee…`, run by the custodian.**
+4 of the 40 roams used so far.
+
+- Roam 1 ran `join without a scan`, got `join grant: channel=161`, sent its authentication frame on
+  channel 161 and got the answer, 280 ms after the disconnect. 20 ms after `associate`, it stopped with
+  `status=-22 branch=3`, no association frame submitted.
+- Roam 2 stopped on `mask-control submission: enable=0 status=-16`, 416 µs after the re-arm, then a restart.
+  Rejoins on channel 40 took about 3 s and 7 s.
+- The supplicant logged no `CTRL-EVENT-DISCONNECTED`, and it did carry on with the roam. So the earlier
+  worry about a disconnect mid-roam did not stop this one.
+
+Causes, from the code:
+- `mt6797_join_tx_descriptor()` keeps its own list of frame types, and 0456 did not add reassociation
+  to it, so the frame was refused as invalid. That is certain from the code.
+- The -16 is less clear. The first try's sequence numbers put the regulatory commands between the re-arm
+  and the mask. In roam 2 the mask has no `failed to insert` line after it, so it probably came from a scan,
+  which 0463's wait did not cover, rather than the scanless join. Not proven.
+[0464](../../patches/proposals/0464-wifi-mt6797-send-a-reassociation-and-wait-for-idle-b.patch) fixes the first and moves the wait to the start
+shared by scans and scanless joins.
 
 Also in the first try's log, and again in this run up to 1776.66 s, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.

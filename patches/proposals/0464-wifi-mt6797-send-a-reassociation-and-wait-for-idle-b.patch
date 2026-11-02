@@ -1,0 +1,116 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 22:28:21 -0500
+Subject: [PATCH] wifi: mt6797: send a reassociation, and wait for idle before
+ any lifetime
+
+A roam now reaches the second access point and authenticates there, then
+stopped at -EINVAL: the transmit descriptor has its own list of frame types,
+and 0456 missed it. Add reassociation there.
+
+The other roam failed on mask-control status=-16, under a millisecond after the
+re-arm. A disconnect's regulatory restore sends six commands around then,
+and the wait in 0463 only covered the scanless join. Move it to the shared
+start of a lifetime, so a scan waits too.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 40 ++++++++++-----------
+ drivers/net/wireless/mediatek/mt6797/mcu.h  |  3 +-
+ 2 files changed, 21 insertions(+), 22 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 520d08e90..8b7fb99dc 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -871,6 +871,19 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		ieee80211_scan_completed(mac->hw, &info);
+ }
+ 
++static int mt6797_mac_await_idle(struct mt6797_mac *mac, u64 end)
++{
++	int ret = 0;
++
++	while (!ret && !mt6797_hif_normal_idle(mac->hif)) {
++		if (ktime_get_ns() >= end)
++			return -ETIMEDOUT;
++		usleep_range(1000, 2000);
++		ret = mt6797_mac_scan_guard(mac, end);
++	}
++	return ret;
++}
++
+ /* Everything a scan or a scanless join needs from the firmware first. Called
+  * with the mutex held.
+  */
+@@ -890,6 +903,11 @@ static int mt6797_mac_lifetime_begin(struct mt6797_mac *mac)
+ 	if (mac->join_lifetimes < U8_MAX)
+ 		mac->join_lifetimes++;
+ 	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
++	/* A disconnect's re-arm and regulatory restore can leave command pages
++	 * out, and a command then returns -EBUSY, which would end this lifetime.
++	 */
++	if (!ret)
++		ret = mt6797_mac_await_idle(mac, ktime_get_ns() + 500 * NSEC_PER_MSEC);
+ 	if (ret) {
+ 		mac->first_error = ret;
+ 		return ret;
+@@ -921,26 +939,12 @@ static int mt6797_mac_lifetime_begin(struct mt6797_mac *mac)
+ 	return 0;
+ }
+ 
+-static int mt6797_mac_await_idle(struct mt6797_mac *mac, u64 end)
+-{
+-	int ret = 0;
+-
+-	while (!ret && !mt6797_hif_normal_idle(mac->hif)) {
+-		if (ktime_get_ns() >= end)
+-			return -ETIMEDOUT;
+-		usleep_range(1000, 2000);
+-		ret = mt6797_mac_scan_guard(mac, end);
+-	}
+-	return ret;
+-}
+-
+ /* A join from an earlier scan's results, as in a roam: open the lifetime a scan
+  * would have left. Called with the mutex held, on a re-armed idle driver.
+  */
+ int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac)
+ {
+ 	unsigned long flags;
+-	u64 end;
+ 	int ret;
+ 
+ 	if (!mac->scan_ready || !mac->started || mac->closing || mac->first_error ||
+@@ -949,13 +953,7 @@ int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac)
+ 		return -EOPNOTSUPP;
+ 	if (!mac->sequence_base)
+ 		mac->sequence_base = mac->sequence;
+-	/* The re-arm can leave the cleanup's last pages unreconciled, and a
+-	 * command then returns -EBUSY, which would end this lifetime.
+-	 */
+-	end = ktime_get_ns() + 500 * NSEC_PER_MSEC;
+-	ret = mt6797_mac_await_idle(mac, end);
+-	if (!ret)
+-		ret = mt6797_mac_lifetime_begin(mac);
++	ret = mt6797_mac_lifetime_begin(mac);
+ 	/* The peer commands start from an idle ledger, as after a scan. */
+ 	if (!ret)
+ 		ret = mt6797_mac_await_idle(mac, ktime_get_ns() + 500 * NSEC_PER_MSEC);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mcu.h b/drivers/net/wireless/mediatek/mt6797/mcu.h
+index 9a3dc803c..0ddc1fbf6 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mcu.h
++++ b/drivers/net/wireless/mediatek/mt6797/mcu.h
+@@ -679,7 +679,8 @@ mt6797_join_tx_descriptor(const unsigned char *frame, size_t bytes,
+ 	if (fc & 0xff0f)
+ 		return false; /* Native unprotected management; no flags/version/type. */
+ 	subtype = (fc >> 4) & 15;
+-	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 12 ? 26 : 0;
++	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 2 ? 34 :
++		  subtype == 12 ? 26 : 0;
+ 	if (!minimum || bytes < minimum || (frame[22] & 15))
+ 		return false;
+ 	sequence = mt6797_join_le16(frame + 22) >> 4;
+-- 
+2.43.0
+

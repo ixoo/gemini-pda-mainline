@@ -1047,3 +1047,4 @@ proposals/0460-wifi-mt6797-take-a-management-frame-s-answer-as-its-.patch
 proposals/0461-wifi-mt6797-admit-a-connected-scan-while-cleanup-is-.patch
 proposals/0462-wifi-mt6797-log-the-connected-scan-s-command-sequenc.patch
 proposals/0463-wifi-mt6797-wait-for-the-ledger-before-a-scanless-jo.patch
+proposals/0464-wifi-mt6797-send-a-reassociation-and-wait-for-idle-b.patch
