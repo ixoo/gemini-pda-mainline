@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 19:34:11 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: describe the GPS LNA control
+
+GPIO 69 is the board's GPS LNA control: the vendor kernel drives it high
+while GNSS is on and low otherwise. Whether an LNA is fitted is not known.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+index 7e4283d76..1d1172d7a 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda.dts
+@@ -146,6 +146,7 @@ consys@10001340 {
+ 		reset-names = "con-mcu";
+ 		mediatek,conn-power-domain = <&conn_power MT6797_POWER_DOMAIN_CONN>;
+ 		mediatek,coex-antenna-mode = <1>;
++		gps-lna-gpios = <&pio 69 GPIO_ACTIVE_HIGH>;
+ 
+ 		wifi {
+ 			compatible = "mediatek,mt6797-wlan";
+-- 
+2.43.0
+

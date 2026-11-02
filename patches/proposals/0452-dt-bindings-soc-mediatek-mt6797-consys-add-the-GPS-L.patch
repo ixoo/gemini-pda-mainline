@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 19:34:11 -0500
+Subject: [PATCH] dt-bindings: soc: mediatek: mt6797-consys: add the GPS LNA
+ control
+
+Boards can have a GPIO that enables a GPS low-noise amplifier while the
+receiver is on. Describe it on the CONSYS node, which owns the receiver.
+---
+ .../bindings/soc/mediatek/mediatek,mt6797-consys.yaml         | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+index 5a4e4f353..fb6a81cf2 100644
+--- a/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
++++ b/Documentation/devicetree/bindings/soc/mediatek/mediatek,mt6797-consys.yaml
+@@ -104,6 +104,10 @@ properties:
+       - compatible
+     additionalProperties: false
+ 
++  gps-lna-gpios:
++    maxItems: 1
++    description: Output driven high while the GNSS receiver is on.
++
+   mediatek,conn-power-domain:
+     $ref: /schemas/types.yaml#/definitions/phandle-array
+     maxItems: 1
+-- 
+2.43.0
+

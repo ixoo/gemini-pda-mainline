@@ -283,7 +283,7 @@ A free host would need: this transport, an image (vendor firmware, whose redistr
 
 ## Mainline transport for the host path
 
-Read from the patches, the kernel source and [step 6](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved). Nothing here has run. The host path needs bytes on STP task 2, GPS function-on and the LNA pin, not GFNS and not an image in the kernel. Userspace keeps the protocol and supplies the DSP image from a file.
+Read from the patches, the kernel source and [step 6](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved). Patches 0451 to 0454 now make the changes this table names, and are compile-checked in the VM only. Nothing here has run on the device, and the Mainline column below describes the state before them. The host path needs bytes on STP task 2, GPS function-on and the LNA pin, not GFNS and not an image in the kernel. Userspace keeps the protocol and supplies the DSP image from a file.
 
 | Need | Stock, step 6 | Mainline now | Gap |
 | --- | --- | --- | --- |
@@ -301,8 +301,9 @@ Read from the patches, the kernel source and [step 6](../../experiments/2026-11-
 - **Frame splitting:** the gnss core splits writes at 1024 bytes, so 1424-byte boot fragments arrive as two STP messages. Stock sends them as one write, and the DSP protocol is a byte stream by its markers, but that the DSP accepts a split is untested. Sending boot fragments unsplit would need a larger buffer or a device outside the gnss core.
 - **Read buffer:** the gnss core's FIFO is 4 KiB and drops on overflow. At about 1.2 kB/s a healthy reader is safe, but a stalled one loses frames.
 - **Failure:** the link stops on a firmware assert, and it costs Wi-Fi until the CONSYS is reloaded, as T2 and T3 showed. A device test needs the USB path.
+- **Interface:** `/dev/gnss0` is for the experiment. Applications should later talk to a userspace daemon, and whether this shape suits upstream is a question for the GNSS maintainer.
 
-**Smallest change:** in `gnss-mt6797`, a mode where open attaches and switches the function on with the LNA pin high, receive passes raw bytes, write sends on task 2, and close reverses that. The GFNS code then has no user on this device. Run the same [minimal host](../../experiments/2026-11-01-gemini-gnss-stock-trace/gnss-minihost.py) against `/dev/gnss0`, without the ioctls. Nothing in the kernel carries firmware or protocol.
+**The change:** `gnss-mt6797` no longer has a GFNS client. Open attaches and switches the function on with the LNA pin high, receive passes raw bytes, write sends on task 2, and close reverses that. The device reports its own type, `MT6797`, because the protocol is neither NMEA nor the existing `MTK` type. Anything that opens the device switches the function on: function-on alone ran for 60 s without a fault in T3, and it does not start the DSP. Run the same [minimal host](../../experiments/2026-11-01-gemini-gnss-stock-trace/gnss-minihost.py) against `/dev/gnss0`, without the ioctls. Nothing in the kernel carries firmware or protocol.
 
 **Test order, each stage needing its own protocol and approval:** first the boot only, then 10 minutes outdoors with the same decoding as step 6.
 

@@ -1,0 +1,539 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 19:25:14 -0500
+Subject: [PATCH] gnss: mt6797: carry the DSP host protocol instead of GFNS
+
+The GFNS start asserts the firmware: its engine needs an MNL.bin image this
+device does not have. Stock uses a different path: libmnl boots a DSP over
+STP task 2 and exchanges a binary protocol with it. A host in userspace has
+reproduced that on the stock kernel, so that is the path to support.
+
+Replace the GFNS client with a carrier for those bytes. Open switches the
+GPS function on with the LNA control high, received bytes go to the device
+unparsed, writes go to task 2, and close reverses this. The DSP image and
+protocol stay in userspace. Nothing here starts the DSP, and function-on
+alone has run on this firmware without a fault.
+
+Log only byte counts, as received frames can hold position.
+---
+ drivers/gnss/Kconfig       |  10 +-
+ drivers/gnss/mt6797-gfns.h | 190 --------------------------------
+ drivers/gnss/mt6797.c      | 216 ++++++-------------------------------
+ 3 files changed, 36 insertions(+), 380 deletions(-)
+ delete mode 100644 drivers/gnss/mt6797-gfns.h
+
+diff --git a/drivers/gnss/Kconfig b/drivers/gnss/Kconfig
+index 24dbc920b..811d99bd2 100644
+--- a/drivers/gnss/Kconfig
++++ b/drivers/gnss/Kconfig
+@@ -30,14 +30,12 @@ config GNSS_MTK_SERIAL
+ 	  If unsure, say N.
+ 
+ config GNSS_MT6797
+-	tristate "MediaTek MT6797 CONSYS GNSS receiver support"
++	tristate "MediaTek MT6797 CONSYS GNSS DSP support"
+ 	depends on MTK_MT6797_CONSYS
+ 	help
+-	  Say Y here for the GNSS receiver inside the MT6797 connectivity
+-	  subsystem, which sends NMEA text over the shared STP link.
+-
+-	  It does not start the receiver by default: the firmware needs an
+-	  MNL.bin image that this device does not have.
++	  Say Y here to carry the host protocol of the GNSS DSP inside the
++	  MT6797 connectivity subsystem over the shared STP link. Userspace
++	  loads the DSP image and computes positions.
+ 
+ 	  To compile this driver as a module, choose M here: the module will
+ 	  be called gnss-mt6797.
+diff --git a/drivers/gnss/mt6797-gfns.h b/drivers/gnss/mt6797-gfns.h
+deleted file mode 100644
+index 2c73ed9bf..000000000
+--- a/drivers/gnss/mt6797-gfns.h
++++ /dev/null
+@@ -1,190 +0,0 @@
+-/* SPDX-License-Identifier: GPL-2.0-only */
+-#ifndef MT6797_GFNS_H
+-#define MT6797_GFNS_H
+-
+-/*
+- * The frames exchanged with the CONSYS GNSS firmware on STP task 2:
+- *
+- *   A5 CH TYPE LEN_HI LEN_LO SUM <LEN bytes> A3
+- *
+- * SUM is the low byte of the sum of CH, TYPE, LEN_HI and LEN_LO. The top three
+- * bits of CH select an output channel; the host sends zero. Pure state: the
+- * caller serializes.
+- */
+-#define GFNS_START		0xa5
+-#define GFNS_END		0xa3
+-#define GFNS_HEADER		6U
+-#define GFNS_MAX_PAYLOAD	2048U
+-#define GFNS_RSP_NMEA		0x0a
+-#define GFNS_RSP_ACK		0x35	/* the firmware's receive counters */
+-#define GFNS_RSP_ACK_RESET	0x36	/* start of the host's 0x7e ACKs */
+-#define GFNS_REQ_MNL_INIT	0x13
+-#define GFNS_REQ_MNL_INIT_CFG	0x14
+-#define GFNS_REQ_START		0x40
+-#define GFNS_REQ_STOP		0x41
+-#define GFNS_REQ_DEL_NV		0x44
+-#define GFNS_REQ_KEEP_ALIVE	0x76
+-#define GFNS_REQ_ACK		0x7e
+-#define GFNS_REQ_UTC		0x83
+-#define GFNS_ACK_BYTES		28U
+-#define GFNS_CFG_BYTES		49U
+-#define GFNS_ACK_EVERY		0x800U
+-#define GFNS_KEEP_ALIVE_EVERY	0x400U
+-#define GFNS_OVERHEAD		(GFNS_HEADER + 1)
+-
+-struct gfns_rx {
+-	unsigned char frame[GFNS_HEADER + GFNS_MAX_PAYLOAD + 1];
+-	unsigned int used, needed, bad, dropped;
+-};
+-
+-struct gfns_frame {
+-	unsigned int channel, type, length;
+-	const unsigned char *payload;
+-};
+-
+-static inline void gfns_rx_init(struct gfns_rx *rx)
+-{
+-	rx->used = 0;
+-	rx->needed = GFNS_HEADER;
+-	rx->bad = 0;
+-	rx->dropped = 0;
+-}
+-
+-/* Drop the frame in progress; its failing byte may start the next one. */
+-static inline void gfns_rx_refuse(struct gfns_rx *rx, unsigned char byte)
+-{
+-	rx->bad++;
+-	rx->dropped += rx->used;
+-	rx->used = byte == GFNS_START;
+-	rx->dropped -= rx->used;
+-	if (rx->used)
+-		rx->frame[0] = byte;
+-	rx->needed = GFNS_HEADER;
+-}
+-
+-/* 1 with a frame that aliases rx until the next byte; otherwise 0. */
+-static inline int gfns_rx_byte(struct gfns_rx *rx, unsigned char byte,
+-			       struct gfns_frame *result)
+-{
+-	const unsigned char *f = rx->frame;
+-	unsigned int length;
+-
+-	if (!rx->used && byte != GFNS_START)
+-		return 0;
+-	rx->frame[rx->used++] = byte;
+-	if (rx->used == GFNS_HEADER) {
+-		length = (f[3] << 8) | f[4];
+-		if (((f[1] + f[2] + f[3] + f[4]) & 0xff) != f[5] ||
+-		    length > GFNS_MAX_PAYLOAD) {
+-			gfns_rx_refuse(rx, byte);
+-			return 0;
+-		}
+-		rx->needed = GFNS_HEADER + length + 1;
+-	}
+-	if (rx->used < rx->needed)
+-		return 0;
+-	if (byte != GFNS_END) {
+-		gfns_rx_refuse(rx, byte);
+-		return 0;
+-	}
+-	result->channel = f[1] >> 5;
+-	result->type = f[2];
+-	result->length = rx->used - GFNS_HEADER - 1;
+-	result->payload = f + GFNS_HEADER;
+-	rx->used = 0;
+-	rx->needed = GFNS_HEADER;
+-	return 1;
+-}
+-
+-/* Frame bytes written, or 0 if they do not fit. */
+-static inline unsigned int gfns_encode(unsigned char *out, unsigned int capacity,
+-				       unsigned int type, const unsigned char *payload,
+-				       unsigned int length)
+-{
+-	unsigned int i;
+-
+-	if (capacity < length + GFNS_OVERHEAD || length > GFNS_MAX_PAYLOAD)
+-		return 0;
+-	out[0] = GFNS_START;
+-	out[1] = 0;
+-	out[2] = type;
+-	out[3] = length >> 8;
+-	out[4] = length & 0xff;
+-	out[5] = (type + out[3] + out[4]) & 0xff;
+-	for (i = 0; i < length; i++)
+-		out[GFNS_HEADER + i] = payload[i];
+-	out[GFNS_HEADER + length] = GFNS_END;
+-	return length + GFNS_OVERHEAD;
+-}
+-
+-static inline void gfns_put32(unsigned char *out, unsigned int value)
+-{
+-	out[0] = value & 0xff;
+-	out[1] = (value >> 8) & 0xff;
+-	out[2] = (value >> 16) & 0xff;
+-	out[3] = value >> 24;
+-}
+-
+-static inline unsigned int gfns_get32(const unsigned char *in)
+-{
+-	return in[0] | (in[1] << 8) | (in[2] << 16) | ((unsigned int)in[3] << 24);
+-}
+-
+-/* The received-bytes counter travels as its low 16 bits, then the rest. */
+-static inline void gfns_ack(unsigned char out[GFNS_ACK_BYTES], unsigned int received,
+-			    unsigned int processed, unsigned int dropped,
+-			    unsigned int packets)
+-{
+-	gfns_put32(out, received & 0xffff);
+-	gfns_put32(out + 4, received >> 16);
+-	gfns_put32(out + 8, processed);
+-	gfns_put32(out + 12, dropped);
+-	gfns_put32(out + 16, 0);
+-	gfns_put32(out + 20, packets);
+-	gfns_put32(out + 24, 0x10);
+-}
+-
+-/*
+- * The initial configuration mnld builds for chip 0x6797 with no mnl.prop and no
+- * clock calibration record: TCXO at 26 MHz, 2000 ppb, a fix per second. The four
+- * calibration words at the end stay zero, as in mnld when that record is absent.
+- */
+-static inline void gfns_cfg(unsigned char out[GFNS_CFG_BYTES])
+-{
+-	unsigned int i;
+-
+-	for (i = 0; i < GFNS_CFG_BYTES; i++)
+-		out[i] = 0;
+-	out[0] = 1;			/* if_type */
+-	out[3] = 2;			/* dgps_mode */
+-	out[5] = 100;			/* pps_duty */
+-	out[8] = 0xff;			/* u1ClockType: TCXO */
+-	out[9] = 2000 & 0xff;		/* hw_Clock_Drift */
+-	out[10] = 2000 >> 8;
+-	gfns_put32(out + 11, 26000000);	/* hw_Clock_Freq */
+-	gfns_put32(out + 15, 115200);	/* if_link_spd */
+-	gfns_put32(out + 19, 1000);	/* fix_interval */
+-	gfns_put32(out + 24, 0x800000f0);	/* chip version value, SNR flag */
+-	gfns_put32(out + 28, 0xffff6797);	/* chip version type */
+-	out[32] = 2;			/* GNSSOPMode */
+-}
+-
+-/* UTC broken down: year since 1900, month from zero; the rest stays zero. */
+-static inline void gfns_utc(unsigned char out[12], unsigned int year, unsigned int month,
+-			    unsigned int day, unsigned int hour, unsigned int minute,
+-			    unsigned int second)
+-{
+-	unsigned int i;
+-
+-	for (i = 0; i < 12; i++)
+-		out[i] = 0;
+-	out[0] = year & 0xff;
+-	out[1] = year >> 8;
+-	out[2] = month;
+-	out[3] = day;
+-	out[4] = hour;
+-	out[5] = minute;
+-	out[6] = second;
+-}
+-
+-#endif
+diff --git a/drivers/gnss/mt6797.c b/drivers/gnss/mt6797.c
+index 468a182af..cc10bfb0c 100644
+--- a/drivers/gnss/mt6797.c
++++ b/drivers/gnss/mt6797.c
+@@ -1,233 +1,75 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * MediaTek MT6797 CONSYS GNSS receiver.
++ * MediaTek MT6797 CONSYS GNSS DSP.
+  *
+- * The receiver is part of CONSYS and runs its position engine on the CONSYS
+- * microcontroller. It sends NMEA text inside GFNS frames on STP task 2.
+- *
+- * Opening the device attaches to the link and stays silent. On this firmware the
+- * GFNS start asserts: it calls into MNL.bin, an image the device does not have, so
+- * the start runs only on request and takes Wi-Fi's firmware down with it.
++ * The DSP is reached through STP task 2 and speaks a binary host protocol. This
++ * driver only carries it: userspace loads the DSP image, feeds the DSP each
++ * second, and computes positions from its measurements. Opening the device
++ * switches the WMT GPS function on, and closing it switches it off.
+  */
+ 
+-#include <linux/delay.h>
++#include <linux/err.h>
+ #include <linux/errno.h>
+ #include <linux/gnss.h>
++#include <linux/gpio/consumer.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
++#include <linux/property.h>
+ #include <linux/soc/mediatek/mt6797-stp.h>
+-#include <linux/spinlock.h>
+-#include <linux/time.h>
+-#include <linux/timekeeping.h>
+-#include <linux/workqueue.h>
+-
+-#include "mt6797-gfns.h"
+-
+-#define MT6797_GNSS_STOP_MS 100
+-
+-static bool start_engine;
+-module_param(start_engine, bool, 0444);
+-MODULE_PARM_DESC(start_engine,
+-		 "Switch on GPS and send the GFNS start; asserts the firmware without MNL.bin");
+ 
+ struct mt6797_gnss {
+ 	struct device *dev;
+ 	struct gnss_device *gdev;
+-	struct gfns_rx rx;
+-	struct work_struct ack_work;
+-	spinlock_t lock;	/* the counters and flags below */
+-	unsigned int received, processed, packets, acked;
+-	bool ack_enabled, ack_now, stopping;
+-	unsigned int types[256];
+-	u8 channels[256];
+-	unsigned int dropped, acks, sent;
+-	/* Only the work uses these. */
+-	unsigned int keep_alive_at, keep_alives;
++	struct gpio_desc *lna;
++	/* Written only by the link's receive callback between attach and detach. */
++	unsigned int received, dropped;
+ };
+ 
+-static int mt6797_gnss_send(struct mt6797_gnss *gnss, unsigned int type,
+-			    const u8 *payload, unsigned int length)
+-{
+-	u8 frame[GFNS_OVERHEAD + GFNS_CFG_BYTES];
+-	unsigned long flags;
+-	unsigned int bytes;
+-	int ret;
+-
+-	bytes = gfns_encode(frame, sizeof(frame), type, payload, length);
+-	if (!bytes)
+-		return -EINVAL;
+-	ret = mt6797_consys_stp_send(MT6797_STP_TASK_GPS, frame, bytes);
+-	if (!ret) {
+-		spin_lock_irqsave(&gnss->lock, flags);
+-		gnss->sent += bytes;
+-		spin_unlock_irqrestore(&gnss->lock, flags);
+-	}
+-	return ret;
+-}
+-
+-static void mt6797_gnss_ack_work(struct work_struct *work)
+-{
+-	struct mt6797_gnss *gnss = container_of(work, struct mt6797_gnss, ack_work);
+-	u8 ack[GFNS_ACK_BYTES], counter[4];
+-	unsigned long flags;
+-	unsigned int sent;
+-
+-	spin_lock_irqsave(&gnss->lock, flags);
+-	gfns_ack(ack, gnss->received, gnss->processed, gnss->rx.dropped, gnss->packets);
+-	gnss->acked = gnss->received;
+-	gnss->ack_now = false;
+-	gnss->acks++;
+-	spin_unlock_irqrestore(&gnss->lock, flags);
+-	if (mt6797_gnss_send(gnss, GFNS_REQ_ACK, ack, sizeof(ack)))
+-		return;
+-	spin_lock_irqsave(&gnss->lock, flags);
+-	sent = gnss->sent;
+-	spin_unlock_irqrestore(&gnss->lock, flags);
+-	if (sent - gnss->keep_alive_at <= GFNS_KEEP_ALIVE_EVERY)
+-		return;
+-	gnss->keep_alive_at = sent;
+-	gfns_put32(counter, sent);
+-	if (!mt6797_gnss_send(gnss, GFNS_REQ_KEEP_ALIVE, counter, sizeof(counter)))
+-		gnss->keep_alives++;
+-}
+-
+ /* Hard interrupt context, serialized by the link lock. */
+ static int mt6797_gnss_receive(void *context, const u8 *payload, unsigned int length)
+ {
+ 	struct mt6797_gnss *gnss = context;
+-	struct gfns_frame frame;
+-	unsigned long flags;
+-	unsigned int i;
+-	bool ack;
+ 
+-	spin_lock_irqsave(&gnss->lock, flags);
+-	for (i = 0; i < length; i++) {
+-		gnss->received++;
+-		if (!gfns_rx_byte(&gnss->rx, payload[i], &frame))
+-			continue;
+-		gnss->processed += frame.length + GFNS_OVERHEAD;
+-		gnss->packets++;
+-		gnss->types[frame.type]++;
+-		gnss->channels[frame.type] |= BIT(frame.channel);
+-		if (frame.type == GFNS_RSP_NMEA && frame.length &&
+-		    gnss_insert_raw(gnss->gdev, frame.payload, frame.length) !=
+-		    frame.length)
+-			gnss->dropped++;
+-		if (frame.type == GFNS_RSP_ACK_RESET) {
+-			gnss->received = 0;
+-			gnss->processed = 0;
+-			gnss->packets = 0;
+-			gnss->rx.dropped = 0;
+-			gnss->acked = 0;
+-			gnss->ack_enabled = true;
+-			gnss->ack_now = true;
+-		}
+-	}
+-	ack = gnss->ack_enabled && !gnss->stopping &&
+-	      (gnss->ack_now || gnss->received - gnss->acked >= GFNS_ACK_EVERY);
+-	spin_unlock_irqrestore(&gnss->lock, flags);
+-	if (ack)
+-		schedule_work(&gnss->ack_work);
++	gnss->received += length;
++	gnss->dropped += length - gnss_insert_raw(gnss->gdev, payload, length);
+ 	return 0;
+ }
+ 
+-static int mt6797_gnss_start(struct mt6797_gnss *gnss)
+-{
+-	static const u8 delete_nothing[4];
+-	u8 cfg[GFNS_CFG_BYTES], utc[12];
+-	struct tm time;
+-	int ret;
+-
+-	gfns_cfg(cfg);
+-	dev_info(gnss->dev, "GFNS start: config %*ph\n", 32, cfg);
+-	ret = mt6797_gnss_send(gnss, GFNS_REQ_MNL_INIT, NULL, 0);
+-	if (!ret)
+-		ret = mt6797_gnss_send(gnss, GFNS_REQ_MNL_INIT_CFG, cfg, sizeof(cfg));
+-	if (!ret)
+-		ret = mt6797_gnss_send(gnss, GFNS_REQ_DEL_NV, delete_nothing,
+-				       sizeof(delete_nothing));
+-	if (ret)
+-		return ret;
+-	time64_to_tm(ktime_get_real_seconds(), 0, &time);
+-	gfns_utc(utc, time.tm_year, time.tm_mon, time.tm_mday, time.tm_hour,
+-		 time.tm_min, time.tm_sec);
+-	ret = mt6797_gnss_send(gnss, GFNS_REQ_UTC, utc, sizeof(utc));
+-	if (!ret)
+-		ret = mt6797_gnss_send(gnss, GFNS_REQ_START, NULL, 0);
+-	dev_info(gnss->dev, "GFNS start: types 13 14 44 83 40 sent=%u result=%d\n",
+-		 gnss->sent, ret);
+-	return ret;
+-}
+-
+ static int mt6797_gnss_open(struct gnss_device *gdev)
+ {
+ 	struct mt6797_gnss *gnss = gnss_get_drvdata(gdev);
+ 	int ret;
+ 
+-	gfns_rx_init(&gnss->rx);
+ 	gnss->received = 0;
+-	gnss->processed = 0;
+-	gnss->packets = 0;
+-	gnss->acked = 0;
+-	gnss->ack_enabled = false;
+-	gnss->ack_now = false;
+-	gnss->stopping = false;
+-	memset(gnss->types, 0, sizeof(gnss->types));
+-	memset(gnss->channels, 0, sizeof(gnss->channels));
+ 	gnss->dropped = 0;
+-	gnss->acks = 0;
+-	gnss->sent = 0;
+-	gnss->keep_alive_at = 0;
+-	gnss->keep_alives = 0;
+ 	ret = mt6797_consys_stp_attach(MT6797_STP_TASK_GPS, mt6797_gnss_receive, gnss);
+ 	if (ret)
+ 		return ret;
+-	if (!start_engine)
+-		return 0;
++	gpiod_set_value_cansleep(gnss->lna, 1);
+ 	ret = mt6797_consys_gps_function(true);
+-	if (ret)
+-		goto detach;
+-	ret = mt6797_gnss_start(gnss);
+ 	if (ret) {
+-		mt6797_consys_gps_function(false);
+-		goto detach;
++		gpiod_set_value_cansleep(gnss->lna, 0);
++		mt6797_consys_stp_detach(MT6797_STP_TASK_GPS);
+ 	}
+-	return 0;
+-detach:
+-	mt6797_consys_stp_detach(MT6797_STP_TASK_GPS);
+ 	return ret;
+ }
+ 
+ static void mt6797_gnss_close(struct gnss_device *gdev)
+ {
+ 	struct mt6797_gnss *gnss = gnss_get_drvdata(gdev);
+-	unsigned long flags;
+-	unsigned int i;
+ 
+-	spin_lock_irqsave(&gnss->lock, flags);
+-	gnss->stopping = true;
+-	spin_unlock_irqrestore(&gnss->lock, flags);
+-	cancel_work_sync(&gnss->ack_work);
+-	if (start_engine) {
+-		mt6797_gnss_send(gnss, GFNS_REQ_STOP, NULL, 0);
+-		msleep(MT6797_GNSS_STOP_MS);
+-		mt6797_consys_gps_function(false);
+-	}
++	gpiod_set_value_cansleep(gnss->lna, 0);
++	mt6797_consys_gps_function(false);
+ 	mt6797_consys_stp_detach(MT6797_STP_TASK_GPS);
+-	for (i = 0; i < ARRAY_SIZE(gnss->types); i++)
+-		if (gnss->types[i])
+-			dev_info(gnss->dev, "GFNS type 0x%02x: %u frames, channels 0x%02x\n",
+-				 i, gnss->types[i], gnss->channels[i]);
+-	dev_info(gnss->dev,
+-		 "closed: received=%u processed=%u frames=%u refused=%u dropped-bytes=%u dropped-text=%u acks=%u keep-alives=%u sent=%u\n",
+-		 gnss->received, gnss->processed, gnss->packets, gnss->rx.bad,
+-		 gnss->rx.dropped, gnss->dropped, gnss->acks, gnss->keep_alives, gnss->sent);
++	dev_info(gnss->dev, "closed: received=%u dropped=%u\n", gnss->received, gnss->dropped);
+ }
+ 
+ static int mt6797_gnss_write_raw(struct gnss_device *gdev, const unsigned char *buf,
+ 				 size_t count)
+ {
+-	return -EOPNOTSUPP;
++	int ret = mt6797_consys_stp_send(MT6797_STP_TASK_GPS, buf, count);
++
++	return ret ? ret : count;
+ }
+ 
+ static const struct gnss_operations mt6797_gnss_ops = {
+@@ -245,15 +87,21 @@ static int mt6797_gnss_probe(struct platform_device *pdev)
+ 	gnss = devm_kzalloc(&pdev->dev, sizeof(*gnss), GFP_KERNEL);
+ 	if (!gnss)
+ 		return -ENOMEM;
++	/* The control is described on the CONSYS node, this device's parent. */
++	gnss->lna = devm_fwnode_gpiod_get(&pdev->dev, dev_fwnode(pdev->dev.parent), "gps-lna",
++					  GPIOD_OUT_LOW, "gps-lna");
++	if (IS_ERR(gnss->lna)) {
++		if (PTR_ERR(gnss->lna) != -ENOENT)
++			return PTR_ERR(gnss->lna);
++		gnss->lna = NULL;
++	}
+ 	gdev = gnss_allocate_device(&pdev->dev);
+ 	if (!gdev)
+ 		return -ENOMEM;
+-	gdev->type = GNSS_TYPE_NMEA;
++	gdev->type = GNSS_TYPE_MT6797;
+ 	gdev->ops = &mt6797_gnss_ops;
+ 	gnss_set_drvdata(gdev, gnss);
+ 	gnss->dev = &pdev->dev;
+-	spin_lock_init(&gnss->lock);
+-	INIT_WORK(&gnss->ack_work, mt6797_gnss_ack_work);
+ 	gnss->gdev = gdev;
+ 	platform_set_drvdata(pdev, gnss);
+ 	ret = gnss_register_device(gdev);
+@@ -279,6 +127,6 @@ static struct platform_driver mt6797_gnss_driver = {
+ };
+ module_platform_driver(mt6797_gnss_driver);
+ 
+-MODULE_DESCRIPTION("MediaTek MT6797 CONSYS GNSS receiver");
++MODULE_DESCRIPTION("MediaTek MT6797 CONSYS GNSS DSP");
+ MODULE_LICENSE("GPL");
+ MODULE_ALIAS("platform:mt6797-gnss");
+-- 
+2.43.0
+

@@ -517,7 +517,9 @@ A later [offline study](../2026-11-01-gemini-gnss-host-engine-study/README.md) g
 go for an open stack on the host path. The persistent STP link (0418-0419) and 0429 stay. The link is available to other STP
 clients, and 0429 helps Wi-Fi recover.
 
+Later, patches 0451 to 0454 removed the GFNS client, and its fixture went with it, after a [minimal host](../2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved) showed the DSP path works on stock.
+
 ## Associated code
 
-- [test-stp-engine.c](test-stp-engine.c), [test-gfns.c](test-gfns.c) and
+- [test-stp-engine.c](test-stp-engine.c) and
   [run-tests.sh](run-tests.sh): `run-tests.sh PREPARED_LINUX_SOURCE`. No hardware.

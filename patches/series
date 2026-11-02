@@ -1034,3 +1034,7 @@ proposals/0445-arm64-dts-mediatek-gemini-clock-the-AUDIO-domain.patch
 proposals/0446-soc-mediatek-stop-the-DVFSP-handoff-holding-up-init.patch
 proposals/0448-arm64-record-the-late-MT6797-A72s-as-vulnerable-at-b.patch
 proposals/0450-ASoC-mt6351-clear-the-headphone-output-STBENH-at-pow.patch
+proposals/0451-gnss-add-a-type-for-the-MT6797-DSP-host-protocol.patch
+proposals/0452-dt-bindings-soc-mediatek-mt6797-consys-add-the-GPS-L.patch
+proposals/0453-arm64-dts-mediatek-gemini-describe-the-GPS-LNA-contr.patch
+proposals/0454-gnss-mt6797-carry-the-DSP-host-protocol-instead-of-G.patch

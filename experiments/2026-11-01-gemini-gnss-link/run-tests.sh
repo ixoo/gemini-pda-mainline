@@ -11,9 +11,7 @@ trap 'rm -rf "$work"' EXIT
 sed -n '/^\/\* Selected Gemian full-mode/,/^\/\* Selected WMT command limit/p' \
     "$src/drivers/soc/mediatek/mt6797-wmt.h" > "$work/mt6797-wmt.h"
 [ -s "$work/mt6797-wmt.h" ]
-cp "$src/drivers/soc/mediatek/mt6797-stp-engine.h" "$src/drivers/gnss/mt6797-gfns.h" "$work/"
-for t in test-stp-engine test-gfns; do
-    cc -std=gnu11 -Wall -Wextra -Werror -fsanitize=address,undefined \
-        -I"$work" "$here/$t.c" -o "$work/$t"
-    "$work/$t"
-done
+cp "$src/drivers/soc/mediatek/mt6797-stp-engine.h" "$work/"
+cc -std=gnu11 -Wall -Wextra -Werror -fsanitize=address,undefined \
+    -I"$work" "$here/test-stp-engine.c" -o "$work/test-stp-engine"
+"$work/test-stp-engine"
