@@ -673,3 +673,5 @@ Hypothesis: on a strong link 0471 keeps the link, with no `txfail`, ramps as bef
 | No `txfail`, ping clean, throughput near the earlier rate control figures | Ask the owner for a weak link: 149 if allowed, or a walk |
 | `txfail` on a strong link | The reading above is wrong or incomplete; read the failures |
 | Throughput far below those figures | The probe limit or the reports cost more than planned; tune or reconsider |
+
+**Result on 5200, boot `6b3acef8`, `mac` 33fdc4ec, one single run of each:** `rate_control=Y`, no `txfail`, no restart and no active scans. 0 of 300 pings lost at -64 to -66, `tx_failed=2`, `tx_probe_failed=0`, and the rate reached MCS7 at 40 MHz. Receive was 49.1 Mbit/s and transmit 23.6, or 22.2 at the laptop's end. The earlier figures may have used another method, so these are comparable only roughly: transmit is close to the earlier rate control figures, and receive is above them, which this run doesn't explain. So the first row holds, and 0471 stays loaded. The weak-link claim is still untested.
