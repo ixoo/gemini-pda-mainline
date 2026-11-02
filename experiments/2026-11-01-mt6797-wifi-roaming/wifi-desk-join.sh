@@ -7,7 +7,9 @@
 # ht20 holds the link to 20 MHz, with /run/station/ht/wpa_supplicant, built with
 # HT overrides, in place of the original supplicant. PEER=<address> in the remote
 # command pings that host on this LAN instead of the gateway, once on the normal
-# link first, so its own ICMP counters show whether the frames reached it.
+# link first, so its own ICMP counters show whether the frames reached it. Its
+# neighbour entry is held static for the test: losing carrier flushes the others,
+# and without replies the pings would wait on an address and never be sent.
 # Needs a current /run/station/roam-bss from wifi-roam.sh map. Prints frequency,
 # signal and counters only; the private logs stay in /mnt/data/station/desk-*.
 export PATH=/bin LD_LIBRARY_PATH=/lib
@@ -21,7 +23,7 @@ if [ "$MODE" = ht20 ]; then
 	EXTRA=disable_ht40=1
 	[ -x "$SUPPLICANT" ] || { echo "no $SUPPLICANT"; exit 1; }
 fi
-MARK="wifi-desk-join: start $F $MODE"
+MARK="wifi-desk-join: start $F $MODE at $(cut -d' ' -f1 /proc/uptime)"
 field() { $WPA status | sed -n "s/^$1=//p"; }
 gateway() { ip route | awk '/^default/ { print $3; exit }'; }
 stop_supplicant() {
@@ -60,6 +62,13 @@ awk -v b="${line%% *}" -v f="$F" -v x="$EXTRA" '
 
 T=${PEER:-$(gateway)}
 ping -c 3 -W 2 "$T" | grep 'packets transmitted'
+if [ -n "${PEER:-}" ]; then
+	hw=$(awk -v t="$T" '$1 == t { print $4 }' /proc/net/arp)
+	if [ -z "$hw" ] || ! arp -i wlan0 -s "$T" "$hw"; then
+		echo "no static entry"
+		exit 1
+	fi
+fi
 echo "$MARK" > /dev/kmsg
 cat /dev/kmsg > "$D/kmsg.txt" &
 KMSG=$!
@@ -70,12 +79,13 @@ wait_completed
 if [ "$(field wpa_state)" = COMPLETED ]; then
 	ping -c 300 -i 0.2 "$T" > "$D/ping.txt" 2>&1
 	grep 'packets transmitted' "$D/ping.txt"
-	echo "after ping state=$(field wpa_state) freq=$(field freq)"
+	echo "after ping state=$(field wpa_state) freq=$(field freq) peer_flags=$(awk -v t="$T" '$1 == t { print $3 }' /proc/net/arp)"
 	$WPA signal_poll | grep -E '^(AVG_RSSI|LINKSPEED|WIDTH)='
 fi
 
 stop_supplicant
 rm -f "$C"
+[ -z "${PEER:-}" ] || arp -i wlan0 -d "$T"
 wpa_supplicant -Dnl80211 -iwlan0 -c /run/station/wpa.conf > /run/station/wpa.log 2>&1 &
 wait_completed
 sleep 5
@@ -83,7 +93,7 @@ kill "$KMSG"
 echo "disconnect_reasons=$(sed -n 's/.*CTRL-EVENT-DISCONNECTED.* reason=\([0-9]*\).*/\1/p' "$D/wpa.log" | tr '\n' ' ')"
 sed -n "/$MARK/,\$p" "$D/kmsg.txt" > "$D/test.txt"
 echo "active_scans=$(grep -cE 'probing=[1-9]' "$D/test.txt") restarts=$(grep -c 'WLAN restart: begin' "$D/test.txt") stopped=$(grep -c 'join stopped' "$D/test.txt")"
-grep -E 'join grant|data qos:' "$D/test.txt" | sed 's/.*one-shot WLAN //'
+grep -E 'join grant|data qos:|data phase end' "$D/test.txt" | sed 's/.*one-shot WLAN //'
 echo "inet=$(ip -4 addr show wlan0 | grep -c inet) state=$(field wpa_state) freq=$(field freq)"
 ping -c 3 -W 2 "$(gateway)" | grep 'packets transmitted'
 sync

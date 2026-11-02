@@ -620,3 +620,7 @@ Next, the same join with `PEER` set to the laptop's address on this LAN, reading
 | About 300 | About 0 | Uplink works; the replies don't reach the device. Back to the receive path |
 | About 300 | About 300 | The fault is on the path to the gateway; the device and access point work |
 | About 0 | About 0 | The frames are acknowledged but not forwarded, for example not decrypted by that access point. Read the key installation and transmit descriptor |
+
+**That run, `PEER` at 40 MHz:** the laptop's echo count rose by 3, the control pings, and 0 of 300 came back. This does not show that the access point fails to forward. The driver queued only 57 frames in 70.8 s, against 331 to the gateway, as the custodian noticed. Losing carrier flushes the neighbour table (`net/ipv4/arp.c`), so the pings waited on an address, and those frames are most likely ARP requests at about 1 a second. No capture confirms that. So my "about 3" row can't be read from this run. It does add something: if those were ARP requests, no unicast reply reached the device in 60 s, with `rx_qos=0`. The gateway's address probably resolved from its own broadcast request, though that isn't observed either. The script's mark also matched the previous run, so its counts spanned both, all zero.
+
+The script now holds the peer's entry static for the test, which the flush leaves alone, reports it after the ping, removes it afterwards and prints `data phase end`, so the rerun can show the frames were sent. The table above applies only if `tx_queued` is about 300 or more and `peer_flags` is `0x6`.
