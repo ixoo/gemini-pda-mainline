@@ -98,8 +98,7 @@ On mainline the controller's firmware block reports firmware `0x05`/`0xfa`,
 1. Does the Gemini controller also answer the upstream `0x78`/`0x00` interface
    at the client address? Its firmware block is at `0x78` on the second target.
 2. Which rails power the controller? It works on mainline with none named.
-3. Why does a second driver load get no interrupts?
-4. When, if ever, did a vendor stack flash this controller? The 2026-07-14
+3. When, if ever, did a vendor stack flash this controller? The 2026-07-14
    Gemian boot only verified the checksum and did not write flash.
 
 ## 6. Evidence index

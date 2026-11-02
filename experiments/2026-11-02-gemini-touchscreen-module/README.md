@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-touchscreen-module` |
-| Status | `running`: T1 showed real multitouch from the module on its first load, and no interrupts after `rmmod` and `insmod`; that reload failure is under test |
+| Status | `completed`: T1 showed real multitouch from the module on one boot, on its first load and again after `rmmod` and `insmod` |
 | Subsystem | Novatek NT36772 touch controller, I2C4, EINT8, input multitouch |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -147,7 +147,8 @@ novatek-nt36xxx 1-0062: firmware 0x05, project 0x0101, 1080x2160
 | One finger, 60 s | 717 interrupts, 10 contacts, most at once 1 |
 | Several fingers, 60 s | 1511 interrupts, 23 contacts, most at once 3, in slots 0, 1 and 2 |
 | `rmmod`, `insmod` | Both 0, the same probe log |
-| After the reload, 15 s, then 30 s more | 0 interrupts and 0 events; whether the owner touched is being confirmed |
+| After the reload, 15 s, then 30 s more | 0 interrupts and 0 events. Owner: "Didn't touch", so these show nothing |
+| After the reload, touching, 60 s | 768 interrupts, 15 contacts, most at once 2, in slots 0 and 1 |
 
 `pin_config_group_set op failed for group 85` appears on both loads, including
 the one that worked. It is the `bias-disable` of the pad state; the pad setup that
@@ -160,11 +161,17 @@ along the top. That suggests the vendor's transform suits the landscape console,
 but no one compared a touch with a mark on the screen. The corners did not reach
 the range's ends, so edge accuracy is unmeasured.
 
-Not shown: reload, a fourth or later contact, positions checked on screen, suspend
+Not shown: a fourth or later contact, positions checked on screen, suspend
 or a panel power cycle.
 
-The second capture and the 30 s capture after reload were the custodian's
-additions, both only reads of the event node.
+The second capture and the 30 s and 60 s captures after reload were the
+custodian's additions, all only reads of the event node. The two empty captures
+were first reported as a reload fault, and T2, a read-only look at that state, was
+drafted for it. The owner's answer showed there was no fault, so T2 did not run.
+
+`lid-guard` logged `console blanked` and `unblanked` pairs during these captures.
+The touchscreen's only input handler is `event3`, not `kbd`, so it does not go
+through the keyboard path that unblanks the console. The cause was not read.
 
 ## Analysis
 
@@ -173,15 +180,13 @@ named, the second target answers, EINT8 delivers rising edges, and contacts are
 reported in separate slots. That supports the rails being the panel's or
 otherwise always on; it does not identify them.
 
-The reload does not work, so the module cannot yet be iterated without a boot,
-which was part of the goal. Probe logs are identical on both loads, so the
-controller answers I2C and its reset completes. T2 reads the dead state to place
-the fault at the pad, the EINT controller, the INT line or the firmware.
+The reload works: the same probe log, and two contacts in separate slots. So the
+module can be iterated without a boot, on the one reload tried.
 
 ## Conclusion
 
-Partly `confirmed` on one boot: real multitouch from a loadable module on the
-first load. Not confirmed: reload.
+`confirmed` on one boot: real multitouch from a loadable module, on the first load
+and after one `rmmod` and `insmod`.
 
 ## Follow-up
 
