@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B's roams reach the second access point and authenticate; 0464 addresses the next stops, not yet rerun |
+| Status | `running`: stage A passed on one boot; stage B's roams reassociate on the second access point but the handshake fails; 0465 addresses that, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,8 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `fcc46402`, inventory `c0ce36aa…`, `mac` `431e5560…`, CONSYS `28b5435c…`, core `2542c418…`. The core changed too, since the descriptor fix
-lives in it, so this needs a full module reload rather than a `mac` swap.
+Package: to be recorded, from the build carrying 0465.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -215,8 +214,8 @@ Read from these lines:
   `status=-22 branch=3`, no association frame submitted.
 - Roam 2 stopped on `mask-control submission: enable=0 status=-16`, 416 µs after the re-arm, then a restart.
   Rejoins on channel 40 took about 3 s and 7 s.
-- The supplicant logged no `CTRL-EVENT-DISCONNECTED`, and it did carry on with the roam. So the earlier
-  worry about a disconnect mid-roam did not stop this one.
+- The supplicant logged no `CTRL-EVENT-DISCONNECTED`, and it did carry on with the roam. The third try
+  shows the disconnect did matter.
 
 Causes, from the code:
 - `mt6797_join_tx_descriptor()` keeps its own list of frame types, and 0456 did not add reassociation
@@ -226,6 +225,27 @@ Causes, from the code:
   which 0463's wait did not cover, rather than the scanless join. Not proven.
 [0464](../../patches/proposals/0464-wifi-mt6797-send-a-reassociation-and-wait-for-idle-b.patch) fixes the first and moves the wait to the start
 shared by scans and scanless joins.
+
+**Stage B, third try: same boot, core `2542c418…`, `mac` `431e5560…` (0464), package `c0ce36aa…`, run by
+the custodian.** 6 of the 40 roams used. Both roams reassociated on channel 161 with no firmware restart,
+and neither held:
+
+- `join without a scan`, grant on channel 161, authentication, then `join TX status: pid=2 fc=0x0020
+  status=0`, `join RX: subtype=3 status=0`, about 320 ms after the disconnect. Reassociation works, on one
+  access point and one boot.
+- The access point's first handshake message arrived and reached the supplicant, four times about 1 s
+  apart. The supplicant logged `WPA: No SSID info found (msg 1 of 4)` each time and did not answer. The access
+  point deauthenticated with reason 15 about 4 s later.
+- The supplicant then rejoined channel 40 by itself, with no restart. Gateway 3/3, not tainted. No -16.
+
+Reading of the cause, from the log and the code, not traced on the device: the link goes down within about
+35 ms of the roam request, with no mac80211 `disconnect from AP` line, and the driver reports a
+connection loss. The supplicant closes the port when it starts a roam, which reaches the driver as
+`AUTHORIZED` to `ASSOC`, and the driver took any downward step as the end of the link. The loss then
+cleared the supplicant's network. [0465](../../patches/proposals/0465-wifi-mt6797-keep-the-link-when-the-supplicant-closes.patch) only stops the data on that step.
+
+Refused `rxd-byte4` frames with `fc=0x6208` also appear in this window; they look like protected data
+arriving with no key installed, not investigated.
 
 Also in the first try's log, and again in this run up to 1776.66 s, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.

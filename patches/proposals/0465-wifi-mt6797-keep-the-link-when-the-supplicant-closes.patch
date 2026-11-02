@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 22:43:17 -0500
+Subject: [PATCH] wifi: mt6797: keep the link when the supplicant closes the
+ port
+
+Roams now reassociate on the second access point, but the supplicant drops
+the handshake's first message with "No SSID info found" and the access
+point gives up after four tries. The supplicant had lost its network.
+
+Reading the log and code: it closes the port as it starts a roam, which
+reaches the driver as AUTHORIZED to ASSOC. The driver took any downward step
+as the end of the link and reported a connection loss, so the supplicant
+saw a disconnect mid-roam.
+
+Only stop the data on that step. mac80211's own disconnect for the new
+authentication then takes the link down as for any driver.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 8b7fb99dc..38f8a8875 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1733,6 +1733,25 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				enum ieee80211_sta_state old,
+ 				enum ieee80211_sta_state new)
+ {
++	/* The supplicant closes the port as it starts a roam, while the link stays
++	 * up. Ending the link here reports a connection loss, and the supplicant
++	 * then forgets its network with the roam under way. Only stop the data.
++	 */
++	if (old == IEEE80211_STA_AUTHORIZED && new == IEEE80211_STA_ASSOC) {
++		struct mt6797_mac *mac = hw->priv;
++		unsigned long flags;
++
++		mutex_lock(&mac->mutex);
++		if (vif == mac->vif) {
++			mac->ccmp_rx.authorized = false;
++			mac->ccmp_gtk_rx.authorized = false;
++			spin_lock_irqsave(&mac->join_queue.lock, flags);
++			mac->ccmp_tx_ready = false;
++			spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++		}
++		mutex_unlock(&mac->mutex);
++		return 0;
++	}
+ 	/* mac80211 station teardown must not fail; no peer command is
+ 	 * admitted by this incomplete upward-transition implementation.
+ 	 */
+-- 
+2.43.0
+
