@@ -467,18 +467,21 @@ Image.gz `0bb6ad36...`. Against `db7b42af...`: 0448 in the Image, and another se
 
 ### Soak (owner-approved, one boot and one load, not run)
 
-The owner approved this on 2026-11-01 with the limits below. It repeats the bring-up writes
-on a new boot and changes no voltage selector or clock. One boot, one module load, no retry.
+The owner approved this on 2026-11-01 with the limits below, then asked for 30 min rather
+than 4 h. It repeats the bring-up writes on a new boot and changes no voltage selector or
+clock. One boot, one module load, no retry.
 
 Candidate: the same package `932520bc...`, Image.gz `0bb6ad36...`, DTB `91ca8aae...`,
 module `1e13d34d...`, so a result compares directly with attempt 2. No new build. Newer
 audio and GNSS patches stay out on purpose. If boot2 no longer holds this image, reinstall
 it under the standing boot2 approval.
 
-Hypothesis: both A72s stay online and compute correctly for hours, with Wi-Fi, audio and
-PMIC traffic running. Three observations attempt 2 could not give:
+Hypothesis: both A72s stay online and compute correctly for 30 min, with Wi-Fi, audio and
+PMIC traffic running. This does not answer whether they last for hours, which still needs a
+longer run before loading at init. Three observations attempt 2 could not give:
 
-- **Duration:** 2 hours of load and 2 hours of idle, against 2 minutes and 20 minutes.
+- **Duration:** 25 min of load, against 2 min, then 5 min of idle. Most of the time goes to
+  load, because attempt 2 already had about 20 min online after its load.
 - **Correct results:** attempt 2 discarded its hashes, so a wrong answer would not have
   shown. BUCKB's voltage on the pin has never been measured, so silent errors are the
   failure to look for. Each round now compares against one reference hash.
@@ -491,17 +494,16 @@ and a tone. Logic checked in the dev VM with substituted CPU and sysfs paths: no
 temperature stop and hash mismatch all behaved. Not run on the device's busybox, and the
 fault-line stop was not exercised, because the VM denies `dmesg`.
 
-Before the load: the owner is present for the module load and the first 30 min, can force
-power off, and stays reachable after that; USB power is stable; Wi-Fi is associated; a
+Before the load: the owner is present throughout and can force power off; USB power is stable; Wi-Fi is associated; a
 `dmesg -w` from a second USB SSH session logs to the host; `tail -f /tmp/soak-load.log`
 logs to the host; the module hash is verified on the device.
 
 ```sh
 insmod /tmp/mt6797-a72.ko; echo "insmod=$?"; cat /sys/devices/system/cpu/online
 export PING_TARGET=<gateway> WGET_URL=<finite file on a LAN host> TONE_CMD=<usual tone command>
-/tmp/soak.sh load 7200; echo "load=$?"
+/tmp/soak.sh load 1500; echo "load=$?"
 # Only if load=0
-/tmp/soak.sh idle 7200; echo "idle=$?"
+/tmp/soak.sh idle 300; echo "idle=$?"
 ```
 
 Run `load` and `idle` so that they outlive the SSH session. Afterwards: repeat the
@@ -517,7 +519,7 @@ on the new bus.
 
 | Result | Meaning | Next |
 | --- | --- | --- |
-| Both phases finish, regression and reboot pass | Stable over this window on one boot | Measure idle cost |
+| Both phases finish, regression and reboot pass | Stable for 30 min on one boot | Measure idle cost; a longer run comes before loading at init |
 | Mismatch on an A72, none on CPU7 | Silent errors on the A72s at firmware's voltage and clock | Stop. Do not load at init. Explain before any repeat |
 | Mismatch on CPU7 too | Memory or the file, not specific to the A72s | Keep logs, look at memory first, no repeat until explained |
 | 75 C reached | Load needs cooling the station does not have for these CPUs | Record the curve. Cooling comes before loading at init |
@@ -707,6 +709,6 @@ idle cost stay open, GNSS has not run beside it, and the whole system now report
 
 ## Follow-up
 
-Next, in order, each its own owner decision: soak (approved above); idle power; load at init; then, as
+Next, in order, each its own owner decision: 30 min soak (approved above); idle power; a longer soak; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
