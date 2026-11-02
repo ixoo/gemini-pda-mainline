@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-touchscreen-module` |
-| Status | `planned`: patches and config written; no device test has run |
+| Status | `planned`: package built and test requested; no device test has run |
 | Subsystem | Novatek NT36772 touch controller, I2C4, EINT8, input multitouch |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -122,7 +122,12 @@ The request sent to the custodian holds the exact package, hashes and commands.
 
 ## Observations
 
-None yet.
+Package, not yet run: commit `99a93617`, profile `mt6797-a53-station-a72`, modules
+built, Buildbox-2, `SHA256SUMS` `529ff1d4`, `Image.gz` `090cf797`, station-a72 DTB
+`d65c3251`, `novatek-nt36xxx.ko` `34328321`. Its DTB carries the node at `0x62` with
+EINT8 rising. Its patches and configs differ from boot2's `114d21cc` only by 0474,
+0475 and the config line. The module compiled with no warnings at `W=1`; the DT
+schemas and `dtbs_check` were not run. Request sent to the custodian.
 
 ## Analysis
 
