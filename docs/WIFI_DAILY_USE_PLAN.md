@@ -17,8 +17,9 @@ Status: plan, updated 2026-11-01.
   planned, not yet run.
 - [Roaming](../experiments/2026-11-01-mt6797-wifi-roaming/README.md) on request works on one boot:
   21 clean at the driver between channels 40 and 161. Under a download one TCP connection stalled in 12
-  roams, not explained. On one walk it roamed by itself both ways with no restart, but one access point
-  refuses the handshake and links at about -78 dBm passed no received data.
+  roams, not explained. The owner closed this as a success for now after three walks. Weak links now carry
+  data, down to MCS0 (0471), with gaps up to about 27 s and little actual roaming on the third walk. One access
+  point refuses the handshake, channel 149 is not settled, and 0473 was never run.
 - Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and
@@ -59,7 +60,7 @@ What keeps it from being anyone's Wi-Fi:
 | Network choice | `wifi-up.sh` joins by name, from a private file sent over SSH, with an optional BSSID or frequency pin. No NetworkManager test yet |
 | Scan | Passive on all channels of both bands, about 5 s. Wildcard active scan has run once; a named SSID has not |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |
-| Roaming | Scan while associated (0430, 0461) ran 171 times on one boot, link kept. `wpa_cli roam` works on one boot, 21 clean at the driver, one TCP stall under a download (0456-0457, 0463-0469). Signal threshold events work at the desk, from data frames (0458, 0470). One walk: roams by itself both ways, no restart. Open: one access point refuses the handshake; no received data at about -78 dBm |
+| Roaming | Scan while associated (0430, 0461) ran 171 times on one boot, link kept. `wpa_cli roam` works on one boot, 21 clean at the driver, one TCP stall under a download (0456-0457, 0463-0469). Signal threshold events work at the desk, from data frames (0458, 0470). Three walks on one boot: moved by itself both ways on the first, weak links carry data with rate control (0471) on the third, gaps up to about 27 s. Closed as a success for now by the owner. Open: one access point refuses the handshake; channel 149 not settled; 0473 not run; no network manager tried |
 | Regulatory | An update that really changes the domain during a lifetime, such as an access point advertising another country than the one set, ends the lifetime until a module reload |
 | Battery | Receive is polled, since the HIF interrupt line never asserted. No 802.11 power save, and no system suspend on this kernel |
 

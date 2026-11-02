@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; roams by itself both ways on one walk, no restarts; one access point refuses the handshake, and weak links pass no received data |
+| Status | `completed`: closed by the owner as a success for now, with limits, on boot `6b3acef8`. `wpa_cli roam` works on one boot; on three walks the device moved by itself on some, weak links carry data with rate control (0471), gaps up to about 27 s, little actual roaming on the third walk. Channel 48's handshake and channel 149 are not understood; 0473 was never run |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -746,3 +746,26 @@ Hypothesis: with three access points to choose from, the device stays on a usabl
 - **Authentication failed three times in 4 s** with `status=3 count=30`, once on 5200 at -92 and twice on 161, which later worked. The 161 failures are not explained.
 
 So 48 is what is left for this area, and it needs a capture near that access point.
+
+## Closure
+
+The owner closed this work, as relayed by the custodian on 2026-11-02: "I think we can consider this roaming as success for now". No more walks or radio tests unless the owner asks. Both walk budgets are closed, and 149's reopening was for the third walk only.
+
+**Limits, as observed:**
+
+- Gaps up to about 27 s, and little actual roaming on the third walk, which stayed on 161 almost throughout.
+- Channel 48 refuses the handshake, cause unknown, and it probably serves part of the owner's route. Channel 149 got one short phase with rate control, with most frames failing, so it is not settled.
+- The owner's route is not on record, so how far each walk got is inferred from the signal.
+- One TCP stall in `wpa_cli roam` under a download, the three authentication failures on the third walk and the `-95` stop are unexplained.
+- No network manager has been tried, only `wpa_supplicant`, with a rebuilt `bgscan` binary that the station's image does not include.
+- Single boot, single network.
+
+**What is in the tree and what was run:**
+
+| Patch | State |
+| --- | --- |
+| 0471, rate control by default | Run on `mac` 33fdc4ec and 8fb6a607 |
+| 0472, repeated answers | Loaded on the third walk as `mac` 8fb6a607. Whether a repeat arrived isn't logged, so not shown |
+| 0473, failures must last 3 s | In the series and built at `392ee722`, `mac` dae8a031, inventory `1bc7576b`. Never loaded or run |
+
+The device stays on `mac` 8fb6a607 with `rate_control=Y` until this boot ends. These fixes reach a later boot only through a new boot2 image, which is the owner's choice, and that image would bring 0473 with it untested unless it is removed first.
