@@ -67,7 +67,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `bd30be80`, inventory `67836f17…`, `mac` `bb830c28…`, CONSYS `28b5435c…`, core
+Package: Buildbox at `234bf3ec`, inventory `4e074191…`, `mac` `584cbe76…`, CONSYS `28b5435c…`, core
 `425b8add…`, `Image.gz` `e9bad6fb…`.
 
 USB connected. Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam,
@@ -124,6 +124,9 @@ the driver's state when it refuses.
 | Scans run on a freshly loaded `mac` | The refusal was state on that boot; find its holder if it returns |
 | `scan busy` line printed | Its flags name the driver's condition |
 | `-EBUSY` with no `scan busy` line | The stack above holds a scan; read `wpa.log` for who asked |
+
+Retest package, with 0459 and 0460: the same as stage B's. Its CONSYS and core hashes match the boot's,
+so only `mac` needs swapping. A swap is not a first join after boot, so it does not test 0460's fault.
 
 Reads on the same boot at 704 s, by the custodian: the newest scan results date from about 59 s, one
 `wpa_supplicant`, one `udhcpc`, and one `CTRL-EVENT-SCAN-FAILED ret=-16` in its log, which has no
