@@ -518,6 +518,7 @@ proposals/0013-pmdomain-mediatek-expose-retained-child-domain-fault.patch
 proposals/0014-pmdomain-mediatek-select-mt6797-conn-spm-preamble.patch
 proposals/0015-pmdomain-mediatek-clear-mt6797-conn-primary-first.patch
 proposals/0016-pmdomain-mediatek-report-confirmed-opted-domain-off.patch
+upstream-4d7d9486/clock-ids/0001-clk-mediatek-size-MT6797-providers-for-one-based-IDs.patch
 proposals/0034-pmdomain-mediatek-report-confirmed-opted-domain-on.patch
 proposals/0051-workqueue-name-null-pool-after-WLAN-START.patch
 proposals/0261-arm64-dts-mediatek-add-the-Gemini-PDA-Wi-Fi-service-tree.patch
@@ -648,3 +649,4 @@ proposals/0478-arm64-dts-mediatek-gemini-enable-the-Mali-T880-on-th.patch
 proposals/0479-arm64-dts-mediatek-gemini-station-drop-the-touchscre.patch
 proposals/0480-clk-mediatek-register-the-MT6797-MFG-gate-in-a-table.patch
 proposals/0481-drm-panfrost-forbid-runtime-suspend-on-MT6797-instea.patch
+proposals/0482-clk-mediatek-size-the-MT6797-CAM-and-MJC-clock-table.patch

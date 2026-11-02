@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 16:50:19 -0500
+Subject: [PATCH] clk: mediatek: size the MT6797 CAM and MJC clock tables for
+ their IDs
+
+The CAM and MJC bindings number their clocks from 1, but
+mtk_clk_simple_probe() allocates one table slot per clock. The highest ID in
+each provider, CLK_CAM_LARB2 and CLK_MJC_LARB4_ASIF, indexes past the table
+during registration and removal, and the provider rejects it on lookup. MFG
+failed this way on its first load.
+
+Set the provider slot count from the existing binding limits, as IMG, MM,
+VDEC and VENC already do.
+---
+ drivers/clk/mediatek/clk-mt6797-cam.c | 1 +
+ drivers/clk/mediatek/clk-mt6797-mjc.c | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-cam.c b/drivers/clk/mediatek/clk-mt6797-cam.c
+index e158379e5..f0c927620 100644
+--- a/drivers/clk/mediatek/clk-mt6797-cam.c
++++ b/drivers/clk/mediatek/clk-mt6797-cam.c
+@@ -29,6 +29,7 @@ static const struct mtk_gate cam_clks[] = {
+ };
+ 
+ static const struct mtk_clk_desc cam_desc = {
++	.num_clk_ids = CLK_CAM_NR,
+ 	.clks = cam_clks,
+ 	.num_clks = ARRAY_SIZE(cam_clks),
+ };
+diff --git a/drivers/clk/mediatek/clk-mt6797-mjc.c b/drivers/clk/mediatek/clk-mt6797-mjc.c
+index 830d5a34f..23bae47ca 100644
+--- a/drivers/clk/mediatek/clk-mt6797-mjc.c
++++ b/drivers/clk/mediatek/clk-mt6797-mjc.c
+@@ -28,6 +28,7 @@ static const struct mtk_gate mjc_clks[] = {
+ };
+ 
+ static const struct mtk_clk_desc mjc_desc = {
++	.num_clk_ids = CLK_MJC_NR,
+ 	.clks = mjc_clks,
+ 	.num_clks = ARRAY_SIZE(mjc_clks),
+ };
+-- 
+2.43.0
+
