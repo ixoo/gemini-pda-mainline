@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 2 Nov 2026 13:43:59 -0500
+Subject: [PATCH] wifi: mt6797: ignore a repeated answer to authentication or
+ association
+
+On a weak link an authentication took 11 attempts, and its answer was followed
+at once by a stop with -EPROTO, then a firmware restart, twice in a row. The
+driver treats a second answer as a protocol fault. An access point repeats its
+answer when it misses our acknowledgement, so ignore one the driver isn't
+waiting for, whether repeated or late.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index ee7bdc3..6a8217e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2805,10 +2805,12 @@ submitted:
+ 				continue;
+ 			body = mac->join_packet + frame.offset;
+ 			if (frame.subtype == 11) {
+-				if (!(mac->join_submitted & BIT(11)) || mac->join_auth_received) {
+-					ret = -EPROTO;
+-					goto failed;
+-				}
++				/* On a weak link an access point repeats its answer when it
++				 * misses our acknowledgement, so one we don't wait for is the
++				 * air's, not a fault.
++				 */
++				if (!(mac->join_submitted & BIT(11)) || mac->join_auth_received)
++					continue;
+ 				mac->join_auth_received = true;
+ 				mac->join_auth_ok = !get_unaligned_le16(body + 28);
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+@@ -2816,10 +2818,8 @@ submitted:
+ 					 get_unaligned_le16(body + 28));
+ 			} else if (frame.subtype == 1 || frame.subtype == 3) {
+ 				if (!(mac->join_submitted & BIT(frame.subtype - 1)) ||
+-				    mac->join_assoc_received) {
+-					ret = -EPROTO;
+-					goto failed;
+-				}
++				    mac->join_assoc_received)
++					continue;
+ 				mac->join_assoc_received = true;
+ 				mac->join_short_preamble = !!(get_unaligned_le16(body + 24) & BIT(5));
+ 				/* 5 GHz always uses short slot time. */
+-- 
+2.54.0 (Apple Git-157)
+

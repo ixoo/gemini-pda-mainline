@@ -694,3 +694,22 @@ Hypothesis: weak phases now carry data. Where the first walk had `rx_qos=0` at a
 | `rx_qos=0` again at low rate | Not only the rate; read the phase and reconsider a capture |
 | Low rate is reached, but the link is too slow to use | The threshold should move earlier; tune `bgscan` |
 | Stays on one access point throughout | Not a test of roaming; read the threshold events |
+
+### Second walk, result
+
+It ended itself after about 69 s (`end=stopped roams=3 scans=1 restarts=1 stopped=2`), about 40 s after the owner set off, so it did not cover the route. The limits worked and stayed within the budget. Afterwards the normal link stayed down until the custodian's full module reload.
+
+| Time | Link | Average | Rate | Result |
+| --- | --- | --- | --- | --- |
+| to about 35 s | 5805 | -55 to -60 | MCS7, 40 MHz | 177299 frames received |
+| about 35-45 s | 5200 | -76 to -86 | MCS3, then MCS2 | 7589 frames received, `txfail`, 34 of 68 failures not probes |
+| about 45-55 s | 5805, twice | not logged | not logged | 67 and 31 frames received, `txfail` each time |
+| about 55 s | 5200 | | | Stopped with `-71` after authentication, twice, with a firmware restart |
+
+**Fixed rate: this supports the fix, on one short weak stretch.** At -76 to -86 on 5200 the rate fell and data flowed, where the first walk's 5200 phases at about -80 had `rx_qos=0`. The walk gave too little to say more.
+
+**A new fault, the `-71` stop:** the driver stops if an answer to authentication arrives when it isn't waiting for one. Authentication went out with `count=11` and its answer was logged 20 microseconds before the stop. The likely reading is that the access point repeated its answer after missing our acknowledgement, which a weak link will do. That frame isn't in the log, so this comes from the code and the timing. 0472 ignores such a frame. Compiled only; it needs a weak link to run.
+
+**My protocol limited this walk.** I left out 48 and 149, and the device ran out of range of the other two within 40 s of setting off. It had nothing better to move to, so its `txfail`s there say little about the eight-failure limit. I can't tell how far it got, since I don't have the location.
+
+The unfixed items for the next walk are 48's handshake and 149's closure, both of which decide where the device can go. A third walk needs the owner's approval.
