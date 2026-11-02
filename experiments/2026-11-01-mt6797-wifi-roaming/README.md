@@ -715,3 +715,18 @@ It ended itself after about 69 s (`end=stopped roams=3 scans=1 restarts=1 stoppe
 **Channel 48, compared offline:** the supplicant's side of the handshake is the same as on 5200 and 5805, with the same message 1 flags and the same `key_info 0x8a`, RSN element and message 2 procedure. Only that access point never answers message 2. Its association differs: capability `0x1111` against `0x1511` (no short slot bit), transmit limit 36 against 30 dBm and `aid=15` against 1. None of those is shown to be the cause. A capture on that channel, near that access point, is the likely way to see what it objects to.
 
 The unfixed items for the next walk are 48's handshake and 149's closure, both of which decide where the device can go. A third walk needs the owner's approval.
+
+### Third walk: 0471 and 0472 across the area
+
+The owner reopened 149 for this walk ("Yes, reopen 149"), when asked whether it should use channels 40, 149 and 161. Same route and limits as Stage D, with `mac` 8fb6a607 from `6702e737` and a full module reload first. 48 stays out, since its handshake fault isn't understood. The script now waits for `wlan0` before restoring the normal link after a firmware restart.
+
+Hypothesis: with three access points to choose from, the device stays on a usable link for the route, 149 carries data, and the `-71` stop doesn't return. Some of the area may remain weak without 48.
+
+| Observation | Next |
+| --- | --- |
+| Data flows on 149 and on weak phases, gaps near 1 s, no restart | Roaming works across three access points. Then 48's capture, and a real network manager |
+| A gap only where 48 would serve | Expected; 48's capture next |
+| Repeated `txfail` while another access point is much stronger | The decision is slow; read `bgscan` and the threshold |
+| Repeated `txfail` with no better choice | The eight-failure limit; read which frames failed |
+| `rx_qos=0` on 149 | The rate wasn't the whole fault there; `sco=1` is back in question |
+| A stop | Read it first; no rerun |

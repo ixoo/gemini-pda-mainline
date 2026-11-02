@@ -163,6 +163,12 @@ walk() {
 	killall wget ping 2> /dev/null
 	killall wpa_supplicant
 	while pidof wpa_supplicant > /dev/null; do sleep 1; done
+	# A firmware restart takes wlan0 away for a while.
+	i=0
+	while [ "$i" -lt 30 ] && ! ip link show wlan0 > /dev/null 2>&1; do
+		sleep 1
+		i=$((i + 1))
+	done
 	wpa_supplicant -Dnl80211 -iwlan0 -c /run/station/wpa.conf > /run/station/wpa.log 2>&1 &
 	sleep 10
 	kill "$KMSG"
