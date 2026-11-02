@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B has not completed a roam: the driver side now reaches the handshake with no restart, and the supplicant drops it; a debug log is next |
+| Status | `running`: stage A passed on one boot; stage B has not completed a roam: the driver side reaches the handshake, and the supplicant dropped it because the test's configuration pinned the first access point; retest without the pin is next |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -315,6 +315,22 @@ So my reading was wrong, or at least incomplete: the early loss report was not w
 since it is gone and the message remains. No `CTRL-EVENT-DISCONNECTED` is logged before `Trying to associate`.
 A plain `wpa_cli` disconnect and reconnect still works on this `mac`. Next: one roam with the supplicant at
 `-dd -t`, which should name what cleared its state.
+
+**Debug roam: same boot and `mac`, supplicant at `-dd -t`, run by the custodian.** 11 of the 40 roams used. The
+log explains `No SSID info found`, and it is the test, not the driver:
+
+- The network block in the private `wpa.conf` carries `bssid=`, the channel 40 access point, as the
+  channel tests' private file set it. The log shows it at parsing, and `skip - BSSID mismatch` in its scans.
+- As far as I recall the v2.11 source, not checked against it, the handshake's `get_network_ctx` looks the network up
+  again by SSID and pinned BSSID, so at the second access point it finds none. `wpa_cli roam` itself does not check the pin.
+- Everything else in the log is as a roam should be: the port closes and the keys go, `Authenticate`,
+  `Ignore disconnect event when using userspace SME`, `Associate` with `prev_bSSID`, and the frame reaching
+  the state machine.
+
+So on the third, fourth, seventh and this try, `No SSID` said nothing about the driver, and my readings of it
+were wrong. It follows that 0465 and 0466 were not fixing what I said they fixed, and 0467 and 0468 only
+exist for the order 0466 made. They may still be the better behaviour, but that is not shown, and once a roam
+completes they should be reviewed for removal.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
