@@ -5,7 +5,8 @@
 # pinned address, then back to the normal link:
 #   ssh root@station '/bin/busybox sh -s <freq> [ht20]' < wifi-desk-join.sh
 # ht20 holds the link to 20 MHz, with /run/station/ht/wpa_supplicant, built with
-# HT overrides, in place of the original supplicant. PEER=<address> in the remote
+# HT overrides, in place of the original supplicant. rc sets the driver's
+# rate_control for this join only. PEER=<address> in the remote
 # command pings that host on this LAN instead of the gateway, once on the normal
 # link first, so its own ICMP counters show whether the frames reached it. Its
 # neighbour entry is held static for the test: losing carrier flushes the others,
@@ -23,6 +24,9 @@ if [ "$MODE" = ht20 ]; then
 	EXTRA=disable_ht40=1
 	[ -x "$SUPPLICANT" ] || { echo "no $SUPPLICANT"; exit 1; }
 fi
+RC=/sys/module/mac/parameters/rate_control
+RC_WAS=$(cat "$RC") || exit 1
+echo "rate_control=$RC_WAS"
 MARK="wifi-desk-join: start $F $MODE at $(cut -d' ' -f1 /proc/uptime)"
 field() { $WPA status | sed -n "s/^$1=//p"; }
 gateway() { ip route | awk '/^default/ { print $3; exit }'; }
@@ -74,6 +78,7 @@ cat /dev/kmsg > "$D/kmsg.txt" &
 KMSG=$!
 sleep 2
 stop_supplicant
+[ "$MODE" != rc ] || echo 1 > "$RC"
 "$SUPPLICANT" -dd -Dnl80211 -iwlan0 -c "$C" > "$D/wpa.log" 2>&1 &
 wait_completed
 if [ "$(field wpa_state)" = COMPLETED ]; then
@@ -81,10 +86,12 @@ if [ "$(field wpa_state)" = COMPLETED ]; then
 	grep 'packets transmitted' "$D/ping.txt"
 	echo "after ping state=$(field wpa_state) freq=$(field freq) peer_flags=$(awk -v t="$T" '$1 == t { print $3 }' /proc/net/arp)"
 	$WPA signal_poll | grep -E '^(AVG_RSSI|LINKSPEED|WIDTH)='
+	iw dev wlan0 station dump | grep -E 'tx (bitrate|retries|failed)|rx bitrate'
 fi
 
 stop_supplicant
 rm -f "$C"
+echo "$RC_WAS" > "$RC"
 [ -z "${PEER:-}" ] || arp -i wlan0 -d "$T"
 wpa_supplicant -Dnl80211 -iwlan0 -c /run/station/wpa.conf > /run/station/wpa.log 2>&1 &
 wait_completed

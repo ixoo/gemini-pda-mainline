@@ -624,3 +624,16 @@ Next, the same join with `PEER` set to the laptop's address on this LAN, reading
 **That run, `PEER` at 40 MHz:** the laptop's echo count rose by 3, the control pings, and 0 of 300 came back. This does not show that the access point fails to forward. The driver queued only 57 frames in 70.8 s, against 331 to the gateway, as the custodian noticed. Losing carrier flushes the neighbour table (`net/ipv4/arp.c`), so the pings waited on an address, and those frames are most likely ARP requests at about 1 a second. No capture confirms that. So my "about 3" row can't be read from this run. It does add something: if those were ARP requests, no unicast reply reached the device in 60 s, with `rx_qos=0`. The gateway's address probably resolved from its own broadcast request, though that isn't observed either. The script's mark also matched the previous run, so its counts spanned both, all zero.
 
 The script now holds the peer's entry static for the test, which the flush leaves alone, reports it after the ping, removes it afterwards and prints `data phase end`, so the rerun can show the frames were sent. The table above applies only if `tx_queued` is about 300 or more and `peer_flags` is `0x6`.
+
+**The rerun, with the entry static:** `tx_queued=300`, `tx_done=296`, `tx_failed=4`, `peer_flags=0x6`. The laptop counted only the 3 control echoes and 0 of 300 came back. So the frames left the device and did not reach the laptop. `tx_done` is the firmware's status 0, taken as acknowledged, and nothing on the air has confirmed that.
+
+**A candidate cause, which I should have checked first:** `rate_control` defaults to off, so ordinary data goes at a fixed HT MCS5, at 40 MHz on a 40 MHz link, with three attempts and no fallback. Management and EAPOL frames go at OFDM 6 Mbit/s. That would fit the fault's shape: the join completes and broadcasts arrive, then no data at about -78 or weaker. It would cover 5200 as well as 5745, with no `sco=1` fault needed. What does not fit is the acknowledgements, since an access point that can't decode a frame shouldn't acknowledge it. The value on this boot is not in my records. `LINKSPEED=13` is not the sent rate, since a fixed-rate status names none.
+
+Next, the same join with `rate_control` on for that join only, with the script mode `rc`. No module swap is needed, since the driver reads it at each association.
+
+| Observation | Next |
+| --- | --- |
+| `rate_control` was already on | This candidate is wrong; a fixed 6 Mbit/s mask is the next separation |
+| Replies, laptop count near 303 | Fixed MCS5 is Fault 2 on this link. Compare throughput, then make rate control the default |
+| Still none, `tx bitrate` stays high | The status misleads minstrel; try a fixed 6 Mbit/s mask |
+| Still none, `tx bitrate` low | Not the rate; encryption or that access point. Read key installation and the descriptor |
