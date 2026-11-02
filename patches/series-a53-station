@@ -636,3 +636,4 @@ proposals/0466-wifi-mt6797-hold-the-loss-report-when-the-keys-are-r.patch
 proposals/0467-wifi-mt6797-read-the-new-access-point-s-BSS-after-th.patch
 proposals/0468-wifi-mt6797-let-a-join-run-while-the-regulatory-doma.patch
 proposals/0469-wifi-mt6797-let-the-time-bound-end-the-drain-after-t.patch
+proposals/0470-wifi-mt6797-take-the-signal-from-data-frames.patch

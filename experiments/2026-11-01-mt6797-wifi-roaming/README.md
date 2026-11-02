@@ -432,6 +432,15 @@ step: as the custodian recalls, not checked against the source, `bgscan_simple` 
 turns any scan with an SSID into probing on channels that allow it. At a 15 s interval that would use the radio protocol's ten
 active scans in about 3 minutes. Signal thresholds do not need `bgscan`, so 0458 is tested first with `iw`, which sends no frames.
 
+**0458 alone produced nothing.** `mac` `3ba824b1…`, signal -60: `iw dev wlan0 cqm rssi -40 2` returned 0, and in 30 s there was
+no `signal threshold` line and no `iw event`. No roam or scan was spent, and the link was unharmed. This image can't say why.
+The likely reason, from the [firmware contract](../../docs/hardware/mt6797-wifi-firmware-contract.md#monitoring-ownership) and
+not measured, is that beacons stop reaching the host once connected. Data frames had no signal reported at all, so
+`-60` above is probably left from earlier frames.
+[0470](../../patches/proposals/0470-wifi-mt6797-take-the-signal-from-data-frames.patch) takes the signal from data frames as well, for the average and for mac80211, and logs
+the threshold with the sample and beacon counts, and the end of the drain. Compile-checked; whether data frames carry a
+usable value is for the run to show.
+
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
 

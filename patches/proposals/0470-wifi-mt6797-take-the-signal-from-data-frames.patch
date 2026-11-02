@@ -1,0 +1,229 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 2 Nov 2026 08:06:58 -0500
+Subject: [PATCH] wifi: mt6797: take the signal from data frames
+
+A signal threshold set with iw produced no event. As the firmware contract
+says, it owns beacon monitoring once connected, so beacons probably do not
+reach the average that 0458 keeps. Data frames do arrive, and their RX
+vector can carry the same RCPI.
+
+Feed the average from them, and report the signal to mac80211 too, which
+was told it had none, so a station's reported signal was left from earlier
+frames. Log the threshold when set, with the sample and beacon counts, to
+show the rate; and the end of the drain after the data phase, whose time is
+otherwise not visible.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c   | 86 ++++++++++++-------
+ drivers/net/wireless/mediatek/mt6797/join.c   | 13 ++-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  5 +-
+ drivers/net/wireless/mediatek/mt6797/main.c   |  4 +
+ 4 files changed, 75 insertions(+), 33 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index bacf0b8..eea8d88 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -1279,12 +1279,61 @@ static void mt6797_ccmp_rx_refused(struct mt6797_mac *mac, size_t bytes)
+ 		 p[8] == 2 ? "group" : "pairwise");
+ }
+ 
++/* The firmware owns beacon monitoring, so mac80211's threshold events are the
++ * driver's to send, from what still arrives: the access point's data frames,
++ * and any beacons. Same average weight and rule as mac80211's.
++ */
++static void mt6797_mac_cqm_signal(struct mt6797_mac *mac, int signal)
++{
++	enum nl80211_cqm_rssi_threshold_event event;
++	int average;
++
++	mac->cqm_average = mac->cqm_samples ?
++		mac->cqm_average + (signal * 16 - mac->cqm_average) / 4 : signal * 16;
++	if (mac->cqm_samples < UINT_MAX)
++		mac->cqm_samples++;
++	if (!mac->cqm_thold || mac->cqm_samples < 4 || !mac->vif)
++		return;
++	average = mac->cqm_average / 16;
++	if (average < mac->cqm_thold &&
++	    (!mac->cqm_last || average < mac->cqm_last - (int)mac->cqm_hyst))
++		event = NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW;
++	else if (average > mac->cqm_thold &&
++		 (!mac->cqm_last || average > mac->cqm_last + (int)mac->cqm_hyst))
++		event = NL80211_CQM_RSSI_THRESHOLD_EVENT_HIGH;
++	else
++		return;
++	mac->cqm_last = average;
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN signal threshold: event=%u average=%d samples=%u\n",
++		 event, average, mac->cqm_samples);
++	ieee80211_cqm_rssi_notify(mac->vif, event, average, GFP_KERNEL);
++}
++
++/* The RCPI in a checked data frame's RX vector, or -1 without a usable one. */
++static int mt6797_ccmp_rx_rcpi(const unsigned char *packet)
++{
++	unsigned int groups = (mt6797_join_le16(packet + 2) >> 9) & 15;
++	size_t vector = 16;
++
++	if (!(groups & 4))
++		return -1;
++	if (groups & 8)
++		vector += 16;
++	if (groups & 1)
++		vector += 16;
++	if (groups & 2)
++		vector += 8;
++	return packet[vector + 9] <= 220 ? packet[vector + 9] : -1;
++}
++
+ /* Caller holds the MAC mutex and has already admitted this ACTIVE RX. */
+ static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
+ 				  struct sk_buff_head *received)
+ {
+ 	struct mt6797_ccmp_rx view;
+ 	struct sk_buff *skb;
++	int rcpi;
+ 	unsigned int rx_flags = RX_FLAG_8023 | RX_FLAG_DECRYPTED | RX_FLAG_IV_STRIPPED |
+ 		RX_FLAG_MIC_STRIPPED | RX_FLAG_PN_VALIDATED | RX_FLAG_NO_SIGNAL_VAL;
+ 
+@@ -1317,6 +1366,12 @@ checked:
+ 	memset(IEEE80211_SKB_RXCB(skb), 0, sizeof(struct ieee80211_rx_status));
+ 	IEEE80211_SKB_RXCB(skb)->band = mac->join_chan_band;
+ 	IEEE80211_SKB_RXCB(skb)->freq = mac->join_chan_freq;
++	rcpi = mt6797_ccmp_rx_rcpi(mac->join_packet);
++	if (rcpi >= 0) {
++		rx_flags &= ~RX_FLAG_NO_SIGNAL_VAL;
++		IEEE80211_SKB_RXCB(skb)->signal = rcpi / 2 - 110;
++		mt6797_mac_cqm_signal(mac, rcpi / 2 - 110);
++	}
+ 	IEEE80211_SKB_RXCB(skb)->flag = rx_flags;
+ 	/* The queued-frame count saturates; it never limits delivery. */
+ 	if (mac->ccmp_queued < MT6797_CCMP_DIAG_CHECKED_MAX)
+@@ -1743,36 +1798,6 @@ static void mt6797_ccmp_pm_beacon(struct mt6797_mac *mac, size_t offset, size_t
+ 	complete_all(&mac->ccmp_dtim_done);
+ }
+ 
+-/* The firmware filters beacons for mac80211's monitor, so its threshold
+- * events are the driver's to send. Same average weight and rule as mac80211's.
+- */
+-static void mt6797_mac_cqm_signal(struct mt6797_mac *mac, int signal)
+-{
+-	enum nl80211_cqm_rssi_threshold_event event;
+-	int average;
+-
+-	mac->cqm_average = mac->cqm_samples ?
+-		mac->cqm_average + (signal * 16 - mac->cqm_average) / 4 : signal * 16;
+-	if (mac->cqm_samples < UINT_MAX)
+-		mac->cqm_samples++;
+-	if (!mac->cqm_thold || mac->cqm_samples < 4 || !mac->vif)
+-		return;
+-	average = mac->cqm_average / 16;
+-	if (average < mac->cqm_thold &&
+-	    (!mac->cqm_last || average < mac->cqm_last - (int)mac->cqm_hyst))
+-		event = NL80211_CQM_RSSI_THRESHOLD_EVENT_LOW;
+-	else if (average > mac->cqm_thold &&
+-		 (!mac->cqm_last || average > mac->cqm_last + (int)mac->cqm_hyst))
+-		event = NL80211_CQM_RSSI_THRESHOLD_EVENT_HIGH;
+-	else
+-		return;
+-	mac->cqm_last = average;
+-	dev_info(wiphy_dev(mac->hw->wiphy),
+-		 "one-shot WLAN signal threshold: event=%u average=%d samples=%u\n",
+-		 event, average, mac->cqm_samples);
+-	ieee80211_cqm_rssi_notify(mac->vif, event, average, GFP_KERNEL);
+-}
+-
+ int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 				   size_t bytes, unsigned int rcpi,
+ 					  bool keyed, struct sk_buff_head *received)
+@@ -1788,6 +1813,7 @@ int mt6797_mac_join_deliver_beacon(struct mt6797_mac *mac, size_t offset,
+ 	if (rcpi <= 220) {
+ 		IEEE80211_SKB_RXCB(skb)->signal = (int)rcpi / 2 - 110;
+ 		mt6797_mac_cqm_signal(mac, (int)rcpi / 2 - 110);
++		mac->cqm_beacons++;
+ 	} else {
+ 		IEEE80211_SKB_RXCB(skb)->flag |= RX_FLAG_NO_SIGNAL_VAL;
+ 	}
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index c751590..c698291 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -572,6 +572,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	mac->native_diag_retire_bytes = 0;
+ 	mac->native_diag_started = 0;
+ 	mac->native_diag_retire_started = 0;
++	mac->native_diag_retire_logged = false;
+ 	memset(&mac->ccmp_rx, 0, sizeof(mac->ccmp_rx));
+ 	memset(&mac->ccmp_gtk_rx, 0, sizeof(mac->ccmp_gtk_rx));
+ 	mac->ccmp_gtk_attempted = false;
+@@ -766,6 +767,7 @@ static void mt6797_mac_join_rearm(struct mt6797_mac *mac)
+ 	mac->join_sta_removed = false;
+ 	mac->join_rearm_pending = false;
+ 	mac->cqm_samples = 0;
++	mac->cqm_beacons = 0;
+ 	mac->cqm_last = 0;
+ 	mt6797_mac_epoch_reset(mac);
+ 	/* join_next_pid stays monotonic; the PID pool restarts with the epoch. */
+@@ -1540,8 +1542,17 @@ static int mt6797_native_diag_pre_read(struct mt6797_mac *mac)
+ 	/* Window over: read only to drain an owed exact TX-done, within the finite
+ 	 * budget; nothing owed means stop at once.
+ 	 */
+-	if (!owed)
++	if (!owed) {
++		if (mac->native_diag_retire_started && !mac->native_diag_retire_logged) {
++			mac->native_diag_retire_logged = true;
++			dev_info(wiphy_dev(mac->hw->wiphy),
++				 "one-shot WLAN drain end: ms=%llu reads=%u bytes=%u\n",
++				 (now - mac->native_diag_retire_started) / NSEC_PER_MSEC,
++				 mac->native_diag_retire_reads,
++				 mac->native_diag_retire_bytes);
++		}
+ 		return 1;
++	}
+ 	if (!mac->native_diag_retire_started)
+ 		mac->native_diag_retire_started = now;
+ 	rel = (unsigned int)((now - mac->native_diag_retire_started) / NSEC_PER_MSEC);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 4f22cb6..9cf50c5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -577,6 +577,7 @@ struct mt6797_mac {
+ 	bool native_diag_sample_done;	/* a sample ceiling was crossed */
+ 	unsigned int native_diag_retire_reads, native_diag_retire_bytes;
+ 	u64 native_diag_started, native_diag_retire_started;
++	bool native_diag_retire_logged;
+ 	struct mt6797_ccmp_rx_context ccmp_rx;
+ 	struct mt6797_ccmp_rx_context ccmp_gtk_rx;
+ 	bool ccmp_gtk_attempted;
+@@ -639,9 +640,9 @@ struct mt6797_mac {
+ 	unsigned int scan_packets;
+ 	/* A scan while connected: the worker submits it and reads its events. */
+ 	bool scan_online, scan_online_ready, scan_online_cancel;
+-	/* Signal threshold, from the access point's beacons (1/16 dB average). */
++	/* Signal threshold, from the access point's frames (1/16 dB average). */
+ 	int cqm_thold, cqm_last, cqm_average;
+-	unsigned int cqm_hyst, cqm_samples;
++	unsigned int cqm_hyst, cqm_samples, cqm_beacons;
+ 	/* The firmware's monitor mask is still on from an earlier data phase. */
+ 	bool monitor_left_on;
+ 	bool scan_ready, started, scan_used, scan_active, bss_active;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 0ab135d..d50c208 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1306,6 +1306,10 @@ static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
+ 		mac->cqm_thold = info->cqm_rssi_thold;
+ 		mac->cqm_hyst = info->cqm_rssi_hyst;
+ 		mac->cqm_last = 0;
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN signal threshold set: thold=%d hyst=%u samples=%u beacons=%u average=%d\n",
++			 mac->cqm_thold, mac->cqm_hyst, mac->cqm_samples,
++			 mac->cqm_beacons, mac->cqm_average / 16);
+ 		mutex_unlock(&mac->mutex);
+ 	}
+ 	if (!(changed & (BSS_CHANGED_BSSID | BSS_CHANGED_BASIC_RATES |
+-- 
+2.54.0 (Apple Git-157)
+
