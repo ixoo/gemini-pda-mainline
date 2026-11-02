@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A soak is drafted below and not yet approved. Idle cost and loading at init follow, each its own owner decision |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. The owner has approved a soak, which is with the custodian and has not run. Idle cost and loading at init follow, each its own owner decision |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -465,10 +465,10 @@ Image.gz `0bb6ad36...`. Against `db7b42af...`: 0448 in the Image, and another se
   loop runs until that shell ends, because busybox shows them under other names.
 - If an A72 stops again, go to `sync` and `reboot -f`. Plain `reboot` can block on RCU.
 
-### Soak (proposed, not admitted, not run)
+### Soak (owner-approved, one boot and one load, not run)
 
-This needs the owner's approval, because it repeats the bring-up writes on a new boot. It
-changes no voltage selector or clock. One boot, one module load, no retry.
+The owner approved this on 2026-11-01 with the limits below. It repeats the bring-up writes
+on a new boot and changes no voltage selector or clock. One boot, one module load, no retry.
 
 Candidate: the same package `932520bc...`, Image.gz `0bb6ad36...`, DTB `91ca8aae...`,
 module `1e13d34d...`, so a result compares directly with attempt 2. No new build. Newer
@@ -707,6 +707,6 @@ idle cost stay open, GNSS has not run beside it, and the whole system now report
 
 ## Follow-up
 
-Next, in order, each its own owner decision: soak (drafted above); idle power; load at init; then, as
+Next, in order, each its own owner decision: soak (approved above); idle power; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.
