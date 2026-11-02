@@ -14,7 +14,8 @@
 # IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
 # DVFS=1 uses the OPP table, devfreq and cooling instead of a fixed clock.
 # PIN_HZ, with DVFS=1, holds devfreq at one OPP for the run.
-# BURST, with GAP_MS, makes a load mode run wait GAP_MS after each BURST frames.
+# BURST, with GAP_MS, makes a load mode run wait GAP_MS after each BURST frames, then
+# run LIGHT small frames, 40 ms apart, so the rate falls before the next burst.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
 # Limits, from the vendor (2026-10-31-mt6797-thermal-management): SoC under its 55 C
 # cooler exit to start (also enforced in the driver), and stop at 58 C during a run,
@@ -125,7 +126,7 @@ if [ $rc = 0 ]; then
     timeout $((LOAD_SECONDS + 30)) "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" \
       "$here/mesa/gpu-gles" --zone "$zone" --battery-zone "$battery" --seconds "$LOAD_SECONDS" \
       --size "$LOAD_SIZE" --max-mc "$RUN_MAX_MC" --battery-max-mc "$BATTERY_MAX_MC" \
-      --perfcnt "${PERFCNT:-0}" --burst "${BURST:-0}" --gap-ms "${GAP_MS:-0}"; rc=$?
+      --perfcnt "${PERFCNT:-0}" --burst "${BURST:-0}" --gap-ms "${GAP_MS:-0}" --light "${LIGHT:-0}"; rc=$?
     echo "gpu-gles exit $rc"
     kill "$sampler"
   fi

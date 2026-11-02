@@ -14,7 +14,8 @@
  * under load fails the run. With --perfcnt, a 5 s window of the GPU's counters is
  * printed raw, by block, for offline reading (needs panfrost unstable_ioctls=1).
  * --burst waits --gap-ms after that many frames, so devfreq and idle power-off both
- * have something to do. A slowest frame then includes the gap.
+ * have something to do, then runs --light frames small enough for the rate to fall.
+ * A slowest frame then includes those.
  *
  * It stops before any frame if the SoC zone is at or above --max-mc, or the
  * optional --battery-zone at or above --battery-max-mc.
@@ -104,6 +105,25 @@ static GLuint compile(GLenum type, const char *src)
 }
 
 /* Exit status as in the header comment. */
+/*
+ * Keep the GPU awake but barely busy: frames closer than its 50 ms autosuspend. A
+ * suspended GPU stops devfreq sampling, so only this lets the rate fall.
+ */
+static void light_frames(int n)
+{
+	struct timespec wait = { 0, 40 * 1000000L };
+
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(0, 0, 16, 16);
+	while (n-- > 0) {
+		glClear(GL_COLOR_BUFFER_BIT);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glFinish();
+		nanosleep(&wait, NULL);
+	}
+	glDisable(GL_SCISSOR_TEST);
+}
+
 static void perfcnt_print(int fd, long window_us)
 {
 	static uint32_t buf[PERFCNT_BLOCKS * PERFCNT_COUNTERS];
@@ -124,7 +144,7 @@ static void perfcnt_print(int fd, long window_us)
 }
 
 static int run_load(GLint color, int seconds, int size, const char *zone, int max_mc,
-		    const char *battery, int battery_max_mc, int perfcnt, int burst, int gap_ms)
+		    const char *battery, int battery_max_mc, int perfcnt, int burst, int gap_ms, int light)
 {
 	struct panfrost_perfcnt_enable en = { .enable = 1 };
 	struct timespec window_start = { 0 };
@@ -165,6 +185,7 @@ static int run_load(GLint color, int seconds, int size, const char *zone, int ma
 			struct timespec gap = { gap_ms / 1000, gap_ms % 1000 * 1000000L };
 
 			nanosleep(&gap, NULL);
+			light_frames(light);
 		}
 
 		clock_gettime(CLOCK_MONOTONIC, &b);
@@ -219,7 +240,7 @@ int main(int argc, char **argv)
 	PFNEGLGETPLATFORMDISPLAYEXTPROC get_display;
 	const char *zone = NULL, *battery = NULL;
 	int frames = 20, max_mc = 58000, battery_max_mc = 46000, seconds = 0, size = 512, i, n;
-	int perfcnt = 0, gap_ms = 0, burst = 0;
+	int perfcnt = 0, gap_ms = 0, burst = 0, light = 0;
 	long max_us = 0;
 	EGLConfig cfg;
 	EGLDisplay d;
@@ -243,6 +264,8 @@ int main(int argc, char **argv)
 			seconds = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--size"))
 			size = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--light"))
+			light = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--burst"))
 			burst = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--gap-ms"))
@@ -295,7 +318,7 @@ int main(int argc, char **argv)
 
 	if (seconds)
 		return run_load(color, seconds, size, zone, max_mc, battery, battery_max_mc, perfcnt, burst,
-				gap_ms);
+				gap_ms, light);
 
 	for (i = 0; i < frames; i++) {
 		/* The red channel changes per frame, so a stale image fails. */
