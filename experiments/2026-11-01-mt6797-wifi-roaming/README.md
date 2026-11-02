@@ -685,7 +685,7 @@ Hypothesis: weak phases now carry data. Where the first walk had `rx_qos=0` at a
 - **Channels:** only 5200 and 5805, in `scan_freq` and `freq_list`. 149 is closed until the owner rules, and 48 refused every handshake, so a failed join there would hit the protocol's stop condition and hide this result. The device has to reach further on these two, which suits this test, and this walk can't test those two channels.
 - **Before it:** a full module reload, so the sequence starts low and the earlier stops are cleared as the protocol asks.
 - **Logging:** the script's progress line now has the average signal and transmit rate every 5 s, which the last test lacked.
-- **Budget, if the owner approves:** for this walk only, 20 roams and 60 active scans, the script's limits, on those two channels.
+- **Budget, approved by the owner on 2026-11-02** ("Approve budget"), for this walk only: 20 roams and 60 active scans, the script's limits, on those two channels.
 
 | Observation | Next |
 | --- | --- |
