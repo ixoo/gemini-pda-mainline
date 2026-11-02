@@ -465,6 +465,17 @@ from the data-frame signal that 0470 added; before it there was none. A roam the
 above, 1 dB at -86 and below, adjusted by estimated throughput. `bgscan_simple` asks for a 4 dB hysteresis, smaller than the
 6 dB swing seen at the desk, so the threshold should sit well below a healthy signal.
 
+**`bgscan` at the desk: same boot, `mac` `3a6ef88d…`, the rebuilt supplicant, run by the custodian.** No roams spent; 8 active
+scans on this boot, counting 2 earlier ones it cannot place in another session.
+
+- It associated first try, with its own connect scan passive.
+- 6 connected scans at 60 s intervals, each `probing=2 ssids=1`, about 0.41 s, none refused, then the back-off to the long
+  interval. A 5/s ping lost at most one reply in 600 s. No restart, `join stopped` or taint.
+- The threshold set from the supplicant arrived with `hyst=4`, and one event followed, with its `bgscan simple: signal level changed`.
+- Each scan selected the current access point, the stronger by about 9 dB, and `wpa_supplicant_need_to_roam()` returns on that before
+  it compares levels. So the live level in a roam decision has not been seen.
+- `iw dev wlan0 link` read 2-5 dB below the scan results for the same access point; which is nearer is not known.
+
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
 
