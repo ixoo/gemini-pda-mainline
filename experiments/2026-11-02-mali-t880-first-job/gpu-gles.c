@@ -42,9 +42,9 @@ static const char *fs_src =
 static const char *load_fs_src =
 	"precision highp float;\n"
 	"uniform vec4 color;\n"
-	"varying vec2 v;\n"
 	"void main() {\n"
-	"  float x = 0.25;\n"
+	/* From the uniform, so the compiler cannot fold the loop away. */
+	"  float x = color.g * 0.25;\n"
 	"  for (int i = 0; i < 16; i++)\n"
 	"    x = fract(sin(x * 12.9898 + 0.5) * 43.5453);\n"
 	"  gl_FragColor = vec4(color.r, x, 0.0, 1.0);\n"
