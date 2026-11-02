@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 21:02:22 -0500
+Subject: [PATCH] wifi: mt6797: name why a scan is busy
+
+Roaming's first test had a scan refused with -EBUSY while connected, and no
+log says whether the driver refused it or the stack above never called it.
+Print the driver's state when it refuses. No such line then means the
+refusal came from above.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 0c3af5bef..b77eb8ca4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -988,6 +988,12 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	online = mac->join_data_phase && !mac->join_data_ended &&
+ 		 mac->join_channel_released && mac->join_sta_active && !mac->join_cleanup_requested;
+ 	if ((mac->scan_used && !online) || mac->scan_online || mac->scan_online_cancel) {
++		dev_info_ratelimited(wiphy_dev(hw->wiphy),
++				     "one-shot WLAN scan busy: used=%u data=%u ended=%u released=%u sta=%u cleanup=%u online=%u cancel=%u\n",
++				     mac->scan_used, mac->join_data_phase, mac->join_data_ended,
++				     mac->join_channel_released, mac->join_sta_active,
++				     mac->join_cleanup_requested, mac->scan_online,
++				     mac->scan_online_cancel);
+ 		ret = -EBUSY;
+ 		goto out;
+ 	}
+@@ -1042,6 +1048,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		    !mt6797_hif_recycle_sequences(mac->hif, mac->sequence_base))
+ 			mac->sequence = mac->sequence_base;
+ 		if (mac->sequence > 230) {
++			dev_info_ratelimited(wiphy_dev(hw->wiphy),
++					     "one-shot WLAN scan busy: sequence=%u\n", mac->sequence);
+ 			ret = -EBUSY;
+ 			goto out;
+ 		}
+-- 
+2.43.0
+

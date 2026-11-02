@@ -1042,3 +1042,4 @@ proposals/0455-arm64-dts-mediatek-describe-the-clusters-on-the-Gemin.patch
 proposals/0456-wifi-mt6797-accept-reassociation.patch
 proposals/0457-wifi-mt6797-join-without-a-scan-once-the-old-link-is.patch
 proposals/0458-wifi-mt6797-report-the-signal-threshold.patch
+proposals/0459-wifi-mt6797-name-why-a-scan-is-busy.patch

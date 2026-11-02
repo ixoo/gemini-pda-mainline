@@ -64,8 +64,9 @@ it or the driver discarded it: the worker skips an event with another PID withou
 log cannot tell which. The same image both joined and faulted, so the image does not decide it.
 
 Recovery is not always hands-free. The firmware restart returned `status=0` each time, and station
-35 then associated within about 6 s. On `6b3acef8` there was no lease after 60 s, and rerunning
-`wifi-up.sh` leased at once; why is not known.
+35 then associated within about 6 s. On `6b3acef8` the supplicant reached `COMPLETED` but there was no
+lease after 60 s, and rerunning `wifi-up.sh` leased at once. The restart recreates `wlan0`, so `udhcpc`
+may have stayed on the old interface; that is not checked.
 
 This test stays on one boot, so it may not see the fault; a boot count has to measure it.
 

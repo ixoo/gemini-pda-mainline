@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `planned`: patches 0456-0458 build; nothing has run on the device |
+| Status | `running`: stage A stopped at its first scan, refused with -EBUSY; the roam patches have not run |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -100,4 +100,30 @@ afterwards. Protocol to be written after stage C.
 
 ## Observations
 
-None yet.
+**Stage A, first try: boot `6b3acef8`, image `d1a882db`, `mac` `773e1694…`, run by the custodian at
+the owner's choice.** That boot had the first-join restart, a `wifi-up.sh` rerun and a GNSS test, and
+`gnss-mt6797` stayed loaded.
+
+- `map` at about 440 s: `iw` returned `-EBUSY` (rc 240), no access point was listed, and the link
+  stayed `COMPLETED` on 5200 MHz. A manual passive scan gave the same.
+- No `connected scan` line in the log. `scans 70` did not run.
+- Outside the steps, the custodian ran `wpa_cli scan` once at about 476 s: it returned `OK`, with no
+  scan line and `wpa_state` unchanged. Whether it was admitted is not proven. That supplicant was not
+  in passive mode, so it could have sent probes had it run.
+- The link stayed up, with gateway pings 3/3 before and after, not tainted, no new restart.
+
+**Analysis, from the code.** Which layer refused is not established, and no tracer is built in. The
+driver's busy path looks unlikely: frames keep flowing past the 9 s grant, which needs the channel
+release done, and the last logged sequence is far below the 230 limit. That leaves a scan already
+held by mac80211 or cfg80211, whose holder is unknown, and this reasoning is elimination, not
+observation. [0459](../../patches/proposals/0459-wifi-mt6797-name-why-a-scan-is-busy.patch) prints
+the driver's state when it refuses.
+
+| Next observation | Next |
+| --- | --- |
+| Scans run on a freshly loaded `mac` | The refusal was state on that boot; find its holder if it returns |
+| `scan busy` line printed | Its flags name the driver's condition |
+| `-EBUSY` with no `scan busy` line | The stack above holds a scan; read `wpa.log` for who asked |
+
+Also in that log, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
+64.87 s and the rest from 259.86 s.
