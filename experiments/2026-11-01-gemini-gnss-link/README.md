@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-gnss-link` |
-| Status | `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
+| Status | `running`: T4, one mainline boot of the DSP through `/dev/gnss0`, is admitted and has not run. Earlier: `parked`: T1 passed; T3's start caused a firmware exception, inferred to be because the engine needs `MNL.bin`; the owner states that image does not exist; the receiver has produced no data |
 | Subsystem | MT6797 CONSYS STP link, `drivers/gnss` |
 | Device variant | Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -518,6 +518,27 @@ go for an open stack on the host path. The persistent STP link (0418-0419) and 0
 clients, and 0429 helps Wi-Fi recover.
 
 Later, patches 0451 to 0454 removed the GFNS client, and its fixture went with it, after a [minimal host](../2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved) showed the DSP path works on stock.
+
+## T4: boot the DSP through `/dev/gnss0` (radio and firmware action; owner approved)
+
+Approved by the owner on 2026-11-01, in the words "Approve the test", for the drafted plan.
+
+**Hypothesis:** the DSP boots over the mainline STP link as it did on stock in [step 6](../2026-11-01-gemini-gnss-stock-trace/README.md#step-6-a-minimal-host-with-mnld-stopped-radio-and-firmware-action-owner-approved), including boot fragments split at 1024 bytes by the gnss core. Unique observation: `0xFE31`, `0xFE32` and epochs on mainline.
+
+**Effects:** a station with patches 0451 to 0454. Opening `/dev/gnss0` drives GPIO 69 high, for the first time on mainline, and switches the GPS function on. [gnss-minihost.c](../2026-11-01-gemini-gnss-stock-trace/gnss-minihost.c) reads the DSP image from a RAM copy of the device's own `libmnl.so`, boots the DSP with the same bytes as step 6, sends the per-second frames for 60 s, sends stop and closes. Wi-Fi stays up and idle. The clock is set to the real time first. The settings file and `libmnl.so` are private, in RAM, and deleted afterwards. No partition, NVRAM or firmware file is written except the normal `boot2` install. The capture stays private.
+
+**Risks:** a firmware assert takes Wi-Fi down until a CONSYS reload, as in T2 and T3, and might need a reboot. Evidence goes over USB. Recovery is the reviewed path to Gemian.
+
+**Budget:** one open, no retry. Stops: any firmware assert, `STP link stopped`, Oops, warning or call trace; a failed boot; the DSP silent for 10 s. Tested offline against a fake DSP under sanitizers, and its boot and setup bytes match step 6's. Fragment splitting and hardware are not tested.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Header unanswered | The link or function-on state differs from stock | Compare offline; no retry |
+| Stops at the first fragment | Splitting at 1024 bytes is probably the problem | Send fragments unsplit, which likely means leaving the gnss core |
+| Stops at another fragment | Timing or queueing on the link | Read the counters offline |
+| Boots, no epochs | Something in setup differs on mainline | Compare with stock |
+| Boots and sends epochs | The mainline link works | Draft the 10 minute outdoor test |
+| Firmware assert | The bytes or their timing broke something | Keep the evidence; CONSYS reload; no retry until understood |
 
 ## Associated code
 
