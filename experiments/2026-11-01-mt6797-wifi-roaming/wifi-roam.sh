@@ -140,12 +140,19 @@ walk() {
 		scans=$(walk_count 'probing=[1-9]' "$scans0")
 		restarts=$(walk_count 'WLAN restart: begin' "$restarts0")
 		stopped=$(walk_count 'join stopped' "$stopped0")
+		# A firmware restart takes the address and udhcpc does not notice, with
+		# nobody to restart it during a walk.
+		inet=$(ip -4 addr show wlan0 | grep -c inet)
+		if [ "$inet" = 0 ] && [ "$(field wpa_state)" = COMPLETED ]; then
+			killall udhcpc
+			udhcpc -i wlan0 -b -t 10 -T 3 -A 10 -s /run/station/dhcp.sh > "$D/udhcpc.txt" 2>&1
+		fi
 		[ $((now - start)) -ge "$limit" ] && why="time"
 		[ "$roams" -ge 20 ] && why=roams
 		[ "$scans" -ge 60 ] && why=scans
 		[ "$restarts" -ge 2 ] && why=restarts
 		[ "$stopped" -ge 2 ] && why=stopped
-		echo "t=$((now - start)) roams=$roams scans=$scans restarts=$restarts stopped=$stopped state=$(field wpa_state) freq=$(field freq)" >> "$D/progress.txt"
+		echo "t=$((now - start)) roams=$roams scans=$scans restarts=$restarts stopped=$stopped inet=$inet state=$(field wpa_state) freq=$(field freq)" >> "$D/progress.txt"
 		sync
 	done
 	: > "$STOP"

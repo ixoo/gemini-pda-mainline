@@ -518,6 +518,17 @@ connected data phase
 
 One roam, between two access points, device still. It shows the chain, not roaming on the move.
 
+**The walk's first start stopped before anyone moved.** 0 roams, 0 active scans. Stopping the old supplicant at the script's start
+ended that lifetime at sequence 255, past the wrap limit of 248, which restarts the firmware on purpose. It rejoined in about 3 s, with no
+address, the known lease gap, and `progress.txt` showed `COMPLETED` regardless. The custodian held the owner back.
+
+The cause is this boot's module swaps, from the code and log. `sequence_base` is taken from the first lifetime after a module
+load, so a swap inherits a high one, here 146, and a re-arm only recycles when the base is at most 128. A connected scan recycles with no such check,
+which is why it went unseen. Booted images and the state after this restart start low, at `sequence=37` here, so the wrap is
+not expected on the walk unless `mac` is swapped again. Not changed in the driver.
+
+The script now restarts `udhcpc` when connected with no address and logs `inet=` in its progress. That branch has not run.
+
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
 
