@@ -566,6 +566,8 @@ beacons arrived and transmits were acknowledged. Average signal in those phases:
 - `-75 vs -74` moved on estimated throughput, to a worse link than it was leaving.
 - Before the walk, the [channel tests](../2026-11-01-mt6797-wifi-any-channel/README.md) had not run a secondary channel above (`sco=1`), or channels 149 or 48. Both phases on 149 were `sco=1` and had `rx_qos=0`, so those two may be that rather than the signal. The two on 5200 at `sco=3` can't be, since other phases on it worked.
 
+The owner says the access point on 5240 has the same setup as the others ("It's the same setup"), so a different key on it is unlikely. Something in our frame or the supplicant remains.
+
 A correction for the earlier stall too: the laptop was on Wi-Fi then as well, so its own link is another candidate. The laptop's sampler shows no TCP connection
 for 495 s from about 48354, so nothing reached it through this outage.
 
@@ -577,3 +579,15 @@ arriving with no key installed, not investigated.
 
 Also in the first try's log, and again in this run up to 1776.66 s, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.
+
+### Two desk tests of the faults
+
+[`wifi-desk-join.sh`](wifi-desk-join.sh) joins one access point with the original supplicant, passive scan and no bgscan, pinned, pings the gateway for 60 s where the handshake completes, and returns to the normal link. This needs no walking and uses no roams or active scans. Each is one join within that channel's [radio protocol](../2026-11-01-mt6797-wifi-any-channel/README.md).
+
+| Test | Observation | Next |
+| --- | --- | --- |
+| 5240 | Handshake fails as on the walk | Not the rebuilt supplicant; compare that access point's beacon and message 1 with the others', then message 2 |
+| 5240 | Handshake completes, ping works | Rebuilt supplicant or the roam's state; repeat with the rebuilt one, no bgscan |
+| 5745, `sco=1` | `rx_qos=0`, no replies | The `sco=1` setting at any signal, not weakness; read the channel request for that case |
+| 5745, `sco=1` | Replies, `rx_qos` above 0 | `sco=1` works at this signal; Fault 2 follows signal, and the question is what fails below it |
+| Either | Firmware restart at the join | The sequence wrap after a module swap, as at the walk's start; not this test's answer, rerun once |
