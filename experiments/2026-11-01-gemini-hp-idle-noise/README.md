@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-gemini-hp-idle-noise` |
-| Status | `running`: `0450` built; bit 13 of `AUDDEC_ANA_CON1` found as the cause on one boot; fresh-boot confirmation pending |
+| Status | `completed`: `0450` keeps the output quiet after playback on a fresh boot |
 | Subsystem | audio: MT6351 headphone path |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -171,10 +171,31 @@ The reads for 0 and 1 differ only in `0x0CF4`, and in the uptime line. `0x2096` 
 rounds, and `0x080A` read `3232`. Pops were not asked about on these rounds and none were reported.
 Groups 2, 4 and 8 were not run alone.
 
+**`0450`, boot `c09fb418` (boot2 `38116570`, package `932520bc`, `Image.gz` `0bb6ad36`), run by the
+custodian.** Codec module `59282b91…` swapped in before any tone, with the image's other nine modules.
+Headphones in from power-on, CPUs 0-7, no A72 module, not tainted. The first join faulted at 42.87 s
+and restarted, which is unrelated to audio; associated afterwards, ping 3/3 at each check, no further
+restart.
+
+| Step | Uptime (s) | `0x0CF4` | Key presses | Owner |
+| --- | --- | --- | --- | --- |
+| Before any tone, notices printed from 409.58 s | about 2660 | `0000` | none | "No noise, play" |
+| Tone 1, rc 0, then about 5 minutes | 2665.94-2978.30 | `0000` | none | "Quiet, no pop" |
+| Tone 2, rc 0, then about 2 minutes | 3523.50-3652.76 | `0000` | none | "Heard, quiet, no pop" |
+
+The other registers changed as before (`0x201C` `c3a1`, `0x2020` `000b`, `0x0806` `001f`, `0x2096` `8c00`).
+The notice stopped printing at 859.58 s (print limit), so its schedule during the listens is
+extrapolated. That is a limit of this test: it does not show that the source was active, only that Wi-Fi
+was associated, which is the condition that had the noise on the earlier boots.
+
 ## Analysis
 
 The first-playback trigger repeats: stations 33, 34 and 35 show the same order of events, on two CPU
 profiles.
+
+**`0450` holds on a fresh boot.** About 15 expected cycles passed after the first tone with no burst,
+where stations 33, 34 and 35 went noisy by the first or second. The second tone shows the next power-up
+works, and no pop was reported when asked.
 
 **Bit 13 of `AUDDEC_ANA_CON1` controls the noise.** Setting it brought the noise back twice and clearing
 it stopped the noise twice, with that bit the only difference between the reads, so this is a direct
@@ -193,8 +214,12 @@ experiment does not apply first.
 
 ## Conclusion
 
-`0447` is `refuted` for the named Gemini on one fresh boot. Bit 13 of `AUDDEC_ANA_CON1` is `confirmed` as
-controlling the noise on one boot of Linux 7.1.3, with two on and off pairs. `0450` itself has not run.
+`confirmed` for the named Gemini, Linux 7.1.3 and the module in package `96c93db8`, on one fresh boot:
+with `0450` the idle headphones stay quiet after playback, with no pops reported. It was run by swapping the
+module; `0450` has not booted as part of an image. `0447` is `refuted`.
+
+Not established: how the bit lets the noise in, what the noise's source is, whether stock is noisy after
+playback, and long-term behavior beyond about 5 minutes.
 
 ## Follow-up
 
