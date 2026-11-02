@@ -627,3 +627,4 @@ proposals/0457-wifi-mt6797-join-without-a-scan-once-the-old-link-is.patch
 proposals/0458-wifi-mt6797-report-the-signal-threshold.patch
 proposals/0459-wifi-mt6797-name-why-a-scan-is-busy.patch
 proposals/0460-wifi-mt6797-take-a-management-frame-s-answer-as-its-.patch
+proposals/0461-wifi-mt6797-admit-a-connected-scan-while-cleanup-is-.patch

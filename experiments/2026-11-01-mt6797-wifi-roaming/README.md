@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A stopped at its first scan, refused with -EBUSY; the roam patches have not run |
+| Status | `running`: stage A's scan was refused by a driver condition, fixed in 0461, not yet rerun; the roam patches have not run |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -67,8 +67,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `234bf3ec`, inventory `4e074191…`, `mac` `584cbe76…`, CONSYS `28b5435c…`, core
-`425b8add…`, `Image.gz` `e9bad6fb…`.
+Package: to be recorded, from the build carrying 0461.
 
 USB connected. Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam,
 a reassociation response, and no firmware restart. `roams 10`, then the same with a transfer running.
@@ -112,12 +111,8 @@ the owner's choice.** That boot had the first-join restart, a `wifi-up.sh` rerun
   in passive mode, so it could have sent probes had it run.
 - The link stayed up, with gateway pings 3/3 before and after, not tainted, no new restart.
 
-**Analysis, from the code.** Which layer refused is not established, and no tracer is built in. The
-driver's busy path looks unlikely: frames keep flowing past the 9 s grant, which needs the channel
-release done, and the last logged sequence is far below the 230 limit. That leaves a scan already
-held by mac80211 or cfg80211, whose holder is unknown, and this reasoning is elimination, not
-observation. [0459](../../patches/proposals/0459-wifi-mt6797-name-why-a-scan-is-busy.patch) prints
-the driver's state when it refuses.
+**Analysis, from the code, first reading: wrong.** I judged the driver's busy path unlikely and suspected a
+scan held above it. The retest below disproved that.
 
 | Next observation | Next |
 | --- | --- |
@@ -125,13 +120,29 @@ the driver's state when it refuses.
 | `scan busy` line printed | Its flags name the driver's condition |
 | `-EBUSY` with no `scan busy` line | The stack above holds a scan; read `wpa.log` for who asked |
 
-Retest package, with 0459 and 0460: the same as stage B's. Its CONSYS and core hashes match the boot's,
-so only `mac` needs swapping. A swap is not a first join after boot, so it does not test 0460's fault.
+Retest package: Buildbox at `234bf3ec`, inventory `4e074191…`, `mac` `584cbe76…`, CONSYS `28b5435c…`,
+core `425b8add…`, `Image.gz` `e9bad6fb…`. Only `mac` needed swapping. A swap is not a first join after
+boot, so it did not test 0460's fault.
 
 Reads on the same boot at 704 s, by the custodian: the newest scan results date from about 59 s, one
 `wpa_supplicant`, one `udhcpc`, and one `CTRL-EVENT-SCAN-FAILED ret=-16` in its log, which has no
 times. That line is probably the `wpa_cli scan` above, so that scan was probably refused and sent
 nothing. None of this shows a scan pending inside mac80211 or cfg80211, which has no view here.
 
-Also in that log, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
+**Stage A, second try: same boot, fresh `mac` `584cbe76…`, run by the custodian.** It loaded cleanly,
+reached `COMPLETED` on 5200 MHz with a lease and `passive_scan=1`, and `map` ran about 10 s after the
+channel release. One attempt, refused:
+
+```
+one-shot WLAN scan busy: used=1 data=1 ended=0 released=1 sta=1 cleanup=1 online=0 cancel=0
+```
+
+The driver refused it. `mt6797_mac_mgd_complete_tx()` requests the cleanup when the association
+request completes, so `join_cleanup_requested` is set all through the data phase, and 0430's condition
+could never hold. Every connected scan since 0430 would refuse, on any boot, so 0430's code past that
+check has still never run.
+[0461](../../patches/proposals/0461-wifi-mt6797-admit-a-connected-scan-while-cleanup-is-.patch)
+tests `join_cleanup_done` instead. The link stayed up, with no restart and no `TX status` lines.
+
+Also in the first try's log, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.

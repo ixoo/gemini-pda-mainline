@@ -1,0 +1,35 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 21:14:20 -0500
+Subject: [PATCH] wifi: mt6797: admit a connected scan while cleanup is only
+ armed
+
+The driver requests its cleanup when the association request completes, so
+join_cleanup_requested is set throughout the data phase and the teardown only
+starts at the data end. The connected scan's admission refused on that flag,
+so every scan during a connection returned -EBUSY.
+
+Refuse once the cleanup is done instead; join_data_ended already covers
+the teardown.
+
+Fixes the scan while connected. Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index b77eb8ca4..344462754 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -986,7 +986,7 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 * reports it and the supplicant retries.
+ 	 */
+ 	online = mac->join_data_phase && !mac->join_data_ended &&
+-		 mac->join_channel_released && mac->join_sta_active && !mac->join_cleanup_requested;
++		 mac->join_channel_released && mac->join_sta_active && !mac->join_cleanup_done;
+ 	if ((mac->scan_used && !online) || mac->scan_online || mac->scan_online_cancel) {
+ 		dev_info_ratelimited(wiphy_dev(hw->wiphy),
+ 				     "one-shot WLAN scan busy: used=%u data=%u ended=%u released=%u sta=%u cleanup=%u online=%u cancel=%u\n",
+-- 
+2.43.0
+

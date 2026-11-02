@@ -16,7 +16,7 @@ Status: plan, updated 2026-11-01.
   [baseline on a booted image](../experiments/2026-11-01-mt6797-wifi-booted-baseline/README.md):
   planned, not yet run.
 - [Roaming](../experiments/2026-11-01-mt6797-wifi-roaming/README.md) is written (0456-0458) and has
-  not run; its first connected scan was refused with -EBUSY.
+  not run; connected scans were refused by a driver condition, fixed in 0461, not yet rerun.
 - Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and
@@ -57,7 +57,7 @@ What keeps it from being anyone's Wi-Fi:
 | Network choice | `wifi-up.sh` joins by name, from a private file sent over SSH, with an optional BSSID or frequency pin. No NetworkManager test yet |
 | Scan | Passive on all channels of both bands, about 5 s. Wildcard active scan has run once; a named SSID has not |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |
-| Roaming | Written, not run: reassociation and a scanless join (0456-0457), signal threshold events (0458). Scan while associated (0430) was refused with -EBUSY on its first try |
+| Roaming | Written, not run: reassociation and a scanless join (0456-0457), signal threshold events (0458). Scan while associated (0430) was always refused, corrected in 0461, not yet rerun |
 | Regulatory | An update that really changes the domain during a lifetime, such as an access point advertising another country than the one set, ends the lifetime until a module reload |
 | Battery | Receive is polled, since the HIF interrupt line never asserted. No 802.11 power save, and no system suspend on this kernel |
 
