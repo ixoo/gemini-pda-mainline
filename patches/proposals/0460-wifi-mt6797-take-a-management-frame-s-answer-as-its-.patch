@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 21:04:43 -0500
+Subject: [PATCH] wifi: mt6797: take a management frame's answer as its status
+
+On 3 of 7 boots the first authentication failed: the access point
+answered, the frame's pages came back, but no transmit status reached the
+join path. The driver waited out its 750 ms and ended the lifetime, and the
+firmware restarted. All four clean boots logged the status about 30 us
+before the answer.
+
+An authentication or association response proves its request went out, so
+complete the frame as acknowledged when the response arrives first, and log
+it. Log the status events the worker used to skip silently, to show whether
+the firmware sends the status late, or under another ID, or not at all.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   | 41 ++++++++++++++++++-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  1 +
+ 2 files changed, 41 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 36fbcf619..6bb2b3be2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -433,6 +433,12 @@ void mt6797_join_attempt_note(struct mt6797_mac *mac, unsigned int subtype)
+ 	mac->join_assoc_attempts += subtype == 0 || subtype == 2;
+ }
+ 
++static bool mt6797_join_inflight_is(const struct mt6797_mac *mac,
++				    unsigned int subtype)
++{
++	return ((get_unaligned_le16(mac->join_inflight->data) >> 4) & 15) == subtype;
++}
++
+ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ {
+ 	const u8 *f = skb->data;
+@@ -2481,8 +2487,16 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				 */
+ 				if (!mac->join_inflight ||
+ 				    mac->join_packet[8] != mac->join_pid ||
+-				    mac->join_packet[12] != 1)
++				    mac->join_packet[12] != 1) {
++					if (mac->join_tx_status_skipped < 8) {
++						mac->join_tx_status_skipped++;
++						dev_info(wiphy_dev(mac->hw->wiphy),
++							 "one-shot WLAN join TX status skipped: pid=%u kind=%u expected=%u inflight=%u\n",
++							 mac->join_packet[8], mac->join_packet[12],
++							 mac->join_pid, !!mac->join_inflight);
++					}
+ 					continue;
++				}
+ 				if (!mac->join_inflight ||
+ 				    !mt6797_join_tx_done(mac->join_packet, rx.logical_bytes,
+ 							 mac->join_pid, 1, &result) ||
+@@ -2788,6 +2802,31 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 					goto failed;
+ 				}
+ 			}
++			/* Sometimes no status arrives for a frame the access point has
++			 * answered, as on 3 of 7 boots. The answer proves it went out.
++			 */
++			if (mac->join_inflight && !mac->join_inflight_data &&
++			    mac->join_inflight != mac->join_internal &&
++			    ((frame.subtype == 11 && mt6797_join_inflight_is(mac, 11)) ||
++			     (frame.subtype == 1 && mt6797_join_inflight_is(mac, 0)) ||
++			     (frame.subtype == 3 && mt6797_join_inflight_is(mac, 2)))) {
++				if (mac->join_pid != MT6797_JOIN_PID_RESERVED &&
++				    !mt6797_join_pid_complete(&mac->ccmp_pid_pool,
++							      mac->join_pid)) {
++					ret = -EPROTO;
++					goto failed;
++				}
++				dev_info(wiphy_dev(mac->hw->wiphy),
++					 "one-shot WLAN join TX status missing: pid=%u fc=0x%04x, answered\n",
++					 mac->join_pid, get_unaligned_le16(mac->join_inflight->data));
++				pump_progress = true;
++				completed = mac->join_inflight;
++				mac->join_inflight = NULL;
++				mac->join_last_acked = true;
++				complete_all(&mac->join_frame_done);
++				ieee80211_tx_info_clear_status(IEEE80211_SKB_CB(completed));
++				IEEE80211_SKB_CB(completed)->flags |= IEEE80211_TX_STAT_ACK;
++			}
+ 			skb = dev_alloc_skb(frame.bytes);
+ 			if (!skb) {
+ 				ret = -ENOMEM;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index b03967da5..688477523 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -469,6 +469,7 @@ struct mt6797_mac {
+ 	 * lifetime, each bounded at MT6797_JOIN_ATTEMPTS (0304).
+ 	 */
+ 	unsigned int join_auth_attempts, join_assoc_attempts;
++	unsigned int join_tx_status_skipped;
+ 	/* The firmware's receive block-ack sessions per TID, and their
+ 	 * sub-frames (0318, 0319).
+ 	 */
+-- 
+2.43.0
+

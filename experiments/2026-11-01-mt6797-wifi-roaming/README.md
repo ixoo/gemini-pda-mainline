@@ -125,5 +125,10 @@ the driver's state when it refuses.
 | `scan busy` line printed | Its flags name the driver's condition |
 | `-EBUSY` with no `scan busy` line | The stack above holds a scan; read `wpa.log` for who asked |
 
+Reads on the same boot at 704 s, by the custodian: the newest scan results date from about 59 s, one
+`wpa_supplicant`, one `udhcpc`, and one `CTRL-EVENT-SCAN-FAILED ret=-16` in its log, which has no
+times. That line is probably the `wpa_cli scan` above, so that scan was probably refused and sent
+nothing. None of this shows a scan pending inside mac80211 or cfg80211, which has no view here.
+
 Also in that log, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.

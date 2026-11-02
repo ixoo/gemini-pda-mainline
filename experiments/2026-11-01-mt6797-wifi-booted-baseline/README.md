@@ -68,7 +68,9 @@ Recovery is not always hands-free. The firmware restart returned `status=0` each
 lease after 60 s, and rerunning `wifi-up.sh` leased at once. The restart recreates `wlan0`, so `udhcpc`
 may have stayed on the old interface; that is not checked.
 
-This test stays on one boot, so it may not see the fault; a boot count has to measure it.
+[0460](../../patches/proposals/0460-wifi-mt6797-take-a-management-frame-s-answer-as-its-.patch) takes
+the answer as the frame's status and logs the status events the worker skipped; it has not run. A boot count has
+to measure it, since this test stays on one boot.
 
 ## Safety assessment
 
