@@ -6,10 +6,11 @@
 #
 #   gpu-test.sh probe [parent]   load, identify, unload
 #   gpu-test.sh job [parent]     load, identify, up to JOBS jobs, unload
+#   gpu-test.sh gles [parent]    load, identify, up to FRAMES shader frames, unload
 #
 # parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
 # Limits: SoC under 55 C to start (also enforced in the driver), 65 C during jobs.
-mode=${1:?probe or job}; parent=${2:-0}; JOBS=${JOBS:-100}
+mode=${1:?probe, job or gles}; parent=${2:-0}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
 START_MAX_MC=55000; RUN_MAX_MC=65000
 here=$(cd "$(dirname "$0")" && pwd)
 MODULES="clk-mt6797-mfg rt5735-regulator drm_panel_orientation_quirks drm drm_shmem_helper gpu-sched panfrost"
@@ -77,6 +78,11 @@ if [ $rc = 0 ]; then
   if [ "$mode" = job ]; then jobs=$JOBS; else jobs=0; fi
   timeout 60 "$here/gpu-job" --zone "$zone" --jobs "$jobs" --max-mc "$RUN_MAX_MC"; rc=$?
   echo "gpu-job exit $rc"
+  if [ "$mode" = gles ] && [ $rc = 0 ]; then
+    timeout 120 "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" "$here/mesa/gpu-gles" \
+      --zone "$zone" --frames "$FRAMES" --max-mc "$RUN_MAX_MC"; rc=$?
+    echo "gpu-gles exit $rc"
+  fi
   rpm after-job
   sleep 1
   rpm one-second-after-job
