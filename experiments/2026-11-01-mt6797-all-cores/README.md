@@ -541,6 +541,11 @@ The [topology run](../2026-09-02-mainline-mt6797-cpu-map/README.md) showed the k
 no register and changes no clock. Compiled in the dev VM: the A72 DTB has 3 clusters and 10
 cores with the right CPU nodes, and the plain station DTB has no map.
 
+Candidate: package `976f9716...` (job `34c0e48d...-mt6797-a53-station-a72-m1`, Buildbox-2),
+Image.gz `ac6be841...`, DTB `65fa07ba...`, module `1e13d34d...`, the same module as the soak.
+The configuration is unchanged from `932520bc...`; the image also carries the audio and GNSS
+patches 0449 to 0454. Its A72 DTB has the 3 clusters and 10 cores. A build authorizes no boot.
+
 What it gives: with `CONFIG_SCHED_CLUSTER=y`, the scheduler should balance within a cluster
 first, read from source and not yet seen on this profile. What it does not give: all CPUs
 still have the same capacity, so Linux does not know that one cluster is slower than another.
