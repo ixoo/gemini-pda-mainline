@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A's scan was refused by a driver condition, fixed in 0461, not yet rerun; the roam patches have not run |
+| Status | `running`: stage A passed on one boot with 0461; the roam patches have not run, and stage B needs the owner's budget |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -42,7 +42,7 @@ frame type; what the firmware sends when it leaves the channel, such as a power-
 access point, is not measured.
 **Stages B to D** move the link between the owner's access points, which the
 [radio protocol](../2026-11-01-mt6797-wifi-any-channel/README.md#radio-protocol-approved-by-the-owner-2026-11-01)
-budgets at one join and ten reconnects per channel. They need a new budget from the owner first:
+budgets at one join and ten reconnects per channel, and channels 40 and 161 have already used theirs. They need a new budget from the owner first:
 proposed, only access points of the owner's network on non-DFS 5 GHz channels, at most 40 roams a
 session, US country, its other limits and stop conditions unchanged. Not approved yet.
 
@@ -67,11 +67,12 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `7683aa9e`, inventory `c9bd5a47…`, `mac` `977c2ea5…`, CONSYS `28b5435c…`, core
-`425b8add…`, `Image.gz` `e9bad6fb…`.
+Package: to be recorded, from the build carrying 0462.
 
-USB connected. Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam,
-a reassociation response, and no firmware restart. `roams 10`, then the same with a transfer running.
+USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
+Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
+response, and no firmware restart. `scans 100` first, for the recycle line; then `roams 10`, then the
+same with a transfer running.
 
 | Observation | Next |
 | --- | --- |
@@ -139,5 +140,27 @@ check has still never run.
 [0461](../../patches/proposals/0461-wifi-mt6797-admit-a-connected-scan-while-cleanup-is-.patch)
 tests `join_cleanup_done` instead. The link stayed up, with no restart and no `TX status` lines.
 
-Also in the first try's log, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
+**Stage A, third try: same boot, fresh `mac` `977c2ea5…` (0461), package `c9bd5a47…`, passive scan,
+run by the custodian.** Passed:
+
+- `map`: rc 0, the link stayed. Nine access points of the network were heard: channels 40 (-62 dBm,
+  current), 48 (-81), 149 (-79), 161 (-58) on 5 GHz, none on a DFS channel, and five on 2.4 GHz (1, 6
+  and 11).
+- `scans 70`: 70/70 rc 0, `COMPLETED` on every line, 5.76 s mean and 5.78 s max, 19-23 BSS. 71 scans admitted
+  and ended on this `mac`, none aborted, no new restart, not tainted.
+- Ping at 5/s through the run: 2720 replies, no gap in the sequence numbers. The custodian's figures:
+  median 40 ms, 99th percentile 404 ms, maximum 496 ms. There is no baseline without scans on this boot.
+
+The script's summary printed `replies=0`, because busybox ping writes `seq=`. That is fixed; the
+figures above come from the raw file, recomputed here for replies and gap.
+
+Not shown:
+- Sequence recycling. The README expected 70 scans to cross it, but no line logs it, and at 2
+  commands a scan from 84 the sequence stays under the 230 refusal with or without a recycle.
+  [0462](../../patches/proposals/0462-wifi-mt6797-log-the-connected-scan-s-command-sequen.patch)
+  logs it, so stage B repeats 100 scans.
+- What the firmware sends when it leaves the channel.
+- A clean first join: this is the boot of the first-join restart.
+
+Also in the first try's log, and again in this run up to 1776.66 s, not investigated: 64 `data rx refused` lines (`field=packet-type`), the first at
 64.87 s and the rest from 259.86 s.

@@ -23,7 +23,7 @@ ping_stop() {
 	kill "$PING"
 	sleep 1
 	pidof ping > /dev/null && echo "ping still running"
-	sed -n 's/.*icmp_seq=\([0-9]*\).*/\1/p' "$P" | awk '
+	sed -n 's/.*seq=\([0-9]*\).*/\1/p' "$P" | awk '
 		{ if (NR > 1 && $1 - last - 1 > gap) gap = $1 - last - 1; last = $1 }
 		END { print "ping replies=" NR " longest_gap_pings=" gap + 0 }'
 }
