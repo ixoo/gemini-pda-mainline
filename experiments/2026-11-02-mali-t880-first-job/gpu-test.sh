@@ -7,19 +7,25 @@
 #   gpu-test.sh probe [parent]   load, identify, unload
 #   gpu-test.sh job [parent]     load, identify, up to JOBS jobs, unload
 #   gpu-test.sh gles [parent]    load, identify, up to FRAMES shader frames, unload
+#   gpu-test.sh load [parent]    load, identify, LOAD_SECONDS of shader load, unload
 #
 # parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
-# Limits: SoC under 55 C to start (also enforced in the driver), 65 C during jobs.
-mode=${1:?probe, job or gles}; parent=${2:-0}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
-START_MAX_MC=55000; RUN_MAX_MC=65000
+# Limits, from the vendor's adaptive cooler (2026-10-31-mt6797-thermal-management):
+# SoC under its 55 C exit to start (also enforced in the driver), and its 75 C
+# target during a run, since no cooling device exists here. Battery stops at 46 C,
+# where the vendor starts cutting charge current.
+mode=${1:?probe, job, gles or load}; parent=${2:-0}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
+LOAD_SECONDS=${LOAD_SECONDS:-60}; LOAD_SIZE=${LOAD_SIZE:-512}
+START_MAX_MC=55000; RUN_MAX_MC=75000; BATTERY_MAX_MC=46000
 here=$(cd "$(dirname "$0")" && pwd)
 MODULES="clk-mt6797-mfg rt5735-regulator drm_panel_orientation_quirks drm drm_shmem_helper gpu-sched panfrost"
 
-zone=
+zone=; battery=
 for z in /sys/class/thermal/thermal_zone*; do
   [ "$(cat "$z/type")" = soc-thermal ] && zone=$z/temp
+  [ "$(cat "$z/type")" = battery-thermal ] && battery=$z/temp
 done
-[ -n "$zone" ] || { echo "no soc-thermal zone"; exit 3; }
+[ -n "$zone" ] && [ -n "$battery" ] || { echo "no soc-thermal or battery-thermal zone"; exit 3; }
 
 regs() {
   echo "--- regs: $1"
@@ -80,7 +86,13 @@ if [ $rc = 0 ]; then
   echo "gpu-job exit $rc"
   if [ "$mode" = gles ] && [ $rc = 0 ]; then
     timeout 120 "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" "$here/mesa/gpu-gles" \
-      --zone "$zone" --frames "$FRAMES" --max-mc "$RUN_MAX_MC"; rc=$?
+      --zone "$zone" --battery-zone "$battery" --frames "$FRAMES" --max-mc "$RUN_MAX_MC"; rc=$?
+    echo "gpu-gles exit $rc"
+  fi
+  if [ "$mode" = load ] && [ $rc = 0 ]; then
+    timeout $((LOAD_SECONDS + 30)) "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" \
+      "$here/mesa/gpu-gles" --zone "$zone" --battery-zone "$battery" --seconds "$LOAD_SECONDS" \
+      --size "$LOAD_SIZE" --max-mc "$RUN_MAX_MC" --battery-max-mc "$BATTERY_MAX_MC"; rc=$?
     echo "gpu-gles exit $rc"
   fi
   rpm after-job

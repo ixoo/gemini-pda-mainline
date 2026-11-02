@@ -7,7 +7,13 @@
  * --frames times, reading it back each time. Unlike the Write Value job, this
  * runs shaders on the GPU's cores.
  *
- * It stops before any frame if the SoC zone is at or above --max-mc.
+ * With --seconds it instead runs a sustained load for that long: a triangle over
+ * a --size image with a loop in the fragment shader, reporting the temperatures
+ * every 5 s. Every frame must give the first frame's pixel, so a computing error
+ * under load fails the run.
+ *
+ * It stops before any frame if the SoC zone is at or above --max-mc, or the
+ * optional --battery-zone at or above --battery-max-mc.
  * Exit: 0 all frames correct, 1 wrong pixels or a GL error, 2 a thermal stop,
  * 3 setup.
  */
@@ -22,6 +28,8 @@
 
 #define SIZE		64
 #define MAX_FRAMES	2000
+#define MAX_LOAD_SIZE	1024
+#define MAX_LOAD_SECONDS 600
 
 static const char *vs_src =
 	"attribute vec2 pos;\n"
@@ -30,6 +38,17 @@ static const char *fs_src =
 	"precision mediump float;\n"
 	"uniform vec4 color;\n"
 	"void main() { gl_FragColor = color; }\n";
+
+static const char *load_fs_src =
+	"precision highp float;\n"
+	"uniform vec4 color;\n"
+	"varying vec2 v;\n"
+	"void main() {\n"
+	"  float x = 0.25;\n"
+	"  for (int i = 0; i < 16; i++)\n"
+	"    x = fract(sin(x * 12.9898 + 0.5) * 43.5453);\n"
+	"  gl_FragColor = vec4(color.r, x, 0.0, 1.0);\n"
+	"}\n";
 
 static int read_temp(const char *zone)
 {
@@ -61,6 +80,62 @@ static GLuint compile(GLenum type, const char *src)
 	return s;
 }
 
+/* Exit status as in the header comment. */
+static int run_load(GLint color, int seconds, int size, const char *zone, int max_mc,
+		    const char *battery, int battery_max_mc)
+{
+	GLubyte first[4] = { 0 }, now[4];
+	struct timespec start, b;
+	long frames = 0, slowest = 0, next_report = 0, elapsed_ms, last_ms = 0;
+
+	glViewport(0, 0, size, size);
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	for (;;) {
+		int t = read_temp(zone), bt = battery ? read_temp(battery) : 0;
+
+		if (t < 0 || t >= max_mc || bt < 0 || (battery && bt >= battery_max_mc)) {
+			printf("thermal stop after %ld frames: soc %d mC, battery %d mC\n",
+			       frames, t, bt);
+			return 2;
+		}
+
+		glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glUniform4f(color, 0.5f, 1.0f, 0.0f, 1.0f);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+		glFinish();
+		glReadPixels(size / 2, size / 2, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, now);
+		if (glGetError() != GL_NO_ERROR)
+			return 1;
+		if (!frames)
+			memcpy(first, now, sizeof(first));
+		if (memcmp(first, now, sizeof(first))) {
+			printf("frame %ld: pixel %d,%d,%d, first frame gave %d,%d,%d\n", frames,
+			       now[0], now[1], now[2], first[0], first[1], first[2]);
+			return 1;
+		}
+		frames++;
+
+		clock_gettime(CLOCK_MONOTONIC, &b);
+		elapsed_ms = (b.tv_sec - start.tv_sec) * 1000 + (b.tv_nsec - start.tv_nsec) / 1000000;
+		if (elapsed_ms - last_ms > slowest)
+			slowest = elapsed_ms - last_ms;
+		last_ms = elapsed_ms;
+		if (elapsed_ms >= next_report) {
+			printf("t=%lds frames=%ld soc=%d mC battery=%d mC\n", elapsed_ms / 1000,
+			       frames, t, bt);
+			fflush(stdout);
+			next_report += 5000;
+		}
+		if (elapsed_ms >= seconds * 1000L)
+			break;
+	}
+
+	printf("passed %ld frames in %ld ms, slowest %ld ms, pixel %d,%d,%d, soc %d mC\n", frames,
+	       last_ms, slowest, first[0], first[1], first[2], read_temp(zone));
+	return 0;
+}
+
 int main(int argc, char **argv)
 {
 	static const EGLint cfg_attr[] = {
@@ -68,12 +143,12 @@ int main(int argc, char **argv)
 		EGL_RED_SIZE, 8, EGL_GREEN_SIZE, 8, EGL_BLUE_SIZE, 8, EGL_ALPHA_SIZE, 8, EGL_NONE
 	};
 	static const EGLint ctx_attr[] = { EGL_CONTEXT_CLIENT_VERSION, 2, EGL_NONE };
-	static const EGLint sur_attr[] = { EGL_WIDTH, SIZE, EGL_HEIGHT, SIZE, EGL_NONE };
+	EGLint sur_attr[] = { EGL_WIDTH, SIZE, EGL_HEIGHT, SIZE, EGL_NONE };
 	static const GLfloat tri[] = { -0.5f, -0.5f, 0.5f, -0.5f, 0.0f, 0.5f };
 	static GLubyte px[SIZE * SIZE * 4];
 	PFNEGLGETPLATFORMDISPLAYEXTPROC get_display;
-	const char *zone = NULL;
-	int frames = 20, max_mc = 65000, i, n;
+	const char *zone = NULL, *battery = NULL;
+	int frames = 20, max_mc = 75000, battery_max_mc = 46000, seconds = 0, size = 512, i, n;
 	long max_us = 0;
 	EGLConfig cfg;
 	EGLDisplay d;
@@ -89,10 +164,24 @@ int main(int argc, char **argv)
 			max_mc = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--zone"))
 			zone = argv[i + 1];
+		else if (!strcmp(argv[i], "--battery-zone"))
+			battery = argv[i + 1];
+		else if (!strcmp(argv[i], "--battery-max-mc"))
+			battery_max_mc = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--seconds"))
+			seconds = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--size"))
+			size = atoi(argv[i + 1]);
 	}
-	if (!zone || frames < 0 || frames > MAX_FRAMES) {
-		fprintf(stderr, "need --zone, and frames 0 to %d\n", MAX_FRAMES);
+	if (!zone || frames < 0 || frames > MAX_FRAMES || seconds < 0 ||
+	    seconds > MAX_LOAD_SECONDS || size < 16 || size > MAX_LOAD_SIZE) {
+		fprintf(stderr, "need --zone, frames 0 to %d, seconds to %d, size 16 to %d\n",
+			MAX_FRAMES, MAX_LOAD_SECONDS, MAX_LOAD_SIZE);
 		return 3;
+	}
+	if (seconds) {
+		sur_attr[1] = size;
+		sur_attr[3] = size;
 	}
 
 	get_display = (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
@@ -118,7 +207,7 @@ int main(int argc, char **argv)
 
 	prog = glCreateProgram();
 	glAttachShader(prog, compile(GL_VERTEX_SHADER, vs_src));
-	glAttachShader(prog, compile(GL_FRAGMENT_SHADER, fs_src));
+	glAttachShader(prog, compile(GL_FRAGMENT_SHADER, seconds ? load_fs_src : fs_src));
 	glBindAttribLocation(prog, 0, "pos");
 	glLinkProgram(prog);
 	glUseProgram(prog);
@@ -126,6 +215,9 @@ int main(int argc, char **argv)
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, tri);
 	glEnableVertexAttribArray(0);
 	glViewport(0, 0, SIZE, SIZE);
+
+	if (seconds)
+		return run_load(color, seconds, size, zone, max_mc, battery, battery_max_mc);
 
 	for (i = 0; i < frames; i++) {
 		/* The red channel changes per frame, so a stale image fails. */
