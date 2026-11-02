@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `running`: run 1 stopped on a clock module bug before any GPU power; fix `0480` built for run 2 |
+| Status | `running`: run 2 powered the GPU and identified it at 26 MHz; no job yet, domains cycle against the design |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -238,9 +238,29 @@ point. No GPU register was accessed.
 `0480` gives the module a probe of its own, sized by `CLK_MFG_NR`. Binding, DTB and image are
 unchanged, so the same image can run it after a reboot.
 
+### Run 2, boot `b4bbb55e`, new `clk-mt6797-mfg`: `gpu-test.sh probe`, 26 MHz
+
+First GPU power-on on mainline. Owner-approved, battery 90% and not charging, SoC 31.7 C at
+start, peak seen 32.4 C. Exit 0, no Oops, tainted 0.
+
+- `mali-t880 id 0x880 major 0x1 minor 0x0 status 0x8`, `shader_present=0xf`, `l2_present=0x1`,
+  `tiler_present=0x1`, `as_present=0xff`, `js_present=0x7`, revision `0x1008`.
+- Log: GPU clock 26000000 Hz, VGPU on at 1000000 uV, `MFG_ASYNC_CON` `0x0` to `0xa`.
+- `CLK_CFG_1` read `0x00010100`: `mfg_sel` on, parent `clk26m`. `CLK_MISC_CFG_0` bits read
+  `mfg_52m_sel` on `univpll2_d8`, which the clock framework reports as 156 MHz. MFGPLL went
+  from running to off (`0x1000c240`), with no write of ours.
+- LDO trims and enable read back as written. Bit 15 of `0x10001fe4` kept.
+- After unload: MFG domains off, protection bits 21/23 set in both `PROTECTEN` and `STA1`, LDO
+  enable off, rail off. Vendor order on power-off held. The trims stay; the vendor's do too.
+
+**Not as designed.** `PWR_STATUS` read MFG off with VCG gated right after the probe, then on after
+`gpu-job` with no job, though `no_runtime_suspend` should keep them on. So the domains went off
+and came back with protection released and BG3D running, which the vendor never does. Nothing
+faulted. No jobs run until this is explained.
+
 ## Analysis
 
-The GPU has not been powered yet. Run 1 tested only the rail provider and the clock module.
+Run 1 tested only the rail provider and the clock module. Run 2 shows the power sequence works once, from modules, and the GPU answers with the expected identity. It does not yet show a job.
 
 ## Conclusion
 

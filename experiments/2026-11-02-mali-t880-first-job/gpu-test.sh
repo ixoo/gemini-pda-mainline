@@ -34,6 +34,16 @@ rail() {
       echo "vgpu state=$(cat "$r/state") microvolts=$(cat "$r/microvolts")"
   done
 }
+rpm() {
+  echo "--- rpm: $1 uptime $(cut -d' ' -f1 /proc/uptime)"
+  p=/sys/devices/platform/13040000.gpu/power
+  for f in control runtime_status runtime_usage runtime_active_kids runtime_active_time runtime_suspended_time; do
+    [ -e "$p/$f" ] && echo "$f=$(cat "$p/$f")"
+  done
+  ps=$(devmem 0x10006180 32); echo "PWR_STATUS=$ps"
+  [ -e /sys/kernel/debug/pm_genpd/pm_genpd_summary ] &&
+    grep -E 'mfg|13040000|genpd:' /sys/kernel/debug/pm_genpd/pm_genpd_summary
+}
 state() { echo "soc=$(cat "$zone") mC"; rail; regs "$1"; }
 
 unload() {
@@ -60,10 +70,16 @@ dmesg | tail -n +$((mark + 1))
 [ $rc = 0 ] && [ -e /dev/dri/renderD128 ] || { echo "no render node"; rc=1; }
 
 if [ $rc = 0 ]; then
+  rpm just-loaded
+  sleep 1
+  rpm one-second-later
   state loaded
   if [ "$mode" = job ]; then jobs=$JOBS; else jobs=0; fi
   timeout 60 "$here/gpu-job" --zone "$zone" --jobs "$jobs" --max-mc "$RUN_MAX_MC"; rc=$?
   echo "gpu-job exit $rc"
+  rpm after-job
+  sleep 1
+  rpm one-second-after-job
   state after-job
 fi
 
