@@ -10,6 +10,7 @@
 #   gpu-test.sh load [parent]    load, identify, LOAD_SECONDS of shader load, unload
 #
 # parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
+# KHZ=442500 or 520000 runs from the MFGPLL instead of parent.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
 # Limits, from the vendor's adaptive cooler (2026-10-31-mt6797-thermal-management):
 # SoC under its 55 C exit to start (also enforced in the driver), and its 75 C
@@ -68,7 +69,7 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
-  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${PERFCNT:+ unstable_ioctls=1}"
+  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
   # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }

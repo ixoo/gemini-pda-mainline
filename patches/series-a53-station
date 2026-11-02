@@ -650,3 +650,4 @@ proposals/0479-arm64-dts-mediatek-gemini-station-drop-the-touchscre.patch
 proposals/0480-clk-mediatek-register-the-MT6797-MFG-gate-in-a-table.patch
 proposals/0481-drm-panfrost-forbid-runtime-suspend-on-MT6797-instea.patch
 proposals/0482-clk-mediatek-size-the-MT6797-CAM-and-MJC-clock-table.patch
+proposals/0483-drm-panfrost-let-MT6797-run-from-the-MFGPLL-at-a-fix.patch

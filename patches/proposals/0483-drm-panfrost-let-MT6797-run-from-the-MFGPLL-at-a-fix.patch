@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:04:40 -0500
+Subject: [PATCH] drm/panfrost: let MT6797 run from the MFGPLL at a fixed rate
+
+Reach the vendor table points at 442.5 and 520 MHz by module parameter, which
+the fixed parents cannot. Both are at or under 1.0 V in that table, so the rail
+stays where it is.
+
+The PLL is programmed only before power-on, with the GPU clock gated and the
+domains off. The vendor parks the post-divider when it changes one on a running
+GPU, and this never does that. The rate is read back and refused if it is more
+than 1 MHz off, or above 520 MHz.
+---
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 29 ++++++++++++++++------
+ 1 file changed, 21 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index b7353f7c0..c7fdf5b24 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -7,13 +7,15 @@
+  * has no LDO or protection step, so these callbacks supply what comes before
+  * and after. Everything here runs only while this module binds or unbinds.
+  *
+- * This is a fixed point: 1.0 V, the mux on a running clock and no OPP table.
+- * The MFGPLL is not touched. The vendor parks its divider across a change, and
+- * that transition has not been reviewed.
++ * This is a fixed point: 1.0 V and no OPP table. By default the mux sits on a
++ * running clock and the MFGPLL is not touched. mt6797_khz programs the MFGPLL
++ * instead, here only, with the GPU clock gated and its domains off: the vendor
++ * parks the divider across a change on a running GPU, which this never does.
+  */
+ 
+ #include <linux/clk.h>
+ #include <linux/delay.h>
++#include <linux/math.h>
+ #include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+ #include <linux/regmap.h>
+@@ -45,14 +47,19 @@
+ #define MT6797_MFG_IDLE_TIMEOUT_US	100000
+ 
+ #define MT6797_VGPU_UV			1000000
+-/* syspll_d3, the faster parent allowed here, sits at the vendor's 365 MHz point. */
+-#define MT6797_MAX_RATE			365000000
++/* The vendor's table holds these at or under 1.0 V, before and after its EEM. */
++#define MT6797_MAX_RATE			520000000
++#define MT6797_RATE_TOLERANCE		1000000
+ #define MT6797_MAX_START_MCELSIUS	55000
+ 
+ static int mt6797_parent;
+ module_param_named(mt6797_parent, mt6797_parent, int, 0444);
+ MODULE_PARM_DESC(mt6797_parent, "MT6797 GPU clock: 0 = clk26m (default), 1 = syspll_d3");
+ 
++static unsigned int mt6797_khz;
++module_param_named(mt6797_khz, mt6797_khz, uint, 0444);
++MODULE_PARM_DESC(mt6797_khz, "MT6797 GPU clock from the MFGPLL: 442500 or 520000, overrides mt6797_parent");
++
+ /*
+  * RSV_H_8 is bits 3:0. The station read bit 15 of that register set, which the
+  * register table does not describe, so unlike the vendor's write this leaves it.
+@@ -118,12 +125,18 @@ static int mt6797_set_clocks(struct device *dev)
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "failed to set the 52M parent\n");
+ 
+-	ret = clk_set_parent(sel, parent);
++	if (mt6797_khz == 442500 || mt6797_khz == 520000)
++		ret = clk_set_rate(sel, mt6797_khz * 1000UL);
++	else if (mt6797_khz)
++		ret = -EINVAL;
++	else
++		ret = clk_set_parent(sel, parent);
+ 	if (ret)
+-		return dev_err_probe(dev, ret, "failed to set the GPU clock parent\n");
++		return dev_err_probe(dev, ret, "failed to set the GPU clock\n");
+ 
+ 	rate = clk_get_rate(sel);
+-	if (!rate || rate > MT6797_MAX_RATE)
++	if (!rate || rate > MT6797_MAX_RATE ||
++	    (mt6797_khz && abs_diff(rate, mt6797_khz * 1000UL) > MT6797_RATE_TOLERANCE))
+ 		return dev_err_probe(dev, -ERANGE, "GPU clock at %lu Hz\n", rate);
+ 
+ 	dev_info(dev, "mt6797: GPU clock %lu Hz, 52M clock %lu Hz\n", rate,

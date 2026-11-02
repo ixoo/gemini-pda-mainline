@@ -316,6 +316,37 @@ Each frame clears a 64x64 image, draws one triangle and reads it back. The tool 
 middle holds this frame's red value, from a uniform, and the corner still holds the clear. Domains on
 while loaded, off after, LDO enable off, tainted 0, no GPU fault, reset or timeout in the log.
 
+### Runs 6 and 7, same boot: sustained shader load, about 364 MHz
+
+Limits: from the vendor's adaptive cooler in
+[MT6797 thermal management](../../docs/hardware/mt6797-thermal-management.md), stop at SoC 75 C (its
+target Tj) and refuse to start at 55 C (its exit). Battery stops at 46 C (where the vendor cuts charging).
+Stopping at them is our inference, since there is no cooling device; the vendor keeps running and cuts a
+power budget. The owner asked for these limits. Battery 91% and not charging; on USB power (inference).
+
+| | Run 6 | Run 7 |
+| --- | --- | --- |
+| Load | a triangle over 1/8 of 512x512, 16-step loop | every pixel of 512x512, 32-step loop |
+| Duration | 60 s | 60 s |
+| Frames | 33543, 559/s | 5950, 99/s |
+| Pixel, all frames equal | 128,139,0 | 128,66,0 |
+| SoC peak, start | about 35 C, 32.9 C | 35.6 C, 33.3 C |
+| Battery voltage | flat | 4.25 V down to 4.21 V under load |
+
+No GPU fault in either. Run 7 used `unstable_ioctls=1`, so `tainted=64` on that boot, for the counter window:
+
+- Over 5.003742 s, block 0 word 6 (read as GPU active) was `0x606e7019`, 323 M/s. Blocks 3 to 6 word 4
+  ran 310 M/s each, within 0.05% of each other.
+- So **all four cores work and share the load evenly**, and the clock is at least 323 MHz. 3.26 M
+  cycles per 10.08 ms frame fits 364 MHz at 89% busy, with the read-back between frames (inference: the
+  counter names and the busy fraction are not independently confirmed).
+- The 139 pixel of run 6 does not match a CPU evaluation (232), so that loop ran on the GPU, with its
+  own `sin`.
+
+**Still open.** A 2.3 C rise fits the 0.53 W the vendor's coefficient gives at this point (1461 uW/MHz/V2,
+a calculation), or a sensor far from the GPU. Nothing proves bank 1 sees the GPU, and `soc-thermal` only
+reports the maximum.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -330,8 +361,7 @@ is why the count climbs; it is harmless here.
 The Zero job uses no shader core; run 5 does, since the compiled vertex and fragment shaders carry the
 uniform to the pixels the tool checks. A correct image at both clocks shows Mesa's compiler, the tiler,
 fragment jobs and shader execution on this GPU. It cannot say how many of the four cores did the work.
-The temperature range says nothing about real load: 100 short memory writes
-with idle gaps at each clock, then 20 tiny frames, well under a second of GPU work. Job times fell from 754 us to 131 us at the higher clock, which points
+The temperature range says nothing about real load: the runs before run 6, and runs 6 and 7 only reach about 0.5 W by calculation. The sensor question above limits it further. Job times fell from 754 us to 131 us at the higher clock, which points
 the same way as the registers but does not measure the clock. The rail is a register value and the clock is a mux register plus the
 framework's rate. Neither was measured. Runtime-suspended domain cycling stays forbidden, so no
 idle power saving exists: while loaded, the rail and the domains stay on.
