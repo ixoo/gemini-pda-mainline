@@ -41,18 +41,33 @@ carry `mac` `773e1694…` in the RAM root and load it at boot. Read from the ret
 | `e1706072` | 34 | 638 | 1 | 0 | 0 |
 | `c09fb418` | 35 | 3827 | 1 | 0 | 1 |
 | `5895e1f1` | 36 | 626 | not counted | not counted | 0 |
+| `6b3acef8` | 36 | not counted | not counted | not counted | 1 |
 
 These boots ran for other tests, so they show a working join and not a measured hold. Their logs
 do not show whether the link carried traffic throughout.
 
-The last row is the custodian's report (`mac` `773e1694…` unchanged, boot2 `d1a882db`): a clean first
-join and no restart through 626 s.
+The last two rows are the custodian's reports on one image (`mac` `773e1694…`, boot2 `d1a882db`): a
+clean first join with no restart through 626 s, then a fault on the next boot.
 
-**New finding, first-join fault.** In 2 of these 6 boots the first join after boot failed: mac80211
-reports `authenticated`, then about 0.7 s later `join stopped: status=-110 ... branch=1`, before
-association. The restart from 0443 recovered it in about 6 s on station 35, with no manual action.
-The cause is not known. It may not recur in this test, which stays on one boot, so a later boot
-count has to measure it.
+**New finding, first-join fault.** In 3 of these 7 boots the first join after boot failed: mac80211
+reports `authenticated`, then about 0.74 s later `join stopped: status=-110 first=0 submitted=0x800
+debt=0 cleanup=0 branch=1`, before association.
+
+Read from the retained logs, every faulted boot lacks the `join TX status: pid=1` line, and all four
+clean boots have it about 30 µs before the authentication response:
+
+- The access point answered, so the frame went out, and `debt=0` shows its pages came back.
+- The 0.74 s fits the 750 ms wait for that status, from the frame's submission.
+
+So the status for the first authentication frame did not reach the join path. Either the firmware did not send
+it or the driver discarded it: the worker skips an event with another PID without logging it. This
+log cannot tell which. The same image both joined and faulted, so the image does not decide it.
+
+Recovery is not always hands-free. The firmware restart returned `status=0` each time, and station
+35 then associated within about 6 s. On `6b3acef8` there was no lease after 60 s, and rerunning
+`wifi-up.sh` leased at once; why is not known.
+
+This test stays on one boot, so it may not see the fault; a boot count has to measure it.
 
 ## Safety assessment
 
