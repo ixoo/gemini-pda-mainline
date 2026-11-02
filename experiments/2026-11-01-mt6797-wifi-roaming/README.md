@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `completed`: closed by the owner as a success for now, with limits, on boot `6b3acef8`. `wpa_cli roam` works on one boot; on three walks the device moved by itself on some, weak links carry data with rate control (0471), gaps up to about 27 s, little actual roaming on the third walk. Channel 48's handshake and channel 149 are not understood; 0473 run on a strong link only. Fixes written to boot2, not booted yet |
+| Status | `completed`: closed by the owner as a success for now, with limits, on boot `6b3acef8`. `wpa_cli roam` works on one boot; on three walks the device moved by itself on some, weak links carry data with rate control (0471), gaps up to about 27 s, little actual roaming on the third walk. Channel 48's handshake and channel 149 are not understood; 0473 run on a strong link only. Fixes are in boot2, first booted as `92cd3b53` |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -770,7 +770,9 @@ The owner closed this work, as relayed by the custodian on 2026-11-02: "I think 
 
 ### In boot2, as the custodian reports
 
-The owner then asked for the fixes in the image ("I want the fixes in our mainline", then "Yes, test and install"). **Nothing has booted this image yet;** the owner selects it physically.
+The owner then asked for the fixes in the image ("I want the fixes in our mainline", then "Yes, test and install").
+
+**First boot of the image, `92cd3b53`, after the owner selected it:** `7.1.3-gemini-a53-station`, tainted=0, no Oops, with `mac` dae8a031, core 2542c418 and CONSYS 28b5435c loaded from the image and `rate_control=Y` by default. After `wifi-up.sh` with passive scan and the original supplicant: COMPLETED on 5200, ping 10 of 10, `sco=3`, no restart or `join stopped`, average -64 dBm. Transmit read MCS0 at 40 MHz just after a low-traffic ping. No transfer was run on this boot, and no walk or weak link. Wi-Fi still needs `wifi.env` copied and `wifi-up.sh` run by hand. CPUs 0-7 were online and 8-9 offline as expected.
 
 - **0473 on boot `6b3acef8`, `mac` dae8a031, strong link only:** `rate_control=Y`, no `txfail`, no restart and no `join stopped`. Ping 300 of 300, 7.6/12.1/22.8 ms. One run each: receive 49.6 Mbit/s, transmit 23.4, at MCS7 and 40 MHz. Phase end: `tx_queued=170482 tx_done=170479 tx_failed=3 tx_probe_failed=1`.
 - **Image:** boot2 `b8b9256b31f5140da69dc191186ba1d45ddfdf2aa24f59f1b03182f827de3aa2`, predecessor `d1a882db`, from main `114d21cc`, profile `mt6797-a53-station-a72`, inventory `b1bb8697`. Guard passed and full readback matched. The custodian did not use the `392ee722` package, since its plain profile would have dropped the late A72 setup the running image has.
