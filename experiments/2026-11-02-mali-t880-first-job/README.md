@@ -418,7 +418,23 @@ are not validated under load**: no shader work ran below 1.0 V for any length of
 `panfrost` refused before any power step: `VGPU at 850000 uV`. Run 11's unload left the rail at the lowest point, and the
 DVFS path checked for its start voltage without setting it. No shader work ran. `0490` raises the rail before enabling.
 
-## Analysis
+### Run 13, same boot: each OPP under load, then idle power-off with DVFS
+
+With `0490`, one run each, no fault, same pixel, 128,66,0, at every point. The rail reads come from the script's state lines, not
+continuously.
+
+| Pinned | Rail | Frames in 30 s | Slowest | SoC at end |
+| --- | --- | --- | --- | --- |
+| 442.5 MHz | 937500 uV | 3608 | 13 ms | 35.3 C |
+| 365 MHz | 912500 uV | 2988 | 15 ms | 34.7 C |
+| 238 MHz | 850000 uV | 2056 | 18 ms | 33.5 C |
+
+Idle power-off with DVFS, 300 light frames with 100 ms gaps: 300 of 300 correct. Those frames kept devfreq at 238 MHz, so no rate
+change happened around a power cycle.
+
+**Limits.** One chip, one run each, 30 s, cool and near room temperature. These are table values with no EEM, and vendor EEM
+exists because margins vary with temperature and unit, so the hot end is not covered.
+
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
 identifies as `0x880` with four shader cores, and it completes bounded jobs through its own MMU

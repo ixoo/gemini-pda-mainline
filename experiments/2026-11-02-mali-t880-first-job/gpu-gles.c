@@ -13,6 +13,8 @@
  * every 5 s. Every frame must give the first frame's pixel, so a computing error
  * under load fails the run. With --perfcnt, a 5 s window of the GPU's counters is
  * printed raw, by block, for offline reading (needs panfrost unstable_ioctls=1).
+ * --burst waits --gap-ms after that many frames, so devfreq and idle power-off both
+ * have something to do. A slowest frame then includes the gap.
  *
  * It stops before any frame if the SoC zone is at or above --max-mc, or the
  * optional --battery-zone at or above --battery-max-mc.
@@ -122,7 +124,7 @@ static void perfcnt_print(int fd, long window_us)
 }
 
 static int run_load(GLint color, int seconds, int size, const char *zone, int max_mc,
-		    const char *battery, int battery_max_mc, int perfcnt)
+		    const char *battery, int battery_max_mc, int perfcnt, int burst, int gap_ms)
 {
 	struct panfrost_perfcnt_enable en = { .enable = 1 };
 	struct timespec window_start = { 0 };
@@ -159,6 +161,11 @@ static int run_load(GLint color, int seconds, int size, const char *zone, int ma
 			return 1;
 		}
 		frames++;
+		if (burst && !(frames % burst)) {
+			struct timespec gap = { gap_ms / 1000, gap_ms % 1000 * 1000000L };
+
+			nanosleep(&gap, NULL);
+		}
 
 		clock_gettime(CLOCK_MONOTONIC, &b);
 		elapsed_ms = (b.tv_sec - start.tv_sec) * 1000 + (b.tv_nsec - start.tv_nsec) / 1000000;
@@ -212,7 +219,7 @@ int main(int argc, char **argv)
 	PFNEGLGETPLATFORMDISPLAYEXTPROC get_display;
 	const char *zone = NULL, *battery = NULL;
 	int frames = 20, max_mc = 58000, battery_max_mc = 46000, seconds = 0, size = 512, i, n;
-	int perfcnt = 0, gap_ms = 0;
+	int perfcnt = 0, gap_ms = 0, burst = 0;
 	long max_us = 0;
 	EGLConfig cfg;
 	EGLDisplay d;
@@ -236,6 +243,8 @@ int main(int argc, char **argv)
 			seconds = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--size"))
 			size = atoi(argv[i + 1]);
+		else if (!strcmp(argv[i], "--burst"))
+			burst = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--gap-ms"))
 			gap_ms = atoi(argv[i + 1]);
 		else if (!strcmp(argv[i], "--perfcnt"))
@@ -285,7 +294,8 @@ int main(int argc, char **argv)
 	glViewport(0, 0, SIZE, SIZE);
 
 	if (seconds)
-		return run_load(color, seconds, size, zone, max_mc, battery, battery_max_mc, perfcnt);
+		return run_load(color, seconds, size, zone, max_mc, battery, battery_max_mc, perfcnt, burst,
+				gap_ms);
 
 	for (i = 0; i < frames; i++) {
 		/* The red channel changes per frame, so a stale image fails. */
