@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `planned`: patches written and compile-checked; no GPU power-on yet |
+| Status | `planned`: validated package built and requested from the custodian; no GPU power-on yet |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -128,6 +128,22 @@ Read-only `devmem` on boot `92cd3b53`, image `b8b9256b`, after GNSS and Wi-Fi ra
 These contradict the recorded LK modem-boot subset for this boot, and are one read
 of one boot. The RT5735 could not be read: I2C7 is disabled in that DTB.
 
+## Build
+
+| Item | Value |
+| --- | --- |
+| Input commit | `08b51fc31b46455c35e39b57ed4c075daa01b2c2` |
+| Profile | `mt6797-a53-station-a72`, modules built, Buildbox-2, job `...-m1` |
+| Package | `linux-7.1.3-gemini-9e652c87367e5dc190b99e428f5094ff9835d993d6a19c3757bc3239a7168beb` |
+| `Image.gz` | `2af362e95393c01a10e0ccbdf6ed54c2657d2ea06428334e76ccc5ffa2868796` |
+| Station-a72 DTB | `6dae14d6996b79b691fb025656df9e0b7d4f91d77559d2a7c905a92dd000a552` |
+| `panfrost.ko` | `e27897dd9d74b045d09c91e64db1d59c122bdf37daf96dfcaa7740d9a63a5e72` |
+| `gpu-job` | `dc80f5a05218885672151ecfdde278872e065117a0b689885439b6a338c51bed`, built on Buildbox-2 from `b84a1f6a`; source unchanged since |
+
+The package's series also holds `0474`-`0475`, so this image includes the touchscreen
+changes. The DTB reads GPU, I2C7, RT5735 and MFGSYS `okay`, the rail 1.0 V, eight domain
+nodes in total. `System.map` now has `alloc_io_pgtable_ops`.
+
 ## Safety assessment
 
 This changes a rail, clocks and power domains. It writes no partition except the
@@ -206,7 +222,7 @@ None yet.
 
 ## Conclusion
 
-Not yet run. Compile checks passed in the development VM on the station tree:
+Not yet run: this is a build, not hardware support. Compile checks passed in the development VM on the station tree:
 `Image`, modules, the station-a72 DTB with `CHECK_DTBS`, and `dt_binding_check` of the
 GPU binding, which found nothing in the nodes touched here.
 
