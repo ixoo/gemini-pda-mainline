@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; signal thresholds work at the desk; roaming by itself not run, and needs the owner |
+| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; one roam by itself at the desk from `bgscan`; the walk is proposed and waits for the owner's budget |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -99,7 +99,25 @@ scan follows, and the supplicant moves to the stronger access point.
 ## Stage D: the walk
 
 The owner carries the device between access points with no USB, logging to the data partition, read
-afterwards. Protocol to be written after stage C.
+afterwards. Proposed, waiting for the owner's budget.
+
+Hypothesis: with `bgscan="simple:30:-70:300"`, the rebuilt supplicant and 0470, the device changes access point by itself on the way
+out and back, with a gap near the desk's and no firmware restart, and TCP mostly survives.
+
+- **Setup, at the desk on USB:** a new `walk` mode in [`wifi-roam.sh`](wifi-roam.sh) starts the supplicant unpinned, `scan_freq` and
+  `freq_list` set to the access points' non-DFS channels from the map, then runs a repeating download from the laptop and a 5/s ping
+  to the gateway, as at the desk, logging all of it to the data partition. The laptop captures its end of the download.
+- **Walk:** unplug, go to the farthest access point, wait 2 minutes, come back the same way, wait 2 minutes, plug in. 20 minutes at most.
+- **Limits, enforced by the script since nobody can reach the device:** it stops at 20 minutes, 20 roams, 60 active scans or 2 firmware
+  restarts, then restores the normal pinned link. No reboot is needed, and a failure leaves the logs for afterwards.
+
+| Observation | Next |
+| --- | --- |
+| Moves both ways, no restart, gaps under 1 s, TCP survives | Roaming shown on one walk. A second route or a real network manager next |
+| Stays on a far access point until the link is lost | Read the threshold events and decisions; the threshold or the sample rate is the question |
+| Moves, but too often | The hysteresis and the swing; a lower threshold, or `bgscan`'s intervals |
+| TCP stalls again | The capture says whether the laptop kept sending, which separates the network from the station |
+| Firmware restarts | Read `join stopped`; the driver's fault under real movement |
 
 ## Observations
 
@@ -475,6 +493,28 @@ scans on this boot, counting 2 earlier ones it cannot place in another session.
 - Each scan selected the current access point, the stronger by about 9 dB, and `wpa_supplicant_need_to_roam()` returns on that before
   it compares levels. So the live level in a roam decision has not been seen.
 - `iw dev wlan0 link` read 2-5 dB below the scan results for the same access point; which is nearer is not known.
+
+**The first roam by itself: same boot, `mac` `3a6ef88d…`, the rebuilt supplicant, run by the custodian.** Started on channel 40 by
+limiting the network block to it, then widened with `set_network`, with no reconnect. 37 of 40 roams, 9 active scans.
+
+```
+signal threshold: event=0 average=-66 samples=201
+connected scan: admitted=1 channels=2 probing=2 ssids=1
+Using signal poll values for the current BSS: level=-65 snr=27 est_throughput=132300
+Allow reassociation due to difference in signal level (12 >= 4)
+disconnect from AP for new auth
+connected data phase
+```
+
+- From threshold event to data phase took 0.88 s, 0.38 s of it from disconnect to data phase. No ping gap, same `udhcpc` and address, no
+  restart, `join stopped` or taint.
+- The level was live: -65 from the poll against a driver average of -66 and -63 in the scan. This is the path 0470 feeds.
+- The scan came 22 s after association, not at 60 s. Below the threshold, a further 4 dB drop starts a scan at once if the last was
+  over 10 s ago, and here the threshold was set above the signal on purpose. So the desk's swing can start scans once a walking device
+  is under the threshold.
+- The `drain end:` line only appears when frames were owed; there was none here, with only a ping running.
+
+One roam, between two access points, device still. It shows the chain, not roaming on the move.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
