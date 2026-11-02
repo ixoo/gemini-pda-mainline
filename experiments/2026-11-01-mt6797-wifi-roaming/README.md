@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; one roam by itself at the desk from `bgscan`; the walk is approved and not run yet |
+| Status | `running`: stage A passed on one boot; `wpa_cli roam` works both ways on one boot, 21 clean at the driver; under a download one TCP stall in 12 roams, unexplained; roams by itself both ways on one walk, no restarts; one access point refuses the handshake, and weak links pass no received data |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -528,6 +528,45 @@ which is why it went unseen. Booted images and the state after this restart star
 not expected on the walk unless `mac` is swapped again. Not changed in the driver.
 
 The script now restarts `udhcpc` when connected with no address and logs `inet=` in its progress. That branch has not run.
+
+**Stage D, the walk: same boot, `mac` `3a6ef88d…`, the rebuilt supplicant, 20 minutes, two trips, run by the custodian and walked by
+the owner.** The owner allowed the rerun ("Yes, allow a rerun") and offered the second trip. `end=time roams=7 scans=28 restarts=0
+stopped=0`, of the budget's 20 and 60. No firmware restart, no `join stopped`, no taint. Sequence recycling worked (`from=208 to=13`), which
+supports the reading of the aborted start above. The `udhcpc` branch did not run.
+
+| Uptime | Move | Disconnect to data phase | Current vs selected level | Result | `rx_qos` in the phase after |
+| --- | --- | --- | --- | --- | --- |
+| 48001 | 5805 to 5745 | 0.47 s | -75 vs -74 | Moved | 0 |
+| 48014 | 5745 to 5240 | | -92 vs -52 | Handshake failed | |
+| 48031 | to 5240, fresh join, after an authentication timeout on 5200 | | | Handshake failed; joined 5200 at 48056 | 31736 |
+| 48089 | 5200 to 5805 | 0.40 s | -72 vs -59 | Moved | 1143386 |
+| 48325 | 5805 to 5745 | 0.46 s | -72 vs -66 | Moved | 0 |
+| 48357 | 5745 to 5240 | | -81 vs -53 | Handshake failed; joined 5200 at 48373 | 0 |
+| 48496 | 5200 to 5240 | | -78 vs -53 | Handshake failed; joined 5200 at 48512 | 0 |
+| 48846 | 5200 to 5805 | 0.53 s | | Moved | 746162 |
+
+So the device changes access point by itself in both directions, with the handover near the desk's. The walk's other two rows did not
+hold: gaps were not under 1 s, the longest 57 s and 521 s of ping, and downloads failed from 48325 to 48828.
+
+**Every handshake on 5240 failed, 4 of 4, with that access point the strongest at -52 to -53.** Authentication and association pass, by
+reassociation or fresh, so it isn't the roam. Message 2 is sent for each message 1 and acknowledged, with a new status each time, the access point keeps
+sending message 1 about once a second, and deauthenticates with reason 2 after about 4 s. The other three access points complete with the
+same key and supplicant, the same 2/4 handling and the same cipher and key management. So it looks like that access point not accepting message 2, but why is
+not known; a different key on it, or something in our frame that only it checks, would both look like this. It is also the first time this
+device has been on that channel. Not tested with the original supplicant.
+
+**The link stayed up with no received data in all four phases at about -78 or below.** `rx_qos=0`, no block-ack start, ping and TCP dead, while broadcasts and
+beacons arrived and transmits were acknowledged. Average signal in those phases: -83, -78, -79, -80. Every other phase averaged -58 to -70.
+
+- The driver didn't drop these frames: `rx_refused_qos=0` throughout. The `data rx refused` lines are mostly 690-byte frames with `wlan=255`, not from this
+  link's station entry, and a good phase on 5200 had 965 refusals. This also answers the earlier question about those lines, at least for this shape.
+- From this log alone the unicast frames could be undelivered either way: not sent by the access point because our uplink isn't heard or decrypted, or
+  sent and not received. Weak signal correlates, and doesn't obviously explain none at all in 334 s. That is the part to find out.
+- The device was in that state because 5240 had refused it and the supplicant returned to the weak access point, so the two faults compound.
+- `-75 vs -74` moved on estimated throughput, to a worse link than it was leaving.
+
+A correction for the earlier stall too: the laptop was on Wi-Fi then as well, so its own link is another candidate. The laptop's sampler shows no TCP connection
+for 495 s from about 48354, so nothing reached it through this outage.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.

@@ -17,7 +17,8 @@ Status: plan, updated 2026-11-01.
   planned, not yet run.
 - [Roaming](../experiments/2026-11-01-mt6797-wifi-roaming/README.md) on request works on one boot:
   21 clean at the driver between channels 40 and 161. Under a download one TCP connection stalled in 12
-  roams, not explained. One roam by itself at the desk from `bgscan`; roaming on the move is not tested.
+  roams, not explained. On one walk it roamed by itself both ways with no restart, but one access point
+  refuses the handshake and links at about -78 dBm passed no received data.
 - Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
 [HARDWARE_SUPPORT](HARDWARE_SUPPORT.md). This page orders the work and
@@ -58,7 +59,7 @@ What keeps it from being anyone's Wi-Fi:
 | Network choice | `wifi-up.sh` joins by name, from a private file sent over SSH, with an optional BSSID or frequency pin. No NetworkManager test yet |
 | Scan | Passive on all channels of both bands, about 5 s. Wildcard active scan has run once; a named SSID has not |
 | Security | WPA2-PSK only. No PMF (`ieee80211w=0`), so no WPA3. No group-key or PTK rekey: EAPOL after the 4-way handshake is dropped. No 802.1X |
-| Roaming | Scan while associated (0430, 0461) ran 171 times on one boot, link kept. `wpa_cli roam` works on one boot, 21 clean at the driver, one TCP stall under a download (0456-0457, 0463-0469). Signal threshold events work at the desk, from data frames (0458, 0470). One roam by itself at the desk. Not run: roaming on the move |
+| Roaming | Scan while associated (0430, 0461) ran 171 times on one boot, link kept. `wpa_cli roam` works on one boot, 21 clean at the driver, one TCP stall under a download (0456-0457, 0463-0469). Signal threshold events work at the desk, from data frames (0458, 0470). One walk: roams by itself both ways, no restart. Open: one access point refuses the handshake; no received data at about -78 dBm |
 | Regulatory | An update that really changes the domain during a lifetime, such as an access point advertising another country than the one set, ends the lifetime until a module reload |
 | Battery | Receive is polled, since the HIF interrupt line never asserted. No 802.11 power save, and no system suspend on this kernel |
 
