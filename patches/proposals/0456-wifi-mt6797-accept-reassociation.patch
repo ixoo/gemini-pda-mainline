@@ -1,0 +1,178 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 20:46:09 -0500
+Subject: [PATCH 456/458] wifi: mt6797: accept reassociation
+
+A station that moves between access points of one network sends a
+reassociation request, and mac80211 passes it through mgd_prepare_tx. The
+driver refused the unknown subtype there and closed the lifetime, and
+would have dropped the response.
+
+Handle the request and its response like association. The request carries
+the current access point's address, six bytes more before its elements.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c |  4 +--
+ drivers/net/wireless/mediatek/mt6797/join.c | 27 ++++++++++++---------
+ drivers/net/wireless/mediatek/mt6797/main.c | 11 ++++++---
+ 3 files changed, 25 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index 69fbed681..868eb7905 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -53,7 +53,7 @@ mt6797_join_rx_frame(const unsigned char *packet, size_t bytes,
+ 	if ((fc & 0xc70f) || !(allowed_subtypes & (1U << subtype)) ||
+ 	    (mt6797_join_le16(f + 22) & 15))
+ 		return false;
+-	minimum = subtype == 11 || subtype == 1 ? 30 :
++	minimum = subtype == 11 || subtype == 1 || subtype == 3 ? 30 :
+ 		  subtype == 10 || subtype == 12 ? 26 : 0;
+ 	if (!minimum || length < minimum)
+ 		return false;
+@@ -65,7 +65,7 @@ mt6797_join_rx_frame(const unsigned char *packet, size_t bytes,
+ 			      mt6797_join_le16(f + 26) != 2 || length != 30))
+ 		return false;
+ 	/* Association response IEs must be complete, never truncated. */
+-	if (subtype == 1) {
++	if (subtype == 1 || subtype == 3) {
+ 		for (ie = minimum; ie < length; ) {
+ 			if (length - ie < 2 || f[ie + 1] > length - ie - 2)
+ 				return false;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index ac8e9cecd..05dbc171a 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -420,7 +420,7 @@ bool mt6797_join_attempt_open(const struct mt6797_mac *mac,
+ {
+ 	if (subtype == 11)
+ 		return mac->join_auth_attempts < MT6797_JOIN_ATTEMPTS;
+-	if (subtype == 0)
++	if (subtype == 0 || subtype == 2)
+ 		return mac->join_assoc_attempts < MT6797_JOIN_ATTEMPTS;
+ 	return !(mac->join_seen & BIT(subtype));
+ }
+@@ -430,7 +430,7 @@ void mt6797_join_attempt_note(struct mt6797_mac *mac, unsigned int subtype)
+ {
+ 	mac->join_seen |= BIT(subtype);
+ 	mac->join_auth_attempts += subtype == 11;
+-	mac->join_assoc_attempts += subtype == 0;
++	mac->join_assoc_attempts += subtype == 0 || subtype == 2;
+ }
+ 
+ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+@@ -439,6 +439,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 	size_t n = skb->len, ie;
+ 	unsigned int fc, subtype, minimum;
+ 	unsigned int ssid_count = 0, rsn_count = 0;
++	bool assoc;
+ 
+ 	if (n < 24 || n > 2304)
+ 		return false;
+@@ -450,11 +451,14 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 					!ether_addr_equal(f + 10, mac->hw->wiphy->perm_addr) ||
+ 					!ether_addr_equal(f + 16, mac->join_ap))
+ 		return false;
+-	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 12 ? 26 : 0;
++	/* A reassociation request carries the current access point as well. */
++	minimum = subtype == 11 ? 30 : subtype == 0 ? 28 : subtype == 2 ? 34 :
++		  subtype == 12 ? 26 : 0;
+ 	if (!minimum || n < minimum)
+ 		return false;
++	assoc = subtype == 0 || subtype == 2;
+ 	/* A retried association request is validated afresh (0304). */
+-	if (subtype == 0) {
++	if (assoc) {
+ 		mac->join_wmm_requested = false;
+ 		mac->join_ht_requested = false;
+ 	}
+@@ -465,7 +469,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 		return n == 26;
+ 	if (!mt6797_join_le16(f + 26))
+ 		return false;
+-	for (ie = 28; ie < n; ) {
++	for (ie = minimum; ie < n; ) {
+ 		if (n - ie < 2 || f[ie + 1] > n - ie - 2)
+ 			return false;
+ 		if (f[ie] == WLAN_EID_SSID) {
+@@ -496,7 +500,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 		/* One WMM information element (OUI 00:50:f2, type 2, subtype 0,
+ 		 * version 1) with QoS info 0: no U-APSD.
+ 		 */
+-		if (subtype == 0 && f[ie] == WLAN_EID_VENDOR_SPECIFIC &&
++		if (assoc && f[ie] == WLAN_EID_VENDOR_SPECIFIC &&
+ 		    f[ie + 1] == 7 && f[ie + 2] == 0 && f[ie + 3] == 0x50 &&
+ 		    f[ie + 4] == 0xf2 && f[ie + 5] == 2 && f[ie + 6] == 0 &&
+ 		    f[ie + 7] == 1 && !f[ie + 8] && !mac->join_wmm_requested) {
+@@ -505,7 +509,7 @@ static bool mt6797_mac_join_frame(struct mt6797_mac *mac, struct sk_buff *skb)
+ 			continue;
+ 		}
+ 		/* One HT capability element, exactly the advertised one. */
+-		if (subtype == 0 && f[ie] == WLAN_EID_HT_CAPABILITY &&
++		if (assoc && f[ie] == WLAN_EID_HT_CAPABILITY &&
+ 		    f[ie + 1] == 26 &&
+ 		    mt6797_join_ht_cap_ok(f + ie + 2, MT6797_HT_CAP_INFO) &&
+ 		    !mac->join_ht_requested) {
+@@ -2758,8 +2762,9 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+ 					 "one-shot WLAN join RX: subtype=11 status=%u\n",
+ 					 get_unaligned_le16(body + 28));
+-			} else if (frame.subtype == 1) {
+-				if (!(mac->join_submitted & BIT(0)) || mac->join_assoc_received) {
++			} else if (frame.subtype == 1 || frame.subtype == 3) {
++				if (!(mac->join_submitted & BIT(frame.subtype - 1)) ||
++				    mac->join_assoc_received) {
+ 					ret = -EPROTO;
+ 					goto failed;
+ 				}
+@@ -2771,8 +2776,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				mac->join_assoc_status = get_unaligned_le16(body + 26);
+ 				mac->join_aid = get_unaligned_le16(body + 28) & 0x3fff;
+ 				dev_info(wiphy_dev(mac->hw->wiphy),
+-					 "one-shot WLAN join RX: subtype=1 status=%u\n",
+-					 mac->join_assoc_status);
++					 "one-shot WLAN join RX: subtype=%u status=%u\n",
++					 frame.subtype, mac->join_assoc_status);
+ 				mt6797_join_assoc_wmm(mac, body, frame.bytes);
+ 				mt6797_join_assoc_ht(mac, body, frame.bytes);
+ 				if (!mac->join_assoc_status &&
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 107219443..3365f4671 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1240,7 +1240,8 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+ 			min(mac->join_deadline, mac->join_grant_deadline) &&
+ 		   ((info->subtype == IEEE80211_STYPE_AUTH &&
+ 		     !mac->join_authenticated && !mac->join_auth_received) ||
+-		    (info->subtype == IEEE80211_STYPE_ASSOC_REQ &&
++		    ((info->subtype == IEEE80211_STYPE_ASSOC_REQ ||
++		      info->subtype == IEEE80211_STYPE_REASSOC_REQ) &&
+ 		     mac->join_authenticated && !mac->join_assoc_received));
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	admitted = admitted && mt6797_join_attempt_open(mac, subtype);
+@@ -1248,8 +1249,9 @@ static void mt6797_mac_mgd_prepare_tx(struct ieee80211_hw *hw,
+ 	mac->join_tx_allowed = admitted ? BIT(subtype) : 0;
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	if (admitted) {
+-		mac->join_rx_allowed = BIT(info->subtype == IEEE80211_STYPE_AUTH ? 11 : 1) |
+-				       BIT(10) | BIT(12);
++		/* A response has the subtype after its request's. */
++		mac->join_rx_allowed = BIT(info->subtype == IEEE80211_STYPE_AUTH ? 11 :
++					   subtype + 1) | BIT(10) | BIT(12);
+ 	} else {
+ 		if (!mac->first_error)
+ 			mac->first_error = -EOPNOTSUPP;
+@@ -1277,7 +1279,8 @@ static void mt6797_mac_mgd_complete_tx(struct ieee80211_hw *hw,
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ 	if (!mac->join_cleanup_requested && !mac->join_cleanup_done &&
+ 	    vif == mac->vif && !info->link_id &&
+-	    (info->subtype == IEEE80211_STYPE_ASSOC_REQ || !info->success)) {
++	    (info->subtype == IEEE80211_STYPE_ASSOC_REQ ||
++	     info->subtype == IEEE80211_STYPE_REASSOC_REQ || !info->success)) {
+ 		int ret = mt6797_mac_join_request_cleanup(mac);
+ 
+ 		if (ret && !mac->first_error) {
+-- 
+2.43.0
+

@@ -1039,3 +1039,6 @@ proposals/0452-dt-bindings-soc-mediatek-mt6797-consys-add-the-GPS-L.patch
 proposals/0453-arm64-dts-mediatek-gemini-describe-the-GPS-LNA-contr.patch
 proposals/0454-gnss-mt6797-carry-the-DSP-host-protocol-instead-of-G.patch
 proposals/0455-arm64-dts-mediatek-describe-the-clusters-on-the-Gemin.patch
+proposals/0456-wifi-mt6797-accept-reassociation.patch
+proposals/0457-wifi-mt6797-join-without-a-scan-once-the-old-link-is.patch
+proposals/0458-wifi-mt6797-report-the-signal-threshold.patch

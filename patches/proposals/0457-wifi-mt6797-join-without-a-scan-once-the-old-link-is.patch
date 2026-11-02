@@ -1,0 +1,258 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 20:46:09 -0500
+Subject: [PATCH 457/458] wifi: mt6797: join without a scan once the old link
+ is down
+
+A roam joins from an earlier scan's results. mac80211 takes the old link
+down and adds the new station in one call, but a lifetime only opens when
+a scan completes, so the station was refused and the supplicant had to
+scan again. The channel also changed under the old link's teardown, whose
+deauthentication still uses it.
+
+Hold the last station removal until that teardown ends, wait for the
+re-arm when the next station arrives, and open the lifetime a scan would
+have left. Both waits are bounded at one second; a late end refuses that
+join as before.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |   4 +
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |   4 +
+ drivers/net/wireless/mediatek/mt6797/main.c   | 153 +++++++++++++-----
+ 3 files changed, 123 insertions(+), 38 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 05dbc171a..61694b577 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2979,6 +2979,10 @@ int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	int ret;
+ 
+ 	mutex_lock(&mac->mutex);
++	/* A roam joins from an earlier scan, as soon as the old link is down. */
++	mt6797_mac_join_await(mac, false);
++	if (!mac->scan_active && !mac->join_scan_ready)
++		mt6797_mac_join_open_lifetime(mac);
+ 	if (mac->scan_active || !mac->join_scan_ready) {
+ 		refused = (mac->scan_active ? BIT(0) : 0) |
+ 			  (mac->join_scan_ready ? 0 : BIT(1));
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index f4834eafe..9924e1aa2 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -381,6 +381,8 @@ struct mt6797_join_pid_pool {
+ #define MT6797_JOIN_DATA_BUDGET_MS 60000U
+ 
+ #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
++/* Teardown then re-arm took about 150 ms on station 31. */
++#define MT6797_JOIN_AWAIT_MS 1000U
+ 
+ /* The data phase runs inside the channel grant (the reference's first data
+  * frames did) and ends this long before the grant does. The tail covers, in
+@@ -770,6 +772,8 @@ void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *source,
+ 
+ void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb);
+ 
++int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac);
++void mt6797_mac_join_await(struct mt6797_mac *mac, bool teardown);
+ int mt6797_mac_send(struct mt6797_mac *mac,
+ 		    enum mt6797_normal_config_kind kind,
+ 			   const u8 *payload, size_t bytes);
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 3365f4671..ffd8dc04e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -871,6 +871,98 @@ static void mt6797_mac_scan_work(struct work_struct *work)
+ 		ieee80211_scan_completed(mac->hw, &info);
+ }
+ 
++/* Everything a scan or a scanless join needs from the firmware first. Called
++ * with the mutex held.
++ */
++static int mt6797_mac_lifetime_begin(struct mt6797_mac *mac)
++{
++	u8 bss[12];
++	u8 broadcast[4] = {8, 0, 0, 0};
++	int ret;
++
++	/* Retire before the first write: an uncertain activation/submission
++	 * cannot be retried or treated as an effect-free rejection.
++	 */
++	mac->scan_used = true;
++	/* 0180: count the lifetime at its first effectful submission (this scan).
++	 * An idle scan hands the count back when it is retired.
++	 */
++	if (mac->join_lifetimes < U8_MAX)
++		mac->join_lifetimes++;
++	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
++	if (ret) {
++		mac->first_error = ret;
++		return ret;
++	}
++	if (mac->monitor_left_on) {
++		ret = mt6797_hif_diag_mask(mac->hif, mac->sequence++, false,
++					   ktime_get_ns() + NSEC_PER_SEC);
++		dev_info(wiphy_dev(mac->hw->wiphy),
++			 "one-shot WLAN mask-control submission: enable=0 status=%d\n", ret);
++		if (ret) {
++			mac->first_error = ret;
++			return ret;
++		}
++		mac->monitor_left_on = false;
++	}
++	/* The normal gen3 RX-mode path requests broadcast reception. Send
++	 * only that supported filter word; no native/monitor selector is used.
++	 * Submission and returned command credit do not prove application.
++	 */
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_BROADCAST,
++			      broadcast, sizeof(broadcast));
++	if (ret)
++		return ret;
++	mt6797_scan_bss(mac->hw->wiphy->perm_addr, true, bss);
++	ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE, bss, sizeof(bss));
++	if (ret)
++		return ret;
++	mac->bss_active = true;
++	return 0;
++}
++
++/* A join from an earlier scan's results, as in a roam: open the lifetime a scan
++ * would have left. Called with the mutex held, on a re-armed idle driver.
++ */
++int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac)
++{
++	unsigned long flags;
++	u64 end;
++	int ret;
++
++	if (!mac->scan_ready || !mac->started || mac->closing || mac->first_error ||
++	    mac->join_closed || mac->scan_used || mac->scan_online ||
++	    mac->scan_online_cancel)
++		return -EOPNOTSUPP;
++	if (!mac->sequence_base)
++		mac->sequence_base = mac->sequence;
++	ret = mt6797_mac_lifetime_begin(mac);
++	/* The peer commands start from an idle ledger, as after a scan. */
++	end = ktime_get_ns() + 500 * NSEC_PER_MSEC;
++	while (!ret && !mt6797_hif_normal_idle(mac->hif)) {
++		if (ktime_get_ns() >= end)
++			ret = -ETIMEDOUT;
++		else
++			ret = mt6797_mac_scan_guard(mac, end);
++	}
++	if (ret) {
++		if (!mac->first_error)
++			mac->first_error = ret;
++		mac->closing = true;
++		return ret;
++	}
++	mac->join_scan_ready = true;
++	mac->join_deadline = ktime_get_ns() + 10 * NSEC_PER_SEC;
++	spin_lock_irqsave(&mac->join_queue.lock, flags);
++	mac->join_running = true;
++	schedule_delayed_work(&mac->join_work, msecs_to_jiffies(20));
++	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
++	dev_info(wiphy_dev(mac->hw->wiphy),
++		 "one-shot WLAN join without a scan: lifetime=%u sequence=%u\n",
++		 mac->join_lifetimes, mac->sequence);
++	return 0;
++}
++
+ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
+ 			      struct ieee80211_scan_request *request)
+ {
+@@ -880,8 +972,6 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	bool online;
+ 	unsigned int i, probing = 0, passive = 0;
+ 	u64 mask = 0;
+-	u8 bss[12];
+-	u8 broadcast[4] = {8, 0, 0, 0};
+ 	int ret = -EOPNOTSUPP, slot;
+ 
+ 	mutex_lock(&mac->mutex);
+@@ -970,44 +1060,9 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		ret = 0;
+ 		goto out;
+ 	}
+-	/* Retire before the first write: an uncertain activation/submission
+-	 * cannot be retried or treated as an effect-free rejection.
+-	 */
+-	mac->scan_used = true;
+-	/* 0180: count the lifetime at its first effectful submission (this scan).
+-	 * An idle scan hands the count back when it is retired.
+-	 */
+-	if (mac->join_lifetimes < U8_MAX)
+-		mac->join_lifetimes++;
+-	ret = mt6797_mac_scan_guard(mac, ktime_get_ns() + NSEC_PER_SEC);
+-	if (ret) {
+-		mac->first_error = ret;
+-		goto out;
+-	}
+-	if (mac->monitor_left_on) {
+-		ret = mt6797_hif_diag_mask(mac->hif, mac->sequence++, false,
+-					   ktime_get_ns() + NSEC_PER_SEC);
+-		dev_info(wiphy_dev(hw->wiphy),
+-			 "one-shot WLAN mask-control submission: enable=0 status=%d\n", ret);
+-		if (ret) {
+-			mac->first_error = ret;
+-			goto out;
+-		}
+-		mac->monitor_left_on = false;
+-	}
+-	/* The normal gen3 RX-mode path requests broadcast reception. Send
+-	 * only that supported filter word; no native/monitor selector is used.
+-	 * Submission and returned command credit do not prove application.
+-	 */
+-	ret = mt6797_mac_send(mac, MT6797_NORMAL_SCAN_BROADCAST,
+-			      broadcast, sizeof(broadcast));
+-	if (ret)
+-		goto out;
+-	mt6797_scan_bss(hw->wiphy->perm_addr, true, bss);
+-	ret = mt6797_mac_send(mac, MT6797_NORMAL_BSS_ACTIVE, bss, sizeof(bss));
++	ret = mt6797_mac_lifetime_begin(mac);
+ 	if (ret)
+ 		goto out;
+-	mac->bss_active = true;
+ 	mac->scan_total = request->req.n_channels;
+ 	mac->scan_next = 0;
+ 	mac->scan_sequence = 0;
+@@ -1623,6 +1678,23 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	return ret;
+ }
+ 
++/* Called with the mutex held, which it drops while waiting; the worker owns
++ * both ends. Bounded: a late end costs that join, never a stuck mac80211 call.
++ */
++void mt6797_mac_join_await(struct mt6797_mac *mac, bool teardown)
++{
++	u64 end = ktime_get_ns() + (u64)MT6797_JOIN_AWAIT_MS * NSEC_PER_MSEC;
++
++	while (ktime_get_ns() < end && !mac->first_error && !mac->closing &&
++	       !mac->join_closed && (teardown ?
++	       mac->join_peer_used && !mac->join_cleanup_done :
++	       mac->scan_used && !mac->scan_active && !mac->join_scan_ready)) {
++		mutex_unlock(&mac->mutex);
++		msleep(5);
++		mutex_lock(&mac->mutex);
++	}
++}
++
+ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 				struct ieee80211_vif *vif, struct ieee80211_sta *sta,
+ 				enum ieee80211_sta_state old,
+@@ -1688,6 +1760,11 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 					}
+ 				}
+ 			}
++			/* mac80211 moves to a new access point's channel straight
++			 * after this. The deauthentication still uses the old one.
++			 */
++			if (!close && new == IEEE80211_STA_NOTEXIST)
++				mt6797_mac_join_await(mac, true);
+ 			mutex_unlock(&mac->mutex);
+ 			if (close)
+ 				mt6797_mac_join_close(mac);
+-- 
+2.43.0
+
