@@ -1050,3 +1050,4 @@ proposals/0463-wifi-mt6797-wait-for-the-ledger-before-a-scanless-jo.patch
 proposals/0464-wifi-mt6797-send-a-reassociation-and-wait-for-idle-b.patch
 proposals/0465-wifi-mt6797-keep-the-link-when-the-supplicant-closes.patch
 proposals/0466-wifi-mt6797-hold-the-loss-report-when-the-keys-are-r.patch
+proposals/0467-wifi-mt6797-read-the-new-access-point-s-BSS-after-th.patch

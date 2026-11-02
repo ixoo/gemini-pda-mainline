@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B's roams reassociate on the second access point but the handshake fails; 0466 addresses the latest reading, not yet rerun |
+| Status | `running`: stage A passed on one boot; stage B has not completed a roam; 0467 addresses the latest stop, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,7 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `feea1084`, inventory `b66ef07c…`, `mac` `96c7d1f4…`, CONSYS `28b5435c…`, core `2542c418…`.
+Package: to be recorded, from the build carrying 0467.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -258,6 +258,33 @@ Reading: the supplicant removes the keys at the start of a roam too, and the dri
 ends in the loss report. The teardown is needed, but the report need not come so soon.
 [0466](../../patches/proposals/0466-wifi-mt6797-hold-the-loss-report-when-the-keys-are-r.patch) holds it for 2 s. If a roam's authentication arrives,
 mac80211 takes the link down itself and the report is dropped. Otherwise it goes out late.
+
+**Stage B, fifth try: same boot, `mac` `96c7d1f4…` (0466), run by the custodian.** 8 of the 40 roams used; one
+roam. The order predicted for 0466 held: `disconnect from AP ... for new auth` appeared for the first time,
+and neither `connection loss report` nor `Connection to AP lost` came before it. The join then stopped
+earlier than on the third and fourth tries, so `No SSID` is not yet tested:
+
+```
+7588.132006 wlan0: disconnect from AP for new auth
+7588.164044 join rearm: lifetime=1 token=2 sta_seq=240 sequence=237
+7588.179631 join without a scan: lifetime=2 sequence=240
+7588.179656 join peer refused: reasons=0x00100 supported=0xff basic=0x15 sequence=240
+7588.179941 join stopped: status=-125 first=0 submitted=0x0 debt=0 cleanup=0 branch=9
+```
+
+Bit 8 is `join_bss_valid`. mac80211 now sets up the new access point before the re-arm ends, and the re-arm
+clears the record. [0467](../../patches/proposals/0467-wifi-mt6797-read-the-new-access-point-s-BSS-after-th.patch) reads it again from mac80211's state.
+Nothing was transmitted on channel 161.
+
+`sta_seq` above `sequence` is not a fault: the station sequence takes the next command sequence, and the
+sequence had recycled since. Module swaps do keep the sequence high on this boot, and a `sequence_base`
+above 128 is not recycled at a re-arm, which matters only for repeated swaps. Not changed.
+
+**A gap for daily use, seen here by the custodian.** After a firmware restart, the supplicant reached `COMPLETED`
+with no IPv4 address on `wlan0` and no route, while `udhcpc` was still running. A `wifi-up.sh` rerun then
+printed `lease after 0s` over an empty gateway ping; only killing `udhcpc` first brought it back. That fits
+the earlier `no lease after 60s`, and shows the script's lease check can pass with no address. A real network
+manager may handle a recreated `wlan0` differently; that is not tested.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.

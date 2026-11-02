@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 23:00:51 -0500
+Subject: [PATCH] wifi: mt6797: read the new access point's BSS after the
+ re-arm
+
+The roam now comes down through mac80211, so the re-arm can finish after
+mac80211 has set up the new access point. The re-arm clears the BSS record,
+and the station was refused with reasons=0x00100.
+
+Read the record again from mac80211's state once the lifetime opens.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |  5 +++-
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  2 ++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 25 ++++++++++++-------
+ 3 files changed, 22 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index bc5516a83..1eab0e197 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -3028,8 +3028,11 @@ int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mutex_lock(&mac->mutex);
+ 	/* A roam joins from an earlier scan, as soon as the old link is down. */
+ 	mt6797_mac_join_await(mac, false);
+-	if (!mac->scan_active && !mac->join_scan_ready)
++	if (!mac->scan_active && !mac->join_scan_ready) {
+ 		mt6797_mac_join_open_lifetime(mac);
++		/* The re-arm cleared what mac80211 set for this access point. */
++		mt6797_mac_join_read_bss(mac, vif, &vif->bss_conf);
++	}
+ 	if (mac->scan_active || !mac->join_scan_ready) {
+ 		refused = (mac->scan_active ? BIT(0) : 0) |
+ 			  (mac->join_scan_ready ? 0 : BIT(1));
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 4cd84d941..9f057d2d0 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -781,6 +781,8 @@ void mt6797_ccmp_connection_lost(struct mt6797_mac *mac, const char *source,
+ void mt6797_ccmp_receive(struct mt6797_mac *mac, struct sk_buff *skb);
+ 
+ int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac);
++void mt6797_mac_join_read_bss(struct mt6797_mac *mac, struct ieee80211_vif *vif,
++			      const struct ieee80211_bss_conf *info);
+ void mt6797_mac_join_await(struct mt6797_mac *mac, bool teardown);
+ int mt6797_mac_send(struct mt6797_mac *mac,
+ 		    enum mt6797_normal_config_kind kind,
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 6dcb539f7..1a8999fc1 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1266,6 +1266,21 @@ static int mt6797_mac_config(struct ieee80211_hw *hw, int radio_idx, u32 changed
+ 	return ret;
+ }
+ 
++/* Called with the mutex held. */
++void mt6797_mac_join_read_bss(struct mt6797_mac *mac, struct ieee80211_vif *vif,
++			      const struct ieee80211_bss_conf *info)
++{
++	mac->join_bss_valid = false;
++	if (mac->vif == vif && !ieee80211_vif_is_mld(vif) && !info->link_id &&
++	    info->bssid && is_valid_ether_addr(info->bssid) && info->beacon_int &&
++	    info->basic_rates && !(info->basic_rates & ~0xffU)) {
++		ether_addr_copy(mac->join_bssid, info->bssid);
++		mac->join_basic_rates = info->basic_rates;
++		mac->join_beacon_interval = info->beacon_int;
++		mac->join_bss_valid = true;
++	}
++}
++
+ static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
+ 					struct ieee80211_vif *vif,
+ 				      struct ieee80211_bss_conf *info,
+@@ -1284,15 +1299,7 @@ static void mt6797_mac_bss_info_changed(struct ieee80211_hw *hw,
+ 			 BSS_CHANGED_BEACON_INT)))
+ 		return;
+ 	mutex_lock(&mac->mutex);
+-	mac->join_bss_valid = false;
+-	if (mac->vif == vif && !ieee80211_vif_is_mld(vif) && !info->link_id &&
+-	    info->bssid && is_valid_ether_addr(info->bssid) && info->beacon_int &&
+-	    info->basic_rates && !(info->basic_rates & ~0xffU)) {
+-		ether_addr_copy(mac->join_bssid, info->bssid);
+-		mac->join_basic_rates = info->basic_rates;
+-		mac->join_beacon_interval = info->beacon_int;
+-		mac->join_bss_valid = true;
+-	}
++	mt6797_mac_join_read_bss(mac, vif, info);
+ 	mutex_unlock(&mac->mutex);
+ }
+ 
+-- 
+2.43.0
+
