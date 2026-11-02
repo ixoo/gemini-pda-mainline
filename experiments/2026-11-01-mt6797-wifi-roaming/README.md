@@ -591,3 +591,15 @@ Also in the first try's log, and again in this run up to 1776.66 s, not investig
 | 5745, `sco=1` | `rx_qos=0`, no replies | The `sco=1` setting at any signal, not weakness; read the channel request for that case |
 | 5745, `sco=1` | Replies, `rx_qos` above 0 | `sco=1` works at this signal; Fault 2 follows signal, and the question is what fails below it |
 | Either | Firmware restart at the join | The sequence wrap after a module swap, as at the walk's start; not this test's answer, rerun once |
+
+**5745 at the desk, boot `6b3acef8`:** the original supplicant completed in 2 s, then 0 of 300 pings came back with `tx_done=326`, `tx_failed=5`, `rx_qos=0`, `rx_nonqos=219` and `rx_refused_qos=0`. The join's average was -79, not the -75 I expected, so this repeats the walk's two phases and rules the rebuilt supplicant and bgscan out of them. It doesn't separate `sco=1` from signal. No restart, and the normal link came back with gateway 3/3.
+
+5240 did not run. At the desk it now reads -83, against -52 on the walk, so a failure there would say little, and its failed joins hit the protocol's stop condition. That test needs a position near that access point.
+
+Next, the same access point and signal at 20 MHz: `wifi-desk-join.sh 5745 ht20` sets `disable_ht40`, and mac80211 then limits the link to 20 MHz, as `net/mac80211/mlme.c` does from the overridden capability. The supplicant differs too, but the rebuilt one showed the same fault on the walk.
+
+| Observation at 20 MHz, `sco=0` | Next |
+| --- | --- |
+| Join is not `sco=0` | The override didn't take; read the supplicant log |
+| Replies, `rx_qos` above 0 | The 40 MHz link is what fails here, as a setting or at this signal; a weak `sco=3` link separates those |
+| No replies, `rx_qos=0` | Not width: signal, or this access point or channel, at any width |

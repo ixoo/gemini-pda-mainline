@@ -3,13 +3,23 @@
 # shellcheck shell=dash
 # Desk test of one access point, with the original supplicant, no bgscan and a
 # pinned address, then back to the normal link:
-#   ssh root@station '/bin/busybox sh -s <freq>' < wifi-desk-join.sh
+#   ssh root@station '/bin/busybox sh -s <freq> [ht20]' < wifi-desk-join.sh
+# ht20 holds the link to 20 MHz, with /run/station/ht/wpa_supplicant, built with
+# HT overrides, in place of the original supplicant.
 # Needs a current /run/station/roam-bss from wifi-roam.sh map. Prints frequency,
 # signal and counters only; the private logs stay in /mnt/data/station/desk-*.
 export PATH=/bin LD_LIBRARY_PATH=/lib
 WPA="wpa_cli -p /run/station/wpa -i wlan0"
 F=$1
-MARK="wifi-desk-join: start $F"
+MODE=${2:-}
+SUPPLICANT=wpa_supplicant
+EXTRA=
+if [ "$MODE" = ht20 ]; then
+	SUPPLICANT=/run/station/ht/wpa_supplicant
+	EXTRA=disable_ht40=1
+	[ -x "$SUPPLICANT" ] || { echo "no $SUPPLICANT"; exit 1; }
+fi
+MARK="wifi-desk-join: start $F $MODE"
 field() { $WPA status | sed -n "s/^$1=//p"; }
 gateway() { ip route | awk '/^default/ { print $3; exit }'; }
 stop_supplicant() {
@@ -36,14 +46,14 @@ line=$(awk -v f="$F" '$2 == f { print; exit }' /run/station/roam-bss)
 [ -n "$line" ] || { echo "no access point on $F in roam-bss"; exit 1; }
 echo "target freq=$F signal=$(echo "$line" | cut -d' ' -f3)"
 
-D=/mnt/data/station/desk-$F-$(cut -d' ' -f1 /proc/uptime)
+D=/mnt/data/station/desk-$F$MODE-$(cut -d' ' -f1 /proc/uptime)
 mkdir -p "$D" || exit 1
 C=/run/station/desk.conf
 umask 077
-awk -v b="${line%% *}" -v f="$F" '
+awk -v b="${line%% *}" -v f="$F" -v x="$EXTRA" '
 	/^[ \t]*(bssid|scan_freq|freq_list|bgscan)=/ { next }
 	{ print }
-	/network=\{/ { print "\tbssid=" b; print "\tscan_freq=" f; print "\tfreq_list=" f }' \
+	/network=\{/ { print "\tbssid=" b; print "\tscan_freq=" f; print "\tfreq_list=" f; if (x != "") print "\t" x }' \
 	/run/station/wpa.conf > "$C"
 
 echo "$MARK" > /dev/kmsg
@@ -51,13 +61,13 @@ cat /dev/kmsg > "$D/kmsg.txt" &
 KMSG=$!
 sleep 2
 stop_supplicant
-wpa_supplicant -dd -Dnl80211 -iwlan0 -c "$C" > "$D/wpa.log" 2>&1 &
+"$SUPPLICANT" -dd -Dnl80211 -iwlan0 -c "$C" > "$D/wpa.log" 2>&1 &
 wait_completed
 if [ "$(field wpa_state)" = COMPLETED ]; then
 	ping -c 300 -i 0.2 "$(gateway)" > "$D/ping.txt" 2>&1
 	grep 'packets transmitted' "$D/ping.txt"
 	echo "after ping state=$(field wpa_state) freq=$(field freq)"
-	$WPA signal | grep -E '^(AVG_RSSI|LINKSPEED|WIDTH)='
+	$WPA signal_poll | grep -E '^(AVG_RSSI|LINKSPEED|WIDTH)='
 fi
 
 stop_supplicant

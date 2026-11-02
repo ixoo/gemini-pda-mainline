@@ -21,6 +21,7 @@ CONFIG_INTERNAL_LIBTOMMATH=y
 CONFIG_IEEE80211N=y
 CONFIG_IEEE80211AC=y
 CONFIG_WNM=y
+CONFIG_HT_OVERRIDES=y
 C
 LDFLAGS=-static make -j8 wpa_supplicant wpa_cli
 strip wpa_supplicant wpa_cli
