@@ -5,7 +5,9 @@
 # pinned address, then back to the normal link:
 #   ssh root@station '/bin/busybox sh -s <freq> [ht20]' < wifi-desk-join.sh
 # ht20 holds the link to 20 MHz, with /run/station/ht/wpa_supplicant, built with
-# HT overrides, in place of the original supplicant.
+# HT overrides, in place of the original supplicant. PEER=<address> in the remote
+# command pings that host on this LAN instead of the gateway, once on the normal
+# link first, so its own ICMP counters show whether the frames reached it.
 # Needs a current /run/station/roam-bss from wifi-roam.sh map. Prints frequency,
 # signal and counters only; the private logs stay in /mnt/data/station/desk-*.
 export PATH=/bin LD_LIBRARY_PATH=/lib
@@ -56,6 +58,8 @@ awk -v b="${line%% *}" -v f="$F" -v x="$EXTRA" '
 	/network=\{/ { print "\tbssid=" b; print "\tscan_freq=" f; print "\tfreq_list=" f; if (x != "") print "\t" x }' \
 	/run/station/wpa.conf > "$C"
 
+T=${PEER:-$(gateway)}
+ping -c 3 -W 2 "$T" | grep 'packets transmitted'
 echo "$MARK" > /dev/kmsg
 cat /dev/kmsg > "$D/kmsg.txt" &
 KMSG=$!
@@ -64,7 +68,7 @@ stop_supplicant
 "$SUPPLICANT" -dd -Dnl80211 -iwlan0 -c "$C" > "$D/wpa.log" 2>&1 &
 wait_completed
 if [ "$(field wpa_state)" = COMPLETED ]; then
-	ping -c 300 -i 0.2 "$(gateway)" > "$D/ping.txt" 2>&1
+	ping -c 300 -i 0.2 "$T" > "$D/ping.txt" 2>&1
 	grep 'packets transmitted' "$D/ping.txt"
 	echo "after ping state=$(field wpa_state) freq=$(field freq)"
 	$WPA signal_poll | grep -E '^(AVG_RSSI|LINKSPEED|WIDTH)='

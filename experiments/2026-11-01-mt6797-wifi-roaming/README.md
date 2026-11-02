@@ -603,3 +603,20 @@ Next, the same access point and signal at 20 MHz: `wifi-desk-join.sh 5745 ht20` 
 | Join is not `sco=0` | The override didn't take; read the supplicant log |
 | Replies, `rx_qos` above 0 | The 40 MHz link is what fails here, as a setting or at this signal; a weak `sco=3` link separates those |
 | No replies, `rx_qos=0` | Not width: signal, or this access point or channel, at any width |
+
+**5745 with `ht20`:** the supplicant reported `WIDTH=20 MHz`, `LINKSPEED=13` and `AVG_RSSI=-76`, and 2 of 300 pings came back, with `tx_done=288`, `tx_failed=4` and `rx_qos=4`. It isn't a clean 20 MHz test: the channel grant still read `sco=1`. mac80211 takes the override at association (`ifmgd->ht_capa`, `net/mac80211/mlme.c`), and the driver had already asked for its channel with the 40 MHz definition used for authentication. So my row for that case, "the override didn't take", was wrong: it took for the link and not for the grant. Lowering the negotiated width did not bring the link back, which makes width less likely but doesn't exclude the radio's 40 MHz setting.
+
+Inference, not yet observed: the access point may not be sending these replies at all, which would put the loss above the acknowledgement on our uplink.
+
+- Across this boot's log, tid 0 block-ack sessions open within about a second of a working link, and tid 6 too. None opened on tid 0 in this run or in the walk's dead phases, though action frames do arrive, as the two on tid 5 and one on tid 6 here show.
+- The two tid 5 sessions opened with start sequence 0 and then 1, about when the two replies arrived. The first reply came about 50 s into the ping. If those replies are tid 5, the access point numbered only those two frames there. Which tid they used isn't logged.
+
+This does not fit all of the "weak signal" reading: our frames are acknowledged by the access point at 13 Mb/s, and the broadcast and action frames we receive show the link itself works.
+
+Next, the same join with `PEER` set to the laptop's address on this LAN, reading the laptop's ICMP input counter with `netstat -s -p icmp` before and after, which needs no capture rights.
+
+| Echo requests at the laptop, of 300 | Device replies | Reading |
+| --- | --- | --- |
+| About 300 | About 0 | Uplink works; the replies don't reach the device. Back to the receive path |
+| About 300 | About 300 | The fault is on the path to the gateway; the device and access point work |
+| About 0 | About 0 | The frames are acknowledged but not forwarded, for example not decrypted by that access point. Read the key installation and transmit descriptor |
