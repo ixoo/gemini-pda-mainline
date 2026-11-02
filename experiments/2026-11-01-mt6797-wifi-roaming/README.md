@@ -87,7 +87,7 @@ same with a transfer running.
 
 ## Stage C: roam by itself
 
-`bgscan` in `wpa_supplicant`, if the RAM root's build has it, with the owner moving the device on USB
+`bgscan` in `wpa_supplicant`, from [the rebuild](build-wpa-supplicant.sh), with the owner moving the device on USB
 or a far access point. Hypothesis: `signal threshold` lines appear at a usable rate, a connected
 scan follows, and the supplicant moves to the stronger access point.
 
@@ -95,7 +95,6 @@ scan follows, and the supplicant moves to the stronger access point.
 | --- | --- |
 | Roams by itself | Stage D |
 | Sample count too low on an idle link | Feed the average from data frames as well |
-| `bgscan` absent from the build | Rebuild the tool or drive roams with a small script |
 
 ## Stage D: the walk
 
@@ -427,10 +426,10 @@ One stall in 12 roams means the 4 roams left would catch another only about a qu
 laptop capture is not worth them. It belongs with the next budget.
 
 **Stage C, first step: no `bgscan` in the RAM root.** The custodian read the binary: `wpa_supplicant` v2.11 here has the
-config field and no `simple` or `learn` module. Nothing ran, and no roam or scan was spent. A rebuild is not the obvious next
-step: as the custodian recalls, not checked against the source, `bgscan_simple` scans with the network's SSID, and the driver
-turns any scan with an SSID into probing on channels that allow it. At a 15 s interval that would use the radio protocol's ten
-active scans in about 3 minutes. Signal thresholds do not need `bgscan`, so 0458 is tested first with `iw`, which sends no frames.
+config field and no `simple` or `learn` module. Nothing ran, and no roam or scan was spent. `bgscan_simple` in the 2.11 source
+scans with the network's SSID, and the driver turns any scan with an SSID into probing on channels that allow it. At a 15 s
+interval that would use the radio protocol's ten active scans in about 3 minutes. Signal thresholds do not need `bgscan`, so
+0458 is tested first with `iw`, which sends no frames.
 
 **0458 alone produced nothing.** `mac` `3ba824b1…`, signal -60: `iw dev wlan0 cqm rssi -40 2` returned 0, and in 30 s there was
 no `signal threshold` line and no `iw event`. No roam or scan was spent, and the link was unharmed. This image can't say why.
@@ -455,6 +454,16 @@ the threshold with the sample and beacon counts, and the end of the drain. Packa
 - No taint, restart or `join stopped`, and no ping gap.
 
 This shows the events reach userspace. It doesn't show roaming by itself, which needs a trigger and the device moving.
+
+**A supplicant with `bgscan`.** The owner chose a rebuild over a script on 2026-11-02 ("Rebuild with bgscan"), the real
+behaviour over a test-only one. [`build-wpa-supplicant.sh`](build-wpa-supplicant.sh) builds 2.11 statically in the dev VM, as the
+station's other tools are, `wpa_supplicant` `ff292b2a…` and `wpa_cli` `60a415c8…`. It has no EAP or SAE, which this network does not use.
+
+Reading the 2.11 source: a roam decision takes the current level from a signal poll, using the beacon average if the driver
+reports one and otherwise the station's average. mac80211 reports no beacon average with beacon filtering, so the level comes
+from the data-frame signal that 0470 added; before it there was none. A roam then needs the target about 5 dB stronger at -70 dBm and
+above, 1 dB at -86 and below, adjusted by estimated throughput. `bgscan_simple` asks for a 4 dB hysteresis, smaller than the
+6 dB swing seen at the desk, so the threshold should sit well below a healthy signal.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
