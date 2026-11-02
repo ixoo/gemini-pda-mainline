@@ -405,8 +405,16 @@ loads these modules at boot.
 
 ## Follow-up
 
-Boot image batch, needing the owner's boot2 selection: drop `clocks` from the station's `scpsys` node, and read
-each thermal bank, since `soc-thermal` reports only the maximum and nothing yet shows bank 1 sees the GPU.
+Built for a boot image, waiting for the owner's boot2 selection, all compile-checked only:
+
+- Idle power-off, `mt6797_idle_off` (`0485`). The usage leak on the running boot blocks suspend, so it needs a boot.
+- Per-bank temperatures in debugfs (`0486`), since `soc-thermal` reports only the maximum and nothing yet shows
+  bank 1 sees the GPU.
+- PLL parking on a running GPU (`0487`), an OPP table from 238 to 520 MHz, devfreq and a cooling map at 58 C (`0488`,
+  `0489`), behind `mt6797_dvfs`.
+
+The scpsys clock stays for now. It is what stops the loader's running PLL on first load, so removing it
+needs its own way to stop that PLL, or a boot leaves it running.
 
 
 1. A bounded sustained load at a tested clock, with its temperature curve. This is the next new risk,

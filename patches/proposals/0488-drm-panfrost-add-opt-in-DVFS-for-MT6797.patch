@@ -1,0 +1,125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:29:15 -0500
+Subject: [PATCH] drm/panfrost: add opt-in DVFS for MT6797
+
+Hand the rate and voltage to Panfrost's devfreq and the DT's OPP table behind
+mt6797_dvfs, off until it has run, so the existing fixed points still work with a
+table in the DT. Start at 442.5 MHz, where the rail the loader leaves covers it,
+and refuse a rail below that point's voltage.
+
+With the table in the DT, the fixed points set the voltage themselves, since the
+DT's range no longer forces it to 1.0 V.
+---
+ drivers/gpu/drm/panfrost/panfrost_devfreq.c |  3 +++
+ drivers/gpu/drm/panfrost/panfrost_device.h  |  2 ++
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c  | 29 +++++++++++++++++++--
+ 3 files changed, 32 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_devfreq.c b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+index b51c30778..1e3d62198 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_devfreq.c
++++ b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+@@ -127,6 +127,9 @@ int panfrost_devfreq_init(struct panfrost_device *pfdev)
+ 	struct panfrost_devfreq *pfdevfreq = &pfdev->pfdevfreq;
+ 	unsigned long freq = ULONG_MAX;
+ 
++	if (pfdev->comp->platform_ops && !pfdev->comp->platform_ops->use_opps())
++		return 0;
++
+ 	if (pfdev->comp->num_supplies > 1) {
+ 		/*
+ 		 * GPUs with more than 1 supply require platform-specific handling:
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+index 47f342c50..ee7f6e38b 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.h
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -102,6 +102,8 @@ struct panfrost_platform_ops {
+ 	void (*unpower_late)(struct panfrost_device *pfdev);
+ 	/* Whether runtime suspend must not power the domains off. */
+ 	bool (*keep_powered)(void);
++	/* Whether to use the OPP table, with devfreq and cooling. */
++	bool (*use_opps)(void);
+ };
+ 
+ /*
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index d58501932..4084469a0 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -11,6 +11,9 @@
+  * running clock and the MFGPLL is not touched. mt6797_khz programs the MFGPLL
+  * instead, here only, with the GPU clock gated and its domains off: the vendor
+  * parks the divider across a change on a running GPU, which this never does.
++ *
++ * mt6797_dvfs instead hands voltage and rate to Panfrost's devfreq and the DT's
++ * OPP table, whose changes on a running GPU the clock driver parks.
+  */
+ 
+ #include <linux/clk.h>
+@@ -47,6 +50,9 @@
+ #define MT6797_MFG_IDLE_TIMEOUT_US	100000
+ 
+ #define MT6797_VGPU_UV			1000000
++/* The OPP table's voltage for its start rate. */
++#define MT6797_DVFS_START_KHZ		442500
++#define MT6797_DVFS_START_UV		937500
+ /* The vendor's table holds these at or under 1.0 V, before and after its EEM. */
+ #define MT6797_MAX_RATE			520000000
+ #define MT6797_RATE_TOLERANCE		1000000
+@@ -76,6 +82,10 @@ static const struct {
+ 	{ MT6797_GPULDO_VOSEL_8, GENMASK(31, 0), 0x0000000f },
+ };
+ 
++static bool mt6797_dvfs;
++module_param_named(mt6797_dvfs, mt6797_dvfs, bool, 0444);
++MODULE_PARM_DESC(mt6797_dvfs, "MT6797: use the OPP table, devfreq and cooling (default off)");
++
+ static bool mt6797_idle_off;
+ module_param_named(mt6797_idle_off, mt6797_idle_off, bool, 0444);
+ MODULE_PARM_DESC(mt6797_idle_off, "MT6797: power the GPU domains off when idle (default off)");
+@@ -135,7 +145,9 @@ static int mt6797_set_clocks(struct device *dev, struct panfrost_mt6797 *mt)
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "failed to set the 52M parent\n");
+ 
+-	if (mt6797_khz == 442500 || mt6797_khz == 520000)
++	if (mt6797_dvfs)
++		ret = clk_set_rate(sel, MT6797_DVFS_START_KHZ * 1000UL);
++	else if (mt6797_khz == 442500 || mt6797_khz == 520000)
+ 		ret = clk_set_rate(sel, mt6797_khz * 1000UL);
+ 	else if (mt6797_khz)
+ 		ret = -EINVAL;
+@@ -247,8 +259,15 @@ static int mt6797_power_early(struct panfrost_device *pfdev)
+ 	if (ret)
+ 		goto err_put_reset;
+ 
++	/* devfreq sets the voltage from the table, so hold no request of ours then. */
++	if (!mt6797_dvfs) {
++		ret = regulator_set_voltage(mt->vgpu, MT6797_VGPU_UV, MT6797_VGPU_UV);
++		if (ret)
++			goto err_put_reset;
++	}
++
+ 	ret = regulator_get_voltage(mt->vgpu);
+-	if (ret != MT6797_VGPU_UV) {
++	if (ret < (mt6797_dvfs ? MT6797_DVFS_START_UV : MT6797_VGPU_UV) || ret > MT6797_VGPU_UV) {
+ 		ret = dev_err_probe(dev, -ERANGE, "VGPU at %d uV\n", ret);
+ 		goto err_put_reset;
+ 	}
+@@ -361,10 +380,16 @@ static bool mt6797_keep_powered(void)
+ 	return !mt6797_idle_off;
+ }
+ 
++static bool mt6797_use_opps(void)
++{
++	return mt6797_dvfs;
++}
++
+ const struct panfrost_platform_ops panfrost_mt6797_ops = {
+ 	.power_early = mt6797_power_early,
+ 	.power_late = mt6797_power_late,
+ 	.unpower_early = mt6797_unpower_early,
+ 	.unpower_late = mt6797_unpower_late,
+ 	.keep_powered = mt6797_keep_powered,
++	.use_opps = mt6797_use_opps,
+ };

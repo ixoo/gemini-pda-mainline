@@ -1,0 +1,61 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:29:15 -0500
+Subject: [PATCH] thermal: mediatek: read each MT6797 bank through
+ debugfs
+
+The zone reports the maximum of the banks, so a test cannot tell whether a load
+warms the sensor the vendor assigns to it. The GPU work needs that: nothing yet
+shows that bank 1 sees the GPU, though its limits lean on it.
+
+Add a read-only file, using the path the zone already reads through.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index 32d18a954..a9d55a3b0 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -8,6 +8,8 @@
+  */
+ 
+ #include <linux/clk.h>
++#include <linux/debugfs.h>
++#include <linux/seq_file.h>
+ #include <linux/delay.h>
+ #include <linux/interrupt.h>
+ #include <linux/kernel.h>
+@@ -1456,6 +1458,22 @@ static int mtk_read_temp(struct thermal_zone_device *tz, int *temperature)
+ 	return 0;
+ }
+ 
++static int mtk_thermal_banks_show(struct seq_file *s, void *unused)
++{
++	struct mtk_thermal *mt = dev_get_drvdata(s->private);
++	int i;
++
++	for (i = 0; i < mt->conf->num_banks; i++) {
++		struct mtk_thermal_bank *bank = &mt->banks[i];
++
++		mtk_thermal_get_bank(bank);
++		seq_printf(s, "bank%d %d\n", i, mtk_thermal_bank_temperature(bank));
++		mtk_thermal_put_bank(bank);
++	}
++
++	return 0;
++}
++
+ static const struct thermal_zone_device_ops mtk_thermal_ops = {
+ 	.get_temp = mtk_read_temp,
+ };
+@@ -2379,6 +2397,9 @@ static int mtk_thermal_probe(struct platform_device *pdev)
+ 		return ret;
+ 	}
+ 	mt->tzdev = tzdev;
++	if (mt->conf->version == MTK_THERMAL_V4)
++		debugfs_create_devm_seqfile(&pdev->dev, "mt6797-thermal-banks", NULL,
++					    mtk_thermal_banks_show);
+ 
+ 	ret = devm_thermal_add_hwmon_sysfs(&pdev->dev, tzdev);
+ 	if (ret)

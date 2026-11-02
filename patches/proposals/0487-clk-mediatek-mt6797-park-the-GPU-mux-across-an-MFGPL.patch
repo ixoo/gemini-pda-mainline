@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:29:15 -0500
+Subject: [PATCH] clk: mediatek: mt6797: park the GPU mux across an
+ MFGPLL change
+
+The vendor moves the GPU to another parent while it changes the MFGPLL divider
+on a running GPU. DVFS needs the same. Upstream's mux notifier restores the old
+parent after any rate change, which would undo a deliberate reparent, so this
+one sits on the PLL and only moves the mux when the mux is on the PLL.
+
+Between the two is syspll_d3, at about 364 MHz. Voltage goes first going up and
+clock first going down, so the rail covers that rate on any table point above it,
+and the table's only lower point is left with the rail still at the higher value.
+---
+ drivers/clk/mediatek/clk-mt6797.c | 47 +++++++++++++++++++++++++++++++
+ 1 file changed, 47 insertions(+)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797.c b/drivers/clk/mediatek/clk-mt6797.c
+index 7baa06f27..1da144714 100644
+--- a/drivers/clk/mediatek/clk-mt6797.c
++++ b/drivers/clk/mediatek/clk-mt6797.c
+@@ -4,6 +4,8 @@
+  * Author: Kevin Chen <kevin-cw.chen@mediatek.com>
+  */
+ 
++#include <linux/bitfield.h>
++#include <linux/clk.h>
+ #include <linux/of.h>
+ #include <linux/platform_device.h>
+ 
+@@ -380,6 +382,48 @@ static const struct mtk_composite top_muxes[] = {
+ 	    0x0104, 1, 2),
+ };
+ 
++static bool mt6797_mfgpll_parked;
++
++#define MT6797_CLK_CFG_1		0x0050
++#define MT6797_MFG_SEL_MASK		GENMASK(25, 24)
++#define MT6797_MFG_SEL_MFGPLL		1
++#define MT6797_MFG_SEL_SYSPLL_D3	2
++
++static void __iomem *mt6797_topckgen_base;
++
++/*
++ * The vendor moves the GPU off the MFGPLL while it changes the PLL's divider.
++ * Do so around any PLL change, only when the mux is on it. Unlike a notifier on
++ * the mux, this cannot undo a deliberate change of parent.
++ */
++static int mt6797_mfgpll_notifier(struct notifier_block *nb, unsigned long event, void *data)
++{
++	unsigned long flags;
++	u32 val;
++
++	spin_lock_irqsave(&mt6797_clk_lock, flags);
++	val = readl(mt6797_topckgen_base + MT6797_CLK_CFG_1);
++	if (event == PRE_RATE_CHANGE &&
++	    FIELD_GET(MT6797_MFG_SEL_MASK, val) == MT6797_MFG_SEL_MFGPLL) {
++		val &= ~MT6797_MFG_SEL_MASK;
++		val |= FIELD_PREP(MT6797_MFG_SEL_MASK, MT6797_MFG_SEL_SYSPLL_D3);
++		writel(val, mt6797_topckgen_base + MT6797_CLK_CFG_1);
++		mt6797_mfgpll_parked = true;
++	} else if (event != PRE_RATE_CHANGE && mt6797_mfgpll_parked) {
++		val &= ~MT6797_MFG_SEL_MASK;
++		val |= FIELD_PREP(MT6797_MFG_SEL_MASK, MT6797_MFG_SEL_MFGPLL);
++		writel(val, mt6797_topckgen_base + MT6797_CLK_CFG_1);
++		mt6797_mfgpll_parked = false;
++	}
++	spin_unlock_irqrestore(&mt6797_clk_lock, flags);
++
++	return NOTIFY_OK;
++}
++
++static struct notifier_block mt6797_mfgpll_nb = {
++	.notifier_call = mt6797_mfgpll_notifier,
++};
++
+ static int mtk_topckgen_init(struct platform_device *pdev)
+ {
+ 	struct clk_hw_onecell_data *clk_data;
+@@ -401,6 +445,9 @@ static int mtk_topckgen_init(struct platform_device *pdev)
+ 				    ARRAY_SIZE(top_muxes), base,
+ 				    &mt6797_clk_lock, clk_data);
+ 
++	mt6797_topckgen_base = base;
++	clk_notifier_register(clk_data->hws[CLK_TOP_MFGPLL_CK]->clk, &mt6797_mfgpll_nb);
++
+ 	return of_clk_add_hw_provider(node, of_clk_hw_onecell_get, clk_data);
+ }
+ 

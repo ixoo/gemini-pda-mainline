@@ -12,6 +12,7 @@
 # parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
 # KHZ=442500 or 520000 runs from the MFGPLL instead of parent.
 # IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
+# DVFS=1 uses the OPP table, devfreq and cooling instead of a fixed clock.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
 # Limits, from the vendor (2026-10-31-mt6797-thermal-management): SoC under its 55 C
 # cooler exit to start (also enforced in the driver), and stop at 58 C during a run,
@@ -44,7 +45,21 @@ rail() {
       echo "vgpu state=$(cat "$r/state") microvolts=$(cat "$r/microvolts")"
   done
 }
+banks() {
+  f=/sys/kernel/debug/mt6797-thermal-banks
+  [ -e "$f" ] && echo "banks $(cut -d' ' -f1 /proc/uptime) $(cut -d' ' -f2 "$f" | tr '\n' ' ')"
+}
+devfreq() {
+  for d in /sys/class/devfreq/*; do
+    case "$d" in *gpu*)
+      echo "devfreq cur=$(cat "$d/cur_freq") min=$(cat "$d/min_freq") max=$(cat "$d/max_freq") gov=$(cat "$d/governor")"
+      cat "$d/trans_stat";;
+    esac
+  done
+}
 rpm() {
+  banks
+  devfreq
   echo "--- rpm: $1 uptime $(cut -d' ' -f1 /proc/uptime)"
   p=/sys/devices/platform/13040000.gpu/power
   for f in control runtime_status runtime_usage runtime_active_kids runtime_active_time runtime_suspended_time; do
@@ -70,7 +85,7 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
-  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${IDLE_OFF:+ mt6797_idle_off=1}${PERFCNT:+ unstable_ioctls=1}"
+  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${IDLE_OFF:+ mt6797_idle_off=1}${DVFS:+ mt6797_dvfs=1}${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
   # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
@@ -93,11 +108,14 @@ if [ $rc = 0 ]; then
     echo "gpu-gles exit $rc"
   fi
   if [ "$mode" = load ] && [ $rc = 0 ]; then
+    ( while :; do banks; sleep 5; done ) &
+    sampler=$!
     timeout $((LOAD_SECONDS + 30)) "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" \
       "$here/mesa/gpu-gles" --zone "$zone" --battery-zone "$battery" --seconds "$LOAD_SECONDS" \
       --size "$LOAD_SIZE" --max-mc "$RUN_MAX_MC" --battery-max-mc "$BATTERY_MAX_MC" \
       --perfcnt "${PERFCNT:-0}"; rc=$?
     echo "gpu-gles exit $rc"
+    kill "$sampler"
   fi
   rpm after-job
   sleep 1

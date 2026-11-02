@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 18:29:15 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: add the GPU OPP table
+ and cooling
+
+Add the vendor's table to 520 MHz, widen the rail to cover it, and bind the GPU
+as a cooling device at the vendor policy's first CPU cooling trip. Nothing uses
+the table until panfrost loads with mt6797_dvfs. The trip acts only then too, as
+no cooling device exists before that.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 51 ++++++++++++++++++-
+ 1 file changed, 49 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 72460a45a..e12752f97 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -10,6 +10,7 @@
+ 
+ #include "mt6797-gemini-pda-wifi-service.dts"
+ #include <dt-bindings/iio/adc/mediatek,mt6351-auxadc.h>
++#include <dt-bindings/thermal/thermal.h>
+ 
+ / {
+ 	/*
+@@ -153,6 +154,35 @@ battery: battery {
+ 			3400000 0>;
+ 	};
+ 
++	/*
++	 * The vendor's type 12 table to 520 MHz, each request rounded up to a
++	 * voltage the RT5735 can output. 520 MHz has the 1.0 V the vendor asks for
++	 * before EEM, since mainline has no EEM.
++	 */
++	gpu_opp_table: opp-table-gpu {
++		compatible = "operating-points-v2";
++
++		opp-238000000 {
++			opp-hz = /bits/ 64 <238000000>;
++			opp-microvolt = <850000>;
++		};
++
++		opp-365000000 {
++			opp-hz = /bits/ 64 <365000000>;
++			opp-microvolt = <912500>;
++		};
++
++		opp-442500000 {
++			opp-hz = /bits/ 64 <442500000>;
++			opp-microvolt = <937500>;
++		};
++
++		opp-520000000 {
++			opp-hz = /bits/ 64 <520000000>;
++			opp-microvolt = <1000000>;
++		};
++	};
++
+ 	thermal-zones {
+ 		/*
+ 		 * A kernel backstop under the userspace charging stop: at the
+@@ -174,11 +204,18 @@ battery-critical {
+ 		};
+ 
+ 		soc-thermal {
+-			polling-delay-passive = <0>;
++			polling-delay-passive = <1000>;
+ 			polling-delay = <1000>;
+ 			thermal-sensors = <&thermal>;
+ 
+ 			trips {
++				/* The vendor policy's first CPU cooling trip. */
++				gpu_passive: gpu-passive {
++					temperature = <58000>;
++					hysteresis = <2000>;
++					type = "passive";
++				};
++
+ 				soc-hot {
+ 					temperature = <95000>;
+ 					hysteresis = <2000>;
+@@ -191,6 +228,13 @@ soc-critical {
+ 					type = "critical";
+ 				};
+ 			};
++
++			cooling-maps {
++				map0 {
++					trip = <&gpu_passive>;
++					cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
++			};
+ 		};
+ 	};
+ };
+@@ -278,7 +322,7 @@ &i2c7 {
+ };
+ 
+ &rt5735_vgpu {
+-	regulator-min-microvolt = <1000000>;
++	regulator-min-microvolt = <850000>;
+ 	regulator-max-microvolt = <1000000>;
+ 	regulator-enable-ramp-delay = <350>;
+ 	regulator-ramp-delay = <4000>;
+@@ -301,5 +345,8 @@ &gpu {
+ 	resets = <&watchdog MT6797_TOPRGU_MFG_SW_RST>;
+ 	mediatek,infracfg = <&infrasys>;
+ 	mediatek,mfgsys = <&mfgsys>;
++	operating-points-v2 = <&gpu_opp_table>;
++	dynamic-power-coefficient = <1461>;
++	#cooling-cells = <2>;
+ 	status = "okay";
+ };
