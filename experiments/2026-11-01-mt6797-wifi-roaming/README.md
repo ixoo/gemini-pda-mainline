@@ -67,7 +67,8 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: to be recorded, from the build carrying 0461.
+Package: Buildbox at `7683aa9e`, inventory `c9bd5a47…`, `mac` `977c2ea5…`, CONSYS `28b5435c…`, core
+`425b8add…`, `Image.gz` `e9bad6fb…`.
 
 USB connected. Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam,
 a reassociation response, and no firmware restart. `roams 10`, then the same with a transfer running.
@@ -113,12 +114,6 @@ the owner's choice.** That boot had the first-join restart, a `wifi-up.sh` rerun
 
 **Analysis, from the code, first reading: wrong.** I judged the driver's busy path unlikely and suspected a
 scan held above it. The retest below disproved that.
-
-| Next observation | Next |
-| --- | --- |
-| Scans run on a freshly loaded `mac` | The refusal was state on that boot; find its holder if it returns |
-| `scan busy` line printed | Its flags name the driver's condition |
-| `-EBUSY` with no `scan busy` line | The stack above holds a scan; read `wpa.log` for who asked |
 
 Retest package: Buildbox at `234bf3ec`, inventory `4e074191…`, `mac` `584cbe76…`, CONSYS `28b5435c…`,
 core `425b8add…`, `Image.gz` `e9bad6fb…`. Only `mac` needed swapping. A swap is not a first join after
