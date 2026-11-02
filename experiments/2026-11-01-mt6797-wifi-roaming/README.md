@@ -710,6 +710,8 @@ It ended itself after about 69 s (`end=stopped roams=3 scans=1 restarts=1 stoppe
 
 **A new fault, the `-71` stop:** the driver stops if an answer to authentication arrives when it isn't waiting for one. Authentication went out with `count=11` and its answer was logged 20 microseconds before the stop. The likely reading is that the access point repeated its answer after missing our acknowledgement, which a weak link will do. That frame isn't in the log, so this comes from the code and the timing. 0472 ignores such a frame. Compiled only; it needs a weak link to run.
 
-**My protocol limited this walk.** I left out 48 and 149, and the device ran out of range of the other two within 40 s of setting off. It had nothing better to move to, so its `txfail`s there say little about the eight-failure limit. I can't tell how far it got, since I don't have the location.
+**My protocol limited this walk.** The owner reports walking inside the area all the access points cover, with other devices roaming there without trouble. I had left out 48 and 149, so the device could not use what may have been the nearest access points, and its weak links came from that limit, not from the network. Its `txfail`s there say little about the eight-failure limit.
+
+**Channel 48, compared offline:** the supplicant's side of the handshake is the same as on 5200 and 5805, with the same message 1 flags and the same `key_info 0x8a`, RSN element and message 2 procedure. Only that access point never answers message 2. Its association differs: capability `0x1111` against `0x1511` (no short slot bit), transmit limit 36 against 30 dBm and `aid=15` against 1. None of those is shown to be the cause. A capture on that channel, near that access point, is the likely way to see what it objects to.
 
 The unfixed items for the next walk are 48's handshake and 149's closure, both of which decide where the device can go. A third walk needs the owner's approval.
