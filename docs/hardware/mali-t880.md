@@ -7,13 +7,13 @@ mainline Panfrost configuration needed to bring it up safely.
 | Field | Value |
 | --- | --- |
 | Device | Named Gemini PDA development unit (MT6797X) |
-| Last verified | 2026-11-01 (offline review) |
+| Last verified | 2026-11-02 (first job on the station) |
 | GPU identity | Mali-T88x MP4 r1p0, product `0x0880`, four cores |
 | Mainline model | Panfrost `GPU_MODEL(t880, 0x880)` |
 | Vendor source | Gemian `8cfe6596` / `59e00a91` lineage |
 | Exact vendor DTB | `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9` |
 | Active vmlinux | `cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162` |
-| Current status | GPU node disabled; no mainline GPU runtime |
+| Current status | Bounded no-shader jobs from modules at 1.0 V and 26 MHz on the station; see the first job |
 
 The detailed vendor-side evidence is in the
 [GPU RE record](../../experiments/2026-10-04-gemini-gpu-re/README.md) and the
@@ -26,7 +26,10 @@ and composed DTB remain offline preparation; they are not ready for a GPU boot.
 The station runs `mtk-pm-domains`, not legacy SCPSYS, so sections 5, 6.2 and 6.4
 describe a path it does not use. [The first job](../../experiments/2026-11-02-mali-t880-first-job/README.md)
 has the design for the station and a live baseline that differs from the LK state
-recorded here: on that boot the LDOs were at reset and MFG_ASYNC was off.
+recorded here: on that boot the LDOs were at reset and MFG_ASYNC was off. It also read
+the RT5735 at 975000 uV and disabled before any load, on bus `1-001c` on that image, and
+explains the 156 MHz report: `mfg_52m_sel` on `univpll2_d8` is 156 MHz in the clock framework,
+despite its name.
 
 ## 1. Identity and mainline coverage
 

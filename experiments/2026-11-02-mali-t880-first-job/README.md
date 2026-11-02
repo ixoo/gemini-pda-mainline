@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `running`: run 2 powered the GPU and identified it at 26 MHz; no job yet, domains cycle against the design |
+| Status | `completed`: at 1.0 V and 26 MHz, the T880 probes, identifies and completes 100 bounded jobs from modules; no shader or higher clock |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -270,18 +270,52 @@ would look like this. What drops it was not found from the source.
 `0481` uses `pm_runtime_forbid()`, which blocks suspend regardless of the count, and logs the
 count at the end of probe. Only a first load on a fresh boot can check it.
 
+### Run 3, fresh boot `336cfaa9`, `panfrost.ko` `89a6ba8a`: `gpu-test.sh probe`, then `gpu-test.sh job`, 26 MHz
+
+Image and DTB as before, commit `bd3aebd1` for the module, battery 90% and not charging.
+
+- Probe, first load of the boot: exit 0. `control=on`, `runtime_status=active`,
+  `runtime_suspended_time=0` at every read; `PWR_STATUS` `0x2B003F5E` at every read while
+  loaded, so all six MFG domains stayed on. Log: `runtime PM usage count 1 at the end of probe`.
+- Jobs, second load: `job 0: ok in 1247 us`, `job 99: ok in 754 us`, both exception status `0x1`,
+  `passed 100 of 100 jobs`. Each job zeroed a word seeded with a non-zero value, and the tool
+  fails at the first that does not; it prints the status of the first and last only.
+- SoC 32.3 to 32.9 C across the run. Usage count 2 on this load.
+- After unload: MFG domains off, LDO enable off, protection bits 21/23 set in `PROTECTEN` and
+  `STA1`, `mfg_sel` gated, rail off. No module left. Tainted 0, and no fault, Oops, warning or
+  scheduler timeout from the GPU in the log.
+
 ## Analysis
 
-Run 1 tested only the rail provider and the clock module. Run 2 shows the power sequence works once, from modules, and the GPU answers with the expected identity. It does not yet show a job.
+The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
+identifies as `0x880` with four shader cores, and it completes bounded jobs through its own MMU
+and job interrupt, across repeated load and unload on one boot.
+
+Run 3's first-load count of 1 is the forbid's own reference. The old hold would have had the same
+count, so what suspended the device in run 2 is still not explained. `pm_runtime_forbid()` stopped
+it in the one fresh-boot case tested. Upstream's remove leaks one reference on each unload, which
+is why the count climbs; it is harmless here.
+
+The Zero job uses no shader core. `shader_present` is what the GPU reports and its power-on did not
+time out, but no shader ran. The temperature range says nothing about real load: about 100 jobs of
+under 1.3 ms each at 26 MHz. The rail is a register value and the clock is a mux register plus the
+framework's rate. Neither was measured. Runtime-suspended domain cycling stays forbidden, so no
+idle power saving exists: while loaded, the rail and the domains stay on.
 
 ## Conclusion
 
-Not yet run: this is a build, not hardware support. Compile checks passed in the development VM on the station tree:
-`Image`, modules, the station-a72 DTB with `CHECK_DTBS`, and `dt_binding_check` of the
-GPU binding, which found nothing in the nodes touched here.
+`confirmed` for the named unit, at 1.0 V and 26 MHz: probe, identity and 100 bounded jobs, from
+modules, on image `Image.gz` `2af362e9`. Not shown: a shader or render, Mesa, any clock above
+26 MHz, sustained load or thermal behaviour, runtime or system suspend, the display path. Nothing
+loads these modules at boot.
 
 ## Follow-up
 
-Depends on the result. If the jobs pass: a shader job through Mesa, a voltage review,
-OPP table and cooling device, and `domain-supply` on MFG_ASYNC, the upstream shape once
-the regulator can be built in.
+1. `mt6797_parent=1`, about 364 MHz, needs no boot or new module. It changes only the mux, not the
+   MFGPLL. An owner decision.
+2. A real shader job, through Mesa or a small compute job.
+3. Then a voltage review, an OPP table, a cooling device, and `domain-supply` on MFG_ASYNC, the
+   upstream shape, once the regulator can be built in.
+4. `clk-mt6797-cam`, `-img`, `-mjc`, `-vdec` and `-venc` use `mtk_clk_simple_probe()` with IDs from 1,
+   the overrun of run 1 (from the source; none is enabled on the station). They need checking
+   before any of them is enabled.

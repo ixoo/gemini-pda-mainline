@@ -185,7 +185,8 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    cameras stay feasibility work. The
    per-block detail, shared dependencies and grouped device tests are in
    [After Wi-Fi gaps](../experiments/2026-10-03-project-review/AFTER_WIFI_GAPS.md). GPU
-   has patches and a first test planned at a fixed low clock, as modules; see
+   runs bounded no-shader jobs from modules at a fixed 26 MHz; next are a real shader
+   job and a higher clock; see
    [the first job](../experiments/2026-11-02-mali-t880-first-job/README.md).
 
 ## Offline work now, in parallel
