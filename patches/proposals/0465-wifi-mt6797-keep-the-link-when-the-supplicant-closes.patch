@@ -4,14 +4,10 @@ Date: Sun, 1 Nov 2026 22:43:17 -0500
 Subject: [PATCH] wifi: mt6797: keep the link when the supplicant closes the
  port
 
-Roams now reassociate on the second access point, but the supplicant drops
-the handshake's first message with "No SSID info found" and the access
-point gives up after four tries. The supplicant had lost its network.
-
-Reading the log and code: it closes the port as it starts a roam, which
-reaches the driver as AUTHORIZED to ASSOC. The driver took any downward step
-as the end of the link and reported a connection loss, so the supplicant
-saw a disconnect mid-roam.
+The supplicant closes the port as it starts a roam, which reaches the driver
+as AUTHORIZED to ASSOC. The driver took any downward step as the end of the
+link and reported a connection loss, with the link still up and the roam
+about to begin.
 
 Only stop the data on that step. mac80211's own disconnect for the new
 authentication then takes the link down as for any driver.

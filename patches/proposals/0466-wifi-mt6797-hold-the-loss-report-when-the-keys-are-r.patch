@@ -3,11 +3,10 @@ From: build <build@localhost>
 Date: Sun, 1 Nov 2026 22:52:36 -0500
 Subject: [PATCH] wifi: mt6797: hold the loss report when the keys are removed
 
-The fourth roam test still ended in "No SSID info found", with the data
-phase now ending at key-disable: the supplicant removes the keys as it
-starts a roam, with mac80211 still associated. The driver then ran its
-teardown and reported a connection loss, so the supplicant saw a disconnect
-before its authentication went down.
+The supplicant removes the keys as it starts a roam, with mac80211 still
+associated. That ended the data phase, and the driver then ran its teardown
+and reported a connection loss, so mac80211 disconnected and removed the old
+access point's entry before the roam's authentication took the link down.
 
 The teardown has to run, since the firmware's key state is gone. Hold only
 the report, for two seconds. A roam's authentication then takes the link down

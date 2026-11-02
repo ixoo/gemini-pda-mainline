@@ -370,7 +370,23 @@ That is the `-110` from [stopping during a download](../2026-11-01-mt6797-wifi-a
 there. `branch` is left over from the previous packet: the source is `mt6797_native_diag_pre_read()`, which runs before
 `branch = 4` and allows 64 reads to drain the frames owed after the data phase. A download spends them in milliseconds,
 and a transmit alone does not. That is read from the code, and fits both records.
-[0469](../../patches/proposals/0469-wifi-mt6797-let-the-time-bound-end-the-drain-after-t.patch) lets its existing 750 ms bound decide. Compile-checked; package and rerun to follow.
+[0469](../../patches/proposals/0469-wifi-mt6797-let-the-time-bound-end-the-drain-after-t.patch) lets its existing 750 ms bound decide. Package: Buildbox at `310d4d1a`, inventory `22144aa6…`, `mac` `3ba824b1…`,
+with CONSYS `28b5435c…` and core `2542c418…` unchanged. Not run yet.
+
+**Review of 0465-0468, from the code, nothing run.** They were written on the wrong reading of `No SSID`, so the
+question was whether to remove them. Kept, because each still has a reason of its own:
+
+- 0465: without it the link ends at the port closing, with mac80211 still associated.
+- 0466: without it the loss report reaches `__ieee80211_disconnect()` while associated. That disconnects and, for a
+  loss, removes the old access point's entry, ahead of the roam's own disconnect. If the report landed after the new
+  association it would end that link. The hold is also what recovers the stale-target failure above.
+- 0467: follows from that order, and keeping `join_sco` across a re-arm is needed in any order, or a 40 MHz access
+  point joins at 20 MHz. Its refusal (`reasons=0x00100`) was observed.
+- 0468: follows from that order; its `-ECANCELED` was observed.
+
+Whether roams would work without 0465 and 0466 is not shown. What the supplicant does with a deauthentication mid-roam
+is not checked here. Finding out needs a package and roams for each removal, and the 15 left are better spent
+on the rerun and on stage C. The messages of 0465 and 0466 no longer give `No SSID` as the cause; the code is unchanged.
 
 The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
 limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
