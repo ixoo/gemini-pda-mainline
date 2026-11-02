@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-wifi-roaming` |
-| Status | `running`: stage A passed on one boot; stage B's roams reassociate on the second access point but the handshake fails; 0465 addresses that, not yet rerun |
+| Status | `running`: stage A passed on one boot; stage B's roams reassociate on the second access point but the handshake fails; 0466 addresses the latest reading, not yet rerun |
 | Subsystem | Wi-Fi: `mac` |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-01 |
@@ -70,7 +70,7 @@ On any station carrying 0430, connected, with [`wifi-roam.sh`](wifi-roam.sh):
 
 ## Stage B: roam on request, at the desk
 
-Package: Buildbox at `acb6ded0`, inventory `19b51918…`, `mac` `1bd1c32b…`, CONSYS `28b5435c…`, core `2542c418…`.
+Package: to be recorded, from the build carrying 0466.
 
 USB connected, between channels 40 and 161, the two strongest 5 GHz access points in the map.
 Hypothesis: `wpa_cli roam` moves the link with one `join without a scan` line per roam, a reassociation
@@ -243,6 +243,24 @@ Reading of the cause, from the log and the code, not traced on the device: the l
 connection loss. The supplicant closes the port when it starts a roam, which reaches the driver as
 `AUTHORIZED` to `ASSOC`, and the driver took any downward step as the end of the link. The loss then
 cleared the supplicant's network. [0465](../../patches/proposals/0465-wifi-mt6797-keep-the-link-when-the-supplicant-closes.patch) only stops the data on that step.
+
+**Stage B, fourth try: same boot, `mac` `1bd1c32b…` (0465), run by the custodian.** 7 of the 40 roams used; one
+roam, and one plain disconnect and reconnect. The roam failed the same way, with `No SSID info found` four
+times, so 0465 alone was not enough.
+
+- The data phase now ends with `reason=key-disable`, about 60 ms after the roam request, so the port
+  close was not the only trigger. The same teardown, deauthentication and connection loss report follow.
+- `disconnect from AP ... for new auth` still does not appear: by the time the authentication arrives,
+  mac80211 is no longer associated.
+- The plain `wpa_cli` disconnect and reconnect still works: `COMPLETED` on channel 40, gateway 3/3.
+
+Reading: the supplicant removes the keys at the start of a roam too, and the driver's teardown after that
+ends in the loss report. The teardown is needed, but the report need not come so soon.
+[0466](../../patches/proposals/0466-wifi-mt6797-hold-the-loss-report-when-the-keys-are-r.patch) holds it for 2 s. If a roam's authentication arrives,
+mac80211 takes the link down itself and the report is dropped. Otherwise it goes out late.
+
+The owner went to sleep and, as the custodian relays, told it: "keep going on the roaming progress". The
+limits stay: 40 roams, the owner's non-DFS 5 GHz access points, no boot2 flash or reboot on this boot.
 
 Refused `rxd-byte4` frames with `fc=0x6208` also appear in this window; they look like protected data
 arriving with no key installed, not investigated.

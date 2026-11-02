@@ -1,0 +1,140 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 1 Nov 2026 22:52:36 -0500
+Subject: [PATCH] wifi: mt6797: hold the loss report when the keys are removed
+
+The fourth roam test still ended in "No SSID info found", with the data
+phase now ending at key-disable: the supplicant removes the keys as it
+starts a roam, with mac80211 still associated. The driver then ran its
+teardown and reported a connection loss, so the supplicant saw a disconnect
+before its authentication went down.
+
+The teardown has to run, since the firmware's key state is gone. Hold only
+the report, for two seconds. A roam's authentication then takes the link down
+through mac80211 as usual, and if nothing follows the report still goes out.
+
+Part of the Wi-Fi daily-use plan, phase 4.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |  6 ++++
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  4 +++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 28 +++++++++++++++++--
+ 3 files changed, 36 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 6bb2b3be2..bc5516a83 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -586,6 +586,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	mac->ccmp_pm_abort_pending = false;
+ 	mac->ccmp_pm_abort_credited = false;
+ 	mac->ccmp_loss_reported = false;
++	mac->ccmp_loss_deferred = false;
+ 	mac->ccmp_deauth_timeouts = 0;
+ 	mac->ccmp_deauth_late = 0;
+ 	mac->ccmp_deauth_retired_pid = 0;
+@@ -1408,6 +1409,11 @@ static int mt6797_mac_join_cleanup_step(struct mt6797_mac *mac)
+ 				 mac->join_deauth_done,
+ 				 mt6797_mac_deauth_verdict(mac));
+ 		}
++		if (mac->ccmp_loss_deferred) {
++			schedule_delayed_work(&mac->ccmp_loss_work,
++					      msecs_to_jiffies(MT6797_KEY_LOSS_DEFER_MS));
++			return 0;
++		}
+ 		/* This API only queues work; no synchronous MLME call under our mutex. */
+ 		mt6797_ccmp_connection_lost(mac, "cleanup", 0);
+ 		return 0;
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 688477523..4cd84d941 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -383,6 +383,7 @@ struct mt6797_join_pid_pool {
+ #define MT6797_JOIN_TEARDOWN_MARGIN_MS 5000U
+ /* Teardown then re-arm took about 150 ms on station 31. */
+ #define MT6797_JOIN_AWAIT_MS 1000U
++#define MT6797_KEY_LOSS_DEFER_MS 2000U
+ 
+ /* The data phase runs inside the channel grant (the reference's first data
+  * frames did) and ends this long before the grant does. The tail covers, in
+@@ -588,6 +589,9 @@ struct mt6797_mac {
+ 	bool ccmp_dtim_valid, ccmp_pm_attempted, ccmp_pm_connected;
+ 	bool ccmp_pm_abort_pending, ccmp_pm_abort_credited;
+ 	bool ccmp_loss_reported;
++	/* The supplicant removed the keys: wait for mac80211's own disconnect. */
++	bool ccmp_loss_deferred;
++	struct delayed_work ccmp_loss_work;
+ 	unsigned int ccmp_deauth_timeouts, ccmp_deauth_late;
+ 	u8 ccmp_deauth_retired_pid;
+ 	unsigned int ccmp_cleanup_retained_pages, ccmp_cleanup_credit_floor;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 38f8a8875..6dcb539f7 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1419,8 +1419,14 @@ static int mt6797_ccmp_disable_key(struct mt6797_mac *mac)
+ 		__skb_queue_tail(&discard, skb);
+ 	}
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+-	if (mac->join_data_phase && !mac->join_data_ended)
++	/* The supplicant removes the keys as it starts a roam, with mac80211 still
++	 * associated. The link ends here, but a connection loss now would make
++	 * the supplicant forget its network with the roam under way.
++	 */
++	if (mac->join_data_phase && !mac->join_data_ended) {
++		mac->ccmp_loss_deferred = true;
+ 		mt6797_mac_join_end_data(mac, "key-disable");
++	}
+ 	deadline = mac->join_deadline;
+ 	mutex_unlock(&mac->mutex);
+ 	/* Prior RX/TX-status batches finish before the callback completes. */
+@@ -1711,6 +1717,20 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	return ret;
+ }
+ 
++/* The keys went but no disconnect followed: report the link gone after all. */
++static void mt6797_mac_loss_work(struct work_struct *work)
++{
++	struct mt6797_mac *mac = container_of(work, struct mt6797_mac,
++					      ccmp_loss_work.work);
++
++	mutex_lock(&mac->mutex);
++	if (mac->ccmp_loss_deferred) {
++		mac->ccmp_loss_deferred = false;
++		mt6797_ccmp_connection_lost(mac, "keys-removed", 0);
++	}
++	mutex_unlock(&mac->mutex);
++}
++
+ /* Called with the mutex held, which it drops while waiting; the worker owns
+  * both ends. Bounded: a late end costs that join, never a stuck mac80211 call.
+  */
+@@ -1775,8 +1795,10 @@ static int mt6797_mac_sta_state(struct ieee80211_hw *hw,
+ 			 * worker re-arms once the healthy cleanup also completes. This
+ 			 * never poisons merely because cleanup is still in progress.
+ 			 */
+-			if (vif == mac->vif && new == IEEE80211_STA_NOTEXIST)
++			if (vif == mac->vif && new == IEEE80211_STA_NOTEXIST) {
+ 				mac->join_sta_removed = true;
++				mac->ccmp_loss_deferred = false;
++			}
+ 			if (vif == mac->vif && mac->join_data_phase && !mac->join_data_ended)
+ 				mt6797_mac_join_end_data(mac, "disconnect");
+ 			if (vif == mac->vif && !mac->first_error && !mac->closing) {
+@@ -2246,6 +2268,7 @@ static int mt6797_mac_register(struct device *dev, struct mt6797_hif *hif,
+ 	skb_queue_head_init(&mac->join_queue);
+ 	skb_queue_head_init(&mac->credit_retired_queue);
+ 	INIT_DELAYED_WORK(&mac->join_work, mt6797_mac_join_work);
++	INIT_DELAYED_WORK(&mac->ccmp_loss_work, mt6797_mac_loss_work);
+ 	mac->join_next_pid = 1;
+ 	mac->ccmp_pid_pool.next = 1;
+ 	init_completion(&mac->join_channel_done);
+@@ -2391,6 +2414,7 @@ static void mt6797_mac_unregister(struct ieee80211_hw *hw)
+ 	struct mt6797_mac *mac = hw->priv;
+ 
+ 	ieee80211_unregister_hw(hw);
++	cancel_delayed_work_sync(&mac->ccmp_loss_work);
+ 	cancel_delayed_work_sync(&mac->scan_work);
+ 	cancel_delayed_work_sync(&mac->join_work);
+ 	skb_queue_purge(&mac->join_queue);
+-- 
+2.43.0
+
