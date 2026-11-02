@@ -1038,3 +1038,4 @@ proposals/0451-gnss-add-a-type-for-the-MT6797-DSP-host-protocol.patch
 proposals/0452-dt-bindings-soc-mediatek-mt6797-consys-add-the-GPS-L.patch
 proposals/0453-arm64-dts-mediatek-gemini-describe-the-GPS-LNA-contr.patch
 proposals/0454-gnss-mt6797-carry-the-DSP-host-protocol-instead-of-G.patch
+proposals/0455-arm64-dts-mediatek-describe-the-clusters-on-the-Gemin.patch

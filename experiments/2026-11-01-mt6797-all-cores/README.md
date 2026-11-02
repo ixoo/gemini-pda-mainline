@@ -251,9 +251,10 @@ Choices made while writing them:
   than run with vectors nothing patched.
 - **BUCKB settle:** 1 ms, the vendor's value. The old code carries both a 100 us and
   a 1000 us constant, and which one ran was not resolved. Longer is the cautious side.
-- **Topology:** the station tree deletes `cpu-map`, so the cores come up flat. That is
-  the state of the proven [RAM run](../2026-09-02-mainline-dual-a72-ram-coherency/README.md).
-  Restoring 4+4+2 changes A53 scheduling too, so it stays a follow-up.
+- **Topology:** the station tree deletes `cpu-map`, so the cores came up flat, as in the
+  proven [RAM run](../2026-09-02-mainline-dual-a72-ram-coherency/README.md). Restoring 4+4+2
+  changes A53 scheduling too, so [0455](../../patches/proposals/0455-arm64-dts-mediatek-describe-the-clusters-on-the-Gemin.patch) restores it in the
+  A72 tree only. The plain station stays flat. See "Cluster map" below.
 - **Load failure:** a failed probe fails the load and leaves no driver. A retry is safe
   only before the isolation clear, and the off-state check refuses any retry after it.
 
@@ -533,6 +534,49 @@ on the new bus.
 Recovery: as for the bring-up attempts. The module is not in the image, so any reboot
 returns a station without it, once the owner selects boot2.
 
+### Cluster map (proposed, not admitted, not run)
+
+The [topology run](../2026-09-02-mainline-mt6797-cpu-map/README.md) showed the kernel publishing
+4+4+2 from this map on an isolated candidate. 0455 adds the same map to the A72 tree. It writes
+no register and changes no clock. Compiled in the dev VM: the A72 DTB has 3 clusters and 10
+cores with the right CPU nodes, and the plain station DTB has no map.
+
+What it gives: with `CONFIG_SCHED_CLUSTER=y`, the scheduler should balance within a cluster
+first, read from source and not yet seen on this profile. What it does not give: all CPUs
+still have the same capacity, so Linux does not know that one cluster is slower than another.
+Declaring capacity needs a measured basis, because the
+[Gemian values](../../docs/hardware/gemini-gemian-baseline.md) are not to be used.
+
+Hypothesis: on the A72 profile, `cluster_cpus_list` reads `0-3`, `4-7`, `8-9`, with the A72s
+joining their cluster at load, and the station keeps working. Unique observations: the
+domains on this profile with late A72s, and each cluster's single-CPU hash rate, the first
+measured input for capacity. One boot and one module load, needing the owner's approval.
+
+```sh
+grep . /sys/devices/system/cpu/cpu[0-7]/topology/cluster_cpus_list   # before the load
+insmod /tmp/mt6797-a72.ko; echo "insmod=$?"
+grep . /sys/devices/system/cpu/cpu*/topology/cluster_cpus_list
+grep . /sys/devices/system/cpu/cpu*/topology/package_cpus_list
+mount -t debugfs none /sys/kernel/debug
+grep . /sys/kernel/debug/sched/domains/cpu[048]/domain*/name
+# One CPU at a time, nothing else loaded: seconds for one 64 MiB hash, three each
+dd if=/dev/urandom of=/tmp/rate.dat bs=1M count=64 2>/dev/null
+for c in 0 4 8; do for i in 1 2 3; do
+  s=$(cut -d' ' -f1 /proc/uptime); taskset -c $c sha256sum </tmp/rate.dat >/dev/null
+  echo "cpu$c $s $(cut -d' ' -f1 /proc/uptime)"
+done; done; rm /tmp/rate.dat
+/tmp/soak.sh load 300; echo "load=$?"
+```
+
+Then the regression (keyboard, Wi-Fi, one tone) and one clean reboot. The soak's stop rules
+apply.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| Cluster lists as above, load and regression pass | Map works with late A72s | Use the rates to decide on capacity |
+| Lists flat, or only the A53 clusters are right | Parser or late-CPU path | Read the source, no repeat until explained |
+| A fault after the load | New with the map, or the newer patches in this image | Compare with the soak, no repeat until explained |
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
@@ -749,6 +793,6 @@ not run beside it, and the whole system now reports
 
 ## Follow-up
 
-Next, in order, each its own owner decision: idle power; a longer soak; load at init; then, as
+Next, in order, each its own owner decision: the cluster map (proposed above); idle power; a longer soak; load at init; then, as
 their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
 the down path, cpufreq and thermal cooling.

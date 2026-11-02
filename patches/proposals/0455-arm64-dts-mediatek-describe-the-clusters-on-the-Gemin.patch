@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 1 Nov 2026 20:19:33 -0500
+Subject: [PATCH] arm64: dts: mediatek: describe the clusters on the Gemini A72
+ station
+
+The shared station tree deletes cpu-map, so the scheduler sees ten CPUs in one
+flat group. The A72 station is the first tree where all ten run together, so
+restore the map there: CPU0-3, CPU4-7 and CPU8-9. Linux then balances inside a
+cluster first.
+
+This describes grouping only. It says nothing about relative CPU speed.
+---
+ .../mt6797-gemini-pda-station-a72.dts         | 51 +++++++++++++++++++
+ 1 file changed, 51 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 0311c131c..8fe44d7c8 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -11,6 +11,57 @@
+ #include "mt6797-gemini-pda-station.dts"
+ 
+ / {
++	/* The shared tree deletes this map, so a station with all ten restores it. */
++	cpus {
++		cpu-map {
++			cluster0 {
++				core0 {
++					cpu = <&cpu0>;
++				};
++
++				core1 {
++					cpu = <&cpu1>;
++				};
++
++				core2 {
++					cpu = <&cpu2>;
++				};
++
++				core3 {
++					cpu = <&cpu3>;
++				};
++			};
++
++			cluster1 {
++				core0 {
++					cpu = <&cpu4>;
++				};
++
++				core1 {
++					cpu = <&cpu5>;
++				};
++
++				core2 {
++					cpu = <&cpu6>;
++				};
++
++				core3 {
++					cpu = <&cpu7>;
++				};
++			};
++
++			cluster2 {
++				core0 {
++					cpu = <&cpu8>;
++				};
++
++				core1 {
++					cpu = <&cpu9>;
++				};
++			};
++		};
++	};
++
+ 	/*
+ 	 * Brings up the A72 pair when its module loads. The DA9214 stays on
+ 	 * the selector firmware left.
+-- 
+2.43.0
+
