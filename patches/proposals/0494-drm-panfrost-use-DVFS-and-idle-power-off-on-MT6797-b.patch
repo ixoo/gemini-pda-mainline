@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 19:56:27 -0500
+Subject: [PATCH] drm/panfrost: use DVFS and idle power-off on MT6797 by
+ default
+
+Both passed on the Gemini: rate changes with the drain ran over 300 steps each way
+across every post-divider, and idle power-off over 200 power cycles, with no fault.
+The fixed points stay available by parameter for bring-up. Drop the usage count
+log, which has done its work.
+---
+ drivers/gpu/drm/panfrost/panfrost_drv.c    |  4 ----
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 20 ++++++++++----------
+ 2 files changed, 10 insertions(+), 14 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+index 9f043060b..75113073c 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_drv.c
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -1010,10 +1010,6 @@ static int panfrost_probe(struct platform_device *pdev)
+ 	if (err)
+ 		goto err_out2;
+ 
+-	if (pfdev->comp->platform_ops)
+-		dev_info(&pdev->dev, "runtime PM usage count %d at the end of probe\n",
+-			 atomic_read(&pdev->dev.power.usage_count));
+-
+ 	return 0;
+ 
+ err_out2:
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index 12fa0a527..2be345379 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -7,13 +7,13 @@
+  * has no LDO or protection step, so these callbacks supply what comes before
+  * and after. Everything here runs only while this module binds or unbinds.
+  *
+- * This is a fixed point: 1.0 V and no OPP table. By default the mux sits on a
+- * running clock and the MFGPLL is not touched. mt6797_khz programs the MFGPLL
+- * instead, here only, with the GPU clock gated and its domains off: the vendor
+- * parks the divider across a change on a running GPU, which this never does.
++ * By default voltage and rate belong to Panfrost's devfreq and the DT's OPP table.
++ * The clock driver parks the mux across a PLL change, and Panfrost drains the GPU
++ * first, as a job running across a post-divider change can be lost.
+  *
+- * mt6797_dvfs instead hands voltage and rate to Panfrost's devfreq and the DT's
+- * OPP table, whose changes on a running GPU the clock driver parks.
++ * mt6797_dvfs=0 is a fixed point instead, for bring-up: 1.0 V, no OPP table, the mux
++ * on a running clock, or mt6797_khz on the MFGPLL, programmed here only, with the
++ * GPU clock gated and its domains off.
+  */
+ 
+ #include <linux/clk.h>
+@@ -82,17 +82,17 @@ static const struct {
+ 	{ MT6797_GPULDO_VOSEL_8, GENMASK(31, 0), 0x0000000f },
+ };
+ 
+-static bool mt6797_dvfs;
++static bool mt6797_dvfs = true;
+ module_param_named(mt6797_dvfs, mt6797_dvfs, bool, 0444);
+-MODULE_PARM_DESC(mt6797_dvfs, "MT6797: use the OPP table, devfreq and cooling (default off)");
++MODULE_PARM_DESC(mt6797_dvfs, "MT6797: use the OPP table, devfreq and cooling (default on)");
+ 
+ static bool mt6797_log_rates;
+ module_param_named(mt6797_log_rates, mt6797_log_rates, bool, 0444);
+ MODULE_PARM_DESC(mt6797_log_rates, "MT6797: log each rate change, to place a fault among them");
+ 
+-static bool mt6797_idle_off;
++static bool mt6797_idle_off = true;
+ module_param_named(mt6797_idle_off, mt6797_idle_off, bool, 0444);
+-MODULE_PARM_DESC(mt6797_idle_off, "MT6797: power the GPU domains off when idle (default off)");
++MODULE_PARM_DESC(mt6797_idle_off, "MT6797: power the GPU domains off when idle (default on)");
+ 
+ struct panfrost_mt6797 {
+ 	struct regulator *vgpu;

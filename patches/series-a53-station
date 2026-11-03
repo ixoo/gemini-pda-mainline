@@ -661,3 +661,4 @@ proposals/0490-drm-panfrost-set-the-MT6797-rail-for-the-DVFS-start-.patch
 proposals/0491-drm-panfrost-optionally-log-each-MT6797-rate-change.patch
 proposals/0492-regulator-rt5735-wait-the-vendor-settling-time-after.patch
 proposals/0493-drm-panfrost-drain-the-MT6797-GPU-before-a-rate-chan.patch
+proposals/0494-drm-panfrost-use-DVFS-and-idle-power-off-on-MT6797-b.patch

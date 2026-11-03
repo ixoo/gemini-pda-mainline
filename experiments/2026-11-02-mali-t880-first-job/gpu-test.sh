@@ -9,10 +9,11 @@
 #   gpu-test.sh gles [parent]    load, identify, up to FRAMES shader frames, unload
 #   gpu-test.sh load [parent]    load, identify, LOAD_SECONDS of shader load, unload
 #
-# parent is the panfrost mt6797_parent value, 0 = clk26m (default), 1 = syspll_d3.
-# KHZ=442500 or 520000 runs from the MFGPLL instead of parent.
-# IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
-# DVFS=1 uses the OPP table, devfreq and cooling instead of a fixed clock.
+# The driver defaults to DVFS and idle power-off. Giving parent or KHZ selects a fixed
+# clock instead: parent is mt6797_parent, 0 = clk26m, 1 = syspll_d3, and KHZ=442500 or
+# 520000 runs from the MFGPLL. IDLE_OFF=0 keeps the domains on. GAP_MS waits between
+# gles frames. COOL=1, in load mode, holds the cooling device at its top state from
+# 20 s to 40 s of the run, to read that it caps the rate.
 # LOG_RATES=1 logs each rate change. PIN_HZ, with DVFS=1, holds devfreq at one OPP.
 # TOGGLE="LOW HIGH", with DVFS=1 in load mode, moves the rate between two OPPs every
 # 100 ms under the load, so up and down steps of a chosen size run with the GPU busy.
@@ -23,7 +24,7 @@
 # cooler exit to start (also enforced in the driver), and stop at 58 C during a run,
 # its recovered policy's first CPU cooling trip, since no cooling device exists here.
 # Battery stops at 46 C, where the vendor starts cutting charge current.
-mode=${1:?probe, job, gles or load}; parent=${2:-0}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
+mode=${1:?probe, job, gles or load}; parent=${2:-}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
 LOAD_SECONDS=${LOAD_SECONDS:-60}; LOAD_SIZE=${LOAD_SIZE:-512}
 START_MAX_MC=55000; RUN_MAX_MC=58000; BATTERY_MAX_MC=46000
 here=$(cd "$(dirname "$0")" && pwd)
@@ -90,7 +91,7 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
-  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${IDLE_OFF:+ mt6797_idle_off=1}${DVFS:+ mt6797_dvfs=1}${LOG_RATES:+ mt6797_log_rates=1}${PERFCNT:+ unstable_ioctls=1}"
+  args=; [ "$m" = panfrost ] && args="${parent:+mt6797_parent=$parent mt6797_dvfs=0}${KHZ:+ mt6797_khz=$KHZ mt6797_dvfs=0}${IDLE_OFF:+ mt6797_idle_off=$IDLE_OFF}${LOG_RATES:+ mt6797_log_rates=1}${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
   # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
@@ -126,6 +127,19 @@ if [ $rc = 0 ]; then
     ( while :; do banks; sleep 5; done ) &
     sampler=$!
     toggler=
+    if [ -n "${COOL:-}" ]; then
+      for c in /sys/class/thermal/cooling_device*; do
+        case "$(cat "$c/type")" in *gpu*) cdev=$c;; esac
+      done
+      ( for d in /sys/class/devfreq/*; do
+          case "$d" in *gpu*) df=$d;; esac
+        done
+        echo "cooling $cdev type=$(cat "$cdev/type") max_state=$(cat "$cdev/max_state")"
+        sleep 20; cat "$cdev/max_state" > "$cdev/cur_state"
+        sleep 5; echo "cooling cur_state=$(cat "$cdev/cur_state") cur_freq=$(cat "$df/cur_freq")"
+        sleep 15; echo 0 > "$cdev/cur_state"
+        sleep 5; echo "cooling cur_state=$(cat "$cdev/cur_state") cur_freq=$(cat "$df/cur_freq")" ) &
+    fi
     if [ -n "${TOGGLE:-}" ]; then
       # shellcheck disable=SC2086 # two words, split on purpose
       set -- $TOGGLE

@@ -502,6 +502,24 @@ timeout back, B's and D's faults land on a down step, so it is not up steps eith
 divider taking longer than the 20 us before the mux returns, though that is unmeasured, and the vendor has the same 20 us. Its table may simply cross a divider less.
 `0493` drains the GPU before a rate change, which covers any such mechanism, from the module.
 
+### Run 19, same boot: the drain
+
+`0493`, about 70 s at the same pairs, then the realistic pattern for 300 s. Pixel the same throughout, tainted 0.
+
+| Pair | Steps each way | Faults, was | Slowest frame, was |
+| --- | --- | --- | --- |
+| 238 and 520 MHz | 336 | 0, 6 | 19 ms, 554 ms |
+| 442.5 and 520 MHz | 334 | 0, 3 | 14 ms, 602 ms |
+| 238 and 365 MHz | 325 | 0, 4 | 19 ms, 598 ms |
+| 365 and 442.5 MHz, control | 324 | 0, 0 | 14 ms, 18 ms |
+
+No change was skipped, and frame rates did not fall. Realistic pattern with idle power-off: 177 up steps, 0 faults, where the same count gave 3. `MFGPLL_CON1`
+read `0x820E09D8` at 365 MHz, so that pair does share a divider. At about 1% per step, three clean pairs of 300 would be chance about 0.01% of the time.
+
+**What this does not show.** That the relock is the mechanism: it is still unmeasured, and the drain removes the symptom. A crossing with no job may still disturb a job that starts next, though nothing here
+shows it. These jobs are short, so a job over 200 ms, which skips the change, has not been tried, and sustained long jobs could hold the rate where it is. One chip, about 35 C, so the hot end,
+where the missing EEM matters most, is not covered.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
