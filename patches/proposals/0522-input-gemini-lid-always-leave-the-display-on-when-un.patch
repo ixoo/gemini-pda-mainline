@@ -1,0 +1,27 @@
+From 817374957501efe34b2a3d71703731bba976b3f8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 22:47:35 -0500
+Subject: [PATCH] input: gemini-lid: always leave the display on when unloading
+
+A lid opened just before the module unloads has lid_closed clear with its work
+blocked by lid_exiting, which would leave the console held and the backlight off.
+Applying the open state is harmless otherwise.
+---
+ drivers/input/misc/gemini-lid.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index bb65871a9..aedbe5b5c 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -186,8 +186,8 @@ static void __exit gemini_lid_exit(void)
+ {
+ 	scoped_guard(mutex, &lid_lock) {
+ 		lid_exiting = true;
+-		if (lid_closed)
+-			gemini_lid_apply(false);
++		/* Even if not closed now: an open could be waiting on the work below. */
++		gemini_lid_apply(false);
+ 	}
+ 	input_unregister_handler(&gemini_lid_handler);
+ 	cancel_work_sync(&gemini_lid_work);

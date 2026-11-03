@@ -4,8 +4,8 @@ Date: Mon, 2 Nov 2026 22:11:07 -0500
 Subject: [PATCH] vt: let a driver hold the console blank
 
 TIOCL_BLANKSCREEN blanks the console until it is explicitly unblanked, unlike a
-plain do_blank_screen(), which the next console write wakes. Export that for a
-driver that blanks for a physical reason, such as a closed lid.
+plain do_blank_screen(), which the next key press wakes. Export that for a driver
+that blanks for a physical reason, such as a closed lid.
 ---
  drivers/tty/vt/vt.c     | 16 ++++++++++++----
  include/linux/vt_kern.h |  1 +

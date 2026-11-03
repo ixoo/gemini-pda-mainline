@@ -364,15 +364,21 @@ kernel does it, with no daemon:
 - **Any blank takes the backlight with it.** The panel node names the backlight, the
   upstream link: DPMS off disables it before the video stops, DPMS on enables it after.
 - **The lid blanks the display.** `gemini-lid` turns the backlight off and blanks the
-  console in a hold that console output cannot wake
+  console in a hold that a key from another input device cannot wake
   ([0515](../../patches/proposals/0515-vt-let-a-driver-hold-the-console-blank.patch),
   [0516](../../patches/proposals/0516-input-gemini-lid-blank-the-console-while-the-lid-is.patch)).
+- **A bind behind a blanked console.** `fbcon_init()` sets the mode whether or not the
+  console is blanked, which would light the panel behind a closed lid. [0521](../../patches/proposals/0521-fbcon-keep-a-blanked-console-blanked-when-taking-ove.patch)
+  blanks the new framebuffer as the takeover finishes. [0522](../../patches/proposals/0522-input-gemini-lid-always-leave-the-display-on-when-un.patch)
+  leaves the display on when `gemini-lid` unloads.
 - **The PWM stayed enabled at duty 0.** [0514](../../patches/proposals/0514-pwm-mtk-disp-turn-the-MT6797-block-off-at-duty-0.patch)
   clears the enable bit at level 0, as the vendor does.
 - **The native path only helps when loaded.** `display-start` in the RAM root loads the
   modules at boot, subject to the owner's decision. It loads in the background so it cannot
-  hold SSH back. A load that never finished leaves a marker on the data partition, so
-  the next boot stays on `simplefb`, and `/mnt/data/no-native-display` skips it outright. Without it, the lid still turns the backlight off and blanks `simplefb`, but an
+  hold SSH back. A load that does not reach the panel, including a hang or a power loss,
+  leaves a marker on the data partition, so the next boot stays on `simplefb` and clears
+  it. `/mnt/data/no-native-display` skips it outright. With no writable data partition it
+  also stays on `simplefb`, since a hang could then never be skipped. Without it, the lid still turns the backlight off and blanks `simplefb`, but an
   idle blank does nothing to the panel or backlight.
 - **Built in or module:** the VT hold and the PWM change are built in. `gemini-lid`,
   the panel and the pipeline are modules. `lid-guard` is reduced to brightness keys and
@@ -396,8 +402,9 @@ with no refcount, warning or timeout, and the backlight device intact. Closed: P
 0, display gates closed, PLL off. The owner: "all looks good, when I close the lid, the
 screen turns off for real".
 
-With `lid-guard` killed: lid closed read the same before and after a write to the console,
-so the hold works. A forced blank read PWM enable 0, gates closed and PLL off, then enable
+With `lid-guard` killed: lid closed read PWM enable 0, gates closed and PLL off. A write
+to the console did not wake it, but console output does not poke the VT at all, so that
+did not exercise the hold. A key from another input device would, and has not been tried. A forced blank read PWM enable 0, gates closed and PLL off, then enable
 1 awake, so the panel's backlight link works. The fade and brightness keys could not show
 on this image, for the reason above, and no battery figure exists yet.
 

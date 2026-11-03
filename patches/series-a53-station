@@ -687,3 +687,5 @@ proposals/0517-dt-bindings-power-supply-bq25890-describe-firmware-c.patch
 proposals/0518-power-supply-bq25890-add-a-mode-that-leaves-the-chip.patch
 proposals/0519-power-supply-bq25890-stop-charging-by-the-battery-s-.patch
 proposals/0520-arm64-dts-mediatek-gemini-station-guard-charging-fro.patch
+proposals/0521-fbcon-keep-a-blanked-console-blanked-when-taking-ove.patch
+proposals/0522-input-gemini-lid-always-leave-the-display-on-when-un.patch

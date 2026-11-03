@@ -1,0 +1,37 @@
+From cf11a87181486efdd635da80f82ce3170582a1a4 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 22:47:34 -0500
+Subject: [PATCH] fbcon: keep a blanked console blanked when taking over
+
+fbcon_init() sets the mode of a newly registered framebuffer whether or not the
+console is blanked. So a DRM driver binding behind a blanked console turns its display
+on, with nothing to turn it off again if the blank is one that a timer will not repeat.
+On the Gemini that lights the backlight behind a closed lid. Blank the new framebuffer
+as the takeover finishes.
+---
+ drivers/video/fbdev/core/fbcon.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/drivers/video/fbdev/core/fbcon.c b/drivers/video/fbdev/core/fbcon.c
+index 3f4a850d0..72a6f968c 100644
+--- a/drivers/video/fbdev/core/fbcon.c
++++ b/drivers/video/fbdev/core/fbcon.c
+@@ -605,6 +605,8 @@ static int search_for_mapped_con(void)
+ 	return retval;
+ }
+ 
++static bool fbcon_blank(struct vc_data *vc, enum vesa_blank_mode blank, bool mode_switch);
++
+ static int do_fbcon_takeover(int show_logo)
+ {
+ 	int err, i;
+@@ -627,6 +629,9 @@ static int do_fbcon_takeover(int show_logo)
+ 		info_idx = -1;
+ 	} else {
+ 		fbcon_has_console_bind = true;
++		/* Taking over set the mode, which turned on a display blanked before it. */
++		if (console_blanked)
++			fbcon_blank(vc_cons[console_blanked - 1].d, VESA_VSYNC_SUSPEND, false);
+ 	}
+ 
+ 	return err;

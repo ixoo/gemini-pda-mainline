@@ -80,20 +80,30 @@ if LD_LIBRARY_PATH=/lib /bin/iw reg set US; then status reg=US; else status reg=
 status "audio=$(/bin/audio-start)"
 # A fixed console cursor: the flag is fbcon's own, so it stays through the handover.
 $bb echo 0 >/sys/class/graphics/fbcon/cursor_blink
-# The native display, in the background so a stuck load can't hold SSH back. A marker
-# left by a load that never finished, or the no-native-display file, leaves simplefb,
-# so a hang costs one power cycle.
+# The native display, in the background so a stuck load can't hold SSH back. Otherwise
+# simplefb stays, which still has the lid: with the no-native-display file; for one boot
+# after a load that never reached the panel, including a hang or a power loss; and with
+# no writable data partition, since a hang then could never be skipped.
 (
-    if [ -e /mnt/data/no-native-display ]; then
+    marker=/mnt/data/native-display-loading
+    if ! $bb grep -q ' /mnt/data ' /proc/mounts; then
+        status display=skipped-no-data
+    elif [ -e /mnt/data/no-native-display ]; then
         status display=skipped
-    elif [ -e /mnt/data/native-display-loading ]; then
+    elif [ -e "$marker" ]; then
+        $bb rm -f "$marker"
+        $bb sync
         status display=skipped-last-load-unfinished
+    elif ! $bb touch "$marker"; then
+        status display=skipped-no-data
     else
-        $bb touch /mnt/data/native-display-loading 2>/dev/null
         $bb sync
-        status "display=$(/bin/display-start)"
-        $bb rm -f /mnt/data/native-display-loading
-        $bb sync
+        result=$(/bin/display-start)
+        status "display=$result"
+        if [ "$result" = native ]; then
+            $bb rm -f "$marker"
+            $bb sync
+        fi
     fi
 ) &
 exec $bb init

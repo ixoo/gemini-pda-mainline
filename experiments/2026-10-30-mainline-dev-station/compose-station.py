@@ -20,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 BOOT = REPO/'experiments/2026-07-12-boot-contract-recovery/scripts'
 NAME, CMDLINE = 'gemini-obs-P', 'bootopt=64S3,32N2,64N2'
-DTB = 'mt6797-gemini-pda-station.dtb'
+DTB = 'mt6797-gemini-pda-station-a72.dtb'
 
 
 def sha(path):
@@ -62,7 +62,7 @@ def main(package, parent, tools, output):
     for line in ['CONFIG_MODULES=y', 'CONFIG_MT6797_MAC80211=m', 'CONFIG_MT6797_HIF_CORE=m',
                  'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_INPUT_GEMINI_LID=m', 'CONFIG_MTK_SOC_THERMAL=y', 'CONFIG_THERMAL=y',
                  'CONFIG_MEDIATEK_MT6359_AUXADC=y', 'CONFIG_GENERIC_ADC_THERMAL=y',
-                 'CONFIG_EXT4_FS=y']:
+                 'CONFIG_EXT4_FS=y', 'CONFIG_CHARGER_BQ25890=y', 'CONFIG_DRM_FBDEV_EMULATION=y']:
         assert line in config.splitlines(), line
     output.mkdir(mode=0o700)
     dtb = output/'board.dtb'

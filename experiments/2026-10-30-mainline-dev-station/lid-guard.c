@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -120,7 +119,8 @@ static int put(const char *path, const char *value)
 static int console_blanked(void)
 {
 	char arg = TIOCL_BLANKEDSCREEN;
-	int fd = open(CONSOLE, O_RDWR | O_CLOEXEC);
+	/* No controlling tty: this program must not take tty1 from the shell. */
+	int fd = open(CONSOLE, O_RDWR | O_CLOEXEC | O_NOCTTY);
 	int ret;
 
 	if (fd < 0)
@@ -241,11 +241,9 @@ int main(void)
 		}
 		if (!closed && !blanked) {
 			int seconds = read_number(BLANK_SECONDS);
+			/* Only input resets the kernel's deadline; console output does not. */
 			time_t now = time(NULL), active = last_input;
-			struct stat st;
 
-			if (!stat(CONSOLE, &st) && st.st_mtime > active)
-				active = st.st_mtime;
 			if (seconds > FADE_DOWN_SECONDS && restore < 0 &&
 			    now - active >= seconds - FADE_DOWN_SECONDS) {
 				int level = read_number(BL_BRIGHTNESS);
@@ -258,8 +256,9 @@ int main(void)
 						restore = -1;
 					}
 				}
-			} else if (restore >= 0 && now - active < seconds - FADE_DOWN_SECONDS) {
-				/* Output moved the deadline, with no blank after all. */
+			} else if (restore >= 0 && (seconds <= FADE_DOWN_SECONDS ||
+						    now - active < seconds - FADE_DOWN_SECONDS)) {
+				/* The deadline moved or went, with no blank after all. */
 				set_brightness(restore);
 				restore = -1;
 			}
