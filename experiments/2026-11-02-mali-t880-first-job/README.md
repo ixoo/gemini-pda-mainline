@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `running`: sustained load to 520 MHz, idle power-off, per-bank sensing and live DVFS transitions passed; the OPPs below 520 MHz are not yet validated under load |
+| Status | `running`: sustained load to 520 MHz, idle power-off, per-bank sensing and each OPP passed; DVFS not admitted after rare job faults on its largest up step |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -456,6 +456,24 @@ An invalid instruction read could be margin around a rate or rail change, or sof
 handling, or the new light frames. This run is the first with resume and many rate changes together, and the first with light frames. So
 **idle power-off with DVFS is not admitted**. The tool's exit code and pixel check could not see this, so `gpu-test.sh` now fails on any GPU
 fault since the run began. Earlier runs were each searched for these by hand, and clean.
+
+### Run 16, same boot: the three causes separated
+
+Same pattern, 120 s each, gated on faults and logging each rate change.
+
+| Run | Domains cycle | Rates move | Up steps | Faults |
+| --- | --- | --- | --- | --- |
+| A, fixed 520 MHz | yes | no | none | 0 |
+| B | no | yes | 71 | 1 |
+| C | yes | yes | 142 | 3 |
+
+All four faults came after a 238 to 520 MHz step: three job timeouts 506 to 522 ms later, the job timeout, and one
+`INSTR_OPERAND_FAULT` 219 us later. So 4 of 213 up steps, and power cycling and light frames are not needed. That was the only up step in
+these runs, so the other up steps are not excluded.
+
+The vendor waits the slew time plus 350 us after each GPU voltage change (`mt_gpufreq_volt_switch`). We waited about 37 us, from the
+ramp delay in our DT. `0492` adds the 350 us. This fits the evidence, the largest voltage rise failing rarely, but it is a hypothesis until a
+clean run says so: at about 1.9% per step, 300 clean steps would be chance only about 0.3% of the time.
 
 ## Analysis
 
