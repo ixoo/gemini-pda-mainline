@@ -1,0 +1,73 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 19:04:50 -0500
+Subject: [PATCH] drm/panfrost: optionally log each MT6797 rate change
+
+A job timed out and a job faulted during a run with many rate changes. Log them
+with a timestamp, behind a parameter, to place such a fault among them.
+---
+ drivers/gpu/drm/panfrost/panfrost_devfreq.c |  3 +++
+ drivers/gpu/drm/panfrost/panfrost_device.h  |  2 ++
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c  | 10 ++++++++++
+ 3 files changed, 15 insertions(+)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_devfreq.c b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+index 1e3d62198..6955fa312 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_devfreq.c
++++ b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+@@ -41,6 +41,9 @@ static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
+ 	dev_pm_opp_put(opp);
+ 
+ 	err = dev_pm_opp_set_rate(dev, *freq);
++	if (!err && pfdev->comp->platform_ops && pfdev->comp->platform_ops->log_rates() &&
++	    pfdev->pfdevfreq.current_frequency != *freq)
++		dev_info(dev, "rate %lu -> %lu\n", pfdev->pfdevfreq.current_frequency, *freq);
+ 	if (!err)
+ 		pfdev->pfdevfreq.current_frequency = *freq;
+ 
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+index ee7f6e38b..091c15e0b 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.h
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -104,6 +104,8 @@ struct panfrost_platform_ops {
+ 	bool (*keep_powered)(void);
+ 	/* Whether to use the OPP table, with devfreq and cooling. */
+ 	bool (*use_opps)(void);
++	/* Whether to log each rate change. */
++	bool (*log_rates)(void);
+ };
+ 
+ /*
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index 84fd7f8f3..12fa0a527 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -86,6 +86,10 @@ static bool mt6797_dvfs;
+ module_param_named(mt6797_dvfs, mt6797_dvfs, bool, 0444);
+ MODULE_PARM_DESC(mt6797_dvfs, "MT6797: use the OPP table, devfreq and cooling (default off)");
+ 
++static bool mt6797_log_rates;
++module_param_named(mt6797_log_rates, mt6797_log_rates, bool, 0444);
++MODULE_PARM_DESC(mt6797_log_rates, "MT6797: log each rate change, to place a fault among them");
++
+ static bool mt6797_idle_off;
+ module_param_named(mt6797_idle_off, mt6797_idle_off, bool, 0444);
+ MODULE_PARM_DESC(mt6797_idle_off, "MT6797: power the GPU domains off when idle (default off)");
+@@ -398,6 +402,11 @@ static bool mt6797_use_opps(void)
+ 	return mt6797_dvfs;
+ }
+ 
++static bool mt6797_logs_rates(void)
++{
++	return mt6797_log_rates;
++}
++
+ const struct panfrost_platform_ops panfrost_mt6797_ops = {
+ 	.power_early = mt6797_power_early,
+ 	.power_late = mt6797_power_late,
+@@ -405,4 +414,5 @@ const struct panfrost_platform_ops panfrost_mt6797_ops = {
+ 	.unpower_late = mt6797_unpower_late,
+ 	.keep_powered = mt6797_keep_powered,
+ 	.use_opps = mt6797_use_opps,
++	.log_rates = mt6797_logs_rates,
+ };

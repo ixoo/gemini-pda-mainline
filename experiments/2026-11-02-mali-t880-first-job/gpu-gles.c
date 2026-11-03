@@ -109,19 +109,33 @@ static GLuint compile(GLenum type, const char *src)
  * Keep the GPU awake but barely busy: frames closer than its 50 ms autosuspend. A
  * suspended GPU stops devfreq sampling, so only this lets the rate fall.
  */
-static void light_frames(int n)
+static int light_frames(int n)
 {
+	static GLubyte first[4];
+	static int have_first;
 	struct timespec wait = { 0, 40 * 1000000L };
+	GLubyte now[4];
+	int ret = 0;
 
 	glEnable(GL_SCISSOR_TEST);
 	glScissor(0, 0, 16, 16);
-	while (n-- > 0) {
+	while (n-- > 0 && !ret) {
 		glClear(GL_COLOR_BUFFER_BIT);
 		glDrawArrays(GL_TRIANGLES, 0, 3);
 		glFinish();
+		glReadPixels(8, 8, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, now);
+		if (!have_first) {
+			memcpy(first, now, sizeof(first));
+			have_first = 1;
+		} else if (memcmp(first, now, sizeof(first))) {
+			printf("light frame: pixel %d,%d,%d, first gave %d,%d,%d\n", now[0], now[1],
+			       now[2], first[0], first[1], first[2]);
+			ret = 1;
+		}
 		nanosleep(&wait, NULL);
 	}
 	glDisable(GL_SCISSOR_TEST);
+	return ret;
 }
 
 static void perfcnt_print(int fd, long window_us)
@@ -185,7 +199,8 @@ static int run_load(GLint color, int seconds, int size, const char *zone, int ma
 			struct timespec gap = { gap_ms / 1000, gap_ms % 1000 * 1000000L };
 
 			nanosleep(&gap, NULL);
-			light_frames(light);
+			if (light_frames(light))
+				return 1;
 		}
 
 		clock_gettime(CLOCK_MONOTONIC, &b);

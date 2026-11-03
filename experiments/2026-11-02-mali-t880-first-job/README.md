@@ -443,6 +443,20 @@ a second in the others. A suspended GPU stops devfreq's monitor, and with a 50 m
 samples an idle GPU, so gaps alone cannot lower the rate. So rate changes around power cycles remain untested. The next pattern
 adds frames that keep the GPU awake but barely busy.
 
+### Run 15, same boot: idle power-off, DVFS, bursts and light frames
+
+`BURST=30 GAP_MS=200 LIGHT=30`, 60 s. 85 transitions across all four OPPs. Frames right, exit 0, but **one job timed out and then
+faulted**, about 3.7 s in, on the fragment slot, with the same job chain address on both lines, then recovered, with no further fault in the
+remaining 57 s:
+
+    gpu sched timeout, js=0, config=0x3b00, status=0x8, head=0xa10a480, tail=0xa10a480
+    js fault, js=0, status=INSTR_INVALID_ENC, head=0xa10a480, tail=0xa10a480
+
+An invalid instruction read could be margin around a rate or rail change, or software: state lost across a power cycle, cache or TLB
+handling, or the new light frames. This run is the first with resume and many rate changes together, and the first with light frames. So
+**idle power-off with DVFS is not admitted**. The tool's exit code and pixel check could not see this, so `gpu-test.sh` now fails on any GPU
+fault since the run began. Earlier runs were each searched for these by hand, and clean.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it

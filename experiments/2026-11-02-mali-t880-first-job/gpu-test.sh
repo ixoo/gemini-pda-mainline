@@ -13,7 +13,7 @@
 # KHZ=442500 or 520000 runs from the MFGPLL instead of parent.
 # IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
 # DVFS=1 uses the OPP table, devfreq and cooling instead of a fixed clock.
-# PIN_HZ, with DVFS=1, holds devfreq at one OPP for the run.
+# LOG_RATES=1 logs each rate change. PIN_HZ, with DVFS=1, holds devfreq at one OPP.
 # BURST, with GAP_MS, makes a load mode run wait GAP_MS after each BURST frames, then
 # run LIGHT small frames, 40 ms apart, so the rate falls before the next burst.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
@@ -88,7 +88,7 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
-  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${IDLE_OFF:+ mt6797_idle_off=1}${DVFS:+ mt6797_dvfs=1}${PERFCNT:+ unstable_ioctls=1}"
+  args=; [ "$m" = panfrost ] && args="mt6797_parent=$parent${KHZ:+ mt6797_khz=$KHZ}${IDLE_OFF:+ mt6797_idle_off=1}${DVFS:+ mt6797_dvfs=1}${LOG_RATES:+ mt6797_log_rates=1}${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
   # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
@@ -139,6 +139,11 @@ fi
 echo "=== unload"
 unload
 dmesg | tail -n +$((mark + 1))
+# A job that faults and recovers still gives a correct image, so the tool's exit
+# cannot see it. Fail on any GPU fault since this run began.
+faults=$(dmesg | tail -n +$((mark + 1)) | grep -cE 'panfrost.*(fault|timeout|reset|error)|Oops|Call trace|WARNING')
+echo "gpu faults in this run: $faults"
+[ "$faults" = 0 ] || [ $rc != 0 ] || rc=5
 state unloaded
 echo "result rc=$rc"
 exit $rc
