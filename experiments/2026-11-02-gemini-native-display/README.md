@@ -318,8 +318,33 @@ returned: `0x0a` reads and `0x11` to an awake panel. So sleep and wake remain un
 Sysfs `blank` also reaches the VT: `lid-guard` logged blanks at it, contrary to the
 request's claim. One of the three blanks read its gates open immediately after.
 
+### T4b, with the fix: console, sleep and wake
+
+Fresh boot `20195f1b`, same image, with `mediatek-drm` from `30711586`. rc 0, tainted 0,
+no timeout. The console stayed through a master and a reload. Power mode read `0x9c`
+on the first prepare, so nothing was sent, and `0x08` on each wake, so sleep-in took and
+the panel reads asleep. Three script blanks and three real idle blanks each woke, the
+panel showing the console again, by the owner's "all was good!" and "All worked". Typing
+worked. This is the first evidence the panel wakes from `0x10` on `0x11` and `0x29` alone,
+without a reset or the table.
+
+### The blank left the backlight on
+
+The owner: "it doesn't turn the screen off (or maybe it's just the backlight that's on)".
+This was new with the native console. Read blanked and awake:
+
+| | `bl_power` | PWM `CON_1` duty | PWM live level `0x28` | Mutex 0 `EN` | Mutex 0 `MOD` |
+| --- | --- | --- | --- | --- | --- |
+| Blanked | 4 | 0 | `0x200`, the old level | 0 | `0x04000000`, PWM0 only |
+| Awake | 0 | `0x100` | `0x100` | 1 | `0x05fcb400` |
+
+The owner saw it glow. The loader leaves PWM0 in mutex 0, the DRM path does not touch
+that bit, and a member's updates wait for a frame start. Blanking stops the frames, then
+`lid-guard`'s write never latches. On `simplefb` the loader's pipeline kept running, which
+hid it. [0510](../../patches/proposals/0510-soc-mediatek-mtk-mutex-drop-the-MT6797-loader-s-stal.patch) starts the pipeline from no members.
+
 ## Follow-up
 
-T4 is written and not run. T6 is not started. Durable facts are in
+T6 is not started. Durable facts are in
 [display and panel](../../docs/hardware/display-panel.md) and demonstrated support in
 [HARDWARE_SUPPORT](../../docs/HARDWARE_SUPPORT.md).
