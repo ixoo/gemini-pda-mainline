@@ -256,6 +256,9 @@ int main(void)
 		if (!!blanked != was_blanked) {
 			say("console %s\n", blanked ? "blanked" : "unblanked");
 			was_blanked = !!blanked;
+			/* Any wake restarts the kernel's deadline, whatever caused it. */
+			if (!blanked)
+				last_input = now_ms();
 			/*
 			 * The kernel is lighting it again at the dim level, a moment after it
 			 * reports unblanked; then back up to the owner's. The key that woke it

@@ -440,6 +440,12 @@ and 1.95 s samples fit it. So no timing in userspace can meet it. `lid-guard` no
 the backlight down at the end of the fade, and the kernel's blank follows up to 2 s later
 and lights it again on waking. With `lid-guard` dead, the kernel path is as before.
 
+Measured with no keys, on `a56c0705`: about 170 ms from the first sampled dim level to the
+backlight off, at about 35 ms per sample, and the blank followed 0.66 s later. A wake with
+no keyboard key then faded straight out again, because `lid-guard` only counted keyboard
+keys. Any wake now restarts its deadline, as it does the kernel's. A power-key press with
+the screen awake still moves the kernel's deadline unseen.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in
