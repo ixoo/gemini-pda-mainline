@@ -363,8 +363,9 @@ kernel does it, with no daemon:
 - **The PWM stayed enabled at duty 0.** [0514](../../patches/proposals/0514-pwm-mtk-disp-turn-the-MT6797-block-off-at-duty-0.patch)
   clears the enable bit at level 0, as the vendor does.
 - **The native path only helps when loaded.** `display-start` in the RAM root loads the
-  modules at boot, subject to the owner's decision. `/mnt/data/no-native-display` skips
-  it. Without it, the lid still turns the backlight off and blanks `simplefb`, but an
+  modules at boot, subject to the owner's decision. It loads in the background so it cannot
+  hold SSH back. A load that never finished leaves a marker on the data partition, so
+  the next boot stays on `simplefb`, and `/mnt/data/no-native-display` skips it outright. Without it, the lid still turns the backlight off and blanks `simplefb`, but an
   idle blank does nothing to the panel or backlight.
 - **Built in or module:** the VT hold and the PWM change are built in. `gemini-lid`,
   the panel and the pipeline are modules. `lid-guard` is reduced to brightness keys and

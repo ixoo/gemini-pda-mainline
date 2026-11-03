@@ -71,6 +71,20 @@ done
 if LD_LIBRARY_PATH=/lib /bin/iw reg set US; then status reg=US; else status reg=set-failed; fi
 # Audio, quiet until a stream runs.
 status "audio=$(/bin/audio-start)"
-# The native display, unless the data partition says not to, which leaves simplefb.
-if [ -e /mnt/data/no-native-display ]; then status display=skipped; else status "display=$(/bin/display-start)"; fi
+# The native display, in the background so a stuck load can't hold SSH back. A marker
+# left by a load that never finished, or the no-native-display file, leaves simplefb,
+# so a hang costs one power cycle.
+(
+    if [ -e /mnt/data/no-native-display ]; then
+        status display=skipped
+    elif [ -e /mnt/data/native-display-loading ]; then
+        status display=skipped-last-load-unfinished
+    else
+        $bb touch /mnt/data/native-display-loading 2>/dev/null
+        $bb sync
+        status "display=$(/bin/display-start)"
+        $bb rm -f /mnt/data/native-display-loading
+        $bb sync
+    fi
+) &
 exec $bb init
