@@ -446,6 +446,18 @@ no keyboard key then faded straight out again, because `lid-guard` only counted 
 keys. Any wake now restarts its deadline, as it does the kernel's. A power-key press with
 the screen awake still moves the kernel's deadline unseen.
 
+On `c6d4d2cb`, boot `7197708f`, no keys pressed, tainted 0: a wake with no key ran the wake
+fade from 16 to 512 in 0.54 s, and no down fade followed until the next was due. That one
+reached the dim level with the backlight off about 150 ms later, in coarse samples, and
+the kernel blanked 2.1 s after that. With `lid-guard` replaced by a stub, the kernel blanked
+about 61.6 s after a 60 s poke, with gates closed, enable 0, DPMS off and `bl_power` 4, and
+unblanking restored them, so an idle blank needs no daemon.
+
+Not yet shown, and waiting for the owner: the fade's end and a key wake by eye, a key in the
+window with the light off, lid cycles and the closed-lid checks on this image, a bind behind
+a closed lid, the power key under a closed lid, and any power figure. Image `370f589b`,
+package `b590193b` with this `lid-guard`, is written to boot2 and not booted.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in
