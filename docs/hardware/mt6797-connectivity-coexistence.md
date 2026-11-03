@@ -205,7 +205,9 @@ concurrent mainline operation.
 - Must the host consume the per-BSS rate-limit and safe-channel events, or are
   they advisory?
 - How do mainline throughput and BT audio behave with both radios active at
-  2.4 GHz versus 5 GHz? No experiment has measured this yet.
+  2.4 GHz versus 5 GHz under load? The only run so far is A2DP next to a joined 5 GHz
+  Wi-Fi carrying a ping: 260 of 260, with no visible effect on the stream
+  ([record](../../experiments/2026-11-02-gemini-bluetooth/README.md#t2b-result-audio-heard-2026-11-03)).
 
 ## Evidence
 

@@ -322,9 +322,10 @@ first, which makes it the least likely.
 | --- | --- |
 | WMT transport, negotiation, function control | demonstrated (one-shot diagnostics) |
 | Task-0 HCI, version/address reads | demonstrated in one bounded boot |
-| Persistent link and `hci_dev` | implemented, compile-tested, not booted |
-| Power saving, wake pulse, reset recovery | not implemented in mainline |
-| ACL traffic, pairing, A2DP | not attempted |
+| Persistent link and `hci_dev` | demonstrated: `btmt6797` module on the station ([record](../../experiments/2026-11-02-gemini-bluetooth/README.md)) |
+| Power saving, wake pulse, reset recovery | not implemented in mainline; a stopped link needs a CONSYS reload |
+| Scan, pairing, A2DP source (SBC) with BlueZ and BlueALSA | demonstrated on one boot with one headset; owner heard audio |
+| LE | hidden from the core; see [controller behaviour](#controller-behaviour-on-mainline) |
 | SCO over HCI | unknown |
 | btcvsd driver in tree | present upstream, no Gemini node |
 | Userspace CVSD/mSBC codec | proprietary, not in mainline |
@@ -335,8 +336,29 @@ projects: A2DP follows from a working ACL transport, and HFP follows from the
 CVSD contract plus a coding/bridging component. Neither is required for
 Bluetooth keyboards, mice, serial profiles or A2DP.
 
+## Controller behaviour on mainline
+
+Observed on this unit with both ROM patches loaded, through the
+[2026-11-02 record](../../experiments/2026-11-02-gemini-bluetooth/README.md):
+
+| Fact | Detail |
+| --- | --- |
+| Identity | HCI and LMP version `0x08` (4.2), HCI revision `0x0010`, LMP subversion `0x0307`, manufacturer 70; ACL 1021 bytes, 6 packets; SCO 184 bytes, 1 packet |
+| Address | Read BD_ADDR returns the placeholder `00:00:46:02:79:01`, so it is not unique. This answers the open point in [BD address](#bd-address) for this unit |
+| LE | The LE feature bit is set, Supported Commands octets 25-28 are zero, and LE Set Event Mask `d0 07 00 00 00 00 00 00` is refused with `0x20`. Gemian's older core sends a mask with nothing above `0x20`, so a newer event bit is probably what's refused (inferred). The driver hides LE |
+| MWS | Get MWS Transport Layer Configuration is listed but refused with `0x02`. Gemian's core has it under `#if 0`, blaming the chip. The driver sets the core's quirk |
+| Inquiry | Inquiry Cancel is refused with `0x0c`, and no Inquiry Complete event was seen, so the core's `INQUIRY` flag stays set. Paging and pairing still work. Not understood |
+| Completed packets | Number of Completed Packets events are 11 bytes long, with bytes the spec doesn't define. The core ignores them |
+| Link | One stream stopped the link within 0.19 s on an ACK timeout, with the firmware repeating its last ACK; the next boot's 7 minutes ran clean with no resend. The vendor resends frames; the cause is open |
+
+The vendor's Set Radio and TX offset are not sent by default (`gemian_radio`), and A2DP
+worked with the controller's own settings at a few metres. Their effect on output power
+is not measured.
+
 ## Open questions
 
+- Why did the T2 stream stall? It happened once, late in a long CONSYS lifetime.
+- What ended the inquiry, and when? See the table above.
 - Does the MT6797 ROM accept HCI SCO packets on task 0, and can its baseband
   consume them? A single attended boot that establishes a SCO link to a known
   headset and checks for audio, with and without frames, would decide it.
@@ -347,8 +369,6 @@ Bluetooth keyboards, mice, serial profiles or A2DP.
   identifies SCO or CVSD handling.
 - Are the vendor NVRAM `Voice` and `Codec` fields used on this board at all?
   They are patched into command arrays that are not sent.
-- Is the address `hci0` reports the controller's eFUSE value or Gemian's fixed
-  fallback? Comparing the private value with the two constants would settle it.
 
 ## Evidence
 

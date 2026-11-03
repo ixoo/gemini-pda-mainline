@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `running`: scan, pairing and an A2DP connection worked on the first try (T2), then the link stopped about 0.2 s into the stream. Retransmission added; no full audio run yet |
+| Status | `completed`: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -250,4 +250,60 @@ UBSan, and passes. That shows the logic only. Whether the firmware recovers, and
 often frames are lost, is the next device run's question. If frames are lost often, 180 ms
 per loss will be audible and the cause needs finding. The test's starting volume goes from
 30 to 50, as the tone is already at -20 dBFS.
+
+## T2b result: audio heard (2026-11-03)
+
+Run by the custodian on boot `64622312`, image `370f589b`, with `mt6797-consys.ko`
+`74fb9566…` by reload (common init 285/285), `btmt6797.ko` `44875a17…`, `bluetooth.ko`
+`d1600d16…`, [`bt-test.sh`](bt-test.sh) then named `bt-t2.sh` `0a123c55…`, `bt-start.sh`
+`4a5fb9e9…`. Volume 50, `gemian_radio` off, placeholder address, BR/EDR only, SBC.
+Evidence is private under `artifacts/station-work-40/boot-64622312/bt-t2b/`.
+
+**The owner reports:** "I heard a tone left then right, then a melody played in both
+ears", and during the soak "it works". They listened to part of the soak, so its audio is
+not confirmed by ear throughout.
+
+**Observed:**
+
+| Phase | Wi-Fi | Result |
+| --- | --- | --- |
+| Tone, 31 s | down | `aplay=0`, 1.29 MB sent |
+| Soak, 300 s, 10 plays | down | no `aplay` failure |
+| Soak, 120 s, 4 plays | joined on 5 GHz pinned link, ping only | ping 260 of 260, 0 disconnects, RTT average 5.8 ms, maximum 15.7 ms |
+
+- About 41 kB/s in every phase, 19.4 MB in all, 39772 ACL packets.
+- Halt: `failed=0 busy=0 rx=40021 discarded=0 dup=0 tx=39863 acks=40021 timeouts=0
+  resent=0`, assert 0. No Oops, warning, call trace or `nobody cared`. Both modules unload.
+  Taint 0. SoC peak about 29.6 °C.
+- Inquiry Cancel was refused with `0x0c` again, and the kernel's `INQUIRY` flag stays set.
+
+**What this does not show:**
+- **That 0525 fixed T2.** No resend ever ran. T2's stall simply did not recur. The runs
+  also differ in a fresh boot and CONSYS lifetime (T2 ran after three T1 runs, charger tests
+  and a Wi-Fi join and stop), and in 0525's other effects: the 20 ms tick and messages held
+  in the queue until acknowledged. So the cause of the T2 stall stays open, and the resend
+  path is untested on hardware.
+- **Coexistence under load.** Wi-Fi carried a ping on 5 GHz, not traffic, and not 2.4 GHz.
+- **Range, TX power, other headsets, or long runs.** One headset, a few metres, about 7
+  minutes of audio, one boot. Nothing here measures RF.
+- **That the placeholder address is safe to keep.** Two Gemini units nearby would collide.
+
+**Budget used of the one the owner approved, T2 and T2b:** inquiry 2 of 3, pairing 2 of 3,
+A2DP connections 2 of 5, soak 7 of 10 minutes. It covered this test only, so nothing
+further should run on the remainder without asking.
+
+## Recommended next
+
+In this order, each its own request:
+1. **A private address**, with `HCI_QUIRK_INVALID_BDADDR` and a value kept off Git, before
+   daily use. Small.
+2. **SCO over HCI**, one connection to the headset, since it decides what the microphone and
+   HFP need: if the ROM refuses it, HFP needs a Gemini `btcvsd` node, a machine-driver link
+   and a CVSD/mSBC bridge. A new radio action, so the owner's.
+3. **A concurrent test with real Wi-Fi traffic**, on 2.4 and 5 GHz, watching `timeouts`.
+4. **A boot-time path**, if the owner wants Bluetooth without SSH: the chroot and modules on
+   `/mnt/data`, a pairing store that survives a boot.
+
+**Not recommended now:** the control run with the old CONSYS module. Keep 0525 either way,
+since it's what the vendor does, and `timeouts` will show if it ever runs.
 
