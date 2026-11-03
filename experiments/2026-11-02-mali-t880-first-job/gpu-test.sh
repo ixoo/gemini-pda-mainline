@@ -80,9 +80,11 @@ rpm() {
 }
 state() { echo "soc=$(cat "$zone") mC"; rail; regs "$1"; }
 
+# Only what this run loaded, in reverse: a display driver may be using the DRM core.
+loaded=
 unload() {
-  for m in panfrost gpu-sched drm_shmem_helper drm drm_panel_orientation_quirks rt5735-regulator clk-mt6797-mfg; do
-    [ -d "/sys/module/$(echo "$m" | tr - _)" ] && { rmmod "$m" || echo "rmmod $m failed"; }
+  for m in $loaded; do
+    rmmod "$m" || echo "rmmod $m failed"
   done
 }
 
@@ -94,10 +96,15 @@ mark=$(dmesg | wc -l)
 
 rc=0
 for m in $MODULES; do
+  if [ -d "/sys/module/$(echo "$m" | tr - _)" ]; then
+    echo "=== $m already loaded"
+    continue
+  fi
   args=; [ "$m" = panfrost ] && args="${parent:+mt6797_parent=$parent mt6797_dvfs=0}${KHZ:+ mt6797_khz=$KHZ mt6797_dvfs=0}${IDLE_OFF:+ mt6797_idle_off=$IDLE_OFF}${LOG_RATES:+ mt6797_log_rates=1}${PERFCNT:+ unstable_ioctls=1}"
   echo "=== insmod $m $args"
   # shellcheck disable=SC2086 # args is a few words, none with a space
   insmod "$here/$m.ko" $args || { echo "insmod $m failed"; rc=1; break; }
+  loaded="$m $loaded"
   [ "$m" = rt5735-regulator ] && { sleep 1; rail; }
 done
 dmesg | tail -n +$((mark + 1))
