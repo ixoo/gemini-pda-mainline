@@ -29,9 +29,10 @@
 #define BLANK_SECONDS "/sys/module/kernel/parameters/consoleblank"
 /* The fades: long enough to see, short enough not to hold a wake back. */
 #define DIM_LEVEL 16
-#define FADE_DOWN_SECONDS 3
 #define FADE_DOWN_STEPS 40
 #define FADE_DOWN_MS 75
+/* It ends as the kernel blanks, with no time held at the dim level. */
+#define FADE_DOWN_LEAD_MS (FADE_DOWN_STEPS * FADE_DOWN_MS)
 #define FADE_UP_STEPS 16
 #define FADE_UP_MS 30
 
@@ -152,6 +153,20 @@ static int read_number(const char *path)
 	return value;
 }
 
+static long long now_ms(void)
+{
+	struct timespec t;
+
+	clock_gettime(CLOCK_REALTIME, &t);
+	return t.tv_sec * 1000LL + t.tv_nsec / 1000000;
+}
+
+/* When the kernel saw the event, in the same clock as now_ms(). */
+static long long event_ms(const struct input_event *ev)
+{
+	return ev->time.tv_sec * 1000LL + ev->time.tv_usec / 1000;
+}
+
 static void set_brightness(int level)
 {
 	char text[16];
@@ -201,8 +216,8 @@ int main(void)
 	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
 	struct input_event ev;
 	struct pollfd fds[2];
-	int fd, kfd, closed, fn = 0, nfds, restore = -1, quick = 0, was_blanked = 0;
-	time_t last_input = time(NULL);
+	int fd, kfd, closed, fn = 0, nfds, restore = -1, quick = 0, was_blanked = 0, wait = 1000;
+	long long last_input = now_ms();
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
 	    !find_input(KEYBOARD_NAME, keyboard, sizeof(keyboard))) {
@@ -225,11 +240,12 @@ int main(void)
 	fds[1] = (struct pollfd){ .fd = kfd, .events = POLLIN };
 	nfds = kfd < 0 ? 1 : 2;
 	/* After a key, look again soon: the kernel wakes the console just after it. */
-	while (poll(fds, nfds, quick > 0 ? 50 : 1000) >= 0) {
+	while (poll(fds, nfds, quick > 0 ? 50 : wait) >= 0) {
 		int blanked = console_blanked();
 
 		if (quick > 0)
 			quick--;
+		wait = 1000;
 		if (!!blanked != was_blanked) {
 			say("console %s\n", blanked ? "blanked" : "unblanked");
 			was_blanked = !!blanked;
@@ -250,10 +266,10 @@ int main(void)
 		if (!closed && !blanked) {
 			int seconds = read_number(BLANK_SECONDS);
 			/* Only input resets the kernel's deadline; console output does not. */
-			time_t now = time(NULL), active = last_input;
+			long long start = last_input + seconds * 1000LL - FADE_DOWN_LEAD_MS;
+			long long left = start - now_ms();
 
-			if (seconds > FADE_DOWN_SECONDS && restore < 0 &&
-			    now - active >= seconds - FADE_DOWN_SECONDS) {
+			if (seconds * 1000 > FADE_DOWN_LEAD_MS && restore < 0 && left <= 0) {
 				int level = read_number(BL_BRIGHTNESS);
 
 				if (level > DIM_LEVEL) {
@@ -264,16 +280,18 @@ int main(void)
 						restore = -1;
 					}
 				}
-			} else if (restore >= 0 && (seconds <= FADE_DOWN_SECONDS ||
-						    now - active < seconds - FADE_DOWN_SECONDS)) {
+			} else if (restore >= 0 && (seconds * 1000 <= FADE_DOWN_LEAD_MS || left > 0)) {
 				/* The deadline moved or went, with no blank after all. */
 				set_brightness(restore);
 				restore = -1;
+			} else if (seconds * 1000 > FADE_DOWN_LEAD_MS && left > 0 && left < wait) {
+				/* Wake exactly when the fade has to start. */
+				wait = left;
 			}
 		}
 		if ((fds[1].revents & POLLIN) && read(kfd, &ev, sizeof(ev)) == sizeof(ev) &&
 		    ev.type == EV_KEY) {
-			last_input = time(NULL);
+			last_input = event_ms(&ev);
 			quick = 20;
 			if (restore >= 0 && !blanked) {
 				set_brightness(restore);
@@ -295,7 +313,7 @@ int main(void)
 			set_brightness(restore);
 			restore = -1;
 		}
-		last_input = time(NULL);
+		last_input = event_ms(&ev);
 	}
 	say("lid event stream ended\n");
 	return 1;

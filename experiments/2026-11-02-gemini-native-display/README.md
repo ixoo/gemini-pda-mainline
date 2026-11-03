@@ -425,6 +425,16 @@ wait for the morning.
 The combined image with this, the review fixes, the charging guard and Bluetooth's modules
 is written to boot2 and not booted: image `6bc70ab8`, package `b590193b`.
 
+### The fade
+
+Live on boot `7197708f`. A blank's fade reached the dim level about 1.7 s before the
+backlight went off, and a wake showed no fade: the rest of the waking key's press cancelled
+it. `ea6e7684` makes input wait for the end of a wake fade, and the owner: "the dimming
+works, but there is a gap between the lowest brightness and the screen turning off, we need
+to fix it. The wake up works great." The gap came from timing the deadline in whole seconds
+and checking once a second. `lid-guard` now times it from the key event's timestamp, in
+milliseconds, and wakes when the fade must start.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in
