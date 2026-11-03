@@ -47,8 +47,10 @@ The retained Gemian boot log also shows this unit's panel takes the vendor's
 NT36672 path through a full suspend, `lcm_poweron`, the bias writes and
 `lcm_resume` at 3.3 s, on every boot, and works afterward. So the table in the
 vendor kernel drives this unit's panel, whatever the silicon. It is behaviour, not
-identity, and it applies to the running vendor kernel; comparing that binary's table
-with patch 0043 is the check before the table is sent.
+identity. The retained binary of that vendor kernel holds that table: all 181 writes
+in [0043](../../patches/v7.1.3/0043-drm-panel-novatek-nt36672e-add-gemini-descriptor.patch)
+match, byte for byte and in order, at one 72-byte-entry table followed by sleep-out.
+So the generated table is the one this unit runs.
 
 [bsg100](../2026-07-13-bsg100-gemini-linux-comparison/README.md), on another unit
 with a different panel, reached a native console on Linux 6.6. Three of its
@@ -123,12 +125,13 @@ Each is a separate custodian request, with its own decision table.
 | T5 | Panfrost renders, the pipeline scans out | The goal: GPU frames on the panel |
 | T6 | Bias, reset, full init table, once its preconditions are read | The panel's own power, so Linux owns it from cold |
 
-T6 needs its own evidence first: the running binary's table against 0043, the bias
-chip's readback, and how to drive `LCM_RST_B`.
+T6 needs its own evidence first: the bias chip's readback and how to drive
+`LCM_RST_B`. The table is already checked against the running binary.
 
 ## Associated code
 
 - [`display-t0-read.sh`](display-t0-read.sh): the read-only snapshot.
+- [`display-t1.sh`](display-t1.sh): load, bind with no modeset, unload.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
@@ -137,6 +140,11 @@ chip's readback, and how to drive `LCM_RST_B`.
   in the `mt6797-a53-station-a72` profile only.
 
 ## Observations
+
+Package, not yet run: commit `b3b841d4`, profile `mt6797-a53-station-a72`, modules
+built, Buildbox-2, `SHA256SUMS` `fa8ca23a`, `Image.gz` `782ee797`, station-a72 DTB
+`fcb00229`. It also carries the GPU session's defaults. Its image gains only the
+DSI bus core and small display helpers.
 
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
