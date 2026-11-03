@@ -13,7 +13,8 @@ mkdir -p "$work"
 cd "$work"
 [ -f "$archive" ] || curl -fsSLO "$base/releases/aarch64/$archive"
 echo "$sha256  $archive" | sha256sum -c -
-sudo rm -rf root
+sudo umount root/proc root/dev 2> /dev/null || true
+sudo rm -rf --one-file-system root
 mkdir root
 sudo tar -xzpf "$archive" -C root
 printf '%s/main\n%s/community\n' "$base" "$base" | sudo tee root/etc/apk/repositories > /dev/null

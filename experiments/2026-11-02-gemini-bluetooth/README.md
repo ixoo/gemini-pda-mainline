@@ -47,11 +47,25 @@ lets several clients share the link and exports Bluetooth function control.
 adds the `btmt6797` module. [The fragment](../../configs/gemini-a53-station-bluetooth.fragment)
 builds the core and driver as modules, and nothing loads them at boot.
 
+**Loading `btmt6797` powers Bluetooth for about 2 s.** `hci_register_dev` always
+queues the core's setup stage, which opens the device, whatever `AutoEnable` says.
+That starts the STP link next to Wi-Fi, sends the link check, turns VCN33-BT on,
+sends WMT function-on and runs HCI init, then closes. With no `bluetoothd` on the
+management interface, a plain `hciconfig up` does the same and leaves scans off
+(read in `hci_sync.c`). A code review found this after the first version of these
+patches said a loaded module touches nothing, which was wrong.
+
+**Hazard, each time:** a WMT timeout or a link failure stops the link until the
+next CONSYS reload, and the [GNSS T2 stop](../2026-11-01-gemini-gnss-link/README.md)
+lost Wi-Fi's command path the same way. Recovery is a CONSYS reload. A deferred
+registration would make loading inert, but adds a trigger with no other use: the
+insmod is already that trigger, and nothing runs it at boot.
+
 | Decision | Why |
 | --- | --- |
 | Reassemble H:4 in the link's interrupt, deliver from a work item | An unbounded queue of whole packets replaces the 2026-10-07 draft's 16-slot ring, which stopped the link when full |
 | Never refuse a frame to the link | A refusal stops the link for GNSS and Wi-Fi's firmware; a bad stream resets Bluetooth only |
-| Send Set Radio and Set TX Offset from setup, on every open | Gemian sends them with these bytes. Function-on returns the controller to defaults |
+| Keep Gemian's Set Radio and Set TX Offset behind `gemian_radio`, off by default | They change radio settings no mainline run has changed, so turning them on is an owner decision. Without them the controller keeps its own settings |
 | Leave out the vendor's sleep timeout | Nothing here sleeps or wakes the chip. It costs idle power while `hci0` is up, and none while it is down |
 | Use the controller's own address | Whether it is unique is checked by the first run, without publishing it. `set_bdaddr` exists for the other case |
 
@@ -89,4 +103,5 @@ bridge in userspace.
 | [H:4 fixture](../2026-10-06-mt6797-bt-hci-design/test-bt-h4.c) on the header with the new 2048-byte buffer, ASan and UBSan | passes |
 | Resolved configuration against package `27f7a9b2` | differs only by `BT`, `BT_BREDR`, `BT_LE`, `BT_LE_L2CAP_ECRED`, `BT_RFCOMM`, `BT_MT6797`, plus compiler identification |
 | Buildbox package `27dd9299` (inventory `c4259df0…`), Buildbox-3 | validated; Gemini DTB identical to `27f7a9b2`; every symbol `bluetooth.ko` needs is exported by the running image |
+| Review fixes (`gemian_radio`, second attach gets `-EBUSY`), dev VM, W=1 | no warnings; Buildbox package to follow |
 | On the device | nothing yet |

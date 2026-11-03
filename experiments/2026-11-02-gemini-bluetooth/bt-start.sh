@@ -3,7 +3,8 @@
 # shellcheck shell=dash
 # Station Bluetooth userspace, fed over SSH: bt-start.sh ROOT_TARBALL
 # Unpacks the chroot under /run/bt-root and starts dbus-daemon, bluetoothd and
-# bluealsa. No radio action: the adapter stays off until something powers it on.
+# bluealsa. bluetoothd powers nothing on with AutoEnable off. The radio-side effects
+# of this module set are at insmod, which opens the device once; see the record.
 # Logs stay in RAM under /run/bt-root/run, are private and hold device addresses.
 set -eu
 root=/run/bt-root

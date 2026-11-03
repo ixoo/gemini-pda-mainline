@@ -1,13 +1,15 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Mon, 2 Nov 2026 22:00:03 -0500
+Date: Mon, 2 Nov 2026 22:43:35 -0500
 Subject: [PATCH] Bluetooth: add the MT6797 CONSYS controller
 
 The MT6797 Bluetooth controller has no port of its own. Its HCI packets travel as
 H:4 over STP task 0 on the CONSYS link, not aligned with STP frames.
 
 Add an HCI driver on that link. Opening the device attaches to the link and turns
-the function on, and closing reverses it, so a loaded module touches nothing.
+the function on, and closing reverses it. Loading the module opens the device once:
+registering an HCI device makes the core run its setup stage and close the device
+about 2 s later. That stage starts no inquiry, page or scan.
 
 Reassembly runs in the link's interrupt handler and hands whole packets to a work
 item. It never refuses a frame, because a refusal stops the link for every CONSYS
@@ -15,18 +17,19 @@ client, Wi-Fi's firmware included. A malformed stream or a failed allocation dro
 only Bluetooth: the rest of the stream is ignored and the core gets a hardware
 error, which reopens the device.
 
-Setup sends the two radio parameters Gemian's driver sends on this chip. The
-vendor's sleep timeout is left out, since nothing here puts the chip to sleep or
-wakes it.
+The two radio parameters Gemian's driver sends on this chip are behind the
+gemian_radio parameter, off by default, since they change radio settings that no
+mainline run has changed. The vendor's sleep timeout is left out, since nothing
+here puts the chip to sleep or wakes it.
 
 The controller's own address is used. set_bdaddr is there for a board whose address
 is unusable.
 ---
  drivers/bluetooth/Kconfig       |  10 ++
  drivers/bluetooth/Makefile      |   1 +
- drivers/bluetooth/btmt6797-h4.h |  87 +++++++++++++
- drivers/bluetooth/btmt6797.c    | 217 ++++++++++++++++++++++++++++++++
- 4 files changed, 315 insertions(+)
+ drivers/bluetooth/btmt6797-h4.h |  87 ++++++++++++
+ drivers/bluetooth/btmt6797.c    | 227 ++++++++++++++++++++++++++++++++
+ 4 files changed, 325 insertions(+)
  create mode 100644 drivers/bluetooth/btmt6797-h4.h
  create mode 100644 drivers/bluetooth/btmt6797.c
 
@@ -158,10 +161,10 @@ index 000000000..5f14a20b7
 +#endif
 diff --git a/drivers/bluetooth/btmt6797.c b/drivers/bluetooth/btmt6797.c
 new file mode 100644
-index 000000000..ee39a63ec
+index 000000000..a625c1d3d
 --- /dev/null
 +++ b/drivers/bluetooth/btmt6797.c
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,227 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * MediaTek MT6797 CONSYS Bluetooth.
@@ -170,6 +173,10 @@ index 000000000..ee39a63ec
 + * travel as H:4 over STP task 0 on the link the CONSYS owner runs, and need not
 + * align with STP frames. Opening the device attaches to the link and turns the
 + * WMT Bluetooth function on; closing reverses it.
++ *
++ * Loading this module opens the device once: registering an HCI device makes the
++ * core run its setup stage, which closes it again about 2 s later. That stage
++ * starts no inquiry, page or scan.
 + */
 +
 +#include <linux/module.h>
@@ -189,6 +196,10 @@ index 000000000..ee39a63ec
 +/* The parameters Gemian's in-kernel driver sends on this chip. */
 +static const u8 btmt6797_radio[] = { 0x06, 0x80, 0x00, 0x06, 0x03, 0x06 };
 +static const u8 btmt6797_tx_offset[] = { 0xff, 0xff, 0xff };
++
++static bool gemian_radio;
++module_param(gemian_radio, bool, 0444);
++MODULE_PARM_DESC(gemian_radio, "Send Gemian's radio parameters at setup (default: controller's own)");
 +
 +struct btmt6797 {
 +	struct hci_dev *hdev;
@@ -312,6 +323,8 @@ index 000000000..ee39a63ec
 +{
 +	int ret;
 +
++	if (!gemian_radio)
++		return 0;
 +	ret = btmt6797_vendor(hdev, BTMT6797_OP_SET_RADIO, btmt6797_radio,
 +			      sizeof(btmt6797_radio));
 +	if (ret)
