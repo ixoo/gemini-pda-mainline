@@ -4,13 +4,6 @@
 # The local shell on tty1, with the Gemini keymap; init respawns it.
 export PATH=/bin TERM=linux
 bb=/bin/busybox
-# fbcon's move to the native display resizes tty1 twice, and ash reprints its
-# prompt on each resize, so give the load up to 10 s to finish first.
-tries=100
-while [ "$tries" -gt 0 ] && ! $bb grep -q '^display=' /run/station/status 2>/dev/null; do
-    $bb sleep 0.1
-    tries=$((tries - 1))
-done
 $bb chvt 1
 $bb stty sane
 /bin/console-unicode-mode >/dev/null 2>&1
