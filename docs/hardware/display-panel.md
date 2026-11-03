@@ -81,9 +81,8 @@ and the [bsg100 cross-check](../../experiments/2026-07-13-bsg100-gemini-linux-co
 
 The live retained dump reports a 435 MHz MIPI TX clock and a 1088-pixel
 framebuffer stride at 32 bpp. The 440 MHz value is a downstream D-PHY input,
-not a DRM pixel clock. The retained timings and the requested rate imply a frame
-rate below 60 Hz; the vendor debug field reports `5405` where `6000` means
-60.00 Hz. Do not treat either number as an independently measured refresh rate.
+not a DRM pixel clock. The vendor debug field reports `5405` where `6000` means
+60.00 Hz, and mainline at these settings measures 54.00 flips per second.
 
 ### 2.3 Reset, bias and power sequence
 
@@ -335,18 +334,22 @@ The GPU-side power, clock, DVFS and Panfrost plan is in the
 
 | Gemian boundary | Standard replacement | Current state |
 | --- | --- | --- |
-| `mtkfb` fbdev + private ioctls | MediaTek DRM/KMS (`mtk_drm`, OVL, RDMA, mutex, DSI) | Display nodes described but disabled; no panel consumer |
-| Vendor LCM driver | DRM panel driver with DSI timings, reset GPIO, bias supplies, backlight | NT36672E framework exists; Gemini descriptor disabled and identity-unproven |
+| `mtkfb` fbdev + private ioctls | MediaTek DRM/KMS (`mtk_drm`, OVL, RDMA, mutex, DSI) | [A test frame reached the panel](../../experiments/2026-11-02-gemini-native-display/README.md) from modules on the station |
+| Vendor LCM driver | DRM panel driver with DSI timings, reset GPIO, bias supplies, backlight | Gemini descriptor adopts the loader's panel state and sends nothing; the driver's own power and init path has not run |
 | `MTKFB_POWEROFF/ON` and ESD | DRM modeset, panel prepare/enable, ESD work | Not exercised on the station |
-| ION + M4U + sw_sync | dma-buf heaps, IOMMU, dma-fence | Foundations exist; display IOMMU data and consumer path remain open |
+| ION + M4U + sw_sync | dma-buf heaps, IOMMU, dma-fence | CMA with the larbs in bypass scans out; display IOMMU remains open |
 | Vendor HWC + libhybris + Xorg DDX | Mesa/Panfrost + DRM/KMS compositor | Panfrost renders on the station; no native display path yet |
 | `lcd-backlight` + PWM0 | `pwm-backlight`/DRM backlight with PWM0 | H2/H8 work prepared; not the default |
 
 The mainline display work is tracked by the
-[display H2 record](../../experiments/2026-10-06-gemini-display-h2/README.md)
-and the [support matrix](../HARDWARE_SUPPORT.md). The existing DRM/DSI code is
-not proof of Gemini panel support: the board graph, panel consumer and
-backlight ownership remain disabled or unassigned.
+[native display experiment](../../experiments/2026-11-02-gemini-native-display/README.md)
+and the [support matrix](../HARDWARE_SUPPORT.md).
+
+Read on the named unit, from a running panel, on both the Gemian kernel and the
+mainline station: `PLL_CON2` `0x43b13b13` (880 Mbit/s), `TIMCON0-3` `0x080f0708
+0x10280c20 0x0a280100 0x00102406`, word counts 28/148/116, VSA/VBP/VFP 3/15/10,
+`TXRX_CTRL` `0x1003c`, `LCM_RST_B` 1 with GPIO180 in its `LCM_RST` function. The
+measured refresh under mainline at those settings is 54.00 Hz.
 
 ## 7. Confidence and unresolved questions
 
@@ -355,7 +358,7 @@ backlight ownership remain disabled or unassigned.
 | Physical panel controller | `unresolved` - NT36672 is the selected driver; no direct read on this unit |
 | Panel bias device semantics | `observed` writes only; LP3101 voltages/currents unproven |
 | Landscape rotation stage | `unresolved` - kernel scans 1080x2160 portrait; the DDX Rotate option is off; no kernel consumer of `CONFIG_MTK_LCM_PHYSICAL_ROTATION` was found, so rotation is applied above the kernel's scanout (userspace/HWC or panel mounting) |
-| Refresh rate | `unresolved` - requested PLL and retained timings imply below 60 Hz; debug value not independently measured |
+| Refresh rate | `observed` - 54.00 flips per second under mainline at the vendor's lane rate and porches, agreeing with the vendor's `5405` debug field |
 | Vendor HWC composition policy | Proprietary; not retained. The live OVL path is consistent with direct scanout of the X framebuffer |
 | Cold-boot panel initialisation | Kernel sets `is_lcm_inited` from the presence of LK's `videolfb` tag and inherits LK's panel state; exact per-session state not captured |
 | Android SurfaceFlinger vs Xorg ownership | Android services were observed, but the DDX's mini-SF helper exists; per-session ownership not established |

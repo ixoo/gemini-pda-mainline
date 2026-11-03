@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-native-display` |
-| Status | `running`: T0 read the loader's state; T1 bind and unload pass with the console undisturbed; no modeset has run yet |
+| Status | `running`: the owner saw a native test frame on the panel on one boot, with the panel adopted as the loader left it; identity, repeated modesets, the panel's own init and GPU scanout still open |
 | Subsystem | MT6797 MMSYS, DRM pipeline, DSI0, MIPI TX, Gemini panel |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -139,9 +139,9 @@ Each is a separate custodian request, with its own decision table.
 | T0 | Reads only, running boot. Done | Live gates, larb bypass, pad modes |
 | New image | DSI bus core, display DT, nothing loads | Nothing changes at boot |
 | T1 | Load the modules with `keep_firmware_fb`. RDMA interrupt writes. No modeset | Binding leaves the console running |
-| T2 | First modeset, PHY and link restart, one frame | Whether the panel takes the restarted link |
-| T3 | `read_identity`: DCS reads in command mode | Panel identity on this unit |
-| T4 | Repeated modesets, `fbcon` on the native path | Drop `simplefb` as the console |
+| T2 | First modeset, PHY and link restart, one frame. Done: it does | Whether the panel takes the restarted link |
+| T3 | Teardown by unload, second modeset with DCS reads in command mode, one frame | Whether teardown recovers, panel identity on this unit, colour order |
+| T4 | `fbcon` on the native path | Drop `simplefb` as the console |
 | T5 | Panfrost renders, the pipeline scans out | The goal: GPU frames on the panel |
 | T6 | Bias, reset, full init table, once its preconditions are read | The panel's own power, so Linux owns it from cold |
 
@@ -154,6 +154,7 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
 - [`display-t1.sh`](display-t1.sh): load, bind with no modeset, unload.
 - [`display-t2.sh`](display-t2.sh): load, first modeset with a test frame, read the
   pipeline while it runs.
+- [`display-t3.sh`](display-t3.sh): teardown, second modeset, identity reads.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
@@ -178,6 +179,33 @@ unchanged, no display interrupt, and the owner saw no change. So bind and unload
 T2 first attempt, same boot: `kms-frame` reported no connected output and no modeset
 ran. It asked for modes without the zero-count call that makes the kernel probe a
 connector, a bug in the tool.
+
+**T2, the first native frame**, same boot, tool `fb10debf`. The owner, watching the
+panel: "vertical colored bars and a black rectangle moving right to left in the middle
+of the screen", then "all looked correct the corners had boxes. right now the screen is
+black".
+
+- Tool: connector connected, one mode, 1080x2160 at 146667 kHz, nominal 57 Hz. 1621
+  flips in 30.018 s, 54.00 per second, none late. OVL0's interrupt count rose as
+  expected; the other blocks' stayed 0. Tainted 0, no warning or flip timeout.
+- Read while running, against the loader's state: scanout at `0xfe200000` in CMA, DSI
+  and PHY otherwise the same words, with `PLL_CON2` `0x43b14528`, 880.002 Mbit/s against
+  the loader's `0x43b13b13`. Layer format `0x20ff`, the loader's format 2 without alpha.
+- When the tool exited its framebuffer was removed. The plane turned off and the CRTC
+  stayed active, so the link kept running on a black background. That is the black the
+  owner saw.
+- Not sent: any panel command. Not touched: reset, bias, supplies, MM domain, SMI.
+
+**Analysis.** The panel accepts the HS link stopping and restarting with no sleep or
+reset around it, at least on this one run. 54.00 Hz, measured for the first time on
+this unit, agrees with the vendor's `lcm_fps=5405`. The nominal 57 Hz in the mode is
+wrong by the time the LP transitions take, and should be corrected if anything
+depends on it. "Vertical" bars and "right to left" agree with scan lines running along
+the long side, the portrait panel held in landscape. Colour order and which corner is
+which were not reported, so byte order is not established. T3 asks.
+
+This is one run on one boot. It does not show the panel's own power and init sequence,
+repeated modesets, identity, suspend or GPU scanout.
 
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
