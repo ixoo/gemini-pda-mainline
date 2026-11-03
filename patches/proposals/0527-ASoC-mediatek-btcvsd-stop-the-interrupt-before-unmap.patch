@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 18:50:15 -0500
+Subject: [PATCH] ASoC: mediatek: btcvsd: stop the interrupt before unmapping
+
+The handler reads and writes the PKV window, which remove unmapped while devres
+still held the interrupt. An interrupt in that gap faults. Close the gate and free
+the interrupt first.
+---
+ sound/soc/mediatek/common/mtk-btcvsd.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sound/soc/mediatek/common/mtk-btcvsd.c b/sound/soc/mediatek/common/mtk-btcvsd.c
+index 5e7e85b4c..8e1ecfff7 100644
+--- a/sound/soc/mediatek/common/mtk-btcvsd.c
++++ b/sound/soc/mediatek/common/mtk-btcvsd.c
+@@ -1384,6 +1384,8 @@ static void mtk_btcvsd_snd_remove(struct platform_device *pdev)
+ {
+ 	struct mtk_btcvsd_snd *btcvsd = dev_get_drvdata(&pdev->dev);
+ 
++	mtk_btcvsd_snd_irq_disable(btcvsd);
++	devm_free_irq(&pdev->dev, btcvsd->irq_id, btcvsd);
+ 	iounmap(btcvsd->bt_pkv_base);
+ 	iounmap(btcvsd->bt_sram_bank2_base);
+ }
+-- 
+2.43.0
+

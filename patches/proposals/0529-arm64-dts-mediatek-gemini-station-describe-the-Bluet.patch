@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 18:50:16 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: station: describe the Bluetooth
+ voice path
+
+Add the btcvsd block and its card, with the addresses, offsets and interrupt from the
+vendor's device tree. Nothing loads the drivers at boot, and the driver touches the
+block only while it holds an open stream or the loopback switch.
+---
+ .../dts/mediatek/mt6797-gemini-pda-station.dts    | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index e3aeeb2f5..78626fc34 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -13,6 +13,21 @@
+ #include <dt-bindings/thermal/thermal.h>
+ 
+ / {
++	/* Bluetooth voice: coded packets in CONSYS memory, not over HCI. */
++	btcvsd: bluetooth-voice@18000000 {
++		compatible = "mediatek,mtk-btcvsd-snd";
++		reg = <0 0x18000000 0 0x1000>,
++		      <0 0x18080000 0 0x8000>;
++		interrupts = <GIC_SPI 286 IRQ_TYPE_LEVEL_LOW>;
++		mediatek,infracfg = <&infrasys>;
++		mediatek,offset = <0xf00 0x800 0xfd0 0xfd4 0xfd8>;
++	};
++
++	bluetooth-voice-sound {
++		compatible = "mediatek,mt6797-btcvsd-sound";
++		mediatek,platform = <&btcvsd>;
++	};
++
+ 	/*
+ 	 * The battery NTC on the MT6351 BATON channel: the vendor's 10 kOhm
+ 	 * table behind a 24 kOhm pull-up to VBIF28 (2.8 V). The values are the
+-- 
+2.43.0
+

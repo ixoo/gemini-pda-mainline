@@ -469,3 +469,25 @@ The vendor's coder is proprietary and stays out; a CVSD coder from the public al
 its quality against this firmware is unknown. Upstream's `mtk-btcvsd` has not run on this SoC, and
 the first image proves or breaks that.
 
+## First step of the microphone work: the driver and a loopback (owner: "Yes, first step")
+
+Built, not yet run. It answers one question cheaply: does the upstream `mtk-btcvsd` run this path
+at full rate on this SoC? No coder is needed, because the driver has a loopback that copies
+the coded microphone packets straight back to the headset.
+
+| Change | What |
+| --- | --- |
+| [0527](../../patches/proposals/0527-ASoC-mediatek-btcvsd-stop-the-interrupt-before-unmap.patch) | Upstream's `remove` unmapped the registers while the interrupt was still live. Closes the gate and frees the interrupt first |
+| [0528](../../patches/proposals/0528-ASoC-mediatek-mt6797-add-a-card-for-the-Bluetooth-vo.patch) | A separate small card, so the working audio card neither waits on this driver nor changes |
+| [0529](../../patches/proposals/0529-arm64-dts-mediatek-gemini-station-describe-the-Bluet.patch) | The block and the card in the station's device tree. **Needs one new image** |
+
+**Hazards read from the driver:**
+- It requests the interrupt at probe, before it closes the gate, and the idle path of its handler
+  writes to the PKV window. So load it only with CONSYS up. With CONN off, that write could hang the bus.
+- It touches PKV and SRAM only from the handler.
+
+Checked in the dev VM: both modules compile at W=1 with no warnings, the DTB has both nodes, the new
+binding validates with `dt-doc-validate`, and `checkpatch` raises only line-length, MAINTAINERS and
+Kconfig help-length notes. **The binding and the driver share 0528**, as the project's experiment
+patches often do; split them before any upstream submission.
+

@@ -18,3 +18,5 @@ CONFIG_BT_MT6797=m
 # CONFIG_BT_MTKSDIO is not set
 # CONFIG_BT_MTKUART is not set
 # CONFIG_BT_QCOMSMD is not set
+# The CVSD SRAM voice path and its card: modules, nothing loads them at boot.
+CONFIG_SND_SOC_MT6797_BTCVSD=m
