@@ -269,8 +269,8 @@ Not shown, and what stands in the way of Linux owning the display:
   console is gone until the next boot. Native `fbcon` needs fbdev emulation in the
   profile and `keep_firmware_fb` off.
 - **Clean ownership.** No MM domain, SMI or IOMMU is modelled, and `clk_ignore_unused`
-  and `simplefb`'s `mm_sel` hold are still needed. Only OVL, RDMA and DSI gates have had
-  a close and open cycle, the MM domain none.
+  and `simplefb`'s `mm_sel` hold are still needed. The path's gates have had one close and
+  open cycle, the MM domain none.
 - **DPMS, suspend, ESD, the panel `backlight` link, DRM rotation property.** Not tried.
 - **Upstream shape.** `keep_firmware_fb` is bring-up only, and the static path in 0041
   and the fixed TIMCON should be revisited for submission.
