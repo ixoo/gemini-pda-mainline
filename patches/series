@@ -1098,3 +1098,5 @@ proposals/0511-soc-mediatek-mt6797-consys-let-Bluetooth-share-the-S.patch
 proposals/0512-Bluetooth-add-the-MT6797-CONSYS-controller.patch
 proposals/0513-input-gemini-lid-drop-a-reference-the-lid-never-took.patch
 proposals/0514-pwm-mtk-disp-turn-the-MT6797-block-off-at-duty-0.patch
+proposals/0515-vt-let-a-driver-hold-the-console-blank.patch
+proposals/0516-input-gemini-lid-blank-the-console-while-the-lid-is.patch

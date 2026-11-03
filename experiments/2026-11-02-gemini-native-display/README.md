@@ -347,24 +347,34 @@ blind comparison decides whether it stays.
 ### The display off with the lid and the blank
 
 The owner: "we really need to switch the display fully off, it's not ok, even when I
-close the lid it stays on".
+close the lid it stays on", and that this is "too sensitive to stay user side". So the
+kernel does it, with no daemon:
 
 - **Lid bug.** Four lid events ended in a refcount underflow and the backlight device
   disappeared, leaving the PWM driving behind a sleeping panel. `gemini-lid` called
   `put_device()` on `backlight_device_get_by_type()`'s result, which takes no reference.
   Fixed by [0513](../../patches/proposals/0513-input-gemini-lid-drop-a-reference-the-lid-never-took.patch).
-- **The lid did not touch the display.** `lid-guard` now blanks the console on close and
-  unblanks on open, with `TIOCL_BLANKSCREEN` so console output cannot wake it.
+- **Any blank takes the backlight with it.** The panel node names the backlight, the
+  upstream link: DPMS off disables it before the video stops, DPMS on enables it after.
+- **The lid blanks the display.** `gemini-lid` turns the backlight off and blanks the
+  console in a hold that console output cannot wake
+  ([0515](../../patches/proposals/0515-vt-let-a-driver-hold-the-console-blank.patch),
+  [0516](../../patches/proposals/0516-input-gemini-lid-blank-the-console-while-the-lid-is.patch)).
 - **The PWM stayed enabled at duty 0.** [0514](../../patches/proposals/0514-pwm-mtk-disp-turn-the-MT6797-block-off-at-duty-0.patch)
   clears the enable bit at level 0, as the vendor does.
-- **The native path only helps when loaded.** Under `simplefb` a blank can only cut the
-  backlight, so `display-start` in the RAM root now loads the modules at boot, by the
-  owner's requirement. `/mnt/data/no-native-display` skips it.
+- **The native path only helps when loaded.** `display-start` in the RAM root loads the
+  modules at boot, subject to the owner's decision. `/mnt/data/no-native-display` skips
+  it. Without it, the lid still turns the backlight off and blanks `simplefb`, but an
+  idle blank does nothing to the panel or backlight.
+- **Built in or module:** the VT hold and the PWM change are built in. `gemini-lid`,
+  the panel and the pipeline are modules. `lid-guard` is reduced to brightness keys and
+  the fade.
 - **Fade.** `lid-guard` fades the backlight down over the last 3 s before the idle
-  deadline and up over about 0.5 s on waking. A content fade is left out: on this LCD,
-  dimming the backlight dims all content together, which a content fade would only
-  repeat. Doing it would need a private gamma or alpha interface, since fbcon's palette
-  does not reach the pipeline.
+  deadline and up over about 0.5 s on waking. If it is stopped, the kernel path is
+  unchanged, and only the fade goes. A content fade is left out: on this LCD, dimming the
+  backlight dims all content together, which a content fade would only repeat. Doing it
+  would need a private gamma or alpha interface, since fbcon's palette does not reach the
+  pipeline.
 
 0510's effect on the screen stays undetermined: the owner chose to skip the blind test.
 It stays on the code argument, that no client owns that member. The battery run can

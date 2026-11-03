@@ -1,0 +1,94 @@
+From fac5372d686180d2deccb16d34fa7ae091dfe087 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 22:11:07 -0500
+Subject: [PATCH] input: gemini-lid: blank the console while the lid is closed
+
+The module powered the backlight down but left the display running behind a closed
+lid. Blank the console too, in a hold, so console output cannot light the panel while
+it is closed. Under a DRM driver that sends the panel to sleep and stops the link and
+pipeline. Unblank before the backlight comes back on opening.
+---
+ drivers/input/misc/Kconfig      |  2 +-
+ drivers/input/misc/gemini-lid.c | 38 ++++++++++++++++++++++-----------
+ 2 files changed, 27 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/input/misc/Kconfig b/drivers/input/misc/Kconfig
+index c1bd86f1e..26184458c 100644
+--- a/drivers/input/misc/Kconfig
++++ b/drivers/input/misc/Kconfig
+@@ -359,7 +359,7 @@ config INPUT_GPIO_DECODER
+ 
+ config INPUT_GEMINI_LID
+ 	tristate "Gemini PDA lid policy"
+-	depends on OF && BACKLIGHT_CLASS_DEVICE
++	depends on OF && BACKLIGHT_CLASS_DEVICE && VT
+ 	help
+ 	  Say Y here to power the backlight down and inhibit the built-in
+ 	  keyboard while the Gemini PDA lid is closed.
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index 25d3c0f4a..bb65871a9 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -1,18 +1,20 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+  * Gemini PDA lid policy. The lid closes the keyboard against the screen, so
+- * while it is closed, power the backlight down and inhibit the built-in
+- * keyboard: the input core closes it, the matrix scan stops and its row
++ * while it is closed, power the backlight down, blank the console, which turns
++ * the display off under a DRM driver, and inhibit the built-in keyboard: the input core closes it, the matrix scan stops and its row
+  * interrupts are masked. Nothing happens until the lid has been seen open
+  * once, so a lid that reads closed at boot cannot lock the keyboard out.
+  */
+ 
+ #include <linux/backlight.h>
++#include <linux/console.h>
+ #include <linux/input.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/slab.h>
++#include <linux/vt_kern.h>
+ #include <linux/workqueue.h>
+ 
+ static bool lid_armed;
+@@ -34,17 +36,29 @@ static void gemini_lid_apply(bool closed)
+ 	pr_info("gemini-lid: lid %s, keyboard %s %d\n",
+ 		closed ? "closed" : "open",
+ 		lid_keyboard ? (closed ? "inhibited" : "restored") : "absent", err);
+-	if (!bd)
+-		return;
+-
+-	mutex_lock(&bd->ops_lock);
+-	if (bd->ops) {
+-		if (closed)
+-			backlight_disable(bd);
+-		else
+-			backlight_enable(bd);
++	/* Open: the display first, so the backlight doesn't light a sleeping panel. */
++	if (!closed) {
++		console_lock();
++		do_unblank_screen(0);
++		console_unlock();
++	}
++
++	if (bd) {
++		mutex_lock(&bd->ops_lock);
++		if (bd->ops) {
++			if (closed)
++				backlight_disable(bd);
++			else
++				backlight_enable(bd);
++		}
++		mutex_unlock(&bd->ops_lock);
++	}
++
++	if (closed) {
++		console_lock();
++		do_hold_blank_screen();
++		console_unlock();
+ 	}
+-	mutex_unlock(&bd->ops_lock);
+ }
+ 
+ static void gemini_lid_work_fn(struct work_struct *work)

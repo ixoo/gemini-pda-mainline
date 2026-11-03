@@ -1,15 +1,12 @@
 // SPDX-License-Identifier: MIT
 /*
- * Brightness policy for the station. The lid itself is the kernel's
- * gemini-lid module: backlight off and keyboard ignored while it is closed.
- * This program blanks the console while the lid is closed, which turns the
- * display off under the native pipeline, and otherwise leaves the backlight to
- * the module then. Fn+B and Fn+N (Fn is KEY_LEFTMETA) step the backlight down and
- * up, autorepeat included; the console keymap gives those two keys no Fn action.
- * The backlight also follows the console's own blanking (setterm --blank): it
- * fades down over the last seconds before the kernel's idle deadline, is powered
- * down while the console is blanked, checked once a second, and fades back up on
- * waking. init respawns this program.
+ * Brightness policy for the station. The kernel owns turning the display off: the
+ * gemini-lid module on the lid, and the panel's backlight link on any blank. This
+ * program is only comfort, and nothing goes wrong without it. Fn+B and Fn+N (Fn is
+ * KEY_LEFTMETA) step the backlight down and up, autorepeat included; the console
+ * keymap gives those two keys no Fn action. The backlight fades down over the last
+ * seconds before the kernel's idle deadline and back up on waking. init respawns
+ * this program.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -27,7 +24,6 @@
 
 #define LID_NAME "gpio-keys"
 #define KEYBOARD_NAME "keyboard-matrix"
-#define BL_POWER "/sys/class/backlight/backlight/bl_power"
 #define BL_BRIGHTNESS "/sys/class/backlight/backlight/brightness"
 #define CONSOLE "/dev/tty1"
 #define BLANK_SECONDS "/sys/module/kernel/parameters/consoleblank"
@@ -134,31 +130,6 @@ static int console_blanked(void)
 	return ret > 0 ? ret : 0;
 }
 
-static void console_tiocl(char arg)
-{
-	int fd = open(CONSOLE, O_RDWR | O_CLOEXEC);
-
-	if (fd < 0)
-		return;
-	if (ioctl(fd, TIOCLINUX, &arg) < 0)
-		say("console request %d failed: %d\n", arg, errno);
-	close(fd);
-}
-
-static int backlight_off = -1;
-
-static int set_backlight(int off)
-{
-	int ret = 0;
-
-	if (off != backlight_off) {
-		ret = put(BL_POWER, off ? "4" : "0");
-		if (!ret)
-			backlight_off = off;
-	}
-	return ret;
-}
-
 /* Brightness steps, never fully dark; the backlight has levels 0 to 1023. */
 static const int steps[] = { 16, 32, 64, 96, 128, 192, 256, 384, 512, 640, 768, 1023 };
 #define STEPS (int)(sizeof(steps) / sizeof(steps[0]))
@@ -229,7 +200,7 @@ int main(void)
 	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
 	struct input_event ev;
 	struct pollfd fds[2];
-	int fd, kfd, closed, fn = 0, nfds, restore = -1, quick = 0;
+	int fd, kfd, closed, fn = 0, nfds, restore = -1, quick = 0, was_blanked = 0;
 	time_t last_input = time(NULL);
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
@@ -258,23 +229,17 @@ int main(void)
 
 		if (quick > 0)
 			quick--;
-		if (!closed && !!blanked != backlight_off) {
-			int level = restore >= 0 ? restore : read_number(BL_BRIGHTNESS);
-
-			if (!blanked && level >= 0) {
-				/* Awake: from dark, up to the owner's level. */
-				set_brightness(DIM_LEVEL < level ? DIM_LEVEL : level);
-				say("console unblanked: backlight=%d\n", set_backlight(0));
-				if (fade(DIM_LEVEL < level ? DIM_LEVEL : level, level, FADE_UP_STEPS,
-					 FADE_UP_MS, fds, nfds))
-					set_brightness(level);
+		if (!!blanked != was_blanked) {
+			say("console %s\n", blanked ? "blanked" : "unblanked");
+			was_blanked = !!blanked;
+			/* The kernel lit it again at the dim level; back up to the owner's. */
+			if (!blanked && restore >= 0) {
+				if (fade(DIM_LEVEL, restore, FADE_UP_STEPS, FADE_UP_MS, fds, nfds))
+					set_brightness(restore);
 				restore = -1;
-			} else {
-				say("console %s: backlight=%d\n", blanked ? "blanked" : "unblanked",
-				    set_backlight(!!blanked));
 			}
 		}
-		if (!closed && !blanked && backlight_off == 0) {
+		if (!closed && !blanked) {
 			int seconds = read_number(BLANK_SECONDS);
 			time_t now = time(NULL), active = last_input;
 			struct stat st;
@@ -319,15 +284,11 @@ int main(void)
 		if (ev.type != EV_SW || ev.code != SW_LID)
 			continue;
 		closed = !!ev.value;
-		/* gemini-lid powered the backlight on or off with the lid. */
-		backlight_off = closed;
 		if (restore >= 0) {
 			set_brightness(restore);
 			restore = -1;
 		}
 		last_input = time(NULL);
-		/* The display goes with it, and no console output wakes it. */
-		console_tiocl(closed ? TIOCL_BLANKSCREEN : TIOCL_UNBLANKSCREEN);
 	}
 	say("lid event stream ended\n");
 	return 1;

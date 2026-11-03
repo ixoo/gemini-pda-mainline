@@ -13,6 +13,8 @@
 #                             reference is removed: this kernel registers only
 #                             the CONN domain, so an MM consumer waits forever
 #                             (bac0f387), and nothing here can switch MM off.
+#                             The panel names this backlight, so the display's
+#                             own power state takes it on and off in the kernel.
 #   /i2c@11007000             I2C0 enabled with no child bound (its FAN49101
 #                             node stays disabled), for power-status's
 #                             read-only charger reads through i2c-dev
@@ -27,6 +29,7 @@ TOP=/topckgen@10000000
 SPM=/power-controller@10006000
 OSC=/oscillator-26m
 BL=/backlight
+PANEL=/dsi@1401c000/panel@0
 MUX_PWM=7
 PERIOD_NS=39385
 I2C0=/i2c@11007000
@@ -71,6 +74,9 @@ osc=$(fdtget -t u "$dtb" "$OSC" phandle)
 max=$(dtc -q -I dtb -O dts "$dtb" | sed -n 's/.*phandle = <\(0x[0-9a-f]*\)>;.*/\1/p' |
 	while read -r h; do printf '%d\n' "$h"; done | sort -n | tail -1)
 pwm=$((max + 1))
+bl=$((max + 2))
+[ "$(fdtget -t s "$dtb" "$PANEL" compatible)" = planet,gemini-pda-nt36672 ]
+if fdtget "$dtb" "$PANEL" backlight >/dev/null 2>&1; then exit 1; fi
 
 fdtput -t u "$dtb" "$KEYS/hall-switch" debounce-interval 0
 fdtput -t s "$dtb" "$KEYS" status okay
@@ -85,6 +91,8 @@ fdtput -t u "$dtb" "$BL" pwms "$pwm" 0 "$PERIOD_NS"
 fdtput -t u "$dtb" "$BL" brightness-levels 0 1023
 fdtput -t u "$dtb" "$BL" num-interpolated-steps 1023
 fdtput -t u "$dtb" "$BL" default-brightness-level 512
+fdtput -t u "$dtb" "$BL" phandle "$bl"
+fdtput -t u "$dtb" "$PANEL" backlight "$bl"
 fdtput -t s "$dtb" "$I2C0" status okay
 
 dtc -q -I dtb -O dts -s "$work/parent.dtb" > "$work/parent.dts"
@@ -111,6 +119,8 @@ LC_ALL=C sort > "$work/expected" <<DELTA
 > brightness-levels = <0x00 $(hex 1023)>;
 > num-interpolated-steps = <$(hex 1023)>;
 > default-brightness-level = <$(hex 512)>;
+> phandle = <$(hex "$bl")>;
+> backlight = <$(hex "$bl")>;
 > };
 >
 DELTA
