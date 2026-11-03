@@ -104,9 +104,11 @@ int main(void)
 	static const unsigned char ev1[] = { 0x04, 0x0e, 0x04, 0x01, 0x03, 0x0c, 0x00 };
 	static const unsigned char wmt_ev[] = { 0x02, 0x06, 0x01, 0x00, 0x00 };
 	static const unsigned char cmd[] = { 0x01, 0x03, 0x0c, 0x00 };
+	static const unsigned char other[] = { 0x01, 0x01, 0x10, 0x00 };
 	static unsigned char big[STP_FULL_MAX_PAYLOAD];
 	struct stp_full_link link;
-	unsigned int i, n;
+	unsigned int i, n, first_seq;
+	unsigned long now = 0;
 
 	/* Continue a negotiated link at tx 1, rx 1, ACK 0/0. */
 	stp_full_link_init(&link);
@@ -191,12 +193,64 @@ int main(void)
 	assert(gps.packets == 2 && gps.length == sizeof(ev1));
 	assert(drain(&e, f, store, 16, 19) == 1);
 
-	/* ACK timeout is terminal and drops the queue; later calls report it. */
+	/* A timeout resends after resync bytes, keeps order, and new frames wait. */
 	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, sizeof(cmd)) == 0);
-	assert(drain(&e, f, store, 16, 20) == 1 && e.link.tx_pending == 1);
+	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_BT, other, sizeof(other)) == 0);
+	assert(drain(&e, f, store, 16, 20) == 2 && e.link.tx_pending == 2);
+	first_seq = f[0].sequence;
+	assert(stp_engine_tick(&e, 119, 100) == 0 && !e.resync_owed);
+	assert(stp_engine_tick(&e, 120, 100) == 0 && e.resync_owed && e.resend_left == 2);
 	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, sizeof(cmd)) == 0);
-	assert(stp_engine_tick(&e, 119, 100) == 0);
-	assert(stp_engine_tick(&e, 120, 100) == STP_ENGINE_ETIMEDOUT);
+	assert(stp_engine_tx_pending(&e) == STP_ENGINE_RESYNC_BYTES);
+	assert(stp_engine_tx_bytes(&e)[0] == STP_ENGINE_RESYNC_BYTE &&
+	       stp_engine_tx_bytes(&e)[3] == STP_ENGINE_RESYNC_BYTE);
+	assert(stp_engine_tx_done(&e, STP_ENGINE_RESYNC_BYTES, 121) == 0 && !e.resync_owed);
+	n = drain(&e, f, store, 16, 121);
+	assert(n == 3 && e.tx_resent == 2 && !e.resend_left && e.link.tx_pending == 3);
+	assert(f[0].sequence == first_seq && f[0].task == STP_FULL_TASK_WMT);
+	assert(f[1].sequence == ((first_seq + 1) & 7) && f[1].task == STP_FULL_TASK_BT);
+	assert(f[1].payload[0] == other[0]);
+	assert(f[2].sequence == ((first_seq + 2) & 7) && f[2].task == STP_FULL_TASK_WMT);
+	/* An ACK during a resend retires what it covers; only the rest goes out. */
+	assert(stp_engine_tick(&e, 221, 100) == 0 && e.resend_left == 3);
+	assert(stp_engine_tx_pending(&e) == STP_ENGINE_RESYNC_BYTES);
+	assert(stp_engine_tx_done(&e, STP_ENGINE_RESYNC_BYTES, 222) == 0);
+	assert(peer_ack(&e, first_seq, 222) == 0);
+	assert(e.link.tx_pending == 2 && e.resend_left == 2 && !e.retries);
+	n = drain(&e, f, store, 16, 223);
+	assert(n == 2 && f[0].sequence == ((first_seq + 1) & 7));
+	assert(peer_ack(&e, (first_seq + 2) & 7, 224) == 0 && e.link.tx_pending == 0);
+	assert(e.tx_timeouts == 2 && !e.unacked && !e.failed);
+
+	/* An ACK retiring a frame while it is being resent doesn't skip the next one. */
+	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, sizeof(cmd)) == 0);
+	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, sizeof(cmd)) == 0);
+	assert(drain(&e, f, store, 16, 300) == 2);
+	first_seq = f[0].sequence;
+	assert(stp_engine_tick(&e, 400, 100) == 0);
+	assert(stp_engine_tx_pending(&e) == STP_ENGINE_RESYNC_BYTES);
+	assert(stp_engine_tx_done(&e, STP_ENGINE_RESYNC_BYTES, 401) == 0);
+	assert(stp_engine_tx_pending(&e) > 1);
+	assert(stp_engine_tx_done(&e, 1, 401) == 0);
+	assert(peer_ack(&e, first_seq, 401) == 0 && e.resend_left == 1);
+	assert(stp_engine_tx_done(&e, stp_engine_tx_pending(&e), 402) == 0);
+	assert(e.resend_left == 1);
+	n = drain(&e, f, store, 16, 402);
+	assert(n == 1 && f[0].sequence == ((first_seq + 1) & 7));
+	assert(peer_ack(&e, (first_seq + 1) & 7, 403) == 0 && !e.unacked);
+
+	/* Timeouts in a row without progress end in a fail-stop that drops the queue. */
+	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, sizeof(cmd)) == 0);
+	assert(drain(&e, f, store, 16, 500) == 1);
+	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, sizeof(cmd)) == 0);
+	for (i = 0; i < STP_ENGINE_RETRIES; i++) {
+		now = 500 + (i + 1) * 100;
+		assert(stp_engine_tick(&e, now, 100) == 0);
+		assert(stp_engine_tx_pending(&e) == STP_ENGINE_RESYNC_BYTES);
+		assert(stp_engine_tx_done(&e, STP_ENGINE_RESYNC_BYTES, now) == 0);
+		assert(drain(&e, f, store, 16, now) >= 1);
+	}
+	assert(stp_engine_tick(&e, now + 100, 100) == STP_ENGINE_ETIMEDOUT);
 	assert(e.count == 0 && stp_engine_tx_pending(&e) == 0);
 	assert(stp_engine_queue_msg(&e, STP_FULL_TASK_WMT, cmd, 4) == STP_ENGINE_EIO);
 	assert(stp_engine_rx(&e, 0x80, 121) == STP_ENGINE_ETIMEDOUT);

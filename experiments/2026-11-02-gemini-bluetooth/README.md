@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `running`: `hci0` comes up from a module (T1c, without Wi-Fi). Scan, pairing and audio wait for T2 and the owner's decisions |
+| Status | `running`: scan, pairing and an A2DP connection worked on the first try (T2), then the link stopped about 0.2 s into the stream. Retransmission added; no full audio run yet |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -199,4 +199,51 @@ scan enable, are untested.
 **Tested in the dev VM, no Bluetooth there:** the chroot's `dbus-daemon` and `bluealsa`
 start, `bluealsa` lists SBC only, and the ALSA plugin resolves `bluealsa:` as far as its
 D-Bus query. `bluetoothd` has no adapter there.
+
+## T2 result: pairing works, the stream stops the link (2026-11-03)
+
+First Bluetooth transmission on mainline, with the owner's go-ahead: first transmission
+yes, `gemian_radio` off, placeholder address. Run by the custodian on boot `7197708f`,
+`btmt6797.ko` `44875a17…`, `bt-root` `beb82037…`, Wi-Fi down. Budget used: 1 inquiry
+session, 1 pairing, 1 A2DP connection, under 3 minutes radio-on. Evidence, including the
+device's name and both addresses, is private under
+`artifacts/station-work-40/boot-7197708f/bt-t2/`. The custodian ran a copy of the script
+with one change to the `pair` step (see below). What the owner heard is not yet recorded.
+
+**Observed:**
+- `power on` passed, 29 commands, no refusal. So `bluetoothd`'s management step works,
+  with the LE and MWS fixes.
+- The headset was found 4 s into the inquiry. `pair`, `trust` and `connect` each returned 0,
+  and BlueALSA listed the A2DP sink.
+- A stream started: ACL frames of 850 and 136 bytes alternating, one pair about every
+  23 ms, about 43 kB/s. It lasted **0.19 s** in the capture, 17 ACL packets.
+- `STP link stopped (-110)`, an ACK timeout. Halt: `failed=-110 rx=676 tx=549 acks=676`,
+  firmware assert 0, log 0, no Oops, no call trace. Function-off could not be sent, and the
+  module unloaded cleanly. CONSYS was not reloaded, so Wi-Fi stayed out on that boot.
+- The bytes the firmware sent just before show its ACK field staying at 7 across its
+  last six frames, with two standalone ACKs for 7 in a row, while its completed-packet
+  events kept coming. Then nothing, for 98 s until the module closed.
+
+**Inferred:** the firmware lost or rejected one of our frames, and answered later ones
+with duplicate ACKs, which is what the vendor's `stp_core.c` does on an out-of-order
+frame. It was then waiting for a resend, which the link did not do. Vendor STP resends after
+180 ms, up to 10 times, with four `0x7f` bytes first. Which frame it lost and why is
+unknown. GNSS never showed it, at a higher burst rate. Candidates are a firmware buffer that
+fills while the radio is busy, or a parser slip.
+
+**Also seen, not understood:** `Inquiry Cancel` is refused with status `0x0c` (Command
+Disallowed), twice, and no Inquiry Complete event appears anywhere in the capture. The kernel
+leaves its `INQUIRY` flag set. Paging worked regardless. So the capture can't show when the
+controller's inquiry ended, and the 30 s budget is what the host requested, not a measured
+stop.
+
+## After T2
+
+[0525](../../patches/proposals/0525-soc-mediatek-mt6797-consys-resend-unacknowledged-STP.patch)
+adds the vendor's resend. It changes the CONSYS module, so also GNSS, and halts now log
+`timeouts` and `resent`. The [engine fixture](../2026-11-01-gemini-gnss-link/test-stp-engine.c)
+covers order, resync bytes, ACKs during a resend and the final fail-stop, under ASan and
+UBSan, and passes. That shows the logic only. Whether the firmware recovers, and how
+often frames are lost, is the next device run's question. If frames are lost often, 180 ms
+per loss will be audible and the cause needs finding.
 

@@ -1,0 +1,310 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 18:01:23 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: resend unacknowledged STP
+ frames
+
+Streaming A2DP stopped the link within 0.2 s, on the ACK timeout. The received
+bytes show why: the firmware's ACK number stayed put while it kept sending, with
+two standalone ACKs in a row repeating it. That is what its protocol does when a
+frame arrives out of order, so it had lost one of ours and was waiting for a resend.
+The vendor's STP relies on that: it resends on a 180 ms timeout, ten times at most.
+
+Do the same. On a timeout, send the vendor's four 0x7f resync bytes, then every frame
+since the last ACK, before any new frame. Sent messages stay in the queue until
+acknowledged. Only after ten timeouts in a row does the link stop, about the 2 s it
+took before.
+
+Log the timeouts and resent frames at halt.
+---
+ drivers/soc/mediatek/mt6797-consys.c     |  14 ++-
+ drivers/soc/mediatek/mt6797-stp-engine.h | 119 ++++++++++++++++++++---
+ 2 files changed, 112 insertions(+), 21 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 3a2c9513b..c56e587b1 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1740,9 +1740,9 @@ static int mt6797_consys_wmt_exchange(struct device *dev,
+ 	return ret;
+ }
+ 
+-#define MT6797_STP_ACK_TIMEOUT_MS 2000U
++#define MT6797_STP_ACK_TIMEOUT_MS 180U
+ #define MT6797_STP_WMT_TIMEOUT_MS 2000U
+-#define MT6797_STP_TICK_MS 100U
++#define MT6797_STP_TICK_MS 20U
+ #define MT6797_STP_RX_BUDGET 256U
+ #define MT6797_STP_DRAIN_MS 200U
+ #define MT6797_STP_SEND_WAIT_MS 1000U
+@@ -1854,10 +1854,13 @@ static void mt6797_stp_tick(struct timer_list *t)
+ 	spin_lock_irqsave(&s->lock, flags);
+ 	if (!s->stopped) {
+ 		if (stp_engine_tick(&s->engine, jiffies,
+-				    msecs_to_jiffies(MT6797_STP_ACK_TIMEOUT_MS)))
++				    msecs_to_jiffies(MT6797_STP_ACK_TIMEOUT_MS))) {
+ 			mt6797_stp_stop_locked(s);
+-		else
++		} else {
++			if (s->engine.resync_owed)
++				mt6797_stp_pump(s);
+ 			mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
++		}
+ 	}
+ 	spin_unlock_irqrestore(&s->lock, flags);
+ }
+@@ -2023,9 +2026,10 @@ static void mt6797_stp_halt(struct device *dev, struct mt6797_stp *s)
+ 	free_irq(s->irq, s);
+ 	s->running = false;
+ 	dev_info(dev,
+-		 "STP link halted: failed=%d busy=%d rx=%u discarded=%u dup=%u tx=%u acks=%u wmt-unsolicited=%u first=%u bytes %*ph\n",
++		 "STP link halted: failed=%d busy=%d rx=%u discarded=%u dup=%u tx=%u acks=%u timeouts=%u resent=%u wmt-unsolicited=%u first=%u bytes %*ph\n",
+ 		 s->engine.failed, busy, s->engine.rx_frames, s->engine.rx_discarded,
+ 		 s->engine.rx_duplicates, s->engine.tx_frames, s->engine.tx_acks,
++		 s->engine.tx_timeouts, s->engine.tx_resent,
+ 		 s->wmt_unsolicited, s->wmt_first_length,
+ 		 min_t(int, s->wmt_first_length, sizeof(s->wmt_first)), s->wmt_first);
+ 	dev_info(dev, "STP link firmware messages: assert=%u log=%u; after failure %u bytes\n",
+diff --git a/drivers/soc/mediatek/mt6797-stp-engine.h b/drivers/soc/mediatek/mt6797-stp-engine.h
+index 97b8ada93..68bad0660 100644
+--- a/drivers/soc/mediatek/mt6797-stp-engine.h
++++ b/drivers/soc/mediatek/mt6797-stp-engine.h
+@@ -7,8 +7,10 @@
+ /*
+  * Persistent full-STP link for one powered CONSYS lifetime: continuous RX
+  * routed by task, a bounded TX queue gated by the shared seven-frame window,
+- * ACK generation, and fail-stop on malformed input or ACK timeout. There is
+- * no retransmission or resynchronization. Pure state; the owner supplies
++ * ACK generation, and fail-stop on malformed input. Unacknowledged frames are
++ * resent on a timeout as the vendor does: four resync bytes, then every frame
++ * since the last ACK, and fail-stop after STP_ENGINE_RETRIES timeouts in a row.
++ * Received frames are never asked for again. Pure state; the owner supplies
+  * serialization, FIFO access, time and client lifetime. No call sleeps.
+  *
+  * Receive policy: a frame for a bound task goes to its client; if the client
+@@ -17,11 +19,23 @@
+  * counted in rx_discarded, so a departed consumer cannot stall the link.
+  */
+ #define STP_ENGINE_QUEUE 8U
++/* Unsent messages, plus sent ones kept until their ACK. */
++#define STP_ENGINE_SLOTS (STP_ENGINE_QUEUE + STP_FULL_WINDOW)
++#define STP_ENGINE_RETRIES 10U
++#define STP_ENGINE_RESYNC_BYTE 0x7f
++#define STP_ENGINE_RESYNC_BYTES 4U
+ #define STP_ENGINE_TASK_ASSERT 5U
+ #define STP_ENGINE_TASK_LOG 6U
+ #define STP_ENGINE_TRAIL 128U
+ #define STP_ENGINE_AFTER 1024U
+ 
++enum stp_engine_frame {
++	STP_ENGINE_FRAME_ACK,
++	STP_ENGINE_FRAME_DATA,
++	STP_ENGINE_FRAME_RESEND,
++	STP_ENGINE_FRAME_RESYNC,
++};
++
+ enum stp_engine_error {
+ 	STP_ENGINE_OK,
+ 	STP_ENGINE_EINVAL = -22,
+@@ -63,14 +77,18 @@ struct stp_engine {
+ 	unsigned int client_count;
+ 	struct stp_full_client route[STP_FULL_MAX_CLIENTS];
+ 	int client_refused;
+-	struct stp_engine_msg queue[STP_ENGINE_QUEUE];
+-	unsigned int head, count;
++	/* head is the oldest unacknowledged message; count messages wait to be sent. */
++	struct stp_engine_msg queue[STP_ENGINE_SLOTS];
++	unsigned int head, unacked, count;
++	/* A timeout's resend in progress: frames left, from this far after head. */
++	unsigned int resend_left, resend_offset, resync_owed, retries;
+ 	/* Frame being written to the FIFO; its fields are fixed at build time. */
+ 	unsigned char frame[STP_FULL_MAX_FRAME];
+ 	unsigned int frame_length, frame_written, frame_sequence, frame_ack;
+ 	int frame_data;
+ 	unsigned long ack_progress;
+ 	unsigned int rx_frames, rx_discarded, rx_duplicates, tx_frames, tx_acks;
++	unsigned int tx_timeouts, tx_resent;
+ 	int failed;
+ };
+ 
+@@ -135,7 +153,14 @@ static inline void stp_engine_init(struct stp_engine *e,
+ 	e->client_count = 0;
+ 	e->client_refused = 0;
+ 	e->head = 0;
++	e->unacked = 0;
+ 	e->count = 0;
++	e->resend_left = 0;
++	e->resend_offset = 0;
++	e->resync_owed = 0;
++	e->retries = 0;
++	e->tx_timeouts = 0;
++	e->tx_resent = 0;
+ 	e->frame_length = 0;
+ 	e->frame_written = 0;
+ 	e->frame_data = 0;
+@@ -199,7 +224,7 @@ static inline int stp_engine_queue_msg(struct stp_engine *e, unsigned int task,
+ 		return STP_ENGINE_EINVAL;
+ 	if (e->count == STP_ENGINE_QUEUE)
+ 		return STP_ENGINE_ENOSPC;
+-	m = &e->queue[(e->head + e->count) % STP_ENGINE_QUEUE];
++	m = &e->queue[(e->head + e->unacked + e->count) % STP_ENGINE_SLOTS];
+ 	m->task = task;
+ 	m->length = length;
+ 	for (i = 0; i < length; i++)
+@@ -216,11 +241,29 @@ static inline unsigned int stp_engine_fail(struct stp_engine *e, int reason)
+ 	if (!e->failed)
+ 		e->failed = reason ? reason : STP_ENGINE_EIO;
+ 	e->count = 0;
++	e->resend_left = 0;
++	e->resync_owed = 0;
+ 	e->frame_length = 0;
+ 	e->frame_written = 0;
+ 	return dropped;
+ }
+ 
++/* The peer acknowledged n frames: drop their copies and any resend of them. */
++static inline void stp_engine_retire(struct stp_engine *e, unsigned int n)
++{
++	if (n > e->unacked)
++		n = e->unacked;
++	e->head = (e->head + n) % STP_ENGINE_SLOTS;
++	e->unacked -= n;
++	if (n <= e->resend_offset) {
++		e->resend_offset -= n;
++	} else {
++		n -= e->resend_offset;
++		e->resend_offset = 0;
++		e->resend_left -= n < e->resend_left ? n : e->resend_left;
++	}
++}
++
+ /* One received byte. Returns 0, or a negative error once the link failed. */
+ static inline int stp_engine_rx(struct stp_engine *e, unsigned char byte,
+ 				unsigned long now)
+@@ -273,8 +316,11 @@ static inline int stp_engine_rx(struct stp_engine *e, unsigned char byte,
+ 		e->rx_frames++;
+ 	else if (kind == 2)
+ 		e->rx_duplicates++;
+-	if (e->link.tx_pending < before)
++	if (e->link.tx_pending < before) {
++		stp_engine_retire(e, before - e->link.tx_pending);
+ 		e->ack_progress = now;
++		e->retries = 0;
++	}
+ 	return 0;
+ }
+ 
+@@ -295,30 +341,46 @@ static inline unsigned int stp_engine_trail(const struct stp_engine *e,
+ static inline unsigned int stp_engine_tx_pending(struct stp_engine *e)
+ {
+ 	struct stp_engine_msg *m;
++	unsigned int sequence = 0;
+ 	int bytes;
+ 
+ 	if (e->failed)
+ 		return 0;
+ 	if (e->frame_written < e->frame_length)
+ 		return e->frame_length - e->frame_written;
+-	if (e->count && e->link.tx_pending < STP_FULL_WINDOW) {
+-		m = &e->queue[e->head];
++	if (e->resync_owed) {
++		for (bytes = 0; bytes < (int)STP_ENGINE_RESYNC_BYTES; bytes++)
++			e->frame[bytes] = STP_ENGINE_RESYNC_BYTE;
++		e->frame_data = STP_ENGINE_FRAME_RESYNC;
++	} else if (e->resend_left) {
++		sequence = (e->link.tx_next - e->unacked + e->resend_offset) & 7;
++		m = &e->queue[(e->head + e->resend_offset) % STP_ENGINE_SLOTS];
++		bytes = stp_full_encode(e->frame, sizeof(e->frame), m->data, m->length,
++					m->task, sequence, e->link.local_ack);
++		if (bytes < 0) {
++			stp_engine_fail(e, STP_ENGINE_EINVAL);
++			return 0;
++		}
++		e->frame_data = STP_ENGINE_FRAME_RESEND;
++	} else if (e->count && e->link.tx_pending < STP_FULL_WINDOW) {
++		m = &e->queue[(e->head + e->unacked) % STP_ENGINE_SLOTS];
+ 		bytes = stp_full_encode(e->frame, sizeof(e->frame), m->data, m->length,
+ 					m->task, e->link.tx_next, e->link.local_ack);
+ 		if (bytes < 0) {
+ 			stp_engine_fail(e, STP_ENGINE_EINVAL);
+ 			return 0;
+ 		}
+-		e->frame_data = 1;
++		e->frame_data = STP_ENGINE_FRAME_DATA;
++		sequence = e->link.tx_next;
+ 	} else if (e->link.ack_owed) {
+ 		bytes = stp_full_ack(e->frame, sizeof(e->frame), e->link.local_ack);
+-		e->frame_data = 0;
++		e->frame_data = STP_ENGINE_FRAME_ACK;
+ 	} else {
+ 		return 0;
+ 	}
+ 	e->frame_length = bytes;
+ 	e->frame_written = 0;
+-	e->frame_sequence = e->link.tx_next;
++	e->frame_sequence = sequence;
+ 	e->frame_ack = e->link.local_ack;
+ 	return e->frame_length;
+ }
+@@ -343,12 +405,24 @@ static inline int stp_engine_tx_done(struct stp_engine *e, unsigned int written,
+ 	e->frame_written += written;
+ 	if (e->frame_written < e->frame_length)
+ 		return 0;
+-	if (e->frame_data) {
++	if (e->frame_data == STP_ENGINE_FRAME_RESYNC) {
++		e->resync_owed = 0;
++		ret = 0;
++	} else if (e->frame_data == STP_ENGINE_FRAME_RESEND) {
++		ret = stp_full_link_ack_complete(&e->link, e->frame_ack);
++		e->tx_resent++;
++		/* An ACK during this frame may have retired it already. */
++		if (e->resend_left &&
++		    ((e->link.tx_next - e->unacked + e->resend_offset) & 7) == e->frame_sequence) {
++			e->resend_left--;
++			e->resend_offset++;
++		}
++	} else if (e->frame_data == STP_ENGINE_FRAME_DATA) {
+ 		if (!e->link.tx_pending)
+ 			e->ack_progress = now;
+ 		ret = stp_full_link_sent(&e->link, e->frame_sequence, e->frame_ack);
+ 		if (!ret) {
+-			e->head = (e->head + 1) % STP_ENGINE_QUEUE;
++			e->unacked++;
+ 			e->count--;
+ 			e->tx_frames++;
+ 		}
+@@ -369,15 +443,28 @@ static inline int stp_engine_tx_done(struct stp_engine *e, unsigned int written,
+ 	return 0;
+ }
+ 
+-/* Fail-stop when sent frames see no ACK progress for timeout units. */
++/*
++ * No ACK progress for timeout units: start a resend, or fail-stop once that has
++ * not helped STP_ENGINE_RETRIES times in a row.
++ */
+ static inline int stp_engine_tick(struct stp_engine *e, unsigned long now,
+ 				  unsigned long timeout)
+ {
+ 	if (e->failed)
+ 		return e->failed;
+-	if (e->link.tx_pending && now - e->ack_progress >= timeout)
++	if (!e->link.tx_pending || now - e->ack_progress < timeout)
++		return 0;
++	if (e->retries == STP_ENGINE_RETRIES || !e->unacked) {
+ 		stp_engine_fail(e, STP_ENGINE_ETIMEDOUT);
+-	return e->failed;
++		return e->failed;
++	}
++	e->retries++;
++	e->tx_timeouts++;
++	e->ack_progress = now;
++	e->resync_owed = 1;
++	e->resend_left = e->unacked;
++	e->resend_offset = 0;
++	return 0;
+ }
+ 
+ #endif
+-- 
+2.43.0
+
