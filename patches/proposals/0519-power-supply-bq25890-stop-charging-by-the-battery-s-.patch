@@ -18,11 +18,11 @@ the pass logs at critical level and tries again at the next one.
 
 The work runs only while the system is awake.
 ---
- drivers/power/supply/bq25890_charger.c | 174 ++++++++++++++++++++++++-
- 1 file changed, 173 insertions(+), 1 deletion(-)
+ drivers/power/supply/bq25890_charger.c | 172 ++++++++++++++++++++++++-
+ 1 file changed, 171 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
-index ff46ddf5c..7242fec29 100644
+index ff46ddf5c..fc5192eac 100644
 --- a/drivers/power/supply/bq25890_charger.c
 +++ b/drivers/power/supply/bq25890_charger.c
 @@ -31,6 +31,12 @@
@@ -38,7 +38,7 @@ index ff46ddf5c..7242fec29 100644
  enum bq25890_chip_version {
  	BQ25890,
  	BQ25892,
-@@ -132,6 +138,13 @@ struct bq25890_device {
+@@ -132,6 +138,12 @@ struct bq25890_device {
  	struct bq25890_state state;
  	bool no_chip_config;
  
@@ -47,12 +47,11 @@ index ff46ddf5c..7242fec29 100644
 +	u32 guard_end;
 +	bool guard_hot;
 +	bool guard_full;
-+	bool guard_stopped;
 +
  	struct mutex lock; /* protect state data */
  };
  
-@@ -687,6 +700,14 @@ static int bq25890_power_supply_get_property(struct power_supply *psy,
+@@ -687,6 +699,14 @@ static int bq25890_power_supply_get_property(struct power_supply *psy,
  		val->intval = bq25890_find_val(ret, TBL_TSPCT);
  		break;
  
@@ -67,7 +66,7 @@ index ff46ddf5c..7242fec29 100644
  	default:
  		return -EINVAL;
  	}
-@@ -703,6 +724,15 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
+@@ -703,6 +723,15 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
  	int maxval, ret;
  	u8 lval;
  
@@ -83,7 +82,7 @@ index ff46ddf5c..7242fec29 100644
  	if (bq->no_chip_config)
  		return -EPERM;
  
-@@ -734,6 +764,9 @@ static int bq25890_power_supply_property_is_writeable(struct power_supply *psy,
+@@ -734,6 +763,9 @@ static int bq25890_power_supply_property_is_writeable(struct power_supply *psy,
  {
  	struct bq25890_device *bq = power_supply_get_drvdata(psy);
  
@@ -93,7 +92,7 @@ index ff46ddf5c..7242fec29 100644
  	if (bq->no_chip_config)
  		return false;
  
-@@ -1059,6 +1092,9 @@ static const enum power_supply_property bq25890_power_supply_props[] = {
+@@ -1059,6 +1091,9 @@ static const enum power_supply_property bq25890_power_supply_props[] = {
  	POWER_SUPPLY_PROP_VOLTAGE_NOW,
  	POWER_SUPPLY_PROP_CURRENT_NOW,
  	POWER_SUPPLY_PROP_TEMP,
@@ -103,7 +102,7 @@ index ff46ddf5c..7242fec29 100644
  };
  
  static char *bq25890_charger_supplied_to[] = {
-@@ -1068,7 +1104,7 @@ static char *bq25890_charger_supplied_to[] = {
+@@ -1068,7 +1103,7 @@ static char *bq25890_charger_supplied_to[] = {
  static const struct power_supply_desc bq25890_power_supply_desc = {
  	.type = POWER_SUPPLY_TYPE_USB,
  	.properties = bq25890_power_supply_props,
@@ -112,7 +111,7 @@ index ff46ddf5c..7242fec29 100644
  	.get_property = bq25890_power_supply_get_property,
  	.set_property = bq25890_power_supply_set_property,
  	.property_is_writeable = bq25890_power_supply_property_is_writeable,
-@@ -1090,6 +1126,8 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+@@ -1090,6 +1125,8 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
  	bq->desc = bq25890_power_supply_desc;
  	bq->desc.name = bq->name;
  	bq->desc.no_thermal = bq->no_chip_config;
@@ -121,7 +120,7 @@ index ff46ddf5c..7242fec29 100644
  
  	psy_cfg.supplied_to = bq25890_charger_supplied_to;
  	psy_cfg.num_supplicants = ARRAY_SIZE(bq25890_charger_supplied_to);
-@@ -1099,6 +1137,121 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+@@ -1099,6 +1136,120 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
  	return PTR_ERR_OR_ZERO(bq->charger);
  }
  
@@ -198,6 +197,7 @@ index ff46ddf5c..7242fec29 100644
 +		container_of(work, struct bq25890_device, guard_work.work);
 +	struct power_supply *batt = power_supply_get_by_name(bq->guard_battery);
 +	int end = READ_ONCE(bq->guard_end);
++	bool was_hot = bq->guard_hot, was_full = bq->guard_full;
 +	int temp, capacity, chg, ret;
 +	bool stop;
 +
@@ -221,12 +221,10 @@ index ff46ddf5c..7242fec29 100644
 +
 +	if (ret)
 +		dev_crit_ratelimited(bq->dev, "guard cannot reach the charger: %d\n", ret);
-+	else if (stop != bq->guard_stopped || chg == stop)
++	else if (bq->guard_hot != was_hot || bq->guard_full != was_full || chg == stop)
 +		dev_info(bq->dev, "guard: charging %s: temp=%d capacity=%d limit=%d%s%s\n",
 +			 stop ? "stopped" : "allowed", temp, capacity, end,
 +			 bq->guard_hot ? " hot" : "", bq->guard_full ? " full" : "");
-+	if (!ret)
-+		bq->guard_stopped = stop;
 +
 +	queue_delayed_work(system_power_efficient_wq, &bq->guard_work,
 +			   BQ25890_GUARD_PERIOD);
@@ -243,7 +241,7 @@ index ff46ddf5c..7242fec29 100644
  static int bq25890_set_otg_cfg(struct bq25890_device *bq, u8 val)
  {
  	int ret;
-@@ -1482,6 +1635,17 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+@@ -1482,6 +1633,17 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
  	if (bq->no_chip_config) {
  		bq->skip_reset = true;
  		bq->read_back_init_data = true;
@@ -261,7 +259,7 @@ index ff46ddf5c..7242fec29 100644
  		return 0;
  	}
  
-@@ -1531,6 +1695,7 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1531,6 +1693,7 @@ static int bq25890_probe(struct i2c_client *client)
  
  	mutex_init(&bq->lock);
  	INIT_DELAYED_WORK(&bq->pump_express_work, bq25890_pump_express_work);
@@ -269,7 +267,7 @@ index ff46ddf5c..7242fec29 100644
  
  	bq->no_chip_config = device_property_read_bool(dev, "linux,no-chip-config");
  	/* The chip's watchdog and the firmware change registers behind a cache. */
-@@ -1611,6 +1776,13 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1611,6 +1774,13 @@ static int bq25890_probe(struct i2c_client *client)
  		usb_register_notifier(bq->usb_phy, &bq->usb_nb);
  	}
  

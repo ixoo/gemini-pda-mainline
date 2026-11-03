@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `planned`: patches compile-checked; not booted, nothing below is shown on the device |
+| Status | `running`: G1 and G2 passed on the device; G3-G6 not run, held for the owner's decision on charging above 80 % |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
-| Date(s) | 2026-11-02 |
+| Date(s) | 2026-11-02 to 2026-11-03 |
 | Investigator(s) | project custodian |
 | Tracking issue | none |
 
@@ -146,6 +146,8 @@ In the VM, on the station series, with no device:
 - The station DTB carries the charger node and the battery limits.
 - 0517-0519 also apply on top of the C2b patches, as in the full `patches/series`.
 
+On the device: see [G1 and G2](#g1-and-g2-boot-7197708f).
+
 ## Device plan (predeclared)
 
 Needs a boot of an image with these patches, through the custodian. Exact hashes go
@@ -207,3 +209,57 @@ Bind again: back to normal.
 
 **Won't be shown on the device:** a real 50 °C battery, an ADC read failure, a charger
 I2C failure, or the probe retry and the `MISSING` alarm firing.
+
+## Results
+
+### G1 and G2, boot `7197708f…`
+
+Image `6bc70ab8…` from kernel package `b590193b`, SHA256SUMS `6a977869…`, run by the
+custodian with `charger-g12.sh` `95164604…`, about 29 minutes after boot. The cable was
+in throughout. The raw output stays private.
+
+**G1:**
+- `init` status `charge-guard=bound`; tainted 0.
+- The driver bound with no deferral or retry logged. Model BQ25896, health Good.
+- The guard's first pass ran at 0.89 s, before the gauge registered, and held charging
+  off: `guard: charging stopped: temp=-2147483648 capacity=-1 limit=80 hot`.
+- Battery limits read −20, 50, −18, 47. Thresholds read 75 and 80.
+- REG07 `0x9d`: the chip's 40 s watchdog is still on. REG03 `0x0a`.
+
+**G2:** 9 samples from 1731.78 s to 1892.19 s, 160 s, plus an end sample at 1925.25 s.
+All read:
+- REG03 `0x0a`, `CHG_CONFIG` clear;
+- `status` Not charging, `online` 1;
+- capacity 92, limit 80;
+- battery 22.9 to 23.5 °C.
+
+**Reading:** with no daemon in the image, the kernel keeps charging stopped across more
+than four periods of the chip's 40 s watchdog. An
+[earlier run](../2026-10-31-gemini-thermal-protection/README.md) saw the chip restore
+charging about 47 s after the last kick, so this hold most likely comes from the driver's
+kicks. That's an inference: G3, the control on this kernel, hasn't run.
+
+**What this doesn't show:**
+- **A stop at 80 or a resume at 75.** The battery stayed at 92 %.
+- **Why charging is stopped.** The only guard log line is the first pass's `hot`. The
+  log printed only when the stop itself changed, so the move from `hot` to `full` at
+  23 °C left no line. A guard stuck on `hot` would look the same, and that's the G1 row
+  this was meant to rule out. The temperature and limits do read correctly through the
+  same properties the guard uses, which makes a stuck `hot` unlikely, but this isn't
+  shown. G4 and G5 would show it. Since this run, 0519 logs every change of reason. The
+  booted image doesn't have that.
+- **That no `charge-guard` was running, from this script.** Its check used `pgrep`, which
+  the station doesn't have, so the script printed `not running` without checking. The
+  evidence for it is the custodian's check that the image has no `charge-guard` in `/bin`
+  or `inittab`. `charger-g.sh` now reads process names instead.
+- **Anything in G3-G6:** a temperature stop even by emulation, a capacity resume, the
+  negative control or an unreadable battery.
+
+**Register state:** REG06 read `0x82`, 4.352 V, the bootloader's setting, not the chip's
+default 4.208 V. Because the first kick comes before the chip's watchdog first expires,
+the bootloader's values stay for as long as charging stays stopped. A first resume
+therefore runs at 4.352 V and 500 mA input for up to about 47 s, until the watchdog
+returns the defaults. `charge-guard` started at about 2 s, so this probably isn't new, but
+I didn't compare it. At a normal resume, at 75 %, the cell is well below both voltages.
+It matters for testing: on `charger-g.sh`, G3 runs first and returns the defaults, so
+later steps charge at 4.208 V.

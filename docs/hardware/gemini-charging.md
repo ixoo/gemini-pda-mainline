@@ -171,16 +171,19 @@ thermally constrained subsystem.
 
 ## 8. Mainline position
 
-**On the development station (2026-10-31):**
+**On the development station (2026-11-03):**
 - the battery NTC reads through the MT6351 AUXADC (0357-0360) and
   `power-status`;
-- `charge-guard` implements gate 1, the 50/47 °C window, by REG03
-  `CHG_CONFIG` with watchdog kicks while stopped. It runs at boot.
-- `charge-guard` also stops charging at a capacity limit from the fuel
-  gauge, 80 % by default and set in `/run/station/charge-limit`, resuming
-  5 points lower
-  ([fuel-gauge record](../../experiments/2026-10-31-gemini-fuel-gauge/README.md)).
-  This is a longevity policy, not a safety stop.
+- the built-in `bq25890_charger` driver, in a mode that writes only REG03
+  `CHG_CONFIG` and `WD_RST`, implements gate 1, the 50/47 °C window, with
+  watchdog kicks while stopped. No daemon is involved
+  ([kernel guard record](../../experiments/2026-11-02-gemini-kernel-charge-guard/README.md)).
+- the same guard stops charging at a capacity limit from the fuel gauge, 80 %
+  by default and set in `charge_control_end_threshold`, resuming 5 points
+  lower. This is a longevity policy, not a safety stop.
+- shown on the device so far: the guard binds at boot and holds charging off
+  above the limit, past the chip's watchdog. A stop at either limit and a
+  resume are not yet shown on this kernel.
 
 Gates 2 and 3 are not implemented. The 500 mA SDP input limit bounds the
 current meanwhile.
