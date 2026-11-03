@@ -446,7 +446,8 @@
           "configs/gemini-a53-station.fragment",
           "configs/gemini-a53-station-a72.fragment",
           "configs/gemini-a53-station-gpu.fragment",
-          "configs/gemini-a53-station-display.fragment"
+          "configs/gemini-a53-station-display.fragment",
+          "configs/gemini-a53-station-bluetooth.fragment"
         ]
       },
       "mt6797-a53-wifi-rate": {

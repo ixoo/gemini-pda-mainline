@@ -1,0 +1,384 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 22:00:03 -0500
+Subject: [PATCH] Bluetooth: add the MT6797 CONSYS controller
+
+The MT6797 Bluetooth controller has no port of its own. Its HCI packets travel as
+H:4 over STP task 0 on the CONSYS link, not aligned with STP frames.
+
+Add an HCI driver on that link. Opening the device attaches to the link and turns
+the function on, and closing reverses it, so a loaded module touches nothing.
+
+Reassembly runs in the link's interrupt handler and hands whole packets to a work
+item. It never refuses a frame, because a refusal stops the link for every CONSYS
+client, Wi-Fi's firmware included. A malformed stream or a failed allocation drops
+only Bluetooth: the rest of the stream is ignored and the core gets a hardware
+error, which reopens the device.
+
+Setup sends the two radio parameters Gemian's driver sends on this chip. The
+vendor's sleep timeout is left out, since nothing here puts the chip to sleep or
+wakes it.
+
+The controller's own address is used. set_bdaddr is there for a board whose address
+is unusable.
+---
+ drivers/bluetooth/Kconfig       |  10 ++
+ drivers/bluetooth/Makefile      |   1 +
+ drivers/bluetooth/btmt6797-h4.h |  87 +++++++++++++
+ drivers/bluetooth/btmt6797.c    | 217 ++++++++++++++++++++++++++++++++
+ 4 files changed, 315 insertions(+)
+ create mode 100644 drivers/bluetooth/btmt6797-h4.h
+ create mode 100644 drivers/bluetooth/btmt6797.c
+
+diff --git a/drivers/bluetooth/Kconfig b/drivers/bluetooth/Kconfig
+index c5d45cf91..42a68f72e 100644
+--- a/drivers/bluetooth/Kconfig
++++ b/drivers/bluetooth/Kconfig
+@@ -438,6 +438,16 @@ config BT_MTKSDIO
+ 	  Say Y here to compile support for MediaTek Bluetooth SDIO devices
+ 	  into the kernel or say M to compile it as module (btmtksdio).
+ 
++config BT_MT6797
++	tristate "MediaTek MT6797 CONSYS Bluetooth"
++	depends on MTK_MT6797_CONSYS
++	help
++	  Say Y here for the Bluetooth controller inside the MT6797 connectivity
++	  subsystem. Its HCI packets travel over the CONSYS STP link.
++
++	  To compile this driver as a module, choose M here: the module will
++	  be called btmt6797.
++
+ config BT_MTKUART
+ 	tristate "MediaTek HCI UART driver"
+ 	depends on BT_HCIUART
+diff --git a/drivers/bluetooth/Makefile b/drivers/bluetooth/Makefile
+index 81856512d..c2f320cdd 100644
+--- a/drivers/bluetooth/Makefile
++++ b/drivers/bluetooth/Makefile
+@@ -23,6 +23,7 @@ obj-$(CONFIG_BT_MRVL)		+= btmrvl.o
+ obj-$(CONFIG_BT_MRVL_SDIO)	+= btmrvl_sdio.o
+ obj-$(CONFIG_BT_MTKSDIO)	+= btmtksdio.o
+ obj-$(CONFIG_BT_MTKUART)	+= btmtkuart.o
++obj-$(CONFIG_BT_MT6797)		+= btmt6797.o
+ obj-$(CONFIG_BT_QCOMSMD)	+= btqcomsmd.o
+ obj-$(CONFIG_BT_BCM)		+= btbcm.o
+ obj-$(CONFIG_BT_RTL)		+= btrtl.o
+diff --git a/drivers/bluetooth/btmt6797-h4.h b/drivers/bluetooth/btmt6797-h4.h
+new file mode 100644
+index 000000000..5f14a20b7
+--- /dev/null
++++ b/drivers/bluetooth/btmt6797-h4.h
+@@ -0,0 +1,87 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef BTMT6797_H4_H
++#define BTMT6797_H4_H
++
++/*
++ * H:4 reassembly over STP task-0 payloads, which need not align with packet
++ * boundaries. Events, ACL and SCO from the controller only. Pure state; any
++ * malformed type or oversize length is terminal until reset.
++ */
++#define BT_H4_EVENT 0x04
++#define BT_H4_ACL 0x02
++#define BT_H4_SCO 0x03
++#define BT_H4_MAX 2048U
++
++struct bt_h4 {
++	unsigned char packet[BT_H4_MAX];
++	unsigned int used, needed, header;
++	int failed;
++};
++
++static inline void bt_h4_reset(struct bt_h4 *h)
++{
++	h->used = 0;
++	h->needed = 1;
++	h->header = 0;
++	h->failed = 0;
++}
++
++/*
++ * Feed bytes; emit() gets each complete packet without its type byte and may
++ * refuse with a nonzero return, which is passed back. Returns 0, the emit
++ * result, or -1 on a malformed stream.
++ */
++static inline int bt_h4_feed(struct bt_h4 *h, const unsigned char *data,
++			     unsigned int length,
++			     int (*emit)(void *, unsigned char,
++					 const unsigned char *, unsigned int),
++			     void *context)
++{
++	unsigned int i, body;
++	int ret;
++
++	for (i = 0; i < length; i++) {
++		if (h->failed)
++			return -1;
++		h->packet[h->used++] = data[i];
++		if (h->used == 1) {
++			switch (h->packet[0]) {
++			case BT_H4_EVENT:
++				h->header = 3;
++				break;
++			case BT_H4_ACL:
++				h->header = 5;
++				break;
++			case BT_H4_SCO:
++				h->header = 4;
++				break;
++			default:
++				h->failed = 1;
++				return -1;
++			}
++			h->needed = h->header;
++		}
++		if (h->used == h->header) {
++			if (h->packet[0] == BT_H4_EVENT)
++				body = h->packet[2];
++			else if (h->packet[0] == BT_H4_SCO)
++				body = h->packet[3];
++			else
++				body = h->packet[3] | (h->packet[4] << 8);
++			if (h->header + body > BT_H4_MAX) {
++				h->failed = 1;
++				return -1;
++			}
++			h->needed = h->header + body;
++		}
++		if (h->used < h->needed || h->used < h->header)
++			continue;
++		ret = emit(context, h->packet[0], h->packet + 1, h->used - 1);
++		bt_h4_reset(h);
++		if (ret)
++			return ret;
++	}
++	return 0;
++}
++
++#endif
+diff --git a/drivers/bluetooth/btmt6797.c b/drivers/bluetooth/btmt6797.c
+new file mode 100644
+index 000000000..ee39a63ec
+--- /dev/null
++++ b/drivers/bluetooth/btmt6797.c
+@@ -0,0 +1,217 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MediaTek MT6797 CONSYS Bluetooth.
++ *
++ * The controller is a function of the connectivity subsystem. Its HCI packets
++ * travel as H:4 over STP task 0 on the link the CONSYS owner runs, and need not
++ * align with STP frames. Opening the device attaches to the link and turns the
++ * WMT Bluetooth function on; closing reverses it.
++ */
++
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/skbuff.h>
++#include <linux/workqueue.h>
++#include <linux/soc/mediatek/mt6797-stp.h>
++#include <net/bluetooth/bluetooth.h>
++#include <net/bluetooth/hci_core.h>
++
++#include "btmt6797-h4.h"
++
++#define BTMT6797_OP_SET_BDADDR	0xfc1a
++#define BTMT6797_OP_SET_RADIO	0xfc79
++#define BTMT6797_OP_SET_TX_OFFSET 0xfc93
++
++/* The parameters Gemian's in-kernel driver sends on this chip. */
++static const u8 btmt6797_radio[] = { 0x06, 0x80, 0x00, 0x06, 0x03, 0x06 };
++static const u8 btmt6797_tx_offset[] = { 0xff, 0xff, 0xff };
++
++struct btmt6797 {
++	struct hci_dev *hdev;
++	struct bt_h4 h4;
++	struct sk_buff_head rx;
++	struct work_struct rx_work, error_work;
++};
++
++static int btmt6797_emit(void *context, unsigned char type, const unsigned char *data,
++			 unsigned int length)
++{
++	struct btmt6797 *bt = context;
++	struct sk_buff *skb;
++
++	skb = bt_skb_alloc(length, GFP_ATOMIC);
++	if (!skb)
++		return -ENOMEM;
++	hci_skb_pkt_type(skb) = type;
++	skb_put_data(skb, data, length);
++	skb_queue_tail(&bt->rx, skb);
++	return 0;
++}
++
++/*
++ * Hard interrupt context, with the link lock held. A refusal here would stop the
++ * link and every CONSYS client with it, so a bad stream only drops Bluetooth: the
++ * error work resets this device, and the bytes until then are ignored.
++ */
++static int btmt6797_receive(void *context, const u8 *payload, unsigned int length)
++{
++	struct btmt6797 *bt = context;
++
++	if (!bt->h4.failed) {
++		if (bt_h4_feed(&bt->h4, payload, length, btmt6797_emit, bt)) {
++			bt->h4.failed = 1;
++			schedule_work(&bt->error_work);
++		}
++		schedule_work(&bt->rx_work);
++	}
++	return 0;
++}
++
++static void btmt6797_rx_work(struct work_struct *work)
++{
++	struct btmt6797 *bt = container_of(work, struct btmt6797, rx_work);
++	struct sk_buff *skb;
++
++	while ((skb = skb_dequeue(&bt->rx))) {
++		bt->hdev->stat.byte_rx += skb->len;
++		hci_recv_frame(bt->hdev, skb);
++	}
++}
++
++static void btmt6797_error_work(struct work_struct *work)
++{
++	struct btmt6797 *bt = container_of(work, struct btmt6797, error_work);
++
++	bt_dev_err(bt->hdev, "received stream lost; reporting a hardware error");
++	hci_reset_dev(bt->hdev);
++}
++
++static int btmt6797_open(struct hci_dev *hdev)
++{
++	struct btmt6797 *bt = hci_get_drvdata(hdev);
++	int ret;
++
++	bt_h4_reset(&bt->h4);
++	ret = mt6797_consys_stp_attach(MT6797_STP_TASK_BT, btmt6797_receive, bt);
++	if (ret)
++		return ret;
++	ret = mt6797_consys_bt_function(true);
++	if (ret)
++		mt6797_consys_stp_detach(MT6797_STP_TASK_BT);
++	return ret;
++}
++
++static int btmt6797_close(struct hci_dev *hdev)
++{
++	struct btmt6797 *bt = hci_get_drvdata(hdev);
++
++	mt6797_consys_bt_function(false);
++	mt6797_consys_stp_detach(MT6797_STP_TASK_BT);
++	cancel_work_sync(&bt->rx_work);
++	skb_queue_purge(&bt->rx);
++	return 0;
++}
++
++static int btmt6797_send(struct hci_dev *hdev, struct sk_buff *skb)
++{
++	unsigned int length;
++	int ret;
++
++	/* On an error the core frees the buffer. */
++	*(u8 *)skb_push(skb, 1) = hci_skb_pkt_type(skb);
++	length = skb->len;
++	ret = mt6797_consys_stp_send(MT6797_STP_TASK_BT, skb->data, length);
++	if (ret)
++		return ret;
++	hdev->stat.byte_tx += length - 1;
++	kfree_skb(skb);
++	return 0;
++}
++
++static int btmt6797_vendor(struct hci_dev *hdev, u16 opcode, const void *data, u32 length)
++{
++	struct sk_buff *skb;
++
++	skb = __hci_cmd_sync(hdev, opcode, length, data, HCI_INIT_TIMEOUT);
++	if (IS_ERR(skb)) {
++		bt_dev_err(hdev, "vendor command 0x%04x failed (%ld)", opcode, PTR_ERR(skb));
++		return PTR_ERR(skb);
++	}
++	if (skb->len && skb->data[0])
++		bt_dev_warn(hdev, "vendor command 0x%04x: status 0x%02x", opcode, skb->data[0]);
++	kfree_skb(skb);
++	return 0;
++}
++
++/* Every open: the function-on before it returned the controller to its defaults. */
++static int btmt6797_setup(struct hci_dev *hdev)
++{
++	int ret;
++
++	ret = btmt6797_vendor(hdev, BTMT6797_OP_SET_RADIO, btmt6797_radio,
++			      sizeof(btmt6797_radio));
++	if (ret)
++		return ret;
++	return btmt6797_vendor(hdev, BTMT6797_OP_SET_TX_OFFSET, btmt6797_tx_offset,
++			       sizeof(btmt6797_tx_offset));
++}
++
++static int btmt6797_set_bdaddr(struct hci_dev *hdev, const bdaddr_t *bdaddr)
++{
++	return btmt6797_vendor(hdev, BTMT6797_OP_SET_BDADDR, bdaddr, sizeof(*bdaddr));
++}
++
++static int btmt6797_probe(struct platform_device *pdev)
++{
++	struct btmt6797 *bt;
++	struct hci_dev *hdev;
++	int ret;
++
++	bt = devm_kzalloc(&pdev->dev, sizeof(*bt), GFP_KERNEL);
++	if (!bt)
++		return -ENOMEM;
++	skb_queue_head_init(&bt->rx);
++	INIT_WORK(&bt->rx_work, btmt6797_rx_work);
++	INIT_WORK(&bt->error_work, btmt6797_error_work);
++	hdev = hci_alloc_dev();
++	if (!hdev)
++		return -ENOMEM;
++	bt->hdev = hdev;
++	hdev->bus = HCI_UART;
++	hci_set_drvdata(hdev, bt);
++	SET_HCIDEV_DEV(hdev, &pdev->dev);
++	hdev->open = btmt6797_open;
++	hdev->close = btmt6797_close;
++	hdev->send = btmt6797_send;
++	hdev->setup = btmt6797_setup;
++	hdev->set_bdaddr = btmt6797_set_bdaddr;
++	hci_set_quirk(hdev, HCI_QUIRK_NON_PERSISTENT_SETUP);
++	hci_set_quirk(hdev, HCI_QUIRK_RESET_ON_CLOSE);
++	platform_set_drvdata(pdev, bt);
++	ret = hci_register_dev(hdev);
++	if (ret < 0)
++		hci_free_dev(hdev);
++	return ret < 0 ? ret : 0;
++}
++
++static void btmt6797_remove(struct platform_device *pdev)
++{
++	struct btmt6797 *bt = platform_get_drvdata(pdev);
++
++	hci_unregister_dev(bt->hdev);
++	cancel_work_sync(&bt->error_work);
++	hci_free_dev(bt->hdev);
++}
++
++static struct platform_driver btmt6797_driver = {
++	.probe = btmt6797_probe,
++	.remove = btmt6797_remove,
++	.driver = {
++		.name = "btmt6797",
++	},
++};
++module_platform_driver(btmt6797_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 CONSYS Bluetooth");
++MODULE_LICENSE("GPL");
++MODULE_ALIAS("platform:btmt6797");
+-- 
+2.43.0
+
