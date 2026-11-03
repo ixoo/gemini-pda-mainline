@@ -179,14 +179,21 @@ int main(int argc, char **argv)
 		die("GETRESOURCES");
 
 	for (unsigned int i = 0; i < r.count_connectors && !conn_id; i++) {
+		/* Only a call asking for no modes makes the kernel probe the connector. */
 		memset(&gc, 0, sizeof(gc));
 		gc.connector_id = conns[i];
-		gc.modes_ptr = (uintptr_t)modes;
-		gc.count_modes = 8;
 		if (xioctl(DRM_IOCTL_MODE_GETCONNECTOR, &gc))
 			die("GETCONNECTOR");
-		if (gc.connection == 1 && gc.count_modes)
-			conn_id = conns[i];
+		printf("connector %u connection %u modes %u\n", conns[i], gc.connection, gc.count_modes);
+		if (gc.connection != 1 || !gc.count_modes)
+			continue;
+		if (gc.count_modes > 8)
+			gc.count_modes = 8;
+		gc.modes_ptr = (uintptr_t)modes;
+		gc.count_props = gc.count_encoders = 0;
+		if (xioctl(DRM_IOCTL_MODE_GETCONNECTOR, &gc))
+			die("GETCONNECTOR");
+		conn_id = conns[i];
 	}
 	if (!conn_id) {
 		fprintf(stderr, "no connected output\n");

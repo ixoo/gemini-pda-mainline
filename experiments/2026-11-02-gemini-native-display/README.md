@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-native-display` |
-| Status | `running`: T0 read back the loader's state; patches and profile written, compile-checked; no display driver has run on the device |
+| Status | `running`: T0 read the loader's state; T1 bind and unload pass with the console undisturbed; no modeset has run yet |
 | Subsystem | MT6797 MMSYS, DRM pipeline, DSI0, MIPI TX, Gemini panel |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -170,6 +170,14 @@ built, Buildbox-2, `SHA256SUMS` `4e86246c`, `Image.gz` `e65a739e`, station-a72 D
 `3edd7090`, built on Buildbox-2 from `86752e86`.
 
 In T1's first run the owner saw the three markers with no change on screen.
+
+T1 second run, boot `505d2716`, image `677021f2`, package `967983c2`: rc 0, tainted 0,
+`card0` and `card0-DSI-1` appeared, all 12 modules unloaded, the ten sampled registers
+unchanged, no display interrupt, and the owner saw no change. So bind and unload pass.
+
+T2 first attempt, same boot: `kms-frame` reported no connected output and no modeset
+ran. It asked for modes without the zero-count call that makes the kernel probe a
+connector, a bug in the tool.
 
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
