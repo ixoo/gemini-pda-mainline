@@ -453,10 +453,13 @@ the kernel blanked 2.1 s after that. With `lid-guard` replaced by a stub, the ke
 about 61.6 s after a 60 s poke, with gates closed, enable 0, DPMS off and `bl_power` 4, and
 unblanking restored them, so an idle blank needs no daemon.
 
-Not yet shown, and waiting for the owner: the fade's end and a key wake by eye, a key in the
-window with the light off, lid cycles and the closed-lid checks on this image, a bind behind
-a closed lid, the power key under a closed lid, and any power figure. Image `370f589b`,
-package `b590193b` with this `lid-guard`, is written to boot2 and not booted.
+By eye, on boot `64622312`, image `370f589b`, package `b590193b` with this `lid-guard`, the
+owner: "screen blank fades are working amazing."
+
+Not run on this image: a key in the window with the light off, lid cycles and the
+closed-lid checks, a bind behind a closed lid, and the power key under a closed lid. There
+is no power figure: the owner had "nothing to say on battery", so what a blank saves is
+unmeasured, and with it whether turning bias off is worth doing.
 
 ## Follow-up
 
