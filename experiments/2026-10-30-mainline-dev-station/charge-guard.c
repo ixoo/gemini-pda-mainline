@@ -1,5 +1,9 @@
 // SPDX-License-Identifier: MIT
 /*
+ * Retired: the station's guard is now in the kernel's BQ25896 driver
+ * (experiment 2026-11-02-gemini-kernel-charge-guard). This is kept as the
+ * record of the behaviour it preserves, and is no longer in the RAM root.
+ *
  * Battery-temperature charging stop (experiment
  * 2026-10-31-gemini-thermal-protection, step 3), as Gemian does it: charging
  * stops at 50 C and resumes below 47 C. The temperature is the MT6351 BATON

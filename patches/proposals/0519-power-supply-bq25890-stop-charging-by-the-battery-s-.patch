@@ -1,0 +1,288 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 22:19:36 -0500
+Subject: [PATCH] power: supply: bq25890: stop charging by the battery's
+ temperature and capacity
+
+A charger whose TS input does not see the battery has no temperature stop, and
+a watchdog-reset charger restores charging if whatever holds it off goes away.
+Put the stop in the driver, so it needs nothing from userspace.
+
+With linux,guard-battery a work item runs every 10 s. Charging stops outside
+the battery's operating range and resumes inside its alert limits, both read
+from the battery's power supply; an unreadable temperature or a missing battery
+stops it. It also stops at charge_control_end_threshold and resumes 5 points
+below, with 100 turning that off; an unreadable capacity does not stop it. While
+stopped, each pass kicks the chip's watchdog. If the charger can't be reached
+the pass logs at critical level and tries again at the next one.
+
+The work runs only while the system is awake.
+---
+ drivers/power/supply/bq25890_charger.c | 174 ++++++++++++++++++++++++-
+ 1 file changed, 173 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index 61b9ee6a5..d93cd0391 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -31,6 +31,12 @@
+ #define PUMP_EXPRESS_MAX_TRIES		6
+ #define PUMP_EXPRESS_VBUS_MARGIN_uV	1000000
+ 
++/* Well inside the chip's 40 s watchdog, which would restore charging. */
++#define BQ25890_GUARD_PERIOD		(10 * HZ)
++#define BQ25890_GUARD_RESUME_MARGIN	5
++#define BQ25890_GUARD_END_MIN		50
++#define BQ25890_GUARD_END_OFF		100
++
+ enum bq25890_chip_version {
+ 	BQ25890,
+ 	BQ25892,
+@@ -132,6 +138,13 @@ struct bq25890_device {
+ 	struct bq25890_state state;
+ 	bool no_chip_config;
+ 
++	struct delayed_work guard_work;
++	const char *guard_battery;
++	u32 guard_end;
++	bool guard_hot;
++	bool guard_full;
++	bool guard_stopped;
++
+ 	struct mutex lock; /* protect state data */
+ };
+ 
+@@ -687,6 +700,14 @@ static int bq25890_power_supply_get_property(struct power_supply *psy,
+ 		val->intval = bq25890_find_val(ret, TBL_TSPCT);
+ 		break;
+ 
++	case POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD:
++		val->intval = READ_ONCE(bq->guard_end) - BQ25890_GUARD_RESUME_MARGIN;
++		break;
++
++	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
++		val->intval = READ_ONCE(bq->guard_end);
++		break;
++
+ 	default:
+ 		return -EINVAL;
+ 	}
+@@ -703,6 +724,15 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
+ 	int maxval, ret;
+ 	u8 lval;
+ 
++	if (bq->guard_battery && psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD) {
++		if (val->intval < BQ25890_GUARD_END_MIN ||
++		    val->intval > BQ25890_GUARD_END_OFF)
++			return -EINVAL;
++		WRITE_ONCE(bq->guard_end, val->intval);
++		mod_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
++		return 0;
++	}
++
+ 	if (bq->no_chip_config)
+ 		return -EPERM;
+ 
+@@ -734,6 +764,9 @@ static int bq25890_power_supply_property_is_writeable(struct power_supply *psy,
+ {
+ 	struct bq25890_device *bq = power_supply_get_drvdata(psy);
+ 
++	if (psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD)
++		return true;
++
+ 	if (bq->no_chip_config)
+ 		return false;
+ 
+@@ -1030,6 +1063,9 @@ static const enum power_supply_property bq25890_power_supply_props[] = {
+ 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+ 	POWER_SUPPLY_PROP_CURRENT_NOW,
+ 	POWER_SUPPLY_PROP_TEMP,
++	/* These two last, and only with a guard. */
++	POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD,
++	POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD,
+ };
+ 
+ static char *bq25890_charger_supplied_to[] = {
+@@ -1039,7 +1075,7 @@ static char *bq25890_charger_supplied_to[] = {
+ static const struct power_supply_desc bq25890_power_supply_desc = {
+ 	.type = POWER_SUPPLY_TYPE_USB,
+ 	.properties = bq25890_power_supply_props,
+-	.num_properties = ARRAY_SIZE(bq25890_power_supply_props),
++	.num_properties = ARRAY_SIZE(bq25890_power_supply_props) - 2,
+ 	.get_property = bq25890_power_supply_get_property,
+ 	.set_property = bq25890_power_supply_set_property,
+ 	.property_is_writeable = bq25890_power_supply_property_is_writeable,
+@@ -1061,6 +1097,8 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+ 	bq->desc = bq25890_power_supply_desc;
+ 	bq->desc.name = bq->name;
+ 	bq->desc.no_thermal = bq->no_chip_config;
++	if (bq->guard_battery)
++		bq->desc.num_properties = ARRAY_SIZE(bq25890_power_supply_props);
+ 
+ 	psy_cfg.supplied_to = bq25890_charger_supplied_to;
+ 	psy_cfg.num_supplicants = ARRAY_SIZE(bq25890_charger_supplied_to);
+@@ -1070,6 +1108,121 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+ 	return PTR_ERR_OR_ZERO(bq->charger);
+ }
+ 
++/*
++ * Whether the battery's temperature stops charging. Charging stops outside the
++ * battery's operating range and resumes inside its alert limits; in between,
++ * the last answer stands. Anything unreadable stops it. @temp is in 0.1 C, as
++ * the TEMP property is; the core reports the limits in whole degrees, as the
++ * battery node gives them.
++ */
++static bool bq25890_guard_hot(struct bq25890_device *bq, struct power_supply *batt,
++			      int *temp)
++{
++	static const enum power_supply_property psps[] = {
++		POWER_SUPPLY_PROP_TEMP,
++		POWER_SUPPLY_PROP_TEMP_MIN,
++		POWER_SUPPLY_PROP_TEMP_MAX,
++		POWER_SUPPLY_PROP_TEMP_ALERT_MIN,
++		POWER_SUPPLY_PROP_TEMP_ALERT_MAX,
++	};
++	union power_supply_propval val;
++	int v[ARRAY_SIZE(psps)], i;
++
++	*temp = INT_MIN;
++	if (!batt)
++		return true;
++
++	for (i = 0; i < ARRAY_SIZE(psps); i++) {
++		if (power_supply_get_property(batt, psps[i], &val))
++			return true;
++		v[i] = val.intval;
++	}
++
++	*temp = v[0];
++	if (v[0] <= v[1] * 10 || v[0] >= v[2] * 10)
++		return true;
++	if (v[0] > v[3] * 10 && v[0] < v[4] * 10)
++		return false;
++
++	return bq->guard_hot;
++}
++
++/* Whether the capacity limit stops charging. An unreadable capacity does not. */
++static bool bq25890_guard_full(struct bq25890_device *bq, struct power_supply *batt,
++			       int end, int *capacity)
++{
++	union power_supply_propval val;
++
++	*capacity = -1;
++	if (!batt || power_supply_get_property(batt, POWER_SUPPLY_PROP_CAPACITY, &val))
++		return false;
++
++	*capacity = val.intval;
++	if (end == BQ25890_GUARD_END_OFF)
++		return false;
++	if (val.intval >= end)
++		return true;
++	if (val.intval <= end - BQ25890_GUARD_RESUME_MARGIN)
++		return false;
++
++	return bq->guard_full;
++}
++
++/*
++ * The charging guard: one pass decides, then writes only CHG_CONFIG, with the
++ * other bits of the register as read. While charging is stopped every pass
++ * kicks the chip's watchdog, whose expiry would otherwise restore its defaults
++ * and with them charging. The battery is looked up at each pass, so charging
++ * stays stopped until it exists.
++ */
++static void bq25890_guard_work(struct work_struct *work)
++{
++	struct bq25890_device *bq =
++		container_of(work, struct bq25890_device, guard_work.work);
++	struct power_supply *batt = power_supply_get_by_name(bq->guard_battery);
++	int end = READ_ONCE(bq->guard_end);
++	int temp, capacity, chg, ret;
++	bool stop;
++
++	bq->guard_hot = bq25890_guard_hot(bq, batt, &temp);
++	bq->guard_full = bq25890_guard_full(bq, batt, end, &capacity);
++	stop = bq->guard_hot || bq->guard_full;
++	if (batt)
++		power_supply_put(batt);
++
++	/* There may be no interrupt: this also notices a cable. */
++	mutex_lock(&bq->lock);
++	__bq25890_handle_irq(bq);
++	mutex_unlock(&bq->lock);
++
++	chg = bq25890_field_read(bq, F_CHG_CFG);
++	ret = chg < 0 ? chg : 0;
++	if (!ret && chg == stop)
++		ret = bq25890_field_write(bq, F_CHG_CFG, !stop);
++	if (!ret && stop)
++		ret = bq25890_field_write(bq, F_WD_RST, 1);
++
++	if (ret)
++		dev_crit_ratelimited(bq->dev, "guard cannot reach the charger: %d\n", ret);
++	else if (stop != bq->guard_stopped || chg == stop)
++		dev_info(bq->dev, "guard: charging %s: temp=%d capacity=%d limit=%d%s%s\n",
++			 stop ? "stopped" : "allowed", temp, capacity, end,
++			 bq->guard_hot ? " hot" : "", bq->guard_full ? " full" : "");
++	if (!ret)
++		bq->guard_stopped = stop;
++
++	queue_delayed_work(system_power_efficient_wq, &bq->guard_work,
++			   BQ25890_GUARD_PERIOD);
++}
++
++/* Before the power supply goes: the work and its sysfs attribute both use it. */
++static void bq25890_guard_stop(void *data)
++{
++	struct bq25890_device *bq = data;
++
++	disable_delayed_work_sync(&bq->guard_work);
++}
++
+ static int bq25890_set_otg_cfg(struct bq25890_device *bq, u8 val)
+ {
+ 	int ret;
+@@ -1453,6 +1606,17 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+ 	if (bq->no_chip_config) {
+ 		bq->skip_reset = true;
+ 		bq->read_back_init_data = true;
++
++		/* A guard needs a chip nothing else is configuring. */
++		if (device_property_read_string(bq->dev, "linux,guard-battery",
++						&bq->guard_battery))
++			return 0;
++		bq->guard_end = BQ25890_GUARD_END_OFF;
++		device_property_read_u32(bq->dev, "linux,guard-end-threshold",
++					 &bq->guard_end);
++		if (bq->guard_end < BQ25890_GUARD_END_MIN ||
++		    bq->guard_end > BQ25890_GUARD_END_OFF)
++			return dev_err_probe(bq->dev, -EINVAL, "bad guard end threshold\n");
+ 		return 0;
+ 	}
+ 
+@@ -1502,6 +1666,7 @@ static int bq25890_probe(struct i2c_client *client)
+ 
+ 	mutex_init(&bq->lock);
+ 	INIT_DELAYED_WORK(&bq->pump_express_work, bq25890_pump_express_work);
++	INIT_DELAYED_WORK(&bq->guard_work, bq25890_guard_work);
+ 
+ 	bq->no_chip_config = device_property_read_bool(dev, "linux,no-chip-config");
+ 	/* The chip's watchdog and the firmware change registers behind a cache. */
+@@ -1582,6 +1747,13 @@ static int bq25890_probe(struct i2c_client *client)
+ 		usb_register_notifier(bq->usb_phy, &bq->usb_nb);
+ 	}
+ 
++	if (bq->guard_battery) {
++		ret = devm_add_action_or_reset(dev, bq25890_guard_stop, bq);
++		if (ret)
++			return ret;
++		queue_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.43.0
+

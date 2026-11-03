@@ -191,7 +191,8 @@ int main(int argc, char **argv)
 	}
 	snprintf(path, sizeof(path), "/dev/i2c-%d", bus);
 	fd = open(path, O_RDWR | O_CLOEXEC);
-	if (fd < 0 || ioctl(fd, I2C_SLAVE, ADDR) < 0) {
+	/* FORCE: the charger driver owns the address now. */
+	if (fd < 0 || ioctl(fd, I2C_SLAVE_FORCE, ADDR) < 0) {
 		perror(path);
 		return 1;
 	}

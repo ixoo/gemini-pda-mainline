@@ -5,8 +5,7 @@
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
 adds the Wi-Fi and gemini-lid modules under lib/modules/<release>/ and, from TOOLS, the static
-lid-guard, power-status and charge-guard binaries (built from their .c
-files; inittab starts charge-guard), the static ALSA tools and their alsa/
+lid-guard and power-status binaries (built from their .c files), the static ALSA tools and their alsa/
 configuration (from build-alsa-tools.sh); gives Fn+B and Fn+N no console action, since lid-guard
 uses them for brightness. Writes a newc archive with zero timestamps,
 compressed with gzip -n -9 like the parent.
@@ -92,7 +91,7 @@ def main(parent, modules, tools, release, output):
     for path in [alsa, *sorted(alsa.rglob('*'))]:
         name = 'usr/share/alsa/' + str(path.relative_to(alsa)) if path != alsa else 'usr/share/alsa'
         files[name] = (DIR | 0o755, b'') if path.is_dir() else (FILE | 0o644, path.read_bytes())
-    for tool in ['lid-guard', 'power-status', 'charge-guard', 'amixer', 'aplay']:
+    for tool in ['lid-guard', 'power-status', 'amixer', 'aplay']:
         files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
     # wireless-regdb's signed database, for cfg80211's country rules.
     for name in ['regulatory.db', 'regulatory.db.p7s']:

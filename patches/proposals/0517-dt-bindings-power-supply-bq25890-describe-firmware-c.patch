@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 22:19:36 -0500
+Subject: [PATCH] dt-bindings: power: supply: bq25890: describe
+ firmware-configured use and a battery guard
+
+Some boards leave the charger's configuration to the firmware and the chip's
+defaults, and the charger cannot see the battery's thermistor. Describe a mode
+that does not program the chip, and a battery whose temperature and capacity
+stop and resume charging.
+---
+ .../bindings/power/supply/bq25890.yaml        | 47 +++++++++++++++----
+ 1 file changed, 39 insertions(+), 8 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+index 0ad302ab2..8d78f3fba 100644
+--- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
++++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+@@ -31,6 +31,30 @@ properties:
+   interrupts:
+     maxItems: 1
+ 
++  linux,no-chip-config:
++    type: boolean
++    description:
++      The firmware and the chip's defaults keep the chip's configuration. The
++      driver does not reset or program it, and writes only charge enable and
++      the watchdog kick. The interrupt and the ti, limits are not needed.
++
++  linux,guard-battery:
++    $ref: /schemas/types.yaml#/definitions/string
++    description:
++      With linux,no-chip-config, the name of the battery's power supply. The
++      driver then stops and resumes charging by that battery's temperature
++      and capacity. Charging stops outside its operating-range-celsius and
++      resumes inside its alert-celsius; an unreadable temperature stops it.
++
++  linux,guard-end-threshold:
++    $ref: /schemas/types.yaml#/definitions/uint32
++    minimum: 50
++    maximum: 100
++    default: 100
++    description:
++      The initial charge_control_end_threshold, in percent. 100 turns the
++      capacity limit off.
++
+   ti,battery-regulation-voltage:
+     $ref: /schemas/types.yaml#/definitions/uint32
+     description: maximum charging voltage (in uV)
+@@ -88,14 +112,21 @@ properties:
+ required:
+   - compatible
+   - reg
+-  - interrupts
+-  - ti,battery-regulation-voltage
+-  - ti,charge-current
+-  - ti,termination-current
+-  - ti,precharge-current
+-  - ti,minimum-sys-voltage
+-  - ti,boost-voltage
+-  - ti,boost-max-current
++
++if:
++  not:
++    required:
++      - linux,no-chip-config
++then:
++  required:
++    - interrupts
++    - ti,battery-regulation-voltage
++    - ti,charge-current
++    - ti,termination-current
++    - ti,precharge-current
++    - ti,minimum-sys-voltage
++    - ti,boost-voltage
++    - ti,boost-max-current
+ 
+ unevaluatedProperties: false
+ 
+-- 
+2.43.0
+

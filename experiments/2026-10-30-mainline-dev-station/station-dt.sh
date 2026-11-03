@@ -15,10 +15,10 @@
 #                             (bac0f387), and nothing here can switch MM off.
 #                             The panel names this backlight, so the display's
 #                             own power state takes it on and off in the kernel.
-#   /i2c@11007000             I2C0 enabled with no child bound (its FAN49101
-#                             node stays disabled), for power-status's
-#                             read-only charger reads through i2c-dev
-#                             (2026-10-31-gemini-power-status).
+#   /i2c@11007000             I2C0 enabled, which binds the BQ25896 charger
+#                             node and its charging guard
+#                             (2026-11-02-gemini-kernel-charge-guard); its
+#                             FAN49101 node stays disabled.
 # The framebuffer is left as the package has it.
 # Usage: station-dt.sh PARENT.dtb OUTPUT.dtb
 set -eu
@@ -69,6 +69,7 @@ if fdtget "$dtb" "$BL" compatible >/dev/null 2>&1; then exit 1; fi
 fdtget -t s "$dtb" "$I2C0" compatible | tr ' ' '\n' | grep -qx mediatek,mt6797-i2c
 [ "$(fdtget -t s "$dtb" "$I2C0" status)" = disabled ]
 [ "$(fdtget -t s "$dtb" "$I2C0/regulator@70" status)" = disabled ]
+[ "$(fdtget -t s "$dtb" "$I2C0/charger@6b" linux,guard-battery)" = battery ]
 top=$(fdtget -t u "$dtb" "$TOP" phandle)
 osc=$(fdtget -t u "$dtb" "$OSC" phandle)
 max=$(dtc -q -I dtb -O dts "$dtb" | sed -n 's/.*phandle = <\(0x[0-9a-f]*\)>;.*/\1/p' |

@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 22:19:36 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: guard charging from
+ the BQ25896 driver
+
+Describe the BQ25896 at I2C0 0x6b without configuring it, guarding the battery
+at 50 C with a resume below 47 C, and at 80% with a resume at 75%. The battery
+node gets those temperatures as its operating range and alert limits.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 25 ++++++++++++++++++-
+ 1 file changed, 24 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 5d2452f14..e3aeeb2f5 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -57,6 +57,14 @@ battery: battery {
+ 		voltage-max-design-microvolt = <4352000>;
+ 		voltage-min-design-microvolt = <3400000>;
+ 		factory-internal-resistance-micro-ohms = <165000>;
++		/*
++		 * Charging stops outside the operating range and resumes inside
++		 * the alert limits: 50 and 47 C, as the vendor kernel does. The
++		 * low end is the NTC table's -20 C clamp, which is also what an
++		 * open NTC reads, so it counts as unreadable.
++		 */
++		operating-range-celsius = <(-20) 50>;
++		alert-celsius = <(-18) 47>;
+ 		ocv-capacity-celsius = <(-10) 0 25 50>;
+ 		ocv-capacity-table-0 = <
+ 			4372000 100 4349000 99 4328000 98 4309000 97
+@@ -185,7 +193,7 @@ opp-520000000 {
+ 
+ 	thermal-zones {
+ 		/*
+-		 * A kernel backstop under the userspace charging stop: at the
++		 * A backstop under the charger's charging stop: at the
+ 		 * table's 60 C end, the vendor battery zone's critical point,
+ 		 * the system powers off whatever userspace is doing.
+ 		 */
+@@ -450,3 +458,18 @@ dsi0_out_ep: endpoint {
+ 		remote-endpoint = <&panel_in>;
+ 	};
+ };
++
++/*
++ * The firmware configures the charger and its TS input is a fixed divider, so
++ * the driver keeps its hands off everything but charge enable and watches the
++ * battery for it. I2C0 itself is enabled by the station's boot DTB derivation.
++ */
++&i2c0 {
++	charger@6b {
++		compatible = "ti,bq25896", "ti,bq25890";
++		reg = <0x6b>;
++		linux,no-chip-config;
++		linux,guard-battery = "battery";
++		linux,guard-end-threshold = <80>;
++	};
++};
+-- 
+2.43.0
+

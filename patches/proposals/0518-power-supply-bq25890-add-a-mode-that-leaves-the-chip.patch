@@ -1,0 +1,196 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 2 Nov 2026 22:19:36 -0500
+Subject: [PATCH] power: supply: bq25890: add a mode that leaves the chip's
+ configuration alone
+
+Probe resets the chip or forces charging on, turns its watchdog off, programs
+the limits and starts its ADC, and it requires an interrupt. On a board whose
+firmware and chip defaults hold the configuration, all of that is a change in
+charging behaviour just for binding the driver.
+
+Add linux,no-chip-config. It implies linux,skip-reset and
+linux,read-back-settings, and from then on only charge enable and the watchdog
+kick reach the chip, enforced in the one function all driver writes go through.
+Properties can't be written. The interrupt and the regulators are left out.
+Register reads go to the chip uncached, because its watchdog returns registers
+to their defaults behind a cache. The ADC properties read as no data, because
+starting a conversion is a write, and no thermal zone is registered for them.
+Only a BQ25896 is accepted.
+---
+ drivers/power/supply/bq25890_charger.c | 70 ++++++++++++++++++++++----
+ 1 file changed, 60 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index 868e86e17..61b9ee6a5 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -130,6 +130,7 @@ struct bq25890_device {
+ 	enum bq25890_chip_version chip_version;
+ 	struct bq25890_init_data init_data;
+ 	struct bq25890_state state;
++	bool no_chip_config;
+ 
+ 	struct mutex lock; /* protect state data */
+ };
+@@ -374,6 +375,13 @@ static int bq25890_field_read(struct bq25890_device *bq,
+ static int bq25890_field_write(struct bq25890_device *bq,
+ 			       enum bq25890_fields field_id, u8 val)
+ {
++	/*
++	 * Without chip configuration only charge enable and the watchdog kick
++	 * reach the chip; all other writes in this driver stop here.
++	 */
++	if (bq->no_chip_config && field_id != F_CHG_CFG && field_id != F_WD_RST)
++		return 0;
++
+ 	return regmap_field_write(bq->rmap_fields[field_id], val);
+ }
+ 
+@@ -493,6 +501,10 @@ static int bq25890_power_supply_get_property(struct power_supply *psy,
+ 	struct bq25890_state state;
+ 	int ret;
+ 
++	/* The ADC is only started by a write, and TS may not see the battery. */
++	if (bq->no_chip_config && bq25890_is_adc_property(psp))
++		return -ENODATA;
++
+ 	bq25890_update_state(bq, psp, &state);
+ 
+ 	switch (psp) {
+@@ -691,6 +703,9 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
+ 	int maxval, ret;
+ 	u8 lval;
+ 
++	if (bq->no_chip_config)
++		return -EPERM;
++
+ 	switch (psp) {
+ 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+ 		maxval = bq25890_find_val(bq->init_data.ichg, TBL_ICHG);
+@@ -717,6 +732,11 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
+ static int bq25890_power_supply_property_is_writeable(struct power_supply *psy,
+ 						      enum power_supply_property psp)
+ {
++	struct bq25890_device *bq = power_supply_get_drvdata(psy);
++
++	if (bq->no_chip_config)
++		return false;
++
+ 	switch (psp) {
+ 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+ 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+@@ -939,6 +959,13 @@ static int bq25890_hw_init(struct bq25890_device *bq)
+ {
+ 	int ret;
+ 
++	if (bq->no_chip_config) {
++		ret = bq25890_rw_init_data(bq);
++		if (ret)
++			return ret;
++		return bq25890_get_chip_state(bq, &bq->state);
++	}
++
+ 	if (!bq->skip_reset) {
+ 		ret = bq25890_chip_reset(bq);
+ 		if (ret < 0) {
+@@ -1033,6 +1060,7 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+ 	snprintf(bq->name, sizeof(bq->name), "bq25890-charger-%d", bq->id);
+ 	bq->desc = bq25890_power_supply_desc;
+ 	bq->desc.name = bq->name;
++	bq->desc.no_thermal = bq->no_chip_config;
+ 
+ 	psy_cfg.supplied_to = bq25890_charger_supplied_to;
+ 	psy_cfg.num_supplicants = ARRAY_SIZE(bq25890_charger_supplied_to);
+@@ -1330,6 +1358,10 @@ static int bq25890_irq_probe(struct bq25890_device *bq)
+ {
+ 	struct gpio_desc *irq;
+ 
++	/* The interrupt is optional here: state is read when it is wanted. */
++	if (bq->no_chip_config)
++		return 0;
++
+ 	irq = devm_gpiod_get(bq->dev, BQ25890_IRQ_PIN, GPIOD_IN);
+ 	if (IS_ERR(irq))
+ 		return dev_err_probe(bq->dev, PTR_ERR(irq),
+@@ -1418,6 +1450,12 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+ 		bq->iinlim_percentage = 100;
+ 	}
+ 
++	if (bq->no_chip_config) {
++		bq->skip_reset = true;
++		bq->read_back_init_data = true;
++		return 0;
++	}
++
+ 	bq->skip_reset = device_property_read_bool(bq->dev, "linux,skip-reset");
+ 	bq->read_back_init_data = device_property_read_bool(bq->dev,
+ 						"linux,read-back-settings");
+@@ -1449,6 +1487,7 @@ static void bq25890_non_devm_cleanup(void *data)
+ 
+ static int bq25890_probe(struct i2c_client *client)
+ {
++	struct regmap_config regmap_config = bq25890_regmap_config;
+ 	struct device *dev = &client->dev;
+ 	struct bq25890_device *bq;
+ 	int ret;
+@@ -1464,7 +1503,12 @@ static int bq25890_probe(struct i2c_client *client)
+ 	mutex_init(&bq->lock);
+ 	INIT_DELAYED_WORK(&bq->pump_express_work, bq25890_pump_express_work);
+ 
+-	bq->rmap = devm_regmap_init_i2c(client, &bq25890_regmap_config);
++	bq->no_chip_config = device_property_read_bool(dev, "linux,no-chip-config");
++	/* The chip's watchdog and the firmware change registers behind a cache. */
++	if (bq->no_chip_config)
++		regmap_config.cache_type = REGCACHE_NONE;
++
++	bq->rmap = devm_regmap_init_i2c(client, &regmap_config);
+ 	if (IS_ERR(bq->rmap))
+ 		return dev_err_probe(dev, PTR_ERR(bq->rmap),
+ 				     "failed to allocate register map\n");
+@@ -1481,6 +1525,8 @@ static int bq25890_probe(struct i2c_client *client)
+ 		dev_err(dev, "Cannot read chip ID or unknown chip: %d\n", ret);
+ 		return ret;
+ 	}
++	if (bq->no_chip_config && bq->chip_version != BQ25896)
++		return dev_err_probe(dev, -ENODEV, "not a BQ25896\n");
+ 
+ 	ret = bq25890_fw_probe(bq);
+ 	if (ret < 0)
+@@ -1511,20 +1557,24 @@ static int bq25890_probe(struct i2c_client *client)
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = bq25890_register_regulator(bq);
+-	if (ret)
+-		return ret;
++	if (!bq->no_chip_config) {
++		ret = bq25890_register_regulator(bq);
++		if (ret)
++			return ret;
++	}
+ 
+ 	ret = bq25890_power_supply_init(bq);
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "registering power supply\n");
+ 
+-	ret = devm_request_threaded_irq(dev, client->irq, NULL,
+-					bq25890_irq_handler_thread,
+-					IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
+-					BQ25890_IRQ_PIN, bq);
+-	if (ret)
+-		return ret;
++	if (client->irq > 0) {
++		ret = devm_request_threaded_irq(dev, client->irq, NULL,
++						bq25890_irq_handler_thread,
++						IRQF_TRIGGER_FALLING | IRQF_ONESHOT,
++						BQ25890_IRQ_PIN, bq);
++		if (ret)
++			return ret;
++	}
+ 
+ 	if (!IS_ERR_OR_NULL(bq->usb_phy)) {
+ 		INIT_WORK(&bq->usb_work, bq25890_usb_work);
+-- 
+2.43.0
+
