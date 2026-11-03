@@ -185,8 +185,8 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    cameras stay feasibility work. The
    per-block detail, shared dependencies and grouped device tests are in
    [After Wi-Fi gaps](../experiments/2026-10-03-project-review/AFTER_WIFI_GAPS.md). GPU
-   runs sustained Mesa shaders from modules with DVFS to 520 MHz and idle power-off; next are
-   showing the cooling cap and reaching the screen; see
+   runs sustained Mesa shaders from modules with DVFS to 520 MHz and idle power-off; next is
+   reaching the screen; see
    [the first job](../experiments/2026-11-02-mali-t880-first-job/README.md).
 
 ## Offline work now, in parallel

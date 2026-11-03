@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `completed`: shaders, DVFS to 520 MHz and idle power-off work from modules, by default; the cooling cap is not shown |
+| Status | `completed`: shaders, DVFS to 520 MHz and idle power-off work from modules, by default; the governor caps one step at a false temperature, not shown under real heat |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -529,6 +529,13 @@ The write of the top state to the cooling device did pull the rate to 238 MHz, b
 cause is probably the thermal core rewriting the state from a zone below its trip (inference). So **the cap at 58 C is not shown**: the device can lower the rate once,
 and nothing shows it holds, or that the real trip applies it. This run peaked at 37.5 C.
 
+### Run 21, same boot: the cooling cap through thermal emulation
+
+Owner-approved, as it masks `soc-thermal`'s 95 and 110 C trips for up to 20 s; the 117 C hardware reset and the battery zone do not read that value. With a load at 520 MHz, `emul_temp` read a false 60 C from 20 to 40 s:
+`cur_state` went to 1 and the rate to 442.5 MHz, and both held for the whole window, then returned. Frames per 5 s went from about 670 to 587 and back to 672, in proportion to the clock. No fault, no true bank near 58 C, zone reading true afterward.
+
+So **the governor caps one step and holds, at a constant false temperature**. A constant value has no rising trend, which fits `step_wise` raising the state only once (inference). This does not show a cap to the lowest OPP, or any cap under real heat, or that one step would stop real heating. Real load has not got past about 38 C.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -555,14 +562,14 @@ idle power saving exists: while loaded, the rail and the domains stay on.
 - The T880 probes, identifies as `0x880` with four cores, and runs Mesa 24.3.4 shaders with a correct image on all four cores under 60 s of full load.
 - Each OPP from 238 to 520 MHz holds under pinned load, and changes between them run with no fault, on a drained GPU.
 - Its domains power off when idle and return correctly.
-- `soc-thermal` sees it through bank 1.
+- `soc-thermal` sees it through bank 1, and its governor caps the GPU one step at a false 60 C.
 
-**Not shown:** the cooling cap at 58 C; a first load on a fresh boot with the defaults; real-size rendering or a real application; the display path; any clock above 520 MHz; a measured rail or clock; the hot end, where the missing EEM matters
+**Not shown:** a cooling cap below one step or under real heat; a first load on a fresh boot with the defaults; real-size rendering or a real application; the display path; any clock above 520 MHz; a measured rail or clock; the hot end, where the missing EEM matters
 most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle, which stay on. Nothing loads these modules at boot.
 
 ## Follow-up
 
-1. Show the cap: `CONFIG_THERMAL_EMULATION` is on, so the zone's governor can act at a false temperature, from the running boot.
+1. A cap under real heat, which needs a load that reaches the trip.
 2. A first load on a fresh boot with the defaults, `./gpu-test.sh load`, at the next natural boot.
 3. VGPU and the LDOs off at idle, then `domain-supply` on MFG_ASYNC, the upstream shape, once the regulator can be built in.
 4. The `scpsys` clock: it holds `mfg_sel` prepared from boot, and it is also what stops the loader's running PLL on first load, so removing it needs its own way to stop that PLL.
