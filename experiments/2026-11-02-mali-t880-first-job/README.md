@@ -485,6 +485,23 @@ stays. A rail droop is not excluded: the rail has only been read as a register.
 That step is the only up step ever taken, and the only one with the GPU busy by construction, so those two cannot yet be told apart. Down
 steps have never faulted, but run at low use. The vendor commits rates from a GED timer, and no drain was found at that level; not every caller was traced.
 
+### Run 18, same boot: rate steps under full load
+
+60 s each with the rate moved every 100 ms between two OPPs, at steady full load. About 291 steps each way per run.
+
+| Pair | Post-dividers | VCO jump | Job timeouts |
+| --- | --- | --- | --- |
+| 238 and 520 MHz | 8 and 2 | 864 MHz | 6 |
+| 442.5 and 520 MHz | 4 and 2 | 730 MHz | 3 |
+| 238 and 365 MHz | 8 and 4 | 444 MHz | 4 |
+| 365 and 442.5 MHz | both 4 | 310 MHz | **0** |
+
+Dividers and VCO from the driver's arithmetic and the registers read at 238, 442.5 and 520 MHz, not 365. Three runs lose jobs and the one with no divider change does not.
+Rail steps do not sort them, and all four park the mux, so neither the rail nor the park alone is the cause. Timing the 500 ms job
+timeout back, B's and D's faults land on a down step, so it is not up steps either (inference, softer in A). The likely mechanism is a relock across a
+divider taking longer than the 20 us before the mux returns, though that is unmeasured, and the vendor has the same 20 us. Its table may simply cross a divider less.
+`0493` drains the GPU before a rate change, which covers any such mechanism, from the module.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it

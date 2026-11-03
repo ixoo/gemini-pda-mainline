@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 19:40:22 -0500
+Subject: [PATCH] drm/panfrost: drain the MT6797 GPU before a rate change
+
+About one in a hundred rate changes that also change the MFGPLL divider lose the
+running job, in either direction. Changes that keep the divider never have, and they
+park the mux the same way. The likely reason is that a relock across a divider takes
+longer than the 20 us before the mux goes back, though that is unmeasured.
+
+Hold new jobs off the hardware, wait for those on it, then change the rate. A job
+longer than 200 ms skips the change until the next poll. Whatever the clock does
+during a change, no job is then there to lose.
+---
+ drivers/gpu/drm/panfrost/panfrost_devfreq.c | 30 +++++++++++++++++++++
+ drivers/gpu/drm/panfrost/panfrost_device.c  |  1 +
+ drivers/gpu/drm/panfrost/panfrost_device.h  |  3 +++
+ drivers/gpu/drm/panfrost/panfrost_job.c     | 16 +++++++++++
+ drivers/gpu/drm/panfrost/panfrost_job.h     |  1 +
+ 5 files changed, 51 insertions(+)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_devfreq.c b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+index 6955fa312..c425a056d 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_devfreq.c
++++ b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+@@ -2,6 +2,7 @@
+ /* Copyright 2019 Collabora ltd. */
+ 
+ #include <linux/clk.h>
++#include <linux/iopoll.h>
+ #include <linux/devfreq.h>
+ #include <linux/devfreq_cooling.h>
+ #include <linux/nvmem-consumer.h>
+@@ -11,6 +12,7 @@
+ #include <drm/drm_print.h>
+ 
+ #include "panfrost_device.h"
++#include "panfrost_job.h"
+ #include "panfrost_devfreq.h"
+ 
+ static void panfrost_devfreq_update_utilization(struct panfrost_devfreq *pfdevfreq)
+@@ -28,6 +30,13 @@ static void panfrost_devfreq_update_utilization(struct panfrost_devfreq *pfdevfr
+ 	pfdevfreq->time_last_update = now;
+ }
+ 
++/*
++ * On a platform with a power sequence (MT6797), changing the PLL's divider under a
++ * running job loses the job now and then. Hold new jobs back and let those on the
++ * hardware finish. A job longer than this skips the change, until the next poll.
++ */
++#define PANFROST_RATE_DRAIN_TIMEOUT_US	200000
++
+ static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
+ 				   u32 flags)
+ {
+@@ -40,7 +49,28 @@ static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
+ 		return PTR_ERR(opp);
+ 	dev_pm_opp_put(opp);
+ 
++	if (pfdev->comp->platform_ops) {
++		bool idle;
++
++		if (*freq == pfdev->pfdevfreq.current_frequency)
++			return 0;
++
++		mutex_lock(&pfdev->rate_lock);
++		if (readx_poll_timeout(panfrost_jm_hw_idle, pfdev, idle, idle, 100,
++				       PANFROST_RATE_DRAIN_TIMEOUT_US)) {
++			mutex_unlock(&pfdev->rate_lock);
++			if (pfdev->comp->platform_ops->log_rates())
++				dev_info(dev, "rate %lu -> %lu skipped, not idle\n",
++					 pfdev->pfdevfreq.current_frequency, *freq);
++			*freq = pfdev->pfdevfreq.current_frequency;
++			return 0;
++		}
++	}
++
+ 	err = dev_pm_opp_set_rate(dev, *freq);
++	if (pfdev->comp->platform_ops)
++		mutex_unlock(&pfdev->rate_lock);
++
+ 	if (!err && pfdev->comp->platform_ops && pfdev->comp->platform_ops->log_rates() &&
+ 	    pfdev->pfdevfreq.current_frequency != *freq)
+ 		dev_info(dev, "rate %lu -> %lu\n", pfdev->pfdevfreq.current_frequency, *freq);
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.c b/drivers/gpu/drm/panfrost/panfrost_device.c
+index c0395e3d1..0b4b83df0 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.c
++++ b/drivers/gpu/drm/panfrost/panfrost_device.c
+@@ -208,6 +208,7 @@ int panfrost_device_init(struct panfrost_device *pfdev)
+ 	int err;
+ 
+ 	mutex_init(&pfdev->sched_lock);
++	mutex_init(&pfdev->rate_lock);
+ 	INIT_LIST_HEAD(&pfdev->scheduled_jobs);
+ 	INIT_LIST_HEAD(&pfdev->as_lru_list);
+ 
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+index 091c15e0b..42615eb89 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.h
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -183,6 +183,9 @@ struct panfrost_device {
+ 
+ 	struct mutex sched_lock;
+ 
++	/* Holds new jobs off the hardware while a platform drains it for a rate change. */
++	struct mutex rate_lock;
++
+ 	struct {
+ 		struct workqueue_struct *wq;
+ 		struct work_struct work;
+diff --git a/drivers/gpu/drm/panfrost/panfrost_job.c b/drivers/gpu/drm/panfrost/panfrost_job.c
+index d59b4863b..22ecf2e94 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_job.c
++++ b/drivers/gpu/drm/panfrost/panfrost_job.c
+@@ -250,6 +250,7 @@ static int panfrost_job_hw_submit(struct panfrost_job *job, int js)
+ 
+ 	/* GO ! */
+ 
++	mutex_lock(&pfdev->rate_lock);
+ 	spin_lock(&pfdev->js->job_lock);
+ 	subslot = panfrost_enqueue_job(pfdev, js, job);
+ 	/* Don't queue the job if a reset is in progress */
+@@ -271,6 +272,7 @@ static int panfrost_job_hw_submit(struct panfrost_job *job, int js)
+ 			job, js, subslot, jc_head, cfg & 0xf);
+ 	}
+ 	spin_unlock(&pfdev->js->job_lock);
++	mutex_unlock(&pfdev->rate_lock);
+ 
+ 	return 0;
+ 
+@@ -967,6 +969,20 @@ void panfrost_jm_close(struct drm_file *file)
+ 	xa_destroy(&panfrost_priv->jm_ctxs);
+ }
+ 
++bool panfrost_jm_hw_idle(struct panfrost_device *pfdev)
++{
++	bool idle = true;
++	int i;
++
++	spin_lock(&pfdev->js->job_lock);
++	for (i = 0; i < NUM_JOB_SLOTS; i++)
++		if (pfdev->jobs[i][0] || pfdev->jobs[i][1])
++			idle = false;
++	spin_unlock(&pfdev->js->job_lock);
++
++	return idle;
++}
++
+ int panfrost_jm_is_idle(struct panfrost_device *pfdev)
+ {
+ 	struct panfrost_job_slot *js = pfdev->js;
+diff --git a/drivers/gpu/drm/panfrost/panfrost_job.h b/drivers/gpu/drm/panfrost/panfrost_job.h
+index c3f57e41a..09f5f9263 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_job.h
++++ b/drivers/gpu/drm/panfrost/panfrost_job.h
+@@ -70,6 +70,7 @@ void panfrost_jm_reset_interrupts(struct panfrost_device *pfdev);
+ void panfrost_jm_enable_interrupts(struct panfrost_device *pfdev);
+ void panfrost_jm_suspend_irq(struct panfrost_device *pfdev);
+ int panfrost_jm_is_idle(struct panfrost_device *pfdev);
++bool panfrost_jm_hw_idle(struct panfrost_device *pfdev);
+ int panfrost_job_get_slot(struct panfrost_job *job);
+ int panfrost_job_push(struct panfrost_job *job);
+ void panfrost_job_put(struct panfrost_job *job);
