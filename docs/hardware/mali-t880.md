@@ -13,7 +13,7 @@ mainline Panfrost configuration needed to bring it up safely.
 | Vendor source | Gemian `8cfe6596` / `59e00a91` lineage |
 | Exact vendor DTB | `9e26929563f7682d1f7545d6007f0092c7e085a4edbd6e7be0ac8eaa5159b2f9` |
 | Active vmlinux | `cc66df06194d3315335462760962165e1dcb2e50221574aeb45a0805bb17a162` |
-| Current status | Sustained shader load to 520 MHz at 1.0 V and idle power-off, from modules on the station; DVFS not yet run; see the first job |
+| Current status | Shaders, DVFS to 520 MHz and idle power-off, from modules on the station; cooling cap not shown; see the first job |
 
 The detailed vendor-side evidence is in the
 [GPU RE record](../../experiments/2026-10-04-gemini-gpu-re/README.md) and the
@@ -138,6 +138,9 @@ The vendor also uses:
 - thermal, PBM and low-battery OPP limiting;
 - MFGPLL post-divider parking when the divider changes;
 - `Vsram`/`VGPU` sequencing with voltage-first up and clock-first down.
+
+On this unit a job running across a change of MFGPLL post-divider (8 at 238 MHz, 4 at 365 and 442.5 MHz, 2 at 520 MHz) was lost about 1% of the time, and changes that
+kept the divider never lost one. The station drains the GPU before a rate change ([first job](../../experiments/2026-11-02-mali-t880-first-job/README.md)).
 
 Mainline does not have the MT6797 EEM/SVS driver. The proposed first probe
 targets a fixed 520 MHz / 1.0 V point without an OPP table or devfreq policy. For dynamic DVFS later, review

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `running`: sustained load to 520 MHz, idle power-off, per-bank sensing and each OPP passed; DVFS not admitted: about 2% of its largest up steps fault a job, cause open |
+| Status | `completed`: shaders, DVFS to 520 MHz and idle power-off work from modules, by default; the cooling cap is not shown |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -520,6 +520,15 @@ read `0x820E09D8` at 365 MHz, so that pair does share a divider. At about 1% per
 shows it. These jobs are short, so a job over 200 ms, which skips the change, has not been tried, and sustained long jobs could hold the rate where it is. One chip, about 35 C, so the hot end,
 where the missing EEM matters most, is not covered.
 
+### Run 20, same boot: the new defaults
+
+`0494`, DVFS and idle power-off on by default. 60 s of full load: 8176 frames, same pixel, 0 faults, `control=auto`. 20 small frames then idle: all
+correct, suspended with MFG off a second later. No GPU fault, tainted 0.
+
+The write of the top state to the cooling device did pull the rate to 238 MHz, but it came back 93 ms later, and the state read 0 by the next check. The
+cause is probably the thermal core rewriting the state from a zone below its trip (inference). So **the cap at 58 C is not shown**: the device can lower the rate once,
+and nothing shows it holds, or that the real trip applies it. This run peaked at 37.5 C.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -541,23 +550,22 @@ idle power saving exists: while loaded, the rail and the domains stay on.
 
 ## Conclusion
 
-`confirmed` for the named unit, at 1.0 V and at each of 26 and about 364 MHz: probe, identity and
-100 bounded jobs from modules on image `Image.gz` `2af362e9`, and 20 correct shader frames through
-Mesa on image `3bf81854`. Not shown: all four cores in use, real-size rendering, the display path,
-any clock above 364 MHz, a measured clock or rail, sustained load or thermal behaviour, runtime or system suspend, the display path. Nothing
-loads these modules at boot.
+`confirmed` for the named unit, on the image with `Image.gz` `bef4c6d4` and these modules at `56cd6c6e`, at up to 38 C:
+
+- The T880 probes, identifies as `0x880` with four cores, and runs Mesa 24.3.4 shaders with a correct image on all four cores under 60 s of full load.
+- Each OPP from 238 to 520 MHz holds under pinned load, and changes between them run with no fault, on a drained GPU.
+- Its domains power off when idle and return correctly.
+- `soc-thermal` sees it through bank 1.
+
+**Not shown:** the cooling cap at 58 C; a first load on a fresh boot with the defaults; real-size rendering or a real application; the display path; any clock above 520 MHz; a measured rail or clock; the hot end, where the missing EEM matters
+most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle, which stay on. Nothing loads these modules at boot.
 
 ## Follow-up
 
-Next: a load pinned at each OPP below 520 MHz, then idle power-off and DVFS together. If those pass, make both the
-defaults.
-
-The scpsys clock stays for now. It is what stops the loader's running PLL on first load, so removing it
-needs its own way to stop that PLL, or a boot leaves it running.
-
-
-1. A bounded sustained load at a tested clock, with its temperature curve. This is the next new risk,
-   and the owner's to admit.
-2. Then a voltage review, an OPP table, a cooling device, and `domain-supply` on MFG_ASYNC, the upstream
-   shape, once the regulator can be built in.
-3. The display path, and whether the RAM root should carry Mesa at all.
+1. Show the cap: `CONFIG_THERMAL_EMULATION` lets the zone's governor act at a false temperature. It is off, so it goes in the next boot image.
+2. A first load on a fresh boot with the defaults, `./gpu-test.sh load`, at the next natural boot.
+3. VGPU and the LDOs off at idle, then `domain-supply` on MFG_ASYNC, the upstream shape, once the regulator can be built in.
+4. The `scpsys` clock: it holds `mfg_sel` prepared from boot, and it is also what stops the loader's running PLL on first load, so removing it needs its own way to stop that PLL.
+5. Whether a relock across a post-divider really needs more than 20 us, which would let the drain go. Built-in code, so an image.
+6. Clocks above 520 MHz need rail voltages above 1.0 V, a separate decision.
+7. Showing GPU output on screen, which belongs with the display work.
