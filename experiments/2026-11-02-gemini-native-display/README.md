@@ -431,9 +431,14 @@ Live on boot `7197708f`. A blank's fade reached the dim level about 1.7 s before
 backlight went off, and a wake showed no fade: the rest of the waking key's press cancelled
 it. `ea6e7684` makes input wait for the end of a wake fade, and the owner: "the dimming
 works, but there is a gap between the lowest brightness and the screen turning off, we need
-to fix it. The wake up works great." The gap came from timing the deadline in whole seconds
-and checking once a second. `lid-guard` now times it from the key event's timestamp, in
-milliseconds, and wakes when the fade must start.
+to fix it. The wake up works great." `lid-guard` then timed the deadline from the key event's timestamp, in
+milliseconds, but the gap stayed, at 1.95 s, and the owner: "there is still a gap when it
+dims. the screen off should come slightly sooner". The kernel's blank is a wheel timer.
+At HZ 250, an interval of 60 s or 120 s sits in the wheel level with 2.048 s granularity,
+so it fires up to about 2 s late and never early. That is read from the source; the 1.69 s
+and 1.95 s samples fit it. So no timing in userspace can meet it. `lid-guard` now powers
+the backlight down at the end of the fade, and the kernel's blank follows up to 2 s later
+and lights it again on waking. With `lid-guard` dead, the kernel path is as before.
 
 ## Follow-up
 

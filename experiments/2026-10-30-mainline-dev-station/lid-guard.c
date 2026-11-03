@@ -31,7 +31,7 @@
 #define DIM_LEVEL 16
 #define FADE_DOWN_STEPS 40
 #define FADE_DOWN_MS 75
-/* It ends as the kernel blanks, with no time held at the dim level. */
+/* It starts this long before the earliest the kernel can blank. */
 #define FADE_DOWN_LEAD_MS (FADE_DOWN_STEPS * FADE_DOWN_MS)
 #define FADE_UP_STEPS 16
 #define FADE_UP_MS 30
@@ -193,6 +193,13 @@ static int fade(int from, int to, int steps, int ms, struct pollfd *fds, int nfd
 	return 0;
 }
 
+/* Back from a fade that no blank has followed. */
+static void undim(int level)
+{
+	set_brightness(level);
+	put(BL_POWER, "0");
+}
+
 static void step_brightness(int up)
 {
 	char text[16];
@@ -274,15 +281,22 @@ int main(void)
 
 				if (level > DIM_LEVEL) {
 					restore = level;
+					/*
+					 * The kernel's blank timer is a coarse one, up to 2 s late,
+					 * so the light goes out here at the end of the fade. The
+					 * blank follows by itself and wakes the light again.
+					 */
 					if (fade(level, DIM_LEVEL, FADE_DOWN_STEPS, FADE_DOWN_MS,
 						 fds, nfds)) {
-						set_brightness(restore);
+						undim(restore);
 						restore = -1;
+					} else {
+						put(BL_POWER, "4");
 					}
 				}
 			} else if (restore >= 0 && (seconds * 1000 <= FADE_DOWN_LEAD_MS || left > 0)) {
 				/* The deadline moved or went, with no blank after all. */
-				set_brightness(restore);
+				undim(restore);
 				restore = -1;
 			} else if (seconds * 1000 > FADE_DOWN_LEAD_MS && left > 0 && left < wait) {
 				/* Wake exactly when the fade has to start. */
@@ -294,7 +308,7 @@ int main(void)
 			last_input = event_ms(&ev);
 			quick = 20;
 			if (restore >= 0 && !blanked) {
-				set_brightness(restore);
+				undim(restore);
 				restore = -1;
 			}
 			if (ev.code == KEY_LEFTMETA)
@@ -310,6 +324,7 @@ int main(void)
 			continue;
 		closed = !!ev.value;
 		if (restore >= 0) {
+			/* The lid module owns the light now. */
 			set_brightness(restore);
 			restore = -1;
 		}
