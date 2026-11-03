@@ -1,8 +1,9 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
 # T1: load the display modules and bind, with no modeset, then unload. The
-# console must keep running throughout. Stops at the first failed load and leaves
-# what loaded in place for inspection.
+# console must keep running throughout. Stops at the first failed load, or if no
+# DRM device appears, and leaves what loaded in place for inspection. Exits
+# non-zero on any failure, including a failed unload.
 # usage: display-t1.sh MODULE_DIR
 set -u
 dir=$1
@@ -41,16 +42,27 @@ lo mediatek-drm keep_firmware_fb=1
 sleep 5
 state bound
 ls /sys/class/drm /dev/dri 2>&1
+if ! ls /dev/dri/card* >/dev/null 2>&1; then
+	echo "NOT BOUND: no DRM device, leaving the modules loaded"
+	dmesg | tail -40
+	exit 6
+fi
 grep -E 'ovl|rdma|dsi' /proc/interrupts
 dmesg | grep -i -E 'mediatek-drm|mtk-|mipi|dsi|panel|nobody cared|drm' | tail -40
 say "display-t1 B: bound, no modeset"
 sleep 20
 grep -E 'ovl|rdma|dsi' /proc/interrupts
 state 'bound +25 s'
-rmmod mediatek-drm drm_display_helper cec drm_dma_helper drm_kms_helper panel-novatek-nt36672e || echo "FAILED rmmod upper"
-rmmod drm drm_panel_orientation_quirks mtk-mutex mtk-mmsys clk-mt6797-mm phy-mtk-mipi-dsi-drv || echo "FAILED rmmod lower"
+rc=0
+for m in mediatek-drm drm_display_helper cec drm_dma_helper drm_kms_helper \
+	panel-novatek-nt36672e drm drm_panel_orientation_quirks mtk-mutex mtk-mmsys \
+	clk-mt6797-mm phy-mtk-mipi-dsi-drv; do
+	echo "rmmod $m"
+	rmmod "$m" || { echo "FAILED rmmod $m"; rc=7; break; }
+done
 state unloaded
 say "display-t1 C: unloaded"
 grep -c . /proc/modules
 dmesg | tail -15
-echo finished
+echo "finished rc=$rc"
+exit $rc

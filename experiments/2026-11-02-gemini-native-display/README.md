@@ -90,6 +90,26 @@ The retained capture's `MM_CG_CON0` read `0xfffffff8`, gates closed with the ove
 running. This boot does not reproduce that, so it most likely belonged to that moment
 in the vendor's suspend path, and it does not apply to the takeover.
 
+## T1, first run: bind did not happen
+
+Boot `01fcd554`, image `cffd5597`, package `b3b841d4`. All 12 modules loaded and every
+component probed. The ten sampled registers were identical before and after, and no
+display interrupt fired, so loading the drivers left the running scanout alone.
+Three bugs stopped it there:
+
+- The master failed with "Failed to find disp-mutex node": the MT6797 mutex was in
+  `mtk-mutex` but not in the DRM component table. No bind or modeset ran. Fixed by
+  [0504](../../patches/proposals/0504-drm-mediatek-recognise-the-MT6797-display-mutex.patch).
+- Unload oopsed in `__mtk_clk_simple_remove`, an upstream gap: remove lacks probe's
+  fallback for drivers registered without a DT match. It left that boot's `mtk-mmsys`
+  stuck and the kernel tainted. Fixed by
+  [0505](../../patches/proposals/0505-clk-mediatek-find-the-clock-description-on-remove.patch),
+  built-in code, so it needs an image.
+- A WARN in `mipi_dsi_detach` when the host unloads first, fixed by
+  [0506](../../patches/proposals/0506-drm-panel-nt36672e-don-t-detach-twice-when-the-hos.patch).
+
+The script's rc hid the failed unload, so it now exits non-zero on one.
+
 ## Design
 
 | Decision | Why |

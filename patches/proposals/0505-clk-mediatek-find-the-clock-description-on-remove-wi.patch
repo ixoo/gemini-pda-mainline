@@ -1,0 +1,29 @@
+From 968234b96ae27a44aa5824492bca43d42d63694b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:33:20 -0500
+Subject: [PATCH] clk: mediatek: find the clock description on remove without a
+ DT match
+
+__mtk_clk_simple_probe() falls back to the platform ID table when the device
+has no devicetree match, which is how MMSYS registers its clock driver.
+__mtk_clk_simple_remove() has no such fallback and dereferences NULL when the
+MMSYS module unloads.
+---
+ drivers/clk/mediatek/clk-mtk.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/clk/mediatek/clk-mtk.c b/drivers/clk/mediatek/clk-mtk.c
+index d5df2ca43..175248d91 100644
+--- a/drivers/clk/mediatek/clk-mtk.c
++++ b/drivers/clk/mediatek/clk-mtk.c
+@@ -637,6 +637,10 @@ static void __mtk_clk_simple_remove(struct platform_device *pdev,
+ 	struct clk_hw_onecell_data *clk_data = platform_get_drvdata(pdev);
+ 	const struct mtk_clk_desc *mcd = device_get_match_data(&pdev->dev);
+ 
++	/* As in probe: a driver registered from MMSYS has no devicetree match. */
++	if (!mcd)
++		mcd = (const struct mtk_clk_desc *)pdev->id_entry->driver_data;
++
+ 	of_clk_del_provider(node);
+ 	if (mcd->clks)
+ 		mtk_clk_unregister_gates(mcd->clks, mcd->num_clks, clk_data);
