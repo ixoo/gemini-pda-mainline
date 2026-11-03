@@ -355,9 +355,9 @@ measured refresh under mainline at those settings is 54.00 Hz.
 
 | Question | Current position |
 | --- | --- |
-| Physical panel controller | `unresolved` - NT36672 is the selected driver; no direct read on this unit |
+| Physical panel controller | `observed`, not complete: under mainline DCS `0x0a` reads `0x9c` and `0xdb` reads `0x80`, as the NT36672 path expects and unlike the SSD2092 unit's `0x0a` = `0x1c`. `0xf4` was not read. The vendor kernel's table, byte-identical to the mainline descriptor's, runs on this unit on every Gemian boot |
 | Panel bias device semantics | `observed` writes only; LP3101 voltages/currents unproven |
-| Landscape rotation stage | `unresolved` - kernel scans 1080x2160 portrait; the DDX Rotate option is off; no kernel consumer of `CONFIG_MTK_LCM_PHYSICAL_ROTATION` was found, so rotation is applied above the kernel's scanout (userspace/HWC or panel mounting) |
+| Landscape rotation stage | `observed` - held in landscape, the panel scans 1080x2160 rotated 90 degrees with no mirror: lines run top to bottom, the first at the right edge. Which stage rotates under Gemian is unresolved |
 | Refresh rate | `observed` - 54.00 flips per second under mainline at the vendor's lane rate and porches, agreeing with the vendor's `5405` debug field |
 | Vendor HWC composition policy | Proprietary; not retained. The live OVL path is consistent with direct scanout of the X framebuffer |
 | Cold-boot panel initialisation | Kernel sets `is_lcm_inited` from the presence of LK's `videolfb` tag and inherits LK's panel state; exact per-session state not captured |

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-native-display` |
-| Status | `running`: the owner saw a native test frame on the panel on one boot, with the panel adopted as the loader left it; identity, repeated modesets, the panel's own init and GPU scanout still open |
+| Status | `running`: the owner saw a native test frame on the panel on one boot, with the panel adopted as the loader left it; a second modeset after teardown also worked and DCS reads match the NT36672 path; the panel's own init, a native console and GPU scanout still open |
 | Subsystem | MT6797 MMSYS, DRM pipeline, DSI0, MIPI TX, Gemini panel |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -140,7 +140,7 @@ Each is a separate custodian request, with its own decision table.
 | New image | DSI bus core, display DT, nothing loads | Nothing changes at boot |
 | T1 | Load the modules with `keep_firmware_fb`. RDMA interrupt writes. No modeset | Binding leaves the console running |
 | T2 | First modeset, PHY and link restart, one frame. Done: it does | Whether the panel takes the restarted link |
-| T3 | Teardown by unload, second modeset with DCS reads in command mode, one frame | Whether teardown recovers, panel identity on this unit, colour order |
+| T3 | Teardown by unload, second modeset with DCS reads in command mode, one frame. Done: it recovers | Whether teardown recovers, panel identity on this unit, colour order |
 | T4 | `fbcon` on the native path | Drop `simplefb` as the console |
 | T5 | Panfrost renders, the pipeline scans out | The goal: GPU frames on the panel |
 | T6 | Bias, reset, full init table, once its preconditions are read | The panel's own power, so Linux owns it from cold |
@@ -155,6 +155,9 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
 - [`display-t2.sh`](display-t2.sh): load, first modeset with a test frame, read the
   pipeline while it runs.
 - [`display-t3.sh`](display-t3.sh): teardown, second modeset, identity reads.
+- [`display-t5.sh`](display-t5.sh) and [`gpu-scanout.c`](gpu-scanout.c): the GPU renders
+  into display buffers through dma-buf, and the display flips them. Build as
+  `gpu-gles` in [`build-mesa.sh`](../2026-11-02-mali-t880-first-job/build-mesa.sh), adding `-lm`.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
@@ -204,8 +207,39 @@ depends on it. "Vertical" bars and "right to left" agree with scan lines running
 the long side, the portrait panel held in landscape. Colour order and which corner is
 which were not reported, so byte order is not established. T3 asks.
 
-This is one run on one boot. It does not show the panel's own power and init sequence,
-repeated modesets, identity, suspend or GPU scanout.
+**T3, teardown, second modeset and identity**, same boot. rc 0, tainted 0, 54.00 flips
+per second, modeset in 0.026 s. After unload the display gates read closed and the PLL
+off (`CG0` `0x3f9f8000`, `PLL_CON0` `0xf0002010`), with the panel about 5 s without a
+signal and no sleep command. After the second modeset they read the loader's values.
+The panel came back: the owner sent a photo, held in landscape with the keyboard toward
+them.
+
+| Seen in the photo | Frame as drawn | Meaning |
+| --- | --- | --- |
+| Bars, right to left: white, yellow, cyan, green, magenta, red, blue, grey | First scan line to last | Scan lines run along the short side, the first at the right |
+| Top-right red, bottom-right green | Start and end of the first line | Each line runs top to bottom |
+| Top-left blue, bottom-left white | Start and end of the last line | No mirror |
+| Colours named as drawn, white border, straight edges | XRGB8888 | Byte order is right, geometry is right |
+
+In landscape the panel scans rotated 90 degrees, unmirrored, as the console's
+`fbcon=rotate:3` already assumes. A photo cannot show flicker.
+
+First DCS reads from mainline, in LP with bus turnaround:
+
+| Register | `0a` | `0b` | `0c` | `0d` | `0e` | `0f` | `da` | `db` | `dc` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Read | `9c` | `03` | `07` | `00` | `00` | `c0` | `00` | `80` | `00` |
+
+`0a` = `0x9c` is the value the vendor's ESD check expects, and `db` = `0x80` is half of
+the loader's NT36672 ID check, which wants `0xdb` = `0x80` and `0xf4` = `0x70`. The
+other project's SSD2092 unit reads `0a` = `0x1c` and `0f` = `0x80`. So on this unit the
+panel behaves as the NT36672 path says, and not as that SSD2092 does. `0xf4` was not
+read, and it follows a vendor unlock write this run did not send, so this is strong
+evidence and not the full check. The read path works, so read timing is fine with the
+read TIMCON words.
+
+These results are from one boot. They do not show the panel's own power and init
+sequence, suspend, or GPU scanout.
 
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
