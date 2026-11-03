@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 """A 30 s, 44.1 kHz stereo test file: 5 s left at 440 Hz, 5 s right at 660 Hz,
-then 20 s of notes on both channels, -20 dBFS. Usage: make-tone.py OUTPUT.wav"""
+then 20 s of notes on both channels, -20 dBFS. Usage: make-tone.py OUTPUT.wav
+With a second argument, "voice", 30 s at 8 kHz mono: the same notes, for SCO."""
 import math
 import struct
 import sys
 import wave
 
-RATE = 44100
+VOICE = len(sys.argv) > 2
+RATE = 8000 if VOICE else 44100
 LEVEL = 0.1 * 32767
 
 
@@ -16,15 +18,15 @@ def tone(frequency, seconds, left, right):
     for i in range(int(RATE * seconds)):
         fade = min(1.0, i / 441, (RATE * seconds - i) / 441)
         s = LEVEL * fade * math.sin(2 * math.pi * frequency * i / RATE)
-        out += struct.pack("<hh", int(s * left), int(s * right))
+        out += struct.pack("<h", int(s)) if VOICE else struct.pack("<hh", int(s * left), int(s * right))
     return out
 
 
-data = tone(440, 5, 1, 0) + tone(660, 5, 0, 1)
-for n in range(40):
+data = bytearray() if VOICE else tone(440, 5, 1, 0) + tone(660, 5, 0, 1)
+for n in range(60 if VOICE else 40):
     data += tone(262 * 2 ** ((0, 4, 7, 12)[n % 4] / 12), 0.5, 1, 1)
 with wave.open(sys.argv[1], "wb") as w:
-    w.setnchannels(2)
+    w.setnchannels(1 if VOICE else 2)
     w.setsampwidth(2)
     w.setframerate(RATE)
     w.writeframes(bytes(data))

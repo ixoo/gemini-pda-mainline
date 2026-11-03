@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # shellcheck shell=dash
 # Bluetooth device test. Usage: NAME='headset name' sh bt-test.sh STEP
-# Steps: load, pair, play, soak SECONDS, unload. Files in /run/bt-t1/.
+# Steps: load, pair, play, soak SECONDS, sco SECONDS, unload. Files in /run/bt-t1/.
+# BT_HFP=1 at load adds rfcomm.ko and the Hands-Free gateway, for sco.
 # BT_PARAMS=gemian_radio=1 at load only if the owner allows it.
 # Names and addresses stay in /run/bt-t1/private; printed lines hold neither.
 D=/run/bt-t1
@@ -16,10 +17,11 @@ case "$1" in
 load)
 	mkdir -p $P
 	insmod $D/bluetooth.ko; echo "insmod bluetooth=$?"
+	[ -z "${BT_HFP:-}" ] || { insmod $D/rfcomm.ko; echo "insmod rfcomm=$?"; }
 	insmod $D/btmt6797.ko ${BT_PARAMS:-}; echo "insmod btmt6797=$?"
 	sleep 4
 	sh $D/bt-start.sh $D/bt-root.tar.gz
-	cp $D/tone.wav $R/tmp/tone.wav
+	cp $D/tone.wav $D/voice.wav $R/tmp/ 2>/dev/null
 	in_root btmon -w /run/t2.btsnoop > /dev/null 2>&1 < /dev/null &
 	;;
 pair)
@@ -59,12 +61,25 @@ soak)
 		stats
 	done
 	;;
+sco)
+	# One voice connection: the tone out, the microphone in, for at most $2 s. The
+	# capture may hold speech, so it stays private and is deleted once measured.
+	stats
+	timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin arecord -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -f S16_LE -r 8000 -c 1 -d "$2" /tmp/mic.wav &
+	mic=$!
+	timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -d "$2" /tmp/voice.wav; echo "aplay=$?"
+	wait $mic; echo "arecord=$?"
+	stats
+	cp $R/tmp/mic.wav $P/ 2>/dev/null
+	echo "mic bytes: $(wc -c < $P/mic.wav 2>/dev/null)"
+	;;
 unload)
 	in_root bluetoothctl --timeout 5 disconnect "$(addr)" >> $P/bluetoothctl.log 2>&1
 	ctl power off
 	killall bluealsa bluetoothd btmon dbus-daemon 2>/dev/null
 	sleep 1
 	cp $R/run/*.log $R/run/t2.btsnoop $P/ 2>/dev/null
+	rmmod rfcomm 2>/dev/null
 	rmmod btmt6797; echo "rmmod btmt6797=$?"
 	rmmod bluetooth; echo "rmmod bluetooth=$?"
 	umount $R/proc $R/sys $R/dev

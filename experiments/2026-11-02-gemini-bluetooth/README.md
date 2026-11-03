@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed`: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `running`: the T3 SCO test is prepared and needs the owner's decision. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -306,4 +306,32 @@ In this order, each its own request:
 
 **Not recommended now:** the control run with the old CONSYS module. Keep 0525 either way,
 since it's what the vendor does, and `timeouts` will show if it ever runs.
+
+## T3, prepared: does SCO over HCI work? (owner's question: does the microphone work?)
+
+Not run. A2DP is one-way, so the microphone needs HFP, and that needs a voice link. Vendor
+software routes voice through CVSD SRAM and never uses HCI SCO on this chip, so that this
+works is the less likely outcome. One connection decides what the microphone costs.
+
+**Read from the code and T1's replies:** no kernel change is needed. The H:4 parser and
+`send` already carry SCO. `rfcomm.ko` and `sco.c` are in the package. The controller lists
+Enhanced Setup Synchronous Connection (Supported Commands octet 29) and SCO, HV3 and eSCO
+features. So the core will request a CVSD link with its data path set to HCI (`0x00`), which
+is what this test asks of the firmware. Its reported SCO buffer is 184 bytes, 1 packet, and
+the core does no SCO flow control without a quirk.
+
+[`bt-test.sh`](bt-test.sh)'s `sco` step opens both directions through BlueALSA's
+Hands-Free gateway, CVSD only: [`make-tone.py`](make-tone.py)'s 8 kHz notes out, the headset's
+microphone in, while the owner speaks.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Connection complete status 0, owner hears the notes, capture has speech above the noise floor | HCI SCO works both ways. HFP needs no CVSD SRAM path | mSBC next, then daily use |
+| Connected, notes heard, capture is silent or constant | Uplink isn't routed to HCI | Inspect capture and SCO RX counts offline |
+| Connected, SCO packets move, nothing heard | Firmware takes frames and doesn't route them, or routes them to SRAM | Bridge path, see below |
+| Connection refused or fails (status in the capture) | ROM refuses HCI voice, at least this way | Try the legacy setup command once, by quirk, then the bridge path |
+| Link stops, assert | SCO timing upset the link or firmware | Stop; offline |
+
+**Bridge path, if HCI SCO fails:** a Gemini `btcvsd` node, a machine-driver link and a CVSD
+coder between the SRAM and userspace. That is substantial work.
 
