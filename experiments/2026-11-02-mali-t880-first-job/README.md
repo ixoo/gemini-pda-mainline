@@ -436,6 +436,15 @@ change happened around a power cycle.
 exists because margins vary with temperature and unit, so the hot end is not covered.
 
 
+### Run 14, same boot: idle power-off with DVFS, bursts and gaps
+
+`BURST=30 GAP_MS=200`, 60 s, exit 0, same pixel, no fault, suspended time rising. But only 5 transitions: 38 s at 520 MHz and under
+a second in the others. A suspended GPU stops devfreq's monitor, and with a 50 ms autosuspend against 50 ms polling it almost never
+samples an idle GPU, so gaps alone cannot lower the rate. So rate changes around power cycles remain untested. The next pattern
+adds frames that keep the GPU awake but barely busy.
+
+## Analysis
+
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
 identifies as `0x880` with four shader cores, and it completes bounded jobs through its own MMU
 and job interrupt, across repeated load and unload on one boot, at both clocks tested.
