@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-native-display` |
-| Status | `completed` for this question: on one boot the owner saw native and GPU-rendered frames on the panel, adopted as the loader left it, and a teardown recovered. The panel's own init and a native console are not done |
+| Status | `running`: the native console loads at boot, and the kernel turns the display off on the lid and on a blank. Linux's own panel init, the fade by eye and a battery figure are not done |
 | Subsystem | MT6797 MMSYS, DRM pipeline, DSI0, MIPI TX, Gemini panel |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -161,6 +161,8 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
 - [`display-t4.sh`](display-t4.sh): console on the native path.
 - [`display-power.sh`](display-power.sh): battery draw awake, backlight off and blanked,
   run on battery on a fixed schedule.
+- [`display-t6-brightness.sh`](display-t6-brightness.sh): whether a brightness step reaches
+  the live level, with no one at the device.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
@@ -385,6 +387,22 @@ kernel does it, with no daemon:
 Bias stays on during a blank. The vendor cuts it after `0x10`: negative off, positive
 off, and on resume runs reset, both enables, 20 ms, two I2C writes, the reset pulse and
 the whole table. Turning it off here is T6. What it saves is unmeasured.
+
+### The lid and the blank on the running image
+
+Boot `f04ffc20`, image `4ad593fc`, package `53fcd0a0`, still with 0510. The display loaded
+at boot, `display=native`, with no marker left and tainted 0. 12 lid cycles, 24 events,
+with no refcount, warning or timeout, and the backlight device intact. Closed: PWM enable
+0, display gates closed, PLL off. The owner: "all looks good, when I close the lid, the
+screen turns off for real".
+
+With `lid-guard` killed: lid closed read the same before and after a write to the console,
+so the hold works. A forced blank read PWM enable 0, gates closed and PLL off, then enable
+1 awake, so the panel's backlight link works. The fade and brightness keys could not show
+on this image, for the reason above, and no battery figure exists yet.
+
+A clean apply of main's series compiles every changed object with `W=1` and no warning,
+and `station-dt.sh` passes with the panel's backlight and MMSYS's clock in place.
 
 ## Follow-up
 
