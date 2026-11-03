@@ -127,11 +127,11 @@ if [ $rc = 0 ]; then
     sampler=$!
     toggler=
     if [ -n "${TOGGLE:-}" ]; then
+      # shellcheck disable=SC2086 # two words, split on purpose
       set -- $TOGGLE
       for d in /sys/class/devfreq/*; do
         case "$d" in *gpu*) df=$d;; esac
       done
-      # max first going down, min first going up: devfreq refuses crossed limits.
       ( echo "$1" > "$df/min_freq"
         while :; do
           echo "$1" > "$df/max_freq"; sleep 0.1
