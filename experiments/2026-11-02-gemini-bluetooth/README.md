@@ -421,8 +421,8 @@ better to know that before a new image.
 
 Run by the custodian on boot `64622312` with the owner's "Yes, run T3c", `bt-t3c.sh`
 `13cab60b…`, one 15 s eSCO link, eight writes to the control register. Evidence is private
-under `artifacts/station-work-40/boot-64622312/bt-t3c/`. What the owner heard is not yet
-recorded.
+under `artifacts/station-work-40/boot-64622312/bt-t3c/`. The owner reports: "I didn't listen."
+So there is no listening evidence for this run.
 
 **Observed (`misc` was `0x11403200` throughout):**
 
