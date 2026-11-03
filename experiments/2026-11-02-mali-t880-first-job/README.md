@@ -536,6 +536,13 @@ Owner-approved, as it masks `soc-thermal`'s 95 and 110 C trips for up to 20 s; t
 
 So **the governor caps one step and holds, at a constant false temperature**. A constant value has no rising trend, which fits `step_wise` raising the state only once (inference). This does not show a cap to the lowest OPP, or any cap under real heat, or that one step would stop real heating. Real load has not got past about 38 C.
 
+### Run 22, boot `505d2716`: first load of a boot with the defaults, with the display bound
+
+Image `677021f2`, package `967983c2`, the native display driver holding `drm`, which differs from the runs above (`d1ad67a4`). `panfrost.ko` is byte-identical to run 21's, `d5a92ac7`.
+`./gpu-test.sh load`, one run, exit 0: `0x880`, four cores, DRM minor 1, 8310 frames, slowest 26 ms, same pixel 128,66,0, 0 GPU faults.
+The device suspended at once on load (`runtime_suspended_time` 53 ms, `PWR_STATUS` MFG off), ran 59976 ms at 520 MHz, then idled off. After unload, MFG off, LDO enable off, protection set, `mfg_sel` gated, `MFGPLL_CON0` `0x0`. Tainted 0. The display's modules stayed, and
+sampled display registers were unchanged. The owner's view of the panel is the display session's to record.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -564,13 +571,12 @@ idle power saving exists: while loaded, the rail and the domains stay on.
 - Its domains power off when idle and return correctly.
 - `soc-thermal` sees it through bank 1, and its governor caps the GPU one step at a false 60 C.
 
-**Not shown:** a cooling cap below one step or under real heat; a first load on a fresh boot with the defaults; real-size rendering or a real application; the display path; any clock above 520 MHz; a measured rail or clock; the hot end, where the missing EEM matters
+**Not shown:** a cooling cap beyond one step or under real heat; real-size rendering or a real application; the display path; any clock above 520 MHz; a measured rail or clock; the hot end, where the missing EEM matters
 most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle, which stay on. Nothing loads these modules at boot.
 
 ## Follow-up
 
 1. A cap under real heat, which needs a load that reaches the trip.
-2. A first load on a fresh boot with the defaults, `./gpu-test.sh load`, at the next natural boot.
 3. VGPU and the LDOs off at idle, then `domain-supply` on MFG_ASYNC, the upstream shape, once the regulator can be built in.
 4. The `scpsys` clock: it holds `mfg_sel` prepared from boot, and it is also what stops the loader's running PLL on first load, so removing it needs its own way to stop that PLL.
 5. Whether a relock across a post-divider really needs more than 20 us, which would let the drain go. Built-in code, so an image.
