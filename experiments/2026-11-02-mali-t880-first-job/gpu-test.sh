@@ -12,8 +12,10 @@
 # The driver defaults to DVFS and idle power-off. Giving parent or KHZ selects a fixed
 # clock instead: parent is mt6797_parent, 0 = clk26m, 1 = syspll_d3, and KHZ=442500 or
 # 520000 runs from the MFGPLL. IDLE_OFF=0 keeps the domains on. GAP_MS waits between
-# gles frames. COOL=1, in load mode, holds the cooling device at its top state from
-# 20 s to 40 s of the run, to read that it caps the rate.
+# gles frames. COOL=1, in load mode, makes soc-thermal read 60 C from 20 s to 40 s of
+# the run, above the 58 C passive trip, for its governor to cap the rate, and raises the
+# run stop to 65 C for the whole run. It needs the zone's emul_temp. The true banks are
+# logged, and emulation ends if a bank reaches 58 C, as the zone then reads a false value.
 # LOG_RATES=1 logs each rate change. PIN_HZ, with DVFS=1, holds devfreq at one OPP.
 # TOGGLE="LOW HIGH", with DVFS=1 in load mode, moves the rate between two OPPs every
 # 100 ms under the load, so up and down steps of a chosen size run with the GPU busy.
@@ -27,6 +29,7 @@
 mode=${1:?probe, job, gles or load}; parent=${2:-}; JOBS=${JOBS:-100}; FRAMES=${FRAMES:-20}
 LOAD_SECONDS=${LOAD_SECONDS:-60}; LOAD_SIZE=${LOAD_SIZE:-512}
 START_MAX_MC=55000; RUN_MAX_MC=58000; BATTERY_MAX_MC=46000
+[ -z "${COOL:-}" ] || RUN_MAX_MC=65000
 here=$(cd "$(dirname "$0")" && pwd)
 MODULES="clk-mt6797-mfg rt5735-regulator drm_panel_orientation_quirks drm drm_shmem_helper gpu-sched panfrost"
 
@@ -127,18 +130,27 @@ if [ $rc = 0 ]; then
     ( while :; do banks; sleep 5; done ) &
     sampler=$!
     toggler=
+    cooler=
     if [ -n "${COOL:-}" ]; then
       for c in /sys/class/thermal/cooling_device*; do
         case "$(cat "$c/type")" in *gpu*) cdev=$c;; esac
       done
-      ( for d in /sys/class/devfreq/*; do
-          case "$d" in *gpu*) df=$d;; esac
+      emul=$(dirname "$zone")/emul_temp
+      ( read_state() { echo "cooling $1 cur_state=$(cat "$cdev/cur_state") cur_freq=$(cat /sys/class/devfreq/*gpu*/cur_freq) soc=$(cat "$zone")"; banks; }
+        sleep 20
+        read_state before
+        echo 60000 > "$emul"
+        n=0
+        while [ $n -lt 4 ]; do
+          sleep 5; read_state emulating; n=$((n + 1))
+          # Back to the true value: the tool stops itself if it is over the run limit.
+          cut -d' ' -f2 /sys/kernel/debug/mt6797-thermal-banks | while read -r b; do
+            [ "$b" -lt 58000 ] || { echo "true bank at $b mC"; echo 0 > "$emul"; }
+          done
         done
-        echo "cooling $cdev type=$(cat "$cdev/type") max_state=$(cat "$cdev/max_state")"
-        sleep 20; cat "$cdev/max_state" > "$cdev/cur_state"
-        sleep 5; echo "cooling cur_state=$(cat "$cdev/cur_state") cur_freq=$(cat "$df/cur_freq")"
-        sleep 15; echo 0 > "$cdev/cur_state"
-        sleep 5; echo "cooling cur_state=$(cat "$cdev/cur_state") cur_freq=$(cat "$df/cur_freq")" ) &
+        echo 0 > "$emul"
+        sleep 5; read_state after ) &
+      cooler=$!
     fi
     if [ -n "${TOGGLE:-}" ]; then
       # shellcheck disable=SC2086 # two words, split on purpose
@@ -160,6 +172,7 @@ if [ $rc = 0 ]; then
     echo "gpu-gles exit $rc"
     kill "$sampler"
     [ -z "$toggler" ] || kill "$toggler"
+    [ -z "$cooler" ] || { kill "$cooler"; echo 0 > "$emul"; }
   fi
   rpm after-job
   sleep 1

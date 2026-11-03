@@ -562,7 +562,7 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
 
 ## Follow-up
 
-1. Show the cap: `CONFIG_THERMAL_EMULATION` lets the zone's governor act at a false temperature. It is off, so it goes in the next boot image.
+1. Show the cap: `CONFIG_THERMAL_EMULATION` is on, so the zone's governor can act at a false temperature, from the running boot.
 2. A first load on a fresh boot with the defaults, `./gpu-test.sh load`, at the next natural boot.
 3. VGPU and the LDOs off at idle, then `domain-supply` on MFG_ASYNC, the upstream shape, once the regulator can be built in.
 4. The `scpsys` clock: it holds `mfg_sel` prepared from boot, and it is also what stops the loader's running PLL on first load, so removing it needs its own way to stop that PLL.
