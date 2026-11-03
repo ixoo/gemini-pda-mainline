@@ -29,7 +29,8 @@ sudo chroot root /sbin/apk add -q --no-progress \
 sudo chroot root /sbin/apk info -v 2> /dev/null | sort > packages.txt
 sudo rm -f root/etc/resolv.conf
 sudo rm -rf root/var/cache/apk/*
-# Classic Bluetooth only, and the adapter stays off until asked.
-sudo sh -c 'printf "[General]\nControllerMode = bredr\n[Policy]\nAutoEnable = false\n" > root/etc/bluetooth/main.conf'
+# Classic Bluetooth only, the adapter stays off until asked, and bluetoothd never
+# reconnects by itself, since a device test counts its connections.
+sudo sh -c 'printf "[General]\nControllerMode = bredr\n[Policy]\nAutoEnable = false\nReconnectAttempts = 0\n" > root/etc/bluetooth/main.conf'
 sudo tar --numeric-owner -czf bt-root.tar.gz -C root .
 sha256sum bt-root.tar.gz

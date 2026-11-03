@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `running`: T1 and T1b reached the controller, and `hci0` did not come up: the core's init is refused at two commands. Two fixes followed; no audio yet |
+| Status | `running`: `hci0` comes up from a module (T1c, without Wi-Fi). Scan, pairing and audio wait for T2 and the owner's decisions |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -178,4 +178,25 @@ sets the core's existing quirk for it.
 connection parameters, with nothing above `0x20`. The refused mask `d0 07` adds the
 P-256, DHKey, enhanced-connection and direct-advertising events. So the refusal probably
 concerns one of those, and the base LE events may be fine.
+
+## T1c result: `hci0` up (2026-11-03)
+
+Same boot, `btmt6797.ko` `44875a17…`, bluetooth `d1600d16…`, by the custodian's judgment
+within the owner's go-ahead. Private evidence under
+`artifacts/station-work-40/boot-7197708f/bt-t1c/`. Run with `wlan0` down and `mac`
+loaded, so it shows nothing about `hci0` up next to a joined Wi-Fi. T1 did show
+function-on next to one.
+
+**Observed:** all 3 `hciconfig hci0 up` returned 0 and reported `UP RUNNING`. Four opens and
+closes, 112 commands, every status 0, no LE command, and no inquiry, page, scan enable or
+connection opcode. Every halt `failed=0 busy=0 discarded=0`, firmware assert 0, log 0.
+No Oops, warning or call trace. Both modules unload.
+
+**Not shown:** anything on the air. No ACL or SCO data has moved. The address is still the
+placeholder, and no management step (`bluetoothd`) has run, so its commands, including
+scan enable, are untested.
+
+**Tested in the dev VM, no Bluetooth there:** the chroot's `dbus-daemon` and `bluealsa`
+start, `bluealsa` lists SBC only, and the ALSA plugin resolves `bluealsa:` as far as its
+D-Bus query. `bluetoothd` has no adapter there.
 
