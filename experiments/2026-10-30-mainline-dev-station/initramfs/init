@@ -20,6 +20,13 @@ if $bb mount -o remount,size=1g /; then status root=tmpfs-1g; else status root=u
 status "cpus_online=$($bb cat /sys/devices/system/cpu/online)"
 status "release=$($bb uname -r)"
 status "boot_id=$($bb cat /proc/sys/kernel/random/boot_id)"
+# The charging guard is built into the charger driver; nothing else stops charging below 60 C.
+if [ -e /sys/class/power_supply/bq25890-charger-0/charge_control_end_threshold ]; then
+    status charge-guard=bound
+else
+    status charge-guard=MISSING
+    $bb echo "station: charge-guard=MISSING, charging is unguarded" >/dev/kmsg
+fi
 # The kernel's thermal zones (built in): the SoC with its trips and armed
 # hardware reset, and the battery NTC with its critical trip.
 for zone in /sys/class/thermal/thermal_zone*; do

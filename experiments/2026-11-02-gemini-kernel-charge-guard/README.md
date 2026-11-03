@@ -54,11 +54,17 @@ duplicate this one and leave nowhere for later current control or charger status
   - The ADC properties and the thermal zone are left out, since the gauge reports
     those. Reading `current_now` on the charger gives no data.
   - Any chip but a BQ25896 refuses to bind.
+  - A failed probe stays failed, so its chip reads retry 5 times, 200 ms apart, and
+    giving up logs at critical level. This came from an independent review of the
+    patches. `-EPROBE_DEFER` doesn't do this job, because deferral only runs again
+    when another driver happens to bind.
 - [0519](../../patches/proposals/0519-power-supply-bq25890-stop-charging-by-the-battery-s-.patch),
   `linux,guard-battery`: a 10 s work item with `charge-guard`'s decisions.
 - [0520](../../patches/proposals/0520-arm64-dts-mediatek-gemini-station-guard-charging-fro.patch):
   the board node and the battery's limits.
 - Fragment: `CHARGER_BQ25890=y`, and `THERMAL_EMULATION=y` for the test only.
+- Station alarm: `init` records `charge-guard=bound` or `charge-guard=MISSING` in
+  `/run/station/status`, and logs `MISSING` to the kernel log.
 - RAM root: `charge-guard` is out, and `power-status` uses `I2C_SLAVE_FORCE`, since
   the driver now owns the address. Hand reads need `i2cget -f`.
 
@@ -102,16 +108,28 @@ this on each state update, and it doesn't affect charging. `charge-guard` and
 `power-status` avoided it to preserve the fault evidence, so a fault read by hand
 afterwards may already be cleared.
 
+`power-status` still writes REG02 by design, one `CONV_START` per run when the ADC
+isn't already converting, now through `I2C_SLAVE_FORCE`. This is acceptable: it's the
+same on-demand write as before, only when someone runs the tool, it starts a
+measurement and doesn't touch charging, and the driver writes only REG03, so the two
+never modify the same register. The driver's write block doesn't cover it, because
+that block only covers the driver's own writes.
+
 ## Where it can't protect
 
 - **Charger unreachable on I2C:** the guard can't stop it. It logs at critical
   level and retries. The [60 °C critical trip](../2026-10-31-gemini-thermal-protection/README.md)
   remains the backstop. A power-off wouldn't stop the charge anyway, because the
   chip keeps charging with the system off.
-- **Driver fails to probe:** no guard runs, and the chip runs on its defaults, like
-  a station with no `charge-guard`.
-- **Kernel hang while stopped:** the watchdog restores charging within about 47 s,
-  the same as a dead `charge-guard`. Turning the watchdog off would keep the stop,
+- **Driver fails to probe after its retries:** no guard runs until a reboot, and the
+  chip runs on its defaults, with the 60 °C trip behind it. The old daemon retried
+  every 10 s for as long as it ran. The critical log line and `charge-guard=MISSING`
+  report it. Nothing here depends on the gauge or the IIO channel at probe: the
+  charger probes once its I2C adapter exists, and an absent gauge only keeps charging
+  stopped.
+- **Kernel hang, or power-off, or unbinding the driver, while stopped:** the watchdog
+  restores charging within about 47 s even if the battery is hot, the same as a dead
+  `charge-guard`. Turning the watchdog off would keep the stop,
   but it's a REG07 write and needs the owner's decision. It would also need a
   restore at shutdown.
 - **System off or on the charging screen:** the bootloader decides, so there's no
@@ -188,4 +206,4 @@ Limits:
 Bind again: back to normal.
 
 **Won't be shown on the device:** a real 50 °C battery, an ADC read failure, a charger
-I2C failure.
+I2C failure, or the probe retry and the `MISSING` alarm firing.

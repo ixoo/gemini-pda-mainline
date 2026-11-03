@@ -17,12 +17,15 @@ Register reads go to the chip uncached, because its watchdog returns registers
 to their defaults behind a cache. The ADC properties read as no data, because
 starting a conversion is a write, and no thermal zone is registered for them.
 Only a BQ25896 is accepted.
+
+A failed probe stays failed, so the reads probe depends on get a few retries
+in this mode, and giving up is logged at critical level.
 ---
- drivers/power/supply/bq25890_charger.c | 70 ++++++++++++++++++++++----
- 1 file changed, 60 insertions(+), 10 deletions(-)
+ drivers/power/supply/bq25890_charger.c | 101 ++++++++++++++++++++++---
+ 1 file changed, 90 insertions(+), 11 deletions(-)
 
 diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
-index 868e86e17..61b9ee6a5 100644
+index 868e86e17..ff46ddf5c 100644
 --- a/drivers/power/supply/bq25890_charger.c
 +++ b/drivers/power/supply/bq25890_charger.c
 @@ -130,6 +130,7 @@ struct bq25890_device {
@@ -80,21 +83,54 @@ index 868e86e17..61b9ee6a5 100644
  	switch (psp) {
  	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
  	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
-@@ -939,6 +959,13 @@ static int bq25890_hw_init(struct bq25890_device *bq)
+@@ -935,10 +955,46 @@ static int bq25890_rw_init_data(struct bq25890_device *bq)
+ 	return 0;
+ }
+ 
++static int bq25890_read_settings(struct bq25890_device *bq)
++{
++	int ret;
++
++	ret = bq25890_rw_init_data(bq);
++	if (ret)
++		return ret;
++	return bq25890_get_chip_state(bq, &bq->state);
++}
++
++/*
++ * Without chip configuration the driver may be all that watches the charger,
++ * and nothing retries a failed probe: deferral only runs again when another
++ * driver happens to bind. So a bus error gets a few more tries here.
++ */
++#define BQ25890_PROBE_RETRIES	5
++#define BQ25890_PROBE_RETRY_MS	200
++
++static int bq25890_retry(struct bq25890_device *bq,
++			 int (*read)(struct bq25890_device *bq))
++{
++	int i, ret = read(bq);
++
++	for (i = 0; ret && bq->no_chip_config && i < BQ25890_PROBE_RETRIES; i++) {
++		msleep(BQ25890_PROBE_RETRY_MS);
++		ret = read(bq);
++	}
++	if (ret && bq->no_chip_config)
++		dev_crit(bq->dev, "charger unreachable, not bound: %d\n", ret);
++
++	return ret;
++}
++
+ static int bq25890_hw_init(struct bq25890_device *bq)
  {
  	int ret;
  
-+	if (bq->no_chip_config) {
-+		ret = bq25890_rw_init_data(bq);
-+		if (ret)
-+			return ret;
-+		return bq25890_get_chip_state(bq, &bq->state);
-+	}
++	if (bq->no_chip_config)
++		return bq25890_retry(bq, bq25890_read_settings);
 +
  	if (!bq->skip_reset) {
  		ret = bq25890_chip_reset(bq);
  		if (ret < 0) {
-@@ -1033,6 +1060,7 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+@@ -1033,6 +1089,7 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
  	snprintf(bq->name, sizeof(bq->name), "bq25890-charger-%d", bq->id);
  	bq->desc = bq25890_power_supply_desc;
  	bq->desc.name = bq->name;
@@ -102,7 +138,7 @@ index 868e86e17..61b9ee6a5 100644
  
  	psy_cfg.supplied_to = bq25890_charger_supplied_to;
  	psy_cfg.num_supplicants = ARRAY_SIZE(bq25890_charger_supplied_to);
-@@ -1330,6 +1358,10 @@ static int bq25890_irq_probe(struct bq25890_device *bq)
+@@ -1330,6 +1387,10 @@ static int bq25890_irq_probe(struct bq25890_device *bq)
  {
  	struct gpio_desc *irq;
  
@@ -113,7 +149,7 @@ index 868e86e17..61b9ee6a5 100644
  	irq = devm_gpiod_get(bq->dev, BQ25890_IRQ_PIN, GPIOD_IN);
  	if (IS_ERR(irq))
  		return dev_err_probe(bq->dev, PTR_ERR(irq),
-@@ -1418,6 +1450,12 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+@@ -1418,6 +1479,12 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
  		bq->iinlim_percentage = 100;
  	}
  
@@ -126,7 +162,7 @@ index 868e86e17..61b9ee6a5 100644
  	bq->skip_reset = device_property_read_bool(bq->dev, "linux,skip-reset");
  	bq->read_back_init_data = device_property_read_bool(bq->dev,
  						"linux,read-back-settings");
-@@ -1449,6 +1487,7 @@ static void bq25890_non_devm_cleanup(void *data)
+@@ -1449,6 +1516,7 @@ static void bq25890_non_devm_cleanup(void *data)
  
  static int bq25890_probe(struct i2c_client *client)
  {
@@ -134,7 +170,7 @@ index 868e86e17..61b9ee6a5 100644
  	struct device *dev = &client->dev;
  	struct bq25890_device *bq;
  	int ret;
-@@ -1464,7 +1503,12 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1464,7 +1532,12 @@ static int bq25890_probe(struct i2c_client *client)
  	mutex_init(&bq->lock);
  	INIT_DELAYED_WORK(&bq->pump_express_work, bq25890_pump_express_work);
  
@@ -148,7 +184,13 @@ index 868e86e17..61b9ee6a5 100644
  	if (IS_ERR(bq->rmap))
  		return dev_err_probe(dev, PTR_ERR(bq->rmap),
  				     "failed to allocate register map\n");
-@@ -1481,6 +1525,8 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1476,11 +1549,13 @@ static int bq25890_probe(struct i2c_client *client)
+ 
+ 	i2c_set_clientdata(client, bq);
+ 
+-	ret = bq25890_get_chip_version(bq);
++	ret = bq25890_retry(bq, bq25890_get_chip_version);
+ 	if (ret) {
  		dev_err(dev, "Cannot read chip ID or unknown chip: %d\n", ret);
  		return ret;
  	}
@@ -157,7 +199,7 @@ index 868e86e17..61b9ee6a5 100644
  
  	ret = bq25890_fw_probe(bq);
  	if (ret < 0)
-@@ -1511,20 +1557,24 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1511,20 +1586,24 @@ static int bq25890_probe(struct i2c_client *client)
  	if (ret)
  		return ret;
  

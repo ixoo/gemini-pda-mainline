@@ -22,7 +22,7 @@ The work runs only while the system is awake.
  1 file changed, 173 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
-index 61b9ee6a5..d93cd0391 100644
+index ff46ddf5c..7242fec29 100644
 --- a/drivers/power/supply/bq25890_charger.c
 +++ b/drivers/power/supply/bq25890_charger.c
 @@ -31,6 +31,12 @@
@@ -93,7 +93,7 @@ index 61b9ee6a5..d93cd0391 100644
  	if (bq->no_chip_config)
  		return false;
  
-@@ -1030,6 +1063,9 @@ static const enum power_supply_property bq25890_power_supply_props[] = {
+@@ -1059,6 +1092,9 @@ static const enum power_supply_property bq25890_power_supply_props[] = {
  	POWER_SUPPLY_PROP_VOLTAGE_NOW,
  	POWER_SUPPLY_PROP_CURRENT_NOW,
  	POWER_SUPPLY_PROP_TEMP,
@@ -103,7 +103,7 @@ index 61b9ee6a5..d93cd0391 100644
  };
  
  static char *bq25890_charger_supplied_to[] = {
-@@ -1039,7 +1075,7 @@ static char *bq25890_charger_supplied_to[] = {
+@@ -1068,7 +1104,7 @@ static char *bq25890_charger_supplied_to[] = {
  static const struct power_supply_desc bq25890_power_supply_desc = {
  	.type = POWER_SUPPLY_TYPE_USB,
  	.properties = bq25890_power_supply_props,
@@ -112,7 +112,7 @@ index 61b9ee6a5..d93cd0391 100644
  	.get_property = bq25890_power_supply_get_property,
  	.set_property = bq25890_power_supply_set_property,
  	.property_is_writeable = bq25890_power_supply_property_is_writeable,
-@@ -1061,6 +1097,8 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+@@ -1090,6 +1126,8 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
  	bq->desc = bq25890_power_supply_desc;
  	bq->desc.name = bq->name;
  	bq->desc.no_thermal = bq->no_chip_config;
@@ -121,7 +121,7 @@ index 61b9ee6a5..d93cd0391 100644
  
  	psy_cfg.supplied_to = bq25890_charger_supplied_to;
  	psy_cfg.num_supplicants = ARRAY_SIZE(bq25890_charger_supplied_to);
-@@ -1070,6 +1108,121 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
+@@ -1099,6 +1137,121 @@ static int bq25890_power_supply_init(struct bq25890_device *bq)
  	return PTR_ERR_OR_ZERO(bq->charger);
  }
  
@@ -243,7 +243,7 @@ index 61b9ee6a5..d93cd0391 100644
  static int bq25890_set_otg_cfg(struct bq25890_device *bq, u8 val)
  {
  	int ret;
-@@ -1453,6 +1606,17 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+@@ -1482,6 +1635,17 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
  	if (bq->no_chip_config) {
  		bq->skip_reset = true;
  		bq->read_back_init_data = true;
@@ -261,7 +261,7 @@ index 61b9ee6a5..d93cd0391 100644
  		return 0;
  	}
  
-@@ -1502,6 +1666,7 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1531,6 +1695,7 @@ static int bq25890_probe(struct i2c_client *client)
  
  	mutex_init(&bq->lock);
  	INIT_DELAYED_WORK(&bq->pump_express_work, bq25890_pump_express_work);
@@ -269,7 +269,7 @@ index 61b9ee6a5..d93cd0391 100644
  
  	bq->no_chip_config = device_property_read_bool(dev, "linux,no-chip-config");
  	/* The chip's watchdog and the firmware change registers behind a cache. */
-@@ -1582,6 +1747,13 @@ static int bq25890_probe(struct i2c_client *client)
+@@ -1611,6 +1776,13 @@ static int bq25890_probe(struct i2c_client *client)
  		usb_register_notifier(bq->usb_phy, &bq->usb_nb);
  	}
  
