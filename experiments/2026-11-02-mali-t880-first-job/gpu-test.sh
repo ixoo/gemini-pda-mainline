@@ -14,6 +14,8 @@
 # IDLE_OFF=1 powers the domains off when idle. GAP_MS waits between gles frames.
 # DVFS=1 uses the OPP table, devfreq and cooling instead of a fixed clock.
 # LOG_RATES=1 logs each rate change. PIN_HZ, with DVFS=1, holds devfreq at one OPP.
+# TOGGLE="LOW HIGH", with DVFS=1 in load mode, moves the rate between two OPPs every
+# 100 ms under the load, so up and down steps of a chosen size run with the GPU busy.
 # BURST, with GAP_MS, makes a load mode run wait GAP_MS after each BURST frames, then
 # run LIGHT small frames, 40 ms apart, so the rate falls before the next burst.
 # PERFCNT=1 adds panfrost unstable_ioctls=1 (which taints) and a counter window in load.
@@ -123,12 +125,27 @@ if [ $rc = 0 ]; then
   if [ "$mode" = load ] && [ $rc = 0 ]; then
     ( while :; do banks; sleep 5; done ) &
     sampler=$!
+    toggler=
+    if [ -n "${TOGGLE:-}" ]; then
+      set -- $TOGGLE
+      for d in /sys/class/devfreq/*; do
+        case "$d" in *gpu*) df=$d;; esac
+      done
+      # max first going down, min first going up: devfreq refuses crossed limits.
+      ( echo "$1" > "$df/min_freq"
+        while :; do
+          echo "$1" > "$df/max_freq"; sleep 0.1
+          echo "$2" > "$df/max_freq"; sleep 0.1
+        done ) &
+      toggler=$!
+    fi
     timeout $((LOAD_SECONDS + 30)) "$here/mesa/ld-linux-aarch64.so.1" --library-path "$here/mesa" \
       "$here/mesa/gpu-gles" --zone "$zone" --battery-zone "$battery" --seconds "$LOAD_SECONDS" \
       --size "$LOAD_SIZE" --max-mc "$RUN_MAX_MC" --battery-max-mc "$BATTERY_MAX_MC" \
       --perfcnt "${PERFCNT:-0}" --burst "${BURST:-0}" --gap-ms "${GAP_MS:-0}" --light "${LIGHT:-0}"; rc=$?
     echo "gpu-gles exit $rc"
     kill "$sampler"
+    [ -z "$toggler" ] || kill "$toggler"
   fi
   rpm after-job
   sleep 1

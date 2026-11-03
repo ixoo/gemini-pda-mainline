@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-mali-t880-first-job` |
-| Status | `running`: sustained load to 520 MHz, idle power-off, per-bank sensing and each OPP passed; DVFS not admitted after rare job faults on its largest up step |
+| Status | `running`: sustained load to 520 MHz, idle power-off, per-bank sensing and each OPP passed; DVFS not admitted: about 2% of its largest up steps fault a job, cause open |
 | Subsystem | MT6797 MFG, Mali-T880, Panfrost, RT5735 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -474,6 +474,16 @@ these runs, so the other up steps are not excluded.
 The vendor waits the slew time plus 350 us after each GPU voltage rise (`mt_gpufreq_volt_switch`). We waited about 37 us, from the
 ramp delay in our DT. `0492` adds the 350 us. This fits the evidence, the largest voltage rise failing rarely, but it is a hypothesis until a
 clean run says so: at about 1.9% per step, 300 clean steps would be chance only about 0.3% of the time.
+
+### Run 17, same boot: the settle hypothesis rejected
+
+With `0492`, the same pattern for 300 s: 3 faults in 177 up steps, 1.7% against 1.9%, all after a 238 to 520 MHz step: 7 of 7 now, with varying
+codes (`INSTR_INVALID_ENC`, `INSTR_OPERAND_FAULT`, `INSTR_INVALID_PC`), which suggests a shader core reading garbage (inference). So **settling time is
+not the main cause**. The regulator core runs the wait on every selector change; nothing in the log confirms it on the device. `0492` matches the vendor and
+stays. A rail droop is not excluded: the rail has only been read as a register.
+
+That step is the only up step ever taken, and the only one with the GPU busy by construction, so those two cannot yet be told apart. Down
+steps have never faulted, but run at low use. The vendor commits rates from a GED timer, and no drain was found at that level; not every caller was traced.
 
 ## Analysis
 
