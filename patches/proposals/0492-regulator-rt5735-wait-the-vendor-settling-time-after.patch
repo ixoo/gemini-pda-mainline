@@ -2,26 +2,34 @@ From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 2 Nov 2026 19:18:42 -0500
 Subject: [PATCH] regulator: rt5735: wait the vendor settling time after a
- voltage change
+ voltage rise
 
 Jobs on the MT6797 GPU sometimes timed out or faulted just after a 238 to 520 MHz
 step, the largest voltage rise in its table, 0.85 to 1.0 V, after waiting only the
-ramp time, about 37 us. The vendor waits that time plus 350 us after each change.
+ramp time, about 37 us. The vendor waits that time plus 350 us after each rise.
 Do the same, so that the clock follows a settled rail.
 ---
- drivers/regulator/rt5735-regulator.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
+ drivers/regulator/rt5735-regulator.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
 
 diff --git a/drivers/regulator/rt5735-regulator.c b/drivers/regulator/rt5735-regulator.c
-index 43e94b232..f2d3d4f0a 100644
+index 43e94b232..0d175d5f1 100644
 --- a/drivers/regulator/rt5735-regulator.c
 +++ b/drivers/regulator/rt5735-regulator.c
-@@ -29,10 +29,27 @@
+@@ -14,6 +14,7 @@
+ #include <linux/of.h>
+ #include <linux/regmap.h>
+ #include <linux/regulator/driver.h>
++#include <linux/regulator/machine.h>
+ #include <linux/regulator/of_regulator.h>
+ 
+ #define RT5735_REG_PRODUCT_ID		0x03
+@@ -29,10 +30,28 @@
  #define RT5735_STEP_UV			6250
  #define RT5735_N_VOLTAGES		128
  
 +/*
-+ * The vendor waits the slew time plus 350 us after each change. A clock raised before
++ * The vendor waits the slew time plus 350 us after each rise. A clock raised before
 + * that faulted jobs on the GPU now and then.
 + */
 +#define RT5735_SETTLE_US		350
@@ -33,7 +41,8 @@ index 43e94b232..f2d3d4f0a 100644
 +	unsigned int ramp = rdev->constraints->ramp_delay ?: RT5735_SLOW_RAMP_UV_US;
 +	unsigned int steps = abs_diff(old_sel, new_sel);
 +
-+	return DIV_ROUND_UP(steps * rdev->desc->uV_step, ramp) + RT5735_SETTLE_US;
++	return DIV_ROUND_UP(steps * rdev->desc->uV_step, ramp) +
++	       (new_sel > old_sel ? RT5735_SETTLE_US : 0);
 +}
 +
  static const struct regulator_ops rt5735_regulator_ops = {

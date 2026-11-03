@@ -471,7 +471,7 @@ All four faults came after a 238 to 520 MHz step: three job timeouts 506 to 522 
 `INSTR_OPERAND_FAULT` 219 us later. So 4 of 213 up steps, and power cycling and light frames are not needed. That was the only up step in
 these runs, so the other up steps are not excluded.
 
-The vendor waits the slew time plus 350 us after each GPU voltage change (`mt_gpufreq_volt_switch`). We waited about 37 us, from the
+The vendor waits the slew time plus 350 us after each GPU voltage rise (`mt_gpufreq_volt_switch`). We waited about 37 us, from the
 ramp delay in our DT. `0492` adds the 350 us. This fits the evidence, the largest voltage rise failing rarely, but it is a hypothesis until a
 clean run says so: at about 1.9% per step, 300 clean steps would be chance only about 0.3% of the time.
 
