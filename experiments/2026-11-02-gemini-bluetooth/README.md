@@ -208,7 +208,10 @@ yes, `gemian_radio` off, placeholder address. Run by the custodian on boot `7197
 session, 1 pairing, 1 A2DP connection, under 3 minutes radio-on. Evidence, including the
 device's name and both addresses, is private under
 `artifacts/station-work-40/boot-7197708f/bt-t2/`. The custodian ran a copy of the script
-with one change to the `pair` step (see below). What the owner heard is not yet recorded.
+with one change to the `pair` step, since taken into the script: another client's
+`scan off` doesn't stop an inquiry. **The owner reports:** "I heard the connection chime,
+then silence." So no audio was heard, and whether any reached the headset's decoder is not
+established. 0.19 s is probably shorter than its buffering (inferred).
 
 **Observed:**
 - `power on` passed, 29 commands, no refusal. So `bluetoothd`'s management step works,
@@ -245,5 +248,6 @@ adds the vendor's resend. It changes the CONSYS module, so also GNSS, and halts 
 covers order, resync bytes, ACKs during a resend and the final fail-stop, under ASan and
 UBSan, and passes. That shows the logic only. Whether the firmware recovers, and how
 often frames are lost, is the next device run's question. If frames are lost often, 180 ms
-per loss will be audible and the cause needs finding.
+per loss will be audible and the cause needs finding. The test's starting volume goes from
+30 to 50, as the tone is already at -20 dBFS.
 

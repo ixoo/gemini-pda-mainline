@@ -24,6 +24,6 @@ pidof bluetoothd > /dev/null || in_root sh -c \
 	'exec /usr/lib/bluetooth/bluetoothd -n > /run/bluetoothd.log 2>&1' < /dev/null &
 sleep 1
 pidof bluealsa > /dev/null || in_root sh -c \
-	'exec bluealsa -p a2dp-source --codec=-AAC --a2dp-force-audio-cd --initial-volume=30 > /run/bluealsa.log 2>&1' < /dev/null &
+	'exec bluealsa -p a2dp-source --codec=-AAC --a2dp-force-audio-cd --initial-volume=50 > /run/bluealsa.log 2>&1' < /dev/null &
 sleep 1
 echo "dbus=$(pidof dbus-daemon) bluetoothd=$(pidof bluetoothd) bluealsa=$(pidof bluealsa)"
