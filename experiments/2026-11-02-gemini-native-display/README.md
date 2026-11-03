@@ -152,6 +152,8 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
 
 - [`display-t0-read.sh`](display-t0-read.sh): the read-only snapshot.
 - [`display-t1.sh`](display-t1.sh): load, bind with no modeset, unload.
+- [`display-t2.sh`](display-t2.sh): load, first modeset with a test frame, read the
+  pipeline while it runs.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
@@ -161,10 +163,13 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
 
 ## Observations
 
-Package, not yet run: commit `b3b841d4`, profile `mt6797-a53-station-a72`, modules
-built, Buildbox-2, `SHA256SUMS` `fa8ca23a`, `Image.gz` `782ee797`, station-a72 DTB
-`fcb00229`. It also carries the GPU session's defaults. Its image gains only the
-DSI bus core and small display helpers.
+Package, not yet run: commit `967983c2`, profile `mt6797-a53-station-a72`, modules
+built, Buildbox-2, `SHA256SUMS` `4e86246c`, `Image.gz` `e65a739e`, station-a72 DTB
+`fcb00229`. It also carries the GPU session's defaults. Against the T1 package
+`b3b841d4`, the DTB is identical and only the image and two modules differ. `kms-frame`
+`3edd7090`, built on Buildbox-2 from `86752e86`.
+
+In T1's first run the owner saw the three markers with no change on screen.
 
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
