@@ -411,6 +411,20 @@ on this image, for the reason above, and no battery figure exists yet.
 A clean apply of main's series compiles every changed object with `W=1` and no warning,
 and `station-dt.sh` passes with the panel's backlight and MMSYS's clock in place.
 
+### Brightness back through the mutex, by register
+
+Same boot, with `mtk-mutex` without 0510 swapped in and bit 26 of `MOD` written back to
+the loader's value. The live level followed every step: 128, 384, 700 and 512, then after
+a blank and wake 256 and 512, and the restored 640. Blanked, the enable bit read 0 and
+`bl_power` 4; woken, 1. Tainted 0, no new errors. So brightness latches through the mutex
+membership and the enable bit does the off. Before the bit was set, the live level read
+`0x8e` with brightness 640, so the level frozen without the bit was not always 512. That
+is not explained. Nobody watched this run, so whether the steps are visible, and the fade,
+wait for the morning.
+
+The combined image with this, the review fixes, the charging guard and Bluetooth's modules
+is written to boot2 and not booted: image `6bc70ab8`, package `b590193b`.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in
