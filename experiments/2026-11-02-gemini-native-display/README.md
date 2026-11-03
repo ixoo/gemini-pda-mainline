@@ -159,6 +159,8 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
   into display buffers through dma-buf, and the display flips them. Build as
   `gpu-gles` in [`build-mesa.sh`](../2026-11-02-mali-t880-first-job/build-mesa.sh), adding `-lm`.
 - [`display-t4.sh`](display-t4.sh): console on the native path.
+- [`display-power.sh`](display-power.sh): battery draw awake, backlight off and blanked,
+  run on battery on a fixed schedule.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
