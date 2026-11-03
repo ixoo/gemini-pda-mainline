@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-native-display` |
-| Status | `running`: the owner saw a native test frame on the panel on one boot, with the panel adopted as the loader left it; a second modeset after teardown also worked and DCS reads match the NT36672 path; the panel's own init, a native console and GPU scanout still open |
+| Status | `completed` for this question: on one boot the owner saw native and GPU-rendered frames on the panel, adopted as the loader left it, and a teardown recovered. The panel's own init and a native console are not done |
 | Subsystem | MT6797 MMSYS, DRM pipeline, DSI0, MIPI TX, Gemini panel |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-02 |
@@ -142,7 +142,7 @@ Each is a separate custodian request, with its own decision table.
 | T2 | First modeset, PHY and link restart, one frame. Done: it does | Whether the panel takes the restarted link |
 | T3 | Teardown by unload, second modeset with DCS reads in command mode, one frame. Done: it recovers | Whether teardown recovers, panel identity on this unit, colour order |
 | T4 | `fbcon` on the native path | Drop `simplefb` as the console |
-| T5 | Panfrost renders, the pipeline scans out | The goal: GPU frames on the panel |
+| T5 | Panfrost renders, the pipeline scans out. Done | The goal: GPU frames on the panel |
 | T6 | Bias, reset, full init table, once its preconditions are read | The panel's own power, so Linux owns it from cold |
 
 T6 needs its own evidence first: the bias chip's readback and how to drive
@@ -238,13 +238,49 @@ read, and it follows a vendor unlock write this run did not send, so this is str
 evidence and not the full check. The read path works, so read timing is fine with the
 read TIMCON words.
 
-These results are from one boot. They do not show the panel's own power and init
-sequence, suspend, or GPU scanout.
+The owner on T3: "no flicker, it was smooth".
+
+**T5, GPU frames on the panel**, same boot, after the GPU session's first load, which
+also passed with the display modules loaded. `gpu-scanout` `3d12e160`: the display
+driver allocates two dumb buffers from CMA with pitch 4352, Panfrost imports them through
+dma-buf and renders into them through its own MMU, and page flips show them. 3240 frames
+in 60.005 s, 54.00 per second, mean draw 4.32 ms, worst 8.07 ms, none late, SoC peak about
+34 C, tainted 0, no fault. In the owner's photo, a triangle shaded red, green and blue on
+a blue background with the sweeping band. Owner, by eye, answering a question: "Dark
+grey, smooth".
+
+**Tone check, T5c.** Both photos made dark values look bright. By eye the owner calls
+`0x404040` dark grey and says "my phone is affecting the colors", so this was exposure.
+Read while running: CCORR, AAL, GAMMA and OD in relay, UFOE in bypass, dither engine on.
+COLOR0's two main registers were lost to a redirect in the request. Colour was judged
+by eye only, not measured.
+
+## Conclusion
+
+On one boot, from modules, frames rendered by the Mali reach the panel through the
+mainline pipeline and DSI, using upstream drivers with MT6797 data and no new driver.
+
+Not shown, and what stands in the way of Linux owning the display:
+
+- **The panel's own power and init.** It is adopted, and Linux sent it only DCS reads.
+  The table is checked against the running binary. The bias chip's readback and how to
+  drive `LCM_RST_B` remain. Until then a boot depends on LK having lit it.
+- **Console.** `simplefb` is still the console. Once the pipeline takes the panel the
+  console is gone until the next boot. Native `fbcon` needs fbdev emulation in the
+  profile and `keep_firmware_fb` off.
+- **Clean ownership.** No MM domain, SMI or IOMMU is modelled, and `clk_ignore_unused`
+  and `simplefb`'s `mm_sel` hold are still needed. Only OVL, RDMA and DSI gates have had
+  a close and open cycle, the MM domain none.
+- **DPMS, suspend, ESD, the panel `backlight` link, DRM rotation property.** Not tried.
+- **Upstream shape.** `keep_firmware_fb` is bring-up only, and the static path in 0041
+  and the fixed TIMCON should be revisited for submission.
+- **Modes.** The nominal 57 Hz is not the measured 54.00 Hz.
 
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
 
 ## Follow-up
 
-Results go here, then durable facts to [display and panel](../../docs/hardware/display-panel.md)
-and demonstrated support to [HARDWARE_SUPPORT](../../docs/HARDWARE_SUPPORT.md).
+The next stages, T4 and T6, are not started. Durable facts are in
+[display and panel](../../docs/hardware/display-panel.md) and demonstrated support in
+[HARDWARE_SUPPORT](../../docs/HARDWARE_SUPPORT.md).

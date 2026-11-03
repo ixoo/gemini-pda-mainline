@@ -338,7 +338,7 @@ The GPU-side power, clock, DVFS and Panfrost plan is in the
 | Vendor LCM driver | DRM panel driver with DSI timings, reset GPIO, bias supplies, backlight | Gemini descriptor adopts the loader's panel state and sends nothing; the driver's own power and init path has not run |
 | `MTKFB_POWEROFF/ON` and ESD | DRM modeset, panel prepare/enable, ESD work | Not exercised on the station |
 | ION + M4U + sw_sync | dma-buf heaps, IOMMU, dma-fence | CMA with the larbs in bypass scans out; display IOMMU remains open |
-| Vendor HWC + libhybris + Xorg DDX | Mesa/Panfrost + DRM/KMS compositor | Panfrost renders on the station; no native display path yet |
+| Vendor HWC + libhybris + Xorg DDX | Mesa/Panfrost + DRM/KMS compositor | Panfrost renders into display buffers through dma-buf and they reach the panel; no compositor yet |
 | `lcd-backlight` + PWM0 | `pwm-backlight`/DRM backlight with PWM0 | H2/H8 work prepared; not the default |
 
 The mainline display work is tracked by the
