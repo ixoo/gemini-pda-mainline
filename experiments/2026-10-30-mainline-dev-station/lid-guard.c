@@ -24,6 +24,7 @@
 #define LID_NAME "gpio-keys"
 #define KEYBOARD_NAME "keyboard-matrix"
 #define BL_BRIGHTNESS "/sys/class/backlight/backlight/brightness"
+#define BL_POWER "/sys/class/backlight/backlight/bl_power"
 #define CONSOLE "/dev/tty1"
 #define BLANK_SECONDS "/sys/module/kernel/parameters/consoleblank"
 /* The fades: long enough to see, short enough not to hold a wake back. */
@@ -161,7 +162,7 @@ static void set_brightness(int level)
 
 /*
  * Step from one level to another, slowly at the dark end, where the eye sees most.
- * Returns early, and non-zero, on any input.
+ * With fds, returns early and non-zero on any input. Without, input waits for the end.
  */
 static int fade(int from, int to, int steps, int ms, struct pollfd *fds, int nfds)
 {
@@ -171,7 +172,7 @@ static int fade(int from, int to, int steps, int ms, struct pollfd *fds, int nfd
 		int done = from < to ? i : steps - i;
 
 		set_brightness(low + (high - low) * done * done / (steps * steps));
-		if (poll(fds, nfds, ms) > 0)
+		if (poll(fds, fds ? nfds : 0, ms) > 0)
 			return 1;
 	}
 	return 0;
@@ -232,10 +233,17 @@ int main(void)
 		if (!!blanked != was_blanked) {
 			say("console %s\n", blanked ? "blanked" : "unblanked");
 			was_blanked = !!blanked;
-			/* The kernel lit it again at the dim level; back up to the owner's. */
+			/*
+			 * The kernel is lighting it again at the dim level, a moment after it
+			 * reports unblanked; then back up to the owner's. The key that woke it
+			 * must not cancel this, so it waits, like any other input.
+			 */
 			if (!blanked && restore >= 0) {
-				if (fade(DIM_LEVEL, restore, FADE_UP_STEPS, FADE_UP_MS, fds, nfds))
-					set_brightness(restore);
+				int i;
+
+				for (i = 0; i < 20 && read_number(BL_POWER) != 0; i++)
+					poll(NULL, 0, 25);
+				fade(DIM_LEVEL, restore, FADE_UP_STEPS, FADE_UP_MS, NULL, 0);
 				restore = -1;
 			}
 		}
