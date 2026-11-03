@@ -1108,3 +1108,4 @@ proposals/0522-input-gemini-lid-always-leave-the-display-on-when-un.patch
 proposals/0523-Bluetooth-btmt6797-keep-the-core-off-LE.patch
 proposals/0524-Bluetooth-btmt6797-don-t-ask-for-the-MWS-transport-c.patch
 proposals/0525-soc-mediatek-mt6797-consys-resend-unacknowledged-STP.patch
+proposals/0526-thermal-generic-adc-do-not-overflow-the-table-interp.patch

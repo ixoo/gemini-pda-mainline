@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 18:45:36 -0500
+Subject: [PATCH] thermal: generic-adc: do not overflow the table interpolation
+
+mult_frac() here multiplies the table step in millidegrees by a distance
+in table units, in an int. With a table in the channel scaled units, such
+as 3600 times a 12-bit code with a 5000 mC step, that exceeds 31 bits
+towards the far end of each wide entry. The result wraps, and the
+temperature reads 7 to 9 degrees low over that part of the entry.
+
+Use a 64-bit product. Readings outside the wrapping ranges do not change.
+---
+ drivers/thermal/thermal-generic-adc.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/thermal/thermal-generic-adc.c b/drivers/thermal/thermal-generic-adc.c
+index 7c844589b..47492127d 100644
+--- a/drivers/thermal/thermal-generic-adc.c
++++ b/drivers/thermal/thermal-generic-adc.c
+@@ -9,6 +9,7 @@
+ #include <linux/iio/consumer.h>
+ #include <linux/iio/iio.h>
+ #include <linux/kernel.h>
++#include <linux/math64.h>
+ #include <linux/module.h>
+ #include <linux/platform_device.h>
+ #include <linux/slab.h>
+@@ -48,8 +49,9 @@ static int gadc_thermal_adc_to_temp(struct gadc_thermal_info *gti, int val)
+ 		temp_hi = gti->lookup_table[2 * i - 2];
+ 		temp_lo = gti->lookup_table[2 * i];
+ 
+-		temp = temp_hi + mult_frac(temp_lo - temp_hi, val - adc_hi,
+-					   adc_lo - adc_hi);
++		/* A table may use the channel scale: this can exceed 32 bits. */
++		temp = temp_hi + div_s64((s64)(temp_lo - temp_hi) * (val - adc_hi),
++					 adc_lo - adc_hi);
+ 	}
+ 
+ 	return temp;
+-- 
+2.43.0
+

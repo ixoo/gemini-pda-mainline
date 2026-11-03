@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `running`: G1-G6 passed on the device, but the battery temperature the guard reads can flip about 9 °C low; cause open |
+| Status | `running`: G1-G6 passed on the device; the battery reading's flip is a lookup overflow below 25 °C, with the fix (0526) not yet on a device |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -345,85 +345,72 @@ which fits no current flowing here.
 it after G5, while the GPU test depends on it. Any root process can already set
 `emul_temp`, which feeds this guard.
 
-## Open: the battery reading flips
+## The battery reading flip: an overflow in the table lookup
 
-Found by the custodian on boot `64622312…`, during a Bluetooth soak: `battery/temp` moved
-between about 24.4 and 15.4 °C over samples 13 s apart, with the SoC at 27.8 to 29.6 °C.
-No device step has run for this yet.
+**Found:** on boot `64622312…` the custodian saw `battery/temp` move between about 24.4 and
+15.4 °C from one read to the next. The cause is an integer overflow in the kernel's table
+lookup, not the ADC, the battery or the board. This is shown from the code and the retained
+output. The fix isn't yet on a device.
 
-**Observed in retained output from earlier boots:**
+**Withdrawn:** an earlier version of this section, at e13b4eb9 and 3a292d05, treated the low
+value as a real conversion 246 codes away, and warned that a true 50 °C could read 35-42 °C
+and that the 50 °C stop and 60 °C trip could be late. That was wrong, and so was calling
+the first sample "no flip": `baton-s.sh` read only the raw channel, which never flips.
 
-| Boot | Readings |
-| --- | --- |
-| `4ac95e75…`, 2026-11-01 | 15 of 20 zone and gauge pairs low, 15.4-15.8 °C; 4 pairs with the zone at 15.8 and the gauge at 25.0-25.1 °C |
-| `7dd24578…` | at `init`, the zone 15.8 °C and the gauge 25.1 °C; 25.4 °C at 47 s |
-| `04cc38ee…` | at `init`, 11.5 °C; 20.1 °C later in the same start-up, SoC 21.4 °C |
-| `64622312…` | as above |
+**The bug:** `thermal-generic-adc` interpolates with
+`mult_frac(temp_lo - temp_hi, val - adc_hi, adc_lo - adc_hi)`, in 32 bits. This board's
+table is in the IIO processed unit, 3600 × the code, so one 5000 mC step times a distance
+above 429496 wraps. Reads differ because ADC noise crosses the edge of a wrapping range:
 
-So it isn't specific to one boot, and it predates this guard and Bluetooth: the first two
-boots ran the `charge-guard` daemon. The pairs are read a few milliseconds apart, so the
-battery can't have changed temperature between them.
-
-`7197708f…` looked steady, but that is weak evidence. `charger-g.sh` reads `capacity`
-just before `temp`, and `capacity` itself makes a pack voltage and a battery conversion.
-All its samples follow other conversions. The low pairs show the first read of a pair is
-sometimes the low one, though not always.
-
-**Inference:**
-- The high value is the true one. It agrees with the SoC and the earlier boots.
-- The low value is about 246 ADC codes higher on the NTC divider, about 216 mV at the node.
-  It stays about the same size at the one other temperature seen, which is two samples.
-- Bit errors don't fit, as the gap isn't a power of two and varies by a few codes.
-
-**What it would do to the protection,** if the same offset held when hot, which isn't
-measured:
-
-| True temperature | Reads, as a fixed voltage offset | Reads, as a fixed injected current |
+| Code | True temperature | Reads |
 | --- | --- | --- |
-| 47 °C | 33 °C | 39 °C |
-| 50 °C | 35 °C | 42 °C |
-| 60 °C | 41 °C | 52 °C |
+| 936 | 25.042 °C | 25.042 °C |
+| 937 | 24.999 °C | **15.802 °C** |
+| 946 | 24.652 °C | **15.455 °C** |
+| 947 | 24.614 °C | **15.416 °C** |
+| 948 | 24.575 °C | 24.575 °C |
 
-The gap is larger than the 9 °C seen at room temperature, because the NTC's curve flattens
-when hot. Then:
-- **The guard:** a true reading at 50 °C stops charging, and the next low reading, under
-  47 °C, resumes it. A run of low readings stops it late. This is the unsafe direction.
-- **The 60 °C trip:** it fires only on a reading that isn't low, so a run of low readings
-  delays it.
-- **No false stop:** low readings stay far above −20 °C at room temperature.
-- **Capacity:** a reading below 12.5 °C selects the 0 °C OCV table, which moves it a little.
+**Evidence:**
+- The raw channel stayed at 936-956 through the flips, and `in_temp0_raw` doesn't go through
+  this lookup. The zone and the gauge's `temp` both do.
+- Running the driver's arithmetic over every code reproduces all 52 retained battery zone
+  samples, from values it can produce. That includes the repeated 15.802 °C, which is code
+  937, and the pairs 15.802 and 25.0 °C, which are codes either side of the 25 °C entry.
+- The gap is 2³² divided by the entry's width: 9.20 °C here, and 8.40 °C on boot `04cc38ee…`,
+  11.45 against about 20 °C.
+- It explains why `7197708f…` looked steady: at 23.6-24.2 °C it was below the range.
+- It predates this guard: `charge-guard` used its own conversion, but the zone, the gauge and
+  the status lines had the bug from the start.
 
-**Not known:** the cause, and whether it happens with the battery hot. One lead: the
-driver waits 80 µs before it checks the ready bit, while the vendor polls at 1.3 ms, so a
-ready bit left from the last conversion could return an old result. That alone wouldn't
-explain where a low value first comes from. Other candidates are a pad or VBIF28 state,
-and another ADC requester. The next step is a read-only sample: back-to-back reads, first
-read after idle, after a voltage conversion, the result register alone, and the control
-registers in both states.
+**Every affected range:**
 
-G1-G6 still stand as tests of the guard's decisions, since their temperatures were true
-readings or emulation. This is about the input.
+| True temperature | Reads | Error |
+| --- | --- | --- |
+| 24.61 to 25.00 °C | 15.42 to 15.80 °C | 9.20 °C |
+| 19.21 to 19.99 °C | 10.82 to 11.59 °C | 8.40 °C |
+| 13.92 to 14.99 °C | 6.14 to 7.21 °C | 7.78 °C |
+| 8.68 to 9.97 °C | 1.33 to 2.62 °C | 7.35 °C |
+| 3.56 to 4.98 °C | −3.52 to −2.09 °C | 7.07 °C |
+| −1.51 to 0 °C | −8.44 to −6.93 °C | 6.93 °C |
+| −6.49 to −5.03 °C | −13.46 to −12.00 °C | 6.97 °C |
+| −11.36 to −10.03 °C | −18.59 to −17.26 °C | 7.23 °C |
+| −16.15 to −15.03 °C | −23.81 to −22.69 °C | 7.66 °C |
 
-### First sample, boot `64622312…`: no flip in this state
+**What it does to the protection:**
+- **Hot side, none.** From 25 °C up every table entry is narrower than 429496, so no code
+  wraps. The 50/47 °C window and the 60 °C trip convert correctly.
+- **Cold side:** at −16.15 to −15.03 °C the guard would stop charging, as the reading is
+  under −20 °C. That's the safe direction. The −11 °C range can read below the −18 °C resume
+  point, which only holds an existing stop.
+- **Capacity:** a low reading can select another OCV table, as at 19.21-19.99 °C, where it
+  picks the 0 °C table. That can move the capacity limit a little. It isn't a safety stop.
 
-Run by the custodian with `baton-s.sh` `222cc4a9…`, cable in, not charging, capacity 92,
-Bluetooth not loaded, `wlan0` down. The console was probably blanked; `bl_power` wasn't
-read. Tainted 0 throughout. The raw output stays private.
+**The fix:** [0526](../../patches/proposals/0526-thermal-generic-adc-do-not-overflow-the-table-interp.patch)
+uses a 64-bit product. Compiled at `W=1` in the VM; the arithmetic was checked offline over
+all 4096 codes, where only the codes above differ. It's built in, so it goes in the next
+image, and it could go upstream.
 
-| Section | Result, raw codes |
-| --- | --- |
-| A, 200 back to back | 945-955 |
-| B, 60 at 1 s | 945-956, no flip |
-| C, 30 triples after 3 s idle | no first-read effect |
-| D, 30 after a pack voltage read | 942-954 |
-| E, 300 reads of the result register alone | stays near 950, no other requester visible at this rate |
+**To confirm on that image:** with the battery in one of these ranges, the zone stays within
+a degree of the raw code's true value across repeated reads, with no 7-9 °C gap.
 
-The control registers were the same at the start and the end. There was no low state to
-compare them with.
-
-**Reading:** in this state the conversion itself is steady, whatever comes before it. So a
-fault in the read sequence alone, including the 80 µs wait, doesn't explain the flip,
-though it could still need a condition this run didn't have. Low readings on this boot
-came with something active: at 32-42 s, during the Bluetooth audio soak, and at the end of
-a voice test. Radio load and screen state are the candidates, and the samples so far don't
-separate them.
+G1-G6 still stand, and their temperatures were true readings or emulation.

@@ -186,9 +186,11 @@ thermally constrained subsystem.
   emulated 50/47 °C and on an unreadable battery, and the watchdog restores
   charging 30-40 s after the driver goes. Not shown: a real 50 °C, charge current
   after a resume, or a real charge reaching the limit.
-- open: the `BATON` reading can flip about 9 °C low at room temperature, which
-  would make the 50 °C stop and the 60 °C trip late
-  ([record](../../experiments/2026-11-02-gemini-kernel-charge-guard/README.md#open-the-battery-reading-flips)).
+- a kernel table-lookup overflow makes the battery temperature read 7-9 °C low in
+  parts of the range below 25 °C, including 24.6-25 °C. At 25 °C and above it
+  converts correctly, so the 50 °C stop and 60 °C trip aren't affected. The fix,
+  0526, isn't yet on a device
+  ([record](../../experiments/2026-11-02-gemini-kernel-charge-guard/README.md#the-battery-reading-flip-an-overflow-in-the-table-lookup)).
 
 Gates 2 and 3 are not implemented. The 500 mA SDP input limit bounds the
 current meanwhile.
