@@ -24,7 +24,7 @@ sample() { # phase
 	done
 }
 regs() { # phase
-	echo "$1 regs CG0 $(devmem 0x14000100 32) CG1 $(devmem 0x14000110 32) PWM_EN $(devmem 0x1100f000 32) CON1 $(devmem 0x1100f014 32) DBG $(devmem 0x1100f028 32) MOD $(devmem 0x1401f02c 32) PWR $(devmem 0x10006180 32) GPIO_MODE62 $(devmem 0x10005370 32) GPIO_DO62 $(devmem 0x10005100 32) GPIO_DIR62 $(devmem 0x10005000 32) GPIO_DO60_62 $(devmem 0x10005130 32) bl_power $(cat $B/bl_power) brightness $(cat $B/brightness) usb $(cat /sys/class/power_supply/*/online 2>/dev/null | tr '\n' ' ')"
+	echo "$1 regs CG0 $(devmem 0x14000100 32) CG1 $(devmem 0x14000110 32) PWM_EN $(devmem 0x1100f000 32) CON1 $(devmem 0x1100f014 32) DBG $(devmem 0x1100f028 32) MOD $(devmem 0x1401f02c 32) PWR $(devmem 0x10006180 32) GPIO_MODE56_63 $(devmem 0x10005370 32) GPIO_DIR32_63 $(devmem 0x10005010 32) GPIO_DO32_63 $(devmem 0x10005110 32) GPIO_DO224_255 $(devmem 0x10005170 32) bl_power $(cat $B/bl_power) brightness $(cat $B/brightness) usb $(cat /sys/class/power_supply/*/online 2>/dev/null | tr '\n' ' ')"
 }
 
 echo "start $(cat /proc/sys/kernel/random/boot_id) $(uname -r) mutex $(sha256sum /sys/module/mtk_mutex/srcversion 2>/dev/null | cut -c1-8) tainted $(cat /proc/sys/kernel/tainted)"
