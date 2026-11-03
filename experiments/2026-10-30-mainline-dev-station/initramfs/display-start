@@ -1,0 +1,16 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Move the console to the native display path. Binding unregisters simplefb and
+# fbcon moves over; the panel stays as the loader left it. Prints one word for the
+# station status; see experiments/2026-11-02-gemini-native-display.
+dir=/lib/modules/$(uname -r)
+for module in phy-mtk-mipi-dsi-drv clk-mt6797-mm mtk-mmsys mtk-mutex drm_panel_orientation_quirks \
+    drm panel-novatek-nt36672e drm_kms_helper drm_dma_helper cec drm_display_helper drm_client_lib \
+    mediatek-drm; do
+    if ! insmod "$dir/$module.ko" 2>/dev/null; then
+        echo "$module-failed"
+        exit 1
+    fi
+done
+if [ -e /dev/dri/card0 ]; then echo native; else echo no-card; fi

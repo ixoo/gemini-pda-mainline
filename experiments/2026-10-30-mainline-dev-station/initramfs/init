@@ -71,4 +71,6 @@ done
 if LD_LIBRARY_PATH=/lib /bin/iw reg set US; then status reg=US; else status reg=set-failed; fi
 # Audio, quiet until a stream runs.
 status "audio=$(/bin/audio-start)"
+# The native display, unless the data partition says not to, which leaves simplefb.
+if [ -e /mnt/data/no-native-display ]; then status display=skipped; else status "display=$(/bin/display-start)"; fi
 exec $bb init

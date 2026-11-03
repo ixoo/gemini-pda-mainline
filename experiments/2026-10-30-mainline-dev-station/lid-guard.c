@@ -2,13 +2,14 @@
 /*
  * Brightness policy for the station. The lid itself is the kernel's
  * gemini-lid module: backlight off and keyboard ignored while it is closed.
- * This program only follows the lid so that it leaves the backlight alone
- * while the lid is closed. Fn+B and Fn+N (Fn is
- * KEY_LEFTMETA) step the backlight down and up, autorepeat included; the
- * console keymap gives those two keys no Fn action. The backlight also
- * follows the console's own blanking (setterm --blank), which the simple
- * framebuffer cannot do itself: it is powered down while the console is
- * blanked, checked once a second. init respawns this program.
+ * This program blanks the console while the lid is closed, which turns the
+ * display off under the native pipeline, and otherwise leaves the backlight to
+ * the module then. Fn+B and Fn+N (Fn is KEY_LEFTMETA) step the backlight down and
+ * up, autorepeat included; the console keymap gives those two keys no Fn action.
+ * The backlight also follows the console's own blanking (setterm --blank): it
+ * fades down over the last seconds before the kernel's idle deadline, is powered
+ * down while the console is blanked, checked once a second, and fades back up on
+ * waking. init respawns this program.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -20,6 +21,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #define LID_NAME "gpio-keys"
@@ -27,6 +30,14 @@
 #define BL_POWER "/sys/class/backlight/backlight/bl_power"
 #define BL_BRIGHTNESS "/sys/class/backlight/backlight/brightness"
 #define CONSOLE "/dev/tty1"
+#define BLANK_SECONDS "/sys/module/kernel/parameters/consoleblank"
+/* The fades: long enough to see, short enough not to hold a wake back. */
+#define DIM_LEVEL 16
+#define FADE_DOWN_SECONDS 3
+#define FADE_DOWN_STEPS 40
+#define FADE_DOWN_MS 75
+#define FADE_UP_STEPS 16
+#define FADE_UP_MS 30
 
 static void say(const char *fmt, ...)
 {
@@ -123,6 +134,17 @@ static int console_blanked(void)
 	return ret > 0 ? ret : 0;
 }
 
+static void console_tiocl(char arg)
+{
+	int fd = open(CONSOLE, O_RDWR | O_CLOEXEC);
+
+	if (fd < 0)
+		return;
+	if (ioctl(fd, TIOCLINUX, &arg) < 0)
+		say("console request %d failed: %d\n", arg, errno);
+	close(fd);
+}
+
 static int backlight_off = -1;
 
 static int set_backlight(int off)
@@ -141,20 +163,54 @@ static int set_backlight(int off)
 static const int steps[] = { 16, 32, 64, 96, 128, 192, 256, 384, 512, 640, 768, 1023 };
 #define STEPS (int)(sizeof(steps) / sizeof(steps[0]))
 
-static void step_brightness(int up)
+static int read_number(const char *path)
 {
 	char text[16];
-	int fd, n, level = -1, i;
+	int fd, n, value = -1;
 
-	fd = open(BL_BRIGHTNESS, O_RDONLY | O_CLOEXEC);
+	fd = open(path, O_RDONLY | O_CLOEXEC);
 	if (fd >= 0) {
 		n = read(fd, text, sizeof(text) - 1);
 		if (n > 0) {
 			text[n] = 0;
-			sscanf(text, "%d", &level);
+			sscanf(text, "%d", &value);
 		}
 		close(fd);
 	}
+	return value;
+}
+
+static void set_brightness(int level)
+{
+	char text[16];
+
+	snprintf(text, sizeof(text), "%d", level);
+	put(BL_BRIGHTNESS, text);
+}
+
+/*
+ * Step from one level to another, slowly at the dark end, where the eye sees most.
+ * Returns early, and non-zero, on any input.
+ */
+static int fade(int from, int to, int steps, int ms, struct pollfd *fds, int nfds)
+{
+	int low = from < to ? from : to, high = from < to ? to : from, i;
+
+	for (i = 1; i <= steps; i++) {
+		int done = from < to ? i : steps - i;
+
+		set_brightness(low + (high - low) * done * done / (steps * steps));
+		if (poll(fds, nfds, ms) > 0)
+			return 1;
+	}
+	return 0;
+}
+
+static void step_brightness(int up)
+{
+	char text[16];
+	int level = read_number(BL_BRIGHTNESS), i;
+
 	if (level < 0)
 		return;
 	/* The next step strictly above or below the current level. */
@@ -173,7 +229,8 @@ int main(void)
 	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
 	struct input_event ev;
 	struct pollfd fds[2];
-	int fd, kfd, closed, fn = 0;
+	int fd, kfd, closed, fn = 0, nfds, restore = -1, quick = 0;
+	time_t last_input = time(NULL);
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
 	    !find_input(KEYBOARD_NAME, keyboard, sizeof(keyboard))) {
@@ -194,14 +251,62 @@ int main(void)
 		say("no keyboard events; brightness keys off\n");
 	fds[0] = (struct pollfd){ .fd = fd, .events = POLLIN };
 	fds[1] = (struct pollfd){ .fd = kfd, .events = POLLIN };
-	while (poll(fds, kfd < 0 ? 1 : 2, 1000) >= 0) {
+	nfds = kfd < 0 ? 1 : 2;
+	/* After a key, look again soon: the kernel wakes the console just after it. */
+	while (poll(fds, nfds, quick > 0 ? 50 : 1000) >= 0) {
 		int blanked = console_blanked();
 
-		if (!closed && !!blanked != backlight_off)
-			say("console %s: backlight=%d\n", blanked ? "blanked" : "unblanked",
-			    set_backlight(!!blanked));
+		if (quick > 0)
+			quick--;
+		if (!closed && !!blanked != backlight_off) {
+			int level = restore >= 0 ? restore : read_number(BL_BRIGHTNESS);
+
+			if (!blanked && level >= 0) {
+				/* Awake: from dark, up to the owner's level. */
+				set_brightness(DIM_LEVEL < level ? DIM_LEVEL : level);
+				say("console unblanked: backlight=%d\n", set_backlight(0));
+				if (fade(DIM_LEVEL < level ? DIM_LEVEL : level, level, FADE_UP_STEPS,
+					 FADE_UP_MS, fds, nfds))
+					set_brightness(level);
+				restore = -1;
+			} else {
+				say("console %s: backlight=%d\n", blanked ? "blanked" : "unblanked",
+				    set_backlight(!!blanked));
+			}
+		}
+		if (!closed && !blanked && backlight_off == 0) {
+			int seconds = read_number(BLANK_SECONDS);
+			time_t now = time(NULL), active = last_input;
+			struct stat st;
+
+			if (!stat(CONSOLE, &st) && st.st_mtime > active)
+				active = st.st_mtime;
+			if (seconds > FADE_DOWN_SECONDS && restore < 0 &&
+			    now - active >= seconds - FADE_DOWN_SECONDS) {
+				int level = read_number(BL_BRIGHTNESS);
+
+				if (level > DIM_LEVEL) {
+					restore = level;
+					if (fade(level, DIM_LEVEL, FADE_DOWN_STEPS, FADE_DOWN_MS,
+						 fds, nfds)) {
+						set_brightness(restore);
+						restore = -1;
+					}
+				}
+			} else if (restore >= 0 && now - active < seconds - FADE_DOWN_SECONDS) {
+				/* Output moved the deadline, with no blank after all. */
+				set_brightness(restore);
+				restore = -1;
+			}
+		}
 		if ((fds[1].revents & POLLIN) && read(kfd, &ev, sizeof(ev)) == sizeof(ev) &&
 		    ev.type == EV_KEY) {
+			last_input = time(NULL);
+			quick = 20;
+			if (restore >= 0 && !blanked) {
+				set_brightness(restore);
+				restore = -1;
+			}
 			if (ev.code == KEY_LEFTMETA)
 				fn = ev.value != 0;
 			else if (fn && ev.value && (ev.code == KEY_B || ev.code == KEY_N))
@@ -216,6 +321,13 @@ int main(void)
 		closed = !!ev.value;
 		/* gemini-lid powered the backlight on or off with the lid. */
 		backlight_off = closed;
+		if (restore >= 0) {
+			set_brightness(restore);
+			restore = -1;
+		}
+		last_input = time(NULL);
+		/* The display goes with it, and no console output wakes it. */
+		console_tiocl(closed ? TIOCL_BLANKSCREEN : TIOCL_UNBLANKSCREEN);
 	}
 	say("lid event stream ended\n");
 	return 1;

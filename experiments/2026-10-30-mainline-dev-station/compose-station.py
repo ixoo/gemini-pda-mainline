@@ -44,6 +44,17 @@ def main(package, parent, tools, output):
         found = sorted(package.glob('modules/lib/modules/*/kernel/sound/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
+    # Loaded by display-start, in its order.
+    for path in ['phy/mediatek/phy-mtk-mipi-dsi-drv.ko', 'clk/mediatek/clk-mt6797-mm.ko',
+                 'soc/mediatek/mtk-mmsys.ko', 'soc/mediatek/mtk-mutex.ko',
+                 'gpu/drm/drm_panel_orientation_quirks.ko', 'gpu/drm/drm.ko',
+                 'gpu/drm/panel/panel-novatek-nt36672e.ko', 'gpu/drm/drm_kms_helper.ko',
+                 'gpu/drm/drm_dma_helper.ko', 'media/cec/core/cec.ko',
+                 'gpu/drm/display/drm_display_helper.ko', 'gpu/drm/clients/drm_client_lib.ko',
+                 'gpu/drm/mediatek/mediatek-drm.ko']:
+        found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
+        assert len(found) == 1, ('one module expected in the package', path, found)
+        modules += found
     module = modules[0]
     release = release or module.parts[module.parts.index('modules') + 3]
     assert release.endswith('-gemini-a53-station'), release

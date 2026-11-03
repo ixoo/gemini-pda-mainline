@@ -83,6 +83,7 @@ def main(parent, modules, tools, release, output):
     files['bin/setterm'] = (FILE | 0o755, (src/'setterm').read_bytes())
     files['bin/flash-boot2'] = (FILE | 0o755, (src/'flash-boot2').read_bytes())
     files['bin/audio-start'] = (FILE | 0o755, (src/'audio-start').read_bytes())
+    files['bin/display-start'] = (FILE | 0o755, (src/'display-start').read_bytes())
     files['bin/arecord'] = (LNK | 0o777, b'aplay')
     for d in ['usr', 'usr/share']:
         files.setdefault(d, (DIR | 0o755, b''))

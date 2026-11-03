@@ -1,0 +1,69 @@
+From 2041c30f11e03d0cc2637cb6a158f32acbb3b9a9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 22:07:57 -0500
+Subject: [PATCH] pwm: mtk-disp: turn the MT6797 block off at duty 0
+
+pwm-backlight keeps this PWM enabled at duty 0, since it has no other off switch.
+The vendor driver clears the enable bit at level 0, with the comment "To save
+power", before committing the change. Do the same on MT6797, whose board path is
+only this PWM.
+---
+ drivers/pwm/pwm-mtk-disp.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/pwm/pwm-mtk-disp.c b/drivers/pwm/pwm-mtk-disp.c
+index aadd0fef5..eb1d81a58 100644
+--- a/drivers/pwm/pwm-mtk-disp.c
++++ b/drivers/pwm/pwm-mtk-disp.c
+@@ -34,6 +34,7 @@ struct mtk_pwm_data {
+ 	unsigned int con1;
+ 
+ 	bool has_commit;
++	bool off_at_zero;
+ 	unsigned int commit;
+ 	unsigned int commit_mask;
+ 
+@@ -71,6 +72,7 @@ static int mtk_disp_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+ {
+ 	struct mtk_disp_pwm *mdp = to_mtk_disp_pwm(chip);
+ 	u32 clk_div, period, high_width, value;
++	bool off;
+ 	u64 div, rate;
+ 	int err;
+ 
+@@ -157,6 +159,15 @@ static int mtk_disp_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+ 				 PWM_PERIOD_MASK | PWM_HIGH_WIDTH_MASK,
+ 				 value);
+ 
++	/*
++	 * pwm-backlight keeps a PWM with no other off switch enabled at duty 0.
++	 * Where the vendor turns the block off at level 0, do the same, before
++	 * the commit as it does.
++	 */
++	off = mdp->data->off_at_zero && !high_width;
++	if (off)
++		mtk_disp_pwm_update_bits(mdp, DISP_PWM_EN, mdp->data->enable_mask, 0x0);
++
+ 	if (mdp->data->has_commit) {
+ 		mtk_disp_pwm_update_bits(mdp, mdp->data->commit,
+ 					 mdp->data->commit_mask,
+@@ -166,8 +177,9 @@ static int mtk_disp_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+ 					 0x0);
+ 	}
+ 
+-	mtk_disp_pwm_update_bits(mdp, DISP_PWM_EN, mdp->data->enable_mask,
+-				 mdp->data->enable_mask);
++	if (!off)
++		mtk_disp_pwm_update_bits(mdp, DISP_PWM_EN, mdp->data->enable_mask,
++					 mdp->data->enable_mask);
+ 	mdp->enabled = true;
+ 
+ 	return 0;
+@@ -301,6 +313,7 @@ static const struct mtk_pwm_data mt6797_pwm_data = {
+ 	.has_commit = true,
+ 	.commit = 0x8,
+ 	.commit_mask = 0x1,
++	.off_at_zero = true,
+ };
+ 
+ static const struct mtk_pwm_data mt8183_pwm_data = {

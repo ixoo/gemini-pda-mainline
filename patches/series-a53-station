@@ -680,3 +680,5 @@ proposals/0509-drm-mediatek-dsi-finish-probe-s-setup-before-registe.patch
 proposals/0510-soc-mediatek-mtk-mutex-drop-the-MT6797-loader-s-stal.patch
 proposals/0511-soc-mediatek-mt6797-consys-let-Bluetooth-share-the-S.patch
 proposals/0512-Bluetooth-add-the-MT6797-CONSYS-controller.patch
+proposals/0513-input-gemini-lid-drop-a-reference-the-lid-never-took.patch
+proposals/0514-pwm-mtk-disp-turn-the-MT6797-block-off-at-duty-0.patch

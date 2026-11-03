@@ -344,6 +344,36 @@ that register is not the output and does not separate the cases. The owner's "gl
 been a glow problem honestly". Whether 0510 changes anything on the screen is open. A
 blind comparison decides whether it stays.
 
+### The display off with the lid and the blank
+
+The owner: "we really need to switch the display fully off, it's not ok, even when I
+close the lid it stays on".
+
+- **Lid bug.** Four lid events ended in a refcount underflow and the backlight device
+  disappeared, leaving the PWM driving behind a sleeping panel. `gemini-lid` called
+  `put_device()` on `backlight_device_get_by_type()`'s result, which takes no reference.
+  Fixed by [0513](../../patches/proposals/0513-input-gemini-lid-drop-a-reference-the-lid-never-took.patch).
+- **The lid did not touch the display.** `lid-guard` now blanks the console on close and
+  unblanks on open, with `TIOCL_BLANKSCREEN` so console output cannot wake it.
+- **The PWM stayed enabled at duty 0.** [0514](../../patches/proposals/0514-pwm-mtk-disp-turn-the-MT6797-block-off-at-duty-0.patch)
+  clears the enable bit at level 0, as the vendor does.
+- **The native path only helps when loaded.** Under `simplefb` a blank can only cut the
+  backlight, so `display-start` in the RAM root now loads the modules at boot, by the
+  owner's requirement. `/mnt/data/no-native-display` skips it.
+- **Fade.** `lid-guard` fades the backlight down over the last 3 s before the idle
+  deadline and up over about 0.5 s on waking. A content fade is left out: on this LCD,
+  dimming the backlight dims all content together, which a content fade would only
+  repeat. Doing it would need a private gamma or alpha interface, since fbcon's palette
+  does not reach the pipeline.
+
+0510's effect on the screen stays undetermined: the owner chose to skip the blind test.
+It stays on the code argument, that no client owns that member. The battery run can
+still show it.
+
+Bias stays on during a blank. The vendor cuts it after `0x10`: negative off, positive
+off, and on resume runs reset, both enables, 20 ms, two I2C writes, the reset pulse and
+the whole table. Turning it off here is T6. What it saves is unmeasured.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in

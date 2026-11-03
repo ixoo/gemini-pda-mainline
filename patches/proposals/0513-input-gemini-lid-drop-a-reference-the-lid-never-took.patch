@@ -1,0 +1,25 @@
+From 2d2cd369948d23f13fee146bcba7d52ebcb9b993 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 22:07:56 -0500
+Subject: [PATCH] input: gemini-lid: drop a reference the lid never took
+
+backlight_device_get_by_type() takes no reference, unlike
+backlight_device_get_by_name(). The put_device() after each lid event therefore
+dropped one too many: after a few events the backlight device went away, with a
+refcount underflow, leaving no way to turn the backlight off.
+---
+ drivers/input/misc/gemini-lid.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index a1eeb0db7..25d3c0f4a 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -45,7 +45,6 @@ static void gemini_lid_apply(bool closed)
+ 			backlight_enable(bd);
+ 	}
+ 	mutex_unlock(&bd->ops_lock);
+-	put_device(&bd->dev);
+ }
+ 
+ static void gemini_lid_work_fn(struct work_struct *work)
