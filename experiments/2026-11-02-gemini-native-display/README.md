@@ -328,20 +328,19 @@ panel showing the console again, by the owner's "all was good!" and "All worked"
 worked. This is the first evidence the panel wakes from `0x10` on `0x11` and `0x29` alone,
 without a reset or the table.
 
-### The blank left the backlight on
+### The blank and the backlight: not settled
 
-The owner: "it doesn't turn the screen off (or maybe it's just the backlight that's on)".
-This was new with the native console. Read blanked and awake:
+The owner's first report was hedged: "it doesn't turn the screen off (or maybe it's just
+the backlight that's on)". Blanked, PWM `CON_1` read duty 0, `0x28` the old level, and
+mutex 0 `MOD` `0x04000000`, the loader's PWM0 bit alone. Awake, `0x28` followed the level.
 
-| | `bl_power` | PWM `CON_1` duty | PWM live level `0x28` | Mutex 0 `EN` | Mutex 0 `MOD` |
-| --- | --- | --- | --- | --- | --- |
-| Blanked | 4 | 0 | `0x200`, the old level | 0 | `0x04000000`, PWM0 only |
-| Awake | 0 | `0x100` | `0x100` | 1 | `0x05fcb400` |
-
-The owner saw it glow. The loader leaves PWM0 in mutex 0, the DRM path does not touch
-that bit, and a member's updates wait for a frame start. Blanking stops the frames, then
-`lid-guard`'s write never latches. On `simplefb` the loader's pipeline kept running, which
-hid it. [0510](../../patches/proposals/0510-soc-mediatek-mtk-mutex-drop-the-MT6797-loader-s-stal.patch) starts the pipeline from no members.
+From that, a hypothesis: the loader's PWM0 membership stops the PWM latching once frames
+stop. [0510](../../patches/proposals/0510-soc-mediatek-mtk-mutex-drop-the-MT6797-loader-s-stal.patch)
+clears it. This was not shown. With 0510, `0x28` still read the old level while blanked, so
+that register is not the output and does not separate the cases. The owner's "glowed" and
+"dark" were answers to buttons offered to them, and they then said: "There may never have
+been a glow problem honestly". Whether 0510 changes anything on the screen is open. A
+blind comparison decides whether it stays.
 
 ## Follow-up
 
