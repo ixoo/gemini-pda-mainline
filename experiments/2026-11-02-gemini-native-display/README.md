@@ -456,9 +456,14 @@ unblanking restored them, so an idle blank needs no daemon.
 By eye, on boot `64622312`, image `370f589b`, package `b590193b` with this `lid-guard`, the
 owner: "screen blank fades are working amazing."
 
-Not run on this image: a key in the window with the light off, lid cycles and the
-closed-lid checks, a bind behind a closed lid, and the power key under a closed lid. There
-is no power figure: the owner had "nothing to say on battery", so what a blank saves is
+Later on the same boot, the owner: "all loks good for key press and fade in/out". Whether
+that key press fell in the window with the light off is not known. The log shows 17 lid
+cycles, some about 2 s apart, with the keyboard inhibited and restored each time, no warning
+or respawn, tainted 0, and brightness back at 512. That is log evidence only: the owner did
+not comment on the lid by eye.
+
+Not run on this image: closed-lid register reads, the kernel-only lid test, a bind behind a
+closed lid, and the power key under a closed lid. There is no power figure: the owner had "nothing to say on battery", so what a blank saves is
 unmeasured, and with it whether turning bias off is worth doing.
 
 ## Follow-up
