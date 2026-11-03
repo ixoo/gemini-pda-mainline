@@ -330,19 +330,24 @@ panel showing the console again, by the owner's "all was good!" and "All worked"
 worked. This is the first evidence the panel wakes from `0x10` on `0x11` and `0x29` alone,
 without a reset or the table.
 
-### The blank and the backlight: not settled
+### The blank and the backlight: what the mutex does
 
-The owner's first report was hedged: "it doesn't turn the screen off (or maybe it's just
-the backlight that's on)". Blanked, PWM `CON_1` read duty 0, `0x28` the old level, and
-mutex 0 `MOD` `0x04000000`, the loader's PWM0 bit alone. Awake, `0x28` followed the level.
+The owner's first report: "it doesn't turn the screen off (or maybe it's just the
+backlight that's on)". Blanked, PWM `CON_1` read duty 0, live level `0x28` the old level,
+and mutex 0 `MOD` `0x04000000`, the loader's PWM0 bit alone. Awake, `0x28` followed the
+level.
 
-From that, a hypothesis: the loader's PWM0 membership stops the PWM latching once frames
-stop. [0510](../../patches/proposals/0510-soc-mediatek-mtk-mutex-drop-the-MT6797-loader-s-stal.patch)
-clears it. This was not shown. With 0510, `0x28` still read the old level while blanked, so
-that register is not the output and does not separate the cases. The owner's "glowed" and
-"dark" were answers to buttons offered to them, and they then said: "There may never have
-been a glow problem honestly". Whether 0510 changes anything on the screen is open. A
-blind comparison decides whether it stays.
+The loader leaves PWM0 in mutex 0, and a PWM change latches on the mutex's frame start. I
+first read the bit as stale and removed it with a patch, 0510. That was wrong. With it
+gone, on boot `f04ffc20`, `CON_1` followed every brightness step and `0x28` stayed at
+`0x200`: brightness froze at its load value, which also hid the fade. So `0x28` is the
+live level, the commit bit alone does not latch here, and the membership is what makes
+brightness work. 0510 is dropped.
+
+It also means the glow was real. On a blank the frames stop first, so duty 0 cannot latch,
+and the backlight stayed lit. The owner's "Dark" with 0510 does not fit that, and they
+doubted it themselves, so it is not evidence. What turns it off is the enable bit below,
+which does not wait for a frame.
 
 ### The display off with the lid and the blank
 
@@ -376,10 +381,6 @@ kernel does it, with no daemon:
   backlight dims all content together, which a content fade would only repeat. Doing it
   would need a private gamma or alpha interface, since fbcon's palette does not reach the
   pipeline.
-
-0510's effect on the screen stays undetermined: the owner chose to skip the blind test.
-It stays on the code argument, that no client owns that member. The battery run can
-still show it.
 
 Bias stays on during a blank. The vendor cuts it after `0x10`: negative off, positive
 off, and on resume runs reset, both enables, 20 ms, two I2C writes, the reset pulse and
