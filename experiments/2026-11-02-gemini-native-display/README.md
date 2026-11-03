@@ -300,6 +300,24 @@ frame tests did not reach:
   writes from Linux. Read: the vendor's suspend and delays. Inferred, new to this panel:
   waking with no reset or table. The vendor always runs the full sequence on resume.
 
+### T4, first run: console moved, DSI interrupt lost
+
+Boot `444a7d22`, image `34306c22`, package `27f7a9b2`. The console moved to the DRM
+framebuffer, came back after a master and after a reload, and flips ran at 54.00 per
+second. It also tainted with a WARNING, and every DSI transfer timed out. The cause
+is the interaction of [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
+with the order in `mtk_dsi_probe()`: registering the DSI host binds the whole device,
+and with an fbdev client runs the first modeset, before probe has requested the
+interrupt. The earlier tests had no client, so their modeset came later. Fixed by
+[0509](../../patches/proposals/0509-drm-mediatek-dsi-finish-probe-s-setup-before-registe.patch).
+
+Because the first prepare failed, DRM skipped every later unprepare, so display-off and
+sleep-in were never sent. What went to the panel, unconfirmed since no completion
+returned: `0x0a` reads and `0x11` to an awake panel. So sleep and wake remain untested.
+
+Sysfs `blank` also reaches the VT: `lid-guard` logged blanks at it, contrary to the
+request's claim. One of the three blanks read its gates open immediately after.
+
 ## Follow-up
 
 T4 is written and not run. T6 is not started. Durable facts are in

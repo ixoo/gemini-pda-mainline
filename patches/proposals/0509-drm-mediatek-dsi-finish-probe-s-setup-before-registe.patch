@@ -1,0 +1,53 @@
+From 7d42c5d4c192c44ed7be1c6bd7ef946f8b2092b9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 21:27:44 -0500
+Subject: [PATCH] drm/mediatek: dsi: finish probe's setup before registering
+ the host
+
+mipi_dsi_host_register() can attach the panel, complete the DRM master's bind
+and, with an fbdev client, run the first modeset before it returns. So poweron
+called enable_irq() on an interrupt probe had not requested yet: the kernel warned,
+the line stayed masked, and every later DSI transfer timed out. The bridge's OF node
+and type were also unset when it was attached. Do both before registering.
+---
+ drivers/gpu/drm/mediatek/mtk_dsi.c | 18 ++++++++++--------
+ 1 file changed, 10 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_dsi.c b/drivers/gpu/drm/mediatek/mtk_dsi.c
+index 3637fec69..af305b01d 100644
+--- a/drivers/gpu/drm/mediatek/mtk_dsi.c
++++ b/drivers/gpu/drm/mediatek/mtk_dsi.c
+@@ -1280,9 +1280,8 @@ static int mtk_dsi_probe(struct platform_device *pdev)
+ 
+ 	platform_set_drvdata(pdev, dsi);
+ 
+-	ret = mipi_dsi_host_register(&dsi->host);
+-	if (ret < 0)
+-		return dev_err_probe(dev, ret, "Failed to register DSI host\n");
++	dsi->bridge.of_node = dev->of_node;
++	dsi->bridge.type = DRM_MODE_CONNECTOR_DSI;
+ 
+ 	/*
+ 	 * A loader can leave the engine running with its level interrupt
+@@ -1291,13 +1290,16 @@ static int mtk_dsi_probe(struct platform_device *pdev)
+ 	ret = devm_request_irq(&pdev->dev, irq_num, mtk_dsi_irq,
+ 			       IRQF_TRIGGER_NONE | IRQF_NO_AUTOEN,
+ 			       dev_name(&pdev->dev), dsi);
+-	if (ret) {
+-		mipi_dsi_host_unregister(&dsi->host);
++	if (ret)
+ 		return dev_err_probe(&pdev->dev, ret, "Failed to request DSI irq\n");
+-	}
+ 
+-	dsi->bridge.of_node = dev->of_node;
+-	dsi->bridge.type = DRM_MODE_CONNECTOR_DSI;
++	/*
++	 * Registering the host can attach the panel, bind the whole DRM device
++	 * and, with an fbdev client, run the first modeset, all before it returns.
++	 */
++	ret = mipi_dsi_host_register(&dsi->host);
++	if (ret < 0)
++		return dev_err_probe(dev, ret, "Failed to register DSI host\n");
+ 
+ 	return 0;
+ }
