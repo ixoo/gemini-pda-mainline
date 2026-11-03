@@ -359,8 +359,11 @@ is not measured.
 
 - Why did the T2 stream stall? It happened once, late in a long CONSYS lifetime.
 - What ended the inquiry, and when? See the table above.
-- Does an eSCO link use the CVSD SRAM path regardless of the host's data path? The
-  HCI result above suggests so; the registers have not been read during a link.
+- Does an eSCO link use the CVSD SRAM path regardless of the host's data path? During a
+  link its control register read `0x81e40000`: interrupt, overflow and underflow flags up,
+  packet type 60 bytes, pointers frozen, with nothing serving it
+  ([T3b](../../experiments/2026-11-02-gemini-bluetooth/README.md#t3b-result-stopped-registers-all-flags-raised-2026-11-03)).
+  That suggests so, but no baseline before a link exists and the pointers have not been seen moving.
 - Does the ROM's CVSD SRAM path require firmware-side enabling beyond the INFRA
   bit and the packet pointers? The vendor driver has no explicit "start" command.
 - What does the ROM patch contribute to BT audio? It contains BT/Wi-Fi

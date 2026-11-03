@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed` for A2DP. T3: a voice link connects, but no voice crosses HCI, so the microphone does not work this way. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3 and T3b: a voice link connects and no voice crosses HCI, so the microphone doesn't work that way; the CVSD SRAM status register reads as if the firmware is using that path and waiting for the host. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -383,4 +383,37 @@ and INFRA_MISC `0x10001f00`.
 link (a device tree change, so one image), `CONFIG_SND_SOC_MTK_BTCVSD=m`, and a userspace piece
 with a CVSD coder that connects those PCMs while `bluetoothd` and BlueALSA hold the link. The
 upstream driver exists; that piece and its integration don't. Several device rounds.
+
+## T3b result: stopped registers, all flags raised (2026-11-03)
+
+Run by the custodian on boot `64622312`, with the owner's "Yes, run T3b", one 15 s eSCO link.
+No read hung or faulted; link clean, SCO RX 0 again. Eight samples a second apart, about 4 to
+12 s into the link, identical:
+
+| Register | Value | Decoded with `mtk-btcvsd.c` |
+| --- | --- | --- |
+| INFRA_MISC | `0x11403200` | bit 11 clear: the CVSD interrupt gate is open |
+| Read pointer | `0x00104000` | SRAM bank 2 offset `0x4000` |
+| Write pointer | `0x001041c0` | SRAM bank 2 offset `0x41c0` |
+| Control | `0x81e40000` | interrupt (31), RX overflow (24), TX underflow (23), RX ready (22), TX not ready (21), packet type 1 |
+
+**The experiment's table was too coarse.** It read "all constant" as "SRAM not in use", but the
+values matter. Packet type 1 means 60-byte packets, which is the length this eSCO link reported.
+All the status flags are up, and SPI 286 has no handler here.
+
+**Inferred:** the firmware did use the SRAM path, raised its interrupt once, and is waiting for
+the host to clear the flags, which `mtk_btcvsd_snd_irq_handler` does on every interrupt. So the
+pointers stay frozen, and RX overflows and TX underflows with nobody serving them. That fits
+everything in T3, including the static.
+
+**Not established:** there's no sample from before the first link in this CONSYS lifetime, so these
+flags could be left from T3's link or an earlier state. Nothing has shown the pointers move.
+
+## T3c, proposed, needs the owner: does it answer the host?
+
+Without any image: during the last approved eSCO link, clear the control register's flags once a
+second as the vendor and mainline handlers do, and sample again. This is the first write to this
+block on mainline. If the flags come back and the pointers move, the SRAM path is alive and the
+bridge has a known foundation. If nothing moves, the path needs something else first, and it's
+better to know that before a new image.
 
