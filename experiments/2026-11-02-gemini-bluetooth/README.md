@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed` for A2DP. T3 and T3b: a voice link connects and no voice crosses HCI, so the microphone doesn't work that way; the CVSD SRAM status register reads as if the firmware is using that path and waiting for the host. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3 to T3c: a voice link connects, no voice crosses HCI, and the CVSD SRAM path answers the host. No microphone yet; the bridge it would need is not built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -416,4 +416,56 @@ second as the vendor and mainline handlers do, and sample again. This is the fir
 block on mainline. If the flags come back and the pointers move, the SRAM path is alive and the
 bridge has a known foundation. If nothing moves, the path needs something else first, and it's
 better to know that before a new image.
+
+## T3c result: the CVSD SRAM path answers the host (2026-11-03)
+
+Run by the custodian on boot `64622312` with the owner's "Yes, run T3c", `bt-t3c.sh`
+`13cab60b…`, one 15 s eSCO link, eight writes to the control register. Evidence is private
+under `artifacts/station-work-40/boot-64622312/bt-t3c/`. What the owner heard is not yet
+recorded.
+
+**Observed (`misc` was `0x11403200` throughout):**
+
+| Moment | Read | Write | Control |
+| --- | --- | --- | --- |
+| Before the link | `0x00000000` | `0x00000000` | `0x00000000` |
+| Link up, not yet cleared | `0x00104000` | `0x001041c0` | `0x81e40000` |
+| After clear 0 | `0x001040dc` | `0x0010429c` | `0x80640004` |
+| 1 s later | same | same | `0x81e40004` |
+| After clear 1 | `0x00104000` | `0x001041c0` | `0x80640007` |
+| 1 s later | same | same | `0x81e40007` |
+
+Clears 2 to 7 alternate the same way. One sample caught the write pointer ahead of the read
+pointer's move, with control `0x81640007`. After the link, control stayed at `0x81e40007`.
+
+- **The flags belong to the link:** all zero before it, so T3b's weren't stale.
+- **The pointers move once per clear,** between two buffers `0xdc` apart. **Inferred:** one packet
+  per clear at this script's 1 Hz, so the firmware runs this path in step with the host, as the
+  vendor and mainline drivers expect. Offsets stay within the same 0x1c0-apart pair.
+- SCO RX over HCI was 0 again, SCO TX 1304 packets. Link clean: assert 0, no call trace.
+
+**The STP resend ran on hardware for the first time:** the halt shows `timeouts=1 resent=7`, up from 0
+and 0 at T3b's, and the link carried on. That is one event. Its timing isn't known, nor whether these
+writes caused it, but it shows the firmware accepts the resync and resent frames. It makes the
+T2 explanation more plausible without proving it.
+
+**Not established:** that real audio can flow: the SRAM contents have not been read or written, the
+interrupt has not been served, and the rate has not been reached. 1 Hz is far from what the link needs.
+
+## What the microphone would need now
+
+The foundation is shown, and T3's three attempts are spent. All of this is a new owner decision:
+
+| Piece | Where | Size |
+| --- | --- | --- |
+| Gemini `btcvsd` node: two CONSYS windows, `mediatek,infracfg`, SPI 286 | Device tree, so **one image** | small |
+| `CONFIG_SND_SOC_MTK_BTCVSD=m` and `BTCVSD_RX`/`TX` links on the existing machine driver or a tiny one | Modules | small |
+| First proof: the driver's own `BT_DIRECT_LOOPBACK`, or capture while speaking | Device, owner | one or two runs |
+| CVSD coder and bridge: PCM to and from the ALSA packet stream, with validity words, while `bluetoothd` holds the link | Userspace, new | the real work |
+| A way for applications to reach it, e.g. ALSA loopback | Userspace | small |
+| mSBC, later, through `libsbc` | Userspace | small once CVSD works |
+
+The vendor's coder is proprietary and stays out; a CVSD coder from the public algorithm is short, but
+its quality against this firmware is unknown. Upstream's `mtk-btcvsd` has not run on this SoC, and
+the first image proves or breaks that.
 

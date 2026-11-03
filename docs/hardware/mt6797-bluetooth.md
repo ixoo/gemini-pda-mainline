@@ -349,7 +349,7 @@ Observed on this unit with both ROM patches loaded, through the
 | MWS | Get MWS Transport Layer Configuration is listed but refused with `0x02`. Gemian's core has it under `#if 0`, blaming the chip. The driver sets the core's quirk |
 | Inquiry | Inquiry Cancel is refused with `0x0c`, and no Inquiry Complete event was seen, so the core's `INQUIRY` flag stays set. Paging and pairing still work. Not understood |
 | Completed packets | Number of Completed Packets events are 11 bytes long, with bytes the spec doesn't define. The core ignores them |
-| Link | One stream stopped the link within 0.19 s on an ACK timeout, with the firmware repeating its last ACK; the next boot's 7 minutes ran clean with no resend. The vendor resends frames; the cause is open |
+| Link | One stream stopped the link within 0.19 s on an ACK timeout, with the firmware repeating its last ACK, before the resend existed. The resend has since recovered one timeout (`timeouts=1 resent=7`). The cause of the losses is open |
 
 The vendor's Set Radio and TX offset are not sent by default (`gemian_radio`), and A2DP
 worked with the controller's own settings at a few metres. Their effect on output power
@@ -359,11 +359,11 @@ is not measured.
 
 - Why did the T2 stream stall? It happened once, late in a long CONSYS lifetime.
 - What ended the inquiry, and when? See the table above.
-- Does an eSCO link use the CVSD SRAM path regardless of the host's data path? During a
-  link its control register read `0x81e40000`: interrupt, overflow and underflow flags up,
-  packet type 60 bytes, pointers frozen, with nothing serving it
-  ([T3b](../../experiments/2026-11-02-gemini-bluetooth/README.md#t3b-result-stopped-registers-all-flags-raised-2026-11-03)).
-  That suggests so, but no baseline before a link exists and the pointers have not been seen moving.
+- Can real audio flow over the CVSD SRAM path? An eSCO link uses it whatever the host's
+  data path: its registers are zero before the link, its flags come up with it, and its
+  pointers move once each time the host clears them
+  ([T3c](../../experiments/2026-11-02-gemini-bluetooth/README.md#t3c-result-the-cvsd-sram-path-answers-the-host-2026-11-03)).
+  Its contents have not been read or written, and no driver has served its interrupt.
 - Does the ROM's CVSD SRAM path require firmware-side enabling beyond the INFRA
   bit and the packet pointers? The vendor driver has no explicit "start" command.
 - What does the ROM patch contribute to BT audio? It contains BT/Wi-Fi
