@@ -403,3 +403,27 @@ registers in both states.
 
 G1-G6 still stand as tests of the guard's decisions, since their temperatures were true
 readings or emulation. This is about the input.
+
+### First sample, boot `64622312…`: no flip in this state
+
+Run by the custodian with `baton-s.sh` `222cc4a9…`, cable in, not charging, capacity 92,
+Bluetooth not loaded, `wlan0` down. The console was probably blanked; `bl_power` wasn't
+read. Tainted 0 throughout. The raw output stays private.
+
+| Section | Result, raw codes |
+| --- | --- |
+| A, 200 back to back | 945-955 |
+| B, 60 at 1 s | 945-956, no flip |
+| C, 30 triples after 3 s idle | no first-read effect |
+| D, 30 after a pack voltage read | 942-954 |
+| E, 300 reads of the result register alone | stays near 950, no other requester visible at this rate |
+
+The control registers were the same at the start and the end. There was no low state to
+compare them with.
+
+**Reading:** in this state the conversion itself is steady, whatever comes before it. So a
+fault in the read sequence alone, including the 80 µs wait, doesn't explain the flip,
+though it could still need a condition this run didn't have. Low readings on this boot
+came with something active: at 32-42 s, during the Bluetooth audio soak, and at the end of
+a voice test. Radio load and screen state are the candidates, and the samples so far don't
+separate them.
