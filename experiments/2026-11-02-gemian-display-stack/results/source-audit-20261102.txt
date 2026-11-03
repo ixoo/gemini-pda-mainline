@@ -1,0 +1,138 @@
+# Gemian display stack source audit, 2026-11-02
+#
+# Read-only source audit. Public Gemian kernel and userspace revisions are
+# pinned below. Values are transcribed from the named files/symbols; no device
+# was accessed and no binary was executed.
+
+kernel_revision=d388d350cb2dda8f23b99be6fa5db9628896e87f
+lk_revision=f4988d74bb70a0a15d7f362f412afba7e7fcda46
+vendor_reference_revision=c5b0be85017ad0c599725e8273842efdbecdd88a
+userspace.xf86-video-hwcomposer=163cd71436416f4303a99c292aab85354f1f67f8
+userspace.xf86-video-hwcomposer.version=0.3.9+gemian1
+userspace.libhybris=9cbda6a9250530d73680cddbfbda29f267619b35
+userspace.glamor-hybris=6d369b94e8cc858587eb510af7bc97f6a3c1a453
+userspace.drihybris=d275fa5d57cb6a659da0a76a2d9a9e3eeee56b1a
+userspace.gemian-multistrap-config=a9646f2c2facaf991faa9cce6158245cb5dacbe7
+reference_docs_revision=0e299d6ed1ffad41deebd4d84a7cb5edfa5ea638
+
+# --- kernel configuration and selection ------------------------------------
+config.file=arch/arm64/configs/aeon6797_6m_n_hybris_defconfig
+config.custom_kernel_lcm=aeon_nt36672_fhd_dsi_vdo_x600_xinli
+config.mtk_fb=y
+config.mtk_cmdq=y
+config.mtk_ion=y
+config.mtk_gpu_support=y
+config.mtk_gpu_version="mali midgard r12p1"
+config.mtk_lcm_physical_rotation="90"
+config.note=no kernel consumer of MTK_LCM_PHYSICAL_ROTATION was found; the
+config value alone does not establish a kernel-side rotation.
+runtime.selected_lcm=aeon_nt36672_fhd_dsi_vdo_x600_xinli (retained sanitized capture)
+runtime.use_device_tree=0
+runtime.active_lcm_alternative_in_tree=r63419_wqhd_truly_phantom_2k_cmd_ok
+runtime.lcm_name_source=LK/chosen videolfb tag (mtkfb __parse_tag_videolfb)
+
+# --- LK boot handoff -------------------------------------------------------
+lk.target=lk/project/k97v1_64_bsp.mk
+lk.custom_lcm="aeon_nt36672_fhd_dsi_vdo_x600_xinli aeon_ssd2092_fhd_dsi_solomon"
+lk.tag=lk/platform/mt6797/atags.c struct tag_videolfb
+lk.tag_fields=fb_base,islcmfound,fps,vram,lcmname (no separate inited field)
+lk.kernel_tag_parse=mtkfb __parse_tag_videolfb sets is_lcm_inited=1 when the
+atag,videolfb tag exists
+lk.nt36672_compare=read page, read 0xDB/0xF4, expect 0x8070
+lk.ssd2092_compare=read 0xA1 x4, compare 0x01572098, but both branches return 1
+lk.selection=first matching LCM in target list; selected name reaches the kernel
+lk.identity_note=LK selection is a hint, not a proof; the kernel builds only
+NT36672 in the hybris config
+
+# --- panel/DSI contract ----------------------------------------------------
+lcm.file=drivers/misc/mediatek/lcm/aeon_nt36672_fhd_dsi_vdo_x600_xinli/aeon_nt36672_fhd_dsi_vdo_x600_xinli.c
+lcm.frame=1080x2160
+lcm.type=LCM_TYPE_DSI
+lcm.mode=BURST_VDO_MODE
+lcm.lanes=LCM_FOUR_LANE
+lcm.format=LCM_DSI_FORMAT_RGB888 / LCM_PACKED_PS_24BIT_RGB888
+lcm.vertical_timing=3/15/10/2160 (sync/back porch/front porch/active)
+lcm.horizontal_timing=10/42/42/1080 (sync/back porch/front porch/active)
+lcm.pll_clock_mhz=440
+lcm.ssc_disable=1
+lcm.clk_lp_per_line_enable=1
+lcm.esd_check=CMD 0x0A expected 0x9C
+lcm.init_tail=0x51=0xFF,0x53=0x24,0x55=0x00,0x36=0x03,0x11,0x29
+lcm.suspend=0x28,delay 50ms,0x10,delay 120ms
+lcm.reset_path=MMSYS minimal 0x150 (DISP_REG_CONFIG_MMSYS_LCM_RST_B)
+lcm.reset_pad=GPIO180 function LCM_RST (board pinctrl, not the active branch)
+lcm.bias_positive_gpio=60
+lcm.bias_negative_gpio=251
+lcm.bias_controller=I2C1 address 0x3E, downstream driver name lp3101
+lcm.bias_writes=register 0x00=0x0F, register 0x01=0x0F
+lcm.power_sequence=reset low; bias on; 20ms; LP3101 writes; reset high 10ms,
+low 10ms, high 20ms; init table
+lcm.power_note=no regulator consumer or panel-supply phandle in the vendor LCM
+
+# --- DSI host and display controller ---------------------------------------
+dsi.file=drivers/misc/mediatek/video/mt6797/dispsys/ddp_dsi.c
+dsi.data_rate_formula=PLL_CLOCK * 2 (dsi_params->PLL_CLOCK * 2)
+dsi.data_rate_at_440=880 Mbit/s per lane
+display.path=OVL0/OVL1 -> OVL0-2L -> OVL1-2L -> COLOR0 -> CCORR -> AAL ->
+GAMMA -> OD -> DITHER -> RDMA0 -> PATH0 -> UFOE -> DSI0
+display.ufoe_live=bypass (START=0x4)
+display.live_layer_format=0x010020ff (MT8173 encoding of ABGR8888)
+display.mutex=0x1401f000, SPI 202
+display.mutex_live_module_mask=0x05fcb400
+display.mutex_live_sof_eof=0x41 (DSI0 video mode)
+display.live_gate_rate=325 MHz
+display.dsi_live_rate=435 MHz
+display.fb=mtkfb, 1088x4320 virtual, 32 bpp, stride 4352 bytes, 2 pages
+display.fb_active=1080x2160
+display.fb_heap=ion_drv_create_FB_heap() publishes the framebuffer as an ION heap
+display.power_ioctl=MTKFB_POWEROFF -> primary_display_suspend();
+MTKFB_POWERON -> primary_display_resume()
+display.no_drm=vendor kernel uses fbdev mtkfb plus private MTKFB_* ioctls
+
+# --- backlight -------------------------------------------------------------
+backlight.dts=mediatek,lcd-backlight led_mode=5 (MT65XX_LED_MODE_CUST_BLS_PWM)
+backlight.callback=disp_bls_set_backlight -> disp_pwm_set_backlight(DISP_PWM0)
+backlight.pwm_base=0x1100f000
+backlight.internal_levels=10-bit (0..1023)
+backlight.sysfs=/sys/class/leds/lcd-backlight/brightness
+backlight.note=8-bit sysfs level is scaled to the internal 10-bit level
+
+# --- userspace -------------------------------------------------------------
+xorg.config=Driver "hwcomposer", DefaultDepth 24, Rotate commented out
+xorg.ddx=hwc_set_egl_platform: EGL_PLATFORM=hwcomposer (default)
+xorg.hwc_module=hw_get_module(HWC_HARDWARE_MODULE_ID) through libhybris
+xorg.minisf=hwc_start_fake_surfaceflinger loads libminisf.so when present
+xorg.egl=GLES2 renderer draws root texture and calls eglSwapBuffers
+xorg.buffer.format=HAL_PIXEL_FORMAT_RGBA_8888
+xorg.buffer.usage=GRALLOC_USAGE_HW_COMPOSER | GRALLOC_USAGE_HW_FB
+xorg.buffer.count=2
+xorg.present=fblayer->handle = buffer->handle; HWC prepare()/set()
+xorg.dpms=hwc_set_power_mode(PRIMARY, 1/0) -> HWC power/blank
+xorg.brightness=lights HAL LIGHT_ID_BACKLIGHT -> /sys/class/leds/lcd-backlight
+
+# --- GPU relationship ------------------------------------------------------
+gpu.node=arch/arm64/boot/dts/mt6797.dts mali@13040000
+gpu.compatibles=arm,malit860 / arm,mali-t86x / arm,malit8xx / arm,mali-midgard
+gpu.interrupts=GIC_SPI 264 JOB, 263 MMU, 262 GPU
+gpu.iommus=none
+gpu.driver=drivers/gpu/arm/mali (kbase) and
+drivers/misc/mediatek/gpu/gpu_mali/mali_midgard/mali-r12p1
+gpu.dma_buf_import=mali_kbase_mem_linux.c dma_buf_get()/dma_buf_attach()
+gpu.m4u_port=none (M4U port table has no GPU client; see vendor-kernel-abi.md)
+gpu.display_link=none; shared buffers and sync fences only
+gpu.performance_hint=GED (/proc/ged) frequency/VSync hints, not pixel routing
+
+# --- retained HAL identities (public hashes from the userspace inventory) ---
+hal.gralloc32=284766e8cb607f9efca69dd399b2abb5f60481f79ed5efdda0249a13d874b691
+hal.hwcomposer32=7d80da7c016104c3cff18846dfd2170a17c4b4548a8ed970ae5332a50292f273
+hal.gralloc64=29fb68a36eb098f86b5ddae1b0f265fae803b717445748c29f94c5376a7a082d
+hal.hwcomposer64=7994b769a4966a3060f18844fafad14939b53e3ddec073e3a32816bc8498a22c
+
+# --- limits ----------------------------------------------------------------
+limit.panel_identity=selected driver name only; no direct silicon read on the
+named unit; bsg100 unit SEEPROM names SSD2092
+limit.rotation=kernel scans portrait, UI landscape; rotation stage unresolved
+limit.refresh=requested 440 MHz and retained timings imply below 60 Hz; debug
+value 5405 not independently measured
+limit.hwc=HAL binary policy and exact module version not retained
+limit.runtime=no mainline panel/DRM runtime test

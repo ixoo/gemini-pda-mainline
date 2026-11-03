@@ -38,6 +38,7 @@ the experiments that support or challenge it.
 | [Vendor userspace](vendor-userspace.md) | Android HALs, services, libraries, compatibility bridges, and migration implications. |
 | [Firmware boundary](firmware.md) | Installed firmware evidence, licensing/redistribution limits, and protected exclusions. |
 | [Boot graphics](boot-graphics.md) | Retained LK logo-container format, complete slot geometry, Gemian Yamui splash, and modification safety boundary. |
+| [Display and panel path](display-panel.md) | Panel/DSI contract, MMSYS/DDP route, fbdev and vendor HWC userspace path, backlight, and the GPU's renderer-only relationship to the panel. |
 | [Partition backup boundary](partition-backup.md) | Safe private capture policy, checksums, naming, permissions, and non-public raw state. |
 
 ## Documentation assessments

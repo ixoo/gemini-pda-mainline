@@ -10,7 +10,8 @@ modified image has been accepted by hardware.
 The detailed read-only investigation, rejected dimension interpretations, and
 sanitized metadata are in the
 [`2026-08-31-boot-graphics-recovery`](../../experiments/2026-08-31-boot-graphics-recovery/README.md)
-experiment.
+experiment. The later runtime display path is in
+[display and panel path](display-panel.md).
 
 ## Boot-stage ownership
 
