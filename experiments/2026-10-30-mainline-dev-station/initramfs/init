@@ -71,6 +71,8 @@ done
 if LD_LIBRARY_PATH=/lib /bin/iw reg set US; then status reg=US; else status reg=set-failed; fi
 # Audio, quiet until a stream runs.
 status "audio=$(/bin/audio-start)"
+# A fixed console cursor: the flag is fbcon's own, so it stays through the handover.
+$bb echo 0 >/sys/class/graphics/fbcon/cursor_blink
 # The native display, in the background so a stuck load can't hold SSH back. A marker
 # left by a load that never finished, or the no-native-display file, leaves simplefb,
 # so a hang costs one power cycle.
