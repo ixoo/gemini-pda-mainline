@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `running`: G1 and G2 passed on the device; G3-G6 not run, held for the owner's decision on charging above 80 % |
+| Status | `completed`: G1-G6 passed on the device, with the temperature stop shown by emulation and no charge current measured |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -62,7 +62,9 @@ duplicate this one and leave nowhere for later current control or charger status
   `linux,guard-battery`: a 10 s work item with `charge-guard`'s decisions.
 - [0520](../../patches/proposals/0520-arm64-dts-mediatek-gemini-station-guard-charging-fro.patch):
   the board node and the battery's limits.
-- Fragment: `CHARGER_BQ25890=y`, and `THERMAL_EMULATION=y` for the test only.
+- Fragment: `CHARGER_BQ25890=y`, and `THERMAL_EMULATION=y` for testing. It stays for
+  now: the [GPU test's `COOL` mode](../2026-11-02-mali-t880-first-job/gpu-test.sh)
+  uses it too.
 - Station alarm: `init` records `charge-guard=bound` or `charge-guard=MISSING` in
   `/run/station/status`, and logs `MISSING` to the kernel log.
 - RAM root: `charge-guard` is out, and `power-status` uses `I2C_SLAVE_FORCE`, since
@@ -146,7 +148,8 @@ In the VM, on the station series, with no device:
 - The station DTB carries the charger node and the battery limits.
 - 0517-0519 also apply on top of the C2b patches, as in the full `patches/series`.
 
-On the device: see [G1 and G2](#g1-and-g2-boot-7197708f).
+On the device: see [G1 and G2](#g1-and-g2-boot-7197708f) and
+[G3-G6](#g1-g6-boot-7197708f).
 
 ## Device plan (predeclared)
 
@@ -263,3 +266,81 @@ returns the defaults. `charge-guard` started at about 2 s, so this probably isn'
 I didn't compare it. At a normal resume, at 75 %, the cell is well below both voltages.
 It matters for testing: on `charger-g.sh`, G3 runs first and returns the defaults, so
 later steps charge at 4.208 V.
+
+### G1-G6, boot `7197708f…`
+
+The owner approved charging above 80 % for G3-G6. The same boot and image as above, about
+10.5 hours after boot, run by the custodian with `charger-g.sh` `bfccb244…`, cable in.
+`lid-guard` had been swapped live, which doesn't touch the charger. Result `all passed`,
+tainted 0, no oops and no `guard cannot reach` in `dmesg`. The raw output stays private.
+
+| Step | What was done | REG03 and `status` | Result |
+| --- | --- | --- | --- |
+| G1 again | Read-only, with a real process check | `0x0a`, Not charging | no `charge-guard` process; limits and thresholds as before |
+| G2 again | 9 samples over 160 s, capacity 91-92 | `0x0a` at all, Not charging | stop held |
+| G3 | Driver unbound at 38005.6 s | `0x0a` to 38035.66 s, `0x1a` at 38045.67 s | watchdog restored `CHG_CONFIG` 30-40 s after the unbind |
+| G3 | Driver bound again | `0x0a`, first pass logs `full` | stopped again |
+| G4 | Limit 100, capacity 92 | `0x1a`, Full | resumes |
+| G4 | Limit 50 | `0x0a`, Not charging | stops, `full` |
+| G4 | Limit 94, in the hysteresis band | `0x0a`, Not charging | holds |
+| G4 | Limit 97, at the resume point | `0x1a`, Full | resumes |
+| G4 | Limit 50, then 49 and 101 | `0x0a`, Not charging | stops; both refused with `EINVAL` |
+| G5 | Limit 100, emulated 52 °C | `0x0a`, Not charging | stops, `hot` |
+| G5 | Emulated 48 °C | `0x0a`, Not charging | holds |
+| G5 | Emulated 46 °C | `0x1a`, Full | resumes |
+| G5 | Emulated −20 °C | `0x0a`, Not charging | stops, `hot`, the open NTC clamp |
+| G5 | Emulation off, 23.7 °C | `0x1a`, Full | resumes |
+| G6 | Limit 100, gauge unbound | `0x0a`, Not charging | stops, `temp=-2147483648 capacity=-1 hot` |
+| G6 | Gauge bound again | `0x1a`, Full | resumes |
+| Restore | Limit 80, no emulation, both drivers bound | `0x0a`, Not charging | stopped, `full`, still so at 38277 s |
+
+**Reading:** with no daemon, the kernel stops and resumes charging on temperature and
+capacity, with the hysteresis on both, and holds the stop past the chip's watchdog. G3 is
+the control the earlier reading lacked: without the driver the stop ends, so the driver's
+kicks were what held it.
+
+**The stuck `hot` question from G1 and G2:** G6 gave the rebound driver the same input as
+the first pass at boot, no battery supply, and `hot` cleared as soon as the gauge came
+back. The driver instance from boot itself was unbound in G3 without having been shown to
+clear it.
+
+**Time enabled:** about 87 s across six windows in the guard's log, plus at most 10 s from
+the watchdog in G3, against the 4 minutes budgeted. `status` read Full at every enabled
+sample. The custodian read the cell at 4.261 V before and 4.263 V after, and capacity at
+92 both times. The chip's defaults were back afterwards, REG06 `0x5e`, 4.208 V, against
+`0x82` at G1, read only at those two points. The voltages and this second REG06 read come
+from the custodian's report, not the retained files.
+
+**Capacity moved with emulated temperature:** 91 at emulated 46-52 °C and 94 at −20 °C,
+against 92 at 23.7 °C. The gauge takes capacity from the OCV table nearest the temperature,
+so emulation changes the table used. This was expected in the plan, and it crossed no
+threshold here. A real battery crossing a table's boundary would step the same way, by an
+unmeasured amount near 80 %. It could move a stop or a resume by a point or two, inside the
+5-point hysteresis, and capacity is the longevity limit, not the safety stop.
+
+The plan expected capacity to read about 3 points lower with the charger on. It didn't,
+which fits no current flowing here.
+
+**What this doesn't show:**
+- **That charge flows after a resume.** "Resumes" here means `CHG_CONFIG` set. The cell
+  sits above the chip's 4.208 V regulation and the chip reported Full, so these windows
+  probably put nothing in. Charge current wasn't measured.
+- **A real charge reaching 80 %, or a real fall to 75 %.** Capacity stayed at 91-94, and
+  the limit moved around it. The comparison is the same, but the path of a real charge
+  hasn't run on this kernel.
+- **Ending the bootloader's disabled state at boot.** This boot started above the limit. So
+  the first resume at 4.352 V described above hasn't run either.
+- **A real 50 °C.** The guard saw emulated values through the thermal zone. The real NTC
+  path was read only at room temperature.
+- **An unreadable capacity alone.** With the gauge gone both readings fail, and temperature
+  decides.
+- **The failure paths:** an ADC read failure, a charger I2C failure, the probe retry and the
+  `MISSING` alarm firing.
+- **The reason-change log line in 0519.** It's on main for the next image, compile-checked
+  only. This image logged `hot` and `full` on each stop, but no line for a change of reason
+  while stopped.
+- **Suspend**, which the station doesn't have.
+
+`CONFIG_THERMAL_EMULATION` stays in the station fragment, despite the earlier plan to drop
+it after G5, while the GPU test depends on it. Any root process can already set
+`emul_temp`, which feeds this guard.

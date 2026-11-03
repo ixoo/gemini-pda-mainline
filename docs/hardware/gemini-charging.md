@@ -181,9 +181,11 @@ thermally constrained subsystem.
 - the same guard stops charging at a capacity limit from the fuel gauge, 80 %
   by default and set in `charge_control_end_threshold`, resuming 5 points
   lower. This is a longevity policy, not a safety stop.
-- shown on the device so far: the guard binds at boot and holds charging off
-  above the limit, past the chip's watchdog. A stop at either limit and a
-  resume are not yet shown on this kernel.
+- shown on the device: the guard binds at boot, holds charging off past the
+  chip's watchdog, stops and resumes on the limit and its hysteresis, on an
+  emulated 50/47 °C and on an unreadable battery, and the watchdog restores
+  charging 30-40 s after the driver goes. Not shown: a real 50 °C, charge current
+  after a resume, or a real charge reaching the limit.
 
 Gates 2 and 3 are not implemented. The 500 mA SDP input limit bounds the
 current meanwhile.
