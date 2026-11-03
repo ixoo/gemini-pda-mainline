@@ -1,0 +1,29 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 17:39:27 -0500
+Subject: [PATCH] Bluetooth: btmt6797: don't ask for the MWS transport
+ configuration
+
+The controller lists Get MWS Transport Layer Configuration among its supported
+commands, then refuses it with status 0x02, which fails the core's init. Gemian's
+3.18 core drops this command for the same reason, with a comment that the chip
+misbehaves. Nothing uses MWS here.
+---
+ drivers/bluetooth/btmt6797.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/bluetooth/btmt6797.c b/drivers/bluetooth/btmt6797.c
+index 68bf9e201..3559f4f95 100644
+--- a/drivers/bluetooth/btmt6797.c
++++ b/drivers/bluetooth/btmt6797.c
+@@ -211,6 +211,7 @@ static int btmt6797_probe(struct platform_device *pdev)
+ 	hdev->set_bdaddr = btmt6797_set_bdaddr;
+ 	hci_set_quirk(hdev, HCI_QUIRK_NON_PERSISTENT_SETUP);
+ 	hci_set_quirk(hdev, HCI_QUIRK_RESET_ON_CLOSE);
++	hci_set_quirk(hdev, HCI_QUIRK_BROKEN_MWS_TRANSPORT_CONFIG);
+ 	platform_set_drvdata(pdev, bt);
+ 	ret = hci_register_dev(hdev);
+ 	if (ret < 0)
+-- 
+2.43.0
+

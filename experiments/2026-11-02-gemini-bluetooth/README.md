@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `running`: T1 reached the controller next to a running Wi-Fi, and `hci0` did not come up: the core's LE init is refused. Fix built on that result; no audio yet |
+| Status | `running`: T1 and T1b reached the controller, and `hci0` did not come up: the core's init is refused at two commands. Two fixes followed; no audio yet |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -154,3 +154,28 @@ to one headset, and pairing keys are tied to it. The standard fix is
 `HCI_QUIRK_INVALID_BDADDR` plus a privately kept address set with `btmgmt public-addr`,
 or a `local-bd-address` in a private device tree. The owner decides at T2 whether to
 transmit with the placeholder for this first test.
+
+## T1b result: LE gone, refused at MWS (2026-11-03)
+
+Same boot, by the custodian's judgment within the owner's T1 go-ahead, with
+`btmt6797.ko` `24180242…`. Private evidence under
+`artifacts/station-work-40/boot-7197708f/bt-t1b/`. **Wi-Fi was not up:** `wlan0` would
+not come back up after T1's teardown (`Operation not supported`), so this run says
+nothing about concurrent operation. Whether Bluetooth played a part is not
+established. The code reads as if taking `wlan0` down closes it until `mac` reloads.
+
+**Observed on all four opens:** no LE command, so 0523 does what it says. Init reaches
+`0x140c`, Get MWS Transport Layer Configuration, which returns status `0x02`, so
+`hciconfig up` fails. The link is healthy as in T1: `failed=0`, no assert, no call trace.
+
+**Read from public source:** Gemian's 3.18 `hci_core.c` has this exact command under
+`#if 0`, with a note that it fails the whole init because of the chip. So it is the
+chip, not a state we failed to set.
+[0524](../../patches/proposals/0524-Bluetooth-btmt6797-don-t-ask-for-the-MWS-transport-c.patch)
+sets the core's existing quirk for it.
+
+**For later LE work, inferred:** that same core's LE mask is `0x0f` plus LTK and
+connection parameters, with nothing above `0x20`. The refused mask `d0 07` adds the
+P-256, DHKey, enhanced-connection and direct-advertising events. So the refusal probably
+concerns one of those, and the base LE events may be fine.
+

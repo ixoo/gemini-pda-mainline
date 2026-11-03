@@ -690,3 +690,4 @@ proposals/0520-arm64-dts-mediatek-gemini-station-guard-charging-fro.patch
 proposals/0521-fbcon-keep-a-blanked-console-blanked-when-taking-ove.patch
 proposals/0522-input-gemini-lid-always-leave-the-display-on-when-un.patch
 proposals/0523-Bluetooth-btmt6797-keep-the-core-off-LE.patch
+proposals/0524-Bluetooth-btmt6797-don-t-ask-for-the-MWS-transport-c.patch
