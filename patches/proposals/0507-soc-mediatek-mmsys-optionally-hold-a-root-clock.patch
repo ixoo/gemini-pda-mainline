@@ -1,0 +1,82 @@
+From f4f690e5a6514f93e22839c2db47111533a5205e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 21:08:59 -0500
+Subject: [PATCH] soc: mediatek: mmsys: optionally hold a root clock
+
+On MT6797 only the loader's simple framebuffer holds the MM root clock. A DRM
+driver binding unregisters that framebuffer, and with the display off nothing
+then holds the root, while reading a gate's state reads MMSYS registers that
+need it. Take an optional clock at probe, and give the Gemini's station tree the
+MM root.
+---
+ .../bindings/arm/mediatek/mediatek,mmsys.yaml         |  5 +++++
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts   |  4 ++++
+ drivers/soc/mediatek/mtk-mmsys.c                      | 11 +++++++++++
+ 3 files changed, 20 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/arm/mediatek/mediatek,mmsys.yaml b/Documentation/devicetree/bindings/arm/mediatek/mediatek,mmsys.yaml
+index 3f4262e93..e30675a45 100644
+--- a/Documentation/devicetree/bindings/arm/mediatek/mediatek,mmsys.yaml
++++ b/Documentation/devicetree/bindings/arm/mediatek/mediatek,mmsys.yaml
+@@ -62,6 +62,11 @@ properties:
+   reg:
+     maxItems: 1
+ 
++  clocks:
++    maxItems: 1
++    description:
++      Root clock the MMSYS registers need, where no other consumer holds it.
++
+   power-domains:
+     description:
+       A phandle and PM domain specifier as defined by bindings
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 6c422bf02..5d2452f14 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -357,6 +357,10 @@ &gpu {
+  * no driver and stay in bypass, so the pipeline scans physical CMA buffers. The
+  * panel names no reset line or supply, because the driver adopts it as is.
+  */
++&mmsys {
++	clocks = <&topckgen CLK_TOP_MUX_MM>;
++};
++
+ &mutex {
+ 	/delete-property/ power-domains;
+ };
+diff --git a/drivers/soc/mediatek/mtk-mmsys.c b/drivers/soc/mediatek/mtk-mmsys.c
+index 77a35ac17..480e327b8 100644
+--- a/drivers/soc/mediatek/mtk-mmsys.c
++++ b/drivers/soc/mediatek/mtk-mmsys.c
+@@ -4,6 +4,7 @@
+  * Author: James Liao <jamesjj.liao@mediatek.com>
+  */
+ 
++#include <linux/clk.h>
+ #include <linux/delay.h>
+ #include <linux/device.h>
+ #include <linux/io.h>
+@@ -395,12 +396,22 @@ static int mtk_mmsys_probe(struct platform_device *pdev)
+ 	struct platform_device *clks;
+ 	struct platform_device *drm;
+ 	struct mtk_mmsys *mmsys;
++	struct clk *root;
+ 	int ret;
+ 
+ 	mmsys = devm_kzalloc(dev, sizeof(*mmsys), GFP_KERNEL);
+ 	if (!mmsys)
+ 		return -ENOMEM;
+ 
++	/*
++	 * An optional root clock the MMSYS registers need. Nothing else holds it
++	 * once the loader's framebuffer is unregistered, and its gates are read
++	 * through these registers.
++	 */
++	root = devm_clk_get_optional_enabled(dev, NULL);
++	if (IS_ERR(root))
++		return dev_err_probe(dev, PTR_ERR(root), "Failed to get root clock\n");
++
+ 	mmsys->regs = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(mmsys->regs)) {
+ 		ret = PTR_ERR(mmsys->regs);

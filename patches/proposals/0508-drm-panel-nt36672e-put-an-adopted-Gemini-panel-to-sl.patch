@@ -1,0 +1,90 @@
+From 93918707f5c0dbf52c23ff991c5041cb0ae662c8 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 21:08:59 -0500
+Subject: [PATCH] drm/panel: nt36672e: put an adopted Gemini panel to sleep
+ when it goes off
+
+With the output off, an adopted panel was left initialised and display-on with
+no signal, for as long as the console stays blanked. Send it the vendor's suspend,
+display-off then sleep-in with the same delays, and bring it back with sleep-out
+and display-on. The vendor powers the panel down and runs the full table on resume
+instead, because it owns the rails. This keeps them as the loader left them, and is
+to be tested as such.
+
+Decide from the panel's own power mode, which also leaves the loader's first frame
+with no write at all.
+---
+ .../gpu/drm/panel/panel-novatek-nt36672e.c    | 45 ++++++++++++++++++-
+ 1 file changed, 43 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+index 77937de61..3aff5ae83 100644
+--- a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
++++ b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+@@ -776,6 +776,43 @@ static void nt36672e_log_identity(struct nt36672e_panel *ctx)
+ 	}
+ }
+ 
++/*
++ * An adopted panel keeps its power and init from the loader, so all it can be
++ * asked is to sleep and wake. The panel's own state says which it needs, and that
++ * survives this module: on the loader's first frame it is awake, and nothing is
++ * sent.
++ */
++static int nt36672e_adopted_wake(struct nt36672e_panel *ctx)
++{
++	struct mipi_dsi_device *dsi = ctx->dsi;
++	struct mipi_dsi_multi_context mctx = { .dsi = dsi };
++	u8 mode = 0;
++	int ret;
++
++	ret = mipi_dsi_dcs_get_power_mode(dsi, &mode);
++	dev_info(&dsi->dev, "power mode read %d: 0x%02x\n", ret, mode);
++	/* DCS get_power_mode bit 4 is sleep-out; the running panel reads 0x9c. */
++	if (!ret && (mode & BIT(4)))
++		return 0;
++
++	mipi_dsi_dcs_exit_sleep_mode_multi(&mctx);
++	mipi_dsi_msleep(&mctx, ctx->desc->exit_sleep_delay_ms);
++	mipi_dsi_dcs_set_display_on_multi(&mctx);
++	mipi_dsi_msleep(&mctx, ctx->desc->display_on_delay_ms);
++	return mctx.accum_err;
++}
++
++static int nt36672e_adopted_sleep(struct nt36672e_panel *ctx)
++{
++	struct mipi_dsi_multi_context mctx = { .dsi = ctx->dsi };
++
++	mipi_dsi_dcs_set_display_off_multi(&mctx);
++	mipi_dsi_msleep(&mctx, ctx->desc->display_off_delay_ms);
++	mipi_dsi_dcs_enter_sleep_mode_multi(&mctx);
++	mipi_dsi_msleep(&mctx, ctx->desc->sleep_in_delay_ms);
++	return mctx.accum_err;
++}
++
+ static int nt36672e_panel_prepare(struct drm_panel *panel)
+ {
+ 	struct nt36672e_panel *ctx = to_nt36672e_panel(panel);
+@@ -785,7 +822,7 @@ static int nt36672e_panel_prepare(struct drm_panel *panel)
+ 	if (ctx->adopted) {
+ 		if (read_identity)
+ 			nt36672e_log_identity(ctx);
+-		return 0;
++		return nt36672e_adopted_wake(ctx);
+ 	}
+ 
+ 	ret = nt36672e_power_on(ctx);
+@@ -808,8 +845,12 @@ static int nt36672e_panel_unprepare(struct drm_panel *panel)
+ 	struct mipi_dsi_device *dsi = ctx->dsi;
+ 	int ret;
+ 
+-	if (ctx->adopted)
++	if (ctx->adopted) {
++		ret = nt36672e_adopted_sleep(ctx);
++		if (ret)
++			dev_err(&dsi->dev, "sleep failed: %d\n", ret);
+ 		return 0;
++	}
+ 
+ 	nt36672e_off(ctx);
+ 

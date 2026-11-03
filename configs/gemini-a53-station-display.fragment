@@ -13,3 +13,7 @@ CONFIG_DRM_PANEL_NOVATEK_NT36672E=m
 # CONFIG_MTK_SMI is not set
 # CONFIG_MTK_IOMMU is not set
 # CONFIG_MTK_CMDQ is not set
+# The console on the native path, when the module loads: binding unregisters
+# simplefb and fbcon moves to the DRM framebuffer. Adds the fbdev helper code to the
+# image; nothing changes until mediatek-drm is loaded.
+CONFIG_DRM_FBDEV_EMULATION=y

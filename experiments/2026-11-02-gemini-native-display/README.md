@@ -141,7 +141,7 @@ Each is a separate custodian request, with its own decision table.
 | T1 | Load the modules with `keep_firmware_fb`. RDMA interrupt writes. No modeset | Binding leaves the console running |
 | T2 | First modeset, PHY and link restart, one frame. Done: it does | Whether the panel takes the restarted link |
 | T3 | Teardown by unload, second modeset with DCS reads in command mode, one frame. Done: it recovers | Whether teardown recovers, panel identity on this unit, colour order |
-| T4 | `fbcon` on the native path | Drop `simplefb` as the console |
+| T4 | `fbcon` on the native path, blank and wake, a master taking over, reload | Whether the console can leave `simplefb` |
 | T5 | Panfrost renders, the pipeline scans out. Done | The goal: GPU frames on the panel |
 | T6 | Bias, reset, full init table, once its preconditions are read | The panel's own power, so Linux owns it from cold |
 
@@ -158,6 +158,7 @@ T6 needs its own evidence first: the bias chip's readback and how to drive
 - [`display-t5.sh`](display-t5.sh) and [`gpu-scanout.c`](gpu-scanout.c): the GPU renders
   into display buffers through dma-buf, and the display flips them. Build as
   `gpu-gles` in [`build-mesa.sh`](../2026-11-02-mali-t880-first-job/build-mesa.sh), adding `-lm`.
+- [`display-t4.sh`](display-t4.sh): console on the native path.
 - [`kms-frame.c`](kms-frame.c): sets the first output to a test frame, measures flips.
   `aarch64-linux-gnu-gcc -O2 -static -o kms-frame kms-frame.c`.
 - Patches [0495](../../patches/proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch)
@@ -279,8 +280,28 @@ Not shown, and what stands in the way of Linux owning the display:
 T0 above is the only device run. The driver patches are compile-checked only: `W=1`
 on the changed DRM and panel objects in the VM gives no warning.
 
+## T4: the console on the native path
+
+Owner's direction: native console next. Reading the code first found two things the
+frame tests did not reach:
+
+- **The MM root clock.** Binding without `keep_firmware_fb` unregisters `simplefb`, the
+  only holder of `mm_sel`. With the display off the root would close, and the gate check
+  in [0503](../../patches/proposals/0503-drm-mediatek-quiesce-OVL-and-RDMA-interrupts-only-be.patch)
+  reads MMSYS registers that need it. So MMSYS now holds it
+  ([0507](../../patches/proposals/0507-soc-mediatek-mmsys-optionally-hold-a-root-clock.patch)),
+  the state T3 passed in.
+- **Blanking.** The station blanks the console after two idle minutes, which `simplefb`
+  ignored and only `lid-guard` acted on. Under DRM it turns the output off. An adopted
+  panel would stay initialised and display-on with no signal for as long as the blank
+  lasts. [0508](../../patches/proposals/0508-drm-panel-nt36672e-put-an-adopted-Gemini-panel-to-sl.patch)
+  sends the vendor's `0x28`, 50 ms, `0x10`, 120 ms, and on the way back `0x11`, 120 ms,
+  `0x29`, 10 ms, decided from the panel's own power mode. These are the first panel
+  writes from Linux. Read: the vendor's suspend and delays. Inferred, new to this panel:
+  waking with no reset or table. The vendor always runs the full sequence on resume.
+
 ## Follow-up
 
-The next stages, T4 and T6, are not started. Durable facts are in
+T4 is written and not run. T6 is not started. Durable facts are in
 [display and panel](../../docs/hardware/display-panel.md) and demonstrated support in
 [HARDWARE_SUPPORT](../../docs/HARDWARE_SUPPORT.md).

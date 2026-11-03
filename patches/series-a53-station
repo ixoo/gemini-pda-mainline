@@ -674,3 +674,5 @@ proposals/0503-drm-mediatek-quiesce-OVL-and-RDMA-interrupts-only-be.patch
 proposals/0504-drm-mediatek-recognise-the-MT6797-display-mutex.patch
 proposals/0505-clk-mediatek-find-the-clock-description-on-remove-wi.patch
 proposals/0506-drm-panel-nt36672e-don-t-detach-twice-when-the-host.patch
+proposals/0507-soc-mediatek-mmsys-optionally-hold-a-root-clock.patch
+proposals/0508-drm-panel-nt36672e-put-an-adopted-Gemini-panel-to-sl.patch
