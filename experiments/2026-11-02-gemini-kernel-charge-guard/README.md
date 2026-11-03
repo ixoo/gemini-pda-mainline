@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `completed`: G1-G6 passed on the device, with the temperature stop shown by emulation and no charge current measured |
+| Status | `running`: G1-G6 passed on the device, but the battery temperature the guard reads can flip about 9 °C low; cause open |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -344,3 +344,62 @@ which fits no current flowing here.
 `CONFIG_THERMAL_EMULATION` stays in the station fragment, despite the earlier plan to drop
 it after G5, while the GPU test depends on it. Any root process can already set
 `emul_temp`, which feeds this guard.
+
+## Open: the battery reading flips
+
+Found by the custodian on boot `64622312…`, during a Bluetooth soak: `battery/temp` moved
+between about 24.4 and 15.4 °C over samples 13 s apart, with the SoC at 27.8 to 29.6 °C.
+No device step has run for this yet.
+
+**Observed in retained output from earlier boots:**
+
+| Boot | Readings |
+| --- | --- |
+| `4ac95e75…`, 2026-11-01 | 15 of 20 zone and gauge pairs low, 15.4-15.8 °C; 4 pairs with the zone at 15.8 and the gauge at 25.0-25.1 °C |
+| `7dd24578…` | at `init`, the zone 15.8 °C and the gauge 25.1 °C; 25.4 °C at 47 s |
+| `04cc38ee…` | at `init`, 11.5 °C; 20.1 °C later in the same start-up, SoC 21.4 °C |
+| `64622312…` | as above |
+
+So it isn't specific to one boot, and it predates this guard and Bluetooth: the first two
+boots ran the `charge-guard` daemon. The pairs are read a few milliseconds apart, so the
+battery can't have changed temperature between them.
+
+`7197708f…` looked steady, but that is weak evidence. `charger-g.sh` reads `capacity`
+just before `temp`, and `capacity` itself makes a pack voltage and a battery conversion.
+All its samples follow other conversions. The low pairs show the first read of a pair is
+sometimes the low one, though not always.
+
+**Inference:**
+- The high value is the true one. It agrees with the SoC and the earlier boots.
+- The low value is about 246 ADC codes higher on the NTC divider, about 216 mV at the node.
+  It stays about the same size at the one other temperature seen, which is two samples.
+- Bit errors don't fit, as the gap isn't a power of two and varies by a few codes.
+
+**What it would do to the protection,** if the same offset held when hot, which isn't
+measured:
+
+| True temperature | Reads, as a fixed voltage offset | Reads, as a fixed injected current |
+| --- | --- | --- |
+| 47 °C | 33 °C | 39 °C |
+| 50 °C | 35 °C | 42 °C |
+| 60 °C | 41 °C | 52 °C |
+
+The gap is larger than the 9 °C seen at room temperature, because the NTC's curve flattens
+when hot. Then:
+- **The guard:** a true reading at 50 °C stops charging, and the next low reading, under
+  47 °C, resumes it. A run of low readings stops it late. This is the unsafe direction.
+- **The 60 °C trip:** it fires only on a reading that isn't low, so a run of low readings
+  delays it.
+- **No false stop:** low readings stay far above −20 °C at room temperature.
+- **Capacity:** a reading below 12.5 °C selects the 0 °C OCV table, which moves it a little.
+
+**Not known:** the cause, and whether it happens with the battery hot. One lead: the
+driver waits 80 µs before it checks the ready bit, while the vendor polls at 1.3 ms, so a
+ready bit left from the last conversion could return an old result. That alone wouldn't
+explain where a low value first comes from. Other candidates are a pad or VBIF28 state,
+and another ADC requester. The next step is a read-only sample: back-to-back reads, first
+read after idle, after a voltage conversion, the result register alone, and the control
+registers in both states.
+
+G1-G6 still stand as tests of the guard's decisions, since their temperatures were true
+readings or emulation. This is about the input.
