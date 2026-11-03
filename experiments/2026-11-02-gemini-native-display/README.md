@@ -103,10 +103,10 @@ Three bugs stopped it there:
 - Unload oopsed in `__mtk_clk_simple_remove`, an upstream gap: remove lacks probe's
   fallback for drivers registered without a DT match. It left that boot's `mtk-mmsys`
   stuck and the kernel tainted. Fixed by
-  [0505](../../patches/proposals/0505-clk-mediatek-find-the-clock-description-on-remove.patch),
+  [0505](../../patches/proposals/0505-clk-mediatek-find-the-clock-description-on-remove-wi.patch),
   built-in code, so it needs an image.
 - A WARN in `mipi_dsi_detach` when the host unloads first, fixed by
-  [0506](../../patches/proposals/0506-drm-panel-nt36672e-don-t-detach-twice-when-the-hos.patch).
+  [0506](../../patches/proposals/0506-drm-panel-nt36672e-don-t-detach-twice-when-the-host.patch).
 
 The script's rc hid the failed unload, so it now exits non-zero on one.
 
