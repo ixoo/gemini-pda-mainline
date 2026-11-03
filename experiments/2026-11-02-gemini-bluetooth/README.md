@@ -87,5 +87,6 @@ bridge in userspace.
 | `btmt6797.o`, `mt6797-consys.o` in the dev VM, W=1, station configuration | no warnings |
 | `checkpatch --strict` on both patches | only the MAINTAINERS note and the line length of commit text |
 | [H:4 fixture](../2026-10-06-mt6797-bt-hci-design/test-bt-h4.c) on the header with the new 2048-byte buffer, ASan and UBSan | passes |
-| Resolved configuration against package `27f7a9b2` | differs only by `BT`, `BT_BREDR`, `BT_LE`, `BT_LE_L2CAP_ECRED`, `BT_DEBUGFS`, `BT_RFCOMM`, `BT_MT6797`, plus compiler identification |
+| Resolved configuration against package `27f7a9b2` | differs only by `BT`, `BT_BREDR`, `BT_LE`, `BT_LE_L2CAP_ECRED`, `BT_RFCOMM`, `BT_MT6797`, plus compiler identification |
+| Buildbox package `27dd9299` (inventory `c4259df0…`), Buildbox-3 | validated; Gemini DTB identical to `27f7a9b2`; every symbol `bluetooth.ko` needs is exported by the running image |
 | On the device | nothing yet |
