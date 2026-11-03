@@ -11,7 +11,7 @@ rd() { busybox devmem "$1" 32; }
 irqs() { awk '/BTCVSD/ { n = 0; for (i = 2; i <= NF && $i ~ /^[0-9]+$/; i++) n += $i; print n }' /proc/interrupts; }
 regs() { echo "$1 r=$(rd 0x18000fd0) w=$(rd 0x18000fd4) ctl=$(rd 0x18000fd8) irqs=$(irqs)"; }
 regs before
-insmod $D/snd-soc-btcvsd.ko; echo "insmod driver=$?"
+insmod $D/mtk-btcvsd.ko; echo "insmod driver=$?"
 insmod $D/mt6797-btcvsd.ko; echo "insmod card=$?"
 sleep 1
 grep -i btcvsd /proc/asound/cards || { echo "no card"; exit 1; }
@@ -35,5 +35,5 @@ regs ended
 in_root amixer -q -c "$card" cset 'name=BTCVSD Loopback Switch' off; echo "loopback off=$?"
 regs off
 rmmod mt6797_btcvsd; echo "rmmod card=$?"
-rmmod snd_soc_btcvsd; echo "rmmod driver=$?"
+rmmod mtk_btcvsd; echo "rmmod driver=$?"
 regs unloaded
