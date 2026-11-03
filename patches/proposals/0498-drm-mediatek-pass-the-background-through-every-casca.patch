@@ -1,0 +1,36 @@
+From cf36d723190e79ebd93e3822ea1bc78bef3bf916 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:15:29 -0500
+Subject: [PATCH] drm/mediatek: pass the background through every cascaded OVL
+
+MT6797 cascades three overlays: OVL0, OVL0-2L and OVL1-2L. Only the second
+component gets background input, so the third would replace the first two's
+output with its own constant background. Both two-layer overlays read back
+with the background-input bit set on a running panel. Components without the
+hook ignore the call.
+---
+ drivers/gpu/drm/mediatek/mtk_crtc.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_crtc.c b/drivers/gpu/drm/mediatek/mtk_crtc.c
+index fcb16f3f7..0b6b81cf7 100644
+--- a/drivers/gpu/drm/mediatek/mtk_crtc.c
++++ b/drivers/gpu/drm/mediatek/mtk_crtc.c
+@@ -405,7 +405,7 @@ static int mtk_crtc_ddp_hw_init(struct mtk_crtc *mtk_crtc)
+ 	for (i = 0; i < mtk_crtc->ddp_comp_nr; i++) {
+ 		struct mtk_ddp_comp *comp = mtk_crtc->ddp_comp[i];
+ 
+-		if (i == 1)
++		if (i)
+ 			mtk_ddp_comp_bgclr_in_on(comp);
+ 
+ 		mtk_ddp_comp_config(comp, width, height, vrefresh, bpc, NULL);
+@@ -447,7 +447,7 @@ static void mtk_crtc_ddp_hw_fini(struct mtk_crtc *mtk_crtc)
+ 
+ 	for (i = 0; i < mtk_crtc->ddp_comp_nr; i++) {
+ 		mtk_ddp_comp_stop(mtk_crtc->ddp_comp[i]);
+-		if (i == 1)
++		if (i)
+ 			mtk_ddp_comp_bgclr_in_off(mtk_crtc->ddp_comp[i]);
+ 	}
+ 

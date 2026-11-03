@@ -1,0 +1,47 @@
+From c7642d0aed9b5790a0beef81cc54710beb14e863 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:15:29 -0500
+Subject: [PATCH] drm/mediatek: optionally leave the firmware framebuffer in
+ place
+
+Binding removes a firmware framebuffer before anything has touched the
+display, and the driver cannot bring it back when it unloads. While the
+pipeline is being brought up from a module on a device whose only local
+console is that framebuffer, a bind test would cost the console until the next
+boot. Add an off-by-default parameter that leaves it registered. Bring-up only;
+not for upstream.
+---
+ drivers/gpu/drm/mediatek/mtk_drm_drv.c | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_drm_drv.c b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+index 87f9af6d4..7d0237fb5 100644
+--- a/drivers/gpu/drm/mediatek/mtk_drm_drv.c
++++ b/drivers/gpu/drm/mediatek/mtk_drm_drv.c
+@@ -637,6 +637,11 @@ static const struct drm_driver mtk_drm_driver = {
+ 	.minor = DRIVER_MINOR,
+ };
+ 
++static bool keep_firmware_fb;
++module_param(keep_firmware_fb, bool, 0444);
++MODULE_PARM_DESC(keep_firmware_fb,
++		 "Leave a firmware framebuffer registered when binding (bring-up)");
++
+ static int compare_dev(struct device *dev, void *data)
+ {
+ 	return dev == (struct device *)data;
+@@ -679,9 +684,11 @@ static int mtk_drm_bind(struct device *dev)
+ 	if (ret < 0)
+ 		goto err_free;
+ 
+-	ret = aperture_remove_all_conflicting_devices(DRIVER_NAME);
+-	if (ret < 0)
+-		dev_err(dev, "Error %d while removing conflicting aperture devices", ret);
++	if (!keep_firmware_fb) {
++		ret = aperture_remove_all_conflicting_devices(DRIVER_NAME);
++		if (ret < 0)
++			dev_err(dev, "Error %d while removing conflicting aperture devices", ret);
++	}
+ 
+ 	ret = drm_dev_register(drm, 0);
+ 	if (ret < 0)

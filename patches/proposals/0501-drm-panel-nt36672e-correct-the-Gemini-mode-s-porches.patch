@@ -1,0 +1,34 @@
+From fe3a3053aa72e7354fb074b6a62a9bbf2be49c9d Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:16:12 -0500
+Subject: [PATCH] drm/panel: nt36672e: correct the Gemini mode's porches
+
+The Gemini mode put the sync and porch values in the wrong slots. The vendor
+driver's horizontal sync/back/front are 10/42/42 and vertical 3/15/10, and a
+running panel's DSI registers read those: VSA 3, VBP 15, VFP 10, and word counts
+28, 148 and 116. The mode had 42/42/10 and 15/10/3. The totals were right, which
+hid it.
+---
+ drivers/gpu/drm/panel/panel-novatek-nt36672e.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+index b9fed9ea4..a46a27d62 100644
+--- a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
++++ b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+@@ -865,12 +865,12 @@ static const struct drm_display_mode gemini_1080x2160_60hz = {
+ 	/* 880 Mbit/s on four lanes at 24 bpp, the PLL word read from a running panel. */
+ 	.clock = 146667,
+ 	.hdisplay = 1080,
+-	.hsync_start = 1090,
++	.hsync_start = 1122,
+ 	.hsync_end = 1132,
+ 	.htotal = 1174,
+ 	.vdisplay = 2160,
+-	.vsync_start = 2163,
+-	.vsync_end = 2178,
++	.vsync_start = 2170,
++	.vsync_end = 2173,
+ 	.vtotal = 2188,
+ 	.flags = 0,
+ };

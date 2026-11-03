@@ -1,0 +1,108 @@
+From 2d6e570d9efbb57de2b71322a1d674f1b26f7772 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:15:29 -0500
+Subject: [PATCH] drm/mediatek: dsi: use the read MT6797 link timing
+
+Program the D-PHY timing words and the video porch word counts as they read
+back from the Gemini's running panel at 880 Mbit/s per lane, instead of the
+values the common formulas give. The formulas give a shorter LP window, and
+an independent project found another Gemini panel rejected LP packets until it
+used loader values. The words are only valid at that rate, so any other rate
+keeps the formula. Leave DSI_HSTX_CKL_WC at its default as the vendor driver
+does; the running panel reads 0x10000 there.
+---
+ drivers/gpu/drm/mediatek/mtk_dsi.c | 43 +++++++++++++++++++++++++++---
+ 1 file changed, 40 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_dsi.c b/drivers/gpu/drm/mediatek/mtk_dsi.c
+index ef3226819..3637fec69 100644
+--- a/drivers/gpu/drm/mediatek/mtk_dsi.c
++++ b/drivers/gpu/drm/mediatek/mtk_dsi.c
+@@ -194,6 +194,9 @@ struct mtk_dsi_driver_data {
+ 	bool has_size_ctl;
+ 	bool cmdq_long_packet_ctl;
+ 	bool support_per_frame_lp;
++	const u32 *fixed_timcon;
++	u32 fixed_timcon_rate;
++	bool loader_porch_wc;
+ };
+ 
+ struct mtk_dsi {
+@@ -285,6 +288,14 @@ static void mtk_dsi_phy_timconfig(struct mtk_dsi *dsi)
+ 		  FIELD_PREP(CLK_HS_POST, timing->clk_hs_post) |
+ 		  FIELD_PREP(CLK_HS_EXIT, timing->clk_hs_exit);
+ 
++	if (dsi->driver_data->fixed_timcon &&
++	    abs((s64)dsi->data_rate - dsi->driver_data->fixed_timcon_rate) < HZ_PER_MHZ) {
++		timcon0 = dsi->driver_data->fixed_timcon[0];
++		timcon1 = dsi->driver_data->fixed_timcon[1];
++		timcon2 = dsi->driver_data->fixed_timcon[2];
++		timcon3 = dsi->driver_data->fixed_timcon[3];
++	}
++
+ 	writel(timcon0, dsi->regs + DSI_PHY_TIMECON0);
+ 	writel(timcon1, dsi->regs + DSI_PHY_TIMECON1);
+ 	writel(timcon2, dsi->regs + DSI_PHY_TIMECON2);
+@@ -428,7 +439,8 @@ static void mtk_dsi_ps_control(struct mtk_dsi *dsi, bool config_vact)
+ 	if (config_vact) {
+ 		vact_nl = FIELD_PREP(VACT_NL, dsi->vm.vactive);
+ 		writel(vact_nl, dsi->regs + DSI_VACT_NL);
+-		writel(ps_wc, dsi->regs + DSI_HSTX_CKL_WC);
++		if (!dsi->driver_data->loader_porch_wc)
++			writel(ps_wc, dsi->regs + DSI_HSTX_CKL_WC);
+ 	}
+ 	writel(ps_val, dsi->regs + DSI_PSCTRL);
+ }
+@@ -565,6 +577,21 @@ static void mtk_dsi_config_vdo_timing_per_line_lp(struct mtk_dsi *dsi)
+ 	writel(horizontal_frontporch_byte, dsi->regs + DSI_HFP_WC);
+ }
+ 
++/*
++ * The word counts the MT6797 loader and vendor driver program, rounded up to a
++ * lane boundary: 28, 148 and 116 for the Gemini's 10/42/42 porches. They read
++ * back like that from a running panel.
++ */
++static void mtk_dsi_config_vdo_timing_loader(struct mtk_dsi *dsi)
++{
++	struct videomode *vm = &dsi->vm;
++
++	writel(ALIGN(vm->hsync_len * 3 - 4, 4), dsi->regs + DSI_HSA_WC);
++	writel(ALIGN((vm->hback_porch + vm->hsync_len) * 3 - 10, 4),
++	       dsi->regs + DSI_HBP_WC);
++	writel(ALIGN(vm->hfront_porch * 3 - 12, 4), dsi->regs + DSI_HFP_WC);
++}
++
+ static void mtk_dsi_config_vdo_timing(struct mtk_dsi *dsi)
+ {
+ 	struct videomode *vm = &dsi->vm;
+@@ -579,7 +606,9 @@ static void mtk_dsi_config_vdo_timing(struct mtk_dsi *dsi)
+ 			FIELD_PREP(DSI_WIDTH, vm->hactive),
+ 			dsi->regs + DSI_SIZE_CON);
+ 
+-	if (dsi->driver_data->support_per_frame_lp)
++	if (dsi->driver_data->loader_porch_wc)
++		mtk_dsi_config_vdo_timing_loader(dsi);
++	else if (dsi->driver_data->support_per_frame_lp)
+ 		mtk_dsi_config_vdo_timing_per_frame_lp(dsi);
+ 	else
+ 		mtk_dsi_config_vdo_timing_per_line_lp(dsi);
+@@ -1287,10 +1316,18 @@ static const struct mtk_dsi_driver_data mt8173_dsi_driver_data = {
+ 	.reg_shadow_dbg_off = 0x190
+ };
+ 
++/* TIMCON0-3 read back from the Gemini's running panel at 880 Mbit/s per lane. */
++static const u32 mt6797_timcon_880mbps[] = {
++	0x080f0708, 0x10280c20, 0x0a280100, 0x00102406,
++};
++
+ static const struct mtk_dsi_driver_data mt6797_dsi_driver_data = {
+ 	.reg_cmdq_off = 0x200,
+ 	.reg_vm_cmd_off = 0x130,
+-	.reg_shadow_dbg_off = 0x190
++	.reg_shadow_dbg_off = 0x190,
++	.fixed_timcon = mt6797_timcon_880mbps,
++	.fixed_timcon_rate = 880000000,
++	.loader_porch_wc = true,
+ };
+ 
+ static const struct mtk_dsi_driver_data mt2701_dsi_driver_data = {

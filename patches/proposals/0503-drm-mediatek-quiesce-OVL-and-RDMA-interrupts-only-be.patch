@@ -1,0 +1,81 @@
+From 2bb200045f45dbd966e1110b4dc84b95ac954c11 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:20:25 -0500
+Subject: [PATCH] drm/mediatek: quiesce OVL and RDMA interrupts only behind an
+ open gate
+
+A loader's running overlay leaves its frame interrupts enabled and pending:
+on the Gemini under the loader OVL0 reads INTEN 0xe and INTSTA 0x2. The vblank
+callback is registered before the CRTC has a state, so such an interrupt
+dereferences the missing state, and the two cascaded overlays have no callback,
+so their frame interrupts go unhandled. Disable them at probe, as RDMA already
+does.
+
+Enabling and then disabling the clock around the writes would close the gate
+under the running scanout, so check that the gate is open and leave it alone.
+RDMA's unconditional writes need the same check: when the module is reloaded
+after a modeset has closed the gate, they would reach a gated block.
+---
+ drivers/gpu/drm/mediatek/mtk_disp_ovl.c  | 11 +++++++++++
+ drivers/gpu/drm/mediatek/mtk_disp_rdma.c | 12 +++++++++---
+ 2 files changed, 20 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_ovl.c b/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
+index c0342734d..dba7a2419 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_ovl.c
+@@ -8,6 +8,7 @@
+ #include <drm/drm_framebuffer.h>
+ 
+ #include <linux/clk.h>
++#include <linux/clk-provider.h>
+ #include <linux/component.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+@@ -640,6 +641,16 @@ static int mtk_disp_ovl_probe(struct platform_device *pdev)
+ 	priv->data = of_device_get_match_data(dev);
+ 	platform_set_drvdata(pdev, priv);
+ 
++	/*
++	 * A loader's running overlay can leave its frame interrupts enabled and
++	 * pending. The block can only be reached with its gate open; a closed
++	 * gate means nothing is running, so there is nothing to quiesce.
++	 */
++	if (__clk_is_enabled(priv->clk)) {
++		writel(0x0, priv->regs + DISP_REG_OVL_INTEN);
++		writel(0x0, priv->regs + DISP_REG_OVL_INTSTA);
++	}
++
+ 	ret = devm_request_irq(dev, irq, mtk_disp_ovl_irq_handler,
+ 			       IRQF_TRIGGER_NONE, dev_name(dev), priv);
+ 	if (ret < 0)
+diff --git a/drivers/gpu/drm/mediatek/mtk_disp_rdma.c b/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
+index f4c348194..c61fb5cc5 100644
+--- a/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
++++ b/drivers/gpu/drm/mediatek/mtk_disp_rdma.c
+@@ -6,6 +6,7 @@
+ #include <drm/drm_fourcc.h>
+ 
+ #include <linux/clk.h>
++#include <linux/clk-provider.h>
+ #include <linux/component.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
+@@ -345,9 +346,14 @@ static int mtk_disp_rdma_probe(struct platform_device *pdev)
+ 	if (ret && (ret != -EINVAL))
+ 		return dev_err_probe(dev, ret, "Failed to get rdma fifo size\n");
+ 
+-	/* Disable and clear pending interrupts */
+-	writel(0x0, priv->regs + DISP_REG_RDMA_INT_ENABLE);
+-	writel(0x0, priv->regs + DISP_REG_RDMA_INT_STATUS);
++	/*
++	 * Disable and clear pending interrupts. The block can only be reached
++	 * with its gate open; a closed gate means nothing is running.
++	 */
++	if (__clk_is_enabled(priv->clk)) {
++		writel(0x0, priv->regs + DISP_REG_RDMA_INT_ENABLE);
++		writel(0x0, priv->regs + DISP_REG_RDMA_INT_STATUS);
++	}
+ 
+ 	ret = devm_request_irq(dev, irq, mtk_disp_rdma_irq_handler,
+ 			       IRQF_TRIGGER_NONE, dev_name(dev), priv);

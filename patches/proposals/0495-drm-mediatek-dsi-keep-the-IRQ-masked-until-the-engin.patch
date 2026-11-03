@@ -1,0 +1,70 @@
+From 4c62509ba3b17364b58e53c4fe9eee325394eb19 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:15:28 -0500
+Subject: [PATCH] drm/mediatek: dsi: keep the IRQ masked until the engine is
+ reset
+
+The DSI interrupt is requested at probe. A loader that left the panel
+running leaves the engine in video mode with its registers holding the
+loader's state, and on MT6797 an independent project traced a CPU hang to
+that line being unmasked at probe. The Gemini under the loader reads DSI_INTSTA
+0x80000792 and DSI_INTEN 0x3: CMD_DONE is pending and enabled with DSI_BUSY set,
+so the handler would spin on DSI_BUSY in hard interrupt context. Unmask it at the
+end of poweron, once the engine has been reset and the stale status cleared, and
+mask it again in poweroff before the clocks stop.
+---
+ drivers/gpu/drm/mediatek/mtk_dsi.c | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_dsi.c b/drivers/gpu/drm/mediatek/mtk_dsi.c
+index a44188801..432dc7bf3 100644
+--- a/drivers/gpu/drm/mediatek/mtk_dsi.c
++++ b/drivers/gpu/drm/mediatek/mtk_dsi.c
+@@ -219,6 +219,7 @@ struct mtk_dsi {
+ 	struct videomode vm;
+ 	struct mtk_phy_timing phy_timing;
+ 	int refcount;
++	int irq;
+ 	bool enabled;
+ 	bool lanes_ready;
+ 	u32 irq_data;
+@@ -742,6 +743,8 @@ static int mtk_dsi_poweron(struct mtk_dsi *dsi)
+ 	mtk_dsi_set_interrupt_enable(dsi);
+ 	mtk_dsi_lane_ready(dsi);
+ 	mtk_dsi_clk_hs_mode(dsi, 1);
++	writel(0, dsi->regs + DSI_INTSTA);
++	enable_irq(dsi->irq);
+ 
+ 	return 0;
+ err_disable_engine_clk:
+@@ -777,6 +780,7 @@ static void mtk_dsi_poweroff(struct mtk_dsi *dsi)
+ 	/* set the lane number as 0 to pull down mipi */
+ 	writel(0, dsi->regs + DSI_TXRX_CTRL);
+ 
++	disable_irq(dsi->irq);
+ 	mtk_dsi_disable(dsi);
+ 
+ 	clk_disable_unprepare(dsi->engine_clk);
+@@ -1233,6 +1237,7 @@ static int mtk_dsi_probe(struct platform_device *pdev)
+ 	if (irq_num < 0)
+ 		return irq_num;
+ 
++	dsi->irq = irq_num;
+ 	dsi->host.ops = &mtk_dsi_ops;
+ 	dsi->host.dev = dev;
+ 
+@@ -1244,8 +1249,13 @@ static int mtk_dsi_probe(struct platform_device *pdev)
+ 	if (ret < 0)
+ 		return dev_err_probe(dev, ret, "Failed to register DSI host\n");
+ 
++	/*
++	 * A loader can leave the engine running with its level interrupt
++	 * asserted. Keep the line masked until poweron has reset the engine.
++	 */
+ 	ret = devm_request_irq(&pdev->dev, irq_num, mtk_dsi_irq,
+-			       IRQF_TRIGGER_NONE, dev_name(&pdev->dev), dsi);
++			       IRQF_TRIGGER_NONE | IRQF_NO_AUTOEN,
++			       dev_name(&pdev->dev), dsi);
+ 	if (ret) {
+ 		mipi_dsi_host_unregister(&dsi->host);
+ 		return dev_err_probe(&pdev->dev, ret, "Failed to request DSI irq\n");

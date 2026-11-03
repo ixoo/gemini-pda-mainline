@@ -1,0 +1,32 @@
+From de7ce57897226d765b9bd8e04a38d6d02868c51e Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:15:29 -0500
+Subject: [PATCH] drm/mediatek: dsi: select command mode after the engine reset
+
+The engine reset does not clear DSI_MODE_CTRL. On a panel the loader left
+running it still reads video mode at poweron, so mtk_dsi_host_transfer()
+stops a stream that is not running and waits for a VM_DONE interrupt that
+never comes. Select command mode after the reset. The retained Gemian register
+capture shows this register at 3, burst video, while the panel is running.
+---
+ drivers/gpu/drm/mediatek/mtk_dsi.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/gpu/drm/mediatek/mtk_dsi.c b/drivers/gpu/drm/mediatek/mtk_dsi.c
+index 432dc7bf3..ef3226819 100644
+--- a/drivers/gpu/drm/mediatek/mtk_dsi.c
++++ b/drivers/gpu/drm/mediatek/mtk_dsi.c
+@@ -734,7 +734,13 @@ static int mtk_dsi_poweron(struct mtk_dsi *dsi)
+ 		writel(FORCE_COMMIT | BYPASS_SHADOW,
+ 		       dsi->regs + dsi->driver_data->reg_shadow_dbg_off);
+ 
++	mtk_dsi_stop(dsi);
+ 	mtk_dsi_reset_engine(dsi);
++	/*
++	 * The reset leaves DSI_MODE_CTRL alone, and a transfer that finds a
++	 * loader's video mode there waits for a VM_DONE that never comes.
++	 */
++	mtk_dsi_set_cmd_mode(dsi);
+ 	mtk_dsi_phy_timconfig(dsi);
+ 
+ 	mtk_dsi_ps_control(dsi, true);

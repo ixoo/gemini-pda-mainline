@@ -1,0 +1,15 @@
+# Native display on the station (2026-11-02-gemini-native-display). The pipeline,
+# PHY, panel and MMSYS clocks are modules and nothing loads them at boot. The
+# image only gains the DSI bus core, which DRM_MIPI_DSI builds in. The first frame
+# needs no IOMMU and no SMI driver: the larbs stay in the loader's bypass and
+# buffers come from CMA. No CMDQ: the CPU programs the pipeline at vblank.
+CONFIG_MTK_MMSYS=m
+CONFIG_COMMON_CLK_MT6797_MMSYS=m
+CONFIG_PHY_MTK_MIPI_DSI=m
+CONFIG_DRM_MEDIATEK=m
+CONFIG_DRM_PANEL_NOVATEK_NT36672E=m
+# CONFIG_DRM_MEDIATEK_DP is not set
+# CONFIG_DRM_MEDIATEK_HDMI is not set
+# CONFIG_MTK_SMI is not set
+# CONFIG_MTK_IOMMU is not set
+# CONFIG_MTK_CMDQ is not set

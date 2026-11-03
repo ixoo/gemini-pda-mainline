@@ -1,0 +1,120 @@
+From bf03a2ebd19ebe7fc8fe938f259d053efbe4eb0f Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Mon, 2 Nov 2026 20:16:13 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: enable the native display path
+ on the station
+
+Enable the display pipeline, MIPI TX, DSI0 and the panel in the station tree.
+They need modules to do anything. Name no MM power domain, IOMMU port, reset line
+or supply, so no driver can power the domain down, change an SMI larb or drive
+the panel's power. The pipeline scans physical buffers through the bypass the
+loader leaves.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 97 +++++++++++++++++++
+ 1 file changed, 97 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index d8f6307d0..6c422bf02 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -349,3 +349,100 @@ &gpu {
+ 	#cooling-cells = <2>;
+ 	status = "okay";
+ };
++
++/*
++ * The native display path. Enabling these touches nothing until the modules
++ * load. Nothing here can power the MM domain down or change an SMI larb: no
++ * domain is named, so the domain stays as the loader left it, and the larbs have
++ * no driver and stay in bypass, so the pipeline scans physical CMA buffers. The
++ * panel names no reset line or supply, because the driver adopts it as is.
++ */
++&mutex {
++	/delete-property/ power-domains;
++};
++
++&ovl0 {
++	/delete-property/ power-domains;
++	/delete-property/ iommus;
++	status = "okay";
++};
++
++&ovl0_2l {
++	/delete-property/ power-domains;
++	/delete-property/ iommus;
++	status = "okay";
++};
++
++&ovl1_2l {
++	/delete-property/ power-domains;
++	/delete-property/ iommus;
++	status = "okay";
++};
++
++&rdma0 {
++	/delete-property/ power-domains;
++	/delete-property/ iommus;
++	status = "okay";
++};
++
++&color0 {
++	/delete-property/ power-domains;
++	status = "okay";
++};
++
++&ccorr0 {
++	/delete-property/ power-domains;
++	status = "okay";
++};
++
++&aal0 {
++	/delete-property/ power-domains;
++	status = "okay";
++};
++
++&gamma0 {
++	/delete-property/ power-domains;
++	status = "okay";
++};
++
++&od0 {
++	status = "okay";
++};
++
++&dither0 {
++	/delete-property/ power-domains;
++	status = "okay";
++};
++
++&ufoe {
++	/delete-property/ power-domains;
++	status = "okay";
++};
++
++&mipi_tx0 {
++	status = "okay";
++};
++
++&dsi0 {
++	#address-cells = <1>;
++	#size-cells = <0>;
++	/delete-property/ power-domains;
++	status = "okay";
++
++	panel@0 {
++		compatible = "planet,gemini-pda-nt36672";
++		reg = <0>;
++
++		port {
++			panel_in: endpoint {
++				remote-endpoint = <&dsi0_out_ep>;
++			};
++		};
++	};
++};
++
++&dsi0_out {
++	dsi0_out_ep: endpoint {
++		remote-endpoint = <&panel_in>;
++	};
++};

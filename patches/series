@@ -1078,3 +1078,12 @@ proposals/0491-drm-panfrost-optionally-log-each-MT6797-rate-change.patch
 proposals/0492-regulator-rt5735-wait-the-vendor-settling-time-after.patch
 proposals/0493-drm-panfrost-drain-the-MT6797-GPU-before-a-rate-chan.patch
 proposals/0494-drm-panfrost-use-DVFS-and-idle-power-off-on-MT6797-b.patch
+proposals/0495-drm-mediatek-dsi-keep-the-IRQ-masked-until-the-engin.patch
+proposals/0496-drm-mediatek-dsi-select-command-mode-after-the-engin.patch
+proposals/0497-drm-mediatek-dsi-use-the-read-MT6797-link-timing.patch
+proposals/0498-drm-mediatek-pass-the-background-through-every-casca.patch
+proposals/0499-drm-mediatek-optionally-leave-the-firmware-framebuff.patch
+proposals/0500-drm-panel-nt36672e-let-the-Gemini-continue-from-the.patch
+proposals/0501-drm-panel-nt36672e-correct-the-Gemini-mode-s-porches.patch
+proposals/0502-arm64-dts-mediatek-gemini-enable-the-native-display.patch
+proposals/0503-drm-mediatek-quiesce-OVL-and-RDMA-interrupts-only-be.patch
