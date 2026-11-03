@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `running`: the T3 SCO test is prepared and needs the owner's decision. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3: a voice link connects, but no voice crosses HCI, so the microphone does not work this way. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -334,4 +334,53 @@ microphone in, while the owner speaks.
 
 **Bridge path, if HCI SCO fails:** a Gemini `btcvsd` node, a machine-driver link and a CVSD
 coder between the SRAM and userspace. That is substantial work.
+
+## T3 result: the link connects, no voice over HCI (2026-11-03)
+
+One SCO attempt of the approved 3, by the custodian on boot `64622312`, with `rfcomm.ko`
+`b6e2127c…`, `bt-test.sh` `d11052c2…`, `bt-start.sh` `2ef2cc52…`, Wi-Fi down, placeholder
+address, `gemian_radio` off, after a long CONSYS lifetime. Evidence is private under
+`artifacts/station-work-40/boot-64622312/bt-t3/`.
+
+**The owner reports:** "I hear static in the headset". No notes were reported at the time.
+
+**Observed, from the capture:**
+- Hands-Free connected. Enhanced Setup Synchronous Connection (`0x043d`) with HCI data path
+  and 16-bit linear host format; Synchronous Connection Complete status 0, link type eSCO,
+  air mode CVSD. **Not the refusal this record expected.**
+- Voice Setting reads `0x0060`, matching the request.
+- **SCO TX: 2608 packets over 30 s, 184 bytes each, about every 11.5 ms: 16 kB/s, the right
+  rate. Their bytes are a smooth 16-bit waveform, so the host sent what it should.**
+- **SCO RX: 0 packets in 30 s.** The capture file holds a header only, so there is nothing to
+  measure. `aplay` returned 0; `arecord` ended with a read error.
+- Link clean: `failed=0 timeouts=0 resent=0`, assert 0, no call trace.
+
+**Inferred, and the leading explanation:** the firmware carries voice through the CVSD SRAM
+path whatever the host asks, as [the vendor's design](../../docs/hardware/mt6797-bluetooth.md#bluetooth-audio)
+does on this chip (`hw_if == 3`). So the uplink goes to SRAM and never reaches HCI, and the
+downlink the headset hears comes from SRAM with nothing feeding it, so noise. HCI TX would be
+ignored.
+
+**Not established:** that SRAM is in use; nothing has read it. Another explanation for
+the static would be firmware passing HCI samples to the air uncoded, though that wouldn't
+explain the silent uplink. The legacy setup command (`0x0428`) and Set Voice and Set Codec are
+untried, and vendor software has neither of those configured on this chip.
+
+**Answer to "does the microphone work?": no, not over standard SCO.** A2DP is unaffected.
+
+## T3b, proposed, needs the owner: where does the voice go?
+
+The next step for the microphone is large, so one read is worth having first. During one more
+eSCO link, sample the CVSD registers read-only: PKV `0x18000fd0`, `0x18000fd4`, `0x18000fd8`,
+and INFRA_MISC `0x10001f00`.
+
+| Observation | Meaning |
+| --- | --- |
+| Read or write pointer moves, or status bits change while connected | SRAM is the voice path. Build the bridge, or stop here |
+| Nothing moves | SRAM needs enabling first, or voice goes elsewhere; the bridge has more unknowns |
+
+**The bridge, if the owner wants the microphone:** a Gemini `btcvsd` node and a machine-driver
+link (a device tree change, so one image), `CONFIG_SND_SOC_MTK_BTCVSD=m`, and a userspace piece
+with a CVSD coder that connects those PCMs while `bluetoothd` and BlueALSA hold the link. The
+upstream driver exists; that piece and its integration don't. Several device rounds.
 

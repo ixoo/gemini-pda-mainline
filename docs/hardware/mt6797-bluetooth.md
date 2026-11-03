@@ -326,7 +326,7 @@ first, which makes it the least likely.
 | Power saving, wake pulse, reset recovery | not implemented in mainline; a stopped link needs a CONSYS reload |
 | Scan, pairing, A2DP source (SBC) with BlueZ and BlueALSA | demonstrated on one boot with one headset; owner heard audio |
 | LE | hidden from the core; see [controller behaviour](#controller-behaviour-on-mainline) |
-| SCO over HCI | unknown |
+| SCO over HCI | eSCO connects, status 0, with CVSD air mode; 0 SCO packets received in 30 s, and the headset heard static for valid 16-bit PCM sent ([T3](../../experiments/2026-11-02-gemini-bluetooth/README.md#t3-result-the-link-connects-no-voice-over-hci-2026-11-03)). Does not carry voice as tried |
 | btcvsd driver in tree | present upstream, no Gemini node |
 | Userspace CVSD/mSBC codec | proprietary, not in mainline |
 | HFP audio bridge | none |
@@ -359,9 +359,8 @@ is not measured.
 
 - Why did the T2 stream stall? It happened once, late in a long CONSYS lifetime.
 - What ended the inquiry, and when? See the table above.
-- Does the MT6797 ROM accept HCI SCO packets on task 0, and can its baseband
-  consume them? A single attended boot that establishes a SCO link to a known
-  headset and checks for audio, with and without frames, would decide it.
+- Does an eSCO link use the CVSD SRAM path regardless of the host's data path? The
+  HCI result above suggests so; the registers have not been read during a link.
 - Does the ROM's CVSD SRAM path require firmware-side enabling beyond the INFRA
   bit and the packet pointers? The vendor driver has no explicit "start" command.
 - What does the ROM patch contribute to BT audio? It contains BT/Wi-Fi

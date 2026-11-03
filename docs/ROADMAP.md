@@ -27,7 +27,8 @@ Keep this file under 200 lines; move anything else to an experiment record.
   firmware-ready, and WMT alive over BTIF/STP with the chip/HW/ROM tuple
   `0279/8a00/8a00` [measured](../experiments/2026-10-03-mt6797-wmt-versions/README.md).
 - **Bluetooth.** A2DP audio [heard](../experiments/2026-11-02-gemini-bluetooth/README.md)
-  from the station over standard BlueZ, from modules. No LE, HFP or microphone yet.
+  from the station over standard BlueZ, from modules. No LE. No microphone: voice doesn't
+  cross HCI, so HFP needs the CVSD SRAM path.
 - **C1, partial.** PMIC baseline read, PMIC key interrupts and PSCI power-off
   [work](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06).
 - **Wi-Fi Phase A.** With WMT common init, one channel-40 passive scan
