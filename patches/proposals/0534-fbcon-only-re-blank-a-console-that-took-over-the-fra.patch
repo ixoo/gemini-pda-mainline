@@ -1,0 +1,24 @@
+From abbbbcf17a914a2293bc6e3271f116f432f9daa9 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 3 Nov 2026 23:11:06 -0500
+Subject: [PATCH] fbcon: only re-blank a console that took over the framebuffer
+
+The takeover maps only first_fb_vc to last_fb_vc. A blanked foreground console outside
+that range, with fbcon=vc:, has no fb_info, and fbcon_blank() would dereference NULL.
+---
+ drivers/video/fbdev/core/fbcon.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/core/fbcon.c b/drivers/video/fbdev/core/fbcon.c
+index 72a6f968c..bda2f42ad 100644
+--- a/drivers/video/fbdev/core/fbcon.c
++++ b/drivers/video/fbdev/core/fbcon.c
+@@ -630,7 +630,7 @@ static int do_fbcon_takeover(int show_logo)
+ 	} else {
+ 		fbcon_has_console_bind = true;
+ 		/* Taking over set the mode, which turned on a display blanked before it. */
+-		if (console_blanked)
++		if (console_blanked && con2fb_map[console_blanked - 1] == info_idx)
+ 			fbcon_blank(vc_cons[console_blanked - 1].d, VESA_VSYNC_SUSPEND, false);
+ 	}
+ 

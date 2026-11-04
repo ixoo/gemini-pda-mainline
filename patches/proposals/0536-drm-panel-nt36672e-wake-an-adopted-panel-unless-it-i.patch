@@ -1,0 +1,41 @@
+From 8f70abadfe7e75848d0cba5630bd68dfc0690dac Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 3 Nov 2026 23:11:07 -0500
+Subject: [PATCH] drm/panel: nt36672e: wake an adopted panel unless it is fully
+ awake
+
+If display-off succeeded and sleep-in failed, the panel reads sleep-out with its display
+off, and the next prepare left it black. Skip the wake only when both bits are set. The
+power mode read has done its work in bring-up, so log it at debug level.
+---
+ drivers/gpu/drm/panel/panel-novatek-nt36672e.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+index 3aff5ae83..a2dbd058e 100644
+--- a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
++++ b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+@@ -776,6 +776,10 @@ static void nt36672e_log_identity(struct nt36672e_panel *ctx)
+ 	}
+ }
+ 
++/* DCS get_power_mode bits. */
++#define DCS_POWER_SLEEP_OUT	BIT(4)
++#define DCS_POWER_DISPLAY_ON	BIT(2)
++
+ /*
+  * An adopted panel keeps its power and init from the loader, so all it can be
+  * asked is to sleep and wake. The panel's own state says which it needs, and that
+@@ -790,9 +794,9 @@ static int nt36672e_adopted_wake(struct nt36672e_panel *ctx)
+ 	int ret;
+ 
+ 	ret = mipi_dsi_dcs_get_power_mode(dsi, &mode);
+-	dev_info(&dsi->dev, "power mode read %d: 0x%02x\n", ret, mode);
+-	/* DCS get_power_mode bit 4 is sleep-out; the running panel reads 0x9c. */
+-	if (!ret && (mode & BIT(4)))
++	dev_dbg(&dsi->dev, "power mode read %d: 0x%02x\n", ret, mode);
++	/* Sleep out and display on; the running panel reads 0x9c. */
++	if (!ret && (mode & DCS_POWER_SLEEP_OUT) && (mode & DCS_POWER_DISPLAY_ON))
+ 		return 0;
+ 
+ 	mipi_dsi_dcs_exit_sleep_mode_multi(&mctx);

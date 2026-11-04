@@ -4,9 +4,11 @@ Date: Mon, 2 Nov 2026 22:11:07 -0500
 Subject: [PATCH] input: gemini-lid: blank the console while the lid is closed
 
 The module powered the backlight down but left the display running behind a closed
-lid. Blank the console too, in a hold, so a key from another input device cannot light
-the panel while it is closed. Under a DRM driver that sends the panel to sleep and
-stops the link and pipeline. Unblank before the backlight comes back on opening.
+lid. Blank the console too, in a hold that a poke does not end. Under a DRM driver that
+sends the panel to sleep and stops the link and pipeline. Unblank before the backlight
+comes back on opening. Tested through lid cycles with the display going off and back; no
+poke during a closed lid has been tried, since the Gemini's power key can't be pressed
+with it closed.
 ---
  drivers/input/misc/Kconfig      |  2 +-
  drivers/input/misc/gemini-lid.c | 38 ++++++++++++++++++++++-----------

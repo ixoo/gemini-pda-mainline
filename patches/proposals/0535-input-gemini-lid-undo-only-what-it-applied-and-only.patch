@@ -1,0 +1,70 @@
+From 0c7642f8f2821996c9f301f7019260835b94180c Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 3 Nov 2026 23:11:06 -0500
+Subject: [PATCH] input: gemini-lid: undo only what it applied, and only on
+ MediaTek
+
+Applying the open state unconditionally when unloading would light the panel behind a
+lid closed since boot, undo a blank the user asked for and uninhibit a keyboard inhibited
+elsewhere. Record what was applied and undo that.
+
+The id table matches any key device and any lid. Don't let it load itself on another
+machine, where it would take the first raw backlight: depend on ARCH_MEDIATEK and drop
+the module alias. The station loads it by path.
+---
+ drivers/input/misc/Kconfig      | 1 +
+ drivers/input/misc/gemini-lid.c | 8 +++++---
+ 2 files changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/input/misc/Kconfig b/drivers/input/misc/Kconfig
+index 26184458c..a7bfe31ec 100644
+--- a/drivers/input/misc/Kconfig
++++ b/drivers/input/misc/Kconfig
+@@ -359,6 +359,7 @@ config INPUT_GPIO_DECODER
+ 
+ config INPUT_GEMINI_LID
+ 	tristate "Gemini PDA lid policy"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
+ 	depends on OF && BACKLIGHT_CLASS_DEVICE && VT
+ 	help
+ 	  Say Y here to power the backlight down and inhibit the built-in
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index aedbe5b5c..183ac9519 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -24,6 +24,7 @@ static bool lid_closed;
+ static DEFINE_MUTEX(lid_lock);
+ static struct input_dev *lid_keyboard;
+ static bool lid_exiting;
++static bool lid_applied_closed;
+ 
+ static void gemini_lid_apply(bool closed)
+ {
+@@ -59,6 +60,7 @@ static void gemini_lid_apply(bool closed)
+ 		do_hold_blank_screen();
+ 		console_unlock();
+ 	}
++	lid_applied_closed = closed;
+ }
+ 
+ static void gemini_lid_work_fn(struct work_struct *work)
+@@ -166,7 +168,6 @@ static const struct input_device_id gemini_lid_ids[] = {
+ 	},
+ 	{ }
+ };
+-MODULE_DEVICE_TABLE(input, gemini_lid_ids);
+ 
+ static struct input_handler gemini_lid_handler = {
+ 	.filter = gemini_lid_filter,
+@@ -186,8 +187,9 @@ static void __exit gemini_lid_exit(void)
+ {
+ 	scoped_guard(mutex, &lid_lock) {
+ 		lid_exiting = true;
+-		/* Even if not closed now: an open could be waiting on the work below. */
+-		gemini_lid_apply(false);
++		/* What was applied, not lid_closed: an open could be waiting on the work. */
++		if (lid_applied_closed)
++			gemini_lid_apply(false);
+ 	}
+ 	input_unregister_handler(&gemini_lid_handler);
+ 	cancel_work_sync(&gemini_lid_work);

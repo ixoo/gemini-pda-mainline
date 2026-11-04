@@ -3,10 +3,14 @@ From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
 Date: Mon, 2 Nov 2026 22:07:57 -0500
 Subject: [PATCH] pwm: mtk-disp: turn the MT6797 block off at duty 0
 
-pwm-backlight keeps this PWM enabled at duty 0, since it has no other off switch.
-The vendor driver clears the enable bit at level 0, with the comment "To save
-power", before committing the change. Do the same on MT6797, whose board path is
-only this PWM.
+pwm-backlight keeps this PWM enabled at duty 0, since it has no other off switch. On
+the Gemini the loader leaves the PWM in display mutex 0, and a duty change latches on
+that mutex's frame start. A blank stops the frames, so duty 0 written then never takes
+effect and the backlight stays lit. The enable bit does not wait for a frame.
+
+The vendor driver clears it at level 0 too, before committing the change. Do the same
+on MT6797, whose board path is only this PWM. On the Gemini the bit reads 0 while
+blanked and the owner sees the display go off.
 ---
  drivers/pwm/pwm-mtk-disp.c | 17 +++++++++++++++--
  1 file changed, 15 insertions(+), 2 deletions(-)

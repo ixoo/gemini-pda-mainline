@@ -8,8 +8,9 @@ With the output off, an adopted panel was left initialised and display-on with
 no signal, for as long as the console stays blanked. Send it the vendor's suspend,
 display-off then sleep-in with the same delays, and bring it back with sleep-out
 and display-on. The vendor powers the panel down and runs the full table on resume
-instead, because it owns the rails. This keeps them as the loader left them, and is
-to be tested as such.
+instead, because it owns the rails. This keeps them as the loader left them. On the
+Gemini the panel has woken this way, with no reset or table, across repeated blanks and
+lid cycles.
 
 Decide from the panel's own power mode, which also leaves the loader's first frame
 with no write at all.

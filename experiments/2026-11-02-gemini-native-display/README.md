@@ -474,6 +474,24 @@ The boot log shows the console going to the dummy console at 80x25 and back to 1
 the text. The dummy console's size is a config value, so it is now the panel's 135x33.
 On the next image, by eye, the owner: "the console resize fix worked".
 
+## What stands before upstream
+
+An independent review of the display and lid patches found these, not changed here
+because none affects the station and nothing boots until they are retested:
+
+- **Off has no single owner.** The VT hold in 0515 does not hold against `KDSETMODE`, a
+  console switch, `TIOCL_UNBLANKSCREEN`, an oops's console unblank or a DRM restore.
+- **0503** uses the clock-provider API from consumer drivers, reads MMSYS gates on every
+  SoC, and has a bisect hazard before 0507. `IRQF_NO_AUTOEN` may remove the need for both.
+- **0502 and 0507's device tree** deletes required properties and omits required panel
+  ones, and the backlight link exists only through `station-dt.sh`.
+- **0513's pointer** has no lifetime guarantee, and it takes the first raw backlight.
+- **0507** mixes binding, device tree and driver, and holds the MM root permanently.
+- **Form.** No sign-offs, a placeholder author, fixups to squash into their parents, and
+  the subject prefix should be `Input: gemini-lid -`.
+- **The mode.** 146667 kHz with these totals gives a nominal 57.1 Hz in a mode whose code
+  name says 60, against a measured 54.00 Hz. The clock is chosen for the lane rate.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in

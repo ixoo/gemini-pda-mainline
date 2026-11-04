@@ -6,8 +6,8 @@ Subject: [PATCH] fbcon: keep a blanked console blanked when taking over
 fbcon_init() sets the mode of a newly registered framebuffer whether or not the
 console is blanked. So a DRM driver binding behind a blanked console turns its display
 on, with nothing to turn it off again if the blank is one that a timer will not repeat.
-On the Gemini that lights the backlight behind a closed lid. Blank the new framebuffer
-as the takeover finishes.
+On the Gemini that would light the backlight behind a closed lid. Blank the new
+framebuffer as the takeover finishes. Compile-checked; not yet run with a closed lid.
 ---
  drivers/video/fbdev/core/fbcon.c | 5 +++++
  1 file changed, 5 insertions(+)
