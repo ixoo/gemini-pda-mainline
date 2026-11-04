@@ -204,6 +204,7 @@ Observed:
 
 - The AW9120 returned its ID, `b223`, with its enable raised for a moment. So this bus
   and controller do get an ACK from a known chip at `0x2c`.
+  The owner saw no LED flash during the run.
 - The PMIC's own status: `0x0a12` `da62`, `0x0a40` `c262`, `0x0a58` `c262`, bit 15 set on all
   three, and selectors 3, 6 and 6. So the three rails are up at the vendor's voltages.
 - All 60 reads at `0x20` and `0x28` returned `-6`, across the pulse.
@@ -237,3 +238,30 @@ was observed, which does not show there was none.
 Later scripts share no shell variables across functions, and no `devmem` write uses an
 address from a variable. Further tests list literal addresses, read-only unless the
 owner has approved a write.
+
+## T4: the pad configuration
+
+Same boot, one read-only run. `0x10002000` read `0xfff`, so input is enabled on all ten
+CAM pad bits. `0x10002040` `0x000c381f`, `0x100020b0` `0x400`, `0x100020d0` `0xb80`,
+`0x100020f0` `0x05555555`. Bits 3:2 of the last are the drive of the pad the vendor library
+calls MCLK2, and read 1.
+
+Inference: GPIO74 and GPIO75 read high in mode 1, so a pad's input level does report in a
+non-GPIO mode. With input enabled, GPIO31 reading 0 on all 96 samples under its generator
+means it is probably not toggling, rather than that it can't be seen. So the clock is
+probably not reaching the sensor, with its registers all reading as written.
+
+## Offline: the CAMTG mux needs an update write
+
+The vendor kernel's `clk-mt6797.c` selects `MUX_CLR_SET_UPD` for its top muxes, with `0x04` as
+the update register and bit 8 for CAMTG, and its enable, disable and set-parent all write
+that bit. The live vendor kernel carries those functions. This kernel's `clk-mt6797.c` uses plain
+`MUX_GATE` for `camtg_sel` and never writes the update register. The vendor's own mux
+therefore applies selection through a step this kernel omits, so `0x10000060` can read as asked
+while the hardware still runs the old setting.
+
+Also settled: the live kernel sets bus 3 for this socket, and the library's power-on sets
+the master clock's drive, which is an open and separate difference.
+
+Not yet shown on the device. T5 writes the bit once. If this is the cause, the fix belongs in
+`clk-mt6797.c`, and other MT6797 top muxes this kernel changes share the same gap.
