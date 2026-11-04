@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed` for A2DP. T3 to T5d: no voice crosses HCI. Through the CVSD SRAM path, loopback carried voice and the owner heard our coder's notes, noisily. The owner did not recognise their voice in a capture. T5's hang is unexplained, and the bridge isn't built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3 to T6: no voice crosses HCI. Through the CVSD SRAM path, loopback carried voice, the owner heard our coder's notes, noisily, and a capture matched a known recording played at the microphone (T6). The noise in the earpiece is unexplained, as is T5's hang, and the bridge isn't built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -725,3 +725,47 @@ Capture is what's still unexplained. Speech by the owner can't be measured again
 from the laptop's speaker next to the headset's microphone, and correlates the decoded capture with it. Holding
 the link no longer plays anything over HCI (`SCO_NO_PLAY`), which removes that as a suspect.
 
+
+## T6 result: the capture is the microphone's signal (2026-11-03)
+
+Owner's approval: "go for t6". Boot `3fb07fd4`, image `8f2c1167`, `mtk-btcvsd` `0ce985d2`, `bt-test` `63d6af09`,
+`bt-voice-test` `da743ab6`, `bt-voice` `be973e27`, `DIR=rx`, Wi-Fi off. Used 1 inquiry, 1 pairing, 1 eSCO
+(status 0, air mode CVSD). No crash: link `failed=0 timeouts=0 resent=0`, assert 0, xrun 0, every `rmmod` 0, and
+HCI SCO counts stayed 0. The laptop played the known synthetic recording (`known-speech`, not anyone's voice)
+for 20 s from its speaker, across the capture; its output level wasn't read and the mic's distance was the owner's.
+
+**Measured**, from `mic.cvsd` (`4019e050`, kept private), decoded low bit first against the recording:
+
+| Measure | Result |
+| --- | --- |
+| Records | 5340, 20.025 s; only the first 10 invalid |
+| Waveform correlation, 200 to 3400 Hz | -0.459 at 0.893 s, about 295 times the median |
+| Level contour correlation | 0.831 at 0.90 s |
+| Spectrogram correlation | 0.835 at 0.89 s |
+| Lag in 9 successive 2 s windows | 893.0 to 893.6 ms in 7, 897.2 and 898.8 ms in the others; first and last both 893.1 ms; the sign is negative in 6 windows, positive in 3 |
+| Capture before the sound starts | -75.7 dBFS |
+| Capture in the recording's quiet frames, loud frames | -62.6 dBFS, -23.6 dBFS (medians) |
+| Same correlations with high bit first | -0.421 and 0.813 and 0.785 |
+
+**What that establishes:** the capture carries the microphone's signal through SRAM, driver and decoder. The first and last windows
+have the same lag, so no net bytes were lost or added over the run. The two windows that differ return to it, so they aren't lasting
+slips, though what moves them isn't established. The peak matches the laptop's clock, which put
+playback 0 to 1 s after the stream started. Low bit first scores better on all three, supporting the earlier adjacency
+statistic, though this isn't a sharp test: reversing the bits inside a byte keeps much of the low-frequency content.
+
+**Not established:**
+- How good the voice is. A linear fit from recording to capture explains only about 6 dB, and that mixes the
+  laptop's speaker, the room, the headset's processing and our decoder, so it doesn't measure the path.
+- Polarity. The overall correlation is negative, but the sign varies between windows, so this says nothing yet about
+  the sense of a bit. It's inaudible.
+- Why the owner couldn't recognise their voice in T5b, which had HCI playback running and a different input.
+
+**The noise.** The owner: "I still hear the noise, it sounds like it starts when you open the mic". HCI SCO
+counts were 0, so HCI audio isn't the source, and nothing was feeding the transmit side of SRAM.
+The capture is quiet before the sound starts, so this noise isn't in the uplink we read.
+
+**Inferred, not measured:** the headset is hearing whatever sits in the transmit SRAM. The upstream driver writes
+to it only while a playback stream runs, and fills it with the CVSD idle pattern (`0xaa`) only after one has
+been used. Nothing has read that SRAM on the air side, the owner's timing doesn't distinguish the stream from the link, and
+T5d's noise, with playback running, isn't explained by this. A headset's sidetone would also fit, as the
+owner suggested.
