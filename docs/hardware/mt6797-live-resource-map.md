@@ -565,11 +565,12 @@ accelerator path reads register `0x00` but does not visibly reject a mismatch.
 This is software-path evidence only; the normalized disassembly is in the
 [vendor IMU probe record](../../experiments/2026-07-12-sensor-iio-recovery/results/vendor-imu-probe.txt).
 
-The local Gemini description contains only a disabled BMI160 child with the
-recovered mount matrix and no IRQ or supply properties; no STK3X1X, LSM6DS3,
-MMC3530, BMP280, or HTS221 consumer is present. This is an implementation
-boundary, not populated-chip or runtime support evidence. See the
-[sensor/IIO recovery experiment](../../experiments/2026-07-12-sensor-iio-recovery/README.md).
+What mainline found on this bus, and which candidates answer, is in
+[Gemini I2C1 sensors](gemini-sensors.md). The table above is the vendor's view. Its
+"no matching driver" for `0x30` is also out of date: the vendor's driver family is
+the upstream `mmc35240` register model, though nothing answers there on this unit. See the
+[sensor/IIO recovery experiment](../../experiments/2026-07-12-sensor-iio-recovery/README.md)
+for the capture.
 
 A fresh 2026-07-14 read-only capture reproduces the same eight I2C1 client
 addresses and the same `stk3x1x`, `bmi160_acc`, and `bmi160_gyro` bindings. It

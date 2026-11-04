@@ -32,6 +32,7 @@ the experiments that support or challenge it.
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Gemini charging](gemini-charging.md) | Switch charger, boot-chain policy, charge state machine, thermal current gates, and safety limits. |
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
+| [Gemini I2C1 sensors](gemini-sensors.md) | IMU and light/proximity on mainline, the mount matrix, interrupt ownership, and which candidate addresses answer. |
 | [Gemini touchscreen](touchscreen.md) | Controller wiring, vendor TPD/NT36xxx stack, firmware contract, and mainline driver gap. |
 | [AW9120 indicator LEDs](aw9120-led.md) | 20-channel LED controller wiring, register/SRAM protocol, Gemian daemon usage, and mainline gap. |
 | [Vendor kernel ABI](vendor-kernel-abi.md) | Private interfaces used by the working stack and their standard Linux replacements. |

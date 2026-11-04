@@ -156,13 +156,13 @@ GPIO181 -> EINT106. `/proc/interrupts` prints the EINT number.
 | - | 6 | 390 | MSDC1 card detect | level | live | microSD insertion/removal |
 | 85 | 8 | 392 | NVT touch | level/edge per board | live | Touch interrupt; `cap_touch`/NVT |
 | 87 | 10 | 394 | AW9523 keyboard | level/edge | live | Keyboard interrupt; vendor AW9523 parent |
-| 88 | 11 | 395 | ALS STK3x1x | level | live | Ambient-light/proximity; conflicts with BMI160 int in one probe |
+| 88 | 11 | 395 | ALS STK3x1x | level | live | Ambient-light/proximity; the vendor BMI160 driver's failed request for this line is a driver bug, and [mainline shows it firing](gemini-sensors.md#interrupts) |
 | 93 | 16 | 400 | switch | edge | live | Vendor switch/ACCDET line; exact switch identity unresolved |
 | 262 | 176 | 560 | MT6351 PMIC | level | live | PMIC external IRQ (CHRDET and PMIC events) |
 | 181 | 106 | 490 | USB IDDIG | level low | live/DT | USB cable ID/role detect |
 | 62 | 1 | 385 | SII9022 HDMI | level | DT | External-display interrupt |
 | 58 | 46 | 430 | NFC | level | DT | NFC interrupt node; population not established |
-| 63 | 2 | 386 | GSE_1 | level | DT | Vendor G-sensor/switch line |
+| 63 | 2 | 386 | GSE_1 | level | DT | Vendor G-sensor/switch line; [untested as the IMU's](gemini-sensors.md#interrupts) |
 | 179 | 104 | 488 | DSI TE | edge | DT | Panel tearing-effect input |
 
 `/proc/interrupts` snippets confirm `mt-eint 3 fusb300-eint`,

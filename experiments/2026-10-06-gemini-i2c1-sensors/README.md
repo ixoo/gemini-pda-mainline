@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-gemini-i2c1-sensors` |
-| Status | Ported to the station on 2026-11-04 and [being tested there](#station-port-2026-11-04); the 2026-10-06 candidate below was never booted |
+| Status | `completed`: IMU and light/proximity work from modules on the station; [results](#results-boot-ef1dc545). The 2026-10-06 candidate below was never booted |
 | Profile | `mt6797-a53-station-a72`; originally `mt6797-a53-i2c1-sensors-compile` |
 | Date | 2026-10-06, 2026-11-04 |
-| Device action | See [station tests](#station-tests) |
+| Device action | One boot, `ef1dc545`, through the custodian |
 
 ## Purpose
 
@@ -99,7 +99,7 @@ I2C1 takes `i2c-1` and the others move up.
 ### The interrupt conflict
 
 [`mt6797-interrupts.md`](../../docs/hardware/mt6797-interrupts.md) recorded a
-conflict between the STK3x1x and BMI160 in one vendor probe.
+conflict between the STK3x1x and BMI160 in one vendor probe; its note now points here.
 
 Observed:
 
@@ -111,7 +111,7 @@ Observed:
 - The same DTB gives `gyroscope@0` `<65 8>` and `gse_1` `<63 8>`. Its pin state for
   GPIO65 selects the GPIO function with a pull-down, not the EINT function.
 
-Inference: this is a vendor driver bug, not a shared wire. `bmi160_request_irq`
+Inference, confirmed for EINT11 in [T2b](#t2b-eint11): this is a vendor driver bug, not a shared wire. `bmi160_request_irq`
 looks up the light sensor's node, asks for its line as rising against the
 sensor's level low, and fails; the probe ignores the failure
 ([sensors F8](../2026-10-04-gemini-sensors-re/README.md)). That driver also never
@@ -130,4 +130,107 @@ The device frame is the screen's, as the kernel's mount-matrix document describe
 it: X toward the screen's right edge, Y toward its top, Z out of it toward the
 user.
 
-Results will follow as each test is run.
+## Results, boot `ef1dc545`
+
+Package `ff92b123…` from commit `1cdbea2a…`, composed into image `39be7121…` on the
+usual station parent. The board DTB is `be83c638…`, since composing rederives it. Kernel
+untainted, radio not started, no I2C timeout or oops through all of it. Raw captures
+stay private under `artifacts/`.
+
+### T0: identity, no module loaded
+
+Observed. The bus probed in about 1.2 ms. Pads 55 and 56 are mode 1, claimed by the
+controller. One read per register:
+
+| Address | Register | Result |
+| --- | --- | --- |
+| `0x69` | `0x00` | `0xd1` |
+| `0x48` | `0x3e`, `0x3f` | `0x11`, `0xc2` |
+| `0x68` | `0x00` | No ACK |
+| `0x30` | `0x20` | No ACK |
+| `0x77` | `0xd0` | No ACK |
+| `0x5f` | `0x0f` | No ACK |
+| `0x6a` | `0x0f` | No ACK |
+| `0x6b` | `0x0f` | No ACK |
+
+Hypothesis held, including for `0x30`, which was open. H1, H6 (negative), H7 and H8
+of the [sensors record](../2026-10-04-gemini-sensors-re/README.md) are settled.
+
+Inference: those parts aren't fitted on this unit. An unpowered rail would look the
+same, and this test doesn't exclude it. `0x68` also gave no ACK, so one IMU at
+`0x69` is the simple reading.
+
+### T1 and T1b: the IMU
+
+Observed. Modules load and reload (`rmmod` and `insmod` once) with no chip-ID warning,
+each probe about 88 ms, supplies as dummy regulators, IIO name `bmi160`, default 100 Hz.
+
+**My prediction was wrong.** I expected the base's frame, with Z at +g when the base
+lay flat. At rest with the base flat and the lid at about 140 degrees by the owner's
+estimate, gravity read X -0.05, Y 6.78, Z 7.70 m/s^2 after the matrix, an angle of
+41.5 degrees.
+
+T1b tied this to single held positions, hand-held, and each prediction held
+(means, m/s^2):
+
+| Position | X | Y | Z |
+| --- | --- | --- | --- |
+| Right edge up | **9.66** | 1.11 | 0.16 |
+| Screen upright, base flat | -0.04 | **10.67** | 0.11 |
+| Screen facing the ceiling | -0.08 | 1.21 | **9.65** |
+
+With the base pressed down and the lid moved to past upright and back, X stayed within
+0.04 of zero while Y and Z swung, and rotation was about X (`gy`, `gz` within about
+1 deg/s).
+
+Inference: the chip moves with the lid, and the existing direction-7 matrix is correct
+in the screen's frame. In T1, raising an edge of the whole device gave `gy` and `gz`
+in the ratio the lid's tilt predicts, and a counterclockwise turn gave positive rates
+along the vertical. So the gyro shares the matrix, on sign. No patch change.
+
+Limits: at rest the gyro is within 0.5 deg/s of zero. The field reads about 9.7 on X
+and Z but 10.7 on Y, about 1 m/s^2 high on Y, and I didn't separate gain from offset.
+Nothing is calibrated and nothing was written to the chip's offsets or NVM. T1's step 8,
+keyboard down, wasn't captured, since the recording ended first. The owner also added
+a left-side position there, which is how that record's extra excursion reads.
+
+### T2: light and proximity
+
+Observed. `stk3310.ko` loads with `new unknown chip id: 0x11`, in about 2 ms, IIO name
+`stk3310`. Pad 88 is claimed in mode 1 (EINT11). With the sensor's window found by
+the owner, 8 s captures, raw:
+
+| Condition | Light | Proximity |
+| --- | --- | --- |
+| Room, untouched | about 110 to 220 | about 200 to 205 |
+| Window fully covered | 0 to 2 | 2733 to 2745 |
+| Hand about 5 cm away | 12 to 13 | 276 to 285 |
+| Lit torch at 10 to 20 cm | 2781 to 2919 | 204 to 206 |
+
+Hypothesis held. A first pass with a finger to the right of the front camera gave a
+partial cover (light 28, proximity 342) and a torch with no rise, which was the wrong
+spot, not a limit of the part. One idle sample read light 2352, cause unknown. The
+position is recorded only as found by the owner. The IMU kept reading normally with
+both loaded.
+
+### T2b: EINT11
+
+Observed, with thresholds of 270 and 230 written through IIO:
+
+- 10 s idle: 0 interrupts, with proximity near 200.
+- 25 s of presses: the count went from 14 to 27, in step with proximity crossing between
+  about 200 and 2700.
+- After `rmmod` and `insmod`, with the same writes: 41 to 48 in step with presses, then
+  0 over about 16 s with hands clear.
+
+So EINT11 is the sensor's own line, and it survives a reload. Not exactly two per press,
+and the count also moved between captures with nothing recorded; I didn't explain either.
+
+## Limitations
+
+One unit and one boot. No suspend or resume, wake, long run or buffered capture. No
+calibration. Light is raw counts. `0x11` has no marketed name, so `sensortek,stk3311`
+is a working choice. No interrupt for the IMU; GPIO65 and GPIO63 remain untested.
+GPIO88's pull is firmware's, since the pin data has no pull registers. Modules are loaded
+by hand, and nothing loads them at boot. The durable summary is in
+[Gemini I2C1 sensors](../../docs/hardware/gemini-sensors.md).

@@ -181,8 +181,7 @@ budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
    domain through SCPSYS boot-state adoption) and H8 (PWM backlight on 26 MHz)
    in the [display H2 record](../experiments/2026-10-06-gemini-display-h2/README.md);
    H7 is closed. simplefb with the MM domain so
-   `clk_ignore_unused` can go, backlight, the I2C1 boot (sensors and panel
-   bias), microSD and USB host, headphone-first audio, panel, GPU, GNSS (the
+   `clk_ignore_unused` can go, backlight, microSD and USB host, headphone-first audio, panel, GPU, GNSS (the
    [DSP boots on mainline](../experiments/2026-11-01-gemini-gnss-link/README.md) from a
    userspace host and tracks live satellites at a window, with no position yet; see
    [GNSS and navigation](hardware/gemini-gnss.md)). Cellular and
