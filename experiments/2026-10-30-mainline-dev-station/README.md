@@ -1021,3 +1021,6 @@ covered the fade, the wake by key, a key cancelling a fade, and a lid close and 
 doesn't itemise them, so those rest on this one report. The blank timeout is back at
 2 minutes. The image still carries `4ee9da4b…`, so the fix and the new `setterm` and
 `console-shell` need the next RAM root, and the `console-shell` signal hasn't run yet.
+
+The owner then confirmed the fade cancel specifically: a key pressed while it fades
+interrupts the blank. The binary and boot weren't stated.
