@@ -66,7 +66,7 @@ sco)
 	# One voice connection: the tone out, the microphone in, for at most $2 s. The
 	# capture may hold speech, so it stays private and is deleted once measured.
 	stats
-	timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin arecord -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -f S16_LE -r 8000 -c 1 -d "$2" /tmp/mic.wav &
+	timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin arecord -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -f S16_LE -r "${BT_SCO_RATE:-8000}" -c 1 -d "$2" /tmp/mic.wav &
 	mic=$!
 	if [ -n "${SCO_NO_PLAY:-}" ]; then
 		sleep "$2"

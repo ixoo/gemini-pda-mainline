@@ -1,0 +1,34 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 22:26:36 -0500
+Subject: [PATCH] Bluetooth: btmt6797: set up voice links with the older
+ command
+
+The controller lists Enhanced Setup Synchronous Connection, and uses it
+for CVSD, but refuses transparent air mode through it with status 0x20.
+The command fails before any link attempt, so the core has no fallback
+and mSBC never comes up. Setup Synchronous Connection with voice setting
+0x0063 and the same T2 values gives an eSCO link with air mode 3.
+
+Mark Enhanced Setup as broken, so the core uses the older command for
+every voice link. Which parameter the controller objects to stays open.
+---
+ drivers/bluetooth/btmt6797.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/bluetooth/btmt6797.c b/drivers/bluetooth/btmt6797.c
+index 3559f4f95..9c425f774 100644
+--- a/drivers/bluetooth/btmt6797.c
++++ b/drivers/bluetooth/btmt6797.c
+@@ -212,6 +212,8 @@ static int btmt6797_probe(struct platform_device *pdev)
+ 	hci_set_quirk(hdev, HCI_QUIRK_NON_PERSISTENT_SETUP);
+ 	hci_set_quirk(hdev, HCI_QUIRK_RESET_ON_CLOSE);
+ 	hci_set_quirk(hdev, HCI_QUIRK_BROKEN_MWS_TRANSPORT_CONFIG);
++	/* Refuses transparent air mode, which the older command accepts. */
++	hci_set_quirk(hdev, HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYNC_CONN);
+ 	platform_set_drvdata(pdev, bt);
+ 	ret = hci_register_dev(hdev);
+ 	if (ret < 0)
+-- 
+2.43.0
+

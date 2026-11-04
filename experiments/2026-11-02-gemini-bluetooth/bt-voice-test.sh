@@ -7,8 +7,7 @@
 #   NAME='headset' DIR=tx sh bt-voice-test.sh    notes to the headset, 5 s in each bit order
 #   NAME='headset' DIR=both sh bt-voice-test.sh  the microphone for 24 s, with 10 s of CVSD
 #                                                idle pattern sent from 8 s in
-# BT_MSBC=1 with DIR=both, after load with BT_MSBC=1, sends msbc-tx.bin from bt-msbc.py instead,
-# and opens the link itself for 30 s.
+# BT_MSBC=1 with DIR=both, after load with BT_MSBC=1, sends msbc-tx.bin from bt-msbc.py instead.
 # BT_CALL=1 with DIR=both tells the headset a call is active before the link opens, and
 # ended 10 s into the capture. Indicators follow BlueALSA's list: 1 service, 2 call.
 # Nothing plays over HCI to hold the link, in case the firmware acts on those packets.
@@ -71,19 +70,7 @@ if [ -n "${BT_CALL:-}" ]; then
 	step "call on"
 	sleep 1
 fi
-if [ -n "${BT_MSBC:-}" ]; then
-	# Opening BlueALSA's PCM negotiates mSBC, then the controller refuses Enhanced Setup (T10).
-	# So ask by the older command, with T2's values. The kernel ignores a link it didn't
-	# request, which is enough for a test: the voice path doesn't go through it.
-	NAME="$NAME" SCO_NO_PLAY=1 sh $D/bt-test.sh sco 1 > $P/voice-sco.txt 2>&1
-	h=$(chroot $R /usr/bin/env PATH=/usr/bin:/bin hcitool con | sed -n 's/.*handle \([0-9]*\).*/\1/p' | head -1)
-	# shellcheck disable=SC2046 # The two bytes of the handle are two arguments.
-	chroot $R /usr/bin/env PATH=/usr/bin:/bin hcitool cmd 0x01 0x0028 $(printf '%02x %02x' $((h & 255)) $((h >> 8))) \
-		40 1f 00 00 40 1f 00 00 0d 00 63 00 02 80 03 >> $L 2>&1
-	sleep 30 &
-else
-	NAME="$NAME" SCO_NO_PLAY=1 sh $D/bt-test.sh sco 30 > $P/voice-sco.txt 2>&1 &
-fi
+NAME="$NAME" BT_SCO_RATE=${BT_MSBC:+16000} SCO_NO_PLAY=1 sh $D/bt-test.sh sco 30 > $P/voice-sco.txt 2>&1 &
 sco=$!
 sleep 4
 step "stream starts"
@@ -129,7 +116,6 @@ done
 wait $stream; step "stream ended $?"
 [ -z "${tx:-}" ] || wait "$tx"
 wait $sco
-[ -z "${BT_MSBC:-}" ] || chroot $R /usr/bin/env PATH=/usr/bin:/bin bluetoothctl --timeout 5 disconnect "$(cat $P/addr)" > /dev/null 2>&1
 step "link ended"
 [ -z "${BT_CALL:-}" ] || killall bluealsa-rfcomm
 grep -E 'aplay=|arecord=' $P/voice-sco.txt

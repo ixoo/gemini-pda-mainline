@@ -1000,3 +1000,15 @@ Used 1 inquiry, 1 pairing, 1 eSCO. Evidence private under `artifacts/station-wor
 
 **Reading:** the Gemini can carry mSBC both ways through the SRAM path with no driver change, and on this run the noise was gone. Not separated: transparent air mode as such, the wider retransmission window (4 against 2), or the older command. One run, by ear.
 How the notes reached the mic, leakage or the headset's own path, isn't established. The test link is outside the kernel's knowledge, so a real path needs the kernel to use this command, and a coder between the voice path and ALSA.
+
+## T12, prepared: the kernel opens the mSBC link
+
+The owner's "Yes, driver change". 0532 sets `HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYNC_CONN`, so the core uses `0x0428` for every voice link, with T2 then T1 for mSBC. So the by-hand path is gone from `bt-voice-test.sh`
+(T11 ran it at `f290bc4b`), and `BlueALSA` opens the link. T12 is T11 with this module. It also changes CVSD's setup, which is untested.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| `0x0428`, air mode 3, no `0x043d`, notes heard, no noise, capture matches | The kernel path works | The bridge, on the owner's decision |
+| Link up, noise back | T11's clean sound depended on something else there; compare the two traces | Offline, then decide |
+| Link refused or falls back to CVSD | Read the trace | No retry without a new decision |
+| Hang or Oops | Stop | Keep everything; no retry |
