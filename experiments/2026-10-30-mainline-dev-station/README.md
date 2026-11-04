@@ -985,6 +985,14 @@ program then restarts its deadline, as the kernel does. A raw `ESC [9;N]` from a
 else still goes unseen, so use `setterm`. A restart of the program also moves its
 deadline later than the kernel's, which can miss one fade.
 
+**Timing, boot `3fb07fd4`, binary `4ee9da4b…`.** Blanking was restored at uptime about 771.
+A dmesg copy ending at 772.6 is stamped 21:29:49, so the 120 s timer expired about 21:31:50.
+The owner reported the blank at 21:32:05, which fits this diagnosis if no key was pressed
+after the restore. The log's `console blanked` at 1034.15 doesn't date that blank: the
+program logs when it wakes and looks, so with this binary a log time can be much later than
+the event. Not explained: brightness read 16 at uptime 1060, which a blank without a fade
+wouldn't cause unless the level was already 16.
+
 **Test (predeclared).** With the fix swapped in, and no input after this step:
 `setterm --blank 1`. Expect a fade starting about 57 s later, the blank, and a fade up
 on the next key. Then repeat step 4 of the earlier test.
