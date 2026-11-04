@@ -1,7 +1,7 @@
 # First test release (docs/RELEASE_READINESS.md): the station with the A72 pair,
 # without the options that only serve bring-up. Listed last, so it overrides them.
 # Built only so far; nothing here has booted.
-#
+
 # Open, owner decisions, deliberately unchanged here:
 # - panic=0 stays, as on the station. A crashed kernel then hangs instead of
 #   restarting, and the charger watchdog restores charging in about 47 s
