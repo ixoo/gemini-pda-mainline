@@ -181,8 +181,8 @@ through the keyboard path that unblanks the console. The cause was not read.
 
 ### Load check, boot `fccba04c`, image `96338704`, module `34328321`
 
-Reported by the custodian on 2026-11-04. This checks loading only: no touch has
-been tested on this image, and the module was left loaded.
+Reported by the custodian on 2026-11-04. This table covers loading; the module
+was left loaded for the touch check below.
 
 | Step | Result |
 | --- | --- |
@@ -203,6 +203,24 @@ kernels. The project's patches add no `i2c` alias, which would explain it as pro
 order, though that wasn't tested. Records and scripts should find the client by
 address on that bus.
 
+### Touch on a blanked and a lit screen, same boot and module
+
+Also reported by the custodian, one observation in each state, with no repeat:
+
+| Screen | Touch | `mt-eint 8` |
+| --- | --- | --- |
+| Blanked: `bl_power` 4, fb blank 1, brightness 16 | One touch; owner: "Touched"; duration not measured | Stayed at 0 |
+| Lit: unblanked remotely, `bl_power` 0, brightness 512, idle blank off | One drag; owner: "touched" | 104, on CPU0 |
+
+On unblanking, drm logged a panel read from address `0xa` at 615.5 s. The kernel
+stayed untainted. The module stayed loaded and idle blanking went back to 2 minutes.
+
+No event capture ran, so this shows interrupts only: no event contents, positions
+or contact counts, and nothing about reports reaching the event node on this image.
+
+Inference, not shown: blanking stops the controller sensing because the panel goes
+off. If that holds, a touch can't wake a blanked console on this path.
+
 ## Analysis
 
 The hypothesis holds for a first load: the rails are up without a supply being
@@ -220,5 +238,5 @@ and after one `rmmod` and `insmod`.
 
 ## Follow-up
 
-Not established by this work, whatever the result: suspend and resume, behaviour
-when the panel is powered off, and a kernel-owned panel rather than firmware's.
+Not established by this work, whatever the result: suspend and resume, why a touch
+on a blanked screen gave no interrupt, whether sensing returns on every unblank, and a kernel-owned panel rather than firmware's.
