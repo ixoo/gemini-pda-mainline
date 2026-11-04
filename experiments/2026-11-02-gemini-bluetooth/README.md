@@ -1043,3 +1043,26 @@ The owner's "Yes, run T12". Boot `3fb07fd4`, image `8f2c1167`, `btmt6797` `754ad
 
 **What's proven now, on this headset, by ear and by correlation, on two runs:** mSBC through the kernel's own eSCO link and the SRAM path, in both directions, without the noise CVSD had. Not separated: whether the noise's cure was mSBC itself or the setup's retransmission window, and how CVSD sounds under 0532, which is untested.
 Not done: other headsets, long runs, Wi-Fi at the same time, a bridge to ALSA. The test still uses a raw stream and an offline decoder.
+
+## T13 result: the link hiccuped, so AAC against SBC isn't settled (2026-11-03)
+
+Boot `3fb07fd4`, image `8f2c1167`, `btmt6797` `754ad753`, `bt-test` `90a27bb3`, `bt-start` `4f936a8b`, `music.wav` `9d6dab45` (synthetic), `BT_AAC=1`, Wi-Fi off. Used 1 inquiry, 1 pairing, 1 ACL.
+Hidden order `AAC SBC AAC SBC`. Evidence private under `artifacts/station-work-44/boot-3fb07fd4/bt-t13/`.
+
+**The owner reports:** "the 1st one was the best I think. It didn't disconnect or skip contrary to the other ones." In the soak: "I hear a short skip at the beginning". Also "is there buffering?" and "I suspect lower bw requirement of AAC is an advantage for BT".
+
+**Observed:**
+- Switching codec on one connection works: `switch=0` four times, each confirmed by `Selected codec`.
+- By transmitted bytes: AAC 199 and 193 kbps, SBC 333 and 344 kbps. The soak on AAC ran 300 s at about 196 kbps and stayed connected. `bluealsa` read 0% CPU in the one sample.
+- **Link: `timeouts=40 resent=270 wmt-unsolicited=1`, assert 0, and no stop.** T12 on this boot read 0, and T2b's 5 minute SBC soak read 0, on an older module.
+- The trace has 148 more completed packets than ACL packets sent, and the kernel logged `sent 0 < count 1` 161 times. Earlier runs in this experiment have none of these. By when they fall: clip 1 none, clip 2 none, clip 3 (AAC) 12, clip 4 (SBC) 5, soak 134, with 22 in its first 10 s. They arrive in groups of about 4 to 6.
+- Gaps of 0.33 s every 30.5 s in the soak are `aplay` restarting the file. Others, 0.2 to 0.5 s, cluster 20 to 35 s into the soak.
+- The ACK timeout logic reads correctly: it only fires after 180 ms with frames pending and no ACK. So these look like real stalls, though the code reading isn't proof.
+
+**Inferred, not established:** after a timeout, resent frames the firmware already had reach the air a second time, since the groups match a resend's size and 40 timeouts roughly account for them. Duplicates could be what a listener hears. Why the ACKs stall, and why from about 180 s into this run, isn't known. The screen, the codec switch or radio conditions aren't separated.
+
+**Not settled:**
+- Which codec sounds better. The owner's pick rested on skips, and clip 3, also AAC, was heard skipping. Clip 2's skip has no link event near it, so it's unexplained.
+- Whether a lower rate helps. All the soak's events were on AAC, and SBC's 5 minutes in T2b had none, so this run gives no support for that, while one run can't refute it.
+
+**On buffering:** yes. ALSA, BlueALSA and the headset each hold audio, which should ride out a short stall, and how much isn't measured here. A longer stall or duplicated data can still be heard.
