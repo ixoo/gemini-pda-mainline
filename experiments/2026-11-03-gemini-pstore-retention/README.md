@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-03-gemini-pstore-retention` |
-| Status | `running`: T1 passed on boot `7978f9ea`; T2 not run; cmdline fix committed but not built |
+| Status | `running`: T1 passed on boot `7978f9ea`; the fix is live on boot `fccba04c`; T2 not run |
 | Subsystem | `fs/pstore`, ramoops on the reserved `0x44410000` range |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
-| Date(s) | 2026-11-03 |
+| Date(s) | 2026-11-03 to 2026-11-04 |
 | Investigator(s) | project session |
 | Tracking issue | none |
 
@@ -185,6 +185,10 @@ crash is needed: the marker is enough.
 From the first boot: `/sys/module/pstore/parameters/kmsg_bytes` reads 2048. The -28
 line can then only be checked on the next real crash; no separate crash is warranted
 for a message.
+
+**Result:** on boot `fccba04c`, image `96338704`, it reads 2048, as the custodian
+reports. No crash has happened on this setting, so the -28 line's absence is not
+observed yet.
 
 ## What this enables, if T1 passes
 
