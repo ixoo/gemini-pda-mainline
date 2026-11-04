@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera-receiver` |
-| Status | `running`: receiver written, compile-checked, not run |
+| Status | `running`: the first stream reached the mux at 2592 by 1944 at about 30 frames a second, with error bits still to explain |
 | Subsystem | SENINF second interface, MIPI RX analog, CSI-2, Hi-556 streaming |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -67,11 +67,11 @@ R1 below.
 
 ## Observations
 
-None yet.
+See R1 below.
 
 ## Inference
 
-None yet.
+See R1 below.
 
 ## Negative results
 
@@ -79,9 +79,37 @@ None yet.
 
 ## Limitations
 
-- Compile-tested only.
+- No frame has been captured, so pixel content is unknown.
 - 437 MHz is not known to be the link rate at 24 MHz.
 
 ## R1: the first stream
 
-Not run.
+Image `da1894c0`, package `e3799238`, commit `7d5269ff`, boot `c1ab6349`, one run, as reported by the
+custodian. The owner approved the image write, the boot and the stream's effects. Colour bars selected,
+stream on for 3 s, status read once a second.
+
+Observed:
+
+- `/dev/v4l-subdev0` appeared, and the sensor bound to the receiver.
+- The stream started and stopped cleanly, with no fault, rails off and the ISP domain off afterwards.
+- `+0x1d10`, the mux's first debug word, read `7690c01e`, `8690c03c`, `7690c05a`: its low byte moved by 30 a
+  second.
+- `+0x1d14` and `+0x1d18` read `0a200798` on all three reads. These are 2592 and 1944.
+- `+0x1714` read `0x00001014` and `+0x1d08` read `0x00000058`, unchanged on all three, cleared by each read.
+- `+0x1d0c`, where the size was expected, and `+0x1730`, where a frame number was expected, read 0.
+- The calibration status words read 0. The vendor library treats 0 as a failed calibration and carries on.
+- `+0x172c` moved between `01011010` and `01010101`.
+
+Inference:
+
+- The sensor's CSI-2 data is reaching the mux, and 2592 by 1944 is being measured there, at about 30 frames a
+  second. This holds with the receiver's analog setup from the library and no per-unit trim.
+- The hypothesis's register choice was wrong for size and frame number. The size is seen elsewhere.
+- Status bits remain to explain, so "no errors" is not shown. Bit 4 of `+0x1714` looks like a header error
+  flag, and three bits of `+0x1d08` look like size checks, which may just be against a configured size that
+  is still 0. R2 varies the settle count to separate them.
+- Nothing shows the pixels are correct. Nothing has been captured.
+
+## R2: the settle count
+
+Not run. Same boot and modules, no build.
