@@ -7,6 +7,7 @@
 #   NAME='headset' DIR=tx sh bt-voice-test.sh    notes to the headset, 5 s in each bit order
 #   NAME='headset' DIR=both sh bt-voice-test.sh  the microphone for 24 s, with 10 s of CVSD
 #                                                idle pattern sent from 8 s in
+# BT_MSBC=1 with DIR=both, after load with BT_MSBC=1, sends msbc-tx.bin from bt-msbc.py instead.
 # BT_CALL=1 with DIR=both tells the headset a call is active before the link opens, and
 # ended 10 s into the capture. Indicators follow BlueALSA's list: 1 service, 2 call.
 # Nothing plays over HCI to hold the link, in case the firmware acts on those packets.
@@ -34,14 +35,20 @@ if [ "$DIR" = tx ]; then
 	cat $P/notes-low.cvsd $P/notes-high.cvsd > $R/tmp/tx.cvsd
 	step "tx bytes $(wc -c < $R/tmp/tx.cvsd)"
 elif [ "$DIR" = both ]; then
-	# 0xaa is the pattern the driver itself writes for silence.
-	head -c 80000 /dev/zero | tr '\000' '\252' > $R/tmp/tx.cvsd
+	if [ -n "${BT_MSBC:-}" ]; then
+		cp $D/msbc-tx.bin $R/tmp/tx.cvsd
+	else
+		# 0xaa is the pattern the driver itself writes for silence.
+		head -c 80000 /dev/zero | tr '\000' '\252' > $R/tmp/tx.cvsd
+	fi
 fi
 insmod $D/mtk-btcvsd.ko; echo "insmod driver=$?"
 insmod $D/mt6797-btcvsd.ko; echo "insmod card=$?"
 sleep 1
 card=$(sed -n 's/^ *\([0-9][0-9]*\) \[.*mt6797-btcvsd.*/\1/p' /proc/asound/cards | head -1)
 [ -n "$card" ] || { step "no card"; exit 1; }
+# What the driver writes for silence when playback closes.
+[ -z "${BT_MSBC:-}" ] || chroot $R /usr/bin/env PATH=/usr/bin:/bin amixer -q -c "$card" cset name='BTCVSD Band' WB
 if [ -n "${BT_CALL:-}" ]; then
 	rm -f $R/tmp/at $R/tmp/in-call
 	mkfifo $R/tmp/at

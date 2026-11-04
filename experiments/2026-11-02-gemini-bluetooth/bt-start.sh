@@ -5,7 +5,7 @@
 # Unpacks the chroot under /run/bt-root and starts dbus-daemon, bluetoothd and
 # bluealsa. bluetoothd powers nothing on with AutoEnable off. The radio-side effects
 # of this module set are at insmod, which opens the device once; see the record.
-# BT_HFP=1 adds the Hands-Free gateway, CVSD only.
+# BT_HFP=1 adds the Hands-Free gateway, CVSD only; with BT_MSBC=1, mSBC as well.
 # Logs stay in RAM under /run/bt-root/run, are private and hold device addresses.
 set -eu
 root=/run/bt-root
@@ -24,8 +24,9 @@ sleep 1
 pidof bluetoothd > /dev/null || in_root sh -c \
 	'exec /usr/lib/bluetooth/bluetoothd -n > /run/bluetoothd.log 2>&1' < /dev/null &
 sleep 1
+[ -n "${BT_MSBC:-}" ] || export BT_NO_MSBC=--codec=-mSBC
 # shellcheck disable=SC2016 # BT_HFP expands in the chroot's shell.
 pidof bluealsa > /dev/null || in_root sh -c \
-	'exec bluealsa -p a2dp-source ${BT_HFP:+-p hfp-ag --codec=-mSBC --codec=-LC3-SWB} --codec=-AAC --a2dp-force-audio-cd --initial-volume=50 > /run/bluealsa.log 2>&1' < /dev/null &
+	'exec bluealsa -p a2dp-source ${BT_HFP:+-p hfp-ag ${BT_NO_MSBC:-} --codec=-LC3-SWB} --codec=-AAC --a2dp-force-audio-cd --initial-volume=50 > /run/bluealsa.log 2>&1' < /dev/null &
 sleep 1
 echo "dbus=$(pidof dbus-daemon) bluetoothd=$(pidof bluetoothd) bluealsa=$(pidof bluealsa)"

@@ -927,3 +927,26 @@ Which codec the phone uses wasn't observed. In T6's trace the headset offers cod
 BlueALSA, with mSBC turned off here, offers no codec negotiation (`+BRSF:2272`), so every run so far has been CVSD at S3. Differences left to
 separate: mSBC against CVSD, the eSCO parameters, and the Gemini's radio or firmware. The owner also asked whether the headset's noise cancellation
 is involved. It's on the phone too, so it wouldn't explain the difference alone, but its behaviour on this link is untested.
+
+## T10, prepared: mSBC
+
+**The owner's decision:** "try mSBC". The phone is clean, and every run here has been CVSD. Nothing in the driver needs changing for a first run:
+- The controller lists transparent voice and Enhanced Setup, and reports codecs CVSD and transparent. Whether its SRAM path carries mSBC is untested.
+- BlueALSA has mSBC, turned off here so far. `BT_MSBC=1` leaves it on. The kernel then asks for T2: 2-EV3, 13 ms, retransmission effort 2, falling back to T1.
+- The driver passes bytes either way, so its `BTCVSD Band` control only chooses the silence it writes when playback closes.
+
+`bt-msbc.py` wraps ffmpeg's SBC codec. An offline round trip through 32-byte capture records, starting on the wrong record, decoded all 1333 frames with
+silence at peak 0 and correlation 0.984 with the notes. The file holds no voice.
+
+`BT_MSBC=1 DIR=both` sends nothing for 8 s, then 4 s of mSBC silence, then 6 s of the notes. Silence alone couldn't tell a clean link from a headset muting frames it can't
+read, so the notes must be heard too. The laptop plays 5 s of the known recording from 1 s.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| `+BCS` and eSCO with air mode transparent, notes heard, noise gone | CVSD was the difference | Make mSBC the default; the bridge next |
+| Same, with the noise still there | Not the codec | Distance test, then the radio |
+| Notes not heard, or capture holds no H2 frames | The SRAM path doesn't carry mSBC as sent | Offline with the bytes |
+| Link refused, or BlueALSA falls back to CVSD | Controller or negotiation | Read the trace; no retry without a new decision |
+| Hang or Oops | Stop | Keep everything; no retry |
+
+**A correction on link time:** T5b to T9 asked for a 30 s link, but `bt-test.sh sco` holds it until `arecord` times out, about 45 s, as no data reaches it. Each voice run's budget said 30 s. T10's says 45 s.
