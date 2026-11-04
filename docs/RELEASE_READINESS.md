@@ -59,14 +59,15 @@ Phase A's profile is `mt6797-a53-release`, from
 breaks and what stays open. It's built only; nothing has booted it. The list below is
 the station it departs from.
 
-- Forced command line today: `initcall_debug`, `panic=0`, `nokaslr`, `earlycon`,
+- Forced command line today: `initcall_debug`, `nokaslr`, `earlycon`,
   `clk_ignore_unused`, `console=ttyS0` only, and a test-named USB identity with a fixed
   address.
-- `panic=0` is a safety question. There's no lockup detector or `panic_on_oops`, so a
-  crashed kernel stays hung, and a kernel stuck like that no longer kicks the charger
-  watchdog, which restores charging in about 47 s (inference from the guard record). A
-  panic restart also keeps the crash record, as
-  [pstore T1](../experiments/2026-11-03-gemini-pstore-retention/README.md) showed.
+- `panic=10` (owner decision, 2026-11-04): a panic restarts after 10 s and keeps the crash
+  record, as [pstore T1](../experiments/2026-11-03-gemini-pstore-retention/README.md)
+  showed with that value set at run time. There's still no lockup detector or
+  `panic_on_oops`, so an Oops or a lockup stays hung, and a kernel stuck like that no
+  longer kicks the charger watchdog, which restores charging in about 47 s (inference
+  from the guard record). The command-line value has not booted.
 - Remove unless justified: `THERMAL_EMULATION`, `DEVMEM`, `I2C_CHARDEV`, `DEBUG_FS`.
 - Log noise: 150 `dev_info` calls in Wi-Fi and CONSYS with no `dev_dbg`, and "one-shot"
   naming 82 times in Wi-Fi. `wait_for_bt_irq` printed 1939 lines in one Bluetooth run,
