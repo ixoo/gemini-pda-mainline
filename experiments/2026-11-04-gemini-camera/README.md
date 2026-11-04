@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera` |
-| Status | `running`: hardware map done, chip ID test not run |
+| Status | `running`: hardware map done, T1 got no chip ID, diagnosis under way |
 | Subsystem | Hi-556 sensor, I2C3, MT6351 camera rails, ISP power domain, CAMSYS clocks, SENINF master clock |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -131,7 +131,7 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-None yet.
+- T1: no chip ID. See [below](#t1-the-chip-id).
 
 ## Limitations
 
@@ -141,4 +141,30 @@ None yet.
 
 ## T1: the chip ID
 
-Not run.
+Boot `887dc12b-64fa-4025-bb9e-e0fda2deed68`, image `29fc6fce`, package `94295c1c` from
+commit `9770e90f`, one run of one probe, as reported by the custodian.
+
+Observed:
+
+- The image booted with the native display bound, USB SSH and no taint. I2C3 came up as
+  `i2c-4`, so the client is `4-0020`. The ISP domain and the rails registered with no
+  warning. `vcamd` moved from 1.2 V to 1.21 V.
+- `clk-mt6797-cam` and `mt6797-seninf` loaded and probed. The ISP domain cycled at least
+  that far with no stall, and its status bit read clear afterwards. Whether it was on
+  during the probe was not sampled.
+- `hi556` passed its 24 MHz clock check, then failed at the chip ID with `-5`, after
+  12 ms. The rails read disabled afterwards, and bit 5 of `PWR_STATUS` clear. No
+  controller message, no Oops. The I2C3 controller had taken one interrupt.
+
+Inference: `-5` is the driver's own code for any failed transfer, so the real error was
+not seen. One interrupt with no timeout message fits a NACK on the address rather than
+a dead controller, but this is not shown. Nothing here tells rail, pin, clock or timing
+apart. The rail enable and voltage registers match the PMIC's documented layout.
+
+No retry. T2 holds the power on to read the state.
+
+## T2: the state while powered
+
+Not run. [`0551`](../../patches/proposals/0551-media-i2c-hi556-DIAGNOSTIC-stay-powered-after-a-fail.patch)
+is a diagnostic that keeps the rails and clock on after a failed chip ID and retries once
+a second, for dropping once this is understood.
