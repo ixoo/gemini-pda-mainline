@@ -462,6 +462,14 @@ One visible change at boot: with the gauge absent the first pass no longer logs
 `stopped ... hot`, because the reason hasn't changed. The next `guard:` line comes about 10 s
 later.
 
+**First boot with the fixes,** `fccba04c…`, image `96338704…`, as reported by the custodian:
+- No `stopped ... hot` line at 0.89 s, and no `battery supply missing` line.
+- First line at 10.98 s: `guard: charging stopped: temp=231 capacity=93 limit=80 full`.
+- Not charging, 93 %, 23 °C, tainted 0.
+
+This shows the normal boot path only. The failed capacity read, a missing gauge's critical
+line, the 47-50 °C boot and the refused probe haven't run on a device.
+
 **Blockers before upstream, not changed now:**
 - **F1:** suspend fails open. Not live here, as `CONFIG_SUSPEND` is unset, but the guard needs
   an answer before the station gets suspend.
