@@ -727,3 +727,4 @@ proposals/0555-media-mediatek-mt6797-seninf-add-the-CSI-2-receiver.patch
 proposals/0556-media-mediatek-mt6797-seninf-DIAGNOSTIC-debugfs-to-s.patch
 proposals/0557-arm64-dts-mediatek-mt6797-describe-the-sensor-interf.patch
 proposals/0558-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-one-.patch
+proposals/0559-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-thro.patch

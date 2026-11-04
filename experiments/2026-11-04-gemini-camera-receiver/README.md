@@ -126,11 +126,22 @@ status reads.
 
 ## C1: one frame to memory
 
-Not run. [`0558`](../../patches/proposals/0558-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-one-.patch) runs the first
-CAMSV in single mode into a coherent buffer, with the frame readable through debugfs, for a colour-bar frame
-to decode offline. Register names are the vendor kernel's, and the sequence follows `libimageio_plat_drv.so`.
-It keeps `larb2` in its reset state with no M4U, as the display does with its larbs. That `larb2` passes
-physical addresses in that state is the assumption under test.
+Image `b7b2cbbe`, package `490eea01`, commit `a2462905`, boot `5e582d21`, one run, as reported by the custodian.
+The owner approved the write, the boot and the DMA. Before the run the custodian unmounted the data partitions
+and set the eMMC read-only, as a precaution against corruption, and treats this boot as suspect.
 
-Choices still unproved: which of the CAM mux entries feeds the first CAMSV, so all CAMSV inputs take this
-interface; and the packing the DMA produces.
+[`0558`](../../patches/proposals/0558-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-one-.patch) ran the first CAMSV into a
+coherent buffer at `0xfeb00000`, with `larb2` in its reset state and no M4U.
+
+Observed: the capture returned 0 with no fault. All 6298560 bytes kept their fill value, and no guard byte
+changed. The generator read enabled, and `CAMSV_INT_STATUS` read 0 with its enable written 0.
+
+Inference: nothing landed in the buffer, and this does not show that nothing was written elsewhere. A likely cause
+is in the code: the vendor library gates this DMA behind frame buffer control, which this test left off.
+Whether the sensor's data reached the first CAMSV at all was not logged.
+
+## C2: through frame buffer control
+
+Not run. [`0559`](../../patches/proposals/0559-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-thro.patch) enables frame buffer
+control with one buffer and queues it, as the library does, and logs the generator's and DMA's status while the
+frame runs.
