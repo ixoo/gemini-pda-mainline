@@ -635,3 +635,18 @@ capture alone does not reach T5's hang, on one run. Playback alone, and both tog
 The owner reports: "I talked th whole time. I heard noise/static". Static fits no TX stream running; that is
 inferred. **Whether the file is intelligible is the owner's to say**, and they have not yet said.
 
+**The owner reports on the decoded file:** "I didn't hear my voice". So capture is not shown to work, and the
+level check above is not evidence of speech.
+
+**Checked offline, on the capture's statistics only:**
+- Framing is continuous: bit statistics show no break at any 30-, 60- or 180-byte boundary.
+- Of the 16 invalid records, 10 are at the start, and 6 are in three pairs.
+- The HCI notes are not what was captured: correlation against them is at most 0.11.
+- The decoded signal comes in bursts, 0.25 s to 1 s long, with quiet gaps at about 11 to 30 RMS. In
+  87 of 159 loud frames it is periodic, mostly 80 to 110 Hz.
+- Energy sits mostly between 300 and 700 Hz, with little above 1 kHz.
+
+**Reading:** that shape suggests something structured, possibly heavily muffled speech, and not random noise.
+It does not show that the coder decodes this firmware's stream correctly, or that the owner's voice is there.
+The coder has only ever been tested against itself, so a mismatch with the spec could look like this.
+
