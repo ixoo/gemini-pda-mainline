@@ -131,7 +131,7 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-- T1, T2, T3 and T5: no chip ID, in 117 reads across them. See [below](#t1-the-chip-id).
+- T1, T2, T3 and T5: no chip ID, in 145 reads across them. See [below](#t1-the-chip-id).
 - T3's script wrote to physical address 0 three times by mistake. See
   [below](#a-script-error-writes-to-address-0).
 
@@ -284,3 +284,13 @@ real difference from the vendor kernel, whether or not it matters here.
 
 Nothing has yet shown GPIO31 toggling under any kernel, so the sampling method itself is
 unproved for a pad known to be running.
+
+The custodian repeated T5 once at the owner's request, on the same boot, to watch for an
+LED; the update write ran again. GPIO31 again read 0 of 64 before and after. Of the 28 reads,
+27 returned `-6` and one returned `-110`, at `0x20` about 3 s after the pulse, with the probe
+taking about 2 s longer. The next pair went back to `-6`. No controller message was seen,
+and the AW9120 read and the end state were as before.
+
+This is the first timeout on this bus. One event shows only that a transfer stalled once.
+Whether the sensor held the bus, which would mean it is alive, or the controller stalled is
+not shown, and nothing was sampled at that moment. No more I2C on this bus this boot.
