@@ -714,3 +714,14 @@ be heard as interference (a hypothesis). So could the coder, or a TX timing faul
    the same noise there, it is the coder's quality, not the path.
 2. If it's cleaner: run again with no HCI playback holding the link, which tests the HCI hypothesis.
 
+**The owner compared them:** the offline file "is noisier than what I hear on the headset". So the path adds no noise
+that the coder alone doesn't already have, and may well be delivering our bytes faithfully. The owner also
+described the headset's noise as "a noise feedback loop, maybe picking up the mic?", which remains untested. The
+coder's SNR on these notes is about 28 dB at any level from -30 to -3 dBFS, so raising the level won't help.
+
+## T6, prepared: capture of known speech
+
+Capture is what's still unexplained. Speech by the owner can't be measured against anything, so T6 plays a known recording
+from the laptop's speaker next to the headset's microphone, and correlates the decoded capture with it. Holding
+the link no longer plays anything over HCI (`SCO_NO_PLAY`), which removes that as a suspect.
+

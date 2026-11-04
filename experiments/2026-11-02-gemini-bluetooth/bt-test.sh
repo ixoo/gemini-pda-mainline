@@ -18,6 +18,7 @@ load)
 	mkdir -p $P
 	insmod $D/bluetooth.ko; echo "insmod bluetooth=$?"
 	[ -z "${BT_HFP:-}" ] || { insmod $D/rfcomm.ko; echo "insmod rfcomm=$?"; }
+	# shellcheck disable=SC2086 # BT_PARAMS may hold several words, or none.
 	insmod $D/btmt6797.ko ${BT_PARAMS:-}; echo "insmod btmt6797=$?"
 	sleep 4
 	sh $D/bt-start.sh $D/bt-root.tar.gz
@@ -67,7 +68,11 @@ sco)
 	stats
 	timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin arecord -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -f S16_LE -r 8000 -c 1 -d "$2" /tmp/mic.wav &
 	mic=$!
-	timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -d "$2" /tmp/voice.wav; echo "aplay=$?"
+	if [ -n "${SCO_NO_PLAY:-}" ]; then
+		sleep "$2"
+	else
+		timeout $(($2 + 15)) chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=sco" -d "$2" /tmp/voice.wav; echo "aplay=$?"
+	fi
 	wait $mic; echo "arecord=$?"
 	stats
 	cp $R/tmp/mic.wav $P/ 2>/dev/null

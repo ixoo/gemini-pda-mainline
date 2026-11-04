@@ -5,6 +5,7 @@
 # pair, with CONSYS up, and only one direction per link:
 #   NAME='headset' DIR=rx sh bt-voice-test.sh    the microphone to private/mic.cvsd
 #   NAME='headset' DIR=tx sh bt-voice-test.sh    notes to the headset, 5 s in each bit order
+# Nothing plays over HCI to hold the link, in case the firmware acts on those packets.
 # The capture holds speech: it is private. The rate tells ALSA 8 kHz, not the 64 kHz of the
 # coded bits: at 64 kHz the core's interrupt check reads a normal interval as a lost buffer
 # and stops capture at once. aplay starts on its first write, as the vendor's HAL does: the
@@ -34,7 +35,7 @@ insmod $D/mt6797-btcvsd.ko; echo "insmod card=$?"
 sleep 1
 card=$(sed -n 's/^ *\([0-9][0-9]*\) \[.*mt6797-btcvsd.*/\1/p' /proc/asound/cards | head -1)
 [ -n "$card" ] || { step "no card"; exit 1; }
-NAME="$NAME" sh $D/bt-test.sh sco 30 > $P/voice-sco.txt 2>&1 &
+NAME="$NAME" SCO_NO_PLAY=1 sh $D/bt-test.sh sco 30 > $P/voice-sco.txt 2>&1 &
 sco=$!
 sleep 4
 step "stream starts"
