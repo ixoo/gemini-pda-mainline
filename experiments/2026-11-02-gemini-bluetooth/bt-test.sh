@@ -22,7 +22,7 @@ load)
 	insmod $D/btmt6797.ko ${BT_PARAMS:-}; echo "insmod btmt6797=$?"
 	sleep 4
 	sh $D/bt-start.sh $D/bt-root.tar.gz
-	cp $D/tone.wav $D/voice.wav $R/tmp/ 2>/dev/null
+	cp $D/tone.wav $D/voice.wav $D/music.wav $R/tmp/ 2>/dev/null
 	in_root btmon -w /run/t2.btsnoop > /dev/null 2>&1 < /dev/null &
 	;;
 pair)
@@ -53,6 +53,25 @@ play)
 	stats
 	timeout 45 chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=a2dp" /tmp/tone.wav; echo "aplay=$?"
 	stats
+	;;
+ab)
+	# One 30 s clip per codec named in $2, numbered, with the rate of each. Order is the
+	# caller's to choose and keep from the listener: the printed lines don't name codecs.
+	pcm=$(in_root bluealsa-cli list-pcms | grep 'a2dpsrc/sink' | head -1)
+	n=0
+	for c in $2; do
+		n=$((n + 1))
+		in_root bluealsa-cli codec "$pcm" "$c" >> $P/ab.log 2>&1; echo "clip $n switch=$?"
+		sleep 2
+		in_root bluealsa-cli codec "$pcm" | grep -i selected | sed "s/^/clip $n /" >> $P/ab.log
+		before=$(in_root hciconfig hci0 | sed -n 's/.*TX bytes:\([0-9]*\).*/\1/p')
+		s=$(date +%s)
+		timeout 45 chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=a2dp" /tmp/music.wav; a=$?
+		e=$(date +%s)
+		after=$(in_root hciconfig hci0 | sed -n 's/.*TX bytes:\([0-9]*\).*/\1/p')
+		echo "clip $n aplay=$a seconds=$((e - s)) kbps=$(( (after - before) * 8 / (e - s) / 1000 ))"
+		sleep 3
+	done
 	;;
 soak)
 	# Plays for $2 seconds at most, counting bytes; stops on the first failure.

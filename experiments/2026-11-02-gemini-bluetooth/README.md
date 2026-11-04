@@ -1012,3 +1012,18 @@ The owner's "Yes, driver change". 0532 sets `HCI_QUIRK_BROKEN_ENHANCED_SETUP_SYN
 | Link up, noise back | T11's clean sound depended on something else there; compare the two traces | Offline, then decide |
 | Link refused or falls back to CVSD | Read the trace | No retry without a new decision |
 | Hang or Oops | Stop | Keep everything; no retry |
+
+## T13, prepared: AAC against SBC for music
+
+**The owner asked:** "can we test AAC for music? I'd like the best sound possible". The traces show what the headset offers: SBC up to bitpool 53, about 328 kbps, and AAC with variable bitrate allowed, up to 192 kbps (`c0ff8c82ee00`). BlueALSA here links `libfdk-aac`,
+kept in the private chroot. Its licence would need a separate decision before anything public carried it.
+
+`BT_AAC=1` offers AAC with the afterburner, and runs `bluetoothd -E`, as switching codec on a connection may need its experimental remote endpoints. `bt-test.sh ab` plays 30 s of `make-music.py`'s file, or the owner's own, once per codec in the order given, and logs the rate. The listener doesn't know the
+order. A soak of 5 minutes on AAC follows, as T2 stalled on a stream and AAC's lower rate hasn't been tried. This doesn't touch the voice path. Nothing here has run.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Owner prefers AAC blind, soak clean | Worth having | Decide default and the licence |
+| Owner prefers SBC, or no difference | Keep SBC; AAC's rate is capped at 192 kbps | Consider SBC XQ if more is wanted |
+| Switching fails | No blind A/B this way | Keep logs; two sessions need a new decision |
+| Link stalls | `timeouts` and `resent` count | Keep logs; no retry |

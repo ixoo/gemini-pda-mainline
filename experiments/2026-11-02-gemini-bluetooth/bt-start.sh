@@ -6,6 +6,7 @@
 # bluealsa. bluetoothd powers nothing on with AutoEnable off. The radio-side effects
 # of this module set are at insmod, which opens the device once; see the record.
 # BT_HFP=1 adds the Hands-Free gateway, CVSD only; with BT_MSBC=1, mSBC as well.
+# BT_AAC=1 offers AAC beside SBC, and lets bluetoothd show remote endpoints to switch codec.
 # Logs stay in RAM under /run/bt-root/run, are private and hold device addresses.
 set -eu
 root=/run/bt-root
@@ -21,12 +22,14 @@ mkdir -p "$root/run/dbus" "$root/var/lib/bluetooth" "$root/var/lib/bluealsa"
 in_root() { chroot "$root" /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin "$@"; }
 pidof dbus-daemon > /dev/null || in_root dbus-daemon --system --nopidfile --fork
 sleep 1
+# shellcheck disable=SC2016 # BT_BLUEZ_OPTS expands in the chroot's shell.
 pidof bluetoothd > /dev/null || in_root sh -c \
-	'exec /usr/lib/bluetooth/bluetoothd -n > /run/bluetoothd.log 2>&1' < /dev/null &
+	'exec /usr/lib/bluetooth/bluetoothd -n ${BT_BLUEZ_OPTS:-} > /run/bluetoothd.log 2>&1' < /dev/null &
 sleep 1
 [ -n "${BT_MSBC:-}" ] || export BT_NO_MSBC=--codec=-mSBC
+if [ -n "${BT_AAC:-}" ]; then export BT_AAC_OPTS=--aac-afterburner BT_BLUEZ_OPTS=-E; else export BT_AAC_OPTS=--codec=-AAC; fi
 # shellcheck disable=SC2016 # BT_HFP expands in the chroot's shell.
 pidof bluealsa > /dev/null || in_root sh -c \
-	'exec bluealsa -p a2dp-source ${BT_HFP:+-p hfp-ag ${BT_NO_MSBC:-} --codec=-LC3-SWB} --codec=-AAC --a2dp-force-audio-cd --initial-volume=50 > /run/bluealsa.log 2>&1' < /dev/null &
+	'exec bluealsa -p a2dp-source ${BT_HFP:+-p hfp-ag ${BT_NO_MSBC:-} --codec=-LC3-SWB} ${BT_AAC_OPTS} --a2dp-force-audio-cd --initial-volume=50 > /run/bluealsa.log 2>&1' < /dev/null &
 sleep 1
 echo "dbus=$(pidof dbus-daemon) bluetoothd=$(pidof bluetoothd) bluealsa=$(pidof bluealsa)"
