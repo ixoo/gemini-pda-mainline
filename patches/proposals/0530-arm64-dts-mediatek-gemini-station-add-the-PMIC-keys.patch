@@ -12,10 +12,13 @@ too, with Gemian's KEY_SEND. The driver assigns the PMIC keys by child
 order, so power must come first.
 
 The driver rewrites the long-press policy at probe, and an absent mode
-disables the reset. Set the policy from Gemian's configuration:
-one-key reset, eleven seconds.
+disables it. Set the policy from Gemian's configuration: one key, eleven
+seconds. This puts the long-press action on Esc, an ordinary typing key.
 
-Not yet run on hardware.
+On the Gemini station, both keys reported press and release, Esc woke a
+blanked console, and TOP_RST_MISC read 0x1201, the intended policy. The
+long press itself has never been exercised, so whether it resets or
+powers off the device is unknown; the binding calls it a force shutdown.
 ---
  .../dts/mediatek/mt6797-gemini-pda-station.dts   | 16 ++++++++++++++++
  1 file changed, 16 insertions(+)

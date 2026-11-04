@@ -131,3 +131,13 @@ predicted.
 - Whether the matrix stays silent with the lid closed. No matrix key was pressed
   in that window, so step 4 rests on reading `gemini-lid`.
 - Suspend and wake from either key.
+
+## Open before upstream
+
+- **Long press.** The register holds the intended policy, but the action has never run,
+  so reset versus power-off is open. In one-key mode it sits on Esc, an ordinary typing
+  key, so a key held for 11 s acts on the whole device. Whether to keep that is an owner
+  decision.
+- **Keys 0001, 0002, 0006 and 0007.** All four carry a placeholder author, and 0001 and
+  0002 also say "Unsigned experiment draft". They can't be submitted until the owner has
+  reviewed them and certifies them truthfully.
