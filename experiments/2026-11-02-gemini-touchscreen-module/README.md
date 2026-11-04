@@ -8,7 +8,7 @@
 | Status | `completed`: T1 showed real multitouch from the module on one boot, on its first load and again after `rmmod` and `insmod` |
 | Subsystem | Novatek NT36772 touch controller, I2C4, EINT8, input multitouch |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
-| Date(s) | 2026-11-02 |
+| Date(s) | 2026-11-02, 2026-11-04 |
 | Investigator(s) | project session, device custody with the custodian session |
 | Tracking issue | none |
 
@@ -62,7 +62,8 @@ adds the node to the station device tree:
 
 - `&i2c4` at 400 kHz, as in the vendor DTB, with no pad state. The vendor node
   sets none, and the SoC has three I2C4 routes, so firmware's mux is left alone.
-- GPIO85 as EINT8, bias disabled, rising. [0377](../../patches/proposals/0377-pinctrl-mediatek-mt6797-use-the-EINT-mux-mode-on-ded.patch)
+- GPIO85 as EINT8, rising; the node first also disabled the bias, which 0479
+  removed (see T1). [0377](../../patches/proposals/0377-pinctrl-mediatek-mt6797-use-the-EINT-mux-mode-on-ded.patch)
   already makes this pad deliver, as shown on EINT10.
 - No supplies. The vendor DTB names `vtouch-supply` as `vldo28` on the wrapper
   node, but the chip driver never uses a regulator, and the Gemian baseline
@@ -98,7 +99,8 @@ contacts, slots, how many at once and each contact's range.
 
 The request sent to the custodian holds the exact package, hashes and commands.
 
-1. Boot the package; confirm the client exists unbound (`1-0062`: the bus is numbered 1 on mainline).
+1. Boot the package; confirm the client exists unbound. It was `1-0062` on T1's
+   boot and `2-0062` on a later image, so find it by address on bus `11011000.i2c`.
 2. One `insmod`. Read the probe lines, `/proc/bus/input/devices`, `/proc/interrupts`.
 3. 30 s untouched: the EINT8 count.
 4. Attended, 60 s capture of the event device: one finger at each corner, then
@@ -155,7 +157,8 @@ the one that worked. It is the `bias-disable` of the pad state, which returns
 `-ENOTSUPP` because MT6797's pin data has no pull registers; the pad setup that
 matters happens when the interrupt is requested.
 [0479](../../patches/proposals/0479-arm64-dts-mediatek-gemini-station-drop-the-touchscre.patch)
-removes the property. It has not run on the device.
+removes the property; the [load check](#load-check-boot-fccba04c-image-96338704-module-34328321)
+below no longer shows the error.
 
 Captures hold positions from x 187 to 2108 and y 157 to 899, inside the declared
 0..2159 and 0..1079. Moves along the long side change x and moves along the short
@@ -175,6 +178,30 @@ drafted for it. The owner's answer showed there was no fault, so T2 did not run.
 `lid-guard` logged `console blanked` and `unblanked` pairs during these captures.
 The touchscreen's only input handler is `event3`, not `kbd`, so it does not go
 through the keyboard path that unblanks the console. The cause was not read.
+
+### Load check, boot `fccba04c`, image `96338704`, module `34328321`
+
+Reported by the custodian on 2026-11-04. This checks loading only: no touch has
+been tested on this image, and the module was left loaded.
+
+| Step | Result |
+| --- | --- |
+| `insmod` | 0, probe 158 ms; 152 ms on reload |
+| Probe log | Trim `00 00 03 72 66 03`, firmware `0x05`, project `0x0101`, 1080x2160, dummy `vcc` and `iovcc` |
+| `dmesg` | No line matching `pin 85` or `pin_config` |
+| Untouched, 30 s | 0 interrupts on `mt-eint 8 Edge 2-0062` |
+| `rmmod`, `insmod` | Both 0, the same probe log |
+| Taint | 0 |
+
+The module's hash is the one T1 ran, so this is the same driver on a later kernel
+and device tree. The missing pin error fits 0479 being in this image, but the
+image's source commit and device tree were not read here.
+
+The client is `2-0062` on bus `11011000.i2c` here, against `1-0062` on T1's boot
+and `4-0062` under the vendor kernel. So the bus number isn't stable across
+kernels. The project's patches add no `i2c` alias, which would explain it as probe
+order, though that wasn't tested. Records and scripts should find the client by
+address on that bus.
 
 ## Analysis
 
