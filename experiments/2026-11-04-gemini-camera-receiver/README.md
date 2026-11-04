@@ -160,5 +160,35 @@ run before they load, which is what C3 tests. Writes elsewhere are not ruled out
 
 ## C3: continuous
 
-Not run. [`0560`](../../patches/proposals/0560-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-with.patch) runs the generator
-continuously, with one buffer in frame buffer control.
+Module `14ebc561`, script `ac9d99a1`, fresh boot `4d00c1ce`, one run, as reported by the custodian. The owner approved it,
+and the eMMC was set read-only first. [`0560`](../../patches/proposals/0560-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-with.patch)
+ran the generator continuously for about 264 ms.
+
+Observed:
+
+- All 6298560 bytes kept their fill value. No guard byte changed. No fault, no taint.
+- `CAMSV_FBC_IMGO_CTL2` went from 0 to `04000000`. Only its top byte moved. `CUR_ADDR` read 0 on every line.
+- The top bytes of `CAMSV_TG_INTER` reached 8, about one step per 33 ms.
+- `CAMSV_INT_STATUS` bit 19 was set on exactly the four lines where the top byte of `CTL2` stepped, and clear on the two
+  where it did not. The vendor header does not name bit 19.
+- `SV_IMGO_ERR` and `SV_IMGO_OVERRUN` stayed clear. `SV_SW_PASS1_DON_ST` appeared only on the first line.
+
+Reading the public vendor kernel's layout for these registers, on the CAM block at the same offsets:
+
+- The top byte of `CTL2` is `DROP_CNT`. `FBC_CNT`, `RCNT` and `WCNT` below it stayed 0.
+- In `CTL1`, bit 16 is `FBC_MODE`, which the same kernel reads as queue mode, and the top byte is `SUB_RATIO`. The vendor
+  library logs the value it writes there as the subsample.
+
+Inference: the block counted these frames as dropped, and it counted no write. Four drops in eight frames fits a
+subsample ratio of 1 skipping every other frame. That is a correction to `0559`, which is wrong in two places: it named
+bit 16 a flush and cleared it, where the vendor library sets it and leaves it set, and it wrote 1 to the top byte as a
+buffer count. With queue mode off and `FBC_NUM` 0, no buffer was ever available. This also replaces the double-buffer
+idea from C2, which C3 does not support. The evidence for no stray writes is these counters, not a check of memory:
+the layout comes from the CAM block, and nothing read the rest of memory.
+
+## C4: queue mode
+
+Not run. [`0561`](../../patches/proposals/0561-media-mediatek-mt6797-seninf-DIAGNOSTIC-queue-mode-a.patch) sets `CTL1` the
+way the vendor library does. This should make the DMA write for the first time, so it first reads larb2 and refuses to
+start CAMSV if `0x380-0x3fc` or `0xf00-0xffc` is non-zero, the check the display path made on larb0 and larb5. Writing 2
+to `capture` stops after that read.

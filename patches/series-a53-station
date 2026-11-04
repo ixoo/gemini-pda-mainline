@@ -729,3 +729,4 @@ proposals/0557-arm64-dts-mediatek-mt6797-describe-the-sensor-interf.patch
 proposals/0558-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-one-.patch
 proposals/0559-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-thro.patch
 proposals/0560-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-with.patch
+proposals/0561-media-mediatek-mt6797-seninf-DIAGNOSTIC-queue-mode-a.patch

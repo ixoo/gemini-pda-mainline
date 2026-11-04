@@ -1,0 +1,133 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 18:42:49 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: DIAGNOSTIC, queue mode and a
+ larb2 check
+
+Frame buffer control dropped every frame it did not skip. The setup was wrong:
+bit 16 of the first control register selects queue mode and was cleared, not a
+flush, and the top byte is the subsample ratio, not a buffer count. Set the
+register as the vendor library does: zero, queue mode, then enable, with no
+subsampling.
+
+This should make the DMA write for the first time. Read larb2 first, and refuse
+to start if either translation-control window is non-zero. Writing 2 to the
+capture file stops after that read.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 59 ++++++++++++++++---
+ 1 file changed, 50 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index b686b7acc..3e625c7ed 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -138,9 +138,8 @@
+ #define CAMSV_PAK_MASK			GENMASK(5, 0)
+ #define CAMSV_PAK_RAW10			1
+ #define CAMSV_FBC_IMGO_CTL1		0x110
+-#define CAMSV_FBC_IMGO_CTL1_FLUSH	BIT(16)
++#define CAMSV_FBC_IMGO_CTL1_MODE_QUEUE	BIT(16)
+ #define CAMSV_FBC_IMGO_CTL1_EN		(BIT(15) | BIT(22))
+-#define CAMSV_FBC_IMGO_CTL1_NUM(n)	((u32)(n) << 24)
+ #define CAMSV_FBC_IMGO_CTL2		0x114
+ #define CAMSV_FBC_IMGO_ENQ_ADDR		0x118
+ #define CAMSV_FBC_IMGO_CUR_ADDR		0x11c
+@@ -172,6 +171,8 @@
+ #define CAMSV_TG_SUB_PERIOD		0x574
+ #define CAMSV_DMA_FRAME_HEADER_EN	0xc00
+ 
++#define LARB2_BASE			0x1a001000
++
+ #define CAPTURE_WIDTH			2592
+ #define CAPTURE_HEIGHT			1944
+ #define CAPTURE_STRIDE			(CAPTURE_WIDTH * 10 / 8)
+@@ -690,7 +691,39 @@ static void seninf_camsv_dump(struct mt6797_seninf *seninf, const char *when)
+  * the buffer shows whether it was overrun. The larb is left in its reset state,
+  * with no M4U.
+  */
+-static int seninf_capture_once(struct mt6797_seninf *seninf)
++/*
++ * The display path found its larbs reading zero in both translation-control
++ * windows, and scans out physical addresses. Ask the same of larb2 before letting
++ * CAMSV write: anything else means this bus address may not be where the data goes.
++ */
++static int seninf_larb_check(struct mt6797_seninf *seninf)
++{
++	void __iomem *larb = ioremap(LARB2_BASE, SZ_4K);
++	unsigned int off, nonzero = 0;
++	u32 val;
++
++	if (!larb)
++		return -ENOMEM;
++	for (off = 0x380; off < 0x400; off += 4) {
++		val = readl(larb + off);
++		if (val) {
++			dev_info(seninf->dev, "larb2 %03x: %08x\n", off, val);
++			nonzero++;
++		}
++	}
++	for (off = 0xf00; off < 0x1000; off += 4) {
++		val = readl(larb + off);
++		if (val) {
++			dev_info(seninf->dev, "larb2 %03x: %08x\n", off, val);
++			nonzero++;
++		}
++	}
++	iounmap(larb);
++	dev_info(seninf->dev, "larb2: %u non-zero in 380-3fc and f00-ffc\n", nonzero);
++	return nonzero ? -EBUSY : 0;
++}
++
++static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ {
+ 	void __iomem *sv = seninf->camsv;
+ 	unsigned int i, unwritten = 0, guard_bad = 0;
+@@ -736,6 +769,10 @@ static int seninf_capture_once(struct mt6797_seninf *seninf)
+ 	if (ret)
+ 		goto put_larb;
+ 
++	ret = seninf_larb_check(seninf);
++	if (ret || check_only)
++		goto stop_camsv;
++
+ 	/* Let the stream settle, so the frame starts clean. */
+ 	msleep(100);
+ 
+@@ -778,9 +815,13 @@ static int seninf_capture_once(struct mt6797_seninf *seninf)
+ 	writel(CAPTURE_STRIDE | CAMSV_IMGO_STRIDE_BUS16, sv + CAMSV_IMGO_STRIDE);
+ 	writel(0, sv + CAMSV_IMGO_CROP);
+ 
+-	writel(CAMSV_FBC_IMGO_CTL1_FLUSH, sv + CAMSV_FBC_IMGO_CTL1);
++	/*
++	 * Queue mode: only an enqueued buffer is written, and with none a frame is
++	 * dropped and counted. The top byte is the subsample ratio; leave it zero.
++	 */
+ 	writel(0, sv + CAMSV_FBC_IMGO_CTL1);
+-	writel(CAMSV_FBC_IMGO_CTL1_NUM(1) | CAMSV_FBC_IMGO_CTL1_EN, sv + CAMSV_FBC_IMGO_CTL1);
++	writel(CAMSV_FBC_IMGO_CTL1_MODE_QUEUE, sv + CAMSV_FBC_IMGO_CTL1);
++	writel(CAMSV_FBC_IMGO_CTL1_MODE_QUEUE | CAMSV_FBC_IMGO_CTL1_EN, sv + CAMSV_FBC_IMGO_CTL1);
+ 	writel(lower_32_bits(seninf->frame_dma), sv + CAMSV_FBC_IMGO_ENQ_ADDR);
+ 	writel(readl(sv + CAMSV_IMGO_FBC) | CAMSV_IMGO_FBC_RCNT_INC, sv + CAMSV_IMGO_FBC);
+ 
+@@ -790,9 +831,8 @@ static int seninf_capture_once(struct mt6797_seninf *seninf)
+ 
+ 	writel(readl(sv + CAMSV_TG_SEN_MODE) | CAMSV_TG_SEN_MODE_CMOS_EN, sv + CAMSV_TG_SEN_MODE);
+ 	/*
+-	 * Continuous: the registers are double-buffered and load at a frame start, so
+-	 * a single frame would run before they apply. Frame buffer control holds
+-	 * one buffer, and the size registers bound each write to it.
++	 * Continuous, as the vendor stack runs it. One buffer is enqueued, so one frame
++	 * should be written and the rest dropped; the size registers bound each write.
+ 	 */
+ 	writel((readl(sv + CAMSV_TG_VF_CON) & ~CAMSV_TG_VF_CON_SINGLE) | CAMSV_TG_VF_CON_EN,
+ 	       sv + CAMSV_TG_VF_CON);
+@@ -830,7 +870,8 @@ static int seninf_capture_once(struct mt6797_seninf *seninf)
+ 
+ static int seninf_dbg_capture_set(void *data, u64 val)
+ {
+-	return val ? seninf_capture_once(data) : 0;
++	/* 1 captures. 2 reads larb2 and stops, with CAMSV not started. */
++	return val ? seninf_capture_once(data, val == 2) : 0;
+ }
+ DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_capture, NULL, seninf_dbg_capture_set, "%llu\n");
+ 
