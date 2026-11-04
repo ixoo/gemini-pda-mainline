@@ -791,3 +791,35 @@ capture still matches with both directions running, which the bridge needs and w
 | Noise stays, capture matches | SRAM isn't the source; the headset's mic path or call state remains | Test a call state through `bluealsa-rfcomm` |
 | Capture degrades once playback runs | The directions interfere | Offline with the bytes |
 | Hang or Oops | Stop, the first evidence on T5's hang | Keep everything; no retry |
+
+## T7 result: silence didn't change the noise (2026-11-03)
+
+The owner's "Yes, run T7". Boot `3fb07fd4`, image `8f2c1167`, `mtk-btcvsd` `0ce985d2`, `bt-test` `63d6af09`,
+`bt-voice-test` `60e6dca0`, `bt-voice` `be973e27`, `DIR=both`, Wi-Fi off. Used 1 inquiry, 1 pairing, 1 eSCO (status 0, air
+mode CVSD). Evidence private under `artifacts/station-work-44/boot-3fb07fd4/bt-t7/`; `mic.cvsd` is `e3652b21`.
+
+**The owner reports:** "noise issue started" during the run and, asked afterwards without the timings, "No change".
+
+**Observed:**
+- No crash or hang, the first run of both directions through ALSA. Link `failed=0 timeouts=0 resent=0`, assert 0,
+  xrun 0, every `rmmod` 0, HCI SCO counts 0.
+- Silence ran 8 to 18 s (`silence ended 0`), and the driver then wrote idle to both transmit SRAM addresses it had learned.
+- The recording arrived at 15.66 s, later than planned. `afplay -t 5` took 7 s, so the laptop may have started late.
+
+| Same stretch of the recording | T7 contour | T6 contour |
+| --- | --- | --- |
+| While silence was sent | 0.805 | 0.834 |
+| After sending stopped | 0.925 | 0.926 |
+| Whole 5 s (waveform -0.366 and -0.453) | 0.890 | 0.896 |
+
+- Capture level on that stretch was -30.5 dBFS, against -28.7 in T6.
+- 10 pairs of records were invalid after the first 10 records, from about 5 s on, some before anything was sent. T6 had none. Cause not established.
+- The playback side logged 389 `wait_for_bt_irq` timeout warnings. T5d logged 339 and T6 none. Effect not established.
+
+**Reading:** capture isn't harmed by playback running, so a bridge has no known obstacle there. The unfed-SRAM reading of the noise
+fails: the owner heard no change with the idle pattern sent, and T5d showed that bytes written this way reach the
+earpiece. One listener's report is the only evidence here, with no measurement of the earpiece.
+
+**Still open:** the noise is present whatever we send, in T5d, T6 and T7. That leaves the headset's own handling of this link, with no call
+signalled, the downlink's radio quality, or something in firmware. A2DP was not reported noisy, so it isn't simply
+the headset's analog output, though nobody compared them directly. Nothing yet separates these.
