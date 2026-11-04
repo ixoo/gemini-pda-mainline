@@ -158,7 +158,10 @@ a 1 MiB log buffer.
     matching full readback.
   - Selecting boot2 at the next boot stays a physical owner action. This
     replaces the round trip through Gemian's installer for station images.
-- [`lid-guard.c`](lid-guard.c) is a small static program, respawned by init:
+- [`backlight-policy.c`](backlight-policy.c), named `lid-guard` until 2026-11-03,
+  is a small static program, respawned by init. Older entries here use the old
+  name. The kernel's `gemini-lid` module has since taken over the lid; the program
+  keeps the brightness keys and fades. As first written:
   - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
     (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
     the console. Open undoes all three.
@@ -213,11 +216,10 @@ a 1 MiB log buffer.
   `mt6797-a53-station` profile in [`kernel/manifest.json`](../../kernel/manifest.json).
 - [`gemini-a53-station.fragment`](../../configs/gemini-a53-station.fragment).
 - [`initramfs/`](initramfs/), [`build-station-initramfs.py`](build-station-initramfs.py),
-  [`station-dt.sh`](station-dt.sh), [`lid-guard.c`](lid-guard.c) and
+  [`station-dt.sh`](station-dt.sh), [`backlight-policy.c`](backlight-policy.c) and
   [`compose-station.py`](compose-station.py).
-- `lid-guard` is built with `gcc -static -O2 -Wall -Wextra -Werror` on
-  aarch64 (in the VM) and passed to the composer:
-  `compose-station.py PACKAGE PARENT_INITRAMFS LID_GUARD OUTPUT_DIR`.
+- `backlight-policy` is built with `gcc -static -O2 -Wall -Wextra -Werror` on
+  aarch64 (in the VM) and passed to the composer in its tools directory.
 
 ## Tested offline (2026-10-30)
 

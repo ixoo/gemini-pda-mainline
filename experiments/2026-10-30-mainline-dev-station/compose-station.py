@@ -88,7 +88,7 @@ def main(package, parent, tools, output):
     padded.write_bytes(raw + bytes(16777216 - len(raw)))
     record = {'release': release, 'package': str(package.name), 'parent_initramfs_sha256': sha(parent),
               'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
-              'lid_guard_sha256': sha(Path(tools)/'lid-guard'),
+              'backlight_policy_sha256': sha(Path(tools)/'backlight-policy'),
               'power_status_sha256': sha(Path(tools)/'power-status'),
               'regulatory_db_sha256': sha(Path(tools)/'regulatory.db'),
               'amixer_sha256': sha(Path(tools)/'amixer'), 'aplay_sha256': sha(Path(tools)/'aplay'),

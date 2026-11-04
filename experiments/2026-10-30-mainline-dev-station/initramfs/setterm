@@ -5,7 +5,7 @@
 #   setterm --blank N   blank the console after N idle minutes (0 to 60;
 #                       0 turns blanking off)
 # It writes to tty1, the station's console, so it works from SSH too.
-# lid-guard powers the backlight down while the console is blanked.
+# backlight-policy powers the backlight down while the console is blanked.
 case "${1:-}" in
 --blank|-blank) ;;
 *) echo "usage: setterm --blank MINUTES (0-60)" >&2; exit 2 ;;

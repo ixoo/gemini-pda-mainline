@@ -42,7 +42,7 @@ static void say(const char *fmt, ...)
 	va_list ap;
 	int fd, n;
 
-	n = snprintf(line, sizeof(line), "lid-guard: ");
+	n = snprintf(line, sizeof(line), "backlight-policy: ");
 	va_start(ap, fmt);
 	vsnprintf(line + n, sizeof(line) - n, fmt, ap);
 	va_end(ap);
