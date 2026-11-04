@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 """Summarize a sensors-imu.sh CSV: one line per second in the device frame.
 
-Device frame: X toward the right edge, Y toward the hinge, Z out of the keyboard.
+Device frame, the screen's: X toward its right edge, Y toward its top, Z out of
+it toward the user.
 Accel in m/s^2, gyro in deg/s. The matrix applied is the one the file records.
 """
 import math
@@ -26,8 +27,7 @@ def matrix(text):
     return [[float(v) for v in row.split(",")] for row in text.split(";")]
 
 
-ma = matrix(header["accel_matrix"])
-mg = matrix(header["anglvel_matrix"])
+ma = mg = matrix(header["matrix"])
 
 
 def apply(m, v):

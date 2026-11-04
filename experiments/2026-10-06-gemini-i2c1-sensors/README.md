@@ -126,7 +126,8 @@ none. GPIO65 and GPIO63 remain untested candidates.
 through IIO, and [`decode-imu.py`](decode-imu.py) summarizes an IMU capture on the
 laptop. Raw captures stay under `artifacts/`.
 
-The device frame used here: base flat on a table, keyboard up, front edge toward
-the user. X points to the right edge, Y to the hinge, Z out of the keyboard.
+The device frame is the screen's, as the kernel's mount-matrix document describes
+it: X toward the screen's right edge, Y toward its top, Z out of it toward the
+user.
 
 Results will follow as each test is run.

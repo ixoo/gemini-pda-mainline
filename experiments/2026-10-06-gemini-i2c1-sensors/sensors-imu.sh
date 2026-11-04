@@ -19,8 +19,7 @@ done
 	echo "# anglvel_scale $(cat "$dev/in_anglvel_scale")"
 	echo "# accel_rate $(cat "$dev/in_accel_sampling_frequency")"
 	echo "# anglvel_rate $(cat "$dev/in_anglvel_sampling_frequency")"
-	echo "# accel_matrix $(cat "$dev/in_accel_mount_matrix")"
-	echo "# anglvel_matrix $(cat "$dev/in_anglvel_mount_matrix")"
+	echo "# matrix $(cat "$dev/in_mount_matrix")"
 	echo "t,ax,ay,az,gx,gy,gz"
 } > "$out"
 
