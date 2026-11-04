@@ -34,6 +34,7 @@ the experiments that support or challenge it.
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
 | [Gemini I2C1 sensors](gemini-sensors.md) | IMU and light/proximity on mainline, the mount matrix, interrupt ownership, and which candidate addresses answer. |
 | [Gemini touchscreen](touchscreen.md) | Controller wiring, vendor TPD/NT36xxx stack, firmware contract, and mainline driver gap. |
+| [Gemini camera path](gemini-camera.md) | SP5509 sensor, rails/pins/MCLK, GPL kernel and proprietary HAL split, SENINF/CSI-2 receiver contract, capture path, and mainline gap. |
 | [AW9120 indicator LEDs](aw9120-led.md) | 20-channel LED controller wiring, register/SRAM protocol, Gemian daemon usage, and mainline gap. |
 | [Vendor kernel ABI](vendor-kernel-abi.md) | Private interfaces used by the working stack and their standard Linux replacements. |
 | [Vendor userspace](vendor-userspace.md) | Android HALs, services, libraries, compatibility bridges, and migration implications. |

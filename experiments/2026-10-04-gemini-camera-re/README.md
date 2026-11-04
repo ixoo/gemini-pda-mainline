@@ -494,7 +494,12 @@ streaming as an identity probe.
   only in the proprietary HAL (F13), mainline has no MediaTek receiver
   driver (F14), and the hardware ISP is out of scope. The realistic target
   is a raw SENINF→CAMSV capture with software ISP, after H4/H5 recover the
-  register contract.
+  register contract. The binary side of F13 is narrowed in the
+  [2026-11-04 split record](../2026-11-04-gemian-camera-driver-re/README.md):
+  the SENINF/MIPI windows and TG/CSI register groups are mapped; the exact
+  field values remain open. The station is now testing the master-clock and
+  SENINF-enable order in the
+  [2026-11-04 camera record](../2026-11-04-gemini-camera/README.md).
 - Flash and autofocus need no work for the built-in camera (F15, F16); the
   rear accessory is absent on the development unit (F2).
 - The cheapest first experiment is H1(a), a log read on Gemian, followed by

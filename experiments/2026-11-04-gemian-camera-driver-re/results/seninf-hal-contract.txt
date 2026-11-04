@@ -1,0 +1,198 @@
+# Gemian camera HAL: SENINF/MIPI register contract
+
+Static analysis result for `experiments/2026-11-04-gemian-camera-driver-re`.
+No vendor code, disassembly listing or private capture is copied here; only
+addresses, offsets, symbol names and observed control flow needed to reassess
+the conclusions.
+
+## Input identity
+
+Retained Gemian userspace extraction (2026-07-12), 64-bit ARM:
+
+| File | Size | SHA-256 |
+| --- | --- | --- |
+| `system/vendor/lib64/libcam.halsensor.so` | 383184 | `6faba2ed96b8521c3f802d7fe31c42834f27445181c3dc1b99e281c477ee754c` |
+| `system/vendor/lib64/libcamdrv_isp.so` | 196448 | `b672e8eed4201d02a1b47d467d12af3d7c567f583865aa906e6aa7911844c573` |
+| `system/vendor/lib64/libcameracustom.so` | 8079320 | `db8727cc03f3c236481121fac8c02df805de23c63a45d40b0fcb603b853d4a1a` |
+| `system/vendor/lib64/libcam_platform.so` | 14536 | `b4f2b7ec676ae23025aa94603f653176d81c47588e8413e9928ffffe97c4813c` |
+| `system/vendor/lib64/hw/camera.mt6797.so` | 47336 | `f2b77a8d4c770d62639071bdf54af44006aef0e4d5e572ec6bff7cb614f27948` |
+
+Tools: GNU binutils `readelf`, `objdump`, `nm` on an aarch64 Ubuntu 24.04
+guest. All work was static; no library was loaded or executed.
+
+Public source comparison: Gemian kernel
+`8cfe6596a503612e3332d9c26e292a19525a7f07` (camera source files), plus the
+local Linux 7.1.3 tree. The live unit reports kernel `3.18.41+`.
+
+## 1. `SeninfDrvImp::init()` mapping
+
+Disassembly of `_ZN12SeninfDrvImp4initEv` (`0x23e70`) shows:
+
+- `open("/dev/camera-isp", O_RDWR)` -> fd at object `+0x34`.
+- `open("/dev/kd_camera_hw", O_RDWR)` -> fd at object `+0x38`.
+- four `mmap()` calls on the `/dev/camera-isp` fd:
+
+| Offset passed to `mmap` | Length | Local meaning | Object field |
+| --- | --- | --- | --- |
+| `0x1a004000` | `0x1000` | CAM_A | `+0x40` |
+| `0x1a040000` | `0x8000` | SENINF | `+0x48` |
+| `0x10217000` | `0x2000` | MIPI RX analog | `+0xc0` |
+| `0x10002000` | `0x1000` | GPIO | `+0xb0` |
+
+The kernel's `ISP_mmap()` accepts exactly `CAM_A`, `CAM_B`, `CAMSV_0`..
+`CAMSV_5`, `UNI_A`, `DIP_A`, `SENINF`, `MIPI_RX` and `GPIO`, with caps
+`0x1000`, `0x8000`, `0x2000` and `0x1000` for the last three. The HAL's four
+windows therefore match the kernel ABI, not arbitrary physical access.
+
+`init()` also stores derived register pointers:
+
+| Object field | SENINF offset | Notes |
+| --- | --- | --- |
+| `+0x50` | `+0x1000` | SENINF1 window |
+| `+0x58` | `+0x2000` | SENINF2 window |
+| `+0x60` | `+0x3000` | SENINF3 window |
+| `+0x70` | `+0xd00` | mux/control |
+| `+0x78` | `+0x1d00` | mux/control |
+| `+0x80` | `+0x2d00` | mux/control |
+| `+0x88` | `+0x3d00` | mux/control |
+| `+0x90` | `+0x4d00` | mux/control |
+| `+0x98` | `+0x5d00` | mux/control |
+| `+0xa0` | `+0x6d00` | mux/control |
+| `+0xa8` | `+0x7d00` | mux/control |
+
+MIPI RX pointers:
+
+| Object field | MIPI RX offset | HAL debug label |
+| --- | --- | --- |
+| `+0xd0` | `+0x0` | CSI0 / `CSI0_OffsetCal` |
+| `+0xd8` | `+0x400` | CSI1 / `CSI1_OffsetCal`, `CSI2-1` logs |
+| `+0xe0` | `+0x800` | third analog block / `CSI2-2` logs |
+
+The `+0x400` and `+0x800` labels are inferred from the HAL's own symbol and log
+strings; the pointer construction itself is observed.
+
+## 2. SENINF top mux and channel control
+
+- `setSeninfTopMuxCtrl(index, value)` (`0x256b4`) reads/writes SENINF `+0x8`
+  and replaces a 4-bit field selected by `index` 0..7. Index 0 is the low nibble.
+- `setSeninf1Ctrl` writes `+0x200` / `+0x204`, `setSeninf2Ctrl` writes
+  `+0x1200` / `+0x1204`, `setSeninf3Ctrl` writes `+0x2200` / `+0x2204`,
+  `setSeninf4Ctrl` writes `+0x3200` / `+0x3204`.
+- These channel-control words set an enable bit (bit 0), a data-pad field
+  (bits 28..30), and a source field (bits 12..15); `+0x4` carries the
+  enable/polarity pair at bits 5/6.
+- `setSeninfMuxCtrl` writes the channel selected by its first index through the
+  pointer table above: bit 31, source bits 12..15, `+0x3c` (relative to the
+  selected channel register) and the source/timing fields.
+
+Channel numbering in the HAL is shifted from the vendor DTS numbering:
+`setSeninf1Ctrl` at base `+0x200` is the block the DTS calls `seninf0`, while
+`setSeninf2Ctrl` at `+0x1200` is `seninf1`. The register addresses, not the
+HAL names, are authoritative.
+
+## 3. MCLK / timing-generator registers
+
+`setMclk1`, `setMclk2` and `setMclk3` are three copies of the same routine:
+
+| Routine | Registers written (relative to SENINF base `0x1a040000`) |
+| --- | --- |
+| `setMclk1` (`0x247f4`) | `+0x0`, `+0x600`, `+0x604`, `+0x614` |
+| `setMclk2` (`0x24a6c`) | `+0x0`, `+0x1600`, `+0x1604`, `+0x1614`, and `+0x600` |
+| `setMclk3` (`0x24cf4`) | `+0x0`, `+0x2600`, `+0x2604`, `+0x2614`, and `+0x600` |
+
+Observed field writes in `setMclk2`:
+
+- `+0x0000`: set bits 10 and 11 (`0x400`, `0x800`), the shared clock enables.
+- `+0x1600`: bits 0..1 cleared with bit 0 set; bit 2 from the inverse of one
+  parameter; bit 28 from another; bit 6 from another.
+- `+0x1604`: bits 16..21 from one parameter; bits 8..13 cleared; low 6 bits
+  from `(parameter + 1) >> 1 & 0x3f`.
+- `+0x1614`: one parameter stored verbatim (the timing-generator period/value).
+- `+0x600` (first generator's source): bits 0..1 cleared with bit 0 set.
+- The routine calls `ioctl(fd_kd_camera_hw, 0xc008693c, &arg)` when enabling.
+  `0xc008693c` decodes as `_IOWR('i', 60, 8)` and is
+  `KDIMGSENSORIOC_X_SET_MCLK_PLL` in `kd_imgsensor.h`.
+
+Kernel/HAL reconciliation: `kdSetSensorMclk()` in `kd_sensorlist.c` only
+selects the `TOP_MUX_CAMTG` parent (`UNIVPLL_D26` for the 48 MHz group or
+`UNIVPLL2_D2` for the 52 MHz group). The divider/period the sensor needs is
+written by the HAL at the addresses above. The kernel's `ISP_MCLK2_EN()` writes
+bits 31/29 at `SENINF1_BASE + 0x600`; with `SENINF1_BASE = 0x1a041000` that is
+`0x1a041600`, the same word as the HAL's `+0x1600`. The two layers agree on the
+address and split the work.
+
+## 4. CSI-2 receiver programming
+
+`setSeninfCSI2(Seninf_para*)` (`0x28524`) selects the receiver target from the
+first structure field (the HAL logs it as `seninfSrc`):
+
+| Field value | MIPI RX pointer | SENINF register pointer |
+| --- | --- | --- |
+| `2` | `+0x400` (CSI1 analog) | `+0x1000` (SENINF1) |
+| `3` | `+0x0` (CSI0 analog) | `+0x3000` (SENINF3) |
+| other | `+0x0` (CSI0 analog) | `+0x0` (SENINF0) |
+
+The value-to-socket mapping is not established by this function alone; the
+table records pointer selection only.
+
+The routine writes these receiver/analog offsets (directly observed):
+
+- MIPI RX block: `+0x00`, `+0x04`, `+0x18`, `+0x1c`, `+0x20`, `+0x28`,
+  `+0x2c`, `+0x34`, `+0x38`, `+0x44`, `+0x48`, `+0x80`, and the mirrored
+  `+0x200`/`+0x204`/`+0x218`/`+0x21c`/`+0x220`/`+0x228`/`+0x22c`/`+0x234`/
+  `+0x238` group used for the selected block.
+- SENINF selected channel: `+0x200`/`+0x204`, `+0x700`/`+0x708`/`+0x70c`/
+  `+0x710`/`+0x738`, `+0x838`..`+0x8d0`, `+0xa00`..`+0xa38`, and
+  `+0xa74`..`+0xb10`.
+
+The same routine logs its computed timing fields:
+
+```text
+TermDelay:%d SettleDelay:%d ClkTermDelay:%d Vsync:%d lane_num:%d
+NCSI2_en:%d HeaderOrder:%d SettleDelay(cnt):%d ISP_clk:%d dpcm:%d
+```
+
+and refuses non-two-lane configurations with `CSI2 only support two lane!`.
+The SP5509 SLS source requests `SENSOR_MIPI_2_LANE`, so this gate is satisfied.
+
+## 5. Sensor-port mapping
+
+`NSCamCustomSensor::getMipiSensorPort(EDevId)` in `libcameracustom.so`
+(`0x59740`) is a four-instruction function:
+
+```text
+if (dev_id < 3) return dev_id;
+return -1;
+```
+
+The HAL therefore uses the device index directly as the port number
+(MAIN 0, SUB 1, MAIN2 2), and rejects anything else. The live unit reports the
+SUB socket as camera 1, so its port is 1. Which CSI analog block that port
+selects in `setSeninfCSI2` is the unresolved part noted above.
+
+## 6. Runtime observation strings
+
+The retained HAL prints the fields a future probe can read without any register
+access:
+
+- `[%s] seninfSrc=%d, MIPI_PHY_TYPE=%d`
+- `[%s] MIPI pad: Main = %d, Sub = %d, Main_2 =%d`
+- `[%s] [seninfControl] ... tginfo0, %d tginfo1 %d, mipi pad %d`
+- `[%s]TermDelay:... SettleDelay(cnt):... ISP_clk:%d dpcm:%d`
+- `[%s]SENINF1_CSI2_INT_STATUS(0x%x), CLR ...`
+- `[%s]CSI2-1 calibration start,MIPIType=%d,HSRXDE=%d`
+
+The active station record `2026-11-04-gemini-camera` later captured the
+Gemian log line `sp5509 i2c write id: 0x40, ReadOut sensor id: 0x556`, which
+settles the sensor address and ID on this unit. Its G1 capture does not report
+the HAL's `seninfSrc`, pad or timing lines; a filtered capture remains the way
+to settle those. No device was accessed for this result.
+
+## 7. What was not recovered
+
+- Exact bitfield meanings and encoded values for every SENINF/MIPI RX field.
+- The `seninfSrc` enum and its board-specific mapping for the SP5509 path.
+- The runtime TG divider value for 24 MHz (the station record measured
+  `n = 2` from a 48 MHz CAMTG; this static pass only recovers the fields).
+- CAMSV/CAM task parameters, DIP pipeline, and M4U buffer programming.
+- Any hardware behaviour: no stream, no I2C transaction, no register read.
