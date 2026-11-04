@@ -232,8 +232,8 @@ unverified; the source above is the vendor behaviour.
   from MT6351 `TOPSTATUS` (`0x0220`), where a clear bit means pressed: bit 1 is
   the power key, which Gemian reports as `KEY_ESC`, and bit 2 is the home key,
   which the vendor device tree maps to keycode 231, `KEY_SEND`. LK selects boot2
-  from the home key. That the outside side key is this line is inferred, not
-  yet measured. See the
+  from the home key, and the owner confirms the outside side key is the button
+  held to select boot2. No press of it has been measured on this line yet. See the
   [side-key record](../../experiments/2026-11-03-gemini-pmic-keys/README.md).
 - The physical power button is a PMIC key, not a matrix position. On Android a
   bare press reports `KEY_ESC`, and `Meta + Esc` is the power action; the Gemini

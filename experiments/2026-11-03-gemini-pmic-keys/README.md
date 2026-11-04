@@ -42,9 +42,11 @@ of the side key.
 - **Matrix.** The [key map](../2026-07-12-input-backlight-recovery/results/keyboard-keymap.txt)
   has no Esc entry.
 
-**Inference, not yet measured:** that the outside side key is the button held to
-select boot2. The other known inputs remain the alternatives: GPIO93/EINT16, which
-the vendor calls anti-tamper, and the SoC keypad.
+**Owner statement:** the outside side key is the button held to select boot2
+("Yes, same button"). With the LK code above, that places the key on the PMIC home
+line. No reading of that register during a press exists yet, so the alternatives
+stay open until the test: GPIO93/EINT16, which the vendor calls anti-tamper, and
+the SoC keypad.
 
 ## Change
 
