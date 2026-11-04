@@ -5,9 +5,9 @@ Subject: [PATCH] soc: mediatek: mt6797-consys: resend unacknowledged STP
  frames
 
 Streaming A2DP stopped the link within 0.2 s, on the ACK timeout. The received
-bytes show why: the firmware's ACK number stayed put while it kept sending, with
-two standalone ACKs in a row repeating it. That is what its protocol does when a
-frame arrives out of order, so it had lost one of ours and was waiting for a resend.
+bytes show the firmware's ACK number staying put while it kept sending, with two
+standalone ACKs in a row repeating it. That is what its protocol does when a frame
+arrives out of order, so it may have lost one of ours; that is inferred, not shown.
 The vendor's STP relies on that: it resends on a 180 ms timeout, ten times at most.
 
 Do the same. On a timeout, send the vendor's four 0x7f resync bytes, then every frame

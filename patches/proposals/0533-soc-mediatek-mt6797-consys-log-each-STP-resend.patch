@@ -6,21 +6,22 @@ Subject: [PATCH] soc: mediatek: mt6797-consys: log each STP resend
 A long A2DP stream had 40 ACK timeouts and the controller reported more
 completed packets than the host sent, in groups the size of a resend.
 The halt line only gives totals, so nothing says when they happened or
-what the link was doing.
+what the link was doing. It also showed one unsolicited WMT message,
+keeping only the first.
 
-Log each timeout with the frames outstanding and queued and the frame
-counts, limited by rate. The time lines up with a Bluetooth trace, and
-the received count shows if the firmware kept talking while its ACK
-stayed put.
+Log each timeout with the frames outstanding and queued, the peer's ACK
+and the frame counts, and each unsolicited WMT message, limited by rate.
+The time lines up with a Bluetooth trace, and the received count shows if
+the firmware kept talking while its ACK stayed put.
 ---
- drivers/soc/mediatek/mt6797-consys.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+ drivers/soc/mediatek/mt6797-consys.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
 
 diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
-index c56e587b1..1c69e87f7 100644
+index c56e587b1..6bbef6bca 100644
 --- a/drivers/soc/mediatek/mt6797-consys.c
 +++ b/drivers/soc/mediatek/mt6797-consys.c
-@@ -1849,14 +1849,23 @@ static irqreturn_t mt6797_stp_irq(int irq, void *data)
+@@ -1849,14 +1849,24 @@ static irqreturn_t mt6797_stp_irq(int irq, void *data)
  static void mt6797_stp_tick(struct timer_list *t)
  {
  	struct mt6797_stp *s = timer_container_of(s, t, tick);
@@ -37,13 +38,24 @@ index c56e587b1..1c69e87f7 100644
  		} else {
 +			if (s->engine.tx_timeouts != timeouts)
 +				dev_info_ratelimited(dev,
-+						     "STP resend %u: try=%u unacked=%u queued=%u tx=%u rx=%u\n",
++						     "STP resend %u: try=%u unacked=%u pending=%u queued=%u peer-ack=%u tx=%u rx=%u\n",
 +						     s->engine.tx_timeouts, s->engine.retries,
-+						     s->engine.unacked, s->engine.count,
++						     s->engine.unacked, s->engine.link.tx_pending,
++						     s->engine.count, s->engine.link.peer_ack,
 +						     s->engine.tx_frames, s->engine.rx_frames);
  			if (s->engine.resync_owed)
  				mt6797_stp_pump(s);
  			mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
+@@ -1894,6 +1904,9 @@ static int mt6797_stp_wmt_rx(void *context, const unsigned char *payload,
+ 		complete(&s->wmt_done);
+ 		return 0;
+ 	}
++	dev_info_ratelimited(container_of(s, struct mt6797_consys, stp)->dev,
++			     "STP unsolicited WMT: %*ph\n",
++			     min_t(int, length, sizeof(s->wmt_first)), payload);
+ 	if (!s->wmt_unsolicited++) {
+ 		memcpy(s->wmt_first, payload, min_t(unsigned int, length, sizeof(s->wmt_first)));
+ 		s->wmt_first_length = length;
 -- 
 2.43.0
 

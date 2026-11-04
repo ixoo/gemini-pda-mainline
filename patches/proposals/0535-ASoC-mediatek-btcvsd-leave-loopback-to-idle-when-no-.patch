@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 23:13:25 -0500
+Subject: [PATCH] ASoC: mediatek: btcvsd: leave loopback to idle when no stream
+ is open
+
+Writing 0 to the loopback switch moves both streams to running, even
+when loopback was off and nothing is open, as alsactl restore would. That
+opens the gate and enables the interrupt with no stream behind it, and it
+stays open.
+
+Act only when leaving loopback, and return each direction to running only
+if it has a stream.
+---
+ sound/soc/mediatek/common/mtk-btcvsd.c | 9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+diff --git a/sound/soc/mediatek/common/mtk-btcvsd.c b/sound/soc/mediatek/common/mtk-btcvsd.c
+index 6c5a903cf..8d54c639a 100644
+--- a/sound/soc/mediatek/common/mtk-btcvsd.c
++++ b/sound/soc/mediatek/common/mtk-btcvsd.c
+@@ -1095,9 +1095,12 @@ static int btcvsd_loopback_set(struct snd_kcontrol *kcontrol,
+ 	if (ucontrol->value.integer.value[0]) {
+ 		mtk_btcvsd_snd_set_state(bt, bt->tx, BT_SCO_STATE_LOOPBACK);
+ 		mtk_btcvsd_snd_set_state(bt, bt->rx, BT_SCO_STATE_LOOPBACK);
+-	} else {
+-		mtk_btcvsd_snd_set_state(bt, bt->tx, BT_SCO_STATE_RUNNING);
+-		mtk_btcvsd_snd_set_state(bt, bt->rx, BT_SCO_STATE_RUNNING);
++	} else if (bt->tx->state == BT_SCO_STATE_LOOPBACK) {
++		/* A stream with nobody behind it would open the gate for good. */
++		mtk_btcvsd_snd_set_state(bt, bt->tx, bt->tx->substream ?
++					 BT_SCO_STATE_RUNNING : BT_SCO_STATE_IDLE);
++		mtk_btcvsd_snd_set_state(bt, bt->rx, bt->rx->substream ?
++					 BT_SCO_STATE_RUNNING : BT_SCO_STATE_IDLE);
+ 	}
+ 	return 0;
+ }
+-- 
+2.43.0
+

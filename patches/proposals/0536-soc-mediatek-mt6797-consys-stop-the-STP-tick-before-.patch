@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 23:13:25 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: stop the STP tick before the
+ interrupts
+
+Halt clears the BTIF interrupt enables, then deletes the timer. A tick in
+between can pump and write the enables back. Delete the timer first.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 6bbef6bca..5e39e9f8f 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2032,10 +2032,11 @@ static void mt6797_stp_halt(struct device *dev, struct mt6797_stp *s)
+ 			break;
+ 		msleep(20);
+ 	}
++	/* The timer first: a tick's pump can write the interrupt enables back. */
++	timer_delete_sync(&s->tick);
+ 	spin_lock_irqsave(&s->lock, flags);
+ 	writel(0, s->btif + WMT_BTIF_IER);
+ 	spin_unlock_irqrestore(&s->lock, flags);
+-	timer_delete_sync(&s->tick);
+ 	free_irq(s->irq, s);
+ 	s->running = false;
+ 	dev_info(dev,
+-- 
+2.43.0
+

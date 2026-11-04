@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 23:13:24 -0500
+Subject: [PATCH] ASoC: mediatek: btcvsd: map before requesting the interrupt
+
+Probe requests the interrupt before mapping the registers, and the
+handler's idle path writes the control register, so an early interrupt
+writes through a NULL pointer. Remove unmaps while the component and any
+open stream still live, and closing such a stream writes through the
+stale mapping.
+
+Map with devres, close the gate, then request the interrupt disabled, so
+it stays off until a stream opens. Release runs in reverse: the component
+goes first, then the gate closes, the interrupt is freed and the windows
+are unmapped, so no remove callback is needed.
+---
+ sound/soc/mediatek/common/mtk-btcvsd.c | 76 ++++++++++++--------------
+ 1 file changed, 34 insertions(+), 42 deletions(-)
+
+diff --git a/sound/soc/mediatek/common/mtk-btcvsd.c b/sound/soc/mediatek/common/mtk-btcvsd.c
+index e1b1c1b10..6c5a903cf 100644
+--- a/sound/soc/mediatek/common/mtk-btcvsd.c
++++ b/sound/soc/mediatek/common/mtk-btcvsd.c
+@@ -7,7 +7,7 @@
+ 
+ #include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+-#include <linux/of_address.h>
++#include <linux/platform_device.h>
+ #include <linux/sched/clock.h>
+ 
+ #include <sound/soc.h>
+@@ -1277,6 +1277,18 @@ static const struct snd_soc_component_driver mtk_btcvsd_snd_platform = {
+ 	.copy		= mtk_pcm_btcvsd_copy,
+ };
+ 
++static void __iomem *mtk_btcvsd_map(struct platform_device *pdev, unsigned int index)
++{
++	struct resource *res = platform_get_resource(pdev, IORESOURCE_MEM, index);
++
++	return res ? devm_ioremap(&pdev->dev, res->start, resource_size(res)) : NULL;
++}
++
++static void mtk_btcvsd_close_gate(void *data)
++{
++	mtk_btcvsd_snd_irq_disable(data);
++}
++
+ static int mtk_btcvsd_snd_probe(struct platform_device *pdev)
+ {
+ 	int ret;
+@@ -1315,33 +1327,22 @@ static int mtk_btcvsd_snd_probe(struct platform_device *pdev)
+ 	mtk_btcvsd_snd_tx_init(btcvsd);
+ 	mtk_btcvsd_snd_rx_init(btcvsd);
+ 
+-	/* irq */
+ 	irq_id = platform_get_irq(pdev, 0);
+ 	if (irq_id <= 0)
+ 		return irq_id < 0 ? irq_id : -ENXIO;
+-
+-	ret = devm_request_irq(dev, irq_id, mtk_btcvsd_snd_irq_handler,
+-			       IRQF_TRIGGER_LOW, "BTCVSD_ISR_Handle",
+-			       (void *)btcvsd);
+-	if (ret) {
+-		dev_err(dev, "could not request_irq for BTCVSD_ISR_Handle\n");
+-		return ret;
+-	}
+-
+ 	btcvsd->irq_id = irq_id;
+ 
+ 	/* iomap */
+-	btcvsd->bt_pkv_base = of_iomap(dev->of_node, 0);
++	btcvsd->bt_pkv_base = mtk_btcvsd_map(pdev, 0);
+ 	if (!btcvsd->bt_pkv_base) {
+ 		dev_err(dev, "iomap bt_pkv_base fail\n");
+ 		return -EIO;
+ 	}
+ 
+-	btcvsd->bt_sram_bank2_base = of_iomap(dev->of_node, 1);
++	btcvsd->bt_sram_bank2_base = mtk_btcvsd_map(pdev, 1);
+ 	if (!btcvsd->bt_sram_bank2_base) {
+ 		dev_err(dev, "iomap bt_sram_bank2_base fail\n");
+-		ret = -EIO;
+-		goto unmap_pkv_err;
++		return -EIO;
+ 	}
+ 
+ 	btcvsd->infra = syscon_regmap_lookup_by_phandle(dev->of_node,
+@@ -1349,8 +1350,7 @@ static int mtk_btcvsd_snd_probe(struct platform_device *pdev)
+ 	if (IS_ERR(btcvsd->infra)) {
+ 		dev_err(dev, "cannot find infra controller: %ld\n",
+ 			PTR_ERR(btcvsd->infra));
+-		ret = PTR_ERR(btcvsd->infra);
+-		goto unmap_bank2_err;
++		return PTR_ERR(btcvsd->infra);
+ 	}
+ 
+ 	/* get offset */
+@@ -1359,7 +1359,7 @@ static int mtk_btcvsd_snd_probe(struct platform_device *pdev)
+ 					 ARRAY_SIZE(offset));
+ 	if (ret) {
+ 		dev_warn(dev, "%s(), get offset fail, ret %d\n", __func__, ret);
+-		goto unmap_bank2_err;
++		return ret;
+ 	}
+ 	btcvsd->infra_misc_offset = offset[0];
+ 	btcvsd->conn_bt_cvsd_mask = offset[1];
+@@ -1374,32 +1374,25 @@ static int mtk_btcvsd_snd_probe(struct platform_device *pdev)
+ 	btcvsd->bt_reg_ctl = btcvsd->bt_pkv_base +
+ 			     btcvsd->cvsd_packet_indicator;
+ 
+-	/* init state */
+-	mtk_btcvsd_snd_set_state(btcvsd, btcvsd->tx, BT_SCO_STATE_IDLE);
+-	mtk_btcvsd_snd_set_state(btcvsd, btcvsd->rx, BT_SCO_STATE_IDLE);
+-
+-	ret = devm_snd_soc_register_component(dev, &mtk_btcvsd_snd_platform,
+-					      NULL, 0);
+-	if (ret)
+-		goto unmap_bank2_err;
+-
+-	return 0;
++	/* Both streams are idle: the gate stays closed and the interrupt off until one opens. */
++	mtk_btcvsd_snd_irq_disable(btcvsd);
++	btcvsd->irq_disabled = 1;
+ 
+-unmap_bank2_err:
+-	iounmap(btcvsd->bt_sram_bank2_base);
+-unmap_pkv_err:
+-	iounmap(btcvsd->bt_pkv_base);
+-	return ret;
+-}
++	ret = devm_request_irq(dev, irq_id, mtk_btcvsd_snd_irq_handler,
++			       IRQF_TRIGGER_LOW | IRQF_NO_AUTOEN, "BTCVSD_ISR_Handle",
++			       (void *)btcvsd);
++	if (ret) {
++		dev_err(dev, "could not request_irq for BTCVSD_ISR_Handle\n");
++		return ret;
++	}
+ 
+-static void mtk_btcvsd_snd_remove(struct platform_device *pdev)
+-{
+-	struct mtk_btcvsd_snd *btcvsd = dev_get_drvdata(&pdev->dev);
++	/* Runs before the interrupt is freed and the windows are unmapped. */
++	ret = devm_add_action_or_reset(dev, mtk_btcvsd_close_gate, btcvsd);
++	if (ret)
++		return ret;
+ 
+-	mtk_btcvsd_snd_irq_disable(btcvsd);
+-	devm_free_irq(&pdev->dev, btcvsd->irq_id, btcvsd);
+-	iounmap(btcvsd->bt_pkv_base);
+-	iounmap(btcvsd->bt_sram_bank2_base);
++	return devm_snd_soc_register_component(dev, &mtk_btcvsd_snd_platform,
++					       NULL, 0);
+ }
+ 
+ static const struct of_device_id mtk_btcvsd_snd_dt_match[] = {
+@@ -1414,7 +1407,6 @@ static struct platform_driver mtk_btcvsd_snd_driver = {
+ 		.of_match_table = mtk_btcvsd_snd_dt_match,
+ 	},
+ 	.probe = mtk_btcvsd_snd_probe,
+-	.remove = mtk_btcvsd_snd_remove,
+ };
+ 
+ module_platform_driver(mtk_btcvsd_snd_driver);
+-- 
+2.43.0
+

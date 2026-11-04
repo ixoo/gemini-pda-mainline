@@ -7,11 +7,13 @@ Subject: [PATCH] Bluetooth: btmt6797: set up voice links with the older
 The controller lists Enhanced Setup Synchronous Connection, and uses it
 for CVSD, but refuses transparent air mode through it with status 0x20.
 The command fails before any link attempt, so the core has no fallback
-and mSBC never comes up. Setup Synchronous Connection with voice setting
-0x0063 and the same T2 values gives an eSCO link with air mode 3.
+and mSBC never comes up. Setup Synchronous Connection with the core's
+transparent voice setting and the same T2 values gives an eSCO link with
+air mode 3.
 
 Mark Enhanced Setup as broken, so the core uses the older command for
-every voice link. Which parameter the controller objects to stays open.
+every voice link. That moves CVSD to it too, which is untested. Which
+parameter the controller objects to stays open.
 ---
  drivers/bluetooth/btmt6797.c | 2 ++
  1 file changed, 2 insertions(+)

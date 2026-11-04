@@ -1068,3 +1068,28 @@ Hidden order `AAC SBC AAC SBC`. Evidence private under `artifacts/station-work-4
 **On buffering:** yes. ALSA, BlueALSA and the headset each hold audio, which should ride out a short stall, and how much isn't measured here. A longer stall or duplicated data can still be heard.
 
 **The soak's skip, followed up.** The owner: "at the very beginning of every cycle". Each cycle is `aplay` restarting `tone.wav`, with a 0.33 s gap in ACL traffic every 30.5 s, so this is most likely the test's own restart, though nothing separates that from a start-of-stream fault. The over-completions don't line up with it: by seconds after a restart they run 17, 30, 12, 10, 9, 0, 15, 30, 6, 5 in 3 s bins. So the recurring skip and the 40 timeouts look like separate things, and the timeouts weren't what the owner picked out in the soak. Whether they were audible at all is open.
+
+## Review of the patches, and what came of it (2026-11-03)
+
+An independent reader went through 0511, 0512, 0523 to 0525, 0527 to 0529, 0531 and 0532, by reading only. Nothing below has run on the device.
+
+**Fixed, compile-checked with W=1 and checkpatch-clean:**
+- 0534: `mtk-btcvsd` requested its interrupt before mapping, and its remove unmapped under a live component. It now maps with devres and starts with the gate closed and the interrupt off.
+- 0535: writing 0 to the loopback switch opened the gate with no stream, so `alsactl restore` could leave it open. This is what made 0529's claim about the gate untrue. It holds again from probe, until a stream or loopback opens it.
+- 0536: halt could have a tick write the interrupt enables back.
+- 0533 now also logs `pending` and `peer-ack` per timeout and each unsolicited WMT message. T13's was `02 03 02 00 00 03`.
+- The messages of 0525 and 0532 now say what's inferred, and that CVSD moved too.
+
+**Not fixed, on purpose:**
+- **Resend (the review's biggest finding).** Surplus completions look like resent frames sent twice, so the firmware may take some resent frames as new, which the sequence discard in 0525 assumed it wouldn't. The four `0x7f` bytes might reset its expected sequence; not established. Probing with only the oldest frame might be better, but `mt6797-consys` ships in the RAM root and carries GNSS, and this can't be tested tonight. 0525 stays; 0533's log should show what happens first.
+- **btcvsd without CONSYS power.** `prepare` and loopback can still open the gate with CONN off, and nothing links the two drivers. It needs an interface between them and a device test. Until then, these modules are only for hand-loading with CONSYS up. Whether this explains T5's hang isn't established; T5 had CONSYS up.
+
+**Read and open, not verified or fixed:**
+- `hdev->send` waits up to 1 s, less than the 2 s recovery, and a timeout loses the buffer and a credit.
+- Clients aren't told when the link dies, so `hci0` stays up returning errors.
+- A failed WMT function-off could drop the rail with the function on.
+- The placeholder address is treated as real; the core could mark it invalid.
+- A full window can read a stale ACK as a full one.
+- The 20 ms tick runs while idle, which costs power.
+
+**For submission:** no sign-offs yet and none invented, the binding in 0528 needs splitting, MAINTAINERS, Fixes tags on 0527, 0531 and 0534, 0534 and 0527 could fold together, and `gemian_radio` will likely be challenged.
