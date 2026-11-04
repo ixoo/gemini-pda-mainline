@@ -131,7 +131,7 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-- T1, T2, T3 and T5: no chip ID, in 205 reads across them. See [below](#t1-the-chip-id).
+- T1, T2, T3 and T5: no chip ID, in 265 reads across them. See [below](#t1-the-chip-id).
 - T3's script wrote to physical address 0 three times by mistake. See
   [below](#a-script-error-writes-to-address-0).
 
@@ -339,3 +339,21 @@ words that differ are unrelated muxes, and the meter's and ARM dividers at `0x10
 Inference: neither the extra gates nor the drive starts the clock. These samples came through the
 debugfs pins file, which G1 did not validate for a toggling pad, so T7 reads the input register
 directly.
+
+## T7: the frequency meter
+
+Same boot, script `d9b4c6cb`, one run of 30 s, as reported by the custodian. The owner approved the
+writes, all to the meter's registers, which read back at rest afterwards. The sequence is the vendor
+kernel's `ckgen_meter`, taken from its binary, with a 1 s wait where it polls.
+
+Observed, with the sensor powered: `mm` 325.0 MHz and `uart` 26.0 MHz, as expected, and CAMTG 47.99
+MHz. UNIVPLL's control words match G1. GPIO31 read 0 on 300 of 300 direct reads of `0x10005200`,
+the register G1 read. All 60 chip ID reads returned `-6`.
+
+Inference: the top clock tree is right, including CAMTG's mux, so the omitted update write is not
+the cause. The fault is between CAMTG and the pad: `cam_camtg`, the generator, or the pad. T3 had
+the other generators on with GPIO30 in clock mode as well, which points at something shared
+rather than one generator, though those samples were the slower kind.
+
+The vendor library's `SeninfDrvImp::init` writes registers this driver never does: bit 31 of
+`+0x0d00`, `+0x1d00`, `+0x2d00` and `+0x3d00`, and bit 0 of `+0x0200`, `+0x1200` and `+0x2200`. T8 tries them.
