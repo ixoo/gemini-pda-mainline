@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-03-gemini-pstore-retention` |
-| Status | `planned`: cause read from the code, cmdline fix committed but not built; T1 and T2 not run |
+| Status | `running`: T1 passed on boot `7978f9ea`; T2 not run; cmdline fix committed but not built |
 | Subsystem | `fs/pstore`, ramoops on the reserved `0x44410000` range |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-03 |
@@ -22,8 +22,8 @@ record crashes on the station, or is the record lost some other way?
 ## The -28 is not a failed record (read from the code)
 
 Read in the prepared `series-a53-station` source. The series' `ram.c` changes are
-config-gated ledgers, and the write path below is upstream's. Not yet confirmed
-on the device; T1 does that.
+config-gated ledgers, and the write path below is upstream's. [T1](#t1-result)
+confirmed it on the device.
 
 - `pstore_dump()` in `fs/pstore/platform.c` loops `while (total < kmsg_bytes)`,
   writing one part each pass. `kmsg_bytes` is
@@ -139,6 +139,30 @@ TOPRGU/PSCI warm restart keeps it for the next boot.
 | Empty | This warm restart lost it, unlike Gemian's | Stop; read boot reason, compare with `eda50de3`'s `reboot`; no T2 |
 | Landed in Gemian | Not a failure | Read it there, it uses the same layout; Gemian's tree differs, so name it in the record |
 | No restart within 60 s | Panic restart does not work here | Owner recovers with the keys; record it; T1 says nothing on retention |
+
+#### T1 result
+
+Run by the custodian on boot `7978f9ea`, image `8f2c1167`, `kmsg_bytes` 10240, radios
+down, `/mnt/data` read-only. The next boot was `3fb07fd4`, same image; the owner held
+the side key and reports "restarted on boot2". I checked the private copy under
+`artifacts/station-work-44/pstore-t1/private/` against the custodian's report.
+
+**Observed:**
+- `dmesg-ramoops-0`, 4049 bytes, starts `Panic#1 Part1` and holds the marker and
+  `sysrq triggered crash`. There is no second dmesg file.
+- `console-ramoops-0`, 1593 bytes, holds the marker, the panic, and
+  `pstore: backend (ramoops) writing error (-28)`, followed by `Rebooting in 10 seconds..`.
+- `androidboot.bootreason=wdt_by_pass_pwk`, `boot_reason=4`, `mrdump_ddrsv=yes`.
+
+**This shows:** the record is stored even though -28 is reported, and this warm restart
+keeps both records for the next station boot. It's the table's second row.
+
+**Limits:**
+- One run, and through a panic. An Oops takes the same loop with `KMSG_DUMP_OOPS`, but
+  that dump hasn't been read back. T5c's Oops was still lost.
+- `wdt_by_pass_pwk` followed a software panic restart with the side key held, so that
+  token doesn't name a key press or a watchdog bite.
+- It says nothing yet about the key restart, which is T2.
 
 ### T2: does the key restart keep this RAM
 
