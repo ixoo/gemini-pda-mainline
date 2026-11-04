@@ -368,14 +368,15 @@ Observed:
 - Before: `+0x0200`, `+0x1200`, `+0x2200` read 0, and `+0x0d00` to `+0x3d00` read `0x06df0080`.
   GPIO31 read 0 on 300 of 300.
 - After setting bit 0 of the first three and bit 31 of the rest: GPIO31 read 1 on 244 of 300.
-- After restarting generator 2: 158 of 300. Reads were already good before this, so the restart
-  gets no credit.
+- After restarting generator 2: 158 of 300.
 - `diag: addr 0x20 ret 2 id 0556`, 23 reads in a row. Every read at `0x28` still returned `-6`.
   Good reads continued through one reset and power-down pulse.
 - No fault, and no sign of an interrupt storm.
 
 So on mainline this sensor answers `0x0556` at `0x20` on I2C3 with the master clock running.
-Which of the seven bits matter is not separated, since they were set together. The driver's own probe
+Which of the seven bits matter is not separated, since they were set together. An earlier version
+of this record said reads were already good before the restart. That was wrong: it came from the
+script's order, with no timestamps. See T10. The driver's own probe
 still failed, because it reads the ID before anything sets them, so the milestone is not met by
 this run: the ID was seen in a diagnostic retry with enables set by hand.
 
@@ -389,3 +390,18 @@ to the project, took GPIO31 from 0 to 92 of 100. All 50 chip ID reads still retu
 Inference: that bit releases the pad, but it is not enough for the sensor to answer. Duty on these
 samples is skewed compared with G1's near half, and slow sampling can't call this a clean 24 MHz,
 so "ones" means only "not stuck low".
+
+## T10: all seven bits, timestamped, no generator restart
+
+Same boot, script `cdda1133`, one run of 34 s, as reported by the custodian.
+
+Observed: the seven bits were set about 3.3 s apart in the order `+0x1200`, `+0x0200`, `+0x2200`,
+`+0x1d00`, `+0x0d00`, `+0x2d00`, `+0x3d00`. GPIO31 read 79 to 89 of 100 throughout. All 34 reads at
+`0x20` returned `-6`, across one pulse.
+
+Inference, from T8 re-read with T10's measured pace, so these are estimates: T8 set its bits near
+686.8, stopped generator 2 near 688.7 and started it near 689.7. Its reads at 687.97 and 688.99 failed,
+and every read from 690.02 was good. Its GPIO31 figure was 244 of 300 before the restart and 158 of
+300 after, the only near-half figure on mainline, close to G1's. T9 and T10 had no restart and no ID.
+So the generator probably has to start after `SENINF_EN`, and a pad biased high is not a usable clock.
+Which enable bits are needed remains open.
