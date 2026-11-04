@@ -1015,3 +1015,9 @@ The earlier no-fade blank stays not fully explained. The device session knows of
 between 771 and 891 but can't rule one out, and the brightness before it wasn't read. A
 level of 16 from the earlier Fn+B test would also have meant no fade, and it would explain
 the reading of 16. The fixed path was shown at 512 only.
+
+**Owner's verdict,** on the same boot and binary: "All good", answering a question that
+covered the fade, the wake by key, a key cancelling a fade, and a lid close and open. It
+doesn't itemise them, so those rest on this one report. The blank timeout is back at
+2 minutes. The image still carries `4ee9da4b…`, so the fix and the new `setterm` and
+`console-shell` need the next RAM root, and the `console-shell` signal hasn't run yet.
