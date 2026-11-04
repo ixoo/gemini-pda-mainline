@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-03-gemini-pmic-keys` |
-| Status | `running`: patches written and compile-checked in the VM, no Buildbox build or boot yet |
+| Status | `running`: both keys report on boot `fcb98505`; whether Esc reaches the console is awaiting the owner |
 | Subsystem | input: `mtk-pmic-keys` on the MT6351 |
 | Device variant | named Gemini PDA (MT6797X), boot2 station |
 | Date(s) | 2026-11-03 |
@@ -91,4 +91,40 @@ On the first boot with 0530:
 
 ## Observations
 
-None yet.
+**Boot `fcb98505`.** Built at `d5daaff4`: package `b024a5df`, image `3e429f70`.
+Run by the device session with the owner. Raw files are retained privately with
+its evidence. The kernel stayed untainted, with no Oops, call trace or warning.
+`mtk-pmic-keys` bound as `event0`.
+
+| Uptime (s) | Event |
+| --- | --- |
+| 124.66 | Console blanked, lid open |
+| 136.68–136.84 | Esc: `event0` keycode 1 down, up |
+| 137.68 | `lid-guard` logs `console unblanked`, on its 1 s poll, so this isn't the wake's real time |
+| 141.87–142.25 | Side key, lid open: `event0` keycode 231 down, up |
+| 145.58 | Lid closed: `SW_LID` 1, keyboard inhibited |
+| 146.59 | Console blanked |
+| 147.30–147.67 | Side key, lid closed: `event0` keycode 231 down, up. The console stayed blanked |
+| 149.92 | Lid open: `SW_LID` 0; console unblanked at 149.93 |
+| 151.89–152.03 | Letter key after opening: `event1` keycode 34 down, up |
+
+`0x02b6` read `0x1201`: bit 9 set, bit 8 clear and bits 13:12 equal to 1, as
+predicted.
+
+## Analysis
+
+- **Hypothesis confirmed.** Esc is the PMIC power key and the side key is the home
+  key: each reports on the PMIC keys device and on no other. The press test on
+  `0x0220` wasn't needed.
+- **Closed lid.** The side key reports with the lid closed, as the owner wanted.
+  It didn't wake the console in that state. The cause wasn't investigated.
+- **Long-press reset.** The register holds the intended policy. The 11 s reset
+  itself was not exercised.
+
+**Not tested:**
+
+- Whether Esc reaches the console as a key. The capture shows the event and the
+  wake only, and the device session has asked the owner.
+- Whether the matrix stays silent with the lid closed. No matrix key was pressed
+  in that window, so step 4 rests on reading `gemini-lid`.
+- Suspend and wake from either key.
