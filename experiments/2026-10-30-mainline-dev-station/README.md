@@ -996,3 +996,22 @@ wouldn't cause unless the level was already 16.
 **Test (predeclared).** With the fix swapped in, and no input after this step:
 `setterm --blank 1`. Expect a fade starting about 57 s later, the blank, and a fade up
 on the next key. Then repeat step 4 of the earlier test.
+
+**Result so far.** Boot `3fb07fd4`, binary `0a5d265a…` from `e1b603d4`, restarted at 1095.28,
+brightness set to 512 first. Sampled every 0.25 s from `setterm --blank 1` at 1109.03, with
+no input expected:
+
+| After `setterm` (s) | Event |
+| --- | --- |
+| +56.89 | Brightness first changes from 512 |
+| +59.98 | Brightness has reached 16 |
+| +60.24 | `bl_power` 4 |
+| +62.07 | `console blanked` logged |
+
+**Step 1's fade and blank pass by measurement**, at the predicted time. The owner's view of
+it, and the fade up, a key cancelling the fade and the lid, are still open.
+
+The earlier no-fade blank stays not fully explained. The device session knows of no key
+between 771 and 891 but can't rule one out, and the brightness before it wasn't read. A
+level of 16 from the earlier Fn+B test would also have meant no fade, and it would explain
+the reading of 16. The fixed path was shown at 512 only.
