@@ -73,6 +73,24 @@ ab)
 		sleep 3
 	done
 	;;
+stream)
+	# $2 seconds of music from one aplay, fed in a loop, so nothing restarts. With a codec
+	# in $3, it switches to that before any audio.
+	pcm=$(in_root bluealsa-cli list-pcms | grep 'a2dpsrc/sink' | head -1)
+	[ -z "${3:-}" ] || { in_root bluealsa-cli codec "$pcm" "$3" >> $P/ab.log 2>&1; echo "switch=$?"; sleep 2; }
+	in_root bluealsa-cli codec "$pcm" | grep -i selected
+	before=$(in_root hciconfig hci0 | sed -n 's/.*TX bytes:\([0-9]*\).*/\1/p')
+	s=$(date +%s); echo "stream starts $(date +%T)"
+	i=0
+	while [ $i -lt $(($2 / 30)) ]; do
+		tail -c +45 $R/tmp/music.wav
+		i=$((i + 1))
+	done | timeout $(($2 + 30)) chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=a2dp" -t raw -f cd -
+	a=$?
+	e=$(date +%s)
+	after=$(in_root hciconfig hci0 | sed -n 's/.*TX bytes:\([0-9]*\).*/\1/p')
+	echo "stream ends $(date +%T) aplay=$a seconds=$((e - s)) kbps=$(( (after - before) * 8 / (e - s) / 1000 ))"
+	;;
 soak)
 	# Plays for $2 seconds at most, counting bytes; stops on the first failure.
 	end=$(( $(date +%s) + $2 ))

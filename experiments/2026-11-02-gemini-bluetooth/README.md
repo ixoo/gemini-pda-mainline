@@ -1095,3 +1095,22 @@ An independent reader went through 0511, 0512, 0523 to 0525, 0527 to 0529, 0531 
 **For submission:** no sign-offs yet and none invented, the binding in 0528 needs splitting, MAINTAINERS, Fixes tags on 0527, 0531 and 0537, 0537 and 0527 could fold together, and `gemian_radio` will likely be challenged.
 
 Later the same night, no device test: 0540 makes the routine `wait_for_bt_irq` messages, about 25 a second on a normal stream, debug only, and limits by rate the warning for a wait that really failed. 0541 declares the two ROM patch files `mt6797-consys` loads. My three review patches moved from 0534 to 0536 to 0537 to 0539, as display had used those numbers.
+
+## T14, prepared: why the link stalls during music
+
+**The owner's decision:** music reliability next, then the voice bridge ("Accept all four").
+
+T13 mixed several things: codec switching, `bluetoothd -E`, `aplay` restarts, and a soak. T14 removes them in turn. `bt-test.sh stream` plays one `aplay` fed in a loop, so nothing restarts, and 0533 logs each resend with `pending`, `peer-ack`, and the frame counts, which line up with the trace by time.
+
+- T14a: SBC only, no `BT_AAC`, no `-E`, no switching, 5 minutes. Closest to T2b, which had no timeouts.
+- T14b: a fresh load with `BT_AAC=1`, switching to AAC once before any audio, 5 minutes.
+
+**Hypothesis, not established:** an ACK stall makes the host resend frames the firmware already took, and the firmware sends them again. If so, each `STP resend` line is followed within tens of milliseconds by over-completions of about its `unacked`. If `rx` keeps rising across a timeout, the firmware was still talking and only its ACK stayed put.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| No timeouts in either, no skips | T13's came from switching, restarts or `-E`, or from something that varies | Repeat once with switching to separate them, then the blind comparison |
+| Timeouts in AAC or `-E` only | Tied to that setup | Read which; compare stacks |
+| Timeouts in both, over-completions follow each resend | The resend duplicates data | Offline: a resend that probes before repeating, with a fixture, then a device test |
+| Timeouts without over-completions | The frames were really lost, and the resend is right | Look for the cause of the loss |
+| Link stops, hang or Oops | Stop | Keep everything; no retry |
