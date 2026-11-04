@@ -46,6 +46,34 @@ SECRET_PATTERNS = [
         r"(?i)\b(?:imei|meid|serial(?:_number)?)\s*[:=]\s*[\"']?"
         r"(?:[0-9]{14,16}|[0-9a-f]{16})\b")),
 ]
+# Patches kept on disk as evidence for their experiments, outside the series.
+KNOWN_ORPHAN_PATCHES = {
+    "patches/proposals/0085-wifi-mediatek-sample-scan-receive-events.patch",
+    "patches/v7.1.3/0093-soc-mediatek-enable-MT6797-A72-power-sequence.patch",
+    "patches/v7.1.3/0096-regulator-da9211-support-legacy-DA9214-interface.patch",
+    "patches/v7.1.3/0104-regulator-da9211-require-exact-legacy-DA9214-signature.patch",
+    "patches/v7.1.3/0105-arm64-dts-mediatek-enable-legacy-Gemini-DA9214-after-handoff.patch",
+    "patches/v7.1.3/0106-regulator-da9211-use-legacy-DA9214-page-selector.patch",
+    "patches/v7.1.3/0107-regulator-da9211-use-write-only-legacy-page-selector.patch",
+    "patches/v7.1.3/0108-regulator-da9211-reproduce-legacy-page-selector-rmw.patch",
+    "patches/v7.1.3/0109-regulator-da9211-use-vendor-shaped-legacy-i2c-transfers.patch",
+    "patches/v7.1.3/0110-regulator-da9211-use-write-only-selector-explicit-identity-reads.patch",
+    "patches/v7.1.3/0111-soc-mediatek-enable-MT6797-A72-cpu8-one-way.patch",
+    "patches/v7.1.3/0112-soc-mediatek-retry-MT6797-A72-CPU8-after-provider.patch",
+    "patches/v7.1.3/0113-regulator-da9211-preserve-legacy-page-revert-selector.patch",
+}
+MAC_ADDRESS = re.compile(r"(?i)(?<![0-9a-f:])[0-9a-f]{2}(?::[0-9a-f]{2}){5}(?![0-9a-f:])")
+# Reviewed, none a real device's: the project's fixed USB addresses and test values,
+# all-zero and broadcast, and the vendor's public Bluetooth template addresses.
+ALLOWED_MAC_ADDRESSES = {
+    "00:00:00:00:00:00", "00:00:00:00:00:01", "ff:ff:ff:ff:ff:ff", "ff:00:00:00:00:01",
+    "00:00:46:02:79:01", "00:00:46:66:20:01",
+    "00:11:22:33:44:55", "03:11:22:33:44:55", "02:00:00:00:00:01", "02:00:00:00:00:98",
+    "02:11:22:33:44:55", "02:11:22:33:44:56", "02:11:22:33:44:66", "02:11:22:33:44:99",
+    "42:00:15:19:82:00", "42:00:15:19:82:01", "42:00:15:19:82:77", "42:00:15:19:82:99",
+    "42:00:15:19:83:00", "42:00:15:19:84:00",
+}
+PLACEHOLDER_HOST = re.compile(r"(?i)@(?:[^\s>]+\.)?(?:localhost|example\.[a-z]+)>")
 
 
 class CheckError(RuntimeError):
@@ -72,6 +100,14 @@ def changed_paths(root: Path, base: str | None) -> set[str]:
             | git_paths(["ls-files", "--others", "--exclude-standard"], root))
 
 
+def added_paths(root: Path, base: str | None) -> set[str]:
+    # Renames are not additions, so renumbering a patch stays quiet.
+    if base:
+        return git_paths(["diff", "--name-only", "--diff-filter=A", base, "HEAD"], root)
+    return (git_paths(["diff", "--name-only", "--diff-filter=A", "HEAD"], root)
+            | git_paths(["ls-files", "--others", "--exclude-standard"], root))
+
+
 def publication_path(name: str) -> None:
     path = PurePosixPath(name)
     if (path.is_absolute() or ".." in path.parts or "\n" in name
@@ -90,6 +126,15 @@ def text_hygiene(name: str, text: str) -> None:
             line = text.count("\n", 0, match.start()) + 1
             # Never echo the matched secret or personal path.
             raise CheckError(f"{name}:{line}: possible {label}; review and redact")
+    mac_addresses(name, text)
+
+
+def mac_addresses(name: str, text: str) -> None:
+    for match in MAC_ADDRESS.finditer(text):
+        if match.group().lower() not in ALLOWED_MAC_ADDRESSES:
+            line = text.count("\n", 0, match.start()) + 1
+            # Never echo the matched address.
+            raise CheckError(f"{name}:{line}: possible MAC address; review and redact")
 
 
 def patch_signoffs(text: str) -> list[str]:
@@ -123,6 +168,34 @@ def metadata_debt(root: Path, paths: set[str]) -> tuple[int, int]:
             raise CheckError(f"new or changed synthetic DCO certification: {name}")
         historical += 1
     return historical, len(known)
+
+
+def orphan_patches(root: Path, paths: set[str]) -> int:
+    series = root / "patches/series"
+    listed = {"patches/" + line for line in series.read_text().splitlines()
+              if line and not line.startswith("#")}
+    orphans = {name for name in paths if name.startswith("patches/") and name.endswith(".patch")
+               and (root / name).exists()} - listed
+    unknown = sorted(orphans - KNOWN_ORPHAN_PATCHES)
+    if unknown:
+        raise CheckError(f"patch not in patches/series: {unknown[0]} ({len(unknown)} in all)")
+    return len(orphans)
+
+
+def placeholder_from(root: Path, paths: set[str], added: set[str]) -> tuple[int, int]:
+    # Existing placeholders are metadata debt: count them, and warn only on a new patch.
+    placeholders = total = 0
+    for name in sorted(paths):
+        if not name.startswith("patches/") or not name.endswith(".patch") or not (root / name).exists():
+            continue
+        total += 1
+        author = re.search(r"(?m)^From: (.*)$", (root / name).read_text().split("\n---\n", 1)[0])
+        if author and not (SYNTHETIC.search(author.group(1)) or PLACEHOLDER_HOST.search(author.group(1))):
+            continue
+        placeholders += 1
+        if name in added:
+            print(f"warning: {name}: placeholder or missing From:", flush=True)
+    return placeholders, total
 
 
 def markdown_links(root: Path, name: str, text: str) -> None:
@@ -171,6 +244,7 @@ def tree_hygiene(root: Path, tracked: set[str]) -> int:
             if match:
                 line = text.count("\n", 0, match.start()) + 1
                 raise CheckError(f"{name}:{line}: possible {label}; review and redact")
+        mac_addresses(name, text)
     return scanned
 
 
@@ -263,6 +337,9 @@ def main() -> None:
         command(["git", "diff", "--cached", "--check"])
     historical, audited = metadata_debt(ROOT, tracked | paths)
     print(f"metadata_debt=unresolved grandfathered_current={historical} audited={audited}", flush=True)
+    print(f"orphan_patches_known={orphan_patches(ROOT, tracked | paths)}", flush=True)
+    placeholders, patches = placeholder_from(ROOT, tracked | paths, added_paths(ROOT, args.base))
+    print(f"placeholder_from_debt={placeholders} of {patches} patches", flush=True)
     for name in sorted(paths):
         try:
             inspect_file(ROOT, name)

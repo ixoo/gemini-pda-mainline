@@ -37,6 +37,10 @@ def main() -> None:
                    "imei=" + "123456789012345"):
         rejected(lambda: checks.text_hygiene("new.txt", secret), "sensitive text")
         mutations += 1
+    fake_mac = ":".join(["02", "aa", "bb", "cc", "dd", "ee"])
+    rejected(lambda: checks.text_hygiene("new.txt", "ether " + fake_mac.upper()), "MAC address")
+    mutations += 1
+    checks.mac_addresses("safe.txt", "dev_addr=" + sorted(checks.ALLOWED_MAC_ADDRESSES)[0] + " at 12:34:56")
     checks.text_hygiene("safe.txt", "boot_id=1234\nsha256=" + "a" * 64)
     with tempfile.TemporaryDirectory(prefix="repository-mutations-", dir=os.environ.get("TMPDIR")) as temporary:
         root = Path(temporary)
@@ -63,6 +67,11 @@ def main() -> None:
         audit_path.write_bytes(audit_path.read_bytes() + b"\n")
         rejected(lambda: checks.metadata_debt(root, set()), "changed audit record")
         mutations += 1
+        (root / "patches/series").write_text("# comment\nold.patch\n")
+        assert checks.orphan_patches(root, {entry["path"]}) == 0
+        rejected(lambda: checks.orphan_patches(root, {entry["path"], "patches/new.patch"}), "orphan patch")
+        mutations += 1
+        assert checks.placeholder_from(root, {entry["path"], "patches/new.patch"}, set()) == (2, 2)
         (root / "target.md").write_text("# Target\n")
         checks.markdown_links(root, "README.md", "[target](target.md#target)")
         rejected(lambda: checks.markdown_links(root, "README.md", "[missing](absent.md)"), "broken link")

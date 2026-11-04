@@ -115,8 +115,8 @@ Structure is.
 - **Wi-Fi.** 14k lines; `mt6797_mac_join_work` is 1036 lines; polled receive. Expect
   rejection as it stands (inference).
 - **CONSYS.** A static singleton with hardcoded addresses, and a 296-line probe.
-- **`check-repository`.** It misses placeholder `From:` lines, orphan patches, and MAC,
-  IP or SSID patterns.
+- **`check-repository`.** It refuses orphan patches and MAC addresses, and counts
+  placeholder `From:` lines, warning on new ones. It still misses IP or SSID patterns.
 
 **Proposed cut.** Phase A, days: a `release` profile from HEAD, leaving history alone.
 Phase B: delete the off scaffolding, prove objects match today's build, and regenerate
