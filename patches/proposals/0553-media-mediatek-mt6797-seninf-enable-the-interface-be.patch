@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 16:35:11 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: enable the interface before
+ its generator
+
+With the generator started and the interface disabled, the master clock pad
+reads low. Enabling the interface afterwards lets the pad move, but the Hi-556
+still does not answer. Starting the generator after the interface does give
+a working clock, on one unit, with the chip ID read through a diagnostic.
+
+Whether the interface must also stay enabled for the rest of the clock's
+life is not separately shown, so it stays on while the clock is on.
+---
+ drivers/media/platform/mediatek/seninf/mt6797-seninf.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 20ea10cc9..9334ffdb7 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -24,6 +24,9 @@
+ #define SENINF_TOP_CTRL			0x0000
+ #define SENINF_TOP_PCLK_EN		GENMASK(11, 10)
+ 
++#define SENINF_CTRL(n)			(0x0200 + (n) * 0x1000)
++#define SENINF_CTRL_EN			BIT(0)
++
+ #define SENINF_TG_BASE(n)		(0x0600 + (n) * 0x1000)
+ #define SENINF_TG_PH_CNT		0x00
+ #define SENINF_TG_PH_CNT_PCEN		BIT(31)
+@@ -72,6 +75,12 @@ static int seninf_mclk_enable(struct clk_hw *hw)
+ 	spin_lock_irqsave(&seninf->lock, flags);
+ 	seninf_update(seninf, SENINF_TOP_CTRL, SENINF_TOP_PCLK_EN,
+ 		      SENINF_TOP_PCLK_EN);
++	/*
++	 * The interface must be enabled before its generator starts. Started
++	 * the other way round, the pad does not carry a usable clock, and
++	 * enabling the interface later does not cure it.
++	 */
++	seninf_update(seninf, SENINF_CTRL(mclk->tg), 0, SENINF_CTRL_EN);
+ 	writel(SENINF_TG_SEN_CK_VAL, seninf->base + tg + SENINF_TG_SEN_CK);
+ 	seninf_update(seninf, tg + SENINF_TG_PH_CNT,
+ 		      SENINF_TG_PH_CNT_CLKFL_POL | SENINF_TG_PH_CNT_CLK_SEL,
+@@ -98,6 +107,7 @@ static void seninf_mclk_disable(struct clk_hw *hw)
+ 	spin_lock_irqsave(&seninf->lock, flags);
+ 	seninf_update(seninf, SENINF_TG_BASE(mclk->tg) + SENINF_TG_PH_CNT,
+ 		      SENINF_TG_PH_CNT_PCEN | SENINF_TG_PH_CNT_MCLK_EN, 0);
++	seninf_update(seninf, SENINF_CTRL(mclk->tg), SENINF_CTRL_EN, 0);
+ 	spin_unlock_irqrestore(&seninf->lock, flags);
+ }
+ 
+-- 
+2.43.0
+

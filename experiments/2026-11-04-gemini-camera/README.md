@@ -131,7 +131,7 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-- T1, T2, T3 and T5: no chip ID, in 265 reads across them. See [below](#t1-the-chip-id).
+- T1, T2, T3 and T5: no chip ID without the enable order below. See [below](#t1-the-chip-id).
 - T3's script wrote to physical address 0 three times by mistake. See
   [below](#a-script-error-writes-to-address-0).
 
@@ -405,3 +405,21 @@ and every read from 690.02 was good. Its GPIO31 figure was 244 of 300 before the
 300 after, the only near-half figure on mainline, close to G1's. T9 and T10 had no restart and no ID.
 So the generator probably has to start after `SENINF_EN`, and a pad biased high is not a usable clock.
 Which enable bits are needed remains open.
+
+## T11: the interface, then the generator
+
+Same boot, script `12b1dbcc`, one run of 30 s, as reported by the custodian, with uptime logged around
+every write. The writes are within those the owner approved for T8.
+
+Observed: bit 0 of `+0x1200` set at 1021.30, generator 2 off at 1022.30 and on at 1023.31. Reads failed at
+1018.31 to 1022.40, the last with the enable on and the generator off. Reads returned `id 0556` at
+1023.42 through 1048.03, 26 in a row, including across one pulse. GPIO31 read 174 of 300 afterwards. Every
+read at `0x28` returned `-6`. The later steps did not run.
+
+Inference: the second interface's enable, then starting its generator, is enough for the chip ID. The mux
+enables and the other interfaces' enables are not needed for this; they may be for streaming. Whether a
+restart is needed, or only the order, is what the driver's own probe tests next.
+
+[`0553`](../../patches/proposals/0553-media-mediatek-mt6797-seninf-enable-the-interface-be.patch)
+sets the enable in the clock's enable path, before the generator. The diagnostics `0551` and `0552`
+have left the series.
