@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `running`: G1-G6 passed on the device; the battery reading's flip is a lookup overflow below 25 °C, with the fix (0526) not yet on a device |
+| Status | `completed`: G1-G6 passed on the device, and the fix for the battery reading's overflow is confirmed at 24.8-25 °C; the temperature stop is shown by emulation, and no charge current was measured |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -407,10 +407,25 @@ above 429496 wraps. Reads differ because ADC noise crosses the edge of a wrappin
 
 **The fix:** [0526](../../patches/proposals/0526-thermal-generic-adc-do-not-overflow-the-table-interp.patch)
 uses a 64-bit product. Compiled at `W=1` in the VM; the arithmetic was checked offline over
-all 4096 codes, where only the codes above differ. It's built in, so it goes in the next
-image, and it could go upstream.
+all 4096 codes, where only the codes above differ. It could go upstream.
 
-**To confirm on that image:** with the battery in one of these ranges, the zone stays within
-a degree of the raw code's true value across repeated reads, with no 7-9 °C gap.
+**Confirmed on boot `fcb98505…`,** image `3e429f70…` from package `b024a5df` at `d5daaff4`, at
+31-50 s, cable in, radios down. The custodian took 20 lines of raw, gauge and zone reads:
+- Raw 931-942, zone 24.806-25.255 °C, gauge 24.8-25.2 °C, with nothing near 15-16 °C.
+- 10 of the 20 zone readings were 24.806-24.999 °C. The old lookup could never give a value
+  from 24.615 to 24.999 °C, because those codes wrapped to about 15.4-15.8 °C. So this is
+  the fixed lookup working inside the affected range, not the battery avoiding it. Raw
+  937-942 is also inside the wrapping codes, 937-947.
+
+Only this range ran on the device. The other eight are from the offline check.
+
+**Also on that boot:**
+- `guard: charging stopped: temp=251 capacity=95 limit=80 full` at 10.98 s, after the first
+  pass's `hot` at 0.89 s, with charging stopped throughout. So 0519's log of a change of
+  reason works, and this time the original boot bind cleared `hot`, the case G6 couldn't
+  show.
+- Capacity read 95, up from 92 before a 14-minute power-off with the cable in. This is the
+  known gap [above](#where-it-cant-protect): with the system off nothing enforces the limit.
+  Charge current wasn't measured.
 
 G1-G6 still stand, and their temperatures were true readings or emulation.
