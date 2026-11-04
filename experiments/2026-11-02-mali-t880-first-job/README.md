@@ -577,8 +577,9 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
 ## Follow-up
 
 1. A cap under real heat, which needs a load that reaches the trip.
-3. VGPU and the LDOs off at idle, then `domain-supply` on MFG_ASYNC, the upstream shape, once the regulator can be built in.
-4. The `scpsys` clock: it holds `mfg_sel` prepared from boot, and it is also what stops the loader's running PLL on first load, so removing it needs its own way to stop that PLL.
-5. Whether a relock across a post-divider really needs more than 20 us, which would let the drain go. Built-in code, so an image.
-6. Clocks above 520 MHz need rail voltages above 1.0 V, a separate decision.
-7. Showing GPU output on screen, which belongs with the display work.
+2. VGPU and the LDOs off at idle, then `domain-supply` on MFG_ASYNC, the upstream shape, once the regulator can be built in.
+3. The `scpsys` clock: it holds `mfg_sel` prepared from boot, and it is also what stops the loader's running PLL on first load, so removing it needs its own way to stop that PLL.
+4. Whether a relock across a post-divider really needs more than 20 us, which would let the drain go. Built-in code, so an image.
+5. Clocks above 520 MHz need rail voltages above 1.0 V, a separate decision.
+6. Showing GPU output on screen, which belongs with the display work.
+7. Before upstream: `0493` takes `rate_lock` in `run_job`, while the rate change under that lock can allocate in the regulator and I2C paths. That breaks the fence-signalling rule against waiting on reclaim, a deadlock in principle under memory pressure, from review, not observed. `run_job` already calls `pm_runtime_get_sync`, which has the same issue. Fixing it needs a test, so it did not go in overnight.
