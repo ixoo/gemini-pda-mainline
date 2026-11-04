@@ -8,7 +8,11 @@ through station-dt.sh; the RAM root is
 built from a retained soak RAM root by build-station-initramfs.py.
 The container and its LK checks are the soak candidates' own.
 
-usage: compose-station.py PACKAGE PARENT_INITRAMFS TOOLS OUTPUT_DIR
+With AUTHORIZED_KEY (the tester's one-line SSH public key) it composes the
+release instead: a mt6797-a53-release package and release/build-parent.sh's public
+parent and tools, with no keys but that one and no firmware.
+
+usage: compose-station.py PACKAGE PARENT_INITRAMFS TOOLS OUTPUT_DIR [AUTHORIZED_KEY]
 """
 import hashlib
 import json
@@ -27,7 +31,8 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def main(package, parent, tools, output):
+def main(package, parent, tools, output, authorized_key=None):
+    public = authorized_key is not None
     package, output = Path(package), Path(output)
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = []
@@ -57,12 +62,15 @@ def main(package, parent, tools, output):
         modules += found
     module = modules[0]
     release = release or module.parts[module.parts.index('modules') + 3]
-    assert release.endswith('-gemini-a53-station'), release
+    assert release.endswith('-gemini-a53-release' if public else '-gemini-a53-station'), release
     config = (package/'kernel.config').read_text()
     for line in ['CONFIG_MODULES=y', 'CONFIG_MT6797_MAC80211=m', 'CONFIG_MT6797_HIF_CORE=m',
                  'CONFIG_MTK_MT6797_CONSYS=m', 'CONFIG_INPUT_GEMINI_LID=m', 'CONFIG_MTK_SOC_THERMAL=y', 'CONFIG_THERMAL=y',
                  'CONFIG_MEDIATEK_MT6359_AUXADC=y', 'CONFIG_GENERIC_ADC_THERMAL=y',
                  'CONFIG_EXT4_FS=y', 'CONFIG_CHARGER_BQ25890=y', 'CONFIG_DRM_FBDEV_EMULATION=y']:
+        assert line in config.splitlines(), line
+    for line in ['# CONFIG_DEVMEM is not set', '# CONFIG_I2C_CHARDEV is not set', '# CONFIG_DEBUG_FS is not set',
+                 'CONFIG_EXTRA_FIRMWARE=""'] if public else []:
         assert line in config.splitlines(), line
     output.mkdir(mode=0o700)
     dtb = output/'board.dtb'
@@ -70,7 +78,7 @@ def main(package, parent, tools, output):
                    check=True, stdout=subprocess.DEVNULL)
     ram = output/'initramfs.img'
     subprocess.run([sys.executable, str(HERE/'build-station-initramfs.py'), str(parent), ':'.join(map(str, modules)),
-                    str(tools), release, str(ram)], check=True)
+                    str(tools), release, str(ram)] + ([str(authorized_key)] if public else []), check=True)
     boot = output/'boot.img'
     subprocess.run([sys.executable, str(BOOT/'build-android-boot-v0.py'),
                     '--kernel', str(package/'Image.gz'), '--ramdisk', str(ram), '--dtb', str(dtb),
@@ -89,7 +97,7 @@ def main(package, parent, tools, output):
     record = {'release': release, 'package': str(package.name), 'parent_initramfs_sha256': sha(parent),
               'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
               'backlight_policy_sha256': sha(Path(tools)/'backlight-policy'),
-              'power_status_sha256': sha(Path(tools)/'power-status'),
+              **({} if public else {'power_status_sha256': sha(Path(tools)/'power-status')}),
               'regulatory_db_sha256': sha(Path(tools)/'regulatory.db'),
               'amixer_sha256': sha(Path(tools)/'amixer'), 'aplay_sha256': sha(Path(tools)/'aplay'),
               'initramfs_sha256': sha(ram), 'boot_img_bytes': len(raw), 'boot2_sha256': sha(padded)}
@@ -98,6 +106,6 @@ def main(package, parent, tools, output):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 5:
+    if len(sys.argv) not in (5, 6):
         sys.exit(__doc__)
     main(*sys.argv[1:])

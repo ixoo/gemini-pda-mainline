@@ -1,0 +1,58 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# The release's only way to start Wi-Fi at boot or by hand. Nothing is loaded and
+# nothing transmits unless the tester wrote a country to /etc/radio-country and the
+# firmware files are where the kernel's firmware loader looks. The country goes
+# first, so the driver never runs under the default rules. Both are RAM only and go
+# at reboot. Prints one word for the status file.
+export PATH=/bin LD_LIBRARY_PATH=/lib
+bb=/bin/busybox
+country=$($bb cat /etc/radio-country 2>/dev/null)
+case "$country" in
+'') echo off-no-country; exit 0 ;;
+[A-Z][A-Z]) ;;
+*) echo off-bad-country; exit 1 ;;
+esac
+for name in WIFI_RAM_CODE_6797 ROMv3_patch_1_0_hdr.bin ROMv3_patch_1_1_hdr.bin; do
+    if [ ! -s "/lib/firmware/mediatek/mt6797/$name" ]; then
+        echo absent-no-firmware
+        exit 0
+    fi
+done
+if ! /bin/iw reg set "$country"; then
+    echo off-reg-failed
+    exit 1
+fi
+# iw returns before cfg80211 has read regulatory.db, so wait to see it applied.
+waited=0
+while ! /bin/iw reg get | $bb grep -q "^country $country:"; do
+    if [ "$waited" -ge 5 ]; then
+        echo off-reg-not-applied
+        exit 1
+    fi
+    $bb sleep 1
+    waited=$((waited + 1))
+done
+# The calibration record, read in place: read-only, and noload so that an unclean
+# journal is never replayed onto the partition.
+if ! $bb grep -q ' /nvdata ' /proc/mounts; then
+    nvdata=
+    for uevent in /sys/class/block/mmcblk0p*/uevent; do
+        $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
+    done
+    if [ -z "$nvdata" ] || ! $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
+        echo off-no-nvdata
+        exit 1
+    fi
+fi
+$bb ln -sf /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
+# CONSYS starts the firmware after probe and mac attaches when it is ready.
+for module in mt6797-wlan-core mt6797-consys mac; do
+    $bb grep -q "^$(echo "$module" | $bb tr - _) " /proc/modules && continue
+    if ! $bb insmod "/lib/modules/$($bb uname -r)/$module.ko"; then
+        echo "$module-failed"
+        exit 1
+    fi
+done
+echo "started-$country"

@@ -52,6 +52,8 @@ it holds, the methodology is revised separately.
   SSH keys, the keymap, the Wi-Fi firmware and the Wi-Fi tools.
 - **Boot image:** composed by [`compose-station.py`](compose-station.py) with
   the soak candidates' container and LK checks.
+- **Release variant:** [`release/`](release/) replaces that parent with a public one for
+  `mt6797-a53-release`; see [release readiness](../../docs/RELEASE_READINESS.md#release-ram-root).
 
 ## The change
 

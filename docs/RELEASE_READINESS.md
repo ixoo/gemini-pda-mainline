@@ -15,7 +15,7 @@ image, and it has run on one unit.
 | --- | --- | --- |
 | Install | Partial | `flash-boot2` from a running station. No first-install tool or tester guide |
 | Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. The 11 s long press has never run |
-| Reproducibility | Partial | Kernel pinned and built on Buildbox. RAM root derives from a private retained parent |
+| Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), not yet booted |
 | Unit dependence | Yes | Parent carries keys and firmware; fixed USB addresses; `iw reg set US` |
 | Root filesystem | RAM only | No distro path; `linux` mounts Gemian's partition read-write |
 | Suspend, cpuidle, cpufreq | Not started | Off. Decides battery life and heat |
@@ -40,11 +40,11 @@ image, and it has run on one unit.
 
 | # | Blocker | Effort |
 | --- | --- | --- |
-| 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key | M |
-| 2 | Tester supplies firmware from their own device, with hash check; Wi-Fi absent cleanly otherwise | S-M |
-| 3 | Release profile, below | S-M |
-| 4 | Leave Gemian's root read-only by default, or use one dedicated directory | S, owner decision |
-| 5 | A country setting replaces fixed US; radio off until set | S, owner protocol |
+| 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key. Built and audited offline, never booted: [below](#release-ram-root) | M |
+| 2 | Tester supplies firmware from their own device, with hash check; Wi-Fi absent cleanly otherwise. Absence built, never booted; no way to supply or check firmware yet | S-M |
+| 3 | Release profile, below. Package and RAM root compose; the command line items stay open | S-M |
+| 4 | Leave Gemian's root read-only by default, or use one dedicated directory. Read-only in the release image, unbooted, at a cost to the display: [below](#release-ram-root). Owner decision open | S, owner decision |
+| 5 | A country setting replaces fixed US; radio off until set. `radio-start` does this, never booted; owner protocol open | S, owner protocol |
 | 6 | First-install tool from Gemian using the existing guard; backup, restore and removal steps | M |
 | 7 | Evidence: ten cold boots, a real charge reaching 80%, the 11 s reset, the Wi-Fi baseline, a soak | M, needs the device |
 | 8 | One non-author unit follows the guide unaided | M, availability risk |
@@ -71,6 +71,52 @@ the station it departs from.
 - Log noise: 150 `dev_info` calls in Wi-Fi and CONSYS with no `dev_dbg`, and "one-shot"
   naming 82 times in Wi-Fi. `wait_for_bt_irq` printed 1939 lines in one Bluetooth run,
   55% of that log. Debug module parameters on Panfrost, panel and `mtk_drm`.
+
+### Release RAM root
+
+Two steps, with [`compose-station.py`](../experiments/2026-10-30-mainline-dev-station/compose-station.py)
+and the files in [`release/`](../experiments/2026-10-30-mainline-dev-station/release/):
+
+```sh
+# In the VM. Pinned by SHA-256: the Alpine 3.22.7 minirootfs, packages.sha256, Linux's keymap.
+release/build-parent.sh WORK
+# With a mt6797-a53-release package. The last argument is the tester's public key.
+compose-station.py PACKAGE WORK/out/parent-initramfs.img WORK/out/tools OUTPUT KEY.pub
+```
+
+The image holds Alpine's busybox, dropbear, iw, wpa_supplicant, amixer and aplay with
+their libraries and regulatory.db, and two tools compiled from this repository. The
+station's path doesn't change: its boot2 stays
+`91ac2cbefa3a6529e5a6a09265df2f5b9f8177c726f08ec48b53beb62c051195`. The differences
+are in `release/`:
+
+- **Keys.** `authorized_keys` comes from the compose argument, and the composer refuses
+  a parent that holds a key or firmware. `usb-ssh` makes the host key in RAM, so it
+  changes on every boot, and `/run/station/host-key.pub` shows it on the console.
+- **Radio.** Init loads no Wi-Fi module by itself. `radio-start` needs a two-letter
+  `/etc/radio-country` and the three firmware files in
+  `/lib/firmware/mediatek/mt6797/`, then sets the country, waits to see it applied, and
+  loads the driver. Both live in RAM, so for now a tester writes them after each boot
+  and runs it by hand. `wifi-up.sh` doesn't check any of this, so run `radio-start` first.
+- **Gemian.** `linux` mounts `ro,noload`. Without a writable marker a stuck native
+  display load couldn't be skipped on the next boot, so the console stays on the
+  loader framebuffer and `display-start` is by hand. That's short of the v0.1 promise
+  below until blocker 4 is decided.
+- **Removed interfaces.** `power-status` is left out. Nothing else in the image uses
+  `/dev/i2c`, `/dev/mem` or debugfs.
+
+**Checked offline, 2026-11-04:** two recipe runs gave the same parent. Every binary ran
+in a VM chroot of the composed RAM root. SSH there took the key and refused a password,
+with dropbear on loopback, not `usb0`. `radio-start` stopped before any module without a
+country, with a bad one, and with a missing firmware file. `regulatory.db` verifies
+against the same signer as the station's.
+
+**Unverified:** nothing has booted. On the device, that leaves init and the keymap, the
+console, Alpine's `insmod` with these modules, USB SSH, entropy for the host key, audio
+with Alpine's ALSA, Wi-Fi with Alpine's wpa_supplicant and its older `regulatory.db`,
+`iw reg get` matching the wait, and the read-only mount. Alpine removes old package
+revisions, so the pins fail loudly once one is replaced; a kept copy of the packages or
+a mirror is still needed, along with the source for shipped binaries (blocker 9).
 
 ## Proposed v0.1 for testers
 
