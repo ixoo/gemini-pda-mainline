@@ -9,11 +9,11 @@ defaults, and the charger cannot see the battery's thermistor. Describe a mode
 that does not program the chip, and a battery whose temperature and capacity
 stop and resume charging.
 ---
- .../bindings/power/supply/bq25890.yaml        | 47 +++++++++++++++----
- 1 file changed, 39 insertions(+), 8 deletions(-)
+ .../bindings/power/supply/bq25890.yaml        | 53 ++++++++++++++++---
+ 1 file changed, 45 insertions(+), 8 deletions(-)
 
 diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
-index 0ad302ab2..8d78f3fba 100644
+index 0ad302ab2..a2e66d92e 100644
 --- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
 +++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
 @@ -31,6 +31,30 @@ properties:
@@ -47,7 +47,7 @@ index 0ad302ab2..8d78f3fba 100644
    ti,battery-regulation-voltage:
      $ref: /schemas/types.yaml#/definitions/uint32
      description: maximum charging voltage (in uV)
-@@ -88,14 +112,21 @@ properties:
+@@ -88,14 +112,27 @@ properties:
  required:
    - compatible
    - reg
@@ -59,6 +59,12 @@ index 0ad302ab2..8d78f3fba 100644
 -  - ti,minimum-sys-voltage
 -  - ti,boost-voltage
 -  - ti,boost-max-current
++
++dependencies:
++  linux,guard-battery:
++    - linux,no-chip-config
++  linux,guard-end-threshold:
++    - linux,guard-battery
 +
 +if:
 +  not:

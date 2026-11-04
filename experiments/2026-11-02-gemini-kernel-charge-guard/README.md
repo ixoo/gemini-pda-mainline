@@ -76,13 +76,13 @@ duplicate this one and leave nowhere for later current control or charger status
 | --- | --- | --- |
 | Battery at 50 °C or above | stop | stop, from `operating-range-celsius` |
 | Below 47 °C | resume | resume, from `alert-celsius` |
-| Temperature unreadable, or no battery supply | stop | stop |
+| Temperature unreadable, or no battery supply | stop | stop; logged at critical level once it has lasted three passes |
 | Open NTC | reads unreadable from the raw code, stop | reads the table's −20 °C clamp, stop at −20 °C or below; resume above −18 °C |
 | Real battery at −20 °C or below | no stop | **stop: a new, stricter case** |
 | Capacity at the limit, default 80 | stop | stop |
 | 5 points below the limit | resume | resume |
 | Limit 100 | off | off |
-| Capacity unreadable | no stop | no stop |
+| Capacity unreadable | no stop | the last answer stands, with one warning; no stop if it has never been read |
 | Set the limit | `/run/station/charge-limit` | `charge_control_end_threshold`, 50-100 |
 | Stopped | `WD_RST` every 10 s | `WD_RST` every 10 s |
 | Bootloader left it disabled, charging allowed | set at first pass | set at the first pass with a readable battery |
@@ -92,6 +92,10 @@ charging stays held off until the next pass, 10 s later. Before, `charge-guard`'
 first pass came at about 2 s.
 
 `charge_control_start_threshold` reads the limit minus 5 and is read-only.
+
+The first pass starts from `hot`, so a battery already inside 47-50 °C stays stopped
+whatever the probe order. A guard property without `linux,no-chip-config` fails the probe,
+and the binding says so.
 
 ## Writes to the chip
 
@@ -429,3 +433,46 @@ Only this range ran on the device. The other eight are from the offline check.
   Charge current wasn't measured.
 
 G1-G6 still stand, and their temperatures were true readings or emulation.
+
+## Review before the first full image (2026-11-03)
+
+An independent reader went through 0517-0520 and 0526, with `checkpatch` and the schema
+checks, and booted nothing. They found no memory-safety bug, race or arithmetic bug. I
+checked each finding against the code.
+
+**Fixed in 0517 and 0519:**
+- **F3:** one failed capacity read lifted a capacity stop, and a lasting failure charged past
+  the limit with nothing logged. The last answer now stands, and the first failure warns once.
+  If the capacity has never been read since boot, charging isn't stopped by it, with the same
+  warning.
+- **F9:** the first pass could start from "not hot", so a boot inside 47-50 °C charged up to
+  50 °C, depending on probe order. It now starts from `hot`.
+- **F10:** a gauge that never came gave no charging and one info line. Now there's one critical
+  line per episode, after three passes. The reader suggested a ratelimited line, but that
+  would fire at every normal boot, when the gauge registers after the first pass, and then
+  every 10 s.
+- **F6:** a guard property without `linux,no-chip-config` validated, and the driver would have
+  reset the chip and turned its watchdog off with no guard. Now the binding has dependencies,
+  and the probe fails. Not binding leaves the chip on its defaults, untouched.
+
+Compiled at `W=1`. The binding check passes, and a test example breaking the dependency fails
+it. `git am` of 0517-0520 and 0526 on the station series gives the same tree. The patches
+touching these two files apply in order in both series. **None of this has run on a device.**
+One visible change at boot: with the gauge absent the first pass no longer logs
+`stopped ... hot`, because the reason hasn't changed. The next `guard:` line comes about 10 s
+later.
+
+**Blockers before upstream, not changed now:**
+- **F1:** suspend fails open. Not live here, as `CONFIG_SUSPEND` is unset, but the guard needs
+  an answer before the station gets suspend.
+- **F2:** unbinding fails open, as G3 measured. The commit message says so.
+  `suppress_bind_attrs` would close the casual route, but the tests use unbind.
+- **F4:** `TEMP_MAX` and the alert limits come through in whole degrees, against the ABI's
+  tenths. Giving the charger a `monitored-battery` would fix it.
+- **F7:** the device tree interface encodes policy (`linux,guard-*`, `linux,no-chip-config`).
+  This is the main upstream blocker.
+- **F8:** 0520 needs `i2c0` enabled in the source. Today `station-dt.sh` does that.
+- **F12:** the patches have no `Signed-off-by`, and none can be added for the owner.
+
+**F5, for the owner:** there's no cold charging stop between −20 and 0 °C, matching the vendor.
+The custodian is raising it.
