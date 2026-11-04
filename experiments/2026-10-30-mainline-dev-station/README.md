@@ -929,6 +929,14 @@ The owner reports that typing works from boot.
 
 The script's failure handling from `7bbff26b` ran on boot `fccba04c`, image `96338704`, as the custodian reports, with `PASSIVE_SCAN=1` and a pinned access point: rc=0, phy after 0 s, `up=0`, `COMPLETED` on the usual channel, lease after 4 s, gateway ping 3 of 3, one connect and no disconnects, tainted=0. This shows the normal path only. The failure paths have run only against stubs, not on the device.
 
+## nvdata's block device is read-only (2026-11-04)
+
+`init` runs `blockdev --setro` on nvdata before mounting it (`2ab5699f`), because ext4 can
+run orphan cleanup on a `ro,noload` mount unless the device itself is read-only. On boot
+`fccba04c`, image `96338704`, the partition's sysfs `ro` reads 1, it is mounted
+`ro,norecovery`, and the calibration stays readable. This shows the normal path only:
+no orphan cleanup was provoked, so the protected case has not run.
+
 ## backlight-policy: the PMIC keys and idle wakeups (2026-11-03)
 
 The program, then named `lid-guard`, woke once a second to check the blanked console,
