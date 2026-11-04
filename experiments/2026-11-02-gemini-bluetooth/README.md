@@ -840,3 +840,34 @@ once in each state, so the same sound compares level and spectrum between them.
 | No change in either | Call state isn't it | Phone comparison, then decide whether voice is usable as it is |
 | The client fails to open or the headset drops | Test fault or headset's response | Keep the logs; no retry without a new decision |
 | Hang or Oops | Stop | Keep everything; no retry |
+
+## T8 result: the headset noticed the call, and the capture didn't change (2026-11-03)
+
+The owner's "Yes, run T8". Boot `3fb07fd4`, image `8f2c1167`, modules as T7, `bt-voice-test` `f5ced0da`, `bt-test` `63d6af09`,
+`BT_CALL=1 DIR=both`, Wi-Fi off. Used 1 inquiry, 1 pairing, 1 eSCO (status 0, air mode CVSD). Evidence private under
+`artifacts/station-work-44/boot-3fb07fd4/bt-t8/`; `mic.cvsd` is `e7ee2bc4`.
+
+**The owner reports:** "at the beginning and at the end I heard a bip like a call started or ended. The noise was still
+there even after the call". Whether it changed during the call wasn't said.
+
+**Observed:**
+- The trace shows `+CIEV: 1,1` and `+CIEV: 2,1` about 1 s before the link, and `+CIEV: 2,0` about 14 s after it opened, which is 10 s
+  into the capture. The owner's two beeps fit these. No crash: `failed=0 timeouts=0 resent=0`, assert 0, xrun 0.
+- The headset sent no `AT+CLCC` during the run. Its only one came before the client opened, and BlueALSA answered `ERROR`. So the reply logic never ran,
+  and `rfcomm.log` wasn't created. BlueALSA logged `AT handler IO error: Invalid argument` at some point; when and why isn't established.
+
+| The same 5 s of the recording | During the call | After the call |
+| --- | --- | --- |
+| Arrived at | 1.96 s | 16.20 s |
+| Contour correlation | 0.865 | 0.885 |
+| Waveform correlation | -0.429 | -0.381 |
+| Level | -32.8 dBFS | -31.5 dBFS |
+
+- Spectra agree within 4 dB in every 500 Hz band. Capture with the laptop quiet was -65.8 dBFS during the call (7 to 10 s), and -70.0 after (11 to 14 s).
+- Invalid records after the first 10: 4 at 4.2 s and 8 at about 10 s, the moment the call ended.
+
+**Reading:** the call state has no measurable effect on this capture, and by the owner's report didn't stop the noise.
+So signalling a call isn't a fix for it, though a call may still be wanted for a real bridge, since the headset reacts to it.
+
+**Still open:** the noise's source. Remaining candidates are the headset's own voice path, such as sidetone that any
+phone would also get, the radio link towards the headset, or firmware. Comparing with a phone call separates the first from the others.
