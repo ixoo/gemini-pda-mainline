@@ -13,16 +13,18 @@ counts, limited by rate. The time lines up with a Bluetooth trace, and
 the received count shows if the firmware kept talking while its ACK
 stayed put.
 ---
- drivers/soc/mediatek/mt6797-consys.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ drivers/soc/mediatek/mt6797-consys.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
 diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
-index c56e587b1..7a3054379 100644
+index c56e587b1..1c69e87f7 100644
 --- a/drivers/soc/mediatek/mt6797-consys.c
 +++ b/drivers/soc/mediatek/mt6797-consys.c
-@@ -1850,13 +1850,21 @@ static void mt6797_stp_tick(struct timer_list *t)
+@@ -1849,14 +1849,23 @@ static irqreturn_t mt6797_stp_irq(int irq, void *data)
+ static void mt6797_stp_tick(struct timer_list *t)
  {
  	struct mt6797_stp *s = timer_container_of(s, t, tick);
++	struct device *dev = container_of(s, struct mt6797_consys, stp)->dev;
  	unsigned long flags;
 +	unsigned int timeouts;
  
@@ -34,7 +36,7 @@ index c56e587b1..7a3054379 100644
  			mt6797_stp_stop_locked(s);
  		} else {
 +			if (s->engine.tx_timeouts != timeouts)
-+				dev_info_ratelimited(container_of(s, struct mt6797_consys, stp)->dev,
++				dev_info_ratelimited(dev,
 +						     "STP resend %u: try=%u unacked=%u queued=%u tx=%u rx=%u\n",
 +						     s->engine.tx_timeouts, s->engine.retries,
 +						     s->engine.unacked, s->engine.count,
