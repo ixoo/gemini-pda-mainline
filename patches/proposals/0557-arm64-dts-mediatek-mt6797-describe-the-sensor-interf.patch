@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 17:28:49 -0500
+Subject: [PATCH 557/558] arm64: dts: mediatek: mt6797: describe the sensor
+ interface capture path
+
+Add the first CAMSV window and the clocks its memory path needs. The station
+leaves the larbs in their reset state, with no M4U.
+---
+ .../media/mediatek,mt6797-seninf.yaml         | 20 +++++++++++++++----
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi      | 12 +++++++----
+ 2 files changed, 24 insertions(+), 8 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+index 5df3b10f7..be2a91726 100644
+--- a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
++++ b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+@@ -21,23 +21,31 @@ properties:
+     items:
+       - description: Sensor interface registers
+       - description: MIPI RX analog registers
++      - description: First CAMSV registers
+ 
+   reg-names:
+     items:
+       - const: seninf
+       - const: mipi-rx
++      - const: camsv0
+ 
+   clocks:
+     items:
+       - description: CAMSYS register clock
+       - description: SENINF clock
+       - description: CAMTG clock, the source of the master clocks
++      - description: First CAMSV clock
++      - description: Larb 2 clock, the camera's memory path
++      - description: SMI common clock
+ 
+   clock-names:
+     items:
+       - const: camsys
+       - const: seninf
+       - const: camtg
++      - const: camsv0
++      - const: larb2
++      - const: smi
+ 
+   power-domains:
+     maxItems: 1
+@@ -72,12 +80,16 @@ examples:
+ 
+         seninf: seninf@1a040000 {
+             compatible = "mediatek,mt6797-seninf";
+-            reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>;
+-            reg-names = "seninf", "mipi-rx";
++            reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>,
++                  <0 0x1a050000 0 0x1000>;
++            reg-names = "seninf", "mipi-rx", "camsv0";
+             clocks = <&camsys CLK_CAM_CAMSYS>,
+                      <&camsys CLK_CAM_SENINF>,
+-                     <&camsys CLK_CAM_CAMTG>;
+-            clock-names = "camsys", "seninf", "camtg";
++                     <&camsys CLK_CAM_CAMTG>,
++                     <&camsys CLK_CAM_CAMSV0>,
++                     <&camsys CLK_CAM_LARB2>,
++                     <&mmsys CLK_MM_SMI_COMMON>;
++            clock-names = "camsys", "seninf", "camtg", "camsv0", "larb2", "smi";
+             power-domains = <&scpsys MT6797_POWER_DOMAIN_ISP>;
+             #clock-cells = <1>;
+         };
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 0f213fc0c..dc91c044e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -1200,12 +1200,16 @@ camsys: syscon@1a000000 {
+ 
+ 	seninf: seninf@1a040000 {
+ 		compatible = "mediatek,mt6797-seninf";
+-		reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>;
+-		reg-names = "seninf", "mipi-rx";
++		reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>,
++		      <0 0x1a050000 0 0x1000>;
++		reg-names = "seninf", "mipi-rx", "camsv0";
+ 		clocks = <&camsys CLK_CAM_CAMSYS>,
+ 			 <&camsys CLK_CAM_SENINF>,
+-			 <&camsys CLK_CAM_CAMTG>;
+-		clock-names = "camsys", "seninf", "camtg";
++			 <&camsys CLK_CAM_CAMTG>,
++			 <&camsys CLK_CAM_CAMSV0>,
++			 <&camsys CLK_CAM_LARB2>,
++			 <&mmsys CLK_MM_SMI_COMMON>;
++		clock-names = "camsys", "seninf", "camtg", "camsv0", "larb2", "smi";
+ 		assigned-clocks = <&topckgen CLK_TOP_MUX_CAMTG>;
+ 		assigned-clock-parents = <&topckgen CLK_TOP_UNIVPLL_D26>;
+ 		power-domains = <&scpsys MT6797_POWER_DOMAIN_ISP>;
+-- 
+2.43.0
+

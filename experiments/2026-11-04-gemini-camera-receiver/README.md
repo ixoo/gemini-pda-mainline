@@ -123,3 +123,14 @@ byte fell to `00` at the last setting, which is not interpreted.
 Inference: the receiver takes the link across this whole range, so settle is not critical here and is not
 what sets those bits. Whether they are errors stays open. Capturing a frame would answer more than further
 status reads.
+
+## C1: one frame to memory
+
+Not run. [`0558`](../../patches/proposals/0558-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-one-.patch) runs the first
+CAMSV in single mode into a coherent buffer, with the frame readable through debugfs, for a colour-bar frame
+to decode offline. Register names are the vendor kernel's, and the sequence follows `libimageio_plat_drv.so`.
+It keeps `larb2` in its reset state with no M4U, as the display does with its larbs. That `larb2` passes
+physical addresses in that state is the assumption under test.
+
+Choices still unproved: which of the CAM mux entries feeds the first CAMSV, so all CAMSV inputs take this
+interface; and the packing the DMA produces.
