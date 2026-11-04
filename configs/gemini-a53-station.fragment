@@ -14,6 +14,10 @@ CONFIG_INPUT_GEMINI_LID=m
 # The NT36772 touchscreen (2026-11-02-gemini-touchscreen-module). A module, so
 # it can be reloaded without a boot; nothing loads it.
 CONFIG_TOUCHSCREEN_NOVATEK_NT36XXX=m
+# The I2C1 IMU and light/proximity sensor (2026-10-06-gemini-i2c1-sensors). Modules,
+# so they can be reloaded without a boot; nothing loads them.
+CONFIG_BMI160_I2C=m
+CONFIG_STK3310=m
 CONFIG_LOCALVERSION="-gemini-a53-station"
 CONFIG_LOG_BUF_SHIFT=20
 # Power off through the MT6351 RTC, as Gemian does (0342-0345), not PSCI.

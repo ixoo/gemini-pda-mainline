@@ -712,3 +712,4 @@ proposals/0538-ASoC-mediatek-btcvsd-leave-loopback-to-idle-when-no-.patch
 proposals/0539-soc-mediatek-mt6797-consys-stop-the-STP-tick-before-.patch
 proposals/0540-ASoC-mediatek-btcvsd-don-t-warn-on-a-routine-wait-fo.patch
 proposals/0541-soc-mediatek-mt6797-consys-declare-the-ROM-patches-i.patch
+proposals/0542-arm64-dts-mediatek-gemini-station-enable-the-sensor-.patch

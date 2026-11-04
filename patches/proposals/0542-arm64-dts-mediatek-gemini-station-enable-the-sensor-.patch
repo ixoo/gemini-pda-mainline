@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 15:00:00 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: enable the sensor bus
+
+Enable I2C1, on GPIO55/56 as the board's pin table sets them, at the 400 kHz
+the vendor kernel runs it. Enable the existing BMI160 node at 0x69 and add the
+STK3x1x light and proximity sensor at 0x48, with its interrupt on GPIO88 as
+EINT11.
+
+The vendor's boot log has "Flags mismatch irq 395 (bmi160_accint) vs (ALS-eint)".
+That is the vendor IMU driver looking up the light sensor's node and asking for
+its line with another trigger, not a shared wire, and the same driver programs
+none of the IMU's interrupt pins. So the line stays the light sensor's alone
+and the IMU has none. The upstream driver reads without one.
+
+Enabling the bus sends nothing on it. Both drivers are modules nothing loads.
+
+Name no supplies. The vendor drives no rail for these parts and its power
+fields hold a "none" placeholder, so the rails are expected to be up, as they
+are for the vendor kernel.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 44 +++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -504,3 +504,47 @@
+ 		linux,guard-end-threshold = <80>;
+ 	};
+ };
++
++/*
++ * The sensor bus. Nothing on it is touched until a sensor module loads, and
++ * nothing loads them. The vendor kernel runs this bus at 400 kHz. No supplies:
++ * the vendor manages none, and its description of them is a placeholder.
++ */
++&pio {
++	stk3311_pins: stk3311-pins {
++		pins-irq {
++			pinmux = <MT6797_GPIO88__FUNC_EINT11>;
++		};
++	};
++};
++
++&i2c1 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c1_pins_a>;
++	clock-frequency = <400000>;
++	status = "okay";
++
++	/*
++	 * Product ID 0x11 is not one the driver names. It warns and carries on,
++	 * and the vendor driver treats it as a generic part of this family. The
++	 * pin's pull-up, which the vendor selects, cannot be set: the MT6797 pin
++	 * data has no pull registers, so the pad stays as the firmware left it.
++	 */
++	light-sensor@48 {
++		compatible = "sensortek,stk3311";
++		reg = <0x48>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&stk3311_pins>;
++		interrupt-parent = <&pio>;
++		interrupts = <11 IRQ_TYPE_EDGE_FALLING>;
++	};
++};
++
++/*
++ * No interrupt. The vendor IMU driver asks for the light sensor's line, by
++ * looking up that sensor's node, and fails with a flags mismatch; it programs
++ * none of the chip's interrupt pins. So no pin is known to be the IMU's.
++ */
++&bmi160_candidate {
++	status = "okay";
++};
+-- 
+2.54.0 (Apple Git-157)
+
