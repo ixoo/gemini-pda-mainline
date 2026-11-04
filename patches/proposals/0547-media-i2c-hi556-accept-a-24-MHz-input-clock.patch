@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:30:00 -0500
+Subject: [PATCH 547/550] media: i2c: hi556: accept a 24 MHz input clock
+
+The Gemini runs the sensor from 24 MHz, and its vendor driver differs
+from these tables only in PLL register 0x0f30. Write that value after the
+mode table when the clock is 24 MHz.
+
+Not exercised yet: the link frequency at 24 MHz is unmeasured, since
+nothing has streamed.
+---
+ drivers/media/i2c/hi556.c | 19 ++++++++++++++++++-
+ 1 file changed, 18 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/media/i2c/hi556.c b/drivers/media/i2c/hi556.c
+index a8627ce0f..bb58f151d 100644
+--- a/drivers/media/i2c/hi556.c
++++ b/drivers/media/i2c/hi556.c
+@@ -21,6 +21,7 @@
+ 
+ #define HI556_LINK_FREQ_437MHZ		437000000ULL
+ #define HI556_MCLK			19200000
++#define HI556_MCLK_24MHZ		24000000
+ #define HI556_DATA_LANES		2
+ #define HI556_RGB_DEPTH			10
+ 
+@@ -28,6 +29,10 @@
+ #define HI556_CHIP_ID			0x0556
+ 
+ #define HI556_REG_MODE_SELECT		0x0a00
++
++/* The first PLL setting that differs for a 24 MHz input clock. */
++#define HI556_REG_PLL_CFG		0x0f30
++#define HI556_PLL_CFG_24MHZ		0x6e25
+ #define HI556_MODE_STANDBY		0x0000
+ #define HI556_MODE_STREAMING		0x0100
+ 
+@@ -649,6 +654,7 @@ struct hi556 {
+ 	struct gpio_desc *reset_gpio;
+ 	struct gpio_desc *powerdown_gpio;
+ 	struct clk *clk;
++	bool mclk_24mhz;
+ 	struct regulator_bulk_data supplies[ARRAY_SIZE(hi556_supply_names)];
+ 
+ 	/* Current mode */
+@@ -1022,6 +1028,16 @@ static int hi556_start_streaming(struct hi556 *hi556)
+ 		return ret;
+ 	}
+ 
++	if (hi556->mclk_24mhz) {
++		ret = hi556_write_reg(hi556, HI556_REG_PLL_CFG,
++				      HI556_REG_VALUE_16BIT,
++				      HI556_PLL_CFG_24MHZ);
++		if (ret) {
++			dev_err(hi556->dev, "failed to set the 24 MHz PLL\n");
++			return ret;
++		}
++	}
++
+ 	ret = __v4l2_ctrl_handler_setup(hi556->sd.ctrl_handler);
+ 	if (ret)
+ 		return ret;
+@@ -1364,7 +1380,8 @@ static int hi556_probe(struct i2c_client *client)
+ 				     "failed to get clock\n");
+ 
+ 	freq = clk_get_rate(hi556->clk);
+-	if (freq != HI556_MCLK)
++	hi556->mclk_24mhz = freq == HI556_MCLK_24MHZ;
++	if (freq != HI556_MCLK && !hi556->mclk_24mhz)
+ 		return dev_err_probe(hi556->dev, -EINVAL,
+ 				     "external clock %lu is not supported\n",
+ 				     freq);
+-- 
+2.43.0
+

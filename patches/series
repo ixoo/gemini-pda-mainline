@@ -1125,3 +1125,11 @@ proposals/0539-soc-mediatek-mt6797-consys-stop-the-STP-tick-before-.patch
 proposals/0540-ASoC-mediatek-btcvsd-don-t-warn-on-a-routine-wait-fo.patch
 proposals/0541-soc-mediatek-mt6797-consys-declare-the-ROM-patches-i.patch
 proposals/0542-arm64-dts-mediatek-gemini-station-enable-the-sensor-.patch
+proposals/0543-pmdomain-mediatek-describe-the-MT6797-ISP-domain.patch
+proposals/0544-clk-mediatek-mt6797-cam-number-from-zero-and-use-run.patch
+proposals/0545-dt-bindings-media-i2c-add-Hynix-Hi-556.patch
+proposals/0546-media-i2c-hi556-support-device-tree-and-a-power-down.patch
+proposals/0547-media-i2c-hi556-accept-a-24-MHz-input-clock.patch
+proposals/0548-media-mediatek-add-the-MT6797-sensor-interface-s-mas.patch
+proposals/0549-arm64-dts-mediatek-mt6797-add-the-sensor-interface.patch
+proposals/0550-arm64-dts-mediatek-gemini-station-describe-the-front.patch

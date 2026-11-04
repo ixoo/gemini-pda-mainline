@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:30:00 -0500
+Subject: [PATCH 549/550] arm64: dts: mediatek: mt6797: add the sensor
+ interface
+
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 13a80c232..618e2c56b 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -1198,6 +1198,20 @@ camsys: syscon@1a000000 {
+ 		#clock-cells = <1>;
+ 	};
+ 
++	seninf: seninf@1a040000 {
++		compatible = "mediatek,mt6797-seninf";
++		reg = <0 0x1a040000 0 0x4000>;
++		clocks = <&camsys CLK_CAM_CAMSYS>,
++			 <&camsys CLK_CAM_SENINF>,
++			 <&camsys CLK_CAM_CAMTG>;
++		clock-names = "camsys", "seninf", "camtg";
++		assigned-clocks = <&topckgen CLK_TOP_MUX_CAMTG>;
++		assigned-clock-parents = <&topckgen CLK_TOP_UNIVPLL_D26>;
++		power-domains = <&scpsys MT6797_POWER_DOMAIN_ISP>;
++		#clock-cells = <1>;
++		status = "disabled";
++	};
++
+ 	larb2: larb@1a001000 {
+ 		compatible = "mediatek,mt6797-smi-larb";
+ 		reg = <0 0x1a001000 0 0x1000>;
+-- 
+2.43.0
+

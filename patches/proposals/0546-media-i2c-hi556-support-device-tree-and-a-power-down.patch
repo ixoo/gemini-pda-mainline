@@ -1,0 +1,130 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:30:00 -0500
+Subject: [PATCH 546/550] media: i2c: hi556: support device tree and a
+ power-down pin
+
+Add an OF match, and an optional power-down GPIO that follows the reset
+GPIO. Enable the supplies one at a time, in the order of their names,
+which is the order the Gemini's vendor kernel uses, rather than in
+parallel. Disable them in reverse.
+
+The runtime PM callbacks were only hooked up with CONFIG_PM_SLEEP. A
+kernel without it left the sensor powered after probe. Use pm_ptr().
+
+Log the chip ID, which is the only evidence at probe that the sensor
+answered.
+---
+ drivers/media/i2c/hi556.c | 44 ++++++++++++++++++++++++++++++---------
+ 1 file changed, 34 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/media/i2c/hi556.c b/drivers/media/i2c/hi556.c
+index de573cee4..a8627ce0f 100644
+--- a/drivers/media/i2c/hi556.c
++++ b/drivers/media/i2c/hi556.c
+@@ -647,6 +647,7 @@ struct hi556 {
+ 
+ 	/* GPIOs, clocks, etc. */
+ 	struct gpio_desc *reset_gpio;
++	struct gpio_desc *powerdown_gpio;
+ 	struct clk *clk;
+ 	struct regulator_bulk_data supplies[ARRAY_SIZE(hi556_supply_names)];
+ 
+@@ -939,6 +940,7 @@ static int hi556_identify_module(struct hi556 *hi556)
+ 		return -ENXIO;
+ 	}
+ 
++	dev_info(hi556->dev, "chip id 0x%04x\n", val);
+ 	hi556->identified = true;
+ 
+ 	return 0;
+@@ -1280,10 +1282,12 @@ static int hi556_suspend(struct device *dev)
+ {
+ 	struct v4l2_subdev *sd = dev_get_drvdata(dev);
+ 	struct hi556 *hi556 = to_hi556(sd);
++	unsigned int i;
+ 
++	gpiod_set_value_cansleep(hi556->powerdown_gpio, 1);
+ 	gpiod_set_value_cansleep(hi556->reset_gpio, 1);
+-	regulator_bulk_disable(ARRAY_SIZE(hi556_supply_names),
+-			       hi556->supplies);
++	for (i = ARRAY_SIZE(hi556_supply_names); i-- > 0;)
++		regulator_disable(hi556->supplies[i].consumer);
+ 	clk_disable_unprepare(hi556->clk);
+ 	return 0;
+ }
+@@ -1292,24 +1296,31 @@ static int hi556_resume(struct device *dev)
+ {
+ 	struct v4l2_subdev *sd = dev_get_drvdata(dev);
+ 	struct hi556 *hi556 = to_hi556(sd);
++	unsigned int i;
+ 	int ret;
+ 
+ 	ret = clk_prepare_enable(hi556->clk);
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = regulator_bulk_enable(ARRAY_SIZE(hi556_supply_names),
+-				    hi556->supplies);
+-	if (ret) {
+-		dev_err(dev, "failed to enable regulators: %d", ret);
+-		clk_disable_unprepare(hi556->clk);
+-		return ret;
++	/* One at a time, in the order of the supply names. */
++	for (i = 0; i < ARRAY_SIZE(hi556_supply_names); i++) {
++		ret = regulator_enable(hi556->supplies[i].consumer);
++		if (ret) {
++			dev_err(dev, "failed to enable %s: %d",
++				hi556_supply_names[i], ret);
++			while (i-- > 0)
++				regulator_disable(hi556->supplies[i].consumer);
++			clk_disable_unprepare(hi556->clk);
++			return ret;
++		}
+ 	}
+ 
+-	if (hi556->reset_gpio) {
++	if (hi556->reset_gpio || hi556->powerdown_gpio) {
+ 		/* Assert reset for at least 2ms on back to back off-on */
+ 		usleep_range(2000, 2200);
+ 		gpiod_set_value_cansleep(hi556->reset_gpio, 0);
++		gpiod_set_value_cansleep(hi556->powerdown_gpio, 0);
+ 	}
+ 
+ 	usleep_range(5000, 5500);
+@@ -1341,6 +1352,12 @@ static int hi556_probe(struct i2c_client *client)
+ 		return dev_err_probe(hi556->dev, PTR_ERR(hi556->reset_gpio),
+ 				     "failed to get reset GPIO\n");
+ 
++	hi556->powerdown_gpio = devm_gpiod_get_optional(hi556->dev, "powerdown",
++							GPIOD_OUT_HIGH);
++	if (IS_ERR(hi556->powerdown_gpio))
++		return dev_err_probe(hi556->dev, PTR_ERR(hi556->powerdown_gpio),
++				     "failed to get powerdown GPIO\n");
++
+ 	hi556->clk = devm_v4l2_sensor_clk_get(hi556->dev, "clk");
+ 	if (IS_ERR(hi556->clk))
+ 		return dev_err_probe(hi556->dev, PTR_ERR(hi556->clk),
+@@ -1437,11 +1454,18 @@ static const struct acpi_device_id hi556_acpi_ids[] = {
+ MODULE_DEVICE_TABLE(acpi, hi556_acpi_ids);
+ #endif
+ 
++static const struct of_device_id hi556_of_match[] = {
++	{ .compatible = "hynix,hi556" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, hi556_of_match);
++
+ static struct i2c_driver hi556_i2c_driver = {
+ 	.driver = {
+ 		.name = "hi556",
+ 		.acpi_match_table = ACPI_PTR(hi556_acpi_ids),
+-		.pm = pm_sleep_ptr(&hi556_pm_ops),
++		.of_match_table = hi556_of_match,
++		.pm = pm_ptr(&hi556_pm_ops),
+ 	},
+ 	.probe = hi556_probe,
+ 	.remove = hi556_remove,
+-- 
+2.43.0
+

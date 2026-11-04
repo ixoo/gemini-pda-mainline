@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:29:59 -0500
+Subject: [PATCH 543/550] pmdomain: mediatek: describe the MT6797 ISP domain
+
+Camera blocks sit in this domain. The vendor kernel powers it with the
+standard sequence and no bus protection. It is off until a consumer asks.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+index 13d3175d6..636ce6b59 100644
+--- a/drivers/pmdomain/mediatek/mt6797-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -7,6 +7,8 @@
+ #include <dt-bindings/power/mt6797-power.h>
+ 
+ #define MT6797_SPM_POWERON_CONFIG	0x0b160001
++#define MT6797_SPM_ISP_PWR_CON		0x308
++#define MT6797_PWR_STATUS_ISP		BIT(5)
+ #define MT6797_SPM_AUDIO_PWR_CON	0x314
+ #define MT6797_PWR_STATUS_AUDIO		BIT(24)
+ #define MT6797_SPM_CONN_PWR_CON		0x32c
+@@ -40,6 +42,17 @@ static enum scpsys_bus_prot_block scpsys_bus_prot_blocks_mt6797[] = {
+ };
+ 
+ static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
++	[MT6797_POWER_DOMAIN_ISP] = {
++		.name = "isp",
++		.sta_mask = MT6797_PWR_STATUS_ISP,
++		.ctl_offs = MT6797_SPM_ISP_PWR_CON,
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.sram_pdn_bits = GENMASK(9, 8),
++		.sram_pdn_ack_bits = GENMASK(13, 12),
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF,
++	},
+ 	[MT6797_POWER_DOMAIN_AUDIO] = {
+ 		.name = "audio",
+ 		.sta_mask = MT6797_PWR_STATUS_AUDIO,
+-- 
+2.43.0
+

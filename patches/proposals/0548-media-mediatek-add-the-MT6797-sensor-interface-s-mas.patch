@@ -1,0 +1,392 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:30:00 -0500
+Subject: [PATCH 548/550] media: mediatek: add the MT6797 sensor interface's
+ master clocks
+
+Each timing generator in the sensor interface drives one master clock pad,
+divided from CAMTG. Expose them as clocks, so a sensor driver can use its
+ordinary clock path. The receivers in the same block come later.
+
+The register use follows the vendor's kernel and observation of its
+userspace camera library: phase counter and clock enable in the first
+register, the divider and edges in the second.
+---
+ .../media/mediatek,mt6797-seninf.yaml         |  71 ++++++
+ drivers/media/platform/mediatek/Kconfig       |   1 +
+ drivers/media/platform/mediatek/Makefile      |   1 +
+ .../media/platform/mediatek/seninf/Kconfig    |  11 +
+ .../media/platform/mediatek/seninf/Makefile   |   2 +
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 237 ++++++++++++++++++
+ 6 files changed, 323 insertions(+)
+ create mode 100644 Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+ create mode 100644 drivers/media/platform/mediatek/seninf/Kconfig
+ create mode 100644 drivers/media/platform/mediatek/seninf/Makefile
+ create mode 100644 drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+
+diff --git a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+new file mode 100644
+index 000000000..c2c5e50ba
+--- /dev/null
++++ b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+@@ -0,0 +1,71 @@
++# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
++%YAML 1.2
++---
++$id: http://devicetree.org/schemas/media/mediatek,mt6797-seninf.yaml#
++$schema: http://devicetree.org/meta-schemas/core.yaml#
++
++title: MediaTek MT6797 sensor interface
++
++maintainers:
++  - Gemini PDA Mainline Project
++
++description:
++  The sensor interface holds the SoC's CSI-2 receivers and the timing
++  generators that drive the master clock pads CMMCLK0 to CMMCLK3.
++
++properties:
++  compatible:
++    const: mediatek,mt6797-seninf
++
++  reg:
++    maxItems: 1
++
++  clocks:
++    items:
++      - description: CAMSYS register clock
++      - description: SENINF clock
++      - description: CAMTG clock, the source of the master clocks
++
++  clock-names:
++    items:
++      - const: camsys
++      - const: seninf
++      - const: camtg
++
++  power-domains:
++    maxItems: 1
++
++  '#clock-cells':
++    const: 1
++    description: The master clock pad, 0 to 3.
++
++required:
++  - compatible
++  - reg
++  - clocks
++  - clock-names
++  - power-domains
++  - '#clock-cells'
++
++additionalProperties: false
++
++examples:
++  - |
++    #include <dt-bindings/clock/mt6797-clk.h>
++    #include <dt-bindings/power/mt6797-power.h>
++
++    soc {
++        #address-cells = <2>;
++        #size-cells = <2>;
++
++        seninf: seninf@1a040000 {
++            compatible = "mediatek,mt6797-seninf";
++            reg = <0 0x1a040000 0 0x4000>;
++            clocks = <&camsys CLK_CAM_CAMSYS>,
++                     <&camsys CLK_CAM_SENINF>,
++                     <&camsys CLK_CAM_CAMTG>;
++            clock-names = "camsys", "seninf", "camtg";
++            power-domains = <&scpsys MT6797_POWER_DOMAIN_ISP>;
++            #clock-cells = <1>;
++        };
++    };
+diff --git a/drivers/media/platform/mediatek/Kconfig b/drivers/media/platform/mediatek/Kconfig
+index 84104e2cd..995638f8a 100644
+--- a/drivers/media/platform/mediatek/Kconfig
++++ b/drivers/media/platform/mediatek/Kconfig
+@@ -7,3 +7,4 @@ source "drivers/media/platform/mediatek/mdp/Kconfig"
+ source "drivers/media/platform/mediatek/vcodec/Kconfig"
+ source "drivers/media/platform/mediatek/vpu/Kconfig"
+ source "drivers/media/platform/mediatek/mdp3/Kconfig"
++source "drivers/media/platform/mediatek/seninf/Kconfig"
+diff --git a/drivers/media/platform/mediatek/Makefile b/drivers/media/platform/mediatek/Makefile
+index 38e6ba917..5da75fe97 100644
+--- a/drivers/media/platform/mediatek/Makefile
++++ b/drivers/media/platform/mediatek/Makefile
+@@ -4,3 +4,4 @@ obj-y += mdp/
+ obj-y += vcodec/
+ obj-y += vpu/
+ obj-y += mdp3/
++obj-y += seninf/
+diff --git a/drivers/media/platform/mediatek/seninf/Kconfig b/drivers/media/platform/mediatek/seninf/Kconfig
+new file mode 100644
+index 000000000..797c46238
+--- /dev/null
++++ b/drivers/media/platform/mediatek/seninf/Kconfig
+@@ -0,0 +1,11 @@
++# SPDX-License-Identifier: GPL-2.0-only
++config VIDEO_MT6797_SENINF
++	tristate "MediaTek MT6797 sensor interface"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on COMMON_CLK && OF
++	help
++	  The master clocks that the MT6797 sensor interface drives to
++	  camera sensors. The block's CSI-2 receivers are not supported yet.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called mt6797-seninf.
+diff --git a/drivers/media/platform/mediatek/seninf/Makefile b/drivers/media/platform/mediatek/seninf/Makefile
+new file mode 100644
+index 000000000..2a58cb6f5
+--- /dev/null
++++ b/drivers/media/platform/mediatek/seninf/Makefile
+@@ -0,0 +1,2 @@
++# SPDX-License-Identifier: GPL-2.0-only
++obj-$(CONFIG_VIDEO_MT6797_SENINF) += mt6797-seninf.o
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+new file mode 100644
+index 000000000..20ea10cc9
+--- /dev/null
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -0,0 +1,237 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MediaTek MT6797 sensor interface: the sensor master clocks.
++ *
++ * Each of the block's timing generators drives one master clock pad, divided
++ * from the CAMTG clock. The CSI-2 receivers in the same block are not driven
++ * yet.
++ *
++ * Copyright (c) 2026 Gemini PDA Mainline Project
++ */
++
++#include <linux/bitfield.h>
++#include <linux/bits.h>
++#include <linux/clk.h>
++#include <linux/clk-provider.h>
++#include <linux/io.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/overflow.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/spinlock.h>
++
++#define SENINF_TOP_CTRL			0x0000
++#define SENINF_TOP_PCLK_EN		GENMASK(11, 10)
++
++#define SENINF_TG_BASE(n)		(0x0600 + (n) * 0x1000)
++#define SENINF_TG_PH_CNT		0x00
++#define SENINF_TG_PH_CNT_PCEN		BIT(31)
++#define SENINF_TG_PH_CNT_MCLK_EN	BIT(29)
++#define SENINF_TG_PH_CNT_CLKFL_POL	BIT(2)
++#define SENINF_TG_PH_CNT_CLK_SEL	GENMASK(1, 0)
++#define SENINF_TG_PH_CNT_CLK_SEL_CAMTG	1
++#define SENINF_TG_SEN_CK		0x04
++
++/* CAMTG runs at 48 MHz; the sensor wants half of it. */
++#define SENINF_TG_MCLK_DIV		2
++#define SENINF_TG_SEN_CK_VAL		(((SENINF_TG_MCLK_DIV - 1) << 16) | \
++					 (SENINF_TG_MCLK_DIV / 2))
++
++#define SENINF_NUM_TG			4
++
++static const char * const seninf_clk_names[] = { "camsys", "seninf" };
++
++struct seninf_mclk {
++	struct clk_hw hw;
++	struct mt6797_seninf *seninf;
++	unsigned int tg;
++};
++
++struct mt6797_seninf {
++	struct device *dev;
++	void __iomem *base;
++	spinlock_t lock;	/* The registers the generators share. */
++	struct clk_bulk_data clks[ARRAY_SIZE(seninf_clk_names)];
++	struct seninf_mclk mclk[SENINF_NUM_TG];
++	struct clk_hw_onecell_data *provider;
++};
++
++static void seninf_update(struct mt6797_seninf *seninf, u32 reg, u32 mask, u32 val)
++{
++	writel((readl(seninf->base + reg) & ~mask) | val, seninf->base + reg);
++}
++
++static int seninf_mclk_enable(struct clk_hw *hw)
++{
++	struct seninf_mclk *mclk = container_of(hw, struct seninf_mclk, hw);
++	struct mt6797_seninf *seninf = mclk->seninf;
++	u32 tg = SENINF_TG_BASE(mclk->tg);
++	unsigned long flags;
++
++	spin_lock_irqsave(&seninf->lock, flags);
++	seninf_update(seninf, SENINF_TOP_CTRL, SENINF_TOP_PCLK_EN,
++		      SENINF_TOP_PCLK_EN);
++	writel(SENINF_TG_SEN_CK_VAL, seninf->base + tg + SENINF_TG_SEN_CK);
++	seninf_update(seninf, tg + SENINF_TG_PH_CNT,
++		      SENINF_TG_PH_CNT_CLKFL_POL | SENINF_TG_PH_CNT_CLK_SEL,
++		      FIELD_PREP(SENINF_TG_PH_CNT_CLK_SEL,
++				 SENINF_TG_PH_CNT_CLK_SEL_CAMTG));
++	/* The first generator's source selects the others' too. */
++	seninf_update(seninf, SENINF_TG_BASE(0) + SENINF_TG_PH_CNT,
++		      SENINF_TG_PH_CNT_CLK_SEL,
++		      FIELD_PREP(SENINF_TG_PH_CNT_CLK_SEL,
++				 SENINF_TG_PH_CNT_CLK_SEL_CAMTG));
++	seninf_update(seninf, tg + SENINF_TG_PH_CNT, 0,
++		      SENINF_TG_PH_CNT_PCEN | SENINF_TG_PH_CNT_MCLK_EN);
++	spin_unlock_irqrestore(&seninf->lock, flags);
++
++	return 0;
++}
++
++static void seninf_mclk_disable(struct clk_hw *hw)
++{
++	struct seninf_mclk *mclk = container_of(hw, struct seninf_mclk, hw);
++	struct mt6797_seninf *seninf = mclk->seninf;
++	unsigned long flags;
++
++	spin_lock_irqsave(&seninf->lock, flags);
++	seninf_update(seninf, SENINF_TG_BASE(mclk->tg) + SENINF_TG_PH_CNT,
++		      SENINF_TG_PH_CNT_PCEN | SENINF_TG_PH_CNT_MCLK_EN, 0);
++	spin_unlock_irqrestore(&seninf->lock, flags);
++}
++
++static int seninf_mclk_is_enabled(struct clk_hw *hw)
++{
++	struct seninf_mclk *mclk = container_of(hw, struct seninf_mclk, hw);
++	u32 val = readl(mclk->seninf->base + SENINF_TG_BASE(mclk->tg) +
++			SENINF_TG_PH_CNT);
++
++	return !!(val & SENINF_TG_PH_CNT_MCLK_EN);
++}
++
++static unsigned long seninf_mclk_recalc_rate(struct clk_hw *hw,
++					     unsigned long parent_rate)
++{
++	return parent_rate / SENINF_TG_MCLK_DIV;
++}
++
++static const struct clk_ops seninf_mclk_ops = {
++	.enable = seninf_mclk_enable,
++	.disable = seninf_mclk_disable,
++	.is_enabled = seninf_mclk_is_enabled,
++	.recalc_rate = seninf_mclk_recalc_rate,
++};
++
++static int seninf_runtime_suspend(struct device *dev)
++{
++	struct mt6797_seninf *seninf = dev_get_drvdata(dev);
++
++	clk_bulk_disable_unprepare(ARRAY_SIZE(seninf->clks), seninf->clks);
++	return 0;
++}
++
++static int seninf_runtime_resume(struct device *dev)
++{
++	struct mt6797_seninf *seninf = dev_get_drvdata(dev);
++
++	return clk_bulk_prepare_enable(ARRAY_SIZE(seninf->clks), seninf->clks);
++}
++
++static DEFINE_RUNTIME_DEV_PM_OPS(seninf_pm_ops, seninf_runtime_suspend,
++				 seninf_runtime_resume, NULL);
++
++static int seninf_register_mclk(struct mt6797_seninf *seninf, unsigned int tg)
++{
++	static const struct clk_parent_data parent = { .fw_name = "camtg" };
++	struct seninf_mclk *mclk = &seninf->mclk[tg];
++	struct clk_init_data init = {
++		.ops = &seninf_mclk_ops,
++		.parent_data = &parent,
++		.num_parents = 1,
++	};
++	char name[16];
++	int ret;
++
++	snprintf(name, sizeof(name), "seninf_mclk%u", tg);
++	init.name = name;
++	mclk->seninf = seninf;
++	mclk->tg = tg;
++	mclk->hw.init = &init;
++
++	ret = devm_clk_hw_register(seninf->dev, &mclk->hw);
++	if (ret)
++		return ret;
++
++	seninf->provider->hws[tg] = &mclk->hw;
++	return 0;
++}
++
++static int seninf_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct mt6797_seninf *seninf;
++	unsigned int i;
++	int ret;
++
++	seninf = devm_kzalloc(dev, sizeof(*seninf), GFP_KERNEL);
++	if (!seninf)
++		return -ENOMEM;
++
++	seninf->dev = dev;
++	spin_lock_init(&seninf->lock);
++	platform_set_drvdata(pdev, seninf);
++
++	seninf->base = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(seninf->base))
++		return PTR_ERR(seninf->base);
++
++	for (i = 0; i < ARRAY_SIZE(seninf->clks); i++)
++		seninf->clks[i].id = seninf_clk_names[i];
++	ret = devm_clk_bulk_get(dev, ARRAY_SIZE(seninf->clks), seninf->clks);
++	if (ret)
++		return dev_err_probe(dev, ret, "failed to get clocks\n");
++
++	seninf->provider = devm_kzalloc(dev, struct_size(seninf->provider, hws,
++							 SENINF_NUM_TG),
++					GFP_KERNEL);
++	if (!seninf->provider)
++		return -ENOMEM;
++	seninf->provider->num = SENINF_NUM_TG;
++
++	/*
++	 * Before the clocks register: with runtime PM on, the clock core
++	 * resumes this device around every access to their registers.
++	 */
++	ret = devm_pm_runtime_enable(dev);
++	if (ret)
++		return ret;
++
++	for (i = 0; i < SENINF_NUM_TG; i++) {
++		ret = seninf_register_mclk(seninf, i);
++		if (ret)
++			return dev_err_probe(dev, ret, "failed to register MCLK %u\n", i);
++	}
++
++	return devm_of_clk_add_hw_provider(dev, of_clk_hw_onecell_get,
++					   seninf->provider);
++}
++
++static const struct of_device_id seninf_of_match[] = {
++	{ .compatible = "mediatek,mt6797-seninf" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, seninf_of_match);
++
++static struct platform_driver seninf_driver = {
++	.probe = seninf_probe,
++	.driver = {
++		.name = "mt6797-seninf",
++		.of_match_table = seninf_of_match,
++		.pm = pm_ptr(&seninf_pm_ops),
++	},
++};
++module_platform_driver(seninf_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 sensor interface");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

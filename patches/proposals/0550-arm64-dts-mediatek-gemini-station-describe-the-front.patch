@@ -1,0 +1,114 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:30:01 -0500
+Subject: [PATCH 550/550] arm64: dts: mediatek: gemini station: describe the
+ front camera
+
+The Hi-556 at 0x20 on I2C3, on master clock 1 from CMMCLK1, with the rails
+at the voltages the vendor kernel selects, reset on GPIO33 and power-down
+on GPIO29. Two lanes are from the vendor driver; the link frequency is the
+driver's only one and is unmeasured here.
+
+The ISP domain is declared here because the station uses the newer power
+controller, unlike the SoC file.
+---
+ .../mt6797-gemini-pda-station-a72.dts         | 86 +++++++++++++++++++
+ 1 file changed, 86 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 8fe44d7c8..62601902d 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -82,3 +82,89 @@ a72-power@10222000 {
+ &i2c6 {
+ 	compatible = "mediatek,mt6797-idvfs-i2c";
+ };
++
++/*
++ * The front camera. Nothing here runs until mt6797-seninf and hi556 load: the
++ * rails stay off, and the sensor's pins change only when its driver binds.
++ */
++&mt6351regulator {
++	mt6351_vcama_reg: ldo-vcama {
++		regulator-name = "vcama";
++		regulator-min-microvolt = <2800000>;
++		regulator-max-microvolt = <2800000>;
++		regulator-enable-ramp-delay = <264>;
++	};
++
++	mt6351_vcamd_reg: ldo-vcamd {
++		regulator-name = "vcamd";
++		regulator-min-microvolt = <1210000>;
++		regulator-max-microvolt = <1210000>;
++		regulator-enable-ramp-delay = <264>;
++	};
++
++	mt6351_vcamio_reg: ldo-vcamio {
++		regulator-name = "vcamio";
++		regulator-min-microvolt = <1800000>;
++		regulator-max-microvolt = <1800000>;
++		regulator-enable-ramp-delay = <220>;
++	};
++};
++
++&pio {
++	camera_front_pins: camera-front-pins {
++		pins-mclk {
++			pinmux = <MT6797_GPIO31__FUNC_CMMCLK1>;
++		};
++
++		pins-control {
++			pinmux = <MT6797_GPIO29__FUNC_GPIO29>,
++				 <MT6797_GPIO33__FUNC_GPIO33>;
++		};
++	};
++};
++
++&conn_power {
++	power-domain@2 {
++		reg = <MT6797_POWER_DOMAIN_ISP>;
++		clocks = <&topckgen CLK_TOP_MUX_MM>;
++		clock-names = "mm";
++		#power-domain-cells = <0>;
++	};
++};
++
++&camsys {
++	power-domains = <&conn_power MT6797_POWER_DOMAIN_ISP>;
++};
++
++&seninf {
++	power-domains = <&conn_power MT6797_POWER_DOMAIN_ISP>;
++	status = "okay";
++};
++
++&i2c3 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&i2c3_pins_a>;
++	clock-frequency = <300000>;
++	status = "okay";
++
++	camera@20 {
++		compatible = "hynix,hi556";
++		reg = <0x20>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&camera_front_pins>;
++		clocks = <&seninf 1>;
++		clock-names = "clk";
++		dovdd-supply = <&mt6351_vcamio_reg>;
++		avdd-supply = <&mt6351_vcama_reg>;
++		dvdd-supply = <&mt6351_vcamd_reg>;
++		reset-gpios = <&pio 33 GPIO_ACTIVE_LOW>;
++		powerdown-gpios = <&pio 29 GPIO_ACTIVE_LOW>;
++
++		port {
++			endpoint {
++				data-lanes = <1 2>;
++				link-frequencies = /bits/ 64 <437000000>;
++			};
++		};
++	};
++};
+-- 
+2.43.0
+

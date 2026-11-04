@@ -1,0 +1,59 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 14:29:59 -0500
+Subject: [PATCH 544/550] clk: mediatek: mt6797-cam: number from zero and use
+ runtime PM
+
+The IDs started at 1 while the common probe allocates one slot per gate,
+so registering the last gate wrote past the array. No DT consumer depends
+on the numbers, so start them at 0.
+
+The gates live in the ISP power domain. Hold the domain around their
+register accesses.
+---
+ drivers/clk/mediatek/clk-mt6797-cam.c  |  1 +
+ include/dt-bindings/clock/mt6797-clk.h | 16 ++++++++--------
+ 2 files changed, 9 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-cam.c b/drivers/clk/mediatek/clk-mt6797-cam.c
+index f0c927620..fd1f007c7 100644
+--- a/drivers/clk/mediatek/clk-mt6797-cam.c
++++ b/drivers/clk/mediatek/clk-mt6797-cam.c
+@@ -32,6 +32,7 @@ static const struct mtk_clk_desc cam_desc = {
+ 	.num_clk_ids = CLK_CAM_NR,
+ 	.clks = cam_clks,
+ 	.num_clks = ARRAY_SIZE(cam_clks),
++	.need_runtime_pm = true,
+ };
+ 
+ static const struct of_device_id of_match_clk_mt6797_cam[] = {
+diff --git a/include/dt-bindings/clock/mt6797-clk.h b/include/dt-bindings/clock/mt6797-clk.h
+index 15c601444..3bd299f70 100644
+--- a/include/dt-bindings/clock/mt6797-clk.h
++++ b/include/dt-bindings/clock/mt6797-clk.h
+@@ -212,14 +212,14 @@
+ #define	CLK_IMG_NR				5
+ 
+ /* CAM_SYS */
+-#define CLK_CAM_CAMSV2				1
+-#define CLK_CAM_CAMSV1				2
+-#define CLK_CAM_CAMSV0				3
+-#define CLK_CAM_SENINF				4
+-#define CLK_CAM_CAMTG				5
+-#define CLK_CAM_CAMSYS				6
+-#define CLK_CAM_LARB2				7
+-#define CLK_CAM_NR				8
++#define CLK_CAM_CAMSV2				0
++#define CLK_CAM_CAMSV1				1
++#define CLK_CAM_CAMSV0				2
++#define CLK_CAM_SENINF				3
++#define CLK_CAM_CAMTG				4
++#define CLK_CAM_CAMSYS				5
++#define CLK_CAM_LARB2				6
++#define CLK_CAM_NR				7
+ 
+ /* MM_SYS */
+ #define	CLK_MM_SMI_COMMON			1
+-- 
+2.43.0
+
