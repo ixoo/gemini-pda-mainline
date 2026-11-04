@@ -960,3 +960,13 @@ a new image.
 
 If 1 fails, look for what keeps it waking. If 2 to 4 fail, the previous binary is the
 fallback.
+
+**Results so far.** Binary `4ee9da4b…`, built from `91defc68`.
+
+- **1, idle cost: passes.** On boot `7978f9ea`, image `8f2c1167`, the switches rose by 0
+  over 30 s while lit. On boot `489e5436`, by an earlier live swap, they rose by 0 over
+  30 s while blanked. `init` respawns the program under its new name.
+- **Owner, on boot `7978f9ea` or `3fb07fd4`:** "the esc test passed Fn+n and b work too".
+  This doesn't say which Esc check it means, 2 or 3, so the other stays open.
+- **Still open:** the idle fade and blank, a key cancelling the fade, and a lid close
+  and open.
