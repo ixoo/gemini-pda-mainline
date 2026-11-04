@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera` |
-| Status | `running`: hardware map done, T1 got no chip ID, diagnosis under way |
+| Status | `running`: hardware map done, no chip ID in T1 to T3; the sensor stays silent with the bus and rails shown good |
 | Subsystem | Hi-556 sensor, I2C3, MT6351 camera rails, ISP power domain, CAMSYS clocks, SENINF master clock |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -131,7 +131,9 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-- T1: no chip ID. See [below](#t1-the-chip-id).
+- T1, T2 and T3: no chip ID, in 89 reads across them. See [below](#t1-the-chip-id).
+- T3's script wrote to physical address 0 three times by mistake. See
+  [below](#a-script-error-writes-to-address-0).
 
 ## Limitations
 
@@ -195,6 +197,43 @@ is the same as read in the public source.
 
 ## T3: clock at the pad, rails, and another chip on the bus
 
-Not run. [`0552`](../../patches/proposals/0552-media-i2c-hi556-DIAGNOSTIC-read-the-rails-and-try-an.patch)
-adds the PMIC's own registers for the rails and a read of the AW9120's ID, with its enable
-raised for a moment. The script samples GPIO31's input level many times.
+Same boot, module `caa443a8` from commit `74f2fcd2`, script `afc3fb46`, one run of 30 s, as
+reported by the custodian.
+
+Observed:
+
+- The AW9120 returned its ID, `b223`, with its enable raised for a moment. So this bus
+  and controller do get an ACK from a known chip at `0x2c`.
+- The PMIC's own status: `0x0a12` `da62`, `0x0a40` `c262`, `0x0a58` `c262`, bit 15 set on all
+  three, and selectors 3, 6 and 6. So the three rails are up at the vendor's voltages.
+- All 60 reads at `0x20` and `0x28` returned `-6`, across the pulse.
+- GPIO30, 31, 35 and 36 read input level 0 on every sample, with and without the
+  generators on.
+- Through the error below, generators 1, 3 and 4 stayed on for about 20 s of the hold. GPIO30
+  and GPIO31 were in clock mode, GPIO35 and GPIO36 were not. The sensor stayed silent.
+
+Inference: rail and bus faults are out. The sensor is silent with its rails up, its
+reset and power-down high, and its bus working. The clock not reaching the sensor is the
+leading candidate, because this class of sensor usually needs it to answer I2C, but it
+isn't shown: a level of 0 proves nothing if the pad's input path is off in clock mode.
+A wrong generator for CMMCLK0 or CMMCLK1 is unlikely, since all four were on. CMMCLK2 and
+CMMCLK3 were not tried, since those pads were not in clock mode. Pad drive strength is also
+open: the vendor library sets it (`setMclk2IODrivingCurrent`, bits 3:2 of `0x100020f0`) and
+this kernel does not, since its MT6797 pin driver has no drive, pull or input-enable
+tables.
+
+### A script error: writes to address 0
+
+`camera-t3.sh` used a shell variable `a` in a helper function and also for the generator
+address in its loop, so the restore step ran as `devmem 0 32 VALUE`. Three unrequested
+writes went to physical address 0: `0x00000001`, `0x00000000`, `0x00000000`. The readbacks
+read address 0 and returned 0, so the generators weren't restored and ran about 20 s beyond the 2 s
+asked. The author's error; the custodian found it in the output.
+
+No fault followed: no abort, no Oops, not tainted, pstore empty, uptime continuing. What is at
+physical address 0 is not established, and `/proc/iomem` lists nothing there. No effect
+was observed, which does not show there was none.
+
+Later scripts share no shell variables across functions, and no `devmem` write uses an
+address from a variable. Further tests list literal addresses, read-only unless the
+owner has approved a write.
