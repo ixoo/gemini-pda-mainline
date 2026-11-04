@@ -575,3 +575,39 @@ start threshold is a full buffer of 1800 frames, but the driver's ring holds 18 
 and playback never starts. Its bytes never reached the SRAM, so what the owner heard was not the
 coder's output.
 
+The owner restarted with "ESC+side key", a hardware path, which may be why pstore is empty, and says
+"the screen was dark, off". The console's idle blank may already have applied, so that shows little.
+
+## Comparing with the vendor: what T5 did differently
+
+Requested by the owner after T5. Read from the public Gemian kernel at `59e00a91` and from the retained
+`audio.primary.mt6797.so` statically, in the RE VM. No hang path was found in the kernel code, so the
+hang's cause stays open. Two of T5's settings were wrong, and both are this project's test, not the driver:
+
+| | Vendor | T5 | Effect |
+| --- | --- | --- | --- |
+| Rate | 8 or 16 kHz (inferred from the HAL; the kernel's list has no 64 kHz) | 64 kHz declared; about 4000 frames/s real | At 250 Hz, `pcm_lib.c` reads the first 22.5 ms interval as a lost buffer, jumps the pointer and reports an overrun from the interrupt, so capture never delivers. **Read and verified in 7.1.3; not measured** |
+| Starting TX | `pcm_open`, then `pcm_start` at once | Full buffer of 1800 frames, into an 18-packet ring | `aplay` blocks in its second write, and never starts |
+| Directions | Separate objects, each opened on its own path | Both together | Untested alone |
+| Period | TX 1020 frames, count 2; RX 1024, count 2; `pcm_write` to 480 bytes; `pcm_read` 512 | 450 and 480 | Upstream accepts these; multiples are clean |
+
+**So in T5, inferred:** `arecord` looped through overrun and restart every 45 ms, and neither direction
+was being served once the ring filled, in step with the static the owner heard. Whether that
+state hangs firmware or the bus is unknown.
+
+**Vendor kernel against upstream, same:** pointer logic, locks, level-low interrupt, the gate, and no
+wake lock, `wmt` or sleep calls around this path. **Different:** the vendor drains TX from prepare, upstream only
+after start. The vendor's rings are smaller (TX 8 by 60, RX 16 by 32). Upstream checks `0xdeadfeed` on
+pointers only. Upstream's loopback can run with streams, and turning it off leaves both RUNNING with
+NULL substreams: the T4 script turned it off only after the link had ended, so no interrupt could hit it.
+
+**Other known differences from the vendor's Bluetooth setup, none tested as causes:** no Set Radio, TX
+offset or sleep timeout; LE hidden; no WMT sleep; the kernel asks for an eSCO link by Enhanced Setup
+with an HCI data path, where the Gemian kernel's core uses the older command; no LTE IDC bridge.
+
+## T5b, prepared
+
+[`bt-voice-test.sh`](bt-voice-test.sh) now runs one direction per link, at a declared 8 kHz, with
+`aplay` starting on its first write, and writes each step and the PCM's status to `/mnt/data` with a
+`sync`, so a hang leaves evidence. It has not run.
+
