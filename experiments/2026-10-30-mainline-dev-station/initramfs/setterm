@@ -15,3 +15,5 @@ case "${2:-}" in
 esac
 [ "$2" -le 60 ] || { echo "setterm: blank takes minutes, 0 to 60" >&2; exit 2; }
 printf '\033[9;%s]' "$2" >/dev/tty1
+# The timeout and the idle deadline just changed; nothing else tells it.
+/bin/busybox killall -q -USR1 backlight-policy || :

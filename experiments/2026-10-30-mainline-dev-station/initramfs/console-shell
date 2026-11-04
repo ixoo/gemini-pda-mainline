@@ -10,5 +10,6 @@ $bb stty sane
 $bb loadkmap </etc/gemini-us.bkeymap
 # Blank after 2 idle minutes; setterm --blank changes it.
 printf '\033[9;2]'
+$bb killall -q -USR1 backlight-policy || :
 cd /root || cd /
 exec $bb sh -l

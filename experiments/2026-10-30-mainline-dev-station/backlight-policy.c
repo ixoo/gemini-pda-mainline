@@ -10,7 +10,8 @@
  * a blank or unblank, so it looks only when one is due: for a while after input, and
  * from the fade's start until the blank. An input device it doesn't watch, such as a
  * Bluetooth keyboard, can wake the console without it noticing until the next watched
- * event.
+ * event. Whatever sets the blank timeout must send SIGUSR1, since that also restarts the
+ * kernel's deadline and nothing else would wake this program for it.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -18,6 +19,7 @@
 #include <linux/input.h>
 #include <linux/tiocl.h>
 #include <poll.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -222,6 +224,14 @@ static void step_brightness(int up)
 	put(BL_BRIGHTNESS, text);
 }
 
+static volatile sig_atomic_t blank_set;
+
+static void on_blank_set(int sig)
+{
+	(void)sig;
+	blank_set = 1;
+}
+
 int main(void)
 {
 	char lid[512], keyboard[512], pmic_keys[512];
@@ -230,6 +240,10 @@ int main(void)
 	struct pollfd fds[3];
 	int fd, kfd, pfd, closed, fn = 0, restore = -1, quick = 0, was_blanked = 0, wait = 0;
 	long long last_input = now_ms();
+	/* No SA_RESTART: the signal must end the poll. */
+	struct sigaction blank_action = { .sa_handler = on_blank_set };
+
+	sigaction(SIGUSR1, &blank_action, NULL);
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
 	    !find_input(KEYBOARD_NAME, keyboard, sizeof(keyboard))) {
@@ -256,8 +270,21 @@ int main(void)
 	fds[1] = (struct pollfd){ .fd = kfd, .events = POLLIN };
 	fds[2] = (struct pollfd){ .fd = pfd, .events = POLLIN };
 	/* After a key, look again soon: the kernel wakes the console just after it. */
-	while (poll(fds, 3, quick > 0 ? 50 : wait) >= 0) {
-		int blanked = console_blanked(), i;
+	for (;;) {
+		int blanked, i;
+
+		if (poll(fds, 3, quick > 0 ? 50 : wait) < 0) {
+			if (errno != EINTR)
+				break;
+			for (i = 0; i < 3; i++)
+				fds[i].revents = 0;
+		}
+		if (blank_set) {
+			blank_set = 0;
+			last_input = now_ms();
+			quick = 20;
+		}
+		blanked = console_blanked();
 
 		if (quick > 0)
 			quick--;

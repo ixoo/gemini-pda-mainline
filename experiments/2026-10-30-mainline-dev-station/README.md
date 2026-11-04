@@ -972,3 +972,19 @@ fallback.
   `7978f9ea` or `3fb07fd4`.
 - **Still open:** the idle fade and blank, a key cancelling the fade, and a lid close
   and open.
+
+**Regression, owner report:** "I saw the screen blanking without a fade", and "it woke up
+with no fade either". From the code, not yet measured on the device: the sleeping program
+didn't notice blanking being turned back on. Without input it slept past the fade's
+start, so no fade ran, and the fade back up only follows a fade down. The old once-a-second
+loop re-read the timeout and hid this. It can also happen at boot, if `console-shell`
+sets the timeout after the program has read it.
+
+**Fix.** `setterm` and `console-shell` send `SIGUSR1` after setting the timeout. The
+program then restarts its deadline, as the kernel does. A raw `ESC [9;N]` from anything
+else still goes unseen, so use `setterm`. A restart of the program also moves its
+deadline later than the kernel's, which can miss one fade.
+
+**Test (predeclared).** With the fix swapped in, and no input after this step:
+`setterm --blank 1`. Expect a fade starting about 57 s later, the blank, and a fade up
+on the next key. Then repeat step 4 of the earlier test.
