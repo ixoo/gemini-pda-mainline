@@ -42,6 +42,8 @@
 #define FADE_DOWN_LEAD_MS (FADE_DOWN_STEPS * FADE_DOWN_MS)
 #define FADE_UP_STEPS 16
 #define FADE_UP_MS 30
+/* Past the deadline by this much with no blank, input we can't see must have moved it. */
+#define BLANK_OVERDUE_MS 5000
 
 static void say(const char *fmt, ...)
 {
@@ -259,6 +261,9 @@ int main(void)
 	}
 	closed = !!(sw[SW_LID / (8 * sizeof(long))] & (1UL << (SW_LID % (8 * sizeof(long)))));
 	say("start: lid %s\n", closed ? "closed" : "open");
+	/* A previous run may have died at the end of a fade, with no blank to follow. */
+	if (!closed && !console_blanked() && read_number(BL_POWER) != 0)
+		put(BL_POWER, "0");
 	kfd = open_events(keyboard);
 	if (kfd < 0)
 		say("no keyboard events; brightness keys off\n");
@@ -303,6 +308,9 @@ int main(void)
 			if (!blanked && restore >= 0) {
 				for (i = 0; i < 20 && read_number(BL_POWER) != 0; i++)
 					poll(NULL, 0, 25);
+				/* Only the panel's link does that; simplefb has none. */
+				if (i == 20)
+					put(BL_POWER, "0");
 				fade(DIM_LEVEL, restore, FADE_UP_STEPS, FADE_UP_MS, NULL, 0);
 				restore = -1;
 			}
@@ -325,8 +333,11 @@ int main(void)
 					 */
 					if (fade(level, DIM_LEVEL, FADE_DOWN_STEPS, FADE_DOWN_MS,
 						 fds, 3)) {
-						undim(restore);
-						restore = -1;
+						/* A closing lid must not relight; its event handles this. */
+						if (!(fds[0].revents & POLLIN)) {
+							undim(restore);
+							restore = -1;
+						}
 					} else {
 						put(BL_POWER, "4");
 					}
@@ -335,6 +346,10 @@ int main(void)
 				/* The deadline moved or went, with no blank after all. */
 				undim(restore);
 				restore = -1;
+			} else if (restore >= 0 && left < -(FADE_DOWN_LEAD_MS + BLANK_OVERDUE_MS)) {
+				undim(restore);
+				restore = -1;
+				last_input = now_ms();
 			}
 			/* Wake exactly when the fade has to start; from then, the blank is due. */
 			if (seconds > 0)
@@ -373,5 +388,6 @@ int main(void)
 		last_input = event_ms(&ev);
 	}
 	say("lid event stream ended\n");
+	sleep(60);
 	return 1;
 }

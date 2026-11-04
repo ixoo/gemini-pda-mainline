@@ -1024,3 +1024,24 @@ doesn't itemise them, so those rest on this one report. The blank timeout is bac
 
 The owner then confirmed the fade cancel specifically: a key pressed while it fades
 interrupts the blank. The binary and boot weren't stated.
+
+**Review fixes (no device test yet).** An independent code review found these, and each
+was confirmed by reading the code. None changes the path the owner passed:
+
+- **simplefb:** only the panel's DRM link clears `bl_power` on a wake, so on the fallback
+  path the screen stayed dark after the first idle blank. The wake now clears it if
+  it's still set after 500 ms.
+- **Lid close during a fade:** the aborted fade relit the backlight behind the closing
+  lid. It now leaves that to the lid event.
+- **Restart during a fade:** a new run clears a leftover `bl_power` if the console is
+  awake and the lid open. The level itself is lost, so brightness stays at 16 until
+  Fn+N.
+- **Respawn rate:** the stream-ended and poll-error exits now wait 60 s, like the startup
+  failures.
+- **Unseen input:** if the console is still awake 5 s past the deadline, the program
+  restores the light and restarts its deadline. Until then the screen stays dark.
+
+Left as they are: `now_ms` uses `CLOCK_REALTIME`, so a clock step can start a fade early, and
+the overdue check recovers from that. A signal arriving during a wake is seen at the next
+one, which can miss one fade. `console-shell` resets the timeout to 2 minutes each time it
+respawns, as it always has.
