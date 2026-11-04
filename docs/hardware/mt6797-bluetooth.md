@@ -327,7 +327,7 @@ first, which makes it the least likely.
 | Scan, pairing, A2DP source (SBC) with BlueZ and BlueALSA | demonstrated on one boot with one headset; owner heard audio |
 | LE | hidden from the core; see [controller behaviour](#controller-behaviour-on-mainline) |
 | SCO over HCI | eSCO connects, status 0, with CVSD air mode; 0 SCO packets received in 30 s, and the headset heard static for valid 16-bit PCM sent ([T3](../../experiments/2026-11-02-gemini-bluetooth/README.md#t3-result-the-link-connects-no-voice-over-hci-2026-11-03)). Does not carry voice as tried |
-| btcvsd driver in tree | present upstream, no Gemini node |
+| btcvsd driver in tree | runs on the station as a module with its own card; loopback carried voice from microphone to earpiece, heard by the owner ([T4](../../experiments/2026-11-02-gemini-bluetooth/README.md#t4-result-the-owner-heard-their-own-voice-2026-11-03)). Its PCM stream is not yet exercised |
 | Userspace CVSD/mSBC codec | proprietary, not in mainline |
 | HFP audio bridge | none |
 
@@ -359,11 +359,11 @@ is not measured.
 
 - Why did the T2 stream stall? It happened once, late in a long CONSYS lifetime.
 - What ended the inquiry, and when? See the table above.
-- Can real audio flow over the CVSD SRAM path? An eSCO link uses it whatever the host's
-  data path: its registers are zero before the link, its flags come up with it, and its
-  pointers move once each time the host clears them
-  ([T3c](../../experiments/2026-11-02-gemini-bluetooth/README.md#t3c-result-the-cvsd-sram-path-answers-the-host-2026-11-03)).
-  Its contents have not been read or written, and no driver has served its interrupt.
+- An eSCO link uses the CVSD SRAM path whatever the host's data path: the registers are zero
+  before a link and its flags come up with it, and the upstream driver's loopback carried
+  voice at about 45 interrupts a second
+  ([T4](../../experiments/2026-11-02-gemini-bluetooth/README.md#t4-result-the-owner-heard-their-own-voice-2026-11-03)).
+  Open: the quality of a host CVSD coder against it, and mSBC.
 - Does the ROM's CVSD SRAM path require firmware-side enabling beyond the INFRA
   bit and the packet pointers? The vendor driver has no explicit "start" command.
 - What does the ROM patch contribute to BT audio? It contains BT/Wi-Fi

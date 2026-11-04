@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed` for A2DP. T3 to T3c: a voice link connects, no voice crosses HCI, and the CVSD SRAM path answers the host. No microphone yet; the bridge it would need is not built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3 to T4: a voice link connects, no voice crosses HCI, and the owner heard their own voice looped through the CVSD SRAM path by the upstream driver. No microphone for applications yet; the coder and bridge are not built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -490,4 +490,50 @@ Checked in the dev VM: both modules compile at W=1 with no warnings, the DTB has
 binding validates with `dt-doc-validate`, and `checkpatch` raises only line-length, MAINTAINERS and
 Kconfig help-length notes. **The binding and the driver share 0528**, as the project's experiment
 patches often do; split them before any upstream submission.
+
+## T4 result: the owner heard their own voice (2026-11-03)
+
+Run by the custodian on boot `71c6a822`, image `fa8ff860`, with the owner's go-ahead: `mtk-btcvsd.ko`
+`2dc67005…`, `mt6797-btcvsd.ko` `c407d4e4…`, `mt6797-consys.ko` `74fb9566…`, `bt-loopback.sh`
+`2bf06047…`. Wi-Fi off, `gemian_radio` off, placeholder address. One 30 s eSCO link. Evidence is
+private under `artifacts/station-work-42/boot-71c6a822/bt-t4/`.
+
+**The owner reports:** "I hear my own voice".
+
+**Observed:**
+- Both modules load, and the card appears. The main audio card is untouched.
+- Before the loopback: flags up, `0x81e40000`, as in T3b. Once it's on: flags clear at each sample
+  (`0x00040007`, once `0x00040003`), pointers moving.
+- About 45 interrupts a second: 905 over the first 20 s, 1779 by the end of the link. That
+  matches 180 bytes per interrupt at 8 kB/s.
+- SCO over HCI as in T3: 2608 packets out, 0 in. The owner did not report hearing the notes
+  sent that way; they weren't asked.
+- Link clean: `failed=0 timeouts=0 resent=0`, assert 0, no Oops, no warning, taint 0. Both
+  modules unload.
+- INFRA_MISC reads `0x11403200` before the driver and `0x11403a00` after it. Bit 11 is the gate,
+  and in `mtk-btcvsd.c` setting it disables: **closed**, as 0527 and the driver's idle state leave it.
+  At boot it is open.
+
+**What this settles:** on this SoC the firmware carries eSCO voice through the SRAM path, in both
+directions, at the link's rate, with the upstream driver. HCI SCO packets are not what reaches the
+air (inferred from T3 and from the notes not being reported, not tested on its own). The voice
+really travelled from the microphone to the headset's earpiece through SRAM, heard by ear.
+
+**What it does not:** no application can use the microphone. Loopback copies coded packets
+without decoding them; the driver's PCM stream has not been opened; CVSD coding on the host
+is not written. One boot, one headset, 30 s, Wi-Fi off, and the echo's quality was only noted as
+heard.
+
+## What is left for a usable microphone
+
+| Piece | Status |
+| --- | --- |
+| Link: `bluetoothd` and BlueALSA hold eSCO | Works |
+| Coded packets, SRAM to and from the driver | Works, in loopback |
+| The driver's PCM stream carrying them | Not opened yet |
+| CVSD coder and bridge: PCM to and from that stream, with validity words, in step with the link | Not written. The real work |
+| How applications reach it: ALSA loopback or a BlueALSA change | Not chosen |
+
+The natural next proof is small: a coder and a tool that plays a tone through the PCM stream and
+captures the microphone to a file. That answers the coder's quality before any integration.
 
