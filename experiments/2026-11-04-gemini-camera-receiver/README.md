@@ -112,4 +112,14 @@ Inference:
 
 ## R2: the settle count
 
-Not run. Same boot and modules, no build.
+Same boot, script `5361e336`, ten streams of about 3 s, as reported by the custodian, under the approval for
+R1.
+
+Observed: settle counts 5, 10, 14, 24 and 40, each with the HSRX delay on and off, gave the same picture.
+`+0x1714` read `0x00001014`, `+0x1d08` read `0x00000058`, `+0x1d14` and `+0x1d18` read `0a200798`, the low byte of
+`+0x1d10` read `3c` after 2 s, and calibration read 0, every time. The top bytes of `+0x1d10` varied, and its second
+byte fell to `00` at the last setting, which is not interpreted.
+
+Inference: the receiver takes the link across this whole range, so settle is not critical here and is not
+what sets those bits. Whether they are errors stays open. Capturing a frame would answer more than further
+status reads.
