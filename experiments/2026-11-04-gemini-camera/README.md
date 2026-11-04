@@ -241,14 +241,16 @@ owner has approved a write.
 
 ## T4: the pad configuration
 
-Same boot, one read-only run. `0x10002000` read `0xfff`, so input is enabled on all ten
+Same boot, one read-only run, with the rails and clock off, so these are the pads at rest
+and aren't shown to hold during a hold. `0x10002000` read `0xfff`, so input is enabled on all ten
 CAM pad bits. `0x10002040` `0x000c381f`, `0x100020b0` `0x400`, `0x100020d0` `0xb80`,
 `0x100020f0` `0x05555555`. Bits 3:2 of the last are the drive of the pad the vendor library
 calls MCLK2, and read 1.
 
 Inference: GPIO74 and GPIO75 read high in mode 1, so a pad's input level does report in a
 non-GPIO mode. With input enabled, GPIO31 reading 0 on all 96 samples under its generator
-means it is probably not toggling, rather than that it can't be seen. So the clock is
+means it is probably not toggling, rather than that it can't be seen, assuming input
+enable stays set while the clock runs. T5's samples are the direct test. So the clock is
 probably not reaching the sensor, with its registers all reading as written.
 
 ## Offline: the CAMTG mux needs an update write
