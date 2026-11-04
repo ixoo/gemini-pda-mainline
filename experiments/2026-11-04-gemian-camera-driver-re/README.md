@@ -131,14 +131,19 @@ claimed.
 
 - Durable summary: [Gemini camera path](../../docs/hardware/gemini-camera.md).
 - The active station bring-up independently reached the same HAL-boundary
-  conclusion and is now testing the master-clock and SENINF-enable order:
+  conclusion and has now passed the driver's own probe (T12):
   [the front camera's sensor from a module](../2026-11-04-gemini-camera/README.md).
-  Its T8/T11 runs read ID `0x0556` on mainline with the enables set by hand;
-  the driver's own probe is still the open step.
+  Its [receiver record](../2026-11-04-gemini-camera-receiver/README.md) reaches
+  the mux at 2592 x 1944 (R1/R2) and a diagnostic CAMSV frame (C2); C1/C2/C3
+  leave the DMA buffer empty, and C4 is not run. The DMA write and a standard
+  capture interface remain open.
 - Sensor-side design remains in the
   [2026-10-04 camera record](../2026-10-04-gemini-camera-re/README.md).
 - Pipeline resources remain in the
   [camera recovery contract](../2026-07-13-camera-recovery/results/mt6797-camera-pipeline-contract.md).
+- The DMA/buffer ABI is summarized in the durable document from
+  `camera_isp.h`/`camera_isp.c` (ION import, ring control, write-DMA ports);
+  that part is source-derived, not part of this static HAL pass.
 - Next discriminating observation: a filtered Gemian log capture containing
   the HAL's `seninfSrc`, `MIPI pad`, `TermDelay`/`SettleDelay` and
   `CSI2-1 calibration` lines. The station record's G1 capture settled the

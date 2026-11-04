@@ -10,6 +10,7 @@ enabled.
 Related records: [Gemini camera reverse engineering](../../experiments/2026-10-04-gemini-camera-re/README.md)
 for the sensor and board contract, [Gemian camera driver split](../../experiments/2026-11-04-gemian-camera-driver-re/README.md)
 for the HAL/SENINF analysis, the [station camera bring-up](../../experiments/2026-11-04-gemini-camera/README.md)
+and [receiver record](../../experiments/2026-11-04-gemini-camera-receiver/README.md)
 for the current mainline chronology, and the [camera recovery contract](../../experiments/2026-07-13-camera-recovery/results/mt6797-camera-pipeline-contract.md)
 for the CAM/CAMSV/ISP resources. Current support remains in the
 [support matrix](../HARDWARE_SUPPORT.md) and [roadmap](../ROADMAP.md).
@@ -37,10 +38,13 @@ for the CAM/CAMSV/ISP resources. Current support remains in the
   `/dev/kd_camera_hw_bus2`, `/dev/MAINAF`, `/dev/SUBAF`,
   `/dev/camera-fdvt`, `/dev/camera-dpe` and `/dev/kd_camera_flashlight`.
   These are vendor interfaces, not a Linux media-controller graph.
-- The mainline **sensor** path is up to the chip ID. From modules on the station, the `hi556` driver's own
-  probe powers the sensor, starts its clock through `mt6797-seninf`, reads `0x0556` and powers it off (T12,
-  two loads on one boot). There is no receiver and no bridge, so no sub-device node and no mainline
-  capture path.
+- The mainline path reaches the receiver and a diagnostic capture. From modules on the station, the
+  `hi556` probe powers the sensor, starts its clock through `mt6797-seninf`, reads `0x0556` and powers it
+  off (T12). `mt6797-seninf` adds the CSI-2 receiver and graph binding; the first stream reaches the mux
+  at 2592 x 1944 (R1/R2), and a diagnostic CAMSV capture shows a full frame reaching CAMSV (C2). The DMA
+  buffer stays at its fill value (C1/C2/C3); C3's counters point at frame-buffer-control configuration
+  and C4 is not run. No standard V4L2 capture node or M4U/VB2 path exists, so there is still no mainline
+  image.
 
 ## 2. Sensor and board
 
@@ -276,6 +280,67 @@ The userspace side of this block is `libcamdrv_isp.so`: `ISP_DRV_CAM`,
 `/dev/camera-isp` ioctls to the rest of the HAL. None of this is a standard
 V4L2 media graph.
 
+### 4.5 DMA and buffer ABI
+
+The vendor path is not a V4L2 queue. It is a per-module ring of **ION**
+buffers filled by the CAM/CAMSV write-DMA engines and reaped by the camera
+interrupt handler. This subsection describes that Gemian ABI; the separate
+mainline diagnostic capture is noted under "Mainline replacement".
+
+**Write-DMA ports.** The vendor header names the CAM write ports and comments
+their register offsets inside the CAM window: `IMGO` `0x0220`, `RRZO`
+`0x0250`, `AAO` `0x0280`, `AFO` `0x02b0`, `LCSO` `0x02e0`, `UFEO` `0x0310`,
+`PDO` `0x0340`, `BPCI` `0x0370`, `CACI` `0x03a0`, `LSCI` `0x03d0`.
+`EISO`/`FLKO`/`RSSO` reuse the first three slots in that table; the
+frame-header registers are at `0x0c04`..`0x0c1c` and `0x03c4`..`0x03cc`.
+These are header facts, not live register reads. CAMSV has its own
+`_camsv_imgo_` ring entry and `ISP_IRQ_TYPE_INT_CAMSV_0`..`5` modules.
+
+**Ring contract.** `ISP_BUFFER_CTRL_STRUCT` carries `ctrl`
+(`ISP_RT_BUF_CTRL_DMA_EN` or `CLEAR`), `module` (CAM_A/CAM_B/CAMSV_n),
+`buf_id` (DMA port), `data_ptr`/`ex_data_ptr`, and `pExtend` (per-port active
+flags). Its `ring_buf[]` has `start`, `total_count`, `empty_count`,
+`pre_empty_count`, `active`, `read_idx`, `img_cnt`, and `ISP_RT_BUF_SIZE`
+`ISP_RT_BUF_INFO_STRUCT` entries. Each entry carries `memID`, `size`,
+`base_vAddr`, `base_pAddr`, timestamps, `bFilled`, `bProcessRaw`, image/RRZ/
+crop metadata, `bDequeued` and `bufIdx`. The ring state is INIT/SOF/DONE; each
+buffer is EMPTY/FILLED/LOCKED.
+
+**ION bridge.** `ISP_ION_IMPORT` and `ISP_ION_FREE` take
+`ISP_DEV_ION_NODE_STRUCT` (`devNode`, `dmaPort`, `memID`) and keep a
+reference-counted handle per camera device and DMA port;
+`ISP_ION_FREE_BY_HWMODULE` drops all handles for a module. The kernel stores
+`G_WRDMA_IonHnd[devNode][dmaPort][slot]` with a per-port spinlock, so the same
+ION fd can back several buffers but is only imported once. `ISP_SET_MEM_INFO`,
+`ISP_WAIT_IRQ`, `ISP_CLEAR_IRQ` and `ISP_CQ_SW_PATCH` complete the path.
+
+**Flow.** ION allocation → fd → import → `base_vAddr`/`base_pAddr` → M4U port →
+DMA fill → CAM/CAMSV IRQ → `bFilled` → dequeue → recycle. The HAL's
+`ISP_DRV_CAM`, `IspDrvCamsv` and `IspDrvDipPhy` wrap the ioctls, with `CQ_*`
+commanding register updates and `waitIrq`/`clearIrq` ordering frames. There is
+no standard dma-buf/VB2/fence queue; the visible bridge is the ION handle plus
+the private ring and IRQ.
+
+**Mainline replacement.** Use dma-buf heaps, the MT6797 IOMMU/SMI providers,
+dma-fence and a VB2 queue; the first path should be one CAMSV output to memory.
+The local series has `larb2`/`larb6` and M4U nodes. A diagnostic CAMSV path
+exists (0558/0559/0560): C2 shows a full frame reaching CAMSV, but C1/C2/C3
+leave the coherent buffer at its fill value. C3's `CAMSV_FBC_IMGO_CTL2` top
+byte (`DROP_CNT`) moved while `FBC_CNT`/`RCNT`/`WCNT` stayed zero, which points
+at frame-buffer-control configuration (queue mode off, `FBC_NUM` 0) rather
+than a bus fault. C4 sets queue mode and reads `larb2` first; it is not run.
+The earlier C1/C2/C3 path ran `larb2` in reset with no M4U, so it does not
+validate the vendor ION/M4U ring or a standard capture interface. The vendor
+descriptor/CQ format and the SP5509 port binding remain open.
+
+Source anchors: [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L260-L330)
+(write-DMA enum), [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L330-L443)
+(ION node and ring structures), and
+[`camera_isp.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L5410-L5560)
+(ring control) and
+[`camera_isp.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/camera_isp.c#L7841-L7935)
+(ION import/free).
+
 ## 5. Userspace stack
 
 | Component | Role |
@@ -296,21 +361,23 @@ libcamera or a native V4L2 application.
 
 | Gemian boundary | Standard replacement | Current state |
 | --- | --- | --- |
-| `kd_sensorlist` + SP5509 SLS char driver | V4L2 sensor sub-device, `hi556` | Upstream `hi556` is ACPI-only; the station series adds the binding, OF match, power-down GPIO and 24 MHz table (0545-0547). The sensor answers on mainline with manual SENINF enables (T8/T11), but the driver's own probe still fails |
+| `kd_sensorlist` + SP5509 SLS char driver | V4L2 sensor sub-device, `hi556` | Upstream `hi556` is ACPI-only; the station series adds the binding, OF match, power-down GPIO and 24 MHz table (0545-0547). T12 passes the driver's own probe, reading `0x0556` on two loads on one boot |
 | `kd_camera_hw` rails/GPIO/MCLK | regulator, `gpio`, `pinctrl`, clock framework | Station series adds the ISP power domain (0543), CAM clock-provider fix (0544), SENINF master-clock driver (0548/0549) and station DT (0550). Sensor rails, pins and MCLK exist; the full camera power sequence does not |
-| `/dev/camera-isp` SENINF/MIPI RX mmap | MT6797 SENINF/CSI-2 receiver driver | Master-clock/enable path exists (0548/0549/0553); CSI-2 lane and receiver programming is not ported. The HAL sequence is mapped in this document |
-| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Missing; `IspDrvCamsv` and the HAL sequence are evidence; MT8365 "ISP3.0" is the nearest public template |
+| `/dev/camera-isp` SENINF/MIPI RX mmap | MT6797 SENINF/CSI-2 receiver driver | Receiver exists (0555) with graph binding; the first stream reaches the mux at 2592 x 1944 (R1/R2), error bits still open. The HAL sequence is mapped in this document |
+| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558/0559/0560); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3 attributes it to frame-buffer-control configuration; C4 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
 | DIP/hardware ISP | libcamera software ISP | Out of scope for a first raw path |
-| ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist but camera consumers are disabled |
+| ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist; the C1/C2/C3 diagnostic runs larb2 in reset with no M4U, so the camera M4U consumer remains unproven |
 | DW9714AF / dummy flashlight / cam_cal | `dw9714`, LED class, tuning data | Not needed for the built-in fixed-focus, flashless camera |
 
 The realistic first target is still **SP5509 -> two-lane CSI -> SENINF ->
 CAMSV -> memory**, with libcamera's simple pipeline and software ISP, not the
-vendor DIP/CAM hardware ISP. The sensor milestone of power, clock and ID is shown;
-the next step is the receiver. The station
-chronology is in the [camera record](../../experiments/2026-11-04-gemini-camera/README.md),
-with the patches under `patches/proposals/0543`-`0550` and `0553`. No mainline
-capture path is established.
+vendor DIP/CAM hardware ISP. The sensor power/clock/ID, the CSI-2 link and the
+first CAMSV frame are shown; the next step is the DMA write and a standard
+capture interface. The station chronology is in the
+[camera record](../../experiments/2026-11-04-gemini-camera/README.md) and the
+[receiver record](../../experiments/2026-11-04-gemini-camera-receiver/README.md),
+with patches under `patches/proposals/0543`-`0560`. No mainline image or
+capture node is established.
 
 ### Master clock on mainline
 
@@ -326,9 +393,11 @@ frequency meter (T7).
 | --- | --- |
 | Physical sensor die | `inferred` - SP5509 SLS ID and register map match Hi-556; no die read |
 | SUB on the second interface and generator | `observed` - T11 set the second interface's enable (`+0x1200`) and started generator 2, then read the ID; G1 saw GPIO31 toggle |
-| SUB on CSI1 | `inferred` - HAL CSI1 labels and the MIPI analog `+0x400` block; no receiver test |
+| SUB on CSI1 | `observed` - the receiver uses the `0x10217400` analog block and the first stream reaches the mux (R1/R2) |
 | Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
-| First stream and receiver | `unresolved` - no CSI-2 receiver or capture path on mainline |
+| Receiver link | `observed` - R1/R2 reached the mux at 2592 x 1944 at about 30 fps; status bits and pixel content remain open |
+| Diagnostic CAMSV frame | `observed` - C2 reached `CAMSV_TG_DAT_NO` one short of a full frame |
+| DMA write and image | `unresolved` - C1/C2/C3 left the coherent buffer at its fill value; C3 points at queue mode/`FBC_NUM`, and C4 is not run |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |
 | PDN polarity | `observed` in the vendor table; upstream `hi556` has no PDN control |
@@ -342,12 +411,13 @@ frequency meter (T7).
 - [Gemini camera path reverse engineering](../../experiments/2026-10-04-gemini-camera-re/README.md)
 - [Gemian camera driver split and receiver contract](../../experiments/2026-11-04-gemian-camera-driver-re/README.md)
 - [The front camera's sensor from a module on the station](../../experiments/2026-11-04-gemini-camera/README.md)
+- [The front camera's CSI-2 receiver on the station](../../experiments/2026-11-04-gemini-camera-receiver/README.md)
 - [Camera identity and mainline boundary](../../experiments/2026-07-13-camera-recovery/README.md)
 - [MT6797 camera pipeline contract](../../experiments/2026-07-13-camera-recovery/results/mt6797-camera-pipeline-contract.md)
 - [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md)
 - [Gemian hardware baseline](gemini-gemian-baseline.md) and [vendor userspace](vendor-userspace.md)
 - [Vendor kernel ABI](vendor-kernel-abi.md)
-- Station series `patches/proposals/0543`-`0550` and `0553`; profile fragment
+- Station series `patches/proposals/0543`-`0560`; profile fragment
   `configs/gemini-a53-station-camera.fragment`.
 - Pinned Gemian kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `drivers/misc/mediatek/imgsensor/src/mt6797/`,
