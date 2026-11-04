@@ -3,8 +3,7 @@
 Audit of 2026-11-03: what a first test release needs, and what stands in the way of
 daily use. It comes from reading the records, patches and logs, not from new device
 runs. Effort sizes (S, M, L) and the proposed scope are judgement. The
-[support matrix](HARDWARE_SUPPORT.md) owns demonstrated support and is partly stale:
-it still rates Wi-Fi `unknown`.
+[support matrix](HARDWARE_SUPPORT.md) owns demonstrated support.
 
 ## Where it stands
 
