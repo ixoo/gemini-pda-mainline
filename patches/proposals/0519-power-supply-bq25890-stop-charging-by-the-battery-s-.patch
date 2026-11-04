@@ -29,7 +29,7 @@ charging.
  1 file changed, 191 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
-index ff46ddf5c..4bf5c3a6a 100644
+index ff46ddf5c..f37174895 100644
 --- a/drivers/power/supply/bq25890_charger.c
 +++ b/drivers/power/supply/bq25890_charger.c
 @@ -31,6 +31,14 @@
@@ -54,7 +54,7 @@ index ff46ddf5c..4bf5c3a6a 100644
 +	struct delayed_work guard_work;
 +	const char *guard_battery;
 +	u32 guard_end;
-+	bool guard_hot;
++	bool guard_temp;
 +	bool guard_full;
 +	unsigned int guard_unread;
 +
@@ -141,8 +141,8 @@ index ff46ddf5c..4bf5c3a6a 100644
 + * the TEMP property is; the core reports the limits in whole degrees, as the
 + * battery node gives them.
 + */
-+static bool bq25890_guard_hot(struct bq25890_device *bq, struct power_supply *batt,
-+			      int *temp)
++static bool bq25890_guard_temp(struct bq25890_device *bq, struct power_supply *batt,
++			       int *temp)
 +{
 +	static const enum power_supply_property psps[] = {
 +		POWER_SUPPLY_PROP_TEMP,
@@ -170,7 +170,7 @@ index ff46ddf5c..4bf5c3a6a 100644
 +	if (v[0] > v[3] * 10 && v[0] < v[4] * 10)
 +		return false;
 +
-+	return bq->guard_hot;
++	return bq->guard_temp;
 +}
 +
 +/* Whether the capacity limit stops charging. If unreadable, the last answer stands. */
@@ -212,13 +212,13 @@ index ff46ddf5c..4bf5c3a6a 100644
 +		container_of(work, struct bq25890_device, guard_work.work);
 +	struct power_supply *batt = power_supply_get_by_name(bq->guard_battery);
 +	int end = READ_ONCE(bq->guard_end);
-+	bool was_hot = bq->guard_hot, was_full = bq->guard_full;
++	bool was_temp = bq->guard_temp, was_full = bq->guard_full;
 +	int temp, capacity, chg, ret;
 +	bool stop;
 +
-+	bq->guard_hot = bq25890_guard_hot(bq, batt, &temp);
++	bq->guard_temp = bq25890_guard_temp(bq, batt, &temp);
 +	bq->guard_full = bq25890_guard_full(bq, batt, end, &capacity);
-+	stop = bq->guard_hot || bq->guard_full;
++	stop = bq->guard_temp || bq->guard_full;
 +	if (batt)
 +		power_supply_put(batt);
 +
@@ -241,10 +241,10 @@ index ff46ddf5c..4bf5c3a6a 100644
 +
 +	if (ret)
 +		dev_crit_ratelimited(bq->dev, "guard cannot reach the charger: %d\n", ret);
-+	else if (bq->guard_hot != was_hot || bq->guard_full != was_full || chg == stop)
++	else if (bq->guard_temp != was_temp || bq->guard_full != was_full || chg == stop)
 +		dev_info(bq->dev, "guard: charging %s: temp=%d capacity=%d limit=%d%s%s\n",
 +			 stop ? "stopped" : "allowed", temp, capacity, end,
-+			 bq->guard_hot ? " hot" : "", bq->guard_full ? " full" : "");
++			 bq->guard_temp ? " temperature" : "", bq->guard_full ? " full" : "");
 +
 +	queue_delayed_work(system_power_efficient_wq, &bq->guard_work,
 +			   BQ25890_GUARD_PERIOD);
@@ -304,7 +304,7 @@ index ff46ddf5c..4bf5c3a6a 100644
 +		if (ret)
 +			return ret;
 +		/* Inside the hysteresis at the first pass, the safe answer stands. */
-+		bq->guard_hot = true;
++		bq->guard_temp = true;
 +		queue_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
 +	}
 +

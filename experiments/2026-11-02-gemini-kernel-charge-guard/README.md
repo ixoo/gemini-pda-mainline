@@ -94,7 +94,7 @@ first pass came at about 2 s.
 
 `charge_control_start_threshold` reads the limit minus 5 and is read-only.
 
-The first pass starts from `hot`, so a battery already inside 47-50 °C stays stopped
+The first pass starts as stopped by temperature, so a battery already inside 47-50 °C stays stopped
 whatever the probe order. A guard property without `linux,no-chip-config` fails the probe,
 and the binding says so.
 
@@ -495,15 +495,17 @@ change, because the guard already reads its limits from the battery. Rows above 
 
 | Reading | Result |
 | --- | --- |
-| 0.0 °C or below, which is under 0.1 °C after the gauge truncates to tenths | stops, as `hot` |
+| 0.0 °C or below, which is under 0.1 °C after the gauge truncates to tenths | stops, logged as `temperature` |
 | 0.1 to 3.0 °C | the last answer stands |
 | 3.1 °C or above | resumes, unless another stop applies |
 | Below −20 °C, or an open NTC | reads the −20 °C clamp, so stopped |
 | Read failure, or no battery supply | stopped, with a critical line after three passes |
 | 47 °C up to 50 °C, and 50 °C or above | unchanged |
 
-A boot at 0.1-3.0 °C stays stopped until 3.1 °C, since the first pass starts from `hot`. The
-log says `hot` for either end of the range; the `temp=` value tells them apart.
+A boot at 0.1-3.0 °C stays stopped until 3.1 °C, since the first pass starts as stopped by
+temperature. The log reason is now `temperature` for either end of the range, in place of `hot`,
+so a cold stop doesn't read as hot; the `temp=` value tells them apart. The log lines quoted
+earlier in this record came from older images and stay as they were.
 
 **The table's cold end, checked offline:** with 0526's arithmetic over all 4096 codes, from the
 table in 0361:
@@ -528,7 +530,7 @@ enables charging, only the reason log changes:
 
 | Written to `emul_temp` | Expected |
 | --- | --- |
-| −1000 | `stopped`, `hot full` |
+| −1000 | `stopped`, `temperature full` |
 | 2000 | holds, no new line |
 | 4000 | `stopped`, `full` |
 | 0 | emulation off |
