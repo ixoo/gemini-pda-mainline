@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 18:33:58 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: DIAGNOSTIC, capture with the
+ generator continuous
+
+A whole frame reached the generator with no DMA error, and the buffer stayed
+untouched. The registers are double-buffered, so in single mode the only frame
+may run before they load. Run continuously, with one buffer in frame buffer
+control, and log the DMA setup too.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c    | 17 +++++++++++++----
+ 1 file changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 3efca4a32..b686b7acc 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -678,6 +678,10 @@ static void seninf_camsv_dump(struct mt6797_seninf *seninf, const char *when)
+ 		 when, readl(sv + CAMSV_FBC_IMGO_CTL1), readl(sv + CAMSV_FBC_IMGO_CTL2),
+ 		 readl(sv + CAMSV_FBC_IMGO_ENQ_ADDR), readl(sv + CAMSV_FBC_IMGO_CUR_ADDR),
+ 		 readl(sv + CAMSV_IMGO_ERR_STAT), readl(seninf->base + SENINF_TOP_CAM_MUX));
++	dev_info(seninf->dev, "camsv %s: base %08x x %08x y %08x stride %08x imgo_fbc %08x\n",
++		 when, readl(sv + CAMSV_IMGO_BASE_ADDR), readl(sv + CAMSV_IMGO_XSIZE),
++		 readl(sv + CAMSV_IMGO_YSIZE), readl(sv + CAMSV_IMGO_STRIDE),
++		 readl(sv + CAMSV_IMGO_FBC));
+ }
+ 
+ /*
+@@ -785,12 +789,17 @@ static int seninf_capture_once(struct mt6797_seninf *seninf)
+ 	seninf_camsv_dump(seninf, "before");
+ 
+ 	writel(readl(sv + CAMSV_TG_SEN_MODE) | CAMSV_TG_SEN_MODE_CMOS_EN, sv + CAMSV_TG_SEN_MODE);
+-	writel(readl(sv + CAMSV_TG_VF_CON) | CAMSV_TG_VF_CON_EN | CAMSV_TG_VF_CON_SINGLE,
++	/*
++	 * Continuous: the registers are double-buffered and load at a frame start, so
++	 * a single frame would run before they apply. Frame buffer control holds
++	 * one buffer, and the size registers bound each write to it.
++	 */
++	writel((readl(sv + CAMSV_TG_VF_CON) & ~CAMSV_TG_VF_CON_SINGLE) | CAMSV_TG_VF_CON_EN,
+ 	       sv + CAMSV_TG_VF_CON);
+ 
+-	/* Two frame times at the sensor's 30 frames a second, and some margin. */
+-	for (i = 0; i < 5; i++) {
+-		msleep(30);
++	/* Several frame times at the sensor's 30 frames a second. */
++	for (i = 0; i < 6; i++) {
++		msleep(40);
+ 		seninf_camsv_dump(seninf, "during");
+ 	}
+ 
+-- 
+2.43.0
+

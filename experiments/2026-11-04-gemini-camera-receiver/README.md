@@ -142,6 +142,23 @@ Whether the sensor's data reached the first CAMSV at all was not logged.
 
 ## C2: through frame buffer control
 
-Not run. [`0559`](../../patches/proposals/0559-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-thro.patch) enables frame buffer
-control with one buffer and queues it, as the library does, and logs the generator's and DMA's status while the
-frame runs.
+Module `5fe9b698`, fresh boot `89e2dfe5`, one run, as reported by the custodian. The owner approved it, and the eMMC was
+set read-only first. [`0559`](../../patches/proposals/0559-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-thro.patch)
+added frame buffer control with one buffer.
+
+Observed, with register names from the vendor kernel:
+
+- `CAMSV_TG_DAT_NO` reached `0x4ce2ff`, one short of 2592 by 1944 pixels, and `CAMSV_TG_FRMSIZE_ST` read `0a200799`.
+- `CAMSV_INT_STATUS` went through `0x87` to `0x0010040f`: vertical sync, the two generator states, the start of frame,
+  and both pass-done bits. `SV_TG_ERR`, `SV_TG_GBERR`, `SV_IMGO_ERR` and `SV_IMGO_OVERRUN` stayed clear.
+- `CAMSV_FBC_IMGO_CTL1` read `01408000` on every line, `CTL2` and `CUR_ADDR` read 0, and the CAM mux read `11111110`.
+- All 6298560 bytes kept their fill value. No guard byte changed. No fault.
+
+Inference: this shows the sensor's data reaching CAMSV as a full frame with this CAM mux. Which entry matters is still
+not separated. The DMA did not write the buffer. The registers are double-buffered, so one frame in single mode may
+run before they load, which is what C3 tests. Writes elsewhere are not ruled out.
+
+## C3: continuous
+
+Not run. [`0560`](../../patches/proposals/0560-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-with.patch) runs the generator
+continuously, with one buffer in frame buffer control.
