@@ -59,12 +59,15 @@ fi
 # The lid policy (backlight off, keyboard inhibited while closed).
 if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemini-lid; else status lid=insmod-failed; fi
 # The Wi-Fi calibration record, read in place from nvdata: read-only, and
-# noload so that an unclean journal is never replayed onto the partition.
+# noload so that an unclean journal is never replayed onto the partition. ext4 still
+# clears an orphan list on such a mount unless the device itself is read-only.
 nvdata=
 for uevent in /sys/class/block/mmcblk0p*/uevent; do
     $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
 done
-if [ -n "$nvdata" ] && $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
+if [ -n "$nvdata" ] && ! $bb blockdev --setro "$nvdata"; then
+    status "nvdata=setro-failed device=$nvdata"
+elif [ -n "$nvdata" ] && $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
     status "nvdata=mounted device=$nvdata"
 else
     status "nvdata=mount-failed device=$nvdata"
