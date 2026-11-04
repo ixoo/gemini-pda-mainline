@@ -17,3 +17,8 @@ CONFIG_DRM_PANEL_NOVATEK_NT36672E=m
 # simplefb and fbcon moves to the DRM framebuffer. Adds the fbdev helper code to the
 # image; nothing changes until mediatek-drm is loaded.
 CONFIG_DRM_FBDEV_EMULATION=y
+# The dummy console at the panel's own size: 2160/16 by 1080/32, with fbcon=rotate:3 and
+# TER16x32. The console passes through it at boot and when simplefb goes, and any other
+# size reflows the text and adds lines each time.
+CONFIG_DUMMY_CONSOLE_COLUMNS=135
+CONFIG_DUMMY_CONSOLE_ROWS=33

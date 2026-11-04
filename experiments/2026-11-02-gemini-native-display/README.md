@@ -466,6 +466,13 @@ Not run on this image: closed-lid register reads, the kernel-only lid test, a bi
 closed lid, and the power key under a closed lid. There is no power figure: the owner had "nothing to say on battery", so what a blank saves is
 unmeasured, and with it whether turning bias off is worth doing.
 
+### The console's size at the handover
+
+The owner asked whether the two resizes when the native console starts could be avoided.
+The boot log shows the console going to the dummy console at 80x25 and back to 135x33 when
+`simplefb` goes, and it starts at 80x25 at boot for the same reason, and each resize reflows
+the text. The dummy console's size is a config value, so it is now the panel's 135x33.
+
 ## Follow-up
 
 T6 is not started. Durable facts are in
