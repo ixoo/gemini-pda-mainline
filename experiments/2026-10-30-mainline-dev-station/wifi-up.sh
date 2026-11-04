@@ -38,7 +38,11 @@ echo "phy after ${i}s"
 	for p in /sys/class/ieee80211/*; do phy=${p##*/}; done
 	iw phy "$phy" interface add wlan0 type managed; echo "add $phy=$?"
 }
-ip link set wlan0 up; echo "up=$?"
+ip link set wlan0 up
+rc=$?
+echo "up=$rc"
+# The driver doesn't reopen after ip link down until mac is reloaded.
+[ "$rc" = 0 ] || { echo "wlan0 did not come up: run DOWN=1, then retry"; exit 1; }
 
 umask 077
 mkdir -p $CTRL
@@ -56,6 +60,7 @@ cat > $R/dhcp.sh <<'EOF'
 case "$1" in
 deconfig)
 	ip addr flush dev wlan0
+	rm -f /run/station/wifi-lease
 	;;
 bound|renew)
 	ip addr flush dev wlan0
@@ -67,18 +72,35 @@ esac
 EOF
 chmod 700 $R/dhcp.sh
 
+supplicant_alive() {
+	pidof wpa_supplicant > /dev/null && return
+	killall udhcpc 2>/dev/null
+	echo "wpa_supplicant exited: see $R/wpa.log"
+	exit 1
+}
 pidof wpa_supplicant > /dev/null || {
 	wpa_supplicant -Dnl80211 -iwlan0 -c $R/wpa.conf > $R/wpa.log 2>&1 &
+	sleep 3
 }
+supplicant_alive
+# A firmware restart takes the address and udhcpc does not notice.
+ip -4 addr show wlan0 | grep -q inet || killall udhcpc 2>/dev/null
 pidof udhcpc > /dev/null || {
 	rm -f $R/wifi-lease
-	udhcpc -i wlan0 -b -t 10 -T 3 -A 10 -s $R/dhcp.sh > $R/udhcpc.log 2>&1
+	# In the foreground of its own process, since on a dead link -b never returned.
+	udhcpc -f -i wlan0 -t 10 -T 3 -A 10 -s $R/dhcp.sh < /dev/null > $R/udhcpc.log 2>&1 &
 }
 i=0
-while [ $i -lt 60 ] && [ ! -e $R/wifi-lease ]; do sleep 1; i=$((i + 1)); done
+while [ $i -lt 60 ] && [ ! -e $R/wifi-lease ]; do
+	supplicant_alive
+	sleep 1
+	i=$((i + 1))
+done
 echo "state=$(wpa status | grep '^wpa_state=' | cut -d= -f2) $(wpa status | grep -E '^(freq|key_mgmt|pairwise_cipher)=' | tr '\n' ' ')"
 [ -e $R/wifi-lease ] || { echo "no lease after ${i}s"; exit 1; }
 echo "lease after ${i}s"
-gw=$(ip route | awk '/^default .*wlan0/ {print $3}')
+gw=$(ip route | awk '/^default .*wlan0/ {print $3; exit}')
+[ -n "$gw" ] || { echo "no gateway"; exit 1; }
 ping -c 3 -W 2 "$gw" > $R/ping.txt 2>&1
 echo "gateway ping: $(grep -o '[0-9]* packets received' $R/ping.txt)"
+grep -q ' [1-9][0-9]* packets received' $R/ping.txt || exit 1
