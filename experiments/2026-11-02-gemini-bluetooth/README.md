@@ -632,5 +632,6 @@ so it is not a useful measure of this coder.
 
 **Inferred:** T5's rate setting was at least part of what went wrong in capture. It shows only that
 capture alone does not reach T5's hang, on one run. Playback alone, and both together, remain untested.
-**Whether the file is intelligible is the owner's to say**, and it is not established here.
+The owner reports: "I talked th whole time. I heard noise/static". Static fits no TX stream running; that is
+inferred. **Whether the file is intelligible is the owner's to say**, and they have not yet said.
 
