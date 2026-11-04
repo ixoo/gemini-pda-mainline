@@ -823,3 +823,20 @@ earpiece. One listener's report is the only evidence here, with no measurement o
 **Still open:** the noise is present whatever we send, in T5d, T6 and T7. That leaves the headset's own handling of this link, with no call
 signalled, the downlink's radio quality, or something in firmware. A2DP was not reported noisy, so it isn't simply
 the headset's analog output, though nobody compared them directly. Nothing yet separates these.
+
+## T8, prepared: does a call state change the noise or the microphone?
+
+T6 and T7 opened voice with no call signalled. `BT_CALL=1` opens a BlueALSA RFCOMM client before the link, sends
+`+CIEV: 1,1` and `+CIEV: 2,1`, answers any `AT+CLCC`, and sends `+CIEV: 2,0` 10 s into the capture. Everything else is
+T7's `DIR=both`. The FIFO and reply logic ran in `ash` with a stub in place of the client; the client itself hasn't run.
+
+The owner again reports changes without the timings. The laptop plays the first 5 s of the known recording twice,
+once in each state, so the same sound compares level and spectrum between them.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Noise is gone or changes with the call state | The headset treats this link differently without a call | Signal a call on every voice link, by the bridge |
+| Capture differs between the two states, noise doesn't | The call state changes the headset's mic processing only | Pick the better state; the noise stays open |
+| No change in either | Call state isn't it | Phone comparison, then decide whether voice is usable as it is |
+| The client fails to open or the headset drops | Test fault or headset's response | Keep the logs; no retry without a new decision |
+| Hang or Oops | Stop | Keep everything; no retry |
