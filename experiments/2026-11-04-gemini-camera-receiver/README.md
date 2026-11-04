@@ -186,9 +186,29 @@ buffer count. With queue mode off and `FBC_NUM` 0, no buffer was ever available.
 idea from C2, which C3 does not support. The evidence for no stray writes is these counters, not a check of memory:
 the layout comes from the CAM block, and nothing read the rest of memory.
 
-## C4: queue mode
+## C4: queue mode and larb2
 
-Not run. [`0561`](../../patches/proposals/0561-media-mediatek-mt6797-seninf-DIAGNOSTIC-queue-mode-a.patch) sets `CTL1` the
-way the vendor library does. This should make the DMA write for the first time, so it first reads larb2 and refuses to
-start CAMSV if `0x380-0x3fc` or `0xf00-0xffc` is non-zero, the check the display path made on larb0 and larb5. Writing 2
-to `capture` stops after that read.
+[`0561`](../../patches/proposals/0561-media-mediatek-mt6797-seninf-DIAGNOSTIC-queue-mode-a.patch) sets `CTL1` the way the
+vendor library does. This should make the DMA write for the first time, so it first reads larb2 and refuses to start
+CAMSV if `0x380-0x3fc` or `0xf00-0xffc` is non-zero, the check the display path made on larb0 and larb5.
+
+Read step: module `fad7c14c`, script `1e788988`, fresh boot `d9722def`, one run, as reported by the custodian. No DMA ran.
+
+Observed: `0xfc0` read `00003fff`, and nothing else in either window was set. The check refused, as designed, and no
+capture ran. No fault.
+
+Inference: `0xfc0` is the larb's MMU enable, per the [M4U and SMI record](../2026-07-12-mt6797-m4u-smi-recovery/results/mt6797-m4u-smi-mainline-design.md)
+and the mainline SMI driver. The vendor kernel writes one bit per port, and larb2 has 14 ports, which are the 14 bits
+set. So every larb2 port, CAMSV0's among them, goes through an M4U that nothing here has set up. A physical address
+would be wrong on this path, and the earlier check would not have made it right. This differs from display: larb0 and
+larb5 read zero. Not known: whether `0x3fff` is the reset value or set by earlier firmware, and what the hardware does
+with such a write while M4U is off.
+
+C1 to C3 are not explained by this: C3's counters show drops before any write was attempted.
+
+## C5: CAMSV0 bypasses M4U
+
+Not run. [`0562`](../../patches/proposals/0562-media-mediatek-mt6797-seninf-DIAGNOSTIC-bypass-M4U-o.patch) clears bit 6
+of `0xfc0`, port 6 being `M4U_PORT_CAM_SV0` in the mainline port header, and reads it back. It leaves the other ports
+alone. It refuses if the bit does not clear or if anything else in the two windows is set. Writing 2 to `capture` stops
+after that. Bypass is the same arrangement display uses for a first frame; M4U remains the upstream answer.

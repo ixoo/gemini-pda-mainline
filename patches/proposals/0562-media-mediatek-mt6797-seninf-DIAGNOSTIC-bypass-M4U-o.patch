@@ -1,0 +1,101 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 18:51:40 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: DIAGNOSTIC, bypass M4U on the
+ CAMSV0 port
+
+Larb2 read 0x3fff at 0xfc0, its per-port MMU enable, with 14 ports. So CAMSV0 is
+routed through an M4U nobody has set up, and a physical address is meaningless
+there. Clear that one bit before starting CAMSV. Refuse if it does not stick, or
+if anything else in the two control windows is set. Writing 2 to the capture
+file stops after this.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 35 +++++++++++++------
+ 1 file changed, 24 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 3e625c7ed..d88446864 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -172,6 +172,8 @@
+ #define CAMSV_DMA_FRAME_HEADER_EN	0xc00
+ 
+ #define LARB2_BASE			0x1a001000
++#define LARB_MMU_EN			0xfc0
++#define LARB2_PORT_CAM_SV0		BIT(6)
+ 
+ #define CAPTURE_WIDTH			2592
+ #define CAPTURE_HEIGHT			1944
+@@ -692,14 +694,15 @@ static void seninf_camsv_dump(struct mt6797_seninf *seninf, const char *when)
+  * with no M4U.
+  */
+ /*
+- * The display path found its larbs reading zero in both translation-control
+- * windows, and scans out physical addresses. Ask the same of larb2 before letting
+- * CAMSV write: anything else means this bus address may not be where the data goes.
++ * M4U is not in use here, so CAMSV0's port has to bypass it for the buffer's bus
++ * address to mean anything. Larb2's MMU enable has one bit per port. Clear ours only,
++ * and refuse if it does not stick or if anything else in the two control windows
++ * is set, since nothing here accounts for that.
+  */
+-static int seninf_larb_check(struct mt6797_seninf *seninf)
++static int seninf_larb_bypass_sv0(struct mt6797_seninf *seninf)
+ {
+ 	void __iomem *larb = ioremap(LARB2_BASE, SZ_4K);
+-	unsigned int off, nonzero = 0;
++	unsigned int off, other = 0;
+ 	u32 val;
+ 
+ 	if (!larb)
+@@ -708,19 +711,29 @@ static int seninf_larb_check(struct mt6797_seninf *seninf)
+ 		val = readl(larb + off);
+ 		if (val) {
+ 			dev_info(seninf->dev, "larb2 %03x: %08x\n", off, val);
+-			nonzero++;
++			other++;
+ 		}
+ 	}
+ 	for (off = 0xf00; off < 0x1000; off += 4) {
++		if (off == LARB_MMU_EN)
++			continue;
+ 		val = readl(larb + off);
+ 		if (val) {
+ 			dev_info(seninf->dev, "larb2 %03x: %08x\n", off, val);
+-			nonzero++;
++			other++;
+ 		}
+ 	}
++	val = readl(larb + LARB_MMU_EN);
++	dev_info(seninf->dev, "larb2 mmu_en %08x, %u others non-zero\n", val, other);
++	if (other) {
++		iounmap(larb);
++		return -EBUSY;
++	}
++	writel(val & ~LARB2_PORT_CAM_SV0, larb + LARB_MMU_EN);
++	val = readl(larb + LARB_MMU_EN);
+ 	iounmap(larb);
+-	dev_info(seninf->dev, "larb2: %u non-zero in 380-3fc and f00-ffc\n", nonzero);
+-	return nonzero ? -EBUSY : 0;
++	dev_info(seninf->dev, "larb2 mmu_en now %08x\n", val);
++	return val & LARB2_PORT_CAM_SV0 ? -EBUSY : 0;
+ }
+ 
+ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+@@ -769,7 +782,7 @@ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ 	if (ret)
+ 		goto put_larb;
+ 
+-	ret = seninf_larb_check(seninf);
++	ret = seninf_larb_bypass_sv0(seninf);
+ 	if (ret || check_only)
+ 		goto stop_camsv;
+ 
+@@ -870,7 +883,7 @@ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ 
+ static int seninf_dbg_capture_set(void *data, u64 val)
+ {
+-	/* 1 captures. 2 reads larb2 and stops, with CAMSV not started. */
++	/* 1 captures. 2 sets larb2 and stops, with CAMSV not started. */
+ 	return val ? seninf_capture_once(data, val == 2) : 0;
+ }
+ DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_capture, NULL, seninf_dbg_capture_set, "%llu\n");

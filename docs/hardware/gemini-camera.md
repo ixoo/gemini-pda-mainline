@@ -339,14 +339,15 @@ the same offsets:
 **Mainline replacement.** Use dma-buf heaps, the MT6797 IOMMU/SMI providers,
 dma-fence and a VB2 queue; the first path should be one CAMSV output to memory.
 The local series has `larb2`/`larb6` and M4U nodes. A diagnostic CAMSV path
-exists (0558-0561): C2 shows a full frame reaching CAMSV, but C1/C2/C3
+exists (0558-0562): C2 shows a full frame reaching CAMSV, but C1/C2/C3
 leave the coherent buffer at its fill value. C3's `CAMSV_FBC_IMGO_CTL2` top
 byte (`DROP_CNT`) moved while `FBC_CNT`/`RCNT`/`WCNT` stayed zero. The inference
 is that frames were dropped because of the frame-buffer-control setup (queue mode
 off, `FBC_NUM` 0); that rests on the CAM block's layout, and nothing checked the
-rest of memory. C4 (0561) sets queue mode and reads `larb2` first; it is not run.
-The C1/C2/C3 path used no M4U and never read `larb2`, so its bypass state is
-assumed, and that path does not validate the vendor ION/M4U ring or a standard capture interface. The vendor
+rest of memory. 0561 sets queue mode. `larb2` then read `0x3fff` at `0xfc0`, its
+per-port MMU enable (C4), so all 14 ports, CAMSV0's included, go through M4U, unlike
+larb0 and larb5 on the display path. C5 (0562) clears the CAMSV0 bit; it is not run.
+A bypassed port does not validate the vendor ION/M4U ring or a standard capture interface. The vendor
 descriptor/CQ format and the SP5509 port binding remain open.
 
 Source anchors: [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L260-L330)
@@ -380,9 +381,9 @@ libcamera or a native V4L2 application.
 | `kd_sensorlist` + SP5509 SLS char driver | V4L2 sensor sub-device, `hi556` | Upstream `hi556` is ACPI-only; the station series adds the binding, OF match, power-down GPIO and 24 MHz table (0545-0547). T12 passes the driver's own probe, reading `0x0556` on two loads on one boot |
 | `kd_camera_hw` rails/GPIO/MCLK | regulator, `gpio`, `pinctrl`, clock framework | Station series adds the ISP power domain (0543), CAM clock-provider fix (0544), SENINF master-clock driver (0548/0549) and station DT (0550). The `hi556` probe runs the power sequence through these (T12) |
 | `/dev/camera-isp` SENINF/MIPI RX mmap | MT6797 SENINF/CSI-2 receiver driver | Receiver exists (0555) with graph binding; the first stream reaches the mux at 2592 x 1944 (R1/R2), error bits still open. The HAL sequence is mapped in this document |
-| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558-0561); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3's counters suggest frame-buffer-control setup (inferred); C4 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
+| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558-0562); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3's counters suggest frame-buffer-control setup (inferred); larb2 has CAMSV0 routed through M4U (C4); C5 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
 | DIP/hardware ISP | libcamera software ISP | Out of scope for a first raw path |
-| ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist; the C1/C2/C3 diagnostic uses no M4U and has not read larb2, so the camera M4U consumer remains unproven |
+| ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist; the diagnostic does not use M4U, though larb2 read as routing all its ports there (C4), so the camera M4U consumer remains unproven |
 | DW9714AF / dummy flashlight / cam_cal | `dw9714`, LED class, tuning data | Not needed for the built-in fixed-focus, flashless camera |
 
 The realistic first target is still **SP5509 -> two-lane CSI -> SENINF ->
@@ -413,7 +414,7 @@ frequency meter (T7).
 | Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
 | Receiver link | `observed` - R1/R2 reached the mux at 2592 x 1944 at about 30 fps; status bits and pixel content remain open |
 | Diagnostic CAMSV frame | `observed` - C2 reached `CAMSV_TG_DAT_NO` one short of a full frame |
-| DMA write and image | `unresolved` - C1/C2/C3 left the coherent buffer at its fill value; C3 points at queue mode/`FBC_NUM`, and C4 is not run |
+| DMA write and image | `unresolved` - C1/C2/C3 left the coherent buffer at its fill value; C3 points at queue mode/`FBC_NUM`, C4 found CAMSV0 routed through M4U, and C5 is not run |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |
 | PDN polarity | `observed` in the vendor table; upstream `hi556` has no PDN control |
