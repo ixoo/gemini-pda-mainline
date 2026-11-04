@@ -210,8 +210,8 @@ the owner, 8 s captures, raw:
 Hypothesis held. A first pass with a finger to the right of the front camera gave a
 partial cover (light 28, proximity 342) and a torch with no rise, which was the wrong
 spot, not a limit of the part. One idle sample read light 2352, cause unknown. The
-position is recorded only as found by the owner. The IMU kept reading normally with
-both loaded.
+owner places the window in the screen's right bezel. The IMU kept reading normally
+with both loaded.
 
 ### T2b: EINT11
 

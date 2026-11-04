@@ -70,8 +70,8 @@ follows. Register semantics beyond the ones tested aren't checked.
 | Torch at 10 to 20 cm | about 2880 | about 205 |
 
 Light is raw counts, not checked against a lux meter. The sensor's window is in the
-screen's top bezel, found by the owner; a finger to the right of the front camera
-covers it only partly. The exact position isn't recorded.
+screen's right bezel, as located by the owner. A finger to the right of the front
+camera covers it only partly.
 
 ## Interrupts
 
