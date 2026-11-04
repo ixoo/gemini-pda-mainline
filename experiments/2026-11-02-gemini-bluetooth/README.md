@@ -537,3 +537,17 @@ heard.
 The natural next proof is small: a coder and a tool that plays a tone through the PCM stream and
 captures the microphone to a file. That answers the coder's quality before any integration.
 
+## The coder and T5, prepared
+
+[`bt-voice.c`](bt-voice.c) encodes and decodes CVSD from the Bluetooth specification's
+parameters, as a filter with no dependencies. The vendor's library is not used or read.
+[`test-bt-voice.py`](test-bt-voice.py) passes a round trip under ASan and UBSan: at -20 dBFS,
+35 dB at 440 Hz, 21 dB at 1 kHz, 14 dB at 2 kHz, and 14 dB for 1 kHz at half scale, where a slope of
+1600 per bit passes the specification's limit of 1280. These measure the coder against itself only,
+not against this firmware or a headset.
+
+**Open, and T5 tests it:** which bit of a byte comes first in SRAM. A swapped byte only shuffles eight
+bits within 125 microseconds, so a low tone survives it (19.5 dB against 35.5 dB). So the wrong order
+is noisier, not obviously broken, and T5 plays both and captures the microphone to compare. Whether
+the driver's stream runs at all with `aplay` and `arecord` is also new.
+
