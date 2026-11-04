@@ -1,0 +1,39 @@
+# First test release (docs/RELEASE_READINESS.md): the station with the A72 pair,
+# without the options that only serve bring-up. Listed last, so it overrides them.
+# Built only so far; nothing here has booted.
+#
+# Open, owner decisions, deliberately unchanged here:
+# - panic=0 stays, as on the station. A crashed kernel then hangs instead of
+#   restarting, and the charger watchdog restores charging in about 47 s
+#   (inference from the guard record); see the release profile section there.
+# - The Esc long press (one-key reset at 11 s) comes from the station device tree
+#   (0530), not from this config. It has never run, and it sits on a typing key.
+# Also unchanged, for later: the test-named USB identity and its fixed addresses,
+# and console=ttyS0 only.
+CONFIG_LOCALVERSION="-gemini-a53-release"
+# The station's command line, without initcall_debug and earlycon.
+# - nokaslr, with RANDOMIZE_BASE off from the handoff fragment: no record boots with
+#   KASLR on, and the late A72 option depends on it being off, because
+#   ARM64_SPECTRE_V3A only exists with it (2026-11-01-mt6797-all-cores).
+# - clk_ignore_unused: simplefb, the display PWM, Wi-Fi and the GPU still rely on
+#   inherited clocks, with no claim yet that lets it go (roadmap, display adoption).
+CONFIG_CMDLINE="console=ttyS0,921600n8 maxcpus=8 nokaslr loglevel=4 log_buf_len=8M rdinit=/init panic=0 pstore.kmsg_bytes=2048 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-CCMP-Stable-Monitor g_ether.iSerialNumber=GEMINI_CCMP_STABLE_MONITOR_20261014 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32"
+# Breaks the GPU test's COOL mode and the emulated 50/47 C charge-guard tests; run
+# those on the station profile. Any root process could otherwise feed the guard or
+# mask the SoC trips. The real trips and the guard don't depend on it.
+# CONFIG_THERMAL_EMULATION is not set
+# Breaks busybox devmem, used only for reviewed by-hand reads
+# (2026-10-31-gemini-thermal-protection). No init or RAM-root tool uses it.
+# CONFIG_DEVMEM is not set
+# CONFIG_STRICT_DEVMEM is not set
+# Breaks power-status, which opens /dev/i2c-N and stops with an error, and by-hand
+# i2cget. Nothing in init needs it. The charger and battery stay readable under
+# /sys/class/power_supply. A release RAM root should leave power-status out. It also
+# closes a root path to the DA9214 on I2C6, which can change a CPU voltage
+# (2026-11-01-mt6797-all-cores), and to the charger behind the guard.
+# CONFIG_I2C_CHARDEV is not set
+# Breaks the debugfs reads in the audio and GPU test scripts, including
+# mt6797-thermal-banks, and by-hand reads of /sys/kernel/debug/gpio. Init doesn't mount debugfs and
+# no RAM-root tool reads it. No driver in the series needs it to run; the I2C
+# diagnostics that depend on it are off.
+# CONFIG_DEBUG_FS is not set

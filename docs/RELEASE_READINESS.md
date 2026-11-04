@@ -54,6 +54,11 @@ Items 1 to 3 change boot files, so batch them into one image.
 
 ### Release profile
 
+Phase A's profile is `mt6797-a53-release`, from
+[its fragment](../configs/gemini-a53-release.fragment), which says what each removal
+breaks and what stays open. It's built only; nothing has booted it. The list below is
+the station it departs from.
+
 - Forced command line today: `initcall_debug`, `panic=0`, `nokaslr`, `earlycon`,
   `clk_ignore_unused`, `console=ttyS0` only, and a test-named USB identity with a fixed
   address.
