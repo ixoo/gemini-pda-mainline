@@ -131,7 +131,7 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-- T1, T2, T3 and T5: no chip ID, in 145 reads across them. See [below](#t1-the-chip-id).
+- T1, T2, T3 and T5: no chip ID, in 205 reads across them. See [below](#t1-the-chip-id).
 - T3's script wrote to physical address 0 three times by mistake. See
   [below](#a-script-error-writes-to-address-0).
 
@@ -322,3 +322,20 @@ nothing has read the vendor's. T6 compares the remaining registers and tries the
 differences that a hold can test.
 
 The G2 read of the vendor's CAMSYS and SENINF registers did not run, as Gemian had already shut down.
+
+## T6: the vendor's gates and pad drive
+
+New boot `63b9096c`, image `29fc6fce`, script `e90f6bea`, module `caa443a8`, one run of 30 s, as
+reported by the custodian. The owner approved the three writes.
+
+Observed: GPIO31 read 0 on 200 of 200 samples as it stood, 200 of 200 with every CAM gate the
+vendor lists open (`0x1a000000` went from `0xe3f` to `0x3e`), and 200 of 200 with the pad drive
+at Gemian's value. All 60 chip ID reads returned `-6`. No fault, no timeout.
+
+Compared with G1: CAMTG's byte, the pad input, pull and mode words, and `0x10000100` match. The
+words that differ are unrelated muxes, and the meter's and ARM dividers at `0x10000104` and
+`0x10000108`. `0x1000c008` to `0x1000c010` differ, which are PLL controls not yet decoded.
+
+Inference: neither the extra gates nor the drive starts the clock. These samples came through the
+debugfs pins file, which G1 did not validate for a toggling pad, so T7 reads the input register
+directly.
