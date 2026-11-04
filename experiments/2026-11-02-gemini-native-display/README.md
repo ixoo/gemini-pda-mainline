@@ -479,8 +479,18 @@ On the next image, by eye, the owner: "the console resize fix worked".
 Boot `fccba04c`, image `96338704`, with the fixes from the review. The dummy console read
 135x33 at 2.61 s, `display=native`, tainted 0, no oops. Unloading `gemini-lid` with the lid
 open, and loading it again, left `bl_power` 0 and brightness 512 throughout, with no lid
-lines beyond its start. Not yet run on this image: a lid cycle, an idle blank and wake by
-eye, and the bind behind a closed lid, which 0521 has never been run against.
+lines beyond its start.
+
+The owner closed the checks on this image: "for now let's consider all is ok, it looks ok,
+I'll raise it if I experience any issue while using the device". Fn+B and Fn+N work, by
+their word. The log, from 749 s to 2558 s, shows one blank at 882.4 s, consistent with a
+2-minute idle, and an unblank at 2523.6 s by an unidentified input, with tainted 0 and no
+errors.
+
+**Not tested on this image, not passed:** the lid, with no lid event on this boot; a fade by
+log, or its cancel; the lid during a fade; a key in the window with the light off. **Never
+run:** 0521's bind behind a closed lid, and the battery run, so what a blank saves is
+unmeasured. The owner will raise anything they notice in use.
 
 ## What stands before upstream
 
