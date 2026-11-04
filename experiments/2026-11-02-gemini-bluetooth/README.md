@@ -769,3 +769,8 @@ to it only while a playback stream runs, and fills it with the CVSD idle pattern
 been used. Nothing has read that SRAM on the air side, the owner's timing doesn't distinguish the stream from the link, and
 T5d's noise, with playback running, isn't explained by this. A headset's sidetone would also fit, as the
 owner suggested.
+
+**No call was signalled.** In T6's trace BlueALSA answers `AT+CIND?` with `call` and `callsetup` both 0 and sends no
+`+CIEV` or `RING` around the eSCO link, and it answers the headset's `AT+CLCC` with `ERROR`. HFP has no separate
+mode for this: the audio link opens without a call state. The capture still matched, so this headset's microphone
+isn't gated on a call. Whether a call state changes its processing or the earpiece noise is untested.
