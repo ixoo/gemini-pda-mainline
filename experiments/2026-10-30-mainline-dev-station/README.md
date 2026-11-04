@@ -922,3 +922,41 @@ Keyboard, from the first SSH session: `gemini-lid` loaded; no
 `trace_irq` parameters are absent. Over 20 s idle, EINT10 stayed at 0
 and the keyboard's I2C bus (`1101c000.i2c`) stayed at 173 interrupts.
 The owner reports that typing works from boot.
+
+## backlight-policy: the PMIC keys and idle wakeups (2026-11-03)
+
+The program, then named `lid-guard`, woke once a second to check the blanked console,
+and it watched only the lid and the matrix keyboard. The
+[PMIC keys](../2026-11-03-gemini-pmic-keys/README.md) restart the kernel's blank timer
+without it knowing, so from the code, using only Esc or the side key can start the fade
+and turn the light off early. It also noticed their wakes up to a second late.
+
+The change:
+
+- It also watches `mtk-pmic-keys`, as input like the keyboard. Only the keyboard
+  drives the brightness keys.
+- It sleeps until input or the fade's start. It looks for a blank or unblank every
+  50 ms for 1 s after a key or lid event, and once a second from the fade's start
+  until the blank.
+
+**Remaining gap:** other input devices, such as a Bluetooth or USB keyboard, can still
+wake the console or restart the timer unseen. A wake then stays at the dim level until
+the next watched event.
+
+**Checked:** it builds with `gcc -static -O2 -Wall -Wextra -Werror`. **Not yet run on the
+device.**
+
+**Test (predeclared), on the running station.** The binary can be swapped in without
+a new image.
+
+1. Idle cost: `voluntary_ctxt_switches` in `/proc/PID/status` over 30 s rises by about 0
+   when blanked, and when lit with the fade more than 30 s away. It rose by about 30
+   before.
+2. Esc as the only input, pressed every minute for 3 minutes: no fade and no dark screen.
+3. Esc on a blanked console: the light fades up with no 1 s delay, and the log line
+   follows within about 50 ms of the key event.
+4. Unchanged: the idle fade and blank, a key cancelling the fade, Fn+B and Fn+N, and
+   a lid close and open.
+
+If 1 fails, look for what keeps it waking. If 2 to 4 fail, the previous binary is the
+fallback.

@@ -6,7 +6,11 @@
  * KEY_LEFTMETA) step the backlight down and up, autorepeat included; the console
  * keymap gives those two keys no Fn action. The backlight fades down over the last
  * seconds before the kernel's idle deadline and back up on waking. init respawns
- * this program.
+ * this program. It sleeps until input or the fade's start. The kernel doesn't announce
+ * a blank or unblank, so it looks only when one is due: for a while after input, and
+ * from the fade's start until the blank. An input device it doesn't watch, such as a
+ * Bluetooth keyboard, can wake the console without it noticing until the next watched
+ * event.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -23,6 +27,7 @@
 
 #define LID_NAME "gpio-keys"
 #define KEYBOARD_NAME "keyboard-matrix"
+#define PMIC_KEYS_NAME "mtk-pmic-keys"
 #define BL_BRIGHTNESS "/sys/class/backlight/backlight/brightness"
 #define BL_POWER "/sys/class/backlight/backlight/bl_power"
 #define CONSOLE "/dev/tty1"
@@ -219,11 +224,11 @@ static void step_brightness(int up)
 
 int main(void)
 {
-	char lid[512], keyboard[512];
+	char lid[512], keyboard[512], pmic_keys[512];
 	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
 	struct input_event ev;
-	struct pollfd fds[2];
-	int fd, kfd, closed, fn = 0, nfds, restore = -1, quick = 0, was_blanked = 0, wait = 1000;
+	struct pollfd fds[3];
+	int fd, kfd, pfd, closed, fn = 0, restore = -1, quick = 0, was_blanked = 0, wait = 0;
 	long long last_input = now_ms();
 
 	if (!find_input(LID_NAME, lid, sizeof(lid)) ||
@@ -243,16 +248,20 @@ int main(void)
 	kfd = open_events(keyboard);
 	if (kfd < 0)
 		say("no keyboard events; brightness keys off\n");
+	pfd = find_input(PMIC_KEYS_NAME, pmic_keys, sizeof(pmic_keys)) ? open_events(pmic_keys) : -1;
+	if (pfd < 0)
+		say("no PMIC key events; Esc and the side key don't count as input\n");
+	/* poll ignores a negative fd. */
 	fds[0] = (struct pollfd){ .fd = fd, .events = POLLIN };
 	fds[1] = (struct pollfd){ .fd = kfd, .events = POLLIN };
-	nfds = kfd < 0 ? 1 : 2;
+	fds[2] = (struct pollfd){ .fd = pfd, .events = POLLIN };
 	/* After a key, look again soon: the kernel wakes the console just after it. */
-	while (poll(fds, nfds, quick > 0 ? 50 : wait) >= 0) {
-		int blanked = console_blanked();
+	while (poll(fds, 3, quick > 0 ? 50 : wait) >= 0) {
+		int blanked = console_blanked(), i;
 
 		if (quick > 0)
 			quick--;
-		wait = 1000;
+		wait = -1;
 		if (!!blanked != was_blanked) {
 			say("console %s\n", blanked ? "blanked" : "unblanked");
 			was_blanked = !!blanked;
@@ -265,8 +274,6 @@ int main(void)
 			 * must not cancel this, so it waits, like any other input.
 			 */
 			if (!blanked && restore >= 0) {
-				int i;
-
 				for (i = 0; i < 20 && read_number(BL_POWER) != 0; i++)
 					poll(NULL, 0, 25);
 				fade(DIM_LEVEL, restore, FADE_UP_STEPS, FADE_UP_MS, NULL, 0);
@@ -290,7 +297,7 @@ int main(void)
 					 * blank follows by itself and wakes the light again.
 					 */
 					if (fade(level, DIM_LEVEL, FADE_DOWN_STEPS, FADE_DOWN_MS,
-						 fds, nfds)) {
+						 fds, 3)) {
 						undim(restore);
 						restore = -1;
 					} else {
@@ -301,19 +308,23 @@ int main(void)
 				/* The deadline moved or went, with no blank after all. */
 				undim(restore);
 				restore = -1;
-			} else if (seconds * 1000 > FADE_DOWN_LEAD_MS && left > 0 && left < wait) {
-				/* Wake exactly when the fade has to start. */
-				wait = left;
 			}
+			/* Wake exactly when the fade has to start; from then, the blank is due. */
+			if (seconds > 0)
+				wait = seconds * 1000 > FADE_DOWN_LEAD_MS && left > 0 ? (int)left : 1000;
 		}
-		if ((fds[1].revents & POLLIN) && read(kfd, &ev, sizeof(ev)) == sizeof(ev) &&
-		    ev.type == EV_KEY) {
+		for (i = 1; i < 3; i++) {
+			if (!(fds[i].revents & POLLIN) ||
+			    read(fds[i].fd, &ev, sizeof(ev)) != sizeof(ev) || ev.type != EV_KEY)
+				continue;
 			last_input = event_ms(&ev);
 			quick = 20;
 			if (restore >= 0 && !blanked) {
 				undim(restore);
 				restore = -1;
 			}
+			if (i != 1)
+				continue;
 			if (ev.code == KEY_LEFTMETA)
 				fn = ev.value != 0;
 			else if (fn && ev.value && (ev.code == KEY_B || ev.code == KEY_N))
@@ -326,6 +337,7 @@ int main(void)
 		if (ev.type != EV_SW || ev.code != SW_LID)
 			continue;
 		closed = !!ev.value;
+		quick = 20;
 		if (restore >= 0) {
 			/* The lid module owns the light now. */
 			set_brightness(restore);
