@@ -179,8 +179,8 @@ thermally constrained subsystem.
   watchdog kicks while stopped. No daemon is involved
   ([kernel guard record](../../experiments/2026-11-02-gemini-kernel-charge-guard/README.md)).
 - the guard also stops charging at 0 °C and resumes above 3 °C, an owner decision the
-  vendor kernel doesn't have. It isn't yet on a device, and the table near 0 °C hasn't
-  been checked against a cold battery;
+  vendor kernel doesn't have. Its decisions are shown with emulated temperatures; the
+  table near 0 °C hasn't been checked against a cold battery;
 - the same guard stops charging at a capacity limit from the fuel gauge, 80 %
   by default and set in `charge_control_end_threshold`, resuming 5 points
   lower. This is a longevity policy, not a safety stop.

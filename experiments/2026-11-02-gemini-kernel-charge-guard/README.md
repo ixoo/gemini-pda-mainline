@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `running`: G1-G6 passed on the device, and the overflow fix is confirmed at 24.8-25 °C; the owner's cold stop is written and not yet on a device |
+| Status | `completed`: G1-G6 passed on the device, the overflow fix is confirmed at 24.8-25 °C, and the cold stop's decisions are shown by emulation; a really hot or cold battery and charge current were not tested |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -537,3 +537,29 @@ enables charging, only the reason log changes:
 
 0 can't be written as a temperature, as it turns emulation off. The release fragment turns
 `THERMAL_EMULATION` off, so this needs a station image.
+
+**Result, boot `c08abf6b…`,** image `2d6a20a5…` from package `447fb237` at `d493fbad`, as reported
+by the custodian. The live device tree carried `0 50` and `3 47`. The first guard line came at
+10.98 s: `charging stopped: temp=243 capacity=94 limit=80 full`. Each step on `battery-thermal`
+lasted 45 s:
+
+| Written | Battery `temp` | Log |
+| --- | --- | --- |
+| −1000 | −10 | `charging stopped: temp=-10 capacity=95 limit=80 temperature full`, at 41.70 s |
+| 2000 | 20 | no new line |
+| 4000 | 40 | `charging stopped: temp=40 capacity=95 limit=80 full`, at 133.86 s |
+| 0 | 238 (zone 23766) | no new line |
+
+Tainted 0.
+
+**Reading:** with emulated temperatures, the guard stops below 0 °C, holds at 2 °C and clears the
+cold reason by 4 °C, and the new neutral log reason works.
+
+**What this doesn't show:**
+- **A cold battery.** The real NTC near 0 °C and the table there are still unmeasured.
+- **The exact edges.** 0.0 and 3.1 °C weren't tried; the steps were −1, 2 and 4 °C.
+- **Charging stopping or resuming on this stop.** Capacity stayed above the limit, so `full` kept
+  charging off throughout, and only the reason changed.
+- **Why capacity read 95.** It read 94 before the power-off and at 10.98 s, and 95 by 41.7 s. That
+  was after a powered-off period on the cable, and during emulation, which selects another OCV
+  table. These can't be separated here.
