@@ -353,7 +353,8 @@ Observed on this unit with both ROM patches loaded, through the
 
 The vendor's Set Radio and TX offset are not sent by default (`gemian_radio`), and A2DP
 worked with the controller's own settings at a few metres. Their effect on output power
-is not measured.
+is not measured. On a voice link they were accepted and left the earpiece noise about the same, by the owner's
+ear on one run ([T9](../../experiments/2026-11-02-gemini-bluetooth/README.md#t9-result-gemians-radio-settings-left-the-noise-about-the-same-2026-11-03)).
 
 ## Open questions
 

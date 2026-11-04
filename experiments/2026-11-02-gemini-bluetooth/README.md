@@ -893,3 +893,28 @@ measurement of the controller's own view of power and link. There's no reading f
 | A command refused, or `hci0` doesn't come up | The driver's setup fails at this point | Keep the logs; no retry without a new decision |
 | Capture or link worse | The settings hurt here | Leave them off |
 | Hang or Oops | Stop | Keep everything; no retry |
+
+## T9 result: Gemian's radio settings left the noise about the same (2026-11-03)
+
+The owner's decision as above. Boot `3fb07fd4`, image `8f2c1167`, `btmt6797` `44875a17` with `gemian_radio` reading Y, other modules as T7,
+`bt-voice-test` `92ac0828`, `bt-test` `63d6af09`, `DIR=both`, Wi-Fi off. Used 1 inquiry, 1 pairing, 1 eSCO (status 0, air mode CVSD). Evidence
+private under `artifacts/station-work-44/boot-3fb07fd4/bt-t9/`; `mic.cvsd` is `296f2c43`.
+
+**The owner reports:** "About the same", against the earlier runs. Whether it changed during the run wasn't said.
+
+**Observed:**
+- The trace shows `0xfc79` `06 80 00 06 03 06` and `0xfc93` `ff ff ff`, each with status 0. No crash: `failed=0 timeouts=0 resent=0`,
+  assert 0, xrun 0.
+- Link settings as before: 2-EV3 by request, interval 12, window 2, 60 bytes.
+- `hcitool`, at four points on the link: transmit power 8, RSSI -7, -6, -9, -12, link quality 1.
+
+| The same 5 s of the recording | T7, default | T9, Gemian's |
+| --- | --- | --- |
+| Contour correlation | 0.890 | 0.850 |
+| Waveform correlation | -0.366 | -0.242 |
+| Level | -30.5 dBFS | -32.8 dBFS |
+| Invalid records after the first 10 | 20 of 6410 | 40 of 6410 |
+
+**Reading:** these settings aren't a fix, on one run and by ear. Capture is no better and possibly a little worse, though the headset's position
+wasn't controlled. This doesn't exclude a weak radio link: the settings' effect on power isn't measured, there's no baseline for the `hcitool` readings,
+and this firmware's scales aren't known. `gemian_radio` stays off by default. Its settings may have remained active after this run until CONSYS powered off.
