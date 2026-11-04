@@ -1066,3 +1066,5 @@ Hidden order `AAC SBC AAC SBC`. Evidence private under `artifacts/station-work-4
 - Whether a lower rate helps. All the soak's events were on AAC, and SBC's 5 minutes in T2b had none, so this run gives no support for that, while one run can't refute it.
 
 **On buffering:** yes. ALSA, BlueALSA and the headset each hold audio, which should ride out a short stall, and how much isn't measured here. A longer stall or duplicated data can still be heard.
+
+**The soak's skip, followed up.** The owner: "at the very beginning of every cycle". Each cycle is `aplay` restarting `tone.wav`, with a 0.33 s gap in ACL traffic every 30.5 s, so this is most likely the test's own restart, though nothing separates that from a start-of-stream fault. The over-completions don't line up with it: by seconds after a restart they run 17, 30, 12, 10, 9, 0, 15, 30, 6, 5 in 3 s bins. So the recurring skip and the 40 timeouts look like separate things, and the timeouts weren't what the owner picked out in the soak. Whether they were audible at all is open.
