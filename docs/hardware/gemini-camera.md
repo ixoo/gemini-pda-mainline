@@ -37,12 +37,10 @@ for the CAM/CAMSV/ISP resources. Current support remains in the
   `/dev/kd_camera_hw_bus2`, `/dev/MAINAF`, `/dev/SUBAF`,
   `/dev/camera-fdvt`, `/dev/camera-dpe` and `/dev/kd_camera_flashlight`.
   These are vendor interfaces, not a Linux media-controller graph.
-- The mainline **sensor** path is partly up. The station series adds the ISP
-  power domain, a CAM clock-provider fix, `hi556` device-tree/24 MHz/power-down
-  support and a SENINF master-clock driver. With the second interface's enable
-  and its generator running, the sensor answers `0x0556` on mainline; the
-  driver's own probe, the receiver and capture remain open, so there is still
-  no mainline capture path.
+- The mainline **sensor** path is up to the chip ID. From modules on the station, the `hi556` driver's own
+  probe powers the sensor, starts its clock through `mt6797-seninf`, reads `0x0556` and powers it off (T12,
+  two loads on one boot). There is no receiver and no bridge, so no sub-device node and no mainline
+  capture path.
 
 ## 2. Sensor and board
 
@@ -308,21 +306,28 @@ libcamera or a native V4L2 application.
 
 The realistic first target is still **SP5509 -> two-lane CSI -> SENINF ->
 CAMSV -> memory**, with libcamera's simple pipeline and software ISP, not the
-vendor DIP/CAM hardware ISP. The sensor milestone is now power, clock and ID;
-the next steps are the driver's own probe and then the receiver. The station
+vendor DIP/CAM hardware ISP. The sensor milestone of power, clock and ID is shown;
+the next step is the receiver. The station
 chronology is in the [camera record](../../experiments/2026-11-04-gemini-camera/README.md),
 with the patches under `patches/proposals/0543`-`0550` and `0553`. No mainline
-capture path is established, and the support matrix row remains `unknown` /
-`missing` / `required-nonfree`.
+capture path is established.
+
+### Master clock on mainline
+
+The interface's enable, bit 0 of `0x1a041200`, must be set before generator 2 starts. Started the other way
+round the pad is low; setting the enable later lets the pad move but the sensor does not answer, and
+restarting the generator then works (T9 to T11). Hardware facts on one unit, from the
+[station record](../../experiments/2026-11-04-gemini-camera/README.md). CAMTG measures 47.99 MHz with the SoC's
+frequency meter (T7).
 
 ## 7. Confidence and open questions
 
 | Question | Current position |
 | --- | --- |
 | Physical sensor die | `inferred` - SP5509 SLS ID and register map match Hi-556; no die read |
-| SUB on SENINF1/TG2 | `observed` - T11 set the second interface's enable (`+0x1200`) and started generator 2, then read the ID; G1 saw GPIO31 toggle |
+| SUB on the second interface and generator | `observed` - T11 set the second interface's enable (`+0x1200`) and started generator 2, then read the ID; G1 saw GPIO31 toggle |
 | SUB on CSI1 | `inferred` - HAL CSI1 labels and the MIPI analog `+0x400` block; no receiver test |
-| Driver's own probe | `unresolved` - T11 established the enable order, but the upstream probe reads the ID before the enables; 0553 is the proposed fix |
+| Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
 | First stream and receiver | `unresolved` - no CSI-2 receiver or capture path on mainline |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |

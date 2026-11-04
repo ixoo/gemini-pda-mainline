@@ -41,7 +41,7 @@ index 20ea10cc9..9334ffdb7 100644
 +	seninf_update(seninf, SENINF_CTRL(mclk->tg), 0, SENINF_CTRL_EN);
  	writel(SENINF_TG_SEN_CK_VAL, seninf->base + tg + SENINF_TG_SEN_CK);
  	seninf_update(seninf, tg + SENINF_TG_PH_CNT,
- 		      SENINF_TG_PH_CNT_CLKFL_POL | SENINF_TG_PH_CNT_CLK_SEL,
+ 		      SENINF_TG_PH_CNT_FALL_POL | SENINF_TG_PH_CNT_CLK_SEL,
 @@ -98,6 +107,7 @@ static void seninf_mclk_disable(struct clk_hw *hw)
  	spin_lock_irqsave(&seninf->lock, flags);
  	seninf_update(seninf, SENINF_TG_BASE(mclk->tg) + SENINF_TG_PH_CNT,

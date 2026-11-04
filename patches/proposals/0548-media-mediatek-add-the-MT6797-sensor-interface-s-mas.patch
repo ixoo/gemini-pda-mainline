@@ -180,7 +180,7 @@ index 000000000..20ea10cc9
 +#define SENINF_TG_PH_CNT		0x00
 +#define SENINF_TG_PH_CNT_PCEN		BIT(31)
 +#define SENINF_TG_PH_CNT_MCLK_EN	BIT(29)
-+#define SENINF_TG_PH_CNT_CLKFL_POL	BIT(2)
++#define SENINF_TG_PH_CNT_FALL_POL	BIT(2)
 +#define SENINF_TG_PH_CNT_CLK_SEL	GENMASK(1, 0)
 +#define SENINF_TG_PH_CNT_CLK_SEL_CAMTG	1
 +#define SENINF_TG_SEN_CK		0x04
@@ -226,7 +226,7 @@ index 000000000..20ea10cc9
 +		      SENINF_TOP_PCLK_EN);
 +	writel(SENINF_TG_SEN_CK_VAL, seninf->base + tg + SENINF_TG_SEN_CK);
 +	seninf_update(seninf, tg + SENINF_TG_PH_CNT,
-+		      SENINF_TG_PH_CNT_CLKFL_POL | SENINF_TG_PH_CNT_CLK_SEL,
++		      SENINF_TG_PH_CNT_FALL_POL | SENINF_TG_PH_CNT_CLK_SEL,
 +		      FIELD_PREP(SENINF_TG_PH_CNT_CLK_SEL,
 +				 SENINF_TG_PH_CNT_CLK_SEL_CAMTG));
 +	/* The first generator's source selects the others' too. */

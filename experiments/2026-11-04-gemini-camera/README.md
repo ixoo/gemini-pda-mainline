@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera` |
-| Status | `running`: the sensor answers once SENINF enables are set by hand (T8); not yet through the driver's own probe |
+| Status | `completed`: first milestone shown. The driver's own probe reads chip ID `0x0556` from modules, on two loads on one boot. No image, no receiver, no capture |
 | Subsystem | Hi-556 sensor, I2C3, MT6351 camera rails, ISP power domain, CAMSYS clocks, SENINF master clock |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -90,7 +90,7 @@ Patches 0543 to 0550 and
 
 ## Procedure
 
-See [T1](#t1-the-chip-id) below.
+T1 to T12 below, in order. G1 is the Gemian comparison. All ran through the device custodian.
 
 ## Observations
 
@@ -139,7 +139,10 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 - A chip ID is not capture. No image, no receiver, no lane or link frequency evidence.
 - 437 MHz in the DTB is the only rate the driver takes, and is unmeasured at 24 MHz.
-- One unit.
+- One unit, one boot for the driver's probe, modules loaded by hand, no cold-boot series.
+- Registers other than the ID have not been read or written through the driver.
+- The master clock's duty and frequency at the pad are not measured; only its effect on the sensor is.
+- Pad drive stays at the rest value, while the vendor raises it. No effect was seen at this scale.
 
 ## T1: the chip ID
 
@@ -242,15 +245,14 @@ owner has approved a write.
 ## T4: the pad configuration
 
 Same boot, one read-only run, with the rails and clock off, so these are the pads at rest
-and aren't shown to hold during a hold. `0x10002000` read `0xfff`, so input is enabled on all ten
-CAM pad bits. `0x10002040` `0x000c381f`, `0x100020b0` `0x400`, `0x100020d0` `0xb80`,
+and aren't shown to hold during a hold. `0x10002000` read `0xfff`, `0x10002040` `0x000c381f`, `0x100020b0` `0x400`, `0x100020d0` `0xb80`,
 `0x100020f0` `0x05555555`. Bits 3:2 of the last are the drive of the pad the vendor library
 calls MCLK2, and read 1.
 
 Inference: GPIO74 and GPIO75 read high in mode 1, so a pad's input level does report in a
-non-GPIO mode. With input enabled, GPIO31 reading 0 on all 96 samples under its generator
-means it is probably not toggling, rather than that it can't be seen, assuming input
-enable stays set while the clock runs. T5's samples are the direct test. So the clock is
+non-GPIO mode. So GPIO31 reading 0 on all 96 samples under its generator
+means it is probably not toggling, rather than that it can't be seen. T5's samples are the
+direct test. So the clock is
 probably not reaching the sensor, with its registers all reading as written.
 
 ## Offline: the CAMTG mux needs an update write
@@ -333,7 +335,7 @@ vendor lists open (`0x1a000000` went from `0xe3f` to `0x3e`), and 200 of 200 wit
 at Gemian's value. All 60 chip ID reads returned `-6`. No fault, no timeout.
 
 Compared with G1: CAMTG's byte, the pad input, pull and mode words, and `0x10000100` match. The
-words that differ are unrelated muxes, and the meter's and ARM dividers at `0x10000104` and
+words that differ are unrelated muxes, and dividers at `0x10000104` and
 `0x10000108`. `0x1000c008` to `0x1000c010` differ, which are PLL controls not yet decoded.
 
 Inference: neither the extra gates nor the drive starts the clock. These samples came through the
@@ -384,8 +386,7 @@ this run: the ID was seen in a diagnostic retry with enables set by hand.
 
 Same boot, script `ac6a89f9`, one run of 25 s, as reported by the custodian.
 
-Observed: setting only bit 0 of `+0x1200`, named `SENINF_EN` in the register documentation available
-to the project, took GPIO31 from 0 to 92 of 100. All 50 chip ID reads still returned `-6`.
+Observed: setting only bit 0 of `+0x1200`, the second interface's enable, took GPIO31 from 0 to 92 of 100. All 50 chip ID reads still returned `-6`.
 
 Inference: that bit releases the pad, but it is not enough for the sensor to answer. Duty on these
 samples is skewed compared with G1's near half, and slow sampling can't call this a clean 24 MHz,
@@ -403,7 +404,7 @@ Inference, from T8 re-read with T10's measured pace, so these are estimates: T8 
 686.8, stopped generator 2 near 688.7 and started it near 689.7. Its reads at 687.97 and 688.99 failed,
 and every read from 690.02 was good. Its GPIO31 figure was 244 of 300 before the restart and 158 of
 300 after, the only near-half figure on mainline, close to G1's. T9 and T10 had no restart and no ID.
-So the generator probably has to start after `SENINF_EN`, and a pad biased high is not a usable clock.
+So the generator probably has to start after the interface's enable, and a pad biased high is not a usable clock.
 Which enable bits are needed remains open.
 
 ## T11: the interface, then the generator
@@ -423,3 +424,44 @@ restart is needed, or only the order, is what the driver's own probe tests next.
 [`0553`](../../patches/proposals/0553-media-mediatek-mt6797-seninf-enable-the-interface-be.patch)
 sets the enable in the clock's enable path, before the generator. The diagnostics `0551` and `0552`
 have left the series.
+
+## T12: the driver's own probe
+
+Same boot `63b9096c`, image `29fc6fce`. Modules from package `13722b29`, commit `fa7f5a9a`: `mt6797-seninf`
+`327c733d`, `hi556` `2eec7024`, the same `hi556` hash as T1. Script `4cecb07a`, one run, as reported by the
+custodian. No hand writes and no diagnostic.
+
+Observed, on each of two loads:
+
+```text
+hi556 4-0020: chip id 0x0556
+probe of 4-0020 returned 0 after 10518 usecs   (10364 on the second)
+```
+
+The driver stayed bound. The rails read disabled and the ISP domain off afterwards, with no fault and
+no I2C timeout.
+
+`/dev/v4l-subdev0` did not appear. That was the request's expectation being wrong, not a fault: a
+subdev node is created by a bridge driver registering them, and there is none yet. The sensor is
+registered with the async framework and waits for one.
+
+So the first milestone is shown: from modules, with no boot and no hand writes, the driver powers the
+sensor, starts its clock, reads the ID and powers it off, in the driver's own order. Starting the
+generator once after the enable, with no separate restart, is enough.
+
+## Next step
+
+Nothing below has run.
+
+1. The receiver. Port the second interface's CSI-2 setup to `mt6797-seninf`, from the sequence in the
+   [Gemian camera driver record](../2026-11-04-gemian-camera-driver-re/README.md). This is where the
+   mux enables and the rest of the library's init may be needed. Register it as a V4L2 sub-device,
+   which is also what creates the sensor's node.
+2. Raw frames to memory through CAMSV, not the hardware ISP. This needs `larb2` and the M4U, which the
+   station has disabled and the display does without, so it is the largest open dependency.
+3. First frame from the sensor's test pattern, which separates receiver faults from sensor ones.
+4. libcamera's simple pipeline and software ISP, with a `hi556` property entry.
+
+The 24 MHz PLL value and 437 MHz link frequency are unproved until step 3. The update bit missing from
+`camtg_sel` in `clk-mt6797.c` was not the cause here but is a real gap against the vendor kernel,
+and other top muxes share it.

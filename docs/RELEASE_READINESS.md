@@ -34,7 +34,8 @@ image, and it has run on one unit.
 | USB | Partial | Gadget works; no host or role switch |
 | microSD, sensors | Unknown | Prepared, never booted |
 | GNSS | Partial | No position on mainline |
-| Modem, camera | Not started | No mainline path |
+| Modem | Not started | No mainline path |
+| Camera | Sensor ID only | [Chip ID from modules](../experiments/2026-11-04-gemini-camera/README.md#t12-the-drivers-own-probe); no receiver or capture path |
 
 ## Blockers for a first test release
 
