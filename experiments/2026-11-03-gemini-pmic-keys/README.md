@@ -108,6 +108,9 @@ its evidence. The kernel stayed untainted, with no Oops, call trace or warning.
 | 149.92 | Lid open: `SW_LID` 0; console unblanked at 149.93 |
 | 151.89–152.03 | Letter key after opening: `event1` keycode 34 down, up |
 
+The owner on the blanked console: "pressing esc during a blanking worked to wake
+it up".
+
 `0x02b6` read `0x1201`: bit 9 set, bit 8 clear and bits 13:12 equal to 1, as
 predicted.
 
