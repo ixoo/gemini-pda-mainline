@@ -282,9 +282,9 @@ V4L2 media graph.
 
 ### 4.5 DMA and buffer ABI
 
-The vendor path is not a V4L2 queue. It is a per-module ring of **ION**
-buffers filled by the CAM/CAMSV write-DMA engines and reaped by the camera
-interrupt handler. This subsection describes that Gemian ABI; the separate
+The vendor path is not a V4L2 queue. **ION** buffers are filled by the CAM/CAMSV
+write-DMA engines, and the HAL queues them itself through frame buffer control.
+This subsection describes that Gemian ABI; the separate
 mainline diagnostic capture is noted under "Mainline replacement".
 
 **Write-DMA ports.** The vendor header names the CAM write ports and comments
@@ -314,23 +314,39 @@ reference-counted handle per camera device and DMA port;
 ION fd can back several buffers but is only imported once. `ISP_SET_MEM_INFO`,
 `ISP_WAIT_IRQ`, `ISP_CLEAR_IRQ` and `ISP_CQ_SW_PATCH` complete the path.
 
-**Flow.** ION allocation → fd → import → `base_vAddr`/`base_pAddr` → M4U port →
-DMA fill → CAM/CAMSV IRQ → `bFilled` → dequeue → recycle. The HAL's
-`ISP_DRV_CAM`, `IspDrvCamsv` and `IspDrvDipPhy` wrap the ioctls, with `CQ_*`
+**Flow.** ION allocation → fd → import → M4U port → enqueue → DMA fill → IRQ wait
+→ dequeue. The kernel does not reap the ring: `camera_isp.c` never uses `bFilled`,
+and its ring control handles only `DMA_EN` and `CLEAR`. The HAL's `ISP_DRV_CAM`,
+`IspDrvCamsv` and `IspDrvDipPhy` wrap the ioctls and register access, with `CQ_*`
 commanding register updates and `waitIrq`/`clearIrq` ordering frames. There is
-no standard dma-buf/VB2/fence queue; the visible bridge is the ION handle plus
-the private ring and IRQ.
+no standard dma-buf/VB2/fence queue.
+
+**CAMSV frame buffer control.** From the retained `CAMSV_BUF_CTRL` (static
+analysis), with field names from the public kernel's layout for the CAM block at
+the same offsets:
+
+1. Before streaming, `CAMSV_FBC_IMGO_CTL1` (`0x110`) is written 0, then bit 16
+   (`FBC_MODE`, queue mode) is set and stays set.
+2. Enabling sets the top byte (`SUB_RATIO`, which the library logs as the
+   subsample), then bit 15 (`FBC_EN`), then bit 22, which the layout does not
+   name.
+3. Each enqueue writes the address to `CAMSV_FBC_IMGO_ENQ_ADDR` (`0x118`) and sets
+   bit 0 of `CAMSV_IMGO_FBC` (`0x02c`). The library also keeps its own queue of the
+   buffers, and dequeue takes from that queue.
+
+`CAMSV_FBC_IMGO_CTL2` (`0x114`) holds `FBC_CNT`, `RCNT`, `WCNT` and `DROP_CNT`.
 
 **Mainline replacement.** Use dma-buf heaps, the MT6797 IOMMU/SMI providers,
 dma-fence and a VB2 queue; the first path should be one CAMSV output to memory.
 The local series has `larb2`/`larb6` and M4U nodes. A diagnostic CAMSV path
-exists (0558/0559/0560): C2 shows a full frame reaching CAMSV, but C1/C2/C3
+exists (0558-0561): C2 shows a full frame reaching CAMSV, but C1/C2/C3
 leave the coherent buffer at its fill value. C3's `CAMSV_FBC_IMGO_CTL2` top
-byte (`DROP_CNT`) moved while `FBC_CNT`/`RCNT`/`WCNT` stayed zero, which points
-at frame-buffer-control configuration (queue mode off, `FBC_NUM` 0) rather
-than a bus fault. C4 sets queue mode and reads `larb2` first; it is not run.
-The earlier C1/C2/C3 path ran `larb2` in reset with no M4U, so it does not
-validate the vendor ION/M4U ring or a standard capture interface. The vendor
+byte (`DROP_CNT`) moved while `FBC_CNT`/`RCNT`/`WCNT` stayed zero. The inference
+is that frames were dropped because of the frame-buffer-control setup (queue mode
+off, `FBC_NUM` 0); that rests on the CAM block's layout, and nothing checked the
+rest of memory. C4 (0561) sets queue mode and reads `larb2` first; it is not run.
+The C1/C2/C3 path used no M4U and never read `larb2`, so its bypass state is
+assumed, and that path does not validate the vendor ION/M4U ring or a standard capture interface. The vendor
 descriptor/CQ format and the SP5509 port binding remain open.
 
 Source anchors: [`camera_isp.h`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/misc/mediatek/cameraisp/src/mt6797/inc/camera_isp.h#L260-L330)
@@ -362,11 +378,11 @@ libcamera or a native V4L2 application.
 | Gemian boundary | Standard replacement | Current state |
 | --- | --- | --- |
 | `kd_sensorlist` + SP5509 SLS char driver | V4L2 sensor sub-device, `hi556` | Upstream `hi556` is ACPI-only; the station series adds the binding, OF match, power-down GPIO and 24 MHz table (0545-0547). T12 passes the driver's own probe, reading `0x0556` on two loads on one boot |
-| `kd_camera_hw` rails/GPIO/MCLK | regulator, `gpio`, `pinctrl`, clock framework | Station series adds the ISP power domain (0543), CAM clock-provider fix (0544), SENINF master-clock driver (0548/0549) and station DT (0550). Sensor rails, pins and MCLK exist; the full camera power sequence does not |
+| `kd_camera_hw` rails/GPIO/MCLK | regulator, `gpio`, `pinctrl`, clock framework | Station series adds the ISP power domain (0543), CAM clock-provider fix (0544), SENINF master-clock driver (0548/0549) and station DT (0550). The `hi556` probe runs the power sequence through these (T12) |
 | `/dev/camera-isp` SENINF/MIPI RX mmap | MT6797 SENINF/CSI-2 receiver driver | Receiver exists (0555) with graph binding; the first stream reaches the mux at 2592 x 1944 (R1/R2), error bits still open. The HAL sequence is mapped in this document |
-| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558/0559/0560); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3 attributes it to frame-buffer-control configuration; C4 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
+| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558-0561); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3's counters suggest frame-buffer-control setup (inferred); C4 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
 | DIP/hardware ISP | libcamera software ISP | Out of scope for a first raw path |
-| ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist; the C1/C2/C3 diagnostic runs larb2 in reset with no M4U, so the camera M4U consumer remains unproven |
+| ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist; the C1/C2/C3 diagnostic uses no M4U and has not read larb2, so the camera M4U consumer remains unproven |
 | DW9714AF / dummy flashlight / cam_cal | `dw9714`, LED class, tuning data | Not needed for the built-in fixed-focus, flashless camera |
 
 The realistic first target is still **SP5509 -> two-lane CSI -> SENINF ->
@@ -376,7 +392,7 @@ first CAMSV frame are shown; the next step is the DMA write and a standard
 capture interface. The station chronology is in the
 [camera record](../../experiments/2026-11-04-gemini-camera/README.md) and the
 [receiver record](../../experiments/2026-11-04-gemini-camera-receiver/README.md),
-with patches under `patches/proposals/0543`-`0560`. No mainline image or
+with patches under `patches/proposals/0543`-`0561`. No mainline image or
 capture node is established.
 
 ### Master clock on mainline
@@ -417,7 +433,7 @@ frequency meter (T7).
 - [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md)
 - [Gemian hardware baseline](gemini-gemian-baseline.md) and [vendor userspace](vendor-userspace.md)
 - [Vendor kernel ABI](vendor-kernel-abi.md)
-- Station series `patches/proposals/0543`-`0560`; profile fragment
+- Station series `patches/proposals/0543`-`0561`; profile fragment
   `configs/gemini-a53-station-camera.fragment`.
 - Pinned Gemian kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `drivers/misc/mediatek/imgsensor/src/mt6797/`,
