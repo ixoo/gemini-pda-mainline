@@ -472,6 +472,7 @@ The owner asked whether the two resizes when the native console starts could be 
 The boot log shows the console going to the dummy console at 80x25 and back to 135x33 when
 `simplefb` goes, and it starts at 80x25 at boot for the same reason, and each resize reflows
 the text. The dummy console's size is a config value, so it is now the panel's 135x33.
+On the next image, by eye, the owner: "the console resize fix worked".
 
 ## Follow-up
 
