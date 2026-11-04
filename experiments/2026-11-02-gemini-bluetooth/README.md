@@ -551,3 +551,27 @@ bits within 125 microseconds, so a low tone survives it (19.5 dB against 35.5 dB
 is noisier, not obviously broken, and T5 plays both and captures the microphone to compare. Whether
 the driver's stream runs at all with `aplay` and `arecord` is also new.
 
+## T5 result: the device hung (2026-11-03)
+
+Owner's approval: "approved, move on". Run by the custodian on boot `fcb98505`, image `3e429f70`,
+modules as in T4, `bt-voice` `be973e27…`, `bt-voice-test.sh` `509cd0d8…`. Wi-Fi off. Stop row, no retry.
+
+**Observed:**
+- Scan, pairing and the Hands-Free connection passed.
+- A first status poll 4 s after the test started still answered. Later polls did not, and the USB
+  link stayed down. So the device hung about 4 to 19 s after the test started. `arecord` and `aplay`
+  start at about 5 s, so the timing fits them, but the polls are coarse.
+- The owner reports "I hear noise/static", and "I forced a restart".
+- **No evidence survived.** It was all in RAM, and `/sys/fs/pstore` was empty on the next boot. A hard
+  hang writes nothing, and a cold restart may clear that RAM anyway.
+
+**Not established:** which of the coder, the driver's PCM path, the handler or a bus access is at
+fault, or whether something else in this newer image contributed (T4 ran on `fa8ff860`). The handler
+ran in T4 through the same SRAM with the same register pair, and that did not hang.
+
+**One real fault in the test, read from the code, which does not explain a hang:** `aplay`'s default
+start threshold is a full buffer of 1800 frames, but the driver's ring holds 18 packets of 60 bytes,
+540 frames, and only drains after the stream starts. So `aplay`'s second write blocks forever
+and playback never starts. Its bytes never reached the SRAM, so what the owner heard was not the
+coder's output.
+
