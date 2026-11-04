@@ -1,0 +1,86 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 20:42:27 -0500
+Subject: [PATCH] ASoC: mediatek: btcvsd: don't let the core fill silence at
+ NULL
+
+This driver copies through its own ring and sets no runtime->dma_area, yet it
+declares MMAP, and ASoC offers no fill_silence. Draining a playback stream with
+alsa-lib asks the core to fill silence, and the core's default writes at
+dma_area + offset. On MT6797 the write faulted at address 0x384 with the stream lock
+held and interrupts off, and the whole system stopped.
+
+Give playback an area the core can scribble on, as the vendor driver does: it never
+reaches the firmware, which is what its silence callback does too. Stop declaring MMAP,
+which has never worked here: nothing backs that memory.
+---
+ sound/soc/mediatek/common/mtk-btcvsd.c | 22 +++++++++++++++++-----
+ 1 file changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/sound/soc/mediatek/common/mtk-btcvsd.c b/sound/soc/mediatek/common/mtk-btcvsd.c
+index 8e1ecfff7..e1b1c1b10 100644
+--- a/sound/soc/mediatek/common/mtk-btcvsd.c
++++ b/sound/soc/mediatek/common/mtk-btcvsd.c
+@@ -114,6 +114,7 @@ struct mtk_btcvsd_snd {
+ 	struct regmap *infra;
+ 	void __iomem *bt_pkv_base;
+ 	void __iomem *bt_sram_bank2_base;
++	void *silence_area;
+ 
+ 	unsigned int infra_misc_offset;
+ 	unsigned int conn_bt_cvsd_mask;
+@@ -857,12 +858,13 @@ static struct mtk_btcvsd_snd_stream *get_bt_stream
+ }
+ 
+ /* pcm ops */
++#define BTCVSD_BUFFER_BYTES_MAX (24 * 1024)
++
+ static const struct snd_pcm_hardware mtk_btcvsd_hardware = {
+-	.info = (SNDRV_PCM_INFO_MMAP | SNDRV_PCM_INFO_INTERLEAVED |
+-		 SNDRV_PCM_INFO_RESUME),
++	.info = (SNDRV_PCM_INFO_INTERLEAVED | SNDRV_PCM_INFO_RESUME),
+ 	.formats = SNDRV_PCM_FMTBIT_S16_LE,
+-	.buffer_bytes_max = 24 * 1024,
+-	.period_bytes_max = 24 * 1024,
++	.buffer_bytes_max = BTCVSD_BUFFER_BYTES_MAX,
++	.period_bytes_max = BTCVSD_BUFFER_BYTES_MAX,
+ 	.periods_min = 2,
+ 	.periods_max = 16,
+ 	.fifo_size = 0,
+@@ -918,6 +920,9 @@ static int mtk_pcm_btcvsd_hw_params(struct snd_soc_component *component,
+ 	}
+ 
+ 	substream->runtime->dma_bytes = params_buffer_bytes(hw_params);
++	/* Data goes through copy; only the core's silence fill lands here. */
++	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++		substream->runtime->dma_area = bt->silence_area;
+ 	return 0;
+ }
+ 
+@@ -926,8 +931,10 @@ static int mtk_pcm_btcvsd_hw_free(struct snd_soc_component *component,
+ {
+ 	struct mtk_btcvsd_snd *bt = snd_soc_component_get_drvdata(component);
+ 
+-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
++	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+ 		btcvsd_tx_clean_buffer(bt);
++		substream->runtime->dma_area = NULL;
++	}
+ 
+ 	return 0;
+ }
+@@ -1294,6 +1301,11 @@ static int mtk_btcvsd_snd_probe(struct platform_device *pdev)
+ 	if (!btcvsd->tx)
+ 		return -ENOMEM;
+ 
++	btcvsd->silence_area = devm_kzalloc(btcvsd->dev, BTCVSD_BUFFER_BYTES_MAX,
++					    GFP_KERNEL);
++	if (!btcvsd->silence_area)
++		return -ENOMEM;
++
+ 	spin_lock_init(&btcvsd->tx_lock);
+ 	spin_lock_init(&btcvsd->rx_lock);
+ 
+-- 
+2.43.0
+

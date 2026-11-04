@@ -650,3 +650,39 @@ level check above is not evidence of speech.
 It does not show that the coder decodes this firmware's stream correctly, or that the owner's voice is there.
 The coder has only ever been tested against itself, so a mismatch with the spec could look like this.
 
+## T5c result: playback crashed on a driver bug (2026-11-03)
+
+The owner's "Yes, run T5c". Run by the custodian on boot `0633cf9d`, `bt-voice-test.sh` `11657cf8…`, `DIR=tx`, Wi-Fi
+off. One eSCO link. The live kernel log on the laptop caught it, private under
+`artifacts/station-work-43/boot-0633cf9d/bt-t5c/private/`.
+
+**Observed:** 23 ms after the stream started, a NULL write in `aplay`'s context: virtual address `0x384`,
+`__pi_memset_generic`, from `snd_pcm_format_set_silence`, `fill_silence`, `snd_pcm_playback_silence`,
+`snd_pcm_sw_params`. Then `pstore: backend (ramoops) writing error (-28)`, `aplay exited with irqs
+disabled`, and SSH and USB ping stopped.
+
+**Verified in the code:** the driver sets no `dma_area`, and ASoC cannot supply `fill_silence`, so ALSA's default writes at
+`NULL + offset`, here 450 frames. It holds the stream lock with interrupts off, which fits the system
+stopping. alsa-lib's `snd_pcm_hw_drain` asks for that silence: 800 frames here, which is the fault's size.
+[0531](../../patches/proposals/0531-ASoC-mediatek-btcvsd-don-t-let-the-core-fill-silence.patch) gives
+playback an area for it and stops declaring MMAP, which nothing backs. No notes reached the headset, so
+this says nothing about the coder.
+
+**Not explained:** `aplay` drained after writing just one 450-frame chunk, as if the file had ended, when it
+should hold 80000 bytes. In the VM the same pipeline gives 40000 bytes per order, so 5 s each, not the 10 s the
+T5c request said. The test now logs the file's size.
+
+**T5's hang may be a different fault.** T5's `aplay` waited for a full buffer, so it should never have started
+or reached that drain until the timeout. An earlier statement that this explains T5 would be inference.
+
+**pstore:** `ramoops` failed on the Oops with `-28`, which may be why T5 left nothing. It affects every crash on the
+station, and is separate from Bluetooth.
+
+**The owner asked whether the format or codec could be wrong.** For the crash, no. For T3's static, no: nothing was
+serving the path. For T5b's capture, it remains possible:
+- **Ruled out:** mSBC, since its sync byte shows no 60-byte pattern, and the controller reports CVSD. Bit order and framing.
+- **Not ruled out:** that `bt-voice.c`'s CVSD differs from what the firmware and headset do. It is written from
+  the specification's parameters, and has only been tested against itself. The vendor's coder library isn't in the
+  extraction to compare with.
+- **What decides it:** playback of known notes, and a capture with a known tone held near the microphone.
+

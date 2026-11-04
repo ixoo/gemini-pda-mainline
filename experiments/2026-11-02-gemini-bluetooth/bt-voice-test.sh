@@ -4,7 +4,7 @@
 # One direction of the voice path during one eSCO link. Run after bt-test.sh load and
 # pair, with CONSYS up, and only one direction per link:
 #   NAME='headset' DIR=rx sh bt-voice-test.sh    the microphone to private/mic.cvsd
-#   NAME='headset' DIR=tx sh bt-voice-test.sh    notes to the headset, two bit orders
+#   NAME='headset' DIR=tx sh bt-voice-test.sh    notes to the headset, 5 s in each bit order
 # The capture holds speech: it is private. The rate tells ALSA 8 kHz, not the 64 kHz of the
 # coded bits: at 64 kHz the core's interrupt check reads a normal interval as a lost buffer
 # and stops capture at once. aplay starts on its first write, as the vendor's HAL does: the
@@ -27,6 +27,7 @@ if [ "$DIR" = tx ]; then
 	$D/bt-voice encode < $P/notes.raw > $P/notes-low.cvsd
 	$D/bt-voice encode --msb < $P/notes.raw > $P/notes-high.cvsd
 	cat $P/notes-low.cvsd $P/notes-high.cvsd > $R/tmp/tx.cvsd
+	step "tx bytes $(wc -c < $R/tmp/tx.cvsd)"
 fi
 insmod $D/mtk-btcvsd.ko; echo "insmod driver=$?"
 insmod $D/mt6797-btcvsd.ko; echo "insmod card=$?"
