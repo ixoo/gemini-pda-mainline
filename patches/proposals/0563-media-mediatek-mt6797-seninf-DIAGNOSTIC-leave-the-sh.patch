@@ -1,0 +1,100 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 18:58:21 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: DIAGNOSTIC, leave the shared
+ SMI gate alone
+
+The display relies on the SMI common gate, left open by the loader. Nothing counts
+it on this station, so enabling and disabling it here took the count from 1 to 0
+and closed it, and the display timed out at its next blank.
+
+Stop touching the clock. Read the gate instead, and refuse to capture if it is
+not open. The driver still needs a real owner for this clock before it can drop
+the diagnostics.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 33 +++++++++++++++----
+ 1 file changed, 26 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index d88446864..9456a9cdc 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -171,6 +171,10 @@
+ #define CAMSV_TG_SUB_PERIOD		0x574
+ #define CAMSV_DMA_FRAME_HEADER_EN	0xc00
+ 
++#define MMSYS_BASE			0x14000000
++#define MMSYS_CG_CON0			0x100
++#define MMSYS_CG0_SMI_COMMON		BIT(0)
++
+ #define LARB2_BASE			0x1a001000
+ #define LARB_MMU_EN			0xfc0
+ #define LARB2_PORT_CAM_SV0		BIT(6)
+@@ -231,7 +235,7 @@ struct mt6797_seninf {
+ 	struct dentry *debugfs;
+ 
+ 	void __iomem *camsv;
+-	struct clk *camsv_clk, *larb_clk, *smi_clk;
++	struct clk *camsv_clk, *larb_clk;
+ 	void *frame;
+ 	dma_addr_t frame_dma;
+ 	struct debugfs_blob_wrapper frame_blob;
+@@ -530,8 +534,7 @@ static int seninf_rx_init(struct mt6797_seninf *seninf)
+ 
+ 	seninf->camsv_clk = devm_clk_get_optional(dev, "camsv0");
+ 	seninf->larb_clk = devm_clk_get_optional(dev, "larb2");
+-	seninf->smi_clk = devm_clk_get_optional(dev, "smi");
+-	if (IS_ERR(seninf->camsv_clk) || IS_ERR(seninf->larb_clk) || IS_ERR(seninf->smi_clk)) {
++	if (IS_ERR(seninf->camsv_clk) || IS_ERR(seninf->larb_clk)) {
+ 		fwnode_handle_put(ep);
+ 		return dev_err_probe(dev, -EPROBE_DEFER, "waiting for capture clocks\n");
+ 	}
+@@ -699,6 +702,19 @@ static void seninf_camsv_dump(struct mt6797_seninf *seninf, const char *when)
+  * and refuse if it does not stick or if anything else in the two control windows
+  * is set, since nothing here accounts for that.
+  */
++static int seninf_smi_is_open(struct mt6797_seninf *seninf)
++{
++	void __iomem *mm = ioremap(MMSYS_BASE, SZ_4K);
++	u32 val;
++
++	if (!mm)
++		return -ENOMEM;
++	val = readl(mm + MMSYS_CG_CON0);
++	iounmap(mm);
++	dev_info(seninf->dev, "mmsys cg0 %08x\n", val);
++	return val & MMSYS_CG0_SMI_COMMON ? -EBUSY : 0;
++}
++
+ static int seninf_larb_bypass_sv0(struct mt6797_seninf *seninf)
+ {
+ 	void __iomem *larb = ioremap(LARB2_BASE, SZ_4K);
+@@ -772,12 +788,17 @@ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = clk_prepare_enable(seninf->smi_clk);
++	/*
++	 * The display relies on this shared gate, left open by the loader with nobody
++	 * counting it. Enabling and disabling it here would close it behind the display,
++	 * so leave it alone and refuse if it is not open.
++	 */
++	ret = seninf_smi_is_open(seninf);
+ 	if (ret)
+ 		goto stop_stream;
+ 	ret = clk_prepare_enable(seninf->larb_clk);
+ 	if (ret)
+-		goto put_smi;
++		goto stop_stream;
+ 	ret = clk_prepare_enable(seninf->camsv_clk);
+ 	if (ret)
+ 		goto put_larb;
+@@ -865,8 +886,6 @@ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ 	clk_disable_unprepare(seninf->camsv_clk);
+ put_larb:
+ 	clk_disable_unprepare(seninf->larb_clk);
+-put_smi:
+-	clk_disable_unprepare(seninf->smi_clk);
+ stop_stream:
+ 	v4l2_subdev_call(&seninf->sd, video, s_stream, 0);
+ 

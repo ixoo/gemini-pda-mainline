@@ -206,9 +206,30 @@ with such a write while M4U is off.
 
 C1 to C3 are not explained by this: C3's counters show drops before any write was attempted.
 
+## The display timeouts after C3 and C4
+
+Observed, as reported by the custodian: on the C4 read boot `d9722def`, "vblank wait timed out on crtc 0" and a warning in
+`mtk_crtc_atomic_disable` at the first blank after the read, 27 s later, tainting the kernel. Blanks before the read on
+the same boot gave none. C3's boot has the same timeout. `mm_smi_common` read `en=0 prep=0` afterwards. The earlier "no
+fault" reports for C1 to C4 checked straight after the capture, before any blank, so they did not cover the display.
+The C1 and C2 boots were powered off before a blank, so they neither show it nor clear it.
+
+Inference, from the code rather than a read of the gate: my capture path caused this.
+[`0558`](../../patches/proposals/0558-media-mediatek-mt6797-seninf-DIAGNOSTIC-capture-one-.patch) enabled and disabled
+`CLK_MM_SMI_COMMON`, bit 0 of the MMSYS gate at `0x14000100`. The station has no SMI driver, so nothing counts that
+clock while the display relies on the gate the loader left open. The count went from 1 to 0 and closed it.
+
+Other clocks on this path: `cam_*` gates are in CAMSYS, in the ISP domain, so the display does not use them. `mm_sel`, the
+parent of most of them, is a plain mux with no gate, and `camtg_sel`'s gate belongs to the sensor clock.
+
+[`0563`](../../patches/proposals/0563-media-mediatek-mt6797-seninf-DIAGNOSTIC-leave-the-sh.patch) stops touching the clock,
+reads the gate, and refuses to capture if it is closed. Holding the clock from here instead would close the gate at
+unload. A real driver needs a proper owner for this clock.
+
 ## C5: CAMSV0 bypasses M4U
 
 Not run. [`0562`](../../patches/proposals/0562-media-mediatek-mt6797-seninf-DIAGNOSTIC-bypass-M4U-o.patch) clears bit 6
 of `0xfc0`, port 6 being `M4U_PORT_CAM_SV0` in the mainline port header, and reads it back. It leaves the other ports
 alone. It refuses if the bit does not clear or if anything else in the two windows is set. Writing 2 to `capture` stops
-after that. Bypass is the same arrangement display uses for a first frame; M4U remains the upstream answer.
+after that. Bypass is the same arrangement display uses for a first frame; M4U remains the upstream answer. C5 runs on
+a fresh boot with `0563`, and its result includes a blank and unblank with the kernel log read afterwards.

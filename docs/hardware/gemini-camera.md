@@ -339,7 +339,7 @@ the same offsets:
 **Mainline replacement.** Use dma-buf heaps, the MT6797 IOMMU/SMI providers,
 dma-fence and a VB2 queue; the first path should be one CAMSV output to memory.
 The local series has `larb2`/`larb6` and M4U nodes. A diagnostic CAMSV path
-exists (0558-0562): C2 shows a full frame reaching CAMSV, but C1/C2/C3
+exists (0558-0563): C2 shows a full frame reaching CAMSV, but C1/C2/C3
 leave the coherent buffer at its fill value. C3's `CAMSV_FBC_IMGO_CTL2` top
 byte (`DROP_CNT`) moved while `FBC_CNT`/`RCNT`/`WCNT` stayed zero. The inference
 is that frames were dropped because of the frame-buffer-control setup (queue mode
@@ -347,6 +347,9 @@ off, `FBC_NUM` 0); that rests on the CAM block's layout, and nothing checked the
 rest of memory. 0561 sets queue mode. `larb2` then read `0x3fff` at `0xfc0`, its
 per-port MMU enable (C4), so all 14 ports, CAMSV0's included, go through M4U, unlike
 larb0 and larb5 on the display path. C5 (0562) clears the CAMSV0 bit; it is not run.
+`CLK_MM_SMI_COMMON` is shared with the display, which relies on the gate the loader
+left open with nobody counting it. Enabling and disabling it closes the gate and hangs
+the display at its next blank (inferred from C3 and C4); 0563 leaves it alone.
 A bypassed port does not validate the vendor ION/M4U ring or a standard capture interface. The vendor
 descriptor/CQ format and the SP5509 port binding remain open.
 
@@ -381,7 +384,7 @@ libcamera or a native V4L2 application.
 | `kd_sensorlist` + SP5509 SLS char driver | V4L2 sensor sub-device, `hi556` | Upstream `hi556` is ACPI-only; the station series adds the binding, OF match, power-down GPIO and 24 MHz table (0545-0547). T12 passes the driver's own probe, reading `0x0556` on two loads on one boot |
 | `kd_camera_hw` rails/GPIO/MCLK | regulator, `gpio`, `pinctrl`, clock framework | Station series adds the ISP power domain (0543), CAM clock-provider fix (0544), SENINF master-clock driver (0548/0549) and station DT (0550). The `hi556` probe runs the power sequence through these (T12) |
 | `/dev/camera-isp` SENINF/MIPI RX mmap | MT6797 SENINF/CSI-2 receiver driver | Receiver exists (0555) with graph binding; the first stream reaches the mux at 2592 x 1944 (R1/R2), error bits still open. The HAL sequence is mapped in this document |
-| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558-0562); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3's counters suggest frame-buffer-control setup (inferred); larb2 has CAMSV0 routed through M4U (C4); C5 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
+| CAM/CAMSV and DMA | V4L2 capture entity and VB2/dma-buf | Diagnostic CAMSV capture exists (0558-0563); a full frame reaches CAMSV (C2) but C1/C2/C3 leave the DMA buffer empty. C3's counters suggest frame-buffer-control setup (inferred); larb2 has CAMSV0 routed through M4U (C4); C5 is not run. No VB2/M4U capture path; MT8365 "ISP3.0" is the nearest public template |
 | DIP/hardware ISP | libcamera software ISP | Out of scope for a first raw path |
 | ION + M4U + private fences | dma-buf heaps, IOMMU, dma-fence | Local M4U/larb nodes exist; the diagnostic does not use M4U, though larb2 read as routing all its ports there (C4), so the camera M4U consumer remains unproven |
 | DW9714AF / dummy flashlight / cam_cal | `dw9714`, LED class, tuning data | Not needed for the built-in fixed-focus, flashless camera |
