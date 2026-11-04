@@ -17,6 +17,7 @@ power-status is left out, and that one-line public key is the only way in.
 usage: build-station-initramfs.py PARENT_INITRAMFS MODULES TOOLS RELEASE OUTPUT [AUTHORIZED_KEY]
 (MODULES: colon-separated .ko paths, each kept under its own name)
 """
+import base64
 import hashlib
 import re
 import struct
@@ -68,6 +69,21 @@ def quiet_brightness_keys(keymap):
     return keymap[:offset] + struct.pack('<128H', *table) + keymap[offset + 256:]
 
 
+def public_key_line(path):
+    """One whole public key line of a type dropbear takes: a bad one locks the tester out of SSH."""
+    key = Path(path).read_bytes()
+    line = re.fullmatch(rb'(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(?:256|384|521)|sk-[\w@.-]+) ([A-Za-z0-9+/]+=*)( [^\n]*)?\n', key)
+    assert line, 'AUTHORIZED_KEY is not one public key line'
+    blob, fields = base64.b64decode(line[2], validate=True), []
+    while blob:
+        size = int.from_bytes(blob[:4], 'big')
+        assert len(blob) >= 4 + size, 'AUTHORIZED_KEY is truncated'
+        fields.append(blob[4:4 + size])
+        blob = blob[4 + size:]
+    assert len(fields) >= 2 and fields[0] == line[1], 'AUTHORIZED_KEY is damaged'
+    return key
+
+
 def main(parent, modules, tools, release, output, authorized_key=None):
     public = authorized_key is not None
     ram = parse_newc(Path(parent).read_bytes())
@@ -108,10 +124,7 @@ def main(parent, modules, tools, release, output, authorized_key=None):
         files[name] = (DIR | 0o755, b'') if path.is_dir() else (FILE | 0o644, path.read_bytes())
     if public:
         files['bin/radio-start'] = (FILE | 0o755, (first/'radio-start').read_bytes())
-        key = Path(authorized_key).read_bytes()
-        assert re.fullmatch(rb'(ssh|ecdsa|sk-ssh|sk-ecdsa)-[\w@.-]+ [A-Za-z0-9+/=]+( [^\n]*)?\n', key), \
-            'AUTHORIZED_KEY is not one public key line'
-        files['root/.ssh/authorized_keys'] = (FILE | 0o600, key)
+        files['root/.ssh/authorized_keys'] = (FILE | 0o600, public_key_line(authorized_key))
     # The release config has no /dev/i2c, which power-status opens.
     for tool in ['backlight-policy', 'amixer', 'aplay'] if public else ['backlight-policy', 'power-status', 'amixer', 'aplay']:
         data = (Path(tools)/tool).read_bytes()

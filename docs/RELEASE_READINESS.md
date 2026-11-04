@@ -13,7 +13,7 @@ image, and it has run on one unit.
 
 | Area | State | Blocker |
 | --- | --- | --- |
-| Install | Partial | `flash-boot2` from a running station. No first-install tool or tester guide |
+| Install | Partial | `flash-boot2` from a running station. No first-install tool; a [tester guide](TESTING_GUIDE.md) says so |
 | Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. The 11 s long press has never run |
 | Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), not yet booted |
 | Unit dependence | Yes | Parent carries keys and firmware; fixed USB addresses; `iw reg set US` |
@@ -48,7 +48,7 @@ image, and it has run on one unit.
 | 6 | First-install tool from Gemian using the existing guard; backup, restore and removal steps | M |
 | 7 | Evidence: ten cold boots, a real charge reaching 80%, the 11 s reset, the Wi-Fi baseline, a soak | M, needs the device |
 | 8 | One non-author unit follows the guide unaided | M, availability risk |
-| 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for all shipped binaries | S |
+| 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for all shipped binaries. [Guide](TESTING_GUIDE.md) written, followed by nobody; no tool or source copies yet | S |
 
 Items 1 to 3 change boot files, so batch them into one image.
 
@@ -91,14 +91,19 @@ station's path doesn't change: its boot2 stays
 are in `release/`:
 
 - **Keys.** `authorized_keys` comes from the compose argument, and the composer refuses
-  a parent that holds a key or firmware. `usb-ssh` makes the host key in RAM, so it
+  a key that's empty, truncated or of a type dropbear lacks, and a parent that holds a
+  key or firmware. `usb-ssh` makes the host key in RAM, so it
   changes on every boot, and `/run/station/host-key.pub` shows it on the console.
 - **Radio.** Init loads no Wi-Fi module by itself. `radio-start` needs a two-letter
   `/etc/radio-country` and the three firmware files in
   `/lib/firmware/mediatek/mt6797/`, then sets the country, waits to see it applied, and
   loads the driver. Both live in RAM, so for now a tester writes them after each boot
-  and runs it by hand. `wifi-up.sh` doesn't check any of this, so run `radio-start` first.
-- **Gemian.** `linux` mounts `ro,noload`. Without a writable marker a stuck native
+  and runs it by hand. `wifi-up.sh` runs it first on this image and stops if it doesn't start.
+- **Gemian.** `linux` mounts `ro,noload`, with the block device set read-only first, and
+  so does `nvdata` in `radio-start`. Without that, a read-only ext4 mount still clears an
+  orphan list on disk: in a VM, `ro,noload` alone changed an image holding one, and
+  7.1.3's `ext4_orphan_cleanup` has the same path. The station's `nvdata` mount still
+  lacks this. Without a writable marker a stuck native
   display load couldn't be skipped on the next boot, so the console stays on the
   loader framebuffer and `display-start` is by hand. That's short of the v0.1 promise
   below until blocker 4 is decided.
@@ -110,6 +115,13 @@ in a VM chroot of the composed RAM root. SSH there took the key and refused a pa
 with dropbear on loopback, not `usb0`. `radio-start` stopped before any module without a
 country, with a bad one, and with a missing firmware file. `regulatory.db` verifies
 against the same signer as the station's.
+
+A second pass the same day ran the composed root's own init as PID 1 of a VM namespace,
+with a veth named `usb0` and loop devices behind a stand-in for the partition list. Init
+reached SSH and a console shell with a controlling terminal, the keymap loaded, the
+loop images of `linux` and `nvdata` stayed byte-identical, `poweroff` ended it cleanly,
+`flash-boot2` wrote and read back a loop device and refused bad input, and `insmod` loaded
+a VM module. `iw` was a stand-in past `reg set`, since the VM has no `cfg80211`.
 
 **Unverified:** nothing has booted. On the device, that leaves init and the keymap, the
 console, Alpine's `insmod` with these modules, USB SSH, entropy for the host key, audio

@@ -36,7 +36,9 @@ for zone in /sys/class/thermal/thermal_zone*; do
     [ -d "$zone" ] && status "zone=$($bb cat "$zone/type") temp=$($bb cat "$zone/temp" 2>/dev/null)"
 done
 # Gemian's linux partition, found by its GPT name, never by number. Read-only, and
-# noload so that an unclean journal is never replayed onto the partition.
+# noload so that an unclean journal is never replayed onto the partition. The device
+# goes read-only first: a read-only ext4 mount still clears an orphan list on disk,
+# unless the device itself refuses writes.
 data=
 waited=0
 while [ "$waited" -lt 30 ]; do
@@ -55,6 +57,8 @@ while [ "$waited" -lt 30 ]; do
 done
 if [ "$count" -ne 1 ]; then
     status "data=not-found count=$count"
+elif ! $bb blockdev --setro "$data"; then
+    status "data=setro-failed device=$data"
 elif $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$data" /mnt/data; then
     status "data=mounted-ro device=$data"
 else

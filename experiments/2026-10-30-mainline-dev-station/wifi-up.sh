@@ -24,6 +24,11 @@ if [ "${DOWN:-0}" = 1 ]; then
 fi
 
 [ -f $R/wifi.env ] || { echo "no $R/wifi.env"; exit 1; }
+# The release image's gate: no module without the tester's country and firmware.
+if [ -x /bin/radio-start ]; then
+	gate=$(/bin/radio-start)
+	case "$gate" in started-*) ;; *) echo "radio-start: $gate"; exit 1 ;; esac
+fi
 D=/lib/modules/$(uname -r)
 for module in mt6797-wlan-core mt6797-consys mac; do
 	lsmod | grep -q "^$(echo $module | tr - _) " || { insmod "$D/$module.ko"; echo "insmod $module=$?"; }

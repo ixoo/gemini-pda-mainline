@@ -35,13 +35,14 @@ while ! /bin/iw reg get | $bb grep -q "^country $country:"; do
     waited=$((waited + 1))
 done
 # The calibration record, read in place: read-only, and noload so that an unclean
-# journal is never replayed onto the partition.
+# journal is never replayed onto the partition. The device goes read-only first, as in
+# init: a read-only ext4 mount still clears an orphan list otherwise.
 if ! $bb grep -q ' /nvdata ' /proc/mounts; then
     nvdata=
     for uevent in /sys/class/block/mmcblk0p*/uevent; do
         $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
     done
-    if [ -z "$nvdata" ] || ! $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
+    if [ -z "$nvdata" ] || ! $bb blockdev --setro "$nvdata" || ! $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
         echo off-no-nvdata
         exit 1
     fi

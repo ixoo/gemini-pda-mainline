@@ -84,6 +84,10 @@ PARTLABEL=nvdata  /nvdata  ext4  ro,noload,nosuid,nodev,noexec  0  0
 ln -s /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
 ```
 
+`noload` alone doesn't make that mount read-only on disk: ext4 still clears an orphan
+list unless the block device itself is read-only, so the release image sets it read-only
+first ([release RAM root](../RELEASE_READINESS.md#release-ram-root)).
+
 The record therefore always belongs to the same device. Its provenance is
 in the [storage contract](../../experiments/2026-09-05-mt6797-wifi-contract/PROVENANCE.md).
 `WMT_SOC.cfg`, `WIFI_CUSTOM` and the raw `nvram` partition are not read.
