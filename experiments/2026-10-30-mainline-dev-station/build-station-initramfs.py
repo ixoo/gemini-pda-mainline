@@ -92,7 +92,10 @@ def main(parent, modules, tools, release, output):
         name = 'usr/share/alsa/' + str(path.relative_to(alsa)) if path != alsa else 'usr/share/alsa'
         files[name] = (DIR | 0o755, b'') if path.is_dir() else (FILE | 0o644, path.read_bytes())
     for tool in ['backlight-policy', 'power-status', 'amixer', 'aplay']:
-        files['bin/' + tool] = (FILE | 0o755, (Path(tools)/tool).read_bytes())
+        data = (Path(tools)/tool).read_bytes()
+        # An empty or foreign binary here would boot, and only fail at init's respawn.
+        assert data[:4] == b'\x7fELF' and data[4] == 2 and data[18:20] == b'\xb7\x00', ('not an arm64 ELF', tool)
+        files['bin/' + tool] = (FILE | 0o755, data)
     # wireless-regdb's signed database, for cfg80211's country rules.
     for name in ['regulatory.db', 'regulatory.db.p7s']:
         files['lib/firmware/' + name] = (FILE | 0o644, (Path(tools)/name).read_bytes())
