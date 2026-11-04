@@ -988,7 +988,7 @@ which a test doesn't need and a real driver would. The earpiece and laptop are a
 The owner's "Yes, run T11". Boot `3fb07fd4`, image `8f2c1167`, `gemian_radio` N, `bt-voice-test` `7d085b37`, `bt-start` `bb17b859`, `msbc-tx.bin` `9d701c5a`.
 Used 1 inquiry, 1 pairing, 1 eSCO. Evidence private under `artifacts/station-work-44/boot-3fb07fd4/bt-t11/`; `mic.cvsd`, here mSBC frames, is `0b968a74`.
 
-**The owner reports:** "ok much better!" and "I think the noise is gone". Whether they heard the notes hadn't been reported when this was written.
+**The owner reports:** "ok much better!" and "I think the noise is gone". Asked about the notes: "I heard the notes, and it was all good, no noise (or not significant, definitely not what I heard before)".
 
 **Observed:**
 - `0x043d` refused with `0x20` as T10, then `0x0428` status 0, then Sync Conn Complete: status 0, eSCO, interval 12, window 4, 60 bytes each way, air mode 3 (transparent). No crash:
