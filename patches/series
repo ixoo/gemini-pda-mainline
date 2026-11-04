@@ -1134,3 +1134,6 @@ proposals/0548-media-mediatek-add-the-MT6797-sensor-interface-s-mas.patch
 proposals/0549-arm64-dts-mediatek-mt6797-add-the-sensor-interface.patch
 proposals/0550-arm64-dts-mediatek-gemini-station-describe-the-front.patch
 proposals/0553-media-mediatek-mt6797-seninf-enable-the-interface-be.patch
+proposals/0554-arm64-dts-mediatek-mt6797-describe-the-sensor-interf.patch
+proposals/0555-media-mediatek-mt6797-seninf-add-the-CSI-2-receiver.patch
+proposals/0556-media-mediatek-mt6797-seninf-DIAGNOSTIC-debugfs-to-s.patch

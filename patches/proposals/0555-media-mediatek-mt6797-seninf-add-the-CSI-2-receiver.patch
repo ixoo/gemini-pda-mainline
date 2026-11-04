@@ -1,0 +1,490 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 16:54:08 -0500
+Subject: [PATCH 555/556] media: mediatek: mt6797-seninf: add the CSI-2
+ receiver
+
+Take the second interface from its analog block through CSI-2 to its mux, and
+bind the sensor through the graph. Calibrate with the sensor on and its lanes
+idle, then start it.
+
+The values follow what the vendor library writes for this sensor. The analog
+ones are not understood, and the per-unit trim the library writes is left out,
+as the hardware default may do for a first test.
+
+Nothing takes the data from the mux yet. Not exercised on hardware.
+---
+ .../media/platform/mediatek/seninf/Kconfig    |   8 +-
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 388 +++++++++++++++++-
+ 2 files changed, 389 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/Kconfig b/drivers/media/platform/mediatek/seninf/Kconfig
+index 797c46238..9b86b2264 100644
+--- a/drivers/media/platform/mediatek/seninf/Kconfig
++++ b/drivers/media/platform/mediatek/seninf/Kconfig
+@@ -2,10 +2,12 @@
+ config VIDEO_MT6797_SENINF
+ 	tristate "MediaTek MT6797 sensor interface"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+-	depends on COMMON_CLK && OF
++	depends on COMMON_CLK && OF && VIDEO_DEV
++	select V4L2_FWNODE
++	select VIDEO_V4L2_SUBDEV_API
+ 	help
+-	  The master clocks that the MT6797 sensor interface drives to
+-	  camera sensors. The block's CSI-2 receivers are not supported yet.
++	  The MT6797 sensor interface: the master clocks it drives to camera
++	  sensors, and a two-lane CSI-2 receiver. There is no capture path yet.
+ 
+ 	  To compile this driver as a module, choose M here: the module
+ 	  will be called mt6797-seninf.
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 9334ffdb7..383c9e0a7 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -3,8 +3,12 @@
+  * MediaTek MT6797 sensor interface: the sensor master clocks.
+  *
+  * Each of the block's timing generators drives one master clock pad, divided
+- * from the CAMTG clock. The CSI-2 receivers in the same block are not driven
+- * yet.
++ * from the CAMTG clock. The second interface's CSI-2 receiver takes two lanes
++ * through to the interface's mux. Nothing takes the data from there yet.
++ *
++ * The analog and calibration values below follow what the vendor's camera
++ * library writes. Their meaning is not documented publicly, so they are named
++ * by register and not by function.
+  *
+  * Copyright (c) 2026 Gemini PDA Mainline Project
+  */
+@@ -13,19 +17,102 @@
+ #include <linux/bits.h>
+ #include <linux/clk.h>
+ #include <linux/clk-provider.h>
++#include <linux/delay.h>
+ #include <linux/io.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/overflow.h>
+ #include <linux/platform_device.h>
+ #include <linux/pm_runtime.h>
++#include <linux/property.h>
+ #include <linux/spinlock.h>
+ 
++#include <media/v4l2-async.h>
++#include <media/v4l2-device.h>
++#include <media/v4l2-fwnode.h>
++#include <media/v4l2-subdev.h>
++
+ #define SENINF_TOP_CTRL			0x0000
+ #define SENINF_TOP_PCLK_EN		GENMASK(11, 10)
++#define SENINF_TOP_MUX			0x0008
++#define SENINF_TOP_MUX_SEL(n)		(GENMASK(3, 0) << (4 * (n)))
+ 
+ #define SENINF_CTRL(n)			(0x0200 + (n) * 0x1000)
+ #define SENINF_CTRL_EN			BIT(0)
++#define SENINF_CTRL_SRC			GENMASK(15, 12)
++#define SENINF_CTRL_SRC_NCSI2		8
++#define SENINF_CTRL_PAD			GENMASK(30, 28)
++#define SENINF_CTRL2(n)			(0x0204 + (n) * 0x1000)
++#define SENINF_CTRL2_LANE_SEL		BIT(5)
++#define SENINF_CTRL2_PARALLEL_SEL	BIT(6)
++
++#define SENINF_NCSI2(n)			(0x0700 + (n) * 0x1000)
++#define NCSI2_CTL			0x00
++#define NCSI2_CTL_LANES			GENMASK(4, 0)
++#define NCSI2_CTL_HSRX_DELAY		BIT(7)
++#define NCSI2_CTL_ENABLE		(BIT(26) | BIT(4))
++#define NCSI2_LNRD_TIMING		0x08
++#define NCSI2_LNRD_SETTLE		GENMASK(15, 8)
++#define NCSI2_DPCM			0x0c
++#define NCSI2_INT_EN			0x10
++#define NCSI2_INT_EN_ALL		0x80007fff
++#define NCSI2_INT_STATUS		0x14
++#define NCSI2_CLK_FSM			0x28
++#define NCSI2_DATA_FSM			0x2c
++#define NCSI2_FRAME_LINE		0x30
++#define NCSI2_HSRX			0x38
++#define NCSI2_HSRX_CAL_EN		GENMASK(4, 0)
++
++#define SENINF_CAL(n)			(0x0838 + (n) * 0x1000)
++#define CAL_CTL				0x00
++#define CAL_CTL_EN			BIT(0)
++#define CAL_CTL_START			BIT(2)
++#define CAL_CFG				0x04
++#define CAL_CFG_VAL			0x1541
++#define CAL_STATUS0			0x0c
++#define CAL_STATUS1			0x10
++
++#define SENINF_MUX(n)			(0x0d00 + (n) * 0x1000)
++#define MUX_CTRL			0x00
++#define MUX_CTRL_EN			BIT(31)
++#define MUX_CTRL_FULL_WR		GENMASK(29, 28)
++#define MUX_CTRL_FULL_WR_VAL		2
++#define MUX_CTRL_FIFO_FLUSH		GENMASK(27, 22)
++#define MUX_CTRL_FIFO_FLUSH_VAL		0x1b
++#define MUX_CTRL_FIFO_PUSH		GENMASK(21, 16)
++#define MUX_CTRL_FIFO_PUSH_VAL		0x1f
++#define MUX_CTRL_SRC			GENMASK(15, 12)
++#define MUX_CTRL_POLARITY		GENMASK(10, 9)
++#define MUX_CTRL_PIX_MODE		BIT(8)
++#define MUX_INT_STATUS			0x08
++#define MUX_SIZE			0x0c
++#define MUX_DEBUG(n)			(0x10 + (n) * 4)
++#define MUX_SPARE			0x2c
++#define MUX_SPARE_CLR			BIT(13)
++#define MUX_CROP			0x3c
++#define MUX_CROP_CLR			GENMASK(1, 0)
++
++/* The analog blocks for the second interface's two lane pairs. */
++#define MIPI_RX_CSI1A			0x0400
++#define MIPI_RX_CSI1B			0x0600
++#define MIPI_RX_CON00			0x00
++#define MIPI_RX_CON00_LDO_EN		BIT(3)
++#define MIPI_RX_CON00_BG_EN		BIT(2)
++#define MIPI_RX_CON00_SET		(BIT(6) | BIT(9) | BIT(12))
++#define MIPI_RX_CON00_CLR		(BIT(0) | BIT(4) | BIT(5) | BIT(7) | BIT(8) | BIT(10))
++#define MIPI_RX_CON04			0x04
++#define MIPI_RX_CON04_MASK		(GENMASK(10, 8) | GENMASK(14, 12))
++#define MIPI_RX_CON04_VAL		((6 << 8) | (1 << 12))
++#define MIPI_RX_LANE(n)			(0x18 + (n) * 4)
++#define MIPI_RX_LANE_MASK		(GENMASK(7, 6) | GENMASK(23, 22))
++#define MIPI_RX_LANE_VAL		((1 << 6) | (1 << 22))
++#define MIPI_RX_CON80			0x80
++#define MIPI_RX_CON80_MASK		GENMASK(7, 4)
++
++#define SENINF_RX_IF			1	/* The second interface. */
++#define SENINF_RX_LANES			2
++#define SENINF_SETTLE_NS		14
++#define SENINF_CLK_RATE_MHZ		325
+ 
+ #define SENINF_TG_BASE(n)		(0x0600 + (n) * 0x1000)
+ #define SENINF_TG_PH_CNT		0x00
+@@ -58,6 +145,15 @@ struct mt6797_seninf {
+ 	struct clk_bulk_data clks[ARRAY_SIZE(seninf_clk_names)];
+ 	struct seninf_mclk mclk[SENINF_NUM_TG];
+ 	struct clk_hw_onecell_data *provider;
++
++	void __iomem *mipi_rx;
++	struct v4l2_device v4l2_dev;
++	struct v4l2_async_notifier notifier;
++	struct v4l2_subdev sd;
++	struct v4l2_subdev *sensor;
++	unsigned int settle;
++	bool hsrx_delay;
++	bool streaming;
+ };
+ 
+ static void seninf_update(struct mt6797_seninf *seninf, u32 reg, u32 mask, u32 val)
+@@ -133,6 +229,280 @@ static const struct clk_ops seninf_mclk_ops = {
+ 	.recalc_rate = seninf_mclk_recalc_rate,
+ };
+ 
++static void seninf_mipi_rx_start(struct mt6797_seninf *seninf, u32 block)
++{
++	void __iomem *base = seninf->mipi_rx + block;
++	u32 val = readl(base + MIPI_RX_CON00);
++	unsigned int i;
++
++	val &= ~MIPI_RX_CON00_CLR;
++	val |= MIPI_RX_CON00_SET;
++	if (block == MIPI_RX_CSI1B)
++		val &= ~BIT(11);
++	else
++		val |= BIT(11);
++	writel(val, base + MIPI_RX_CON00);
++
++	val = readl(base + MIPI_RX_CON04) & ~MIPI_RX_CON04_MASK;
++	writel(val | MIPI_RX_CON04_VAL, base + MIPI_RX_CON04);
++
++	for (i = 0; i < 3; i++) {
++		val = readl(base + MIPI_RX_LANE(i)) & ~MIPI_RX_LANE_MASK;
++		writel(val | MIPI_RX_LANE_VAL, base + MIPI_RX_LANE(i));
++	}
++}
++
++static void seninf_mipi_rx_enable(struct mt6797_seninf *seninf, u32 bits, bool on)
++{
++	void __iomem *a = seninf->mipi_rx + MIPI_RX_CSI1A + MIPI_RX_CON00;
++	void __iomem *b = seninf->mipi_rx + MIPI_RX_CSI1B + MIPI_RX_CON00;
++
++	writel(on ? readl(a) | bits : readl(a) & ~bits, a);
++	writel(on ? readl(b) | bits : readl(b) & ~bits, b);
++}
++
++static void seninf_rx_start(struct mt6797_seninf *seninf)
++{
++	void __iomem *ncsi2 = seninf->base + SENINF_NCSI2(SENINF_RX_IF);
++	void __iomem *cal = seninf->base + SENINF_CAL(SENINF_RX_IF);
++	void __iomem *mux = seninf->base + SENINF_MUX(SENINF_RX_IF);
++	void __iomem *rx = seninf->mipi_rx + MIPI_RX_CSI1A;
++	u32 val;
++
++	seninf_update(seninf, SENINF_CTRL(SENINF_RX_IF),
++		      SENINF_CTRL_PAD | SENINF_CTRL_SRC,
++		      SENINF_CTRL_EN |
++		      FIELD_PREP(SENINF_CTRL_SRC, SENINF_CTRL_SRC_NCSI2));
++	seninf_update(seninf, SENINF_CTRL2(SENINF_RX_IF),
++		      SENINF_CTRL2_PARALLEL_SEL, SENINF_CTRL2_LANE_SEL);
++
++	writel(readl(rx + MIPI_RX_CON80) & ~MIPI_RX_CON80_MASK, rx + MIPI_RX_CON80);
++	seninf_mipi_rx_start(seninf, MIPI_RX_CSI1A);
++	seninf_mipi_rx_start(seninf, MIPI_RX_CSI1B);
++	seninf_mipi_rx_enable(seninf, MIPI_RX_CON00_LDO_EN, true);
++	usleep_range(30, 60);
++	seninf_mipi_rx_enable(seninf, MIPI_RX_CON00_BG_EN, true);
++	usleep_range(1, 10);
++
++	writel(readl(ncsi2 + NCSI2_HSRX) | NCSI2_HSRX_CAL_EN, ncsi2 + NCSI2_HSRX);
++	writel(readl(cal + CAL_CTL) | CAL_CTL_EN, cal + CAL_CTL);
++	writel(CAL_CFG_VAL, cal + CAL_CFG);
++	writel(readl(cal + CAL_CTL) | CAL_CTL_START, cal + CAL_CTL);
++	usleep_range(500, 600);
++	dev_info(seninf->dev, "calibration %08x %08x\n",
++		 readl(cal + CAL_STATUS0), readl(cal + CAL_STATUS1));
++	writel(readl(cal + CAL_CTL) & ~CAL_CTL_EN, cal + CAL_CTL);
++	writel(readl(ncsi2 + NCSI2_HSRX) & ~NCSI2_HSRX_CAL_EN, ncsi2 + NCSI2_HSRX);
++
++	writel(FIELD_PREP(NCSI2_LNRD_SETTLE, seninf->settle), ncsi2 + NCSI2_LNRD_TIMING);
++	val = readl(ncsi2 + NCSI2_CTL) & ~NCSI2_CTL_HSRX_DELAY;
++	if (seninf->hsrx_delay)
++		val |= NCSI2_CTL_HSRX_DELAY;
++	writel(val | NCSI2_CTL_ENABLE | (BIT(SENINF_RX_LANES) - 1), ncsi2 + NCSI2_CTL);
++	writel(NCSI2_INT_EN_ALL, ncsi2 + NCSI2_INT_EN);
++	writel(0, ncsi2 + NCSI2_DPCM);
++
++	val = readl(mux + MUX_CTRL);
++	val &= ~(MUX_CTRL_FULL_WR | MUX_CTRL_FIFO_FLUSH | MUX_CTRL_FIFO_PUSH |
++		 MUX_CTRL_SRC | MUX_CTRL_POLARITY | MUX_CTRL_PIX_MODE);
++	val |= MUX_CTRL_EN |
++	       FIELD_PREP(MUX_CTRL_FULL_WR, MUX_CTRL_FULL_WR_VAL) |
++	       FIELD_PREP(MUX_CTRL_FIFO_FLUSH, MUX_CTRL_FIFO_FLUSH_VAL) |
++	       FIELD_PREP(MUX_CTRL_FIFO_PUSH, MUX_CTRL_FIFO_PUSH_VAL) |
++	       FIELD_PREP(MUX_CTRL_SRC, SENINF_CTRL_SRC_NCSI2);
++	writel(val, mux + MUX_CTRL);
++	writel(readl(mux + MUX_SPARE) & ~MUX_SPARE_CLR, mux + MUX_SPARE);
++	writel(readl(mux + MUX_CROP) & ~MUX_CROP_CLR, mux + MUX_CROP);
++
++	/* This interface feeds its own mux. */
++	seninf_update(seninf, SENINF_TOP_MUX, SENINF_TOP_MUX_SEL(SENINF_RX_IF),
++		      SENINF_RX_IF << (4 * SENINF_RX_IF));
++}
++
++static void seninf_rx_stop(struct mt6797_seninf *seninf)
++{
++	void __iomem *ncsi2 = seninf->base + SENINF_NCSI2(SENINF_RX_IF);
++	void __iomem *mux = seninf->base + SENINF_MUX(SENINF_RX_IF);
++
++	writel(readl(mux + MUX_CTRL) & ~MUX_CTRL_EN, mux + MUX_CTRL);
++	writel(readl(ncsi2 + NCSI2_CTL) & ~NCSI2_CTL_LANES, ncsi2 + NCSI2_CTL);
++	seninf_mipi_rx_enable(seninf, MIPI_RX_CON00_LDO_EN, false);
++	seninf_mipi_rx_enable(seninf, MIPI_RX_CON00_BG_EN, false);
++}
++
++static int seninf_s_stream(struct v4l2_subdev *sd, int enable)
++{
++	struct mt6797_seninf *seninf = v4l2_get_subdevdata(sd);
++	struct device *sensor_dev;
++	int ret;
++
++	if (!seninf->sensor)
++		return -ENODEV;
++	if (!!enable == seninf->streaming)
++		return 0;
++	sensor_dev = seninf->sensor->dev;
++
++	if (!enable) {
++		v4l2_subdev_call(seninf->sensor, video, s_stream, 0);
++		seninf_rx_stop(seninf);
++		pm_runtime_put(sensor_dev);
++		pm_runtime_put(seninf->dev);
++		seninf->streaming = false;
++		return 0;
++	}
++
++	ret = pm_runtime_resume_and_get(seninf->dev);
++	if (ret)
++		return ret;
++
++	/* The receiver calibrates with the sensor on and its lanes idle. */
++	ret = pm_runtime_resume_and_get(sensor_dev);
++	if (ret)
++		goto put_seninf;
++
++	seninf_rx_start(seninf);
++
++	ret = v4l2_subdev_call(seninf->sensor, video, s_stream, 1);
++	if (ret)
++		goto stop;
++
++	seninf->streaming = true;
++	return 0;
++
++stop:
++	seninf_rx_stop(seninf);
++	pm_runtime_put(sensor_dev);
++put_seninf:
++	pm_runtime_put(seninf->dev);
++	return ret;
++}
++
++static const struct v4l2_subdev_video_ops seninf_video_ops = {
++	.s_stream = seninf_s_stream,
++};
++
++static const struct v4l2_subdev_ops seninf_subdev_ops = {
++	.video = &seninf_video_ops,
++};
++
++static int seninf_notifier_bound(struct v4l2_async_notifier *notifier,
++				 struct v4l2_subdev *sd,
++				 struct v4l2_async_connection *asc)
++{
++	struct mt6797_seninf *seninf =
++		container_of(notifier, struct mt6797_seninf, notifier);
++
++	seninf->sensor = sd;
++	dev_info(seninf->dev, "bound %s\n", sd->name);
++	return 0;
++}
++
++static void seninf_notifier_unbind(struct v4l2_async_notifier *notifier,
++				   struct v4l2_subdev *sd,
++				   struct v4l2_async_connection *asc)
++{
++	struct mt6797_seninf *seninf =
++		container_of(notifier, struct mt6797_seninf, notifier);
++
++	seninf->sensor = NULL;
++}
++
++static int seninf_notifier_complete(struct v4l2_async_notifier *notifier)
++{
++	struct mt6797_seninf *seninf =
++		container_of(notifier, struct mt6797_seninf, notifier);
++
++	return v4l2_device_register_subdev_nodes(&seninf->v4l2_dev);
++}
++
++static const struct v4l2_async_notifier_operations seninf_notifier_ops = {
++	.bound = seninf_notifier_bound,
++	.unbind = seninf_notifier_unbind,
++	.complete = seninf_notifier_complete,
++};
++
++/*
++ * The receiver needs the MIPI RX window and an endpoint. A device tree with
++ * neither still gets the master clocks.
++ */
++static int seninf_rx_init(struct mt6797_seninf *seninf)
++{
++	struct platform_device *pdev = to_platform_device(seninf->dev);
++	struct device *dev = seninf->dev;
++	struct v4l2_async_connection *asc;
++	struct fwnode_handle *ep;
++	struct resource *res;
++	int ret;
++
++	ep = fwnode_graph_get_endpoint_by_id(dev_fwnode(dev), SENINF_RX_IF, 0, 0);
++	res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
++	if (!ep || !res) {
++		fwnode_handle_put(ep);
++		return 0;
++	}
++
++	seninf->mipi_rx = devm_ioremap_resource(dev, res);
++	if (IS_ERR(seninf->mipi_rx)) {
++		fwnode_handle_put(ep);
++		return PTR_ERR(seninf->mipi_rx);
++	}
++
++	seninf->settle = DIV_ROUND_UP(SENINF_SETTLE_NS * SENINF_CLK_RATE_MHZ, 1000);
++	seninf->hsrx_delay = true;
++
++	ret = v4l2_device_register(dev, &seninf->v4l2_dev);
++	if (ret) {
++		fwnode_handle_put(ep);
++		return ret;
++	}
++
++	v4l2_subdev_init(&seninf->sd, &seninf_subdev_ops);
++	seninf->sd.dev = dev;
++	strscpy(seninf->sd.name, dev_name(dev), sizeof(seninf->sd.name));
++	v4l2_set_subdevdata(&seninf->sd, seninf);
++	ret = v4l2_device_register_subdev(&seninf->v4l2_dev, &seninf->sd);
++	if (ret)
++		goto err_v4l2;
++
++	v4l2_async_nf_init(&seninf->notifier, &seninf->v4l2_dev);
++	seninf->notifier.ops = &seninf_notifier_ops;
++	asc = v4l2_async_nf_add_fwnode_remote(&seninf->notifier, ep,
++					      struct v4l2_async_connection);
++	fwnode_handle_put(ep);
++	ep = NULL;
++	if (IS_ERR(asc)) {
++		ret = PTR_ERR(asc);
++		goto err_nf;
++	}
++
++	ret = v4l2_async_nf_register(&seninf->notifier);
++	if (ret)
++		goto err_nf;
++
++	return 0;
++
++err_nf:
++	v4l2_async_nf_cleanup(&seninf->notifier);
++	v4l2_device_unregister_subdev(&seninf->sd);
++err_v4l2:
++	v4l2_device_unregister(&seninf->v4l2_dev);
++	fwnode_handle_put(ep);
++	seninf->mipi_rx = NULL;
++	return ret;
++}
++
++static void seninf_rx_exit(struct mt6797_seninf *seninf)
++{
++	if (!seninf->mipi_rx)
++		return;
++
++	seninf_s_stream(&seninf->sd, 0);
++	v4l2_async_nf_unregister(&seninf->notifier);
++	v4l2_async_nf_cleanup(&seninf->notifier);
++	v4l2_device_unregister_subdev(&seninf->sd);
++	v4l2_device_unregister(&seninf->v4l2_dev);
++}
++
+ static int seninf_runtime_suspend(struct device *dev)
+ {
+ 	struct mt6797_seninf *seninf = dev_get_drvdata(dev);
+@@ -223,8 +593,17 @@ static int seninf_probe(struct platform_device *pdev)
+ 			return dev_err_probe(dev, ret, "failed to register MCLK %u\n", i);
+ 	}
+ 
+-	return devm_of_clk_add_hw_provider(dev, of_clk_hw_onecell_get,
+-					   seninf->provider);
++	ret = devm_of_clk_add_hw_provider(dev, of_clk_hw_onecell_get,
++					  seninf->provider);
++	if (ret)
++		return ret;
++
++	return seninf_rx_init(seninf);
++}
++
++static void seninf_remove(struct platform_device *pdev)
++{
++	seninf_rx_exit(platform_get_drvdata(pdev));
+ }
+ 
+ static const struct of_device_id seninf_of_match[] = {
+@@ -235,6 +614,7 @@ MODULE_DEVICE_TABLE(of, seninf_of_match);
+ 
+ static struct platform_driver seninf_driver = {
+ 	.probe = seninf_probe,
++	.remove = seninf_remove,
+ 	.driver = {
+ 		.name = "mt6797-seninf",
+ 		.of_match_table = seninf_of_match,
+-- 
+2.43.0
+

@@ -1,0 +1,113 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 16:54:07 -0500
+Subject: [PATCH 554/556] arm64: dts: mediatek: mt6797: describe the sensor
+ interface receiver
+
+Add the MIPI RX window and, on the station, the graph from the front camera
+to the second interface. The sensor uses two lanes.
+---
+ .../bindings/media/mediatek,mt6797-seninf.yaml  | 17 +++++++++++++++--
+ .../mediatek/mt6797-gemini-pda-station-a72.dts  | 17 ++++++++++++++++-
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi        |  3 ++-
+ 3 files changed, 33 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+index c2c5e50ba..5df3b10f7 100644
+--- a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
++++ b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+@@ -18,7 +18,14 @@ properties:
+     const: mediatek,mt6797-seninf
+ 
+   reg:
+-    maxItems: 1
++    items:
++      - description: Sensor interface registers
++      - description: MIPI RX analog registers
++
++  reg-names:
++    items:
++      - const: seninf
++      - const: mipi-rx
+ 
+   clocks:
+     items:
+@@ -39,9 +46,14 @@ properties:
+     const: 1
+     description: The master clock pad, 0 to 3.
+ 
++  ports:
++    $ref: /schemas/graph.yaml#/properties/ports
++    description: Port n is the CSI-2 input of interface n.
++
+ required:
+   - compatible
+   - reg
++  - reg-names
+   - clocks
+   - clock-names
+   - power-domains
+@@ -60,7 +72,8 @@ examples:
+ 
+         seninf: seninf@1a040000 {
+             compatible = "mediatek,mt6797-seninf";
+-            reg = <0 0x1a040000 0 0x4000>;
++            reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>;
++            reg-names = "seninf", "mipi-rx";
+             clocks = <&camsys CLK_CAM_CAMSYS>,
+                      <&camsys CLK_CAM_SENINF>,
+                      <&camsys CLK_CAM_CAMTG>;
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 62601902d..8592688ab 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -139,6 +139,20 @@ &camsys {
+ &seninf {
+ 	power-domains = <&conn_power MT6797_POWER_DOMAIN_ISP>;
+ 	status = "okay";
++
++	ports {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		port@1 {
++			reg = <1>;
++
++			seninf_csi1: endpoint {
++				data-lanes = <1 2>;
++				remote-endpoint = <&camera_front_ep>;
++			};
++		};
++	};
+ };
+ 
+ &i2c3 {
+@@ -161,9 +175,10 @@ camera@20 {
+ 		powerdown-gpios = <&pio 29 GPIO_ACTIVE_LOW>;
+ 
+ 		port {
+-			endpoint {
++			camera_front_ep: endpoint {
+ 				data-lanes = <1 2>;
+ 				link-frequencies = /bits/ 64 <437000000>;
++				remote-endpoint = <&seninf_csi1>;
+ 			};
+ 		};
+ 	};
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 618e2c56b..0f213fc0c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -1200,7 +1200,8 @@ camsys: syscon@1a000000 {
+ 
+ 	seninf: seninf@1a040000 {
+ 		compatible = "mediatek,mt6797-seninf";
+-		reg = <0 0x1a040000 0 0x4000>;
++		reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>;
++		reg-names = "seninf", "mipi-rx";
+ 		clocks = <&camsys CLK_CAM_CAMSYS>,
+ 			 <&camsys CLK_CAM_SENINF>,
+ 			 <&camsys CLK_CAM_CAMTG>;
+-- 
+2.43.0
+
