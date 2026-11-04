@@ -950,3 +950,19 @@ read, so the notes must be heard too. The laptop plays 5 s of the known recordin
 | Hang or Oops | Stop | Keep everything; no retry |
 
 **A correction on link time:** T5b to T9 asked for a 30 s link, but `bt-test.sh sco` holds it until `arecord` times out, about 45 s, as no data reaches it. Each voice run's budget said 30 s. T10's says 45 s.
+
+## T10 result: the controller refused the mSBC link (2026-11-03)
+
+The owner's "try mSBC". Boot `3fb07fd4`, image `8f2c1167`, CONSYS reloaded first, `gemian_radio` N, `bt-start` `bb17b859`, `bt-voice-test` `35b79212`.
+Used 1 inquiry, 1 pairing, 0 links. No crash: `failed=0 timeouts=0 resent=0`, assert 0. Evidence private under
+`artifacts/station-work-44/boot-3fb07fd4/bt-t10/`. Nothing was captured or sent.
+
+**Observed:**
+- Codec negotiation completed: the headset sent `AT+BAC`, and `+BCS` and `AT+BCS` were exchanged. So it does offer mSBC to us.
+- The kernel then sent Enhanced Setup `0x043d` once: transparent air and host coding, 60-byte frames, host data path 0, 2-EV3 (`0x0380`), latency 13, effort 2.
+- The controller answered Command Status `0x20`, Unsupported LMP or LL Parameter Value. A Command Status error means no link attempt, and the kernel makes no fallback from it.
+  BlueALSA logged `Couldn't establish SCO link: Not supported`. The T1 fallback I expected only follows a failed link, not a refused command.
+- `hcitool` on the ACL alone read transmit power 10, RSSI -11 to -14, link quality 255. That isn't comparable with T9: there was no eSCO, and other settings.
+
+**Reading:** this controller lists transparent coding but refuses this command. Which parameter it objects to isn't established. CVSD's accepted
+command differs in coding formats, sizes and transport units. The firmware may also need the older Setup Synchronous Connection `0x0428` for this. This says nothing about the noise yet.
