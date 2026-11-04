@@ -474,6 +474,14 @@ The boot log shows the console going to the dummy console at 80x25 and back to 1
 the text. The dummy console's size is a config value, so it is now the panel's 135x33.
 On the next image, by eye, the owner: "the console resize fix worked".
 
+## After the review fixes
+
+Boot `fccba04c`, image `96338704`, with the fixes from the review. The dummy console read
+135x33 at 2.61 s, `display=native`, tainted 0, no oops. Unloading `gemini-lid` with the lid
+open, and loading it again, left `bl_power` 0 and brightness 512 throughout, with no lid
+lines beyond its start. Not yet run on this image: a lid cycle, an idle blank and wake by
+eye, and the bind behind a closed lid, which 0521 has never been run against.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here
