@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera` |
-| Status | `running`: hardware map done, no chip ID in T1 to T3; the sensor stays silent with the bus and rails shown good |
+| Status | `running`: the sensor answers once SENINF enables are set by hand (T8); not yet through the driver's own probe |
 | Subsystem | Hi-556 sensor, I2C3, MT6351 camera rails, ISP power domain, CAMSYS clocks, SENINF master clock |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -357,3 +357,24 @@ rather than one generator, though those samples were the slower kind.
 
 The vendor library's `SeninfDrvImp::init` writes registers this driver never does: bit 31 of
 `+0x0d00`, `+0x1d00`, `+0x2d00` and `+0x3d00`, and bit 0 of `+0x0200`, `+0x1200` and `+0x2200`. T8 tries them.
+
+## T8: the SENINF enables
+
+Same boot, script `f288fbac`, one run of 30 s, as reported by the custodian. The owner approved the
+writes.
+
+Observed:
+
+- Before: `+0x0200`, `+0x1200`, `+0x2200` read 0, and `+0x0d00` to `+0x3d00` read `0x06df0080`.
+  GPIO31 read 0 on 300 of 300.
+- After setting bit 0 of the first three and bit 31 of the rest: GPIO31 read 1 on 244 of 300.
+- After restarting generator 2: 158 of 300. Reads were already good before this, so the restart
+  gets no credit.
+- `diag: addr 0x20 ret 2 id 0556`, 23 reads in a row. Every read at `0x28` still returned `-6`.
+  Good reads continued through one reset and power-down pulse.
+- No fault, and no sign of an interrupt storm.
+
+So on mainline this sensor answers `0x0556` at `0x20` on I2C3 with the master clock running.
+Which of the seven bits matter is not separated, since they were set together. The driver's own probe
+still failed, because it reads the ID before anything sets them, so the milestone is not met by
+this run: the ID was seen in a diagnostic retry with enables set by hand.
