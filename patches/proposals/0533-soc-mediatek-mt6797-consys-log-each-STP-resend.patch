@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 22:59:52 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: log each STP resend
+
+A long A2DP stream had 40 ACK timeouts and the controller reported more
+completed packets than the host sent, in groups the size of a resend.
+The halt line only gives totals, so nothing says when they happened or
+what the link was doing.
+
+Log each timeout with the frames outstanding and queued and the frame
+counts, limited by rate. The time lines up with a Bluetooth trace, and
+the received count shows if the firmware kept talking while its ACK
+stayed put.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index c56e587b1..7a3054379 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -1850,13 +1850,21 @@ static void mt6797_stp_tick(struct timer_list *t)
+ {
+ 	struct mt6797_stp *s = timer_container_of(s, t, tick);
+ 	unsigned long flags;
++	unsigned int timeouts;
+ 
+ 	spin_lock_irqsave(&s->lock, flags);
+ 	if (!s->stopped) {
++		timeouts = s->engine.tx_timeouts;
+ 		if (stp_engine_tick(&s->engine, jiffies,
+ 				    msecs_to_jiffies(MT6797_STP_ACK_TIMEOUT_MS))) {
+ 			mt6797_stp_stop_locked(s);
+ 		} else {
++			if (s->engine.tx_timeouts != timeouts)
++				dev_info_ratelimited(container_of(s, struct mt6797_consys, stp)->dev,
++						     "STP resend %u: try=%u unacked=%u queued=%u tx=%u rx=%u\n",
++						     s->engine.tx_timeouts, s->engine.retries,
++						     s->engine.unacked, s->engine.count,
++						     s->engine.tx_frames, s->engine.rx_frames);
+ 			if (s->engine.resync_owed)
+ 				mt6797_stp_pump(s);
+ 			mod_timer(&s->tick, jiffies + msecs_to_jiffies(MT6797_STP_TICK_MS));
+-- 
+2.43.0
+
