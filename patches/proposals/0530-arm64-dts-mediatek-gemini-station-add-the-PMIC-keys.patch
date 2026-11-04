@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 19:10:44 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: add the PMIC keys
+
+The Esc key is the MT6351 power key, and the station has no PMIC keys
+node, so a press reports nothing and can't wake a blanked console. Add
+the node and report it as KEY_ESC, as Gemian does.
+
+The bootloader selects boot2 from the PMIC home key, so describe that
+too, with Gemian's KEY_SEND. The driver assigns the PMIC keys by child
+order, so power must come first.
+
+The driver rewrites the long-press policy at probe, and an absent mode
+disables the reset. Set the policy from Gemian's configuration:
+one-key reset, eleven seconds.
+
+Not yet run on hardware.
+---
+ .../dts/mediatek/mt6797-gemini-pda-station.dts   | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 78626fc34..e21d6f74c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -291,6 +291,22 @@ &thermal {
+ };
+ 
+ &pmic {
++	keys {
++		compatible = "mediatek,mt6351-keys";
++		/* Gemian's policy; an absent mode disables the long-press reset. */
++		mediatek,long-press-mode = <1>;
++		power-off-time-sec = <11>;
++
++		/* The driver assigns the PMIC keys by child order: power, then home. */
++		power-key {
++			linux,keycodes = <KEY_ESC>;
++		};
++
++		home-key {
++			linux,keycodes = <KEY_SEND>;
++		};
++	};
++
+ 	fuel-gauge {
+ 		compatible = "mediatek,mt6351-fuel-gauge";
+ 		io-channels = <&pmic_adc MT6351_AUXADC_BATADC>;
+-- 
+2.43.0
+

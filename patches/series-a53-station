@@ -518,6 +518,10 @@ proposals/0013-pmdomain-mediatek-expose-retained-child-domain-fault.patch
 proposals/0014-pmdomain-mediatek-select-mt6797-conn-spm-preamble.patch
 proposals/0015-pmdomain-mediatek-clear-mt6797-conn-primary-first.patch
 proposals/0016-pmdomain-mediatek-report-confirmed-opted-domain-off.patch
+upstream-4d7d9486/keys/0001-Input-mtk-pmic-keys-ignore-failed-state-reads.patch
+upstream-4d7d9486/keys/0002-Input-mtk-pmic-keys-propagate-reset-setup-errors.patch
+upstream-4d7d9486/keys/0006-dt-bindings-input-mediatek-pmic-keys-constrain-MT635.patch
+upstream-4d7d9486/keys/0007-Input-mtk-pmic-keys-convert-MT6351-timeout-seconds.patch
 upstream-4d7d9486/clock-ids/0001-clk-mediatek-size-MT6797-providers-for-one-based-IDs.patch
 proposals/0034-pmdomain-mediatek-report-confirmed-opted-domain-on.patch
 proposals/0051-workqueue-name-null-pool-after-WLAN-START.patch
@@ -696,3 +700,4 @@ proposals/0526-thermal-generic-adc-do-not-overflow-the-table-interp.patch
 proposals/0527-ASoC-mediatek-btcvsd-stop-the-interrupt-before-unmap.patch
 proposals/0528-ASoC-mediatek-mt6797-add-a-card-for-the-Bluetooth-vo.patch
 proposals/0529-arm64-dts-mediatek-gemini-station-describe-the-Bluet.patch
+proposals/0530-arm64-dts-mediatek-gemini-station-add-the-PMIC-keys.patch

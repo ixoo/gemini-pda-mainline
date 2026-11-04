@@ -1112,3 +1112,4 @@ proposals/0526-thermal-generic-adc-do-not-overflow-the-table-interp.patch
 proposals/0527-ASoC-mediatek-btcvsd-stop-the-interrupt-before-unmap.patch
 proposals/0528-ASoC-mediatek-mt6797-add-a-card-for-the-Bluetooth-vo.patch
 proposals/0529-arm64-dts-mediatek-gemini-station-describe-the-Bluet.patch
+proposals/0530-arm64-dts-mediatek-gemini-station-add-the-PMIC-keys.patch
