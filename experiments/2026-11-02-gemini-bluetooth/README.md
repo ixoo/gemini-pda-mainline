@@ -774,3 +774,20 @@ owner suggested.
 `+CIEV` or `RING` around the eSCO link, and it answers the headset's `AT+CLCC` with `ERROR`. HFP has no separate
 mode for this: the audio link opens without a call state. The capture still matched, so this headset's microphone
 isn't gated on a call. Whether a call state changes its processing or the earpiece noise is untested.
+
+## T7, prepared: does sending silence stop the noise?
+
+T6's trace left one cheap test of the unfed-SRAM reading. `DIR=both` captures for 24 s on one link, sends the
+driver's own idle pattern (`0xaa`) from 8 s to 18 s, and then closes playback, which makes the driver write the idle pattern to
+SRAM once more. The pattern decodes to silence offline, peak 4 of 32767. Nothing here needs a new module.
+
+So one link gives three conditions: unfed, fed with silence, and left after feeding. The owner reports when the noise changes
+without being told when to expect it. The laptop plays 5 s of the known recording from 13 s, to check
+capture still matches with both directions running, which the bridge needs and which hasn't been run through ALSA.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Noise stops from about 8 s, capture matches | Unfed SRAM was the noise | Write idle to SRAM in the driver at stream start, then voice both ways |
+| Noise stays, capture matches | SRAM isn't the source; the headset's mic path or call state remains | Test a call state through `bluealsa-rfcomm` |
+| Capture degrades once playback runs | The directions interfere | Offline with the bytes |
+| Hang or Oops | Stop, the first evidence on T5's hang | Keep everything; no retry |

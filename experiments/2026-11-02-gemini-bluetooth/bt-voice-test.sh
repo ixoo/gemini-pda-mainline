@@ -2,9 +2,11 @@
 # SPDX-License-Identifier: MIT
 # shellcheck shell=dash
 # One direction of the voice path during one eSCO link. Run after bt-test.sh load and
-# pair, with CONSYS up, and only one direction per link:
+# pair, with CONSYS up, and one mode per link:
 #   NAME='headset' DIR=rx sh bt-voice-test.sh    the microphone to private/mic.cvsd
 #   NAME='headset' DIR=tx sh bt-voice-test.sh    notes to the headset, 5 s in each bit order
+#   NAME='headset' DIR=both sh bt-voice-test.sh  the microphone for 24 s, with 10 s of CVSD
+#                                                idle pattern sent from 8 s in
 # Nothing plays over HCI to hold the link, in case the firmware acts on those packets.
 # The capture holds speech: it is private. The rate tells ALSA 8 kHz, not the 64 kHz of the
 # coded bits: at 64 kHz the core's interrupt check reads a normal interval as a lost buffer
@@ -29,6 +31,9 @@ if [ "$DIR" = tx ]; then
 	$D/bt-voice encode --msb < $P/notes.raw > $P/notes-high.cvsd
 	cat $P/notes-low.cvsd $P/notes-high.cvsd > $R/tmp/tx.cvsd
 	step "tx bytes $(wc -c < $R/tmp/tx.cvsd)"
+elif [ "$DIR" = both ]; then
+	# 0xaa is the pattern the driver itself writes for silence.
+	head -c 80000 /dev/zero | tr '\000' '\252' > $R/tmp/tx.cvsd
 fi
 insmod $D/mtk-btcvsd.ko; echo "insmod driver=$?"
 insmod $D/mt6797-btcvsd.ko; echo "insmod card=$?"
@@ -43,17 +48,29 @@ if [ "$DIR" = tx ]; then
 	timeout 24 chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "hw:$card,0" -t raw -f S16_LE -c 1 -r 8000 -R 1 --period-size=450 --buffer-size=1800 /tmp/tx.cvsd &
 	dir=p
 else
-	timeout 20 chroot $R /usr/bin/env PATH=/usr/bin:/bin sh -c "arecord -q -D hw:$card,0 -t raw -f S16_LE -c 1 -r 8000 --period-size=480 --buffer-size=1920 > /tmp/mic.cvsd" &
+	secs=20
+	[ "$DIR" = both ] && secs=24
+	timeout $secs chroot $R /usr/bin/env PATH=/usr/bin:/bin sh -c "arecord -q -D hw:$card,0 -t raw -f S16_LE -c 1 -r 8000 --period-size=480 --buffer-size=1920 > /tmp/mic.cvsd" &
 	dir=c
 fi
 stream=$!
+if [ "$DIR" = both ]; then
+	(
+		sleep 8
+		step "silence starts"
+		timeout 12 chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "hw:$card,0" -t raw -f S16_LE -c 1 -r 8000 -R 1 --period-size=450 --buffer-size=1800 /tmp/tx.cvsd
+		step "silence ended $?"
+	) &
+	tx=$!
+fi
 i=0
-while [ $i -lt 20 ]; do
+while [ $i -lt "${secs:-20}" ]; do
 	sleep 1
 	status $dir
 	i=$((i + 1))
 done
 wait $stream; step "stream ended $?"
+[ -z "${tx:-}" ] || wait "$tx"
 wait $sco
 step "link ended"
 grep -E 'aplay=|arecord=' $P/voice-sco.txt
