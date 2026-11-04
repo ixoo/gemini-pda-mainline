@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed` for A2DP. T3 to T4: a voice link connects, no voice crosses HCI, and the owner heard their own voice looped through the CVSD SRAM path by the upstream driver. No microphone for applications yet; the coder and bridge are not built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3 to T5b: no voice crosses HCI. The CVSD SRAM path carried voice in loopback, and capture through the driver decodes at the right rate on one run. T5's hang is unexplained, playback is untested, and the bridge isn't built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -610,4 +610,27 @@ with an HCI data path, where the Gemian kernel's core uses the older command; no
 [`bt-voice-test.sh`](bt-voice-test.sh) now runs one direction per link, at a declared 8 kHz, with
 `aplay` starting on its first write, and writes each step and the PCM's status to `/mnt/data` with a
 `sync`, so a hang leaves evidence. It has not run.
+
+## T5b result: capture ran, no hang (2026-11-03)
+
+The owner's "go". Run by the custodian on boot `0633cf9d`, image `3e429f70`, modules as in T4,
+`bt-voice-test.sh` `f43bf9d5…`, `DIR=rx`, Wi-Fi off, console blank off. One eSCO link. Evidence,
+including the owner's voice, is private under `artifacts/station-work-43/boot-0633cf9d/bt-t5b/`.
+
+**Observed:**
+- `hw_ptr` climbed about 4320 frames a second for 20 s. `mic.cvsd` is 170880 bytes: 5340 records, 8.1 kB/s of
+  coded bytes. No overrun, xrun, assert, warning or stopped link. `timeouts=0`.
+- Of those records, 5324 are marked valid and 16 invalid.
+- `bt-test.sh`'s HCI `aplay` ended early with 1, because this script's kill loop also matched it, so the
+  link was cut at about 25 s of 30.
+
+**Bit order settled: first bit in the low position.** Adjacent bits are equal about 21% of the time at
+all eight positions in a byte with that order. With the other order, the boundary between bytes jumps to
+49%, as unrelated bits would. Decoded in that order, 8 kHz, levels rise and fall over the 20 s by
+20 times, from 239 to 4821 RMS per second. A cruder test, high-frequency energy, had favoured the wrong order,
+so it is not a useful measure of this coder.
+
+**Inferred:** T5's rate setting was at least part of what went wrong in capture. It shows only that
+capture alone does not reach T5's hang, on one run. Playback alone, and both together, remain untested.
+**Whether the file is intelligible is the owner's to say**, and it is not established here.
 
