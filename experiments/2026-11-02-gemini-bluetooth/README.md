@@ -1027,3 +1027,19 @@ order. A soak of 5 minutes on AAC follows, as T2 stalled on a stream and AAC's l
 | Owner prefers SBC, or no difference | Keep SBC; AAC's rate is capped at 192 kbps | Consider SBC XQ if more is wanted |
 | Switching fails | No blind A/B this way | Keep logs; two sessions need a new decision |
 | Link stalls | `timeouts` and `resent` count | Keep logs; no retry |
+
+## T12 result: the kernel's own mSBC link, heard clean (2026-11-03)
+
+The owner's "Yes, run T12". Boot `3fb07fd4`, image `8f2c1167`, `btmt6797` `754ad753` with 0532 (insmod 0), `bt-test` `90a27bb3`, `bt-start` `4f936a8b`, `bt-voice-test` `1c76747a`, `gemian_radio` N. Used 1 inquiry, 1 pairing, 1 eSCO. Evidence private under
+`artifacts/station-work-44/boot-3fb07fd4/bt-t12/`; `mic.cvsd`, mSBC frames, is `c6182174`.
+
+**The owner reports:** "quality is good I heard it all" and "no obvious noise".
+
+**Observed:**
+- `+BCS:2` and `AT+BCS=2`, then `0x0428` with status 0 and no `0x043d`. Sync Conn Complete: status 0, eSCO, interval 12, window 4, 60 bytes each way, air mode 3. The kernel's voice setting is `0x0003`, where T11's by hand was `0x0063`; the result was the same.
+- No crash: `failed=0 timeouts=0 resent=0`, assert 0, xrun 0, every `rmmod` 0, HCI SCO counts 0.
+- Capture: 3203 good frames, 7 bad. The recording arrived at 3.70 s, contour correlation 0.891, waveform 0.441, level -32.1 dBFS. The notes appear at 12.16 s, correlation 0.414, about -60 dBFS.
+- `hcitool`: transmit power 10, RSSI -10 to -17, link quality 16.
+
+**What's proven now, on this headset, by ear and by correlation, on two runs:** mSBC through the kernel's own eSCO link and the SRAM path, in both directions, without the noise CVSD had. Not separated: whether the noise's cure was mSBC itself or the setup's retransmission window, and how CVSD sounds under 0532, which is untested.
+Not done: other headsets, long runs, Wi-Fi at the same time, a bridge to ALSA. The test still uses a raw stream and an offline decoder.
