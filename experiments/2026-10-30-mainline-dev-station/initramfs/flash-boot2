@@ -59,9 +59,9 @@ fi
 damaged() { log "FAILED: $1: $dev NOT intact, predecessor=$before"; $bb echo "flash-boot2: FAILED: $1: $dev NOT intact, predecessor=$before" >&2; exit 3; }
 log "writing"
 $bb dd if="$image" of="$dev" bs=1048576 conv=fsync 2>/dev/null || damaged "write"
-$bb sync
-$bb echo 3 > /proc/sys/vm/drop_caches
-after=$($bb sha256sum "$dev")
+$bb sync || damaged "sync"
+$bb echo 3 > /proc/sys/vm/drop_caches || damaged "dropping the cache"
+after=$($bb sha256sum "$dev") || damaged "readback"
 after=${after%% *}
 [ "$after" = "$expected" ] || damaged "readback $after does not match"
 log "result=written-synced-readback-verified readback=$after"
