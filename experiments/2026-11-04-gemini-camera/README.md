@@ -131,7 +131,7 @@ enable (`ISP_MCLK2_EN`). 24 MHz is `n` = 2 from CAMTG at 48 MHz from `univpll_d2
 
 ## Negative results
 
-- T1, T2 and T3: no chip ID, in 89 reads across them. See [below](#t1-the-chip-id).
+- T1, T2, T3 and T5: no chip ID, in 117 reads across them. See [below](#t1-the-chip-id).
 - T3's script wrote to physical address 0 three times by mistake. See
   [below](#a-script-error-writes-to-address-0).
 
@@ -265,5 +265,22 @@ while the hardware still runs the old setting.
 Also settled: the live kernel sets bus 3 for this socket, and the library's power-on sets
 the master clock's drive, which is an open and separate difference.
 
-Not yet shown on the device. T5 writes the bit once. If this is the cause, the fix belongs in
-`clk-mt6797.c`, and other MT6797 top muxes this kernel changes share the same gap.
+T5 tested this on the device and did not support it as the sole cause.
+
+## T5: the mux update write
+
+Same boot, module `caa443a8`, script `ee9e8f6b`, one run of 14 s, as reported by the
+custodian. The owner approved the write. `0x10000060` read `0x01010001` and `PWR_STATUS` showed
+the ISP domain on, then `0x00000100` was written once to `0x10000004`.
+
+Observed: GPIO31 read 0 on 64 of 64 samples before the write and 64 of 64 after. All 28
+chip ID reads returned `-6`, with none after the write differing. No fault. The PMIC and
+the AW9120 answered as in T3.
+
+Inference: the omitted update is not, by itself, why the sensor is silent. This is one
+write with the gate already open, nothing shows the mux took it, and the timing of the write
+against the reads comes only from the script's order. The gap in `clk-mt6797.c` remains a
+real difference from the vendor kernel, whether or not it matters here.
+
+Nothing has yet shown GPIO31 toggling under any kernel, so the sampling method itself is
+unproved for a pad known to be running.
