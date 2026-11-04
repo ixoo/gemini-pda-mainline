@@ -121,8 +121,8 @@ predicted.
   `0x0220` wasn't needed.
 - **Closed lid.** The side key reports with the lid closed, as the owner wanted.
   It didn't wake the console in that state. The cause wasn't investigated.
-- **Long-press reset.** The register holds the intended policy. The 11 s reset
-  itself was not exercised.
+- **Long-press reset.** The register holds the intended policy. The reset ran later:
+  [below](#long-press-reset-boot-c08abf6b).
 
 **Not tested:**
 
@@ -132,12 +132,22 @@ predicted.
   in that window, so step 4 rests on reading `gemini-lid`.
 - Suspend and wake from either key.
 
+## Long-press reset, boot `c08abf6b`
+
+On image `2d6a20a5`, the owner held Esc to reset the running station. The owner's report:
+"It reset". The live kernel log over SSH ended with no panic or warning line, then timed
+out. The owner selected boot2 and it came back as boot `5d84305f`, with the same boot2
+hash, untainted.
+
+- The hold time wasn't measured, so 11 s is the configured value, not a timing. Only one
+  press ran, with the station idle. Whether it works on a hung kernel is untested.
+- `/sys/fs/pstore` holds no records after it. The previous boot hadn't panicked, so this
+  shows a key reset leaves no record here, not that pstore lost one.
+
 ## Open before upstream
 
-- **Long press.** The register holds the intended policy, but the action has never run,
-  so reset versus power-off is open. In one-key mode it sits on Esc, an ordinary typing
-  key, so a key held for 11 s acts on the whole device. Whether to keep that is an owner
-  decision.
+- **Long press.** It sits on Esc, an ordinary typing key, so a key held for about 11 s
+  acts on the whole device. The owner chose to keep it (2026-11-04).
 - **Keys 0001, 0002, 0006 and 0007.** All four carry a placeholder author, and 0001 and
   0002 also say "Unsigned experiment draft". They can't be submitted until the owner has
   reviewed them and certifies them truthfully.

@@ -14,7 +14,7 @@ image, and it has run on one unit.
 | Area | State | Blocker |
 | --- | --- | --- |
 | Install | Partial | `flash-boot2` from a running station. No first-install tool; a [tester guide](TESTING_GUIDE.md) says so |
-| Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. The 11 s long press has never run |
+| Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. Holding Esc resets a running station, one run, untimed |
 | Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), not yet booted |
 | Unit dependence | Yes | Parent carries keys and firmware; fixed USB addresses; `iw reg set US` |
 | Root filesystem | RAM only | No distro path; `linux` mounts Gemian's partition read-write |
@@ -46,7 +46,7 @@ image, and it has run on one unit.
 | 4 | Leave Gemian's root read-only by default, or use one dedicated directory. Read-only in the release image, unbooted, at a cost to the display: [below](#release-ram-root). Owner decision open | S, owner decision |
 | 5 | A country setting replaces fixed US; radio off until set. `radio-start` does this, never booted; owner protocol open | S, owner protocol |
 | 6 | First-install tool from Gemian using the existing guard; backup, restore and removal steps | M |
-| 7 | Evidence: ten cold boots, a real charge reaching 80%, the 11 s reset, the Wi-Fi baseline, a soak | M, needs the device |
+| 7 | Evidence: ten cold boots, a real charge reaching 80%, the Esc reset on a hung kernel, the Wi-Fi baseline, a soak | M, needs the device |
 | 8 | One non-author unit follows the guide unaided | M, availability risk |
 | 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for all shipped binaries. [Guide](TESTING_GUIDE.md) written, followed by nobody; no tool or source copies yet | S |
 
@@ -152,8 +152,8 @@ nearby Gemini on Bluetooth; promise anything about other hardware variants.
 **Tester safety:** back up every readable partition privately, since backups hold
 calibration and identifiers. Confirm Gemian boots and `boot2` exists by GPT name. Use
 stable power for writes. A plain `reboot` returns to Gemian. Stop on heat, swelling,
-charging anomalies or watchdog loops. Holding Esc 11 s is expected to reset the device,
-untested. Scrub logs of addresses and network names. Set the right country before radio
+charging anomalies or watchdog loops. Holding Esc about 11 s resets the device; it ran once, on a
+running station. Scrub logs of addresses and network names. Set the right country before radio
 use.
 
 ## Code quality

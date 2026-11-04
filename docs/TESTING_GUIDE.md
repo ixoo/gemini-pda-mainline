@@ -190,7 +190,8 @@ on the console. Passwords are refused. If SSH doesn't answer, look at
 - Use those, not `reboot -f`. Then check that Gemian boots normally.
 - **A hung kernel has no tested way out.** A panic restarts after 10 s and a restart
   normally lands in Gemian. An Oops or a lockup doesn't restart.
-  Holding Esc for 11 s is expected to reset the device, and that has never been run.
+  Holding Esc for about 11 s reset a running station in one test; on a hung kernel
+  it hasn't been tried.
   Report what you had to do.
 
 ## Firmware and radio
