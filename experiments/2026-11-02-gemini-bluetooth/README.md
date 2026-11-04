@@ -965,4 +965,6 @@ Used 1 inquiry, 1 pairing, 0 links. No crash: `failed=0 timeouts=0 resent=0`, as
 - `hcitool` on the ACL alone read transmit power 10, RSSI -11 to -14, link quality 255. That isn't comparable with T9: there was no eSCO, and other settings.
 
 **Reading:** this controller lists transparent coding but refuses this command. Which parameter it objects to isn't established. CVSD's accepted
-command differs in coding formats, sizes and transport units. The firmware may also need the older Setup Synchronous Connection `0x0428` for this. This says nothing about the noise yet.
+command differs in coding formats, sizes and transport units. The firmware may also need the older Setup Synchronous Connection `0x0428` for this.
+**The owner reports:** "I didn't hear any noise, but I didn't hear any notes either". So with HFP connected and no voice link, there was no noise. On this one
+run, the noise needs an open eSCO link, which fits the owner's "starts when you open the mic". It doesn't say which end produces it or whether CVSD matters.
