@@ -1134,3 +1134,4 @@ proposals/0548-media-mediatek-add-the-MT6797-sensor-interface-s-mas.patch
 proposals/0549-arm64-dts-mediatek-mt6797-add-the-sensor-interface.patch
 proposals/0550-arm64-dts-mediatek-gemini-station-describe-the-front.patch
 proposals/0551-media-i2c-hi556-DIAGNOSTIC-stay-powered-after-a-fail.patch
+proposals/0552-media-i2c-hi556-DIAGNOSTIC-read-the-rails-and-try-an.patch

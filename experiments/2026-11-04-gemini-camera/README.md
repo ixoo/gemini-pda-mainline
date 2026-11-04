@@ -165,6 +165,36 @@ No retry. T2 holds the power on to read the state.
 
 ## T2: the state while powered
 
-Not run. [`0551`](../../patches/proposals/0551-media-i2c-hi556-DIAGNOSTIC-stay-powered-after-a-fail.patch)
-is a diagnostic that keeps the rails and clock on after a failed chip ID and retries once
-a second, for dropping once this is understood.
+Same boot, module `c5638225` from commit `95330518`, one run of 14 s, as reported by the
+custodian.
+
+Observed during the hold:
+
+- `vcama`, `vcamd` and `vcamio` read enabled at 2.8, 1.21 and 1.8 V.
+- The ISP domain read on (bit 5 of `PWR_STATUS` and its second copy), the first time it
+  is seen on under this kernel, and off again at the end.
+- `seninf_mclk1` read 24 MHz, from `cam_camtg` at 48 MHz, from `camtg_sel` on
+  `univpll_d26`.
+- CAMSYS `0x1a000000` read `0xe3f`, so bits 6, 7 and 8 are ungated. SENINF read
+  `+0x0000` `0xc00`, `+0x1600` `0xa0000001`, `+0x1604` `0x00010001`, as written.
+- GPIO29 and GPIO33 read output, high, and high at the pad. GPIO31 read mode 1. GPIO74
+  and GPIO75 read mode 1, high, so the bus idles high.
+- All 14 pairs of reads at `0x20` and `0x28` returned `-6`, before and after one reset
+  and power-down pulse in the vendor's order and step lengths.
+- A read of the AW9120 at `0x2c` also returned no ACK, with its enable GPIO245 low.
+
+Inference: `-6` is the address going unacknowledged, not a timeout. Sensor timing is
+unlikely after 14 s and a pulse. This does not show that the bus works, because the only
+other chip tried was in shutdown, or that the clock reaches the pad, or that the rails
+are really up, because sysfs reports only the enable bit.
+
+The live vendor kernel's power table for this sensor matches the public source: clock,
+reset low, power-down low, then 1.8, 2.8 and 1.2 V, reset high, power-down high. Its
+pin states for this socket are GPIO33 and GPIO29. The vendor kernel's own bus selection
+is the same as read in the public source.
+
+## T3: clock at the pad, rails, and another chip on the bus
+
+Not run. [`0552`](../../patches/proposals/0552-media-i2c-hi556-DIAGNOSTIC-read-the-rails-and-try-an.patch)
+adds the PMIC's own registers for the rails and a read of the AW9120's ID, with its enable
+raised for a moment. The script samples GPIO31's input level many times.
