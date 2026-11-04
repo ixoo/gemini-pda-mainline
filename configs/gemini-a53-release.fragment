@@ -1,6 +1,6 @@
 # First test release (docs/RELEASE_READINESS.md): the station with the A72 pair,
 # without the options that only serve bring-up. Listed last, so it overrides them.
-# Built only so far; nothing here has booted.
+# Booted once (2026-10-30-mainline-dev-station, first boot of the release image).
 
 # Open, deliberately unchanged here:
 # - The Esc long press (one-key reset at 11 s) comes from the station device tree

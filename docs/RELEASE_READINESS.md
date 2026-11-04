@@ -15,7 +15,7 @@ image, and it has run on one unit.
 | --- | --- | --- |
 | Install | Partial | `flash-boot2` from a running station. No first-install tool; a [tester guide](TESTING_GUIDE.md) says so |
 | Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. Holding Esc resets a running station, one run, untimed |
-| Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), not yet booted |
+| Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), booted once |
 | Unit dependence | Yes | Parent carries keys and firmware; fixed USB addresses; `iw reg set US` |
 | Root filesystem | RAM only | No distro path; `linux` mounts Gemian's partition read-write |
 | Suspend, cpuidle, cpufreq | Not started | Off. Decides battery life and heat |
@@ -40,11 +40,11 @@ image, and it has run on one unit.
 
 | # | Blocker | Effort |
 | --- | --- | --- |
-| 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key. Built and audited offline, never booted: [below](#release-ram-root) | M |
-| 2 | Tester supplies firmware from their own device, with hash check; Wi-Fi absent cleanly otherwise. Absence built, never booted; no way to supply or check firmware yet | S-M |
-| 3 | Release profile, below. Package and RAM root compose; the command line items stay open | S-M |
-| 4 | Leave Gemian's root read-only by default, or use one dedicated directory. Read-only in the release image, unbooted, at a cost to the display: [below](#release-ram-root). Owner decision open | S, owner decision |
-| 5 | A country setting replaces fixed US; radio off until set. `radio-start` does this, never booted; owner protocol open | S, owner protocol |
+| 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key. Booted once on the author's unit: [below](#release-ram-root). Not on a tester's | M |
+| 2 | Tester supplies firmware from their own device, with hash check; Wi-Fi absent cleanly otherwise. Absence booted once; no way to supply or check firmware yet | S-M |
+| 3 | Release profile, below. Package and RAM root booted once; the command line items stay open | S-M |
+| 4 | Leave Gemian's root read-only by default, or use one dedicated directory. Read-only in the release image, booted once, at a cost to the display: [below](#release-ram-root). Owner decision open | S, owner decision |
+| 5 | A country setting replaces fixed US; radio off until set. `radio-start` refused without a country on one boot; the path with one hasn't run; owner protocol open | S, owner protocol |
 | 6 | First-install tool from Gemian using the existing guard; backup, restore and removal steps | M |
 | 7 | Evidence: ten cold boots, a real charge reaching 80%, the Esc reset on a hung kernel, the Wi-Fi baseline, a soak | M, needs the device |
 | 8 | One non-author unit follows the guide unaided | M, availability risk |
@@ -56,8 +56,8 @@ Items 1 to 3 change boot files, so batch them into one image.
 
 Phase A's profile is `mt6797-a53-release`, from
 [its fragment](../configs/gemini-a53-release.fragment), which says what each removal
-breaks and what stays open. It's built only; nothing has booted it. The list below is
-the station it departs from.
+breaks and what stays open. It has [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
+The list below is the station it departs from.
 
 - Forced command line today: `initcall_debug`, `nokaslr`, `earlycon`,
   `clk_ignore_unused`, `console=ttyS0` only, and a test-named USB identity with a fixed
@@ -67,7 +67,8 @@ the station it departs from.
   showed with that value set at run time. There's still no lockup detector or
   `panic_on_oops`, so an Oops or a lockup stays hung, and a kernel stuck like that no
   longer kicks the charger watchdog, which restores charging in about 47 s (inference
-  from the guard record). The command-line value has not booted.
+  from the guard record). The command-line value is live on the station and this image;
+no panic has run on either with it.
 - Remove unless justified: `THERMAL_EMULATION`, `DEVMEM`, `I2C_CHARDEV`, `DEBUG_FS`.
 - Log noise: 150 `dev_info` calls in Wi-Fi and CONSYS with no `dev_dbg`, and "one-shot"
   naming 82 times in Wi-Fi. `wait_for_bt_irq` printed 1939 lines in one Bluetooth run,
@@ -124,10 +125,13 @@ loop images of `linux` and `nvdata` stayed byte-identical, `poweroff` ended it c
 `flash-boot2` wrote and read back a loop device and refused bad input, and `insmod` loaded
 a VM module. `iw` was a stand-in past `reg set`, since the VM has no `cfg80211`.
 
-**Unverified:** nothing has booted. On the device, that leaves init and the keymap, the
-console, Alpine's `insmod` with these modules, USB SSH, entropy for the host key, audio
-with Alpine's ALSA, Wi-Fi with Alpine's wpa_supplicant and its older `regulatory.db`,
-`iw reg get` matching the wait, and the read-only mount. Alpine removes old package
+**[First boot](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04), 2026-11-04, one unit:** init, Alpine's `insmod`, USB SSH, the
+host key, the read-only mount settings and a speaker tone with Alpine's ALSA worked, and
+the radio stayed off.
+
+**Unverified:** the console and keymap by eye, Wi-Fi with Alpine's wpa_supplicant and
+its older `regulatory.db`, `iw reg get` matching the wait, and that the partition's
+contents stay unchanged across a boot. Alpine removes old package
 revisions, so the pins fail loudly once one is replaced; a kept copy of the packages or
 a mirror is still needed, along with the source for shipped binaries (blocker 9).
 

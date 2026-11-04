@@ -5,15 +5,15 @@ A guide for testing the proposed v0.1 image on your own Gemini PDA. It goes with
 doesn't. The [safety policy](SAFETY.md) outranks anything here.
 
 > [!WARNING]
-> **Nobody can complete this guide yet, and this image has never booted.** Three gaps
-> are open:
+> **Nobody can complete this guide yet.** Two gaps are open, and the image has booted
+> only once:
 >
 > 1. **No first install.** There's no tested way for a tester to put the first image on
 >    boot2. See [Installing](#installing-to-boot2).
 > 2. **No kernel package for testers.** Project kernels come from the project's own
 >    Buildbox, and no package is published. See [Building](#building-the-image).
-> 3. **No boot.** The release image has only been built and run in a VM. Only the
->    author has ever written boot2 or booted any image, on one unit.
+> 3. **One boot.** The release image has booted once, on the author's unit. Only the
+>    author has ever written boot2 or booted any image.
 
 ## Who it's for
 

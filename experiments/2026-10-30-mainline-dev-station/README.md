@@ -1063,3 +1063,39 @@ respawns, as it always has.
 A second review found two more ways to relight behind a closing lid, both confirmed by
 reading the code and fixed: the wake's `bl_power` write when the lid closes during the
 500 ms wait, and a key arriving with the lid event in one fade step. No device test yet.
+
+## First boot of the release image (2026-11-04)
+
+**Hypothesis.** The release RAM root reaches USB SSH with only public userspace, with
+Gemian's partition read-only and the radio off. If SSH failed, the console status file
+would say why; with no console, Gemian would restore the station image.
+
+**Candidate.** Profile `mt6797-a53-release` from `4c2fc3b7`, package inventory
+`6ee52a73…`, public parent `f531d953…` built before `55f23783` (that commit changed only
+files added at compose). boot2 `4eefdc42507eda5633f5dcb8186cd12adcd95680495922fa7839bddaa1aaee33`,
+written from the station with `flash-boot2`, predecessor `2d6a20a5…`, full readback
+matched. Boot `56d30c7c`, one unit, on USB.
+
+**Before the write,** the composed RAM root held no firmware but `regulatory.db`, no
+private or host key, and one `authorized_keys` line, the project's public key.
+
+**Observed:**
+
+- `7.1.3-gemini-a53-release`, 8 CPUs, tainted 0, and no kernel error or warning in the
+  log. pstore held nothing. The `panic=10` value is on the command line.
+- USB SSH took the key. `dropbearkey` waited for randomness, and crng finished at 4.15 s.
+- Status lines: `charge-guard=bound`, `data=mounted-ro`, `lid=gemini-lid`,
+  `radio=off-no-country`, `audio=ready`, `display=loader-framebuffer`.
+- The `linux` partition was mounted `ro,norecovery` and `blockdev --getro` read 1.
+- The guard stopped charging at 10.99 s, at 94% against the limit of 80.
+- No Wi-Fi interface, no Wi-Fi module loaded, and `iw reg get` showed country 00.
+- A 15 s, 1 kHz, −40 dBFS tone on the speakers through Alpine's `aplay` returned 0 and
+  the owner heard it. The speaker switch read off afterwards.
+
+**Not shown:** the console's look, the keymap and the lid on this image; partition contents
+unchanged, since no hash was taken before or after; a panic restart or the Esc reset here;
+a real charge to 80%; Wi-Fi with firmware and a country; `display-start` here; a second boot.
+
+**Conclusion.** The hypothesis held on one boot of one unit. That removes "never booted"
+from release blockers 1 to 3, not the blockers: firmware supply, the country protocol and
+a tester's own unit stay open.
