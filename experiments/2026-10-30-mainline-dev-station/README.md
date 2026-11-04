@@ -966,7 +966,9 @@ fallback.
 - **1, idle cost: passes.** On boot `7978f9ea`, image `8f2c1167`, the switches rose by 0
   over 30 s while lit. On boot `489e5436`, by an earlier live swap, they rose by 0 over
   30 s while blanked. `init` respawns the program under its new name.
-- **Owner, on boot `7978f9ea` or `3fb07fd4`:** "the esc test passed Fn+n and b work too".
-  This doesn't say which Esc check it means, 2 or 3, so the other stays open.
+- **2 and 3, Esc: pass, by the owner's report.** "esc: prevented from blanking, then woke
+  up from blanking so all passed". The 50 ms log timing wasn't measured.
+- **4, Fn+B and Fn+N: work, by the owner's report.** "Fn+n and b work too", on boot
+  `7978f9ea` or `3fb07fd4`.
 - **Still open:** the idle fade and blank, a key cancelling the fade, and a lid close
   and open.
