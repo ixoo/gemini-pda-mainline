@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-10-06-gemini-i2c1-sensors` |
-| Status | Built and package-verified; DT derivation and protocol draft for review; not booted |
-| Profile | `mt6797-a53-i2c1-sensors-compile` |
-| Date | 2026-10-06 |
-| Device action | None |
+| Status | Ported to the station on 2026-11-04 and [being tested there](#station-port-2026-11-04); the 2026-10-06 candidate below was never booted |
+| Profile | `mt6797-a53-station-a72`; originally `mt6797-a53-i2c1-sensors-compile` |
+| Date | 2026-10-06, 2026-11-04 |
+| Device action | See [station tests](#station-tests) |
 
 ## Purpose
 
@@ -82,3 +82,51 @@ and relies on them; a later product DT can describe the same modes.
 Compilation, remote validation, fetch and local checksums pass, with no
 compiler warning. The resolved config has `I2C_CHARDEV`, `IIO`, `BMI160` and
 `BMI160_I2C` built in.
+
+## Station port, 2026-11-04
+
+The profile above predates the current station series, so it is not booted.
+[Patch 0542](../../patches/proposals/0542-arm64-dts-mediatek-gemini-station-enable-the-sensor-.patch)
+carries the idea to the station DT, with `BMI160_I2C` and `STK3310` as modules
+nothing loads. What it adds to a boot: the I2C1 controller's probe and its
+clocks, the mode of GPIO55/56, and the bus's place in the dynamic I2C numbering.
+It sends nothing on the bus.
+
+Bus numbers are not stable across this change. I2C0 stays `i2c-0`, the only number
+station code relies on, in [`charge-guard.c`](../2026-10-30-mainline-dev-station/charge-guard.c);
+I2C1 takes `i2c-1` and the others move up.
+
+### The interrupt conflict
+
+[`mt6797-interrupts.md`](../../docs/hardware/mt6797-interrupts.md) recorded a
+conflict between the STK3x1x and BMI160 in one vendor probe.
+
+Observed:
+
+- The retained vendor log has `genirq: Flags mismatch irq 395. ... (bmi160_accint) vs. ... (ALS-eint)`.
+  This is the return path the [BMI resources review](../2026-09-07-gemini-sensors-upstream-architecture/BMI_RESOURCES.md)
+  could only call plausible.
+- The live DTB `9e269295…` gives the `als` node `interrupts = <88 8>`, GPIO88 and
+  level low, and `/proc/interrupts` lists only `mt-eint 11 ALS-eint`.
+- The same DTB gives `gyroscope@0` `<65 8>` and `gse_1` `<63 8>`. Its pin state for
+  GPIO65 selects the GPIO function with a pull-down, not the EINT function.
+
+Inference: this is a vendor driver bug, not a shared wire. `bmi160_request_irq`
+looks up the light sensor's node, asks for its line as rising against the
+sensor's level low, and fails; the probe ignores the failure
+([sensors F8](../2026-10-04-gemini-sensors-re/README.md)). That driver also never
+programs the chip's interrupt outputs. So EINT11 belongs to the STK3x1x, and no
+pin is known to be the BMI160's. The patch gives the STK3x1x the line and the IMU
+none. GPIO65 and GPIO63 remain untested candidates.
+
+### Station tests
+
+[`sensors-t0.sh`](sensors-t0.sh) makes the identity reads with no module loaded.
+[`sensors-imu.sh`](sensors-imu.sh) and [`sensors-als.sh`](sensors-als.sh) sample
+through IIO, and [`decode-imu.py`](decode-imu.py) summarizes an IMU capture on the
+laptop. Raw captures stay under `artifacts/`.
+
+The device frame used here: base flat on a table, keyboard up, front edge toward
+the user. X points to the right edge, Y to the hinge, Z out of the keyboard.
+
+Results will follow as each test is run.
