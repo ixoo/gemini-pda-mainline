@@ -1091,9 +1091,10 @@ private or host key, and one `authorized_keys` line, the project's public key.
 - No Wi-Fi interface, no Wi-Fi module loaded, and `iw reg get` showed country 00.
 - A 15 s, 1 kHz, −40 dBFS tone on the speakers through Alpine's `aplay` returned 0 and
   the owner heard it. The speaker switch read off afterwards.
+- Asked whether the screen, typing and lid looked right on this image, the owner answered
+  "All fine". That's by eye on the loader framebuffer, with no key-by-key check.
 
-**Not shown:** the console's look, the keymap and the lid on this image; partition contents
-unchanged, since no hash was taken before or after; a panic restart or the Esc reset here;
+**Not shown:** every key of the keymap; partition contents unchanged, since no hash was taken before or after; a panic restart or the Esc reset here;
 a real charge to 80%; Wi-Fi with firmware and a country; `display-start` here; a second boot.
 
 **Conclusion.** The hypothesis held on one boot of one unit. That removes "never booted"

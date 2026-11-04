@@ -126,10 +126,10 @@ loop images of `linux` and `nvdata` stayed byte-identical, `poweroff` ended it c
 a VM module. `iw` was a stand-in past `reg set`, since the VM has no `cfg80211`.
 
 **[First boot](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04), 2026-11-04, one unit:** init, Alpine's `insmod`, USB SSH, the
-host key, the read-only mount settings and a speaker tone with Alpine's ALSA worked, and
-the radio stayed off.
+host key, the read-only mount settings and a speaker tone with Alpine's ALSA worked, the
+radio stayed off, and the owner found the screen, typing and lid fine.
 
-**Unverified:** the console and keymap by eye, Wi-Fi with Alpine's wpa_supplicant and
+**Unverified:** Wi-Fi with Alpine's wpa_supplicant and
 its older `regulatory.db`, `iw reg get` matching the wait, and that the partition's
 contents stay unchanged across a boot. Alpine removes old package
 revisions, so the pins fail loudly once one is replaced; a kept copy of the packages or
