@@ -99,6 +99,12 @@ while [ $i -lt "${secs:-20}" ]; do
 	sleep 1
 	status $dir
 	i=$((i + 1))
+	# The link as the controller sees it: read-only, and these lines hold no address.
+	if [ "$DIR" = both ] && [ $((i % 6)) = 3 ]; then
+		for q in tpl rssi lq; do
+			echo "$(date +%T) $(chroot $R /usr/bin/env PATH=/usr/bin:/bin hcitool $q "$(cat $P/addr)" 2>&1)" >> $L
+		done
+	fi
 done
 wait $stream; step "stream ended $?"
 [ -z "${tx:-}" ] || wait "$tx"

@@ -871,3 +871,25 @@ So signalling a call isn't a fix for it, though a call may still be wanted for a
 
 **Still open:** the noise's source. Remaining candidates are the headset's own voice path, such as sidetone that any
 phone would also get, the radio link towards the headset, or firmware. Comparing with a phone call separates the first from the others.
+
+## The voice link's parameters, and T9, prepared: Gemian's radio settings
+
+T8's trace shows what the kernel asked for and got: Enhanced Setup with packet types `0x0380` (only 2-EV3 is allowed), maximum latency
+10 ms, retransmission effort 1; and back, eSCO with an interval of 12 slots, a retransmission window of 2 slots and 60 bytes each way. So voice
+uses the faster modulation with little room to retry, where A2DP can resend until the data gets through. Towards the Gemini, invalid
+records after the first 10 were 0 of 5330 in T6, 20 of 6410 in T7 and 12 of 6410 in T8. Nothing here sees the path towards the headset.
+
+**The owner's decision:** "I would test the gemian radio theory, to do like gemian", having read that the bytes aren't decoded, that power isn't
+measured, and that Gemian may send either of two sets.
+
+T9 is T7 with `gemian_radio=1`: it sends Set Radio `0xfc79` `06 80 00 06 03 06` and Set TX Power Offset `0xfc93` `ff ff ff` during
+setup, each time the controller opens. `DIR=both` now also reads `hcitool tpl`, `rssi` and `lq` every 6 s, a first
+measurement of the controller's own view of power and link. There's no reading from before these settings, so T9 alone can't compare them.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Noise clearly less, capture matches | These settings matter for voice | Decode what they set, consider keeping them on, compare with `07 80 00 06 05 07` |
+| Noise the same, capture matches | These settings aren't it; radio not excluded | Move the Gemini against the headset to test distance |
+| A command refused, or `hci0` doesn't come up | The driver's setup fails at this point | Keep the logs; no retry without a new decision |
+| Capture or link worse | The settings hurt here | Leave them off |
+| Hang or Oops | Stop | Keep everything; no retry |
