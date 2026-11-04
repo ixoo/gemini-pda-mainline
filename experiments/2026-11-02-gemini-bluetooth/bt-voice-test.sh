@@ -62,5 +62,5 @@ grep -E 'aplay=|arecord=' $P/voice-sco.txt
 tail -n 6 $L
 rmmod mt6797_btcvsd; echo "rmmod card=$?"
 rmmod mtk_btcvsd; echo "rmmod driver=$?"
-step done
+step finished
 dmesg | grep -E 'btcvsd|xrun|Call trace|Oops|WARNING|nobody cared' | grep -vE '([0-9A-Fa-f]{2}:){5}' | tail -12
