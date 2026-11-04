@@ -918,3 +918,12 @@ private under `artifacts/station-work-44/boot-3fb07fd4/bt-t9/`; `mic.cvsd` is `2
 **Reading:** these settings aren't a fix, on one run and by ear. Capture is no better and possibly a little worse, though the headset's position
 wasn't controlled. This doesn't exclude a weak radio link: the settings' effect on power isn't measured, there's no baseline for the `hcitool` readings,
 and this firmware's scales aren't known. `gemian_radio` stays off by default. Its settings may have remained active after this run until CONSYS powered off.
+
+## A phone doesn't have the noise (2026-11-03)
+
+**The owner reports:** "It doesn't have the issue when connected on my phone". So the noise isn't simply how this headset sounds on any voice link.
+
+Which codec the phone uses wasn't observed. In T6's trace the headset offers codec negotiation and eSCO S4 (`AT+BRSF=703`), while
+BlueALSA, with mSBC turned off here, offers no codec negotiation (`+BRSF:2272`), so every run so far has been CVSD at S3. Differences left to
+separate: mSBC against CVSD, the eSCO parameters, and the Gemini's radio or firmware. The owner also asked whether the headset's noise cancellation
+is involved. It's on the phone too, so it wouldn't explain the difference alone, but its behaviour on this link is untested.
