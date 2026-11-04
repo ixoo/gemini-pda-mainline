@@ -982,3 +982,21 @@ which a test doesn't need and a real driver would. The earpiece and laptop are a
 | Accepted, notes not heard or no H2 frames in capture | The SRAM path doesn't carry mSBC as sent | Offline with the bytes |
 | Command refused, or the link fails | This firmware path won't do it this way | Read how the vendor's stack sets up wideband; no retry |
 | Hang or Oops | Stop | Keep everything; no retry |
+
+## T11 result: an mSBC link, and the noise went away (2026-11-03)
+
+The owner's "Yes, run T11". Boot `3fb07fd4`, image `8f2c1167`, `gemian_radio` N, `bt-voice-test` `7d085b37`, `bt-start` `bb17b859`, `msbc-tx.bin` `9d701c5a`.
+Used 1 inquiry, 1 pairing, 1 eSCO. Evidence private under `artifacts/station-work-44/boot-3fb07fd4/bt-t11/`; `mic.cvsd`, here mSBC frames, is `0b968a74`.
+
+**The owner reports:** "ok much better!" and "I think the noise is gone". Whether they heard the notes hadn't been reported when this was written.
+
+**Observed:**
+- `0x043d` refused with `0x20` as T10, then `0x0428` status 0, then Sync Conn Complete: status 0, eSCO, interval 12, window 4, 60 bytes each way, air mode 3 (transparent). No crash:
+  `failed=0 timeouts=0 resent=0`, assert 0, xrun 0.
+- Capture holds real mSBC: 3199 frames with a good H2 header and sync, 11 bad, from 6420 records of which 20 invalid, 10 of those the first ones.
+- The recording arrived at 1.53 s. Level contour correlation 0.910, waveform 0.280, level -32.1 dBFS. Capture is now 16 kHz.
+- **The notes appear in the capture:** the first 4 s of the sent notes correlate 0.576 at 12.13 s, where 12 s was scheduled, about 51 times the median, at about -55 dBFS. So the headset was playing what we sent, and it reached its own mic. That's what rules out a headset muting frames it can't read.
+- `hcitool`: transmit power 10, RSSI -6 to -15, link quality 255 then 5. The scale isn't known.
+
+**Reading:** the Gemini can carry mSBC both ways through the SRAM path with no driver change, and on this run the noise was gone. Not separated: transparent air mode as such, the wider retransmission window (4 against 2), or the older command. One run, by ear.
+How the notes reached the mic, leakage or the headset's own path, isn't established. The test link is outside the kernel's knowledge, so a real path needs the kernel to use this command, and a coder between the voice path and ALSA.
