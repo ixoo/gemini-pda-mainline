@@ -4,15 +4,16 @@ Date: Mon, 2 Nov 2026 22:19:36 -0500
 Subject: [PATCH] arm64: dts: mediatek: gemini station: guard charging from
  the BQ25896 driver
 
-Describe the BQ25896 at I2C0 0x6b without configuring it, guarding the battery
-at 50 C with a resume below 47 C, and at 80% with a resume at 75%. The battery
-node gets those temperatures as its operating range and alert limits.
+Describe the BQ25896 at I2C0 0x6b without configuring it, guarding the
+battery at 50 C with a resume below 47 C, at 0 C with a resume above 3 C,
+and at 80% with a resume at 75%. The battery node gets those temperatures
+as its operating range and alert limits.
 ---
  .../mediatek/mt6797-gemini-pda-station.dts    | 25 ++++++++++++++++++-
  1 file changed, 24 insertions(+), 1 deletion(-)
 
 diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
-index 5d2452f14..e3aeeb2f5 100644
+index 5d2452f14..737e52f93 100644
 --- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 +++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 @@ -57,6 +57,14 @@ battery: battery {
@@ -21,12 +22,12 @@ index 5d2452f14..e3aeeb2f5 100644
  		factory-internal-resistance-micro-ohms = <165000>;
 +		/*
 +		 * Charging stops outside the operating range and resumes inside
-+		 * the alert limits: 50 and 47 C, as the vendor kernel does. The
-+		 * low end is the NTC table's -20 C clamp, which is also what an
-+		 * open NTC reads, so it counts as unreadable.
++		 * the alert limits: 50 and 47 C, as the vendor kernel does, and
++		 * at 0 C with a resume above 3 C. Below -20 C and with an open
++		 * NTC the table reads its -20 C clamp, so charging stays stopped.
 +		 */
-+		operating-range-celsius = <(-20) 50>;
-+		alert-celsius = <(-18) 47>;
++		operating-range-celsius = <0 50>;
++		alert-celsius = <3 47>;
  		ocv-capacity-celsius = <(-10) 0 25 50>;
  		ocv-capacity-table-0 = <
  			4372000 100 4349000 99 4328000 98 4309000 97

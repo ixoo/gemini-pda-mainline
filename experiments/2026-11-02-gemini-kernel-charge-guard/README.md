@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `completed`: G1-G6 passed on the device, and the fix for the battery reading's overflow is confirmed at 24.8-25 °C; the temperature stop is shown by emulation, and no charge current was measured |
+| Status | `running`: G1-G6 passed on the device, and the overflow fix is confirmed at 24.8-25 °C; the owner's cold stop is written and not yet on a device |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -77,8 +77,9 @@ duplicate this one and leave nowhere for later current control or charger status
 | Battery at 50 °C or above | stop | stop, from `operating-range-celsius` |
 | Below 47 °C | resume | resume, from `alert-celsius` |
 | Temperature unreadable, or no battery supply | stop | stop; logged at critical level once it has lasted three passes |
-| Open NTC | reads unreadable from the raw code, stop | reads the table's −20 °C clamp, stop at −20 °C or below; resume above −18 °C |
-| Real battery at −20 °C or below | no stop | **stop: a new, stricter case** |
+| Battery at 0 °C or below | no stop | **stop: the owner's cold stop**, from `operating-range-celsius` |
+| Above 3 °C | not applicable | resume, from `alert-celsius` |
+| Open NTC, or a battery below −20 °C | open NTC: unreadable from the raw code, stop; cold battery: no stop | reads the table's −20 °C clamp, so stopped |
 | Capacity at the limit, default 80 | stop | stop |
 | 5 points below the limit | resume | resume |
 | Limit 100 | off | off |
@@ -482,5 +483,55 @@ line, the 47-50 °C boot and the refused probe haven't run on a device.
 - **F8:** 0520 needs `i2c0` enabled in the source. Today `station-dt.sh` does that.
 - **F12:** the patches have no `Signed-off-by`, and none can be added for the owner.
 
-**F5, for the owner:** there's no cold charging stop between −20 and 0 °C, matching the vendor.
-The custodian is raising it.
+**F5, for the owner:** there was no cold charging stop between −20 and 0 °C, matching the vendor.
+The owner chose to add it; see [the cold stop](#the-cold-stop).
+
+## The cold stop
+
+The owner's decision: add the stop for −20 to 0 °C. It's a change of the battery's limits in
+0520, to `operating-range-celsius = <0 50>` and `alert-celsius = <3 47>`. The driver needs no
+change, because the guard already reads its limits from the battery. Rows above in
+**What it does to the protection** that mention the −20 and −18 °C limits describe the old values.
+
+| Reading | Result |
+| --- | --- |
+| 0.0 °C or below, which is under 0.1 °C after the gauge truncates to tenths | stops, as `hot` |
+| 0.1 to 3.0 °C | the last answer stands |
+| 3.1 °C or above | resumes, unless another stop applies |
+| Below −20 °C, or an open NTC | reads the −20 °C clamp, so stopped |
+| Read failure, or no battery supply | stopped, with a critical line after three passes |
+| 47 °C up to 50 °C, and 50 °C or above | unchanged |
+
+A boot at 0.1-3.0 °C stays stopped until 3.1 °C, since the first pass starts from `hot`. The
+log says `hot` for either end of the range; the `temp=` value tells them apart.
+
+**The table's cold end, checked offline:** with 0526's arithmetic over all 4096 codes, from the
+table in 0361:
+- Readings fall steadily as the code rises, with no step over 94 m°C.
+- Code 1693 and up is at or below 0 °C, code 1591 and down is above 3 °C, and code 2357 and up is
+  the −20 °C clamp.
+- The open NTC, about code 3185 at 2.8 V, reads −20 °C.
+- The hot end hasn't moved: 50 °C at code 470, 47 °C at code 513.
+
+The stop depends on 0526. Without it, a true 3.56-4.98 °C would read −3.52 to −2.09 °C and stop
+falsely, and a true −1.51 to 0 °C would read lower still. Both are in the same series.
+
+**Compiled and checked in the VM:** the station DTB carries `0 50` and `3 47`, the DTB's schema
+check reports nothing for the battery or the charger, and `W=1` is clean. **Nothing has booted.**
+
+**What can't be shown without a cold battery:** that the real NTC and the vendor's table agree
+near 0 °C. The table has only run at about 20-30 °C on this device, and the table comes from the
+vendor's source, not a measurement. Emulation would show the guard's decisions but not that.
+
+**Device check, on an image with `THERMAL_EMULATION`,** with the limit left at 80 so nothing
+enables charging, only the reason log changes:
+
+| Written to `emul_temp` | Expected |
+| --- | --- |
+| −1000 | `stopped`, `hot full` |
+| 2000 | holds, no new line |
+| 4000 | `stopped`, `full` |
+| 0 | emulation off |
+
+0 can't be written as a temperature, as it turns emulation off. The release fragment turns
+`THERMAL_EMULATION` off, so this needs a station image.
