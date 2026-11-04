@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 23:33:40 -0500
+Subject: [PATCH] ASoC: mediatek: btcvsd: don't warn on a routine wait for the
+ interrupt
+
+The interrupt period is about 22 ms, and the wait for it is 22.5 ms with
+two tries. A normal stream ran out the first try about 25 times a second,
+each with two warnings, with no underrun, and that was over half of the
+log in one long test.
+
+Only the outcome matters. Make a try that ran out a debug message, and
+limit by rate the warning for the wait that really failed.
+---
+ sound/soc/mediatek/common/mtk-btcvsd.c | 16 +++++++++-------
+ 1 file changed, 9 insertions(+), 7 deletions(-)
+
+diff --git a/sound/soc/mediatek/common/mtk-btcvsd.c b/sound/soc/mediatek/common/mtk-btcvsd.c
+index 8d54c639a..57eca6cc3 100644
+--- a/sound/soc/mediatek/common/mtk-btcvsd.c
++++ b/sound/soc/mediatek/common/mtk-btcvsd.c
+@@ -662,10 +662,10 @@ static int wait_for_bt_irq(struct mtk_btcvsd_snd *bt,
+ 		t2 = t2 - t1; /* in ns (10^9) */
+ 
+ 		if (t2 > timeout_limit) {
+-			dev_warn(bt->dev, "%s(), stream %d, timeout %llu, limit %llu, ret %d, flag %d\n",
+-				 __func__, bt_stream->stream,
+-				 t2, timeout_limit, ret,
+-				 bt_stream->wait_flag);
++			dev_dbg(bt->dev, "%s(), stream %d, timeout %llu, limit %llu, ret %d, flag %d\n",
++				__func__, bt_stream->stream,
++				t2, timeout_limit, ret,
++				bt_stream->wait_flag);
+ 		}
+ 
+ 		if (ret < 0) {
+@@ -682,11 +682,13 @@ static int wait_for_bt_irq(struct mtk_btcvsd_snd *bt,
+ 		} else if (ret == 0) {
+ 			/* conidtion is false after timeout */
+ 			max_timeout_trial--;
+-			dev_warn(bt->dev, "%s(), stream %d, error, timeout, condition is false, trial left %d\n",
+-				 __func__,
+-				 bt_stream->stream, max_timeout_trial);
++			dev_dbg(bt->dev, "%s(), stream %d, timeout, condition is false, trial left %d\n",
++				__func__,
++				bt_stream->stream, max_timeout_trial);
+ 
+ 			if (max_timeout_trial <= 0) {
++				dev_warn_ratelimited(bt->dev, "%s(), stream %d, no interrupt\n",
++						     __func__, bt_stream->stream);
+ 				bt_stream->timeout = 1;
+ 				return -ETIME;
+ 			}
+-- 
+2.43.0
+

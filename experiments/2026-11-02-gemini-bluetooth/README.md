@@ -1074,9 +1074,9 @@ Hidden order `AAC SBC AAC SBC`. Evidence private under `artifacts/station-work-4
 An independent reader went through 0511, 0512, 0523 to 0525, 0527 to 0529, 0531 and 0532, by reading only. Nothing below has run on the device.
 
 **Fixed, compile-checked with W=1 and checkpatch-clean:**
-- 0534: `mtk-btcvsd` requested its interrupt before mapping, and its remove unmapped under a live component. It now maps with devres and starts with the gate closed and the interrupt off.
-- 0535: writing 0 to the loopback switch opened the gate with no stream, so `alsactl restore` could leave it open. This is what made 0529's claim about the gate untrue. It holds again from probe, until a stream or loopback opens it.
-- 0536: halt could have a tick write the interrupt enables back.
+- 0537: `mtk-btcvsd` requested its interrupt before mapping, and its remove unmapped under a live component. It now maps with devres and starts with the gate closed and the interrupt off.
+- 0538: writing 0 to the loopback switch opened the gate with no stream, so `alsactl restore` could leave it open. This is what made 0529's claim about the gate untrue. It holds again from probe, until a stream or loopback opens it.
+- 0539: halt could have a tick write the interrupt enables back.
 - 0533 now also logs `pending` and `peer-ack` per timeout and each unsolicited WMT message. T13's was `02 03 02 00 00 03`.
 - The messages of 0525 and 0532 now say what's inferred, and that CVSD moved too.
 
@@ -1092,4 +1092,6 @@ An independent reader went through 0511, 0512, 0523 to 0525, 0527 to 0529, 0531 
 - A full window can read a stale ACK as a full one.
 - The 20 ms tick runs while idle, which costs power.
 
-**For submission:** no sign-offs yet and none invented, the binding in 0528 needs splitting, MAINTAINERS, Fixes tags on 0527, 0531 and 0534, 0534 and 0527 could fold together, and `gemian_radio` will likely be challenged.
+**For submission:** no sign-offs yet and none invented, the binding in 0528 needs splitting, MAINTAINERS, Fixes tags on 0527, 0531 and 0537, 0537 and 0527 could fold together, and `gemian_radio` will likely be challenged.
+
+Later the same night, no device test: 0540 makes the routine `wait_for_bt_irq` messages, about 25 a second on a normal stream, debug only, and limits by rate the warning for a wait that really failed. 0541 declares the two ROM patch files `mt6797-consys` loads. My three review patches moved from 0534 to 0536 to 0537 to 0539, as display had used those numbers.

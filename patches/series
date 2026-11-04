@@ -1119,6 +1119,8 @@ proposals/0533-soc-mediatek-mt6797-consys-log-each-STP-resend.patch
 proposals/0534-fbcon-only-re-blank-a-console-that-took-over-the-fra.patch
 proposals/0535-input-gemini-lid-undo-only-what-it-applied-and-only.patch
 proposals/0536-drm-panel-nt36672e-wake-an-adopted-panel-unless-it-i.patch
-proposals/0534-ASoC-mediatek-btcvsd-map-before-requesting-the-inter.patch
-proposals/0535-ASoC-mediatek-btcvsd-leave-loopback-to-idle-when-no-.patch
-proposals/0536-soc-mediatek-mt6797-consys-stop-the-STP-tick-before-.patch
+proposals/0537-ASoC-mediatek-btcvsd-map-before-requesting-the-inter.patch
+proposals/0538-ASoC-mediatek-btcvsd-leave-loopback-to-idle-when-no-.patch
+proposals/0539-soc-mediatek-mt6797-consys-stop-the-STP-tick-before-.patch
+proposals/0540-ASoC-mediatek-btcvsd-don-t-warn-on-a-routine-wait-fo.patch
+proposals/0541-soc-mediatek-mt6797-consys-declare-the-ROM-patches-i.patch

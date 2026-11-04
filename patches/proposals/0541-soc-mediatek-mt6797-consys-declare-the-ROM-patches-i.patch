@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 3 Nov 2026 23:34:02 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: declare the ROM patches it
+ loads
+
+The driver requests two named ROM patch files. Declare them, so tools that
+build an initramfs or a firmware list can find them.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 5e39e9f8f..aa3830e6e 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2855,3 +2855,5 @@ module_platform_driver(mt6797_consys_driver);
+ 
+ MODULE_DESCRIPTION("MediaTek MT6797 CONSYS owner");
+ MODULE_LICENSE("GPL");
++MODULE_FIRMWARE("mediatek/mt6797/ROMv3_patch_1_1_hdr.bin");
++MODULE_FIRMWARE("mediatek/mt6797/ROMv3_patch_1_0_hdr.bin");
+-- 
+2.43.0
+
