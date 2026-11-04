@@ -378,3 +378,14 @@ So on mainline this sensor answers `0x0556` at `0x20` on I2C3 with the master cl
 Which of the seven bits matter is not separated, since they were set together. The driver's own probe
 still failed, because it reads the ID before anything sets them, so the milestone is not met by
 this run: the ID was seen in a diagnostic retry with enables set by hand.
+
+## T9: one bit at a time, stopping at the first that moves the pad
+
+Same boot, script `ac6a89f9`, one run of 25 s, as reported by the custodian.
+
+Observed: setting only bit 0 of `+0x1200`, named `SENINF_EN` in the register documentation available
+to the project, took GPIO31 from 0 to 92 of 100. All 50 chip ID reads still returned `-6`.
+
+Inference: that bit releases the pad, but it is not enough for the sensor to answer. Duty on these
+samples is skewed compared with G1's near half, and slow sampling can't call this a clean 24 MHz,
+so "ones" means only "not stuck low".
