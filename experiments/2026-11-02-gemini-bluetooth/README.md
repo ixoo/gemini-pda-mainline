@@ -968,3 +968,17 @@ Used 1 inquiry, 1 pairing, 0 links. No crash: `failed=0 timeouts=0 resent=0`, as
 command differs in coding formats, sizes and transport units. The firmware may also need the older Setup Synchronous Connection `0x0428` for this.
 **The owner reports:** "I didn't hear any noise, but I didn't hear any notes either". So with HFP connected and no voice link, there was no noise. On this one
 run, the noise needs an open eSCO link, which fits the owner's "starts when you open the mic". It doesn't say which end produces it or whether CVSD matters.
+
+## T11, prepared: mSBC by the older command
+
+The owner's "Yes, prepare T11". `BT_MSBC=1` now lets BlueALSA negotiate and fail as in T10, then sends Setup Synchronous Connection `0x0428` with `hcitool`: voice setting `0x0063`
+(transparent), bandwidth 8000 each way, latency 13, effort 2, packet types `0x0380`, T2's values. It disconnects after 30 s. The kernel skips the complete event for an eSCO link it didn't request, so the link has no socket,
+which a test doesn't need and a real driver would. The earpiece and laptop are as T10.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Accepted, air mode 3, notes heard, noise gone | CVSD was the difference | Driver change so the kernel uses this command; mSBC as default |
+| Accepted, air mode 3, notes heard, noise there | Not the codec | Distance test, then the radio |
+| Accepted, notes not heard or no H2 frames in capture | The SRAM path doesn't carry mSBC as sent | Offline with the bytes |
+| Command refused, or the link fails | This firmware path won't do it this way | Read how the vendor's stack sets up wideband; no retry |
+| Hang or Oops | Stop | Keep everything; no retry |
