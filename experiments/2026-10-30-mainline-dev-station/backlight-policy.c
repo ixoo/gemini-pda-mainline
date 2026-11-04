@@ -308,8 +308,8 @@ int main(void)
 			if (!blanked && restore >= 0) {
 				for (i = 0; i < 20 && read_number(BL_POWER) != 0; i++)
 					poll(NULL, 0, 25);
-				/* Only the panel's link does that; simplefb has none. */
-				if (i == 20)
+				/* Only the panel's link does that; simplefb has none. A lid may have closed. */
+				if (i == 20 && !console_blanked())
 					put(BL_POWER, "0");
 				fade(DIM_LEVEL, restore, FADE_UP_STEPS, FADE_UP_MS, NULL, 0);
 				restore = -1;
@@ -361,7 +361,7 @@ int main(void)
 				continue;
 			last_input = event_ms(&ev);
 			quick = 20;
-			if (restore >= 0 && !blanked) {
+			if (restore >= 0 && !blanked && !(fds[0].revents & POLLIN)) {
 				undim(restore);
 				restore = -1;
 			}

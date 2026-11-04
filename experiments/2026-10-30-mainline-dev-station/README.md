@@ -1045,3 +1045,7 @@ Left as they are: `now_ms` uses `CLOCK_REALTIME`, so a clock step can start a fa
 the overdue check recovers from that. A signal arriving during a wake is seen at the next
 one, which can miss one fade. `console-shell` resets the timeout to 2 minutes each time it
 respawns, as it always has.
+
+A second review found two more ways to relight behind a closing lid, both confirmed by
+reading the code and fixed: the wake's `bl_power` write when the lid closes during the
+500 ms wait, and a key arriving with the lid event in one fade step. No device test yet.
