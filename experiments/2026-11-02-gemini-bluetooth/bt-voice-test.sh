@@ -52,9 +52,6 @@ while [ $i -lt 20 ]; do
 	i=$((i + 1))
 done
 wait $stream; step "stream ended $?"
-for pid in $(pidof "$(test "$DIR" = tx && echo aplay || echo arecord)"); do
-	[ "$(readlink "/proc/$pid/root")" = "$R" ] && kill "$pid"
-done
 wait $sco
 step "link ended"
 grep -E 'aplay=|arecord=' $P/voice-sco.txt
