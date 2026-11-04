@@ -294,3 +294,31 @@ and the AW9120 read and the end state were as before.
 This is the first timeout on this bus. One event shows only that a transfer stalled once.
 Whether the sensor held the bus, which would mean it is alive, or the controller stalled is
 not shown, and nothing was sampled at that moment. No more I2C on this bus this boot.
+
+## G1: the stock system driving the sensor
+
+Gemian `3.18.41+`, boot `eb8ddd2f`, one read-only sampler over one `cameraserver` restart, as
+reported by the custodian. The owner approved the boot. Nothing was written by this test.
+
+Observed:
+
+- `sp5509 i2c write id: 0x40, ReadOut sensor id: 0x556` at both boot-time probes and after the
+  restart. So the module answers on this unit today, at 7-bit `0x20`.
+- GPIO31's input level read 1 on 54 % and 56 % of samples while the ISP domain and CAMTG were on
+  with reset high, and on 11 % of 23352 with them on before reset rose. It read 0 on all 565255
+  samples with them off. So this sampling sees the clock, and the clock runs before reset.
+- Order: ISP domain on, CAMTG gate open within 0.2 ms, then about 460 ms later reset high, then
+  power-down high 10 ms after it. Each cycle held about 60 ms.
+- `0x100020f0` read `0x0555575d` against mainline's `0x05555555` at rest. `0x10000060`'s CAMTG
+  byte and GPIO31's mode match mainline. `0x10002040` differs only outside the camera bits.
+
+Inference: mainline's sensor is silent because its master clock is not running at the pad.
+The samples on mainline were fewer and slower, 64 to 96 reads, but a toggling pad would not
+read 0 on all of them. The hold's pulse ends with power-down low then high, unlike the vendor's
+reset first; that is not the cause while there is no clock.
+
+What stops the clock is not known. Mainline's generator and gate registers read as written, and
+nothing has read the vendor's. T6 compares the remaining registers and tries the two vendor
+differences that a hold can test.
+
+The G2 read of the vendor's CAMSYS and SENINF registers did not run, as Gemian had already shut down.
