@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-bluetooth` |
-| Status | `completed` for A2DP. T3 to T5b: no voice crosses HCI. The CVSD SRAM path carried voice in loopback, and capture through the driver decodes at the right rate on one run. T5's hang is unexplained, playback is untested, and the bridge isn't built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
+| Status | `completed` for A2DP. T3 to T5d: no voice crosses HCI. Through the CVSD SRAM path, loopback carried voice and the owner heard our coder's notes, noisily. The owner did not recognise their voice in a capture. T5's hang is unexplained, and the bridge isn't built. Earlier: the owner heard A2DP audio from the station on a stock BlueZ stack, on one boot, including next to a joined Wi-Fi carrying only a ping. What fixed T2's stall is not established |
 | Subsystem | MT6797 CONSYS STP link, `drivers/bluetooth`, BlueZ, A2DP |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02 |
@@ -685,4 +685,32 @@ serving the path. For T5b's capture, it remains possible:
   the specification's parameters, and has only been tested against itself. The vendor's coder library isn't in the
   extraction to compare with.
 - **What decides it:** playback of known notes, and a capture with a known tone held near the microphone.
+
+## T5d result: the owner heard our notes, with noise (2026-11-03)
+
+The owner's "Yes, run T5d". Run by the custodian on boot `7978f9ea`, image `8f2c1167`, `mtk-btcvsd.ko` `0ce985d2…`,
+`bt-voice-test.sh` `5c89eba1…`, `DIR=tx`, Wi-Fi off. One eSCO link. Evidence private under
+`artifacts/station-work-44/boot-7978f9ea/bt-t5d/`.
+
+**The owner reports:** "I hear the tones, but it's still noisy, like there are interferences".
+
+**Observed:**
+- No crash, so 0531 stops T5c's fault. `tx bytes 80000`, so the file was right here. Why T5c's `aplay` ended after
+  one chunk stays unexplained.
+- `hw_ptr` climbed 4050 frames a second for about 10 s, about the rate of the file.
+- No xrun, assert or stopped link; `timeouts=0`.
+- `wait_for_bt_irq()` logged a timeout about 25 times a second. Reading the driver, that is a 22.5 ms limit
+  on a 22.5 ms interrupt, retried; no underrun was logged, so it does not by itself show missing packets.
+
+**What this settles:** host-coded CVSD reaches the earpiece as recognisable tones, so the coder and the driver's
+TX path work at least roughly, and T5b's low-bit-first order is consistent. **Not settled: where the noise comes
+from.** BlueALSA's HCI stream was running throughout: if the firmware also acts on those packets, that could
+be heard as interference (a hypothesis). So could the coder, or a TX timing fault.
+
+## Separating the noise
+
+1. The coder alone, offline: `coder-only.wav`, from the exact bytes sent, decoded by `bt-voice`: what a perfect link
+   would deliver. By the same decoder, only the coder's self-consistency is measured. If the owner hears
+   the same noise there, it is the coder's quality, not the path.
+2. If it's cleaner: run again with no HCI playback holding the link, which tests the HCI hypothesis.
 
