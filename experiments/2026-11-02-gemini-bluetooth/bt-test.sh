@@ -80,14 +80,28 @@ stream)
 	[ -z "${3:-}" ] || { in_root bluealsa-cli codec "$pcm" "$3" >> $P/ab.log 2>&1; echo "switch=$?"; sleep 2; }
 	in_root bluealsa-cli codec "$pcm" | grep -i selected
 	before=$(in_root hciconfig hci0 | sed -n 's/.*TX bytes:\([0-9]*\).*/\1/p')
+	# With BT_RF_LOG, power, signal and link quality once a second. It stops with the stream.
+	rf=
+	if [ -n "${BT_RF_LOG:-}" ]; then
+		dev=$(addr)
+		in_root hcitool tpl -t 1 "$dev" > $P/rf.log 2>&1
+		while :; do
+			echo "$(date +%T) $(in_root hcitool tpl "$dev") $(in_root hcitool rssi "$dev") $(in_root hcitool lq "$dev")"
+			sleep 1
+		done >> $P/rf.log 2>&1 &
+		rf=$!
+	fi
 	s=$(date +%s); echo "stream starts $(date +%T)"
 	i=0
+	# BT_APLAY_ARGS holds several words.
+	# shellcheck disable=SC2086
 	while [ $i -lt $(($2 / 30)) ]; do
 		tail -c +45 $R/tmp/music.wav
 		i=$((i + 1))
-	done | timeout $(($2 + 30)) chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q -D "bluealsa:DEV=$(addr),PROFILE=a2dp" -t raw -f cd -
+	done | timeout $(($2 + 30)) chroot $R /usr/bin/env PATH=/usr/bin:/bin aplay -q ${BT_APLAY_ARGS:-} -D "bluealsa:DEV=$(addr),PROFILE=a2dp" -t raw -f cd -
 	a=$?
 	e=$(date +%s)
+	[ -z "$rf" ] || { kill "$rf"; wait "$rf" 2>/dev/null; }
 	after=$(in_root hciconfig hci0 | sed -n 's/.*TX bytes:\([0-9]*\).*/\1/p')
 	echo "stream ends $(date +%T) aplay=$a seconds=$((e - s)) kbps=$(( (after - before) * 8 / (e - s) / 1000 ))"
 	;;

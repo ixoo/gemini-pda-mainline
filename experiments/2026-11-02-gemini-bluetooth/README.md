@@ -1114,3 +1114,73 @@ T13 mixed several things: codec switching, `bluetoothd -E`, `aplay` restarts, an
 | Timeouts in both, over-completions follow each resend | The resend duplicates data | Offline: a resend that probes before repeating, with a fixture, then a device test |
 | Timeouts without over-completions | The frames were really lost, and the resend is right | Look for the cause of the loss |
 | Link stops, hang or Oops | Stop | Keep everything; no retry |
+
+## T14 result: no timeouts at all, and the music skips with distance (2026-11-04)
+
+The owner's decision as above. Boot `fccba04c`, image `96338704`, consys `9866075b`, `btmt6797` `754ad753`, `bluetooth` `d1600d16`. Wi-Fi off, placeholder
+address, `gemian_radio` off, screen lit. Budget held: 2 loads, 2 pairings, 10 minutes of streaming. Evidence private under
+`artifacts/station-work-48/boot-fccba04c/`.
+
+| | T14a SBC | T14b AAC, one switch before audio |
+| --- | --- | --- |
+| `aplay`, length, rate | 0, 302 s, 340 kbps | 0, 302 s, 197 kbps |
+| STP frames in, out | 25591, 25485 | 38737, 38544 |
+| Timeouts, resent, unsolicited WMT, firmware assert | 0, 0, 0, 0 | 0, 0, 0, 0 |
+| ACL packets sent, completed | 25397, 25397 | 12984, 12984 |
+
+**The owner reports**, SBC: "when moving 4 yards from the device the music skips", at about 01:01:15, "otherwise it's stable, no skip, good audio quality", "only issue
+seems to be radio distance". AAC: "ok this run is good quality too, but the sound sounds less full", "I can walk twice further without any skips". Distances are the owner's
+estimates, one walk per codec. No signal strength was measured in these runs.
+
+**Read from the traces:**
+- The T13 link faults are absent: no resends, and completions match sends exactly, so no over-completions. The kernel log has no `sent 0 < count`. So the resend change
+  stays held.
+- 01:01:15 is 85 s into T14a. At 86 to 88 s sending drops to about 70% of the average, with gaps up to 0.15 s. A larger drop comes at 47 to 50 s, down to 38% and gaps up to
+  0.25 s, with no skip noted at that time.
+- These stalls are the controller completing packets late, and the host waiting. There's no Flush Occurred, QoS Violation, Mode Change or Disconnection, and no flush timeout is
+  set. Nothing is dropped on the host side: the RTP sequence has no gaps.
+- AAC stalled too, at 15 to 30 s, gaps up to 0.46 s, and at 127 s. When the owner walked isn't noted, and nothing was heard.
+- After its stalls each stream stays about 1.3 s behind its own timestamps to the end. Why it stops there isn't known.
+
+**Why AAC might go further, inferred, not measured:** the air doesn't show in HCI, so these are packet sizes only. SBC sends 854-byte ACL packets, too large for a 2-DH5 (679), so
+they need 3-DH5, the modulation needing the stronger signal. AAC's 577 bytes fit 2-DH5. SBC also sends about twice the packets: BlueALSA writes 7 frames, the most that fit, then
+sends the eighth alone, about 44 one-frame packets a second, each taking its own turn on the air.
+
+**Compared with the vendor's setup, none of it showing a shortfall:**
+- Read Transmit Power reports 10 with the controller's own settings (T10 to T12) and 8 with Gemian's `06 80 00 06 03 06` (T9). So `gemian_radio` isn't raising the reported
+  power. That's the controller's report, not a measurement at the antenna.
+- A retained backup's NVRAM Bluetooth record holds the same radio and offset bytes as the compiled `sDefaultCfg` (`07 80 00 06 05 07`, `ff ff ff`). So it holds no per-unit
+  Bluetooth table that we skip, in this format; how those bytes map to power isn't decoded.
+- Common init finishes with RF calibration each start (285 of 285 steps), the rail is set to 3.3 V as on Gemian, and the retained `WMT_SOC.cfg` has only the antenna mode, which
+  common init sends. The placeholder is only an address.
+- **Open:** RSSI read -6 to -17 in T9 to T12, at distances not recorded, on a scale not known here. That could be a weak receive path, or nothing. Which antenna Bluetooth uses isn't
+  established.
+
+**Not concluded:** that the Gemini's range is short for this class of device, because there's no control. Nor that the skip is one stall, on one note of the time.
+
+## T15, prepared: where the signal goes on a walk
+
+`bt-test.sh stream` now takes `BT_RF_LOG=1`, which logs Read Transmit Power, RSSI and link quality once a second, and `BT_APLAY_ARGS`. Not yet run on the device.
+
+Two fresh SBC loads, 3 minutes each, with the same walk. The headset starts touching the Gemini for 30 s, then 30 s each at 1, 2, 4, 6 and 8 yards. The Gemini stays still, in the same
+place and orientation.
+
+- T15a: as T14a, with the log.
+- T15b: the same with `BT_APLAY_ARGS="--period-size=896 --buffer-size=7168"`, so `aplay` should hand over exactly 7 frames at a time and the one-frame packets should go.
+
+The owner isn't told which is which, and separately walks the same marks with their phone playing to the headset. That needs nothing from the Gemini, and is the only control here.
+
+**Hypothesis:** the walk separates three explanations. A weak path at the Gemini reads low even when touching. A normal link that's asked for too much reads strong and only stalls at distance.
+And the owner's own phone says whether the headset is the limit.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Phone skips at about the same distance | The headset's range, or the room | No Gemini change; keep the record |
+| Phone goes clearly further, RSSI already well below 0 when touching | Likely a weak path at the Gemini | The front end and antenna; same walk under Gemian as the hardware's baseline |
+| Phone goes clearly further, RSSI near 0 when touching and falling with distance | Link budget, or what we ask of it | Read T15b; same walk under Gemian |
+| T15b has no one-frame packets, and fewer stalls or further range | Packing matters | A small BlueALSA change, then re-walk |
+| T15b the same as T15a | Packing isn't it | Drop it; leave BlueALSA alone |
+| `aplay` refuses the sizes, or the pattern doesn't change | T15b didn't test this | Record it; no retry without a new decision |
+| Link stops, hang or Oops | Stop | Keep everything; no retry |
+
+The T14 table's next branch, repeating with switching, waits: switching isn't what the owner hears, and T14's runs have no fault to separate.

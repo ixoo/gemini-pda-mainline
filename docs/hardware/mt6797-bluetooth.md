@@ -353,7 +353,9 @@ Observed on this unit with both ROM patches loaded, through the
 
 The vendor's Set Radio and TX offset are not sent by default (`gemian_radio`), and A2DP
 worked with the controller's own settings at a few metres. Their effect on output power
-is not measured. On a voice link they were accepted and left the earpiece noise about the same, by the owner's
+is not measured; Read Transmit Power reports 10 without them and 8 with Gemian's local
+bytes. The owner hears SBC skip from about 4 yards and AAC not at twice that, without a
+control yet ([T14](../../experiments/2026-11-02-gemini-bluetooth/README.md)). On a voice link they were accepted and left the earpiece noise about the same, by the owner's
 ear on one run ([T9](../../experiments/2026-11-02-gemini-bluetooth/README.md#t9-result-gemians-radio-settings-left-the-noise-about-the-same-2026-11-03)).
 
 ## Open questions
