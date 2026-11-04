@@ -925,6 +925,10 @@ Keyboard, from the first SSH session: `gemini-lid` loaded; no
 and the keyboard's I2C bus (`1101c000.i2c`) stayed at 173 interrupts.
 The owner reports that typing works from boot.
 
+## `wifi-up.sh` failure handling (2026-11-04)
+
+The script's failure handling from `7bbff26b` ran on boot `fccba04c`, image `96338704`, as the custodian reports, with `PASSIVE_SCAN=1` and a pinned access point: rc=0, phy after 0 s, `up=0`, `COMPLETED` on the usual channel, lease after 4 s, gateway ping 3 of 3, one connect and no disconnects, tainted=0. This shows the normal path only. The failure paths have run only against stubs, not on the device.
+
 ## backlight-policy: the PMIC keys and idle wakeups (2026-11-03)
 
 The program, then named `lid-guard`, woke once a second to check the blanked console,
