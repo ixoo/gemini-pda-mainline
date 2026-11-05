@@ -5,8 +5,7 @@ A guide for testing the proposed v0.1 image on your own Gemini PDA. It goes with
 doesn't. The [safety policy](SAFETY.md) outranks anything here.
 
 > [!WARNING]
-> **Nobody can complete this guide yet.** Two gaps are open, and the image has booted
-> only once:
+> **Nobody can complete this guide yet.** Three things stand in the way:
 >
 > 1. **No first install.** There's no tested way for a tester to put the first image on
 >    boot2. See [Installing](#installing-to-boot2).
@@ -66,7 +65,8 @@ and confirm Gemian boots.
 The image holds no firmware and no keys but your public key. You build it yourself,
 because it carries your key.
 
-**Kernel.** Commit `4df8fa37` or later, profile `mt6797-a53-release`:
+**Kernel.** Commit `4df8fa37` or later, profile `mt6797-a53-release`. The one image that
+has booted came from `4c2fc3b7`:
 
 ```sh
 KERNEL_PROFILE=mt6797-a53-release BUILD_MODULES=1 ./scripts/build-kernel --backend buildbox
@@ -243,7 +243,8 @@ repository has no tool that makes those values.
 ssh -i KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null root@10.15.19.82 'sh -s' < experiments/2026-10-30-mainline-dev-station/wifi-up.sh
 ```
 
-It's WPA2-PSK only and has only worked on two 5 GHz channels on the author's network. `ip
+It's WPA2-PSK only and has only worked on two 5 GHz channels on the author's network, on
+the station image: Wi-Fi hasn't run on this one, with Alpine's `wpa_supplicant`. `ip
 link set wlan0 down` is one-way until `mac` reloads. Bluetooth isn't in this image.
 
 ## Stop conditions
@@ -256,7 +257,8 @@ Stop, power off and return to Gemian on any of these:
 - any change in how the device recovers, or Gemian not booting normally;
 - a `flash-boot2` failure.
 
-Charging isn't limited while powered off, and can pass 80%. Don't leave the device
+While running, the guard stops charging at 80%, at 50 °C and at 0 °C, shown only by moved
+limits and emulated temperatures. Charging isn't limited while powered off, and can pass 80%. Don't leave the device
 unattended on a charger. A boot that shows nothing isn't a reason to retry over and over:
 go back to Gemian and report it. Before repeating a test after a safety stop, [open a
 safety-labeled issue](SAFETY.md#stop-conditions).

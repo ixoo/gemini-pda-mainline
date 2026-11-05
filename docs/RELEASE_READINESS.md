@@ -1,9 +1,10 @@
 # Release readiness
 
-Audit of 2026-11-03: what a first test release needs, and what stands in the way of
-daily use. It comes from reading the records, patches and logs, not from new device
-runs. Effort sizes (S, M, L) and the proposed scope are judgement. The
-[support matrix](HARDWARE_SUPPORT.md) owns demonstrated support.
+Audit of 2026-11-03, with the status table and blockers refreshed from the records on
+2026-11-04: what a first test release needs, and what stands in the way of daily use. It
+comes from reading the records, patches and logs, not from new device runs. Effort sizes
+(S, M, L) and the proposed scope are judgement. The [support matrix](HARDWARE_SUPPORT.md)
+owns demonstrated support.
 
 ## Where it stands
 
@@ -16,26 +17,28 @@ image, and it has run on one unit.
 | Install | Partial | `flash-boot2` from a running station. No first-install tool; a [tester guide](TESTING_GUIDE.md) says so |
 | Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. Holding Esc resets a running station, one run, untimed |
 | Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), booted once |
-| Unit dependence | Yes | Parent carries keys and firmware; fixed USB addresses; `iw reg set US` |
-| Root filesystem | RAM only | No distro path; `linux` mounts Gemian's partition read-write |
+| Unit dependence | Station yes, release less | The station's parent carries keys and firmware and sets US. The release image drops those; its USB addresses stay fixed |
+| Root filesystem | RAM only | No distro path. The station mounts Gemian's `linux` partition read-write; the release image, read-only |
 | Suspend, cpuidle, cpufreq | Not started | Off. Decides battery life and heat |
 | A72 | Partial | Module, nothing loads it, fixed 750 MHz |
 | Thermal | Partial | Trips armed, none has fired; no CPU cooling without cpufreq |
-| Charging, running | Partial | 80% guard and temperature window shown by moved limit and emulation, not a real charge or a real 50 °C |
+| Charging, running | Partial | 80% guard and 0 to 50 °C window shown by moved limit and emulation, not a real charge or a really hot or cold battery |
 | Charging, powered off | Not limited | The loader decides; it can pass 80% |
 | Display, backlight, lid | Works, one unit | Native at 54 Hz, adopted from the loader |
-| Keyboard | Partial | Fn map captured once; rollover open; side key reports with no action |
-| Touch | Partial | Module, one boot, accuracy untested |
+| Keyboard | Partial | Row interrupts on the station; Fn map captured once; wider rollover open; side key reports with no action |
+| Touch | Partial | Module loaded by hand; events on one boot, interrupts only on another; accuracy untested; a blanked screen gave no interrupt |
 | GPU, desktop | Partial; not started | Panfrost hand-loaded; no compositor |
 | Speakers, headphones | Works | 48 kHz, station only |
 | Internal mic, jack | Partial | Capture follows speech; headset type and buttons open |
 | Wi-Fi | Partial | Two 5 GHz channels on one network, WPA2-PSK. No rekey, WPA3, DFS or power save. Idle link lost at about 6 min. `ip link down` is one-way until `mac` reloads |
-| Bluetooth | Partial | A2DP heard, one headset. mSBC opened by the kernel, heard clean on one run. Hand-started from a private chroot, placeholder address, no audio bridge for voice, unexplained link timeouts |
+| Bluetooth | Partial | A2DP heard, one headset. mSBC opened by the kernel, heard clean on one run. Hand-started from a private chroot, placeholder address, no audio bridge for voice. Link timeouts on one run and none on the [next two](../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04), where the owner heard SBC skip from about 4 yards, with no control yet |
 | USB | Partial | Gadget works; no host or role switch |
-| microSD, sensors | Unknown | Prepared, never booted |
+| microSD | Unknown | Prepared, never booted |
+| Sensors | Partial | [IMU and light/proximity](hardware/gemini-sensors.md) from modules loaded by hand, one boot, uncalibrated |
+| Indicator LEDs | Partial | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
 | GNSS | Partial | No position on mainline |
 | Modem | Not started | No mainline path |
-| Camera | Capture node on one boot | [Streams through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node); local format code, no application tried, and M4U bypassed by hand |
+| Camera | Partial | Capture node on two boots, [through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node); local format codes, no application tried, colour accuracy unmeasured, and M4U bypassed by hand |
 
 ## Blockers for a first test release
 
@@ -105,8 +108,9 @@ are in `release/`:
 - **Gemian.** `linux` mounts `ro,noload`, with the block device set read-only first, and
   so does `nvdata` in `radio-start`. Without that, a read-only ext4 mount still clears an
   orphan list on disk: in a VM, `ro,noload` alone changed an image holding one, and
-  7.1.3's `ext4_orphan_cleanup` has the same path. The station's `nvdata` mount still
-  lacks this. Without a writable marker a stuck native
+  7.1.3's `ext4_orphan_cleanup` has the same path. The station's `nvdata` mount [gained
+  this later](../experiments/2026-10-30-mainline-dev-station/README.md#nvdatas-block-device-is-read-only-2026-11-04),
+  normal path only. Without a writable marker a stuck native
   display load couldn't be skipped on the next boot, so the console stays on the
   loader framebuffer and `display-start` is by hand. That's short of the v0.1 promise
   below until blocker 4 is decided.
@@ -166,13 +170,10 @@ use.
 Reviews read the code; sampled checkpatch found 0 errors, so style isn't the problem.
 Structure is.
 
-- **Series shape.** 712 patches, +113.6k lines. 95 of 136 new C and asm files (47.3k of
+- **Series shape, at the audit.** 712 patches, +113.6k lines. 95 of 136 new C and asm files (47.3k of
   73.1k lines) and 183 of 204 new Kconfig symbols are off in the station config. 303
   patches touch only files the series itself created. No maintainer could review this.
-- **Numbering collision.** `0534`, `0535` and `0536` were each used twice in
-  `proposals/`, by display and Bluetooth, on the same night. They apply, since the names
-  differ. Renumber at the next series change.
-- **Authorship.** 508 of 712 have a placeholder `From:`, and few have a true
+- **Authorship, at the audit.** 508 of 712 have a placeholder `From:`, and few have a true
   `Signed-off-by`. Only the owner can certify; none may be invented.
 - **Generic code.** Diagnostics in `lib/kobject_uevent.c`, `kernel/ksysfs.c`,
   `kernel/cpu.c` and `i2c-mt65xx.c`; thermal maps TOPRGU registers directly.
@@ -192,7 +193,7 @@ The old series stays in Git as evidence.
 Details are in each experiment's record.
 
 - **Charge guard:** suspend and unbind fail open; DT properties encode policy; `0520`
-  needs `i2c0` enabled in source; no cold stop between -20 and 0 °C, an owner decision.
+  needs `i2c0` enabled in source.
 - **Display and lid:** the `0515` hold doesn't hold against VT and DRM restore paths;
   `0503` uses a provider API from consumer drivers; `0502` and `0507` delete required DT
   properties; the backlight link exists only through `station-dt.sh`.
@@ -202,3 +203,8 @@ Details are in each experiment's record.
   powered, so it stays hand-loaded with CONSYS up. Send blocks shorter than recovery;
   clients aren't told of a link stop.
 - **GPU:** `0493` may wait on reclaim in the fence path.
+- **PMIC keys:** patches 0001, 0002, 0006 and 0007 of the keys topic carry a placeholder
+  author, and the first two are marked as unsigned drafts. The owner has to review and
+  certify them.
+- **Camera:** the format codes are local, CAMSV0 bypasses the M4U through a larb2 bit with
+  stray writes not ruled out, and the SMI clock is critical until an SMI driver owns it.
