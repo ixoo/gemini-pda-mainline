@@ -1136,3 +1136,32 @@ release config, which has no `/dev/mem`, `/dev/i2c` or debugfs. The groups have 
 
 **Not in this test:** Wi-Fi and Bluetooth, which need firmware and a country and their own protocol; function beyond
 loading, such as rendering or capture, whose tools aren't in the image; colour, which this test doesn't judge.
+
+### Firmware from the owner's device (2026-11-05)
+
+The owner's requirement: "Our v1 image must provide a way for people to extract the fw files from their device."
+`release/firmware-get` does that, and `radio-start` calls it after the country check; see
+[firmware](../../docs/hardware/firmware.md#getting-them-from-the-owners-own-device). The kernel is unchanged, still package
+`16e5acfd…`. The RAM root changes, so the candidate is now boot2
+`99267ef0fe1541f4f135399134fa0ee5bbda8e133a644831ad7808ceead79503`, which replaces the hash above.
+
+**Located** in the retained private backup of `linux`, read with `debugfs`: `/data/system.img`, `/vendor/firmware/` inside it,
+and the three expected hashes. One unit. The private copy made for the test is deleted.
+
+**Tested in a VM,** with the composed root's own busybox in a chroot, a read-only bind for `/mnt/data` and a copy of that image:
+
+| Case | Printed |
+| --- | --- |
+| Image present, nothing in place | `ready`; three matching hashes, mode 0644; no loop, mount or partial left; image unchanged |
+| Run again | `ready` |
+| A bad file in place | `mismatch-WIFI_RAM_CODE_6797`, file left alone |
+| One absent, others good | `ready` |
+| No image | `no-gemian-system` |
+| A wrong file in a stand-in image | `mismatch-ROMv3_patch_1_0_hdr.bin`, nothing kept |
+| An image without the files | `missing-ROMv3_patch_1_0_hdr.bin` |
+| `radio-start` with a country and no source | `firmware-no-gemian-system`, no module loaded |
+| `radio-start` with no country | `off-no-country`, before any read |
+
+**Not shown:** the device's eMMC or its kernel's loop path; a real radio start from these copies; any other owner's layout.
+
+**Added device step:** before step 2, `firmware-get` alone, then compare the three hashes against the station's copies.

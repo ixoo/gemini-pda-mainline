@@ -1,0 +1,58 @@
+#!/bin/busybox sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Put the connectivity firmware in RAM from the owner's own Gemian system. It reads the three
+# named files from /data/system.img on Gemian's linux partition, which init has already mounted
+# read-only, through a read-only loop device. It starts no radio, writes to no partition, reads
+# no calibration or identifier, and sends nothing anywhere. Files go at reboot.
+# Prints one word: ready, no-gemian-system, or missing- or mismatch- with the file's name.
+# A file already in place, however it got there, is checked and never replaced.
+# See docs/hardware/firmware.md.
+export PATH=/bin
+bb=/bin/busybox
+dir=/lib/firmware/mediatek/mt6797
+image=/mnt/data/data/system.img
+source=/run/firmware-source
+loop=
+sum() {
+    case "$1" in
+    ROMv3_patch_1_0_hdr.bin) echo 450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630 ;;
+    ROMv3_patch_1_1_hdr.bin) echo 5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e ;;
+    WIFI_RAM_CODE_6797) echo a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd ;;
+    esac
+}
+names='ROMv3_patch_1_0_hdr.bin ROMv3_patch_1_1_hdr.bin WIFI_RAM_CODE_6797'
+matches() { [ "$($bb sha256sum "$1" | $bb cut -d' ' -f1)" = "$(sum "$2")" ]; }
+leave() {
+    $bb grep -q " $source " /proc/mounts && $bb umount "$source"
+    [ -z "$loop" ] || $bb losetup -d "$loop"
+    $bb rm -f "$dir"/*.partial
+    $bb rmdir "$source" 2>/dev/null
+    echo "$1"
+    case "$1" in ready) exit 0 ;; *) exit 1 ;; esac
+}
+absent=
+for name in $names; do
+    if [ -e "$dir/$name" ]; then
+        matches "$dir/$name" "$name" || leave "mismatch-$name"
+    else
+        absent="$absent $name"
+    fi
+done
+[ -n "$absent" ] || leave ready
+[ -f "$image" ] || leave no-gemian-system
+# The file system is mounted read-only, and the loop device refuses writes as well, since a
+# read-only ext4 mount can otherwise still clear an orphan list.
+loop=$($bb losetup -f) || { loop=; leave no-gemian-system; }
+$bb losetup -r "$loop" "$image" || { loop=; leave no-gemian-system; }
+[ "$($bb blockdev --getro "$loop")" = 1 ] || leave no-gemian-system
+$bb mkdir -p "$source" "$dir"
+$bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$loop" "$source" || leave no-gemian-system
+for name in $absent; do
+    [ -f "$source/vendor/firmware/$name" ] || leave "missing-$name"
+    $bb cp "$source/vendor/firmware/$name" "$dir/$name.partial" || leave "missing-$name"
+    matches "$dir/$name.partial" "$name" || leave "mismatch-$name"
+    $bb chmod 0644 "$dir/$name.partial"
+    $bb mv "$dir/$name.partial" "$dir/$name"
+done
+leave ready

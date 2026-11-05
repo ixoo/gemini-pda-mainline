@@ -70,8 +70,10 @@ not ship them.
 | `WIFI_RAM_CODE_6797` | `/vendor/firmware/WIFI_RAM_CODE_6797` | 411,632 | `a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd` | Container structure: four sections, two ordinary (14,832 bytes) and two EMI (396,688 bytes) |
 | `WIFI.storage` | Not copied: a symlink to `/nvdata/APCFG/APRDEB/WIFI` | 514 | Differs per device | Record envelope only |
 
-The first three are the same on every Gemini running the 2019 Gemian
-vendor set (see the [firmware inventory](../../experiments/2026-07-11-gemian-firmware-inventory/README.md)).
+The first three come from the 2019 Gemian vendor set (see the
+[firmware inventory](../../experiments/2026-07-11-gemian-firmware-inventory/README.md)). That set is
+expected to be the same across Gemian installs, which is an inference: one unit has been read.
+Bluetooth's start and the GNSS host use the same CONSYS start, so they need the same files and nothing more.
 `WIFI.storage` is not firmware: it is the device's own Wi-Fi NVRAM record,
 with the board's RF calibration, and it is read in place from the `nvdata`
 partition, which every Gemini has. The system mounts that partition
@@ -94,6 +96,30 @@ in the [storage contract](../../experiments/2026-09-05-mt6797-wifi-contract/PROV
 
 A missing file stops the start chain with the loader's error in the kernel
 log; nothing falls back to another path.
+
+### Getting them from the owner's own device
+
+The release image's [`firmware-get`](../../experiments/2026-10-30-mainline-dev-station/release/firmware-get)
+copies the three files into RAM from the owner's Gemian, and `radio-start` calls it on each boot, since
+nothing persists. On the one unit read, through its retained backup:
+
+| Step | Observed |
+| --- | --- |
+| Partition | GPT name `linux`, ext4, already mounted read-only by the image's init |
+| File | `/data/system.img`, an ext4 image of 642,129,920 bytes, which Gemian's container uses as `/system` |
+| Firmware | `/vendor/firmware/` inside it, with the three hashes above |
+
+The GPT partition named `system` on this unit holds an Android boot image, not these files.
+
+- **Read-only.** The image goes through a read-only loop device on a read-only mount. It writes to no
+  partition, and it sends nothing anywhere.
+- **Nothing device-unique.** These three files are the same vendor files, and `firmware-get` prints one
+  word. `WMT_SOC.cfg`, `nvram` and calibration aren't read by it. The calibration record stays where
+  it is in `nvdata`, linked by `radio-start` as above.
+- **Hashes.** The expected list is the table above, in the script. A hash is not the file. Whether publishing
+  it raises any rights question isn't settled by anything here; the table was already public.
+- **Not covered:** a device with no Gemian, another partition layout, or a different vendor set. Those
+  are untested, and a mismatch stops the radio. Stock Android's layout hasn't been read.
 
 The connectivity loader first received normal `request_firmware` failures and
 then Android `ueventd` supplied files from `/system/vendor/firmware`. The NVT

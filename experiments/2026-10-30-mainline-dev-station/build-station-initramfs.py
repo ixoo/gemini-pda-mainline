@@ -11,7 +11,7 @@ uses them for brightness. Writes a newc archive with zero timestamps,
 compressed with gzip -n -9 like the parent.
 
 With AUTHORIZED_KEY the parent must be release/build-parent.sh's public one, holding no
-keys or firmware. init and usb-ssh come from release/ and radio-start and hw-start are added,
+keys or firmware. init and usb-ssh come from release/ and radio-start, hw-start and firmware-get are added,
 power-status is left out, and that one-line public key is the only way in.
 
 usage: build-station-initramfs.py PARENT_INITRAMFS MODULES TOOLS RELEASE OUTPUT [AUTHORIZED_KEY]
@@ -125,6 +125,7 @@ def main(parent, modules, tools, release, output, authorized_key=None):
     if public:
         files['bin/radio-start'] = (FILE | 0o755, (first/'radio-start').read_bytes())
         files['bin/hw-start'] = (FILE | 0o755, (first/'hw-start').read_bytes())
+        files['bin/firmware-get'] = (FILE | 0o755, (first/'firmware-get').read_bytes())
         files['root/.ssh/authorized_keys'] = (FILE | 0o600, public_key_line(authorized_key))
     # The release config has no /dev/i2c, which power-status opens.
     for tool in ['backlight-policy', 'amixer', 'aplay'] if public else ['backlight-policy', 'power-status', 'amixer', 'aplay']:

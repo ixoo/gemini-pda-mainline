@@ -51,7 +51,7 @@ Do this from Gemian, before anything else, on a host with this repository:
   in `MANIFEST.tsv` is complete and non-empty, then store it offline and encrypted.
 - It reads only, and it holds your IMEI, MAC addresses, calibration, and all your data.
   Never attach it to an issue. The tool has only run on the author's unit.
-- Save your Gemian firmware files now as well: [Firmware and radio](#firmware-and-radio).
+- Keep a copy of your Gemian firmware files as well, in case Gemian goes: [the manual fallback](#if-firmware-get-fails).
 
 Before the first write, also follow [Before the first write](SAFETY.md#before-the-first-write),
 and confirm Gemian boots.
@@ -202,24 +202,22 @@ on the console. Passwords are refused. If SSH doesn't answer, look at
 
 ## Firmware and radio
 
-Wi-Fi is a beta. Nothing transmits until you've supplied all of this, and all of it goes
-away at reboot, so it's done again on each boot.
+Wi-Fi is a beta. Nothing transmits until you've set a country and the firmware is found, and all of
+it goes away at reboot, so it's done again on each boot.
 
-1. **While in Gemian**, copy the three files listed in [the firmware
-   table](hardware/firmware.md#files-the-mainline-wi-fi-driver-loads) to your host, and
-   compare each SHA-256 with that table:
-
-   ```sh
-   ssh USER@HOST cat /vendor/firmware/WIFI_RAM_CODE_6797 > WIFI_RAM_CODE_6797
-   ```
-
-   They come from your own device. The project ships none, and you may not have the right
-   to share them. Calibration is read from your own `nvdata`, read-only, and never copied.
-2. **On the running image**, send each file in, with the same name:
+1. **The firmware comes from your own device.** The project ships none. `radio-start` runs
+   `firmware-get`, which reads the three files from Gemian's `/data/system.img` on your `linux`
+   partition, read-only, checks each against [the firmware table's
+   hash](hardware/firmware.md#files-the-mainline-wi-fi-driver-loads), and puts them in RAM. To check
+   that it will work, with no radio involved, run it alone:
 
    ```sh
-   ssh -i KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null root@10.15.19.82 'cat > /lib/firmware/mediatek/mt6797/WIFI_RAM_CODE_6797' < WIFI_RAM_CODE_6797
+   firmware-get
    ```
+
+2. **If it can't find them,** because you have no Gemian or another build, see the [manual
+   fallback](#if-firmware-get-fails). Calibration is read from your own `nvdata`, read-only, and never
+   copied.
 
 3. **Set your real country** in capitals, then start. Use only the country you're in:
 
@@ -232,13 +230,37 @@ away at reboot, so it's done again on each boot.
 | --- | --- |
 | `started-XX` | Country applied, modules loaded. The firmware starts soon after, and `iw reg get` shows the country |
 | `off-no-country`, `off-bad-country` | `/etc/radio-country` is missing, or isn't two capitals |
-| `absent-no-firmware` | A firmware file is missing or empty |
+| `firmware-no-gemian-system` | No readable `/data/system.img`; see [below](#if-firmware-get-fails) |
+| `firmware-missing-NAME`, `firmware-mismatch-NAME` | That file is absent, or isn't the expected one; no radio |
 | `off-reg-failed`, `off-reg-not-applied` | The country wasn't accepted; no module was loaded |
 | `off-no-nvdata` | The calibration partition didn't mount; no module was loaded |
 | `mt6797-wlan-core-failed`, or another module's name | That module wouldn't load; see `dmesg` |
 
 A wrong ROM patch or a missing calibration record stops the start in the kernel, with an
 error in `dmesg`.
+
+### If `firmware-get` fails
+
+It prints one word and starts nothing: `ready`, `no-gemian-system`, `missing-NAME` or `mismatch-NAME`.
+It has run only in a VM against one retained image, not on a device, and only one unit's layout is known.
+
+- **Gemian reinstalled, removed or on another partition layout:** it won't find the image. Copy the
+  three files from any copy of the same vendor set into `/lib/firmware/mediatek/mt6797/`, with the same
+  names, over SSH with `cat`. `firmware-get` checks them and doesn't replace them. From a running
+  Gemian, the files are under `/vendor/firmware/`:
+
+  ```sh
+  ssh USER@HOST cat /vendor/firmware/WIFI_RAM_CODE_6797 > WIFI_RAM_CODE_6797
+  ```
+
+  ```sh
+  ssh -i KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null root@10.15.19.82 'cat > /lib/firmware/mediatek/mt6797/WIFI_RAM_CODE_6797' < WIFI_RAM_CODE_6797
+  ```
+
+  They're from your device, and you may not have the right to share them.
+- **A different build, where a hash doesn't match:** the radio stays off, and the drivers here have
+  only run on these three files. Report the build rather than forcing it.
+- **A wiped device with no copy:** Wi-Fi, Bluetooth and GNSS can't start. The rest doesn't need them.
 
 **Joining a network.** [`wifi-up.sh`](../experiments/2026-10-30-mainline-dev-station/wifi-up.sh)
 runs `radio-start` first and stops if it doesn't start. Its header describes

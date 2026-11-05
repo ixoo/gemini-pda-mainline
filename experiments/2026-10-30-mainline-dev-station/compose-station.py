@@ -82,7 +82,7 @@ def main(package, parent, tools, output, authorized_key=None):
         assert line in config.splitlines(), line
     assert public or 'CONFIG_LEDS_AW9120=m' in config.splitlines()
     for line in ['# CONFIG_DEVMEM is not set', '# CONFIG_I2C_CHARDEV is not set', '# CONFIG_DEBUG_FS is not set',
-                 'CONFIG_EXTRA_FIRMWARE=""'] if public else []:
+                 'CONFIG_EXTRA_FIRMWARE=""', 'CONFIG_BLK_DEV_LOOP=y'] if public else []:
         assert line in config.splitlines(), line
     output.mkdir(mode=0o700)
     dtb = output/'board.dtb'

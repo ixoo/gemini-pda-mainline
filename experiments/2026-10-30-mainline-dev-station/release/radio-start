@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 # shellcheck shell=dash
 # The release's only way to start Wi-Fi at boot or by hand. Nothing is loaded and
-# nothing transmits unless the tester wrote a country to /etc/radio-country and the
-# firmware files are where the kernel's firmware loader looks. The country goes
-# first, so the driver never runs under the default rules. Both are RAM only and go
-# at reboot. Prints one word for the status file.
+# nothing transmits unless the tester wrote a country to /etc/radio-country and
+# firmware-get finds the right firmware, from the owner's own Gemian or copied in by
+# hand. The country goes first, so the driver never runs under the default rules. Both
+# are RAM only and go at reboot. Prints one word for the status file.
 export PATH=/bin LD_LIBRARY_PATH=/lib
 bb=/bin/busybox
 country=$($bb cat /etc/radio-country 2>/dev/null)
@@ -14,12 +14,10 @@ case "$country" in
 [A-Z][A-Z]) ;;
 *) echo off-bad-country; exit 1 ;;
 esac
-for name in WIFI_RAM_CODE_6797 ROMv3_patch_1_0_hdr.bin ROMv3_patch_1_1_hdr.bin; do
-    if [ ! -s "/lib/firmware/mediatek/mt6797/$name" ]; then
-        echo absent-no-firmware
-        exit 0
-    fi
-done
+if ! firmware=$(/bin/firmware-get); then
+    echo "firmware-$firmware"
+    exit 1
+fi
 if ! /bin/iw reg set "$country"; then
     echo off-reg-failed
     exit 1

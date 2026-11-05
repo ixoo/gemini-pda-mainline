@@ -78,7 +78,7 @@ them is for later releases. Where a decision was pending, v1 takes the state tha
 | # | Gap | State | In v1 | Effort |
 | --- | --- | --- | --- | --- |
 | 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key | Booted once on the author's unit, [below](#release-ram-root). Not on a tester's. Alpine's package pins need a kept copy or mirror | The recipe fails loudly once a pin goes | M |
-| 2 | Tester supplies firmware from their own device, with a hash check; Wi-Fi absent cleanly otherwise | Absence booted once. The steps are in the guide; they've never run | By hand, untested | S-M |
+| 2 | The image gets firmware from the owner's own device, with a hash check; Wi-Fi absent cleanly otherwise | [`firmware-get`](hardware/firmware.md#getting-them-from-the-owners-own-device) reads it from Gemian's `system.img`, each boot. Run in a VM on one retained image; not on a device. Absence booted once | Automatic on Gemian's layout, one unit's known; by hand otherwise | S-M |
 | 3 | Release profile, below | Package booted once. The command line items stay open | Keeps the test-named USB identity | S-M |
 | 4 | Leave Gemian's root read-only by default, or use one dedicated directory | Read-only booted once, at a cost to the display: [below](#release-ram-root) | Read-only, so the console stays on the loader framebuffer | S |
 | 5 | A country setting replaces fixed US; radio off until set | `radio-start` refused without a country on one boot; the path with one hasn't run. Owner protocol open | Set by hand on each boot | S |
@@ -137,10 +137,9 @@ are in `release/`:
   key or firmware. `usb-ssh` makes the host key in RAM, so it
   changes on every boot, and `/run/station/host-key.pub` shows it on the console.
 - **Radio.** Init loads no Wi-Fi module by itself. `radio-start` needs a two-letter
-  `/etc/radio-country` and the three firmware files in
-  `/lib/firmware/mediatek/mt6797/`, then sets the country, waits to see it applied, and
-  loads the driver. Both live in RAM, so for now a tester writes them after each boot
-  and runs it by hand. `wifi-up.sh` runs it first on this image and stops if it doesn't start.
+  `/etc/radio-country`, gets the three firmware files through `firmware-get`, then sets the
+  country, waits to see it applied, and loads the driver. Both live in RAM, so a tester sets the
+  country after each boot and runs it by hand. `wifi-up.sh` runs it first on this image and stops if it doesn't start.
 - **Gemian.** `linux` mounts `ro,noload`, with the block device set read-only first, and
   so does `nvdata` in `radio-start`. Without that, a read-only ext4 mount still clears an
   orphan list on disk: in a VM, `ro,noload` alone changed an image holding one, and
@@ -187,7 +186,7 @@ speaker tone. Primary boot, NVRAM, GPT and the preloader weren't written; partit
 hashed across the boot.
 
 **Shown only on the station so far:** native display, thermal trips, headphones and capture, Wi-Fi as
-a beta with your own firmware, touch, GPU, Bluetooth, sensors, LEDs, the A72 pair, GNSS tracking and the
+a beta with your device's own firmware, touch, GPU, Bluetooth, sensors, LEDs, the A72 pair, GNSS tracking and the
 camera through a test tool.
 
 **It doesn't:** replace Gemian or persist anything across a reboot; suspend, scale CPU clocks or offer
