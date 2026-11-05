@@ -1202,3 +1202,8 @@ The charger read `Not charging` throughout and the SoC stayed at 29.6–30.5 °C
 `f01ee772`, with CPUs 0-7 and no A72 load, read the same. So this kernel reports both as `Vulnerable` without the A72
 step, at least on the station config. Nobody read v1 before `a72`, so whether loading it changes anything there is unknown.
 It's not shown that a reboot clears the state.
+
+**Tagged (2026-11-05).** On the owner's word ("Tag v1"), the custodian pushed the annotated tag `v1` on `5c263c74`.
+The tested image's inputs come from there: kernel package `16e5acfd…` from `10f2e142`, and the RAM root from `5c263c74`.
+Nothing under `release/`, the compose scripts, patches, kernel or configs changed between them. The tag message names
+boot2 `99267ef0…` and what wasn't tested. This boot record landed on `main` after the tag.

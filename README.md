@@ -58,7 +58,7 @@ upstream, it isn't a daily driver, and a build isn't support.
 
 **[v1](docs/RELEASE_READINESS.md) is all of the above, with that limited testing,** still without
 cpufreq or power governors. People can start experimenting with it, at their own risk. The public
-image now carries all of it, with most parts loaded by hand; that build booted once, and every
+image now carries all of it, with most parts loaded by hand. It's tagged `v1`, and that image booted once, and every
 group but the radios [loaded](experiments/2026-10-30-mainline-dev-station/README.md#v1-candidate-boot-2026-11-05) with taint 0. There's no first-install tool, as the [testing guide](docs/TESTING_GUIDE.md) says.
 
 The [hardware support matrix](docs/HARDWARE_SUPPORT.md) owns current capability

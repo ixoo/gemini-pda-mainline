@@ -70,7 +70,7 @@ and confirm Gemian boots.
 The image holds no firmware and no keys but your public key. You build it yourself,
 because it carries your key.
 
-**Kernel.** Profile `mt6797-a53-release`, commit `10f2e142` or later. That commit has booted once, with
+**Kernel.** Profile `mt6797-a53-release`, from the tag `v1` or later. The `v1` image has booted once, with
 every group but the radios loaded by hand at taint 0; see its [boot record](../experiments/2026-10-30-mainline-dev-station/README.md#v1-candidate-boot-2026-11-05):
 
 ```sh

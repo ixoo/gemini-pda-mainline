@@ -8,7 +8,7 @@ What v1 is, what it leaves out, and what stands in the way of daily use.
 > There is no warranty ([MIT licence](../LICENSE)) and no promise of support.
 
 The owner shipped v1 on 2026-11-04: "v1 is what we have now. we can always do better, but let's
-ship what we currently have." So the gaps below are known limits of v1, not conditions on it.
+ship what we currently have." The tag `v1` marks it, on commit `5c263c74`. So the gaps below are known limits of v1, not conditions on it.
 This comes from reading the records, patches and logs, not from new device runs. The
 [support matrix](HARDWARE_SUPPORT.md) owns demonstrated support.
 
@@ -23,8 +23,8 @@ replacement or a daily driver. As it stands:
 
 - **Most results come from the station,** the project's own image, whose RAM root holds private
   keys and firmware and doesn't ship. The public release image is built to replace it for others.
-- **The candidate has booted once.** [`10f2e142`](../experiments/2026-10-30-mainline-dev-station/README.md#the-v1-candidate-2026-11-05)
-  carries every working module, and `hw-start` loads the optional groups by hand. On its one
+- **The `v1` image has booted once.** Its kernel is built from [`10f2e142`](../experiments/2026-10-30-mainline-dev-station/README.md#the-v1-candidate-2026-11-05)
+  and its RAM root from `5c263c74`, the tagged commit. It carries every working module, and `hw-start` loads the optional groups by hand. On its one
   [boot](../experiments/2026-10-30-mainline-dev-station/README.md#v1-candidate-boot-2026-11-05) `firmware-get` copied matching firmware, and every group but the radios loaded with
   taint 0. That's load level only: radios, rendering, capture and persistence weren't tested.
 - **Modules aren't applications.** The image has no Mesa, BlueZ, GNSS host or camera tool, so those
