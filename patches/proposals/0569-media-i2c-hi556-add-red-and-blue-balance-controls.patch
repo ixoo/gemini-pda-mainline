@@ -1,0 +1,102 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 19:54:47 -0500
+Subject: [PATCH 569/570] media: i2c: hi556: add red and blue balance controls
+
+The sensor has separate digital gains for each colour, all set to one value by the
+digital gain control. Expose red and blue relative to it through the standard
+balance controls, so userspace can set white balance on the sensor. Unity is 256,
+the digital gain default.
+---
+ drivers/media/i2c/hi556.c | 47 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 40 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/media/i2c/hi556.c b/drivers/media/i2c/hi556.c
+index bb58f151d..756f004b4 100644
+--- a/drivers/media/i2c/hi556.c
++++ b/drivers/media/i2c/hi556.c
+@@ -649,6 +649,9 @@ struct hi556 {
+ 	struct v4l2_ctrl *vblank;
+ 	struct v4l2_ctrl *hblank;
+ 	struct v4l2_ctrl *exposure;
++	struct v4l2_ctrl *digital_gain;
++	struct v4l2_ctrl *red_balance;
++	struct v4l2_ctrl *blue_balance;
+ 
+ 	/* GPIOs, clocks, etc. */
+ 	struct gpio_desc *reset_gpio;
+@@ -743,6 +746,13 @@ static int hi556_write_reg_list(struct hi556 *hi556,
+ 	return 0;
+ }
+ 
++static int hi556_write_mwb_gain(struct hi556 *hi556, u32 reg, u32 d_gain, u32 balance)
++{
++	u32 gain = min(d_gain * balance / HI556_DGTL_GAIN_DEFAULT, 0xffffU);
++
++	return hi556_write_reg(hi556, reg, HI556_REG_VALUE_16BIT, gain);
++}
++
+ static int hi556_update_digital_gain(struct hi556 *hi556, u32 d_gain)
+ {
+ 	int ret;
+@@ -757,13 +767,13 @@ static int hi556_update_digital_gain(struct hi556 *hi556, u32 d_gain)
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = hi556_write_reg(hi556, HI556_REG_MWB_R_GAIN,
+-			      HI556_REG_VALUE_16BIT, d_gain);
++	ret = hi556_write_mwb_gain(hi556, HI556_REG_MWB_R_GAIN, d_gain,
++				   hi556->red_balance->val);
+ 	if (ret)
+ 		return ret;
+ 
+-	return hi556_write_reg(hi556, HI556_REG_MWB_B_GAIN,
+-			       HI556_REG_VALUE_16BIT, d_gain);
++	return hi556_write_mwb_gain(hi556, HI556_REG_MWB_B_GAIN, d_gain,
++				    hi556->blue_balance->val);
+ }
+ 
+ static int hi556_test_pattern(struct hi556 *hi556, u32 pattern)
+@@ -822,6 +832,16 @@ static int hi556_set_ctrl(struct v4l2_ctrl *ctrl)
+ 		ret = hi556_update_digital_gain(hi556, ctrl->val);
+ 		break;
+ 
++	case V4L2_CID_RED_BALANCE:
++		ret = hi556_write_mwb_gain(hi556, HI556_REG_MWB_R_GAIN,
++					   hi556->digital_gain->val, ctrl->val);
++		break;
++
++	case V4L2_CID_BLUE_BALANCE:
++		ret = hi556_write_mwb_gain(hi556, HI556_REG_MWB_B_GAIN,
++					   hi556->digital_gain->val, ctrl->val);
++		break;
++
+ 	case V4L2_CID_EXPOSURE:
+ 		ret = hi556_write_reg(hi556, HI556_REG_EXPOSURE,
+ 				      HI556_REG_VALUE_16BIT, ctrl->val);
+@@ -897,9 +917,22 @@ static int hi556_init_controls(struct hi556 *hi556)
+ 	v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops, V4L2_CID_ANALOGUE_GAIN,
+ 			  HI556_ANAL_GAIN_MIN, HI556_ANAL_GAIN_MAX,
+ 			  HI556_ANAL_GAIN_STEP, HI556_ANAL_GAIN_MIN);
+-	v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops, V4L2_CID_DIGITAL_GAIN,
+-			  HI556_DGTL_GAIN_MIN, HI556_DGTL_GAIN_MAX,
+-			  HI556_DGTL_GAIN_STEP, HI556_DGTL_GAIN_DEFAULT);
++	hi556->digital_gain = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops,
++						V4L2_CID_DIGITAL_GAIN,
++						HI556_DGTL_GAIN_MIN, HI556_DGTL_GAIN_MAX,
++						HI556_DGTL_GAIN_STEP,
++						HI556_DGTL_GAIN_DEFAULT);
++	/* 256 is unity, as for the digital gain, which they multiply. */
++	hi556->red_balance = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops,
++					       V4L2_CID_RED_BALANCE,
++					       HI556_DGTL_GAIN_MIN, HI556_DGTL_GAIN_MAX,
++					       HI556_DGTL_GAIN_STEP,
++					       HI556_DGTL_GAIN_DEFAULT);
++	hi556->blue_balance = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops,
++						V4L2_CID_BLUE_BALANCE,
++						HI556_DGTL_GAIN_MIN, HI556_DGTL_GAIN_MAX,
++						HI556_DGTL_GAIN_STEP,
++						HI556_DGTL_GAIN_DEFAULT);
+ 	exposure_max = hi556->cur_mode->fll_def - HI556_EXPOSURE_MAX_MARGIN;
+ 	hi556->exposure = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops,
+ 					    V4L2_CID_EXPOSURE,

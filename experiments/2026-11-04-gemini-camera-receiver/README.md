@@ -296,6 +296,11 @@ Not run. A build is not a demonstration.
   libcamera support for it has not been checked.
 - [`0565`](../../patches/proposals/0565-clk-mediatek-mt6797-mm-keep-the-SMI-common-gate-open.patch) marks the SMI common gate
   critical, so a camera consumer can no longer close it behind the display. An SMI driver should own it instead.
+- [`0569`](../../patches/proposals/0569-media-i2c-hi556-add-red-and-blue-balance-controls.patch) adds standard red and blue
+  balance controls on the sensor's separate gains, for the owner's request that userspace can control colour.
+- [`0570`](../../patches/proposals/0570-media-i2c-hi556-write-the-analogue-gain-to-its-own-r.patch) writes the analogue gain at
+  `0x0076`. From the source, not yet observed: upstream's 16-bit write at `0x0077` puts the value in the Gr gain's high
+  byte, so analogue gain never applies. The vendor driver for this register map uses `0x0076`.
 - [`0567`](../../patches/proposals/0567-arm64-dts-mediatek-mt6797-give-the-sensor-interface-.patch) adds SPI 252 and larb2's
   window to the sensor interface node. CAMSV0 still bypasses M4U.
 

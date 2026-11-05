@@ -6,9 +6,11 @@
  *   aarch64-linux-gnu-gcc -O2 -Wall -Wextra -static -o cam-view cam-view.c -lm
  *
  * usage: cam-view [-d VIDEO] [-s SUBDEV] [-n FRAMES] [-e EXPOSURE] [-g GAIN] [-p PATTERN]
- *                 [-f FLIP] [-b] [-F]
+ *                 [-D DIGITAL] [-R RED] [-B BLUE] [-f FLIP] [-b] [-F]
  *
- *   -s    the sensor's sub-device, needed for -e, -g and -p
+ *   -s    the sensor's sub-device, needed for -e, -g, -p, -D, -R and -B
+ *   -R -B the sensor's red and blue balance, 256 is unity; they turn the tool's own
+ *         grey-world balance off
  *   -f    bit 0 mirrors, bit 1 flips, for the picture on the panel
  *   -b    the sensor is showing colour bars: count frames with any line that differs
  *         from line 0 or 1 of the same frame
@@ -134,7 +136,8 @@ int main(int argc, char **argv)
 {
 	const char *video = "/dev/video0", *subdev = NULL;
 	unsigned int frames = 30, flip = 0, i, bad_frames = 0, gaps = 0;
-	int exposure = -1, gain = -1, pattern = -1, bars = 0, use_fb = 1, opt, fd, sfd = -1, fbfd;
+	int exposure = -1, gain = -1, pattern = -1, digital = -1, red = -1, blue = -1;
+	int bars = 0, use_fb = 1, opt, fd, sfd = -1, fbfd;
 	struct v4l2_format fmt = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 	struct v4l2_requestbuffers req = { 0 };
 	struct v4l2_buffer buf;
@@ -145,7 +148,7 @@ int main(int argc, char **argv)
 	uint32_t *fb = NULL, last_seq = 0;
 	double start = 0, end = 0;
 
-	while ((opt = getopt(argc, argv, "d:s:n:e:g:p:f:bF")) != -1) {
+	while ((opt = getopt(argc, argv, "d:s:n:e:g:p:D:R:B:f:bF")) != -1) {
 		switch (opt) {
 		case 'd': video = optarg; break;
 		case 's': subdev = optarg; break;
@@ -153,6 +156,9 @@ int main(int argc, char **argv)
 		case 'e': exposure = atoi(optarg); break;
 		case 'g': gain = atoi(optarg); break;
 		case 'p': pattern = atoi(optarg); break;
+		case 'D': digital = atoi(optarg); break;
+		case 'R': red = atoi(optarg); break;
+		case 'B': blue = atoi(optarg); break;
 		case 'f': flip = atoi(optarg); break;
 		case 'b': bars = 1; break;
 		case 'F': use_fb = 0; break;
@@ -175,6 +181,12 @@ int main(int argc, char **argv)
 		set_ctrl(sfd, V4L2_CID_EXPOSURE, exposure, "exposure");
 	if (gain >= 0)
 		set_ctrl(sfd, V4L2_CID_ANALOGUE_GAIN, gain, "gain");
+	if (digital >= 0)
+		set_ctrl(sfd, V4L2_CID_DIGITAL_GAIN, digital, "digital");
+	if (red >= 0)
+		set_ctrl(sfd, V4L2_CID_RED_BALANCE, red, "red");
+	if (blue >= 0)
+		set_ctrl(sfd, V4L2_CID_BLUE_BALANCE, blue, "blue");
 
 	fd = open(video, O_RDWR);
 	if (fd < 0)
@@ -261,7 +273,7 @@ int main(int argc, char **argv)
 		if (fb) {
 			draw(fb, FB_W * 4, copy, fmt.fmt.pix.bytesperline, fmt.fmt.pix.width,
 			     fmt.fmt.pix.height, flip, curve, sum);
-			if (!bars)
+			if (!bars && red < 0 && blue < 0)
 				make_curves(curve, sum);
 		}
 	}

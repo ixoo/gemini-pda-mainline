@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 19:55:06 -0500
+Subject: [PATCH 570/570] media: i2c: hi556: write the analogue gain to its own
+ register
+
+The analogue gain is a 16-bit write to 0x0077, whose low byte lands in 0x0078, the
+Gr digital gain high byte. 0x0077 itself only ever gets the high byte, which is
+zero for any value in range. So the control leaves the analogue gain at its minimum
+and, while streaming, raises the Gr gain.
+
+The vendor driver for this register map writes 16 bits at 0x0076, and 0x0077 is
+the low byte of that pair. Do the same.
+---
+ drivers/media/i2c/hi556.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/i2c/hi556.c b/drivers/media/i2c/hi556.c
+index 756f004b4..4f1dbb0c4 100644
+--- a/drivers/media/i2c/hi556.c
++++ b/drivers/media/i2c/hi556.c
+@@ -52,7 +52,7 @@
+ #define HI556_EXPOSURE_STEP		1
+ 
+ /* Analog gain controls from sensor */
+-#define HI556_REG_ANALOG_GAIN		0x0077
++#define HI556_REG_ANALOG_GAIN		0x0076
+ #define HI556_ANAL_GAIN_MIN		0
+ #define HI556_ANAL_GAIN_MAX		240
+ #define HI556_ANAL_GAIN_STEP		1
+@@ -879,7 +879,7 @@ static int hi556_init_controls(struct hi556 *hi556)
+ 	int ret;
+ 
+ 	ctrl_hdlr = &hi556->ctrl_handler;
+-	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 8);
++	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 10);
+ 	if (ret)
+ 		return ret;
+ 

@@ -398,7 +398,7 @@ first CAMSV frame are shown, and colour bars reach memory (C5); the next step is
 capture interface. The station chronology is in the
 [camera record](../../experiments/2026-11-04-gemini-camera/README.md) and the
 [receiver record](../../experiments/2026-11-04-gemini-camera-receiver/README.md),
-with patches under `patches/proposals/0543`-`0568`. A capture node exists
+with patches under `patches/proposals/0543`-`0570`. A capture node exists
 in the series (0568) but has not run; the picture on the panel (D1/D2) came from the diagnostic it replaces.
 
 ### Master clock on mainline
@@ -439,7 +439,7 @@ frequency meter (T7).
 - [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md)
 - [Gemian hardware baseline](gemini-gemian-baseline.md) and [vendor userspace](vendor-userspace.md)
 - [Vendor kernel ABI](vendor-kernel-abi.md)
-- Station series `patches/proposals/0543`-`0568`; profile fragment
+- Station series `patches/proposals/0543`-`0570`; profile fragment
   `configs/gemini-a53-station-camera.fragment`.
 - Pinned Gemian kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `drivers/misc/mediatek/imgsensor/src/mt6797/`,
