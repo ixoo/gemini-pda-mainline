@@ -748,3 +748,4 @@ proposals/0576-media-i2c-hi556-LOCAL-mirror-the-front-camera-by-def.patch
 proposals/0577-arm64-dts-mediatek-gemini-station-show-caps-lock-on-.patch
 proposals/0577-media-mediatek-mt6797-seninf-enumerate-frame-sizes.patch
 proposals/0578-media-mediatek-mt6797-seninf-start-with-buffers-queu.patch
+proposals/0579-arm64-dts-mediatek-gemini-station-describe-the-micro.patch

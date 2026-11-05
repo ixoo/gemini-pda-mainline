@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 17:36:12 -0500
+Subject: [PATCH 579/579] arm64: dts: mediatek: gemini-station: describe the microSD
+ slot
+
+The Gemini PDA's microSD slot is on MSDC1, GPIO129-134, with card detect
+on GPIO67 (EINT6). The vendor driver powers the card from the MT6351 VMCH
+LDO and the I/O from VMC, both at 3.0 V, and reads the card-detect pin
+high as a card present.
+
+Enable the MT6797 mmc1 node at default speed, 4 bits wide, with both
+supplies held at 3.0 V and no 1.8 V signalling. MT6797 pinctrl has
+pinmux only, so the pads keep the firmware's pull and drive settings.
+
+Pin the MMC indices with aliases so the eMMC stays mmc0 and mmcblk0,
+which is where the station looks for its partitions.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 72 +++++++++++++++++++
+ 1 file changed, 72 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index bd6b884..4711ed3 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -548,3 +548,75 @@
+ &bmi160_candidate {
+ 	status = "okay";
+ };
++
++/*
++ * The microSD slot on MSDC1. Pin the MMC indices first: the station's init,
++ * flash-boot2 and radio-start look for their partitions on mmcblk0 only, so
++ * the eMMC must stay mmc0 whichever host probes first.
++ */
++/ {
++	aliases {
++		mmc0 = &mmc0;
++		mmc1 = &mmc1;
++	};
++};
++
++/*
++ * The vendor driver asks for VMCH as the card supply and VMC as the I/O
++ * supply, both at 3.0 V. Hold both there: the first test runs the card at
++ * 3.3 V signalling only, without the 1.8 V switch.
++ */
++&mt6351regulator {
++	mt6351_vmch_reg: ldo-vmch {
++		regulator-name = "vmch";
++		regulator-min-microvolt = <3000000>;
++		regulator-max-microvolt = <3000000>;
++	};
++
++	mt6351_vmc_reg: ldo-vmc {
++		regulator-name = "vmc";
++		regulator-min-microvolt = <3000000>;
++		regulator-max-microvolt = <3000000>;
++	};
++};
++
++/*
++ * Pinmux only, as for the eMMC: the MT6797 pin data has no pull, input
++ * enable or drive registers, so the pads stay as the firmware left them.
++ * The card-detect pin GPIO67 is not listed: requesting it as a GPIO and
++ * then its interrupt sets its mode.
++ */
++&pio {
++	mmc1_pins_default: mmc1-default-pins {
++		pins-cmd-dat {
++			pinmux = <MT6797_GPIO129__FUNC_MSDC1_CMD>,
++				 <MT6797_GPIO130__FUNC_MSDC1_DAT0>,
++				 <MT6797_GPIO131__FUNC_MSDC1_DAT1>,
++				 <MT6797_GPIO132__FUNC_MSDC1_DAT2>,
++				 <MT6797_GPIO133__FUNC_MSDC1_DAT3>;
++		};
++
++		pins-clk {
++			pinmux = <MT6797_GPIO134__FUNC_MSDC1_CLK>;
++		};
++	};
++};
++
++/*
++ * Default speed, 4 bits, 3.3 V signalling. The vendor reads the card-detect
++ * pin high as a card present.
++ */
++&mmc1 {
++	pinctrl-names = "default", "state_uhs";
++	pinctrl-0 = <&mmc1_pins_default>;
++	pinctrl-1 = <&mmc1_pins_default>;
++	bus-width = <4>;
++	max-frequency = <25000000>;
++	cd-gpios = <&pio 67 GPIO_ACTIVE_HIGH>;
++	vmmc-supply = <&mt6351_vmch_reg>;
++	vqmmc-supply = <&mt6351_vmc_reg>;
++	no-1-8-v;
++	no-mmc;
++	no-sdio;
++	status = "okay";
++};
+-- 
+2.54.0 (Apple Git-157)
+
