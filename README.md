@@ -29,28 +29,36 @@ MediaTek BootROM
 
 ## Current status
 
-The named Gemini boots local Linux 7.1.3 integration candidates through the
-retained LK and non-primary `boot2`. Console, built-in keyboard, USB gadget
-administration, native restart, eight A53 CPUs and bounded eMMC development
-access have attributable results.
+The named Gemini runs a Linux 7.1.3 development station from RAM, through the
+retained LK and non-primary `boot2`, with the owner holding the side key to select
+it. Everything below is one unit on a local patch series. Nothing has been submitted
+upstream, it isn't a daily driver, and a build isn't support.
 
-Isolated candidates also demonstrate both A72 CPUs, standard 4+4+2 topology,
-bounded cross-CPU RAM checks and repeated CPU9 down/restore. Frequency and
-read-only thermal observation have runtime evidence. Cross-boot thermal
-repeatability, thermal protection, general power management and default-profile
-A72 support remain open. A successful experiment is not released upstream
-support.
+- **In use on the station:** the console on the native display at a measured 54 Hz,
+  the keyboard, the lid, USB SSH, eight A53 CPUs, restart, writes to `boot2` from the
+  running system with full readback, speakers and headphones at 48 kHz, and Wi-Fi as
+  WPA2-PSK on the owner's network.
+- **Protection in the kernel:** a charge guard, which stops at capacity 80 %, 50 °C
+  and 0 °C, and thermal trips. None of the trips has fired, the guard has been shown
+  by moved limits and emulation rather than a real charge or a real hot or cold
+  battery, and charging isn't limited while powered off.
+- **Modules loaded by hand, mostly on one boot:** the touchscreen, the Mali-T880
+  through Panfrost, Bluetooth A2DP, the IMU and light and proximity sensors, the front
+  camera through a test tool with its DMA bypassing the M4U, the AW9120 indicator
+  LEDs, and the two A72 CPUs on an opt-in profile.
+- **Partly there:** GNSS tracks two live satellites from a userspace host, with no
+  position on mainline yet.
+- **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery
+  life and heat; microSD; USB host; the modem.
+
+A [release image](docs/RELEASE_READINESS.md) with a public RAM root has booted once,
+on this unit. Nobody else can install it yet, as the [testing
+guide](docs/TESTING_GUIDE.md) says.
 
 The [hardware support matrix](docs/HARDWARE_SUPPORT.md) owns current capability
-claims. Exact candidates, admission decisions and negative results live in
-[experiments](experiments/README.md). The [roadmap](docs/ROADMAP.md) owns the
-current work order; it is kept under 200 lines, and everything else lives in
-the records it links.
-
-The project now separates safe development-system integration, A72/power
-research and upstream preparation. Independent display, connectivity and
-peripheral research does not wait for complete A72 suspend support. All device
-experiments share one explicit admission queue and preserve recovery.
+claims and their limits. Exact candidates and negative results live in
+[experiments](experiments/README.md), and the [roadmap](docs/ROADMAP.md) owns the
+current work order.
 
 ## What this repository is
 
@@ -88,8 +96,9 @@ Gemini-specific description belongs in an upstream board Device Tree.
 | Goal | Document |
 | --- | --- |
 | Understand risk and device-write rules | [Safety policy](docs/SAFETY.md) |
-| See the current critical path | [Roadmap](docs/ROADMAP.md) |
+| See the current work order | [Roadmap](docs/ROADMAP.md) |
 | Check present subsystem support | [Hardware support matrix](docs/HARDWARE_SUPPORT.md) |
+| See what a first test release needs | [Release readiness](docs/RELEASE_READINESS.md) and [testing guide](docs/TESTING_GUIDE.md) |
 | Understand ownership and patch layering | [Architecture](docs/ARCHITECTURE.md) |
 | Reproduce a kernel build | [Kernel workflow](docs/KERNEL_WORKFLOW.md) |
 | Inspect durable hardware facts | [Hardware knowledge base](docs/hardware/README.md) |
