@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 (antenna, tune) is outlined, not admitted |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 (DSP patch, tune, antenna) is predeclared with code 0583, not yet admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -261,13 +261,79 @@ about the DSP, the antenna, reception or audio.
 
 Following the decision table, the tuner is written in stages, starting with F2.
 
-## Test F2 (outline, after F1)
+## Test F2: first tune and antenna check (predeclared, not yet admitted)
 
-The rest of the vendor power-up, which reads the DSP ROM version (open item 7)
-before the patch and coefficient download; then tune to one strong local station
-chosen by the owner and read RSSI for 30 s without a headset and 30 s with one plugged in. A clear
-RSSI rise with the headset says the long antenna is wired. Audio is not part of
-F2; it waits for the AFE input.
+**Hypothesis:** with the rest of the vendor power-up, the DSP accepts the v1
+patch and coefficient files, a tune to a strong local station completes, and
+the signal strength there is well above the noise. A headset plugged into the
+jack raises it clearly if the long antenna (the headset cable) is the one
+wired, as the reference design does.
+
+**Code:**
+[0583](../../patches/proposals/0583-media-radio-mt6797-tune-and-log-the-signal-strength-.patch)
+adds two module parameters to `radio-mt6797`. Without `freq_khz` the module
+does exactly F1. With it, after the three identity reads probe runs:
+
+1. The DSP ROM version query (R2): `0x61` D15, D1, D0; poll `0x84` for `1`
+   every 1 ms, at most 100 times; read `0x83[15:8]`; then put `0x61` back.
+2. The patch (`0x12`) and coefficient (`0x13`) downloads from
+   `/lib/firmware/mediatek/mt6797/mt6631_fm_v1_patch.bin` and
+   `mt6631_fm_v1_coeff.bin`, each refused unless its SHA-256 is the retained
+   Gemian file's (O2). Version 0 selects these files; any other version stops
+   here, before the download.
+3. `0x92 = 0`, `0x90 = 0x40`, `0x90 = 0`, then the digital init and RF fine
+   tune batches (power-up steps 8 to 10 of the [FM document](../../docs/hardware/gemini-fm.md#power-up)).
+   Step 11, the I2S output and the CONSYS audio trigger, is left out: no audio
+   leaves the receiver.
+4. The vendor tune: its ramp-down first, then the channel register and the
+   tune batch, whose event must report `1`.
+5. Every second for `seconds` (default 60, at most 300): read `0x6c` and log
+   the raw value, dBm (raw × 6 / 16) and the stereo flag.
+6. The F1 power-down, function off, detach.
+
+Only plain channels are accepted: 87.5 to 108 MHz in 100 kHz steps, minus 53
+channels for which the vendor tune also sets a channel parameter, the TDD cell
+mode or a 64 MHz common SPI clock (`fm_special_channels` in the driver; for
+example 90.5 to 91.1, 97.9 to 99.4 and 103.7 to 104.2 MHz). A refused value
+does nothing at all.
+
+**Checks so far:** `W=1` and `checkpatch --strict` clean in the dev VM; 0583
+applies to the station tree. The two digests in the driver match the
+published ones. Not built on Buildbox yet, not run.
+
+**Safety:** receive only, as F1; the FM block has no transmitter. New effects
+are the DSP firmware download into the FM block, which is volatile and goes
+with the power-down, and the tune. No antenna select (the vendor default,
+long, stays), no audio path, no AFE or codec change, no calibration, NVRAM or
+partition write. Two files are copied onto the station's root file system
+from the owner's own Gemian copy; they are not published. The frequency the
+owner picks is kept private, since a local station hints at a location.
+
+**Needs:** the F1 image or any later station image with 0583, its modules from
+the same package; `mt6631_fm_v1_patch.bin` and `mt6631_fm_v1_coeff.bin` in
+`/lib/firmware/mediatek/mt6797/`; the owner, about 3 minutes, a wired headset,
+and a strong local station that is not refused.
+
+**Procedure,** one load, no retry:
+
+1. Wi-Fi associated, gateway ping, taint, `dmesg | wc -l`. No headset plugged.
+2. `insmod radio-mt6797.ko freq_khz=<station> seconds=120`. It returns after
+   about 125 s.
+3. At the `t=60` log line, the owner plugs the headset in and leaves it.
+4. New `dmesg` lines from `mt6797-fm` and the `STP link` and `WMT FM` lines.
+5. `rmmod radio-mt6797`, three pings, CONSYS and `mac` reload, three pings,
+   taint.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Downloads and tune succeed; median RSSI with the headset at least 6 dB above without it | long antenna wired through the headset; the receiver works | V4L2 tuner; F3 audio once the AFE input exists |
+| Both halves similar and above -90 dBm | receives without a headset: a short antenna or another path | try the short-antenna bit in F3; then the tuner |
+| Both halves similar and near -110 dBm | nothing received | check the frequency, then the short-antenna bit; no blind retry |
+| DSP ROM version other than 0 | a different DSP ROM than the files expect; the driver stops before the download | compare offline |
+| A download or the tune times out or fails | firmware refused or sequence wrong | stop; compare the failing opcode offline |
+| Wi-Fi fails after unload | FM DSP activity disturbs CONSYS | record; CONSYS reload |
+
+The stereo flag is logged as a hint of signal quality, not a pass criterion.
 
 ## Follow-up
 
