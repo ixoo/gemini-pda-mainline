@@ -41,8 +41,8 @@ static void requestComplete(Request *request)
 int main(int argc, char **argv)
 {
 	unsigned int frames = argc > 1 ? atoi(argv[1]) : 60;
-	unsigned int width = argc > 3 ? atoi(argv[2]) : 1296;
-	unsigned int height = argc > 3 ? atoi(argv[3]) : 972;
+	unsigned int width = argc > 3 ? atoi(argv[2]) : 1280;
+	unsigned int height = argc > 3 ? atoi(argv[3]) : 960;
 	bool plain = argc > 4 && !strcmp(argv[4], "plain");
 
 	sem_init(&done, 0, 0);

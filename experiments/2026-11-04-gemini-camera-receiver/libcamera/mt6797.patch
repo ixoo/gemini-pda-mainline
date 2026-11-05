@@ -1,12 +1,12 @@
 diff --git a/include/libcamera/internal/bayer_format.h b/include/libcamera/internal/bayer_format.h
-index 5c14bb5..ce21da2 100644
+index 5c14bb5..a8fa3c1 100644
 --- a/include/libcamera/internal/bayer_format.h
 +++ b/include/libcamera/internal/bayer_format.h
 @@ -34,6 +34,7 @@ public:
  		None = 0,
  		CSI2 = 1,
  		IPU3 = 2,
-+		MTISP = 3,
++		MTISP = 5,
  		PISP1 = 3,
  		PISP2 = 4,
  	};

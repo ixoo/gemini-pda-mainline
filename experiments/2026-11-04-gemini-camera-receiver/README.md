@@ -387,7 +387,7 @@ reports, and the lines do not swap. The halves swap, which is the measured evide
 
 ## L1: libcamera
 
-Not run. libcamera at `be7e83e91348250c015aad6d6f59f1468555bae8` with [`libcamera/mt6797.patch`](libcamera/mt6797.patch) applied:
+libcamera at `be7e83e91348250c015aad6d6f59f1468555bae8` with [`libcamera/mt6797.patch`](libcamera/mt6797.patch) applied:
 
 - `mt6797-seninf` in the simple pipeline, with the software ISP.
 - The MediaTek packing as a new format. The software ISP's CPU path turns each line into CSI-2 packing as it copies it, and
@@ -398,3 +398,21 @@ These are local and have not been offered upstream, and the kernel format code i
 [`libcamera/cam-fb.cpp`](libcamera/cam-fb.cpp) shows the camera on the panel through libcamera's API. libcamera sets the sensor's
 flip itself, starting from 0, so the local default of on does not apply under it, and the tool asks for a mirrored picture
 by its orientation setting. The station needs a DMA heap for the software ISP, in the camera fragment, which needs a new image.
+
+Image `aac84ef4` from `ac950a5e`, boot `8ad50648`, script `410721d2`, as reported by the custodian. The owner approved it, and
+the eMMC was read-only.
+
+Observed: libcamera listed the camera and configured 1296x972 XRGB8888, mirrored. It reported its input as 2592x1444. No frame
+arrived: "timed out at frame 0". 18 warnings at `v4l_enum_fmt` tainted the kernel, 512. Blank and unblank stayed clean, with
+no timeouts and no fault. The boot is treated as suspect.
+
+Causes, from the source, three of them mine:
+
+- The warnings: my format descriptions in `0566` were longer than the 31 characters the ioctl holds. `cam-view` never enumerates
+  formats, so N1 to N4 did not reach it.
+- The timeout: libcamera starts the stream before queueing. vb2 then reports streaming while handing over the first buffer,
+  just before `start_streaming`, so `0568` enqueued it with the block off and clocks gated. That address was lost and every
+  frame would be dropped. Inferred: no status line ran to show it. `0578` keeps its own flag.
+- The `PISP1` label on the input: my `MTISP` packing took the value 3, which `PISP1` already has. Now 5.
+- The 2592x1444 input: not a fault. The software ISP's output must be smaller than its input, so 1296x972 did not fit that
+  mode and libcamera chose a larger one. `cam-fb` now asks for 1280x960.
