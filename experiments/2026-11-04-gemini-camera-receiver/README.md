@@ -270,8 +270,9 @@ works yes I see the bars". The colour order and the edges were not reported.
 D2, the real view, script `8d95fc84`, five stills at default exposure and gain, about 3.8 s each: every capture and copy
 returned 0, 0 guard bytes changed each time, and 70 to 130 bytes matched the fill value, which real data would do by
 chance. Blank and unblank returned 0, with no timeouts, tainted 0, rails disabled, and MMSYS `CG0` `00110000`. The owner:
-"it all worked!!!!". Orientation, mirroring, exposure and colour were not reported, so nothing here says the picture was
-upright or well exposed. No frame was saved.
+"it all worked!!!!", and later "maybe the colors need some adjustment, but it was definitely working". That is an
+impression of the screen with no measurement, and it fits a view with no colour balance. Orientation, mirroring and
+exposure were not reported, so nothing here says the picture was upright or well exposed. No frame was saved.
 
 Limits of this result:
 
