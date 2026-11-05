@@ -1,0 +1,8 @@
+# The FM receiver (2026-11-05-gemini-fm-radio). A module that nothing loads at
+# boot; this version only reads the receiver's identity on load.
+# Radio support also lets the TV tuner core autoselect a dozen I2C tuner
+# modules. None is on this board and nothing loads them; turning autoselect
+# off instead offers every tuner as a module.
+CONFIG_MEDIA_RADIO_SUPPORT=y
+CONFIG_RADIO_ADAPTERS=m
+CONFIG_RADIO_MT6797=m

@@ -750,3 +750,5 @@ proposals/0577-media-mediatek-mt6797-seninf-enumerate-frame-sizes.patch
 proposals/0578-media-mediatek-mt6797-seninf-start-with-buffers-queu.patch
 proposals/0579-arm64-dts-mediatek-gemini-station-describe-the-micro.patch
 proposals/0580-arm64-dts-mediatek-gemini-station-keep-the-microSD-c.patch
+proposals/0581-soc-mediatek-mt6797-consys-let-the-FM-receiver-use-t.patch
+proposals/0582-media-radio-add-a-first-MT6797-CONSYS-FM-receiver-dr.patch

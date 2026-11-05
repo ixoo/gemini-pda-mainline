@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `planned`: desk facts recorded; test F1 is predeclared and has no code yet. No FM register has been read on any kernel |
+| Status | `planned`: F1 admitted by the owner on 2026-11-05; its code is 0581 and 0582, compile-checked only. No FM register has been read on any kernel |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -141,11 +141,27 @@ station's Wi-Fi country (US) stays set; F1 needs no band. A timed-out WMT or STP
 exchange stops the link for that power lifetime, which the existing CONSYS
 reload recovers.
 
-## Test F1: FM identity read (predeclared, not yet admitted)
+## Test F1: FM identity read (admitted)
 
-**Needs owner admission** as a radio action, then code: a CONSYS patch that lets
-task 1 attach and switches WMT function 1, and a `radio-mt6797` module whose
-probe runs only the steps below and registers nothing.
+The owner admitted F1 on 2026-11-05. This covers exactly the effects below, once;
+anything else, including a retry, needs asking again.
+
+**Code:**
+[0581](../../patches/proposals/0581-soc-mediatek-mt6797-consys-let-the-FM-receiver-use-t.patch)
+lets task 1 attach and send, exports a WMT FM function control and registers an
+`mt6797-fm` child device.
+[0582](../../patches/proposals/0582-media-radio-add-a-first-MT6797-CONSYS-FM-receiver-dr.patch)
+adds `radio-mt6797`, whose probe runs only the steps below and registers
+nothing. Its event parser keeps state across link frames and never refuses one.
+Each command waits 3 s for the event with the same opcode, as the vendor does.
+[`gemini-a53-station-fm.fragment`](../../configs/gemini-a53-station-fm.fragment)
+builds it as a module in profile `mt6797-a53-station-a72`; it also lets the TV
+tuner core autoselect a dozen I2C tuner modules that nothing loads.
+
+**Checks so far:** both files build with `W=1` and no warning in the dev VM
+against the station series with the fragment, and `checkpatch --strict` is
+clean apart from the missing sign-off. 0580 to 0582 apply to the station tree
+with the build's `git apply --unidiff-zero`. Nothing has run on hardware.
 
 **Effects, once, on module load:**
 
@@ -153,24 +169,41 @@ probe runs only the steps below and registers nothing.
    first client).
 2. WMT FM function-on: `01 06 02 00 01 01` by analogy with GNSS
    (`... 02 01`) and Bluetooth; expect `02 06 01 00 00`.
-3. Vendor power-up steps before the patch download (S4): common SPI parameter,
-   a-die clock enable, crystal sleep off, bandgap LDO, clock-on batch.
+3. Vendor power-up steps before the patch download (S4): MCU
+   `0x8102600c = 0x800f`, set D1 of `0x81024030`, set D7 of `0x81021234`, set
+   D28:27 of top `0x0c0`, then the clock-on batch with de-emphasis left at
+   Gemian's 50 µs (nothing is tuned).
 4. Read FM register `0x62` three times (`01 03 01 00 62`, reply
    `04 03 02 00 VAL_LO VAL_HI`); log the values.
-5. Vendor power-down sequence, WMT function-off, detach.
+5. Vendor power-down sequence as written (see R4), WMT function-off, detach.
+   If any FM command got no answer, the power-down is skipped and only
+   function-off and detach run.
 
 **Not done:** no patch or coefficient download, no tune, seek or RDS, no
 antenna select, no I2S or AFE change, no retry.
 
-**Procedure:** with Wi-Fi up, load the module once, collect
-`dmesg | grep -E 'STP link|WMT FM|mt6797-fm'`, unload it, ping the gateway
-through `wlan0`, then one CONSYS and `mac` reload and a second ping.
+**Needs** a boot of a `mt6797-a53-station-a72` image with `BUILD_MODULES=1`
+from the commit that adds 0582 or later, with the modules from the same package:
+0581 changes the CONSYS module, so a module from another package must not be
+mixed in. Batch it with the next station boot; it needs no boot of its own.
+
+**Procedure,** one load, no retry:
+
+1. Wi-Fi up and associated; one gateway ping through `wlan0`. Note
+   `dmesg | wc -l` and the taint.
+2. `insmod radio-mt6797.ko`; note the exit code.
+3. New `dmesg` lines matching `STP link|WMT FM|mt6797-fm|radio`. The driver
+   prints one `identity ... power-up ... power-down` line and one `link:` line.
+4. `rmmod radio-mt6797`, three gateway pings, then the usual CONSYS and `mac`
+   reload and three more pings. Note the taint again.
 
 | Observation | Meaning | Next |
 | --- | --- | --- |
 | `0x62` = `0x6631` three times | FM block present and reachable | write the tuner in stages; F2 |
 | function-on answers, `0x62` reads another stable value | reachable, unexpected identity | stop; compare offline with the vendor read path |
 | function-on answers, read times out | FM block not responding | stop; record as likely absent or gated; no blind retry |
+| a power-up command times out before the read | the firmware does not run FM commands, or a step is wrong | stop; compare the failing opcode offline |
+| any kernel warning or Oops | driver fault | stop; preserve `dmesg`; CONSYS reload |
 | function-on refused or times out | firmware or board does not offer FM | stop; function-off; CONSYS reload |
 | Wi-Fi ping fails after unload | FM power-down disturbs CONSYS | record; CONSYS reload; F2 must reload CONSYS after FM |
 

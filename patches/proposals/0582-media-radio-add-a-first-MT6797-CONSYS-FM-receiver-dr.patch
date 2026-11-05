@@ -1,0 +1,537 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 18:06:25 -0500
+Subject: [PATCH] media: radio: add a first MT6797 CONSYS FM receiver
+ driver
+
+The MT6631 FM receiver has no registers on the AP side. The CONSYS firmware
+executes every FM command it gets on STP task 1: register reads and writes,
+batches of register operations, and access to the connectivity MCU and the RF
+chip's top block. No FM register has been read on this board yet, so it is not
+known that the receiver answers.
+
+Add a driver that only finds that out. Probe attaches to the link, switches the
+WMT FM function on, runs the vendor's power-up up to its identity check,
+reads the identity register three times, runs the vendor's power-down and
+switches the function off. It registers no radio device and loads no firmware
+file. A command left without an answer skips the power-down, since the block
+is then in an unknown state; a CONSYS reload recovers it.
+
+The power-down follows the vendor as written although it is not the reverse
+of power-up: it clears a sleep-controller bit in a different register from the
+one power-up set, and it leaves the bandgap LDO on.
+
+The event parser keeps its state across link frames and never refuses one,
+because a refusal stops the link for every CONSYS client.
+---
+ drivers/media/radio/Kconfig        |  14 +
+ drivers/media/radio/Makefile       |   1 +
+ drivers/media/radio/radio-mt6797.c | 462 +++++++++++++++++++++++++++++
+ 3 files changed, 477 insertions(+)
+ create mode 100644 drivers/media/radio/radio-mt6797.c
+
+diff --git a/drivers/media/radio/Kconfig b/drivers/media/radio/Kconfig
+index bbbdd054b..d28797833 100644
+--- a/drivers/media/radio/Kconfig
++++ b/drivers/media/radio/Kconfig
+@@ -13,6 +13,20 @@ menuconfig RADIO_ADAPTERS
+ 
+ if RADIO_ADAPTERS
+ 
++config RADIO_MT6797
++	tristate "MediaTek MT6797 CONSYS FM receiver"
++	depends on MTK_MT6797_CONSYS
++	help
++	  Say Y here for the MT6631 FM receiver behind the MT6797
++	  connectivity subsystem, reached over the shared STP link.
++
++	  This version only checks that the receiver answers: loading it
++	  powers the receiver up, reads its identity and powers it down
++	  again. It registers no radio device.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called radio-mt6797.
++
+ config RADIO_MAXIRADIO
+ 	tristate "Guillemot MAXI Radio FM 2000 radio"
+ 	depends on PCI && HAS_IOPORT
+diff --git a/drivers/media/radio/Makefile b/drivers/media/radio/Makefile
+index f54693ebd..ac9f1f5e2 100644
+--- a/drivers/media/radio/Makefile
++++ b/drivers/media/radio/Makefile
+@@ -37,3 +37,4 @@ obj-$(CONFIG_USB_KEENE) += radio-keene.o
+ obj-$(CONFIG_USB_MA901) += radio-ma901.o
+ obj-$(CONFIG_USB_MR800) += radio-mr800.o
+ obj-$(CONFIG_USB_RAREMONO) += radio-raremono.o
++obj-$(CONFIG_RADIO_MT6797) += radio-mt6797.o
+diff --git a/drivers/media/radio/radio-mt6797.c b/drivers/media/radio/radio-mt6797.c
+new file mode 100644
+index 000000000..f0dfdf0c5
+--- /dev/null
++++ b/drivers/media/radio/radio-mt6797.c
+@@ -0,0 +1,462 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MediaTek MT6797 CONSYS FM receiver (MT6631).
++ *
++ * The receiver has no registers on the AP side. It is reached through STP task
++ * 1 of the CONSYS link, and the CONSYS firmware executes every FM command:
++ * register access, batches of register operations, and access to the
++ * connectivity MCU and the RF chip's top block.
++ *
++ * This first version only checks that the receiver answers. Probe switches the
++ * WMT FM function on, runs the power-up steps that come before the DSP patch
++ * download, reads the identity register three times, runs the power-down
++ * sequence and switches the function off. It registers no radio device and
++ * loads no firmware file.
++ */
++
++#include <linux/bits.h>
++#include <linux/completion.h>
++#include <linux/errno.h>
++#include <linux/jiffies.h>
++#include <linux/minmax.h>
++#include <linux/module.h>
++#include <linux/platform_device.h>
++#include <linux/soc/mediatek/mt6797-stp.h>
++#include <linux/spinlock.h>
++#include <linux/string.h>
++#include <linux/types.h>
++
++#define FM_PKT_COMMAND		0x01
++#define FM_PKT_EVENT		0x04
++
++#define FM_OP_ENABLE		0x07	/* a batch of register operations */
++#define FM_OP_REG_READ		0x03
++#define FM_OP_HOST_READ		0x18	/* connectivity MCU register */
++#define FM_OP_HOST_WRITE	0x19
++#define FM_OP_TOP_WRITE		0x20	/* RF chip top block, over common SPI */
++#define FM_OP_TOP_READ		0x21
++
++#define FM_BOP_WRITE		0x80
++#define FM_BOP_UDELAY		0x81
++#define FM_BOP_MODIFY		0x83
++#define FM_BOP_TOP_WRITE	0x85
++#define FM_BOP_TOP_RD_UNTIL	0x86
++#define FM_TOP_BLOCK		0x04
++
++#define FM_REG_HWVER		0x62
++#define FM_HWVER_MT6631		0x6631
++
++#define FM_REPLY_MAX		16U
++#define FM_BATCH_MAX		160U
++#define FM_TIMEOUT_MS		3000U
++#define FM_ID_READS		3
++
++enum fm_rx_state { FM_RX_TYPE, FM_RX_OPCODE, FM_RX_LEN1, FM_RX_LEN2, FM_RX_PAYLOAD };
++
++struct mt6797_fm {
++	struct device *dev;
++	spinlock_t lock;	/* the waiter and the counters */
++	struct completion done;
++
++	/* Event parser, run only by the receive callback. */
++	enum fm_rx_state state;
++	u8 opcode;
++	u16 length, got;
++	u8 payload[FM_REPLY_MAX];
++
++	/* The one command in flight. */
++	bool waiting;
++	u8 want;
++	u8 reply[FM_REPLY_MAX];
++	u16 reply_length;
++
++	unsigned int bytes, events, unexpected, junk;
++};
++
++struct fm_batch {
++	u8 buf[FM_BATCH_MAX];
++	unsigned int len;
++	bool overflow;
++};
++
++static void fm_deliver(struct mt6797_fm *fm)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&fm->lock, flags);
++	fm->events++;
++	if (fm->waiting && fm->opcode == fm->want) {
++		memcpy(fm->reply, fm->payload, min_t(u16, fm->length, FM_REPLY_MAX));
++		fm->reply_length = fm->length;
++		fm->waiting = false;
++		complete(&fm->done);
++	} else {
++		fm->unexpected++;
++	}
++	spin_unlock_irqrestore(&fm->lock, flags);
++}
++
++/*
++ * Hard interrupt context, link lock held. Events need not line up with STP
++ * frames, so the parser keeps its state between calls. It never refuses a frame,
++ * because a refusal stops the link for every CONSYS client.
++ */
++static int mt6797_fm_receive(void *context, const u8 *data, unsigned int length)
++{
++	struct mt6797_fm *fm = context;
++	unsigned int i;
++
++	fm->bytes += length;
++	for (i = 0; i < length; i++) {
++		u8 b = data[i];
++
++		switch (fm->state) {
++		case FM_RX_TYPE:
++			if (b == FM_PKT_EVENT)
++				fm->state = FM_RX_OPCODE;
++			else
++				fm->junk++;
++			break;
++		case FM_RX_OPCODE:
++			fm->opcode = b;
++			fm->state = FM_RX_LEN1;
++			break;
++		case FM_RX_LEN1:
++			fm->length = b;
++			fm->state = FM_RX_LEN2;
++			break;
++		case FM_RX_LEN2:
++			fm->length |= b << 8;
++			fm->got = 0;
++			if (fm->length) {
++				fm->state = FM_RX_PAYLOAD;
++			} else {
++				fm_deliver(fm);
++				fm->state = FM_RX_TYPE;
++			}
++			break;
++		case FM_RX_PAYLOAD:
++			if (fm->got < FM_REPLY_MAX)
++				fm->payload[fm->got] = b;
++			if (++fm->got == fm->length) {
++				fm_deliver(fm);
++				fm->state = FM_RX_TYPE;
++			}
++			break;
++		}
++	}
++	return 0;
++}
++
++/* Sends one command and waits for the event with the same opcode. */
++static int fm_command(struct mt6797_fm *fm, u8 opcode, const u8 *payload, u16 length,
++		      u8 *reply, u16 reply_length)
++{
++	u8 buf[4 + FM_BATCH_MAX];
++	unsigned long flags;
++	int ret;
++
++	if (length > FM_BATCH_MAX)
++		return -EINVAL;
++	buf[0] = FM_PKT_COMMAND;
++	buf[1] = opcode;
++	buf[2] = length & 0xff;
++	buf[3] = length >> 8;
++	memcpy(&buf[4], payload, length);
++
++	spin_lock_irqsave(&fm->lock, flags);
++	reinit_completion(&fm->done);
++	fm->want = opcode;
++	fm->waiting = true;
++	spin_unlock_irqrestore(&fm->lock, flags);
++
++	ret = mt6797_consys_stp_send(MT6797_STP_TASK_FM, buf, 4 + length);
++	if (!ret && !wait_for_completion_timeout(&fm->done, msecs_to_jiffies(FM_TIMEOUT_MS)))
++		ret = -ETIMEDOUT;
++
++	spin_lock_irqsave(&fm->lock, flags);
++	if (ret)
++		fm->waiting = false;
++	else if (fm->reply_length < reply_length)
++		ret = -EPROTO;
++	else if (reply)
++		memcpy(reply, fm->reply, reply_length);
++	spin_unlock_irqrestore(&fm->lock, flags);
++	if (ret)
++		dev_err(fm->dev, "command %02x: %d\n", opcode, ret);
++	return ret;
++}
++
++static int fm_reg_read(struct mt6797_fm *fm, u8 addr, u16 *val)
++{
++	u8 r[2];
++	int ret = fm_command(fm, FM_OP_REG_READ, &addr, 1, r, sizeof(r));
++
++	if (!ret)
++		*val = r[0] | r[1] << 8;
++	return ret;
++}
++
++static void put_le32(u8 *p, u32 v)
++{
++	p[0] = v;
++	p[1] = v >> 8;
++	p[2] = v >> 16;
++	p[3] = v >> 24;
++}
++
++static u32 get_le32(const u8 *p)
++{
++	return p[0] | p[1] << 8 | p[2] << 16 | (u32)p[3] << 24;
++}
++
++static int fm_host_read(struct mt6797_fm *fm, u32 addr, u32 *val)
++{
++	u8 p[4], r[4];
++	int ret;
++
++	put_le32(p, addr);
++	ret = fm_command(fm, FM_OP_HOST_READ, p, sizeof(p), r, sizeof(r));
++	if (!ret)
++		*val = get_le32(r);
++	return ret;
++}
++
++static int fm_host_write(struct mt6797_fm *fm, u32 addr, u32 val)
++{
++	u8 p[8];
++
++	put_le32(p, addr);
++	put_le32(p + 4, val);
++	return fm_command(fm, FM_OP_HOST_WRITE, p, sizeof(p), NULL, 0);
++}
++
++static int fm_host_update(struct mt6797_fm *fm, u32 addr, u32 clear, u32 set)
++{
++	u32 val;
++	int ret = fm_host_read(fm, addr, &val);
++
++	if (ret)
++		return ret;
++	return fm_host_write(fm, addr, (val & ~clear) | set);
++}
++
++static int fm_top_read(struct mt6797_fm *fm, u16 addr, u32 *val)
++{
++	u8 p[3] = { FM_TOP_BLOCK, addr & 0xff, addr >> 8 }, r[4];
++	int ret = fm_command(fm, FM_OP_TOP_READ, p, sizeof(p), r, sizeof(r));
++
++	if (!ret)
++		*val = get_le32(r);
++	return ret;
++}
++
++static int fm_top_write(struct mt6797_fm *fm, u16 addr, u32 val)
++{
++	u8 p[7] = { FM_TOP_BLOCK, addr & 0xff, addr >> 8 };
++
++	put_le32(p + 3, val);
++	return fm_command(fm, FM_OP_TOP_WRITE, p, sizeof(p), NULL, 0);
++}
++
++static void bop(struct fm_batch *b, const u8 *op, unsigned int len)
++{
++	if (b->len + len > sizeof(b->buf)) {
++		b->overflow = true;
++		return;
++	}
++	memcpy(&b->buf[b->len], op, len);
++	b->len += len;
++}
++
++static void bop_write(struct fm_batch *b, u8 addr, u16 val)
++{
++	u8 op[] = { FM_BOP_WRITE, 3, addr, val & 0xff, val >> 8 };
++
++	bop(b, op, sizeof(op));
++}
++
++static void bop_modify(struct fm_batch *b, u8 addr, u16 and, u16 or)
++{
++	u8 op[] = { FM_BOP_MODIFY, 5, addr, and & 0xff, and >> 8, or & 0xff, or >> 8 };
++
++	bop(b, op, sizeof(op));
++}
++
++static void bop_udelay(struct fm_batch *b, u32 us)
++{
++	u8 op[6] = { FM_BOP_UDELAY, 4 };
++
++	put_le32(op + 2, us);
++	bop(b, op, sizeof(op));
++}
++
++static void bop_top_write(struct fm_batch *b, u16 addr, u32 val)
++{
++	u8 op[9] = { FM_BOP_TOP_WRITE, 7, FM_TOP_BLOCK, addr & 0xff, addr >> 8 };
++
++	put_le32(op + 5, val);
++	bop(b, op, sizeof(op));
++}
++
++static void bop_top_rd_until(struct fm_batch *b, u16 addr, u32 mask, u32 val)
++{
++	u8 op[13] = { FM_BOP_TOP_RD_UNTIL, 11, FM_TOP_BLOCK, addr & 0xff, addr >> 8 };
++
++	put_le32(op + 5, mask);
++	put_le32(op + 9, val);
++	bop(b, op, sizeof(op));
++}
++
++static int fm_batch_send(struct mt6797_fm *fm, struct fm_batch *b)
++{
++	if (b->overflow)
++		return -E2BIG;
++	return fm_command(fm, FM_OP_ENABLE, b->buf, b->len, NULL, 0);
++}
++
++/* The vendor's power-up up to and including its identity read. */
++static int mt6797_fm_power_up(struct mt6797_fm *fm)
++{
++	struct fm_batch b = {};
++	u32 val;
++	int ret;
++
++	/* Common SPI parameters. */
++	ret = fm_host_write(fm, 0x8102600c, 0x0000800f);
++	/* A-die clock enable for the sleep controller. */
++	if (!ret)
++		ret = fm_host_update(fm, 0x81024030, 0, BIT(1));
++	/* Keep the 26 MHz crystal awake. */
++	if (!ret)
++		ret = fm_host_update(fm, 0x81021234, 0, BIT(7));
++	/* Bandgap LDO. */
++	if (!ret)
++		ret = fm_top_read(fm, 0x00c0, &val);
++	if (!ret)
++		ret = fm_top_write(fm, 0x00c0, val | 3U << 27);
++	if (ret)
++		return ret;
++
++	/* Top clock, FM power domain, then the FM digital clocks. */
++	bop_top_write(&b, 0x0a10, 0xffffffff);
++	bop_top_write(&b, 0x0060, 0x30);
++	bop_top_write(&b, 0x0060, 0x35);
++	bop_udelay(&b, 10);
++	bop_top_write(&b, 0x0060, 0x15);
++	bop_top_write(&b, 0x0060, 0x05);
++	bop_udelay(&b, 10);
++	bop_top_write(&b, 0x0060, 0x45);
++	bop_write(&b, 0x7f, 0x800f);
++	bop_write(&b, 0x60, 0x0001);
++	bop_udelay(&b, 3000);
++	bop_write(&b, 0x60, 0x0003);
++	bop_write(&b, 0x60, 0x0007);
++	bop_write(&b, 0x70, 0x0040);
++	/* 50 us de-emphasis, Gemian's setting; nothing is tuned here. */
++	bop_modify(&b, 0x61, 0xefff, 0x0000);
++	return fm_batch_send(fm, &b);
++}
++
++/* The vendor's power-down, as written; it is not the reverse of power-up. */
++static int mt6797_fm_power_down(struct mt6797_fm *fm)
++{
++	struct fm_batch b = {};
++	int ret, i;
++
++	ret = fm_host_write(fm, 0x81024064, 0x00000004);
++	if (!ret)
++		ret = fm_host_write(fm, 0x81024058, 0x88800000);
++	if (!ret)
++		ret = fm_host_write(fm, 0x81024054, 0x00000180);
++	/* Common SPI clock back to 26 MHz, 64 MHz unlocked and allowed to sleep. */
++	if (!ret)
++		ret = fm_host_update(fm, 0x81026004, BIT(0), 0);
++	if (!ret)
++		ret = fm_host_update(fm, 0x80026000, BIT(28), 0);
++	if (!ret)
++		ret = fm_host_update(fm, 0x81021138, BIT(7), 0);
++	/* Let the 26 MHz crystal sleep again. */
++	if (!ret)
++		ret = fm_host_update(fm, 0x81021234, BIT(7), 0);
++	if (ret)
++		return ret;
++
++	bop_modify(&b, 0x9b, 0xfff8, 0x0000);
++	bop_write(&b, 0x60, 0x330f);
++	bop_modify(&b, 0x61, 0xfffd, 0x0001);
++	for (i = 0; i < 4; i++)
++		bop_modify(&b, 0x6e, 0xfff8, 0x0000);
++	bop_write(&b, 0x60, 0x0000);
++	bop_write(&b, 0x60, 0x4000);
++	bop_write(&b, 0x60, 0x0000);
++	bop_top_write(&b, 0x0060, 0x05);
++	bop_top_write(&b, 0x0060, 0x15);
++	bop_top_write(&b, 0x0060, 0x35);
++	bop_top_write(&b, 0x0060, 0x30);
++	bop_top_rd_until(&b, 0x0060, 0x0000000a, 0);
++	ret = fm_batch_send(fm, &b);
++	/* Tell the sleep controller FM is off. */
++	if (!ret)
++		ret = fm_host_update(fm, 0x80101030, BIT(1), 0);
++	return ret;
++}
++
++static void mt6797_fm_identify(struct mt6797_fm *fm)
++{
++	u16 id[FM_ID_READS] = {};
++	int ret, down = -ECANCELED, i, matched = 0;
++
++	ret = mt6797_consys_stp_attach(MT6797_STP_TASK_FM, mt6797_fm_receive, fm);
++	if (ret) {
++		dev_err(fm->dev, "STP task 1 attach failed: %d\n", ret);
++		return;
++	}
++	ret = mt6797_consys_fm_function(true);
++	if (ret)
++		goto detach;
++
++	ret = mt6797_fm_power_up(fm);
++	for (i = 0; !ret && i < FM_ID_READS; i++) {
++		ret = fm_reg_read(fm, FM_REG_HWVER, &id[i]);
++		if (!ret && id[i] == FM_HWVER_MT6631)
++			matched++;
++	}
++	/* A command without an answer stops FM here; the CONSYS reload recovers. */
++	if (ret != -ETIMEDOUT)
++		down = mt6797_fm_power_down(fm);
++	mt6797_consys_fm_function(false);
++	dev_info(fm->dev,
++		 "identity %04x %04x %04x (%d of %d match), power-up %d, power-down %d\n",
++		 id[0], id[1], id[2], matched, FM_ID_READS, ret, down);
++detach:
++	mt6797_consys_stp_detach(MT6797_STP_TASK_FM);
++	dev_info(fm->dev, "link: bytes=%u events=%u unexpected=%u junk=%u\n",
++		 fm->bytes, fm->events, fm->unexpected, fm->junk);
++}
++
++static int mt6797_fm_probe(struct platform_device *pdev)
++{
++	struct mt6797_fm *fm;
++
++	fm = devm_kzalloc(&pdev->dev, sizeof(*fm), GFP_KERNEL);
++	if (!fm)
++		return -ENOMEM;
++	fm->dev = &pdev->dev;
++	spin_lock_init(&fm->lock);
++	init_completion(&fm->done);
++	mt6797_fm_identify(fm);
++	return 0;
++}
++
++static struct platform_driver mt6797_fm_driver = {
++	.probe = mt6797_fm_probe,
++	.driver = {
++		.name = "mt6797-fm",
++	},
++};
++module_platform_driver(mt6797_fm_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 CONSYS FM receiver");
++MODULE_LICENSE("GPL");
++MODULE_ALIAS("platform:mt6797-fm");
+-- 
+2.43.0
+
