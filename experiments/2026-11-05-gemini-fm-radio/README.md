@@ -163,6 +163,12 @@ against the station series with the fragment, and `checkpatch --strict` is
 clean apart from the missing sign-off. 0580 to 0582 apply to the station tree
 with the build's `git apply --unidiff-zero`. Nothing has run on hardware.
 
+**Buildbox build:** `b23c2346`, profile `mt6797-a53-station-a72`,
+`BUILD_MODULES=1`, 754 patches, package `557f9d68…`, patchset `cdd70a16…`,
+config `8739e8ca…`, `Image.gz` `da0c8a3a…`; validation passed. Modules:
+`radio-mt6797.ko` `d7686524…`, `mt6797-consys.ko` `1797e440…`. Built, not
+booted.
+
 **Effects, once, on module load:**
 
 1. Attach STP task 1 (the CONSYS driver repeats its link check if this is the
