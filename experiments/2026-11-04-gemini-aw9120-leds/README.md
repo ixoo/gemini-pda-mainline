@@ -247,9 +247,11 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
   records `leds=` in `/run/station/status`, and `compose-station.py` packs the module
   for the station only. Confirmed on boot `9b4a0eca`, image `8d620ab7` built from
   `fec36c2e`: status read `leds=leds-aw9120`, every LED read 0, and `red:indicator-7`
-  was on `[kbd-capslock]` with no manual load. On the v1 release boot, the custodian
-  reported caps lock on reading 255 and off reading 0; how the module was loaded there
-  wasn't recorded.
+  was on `[kbd-capslock]` with no manual load. On the v1 release boot, the boot test's
+  `hw-start leds` stage loaded the module from that image's module set (release `init`
+  doesn't load it); `red:indicator-7` read `[kbd-capslock]` with no write, and caps
+  lock on read 255, off 0. That shows the default trigger on the release, not loading
+  at boot there.
 - The owner asked for the caps lock LED to go dark with the screen (2026-11-05), and
   accepted three assumptions: only that LED; back to the real caps lock state on wake;
   and the fade's end counts as a blank. `backlight-policy` in the
