@@ -68,6 +68,24 @@ These are statements of the public source, not observations of this device.
 | S8 | The FM-specific VCN28 step exists only in co-clock mode; Gemini's `WMT_SOC.cfg` has `co_clock_flag = 0`, so the common CONSYS power-on already covers the rail ([GNSS document](../../docs/hardware/gemini-gnss.md)) | WMT recovery source summary |
 | S9 | The MT6631 library has a receive power-up only; the TX fields in the shared configuration are generic. FM itself transmits nothing | `mt6631_fm_lib.c` |
 
+## Offline reverse engineering (2026-11-05)
+
+A second pass read the rest of the MT6631 library and looked at the firmware
+statically in the project RE VM against the 2026-07-12 userspace extraction.
+Nothing was executed. The full contract is in the
+[FM document](../../docs/hardware/gemini-fm.md); what is new:
+
+| # | Finding | Source |
+| --- | --- | --- |
+| R1 | Command packets, the eight batch operations, and register, MCU and common-SPI access are fully specified, with the vendor's 3, 6 and 15 s reply timeouts | `fmradio/core/fm_cmd.c`, `fmradio/inc/fm_cmd.h`, `fm_link.h` |
+| R2 | The tuner's register map: identity `0x62`, channel `0x65` in 50 kHz steps above 64 MHz, RSSI `0x6c` at 0.375 dB per step with stereo in D12, volume `0x7d`, mute `0x9c`, antenna, de-emphasis and ROM query bits in `0x61` | `mt6631/inc/mt6631_fm_reg.h`, `mt6631_fm_lib.c` |
+| R3 | The chip's own seek is compiled out; the vendor searches by stepping soft-mute tunes (`0x17`), each returning a channel quality record judged against the `fm_cust.cfg` thresholds | `mt6631_fm_lib.c` |
+| R4 | Power-down is not the reverse of power-up: up sets D1 of MCU `0x81024030`, down clears D1 of `0x80101030`, and the bandgap LDO bits are never cleared | `mt6631_fm_lib.c` |
+| R5 | `mt6631_fm_v1_patch.bin` is 16-bit DSP words with no header or strings, sent as three segments (512, 512, 4). `mt6631_fm_v1_coeff.bin` is a coefficient table sent as 512, 512, 68; its bytes 38-39 (the vendor's patch version) are `0x0000` and bytes 4-5 are already zero. The file is chosen by the DSP ROM version read during power-up; only v1 is installed | RE VM, files with the published digests |
+| R6 | The two `ROMv3` CONSYS patches name FM only in a WMT default-parameter message and a coexistence task-status message; they carry no FM command handler, so the handler is inferred to be in the CONSYS ROM | RE VM, `strings` |
+| R7 | `libfmcust.so` (SHA-256 `80a9ea1a…f79d0`) exports only `CUST_get_cfg`, which maps the WMT chip-ID property to an FM chip, `0x6797` to MT6631. It has no band, region or antenna data | RE VM, `objdump` |
+| R8 | RDS is read from a register FIFO, one STP round trip per register; what triggers the read on CONSYS is not settled | `mt6631/pub/mt6631_fm_rds.c` |
+
 ## What is inferred
 
 - **Population.** The FM receiver sits on the same RF companion as Wi-Fi,
@@ -94,6 +112,8 @@ These are statements of the public source, not observations of this device.
    layout has not been checked against the mainline `mt6797-reg.h`.
 6. Whether Planet's Android image ever offered FM on this hardware (owner
    knowledge, not a blocker).
+7. The DSP ROM version, which picks the patch file (F2 reads it).
+8. What signals RDS data on CONSYS (R8); RDS is not needed for audio.
 
 ## Mainline shape
 
@@ -135,7 +155,8 @@ probe runs only the steps below and registers nothing.
    (`... 02 01`) and Bluetooth; expect `02 06 01 00 00`.
 3. Vendor power-up steps before the patch download (S4): common SPI parameter,
    a-die clock enable, crystal sleep off, bandgap LDO, clock-on batch.
-4. Read FM register `0x62` three times; log the values.
+4. Read FM register `0x62` three times (`01 03 01 00 62`, reply
+   `04 03 02 00 VAL_LO VAL_HI`); log the values.
 5. Vendor power-down sequence, WMT function-off, detach.
 
 **Not done:** no patch or coefficient download, no tune, seek or RDS, no
@@ -155,8 +176,9 @@ through `wlan0`, then one CONSYS and `mac` reload and a second ping.
 
 ## Test F2 (outline, after F1)
 
-Patch and coefficient download, tune to one strong local station chosen by the
-owner, read RSSI for 30 s without a headset and 30 s with one plugged in. A clear
+The rest of the vendor power-up, which reads the DSP ROM version (open item 7)
+before the patch and coefficient download; then tune to one strong local station
+chosen by the owner and read RSSI for 30 s without a headset and 30 s with one plugged in. A clear
 RSSI rise with the headset says the long antenna is wired. Audio is not part of
 F2; it waits for the AFE input.
 
