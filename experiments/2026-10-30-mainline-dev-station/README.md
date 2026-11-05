@@ -1169,4 +1169,36 @@ and the three expected hashes. One unit. The private copy made for the test is d
 **What this candidate carries unproven,** as of the custodian's review: `d060cfa8`'s camera fix, whose retest hasn't passed,
 and `kbd-capslock` as the default trigger. `6b966fe9`'s LED load at boot is the station's and isn't in this image, which loads
 LEDs only through `hw-start`. Caps Lock turning off on a blank or lid change isn't in this image, and adding it would change the image.
-**Queue:** accepted by the custodian after the libcamera retest, not yet written.
+**Queue:** accepted by the custodian after the libcamera retest, not yet written. It has since booted; see below.
+
+### v1 candidate boot (2026-11-05)
+
+Through the custodian, script `v1-boot.sh` `92f9fc89…`. Station `5d9563c7` wrote boot2 `99267ef0…` with `flash-boot2`,
+verified, predecessor `aac84ef4`. After a delayed poweroff the owner selected boot2: **boot `2cab775f`**. The return
+wrote `aac84ef4` back the same way, verified, and the station came up as `f01ee772` at taint 0. Outputs are kept privately.
+
+**Every stage passed, taint 0 after each:**
+
+| Stage | Observed |
+| --- | --- |
+| baseline | `root=tmpfs-1g`, CPUs 0-7, `charge-guard=bound`, `data=mounted-ro`, `lid=gemini-lid`, `radio=off-no-country`, `audio=ready`, `display=loader-framebuffer`. `/mnt/data` `ro,norecovery`. No `/dev/mem`, `/dev/i2c-0` or debugfs clocks. The four lines the error pattern matched are all `ramoops` lines. Owner: console, screen and Caps Lock work |
+| firmware | `firmware-get` printed `ready`; all three hashes match the [table](../../docs/hardware/firmware.md). No loop device or mount left, only the `nvdata` partition read-only, `/mnt/data` still `ro,norecovery`. The kernel mounted the loop device read-only without journal, then unmounted it |
+| radio-gate | `bluetooth` and `gnss` printed `needs-radio-start`, with neither module present |
+| touch | NT36772 at 1080x2160, firmware 0x05; one drag gave 108 events |
+| sensors | MT6351 (6), battery thermal (1), BMI160 (15) and STK3310 (11) channels. `stk3310` logs `new unknown chip id: 0x11`, not compared with the station's log |
+| leds | 8 LEDs; the caps lock LED's trigger is `kbd-capslock` with no write. Caps on: that LED 255 and every other 0; Caps off: 0 |
+| display | `display=native`, `mediatekdrmfb`; console moved to the panel at 135x33. Owner: console readable. Only the known `mipi-tx` nvmem line |
+| gpu | `card0`, `card1`, `renderD128`; Mali-T880, VGPU at 937500 uV |
+| camera | `/dev/media0` and `/dev/video0`, chip id 0x0556, `hi556` bound |
+| a72 | CPUs 8 and 9 online, `online` reads `0-9` |
+
+The charger read `Not charging` throughout and the SoC stayed at 29.6–30.5 °C.
+
+**Meaning:** the image carries what v1 says, at load level, on the release config. Tagging is the owner's decision.
+
+**Not tested:** Wi-Fi and Bluetooth, rendering, capture, persistence and partition hashes. Colour wasn't judged.
+
+**Spectre state.** After `a72`, v1 read `Vulnerable` for `spectre_v2` and `spec_store_bypass`. The fresh station boot
+`f01ee772`, with CPUs 0-7 and no A72 load, read the same. So this kernel reports both as `Vulnerable` without the A72
+step, at least on the station config. Nobody read v1 before `a72`, so whether loading it changes anything there is unknown.
+It's not shown that a reboot clears the state.

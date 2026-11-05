@@ -23,11 +23,10 @@ replacement or a daily driver. As it stands:
 
 - **Most results come from the station,** the project's own image, whose RAM root holds private
   keys and firmware and doesn't ship. The public release image is built to replace it for others.
-- **The candidate hasn't booted.** [`10f2e142`](../experiments/2026-10-30-mainline-dev-station/README.md#the-v1-candidate-2026-11-05)
-  carries every working module, and `hw-start` loads the optional groups by hand. It's built, and
-  its boot test is waiting. The release form's only
-  [boot](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04)
-  was at `4c2fc3b7`, before sensors, LEDs and the camera.
+- **The candidate has booted once.** [`10f2e142`](../experiments/2026-10-30-mainline-dev-station/README.md#the-v1-candidate-2026-11-05)
+  carries every working module, and `hw-start` loads the optional groups by hand. On its one
+  [boot](../experiments/2026-10-30-mainline-dev-station/README.md#v1-candidate-boot-2026-11-05) `firmware-get` copied matching firmware, and every group but the radios loaded with
+  taint 0. That's load level only: radios, rendering, capture and persistence weren't tested.
 - **Modules aren't applications.** The image has no Mesa, BlueZ, GNSS host or camera tool, so those
   need userspace you bring.
 - **Nobody else has installed it,** and there's no first-install tool. Getting it onto boot2 the
@@ -88,7 +87,7 @@ them is for later releases. Where a decision was pending, v1 takes the state tha
 | 8 | One non-author unit follows the guide unaided | Not done | No other unit has run it | M, availability risk |
 | 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for shipped binaries | [Guide](TESTING_GUIDE.md) written, followed by nobody. No scrubbing tool. The kernel's source is this repository at `4c2fc3b7` and the pinned upstream; no source copies of Alpine's binaries, which the recipe downloads rather than ships | Scrub reports by hand | S |
 | 10 | A published kernel package, from a public manifest, with its source and no firmware | Not published yet. Testers have no Buildbox, and the VM path is reserved and untried on this profile | Build it yourself until then | S-M |
-| 11 | A way to try the optional modules: add them to the image, or document loading them. Mesa and BlueZ would need a public userspace, or stay out | The modules are in the image with `hw-start`, not booted. No public userspace for Mesa or BlueZ | Bring your own userspace | S-M |
+| 11 | A way to try the optional modules: add them to the image, or document loading them. Mesa and BlueZ would need a public userspace, or stay out | The modules are in the image with `hw-start`; each non-radio group loaded on one boot No public userspace for Mesa or BlueZ | Bring your own userspace | S-M |
 
 For a later release, items 1 to 4 and 11 change boot files, so batch them into one image.
 
