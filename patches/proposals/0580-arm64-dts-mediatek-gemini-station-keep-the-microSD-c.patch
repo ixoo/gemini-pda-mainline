@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 18:06:03 -0500
+Subject: [PATCH 580/580] arm64: dts: mediatek: gemini-station: keep the microSD card
+ supply on
+
+With VMCH off and the slot empty, the Gemini's card-detect pin GPIO67
+reads low whether a card is in or not, also with its pad pull-up
+enabled. The vendor driver turns VMCH back on at the end of the slot's
+probe and leaves it on with no card, which suggests the card-detect
+switch is referenced to that supply.
+
+Keep VMCH on.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 4711ed3..5366759 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -567,10 +567,16 @@
+  * 3.3 V signalling only, without the 1.8 V switch.
+  */
+ &mt6351regulator {
++	/*
++	 * The vendor driver turns VMCH back on at the end of the slot's probe
++	 * and leaves it on with no card. With it off, the card-detect pin
++	 * reads low whether a card is in or not.
++	 */
+ 	mt6351_vmch_reg: ldo-vmch {
+ 		regulator-name = "vmch";
+ 		regulator-min-microvolt = <3000000>;
+ 		regulator-max-microvolt = <3000000>;
++		regulator-always-on;
+ 	};
+ 
+ 	mt6351_vmc_reg: ldo-vmc {
+-- 
+2.54.0 (Apple Git-157)
+

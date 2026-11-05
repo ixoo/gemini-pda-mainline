@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `running`: T1 stopped at step 2, card detect never went high; T1b, a runtime pull-up on GPIO67, is predeclared |
+| Status | `running`: card detect never changed in T1, nor in T1b with GPIO67's pull-up on. Patch 0580 keeps VMCH on, as the vendor does; T1c is predeclared |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -250,6 +250,66 @@ in reverse: empty, then inserted again.
 | Pull-up set, GPIO67 follows the card inverted | Same, plus `cd-inverted` |
 | Pull-up set, GPIO67 still doesn't change | Stop. Next is the switch wiring; read Gemian's live GPIO67 with and without a card |
 | Pull-up bit was already set at step 1 | Stop; the pull isn't the cause |
+
+### T1b result (2026-11-05)
+
+Custodian run, on the same boot `9b4a0eca` and image `8d620ab7`; taint 0. The owner
+approved it ("Yes, run T1b"). Before T1b, the owner confirmed the T1 card had clicked in.
+
+1. Card in, before any write:
+   - `0x100028e0` = `0x00012b40`: pull-up bit 14 clear.
+   - `0x100028c0` = `0x00028400`: pull-down bit 14 clear, so it wasn't written.
+   - `0x10002810` = `0x0003ffff`: input enable bit 14 set.
+   - `0x10002830` = `0x1d000f87`: Schmitt bit 27 set.
+   - GPIO67 low, EINT6 count 0, no `mmcblk1`.
+2. One write, `0x100028e0` = `0x00016b40`, read back as written. 3 s later, with the
+   card still in: GPIO67 low, EINT6 0, no MMC line.
+3. Card removed: GPIO67 still low, EINT6 0. The lid closed during the removal.
+4. Undone: `0x100028e0` written back to `0x00012b40`.
+
+So GPIO67 reads low with the card in and out, with or without its pad pull-up. This
+is the table's "still doesn't change" row.
+
+The Gemian source has one more step that mainline lacks. At the end of the MSDC1 probe,
+after the generic code powers the empty slot off, a board addition calls
+`msdc_sd_power(host, 1)` for any removable slot and prints "power on vmch"
+([`sd.c` lines 5817-5820](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c#L5817-L5820)).
+That is why Gemian showed VMCH on with an empty slot. Under mainline, VMCH was off at
+both readings (`0a2e` bit 1 clear, 0 users).
+
+Inference, to be tested by T1c: the card-detect switch is referenced to VMCH, so with
+VMCH off the pin can't go high.
+
+### T1c (predeclared)
+
+[0580](../../patches/proposals/0580-arm64-dts-mediatek-gemini-station-keep-the-microSD-c.patch)
+adds `regulator-always-on` to VMCH at 3.0 V, as the vendor leaves it. The MMC core
+still asks for and releases VMCH around a card; the core just never turns it off.
+VMC is unchanged.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later. It's DT only, so batch it with any waiting DT change. Same cards;
+the owner is present.
+
+1. Slot empty. `sh sd-state.sh empty`. Expect `vmch` enabled at 3000000 and `0a2e`
+   bit 1 set; GPIO67 low.
+2. Owner inserts the test card. As T1 step 2: expect GPIO67 high, an EINT6 edge and
+   the card identified.
+3. If GPIO67 still doesn't change, apply the T1b pull-up write once, read GPIO67 with
+   the card in and then out, and undo it. That separates "VMCH alone" from "VMCH and
+   the pad pull" before any driver work.
+4. If the card identifies, continue T1 steps 3 to 6 as written.
+
+Stop conditions are T1's. VMCH staying on adds the vendor's own idle state: 3.0 V on
+the card supply with no card.
+
+| Observed | Do |
+| --- | --- |
+| GPIO67 follows the card at step 2 | VMCH is the card-detect reference. Keep 0580 and go on to the card itself |
+| Only with the pull-up at step 3 | Both are needed: an MT6797 PU/PD map for GPIO67 and `bias-pull-up`, as in T1b's table |
+| GPIO67 inverted | Add `cd-inverted` |
+| Still no change | Stop. Next, read-only on Gemian: GPIO67's level with and without a card, to check the slot and pin on this unit |
+| Card detected, then CMD `-110` | Stop. The CMD pull-up is next, as in T1's table |
 
 ## Follow-up
 
