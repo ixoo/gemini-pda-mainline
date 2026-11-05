@@ -301,6 +301,12 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
   happens is a failed write of 0 that leaves the output lit. If so, `dmesg` would show
   "Setting an LED's brightness failed" and `GCR` (`01:`) would read `0001`. Not yet
   explained.
+
+  Later on the same boot, blanked, with the caps lock state unknown: `dmesg` had no
+  "brightness failed" line since boot, `red:indicator-7` read 0 with `[none]`, and
+  `01: 0000`. That boot included T3, so a failed write during T3 would have logged,
+  which makes the failed-write explanation unlikely. The case itself, caps lock on and
+  lit after a wake, hasn't been read again.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.
