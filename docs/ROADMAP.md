@@ -32,7 +32,7 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
   Wi-Fi starts by itself and joins as WPA2-PSK.
 - **Modules loaded by hand.** Touch, Panfrost, A72s, Bluetooth A2DP, sensors, front camera,
   LEDs and the GNSS host. [The matrix](HARDWARE_SUPPORT.md) has each one's limits.
-- **Release.** Profile `mt6797-a53-release` and a public RAM root have
+- **Release.** The owner's goal is a [v1 for experimenters](RELEASE_READINESS.md). Profile `mt6797-a53-release` and a public RAM root have
   [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
   No one else can install or build it yet.
 - **Not started.** Suspend, cpuidle and cpufreq. No upstream submission.
@@ -43,16 +43,25 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
 Each boot is a reviewed experiment with its own validated candidate, finite
 budgets and stop conditions under the [safety rules](SAFETY.md).
 
-### 1. A first test release
+### 1. A v1 for experimenters
 
-The nine blockers and their sizes are in
-[release readiness](RELEASE_READINESS.md#blockers-for-a-first-test-release). Items 1 to 3
-change boot files, so they go in one image.
+The owner's goal, 2026-11-04. The blockers, which ones should close before the tag, and their
+sizes are in [release readiness](RELEASE_READINESS.md#blockers-for-v1). Those that change boot
+files go in one image.
 
-Owner decisions there: Gemian's root read-only or one dedicated directory, the country
-protocol, and whether the v0.1 scope stands. Only the owner can sign a tag.
+Owner decisions there: which blockers hold the tag, Gemian's root read-only or one dedicated
+directory, the country protocol, how the optional modules are offered, a second unit, and
+publishing a kernel package. Only the owner can sign a tag.
 
-### 2. Small device checks already written down
+### 2. Power
+
+cpufreq and power governors are the important gap the owner named for after v1. Suspend, cpuidle
+and cpufreq decide battery life and heat, and nothing in them has started.
+[Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a design
+proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)
+holds the defensible order for frequency scaling, starting with the A53s.
+
+### 3. Small device checks already written down
 
 None of these needs new design. They go with the next convenient boot.
 
@@ -68,13 +77,6 @@ None of these needs new design. They go with the next convenient boot.
   the lid on the current image, a bind behind a closed lid, and the battery run.
 - [Wi-Fi baseline on a booted image](../experiments/2026-11-01-mt6797-wifi-booted-baseline/README.md):
   written, and the owner said "Not now".
-
-### 3. Power
-
-Suspend, cpuidle and cpufreq decide battery life and heat, and nothing in them has
-started. [Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a
-design proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)
-holds the defensible order for frequency scaling, starting with the A53s.
 
 ### 4. Each subsystem's next step
 

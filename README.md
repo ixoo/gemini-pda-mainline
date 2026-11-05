@@ -51,9 +51,10 @@ upstream, it isn't a daily driver, and a build isn't support.
 - **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery
   life and heat; microSD; USB host; the modem.
 
-A [release image](docs/RELEASE_READINESS.md) with a public RAM root has booted once,
-on this unit. Nobody else can install it yet, as the [testing
-guide](docs/TESTING_GUIDE.md) says.
+The goal now is a [v1 for people to experiment with](docs/RELEASE_READINESS.md), still without
+cpufreq or power governors. Its image, with a public RAM root, has booted once, on this unit.
+Its RAM root carries fewer modules than the station, and nobody else can install it yet, as the
+[testing guide](docs/TESTING_GUIDE.md) says.
 
 The [hardware support matrix](docs/HARDWARE_SUPPORT.md) owns current capability
 claims and their limits. Exact candidates and negative results live in
@@ -98,7 +99,7 @@ Gemini-specific description belongs in an upstream board Device Tree.
 | Understand risk and device-write rules | [Safety policy](docs/SAFETY.md) |
 | See the current work order | [Roadmap](docs/ROADMAP.md) |
 | Check present subsystem support | [Hardware support matrix](docs/HARDWARE_SUPPORT.md) |
-| See what a first test release needs | [Release readiness](docs/RELEASE_READINESS.md) and [testing guide](docs/TESTING_GUIDE.md) |
+| See what a v1 needs | [Release readiness](docs/RELEASE_READINESS.md) and [testing guide](docs/TESTING_GUIDE.md) |
 | Understand ownership and patch layering | [Architecture](docs/ARCHITECTURE.md) |
 | Reproduce a kernel build | [Kernel workflow](docs/KERNEL_WORKFLOW.md) |
 | Inspect durable hardware facts | [Hardware knowledge base](docs/hardware/README.md) |

@@ -1,7 +1,7 @@
-# Testing guide for v0.1
+# Testing guide for v1
 
-A guide for testing the proposed v0.1 image on your own Gemini PDA. It goes with
-[release readiness](RELEASE_READINESS.md), which says what v0.1 promises and what it
+A guide for testing the proposed v1 image on your own Gemini PDA. It goes with
+[release readiness](RELEASE_READINESS.md), which says what v1 promises and what it
 doesn't. The [safety policy](SAFETY.md) outranks anything here.
 
 > [!WARNING]
@@ -24,7 +24,7 @@ use a Gemini you depend on.
 
 The image runs from RAM and keeps nothing across a reboot. It's selected by hand for
 one boot at a time, so Gemian stays the default. [Release
-readiness](RELEASE_READINESS.md#proposed-v01-for-testers) has the full promise and the
+readiness](RELEASE_READINESS.md#proposed-v1-scope) has the full promise and the
 list of what's missing.
 
 In this image, unlike that promise so far, the console stays on the loader's
@@ -73,7 +73,8 @@ KERNEL_PROFILE=mt6797-a53-release BUILD_MODULES=1 ./scripts/build-kernel --backe
 KERNEL_PROFILE=mt6797-a53-release ./scripts/buildbox fetch-package
 ```
 
-That needs the project's Buildbox, which testers don't have. This is a gap.
+That needs the project's Buildbox, which testers don't have. This is a gap,
+[blocker 10](RELEASE_READINESS.md#blockers-for-v1).
 `./scripts/build-kernel --backend vm` exists, but the [workflow](KERNEL_WORKFLOW.md)
 reserves it for an explicit owner request, it hasn't been tried on this profile, and
 the project doesn't boot VM-built kernels today.
@@ -108,7 +109,7 @@ exactly 16 MiB, and its checksum is `boot2_sha256` in `OUTPUT/station.json`.
 > NVRAM or the GPT.
 
 **The first install is a gap: there's no path for a tester, and this guide doesn't
-offer one.** It's [blocker 6](RELEASE_READINESS.md#blockers-for-a-first-test-release).
+offer one.** It's [blocker 6](RELEASE_READINESS.md#blockers-for-v1).
 
 - `flash-boot2` runs on a running station's RAM root. It expects that root's
   `/bin/busybox` and `/run/station`, so it won't work from Gemian as it stands.
@@ -246,6 +247,13 @@ ssh -i KEY -o IdentitiesOnly=yes -o UserKnownHostsFile=/dev/null root@10.15.19.8
 It's WPA2-PSK only and has only worked on two 5 GHz channels on the author's network, on
 the station image: Wi-Fi hasn't run on this one, with Alpine's `wpa_supplicant`. `ip
 link set wlan0 down` is one-way until `mac` reloads. Bluetooth isn't in this image.
+
+## Other hardware
+
+Touch, the GPU, Bluetooth, sensors, LEDs and the A72 pair are modules in the kernel package, not
+in the image. None has been tried on it, and this guide doesn't yet say how:
+[blocker 11](RELEASE_READINESS.md#blockers-for-v1). The camera isn't in this profile. Their results so
+far, on the author's station, are in the [support matrix](HARDWARE_SUPPORT.md).
 
 ## Stop conditions
 

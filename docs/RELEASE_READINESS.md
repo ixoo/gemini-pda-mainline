@@ -1,60 +1,79 @@
 # Release readiness
 
-Audit of 2026-11-03, with the status table and blockers refreshed from the records on
-2026-11-04: what a first test release needs, and what stands in the way of daily use. It
-comes from reading the records, patches and logs, not from new device runs. Effort sizes
-(S, M, L) and the proposed scope are judgement. The [support matrix](HARDWARE_SUPPORT.md)
+What it takes to tag a v1 that people can start using and experimenting with, and what
+stands in the way of daily use. The owner set that goal on 2026-11-04, with cpufreq and
+power governors still missing: "IMO this is a v1 people can start using and experimenting
+with".
+
+This comes from reading the records, patches and logs on 2026-11-03 and 2026-11-04, not from
+new device runs. Which blockers must close before the tag, the effort sizes and the scope
+below are proposals, and the owner decides them. The [support matrix](HARDWARE_SUPPORT.md)
 owns demonstrated support.
 
 ## Where it stands
 
-It isn't a daily driver. A credible first release is a RAM-root, boot2-only hardware
-test image for technical owners. Nobody but the author can build or install today's
-image, and it has run on one unit.
+A credible v1 is a RAM-root, boot2-only image for technical owners who can recover a device.
+It isn't a Gemian replacement or a daily driver. Three things separate today from that:
 
-| Area | State | Blocker |
+- **Nobody else can install it.** There's no first-install tool and no published kernel package.
+- **The image holds less than the station.** Its RAM root carries only the display, lid, audio
+  and Wi-Fi modules. The kernel package builds most of the rest, unproven on this image, and
+  the camera isn't in the profile.
+- **The evidence is thin.** The release image has booted once, on one unit.
+
+| Area | In the release image | State and limit |
 | --- | --- | --- |
-| Install | Partial | `flash-boot2` from a running station. No first-install tool; a [tester guide](TESTING_GUIDE.md) says so |
-| Recovery, boot selection | Works, one unit | Primary boot untouched; hold the side key for boot2. Holding Esc resets a running station, one run, untimed |
-| Reproducibility | Partial | Kernel pinned and built on Buildbox. The station's RAM root derives from a private retained parent; the release's has a [public recipe](#release-ram-root), booted once |
-| Unit dependence | Station yes, release less | The station's parent carries keys and firmware and sets US. The release image drops those; its USB addresses stay fixed |
-| Root filesystem | RAM only | No distro path. The station mounts Gemian's `linux` partition read-write; the release image, read-only |
-| Suspend, cpuidle, cpufreq | Not started | Off. Decides battery life and heat |
-| A72 | Partial | Module, nothing loads it, fixed 750 MHz |
-| Thermal | Partial | Trips armed, none has fired; no CPU cooling without cpufreq |
-| Charging, running | Partial | 80% guard and 0 to 50 °C window shown by moved limit and emulation, not a real charge or a really hot or cold battery |
+| Recovery, boot selection | Yes | Works, one unit. Primary boot untouched; hold the side key for boot2. Holding Esc reset a running station once, untimed, and on a hung kernel it's untested |
+| Install | From a running image only | `flash-boot2`. No first install; the [guide](TESTING_GUIDE.md) says so |
+| Reproducibility | Partial | Kernel pinned, built on Buildbox only. The RAM root has a [public recipe](#release-ram-root) |
+| Unit dependence | Low | No keys, firmware or fixed country in the image. USB addresses stay fixed |
+| Root filesystem | RAM only | Nothing persists across a reboot, firmware and the country included. No distribution path |
+| Charging, running | Yes | Guard bound on the one boot. 80% and the 0 to 50 °C window shown by moved limit and emulation, not a real charge or a really hot or cold battery |
 | Charging, powered off | Not limited | The loader decides; it can pass 80% |
-| Display, backlight, lid | Works, one unit | Native at 54 Hz, adopted from the loader |
-| Keyboard | Partial | Row interrupts on the station; Fn map captured once; wider rollover open; side key reports with no action |
-| Touch | Partial | Module loaded by hand; events on one boot, interrupts only on another; accuracy untested; a blanked screen gave no interrupt |
-| GPU, desktop | Partial; not started | Panfrost hand-loaded; no compositor |
-| Speakers, headphones | Works | 48 kHz, station only |
-| Internal mic, jack | Partial | Capture follows speech; headset type and buttons open |
-| Wi-Fi | Partial | Two 5 GHz channels on one network, WPA2-PSK. No rekey, WPA3, DFS or power save. Idle link lost at about 6 min. `ip link down` is one-way until `mac` reloads |
-| Bluetooth | Partial | A2DP heard, one headset. mSBC opened by the kernel, heard clean on one run. Hand-started from a private chroot, placeholder address, no audio bridge for voice. Link timeouts on one run and none on the [next two](../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04), where the owner heard SBC skip from about 4 yards, with no control yet |
-| USB | Partial | Gadget works; no host or role switch |
+| Thermal | Built in | Trips armed on the station, and none has fired. No CPU cooling, so nothing slows a hot CPU before the power-off at 110 °C (inference from the trip table) |
+| cpufreq, cpuidle, suspend | No | Not started. CPUs stay at the clocks firmware left. Decides battery life and heat |
+| A72 | Module not in the image | One option on a station profile, loaded by hand, fixed 750 MHz. The command line keeps `maxcpus=8` |
+| Keyboard, lid | Yes | "All fine" by the owner on one boot, with no key-by-key check. Fn map captured once on the station; wider rollover open |
+| Display | Loader framebuffer | Native at 54 Hz works on the station, adopted from the loader. Here it needs `display-start` by hand, not run on this image: blocker 4 |
+| Speakers, headphones | Yes | A speaker tone on one boot. Both at 48 kHz on the station |
+| Internal mic, jack | Yes | On the station, capture follows speech. Headset type and buttons open |
+| Wi-Fi | Yes, off until set up | Never run on this image. On the station: two 5 GHz channels on one network, WPA2-PSK. No rekey, WPA3, DFS or power save. Idle link lost at about 6 min. `ip link down` is one-way until `mac` reloads |
+| USB | Yes | Gadget and SSH work; no host or role switch |
+| Touch | Module not in the image | Hand-loaded on the station; events on one boot, accuracy untested, a blanked screen gave no interrupt |
+| GPU, desktop | Module not in the image | Panfrost hand-loaded on the station. No Mesa in the image and no compositor |
+| Bluetooth | Module not in the image | A2DP heard with one headset, from a private chroot. mSBC clean on one run with no bridge for voice. Placeholder address. [SBC skips from about 4 yards](../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04), with no control yet |
+| Sensors | Module not in the image | [IMU and light/proximity](hardware/gemini-sensors.md) hand-loaded on one boot, uncalibrated |
+| Indicator LEDs | Module not in the image | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
+| GNSS | Module not in the image | No position on mainline; needs a userspace host |
+| Camera | Not in the profile | [Capture node through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node) on the station; local format codes, no application, and M4U bypassed |
 | microSD | Unknown | Prepared, never booted |
-| Sensors | Partial | [IMU and light/proximity](hardware/gemini-sensors.md) from modules loaded by hand, one boot, uncalibrated |
-| Indicator LEDs | Partial | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
-| GNSS | Partial | No position on mainline |
-| Modem | Not started | No mainline path |
-| Camera | Partial | Capture node on two boots, [through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node); local format codes, no application tried, colour accuracy unmeasured, and M4U bypassed by hand |
+| Modem | No | Not started |
 
-## Blockers for a first test release
+"Module not in the image" means the release profile builds it as `=m`. It would have to be sent
+over SSH and loaded by hand, and none of them has been tried on this image.
 
-| # | Blocker | Effort |
-| --- | --- | --- |
-| 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key. Booted once on the author's unit: [below](#release-ram-root). Not on a tester's | M |
-| 2 | Tester supplies firmware from their own device, with hash check; Wi-Fi absent cleanly otherwise. Absence booted once; no way to supply or check firmware yet | S-M |
-| 3 | Release profile, below. Package and RAM root booted once; the command line items stay open | S-M |
-| 4 | Leave Gemian's root read-only by default, or use one dedicated directory. Read-only in the release image, booted once, at a cost to the display: [below](#release-ram-root). Owner decision open | S, owner decision |
-| 5 | A country setting replaces fixed US; radio off until set. `radio-start` refused without a country on one boot; the path with one hasn't run; owner protocol open | S, owner protocol |
-| 6 | First-install tool from Gemian using the existing guard; backup, restore and removal steps | M |
-| 7 | Evidence: ten cold boots, a real charge reaching 80%, the Esc reset on a hung kernel, the Wi-Fi baseline, a soak | M, needs the device |
-| 8 | One non-author unit follows the guide unaided | M, availability risk |
-| 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for all shipped binaries. [Guide](TESTING_GUIDE.md) written, followed by nobody; no tool or source copies yet | S |
+<a id="blockers-for-a-first-test-release"></a>
+## Blockers for v1
 
-Items 1 to 3 change boot files, so batch them into one image.
+Numbers stay as they were, since records cite them. **Before tag** is the proposal for what
+has to close; the rest ships as a stated limit.
+
+| # | Blocker | State | For v1 | Effort |
+| --- | --- | --- | --- | --- |
+| 1 | RAM root from public sources, with no keys or firmware; host key made on first boot, tester's own SSH key | Booted once on the author's unit, [below](#release-ram-root). Not on a tester's. Alpine's package pins need a kept copy or mirror | Before tag | M |
+| 2 | Tester supplies firmware from their own device, with a hash check; Wi-Fi absent cleanly otherwise | Absence booted once. The steps are in the guide; they've never run | Before tag | S-M |
+| 3 | Release profile, below | Package booted once. The command line items stay open | USB identity before tag | S-M |
+| 4 | Leave Gemian's root read-only by default, or use one dedicated directory | Read-only booted once, at a cost to the display: [below](#release-ram-root) | Owner decision | S |
+| 5 | A country setting replaces fixed US; radio off until set | `radio-start` refused without a country on one boot; the path with one hasn't run. Owner protocol open | Before tag, with 2 | S |
+| 6 | First-install tool from Gemian using the existing guard; backup, restore and removal steps | Not started | Before tag | M |
+| 7a | Ten cold boots and a real charge reaching 80% | Not run | Before tag | M, needs the device |
+| 7b | The Esc reset on a hung kernel, the Wi-Fi baseline, a soak | Not run. The owner said "Not now" to the baseline | Ships as a limit | M, needs the device |
+| 8 | One non-author unit follows the guide unaided | Not done | Owner decision; the only test of a tester's path | M, availability risk |
+| 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for shipped binaries | [Guide](TESTING_GUIDE.md) written, followed by nobody. No tool or source copies. Scrubbing by hand can ship as a limit; source can't | Source before tag | S |
+| 10 | A published kernel package, from a public manifest, with its source and no firmware | Not started. Testers have no Buildbox, and the VM path is reserved and untried on this profile. Publishing binaries is the owner's act, and rights in every patch need checking first | Before tag | S-M |
+| 11 | A way to try the optional modules: add them to the image, or document loading them. Mesa and BlueZ would need a public userspace, or stay out | Not started, and no module outside the image has run on it | Owner decision: this decides how much of the hardware v1 really offers | S-M |
+
+Items 1 to 4 and 11 change boot files, so batch them into one image.
 
 ### Release profile
 
@@ -112,8 +131,8 @@ are in `release/`:
   this later](../experiments/2026-10-30-mainline-dev-station/README.md#nvdatas-block-device-is-read-only-2026-11-04),
   normal path only. Without a writable marker a stuck native
   display load couldn't be skipped on the next boot, so the console stays on the
-  loader framebuffer and `display-start` is by hand. That's short of the v0.1 promise
-  below until blocker 4 is decided.
+  loader framebuffer and `display-start` is by hand. That's short of a native console at boot
+  until blocker 4 is decided.
 - **Removed interfaces.** `power-status` is left out. Nothing else in the image uses
   `/dev/i2c`, `/dev/mem` or debugfs.
 
@@ -140,30 +159,35 @@ contents stay unchanged across a boot. Alpine removes old package
 revisions, so the pins fail loudly once one is replaced; a kept copy of the packages or
 a mirror is still needed, along with the source for shipped binaries (blocker 9).
 
-## Proposed v0.1 for testers
+<a id="proposed-v01-for-testers"></a>
+## Proposed v1 scope
 
-A signed-off tag from a public manifest and public RAM-root recipe, producing a 16 MiB
-boot2 image with no firmware or keys, for owners who can use SSH and recover a device.
+A signed-off tag from a public manifest and public RAM-root recipe, producing a 16 MiB boot2
+image with no firmware or keys, for owners who can use SSH and recover a device. Only the owner
+can sign it.
 
-**It promises only, on the tester's unit:** boots from boot2 by holding the side key,
-and never touches primary boot, NVRAM, GPT or the preloader. Console with keyboard and
-native display, falling back to the loader framebuffer. USB SSH. Lid, charge guard
-while running, thermal backstops. Speakers and headphones. Wi-Fi as a beta, with the
-tester's own firmware. Bluetooth and touch as optional, unpromised modules; Bluetooth
-needs a public userspace first, or stays out.
+**It promises only, on the tester's unit:** boots from boot2 by holding the side key, and never
+touches primary boot, NVRAM, GPT or the preloader. Console with keyboard, on the native display
+or the loader framebuffer as blocker 4 decides. USB SSH. Lid, charge guard while running, thermal
+backstops. Speakers and headphones. Wi-Fi as a beta, with the tester's own firmware.
 
-**It must say it doesn't:** replace Gemian or persist anything across reboot; suspend,
-scale CPU clocks or offer useful battery life; limit charging while off; provide a
-desktop, GPU by default, A72 by default, USB host, microSD, sensors, GNSS, modem or
-cameras; offer reliable Wi-Fi; support unique Bluetooth addresses or more than one
-nearby Gemini on Bluetooth; promise anything about other hardware variants.
+**Offered to experiment with, unpromised:** whatever blocker 11 settles among touch, GPU,
+Bluetooth, sensors, LEDs and the A72 pair, each with its limits from the
+[matrix](HARDWARE_SUPPORT.md). The camera needs its fragment in the profile, and stray DMA ruled
+out, before it's offered.
 
-**Tester safety:** back up every readable partition privately, since backups hold
-calibration and identifiers. Confirm Gemian boots and `boot2` exists by GPT name. Use
-stable power for writes. A plain `reboot` returns to Gemian. Stop on heat, swelling,
-charging anomalies or watchdog loops. Holding Esc about 11 s resets the device; it ran once, on a
-running station. Scrub logs of addresses and network names. Set the right country before radio
-use.
+**It must say it doesn't:** replace Gemian or persist anything across reboot; suspend, scale CPU
+clocks or offer useful battery life, since cpufreq and power governors are the known gap; slow
+down when hot rather than power off; limit charging while off; provide a desktop, USB host,
+microSD, modem or a usable GNSS position; offer reliable Wi-Fi; support unique Bluetooth addresses
+or more than one nearby Gemini on Bluetooth; promise anything about other hardware variants or
+any unit but the author's, until blocker 8 says otherwise.
+
+**Tester safety:** back up every readable partition privately, since backups hold calibration and
+identifiers. Confirm Gemian boots and `boot2` exists by GPT name. Use stable power for writes. A
+plain `reboot` returns to Gemian. Stop on heat, swelling, charging anomalies or watchdog loops.
+Holding Esc about 11 s resets the device; it ran once, on a running station. Scrub logs of
+addresses and network names. Set the right country before radio use.
 
 ## Code quality
 
@@ -183,7 +207,7 @@ Structure is.
 - **`check-repository`.** It refuses orphan patches and MAC addresses, and counts
   placeholder `From:` lines, warning on new ones. It still misses IP or SSID patterns.
 
-**Proposed cut.** Phase A, days: a `release` profile from HEAD, leaving history alone.
+**Proposed cut.** Phase A: a `release` profile from HEAD, leaving history alone, which is done.
 Phase B: delete the off scaffolding, prove objects match today's build, and regenerate
 about 60-80 patches by area, SoC foundation first, with A72 as a separate last topic.
 The old series stays in Git as evidence.
