@@ -72,7 +72,13 @@ station DTS with the change compiles with the same four warnings as without it. 
 decompiled difference is the two aliases, the `mmc1-default-pins` state (pinmux
 `0x8101`-`0x8501`, `0x8601`), `ldo-vmch` and `ldo-vmc`, and the `mmc1` properties with
 `cd-gpios = <&pio 0x43 0>`. No schema check: Buildbox has no `dt-validate`. The full
-build is below once it has run.
+build follows.
+
+**Buildbox build.** `83b0ad81`, profile `mt6797-a53-station`, `BUILD_MODULES=1`, 751
+patches, package inventory `bda22044…`, patchset `db77f1a1…`, config `d7fb4aca…`,
+`Image.gz` `eba89a7c…`; validation passed. Its station DTB (`5032d60c…`) has `mmc1`
+`okay`, aliases `mmc0 = /mmc@11230000` and `mmc1 = /mmc@11240000`, and `cd-gpios`
+`<&pio 0x43 0>`. Built, not booted.
 
 ## Safety assessment
 
