@@ -1,0 +1,191 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 19:08:53 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: DIAGNOSTIC, a rough picture
+ for the panel
+
+The capture decodes as 10-bit little-endian packing in GRBG order. Build a view the
+size of the panel from each frame, so a script can copy it to the framebuffer. One
+RGB pixel per Bayer cell, black level off, a square-root curve, and no colour
+balance or shading correction.
+
+Add debugfs writes for the exposure and gain controls, for a real scene with no
+auto exposure. View_flip mirrors the picture without a rebuild.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 89 ++++++++++++++++++-
+ 1 file changed, 86 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 9456a9cdc..b813b41af 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -22,6 +22,7 @@
+ #include <linux/dma-mapping.h>
+ #include <linux/io.h>
+ #include <linux/iopoll.h>
++#include <linux/math.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/overflow.h>
+@@ -29,6 +30,7 @@
+ #include <linux/pm_runtime.h>
+ #include <linux/property.h>
+ #include <linux/spinlock.h>
++#include <linux/vmalloc.h>
+ 
+ #include <media/v4l2-async.h>
+ #include <media/v4l2-ctrls.h>
+@@ -171,6 +173,11 @@
+ #define CAMSV_TG_SUB_PERIOD		0x574
+ #define CAMSV_DMA_FRAME_HEADER_EN	0xc00
+ 
++#define VIEW_WIDTH			1080
++#define VIEW_HEIGHT			2160
++#define VIEW_SIZE			(VIEW_WIDTH * VIEW_HEIGHT * 4)
++#define VIEW_BLACK			64
++
+ #define MMSYS_BASE			0x14000000
+ #define MMSYS_CG_CON0			0x100
+ #define MMSYS_CG0_SMI_COMMON		BIT(0)
+@@ -236,6 +243,9 @@ struct mt6797_seninf {
+ 
+ 	void __iomem *camsv;
+ 	struct clk *camsv_clk, *larb_clk;
++	u32 *view;
++	struct debugfs_blob_wrapper view_blob;
++	u32 view_flip;
+ 	void *frame;
+ 	dma_addr_t frame_dma;
+ 	struct debugfs_blob_wrapper frame_blob;
+@@ -612,20 +622,36 @@ static int seninf_dbg_stream_set(void *data, u64 val)
+ }
+ DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_stream, NULL, seninf_dbg_stream_set, "%llu\n");
+ 
+-static int seninf_dbg_pattern_set(void *data, u64 val)
++static int seninf_set_sensor_ctrl(struct mt6797_seninf *seninf, u32 id, u64 val)
+ {
+-	struct mt6797_seninf *seninf = data;
+ 	struct v4l2_ctrl *ctrl;
+ 
+ 	if (!seninf->sensor)
+ 		return -ENODEV;
+-	ctrl = v4l2_ctrl_find(seninf->sensor->ctrl_handler, V4L2_CID_TEST_PATTERN);
++	ctrl = v4l2_ctrl_find(seninf->sensor->ctrl_handler, id);
+ 	if (!ctrl)
+ 		return -ENOTTY;
+ 	return v4l2_ctrl_s_ctrl(ctrl, val);
+ }
++
++static int seninf_dbg_pattern_set(void *data, u64 val)
++{
++	return seninf_set_sensor_ctrl(data, V4L2_CID_TEST_PATTERN, val);
++}
+ DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_pattern, NULL, seninf_dbg_pattern_set, "%llu\n");
+ 
++static int seninf_dbg_exposure_set(void *data, u64 val)
++{
++	return seninf_set_sensor_ctrl(data, V4L2_CID_EXPOSURE, val);
++}
++DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_exposure, NULL, seninf_dbg_exposure_set, "%llu\n");
++
++static int seninf_dbg_gain_set(void *data, u64 val)
++{
++	return seninf_set_sensor_ctrl(data, V4L2_CID_ANALOGUE_GAIN, val);
++}
++DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_gain, NULL, seninf_dbg_gain_set, "%llu\n");
++
+ static int seninf_dbg_status_show(struct seq_file *s, void *unused)
+ {
+ 	struct mt6797_seninf *seninf = s->private;
+@@ -702,6 +728,51 @@ static void seninf_camsv_dump(struct mt6797_seninf *seninf, const char *when)
+  * and refuse if it does not stick or if anything else in the two control windows
+  * is set, since nothing here accounts for that.
+  */
++/* One pixel of 10-bit little-endian packing: 4 pixels in each 5 bytes. */
++static u32 seninf_raw10(const u8 *line, unsigned int x)
++{
++	unsigned int off = x * 10 / 8;
++
++	return ((line[off] | line[off + 1] << 8) >> (x % 4 * 2)) & 0x3ff;
++}
++
++/*
++ * A rough picture for the panel: one RGB pixel from each GRBG cell, the sensor's black
++ * level taken off and a square-root curve. No colour balance and no shading correction.
++ * The panel scans 1080x2160, turned 90 degrees when held in landscape.
++ */
++static void seninf_build_view(struct mt6797_seninf *seninf)
++{
++	unsigned int x, y, cell_w = CAPTURE_WIDTH / 2, cell_h = CAPTURE_HEIGHT / 2;
++	unsigned int u0 = (VIEW_HEIGHT - cell_w) / 2, v0 = (VIEW_WIDTH - cell_h) / 2;
++	const u8 *frame = seninf->frame;
++	u8 curve[1024];
++
++	if (!seninf->view)
++		return;
++	for (x = 0; x < ARRAY_SIZE(curve); x++)
++		curve[x] = x <= VIEW_BLACK ? 0 :
++			   int_sqrt((x - VIEW_BLACK) * 255 * 255 / (1023 - VIEW_BLACK));
++
++	memset(seninf->view, 0, VIEW_SIZE);
++	for (y = 0; y < cell_h; y++) {
++		const u8 *l0 = frame + 2 * y * CAPTURE_STRIDE;
++		const u8 *l1 = l0 + CAPTURE_STRIDE;
++		unsigned int v = seninf->view_flip & 2 ? cell_h - 1 - y : y;
++
++		for (x = 0; x < cell_w; x++) {
++			unsigned int u = seninf->view_flip & 1 ? cell_w - 1 - x : x;
++			u32 gr = seninf_raw10(l0, 2 * x);
++			u32 r = seninf_raw10(l0, 2 * x + 1);
++			u32 b = seninf_raw10(l1, 2 * x);
++			u32 gb = seninf_raw10(l1, 2 * x + 1);
++
++			seninf->view[(VIEW_HEIGHT - 1 - (u0 + u)) * VIEW_WIDTH + v0 + v] =
++				curve[r] << 16 | curve[(gr + gb) / 2] << 8 | curve[b];
++		}
++	}
++}
++
+ static int seninf_smi_is_open(struct mt6797_seninf *seninf)
+ {
+ 	void __iomem *mm = ioremap(MMSYS_BASE, SZ_4K);
+@@ -778,6 +849,12 @@ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ 		seninf->frame_blob.data = seninf->frame;
+ 		seninf->frame_blob.size = CAPTURE_SIZE;
+ 		debugfs_create_blob("frame", 0400, seninf->debugfs, &seninf->frame_blob);
++		seninf->view = vmalloc(VIEW_SIZE);
++		if (seninf->view) {
++			seninf->view_blob.data = seninf->view;
++			seninf->view_blob.size = VIEW_SIZE;
++			debugfs_create_blob("view", 0400, seninf->debugfs, &seninf->view_blob);
++		}
+ 	}
+ 	memset(bytes, CAPTURE_FILL_BYTE, CAPTURE_SIZE);
+ 	memset(bytes + CAPTURE_SIZE, CAPTURE_GUARD_BYTE, CAPTURE_GUARD);
+@@ -896,6 +973,8 @@ static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+ 	dev_info(seninf->dev, "capture: %u of %u bytes still fill, %u guard bytes changed\n",
+ 		 unwritten, CAPTURE_SIZE, guard_bad);
+ 	dev_info(seninf->dev, "first bytes %*ph\n", 16, bytes);
++	if (!ret && !check_only)
++		seninf_build_view(seninf);
+ 
+ 	return ret;
+ }
+@@ -914,6 +993,9 @@ static void seninf_debugfs_init(struct mt6797_seninf *seninf)
+ 	seninf->debugfs = dir;
+ 	debugfs_create_file_unsafe("stream", 0200, dir, seninf, &seninf_dbg_stream);
+ 	debugfs_create_file_unsafe("pattern", 0200, dir, seninf, &seninf_dbg_pattern);
++	debugfs_create_file_unsafe("exposure", 0200, dir, seninf, &seninf_dbg_exposure);
++	debugfs_create_file_unsafe("gain", 0200, dir, seninf, &seninf_dbg_gain);
++	debugfs_create_u32("view_flip", 0600, dir, &seninf->view_flip);
+ 	debugfs_create_file("status", 0400, dir, seninf, &seninf_dbg_status_fops);
+ 	debugfs_create_file_unsafe("capture", 0200, dir, seninf, &seninf_dbg_capture);
+ 	debugfs_create_u32("settle", 0600, dir, &seninf->settle);
+@@ -1029,6 +1111,7 @@ static void seninf_remove(struct platform_device *pdev)
+ 	struct mt6797_seninf *seninf = platform_get_drvdata(pdev);
+ 
+ 	debugfs_remove_recursive(seninf->debugfs);
++	vfree(seninf->view);
+ 	seninf_rx_exit(seninf);
+ 	if (seninf->frame)
+ 		dma_free_coherent(seninf->dev, CAPTURE_SIZE + CAPTURE_GUARD,

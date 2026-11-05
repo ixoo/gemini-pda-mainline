@@ -228,8 +228,37 @@ unload. A real driver needs a proper owner for this clock.
 
 ## C5: CAMSV0 bypasses M4U
 
-Not run. [`0562`](../../patches/proposals/0562-media-mediatek-mt6797-seninf-DIAGNOSTIC-bypass-M4U-o.patch) clears bit 6
-of `0xfc0`, port 6 being `M4U_PORT_CAM_SV0` in the mainline port header, and reads it back. It leaves the other ports
-alone. It refuses if the bit does not clear or if anything else in the two windows is set. Writing 2 to `capture` stops
-after that. Bypass is the same arrangement display uses for a first frame; M4U remains the upstream answer. C5 runs on
-a fresh boot with `0563`, and its result includes a blank and unblank with the kernel log read afterwards.
+Module `edd4aa70`, scripts `ca621f8a` then `2b1d42b8`, fresh boot `be93adeb`, one run each, as reported by the custodian.
+The owner approved each step and checked the screen after the first. The eMMC was read-only throughout.
+[`0562`](../../patches/proposals/0562-media-mediatek-mt6797-seninf-DIAGNOSTIC-bypass-M4U-o.patch) clears bit 6 of `0xfc0`,
+port 6 being `M4U_PORT_CAM_SV0` in the mainline port header, and leaves the other ports alone.
+[`0563`](../../patches/proposals/0563-media-mediatek-mt6797-seninf-DIAGNOSTIC-leave-the-sh.patch) leaves the shared gate
+alone.
+
+Observed:
+
+- `0xfc0` went from `00003fff` to `00003fbf`, and nothing else in either window was set.
+- MMSYS `CG0` read `00110000` at every read, so the SMI common bit stayed clear. Blank and unblank returned 0, with no
+  timeouts and tainted 0, before the load, after the set and after the capture. The screen was asked about after the set
+  only.
+- "0 of 6298560 bytes still fill, 0 guard bytes changed". No fault.
+- `CAMSV_FBC_IMGO_CTL2` started at `00000101` (`FBC_CNT` 1, `RCNT` 1) and moved to `01010100`, then `WCNT` stayed 1 and
+  `DROP_CNT` rose to 7. `CUR_ADDR` read `feb00000` and then 0.
+
+Decoding the frame, which stays private:
+
+- The whole frame holds two distinct lines, one for the even rows and one for the odd, so no line was corrupted.
+- Packing: 10-bit little-endian, 4 pixels in each 5 bytes, stride 3240.
+- Eight bars of about 324 pixels, plus 4 pixels at the right edge that differ. Read as the usual white, yellow, cyan, green,
+  magenta, red, blue, black, the cell is Gr, R on even rows and B, Gb on odd. That agrees with the vendor driver's Gr first
+  pixel. The order of the bars is assumed.
+
+Inference: this is the first frame in memory on mainline. CAMSV wrote one frame and dropped the rest, as queue mode
+with one buffer should, and the two faults above were the blockers. Bypass is shown to reach the buffer. Stray writes
+elsewhere are not ruled out by this, and the display check is the only evidence on that.
+
+## D1: the view on the panel
+
+Not run. [`0564`](../../patches/proposals/0564-media-mediatek-mt6797-seninf-DIAGNOSTIC-a-rough-pict.patch) builds a
+panel-sized picture from each frame, and a script copies it to the framebuffer. No colour balance or shading correction,
+and no auto exposure. Frames of a real scene are not saved and not committed.
