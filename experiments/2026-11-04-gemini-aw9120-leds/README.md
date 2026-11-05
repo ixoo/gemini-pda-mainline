@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-aw9120-leds` |
-| Status | `running`: T1 ran on boot `a41d3aa7`; the driver works on the device. Step 9 and two owner questions are open |
+| Status | `completed`: the driver works on the device and caps lock follows by default. Step 9 and two owner questions stayed unanswered and are unknown |
 | Subsystem | AW9120 at I2C3 `0x2c`, GPIO245, LED class |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -172,7 +172,7 @@ evidence below.
 | 6 | All on for 60 s. `soc-thermal` 28.9 to 28.7 C, `battery-thermal` 26.66 to 26.75 C, `battery` 26.4 to 26.7 C. Owner: feels slightly warmer. No I2C errors |
 | 7 | Triggers listed: `none`, `kbd-capslock`, `timer`, `phy0rx`, `phy0tx`, `phy0assoc`, `phy0radio`. `kbd-capslock` on `red:indicator-7` followed Fn+Caps on and off. `timer` on `rgb:indicator-1` at 500/500 blinked. Wi-Fi wasn't up, so `phy0rx` didn't run. `hci0-power` wasn't listed |
 | 8 | Lit `rgb:indicator-1`, `rmmod` rc 0, it went dark. Pin 245 read low and unclaimed. Second `insmod` rc 0, probe 15583 us, steps 1 and 2 the same. Left loaded, nothing lit, no trigger. Kernel not tainted |
-| 9 | Pending the next ordinary power off |
+| 9 | `rgb:indicator-1` was lit before a power off; the owner didn't say whether it stayed lit. Unknown |
 
 Positions from angled phone photos, device closed, logo strip at the top, as a
 fraction along the slit. The order is reliable and the spacing is rough; the logo's
@@ -195,8 +195,14 @@ Colour evidence: output 1 alone looked red in a photo, the only single cover out
 photographed. Output 19 looked red, in the strip left of Q, above Tab and Caps. Outputs
 19 and 20 together looked violet-blue with a washed-out core.
 
-Asked and not yet answered: whether any walk step lit more than one spot, and whether
-the caps lock LED is separate from the light beside the power LED.
+Asked and never answered, so unknown: whether any walk step lit more than one spot,
+and whether the caps lock LED is separate from the light beside the power LED.
+
+Default trigger, patch 0577: image `aac84ef4` from package `ac950a5e`, boot `a09c7951`,
+module `568ec8ce`. `insmod` rc 0, probe 30093 us, with no trigger written.
+`red:indicator-7` reads `[kbd-capslock]` and `blue:indicator-7` reads `[none]`. After
+Fn+Caps twice the owner reported "caps led works well", without separately stating on
+and then off. Kernel not tainted.
 
 ## Analysis
 
@@ -207,7 +213,7 @@ on and off.
 
 Output 1 alone looking red, and output 19 alone looking red, supports the per-channel
 form of `CMDR`, but the hypothesis that each write lights only its own output needs
-the owner's answer on the walk. The colour order of the other outputs still comes from
+an answer that never came. The colour order of the other outputs still comes from
 the Gemian daemon.
 
 The block's physical order runs opposite to the daemon's numbers, 5 to 1 from left to
@@ -224,7 +230,8 @@ brought up Bluetooth, and that trigger appears with the `hci0` device.
 ## Conclusion
 
 `confirmed`, for this image and boot: the module probes, reloads and turns its LEDs
-off, and `timer` and `kbd-capslock` drive them, at 3.5 mA. Positions of the six cover
+off, and `timer` and `kbd-capslock` drive them, at 3.5 mA, with `kbd-capslock` also
+working as the device tree's default on the inside red. Positions of the six cover
 LEDs and of the caps lock LED are observed.
 
 Not established: per-channel isolation on every output, the colour of each output, the
@@ -232,14 +239,14 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
 
 ## Follow-up
 
-- Finish step 9 and the two open questions with the custodian.
 - The owner chose caps lock only (2026-11-05): `kbd-capslock` as the default on
-  `red:indicator-7`, in [0577](../../patches/proposals/0577-arm64-dts-mediatek-gemini-station-show-caps-lock-on-.patch)
-  for the next batched image. After that boot, load the module and check that the LED
-  follows Fn+Caps with no trigger written. The other LEDs stay for userspace to set.
-- The owner decided the station should load `leds-aw9120` at boot once that check
-  passes (2026-11-05). Then it goes in the station's `init`, beside `gemini-lid`, with
-  the module added to the initramfs, in a later batched image. Not before the check.
+  `red:indicator-7`, in [0577](../../patches/proposals/0577-arm64-dts-mediatek-gemini-station-show-caps-lock-on-.patch).
+  The other LEDs stay for userspace to set.
+- The owner decided the station should load the module at boot once that default was
+  checked. It now has: the station's `init` loads `leds-aw9120` after `gemini-lid` and
+  records `leds=` in `/run/station/status`, and `compose-station.py` packs the module
+  for the station only. A test compose from package `ac950a5e` packed it, in a
+  15.3 MB `boot.img`. It waits for a later batched image, and hasn't booted that way.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.

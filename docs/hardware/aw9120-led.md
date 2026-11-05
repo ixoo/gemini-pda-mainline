@@ -193,8 +193,9 @@ The station device tree names the LEDs by group without assigning a purpose:
 `rgb:indicator-1` to `-5` follow the daemon's block numbers, `rgb:indicator-6` is the
 extra RGB, and `red:indicator-7` and `blue:indicator-7` are outputs 19 and 20. By the
 owner's choice, `red:indicator-7` defaults to `kbd-capslock`, from patch 0577; the
-other LEDs have no default trigger. `kbd-capslock` and `timer` work from userspace;
-the default itself hasn't run yet. `phy0rx` and its siblings are listed but unexercised; `hci0-power`
+other LEDs have no default trigger. The default worked on the device, and `timer`
+works from userspace. The station's `init` loads the module, from the image after that
+check. `phy0rx` and its siblings are listed but unexercised; `hci0-power`
 should appear with `CONFIG_BT_LEDS` once Bluetooth is up, and hasn't been seen.
 
 Every output is limited to 3.5 mA, or 70 mA for the chip. From the data sheet's 45 C/W,

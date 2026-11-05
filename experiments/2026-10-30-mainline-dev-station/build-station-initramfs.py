@@ -4,7 +4,7 @@
 
 Keeps the parent's binaries, libraries, keys, keymap and Wi-Fi firmware;
 replaces its bounded session scripts with this directory's initramfs/ files;
-adds the Wi-Fi and gemini-lid modules under lib/modules/<release>/ and, from TOOLS, the static
+adds the Wi-Fi, gemini-lid and, on the station, leds-aw9120 modules under lib/modules/<release>/ and, from TOOLS, the static
 backlight-policy and power-status binaries (built from their .c files), the static ALSA tools and their alsa/
 configuration (from build-alsa-tools.sh); gives Fn+B and Fn+N no console action, since backlight-policy
 uses them for brightness. Writes a newc archive with zero timestamps,

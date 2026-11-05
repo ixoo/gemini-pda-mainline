@@ -58,6 +58,8 @@ else
 fi
 # The lid policy (backlight off, keyboard inhibited while closed).
 if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemini-lid; else status lid=insmod-failed; fi
+# The indicator LEDs: nothing lit, and caps lock on the inside LED.
+if $bb insmod "/lib/modules/$($bb uname -r)/leds-aw9120.ko"; then status leds=leds-aw9120; else status leds=insmod-failed; fi
 # The Wi-Fi calibration record, read in place from nvdata: read-only, and
 # noload so that an unclean journal is never replayed onto the partition. ext4 still
 # clears an orphan list on such a mount unless the device itself is read-only.
