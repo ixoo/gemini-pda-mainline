@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera-receiver` |
-| Status | `running`: a capture node streams the front camera, mirrored by default, through a test tool; no camera application yet |
+| Status | `running`: the front camera streams through libcamera to the panel, mirrored by default; auto exposure in bright light, colour accuracy and upstreaming remain open |
 | Subsystem | SENINF second interface, MIPI RX analog, CSI-2, Hi-556 streaming |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -416,3 +416,22 @@ Causes, from the source, three of them mine:
 - The `PISP1` label on the input: my `MTISP` packing took the value 3, which `PISP1` already has. Now 5.
 - The 2592x1444 input: not a fault. The software ISP's output must be smaller than its input, so 1296x972 did not fit that
   mode and libcamera chose a larger one. `cam-fb` now asks for 1280x960.
+
+## L2: libcamera streams
+
+Modules from `d060cfa8` with `0578`, fresh boot `a09c7951`, image `aac84ef4` with no write, script `3daeff10`, bundle `31c70755`,
+as reported by the custodian. The owner approved it, and the eMMC was read-only.
+
+Observed:
+
+- `cam -l` listed `hi556`. The tool's 1280x960 picture took 150 of 150 frames in about 8 s, about 19 a second.
+- No warning, no timeout, tainted 0, blank and unblank clean.
+- Exposure 33282 and analogue gain 16 on every report. That is about one frame time and the gain helper's maximum, so auto
+  exposure sat at both limits for the whole run. The scene was dim: N3's baseline at a near-full-frame exposure was 10 to 20
+  counts above black. Colour gains came with 2 of 10 reports, near 1.4 and 1.8.
+- The owner reviewed the picture: "reviewed and ok".
+- At exit, libcamera logged that the media device was removed while still in use.
+
+Not shown: whether auto exposure leaves its limits in bright light. A bright-light run was offered and closed without running,
+so this stays open. Colour accuracy is unmeasured. libcamera's warnings ask for a rotation control, a location, static
+properties and a tuning file for `hi556`, none of which exist yet. The libcamera changes are local.

@@ -420,7 +420,7 @@ frequency meter (T7).
 | Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
 | Receiver link | `observed` - R1/R2 reached the mux at 2592 x 1944 at about 30 fps; status bits and pixel content remain open |
 | Diagnostic CAMSV frame | `observed` - C2 reached `CAMSV_TG_DAT_NO` one short of a full frame |
-| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked. Colour was not judged by eye; orientation and exposure were not reported. The capture node (0568) streams colour bars with no bad lines (N1); measured channel response fits GRBG at `0x000e = 0x0100` (N3) and RGGB with bit 8 cleared (N4) |
+| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked. Colour was not judged by eye; orientation and exposure were not reported. The capture node (0568) streams colour bars with no bad lines (N1); measured channel response fits GRBG at `0x000e = 0x0100` (N3) and RGGB with bit 8 cleared (N4); libcamera with its software ISP streams 1280x960 to the panel through a local patch (L2) |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |
 | PDN polarity | `observed` in the vendor table; upstream `hi556` has no PDN control |
