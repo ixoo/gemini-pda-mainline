@@ -1,0 +1,277 @@
+diff --git a/include/libcamera/internal/bayer_format.h b/include/libcamera/internal/bayer_format.h
+index 5c14bb5..ce21da2 100644
+--- a/include/libcamera/internal/bayer_format.h
++++ b/include/libcamera/internal/bayer_format.h
+@@ -34,6 +34,7 @@ public:
+ 		None = 0,
+ 		CSI2 = 1,
+ 		IPU3 = 2,
++		MTISP = 3,
+ 		PISP1 = 3,
+ 		PISP2 = 4,
+ 	};
+diff --git a/include/linux/drm_fourcc.h b/include/linux/drm_fourcc.h
+index 8e2a6ab..2621169 100644
+--- a/include/linux/drm_fourcc.h
++++ b/include/linux/drm_fourcc.h
+@@ -841,6 +841,11 @@ extern "C" {
+  */
+ #define IPU3_FORMAT_MOD_PACKED fourcc_mod_code(INTEL, 13)
+ 
++/*
++ * MediaTek 10-bit Bayer packing: 4 pixels in 5 bytes, least significant bit first.
++ */
++#define MTISP_FORMAT_MOD_PACKED fourcc_mod_code(MTK, 0x100)
++
+ /*
+  * Tiled, NV12MT, grouped in 64 (pixels) x 32 (lines) -sized macroblocks
+  *
+diff --git a/include/linux/videodev2.h b/include/linux/videodev2.h
+index 8bccad8..890187e 100644
+--- a/include/linux/videodev2.h
++++ b/include/linux/videodev2.h
+@@ -672,6 +672,10 @@ struct v4l2_pix_format {
+ #define V4L2_PIX_FMT_NV12M_10BE_8L128 v4l2_fourcc_be('N', 'T', '1', '2') /* Y/CbCr 4:2:0 10-bit 8x128 tiles */
+ 
+ /* Bayer formats - see http://www.siliconimaging.com/RGB%20Bayer.htm */
++/* 10-bit Bayer packed LSB first, 4 pixels in 5 bytes - used for MediaTek cameras */
++#define V4L2_PIX_FMT_MTISP_SGRBG10 v4l2_fourcc('M', 'B', 'g', 'A')
++#define V4L2_PIX_FMT_MTISP_SRGGB10 v4l2_fourcc('M', 'B', 'R', 'A')
++
+ #define V4L2_PIX_FMT_SBGGR8  v4l2_fourcc('B', 'A', '8', '1') /*  8  BGBG.. GRGR.. */
+ #define V4L2_PIX_FMT_SGBRG8  v4l2_fourcc('G', 'B', 'R', 'G') /*  8  GBGB.. RGRG.. */
+ #define V4L2_PIX_FMT_SGRBG8  v4l2_fourcc('G', 'R', 'B', 'G') /*  8  GRGR.. BGBG.. */
+diff --git a/src/ipa/libipa/camera_sensor_helper.cpp b/src/ipa/libipa/camera_sensor_helper.cpp
+index 359040e..801cdb4 100644
+--- a/src/ipa/libipa/camera_sensor_helper.cpp
++++ b/src/ipa/libipa/camera_sensor_helper.cpp
+@@ -541,6 +541,17 @@ public:
+ };
+ REGISTER_CAMERA_SENSOR_HELPER("imx214", CameraSensorHelperImx214)
+ 
++class CameraSensorHelperHi556 : public CameraSensorHelper
++{
++public:
++	CameraSensorHelperHi556()
++	{
++		/* From the vendor driver: code = real gain * 16 - 16. */
++		gain_ = AnalogueGainLinear{ 1, 16, 0, 16 };
++	}
++};
++REGISTER_CAMERA_SENSOR_HELPER("hi556", CameraSensorHelperHi556)
++
+ class CameraSensorHelperImx219 : public CameraSensorHelper
+ {
+ public:
+diff --git a/src/libcamera/bayer_format.cpp b/src/libcamera/bayer_format.cpp
+index 3dab91f..d34e661 100644
+--- a/src/libcamera/bayer_format.cpp
++++ b/src/libcamera/bayer_format.cpp
+@@ -59,6 +59,8 @@ namespace libcamera {
+  * \brief No packing
+  * \var BayerFormat::Packing::CSI2
+  * \brief Format uses MIPI CSI-2 style packing
++ * \var BayerFormat::Packing::MTISP
++ * \brief Format uses MediaTek packing, 4 pixels in 5 bytes, least significant bit first
+  * \var BayerFormat::Packing::IPU3
+  * \brief Format uses IPU3 style packing
+  * \var BayerFormat::Packing::PISP1
+@@ -120,6 +122,10 @@ const std::map<BayerFormat, Formats, BayerFormatComparator> bayerToFormat{
+ 		{ formats::SGRBG10_CSI2P, V4L2PixelFormat(V4L2_PIX_FMT_SGRBG10P) } },
+ 	{ { BayerFormat::RGGB, 10, BayerFormat::Packing::CSI2 },
+ 		{ formats::SRGGB10_CSI2P, V4L2PixelFormat(V4L2_PIX_FMT_SRGGB10P) } },
++	{ { BayerFormat::GRBG, 10, BayerFormat::Packing::MTISP },
++		{ formats::SGRBG10_MTISP, V4L2PixelFormat(V4L2_PIX_FMT_MTISP_SGRBG10) } },
++	{ { BayerFormat::RGGB, 10, BayerFormat::Packing::MTISP },
++		{ formats::SRGGB10_MTISP, V4L2PixelFormat(V4L2_PIX_FMT_MTISP_SRGGB10) } },
+ 	{ { BayerFormat::BGGR, 10, BayerFormat::Packing::IPU3 },
+ 		{ formats::SBGGR10_IPU3, V4L2PixelFormat(V4L2_PIX_FMT_IPU3_SBGGR10) } },
+ 	{ { BayerFormat::GBRG, 10, BayerFormat::Packing::IPU3 },
+diff --git a/src/libcamera/formats.cpp b/src/libcamera/formats.cpp
+index bfcdfc0..8c6c535 100644
+--- a/src/libcamera/formats.cpp
++++ b/src/libcamera/formats.cpp
+@@ -909,6 +909,26 @@ const std::map<PixelFormat, PixelFormatInfo> pixelFormatInfo{
+ 		.pixelsPerGroup = 25,
+ 		.planes = {{ { 32, 1 }, { 0, 0 }, { 0, 0 } }},
+ 	} },
++	{ formats::SGRBG10_MTISP, {
++		.name = "SGRBG10_MTISP",
++		.format = formats::SGRBG10_MTISP,
++		.v4l2Formats = { V4L2PixelFormat(V4L2_PIX_FMT_MTISP_SGRBG10), },
++		.bitsPerPixel = 10,
++		.colourEncoding = PixelFormatInfo::ColourEncodingRAW,
++		.packed = true,
++		.pixelsPerGroup = 4,
++		.planes = {{ { 5, 1 }, { 0, 0 }, { 0, 0 } }},
++	} },
++	{ formats::SRGGB10_MTISP, {
++		.name = "SRGGB10_MTISP",
++		.format = formats::SRGGB10_MTISP,
++		.v4l2Formats = { V4L2PixelFormat(V4L2_PIX_FMT_MTISP_SRGGB10), },
++		.bitsPerPixel = 10,
++		.colourEncoding = PixelFormatInfo::ColourEncodingRAW,
++		.packed = true,
++		.pixelsPerGroup = 4,
++		.planes = {{ { 5, 1 }, { 0, 0 }, { 0, 0 } }},
++	} },
+ 	{ formats::SGRBG10_IPU3, {
+ 		.name = "SGRBG10_IPU3",
+ 		.format = formats::SGRBG10_IPU3,
+diff --git a/src/libcamera/formats.yaml b/src/libcamera/formats.yaml
+index 2d54d39..7a9da59 100644
+--- a/src/libcamera/formats.yaml
++++ b/src/libcamera/formats.yaml
+@@ -184,6 +184,13 @@ formats:
+   - SRGGB10_IPU3:
+       fourcc: DRM_FORMAT_SRGGB10
+       mod: IPU3_FORMAT_MOD_PACKED
++  - SGRBG10_MTISP:
++      fourcc: DRM_FORMAT_SGRBG10
++      mod: MTISP_FORMAT_MOD_PACKED
++  - SRGGB10_MTISP:
++      fourcc: DRM_FORMAT_SRGGB10
++      mod: MTISP_FORMAT_MOD_PACKED
++
+   - SGRBG10_IPU3:
+       fourcc: DRM_FORMAT_SGRBG10
+       mod: IPU3_FORMAT_MOD_PACKED
+diff --git a/src/libcamera/pipeline/simple/simple.cpp b/src/libcamera/pipeline/simple/simple.cpp
+index 35e0664..6dc9162 100644
+--- a/src/libcamera/pipeline/simple/simple.cpp
++++ b/src/libcamera/pipeline/simple/simple.cpp
+@@ -262,6 +262,7 @@ static const SimplePipelineInfo supportedDevices[] = {
+ 	{ "intel-ipu6", {}, true },
+ 	{ "intel-ipu7", {}, true },
+ 	{ "j721e-csi2rx", {}, true },
++	{ "mt6797-seninf", {}, true },
+ 	{ "mtk-seninf", { { "mtk-mdp", 3 } }, false },
+ 	{ "mxc-isi", {}, false },
+ 	{ "qcom-camss", {}, true },
+diff --git a/src/libcamera/software_isp/debayer.h b/src/libcamera/software_isp/debayer.h
+index e30a052..66120f8 100644
+--- a/src/libcamera/software_isp/debayer.h
++++ b/src/libcamera/software_isp/debayer.h
+@@ -63,6 +63,7 @@ public:
+ 	Signal<FrameBuffer *> outputBufferReady;
+ 
+ 	struct DebayerInputConfig {
++		bool mtisp = false;
+ 		Size patternSize;
+ 		unsigned int bpp;
+ 		unsigned int stride;
+diff --git a/src/libcamera/software_isp/debayer_cpu.cpp b/src/libcamera/software_isp/debayer_cpu.cpp
+index 91867ba..417daf3 100644
+--- a/src/libcamera/software_isp/debayer_cpu.cpp
++++ b/src/libcamera/software_isp/debayer_cpu.cpp
+@@ -451,12 +451,14 @@ int DebayerCpu::getInputConfig(PixelFormat inputFormat, DebayerInputConfig &conf
+ 	}
+ 
+ 	if (bayerFormat.bitDepth == 10 &&
+-	    bayerFormat.packing == BayerFormat::Packing::CSI2 &&
++	    (bayerFormat.packing == BayerFormat::Packing::CSI2 ||
++	     bayerFormat.packing == BayerFormat::Packing::MTISP) &&
+ 	    isStandardBayerOrder(bayerFormat.order)) {
+ 		config.bpp = 10;
+ 		config.patternSize.width = 4; /* 5 bytes per *4* pixels */
+ 		config.patternSize.height = 2;
+ 		config.outputFormats = outputFormats;
++		config.mtisp = bayerFormat.packing == BayerFormat::Packing::MTISP;
+ 		return 0;
+ 	}
+ 
+@@ -579,8 +581,10 @@ int DebayerCpu::setDebayerFunctions(PixelFormat inputFormat,
+ 		return 0;
+ 	}
+ 
++	/* Input lines from MTISP are converted to CSI-2 packing as they are copied. */
+ 	if (bayerFormat.bitDepth == 10 &&
+-	    bayerFormat.packing == BayerFormat::Packing::CSI2) {
++	    (bayerFormat.packing == BayerFormat::Packing::CSI2 ||
++	     bayerFormat.packing == BayerFormat::Packing::MTISP)) {
+ 		switch (bayerFormat.order) {
+ 		case BayerFormat::BGGR:
+ 			SET_DEBAYER_METHODS(debayer10P_BGBG_BGR888, debayer10P_GRGR_BGR888)
+@@ -730,6 +734,10 @@ void DebayerCpuThread::configure(unsigned int yStart, unsigned int yEnd)
+ 	lineBufferLength_ = debayer_->window_.width * inputConfig.bpp / 8 +
+ 			    2 * lineBufferPadding_;
+ 
++	/* Converting MTISP packing needs the copy. */
++	if (inputConfig.mtisp)
++		enableInputMemcpy_ = true;
++
+ 	if (enableInputMemcpy_) {
+ 		for (unsigned int i = 0; i <= inputConfig.patternSize.height; i++)
+ 			lineBuffers_[i].resize(lineBufferLength_);
+@@ -768,6 +776,22 @@ DebayerCpu::strideAndFrameSize(const PixelFormat &outputFormat, const Size &size
+ 	return std::make_tuple(info.stride(size.width, 0, 8), info.frameSize(size, 8));
+ }
+ 
++/* From 4 pixels in 5 bytes least significant bit first, to the same in CSI-2 packing. */
++static void mtispLineToCsi2(uint8_t *line, size_t length)
++{
++	for (size_t i = 0; i + 5 <= length; i += 5, line += 5) {
++		uint64_t v = 0;
++
++		memcpy(&v, line, 5);
++		line[0] = v >> 2;
++		line[1] = v >> 12;
++		line[2] = v >> 22;
++		line[3] = v >> 32;
++		line[4] = (v & 3) | ((v >> 10) & 3) << 2 | ((v >> 20) & 3) << 4 |
++			  ((v >> 30) & 3) << 6;
++	}
++}
++
+ void DebayerCpuThread::setupInputMemcpy(const uint8_t *linePointers[])
+ {
+ 	const unsigned int patternHeight = debayer_->inputConfig_.patternSize.height;
+@@ -779,6 +803,8 @@ void DebayerCpuThread::setupInputMemcpy(const uint8_t *linePointers[])
+ 		memcpy(lineBuffers_[i].data(),
+ 		       linePointers[i + 1] - lineBufferPadding_,
+ 		       lineBufferLength_);
++		if (debayer_->inputConfig_.mtisp)
++			mtispLineToCsi2(lineBuffers_[i].data(), lineBufferLength_);
+ 		linePointers[i + 1] = lineBuffers_[i].data() + lineBufferPadding_;
+ 	}
+ 
+@@ -807,6 +833,8 @@ void DebayerCpuThread::memcpyNextLine(const uint8_t *linePointers[])
+ 	memcpy(lineBuffers_[lineBufferIndex_].data(),
+ 	       linePointers[patternHeight] - lineBufferPadding_,
+ 	       lineBufferLength_);
++	if (debayer_->inputConfig_.mtisp)
++		mtispLineToCsi2(lineBuffers_[lineBufferIndex_].data(), lineBufferLength_);
+ 	linePointers[patternHeight] = lineBuffers_[lineBufferIndex_].data() + lineBufferPadding_;
+ 
+ 	lineBufferIndex_ = (lineBufferIndex_ + 1) % (patternHeight + 1);
+diff --git a/src/libcamera/software_isp/swstats_cpu.cpp b/src/libcamera/software_isp/swstats_cpu.cpp
+index 7463381..b182ef7 100644
+--- a/src/libcamera/software_isp/swstats_cpu.cpp
++++ b/src/libcamera/software_isp/swstats_cpu.cpp
+@@ -512,8 +512,10 @@ int SwStatsCpu::configure(const StreamConfiguration &inputCfg, unsigned int stat
+ 
+ 	uint8_t bitDepth = bayerFormat.bitDepth;
+ 
++	/* The debayer converts MTISP lines to CSI-2 packing before stats see them. */
+ 	if ((bitDepth == 10 || bitDepth == 12) &&
+-	    bayerFormat.packing == BayerFormat::Packing::CSI2) {
++	    (bayerFormat.packing == BayerFormat::Packing::CSI2 ||
++	     bayerFormat.packing == BayerFormat::Packing::MTISP)) {
+ 		if (bitDepth == 10)
+ 			patternSize_.width = 4; /* 5 bytes per *4* pixels */
+ 		else
+diff --git a/src/libcamera/v4l2_pixelformat.cpp b/src/libcamera/v4l2_pixelformat.cpp
+index e8b3eb9..b6c5bd5 100644
+--- a/src/libcamera/v4l2_pixelformat.cpp
++++ b/src/libcamera/v4l2_pixelformat.cpp
+@@ -165,6 +165,10 @@ const std::map<V4L2PixelFormat, V4L2PixelFormat::Info> vpf2pf{
+ 		{ formats::SBGGR10_CSI2P, "10-bit Bayer BGBG/GRGR Packed" } },
+ 	{ V4L2PixelFormat(V4L2_PIX_FMT_SGBRG10P),
+ 		{ formats::SGBRG10_CSI2P, "10-bit Bayer GBGB/RGRG Packed" } },
++	{ V4L2PixelFormat(V4L2_PIX_FMT_MTISP_SGRBG10),
++		{ formats::SGRBG10_MTISP, "10-bit Bayer GRGR/BGBG MediaTek Packed" } },
++	{ V4L2PixelFormat(V4L2_PIX_FMT_MTISP_SRGGB10),
++		{ formats::SRGGB10_MTISP, "10-bit Bayer RGRG/GBGB MediaTek Packed" } },
+ 	{ V4L2PixelFormat(V4L2_PIX_FMT_SGRBG10P),
+ 		{ formats::SGRBG10_CSI2P, "10-bit Bayer GRGR/BGBG Packed" } },
+ 	{ V4L2PixelFormat(V4L2_PIX_FMT_SRGGB10P),

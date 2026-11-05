@@ -384,3 +384,17 @@ reports, and the lines do not swap. The halves swap, which is the measured evide
   `mt6797-seninf` with the node in place.
 - Suspend, and a second unit. The SMI clock is critical only until an SMI driver owns it.
 - Receiver status bit 4, the mux status, which CAM mux entry matters, and calibration reading zero remain unexplained.
+
+## L1: libcamera
+
+Not run. libcamera at `be7e83e91348250c015aad6d6f59f1468555bae8` with [`libcamera/mt6797.patch`](libcamera/mt6797.patch) applied:
+
+- `mt6797-seninf` in the simple pipeline, with the software ISP.
+- The MediaTek packing as a new format. The software ISP's CPU path turns each line into CSI-2 packing as it copies it, and
+  everything after that is its existing code.
+- A gain helper for `hi556`, from the vendor driver's formula.
+
+These are local and have not been offered upstream, and the kernel format code is not settled.
+[`libcamera/cam-fb.cpp`](libcamera/cam-fb.cpp) shows the camera on the panel through libcamera's API. libcamera sets the sensor's
+flip itself, starting from 0, so the local default of on does not apply under it, and the tool asks for a mirrored picture
+by its orientation setting. The station needs a DMA heap for the software ISP, in the camera fragment, which needs a new image.

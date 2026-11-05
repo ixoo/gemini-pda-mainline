@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 22:11:01 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: enumerate frame sizes
+
+libcamera asks for the sizes the node and the receiver can take.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 35 +++++++++++++++++++
+ 1 file changed, 35 insertions(+)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 30228a472..a30c559cd 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -554,8 +554,21 @@ static int seninf_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_state *stat
+ 	return 0;
+ }
+ 
++static int seninf_enum_frame_size(struct v4l2_subdev *sd, struct v4l2_subdev_state *state,
++				  struct v4l2_subdev_frame_size_enum *fse)
++{
++	if (fse->index)
++		return -EINVAL;
++	fse->min_width = 4;
++	fse->max_width = CAPTURE_MAX_WIDTH;
++	fse->min_height = 2;
++	fse->max_height = CAPTURE_MAX_HEIGHT;
++	return 0;
++}
++
+ static const struct v4l2_subdev_pad_ops seninf_pad_ops = {
+ 	.enum_mbus_code = seninf_enum_mbus_code,
++	.enum_frame_size = seninf_enum_frame_size,
+ 	.get_fmt = v4l2_subdev_get_fmt,
+ 	.set_fmt = seninf_set_fmt,
+ 	.link_validate = v4l2_subdev_link_validate_default,
+@@ -952,7 +965,29 @@ static int seninf_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
+ 	return 0;
+ }
+ 
++static int seninf_enum_framesizes(struct file *file, void *fh, struct v4l2_frmsizeenum *fs)
++{
++	unsigned int i;
++
++	if (fs->index)
++		return -EINVAL;
++	for (i = 0; i < ARRAY_SIZE(seninf_formats); i++)
++		if (fs->pixel_format == seninf_formats[i].fourcc)
++			break;
++	if (i == ARRAY_SIZE(seninf_formats))
++		return -EINVAL;
++	fs->type = V4L2_FRMSIZE_TYPE_STEPWISE;
++	fs->stepwise.min_width = 4;
++	fs->stepwise.max_width = CAPTURE_MAX_WIDTH;
++	fs->stepwise.step_width = 4;
++	fs->stepwise.min_height = 2;
++	fs->stepwise.max_height = CAPTURE_MAX_HEIGHT;
++	fs->stepwise.step_height = 2;
++	return 0;
++}
++
+ static const struct v4l2_ioctl_ops seninf_ioctl_ops = {
++	.vidioc_enum_framesizes = seninf_enum_framesizes,
+ 	.vidioc_querycap = seninf_querycap,
+ 	.vidioc_enum_fmt_vid_cap = seninf_enum_fmt,
+ 	.vidioc_g_fmt_vid_cap = seninf_g_fmt,
