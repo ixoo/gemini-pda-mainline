@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera-receiver` |
-| Status | `running`: the first stream reached the mux at 2592 by 1944 at about 30 frames a second, with error bits still to explain |
+| Status | `running`: the owner saw the front camera on the panel through a diagnostic path, with no capture node |
 | Subsystem | SENINF second interface, MIPI RX analog, CSI-2, Hi-556 streaming |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -257,8 +257,27 @@ Inference: this is the first frame in memory on mainline. CAMSV wrote one frame 
 with one buffer should, and the two faults above were the blockers. Bypass is shown to reach the buffer. Stray writes
 elsewhere are not ruled out by this, and the display check is the only evidence on that.
 
-## D1: the view on the panel
+## D1 and D2: the camera on the panel
 
-Not run. [`0564`](../../patches/proposals/0564-media-mediatek-mt6797-seninf-DIAGNOSTIC-a-rough-pict.patch) builds a
-panel-sized picture from each frame, and a script copies it to the framebuffer. No colour balance or shading correction,
-and no auto exposure. Frames of a real scene are not saved and not committed.
+Module `3e157761`, boot `6a422120`, fresh, no image write, as reported by the custodian. The owner approved each step, and
+the eMMC stayed read-only. [`0564`](../../patches/proposals/0564-media-mediatek-mt6797-seninf-DIAGNOSTIC-a-rough-pict.patch)
+builds a panel-sized picture from each frame, and a script copies it to the framebuffer: one RGB pixel per Bayer cell, black
+level off, a square-root curve, no colour balance or shading correction, and no auto exposure.
+
+D1, colour bars, script `ea49f4bc`, once: all return codes 0, 0 guard bytes changed, no timeouts, tainted 0. The owner: "it
+works yes I see the bars". The colour order and the edges were not reported.
+
+D2, the real view, script `8d95fc84`, five stills at default exposure and gain, about 3.8 s each: every capture and copy
+returned 0, 0 guard bytes changed each time, and 70 to 130 bytes matched the fill value, which real data would do by
+chance. Blank and unblank returned 0, with no timeouts, tainted 0, rails disabled, and MMSYS `CG0` `00110000`. The owner:
+"it all worked!!!!". Orientation, mirroring, exposure and colour were not reported, so nothing here says the picture was
+upright or well exposed. No frame was saved.
+
+Limits of this result:
+
+- Debugfs and a script, not a V4L2 capture node. Stills only, with the sensor powered up and down around each.
+- CAMSV0 bypasses M4U through a larb2 bit cleared by hand. The other 13 larb2 ports still have MMU enabled.
+- Stray writes elsewhere are not ruled out. The evidence is the guard, the counters and a clean display check.
+- The SMI common clock has no owner. The capture relies on the loader leaving it open.
+- One boot on one unit, with the diagnostics of `0556` and `0558` to `0564` in the module. Status bit 4, the mux status,
+  the CAM mux entry and the receiver calibration reading zero remain unexplained.

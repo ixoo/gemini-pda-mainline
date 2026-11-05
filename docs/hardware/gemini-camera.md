@@ -43,7 +43,7 @@ for the CAM/CAMSV/ISP resources. Current support remains in the
   off (T12). `mt6797-seninf` adds the CSI-2 receiver and graph binding; the first stream reaches the mux
   at 2592 x 1944 (R1/R2), and a diagnostic CAMSV capture shows a full frame reaching CAMSV (C2). C5 writes
   the sensor's colour bars to memory through a diagnostic path. No standard V4L2 capture node or M4U/VB2
-  path exists, and no real scene has been captured.
+  path exists. Through the same path, stills of a real scene reached the panel (D2).
 
 ## 2. Sensor and board
 
@@ -394,12 +394,12 @@ libcamera or a native V4L2 application.
 The realistic first target is still **SP5509 -> two-lane CSI -> SENINF ->
 CAMSV -> memory**, with libcamera's simple pipeline and software ISP, not the
 vendor DIP/CAM hardware ISP. The sensor power/clock/ID, the CSI-2 link and the
-first CAMSV frame are shown, and colour bars reach memory (C5); the next step is a real scene and a standard
+first CAMSV frame are shown, and colour bars reach memory (C5); the next step is a standard
 capture interface. The station chronology is in the
 [camera record](../../experiments/2026-11-04-gemini-camera/README.md) and the
 [receiver record](../../experiments/2026-11-04-gemini-camera-receiver/README.md),
-with patches under `patches/proposals/0543`-`0561`. No mainline image or
-capture node is established.
+with patches under `patches/proposals/0543`-`0564`. No capture node is
+established; the picture on the panel (D1/D2) is a diagnostic.
 
 ### Master clock on mainline
 
@@ -419,7 +419,7 @@ frequency meter (T7).
 | Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
 | Receiver link | `observed` - R1/R2 reached the mux at 2592 x 1944 at about 30 fps; status bits and pixel content remain open |
 | Diagnostic CAMSV frame | `observed` - C2 reached `CAMSV_TG_DAT_NO` one short of a full frame |
-| DMA write and image | `observed` for colour bars only (C5), on a diagnostic path with CAMSV0 bypassing M4U; no real scene yet |
+| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked; orientation, exposure and colour were not reported |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |
 | PDN polarity | `observed` in the vendor table; upstream `hi556` has no PDN control |
@@ -439,7 +439,7 @@ frequency meter (T7).
 - [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md)
 - [Gemian hardware baseline](gemini-gemian-baseline.md) and [vendor userspace](vendor-userspace.md)
 - [Vendor kernel ABI](vendor-kernel-abi.md)
-- Station series `patches/proposals/0543`-`0561`; profile fragment
+- Station series `patches/proposals/0543`-`0564`; profile fragment
   `configs/gemini-a53-station-camera.fragment`.
 - Pinned Gemian kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `drivers/misc/mediatek/imgsensor/src/mt6797/`,

@@ -81,7 +81,7 @@ Firmware boundary:
 | GNSS and FM | `partial` | `local` | `required-nonfree` | **No position has been produced on mainline.** Through `/dev/gnss0` a userspace host boots the DSP, and one 600 s run at a window tracked two live satellites and received their navigation data, too few for a position; open sky is untested ([link record](../experiments/2026-11-01-gemini-gnss-link/README.md)). Stock Gemian with the same minimal host tracked up to 13 and gave positions offline, with the vendor DSP image ([stock trace](../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)), which shows the RF path, not mainline support. No application interface exists. FM has no runtime result. See the [GNSS document](hardware/gemini-gnss.md). |
 | Sensors | `partial` | `local` | `none` | On the station, one unit, from modules loaded by hand. The BMI160 IMU reads gravity and rotation through IIO, in the lid, with its matrix checked by turning the device, uncalibrated and with no interrupt. The STK3x1x reads light and proximity and interrupts on EINT11. Nothing answers at the magnetometer, barometer, humidity or LSM6DS3 addresses. No suspend, wake or long run. See [Gemini I2C1 sensors](hardware/gemini-sensors.md). |
 | Cellular modem | `unknown` | `missing` | `required-nonfree` | CCCI/CLDMA and shared-memory ownership are research inputs only. A safe upstream transport, crash isolation, regulatory boundary, and standard userspace integration are missing. |
-| Cameras | `enumerates` | `local` | `unknown` | **No image, and no capture path.** From modules on the station, loaded by hand, the `hi556` driver powers the front sensor, starts its 24 MHz clock through a new `mt6797-seninf` driver, reads chip ID `0x0556` at `0x20` on I2C3 and powers it off, on two loads on one boot ([record](../experiments/2026-11-04-gemini-camera/README.md#t12-the-drivers-own-probe)). There is no receiver, CAMSV, DMA or sub-device node, and the M4U the capture path needs is disabled on the station. The vendor's working path is mapped in [Gemini camera path](hardware/gemini-camera.md). The firmware boundary for raw capture is not established. |
+| Cameras | `enumerates` | `local` | `unknown` | **Diagnostic stills only, and no capture node.** From modules on the station, loaded by hand, the front sensor streams through a new `mt6797-seninf` driver into CAMSV0 and memory, and a debugfs script copied five stills of a real scene to the panel on one boot; the owner reported that it worked, without detail on orientation, exposure or colour ([record](../experiments/2026-11-04-gemini-camera-receiver/README.md#d1-and-d2-the-camera-on-the-panel)). There is no V4L2 capture node. CAMSV0 bypasses the M4U through a larb2 bit cleared by hand, the SMI clock has no owner, and stray DMA writes are not ruled out. The vendor's working path is mapped in [Gemini camera path](hardware/gemini-camera.md). |
 
 ## Not shown on any row
 
@@ -89,7 +89,7 @@ Firmware boundary:
 - Suspend, cpuidle or cpufreq; these aren't started, and they decide battery life and heat.
 - Any thermal trip or hardware reset firing, or the charge guard stopping a real charge.
 - The 11 s Esc long press.
-- microSD, USB host and modem on the station, or any camera image.
+- microSD, USB host and modem on the station, or a standard camera capture interface.
 
 What a first test release needs is in [release readiness](RELEASE_READINESS.md), and
 what comes next in the [roadmap](ROADMAP.md).
