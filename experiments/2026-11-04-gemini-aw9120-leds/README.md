@@ -245,8 +245,39 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
 - The owner decided the station should load the module at boot once that default was
   checked. It now has: the station's `init` loads `leds-aw9120` after `gemini-lid` and
   records `leds=` in `/run/station/status`, and `compose-station.py` packs the module
-  for the station only. A test compose from package `ac950a5e` packed it, in a
-  15.3 MB `boot.img`. It waits for a later batched image, and hasn't booted that way.
+  for the station only. Confirmed on boot `9b4a0eca`, image `8d620ab7` built from
+  `fec36c2e`: status read `leds=leds-aw9120`, every LED read 0, and `red:indicator-7`
+  was on `[kbd-capslock]` with no manual load. On the release image, which doesn't pack
+  the module, caps lock on read 255 and off read 0 once it was loaded.
+- The owner asked for the caps lock LED to go dark with the screen (2026-11-05), and
+  accepted three assumptions: only that LED; back to the real caps lock state on wake;
+  and the fade's end counts as a blank. `backlight-policy` in the
+  [station record](../2026-10-30-mainline-dev-station/README.md) does it: dark while the
+  lid is closed, the console blanked or `bl_power` above 0, by setting the LED's trigger
+  to `none`, and back with `kbd-capslock`, whose activation reads the VT's state. Writes
+  that fail, with the module absent, are retried on the next wake. Userspace, because
+  an LED has one trigger and the kernel has no blank notifier a module can use, so a
+  kernel version would need a new hook. Compile-checked only (static, `-Wall -Wextra`,
+  no warnings). The worst case without the daemon is that LED in a stale state.
+
+  Predeclared test T3, on the station with the module loaded. On and off are by the
+  owner's word, checked against `brightness` and `trigger` in sysfs; no colour.
+  Install the tool by copying it to `/bin/backlight-policy` and killing the running
+  one right after a keypress, never during a fade, so init respawns it.
+  1. Caps on: LED on. Set a short blank with `setterm`. Expect the LED on through the
+     fade and dark when the screen goes dark, trigger `[none]`.
+  2. Wake with a letter key: LED on again, caps lock still on.
+  3. Caps off, blank, wake: LED off throughout.
+  4. Blanked with caps on, press Fn+Caps: it wakes with the LED off, matching.
+  5. Caps on, close the lid: `brightness` 0. Open: LED on.
+  6. Close the lid during the fade: `brightness` 0 closed; after opening, LED and
+     screen both right.
+  7. `rmmod leds_aw9120`, one blank and wake: no errors, the daemon stays up. `insmod`:
+     right after the next transition.
+  8. Kill the daemon while blanked, outside a fade: after respawn the LED is right.
+
+  Any LED left in the wrong state is a result to report, not a stop. A daemon that
+  exits or loops is a stop: put the previous binary back.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.

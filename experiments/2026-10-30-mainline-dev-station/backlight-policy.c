@@ -12,6 +12,11 @@
  * Bluetooth keyboard, can wake the console without it noticing until the next watched
  * event. Whatever sets the blank timeout must send SIGUSR1, since that also restarts the
  * kernel's deadline and nothing else would wake this program for it.
+ *
+ * It also darkens the caps lock LED while the screen is dark: lid closed, console
+ * blanked, or the backlight off at the end of the fade. Back on, the LED's trigger
+ * is set again, which takes the real caps lock state. Without the LED driver the
+ * writes fail and are tried again on the next wake.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -34,6 +39,7 @@
 #define BL_POWER "/sys/class/backlight/backlight/bl_power"
 #define CONSOLE "/dev/tty1"
 #define BLANK_SECONDS "/sys/module/kernel/parameters/consoleblank"
+#define CAPS_LED_TRIGGER "/sys/class/leds/red:indicator-7/trigger"
 /* The fades: long enough to see, short enough not to hold a wake back. */
 #define DIM_LEVEL 16
 #define FADE_DOWN_STEPS 40
@@ -226,6 +232,15 @@ static void step_brightness(int up)
 	put(BL_BRIGHTNESS, text);
 }
 
+/* 1 dark, 0 following caps lock, -1 not yet written. */
+static int caps_led_dark = -1;
+
+static void caps_led(int dark)
+{
+	if (dark != caps_led_dark && !put(CAPS_LED_TRIGGER, dark ? "none" : "kbd-capslock"))
+		caps_led_dark = dark;
+}
+
 static volatile sig_atomic_t blank_set;
 
 static void on_blank_set(int sig)
@@ -290,6 +305,8 @@ int main(void)
 			quick = 20;
 		}
 		blanked = console_blanked();
+		/* No backlight reads -1, which must not count as dark. */
+		caps_led(closed || blanked || read_number(BL_POWER) > 0);
 
 		if (quick > 0)
 			quick--;
@@ -340,6 +357,7 @@ int main(void)
 						}
 					} else {
 						put(BL_POWER, "4");
+						caps_led(1);
 					}
 				}
 			} else if (restore >= 0 && (seconds * 1000 <= FADE_DOWN_LEAD_MS || left > 0)) {
