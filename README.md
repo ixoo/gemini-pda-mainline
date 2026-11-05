@@ -2,6 +2,11 @@
 
 Upstream-first Linux enablement for the Planet Computers Gemini PDA.
 
+> [!CAUTION]
+> **v1 ships as it is, and you use it entirely at your own risk.** It can corrupt your data,
+> cost you your recovery path or damage your device. It has booted once in this form, on one
+> unit. There is no warranty ([MIT licence](LICENSE)) and no promise of support.
+
 > [!WARNING]
 > This is an early hardware-enablement project, not a custom ROM or a
 > daily-driver image. An incorrect image, partition write, clock, regulator, or
@@ -51,10 +56,10 @@ upstream, it isn't a daily driver, and a build isn't support.
 - **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery
   life and heat; microSD; USB host; the modem.
 
-The goal now is a [v1 for people to experiment with](docs/RELEASE_READINESS.md), still without
-cpufreq or power governors. Its image, with a public RAM root, has booted once, on this unit.
-Its RAM root carries fewer modules than the station, and nobody else can install it yet, as the
-[testing guide](docs/TESTING_GUIDE.md) says.
+**[v1](docs/RELEASE_READINESS.md) is what people can start experimenting with**, still without
+cpufreq or power governors. Its image, with a public RAM root, has booted once, on this unit. It
+carries less than the station above, and there's no first-install tool, as the [testing
+guide](docs/TESTING_GUIDE.md) says.
 
 The [hardware support matrix](docs/HARDWARE_SUPPORT.md) owns current capability
 claims and their limits. Exact candidates and negative results live in
@@ -99,7 +104,7 @@ Gemini-specific description belongs in an upstream board Device Tree.
 | Understand risk and device-write rules | [Safety policy](docs/SAFETY.md) |
 | See the current work order | [Roadmap](docs/ROADMAP.md) |
 | Check present subsystem support | [Hardware support matrix](docs/HARDWARE_SUPPORT.md) |
-| See what a v1 needs | [Release readiness](docs/RELEASE_READINESS.md) and [testing guide](docs/TESTING_GUIDE.md) |
+| See what v1 is and leaves out | [Release readiness](docs/RELEASE_READINESS.md) and [testing guide](docs/TESTING_GUIDE.md) |
 | Understand ownership and patch layering | [Architecture](docs/ARCHITECTURE.md) |
 | Reproduce a kernel build | [Kernel workflow](docs/KERNEL_WORKFLOW.md) |
 | Inspect durable hardware facts | [Hardware knowledge base](docs/hardware/README.md) |

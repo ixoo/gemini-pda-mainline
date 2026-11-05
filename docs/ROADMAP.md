@@ -32,7 +32,7 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
   Wi-Fi starts by itself and joins as WPA2-PSK.
 - **Modules loaded by hand.** Touch, Panfrost, A72s, Bluetooth A2DP, sensors, front camera,
   LEDs and the GNSS host. [The matrix](HARDWARE_SUPPORT.md) has each one's limits.
-- **Release.** The owner's goal is a [v1 for experimenters](RELEASE_READINESS.md). Profile `mt6797-a53-release` and a public RAM root have
+- **Release.** The owner [shipped v1](RELEASE_READINESS.md) as it stands, at the user's own risk. Profile `mt6797-a53-release` and a public RAM root have
   [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
   No one else can install or build it yet.
 - **Not started.** Suspend, cpuidle and cpufreq. No upstream submission.
@@ -43,19 +43,18 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
 Each boot is a reviewed experiment with its own validated candidate, finite
 budgets and stop conditions under the [safety rules](SAFETY.md).
 
-### 1. A v1 for experimenters
+### 1. After v1
 
-The owner's goal, 2026-11-04. The blockers, which ones should close before the tag, and their
-sizes are in [release readiness](RELEASE_READINESS.md#blockers-for-v1). Those that change boot
-files go in one image.
+The owner shipped v1 on 2026-11-04 as it stands. Its [known gaps](RELEASE_READINESS.md#known-gaps-in-v1)
+come next as tester need shows: first the first install and a published kernel package. Those
+that change boot files go in one image.
 
-Owner decisions there: which blockers hold the tag, Gemian's root read-only or one dedicated
-directory, the country protocol, how the optional modules are offered, a second unit, and
-publishing a kernel package. Only the owner can sign a tag.
+Owner decisions there: Gemian's root read-only or one dedicated directory, the country protocol,
+how the optional modules are offered, and a second unit.
 
 ### 2. Power
 
-cpufreq and power governors are the important gap the owner named for after v1. Suspend, cpuidle
+cpufreq and power governors are the important gap the owner named. Suspend, cpuidle
 and cpufreq decide battery life and heat, and nothing in them has started.
 [Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a design
 proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)

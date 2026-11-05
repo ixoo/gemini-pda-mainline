@@ -91,7 +91,7 @@ Firmware boundary:
 - A panic with the command line's `panic=10`, or the Esc reset on a hung kernel.
 - microSD, USB host and modem on the station, or a camera application.
 
-What a v1 needs is in [release readiness](RELEASE_READINESS.md), and
+What v1 is and leaves out is in [release readiness](RELEASE_READINESS.md), and
 what comes next in the [roadmap](ROADMAP.md).
 
 ## Updating the matrix

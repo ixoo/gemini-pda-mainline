@@ -1,11 +1,16 @@
 # Testing guide for v1
 
-A guide for testing the proposed v1 image on your own Gemini PDA. It goes with
+A guide for trying the v1 image on your own Gemini PDA. It goes with
 [release readiness](RELEASE_READINESS.md), which says what v1 promises and what it
 doesn't. The [safety policy](SAFETY.md) outranks anything here.
 
+> [!CAUTION]
+> **v1 ships as it is, and you use it entirely at your own risk.** It can corrupt your data,
+> cost you your recovery path or damage your device. It has booted once in this form, on one
+> unit. There is no warranty ([MIT licence](../LICENSE)) and no promise of support.
+
 > [!WARNING]
-> **Nobody can complete this guide yet.** Three things stand in the way:
+> **Nobody but the author has followed this guide, and it has holes:**
 >
 > 1. **No first install.** There's no tested way for a tester to put the first image on
 >    boot2. See [Installing](#installing-to-boot2).
@@ -24,10 +29,10 @@ use a Gemini you depend on.
 
 The image runs from RAM and keeps nothing across a reboot. It's selected by hand for
 one boot at a time, so Gemian stays the default. [Release
-readiness](RELEASE_READINESS.md#proposed-v1-scope) has the full promise and the
+readiness](RELEASE_READINESS.md#proposed-v1-scope) has the full scope and the
 list of what's missing.
 
-In this image, unlike that promise so far, the console stays on the loader's
+In this image the console stays on the loader's
 framebuffer unless you run `display-start`. Gemian's `linux` partition is at
 `/mnt/data`, read-only, and the block device is set read-only too.
 
@@ -65,8 +70,8 @@ and confirm Gemian boots.
 The image holds no firmware and no keys but your public key. You build it yourself,
 because it carries your key.
 
-**Kernel.** Commit `4df8fa37` or later, profile `mt6797-a53-release`. The one image that
-has booted came from `4c2fc3b7`:
+**Kernel.** v1 is commit `4c2fc3b7`, profile `mt6797-a53-release`, the only one booted in this
+form. Later commits haven't booted in this profile:
 
 ```sh
 KERNEL_PROFILE=mt6797-a53-release BUILD_MODULES=1 ./scripts/build-kernel --backend buildbox
@@ -74,7 +79,7 @@ KERNEL_PROFILE=mt6797-a53-release ./scripts/buildbox fetch-package
 ```
 
 That needs the project's Buildbox, which testers don't have. This is a gap,
-[blocker 10](RELEASE_READINESS.md#blockers-for-v1).
+[gap 10](RELEASE_READINESS.md#known-gaps-in-v1).
 `./scripts/build-kernel --backend vm` exists, but the [workflow](KERNEL_WORKFLOW.md)
 reserves it for an explicit owner request, it hasn't been tried on this profile, and
 the project doesn't boot VM-built kernels today.
@@ -104,12 +109,12 @@ exactly 16 MiB, and its checksum is `boot2_sha256` in `OUTPUT/station.json`.
 ## Installing to boot2
 
 > [!CAUTION]
-> Only the author has ever done this, on one unit, and never with this image. Boot2 is
+> Only the author has ever done this, on one unit, and from a running station. Boot2 is
 > the only partition you may write. Never write primary boot, boot3, the preloader,
 > NVRAM or the GPT.
 
 **The first install is a gap: there's no path for a tester, and this guide doesn't
-offer one.** It's [blocker 6](RELEASE_READINESS.md#blockers-for-v1).
+offer one.** It's [gap 6](RELEASE_READINESS.md#known-gaps-in-v1).
 
 - `flash-boot2` runs on a running station's RAM root. It expects that root's
   `/bin/busybox` and `/run/station`, so it won't work from Gemian as it stands.
@@ -120,8 +125,8 @@ offer one.** It's [blocker 6](RELEASE_READINESS.md#blockers-for-v1).
   and private evidence paths. They refuse any other image, and the safety policy
   says not to reuse them.
 
-Stop here until that's closed, and don't improvise with `dd`: a wrong target can lose
-your recovery path.
+v1 ships with this gap. The project's advice is to stop here until it's closed. If you go on
+regardless, that's on you, and a careless `dd` to the wrong target can lose your recovery path.
 
 **Later writes, from a running release image**, are the path that exists:
 
@@ -250,10 +255,10 @@ link set wlan0 down` is one-way until `mac` reloads. Bluetooth isn't in this ima
 
 ## Other hardware
 
-Touch, the GPU, Bluetooth, sensors, LEDs and the A72 pair are modules in the kernel package, not
-in the image. None has been tried on it, and this guide doesn't yet say how:
-[blocker 11](RELEASE_READINESS.md#blockers-for-v1). The camera isn't in this profile. Their results so
-far, on the author's station, are in the [support matrix](HARDWARE_SUPPORT.md).
+Touch, the GPU, Bluetooth, the A72 pair and GNSS are modules in the kernel package, not in the
+image. None has been tried on it, and this guide doesn't yet say how:
+[gap 11](RELEASE_READINESS.md#known-gaps-in-v1). Sensors, LEDs and the camera aren't in v1's package.
+Results so far, on the author's station, are in the [support matrix](HARDWARE_SUPPORT.md).
 
 ## Stop conditions
 
