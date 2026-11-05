@@ -32,7 +32,7 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
   Wi-Fi starts by itself and joins as WPA2-PSK.
 - **Modules loaded by hand.** Touch, Panfrost, A72s, Bluetooth A2DP, sensors, front camera,
   LEDs and the GNSS host. [The matrix](HARDWARE_SUPPORT.md) has each one's limits.
-- **Release.** The owner [shipped v1](RELEASE_READINESS.md) as it stands, at the user's own risk. Profile `mt6797-a53-release` and a public RAM root have
+- **Release.** The owner declared [v1](RELEASE_READINESS.md): everything working so far, with limited testing, at the user's own risk. Profile `mt6797-a53-release` and a public RAM root have
   [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
   No one else can install or build it yet.
 - **Not started.** Suspend, cpuidle and cpufreq. No upstream submission.

@@ -6,8 +6,8 @@ doesn't. The [safety policy](SAFETY.md) outranks anything here.
 
 > [!CAUTION]
 > **v1 ships as it is, and you use it entirely at your own risk.** It can corrupt your data,
-> cost you your recovery path or damage your device. It has booted once in this form, on one
-> unit. There is no warranty ([MIT licence](../LICENSE)) and no promise of support.
+> cost you your recovery path or damage your device. It has had limited testing, on one unit.
+> There is no warranty ([MIT licence](../LICENSE)) and no promise of support.
 
 > [!WARNING]
 > **Nobody but the author has followed this guide, and it has holes:**
@@ -70,8 +70,8 @@ and confirm Gemian boots.
 The image holds no firmware and no keys but your public key. You build it yourself,
 because it carries your key.
 
-**Kernel.** v1 is commit `4c2fc3b7`, profile `mt6797-a53-release`, the only one booted in this
-form. Later commits haven't booted in this profile:
+**Kernel.** Profile `mt6797-a53-release`. The only commit booted in this form is `4c2fc3b7`, which
+predates sensors, LEDs and the camera; later commits have run only under station profiles:
 
 ```sh
 KERNEL_PROFILE=mt6797-a53-release BUILD_MODULES=1 ./scripts/build-kernel --backend buildbox
@@ -255,9 +255,9 @@ link set wlan0 down` is one-way until `mac` reloads. Bluetooth isn't in this ima
 
 ## Other hardware
 
-Touch, the GPU, Bluetooth, the A72 pair and GNSS are modules in the kernel package, not in the
-image. None has been tried on it, and this guide doesn't yet say how:
-[gap 11](RELEASE_READINESS.md#known-gaps-in-v1). Sensors, LEDs and the camera aren't in v1's package.
+Touch, the GPU, Bluetooth, sensors, LEDs, the A72 pair and GNSS are modules in the kernel package,
+not in the image. None has been tried on it, and this guide doesn't yet say how:
+[gap 11](RELEASE_READINESS.md#known-gaps-in-v1). The camera's fragment isn't in this profile yet.
 Results so far, on the author's station, are in the [support matrix](HARDWARE_SUPPORT.md).
 
 ## Stop conditions

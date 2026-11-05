@@ -4,8 +4,8 @@ Upstream-first Linux enablement for the Planet Computers Gemini PDA.
 
 > [!CAUTION]
 > **v1 ships as it is, and you use it entirely at your own risk.** It can corrupt your data,
-> cost you your recovery path or damage your device. It has booted once in this form, on one
-> unit. There is no warranty ([MIT licence](LICENSE)) and no promise of support.
+> cost you your recovery path or damage your device. It has had limited testing, on one unit.
+> There is no warranty ([MIT licence](LICENSE)) and no promise of support.
 
 > [!WARNING]
 > This is an early hardware-enablement project, not a custom ROM or a
@@ -56,10 +56,10 @@ upstream, it isn't a daily driver, and a build isn't support.
 - **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery
   life and heat; microSD; USB host; the modem.
 
-**[v1](docs/RELEASE_READINESS.md) is what people can start experimenting with**, still without
-cpufreq or power governors. Its image, with a public RAM root, has booted once, on this unit. It
-carries less than the station above, and there's no first-install tool, as the [testing
-guide](docs/TESTING_GUIDE.md) says.
+**[v1](docs/RELEASE_READINESS.md) is all of the above, with that limited testing,** still without
+cpufreq or power governors. People can start experimenting with it, at their own risk. The public
+release image has booted once on this unit, before the newest parts, and it doesn't yet carry all
+of them. There's no first-install tool, as the [testing guide](docs/TESTING_GUIDE.md) says.
 
 The [hardware support matrix](docs/HARDWARE_SUPPORT.md) owns current capability
 claims and their limits. Exact candidates and negative results live in

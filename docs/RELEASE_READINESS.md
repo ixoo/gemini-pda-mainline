@@ -4,8 +4,8 @@ What v1 is, what it leaves out, and what stands in the way of daily use.
 
 > [!CAUTION]
 > **v1 ships as it is, and you use it entirely at your own risk.** It can corrupt your data,
-> cost you your recovery path or damage your device. It has booted once in this form, on one
-> unit. There is no warranty ([MIT licence](../LICENSE)) and no promise of support.
+> cost you your recovery path or damage your device. It has had limited testing, on one unit.
+> There is no warranty ([MIT licence](../LICENSE)) and no promise of support.
 
 The owner shipped v1 on 2026-11-04: "v1 is what we have now. we can always do better, but let's
 ship what we currently have." So the gaps below are known limits of v1, not conditions on it.
@@ -14,20 +14,22 @@ This comes from reading the records, patches and logs, not from new device runs.
 
 ## What v1 is
 
-Profile `mt6797-a53-release` at commit `4c2fc3b7`, package inventory `6ee52a73…`, with the public
-RAM root: the one kernel and root that have [booted in this form](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
-Later commits add patches to the same profile, which have run only under station profiles. The
-project's other, daily image is the station, whose RAM root holds private keys and firmware and
-doesn't ship.
+Everything shown working so far, with the limited testing it has had. The
+[support matrix](HARDWARE_SUPPORT.md) is the list, and each row says how little has been run: most
+of it on one unit, much of it on one boot, and several parts from modules loaded by hand.
 
-It's a RAM-root, boot2-only image for technical owners who can recover a device, and to experiment
-with. It isn't a Gemian replacement or a daily driver. As it stands:
+It's for technical owners who can recover a device and want to experiment. It isn't a Gemian
+replacement or a daily driver. As it stands:
 
+- **Most results come from the station,** the project's own image, whose RAM root holds private
+  keys and firmware and doesn't ship. The public release image is built to replace it for others.
+- **The release image lags the working set.** Its one
+  [boot](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04)
+  was at `4c2fc3b7`, before sensors, LEDs and the camera. The profile at today's commit builds
+  sensors and LEDs too, and hasn't been built or booted. Its RAM root carries only the display,
+  lid, audio and Wi-Fi modules, and the camera's fragment isn't in the profile.
 - **Nobody else has installed it,** and there's no first-install tool. Getting it onto boot2 the
   first time is yours to work out, and yours to answer for.
-- **It holds less than the station.** The RAM root carries only the display, lid, audio and Wi-Fi
-  modules. The package also has touch, GPU, Bluetooth, A72 and GNSS modules, none tried on this
-  image. Sensors, LEDs and the camera came later and aren't in it.
 - **cpufreq and power governors are missing,** so CPUs stay at firmware's clocks and battery life
   isn't useful.
 
@@ -54,14 +56,14 @@ with. It isn't a Gemian replacement or a daily driver. As it stands:
 | Touch | In the package | Hand-loaded on the station; events on one boot, accuracy untested, a blanked screen gave no interrupt |
 | GPU, desktop | In the package | Panfrost hand-loaded on the station. No Mesa in the image and no compositor |
 | Bluetooth | In the package | A2DP heard with one headset, from a private chroot. mSBC clean on one run with no bridge for voice. Placeholder address. [SBC skips from about 4 yards](../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04), with no control yet |
-| Sensors | Not in the package | [IMU and light/proximity](hardware/gemini-sensors.md) hand-loaded on one boot, uncalibrated |
-| Indicator LEDs | Not in the package | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
+| Sensors | In the package, today's commit | [IMU and light/proximity](hardware/gemini-sensors.md) hand-loaded on one boot, uncalibrated |
+| Indicator LEDs | In the package, today's commit | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
 | GNSS | In the package | No position on mainline; needs a userspace host |
-| Camera | Not in the package | [Capture node through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node) on the station; local format codes, [libcamera so far gives no frames](../experiments/2026-11-04-gemini-camera-receiver/README.md), and M4U bypassed |
+| Camera | Not in the profile yet | [Capture node through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node) on the station; local format codes, [libcamera so far gives no frames](../experiments/2026-11-04-gemini-camera-receiver/README.md), and M4U bypassed |
 | microSD | Unknown | Prepared, never booted |
 | Modem | No | Not started |
 
-"In the package" means a `=m` module in the `4c2fc3b7` package. It would have to be sent over SSH
+"In the package" means the release profile builds it as `=m`. It would have to be sent over SSH
 and loaded by hand, and none of them has been tried on this image.
 
 <a id="blockers-for-a-first-test-release"></a>
@@ -175,21 +177,22 @@ a mirror is still needed, along with the source for shipped binaries (gap 9).
 <a id="proposed-v1-scope"></a>
 ## v1 scope
 
-**Shown once, on the author's unit:** boots from boot2 by holding the side key. Console and typing
-on the loader framebuffer. USB SSH with your own key. Charge guard bound, lid, a speaker tone. It
-writes nothing outside boot2 by design, and primary boot, NVRAM, GPT and the preloader were not
-written; partition contents weren't hashed across the boot.
+**Everything in the [matrix](HARDWARE_SUPPORT.md) that works,** with the limits each row gives.
 
-**There to try, shown only on the station:** native display through `display-start`, thermal trips,
-headphones and capture, and Wi-Fi as a beta with your own firmware. Touch, GPU, Bluetooth, the A72
-pair and GNSS as modules from the package, with the limits in the
-[matrix](HARDWARE_SUPPORT.md).
+**Shown on the release image, once, on the author's unit:** boots from boot2 by holding the side key.
+Console and typing on the loader framebuffer. USB SSH with your own key. Charge guard bound, lid, a
+speaker tone. Primary boot, NVRAM, GPT and the preloader weren't written; partition contents weren't
+hashed across the boot.
+
+**Shown only on the station so far:** native display, thermal trips, headphones and capture, Wi-Fi as
+a beta with your own firmware, touch, GPU, Bluetooth, sensors, LEDs, the A72 pair, GNSS tracking and the
+camera through a test tool.
 
 **It doesn't:** replace Gemian or persist anything across a reboot; suspend, scale CPU clocks or offer
 useful battery life; slow down when hot rather than power off; limit charging while off; provide a
-desktop, sensors, LEDs, camera, USB host, microSD, modem or a GNSS position; offer reliable Wi-Fi;
-support unique Bluetooth addresses or more than one nearby Gemini on Bluetooth; promise anything about
-other hardware variants, or any unit but the author's.
+desktop, USB host, microSD, modem or a GNSS position; offer reliable Wi-Fi; support unique Bluetooth
+addresses or more than one nearby Gemini on Bluetooth; promise anything about other hardware variants, or
+any unit but the author's.
 
 **Safety:** back up every readable partition privately, since backups hold calibration and
 identifiers. Confirm Gemian boots and `boot2` exists by GPT name. Use stable power for writes. A plain
