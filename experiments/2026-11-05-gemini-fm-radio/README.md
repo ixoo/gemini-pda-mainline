@@ -1,0 +1,167 @@
+# Experiment: FM radio on the mainline station, facts and first test
+
+## Record
+
+| Field | Value |
+| --- | --- |
+| ID | `2026-11-05-gemini-fm-radio` |
+| Status | `planned`: desk facts recorded; test F1 is predeclared and has no code yet. No FM register has been read on any kernel |
+| Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
+| Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
+| Date(s) | 2026-11-05 |
+| Investigator(s) | project session, device custody with the custodian session |
+| Tracking issue | M6 peripherals (FM), follow-up gate 3 of the [WMT recovery record](../2026-07-12-connectivity-wmt-recovery/README.md#follow-up-gates) |
+
+## Question or hypothesis
+
+Is the FM receiver present and reachable on this Gemini, and if so, what does a
+mainline driver talk to?
+
+Hypothesis for the first device test (F1): with the WMT FM function on and the
+vendor's FM clock-on sequence applied, FM register `0x62` reads `0x6631` over
+STP task 1.
+
+Nothing before F1 shows that FM was ever powered on this board, on Gemian or on
+mainline. The `0x6631` Gemian prints at boot is not that read (O4, S1).
+
+## Provenance and environment
+
+- Kernel: Linux 7.1.3 with the local series, tag `v1` (`5c263c74`) as the base
+  station. No FM code exists in the series.
+- Vendor reference: the public downstream tree
+  [`gemian/gemini-linux-kernel-3.18`](https://github.com/gemian/gemini-linux-kernel-3.18)
+  at `8cfe6596a503612e3332d9c26e292a19525a7f07`, read only as evidence. The
+  paths below are relative to `drivers/misc/mediatek/connectivity/` unless they
+  start with `sound/`.
+- Gemian evidence: the running configuration and boot image under ignored
+  `artifacts/vendor-kernel/gemian-2019/`, the userspace extraction under ignored
+  `artifacts/device-userspace/gemian-2019/`, the published
+  [WMT recovery results](../2026-07-12-connectivity-wmt-recovery/results/) and a
+  retained private Gemian boot log. No device access was used for this record.
+
+## What is observed
+
+| # | Observation | Source |
+| --- | --- | --- |
+| O1 | Gemian's running kernel sets `CONFIG_MTK_COMBO_CHIP_CONSYS_6797=y`, `CONFIG_MTK_FMRADIO=y` and `CONFIG_MTK_FM_CHIP="MT6631_FM"`. `CONFIG_MTK_FM_50KHZ_SUPPORT` is unset | running config |
+| O2 | Gemian installs `fm_cust.cfg` (304 bytes), `mt6631_fm_v1_coeff.bin` (1092) and `mt6631_fm_v1_patch.bin` (1028); digests in the [runtime summary](../2026-07-12-connectivity-wmt-recovery/results/runtime-summary.txt) | WMT recovery record |
+| O3 | `/dev/fm` exists on Gemian | same |
+| O4 | At about 9.5 s Gemian's FM module loads, prints `chipid:0x6631, chip type:1`, its default configuration, then the same values after loading `fm_cust.cfg`, including `aud path[1]I2S state[1]mode[0]rate[0]pad[0]`. No FM power-up, patch download or tune line follows in that boot | private boot log |
+| O5 | The same boot probes the AFE `mt-soc-fm-i2s-pcm` and `mt-soc-fm-i2s-awb-pcm` platforms; the audio service opens and closes the FM-I2S PCM once at about 22 s with rate 0 | private boot log |
+| O6 | `fm_cust.cfg` sets RSSI thresholds (long and short antenna both `-296`), de-emphasis `0` (50 µs) and oscillator `0` (26 MHz). It carries no antenna or audio-route key | userspace extraction |
+| O7 | Gemian's userspace has `libfmcust.so` and no FM application, JNI library or service found by name | userspace extraction |
+| O8 | The vendor device tree carries only the generic AFE nodes `mediatek,mt_soc_pcm_fm_i2s`, `mediatek,mt_soc_pcm_fm_i2s_awb` and `mediatek,mt_soc_pcm_fmtx`. It has no FM board node, FM interrupt, antenna switch or FM pin group | boot image DTB, decompiled |
+
+## What the vendor source says
+
+These are statements of the public source, not observations of this device.
+
+| # | Statement | Where |
+| --- | --- | --- |
+| S1 | The `0x6631` in O4 is a constant: `mt6631_get_chipid()` returns `0x6631` without touching hardware. The real identity check is in `mt6631_PowerUp()`: after the clock-on sequence it reads FM register `0x62` and fails with `fm sys error` unless it is `0x6631` | `fmradio/mt6631/pub/mt6631_fm_lib.c` |
+| S2 | FM control rides the shared STP link as task 1 (`FM_TASK_INDX`), and the function is switched by WMT with type 1 (`WMTDRV_TYPE_FM`), the same mechanism Bluetooth (task 0, type 0) and GNSS (task 2, type 2) already use on mainline | `common/common_main/include/stp_exp.h`, `wmt_exp.h`, `fmradio/core/fm_link.c` |
+| S3 | FM packets are `01 OPCODE LEN_LO LEN_HI payload`; events start with `04`. A register read is `01 03 01 00 ADDR`. Opcodes `0x18`/`0x19` read and write connectivity-MCU registers and `0x20`/`0x21` the common SPI to the RF chip, all executed by the firmware: the AP maps no FM register | `fmradio/inc/fm_link.h`, `fmradio/core/fm_cmd.c` |
+| S4 | Power-up order: common SPI parameter, a-die clock enable, 26 MHz crystal sleep off, bandgap LDO on, clock-on batch (opcode `0x07`), read `0x62`, DSP patch and coefficient download, digital init, RF fine tune, then FM register `0x9b = 0xf9ab` (I2S transmit mode) and three MCU writes that enable the FM audio trigger. Power-down has its own sequence and is not the exact reverse | `mt6631_fm_lib.c` |
+| S5 | For an SoC CONSYS chip (type 1) the audio default is `FM_AUD_I2S`, CONSYS is I2S master at 32 kHz on the CONSYS pad (`FM_I2S_PAD_CONN`); that matches O4. The source comments the enable step "connsys FM 2 wire RX": the RF chip passes FM samples digitally to CONSYS, which drives the I2S | `fmradio/core/fm_config.c`, `fmradio/inc/fm_interface.h`, `mt6631_fm_lib.c` |
+| S6 | The MT6797 AFE takes that I2S on its second I2S input, slave, 16 bit, I2S format, pad select "from CONNSYS", runs the ASRC from 32 kHz to 44.1 or 48 kHz, applies hardware gain 1 and connects `I00/I01` to `O13/O14` (the DAC path to the MT6351) for hostless playback. The AWB variant captures the same input to memory. FM never uses an MT6351 analog input | `sound/soc/mediatek/mt_soc_audio_6797/mt_soc_pcm_fm_i2s.c`, `..._awb.c` |
+| S7 | The driver supports a long antenna (in the headset cable) and a short one, chosen by a bit in `FM_MAIN_CG2_CTRL`. Nothing in O6 or O8 selects one | `mt6631_fm_lib.c` |
+| S8 | The FM-specific VCN28 step exists only in co-clock mode; Gemini's `WMT_SOC.cfg` has `co_clock_flag = 0`, so the common CONSYS power-on already covers the rail ([GNSS document](../../docs/hardware/gemini-gnss.md)) | WMT recovery source summary |
+| S9 | The MT6631 library has a receive power-up only; the TX fields in the shared configuration are generic. FM itself transmits nothing | `mt6631_fm_lib.c` |
+
+## What is inferred
+
+- **Population.** The FM receiver sits on the same RF companion as Wi-Fi,
+  Bluetooth and GNSS, reached through the same CONSYS common SPI (S3), and
+  those three work on this board. So the FM silicon is very likely present.
+  This is not proof: a block can be unbonded, the FM antenna input can be left
+  unmatched, and Gemian never powered FM (O4, O7).
+- **Audio is digital.** FM audio goes RF chip to CONSYS to the AFE second I2S
+  input, all inside the SoC package path (S5, S6). There are no board audio pins
+  to describe, and the MT6351 analog inputs are not involved.
+- **Antenna is unknown.** If the board follows the reference design, the
+  headset cable is the antenna. F2 below separates long from short.
+
+## What is open
+
+1. Does register `0x62` read `0x6631` on this board (F1)?
+2. Which antenna is wired, and does a headset improve reception (F2)?
+3. The redistribution rights of the two MT6631 FM files are unknown, as for the
+   other CONSYS files; they would come from the owner's own Gemian as for the
+   v1 release ([firmware](../../docs/hardware/firmware.md)).
+4. Whether the vendor's power-down leaves CONSYS fit for Wi-Fi without a reload.
+5. The mainline AFE has no I2S DAI at all ([audio document](../../docs/hardware/gemini-audio.md)),
+   so FM audio needs a new second-I2S-input DAI with the ASRC. Its register
+   layout has not been checked against the mainline `mt6797-reg.h`.
+6. Whether Planet's Android image ever offered FM on this hardware (owner
+   knowledge, not a blocker).
+
+## Mainline shape
+
+| Part | Interface | Notes |
+| --- | --- | --- |
+| CONSYS owner | export task 1 attach and a WMT FM function control | as [0421](../../patches/proposals/0421-soc-mediatek-mt6797-consys-let-a-client-send-and-swi.patch) and [0511](../../patches/proposals/0511-soc-mediatek-mt6797-consys-let-Bluetooth-share-the-S.patch) did for GNSS and Bluetooth; register a child device |
+| Tuner | V4L2 radio receiver, `/dev/radio0`, under `drivers/media/radio/`, `=m` | frequency, hardware seek, signal strength, mute, de-emphasis control; RDS later through `read()`. The TI `wl128x` driver is the closest precedent (FM on a shared combo transport). No `/dev/fm` ABI |
+| Audio | ASoC capture DAI for the AFE second I2S input from CONSYS, plus a hostless route to the ADDA playback path; an FM link in the Gemini card | new AFE work, separate series from the tuner |
+| Firmware | `request_firmware()` of the patch and coefficient files | not redistributed; `fm_cust.cfg` values become driver defaults |
+| Region | band 87.5 to 108 MHz and 75 µs de-emphasis for the station's US country; 50 µs and the wider band selectable through V4L2 | Gemian's 50 µs default (O6) is a China setting |
+
+The station config already has `CONFIG_VIDEO_DEV=m`; the tuner adds
+`CONFIG_MEDIA_RADIO_SUPPORT` and `CONFIG_RADIO_ADAPTERS` in a station fragment.
+
+## Safety assessment
+
+F1 is a radio-subsystem action, not read-only: it switches a CONSYS function and
+writes FM power and clock registers through the firmware, as the vendor does
+before every FM use. It tunes nothing, enables no audio path, loads no FM patch
+or coefficient file and selects no antenna. FM has no transmitter (S9), so F1
+emits nothing; the shared risk is CONSYS coexistence with Wi-Fi and Bluetooth,
+as in [GNSS T2](../2026-11-01-gemini-gnss-link/README.md#t2-first-receiver-start-radio-action-admitted).
+No calibration, NVRAM, partition or boot write. Modules only, no boot. The
+station's Wi-Fi country (US) stays set; F1 needs no band. A timed-out WMT or STP
+exchange stops the link for that power lifetime, which the existing CONSYS
+reload recovers.
+
+## Test F1: FM identity read (predeclared, not yet admitted)
+
+**Needs owner admission** as a radio action, then code: a CONSYS patch that lets
+task 1 attach and switches WMT function 1, and a `radio-mt6797` module whose
+probe runs only the steps below and registers nothing.
+
+**Effects, once, on module load:**
+
+1. Attach STP task 1 (the CONSYS driver repeats its link check if this is the
+   first client).
+2. WMT FM function-on: `01 06 02 00 01 01` by analogy with GNSS
+   (`... 02 01`) and Bluetooth; expect `02 06 01 00 00`.
+3. Vendor power-up steps before the patch download (S4): common SPI parameter,
+   a-die clock enable, crystal sleep off, bandgap LDO, clock-on batch.
+4. Read FM register `0x62` three times; log the values.
+5. Vendor power-down sequence, WMT function-off, detach.
+
+**Not done:** no patch or coefficient download, no tune, seek or RDS, no
+antenna select, no I2S or AFE change, no retry.
+
+**Procedure:** with Wi-Fi up, load the module once, collect
+`dmesg | grep -E 'STP link|WMT FM|mt6797-fm'`, unload it, ping the gateway
+through `wlan0`, then one CONSYS and `mac` reload and a second ping.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| `0x62` = `0x6631` three times | FM block present and reachable | write the tuner in stages; F2 |
+| function-on answers, `0x62` reads another stable value | reachable, unexpected identity | stop; compare offline with the vendor read path |
+| function-on answers, read times out | FM block not responding | stop; record as likely absent or gated; no blind retry |
+| function-on refused or times out | firmware or board does not offer FM | stop; function-off; CONSYS reload |
+| Wi-Fi ping fails after unload | FM power-down disturbs CONSYS | record; CONSYS reload; F2 must reload CONSYS after FM |
+
+## Test F2 (outline, after F1)
+
+Patch and coefficient download, tune to one strong local station chosen by the
+owner, read RSSI for 30 s without a headset and 30 s with one plugged in. A clear
+RSSI rise with the headset says the long antenna is wired. Audio is not part of
+F2; it waits for the AFE input.
+
+## Follow-up
+
+- [Hardware support](../../docs/HARDWARE_SUPPORT.md) row "GNSS and FM"
+  links here; the [firmware](../../docs/hardware/firmware.md) FM row is unchanged
+  until F1.

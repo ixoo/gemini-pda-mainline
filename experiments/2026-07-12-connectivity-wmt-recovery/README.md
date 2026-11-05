@@ -290,5 +290,8 @@ probe tests.
    `btmtkuart.c`.
 3. Identify whether `mt6631_fm_*` is physically populated and whether FM uses
    BTIF, I2S, or a separate path; keep FM disabled until then.
+   Continued in the [FM record](../2026-11-05-gemini-fm-radio/README.md):
+   control is STP task 1, audio is CONSYS I2S into the AFE; population is
+   still unread.
 4. Add a disabled-only consys/BTIF DT schema/driver patch only after the above contracts
    are reviewable and firmware licensing is understood.
