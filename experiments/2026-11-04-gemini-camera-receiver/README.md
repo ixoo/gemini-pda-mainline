@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-camera-receiver` |
-| Status | `running`: the owner saw the front camera on the panel through a diagnostic path, with no capture node |
+| Status | `running`: a capture node streams the front camera, mirrored by default, through a test tool; no camera application yet |
 | Subsystem | SENINF second interface, MIPI RX analog, CSI-2, Hi-556 streaming |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -342,8 +342,45 @@ ruled out.
 
 ## N4: the flip
 
-Not run. [`0574`](../../patches/proposals/0574-media-i2c-hi556-add-a-horizontal-flip-control.patch) adds `V4L2_CID_HFLIP`, writing
+[`0574`](../../patches/proposals/0574-media-i2c-hi556-add-a-horizontal-flip-control.patch) adds `V4L2_CID_HFLIP`, writing
 `0x000e`. [`0575`](../../patches/proposals/0575-media-mediatek-mt6797-seninf-take-the-sensor-s-flipp.patch) carries the flipped
 order through the receiver and node. [`0576`](../../patches/proposals/0576-media-i2c-hi556-LOCAL-mirror-the-front-camera-by-def.patch)
 is local: the owner chose mirrored by default and changeable from userspace, while the upstream-bound control defaults off.
-That the flip gives RGGB is assumed and is what N4 measures.
+
+Modules from `a203831e`, boot `a41d3aa7`, image `c894320e` with no write, script `f35f7535`, one run, as reported by the
+custodian. The owner approved it, and the eMMC was read-only. No fault, tainted 0, no timeouts, blank and unblank clean.
+
+Before the flip existed, on `0x000e = 0x0100`, the owner reported the picture "Upright" in the landscape hold.
+
+The driver's default view: format `MBRA`, 150 of 150 frames, 9.26 delivered per second. The owner: "Mirrored and upright".
+
+Exposure 2000, a still scene, nothing drawn or saved:
+
+| Flip | Format | Run | p00 | p01 | p10 | p11 | Left half | Right half |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Off | `MBgA` | Baseline | 77.6 | 75.9 | 70.9 | 77.5 | 73.1 | 77.9 |
+| Off | `MBgA` | Red 512 | 77.5 | 85.2 | 70.8 | 77.4 | 74.9 | 80.6 |
+| Off | `MBgA` | Blue 512 | 77.4 | 75.7 | 75.5 | 77.3 | 73.6 | 79.4 |
+| On | `MBRA` | Baseline | 75.7 | 77.3 | 77.3 | 70.6 | 77.9 | 72.5 |
+| On | `MBRA` | Red 512 | 85.1 | 77.3 | 77.3 | 70.6 | 80.8 | 74.4 |
+| On | `MBRA` | Blue 512 | 75.7 | 77.3 | 77.3 | 75.4 | 79.6 | 73.3 |
+| Off | `MBgA` | Baseline again | 77.4 | 75.8 | 70.6 | 77.4 | 72.5 | 78.1 |
+
+With the flip on and the node left at GRBG, the stream refused at start with `EPIPE` and delivered no frames.
+
+Inference: bit 8 alone mirrors each line. Red moves from p01 to p00 and blue from p10 to p11, which is RGGB as the driver
+reports, and the lines do not swap. The halves swap, which is the measured evidence of the flip, on a dim scene.
+
+## What this does not show
+
+- Colour accuracy. Only channel response is measured, and colour wasn't judged by eye. No colour correction exists.
+- A camera application. The format codes are local and libcamera has not been tried; `cam-view` is the only client.
+- Frame rate beyond the tool. The sequence count fits about 29 frames a second. Delivered rates of about 8 to 9 are with
+  the tool drawing, and one buffer at a time may lose frames on its own.
+- Sizes other than 2592 by 1944, buffer import through dma-buf, or `v4l2-compliance`.
+- Stray writes. There are no guard bytes, and CAMSV0 bypasses M4U through a larb2 bit. M4U itself is unused, and the other
+  13 larb2 ports have MMU enabled.
+- Unbinding the sensor and loading it again, which would register the node a second time, is untested. So is unloading
+  `mt6797-seninf` with the node in place.
+- Suspend, and a second unit. The SMI clock is critical only until an SMI driver owns it.
+- Receiver status bit 4, the mux status, which CAM mux entry matters, and calibration reading zero remain unexplained.

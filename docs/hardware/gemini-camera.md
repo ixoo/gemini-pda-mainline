@@ -413,13 +413,14 @@ frequency meter (T7).
 
 | Question | Current position |
 | --- | --- |
+| Orientation | `observed` by the owner's eye: upright at `0x000e = 0x0100` in the landscape hold, and mirrored and upright with bit 8 cleared (N4). Bit 8 mirrors lines by measurement |
 | Physical sensor die | `inferred` - SP5509 SLS ID and register map match Hi-556; no die read |
 | SUB on the second interface and generator | `observed` - T11 set the second interface's enable (`+0x1200`) and started generator 2, then read the ID; G1 saw GPIO31 toggle |
 | SUB on CSI1 | `observed` - the receiver uses the `0x10217400` analog block and the first stream reaches the mux (R1/R2) |
 | Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
 | Receiver link | `observed` - R1/R2 reached the mux at 2592 x 1944 at about 30 fps; status bits and pixel content remain open |
 | Diagnostic CAMSV frame | `observed` - C2 reached `CAMSV_TG_DAT_NO` one short of a full frame |
-| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked. Colour was not judged by eye; orientation and exposure were not reported. The capture node (0568) streams colour bars with no bad lines (N1); measured channel response fits GRBG at `0x000e = 0x0100` (N3) |
+| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked. Colour was not judged by eye; orientation and exposure were not reported. The capture node (0568) streams colour bars with no bad lines (N1); measured channel response fits GRBG at `0x000e = 0x0100` (N3) and RGGB with bit 8 cleared (N4) |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |
 | PDN polarity | `observed` in the vendor table; upstream `hi556` has no PDN control |
