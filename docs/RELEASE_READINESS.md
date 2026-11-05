@@ -23,11 +23,13 @@ replacement or a daily driver. As it stands:
 
 - **Most results come from the station,** the project's own image, whose RAM root holds private
   keys and firmware and doesn't ship. The public release image is built to replace it for others.
-- **The release image lags the working set.** Its one
+- **The candidate hasn't booted.** [`10f2e142`](../experiments/2026-10-30-mainline-dev-station/README.md#the-v1-candidate-2026-11-05)
+  carries every working module, and `hw-start` loads the optional groups by hand. It's built, and
+  its boot test is waiting. The release form's only
   [boot](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04)
-  was at `4c2fc3b7`, before sensors, LEDs and the camera. The profile at today's commit builds
-  sensors and LEDs too, and hasn't been built or booted. Its RAM root carries only the display,
-  lid, audio and Wi-Fi modules, and the camera's fragment isn't in the profile.
+  was at `4c2fc3b7`, before sensors, LEDs and the camera.
+- **Modules aren't applications.** The image has no Mesa, BlueZ, GNSS host or camera tool, so those
+  need userspace you bring.
 - **Nobody else has installed it,** and there's no first-install tool. Getting it onto boot2 the
   first time is yours to work out, and yours to answer for.
 - **cpufreq and power governors are missing,** so CPUs stay at firmware's clocks and battery life
@@ -46,25 +48,25 @@ replacement or a daily driver. As it stands:
 | Charging, powered off | Not limited | The loader decides; it can pass 80% |
 | Thermal | Built in | Trips armed on the station, and none has fired. No CPU cooling, so nothing slows a hot CPU before the power-off at 110 °C (inference from the trip table) |
 | cpufreq, cpuidle, suspend | No | Not started. CPUs stay at the clocks firmware left. Decides battery life and heat |
-| A72 | In the package | One option on a station profile, loaded by hand, fixed 750 MHz. The command line keeps `maxcpus=8` |
+| A72 | In the image, by hand | One option on a station profile, loaded by hand, fixed 750 MHz. The command line keeps `maxcpus=8` |
 | Keyboard, lid | Yes | "All fine" by the owner on one boot, with no key-by-key check. Fn map captured once on the station; wider rollover open |
 | Display | Loader framebuffer | Native at 54 Hz works on the station, adopted from the loader. Here it needs `display-start` by hand, not run on this image: blocker 4 |
 | Speakers, headphones | Yes | A speaker tone on one boot. Both at 48 kHz on the station |
 | Internal mic, jack | Yes | On the station, capture follows speech. Headset type and buttons open |
 | Wi-Fi | Yes, off until set up | Never run on this image. On the station: two 5 GHz channels on one network, WPA2-PSK. No rekey, WPA3, DFS or power save. Idle link lost at about 6 min. `ip link down` is one-way until `mac` reloads |
 | USB | Yes | Gadget and SSH work; no host or role switch |
-| Touch | In the package | Hand-loaded on the station; events on one boot, accuracy untested, a blanked screen gave no interrupt |
-| GPU, desktop | In the package | Panfrost hand-loaded on the station. No Mesa in the image and no compositor |
-| Bluetooth | In the package | A2DP heard with one headset, from a private chroot. mSBC clean on one run with no bridge for voice. Placeholder address. [SBC skips from about 4 yards](../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04), with no control yet |
-| Sensors | In the package, today's commit | [IMU and light/proximity](hardware/gemini-sensors.md) hand-loaded on one boot, uncalibrated |
-| Indicator LEDs | In the package, today's commit | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
-| GNSS | In the package | No position on mainline; needs a userspace host |
-| Camera | Not in the profile yet | [Capture node through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node) on the station; local format codes, [libcamera so far gives no frames](../experiments/2026-11-04-gemini-camera-receiver/README.md), and M4U bypassed |
+| Touch | In the image, by hand | Hand-loaded on the station; events on one boot, accuracy untested, a blanked screen gave no interrupt |
+| GPU, desktop | In the image, by hand | Panfrost hand-loaded on the station. No Mesa in the image and no compositor |
+| Bluetooth | In the image, by hand | A2DP heard with one headset, from a private chroot. mSBC clean on one run with no bridge for voice. Placeholder address. [SBC skips from about 4 yards](../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04), with no control yet |
+| Sensors | In the image, by hand | [IMU and light/proximity](hardware/gemini-sensors.md) hand-loaded on one boot, uncalibrated |
+| Indicator LEDs | In the image, by hand | [Module](hardware/aw9120-led.md) lights them at 3.5 mA on one boot; caps lock as the default trigger hasn't run |
+| GNSS | In the image, by hand | No position on mainline; needs a userspace host |
+| Camera | In the image, by hand | [Capture node through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node) on the station; local format codes, [libcamera so far gives no frames](../experiments/2026-11-04-gemini-camera-receiver/README.md), and M4U bypassed |
 | microSD | Unknown | Prepared, never booted |
 | Modem | No | Not started |
 
-"In the package" means the release profile builds it as `=m`. It would have to be sent over SSH
-and loaded by hand, and none of them has been tried on this image.
+"In the image, by hand" means `hw-start` loads it, and nothing does at boot. None of these has run
+on this image yet.
 
 <a id="blockers-for-a-first-test-release"></a>
 <a id="blockers-for-v1"></a>
@@ -86,7 +88,7 @@ them is for later releases. Where a decision was pending, v1 takes the state tha
 | 8 | One non-author unit follows the guide unaided | Not done | No other unit has run it | M, availability risk |
 | 9 | Tester docs, refreshed matrix, sanitized bug-report tool, source for shipped binaries | [Guide](TESTING_GUIDE.md) written, followed by nobody. No scrubbing tool. The kernel's source is this repository at `4c2fc3b7` and the pinned upstream; no source copies of Alpine's binaries, which the recipe downloads rather than ships | Scrub reports by hand | S |
 | 10 | A published kernel package, from a public manifest, with its source and no firmware | Not published yet. Testers have no Buildbox, and the VM path is reserved and untried on this profile | Build it yourself until then | S-M |
-| 11 | A way to try the optional modules: add them to the image, or document loading them. Mesa and BlueZ would need a public userspace, or stay out | Not started, and no module outside the image has run on it | Yours to try | S-M |
+| 11 | A way to try the optional modules: add them to the image, or document loading them. Mesa and BlueZ would need a public userspace, or stay out | The modules are in the image with `hw-start`, not booted. No public userspace for Mesa or BlueZ | Bring your own userspace | S-M |
 
 For a later release, items 1 to 4 and 11 change boot files, so batch them into one image.
 

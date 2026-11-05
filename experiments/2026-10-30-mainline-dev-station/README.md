@@ -1103,3 +1103,36 @@ a real charge to 80%; Wi-Fi with firmware and a country; `display-start` here; a
 **Conclusion.** The hypothesis held on one boot of one unit. That removes "never booted"
 from release blockers 1 to 3, not the blockers: firmware supply, the country protocol and
 a tester's own unit stay open.
+
+## The v1 candidate (2026-11-05)
+
+The owner's definition of [v1](../../docs/RELEASE_READINESS.md) is everything working so far. So `10f2e142`
+adds the camera fragment to `mt6797-a53-release`, carries the optional modules in the public RAM root,
+and adds `release/hw-start` to load a group by hand. Nothing new loads at boot.
+
+**Built, not booted.** Package inventory `16e5acfd…`, composed on the same public parent `f531d953…` with the
+project's public key: boot2 `9e47a9d1ea1bdf55e4a5fd37297eaea2ef943af95b1758e057e650c192f17dfe`, boot image 14202880
+bytes. **Checked offline:** 57 modules, every `depends=` met inside the image, and every `hw-start` name
+present. No firmware but `regulatory.db`, and no private or host key. The DTB has the sensors, LED, camera, touch
+and GPU nodes.
+
+**Test (predeclared).** Through the custodian, one boot, written with `flash-boot2`.
+
+**Hypothesis.** The first boot's results hold, and each group that needs no radio loads from the image on the
+release config, which has no `/dev/mem`, `/dev/i2c` or debugfs. The groups have run only on station images.
+
+1. Status file and taint, as on the first boot.
+2. `hw-start bluetooth` and `hw-start gnss` print `needs-radio-start`, with no module loaded.
+3. One at a time, reading `dmesg` and taint after each: `touch` with one drag, `sensors`, `leds` with Fn+Caps,
+   `display-start`, `gpu`, `camera`.
+4. Last, `a72`, since CPU_ON is unbounded in secure firmware: `online` should read `0-9`.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| All load, tainted 0 | The image carries what v1 says, at load level | The owner tags it |
+| One group fails to load | That group needs something the release config removed, or an order | Record it; drop the group from v1's list or fix it, the owner's call. Carry on with the others |
+| Oops, hang or lost USB | Stop | Preserve what's there; no retry; return to the station image |
+| No console and no SSH at boot | The image itself failed | Back through Gemian to the station image; no tag |
+
+**Not in this test:** Wi-Fi and Bluetooth, which need firmware and a country and their own protocol; function beyond
+loading, such as rendering or capture, whose tools aren't in the image; colour, which this test doesn't judge.

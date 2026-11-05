@@ -70,8 +70,8 @@ and confirm Gemian boots.
 The image holds no firmware and no keys but your public key. You build it yourself,
 because it carries your key.
 
-**Kernel.** Profile `mt6797-a53-release`. The only commit booted in this form is `4c2fc3b7`, which
-predates sensors, LEDs and the camera; later commits have run only under station profiles:
+**Kernel.** Profile `mt6797-a53-release`, commit `10f2e142` or later. That commit is built and its
+boot test is waiting; the only commit booted in this form is `4c2fc3b7`, with fewer modules:
 
 ```sh
 KERNEL_PROFILE=mt6797-a53-release BUILD_MODULES=1 ./scripts/build-kernel --backend buildbox
@@ -255,10 +255,21 @@ link set wlan0 down` is one-way until `mac` reloads. Bluetooth isn't in this ima
 
 ## Other hardware
 
-Touch, the GPU, Bluetooth, sensors, LEDs, the A72 pair and GNSS are modules in the kernel package,
-not in the image. None has been tried on it, and this guide doesn't yet say how:
-[gap 11](RELEASE_READINESS.md#known-gaps-in-v1). The camera's fragment isn't in this profile yet.
-Results so far, on the author's station, are in the [support matrix](HARDWARE_SUPPORT.md).
+The rest of the hardware is in the image as modules, and nothing loads them at boot. Load a group
+by hand:
+
+```sh
+hw-start touch
+```
+
+The groups are `touch`, `sensors`, `leds`, `gpu`, `camera`, `a72`, `bluetooth`, `bluetooth-voice` and
+`gnss`. It prints the group's name, or what stopped it. `bluetooth` and `gnss` print
+`needs-radio-start` until `radio-start` has run. Results so far come from the author's station, with
+the limits in the [support matrix](HARDWARE_SUPPORT.md).
+
+- The image holds only the modules: no Mesa, BlueZ, GNSS host or camera tool. Bring your own.
+- `a72` can hang the device, since bringing up a CPU has no time limit in secure firmware.
+- The camera's DMA bypasses the M4U, and stray writes aren't ruled out. Treat memory as suspect afterwards.
 
 ## Stop conditions
 
