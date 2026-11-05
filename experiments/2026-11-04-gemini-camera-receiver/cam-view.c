@@ -6,7 +6,7 @@
  *   aarch64-linux-gnu-gcc -O2 -Wall -Wextra -static -o cam-view cam-view.c -lm
  *
  * usage: cam-view [-d VIDEO] [-s SUBDEV] [-n FRAMES] [-e EXPOSURE] [-g GAIN] [-p PATTERN]
- *                 [-D DIGITAL] [-R RED] [-B BLUE] [-f FLIP] [-b] [-F]
+ *                 [-D DIGITAL] [-R RED] [-B BLUE] [-f FLIP] [-b] [-F] [-m]
  *
  *   -s    the sensor's sub-device, needed for -e, -g, -p, -D, -R and -B
  *   -R -B the sensor's red and blue balance, 256 is unity; they turn the tool's own
@@ -15,6 +15,8 @@
  *   -b    the sensor is showing colour bars: count frames with any line that differs
  *         from line 0 or 1 of the same frame
  *   -F    do not touch the framebuffer
+ *   -m    print the mean of each of the four positions in the 2x2 Bayer cell, and the
+ *         share of pixels near full scale, over all frames but the first two
  *
  * The picture is rough: one RGB pixel per GRBG cell, black level off, a square-root
  * curve, and grey-world colour balance from the previous frame. Nothing is saved.
@@ -113,6 +115,25 @@ static void draw(uint32_t *fb, unsigned int fb_stride, const uint8_t *f, unsigne
 	}
 }
 
+/* Over every cell of the frame. */
+static void measure(const uint8_t *f, unsigned int stride, unsigned int w, unsigned int h,
+		    uint64_t mean[4], uint64_t high[4])
+{
+	unsigned int x, y;
+
+	for (y = 0; y < h; y++) {
+		const uint8_t *l = f + y * stride;
+
+		for (x = 0; x < w; x++) {
+			unsigned int pos = (y & 1) * 2 + (x & 1);
+			unsigned int v = raw10(l, x);
+
+			mean[pos] += v;
+			high[pos] += v >= 1000;
+		}
+	}
+}
+
 static void make_curves(uint8_t curve[3][1024], const uint64_t sum[3])
 {
 	unsigned int c, i;
@@ -137,18 +158,19 @@ int main(int argc, char **argv)
 	const char *video = "/dev/video0", *subdev = NULL;
 	unsigned int frames = 30, flip = 0, i, bad_frames = 0, gaps = 0;
 	int exposure = -1, gain = -1, pattern = -1, digital = -1, red = -1, blue = -1;
-	int bars = 0, use_fb = 1, opt, fd, sfd = -1, fbfd;
+	int bars = 0, use_fb = 1, means = 0, opt, fd, sfd = -1, fbfd;
 	struct v4l2_format fmt = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 	struct v4l2_requestbuffers req = { 0 };
 	struct v4l2_buffer buf;
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	void *map[NBUF];
 	uint8_t *copy, curve[3][1024];
-	uint64_t sum[3] = { 0, 0, 0 };
+	uint64_t sum[3] = { 0, 0, 0 }, mean[4] = { 0 }, high[4] = { 0 };
+	unsigned int measured = 0;
 	uint32_t *fb = NULL, last_seq = 0;
 	double start = 0, end = 0;
 
-	while ((opt = getopt(argc, argv, "d:s:n:e:g:p:D:R:B:f:bF")) != -1) {
+	while ((opt = getopt(argc, argv, "d:s:n:e:g:p:D:R:B:f:bFm")) != -1) {
 		switch (opt) {
 		case 'd': video = optarg; break;
 		case 's': subdev = optarg; break;
@@ -162,6 +184,7 @@ int main(int argc, char **argv)
 		case 'f': flip = atoi(optarg); break;
 		case 'b': bars = 1; break;
 		case 'F': use_fb = 0; break;
+		case 'm': means = 1; break;
 		default: return 2;
 		}
 	}
@@ -261,6 +284,11 @@ int main(int argc, char **argv)
 		if (ioctl(fd, VIDIOC_QBUF, &buf) < 0)
 			die("QBUF");
 
+		if (means && i >= 2) {
+			measure(copy, fmt.fmt.pix.bytesperline, fmt.fmt.pix.width,
+				fmt.fmt.pix.height, mean, high);
+			measured++;
+		}
 		if (bars) {
 			unsigned int bad = bad_lines(copy, fmt.fmt.pix.bytesperline,
 						     fmt.fmt.pix.height);
@@ -285,6 +313,16 @@ int main(int argc, char **argv)
 	if (i > 1)
 		printf(", %.2f delivered per second", (i - 1) / (end - start));
 	printf("\n");
+	if (means && measured) {
+		uint64_t n = (uint64_t)measured * (fmt.fmt.pix.width / 2) * (fmt.fmt.pix.height / 2);
+
+		printf("means over %u frames: p00 %.1f p01 %.1f p10 %.1f p11 %.1f\n", measured,
+		       (double)mean[0] / n, (double)mean[1] / n, (double)mean[2] / n,
+		       (double)mean[3] / n);
+		printf("share near full scale: p00 %.4f p01 %.4f p10 %.4f p11 %.4f\n",
+		       (double)high[0] / n, (double)high[1] / n, (double)high[2] / n,
+		       (double)high[3] / n);
+	}
 	if (bars)
 		printf("frames with a bad line %u\n", bad_frames);
 	return i == frames && !bad_frames ? 0 : 1;

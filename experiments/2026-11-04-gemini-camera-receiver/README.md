@@ -265,14 +265,13 @@ builds a panel-sized picture from each frame, and a script copies it to the fram
 level off, a square-root curve, no colour balance or shading correction, and no auto exposure.
 
 D1, colour bars, script `ea49f4bc`, once: all return codes 0, 0 guard bytes changed, no timeouts, tainted 0. The owner: "it
-works yes I see the bars". The colour order and the edges were not reported.
+works yes I see the bars". Colour wasn't judged by eye, and the edges were not reported.
 
 D2, the real view, script `8d95fc84`, five stills at default exposure and gain, about 3.8 s each: every capture and copy
 returned 0, 0 guard bytes changed each time, and 70 to 130 bytes matched the fill value, which real data would do by
 chance. Blank and unblank returned 0, with no timeouts, tainted 0, rails disabled, and MMSYS `CG0` `00110000`. The owner:
-"it all worked!!!!", and later "maybe the colors need some adjustment, but it was definitely working". That is an
-impression of the screen with no measurement, and it fits a view with no colour balance. Orientation, mirroring and
-exposure were not reported, so nothing here says the picture was upright or well exposed. No frame was saved.
+"it all worked!!!!". Colour wasn't judged by eye. Orientation, mirroring and exposure were not reported, so nothing here
+says the picture was upright or well exposed. No frame was saved.
 
 Limits of this result:
 
@@ -283,9 +282,7 @@ Limits of this result:
 - One boot on one unit, with the diagnostics of `0556` and `0558` to `0564` in the module. Status bit 4, the mux status,
   the CAM mux entry and the receiver calibration reading zero remain unexplained.
 
-## N1: the capture node
-
-Not run. A build is not a demonstration.
+## N1 and N2: the capture node
 
 - [`0568`](../../patches/proposals/0568-media-mediatek-mt6797-seninf-add-a-capture-node.patch) replaces the debugfs capture with
   a video node and a media graph from sensor to receiver to CAMSV0. It uses vb2-dma-contig and keeps one buffer in frame
@@ -305,3 +302,23 @@ Not run. A build is not a demonstration.
   window to the sensor interface node. CAMSV0 still bypasses M4U.
 
 [`cam-view.c`](cam-view.c) streams from the node, checks colour bars line by line, and shows a rough picture on the panel.
+
+N1, boot `68f2ec68`, combined image `c894320e` from `01bbd719` with the camera modules byte-identical to `aae632bb`, script
+`aaa10cca`, as reported by the custodian. The owner approved the image write and the eMMC was read-only.
+
+- `/dev/video0`, `/dev/media0`, `v4l-subdev0` the receiver and `v4l-subdev1` the sensor. Format `MBgA` 2592x1944, stride 3240.
+- Colour bars: 60 of 60 frames, none with a bad line. Sequence reached 220, so 161 frames were skipped while the tool drew,
+  at 7.82 delivered per second.
+- SMI count 1 before and after, blank and unblank clean, no timeouts, tainted 0, no fault, no interrupt storm, 232 interrupts.
+
+N2, same boot, five-second runs of a real scene on the panel, all 150 of 150, no fault, tainted 0:
+
+- Default: ran. Which way up was not reported.
+- `-g 60`: brighter, by the owner's eye. So the analogue gain has an effect, which fits `0570`.
+- `-e 500`: darker, by the owner's eye. The tool's `-f 1` mirror worked.
+- `-R 512`: ran, 9.36 delivered per second.
+
+Colour wasn't judged by eye; a measurement from the tool's `-m` follows. Until then the Bayer order of a real scene is open:
+the vendor driver's notes for `0x000e` suggest Gb first at upstream's `0x0100`, while upstream and this view assume Gr first,
+and the test pattern may ignore that register. There are no guard bytes around these buffers, and stray writes are not
+ruled out.
