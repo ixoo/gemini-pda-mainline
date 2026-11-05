@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `planned`: patch 0579 is in the station series; the first device test is predeclared and not run |
+| Status | `running`: T1 stopped at step 2, card detect never went high; T1b, a runtime pull-up on GPIO67, is predeclared |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -78,7 +78,9 @@ build follows.
 patches, package inventory `bda22044…`, patchset `db77f1a1…`, config `d7fb4aca…`,
 `Image.gz` `eba89a7c…`; validation passed. Its station DTB (`5032d60c…`) has `mmc1`
 `okay`, aliases `mmc0 = /mmc@11230000` and `mmc1 = /mmc@11240000`, and `cd-gpios`
-`<&pio 0x43 0>`. Built, not booted.
+`<&pio 0x43 0>`. Built, not booted. The station images are composed from
+`mt6797-a53-station-a72`, which this profile can't stand in for, so the custodian
+built that profile from `fec36c2e` for T1 (below).
 
 ## Safety assessment
 
@@ -112,7 +114,7 @@ appearing anywhere but the card.
 
 ## Procedure (predeclared T1)
 
-Image: profile `mt6797-a53-station` with `BUILD_MODULES=1`, from the commit that adds
+Image: profile `mt6797-a53-station-a72` (the profile station images are composed from) with `BUILD_MODULES=1`, from the commit that adds
 this record or later, composed as a station image and written to boot2 with
 `flash-boot2`. Batch it with other DT changes if any are waiting. Attended: the owner
 inserts and removes cards. Cards: a test card with some files on it, FAT32 or ext4, and
@@ -159,7 +161,93 @@ and 5, keep the `dd` read, and say so.
 
 ## Observations
 
-Not run yet.
+### T1 (2026-11-05)
+
+Custodian run. Package `fcc3525b…`, profile `mt6797-a53-station-a72` from `fec36c2e`;
+station DTB `59613dfa1c8aaff9893d10efcfe4353a4686f38fa329484645a8bd1229625e8a`; boot2
+`8d620ab7beef73df3b8e0892e54d7a9550f2caff4f398ea5113c1fa12a493502`, written with
+`flash-boot2` and verified; boot `9b4a0eca`; taint 0 throughout; `sd-state.sh` hash
+matched. Raw outputs are private.
+
+**Step 1, slot empty.** As expected:
+
+- The eMMC is `mmc0` on `11230000.mmc`, at `mmcblk0` with its 33 partitions.
+  `data` was mounted from it as usual.
+- Both MSDC hosts probed with no MMC error, and `11240000.mmc` logged "Got CD GPIO".
+- `mmc1`: no card; `ios` clock 0, power off, 1 bit, 3.30 V.
+- GPIO67 is claimed as `cd`: input, low, with an IRQ. EINT6 is edge, count 0.
+- MSDC1's SPI 80 count is 0.
+- `vmch` and `vmc` are disabled at 3000000 µV with no users.
+- MT6351 registers: `0a2e` `1a60`, `0aaa` `1a60`, `0ace` `0005`, `0ae2` `061b`.
+  VMCH's trim field is 5 and VMC's is `0x1b`. VMCH's VOSEL is 0 and VMC's is 6, so both
+  select 3.0 V. Both enable bits are clear.
+- Pad registers at entry: IES `0x7fff9fff` (MSDC1 input enabled), PUPD `0x1b81803e`,
+  R0 `0x40007fc0`, R1 `0x247b8021`, drive `0x24855555`, SMT `0x1d000f87`.
+
+  Decoded for MSDC1: CMD has no pull (PUPD/R0/R1 0/0/0); DAT0-3 are 0/0/1; CLK is
+  1/0/0. The vendor's active state is 0/1/0 on CMD and DAT and 1/0/1 on CLK, so the
+  firmware didn't leave it. SMT bit 27, shared by GPIO66 and GPIO67, is set.
+
+**Step 2, test card inserted.** The owner said the card was in. Nothing changed:
+
+- GPIO67 stayed low and EINT6 stayed at 0.
+- There was no MMC line and no `mmcblk1`.
+- Rails, PMIC registers and pads were identical to step 1.
+
+The only new log lines were a lid close and open during the insertion. Whether the card
+clicked fully into place is not established. Steps 3 to 5 weren't run, so nothing was
+mounted or written.
+
+**Conclusion.** This is the table's "no change on GPIO67" branch.
+
+The Gemian source explains it. Its MSDC1 probe selects an `insert_cfg` state that puts
+GPIO67 in EINT6 mode with Schmitt trigger and `bias-pull-up`
+([`msdc_io.c` lines 739-757](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L739-L757),
+[board DTS `mmc1_ins_cfg`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/arch/arm64/boot/dts/aeon6797_6m_n.dts#L748-L784)).
+The same tree's GPIO table (`gpio_cfg.h`, SHA-256 `29ea8cc6…`, as in the
+[pad record](../2026-07-12-mt6797-msdc-recovery/MICROSD_PADS.md)) places GPIO67's pull
+fields in IOCFG_R:
+
+| Field | Address | Bit |
+| --- | --- | --- |
+| pull-up enable | `0x100028e0` | 14 |
+| pull-down enable | `0x100028c0` | 14 |
+| input enable | `0x10002810` | 14 |
+| Schmitt | `0x10002830` | 27 (already set) |
+
+MT6797 pinctrl in this series sets no pull. A contact switch that opens when a card is
+in then reads low both ways. The lid on GPIO66 works without a pull because its Hall
+sensor drives the line. Inference, to be tested by T1b: the card-detect line needs the
+pull-up.
+
+### T1b (predeclared)
+
+Same boot or any boot of the T1 image. The owner says whether the card was seated.
+
+1. Slot empty. Read `0x100028e0`, `0x100028c0` and `0x10002810` with `devmem`, plus
+   the `gpio-67` line and the EINT6 count.
+
+   Expect pull-up bit 14 clear. If it is already set, stop: the pull isn't the cause.
+2. One read-modify-write of `0x100028e0` setting bit 14 only, and clear bit 14 of
+   `0x100028c0` if it is set. Read both back.
+
+   No other writer exists: MT6797 pinctrl here has no pull support. These are input
+   pads; the effect is a weak pull on GPIO67 alone.
+3. Read `gpio-67` with the slot empty, then the owner inserts the test card until it
+   clicks. Read again and note `dmesg` and the EINT6 count.
+
+   Expect low when empty, high with the card, and an EINT6 edge.
+4. If the card then identifies, continue T1 steps 2 to 6 as written, on this boot.
+   If it identifies and then gives CMD `-110` timeouts, stop. That's the CMD pull
+   branch, for the next image.
+5. Undo by clearing bit 14 of `0x100028e0`, or by the next boot.
+
+| Observed | Do |
+| --- | --- |
+| Pull-up set, GPIO67 follows the card, card works | Card detect needs the pull: add an MT6797 PU/PD map for GPIO67 and `bias-pull-up` in the DT, next batched image |
+| Pull-up set, GPIO67 follows the card inverted | Same, plus `cd-inverted` |
+| Pull-up set, GPIO67 still doesn't change | Stop. Next is the switch wiring; read Gemian's live GPIO67 with and without a card |
+| Pull-up bit was already set at step 1 | Stop; the pull isn't the cause |
 
 ## Follow-up
 
