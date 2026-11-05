@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-aw9120-leds` |
-| Status | `completed`: the driver works on the device and caps lock follows by default. Step 9 and two owner questions stayed unanswered and are unknown |
+| Status | `completed`: the driver works on the device and caps lock follows by default. Step 9 and two owner questions stayed unanswered and are unknown. T3, caps lock dark with the screen, passed steps 1-3 by the owner's word, with one sysfs reading unexplained |
 | Subsystem | AW9120 at I2C3 `0x2c`, GPIO245, LED class |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -281,6 +281,26 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
 
   Any LED left in the wrong state is a result to report, not a stop. A daemon that
   exits or loops is a stop: put the previous binary back.
+
+  T3 ran on boot `9b4a0eca`, image `8d620ab7`, with `backlight-policy` built from
+  `c3282710` (binary `0b68abc3`, static, `-Werror`) swapped in after a keypress at
+  brightness 512, `bl_power` 0. Blank set to 1 min. The owner stopped it after step 3,
+  in their words "stop this test, all works well"; steps 4 to 8 weren't run. The daemon
+  neither exited nor looped. The kernel wasn't tainted.
+
+  | Step | Owner | sysfs |
+  | --- | --- | --- |
+  | 1 | "LED went dark" | not read while blanked |
+  | 2 | "the screen woke and caps lock lit" | `brightness` 0 with `[kbd-capslock]`, at about 1131 s and 1184.6 s |
+  | 3 | "Stayed off" | not read |
+
+  Step 2 rests on the owner's word alone: sysfs disagreed with what they saw. In the
+  7.1.3 LED core, activating `kbd-capslock` with caps lock on sets the cached
+  brightness to 255 before the driver writes, and the T1 release reading gave 255. A
+  cached 0 with the LED lit means the LED class and the chip disagree. One way that
+  happens is a failed write of 0 that leaves the output lit. If so, `dmesg` would show
+  "Setting an LED's brightness failed" and `GCR` (`01:`) would read `0001`. Not yet
+  explained.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.
