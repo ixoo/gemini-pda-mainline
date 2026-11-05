@@ -15,7 +15,7 @@ the experiments that support or challenge it.
 | --- | --- |
 | [Gemian hardware baseline](gemini-gemian-baseline.md) | Sanitized read-only observations from the working vendor kernel on the named unit. |
 | [Gemini audio input/output](gemini-audio.md) | AFE/codec topology, speaker/earpiece/headphone outputs, microphone inputs, headset jack, amplifier and mainline gaps. |
-| [MT6351 ACCDET](mt6351-accdet.md) | Headset-jack register contract, MICBIAS1, button AUXADC channel, and the new-driver plan. |
+| [MT6351 ACCDET](mt6351-accdet.md) | Headset-jack register contract, MICBIAS1, button AUXADC channel, and the plan for classification and buttons. |
 | [MT6797 CPU clusters](mt6797-cpu-clusters.md) | Ten-core identity, three-cluster topology, firmware/vendor ownership, per-cluster clocks, rails, OPP selection, hotplug, and mainline gaps. |
 | [DA921x, I2C6, and Cortex-A72](da921x-i2c6-a72.md) | Current regulator/transport/CPU boundary, evidence limits, and safety invariants. |
 | [MT6797 live resource map](mt6797-live-resource-map.md) | Register, IRQ, clock, rail, storage, display, GPU, connectivity, and USB resources mapped to Linux boundaries. |
@@ -25,17 +25,18 @@ the experiments that support or challenge it.
 | [MT6797 thermal management](mt6797-thermal-management.md) | Sensor banks, efuse/LK calibration handoff, conversion formulas, trips, cooling policy, and firmware ownership. |
 | [MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md) | Register window, channel scaling, consumers, modem share ring, and upstream coverage. |
 | [MT6797 integrated Wi-Fi](mt6797-wifi.md) | Platform ancestry, selected gen3 AHB transport, firmware structure and shared connectivity ownership. |
+| [MT6797 Wi-Fi firmware contract](mt6797-wifi-firmware-contract.md) | The behaviour the mainline driver relies on from the host-loaded Wi-Fi image. |
 | [MT6797 Bluetooth and Bluetooth audio](mt6797-bluetooth.md) | CONSYS WMT function 0, STP task-0 HCI, both userspace stacks, and the CVSD-over-SRAM voice path. |
 | [MT6797 connectivity coexistence](mt6797-connectivity-coexistence.md) | How Wi-Fi, Bluetooth and LTE share the 2.4 GHz medium and the CONSYS subsystem. |
 | [Gemini GNSS and navigation](gemini-gnss.md) | CONSYS/BORA receiver ownership, the STP task-2 GFNS protocol, NMEA delivery, and the daemon, SUPL, EPO, FLP and sensor-fusion layers. |
-| [GNSS kernel driver specification](gemini-gnss-driver.md) | The `libmnl` protocol mapped to a `drivers/gnss` client, the start/stop state machine, the `MNL.bin` firmware boundary and the current blocker. |
+| [GNSS kernel driver specification](gemini-gnss-driver.md) | The `libmnl` protocol mapped to a `drivers/gnss` client, the start/stop state machine, the `MNL.bin` firmware boundary, and the host path that replaces it on this device. |
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Gemini charging](gemini-charging.md) | Switch charger, boot-chain policy, charge state machine, thermal current gates, and safety limits. |
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
 | [Gemini I2C1 sensors](gemini-sensors.md) | IMU and light/proximity on mainline, the mount matrix, interrupt ownership, and which candidate addresses answer. |
-| [Gemini touchscreen](touchscreen.md) | Controller wiring, vendor TPD/NT36xxx stack, firmware contract, and mainline driver gap. |
-| [Gemini camera path](gemini-camera.md) | SP5509 sensor, rails/pins/MCLK, GPL kernel and proprietary HAL split, SENINF/CSI-2 receiver contract, capture path, and mainline gap. |
-| [AW9120 indicator LEDs](aw9120-led.md) | 20-channel LED controller wiring, register/SRAM protocol, Gemian daemon usage, and mainline gap. |
+| [Gemini touchscreen](touchscreen.md) | Controller wiring, vendor TPD/NT36xxx stack, firmware contract, and the project's separate mainline driver. |
+| [Gemini camera path](gemini-camera.md) | SP5509 sensor, rails/pins/MCLK, GPL kernel and proprietary HAL split, SENINF/CSI-2 receiver contract, capture path, and mainline mapping. |
+| [AW9120 indicator LEDs](aw9120-led.md) | 20-channel LED controller wiring, register/SRAM protocol, Gemian daemon usage, and the mainline module. |
 | [Vendor kernel ABI](vendor-kernel-abi.md) | Private interfaces used by the working stack and their standard Linux replacements. |
 | [Vendor userspace](vendor-userspace.md) | Android HALs, services, libraries, compatibility bridges, and migration implications. |
 | [Firmware boundary](firmware.md) | Installed firmware evidence, licensing/redistribution limits, and protected exclusions. |

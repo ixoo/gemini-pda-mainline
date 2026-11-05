@@ -9,279 +9,124 @@ experiment result is not released support.
 This file states the order of work and nothing else. The
 [support matrix](HARDWARE_SUPPORT.md) owns runtime claims, the
 [experiments index](../experiments/README.md) owns chronology and exact
-candidates, and [`docs/hardware/`](hardware/README.md) owns durable facts. The
-reviews that set this order are the
-[2026-10-03 project review](../experiments/2026-10-03-project-review/README.md),
-its [2026-10-04 follow-up](../experiments/2026-10-03-project-review/NEXT_STEPS_2026-10-04.md)
-and the [2026-10-05 consolidation](../experiments/2026-10-05-repository-consolidation/README.md).
-The roadmap as it stood before the consolidation is kept
-[verbatim](../experiments/2026-10-05-repository-consolidation/ROADMAP_2026-10-04.md).
-Keep this file under 200 lines; move anything else to an experiment record.
+candidates, and [`docs/hardware/`](hardware/README.md) owns durable facts. Keep
+this file under 200 lines; move anything else to an experiment record.
 
-## Where we stand (2026-10-06)
+The order below was rewritten on 2026-11-04 from the
+[release readiness audit](RELEASE_READINESS.md) and the follow-ups in each record.
+The owner can reorder it, and any step named as an owner decision waits for one. The
+[version it replaces](https://github.com/ixoo/gemini-pda-mainline/blob/754af5b7/docs/ROADMAP.md),
+which stopped at October's boot queue and Wi-Fi throughput series, stays in Git. The
+reviews behind the earlier order are the
+[2026-10-03 project review](../experiments/2026-10-03-project-review/README.md) and the
+[2026-10-05 consolidation](../experiments/2026-10-05-repository-consolidation/README.md),
+which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-consolidation/ROADMAP_2026-10-04.md).
 
-- **Solid.** The guarded `boot2` lab loop (install, full readback, owner
-  selection, USB SSH collection, sealed logs, Gemian return). The A53
-  development system on Linux 7.1.3: console, keyboard, USB gadget SSH,
-  restart, watchdog, CPU0–7, PMIC wrapper, bounded eMMC. Wi-Fi to
-  firmware-ready, and WMT alive over BTIF/STP with the chip/HW/ROM tuple
-  `0279/8a00/8a00` [measured](../experiments/2026-10-03-mt6797-wmt-versions/README.md).
-- **Bluetooth.** A2DP audio [heard](../experiments/2026-11-02-gemini-bluetooth/README.md)
-  from the station over standard BlueZ, from modules. No LE. Voice crosses the CVSD SRAM path,
-  [heard in loopback](../experiments/2026-11-02-gemini-bluetooth/README.md#t4-result-the-owner-heard-their-own-voice-2026-11-03);
-  usable microphone needs a host coder and bridge.
-- **C1, partial.** PMIC baseline read, PMIC key interrupts and PSCI power-off
-  [work](../experiments/2026-10-04-gemini-c1-preparation/README.md#first-c1-boot-2026-10-06).
-- **Wi-Fi Phase A.** With WMT common init, one channel-40 passive scan
-  received management frames and a 5 GHz BSS
-  ([runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)).
-- **Wi-Fi Phase B.** One healthy bounded station join against the owner's
-  protected AP: authentication accepted, association denied as expected
-  without an RSN element, finite teardown with every page returned
-  ([runtime 8](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_8.md)).
-  With the RSN element, the association was accepted, completed in mac80211
-  with the station activated, and the AP's first frame observed as clear
-  EAPOL-Key framing ([runtime 12](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_12.md), Phase C1 passed).
-- **Wi-Fi Phase C2+C3.** Passed once on candidate 30: one bounded WPA2-PSK
-  lifecycle — both keys submitted and credited, a budget-bounded data phase,
-  a DHCP lease, three ICMP replies, one boot-bound Wi-Fi SSH exchange, and a
-  clean three-stage cleanup, with no refusal and no footer
-  ([runtime 31](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_31_RESULT.md)),
-  repeated on candidate 31
-  ([runtime 32](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_32_RESULT.md),
-  which also observed the received-PN group absent on that one sample — an availability
-  fact, not a replay or crypto claim). Bounded lifetimes only; `wifi_operational` stays
-  false and no operational, reliability, persistence or replay-protection claim follows.
-- **Earlier next step (owner-directed group-first, 2026-10-18 UTC; superseded by the throughput and lifecycle work below).** Prepare the
-  [strict initial-GTK path](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/MAC80211_GROUP_RX_CONTRACT.md#predeclared-initial-gtk-preparation)
-  with independent PN/key ownership and the approved independent 60-second window.
-  [D3](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/SESSION_0202_PLAN.md#evidence-and-later-work)
-  authenticated despite an absent initial neighbor; no more ARP-pair boot.
-  Make retained client stderr/numeric netstat state standard. Keep
-  [0202](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/FIXED_RX_FORMAT_PREPARATION.md)
-  separate for the framing fault, preserving equality/poison/no-copy.
-  Builds/device work stay on hold; rekey/reuse/reconnect remain disabled.
-  Sustained 60 s / 2 min / 10 min acceptance remains untested.
-- **Wi-Fi throughput (2026-10-27).** The measured ceiling is fixed HT MCS5
-  at a 40 MHz association with receive aggregation and the peek. It
-  transmits 29.7–30.9 and receives 35.0–38.1 Mbit/s, with the controls
-  within 2.5 % ([boot AV](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av)).
-  - The earlier 40 MHz figures (AR 15.0, AU 16.2–16.9) were measured with
-    the air at about 66–75 % of the 20 MHz band.
-  - The 20 MHz figure below (22.6/20.5, boots AA3/AA4) was the ceiling
-    without aggregation at 20 MHz.
-  - mac80211's rate control works end to end, and wins at a 20 MHz
-    association (1.16× fixed MCS5). At 40 MHz it loses (0.83×), settling
-    on MCS7 with 86 % first-attempt against 95–100 %. That is minstrel
-    tuning (retry cost and air time are not in its model), not
-    enablement.
-  - Policy: the ladder stays at fixed MCS5/40, and rate control stays
-    available per join.
-  - No further width or rate matrix until minstrel's retry model is
-    tuned. That is a separate project with its own predeclaration.
-  - Next is the soak (daily-use Gate 2).
+## Where we stand (2026-11-04)
 
-  Earlier: transmit 22.6 and receive 20.5 Mbit/s aggregate at best at
-  20 MHz (boots AA3/AA4; typical band 17.9–22.6 and 15.4–20.5) on the
-  fixed HT MCS7 rate with the depth-12 pump, without aggregation;
-  transmit aggregation is parked behind a firmware question
-  ([throughput series](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-25-after-boot-l)).
-  HT is done: WMM/QoS data and MCS7 in both directions (boot W onward,
-  [scope](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HT_PROJECT_SCOPE.md)).
-  The frame rate did not move with it. The per-phase measurement shows the host
-  spends about 100 µs per transmitted frame and idles 40 % of the time, while the
-  transmit pipeline holds its full depth of 12 (4.4 ms per frame in the firmware).
-  Depth 24 filled with no fault and the rate did not rise (latency rose instead,
-  [HIF §48](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ac-result-2026-10-26-1252-utc-depth-24-fills-and-the-rate-does-not-move-the-firmwares-concurrency-is-the-transmit-limit)):
-  the firmware's concurrency is the transmit limit. Aggregation is next, as a
-  receive project first: the vendor receives 31.5–38.5 Mbit/s where we receive
-  17.6–20.5, and our own station record disables receive A-MPDU. Block-ack is
-  firmware-managed; the plan is in
-  [HIF §49](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#49-aggregation-re-read-from-the-vendor-source-2026-10-26-receive-first-firmware-managed).
-  Done (2026-10-26): receive aggregation, with the firmware's block-ack
-  sessions reordered per TID ahead of the PN check ([boot AE](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ae-result-2026-10-26-1416-utc-the-window-holds-and-releases-every-frame-in-order-but-transmit-collapses-51s-fourth-row));
-  on a same-air pair receive was 44 % higher and transmit unchanged
-  ([boots AH/AI](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-ai-result-2026-10-26-1732-utc-the-control-refuses-the-same-software-frames-and-transmits-the-same-aggregation-does-not-collapse-transmit-on-this-air)). The WHISR peek gates the status block read
-  ([boot AJ2](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/HIF_TRANSPORT_ANALYSIS.md#boot-aj2-result-2026-10-26-1906-utc-the-peek-skips-97--of-passes-and-cuts-the-hif-receive-time-per-pass-by-84--the-rates-do-not-move-57s-fourth-row)). The HIF interrupt line is closed for this
-  configuration. Remaining:
-  - the good-air confirmation of receive aggregation, an absolute
-    number (HIF §58) — partially answered by the matrix boot below;
-  - the transmit status read (about half of each pass after the peek),
-    queued as a power item that needs its own predeclaration with the
-    ledger as the failure signal;
-  - 40 MHz: done in both directions, and confirmed in one boot with the
-    legs interleaved ([boot AU](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#where-throughput-stands-2026-10-27-the-40-mhz-matrix-graded-from-the-receipt)):
-    40 MHz MCS5 transmitted 16.2–16.9 against 20 MHz MCS7's 13.4–13.9,
-    MCS6 bought nothing, short GI was neutral, receive repeated at 28–32
-    Mbit/s. The firmware's automatic rate stays at 6 Mbit/s even with the
-    complete HT station record (boots AQ and AT). mac80211's rate control
-    now drives the descriptor (0333) but transmits 0.83× fixed MCS5 at
-    40 MHz, settling on MCS7 with more retries ([boot AV](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/THROUGHPUT_SERIES_RESULT.md#rate-control-against-the-fixed-rate-2026-10-27-boot-av)),
-    so the fixed rate stays MCS5 at 40 MHz; VHT is next;
-  - transmit aggregation, parked;
-  - power management for the idle disconnect.
-- **Open.** Wi-Fi station operation beyond three bounded lifetimes on one boot
-  (reconnection after the access point's own loss has passed twice, the second time with a lost association response absorbed by the bounded retry; a radio that vanishes and returns is untested); replay
-  enforcement in firmware is unknown. The device tree the Wi-Fi boots ran
-  until 2026-10-24 was an inherited binary that no build reproduced;
-  proposal 0261 reproduces it from source and the equivalence boot
-  confirmed the series' results stand on it
-  ([provenance record](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DEVICE_TREE_PROVENANCE.md)). No charging, RTC alarm or lid.
-  The `full` profile has never booted. No upstream submission. A72 and thermal
-  protection are parked.
-- **Device (2026-10-18 UTC).** D2 consumed; evidence sealed and reviewed return
-  plus independent LAN SSH verified changed-boot Gemian. C10 remains installed;
-  no physical action or unchanged retry is pending.
+- **Working method.** The [station](../experiments/2026-10-30-mainline-dev-station/README.md)
+  is the working system: a RAM root on `boot2`, written from itself with full readback,
+  then a power-off and the owner's selection. New drivers iterate as modules.
+- **Boots to a usable shell on one unit.** Native console, keyboard, lid, USB SSH, speakers
+  and headphones, the charge guard and the thermal trips are all at boot on the station.
+  Wi-Fi starts by itself and joins as WPA2-PSK.
+- **Modules loaded by hand.** Touch, Panfrost, A72s, Bluetooth A2DP, sensors, front camera,
+  LEDs and the GNSS host. [The matrix](HARDWARE_SUPPORT.md) has each one's limits.
+- **Release.** Profile `mt6797-a53-release` and a public RAM root have
+  [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
+  No one else can install or build it yet.
+- **Not started.** Suspend, cpuidle and cpufreq. No upstream submission.
 
-## Next device boots, in order
+## Current order of work
 
 <a id="current-plan-2026-10-03-review"></a>
 Each boot is a reviewed experiment with its own validated candidate, finite
-budgets and stop conditions under the [safety rules](SAFETY.md). Steps marked
-**(local)** need the owner's machine and the device.
+budgets and stop conditions under the [safety rules](SAFETY.md).
 
-1. **C3: Bluetooth HCI Reset on the negotiated STP session (local).** Done:
-   [C3-3 passed](../experiments/2026-10-05-mt6797-bt-h1/RUNTIME_3.md) all five
-   steps with no ROM patch. The `hci_dev` and A2DP followed in the
-   [2026-11-02 record](../experiments/2026-11-02-gemini-bluetooth/README.md), which lists
-   the next Bluetooth steps.
-   The C1 follow-up (events, RTC alarm, lid pull-up) runs when convenient. Profile
-   `mt6797-a53-stp-task-routing-compile`, the consolidated 0101–0106 chain with
-   the AFE resource present
-   ([transport record](../experiments/2026-10-04-mt6797-stp-task-routing/README.md)).
-   Controls first: repeat the version baseline and the validated full-mode WMT
-   query/negotiation; stop on any regression. Then VCN33-BT on, BT function-on,
-   HCI Reset, Read Local Version, Read BD_ADDR. Decides Bluetooth H1 and proves
-   common init without depending on Wi-Fi RF
-   ([Bluetooth record](../experiments/2026-10-04-gemini-bluetooth-re/README.md)).
-2. **Phase A: first received Wi-Fi frame (local). Reached.** One boot-time,
-   one-shot WMT common init (285 steps: ROM patches, coexistence, PA rails, RF
-   calibration, antenna mode), then the existing START and one channel-40
-   passive scan: firmware management count 15 and a standard 5 GHz BSS
-   ([runtime 3](../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)).
-   No association or data.
-3. **Phase B: bounded station join (local). Reached.** Standard mac80211
-   authentication and association over the driver's one-slot management path,
-   with a finite host-owned teardown
-   ([runtime 8](../experiments/2026-10-07-mt6797-wifi-phase-b-join/RUNTIME_8.md)).
-   The association is denied without an RSN element. Next bounded step: Phase
-   C, the protected association with WPA2-PSK CCMP, the key path and the data
-   path, each under its own protocol
-   ([design](../experiments/2026-10-07-mt6797-wifi-phase-b-join/PHASE_C.md)).
-3. **Clean-profile boot (local).** `full`, or a new board-only profile with no
-   diagnostics, once. Decides whether the product configuration boots at all;
-   every later upstream claim depends on it. `full` cannot build: the
-   canonical series holds alternative topics, such as local 0515 and the
-   revised upstream infracfg reset fix, which both edit
-   `drivers/clk/mediatek/reset.c`. A board-only profile is the route.
-4. **C2b: charge policy (local).** A named profile binding `bq25890` only
-   after the reviewed sequence programs and verifies 4.2 V and 500 mA before
-   charging starts. Then the gauge/ADC comparison boot.
-5. **Display adoption, then the rest.** Prepared: H2 (simplefb holds the MM
-   domain through SCPSYS boot-state adoption) and H8 (PWM backlight on 26 MHz)
-   in the [display H2 record](../experiments/2026-10-06-gemini-display-h2/README.md);
-   H7 is closed. simplefb with the MM domain so
-   `clk_ignore_unused` can go, backlight, microSD and USB host, headphone-first audio, panel, GPU, GNSS (the
-   [DSP boots on mainline](../experiments/2026-11-01-gemini-gnss-link/README.md) from a
-   userspace host and tracks live satellites at a window, with no position yet; see
-   [GNSS and navigation](hardware/gemini-gnss.md)). Cellular and
-   cameras stay feasibility work. The
-   per-block detail, shared dependencies and grouped device tests are in
-   [After Wi-Fi gaps](../experiments/2026-10-03-project-review/AFTER_WIFI_GAPS.md). GPU
-   runs sustained Mesa shaders from modules with DVFS to 520 MHz and idle power-off; next is
-   reaching the screen; see
-   [the first job](../experiments/2026-11-02-mali-t880-first-job/README.md).
+### 1. A first test release
 
-## Offline work now, in parallel
+The nine blockers and their sizes are in
+[release readiness](RELEASE_READINESS.md#blockers-for-a-first-test-release). Items 1 to 3
+change boot files, so they go in one image.
 
-1. **C1 follow-up.** Script and capture fixes plus the GPIO66 pull-up are in
-   the [C1 record](../experiments/2026-10-04-gemini-c1-preparation/README.md#follow-up-fixes-2026-10-06).
-2. **C3 candidate composition.** The bounded task-0 Bluetooth sequence is
-   built into `mt6797-a53-stp-task-routing-compile`
-   ([BT H1 record](../experiments/2026-10-05-mt6797-bt-h1/README.md)). It
-   needs the same private inputs and a protocol.
-3. The common-init executor, with the AFE stage owned unconditionally; see the
-   [common-init review](../experiments/2026-10-03-mt6797-wifi-audit/COMMON_INIT_REVIEW.md).
-   Its interface needs an owner decision: a fixed in-kernel sequence, or a
-   userspace-driven command channel.
-4. **C2b charger.** The [C2b record](../experiments/2026-10-06-gemini-c2b-charger/README.md)
-   adds an opt-in verified charge start to `bq25890`: charging is held off
-   until every limit reads back. The profile `mt6797-a53-c2b-charger-compile`
-   is built, and the candidate DT and protocol draft await the custodian.
-   The charger line is GPIO246/EINT158 (`CHR_STAT`); whether it is STAT or
-   INT awaits a Gemian check.
-5. The MT6351 regulator constraint set waits for C1's inherited rail states
-   (the sanitized inventory has been requested from the custodian);
-   writing it blind would switch on rails the loader left off
-   ([H7 refinement](../experiments/2026-10-04-gemini-pmic-basics-re/README.md#h7-ordering-refinement-2026-10-05)).
-   Resolve the [VS1/VS2/VPA conversion conflict](../experiments/2026-09-28-mt6351-datasheet-review/README.md#highest-priority-finding-buck-voltage-conversion-conflict)
-   before new active consumers of those rails or full regulator promotion;
-   descriptor equivalence alone does not validate their voltages.
-6. **Upstream, owner action.** Both candidate topics still apply on mainline
-   `67f0943b` and linux-next with no overlap (2026-10-06); the lore search
-   is a manual check. Pick two small topics, take authorship and sign
-   off: the [MT6797 infracfg reset](../experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md)
-   topic and one fix, either the
-   [BQ25890 IRQ preflight](../experiments/2026-09-12-bq25890-irq-preflight/README.md)
-   or the [MT6397 RTC wake errors](../experiments/2026-09-08-mt6397-rtc-irq-fix/README.md).
-   Check the kernel's current rules on assisted contributions first. The
-   profiles `mt6797-infracfg-current-mainline`, `bq25890-irq-compile`,
-   `mt6397-rtc-wake` and `mtk-sd-pinctrl-compile` stay for this.
-7. The remaining [Gemian session A](../experiments/2026-10-04-gemian-session-a/README.md)
-   reads when convenient. They gate none of the boots above.
+Owner decisions there: Gemian's root read-only or one dedicated directory, the country
+protocol, and whether the v0.1 scope stands. Only the owner can sign a tag.
 
-## Prepared candidates awaiting the custodian (2026-10-06)
+### 2. Small device checks already written down
 
-Each is compile-built and package-verified, with a guarded DT derivation from
-the exact C1-5 parent and a protocol draft. None is admitted or booted.
+None of these needs new design. They go with the next convenient boot.
 
-| Candidate | Package (inventory) | DT script | Record |
-| --- | --- | --- | --- |
-| Board services (clean profile) | `275a9dbf…` | `board-services-dt.sh` | [board-only profile](../experiments/2026-10-06-mt6797-board-only-profile/README.md) |
-| C2b charger, verified start | `f3b2a202…` | `c2b-dt.sh` | [C2b](../experiments/2026-10-06-gemini-c2b-charger/README.md) |
-| Display H2, simplefb holds MM | `92b8731e…` | `display-h2-dt.sh` | [display H2](../experiments/2026-10-06-gemini-display-h2/README.md) |
-| Display H8, PWM backlight (after H2) | `92b8731e…` | `display-h8-dt.sh` | [display H2](../experiments/2026-10-06-gemini-display-h2/README.md) |
-| Audio H3, headphone card (after H2) | `5f795448…` | `audio-h3-dt.sh` | [audio H3](../experiments/2026-10-06-gemini-audio-h3/README.md) |
-| I2C1 sensors H1 | `7f605fb2…` | `i2c1-dt.sh` | [I2C1](../experiments/2026-10-06-gemini-i2c1-sensors/README.md) |
-| microSD H3 | `275a9dbf…` | `microsd-dt.sh` | [microSD](../experiments/2026-10-06-gemini-microsd/README.md) |
-| C1 lid level-low probe | `99bd57ba…` | two status edits | [lid protocol](../experiments/2026-10-04-gemini-c1-preparation/LID_LEVEL_PROTOCOL.md) |
+- [LEDs](../experiments/2026-11-04-gemini-aw9120-leds/README.md#follow-up): caps lock as the
+  default trigger on the next image, step 9, and two open questions.
+- [Bluetooth T15](../experiments/2026-11-02-gemini-bluetooth/README.md#t15-prepared-where-the-signal-goes-on-a-walk):
+  where the signal goes on a walk, with the owner's phone as the control.
+- [pstore T2](../experiments/2026-11-03-gemini-pstore-retention/README.md#t2-does-the-key-restart-keep-this-ram):
+  whether the key restart keeps RAM.
+- [Keys](../experiments/2026-11-03-gemini-pmic-keys/README.md#analysis): whether Esc reaches the
+  console as a key.
+- [Display](../experiments/2026-11-02-gemini-native-display/README.md#after-the-review-fixes):
+  the lid on the current image, a bind behind a closed lid, and the battery run.
+- [Wi-Fi baseline on a booted image](../experiments/2026-11-01-mt6797-wifi-booted-baseline/README.md):
+  written, and the owner said "Not now".
 
-All but the lid probe share the board-services CPU-mask contract for the RAM
-root. Gemian read-only checks are requested for the charger STAT/INT line,
-the USB host VBUS and IDDIG, the GPU clock parent and speed bin, and the front
-camera identity and MCLK. The sanitized C1 regulator inventory is also
-requested.
+### 3. Power
+
+Suspend, cpuidle and cpufreq decide battery life and heat, and nothing in them has
+started. [Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a
+design proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)
+holds the defensible order for frequency scaling, starting with the A53s.
+
+### 4. Each subsystem's next step
+
+Independent of each other, in no fixed order. Each record owns the detail.
+
+| Subsystem | Next, from its record |
+| --- | --- |
+| [A72](../experiments/2026-11-01-mt6797-all-cores/README.md#follow-up) | CPU capacity, idle power, a longer soak, then loading at init, each its own owner decision |
+| [GPU](../experiments/2026-11-02-mali-t880-first-job/README.md#follow-up) | A cap under real heat; VGPU and the LDOs off at idle; clocks above 520 MHz are a separate decision |
+| [Display](hardware/display-panel.md) | Linux's own panel init; a compositor on Panfrost; the [review items](../experiments/2026-11-02-gemini-native-display/README.md#what-stands-before-upstream) |
+| [Camera](../experiments/2026-11-04-gemini-camera-receiver/README.md#what-this-does-not-show) | An application; an SMI driver; M4U in place of the bypass; ruling out stray writes |
+| [Audio](hardware/mt6351-accdet.md) | Headset classification and buttons; the earpiece; other rates |
+| [Touch](../experiments/2026-11-02-gemini-touchscreen-module/README.md#follow-up) | Positions on screen, a panel power cycle, suspend |
+| [Sensors](../experiments/2026-10-06-gemini-i2c1-sensors/README.md#limitations) | The IMU's interrupt, buffered capture, suspend |
+| [Bluetooth](hardware/mt6797-bluetooth.md#open-questions) | Range first; then a voice bridge to ALSA; a public userspace for release |
+| [GNSS](../experiments/2026-11-01-gemini-gnss-link/README.md) | Open sky, which decides whether a position is reachable on mainline |
+| [Charging](../experiments/2026-11-02-gemini-kernel-charge-guard/README.md) | A real charge reaching the limit; charge flow after a resume |
+| [microSD](../experiments/2026-10-06-gemini-microsd/README.md) | Its candidate has never booted, and it needs composing on today's station |
+| USB host and role switching | Not started. [Ownership notes](../experiments/2026-09-08-usb-vbus-ownership/README.md) exist |
+| Modem | Feasibility only. A safe transport and regulatory boundary come first |
+
+### 5. Upstream
+
+Owner action throughout: real authorship, a truthful DCO and the choice of targets.
+
+- [The series as it stands](RELEASE_READINESS.md#code-quality) can't be reviewed. The proposed
+  cut is a release profile first, then deleting what's off, then about 60-80 patches by area,
+  SoC foundation first and A72 last.
+- Small topics already prepared: the [MT6797 infracfg reset](../experiments/2026-09-05-mt6797-infracfg-upstream-preparation/README.md),
+  the [BQ25890 IRQ preflight](../experiments/2026-09-12-bq25890-irq-preflight/README.md), the
+  [MT6397 RTC wake errors](../experiments/2026-09-08-mt6397-rtc-irq-fix/README.md) and the
+  [TOPRGU restart](../experiments/2026-09-06-mt6797-toprgu-minimal-restart/UPSTREAM_READINESS.md).
+  Check the kernel's current rules on assisted contributions first.
+- [Review findings](RELEASE_READINESS.md#upstream-blockers-from-the-patch-review) to resolve
+  in each topic.
 
 ## Phase B: usable Wi-Fi
 
-Association through mac80211, bounded PIO traffic, packet DMA and interrupts,
-then unbind and restart without a fault. Usable means WPA2 association, DHCP,
-ping and a ten-minute SSH session on a clean profile. Then one CONSYS/WMT
-owner, one WLAN driver and one profile; retired diagnostics leave the series.
 The ordered path from the station's Wi-Fi to daily use by any owner is the
-[daily-use plan](WIFI_DAILY_USE_PLAN.md).
-
-Bounded four-frame TX ownership is demonstrated in the finite
-[depth comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_DEPTH_RESULT.md).
-The current priority is the single-variable [pump-yield comparison](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/TX_YIELD_COMPARISON.md).
-Rate adaptation remains a separate following pass.
-
-Reconnect is closed as a limitation: no key-installation guarantee or firmware
-ordering point exists, and the probe needs a new protected TX shape and another
-internal owner. Retain the single-lifetime baseline and dormant safeguards;
-reopen only by owner decision. DMA is deferred; its possible justification is
-CPU headroom, not demonstrated throughput improvement. The
-[transfer contract](../experiments/2026-10-13-mt6797-wifi-native-delivery-probe/DMA_TRANSFER_CONTRACT.md)
-unknowns remain. RX DMA is separate later work.
+[daily-use plan](WIFI_DAILY_USE_PLAN.md). Phases 1 and 2 passed and phase 3 is part done. The
+owner parked that testing on 2026-11-01, apart from the baseline above. What remains
+is 2.4 GHz transmit, security modes beyond WPA2-PSK, rekey, the idle disconnect, power saving
+and `ip link down`.
 
 ## Rules of the road
 
 - One question per boot is not the default. A candidate carries a
   runner-driven, re-triggerable executor; a new kernel is for new code.
+- New drivers start as `=m` and load by hand until proven. Boot-time protections stay
+  built in. Batch changes that need a new image.
 - Diagnostics live in named profiles, default off, and leave the manifest when
-  their experiment is consumed. Profiles are retired, not accumulated; the
-  [consolidation record](../experiments/2026-10-05-repository-consolidation/README.md)
-  lists the 12 profiles kept and the 261 retired on 2026-10-05.
+  their experiment is consumed. Profiles are retired, not accumulated.
 - Every new patch has a human author who can certify it, or it is marked
   experiment-only. `check-repository` rejects new synthetic sign-offs.
 - Every experiment directory has a README, and new records state a
@@ -292,12 +137,8 @@ unknowns remain. RX DMA is separate later work.
 
 ## Parked
 
-A72 default integration, cpufreq and thermal protection: evidence retained,
-patches not extended; the A72 gate history is in the
-[historical roadmap](../experiments/2026-10-05-repository-consolidation/ROADMAP_2026-10-04.md#ordered-gates).
 DA9214 beyond the read-only contract. Receive-path firmware RAM sampling
-(proposal 0085). Loader and preloader replacement. A53 keyboard retests ahead
-of Wi-Fi.
+(proposal 0085). Wi-Fi DMA and transmit aggregation. Loader and preloader replacement.
 
 ## Gates
 
@@ -305,32 +146,31 @@ of Wi-Fi.
 - **A53 development-system release.** Ten attributable cold boots per the
   [cold-boot protocol](../experiments/2026-09-09-standard-kernel-package/A53_COLD_BOOT_PROTOCOL.md):
   CPU0–7, console and log capture, keyboard, authenticated USB, CPU8/9 offline.
-  Not a daily-driver, storage-reliability or thermal claim.
+  Not a daily-driver, storage-reliability or thermal claim. Not yet run.
 <a id="upstream-delivery-gate"></a>
 - **Upstream delivery.** Real author, truthful DCO, focused compile and schema
-  checks, the right maintainer tree and binding review. The
-  [TOPRGU restart topic](../experiments/2026-09-06-mt6797-toprgu-minimal-restart/UPSTREAM_READINESS.md)
-  waits on its readiness assessment.
+  checks, the right maintainer tree and binding review.
 - **Device safety.** `boot2` only, verified live identity, full readback,
   clean shutdown, owner physical selection; see [safety](SAFETY.md).
 
 ## Milestones
 
-| Milestone | Acceptance outcome |
-| --- | --- |
-| M0: lab | Tested recovery, exact provenance, enforced safe tooling, automated checks |
-| M1: boot | Ten attributable cold boots; RAM, topology, timers, interrupts, PSCI, watchdog checked; loader mutations documented |
-| M2: headless system | Safe PMIC, RTC, restart, power-off; bounded storage; USB administration; Wi-Fi association and traffic; charger telemetry |
-| M3: input and ports | Keyboard incl. wake and LEDs; lid; microSD hotplug; both USB ports and roles |
-| M4: local interaction | Native DRM, panel, backlight, repeated modesets, calibrated multitouch |
-| M5: power | Validated OPP transitions, thermal trips and cooling, charging protection, suspend and wake |
-| M6: peripherals | GPU, audio, Bluetooth, GNSS, FM and sensors through upstream interfaces; explicit firmware boundaries |
-| M7: distribution | Released host support, standard artifacts, maintained loader path, distro packaging, tested updates |
-| Full variant coverage | Cellular and cameras on equipped variants, or explicit feasibility and rights blockers |
+The right-hand column is how far each has got, read from the matrix. It isn't an acceptance.
+
+| Milestone | Acceptance outcome | Furthest along |
+| --- | --- | --- |
+| M0: lab | Tested recovery, exact provenance, enforced safe tooling, automated checks | In daily use |
+| M1: boot | Ten attributable cold boots; RAM, topology, timers, interrupts, PSCI, watchdog checked; loader mutations documented | Cold boots not run |
+| M2: headless system | Safe PMIC, RTC, restart, power-off; bounded storage; USB administration; Wi-Fi association and traffic; charger telemetry | Each shown on one unit |
+| M3: input and ports | Keyboard incl. wake and LEDs; lid; microSD hotplug; both USB ports and roles | Keyboard, lid, LED module; no microSD or host |
+| M4: local interaction | Native DRM, panel, backlight, repeated modesets, calibrated multitouch | Native console; touch uncalibrated; panel adopted from the loader |
+| M5: power | Validated OPP transitions, thermal trips and cooling, charging protection, suspend and wake | Charge guard and armed trips only |
+| M6: peripherals | GPU, audio, Bluetooth, GNSS, FM and sensors through upstream interfaces; explicit firmware boundaries | All local; FM has no result |
+| M7: distribution | Released host support, standard artifacts, maintained loader path, distro packaging, tested updates | Not started |
+| Full variant coverage | Cellular and cameras on equipped variants, or explicit feasibility and rights blockers | Front camera from modules; no modem |
 
 Issue seeds #1–#30 on GitHub, untouched since July, were closed on 2026-10-05
-in favour of this file; their links stay stable. #34 is a P2 watch item until
-Phase B.
+in favour of this file; their links stay stable.
 
 ## Historical anchors
 
