@@ -745,3 +745,4 @@ proposals/0573-arm64-dts-mediatek-gemini-station-describe-the-indic.patch
 proposals/0574-media-i2c-hi556-add-a-horizontal-flip-control.patch
 proposals/0575-media-mediatek-mt6797-seninf-take-the-sensor-s-flipp.patch
 proposals/0576-media-i2c-hi556-LOCAL-mirror-the-front-camera-by-def.patch
+proposals/0577-arm64-dts-mediatek-gemini-station-show-caps-lock-on-.patch

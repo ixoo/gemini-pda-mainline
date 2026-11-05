@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 09:00:00 -0500
+Subject: [PATCH 577/577] arm64: dts: mediatek: gemini station: show caps lock on the
+ inside LED
+
+The owner's choice, and what Gemian does. The red half of the inside LED
+already followed kbd-capslock from userspace on the device. It takes effect
+when leds-aw9120 loads; the other LEDs stay without a default trigger.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts     | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index c881612b9..d54a0ac1c 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -189,8 +189,9 @@ camera_front_ep: endpoint {
+  * The AW9120 indicator LEDs: the five-LED block on the cover, the LED at its
+  * end, and the red and blue pair inside. Groups and colours follow the Gemian
+  * daemon; the enumerators follow the daemon's block numbers. The lowest current
+- * on every output, as in Gemian outside its torch. Nothing is lit, and no LED
+- * follows a trigger, until leds-aw9120 loads and userspace asks.
++ * on every output, as in Gemian outside its torch. Nothing is lit until
++ * leds-aw9120 loads. Caps lock then shows on the inside red; the rest wait for
++ * userspace.
+  */
+ &pio {
+ 	aw9120_pins: aw9120-pins {
+@@ -372,6 +373,7 @@ led@12 {
+ 			function = LED_FUNCTION_INDICATOR;
+ 			function-enumerator = <7>;
+ 			led-max-microamp = <3500>;
++			linux,default-trigger = "kbd-capslock";
+ 		};
+ 
+ 		led@13 {
+-- 
+2.43.0
+

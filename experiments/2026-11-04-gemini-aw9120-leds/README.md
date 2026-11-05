@@ -233,8 +233,10 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
 ## Follow-up
 
 - Finish step 9 and the two open questions with the custodian.
-- The owner chooses which LED shows what. Until then no DT trigger; a choice becomes
-  `linux,default-trigger` in the next batched image, or userspace sets it.
+- The owner chose caps lock only (2026-11-05): `kbd-capslock` as the default on
+  `red:indicator-7`, in [0577](../../patches/proposals/0577-arm64-dts-mediatek-gemini-station-show-caps-lock-on-.patch)
+  for the next batched image. After that boot, load the module and check that the LED
+  follows Fn+Caps with no trigger written. The other LEDs stay for userspace to set.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.
