@@ -1,0 +1,435 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 20:30:00 -0500
+Subject: [PATCH 572/573] leds: rgb: add a driver for the AWINIC AW9120
+
+The chip drives the Gemini PDA's indicator LEDs. Set each output's PWM
+directly with a SETPWMI instruction written to CMDR, on channels handed to
+I2C control through CTRS. The chip's SRAM engine, which runs fades and
+loops by itself, isn't used; the LED core's software blink covers
+indicators.
+
+Reset the chip with the enable pin and check its ID before anything else.
+Enable only the outputs in the device tree, at the limit each asks for, or
+at 3.5 mA without one, which is the chip's lowest. The Gemian daemon's
+per-channel current packing is off by one channel, so this follows the data
+sheet instead.
+
+Clear GCR.LEDE when nothing is lit, since that stops the chip's oscillator:
+0.55 mA active against 130 uA standby. The rest of the configuration holds
+without it.
+
+Only compile-tested so far; no AW9120 has been driven by this code.
+---
+ drivers/leds/rgb/Kconfig       |  12 ++
+ drivers/leds/rgb/Makefile      |   1 +
+ drivers/leds/rgb/leds-aw9120.c | 363 +++++++++++++++++++++++++++++++++
+ 3 files changed, 376 insertions(+)
+ create mode 100644 drivers/leds/rgb/leds-aw9120.c
+
+diff --git a/drivers/leds/rgb/Kconfig b/drivers/leds/rgb/Kconfig
+index 28ef4c487..691c96cbb 100644
+--- a/drivers/leds/rgb/Kconfig
++++ b/drivers/leds/rgb/Kconfig
+@@ -2,6 +2,18 @@
+ 
+ if LEDS_CLASS_MULTICOLOR
+ 
++config LEDS_AW9120
++	tristate "LED support for the AWINIC AW9120"
++	depends on I2C
++	select REGMAP_I2C
++	help
++	  This option enables support for the AWINIC AW9120, a 20-channel LED
++	  controller with an I2C interface found in the Gemini PDA. Outputs
++	  are grouped into multicolor or single LEDs in the device tree.
++
++	  To compile this driver as a module, choose M here: the module
++	  will be called leds-aw9120.
++
+ config LEDS_GROUP_MULTICOLOR
+ 	tristate "LEDs group multi-color support"
+ 	depends on OF
+diff --git a/drivers/leds/rgb/Makefile b/drivers/leds/rgb/Makefile
+index be45991f6..5ce908253 100644
+--- a/drivers/leds/rgb/Makefile
++++ b/drivers/leds/rgb/Makefile
+@@ -1,5 +1,6 @@
+ # SPDX-License-Identifier: GPL-2.0
+ 
++obj-$(CONFIG_LEDS_AW9120)		+= leds-aw9120.o
+ obj-$(CONFIG_LEDS_GROUP_MULTICOLOR)	+= leds-group-multicolor.o
+ obj-$(CONFIG_LEDS_KTD202X)		+= leds-ktd202x.o
+ obj-$(CONFIG_LEDS_LP5812)		+= leds-lp5812.o
+diff --git a/drivers/leds/rgb/leds-aw9120.c b/drivers/leds/rgb/leds-aw9120.c
+new file mode 100644
+index 000000000..840194ac8
+--- /dev/null
++++ b/drivers/leds/rgb/leds-aw9120.c
+@@ -0,0 +1,363 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * AWINIC AW9120 20-channel LED controller
++ *
++ * Each output is set directly over I2C. The chip's SRAM animation engine is
++ * not used.
++ */
++
++#include <linux/array_size.h>
++#include <linux/bitops.h>
++#include <linux/delay.h>
++#include <linux/gpio/consumer.h>
++#include <linux/i2c.h>
++#include <linux/led-class-multicolor.h>
++#include <linux/leds.h>
++#include <linux/mod_devicetable.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/property.h>
++#include <linux/regmap.h>
++
++#include <dt-bindings/leds/common.h>
++
++#define AW9120_REG_IDRST	0x00
++#define AW9120_CHIP_ID		0xb223
++#define AW9120_REG_GCR		0x01
++#define AW9120_GCR_LEDE		BIT(0)
++/* LER and CTRS each take outputs 1-12 in the first register, 13-20 in the next */
++#define AW9120_REG_LER1		0x50
++#define AW9120_REG_LER2		0x51
++#define AW9120_REG_CTRS1	0x55
++#define AW9120_REG_CTRS2	0x56
++#define AW9120_REG_IMAX1	0x57
++#define AW9120_REG_CMDR		0x61
++
++#define AW9120_NUM_CHANNELS	20
++#define AW9120_LOW_CHANNELS	12
++#define AW9120_NUM_IMAX		5
++#define AW9120_IMAX_STEP_UA	3500
++#define AW9120_IMAX_MAX_UA	24500
++
++/* SETPWMI: set a channel's 8-bit PWM at once */
++#define AW9120_CMD_SETPWM(ch, pwm)	(0xa000 | (ch) << 8 | (pwm))
++
++/* The data sheet's minimum wait before I2C after PDN rises */
++#define AW9120_POWER_ON_US	5000
++
++struct aw9120 {
++	struct device *dev;
++	struct regmap *regmap;
++	struct gpio_desc *enable;
++	/* Serializes the check of @lit with the GCR and CMDR writes */
++	struct mutex lock;
++	/* Channels with a non-zero PWM; the chip's oscillator runs only with one */
++	u32 lit;
++	u32 used;
++	u16 imax[AW9120_NUM_IMAX];
++};
++
++struct aw9120_led {
++	struct aw9120 *chip;
++	struct led_classdev_mc mc;
++	unsigned int channel;	/* a single LED's output */
++};
++
++static int aw9120_set_pwm(struct aw9120 *chip, unsigned int channel, u8 pwm)
++{
++	u32 lit;
++	int ret;
++
++	guard(mutex)(&chip->lock);
++
++	lit = pwm ? chip->lit | BIT(channel) : chip->lit & ~BIT(channel);
++	if (!chip->lit && !lit)
++		return 0;
++
++	if (!chip->lit) {
++		ret = regmap_write(chip->regmap, AW9120_REG_GCR, AW9120_GCR_LEDE);
++		if (ret)
++			return ret;
++	}
++
++	ret = regmap_write(chip->regmap, AW9120_REG_CMDR,
++			   AW9120_CMD_SETPWM(channel, pwm));
++	if (ret)
++		return ret;
++
++	if (!lit) {
++		ret = regmap_write(chip->regmap, AW9120_REG_GCR, 0);
++		if (ret)
++			return ret;
++	}
++
++	chip->lit = lit;
++
++	return 0;
++}
++
++static int aw9120_single_set(struct led_classdev *cdev,
++			     enum led_brightness brightness)
++{
++	struct aw9120_led *led = container_of(cdev, struct aw9120_led, mc.led_cdev);
++
++	return aw9120_set_pwm(led->chip, led->channel, brightness);
++}
++
++static int aw9120_mc_set(struct led_classdev *cdev,
++			 enum led_brightness brightness)
++{
++	struct led_classdev_mc *mc = lcdev_to_mccdev(cdev);
++	struct aw9120_led *led = container_of(mc, struct aw9120_led, mc);
++	unsigned int i;
++	int ret;
++
++	led_mc_calc_color_components(mc, brightness);
++
++	for (i = 0; i < mc->num_colors; i++) {
++		ret = aw9120_set_pwm(led->chip, mc->subled_info[i].channel,
++				     mc->subled_info[i].brightness);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++/* Claim a node's output and record its current limit */
++static int aw9120_parse_output(struct aw9120 *chip, struct fwnode_handle *node,
++			       u32 *channel)
++{
++	u32 ua = AW9120_IMAX_STEP_UA;
++	int ret;
++
++	ret = fwnode_property_read_u32(node, "reg", channel);
++	if (ret)
++		return dev_err_probe(chip->dev, ret, "%pfw: no reg\n", node);
++	if (*channel >= AW9120_NUM_CHANNELS || chip->used & BIT(*channel))
++		return dev_err_probe(chip->dev, -EINVAL,
++				     "%pfw: bad or repeated output %u\n",
++				     node, *channel);
++
++	/* Absent means the lowest current, which is also the vendor default */
++	fwnode_property_read_u32(node, "led-max-microamp", &ua);
++	if (ua < AW9120_IMAX_STEP_UA || ua > AW9120_IMAX_MAX_UA)
++		return dev_err_probe(chip->dev, -EINVAL,
++				     "%pfw: bad led-max-microamp %u\n", node, ua);
++
++	/* Rounds down, so never above the limit that was asked for */
++	chip->imax[*channel / 4] |= (ua / AW9120_IMAX_STEP_UA) << (*channel % 4 * 4);
++	chip->used |= BIT(*channel);
++
++	return 0;
++}
++
++static int aw9120_parse_mc(struct aw9120 *chip, struct aw9120_led *led,
++			   struct fwnode_handle *node)
++{
++	unsigned int num = fwnode_get_child_node_count(node), i = 0;
++	struct mc_subled *subled;
++	int ret;
++
++	if (!num)
++		return dev_err_probe(chip->dev, -EINVAL, "%pfw: no LEDs\n", node);
++
++	subled = devm_kcalloc(chip->dev, num, sizeof(*subled), GFP_KERNEL);
++	if (!subled)
++		return -ENOMEM;
++
++	fwnode_for_each_child_node_scoped(node, child) {
++		u32 color;
++
++		ret = fwnode_property_read_u32(child, "color", &color);
++		if (ret)
++			return dev_err_probe(chip->dev, ret, "%pfw: no color\n",
++					     child);
++
++		ret = aw9120_parse_output(chip, child, &subled[i].channel);
++		if (ret)
++			return ret;
++
++		subled[i].color_index = color;
++		/* So that plain brightness alone lights the LED, as white */
++		subled[i].intensity = LED_FULL;
++		i++;
++	}
++
++	led->mc.subled_info = subled;
++	led->mc.num_colors = num;
++
++	return 0;
++}
++
++static int aw9120_parse_led(struct aw9120 *chip, struct aw9120_led *led,
++			    struct fwnode_handle *node)
++{
++	u32 color = LED_COLOR_ID_WHITE;
++
++	led->chip = chip;
++
++	fwnode_property_read_u32(node, "color", &color);
++	if (color == LED_COLOR_ID_RGB)
++		return aw9120_parse_mc(chip, led, node);
++
++	return aw9120_parse_output(chip, node, &led->channel);
++}
++
++static int aw9120_register_led(struct aw9120 *chip, struct aw9120_led *led,
++			       struct fwnode_handle *node)
++{
++	struct led_init_data init_data = { .fwnode = node };
++	struct led_classdev *cdev = &led->mc.led_cdev;
++
++	cdev->max_brightness = LED_FULL;
++
++	if (led->mc.num_colors) {
++		cdev->brightness_set_blocking = aw9120_mc_set;
++
++		return devm_led_classdev_multicolor_register_ext(chip->dev,
++								 &led->mc,
++								 &init_data);
++	}
++
++	cdev->brightness_set_blocking = aw9120_single_set;
++
++	return devm_led_classdev_register_ext(chip->dev, cdev, &init_data);
++}
++
++/*
++ * Only the outputs in the device tree are enabled and taken from the SRAM
++ * engine. PWM starts at zero after the power-on reset, and GCR.LEDE stays
++ * clear until a channel lights.
++ */
++static int aw9120_setup_outputs(struct aw9120 *chip)
++{
++	u32 low = chip->used & GENMASK(AW9120_LOW_CHANNELS - 1, 0);
++	u32 high = chip->used >> AW9120_LOW_CHANNELS;
++	const struct reg_sequence seq[] = {
++		{ AW9120_REG_IMAX1 + 0, chip->imax[0] },
++		{ AW9120_REG_IMAX1 + 1, chip->imax[1] },
++		{ AW9120_REG_IMAX1 + 2, chip->imax[2] },
++		{ AW9120_REG_IMAX1 + 3, chip->imax[3] },
++		{ AW9120_REG_IMAX1 + 4, chip->imax[4] },
++		{ AW9120_REG_LER1, low },
++		{ AW9120_REG_LER2, high },
++		{ AW9120_REG_CTRS1, low },
++		{ AW9120_REG_CTRS2, high },
++	};
++
++	return regmap_multi_reg_write(chip->regmap, seq, ARRAY_SIZE(seq));
++}
++
++static void aw9120_power_off(void *data)
++{
++	struct aw9120 *chip = data;
++
++	gpiod_set_value_cansleep(chip->enable, 0);
++}
++
++static const struct regmap_config aw9120_regmap_config = {
++	.reg_bits = 8,
++	.val_bits = 16,
++	.val_format_endian = REGMAP_ENDIAN_BIG,
++	.max_register = AW9120_REG_CMDR,
++};
++
++static int aw9120_probe(struct i2c_client *client)
++{
++	struct device *dev = &client->dev;
++	struct aw9120_led *leds;
++	struct aw9120 *chip;
++	unsigned int num, id, i;
++	int ret;
++
++	chip = devm_kzalloc(dev, sizeof(*chip), GFP_KERNEL);
++	if (!chip)
++		return -ENOMEM;
++
++	chip->dev = dev;
++
++	ret = devm_mutex_init(dev, &chip->lock);
++	if (ret)
++		return ret;
++
++	chip->regmap = devm_regmap_init_i2c(client, &aw9120_regmap_config);
++	if (IS_ERR(chip->regmap))
++		return dev_err_probe(dev, PTR_ERR(chip->regmap), "no regmap\n");
++
++	/* A rising edge resets the chip, so start from low whatever was left */
++	chip->enable = devm_gpiod_get(dev, "enable", GPIOD_OUT_LOW);
++	if (IS_ERR(chip->enable))
++		return dev_err_probe(dev, PTR_ERR(chip->enable), "no enable GPIO\n");
++
++	fsleep(AW9120_POWER_ON_US);
++	gpiod_set_value_cansleep(chip->enable, 1);
++
++	/* Registered before the LEDs, so it runs after they have turned off */
++	ret = devm_add_action_or_reset(dev, aw9120_power_off, chip);
++	if (ret)
++		return ret;
++
++	fsleep(AW9120_POWER_ON_US);
++
++	ret = regmap_read(chip->regmap, AW9120_REG_IDRST, &id);
++	if (ret)
++		return dev_err_probe(dev, ret, "cannot read the chip ID\n");
++	if (id != AW9120_CHIP_ID)
++		return dev_err_probe(dev, -ENODEV, "unexpected chip ID %#x\n", id);
++
++	num = device_get_child_node_count(dev);
++	if (!num)
++		return dev_err_probe(dev, -EINVAL, "no LEDs\n");
++
++	leds = devm_kcalloc(dev, num, sizeof(*leds), GFP_KERNEL);
++	if (!leds)
++		return -ENOMEM;
++
++	i = 0;
++	device_for_each_child_node_scoped(dev, child) {
++		ret = aw9120_parse_led(chip, &leds[i++], child);
++		if (ret)
++			return ret;
++	}
++
++	/* A default trigger can set a LED as soon as it is registered */
++	ret = aw9120_setup_outputs(chip);
++	if (ret)
++		return ret;
++
++	i = 0;
++	device_for_each_child_node_scoped(dev, child) {
++		ret = aw9120_register_led(chip, &leds[i++], child);
++		if (ret)
++			return dev_err_probe(dev, ret, "%pfw: cannot register\n",
++					     child);
++	}
++
++	return 0;
++}
++
++static const struct of_device_id aw9120_of_match[] = {
++	{ .compatible = "awinic,aw9120" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, aw9120_of_match);
++
++static const struct i2c_device_id aw9120_id[] = {
++	{ "aw9120" },
++	{ }
++};
++MODULE_DEVICE_TABLE(i2c, aw9120_id);
++
++static struct i2c_driver aw9120_driver = {
++	.driver = {
++		.name = "leds-aw9120",
++		.of_match_table = aw9120_of_match,
++	},
++	.probe = aw9120_probe,
++	.id_table = aw9120_id,
++};
++module_i2c_driver(aw9120_driver);
++
++MODULE_DESCRIPTION("AWINIC AW9120 LED controller driver");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

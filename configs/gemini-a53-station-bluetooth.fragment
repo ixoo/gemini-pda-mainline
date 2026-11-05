@@ -9,7 +9,8 @@ CONFIG_BT_MT6797=m
 # CONFIG_BT_RFCOMM_TTY is not set
 # CONFIG_BT_BNEP is not set
 # CONFIG_BT_HIDP is not set
-# CONFIG_BT_LEDS is not set
+# The hci0-power and bluetooth-power LED triggers, for the indicator LEDs.
+CONFIG_BT_LEDS=y
 # CONFIG_BT_HCIBTUSB is not set
 # CONFIG_BT_HCIBTSDIO is not set
 # CONFIG_BT_HCIUART is not set

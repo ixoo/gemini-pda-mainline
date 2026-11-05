@@ -739,3 +739,6 @@ proposals/0567-arm64-dts-mediatek-mt6797-give-the-sensor-interface-.patch
 proposals/0568-media-mediatek-mt6797-seninf-add-a-capture-node.patch
 proposals/0569-media-i2c-hi556-add-red-and-blue-balance-controls.patch
 proposals/0570-media-i2c-hi556-write-the-analogue-gain-to-its-own-r.patch
+proposals/0571-dt-bindings-leds-add-AWINIC-AW9120.patch
+proposals/0572-leds-rgb-add-a-driver-for-the-AWINIC-AW9120.patch
+proposals/0573-arm64-dts-mediatek-gemini-station-describe-the-indic.patch

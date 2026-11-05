@@ -1,0 +1,236 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 20:30:00 -0500
+Subject: [PATCH 573/573] arm64: dts: mediatek: gemini station: describe the
+ indicator LEDs
+
+The AW9120 at 0x2c on I2C3, with its PDN pin on GPIO245. Group the outputs
+the way the Gemian daemon does: six RGB LEDs and an inside pair of red and
+blue. Every output is limited to 3.5 mA, as in Gemian outside its torch
+state, so that all twenty lit together draw 70 mA.
+
+No output has a default trigger: what each LED shows is still to be
+decided. The driver is a module and nothing loads it, so the chip stays in
+shutdown until something does.
+---
+ .../mt6797-gemini-pda-station-a72.dts         | 200 ++++++++++++++++++
+ 1 file changed, 200 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 8592688ab..c881612b9 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include "mt6797-gemini-pda-station.dts"
++#include <dt-bindings/leds/common.h>
+ 
+ / {
+ 	/* The shared tree deletes this map, so a station with all ten restores it. */
+@@ -183,3 +184,202 @@ camera_front_ep: endpoint {
+ 		};
+ 	};
+ };
++
++/*
++ * The AW9120 indicator LEDs: the five-LED block on the cover, the LED at its
++ * end, and the red and blue pair inside. Groups and colours follow the Gemian
++ * daemon; the enumerators follow the daemon's block numbers. The lowest current
++ * on every output, as in Gemian outside its torch. Nothing is lit, and no LED
++ * follows a trigger, until leds-aw9120 loads and userspace asks.
++ */
++&pio {
++	aw9120_pins: aw9120-pins {
++		pins-pdn {
++			pinmux = <MT6797_GPIO245__FUNC_GPIO245>;
++		};
++	};
++};
++
++&i2c3 {
++	led-controller@2c {
++		compatible = "awinic,aw9120";
++		reg = <0x2c>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&aw9120_pins>;
++		enable-gpios = <&pio 245 GPIO_ACTIVE_HIGH>;
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		multi-led-1 {
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <1>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			led@0 {
++				reg = <0>;
++				color = <LED_COLOR_ID_RED>;
++				led-max-microamp = <3500>;
++			};
++
++			led@1 {
++				reg = <1>;
++				color = <LED_COLOR_ID_GREEN>;
++				led-max-microamp = <3500>;
++			};
++
++			led@2 {
++				reg = <2>;
++				color = <LED_COLOR_ID_BLUE>;
++				led-max-microamp = <3500>;
++			};
++		};
++
++		multi-led-2 {
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <2>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			led@c {
++				reg = <12>;
++				color = <LED_COLOR_ID_RED>;
++				led-max-microamp = <3500>;
++			};
++
++			led@d {
++				reg = <13>;
++				color = <LED_COLOR_ID_GREEN>;
++				led-max-microamp = <3500>;
++			};
++
++			led@e {
++				reg = <14>;
++				color = <LED_COLOR_ID_BLUE>;
++				led-max-microamp = <3500>;
++			};
++		};
++
++		multi-led-3 {
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <3>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			led@3 {
++				reg = <3>;
++				color = <LED_COLOR_ID_RED>;
++				led-max-microamp = <3500>;
++			};
++
++			led@4 {
++				reg = <4>;
++				color = <LED_COLOR_ID_GREEN>;
++				led-max-microamp = <3500>;
++			};
++
++			led@5 {
++				reg = <5>;
++				color = <LED_COLOR_ID_BLUE>;
++				led-max-microamp = <3500>;
++			};
++		};
++
++		multi-led-4 {
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <4>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			led@6 {
++				reg = <6>;
++				color = <LED_COLOR_ID_RED>;
++				led-max-microamp = <3500>;
++			};
++
++			led@7 {
++				reg = <7>;
++				color = <LED_COLOR_ID_GREEN>;
++				led-max-microamp = <3500>;
++			};
++
++			led@8 {
++				reg = <8>;
++				color = <LED_COLOR_ID_BLUE>;
++				led-max-microamp = <3500>;
++			};
++		};
++
++		multi-led-5 {
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <5>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			led@9 {
++				reg = <9>;
++				color = <LED_COLOR_ID_RED>;
++				led-max-microamp = <3500>;
++			};
++
++			led@a {
++				reg = <10>;
++				color = <LED_COLOR_ID_GREEN>;
++				led-max-microamp = <3500>;
++			};
++
++			led@b {
++				reg = <11>;
++				color = <LED_COLOR_ID_BLUE>;
++				led-max-microamp = <3500>;
++			};
++		};
++
++		multi-led-6 {
++			color = <LED_COLOR_ID_RGB>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <6>;
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			led@f {
++				reg = <15>;
++				color = <LED_COLOR_ID_RED>;
++				led-max-microamp = <3500>;
++			};
++
++			led@10 {
++				reg = <16>;
++				color = <LED_COLOR_ID_GREEN>;
++				led-max-microamp = <3500>;
++			};
++
++			led@11 {
++				reg = <17>;
++				color = <LED_COLOR_ID_BLUE>;
++				led-max-microamp = <3500>;
++			};
++		};
++
++		led@12 {
++			reg = <18>;
++			color = <LED_COLOR_ID_RED>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <7>;
++			led-max-microamp = <3500>;
++		};
++
++		led@13 {
++			reg = <19>;
++			color = <LED_COLOR_ID_BLUE>;
++			function = LED_FUNCTION_INDICATOR;
++			function-enumerator = <7>;
++			led-max-microamp = <3500>;
++		};
++	};
++};
+-- 
+2.43.0
+

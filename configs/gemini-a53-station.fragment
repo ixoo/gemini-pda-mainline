@@ -18,6 +18,9 @@ CONFIG_TOUCHSCREEN_NOVATEK_NT36XXX=m
 # so they can be reloaded without a boot; nothing loads them.
 CONFIG_BMI160_I2C=m
 CONFIG_STK3310=m
+# The AW9120 indicator LEDs (2026-11-04-gemini-aw9120-leds). A module, so it can
+# be reloaded without a boot; nothing loads it.
+CONFIG_LEDS_AW9120=m
 CONFIG_LOCALVERSION="-gemini-a53-station"
 CONFIG_LOG_BUF_SHIFT=20
 # Power off through the MT6351 RTC, as Gemian does (0342-0345), not PSCI.

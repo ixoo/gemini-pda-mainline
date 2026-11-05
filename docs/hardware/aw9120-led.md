@@ -1,11 +1,12 @@
 # AW9120 indicator LEDs
 
 Scope: the AWINIC AW9120 20-channel LED controller on the Gemini PDA, the vendor
-kernel interface, the Gemian `gemian-leds` daemon, and the mainline gap. This is
-a source, data-sheet and retained-log study; no LED was exercised for it.
+kernel interface, the Gemian `gemian-leds` daemon, and the mainline driver. This is
+a source, data-sheet and retained-log study; no LED has been exercised yet.
 
 Evidence chronology is in the
-[2026-10-31 AW9120 experiment](../../experiments/2026-10-31-gemian-aw9120-led/README.md);
+[2026-10-31 AW9120 experiment](../../experiments/2026-10-31-gemian-aw9120-led/README.md)
+and the [2026-11-04 driver record](../../experiments/2026-11-04-gemini-aw9120-leds/README.md);
 live identity is in the
 [Gemian hardware baseline](gemini-gemian-baseline.md#aw9120-indicator-leds).
 
@@ -150,26 +151,63 @@ runtime, and the vendor driver embeds a fixed seven-instruction breath program.
 Neither appears in `/etc/firmware` or the vendor firmware directory. A PDN
 reset clears the program and returns the outputs to their default state.
 
-## 6. Mainline position
+## 6. Physical position
 
-Linux 7.1.3 has no AW9120 driver. A mainline implementation needs a new I2C
-binding at `0x2c` with an active-high `enable-gpios` (GPIO245), a regmap for
-the 8-bit-address/16-bit-big-endian register file, and LED-class or multicolor
-exposure. Direct PWM through `CTRS=1` and `CMDR` covers indicators; the SRAM
-animation engine is optional and should not gate basic support. Do not carry
-forward the `/proc` ABI.
+Reported, not yet observed here. The public
+[Gemian wiki](https://github.com/gemian/gemian/wiki/LEDs) gives the positions and the
+[user guide](https://support.planetcom.co.uk/) the outside block and power LED:
 
-## 7. Open questions
+| LED | Driven by | Position |
+| --- | --- | --- |
+| Five-LED block | AW9120 outputs 1-15 | Middle of the cover |
+| Extra RGB | AW9120 outputs 16-18 | Cover, at the end away from the power LED |
+| Inside pair | AW9120 outputs 19 red, 20 blue | Inside the device |
+| Power LED | Not the AW9120 | Cover, left. Red, orange, green while charging, per the guide |
+| PMIC `red`/`green` | MT6351 ISINK pair | Beside the power LED, per the wiki |
 
-1. Are the MT6351 red/green pair and AW9120 outputs 19/20 the same two physical
-   LEDs or separate indicators?
+So the PMIC pair isn't outputs 19/20: the positions differ, and output 20 is blue while
+the pair has no blue. This is inference from a secondary report until the
+[device test](../../experiments/2026-11-04-gemini-aw9120-leds/README.md#procedure)
+confirms the inside LED. Whether the PMIC pair and the power LED are one package is
+unresolved. The daemon's block numbers aren't known to run in physical order, and
+the test checks that as well.
+
+## 7. Mainline position
+
+Linux 7.1.3 has no AW9120 driver. The project's `leds-aw9120` module
+([0572](../../patches/proposals/0572-leds-rgb-add-a-driver-for-the-AWINIC-AW9120.patch))
+is compile-checked only:
+
+- `awinic,aw9120` at I2C3 `0x2c`, active-high `enable-gpios` on GPIO245, chip ID check;
+- each output set by a per-channel `SETPWMI` in `CMDR` with `CTRS=1`. The vendor stack
+  only used the broadcast form, so the per-channel form is from the data sheet;
+- `GCR.LEDE` is set only while an output is lit: 0.55 mA active against 130 uA standby;
+- the SRAM engine and the `/proc` ABI aren't carried forward.
+
+The station device tree names the LEDs by group without assigning a purpose:
+`rgb:indicator-1` to `-5` follow the daemon's block numbers, `rgb:indicator-6` is the
+extra RGB, and `red:indicator-7` and `blue:indicator-7` are outputs 19 and 20. No
+output has a default trigger until the owner chooses. Userspace can set `kbd-capslock`,
+`timer`, `phy0rx` and, with `CONFIG_BT_LEDS`, `hci0-power`.
+
+Every output is limited to 3.5 mA, or 70 mA for the chip. From the data sheet's 45 C/W,
+a 4.35 V battery and about 1.8 V across a red LED, that heats the chip about 8 C. The
+same estimate for Gemian's torch, 17 outputs at 24.5 mA, is about 1 W and 48 C. These
+are estimates; nothing has been measured. Don't raise a limit without a thermal check.
+
+The MT6351 pair needs its own work: upstream's `leds-mt6323` doesn't cover the MT6351.
+
+## 8. Open questions
+
+1. Does the device test confirm that the MT6351 red/green pair and AW9120 outputs
+   19/20 are separate LEDs, as [section 6](#6-physical-position) infers?
 2. Which Gemian component calls `SetCapsLock`?
 3. What are the measured currents, brightness, and thermal rise, especially for
    the torch state?
 4. Does the array or SRAM program survive suspend, and does PDN glitch on
    resume?
 
-## 8. Evidence index
+## 9. Evidence index
 
 - Vendor kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `drivers/misc/mediatek/aw9120/`, `drivers/misc/mediatek/leds/`, and the board
