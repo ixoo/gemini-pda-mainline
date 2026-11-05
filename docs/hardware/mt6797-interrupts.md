@@ -311,9 +311,10 @@ PMIC-wrapper nested domain, or the vendor display/GPU/modem IRQ users. The
 current DT exposes only the nodes that mainline owns; the vendor IRQ map above
 is therefore a portability reference, not a mainline configuration contract.
 
-The keyboard and touch mainline paths are also different: the accepted
-keyboard path uses polling, and the open touch backend does not yet take
-EINT8/EINT10. Do not assume that a vendor EINT is available just because it
+On the station, the keyboard's row interrupts use
+[EINT10](../../experiments/2026-10-31-keyboard-eint10/README.md), the touch module
+[EINT8](../../experiments/2026-11-02-gemini-touchscreen-module/README.md) and the light and
+proximity sensor [EINT11](gemini-sensors.md), each through local patches and DT. Do not assume that a vendor EINT is available just because it
 exists in the vendor DT.
 
 ## 9. Evidence index

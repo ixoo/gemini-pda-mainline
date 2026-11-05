@@ -3,7 +3,10 @@
 This record applies to the project Gemini running the observed Gemian image
 (model MT6797X; image properties identify Gemini 4G UK 6M15BS/X600). Physical
 SKU and RF silicon revision have not been independently inspected. Source
-descriptions are evidence, not measured electrical behavior.
+descriptions are evidence, not measured electrical behavior. The table and the WMT section
+below are the bring-up contract and stop at 2026-10. The driver has since joined, carried
+data and restarted its firmware on the station: the current state is in the
+[support matrix](../HARDWARE_SUPPORT.md) and the [daily-use plan](../WIFI_DAILY_USE_PLAN.md).
 
 | Fact | Method / confidence | Contradictions and limits |
 | --- | --- | --- |
@@ -188,7 +191,8 @@ Complete preservation, A53 regression and changed-boot Gemian recovery passed.
 This establishes the isolated mode boundary only; it does not establish larger
 fragment transfers, generic TX interrupt service or production transport ownership.
 ROM patch transfer, RF calibration, management reception, association and traffic
-remain unproved.
+were unproved at that point; [later records](../../experiments/2026-10-06-mt6797-wifi-common-init/RUNTIME_3.md)
+showed them.
 The experiment owns the exact candidate, boot identities and chronology.
 
 ## Coexistence with Bluetooth and LTE

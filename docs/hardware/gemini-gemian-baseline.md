@@ -746,8 +746,8 @@ Remaining baseline-specific observations include:
   serial;
 - map both physical USB-C ports to their FUSB301, controller, PHY, VBUS, and
   redriver paths;
-- establish the exact panel module, camera identity/lane graph, and unresolved
-  peripheral interrupt mappings; and
+- establish the exact panel module and unresolved peripheral interrupt mappings
+  (the camera's identity and path are now in [Gemini camera path](gemini-camera.md)); and
 - complete firmware and calibration ownership for connectivity, modem, touch,
   power, and sensors without publishing blobs or device-unique NVRAM.
 

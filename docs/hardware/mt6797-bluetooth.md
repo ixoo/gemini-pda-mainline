@@ -355,18 +355,21 @@ The vendor's Set Radio and TX offset are not sent by default (`gemian_radio`), a
 worked with the controller's own settings at a few metres. Their effect on output power
 is not measured; Read Transmit Power reports 10 without them and 8 with Gemian's local
 bytes. The owner hears SBC skip from about 4 yards and AAC not at twice that, without a
-control yet ([T14](../../experiments/2026-11-02-gemini-bluetooth/README.md)). On a voice link they were accepted and left the earpiece noise about the same, by the owner's
+control yet ([T14](../../experiments/2026-11-02-gemini-bluetooth/README.md#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04)). [T15](../../experiments/2026-11-02-gemini-bluetooth/README.md#t15-prepared-where-the-signal-goes-on-a-walk) is prepared to supply one, and hasn't run. On a voice link they were accepted and left the earpiece noise about the same, by the owner's
 ear on one run ([T9](../../experiments/2026-11-02-gemini-bluetooth/README.md#t9-result-gemians-radio-settings-left-the-noise-about-the-same-2026-11-03)).
 
 ## Open questions
 
 - Why did the T2 stream stall? It happened once, late in a long CONSYS lifetime.
+- Is the music range short for this class of device? T14 has no control, and which antenna
+  Bluetooth uses isn't established.
 - What ended the inquiry, and when? See the table above.
 - An eSCO link uses the CVSD SRAM path whatever the host's data path: the registers are zero
   before a link and its flags come up with it, and the upstream driver's loopback carried
   voice at about 45 interrupts a second
   ([T4](../../experiments/2026-11-02-gemini-bluetooth/README.md#t4-result-the-owner-heard-their-own-voice-2026-11-03)).
-  Open: the quality of a host CVSD coder against it, and mSBC.
+  A host CVSD coder had noise on it and [mSBC was heard clean](../../experiments/2026-11-02-gemini-bluetooth/README.md#t12-result-the-kernels-own-msbc-link-heard-clean-2026-11-03);
+  whether mSBC or the retransmission window cured it is not separated.
 - Does the ROM's CVSD SRAM path require firmware-side enabling beyond the INFRA
   bit and the packet pointers? The vendor driver has no explicit "start" command.
 - What does the ROM patch contribute to BT audio? It contains BT/Wi-Fi

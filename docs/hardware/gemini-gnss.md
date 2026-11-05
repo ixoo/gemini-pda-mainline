@@ -430,8 +430,9 @@ patch loading and calibration now runs on the station for Wi-Fi. What remained
 below the protocol was a receive path that stays on: the start chain's STP
 exchanges are one-shot. The
 [GNSS link record](../../experiments/2026-11-01-gemini-gnss-link/README.md) adds
-that link and a silent `gnss` device; one boot passed with Wi-Fi running. The
-receiver has not been started.
+that link and a `gnss` device. A userspace host through `/dev/gnss0` then booted the DSP and,
+in one 600 s run at a window, tracked two live satellites and received their navigation data:
+too few for a position, with open sky untested.
 
 A first standards-shaped GNSS implementation needs, in order:
 
@@ -464,8 +465,9 @@ coexistence may require.
 Facts here come from static analysis of the retained 2019 userspace payload and
 the two ROM patch images, decompiled with Ghidra 12.1.2 and cross-checked with
 radare2 5.5.0, plus the pinned vendor kernel at
-`8cfe6596a503612e3332d9c26e292a19525a7f07`. No device was accessed for this
-record and no fix was observed.
+`8cfe6596a503612e3332d9c26e292a19525a7f07`. No device was accessed for that study, and it
+observed no fix. The [stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)
+later gave positions under stock Gemian, using the vendor DSP image.
 
 Not established: whether an FLP client runs in the Gemian container, which is
 what selects the offload path in the vendor daemon; whether a physical LNA is

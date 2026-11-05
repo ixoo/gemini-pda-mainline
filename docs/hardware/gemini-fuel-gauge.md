@@ -2,8 +2,8 @@
 
 Scope: how the named MT6797X Gemini counts charge, where the state-of-charge
 model actually runs, and which calibration reaches the hardware. This is a
-source, datasheet, boot-chain and vendor-userspace study; no runtime
-measurement is claimed.
+source, datasheet, boot-chain and vendor-userspace study. The one runtime result is the
+local gauge in [section 7](#7-mainline-position), on the station.
 
 Related: [Gemini charging](gemini-charging.md),
 [MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md), and the evidence records
@@ -154,7 +154,12 @@ confirms the init/notification shape, not a calibration.
 ## 7. Mainline position
 
 Upstream Linux 7.1.3 has no MT6351 gauge driver; `drivers/power/supply`
-contains MT6360/MT6370 chargers only. A mainline implementation would need:
+contains MT6360/MT6370 chargers only.
+
+The project's local `mt6351-fuel-gauge` (0367-0373) registers a `battery` supply on the
+station and [read correctly on station 13b](../../experiments/2026-10-31-gemini-fuel-gauge/README.md),
+with capacity uncalibrated. The kernel charge guard stops on that capacity. An upstream
+implementation would need:
 
 - a wrapper regmap and the latched counter/current transaction;
 - a decision on the 17-bit slice, sentinels and 44.98 µAh unit;

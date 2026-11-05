@@ -334,8 +334,8 @@ The GPU-side power, clock, DVFS and Panfrost plan is in the
 
 | Gemian boundary | Standard replacement | Current state |
 | --- | --- | --- |
-| `mtkfb` fbdev + private ioctls | MediaTek DRM/KMS (`mtk_drm`, OVL, RDMA, mutex, DSI) | [A test frame reached the panel](../../experiments/2026-11-02-gemini-native-display/README.md) from modules on the station |
-| Vendor LCM driver | DRM panel driver with DSI timings, reset GPIO, bias supplies, backlight | Gemini descriptor adopts the loader's panel state and sends nothing; the driver's own power and init path has not run |
+| `mtkfb` fbdev + private ioctls | MediaTek DRM/KMS (`mtk_drm`, OVL, RDMA, mutex, DSI) | [The console runs on the panel](../../experiments/2026-11-02-gemini-native-display/README.md) from modules loaded at boot on the station |
+| Vendor LCM driver | DRM panel driver with DSI timings, reset GPIO, bias supplies, backlight | Gemini descriptor adopts the loader's panel state and sends no init; the driver's own power and init path has not run |
 | `MTKFB_POWEROFF/ON` and ESD | DRM modeset, panel prepare/enable, ESD work | Blank and lid send DCS sleep and wake, with bias left on; ESD not done |
 | ION + M4U + sw_sync | dma-buf heaps, IOMMU, dma-fence | CMA with the larbs in bypass scans out; display IOMMU remains open |
 | Vendor HWC + libhybris + Xorg DDX | Mesa/Panfrost + DRM/KMS compositor | Panfrost renders into display buffers through dma-buf and they reach the panel; no compositor yet |

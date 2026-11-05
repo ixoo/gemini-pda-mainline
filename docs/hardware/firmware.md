@@ -122,8 +122,10 @@ their integrity and calibration applicability must be established separately.
 
 ## Mainline implications
 
-The observed files define several different boundaries. Touchscreen and Wi-Fi
-support may need standard Linux firmware-loading integration. SPM programs are
+The observed files define several different boundaries. The mainline Wi-Fi driver loads
+[the three files above](#files-the-mainline-wi-fi-driver-loads) through standard firmware
+loading, and Bluetooth's start uses the same ROM patches. The mainline touch module loads no
+firmware: the controller runs what is in its flash. SPM programs are
 closely tied to vendor power management and must not be assumed suitable for a
 mainline driver. The modem image remains behind the retained proprietary
 baseband boundary. Logging filters are not kernel dependencies.

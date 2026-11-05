@@ -569,6 +569,7 @@ Not required:
 
 | Gap | Impact |
 | --- | --- |
+| Later results | The [first job](../../experiments/2026-11-02-mali-t880-first-job/README.md) ran shaders from modules with DVFS from 238 to 520 MHz and idle power-off, programming the LDO trims with readback, the `mfg_52m_sel` parent and one TOPRGU MFG pulse. So the rows below on those points describe the state before it. Its [follow-up](../../experiments/2026-11-02-mali-t880-first-job/README.md#follow-up) lists what's open |
 | GPU SRAM LDO init not implemented | Vendor programs `fd8/fe4/fc0/fc4/fc8`; LK only pre-sets a subset |
 | MFG bus-protect mask prepared but not runtime-verified | Potential AXI hang on power cycle |
 | `mfg_52m_sel` parent set by composition, `infra_mfg_vcg` gate unverified | Possible async/SRAM handshake issue |
@@ -580,7 +581,7 @@ Not required:
 | EEM NVMEM cell and EEM driver absent | Calibrated dynamic OPPs unavailable; even static OPPs require voltage/ceiling review |
 | EEM/thermal calibration absent | Dynamic table not admitted; trips/NTC policy are known from `.tp` |
 | Exact GPU speed bin/efuse words not captured | `cid`/post-divider and `opp-supported-hw` cannot be finalized |
-| No GPU runtime result | Panfrost support is still unproven on this unit |
+| Hot end and real applications | No cap under real heat, no clock above 520 MHz, no real application; see the [support matrix](../HARDWARE_SUPPORT.md) |
 
 ## 11. Evidence index
 

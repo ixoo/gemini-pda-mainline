@@ -295,16 +295,17 @@ overrides were applied.
 
 | Piece | State |
 | --- | --- |
-| MT6797 AUXADC-thermal variant, V4 conversion, calibration decode | Implemented, off by default (`0057`, `0512`, `0517`) |
+| MT6797 AUXADC-thermal variant, V4 conversion, calibration decode | Implemented, off by default, and built in on the station (`0057`, `0512`, `0517`) |
 | LK `atag,devinfo` calibration provider | Implemented, read-only (`0057a`) |
 | Temperature observation | Demonstrated on hardware; accuracy and cross-boot repeatability unresolved |
-| Hardware trip at 117 °C (SPM state2 / TOPRGU) | Not implemented |
-| Cooling devices, trips, cpufreq/OPP integration | Not implemented |
+| Hardware trip at 117 °C (TEMPPROTTC / TOPRGU) | [Armed during boot on the station](../../experiments/2026-10-31-gemini-thermal-protection/README.md#station-12-protection-in-the-kernel-owner-decision-2026-10-31); has never fired |
+| Trips | `soc-thermal` at 95 °C (hot) and 110 °C (critical, power-off); armed, none has fired |
+| Cooling devices, cpufreq/OPP integration | No CPU cooling, since there's no cpufreq. Panfrost's governor capped the GPU one step at a [false 60 °C through emulation](../../experiments/2026-11-02-mali-t880-first-job/README.md#run-21-same-boot-the-cooling-cap-through-thermal-emulation) |
 | PMIC die-temperature monitoring | No mainline driver; MT6351 is only an MFD/regulator child |
 | Modem / Wi-Fi thermal interaction | Outside mainline scope; no CCCI or WMT consumer |
-| Board NTC and battery temperature | No mainline mechanism yet |
+| Board NTC and battery temperature | Battery NTC through `generic-adc-thermal` on the BATON channel, with a critical trip at 60 °C; the charge guard stops at 50 and 0 °C. No board NTC |
 | BQ25896 TS input (hardware JEITA) | TS read 49.8% of REGN in all 54 reads across four boots, charging or not (likely a fixed divider, not the NTC; inference), so the charger's own temperature cutoffs most likely never act |
-| TOPRGU thermal route under mainline | Unread; one `devmem` read on the next station boot |
+| TOPRGU thermal route under mainline | [Read on station 10](../../experiments/2026-10-31-gemini-thermal-protection/README.md#station-10-boot-e7139954-temperature-live-reset-armed), after the arm |
 
 ## 9. Open questions
 

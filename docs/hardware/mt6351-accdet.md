@@ -4,6 +4,10 @@ Scope: the MT6351 accessory-detect block used by the Gemini headset jack.
 This is a design record, not a claim of runtime support. The vendor source,
 the register map and the existing MT6359 driver are the inputs.
 
+Plug and unplug already reach the `Headphone Jack` control on the station, through
+[a smaller change](../../experiments/2026-11-01-gemini-jack-detect/README.md) on the ACCDET EINT.
+Headset classification, the microphone bias path and buttons remain this plan.
+
 ## 1. Why the MT6359 driver is not reusable
 
 Mainline `sound/soc/codecs/mt6359-accdet.c` is a roughly 1,000-line driver

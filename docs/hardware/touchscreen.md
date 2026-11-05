@@ -93,11 +93,18 @@ wrapper node; the Gemian baseline shows that rail disabled with touch working.
 On mainline the controller's firmware block reports firmware `0x05`/`0xfa`,
 18x32 channels and 1080x2160, and project ID `0x0101`.
 
+The module, loaded by hand on the station, reported up to 3 contacts in separate slots on
+one boot. On a later boot a touch on a blanked screen gave no interrupt and a drag on a lit
+one gave 104. The client's bus number has moved between kernels, so find it by address on
+`11011000.i2c`. Demonstrated support is in the [matrix](../HARDWARE_SUPPORT.md).
+
 ## 5. Open questions
 
 1. Does the Gemini controller also answer the upstream `0x78`/`0x00` interface
    at the client address? Its firmware block is at `0x78` on the second target.
 2. Which rails power the controller? It works on mainline with none named.
+   Does blanking stop it sensing because the panel goes off? That's inferred, and it would
+   mean a touch can't wake a blanked console on this path.
 3. When, if ever, did a vendor stack flash this controller? The 2026-07-14
    Gemian boot only verified the checksum and did not write flash.
 

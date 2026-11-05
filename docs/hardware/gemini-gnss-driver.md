@@ -334,7 +334,7 @@ Read from the patches, the kernel source and [step 6](../../experiments/2026-11-
 | NMEA channel mapping | `byte1 >> 5`; per-channel behavior unproven |
 | GPIO 69 / LNA population | board pin exists; physical LNA not established |
 | Coexistence de-sense packet | not implemented; may matter with Wi-Fi/BT active |
-| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path; no stock trace yet; the Gemian DSP boot and 20 minutes of packets after it were [traced](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md) and partly decoded; up to 10 satellites tracked outdoors, no fix in 5 minutes |
+| Stock Gemini path | the stock Android system has `libmnl.so`, `mnld` and `gps.conf` but no `MNL.bin`; the host-side path is the likely stock path. [Traced under stock Gemian](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md): the DSP boot and its packets, up to 10 satellites on a 5 minute walk with no fix, a first fix at 158 s under open sky, and positions from a minimal host with `mnld` stopped |
 
 ## Evidence
 
@@ -343,8 +343,8 @@ Read from the patches, the kernel source and [step 6](../../experiments/2026-11-
 - [GNSS reverse-engineering record](../../experiments/2026-11-01-gemini-gnss-re/README.md):
   the `libmnl`/`mnld` decompilation, frame and type evidence.
 - [GNSS link record](../../experiments/2026-11-01-gemini-gnss-link/README.md):
-  T1 link pass, the T3 firmware assert, the `MNL.bin` inference and the
-  current parked state.
+  T1 link pass, the T3 firmware assert, the `MNL.bin` inference, and the host path's
+  T4 and T5 results that followed the parked offload plan.
 - Vendor kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `gps_emi.c`, `stp_chrdev_gps.c`, `stp_core.c`.
 - Retained `ROMv3_patch_1_1_hdr.bin` and its load address; the patch

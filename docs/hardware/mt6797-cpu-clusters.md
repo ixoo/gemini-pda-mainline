@@ -150,7 +150,7 @@ SPM-request, and SCP-local DVFS modules (`drivers/CM4_A/mt6797/dvfs/src/dvfs.c`,
 voltage. It contains no application CPU cluster, PSCI, or thermal trip code.
 This closes the recurring question of whether the SCP is the missing CPU8/9
 power owner: it is not. The same conclusion is recorded in
-[thermal management](mt6797-thermal-management.md#5-firmware-and-calibration-ownership).
+[thermal management](mt6797-thermal-management.md#6-firmware-roles).
 
 ### 2.5 Vendor Linux CPU firmware
 
@@ -677,10 +677,11 @@ and [thermal management](mt6797-thermal-management.md#7-userspace-policy-android
 | CPU0-7 A53 serviceability | Online and accounting on the current baseline; not full CPU support (no cpufreq, idle, thermal, or coherency stress) | [A53 sweep](../../experiments/2026-07-18-cortex-a53-sweep-diagnostic/README.md) |
 | Three-cluster `cpu-map` | Implemented by canonical patch `0482`; live 4+4+2 topology and dual-A72 RAM integrity pass | [Topology result](../../experiments/2026-09-02-mainline-mt6797-cpu-map/README.md) |
 | CPU8/9 admission | Experimental, fail-closed by default; both cores online, exact affinity, accounting, CPU9 down/restore, and bounded RAM integrity demonstrated | [Lifecycle gate](../../experiments/2026-09-02-mainline-a72-hotplug-lifecycle-gate/README.md) |
+| CPU8/9 on the station | Opt-in `mt6797-a53-station-a72` profile: both online from a module on two boots, correct hashes over 25 min beside Wi-Fi and audio traffic, firmware's fixed 750 MHz. Not default, loaded by hand, all ten CPUs not loaded at once | [All ten cores](../../experiments/2026-11-01-mt6797-all-cores/README.md) |
 | A72 frequency/thermal observation | Read-only observer proved LL 897 MHz, L 1274 MHz, B 750 MHz, CCI 629.5 MHz and ~53.5 C across one bounded run; the thermal comparison was later rejected on a separate boot | [Frequency pass](../../experiments/2026-09-04-mt6797-a72-frequency-observation/results/zero-divider-runtime-pass-20260904.txt), [thermal rejection](../../experiments/2026-09-04-mt6797-a72-frequency-observation/results/cold-rise-runtime-thermal-rejected.txt) |
 | CPU clock backend | Read-only MCUMIXED owner and protected-clock/BigiDVFS backends bind; no writable OPP or cpufreq | [Live resource map](mt6797-live-resource-map.md#cpu-dvfs-thermal-idle-and-suspend) |
 | DA921x | Two read-only providers bind; one same-value write/readback proved; no active rail or rollback | [DA921x boundary](da921x-i2c6-a72.md) |
-| Idle, suspend, thermal protection, cpufreq/OPP | Not implemented | [Support matrix](../HARDWARE_SUPPORT.md) |
+| Idle, suspend, cpufreq/OPP, CPU cooling | Not implemented. Thermal trips exist on the station, shown armed only | [Support matrix](../HARDWARE_SUPPORT.md) |
 
 Mainline deliberately does not copy the vendor HMP/HPS/PPM policy. The durable
 transferable items are the core/cluster topology, the firmware ownership split,
@@ -754,7 +755,7 @@ implemented feature.
 | External iDVFS enable/disable trigger | In-tree call sites are `#if 0`; the selected 721-file userspace corpus and device-tree init rules contain no `idvfs`/`dvt_test` reference | Read-only process and `/etc`/`/usr` inspection around one natural B transition |
 | Cycle-accurate PCM/iDVFS arbitration on B | Both layers can touch the B PLL/rail in one transition | Read-only trace of PCM status, iDVFS registers, BUCKB and SRAM-LDO |
 | Runtime HICA trajectory | State limits and rules are known; the historical sequence under load is not | Read-only load/TLP/state sampling |
-| cpufreq/OPP, idle, suspend, thermal protection | No mainline policy exists | Separate measured provider and thermal acceptance gates |
+| cpufreq/OPP, idle, suspend, CPU cooling | No mainline policy exists | Separate measured provider and thermal acceptance gates |
 | General hotplug, coherency stress, longer A72 load | Only bounded experiments exist | New experiment admission; do not repeat identical artifacts |
 
 ## 8. Implementation constraints
