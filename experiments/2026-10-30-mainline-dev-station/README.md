@@ -1165,3 +1165,8 @@ and the three expected hashes. One unit. The private copy made for the test is d
 **Not shown:** the device's eMMC or its kernel's loop path; a real radio start from these copies; any other owner's layout.
 
 **Added device step:** before step 2, `firmware-get` alone, then compare the three hashes against the station's copies.
+
+**What this candidate carries unproven,** as of the custodian's review: `d060cfa8`'s camera fix, whose retest hasn't passed,
+and `kbd-capslock` as the default trigger. `6b966fe9`'s LED load at boot is the station's and isn't in this image, which loads
+LEDs only through `hw-start`. Caps Lock turning off on a blank or lid change isn't in this image, and adding it would change the image.
+**Queue:** accepted by the custodian after the libcamera retest, not yet written.
