@@ -35,7 +35,7 @@ image, and it has run on one unit.
 | microSD, sensors | Unknown | Prepared, never booted |
 | GNSS | Partial | No position on mainline |
 | Modem | Not started | No mainline path |
-| Camera | Diagnostic stills only | [Stills on the panel through debugfs](../experiments/2026-11-04-gemini-camera-receiver/README.md#d1-and-d2-the-camera-on-the-panel); no capture node, and M4U bypassed by hand |
+| Camera | Capture node on one boot | [Streams through a test tool](../experiments/2026-11-04-gemini-camera-receiver/README.md#n1-and-n2-the-capture-node); local format code, no application tried, and M4U bypassed by hand |
 
 ## Blockers for a first test release
 

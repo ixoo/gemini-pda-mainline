@@ -1,0 +1,166 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 21:23:48 -0500
+Subject: [PATCH 574/576] media: i2c: hi556: add a horizontal flip control
+
+The orientation register holds 0x0100 in the start-up table, and bit 8 flips each
+line. It swaps the first line's pixels, so report the matching Bayer order and hold
+the control while streaming.
+---
+ drivers/media/i2c/hi556.c | 51 +++++++++++++++++++++++++++++++++------
+ 1 file changed, 43 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/media/i2c/hi556.c b/drivers/media/i2c/hi556.c
+index 4f1dbb0c4..6a9c0df49 100644
+--- a/drivers/media/i2c/hi556.c
++++ b/drivers/media/i2c/hi556.c
+@@ -68,6 +68,10 @@
+ #define HI556_DGTL_GAIN_DEFAULT		256
+ 
+ /* Test Pattern Control */
++#define HI556_REG_ORIENTATION		0x000e
++#define HI556_ORIENTATION_DEFAULT	0x0100
++#define HI556_ORIENTATION_HFLIP		BIT(8)
++
+ #define HI556_REG_ISP			0X0a05
+ #define HI556_REG_ISP_TPG_EN		0x01
+ #define HI556_REG_TEST_PATTERN		0x0201
+@@ -649,6 +653,7 @@ struct hi556 {
+ 	struct v4l2_ctrl *vblank;
+ 	struct v4l2_ctrl *hblank;
+ 	struct v4l2_ctrl *exposure;
++	struct v4l2_ctrl *hflip;
+ 	struct v4l2_ctrl *digital_gain;
+ 	struct v4l2_ctrl *red_balance;
+ 	struct v4l2_ctrl *blue_balance;
+@@ -832,6 +837,13 @@ static int hi556_set_ctrl(struct v4l2_ctrl *ctrl)
+ 		ret = hi556_update_digital_gain(hi556, ctrl->val);
+ 		break;
+ 
++	case V4L2_CID_HFLIP:
++		ret = hi556_write_reg(hi556, HI556_REG_ORIENTATION,
++				      HI556_REG_VALUE_16BIT,
++				      ctrl->val ? HI556_ORIENTATION_DEFAULT ^ HI556_ORIENTATION_HFLIP :
++						  HI556_ORIENTATION_DEFAULT);
++		break;
++
+ 	case V4L2_CID_RED_BALANCE:
+ 		ret = hi556_write_mwb_gain(hi556, HI556_REG_MWB_R_GAIN,
+ 					   hi556->digital_gain->val, ctrl->val);
+@@ -879,7 +891,7 @@ static int hi556_init_controls(struct hi556 *hi556)
+ 	int ret;
+ 
+ 	ctrl_hdlr = &hi556->ctrl_handler;
+-	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 10);
++	ret = v4l2_ctrl_handler_init(ctrl_hdlr, 11);
+ 	if (ret)
+ 		return ret;
+ 
+@@ -922,6 +934,9 @@ static int hi556_init_controls(struct hi556 *hi556)
+ 						HI556_DGTL_GAIN_MIN, HI556_DGTL_GAIN_MAX,
+ 						HI556_DGTL_GAIN_STEP,
+ 						HI556_DGTL_GAIN_DEFAULT);
++	hi556->hflip = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops, V4L2_CID_HFLIP, 0, 1, 1, 0);
++	if (hi556->hflip)
++		hi556->hflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
+ 	/* 256 is unity, as for the digital gain, which they multiply. */
+ 	hi556->red_balance = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops,
+ 					       V4L2_CID_RED_BALANCE,
+@@ -951,12 +966,18 @@ static int hi556_init_controls(struct hi556 *hi556)
+ 	return 0;
+ }
+ 
+-static void hi556_assign_pad_format(const struct hi556_mode *mode,
++/* The order of the first line swaps with the flip. */
++static u32 hi556_mbus_code(struct hi556 *hi556)
++{
++	return hi556->hflip->val ? MEDIA_BUS_FMT_SRGGB10_1X10 : MEDIA_BUS_FMT_SGRBG10_1X10;
++}
++
++static void hi556_assign_pad_format(struct hi556 *hi556, const struct hi556_mode *mode,
+ 				    struct v4l2_mbus_framefmt *fmt)
+ {
+ 	fmt->width = mode->width;
+ 	fmt->height = mode->height;
+-	fmt->code = MEDIA_BUS_FMT_SGRBG10_1X10;
++	fmt->code = hi556_mbus_code(hi556);
+ 	fmt->field = V4L2_FIELD_NONE;
+ }
+ 
+@@ -1083,11 +1104,15 @@ static int hi556_start_streaming(struct hi556 *hi556)
+ 		return ret;
+ 	}
+ 
++	/* It changes the Bayer order. */
++	__v4l2_ctrl_grab(hi556->hflip, true);
++
+ 	return 0;
+ }
+ 
+ static void hi556_stop_streaming(struct hi556 *hi556)
+ {
++	__v4l2_ctrl_grab(hi556->hflip, false);
+ 	if (hi556_write_reg(hi556, HI556_REG_MODE_SELECT,
+ 			    HI556_REG_VALUE_16BIT, HI556_MODE_STANDBY))
+ 		dev_err(hi556->dev, "failed to set stream\n");
+@@ -1135,7 +1160,7 @@ static int hi556_set_format(struct v4l2_subdev *sd,
+ 				      fmt->format.height);
+ 
+ 	mutex_lock(&hi556->mutex);
+-	hi556_assign_pad_format(mode, &fmt->format);
++	hi556_assign_pad_format(hi556, mode, &fmt->format);
+ 	if (fmt->which == V4L2_SUBDEV_FORMAT_TRY) {
+ 		*v4l2_subdev_state_get_format(sd_state, fmt->pad) = fmt->format;
+ 	} else {
+@@ -1174,7 +1199,7 @@ static int hi556_get_format(struct v4l2_subdev *sd,
+ 		fmt->format = *v4l2_subdev_state_get_format(sd_state,
+ 							    fmt->pad);
+ 	else
+-		hi556_assign_pad_format(hi556->cur_mode, &fmt->format);
++		hi556_assign_pad_format(hi556, hi556->cur_mode, &fmt->format);
+ 
+ 	mutex_unlock(&hi556->mutex);
+ 
+@@ -1185,10 +1210,14 @@ static int hi556_enum_mbus_code(struct v4l2_subdev *sd,
+ 				struct v4l2_subdev_state *sd_state,
+ 				struct v4l2_subdev_mbus_code_enum *code)
+ {
++	struct hi556 *hi556 = to_hi556(sd);
++
+ 	if (code->index > 0)
+ 		return -EINVAL;
+ 
+-	code->code = MEDIA_BUS_FMT_SGRBG10_1X10;
++	mutex_lock(&hi556->mutex);
++	code->code = hi556_mbus_code(hi556);
++	mutex_unlock(&hi556->mutex);
+ 
+ 	return 0;
+ }
+@@ -1197,10 +1226,16 @@ static int hi556_enum_frame_size(struct v4l2_subdev *sd,
+ 				 struct v4l2_subdev_state *sd_state,
+ 				 struct v4l2_subdev_frame_size_enum *fse)
+ {
++	struct hi556 *hi556 = to_hi556(sd);
++	u32 code;
++
+ 	if (fse->index >= ARRAY_SIZE(supported_modes))
+ 		return -EINVAL;
+ 
+-	if (fse->code != MEDIA_BUS_FMT_SGRBG10_1X10)
++	mutex_lock(&hi556->mutex);
++	code = hi556_mbus_code(hi556);
++	mutex_unlock(&hi556->mutex);
++	if (fse->code != code)
+ 		return -EINVAL;
+ 
+ 	fse->min_width = supported_modes[fse->index].width;
+@@ -1217,7 +1252,7 @@ static int hi556_open(struct v4l2_subdev *sd, struct v4l2_subdev_fh *fh)
+ 	struct v4l2_rect *try_crop;
+ 
+ 	mutex_lock(&hi556->mutex);
+-	hi556_assign_pad_format(&supported_modes[0],
++	hi556_assign_pad_format(hi556, &supported_modes[0],
+ 				v4l2_subdev_state_get_format(fh->state, 0));
+ 
+ 	/* Initialize try_crop rectangle. */

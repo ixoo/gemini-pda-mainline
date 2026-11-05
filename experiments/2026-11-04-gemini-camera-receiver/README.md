@@ -318,7 +318,32 @@ N2, same boot, five-second runs of a real scene on the panel, all 150 of 150, no
 - `-e 500`: darker, by the owner's eye. The tool's `-f 1` mirror worked.
 - `-R 512`: ran, 9.36 delivered per second.
 
-Colour wasn't judged by eye; a measurement from the tool's `-m` follows. Until then the Bayer order of a real scene is open:
-the vendor driver's notes for `0x000e` suggest Gb first at upstream's `0x0100`, while upstream and this view assume Gr first,
-and the test pattern may ignore that register. There are no guard bytes around these buffers, and stray writes are not
+N3, same boot, script `19a4fa96`, a still scene, nothing drawn or saved. Means of the four cell positions, 10-bit:
+
+| Exposure | Run | p00 | p01 | p10 | p11 |
+| --- | --- | --- | --- | --- | --- |
+| 2000 | Baseline | 83.3 | 80.9 | 74.1 | 83.3 |
+| 2000 | Red 512 | 83.4 | 93.5 | 74.1 | 83.3 |
+| 2000 | Blue 512 | 83.4 | 80.9 | 80.9 | 83.3 |
+| 2000 | Analogue gain 60 | 137.4 | 127.0 | 97.6 | 137.2 |
+| 2000 | Baseline again | 83.4 | 80.9 | 74.1 | 83.4 |
+| 500 | Baseline | 70.9 | 70.1 | 68.0 | 70.9 |
+| 500 | Red 512 | 70.9 | 74.0 | 68.0 | 70.9 |
+| 500 | Blue 512 | 70.9 | 70.1 | 70.3 | 70.9 |
+| 500 | Analogue gain 60 | 86.2 | 83.3 | 75.5 | 86.2 |
+| 500 | Baseline again | 71.0 | 70.1 | 68.0 | 70.9 |
+
+Inference: only p01 answers the red control and only p10 the blue, so the order at upstream's `0x000e = 0x0100` is GRBG as
+the driver reports. Red and blue are not swapped. This corrects my reading of the vendor driver's notes on that register.
+Analogue gain raises all four, by a similar factor, which fits `0570`. Doubling the balance would imply a black level near
+66 to 68, not the 64 assumed, but the levels are low, so that is only a suggestion. This is channel response, and colour
+accuracy is unmeasured. There are no guard bytes around these buffers, and stray writes are not
 ruled out.
+
+## N4: the flip
+
+Not run. [`0574`](../../patches/proposals/0574-media-i2c-hi556-add-a-horizontal-flip-control.patch) adds `V4L2_CID_HFLIP`, writing
+`0x000e`. [`0575`](../../patches/proposals/0575-media-mediatek-mt6797-seninf-take-the-sensor-s-flipp.patch) carries the flipped
+order through the receiver and node. [`0576`](../../patches/proposals/0576-media-i2c-hi556-LOCAL-mirror-the-front-camera-by-def.patch)
+is local: the owner chose mirrored by default and changeable from userspace, while the upstream-bound control defaults off.
+That the flip gives RGGB is assumed and is what N4 measures.

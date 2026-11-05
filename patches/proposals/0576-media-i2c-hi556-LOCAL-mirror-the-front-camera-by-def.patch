@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 21:23:50 -0500
+Subject: [PATCH 576/576] media: i2c: hi556: LOCAL: mirror the front camera by
+ default
+
+The owner wants the built-in front camera to behave like a mirror unless userspace
+says otherwise. This is policy, so it stays in this series, and upstream keeps the
+default of 0. Frames saved or sent are mirrored too.
+---
+ drivers/media/i2c/hi556.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/media/i2c/hi556.c b/drivers/media/i2c/hi556.c
+index 6a9c0df49..65e2de445 100644
+--- a/drivers/media/i2c/hi556.c
++++ b/drivers/media/i2c/hi556.c
+@@ -934,7 +934,7 @@ static int hi556_init_controls(struct hi556 *hi556)
+ 						HI556_DGTL_GAIN_MIN, HI556_DGTL_GAIN_MAX,
+ 						HI556_DGTL_GAIN_STEP,
+ 						HI556_DGTL_GAIN_DEFAULT);
+-	hi556->hflip = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops, V4L2_CID_HFLIP, 0, 1, 1, 0);
++	hi556->hflip = v4l2_ctrl_new_std(ctrl_hdlr, &hi556_ctrl_ops, V4L2_CID_HFLIP, 0, 1, 1, 1);
+ 	if (hi556->hflip)
+ 		hi556->hflip->flags |= V4L2_CTRL_FLAG_MODIFY_LAYOUT;
+ 	/* 256 is unity, as for the digital gain, which they multiply. */

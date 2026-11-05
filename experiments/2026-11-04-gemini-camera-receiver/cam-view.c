@@ -6,17 +6,22 @@
  *   aarch64-linux-gnu-gcc -O2 -Wall -Wextra -static -o cam-view cam-view.c -lm
  *
  * usage: cam-view [-d VIDEO] [-s SUBDEV] [-n FRAMES] [-e EXPOSURE] [-g GAIN] [-p PATTERN]
- *                 [-D DIGITAL] [-R RED] [-B BLUE] [-f FLIP] [-b] [-F] [-m]
+ *                 [-D DIGITAL] [-R RED] [-B BLUE] [-H HFLIP] [-r RECEIVER]
+ *                 [-f FLIP] [-b] [-F] [-m]
  *
  *   -s    the sensor's sub-device, needed for -e, -g, -p, -D, -R and -B
  *   -R -B the sensor's red and blue balance, 256 is unity; they turn the tool's own
  *         grey-world balance off
+ *   -H    the sensor's horizontal flip, which changes the Bayer order
+ *   -r    the receiver's sub-device: copy the sensor's format through it to the node, so
+ *         the node matches the current flip
  *   -f    bit 0 mirrors, bit 1 flips, for the picture on the panel
  *   -b    the sensor is showing colour bars: count frames with any line that differs
  *         from line 0 or 1 of the same frame
  *   -F    do not touch the framebuffer
  *   -m    print the mean of each of the four positions in the 2x2 Bayer cell, and the
- *         share of pixels near full scale, over all frames but the first two
+ *         share of pixels near full scale, over all frames but the first two, and
+ *         the mean of the left and right halves of the frame
  *
  * The picture is rough: one RGB pixel per GRBG cell, black level off, a square-root
  * curve, and grey-world colour balance from the previous frame. Nothing is saved.
@@ -24,6 +29,7 @@
  */
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/v4l2-subdev.h>
 #include <linux/videodev2.h>
 #include <math.h>
 #include <poll.h>
@@ -41,6 +47,11 @@
 #define FB_W 1080
 #define FB_H 2160
 #define BLACK 64
+
+#ifndef V4L2_PIX_FMT_MTISP_SGRBG10
+#define V4L2_PIX_FMT_MTISP_SGRBG10 v4l2_fourcc('M', 'B', 'g', 'A')
+#define V4L2_PIX_FMT_MTISP_SRGGB10 v4l2_fourcc('M', 'B', 'R', 'A')
+#endif
 
 static void die(const char *what)
 {
@@ -87,7 +98,8 @@ static unsigned int bad_lines(const uint8_t *f, unsigned int stride, unsigned in
 }
 
 static void draw(uint32_t *fb, unsigned int fb_stride, const uint8_t *f, unsigned int stride,
-		 unsigned int w, unsigned int h, unsigned int flip, const uint8_t curve[3][1024],
+		 unsigned int w, unsigned int h, unsigned int flip, int rggb,
+		 const uint8_t curve[3][1024],
 		 uint64_t sum[3])
 {
 	unsigned int cw = w / 2, ch = h / 2;
@@ -101,9 +113,9 @@ static void draw(uint32_t *fb, unsigned int fb_stride, const uint8_t *f, unsigne
 
 		for (x = 0; x < cw; x++) {
 			unsigned int u = flip & 1 ? cw - 1 - x : x;
-			unsigned int r = raw10(l0, 2 * x + 1);
-			unsigned int g = (raw10(l0, 2 * x) + raw10(l1, 2 * x + 1)) / 2;
-			unsigned int b = raw10(l1, 2 * x);
+			unsigned int r = raw10(l0, 2 * x + !rggb);
+			unsigned int g = (raw10(l0, 2 * x + rggb) + raw10(l1, 2 * x + !rggb)) / 2;
+			unsigned int b = raw10(l1, 2 * x + rggb);
 			uint32_t *px = (uint32_t *)((uint8_t *)fb +
 						    (FB_H - 1 - (u0 + u)) * fb_stride) + v0 + v;
 
@@ -117,7 +129,7 @@ static void draw(uint32_t *fb, unsigned int fb_stride, const uint8_t *f, unsigne
 
 /* Over every cell of the frame. */
 static void measure(const uint8_t *f, unsigned int stride, unsigned int w, unsigned int h,
-		    uint64_t mean[4], uint64_t high[4])
+		    uint64_t mean[4], uint64_t high[4], uint64_t half[2])
 {
 	unsigned int x, y;
 
@@ -130,6 +142,7 @@ static void measure(const uint8_t *f, unsigned int stride, unsigned int w, unsig
 
 			mean[pos] += v;
 			high[pos] += v >= 1000;
+			half[x >= w / 2] += v;
 		}
 	}
 }
@@ -157,7 +170,8 @@ int main(int argc, char **argv)
 {
 	const char *video = "/dev/video0", *subdev = NULL;
 	unsigned int frames = 30, flip = 0, i, bad_frames = 0, gaps = 0;
-	int exposure = -1, gain = -1, pattern = -1, digital = -1, red = -1, blue = -1;
+	int exposure = -1, gain = -1, pattern = -1, digital = -1, red = -1, blue = -1, hflip = -1;
+	const char *receiver = NULL;
 	int bars = 0, use_fb = 1, means = 0, opt, fd, sfd = -1, fbfd;
 	struct v4l2_format fmt = { .type = V4L2_BUF_TYPE_VIDEO_CAPTURE };
 	struct v4l2_requestbuffers req = { 0 };
@@ -165,12 +179,12 @@ int main(int argc, char **argv)
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	void *map[NBUF];
 	uint8_t *copy, curve[3][1024];
-	uint64_t sum[3] = { 0, 0, 0 }, mean[4] = { 0 }, high[4] = { 0 };
+	uint64_t sum[3] = { 0, 0, 0 }, mean[4] = { 0 }, high[4] = { 0 }, half[2] = { 0 };
 	unsigned int measured = 0;
 	uint32_t *fb = NULL, last_seq = 0;
 	double start = 0, end = 0;
 
-	while ((opt = getopt(argc, argv, "d:s:n:e:g:p:D:R:B:f:bFm")) != -1) {
+	while ((opt = getopt(argc, argv, "d:s:n:e:g:p:D:R:B:H:r:f:bFm")) != -1) {
 		switch (opt) {
 		case 'd': video = optarg; break;
 		case 's': subdev = optarg; break;
@@ -181,6 +195,8 @@ int main(int argc, char **argv)
 		case 'D': digital = atoi(optarg); break;
 		case 'R': red = atoi(optarg); break;
 		case 'B': blue = atoi(optarg); break;
+		case 'H': hflip = atoi(optarg); break;
+		case 'r': receiver = optarg; break;
 		case 'f': flip = atoi(optarg); break;
 		case 'b': bars = 1; break;
 		case 'F': use_fb = 0; break;
@@ -210,12 +226,30 @@ int main(int argc, char **argv)
 		set_ctrl(sfd, V4L2_CID_RED_BALANCE, red, "red");
 	if (blue >= 0)
 		set_ctrl(sfd, V4L2_CID_BLUE_BALANCE, blue, "blue");
+	if (hflip >= 0)
+		set_ctrl(sfd, V4L2_CID_HFLIP, hflip, "hflip");
 
 	fd = open(video, O_RDWR);
 	if (fd < 0)
 		die(video);
 	if (ioctl(fd, VIDIOC_G_FMT, &fmt) < 0)
 		die("G_FMT");
+	if (receiver) {
+		struct v4l2_subdev_format sf = { .which = V4L2_SUBDEV_FORMAT_ACTIVE, .pad = 0 };
+		int rfd = open(receiver, O_RDWR);
+
+		if (rfd < 0)
+			die(receiver);
+		if (sfd < 0 || ioctl(sfd, VIDIOC_SUBDEV_G_FMT, &sf) < 0)
+			die("sensor format");
+		if (ioctl(rfd, VIDIOC_SUBDEV_S_FMT, &sf) < 0)
+			die("receiver format");
+		fmt.fmt.pix.pixelformat = sf.format.code == MEDIA_BUS_FMT_SRGGB10_1X10 ?
+					  V4L2_PIX_FMT_MTISP_SRGGB10 : V4L2_PIX_FMT_MTISP_SGRBG10;
+		if (ioctl(fd, VIDIOC_S_FMT, &fmt) < 0)
+			die("S_FMT");
+		close(rfd);
+	}
 	printf("format %.4s %ux%u stride %u size %u\n", (char *)&fmt.fmt.pix.pixelformat,
 	       fmt.fmt.pix.width, fmt.fmt.pix.height, fmt.fmt.pix.bytesperline,
 	       fmt.fmt.pix.sizeimage);
@@ -286,7 +320,7 @@ int main(int argc, char **argv)
 
 		if (means && i >= 2) {
 			measure(copy, fmt.fmt.pix.bytesperline, fmt.fmt.pix.width,
-				fmt.fmt.pix.height, mean, high);
+				fmt.fmt.pix.height, mean, high, half);
 			measured++;
 		}
 		if (bars) {
@@ -300,7 +334,8 @@ int main(int argc, char **argv)
 		}
 		if (fb) {
 			draw(fb, FB_W * 4, copy, fmt.fmt.pix.bytesperline, fmt.fmt.pix.width,
-			     fmt.fmt.pix.height, flip, curve, sum);
+			     fmt.fmt.pix.height, flip,
+			     fmt.fmt.pix.pixelformat == V4L2_PIX_FMT_MTISP_SRGGB10, curve, sum);
 			if (!bars && red < 0 && blue < 0)
 				make_curves(curve, sum);
 		}
@@ -322,6 +357,8 @@ int main(int argc, char **argv)
 		printf("share near full scale: p00 %.4f p01 %.4f p10 %.4f p11 %.4f\n",
 		       (double)high[0] / n, (double)high[1] / n, (double)high[2] / n,
 		       (double)high[3] / n);
+		printf("half means: left %.1f right %.1f\n", (double)half[0] / (2 * n),
+		       (double)half[1] / (2 * n));
 	}
 	if (bars)
 		printf("frames with a bad line %u\n", bad_frames);

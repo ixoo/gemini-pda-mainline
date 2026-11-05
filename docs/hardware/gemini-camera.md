@@ -398,7 +398,7 @@ first CAMSV frame are shown, and colour bars reach memory (C5); the next step is
 capture interface. The station chronology is in the
 [camera record](../../experiments/2026-11-04-gemini-camera/README.md) and the
 [receiver record](../../experiments/2026-11-04-gemini-camera-receiver/README.md),
-with patches under `patches/proposals/0543`-`0570`. A capture node exists
+with patches under `patches/proposals/0543`-`0576`. A capture node exists
 in the series (0568) and streams (N1); the earlier picture on the panel (D1/D2) came from the diagnostic it replaced.
 
 ### Master clock on mainline
@@ -419,7 +419,7 @@ frequency meter (T7).
 | Driver's own probe | `observed` - T12, `chip id 0x0556` on two loads on one boot, with 0553 enabling the interface before starting its generator |
 | Receiver link | `observed` - R1/R2 reached the mux at 2592 x 1944 at about 30 fps; status bits and pixel content remain open |
 | Diagnostic CAMSV frame | `observed` - C2 reached `CAMSV_TG_DAT_NO` one short of a full frame |
-| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked. Colour was not judged by eye; orientation and exposure were not reported. The capture node (0568) streams colour bars with no bad lines (N1); the Bayer order of a real scene is open |
+| DMA write and image | `observed` on a diagnostic path with CAMSV0 bypassing M4U: colour bars in memory (C5), and on the panel with a real scene as stills (D1/D2). The owner reported that it worked. Colour was not judged by eye; orientation and exposure were not reported. The capture node (0568) streams colour bars with no bad lines (N1); measured channel response fits GRBG at `0x000e = 0x0100` (N3) |
 | MIPI pad for the SUB sensor | `inferred` - `getMipiSensorPort()` returns the device index (SUB = 1); mapping to `seninfSrc` unresolved |
 | Exact CSI timing values | `unresolved` - computed at runtime from the selected mode and CAMTG parent |
 | PDN polarity | `observed` in the vendor table; upstream `hi556` has no PDN control |
@@ -439,7 +439,7 @@ frequency meter (T7).
 - [SP5509 source contract](../../experiments/2026-07-13-camera-recovery/results/sp5509-source-contract.md)
 - [Gemian hardware baseline](gemini-gemian-baseline.md) and [vendor userspace](vendor-userspace.md)
 - [Vendor kernel ABI](vendor-kernel-abi.md)
-- Station series `patches/proposals/0543`-`0570`; profile fragment
+- Station series `patches/proposals/0543`-`0576`; profile fragment
   `configs/gemini-a53-station-camera.fragment`.
 - Pinned Gemian kernel `8cfe6596a503612e3332d9c26e292a19525a7f07`:
   `drivers/misc/mediatek/imgsensor/src/mt6797/`,

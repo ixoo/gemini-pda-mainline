@@ -1154,3 +1154,6 @@ proposals/0570-media-i2c-hi556-write-the-analogue-gain-to-its-own-r.patch
 proposals/0571-dt-bindings-leds-add-AWINIC-AW9120.patch
 proposals/0572-leds-rgb-add-a-driver-for-the-AWINIC-AW9120.patch
 proposals/0573-arm64-dts-mediatek-gemini-station-describe-the-indic.patch
+proposals/0574-media-i2c-hi556-add-a-horizontal-flip-control.patch
+proposals/0575-media-mediatek-mt6797-seninf-take-the-sensor-s-flipp.patch
+proposals/0576-media-i2c-hi556-LOCAL-mirror-the-front-camera-by-def.patch
