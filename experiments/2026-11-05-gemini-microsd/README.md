@@ -195,8 +195,8 @@ matched. Raw outputs are private.
 - Rails, PMIC registers and pads were identical to step 1.
 
 The only new log lines were a lid close and open during the insertion. Whether the card
-clicked fully into place is not established. Steps 3 to 5 weren't run, so nothing was
-mounted or written.
+clicked fully into place was asked afterwards. The owner answered "Yes, it clicked in",
+so the result stands. Steps 3 to 5 weren't run, so nothing was mounted or written.
 
 **Conclusion.** This is the table's "no change on GPIO67" branch.
 
@@ -222,7 +222,9 @@ pull-up.
 
 ### T1b (predeclared)
 
-Same boot or any boot of the T1 image. The owner says whether the card was seated.
+Same boot or any boot of the T1 image. If the card is still in at the start, run step 1
+with it in, then step 2. The pin should then go high with an EINT6 edge. Then do step 3
+in reverse: empty, then inserted again.
 
 1. Slot empty. Read `0x100028e0`, `0x100028c0` and `0x10002810` with `devmem`, plus
    the `gpio-67` line and the EINT6 count.
