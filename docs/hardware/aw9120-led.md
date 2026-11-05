@@ -2,7 +2,7 @@
 
 Scope: the AWINIC AW9120 20-channel LED controller on the Gemini PDA, the vendor
 kernel interface, the Gemian `gemian-leds` daemon, and the mainline driver. This is
-a source, data-sheet and retained-log study; no LED has been exercised yet.
+a source, data-sheet and retained-log study, plus the driver's first device test.
 
 Evidence chronology is in the
 [2026-10-31 AW9120 experiment](../../experiments/2026-10-31-gemian-aw9120-led/README.md)
@@ -153,57 +153,65 @@ reset clears the program and returns the outputs to their default state.
 
 ## 6. Physical position
 
-Reported, not yet observed here. The public
-[Gemian wiki](https://github.com/gemian/gemian/wiki/LEDs) gives the positions and the
-[user guide](https://support.planetcom.co.uk/) the outside block and power LED:
+From the [device test](../../experiments/2026-11-04-gemini-aw9120-leds/README.md#observations),
+device closed with the logo strip at the top:
 
-| LED | Driven by | Position |
+| LED | AW9120 outputs | Position |
 | --- | --- | --- |
-| Five-LED block | AW9120 outputs 1-15 | Middle of the cover |
-| Extra RGB | AW9120 outputs 16-18 | Cover, at the end away from the power LED |
-| Inside pair | AW9120 outputs 19 red, 20 blue | Inside the device |
-| Power LED | Not the AW9120 | Cover, left. Red, orange, green while charging, per the guide |
-| PMIC `red`/`green` | MT6351 ISINK pair | Beside the power LED, per the wiki |
+| `rgb:indicator-5` to `-1` | 10-12, 7-9, 4-6, 13-15, 1-3 | Five spots around the middle of the cover, in this order from left to right |
+| `rgb:indicator-6` | 16-18 | Cover, far right |
+| `red:` and `blue:indicator-7` | 19, 20 | One LED inside, in the strip left of Q, above Tab and Caps; red and blue only |
 
-So the PMIC pair isn't outputs 19/20: the positions differ, and output 20 is blue while
-the pair has no blue. This is inference from a secondary report until the
-[device test](../../experiments/2026-11-04-gemini-aw9120-leds/README.md#procedure)
-confirms the inside LED. Whether the PMIC pair and the power LED are one package is
-unresolved. The daemon's block numbers aren't known to run in physical order, and
-the test checks that as well.
+The enumerators keep the daemon's block numbers, so they count from the right. Each
+cover group showed one spot in a photo. Output colours other than 1 and 19 come from
+the Gemian daemon, and whether each output lights alone awaits the owner's answer.
+
+Reported, not observed here: the public
+[Gemian wiki](https://github.com/gemian/gemian/wiki/LEDs) puts the power LED to the
+left of the cover, not on this chip, and the MT6351 `red`/`green` pair beside it. The
+[user guide](https://support.planetcom.co.uk/) gives the power LED red, orange and
+green while charging.
+
+So the PMIC pair isn't outputs 19/20: those are inside the device, and the pair is
+reported outside with no blue. Whether the PMIC pair and the power LED are one package
+is unresolved.
 
 ## 7. Mainline position
 
 Linux 7.1.3 has no AW9120 driver. The project's `leds-aw9120` module
 ([0572](../../patches/proposals/0572-leds-rgb-add-a-driver-for-the-AWINIC-AW9120.patch))
-is compile-checked only:
+probes and drives LEDs on the station at 3.5 mA:
 
 - `awinic,aw9120` at I2C3 `0x2c`, active-high `enable-gpios` on GPIO245, chip ID check;
 - each output set by a per-channel `SETPWMI` in `CMDR` with `CTRS=1`. The vendor stack
-  only used the broadcast form, so the per-channel form is from the data sheet;
-- `GCR.LEDE` is set only while an output is lit: 0.55 mA active against 130 uA standby;
+  only used the broadcast form;
+- `GCR.LEDE` is set only while an output is lit: 0.55 mA active against 130 uA standby.
+  Configuration survives clearing it;
 - the SRAM engine and the `/proc` ABI aren't carried forward.
 
 The station device tree names the LEDs by group without assigning a purpose:
 `rgb:indicator-1` to `-5` follow the daemon's block numbers, `rgb:indicator-6` is the
 extra RGB, and `red:indicator-7` and `blue:indicator-7` are outputs 19 and 20. No
-output has a default trigger until the owner chooses. Userspace can set `kbd-capslock`,
-`timer`, `phy0rx` and, with `CONFIG_BT_LEDS`, `hci0-power`.
+output has a default trigger until the owner chooses. `kbd-capslock` and `timer` work
+from userspace. `phy0rx` and its siblings are listed but unexercised; `hci0-power`
+should appear with `CONFIG_BT_LEDS` once Bluetooth is up, and hasn't been seen.
 
 Every output is limited to 3.5 mA, or 70 mA for the chip. From the data sheet's 45 C/W,
 a 4.35 V battery and about 1.8 V across a red LED, that heats the chip about 8 C. The
 same estimate for Gemian's torch, 17 outputs at 24.5 mA, is about 1 W and 48 C. These
-are estimates; nothing has been measured. Don't raise a limit without a thermal check.
+are estimates. All twenty on for 60 s at 3.5 mA moved no thermal zone by more than
+0.3 C, though none is near the LEDs and the owner felt it slightly warmer. Don't raise
+a limit without a thermal check.
 
 The MT6351 pair needs its own work: upstream's `leds-mt6323` doesn't cover the MT6351.
 
 ## 8. Open questions
 
-1. Does the device test confirm that the MT6351 red/green pair and AW9120 outputs
-   19/20 are separate LEDs, as [section 6](#6-physical-position) infers?
+1. Is the MT6351 red/green pair where the wiki says, separate from outputs 19/20 as
+   [section 6](#6-physical-position) infers? The pair hasn't been driven here.
 2. Which Gemian component calls `SetCapsLock`?
-3. What are the measured currents, brightness, and thermal rise, especially for
-   the torch state?
+3. What are the measured currents and brightness, and the thermal rise at higher
+   currents, especially for the torch state?
 4. Does the array or SRAM program survive suspend, and does PDN glitch on
    resume?
 

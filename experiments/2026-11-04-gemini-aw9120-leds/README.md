@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-04-gemini-aw9120-leds` |
-| Status | `planned`: driver, binding and device tree compile-checked; the device test below has not run |
+| Status | `running`: T1 ran on boot `a41d3aa7`; the driver works on the device. Step 9 and two owner questions are open |
 | Subsystem | AW9120 at I2C3 `0x2c`, GPIO245, LED class |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-04 |
@@ -97,12 +97,16 @@ the module from the same package. Attended: the owner watches the outside and th
 inside of the device. Load budget: two loads this boot. Any probe failure stops the
 test with no retry.
 
+The adapter number isn't fixed: `&i2c3` was `4-002c` on T1's image, so find the
+device with `ls -d /sys/bus/i2c/devices/*-002c` and use that name below in place of
+`N-002c`.
+
 1. Note `dmesg | wc -l`. `insmod leds-aw9120.ko`, exit code, new `dmesg` lines,
-   `ls /sys/class/leds`, `ls -l /sys/bus/i2c/devices/3-002c/driver`.
+   `ls /sys/class/leds`, `ls -l /sys/bus/i2c/devices/N-002c/driver`.
 
    Expect `rgb:indicator-1` to `-6`, `red:indicator-7` and `blue:indicator-7`, and
    nothing lit.
-2. `grep -E '^(00|01|50|51|55|56|57|58|59|5a|5b):' /sys/kernel/debug/regmap/3-002c/registers`.
+2. `grep -E '^(00|01|50|51|55|56|57|58|59|5a|5b):' /sys/kernel/debug/regmap/N-002c/registers`.
 
    Expect `00: b223`, `01: 0000`, `50: 0fff`, `51: 00ff`, `55: 0fff`, `56: 00ff`,
    and `1111` in all five IMAX registers.
@@ -150,18 +154,85 @@ test with no retry.
 
 ## Observations
 
-None yet.
+T1: image `c894320e` built from `01bbd719`, boot `a41d3aa7`, module `568ec8ce`,
+`led-walk.sh` `a3dcd8ef`. Camera idle, though that boot had used camera DMA earlier.
+The custodian ran the test and kept the owner's photos, which stay private.
+
+Deviations from the procedure: the bus was `4-002c`, not `3-002c`, and colour wasn't
+judged by eye. The owner wasn't asked to name colours; photos are the only colour
+evidence below.
+
+| Step | Result |
+| --- | --- |
+| 1 | `insmod` rc 0, probe 15627 us, the 8 expected LED devices |
+| 2 | `00: b223`, `01: 0000`, `50: 0fff`, `51: 00ff`, `55: 0fff`, `56: 00ff`, `57`-`5b: 1111` |
+| 3 | Walk rc 0. Owner: outputs 19 and 20 are two colours on the caps lock LED; the others are a series of LEDs of different colours on the back of the screen |
+| 4 | `01: 0000` |
+| 5 | Levels 255, 64, 8, rc 0; owner says they looked different. Mix `255 80 0` rc 0, not judged |
+| 6 | All on for 60 s. `soc-thermal` 28.9 to 28.7 C, `battery-thermal` 26.66 to 26.75 C, `battery` 26.4 to 26.7 C. Owner: feels slightly warmer. No I2C errors |
+| 7 | Triggers listed: `none`, `kbd-capslock`, `timer`, `phy0rx`, `phy0tx`, `phy0assoc`, `phy0radio`. `kbd-capslock` on `red:indicator-7` followed Fn+Caps on and off. `timer` on `rgb:indicator-1` at 500/500 blinked. Wi-Fi wasn't up, so `phy0rx` didn't run. `hci0-power` wasn't listed |
+| 8 | Lit `rgb:indicator-1`, `rmmod` rc 0, it went dark. Pin 245 read low and unclaimed. Second `insmod` rc 0, probe 15583 us, steps 1 and 2 the same. Left loaded, nothing lit, no trigger. Kernel not tainted |
+| 9 | Pending the next ordinary power off |
+
+Positions from angled phone photos, device closed, logo strip at the top, as a
+fraction along the slit. The order is reliable and the spacing is rough; the logo's
+centre is about 0.48.
+
+| LED | Fraction |
+| --- | --- |
+| `rgb:indicator-5` | 0.40 |
+| `rgb:indicator-4` | 0.45 |
+| `rgb:indicator-3` | 0.47 |
+| `rgb:indicator-2` | 0.51 |
+| `rgb:indicator-1` | 0.54 |
+| `rgb:indicator-6` | 0.88, far right |
+
+Each group at `255 255 255` showed one spot in the photos. The owner first described
+`rgb:indicator-1` at white as several positions and colours on one line, then, seeing
+the photo, said it might be a single RGB LED.
+
+Colour evidence: output 1 alone looked red in a photo, the only single cover output
+photographed. Output 19 looked red, in the strip left of Q, above Tab and Caps. Outputs
+19 and 20 together looked violet-blue with a washed-out core.
+
+Asked and not yet answered: whether any walk step lit more than one spot, and whether
+the caps lock LED is separate from the light beside the power LED.
 
 ## Analysis
 
-Pending the device test.
+The chip answers with the camera off, the register model is right, and writes reach
+LEDs through `CMDR`. Clearing `GCR.LEDE` doesn't lose configuration: `01` reads `0000`
+after the walk, and LEDs lit again in every later step, including the timer's repeated
+on and off.
+
+Output 1 alone looking red, and output 19 alone looking red, supports the per-channel
+form of `CMDR`, but the hypothesis that each write lights only its own output needs
+the owner's answer on the walk. The colour order of the other outputs still comes from
+the Gemian daemon.
+
+The block's physical order runs opposite to the daemon's numbers, 5 to 1 from left to
+right, with block 2 in sequence despite its outputs being 13-15. So the DT's groups
+hold, and `-1` to `-5` count from the right.
+
+The 60 s all-on run moved no sensor by more than 0.3 C, but none of those sensors is
+near the LEDs and 60 s is short. The owner's "slightly warmer" wasn't the predeclared
+stop. It shows nothing above 3.5 mA.
+
+`hci0-power` not being listed doesn't test `CONFIG_BT_LEDS`: nothing in this test
+brought up Bluetooth, and that trigger appears with the `hci0` device.
 
 ## Conclusion
 
-Pending. A compile-only result doesn't establish hardware behaviour.
+`confirmed`, for this image and boot: the module probes, reloads and turns its LEDs
+off, and `timer` and `kbd-capslock` drive them, at 3.5 mA. Positions of the six cover
+LEDs and of the caps lock LED are observed.
+
+Not established: per-channel isolation on every output, the colour of each output, the
+state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher current.
 
 ## Follow-up
 
+- Finish step 9 and the two open questions with the custodian.
 - The owner chooses which LED shows what. Until then no DT trigger; a choice becomes
   `linux,default-trigger` in the next batched image, or userspace sets it.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
