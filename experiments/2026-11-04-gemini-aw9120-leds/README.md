@@ -237,6 +237,9 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
   `red:indicator-7`, in [0577](../../patches/proposals/0577-arm64-dts-mediatek-gemini-station-show-caps-lock-on-.patch)
   for the next batched image. After that boot, load the module and check that the LED
   follows Fn+Caps with no trigger written. The other LEDs stay for userspace to set.
+- The owner decided the station should load `leds-aw9120` at boot once that check
+  passes (2026-11-05). Then it goes in the station's `init`, beside `gemini-lid`, with
+  the module added to the initramfs, in a later batched image. Not before the check.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.
