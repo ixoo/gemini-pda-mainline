@@ -53,8 +53,11 @@ upstream, it isn't a daily driver, and a build isn't support.
   LEDs, and the two A72 CPUs on an opt-in profile.
 - **Partly there:** GNSS tracks two live satellites from a userspace host, with no
   position on mainline yet.
+  microSD works on the station after v1, at default speed, with hotplug and a
+  verified write on one card
+  ([record](experiments/2026-11-05-gemini-microsd/README.md#t1c-result-2026-11-05)).
 - **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery
-  life and heat; microSD; USB host; the modem.
+  life and heat; USB host; the modem.
 
 **[v1](docs/RELEASE_READINESS.md) is all of the above, with that limited testing,** still without
 cpufreq or power governors. People can start experimenting with it, at their own risk. The public

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `running`: card detect never changed in T1, nor in T1b with GPIO67's pull-up on. Patch 0580 keeps VMCH on, as the vendor does; T1c is predeclared |
+| Status | `completed`: on T1c's image a 16 GB SDHC card is detected on insert and removal, reads, and a 64 MiB write reads back with the same hash, at default speed and 3.3 V. Card detect needed VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -311,8 +311,71 @@ the card supply with no card.
 | Still no change | Stop. Next, read-only on Gemian: GPIO67's level with and without a card, to check the slot and pin on this unit |
 | Card detected, then CMD `-110` | Stop. The CMD pull-up is next, as in T1's table |
 
+### T1c result (2026-11-05)
+
+Custodian run, owner present. The owner approved the boot ("Yes, boot it") and the
+write on the test card ("Same card is fine").
+
+- Image `f0f66d1bdeb4859e705eeee4c019a58ae78448e6ccdaeaf073d4617669225236`, package
+  `557f9d68…`, profile `mt6797-a53-station-a72` from `b23c2346`. That commit also
+  carries the FM patches 0581 and 0582.
+- Station DTB `c58c636f4adaf3ac96a23e28f83e2eda268eba061d79f077f49287acf74fc1fb`, with
+  VMCH always on.
+- Boot `0b3c33aa`, taint 0 throughout, no warning or Oops. `sd-state.sh` hash matched.
+  Raw outputs are private.
+
+1. **Slot empty.** The eMMC is `mmc0`/`mmcblk0`. `mmc1` has no card, `ios` power off,
+   GPIO67 low. `vmch` is enabled at 3000000 with one user, and `vmc` is disabled.
+   PMIC `0a2e` `da62` (VMCH enable bit set), `0aaa` `1a60`; trims as in T1. Pads are
+   as in T1.
+2. **Test card inserted.**
+   - At 108.29 s the log shows "host does not support reading read-only switch,
+     assuming write-enable", a new SDHC card, and `mmcblk1` of 14.8 GiB with one
+     partition.
+   - `ios`: 25 MHz requested (23999992 Hz actual), VDD bit 18 (3.0-3.1 V), power on,
+     4 bits, legacy timing, 3.30 V.
+   - GPIO67 high. EINT6 count 1, MSDC1 interrupt count 31.
+   - The pinctrl lines changed from `1000` to `1001`: data-in went to 1.
+   - `vmch` has two users, `vmc` is enabled at 3000000 (`0aaa` `da62`).
+3. **Read-only.** `mmcblk1` resolved under `11240000.mmc`. The read-only mount
+   returned 0, with 6 root entries; the filesystem is vfat. 64 MiB read with `dd` from
+   the raw device in 5.86 s, about 11.5 MB/s. That is close to the 12.5 MB/s ceiling
+   of 4 bits at 25 MHz.
+4. **Removed.** Four CMD13 lines logged a timeout (`host->error=0x2`), then "card
+   removed". GPIO67 low, EINT6 count 2, no `mmcblk1`, `ios` power off. `vmch` stays on
+   with one user, and `vmc` is disabled.
+5. **Reinserted and written.** Detected again at 226.35 s; host check passed.
+   - Mounted read-write as vfat. A 64 MiB file from `/dev/urandom` plus `sync` took
+     12.39 s, 2.57 s of it in user time generating the data, so about 6.7 MB/s to the
+     card.
+   - After `umount`, `drop_caches` and a read-only mount, `sha256sum` took 5.98 s and
+     gave the same hash as before.
+   - The file was removed and the card unmounted cleanly.
+6. **End.** Taint 0, no new MMC error. The card is left in the slot.
+
+**Conclusion.** The hypothesis held on one boot of one unit, with one card.
+
+- The card-detect switch is referenced to VMCH. With VMCH on, GPIO67 reads high with a
+  card in, as the vendor's `cd_level` says, and needs no pad pull-up from Linux.
+- The upstream `mtk-sd` driver with the MT6797 data and the firmware's pad state
+  identifies, reads and writes an SDHC card at default speed and 3.3 V.
+- The eMMC stayed `mmcblk0` with no error throughout.
+
+The CMD13 timeouts on removal are the MMC core polling a card that has just gone, not
+a fault.
+
+**Not shown:**
+- high speed or UHS;
+- SDXC or exFAT, or more than one card;
+- suspend and resume;
+- a card already in the slot at boot;
+- long transfers or error recovery;
+- the effect of the vendor's trim adjustments, which mainline doesn't apply;
+- whether VMC or VMCH sit at their nominal voltage on this unit.
+
 ## Follow-up
 
+- A card present at boot, and suspend and resume.
 - High speed (50 MHz), then UHS with the 1.8 V switch, each after this test, and the
   latter only with the VMC trim question in the [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary) settled.
 - exFAT as a module, for SDXC cards in their factory format.

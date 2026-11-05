@@ -3,8 +3,11 @@
 The MT6797 CONSYS reaches an MT6631 FM receiver through its firmware. This
 document is the protocol and sequence contract a mainline driver needs. It
 comes from the public downstream tree and a static look at the retained
-firmware files. **No FM register has been read on this device yet**, so every
-statement here is vendor behaviour, not an observation of this board. The
+firmware files. On this device only the power-up to the identity check, the
+identity read and the power-down have run (F1, 2026-11-05): `0x62` read
+`0x6631` three times, and all 25 commands got their events. Everything past
+that, including the DSP, tuning and audio, is still vendor behaviour, not an
+observation of this board. The
 chronology, the observations and the first device test are in the
 [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md).
 
@@ -115,7 +118,7 @@ In order, from `mt6631_PowerUp()`:
    `0x30, 0x35, 10 µs, 0x15, 0x05, 10 µs, 0x45` (FM power domain on); FM
    `0x7f = 0x800f`; `0x60 = 1`, 3 ms, `0x60 = 3`, `0x60 = 7`; `0x70 = 0x0040`;
    `0x61` D12 from the de-emphasis setting.
-6. Read `0x62`; anything but `0x6631` aborts.
+6. Read `0x62`; anything but `0x6631` aborts. This board reads `0x6631`.
 7. ROM query: set `0x61` D15, D1, clear D0; poll `0x84` every 1 ms for `1`;
    ROM version is `0x83[15:8]`; then clear D15 and set `0x61[1:0] = 01`.
 8. Patch download (`0x12`) and coefficient download (`0x13`), then `0x92 = 0`,

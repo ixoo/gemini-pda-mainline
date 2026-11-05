@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `planned`: F1 admitted by the owner on 2026-11-05; its code is 0581 and 0582, compile-checked only. No FM register has been read on any kernel |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 (antenna, tune) is outlined, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -101,12 +101,13 @@ Nothing was executed. The full contract is in the
 
 ## What is open
 
-1. Does register `0x62` read `0x6631` on this board (F1)?
+1. ~~Does register `0x62` read `0x6631` on this board?~~ Yes (F1).
 2. Which antenna is wired, and does a headset improve reception (F2)?
 3. The redistribution rights of the two MT6631 FM files are unknown, as for the
    other CONSYS files; they would come from the owner's own Gemian as for the
    v1 release ([firmware](../../docs/hardware/firmware.md)).
 4. Whether the vendor's power-down leaves CONSYS fit for Wi-Fi without a reload.
+   F1 suggests yes: three pings passed before the reload. One run, no stress.
 5. The mainline AFE has no I2S DAI at all ([audio document](../../docs/hardware/gemini-audio.md)),
    so FM audio needs a new second-I2S-input DAI with the ASRC. Its register
    layout has not been checked against the mainline `mt6797-reg.h`.
@@ -212,6 +213,53 @@ mixed in. Batch it with the next station boot; it needs no boot of its own.
 | any kernel warning or Oops | driver fault | stop; preserve `dmesg`; CONSYS reload |
 | function-on refused or times out | firmware or board does not offer FM | stop; function-off; CONSYS reload |
 | Wi-Fi ping fails after unload | FM power-down disturbs CONSYS | record; CONSYS reload; F2 must reload CONSYS after FM |
+
+## F1 result (2026-11-05): the receiver answers
+
+Run by the custodian session with the owner's admission. Raw outputs are
+private under `artifacts/station-work-57/boot-1/`.
+
+- **Identity:** image `f0f66d1b…`, composed from package `557f9d68…`
+  (`b23c2346`, `mt6797-a53-station-a72`), boot `0b3c33aa-0b2c-4d17-b876-87461b11f72e`;
+  `radio-mt6797.ko` `d7686524…`, `mt6797-consys.ko` `1797e440…` from the same
+  package.
+- **Before:** Wi-Fi associated on 5200 MHz with a lease, gateway ping 1 of 1,
+  taint 0.
+- **Load:** `insmod` rc 0; probe returned 0 after 14,093 µs.
+- **Log, in order, all within 14 ms:**
+
+  ```text
+  STP link running: tx-seq=2 rx-seq=2 peer-ack=1 local-ack=1
+  STP link check: result=0 reply=10 bytes 02 04 06 00 00 04 df 0e 68 01
+  WMT FM function on: result=0 reply=5 bytes 02 06 01 00 00
+  WMT FM function off: result=0 reply=5 bytes 02 06 01 00 00
+  mt6797-fm mt6797-fm: identity 6631 6631 6631 (3 of 3 match), power-up 0, power-down 0
+  STP link halted: failed=0 busy=0 rx=28 discarded=0 dup=0 tx=28 acks=28 timeouts=0 resent=0 wmt-unsolicited=0 first=0 bytes
+  STP link firmware messages: assert=0 log=0; after failure 0 bytes
+  mt6797-fm mt6797-fm: link: bytes=138 events=25 unexpected=0 junk=0
+  ```
+
+  No `command xx:` error line, no warning or Oops.
+- **After:** `rmmod` rc 0, gateway pings 3 of 3, taint 0. Then the usual
+  CONSYS and `mac` reload: both rc 0, CONSYS kept its earlier WMT setup,
+  Wi-Fi associated again on 5200 MHz with a lease, pings 3 of 3, taint 0. The
+  station stays on this image.
+
+**Analysis.** The driver sends 25 FM commands (8 for power-up, 3 reads, 14 for
+power-down) and got exactly 25 events with matching opcodes, none unexpected
+and no stray bytes, so the packet framing in R1 is right in both directions.
+The firmware runs FM commands, including the batches, the MCU accesses and the
+RF top-block accesses. The identity register gives `0x6631` every time after
+the clock-on batch, which is the vendor's own check that the FM block is there
+and clocked. Wi-Fi kept working after the vendor power-down and before the
+CONSYS reload, so R4's asymmetry did not disturb it in this run.
+
+**Conclusion:** `confirmed` for this unit and image: the MT6631 FM block is
+present and reachable over STP task 1, and the vendor power-up to the identity
+check and the vendor power-down run without error. This says nothing yet
+about the DSP, the antenna, reception or audio.
+
+Following the decision table, the tuner is written in stages, starting with F2.
 
 ## Test F2 (outline, after F1)
 

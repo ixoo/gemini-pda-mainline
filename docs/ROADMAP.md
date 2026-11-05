@@ -93,7 +93,7 @@ Independent of each other, in no fixed order. Each record owns the detail.
 | [Bluetooth](hardware/mt6797-bluetooth.md#open-questions) | Range first; then a voice bridge to ALSA; a public userspace for release |
 | [GNSS](../experiments/2026-11-01-gemini-gnss-link/README.md) | Open sky, which decides whether a position is reachable on mainline |
 | [Charging](../experiments/2026-11-02-gemini-kernel-charge-guard/README.md) | A real charge reaching the limit; charge flow after a resume |
-| [microSD](../experiments/2026-10-06-gemini-microsd/README.md) | Its candidate has never booted, and it needs composing on today's station |
+| [microSD](../experiments/2026-11-05-gemini-microsd/README.md#follow-up) | Works at default speed on the station; high speed, a card at boot, suspend, exFAT |
 | USB host and role switching | Not started. [Ownership notes](../experiments/2026-09-08-usb-vbus-ownership/README.md) exist |
 | Modem | Feasibility only. A safe transport and regulatory boundary come first |
 
@@ -163,7 +163,7 @@ The right-hand column is how far each has got, read from the matrix. It isn't an
 | M0: lab | Tested recovery, exact provenance, enforced safe tooling, automated checks | In daily use |
 | M1: boot | Ten attributable cold boots; RAM, topology, timers, interrupts, PSCI, watchdog checked; loader mutations documented | Cold boots not run |
 | M2: headless system | Safe PMIC, RTC, restart, power-off; bounded storage; USB administration; Wi-Fi association and traffic; charger telemetry | Each shown on one unit |
-| M3: input and ports | Keyboard incl. wake and LEDs; lid; microSD hotplug; both USB ports and roles | Keyboard, lid, LED module; no microSD or host |
+| M3: input and ports | Keyboard incl. wake and LEDs; lid; microSD hotplug; both USB ports and roles | Keyboard, lid, LED module, microSD hotplug at default speed; no USB host |
 | M4: local interaction | Native DRM, panel, backlight, repeated modesets, calibrated multitouch | Native console; touch uncalibrated; panel adopted from the loader |
 | M5: power | Validated OPP transitions, thermal trips and cooling, charging protection, suspend and wake | Charge guard and armed trips only |
 | M6: peripherals | GPU, audio, Bluetooth, GNSS, FM and sensors through upstream interfaces; explicit firmware boundaries | All local; FM has no result |
