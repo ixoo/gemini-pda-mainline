@@ -299,7 +299,11 @@ does nothing at all.
 
 **Checks so far:** `W=1` and `checkpatch --strict` clean in the dev VM; 0583
 applies to the station tree. The two digests in the driver match the
-published ones. Not built on Buildbox yet, not run.
+published ones. Buildbox build `4f87f6b8`, profile `mt6797-a53-station-a72`,
+`BUILD_MODULES=1`, 755 patches, package `e1b8b58a…`; validation passed.
+Its `Image.gz` (`da0c8a3a…`), config (`8739e8ca…`) and `mt6797-consys.ko`
+(`1797e440…`) are byte-identical to the F1 package's, and only
+`radio-mt6797.ko` differs (`aafa0671…`, same `vermagic`). Not run.
 
 **Safety:** receive only, as F1; the FM block has no transmitter. New effects
 are the DSP firmware download into the FM block, which is volatile and goes
@@ -309,8 +313,9 @@ partition write. Two files are copied onto the station's root file system
 from the owner's own Gemian copy; they are not published. The frequency the
 owner picks is kept private, since a local station hints at a location.
 
-**Needs:** the F1 image or any later station image with 0583, its modules from
-the same package; `mt6631_fm_v1_patch.bin` and `mt6631_fm_v1_coeff.bin` in
+**Needs:** the running F1 image (`f0f66d1b…`) with `radio-mt6797.ko`
+`aafa0671…` from package `e1b8b58a…`; no boot, since the kernel and every
+other module are identical to the F1 package's; `mt6631_fm_v1_patch.bin` and `mt6631_fm_v1_coeff.bin` in
 `/lib/firmware/mediatek/mt6797/`; the owner, about 3 minutes, a wired headset,
 and a strong local station that is not refused.
 
