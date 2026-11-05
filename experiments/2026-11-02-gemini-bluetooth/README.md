@@ -12,6 +12,11 @@
 | Investigator(s) | project session, device custody with the custodian session |
 | Tracking issue | none |
 
+Note, 2026-11-04: the Status line predates T11. The noise went away on an mSBC link
+([T11](#t11-result-an-msbc-link-and-the-noise-went-away-2026-11-03),
+[T12](#t12-result-the-kernels-own-msbc-link-heard-clean-2026-11-03)), and later results run to
+[T14](#t14-result-no-timeouts-at-all-and-the-music-skips-with-distance-2026-11-04).
+
 ## Question or hypothesis
 
 Can the normal Linux Bluetooth stack drive the CONSYS controller from a module on

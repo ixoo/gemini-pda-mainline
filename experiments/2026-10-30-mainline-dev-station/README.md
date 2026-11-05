@@ -12,6 +12,9 @@
 | Investigator(s) | project custodian |
 | Tracking issue | none |
 
+Note, 2026-11-04: the Status line dates from 2026-10-30. Later sections supersede it, up to
+the [first boot of the release image](#first-boot-of-the-release-image-2026-11-04).
+
 ## Question or hypothesis
 
 Every boot so far has been a bounded session:
