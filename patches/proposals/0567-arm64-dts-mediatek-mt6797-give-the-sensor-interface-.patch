@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 19:51:14 -0500
+Subject: [PATCH 567/568] arm64: dts: mediatek: mt6797: give the sensor
+ interface its interrupt and larb
+
+The capture node waits on the first camera SV block interrupt, and switches that
+block M4U translation off through larb2.
+---
+ .../bindings/media/mediatek,mt6797-seninf.yaml       | 12 ++++++++++--
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi             |  5 +++--
+ 2 files changed, 13 insertions(+), 4 deletions(-)
+
+diff --git a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+index be2a91726..34fe40ab8 100644
+--- a/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
++++ b/Documentation/devicetree/bindings/media/mediatek,mt6797-seninf.yaml
+@@ -22,12 +22,18 @@ properties:
+       - description: Sensor interface registers
+       - description: MIPI RX analog registers
+       - description: First CAMSV registers
++      - description: Larb2 registers, for the first CAMSV port to bypass the M4U
+ 
+   reg-names:
+     items:
+       - const: seninf
+       - const: mipi-rx
+       - const: camsv0
++      - const: larb2
++
++  interrupts:
++    maxItems: 1
++    description: The first camera SV block.
+ 
+   clocks:
+     items:
+@@ -72,6 +78,7 @@ additionalProperties: false
+ examples:
+   - |
+     #include <dt-bindings/clock/mt6797-clk.h>
++    #include <dt-bindings/interrupt-controller/arm-gic.h>
+     #include <dt-bindings/power/mt6797-power.h>
+ 
+     soc {
+@@ -81,8 +88,9 @@ examples:
+         seninf: seninf@1a040000 {
+             compatible = "mediatek,mt6797-seninf";
+             reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>,
+-                  <0 0x1a050000 0 0x1000>;
+-            reg-names = "seninf", "mipi-rx", "camsv0";
++                  <0 0x1a050000 0 0x1000>, <0 0x1a001000 0 0x1000>;
++            reg-names = "seninf", "mipi-rx", "camsv0", "larb2";
++            interrupts = <GIC_SPI 252 IRQ_TYPE_LEVEL_LOW>;
+             clocks = <&camsys CLK_CAM_CAMSYS>,
+                      <&camsys CLK_CAM_SENINF>,
+                      <&camsys CLK_CAM_CAMTG>,
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index dc91c044e..b8a507ec3 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -1201,8 +1201,9 @@ camsys: syscon@1a000000 {
+ 	seninf: seninf@1a040000 {
+ 		compatible = "mediatek,mt6797-seninf";
+ 		reg = <0 0x1a040000 0 0x4000>, <0 0x10217000 0 0x2000>,
+-		      <0 0x1a050000 0 0x1000>;
+-		reg-names = "seninf", "mipi-rx", "camsv0";
++		      <0 0x1a050000 0 0x1000>, <0 0x1a001000 0 0x1000>;
++		reg-names = "seninf", "mipi-rx", "camsv0", "larb2";
++		interrupts = <GIC_SPI 252 IRQ_TYPE_LEVEL_LOW>;
+ 		clocks = <&camsys CLK_CAM_CAMSYS>,
+ 			 <&camsys CLK_CAM_SENINF>,
+ 			 <&camsys CLK_CAM_CAMTG>,

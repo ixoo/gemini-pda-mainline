@@ -282,3 +282,21 @@ Limits of this result:
 - The SMI common clock has no owner. The capture relies on the loader leaving it open.
 - One boot on one unit, with the diagnostics of `0556` and `0558` to `0564` in the module. Status bit 4, the mux status,
   the CAM mux entry and the receiver calibration reading zero remain unexplained.
+
+## N1: the capture node
+
+Not run. A build is not a demonstration.
+
+- [`0568`](../../patches/proposals/0568-media-mediatek-mt6797-seninf-add-a-capture-node.patch) replaces the debugfs capture with
+  a video node and a media graph from sensor to receiver to CAMSV0. It uses vb2-dma-contig and keeps one buffer in frame
+  buffer control at a time, because whether the hardware holds more than one address has not been tested. The interrupt
+  completes a buffer when the write count moves.
+- [`0566`](../../patches/proposals/0566-media-v4l-add-the-MediaTek-packed-10-bit-Bayer-forma.patch) adds a local format code for
+  this packing, which is not the MIPI one. The vendor library sets no unpacked mode. The fourcc is not settled upstream, and
+  libcamera support for it has not been checked.
+- [`0565`](../../patches/proposals/0565-clk-mediatek-mt6797-mm-keep-the-SMI-common-gate-open.patch) marks the SMI common gate
+  critical, so a camera consumer can no longer close it behind the display. An SMI driver should own it instead.
+- [`0567`](../../patches/proposals/0567-arm64-dts-mediatek-mt6797-give-the-sensor-interface-.patch) adds SPI 252 and larb2's
+  window to the sensor interface node. CAMSV0 still bypasses M4U.
+
+[`cam-view.c`](cam-view.c) streams from the node, checks colour bars line by line, and shows a rough picture on the panel.

@@ -1,0 +1,1204 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 4 Nov 2026 19:51:14 -0500
+Subject: [PATCH 568/568] media: mediatek: mt6797-seninf: add a capture node
+
+Replace the debugfs capture with a video node and a media graph, sensor to
+receiver to CAMSV0. Buffers come from vb2-dma-contig, one in frame buffer control
+at a time, and the interrupt completes each when the write count moves.
+
+CAMSV0 still bypasses M4U through its larb2 bit. Only the receiver status stays in
+debugfs.
+---
+ .../media/platform/mediatek/seninf/Kconfig    |    6 +-
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 1016 ++++++++++-------
+ 2 files changed, 636 insertions(+), 386 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/Kconfig b/drivers/media/platform/mediatek/seninf/Kconfig
+index 9b86b2264..f5cecb049 100644
+--- a/drivers/media/platform/mediatek/seninf/Kconfig
++++ b/drivers/media/platform/mediatek/seninf/Kconfig
+@@ -2,12 +2,14 @@
+ config VIDEO_MT6797_SENINF
+ 	tristate "MediaTek MT6797 sensor interface"
+ 	depends on ARCH_MEDIATEK || COMPILE_TEST
+-	depends on COMMON_CLK && OF && VIDEO_DEV
++	depends on COMMON_CLK && OF && VIDEO_DEV && MEDIA_CONTROLLER
+ 	select V4L2_FWNODE
+ 	select VIDEO_V4L2_SUBDEV_API
++	select VIDEOBUF2_DMA_CONTIG
+ 	help
+ 	  The MT6797 sensor interface: the master clocks it drives to camera
+-	  sensors, and a two-lane CSI-2 receiver. There is no capture path yet.
++	  sensors, a two-lane CSI-2 receiver, and capture to memory through the
++	  first camera SV block.
+ 
+ 	  To compile this driver as a module, choose M here: the module
+ 	  will be called mt6797-seninf.
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index b813b41af..a6e536d61 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -4,7 +4,10 @@
+  *
+  * Each of the block's timing generators drives one master clock pad, divided
+  * from the CAMTG clock. The second interface's CSI-2 receiver takes two lanes
+- * through to the interface's mux. Nothing takes the data from there yet.
++ * through to the interface's mux, and the first camera SV block writes it to memory.
++ *
++ * CAMSV0 reaches memory through larb2 with its port's M4U translation switched off,
++ * so buffers are physically contiguous and below 4 GiB until M4U is in use here.
+  *
+  * The analog and calibration values below follow what the vendor's camera
+  * library writes. Their meaning is not documented publicly, so they are named
+@@ -30,12 +33,16 @@
+ #include <linux/pm_runtime.h>
+ #include <linux/property.h>
+ #include <linux/spinlock.h>
+-#include <linux/vmalloc.h>
+ 
++#include <media/media-device.h>
++#include <media/media-entity.h>
+ #include <media/v4l2-async.h>
+ #include <media/v4l2-ctrls.h>
+ #include <media/v4l2-device.h>
+ #include <media/v4l2-fwnode.h>
++#include <media/v4l2-ioctl.h>
++#include <media/v4l2-mc.h>
++#include <media/videobuf2-dma-contig.h>
+ #include <media/v4l2-subdev.h>
+ 
+ #define SENINF_TOP_CTRL			0x0000
+@@ -173,26 +180,23 @@
+ #define CAMSV_TG_SUB_PERIOD		0x574
+ #define CAMSV_DMA_FRAME_HEADER_EN	0xc00
+ 
+-#define VIEW_WIDTH			1080
+-#define VIEW_HEIGHT			2160
+-#define VIEW_SIZE			(VIEW_WIDTH * VIEW_HEIGHT * 4)
+-#define VIEW_BLACK			64
++#define CAMSV_INT_HW_PASS1_DON		BIT(10)
++#define CAMSV_INT_ERRORS		(BIT(4) | BIT(5) | BIT(16) | BIT(17))
+ 
+-#define MMSYS_BASE			0x14000000
+-#define MMSYS_CG_CON0			0x100
+-#define MMSYS_CG0_SMI_COMMON		BIT(0)
++#define CAMSV_FBC_CTL2_WCNT		GENMASK(21, 16)
+ 
+-#define LARB2_BASE			0x1a001000
+ #define LARB_MMU_EN			0xfc0
+ #define LARB2_PORT_CAM_SV0		BIT(6)
+ 
+-#define CAPTURE_WIDTH			2592
+-#define CAPTURE_HEIGHT			1944
+-#define CAPTURE_STRIDE			(CAPTURE_WIDTH * 10 / 8)
+-#define CAPTURE_SIZE			(CAPTURE_STRIDE * CAPTURE_HEIGHT)
+-#define CAPTURE_GUARD			4096
+-#define CAPTURE_GUARD_BYTE		0x5a
+-#define CAPTURE_FILL_BYTE		0xa5
++#define CAPTURE_MAX_WIDTH		2592
++#define CAPTURE_MAX_HEIGHT		1944
++#define CAPTURE_BYTESPERLINE(w)		((w) * 10 / 8)
++#define CAPTURE_MBUS_CODE		MEDIA_BUS_FMT_SGRBG10_1X10
++/* Longer than a frame at the slowest rate the sensor's default mode runs. */
++#define CAPTURE_STOP_MS			40
++
++#define SENINF_PAD_SINK			0
++#define SENINF_PAD_SOURCE		1
+ 
+ #define SENINF_RX_IF			1	/* The second interface. */
+ #define SENINF_RX_LANES			2
+@@ -223,6 +227,11 @@ struct seninf_mclk {
+ 	unsigned int tg;
+ };
+ 
++struct seninf_buffer {
++	struct vb2_v4l2_buffer vb;
++	struct list_head list;
++};
++
+ struct mt6797_seninf {
+ 	struct device *dev;
+ 	void __iomem *base;
+@@ -243,12 +252,25 @@ struct mt6797_seninf {
+ 
+ 	void __iomem *camsv;
+ 	struct clk *camsv_clk, *larb_clk;
+-	u32 *view;
+-	struct debugfs_blob_wrapper view_blob;
+-	u32 view_flip;
+-	void *frame;
+-	dma_addr_t frame_dma;
+-	struct debugfs_blob_wrapper frame_blob;
++	void __iomem *larb;
++	struct clk *smi_clk;
++	int irq;
++
++	struct media_device mdev;
++	struct media_pad pads[2];
++	struct media_pad video_pad;
++	struct media_pipeline pipe;
++	struct video_device vdev;
++	struct vb2_queue queue;
++	struct mutex video_lock;	/* The video node and its queue. */
++	struct v4l2_pix_format fmt;
++	bool registered;
++
++	spinlock_t buf_lock;		/* The two below and the sequence. */
++	struct list_head buffers;
++	struct seninf_buffer *cur;
++	u32 last_wcnt;
++	u32 sequence;
+ };
+ 
+ static void seninf_update(struct mt6797_seninf *seninf, u32 reg, u32 mask, u32 val)
+@@ -476,10 +498,506 @@ static const struct v4l2_subdev_video_ops seninf_video_ops = {
+ 	.s_stream = seninf_s_stream,
+ };
+ 
++static const struct v4l2_mbus_framefmt seninf_default_fmt = {
++	.width = CAPTURE_MAX_WIDTH,
++	.height = CAPTURE_MAX_HEIGHT,
++	.code = CAPTURE_MBUS_CODE,
++	.field = V4L2_FIELD_NONE,
++	.colorspace = V4L2_COLORSPACE_RAW,
++};
++
++static int seninf_init_state(struct v4l2_subdev *sd, struct v4l2_subdev_state *state)
++{
++	*v4l2_subdev_state_get_format(state, SENINF_PAD_SINK) = seninf_default_fmt;
++	*v4l2_subdev_state_get_format(state, SENINF_PAD_SOURCE) = seninf_default_fmt;
++	return 0;
++}
++
++static int seninf_enum_mbus_code(struct v4l2_subdev *sd, struct v4l2_subdev_state *state,
++				 struct v4l2_subdev_mbus_code_enum *code)
++{
++	if (code->index)
++		return -EINVAL;
++	code->code = CAPTURE_MBUS_CODE;
++	return 0;
++}
++
++static int seninf_set_fmt(struct v4l2_subdev *sd, struct v4l2_subdev_state *state,
++			  struct v4l2_subdev_format *fmt)
++{
++	struct v4l2_mbus_framefmt *format = &fmt->format;
++
++	/* The source follows the sink. */
++	if (fmt->pad == SENINF_PAD_SOURCE)
++		return v4l2_subdev_get_fmt(sd, state, fmt);
++
++	format->code = CAPTURE_MBUS_CODE;
++	format->width = clamp_t(u32, ALIGN_DOWN(format->width, 4), 4, CAPTURE_MAX_WIDTH);
++	format->height = clamp_t(u32, ALIGN_DOWN(format->height, 2), 2, CAPTURE_MAX_HEIGHT);
++	format->field = V4L2_FIELD_NONE;
++	format->colorspace = V4L2_COLORSPACE_RAW;
++	*v4l2_subdev_state_get_format(state, SENINF_PAD_SINK) = *format;
++	*v4l2_subdev_state_get_format(state, SENINF_PAD_SOURCE) = *format;
++	return 0;
++}
++
++static const struct v4l2_subdev_pad_ops seninf_pad_ops = {
++	.enum_mbus_code = seninf_enum_mbus_code,
++	.get_fmt = v4l2_subdev_get_fmt,
++	.set_fmt = seninf_set_fmt,
++	.link_validate = v4l2_subdev_link_validate_default,
++};
++
++static const struct v4l2_subdev_internal_ops seninf_internal_ops = {
++	.init_state = seninf_init_state,
++};
++
++static const struct media_entity_operations seninf_entity_ops = {
++	.link_validate = v4l2_subdev_link_validate,
++};
++
+ static const struct v4l2_subdev_ops seninf_subdev_ops = {
+ 	.video = &seninf_video_ops,
++	.pad = &seninf_pad_ops,
++};
++
++static struct seninf_buffer *to_seninf_buffer(struct vb2_v4l2_buffer *vb)
++{
++	return container_of(vb, struct seninf_buffer, vb);
++}
++
++/* Give frame buffer control the next buffer. Called with buf_lock held. */
++static void camsv_arm_next(struct mt6797_seninf *seninf)
++{
++	void __iomem *sv = seninf->camsv;
++	struct seninf_buffer *buf;
++
++	if (seninf->cur)
++		return;
++	buf = list_first_entry_or_null(&seninf->buffers, struct seninf_buffer, list);
++	if (!buf)
++		return;
++	list_del(&buf->list);
++	seninf->cur = buf;
++	writel(lower_32_bits(vb2_dma_contig_plane_dma_addr(&buf->vb.vb2_buf, 0)),
++	       sv + CAMSV_FBC_IMGO_ENQ_ADDR);
++	writel(readl(sv + CAMSV_IMGO_FBC) | CAMSV_IMGO_FBC_RCNT_INC, sv + CAMSV_IMGO_FBC);
++}
++
++/*
++ * One buffer at a time: the hardware takes a buffer at a frame start and counts it
++ * written at the frame's end, and with none it drops the frame and counts that.
++ */
++static irqreturn_t camsv_irq(int irq, void *data)
++{
++	struct mt6797_seninf *seninf = data;
++	void __iomem *sv = seninf->camsv;
++	u32 status = readl(sv + CAMSV_INT_STATUS);
++	struct seninf_buffer *done = NULL;
++	u32 wcnt;
++
++	if (status & CAMSV_INT_ERRORS)
++		dev_warn_ratelimited(seninf->dev, "camsv status %08x, dma %08x\n", status,
++				     readl(sv + CAMSV_IMGO_ERR_STAT));
++	if (!(status & CAMSV_INT_HW_PASS1_DON))
++		return status ? IRQ_HANDLED : IRQ_NONE;
++
++	spin_lock(&seninf->buf_lock);
++	wcnt = FIELD_GET(CAMSV_FBC_CTL2_WCNT, readl(sv + CAMSV_FBC_IMGO_CTL2));
++	if (seninf->cur && wcnt != seninf->last_wcnt) {
++		done = seninf->cur;
++		seninf->cur = NULL;
++		seninf->last_wcnt = wcnt;
++		done->vb.sequence = seninf->sequence;
++	}
++	seninf->sequence++;
++	camsv_arm_next(seninf);
++	spin_unlock(&seninf->buf_lock);
++
++	if (done) {
++		done->vb.vb2_buf.timestamp = ktime_get_ns();
++		done->vb.field = V4L2_FIELD_NONE;
++		vb2_set_plane_payload(&done->vb.vb2_buf, 0, seninf->fmt.sizeimage);
++		vb2_buffer_done(&done->vb.vb2_buf, VB2_BUF_STATE_DONE);
++	}
++	return IRQ_HANDLED;
++}
++
++static int camsv_reset(struct mt6797_seninf *seninf)
++{
++	void __iomem *sv = seninf->camsv;
++	u32 val;
++	int ret;
++
++	writel(CAMSV_SW_CTL_SW_RST, sv + CAMSV_SW_CTL);
++	writel(0, sv + CAMSV_SW_CTL);
++	writel(CAMSV_SW_CTL_RST_TRIG, sv + CAMSV_SW_CTL);
++	ret = readl_poll_timeout(sv + CAMSV_SW_CTL, val,
++				 val == (CAMSV_SW_CTL_RST_TRIG | CAMSV_SW_CTL_RST_STA),
++				 100, 100000);
++	writel(0, sv + CAMSV_SW_CTL);
++	return ret;
++}
++
++static void camsv_start(struct mt6797_seninf *seninf)
++{
++	void __iomem *sv = seninf->camsv;
++	u32 width = seninf->fmt.width, height = seninf->fmt.height;
++	u32 val;
++	unsigned int i;
++
++	/* All the CAMSV inputs take this interface's mux. */
++	val = readl(seninf->base + SENINF_TOP_CAM_MUX);
++	for (i = 2; i < 8; i++)
++		val = (val & ~SENINF_TOP_CAM_MUX_SEL(i)) | (SENINF_RX_IF << (4 * i));
++	writel(val, seninf->base + SENINF_TOP_CAM_MUX);
++
++	writel(CAMSV_CLK_EN_VAL, sv + CAMSV_CLK_EN);
++	writel(readl(sv + CAMSV_TG_SEN_MODE) & ~CAMSV_TG_SEN_MODE_CLR, sv + CAMSV_TG_SEN_MODE);
++	writel(0, sv + CAMSV_TG_SUB_PERIOD);
++	writel(width << 16, sv + CAMSV_TG_SEN_GRAB_PXL);
++	writel(height << 16, sv + CAMSV_TG_SEN_GRAB_LIN);
++	writel(CAMSV_FMT_SEL_BAYER10, sv + CAMSV_FMT_SEL);
++	writel((readl(sv + CAMSV_PAK) & ~CAMSV_PAK_MASK) | CAMSV_PAK_RAW10, sv + CAMSV_PAK);
++	writel(0, sv + CAMSV_DMA_FRAME_HEADER_EN);
++	writel(readl(sv + CAMSV_DMA_RSV1) & ~BIT(31), sv + CAMSV_DMA_RSV1);
++	writel(0xffffffff, sv + CAMSV_DMA_RSV6);
++	writel(readl(sv + CAMSV_SPECIAL_FUN_EN) | CAMSV_SPECIAL_FUN_VAL, sv + CAMSV_SPECIAL_FUN_EN);
++
++	writel(0, sv + CAMSV_IMGO_OFST_ADDR);
++	writel(seninf->fmt.bytesperline - 1, sv + CAMSV_IMGO_XSIZE);
++	writel(height - 1, sv + CAMSV_IMGO_YSIZE);
++	writel(seninf->fmt.bytesperline | CAMSV_IMGO_STRIDE_BUS16, sv + CAMSV_IMGO_STRIDE);
++	writel(0, sv + CAMSV_IMGO_CROP);
++
++	/* Queue mode: only an enqueued buffer is written. No subsampling. */
++	writel(0, sv + CAMSV_FBC_IMGO_CTL1);
++	writel(CAMSV_FBC_IMGO_CTL1_MODE_QUEUE, sv + CAMSV_FBC_IMGO_CTL1);
++	writel(CAMSV_FBC_IMGO_CTL1_MODE_QUEUE | CAMSV_FBC_IMGO_CTL1_EN, sv + CAMSV_FBC_IMGO_CTL1);
++
++	spin_lock_irq(&seninf->buf_lock);
++	seninf->sequence = 0;
++	seninf->last_wcnt = 0;
++	camsv_arm_next(seninf);
++	if (seninf->cur)
++		writel(lower_32_bits(vb2_dma_contig_plane_dma_addr(&seninf->cur->vb.vb2_buf, 0)),
++		       sv + CAMSV_IMGO_BASE_ADDR);
++	spin_unlock_irq(&seninf->buf_lock);
++
++	writel(CAMSV_MODULE_EN_TG | CAMSV_MODULE_EN_PAK | CAMSV_MODULE_EN_IMGO |
++	       CAMSV_MODULE_EN_DB, sv + CAMSV_MODULE_EN);
++	writel(CAMSV_INT_HW_PASS1_DON | CAMSV_INT_ERRORS, sv + CAMSV_INT_EN);
++	readl(sv + CAMSV_INT_STATUS);
++	enable_irq(seninf->irq);
++
++	writel(readl(sv + CAMSV_TG_SEN_MODE) | CAMSV_TG_SEN_MODE_CMOS_EN, sv + CAMSV_TG_SEN_MODE);
++	writel((readl(sv + CAMSV_TG_VF_CON) & ~CAMSV_TG_VF_CON_SINGLE) | CAMSV_TG_VF_CON_EN,
++	       sv + CAMSV_TG_VF_CON);
++}
++
++/* Returns with the DMA idle, so buffers can go back to their owner. */
++static void camsv_stop(struct mt6797_seninf *seninf)
++{
++	void __iomem *sv = seninf->camsv;
++
++	writel(readl(sv + CAMSV_TG_VF_CON) & ~CAMSV_TG_VF_CON_EN, sv + CAMSV_TG_VF_CON);
++	writel(readl(sv + CAMSV_TG_SEN_MODE) & ~CAMSV_TG_SEN_MODE_CMOS_EN, sv + CAMSV_TG_SEN_MODE);
++	msleep(CAPTURE_STOP_MS);
++	writel(0, sv + CAMSV_INT_EN);
++	disable_irq(seninf->irq);
++	writel(0, sv + CAMSV_MODULE_EN);
++	if (camsv_reset(seninf))
++		dev_warn(seninf->dev, "camsv reset timed out on stop\n");
++}
++
++static void camsv_return_buffers(struct mt6797_seninf *seninf, enum vb2_buffer_state state)
++{
++	struct seninf_buffer *buf, *tmp;
++	LIST_HEAD(buffers);
++
++	spin_lock_irq(&seninf->buf_lock);
++	list_splice_init(&seninf->buffers, &buffers);
++	if (seninf->cur)
++		list_add_tail(&seninf->cur->list, &buffers);
++	seninf->cur = NULL;
++	spin_unlock_irq(&seninf->buf_lock);
++
++	list_for_each_entry_safe(buf, tmp, &buffers, list) {
++		list_del(&buf->list);
++		vb2_buffer_done(&buf->vb.vb2_buf, state);
++	}
++}
++
++static int seninf_queue_setup(struct vb2_queue *q, unsigned int *num_buffers,
++			      unsigned int *num_planes, unsigned int sizes[],
++			      struct device *alloc_devs[])
++{
++	struct mt6797_seninf *seninf = vb2_get_drv_priv(q);
++
++	if (*num_planes)
++		return sizes[0] < seninf->fmt.sizeimage ? -EINVAL : 0;
++	*num_planes = 1;
++	sizes[0] = seninf->fmt.sizeimage;
++	return 0;
++}
++
++static int seninf_buf_prepare(struct vb2_buffer *vb)
++{
++	struct mt6797_seninf *seninf = vb2_get_drv_priv(vb->vb2_queue);
++
++	if (vb2_plane_size(vb, 0) < seninf->fmt.sizeimage)
++		return -EINVAL;
++	/* The DMA address register is 32 bits wide. */
++	if (upper_32_bits(vb2_dma_contig_plane_dma_addr(vb, 0)))
++		return -EINVAL;
++	return 0;
++}
++
++static void seninf_buf_queue(struct vb2_buffer *vb)
++{
++	struct mt6797_seninf *seninf = vb2_get_drv_priv(vb->vb2_queue);
++	struct seninf_buffer *buf = to_seninf_buffer(to_vb2_v4l2_buffer(vb));
++	unsigned long flags;
++
++	spin_lock_irqsave(&seninf->buf_lock, flags);
++	list_add_tail(&buf->list, &seninf->buffers);
++	if (vb2_is_streaming(vb->vb2_queue))
++		camsv_arm_next(seninf);
++	spin_unlock_irqrestore(&seninf->buf_lock, flags);
++}
++
++static int seninf_check_format(struct mt6797_seninf *seninf)
++{
++	struct v4l2_subdev_format fmt = {
++		.which = V4L2_SUBDEV_FORMAT_ACTIVE,
++		.pad = SENINF_PAD_SOURCE,
++	};
++	int ret;
++
++	ret = v4l2_subdev_call_state_active(&seninf->sd, pad, get_fmt, &fmt);
++	if (ret)
++		return ret;
++	if (fmt.format.width != seninf->fmt.width || fmt.format.height != seninf->fmt.height)
++		return -EPIPE;
++	return 0;
++}
++
++static int seninf_start_streaming(struct vb2_queue *q, unsigned int count)
++{
++	struct mt6797_seninf *seninf = vb2_get_drv_priv(q);
++	u32 val;
++	int ret;
++
++	ret = video_device_pipeline_start(&seninf->vdev, &seninf->pipe);
++	if (ret)
++		goto err_return;
++	ret = seninf_check_format(seninf);
++	if (ret)
++		goto err_pipeline;
++
++	ret = v4l2_subdev_call(&seninf->sd, video, s_stream, 1);
++	if (ret)
++		goto err_pipeline;
++
++	ret = clk_prepare_enable(seninf->smi_clk);
++	if (ret)
++		goto err_stream;
++	ret = clk_prepare_enable(seninf->larb_clk);
++	if (ret)
++		goto err_smi;
++	ret = clk_prepare_enable(seninf->camsv_clk);
++	if (ret)
++		goto err_larb;
++
++	/* The larb's state does not survive the domain powering off. */
++	val = readl(seninf->larb + LARB_MMU_EN) & ~LARB2_PORT_CAM_SV0;
++	writel(val, seninf->larb + LARB_MMU_EN);
++	if (readl(seninf->larb + LARB_MMU_EN) & LARB2_PORT_CAM_SV0) {
++		dev_err(seninf->dev, "larb2 will not bypass M4U\n");
++		ret = -EIO;
++		goto err_camsv;
++	}
++
++	/* Let the stream settle, so the first frame starts clean. */
++	msleep(100);
++
++	ret = camsv_reset(seninf);
++	if (ret) {
++		dev_err(seninf->dev, "camsv reset timed out\n");
++		goto err_camsv;
++	}
++	camsv_start(seninf);
++	return 0;
++
++err_camsv:
++	clk_disable_unprepare(seninf->camsv_clk);
++err_larb:
++	clk_disable_unprepare(seninf->larb_clk);
++err_smi:
++	clk_disable_unprepare(seninf->smi_clk);
++err_stream:
++	v4l2_subdev_call(&seninf->sd, video, s_stream, 0);
++err_pipeline:
++	video_device_pipeline_stop(&seninf->vdev);
++err_return:
++	camsv_return_buffers(seninf, VB2_BUF_STATE_QUEUED);
++	return ret;
++}
++
++static void seninf_stop_streaming(struct vb2_queue *q)
++{
++	struct mt6797_seninf *seninf = vb2_get_drv_priv(q);
++
++	camsv_stop(seninf);
++	clk_disable_unprepare(seninf->camsv_clk);
++	clk_disable_unprepare(seninf->larb_clk);
++	clk_disable_unprepare(seninf->smi_clk);
++	v4l2_subdev_call(&seninf->sd, video, s_stream, 0);
++	video_device_pipeline_stop(&seninf->vdev);
++	camsv_return_buffers(seninf, VB2_BUF_STATE_ERROR);
++}
++
++static const struct vb2_ops seninf_vb2_ops = {
++	.queue_setup = seninf_queue_setup,
++	.buf_prepare = seninf_buf_prepare,
++	.buf_queue = seninf_buf_queue,
++	.start_streaming = seninf_start_streaming,
++	.stop_streaming = seninf_stop_streaming,
++};
++
++static int seninf_querycap(struct file *file, void *fh, struct v4l2_capability *cap)
++{
++	strscpy(cap->driver, "mt6797-seninf", sizeof(cap->driver));
++	strscpy(cap->card, "MT6797 CAMSV0", sizeof(cap->card));
++	return 0;
++}
++
++static int seninf_enum_fmt(struct file *file, void *fh, struct v4l2_fmtdesc *f)
++{
++	if (f->index || (f->mbus_code && f->mbus_code != CAPTURE_MBUS_CODE))
++		return -EINVAL;
++	f->pixelformat = V4L2_PIX_FMT_MTISP_SGRBG10;
++	return 0;
++}
++
++static void seninf_fill_fmt(struct v4l2_pix_format *fmt)
++{
++	fmt->pixelformat = V4L2_PIX_FMT_MTISP_SGRBG10;
++	fmt->width = clamp_t(u32, ALIGN_DOWN(fmt->width, 4), 4, CAPTURE_MAX_WIDTH);
++	fmt->height = clamp_t(u32, ALIGN_DOWN(fmt->height, 2), 2, CAPTURE_MAX_HEIGHT);
++	fmt->field = V4L2_FIELD_NONE;
++	fmt->colorspace = V4L2_COLORSPACE_RAW;
++	fmt->bytesperline = CAPTURE_BYTESPERLINE(fmt->width);
++	fmt->sizeimage = fmt->bytesperline * fmt->height;
++}
++
++static int seninf_g_fmt(struct file *file, void *fh, struct v4l2_format *f)
++{
++	struct mt6797_seninf *seninf = video_drvdata(file);
++
++	f->fmt.pix = seninf->fmt;
++	return 0;
++}
++
++static int seninf_try_fmt(struct file *file, void *fh, struct v4l2_format *f)
++{
++	seninf_fill_fmt(&f->fmt.pix);
++	return 0;
++}
++
++static int seninf_s_fmt(struct file *file, void *fh, struct v4l2_format *f)
++{
++	struct mt6797_seninf *seninf = video_drvdata(file);
++
++	if (vb2_is_busy(&seninf->queue))
++		return -EBUSY;
++	seninf_fill_fmt(&f->fmt.pix);
++	seninf->fmt = f->fmt.pix;
++	return 0;
++}
++
++static const struct v4l2_ioctl_ops seninf_ioctl_ops = {
++	.vidioc_querycap = seninf_querycap,
++	.vidioc_enum_fmt_vid_cap = seninf_enum_fmt,
++	.vidioc_g_fmt_vid_cap = seninf_g_fmt,
++	.vidioc_try_fmt_vid_cap = seninf_try_fmt,
++	.vidioc_s_fmt_vid_cap = seninf_s_fmt,
++	.vidioc_reqbufs = vb2_ioctl_reqbufs,
++	.vidioc_create_bufs = vb2_ioctl_create_bufs,
++	.vidioc_prepare_buf = vb2_ioctl_prepare_buf,
++	.vidioc_querybuf = vb2_ioctl_querybuf,
++	.vidioc_qbuf = vb2_ioctl_qbuf,
++	.vidioc_expbuf = vb2_ioctl_expbuf,
++	.vidioc_dqbuf = vb2_ioctl_dqbuf,
++	.vidioc_streamon = vb2_ioctl_streamon,
++	.vidioc_streamoff = vb2_ioctl_streamoff,
+ };
+ 
++static const struct v4l2_file_operations seninf_video_fops = {
++	.owner = THIS_MODULE,
++	.open = v4l2_fh_open,
++	.release = vb2_fop_release,
++	.unlocked_ioctl = video_ioctl2,
++	.mmap = vb2_fop_mmap,
++	.poll = vb2_fop_poll,
++};
++
++static int seninf_video_register(struct mt6797_seninf *seninf)
++{
++	struct video_device *vdev = &seninf->vdev;
++	struct vb2_queue *q = &seninf->queue;
++	int ret;
++
++	seninf->fmt.width = CAPTURE_MAX_WIDTH;
++	seninf->fmt.height = CAPTURE_MAX_HEIGHT;
++	seninf_fill_fmt(&seninf->fmt);
++
++	q->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
++	q->io_modes = VB2_MMAP | VB2_DMABUF;
++	q->drv_priv = seninf;
++	q->buf_struct_size = sizeof(struct seninf_buffer);
++	q->ops = &seninf_vb2_ops;
++	q->mem_ops = &vb2_dma_contig_memops;
++	q->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_MONOTONIC;
++	q->min_queued_buffers = 1;
++	q->lock = &seninf->video_lock;
++	q->dev = seninf->dev;
++	ret = vb2_queue_init(q);
++	if (ret)
++		return ret;
++
++	seninf->video_pad.flags = MEDIA_PAD_FL_SINK | MEDIA_PAD_FL_MUST_CONNECT;
++	ret = media_entity_pads_init(&vdev->entity, 1, &seninf->video_pad);
++	if (ret)
++		return ret;
++
++	strscpy(vdev->name, "mt6797-camsv0", sizeof(vdev->name));
++	vdev->fops = &seninf_video_fops;
++	vdev->ioctl_ops = &seninf_ioctl_ops;
++	vdev->v4l2_dev = &seninf->v4l2_dev;
++	vdev->queue = q;
++	vdev->lock = &seninf->video_lock;
++	vdev->release = video_device_release_empty;
++	vdev->vfl_dir = VFL_DIR_RX;
++	vdev->device_caps = V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_STREAMING | V4L2_CAP_IO_MC;
++	video_set_drvdata(vdev, seninf);
++	ret = video_register_device(vdev, VFL_TYPE_VIDEO, -1);
++	if (ret)
++		goto err_entity;
++
++	ret = media_create_pad_link(&seninf->sd.entity, SENINF_PAD_SOURCE, &vdev->entity, 0,
++				    MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE);
++	if (ret)
++		goto err_video;
++	return 0;
++
++err_video:
++	video_unregister_device(vdev);
++err_entity:
++	media_entity_cleanup(&vdev->entity);
++	return ret;
++}
++
+ static int seninf_notifier_bound(struct v4l2_async_notifier *notifier,
+ 				 struct v4l2_subdev *sd,
+ 				 struct v4l2_async_connection *asc)
+@@ -489,7 +1007,18 @@ static int seninf_notifier_bound(struct v4l2_async_notifier *notifier,
+ 
+ 	seninf->sensor = sd;
+ 	dev_info(seninf->dev, "bound %s\n", sd->name);
+-	return 0;
++	return v4l2_create_fwnode_links_to_pad(sd, &seninf->pads[SENINF_PAD_SINK],
++					       MEDIA_LNK_FL_ENABLED | MEDIA_LNK_FL_IMMUTABLE);
++}
++
++static void seninf_video_unregister(struct mt6797_seninf *seninf)
++{
++	if (!seninf->registered)
++		return;
++	seninf->registered = false;
++	media_device_unregister(&seninf->mdev);
++	vb2_video_unregister_device(&seninf->vdev);
++	media_entity_cleanup(&seninf->vdev.entity);
+ }
+ 
+ static void seninf_notifier_unbind(struct v4l2_async_notifier *notifier,
+@@ -499,6 +1028,7 @@ static void seninf_notifier_unbind(struct v4l2_async_notifier *notifier,
+ 	struct mt6797_seninf *seninf =
+ 		container_of(notifier, struct mt6797_seninf, notifier);
+ 
++	seninf_video_unregister(seninf);
+ 	seninf->sensor = NULL;
+ }
+ 
+@@ -507,7 +1037,24 @@ static int seninf_notifier_complete(struct v4l2_async_notifier *notifier)
+ 	struct mt6797_seninf *seninf =
+ 		container_of(notifier, struct mt6797_seninf, notifier);
+ 
+-	return v4l2_device_register_subdev_nodes(&seninf->v4l2_dev);
++	int ret;
++
++	ret = seninf_video_register(seninf);
++	if (ret)
++		return ret;
++	ret = v4l2_device_register_subdev_nodes(&seninf->v4l2_dev);
++	if (ret)
++		goto err_video;
++	ret = media_device_register(&seninf->mdev);
++	if (ret)
++		goto err_video;
++	seninf->registered = true;
++	return 0;
++
++err_video:
++	vb2_video_unregister_device(&seninf->vdev);
++	media_entity_cleanup(&seninf->vdev.entity);
++	return ret;
+ }
+ 
+ static const struct v4l2_async_notifier_operations seninf_notifier_ops = {
+@@ -542,37 +1089,73 @@ static int seninf_rx_init(struct mt6797_seninf *seninf)
+ 		return PTR_ERR(seninf->mipi_rx);
+ 	}
+ 
+-	seninf->camsv_clk = devm_clk_get_optional(dev, "camsv0");
+-	seninf->larb_clk = devm_clk_get_optional(dev, "larb2");
+-	if (IS_ERR(seninf->camsv_clk) || IS_ERR(seninf->larb_clk)) {
++	seninf->camsv_clk = devm_clk_get(dev, "camsv0");
++	seninf->larb_clk = devm_clk_get(dev, "larb2");
++	seninf->smi_clk = devm_clk_get(dev, "smi");
++	if (IS_ERR(seninf->camsv_clk) || IS_ERR(seninf->larb_clk) || IS_ERR(seninf->smi_clk)) {
+ 		fwnode_handle_put(ep);
+ 		return dev_err_probe(dev, -EPROBE_DEFER, "waiting for capture clocks\n");
+ 	}
+-	res = platform_get_resource(pdev, IORESOURCE_MEM, 2);
+-	if (res) {
+-		seninf->camsv = devm_ioremap_resource(dev, res);
+-		if (IS_ERR(seninf->camsv)) {
+-			fwnode_handle_put(ep);
+-			return PTR_ERR(seninf->camsv);
+-		}
++	seninf->camsv = devm_platform_ioremap_resource(pdev, 2);
++	seninf->larb = devm_platform_ioremap_resource(pdev, 3);
++	if (IS_ERR(seninf->camsv) || IS_ERR(seninf->larb)) {
++		fwnode_handle_put(ep);
++		return IS_ERR(seninf->camsv) ? PTR_ERR(seninf->camsv) : PTR_ERR(seninf->larb);
+ 	}
+ 
++	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
++	if (ret) {
++		fwnode_handle_put(ep);
++		return ret;
++	}
++
++	seninf->irq = platform_get_irq(pdev, 0);
++	if (seninf->irq < 0) {
++		fwnode_handle_put(ep);
++		return seninf->irq;
++	}
++	ret = devm_request_irq(dev, seninf->irq, camsv_irq, IRQF_NO_AUTOEN, dev_name(dev), seninf);
++	if (ret) {
++		fwnode_handle_put(ep);
++		return ret;
++	}
++
++	spin_lock_init(&seninf->buf_lock);
++	INIT_LIST_HEAD(&seninf->buffers);
++	mutex_init(&seninf->video_lock);
++
+ 	seninf->settle = DIV_ROUND_UP(SENINF_SETTLE_NS * SENINF_CLK_RATE_MHZ, 1000);
+ 	seninf->hsrx_delay = true;
+ 
++	seninf->mdev.dev = dev;
++	strscpy(seninf->mdev.model, "MT6797 sensor interface", sizeof(seninf->mdev.model));
++	media_device_init(&seninf->mdev);
++	seninf->v4l2_dev.mdev = &seninf->mdev;
+ 	ret = v4l2_device_register(dev, &seninf->v4l2_dev);
+ 	if (ret) {
+ 		fwnode_handle_put(ep);
+-		return ret;
++		goto err_mdev;
+ 	}
+ 
+ 	v4l2_subdev_init(&seninf->sd, &seninf_subdev_ops);
+ 	seninf->sd.dev = dev;
++	seninf->sd.internal_ops = &seninf_internal_ops;
++	seninf->sd.flags |= V4L2_SUBDEV_FL_HAS_DEVNODE;
++	seninf->sd.entity.function = MEDIA_ENT_F_VID_IF_BRIDGE;
++	seninf->sd.entity.ops = &seninf_entity_ops;
+ 	strscpy(seninf->sd.name, dev_name(dev), sizeof(seninf->sd.name));
+ 	v4l2_set_subdevdata(&seninf->sd, seninf);
+-	ret = v4l2_device_register_subdev(&seninf->v4l2_dev, &seninf->sd);
++	seninf->pads[SENINF_PAD_SINK].flags = MEDIA_PAD_FL_SINK | MEDIA_PAD_FL_MUST_CONNECT;
++	seninf->pads[SENINF_PAD_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
++	ret = media_entity_pads_init(&seninf->sd.entity, ARRAY_SIZE(seninf->pads), seninf->pads);
+ 	if (ret)
+ 		goto err_v4l2;
++	ret = v4l2_subdev_init_finalize(&seninf->sd);
++	if (ret)
++		goto err_entity;
++	ret = v4l2_device_register_subdev(&seninf->v4l2_dev, &seninf->sd);
++	if (ret)
++		goto err_state;
+ 
+ 	v4l2_async_nf_init(&seninf->notifier, &seninf->v4l2_dev);
+ 	seninf->notifier.ops = &seninf_notifier_ops;
+@@ -594,9 +1177,16 @@ static int seninf_rx_init(struct mt6797_seninf *seninf)
+ err_nf:
+ 	v4l2_async_nf_cleanup(&seninf->notifier);
+ 	v4l2_device_unregister_subdev(&seninf->sd);
++err_state:
++	v4l2_subdev_cleanup(&seninf->sd);
++err_entity:
++	media_entity_cleanup(&seninf->sd.entity);
+ err_v4l2:
+ 	v4l2_device_unregister(&seninf->v4l2_dev);
+ 	fwnode_handle_put(ep);
++err_mdev:
++	media_device_cleanup(&seninf->mdev);
++	mutex_destroy(&seninf->video_lock);
+ 	seninf->mipi_rx = NULL;
+ 	return ret;
+ }
+@@ -606,52 +1196,17 @@ static void seninf_rx_exit(struct mt6797_seninf *seninf)
+ 	if (!seninf->mipi_rx)
+ 		return;
+ 
+-	seninf_s_stream(&seninf->sd, 0);
++	seninf_video_unregister(seninf);
+ 	v4l2_async_nf_unregister(&seninf->notifier);
+ 	v4l2_async_nf_cleanup(&seninf->notifier);
+ 	v4l2_device_unregister_subdev(&seninf->sd);
++	v4l2_subdev_cleanup(&seninf->sd);
++	media_entity_cleanup(&seninf->sd.entity);
+ 	v4l2_device_unregister(&seninf->v4l2_dev);
++	media_device_cleanup(&seninf->mdev);
++	mutex_destroy(&seninf->video_lock);
+ }
+ 
+-/* Bring-up only: there is no capture node yet to start a stream from. */
+-static int seninf_dbg_stream_set(void *data, u64 val)
+-{
+-	struct mt6797_seninf *seninf = data;
+-
+-	return seninf_s_stream(&seninf->sd, !!val);
+-}
+-DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_stream, NULL, seninf_dbg_stream_set, "%llu\n");
+-
+-static int seninf_set_sensor_ctrl(struct mt6797_seninf *seninf, u32 id, u64 val)
+-{
+-	struct v4l2_ctrl *ctrl;
+-
+-	if (!seninf->sensor)
+-		return -ENODEV;
+-	ctrl = v4l2_ctrl_find(seninf->sensor->ctrl_handler, id);
+-	if (!ctrl)
+-		return -ENOTTY;
+-	return v4l2_ctrl_s_ctrl(ctrl, val);
+-}
+-
+-static int seninf_dbg_pattern_set(void *data, u64 val)
+-{
+-	return seninf_set_sensor_ctrl(data, V4L2_CID_TEST_PATTERN, val);
+-}
+-DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_pattern, NULL, seninf_dbg_pattern_set, "%llu\n");
+-
+-static int seninf_dbg_exposure_set(void *data, u64 val)
+-{
+-	return seninf_set_sensor_ctrl(data, V4L2_CID_EXPOSURE, val);
+-}
+-DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_exposure, NULL, seninf_dbg_exposure_set, "%llu\n");
+-
+-static int seninf_dbg_gain_set(void *data, u64 val)
+-{
+-	return seninf_set_sensor_ctrl(data, V4L2_CID_ANALOGUE_GAIN, val);
+-}
+-DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_gain, NULL, seninf_dbg_gain_set, "%llu\n");
+-
+ static int seninf_dbg_status_show(struct seq_file *s, void *unused)
+ {
+ 	struct mt6797_seninf *seninf = s->private;
+@@ -691,315 +1246,12 @@ static int seninf_dbg_status_show(struct seq_file *s, void *unused)
+ }
+ DEFINE_SHOW_ATTRIBUTE(seninf_dbg_status);
+ 
+-static void seninf_camsv_dump(struct mt6797_seninf *seninf, const char *when)
+-{
+-	void __iomem *sv = seninf->camsv;
+-
+-	dev_info(seninf->dev,
+-		 "camsv %s: en %08x status %08x vf %08x mode %08x pxl %08x lin %08x\n",
+-		 when, readl(sv + CAMSV_MODULE_EN), readl(sv + CAMSV_INT_STATUS),
+-		 readl(sv + CAMSV_TG_VF_CON), readl(sv + CAMSV_TG_SEN_MODE),
+-		 readl(sv + CAMSV_TG_SEN_GRAB_PXL), readl(sv + CAMSV_TG_SEN_GRAB_LIN));
+-	dev_info(seninf->dev,
+-		 "camsv %s: sof %08x dat %08x frm %08x size %08x inter %08x\n",
+-		 when, readl(sv + CAMSV_TG_SOF_CNT), readl(sv + CAMSV_TG_DAT_NO),
+-		 readl(sv + CAMSV_TG_FRM_CNT_ST), readl(sv + CAMSV_TG_FRMSIZE_ST),
+-		 readl(sv + CAMSV_TG_INTER_ST));
+-	dev_info(seninf->dev,
+-		 "camsv %s: fbc1 %08x fbc2 %08x enq %08x cur %08x err %08x cam_mux %08x\n",
+-		 when, readl(sv + CAMSV_FBC_IMGO_CTL1), readl(sv + CAMSV_FBC_IMGO_CTL2),
+-		 readl(sv + CAMSV_FBC_IMGO_ENQ_ADDR), readl(sv + CAMSV_FBC_IMGO_CUR_ADDR),
+-		 readl(sv + CAMSV_IMGO_ERR_STAT), readl(seninf->base + SENINF_TOP_CAM_MUX));
+-	dev_info(seninf->dev, "camsv %s: base %08x x %08x y %08x stride %08x imgo_fbc %08x\n",
+-		 when, readl(sv + CAMSV_IMGO_BASE_ADDR), readl(sv + CAMSV_IMGO_XSIZE),
+-		 readl(sv + CAMSV_IMGO_YSIZE), readl(sv + CAMSV_IMGO_STRIDE),
+-		 readl(sv + CAMSV_IMGO_FBC));
+-}
+-
+-/*
+- * One frame into a bounded buffer. Frame buffer control holds one buffer, so the
+- * DMA stops after it, and the DMA's size registers bound the write. A guard after
+- * the buffer shows whether it was overrun. The larb is left in its reset state,
+- * with no M4U.
+- */
+-/*
+- * M4U is not in use here, so CAMSV0's port has to bypass it for the buffer's bus
+- * address to mean anything. Larb2's MMU enable has one bit per port. Clear ours only,
+- * and refuse if it does not stick or if anything else in the two control windows
+- * is set, since nothing here accounts for that.
+- */
+-/* One pixel of 10-bit little-endian packing: 4 pixels in each 5 bytes. */
+-static u32 seninf_raw10(const u8 *line, unsigned int x)
+-{
+-	unsigned int off = x * 10 / 8;
+-
+-	return ((line[off] | line[off + 1] << 8) >> (x % 4 * 2)) & 0x3ff;
+-}
+-
+-/*
+- * A rough picture for the panel: one RGB pixel from each GRBG cell, the sensor's black
+- * level taken off and a square-root curve. No colour balance and no shading correction.
+- * The panel scans 1080x2160, turned 90 degrees when held in landscape.
+- */
+-static void seninf_build_view(struct mt6797_seninf *seninf)
+-{
+-	unsigned int x, y, cell_w = CAPTURE_WIDTH / 2, cell_h = CAPTURE_HEIGHT / 2;
+-	unsigned int u0 = (VIEW_HEIGHT - cell_w) / 2, v0 = (VIEW_WIDTH - cell_h) / 2;
+-	const u8 *frame = seninf->frame;
+-	u8 curve[1024];
+-
+-	if (!seninf->view)
+-		return;
+-	for (x = 0; x < ARRAY_SIZE(curve); x++)
+-		curve[x] = x <= VIEW_BLACK ? 0 :
+-			   int_sqrt((x - VIEW_BLACK) * 255 * 255 / (1023 - VIEW_BLACK));
+-
+-	memset(seninf->view, 0, VIEW_SIZE);
+-	for (y = 0; y < cell_h; y++) {
+-		const u8 *l0 = frame + 2 * y * CAPTURE_STRIDE;
+-		const u8 *l1 = l0 + CAPTURE_STRIDE;
+-		unsigned int v = seninf->view_flip & 2 ? cell_h - 1 - y : y;
+-
+-		for (x = 0; x < cell_w; x++) {
+-			unsigned int u = seninf->view_flip & 1 ? cell_w - 1 - x : x;
+-			u32 gr = seninf_raw10(l0, 2 * x);
+-			u32 r = seninf_raw10(l0, 2 * x + 1);
+-			u32 b = seninf_raw10(l1, 2 * x);
+-			u32 gb = seninf_raw10(l1, 2 * x + 1);
+-
+-			seninf->view[(VIEW_HEIGHT - 1 - (u0 + u)) * VIEW_WIDTH + v0 + v] =
+-				curve[r] << 16 | curve[(gr + gb) / 2] << 8 | curve[b];
+-		}
+-	}
+-}
+-
+-static int seninf_smi_is_open(struct mt6797_seninf *seninf)
+-{
+-	void __iomem *mm = ioremap(MMSYS_BASE, SZ_4K);
+-	u32 val;
+-
+-	if (!mm)
+-		return -ENOMEM;
+-	val = readl(mm + MMSYS_CG_CON0);
+-	iounmap(mm);
+-	dev_info(seninf->dev, "mmsys cg0 %08x\n", val);
+-	return val & MMSYS_CG0_SMI_COMMON ? -EBUSY : 0;
+-}
+-
+-static int seninf_larb_bypass_sv0(struct mt6797_seninf *seninf)
+-{
+-	void __iomem *larb = ioremap(LARB2_BASE, SZ_4K);
+-	unsigned int off, other = 0;
+-	u32 val;
+-
+-	if (!larb)
+-		return -ENOMEM;
+-	for (off = 0x380; off < 0x400; off += 4) {
+-		val = readl(larb + off);
+-		if (val) {
+-			dev_info(seninf->dev, "larb2 %03x: %08x\n", off, val);
+-			other++;
+-		}
+-	}
+-	for (off = 0xf00; off < 0x1000; off += 4) {
+-		if (off == LARB_MMU_EN)
+-			continue;
+-		val = readl(larb + off);
+-		if (val) {
+-			dev_info(seninf->dev, "larb2 %03x: %08x\n", off, val);
+-			other++;
+-		}
+-	}
+-	val = readl(larb + LARB_MMU_EN);
+-	dev_info(seninf->dev, "larb2 mmu_en %08x, %u others non-zero\n", val, other);
+-	if (other) {
+-		iounmap(larb);
+-		return -EBUSY;
+-	}
+-	writel(val & ~LARB2_PORT_CAM_SV0, larb + LARB_MMU_EN);
+-	val = readl(larb + LARB_MMU_EN);
+-	iounmap(larb);
+-	dev_info(seninf->dev, "larb2 mmu_en now %08x\n", val);
+-	return val & LARB2_PORT_CAM_SV0 ? -EBUSY : 0;
+-}
+-
+-static int seninf_capture_once(struct mt6797_seninf *seninf, bool check_only)
+-{
+-	void __iomem *sv = seninf->camsv;
+-	unsigned int i, unwritten = 0, guard_bad = 0;
+-	u8 *bytes = seninf->frame;
+-	u32 val;
+-	int ret;
+-
+-	if (!sv || !seninf->camsv_clk || !seninf->larb_clk || !seninf->sensor)
+-		return -ENODEV;
+-	if (seninf->streaming)
+-		return -EBUSY;
+-
+-	if (!seninf->frame) {
+-		ret = dma_set_mask_and_coherent(seninf->dev, DMA_BIT_MASK(32));
+-		if (ret)
+-			return ret;
+-		seninf->frame = dma_alloc_coherent(seninf->dev,
+-						   CAPTURE_SIZE + CAPTURE_GUARD,
+-						   &seninf->frame_dma, GFP_KERNEL);
+-		if (!seninf->frame)
+-			return -ENOMEM;
+-		bytes = seninf->frame;
+-		seninf->frame_blob.data = seninf->frame;
+-		seninf->frame_blob.size = CAPTURE_SIZE;
+-		debugfs_create_blob("frame", 0400, seninf->debugfs, &seninf->frame_blob);
+-		seninf->view = vmalloc(VIEW_SIZE);
+-		if (seninf->view) {
+-			seninf->view_blob.data = seninf->view;
+-			seninf->view_blob.size = VIEW_SIZE;
+-			debugfs_create_blob("view", 0400, seninf->debugfs, &seninf->view_blob);
+-		}
+-	}
+-	memset(bytes, CAPTURE_FILL_BYTE, CAPTURE_SIZE);
+-	memset(bytes + CAPTURE_SIZE, CAPTURE_GUARD_BYTE, CAPTURE_GUARD);
+-	dev_info(seninf->dev, "capture buffer at %pad, %u bytes\n",
+-		 &seninf->frame_dma, CAPTURE_SIZE);
+-
+-	ret = v4l2_subdev_call(&seninf->sd, video, s_stream, 1);
+-	if (ret)
+-		return ret;
+-
+-	/*
+-	 * The display relies on this shared gate, left open by the loader with nobody
+-	 * counting it. Enabling and disabling it here would close it behind the display,
+-	 * so leave it alone and refuse if it is not open.
+-	 */
+-	ret = seninf_smi_is_open(seninf);
+-	if (ret)
+-		goto stop_stream;
+-	ret = clk_prepare_enable(seninf->larb_clk);
+-	if (ret)
+-		goto stop_stream;
+-	ret = clk_prepare_enable(seninf->camsv_clk);
+-	if (ret)
+-		goto put_larb;
+-
+-	ret = seninf_larb_bypass_sv0(seninf);
+-	if (ret || check_only)
+-		goto stop_camsv;
+-
+-	/* Let the stream settle, so the frame starts clean. */
+-	msleep(100);
+-
+-	/* All the CAMSV inputs take this interface's mux. */
+-	val = readl(seninf->base + SENINF_TOP_CAM_MUX);
+-	for (i = 2; i < 8; i++)
+-		val = (val & ~SENINF_TOP_CAM_MUX_SEL(i)) | (SENINF_RX_IF << (4 * i));
+-	writel(val, seninf->base + SENINF_TOP_CAM_MUX);
+-
+-	writel(CAMSV_SW_CTL_SW_RST, sv + CAMSV_SW_CTL);
+-	writel(0, sv + CAMSV_SW_CTL);
+-	writel(CAMSV_SW_CTL_RST_TRIG, sv + CAMSV_SW_CTL);
+-	ret = readl_poll_timeout(sv + CAMSV_SW_CTL, val,
+-				 val == (CAMSV_SW_CTL_RST_TRIG | CAMSV_SW_CTL_RST_STA),
+-				 100, 100000);
+-	if (ret) {
+-		dev_err(seninf->dev, "camsv reset timed out, %08x\n", val);
+-		goto stop_camsv;
+-	}
+-	writel(0, sv + CAMSV_SW_CTL);
+-
+-	writel(CAMSV_CLK_EN_VAL, sv + CAMSV_CLK_EN);
+-	writel(readl(sv + CAMSV_TG_SEN_MODE) & ~CAMSV_TG_SEN_MODE_CLR, sv + CAMSV_TG_SEN_MODE);
+-	writel(0, sv + CAMSV_TG_SUB_PERIOD);
+-	writel((u32)CAPTURE_WIDTH << 16, sv + CAMSV_TG_SEN_GRAB_PXL);
+-	writel((u32)CAPTURE_HEIGHT << 16, sv + CAMSV_TG_SEN_GRAB_LIN);
+-	writel(CAMSV_FMT_SEL_BAYER10, sv + CAMSV_FMT_SEL);
+-	/* No handler: this only makes the status readable. The line is not requested. */
+-	writel(0x7fffffff, sv + CAMSV_INT_EN);
+-	writel((readl(sv + CAMSV_PAK) & ~CAMSV_PAK_MASK) | CAMSV_PAK_RAW10, sv + CAMSV_PAK);
+-	writel(0, sv + CAMSV_DMA_FRAME_HEADER_EN);
+-	writel(readl(sv + CAMSV_DMA_RSV1) & ~BIT(31), sv + CAMSV_DMA_RSV1);
+-	writel(0xffffffff, sv + CAMSV_DMA_RSV6);
+-	writel(readl(sv + CAMSV_SPECIAL_FUN_EN) | CAMSV_SPECIAL_FUN_VAL, sv + CAMSV_SPECIAL_FUN_EN);
+-
+-	writel(lower_32_bits(seninf->frame_dma), sv + CAMSV_IMGO_BASE_ADDR);
+-	writel(0, sv + CAMSV_IMGO_OFST_ADDR);
+-	writel(CAPTURE_STRIDE - 1, sv + CAMSV_IMGO_XSIZE);
+-	writel(CAPTURE_HEIGHT - 1, sv + CAMSV_IMGO_YSIZE);
+-	writel(CAPTURE_STRIDE | CAMSV_IMGO_STRIDE_BUS16, sv + CAMSV_IMGO_STRIDE);
+-	writel(0, sv + CAMSV_IMGO_CROP);
+-
+-	/*
+-	 * Queue mode: only an enqueued buffer is written, and with none a frame is
+-	 * dropped and counted. The top byte is the subsample ratio; leave it zero.
+-	 */
+-	writel(0, sv + CAMSV_FBC_IMGO_CTL1);
+-	writel(CAMSV_FBC_IMGO_CTL1_MODE_QUEUE, sv + CAMSV_FBC_IMGO_CTL1);
+-	writel(CAMSV_FBC_IMGO_CTL1_MODE_QUEUE | CAMSV_FBC_IMGO_CTL1_EN, sv + CAMSV_FBC_IMGO_CTL1);
+-	writel(lower_32_bits(seninf->frame_dma), sv + CAMSV_FBC_IMGO_ENQ_ADDR);
+-	writel(readl(sv + CAMSV_IMGO_FBC) | CAMSV_IMGO_FBC_RCNT_INC, sv + CAMSV_IMGO_FBC);
+-
+-	writel(CAMSV_MODULE_EN_TG | CAMSV_MODULE_EN_PAK | CAMSV_MODULE_EN_IMGO |
+-	       CAMSV_MODULE_EN_DB, sv + CAMSV_MODULE_EN);
+-	seninf_camsv_dump(seninf, "before");
+-
+-	writel(readl(sv + CAMSV_TG_SEN_MODE) | CAMSV_TG_SEN_MODE_CMOS_EN, sv + CAMSV_TG_SEN_MODE);
+-	/*
+-	 * Continuous, as the vendor stack runs it. One buffer is enqueued, so one frame
+-	 * should be written and the rest dropped; the size registers bound each write.
+-	 */
+-	writel((readl(sv + CAMSV_TG_VF_CON) & ~CAMSV_TG_VF_CON_SINGLE) | CAMSV_TG_VF_CON_EN,
+-	       sv + CAMSV_TG_VF_CON);
+-
+-	/* Several frame times at the sensor's 30 frames a second. */
+-	for (i = 0; i < 6; i++) {
+-		msleep(40);
+-		seninf_camsv_dump(seninf, "during");
+-	}
+-
+-	writel(readl(sv + CAMSV_TG_VF_CON) & ~CAMSV_TG_VF_CON_EN, sv + CAMSV_TG_VF_CON);
+-	writel(readl(sv + CAMSV_TG_SEN_MODE) & ~CAMSV_TG_SEN_MODE_CMOS_EN, sv + CAMSV_TG_SEN_MODE);
+-	writel(0, sv + CAMSV_MODULE_EN);
+-	seninf_camsv_dump(seninf, "stopped");
+-
+-stop_camsv:
+-	clk_disable_unprepare(seninf->camsv_clk);
+-put_larb:
+-	clk_disable_unprepare(seninf->larb_clk);
+-stop_stream:
+-	v4l2_subdev_call(&seninf->sd, video, s_stream, 0);
+-
+-	for (i = 0; i < CAPTURE_SIZE; i++)
+-		unwritten += bytes[i] == CAPTURE_FILL_BYTE;
+-	for (i = 0; i < CAPTURE_GUARD; i++)
+-		guard_bad += bytes[CAPTURE_SIZE + i] != CAPTURE_GUARD_BYTE;
+-	dev_info(seninf->dev, "capture: %u of %u bytes still fill, %u guard bytes changed\n",
+-		 unwritten, CAPTURE_SIZE, guard_bad);
+-	dev_info(seninf->dev, "first bytes %*ph\n", 16, bytes);
+-	if (!ret && !check_only)
+-		seninf_build_view(seninf);
+-
+-	return ret;
+-}
+-
+-static int seninf_dbg_capture_set(void *data, u64 val)
+-{
+-	/* 1 captures. 2 sets larb2 and stops, with CAMSV not started. */
+-	return val ? seninf_capture_once(data, val == 2) : 0;
+-}
+-DEFINE_DEBUGFS_ATTRIBUTE(seninf_dbg_capture, NULL, seninf_dbg_capture_set, "%llu\n");
+-
+ static void seninf_debugfs_init(struct mt6797_seninf *seninf)
+ {
+ 	struct dentry *dir = debugfs_create_dir("mt6797-seninf", NULL);
+ 
+ 	seninf->debugfs = dir;
+-	debugfs_create_file_unsafe("stream", 0200, dir, seninf, &seninf_dbg_stream);
+-	debugfs_create_file_unsafe("pattern", 0200, dir, seninf, &seninf_dbg_pattern);
+-	debugfs_create_file_unsafe("exposure", 0200, dir, seninf, &seninf_dbg_exposure);
+-	debugfs_create_file_unsafe("gain", 0200, dir, seninf, &seninf_dbg_gain);
+-	debugfs_create_u32("view_flip", 0600, dir, &seninf->view_flip);
+ 	debugfs_create_file("status", 0400, dir, seninf, &seninf_dbg_status_fops);
+-	debugfs_create_file_unsafe("capture", 0200, dir, seninf, &seninf_dbg_capture);
+-	debugfs_create_u32("settle", 0600, dir, &seninf->settle);
+-	debugfs_create_bool("hsrx_delay", 0600, dir, &seninf->hsrx_delay);
+ }
+ 
+ static int seninf_runtime_suspend(struct device *dev)
+@@ -1111,11 +1363,7 @@ static void seninf_remove(struct platform_device *pdev)
+ 	struct mt6797_seninf *seninf = platform_get_drvdata(pdev);
+ 
+ 	debugfs_remove_recursive(seninf->debugfs);
+-	vfree(seninf->view);
+ 	seninf_rx_exit(seninf);
+-	if (seninf->frame)
+-		dma_free_coherent(seninf->dev, CAPTURE_SIZE + CAPTURE_GUARD,
+-				  seninf->frame, seninf->frame_dma);
+ }
+ 
+ static const struct of_device_id seninf_of_match[] = {
