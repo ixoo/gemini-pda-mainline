@@ -1,4 +1,4 @@
-# First test release (docs/RELEASE_READINESS.md): the station with the A72 pair,
+# v1 (docs/RELEASE_READINESS.md): the station with the A72 pair and the camera,
 # without the options that only serve bring-up. Listed last, so it overrides them.
 # Booted once (2026-10-30-mainline-dev-station, first boot of the release image).
 

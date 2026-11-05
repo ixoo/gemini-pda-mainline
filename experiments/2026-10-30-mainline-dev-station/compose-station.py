@@ -25,6 +25,12 @@ REPO = HERE.parents[1]
 BOOT = REPO/'experiments/2026-07-12-boot-contract-recovery/scripts'
 NAME, CMDLINE = 'gemini-obs-P', 'bootopt=64S3,32N2,64N2'
 DTB = 'mt6797-gemini-pda-station-a72.dtb'
+# The release image's optional groups, in release/hw-start.
+OPTIONAL = ['novatek-nt36xxx', 'kfifo_buf', 'industrialio-triggered-buffer', 'bmi160_core', 'bmi160_i2c', 'stk3310', 'leds-aw9120',
+            'clk-mt6797-mfg', 'rt5735-regulator', 'drm_shmem_helper', 'gpu-sched', 'panfrost',
+            'mc', 'videodev', 'v4l2-async', 'v4l2-fwnode', 'videobuf2-common', 'videobuf2-memops', 'videobuf2-v4l2',
+            'videobuf2-dma-contig', 'clk-mt6797-cam', 'mt6797-seninf', 'hi556', 'mt6797-a72',
+            'bluetooth', 'rfcomm', 'btmt6797', 'mtk-btcvsd', 'mt6797-btcvsd', 'gnss-mt6797']
 
 
 def sha(path):
@@ -59,6 +65,11 @@ def main(package, parent, tools, output, authorized_key=None):
                  'gpu/drm/mediatek/mediatek-drm.ko']:
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
+        modules += found
+    # Loaded only by hand, through hw-start.
+    for name in [] if not public else OPTIONAL:
+        found = sorted(package.glob('modules/lib/modules/*/kernel/**/' + name + '.ko'))
+        assert len(found) == 1, ('one module expected in the package', name, found)
         modules += found
     module = modules[0]
     release = release or module.parts[module.parts.index('modules') + 3]

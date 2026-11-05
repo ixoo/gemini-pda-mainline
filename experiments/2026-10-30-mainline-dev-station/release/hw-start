@@ -1,0 +1,40 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# shellcheck shell=dash
+# Load one optional group of modules by hand on the release image. Nothing runs this at
+# boot. Each group has run only on the station, with the limits in
+# docs/HARDWARE_SUPPORT.md. Prints one word: the group, or what stopped it.
+# usage: hw-start touch|sensors|leds|gpu|camera|a72|bluetooth|bluetooth-voice|gnss
+dir=/lib/modules/$(uname -r)
+case "$1" in
+touch) modules=novatek-nt36xxx ;;
+sensors) modules='kfifo_buf industrialio-triggered-buffer bmi160_core bmi160_i2c stk3310' ;;
+leds) modules=leds-aw9120 ;;
+gpu) modules='clk-mt6797-mfg rt5735-regulator drm_panel_orientation_quirks drm drm_kms_helper drm_shmem_helper gpu-sched panfrost' ;;
+camera) modules='mc videodev v4l2-async v4l2-fwnode videobuf2-common videobuf2-memops videobuf2-v4l2 videobuf2-dma-contig clk-mt6797-cam mt6797-seninf hi556' ;;
+a72) modules=mt6797-a72 ;;
+bluetooth) modules='bluetooth rfcomm btmt6797' ;;
+bluetooth-voice) modules='mtk-btcvsd mt6797-btcvsd' ;;
+gnss) modules=gnss-mt6797 ;;
+*)
+    echo usage
+    exit 2
+    ;;
+esac
+# These use the connectivity firmware, which only radio-start brings up, with a country.
+case "$1" in
+bluetooth | bluetooth-voice | gnss)
+    if [ ! -d /sys/module/mt6797_consys ]; then
+        echo needs-radio-start
+        exit 1
+    fi
+    ;;
+esac
+for module in $modules; do
+    [ -d "/sys/module/$(echo "$module" | tr - _)" ] && continue
+    if ! insmod "$dir/$module.ko" 2>/dev/null; then
+        echo "$module-failed"
+        exit 1
+    fi
+done
+echo "$1"
