@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets, and F4 (stereo diagnostic, 0590) is predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -742,6 +742,42 @@ a lease, pings 3 of 3, taint 0, no warning or Oops.
 mainline as a V4L2 radio receiver with tuning, signal strength, controls,
 hardware seek and RDS. Not shown: audio, stereo, downward seek, the nine
 64 MHz SPI-clock channels, suspend.
+
+## Test F4: why the stereo flag stays 0 (predeclared, not yet admitted)
+
+**Question:** does the receiver see a stereo pilot at all, and does forced
+mono or the signal level explain the flag (open item 9, R10)?
+
+**Hypotheses:** (a) `0x75` D3 reads 1, so the receiver is forced to mono
+despite the driver's write; (b) the stations are received too weakly for
+stereo, so the indicator follows the vendor's blend and comes on with a
+stronger signal; (c) the indicator needs something the driver does not do.
+
+**Code:**
+[0590](../../patches/proposals/0590-media-radio-mt6797-log-the-stereo-registers-and-chan.patch)
+implements `VIDIOC_LOG_STATUS`: it logs `0x6c`, `0x75`, `0x61`, `0x63` and
+`0x64`, then the firmware's full quality report for the tuned channel (RSSI,
+PAMD, PR, FPAMD, MR, ATDC, PRX, ATDEV, soft-mute gain, delta RSSI). The
+channel is not logged, only whether the report's channel field matches the
+tuned one. [`fm-check`](fm-check.c) now calls it at t=5, after the last second
+and after the seek (`52196287…`).
+
+The quality report is a soft-mute tune of the same channel, as the seek does
+for every channel it tries; it may interrupt RDS for a moment.
+
+**Safety:** as F3, plus five register reads and one quality report per call,
+three calls. Receive only.
+
+**Procedure:** as F3, one load and one run, headset plugged in. If the owner
+can, the device near a window and a station the owner knows is in stereo on
+another receiver. The owner says which (no frequency needed): whether the
+station is known to be in stereo, and where the device was.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| `0x75` D3 = 1 | forced mono despite the write | find what sets it; fix the write order |
+| `0x75` D3 = 0, stereo comes on with the stronger signal | blend by level, (b) | the indicator works; nothing to fix |
+| `0x75` D3 = 0, strong signal, known stereo station, flag still 0 | (c); PR and FPAMD show what the DSP sees | compare with the audio path once it exists |
 
 ## Follow-up
 

@@ -1,0 +1,151 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 20:23:01 -0500
+Subject: [PATCH] media: radio: mt6797: log the stereo registers and channel
+ quality
+
+The stereo indicator never set on the station, on two stations with clean
+RDS. The vendor sets nothing for stereo besides forced mono, so the open
+question is whether the receiver sees a pilot at all.
+
+Implement VIDIOC_LOG_STATUS: after the controls, log the stereo indicator
+(0x6c), forced mono (0x75), 0x61, the main control (0x63) and state (0x64)
+registers, then the firmware's full quality report for the tuned channel,
+PR and FPAMD included. The channel is not logged, only whether the report's
+channel field matches the tuned one, so the log does not give away the
+station. The seek's judgement now shares the report parsing.
+---
+ drivers/media/radio/radio-mt6797.c | 93 ++++++++++++++++++++++++------
+ 1 file changed, 74 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/media/radio/radio-mt6797.c b/drivers/media/radio/radio-mt6797.c
+index 052b05d97..b03a4791c 100644
+--- a/drivers/media/radio/radio-mt6797.c
++++ b/drivers/media/radio/radio-mt6797.c
+@@ -867,16 +867,21 @@ static int sign_extend(unsigned int v, unsigned int bits)
+ }
+ 
+ /*
+- * The firmware's channel-quality report for one channel, judged as the vendor's
+- * soft-mute tune does. The report is a two-byte header, then channel, RSSI,
+- * PAMD, PR, FPAMD, MR, ATDC, PRX, ATDEV, soft-mute gain and delta RSSI.
++ * The firmware's channel-quality report for one channel: a two-byte header,
++ * then channel, RSSI, PAMD, PR, FPAMD, MR, ATDC, PRX, ATDEV, soft-mute gain and
++ * delta RSSI, 16 bit each.
+  */
+-static int mt6797_fm_channel_ok(struct mt6797_fm *fm, u16 f, bool *ok)
++struct fm_quality {
++	u16 ch, pr, fpamd, drssi;
++	int rssi, pamd, mr, atdc;
++	unsigned int prx, atdev, smg;
++};
++
++static int mt6797_fm_quality(struct mt6797_fm *fm, u16 f, struct fm_quality *q)
+ {
+ 	u8 p[3] = { 1, f & 0xff, f >> 8 }, r[24];
+-	const u8 *q = r + 2;
+-	int ret, rssi, pamd, mr, atdc;
+-	unsigned int prx, atdev, smg;
++	const u8 *d = r + 2;
++	int ret;
+ 
+ 	ret = fm_set_bits(fm, FM_REG_CHANNEL, fm_channel_param(f) == 2 ? 0x2000 : 0x0000,
+ 			  0x0fff);
+@@ -884,17 +889,31 @@ static int mt6797_fm_channel_ok(struct mt6797_fm *fm, u16 f, bool *ok)
+ 		ret = fm_command(fm, FM_OP_CQI, p, sizeof(p), r, sizeof(r));
+ 	if (ret)
+ 		return ret;
+-	rssi = sign_extend(le16_at(q, 1) & 0x3ff, 10);
+-	pamd = sign_extend(le16_at(q, 2) & 0x1ff, 9);
+-	mr = sign_extend(le16_at(q, 5) & 0x1ff, 9);
+-	atdc = abs((s16)le16_at(q, 6));
+-	prx = le16_at(q, 7) & 0xff;
+-	atdev = le16_at(q, 8);
+-	smg = le16_at(q, 9);
+-	*ok = rssi >= FM_TH_RSSI && pamd <= FM_TH_PAMD && atdc <= FM_TH_ATDC &&
+-	      mr >= FM_TH_MR && prx >= FM_TH_PRX && atdev >= atdc && smg >= FM_TH_SMG;
+-	dev_dbg(fm->dev, "quality %u: ch=%u rssi=%d pamd=%d mr=%d atdc=%d prx=%u atdev=%u smg=%u: %d\n",
+-		f, le16_at(q, 0), rssi, pamd, mr, atdc, prx, atdev, smg, *ok);
++	q->ch = le16_at(d, 0);
++	q->rssi = sign_extend(le16_at(d, 1) & 0x3ff, 10);
++	q->pamd = sign_extend(le16_at(d, 2) & 0x1ff, 9);
++	q->pr = le16_at(d, 3);
++	q->fpamd = le16_at(d, 4);
++	q->mr = sign_extend(le16_at(d, 5) & 0x1ff, 9);
++	q->atdc = abs((s16)le16_at(d, 6));
++	q->prx = le16_at(d, 7) & 0xff;
++	q->atdev = le16_at(d, 8);
++	q->smg = le16_at(d, 9);
++	q->drssi = le16_at(d, 10);
++	return 0;
++}
++
++/* Judged as the vendor's soft-mute tune does, with fm_cust.cfg's thresholds. */
++static int mt6797_fm_channel_ok(struct mt6797_fm *fm, u16 f, bool *ok)
++{
++	struct fm_quality q;
++	int ret = mt6797_fm_quality(fm, f, &q);
++
++	if (ret)
++		return ret;
++	*ok = q.rssi >= FM_TH_RSSI && q.pamd <= FM_TH_PAMD && q.atdc <= FM_TH_ATDC &&
++	      q.mr >= FM_TH_MR && q.prx >= FM_TH_PRX && q.atdev >= q.atdc &&
++	      q.smg >= FM_TH_SMG;
+ 	return 0;
+ }
+ 
+@@ -1225,6 +1244,42 @@ static int mt6797_fm_enum_freq_bands(struct file *file, void *priv,
+ 	return 0;
+ }
+ 
++/*
++ * VIDIOC_LOG_STATUS: the stereo and mono registers and the quality report for
++ * the tuned channel. The channel itself is not logged, only whether the
++ * report's channel field matches it.
++ */
++static int mt6797_fm_log_status(struct file *file, void *priv)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	u16 ind = 0, mono = 0, cg2 = 0, ctrl = 0, state = 0;
++	struct fm_quality q = {};
++	int ret;
++
++	v4l2_ctrl_log_status(file, priv);
++	if (!fm->powered)
++		return 0;
++	ret = fm_reg_read(fm, FM_REG_RSSI, &ind);
++	if (!ret)
++		ret = fm_reg_read(fm, 0x75, &mono);
++	if (!ret)
++		ret = fm_reg_read(fm, 0x61, &cg2);
++	if (!ret)
++		ret = fm_reg_read(fm, 0x63, &ctrl);
++	if (!ret)
++		ret = fm_reg_read(fm, 0x64, &state);
++	dev_info(fm->dev, "status: 0x6c=%04x 0x75=%04x 0x61=%04x 0x63=%04x 0x64=%04x: %d\n",
++		 ind, mono, cg2, ctrl, state, ret);
++	if (ret)
++		return 0;
++	ret = mt6797_fm_quality(fm, fm->f, &q);
++	dev_info(fm->dev,
++		 "quality: ch %s rssi=%d pamd=%d pr=%04x fpamd=%04x mr=%d atdc=%d prx=%u atdev=%u smg=%u drssi=%04x: %d\n",
++		 q.ch == fm->f ? "matches" : "differs", q.rssi, q.pamd, q.pr, q.fpamd, q.mr,
++		 q.atdc, q.prx, q.atdev, q.smg, q.drssi, ret);
++	return 0;
++}
++
+ static const struct v4l2_ioctl_ops mt6797_fm_ioctl_ops = {
+ 	.vidioc_querycap = mt6797_fm_querycap,
+ 	.vidioc_g_tuner = mt6797_fm_g_tuner,
+@@ -1233,7 +1288,7 @@ static const struct v4l2_ioctl_ops mt6797_fm_ioctl_ops = {
+ 	.vidioc_s_frequency = mt6797_fm_s_frequency,
+ 	.vidioc_s_hw_freq_seek = mt6797_fm_s_hw_freq_seek,
+ 	.vidioc_enum_freq_bands = mt6797_fm_enum_freq_bands,
+-	.vidioc_log_status = v4l2_ctrl_log_status,
++	.vidioc_log_status = mt6797_fm_log_status,
+ 	.vidioc_subscribe_event = v4l2_ctrl_subscribe_event,
+ 	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
+ };
+-- 
+2.43.0
+

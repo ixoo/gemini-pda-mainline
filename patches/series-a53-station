@@ -758,3 +758,4 @@ proposals/0586-media-radio-mt6797-wait-for-both-tune-events.patch
 proposals/0587-media-radio-mt6797-tune-channels-with-the-TDD-mode-o.patch
 proposals/0588-media-radio-mt6797-finish-the-vendor-power-up-before.patch
 proposals/0589-media-radio-mt6797-make-it-a-V4L2-radio-receiver.patch
+proposals/0590-media-radio-mt6797-log-the-stereo-registers-and-chan.patch

@@ -8,6 +8,10 @@
  * with signal strength, stereo and RDS block counts, and seek timing. Anything
  * that identifies the station or the place goes only to PRIVATE_FILE: the
  * frequency, the frequency a seek found, the RDS PI code and programme name.
+ *
+ * VIDIOC_LOG_STATUS is called at t=5, after the last second and after the seek;
+ * the driver then logs the stereo registers and the channel's quality report to
+ * the kernel log, without the channel.
  */
 #include <errno.h>
 #include <fcntl.h>
@@ -127,7 +131,11 @@ int main(int argc, char **argv)
 		printf("t=%u signal=%u stereo=%u rds=%u blocks good=%u bad=%u\n", t, tuner.signal,
 		       !!(tuner.rxsubchans & V4L2_TUNER_SUB_STEREO),
 		       !!(tuner.rxsubchans & V4L2_TUNER_SUB_RDS), g, b);
+		if (t == 5)
+			printf("log_status at t=5: %s\n",
+			       ioctl(fd, VIDIOC_LOG_STATUS) ? strerror(errno) : "ok");
 	}
+	printf("log_status at end: %s\n", ioctl(fd, VIDIOC_LOG_STATUS) ? strerror(errno) : "ok");
 	printf("rds totals: good A=%u B=%u C=%u D=%u C'=%u, bad A=%u B=%u C=%u D=%u C'=%u, PI seen %u times\n",
 	       good[0], good[1], good[2], good[3], good[4], bad[0], bad[1], bad[2], bad[3], bad[4],
 	       pi_count);
@@ -151,6 +159,8 @@ int main(int argc, char **argv)
 		ioctl(fd, VIDIOC_G_TUNER, &tuner);
 		printf("after seek: signal=%u stereo=%u\n", tuner.signal,
 		       !!(tuner.rxsubchans & V4L2_TUNER_SUB_STEREO));
+		printf("log_status after seek: %s\n",
+		       ioctl(fd, VIDIOC_LOG_STATUS) ? strerror(errno) : "ok");
 	}
 
 	t0 = now();
