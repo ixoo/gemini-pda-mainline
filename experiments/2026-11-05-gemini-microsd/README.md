@@ -1064,16 +1064,34 @@ shift between boots; that's why the margin matters.
 sets `mediatek,tuning-step = <64>` on the station's `mmc0`. It's DT only, so it needs
 an image.
 
-**T6b, pending.** A read-only read of the tuned registers on the running station:
-MSDC0 `IOCON`, `PATCH_BIT0`-`2`, `PAD_TUNE0` and `PAD_TUNE1`. It shows which delay
-and edge the 32-cell scan picked.
+**T6b result.** Boot `4e6851f2`, station-work-68, taint 0. Read-only. MSDC0
+autosuspends when idle, so the custodian kept it active with a direct 32 MiB read of
+`mmcblk0p29`. The registers were read only while `runtime_status` read `active`. Raw
+output is private.
+
+| Register | Value | Decoded with the `mtk-sd` layout |
+| --- | --- | --- |
+| `IOCON` (`0x04`) | `0x00000000` | CMD and data both sampled on the rising edge |
+| `PATCH_BIT0` (`0xb0`) | `0x403c0446` | data latch clock 0, `CKGEN_MSDC_DLY_SEL` 1 |
+| `PATCH_BIT1` (`0xb4`) | `0xfffe4089` | |
+| `PATCH_BIT2` (`0xb8`) | `0x548a180d` | `RESPSTSENSEL` 2, `CRCSTSENSEL` 2 |
+| `PAD_TUNE0` (`0xf0`) | `0x00313100` | data delay 17, CMD delay 17, both select bits set |
+| `PAD_TUNE1` (`0xf4`) | `0x00002000` | second delay fields 0; the data second-field select bit is set, left from before |
+
+So the 32-cell scan put the shared delay at 17 on the rising edge. That is inside
+the zone where the vendor's data map fails (14-20). The vendor's map comes from
+another kernel, at 200 MHz rather than 192 MHz, and with a different CKGEN delay,
+so this kernel's map is shifted to some extent; 17 passed this kernel's own tuning.
+Still, it stays within a few cells of failing reads, which fits T6's data errors
+that come and go. The fixed path settings read back as mainline's init writes them.
 
 ### T7: HS200 with a 64-cell scan
 
 **Hypothesis.**
 
-- The eMMC tunes HS200 with a shared delay in the upper part of the window, about
-  35-45 on the rising edge. `PAD_TUNE1` shows the second-field select bits.
+- The eMMC tunes HS200 with a shared delay above 31, using the second field in
+  `PAD_TUNE1`. The vendor's maps put it near 39; this kernel's map is shifted, so the
+  exact value isn't predicted.
 - Every eMMC read runs at about 4 interrupts per MiB, with none of T6's two per
   sector.
 - Reads run well above 36 MB/s.
@@ -1085,7 +1103,7 @@ section or later. One boot. Read-only on the eMMC, as T6.
 1. **Boot.**
    - Boot ID, boot2 hash, taint.
    - `mmc0` and `mmc1` `ios`.
-   - The six registers from T6b.
+   - The six registers from T6b, read while MSDC0 is active, as in T6b.
    - `dmesg` lines for `mmc` and `msdc`.
 2. **Reads**, on the `linux` partition found by GPT name, each after a cache drop.
    For each, the read count and sectors from `/sys/block/mmcblk0/stat`, the `mmc0`
@@ -1103,7 +1121,7 @@ Stop on any `mmc0` error, warning or Oops. No write, no retry.
 | --- | --- |
 | No reads at two interrupts per sector, rate well above 36 MB/s | 0625 fixes it. Record the rate; HS200 counts as working again |
 | Still some fallback, but less | The scan helped. Next is the data latch clock (`mediatek,latch-ck`) or separate CMD and DATA delays, one at a time |
-| No change, or the delay isn't in 35-45 | The scan isn't the cause. Compare the fixed path settings in the table with the vendor's values |
+| No change in the fallback | The scan isn't the cause. Compare the fixed path settings in the table with the vendor's values |
 | Tuning fails, or the eMMC is absent | Stop, recover via Gemian, revert 0625 |
 
 ## Follow-up
