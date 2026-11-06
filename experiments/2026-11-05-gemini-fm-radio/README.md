@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b with the fix and the TDD channels is predeclared, not admitted |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b with the fix and the TDD channels admitted on 2026-11-05, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -425,7 +425,10 @@ simplification of this driver, not a hardware limit.
 now follows the vendor for both; only the nine 64 MHz clock channels are still
 refused.
 
-## Test F2b: the F2 test with both fixes (predeclared, not yet admitted)
+## Test F2b: the F2 test with both fixes (admitted)
+
+The owner admitted F2b on 2026-11-05: one load, the effects of F2 plus the
+two changes below; anything else needs asking again.
 
 The same test as F2, procedure, safety and decision table unchanged, with two
 more patches:
