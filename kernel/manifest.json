@@ -449,7 +449,8 @@
           "configs/gemini-a53-station-display.fragment",
           "configs/gemini-a53-station-bluetooth.fragment",
           "configs/gemini-a53-station-camera.fragment",
-          "configs/gemini-a53-station-fm.fragment"
+          "configs/gemini-a53-station-fm.fragment",
+          "configs/gemini-a53-station-usb.fragment"
         ]
       },
       "mt6797-a53-release": {

@@ -1,0 +1,143 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 21:21:20 -0500
+Subject: [PATCH 601/602] power: supply: bq25890: let the guard mode drive the
+ OTG boost
+
+With linux,no-chip-config the driver registers no regulator, so a board
+whose USB port takes VBUS from the charger's boost has no way to switch
+it.
+
+In that mode, register the VBUS regulator alone when the board describes
+an usb-otg-vbus node, and let OTG_CONFIG through the write filter. Its
+writes are read-modify-writes of REG03 like the guard's. The chip's
+watchdog clears OTG_CONFIG when it expires, so the guard now also kicks
+it while the boost is on, and the node requires the guard.
+
+Shutdown already turns the boost off; a boost that is off is not
+written.
+---
+ drivers/power/supply/bq25890_charger.c | 50 ++++++++++++++++++++------
+ 1 file changed, 40 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index f37174895..d179b38ff 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -391,10 +391,13 @@ static int bq25890_field_write(struct bq25890_device *bq,
+ 			       enum bq25890_fields field_id, u8 val)
+ {
+ 	/*
+-	 * Without chip configuration only charge enable and the watchdog kick
+-	 * reach the chip; all other writes in this driver stop here.
++	 * Without chip configuration only charge enable, the watchdog kick and
++	 * the OTG boost enable reach the chip; all other writes in this driver
++	 * stop here. The boost is written only through its regulator, which
++	 * exists only when the board describes it.
+ 	 */
+-	if (bq->no_chip_config && field_id != F_CHG_CFG && field_id != F_WD_RST)
++	if (bq->no_chip_config && field_id != F_CHG_CFG &&
++	    field_id != F_WD_RST && field_id != F_OTG_CFG)
+ 		return 0;
+ 
+ 	return regmap_field_write(bq->rmap_fields[field_id], val);
+@@ -1208,7 +1211,8 @@ static bool bq25890_guard_full(struct bq25890_device *bq, struct power_supply *b
+  * The charging guard: one pass decides, then writes only CHG_CONFIG, with the
+  * other bits of the register as read. While charging is stopped every pass
+  * kicks the chip's watchdog, whose expiry would otherwise restore its defaults
+- * and with them charging. The battery is looked up at each pass, so charging
++ * and with them charging. So does a pass while the OTG boost is on, which the
++ * expiry would turn off. The battery is looked up at each pass, so charging
+  * stays stopped until it exists.
+  */
+ static void bq25890_guard_work(struct work_struct *work)
+@@ -1218,7 +1222,7 @@ static void bq25890_guard_work(struct work_struct *work)
+ 	struct power_supply *batt = power_supply_get_by_name(bq->guard_battery);
+ 	int end = READ_ONCE(bq->guard_end);
+ 	bool was_temp = bq->guard_temp, was_full = bq->guard_full;
+-	int temp, capacity, chg, ret;
++	int temp, capacity, chg, otg, ret;
+ 	bool stop;
+ 
+ 	bq->guard_temp = bq25890_guard_temp(bq, batt, &temp);
+@@ -1238,10 +1242,11 @@ static void bq25890_guard_work(struct work_struct *work)
+ 	mutex_unlock(&bq->lock);
+ 
+ 	chg = bq25890_field_read(bq, F_CHG_CFG);
+-	ret = chg < 0 ? chg : 0;
++	otg = bq25890_field_read(bq, F_OTG_CFG);
++	ret = chg < 0 ? chg : otg < 0 ? otg : 0;
+ 	if (!ret && chg == stop)
+ 		ret = bq25890_field_write(bq, F_CHG_CFG, !stop);
+-	if (!ret && stop)
++	if (!ret && (stop || otg))
+ 		ret = bq25890_field_write(bq, F_WD_RST, 1);
+ 
+ 	if (ret)
+@@ -1461,7 +1466,7 @@ static const struct regulator_desc bq25890_vsys_desc = {
+ 	.ops = &bq25890_vsys_ops,
+ };
+ 
+-static int bq25890_register_regulator(struct bq25890_device *bq)
++static int bq25890_register_regulator(struct bq25890_device *bq, bool vsys)
+ {
+ 	struct bq25890_platform_data *pdata = dev_get_platdata(bq->dev);
+ 	struct regulator_config cfg = {
+@@ -1479,6 +1484,9 @@ static int bq25890_register_regulator(struct bq25890_device *bq)
+ 				     "registering vbus regulator");
+ 	}
+ 
++	if (!vsys)
++		return 0;
++
+ 	/* pdata->regulator_init_data is for vbus only */
+ 	cfg.init_data = NULL;
+ 	reg = devm_regulator_register(bq->dev, &bq25890_vsys_desc, &cfg);
+@@ -1491,12 +1499,22 @@ static int bq25890_register_regulator(struct bq25890_device *bq)
+ }
+ #else
+ static inline int
+-bq25890_register_regulator(struct bq25890_device *bq)
++bq25890_register_regulator(struct bq25890_device *bq, bool vsys)
+ {
+ 	return 0;
+ }
+ #endif
+ 
++static bool bq25890_has_otg_vbus_node(struct device *dev)
++{
++	struct fwnode_handle *child;
++
++	child = device_get_named_child_node(dev, "usb-otg-vbus");
++	fwnode_handle_put(child);
++
++	return !!child;
++}
++
+ static int bq25890_get_chip_version(struct bq25890_device *bq)
+ {
+ 	int id, rev;
+@@ -1768,7 +1786,19 @@ static int bq25890_probe(struct i2c_client *client)
+ 		return ret;
+ 
+ 	if (!bq->no_chip_config) {
+-		ret = bq25890_register_regulator(bq);
++		ret = bq25890_register_regulator(bq, true);
++		if (ret)
++			return ret;
++	} else if (bq25890_has_otg_vbus_node(dev)) {
++		/*
++		 * Without chip configuration the OTG boost is the only output,
++		 * and only for a board that describes it. Enabling it writes
++		 * OTG_CONFIG, and the guard then keeps the watchdog fed.
++		 */
++		if (!bq->guard_battery)
++			return dev_err_probe(dev, -EINVAL,
++					     "usb-otg-vbus needs linux,guard-battery\n");
++		ret = bq25890_register_regulator(bq, false);
+ 		if (ret)
+ 			return ret;
+ 	}
+-- 
+2.43.0
+

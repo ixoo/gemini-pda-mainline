@@ -1,0 +1,150 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 21:18:57 -0500
+Subject: [PATCH 597/602] usb: typec: fusb301: poll the status when there is no
+ interrupt
+
+The Gemini PDA's left-port FUSB301 has no interrupt line. Read its status
+every 500 ms instead of refusing to probe, and serialise the update
+between the interrupt thread, the poll and probe.
+
+Stop the interrupt or the poll in remove before the port goes: the
+interrupt was devres-managed and so still live after the port was
+unregistered.
+---
+ drivers/usb/typec/fusb301.c | 56 +++++++++++++++++++++++++++++++------
+ 1 file changed, 47 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index b98a0748e..9abac5254 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -8,9 +8,11 @@
+ #include <linux/i2c.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
++#include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/regmap.h>
+ #include <linux/usb/typec.h>
++#include <linux/workqueue.h>
+ 
+ #define FUSB301_REG_DEVICE_ID	0x01
+ #define FUSB301_REG_MODE	0x02
+@@ -22,6 +24,9 @@
+ 
+ #define FUSB301_DEVICE_ID	0x12
+ 
++/* Without an interrupt line the status is read this often. */
++#define FUSB301_POLL_PERIOD	msecs_to_jiffies(500)
++
+ #define FUSB301_MODE_SOURCE	BIT(0)
+ #define FUSB301_MODE_SOURCE_ACC	BIT(1)
+ #define FUSB301_MODE_SINK	BIT(2)
+@@ -60,6 +65,9 @@ struct fusb301 {
+ 	struct fwnode_handle *connector;
+ 	enum typec_pwr_opmode pwr_opmode;
+ 	unsigned int partner_type;
++	struct mutex lock; /* the status update */
++	struct delayed_work poll;
++	int irq;
+ };
+ 
+ static unsigned int fusb301_mode_for_port_type(enum typec_port_type type)
+@@ -232,13 +240,30 @@ static irqreturn_t fusb301_irq(int irq, void *data)
+ 	if (ret)
+ 		return IRQ_NONE;
+ 
++	mutex_lock(&fusb->lock);
+ 	ret = fusb301_update_status(fusb);
++	mutex_unlock(&fusb->lock);
+ 	if (ret)
+ 		dev_warn(fusb->dev, "failed to update Type-C status: %d\n", ret);
+ 
+ 	return IRQ_HANDLED;
+ }
+ 
++static void fusb301_poll_work(struct work_struct *work)
++{
++	struct fusb301 *fusb = container_of(work, struct fusb301, poll.work);
++	int ret;
++
++	mutex_lock(&fusb->lock);
++	ret = fusb301_update_status(fusb);
++	mutex_unlock(&fusb->lock);
++	if (ret)
++		dev_warn_ratelimited(fusb->dev,
++				     "failed to update Type-C status: %d\n", ret);
++
++	schedule_delayed_work(&fusb->poll, FUSB301_POLL_PERIOD);
++}
++
+ static const struct regmap_config fusb301_regmap_config = {
+ 	.reg_bits = 8,
+ 	.val_bits = 8,
+@@ -277,6 +302,9 @@ static int fusb301_probe(struct i2c_client *client)
+ 		return -ENOMEM;
+ 
+ 	fusb->dev = dev;
++	fusb->irq = client->irq;
++	mutex_init(&fusb->lock);
++	INIT_DELAYED_WORK(&fusb->poll, fusb301_poll_work);
+ 	fusb->regmap = devm_regmap_init_i2c(client, &fusb301_regmap_config);
+ 	if (IS_ERR(fusb->regmap))
+ 		return dev_err_probe(dev, PTR_ERR(fusb->regmap),
+@@ -308,11 +336,6 @@ static int fusb301_probe(struct i2c_client *client)
+ 		goto err_put_connector;
+ 	}
+ 	fusb->pwr_opmode = ret;
+-	if (client->irq <= 0) {
+-		ret = -EINVAL;
+-		dev_err_probe(dev, ret, "missing active-low interrupt\n");
+-		goto err_put_connector;
+-	}
+ 
+ 	fusb->cap.revision = USB_TYPEC_REV_1_1;
+ 	fusb->cap.accessory[0] = TYPEC_ACCESSORY_AUDIO;
+@@ -331,14 +354,23 @@ static int fusb301_probe(struct i2c_client *client)
+ 		goto err_put_connector;
+ 	}
+ 
++	mutex_lock(&fusb->lock);
+ 	ret = fusb301_update_status(fusb);
++	mutex_unlock(&fusb->lock);
+ 	if (ret)
+ 		goto err_unregister_port;
+ 
+-	ret = devm_request_threaded_irq(dev, client->irq, NULL, fusb301_irq,
+-					IRQF_ONESHOT, dev_name(dev), fusb);
+-	if (ret)
+-		goto err_unregister_port;
++	/* Some boards wire no interrupt from the controller: poll those. */
++	if (fusb->irq > 0) {
++		ret = devm_request_threaded_irq(dev, fusb->irq, NULL,
++						fusb301_irq, IRQF_ONESHOT,
++						dev_name(dev), fusb);
++		if (ret)
++			goto err_unregister_port;
++	} else {
++		dev_info(dev, "no interrupt, polling the status\n");
++		schedule_delayed_work(&fusb->poll, FUSB301_POLL_PERIOD);
++	}
+ 
+ 	i2c_set_clientdata(client, fusb);
+ 	fwnode_handle_put(fusb->connector);
+@@ -356,6 +388,12 @@ static void fusb301_remove(struct i2c_client *client)
+ {
+ 	struct fusb301 *fusb = i2c_get_clientdata(client);
+ 
++	/* Nothing may update the port once it goes. */
++	if (fusb->irq > 0)
++		disable_irq(fusb->irq);
++	else
++		cancel_delayed_work_sync(&fusb->poll);
++
+ 	fusb301_unregister_partner(fusb);
+ 	typec_unregister_port(fusb->port);
+ }
+-- 
+2.43.0
+

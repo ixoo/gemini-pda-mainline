@@ -1,0 +1,94 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 21:20:03 -0500
+Subject: [PATCH 599/602] usb: typec: fusb301: start a dual-role port that
+ prefers sink as a sink
+
+The FUSB301 toggles between source and sink with no role preference: it
+has no Try.SNK. Against a dual-role partner, a laptop for example, either
+end can become the source. On a port that must stay a device by default,
+the port can then end up the host for the very computer it should serve.
+
+When the connector is dual-role and its try-power-role is sink, start
+the chip in sink mode and record that port type in the class, so that
+port_type shows it. Userspace can still choose dual or source. The
+default role reported while unattached follows the port type.
+---
+ drivers/usb/typec/fusb301.c | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index 5bd62aeb3..e2c3d8f60 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -74,6 +74,7 @@ struct fusb301 {
+ 	bool vbus_on;
+ 	struct usb_role_switch *role_sw;
+ 	int host; /* sourcing a sink: 1, not: 0, not yet set: -1 */
++	enum typec_port_type port_type;
+ };
+ 
+ static unsigned int fusb301_mode_for_port_type(enum typec_port_type type)
+@@ -91,7 +92,7 @@ static unsigned int fusb301_mode_for_port_type(enum typec_port_type type)
+ 
+ static enum typec_role fusb301_default_role(struct fusb301 *fusb)
+ {
+-	switch (fusb->cap.type) {
++	switch (fusb->port_type) {
+ 	case TYPEC_PORT_SRC:
+ 		return TYPEC_SOURCE;
+ 	case TYPEC_PORT_SNK:
+@@ -189,6 +190,8 @@ static int fusb301_set_port_type(struct typec_port *port,
+ 	ret = regmap_update_bits(fusb->regmap, FUSB301_REG_MODE,
+ 				 FUSB301_MODE_MASK,
+ 				 fusb301_mode_for_port_type(type));
++	if (!ret)
++		fusb->port_type = type;
+ 	/* A sink-only port cannot be sourcing any more: do not wait for the status. */
+ 	if (!ret && type == TYPEC_PORT_SNK)
+ 		fusb301_set_host(fusb, false);
+@@ -330,7 +333,7 @@ static int fusb301_hw_init(struct fusb301 *fusb)
+ 	int ret;
+ 
+ 	ret = regmap_write(fusb->regmap, FUSB301_REG_MODE,
+-			   fusb301_mode_for_port_type(fusb->cap.type));
++			   fusb301_mode_for_port_type(fusb->port_type));
+ 	if (ret)
+ 		return ret;
+ 
+@@ -416,6 +419,18 @@ static int fusb301_probe(struct i2c_client *client)
+ 	fusb->cap.driver_data = fusb;
+ 	fusb->cap.ops = &fusb301_typec_ops;
+ 
++	/*
++	 * The FUSB301 cannot prefer a role while it toggles, so a dual-role
++	 * port left toggling can end up the source for a dual-role partner
++	 * that wanted to be. A dual-role port that prefers sink starts as a
++	 * sink only; userspace can make it dual-role or a source through the
++	 * port_type attribute.
++	 */
++	fusb->port_type = fusb->cap.type;
++	if (fusb->cap.type == TYPEC_PORT_DRP &&
++	    fusb->cap.prefer_role == TYPEC_SINK)
++		fusb->port_type = TYPEC_PORT_SNK;
++
+ 	ret = fusb301_hw_init(fusb);
+ 	if (ret)
+ 		goto err_put_connector;
+@@ -426,6 +441,13 @@ static int fusb301_probe(struct i2c_client *client)
+ 		goto err_put_connector;
+ 	}
+ 
++	/* Record the starting type so that port_type reports it. */
++	if (fusb->port_type != fusb->cap.type) {
++		ret = typec_set_port_type(fusb->port, fusb->port_type);
++		if (ret)
++			goto err_unregister_port;
++	}
++
+ 	mutex_lock(&fusb->lock);
+ 	ret = fusb301_update_status(fusb);
+ 	mutex_unlock(&fusb->lock);
+-- 
+2.43.0
+

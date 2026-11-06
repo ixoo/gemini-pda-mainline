@@ -1,0 +1,195 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 07:04:47 -0500
+Subject: [PATCH 602/602] arm64: dts: mediatek: gemini-station: describe both
+ USB-C ports
+
+The left port is the MTU3 controller, the SSH link and the only port
+that charges. Make the controller dual-role with a role switch that
+starts as a device, and connect it to the port's FUSB301, which has no
+interrupt. The connector is dual-role and prefers sink, so the driver
+starts it as a sink and a charger or a computer always finds a device.
+As a host the port takes VBUS from the charger's boost, now described
+under the charger. The xHCI child gets the USB 2.0 PHY only.
+
+The right port is the USB11 host. Its FUSB301A is a source only and
+interrupts on its ID output. While a sink is attached GPIO72 joins the
+port's USB 2.0 lines to the host and GPIO94 switches VBUS, as the vendor
+kernel does; GPIO72 is described as the VBUS switch's supply so the two
+follow each other.
+
+The drivers that act on any of this are modules that nothing loads, so
+the station boots with the left port a device and the right-port GPIOs
+untouched.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 148 ++++++++++++++++++
+ 1 file changed, 148 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index fd10e206c..353d0b05e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -502,6 +502,11 @@ charger@6b {
+ 		linux,no-chip-config;
+ 		linux,guard-battery = "battery";
+ 		linux,guard-end-threshold = <80>;
++
++		/* VBUS for the left USB-C port as a host; see the ports below. */
++		usb0_vbus: usb-otg-vbus {
++			regulator-name = "usb0-vbus";
++		};
+ 	};
+ };
+ 
+@@ -648,3 +653,146 @@ haptic {
+ 		max-microvolt = <2800000>;
+ 	};
+ };
++
++/*
++ * The two USB-C ports (2026-11-05-gemini-usb-c). Neither has USB PD.
++ *
++ * Left: the MTU3 controller, the SSH link and the only port that charges.
++ * It is a device unless asked otherwise. Its FUSB301 on I2C1 has no
++ * interrupt and is polled; it starts as a sink, so a charger or a
++ * computer always finds a device here. Writing "source" to its Type-C
++ * port_type makes it a host: an attached sink then gets VBUS from the
++ * charger's boost and the controller's host role, and loses both when it
++ * goes. "sink" returns the port to the default. Only USB 2.0 is
++ * described: no SuperSpeed link has been seen on this port.
++ *
++ * Right: the USB11 host, which has no device role. Its FUSB301A on I2C0
++ * is a source only. Its ID output, low while a sink is attached, is the
++ * interrupt. While a sink is attached GPIO72 joins the port's USB 2.0
++ * lines to the host and GPIO94 switches VBUS on, as the vendor kernel
++ * does. GPIO72 is described as the VBUS switch's supply only so that the
++ * two follow each other in that order. The HDMI lane switch (GPIO70/71)
++ * is not described and stays as the firmware left it.
++ *
++ * The Type-C, regulator, xHCI and USB11 drivers are modules that nothing
++ * loads at boot, so the station boots as before: the left port a device,
++ * GPIO72 and GPIO94 untouched.
++ */
++&pio {
++	usb_c_right_pins: usb-c-right-pins {
++		pins-id {
++			pinmux = <MT6797_GPIO64__FUNC_EINT3>;
++		};
++	};
++
++	usb1_switch_pins: usb1-switch-pins {
++		pins-en {
++			pinmux = <MT6797_GPIO72__FUNC_GPIO72>;
++		};
++	};
++
++	usb1_vbus_pins: usb1-vbus-pins {
++		pins-en {
++			pinmux = <MT6797_GPIO94__FUNC_GPIO94>;
++		};
++	};
++};
++
++/ {
++	usb1_switch: regulator-usb1-switch {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-data-switch";
++		gpio = <&pio 72 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb1_switch_pins>;
++	};
++
++	usb1_vbus: regulator-usb1-vbus {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-vbus";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		gpio = <&pio 94 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		vin-supply = <&usb1_switch>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb1_vbus_pins>;
++	};
++};
++
++&i2c1 {
++	typec@25 {
++		compatible = "onsemi,fusb301";
++		reg = <0x25>;
++		vbus-supply = <&usb0_vbus>;
++
++		connector {
++			compatible = "usb-c-connector";
++			label = "USB-C left";
++			power-role = "dual";
++			try-power-role = "sink";
++			data-role = "dual";
++			typec-power-opmode = "default";
++			pd-disable;
++
++			port {
++				usb_c_left_ep: endpoint {
++					remote-endpoint = <&ssusb_ep>;
++				};
++			};
++		};
++	};
++};
++
++&ssusb {
++	dr_mode = "otg";
++	usb-role-switch;
++	role-switch-default-mode = "peripheral";
++	mediatek,u3p-dis-msk = <1>;
++
++	port {
++		ssusb_ep: endpoint {
++			remote-endpoint = <&usb_c_left_ep>;
++		};
++	};
++};
++
++&xhci {
++	phys = <&u2port0 PHY_TYPE_USB2>;
++	mediatek,u3p-dis-msk = <1>;
++	status = "okay";
++};
++
++&i2c0 {
++	typec@25 {
++		compatible = "onsemi,fusb301a";
++		reg = <0x25>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb_c_right_pins>;
++		interrupt-parent = <&pio>;
++		interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
++		vbus-supply = <&usb1_vbus>;
++
++		connector {
++			compatible = "usb-c-connector";
++			label = "USB-C right";
++			power-role = "source";
++			data-role = "host";
++			typec-power-opmode = "default";
++			pd-disable;
++		};
++	};
++};
++
++&usb11_tphy {
++	status = "okay";
++};
++
++&usb11_u2 {
++	status = "okay";
++};
++
++&usb11 {
++	status = "okay";
++};
+-- 
+2.43.0
+

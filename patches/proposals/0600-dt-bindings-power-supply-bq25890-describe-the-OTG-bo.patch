@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 21:21:19 -0500
+Subject: [PATCH 600/602] dt-bindings: power: supply: bq25890: describe the OTG
+ boost regulator
+
+The driver registers the OTG boost as a regulator named by an
+usb-otg-vbus child node, but the binding does not describe the node.
+Describe it, and how it combines with linux,no-chip-config: the boost
+is then the only output, and it needs the guard that keeps the chip's
+watchdog fed.
+---
+ .../devicetree/bindings/power/supply/bq25890.yaml    | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+index a2e66d92e..b83c474ff 100644
+--- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
++++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+@@ -36,7 +36,8 @@ properties:
+     description:
+       The firmware and the chip's defaults keep the chip's configuration. The
+       driver does not reset or program it, and writes only charge enable and
+-      the watchdog kick. The interrupt and the ti, limits are not needed.
++      the watchdog kick, and the OTG boost enable when usb-otg-vbus is
++      present. The interrupt and the ti, limits are not needed.
+ 
+   linux,guard-battery:
+     $ref: /schemas/types.yaml#/definitions/string
+@@ -55,6 +56,15 @@ properties:
+       The initial charge_control_end_threshold, in percent. 100 turns the
+       capacity limit off.
+ 
++  usb-otg-vbus:
++    $ref: /schemas/regulator/regulator.yaml#
++    unevaluatedProperties: false
++    description:
++      The OTG boost, which sources VBUS. With linux,no-chip-config it is
++      registered only when this node is present, and it needs
++      linux,guard-battery, which keeps the chip's watchdog fed while the
++      boost is on; the watchdog's expiry turns the boost off.
++
+   ti,battery-regulation-voltage:
+     $ref: /schemas/types.yaml#/definitions/uint32
+     description: maximum charging voltage (in uV)
+-- 
+2.43.0
+

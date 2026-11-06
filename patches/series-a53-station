@@ -763,3 +763,11 @@ proposals/0591-ASoC-mediatek-return-no-position-for-a-hostless-fron.patch
 proposals/0592-ASoC-mediatek-mt6797-add-the-CONSYS-I2S-input.patch
 proposals/0593-ASoC-mediatek-mt6797-add-a-hostless-FM-path-to-the-d.patch
 proposals/0594-ASoC-mediatek-mt6797-mt6351-link-the-hostless-FM-pat.patch
+proposals/0595-usb-typec-let-a-port-driver-set-the-port-type-of-a-d.patch
+proposals/0596-dt-bindings-usb-fusb301-make-the-interrupt-optional-.patch
+proposals/0597-usb-typec-fusb301-poll-the-status-when-there-is-no-i.patch
+proposals/0598-usb-typec-fusb301-switch-VBUS-and-the-USB-role-with-.patch
+proposals/0599-usb-typec-fusb301-start-a-dual-role-port-that-prefer.patch
+proposals/0600-dt-bindings-power-supply-bq25890-describe-the-OTG-bo.patch
+proposals/0601-power-supply-bq25890-let-the-guard-mode-drive-the-OT.patch
+proposals/0602-arm64-dts-mediatek-gemini-station-describe-both-USB-.patch

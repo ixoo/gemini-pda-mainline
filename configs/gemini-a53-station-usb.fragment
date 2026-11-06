@@ -1,0 +1,23 @@
+# Both USB-C ports (2026-11-05-gemini-usb-c). The left port's MTU3 becomes
+# dual-role, which needs the USB host core and the role switch class built
+# in; it still starts as a device. The Type-C controller, the VBUS
+# regulators, xHCI, the right port's USB11 host and the USB device classes
+# are modules that nothing loads at boot.
+CONFIG_USB=y
+# CONFIG_USB_MTU3_GADGET is not set
+CONFIG_USB_MTU3_DUAL_ROLE=y
+CONFIG_USB_ROLE_SWITCH=y
+CONFIG_USB_XHCI_HCD=m
+CONFIG_USB_XHCI_MTK=m
+CONFIG_NOP_USB_XCEIV=m
+CONFIG_USB_MUSB_HDRC=m
+CONFIG_USB_MUSB_HOST=y
+CONFIG_USB_MUSB_MEDIATEK=m
+CONFIG_TYPEC=m
+CONFIG_TYPEC_FUSB301=m
+CONFIG_REGULATOR_FIXED_VOLTAGE=m
+CONFIG_USB_STORAGE=m
+CONFIG_USB_HID=m
+# USB storage sits on the SCSI disk layer.
+CONFIG_SCSI=m
+CONFIG_BLK_DEV_SD=m

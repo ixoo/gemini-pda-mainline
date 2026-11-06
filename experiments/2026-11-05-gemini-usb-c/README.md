@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `completed` for the source study; device readings R1–R4 open; first step T1 proposed, not run |
+| Status | `running`: source study done; both-port support written and compile-checked (0595–0602); device tests U1–U4 not run |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
-| Date(s) | 2026-11-05 |
+| Date(s) | 2026-11-05 to 2026-11-06 |
 | Investigator(s) | Claude (USB-C session) |
 | Tracking issue | none |
 
@@ -209,7 +209,152 @@ about 5 V; the drive or connector warms.
 Left-port host, dual role, SuperSpeed and HDMI all come after this, each with
 its own record.
 
+## Implementation: both ports in every configuration (2026-11-06)
+
+The owner asked for both ports in any configuration, with the left port
+kept as the SSH link and charging port by default. This replaces T1's
+hand-driven GPIOs with the drivers' own control. T1 stays above as the
+reasoning; U3 below is its replacement.
+
+| Configuration | How | VBUS |
+| --- | --- | --- |
+| Left device, charging (default) | Nothing to do. MTU3's role switch starts as a device; the FUSB301 starts as a sink | from the computer or charger |
+| Left host | `echo source > .../1-0025/typec/port*/port_type`, then attach a device | charger boost, only while a sink is attached |
+| Left back to default | `echo sink` to the same file | off |
+| Left dual-role | `echo dual` (the chip toggles with no role preference, so a laptop may end up the device) | as left host, when it is the source |
+| Right host | Load the modules, attach a device | GPIO94 switch, only while a sink is attached |
+| Both together | Independent; the right port never touches the charger | as above |
+
+The patches, all proposals, in the canonical series and
+`series-a53-station`:
+
+- [0595](../../patches/proposals/0595-usb-typec-let-a-port-driver-set-the-port-type-of-a-d.patch):
+  the Type-C class gets `typec_set_port_type()`, the body of the
+  `port_type` store, so a driver can start a dual-role port as a sink and
+  the attribute still tells the truth.
+- [0596](../../patches/proposals/0596-dt-bindings-usb-fusb301-make-the-interrupt-optional-.patch):
+  the FUSB301 binding: interrupt optional, either INT_N or the ID output;
+  `vbus-supply`.
+- [0597](../../patches/proposals/0597-usb-typec-fusb301-poll-the-status-when-there-is-no-i.patch):
+  without an interrupt the driver polls every 500 ms. Also fixes remove,
+  which left the devres interrupt live after the port went.
+- [0598](../../patches/proposals/0598-usb-typec-fusb301-switch-VBUS-and-the-USB-role-with-.patch):
+  VBUS on and host role only while the port sources an attached sink;
+  device role and VBUS off otherwise.
+- [0599](../../patches/proposals/0599-usb-typec-fusb301-start-a-dual-role-port-that-prefer.patch):
+  a dual-role connector with `try-power-role = "sink"` starts as a sink.
+  The chip has no Try.SNK, and toggling could make the laptop the device.
+- [0600](../../patches/proposals/0600-dt-bindings-power-supply-bq25890-describe-the-OTG-bo.patch),
+  [0601](../../patches/proposals/0601-power-supply-bq25890-let-the-guard-mode-drive-the-OT.patch):
+  in guard mode the charger registers the boost regulator when the board
+  has an `usb-otg-vbus` node, lets `OTG_CONFIG` through its write filter,
+  and the guard kicks the watchdog while the boost is on. If the guard
+  stops, the watchdog clears `OTG_CONFIG` within 40 s (N7).
+- [0602](../../patches/proposals/0602-arm64-dts-mediatek-gemini-station-describe-both-USB-.patch):
+  the station tree. MTU3 `dr_mode = "otg"` with a role switch defaulting to
+  peripheral, USB 2.0 only on its xHCI; the left FUSB301 polled, connector
+  dual-role preferring sink, VBUS from the boost; the right FUSB301A on
+  EINT3 (its ID output, both edges), source only, VBUS from GPIO94 with
+  GPIO72 as that regulator's supply so the data switch follows; USB11 and
+  its PHY enabled.
+
+[`gemini-a53-station-usb.fragment`](../../configs/gemini-a53-station-usb.fragment)
+joins the `mt6797-a53-station-a72` profile. Built in: the USB host core,
+MTU3 dual-role and the role switch class, which MTU3 needs. Modules that
+nothing loads: `typec`, `fusb301`, `fixed` (regulator), `xhci-hcd`,
+`xhci-mtk-hcd`, `phy-generic`, `musb_hdrc`, `mediatek` (MUSB glue),
+`usb-storage`, `sd_mod`, `scsi_mod`, `scsi_common`, `usbhid`.
+
+**Why the Type-C driver owns VBUS, not MTU3.** MTU3 in OTG mode enables its
+`vbus` regulator during probe (`ssusb_host_setup()`), before switching to
+the default device role. On the left port that would turn the boost on at
+every boot with the laptop attached. The FUSB301 knows when a sink is
+attached; MTU3 only follows the role it is given.
+
+**What changes at boot.** MTU3 probes as dual-role: host IP up, then device.
+The left port should reach the same gadget link; U1 checks it. Nothing else
+acts until a module loads.
+
+**Not covered.** SuperSpeed on the left port (R4); HDMI on the right port
+(GPIO70/71 and the SiI902x stay untouched); USB PD (none in hardware); the
+left FUSB301's `SS_SW`.
+
+### Device tests, written in advance, not run
+
+Each test goes to the device custodian. Candidate: the
+`mt6797-a53-station-a72` profile at the pushed commit, built on Buildbox and
+composed into a station image as usual. Battery above 30 %. A reading of
+`power-status -r` (REG03, REG0B) opens and closes every test.
+
+**U1. Boot: the left port is unchanged.** *Hypothesis:* with MTU3 dual-role
+built in and no USB module loaded, the station boots to the same SSH link
+and charges as before. *Observe:* SSH; `dmesg` for `mtu3` (`dr_mode: 2`),
+`cat /sys/class/usb_role/*/role` = `device`; the guard's binding; REG03
+bit 5 clear. *Branches:* as before → U2. No SSH → console shell on tty1
+reads `dmesg`; the owner returns to the previous image (boot2 rewrite from
+Gemian only through the reviewed path). A boost bit set → stop and record.
+
+**U2. Left Type-C, laptop attached.** `insmod typec.ko fusb301.ko` only
+(the right FUSB301A waits for its regulator). *Hypothesis:* the left port
+reports `[sink]`, a partner that is a source, power role sink, data role
+device, and SSH stays up. *Then:* the owner unplugs and replugs the laptop
+cable once; SSH returns within 30 s. If a C-to-C cable to the laptop is at
+hand, the same with it: the port should now charge (N1). *Stop:* SSH lost
+for more than 60 s after a replug → owner reboots (the modules don't load at
+boot).
+
+**U3. Right port host.** `insmod fixed.ko`, then `phy-generic.ko`,
+`musb_hdrc.ko`, `mediatek.ko`, `scsi_common.ko`, `scsi_mod.ko`, `sd_mod.ko`,
+`usb-storage.ko`, `usbhid.ko`. *Hypothesis:* the FUSB301A binds as a
+source; a USB 2.0 flash drive on the right port raises the EINT3 count,
+registers a sink partner, enables `usb1-vbus`, and enumerates on the USB11
+root hub at high speed; unplugging it disables the regulator. *Observe:*
+`dmesg`, `/sys/class/regulator/*/state` for `usb1-vbus` and
+`usb1-data-switch`, `lsusb`-equivalent sysfs listing, the drive's speed,
+one block read (no writes). Optional: a USB meter on the right port.
+*Branches:* enumerates → right port done; also try a keyboard. No power on
+the drive with the regulator on → GPIO94 does not switch a live source
+alone; the boost is the next candidate (vin-supply to `usb0_vbus`), which
+needs its own test. Power but no enumeration → GPIO72 or the USB11 PHY.
+*Stop:* REG03 bit 5 set, `VBUS_STAT` = `111`, SSH lost, a repeating MUSB or
+PHY error, or a hot drive: `rmmod fusb301` (turns VBUS off), owner unplugs.
+
+**U4. Left port host.** Needs the owner at the device; SSH drops while the
+laptop is unplugged. `insmod xhci-hcd.ko xhci-mtk-hcd.ko` (and U3's class
+modules), then over SSH start a bounded switch that returns by itself:
+`p=$(echo /sys/bus/i2c/devices/1-0025/typec/port*/port_type); (echo source > $p; sleep 180; echo sink > $p) &`,
+logging `dmesg` and `power-status -r` every 10 s to `/mnt/data`. The owner
+then swaps the laptop cable for a flash drive (C plug, or a C-to-A OTG
+adapter), waits 60 s, removes it and reconnects the laptop after the 180 s.
+*Hypothesis:* REG03 bit 5 set and `VBUS_STAT` = `111` only while the drive
+is attached; the drive enumerates on the xHCI root hub; the guard's
+watchdog kicks continue; after `sink` the laptop link returns. *Stop:* the
+port stays in source after 180 s → the owner uses the console: `echo sink`
+to the same file, or reboots. Any charger fault bit → stop.
+
+U5 (later, not prepared): both ports at once; a C-to-C charger on the left
+port in the default; repeated attach cycles.
+
 ## Validation
 
-Documentation only: `./scripts/check-repository`. No kernel build, DT check
-or device action.
+Source study (2026-11-05): documentation only, `./scripts/check-repository`.
+
+Implementation (2026-11-06), compile-only in the dev VM (owner-allowed for
+iteration; any booted image comes from Buildbox): the full
+`series-a53-station` tree, defconfig plus the `mt6797-a53-station-a72`
+fragments and the USB fragment.
+
+- Every fragment line lands in the resolved `.config` as written.
+- `Image`, `modules` and `dtbs` build. The thirteen modules above exist
+  under the names given. `fusb301.o`, `class.o` and
+  `bq25890_charger.o` are clean at `W=1`. The first build caught a
+  use-before-definition in 0598, fixed before export.
+- `checkpatch --strict` is clean on 0595–0602.
+- `dt-doc-validate` and `yamllint` pass on both changed bindings.
+- `CHECK_DTBS` on `mt6797-gemini-pda-station-a72.dtb` reports nothing on
+  the USB, Type-C, regulator or charger nodes. The 114 lines it prints are
+  for SPI, display, panel and audio-pin nodes; the `ranges_format` warning
+  on `usb@11271000` comes from 0068.
+- `validate-manifest-series` passes; `check-repository` before push.
+
+Not run: a Buildbox build, any boot, U1–U4.

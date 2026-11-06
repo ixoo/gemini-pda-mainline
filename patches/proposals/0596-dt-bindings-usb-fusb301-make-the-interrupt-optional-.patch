@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 21:18:57 -0500
+Subject: [PATCH 596/602] dt-bindings: usb: fusb301: make the interrupt
+ optional and add vbus-supply
+
+Some boards route no interrupt from the controller, and some route its
+ID output rather than INT_N; the Gemini PDA has one of each. Make the
+interrupt optional and describe both lines.
+
+Add vbus-supply for a board's VBUS switch, which the driver turns on
+only while the port sources an attached sink.
+---
+ .../devicetree/bindings/usb/onsemi,fusb301.yaml       | 11 ++++++++++-
+ 1 file changed, 10 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml b/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml
+index 49f43df98..c0202f721 100644
+--- a/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml
++++ b/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml
+@@ -12,6 +12,8 @@ description: |
+   current, and CC orientation, and report events through an active-low
+   interrupt. They do not implement USB Power Delivery or TCPCI.
+ 
++  Without an interrupt the driver reads the status periodically.
++
+ maintainers:
+   - Julien Etienne <julien.etienne@gmail.com>
+ 
+@@ -26,6 +28,14 @@ properties:
+ 
+   interrupts:
+     maxItems: 1
++    description:
++      The INT_N output. A board may instead route the ID output, which
++      goes low while a sink is attached; that line then needs both edges.
++
++  vbus-supply:
++    description:
++      The connector's VBUS switch or source. It is enabled only while the
++      port is the source for an attached sink.
+ 
+   connector:
+     type: object
+@@ -43,7 +53,6 @@ properties:
+ required:
+   - compatible
+   - reg
+-  - interrupts
+   - connector
+ 
+ additionalProperties: false
+-- 
+2.43.0
+

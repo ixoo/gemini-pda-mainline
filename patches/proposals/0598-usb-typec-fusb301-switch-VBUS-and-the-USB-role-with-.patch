@@ -1,0 +1,200 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 21:19:48 -0500
+Subject: [PATCH 598/602] usb: typec: fusb301: switch VBUS and the USB role
+ with the partner
+
+The FUSB301 detects the partner but switches nothing. On a board where
+the port can source, something must turn VBUS on for an attached sink
+and off for everything else, and a dual-role controller behind the port
+must follow.
+
+Take an optional vbus-supply and the connector's optional USB role
+switch. While the port sources an attached sink, turn VBUS on and then
+select the host role; otherwise select the device role and then turn
+VBUS off. A port type change to sink does this at once rather than at
+the next status update. VBUS is never on without a sink, so a charger
+or a host on the port never meets it.
+---
+ drivers/usb/typec/Kconfig   |  1 +
+ drivers/usb/typec/fusb301.c | 82 +++++++++++++++++++++++++++++++++++--
+ 2 files changed, 80 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/usb/typec/Kconfig b/drivers/usb/typec/Kconfig
+index fcadca1bd..4f736a166 100644
+--- a/drivers/usb/typec/Kconfig
++++ b/drivers/usb/typec/Kconfig
+@@ -112,6 +112,7 @@ config TYPEC_WUSB3801
+ config TYPEC_FUSB301
+ 	tristate "onsemi FUSB301 Type-C port controller driver"
+ 	depends on I2C
++	depends on USB_ROLE_SWITCH || !USB_ROLE_SWITCH
+ 	select REGMAP_I2C
+ 	help
+ 	  Say Y or M here if your system has an onsemi FUSB301 or FUSB301A
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index 9abac5254..5bd62aeb3 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -11,6 +11,8 @@
+ #include <linux/mutex.h>
+ #include <linux/of.h>
+ #include <linux/regmap.h>
++#include <linux/regulator/consumer.h>
++#include <linux/usb/role.h>
+ #include <linux/usb/typec.h>
+ #include <linux/workqueue.h>
+ 
+@@ -68,6 +70,10 @@ struct fusb301 {
+ 	struct mutex lock; /* the status update */
+ 	struct delayed_work poll;
+ 	int irq;
++	struct regulator *vbus;
++	bool vbus_on;
++	struct usb_role_switch *role_sw;
++	int host; /* sourcing a sink: 1, not: 0, not yet set: -1 */
+ };
+ 
+ static unsigned int fusb301_mode_for_port_type(enum typec_port_type type)
+@@ -135,14 +141,60 @@ static enum typec_pwr_opmode fusb301_sink_opmode(unsigned int status)
+ 	}
+ }
+ 
++/*
++ * Sourcing an attached sink: VBUS on, then the host role. Anything else:
++ * the device role, then VBUS off. VBUS is never on without a sink, so a
++ * charger or a host on the port never meets it.
++ */
++static void fusb301_set_host(struct fusb301 *fusb, bool host)
++{
++	int ret;
++
++	if (fusb->host == host)
++		return;
++
++	if (host && fusb->vbus && !fusb->vbus_on) {
++		ret = regulator_enable(fusb->vbus);
++		if (ret) {
++			dev_err(fusb->dev, "failed to enable VBUS: %d\n", ret);
++			host = false;
++		} else {
++			fusb->vbus_on = true;
++		}
++	}
++
++	if (fusb->role_sw) {
++		ret = usb_role_switch_set_role(fusb->role_sw, host ?
++					       USB_ROLE_HOST : USB_ROLE_DEVICE);
++		if (ret)
++			dev_err(fusb->dev, "failed to set the USB role: %d\n",
++				ret);
++	}
++
++	if (!host && fusb->vbus_on) {
++		regulator_disable(fusb->vbus);
++		fusb->vbus_on = false;
++	}
++
++	fusb->host = host;
++}
++
+ static int fusb301_set_port_type(struct typec_port *port,
+ 				  enum typec_port_type type)
+ {
+ 	struct fusb301 *fusb = typec_get_drvdata(port);
++	int ret;
+ 
+-	return regmap_update_bits(fusb->regmap, FUSB301_REG_MODE,
+-				  FUSB301_MODE_MASK,
+-				  fusb301_mode_for_port_type(type));
++	mutex_lock(&fusb->lock);
++	ret = regmap_update_bits(fusb->regmap, FUSB301_REG_MODE,
++				 FUSB301_MODE_MASK,
++				 fusb301_mode_for_port_type(type));
++	/* A sink-only port cannot be sourcing any more: do not wait for the status. */
++	if (!ret && type == TYPEC_PORT_SNK)
++		fusb301_set_host(fusb, false);
++	mutex_unlock(&fusb->lock);
++
++	return ret;
+ }
+ 
+ static const struct typec_operations fusb301_typec_ops = {
+@@ -175,6 +227,7 @@ static int fusb301_update_status(struct fusb301 *fusb)
+ 		return ret;
+ 
+ 	if (!(status & FUSB301_STATUS_ATTACH)) {
++		fusb301_set_host(fusb, false);
+ 		fusb301_unregister_partner(fusb);
+ 		fusb->partner_type = 0;
+ 		pwr_role = fusb301_default_role(fusb);
+@@ -192,6 +245,8 @@ static int fusb301_update_status(struct fusb301 *fusb)
+ 	if (!partner_type)
+ 		return -EIO;
+ 
++	fusb301_set_host(fusb, partner_type & FUSB301_TYPE_SINK);
++
+ 	if (partner_type & FUSB301_TYPE_SINK)
+ 		pwr_role = TYPEC_SOURCE;
+ 	else if (partner_type & FUSB301_TYPE_SOURCE)
+@@ -303,6 +358,7 @@ static int fusb301_probe(struct i2c_client *client)
+ 
+ 	fusb->dev = dev;
+ 	fusb->irq = client->irq;
++	fusb->host = -1;
+ 	mutex_init(&fusb->lock);
+ 	INIT_DELAYED_WORK(&fusb->poll, fusb301_poll_work);
+ 	fusb->regmap = devm_regmap_init_i2c(client, &fusb301_regmap_config);
+@@ -317,10 +373,26 @@ static int fusb301_probe(struct i2c_client *client)
+ 		return dev_err_probe(dev, -ENODEV,
+ 				     "unexpected device ID 0x%02x\n", id);
+ 
++	fusb->vbus = devm_regulator_get_optional(dev, "vbus");
++	if (IS_ERR(fusb->vbus)) {
++		if (PTR_ERR(fusb->vbus) != -ENODEV)
++			return dev_err_probe(dev, PTR_ERR(fusb->vbus),
++					     "failed to get VBUS\n");
++		fusb->vbus = NULL;
++	}
++
+ 	fusb->connector = device_get_named_child_node(dev, "connector");
+ 	if (!fusb->connector)
+ 		return dev_err_probe(dev, -ENODEV, "missing connector node\n");
+ 
++	fusb->role_sw = fwnode_usb_role_switch_get(fusb->connector);
++	if (IS_ERR(fusb->role_sw)) {
++		ret = dev_err_probe(dev, PTR_ERR(fusb->role_sw),
++				    "failed to get the USB role switch\n");
++		fusb->role_sw = NULL;
++		goto err_put_connector;
++	}
++
+ 	ret = typec_get_fw_cap(&fusb->cap, fusb->connector);
+ 	if (ret)
+ 		goto err_put_connector;
+@@ -377,9 +449,11 @@ static int fusb301_probe(struct i2c_client *client)
+ 	return 0;
+ 
+ err_unregister_port:
++	fusb301_set_host(fusb, false);
+ 	fusb301_unregister_partner(fusb);
+ 	typec_unregister_port(fusb->port);
+ err_put_connector:
++	usb_role_switch_put(fusb->role_sw);
+ 	fwnode_handle_put(fusb->connector);
+ 	return ret;
+ }
+@@ -394,8 +468,10 @@ static void fusb301_remove(struct i2c_client *client)
+ 	else
+ 		cancel_delayed_work_sync(&fusb->poll);
+ 
++	fusb301_set_host(fusb, false);
+ 	fusb301_unregister_partner(fusb);
+ 	typec_unregister_port(fusb->port);
++	usb_role_switch_put(fusb->role_sw);
+ }
+ 
+ static const struct of_device_id fusb301_of_match[] = {
+-- 
+2.43.0
+

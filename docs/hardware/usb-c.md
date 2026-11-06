@@ -27,7 +27,7 @@ towards the user.
 | USB PD | No | No |
 | Video | No | HDMI through SiI902x and Planet's HDMI adapter (user guide, source) |
 | Firmware | None | None |
-| Mainline today | Peripheral-only gadget Ethernet, high speed (**observed**, station) | Nothing enabled |
+| Mainline today | Peripheral-only gadget Ethernet, high speed (**observed**, station). Dual-role, device by default, written (0595–0602), not run | Host written (0595–0602), not run |
 
 ## 2. Left port
 
@@ -160,14 +160,22 @@ USB-C, Type-C or HDMI firmware file. See the [firmware boundary](firmware.md).
 | MTU3 + xHCI, left | `mtu3`, `xhci-mtk`; role from `usb-role-switch`, extcon or a `connector` child; optional `vbus-supply` | 0067 compatibles, 0068 topology, 0078 peripheral wiring | Host or dual-role on the board; U3 port never tested |
 | T-PHY | `phy-mtk-tphy` | 0066 MT6797 V1, 0077 forced B-session | USB11 calibration variant |
 | USB11 MUSB, right | `musb` + `mediatek.c` glue (no VBUS GPIO hook) | 0069 data, 0070 disabled topology | Board node, PHY power sequence, runtime test |
-| FUSB301/FUSB301A | None upstream | 0056 Type-C class driver, no board node | Board nodes; FUSB301 left port has no IRQ |
-| Connector, ID and VBUS | `usb-conn-gpio` (`gpio-usb-b-connector`, `id-gpios`, `vbus-supply`), `regulator-fixed` | none | GPIO94's real source |
-| Charger boost | `bq25890_charger` `usb_otg_vbus` regulator | 0517/0518 guard mode, which disables it | Decision on guard and OTG |
+| FUSB301/FUSB301A | None upstream | 0056 driver; 0596–0599 add polling, `vbus-supply`, a role switch and a sink start; 0595 a class helper | Runtime test |
+| Connector, ID and VBUS | `usb-c-connector`, `regulator-fixed` | 0602: GPIO94 VBUS with GPIO72 as its supply (right), the boost (left) | Whether GPIO94 alone powers the port |
+| Charger boost | `bq25890_charger` `usb_otg_vbus` regulator | 0517/0518 guard mode; 0600/0601 register the boost in that mode and keep the watchdog fed while it is on | Runtime test |
 | Lane switch (GPIO70/71) | `gpio-sbu-mux` has the same enable/select shape but is for SBU lines | none | No fitting binding for an HDMI lane switch |
 | HDMI | `sii902x` DRM bridge, `mtk_dpi` | disabled MT6797 DPI data | Board node, rails, HPD, DPI route |
 | USB PD | Not applicable | — | — |
 
-## 9. Open questions that need the device
+## 9. Mainline design
+
+Described in the [record](../../experiments/2026-11-05-gemini-usb-c/README.md#implementation-both-ports-in-every-configuration-2026-11-06):
+the left port is a device and a sink by default, a host when its Type-C
+`port_type` is set to source, and gets VBUS from the boost only while a
+sink is attached. The right port is a host whose VBUS follows an attached
+sink. The Type-C driver owns VBUS on both; the controllers follow the role.
+
+## 10. Open questions that need the device
 
 Listed with their requests in the
 [record](../../experiments/2026-11-05-gemini-usb-c/README.md#device-readings-needed):
