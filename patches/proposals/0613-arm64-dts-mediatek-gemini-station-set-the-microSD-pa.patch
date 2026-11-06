@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 11:32:30 -0500
+Subject: [PATCH 613/613] arm64: dts: mediatek: gemini-station: set the microSD
+ pads as the vendor does
+
+The microSD pads have run on whatever the boot firmware left: CMD with
+no pull, DAT pulled through R1, drive selector 4 and RDSEL 0. With the
+MT6797 MSDC1 pad fields described, set them the way the vendor driver
+does for each signalling voltage.
+
+Both states pull CMD and DAT up through R0 and CLK down through R1, set
+TDSEL 0xc and enable the input buffers. At 3.3 V the drive is 14 mA on
+all three groups and RDSEL is 0xc. The UHS state, selected for 1.8 V
+signalling, drops CMD and DAT to 8 mA and CLK to 10 mA, and RDSEL to 0.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 52 +++++++++++++++----
+ 1 file changed, 43 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 76e0475..1a041cf 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -586,10 +586,11 @@
+ };
+ 
+ /*
+- * Pinmux only, as for the eMMC: the MT6797 pin data has no pull, input
+- * enable or drive registers, so the pads stay as the firmware left them.
+- * The card-detect pin GPIO67 is not listed: requesting it as a GPIO and
+- * then its interrupt sets its mode.
++ * The vendor driver's pad settings: CMD and DAT pulled up through R0, CLK
++ * pulled down through R1, TDSEL 0xc. At 3.3 V the drive is 14 mA and RDSEL
++ * 0xc; for 1.8 V signalling CMD and DAT drop to 8 mA, CLK to 10 mA, and
++ * RDSEL to 0. The card-detect pin GPIO67 is not listed: requesting it as a
++ * GPIO and then its interrupt sets its mode.
+  */
+ &pio {
+ 	mmc1_pins_default: mmc1-default-pins {
+@@ -599,25 +600,58 @@
+ 				 <MT6797_GPIO131__FUNC_MSDC1_DAT1>,
+ 				 <MT6797_GPIO132__FUNC_MSDC1_DAT2>,
+ 				 <MT6797_GPIO133__FUNC_MSDC1_DAT3>;
++			input-enable;
++			drive-strength = <14>;
++			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
++			mediatek,tdsel = <0xc>;
++			mediatek,rdsel = <0xc>;
+ 		};
+ 
+ 		pins-clk {
+ 			pinmux = <MT6797_GPIO134__FUNC_MSDC1_CLK>;
++			input-enable;
++			drive-strength = <14>;
++			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
++			mediatek,tdsel = <0xc>;
++			mediatek,rdsel = <0xc>;
++		};
++	};
++
++	mmc1_pins_uhs: mmc1-uhs-pins {
++		pins-cmd-dat {
++			pinmux = <MT6797_GPIO129__FUNC_MSDC1_CMD>,
++				 <MT6797_GPIO130__FUNC_MSDC1_DAT0>,
++				 <MT6797_GPIO131__FUNC_MSDC1_DAT1>,
++				 <MT6797_GPIO132__FUNC_MSDC1_DAT2>,
++				 <MT6797_GPIO133__FUNC_MSDC1_DAT3>;
++			input-enable;
++			drive-strength = <8>;
++			bias-pull-up = <MTK_PUPD_SET_R1R0_01>;
++			mediatek,tdsel = <0xc>;
++			mediatek,rdsel = <0>;
++		};
++
++		pins-clk {
++			pinmux = <MT6797_GPIO134__FUNC_MSDC1_CLK>;
++			input-enable;
++			drive-strength = <10>;
++			bias-pull-down = <MTK_PUPD_SET_R1R0_10>;
++			mediatek,tdsel = <0xc>;
++			mediatek,rdsel = <0>;
+ 		};
+ 	};
+ };
+ 
+ /*
+  * Up to UHS SDR50, 4 bits: 1.8 V signalling and at most 100 MHz, which the
+- * 192 MHz source gives as 96 MHz. No SDR104 or DDR50. The pads keep the
+- * firmware's drive and bias; the vendor's 1.8 V input threshold is the
+- * firmware's setting already. The vendor reads the card-detect pin high
+- * as a card present.
++ * 192 MHz source gives as 96 MHz. No SDR104 or DDR50. The pads use the
++ * vendor's settings for each signalling voltage. The vendor reads the
++ * card-detect pin high as a card present.
+  */
+ &mmc1 {
+ 	pinctrl-names = "default", "state_uhs";
+ 	pinctrl-0 = <&mmc1_pins_default>;
+-	pinctrl-1 = <&mmc1_pins_default>;
++	pinctrl-1 = <&mmc1_pins_uhs>;
+ 	bus-width = <4>;
+ 	max-frequency = <100000000>;
+ 	cap-sd-highspeed;
+-- 
+2.54.0 (Apple Git-157)
+

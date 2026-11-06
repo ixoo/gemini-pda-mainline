@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 11:32:30 -0500
+Subject: [PATCH 615/615] arm64: dts: mediatek: gemini-station: run the eMMC at
+ HS200
+
+The station's eMMC still runs at the first boot's conservative 25 MHz
+in legacy timing, about 12 MB/s. The vendor runs it at HS400 at
+200 MHz. Allow high speed and HS200 at up to 200 MHz on the station:
+the eMMC already signals at 1.8 V from VIO18, and mtk-sd tunes HS200
+with the MT6797 data it already has. The eMMC's clock mux keeps the
+firmware's parent.
+
+HS400 stays out until its data-strobe delay is known.
+
+Not yet run on hardware.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts  | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index fbd0cb8..b07e1ae 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -671,3 +671,15 @@
+ 	no-sdio;
+ 	status = "okay";
+ };
++
++/*
++ * HS200 on the eMMC, up to 200 MHz on 8 bits with 1.8 V signalling, which
++ * VIO18 already supplies. The vendor runs HS400 from a 400 MHz source;
++ * HS400 needs a data-strobe delay this description doesn't have yet. The
++ * eMMC's clock mux keeps the firmware's parent.
++ */
++&mmc0 {
++	max-frequency = <200000000>;
++	cap-mmc-highspeed;
++	mmc-hs200-1_8v;
++};
+-- 
+2.54.0 (Apple Git-157)
+

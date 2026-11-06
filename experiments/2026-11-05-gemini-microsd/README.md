@@ -648,11 +648,93 @@ error.
 0609 stays. The 16 GB card's first 1 GiB changed again with step 4's file, so no
 reference hash is kept for it.
 
+### T5, the remaining gaps in one image (predeclared)
+
+After T4 the owner asked for every remaining gap to be implemented and tested in
+one go. Each one, and what this image does about it:
+
+| Gap | Change | Patch |
+| --- | --- | --- |
+| eMMC at 25 MHz legacy timing | HS and HS200 at up to 200 MHz, 8 bits, 1.8 V (VIO18). The mux keeps the firmware's parent | [0615](../../patches/proposals/0615-arm64-dts-mediatek-gemini-station-run-the-eMMC-at-HS.patch) |
+| microSD SDR104 | `sd-uhs-sdr104`, `max-frequency` 200 MHz, MSDC30_1 reparented to `msdcpll_d2`, the vendor's 200 MHz source. `msdcpll` and the eMMC's mux are untouched | [0614](../../patches/proposals/0614-arm64-dts-mediatek-gemini-station-allow-UHS-SDR104-o.patch) |
+| "assuming write-enable" at each insert | `disable-wp` | 0614 |
+| MSDC1 pads left as the firmware set them | MT6797 pinctrl gains input-enable, TDSEL, RDSEL, drive (2-16 mA) and PUPD/R0/R1 fields for GPIO129-134 | [0612](../../patches/proposals/0612-pinctrl-mediatek-mt6797-describe-the-MSDC1-pad-field.patch) |
+| | The DT then sets the vendor's values: CMD and DAT pulled up (R0), CLK pulled down (R1), TDSEL `0xc`. At 3.3 V, 14 mA and RDSEL `0xc`; in the UHS state, CMD/DAT 8 mA, CLK 10 mA, RDSEL 0 | [0613](../../patches/proposals/0613-arm64-dts-mediatek-gemini-station-set-the-microSD-pa.patch) |
+| exFAT for SDXC cards | `CONFIG_EXFAT_FS=m` with UTF-8 names (`NLS_UTF8=y`) in the station fragment | config |
+
+**Left out, with reasons:**
+
+- **eMMC HS400** needs a data-strobe delay this tree doesn't have.
+- **DDR50** is commented out in the vendor's own board description.
+- **The VMC +40 mV trim** wasn't needed at SDR50. It stays out unless SDR104 fails.
+- **VMCH stays always on.** Card detect depends on it, so it isn't a gap to close.
+  The card can't be power-cycled for recovery.
+- **The pad bias-tuning bits** are left: the firmware already sets the vendor's 5.
+- **Suspend** isn't started anywhere in the project.
+- **A second unit** and **upstream submission** need the owner.
+
+**Risk.** The eMMC holds the root and data partitions. If HS200 doesn't tune, the
+MMC core gives up on the eMMC for that boot. The station's init then reports
+`data=not-found` and keeps running from RAM, so USB SSH stays up. Recovery is the
+reviewed Gemian path, since `flash-boot2` needs the eMMC.
+
+A marginal link could damage data on a read-write mount. So this boot must mount
+`/mnt/data` read-only, as the release init does, until the eMMC checks in step 2
+pass. The custodian decides how to compose that. No eMMC partition is written in
+this test.
+
+**Hypothesis.**
+
+- The eMMC tunes HS200 at up to 200 MHz and reads at least four times faster, with
+  the same data.
+- The microSD card tunes SDR104 at about 200 MHz and reads faster than SDR50's
+  43 MiB/s.
+- The vendor's pad values read back from pinctrl in each state.
+- exFAT mounts an SDXC card read-only.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later. One boot.
+
+1. **Boot.** Status lines with `data` read-only; taint; MMC lines. Expect `mmc0`
+   "new HS200 MMC card" and `mmc1` "new UHS-I speed SDR104 …".
+   - `cat /sys/kernel/debug/mmc0/ios /sys/kernel/debug/mmc1/ios`.
+   - For `msdcpll`, `msdcpll_d2`, `msdc50_0_sel` and `msdc30_1_sel`: their
+     `clk_rate` and `clk_parent` (not `clk_summary`).
+   - `sh sd-state.sh t5`.
+   - The pinconf lines for pins 129-134 from
+     `/sys/kernel/debug/pinctrl/*/pinconf-pins`.
+2. **eMMC, read-only.**
+   - Find the `linux` partition by its GPT name, as init does. Twice:
+     `dd if=<it> bs=1M count=1024 | sha256sum`, timed. The two hashes must agree.
+     The partition is mounted read-only, so they can.
+   - Stop on any `mmc0` CRC, timeout or tuning error.
+3. **microSD, read-only.** On whichever card is in: two 1 GiB hashes that must
+   agree, and three 256 MiB timed reads at 0, 4096 MiB and 12000 MiB.
+4. **microSD write**, only with the owner's OK: T1 step 5 once on the 16 GB vfat card.
+5. **Hotplug.** Remove and reinsert; expect SDR104 again. The pinconf lines go back
+   to the default state while the card is out.
+6. **exFAT**, only if the owner supplies an exFAT card or the SDXC card's partition is
+   exFAT: `modprobe exfat` or `insmod`, a read-only mount, the root entry count and
+   `df`, then unmount. No write.
+7. **End.** Taint, MMC lines, then normal operation. If step 2 passed, `data` may be
+   remounted read-write as usual.
+
+Stop on any `mmc0` error, a warning or Oops, disagreeing hashes, or CRC or timeout
+errors after tuning. No retry, one write at most, never on the eMMC.
+
+| Observed | Do |
+| --- | --- |
+| All as expected | Keep 0612-0615 and the exFAT config; record the speeds |
+| eMMC not HS200 or absent | Stop, keep `data` unmounted, recover via Gemian. Revert 0615; HS (52 MHz) alone is the next step |
+| eMMC HS200 but errors or disagreeing hashes | Stop, no write. Revert 0615 |
+| microSD falls back to SDR50 or high speed | Record it. If tuning failed at SDR104, next is the vendor's VMC +40 mV, or a 400 MHz `msdcpll` check |
+| microSD errors only with the new pads | Revert 0613 and keep 0612 |
+| exFAT mount fails | Record the error; driver and mount only |
+
 ## Follow-up
 
 - Suspend and resume.
-- SDR104 after T4, with a faster clock parent.
 - The VMC trim question in the
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
-- exFAT as a module, for SDXC cards in their factory format.
+- eMMC HS400, once its data-strobe delay is known.

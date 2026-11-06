@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 11:32:30 -0500
+Subject: [PATCH 614/614] arm64: dts: mediatek: gemini-station: allow UHS
+ SDR104 on the microSD slot
+
+At SDR50 the slot reads at about 43 MiB/s from a 192 MHz source divided
+by two. The vendor runs the slot at SDR104 from its 200 MHz clock
+source. Move the MSDC30_1 mux to msdcpll_d2 and allow SDR104 at up to
+200 MHz; mtk-sd tunes it with the MT6797 data it already has. Only the
+microSD mux is reparented; msdcpll's rate and the eMMC's mux are left
+as they are.
+
+DDR50 stays out, as in the vendor's board description. Add disable-wp:
+a microSD slot has no write-protect switch, and without it the core
+logs that it is assuming write-enable on every insert.
+
+Not yet run on hardware.
+---
+ .../dts/mediatek/mt6797-gemini-pda-station.dts   | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 1a041cf..fbd0cb8 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -643,21 +643,27 @@
+ };
+ 
+ /*
+- * Up to UHS SDR50, 4 bits: 1.8 V signalling and at most 100 MHz, which the
+- * 192 MHz source gives as 96 MHz. No SDR104 or DDR50. The pads use the
+- * vendor's settings for each signalling voltage. The vendor reads the
+- * card-detect pin high as a card present.
++ * Up to UHS SDR104, 4 bits: 1.8 V signalling and at most 200 MHz. The
++ * source moves to msdcpll_d2, as the vendor's 200 MHz clock source; the
++ * eMMC's mux is untouched. No DDR50, which the vendor leaves out too. The
++ * pads use the vendor's settings for each signalling voltage. The vendor
++ * reads the card-detect pin high as a card present. A microSD card has no
++ * write-protect switch.
+  */
+ &mmc1 {
++	assigned-clocks = <&topckgen CLK_TOP_MUX_MSDC30_1>;
++	assigned-clock-parents = <&topckgen CLK_TOP_MSDCPLL_D2>;
+ 	pinctrl-names = "default", "state_uhs";
+ 	pinctrl-0 = <&mmc1_pins_default>;
+ 	pinctrl-1 = <&mmc1_pins_uhs>;
+ 	bus-width = <4>;
+-	max-frequency = <100000000>;
++	max-frequency = <200000000>;
+ 	cap-sd-highspeed;
+ 	sd-uhs-sdr12;
+ 	sd-uhs-sdr25;
+ 	sd-uhs-sdr50;
++	sd-uhs-sdr104;
++	disable-wp;
+ 	cd-gpios = <&pio 67 GPIO_ACTIVE_HIGH>;
+ 	vmmc-supply = <&mt6351_vmch_reg>;
+ 	vqmmc-supply = <&mt6351_vmc_reg>;
+-- 
+2.54.0 (Apple Git-157)
+
