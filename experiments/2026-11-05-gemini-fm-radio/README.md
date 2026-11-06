@@ -765,6 +765,12 @@ and after the seek (`52196287…`).
 The quality report is a soft-mute tune of the same channel, as the seek does
 for every channel it tries; it may interrupt RDS for a moment.
 
+**Build:** `1c0140e1`, profile `mt6797-a53-station-a72`, `BUILD_MODULES=1`, 761
+patches, package `c8213ba7…`; validation passed. `Image.gz` `5229086f…`,
+config `6b86c0b3…`, `mt6797-consys.ko`, `videodev.ko` and `mc.ko` identical to
+F3's, so module-only on the running image; `radio-mt6797.ko` `61a2c041…`.
+Not run.
+
 **Safety:** as F3, plus five register reads and one quality report per call,
 three calls. Receive only.
 
