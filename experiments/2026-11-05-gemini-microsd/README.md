@@ -588,6 +588,45 @@ error on `mmc1` after tuning. No retry, one write at most.
 | SDR50, but CRC errors or a hash mismatch | Stop. Same next steps; revert 0609 meanwhile |
 | SDR50, rate not raised | Record it; the DMA or request path bounds it |
 
+### T4 result, reads (2026-11-06)
+
+Custodian run on station-work-64: composed from package `e46c9f38…` (`6488e6f8`),
+boot2 `54bab6bc…`, boot `294ae5a1`, taint 0. The image also carries the usb-c
+session's 0608. Raw output is private.
+
+**Second, SDXC card** (in at boot; the owner asked to start with it; read-only):
+
+- The log shows "new UHS-I speed SDR50 SDXC card".
+- `ios`: 100 MHz requested, 95999969 Hz actual, 4 bits, UHS SDR50 timing, 1.80 V.
+- `vmc` at 1800000, `vmch` at 3000000. `msdc30_1_sel` reads 191999939 Hz, which
+  confirms the 192 MHz source.
+- 256 MiB reads at 0, 4096 MiB and 12000 MiB: 5.97, 5.87 and 5.86 s, which is
+  42.9-43.7 MiB/s (about 45 MB/s).
+
+**16 GB card**, hot-swapped in:
+
+- The log shows "new UHS-I speed SDR50 SDHC card"; same `ios`, VMC at 1.8 V.
+- Two 1 GiB reads through `sha256sum`, 41.88 s and 42.12 s, agreed with each other
+  (`e6057a37…c6bb`).
+- 256 MiB reads at the three offsets: 5.96-5.97 s, about 43 MiB/s.
+
+No MMC, CRC, timeout or tuning error, and no warning; taint 0.
+
+**Stale reference.** The 1 GiB hash didn't match T2's `fd02d592…35c4`, which tripped
+step 2's stop rule. The predeclaration was wrong, not the data. T3's write step
+created and deleted a 64 MiB file on this card after T2's hash was taken, which
+changes FAT, directory and data clusters inside the first 1 GiB. So T2's hash was no
+longer this card's content.
+
+Decision (this session, 2026-11-06): take `e6057a37…` as the card's current
+reference and continue on the same boot. T4's write step, a fresh write with hash
+and readback at SDR50, carries the integrity check instead. Two reads agreeing and no
+transfer error support this, but don't prove the content matches a 3.3 V read.
+
+So far: both cards switch to 1.8 V and run SDR50 at 96 MHz. Reads are about 1.9 times
+SD high speed's 22.9 MB/s. Neither the vendor's VMC +40 mV trim nor its drive change
+was needed for this. Steps 4 and 5 are pending.
+
 ## Follow-up
 
 - Suspend and resume.
