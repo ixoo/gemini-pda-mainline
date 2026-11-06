@@ -610,7 +610,30 @@ beyond the generic V1 T-PHY's defaults), the analogue switch on GPIO72, or
 PIO timing. A low- or full-speed device separates high-speed signalling
 from everything else, with no rebuild: MUSB cannot be capped at full speed
 from DT, because the MediaTek glue does not pass `maximum-speed` to its
-config. U4 is not run. Add to
+config.
+
+**U3 keyboard split, same boot `294ae5a1`.** A USB-C keyboard plugged
+straight into the right port: the FUSB301A registered a sink partner
+(orientation normal), GPIO64 went low, EINT3 counted one, and both
+regulators and GPIO72/GPIO94 went high. The owner saw the keyboard light,
+so it had VBUS. MUSB stayed in `a_wait_bcon` for about 50 s with no
+interrupt and no connect. The flash drive had been a USB-A drive through a
+C-to-A adapter. Evidence is kept privately under
+`artifacts/station-work-64/boot-1/`.
+
+*Reading:* a host sees a connect as a pull-up on D+ (full or high speed) or
+on D- (low speed). The drive's D+ pull-up was seen, but its high-speed
+transfers failed. The keyboard, if low speed, pulls up D-, and nothing was
+seen. One broken D- path explains both results. Candidates:
+- GPIO70. The vendor kernel's USB host state ("usb1 OTG mode") leaves
+  GPIO70 high, the lane switch disabled. At a mainline handoff the firmware
+  leaves it low, which is the vendor's HDMI state. If that switch also
+  touches D+/D-, it would load or divert them. 0602 does not drive GPIO70.
+- Orientation. Both attaches were `normal`, so orientation does not tell
+  the two devices apart. Still, a receptacle whose second D+/D- pair
+  (B6/B7) is not joined to the first would fail one plug orientation.
+
+The keyboard's speed class is not yet known. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
