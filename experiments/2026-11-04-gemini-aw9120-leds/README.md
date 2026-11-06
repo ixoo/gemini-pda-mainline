@@ -307,6 +307,27 @@ state through power off, Wi-Fi and Bluetooth triggers, suspend, and any higher c
   `01: 0000`. That boot included T3, so a failed write during T3 would have logged,
   which makes the failed-write explanation unlikely. The case itself, caps lock on and
   lit after a wake, hasn't been read again.
+
+  Unattended reads on boot `a22a4ca8`, image `02e045fa`, with caps lock set by
+  `KDSKBLED` on `/dev/tty1` and no owner present:
+
+  | Step | State | `brightness`, trigger | `01:` |
+  | --- | --- | --- | --- |
+  | 1 | blanked, caps off | 0, `[none]` | `0000` |
+  | 2 | blanked, caps set on | 0, `[none]` | `0000` |
+  | 3 | unblanked by an escape code to `/dev/tty1`, after 3 s and 5 s | 0, `[none]` | `0000` |
+  | 4 | caps set off | 0, `[none]` | - |
+  | 5 | caps on, then `SIGUSR1` to the daemon; after 3 s and 5 s | 255, `[kbd-capslock]` | `0001` |
+  | 6 | caps off | 0, `[kbd-capslock]` | `0000` |
+
+  No "brightness failed" line on that boot. Wherever both were read, sysfs and the chip
+  agree, so the T3 step 2 reading still has no explanation. One possibility, unconfirmed,
+  is that the owner's wake key changed the caps lock state.
+
+  Step 3 shows a known limit, not a fault: an unblank that the daemon doesn't watch
+  leaves the LED dark, and the backlight at its dim level, until the next watched event
+  or `SIGUSR1`. The daemon's header already requires `SIGUSR1` from anything that sets
+  the blank.
 - Not attempted: the SRAM engine, suspend behaviour, currents above 3.5 mA, the PMIC
   `red`/`green` pair. MT6351 isn't in upstream's `leds-mt6323`, so the pair needs its
   own ISINK work.
