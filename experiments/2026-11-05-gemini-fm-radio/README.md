@@ -824,8 +824,14 @@ The diagnostic lines (controls in each block: not muted, volume 15, 75 µs):
 - **The signal was weak.** -222 to -244 raw is about -83 to -92 dBm, some 15
   dB below F3 on the same station; RDS, which decoded cleanly at -72 dBm in
   F3, got no block at all. The soft-mute gain was low at t=5 (3677, under the
-  vendor's 16421) and at its maximum later. Device or headset-cable placement
-  probably changed, which is not confirmed.
+  vendor's 16421) and at its maximum later. The owner says the device was in
+  the same place as for F3, about 13 minutes earlier in the same boot with the
+  jack in throughout. The module difference does not explain it: 0590 changes
+  only the quality-report parsing, the seek's use of it and `LOG_STATUS`, not
+  the power-up or tune, and the signal was already weak at t=1, before the
+  first `LOG_STATUS`. Both the tuned station and the one the seek found were
+  some 11 to 15 dB below F3, which points at the antenna, the headset cable's
+  lie or a hand or body near it, rather than one station. Not confirmed.
 - **(b) or (c) not settled.** At this level a receiver blends to mono, so the
   flag being 0 says nothing new. `pr` and `fpamd` change with the signal, but
   their meaning is not documented, so they cannot be read as pilot strength.
