@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 failed twice (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); fixed by 0603/0604 and the `vbus-out-supply` rename, not rerun |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 passed on boot `9207cc89` after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U2–U4 not run |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -447,7 +447,31 @@ station DTB neither adapter's subtree has a `vbus-supply` property. The
 fusb301 object builds clean at `W=1`, and checkpatch is clean on
 0595–0604. Not run.
 
-The U1 hypothesis and stop conditions stand for the next candidate. Add to
+**U1 passed, boot `9207cc89` (station-work-61, boot2 `ef50ae38…`, built
+from `ce1b4541`, live DTB `9e0dc067…`), taint 0.** Run by the custodian;
+evidence kept privately under `artifacts/station-work-61/boot-1/`. The
+station stays on this image.
+- I2C0 and I2C1 probe (I2C6 defers once as usual), and `devices_deferred`
+  is empty. `0-006b` binds to the charger. The guard runs ("charging
+  stopped: … capacity=98 limit=80 full"), and the missing-guard line is gone.
+  `1-0048` and `1-0069` are unbound as before: their drivers are modules
+  nothing loads. `0-0025` and `1-0025` exist and are unbound.
+- Both T-PHYs probe, `11210000.t-phy` included.
+- MTU3 logs `dr_mode: 3, drd: auto`, the forced B-session and the xHCI
+  platform device. The role reads `device`, and the UDC is high-speed and
+  configured, with SSH over the left port.
+- `power-status -r`: USB SDP, power good, VBUS 5.1 V, not charging (the
+  guard's 80 % limit, at 98 %), battery 25.2 °C; REG0B `0x26`. REG03 is
+  `0x0a` from the regmap debugfs, so `OTG_CONFIG` is clear. `usb0-vbus` is
+  disabled with no users.
+- No USB, Type-C, regulator or storage module is loaded. GPIO72 and GPIO94
+  are outputs at 0, GPIO70/71 outputs at 0, and GPIO64 is in EINT mode.
+- The only new log line is the expected "Fixed dependency cycle(s)" between
+  the left connector and MTU3.
+
+So the dual-role build boots to the same left-port device and charging
+behaviour, with nothing driving the ports. U2–U4 are not run. The
+custodian is putting U2, which needs a cable replug, to the owner. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
