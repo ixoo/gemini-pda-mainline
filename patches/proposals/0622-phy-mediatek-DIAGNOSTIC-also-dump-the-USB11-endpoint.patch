@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:44:28 -0500
+Subject: [PATCH 622/622] phy: mediatek: DIAGNOSTIC also dump the USB11
+ endpoint 0 windows
+
+Print the frame number, INDEX, and endpoint 0's registers in both the
+indexed window at 0x10 and the flat window at 0x100, to show which of
+the two the MT6797 USB11 controller implements and whether it sends
+frames. Still read-only; the FIFOs are not read.
+---
+ drivers/phy/mediatek/phy-mtk-usb11-dump.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/phy/mediatek/phy-mtk-usb11-dump.c b/drivers/phy/mediatek/phy-mtk-usb11-dump.c
+index c4dbb0ed0..ba482b18c 100644
+--- a/drivers/phy/mediatek/phy-mtk-usb11-dump.c
++++ b/drivers/phy/mediatek/phy-mtk-usb11-dump.c
+@@ -60,6 +60,15 @@ static int __init usb11_dump_init(void)
+ 	for (i = 0; i < ARRAY_SIZE(mac_regs); i++)
+ 		pr_info("usb11-dump: mac %-11s: %02x\n", mac_regs[i].name,
+ 			readb(mac + mac_regs[i].off));
++	pr_info("usb11-dump: mac Frame      : %04x\n", readw(mac + 0x0c));
++	pr_info("usb11-dump: mac Index      : %02x\n", readb(mac + 0x0e));
++	/* Endpoint 0 in the indexed window and in the flat one. */
++	for (i = 0; i < 0x10; i += 4)
++		pr_info("usb11-dump: mac idx+%02x    : %08x\n", i,
++			readl(mac + 0x10 + i));
++	for (i = 0; i < 0x10; i += 4)
++		pr_info("usb11-dump: mac flat0+%02x  : %08x\n", i,
++			readl(mac + 0x100 + i));
+ 
+ 	iounmap(mac);
+ 	iounmap(phy);
+-- 
+2.43.0
+

@@ -1,0 +1,103 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:43:37 -0500
+Subject: [PATCH 621/622] usb: musb: mediatek: reach the MT6797 USB11 endpoints
+ through INDEX
+
+The MediaTek glue gives every controller the MUSB core's flat endpoint
+register model, at 0x100 + 0x10 * endpoint. The vendor driver for the
+MT6797 USB11 controller uses only the indexed model: it selects an
+endpoint through INDEX and reaches its registers in the window at 0x10.
+On a Gemini PDA every device on that controller connects and then fails
+its first control transfer with -EPROTO, which fits endpoint 0 accesses
+that do not reach the controller.
+
+Give the USB11 data its own platform ops with MUSB_INDEXED_EP, built
+from the same members; the other controllers keep theirs.
+---
+ drivers/usb/musb/mediatek.c | 45 ++++++++++++++++++++++++++-----------
+ 1 file changed, 32 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/usb/musb/mediatek.c b/drivers/usb/musb/mediatek.c
+index 2cf17c8df..5c4303cd0 100644
+--- a/drivers/usb/musb/mediatek.c
++++ b/drivers/usb/musb/mediatek.c
+@@ -40,6 +40,7 @@
+ #define MTK_MUSB_CLKS_NUM	3
+ 
+ struct mtk_musb_data {
++	const struct musb_platform_ops *ops;
+ 	const char *const *clock_names;
+ 	unsigned int num_clocks;
+ 	const struct musb_hdrc_config *hdrc_config;
+@@ -356,21 +357,38 @@ static int mtk_musb_exit(struct musb *musb)
+ 	return 0;
+ }
+ 
+-static const struct musb_platform_ops mtk_musb_ops = {
+-	.quirks = MUSB_DMA_INVENTRA,
+-	.init = mtk_musb_init,
+-	.get_toggle = mtk_musb_get_toggle,
+-	.set_toggle = mtk_musb_set_toggle,
+-	.exit = mtk_musb_exit,
+ #ifdef CONFIG_USB_INVENTRA_DMA
+-	.dma_init = musbhs_dma_controller_create_noirq,
++#define MTK_MUSB_DMA_OPS \
++	.dma_init = musbhs_dma_controller_create_noirq, \
+ 	.dma_exit = musbhs_dma_controller_destroy,
++#else
++#define MTK_MUSB_DMA_OPS
+ #endif
+-	.clearb = mtk_musb_clearb,
+-	.clearw = mtk_musb_clearw,
+-	.busctl_offset = mtk_musb_busctl_offset,
+-	.set_mode = mtk_musb_set_mode,
+-};
++
++#define MTK_MUSB_OPS(_quirks) {				\
++	.quirks = (_quirks),				\
++	.init = mtk_musb_init,				\
++	.get_toggle = mtk_musb_get_toggle,		\
++	.set_toggle = mtk_musb_set_toggle,		\
++	.exit = mtk_musb_exit,				\
++	MTK_MUSB_DMA_OPS				\
++	.clearb = mtk_musb_clearb,			\
++	.clearw = mtk_musb_clearw,			\
++	.busctl_offset = mtk_musb_busctl_offset,	\
++	.set_mode = mtk_musb_set_mode,			\
++}
++
++static const struct musb_platform_ops mtk_musb_ops =
++	MTK_MUSB_OPS(MUSB_DMA_INVENTRA);
++
++/*
++ * The MT6797 USB11 controller's vendor driver reaches endpoint registers
++ * only through the indexed window at 0x10, selected by INDEX; nothing shows
++ * that the flat window at 0x100 of the newer MediaTek controllers works on
++ * it.
++ */
++static const struct musb_platform_ops mt6797_usb11_ops =
++	MTK_MUSB_OPS(MUSB_DMA_INVENTRA | MUSB_INDEXED_EP);
+ 
+ #define MTK_MUSB_MAX_EP_NUM	8
+ #define MTK_MUSB_RAM_BITS	11
+@@ -443,6 +461,7 @@ static const struct mtk_musb_data mtk_musb_data = {
+ };
+ 
+ static const struct mtk_musb_data mt6797_usb11_data = {
++	.ops = &mt6797_usb11_ops,
+ 	.clock_names = mt6797_usb11_clock_names,
+ 	.num_clocks = ARRAY_SIZE(mt6797_usb11_clock_names),
+ 	.hdrc_config = &mt6797_usb11_hdrc_config,
+@@ -486,7 +505,7 @@ static int mtk_musb_probe(struct platform_device *pdev)
+ 		return ret;
+ 
+ 	pdata->config = glue->data->hdrc_config;
+-	pdata->platform_ops = &mtk_musb_ops;
++	pdata->platform_ops = glue->data->ops ?: &mtk_musb_ops;
+ 	pdata->mode = usb_get_dr_mode(dev);
+ 
+ 	if (IS_ENABLED(CONFIG_USB_MUSB_HOST))
+-- 
+2.43.0
+

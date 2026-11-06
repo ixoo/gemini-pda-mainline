@@ -751,8 +751,60 @@ That fails transfers at any speed while the connect, which needs neither,
 is still seen.
 [0620](../../patches/proposals/0620-usb-musb-mediatek-run-the-MT6797-USB11-controller-as.patch)
 sets multipoint for the USB11 data. It is module-only (`mediatek.ko`), and
-with 0607 the swap no longer oopses. Built clean at `W=1`; not run. U4 is
-not run. Add to
+with 0607 the swap no longer oopses. Built clean at `W=1`; not run.
+
+### Gemian against mainline: the USB11 host path (2026-11-06)
+
+The owner asked for a full comparison before more guesses. Sources: Gemian
+GPL `drivers/misc/mediatek/usb11/` (`musbfsh_mt65xx.c`, `musbfsh_core.c`,
+`musbfsh_host.c`, `musbfsh_regs.h`, `musbfsh_core.h`) at the pinned commit,
+against Linux 7.1.3's `musb/mediatek.c`, `musb_core.c`, `musb_host.c` and
+`phy-mtk-tphy.c` with the local series. The vendor build has
+`CONFIG_MTK_ICUSB_SUPPORT` and `MTK_DT_USB_SUPPORT` off, so only the
+plain-host paths apply. Binary RE was not needed: the source accounts for
+what the dumps show.
+
+What matches:
+- PHY: the vendor's power-on, recover and save-current sequences write only
+  inside the dumped bank and the frequency meter at `+0xf00`. The dumps
+  agree on every control word, after 0608 and 0619.
+- Clocks are the same two gates (`infra_icusb`, `sssub_ref_clk`).
+- Interrupt enables: `INTRUSBE` `0xf7`, L1 mask `0x0f`. EOF timings, FIFO
+  layout (five TX/RX pairs of 512 bytes), RAM bits 11, and the target
+  address registers at `0x480 + 8 * ep`.
+- BC1.2 is off and the UART is not forced; both show in the dumps.
+
+Differences that can explain a seen connect followed by `-EPROTO` on every
+first control transfer, ranked:
+1. **Endpoint register model.** The vendor reaches endpoint registers only
+   through the indexed window at `0x10`, selected by `INDEX`
+   (`MUSBFSH_EP_OFFSET` = `MUSBFSH_INDEXED_OFFSET`, `musbfsh_core.h` line
+   115). The MediaTek glue sets no `MUSB_INDEXED_EP`, so mainline's core
+   drives CSR0, TYPE0 and NAKLIMIT0 through the flat window at `0x100`. If
+   that window is absent on this older block, no transfer is ever started
+   correctly, at any speed, while the connect (DEVCTL and POWER) works.
+   Fix:
+   [0621](../../patches/proposals/0621-usb-musb-mediatek-reach-the-MT6797-USB11-endpoints-t.patch).
+   Module-only.
+2. **Multipoint.** The vendor forces `is_multipoint = 1`; mainline ran it
+   as a plain HDRC, writing FADDR and no TYPE0 speed. Fix: 0620.
+   Module-only.
+3. **PHY byte `0x72`.** At power-on the vendor writes its low nibble to 9
+   (`musbfsh_mt65xx.c` lines 1088–1089). Gemian reads `0x00091000` in that
+   word and mainline `0x000a1000`, so it is a setting, not just a monitor.
+   Mainline's T-PHY does not name the field. A test needs a built-in T-PHY
+   change or a reviewed one-byte write.
+4. **MUSB POWER.** Vendor `HSENAB | SOFTCONN | ENSUSPEND` (`0x61`);
+   mainline `ISOUPDATE | HSENAB | SOFTCONN` (`0xe0`). ISOUPDATE affects
+   only isochronous transfers. Low.
+
+Cheapest test, all module-only on a running station: first load the
+extended dump
+([0622](../../patches/proposals/0622-phy-mediatek-DIAGNOSTIC-also-dump-the-USB11-endpoint.patch)),
+which prints Frame, INDEX and endpoint 0 in both windows with the current
+driver. Then swap in `mediatek.ko` with 0620 and 0621 and attach the
+keyboard. If both windows read alike, 1 is not the cause and the swap
+tests 2 alone. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
