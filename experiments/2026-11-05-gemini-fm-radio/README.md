@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 the owner heard complete silence; F5b found the CONSYS I2S input never powered, fixed in 0592; F5c, the repeat, is predeclared, not admitted |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 the owner heard complete silence; F5b found the CONSYS I2S input never powered, fixed in 0592; F5c, the repeat, admitted on 2026-11-06, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1108,7 +1108,10 @@ DAPM never powers it.
 MT8186 does. 0593 and 0594 are unchanged. Builds with `W=1` and no warning
 in the dev VM.
 
-## Test F5c: F5 with the CONSYS input powered (predeclared, not yet admitted)
+## Test F5c: F5 with the CONSYS input powered (admitted)
+
+The owner admitted F5c on 2026-11-06: one run with the effects below;
+anything else needs asking again.
 
 The F5 test, effects, hearing safety, procedure and decision table, with the
 corrected 0592 and one addition: `fm-afe-read.sh` (`7e8e06d9…`) runs once
