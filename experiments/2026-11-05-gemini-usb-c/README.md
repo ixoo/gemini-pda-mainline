@@ -374,6 +374,18 @@ watchdog kicks continue; after `sink` the laptop link returns. *Stop:* the
 port stays in source after 180 s → the owner uses the console: `echo sink`
 to the same file, or reboots. Any charger fault bit → stop.
 
+**U1 candidate (staged 2026-11-06, not booted).** Built by the custodian on
+Buildbox from `0d68c839`, profile `mt6797-a53-station-a72`: package
+inventory `b9111a2e…` with SHA256SUMS passing, config `6225c1a1…`. Station
+image `station-work-59`: boot2 `30ba7ad9…`, DTB `5c75c57d…`, with the parent
+RAM root and tools of `station-work-58`. The custodian checked the resolved
+config and the DT: MTU3 `otg` with its role switch, both FUSB301 nodes, the
+boost child, and the GPIO72/GPIO94 regulators with no boot-on. The defconfig
+also builds the `hd3ss3220`, `tipd`, `tcpm` and altmode Type-C modules;
+nothing loads them. The first config, from `59fed0bc`, failed Buildbox's
+retention check on `PHY_MTK_UFS`, which SCSI brought back. `0d68c839` fixes
+that and four more lines found by running the same check in the VM.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 
