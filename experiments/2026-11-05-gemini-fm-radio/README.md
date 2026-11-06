@@ -830,13 +830,15 @@ The diagnostic lines (controls in each block: not muted, volume 15, 75 µs):
   only the quality-report parsing, the seek's use of it and `LOG_STATUS`, not
   the power-up or tune, and the signal was already weak at t=1, before the
   first `LOG_STATUS`. Both the tuned station and the one the seek found were
-  some 11 to 15 dB below F3, which points at the antenna, the headset cable's
-  lie or a hand or body near it, rather than one station. Not confirmed.
+  some 11 to 15 dB below F3, which points at the antenna rather than one
+  station. The owner then confirmed they had moved the headset wire between
+  F3 and F4: the antenna's position cost about 15 dB, and RDS with it.
 - **(b) or (c) not settled.** At this level a receiver blends to mono, so the
   flag being 0 says nothing new. `pr` and `fpamd` change with the signal, but
   their meaning is not documented, so they cannot be read as pilot strength.
 
-**Conclusion:** `confirmed` that forced mono is not the cause; `inconclusive`
+**Conclusion:** `confirmed` that forced mono is not the cause, and that the
+headset wire's position alone moves reception by about 15 dB; `inconclusive`
 on stereo. A run on a strong station, at F3's level or better and known to be
 in stereo, is still needed.
 
