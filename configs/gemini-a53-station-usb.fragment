@@ -10,6 +10,9 @@ CONFIG_USB_ROLE_SWITCH=y
 CONFIG_USB_XHCI_HCD=m
 CONFIG_USB_XHCI_MTK=m
 CONFIG_NOP_USB_XCEIV=m
+# The MUSB glue's transceiver needs the USB PHY layer that gemini-usbdiag
+# turns off.
+CONFIG_USB_PHY=y
 CONFIG_USB_MUSB_HDRC=m
 CONFIG_USB_MUSB_HOST=y
 CONFIG_USB_MUSB_MEDIATEK=m
@@ -18,6 +21,13 @@ CONFIG_TYPEC_FUSB301=m
 CONFIG_REGULATOR_FIXED_VOLTAGE=m
 CONFIG_USB_STORAGE=m
 CONFIG_USB_HID=m
-# USB storage sits on the SCSI disk layer.
-CONFIG_SCSI=m
+# The host core would bring back the defconfig's USB network adapters, which
+# select the PHY library that gemini-usbdiag turns off.
+# CONFIG_USB_NET_DRIVERS is not set
+# USB storage sits on the SCSI disk layer. The SCSI core is built in because
+# gemini-a53-station asks for RAID_ATTRS=y, which a modular SCSI core caps at
+# m. SCSI would also bring back the defconfig's UFS host, which selects the
+# UFS PHY gemini-handoff turns off; this board has eMMC, not UFS.
+CONFIG_SCSI=y
 CONFIG_BLK_DEV_SD=m
+# CONFIG_SCSI_UFSHCD is not set
