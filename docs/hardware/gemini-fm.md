@@ -7,8 +7,10 @@ firmware files. On this device the full power-up, the v1 patch and
 coefficient downloads, the tune and the power-down have run (F1, F2c,
 2026-11-05): `0x62` reads `0x6631`, the DSP ROM is version 0, a broadcast
 station tuned in TDD mode, and the headset cable is the antenna (about
-+23 dB with a headset). Audio, stereo, RDS and seek are still vendor
-behaviour, not observations of this board. The
++23 dB with a headset). Through the V4L2 driver (F3) the quality-report
+seek and RDS events work as described below; RDS arrived at the full 11.4
+groups a second. Audio and stereo are still vendor behaviour, not
+observations of this board, and `RSSI_IND` D12 has never shown stereo. The
 chronology, the observations and the first device test are in the
 [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md).
 

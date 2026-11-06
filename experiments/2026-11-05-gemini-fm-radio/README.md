@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3, the V4L2 radio device with seek and RDS (0589), admitted on 2026-11-05, not yet run; no audio yet |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -114,7 +114,8 @@ Nothing was executed. The full contract is in the
 6. Whether Planet's Android image ever offered FM on this hardware (owner
    knowledge, not a blocker).
 7. The DSP ROM version, which picks the patch file (F2 reads it).
-8. ~~What signals RDS data on CONSYS?~~ The firmware pushes it as `0x0d` events (R8). Not yet observed on this board.
+8. ~~What signals RDS data on CONSYS?~~ The firmware pushes it as `0x0d` events (R8), observed in F3.
+9. Why the stereo flag (`RSSI_IND` D12) never sets, on two stations at about -72 and -81 dBm (F2c, F3).
 
 ## Mainline shape
 
@@ -677,6 +678,69 @@ that.
 | stereo still 0 with strong signal | the indicator bit or a mono station | compare with another receiver |
 | open fails | regression from F2c | compare its log with F2c |
 | Wi-Fi fails after unload | FM power-down or RDS traffic disturbs CONSYS | record; CONSYS reload |
+
+## F3 result (2026-11-05): the radio device works
+
+Run by the custodian session with the owner's admission, in boot `a22a4ca8`
+(image `02e045fa…`), module-only: package `c9aa2298…` checked against its
+`SHA256SUMS`, `Image.gz` and `mt6797-consys.ko` identical to the running ones;
+`mc.ko` `c596bcbb…` and `videodev.ko` `838c4fe4…` from the package, identical
+to the running package's copies; `radio-mt6797.ko` `ede6bf4e…`;
+`fm-check` `3fced782…`. Firmware still in RAM. Headset plugged in, the
+owner's station. The private file (frequency, the station the seek found,
+RDS PI and programme name) is kept under `artifacts/station-work-58/boot-1/`
+and is not quoted here.
+
+`insmod` of `mc`, `videodev` and `radio-mt6797`: rc 0, `registered radio0`.
+`fm-check` output, apart from the per-second lines:
+
+```text
+open: ok after 0.24 s
+cap: driver=radio-mt6797 card=MT6797 CONSYS FM receiver caps=01250500
+tuner: FM cap=0000059d range=87500-108000 kHz audmode=1
+ctrl mute=1: ok
+ctrl mute=0: ok
+ctrl volume=15: ok
+ctrl deemphasis=2: ok
+s_frequency: ok after 0.11 s
+rds totals: good A=678 B=678 C=678 D=678 C'=0, bad A=0 B=0 C=0 D=0 C'=0, PI seen 678 times
+seek up: ok after 0.49 s
+after seek: signal=32767 stereo=0
+close after 0.01 s
+```
+
+The 60 per-second lines: signal 40,413 to 43,690, mostly 42,597 (about -72
+dBm); `stereo=0` and `rds=1` on every line; 48 good blocks a second, 24 in
+seven of the seconds; no bad block. `dmesg`: link running and checked,
+function on, `on: identity 6631: 0`, function off, `STP link halted: failed=0
+... timeouts=0 resent=0`, `off: power-down 0, events=333 unexpected=0 junk=0`.
+Afterwards `rmmod` rc 0, pings 3 of 3, CONSYS and `mac` reload, Wi-Fi back with
+a lease, pings 3 of 3, taint 0, no warning or Oops.
+
+**Analysis.**
+
+- **The device works through the standard interface.** Open runs the whole
+  power-up in 0.24 s, a tune takes 0.11 s, close powers down in 0.01 s with the
+  vendor power-down returning 0, and all controls are accepted.
+- **RDS works and R8 is confirmed.** 678 groups in 60 s is 11.3 groups a
+  second, the RDS rate of 1187.5 bit/s (11.4 groups/s), with all four blocks
+  of every group present and none flagged bad. The 72 "unexpected" events of F2c
+  are now consumed as RDS: `unexpected=0`. That no block was bad at -72 dBm
+  is plausible but also fits a firmware that drops bad groups before sending;
+  which one is not separated. The seconds with 24 blocks are the 2 s event
+  batches straddling a read.
+- **Seek works.** It found the next station upward in 0.49 s, at about -81 dBm,
+  so the quality report and the vendor thresholds are read correctly. One seek,
+  upward only.
+- **Stereo flag still 0**, now on two stations, both with clean RDS. A stereo
+  pilot at these levels should be detected, so `RSSI_IND` D12 is probably not
+  the live pilot indicator on MT6631, or it needs the audio path running. Open
+  item 9.
+
+**Conclusion:** `confirmed` for this unit: the MT6631 FM receiver works on
+mainline as a V4L2 radio receiver with tuning, signal strength, controls,
+hardware seek and RDS. Not shown: audio, stereo, downward seek, the nine
+64 MHz SPI-clock channels, suspend.
 
 ## Follow-up
 
