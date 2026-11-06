@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets, and F4 (stereo diagnostic, 0590) is predeclared, not admitted |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets, and F4 (stereo diagnostic, 0590) admitted on 2026-11-05, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -743,7 +743,10 @@ mainline as a V4L2 radio receiver with tuning, signal strength, controls,
 hardware seek and RDS. Not shown: audio, stereo, downward seek, the nine
 64 MHz SPI-clock channels, suspend.
 
-## Test F4: why the stereo flag stays 0 (predeclared, not yet admitted)
+## Test F4: why the stereo flag stays 0 (admitted)
+
+The owner admitted F4 on 2026-11-05: one load and one `fm-check` run with
+the effects below; anything else needs asking again.
 
 **Question:** does the receiver see a stereo pilot at all, and does forced
 mono or the signal level explain the flag (open item 9, R10)?
