@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `completed`: microSD at UHS SDR104 (192 MHz, about 86 MiB/s, vendor pad settings, exFAT), and the eMMC at HS200 (192 MHz, reads about 36 MB/s, below expectation), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
+| Status | `completed`: microSD at UHS SDR104 (192 MHz, about 86 MiB/s, vendor pad settings, exFAT), and the eMMC at HS200 (192 MHz), whose multi-block reads fail silently and fall back to single sectors (T6), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -942,6 +942,72 @@ Stop on any `mmc0` error, warning or Oops.
 | Direct 4 MiB also about 36 MB/s, interrupts normal | The chip or HS200 itself: compare with the vendor kernel's rate under Gemian before any change |
 | The cold region much faster or slower | The chip's internal state; note it, no driver change |
 
+### T6 result (2026-11-06)
+
+Boot `4e6851f2`, image station-work-68 from `84a70e42`, which includes 0615. Taint 0
+before and after. Read-only; nothing was written. Raw output is private. The
+custodian stopped early once the first branch's sign was clear.
+
+**Observed.**
+
+- `mmc0`: HS200, 191999939 Hz, 8 bits, 1.8 V. `err_stats` stayed all 0 throughout.
+  `mmc1`: SDR104 at the same rate.
+- Both block queues: `read_ahead_kb` 128, `max_sectors_kb` 512, `nr_requests` 128,
+  `mq-deadline`. The `linux` partition is `mmcblk0p29`, 58903 MiB.
+- `mmc0` interrupts per MiB, first run:
+
+  | Read | Interrupts per MiB |
+  | --- | --- |
+  | buffered, 1 MiB × 256 from 0 | about 4 |
+  | direct, 4 MiB × 64 | about 12 |
+  | direct, 512 KiB × 512 | about 1830 |
+  | buffered, 1 MiB × 256 from 8 GiB | about 3830 |
+
+- A second run, timed from `/proc/uptime` because busybox `dd` prints no timing:
+  - the buffered read from 0 took 86.7 s, about 3 MB/s;
+  - the 4 MiB direct read took 80.1 s.
+
+  It was stopped during the 512 KiB read.
+- 8 MiB buffered reads after a cache drop, counted from `/sys/block/mmcblk0/stat`:
+  - From offset 0: 22 requests, 100 ms.
+  - From 300 MiB, 8192 MiB, 8500 MiB and 20000 MiB: 17 requests and 17408 sectors
+    each, 3.7-7.4 s each, with exactly 34816 interrupts, two per sector.
+  - An earlier 4 MiB read at 20000 MiB took 49 ms.
+- No `mmc` or `msdc` line in `dmesg`, no warning, no Oops.
+- The card's interrupt line was mis-selected, so there are no `mmc1` counts.
+
+**Inferred.**
+
+- Two interrupts per sector, with the request count unchanged, is the block
+  driver's recovery path. In 7.1.3, `mmc_blk_mq_complete_rq` requeues a request
+  that moved no data with `MQRQ_XFER_SINGLE_BLOCK`. The rest of that request is then
+  read one sector per command, each a command interrupt and a transfer interrupt.
+  In the slow reads, every request took that path.
+- The trigger is a failed multi-block read. `mtk-sd` logs data errors only at debug
+  level, and the core's `err_stats` counts only failed tunings, which is why
+  nothing showed.
+- A data CRC error (`-EILSEQ`) also marks the host for retuning. Whether these were
+  CRC errors or timeouts isn't shown.
+- The failures come and go: the same read was fast in one run and slow in the next.
+  Once they began, every read in the second run was slow.
+- So T5's 36 MB/s was a mix of normal and single-sector reads, not the chip's rate.
+  The fast reads (8 MiB in 100 ms) suggest the chip itself is well above it.
+
+**Outcome.** The first row of the decision table: HS200 on this tree has data
+errors at 192 MHz. The data is protected by the CRC and the retry, so nothing read
+wrong. But the link is unreliable, and degraded reads are around 3 MB/s. Writes take
+the same recovery path. The station's data partition is mounted read-write on
+these images.
+
+**Not shown.**
+
+- Whether the errors are CRC errors or timeouts.
+- Whether a fresh tuning holds until some later event.
+- Whether the pad timing, the tuning window or something else is the cause.
+
+Next, by the table: the eMMC's HS200 tuning and pad timing, with HS at 52 MHz as the
+safe setting meanwhile.
+
 ## Follow-up
 
 - Suspend and resume.
@@ -949,4 +1015,5 @@ Stop on any `mmc0` error, warning or Oops.
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
 - eMMC HS400, once its data-strobe delay is known.
-- Why HS200 eMMC reads stop at about 36 MB/s.
+- eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): the tuning and pad
+  timing, and HS at 52 MHz meanwhile.

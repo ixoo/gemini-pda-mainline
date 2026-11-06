@@ -54,7 +54,7 @@ upstream, it isn't a daily driver, and a build isn't support.
 - **Partly there:** GNSS tracks two live satellites from a userspace host, with no
   position on mainline yet.
   microSD works on the station after v1 at UHS SDR104, with hotplug, exFAT and
-  a verified write; the eMMC runs at HS200
+  a verified write; the eMMC selects HS200 but has silent read errors there
   ([record](experiments/2026-11-05-gemini-microsd/README.md#t5-result-2026-11-06)).
 - **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery
   life and heat; USB host; the modem.
