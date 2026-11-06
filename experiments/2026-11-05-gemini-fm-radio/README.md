@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 the owner heard complete silence; F5b found the CONSYS I2S input never powered, fixed in 0592; F5c, the repeat, admitted on 2026-11-06, not yet run |
+| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c, the owner heard the station). The headset cable is the antenna. The stereo flag rarely sets; stereo by ear is unconfirmed |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1127,6 +1127,49 @@ config `6b86c0b3…` match the running vibrator V1 image. Only
 `89133c3d…`, `mt6797-mt6351.ko` `ab9caefb…`, `radio-mt6797.ko` `61a2c041…`
 and `mt6797-consys.ko` `1797e440…` are identical to the loaded ones, so F5c
 swaps only the AFE module (with the card unloaded around it). Not run.
+
+## F5c result (2026-11-06): the station plays on the headphones
+
+Run by the custodian session with the owner's admission and the owner
+listening, on station work 62 (boot `2dc6de9f`, built from `15bde8ff`, which
+contains the corrected 0592), so the AFE module `0990818e…` was already
+loaded and no module swap was needed: card `ab9caefb…`, common `89133c3d…`,
+`radio-mt6797` `61a2c041…`, with `mc` and `videodev` loaded first on the
+fresh boot. A first attempt stopped at `insmod radio-mt6797` on the missing
+`videodev` symbols, before anything played; the switches went off again,
+`mc` and `videodev` were loaded and the one real run followed. Wi-Fi was not
+up on that boot, so there were no pings. Speakers off, `Headphone Volume` 0
+(-10 dB), receiver volume 8. Raw files are private under
+`artifacts/station-work-62/boot-1/`.
+
+- **`fm-listen`:** tune ok, both streams started, signal 39,321 to 45,874
+  (about -73 to -70 dBm), stereo flag 1 at t=5 and 0 afterwards, everything
+  stopped and closed, rc 0.
+- **DPCM at 20 s:** both directions started, with Primary Codec and
+  CONNSYS_I2S.
+- **Powered during the stream:** `Connsys I2S` (On, in 1 out 1), Hostless FM
+  UL and DL, ADDA Playback, and the whole codec headphone path, as in F5b
+  plus the input side. The register lines again did not print, so the
+  script's offset parsing still needs a look against the real file.
+- **`dmesg`:** the radio's usual lines, power-down 0, `events=234
+  unexpected=0`, link halted with no failure; no AFE or codec line; no
+  warning, taint 0. `rmmod radio-mt6797` rc 0.
+- **Owner:** "it works!!! maybe stereo?". Clean or distorted and loudness
+  are asked.
+
+**Analysis.** The one change from F5 and F5b is the `CONNSYS` input endpoint,
+and with it `Connsys I2S` powers, so the I2S input gets its clock and the
+station is heard. The whole chain works on mainline: receiver DSP, its I2S
+output through CONSYS, the AFE's second I2S input and ASRC at 48 kHz, the
+direct route into the ADDA downlink, the MT6351 and the headphones, with no
+hardware gain stage.
+
+**Conclusion:** `confirmed` for this unit: FM audio plays on the headphones
+on mainline through 0591 to 0594.
+
+Open: stereo (the flag was 1 once, the owner thinks it may be stereo by ear),
+audio quality and level, the register snapshot, speakers, and a default
+mixer setup so FM needs no manual switches.
 
 ## Follow-up
 

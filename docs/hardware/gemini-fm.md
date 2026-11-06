@@ -9,8 +9,10 @@ coefficient downloads, the tune and the power-down have run (F1, F2c,
 station tuned in TDD mode, and the headset cable is the antenna (about
 +23 dB with a headset). Through the V4L2 driver (F3) the quality-report
 seek and RDS events work as described below; RDS arrived at the full 11.4
-groups a second. Audio and stereo are still vendor behaviour, not
-observations of this board, and `RSSI_IND` D12 has never shown stereo. The
+groups a second. The audio path below plays the station on the headphones
+(F5c, 2026-11-06), once the AFE's CONSYS I2S input has a DAPM input endpoint
+so that it powers up. Stereo is unconfirmed: `RSSI_IND` D12 has shown stereo
+for one sample only. The
 chronology, the observations and the first device test are in the
 [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md).
 
