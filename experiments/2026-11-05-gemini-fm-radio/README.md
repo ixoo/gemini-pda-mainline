@@ -84,7 +84,7 @@ Nothing was executed. The full contract is in the
 | R5 | `mt6631_fm_v1_patch.bin` is 16-bit DSP words with no header or strings, sent as three segments (512, 512, 4). `mt6631_fm_v1_coeff.bin` is a coefficient table sent as 512, 512, 68; its bytes 38-39 (the vendor's patch version) are `0x0000` and bytes 4-5 are already zero. The file is chosen by the DSP ROM version read during power-up; only v1 is installed | RE VM, files with the published digests |
 | R6 | The two `ROMv3` CONSYS patches name FM only in a WMT default-parameter message and a coexistence task-status message; they carry no FM command handler, so the handler is inferred to be in the CONSYS ROM | RE VM, `strings` |
 | R7 | `libfmcust.so` (SHA-256 `80a9ea1a…f79d0`) exports only `CUST_get_cfg`, which maps the WMT chip-ID property to an FM chip, `0x6797` to MT6631. It has no band, region or antenna data | RE VM, `objdump` |
-| R8 | RDS is read from a register FIFO, one STP round trip per register; what triggers the read on CONSYS is not settled | `mt6631/pub/mt6631_fm_rds.c` |
+| R8 | RDS needs no polling: after enable (`0x80 = 6`, `0x63` D4) the firmware pushes raw groups as unsolicited `0x0d` events, up to 12 per event, each with blocks A-D, a corrected-bit count and CRC flags. The register-FIFO read path in the MT6631 library is compiled out (`#if 0`). The host decodes PI, PS, RT, PTY, CT and AF | `mt6631/pub/mt6631_fm_rds.c`, `fmradio/inc/fm_rds.h`, `fmradio/core/fm_link.c` |
 
 ## What is inferred
 
@@ -114,7 +114,7 @@ Nothing was executed. The full contract is in the
 6. Whether Planet's Android image ever offered FM on this hardware (owner
    knowledge, not a blocker).
 7. The DSP ROM version, which picks the patch file (F2 reads it).
-8. What signals RDS data on CONSYS (R8); RDS is not needed for audio.
+8. ~~What signals RDS data on CONSYS?~~ The firmware pushes it as `0x0d` events (R8). Not yet observed on this board.
 
 ## Mainline shape
 

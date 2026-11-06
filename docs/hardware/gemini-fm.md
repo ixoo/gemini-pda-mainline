@@ -41,7 +41,7 @@ event    04 OP LEN_LO LEN_HI payload[LEN]
 | `0x04` | FM register write | `ADDR VAL_LO VAL_HI` | status |
 | `0x07` | enable (batch) | batch ops | status |
 | `0x09` | tune (batch) | batch ops | empty acknowledgment, then `01` when the tune is done |
-| `0x0d` | RDS data | | RDS record |
+| `0x0d` | RDS data, unsolicited | | up to 12 raw RDS groups |
 | `0x0e` | ramp down (batch) | batch ops | status |
 | `0x12` | DSP patch segment | `SEG_NUM SEG_ID data` | status |
 | `0x13` | coefficient segment | `SEG_NUM SEG_ID data` | status |
@@ -155,9 +155,12 @@ is still v1.
   hardware seek is therefore a driver loop, not a chip command.
 - **Mono and stereo:** stereo is `RSSI_IND` D12; forced mono is `0x75` D3,
   written between top `0x050 = 7` and `0x050 = 0x0f`.
-- **RDS:** enable sets `0x80 = 6` and `0x63` D4. Blocks are read from a
-  register FIFO (`0x87` status, `0x81`/`0x82` pairs, `0x85`/`0x86`, `0xf0`),
-  one STP round trip per read. What triggers the read on CONSYS is not settled.
+- **RDS:** enable reads `0x80`, writes `0x80 = 6` (FIFO start threshold) and
+  sets `0x63` D4. The firmware then pushes the groups itself as unsolicited
+  `0x0d` events: two 16-bit words (`sin`, `cos`), then up to 12 groups of six
+  16-bit words each, blocks A to D, the corrected-bit count and the per-block
+  CRC flags. The host decodes the groups; the register-FIFO read path in the
+  MT6631 library is compiled out. Disable clears `0x63` D4.
 
 ## Power-down
 
