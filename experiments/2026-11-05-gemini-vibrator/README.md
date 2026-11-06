@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-vibrator` |
-| Status | `planned`: patch 0585 and the module are built; V1 waits for the next batched image |
+| Status | `completed`: on V1's image `regulator-haptic` on VIBR at 2.8 V runs the motor for 100 and 300 ms pulses and switches the LDO off after each; it reloads cleanly |
 | Subsystem | MT6351 VIBR LDO, upstream `mt6351-regulator` and `regulator-haptic` |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -138,6 +138,47 @@ Stop, record and send back at once, with no retry, if:
 | Probe fails or no `vibr` regulator | DT or regulator registration problem | Read dmesg; fix before another test |
 | Motor does not stop | Unexpected; possible enable held elsewhere | Stop list; diagnose before any further pulse |
 
-## Observations
+## V1 result (2026-11-05)
 
-None yet.
+Run by the custodian on the owner's approval. One boot, one unit.
+
+**Image:** package `8f569751…` from `c546644d`, profile `mt6797-a53-station-a72`;
+`Image.gz` `5229086f…` and `regulator-haptic.ko` `2bc8d3af…`, the same as this
+record's build. Station DTB `2a7aada4…`, which also carries 0579 and 0580.
+boot2 `02e045fa…`, boot id `a22a4ca8`. `rumble` `dd9feb5f…`. Raw outputs are
+kept private.
+
+### Observations
+
+1. The owner felt a buzz at the boot2 power-on and says it has always buzzed at
+   boot: this is LK's pulse, not new.
+2. `/proc/device-tree/haptic` has its four properties. The `vibr` regulator
+   (`regulator.21`) read `disabled`, 2800000 µV, 0 users.
+3. `insmod` returned 0; `regulator-haptic` registered as `input4`
+   (`/dev/input/event4`), probe in 977 µs.
+4. `rumble … 100`: return 0, then `disabled`. Owner: a short buzz.
+5. `rumble … 300`: `enabled` at 150 ms, `disabled` after. Owner: longer.
+6. Three 100 ms pulses 1 s apart: the owner counted three; `disabled` after.
+7. `rmmod` returned 0, `disabled`, 0 users. A second `insmod` (`input5`, probe
+   768 µs), one 100 ms pulse and `rmmod` all returned 0, `disabled` after.
+
+Taint 0. No regulator, PMIC wrapper or over-current errors in dmesg. The owner
+reported no warmth and no running after an effect. Motor time was 800 ms, as
+budgeted. The module is unloaded and nothing loads it at boot.
+
+## Analysis
+
+Every pulse the owner felt matches an effect played, in length and count, and
+the regulator reads `enabled` only while an effect plays. So the motor is on the
+VIBR LDO, and switching that LDO at 2.8 V through `regulator-haptic` is enough
+to drive it, as the vendor driver does. No stop-list item was hit.
+
+## Conclusion
+
+`confirmed` for this unit and this image: the upstream `regulator-haptic`
+driver, with patch 0585, runs the vibration motor from VIBR at 2.8 V through the
+standard force-feedback interface, and stops it when each effect ends.
+
+Not shown: long or repeated use, magnitudes other than full (they all map to
+2.8 V here), suspend, the motor's rated voltage and current, and a second unit.
+Nothing loads the module at boot yet.
