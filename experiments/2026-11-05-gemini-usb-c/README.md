@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 reaches connect but fails enumeration at high speed (`-71`); U4 not run |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 not run |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -784,7 +784,7 @@ first control transfer, ranked:
    that window is absent on this older block, no transfer is ever started
    correctly, at any speed, while the connect (DEVCTL and POWER) works.
    Fix:
-   [0621](../../patches/proposals/0621-usb-musb-mediatek-reach-the-MT6797-USB11-endpoints-t.patch).
+   0621 (withdrawn).
    Module-only.
 2. **Multipoint.** The vendor forces `is_multipoint = 1`; mainline ran it
    as a plain HDRC, writing FADDR and no TYPE0 speed. Fix: 0620.
@@ -800,11 +800,41 @@ first control transfer, ranked:
 
 Cheapest test, all module-only on a running station: first load the
 extended dump
-([0622](../../patches/proposals/0622-phy-mediatek-DIAGNOSTIC-also-dump-the-USB11-endpoint.patch)),
+(0622 (withdrawn)),
 which prints Frame, INDEX and endpoint 0 in both windows with the current
 driver. Then swap in `mediatek.ko` with 0620 and 0621 and attach the
 keyboard. If both windows read alike, 1 is not the cause and the swap
-tests 2 alone. U4 is not run. Add to
+tests 2 alone.
+
+**U3 passed with 0620 alone, boot `4e6851f2` (station-work-68), taint 0.**
+Run by the custodian on the live boot, swapping only `mediatek.ko` (0620,
+from the `77f90783` package). Evidence is kept privately under
+`artifacts/station-work-68/boot-1/`; device models are not recorded.
+- `rmmod mediatek` worked with no oops, so 0607 holds. The reload left an
+  "Unbalanced pm_runtime_enable" and five T-PHY debugfs "already exists"
+  lines. Cleanup is pending.
+- The "kernel must disable external hubs" line was gone.
+- The full-speed keyboard enumerated on the USB11 root port (`a_host`, 12
+  Mb/s) and became an input device. A key press and release arrived on its
+  event node.
+- The high-speed card reader, through its C-to-A adapter, enumerated at 480
+  Mb/s as a SCSI disk. A raw 64 MiB read took 9.47 s (6.8 MiB/s, as
+  expected for PIO), and two 16 MiB reads hashed the same. There were no
+  errors or resets after the attach.
+- Throughout: REG03 `0x0a`, REG0C `0x00`, `usb0-vbus` off, and the three
+  right-port regulators on. `rmmod fusb301` turned them all off and returned
+  the pins to 0. The block device was still listed right after VBUS was cut;
+  detach handling is to be checked.
+
+So multipoint was the cause: the controller needs its per-endpoint target
+address and speed registers. 0621 (indexed endpoint access) and its
+diagnostic companion 0622 were never needed. They are withdrawn from the
+series, unbooted. PHY byte `0x72` is not needed either. 0610 (GPIO70) and
+0619 (squelch 8) stay: they were in the passing image and match the vendor.
+
+Open on the right port: Inventra DMA (PIO only now), the reload leftovers,
+detach after VBUS is cut, and loading the modules at boot. U4 (left-port
+host) is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 

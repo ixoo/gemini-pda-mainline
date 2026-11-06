@@ -27,7 +27,7 @@ towards the user.
 | USB PD | No | No |
 | Video | No | HDMI through SiI902x and Planet's HDMI adapter (user guide, source) |
 | Firmware | None | None |
-| Mainline today | Peripheral-only gadget Ethernet, high speed (**observed**, station). Dual-role, device by default, written (0595–0602), not run | Host written (0595–0602), not run |
+| Mainline today | Dual-role, device by default (**observed**: SSH and charging unchanged; the Type-C chip starts as a sink). Host mode written, untested | Host works (**observed**: full and high speed, PIO), modules loaded by hand |
 
 ## 2. Left port
 
@@ -164,7 +164,7 @@ USB-C, Type-C or HDMI firmware file. See the [firmware boundary](firmware.md).
 | --- | --- | --- | --- |
 | MTU3 + xHCI, left | `mtu3`, `xhci-mtk`; role from `usb-role-switch`, extcon or a `connector` child; optional `vbus-supply` | 0067 compatibles, 0068 topology, 0078 peripheral wiring | Host or dual-role on the board; U3 port never tested |
 | T-PHY | `phy-mtk-tphy` | 0066 MT6797 V1, 0077 forced B-session | USB11 calibration variant |
-| USB11 MUSB, right | `musb` + `mediatek.c` glue (no VBUS GPIO hook) | 0069 data, 0070 disabled topology | Board node, PHY power sequence, runtime test |
+| USB11 MUSB, right | `musb` + `mediatek.c` glue (no VBUS GPIO hook) | 0069 data, 0070 topology; 0604 PHY window, 0607 unload fix, 0608 forced session, 0619 squelch, 0620 multipoint | DMA (PIO only), detach handling |
 | FUSB301/FUSB301A | None upstream | 0056 driver; 0596–0599 add polling, `vbus-out-supply`, a role switch and a sink start; 0595 a class helper | Runtime test |
 | Connector, ID and VBUS | `usb-c-connector`, `regulator-fixed` | 0602: GPIO94 VBUS with GPIO72 as its supply (right), the boost (left) | Whether GPIO94 alone powers the port |
 | Charger boost | `bq25890_charger` `usb_otg_vbus` regulator | 0517/0518 guard mode; 0600/0601 register the boost in that mode and keep the watchdog fed while it is on | Runtime test |
