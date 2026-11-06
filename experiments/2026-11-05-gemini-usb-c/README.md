@@ -110,6 +110,48 @@ and GPIO64 IRQ (same), the GPIO94/GPIO70–72 callback and the 4 V ID-pin
 refusal (USB-role review U3, U5), and the unresolved GPIO94 source (VBUS
 ownership record).
 
+## Station reading, 2026-11-06
+
+Read-only, by the device custodian, on station boot `a22a4ca8` (checked first
+and last, taint 0), image built from `c546644d`, with the laptop cable on the
+left port. Only I2C byte reads of FUSB301 registers `0x01`–`0x03`, `0x10`–`0x12`
+(not `0x13`, which clears on read), debugfs pin state, `power-status -r`, the
+UDC speed and `dmesg`. Nothing was bound at `0x25`.
+
+| | `01` ID | `02` Modes | `03` Control | `10` Mask | `11` Status | `12` Type |
+| --- | --- | --- | --- | --- | --- | --- |
+| Right, I2C0 (FUSB301A) | `0x12` | `0x04` | `0x03` | `0x00` | `0x00` | `0x00` |
+| Left, I2C1 (FUSB301) | `0x12` | `0x04` | `0x03` | `0x00` | `0x2f` | `0x08` |
+
+- **Both chips are in Sink mode, their reset value, at a mainline boot.**
+  Gemian's Source-only write (N1) does not carry over. The current station,
+  which never writes the chips, therefore presents Rd on both ports.
+- **The left chip sees the laptop as a 3 A Type-C source.** Status `0x2f`:
+  attached, BC level 3 (3.0 A advertisement), VBUSOK, orientation CC2.
+  Type `0x08`: a source partner. A legacy A-to-C cable advertises default
+  current, so the station link is a C-to-C cable. A C-to-C link that works
+  with the chip in Sink, after an earlier Gemian watch with the Mac showed
+  no VBUS, supports N1's explanation. It is still not a Gemian test of the
+  same cable.
+- The control register reads `0x03`: interrupts masked (bit 0), default host
+  current (bits 2:1 = 01).
+- **Pins at handoff.** None of GPIO64, 70, 71, 72 or 94 is claimed. GPIO64 is
+  in mode 1 (EINT3), input, reading 1: the FUSB301A's ID output is idle-high
+  with no sink attached, and the firmware has already muxed it for EINT.
+  GPIO70, 71, 72 and 94 are GPIO-mode outputs driven 0. So VBUS (94) and the
+  USB data switch (72) are off, as 0602's regulators leave them. The HDMI
+  lane switch enable (70) is low, which the vendor callback uses for HDMI;
+  the vendor idle state is high. 0602 does not touch it.
+- `power-status -r`: USB SDP input, power good, not charging, battery 4.28 V,
+  VBUS 5.1 V; REG0B `0x26` (`VBUS_STAT` 001, SDP: no boost). REG03 was not
+  in this dump.
+- The UDC runs at high speed; MTU3 logs `dr_mode` 2 (peripheral) and the
+  forced B-session; no T-PHY error.
+
+This settles R3's cable question (C-to-C) and the carry-over question in N1.
+It changes nothing in 0595–0602: the left driver starts the chip in the
+mode it is already in.
+
 ## Device readings needed
 
 None of these changes a role, VBUS or a charger register. Each goes to the
@@ -288,7 +330,7 @@ composed into a station image as usual. Battery above 30 %. A reading of
 
 **U1. Boot: the left port is unchanged.** *Hypothesis:* with MTU3 dual-role
 built in and no USB module loaded, the station boots to the same SSH link
-and charges as before. *Observe:* SSH; `dmesg` for `mtu3` (`dr_mode: 2`),
+and charges as before. *Observe:* SSH; `dmesg` for `mtu3` (`dr_mode: 3`, OTG; today's image logs 2),
 `cat /sys/class/usb_role/*/role` = `device`; the guard's binding; REG03
 bit 5 clear. *Branches:* as before → U2. No SSH → console shell on tty1
 reads `dmesg`; the owner returns to the previous image (boot2 rewrite from
@@ -298,8 +340,8 @@ Gemian only through the reviewed path). A boost bit set → stop and record.
 (the right FUSB301A waits for its regulator). *Hypothesis:* the left port
 reports `[sink]`, a partner that is a source, power role sink, data role
 device, and SSH stays up. *Then:* the owner unplugs and replugs the laptop
-cable once; SSH returns within 30 s. If a C-to-C cable to the laptop is at
-hand, the same with it: the port should now charge (N1). *Stop:* SSH lost
+cable once; SSH returns within 30 s. The station link is already a C-to-C
+cable (station reading below), so this also covers C-to-C. *Stop:* SSH lost
 for more than 60 s after a replug → owner reboots (the modules don't load at
 boot).
 

@@ -67,7 +67,10 @@ negotiation (source; the speed on this unit isn't observed). Patches 0069 and
 0070 add the MT6797 MUSB data and a disabled DT topology.
 
 **Type-C.** The I2C0 FUSB301A, interrupt from GPIO64 (`fusb301a-pin`, live DT
-interrupt cell 64, debounce 256 ms). Gemian probes it, reads ID `0x12`, and gets
+interrupt cell 64, debounce 256 ms). The vendor reads that pin as the chip's
+ID output, not INT_N. At a mainline handoff GPIO64 is already in EINT3 mode
+and reads high, with no sink attached; GPIO70/71/72/94 are outputs driven
+low (**observed**). Gemian probes it, reads ID `0x12`, and gets
 an IRQ (**observed**). On every ID-pin change the vendor work function reads the
 ID GPIO (low means a sink is attached), reads status bits 5:4 for CC1/CC2 and
 then:
@@ -105,9 +108,11 @@ right port does not charge the device (user guide).
   Gemian watch with the left port reported cabled to the Mac stayed at
   `usb/online=0` throughout. That matches the inference but doesn't prove it,
   because the cable type wasn't recorded.
-- The FUSB301 has dead-battery Rd when unpowered and comes up as a Sink. Whether
-  its supply survives a power-off, so that Gemian's Source-only write carries
-  into a later mainline boot, is unknown.
+- The FUSB301 has dead-battery Rd when unpowered and comes up as a Sink. At a
+  mainline station boot both chips read mode `0x04` (Sink), so Gemian's write
+  does not carry over (**observed**). On that boot the left chip saw the
+  laptop's C-to-C link as a 3 A source on CC2 with VBUS present
+  (**observed**).
 - The `SS_SW` output switches a SuperSpeed mux by itself, without software
   (datasheet). No Gemini source says whether either port's `SS_SW` pin is wired.
 - **No USB Power Delivery** on either port. The FUSB301 has no PD engine; the
