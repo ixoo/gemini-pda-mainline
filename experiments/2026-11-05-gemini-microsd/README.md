@@ -1347,6 +1347,76 @@ No retries; two writes at most.
 | No change | TDSEL isn't it. Next: `CKGEN_MSDC_DLY_SEL` and the latch settings |
 | Command errors or tuning failure | Restore, stop. TDSEL `0xc` is wrong for this pad; don't patch it |
 
+### T8c result (2026-11-06)
+
+Run on boot `5a1721ee` (T8, `data` read-only) after the owner approved the two writes
+("Yes, run T8c"). Taint 0. No command error, non-CRC data error, tuning failure,
+warning or Oops. `0x100024d0` ends at its original `0x33330000`. Raw output is private.
+
+| Step | TDSEL | Read | `mmc0` interrupts | Time | `11230000.mmc` lines |
+| --- | --- | --- | --- | --- | --- |
+| Baseline | 0 | 8 MiB at 300 MiB | 2213 | 0.43 s | the usual CRC error at `0x1e6400`; retune to 18 |
+| Changed | `0xc` | 8 MiB at 300 MiB | 34816, two per sector throughout | 3.51 s | none |
+| Changed | `0xc` | 8 MiB at 0 | 34313 | 3.60 s | none |
+| Changed | `0xc` | 512 KiB × 64 direct from 4000 MiB | 131072, two per sector | 28.67 s | none |
+| Restored | 0 | 8 MiB at 300 MiB | 4259 | 0.84 s | the same CRC error at `0x1e6400`; retune to 17 |
+
+**Outcome.**
+- TDSEL `0xc` made every eMMC read fall back, including the read at 0 that is clean
+  at TDSEL 0.
+- Restoring 0 brought back T8's behaviour.
+- TDSEL isn't the fix; the decision table's "no change" row, or worse. That fits the
+  vendor's dump comment for this register ("0x????0000") better than its init code.
+
+Not explained: the reads at `0xc` fell back without a single error or retune line,
+though 0626 logs every data and command error outside tuning. Either the failure
+took a path 0626 doesn't log, or something else sent the requests as single blocks.
+Not pursued, as `0xc` is ruled out either way.
+
+### T8d: the eMMC with the vendor's data latch clock (diagnostic write, no boot)
+
+The next difference in the vendor comparison is the data latch clock,
+`INT_DAT_LATCH_CK_SEL` in MSDC0 `PATCH_BIT0` bits 9:7. The vendor tunes it for eMMC
+HS200 and ended at 3; mainline uses `mediatek,latch-ck`, 0 by default (T6b-T8:
+`PATCH_BIT0` `0x403c0446`, field 0).
+
+`mtk-sd` writes this field only when it tunes, which happens only after a data CRC
+error. Runtime suspend saves and restores `PATCH_BIT0` whole. So a value written
+while MSDC0 is active stays until the next CRC error, whose retune puts back 0 and
+prints a map. The test is clean up to the first retune line.
+
+**Hypothesis.** With the latch clock at 3, the read at 300 MiB that fails on request
+`0x1e6400` every time reads cleanly, and so do the 512 KiB direct reads from
+4000 MiB, with no retune.
+
+**Effects.** Two writes to MSDC0 `PATCH_BIT0` (`0x112300b0`), each made while
+MSDC0 is runtime-active (a read-only direct `dd` running, as in T6b):
+- one setting bits 9:7 to 3 and keeping the other bits as read;
+- one restoring the value read before, unless a retune has already put back 0.
+
+No eMMC write; `data` stays read-only. A bad latch value gives CRC errors, which
+the driver's retune undoes on its own. The exposure is the same as T8c.
+
+1. Keep MSDC0 active; read `0x112300b0`. Stop if bits 9:7 aren't 0.
+2. Baseline: 8 MiB at 300 MiB, expecting T8's error.
+3. Keep MSDC0 active; write the original with bits 9:7 set to 3. Read back and
+   check, then confirm `runtime_status` stayed `active` across the write.
+4. 8 MiB at 300 MiB, 8 MiB at 0, and 512 KiB × 64 direct from 4000 MiB (stop after
+   30 s if it falls back). For each: the interrupt delta, the time, and the new
+   lines. Read `0x112300b0` after each to see whether a retune put back 0.
+5. If bits 9:7 are still 3, write the original back and check it. Repeat the 300 MiB
+   read.
+6. `dmesg` lines since step 1, taint.
+
+Stop on the same conditions as T8c: any command error, a non-CRC data error, the
+card removed, a tuning failure, a warning or Oops. Two writes at most; no retries.
+
+| Result | Decision |
+| --- | --- |
+| No fallback with 3, and the field stays 3 | The latch clock causes it. Set `mediatek,latch-ck = <3>` on the station's `mmc0` (DT only); confirm on a boot |
+| A fallback with 3, then a retune back to 0 | 3 doesn't hold. Look at `CKGEN_MSDC_DLY_SEL`, which needs a patch and a boot, as it shifts the tuned delays |
+| Worse, as T8c | Not the latch clock. Same next step |
+
 ## Follow-up
 
 - Suspend and resume.
