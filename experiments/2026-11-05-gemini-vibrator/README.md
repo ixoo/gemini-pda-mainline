@@ -73,12 +73,16 @@ voltage field to 2.8 V, the value Gemian also sets, and the LDO stays off.
   new nodes; checkpatch reports only the missing sign-off.
 - `rumble` builds without warnings and refuses a bad length or a non-input
   device.
-- Buildbox package: see Provenance below.
+- Buildbox package validated; see Provenance below.
 
 ## Provenance
 
 - Patch revision: 0585 on top of the station series.
-- Buildbox package: recorded here after the build.
+- Buildbox build `a1c0560e`, profile `mt6797-a53-station-a72`, `BUILD_MODULES=1`,
+  756 patches, package `445e8b8d…`, patchset `e6ef244a…`, config `6b86c0b3…`,
+  `Image.gz` `5229086f…`; validation passed. `regulator-haptic.ko` `2bc8d3af…`,
+  station DTB `c017c972…` with both new nodes. `rumble` static aarch64 build
+  `dd9feb5f…`. Built, not booted.
 
 ## Safety assessment
 
