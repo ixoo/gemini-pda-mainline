@@ -3,11 +3,12 @@
 The MT6797 CONSYS reaches an MT6631 FM receiver through its firmware. This
 document is the protocol and sequence contract a mainline driver needs. It
 comes from the public downstream tree and a static look at the retained
-firmware files. On this device only the power-up to the identity check, the
-identity read and the power-down have run (F1, 2026-11-05): `0x62` read
-`0x6631` three times, and all 25 commands got their events. Everything past
-that, including the DSP, tuning and audio, is still vendor behaviour, not an
-observation of this board. The
+firmware files. On this device the full power-up, the v1 patch and
+coefficient downloads, the tune and the power-down have run (F1, F2c,
+2026-11-05): `0x62` reads `0x6631`, the DSP ROM is version 0, a broadcast
+station tuned in TDD mode, and the headset cable is the antenna (about
++23 dB with a headset). Audio, stereo, RDS and seek are still vendor
+behaviour, not observations of this board. The
 chronology, the observations and the first device test are in the
 [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md).
 
@@ -129,7 +130,8 @@ In order, from `mt6631_PowerUp()`:
 10. Fine-tune batch: `0x60 = 7`, seven RF trim writes (`0x01`, `0x03`,
     `0x15`-`0x17`, `0x34`, `0x35`), `0x60 = 0x0f`.
 11. Audio out: `0x9b = 0xf9ab`; MCU `0x81024064 = 0x14`,
-    `0x81024058 = 0x888100c3`, `0x81024054 = 0x100`.
+    `0x81024058 = 0x888100c3`, `0x81024054 = 0x100`. Not optional: without
+    it the tune is acknowledged but never reports done (F2b, F2c).
 
 The ROM version picks `mt6631_fm_vN_*` with N = version + 1. Only v1 is
 installed; an unknown version falls back to the newest file present, which

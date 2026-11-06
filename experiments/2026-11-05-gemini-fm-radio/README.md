@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b: the tune is acknowledged but its done event never comes; F2c, with the vendor's last power-up step, admitted on 2026-11-05, not yet run |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). No radio interface or audio yet |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -102,7 +102,7 @@ Nothing was executed. The full contract is in the
 ## What is open
 
 1. ~~Does register `0x62` read `0x6631` on this board?~~ Yes (F1).
-2. Which antenna is wired, and does a headset improve reception (F2)?
+2. ~~Which antenna is wired?~~ The headset cable: plugging a headset in raised RSSI by about 23 dB (F2c).
 3. The redistribution rights of the two MT6631 FM files are unknown, as for the
    other CONSYS files; they would come from the owner's own Gemian as for the
    v1 release ([firmware](../../docs/hardware/firmware.md)).
@@ -530,6 +530,74 @@ The F2 procedure, safety and decision table, with
 
 Checks: `W=1` and `checkpatch --strict` clean in the dev VM, applies to the
 station tree. Not built on Buildbox yet, not run.
+
+## F2c result (2026-11-05): it tunes, and the headset is the antenna
+
+Run by the custodian session with the owner's admission, in the same boot as
+F2b (`a22a4ca8`, image `02e045fa…`), as a module-only load. Package
+`f996a919…`, built by the custodian from `74eab043`: `Image.gz`
+`5229086f…` and `mt6797-consys.ko` `1797e440…` identical to the running
+ones, `radio-mt6797.ko` `85d85c5b…` with the matching vermagic. Both FM files
+still in RAM with the right digests. The owner's first station, in TDD mode,
+channel parameter 0. Raw `dmesg`, frequency redacted, is private under
+`artifacts/station-work-58/boot-1/`.
+
+```text
+950.205 STP link running: tx-seq=2 rx-seq=2 peer-ack=1 local-ack=1
+950.207 WMT FM function on: result=0 reply=5 bytes 02 06 01 00 00
+950.216 mt6797-fm: DSP ROM version 0: 0
+        mt6797-fm: mediatek/mt6797/mt6631_fm_v1_patch.bin: 1028 bytes: 0
+        mt6797-fm: mediatek/mt6797/mt6631_fm_v1_coeff.bin: 1092 bytes: 0
+950.448 mt6797-fm: tune: TDD mode, parameter 0, acknowledgment length 0, done 1: 0
+950.449 mt6797-fm: power-up and tune to <redacted> kHz: 0; logging for 120 s
+1073.319 WMT FM function off: result=0 reply=5 bytes 02 06 01 00 00
+         mt6797-fm: identity 6631 6631 6631 (3 of 3 match), listen 0, result 0, power-down 0
+         STP link halted: failed=0 busy=0 rx=270 discarded=0 dup=0 tx=197 acks=270 timeouts=0 resent=0 wmt-unsolicited=0 first=0 bytes
+         mt6797-fm: link: bytes=6835 events=267 unexpected=72 junk=0
+```
+
+Signal strength, one line a second:
+
+| Time | Headset | RSSI |
+| --- | --- | --- |
+| t=1 to 81 | out | -97 to -98 dBm (raw about -261), one line at -92 |
+| t=82 | plugged in during this second (`mt6351-sound: jack in`) | -95 dBm |
+| t=83, 84 | in | -79, -74 dBm |
+| t=85 to 120 | in | -72 to -75 dBm |
+
+The stereo flag was 0 on all 120 lines. `insmod` rc 0, probe 123.1 s, no
+`command xx:` line. Afterwards `rmmod` rc 0, pings 3 of 3, CONSYS and `mac`
+reload, Wi-Fi back with a lease, pings 3 of 3, taint 0, no warning or Oops.
+Two unrelated `one-shot WLAN BSS timeout ignored` lines from CONSYS fell in
+the window.
+
+**Analysis.**
+
+- **The tune works with the full vendor power-up.** The only change from F2b
+  is step 11, and the "done" event now arrives with `1` 0.23 s after power-up
+  began. So the tune-done report depends on that step (oscillator clock gate,
+  FM audio trigger or FM memory), though which part is not separated.
+- **The headset cable is the antenna.** Plugging the headset in raised RSSI
+  from about -97.5 to about -73.5 dBm, some 24 dB, within two seconds of the
+  jack event, and it stayed there. This confirms the long-antenna path through
+  the headset, the vendor default. Without a headset the receiver still sees
+  the station at about -97 dBm, 14 dB above the vendor's -111 dBm search
+  threshold, so there is some pickup without a headset, possibly the PCB or the
+  cable-less jack; no short antenna was selected.
+- **Stereo flag never set.** At -74 dBm a stereo broadcast would normally
+  decode in stereo. Either the station is mono, the flag needs the audio path,
+  or `RSSI_IND` D12 is not the live stereo indicator. Open.
+- **72 unexpected events.** F2b had none. About 6.6 kB arrived in 72 events
+  that matched no waiting command, roughly 90 bytes each, over 120 s. The
+  vendor's ramp-down sets `0x63` D4, which the register map names the RDS
+  mask, and the interrupt masks enable RDS, so these are probably the
+  unsolicited RDS events of R8 (an RDS event with 7 groups would be 92 bytes).
+  The driver did not log opcodes, so this is inference.
+
+**Conclusion:** `confirmed` for this unit: the MT6631 FM receiver tunes a
+broadcast station on mainline with the vendor sequence, and the headset cable
+is the antenna. Not shown: audio, stereo, RDS, seek, or any channel other than
+this one TDD channel.
 
 ## Follow-up
 
