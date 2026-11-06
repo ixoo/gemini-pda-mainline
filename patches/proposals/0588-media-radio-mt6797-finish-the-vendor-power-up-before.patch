@@ -1,0 +1,104 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 19:49:41 -0500
+Subject: [PATCH] media: radio: mt6797: finish the vendor power-up before
+ tuning
+
+On the station the tune command was acknowledged but its "done" event never
+came within 3 s. The one vendor power-up step the driver left out is the last:
+the DSP's I2S transmit mode (0x9b = 0xf9ab), the always-on oscillator clock
+gate, the FM audio trigger and the release of the FM memory power-down in the
+connectivity MCU. Run it as the vendor does. The AFE does not take the I2S,
+so nothing is heard.
+
+If "done" is still missing although the command was answered, read the main
+control, state, interrupt status and RSSI registers and log them. When the
+interrupt status shows tune-done, the tune finished and the driver goes on to
+log the signal strength.
+
+Power down unless a command got no answer at all, rather than after any
+timeout: a missing "done" event leaves the block answering, as on the
+station, where only function-off and the CONSYS reload turned it off.
+---
+ drivers/media/radio/radio-mt6797.c | 36 +++++++++++++++++++++++++++---
+ 1 file changed, 33 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/radio/radio-mt6797.c b/drivers/media/radio/radio-mt6797.c
+index 774818be1..0a6420459 100644
+--- a/drivers/media/radio/radio-mt6797.c
++++ b/drivers/media/radio/radio-mt6797.c
+@@ -100,6 +100,7 @@ struct mt6797_fm {
+ 	struct completion tune_done;
+ 
+ 	unsigned int bytes, events, unexpected, junk;
++	bool lost;	/* a command got no answer at all */
+ 	u8 tx[4 + FM_CMD_MAX];
+ };
+ 
+@@ -266,8 +267,10 @@ static int fm_command(struct mt6797_fm *fm, u8 opcode, const u8 *payload, u16 le
+ 	spin_unlock_irqrestore(&fm->lock, flags);
+ 
+ 	ret = mt6797_consys_stp_send(MT6797_STP_TASK_FM, buf, 4 + length);
+-	if (!ret && !wait_for_completion_timeout(&fm->done, msecs_to_jiffies(FM_TIMEOUT_MS)))
++	if (!ret && !wait_for_completion_timeout(&fm->done, msecs_to_jiffies(FM_TIMEOUT_MS))) {
+ 		ret = -ETIMEDOUT;
++		fm->lost = true;
++	}
+ 
+ 	spin_lock_irqsave(&fm->lock, flags);
+ 	if (ret)
+@@ -642,7 +645,22 @@ static int mt6797_fm_power_up_dsp(struct mt6797_fm *fm)
+ 	bop_write(&b, 0x34, 0x807f);
+ 	bop_write(&b, 0x35, 0x311e);
+ 	bop_write(&b, 0x60, 0x000f);
+-	return fm_batch_send(fm, &b);
++	ret = fm_batch_send(fm, &b);
++
++	/*
++	 * The vendor's last power-up step: the DSP's I2S transmit mode, the
++	 * always-on oscillator clock gate, the FM audio trigger and the FM memory
++	 * power-down release. The AFE does not take the I2S, so nothing is heard.
++	 */
++	if (!ret)
++		ret = fm_reg_write(fm, 0x9b, 0xf9ab);
++	if (!ret)
++		ret = fm_host_write(fm, 0x81024064, 0x00000014);
++	if (!ret)
++		ret = fm_host_write(fm, 0x81024058, 0x888100c3);
++	if (!ret)
++		ret = fm_host_write(fm, 0x81024054, 0x00000100);
++	return ret;
+ }
+ 
+ /* The vendor's ramp-down, which its tune runs first. */
+@@ -733,6 +751,18 @@ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ 	spin_unlock_irqrestore(&fm->lock, flags);
+ 	if (!ret && done != 1)
+ 		ret = -EPROTO;
++	if (ret == -ETIMEDOUT && !fm->lost) {
++		/* The command was answered but "done" never came: where is the DSP? */
++		u16 ctrl = 0, state = 0, intr = 0, rssi = 0;
++
++		if (!fm_reg_read(fm, 0x63, &ctrl) && !fm_reg_read(fm, 0x64, &state) &&
++		    !fm_reg_read(fm, 0x69, &intr) && !fm_reg_read(fm, FM_REG_RSSI, &rssi))
++			dev_info(fm->dev, "tune: no done event; 0x63=%04x 0x64=%04x 0x69=%04x 0x6c=%04x\n",
++				 ctrl, state, intr, rssi);
++		/* Tune-done set in the interrupt status: the tune finished. */
++		if (intr & 0x0001)
++			ret = 0;
++	}
+ 	dev_info(fm->dev, "tune: %s mode, parameter %u, acknowledgment length %u, done %u: %d\n",
+ 		 fm_tdd(f) ? "TDD" : "FDD", fm_channel_param(f), ack, done, ret);
+ 	if (!ret)
+@@ -813,7 +843,7 @@ static void mt6797_fm_identify(struct mt6797_fm *fm)
+ 		ret = listen;
+ 	}
+ 	/* A command without an answer stops FM here; the CONSYS reload recovers. */
+-	if (ret != -ETIMEDOUT)
++	if (!fm->lost)
+ 		down = mt6797_fm_power_down(fm);
+ 	mt6797_consys_fm_function(false);
+ 	dev_info(fm->dev,
+-- 
+2.43.0
+

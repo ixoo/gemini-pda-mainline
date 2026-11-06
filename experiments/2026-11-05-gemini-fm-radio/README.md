@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b with the fix and the TDD channels admitted on 2026-11-05, not yet run |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b: the tune is acknowledged but its done event never comes; F2c, with the vendor's last power-up step, is predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -454,6 +454,79 @@ has the same `Image.gz`, config and `mt6797-consys.ko`), so F2b rides that
 boot with `radio-mt6797.ko` from `4f2e3383…`, or from a composition of
 `4f2e3383…`, which carries both. The two FM files must be copied again after
 the boot, since the station's root file system is in RAM.
+
+## F2b result (2026-11-05): tune acknowledged, no "done"
+
+Run by the custodian session with the owner's admission, in the vibrator V1
+boot `a22a4ca8`, image `02e045fa…` from package `8f569751…` (built from
+`c546644d`): `Image.gz` `5229086f…`, `radio-mt6797.ko` `9f5f93e8…` with the
+matching vermagic, `mt6797-consys.ko` `1797e440…`, the same hashes as
+`4f2e3383…`. Both FM files copied again and matched. The owner's first F2
+station, which 0587 makes tunable. Raw `dmesg`, frequency redacted, is
+private under `artifacts/station-work-58/boot-1/`.
+
+```text
+290.343 STP link running: tx-seq=2 rx-seq=2 peer-ack=1 local-ack=1
+290.343 STP link check: result=0 reply=10 bytes 02 04 06 00 00 04 df 0e 68 01
+290.345 WMT FM function on: result=0 reply=5 bytes 02 06 01 00 00
+290.353 mt6797-fm: DSP ROM version 0: 0
+290.359 mt6797-fm: mediatek/mt6797/mt6631_fm_v1_patch.bin: 1028 bytes: 0
+290.365 mt6797-fm: mediatek/mt6797/mt6631_fm_v1_coeff.bin: 1092 bytes: 0
+293.600 mt6797-fm: tune: TDD mode, parameter 0, acknowledgment length 0, done 0: -110
+293.600 mt6797-fm: power-up and tune to <redacted> kHz: -110; logging for 120 s
+293.602 WMT FM function off: result=0 reply=5 bytes 02 06 01 00 00
+293.602 mt6797-fm: identity 6631 6631 6631 (3 of 3 match), listen -110, result -110, power-down -125
+293.602 STP link halted: failed=0 busy=0 rx=57 discarded=0 dup=0 tx=57 acks=57 timeouts=0 resent=0 wmt-unsolicited=0 first=0 bytes
+        mt6797-fm: link: bytes=250 events=54 unexpected=0 junk=0
+```
+
+No `command xx:` line. `insmod` rc 0; probe 3.26 s. Afterwards `rmmod` rc
+0, pings 3 of 3, CONSYS and `mac` reload, Wi-Fi back with a lease, pings 3 of
+3, taint 0, no warning or Oops. No signal-strength line, so no headset step.
+
+**Analysis.** The tune command itself was answered: no `command 09` error,
+and the 54 events are the 53 commands up to the tune batch (with one ROM-ready
+poll) plus its empty acknowledgment, none unexpected. Then nothing came for
+3 s: no "done" event and no other event. The F2 run fits the same pattern; it
+only failed earlier. `-125` is the planned skip of the power-down after a
+timeout; function-off and the CONSYS reload then powered the block off.
+
+The vendor's FM interrupt hooks are empty on this platform
+(`fmradio/core/fm_eint.c`: only an STP receive callback), and its own tune
+fails on a missing "done" (`fm_link.c`), so a working stock tune must get
+the event. The one vendor step the driver leaves out is the last of power-up:
+`0x9b = 0xf9ab` (I2S transmit mode), MCU `0x81024064 = 0x14` ("enable
+aon_osc_clk_cg"), `0x81024058 = 0x888100c3` ("enable FMAUD trigger") and
+`0x81024054 = 0x100` ("release fmsys memory power down"). An always-on clock
+gate and a memory power-down are plausible prerequisites for the DSP's
+tune-done path. This is inference.
+
+**Conclusion:** `inconclusive` for reception. The tune is accepted; its
+completion is not reported without the full vendor power-up.
+
+## Test F2c: F2b with the full vendor power-up (predeclared, not yet admitted)
+
+The F2 procedure, safety and decision table, with
+[0588](../../patches/proposals/0588-media-radio-mt6797-finish-the-vendor-power-up-before.patch):
+
+- **Last power-up step:** after the fine tune, the vendor's step 11 above. It
+  turns the DSP's I2S output on into CONSYS. The AFE is not set up to take it,
+  so nothing reaches the codec and nothing is heard.
+- **Diagnostics:** if "done" is still missing after an answered tune command,
+  the driver reads `0x63`, `0x64`, `0x69` and `0x6c` once and logs them. If the
+  interrupt status `0x69` D0 shows tune-done, the tune is taken as finished
+  and the signal-strength log goes ahead.
+- **Power-down:** it is skipped only when a command gets no answer at all, so
+  a missing "done" now ends with the vendor power-down.
+
+| Added observation | Meaning | Next |
+| --- | --- | --- |
+| "done" arrives, signal-strength lines follow | step 11 is needed for the tune to report | the F2 decision table |
+| no "done", `0x69` D0 set | the tune finished; only the event is missing | the logged signal strength decides; then why no event |
+| no "done", `0x69` D0 clear | the DSP never finished the tune | compare `0x63` and `0x64` with the vendor offline; no blind retry |
+
+Checks: `W=1` and `checkpatch --strict` clean in the dev VM, applies to the
+station tree. Not built on Buildbox yet, not run.
 
 ## Follow-up
 
