@@ -373,6 +373,26 @@ a fault.
 - the effect of the vendor's trim adjustments, which mainline doesn't apply;
 - whether VMC or VMCH sit at their nominal voltage on this unit.
 
+### Read benchmark (2026-11-05, unattended)
+
+Custodian run on boot `a22a4ca8`, image `02e045fa` (0579 and 0580, default speed), with
+the T1c card left in the slot and not mounted. `mmcblk1` was under `11240000.mmc`;
+`ios` at 25 MHz (23999992 Hz actual), VDD bit 18. Raw output is private.
+
+Caches were dropped before each read, then `dd if=/dev/mmcblk1 of=/dev/null bs=1M
+count=256`, timed with `/proc/uptime`:
+
+| Offset | Time | Rate |
+| --- | --- | --- |
+| 0 | 23.28 s | 11.5 MB/s |
+| 4096 MiB | 23.29 s | 11.5 MB/s |
+| 12000 MiB | 23.28 s | 11.5 MB/s |
+
+There were no MMC or MSDC log lines and taint stayed 0. The rate is flat across the
+card and matches T1c's. It sits just under the 12 MB/s that 4 bits at 24 MHz carry,
+so the bus, not the card, sets it at default speed. Data integrity isn't covered by
+these reads, which didn't hash anything.
+
 ## Follow-up
 
 - A card present at boot, and suspend and resume.
