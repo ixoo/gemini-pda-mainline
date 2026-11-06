@@ -1168,8 +1168,10 @@ hardware gain stage.
 on mainline through 0591 to 0594.
 
 Open: stereo (the flag was 1 once, the owner thinks it may be stereo by ear),
-the level, the register snapshot, speakers, and a default mixer setup so FM
-needs no manual switches.
+the level, the register snapshot and speakers. The audio session made the two
+FM switches part of the station's default mixer (`audio-start`, `332df45c`);
+that takes effect with the next RAM root composed from main and has not run
+on the device yet.
 
 ## Follow-up
 
