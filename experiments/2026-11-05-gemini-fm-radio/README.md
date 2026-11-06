@@ -637,7 +637,12 @@ go only to a private file.
 **Checks:** 0589 builds with `W=1` and passes `checkpatch --strict` in the dev
 VM and applies to the station tree. `fm-check` builds static for aarch64 with
 `-Wall -Wextra` and no warning (`3fced782…`, GCC 13.3, binary kept under ignored
-`artifacts/fm/`). Not built on Buildbox, not run.
+`artifacts/fm/`). Buildbox build `5bc16e1b`, profile `mt6797-a53-station-a72`,
+`BUILD_MODULES=1`, 760 patches, package `c9aa2298…`; validation passed.
+`Image.gz` (`5229086f…`), config (`6b86c0b3…`), `mt6797-consys.ko`
+(`1797e440…`) and `videodev.ko` (`838c4fe4…`) are identical to the running
+vibrator V1 image's, so F3 is a module-only load of `radio-mt6797.ko`
+(`ede6bf4e…`), which now depends on `videodev` and `mc`. Not run.
 
 **Safety:** receive only, as F2c, with the same effects plus the RDS buffer
 threshold, the control writes (mute, volume, de-emphasis, forced mono off)
