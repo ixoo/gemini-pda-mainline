@@ -1230,6 +1230,57 @@ Stop on a warning or Oops. No write, no retry.
 | Data timeouts, not CRC | Not a sampling problem. Look at the latch clock and the turnaround settings |
 | Command or stop errors, not data | Tune CMD apart from data |
 
+### T8 result (2026-11-06)
+
+Boot `5a1721ee`, image station-work-70 from package `223574f5` (`74afd852`), boot2
+`98a2fea1…` (verified readback). The DTB is T7's. `data` was read-only; nothing was
+written. Taint 0, no warning or Oops, no rate-limited lines dropped. Raw output is
+private.
+
+**Observed.**
+
+- Every fallback started with one data error with events `0xa040`: data CRC error
+  (bit 15), transfer done (bit 13), DMA queue empty (bit 6). All were `cmd 18` with
+  1024 blocks. There were no timeouts and no command errors; 33 data errors in all.
+- At 300 MiB, both passes failed on the same request, `arg 0x1e6400`.
+- In a 512 KiB direct read from 4000 MiB, all 31 logged errors fell on consecutive
+  requests. The read took 56 s for 64 MiB.
+- Every error was followed by a retune, which landed on delay 15-19 again. Across
+  the boot the chosen delays were 15 (8 times), 16 (13), 17 (8), 18 (3) and 19 (2),
+  always on the rising edge; no falling-edge map was printed.
+- The boot map, pass `O`, fail `X`, cell 0 on the left:
+
+  ```text
+  eMMC     XXOOOOOOOOOOOOOOOOOOOOOOOOOOOOXXOXXXOXXXXXOOOOOOOOOOOOOOOOOOOOOO
+  microSD  OOOOOOOOOOOOOOOOOOOOOOOOOOOXXXOXXOOOOOOOOOOOOOOOOOOOOOOOOOOOOOXX
+  ```
+
+  All 36 eMMC maps have that shape, with a failing band at about 30-43 and scattered
+  passing cells inside it. The longest window, 2-29, always wins.
+
+**Inferred.**
+
+- The fallback is data sampling, not commands or timeouts: CRC errors on real reads
+  at delays the 128-byte tuning block passes. They follow the data, since the same
+  request fails each time.
+- The eMMC's failing band is about 14 cells wide, with islands. That is twice the
+  microSD's (27-32, about 6 cells, same clock and the same delay cells) and twice the
+  vendor kernel's eMMC band (14-20, 7 cells). The data edges themselves are spread
+  more than they should be, so moving the delay within this eye has limited room.
+- A concrete difference fits that. The July MSDC record
+  ([recovery README](../2026-07-12-mt6797-msdc-recovery/README.md)) says patch 0071
+  removed the eMMC's pad properties, since MT6797 pinctrl had no pad callbacks, and
+  "leaves pad configuration to the boot firmware". The vendor kernel rewrites those
+  pads at init (`sd.c` `msdc_init_hw`): Schmitt trigger on, TDSEL `0xcccc`, drive
+  selector 1 (4 mA) on all four groups. Its RDSEL helper writes 0 for the eMMC
+  (`msdc_io.c`), but `msdc_init_hw` doesn't call it. The microSD pads
+  get the vendor's values since 0612/0613, and its band is narrow.
+
+**Next.** T8b reads the eMMC pad registers on the running station: IOCFG_B IES `0x20`,
+SR `0x30`, SMT `0x60`, RDSEL `0x80`, TDSEL `0xd0`, PUPD/R0/R1 `0x100`-`0x120`, and DRV
+`0x1a0`. If they differ from the vendor's values, describe the MSDC0 pad fields in
+pinctrl, as 0612 did for MSDC1, and set the vendor's values in the DT.
+
 ## Follow-up
 
 - Suspend and resume.
