@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 (DSP patch, tune, antenna) admitted on 2026-11-05 with code 0583, not yet run |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b with the fix and the TDD channels is predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -342,6 +342,104 @@ and a strong local station that is not refused.
 | Wi-Fi fails after unload | FM DSP activity disturbs CONSYS | record; CONSYS reload |
 
 The stereo flag is logged as a hint of signal quality, not a pass criterion.
+
+## F2 result (2026-11-05): stopped at the tune, a driver fault
+
+Run by the custodian session with the owner's admission, on the running F1
+image (`f0f66d1b…`, boot `0b3c33aa`), `radio-mt6797.ko` `aafa0671…` with the
+matching vermagic; the package's `Image.gz` and `mt6797-consys.ko` are
+identical to the running ones. Both FM files were copied to the station's
+`/lib/firmware/mediatek/mt6797/` (RAM root file system) and matched their
+digests. Raw `dmesg`, with the frequency redacted, is private under
+`artifacts/station-work-57/boot-1/`.
+
+- **First load:** the owner's first station is one of the refused special
+  channels: `refused: -95`, no STP or WMT line, nothing reached the radio.
+  `rmmod` rc 0. As the request allowed, the owner picked another station.
+- **Second load,** the one that reached the radio, 0.25 s in all:
+
+  ```text
+  STP link running: tx-seq=2 rx-seq=2 peer-ack=1 local-ack=1
+  STP link check: result=0 reply=10 bytes 02 04 06 00 00 04 df 0e 68 01
+  WMT FM function on: result=0 reply=5 bytes 02 06 01 00 00
+  mt6797-fm: DSP ROM version 0: 0
+  mt6797-fm: mediatek/mt6797/mt6631_fm_v1_patch.bin: 1028 bytes: 0
+  mt6797-fm: mediatek/mt6797/mt6631_fm_v1_coeff.bin: 1092 bytes: 0
+  mt6797-fm: command 09: -71
+  mt6797-fm: power-up and tune to <redacted> kHz: -71; logging for 120 s
+  WMT FM function off: result=0 reply=5 bytes 02 06 01 00 00
+  mt6797-fm: identity 6631 6631 6631 (3 of 3 match), listen -71, result -71, power-down 0
+  STP link halted: failed=0 busy=0 rx=71 discarded=0 dup=0 tx=71 acks=71 timeouts=0 resent=0 wmt-unsolicited=0 first=0 bytes
+  mt6797-fm: link: bytes=326 events=68 unexpected=0 junk=0
+  ```
+
+  No signal-strength line followed, so the headset step never came.
+- **After:** `rmmod` rc 0, pings 3 of 3, CONSYS and `mac` reload, Wi-Fi back on
+  5200 MHz with a lease, pings 3 of 3, taint 0, no warning or Oops.
+
+**Analysis.** Everything up to the tune worked: DSP ROM version 0, the one the
+v1 files are for, both downloads, the digital init (whose batch waits for the
+DSP's init-complete state) and the RF fine tune. The tune command's event
+arrived but carried no `1`, which the driver reads as `-EPROTO`.
+
+The vendor explains it. Its event parser turns an event with no payload into
+the opcode's own flag and the payload `1` on opcode `0x09` into a separate
+"tune done" flag, and its tune waits for both
+(`fmradio/core/fm_link.c`, `fmradio/inc/fm_utils.h`: the wait needs every
+bit of the mask). So the tune gets two events: an empty acknowledgement, then
+"done" when the DSP finishes. The driver took the acknowledgement as the
+whole answer, and powered the block down at once, before any "done" could
+come. The count agrees: the commands sent, with one ROM-ready poll, are 67
+plus 1, exactly the 68 events, none unexpected, so no "done" arrived during the
+power-down either.
+
+**Conclusion:** `inconclusive` for reception. Newly shown on this board: the
+DSP ROM is version 0, the v1 patch and coefficients are accepted, and the DSP
+finishes its digital init. The tune fault is the driver's.
+
+The fix and a repeat are F2b below, which also tunes the channels F2 refused (R9). A repeat needs a new admission.
+
+## Why F2 refused the owner's first station (R9)
+
+F2 refused 53 channels for which the vendor tune does more than its plain
+sequence. The owner's first station is a valid broadcast frequency; it is
+refused only because the vendor tables mark it. They hold three kinds of
+per-channel extras, all fixed in the MT6631 library (`mt6631_fm_lib.c`:
+`mt6631_TDD_list`, `mt6631_chan_para_map`, `mt6631_SPI_hopping_list`), not
+board data. Reduced to 87.5-108 MHz on the 100 kHz grid:
+
+| Extra | Channels | What the vendor tune does |
+| --- | --- | --- |
+| TDD cell mode | 90.4-91.1, 97.9-99.4, 106.9-108.0 MHz | register `0x30` D3:2 = `10` ("TDD solution") instead of `00` ("FDD", the default) |
+| channel parameter | 18 channels, among them 88.3, 92.1-92.3, 95.5, 96.0, 98.3, 104.0, 107.5 and 107.6 MHz | the value (1, 2, 3 or 8) in `CHANNEL_SET` D15:12 |
+| 64 MHz common SPI clock | 90.9-91.2, 103.8-104.2 MHz | before the tune, keep the 64 MHz clock awake and switch the common SPI clock to it (MCU `0x81021138`, `0x80026000`, polling `0x8002110c` D27, `0x81026004`); the ramp-down switches it back |
+
+The vendor names the first two only "cell mode" and "HiLo side / FA / ATJ";
+what they change inside the receiver is not documented. Several of the listed
+channels sit at multiples of 26 MHz (78, 104 MHz) or near them, which fits
+spur avoidance, but that is inference.
+
+The first two need one more register value each, so refusing them was a
+simplification of this driver, not a hardware limit.
+[0587](../../patches/proposals/0587-media-radio-mt6797-tune-channels-with-the-TDD-mode-o.patch)
+now follows the vendor for both; only the nine 64 MHz clock channels are still
+refused.
+
+## Test F2b: the F2 test with both fixes (predeclared, not yet admitted)
+
+The same test as F2, procedure, safety and decision table unchanged, with two
+more patches:
+
+- [0586](../../patches/proposals/0586-media-radio-mt6797-wait-for-both-tune-events.patch):
+  the tune waits up to 3 s for both events, the empty acknowledgment and
+  "done" with `1`, in either order, and logs the acknowledgment's length and
+  the "done" payload. Anything else still fails the tune.
+- [0587](../../patches/proposals/0587-media-radio-mt6797-tune-channels-with-the-TDD-mode-o.patch):
+  the TDD cell mode and channel parameters above; the tune line names the mode
+  and parameter. The owner's first station becomes tunable, so it can be used.
+
+Checks: each patch builds with `W=1` and passes `checkpatch --strict` in the
+dev VM, and both apply to the station tree. Not built on Buildbox yet, not run.
 
 ## Follow-up
 

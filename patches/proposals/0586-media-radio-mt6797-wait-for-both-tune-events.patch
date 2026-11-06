@@ -1,0 +1,94 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 19:24:31 -0500
+Subject: [PATCH] media: radio: mt6797: wait for both tune events
+
+The first tune on the station failed with -EPROTO. The tune command gets two
+events: an acknowledgment with no payload, then "done" with the payload 1 when
+the DSP has finished. The vendor's parser turns the first into the opcode's
+own flag and the second into a separate flag, and its tune waits for both. The
+driver took the acknowledgment as the whole answer and failed on its missing
+payload, then powered the block down before "done" could arrive.
+
+Wait up to 3 s for each, in either order, and log the acknowledgment's length
+and the "done" payload. Anything but 1 still fails the tune.
+---
+ drivers/media/radio/radio-mt6797.c | 32 +++++++++++++++++++++++++++---
+ 1 file changed, 29 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/media/radio/radio-mt6797.c b/drivers/media/radio/radio-mt6797.c
+index a089dd409..261ea3d2b 100644
+--- a/drivers/media/radio/radio-mt6797.c
++++ b/drivers/media/radio/radio-mt6797.c
+@@ -94,6 +94,11 @@ struct mt6797_fm {
+ 	u8 reply[FM_REPLY_MAX];
+ 	u16 reply_length;
+ 
++	/* The tune answers twice: an empty acknowledgment, then "done". */
++	bool tune_armed;
++	u8 tune_value;
++	struct completion tune_done;
++
+ 	unsigned int bytes, events, unexpected, junk;
+ 	u8 tx[4 + FM_CMD_MAX];
+ };
+@@ -143,7 +148,11 @@ static void fm_deliver(struct mt6797_fm *fm)
+ 
+ 	spin_lock_irqsave(&fm->lock, flags);
+ 	fm->events++;
+-	if (fm->waiting && fm->opcode == fm->want) {
++	if (fm->tune_armed && fm->opcode == FM_OP_TUNE && fm->length == 1) {
++		fm->tune_value = fm->payload[0];
++		fm->tune_armed = false;
++		complete(&fm->tune_done);
++	} else if (fm->waiting && fm->opcode == fm->want) {
+ 		memcpy(fm->reply, fm->payload, min_t(u16, fm->length, FM_REPLY_MAX));
+ 		fm->reply_length = fm->length;
+ 		fm->waiting = false;
+@@ -653,7 +662,9 @@ static int mt6797_fm_ramp_down(struct mt6797_fm *fm)
+ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ {
+ 	struct fm_batch b = {};
+-	u8 done = 0;
++	unsigned long flags;
++	u16 ack;
++	u8 done;
+ 	int ret;
+ 
+ 	ret = mt6797_fm_ramp_down(fm);
+@@ -678,9 +689,23 @@ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ 
+ 	bop_modify(&b, 0x63, 0xfff8, 0x0001);
+ 	bop_udelay(&b, 100000);
+-	ret = fm_batch_op(fm, FM_OP_TUNE, &b, &done, 1);
++	spin_lock_irqsave(&fm->lock, flags);
++	reinit_completion(&fm->tune_done);
++	fm->tune_value = 0;
++	fm->tune_armed = true;
++	spin_unlock_irqrestore(&fm->lock, flags);
++	ret = fm_batch_op(fm, FM_OP_TUNE, &b, NULL, 0);
++	if (!ret && !wait_for_completion_timeout(&fm->tune_done,
++						 msecs_to_jiffies(FM_TIMEOUT_MS)))
++		ret = -ETIMEDOUT;
++	spin_lock_irqsave(&fm->lock, flags);
++	fm->tune_armed = false;
++	ack = fm->reply_length;
++	done = fm->tune_value;
++	spin_unlock_irqrestore(&fm->lock, flags);
+ 	if (!ret && done != 1)
+ 		ret = -EPROTO;
++	dev_info(fm->dev, "tune: acknowledgment length %u, done %u: %d\n", ack, done, ret);
+ 	if (!ret)
+ 		ret = fm_set_bits(fm, 0x60, 0x0007, 0xfff0);
+ 	if (!ret)
+@@ -781,6 +806,7 @@ static int mt6797_fm_probe(struct platform_device *pdev)
+ 	fm->dev = &pdev->dev;
+ 	spin_lock_init(&fm->lock);
+ 	init_completion(&fm->done);
++	init_completion(&fm->tune_done);
+ 	mt6797_fm_identify(fm);
+ 	return 0;
+ }
+-- 
+2.43.0
+

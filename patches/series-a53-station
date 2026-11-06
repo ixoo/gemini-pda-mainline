@@ -754,3 +754,5 @@ proposals/0581-soc-mediatek-mt6797-consys-let-the-FM-receiver-use-t.patch
 proposals/0582-media-radio-add-a-first-MT6797-CONSYS-FM-receiver-dr.patch
 proposals/0583-media-radio-mt6797-tune-and-log-the-signal-strength-.patch
 proposals/0585-arm64-dts-mediatek-gemini-station-describe-the-vibra.patch
+proposals/0586-media-radio-mt6797-wait-for-both-tune-events.patch
+proposals/0587-media-radio-mt6797-tune-channels-with-the-TDD-mode-o.patch

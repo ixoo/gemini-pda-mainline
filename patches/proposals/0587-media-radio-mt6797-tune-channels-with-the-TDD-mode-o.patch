@@ -1,0 +1,120 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 19:24:32 -0500
+Subject: [PATCH] media: radio: mt6797: tune channels with the TDD mode or
+ a channel parameter
+
+The driver refused 53 channels in 87.5-108 MHz for which the vendor tune does
+more than the plain sequence. Most of them need only one more value.
+
+For 90.4-91.1, 97.9-99.4 and 106.9-108.0 MHz the vendor sets the cell mode
+to TDD (register 0x30 D3:2 = 2) instead of FDD; 18 channels also carry a
+channel parameter in CHANNEL_SET D15:12. Do the same from the vendor tables,
+reduced to this band and the 100 kHz grid. Only the nine channels that also
+switch the common SPI clock to 64 MHz (90.9-91.2 and 103.8-104.2 MHz) are
+still refused. The tune log line now names the mode and parameter.
+---
+ drivers/media/radio/radio-mt6797.c | 59 ++++++++++++++++++++++--------
+ 1 file changed, 44 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/media/radio/radio-mt6797.c b/drivers/media/radio/radio-mt6797.c
+index 261ea3d2b..774818be1 100644
+--- a/drivers/media/radio/radio-mt6797.c
++++ b/drivers/media/radio/radio-mt6797.c
+@@ -124,18 +124,46 @@ static const u8 fm_coeff_sha256[SHA256_DIGEST_SIZE] = {
+ 	0xf6, 0xfe, 0x79, 0x12, 0x90, 0x1f, 0xd8, 0xdb };
+ 
+ /*
+- * Channels in 87.5-108 MHz, in 10 kHz units, for which the vendor tune does
+- * more: a channel parameter, the TDD cell mode or a 64 MHz common SPI clock.
+- * This version supports only the plain tune and refuses these.
++ * The vendor tune's per-channel extras in 87.5-108 MHz, channels in 10 kHz
++ * units. Ranges use the TDD cell mode instead of FDD; some channels carry a
++ * channel parameter in CHANNEL_SET D15:12. A few switch the common SPI clock to
++ * 64 MHz first, which this version does not do, so it refuses them.
+  */
+-static const u16 fm_special_channels[] = {
+-	8830, 9040, 9050, 9060, 9070, 9080, 9090, 9100, 9110, 9120, 9210, 9220,
+-	9230, 9550, 9600, 9790, 9800, 9810, 9820, 9830, 9840, 9850, 9860, 9870,
+-	9880, 9890, 9900, 9910, 9920, 9930, 9940, 9980, 9990, 10260, 10370,
+-	10380, 10390, 10400, 10410, 10420, 10590, 10690, 10700, 10710, 10720,
+-	10730, 10740, 10750, 10760, 10770, 10780, 10790, 10800,
++static const struct { u16 first, last; } fm_tdd_ranges[] = {
++	{ 9040, 9110 }, { 9790, 9940 }, { 10690, 10800 },
+ };
+ 
++static const struct { u16 channel; u8 para; } fm_channel_params[] = {
++	{ 8830, 1 }, { 9210, 1 }, { 9220, 1 }, { 9230, 1 }, { 9550, 2 },
++	{ 9600, 3 }, { 9830, 8 }, { 9840, 2 }, { 9940, 2 }, { 9980, 1 },
++	{ 9990, 1 }, { 10260, 2 }, { 10370, 1 }, { 10400, 8 }, { 10410, 2 },
++	{ 10590, 2 }, { 10750, 1 }, { 10760, 1 },
++};
++
++static const u16 fm_spi_hopping_channels[] = {
++	9090, 9100, 9110, 9120, 10380, 10390, 10400, 10410, 10420,
++};
++
++static bool fm_tdd(u16 f)
++{
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(fm_tdd_ranges); i++)
++		if (f >= fm_tdd_ranges[i].first && f <= fm_tdd_ranges[i].last)
++			return true;
++	return false;
++}
++
++static u8 fm_channel_param(u16 f)
++{
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(fm_channel_params); i++)
++		if (fm_channel_params[i].channel == f)
++			return fm_channel_params[i].para;
++	return 0;
++}
++
+ struct fm_batch {
+ 	u8 buf[FM_BATCH_MAX];
+ 	unsigned int len;
+@@ -673,13 +701,13 @@ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ 	if (!ret)
+ 		ret = fm_set_bits(fm, 0x0f, 0x0455, 0xf800);	/* ADPLL tracking gain */
+ 	if (!ret)
+-		ret = fm_set_bits(fm, 0x30, 0x0000, 0xfff3);	/* FDD cell mode */
++		ret = fm_set_bits(fm, 0x30, fm_tdd(f) ? 0x0008 : 0x0000, 0xfff3);
+ 	if (!ret)
+ 		ret = fm_set_bits(fm, 0x60, 0x000f, 0xfff0);
+-	if (!ret)	/* 50 kHz steps above 64 MHz; channel parameter 0 */
++	if (!ret)	/* 50 kHz steps above 64 MHz */
+ 		ret = fm_set_bits(fm, FM_REG_CHANNEL, (f - 6400) * 2 / 10, 0xfc00);
+ 	if (!ret)
+-		ret = fm_set_bits(fm, FM_REG_CHANNEL, 0x0000, 0x0fff);
++		ret = fm_set_bits(fm, FM_REG_CHANNEL, fm_channel_param(f) << 12, 0x0fff);
+ 	if (!ret)
+ 		ret = fm_set_bits(fm, 0x60, 0x0007, 0xfff0);
+ 	if (!ret)
+@@ -705,7 +733,8 @@ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ 	spin_unlock_irqrestore(&fm->lock, flags);
+ 	if (!ret && done != 1)
+ 		ret = -EPROTO;
+-	dev_info(fm->dev, "tune: acknowledgment length %u, done %u: %d\n", ack, done, ret);
++	dev_info(fm->dev, "tune: %s mode, parameter %u, acknowledgment length %u, done %u: %d\n",
++		 fm_tdd(f) ? "TDD" : "FDD", fm_channel_param(f), ack, done, ret);
+ 	if (!ret)
+ 		ret = fm_set_bits(fm, 0x60, 0x0007, 0xfff0);
+ 	if (!ret)
+@@ -745,8 +774,8 @@ static int mt6797_fm_check_freq(u16 *f)
+ 	if (freq_khz < 87500 || freq_khz > 108000 || freq_khz % 100)
+ 		return -EINVAL;
+ 	*f = freq_khz / 10;
+-	for (i = 0; i < ARRAY_SIZE(fm_special_channels); i++)
+-		if (fm_special_channels[i] == *f)
++	for (i = 0; i < ARRAY_SIZE(fm_spi_hopping_channels); i++)
++		if (fm_spi_hopping_channels[i] == *f)
+ 			return -EOPNOTSUPP;
+ 	return seconds <= FM_SECONDS_MAX ? 0 : -EINVAL;
+ }
+-- 
+2.43.0
+

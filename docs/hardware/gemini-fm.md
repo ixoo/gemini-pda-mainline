@@ -40,7 +40,7 @@ event    04 OP LEN_LO LEN_HI payload[LEN]
 | `0x03` | FM register read | `ADDR` | value, 2 bytes |
 | `0x04` | FM register write | `ADDR VAL_LO VAL_HI` | status |
 | `0x07` | enable (batch) | batch ops | status |
-| `0x09` | tune (batch) | batch ops | `01` when the tune is done |
+| `0x09` | tune (batch) | batch ops | empty acknowledgment, then `01` when the tune is done |
 | `0x0d` | RDS data | | RDS record |
 | `0x0e` | ramp down (batch) | batch ops | status |
 | `0x12` | DSP patch segment | `SEG_NUM SEG_ID data` | status |
@@ -137,11 +137,16 @@ is still v1.
 
 ## Tune, search and quality
 
-- **Tune:** `0x60 = 7`; channel parameter and cell mode; `0x60 = 0x0f`;
-  write `CHANNEL_SET`; tune batch (`0x63` D0, then 100 ms); the event reports
-  done. Some channels also switch the common SPI clock to 64 MHz first
-  (CONSYS MCU `0x81021138`, `0x80026000`, `0x8002110c`, `0x81026004`), driven
-  by a vendor channel table.
+- **Tune:** ramp-down first; `0x60 = 7`; ADPLL gain `0x0f`; cell mode in
+  `0x30` D3:2 (`10` TDD for 90.4-91.1, 97.9-99.4 and 106.9-108.0 MHz, else `00`
+  FDD); `0x60 = 0x0f`; write `CHANNEL_SET`, with a channel parameter in D15:12
+  for 18 channels; tune batch (`0x63` D0, then 100 ms). The tune gets two
+  events: an empty acknowledgment, then one with payload `1` when done; the
+  vendor waits for both. Nine channels (90.9-91.2, 103.8-104.2 MHz) also
+  switch the common SPI clock to 64 MHz first (CONSYS MCU `0x81021138`,
+  `0x80026000`, `0x8002110c`, `0x81026004`). All three lists are fixed tables
+  in the MT6631 library; the [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md#why-f2-refused-the-owners-first-station-r9)
+  has them reduced to the FM band.
 - **Search:** the chip's own seek is compiled out on MT6631. The vendor steps
   through channels with soft-mute tune (`0x17`), which returns RSSI, PAMD, MR,
   ATDC, PRX, ATDEV and soft-mute gain for one frequency. A channel is valid when
