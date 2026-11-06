@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 (DSP patch, tune, antenna) is predeclared with code 0583, not yet admitted |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 (DSP patch, tune, antenna) admitted on 2026-11-05 with code 0583, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -261,7 +261,10 @@ about the DSP, the antenna, reception or audio.
 
 Following the decision table, the tuner is written in stages, starting with F2.
 
-## Test F2: first tune and antenna check (predeclared, not yet admitted)
+## Test F2: first tune and antenna check (admitted)
+
+The owner admitted F2 on 2026-11-05. This covers exactly the effects below,
+once; anything else, including a retry, needs asking again.
 
 **Hypothesis:** with the rest of the vendor power-up, the DSP accepts the v1
 patch and coefficient files, a tune to a strong local station completes, and
