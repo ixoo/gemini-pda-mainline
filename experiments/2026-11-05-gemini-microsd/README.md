@@ -1124,6 +1124,65 @@ Stop on any `mmc0` error, warning or Oops. No write, no retry.
 | No change in the fallback | The scan isn't the cause. Compare the fixed path settings in the table with the vendor's values |
 | Tuning fails, or the eMMC is absent | Stop, recover via Gemian, revert 0625 |
 
+### T7 result (2026-11-06)
+
+Boot `0e752eb2`, image station-work-69 from package `bad37017` (`1a13a00b`), boot2
+`a6acfc06…`, written by `flash-boot2` with a verified readback. The composed station
+DTB differs from station-work-68's only by `mediatek,tuning-step = <0x40>` on `mmc0`.
+`data` was read-only at the block layer; nothing was written. Taint 0 throughout.
+Raw output is private.
+
+**Observed.**
+
+- `mmc0`: "new HS200 MMC card", 191999939 Hz, 8 bits, 1.8 V, no tuning error.
+  `err_stats` all 0, and no `mmc0` or `msdc` error, warning or Oops at any point.
+- Registers, read while MSDC0 was active:
+  - `IOCON`, `PATCH_BIT0`-`2` are unchanged from T6b.
+  - `PAD_TUNE0` is `0x00323200`: data and CMD delays 18, select bits set.
+  - `PAD_TUNE1` is `0x00202000`: second delay fields 0, both second-field select
+    bits set, as `mtk-sd` sets them for a 64-cell scan.
+- Reads:
+
+  | Read | Pass 1 | Pass 2 |
+  | --- | --- | --- |
+  | 8 MiB at 0 | 42 interrupts | 42 |
+  | 8 MiB at 300 MiB | 2213 interrupts, 0.42 s | 2212, 0.42 s |
+  | 8 MiB at 8192 MiB | 34 | 34 |
+  | 8 MiB at 8500 MiB | 107 | 4126, 0.40 s |
+  | 8 MiB at 20000 MiB | 214 | 34 |
+  | 1 MiB × 256 from 0 | 1.74 s, about 147 MB/s | |
+  | 1 MiB × 1024 from 8 GiB | 6.09 s, about 172 MB/s | |
+  | 4 MiB × 64 direct | 1.69 s, about 155 MB/s | |
+
+- The custodian also ran a 512 KiB × 2048 direct read from 4000 MiB, to keep MSDC0
+  active for the register reads. It ran almost entirely at two interrupts per sector,
+  about 1.1 MiB/s, and was stopped after about 150 s.
+
+**Inferred.**
+
+- 0625 moved the tuning, and healthy reads now run at 150-170 MB/s, two interrupts
+  per request. T5's 36 MB/s was mostly fallback.
+- The fallback isn't gone:
+  - At 300 MiB it repeats with the same interrupt count, so it follows the data
+    there rather than chance.
+  - At 8500 MiB it comes and goes.
+  - From 4000 MiB it holds over a long stretch.
+- The scan picked 18, not a delay above 31 as predicted. In `get_best_delay`, a
+  window starting at cell 0 is set at a third of its length, not its middle, so 18
+  fits a window from 0 to about 54. That's longer than one clock cycle (about 51
+  cells at 192 MHz, scaling the vendor's 49 at 200 MHz), which the 128-byte tuning
+  block may allow while real data doesn't. This kernel's map isn't known: `mtk-sd`
+  prints it only at debug level, and the station kernel has neither dynamic debug
+  nor tracing.
+- That leaves the decision table's second row, "the scan helped". Its next steps,
+  the data latch clock and separate CMD and DATA delays, would each still be a
+  guess without the map.
+
+**Next.** A diagnostic boot that prints, at info level, `mtk-sd`'s pass maps and
+chosen delay at each tuning and retune, and each data error's kind. It changes no
+behaviour. Then choose between centring the data delay, the latch clock and
+separate CMD/DATA tuning from the map, not by trial.
+
 ## Follow-up
 
 - Suspend and resume.
@@ -1131,5 +1190,6 @@ Stop on any `mmc0` error, warning or Oops. No write, no retry.
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
 - eMMC HS400, once its data-strobe delay is known.
-- eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): 0625 widens the
-  tuning scan, [T7](#t7-hs200-with-a-64-cell-scan) tests it.
+- eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): 0625 widened the
+  tuning scan and healthy reads now run at 150-170 MB/s, but fallback remains
+  ([T7 result](#t7-result-2026-11-06)).
