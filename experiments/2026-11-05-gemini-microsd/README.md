@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `completed`: microSD works at UHS SDR50 (1.8 V, 96 MHz, about 43 MiB/s reads, a 64 MiB write read back intact) on two cards, with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
+| Status | `completed`: microSD at UHS SDR104 (192 MHz, about 86 MiB/s, vendor pad settings, exFAT), and the eMMC at HS200 (192 MHz, reads about 36 MB/s, below expectation), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -824,6 +824,66 @@ errors after tuning. No retry, one write at most, never on the eMMC.
 | microSD errors only with the new pads | Revert 0613 and keep 0612 |
 | exFAT mount fails | Record the error; driver and mount only |
 
+### T5 result (2026-11-06)
+
+Custodian run on station-work-66:
+
+- boot2 `c4093121…`, package `469cd863…` (`f0fe8d1a`), composed DTB `e7192694…`.
+- The RAM root `38ac31fa…` has init's `linux` mount changed to `blockdev --setro`
+  plus `ro,noload`. The custodian checked that this is the only data mount in it.
+- Boot `40201d1f` throughout, taint 0.
+- The owner approved the eMMC risk ("Yes, run T5") and the write ("Swapped, write
+  OK").
+
+Raw output is private.
+
+1. **Boot.**
+   - `data=mounted` from `mmcblk0p29`, with `/mnt/data` "ext4 ro,relatime,norecovery"
+     and the partition's `ro` at 1. `display=skipped-no-data`, as expected.
+   - "mmc0: new HS200 MMC card", with its boot partitions and RPMB present. `ios`:
+     191999939 Hz, 8 bits, HS200 timing, 1.80 V.
+   - "mmc1: new UHS-I speed SDR104 SDXC card". `ios`: 191999939 Hz, 4 bits, SDR104,
+     1.80 V.
+   - Clocks as before: `msdcpll` at 384 MHz, `msdc50_0_sel` on it, `msdc30_1_sel` on
+     `msdcpll_d2`.
+   - Pinconf in the UHS state read back as set: pins 129-133 pull-up 101, 8 mA, input
+     enabled, TDSEL `0xc`, RDSEL 0; pin 134 pull-down 102, 10 mA, TDSEL `0xc`, RDSEL 0.
+   - No error line.
+2. **eMMC**, the `linux` partition read-only, found by GPT name.
+   - The first 1 GiB, read twice after dropping caches, gave the same hash in 37.54 s
+     and 35.67 s, including the CPU's hashing.
+   - A raw 256 MiB read took 7.41 s, about 36 MB/s. That's above the 24 MB/s a
+     legacy-timing bus could carry, but well below the predicted four times.
+3. **SDXC card at SDR104.**
+   - Two 1 GiB hashes agreed, limited by the hashing.
+   - 256 MiB raw reads at 0, 4096 MiB and 12000 MiB took 3.08, 2.98 and 2.98 s:
+     83-86 MiB/s, about twice SDR50.
+4. **Write**, 16 GB vfat card.
+   - 64 MiB plus `sync` took 9.29 s, which is card-bound as before.
+   - The readback after a cache drop took 1.99 s and matched.
+   - Deleted; no error, warning or FAT line.
+5. **Swap.** Pulling the SDXC card logged two CMD13 timeouts and its removal, the
+   usual pattern. The 16 GB card came back at SDR104, 192 MHz, 1.80 V.
+6. **exFAT.** `exfat.ko` loaded; a read-only mount of the SDXC card's partition
+   worked (empty, 1.4 TiB); unmounted cleanly.
+7. **End.** Taint 0, no `mmc0` error at any point.
+
+**Conclusion.** All the changes worked on one boot of one unit:
+
+- the eMMC runs HS200 at 192 MHz;
+- the microSD slot runs SDR104 at 192 MHz with the vendor's pad settings, reading at
+  about 86 MiB/s;
+- exFAT mounts.
+
+Whether `disable-wp` removed the "assuming write-enable" line wasn't checked
+explicitly; that line isn't counted as an error.
+
+**Missed: the eMMC hypothesis.** Its rate rose only to about 36 MB/s, not four times
+legacy. The custodian reads that as limited by the eMMC; that is an inference, not
+shown. Candidates to check: request size and the software queue on `mmc0`, a cold
+read of an unused region, and the device's own sequential rate under Gemian. HS200
+stays, since it is correct and faster; its throughput is an open question.
+
 ## Follow-up
 
 - Suspend and resume.
@@ -831,3 +891,4 @@ errors after tuning. No retry, one write at most, never on the eMMC.
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
 - eMMC HS400, once its data-strobe delay is known.
+- Why HS200 eMMC reads stop at about 36 MB/s.
