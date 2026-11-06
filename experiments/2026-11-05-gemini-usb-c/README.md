@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 and U4 not run |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 reaches connect but fails enumeration at high speed (`-71`); U4 not run |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -583,8 +583,34 @@ rebuilt DTB both PHY ports carry the property. Not run.
 *What the next U3 shows:* the session and connect, if VBUS reaches the
 drive. If MUSB now sits in `a_wait_bcon` and still sees no connect, the
 drive is unpowered or GPIO72's switch is not the data path; a meter on the
-right port then splits the two (GPIO94 alone versus the boost). U4 is not
-run. Add to
+right port then splits the two (GPIO94 alone versus the boost).
+
+**U3 on boot `294ae5a1` (station-work-64, from `6488e6f8` with 0608), taint
+0: session and connect work, enumeration fails with `-71`.** Stopped with
+`rmmod fusb301` under the repeating-error rule. Evidence is kept privately
+under `artifacts/station-work-64/boot-1/`.
+- The PHY logged the forced session at load, there was no VBUS error, and
+  MUSB waited in `a_idle` with no interrupts. 0608 works.
+- On attach of the same drive: a sink partner, both regulators on, GPIO72
+  and GPIO94 high. MUSB saw a high-speed device ("new high-speed USB device …
+  using musb-hdrc"), so VBUS reaches the drive and GPIO72 carries D+/D-.
+  This settles the power question: GPIO94's path powers the port without
+  the boost, and REG03 stayed `0x0a`.
+- Every first control transfer failed: four "device descriptor read/all,
+  error -71" lines across eight addresses and two hub power-cycle attempts.
+  MUSB went to `a_suspend`. The FUSB301A logged one partner remove and add
+  about 4 s after the first power cycle, and the owner had not reseated the
+  drive. Whether the root-hub power cycle caused that detach is open.
+- After the stop: all regulators off, GPIO72/94 at 0, MUSB in
+  `a_wait_bcon`, REG03 unchanged, the left port unaffected.
+
+*Reading:* `-EPROTO` on `GET_DESCRIPTOR` after a high-speed chirp points at
+high-speed signalling: the USB11 PHY's HS tuning (the vendor programs it
+beyond the generic V1 T-PHY's defaults), the analogue switch on GPIO72, or
+PIO timing. A low- or full-speed device separates high-speed signalling
+from everything else, with no rebuild: MUSB cannot be capped at full speed
+from DT, because the MediaTek glue does not pass `maximum-speed` to its
+config. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
