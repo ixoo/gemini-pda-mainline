@@ -499,6 +499,23 @@ The hypothesis held on one boot of one unit with one card. At SD high speed the 
 reads at twice the default-speed rate and returns the same data. A 64 MiB write reads
 back intact, and the pads the firmware left need nothing more at 48 MHz. 0606 stays.
 
+### T3 extra, second card (2026-11-06, read-only)
+
+The owner supplied a second, larger SDXC card. Same boot `2dc6de9f`, taint 0, no
+mount and no write. Card identity is kept private.
+
+- **Hot swap.** The first card was logged as removed, then the second identified as
+  a high-speed SDXC card with one partition. Card detect worked live.
+- **Mode.** `ios` at 50 MHz requested, 47999984 Hz actual, 4 bits, SD high-speed
+  timing, 3.30 V.
+- **Reads.** Two 1 GiB raw reads after dropping caches, not hashed: 46.63 s and
+  46.62 s, 22.0 MiB/s (23.0 MB/s) each. That is the 16 GB card's rate.
+- **Log.** No error, warning or Oops line.
+
+Two cards of different classes read at the same rate, close to the 24 MB/s a 4-bit
+bus carries at 48 MHz. So the bus is the limit at SD high speed. More speed needs
+UHS: 1.8 V signalling, SDR50 or SDR104, and tuning.
+
 ## Follow-up
 
 - Suspend and resume.
