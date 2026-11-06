@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c, the owner heard the station). The headset cable is the antenna. The stereo flag rarely sets; F6, a measured stereo check, is predeclared, not admitted |
+| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c, the owner heard the station). The headset cable is the antenna. The stereo flag rarely sets; F6, a measured stereo check, admitted on 2026-11-06 for the next station boot, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1173,7 +1173,10 @@ FM switches part of the station's default mixer (`audio-start`, `332df45c`);
 that takes effect with the next RAM root composed from main and has not run
 on the device yet.
 
-## Test F6: is the FM audio stereo? (predeclared, not yet admitted)
+## Test F6: is the FM audio stereo? (admitted)
+
+The owner admitted F6 on 2026-11-06, for the next station boot: one load,
+two runs, with the effects below; anything else needs asking again.
 
 **Question:** do the receiver's left and right channels differ, as a stereo
 broadcast's do, or is the output mono? The flag (`RSSI_IND` D12) was 1 once
