@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b: the tune is acknowledged but its done event never comes; F2c, with the vendor's last power-up step, is predeclared, not admitted |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2b: the tune is acknowledged but its done event never comes; F2c, with the vendor's last power-up step, admitted on 2026-11-05, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -504,7 +504,10 @@ tune-done path. This is inference.
 **Conclusion:** `inconclusive` for reception. The tune is accepted; its
 completion is not reported without the full vendor power-up.
 
-## Test F2c: F2b with the full vendor power-up (predeclared, not yet admitted)
+## Test F2c: F2b with the full vendor power-up (admitted)
+
+The owner admitted F2c on 2026-11-05: one load, the F2b effects plus the
+three changes below; anything else needs asking again.
 
 The F2 procedure, safety and decision table, with
 [0588](../../patches/proposals/0588-media-radio-mt6797-finish-the-vendor-power-up-before.patch):
