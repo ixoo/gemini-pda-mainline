@@ -393,9 +393,29 @@ card and matches T1c's. It sits just under the 12 MB/s that 4 bits at 24 MHz car
 so the bus, not the card, sets it at default speed. Data integrity isn't covered by
 these reads, which didn't hash anything.
 
+### T2, card present at boot (2026-11-05, unattended)
+
+Read-only, on the same boot `a22a4ca8` (image `02e045fa`), with the T1c card in the slot
+since before boot. `sd-state.sh` hash matched. Raw output is private.
+
+1. Boot log:
+   - 0.856 s: `11240000.mmc` got its CD GPIO; both MSDC hosts probed with 0.
+   - 0.953 s: the eMMC identified as `mmc0`/`mmcblk0`, with all its partitions.
+   - 1.047 s: `mmc1` identified the SDHC card, and `mmcblk1` came up with one partition.
+   - Both hosts enabled the MMC core's software queue.
+2. `ios` at 25 MHz, VDD bit 18, 4 bits, power on. `mmcblk1` resolved under
+   `11240000.mmc`.
+3. The first 1 GiB of the raw card, read twice through `sha256sum`: 92.93 s each
+   (11.55 MB/s), same hash both times.
+4. No MMC or MSDC line after boot; taint 0.
+
+So a card present at boot is identified during boot, after the eMMC, which stays
+`mmcblk0`. Repeated 1 GiB reads return the same data. This is consistency, not a
+comparison against known contents.
+
 ## Follow-up
 
-- A card present at boot, and suspend and resume.
+- Suspend and resume.
 - High speed (50 MHz), then UHS with the 1.8 V switch, each after this test, and the
   latter only with the VMC trim question in the [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary) settled.
 - exFAT as a module, for SDXC cards in their factory format.
