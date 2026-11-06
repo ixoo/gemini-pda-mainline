@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 10:44:51 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: force the USB11 PHY
+ session valid
+
+On station boot 2dc6de9f the USB11 host came up, the right port's
+switches and VBUS followed an attached drive, and nothing enumerated.
+MUSB reported one VBUS error with the session below SessEnd at start and
+stayed in a_idle: the PHY's VBUS and session comparators do not see the
+port's VBUS, which GPIO94 switches.
+
+The vendor kernel forces those signals at power-on (VBUSVALID, AVALID
+and BVALID set, SESSEND clear, all forced) and forces IDDIG low. The
+T-PHY's force-b-session-valid forces the same set; the host mode the
+MUSB glue sets after power-on then clears IDDIG, giving the vendor's
+state.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 1c6193c9d..473b6bdcd 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -800,7 +800,14 @@ &usb11_tphy {
+ 	status = "okay";
+ };
+ 
++/*
++ * The USB11 PHY's VBUS and session comparators do not see the right
++ * port's VBUS, which GPIO94 switches. As the vendor kernel does, force the
++ * session signals valid; the host mode the glue then sets clears IDDIG, so
++ * the controller is an A-device with VBUS present and starts its session.
++ */
+ &usb11_u2 {
++	mediatek,force-b-session-valid;
+ 	status = "okay";
+ };
+ 
+-- 
+2.43.0
+

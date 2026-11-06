@@ -544,7 +544,47 @@ clean at `W=1`; not run.
 *Next:* a fresh boot is needed. The custodian proposes batching it with the
 microSD T3 image. U3 then loads the modules fresh; with 0607 in the image,
 unloading `mediatek` is safe too, but the only unload in the stop path
-remains `rmmod fusb301`. U4 is not run. Add to
+remains `rmmod fusb301`.
+
+**U3 on boot `2dc6de9f` (station-work-62, from `15bde8ff`), taint 0: the
+port's power side worked, nothing enumerated.** Stopped with
+`rmmod fusb301`. Evidence is kept privately under
+`artifacts/station-work-62/boot-1/`.
+- All nine modules loaded fresh. MUSB registered USB bus 1, a 480 Mb/s root
+  hub with one port. Once, at start, before any VBUS was on, it logged
+  "VBUS_ERROR in a_idle (80, <SessEnd)". 0605 held: three typec events from
+  load to attach.
+- The owner inserted a USB 2.0 flash drive. EINT3 counted one, a sink
+  partner registered with orientation normal, `usb1-data-switch` and
+  `usb1-vbus` were enabled, and GPIO72/GPIO94 read output 1. REG03 stayed
+  `0x0a`, so the boost was off and VBUS came from GPIO94's path alone, if
+  at all.
+- Nothing enumerated in about 50 s. MUSB stayed `a_idle` with no further
+  interrupt, and the root port reported no connect. The owner saw no LED,
+  but whether the drive has one is unknown, so drive power is unproven.
+- `rmmod fusb301` turned both regulators off and returned GPIO72/94 to 0.
+  The left port and the guard were unaffected throughout.
+
+*Reading:* `<SessEnd` in `a_idle` is the controller's view from the PHY's
+VBUS and session comparators. In `a_idle` MUSB does not retry; it drops the
+session and waits. GPIO94 switches the port's VBUS outside the PHY, so the
+controller never learns that VBUS came up. The vendor USB11 driver forces
+those signals at power-on (`mt65xx_usb11_phy_poweron_common()`: `0x6C`
+gets VBUSVALID, BVALID and AVALID set and SESSEND cleared, `0x6D |= 0x3C`
+forces all four) and forces IDDIG low.
+
+*Fix:*
+[0608](../../patches/proposals/0608-arm64-dts-mediatek-gemini-station-force-the-USB11-PH.patch)
+gives the USB11 PHY port 0077's `mediatek,force-b-session-valid`. That
+forces the same four signals, and IDDIG. The MUSB glue then sets host mode
+after power-on, which clears IDDIG. DT only, so it needs a new image. In the
+rebuilt DTB both PHY ports carry the property. Not run.
+
+*What the next U3 shows:* the session and connect, if VBUS reaches the
+drive. If MUSB now sits in `a_wait_bcon` and still sees no connect, the
+drive is unpowered or GPIO72's switch is not the data path; a meter on the
+right port then splits the two (GPIO94 alone versus the boost). U4 is not
+run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
