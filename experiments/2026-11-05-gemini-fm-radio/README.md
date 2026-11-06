@@ -1154,8 +1154,8 @@ up on that boot, so there were no pings. Speakers off, `Headphone Volume` 0
 - **`dmesg`:** the radio's usual lines, power-down 0, `events=234
   unexpected=0`, link halted with no failure; no AFE or codec line; no
   warning, taint 0. `rmmod radio-mt6797` rc 0.
-- **Owner:** "it works!!! maybe stereo?". Clean or distorted and loudness
-  are asked.
+- **Owner:** "it works!!! maybe stereo?", and afterwards "the radio sounded
+  really good". No comment on loudness or distortion beyond that.
 
 **Analysis.** The one change from F5 and F5b is the `CONNSYS` input endpoint,
 and with it `Connsys I2S` powers, so the I2S input gets its clock and the
@@ -1168,8 +1168,8 @@ hardware gain stage.
 on mainline through 0591 to 0594.
 
 Open: stereo (the flag was 1 once, the owner thinks it may be stereo by ear),
-audio quality and level, the register snapshot, speakers, and a default
-mixer setup so FM needs no manual switches.
+the level, the register snapshot, speakers, and a default mixer setup so FM
+needs no manual switches.
 
 ## Follow-up
 
