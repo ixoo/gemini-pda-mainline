@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 10:18:42 -0500
+Subject: [PATCH 606/606] arm64: dts: mediatek: gemini-station: run the microSD slot at
+ SD high speed
+
+The slot works at default speed, where a 4-bit bus at 24 MHz caps reads
+at about 11.5 MB/s. Allow SD high speed at up to 50 MHz, still at 3.3 V
+signalling and with no UHS mode. mtk-sd needs no tuning for it. The
+pads keep the drive and bias the firmware left.
+
+Not yet run on hardware.
+---
+ .../arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 5366759..25d0abc 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -609,15 +609,17 @@
+ };
+ 
+ /*
+- * Default speed, 4 bits, 3.3 V signalling. The vendor reads the card-detect
+- * pin high as a card present.
++ * SD high speed at up to 50 MHz, 4 bits, 3.3 V signalling, no UHS. The
++ * pads keep the firmware's drive and bias. The vendor reads the
++ * card-detect pin high as a card present.
+  */
+ &mmc1 {
+ 	pinctrl-names = "default", "state_uhs";
+ 	pinctrl-0 = <&mmc1_pins_default>;
+ 	pinctrl-1 = <&mmc1_pins_default>;
+ 	bus-width = <4>;
+-	max-frequency = <25000000>;
++	max-frequency = <50000000>;
++	cap-sd-highspeed;
+ 	cd-gpios = <&pio 67 GPIO_ACTIVE_HIGH>;
+ 	vmmc-supply = <&mt6351_vmch_reg>;
+ 	vqmmc-supply = <&mt6351_vmc_reg>;
+-- 
+2.54.0 (Apple Git-157)
+

@@ -413,9 +413,53 @@ So a card present at boot is identified during boot, after the eMMC, which stays
 `mmcblk0`. Repeated 1 GiB reads return the same data. This is consistency, not a
 comparison against known contents.
 
+### T3, SD high speed (predeclared)
+
+[0606](../../patches/proposals/0606-arm64-dts-mediatek-gemini-station-run-the-microSD-sl.patch)
+adds `cap-sd-highspeed` and raises `max-frequency` from 25 to 50 MHz. Signalling stays
+at 3.3 V, with no UHS mode, so no 1.8 V switch and no tuning.
+
+- **Driver.** mtk-sd treats SD high speed like legacy timing. It has no tuning for
+  it, and MT6797 has no top register window to program.
+- **Clock.** The source runs at about 192 MHz (24 MHz was 192 / (4 x 2)). The
+  divider for 50 MHz is 1, so the clock should be 48 MHz, double today's.
+- **Pads.** They keep the firmware's state: drive selector 4 on CMD, DAT and CLK
+  (`0x100025b0` bits 21-29), the vendor's bias value 5 in bits 16-20 of the same
+  register, and no CMD pull-up.
+
+Hypothesis: the card switches to high speed at 48 MHz and reads at about twice T2's
+rate, with no CRC error or timeout, and the same data. T2's hash of the first 1 GiB
+gives a known answer.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later. DT only, so batch it. The T1c card stays in the slot; nothing
+needs the owner except approving the write in step 4.
+
+1. Boot with the card in. `dmesg | grep -i -E 'mmc|msdc'`; expect "new high speed
+   SDHC card" on `mmc1`, and the eMMC unchanged as `mmc0`/`mmcblk0`. `sh sd-state.sh
+   hs`: expect `ios` timing "sd high-speed", clock 50000000 requested, about 48 MHz
+   actual, 4 bits, 3.30 V.
+2. Host check as before, then `time dd if=/dev/mmcblk1 bs=1M count=1024 | sha256sum`,
+   twice. Expect T2's hash `fd02d592…35c4` both times, in about 45-50 s each.
+3. Three 256 MiB timed reads at offsets 0, 4096 MiB and 12000 MiB, after dropping
+   caches, as in the benchmark.
+4. If the owner approves a write on this card: T1 step 5 once (64 MiB, hash,
+   readback, delete), timing the write.
+5. `dmesg` MMC lines since boot, taint.
+
+Stop on any `mmc0` error, a warning or Oops, a hash mismatch, or a CRC or timeout
+error on `mmc1`. No retry, one write at most.
+
+| Observed | Do |
+| --- | --- |
+| High speed, rates about doubled, hashes match | Keep 0606; microSD runs at SD high speed |
+| Card stays at default speed | Send step 1. The card or the switch command refused high speed; check the log line |
+| CRC errors, timeouts or a hash mismatch at 48 MHz | Stop. Next: the CMD pull-up and the pad drive, or fall back to 25 MHz by reverting 0606 |
+| Rates not doubled, no errors | Record it. Something else bounds the transfer; look at the request size and DMA |
+
 ## Follow-up
 
 - Suspend and resume.
-- High speed (50 MHz), then UHS with the 1.8 V switch, each after this test, and the
-  latter only with the VMC trim question in the [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary) settled.
+- UHS with the 1.8 V switch, after T3, and only with the VMC trim question in the
+  [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary) settled.
 - exFAT as a module, for SDXC cards in their factory format.
