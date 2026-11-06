@@ -993,8 +993,10 @@ file are under `artifacts/station-work-58/boot-1/`.
   off, power-down 0, `events=218 unexpected=0`), a console unblank from a
   key press, and **no line at all from the AFE, the card or the codec**
   during the stream.
-- **Owner:** did not hear the station. Their first answer was "noise or
-  nothing"; which of the two is asked.
+- **Owner:** did not hear the station: "complete silence", no hiss and no
+  noise, with the earbuds held near the ears at -10 dB. Very faint output is
+  not ruled out, but the lack of even the usual power-up hiss suggests the
+  headphone output may not have been powered or routed at all.
 - **After:** switches off, radio unloaded, pings, CONSYS and `mac` reload,
   pings, taint 0, no warning or Oops. The new audio modules stay loaded.
 
@@ -1056,6 +1058,7 @@ owner does not need to listen, but may.
 
 | During the stream | Meaning | Next |
 | --- | --- | --- |
+| `ADDA Playback` and the codec's headphone widgets off | the playback back end never joined, which fits F5's complete silence | DPCM: the front-end playback path |
 | `AFE_I2S_CON` D0 = 0, or `AFE_ASRC_CON0` D0 = 0 | the CONNSYS_I2S back end never started | DPCM: the front-end capture path |
 | D0 set, `0x564` and `0x568` stay 0 | no I2S clock reaches the AFE | the CONSYS side: its I2S output or the FM audio trigger |
 | D0 set, calibrator nonzero, `ADDA_DL_CH1`/`2` or `ADDA Playback` off | the downlink is not connected | the playback route |
