@@ -1169,3 +1169,4 @@ proposals/0585-arm64-dts-mediatek-gemini-station-describe-the-vibra.patch
 proposals/0586-media-radio-mt6797-wait-for-both-tune-events.patch
 proposals/0587-media-radio-mt6797-tune-channels-with-the-TDD-mode-o.patch
 proposals/0588-media-radio-mt6797-finish-the-vendor-power-up-before.patch
+proposals/0589-media-radio-mt6797-make-it-a-V4L2-radio-receiver.patch

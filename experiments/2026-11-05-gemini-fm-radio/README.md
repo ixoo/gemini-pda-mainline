@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). No radio interface or audio yet |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3, the V4L2 radio device with seek and RDS (0589), is predeclared, not admitted; no audio yet |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -598,6 +598,77 @@ the window.
 broadcast station on mainline with the vendor sequence, and the headset cable
 is the antenna. Not shown: audio, stereo, RDS, seek, or any channel other than
 this one TDD channel.
+
+## Test F3: the V4L2 radio device (predeclared, not yet admitted)
+
+**Question:** does the receiver work through a standard radio device:
+tune, signal strength, controls, RDS blocks, and a seek built from the
+firmware's channel-quality reports?
+
+**Code:**
+[0589](../../patches/proposals/0589-media-radio-mt6797-make-it-a-V4L2-radio-receiver.patch)
+turns `radio-mt6797` into a V4L2 radio receiver, `/dev/radioN`:
+
+- **Power:** the first open runs the whole F2c sequence: attach, function on,
+  power-up with the identity check, ROM query, both downloads, digital init, fine
+  tune, the vendor's last step, RDS buffer threshold `0x80 = 6`, the controls,
+  the tune. The last close runs the vendor power-down, function off and
+  detach. Probe touches nothing, and the bring-up parameters are gone.
+- **Tuner:** 87.5 to 108 MHz on the 100 kHz grid; signal strength maps RSSI
+  -111 to -51 dBm onto 0 to 65535; stereo from `RSSI_IND` D12; forced mono
+  through `0x75` D3 (`audmode`). The nine 64 MHz SPI-clock channels are
+  still refused.
+- **Controls:** mute (`0x9c`), volume (`0x7d`, 16 steps) and de-emphasis, 50
+  or 75 µs, 75 by default (`0x61` D12).
+- **Seek:** the vendor never uses the chip's own seek. The driver steps through
+  the band, asks the firmware for each channel's quality report (`0x17`, R3)
+  and applies the `fm_cust.cfg` thresholds, then tunes the first good channel.
+  If none passes, or a signal interrupts it, it returns to the old channel.
+- **RDS:** the unsolicited `0x0d` events (R8) become `v4l2_rds_data` blocks for
+  `read()`, with the error flag from each block's CRC result and C' for version
+  B groups.
+
+[`fm-check.c`](fm-check.c) exercises it with V4L2 calls only. Public lines go
+to stdout: capabilities, control results, one line a second with signal
+strength, stereo and RDS block counts, and the seek's result and time. The
+frequency, the station a seek finds and the decoded RDS PI and programme name
+go only to a private file.
+
+**Checks:** 0589 builds with `W=1` and passes `checkpatch --strict` in the dev
+VM and applies to the station tree. `fm-check` builds static for aarch64 with
+`-Wall -Wextra` and no warning (`3fced782…`, GCC 13.3, binary kept under ignored
+`artifacts/fm/`). Not built on Buildbox, not run.
+
+**Safety:** receive only, as F2c, with the same effects plus the RDS buffer
+threshold, the control writes (mute, volume, de-emphasis, forced mono off)
+and, for the seek, one quality report per channel tried, at most 205. No
+antenna select, no AFE or codec change, nothing heard, no calibration, NVRAM
+or partition write. The frequency, the station a seek finds and the RDS
+identity stay private.
+
+**Needs:** a package with 0589 from the same build as the running kernel (a
+module-only load if `Image.gz` and `mt6797-consys.ko` match); the two FM
+files in `/lib/firmware/mediatek/mt6797/`; `fm-check`; the owner's station
+and the headset plugged in from the start. The owner is not needed beyond
+that.
+
+**Procedure,** one load and one run, no retry:
+
+1. Wi-Fi associated, gateway ping, taint, `dmesg | wc -l`.
+2. `insmod radio-mt6797.ko`; note the `registered /dev/radioN` line.
+3. `fm-check /dev/radioN <station kHz> 60 <private file> seek`.
+4. New `dmesg` lines from `mt6797-fm`, `STP link` and `WMT FM`.
+5. `rmmod radio-mt6797`, three pings, CONSYS and `mac` reload, three pings,
+   taint.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| open ok, signal above 0, RDS good blocks counted, seek finds a station | the radio device works | upstream review of the tuner; the AFE input for audio |
+| everything but RDS | RDS events not as R8 says, or the station sends none | log the `0x0d` events' sizes offline; check the station on another receiver |
+| seek returns `ENODATA` or hits the time limit | the quality report or thresholds are not as read | decode a report offline from a `dev_dbg` run |
+| stereo still 0 with strong signal | the indicator bit or a mono station | compare with another receiver |
+| open fails | regression from F2c | compare its log with F2c |
+| Wi-Fi fails after unload | FM power-down or RDS traffic disturbs CONSYS | record; CONSYS reload |
 
 ## Follow-up
 

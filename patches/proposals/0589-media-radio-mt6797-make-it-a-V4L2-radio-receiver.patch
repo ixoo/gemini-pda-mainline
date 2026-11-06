@@ -1,0 +1,871 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 20:08:30 -0500
+Subject: [PATCH] media: radio: mt6797: make it a V4L2 radio receiver
+
+The bring-up probe tunes the receiver and reads its signal strength, and the
+headset cable is its antenna. Turn it into a radio device.
+
+The first open of /dev/radioN attaches to the STP link, switches the WMT FM
+function on and runs the full vendor power-up with the identity check, the
+DSP patch and coefficient downloads and the last audio step; the last close
+runs the vendor power-down. The probe no longer touches the receiver and the
+bring-up module parameters are gone.
+
+Supported: one FM band, 87.5-108 MHz in 100 kHz steps; frequency; signal
+strength from RSSI, -111 to -51 dBm; the stereo indicator and forced mono;
+mute, volume and de-emphasis, 50 or 75 us, 75 by default; and a hardware
+seek. The chip's own seek is compiled out in the vendor driver, so the seek
+steps through the band asking the firmware for each channel's quality report
+and judges it with the vendor's thresholds, then tunes the first good one.
+
+RDS needs no polling: the firmware pushes raw groups as unsolicited events.
+They are queued as v4l2_rds_data blocks for read(), with the error flag from
+the per-block CRC result and C' for version B groups.
+
+The nine channels that need the 64 MHz common SPI clock are still refused,
+and seek skips them. The audio stays on the connectivity subsystem's internal
+I2S; nothing routes it to the sound card yet.
+---
+ drivers/media/radio/Kconfig        |   9 +-
+ drivers/media/radio/radio-mt6797.c | 653 +++++++++++++++++++++++++----
+ 2 files changed, 565 insertions(+), 97 deletions(-)
+
+diff --git a/drivers/media/radio/Kconfig b/drivers/media/radio/Kconfig
+index 9b939aad4..3cf6d578c 100644
+--- a/drivers/media/radio/Kconfig
++++ b/drivers/media/radio/Kconfig
+@@ -21,10 +21,11 @@ config RADIO_MT6797
+ 	  Say Y here for the MT6631 FM receiver behind the MT6797
+ 	  connectivity subsystem, reached over the shared STP link.
+ 
+-	  This version is a bring-up probe and registers no radio device.
+-	  Loading it powers the receiver up and reads its identity; with
+-	  the freq_khz parameter it also loads the DSP patch, tunes and
+-	  logs the signal strength, then powers the receiver down.
++	  It is a V4L2 radio receiver with hardware seek and raw RDS
++	  blocks. Opening the device loads the receiver's DSP patch and
++	  coefficients from mediatek/mt6797/ and powers it up. The audio
++	  stays inside the connectivity subsystem; this driver does not
++	  route it to the sound card.
+ 
+ 	  To compile this driver as a module, choose M here: the module
+ 	  will be called radio-mt6797.
+diff --git a/drivers/media/radio/radio-mt6797.c b/drivers/media/radio/radio-mt6797.c
+index 0a6420459..052b05d97 100644
+--- a/drivers/media/radio/radio-mt6797.c
++++ b/drivers/media/radio/radio-mt6797.c
+@@ -7,14 +7,13 @@
+  * register access, batches of register operations, and access to the
+  * connectivity MCU and the RF chip's top block.
+  *
+- * This version is a bring-up probe and registers no radio device. Probe
+- * switches the WMT FM function on, runs the vendor power-up up to the identity
+- * check and reads the identity register three times. With freq_khz set, it
+- * then finishes the power-up, which downloads the DSP patch and coefficient
+- * files, tunes to that frequency with the vendor's tune sequence and logs the
+- * signal strength once a second for the given number of seconds. The FM audio
+- * output is left off. Last, it runs the vendor power-down and switches the
+- * function off.
++ * A V4L2 radio receiver. The first open switches the WMT FM function on, runs
++ * the vendor power-up with the DSP patch and coefficient downloads and tunes;
++ * the last close powers the receiver down again. Frequency, signal strength,
++ * stereo, a hardware seek built from the firmware's channel-quality reports,
++ * mute, volume and de-emphasis are supported, and raw RDS blocks are read from
++ * the device node. Audio leaves the receiver on CONSYS's internal I2S; taking it
++ * into the AFE is a separate driver.
+  */
+ 
+ #include <crypto/sha2.h>
+@@ -23,15 +22,24 @@
+ #include <linux/delay.h>
+ #include <linux/errno.h>
+ #include <linux/firmware.h>
++#include <linux/kfifo.h>
++#include <linux/math.h>
+ #include <linux/jiffies.h>
+ #include <linux/minmax.h>
+ #include <linux/module.h>
+-#include <linux/moduleparam.h>
++#include <linux/mutex.h>
+ #include <linux/platform_device.h>
++#include <linux/poll.h>
+ #include <linux/soc/mediatek/mt6797-stp.h>
+ #include <linux/spinlock.h>
+ #include <linux/string.h>
+ #include <linux/types.h>
++#include <linux/videodev2.h>
++#include <media/v4l2-ctrls.h>
++#include <media/v4l2-device.h>
++#include <media/v4l2-event.h>
++#include <media/v4l2-fh.h>
++#include <media/v4l2-ioctl.h>
+ 
+ #define FM_PKT_COMMAND		0x01
+ #define FM_PKT_EVENT		0x04
+@@ -40,10 +48,12 @@
+ #define FM_OP_REG_WRITE		0x04
+ #define FM_OP_ENABLE		0x07	/* a batch of register operations */
+ #define FM_OP_TUNE		0x09	/* a batch; the event says when it is done */
++#define FM_OP_RDS		0x0d	/* unsolicited raw RDS groups */
+ #define FM_OP_RAMPDOWN		0x0e	/* a batch */
+ #define FM_OP_SET_BITS		0x11	/* one modify operation */
+ #define FM_OP_PATCH		0x12	/* DSP patch segment */
+ #define FM_OP_COEFF		0x13	/* coefficient segment */
++#define FM_OP_CQI		0x17	/* soft-mute tune: channel quality */
+ #define FM_OP_HOST_READ		0x18	/* connectivity MCU register */
+ #define FM_OP_HOST_WRITE	0x19
+ #define FM_OP_TOP_WRITE		0x20	/* RF chip top block, over common SPI */
+@@ -66,14 +76,32 @@
+ #define FM_REG_RSSI		0x6c
+ #define FM_RSSI_STEREO		BIT(12)
+ 
+-#define FM_REPLY_MAX		16U
++#define FM_REG_VOLUME		0x7d
++#define FM_REG_MUTE		0x9c
++
++#define FM_REPLY_MAX		32U
++#define FM_EVENT_MAX		160U
+ #define FM_BATCH_MAX		160U
+ #define FM_SEGMENT		512U
+ #define FM_CMD_MAX		(2 + FM_SEGMENT)
+ #define FM_ROM_POLLS		100
+-#define FM_SECONDS_MAX		300U
+ #define FM_TIMEOUT_MS		3000U
+-#define FM_ID_READS		3
++#define FM_RDS_RECORDS		512
++
++/* The band, in 10 kHz units, and V4L2's 62.5 Hz units. */
++#define FM_BAND_LOW		8750
++#define FM_BAND_HIGH		10800
++#define FM_STEP			10
++#define FM_TO_V4L2(f)		((f) * 160U)
++#define FM_FROM_V4L2(v)		((v) / 160U)
++
++/* fm_cust.cfg's search thresholds, in the firmware's own units. */
++#define FM_TH_RSSI		(-296)
++#define FM_TH_PAMD		(-12)
++#define FM_TH_ATDC		3496
++#define FM_TH_MR		(-67)
++#define FM_TH_PRX		64
++#define FM_TH_SMG		16421
+ 
+ enum fm_rx_state { FM_RX_TYPE, FM_RX_OPCODE, FM_RX_LEN1, FM_RX_LEN2, FM_RX_PAYLOAD };
+ 
+@@ -86,7 +114,7 @@ struct mt6797_fm {
+ 	enum fm_rx_state state;
+ 	u8 opcode;
+ 	u16 length, got;
+-	u8 payload[FM_REPLY_MAX];
++	u8 payload[FM_EVENT_MAX];
+ 
+ 	/* The one command in flight. */
+ 	bool waiting;
+@@ -102,15 +130,20 @@ struct mt6797_fm {
+ 	unsigned int bytes, events, unexpected, junk;
+ 	bool lost;	/* a command got no answer at all */
+ 	u8 tx[4 + FM_CMD_MAX];
+-};
+-
+-static unsigned int freq_khz;
+-module_param(freq_khz, uint, 0444);
+-MODULE_PARM_DESC(freq_khz, "Tune to this frequency in kHz after the identity read; 0 stops there");
+ 
+-static unsigned int seconds = 60;
+-module_param(seconds, uint, 0444);
+-MODULE_PARM_DESC(seconds, "How long to log the signal strength after tuning");
++	/* RDS blocks from the receive callback to read(). */
++	DECLARE_KFIFO(rds, struct v4l2_rds_data, FM_RDS_RECORDS);
++	wait_queue_head_t rds_wait;
++	unsigned long rds_seen;
++
++	struct v4l2_device v4l2_dev;
++	struct video_device vdev;
++	struct v4l2_ctrl_handler ctrls;
++	struct mutex mutex;	/* every V4L2 call and the power state */
++	bool powered;
++	u16 f;			/* the tuned or next frequency, 10 kHz units */
++	u32 audmode;
++};
+ 
+ /* The retained Gemian files, version 1; contents stay outside the kernel. */
+ #define FM_PATCH_NAME		"mediatek/mt6797/mt6631_fm_v1_patch.bin"
+@@ -171,13 +204,52 @@ struct fm_batch {
+ 	bool overflow;
+ };
+ 
++/*
++ * An RDS event: sin and cos, then groups of blocks A to D, the corrected-bit
++ * count and the CRC flags, all 16 bit. A set flag means a good block.
++ */
++static void fm_rds(struct mt6797_fm *fm)
++{
++	static const u8 good[4] = { 0x08, 0x04, 0x02, 0x01 };
++	unsigned int n = min_t(unsigned int, fm->length, FM_EVENT_MAX);
++	unsigned int g, i;
++	bool any = false;
++
++	for (g = 4; g + 12 <= n; g += 12) {
++		u16 crc = fm->payload[g + 10] | fm->payload[g + 11] << 8;
++		u16 blk_b = fm->payload[g + 2] | fm->payload[g + 3] << 8;
++
++		for (i = 0; i < 4; i++) {
++			struct v4l2_rds_data d = {
++				.lsb = fm->payload[g + 2 * i],
++				.msb = fm->payload[g + 2 * i + 1],
++				.block = i,
++			};
++
++			/* Version B groups carry C' in the third block. */
++			if (i == 2 && (blk_b & BIT(11)))
++				d.block = V4L2_RDS_BLOCK_C_ALT;
++			if (!(crc & good[i]))
++				d.block |= V4L2_RDS_BLOCK_ERROR;
++			kfifo_put(&fm->rds, d);
++		}
++		any = true;
++	}
++	if (any) {
++		fm->rds_seen = jiffies;
++		wake_up_interruptible(&fm->rds_wait);
++	}
++}
++
+ static void fm_deliver(struct mt6797_fm *fm)
+ {
+ 	unsigned long flags;
+ 
+ 	spin_lock_irqsave(&fm->lock, flags);
+ 	fm->events++;
+-	if (fm->tune_armed && fm->opcode == FM_OP_TUNE && fm->length == 1) {
++	if (fm->opcode == FM_OP_RDS) {
++		fm_rds(fm);
++	} else if (fm->tune_armed && fm->opcode == FM_OP_TUNE && fm->length == 1) {
+ 		fm->tune_value = fm->payload[0];
+ 		fm->tune_armed = false;
+ 		complete(&fm->tune_done);
+@@ -232,7 +304,7 @@ static int mt6797_fm_receive(void *context, const u8 *data, unsigned int length)
+ 			}
+ 			break;
+ 		case FM_RX_PAYLOAD:
+-			if (fm->got < FM_REPLY_MAX)
++			if (fm->got < FM_EVENT_MAX)
+ 				fm->payload[fm->got] = b;
+ 			if (++fm->got == fm->length) {
+ 				fm_deliver(fm);
+@@ -252,6 +324,8 @@ static int fm_command(struct mt6797_fm *fm, u8 opcode, const u8 *payload, u16 le
+ 	unsigned long flags;
+ 	int ret;
+ 
++	if (fm->lost)
++		return -EIO;
+ 	if (length > FM_CMD_MAX)
+ 		return -EINVAL;
+ 	buf[0] = FM_PKT_COMMAND;
+@@ -479,8 +553,7 @@ static int mt6797_fm_power_up(struct mt6797_fm *fm)
+ 	bop_write(&b, 0x60, 0x0003);
+ 	bop_write(&b, 0x60, 0x0007);
+ 	bop_write(&b, 0x70, 0x0040);
+-	/* 50 us de-emphasis, Gemian's setting; nothing is tuned here. */
+-	bop_modify(&b, 0x61, 0xefff, 0x0000);
++	/* De-emphasis comes later, from the control. */
+ 	return fm_batch_send(fm, &b);
+ }
+ 
+@@ -586,7 +659,8 @@ static int mt6797_fm_download(struct mt6797_fm *fm, const char *name,
+ 		ret = fm_command(fm, opcode, seg, 2 + n, NULL, 0);
+ 	}
+ out:
+-	dev_info(fm->dev, "%s: %zu bytes: %d\n", name, fw->size, ret);
++	if (ret)
++		dev_err(fm->dev, "%s: %zu bytes: %d\n", name, fw->size, ret);
+ 	release_firmware(fw);
+ 	return ret;
+ }
+@@ -599,7 +673,7 @@ static int mt6797_fm_power_up_dsp(struct mt6797_fm *fm)
+ 	int ret;
+ 
+ 	ret = mt6797_fm_rom_version(fm, &rom);
+-	dev_info(fm->dev, "DSP ROM version %u: %d\n", rom, ret);
++	dev_dbg(fm->dev, "DSP ROM version %u: %d\n", rom, ret);
+ 	/* Version 0 selects the v1 files, the only ones retained. */
+ 	if (!ret && rom != 0)
+ 		ret = -ENODEV;
+@@ -763,8 +837,8 @@ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ 		if (intr & 0x0001)
+ 			ret = 0;
+ 	}
+-	dev_info(fm->dev, "tune: %s mode, parameter %u, acknowledgment length %u, done %u: %d\n",
+-		 fm_tdd(f) ? "TDD" : "FDD", fm_channel_param(f), ack, done, ret);
++	dev_dbg(fm->dev, "tune: %s mode, parameter %u, acknowledgment length %u, done %u: %d\n",
++		fm_tdd(f) ? "TDD" : "FDD", fm_channel_param(f), ack, done, ret);
+ 	if (!ret)
+ 		ret = fm_set_bits(fm, 0x60, 0x0007, 0xfff0);
+ 	if (!ret)
+@@ -772,106 +846,499 @@ static int mt6797_fm_tune(struct mt6797_fm *fm, u16 f)
+ 	return ret;
+ }
+ 
+-static int mt6797_fm_listen(struct mt6797_fm *fm, u16 f)
++static bool fm_spi_hopping(u16 f)
++{
++	unsigned int i;
++
++	for (i = 0; i < ARRAY_SIZE(fm_spi_hopping_channels); i++)
++		if (fm_spi_hopping_channels[i] == f)
++			return true;
++	return false;
++}
++
++static u16 le16_at(const u8 *p, unsigned int i)
+ {
+-	unsigned int t;
+-	u16 val;
+-	int ret, raw;
++	return p[2 * i] | p[2 * i + 1] << 8;
++}
+ 
+-	ret = mt6797_fm_power_up_dsp(fm);
++static int sign_extend(unsigned int v, unsigned int bits)
++{
++	return (int)(v << (32 - bits)) >> (32 - bits);
++}
++
++/*
++ * The firmware's channel-quality report for one channel, judged as the vendor's
++ * soft-mute tune does. The report is a two-byte header, then channel, RSSI,
++ * PAMD, PR, FPAMD, MR, ATDC, PRX, ATDEV, soft-mute gain and delta RSSI.
++ */
++static int mt6797_fm_channel_ok(struct mt6797_fm *fm, u16 f, bool *ok)
++{
++	u8 p[3] = { 1, f & 0xff, f >> 8 }, r[24];
++	const u8 *q = r + 2;
++	int ret, rssi, pamd, mr, atdc;
++	unsigned int prx, atdev, smg;
++
++	ret = fm_set_bits(fm, FM_REG_CHANNEL, fm_channel_param(f) == 2 ? 0x2000 : 0x0000,
++			  0x0fff);
+ 	if (!ret)
+-		ret = mt6797_fm_tune(fm, f);
+-	dev_info(fm->dev, "power-up and tune to %u kHz: %d; logging for %u s\n",
+-		 f * 10, ret, seconds);
+-	for (t = 0; !ret && t < seconds; t++) {
+-		msleep(1000);
+-		ret = fm_reg_read(fm, FM_REG_RSSI, &val);
+-		if (ret)
+-			break;
+-		raw = val & 0x3ff;
+-		if (raw > 511)
+-			raw -= 1024;
+-		dev_info(fm->dev, "t=%u rssi raw=%d dBm=%d stereo=%u\n",
+-			 t + 1, raw, raw * 6 / 16, !!(val & FM_RSSI_STEREO));
+-	}
++		ret = fm_command(fm, FM_OP_CQI, p, sizeof(p), r, sizeof(r));
++	if (ret)
++		return ret;
++	rssi = sign_extend(le16_at(q, 1) & 0x3ff, 10);
++	pamd = sign_extend(le16_at(q, 2) & 0x1ff, 9);
++	mr = sign_extend(le16_at(q, 5) & 0x1ff, 9);
++	atdc = abs((s16)le16_at(q, 6));
++	prx = le16_at(q, 7) & 0xff;
++	atdev = le16_at(q, 8);
++	smg = le16_at(q, 9);
++	*ok = rssi >= FM_TH_RSSI && pamd <= FM_TH_PAMD && atdc <= FM_TH_ATDC &&
++	      mr >= FM_TH_MR && prx >= FM_TH_PRX && atdev >= atdc && smg >= FM_TH_SMG;
++	dev_dbg(fm->dev, "quality %u: ch=%u rssi=%d pamd=%d mr=%d atdc=%d prx=%u atdev=%u smg=%u: %d\n",
++		f, le16_at(q, 0), rssi, pamd, mr, atdc, prx, atdev, smg, *ok);
++	return 0;
++}
++
++/* The receive callback fills the FIFO under the spinlock. */
++static void mt6797_fm_rds_reset(struct mt6797_fm *fm)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&fm->lock, flags);
++	kfifo_reset(&fm->rds);
++	spin_unlock_irqrestore(&fm->lock, flags);
++}
++
++static int mt6797_fm_set_deemphasis(struct mt6797_fm *fm, s32 value)
++{
++	return fm_set_bits(fm, 0x61, value == V4L2_DEEMPHASIS_75_uS ? 0x1000 : 0x0000, 0xefff);
++}
++
++static int mt6797_fm_set_audmode(struct mt6797_fm *fm, u32 audmode)
++{
++	int ret;
++
++	ret = fm_top_write(fm, 0x0050, 0x7);
++	if (!ret)
++		ret = fm_set_bits(fm, 0x75, audmode == V4L2_TUNER_MODE_MONO ? 0x0008 : 0x0000,
++				  0xfff7);
++	if (!ret)
++		ret = fm_top_write(fm, 0x0050, 0xf);
+ 	return ret;
+ }
+ 
+-static int mt6797_fm_check_freq(u16 *f)
++/* Mutex held. Last close or a failed open. */
++static void mt6797_fm_off(struct mt6797_fm *fm)
+ {
+-	unsigned int i;
++	int down = -ECANCELED;
+ 
+-	if (freq_khz < 87500 || freq_khz > 108000 || freq_khz % 100)
+-		return -EINVAL;
+-	*f = freq_khz / 10;
+-	for (i = 0; i < ARRAY_SIZE(fm_spi_hopping_channels); i++)
+-		if (fm_spi_hopping_channels[i] == *f)
+-			return -EOPNOTSUPP;
+-	return seconds <= FM_SECONDS_MAX ? 0 : -EINVAL;
++	if (!fm->lost)
++		down = mt6797_fm_power_down(fm);
++	mt6797_consys_fm_function(false);
++	mt6797_consys_stp_detach(MT6797_STP_TASK_FM);
++	dev_info(fm->dev, "off: power-down %d, events=%u unexpected=%u junk=%u\n",
++		 down, fm->events, fm->unexpected, fm->junk);
++	fm->powered = false;
++	fm->lost = false;
++	fm->state = FM_RX_TYPE;
++	mt6797_fm_rds_reset(fm);
+ }
+ 
+-static void mt6797_fm_identify(struct mt6797_fm *fm)
++/* Mutex held. First open. */
++static int mt6797_fm_on(struct mt6797_fm *fm)
+ {
+-	u16 id[FM_ID_READS] = {}, f = 0;
+-	int ret, down = -ECANCELED, listen = -ECANCELED, i, matched = 0;
++	u16 id = 0;
++	int ret;
+ 
+-	if (freq_khz) {
+-		ret = mt6797_fm_check_freq(&f);
+-		if (ret) {
+-			dev_err(fm->dev, "freq_khz=%u seconds=%u refused: %d\n",
+-				freq_khz, seconds, ret);
+-			return;
+-		}
+-	}
++	fm->bytes = 0;
++	fm->events = 0;
++	fm->unexpected = 0;
++	fm->junk = 0;
+ 	ret = mt6797_consys_stp_attach(MT6797_STP_TASK_FM, mt6797_fm_receive, fm);
++	if (ret)
++		return ret;
++	ret = mt6797_consys_fm_function(true);
+ 	if (ret) {
+-		dev_err(fm->dev, "STP task 1 attach failed: %d\n", ret);
+-		return;
++		mt6797_consys_stp_detach(MT6797_STP_TASK_FM);
++		return ret;
+ 	}
+-	ret = mt6797_consys_fm_function(true);
++	fm->powered = true;
++	ret = mt6797_fm_power_up(fm);
++	if (!ret)
++		ret = fm_reg_read(fm, FM_REG_HWVER, &id);
++	if (!ret && id != FM_HWVER_MT6631)
++		ret = -ENODEV;
++	if (!ret)
++		ret = mt6797_fm_power_up_dsp(fm);
++	if (!ret)	/* RDS buffer start threshold, as the vendor's RDS enable */
++		ret = fm_reg_write(fm, 0x80, 0x0006);
++	if (!ret)
++		ret = v4l2_ctrl_handler_setup(&fm->ctrls);
++	if (!ret)
++		ret = mt6797_fm_set_audmode(fm, fm->audmode);
++	if (!ret)
++		ret = mt6797_fm_tune(fm, fm->f);
++	dev_info(fm->dev, "on: identity %04x: %d\n", id, ret);
+ 	if (ret)
+-		goto detach;
++		mt6797_fm_off(fm);
++	return ret;
++}
+ 
+-	ret = mt6797_fm_power_up(fm);
+-	for (i = 0; !ret && i < FM_ID_READS; i++) {
+-		ret = fm_reg_read(fm, FM_REG_HWVER, &id[i]);
+-		if (!ret && id[i] == FM_HWVER_MT6631)
+-			matched++;
++static int mt6797_fm_open(struct file *file)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	int ret;
++
++	mutex_lock(&fm->mutex);
++	ret = v4l2_fh_open(file);
++	if (!ret && v4l2_fh_is_singular_file(file)) {
++		ret = mt6797_fm_on(fm);
++		if (ret)
++			v4l2_fh_release(file);
++	}
++	mutex_unlock(&fm->mutex);
++	return ret;
++}
++
++static int mt6797_fm_release(struct file *file)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++
++	mutex_lock(&fm->mutex);
++	if (v4l2_fh_is_singular_file(file) && fm->powered)
++		mt6797_fm_off(fm);
++	v4l2_fh_release(file);
++	mutex_unlock(&fm->mutex);
++	return 0;
++}
++
++static ssize_t mt6797_fm_read(struct file *file, char __user *buf, size_t count,
++			      loff_t *ppos)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	unsigned int copied;
++	int ret;
++
++	count -= count % sizeof(struct v4l2_rds_data);
++	if (!count)
++		return 0;
++	if (mutex_lock_interruptible(&fm->mutex))
++		return -ERESTARTSYS;
++	while (kfifo_is_empty(&fm->rds)) {
++		mutex_unlock(&fm->mutex);
++		if (file->f_flags & O_NONBLOCK)
++			return -EWOULDBLOCK;
++		ret = wait_event_interruptible(fm->rds_wait, !kfifo_is_empty(&fm->rds));
++		if (ret)
++			return ret;
++		if (mutex_lock_interruptible(&fm->mutex))
++			return -ERESTARTSYS;
+ 	}
+-	if (!ret && f && matched == FM_ID_READS) {
+-		listen = mt6797_fm_listen(fm, f);
+-		ret = listen;
++	ret = kfifo_to_user(&fm->rds, buf, count, &copied);
++	mutex_unlock(&fm->mutex);
++	return ret ? ret : copied;
++}
++
++static __poll_t mt6797_fm_poll(struct file *file, struct poll_table_struct *wait)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	__poll_t mask = v4l2_ctrl_poll(file, wait);
++
++	poll_wait(file, &fm->rds_wait, wait);
++	if (!kfifo_is_empty(&fm->rds))
++		mask |= EPOLLIN | EPOLLRDNORM;
++	return mask;
++}
++
++static const struct v4l2_file_operations mt6797_fm_fops = {
++	.owner = THIS_MODULE,
++	.open = mt6797_fm_open,
++	.release = mt6797_fm_release,
++	.read = mt6797_fm_read,
++	.poll = mt6797_fm_poll,
++	.unlocked_ioctl = video_ioctl2,
++};
++
++static int mt6797_fm_querycap(struct file *file, void *priv, struct v4l2_capability *cap)
++{
++	strscpy(cap->driver, "radio-mt6797", sizeof(cap->driver));
++	strscpy(cap->card, "MT6797 CONSYS FM receiver", sizeof(cap->card));
++	strscpy(cap->bus_info, "platform:mt6797-fm", sizeof(cap->bus_info));
++	return 0;
++}
++
++#define FM_TUNER_CAPS (V4L2_TUNER_CAP_LOW | V4L2_TUNER_CAP_STEREO | V4L2_TUNER_CAP_RDS | \
++		       V4L2_TUNER_CAP_RDS_BLOCK_IO | V4L2_TUNER_CAP_FREQ_BANDS | \
++		       V4L2_TUNER_CAP_HWSEEK_BOUNDED | V4L2_TUNER_CAP_HWSEEK_WRAP)
++
++static int mt6797_fm_g_tuner(struct file *file, void *priv, struct v4l2_tuner *t)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	u16 val = 0;
++	int dbm;
++
++	if (t->index)
++		return -EINVAL;
++	strscpy(t->name, "FM", sizeof(t->name));
++	t->type = V4L2_TUNER_RADIO;
++	t->capability = FM_TUNER_CAPS;
++	t->rangelow = FM_TO_V4L2(FM_BAND_LOW);
++	t->rangehigh = FM_TO_V4L2(FM_BAND_HIGH);
++	t->audmode = fm->audmode;
++	t->rxsubchans = V4L2_TUNER_SUB_MONO;
++	t->signal = 0;
++	if (fm->powered && !fm_reg_read(fm, FM_REG_RSSI, &val)) {
++		dbm = sign_extend(val & 0x3ff, 10) * 6 / 16;
++		/* -111 dBm, the search threshold, to -51 dBm. */
++		t->signal = clamp(dbm + 111, 0, 60) * 65535 / 60;
++		if (val & FM_RSSI_STEREO)
++			t->rxsubchans = V4L2_TUNER_SUB_STEREO;
++		if (time_before(jiffies, fm->rds_seen + 2 * HZ))
++			t->rxsubchans |= V4L2_TUNER_SUB_RDS;
+ 	}
+-	/* A command without an answer stops FM here; the CONSYS reload recovers. */
++	return 0;
++}
++
++static int mt6797_fm_s_tuner(struct file *file, void *priv, const struct v4l2_tuner *t)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	u32 audmode = t->audmode == V4L2_TUNER_MODE_MONO ? V4L2_TUNER_MODE_MONO :
++			V4L2_TUNER_MODE_STEREO;
++	int ret = 0;
++
++	if (t->index)
++		return -EINVAL;
++	if (fm->powered)
++		ret = mt6797_fm_set_audmode(fm, audmode);
++	if (!ret)
++		fm->audmode = audmode;
++	return ret;
++}
++
++static u16 fm_clamp(u32 v4l2_freq)
++{
++	u32 f = clamp(FM_FROM_V4L2(v4l2_freq), (u32)FM_BAND_LOW, (u32)FM_BAND_HIGH);
++
++	return rounddown(f - FM_BAND_LOW + FM_STEP / 2, FM_STEP) + FM_BAND_LOW;
++}
++
++static int mt6797_fm_g_frequency(struct file *file, void *priv, struct v4l2_frequency *f)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++
++	if (f->tuner)
++		return -EINVAL;
++	f->type = V4L2_TUNER_RADIO;
++	f->frequency = FM_TO_V4L2(fm->f);
++	return 0;
++}
++
++static int mt6797_fm_s_frequency(struct file *file, void *priv,
++				 const struct v4l2_frequency *f)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	u16 ch;
++	int ret = 0;
++
++	if (f->tuner || f->type != V4L2_TUNER_RADIO)
++		return -EINVAL;
++	ch = fm_clamp(f->frequency);
++	/* The 64 MHz common SPI clock switch is not done yet. */
++	if (fm_spi_hopping(ch))
++		return -EINVAL;
++	if (fm->powered) {
++		mt6797_fm_rds_reset(fm);
++		ret = mt6797_fm_tune(fm, ch);
++	}
++	if (!ret)
++		fm->f = ch;
++	return ret;
++}
++
++static int mt6797_fm_s_hw_freq_seek(struct file *file, void *priv,
++				    const struct v4l2_hw_freq_seek *s)
++{
++	struct mt6797_fm *fm = video_drvdata(file);
++	u16 low = FM_BAND_LOW, high = FM_BAND_HIGH, ch = fm->f;
++	unsigned int n;
++	bool ok = false;
++	int ret;
++
++	if (s->tuner || s->type != V4L2_TUNER_RADIO)
++		return -EINVAL;
++	if (file->f_flags & O_NONBLOCK)
++		return -EWOULDBLOCK;
++	if (s->spacing && s->spacing != 100000)
++		return -EINVAL;
++	if (s->rangelow || s->rangehigh) {
++		low = fm_clamp(s->rangelow);
++		high = fm_clamp(s->rangehigh);
++		if (low > high || fm->f < low || fm->f > high)
++			return -EINVAL;
++	}
++	if (!fm->powered)
++		return -EIO;
++
++	for (n = (high - low) / FM_STEP; n; n--) {
++		if (s->seek_upward)
++			ch = ch + FM_STEP > high ? (s->wrap_around ? low : 0) : ch + FM_STEP;
++		else
++			ch = ch < low + FM_STEP ? (s->wrap_around ? high : 0) : ch - FM_STEP;
++		if (!ch)
++			break;
++		if (fm_spi_hopping(ch))
++			continue;
++		if (signal_pending(current)) {
++			ret = -ERESTARTSYS;
++			goto retune;
++		}
++		ret = mt6797_fm_channel_ok(fm, ch, &ok);
++		if (ret)
++			return ret;
++		if (ok)
++			break;
++	}
++	if (ok) {
++		mt6797_fm_rds_reset(fm);
++		ret = mt6797_fm_tune(fm, ch);
++		if (!ret)
++			fm->f = ch;
++		return ret;
++	}
++	ret = -ENODATA;
++retune:
++	/* The quality reports moved the receiver; go back. */
+ 	if (!fm->lost)
+-		down = mt6797_fm_power_down(fm);
+-	mt6797_consys_fm_function(false);
+-	dev_info(fm->dev,
+-		 "identity %04x %04x %04x (%d of %d match), listen %d, result %d, power-down %d\n",
+-		 id[0], id[1], id[2], matched, FM_ID_READS, listen, ret, down);
+-detach:
+-	mt6797_consys_stp_detach(MT6797_STP_TASK_FM);
+-	dev_info(fm->dev, "link: bytes=%u events=%u unexpected=%u junk=%u\n",
+-		 fm->bytes, fm->events, fm->unexpected, fm->junk);
++		mt6797_fm_tune(fm, fm->f);
++	return ret;
++}
++
++static int mt6797_fm_enum_freq_bands(struct file *file, void *priv,
++				     struct v4l2_frequency_band *band)
++{
++	if (band->tuner || band->index)
++		return -EINVAL;
++	band->type = V4L2_TUNER_RADIO;
++	band->capability = FM_TUNER_CAPS;
++	band->rangelow = FM_TO_V4L2(FM_BAND_LOW);
++	band->rangehigh = FM_TO_V4L2(FM_BAND_HIGH);
++	band->modulation = V4L2_BAND_MODULATION_FM;
++	return 0;
+ }
+ 
++static const struct v4l2_ioctl_ops mt6797_fm_ioctl_ops = {
++	.vidioc_querycap = mt6797_fm_querycap,
++	.vidioc_g_tuner = mt6797_fm_g_tuner,
++	.vidioc_s_tuner = mt6797_fm_s_tuner,
++	.vidioc_g_frequency = mt6797_fm_g_frequency,
++	.vidioc_s_frequency = mt6797_fm_s_frequency,
++	.vidioc_s_hw_freq_seek = mt6797_fm_s_hw_freq_seek,
++	.vidioc_enum_freq_bands = mt6797_fm_enum_freq_bands,
++	.vidioc_log_status = v4l2_ctrl_log_status,
++	.vidioc_subscribe_event = v4l2_ctrl_subscribe_event,
++	.vidioc_unsubscribe_event = v4l2_event_unsubscribe,
++};
++
++static const u16 fm_volume[16] = {
++	0x0000, 0x0519, 0x066a, 0x0814, 0x0a2b, 0x0ccd, 0x101d, 0x1449,
++	0x198a, 0x2027, 0x287a, 0x32f5, 0x4027, 0x50c3, 0x65ad, 0x7fff,
++};
++
++/*
++ * Called with the mutex held, from an ioctl or from the power-up. Values are
++ * kept while off and applied by the next power-up.
++ */
++static int mt6797_fm_s_ctrl(struct v4l2_ctrl *ctrl)
++{
++	struct mt6797_fm *fm = container_of(ctrl->handler, struct mt6797_fm, ctrls);
++
++	if (!fm->powered)
++		return 0;
++	switch (ctrl->id) {
++	case V4L2_CID_AUDIO_MUTE:
++		return fm_set_bits(fm, FM_REG_MUTE, ctrl->val ? 0x0003 : 0x0000, 0xfffc);
++	case V4L2_CID_AUDIO_VOLUME:
++		return fm_reg_write(fm, FM_REG_VOLUME, fm_volume[ctrl->val]);
++	case V4L2_CID_TUNE_DEEMPHASIS:
++		return mt6797_fm_set_deemphasis(fm, ctrl->val);
++	}
++	return -EINVAL;
++}
++
++static const struct v4l2_ctrl_ops mt6797_fm_ctrl_ops = {
++	.s_ctrl = mt6797_fm_s_ctrl,
++};
++
+ static int mt6797_fm_probe(struct platform_device *pdev)
+ {
++	struct device *dev = &pdev->dev;
+ 	struct mt6797_fm *fm;
++	int ret;
+ 
+-	fm = devm_kzalloc(&pdev->dev, sizeof(*fm), GFP_KERNEL);
++	fm = devm_kzalloc(dev, sizeof(*fm), GFP_KERNEL);
+ 	if (!fm)
+ 		return -ENOMEM;
+-	fm->dev = &pdev->dev;
++	fm->dev = dev;
+ 	spin_lock_init(&fm->lock);
+ 	init_completion(&fm->done);
+ 	init_completion(&fm->tune_done);
+-	mt6797_fm_identify(fm);
++	INIT_KFIFO(fm->rds);
++	init_waitqueue_head(&fm->rds_wait);
++	mutex_init(&fm->mutex);
++	fm->f = FM_BAND_LOW;
++	fm->audmode = V4L2_TUNER_MODE_STEREO;
++
++	ret = v4l2_device_register(dev, &fm->v4l2_dev);
++	if (ret)
++		return ret;
++	v4l2_ctrl_handler_init(&fm->ctrls, 3);
++	v4l2_ctrl_new_std(&fm->ctrls, &mt6797_fm_ctrl_ops, V4L2_CID_AUDIO_MUTE, 0, 1, 1, 0);
++	v4l2_ctrl_new_std(&fm->ctrls, &mt6797_fm_ctrl_ops, V4L2_CID_AUDIO_VOLUME, 0, 15, 1, 15);
++	v4l2_ctrl_new_std_menu(&fm->ctrls, &mt6797_fm_ctrl_ops, V4L2_CID_TUNE_DEEMPHASIS,
++			       V4L2_DEEMPHASIS_75_uS, BIT(V4L2_DEEMPHASIS_DISABLED),
++			       V4L2_DEEMPHASIS_75_uS);
++	ret = fm->ctrls.error;
++	if (ret)
++		goto err_ctrls;
++	fm->v4l2_dev.ctrl_handler = &fm->ctrls;
++
++	strscpy(fm->vdev.name, "mt6797-fm", sizeof(fm->vdev.name));
++	fm->vdev.v4l2_dev = &fm->v4l2_dev;
++	fm->vdev.fops = &mt6797_fm_fops;
++	fm->vdev.ioctl_ops = &mt6797_fm_ioctl_ops;
++	fm->vdev.release = video_device_release_empty;
++	fm->vdev.lock = &fm->mutex;
++	fm->vdev.device_caps = V4L2_CAP_TUNER | V4L2_CAP_RADIO | V4L2_CAP_HW_FREQ_SEEK |
++			       V4L2_CAP_RDS_CAPTURE | V4L2_CAP_READWRITE;
++	video_set_drvdata(&fm->vdev, fm);
++	platform_set_drvdata(pdev, fm);
++	ret = video_register_device(&fm->vdev, VFL_TYPE_RADIO, -1);
++	if (ret)
++		goto err_ctrls;
++	dev_info(dev, "registered %s\n", video_device_node_name(&fm->vdev));
+ 	return 0;
++
++err_ctrls:
++	v4l2_ctrl_handler_free(&fm->ctrls);
++	v4l2_device_unregister(&fm->v4l2_dev);
++	return ret;
++}
++
++static void mt6797_fm_remove(struct platform_device *pdev)
++{
++	struct mt6797_fm *fm = platform_get_drvdata(pdev);
++
++	video_unregister_device(&fm->vdev);
++	mutex_lock(&fm->mutex);
++	if (fm->powered)
++		mt6797_fm_off(fm);
++	mutex_unlock(&fm->mutex);
++	v4l2_ctrl_handler_free(&fm->ctrls);
++	v4l2_device_unregister(&fm->v4l2_dev);
+ }
+ 
+ static struct platform_driver mt6797_fm_driver = {
+ 	.probe = mt6797_fm_probe,
++	.remove = mt6797_fm_remove,
+ 	.driver = {
+ 		.name = "mt6797-fm",
+ 	},
+-- 
+2.43.0
+
