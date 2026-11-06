@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 10:28:32 -0500
+Subject: [PATCH] usb: musb: mediatek: drop the transceiver before its device
+ goes
+
+The glue registers a generic USB PHY device, takes it as its transceiver
+with devm_usb_get_phy(), and unregisters the device by hand in remove and
+on probe errors. The device's unbind frees the usb_phy, and devres then
+puts the transceiver from freed memory. Unloading the module on a Gemini
+PDA oopsed in usb_put_phy(), called from devm_usb_phy_release() during
+driver detach.
+
+Take the transceiver with usb_get_phy() and put it before unregistering
+the generic PHY device, in remove and on the probe error paths after it.
+---
+ drivers/usb/musb/mediatek.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/musb/mediatek.c b/drivers/usb/musb/mediatek.c
+index 152d8c0b8..9b0cab801 100644
+--- a/drivers/usb/musb/mediatek.c
++++ b/drivers/usb/musb/mediatek.c
+@@ -517,7 +517,11 @@ static int mtk_musb_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, PTR_ERR(glue->usb_phy),
+ 				"fail to registering usb-phy\n");
+ 
+-	glue->xceiv = devm_usb_get_phy(dev, USB_PHY_TYPE_USB2);
++	/*
++	 * Not devm: the reference must go before the generic PHY device it
++	 * points into is unregistered, which remove does by hand.
++	 */
++	glue->xceiv = usb_get_phy(USB_PHY_TYPE_USB2);
+ 	if (IS_ERR(glue->xceiv)) {
+ 		ret = PTR_ERR(glue->xceiv);
+ 		dev_err(dev, "fail to getting usb-phy %d\n", ret);
+@@ -555,6 +559,7 @@ static int mtk_musb_probe(struct platform_device *pdev)
+ err_enable_clk:
+ 	pm_runtime_put_sync(dev);
+ 	pm_runtime_disable(dev);
++	usb_put_phy(glue->xceiv);
+ err_unregister_usb_phy:
+ 	usb_phy_generic_unregister(glue->usb_phy);
+ 	return ret;
+@@ -566,6 +571,7 @@ static void mtk_musb_remove(struct platform_device *pdev)
+ 	struct platform_device *usb_phy = glue->usb_phy;
+ 
+ 	platform_device_unregister(glue->musb_pdev);
++	usb_put_phy(glue->xceiv);
+ 	usb_phy_generic_unregister(usb_phy);
+ }
+ 
+-- 
+2.43.0
+

@@ -1187,3 +1187,4 @@ proposals/0603-arm64-dts-mediatek-gemini-station-do-not-hold-the-I2.patch
 proposals/0604-arm64-dts-mediatek-mt6797-end-the-USB11-T-PHY-s-shar.patch
 proposals/0605-usb-typec-fusb301-update-the-port-only-when-the-chip.patch
 proposals/0606-arm64-dts-mediatek-gemini-station-run-the-microSD-sl.patch
+proposals/0607-usb-musb-mediatek-drop-the-transceiver-before-its-de.patch

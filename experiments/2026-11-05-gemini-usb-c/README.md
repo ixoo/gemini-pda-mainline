@@ -519,7 +519,32 @@ updates the class only when the status or type register changes. Both are
 module-only: the station kernel has no module signing or modversions, and
 the rebuilt modules carry its vermagic. So U3 can retry on the running
 station with `musb_hdrc.ko`, `mediatek.ko` and `fusb301.ko` from a package
-of the new commit, after `rmmod` of the old ones. U4 is not run. Add to
+of the new commit, after `rmmod` of the old ones.
+
+**U3 module swap stopped: `rmmod mediatek` oopsed, same boot `9207cc89`, now
+tainted D.** The new modules came from a package of `799bc8c4`, with
+vermagic matching. `rmmod mediatek` hit a NULL dereference in
+`usb_put_phy()` from `devm_usb_phy_release()` during driver detach.
+`mediatek` and `musb_hdrc` cannot be unloaded until a reboot. The new
+`fusb301` loaded. It now binds the right chip first, so the right port is
+`port0`, and 0605 worked: no `change` events after the bind. Throughout,
+REG03 was `0x0a` and REG0C `0x00`, all three USB regulators were off,
+GPIO72/94 were low, the left port stayed the SSH device, and the guard ran.
+Evidence is kept privately under `artifacts/station-work-61/boot-1/`.
+
+*Cause:* an ordering bug in the upstream MediaTek MUSB glue, not in this
+board's changes. `mtk_musb_probe()` takes the generic PHY with
+`devm_usb_get_phy()`, and `mtk_musb_remove()` (like the probe error paths)
+unregisters the generic PHY device by hand. Unbinding that device frees the
+`usb_phy`, and devres then puts it from freed memory.
+[0607](../../patches/proposals/0607-usb-musb-mediatek-drop-the-transceiver-before-its-de.patch)
+takes it with `usb_get_phy()` and puts it before the unregister. It builds
+clean at `W=1`; not run.
+
+*Next:* a fresh boot is needed. The custodian proposes batching it with the
+microSD T3 image. U3 then loads the modules fresh; with 0607 in the image,
+unloading `mediatek` is safe too, but the only unload in the stop path
+remains `rmmod fusb301`. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
