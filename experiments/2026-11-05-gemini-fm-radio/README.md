@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio is designed, not written |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) and F5, the first listening test, are predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -882,13 +882,90 @@ front end. So the MT6797 work is a port of an existing mainline pattern:
 
 The AFE, the card and the codec are modules on the station
 (`CONFIG_SND_SOC_MT6797=m`, `_MT6351=m`), so a first audio test needs no
-boot. The audio session owns these files; this work waits for its answer
-about anything in flight.
+boot. The audio session confirmed nothing was in flight in these files and
+left them to this work until the FM audio patches land.
 
 The first audio test would open the hostless FM front end with the radio
 tuned and listen on the headphones, which are the antenna as well. That makes
 it the first FM test that needs the owner's ears, and also the first that can
 answer the stereo question.
+
+## FM audio: implementation (2026-11-05)
+
+Four patches, compile-checked only:
+
+- [0591](../../patches/proposals/0591-ASoC-mediatek-return-no-position-for-a-hostless-fron.patch):
+  the shared `mtk_afe_pcm_pointer()` indexed the memory-interface array by the
+  CPU DAI id, which for a hostless front end lies past its end, so a status
+  query or a write on any hostless stream read out of bounds. It now returns
+  position 0 for such an id.
+- [0592](../../patches/proposals/0592-ASoC-mediatek-mt6797-add-the-CONSYS-I2S-input.patch):
+  a `CONNSYS_I2S` capture DAI on the second I2S input, with the vendor's
+  register sequence from the design table: 16-bit I2S slave from the CONSYS
+  pad, the I2S block at the output rate, the ASRC settings and enable, and
+  the `PDN_I2S` clock as a supply. Stop bypasses the ASRC again.
+- [0593](../../patches/proposals/0593-ASoC-mediatek-mt6797-add-a-hostless-FM-path-to-the-d.patch):
+  a "Hostless FM" front end and `I2S0_CH1`/`I2S0_CH2` switches on the
+  `ADDA_DL_CH1`/`CH2` mixers (`AFE_CONN3` D0, `AFE_CONN4` D1). This skips the
+  vendor's hardware gain 1, which only ramps the level; the receiver's volume
+  control sets it instead. Smallest path first; the gain can follow if needed.
+- [0594](../../patches/proposals/0594-ASoC-mediatek-mt6797-mt6351-link-the-hostless-FM-pat.patch):
+  the `Hostless_FM` front end and the `CONNSYS_I2S` back end in the
+  `mt6797-mt6351` card, after the existing links; the Primary Codec link and
+  its jack setup are untouched, as the audio session asked.
+
+Checks: every changed object builds with `W=1` and no warning in the dev VM,
+and `checkpatch --strict` reports only the MAINTAINERS note and an alignment
+that matches the file's existing link definitions. The patches apply after
+0590 to the station tree.
+
+Starting the path needs the front end in both directions with no data moved,
+which `aplay` cannot do: it would wait for periods that never come.
+[`fm-listen.c`](fm-listen.c) opens the radio, sets its volume and tunes, then
+sets up and starts the `Hostless_FM` capture and playback streams with raw
+ALSA ioctls (48 kHz, 16 bit, stereo, stop threshold above the boundary so
+playback starts without data), prints the tuner's signal and stereo flag
+every 5 s, then stops both and closes. Static aarch64 build `d0b66f4e…`,
+kept under ignored `artifacts/fm/`.
+
+## Test F5: first FM sound on the headphones (predeclared, not yet admitted)
+
+**Question:** does FM audio reach the headphones through the new path, and
+in stereo?
+
+**Effects:** reload of the audio modules (`mt6797-mt6351`,
+`snd-soc-mt6797-afe`, `snd-soc-mtk-common`) from the same package; two new
+mixer switches on; the radio opened and tuned as in F3; the AFE's second I2S
+input and ASRC on, the ADDA downlink and the headphone output powered by the
+codec as for any playback. Speakers stay off (`Speaker Switch` off), the
+headphone gain stays at its minimum, -10 dB, and the receiver's volume
+starts at 8 of 15, about -14 dB. Receive only; no calibration, NVRAM or
+partition write.
+
+**Hearing safety:** FM is full-scale programme audio, much louder than the
+-40 dBFS tone of the audio record. The owner holds the earbuds near, not
+in, the ears when it starts, and the run stops at once if it is loud or
+harsh.
+
+**Procedure,** one run, no retry:
+
+1. Radio module loaded and the FM files in place, as in F3; headset plugged in.
+2. Unload the card, AFE and common modules, then load the new ones in the
+   same order as `audio-start`; set `audio-start`'s mixer list again.
+3. `amixer cset name='ADDA_DL_CH1 I2S0_CH1' on` and
+   `name='ADDA_DL_CH2 I2S0_CH2' on`.
+4. `fm-listen /dev/radio0 <station kHz> 8 60 <private file>`.
+5. The owner says what they hear: nothing, noise, the station; distorted or
+   clean; mono or stereo; too loud or too quiet.
+6. Switches off again, the usual unload, CONSYS and `mac` reload, pings, taint.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| The station, clean | the FM audio path works | stereo by ear; then levels and defaults |
+| Silence, both streams started | no I2S data, or the ASRC or route wrong | plan a register read of `AFE_I2S_CON`, `AFE_ASRC_CON0`, `AFE_CONN3`/`4` as its own test; no blind retry |
+| Noise or wrong pitch | rate or format mismatch | check the ASRC rate and the I2S word length |
+| A stream fails to start | front-end or back-end setup | `dmesg` decides |
+| Warning or Oops | driver fault | stop; preserve `dmesg`; reload |
 
 ## Follow-up
 

@@ -1171,3 +1171,7 @@ proposals/0587-media-radio-mt6797-tune-channels-with-the-TDD-mode-o.patch
 proposals/0588-media-radio-mt6797-finish-the-vendor-power-up-before.patch
 proposals/0589-media-radio-mt6797-make-it-a-V4L2-radio-receiver.patch
 proposals/0590-media-radio-mt6797-log-the-stereo-registers-and-chan.patch
+proposals/0591-ASoC-mediatek-return-no-position-for-a-hostless-fron.patch
+proposals/0592-ASoC-mediatek-mt6797-add-the-CONSYS-I2S-input.patch
+proposals/0593-ASoC-mediatek-mt6797-add-a-hostless-FM-path-to-the-d.patch
+proposals/0594-ASoC-mediatek-mt6797-mt6351-link-the-hostless-FM-pat.patch

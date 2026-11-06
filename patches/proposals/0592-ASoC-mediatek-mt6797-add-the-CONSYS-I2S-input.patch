@@ -1,0 +1,222 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 20:47:07 -0500
+Subject: [PATCH] ASoC: mediatek: mt6797: add the CONSYS I2S input
+
+The FM receiver in the connectivity subsystem sends its audio as a 32
+kHz, 16-bit I2S master into the AFE's second I2S input. The vendor
+kernel takes it as a slave from the CONSYS pad and converts it with the
+I2S ASRC to 44.1 or 48 kHz.
+
+Add a CONNSYS_I2S capture DAI that does the same: AFE_I2S_CON as a
+16-bit I2S slave from the CONSYS pad, the I2S block at the output rate
+in AFE_DAC_CON1, and the vendor's ASRC settings, which are the constants
+mainline MT8186 uses for its CONSYS I2S. The input clock (AUDIO_TOP_CON0
+PDN_I2S) is a supply of the capture stream. Stopping bypasses the ASRC
+again, as the vendor does.
+
+The fields of AFE_I2S_CON, AFE_ASRC_CON0 and AFE_ASRC_CON13 are defined
+in the new file as the vendor programs them; mt6797-reg.h does not name
+them.
+---
+ sound/soc/mediatek/mt6797/Makefile            |   3 +-
+ sound/soc/mediatek/mt6797/mt6797-afe-common.h |   2 +
+ sound/soc/mediatek/mt6797/mt6797-afe-pcm.c    |   1 +
+ sound/soc/mediatek/mt6797/mt6797-dai-i2s.c    | 141 ++++++++++++++++++
+ 4 files changed, 146 insertions(+), 1 deletion(-)
+ create mode 100644 sound/soc/mediatek/mt6797/mt6797-dai-i2s.c
+
+diff --git a/sound/soc/mediatek/mt6797/Makefile b/sound/soc/mediatek/mt6797/Makefile
+index 76f09ca22..6e58f412b 100644
+--- a/sound/soc/mediatek/mt6797/Makefile
++++ b/sound/soc/mediatek/mt6797/Makefile
+@@ -6,7 +6,8 @@ snd-soc-mt6797-afe-y := \
+ 	mt6797-afe-clk.o \
+ 	mt6797-dai-pcm.o \
+ 	mt6797-dai-hostless.o \
+-	mt6797-dai-adda.o
++	mt6797-dai-adda.o \
++	mt6797-dai-i2s.o
+ 
+ obj-$(CONFIG_SND_SOC_MT6797) += snd-soc-mt6797-afe.o
+ 
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-common.h b/sound/soc/mediatek/mt6797/mt6797-afe-common.h
+index 68bd7d8fc..28149c037 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-common.h
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-common.h
+@@ -29,6 +29,7 @@ enum {
+ 	MT6797_DAI_PCM_2,
+ 	MT6797_DAI_HOSTLESS_LPBK,
+ 	MT6797_DAI_HOSTLESS_SPEECH,
++	MT6797_DAI_CONNSYS_I2S,
+ 	MT6797_DAI_NUM,
+ };
+ 
+@@ -57,4 +58,5 @@ unsigned int mt6797_rate_transform(struct device *dev,
+ int mt6797_dai_adda_register(struct mtk_base_afe *afe);
+ int mt6797_dai_pcm_register(struct mtk_base_afe *afe);
+ int mt6797_dai_hostless_register(struct mtk_base_afe *afe);
++int mt6797_dai_i2s_register(struct mtk_base_afe *afe);
+ #endif
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+index f62a32f2f..7446d4f3f 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+@@ -729,6 +729,7 @@ static const dai_register_cb dai_register_cbs[] = {
+ 	mt6797_dai_adda_register,
+ 	mt6797_dai_pcm_register,
+ 	mt6797_dai_hostless_register,
++	mt6797_dai_i2s_register,
+ 	mt6797_dai_memif_register,
+ };
+ 
+diff --git a/sound/soc/mediatek/mt6797/mt6797-dai-i2s.c b/sound/soc/mediatek/mt6797/mt6797-dai-i2s.c
+new file mode 100644
+index 000000000..e55b0897f
+--- /dev/null
++++ b/sound/soc/mediatek/mt6797/mt6797-dai-i2s.c
+@@ -0,0 +1,141 @@
++// SPDX-License-Identifier: GPL-2.0
++//
++// MediaTek ALSA SoC Audio DAI: the second I2S input, fed by CONSYS
++//
++// The CONSYS FM receiver drives an I2S as master at 32 kHz, 16 bit. The AFE
++// takes it on its second I2S input as a slave and converts it with the I2S
++// ASRC to the rate of the rest of the path, 44.1 or 48 kHz.
++
++#include <linux/regmap.h>
++#include <sound/pcm_params.h>
++
++#include "mt6797-afe-common.h"
++#include "mt6797-reg.h"
++
++/*
++ * Fields as the vendor kernel programs them; mt6797-reg.h does not name them.
++ * AFE_I2S_CON is the second I2S input.
++ */
++#define I2S_IN_EN		BIT(0)
++#define I2S_IN_SLAVE		BIT(2)
++#define I2S_IN_FMT_I2S		BIT(3)
++/* WLEN (D1) 0 is 16 bit; LRCK inversion (D5) 0; pad select (D28) 0 is CONSYS. */
++#define I2S_ASRC_BYPASS		BIT(30)		/* in AFE_CONN4 */
++#define ASRC_ON			(BIT(6) | BIT(0))	/* AFE_ASRC_CON0 */
++#define ASRC_ASM_ON		BIT(0)
++#define ASRC_BUSY		GENMASK(5, 4)
++#define ASRC_MONO		BIT(16)		/* AFE_ASRC_CON13 */
++
++static const struct snd_soc_dapm_widget mtk_dai_i2s_widgets[] = {
++	/* The input clock; needed when the I2S input is a slave. */
++	SND_SOC_DAPM_SUPPLY("I2S_IN_CLK", AUDIO_TOP_CON0, PDN_I2S_SFT, 1, NULL, 0),
++};
++
++static const struct snd_soc_dapm_route mtk_dai_i2s_routes[] = {
++	{"Connsys I2S", NULL, "I2S_IN_CLK"},
++};
++
++static int mtk_dai_connsys_i2s_hw_params(struct snd_pcm_substream *substream,
++					 struct snd_pcm_hw_params *params,
++					 struct snd_soc_dai *dai)
++{
++	struct mtk_base_afe *afe = snd_soc_dai_get_drvdata(dai);
++	unsigned int rate = params_rate(params);
++	unsigned int rate_reg = mt6797_general_rate_transform(afe->dev, rate);
++
++	dev_dbg(afe->dev, "%s(), rate %u\n", __func__, rate);
++
++	/* Slave, I2S format, 16 bit, no LRCK inversion, from the CONSYS pad. */
++	regmap_update_bits(afe->regmap, AFE_I2S_CON, GENMASK(31, 1),
++			   I2S_IN_FMT_I2S | I2S_IN_SLAVE);
++
++	/* The I2S block runs at the ASRC's output rate. */
++	regmap_update_bits(afe->regmap, AFE_DAC_CON1, I2S_MODE_MASK_SFT,
++			   rate_reg << I2S_MODE_SFT);
++
++	/* Use the ASRC, 32 kHz in. */
++	regmap_update_bits(afe->regmap, AFE_CONN4, I2S_ASRC_BYPASS, 0);
++	regmap_write(afe->regmap, AFE_ASRC_CON14, rate == 44100 ? 0x001b9000 : 0x001e0000);
++	regmap_write(afe->regmap, AFE_ASRC_CON15, 0x00140000);
++	regmap_write(afe->regmap, AFE_ASRC_CON16, 0x00ff5987);
++	regmap_write(afe->regmap, AFE_ASRC_CON17, 0x00007ef4);
++	regmap_write(afe->regmap, AFE_ASRC_CON16, 0x00ff5986);
++	regmap_write(afe->regmap, AFE_ASRC_CON16, 0x00ff5987);
++	/* Stereo. */
++	regmap_update_bits(afe->regmap, AFE_ASRC_CON13, ASRC_MONO, 0);
++	/* Calibration. */
++	regmap_write(afe->regmap, AFE_ASRC_CON20, 0x00036000);
++	regmap_write(afe->regmap, AFE_ASRC_CON21, 0x0002fc00);
++
++	return 0;
++}
++
++static int mtk_dai_connsys_i2s_trigger(struct snd_pcm_substream *substream,
++				       int cmd, struct snd_soc_dai *dai)
++{
++	struct mtk_base_afe *afe = snd_soc_dai_get_drvdata(dai);
++	unsigned int asrc;
++
++	dev_dbg(afe->dev, "%s(), cmd %d\n", __func__, cmd);
++
++	switch (cmd) {
++	case SNDRV_PCM_TRIGGER_START:
++	case SNDRV_PCM_TRIGGER_RESUME:
++		regmap_update_bits(afe->regmap, AFE_ASRC_CON0, ASRC_ON, ASRC_ON);
++		regmap_update_bits(afe->regmap, AFE_I2S_CON, I2S_IN_EN, I2S_IN_EN);
++		return 0;
++	case SNDRV_PCM_TRIGGER_STOP:
++	case SNDRV_PCM_TRIGGER_SUSPEND:
++		/* As the vendor: D0 goes off only while D5:4 are set. */
++		regmap_read(afe->regmap, AFE_ASRC_CON0, &asrc);
++		regmap_update_bits(afe->regmap, AFE_ASRC_CON0,
++				   BIT(6) | ((asrc & ASRC_BUSY) ? ASRC_ASM_ON : 0), 0);
++		regmap_update_bits(afe->regmap, AFE_CONN4, I2S_ASRC_BYPASS,
++				   I2S_ASRC_BYPASS);
++		regmap_update_bits(afe->regmap, AFE_I2S_CON, I2S_IN_EN, 0);
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static const struct snd_soc_dai_ops mtk_dai_connsys_i2s_ops = {
++	.hw_params = mtk_dai_connsys_i2s_hw_params,
++	.trigger = mtk_dai_connsys_i2s_trigger,
++};
++
++static struct snd_soc_dai_driver mtk_dai_i2s_driver[] = {
++	{
++		.name = "CONNSYS_I2S",
++		.id = MT6797_DAI_CONNSYS_I2S,
++		.capture = {
++			.stream_name = "Connsys I2S",
++			.channels_min = 1,
++			.channels_max = 2,
++			.rates = SNDRV_PCM_RATE_44100 | SNDRV_PCM_RATE_48000,
++			.formats = SNDRV_PCM_FMTBIT_S16_LE,
++		},
++		.ops = &mtk_dai_connsys_i2s_ops,
++	},
++};
++
++int mt6797_dai_i2s_register(struct mtk_base_afe *afe)
++{
++	struct mtk_base_afe_dai *dai;
++
++	dai = devm_kzalloc(afe->dev, sizeof(*dai), GFP_KERNEL);
++	if (!dai)
++		return -ENOMEM;
++
++	list_add(&dai->list, &afe->sub_dais);
++
++	dai->dai_drivers = mtk_dai_i2s_driver;
++	dai->num_dai_drivers = ARRAY_SIZE(mtk_dai_i2s_driver);
++
++	dai->dapm_widgets = mtk_dai_i2s_widgets;
++	dai->num_dapm_widgets = ARRAY_SIZE(mtk_dai_i2s_widgets);
++	dai->dapm_routes = mtk_dai_i2s_routes;
++	dai->num_dapm_routes = ARRAY_SIZE(mtk_dai_i2s_routes);
++
++	return 0;
++}
+-- 
+2.43.0
+

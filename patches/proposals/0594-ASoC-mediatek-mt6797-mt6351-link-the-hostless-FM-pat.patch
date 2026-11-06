@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 20:47:08 -0500
+Subject: [PATCH] ASoC: mediatek: mt6797-mt6351: link the hostless FM path
+
+Add the Hostless_FM front end and the CONNSYS_I2S back end to the card,
+after the existing links, so the Primary Codec link and its jack setup
+stay as they are.
+---
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c | 26 +++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index 4622c46ab..2922f01d9 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -102,6 +102,16 @@ SND_SOC_DAILINK_DEFS(pcm2,
+ 	DAILINK_COMP_ARRAY(COMP_DUMMY()),
+ 	DAILINK_COMP_ARRAY(COMP_EMPTY()));
+ 
++SND_SOC_DAILINK_DEFS(hostless_fm,
++	DAILINK_COMP_ARRAY(COMP_CPU("Hostless FM DAI")),
++	DAILINK_COMP_ARRAY(COMP_DUMMY()),
++	DAILINK_COMP_ARRAY(COMP_EMPTY()));
++
++SND_SOC_DAILINK_DEFS(connsys_i2s,
++	DAILINK_COMP_ARRAY(COMP_CPU("CONNSYS_I2S")),
++	DAILINK_COMP_ARRAY(COMP_DUMMY()),
++	DAILINK_COMP_ARRAY(COMP_EMPTY()));
++
+ static struct snd_soc_dai_link mt6797_mt6351_dai_links[] = {
+ 	/* FE */
+ 	{
+@@ -185,6 +195,15 @@ static struct snd_soc_dai_link mt6797_mt6351_dai_links[] = {
+ 		.ignore_suspend = 1,
+ 		SND_SOC_DAILINK_REG(hostless_speech),
+ 	},
++	{
++		.name = "Hostless_FM",
++		.stream_name = "Hostless_FM",
++		.trigger = {SND_SOC_DPCM_TRIGGER_PRE,
++			    SND_SOC_DPCM_TRIGGER_PRE},
++		.dynamic = 1,
++		.ignore_suspend = 1,
++		SND_SOC_DAILINK_REG(hostless_fm),
++	},
+ 	/* BE */
+ 	{
+ 		.name = "Primary Codec",
+@@ -205,6 +224,13 @@ static struct snd_soc_dai_link mt6797_mt6351_dai_links[] = {
+ 		.ignore_suspend = 1,
+ 		SND_SOC_DAILINK_REG(pcm2),
+ 	},
++	{
++		.name = "CONNSYS_I2S",
++		.no_pcm = 1,
++		.capture_only = 1,
++		.ignore_suspend = 1,
++		SND_SOC_DAILINK_REG(connsys_i2s),
++	},
+ };
+ 
+ static struct snd_soc_card mt6797_mt6351_card = {
+-- 
+2.43.0
+

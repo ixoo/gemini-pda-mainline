@@ -1,0 +1,52 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 20:47:07 -0500
+Subject: [PATCH] ASoC: mediatek: return no position for a hostless front
+ end
+
+mtk_afe_pcm_pointer() indexes afe->memif by the CPU DAI id. A hostless
+front end's DAI has an id past the memory interfaces, since it moves no
+data, so any pointer query on such a stream, a status ioctl or a write,
+reads past the end of the array and then dereferences what it finds.
+MT6797, MT8183, MT8186 and others register hostless front ends.
+
+Return position 0 for an id outside the memory interfaces.
+---
+ .../mediatek/common/mtk-afe-platform-driver.c    | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/sound/soc/mediatek/common/mtk-afe-platform-driver.c b/sound/soc/mediatek/common/mtk-afe-platform-driver.c
+index f2b39fc9e..c0111a9ea 100644
+--- a/sound/soc/mediatek/common/mtk-afe-platform-driver.c
++++ b/sound/soc/mediatek/common/mtk-afe-platform-driver.c
+@@ -83,15 +83,23 @@ snd_pcm_uframes_t mtk_afe_pcm_pointer(struct snd_soc_component *component,
+ {
+ 	struct snd_soc_pcm_runtime *rtd = snd_soc_substream_to_rtd(substream);
+ 	struct mtk_base_afe *afe = snd_soc_component_get_drvdata(component);
+-	struct mtk_base_afe_memif *memif = &afe->memif[snd_soc_rtd_to_cpu(rtd, 0)->id];
+-	const struct mtk_base_memif_data *memif_data = memif->data;
++	int id = snd_soc_rtd_to_cpu(rtd, 0)->id;
++	struct mtk_base_afe_memif *memif;
++	const struct mtk_base_memif_data *memif_data;
+ 	struct regmap *regmap = afe->regmap;
+ 	struct device *dev = afe->dev;
+-	int reg_ofs_base = memif_data->reg_ofs_base;
+-	int reg_ofs_cur = memif_data->reg_ofs_cur;
++	int reg_ofs_base, reg_ofs_cur;
+ 	unsigned int hw_ptr = 0, hw_base = 0;
+ 	int ret, pcm_ptr_bytes;
+ 
++	/* A hostless front end moves no data and has no memory interface. */
++	if (id < 0 || id >= afe->memif_size)
++		return 0;
++	memif = &afe->memif[id];
++	memif_data = memif->data;
++	reg_ofs_base = memif_data->reg_ofs_base;
++	reg_ofs_cur = memif_data->reg_ofs_cur;
++
+ 	ret = regmap_read(regmap, reg_ofs_cur, &hw_ptr);
+ 	if (ret || hw_ptr == 0) {
+ 		dev_err(dev, "%s hw_ptr err\n", __func__);
+-- 
+2.43.0
+
