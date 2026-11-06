@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `completed`: microSD works at SD high speed (48 MHz, about 22.9 MB/s reads, a 64 MiB write read back intact), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
+| Status | `completed`: microSD works at UHS SDR50 (1.8 V, 96 MHz, about 43 MiB/s reads, a 64 MiB write read back intact) on two cards, with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -588,7 +588,7 @@ error on `mmc1` after tuning. No retry, one write at most.
 | SDR50, but CRC errors or a hash mismatch | Stop. Same next steps; revert 0609 meanwhile |
 | SDR50, rate not raised | Record it; the DMA or request path bounds it |
 
-### T4 result, reads (2026-11-06)
+### T4 result (2026-11-06)
 
 Custodian run on station-work-64: composed from package `e46c9f38…` (`6488e6f8`),
 boot2 `54bab6bc…`, boot `294ae5a1`, taint 0. The image also carries the usb-c
@@ -623,9 +623,30 @@ reference and continue on the same boot. T4's write step, a fresh write with has
 and readback at SDR50, carries the integrity check instead. Two reads agreeing and no
 transfer error support this, but don't prove the content matches a 3.3 V read.
 
-So far: both cards switch to 1.8 V and run SDR50 at 96 MHz. Reads are about 1.9 times
-SD high speed's 22.9 MB/s. Neither the vendor's VMC +40 mV trim nor its drive change
-was needed for this. Steps 4 and 5 are pending.
+**Write (step 4).** The owner approved it ("Yes, write"). SDR50 was confirmed before
+mounting and the host check passed; the card was mounted read-write as vfat.
+
+- 64 MiB from `/dev/urandom` plus `sync`: 8.98 s (2.02 s user), against 8.79 s at SD
+  high speed. The write is bound by the card, not the bus.
+- After `umount`, `drop_caches` and a read-only mount, the readback took 1.98 s,
+  against 3.09 s at SD high speed, and its hash matched.
+- The file was deleted and the card unmounted.
+- No error, CRC, timeout, tuning, FAT or warning line.
+
+**Reinsert (step 5).** The card was logged as removed at 535.61 s and back as a UHS-I
+SDR50 SDHC card at 539.26 s. `ios` at 95999969 Hz, 1.80 V; `vmc` at 1800000. No
+error.
+
+**Conclusion.** The hypothesis held on one boot of one unit with two cards.
+
+- Both cards switch to 1.8 V and tune, then run SDR50 at 96 MHz.
+- Reads run at about 43 MiB/s, 1.9 times SD high speed.
+- A 64 MiB write reads back intact.
+- A fresh insert returns to SDR50.
+- Neither the vendor's VMC +40 mV trim nor its drive change was needed.
+
+0609 stays. The 16 GB card's first 1 GiB changed again with step 4's file, so no
+reference hash is kept for it.
 
 ## Follow-up
 
