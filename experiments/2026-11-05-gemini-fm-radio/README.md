@@ -439,7 +439,18 @@ more patches:
   and parameter. The owner's first station becomes tunable, so it can be used.
 
 Checks: each patch builds with `W=1` and passes `checkpatch --strict` in the
-dev VM, and both apply to the station tree. Not built on Buildbox yet, not run.
+dev VM, and both apply to the station tree. Buildbox build `f7c4f645`, profile
+`mt6797-a53-station-a72`, `BUILD_MODULES=1`, 758 patches, package `4f2e3383…`,
+config `6b86c0b3…`, `Image.gz` `5229086f…`; validation passed, and the copy
+here checks against its `SHA256SUMS`. `radio-mt6797.ko` `9f5f93e8…`,
+`mt6797-consys.ko` `1797e440…` (unchanged since F1). Not run.
+
+**Needs a boot,** unlike F2: the vibrator's 0585 changed the station config and
+`Image.gz` after F2. That image is the vibrator V1 one (its package `445e8b8d…`
+has the same `Image.gz`, config and `mt6797-consys.ko`), so F2b rides that
+boot with `radio-mt6797.ko` from `4f2e3383…`, or from a composition of
+`4f2e3383…`, which carries both. The two FM files must be copied again after
+the boot, since the station's root file system is in RAM.
 
 ## Follow-up
 
