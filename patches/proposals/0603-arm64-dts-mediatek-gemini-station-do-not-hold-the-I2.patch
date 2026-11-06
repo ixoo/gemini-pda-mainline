@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 07:45:43 -0500
+Subject: [PATCH 603/604] arm64: dts: mediatek: gemini-station: do not hold the
+ I2C buses for VBUS
+
+Until a client's driver binds, fw_devlink counts the client's suppliers
+against its parent. The two Type-C controllers name VBUS regulators that
+are only available later: the right port's GPIO regulator is a module
+that nothing loads, and the left port's is the charger's boost on the
+other bus. Both I2C0 and I2C1 then deferred for good on station boot
+c85e7cb8, and the charger and its guard on I2C0 never bound.
+
+Mark both regulators post-init providers. The Type-C driver still waits
+for its VBUS regulator itself.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts      | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 353d0b05e..abe9d1775 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -726,6 +726,8 @@ typec@25 {
+ 		compatible = "onsemi,fusb301";
+ 		reg = <0x25>;
+ 		vbus-supply = <&usb0_vbus>;
++		/* See the right port's controller: the bus must not wait for it. */
++		post-init-providers = <&usb0_vbus>;
+ 
+ 		connector {
+ 			compatible = "usb-c-connector";
+@@ -773,6 +775,13 @@ typec@25 {
+ 		interrupt-parent = <&pio>;
+ 		interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
+ 		vbus-supply = <&usb1_vbus>;
++		/*
++		 * Until the controller's own driver binds, fw_devlink counts its
++		 * suppliers against the I2C adapter, and the regulator is a
++		 * module nothing loads: the whole bus, and the charger guard on
++		 * it, would wait forever. The driver asks for VBUS itself.
++		 */
++		post-init-providers = <&usb1_vbus>;
+ 
+ 		connector {
+ 			compatible = "usb-c-connector";
+-- 
+2.43.0
+

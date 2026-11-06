@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written and compile-checked (0595–0602); device tests U1–U4 not run |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 failed on boot `c85e7cb8` (I2C buses held by fw_devlink), fixed in 0603/0604, not rerun |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -385,6 +385,43 @@ also builds the `hd3ss3220`, `tipd`, `tcpm` and altmode Type-C modules;
 nothing loads them. The first config, from `59fed0bc`, failed Buildbox's
 retention check on `PHY_MTK_UFS`, which SCSI brought back. `0d68c839` fixes
 that and four more lines found by running the same check in the VM.
+
+**U1 result, boot `c85e7cb8` (station-work-59): failed on a stop condition.**
+Run by the custodian; evidence kept privately under
+`artifacts/station-work-59/boot-1/`.
+- *Held:* SSH came up. MTU3 logged `dr_mode: 3, drd: auto`, the forced
+  B-session and xHCI platform registration; the gadget linked at high
+  speed. The role switch read `device`. No USB module was loaded.
+- *Failed:* the station's check reported the charge guard missing. I2C0
+  (`11007000`) and I2C1 (`11008000`) both deferred about 25 times and were
+  left "deferred probe pending", so the charger and everything else on those
+  buses never bound. The battery read `Discharging` at 91 % with the cable
+  in. The custodian restored station-work-58 to boot2, verified the
+  readback, and powered off.
+- *Cause:* until a client's driver binds, fw_devlink counts the client's
+  suppliers against its parent. On I2C0, the FUSB301A's `vbus-supply` is the
+  GPIO94 regulator, whose driver is a module nothing loads; devlink showed
+  `11007000.i2c` waiting on `regulator-usb1-vbus`. On I2C1, the FUSB301's
+  `vbus-supply` is the charger's boost on I2C0, so I2C1 waited on I2C0.
+- *Also:* the USB11 T-PHY failed with `-EBUSY`. Its shared window
+  `0x11210000`+`0x1000` (from 0070) covered its own U2 port at
+  `0x11210800`. This is harmless at boot, but the right port could not have
+  worked.
+- *Not read:* pins 72 and 94 (no pinctrl debugfs on this boot).
+
+**Fixes, compile- and DT-checked in the VM, not run:**
+- [0603](../../patches/proposals/0603-arm64-dts-mediatek-gemini-station-do-not-hold-the-I2.patch):
+  both Type-C nodes list their VBUS regulator in `post-init-providers`,
+  which makes fw_devlink ignore that supplier for probe ordering. The driver
+  still waits for VBUS itself. `CHECK_DTBS` now warns that the FUSB301
+  binding does not list `post-init-providers`; this is a schema warning
+  only.
+- [0604](../../patches/proposals/0604-arm64-dts-mediatek-mt6797-end-the-USB11-T-PHY-s-shar.patch):
+  the USB11 T-PHY's shared window ends at `0x800`, as the SSUSB T-PHY's does.
+
+The U1 hypothesis and stop conditions stand for the next candidate. Add to
+the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
+`1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
