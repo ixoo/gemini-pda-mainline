@@ -516,9 +516,77 @@ Two cards of different classes read at the same rate, close to the 24 MB/s a 4-b
 bus carries at 48 MHz. So the bus is the limit at SD high speed. More speed needs
 UHS: 1.8 V signalling, SDR50 or SDR104, and tuning.
 
+### T4, UHS SDR50 (predeclared)
+
+Two cards hit the 4-bit, 48 MHz bus limit at SD high speed. The next step up is UHS.
+
+[0609](../../patches/proposals/0609-arm64-dts-mediatek-gemini-station-allow-UHS-SDR50-on.patch)
+makes these changes:
+
+- VMC's range is now 1.8 to 3.0 V. For 3.3 V signalling the MMC core asks
+  3.0-3.3 V first, so it still gets 3.0 V.
+- `no-1-8-v` is removed.
+- `sd-uhs-sdr12`, `sd-uhs-sdr25` and `sd-uhs-sdr50` are added, and `max-frequency` is
+  raised to 100 MHz.
+
+SDR104 and DDR50 stay out.
+
+**Vendor 1.8 V sequence and mainline.** From the Gemian source:
+
+| Vendor step | Here |
+| --- | --- |
+| VMC to 1.8 V | Done by the MMC core's signal-voltage switch through mtk-sd |
+| VMC trim field set to its saved default minus 2, commented "+40 mV" ([`msdc_io.c` `msdc_sd_power_switch`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c#L199-L222)) | Not done. VMC keeps the trim the firmware left (`0x1b`), which mainline has never changed. Its 1.8 V level relative to the vendor's is unknown |
+| RDSEL to 0 for 1.8 V (`0xc30c` at 3.3 V) | Already 0: the firmware leaves `0x100024a0` at 0, and the slot has worked at 3.3 V with it |
+| TDSEL `0xccc` in both modes | The firmware leaves `0x333`; working at 3.3 V |
+| Drive changed for UHS (CMD/DAT 3, CLK 4 in the vendor's units, against 6 by default) | Not done. The pads keep the firmware's selector 4; MT6797 pinctrl here has no drive callback |
+
+**Clock.** The source is about 192 MHz. mtk-sd gives a 100 MHz request as the source
+divided by 2, 96 MHz. SDR104 at 208 MHz would need a faster parent, such as
+`msdcpll_d2`, which is a separate step.
+
+**Tuning.** mtk-sd runs its generic tuning through `PAD_TUNE0`, which the MT6797 data
+already selects, the same as for the eMMC.
+
+**Electrical.** 1.8 V is VMC's own table entry and the vendor's request. The card's
+I/O and MSDC1's pads take 3.3 V already, so a VMC level off by the trim is a
+functional risk, not an overvoltage. VMCH stays at 3.0 V. If the switch fails, the MMC
+core power-cycles the card and comes back at 3.3 V without UHS.
+
+Hypothesis: the card accepts the 1.8 V switch and tunes, then runs SDR50 at 96 MHz.
+It reads at 40 MB/s or more and returns T2's data unchanged.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later; DT only, so batch it. The 16 GB card in the slot. Step 4 needs the
+owner's OK.
+
+1. Boot with the card in. MMC lines; expect "new ultra high speed SDR50 SDHC card".
+   `sh sd-state.sh uhs`, and `cat /sys/kernel/debug/clk/msdc30_1_sel/clk_rate`
+   (not `clk_summary`). Expect `ios` timing "sd uhs SDR50", signal 1.80 V, about
+   96 MHz; `vmc` at 1800000; PMIC `0ae2` VOSEL 3 with trim `0x1b` unchanged.
+2. Twice: the first 1 GiB of `mmcblk1` through `sha256sum`. Expect T2's hash
+   `fd02d592…35c4`.
+3. Three 256 MiB reads after dropping caches, at 0, 4096 MiB and 12000 MiB.
+4. With the owner's OK: T1 step 5 once (64 MiB write, hash, readback, delete).
+5. Remove and reinsert the card once. Expect it back at SDR50 and VMC back to 3.0 V
+   while it was out. MMC lines and taint.
+6. If the owner offers the second card, steps 1 and 3 on it, read-only.
+
+Stop on any `mmc0` error, a warning or Oops, a hash mismatch, or a CRC or timeout
+error on `mmc1` after tuning. No retry, one write at most.
+
+| Observed | Do |
+| --- | --- |
+| SDR50, about 96 MHz, faster reads, hashes match | Keep 0609. Next, SDR104 with a faster clock parent |
+| Falls back to high speed at 3.3 V (switch or tuning refused) | Send step 1's log. Next: the vendor's VMC +40 mV, with its trim behaviour settled, or the drive |
+| SDR50, but CRC errors or a hash mismatch | Stop. Same next steps; revert 0609 meanwhile |
+| SDR50, rate not raised | Record it; the DMA or request path bounds it |
+
 ## Follow-up
 
 - Suspend and resume.
-- UHS with the 1.8 V switch, after T3, and only with the VMC trim question in the
-  [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary) settled.
+- SDR104 after T4, with a faster clock parent.
+- The VMC trim question in the
+  [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
+  still needs settling if UHS needs the vendor's +40 mV.
 - exFAT as a module, for SDXC cards in their factory format.

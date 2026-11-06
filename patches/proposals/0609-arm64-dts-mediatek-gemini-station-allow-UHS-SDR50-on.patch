@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 10:50:38 -0500
+Subject: [PATCH 609/609] arm64: dts: mediatek: gemini-station: allow UHS SDR50 on the
+ microSD slot
+
+At SD high speed the slot reads at about 23 MB/s, the limit of a 4-bit
+bus at 48 MHz. Allow UHS SDR12, SDR25 and SDR50: let VMC, the I/O
+supply, go to 1.8 V, and raise max-frequency to 100 MHz, which the
+192 MHz source gives as 96 MHz. mtk-sd tunes SDR50 with the MT6797
+data it already has.
+
+The vendor driver also raises VMC by 40 mV through its trim field and
+reprograms pad drive before the 1.8 V switch. Neither is done here.
+Its 1.8 V input threshold, RDSEL 0, is what the firmware leaves.
+
+SDR104 needs a faster clock parent and stays out.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 21 +++++++++++--------
+ 1 file changed, 12 insertions(+), 9 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 25d0abc..76e0475 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -562,9 +562,8 @@
+ };
+ 
+ /*
+- * The vendor driver asks for VMCH as the card supply and VMC as the I/O
+- * supply, both at 3.0 V. Hold both there: the first test runs the card at
+- * 3.3 V signalling only, without the 1.8 V switch.
++ * The vendor driver asks for VMCH as the card supply at 3.0 V, and VMC as
++ * the I/O supply at 3.0 V, or 1.8 V for UHS signalling.
+  */
+ &mt6351regulator {
+ 	/*
+@@ -581,7 +580,7 @@
+ 
+ 	mt6351_vmc_reg: ldo-vmc {
+ 		regulator-name = "vmc";
+-		regulator-min-microvolt = <3000000>;
++		regulator-min-microvolt = <1800000>;
+ 		regulator-max-microvolt = <3000000>;
+ 	};
+ };
+@@ -609,21 +608,25 @@
+ };
+ 
+ /*
+- * SD high speed at up to 50 MHz, 4 bits, 3.3 V signalling, no UHS. The
+- * pads keep the firmware's drive and bias. The vendor reads the
+- * card-detect pin high as a card present.
++ * Up to UHS SDR50, 4 bits: 1.8 V signalling and at most 100 MHz, which the
++ * 192 MHz source gives as 96 MHz. No SDR104 or DDR50. The pads keep the
++ * firmware's drive and bias; the vendor's 1.8 V input threshold is the
++ * firmware's setting already. The vendor reads the card-detect pin high
++ * as a card present.
+  */
+ &mmc1 {
+ 	pinctrl-names = "default", "state_uhs";
+ 	pinctrl-0 = <&mmc1_pins_default>;
+ 	pinctrl-1 = <&mmc1_pins_default>;
+ 	bus-width = <4>;
+-	max-frequency = <50000000>;
++	max-frequency = <100000000>;
+ 	cap-sd-highspeed;
++	sd-uhs-sdr12;
++	sd-uhs-sdr25;
++	sd-uhs-sdr50;
+ 	cd-gpios = <&pio 67 GPIO_ACTIVE_HIGH>;
+ 	vmmc-supply = <&mt6351_vmch_reg>;
+ 	vqmmc-supply = <&mt6351_vmc_reg>;
+-	no-1-8-v;
+ 	no-mmc;
+ 	no-sdio;
+ 	status = "okay";
+-- 
+2.54.0 (Apple Git-157)
+
