@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:19:48 -0500
-Subject: [PATCH 598/602] usb: typec: fusb301: switch VBUS and the USB role
+Subject: [PATCH 598/604] usb: typec: fusb301: switch VBUS and the USB role
  with the partner
 
 The FUSB301 detects the partner but switches nothing. On a board where
@@ -9,7 +9,7 @@ the port can source, something must turn VBUS on for an attached sink
 and off for everything else, and a dual-role controller behind the port
 must follow.
 
-Take an optional vbus-supply and the connector's optional USB role
+Take an optional vbus-out-supply and the connector's optional USB role
 switch. While the port sources an attached sink, turn VBUS on and then
 select the host role; otherwise select the device role and then turn
 VBUS off. A port type change to sink does this at once rather than at
@@ -33,7 +33,7 @@ index fcadca1bd..4f736a166 100644
  	help
  	  Say Y or M here if your system has an onsemi FUSB301 or FUSB301A
 diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
-index 9abac5254..5bd62aeb3 100644
+index 9abac5254..67991199e 100644
 --- a/drivers/usb/typec/fusb301.c
 +++ b/drivers/usb/typec/fusb301.c
 @@ -11,6 +11,8 @@
@@ -149,7 +149,7 @@ index 9abac5254..5bd62aeb3 100644
  		return dev_err_probe(dev, -ENODEV,
  				     "unexpected device ID 0x%02x\n", id);
  
-+	fusb->vbus = devm_regulator_get_optional(dev, "vbus");
++	fusb->vbus = devm_regulator_get_optional(dev, "vbus-out");
 +	if (IS_ERR(fusb->vbus)) {
 +		if (PTR_ERR(fusb->vbus) != -ENODEV)
 +			return dev_err_probe(dev, PTR_ERR(fusb->vbus),

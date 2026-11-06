@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:21:19 -0500
-Subject: [PATCH 600/602] dt-bindings: power: supply: bq25890: describe the OTG
+Subject: [PATCH 600/604] dt-bindings: power: supply: bq25890: describe the OTG
  boost regulator
 
 The driver registers the OTG boost as a regulator named by an

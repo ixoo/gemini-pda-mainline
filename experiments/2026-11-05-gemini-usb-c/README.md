@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 failed on boot `c85e7cb8` (I2C buses held by fw_devlink), fixed in 0603/0604, not rerun |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 failed twice (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); fixed by 0603/0604 and the `vbus-out-supply` rename, not rerun |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -276,7 +276,7 @@ The patches, all proposals, in the canonical series and
   the attribute still tells the truth.
 - [0596](../../patches/proposals/0596-dt-bindings-usb-fusb301-make-the-interrupt-optional-.patch):
   the FUSB301 binding: interrupt optional, either INT_N or the ID output;
-  `vbus-supply`.
+  `vbus-out-supply` (renamed from `vbus-supply` after the U1 retry, below).
 - [0597](../../patches/proposals/0597-usb-typec-fusb301-poll-the-status-when-there-is-no-i.patch):
   without an interrupt the driver polls every 500 ms. Also fixes remove,
   which left the devres interrupt live after the port went.
@@ -418,6 +418,34 @@ Run by the custodian; evidence kept privately under
   only.
 - [0604](../../patches/proposals/0604-arm64-dts-mediatek-mt6797-end-the-USB11-T-PHY-s-shar.patch):
   the USB11 T-PHY's shared window ends at `0x800`, as the SSUSB T-PHY's does.
+
+**U1 retry, boot `039510b0` (station-work-60, from `10ad23f3`): failed on
+the same stop.** Evidence is kept privately under
+`artifacts/station-work-60/boot-1/`.
+- 0603 removed the devlinks to `regulator-usb1-vbus`; all links left on the
+  adapters were `available`.
+- 0604 worked: `11210000.t-phy` probed with no `-EBUSY`.
+- SSH, MTU3 `dr_mode: 3`, role `device`, no USB modules, and GPIO72/94 as
+  outputs at 0 held as before.
+- Both adapters still deferred, with an empty reason. The custodian pointed
+  out that `really_probe` printed a positive 517, which means the driver's
+  own probe returned `-EPROBE_DEFER`; the devlink check prints -517.
+
+*Cause:* `mtk_i2c_probe()` takes an optional bus supply with
+`devm_regulator_get_optional(dev, "vbus")` (`i2c-mt65xx.c` line 3396). When
+the adapter's node has no `vbus-supply`, `of_get_regulator()` searches the
+adapter's child nodes for one (`of_get_child_regulator()`,
+`of_regulator.c` lines 582–633). It found each FUSB301's `vbus-supply`,
+whose regulator was not registered, so the adapter deferred. Had the
+regulator existed, the adapter would have taken it as its own bus supply,
+and on I2C1 that is the charger's boost, enabled with the bus.
+
+*Fix:* the FUSB301 supply is now `vbus-out-supply` in the binding (0596),
+the driver (0598) and the station tree (0602, 0603). 0603's
+`post-init-providers` stays, for the fw_devlink half. In the rebuilt
+station DTB neither adapter's subtree has a `vbus-supply` property. The
+fusb301 object builds clean at `W=1`, and checkpatch is clean on
+0595–0604. Not run.
 
 The U1 hypothesis and stop conditions stand for the next candidate. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,

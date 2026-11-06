@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:20:03 -0500
-Subject: [PATCH 599/602] usb: typec: fusb301: start a dual-role port that
+Subject: [PATCH 599/604] usb: typec: fusb301: start a dual-role port that
  prefers sink as a sink
 
 The FUSB301 toggles between source and sink with no role preference: it
@@ -18,7 +18,7 @@ default role reported while unattached follows the port type.
  1 file changed, 24 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
-index 5bd62aeb3..e2c3d8f60 100644
+index 67991199e..be77eb40f 100644
 --- a/drivers/usb/typec/fusb301.c
 +++ b/drivers/usb/typec/fusb301.c
 @@ -74,6 +74,7 @@ struct fusb301 {

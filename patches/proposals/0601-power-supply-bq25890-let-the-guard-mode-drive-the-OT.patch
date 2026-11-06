@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:21:20 -0500
-Subject: [PATCH 601/602] power: supply: bq25890: let the guard mode drive the
+Subject: [PATCH 601/604] power: supply: bq25890: let the guard mode drive the
  OTG boost
 
 With linux,no-chip-config the driver registers no regulator, so a board

@@ -18,13 +18,13 @@ for its VBUS regulator itself.
  1 file changed, 9 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
-index 353d0b05e..abe9d1775 100644
+index a2519a27d..50c136f6f 100644
 --- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 +++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 @@ -726,6 +726,8 @@ typec@25 {
  		compatible = "onsemi,fusb301";
  		reg = <0x25>;
- 		vbus-supply = <&usb0_vbus>;
+ 		vbus-out-supply = <&usb0_vbus>;
 +		/* See the right port's controller: the bus must not wait for it. */
 +		post-init-providers = <&usb0_vbus>;
  
@@ -33,7 +33,7 @@ index 353d0b05e..abe9d1775 100644
 @@ -773,6 +775,13 @@ typec@25 {
  		interrupt-parent = <&pio>;
  		interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
- 		vbus-supply = <&usb1_vbus>;
+ 		vbus-out-supply = <&usb1_vbus>;
 +		/*
 +		 * Until the controller's own driver binds, fw_devlink counts its
 +		 * suppliers against the I2C adapter, and the regulator is a

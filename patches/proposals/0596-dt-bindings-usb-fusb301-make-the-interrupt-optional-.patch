@@ -1,21 +1,26 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:18:57 -0500
-Subject: [PATCH 596/602] dt-bindings: usb: fusb301: make the interrupt
- optional and add vbus-supply
+Subject: [PATCH 596/604] dt-bindings: usb: fusb301: make the interrupt
+ optional and add vbus-out-supply
 
 Some boards route no interrupt from the controller, and some route its
 ID output rather than INT_N; the Gemini PDA has one of each. Make the
 interrupt optional and describe both lines.
 
-Add vbus-supply for a board's VBUS switch, which the driver turns on
+Add vbus-out-supply for a board's VBUS switch, which the driver turns on
 only while the port sources an attached sink.
+
+The supply is not named vbus-supply: the MediaTek I2C controller takes an
+optional vbus-supply for its bus, and when its own node has none, the
+regulator core finds one in the controller's child nodes. A Type-C
+controller's VBUS switch would then become the bus's supply.
 ---
- .../devicetree/bindings/usb/onsemi,fusb301.yaml       | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+ .../devicetree/bindings/usb/onsemi,fusb301.yaml     | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml b/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml
-index 49f43df98..c0202f721 100644
+index 49f43df98..e420b1af9 100644
 --- a/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml
 +++ b/Documentation/devicetree/bindings/usb/onsemi,fusb301.yaml
 @@ -12,6 +12,8 @@ description: |
@@ -27,7 +32,7 @@ index 49f43df98..c0202f721 100644
  maintainers:
    - Julien Etienne <julien.etienne@gmail.com>
  
-@@ -26,6 +28,14 @@ properties:
+@@ -26,6 +28,16 @@ properties:
  
    interrupts:
      maxItems: 1
@@ -35,14 +40,16 @@ index 49f43df98..c0202f721 100644
 +      The INT_N output. A board may instead route the ID output, which
 +      goes low while a sink is attached; that line then needs both edges.
 +
-+  vbus-supply:
++  vbus-out-supply:
 +    description:
 +      The connector's VBUS switch or source. It is enabled only while the
-+      port is the source for an attached sink.
++      port is the source for an attached sink. Not vbus-supply: some I2C
++      controllers take a vbus-supply for their bus, and the regulator core
++      also looks for that property in their child nodes.
  
    connector:
      type: object
-@@ -43,7 +53,6 @@ properties:
+@@ -43,7 +55,6 @@ properties:
  required:
    - compatible
    - reg

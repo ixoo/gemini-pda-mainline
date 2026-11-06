@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:18:57 -0500
-Subject: [PATCH 597/602] usb: typec: fusb301: poll the status when there is no
+Subject: [PATCH 597/604] usb: typec: fusb301: poll the status when there is no
  interrupt
 
 The Gemini PDA's left-port FUSB301 has no interrupt line. Read its status

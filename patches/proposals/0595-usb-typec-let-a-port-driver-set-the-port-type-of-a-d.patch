@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Thu, 5 Nov 2026 21:18:57 -0500
-Subject: [PATCH 595/602] usb: typec: let a port driver set the port type of a
+Subject: [PATCH 595/604] usb: typec: let a port driver set the port type of a
  dual-role port
 
 A dual-role port starts with the port type it was registered with, and

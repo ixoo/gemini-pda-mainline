@@ -1,7 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Fri, 6 Nov 2026 07:04:47 -0500
-Subject: [PATCH 602/602] arm64: dts: mediatek: gemini-station: describe both
+Subject: [PATCH 602/604] arm64: dts: mediatek: gemini-station: describe both
  USB-C ports
 
 The left port is the MTU3 controller, the SSH link and the only port
@@ -28,7 +28,7 @@ Not yet run on hardware.
  1 file changed, 148 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
-index fd10e206c..353d0b05e 100644
+index fd10e206c..a2519a27d 100644
 --- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 +++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 @@ -502,6 +502,11 @@ charger@6b {
@@ -119,7 +119,7 @@ index fd10e206c..353d0b05e 100644
 +	typec@25 {
 +		compatible = "onsemi,fusb301";
 +		reg = <0x25>;
-+		vbus-supply = <&usb0_vbus>;
++		vbus-out-supply = <&usb0_vbus>;
 +
 +		connector {
 +			compatible = "usb-c-connector";
@@ -166,7 +166,7 @@ index fd10e206c..353d0b05e 100644
 +		pinctrl-0 = <&usb_c_right_pins>;
 +		interrupt-parent = <&pio>;
 +		interrupts = <3 IRQ_TYPE_EDGE_BOTH>;
-+		vbus-supply = <&usb1_vbus>;
++		vbus-out-supply = <&usb1_vbus>;
 +
 +		connector {
 +			compatible = "usb-c-connector";
