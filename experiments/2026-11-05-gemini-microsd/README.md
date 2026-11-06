@@ -553,6 +553,12 @@ I/O and MSDC1's pads take 3.3 V already, so a VMC level off by the trim is a
 functional risk, not an overvoltage. VMCH stays at 3.0 V. If the switch fails, the MMC
 core power-cycles the card and comes back at 3.3 V without UHS.
 
+**Candidate.** Built on Buildbox from `6488e6f8`: profile `mt6797-a53-station-a72`
+with modules, 780 patches, package `e46c9f38…`, patchset `d77cde69…`, config
+`4df1f9bd…`; validation passed. Its `mt6797-gemini-pda-station-a72.dtb`
+(`4f0593cf…`) has `mmc1` at 100000000 with `sd-uhs-sdr12/25/50` and no `no-1-8-v`,
+and VMC at 1800000-3000000. Built, not booted.
+
 Hypothesis: the card accepts the 1.8 V switch and tunes, then runs SDR50 at 96 MHz.
 It reads at 40 MB/s or more and returns T2's data unchanged.
 
