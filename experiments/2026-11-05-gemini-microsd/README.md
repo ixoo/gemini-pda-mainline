@@ -683,6 +683,60 @@ A marginal link could damage data on a read-write mount. So this boot must mount
 pass. The custodian decides how to compose that. No eMMC partition is written in
 this test.
 
+**eMMC protection for T5.** The custodian's review asked for these answers before
+the owner decides. HS200 changes the timing on the device that holds the GPT, the
+boot partitions, NVRAM and the data partition, so the owner treats it as a new risk,
+not under standing approval.
+
+- **`/mnt/data` read-only from the start, guaranteed by the image.** The station's
+  `init` is the only thing that mounts the `linux` partition, at
+  `rw,noatime`. For T5 the composed RAM root uses one change in that mount, the
+  same pattern `init` already uses for `nvdata`:
+
+  ```sh
+  $bb blockdev --setro "$data" && $bb mount -t ext4 -o ro,noload "$data" /mnt/data
+  ```
+
+  `--setro` makes the block layer refuse writes to that partition. `noload` stops a
+  journal replay, and with the device read-only ext4 can't clear an orphan list
+  either.
+
+  Nothing else in the RAM root writes the eMMC:
+  - `nvdata` is already `--setro` and `ro,noload`;
+  - the display marker's `touch` fails on a read-only mount, so `init` reports
+    `display=skipped-no-data` and keeps simplefb;
+  - `flash-boot2` runs only by hand and isn't run on this boot;
+  - pstore is in RAM;
+  - `mmcblk0boot0/1` are read-only by kernel default (`force_ro`), and RPMB is
+    untouched.
+
+- **No eMMC data write until step 2 passes, and none at all in T5.** HS200 selection
+  sends CMD6 to the volatile HS_TIMING byte, which a power cycle resets; it writes
+  no stored data. The bus-width switch does the same today.
+
+  If HS200 tuning fails, the 7.1 MMC core doesn't fall back to HS or legacy timing.
+  `mmc_init_card` frees the card (`goto free_card` after `mmc_hs200_tuning`), and
+  the eMMC is absent for that boot. Absent means no reads or writes, not a degraded
+  mode.
+
+- **The station without its data partition.** The root is the RAM initramfs, so
+  busybox, dropbear on USB, the modules and the firmware tools keep working.
+  - Status goes to `/run/station/status`, logs to the kernel ring and pstore, all
+    in RAM.
+  - With the eMMC absent, `init` reports `data=not-found`; with HS200 working but
+    read-only, `data=mounted`.
+  - The custodian copies evidence off over USB SSH before power-off.
+
+- **Stop and recovery.** On any `mmc0` error, a tuning failure, an absent eMMC or
+  disagreeing hashes: stop, copy the logs off over SSH, and `poweroff`. Don't rewrite
+  boot2 from this boot, since that would itself be an eMMC write.
+  - The owner powers on normally, which lands in Gemian from the primary boot slot.
+  - From Gemian, the reviewed device guard writes boot2 back to the last good
+    station image (station-work-65 or later without 0615), as in the station
+    record's recovery path.
+  - Gemian's first eMMC access after power-on is at its own timing; nothing from
+    this boot persists in the eMMC's timing state.
+
 **Live clocks before T5** (custodian, boot `294ae5a1`, read-only debugfs, after the
 patches were written):
 
@@ -705,7 +759,7 @@ VEMC at 3.3 V and VIO18 at 1.8 V.
 
 **Hypothesis.**
 
-- The eMMC tunes HS200 at up to 200 MHz and reads at least four times faster, with
+- The eMMC tunes HS200 at 192 MHz and reads at least four times faster, with
   the same data.
 - The microSD card tunes SDR104 at 192 MHz and reads faster than SDR50's
   43 MiB/s.
