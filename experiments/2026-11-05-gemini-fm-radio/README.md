@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c, the owner heard the station). The headset cable is the antenna. The stereo flag rarely sets; stereo by ear is unconfirmed |
+| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c, the owner heard the station). The headset cable is the antenna. The stereo flag rarely sets; F6, a measured stereo check, is predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1172,6 +1172,53 @@ the level, the register snapshot and speakers. The audio session made the two
 FM switches part of the station's default mixer (`audio-start`, `332df45c`);
 that takes effect with the next RAM root composed from main and has not run
 on the device yet.
+
+## Test F6: is the FM audio stereo? (predeclared, not yet admitted)
+
+**Question:** do the receiver's left and right channels differ, as a stereo
+broadcast's do, or is the output mono? The flag (`RSSI_IND` D12) was 1 once
+in F5c and the owner thought it might be stereo by ear; neither settles it.
+
+**Method:** record the FM audio to memory and compare the channels. A mono
+signal has identical channels; stereo has a clear difference. A second
+recording with the receiver forced to mono is the reference that the
+capture path itself keeps the channels apart.
+
+**Code:**
+- [0611](../../patches/proposals/0611-ASoC-mediatek-mt6797-let-UL2-record-the-CONSYS-I2S-i.patch):
+  `I2S0_CH1`/`CH2` inputs on the UL2 (AWB) capture mixers at `AFE_CONN5`/`6`,
+  fed from `Connsys I2S`, as the vendor's FM recording (I00 to O05, I01 to
+  O06). The `Capture_2` front end then records the FM input through the same
+  CONNSYS_I2S back end the hostless path uses. Builds with `W=1` and no
+  warning; checkpatch clean.
+- [`fm-listen.c`](fm-listen.c) takes an optional last argument, `mono` or
+  `stereo`, and sets the tuner's audio mode before tuning (`43721cb2…`).
+- [`fm-stereo.py`](fm-stereo.py) reads the recordings and prints only levels:
+  RMS of left, right, mid and side in dBFS, side relative to mid, and the share
+  of samples with left equal to right. On synthetic files it gives 100 % equal
+  and no side for mono, and a side 8.8 dB under mid for a phase-shifted
+  stereo tone.
+
+**Effects:** as F5c, twice for 25 s, plus two 15 s recordings of the
+broadcast into RAM on the station, copied privately to the laptop for the
+analysis and not published: only the printed levels are. The headphones play
+as in F5c; the owner need not listen, earbuds out of the ears.
+
+**Procedure,** one load, two runs, no retry:
+
+1. A package with 0611 from the running kernel's build, module-only if
+   `Image.gz` matches; FM files, headset in; `UL2_CH1 I2S0_CH1` and
+   `UL2_CH2 I2S0_CH2` on as well as the downlink switches.
+2. `fm-listen /dev/radio0 <station> 8 25 <private> stereo &`, after 5 s
+   `arecord -D hw:0,<Capture_2> -f S16_LE -r 48000 -c 2 -d 15 a.wav`.
+3. The same with `mono` into `b.wav`.
+4. `fm-stereo.py a.wav b.wav` on the laptop.
+
+| Observation | Meaning |
+| --- | --- |
+| `b` 100 % equal, `a` side clearly above zero (S/M above about -40 dB) | stereo works; the flag is not a reliable indicator |
+| `a` and `b` both 100 % equal | the receiver outputs mono at this signal, by blend or default |
+| `b` not equal | the capture path or the mono control is not as read; check before concluding |
 
 ## Follow-up
 

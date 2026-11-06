@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 11:29:07 -0500
+Subject: [PATCH] ASoC: mediatek: mt6797: let UL2 record the CONSYS I2S input
+
+The vendor kernel records FM by connecting the second I2S input to the AWB
+memory interface, I00 to O05 and I01 to O06. Add the same inputs to the UL2
+mixers, from the CONNSYS_I2S back end, so the FM audio can be captured to
+memory as well as played on the downlink.
+---
+ sound/soc/mediatek/mt6797/mt6797-afe-pcm.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+index 7446d4f3f..1c759822f 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+@@ -292,6 +292,7 @@ static const struct snd_kcontrol_new memif_ul2_ch1_mix[] = {
+ 				    I_DL2_CH1, 1, 0),
+ 	SOC_DAPM_SINGLE_AUTODISABLE("DL3_CH1", AFE_CONN5,
+ 				    I_DL3_CH1, 1, 0),
++	SOC_DAPM_SINGLE_AUTODISABLE("I2S0_CH1", AFE_CONN5, I_I2S0_CH1, 1, 0),
+ };
+ 
+ static const struct snd_kcontrol_new memif_ul2_ch2_mix[] = {
+@@ -303,6 +304,7 @@ static const struct snd_kcontrol_new memif_ul2_ch2_mix[] = {
+ 				    I_DL2_CH2, 1, 0),
+ 	SOC_DAPM_SINGLE_AUTODISABLE("DL3_CH2", AFE_CONN6,
+ 				    I_DL3_CH2, 1, 0),
++	SOC_DAPM_SINGLE_AUTODISABLE("I2S0_CH2", AFE_CONN6, I_I2S0_CH2, 1, 0),
+ };
+ 
+ static const struct snd_kcontrol_new memif_ul3_ch1_mix[] = {
+@@ -365,6 +367,8 @@ static const struct snd_soc_dapm_route mt6797_memif_routes[] = {
+ 	{"UL2", NULL, "UL2_CH1"},
+ 	{"UL2", NULL, "UL2_CH2"},
+ 	{"UL2_CH1", "ADDA_UL_CH1", "ADDA Capture"},
++	{"UL2_CH1", "I2S0_CH1", "Connsys I2S"},
++	{"UL2_CH2", "I2S0_CH2", "Connsys I2S"},
+ 	{"UL2_CH2", "ADDA_UL_CH2", "ADDA Capture"},
+ 
+ 	{"UL3", NULL, "UL3_CH1"},
+-- 
+2.43.0
+

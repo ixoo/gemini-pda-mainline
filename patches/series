@@ -1191,3 +1191,4 @@ proposals/0607-usb-musb-mediatek-drop-the-transceiver-before-its-de.patch
 proposals/0608-arm64-dts-mediatek-gemini-station-force-the-USB11-PH.patch
 proposals/0609-arm64-dts-mediatek-gemini-station-allow-UHS-SDR50-on.patch
 proposals/0610-arm64-dts-mediatek-gemini-station-turn-the-right-por.patch
+proposals/0611-ASoC-mediatek-mt6797-let-UL2-record-the-CONSYS-I2S-i.patch

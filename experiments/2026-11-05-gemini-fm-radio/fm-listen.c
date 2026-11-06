@@ -2,13 +2,15 @@
 /*
  * F5: play the MT6797 FM receiver on the headphones.
  *
- * Usage: fm-listen RADIO FREQ_KHZ VOLUME SECONDS PRIVATE_FILE
+ * Usage: fm-listen RADIO FREQ_KHZ VOLUME SECONDS PRIVATE_FILE [mono|stereo]
  *
  * Opens the radio, sets its volume (0-15) and tunes, then starts the card's
  * Hostless_FM front end in both directions with raw ALSA ioctls: capture starts
  * the CONNSYS I2S input, playback the downlink to the codec. No sample is
  * written or read; the hardware carries the audio. Every 5 s it prints the
  * tuner's signal and stereo flag. Then it stops both streams and closes.
+ *
+ * The optional last argument sets the tuner's audio mode before tuning.
  *
  * The frequency goes only to PRIVATE_FILE; stdout carries no station identity.
  */
@@ -126,7 +128,8 @@ int main(int argc, char **argv)
 	FILE *priv;
 
 	if (argc < 6) {
-		fprintf(stderr, "usage: %s RADIO FREQ_KHZ VOLUME SECONDS PRIVATE_FILE\n", argv[0]);
+		fprintf(stderr, "usage: %s RADIO FREQ_KHZ VOLUME SECONDS PRIVATE_FILE [mono|stereo]\n",
+			argv[0]);
 		return 2;
 	}
 	freq.frequency = strtoul(argv[2], NULL, 10) * 16;
@@ -147,6 +150,14 @@ int main(int argc, char **argv)
 	}
 	printf("radio volume %d: %s\n", vol.value,
 	       ioctl(radio, VIDIOC_S_CTRL, &vol) ? strerror(errno) : "ok");
+	if (argc > 6) {
+		struct v4l2_tuner tuner = { .index = 0 };
+
+		tuner.audmode = strcmp(argv[6], "mono") ? V4L2_TUNER_MODE_STEREO :
+			       V4L2_TUNER_MODE_MONO;
+		printf("audmode %s: %s\n", argv[6],
+		       ioctl(radio, VIDIOC_S_TUNER, &tuner) ? strerror(errno) : "ok");
+	}
 	printf("tune: %s\n", ioctl(radio, VIDIOC_S_FREQUENCY, &freq) ? strerror(errno) : "ok");
 
 	if (find_device(&card, &dev)) {
