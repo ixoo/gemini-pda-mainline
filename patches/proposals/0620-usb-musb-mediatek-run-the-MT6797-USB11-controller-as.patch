@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:40:23 -0500
+Subject: [PATCH] usb: musb: mediatek: run the MT6797 USB11 controller as
+ multipoint
+
+On a Gemini PDA's right USB-C port every device connects and then fails
+its first control transfer with -EPROTO, at full and at high speed, with
+a PHY that now reads the same as under the vendor kernel. The vendor
+kernel's musbfsh enumerates the same keyboard.
+
+The MT6797 USB11 data copied multipoint = false from the vendor
+configuration, but the vendor core sets is_multipoint = 1 regardless
+and addresses targets through the per-endpoint function address
+registers at 0x480, as this glue's busctl_offset does for the other
+MediaTek controllers. Without multipoint the MUSB core writes FADDR and
+programs no target speed, and the controller reaches no device. It also
+warned that external hubs must be disabled.
+
+Set multipoint for the USB11 controller.
+---
+ drivers/usb/musb/mediatek.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/musb/mediatek.c b/drivers/usb/musb/mediatek.c
+index 9b0cab801..2cf17c8df 100644
+--- a/drivers/usb/musb/mediatek.c
++++ b/drivers/usb/musb/mediatek.c
+@@ -417,7 +417,12 @@ static const struct musb_fifo_cfg mt6797_usb11_mode_cfg[] = {
+ static const struct musb_hdrc_config mt6797_usb11_hdrc_config = {
+ 	.fifo_cfg = mt6797_usb11_mode_cfg,
+ 	.fifo_cfg_size = ARRAY_SIZE(mt6797_usb11_mode_cfg),
+-	.multipoint = false,
++	/*
++	 * Like the other MediaTek MUSBs, the USB11 controller addresses targets
++	 * through the per-endpoint function address registers. The vendor
++	 * driver's configuration says false but its core forces multipoint.
++	 */
++	.multipoint = true,
+ 	.dyn_fifo = true,
+ 	.num_eps = 6,
+ 	.ram_bits = MTK_MUSB_RAM_BITS,
+-- 
+2.43.0
+

@@ -729,7 +729,29 @@ let a U2 port name its squelch threshold with `mediatek,rx-sqth`, keeping
 sets 8 on the USB11 port only; the left port keeps 2. VM checks: the T-PHY
 builds clean at `W=1`, the binding validates, the DTB carries the property
 on that one port, and checkpatch is clean. Not run. If 8 does not fix it,
-ISOUPDATE is the remaining MAC difference, and a module-only test. U4 is
+ISOUPDATE is the remaining MAC difference, and a module-only test.
+
+**U3 with 0617–0619, boot `4e6851f2` (station-work-68, from `84a70e42`),
+taint 0: no change.** The left port was unchanged. The 0616 dump read
+USBPHYACR6 `0x00100488`, so every PHY control register now equals Gemian's.
+The full-speed keyboard still failed every first control transfer with
+`-71`. Stopped with `rmmod fusb301`. Evidence is kept privately under
+`artifacts/station-work-68/boot-1/`. 0617–0619 stay: they match the vendor
+setting.
+
+*Cause found in the controller configuration.* The vendor core sets
+`is_multipoint = 1` unconditionally (`musbfsh_core.c` line 1262), despite
+`.multipoint = false` in its config. It addresses each target through the
+per-endpoint function address registers at `0x480`, which is what the
+MediaTek glue's `busctl_offset` uses for the other MediaTek MUSBs. 0069
+copied `.multipoint = false` for the USB11 data. So mainline ran the
+controller as a plain HDRC: it wrote FADDR, programmed no target speed in
+TYPE0, and printed "kernel must disable external hubs" at every load.
+That fails transfers at any speed while the connect, which needs neither,
+is still seen.
+[0620](../../patches/proposals/0620-usb-musb-mediatek-run-the-MT6797-USB11-controller-as.patch)
+sets multipoint for the USB11 data. It is module-only (`mediatek.ko`), and
+with 0607 the swap no longer oopses. Built clean at `W=1`; not run. U4 is
 not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
