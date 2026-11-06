@@ -884,6 +884,64 @@ shown. Candidates to check: request size and the software queue on `mmc0`, a col
 read of an unused region, and the device's own sequential rate under Gemian. HS200
 stays, since it is correct and faster; its throughput is an open question.
 
+### T6: why eMMC HS200 reads stop at about 36 MB/s (2026-11-06)
+
+**What the source rules out.** Read from Linux 7.1.3 `mtk-sd.c` and the station DT;
+not measured.
+
+- Both hosts use the same MT6797 compatible data and the same request limits: 1024
+  segments of up to 64 KiB, 512 KiB per request.
+- Both have `no-sdio`, so both run the MMC host software queue; neither has CQE.
+- The clock is right: HS200 at 192 MHz takes `msdc_set_mclk`'s no-divisor path from
+  the 384 MHz `msdc50_0_sel`, and `ios` reported 191999939 Hz.
+- The eMMC pads are at 4 mA, the vendor's eMMC drive selector too.
+- T5 measured both buses the same way (buffered `dd`, 1 MiB blocks, so 128 KiB
+  readahead requests): the microSD reached 83-86 MiB/s, the eMMC 36 MB/s.
+
+So the gap is in the eMMC's link or the chip, not in a host limit. Three causes stay
+open, each with its own sign:
+
+| Cause | Sign |
+| --- | --- |
+| Data CRC errors and silent retuning at 192 MHz. `mtk-sd` logs data errors only at debug level, and the core counts only failed tunings | Far more `mmc0` interrupts per MiB than `mmc1`'s |
+| The chip's per-command latency, paid on each 128 KiB readahead request | Large direct reads much faster than buffered ones |
+| The chip's own sequential rate | Direct 4 MiB reads still about 36 MB/s, with interrupts per MiB like `mmc1`'s |
+
+**Hypothesis.** Interrupts per MiB are similar on both hosts, and direct 4 MiB reads
+are much faster than buffered ones: the limit is request size, not errors.
+
+**Procedure.** On the running station, if its image has 0615 (`mmc0` at HS200);
+no boot is needed for this. Read-only throughout; nothing is written to the eMMC
+or a card, and no setting is changed. Raw output stays private.
+
+1. Boot ID, boot2 hash, taint, `cat /sys/kernel/debug/mmc0/ios` and
+   `/sys/kernel/debug/mmc0/err_stats`.
+2. For `mmcblk0` and, if a card is in, `mmcblk1`: `read_ahead_kb`,
+   `max_sectors_kb`, `max_hw_sectors_kb`, `nr_requests` and `scheduler` from
+   `/sys/block/<dev>/queue/`.
+3. Find the `linux` partition by GPT name, as `init` does. For each read below, drop
+   caches, note the `mmc0` line of `/proc/interrupts`, run the read under `time`,
+   then note the line again:
+   - buffered: `dd if=<it> of=/dev/null bs=1M count=256`, as in T5;
+   - direct: `dd if=<it> of=/dev/null bs=4M count=64 iflag=direct`;
+   - direct: `dd if=<it> of=/dev/null bs=512K count=512 iflag=direct`;
+   - buffered from 8 GiB in: `bs=1M skip=8192 count=256`, a region the T5 reads
+     didn't touch, if the partition is that large.
+
+   If `dd` doesn't support `iflag=direct`, skip those two and say so.
+4. If a card is in, the buffered and the 4 MiB direct read of its whole device, with
+   the `mmc1` interrupt line around each.
+5. `err_stats` again, `dmesg` lines for `mmc`/`msdc` since step 1, taint.
+
+Stop on any `mmc0` error, warning or Oops.
+
+| Result | Decision |
+| --- | --- |
+| `mmc0` interrupts per MiB many times `mmc1`'s, or `err_stats` grows | Errors and retuning: look at the eMMC's tuning and pad timing, and consider HS at 52 MHz until fixed |
+| Direct 4 MiB much faster than buffered | Request-size bound: the eMMC is fine, and `read_ahead_kb` is the lever |
+| Direct 4 MiB also about 36 MB/s, interrupts normal | The chip or HS200 itself: compare with the vendor kernel's rate under Gemian before any change |
+| The cold region much faster or slower | The chip's internal state; note it, no driver change |
+
 ## Follow-up
 
 - Suspend and resume.
