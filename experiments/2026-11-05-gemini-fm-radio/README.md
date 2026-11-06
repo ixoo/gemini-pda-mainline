@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c, the owner heard the station). The headset cable is the antenna. The stereo flag rarely sets; F6, a measured stereo check, admitted on 2026-11-06 for the next station boot, not yet run |
+| Status | `running`: FM works on mainline: a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and its audio on the headphones through the AFE (F5c). The headset cable is the antenna. The output measured mono at about -72 dBm (F6); stereo is not shown |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1229,6 +1229,51 @@ validation passed; `snd-soc-mt6797-afe.ko` `9ffdfff0…`. Other work since
 the F5c image changed the kernel and config, so F6 needs a boot of this
 package or a later one with 0611, batched with the next station boot. Not
 run.
+
+## F6 result (2026-11-06): the output is mono
+
+Run by the custodian session with the owner's admission, on station work 66
+(boot `40201d1f`, package `469cd863…` built from `f0fe8d1a`, which contains
+0611; AFE `9ffdfff0…`, `radio-mt6797` `61a2c041…`, `fm-listen`
+`43721cb2…`), headset in, earbuds out. `audio-start` set the downlink FM
+switches by default; `UL2_CH1/2 I2S0_CH1/2` were switched on. `Capture_2`
+was `hw:0,4`. The owner's F3 station. The two recordings are broadcast audio
+and stay private under `artifacts/station-work-66/boot-1/` (`f6a.wav`
+`ef64d03b…`, `f6b.wav` `b5ff7d0d…`); only their levels are published.
+
+- **Run a, stereo mode:** `audmode stereo: ok`; signal 39,321 to 43,690
+  (about -73 to -71 dBm); stereo flag 0 throughout; `arecord` rc 0.
+- **Run b, forced mono:** `audmode mono: ok`; signal 36,044 to 39,321; flag 0;
+  `arecord` rc 0.
+- Both runs: function on and off 0, identity `6631`, power-down 0, no
+  unexpected event, link halted without failure; no warning, taint 0.
+
+`fm-stereo.py`:
+
+```text
+f6a.wav: 15.0 s at 48000 Hz; RMS dBFS L -26.7 R -26.7 M -26.7 S -inf; S/M -inf dB; L=R in 100.00% of samples
+f6b.wav: 15.0 s at 48000 Hz; RMS dBFS L -27.1 R -27.1 M -27.1 S -inf; S/M -inf dB; L=R in 100.00% of samples
+```
+
+**Analysis.** The capture keeps two channels, and in both runs they are
+bit-identical in every sample: the receiver sent mono, also in stereo mode.
+That agrees with the stereo flag, 0 in all ten readings, so the flag is a
+fair indicator after all. Forced mono works, but it changes nothing here.
+The level, -27 dBFS RMS at receiver volume 8, is a sensible listening level.
+
+Why mono is not settled. The vendor sets nothing for stereo but forced mono
+(R10), so the likeliest cause is the receiver's own stereo blend at this
+signal, about -72 dBm with the headset cable. A station broadcasting in mono
+would look the same. The one flag reading of 1, in F5c at -70 dBm, fits a
+signal near the blend threshold.
+
+**Conclusion:** `confirmed`: at about -72 dBm this station comes out mono on
+mainline, in stereo mode too. `inconclusive` on whether the receiver
+produces stereo with a stronger signal.
+
+A repeat on a stronger signal (a better-placed headset cable, near a window,
+or a station known to broadcast in stereo) decides that, with the same
+tools and no new code.
 
 ## Follow-up
 

@@ -11,8 +11,9 @@ station tuned in TDD mode, and the headset cable is the antenna (about
 seek and RDS events work as described below; RDS arrived at the full 11.4
 groups a second. The audio path below plays the station on the headphones
 (F5c, 2026-11-06), once the AFE's CONSYS I2S input has a DAPM input endpoint
-so that it powers up. Stereo is unconfirmed: `RSSI_IND` D12 has shown stereo
-for one sample only. The
+so that it powers up. At about -72 dBm the output is mono, left and right
+bit-identical, in stereo mode too (F6); `RSSI_IND` D12 agrees, so it is a
+fair stereo indicator. The
 chronology, the observations and the first device test are in the
 [FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md).
 
