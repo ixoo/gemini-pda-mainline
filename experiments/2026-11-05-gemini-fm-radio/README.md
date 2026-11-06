@@ -1117,6 +1117,14 @@ during the stream, about 20 s in, so a silent result says at once whether
 needed (the AFE module changes); the owner listens, earbuds near the ears
 at first.
 
+Build: `a30386ac`, profile `mt6797-a53-station-a72`, `BUILD_MODULES=1`, 765
+patches, package `4a4fc75f…`; validation passed. `Image.gz` `5229086f…` and
+config `6b86c0b3…` match the running vibrator V1 image. Only
+`snd-soc-mt6797-afe.ko` changed (`0990818e…`); `snd-soc-mtk-common.ko`
+`89133c3d…`, `mt6797-mt6351.ko` `ab9caefb…`, `radio-mt6797.ko` `61a2c041…`
+and `mt6797-consys.ko` `1797e440…` are identical to the loaded ones, so F5c
+swaps only the AFE module (with the card unloaded around it). Not run.
+
 ## Follow-up
 
 - [Hardware support](../../docs/HARDWARE_SUPPORT.md) row "GNSS and FM"
