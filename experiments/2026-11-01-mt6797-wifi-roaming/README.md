@@ -779,3 +779,13 @@ The owner then asked for the fixes in the image ("I want the fixes in our mainli
 - **Against `d1a882db`:** `Image.gz`, DTB and kernel config identical, `mac.ko` 773e1694 to dae8a031, `mt6797-wlan-core.ko` 425b8add to 2542c418, `mt6797-consys.ko` unchanged.
 - **It won't roam by itself:** the normal setup pins one access point, and the image's supplicant has no `bgscan`. The fixes it brings are for the link it holds, and for anything that adds those later.
 - **Not preserved:** the custodian's saved copy of `/run/station` from the old boot came out empty, and that RAM is gone. The scripts are on main, the logs in `/mnt/data/station` and `dmesg` were kept, and the rebuilt supplicants are in private artifacts. The custodian knows of nothing unique lost and can't prove that.
+
+### Soak, image `02e045fa`, boot `a22a4ca8` (2026-11-05)
+
+Unattended, as the custodian reports, on 5200 with the original supplicant, about -68 dBm: a gateway ping at 1/s for 55 min, with six 60 s downloads. A first try stopped after 4 s on my stop rule "any `txfail`", which the custodian read as iw's failed-frame counter; I meant the driver's `reason=txfail`. In that try the rate went from MCS0 at idle to 31 Mbit/s within 4 s, with 2 failed frames.
+
+- **The link held:** no `data phase end`, restart or `join stopped`, tainted=0. The rate stayed at MCS7 or MCS6, 40 MHz, after the first burst.
+- **Downloads held steady:** 39.0, 44.2, 46.3, 43.2, 43.7 and 44.9 Mbit/s. The uploads are not valid: a fault in the test harness ended them after about 1 s.
+- **Ping loss was 1.9%,** 64 of 3301, never more than 2 in a row. 46 of the 64 came at idle, where my bar was 0.5%. iw's failed frames grew at about 4 a minute, at idle as under load.
+
+One candidate for the idle loss is 0471's probes: at 1 frame a second, 1 frame in 16 is a probe at another rate, and a failed probe loses its frame. That would fit about 4 probes a minute, but it is not shown. The phase end line counts failed probes, so one reconnect after an idle period would compare them with the lost pings.
