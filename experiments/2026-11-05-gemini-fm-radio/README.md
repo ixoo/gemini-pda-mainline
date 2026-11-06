@@ -1220,6 +1220,13 @@ as in F5c; the owner need not listen, earbuds out of the ears.
 | `a` and `b` both 100 % equal | the receiver outputs mono at this signal, by blend or default |
 | `b` not equal | the capture path or the mono control is not as read; check before concluding |
 
+Build: `e82ef872`, profile `mt6797-a53-station-a72`, `BUILD_MODULES=1`, 782
+patches, package `e2007224…`, config `4df1f9bd…`, `Image.gz` `15e43aa6…`;
+validation passed; `snd-soc-mt6797-afe.ko` `9ffdfff0…`. Other work since
+the F5c image changed the kernel and config, so F6 needs a boot of this
+package or a later one with 0611, batched with the next station boot. Not
+run.
+
 ## Follow-up
 
 - [Hardware support](../../docs/HARDWARE_SUPPORT.md) row "GNSS and FM"
