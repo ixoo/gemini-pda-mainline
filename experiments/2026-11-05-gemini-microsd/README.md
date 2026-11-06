@@ -683,11 +683,31 @@ A marginal link could damage data on a read-write mount. So this boot must mount
 pass. The custodian decides how to compose that. No eMMC partition is written in
 this test.
 
+**Live clocks before T5** (custodian, boot `294ae5a1`, read-only debugfs, after the
+patches were written):
+
+| Clock | Rate | Parent |
+| --- | --- | --- |
+| `msdcpll` | 383999878 | `clk26m` |
+| `msdcpll_d2` | 191999939 | `msdcpll_ck` |
+| `msdc50_0_sel` | 383999878 | `msdcpll` |
+| `msdc50_0_hclk_sel` | 273000000 | `syspll1_d2` |
+| `msdc30_1_sel` | 191999939 | `msdcpll_d2` |
+
+So `msdcpll` runs at 384 MHz under mainline, not the vendor's 400. MSDC30_1 is
+already on `msdcpll_d2`, which makes 0614's reparent a no-op that only pins the
+parent; its message says "move", and the record corrects it here. SDR104 will run
+at the 192 MHz source rate, and eMMC HS200 at 384 / 2 = 192 MHz.
+
+The eMMC's EXT_CSD reports revision `0x08`, DEVICE_TYPE `0x57` (HS200 and HS400 at
+1.8 V, DDR52) and HS_TIMING 0. `ios` showed it at 24 MHz in legacy timing, with
+VEMC at 3.3 V and VIO18 at 1.8 V.
+
 **Hypothesis.**
 
 - The eMMC tunes HS200 at up to 200 MHz and reads at least four times faster, with
   the same data.
-- The microSD card tunes SDR104 at about 200 MHz and reads faster than SDR50's
+- The microSD card tunes SDR104 at 192 MHz and reads faster than SDR50's
   43 MiB/s.
 - The vendor's pad values read back from pinctrl in each state.
 - exFAT mounts an SDXC card read-only.
