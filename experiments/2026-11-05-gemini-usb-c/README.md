@@ -636,7 +636,7 @@ seen. One broken D- path explains both results. Candidates:
 The keyboard's speed class is not yet known.
 
 The station has no GPIO tools, so GPIO70 cannot be tried by hand.
-[0609](../../patches/proposals/0609-arm64-dts-mediatek-gemini-station-turn-the-right-por.patch)
+[0610](../../patches/proposals/0610-arm64-dts-mediatek-gemini-station-turn-the-right-por.patch)
 adds it to the right port's chain for the next image: GPIO70 high (lane
 switch off), then GPIO72, then GPIO94, while a sink is attached. That
 matches the vendor's USB host state. At rest it stays low, as the firmware

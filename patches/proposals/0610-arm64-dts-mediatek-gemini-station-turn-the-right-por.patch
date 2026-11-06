@@ -20,10 +20,10 @@ Not yet run on hardware.
  1 file changed, 24 insertions(+)
 
 diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
-index 473b6bdcd..51c861a01 100644
+index 7834abcf4..1ea472c9a 100644
 --- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
 +++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
-@@ -687,6 +687,12 @@ pins-id {
+@@ -690,6 +690,12 @@ pins-id {
  		};
  	};
  
@@ -36,7 +36,7 @@ index 473b6bdcd..51c861a01 100644
  	usb1_switch_pins: usb1-switch-pins {
  		pins-en {
  			pinmux = <MT6797_GPIO72__FUNC_GPIO72>;
-@@ -701,11 +707,29 @@ pins-en {
+@@ -704,11 +710,29 @@ pins-en {
  };
  
  / {
