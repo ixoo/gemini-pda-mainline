@@ -785,7 +785,7 @@ The owner then asked for the fixes in the image ("I want the fixes in our mainli
 Unattended, as the custodian reports, on 5200 with the original supplicant, about -68 dBm: a gateway ping at 1/s for 55 min, with six 60 s downloads. A first try stopped after 4 s on my stop rule "any `txfail`", which the custodian read as iw's failed-frame counter; I meant the driver's `reason=txfail`. In that try the rate went from MCS0 at idle to 31 Mbit/s within 4 s, with 2 failed frames.
 
 - **The link held:** no `data phase end`, restart or `join stopped`, tainted=0. The rate stayed at MCS7 or MCS6, 40 MHz, after the first burst.
-- **Downloads held steady:** 39.0, 44.2, 46.3, 43.2, 43.7 and 44.9 Mbit/s. The uploads are not valid: a fault in the test harness ended them after about 1 s.
+- **Downloads held steady:** 39.0, 44.2, 46.3, 43.2, 43.7 and 44.9 Mbit/s. The uploads are not valid: a fault in the test harness ended them after about 1 s. The custodian thinks the cause was a single `sleep 60`, which is a shell builtin on the station and may return early when a child is reaped; that isn't proven, and a later window should be timed from `/proc/uptime`. A separate 3.2 MB upload took 0.9 s, about 28 Mbit/s, too short to stand in for one.
 - **Ping loss was 1.9%,** 64 of 3301, never more than 2 in a row. 46 of the 64 came at idle, where my bar was 0.5%. iw's failed frames grew at about 4 a minute, at idle as under load.
 
 One candidate for the idle loss is 0471's probes: at 1 frame a second, 1 frame in 16 is a probe at another rate, and a failed probe loses its frame. That would fit about 4 probes a minute, but it is not shown. The phase end line counts failed probes, so one reconnect after an idle period would compare them with the lost pings.
