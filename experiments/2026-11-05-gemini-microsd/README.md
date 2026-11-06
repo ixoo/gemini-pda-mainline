@@ -1008,6 +1008,104 @@ these images.
 Next, by the table: the eMMC's HS200 tuning and pad timing, with HS at 52 MHz as the
 safe setting meanwhile.
 
+### What the vendor tunes that mainline doesn't (2026-11-06)
+
+Sources: the vendor's eMMC tuning in the public Gemian kernel
+([`autok.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/autok.c),
+`execute_online_tuning_hs200`, `autok_path_sel`, `autok_init_hs200`); its tuning
+output in a retained Gemian boot log of this unit; Linux 7.1.3 `mtk-sd.c`. The log
+itself stays private; the values below are read from it.
+
+**Observed in the Gemian log.** HS200 at 200 MHz from a 400 MHz source, tuned over
+64 pad delay cells. One clock cycle is 49 cells.
+
+| Path | Pass map | Chosen |
+| --- | --- | --- |
+| CMD, rising edge | fails at 9-11 and 58-61 | |
+| CMD, falling edge | fails at 34-36 | falling edge, delay 10 |
+| Read data, rising edge only | fails at 14-20 and 61-63, passes 21-60 | delay 39-40 (31 in the first field, 8 in the second) |
+
+The vendor also tunes the data latch clock (`INT_DAT_LATCH_CK`), which ended at 3
+after a logged latch-tuning error. Its HS400 tuning that follows chose 0.
+
+**How mainline differs** (from the source):
+
+| Setting | Vendor HS200 | Mainline, MT6797 data |
+| --- | --- | --- |
+| Delay cells scanned | 64 | 32 for an eMMC (`mediatek,tuning-step` default), 64 when the host has `no-mmc`, as the microSD does |
+| CMD and DATA | Tuned apart, CMD on both edges, data on the rising edge | One shared value (`msdc_tune_together`, as `data_tune` and `async_fifo` are set) |
+| Data latch clock | Tuned, from 1 | `mediatek,latch-ck`, 0 by default |
+| `CKGEN_MSDC_DLY_SEL` | 0 | 1 |
+| CMD response and write CRC turnaround | 0 and 0 | 1 and 1 |
+| `RESPSTSENSEL`, `CRCSTSENSEL` | 3 and 3 | 2 and 2 |
+
+The MT6797 `PAD_TUNE1` register at `0xf4` has the second delay fields at the bits
+`mtk-sd` uses past 32 cells, the same layout as the vendor's `msdc_reg.h`.
+
+**Inferred.** Running `mtk-sd`'s `msdc_tune_together` and `get_best_delay` over the
+vendor's rising-edge maps:
+
+- With 32 cells, the widest rising window that passes both paths is 21-31, 11 long.
+  That is under the 12 needed to skip the falling edge. If the rising edge wins, the
+  shared delay is 26, six cells (about 0.6 ns) above the failing zone at 14-20. The
+  falling-edge data map isn't known, since the vendor never scans it.
+- With 64 cells, the window is 21-57, 37 long. The falling edge is skipped and the
+  shared delay is 39, where the vendor puts its data delay, with 19 and 22 cells of
+  margin. CMD at 39 on the rising edge is inside its 12-57 pass range.
+
+Of the differences, the 32-cell scan is the one that explains a marginal data delay
+on its own. The fixed path settings in the table are what `mtk-sd` uses for every
+async-FIFO SoC, and the microSD host passes SDR104 with them. They stay as they are
+unless the scan change isn't enough. The pass maps come from one Gemian boot and
+shift between boots; that's why the margin matters.
+
+**Change.**
+[0625](../../patches/proposals/0625-arm64-dts-mediatek-gemini-station-scan-all-eMMC-HS20.patch)
+sets `mediatek,tuning-step = <64>` on the station's `mmc0`. It's DT only, so it needs
+an image.
+
+**T6b, pending.** A read-only read of the tuned registers on the running station:
+MSDC0 `IOCON`, `PATCH_BIT0`-`2`, `PAD_TUNE0` and `PAD_TUNE1`. It shows which delay
+and edge the 32-cell scan picked.
+
+### T7: HS200 with a 64-cell scan
+
+**Hypothesis.**
+
+- The eMMC tunes HS200 with a shared delay in the upper part of the window, about
+  35-45 on the rising edge. `PAD_TUNE1` shows the second-field select bits.
+- Every eMMC read runs at about 4 interrupts per MiB, with none of T6's two per
+  sector.
+- Reads run well above 36 MB/s.
+- The microSD is unchanged.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later. One boot. Read-only on the eMMC, as T6.
+
+1. **Boot.**
+   - Boot ID, boot2 hash, taint.
+   - `mmc0` and `mmc1` `ios`.
+   - The six registers from T6b.
+   - `dmesg` lines for `mmc` and `msdc`.
+2. **Reads**, on the `linux` partition found by GPT name, each after a cache drop.
+   For each, the read count and sectors from `/sys/block/mmcblk0/stat`, the `mmc0`
+   interrupt count before and after, and the time from `/proc/uptime`:
+   - 8 MiB buffered at 0, 300, 8192, 8500 and 20000 MiB, the T6 offsets;
+   - 1 MiB × 256 buffered from 0;
+   - 1 MiB × 1024 buffered from 8 GiB;
+   - 4 MiB × 64 direct.
+3. Repeat step 2's 8 MiB reads once, to catch a fault that comes and goes.
+4. The six registers again, `err_stats`, `dmesg` lines, taint.
+
+Stop on any `mmc0` error, warning or Oops. No write, no retry.
+
+| Result | Decision |
+| --- | --- |
+| No reads at two interrupts per sector, rate well above 36 MB/s | 0625 fixes it. Record the rate; HS200 counts as working again |
+| Still some fallback, but less | The scan helped. Next is the data latch clock (`mediatek,latch-ck`) or separate CMD and DATA delays, one at a time |
+| No change, or the delay isn't in 35-45 | The scan isn't the cause. Compare the fixed path settings in the table with the vendor's values |
+| Tuning fails, or the eMMC is absent | Stop, recover via Gemian, revert 0625 |
+
 ## Follow-up
 
 - Suspend and resume.
@@ -1015,5 +1113,5 @@ safe setting meanwhile.
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
 - eMMC HS400, once its data-strobe delay is known.
-- eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): the tuning and pad
-  timing, and HS at 52 MHz meanwhile.
+- eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): 0625 widens the
+  tuning scan, [T7](#t7-hs200-with-a-64-cell-scan) tests it.

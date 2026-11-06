@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 15:02:53 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: scan all eMMC HS200
+ delay cells
+
+At HS200 the station's eMMC reads correct data, but its multi-block
+reads fail now and then without a log line, and the block driver
+re-reads each such request one sector at a time.
+
+mtk-sd scans an eMMC over 32 pad delay cells by default, setting CMD
+and DATA to one shared value. The vendor kernel's HS200 tuning on this
+eMMC (a 200 MHz clock, 49 cells to a cycle) finds the read data
+failing at cells 14-20 and passing from 21 to 60. It sets DATA to
+about 40 and CMD on its own. Run over the vendor's pass maps, a
+32-cell scan's widest rising-edge window is 21-31, too short to skip
+the falling edge, and its centre, 26, sits six cells above the failing
+zone. A 64-cell scan finds 21-57 and picks 39, where the vendor lands.
+
+MT6797 has the second delay fields at PAD_TUNE1 (0xf4) that mtk-sd
+uses past 32 cells, and the microSD host already scans 64.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 0f691f5..1f242fd 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -687,6 +687,12 @@
+ 	max-frequency = <200000000>;
+ 	cap-mmc-highspeed;
+ 	mmc-hs200-1_8v;
++
++	/*
++	 * Scan all 64 delay cells. The data window on this eMMC sits above the
++	 * first 32, and a 32-cell scan centres CMD and DATA near its lower edge.
++	 */
++	mediatek,tuning-step = <64>;
+ };
+ 
+ /*
+-- 
+2.54.0 (Apple Git-157)
+
