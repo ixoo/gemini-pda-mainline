@@ -22,8 +22,8 @@ them.
  sound/soc/mediatek/mt6797/Makefile            |   3 +-
  sound/soc/mediatek/mt6797/mt6797-afe-common.h |   2 +
  sound/soc/mediatek/mt6797/mt6797-afe-pcm.c    |   1 +
- sound/soc/mediatek/mt6797/mt6797-dai-i2s.c    | 141 ++++++++++++++++++
- 4 files changed, 146 insertions(+), 1 deletion(-)
+ sound/soc/mediatek/mt6797/mt6797-dai-i2s.c    | 144 ++++++++++++++++++
+ 4 files changed, 149 insertions(+), 1 deletion(-)
  create mode 100644 sound/soc/mediatek/mt6797/mt6797-dai-i2s.c
 
 diff --git a/sound/soc/mediatek/mt6797/Makefile b/sound/soc/mediatek/mt6797/Makefile
@@ -72,10 +72,10 @@ index f62a32f2f..7446d4f3f 100644
  
 diff --git a/sound/soc/mediatek/mt6797/mt6797-dai-i2s.c b/sound/soc/mediatek/mt6797/mt6797-dai-i2s.c
 new file mode 100644
-index 000000000..e55b0897f
+index 000000000..9dbab14a1
 --- /dev/null
 +++ b/sound/soc/mediatek/mt6797/mt6797-dai-i2s.c
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,144 @@
 +// SPDX-License-Identifier: GPL-2.0
 +//
 +// MediaTek ALSA SoC Audio DAI: the second I2S input, fed by CONSYS
@@ -107,9 +107,12 @@ index 000000000..e55b0897f
 +static const struct snd_soc_dapm_widget mtk_dai_i2s_widgets[] = {
 +	/* The input clock; needed when the I2S input is a slave. */
 +	SND_SOC_DAPM_SUPPLY("I2S_IN_CLK", AUDIO_TOP_CON0, PDN_I2S_SFT, 1, NULL, 0),
++	/* CONSYS drives the I2S; without an input endpoint DAPM never powers it. */
++	SND_SOC_DAPM_INPUT("CONNSYS"),
 +};
 +
 +static const struct snd_soc_dapm_route mtk_dai_i2s_routes[] = {
++	{"Connsys I2S", NULL, "CONNSYS"},
 +	{"Connsys I2S", NULL, "I2S_IN_CLK"},
 +};
 +

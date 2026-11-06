@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 both streams started cleanly but the owner did not hear the station; F5b, a read-only snapshot during the stream, admitted on 2026-11-05, not yet run |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 the owner heard complete silence; F5b found the CONSYS I2S input never powered, fixed in 0592; F5c, the repeat, is predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1066,6 +1066,56 @@ owner does not need to listen, but may.
 | D0 set, `0x564` and `0x568` stay 0 | no I2S clock reaches the AFE | the CONSYS side: its I2S output or the FM audio trigger |
 | D0 set, calibrator nonzero, `ADDA_DL_CH1`/`2` or `ADDA Playback` off | the downlink is not connected | the playback route |
 | all on and measuring | data reaches the downlink | the ASRC output or the codec level |
+
+## F5b result (2026-11-05): the I2S input never powers up
+
+Run by the custodian session with the owner's admission, the owner away and
+not listening, in boot `a22a4ca8` with the F5 modules still loaded and
+`radio-mt6797` `61a2c041…` loaded fresh; `fm-afe-read.sh` `56446c5d…`,
+`fm-listen` `d0b66f4e…`. Raw files are private under
+`artifacts/station-work-58/boot-1/`.
+
+- **DPCM, during the stream** (`Hostless_FM/state`): playback started, with
+  back end Primary Codec started; capture started, with back end
+  CONNSYS_I2S started; all S16_LE, 2 channels, 48 kHz.
+- **Powered widgets during the stream:** ADDA Playback, Hostless FM DL, the
+  codec's whole headphone path (AIF1 Playback, DAC In Mux, DACL, DACR, HPL
+  and HPR Mux and Power, Headphone L and R, the supplies), and the card's
+  Headphone. **`Connsys I2S` Off**, with its stream active; Hostless FM UL
+  Off.
+- **Registers:** none printed. The script's offset match did not fit the
+  debugfs format; fixed since (`7e8e06d9…`, compares values).
+- `fm-listen` as in F5; the radio's lines as in F5; no AFE or codec line;
+  Wi-Fi and taint as before.
+
+**Analysis.** The playback half is complete, so the headphones were fed and
+powered; F5's "complete silence" was zeros arriving, not a dead output. The
+capture half started in DPCM, which calls the CONNSYS_I2S `hw_params` and
+`trigger`, but DAPM never powered its DAI widget. A capture DAI widget
+powers only on a complete path from a source endpoint, and 0592 gave
+`Connsys I2S` nothing upstream but the `I2S_IN_CLK` supply. So the supply
+never switched on, `AUDIO_TOP_CON0` `PDN_I2S` stayed set and the I2S input
+had no clock. MT8186 declares `SND_SOC_DAPM_INPUT("CONNSYS")` with the route
+`{"Connsys I2S", NULL, "CONNSYS"}` for exactly this; the port missed it.
+(`I2S_IN_CLK` itself exists: `Connsys I2S` lists it as an input. The AFE's
+sub-DAI widgets get no debugfs files, which is why it, and the ADDA mixers,
+had none.)
+
+**Conclusion:** `confirmed`: the FM audio stops at the AFE input because
+DAPM never powers it.
+
+**Fix:** 0592 now adds the `CONNSYS` input endpoint and its route, as
+MT8186 does. 0593 and 0594 are unchanged. Builds with `W=1` and no warning
+in the dev VM.
+
+## Test F5c: F5 with the CONSYS input powered (predeclared, not yet admitted)
+
+The F5 test, effects, hearing safety, procedure and decision table, with the
+corrected 0592 and one addition: `fm-afe-read.sh` (`7e8e06d9…`) runs once
+during the stream, about 20 s in, so a silent result says at once whether
+`Connsys I2S`, `I2S_IN_CLK` and the ASRC calibrator came on. New package
+needed (the AFE module changes); the owner listens, earbuds near the ears
+at first.
 
 ## Follow-up
 

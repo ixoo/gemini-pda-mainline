@@ -22,9 +22,17 @@ echo "regmap: ${regs##*/}"
 want='0000 0004 0010 0014 0018 002c 0030 0034 0108 010c 0120 0124 0450 0454
 0500 0504 0508 050c 0510 0514 0518 051c 0520 0524 0528 052c
 0550 0554 0558 055c 0560 0564 0568 056c 0570'
-for off in $want; do
-    grep -i "^0*$off:" "$regs/registers" | head -1
-done
+# The file's offsets are as wide as the largest register, so compare values.
+while IFS=: read -r off val; do
+    case "$off" in
+    *[!0-9a-fA-F]*|'') continue ;;
+    esac
+    for w in $want; do
+        if [ "$((0x$off))" -eq "$((0x$w))" ]; then
+            echo "$w:$val"
+        fi
+    done
+done < "$regs/registers"
 
 card=/sys/kernel/debug/asoc/mt6797-mt6351
 if [ -d "$card" ]; then
