@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 5 Nov 2026 19:20:48 -0500
+Subject: [PATCH 585/585] arm64: dts: mediatek: gemini-station: describe the
+ vibration motor
+
+The Gemini PDA vibration motor is driven by the MT6351 VIBR LDO. The
+vendor driver sets the LDO to 2.8 V once and then only switches its
+enable bit, with no PWM or GPIO involved; Gemian reports the LDO at
+2.8 V on this unit.
+
+Describe the LDO held at 2.8 V and a regulator-haptic device on it, so
+the motor is an ordinary force-feedback input device. Any non-zero
+rumble magnitude switches the motor on at the vendor voltage.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 22 +++++++++++++++++++
+ 1 file changed, 22 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 4711ed370..e5102fa71 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -620,3 +620,25 @@ &mmc1 {
+ 	no-sdio;
+ 	status = "okay";
+ };
++
++/*
++ * The vibration motor sits on the MT6351 VIBR LDO. The vendor driver only
++ * switches the LDO on and off and runs it at 2.8 V, so hold the LDO there
++ * and give the motor that one level.
++ */
++&mt6351regulator {
++	mt6351_vibr_reg: ldo-vibr {
++		regulator-name = "vibr";
++		regulator-min-microvolt = <2800000>;
++		regulator-max-microvolt = <2800000>;
++	};
++};
++
++/ {
++	haptic {
++		compatible = "regulator-haptic";
++		haptic-supply = <&mt6351_vibr_reg>;
++		min-microvolt = <2800000>;
++		max-microvolt = <2800000>;
++	};
++};
+-- 
+2.43.0
+

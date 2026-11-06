@@ -21,6 +21,9 @@ CONFIG_STK3310=m
 # The AW9120 indicator LEDs (2026-11-04-gemini-aw9120-leds). A module, so it can
 # be reloaded without a boot; nothing loads it.
 CONFIG_LEDS_AW9120=m
+# The vibration motor on the MT6351 VIBR LDO (2026-11-05-gemini-vibrator). A
+# module, so it can be reloaded without a boot; nothing loads it.
+CONFIG_INPUT_REGULATOR_HAPTIC=m
 CONFIG_LOCALVERSION="-gemini-a53-station"
 CONFIG_LOG_BUF_SHIFT=20
 # Power off through the MT6351 RTC, as Gemian does (0342-0345), not PSCI.
