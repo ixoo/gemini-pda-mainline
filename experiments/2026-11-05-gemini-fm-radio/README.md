@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets, and F4 (stereo diagnostic, 0590) admitted on 2026-11-05, not yet run |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets, F4 rules out forced mono, but its signal was too weak to settle stereo |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -116,7 +116,7 @@ Nothing was executed. The full contract is in the
    knowledge, not a blocker).
 7. The DSP ROM version, which picks the patch file (F2 reads it).
 8. ~~What signals RDS data on CONSYS?~~ The firmware pushes it as `0x0d` events (R8), observed in F3.
-9. Why the stereo flag (`RSSI_IND` D12) never sets, on two stations at about -72 and -81 dBm (F2c, F3). R10 rules out a missing vendor setting.
+9. Why the stereo flag (`RSSI_IND` D12) never sets, on two stations at about -72 and -81 dBm (F2c, F3). R10 rules out a missing vendor setting, F4 rules out forced mono; a strong, known-stereo station is still to be tried.
 
 ## Mainline shape
 
@@ -787,6 +787,52 @@ station is known to be in stereo, and where the device was.
 | `0x75` D3 = 1 | forced mono despite the write | find what sets it; fix the write order |
 | `0x75` D3 = 0, stereo comes on with the stronger signal | blend by level, (b) | the indicator works; nothing to fix |
 | `0x75` D3 = 0, strong signal, known stereo station, flag still 0 | (c); PR and FPAMD show what the DSP sees | compare with the audio path once it exists |
+
+## F4 result (2026-11-05): not forced mono; signal too weak to say more
+
+Run by the custodian session with the owner's admission, in boot `a22a4ca8`,
+module-only: package `c8213ba7…` checked against its `SHA256SUMS`,
+`radio-mt6797.ko` `61a2c041…`, `fm-check` `52196287…`. The owner's F3
+station, headset plugged in. The owner did not say where the device was or
+whether the station is in stereo. Raw output and the private file are under
+`artifacts/station-work-58/boot-1/`.
+
+`fm-check`: open 0.24 s, all controls ok, tune 0.11 s, then 60 lines with
+signal 26,214 to 31,675 (about -87 dBm; F3 had 40,413 to 43,690, about
+-72 dBm), `stereo=0`, `rds=0` and no RDS block at all; seek ok in 0.49 s to a
+station at signal 20,752, still `stereo=0`; close 0.01 s. `dmesg`: power-up,
+identity, function on and off, power-down all 0, `events=241 unexpected=0
+junk=0`, link halted with no failure. Afterwards pings, CONSYS reload, Wi-Fi
+and taint as in F3.
+
+The diagnostic lines (controls in each block: not muted, volume 15, 75 µs):
+
+| When | `0x6c` | `0x75` | `0x61` | `0x63` | `0x64` | Quality report |
+| --- | --- | --- | --- | --- | --- | --- |
+| t=5 | `0318` | `0000` | `1002` | `0011` | `000a` | ch matches, rssi -232, pamd -20, pr `00b6`, fpamd `0f5b`, mr 54, atdc 474, prx 92, atdev 3320, smg 3677, drssi `0013` |
+| end | `0323` | `0000` | `1002` | `0011` | `000a` | ch matches, rssi -222, pamd -26, pr `0060`, fpamd `0f2b`, mr 65, atdc 1689, prx 103, atdev 4411, smg 32767, drssi `0016` |
+| after seek | `030a` | `0000` | `1002` | `0011` | `000a` | ch matches, rssi -244, pamd -27, pr `0029`, fpamd `0f23`, mr 60, atdc 171, prx 109, atdev 1890, smg 32767, drssi `000d` |
+
+**Analysis.**
+
+- **Not forced mono, (a) rejected.** `0x75` is `0000` throughout, so D3 is
+  clear, and `0x6c` D12 is 0: its low ten bits are the RSSI (`0x318` = -232,
+  the same as the report).
+- **The registers are as the driver set them.** `0x61` D12 = 75 µs and D1 =
+  ASIP running; `0x63` D0 tune and D4 RDS on; the report's channel always
+  matches the tuned one.
+- **The signal was weak.** -222 to -244 raw is about -83 to -92 dBm, some 15
+  dB below F3 on the same station; RDS, which decoded cleanly at -72 dBm in
+  F3, got no block at all. The soft-mute gain was low at t=5 (3677, under the
+  vendor's 16421) and at its maximum later. Device or headset-cable placement
+  probably changed, which is not confirmed.
+- **(b) or (c) not settled.** At this level a receiver blends to mono, so the
+  flag being 0 says nothing new. `pr` and `fpamd` change with the signal, but
+  their meaning is not documented, so they cannot be read as pilot strength.
+
+**Conclusion:** `confirmed` that forced mono is not the cause; `inconclusive`
+on stereo. A run on a strong station, at F3's level or better and known to be
+in stereo, is still needed.
 
 ## Follow-up
 
