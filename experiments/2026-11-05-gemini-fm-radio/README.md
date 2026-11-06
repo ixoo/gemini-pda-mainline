@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 both streams started cleanly but the owner did not hear the station |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 both streams started cleanly but the owner did not hear the station; F5b, a read-only snapshot during the stream, is predeclared, not admitted |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1007,6 +1007,59 @@ F5 separates them. A register and DAPM-state read during the stream does.
 
 **Conclusion:** `inconclusive`: the path starts without an error but carries
 no audible station.
+
+## After F5: desk check of the path
+
+Everything the driver programs matches the vendor and the AFE register
+descriptions (privately held, not quoted here), so the silence is not a
+misread field:
+
+- `AFE_I2S_CON`: D0 enable, D1 word length (0 = 16 bit), D2 slave (1), D3
+  I2S format (1), D5 LRCK inversion (0), D6 SRC bypass (0, use the SRC),
+  D28 pad select (0 = from CONSYS, "for FM receive"). 0592 writes exactly
+  this.
+- `AFE_CONN3` and `AFE_CONN4` implement every input bit, I00 to O03 and I01
+  to O04 included, so skipping hardware gain 1 is not the fault.
+- The per-I2S engine clock gates in `AUDIO_TOP_CON1` reset to 0 (not gated);
+  the vendor's only write there belongs to a different, 4-pin I2S mode.
+- The receiver's I2S output: on MT6630 and MT6632 the vendor enables it with
+  `0x9b` D1:0; on MT6631 its last power-up step writes `0x9b = 0xf9ab`, which
+  has D1:0 set, and the driver does the same.
+
+The ASRC has a frequency calibrator that measures the incoming I2S. The
+vendor's `AFE_ASRC_CON16 = 0xff5987` turns "calibrator 2" on with
+auto-restart, and its results are read-only: the period in `AFE_ASRC_CON18`
+(`0x564`) and the frequency in `AFE_ASRC_CON19` (`0x568`). They tell
+directly whether an I2S clock reaches the AFE from CONSYS.
+
+## Test F5b: what the path does during the stream (predeclared, not yet admitted)
+
+**Question:** where does the FM audio stop: at CONSYS, at the AFE input, or
+on the way to the codec?
+
+**Code:** none new; the F5 modules stay loaded.
+[`fm-afe-read.sh`](fm-afe-read.sh) reads, through debugfs only, the AFE
+registers of the I2S input, its ASRC with the calibrator results, the routes
+and the ADDA downlink, then lists every powered DAPM widget of the card and
+the full state of the FM path's widgets.
+
+**Effects:** as F5, once; plus debugfs reads. Earbuds out of the ears; the
+owner does not need to listen, but may.
+
+**Procedure,** one run:
+
+1. As F5 steps 1 to 3 (modules already loaded; switches on).
+2. `sh fm-afe-read.sh > before.txt` with no stream.
+3. `fm-listen /dev/radio0 <station kHz> 8 60 <private file> &`; after 20 s,
+   `sh fm-afe-read.sh > during.txt`; wait for `fm-listen` to end.
+4. As F5 step 6.
+
+| During the stream | Meaning | Next |
+| --- | --- | --- |
+| `AFE_I2S_CON` D0 = 0, or `AFE_ASRC_CON0` D0 = 0 | the CONNSYS_I2S back end never started | DPCM: the front-end capture path |
+| D0 set, `0x564` and `0x568` stay 0 | no I2S clock reaches the AFE | the CONSYS side: its I2S output or the FM audio trigger |
+| D0 set, calibrator nonzero, `ADDA_DL_CH1`/`2` or `ADDA Playback` off | the downlink is not connected | the playback route |
+| all on and measuring | data reaches the downlink | the ASRC output or the codec level |
 
 ## Follow-up
 
