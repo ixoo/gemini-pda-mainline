@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `completed`: microSD works at default speed and, for reads, at SD high speed (48 MHz, about 22.9 MB/s, data matching). The T3 write is pending the owner. Card detect needs VMCH kept on (patch 0580) |
+| Status | `completed`: microSD works at SD high speed (48 MHz, about 22.9 MB/s reads, a 64 MiB write read back intact), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -464,7 +464,7 @@ error on `mmc1`. No retry, one write at most.
 | CRC errors, timeouts or a hash mismatch at 48 MHz | Stop. Next: the CMD pull-up and the pad drive, or fall back to 25 MHz by reverting 0606 |
 | Rates not doubled, no errors | Record it. Something else bounds the transfer; look at the request size and DMA |
 
-### T3 result, reads (2026-11-06)
+### T3 result (2026-11-06)
 
 Custodian run on station-work-62: package `639e173b…` built from `15bde8ff`, which
 carries 0606; DTB `417ad6d6…`; boot2 `676ad310…`. Boot `2dc6de9f` throughout, taint 0.
@@ -483,13 +483,21 @@ The T1c card was in the slot and nothing was mounted. Raw output is private.
 3. **Spread reads.** 256 MiB after dropping caches: 11.72 s at offset 0, 11.73 s at
    4096 MiB, 11.71 s at 12000 MiB. That's about 22.9 MB/s, 1.98 times T2's
    11.55 MB/s.
-4. **Write: not run yet**, pending the owner's approval.
+4. **Write**, approved by the owner ("Yes, write"). `mmcblk1` resolved under
+   `11240000.mmc`; mounted read-write as vfat.
+   - 64 MiB from `/dev/urandom` plus `sync`: 8.79 s, 1.77 s of it user time, against
+     12.39 s at default speed.
+   - After `umount`, `drop_caches` and a read-only mount, the hash read back in
+     3.09 s, against 5.98 s at default speed, and matched.
+   - The file was deleted and the card unmounted.
+   - No MMC or FAT error. The log was cleared at 194 s for another test, so this
+     check covers 194 s onward; steps 1 to 3 had shown no error before that.
 5. **Log.** No new error, warning or Oops line; no CRC error or timeout on either
    host; taint 0.
 
-So far the hypothesis holds for reads. At SD high speed the card reads at twice the
-default-speed rate, the same data comes back, and the pads the firmware left need
-nothing more at 48 MHz. Writing at high speed isn't shown yet.
+The hypothesis held on one boot of one unit with one card. At SD high speed the card
+reads at twice the default-speed rate and returns the same data. A 64 MiB write reads
+back intact, and the pads the firmware left need nothing more at 48 MHz. 0606 stays.
 
 ## Follow-up
 

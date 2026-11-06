@@ -93,7 +93,7 @@ Independent of each other, in no fixed order. Each record owns the detail.
 | [Bluetooth](hardware/mt6797-bluetooth.md#open-questions) | Range first; then a voice bridge to ALSA; a public userspace for release |
 | [GNSS](../experiments/2026-11-01-gemini-gnss-link/README.md) | Open sky, which decides whether a position is reachable on mainline |
 | [Charging](../experiments/2026-11-02-gemini-kernel-charge-guard/README.md) | A real charge reaching the limit; charge flow after a resume |
-| [microSD](../experiments/2026-11-05-gemini-microsd/README.md#follow-up) | Works on the station, hotplug and at boot; high speed reads shown, a high-speed write pending; suspend, UHS, exFAT |
+| [microSD](../experiments/2026-11-05-gemini-microsd/README.md#follow-up) | Works on the station at SD high speed, hotplug and at boot; suspend, UHS, exFAT |
 | USB host and role switching | Not started. [Both ports described](hardware/usb-c.md); right-port host [proposed](../experiments/2026-11-05-gemini-usb-c/README.md#proposal-first-mainline-step) |
 | Modem | Feasibility only. A safe transport and regulatory boundary come first |
 
