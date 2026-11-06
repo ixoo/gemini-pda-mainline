@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 both streams started cleanly but the owner did not hear the station; F5b, a read-only snapshot during the stream, is predeclared, not admitted |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 both streams started cleanly but the owner did not hear the station; F5b, a read-only snapshot during the stream, admitted on 2026-11-05, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1034,7 +1034,10 @@ auto-restart, and its results are read-only: the period in `AFE_ASRC_CON18`
 (`0x564`) and the frequency in `AFE_ASRC_CON19` (`0x568`). They tell
 directly whether an I2S clock reaches the AFE from CONSYS.
 
-## Test F5b: what the path does during the stream (predeclared, not yet admitted)
+## Test F5b: what the path does during the stream (admitted)
+
+The owner admitted F5b on 2026-11-05: one run with the effects below;
+anything else needs asking again.
 
 **Question:** where does the FM audio stop: at CONSYS, at the AFE input, or
 on the way to the codec?
