@@ -197,6 +197,10 @@ to CONSYS, then:
 
 No MT6351 analog input and no board audio pin is involved. Mainline has no
 MT6797 I2S DAI yet ([audio](gemini-audio.md)), so this input is new AFE work.
+Every register involved is defined in mainline `mt6797-reg.h`, and the
+mainline MT8186 `CONNSYS_I2S` DAI uses the same ASRC constants; the full
+register-level mapping is in the
+[FM record](../../experiments/2026-11-05-gemini-fm-radio/README.md#fm-audio-design-2026-11-05-desk-only).
 
 ## Firmware files
 

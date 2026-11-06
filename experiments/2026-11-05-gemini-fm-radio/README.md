@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3 passed on 2026-11-05: the V4L2 radio device tunes, seeks and delivers RDS. No audio path; the stereo flag never sets, F4 rules out forced mono, but its signal was too weak to settle stereo |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio is designed, not written |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -841,6 +841,54 @@ The diagnostic lines (controls in each block: not muted, volume 15, 75 µs):
 headset wire's position alone moves reception by about 15 dB; `inconclusive`
 on stereo. A run on a strong station, at F3's level or better and known to be
 in stereo, is still needed.
+
+## FM audio: design (2026-11-05, desk only)
+
+The receiver's audio already leaves the DSP: power-up step 11 puts it on
+CONSYS's I2S as master, 32 kHz, 16 bit (S5). The AFE has to take it in and
+route it to the codec. Mainline has headphone and speaker playback through the
+ADDA path ([audio record](../2026-11-01-gemini-audio-station/README.md)), and
+every AFE register the vendor uses for FM is already defined in mainline
+`mt6797-reg.h`; only the DAIs and routes are missing.
+
+What the vendor programs (`sound/soc/mediatek/mt_soc_audio_6797/`:
+`mt_soc_pcm_fm_i2s.c`, `mt_soc_afe_control.c`, `AudDrv_Clk.c`,
+`mt_soc_afe_connection.c`):
+
+| Step | Vendor | Mainline name |
+| --- | --- | --- |
+| I2S input clock | `AUDIO_TOP_CON0` D6 cleared ("I2S In clock, needed in slave mode") | `PDN_I2S` |
+| Second I2S input | `AFE_I2S_CON`: slave (D2), I2S format (D3), 16 bit (D1), no LRCK inversion (D5), pad select D28 = 0 (CONSYS); enable D0 | `AFE_I2S_CON`; inputs `I_I2S0_CH1/2` (I00/I01) |
+| ASRC 32 to 44.1/48 kHz | `AFE_CONN4` D30 = 0 (use ASRC); `AFE_ASRC_CON14` = `0x1b9000` (44.1) or `0x1e0000` (48); `CON15` = `0x140000`; `CON16` = `0xff5987`, `CON17` = `0x7ef4`, `CON16` = `0xff5986` then `0xff5987`; `CON13` D16 = 0 (stereo); `CON20` = `0x36000`, `CON21` = `0x2fc00`; enable `AFE_ASRC_CON0` D6 and D0; the AFE rate of the I2S block set to the output rate | `AFE_ASRC_CON0`-`CON21`, `AFE_CONN4` |
+| Hardware gain 1 | `AFE_GAIN1_CON0` rate and 64 samples per step, D0 enable; `AFE_GAIN1_CUR` = 0 to ramp up; `AFE_GAIN1_CON1` = gain | `AFE_GAIN1_*` |
+| Routing | I00 to O13 and I01 to O14 (`AFE_CONN13` D0, `AFE_CONN14` D1, into gain 1); I10/I11 (gain 1 out) to O03/O04 (`AFE_CONN3` D10, `AFE_CONN4` D11, ADDA downlink) and to O28/O29 (I2S DAC out) | `I_GAIN1_OUT_CH1/2`; ADDA DL mixers |
+| Codec side | the I2S DAC-out path `AFE_I2S_CON1` at the output rate, 32 bit | not needed for the headphones: mainline drives the MT6351 through ADDA |
+| AFE on | `AFE_DAC_CON0` D0 | already handled by the AFE driver |
+
+MT8186's mainline `CONNSYS_I2S` DAI writes the same ASRC constants
+(`0x1b9000`, `0x1e0000`, `0x140000`, `0x36000`, `0x2fc00`, `0x7ef4`,
+`0xff5986`) to its own ASRC block, and MT8186 and MT8365 route
+`CONNSYS_I2S` through hardware gain 1 to the downlink for a "Hostless FM"
+front end. So the MT6797 work is a port of an existing mainline pattern:
+
+1. a `CONNSYS_I2S` back-end DAI on the second I2S input with the ASRC above,
+   capture only, 44.1 or 48 kHz, and the `PDN_I2S` clock as a DAPM supply;
+2. a hardware gain 1 DAI with `HW_GAIN1_IN_CH1/2` mixers fed from
+   `I_I2S0_CH1/2` at `AFE_CONN13`/`AFE_CONN14`;
+3. a "Hostless FM" front end next to the existing hostless DAIs;
+4. `GAIN1_OUT_CH1/2` inputs on the `ADDA_DL_CH1/2` mixers;
+5. the DAIs registered in `mt6797-afe-pcm.c`, and an FM link in the
+   `mt6797-mt6351` card.
+
+The AFE, the card and the codec are modules on the station
+(`CONFIG_SND_SOC_MT6797=m`, `_MT6351=m`), so a first audio test needs no
+boot. The audio session owns these files; this work waits for its answer
+about anything in flight.
+
+The first audio test would open the hostless FM front end with the radio
+tuned and listen on the headphones, which are the antenna as well. That makes
+it the first FM test that needs the owner's ears, and also the first that can
+answer the stereo question.
 
 ## Follow-up
 
