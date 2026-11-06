@@ -427,6 +427,13 @@ at 3.3 V, with no UHS mode, so no 1.8 V switch and no tuning.
   (`0x100025b0` bits 21-29), the vendor's bias value 5 in bits 16-20 of the same
   register, and no CMD pull-up.
 
+**Candidate.** Built on Buildbox from `799bc8c4`, which also carries the usb-c
+session's U3 changes: profile `mt6797-a53-station-a72` with modules, 777 patches,
+package `3bc96f03…`, patchset `ff4ccf67…`, config `4df1f9bd…`, `Image.gz`
+`15e43aa6…`; validation passed. Its `mt6797-gemini-pda-station-a72.dtb`
+(`59a17455…`) has `mmc1` at `max-frequency` 50000000 with `cap-sd-highspeed` and
+`no-1-8-v`. Built, not booted.
+
 Hypothesis: the card switches to high speed at 48 MHz and reads at about twice T2's
 rate, with no CRC error or timeout, and the same data. T2's hash of the first 1 GiB
 gives a known answer.
