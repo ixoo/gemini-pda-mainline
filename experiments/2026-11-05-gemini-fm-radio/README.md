@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; F5, the first listening test, admitted on 2026-11-05, not yet run |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; in F5 both streams started cleanly but the owner did not hear the station |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -969,6 +969,44 @@ harsh.
 | Noise or wrong pitch | rate or format mismatch | check the ASRC rate and the I2S word length |
 | A stream fails to start | front-end or back-end setup | `dmesg` decides |
 | Warning or Oops | driver fault | stop; preserve `dmesg`; reload |
+
+## F5 result (2026-11-05): no station heard
+
+Run by the custodian session with the owner's admission, in boot `a22a4ca8`
+(image `02e045fa…`), module-only: package `5f9d037a…` built by the custodian
+from `2a628ce6`, `Image.gz` `5229086f…` matching the running image. Changed
+modules `snd-soc-mtk-common` `89133c3d…`, `snd-soc-mt6797-afe` `f1d96068…`,
+`mt6797-mt6351` `ab9caefb…`; `radio-mt6797` `61a2c041…`; `fm-listen`
+`d0b66f4e…`. The owner's F3 station, headset in. Raw output and the private
+file are under `artifacts/station-work-58/boot-1/`.
+
+- **Module swap:** the three audio modules unloaded and loaded with rc 0; the
+  AFE combined 15 DAIs (13 before), the card probed, the headphone jack input
+  came back and reported the jack in. The `audio-start` mixer list applied
+  without a failure; `ADDA_DL_CH1 I2S0_CH1` and `ADDA_DL_CH2 I2S0_CH2` on;
+  speakers off; `Headphone Volume` 0, -10 dB.
+- **`fm-listen`:** radio volume 8 and tune ok; `Hostless_FM` is card 0
+  device 9; capture and playback both started; signal 19,660 to 43,690 over
+  60 s, mostly about 40,000 (around -74 dBm), `stereo=0` throughout; both
+  streams stopped, radio closed, rc 0.
+- **`dmesg`:** the radio's usual lines (link, function on, identity, function
+  off, power-down 0, `events=218 unexpected=0`), a console unblank from a
+  key press, and **no line at all from the AFE, the card or the codec**
+  during the stream.
+- **Owner:** did not hear the station. Their first answer was "noise or
+  nothing"; which of the two is asked.
+- **After:** switches off, radio unloaded, pings, CONSYS and `mac` reload,
+  pings, taint 0, no warning or Oops. The new audio modules stay loaded.
+
+**Analysis.** Both front-end directions started without an error, and the
+receiver ran as in F3, so the fault is in the audio path between the
+receiver's I2S and the headphones, and it is silent. Every candidate fits
+the log: the receiver not driving its I2S, the AFE input or ASRC not
+running, the downlink not connected, or the codec not powered. Nothing in
+F5 separates them. A register and DAPM-state read during the stream does.
+
+**Conclusion:** `inconclusive`: the path starts without an error but carries
+no audible station.
 
 ## Follow-up
 
