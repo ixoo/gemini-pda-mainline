@@ -43,7 +43,7 @@ def main(package, parent, tools, output, authorized_key=None):
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = []
     for path in ['net/wireless/mediatek/mt6797/mac.ko', 'net/wireless/mediatek/mt6797/mt6797-wlan-core.ko',
-                 'soc/mediatek/mt6797-consys.ko', 'input/misc/gemini-lid.ko'] + ([] if public else ['leds/rgb/leds-aw9120.ko']):
+                 'soc/mediatek/mt6797-consys.ko', 'input/misc/gemini-lid.ko'] + ([] if public else ['leds/rgb/leds-aw9120.ko', 'input/misc/regulator-haptic.ko']):
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
@@ -81,6 +81,7 @@ def main(package, parent, tools, output, authorized_key=None):
                  'CONFIG_EXT4_FS=y', 'CONFIG_CHARGER_BQ25890=y', 'CONFIG_DRM_FBDEV_EMULATION=y']:
         assert line in config.splitlines(), line
     assert public or 'CONFIG_LEDS_AW9120=m' in config.splitlines()
+    assert public or 'CONFIG_INPUT_REGULATOR_HAPTIC=m' in config.splitlines()
     for line in ['# CONFIG_DEVMEM is not set', '# CONFIG_I2C_CHARDEV is not set', '# CONFIG_DEBUG_FS is not set',
                  'CONFIG_EXTRA_FIRMWARE=""', 'CONFIG_BLK_DEV_LOOP=y'] if public else []:
         assert line in config.splitlines(), line

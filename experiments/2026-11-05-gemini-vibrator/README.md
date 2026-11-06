@@ -182,3 +182,14 @@ standard force-feedback interface, and stops it when each effect ends.
 Not shown: long or repeated use, magnitudes other than full (they all map to
 2.8 V here), suspend, the motor's rated voltage and current, and a second unit.
 Nothing loads the module at boot yet.
+
+## Follow-up: load at boot (2026-11-05)
+
+By the owner's decision after V1, the station's `init` loads
+`regulator-haptic.ko` after the LED module, and `compose-station.py` packs it
+and asserts `CONFIG_INPUT_REGULATOR_HAPTIC=m`, for the station image only. The
+release image doesn't pack it. Loading registers an idle input device; nothing
+plays on it, so the LDO stays off. Checked against package `445e8b8d…`: the
+module path resolves (10,168 bytes), the config line is present, and `init`
+passes `sh -n`. Not yet composed or booted; the next batched image carries it,
+and its first-boot status line should read `haptic=regulator-haptic`.
