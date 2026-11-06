@@ -1463,6 +1463,65 @@ Not shown: whether mainline's HS200 tuning, which only needs to pass the tuning
 block, is enough to switch to HS400; and whether the vendor's 400 MHz HS400 source
 matters, where mainline's is 384 MHz.
 
+### T9: the eMMC at HS400
+
+The owner chose HS400 over stepping down to HS (52 MHz).
+
+**Change.**
+[0627](../../patches/proposals/0627-arm64-dts-mediatek-gemini-station-run-the-eMMC-at-HS.patch)
+adds `mmc-hs400-1_8v` and `hs400-ds-delay = <0x1401d>` to the station's `mmc0`. It
+keeps 0625's 64-cell HS200 scan and corrects its comment.
+
+What `mtk-sd` does with them (source, not run):
+- The MMC core tunes HS200 as now, then switches the card to HS400.
+- `msdc_prepare_hs400_tuning` writes `0x1401d` to `PAD_DS_TUNE`.
+- `msdc_execute_hs400_tuning` rescans the strobe `DLY1` over 32 cells, reading
+  EXT_CSD at each, and logs "Final PAD_DS_TUNE". The vendor's own scan passed 1-15,
+  which this centring rule puts at 8.
+- The clock is the 384 MHz source divided by 2: 192 MHz, both edges.
+
+The image also carries 0626, so tuning maps and errors still print.
+
+**Risk.** As T5: if the switch or the strobe tuning fails, the core gives up on the
+eMMC for that boot. Recovery is via Gemian, with nothing on the eMMC changed. `data`
+stays read-only for this boot. No write is planned.
+
+**Hypothesis.**
+
+- `mmc0` comes up as "new HS400 MMC card" at 192 MHz with "Final PAD_DS_TUNE" `DLY1`
+  near 7-8 and `DLY3` 20.
+- T8's reads all run clean: the 8 MiB read at 300 MiB, which failed on request
+  `0x1e6400` in every earlier boot, and the 512 KiB direct reads from 4000 MiB.
+  That means no data error lines and about two interrupts per request.
+- Reads run faster than HS200's 150-170 MB/s.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later. One boot.
+
+1. **Boot.**
+   - Boot ID, boot2 hash, taint.
+   - `ios` for both hosts.
+   - Every `11230000.mmc` line.
+   - MSDC0 `PAD_TUNE0`, `PAD_TUNE1`, `PAD_DS_TUNE` (`0x11230188`), `IOCON` and
+     `PATCH_BIT0`, read while active.
+2. **Reads** on `mmcblk0p29`, each after a cache drop, with the `stat` requests and
+   sectors, the `mmc0` interrupt delta, the time and any new lines:
+   - 8 MiB at 0, 300, 8192, 8500 and 20000 MiB, twice;
+   - 1 MiB × 1024 buffered from 8 GiB;
+   - 4 MiB × 64 direct;
+   - 512 KiB × 256 direct from 4000 MiB.
+3. **End.** All `11230000.mmc` lines, taint.
+
+Stop on a warning or Oops, the eMMC absent or not at HS400, or a command error. No
+write, no retry.
+
+| Result | Decision |
+| --- | --- |
+| HS400, no data errors, faster than HS200 | HS400 works. Drop the diagnostic 0626 from the series, record the rate, and update the support row |
+| HS400, but data errors remain | Look at the strobe delay (`DLY1` window in the log) and `DLY3` before anything else |
+| Falls back to HS200 or fails to switch | Record the error. HS at 52 MHz is the safe setting meanwhile |
+| eMMC absent | Stop, recover via Gemian, revert 0627 |
+
 ## Follow-up
 
 - Suspend and resume.

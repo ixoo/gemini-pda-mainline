@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 16:10:14 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: run the eMMC at HS400
+
+At HS200 the station's eMMC reads correct data, but some multi-block
+reads fail their data CRC at the tuned read delay, and the block driver
+re-reads them a sector at a time, down to a few MB/s. Pad and latch
+settings copied from the vendor kernel made it worse.
+
+The vendor kernel never reads data at HS200 on this eMMC. It tunes
+HS200 for about 40 ms on the way to HS400, then runs HS400, where the
+host samples read data on the card's data strobe rather than a tuned
+delay. In every retained vendor boot log of this unit its strobe tuning
+ends at DLY1 7 or 8, DLY2 0, DLY3 20.
+
+Allow HS400 at 1.8 V and seed PAD_DS_TUNE with DLY_SEL, DLY1 7 and
+DLY3 20 (0x1401d). mtk-sd's HS400 tuning then rescans DLY1 against
+EXT_CSD reads. Keep the 64-cell HS200 scan, and correct its comment:
+the HS200 window was not above the first 32 cells.
+
+Not yet run on hardware.
+---
+ .../arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 1f242fd..98acc62 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -689,9 +689,13 @@
+ 	mmc-hs200-1_8v;
+ 
+ 	/*
+-	 * Scan all 64 delay cells. The data window on this eMMC sits above the
+-	 * first 32, and a 32-cell scan centres CMD and DATA near its lower edge.
++	 * HS200 is only the step to HS400 here, as in the vendor kernel. Its
++	 * read delay is marginal on this eMMC; HS400 samples on the card's data
++	 * strobe. The strobe delay is the vendor's (DLY3 20, DLY1 7); mtk-sd
++	 * retunes DLY1 itself. A 64-cell scan gives HS200 tuning a wider window.
+ 	 */
++	mmc-hs400-1_8v;
++	hs400-ds-delay = <0x1401d>;
+ 	mediatek,tuning-step = <64>;
+ };
+ 
+-- 
+2.54.0 (Apple Git-157)
+
