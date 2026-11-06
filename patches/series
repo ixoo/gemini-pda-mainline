@@ -1196,3 +1196,4 @@ proposals/0612-pinctrl-mediatek-mt6797-describe-the-MSDC1-pad-field.patch
 proposals/0613-arm64-dts-mediatek-gemini-station-set-the-microSD-pa.patch
 proposals/0614-arm64-dts-mediatek-gemini-station-allow-UHS-SDR104-o.patch
 proposals/0615-arm64-dts-mediatek-gemini-station-run-the-eMMC-at-HS.patch
+proposals/0616-phy-mediatek-DIAGNOSTIC-dump-the-MT6797-USB11-PHY-re.patch

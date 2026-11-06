@@ -1,0 +1,129 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:21:55 -0500
+Subject: [PATCH] phy: mediatek: DIAGNOSTIC dump the MT6797 USB11 PHY registers
+
+The Gemini PDA's right USB-C port enumerates a full-speed keyboard under
+the vendor kernel, but every first control transfer fails with -EPROTO
+under mainline. The vendor kernel dumps its USB11 PHY bank and MUSB
+registers through debugfs; mainline has no equivalent.
+
+Add a module that reads the same PHY registers and the MUSB byte
+registers that need no index selection, prints them once, and refuses
+to stay loaded. It reads only, and is for comparison with the vendor
+dump, not for upstream.
+---
+ drivers/phy/mediatek/Kconfig              |  9 +++
+ drivers/phy/mediatek/Makefile             |  1 +
+ drivers/phy/mediatek/phy-mtk-usb11-dump.c | 73 +++++++++++++++++++++++
+ 3 files changed, 83 insertions(+)
+ create mode 100644 drivers/phy/mediatek/phy-mtk-usb11-dump.c
+
+diff --git a/drivers/phy/mediatek/Kconfig b/drivers/phy/mediatek/Kconfig
+index ba6461350..c27314ddc 100644
+--- a/drivers/phy/mediatek/Kconfig
++++ b/drivers/phy/mediatek/Kconfig
+@@ -98,3 +98,12 @@ config PHY_MTK_DP
+ 	select GENERIC_PHY
+ 	help
+ 	  Support DisplayPort PHY for MediaTek SoCs.
++
++config PHY_MTK_USB11_DUMP
++	tristate "DIAGNOSTIC MT6797 USB11 PHY register dump"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	help
++	  A diagnostic module that prints the MT6797 USB11 PHY bank and the
++	  MUSB byte registers that need no index selection, once, and then
++	  refuses to stay loaded. It only reads. Load it only while the USB11
++	  PHY and controller are powered. Not for production kernels.
+diff --git a/drivers/phy/mediatek/Makefile b/drivers/phy/mediatek/Makefile
+index f00eb47c3..4e4688b69 100644
+--- a/drivers/phy/mediatek/Makefile
++++ b/drivers/phy/mediatek/Makefile
+@@ -23,3 +23,4 @@ phy-mtk-mipi-dsi-drv-y			+= phy-mtk-mipi-dsi-mt8173.o
+ phy-mtk-mipi-dsi-drv-y			+= phy-mtk-mipi-dsi-mt6797.o
+ phy-mtk-mipi-dsi-drv-y			+= phy-mtk-mipi-dsi-mt8183.o
+ obj-$(CONFIG_PHY_MTK_MIPI_DSI)		+= phy-mtk-mipi-dsi-drv.o
++obj-$(CONFIG_PHY_MTK_USB11_DUMP)	+= phy-mtk-usb11-dump.o
+diff --git a/drivers/phy/mediatek/phy-mtk-usb11-dump.c b/drivers/phy/mediatek/phy-mtk-usb11-dump.c
+new file mode 100644
+index 000000000..c4dbb0ed0
+--- /dev/null
++++ b/drivers/phy/mediatek/phy-mtk-usb11-dump.c
+@@ -0,0 +1,73 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * DIAGNOSTIC: print the MT6797 USB11 PHY and MUSB registers that the vendor
++ * kernel's musbfsh debugfs dumps, once, and refuse to stay loaded.
++ *
++ * Read-only. Load it only while the USB11 PHY and controller are powered
++ * (the musb modules loaded): an unclocked register read can stall the bus.
++ */
++
++#include <linux/io.h>
++#include <linux/module.h>
++
++#define USB11_MAC	0x11200000
++#define USB11_PHY	0x11210800
++
++static const struct {
++	const char *name;
++	u16 off;
++} phy_regs[] = {
++	{ "USBPHYACR0", 0x00 }, { "USBPHYACR1", 0x04 },
++	{ "USBPHYACR2", 0x08 }, { "USBPHYACR4", 0x10 },
++	{ "USBPHYACR5", 0x14 }, { "USBPHYACR6", 0x18 },
++	{ "U2PHYACR3", 0x1c }, { "U2PHYACR4", 0x20 },
++	{ "U2PHYAMON0", 0x24 }, { "U2PHYDCR0", 0x60 },
++	{ "U2PHYDCR1", 0x64 }, { "U2PHYDTM0", 0x68 },
++	{ "U2PHYDTM1", 0x6c }, { "U2PHYDMON0", 0x70 },
++	{ "U2PHYDMON1", 0x74 }, { "U2PHYDMON2", 0x78 },
++	{ "U2PHYDMON3", 0x7c }, { "REGFCOM", 0xfc },
++};
++
++/* Byte registers that need no index selection. */
++static const struct {
++	const char *name;
++	u16 off;
++} mac_regs[] = {
++	{ "FAddr", 0x00 }, { "Power", 0x01 }, { "Testmode", 0x0f },
++	{ "DevCtl", 0x60 }, { "MISC", 0x61 }, { "LinkInfo", 0x7a },
++	{ "VPLen", 0x7b }, { "HS_EOF1", 0x7c }, { "FS_EOF1", 0x7d },
++	{ "LS_EOF1", 0x7e }, { "SOFT_RST", 0x7f },
++};
++
++static int __init usb11_dump_init(void)
++{
++	void __iomem *phy, *mac;
++	int i;
++
++	phy = ioremap(USB11_PHY, 0x100);
++	mac = ioremap(USB11_MAC, 0x100);
++	if (!phy || !mac) {
++		if (phy)
++			iounmap(phy);
++		if (mac)
++			iounmap(mac);
++		return -ENOMEM;
++	}
++
++	for (i = 0; i < ARRAY_SIZE(phy_regs); i++)
++		pr_info("usb11-dump: phy %-11s: %08x\n", phy_regs[i].name,
++			readl(phy + phy_regs[i].off));
++	for (i = 0; i < ARRAY_SIZE(mac_regs); i++)
++		pr_info("usb11-dump: mac %-11s: %02x\n", mac_regs[i].name,
++			readb(mac + mac_regs[i].off));
++
++	iounmap(mac);
++	iounmap(phy);
++
++	/* Printed; nothing to keep loaded. */
++	return -EAGAIN;
++}
++module_init(usb11_dump_init);
++
++MODULE_DESCRIPTION("DIAGNOSTIC MT6797 USB11 PHY and MUSB register dump");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

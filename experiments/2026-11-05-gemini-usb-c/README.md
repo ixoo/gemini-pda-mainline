@@ -679,7 +679,31 @@ completes at either speed. Remaining suspects:
 The vendor exposes read-only debugfs dumps (`musbfsh/regdump`,
 `musbfsh/regdumpphy`). A Gemian reading with a working keyboard in the
 right port would show whether the board path works and give the PHY values
-to compare. U4 is not run. Add to
+to compare.
+
+**Gemian reading, boot `f0229646` (`3.18.41+`): the board path works.** The
+same full-speed keyboard that failed under mainline enumerated on the
+vendor's USB11 controller (`musbfsh`) at 12 Mb/s and became an input
+device. Raw dumps, before and after the attach, are kept privately under
+`artifacts/gemian-usbc-r2/`; the device's identity stays private. From the
+vendor's own debugfs dumps:
+- the port reset runs MUSB POWER `0x68` → `0x60` → `0x68`, so HSENAB stays
+  set for a full-speed device;
+- the PHY's U2PHYDTM1 is `0x3e2c`: VBUSVALID, BVALID and AVALID set,
+  SESSEND and IDDIG clear, all five forced. That is the state 0608 gives;
+- USBPHYACR6 is `0x00100488`, with SQTH 8 and DISCTH 8. Mainline's T-PHY
+  writes SQTH 2;
+- the other PHY words are USBPHYACR0 `0x00013c6e`, ACR1 `0x44a44400`,
+  ACR5 `0x00804000`, U2PHYACR3 `0xc0040000`, U2PHYACR4 `0x1a`, U2PHYDCR0
+  `0x402`, U2PHYDTM0 `0x02000000`, REGFCOM `0x2800`;
+- MUSB ConfigData is `0xaa`, and HS/FS/LS_EOF1 are `0x80`/`0x77`/`0x72`.
+
+So the fault is in mainline's USB11 setup, not the board. To diff it,
+[0616](../../patches/proposals/0616-phy-mediatek-DIAGNOSTIC-dump-the-MT6797-USB11-PHY-re.patch)
+adds a read-only diagnostic module. It prints the same PHY registers and
+MUSB's index-free byte registers once (it never reads the read-to-clear
+interrupt registers), then refuses to stay loaded. It is built as a module
+in the station fragment and loads into the running kernel. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
