@@ -44,4 +44,8 @@ ADDA_DL_CH1 DL1_CH1=on
 ADDA_DL_CH2 DL1_CH2=on
 Headphone Switch=on
 EOF
+# The FM radio's input to the headphones; silent unless the Hostless FM PCM
+# runs, and absent on kernels without it.
+amixer -c "$card" -q cset 'name=ADDA_DL_CH1 I2S0_CH1' on 2>/dev/null
+amixer -c "$card" -q cset 'name=ADDA_DL_CH2 I2S0_CH2' on 2>/dev/null
 echo ready

@@ -42,6 +42,10 @@ are at the minimum, so a stray `aplay` cannot be loud. The speakers need
 `amixer cset name='Speaker Switch' on`. Nothing switches between speakers and headphones
 on a jack event yet.
 
+Since the [FM radio](../2026-11-05-gemini-fm-radio/README.md) path, `audio-start` also switches
+`ADDA_DL_CH1 I2S0_CH1` and `ADDA_DL_CH2 I2S0_CH2` on when the kernel has them. They carry nothing
+unless the Hostless FM PCM runs.
+
 ## Provenance and environment
 
 - Kernel: any station package with `0415`-`0417`; modules must come from the same package.
