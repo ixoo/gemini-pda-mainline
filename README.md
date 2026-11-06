@@ -53,7 +53,7 @@ upstream, it isn't a daily driver, and a build isn't support.
   LEDs, and the two A72 CPUs on an opt-in profile.
 - **Partly there:** GNSS tracks two live satellites from a userspace host, with no
   position on mainline yet.
-  microSD works on the station after v1, at default speed, with hotplug and a
+  microSD works on the station after v1, with hotplug, high-speed reads and a
   verified write on one card
   ([record](experiments/2026-11-05-gemini-microsd/README.md#t1c-result-2026-11-05)).
 - **Not started or not shown:** suspend, cpuidle and cpufreq, which decide battery

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `completed`: on T1c's image a 16 GB SDHC card is detected on insert and removal, reads, and a 64 MiB write reads back with the same hash, at default speed and 3.3 V. Card detect needed VMCH kept on (patch 0580) |
+| Status | `completed`: microSD works at default speed and, for reads, at SD high speed (48 MHz, about 22.9 MB/s, data matching). The T3 write is pending the owner. Card detect needs VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -463,6 +463,33 @@ error on `mmc1`. No retry, one write at most.
 | Card stays at default speed | Send step 1. The card or the switch command refused high speed; check the log line |
 | CRC errors, timeouts or a hash mismatch at 48 MHz | Stop. Next: the CMD pull-up and the pad drive, or fall back to 25 MHz by reverting 0606 |
 | Rates not doubled, no errors | Record it. Something else bounds the transfer; look at the request size and DMA |
+
+### T3 result, reads (2026-11-06)
+
+Custodian run on station-work-62: package `639e173b…` built from `15bde8ff`, which
+carries 0606; DTB `417ad6d6…`; boot2 `676ad310…`. Boot `2dc6de9f` throughout, taint 0.
+The T1c card was in the slot and nothing was mounted. Raw output is private.
+
+1. **Boot.**
+   - `mmc1` logged "new high speed SDHC card", then `mmcblk1` at 14.8 GiB. The eMMC
+     was unchanged as `mmc0`/`mmcblk0`.
+   - `ios`: 50 MHz requested, 47999984 Hz actual, VDD bit 18, 4 bits, SD high-speed
+     timing, 3.30 V, driver type B.
+   - `vmch` enabled at 3000000 with two users.
+   - The pad drive, PUPD and R1 registers read as in T1.
+2. **Repeat read.** The first 1 GiB, read twice through `sha256sum`: 54.45 s and
+   52.75 s. Both gave T2's hash `fd02d592…35c4`, so the data read at high speed
+   matches the data read at default speed. These times include the CPU's hashing.
+3. **Spread reads.** 256 MiB after dropping caches: 11.72 s at offset 0, 11.73 s at
+   4096 MiB, 11.71 s at 12000 MiB. That's about 22.9 MB/s, 1.98 times T2's
+   11.55 MB/s.
+4. **Write: not run yet**, pending the owner's approval.
+5. **Log.** No new error, warning or Oops line; no CRC error or timeout on either
+   host; taint 0.
+
+So far the hypothesis holds for reads. At SD high speed the card reads at twice the
+default-speed rate, the same data comes back, and the pads the firmware left need
+nothing more at 48 MHz. Writing at high speed isn't shown yet.
 
 ## Follow-up
 
