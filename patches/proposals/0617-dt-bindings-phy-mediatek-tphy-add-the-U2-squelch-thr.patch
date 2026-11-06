@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:30:35 -0500
+Subject: [PATCH 617/619] dt-bindings: phy: mediatek,tphy: add the U2 squelch
+ threshold
+
+The T-PHY driver writes a fixed squelch threshold of 2 to every U2 port.
+The MT6797's USB11 port receives with the hardware default of 8, which
+the vendor kernel never changes. Add an optional per-port
+mediatek,rx-sqth to name the value.
+---
+ Documentation/devicetree/bindings/phy/mediatek,tphy.yaml | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml b/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml
+index 16afd2f0a..eb213fda2 100644
+--- a/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml
++++ b/Documentation/devicetree/bindings/phy/mediatek,tphy.yaml
+@@ -248,6 +248,15 @@ patternProperties:
+           Specify the flag to enable BC1.2 if support it
+         type: boolean
+ 
++      mediatek,rx-sqth:
++        description:
++          The U2 receiver's squelch threshold. Without it the driver sets 2;
++          a port whose receiver needs another value, often the hardware
++          default, names it here.
++        $ref: /schemas/types.yaml#/definitions/uint32
++        minimum: 0
++        maximum: 15
++
+       mediatek,force-b-session-valid:
+         description:
+           Force the USB2 PHY session signals to a valid B-device state. This
+-- 
+2.43.0
+

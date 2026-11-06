@@ -703,7 +703,34 @@ So the fault is in mainline's USB11 setup, not the board. To diff it,
 adds a read-only diagnostic module. It prints the same PHY registers and
 MUSB's index-free byte registers once (it never reads the read-to-clear
 interrupt registers), then refuses to stay loaded. It is built as a module
-in the station fragment and loads into the running kernel. U4 is not run. Add to
+in the station fragment and loads into the running kernel.
+
+**Mainline dump, boot `28a5901c` (station-work-67), taint 0.** The custodian
+loaded 0616 with the U3 modules in place, once idle and once after the
+full-speed keyboard had failed. Evidence is kept privately under
+`artifacts/station-work-67/boot-1/`. Against Gemian's working dump:
+- **PHY:** every control register matches except USBPHYACR6: Gemian
+  `0x00100488`, mainline `0x00100482`. Bits 3:0 are the U2 squelch threshold:
+  the hardware default 8, which the vendor never writes, against the 2 that
+  `u2_phy_instance_init()` writes to every port. DTM1 is `0x3e2c` on both.
+  Only the monitor registers differ otherwise.
+- **MAC:** POWER is `0x60` on Gemian and `0xe0`/`0xe2` on mainline. Upstream
+  `musb_start()` sets ISOUPDATE (bit 7) on every platform, and bit 1 is
+  suspend after the failures. The EOF timings, LinkInfo, VPLen and MISC
+  match.
+
+*Fix, built in, so a new image:*
+[0617](../../patches/proposals/0617-dt-bindings-phy-mediatek-tphy-add-the-U2-squelch-thr.patch)
+and
+[0618](../../patches/proposals/0618-phy-mediatek-tphy-let-a-U2-port-name-its-squelch-thr.patch)
+let a U2 port name its squelch threshold with `mediatek,rx-sqth`, keeping
+2 without it. The property is parsed in `xlate`, before `phy_init`.
+[0619](../../patches/proposals/0619-arm64-dts-mediatek-gemini-station-give-the-USB11-PHY.patch)
+sets 8 on the USB11 port only; the left port keeps 2. VM checks: the T-PHY
+builds clean at `W=1`, the binding validates, the DTB carries the property
+on that one port, and checkpatch is clean. Not run. If 8 does not fix it,
+ISOUPDATE is the remaining MAC difference, and a module-only test. U4 is
+not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 

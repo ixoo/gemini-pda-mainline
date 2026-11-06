@@ -1,0 +1,53 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:30:59 -0500
+Subject: [PATCH 618/619] phy: mediatek: tphy: let a U2 port name its squelch
+ threshold
+
+u2_phy_instance_init() writes a squelch threshold of 2 to every U2 port.
+On the MT6797's USB11 port that fails: a full-speed keyboard that the
+vendor kernel enumerates gets -EPROTO on every first control transfer.
+Register dumps of the two kernels differ in the PHY only in that field,
+8 under the vendor kernel, which leaves the hardware default.
+
+Read an optional mediatek,rx-sqth per port and keep 2 without it. The
+property is parsed in xlate, before phy_init, like the other per-port
+settings.
+---
+ drivers/phy/mediatek/phy-mtk-tphy.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/phy/mediatek/phy-mtk-tphy.c b/drivers/phy/mediatek/phy-mtk-tphy.c
+index 41025a345..61263980f 100644
+--- a/drivers/phy/mediatek/phy-mtk-tphy.c
++++ b/drivers/phy/mediatek/phy-mtk-tphy.c
+@@ -342,6 +342,7 @@ struct mtk_phy_instance {
+ 	int eye_term;
+ 	int intr;
+ 	int discth;
++	u32 rx_sqth;
+ 	int pre_emphasis;
+ 	bool bc12_en;
+ 	bool force_b_session_valid;
+@@ -868,7 +869,8 @@ static void u2_phy_instance_init(struct mtk_tphy *tphy,
+ 	/* DP/DM BC1.1 path Disable */
+ 	mtk_phy_clear_bits(com + U3P_USBPHYACR6, PA6_RG_U2_BC11_SW_EN);
+ 
+-	mtk_phy_update_field(com + U3P_USBPHYACR6, PA6_RG_U2_SQTH, 2);
++	mtk_phy_update_field(com + U3P_USBPHYACR6, PA6_RG_U2_SQTH,
++			     instance->rx_sqth);
+ 
+ 	/* Workaround only for mt8195, HW fix it for others (V3) */
+ 	u2_phy_pll_26m_set(tphy, instance);
+@@ -1166,6 +1168,8 @@ static void phy_parse_property(struct mtk_tphy *tphy,
+ 				 &instance->intr);
+ 	device_property_read_u32(dev, "mediatek,discth",
+ 				 &instance->discth);
++	instance->rx_sqth = 2;
++	device_property_read_u32(dev, "mediatek,rx-sqth", &instance->rx_sqth);
+ 	device_property_read_u32(dev, "mediatek,pre-emphasis",
+ 				 &instance->pre_emphasis);
+ 	dev_dbg(dev, "bc12:%d, src:%d, vrt:%d, term:%d, intr:%d, disc:%d\n",
+-- 
+2.43.0
+

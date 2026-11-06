@@ -1197,3 +1197,6 @@ proposals/0613-arm64-dts-mediatek-gemini-station-set-the-microSD-pa.patch
 proposals/0614-arm64-dts-mediatek-gemini-station-allow-UHS-SDR104-o.patch
 proposals/0615-arm64-dts-mediatek-gemini-station-run-the-eMMC-at-HS.patch
 proposals/0616-phy-mediatek-DIAGNOSTIC-dump-the-MT6797-USB11-PHY-re.patch
+proposals/0617-dt-bindings-phy-mediatek-tphy-add-the-U2-squelch-thr.patch
+proposals/0618-phy-mediatek-tphy-let-a-U2-port-name-its-squelch-thr.patch
+proposals/0619-arm64-dts-mediatek-gemini-station-give-the-USB11-PHY.patch

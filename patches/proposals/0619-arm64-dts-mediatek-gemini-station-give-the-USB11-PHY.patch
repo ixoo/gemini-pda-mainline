@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 12:30:59 -0500
+Subject: [PATCH 619/619] arm64: dts: mediatek: gemini-station: give the USB11
+ PHY the vendor squelch
+
+Register dumps of the right USB-C port's PHY under the vendor kernel,
+which enumerates a full-speed keyboard, and under mainline, where every
+first control transfer fails with -EPROTO, differ in one control field:
+the U2 squelch threshold, 8 against the driver's 2. Set 8 on the USB11
+port only; the left port keeps the driver's value.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index a03c8a3f7..0f691f53b 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -886,6 +886,12 @@ &usb11_tphy {
+  * the controller is an A-device with VBUS present and starts its session.
+  */
+ &usb11_u2 {
++	/*
++	 * The vendor kernel leaves this receiver's squelch threshold at its
++	 * hardware default, 8. With the driver's 2, every control transfer to
++	 * a full-speed keyboard failed (station boot 28a5901c).
++	 */
++	mediatek,rx-sqth = <8>;
+ 	mediatek,force-b-session-valid;
+ 	status = "okay";
+ };
+-- 
+2.43.0
+
