@@ -737,6 +737,25 @@ not under standing approval.
   - Gemian's first eMMC access after power-on is at its own timing; nothing from
     this boot persists in the eMMC's timing state.
 
+**T5 candidate.** Built on Buildbox from `f0fe8d1a`, which also carries the usb-c
+session's 0610 and the audio session's 0611. Profile `mt6797-a53-station-a72` with
+modules, 786 patches, package `469cd863…`, patchset `00538f34…`, config `6316c478…`,
+`Image.gz` `91e8fbae…`.
+
+- Validation passed. The package was copied straight from Buildbox's validated
+  artifacts, because `fetch-package` only looks up HEAD, and its SHA256SUMS check
+  passed locally.
+- `pinctrl-mt6797.o` compiled with no warning.
+- Its `mt6797-gemini-pda-station-a72.dtb` (`d2f61e49…`) has:
+  - `mmc0` at 200000000 with `cap-mmc-highspeed` and `mmc-hs200-1_8v`;
+  - `mmc1` at 200000000 with `sd-uhs-sdr104`, `disable-wp` and the assigned
+    MSDC30_1 parent;
+  - both MSDC1 pad states.
+- `fs/exfat/exfat.ko` is in the modules, with `EXFAT_DEFAULT_IOCHARSET="utf8"` and
+  `NLS_UTF8=y`.
+
+Built, not booted.
+
 **Live clocks before T5** (custodian, boot `294ae5a1`, read-only debugfs, after the
 patches were written):
 
