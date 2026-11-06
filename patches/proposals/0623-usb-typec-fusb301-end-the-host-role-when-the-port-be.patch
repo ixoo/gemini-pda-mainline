@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 14:33:26 -0500
+Subject: [PATCH] usb: typec: fusb301: end the host role when the port becomes
+ sink-only
+
+Writing "sink" to port_type while a sink partner is attached turned the
+host role and VBUS off for one poll only. The FUSB301 appears not to end
+an attach on a Mode write: it kept reporting the sink it was sourcing
+until the cable moved, and the next poll, with the cached status cleared
+by the port type change, turned the host role and VBUS back on.
+
+A sink-only port cannot serve a sink, so treat that report as a detach.
+---
+ drivers/usb/typec/fusb301.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index 02a1a9c43..19e68e22b 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -245,7 +245,13 @@ static int fusb301_update_status(struct fusb301 *fusb)
+ 	fusb->last_type = type;
+ 	fusb->last_valid = true;
+ 
+-	if (!(status & FUSB301_STATUS_ATTACH)) {
++	/*
++	 * A Mode write does not end an attach: after a switch to sink-only the
++	 * chip keeps reporting the sink it was sourcing until the cable moves.
++	 * A sink-only port cannot serve a sink, so treat that as a detach.
++	 */
++	if (!(status & FUSB301_STATUS_ATTACH) ||
++	    (fusb->port_type == TYPEC_PORT_SNK && (type & FUSB301_TYPE_SINK))) {
+ 		fusb301_set_host(fusb, false);
+ 		fusb301_unregister_partner(fusb);
+ 		fusb->partner_type = 0;
+-- 
+2.43.0
+

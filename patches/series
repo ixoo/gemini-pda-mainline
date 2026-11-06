@@ -1201,3 +1201,4 @@ proposals/0617-dt-bindings-phy-mediatek-tphy-add-the-U2-squelch-thr.patch
 proposals/0618-phy-mediatek-tphy-let-a-U2-port-name-its-squelch-thr.patch
 proposals/0619-arm64-dts-mediatek-gemini-station-give-the-USB11-PHY.patch
 proposals/0620-usb-musb-mediatek-run-the-MT6797-USB11-controller-as.patch
+proposals/0623-usb-typec-fusb301-end-the-host-role-when-the-port-be.patch

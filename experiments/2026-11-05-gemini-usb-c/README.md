@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached; 0623 fixes the second, compile-checked only |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -878,9 +878,15 @@ Inference, not tested:
 - The `sink` write reaches the chip, and `fusb301_set_port_type()` turns host
   off at once, but the FUSB301 appears to keep reporting the attached sink:
   0605 clears the cached status on a port-type change, so the next poll sees
-  the same attach and turns host and VBUS back on. A fix should make a sink
-  `port_type` refuse a sink partner (or force a detach) rather than wait for
-  the next physical detach.
+  the same attach and turns host and VBUS back on.
+
+**Fix, compile-checked, not run:**
+[0623](../../patches/proposals/0623-usb-typec-fusb301-end-the-host-role-when-the-port-be.patch)
+treats a sink partner on a sink-only port as a detach, so `sink` turns the
+host role and VBUS off and they stay off until the cable moves. It changes
+only `fusb301.ko`, so it can be tested by reloading that module, with no new
+image. Testing it needs a sink on the left port, so the owner at the device
+again; it is worth running together with the next boost test.
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
