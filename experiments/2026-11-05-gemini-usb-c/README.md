@@ -633,7 +633,14 @@ seen. One broken D- path explains both results. Candidates:
   the two devices apart. Still, a receptacle whose second D+/D- pair
   (B6/B7) is not joined to the first would fail one plug orientation.
 
-The keyboard's speed class is not yet known. U4 is not run. Add to
+The keyboard's speed class is not yet known.
+
+The station has no GPIO tools, so GPIO70 cannot be tried by hand.
+[0609](../../patches/proposals/0609-arm64-dts-mediatek-gemini-station-turn-the-right-por.patch)
+adds it to the right port's chain for the next image: GPIO70 high (lane
+switch off), then GPIO72, then GPIO94, while a sink is attached. That
+matches the vendor's USB host state. At rest it stays low, as the firmware
+leaves it. The DTB builds; not run. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 

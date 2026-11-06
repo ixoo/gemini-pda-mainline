@@ -1,0 +1,71 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 11:13:38 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: turn the right port's
+ HDMI lanes off as a host
+
+The vendor kernel keeps GPIO70 high, the HDMI lane switch off, whenever
+the right port is not driving HDMI, including its USB host mode. The
+firmware leaves GPIO70 low. On station boot 294ae5a1 a USB-C keyboard on
+the right port got VBUS but was never seen, while a high-speed drive
+connected and failed every control transfer with -EPROTO: a USB data
+line was not clean.
+
+Drive GPIO70 high with GPIO72 and GPIO94 while a sink is attached,
+chained as a supply like GPIO72, so that the three follow each other.
+
+Not yet run on hardware.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 24 +++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 473b6bdcd..51c861a01 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -687,6 +687,12 @@ pins-id {
+ 		};
+ 	};
+ 
++	usb1_lane_off_pins: usb1-lane-off-pins {
++		pins-en {
++			pinmux = <MT6797_GPIO70__FUNC_GPIO70>;
++		};
++	};
++
+ 	usb1_switch_pins: usb1-switch-pins {
+ 		pins-en {
+ 			pinmux = <MT6797_GPIO72__FUNC_GPIO72>;
+@@ -701,11 +707,29 @@ pins-en {
+ };
+ 
+ / {
++	/*
++	 * GPIO70 high turns the HDMI lane switch off, as the vendor kernel has
++	 * it whenever the port is not driving HDMI. The firmware leaves it low,
++	 * and on station boot 294ae5a1 a full- or low-speed keyboard was never
++	 * seen while a high-speed drive connected and failed with -EPROTO.
++	 * Like GPIO72 it is not a supply: it is chained so that the three follow
++	 * each other while a sink is attached.
++	 */
++	usb1_lane_off: regulator-usb1-lane-off {
++		compatible = "regulator-fixed";
++		regulator-name = "usb1-hdmi-lanes-off";
++		gpio = <&pio 70 GPIO_ACTIVE_HIGH>;
++		enable-active-high;
++		pinctrl-names = "default";
++		pinctrl-0 = <&usb1_lane_off_pins>;
++	};
++
+ 	usb1_switch: regulator-usb1-switch {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "usb1-data-switch";
+ 		gpio = <&pio 72 GPIO_ACTIVE_HIGH>;
+ 		enable-active-high;
++		vin-supply = <&usb1_lane_off>;
+ 		pinctrl-names = "default";
+ 		pinctrl-0 = <&usb1_switch_pins>;
+ 	};
+-- 
+2.43.0
+

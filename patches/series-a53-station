@@ -778,3 +778,4 @@ proposals/0606-arm64-dts-mediatek-gemini-station-run-the-microSD-sl.patch
 proposals/0607-usb-musb-mediatek-drop-the-transceiver-before-its-de.patch
 proposals/0608-arm64-dts-mediatek-gemini-station-force-the-USB11-PH.patch
 proposals/0609-arm64-dts-mediatek-gemini-station-allow-UHS-SDR50-on.patch
+proposals/0609-arm64-dts-mediatek-gemini-station-turn-the-right-por.patch
