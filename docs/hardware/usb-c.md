@@ -27,7 +27,7 @@ towards the user.
 | USB PD | No | No |
 | Video | No | HDMI through SiI902x and Planet's HDMI adapter (user guide, source) |
 | Firmware | None | None |
-| Mainline today | Dual-role, device by default (**observed**: SSH and charging unchanged; the Type-C chip starts as a sink). Host mode written, untested | Host works (**observed**: full and high speed, PIO), modules loaded by hand |
+| Mainline today | Dual-role, device by default (**observed**: SSH and charging unchanged; the Type-C chip starts as a sink). Host mode failed its first test (U4): no boost VBUS, and a `sink` request did not end the host state while a partner was attached | Host works (**observed**: full and high speed, PIO), modules loaded by hand |
 
 ## 2. Left port
 

@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 not run |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -833,10 +833,54 @@ series, unbooted. PHY byte `0x72` is not needed either. 0610 (GPIO70) and
 0619 (squelch 8) stay: they were in the passing image and match the vendor.
 
 Open on the right port: Inventra DMA (PIO only now), the reload leftovers,
-detach after VBUS is cut, and loading the modules at boot. U4 (left-port
-host) is not run. Add to
+detach after VBUS is cut, and loading the modules at boot. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
+
+### U4 result: left-port host failed (2026-11-06)
+
+Run by the custodian with the owner at the device, on boot `4e6851f2`
+(`station-work-68`, from `84a70e42`, with the 0620 `mediatek.ko` loaded live;
+taint 0 throughout). Samples every 5 s and the kernel log are kept privately.
+
+- `insmod fusb301`: the left port came up `dual [sink]`, partner the laptop.
+  A detached script then loaded `xhci-hcd` and `xhci-mtk-hcd` (both returned
+  0; bus 2 registered with "USB0 root hub has no ports", hub `2-0:1.0`
+  present), wrote `source` to the left port's `port_type`, waited 180 s,
+  wrote `sink`, waited up to 60 s for the gadget and unloaded xHCI.
+- **No VBUS from the boost; the drive never enumerated.** From t+15 s, with
+  the drive's adapter attached, the port reported power role source, data
+  role host and USB role host; `usb0-vbus` was enabled and REG03 went
+  `0x0a` → `0x2a` (`OTG_CONFIG` set). REG0B stayed `0x02` (`VBUS_STAT` `000`,
+  not `111`) for the whole run. At the end `power-status` read VBUS 2.6 V
+  with the boost still enabled and the partner still attached. No device
+  appeared on bus 2. The partner went away at t+85..90 s (USB role device,
+  boost off) and came back at t+95 s, probably the drive being moved.
+- **`sink` did not end the source state.** At t+180 s `port_type` read
+  `[sink]`, but the power role stayed source, the data role host, the USB
+  role host, the partner stayed, `usb0-vbus` stayed enabled and REG03 stayed
+  `0x2a`, through the +60 s and post-`rmmod` samples. The gadget did not
+  return and SSH stayed down until the owner unplugged and replugged the
+  cable; then the port was sink and device, the gadget configured and REG03
+  was `0x0a` again. This is U4's "stays in source" stop condition, resolved
+  by the replug.
+- No charger fault in the kernel log; REG0C was not read. Afterwards the
+  station was back at its starting state: `fusb301` and xHCI unloaded, all
+  USB regulators off, REG03 `0x0a`, SSH on the left port.
+
+Inference, not tested:
+
+- `OTG_CONFIG` alone does not start the boost. N7 lists the other
+  conditions: the chip's OTG pin high and no input on VBUS. The OTG pin's
+  wiring is unknown and the vendor sources drive no GPIO for it, so the next
+  step is to find what Gemian does when it powers a left-port device, not
+  another mainline attempt.
+- The `sink` write reaches the chip, and `fusb301_set_port_type()` turns host
+  off at once, but the FUSB301 appears to keep reporting the attached sink:
+  0605 clears the cached status on a port-type change, so the next poll sees
+  the same attach and turns host and VBUS back on. A fix should make a sink
+  `port_type` refuse a sink partner (or force a detach) rather than wait for
+  the next physical detach.
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
