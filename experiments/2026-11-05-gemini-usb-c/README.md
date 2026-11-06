@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 passed on boot `9207cc89` after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U2–U4 not run |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 and U4 not run |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -470,8 +470,32 @@ station stays on this image.
   the left connector and MTU3.
 
 So the dual-role build boots to the same left-port device and charging
-behaviour, with nothing driving the ports. U2–U4 are not run. The
-custodian is putting U2, which needs a cable replug, to the owner. Add to
+behaviour, with nothing driving the ports.
+
+**U2 passed, same boot `9207cc89`, taint 0.** The owner approved it in the
+custodian's session. The custodian loaded `typec.ko` and `fusb301.ko` from
+the `ce1b4541` package; the station's RAM root does not carry them.
+Evidence is kept privately under `artifacts/station-work-61/boot-1/`.
+- The left chip probed with "no interrupt, polling the status". Its port
+  reads `port_type` `dual source [sink]`, power role sink, data role device,
+  preferred role sink, 3.0 A operation mode, orientation reverse, and a
+  partner with no PD. So 0599's sink start and the class helper (0595)
+  report what the chip does.
+- The right chip deferred with "failed to get VBUS", as expected without
+  `fixed.ko`.
+- Throughout, REG03 stayed `0x0a` (`OTG_CONFIG` clear), REG0B `0x26` and
+  REG0C `0x00`. `usb0-vbus` stayed disabled with no users. The guard held
+  its 80 % stop, and the role stayed `device` with the UDC configured at high
+  speed.
+- The owner unplugged the laptop cable, waited about 5 s, and replugged it.
+  The laptop's ping watcher lost the link for about 4 s (the limit was 30 s),
+  and the port read the same afterwards.
+- *Limit:* the driver logs nothing on attach or detach, so this boot does
+  not show that the poll saw the detach. A typec uevent monitor during U3
+  or U4 would.
+
+The two modules stay loaded; that is harmless, since the left port is in its
+default. U3 and U4 are not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
