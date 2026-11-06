@@ -33,6 +33,7 @@ the experiments that support or challenge it.
 | [GNSS kernel driver specification](gemini-gnss-driver.md) | The `libmnl` protocol mapped to a `drivers/gnss` client, the start/stop state machine, the `MNL.bin` firmware boundary, and the host path that replaces it on this device. |
 | [Gemini keyboard](keyboard.md) | AW9523 matrix wiring, physical keymap, and kernel/userspace mapping boundary. |
 | [Gemini charging](gemini-charging.md) | Switch charger, boot-chain policy, charge state machine, thermal current gates, and safety limits. |
+| [Gemini USB-C ports](usb-c.md) | Both connectors: controllers, PHYs, FUSB301 Type-C logic, VBUS sources, charging, HDMI, and upstream coverage. |
 | [Gemini fuel gauge](gemini-fuel-gauge.md) | FGADC counter, SOC/OCV/Qmax/aging model, calibration paths, and persistence. |
 | [Gemini I2C1 sensors](gemini-sensors.md) | IMU and light/proximity on mainline, the mount matrix, interrupt ownership, and which candidate addresses answer. |
 | [Gemini touchscreen](touchscreen.md) | Controller wiring, vendor TPD/NT36xxx stack, firmware contract, and the project's separate mainline driver. |

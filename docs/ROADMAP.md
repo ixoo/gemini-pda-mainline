@@ -94,7 +94,7 @@ Independent of each other, in no fixed order. Each record owns the detail.
 | [GNSS](../experiments/2026-11-01-gemini-gnss-link/README.md) | Open sky, which decides whether a position is reachable on mainline |
 | [Charging](../experiments/2026-11-02-gemini-kernel-charge-guard/README.md) | A real charge reaching the limit; charge flow after a resume |
 | [microSD](../experiments/2026-11-05-gemini-microsd/README.md#follow-up) | Works at default speed on the station; high speed, a card at boot, suspend, exFAT |
-| USB host and role switching | Not started. [Ownership notes](../experiments/2026-09-08-usb-vbus-ownership/README.md) exist |
+| USB host and role switching | Not started. [Both ports described](hardware/usb-c.md); right-port host [proposed](../experiments/2026-11-05-gemini-usb-c/README.md#proposal-first-mainline-step) |
 | Modem | Feasibility only. A safe transport and regulatory boundary come first |
 
 ### 5. Upstream
