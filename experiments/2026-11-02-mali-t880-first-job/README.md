@@ -543,6 +543,19 @@ Image `677021f2`, package `967983c2`, the native display driver holding `drm`, w
 The device suspended at once on load (`runtime_suspended_time` 53 ms, `PWR_STATUS` MFG off), ran 59976 ms at 520 MHz, then idled off. After unload, MFG off, LDO enable off, protection set, `mfg_sel` gated, `MFGPLL_CON0` `0x0`. Tainted 0. The display's modules stayed, and
 sampled display registers were unchanged. The owner's view of the panel is the display session's to record.
 
+### Run 23, boot `a22a4ca8`: the new image, then a 10-minute soak
+
+Image `02e045fa`, package `8f569751` from `c546644d`, with the native display bound. `panfrost.ko` the same bytes as before; `drm_shmem_helper` rebuilt (`9687ea4f`). Unattended.
+
+The first load, 60 s on defaults, was clean: `0x880`, 8101 frames, 0 faults, MFG off after. The 10-minute load on defaults, at 520 MHz for 599996 ms: 82297 frames, slowest 19 ms, the same pixel throughout, 0 faults, tainted 0.
+
+| Minute | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Bank 1, C | 27.7 | 34.7 | 35.6 | 36.2 | 36.5 | 36.5 | 37.0 | 36.8 | 37.2 | 37.4 | 36.5 |
+| SoC, C | 30.9 | 34.7 | 35.4 | 36.1 | 36.3 | 36.7 | 37.0 | 36.8 | 37.2 | 37.4 | 37.5 |
+
+Bank 1 led the others throughout. About 6.6 C over 10 minutes, still rising about 0.2 C a minute at the end, so not a hard plateau, but far from the 58 C trip. Battery 25.2 to 25.6 C. On a desk at room temperature, on USB power: one condition, which a pocket or a warm room would change.
+
 ## Analysis
 
 The hypothesis held at 26 MHz: modules alone bring up the GPU with the vendor's power order, it
@@ -557,7 +570,7 @@ is why the count climbs; it is harmless here.
 The Zero job uses no shader core; run 5 does, since the compiled vertex and fragment shaders carry the
 uniform to the pixels the tool checks. A correct image at both clocks shows Mesa's compiler, the tiler,
 fragment jobs and shader execution on this GPU. It cannot say how many of the four cores did the work.
-The temperature range says nothing about real load: the runs before run 6, and runs 6 and 7 only reach about 0.5 W by calculation.  Job times fell from 754 us to 131 us at the higher clock, which points
+Run 23's 10 minutes at 520 MHz reached 37.5 C, so this point stays far below the trip on a desk, by measurement. Before that, the temperature range said nothing about real load: the runs before run 6, and runs 6 and 7 only reach about 0.5 W by calculation.  Job times fell from 754 us to 131 us at the higher clock, which points
 the same way as the registers but does not measure the clock. The rail is a register value and the clock is a mux register plus the
 framework's rate. Neither was measured. Runtime-suspended domain cycling stays forbidden, so no
 idle power saving exists: while loaded, the rail and the domains stay on.
