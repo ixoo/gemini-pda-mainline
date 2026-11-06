@@ -495,7 +495,31 @@ Evidence is kept privately under `artifacts/station-work-61/boot-1/`.
   or U4 would.
 
 The two modules stay loaded; that is harmless, since the left port is in its
-default. U3 and U4 are not run. Add to
+default.
+
+**U3 stopped before a drive was attached, same boot `9207cc89`.** The owner
+was ready. Evidence is kept privately under `artifacts/station-work-61/boot-1/`.
+- `fixed.ko` loaded. Both GPIO regulators probed, and `0-0025` bound
+  `fusb301` as a source/host port. All three VBUS-side regulators stayed
+  disabled with no users, GPIO72 and GPIO94 stayed output 0, and REG03 stayed
+  `0x0a`.
+- The MUSB glue bound `11200000.usb`, but `musb-hdrc` failed: "DMA
+  controller not set", then `musb_init_controller` `-ENODEV`. With neither
+  `MUSB_PIO_ONLY` nor an Inventra DMA option set, `musb_core` refuses a glue
+  without DMA operations. No USB bus appeared, VBUS was never enabled, and
+  the left port was unaffected.
+- The custodian's uevent log showed the polled left port sending a typec
+  `change` event every 0.5 s with nothing changing: `typec_set_orientation()`
+  notifies on every call.
+
+*Fixes, VM-built, not run:* the fragment selects `MUSB_PIO_ONLY` (DMA stays
+a later step, as the USB11 study set out), and
+[0605](../../patches/proposals/0605-usb-typec-fusb301-update-the-port-only-when-the-chip.patch)
+updates the class only when the status or type register changes. Both are
+module-only: the station kernel has no module signing or modversions, and
+the rebuilt modules carry its vermagic. So U3 can retry on the running
+station with `musb_hdrc.ko`, `mediatek.ko` and `fusb301.ko` from a package
+of the new commit, after `rmmod` of the old ones. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 

@@ -16,6 +16,9 @@ CONFIG_USB_PHY=y
 CONFIG_USB_MUSB_HDRC=m
 CONFIG_USB_MUSB_HOST=y
 CONFIG_USB_MUSB_MEDIATEK=m
+# PIO first: without a DMA choice musb_core refuses the controller, and the
+# USB11 Inventra DMA is a later step (2026-07-12-usb-typec-recovery).
+CONFIG_MUSB_PIO_ONLY=y
 CONFIG_TYPEC=m
 CONFIG_TYPEC_FUSB301=m
 CONFIG_REGULATOR_FIXED_VOLTAGE=m

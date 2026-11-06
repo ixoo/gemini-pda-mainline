@@ -1,0 +1,84 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 10:17:57 -0500
+Subject: [PATCH] usb: typec: fusb301: update the port only when the chip's
+ status changes
+
+typec_set_orientation() notifies userspace on every call, changed or not.
+Polled every 500 ms, the Gemini PDA's left port sent a change uevent at
+every poll.
+
+Remember the status and type registers and skip the update while both
+read the same. A port type change, or a failed update, forces the next
+one.
+---
+ drivers/usb/typec/fusb301.c | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index be77eb40f..02a1a9c43 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -75,6 +75,9 @@ struct fusb301 {
+ 	struct usb_role_switch *role_sw;
+ 	int host; /* sourcing a sink: 1, not: 0, not yet set: -1 */
+ 	enum typec_port_type port_type;
++	unsigned int last_status;
++	unsigned int last_type;
++	bool last_valid;
+ };
+ 
+ static unsigned int fusb301_mode_for_port_type(enum typec_port_type type)
+@@ -190,8 +193,10 @@ static int fusb301_set_port_type(struct typec_port *port,
+ 	ret = regmap_update_bits(fusb->regmap, FUSB301_REG_MODE,
+ 				 FUSB301_MODE_MASK,
+ 				 fusb301_mode_for_port_type(type));
+-	if (!ret)
++	if (!ret) {
+ 		fusb->port_type = type;
++		fusb->last_valid = false;
++	}
+ 	/* A sink-only port cannot be sourcing any more: do not wait for the status. */
+ 	if (!ret && type == TYPEC_PORT_SNK)
+ 		fusb301_set_host(fusb, false);
+@@ -229,6 +234,17 @@ static int fusb301_update_status(struct fusb301 *fusb)
+ 	if (ret)
+ 		return ret;
+ 
++	/*
++	 * The class notifies userspace on every orientation update, so a
++	 * polled port would send an event at every poll: report changes only.
++	 */
++	if (fusb->last_valid && status == fusb->last_status &&
++	    type == fusb->last_type)
++		return 0;
++	fusb->last_status = status;
++	fusb->last_type = type;
++	fusb->last_valid = true;
++
+ 	if (!(status & FUSB301_STATUS_ATTACH)) {
+ 		fusb301_set_host(fusb, false);
+ 		fusb301_unregister_partner(fusb);
+@@ -245,8 +261,10 @@ static int fusb301_update_status(struct fusb301 *fusb)
+ 
+ 	partner_type = type & (FUSB301_TYPE_SINK | FUSB301_TYPE_SOURCE |
+ 				       FUSB301_TYPE_DEBUG_ACC | FUSB301_TYPE_AUDIO_ACC);
+-	if (!partner_type)
++	if (!partner_type) {
++		fusb->last_valid = false;
+ 		return -EIO;
++	}
+ 
+ 	fusb301_set_host(fusb, partner_type & FUSB301_TYPE_SINK);
+ 
+@@ -268,6 +286,7 @@ static int fusb301_update_status(struct fusb301 *fusb)
+ 		if (IS_ERR(fusb->partner)) {
+ 			ret = PTR_ERR(fusb->partner);
+ 			fusb->partner = NULL;
++			fusb->last_valid = false;
+ 			return ret;
+ 		}
+ 
+-- 
+2.43.0
+
