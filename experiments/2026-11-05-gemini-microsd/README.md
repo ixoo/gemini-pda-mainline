@@ -1281,6 +1281,72 @@ SR `0x30`, SMT `0x60`, RDSEL `0x80`, TDSEL `0xd0`, PUPD/R0/R1 `0x100`-`0x120`, a
 `0x1a0`. If they differ from the vendor's values, describe the MSDC0 pad fields in
 pinctrl, as 0612 did for MSDC1, and set the vendor's values in the DT.
 
+### T8b result: the eMMC pads (2026-11-06)
+
+Read once on the T8 station, boot `5a1721ee`, taint 0. Read-only. Raw output is
+private. Decoded with the vendor's MSDC0 field masks (`msdc_io.h`); pins 114-121 are
+DAT0-7, 122 CMD, 123 CLK, 124 DSL and 125 RSTB.
+
+| Field | Register value | MSDC0 field | Vendor |
+| --- | --- | --- | --- |
+| IES `0x420` | `0x7fff9fff` | bits 0-11 all set | all set |
+| SR `0x430` | `0x00000000` | bits 15-18 clear | not set at init |
+| SMT `0x460` | `0x0001ff8f` | bits 0-3 all set | all set |
+| RDSEL `0x480` | `0x00000000` | 0 | 0 |
+| TDSEL `0x4d0` | `0x33330000` | **bits 0-15: `0x0000`** | **`0xcccc`**, in `msdc_init_hw` |
+| PUPD/R0/R1 `0x500`-`0x520` | | DAT and CMD pull-up R1R0 01; CLK and DSL pull-down 10; RSTB 10 | the same |
+| DRV `0x5a0` | `0x14aa5249` | 1 in all four groups (4 mA) | 1 |
+
+TDSEL is the one difference: 0 in all four groups (DAT0-3, DAT4-7, CMD/DSL/RSTB,
+CLK) under mainline, where the vendor's `msdc_init_hw` writes `0xc` to each. The
+microSD pads have TDSEL `0xc` since 0613, and their failing band is the narrow one.
+One caveat: the vendor's register dump comment for MSDC0 TDSEL reads "should:
+0x????0000", which disagrees with its own init code. What Gemian runs with isn't
+measured. The top half, `0x3333`, belongs to other pins.
+
+### T8c: the eMMC with the vendor's TDSEL (diagnostic write, no boot)
+
+**Hypothesis.** With TDSEL `0xc` on the eMMC pads, the reads that fell back in T8
+read cleanly:
+- the 8 MiB read at 300 MiB, which fails on request `0x1e6400` every time;
+- the 512 KiB direct reads from 4000 MiB, where every request failed.
+
+**Effects.** Two writes to one GPIO pad register, `0x100024d0` (IOCFG_B TDSEL):
+- one setting bits 0-15 to `0xcccc` and keeping bits 16-31 as read;
+- one restoring the value read before.
+
+Nothing else is written; no eMMC write; `data` stays read-only. If the setting makes
+eMMC commands fail, the core may give up on the eMMC for this boot, as a failed
+HS200 tuning would. Recovery is then a reboot, with nothing on the eMMC changed.
+That is the exposure T5 had.
+
+Steps, on the running T8 station (diagnostic kernel, `data` read-only):
+
+1. Read `0x100024d0`; record it as the original. Stop if bits 0-15 aren't `0x0000`.
+2. Baseline: 8 MiB buffered at 300 MiB after a cache drop, with the `mmc0`
+   interrupt delta and the new `11230000.mmc` lines. Expect T8's fallback.
+3. Write the original with bits 0-15 set to `0xcccc`; read back and check it.
+4. The same 8 MiB read at 300 MiB, then 8 MiB at 0, and 32 MiB direct
+   from 4000 MiB in 512 KiB blocks (stop after 30 s if it falls back). Each with the
+   interrupt delta, time and new lines. Any retune prints a new map; note it.
+5. Write the original back; read back and check it. Repeat the 300 MiB read.
+6. `dmesg` lines since step 1, taint.
+
+Stop at once and restore the original value on:
+- any `cmd error` line;
+- a data error that isn't a CRC error;
+- `mmc0` reporting the card removed or a failed tuning;
+- a warning or Oops.
+
+No retries; two writes at most.
+
+| Result | Decision |
+| --- | --- |
+| No fallback at 300 MiB and 4000 MiB with `0xcccc`, fallback back after the restore | TDSEL causes it. Describe MSDC0 TDSEL in pinctrl and set `mediatek,tdsel = <0xc>` on the eMMC pins in the station DT; then a boot to confirm |
+| Fallback reduced | TDSEL helps. Patch it, then look at the remaining fixed path settings |
+| No change | TDSEL isn't it. Next: `CKGEN_MSDC_DLY_SEL` and the latch settings |
+| Command errors or tuning failure | Restore, stop. TDSEL `0xc` is wrong for this pad; don't patch it |
+
 ## Follow-up
 
 - Suspend and resume.
