@@ -1417,13 +1417,60 @@ card removed, a tuning failure, a warning or Oops. Two writes at most; no retrie
 | A fallback with 3, then a retune back to 0 | 3 doesn't hold. Look at `CKGEN_MSDC_DLY_SEL`, which needs a patch and a boot, as it shifts the tuned delays |
 | Worse, as T8c | Not the latch clock. Same next step |
 
+### T8d result (2026-11-06)
+
+Run on boot `5a1721ee` (T8, `data` read-only) after the owner approved the writes
+("Yes, run T8d"). Taint 0. No command error, non-CRC error, tuning failure, warning
+or Oops. Raw output is private.
+
+- `PAD_TUNE0` at the baseline error was `0x313100`; retuned to 18.
+- One write, `0x403c05c6` (latch clock 3), made while MSDC0 was active. The very next
+  request hit a data CRC error. It was `arg 0x1150400`, in a region that read cleanly
+  at latch 0 in T7 and T8.
+- The retune that followed (to delay 16) put `PATCH_BIT0` back to `0x403c0446`
+  before the readback. So no restore write was needed, and the steps after it didn't
+  run.
+
+**Outcome.** The table's "a fallback with 3, then a retune back to 0" row: the
+vendor's latch value fails at once with mainline's tuned delay. That rests on one
+error on one request.
+
+### What the vendor actually runs: HS400, not HS200
+
+**Observed in the retained Gemian logs.** The vendor kernel tunes HS200 for 37-41 ms
+on the way to HS400, then runs the eMMC at HS400. In every retained Gemian log of
+this unit (25 files from nine boots):
+- the HS400 tuning set the data-strobe delay to `DLY1` 7 or 8, `DLY2` 0, `DLY3` 20;
+- the read data delay was 1, with latch clock 0.
+
+No vendor read of real data ever runs at HS200.
+
+**Inferred.**
+
+- Nothing in the vendor kernel shows that HS200 reads are reliable on this board.
+  The comparison in T6-T8d asked mainline's HS200 to do what the vendor never relies
+  on.
+- At HS400 the card sends a data strobe with the data, and the host samples on that.
+  The host's read delay, which T6-T8 show is marginal at HS200, no longer decides
+  the sampling.
+- The follow-up "eMMC HS400, once its data-strobe delay is known" now has its value.
+  `mtk-sd` writes `hs400-ds-delay` as-is to `PAD_DS_TUNE` (`DLY_SEL` bit 0, `DLY1`
+  bits 6:2, `DLY3` bits 16:12) on an SoC without its own HS400 tuning, as MT6797's
+  data is. The vendor's `DLY1` 7 and `DLY3` 20 with `DLY_SEL` give `0x1401d`.
+  Upstream MT8173 boards use `0x14015`, with the same `DLY3`.
+
+Not shown: whether mainline's HS200 tuning, which only needs to pass the tuning
+block, is enough to switch to HS400; and whether the vendor's 400 MHz HS400 source
+matters, where mainline's is 384 MHz.
+
 ## Follow-up
 
 - Suspend and resume.
 - The VMC trim question in the
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
-- eMMC HS400, once its data-strobe delay is known.
+- eMMC HS400 with the vendor's data-strobe delay
+  ([what the vendor runs](#what-the-vendor-actually-runs-hs400-not-hs200)).
 - eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): 0625 widened the
   tuning scan and healthy reads now run at 150-170 MB/s, but fallback remains
   ([T7 result](#t7-result-2026-11-06)).
