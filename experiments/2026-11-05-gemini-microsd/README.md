@@ -1183,6 +1183,53 @@ chosen delay at each tuning and retune, and each data error's kind. It changes n
 behaviour. Then choose between centring the data delay, the latch clock and
 separate CMD/DATA tuning from the map, not by trial.
 
+### T8: the eMMC tuning map and error kinds (diagnostic)
+
+**Change.**
+[0626](../../patches/proposals/0626-mmc-mtk-sd-DIAGNOSTIC-log-tuning-maps-and-request-er.patch),
+for diagnosis only. It turns `mtk-sd`'s existing debug lines into info lines:
+- each scan's pass map, longest window and chosen phase;
+- the final shared delay and its edge.
+
+It also adds a rate-limited line for each command or data error outside tuning:
+the interrupt events, the opcode, argument and block count, and the pad-tune and
+`IOCON` registers. Behaviour is unchanged. It's built in, as `mtk-sd` carries the
+eMMC, so it needs an image.
+
+**Hypothesis.** Unknown map, so this predicts what each outcome will show:
+
+- The boot prints `mmc0`'s rising-edge map. A falling-edge map appears only if the
+  rising window is under 12 cells.
+- Every fallback starts with a data error line, `cmd` 18, `blocks` above 1.
+  `events` tells a CRC error (`MSDC_INT_DATCRCERR`, bit 15) from a timeout
+  (`MSDC_INT_DATTMO`, bit 14).
+- Each CRC error is followed by a retune, which prints a fresh map.
+
+Image: `mt6797-a53-station-a72` with `BUILD_MODULES=1`, from the commit adding this
+section or later. One boot, `data` read-only as in T7. Nothing is written.
+
+1. **Boot.**
+   - Boot ID, boot2 hash, taint.
+   - `ios` for both hosts.
+   - Every `dmesg` line from `11230000.mmc` and `11240000.mmc`.
+2. **Reads**, on `mmcblk0p29` by GPT name, each after a cache drop. For each: the
+   `stat` reads and sectors, the `mmc0` interrupt delta, the time, and the new
+   `11230000.mmc` lines.
+   - 8 MiB buffered at 0, 300, 8192, 8500 and 20000 MiB, twice, as in T7.
+   - 64 MiB direct from 4000 MiB in 512 KiB blocks, stopped after 60 s if it falls
+     back.
+3. **End.** All `11230000.mmc` lines since boot, how many lines rate-limiting
+   suppressed if `dmesg` shows it, `err_stats`, taint.
+
+Stop on a warning or Oops. No write, no retry.
+
+| Result | Decision |
+| --- | --- |
+| Data CRC errors, a map whose window starts at 0 and runs past one cycle | The tuning block passes delays real data fails. Centre on the real eye: set the data delay apart from CMD, or limit the scan to one cycle |
+| Data CRC errors, a clean single window | The delay is centred but the eye is too narrow. Next: the data latch clock, then the fixed path settings |
+| Data timeouts, not CRC | Not a sampling problem. Look at the latch clock and the turnaround settings |
+| Command or stop errors, not data | Tune CMD apart from data |
+
 ## Follow-up
 
 - Suspend and resume.
