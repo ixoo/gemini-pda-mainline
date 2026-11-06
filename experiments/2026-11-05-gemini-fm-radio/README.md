@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) and F5, the first listening test, are predeclared, not admitted |
+| Status | `running`: the receiver works on mainline as a V4L2 radio, `/dev/radio0`, with tuning, seek and RDS (F1 to F3), and the headset cable is its antenna. The stereo flag never sets (F4: not forced mono). FM audio (0591-0594) written; F5, the first listening test, admitted on 2026-11-05, not yet run |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -928,7 +928,10 @@ playback starts without data), prints the tuner's signal and stereo flag
 every 5 s, then stops both and closes. Static aarch64 build `d0b66f4e…`,
 kept under ignored `artifacts/fm/`.
 
-## Test F5: first FM sound on the headphones (predeclared, not yet admitted)
+## Test F5: first FM sound on the headphones (admitted)
+
+The owner admitted F5 on 2026-11-05: one run with the effects below;
+anything else needs asking again.
 
 **Question:** does FM audio reach the headphones through the new path, and
 in stereo?
