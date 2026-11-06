@@ -656,7 +656,30 @@ pull-up is seen, and differential signalling then fails at both 12 and
 480 Mb/s. That fits a loaded or broken D- path. 0610 is the next test. If
 it changes nothing, the next suspects are the USB11 PHY's analogue setup
 (the vendor's power-on writes beyond the generic V1 T-PHY's) and the GPIO72
-switch itself. U4 is not run. Add to
+switch itself.
+
+**U3 with 0610, boot `377bbcde` (station-work-65, from `54986910`), taint
+0: no change.** With a full-speed keyboard attached at load, all three
+right-port pins went high (GPIO70 included, as 0610 intends). The device
+was seen at full speed and every first control transfer failed with `-71`,
+as before. Stopped with `rmmod fusb301`; all regulators and pins returned
+to off and REG03 stayed `0x0a`. Evidence is kept privately under
+`artifacts/station-work-65/boot-1/`. So GPIO70 is not the cause; 0610 stays,
+because it matches the vendor's host state.
+
+*Where this leaves it:* `-EPROTO` on EP0 in MUSB host is a missing response
+after retries. The host sees the device's pull-up but no transaction
+completes at either speed. Remaining suspects:
+- the USB11 PHY's analogue and clock setup against the vendor's;
+- the PHY reference clock. 0078 replaced `CLK_INFRA_SSUSB_REF` with
+  `clk26m` for the SSUSB port, on another tree's evidence; the USB11 port
+  still uses `CLK_INFRA_SSUSB_REF`;
+- the GPIO72 switch path.
+
+The vendor exposes read-only debugfs dumps (`musbfsh/regdump`,
+`musbfsh/regdumpphy`). A Gemian reading with a working keyboard in the
+right port would show whether the board path works and give the PHY values
+to compare. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
