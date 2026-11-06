@@ -305,7 +305,7 @@ joins the `mt6797-a53-station-a72` profile. Built in: the USB host core,
 MTU3 dual-role and the role switch class, which MTU3 needs. Modules that
 nothing loads: `typec`, `fusb301`, `fixed` (regulator), `xhci-hcd`,
 `xhci-mtk-hcd`, `phy-generic`, `musb_hdrc`, `mediatek` (MUSB glue),
-`usb-storage`, `sd_mod`, `scsi_mod`, `scsi_common`, `usbhid`.
+`usb-storage`, `sd_mod`, `usbhid`. The SCSI core is built in (see `0d68c839`).
 
 **Why the Type-C driver owns VBUS, not MTU3.** MTU3 in OTG mode enables its
 `vbus` regulator during probe (`ssusb_host_setup()`), before switching to
@@ -346,7 +346,7 @@ for more than 60 s after a replug → owner reboots (the modules don't load at
 boot).
 
 **U3. Right port host.** `insmod fixed.ko`, then `phy-generic.ko`,
-`musb_hdrc.ko`, `mediatek.ko`, `scsi_common.ko`, `scsi_mod.ko`, `sd_mod.ko`,
+`musb_hdrc.ko`, `mediatek.ko`, `sd_mod.ko`,
 `usb-storage.ko`, `usbhid.ko`. *Hypothesis:* the FUSB301A binds as a
 source; a USB 2.0 flash drive on the right port raises the EINT3 count,
 registers a sink partner, enables `usb1-vbus`, and enumerates on the USB11
