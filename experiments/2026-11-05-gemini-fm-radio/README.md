@@ -85,6 +85,7 @@ Nothing was executed. The full contract is in the
 | R6 | The two `ROMv3` CONSYS patches name FM only in a WMT default-parameter message and a coexistence task-status message; they carry no FM command handler, so the handler is inferred to be in the CONSYS ROM | RE VM, `strings` |
 | R7 | `libfmcust.so` (SHA-256 `80a9ea1a…f79d0`) exports only `CUST_get_cfg`, which maps the WMT chip-ID property to an FM chip, `0x6797` to MT6631. It has no band, region or antenna data | RE VM, `objdump` |
 | R8 | RDS needs no polling: after enable (`0x80 = 6`, `0x63` D4) the firmware pushes raw groups as unsolicited `0x0d` events, up to 12 per event, each with blocks A-D, a corrected-bit count and CRC flags. The register-FIFO read path in the MT6631 library is compiled out (`#if 0`). The host decodes PI, PS, RT, PTY, CT and AF | `mt6631/pub/mt6631_fm_rds.c`, `fmradio/inc/fm_rds.h`, `fmradio/core/fm_link.c` |
+| R10 | Stereo, checked after F3: the vendor's only stereo controls are reading `RSSI_IND` D12 (`GetMonoStereo`) and forcing mono with `0x75` D3, written between top `0x050 = 7` and `0x050 = 0xf` (`SetMonoStereo`). The vendor interface has no blend or pilot threshold setting, the power-up and tune never write `0x75`, and `fm_cust.cfg` has no stereo key. The MT6627, MT6630 and MT6632 libraries in the same tree read the same bit. Gemian's userspace has no FM application, so nothing ever set stereo there. The coefficient file starts with a table of DSP addresses 13 words apart (`0x4010` to `0x4078`) followed by constants, and the patch is 231 words of DSP code; without a description of the DSP neither can be read for a stereo threshold | `mt6631_fm_lib.c`, `mt6630`/`mt6632`/`mt6627` libraries, `fm_ioctl.h`; RE VM |
 
 ## What is inferred
 
@@ -115,7 +116,7 @@ Nothing was executed. The full contract is in the
    knowledge, not a blocker).
 7. The DSP ROM version, which picks the patch file (F2 reads it).
 8. ~~What signals RDS data on CONSYS?~~ The firmware pushes it as `0x0d` events (R8), observed in F3.
-9. Why the stereo flag (`RSSI_IND` D12) never sets, on two stations at about -72 and -81 dBm (F2c, F3).
+9. Why the stereo flag (`RSSI_IND` D12) never sets, on two stations at about -72 and -81 dBm (F2c, F3). R10 rules out a missing vendor setting.
 
 ## Mainline shape
 
