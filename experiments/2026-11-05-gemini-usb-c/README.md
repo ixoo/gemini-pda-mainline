@@ -640,7 +640,23 @@ The station has no GPIO tools, so GPIO70 cannot be tried by hand.
 adds it to the right port's chain for the next image: GPIO70 high (lane
 switch off), then GPIO72, then GPIO94, while a sink is attached. That
 matches the vendor's USB host state. At rest it stays low, as the firmware
-leaves it. The DTB builds; not run. U4 is not run. Add to
+leaves it. The DTB builds; not run.
+
+**Second keyboard, same boot `294ae5a1`.** The owner attached another USB
+keyboard (C-native or adapter not recorded) before `fusb301` loaded. It was
+seen as a full-speed device on the USB11 root port, and every first control
+transfer failed with `-71`, the same pattern as the drive: two error lines,
+a hub power cycle, two more addresses. Orientation was `reverse`; the first
+keyboard's was `normal`. GPIO70 stayed low and GPIO72/94 went high. The stop
+returned all three pins to 0 and REG03 stayed `0x0a`. Evidence is kept
+privately under `artifacts/station-work-64/boot-1/`.
+
+So the failure is not specific to high speed or to one orientation. A D+
+pull-up is seen, and differential signalling then fails at both 12 and
+480 Mb/s. That fits a loaded or broken D- path. 0610 is the next test. If
+it changes nothing, the next suspects are the USB11 PHY's analogue setup
+(the vendor's power-on writes beyond the generic V1 T-PHY's) and the GPIO72
+switch itself. U4 is not run. Add to
 the observations that I2C0 and I2C1 bind with their clients (`0-006b`,
 `1-0048`, `1-0069`), and that `11210000.t-phy` probes.
 
