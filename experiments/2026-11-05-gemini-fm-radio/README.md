@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-fm-radio` |
-| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3, the V4L2 radio device with seek and RDS (0589), is predeclared, not admitted; no audio yet |
+| Status | `running`: F1 passed on 2026-11-05, the FM receiver answers with `0x6631` and Wi-Fi survived; F2 loaded the DSP patch and coefficients but stopped at the tune on a driver fault; F2c passed on 2026-11-05: the receiver tunes, and the headset cable is the antenna (+23 dB). F3, the V4L2 radio device with seek and RDS (0589), admitted on 2026-11-05, not yet run; no audio yet |
 | Subsystem | MT6631 FM receiver behind CONSYS, STP task 1, AFE second I2S input |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -599,7 +599,10 @@ broadcast station on mainline with the vendor sequence, and the headset cable
 is the antenna. Not shown: audio, stereo, RDS, seek, or any channel other than
 this one TDD channel.
 
-## Test F3: the V4L2 radio device (predeclared, not yet admitted)
+## Test F3: the V4L2 radio device (admitted)
+
+The owner admitted F3 on 2026-11-05: one load and one `fm-check` run with
+the effects below; anything else needs asking again.
 
 **Question:** does the receiver work through a standard radio device:
 tune, signal strength, controls, RDS blocks, and a seek built from the
