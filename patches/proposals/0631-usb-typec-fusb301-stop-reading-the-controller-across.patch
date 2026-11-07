@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 21:17:48 -0500
+Subject: [PATCH] usb: typec: fusb301: stop reading the controller
+ across a suspend
+
+The status poll and the interrupt handler read the controller over I2C,
+whose bus is suspended along with the system. Stop them for the
+suspend: the controller keeps detecting by itself and the port keeps
+its role. At resume read the status once, since an attach or detach
+while asleep is not replayed, and restart the poll.
+---
+ drivers/usb/typec/fusb301.c | 36 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 36 insertions(+)
+
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index 53bb09e46..af1478654 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -542,6 +542,41 @@ static void fusb301_remove(struct i2c_client *client)
+ 	usb_role_switch_put(fusb->role_sw);
+ }
+ 
++/*
++ * Asleep, the controller keeps working by itself and the port keeps its
++ * role. Stop reading it while its I2C bus is down, then catch up once.
++ */
++static int fusb301_suspend(struct device *dev)
++{
++	struct fusb301 *fusb = dev_get_drvdata(dev);
++
++	if (fusb->irq > 0)
++		disable_irq(fusb->irq);
++	else
++		cancel_delayed_work_sync(&fusb->poll);
++
++	return 0;
++}
++
++static int fusb301_resume(struct device *dev)
++{
++	struct fusb301 *fusb = dev_get_drvdata(dev);
++
++	if (fusb->irq > 0) {
++		enable_irq(fusb->irq);
++		/* An edge while disabled is not replayed: read the status. */
++		mutex_lock(&fusb->lock);
++		fusb301_update_status(fusb);
++		mutex_unlock(&fusb->lock);
++	} else {
++		schedule_delayed_work(&fusb->poll, 0);
++	}
++
++	return 0;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(fusb301_pm_ops, fusb301_suspend, fusb301_resume);
++
+ static const struct of_device_id fusb301_of_match[] = {
+ 	{ .compatible = "onsemi,fusb301" },
+ 	{ .compatible = "onsemi,fusb301a" },
+@@ -563,6 +598,7 @@ static struct i2c_driver fusb301_driver = {
+ 	.driver = {
+ 		.name = "fusb301",
+ 		.of_match_table = fusb301_of_match,
++		.pm = pm_sleep_ptr(&fusb301_pm_ops),
+ 	},
+ 	.id_table = fusb301_i2c_id,
+ };
+-- 
+2.43.0
+

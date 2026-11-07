@@ -1,0 +1,165 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 21:15:47 -0500
+Subject: [PATCH] pinctrl: aw9523: let an input pin wake the system
+
+The expander's interrupt chip has no irq_set_wake, so enable_irq_wake()
+on one of its pins fails and a keyboard behind it can never wake the
+system. Pass the request on to the parent line, which is what actually
+reaches the SoC.
+
+That alone is not enough. A consumer such as gpio-matrix-keypad disables
+its row interrupts before it arms them for wakeup, which masks them in
+the expander, so a key press never asserts INTN while suspended; the
+IRQ core cannot help because these are nested-thread interrupts, which
+suspend_device_irqs() skips. Unmask the armed pins in the expander for
+the duration of the suspend and restore the saved mask on resume.
+
+The wakeup itself is only an interrupt on the parent line; the pin's
+own handler stays disabled until its consumer resumes.
+---
+ drivers/pinctrl/pinctrl-aw9523.c | 92 ++++++++++++++++++++++++++++++++
+ 1 file changed, 92 insertions(+)
+
+diff --git a/drivers/pinctrl/pinctrl-aw9523.c b/drivers/pinctrl/pinctrl-aw9523.c
+index ea934151b..d36d276d2 100644
+--- a/drivers/pinctrl/pinctrl-aw9523.c
++++ b/drivers/pinctrl/pinctrl-aw9523.c
+@@ -58,10 +58,16 @@
+  * struct aw9523_irq - Interrupt controller structure
+  * @lock: mutex locking for the irq bus
+  * @cached_gpio: stores the previous gpio status for bit comparison
++ * @parent: the interrupt line this expander drives
++ * @wake: pins armed as wakeup sources
++ * @suspend_dis: interrupt-disable registers saved across a suspend
+  */
+ struct aw9523_irq {
+ 	struct mutex lock;
+ 	u16 cached_gpio;
++	int parent;
++	u16 wake;
++	unsigned int suspend_dis[AW9523_NUM_PORTS];
+ };
+ 
+ /*
+@@ -450,6 +456,32 @@ static void aw9523_irq_unmask(struct irq_data *d)
+ 			   BIT(n), 0);
+ }
+ 
++/*
++ * aw9523_irq_set_wake - Arm or disarm a pin as a wakeup source
++ * @d: irq data
++ * @on: true to arm
++ *
++ * The expander has no wake logic of its own: a pin wakes the system by
++ * driving the parent interrupt, so pass the request on to that line.
++ */
++static int aw9523_irq_set_wake(struct irq_data *d, unsigned int on)
++{
++	struct aw9523 *awi = gpiochip_get_data(irq_data_get_irq_chip_data(d));
++	irq_hw_number_t hwirq = irqd_to_hwirq(d);
++	int ret;
++
++	ret = irq_set_irq_wake(awi->irq->parent, on);
++	if (ret)
++		return ret;
++
++	if (on)
++		awi->irq->wake |= BIT(hwirq);
++	else
++		awi->irq->wake &= ~BIT(hwirq);
++
++	return 0;
++}
++
+ static irqreturn_t aw9523_irq_thread_func(int irq, void *dev_id)
+ {
+ 	struct aw9523 *awi = (struct aw9523 *)dev_id;
+@@ -800,6 +832,7 @@ static const struct irq_chip aw9523_irq_chip = {
+ 	.irq_bus_lock = aw9523_irq_bus_lock,
+ 	.irq_bus_sync_unlock = aw9523_irq_bus_sync_unlock,
+ 	.irq_set_type = aw9523_gpio_irq_type,
++	.irq_set_wake = aw9523_irq_set_wake,
+ 	.flags = IRQCHIP_IMMUTABLE,
+         GPIOCHIP_IRQ_RESOURCE_HELPERS,
+ };
+@@ -818,6 +851,7 @@ static int aw9523_init_irq(struct aw9523 *awi, int irq)
+ 		return -ENOMEM;
+ 
+ 	mutex_init(&awi->irq->lock);
++	awi->irq->parent = irq;
+ 
+ 	ret = devm_request_threaded_irq(dev, irq, NULL, aw9523_irq_thread_func,
+ 					IRQF_ONESHOT, dev_name(dev), awi);
+@@ -1049,10 +1083,68 @@ static const struct of_device_id of_aw9523_i2c_match[] = {
+ };
+ MODULE_DEVICE_TABLE(of, of_aw9523_i2c_match);
+ 
++/*
++ * A consumer disables its interrupts before it suspends, which masks them
++ * in the expander, so a pin armed for wakeup would never assert INTN.
++ * Unmask the armed pins for the duration of the suspend.
++ */
++static int aw9523_suspend(struct device *dev)
++{
++	struct aw9523 *awi = dev_get_drvdata(dev);
++	unsigned int i, pin;
++	int ret = 0;
++
++	if (!awi->irq || !awi->irq->wake)
++		return 0;
++
++	mutex_lock(&awi->irq->lock);
++	mutex_lock(&awi->i2c_lock);
++	for (i = 0; i < AW9523_NUM_PORTS; i++) {
++		pin = i * AW9523_PINS_PER_PORT;
++		ret = regmap_read(awi->regmap, AW9523_REG_INTR_DIS(pin),
++				  &awi->irq->suspend_dis[i]);
++		if (ret)
++			break;
++		ret = regmap_write(awi->regmap, AW9523_REG_INTR_DIS(pin),
++				   awi->irq->suspend_dis[i] &
++				   ~((awi->irq->wake >> pin) & 0xff));
++		if (ret)
++			break;
++	}
++	mutex_unlock(&awi->i2c_lock);
++	mutex_unlock(&awi->irq->lock);
++
++	return ret;
++}
++
++static int aw9523_resume(struct device *dev)
++{
++	struct aw9523 *awi = dev_get_drvdata(dev);
++	unsigned int i;
++	int ret = 0;
++
++	if (!awi->irq || !awi->irq->wake)
++		return 0;
++
++	mutex_lock(&awi->irq->lock);
++	mutex_lock(&awi->i2c_lock);
++	for (i = 0; i < AW9523_NUM_PORTS && !ret; i++)
++		ret = regmap_write(awi->regmap,
++				   AW9523_REG_INTR_DIS(i * AW9523_PINS_PER_PORT),
++				   awi->irq->suspend_dis[i]);
++	mutex_unlock(&awi->i2c_lock);
++	mutex_unlock(&awi->irq->lock);
++
++	return ret;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(aw9523_pm_ops, aw9523_suspend, aw9523_resume);
++
+ static struct i2c_driver aw9523_driver = {
+ 	.driver = {
+ 		.name = "aw9523-pinctrl",
+ 		.of_match_table = of_aw9523_i2c_match,
++		.pm = pm_sleep_ptr(&aw9523_pm_ops),
+ 	},
+ 	.probe = aw9523_probe,
+ 	.remove = aw9523_remove,
+-- 
+2.43.0
+

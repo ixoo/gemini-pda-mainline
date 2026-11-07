@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 21:16:06 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: name the wakeup
+ sources
+
+Nothing on the station is marked as able to wake the system, so a
+suspend could only end on an RTC alarm. Mark three:
+
+- the power key (Esc), the vendor's own wake key;
+- the keyboard matrix, so a key wakes the system while the lid is open;
+  the keypad driver only arms it while the keyboard is enabled, and the
+  lid policy disables the keyboard while the lid is closed;
+- the hall switch, on deassertion only: opening the lid wakes the
+  system, closing it does not.
+
+The keyboard needs the AW9523 wake support in the previous patch. The
+hall node stays disabled here; the station's DT composition enables it.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts  | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 98acc62f4..21dbe5120 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -10,6 +10,7 @@
+ 
+ #include "mt6797-gemini-pda-wifi-service.dts"
+ #include <dt-bindings/iio/adc/mediatek,mt6351-auxadc.h>
++#include <dt-bindings/input/gpio-keys.h>
+ #include <dt-bindings/thermal/thermal.h>
+ 
+ / {
+@@ -282,6 +283,16 @@ &aw9523 {
+ &{/keyboard-matrix} {
+ 	/delete-property/ poll-interval;
+ 	held-poll-interval = <20>;
++	/* A key wakes the system while the lid is open (needs the AW9523 wake). */
++	wakeup-source;
++};
++
++/* Opening the lid wakes the system; closing it does not. */
++&hall_gpio_keys {
++	hall-switch {
++		wakeup-source;
++		wakeup-event-action = <EV_ACT_DEASSERTED>;
++	};
+ };
+ 
+ &thermal {
+@@ -300,6 +311,7 @@ keys {
+ 		/* The driver assigns the PMIC keys by child order: power, then home. */
+ 		power-key {
+ 			linux,keycodes = <KEY_ESC>;
++			wakeup-source;
+ 		};
+ 
+ 		home-key {
+-- 
+2.43.0
+

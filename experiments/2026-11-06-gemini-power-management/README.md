@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: source, binary and configuration assessment done; R1 (idle floor about 111 mA, Wi-Fi unjoined +4 mA) and R2 (clock and domain census) run by the custodian; R1b and R3 proposed; no build or suspend attempt |
+| Status | `running`: assessment done; R1 (idle floor about 111 mA) and R2 (clock census) run; P1 candidate written (0628–0631, config) and compile-checked; R1b, R3 and S1 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -536,7 +536,33 @@ with the custodian.
   prompt, a device not identified as Gemian.
 - **Decision:** sets the target figure for the station.
 
+### P1 candidate (written 2026-11-06, compile-checked only)
+
+| Change | What it does |
+| --- | --- |
+| `configs/gemini-a53-station.fragment` | Turns on `SUSPEND`, `PM_DEBUG`, `PM_ADVANCED_DEBUG`, `PM_SLEEP_DEBUG`, `RTC_CLASS` and `RTC_DRV_MT6397`. `CPU_IDLE` stays off |
+| [0628](../../patches/proposals/0628-pinctrl-aw9523-let-an-input-pin-wake-the-system.patch) | AW9523 passes `irq_set_wake` to its parent line. In suspend it also unmasks the armed pins in the chip, because `matrix_keypad` masks its rows before arming them and the IRQ core skips these nested interrupts |
+| [0629](../../patches/proposals/0629-arm64-dts-mediatek-gemini-station-name-the-wakeup-so.patch) | Adds `wakeup-source` on the power key and the keyboard matrix, and on the hall switch with `wakeup-event-action` deasserted, so opening the lid wakes and closing it does not |
+| [0630](../../patches/proposals/0630-power-supply-bq25890-keep-the-charging-guard-s-limit.patch) | The guard refuses suspend while a charger is attached or the OTG boost is on. On battery it stops its work across the suspend and runs a pass at resume. **Gap:** a charger attached while suspended charges unguarded until resume |
+| [0631](../../patches/proposals/0631-usb-typec-fusb301-stop-reading-the-controller-across.patch) | FUSB301 stops its poll or IRQ in suspend and reads the status once at resume |
+
+The three driver objects and the station DTBs were built with `W=1` in the
+dev VM against the station configuration plus these options. They produced no
+warnings, and the DTB carries the three wake properties. The AW9523 and
+bq25890 changes are built in; FUSB301 is a module.
+
 ### S1: first s2idle on the P1 image (after P1 is built)
+
+- **Preconditions:** run on battery, since 0630 refuses suspend with the cable
+  in. Use the same unplugged method as R1: a detached script with its log on
+  the data partition.
+- **Staging:** `/sys/power/pm_test` runs it in three steps.
+  1. `freezer`: freeze and thaw userspace only.
+  2. `devices`: also suspend and resume every device, without idling the CPUs.
+  3. Only then a real `rtcwake -m freeze -s 20`, followed by one cycle woken
+     by the power key.
+
+  Each step runs once; stop at the first failure.
 
 - **Hypothesis:** with Wi-Fi, Bluetooth, GNSS, FM and camera unloaded, the
   display blanked, the A72s offline, the station enters s2idle and resumes on

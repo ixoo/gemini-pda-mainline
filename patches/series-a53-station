@@ -793,3 +793,7 @@ proposals/0623-usb-typec-fusb301-end-the-host-role-when-the-port-be.patch
 proposals/0624-usb-typec-fusb301-leave-the-controller-a-sink-on-rem.patch
 proposals/0625-arm64-dts-mediatek-gemini-station-scan-all-eMMC-HS20.patch
 proposals/0627-arm64-dts-mediatek-gemini-station-run-the-eMMC-at-HS.patch
+proposals/0628-pinctrl-aw9523-let-an-input-pin-wake-the-system.patch
+proposals/0629-arm64-dts-mediatek-gemini-station-name-the-wakeup-so.patch
+proposals/0630-power-supply-bq25890-keep-the-charging-guard-s-limit.patch
+proposals/0631-usb-typec-fusb301-stop-reading-the-controller-across.patch

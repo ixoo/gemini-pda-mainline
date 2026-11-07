@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 21:17:09 -0500
+Subject: [PATCH] power: supply: bq25890: keep the charging guard's
+ limits across a suspend
+
+The guard holds charging off, or the OTG boost on, by kicking the
+chip's 40 s watchdog every 10 s. Asleep it cannot, and when the
+watchdog expires the chip restores its defaults: charging on, boost
+off. A suspend with a charger attached would then charge past the
+owner's limit, and one with the boost on would cut a USB device's
+power.
+
+With a charger attached the system runs from it and a suspend saves
+nothing, so refuse to suspend then, and while the boost is on. On the
+battery, stop the guard's work for the suspend, since its I2C bus is
+going down, and run a pass at resume, which also notices a charger
+attached in the meantime.
+
+A charger attached while suspended still charges unguarded until the
+next resume. Closing that needs either a wakeup on attach or the chip's
+watchdog off for the suspend, a write the guard does not make today.
+---
+ drivers/power/supply/bq25890_charger.c | 29 ++++++++++++++++++++++++++
+ 1 file changed, 29 insertions(+)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index d179b38ff..a1cb5475e 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -1876,6 +1876,29 @@ static int bq25890_suspend(struct device *dev)
+ {
+ 	struct bq25890_device *bq = dev_get_drvdata(dev);
+ 
++	if (bq->guard_battery) {
++		int otg = bq25890_field_read(bq, F_OTG_CFG);
++
++		mutex_lock(&bq->lock);
++		__bq25890_handle_irq(bq);
++		mutex_unlock(&bq->lock);
++
++		/*
++		 * The guard holds its limits by feeding the chip's 40 s
++		 * watchdog; asleep it cannot, and the expiry restores the
++		 * defaults: charging on, boost off. With a charger attached
++		 * the system runs from it and has nothing to save, so stay
++		 * awake while one is, or while the boost powers a device.
++		 */
++		if (bq->state.online || otg) {
++			dev_info(bq->dev, "guard: %s, refusing to suspend\n",
++				 otg ? "OTG boost on" : "charger attached");
++			return -EBUSY;
++		}
++
++		disable_delayed_work_sync(&bq->guard_work);
++	}
++
+ 	/*
+ 	 * If charger is removed, while in suspend, make sure ADC is diabled
+ 	 * since it consumes slightly more power.
+@@ -1907,6 +1930,12 @@ static int bq25890_resume(struct device *dev)
+ unlock:
+ 	mutex_unlock(&bq->lock);
+ 
++	/* A pass now: a charger may have been attached while asleep. */
++	if (bq->guard_battery) {
++		enable_delayed_work(&bq->guard_work);
++		mod_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
++	}
++
+ 	return ret;
+ }
+ #endif
+-- 
+2.43.0
+
