@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 [Unit]
-Description=Gemini first boot: keyring, user, Wi-Fi country
-After=systemd-firstboot.service systemd-user-sessions.service gemini-modules.service
+Description=Gemini first boot: keyring, time zone, user, Wi-Fi country
+After=systemd-user-sessions.service gemini-modules.service
 Before=getty@tty1.service
 ConditionPathExists=!/var/lib/gemini/firstboot-done
 

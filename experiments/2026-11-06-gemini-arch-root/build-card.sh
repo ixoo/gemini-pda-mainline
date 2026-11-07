@@ -14,6 +14,8 @@
 #   - upgraded from the official repositories, with iwd, iw, wireless-regdb and sudo;
 #   - gemini-base built from ./gemini-base and installed, with its units enabled;
 #   - root locked and the default alarm user removed; sshd masked;
+#   - the stock systemd-firstboot.service masked: it asks on /dev/console, which is
+#     the serial port here, and holds sysinit.target until answered (R1);
 #   - an uninitialised machine-id, so systemd treats the first boot as first;
 #   - an fstab line for the root, and the mount points stage 1 needs.
 # No firmware, keys or calibration go in. The VM is aarch64, so the root's own
@@ -156,6 +158,7 @@ in_root passwd -q -l root
 if in_root id alarm >/dev/null 2>&1; then in_root userdel -r alarm 2>/dev/null; fi
 in_root systemctl disable -q sshd.service
 in_root systemctl mask -q sshd.service
+in_root systemctl mask -q systemd-firstboot.service
 rm -f "$mnt"/etc/ssh/ssh_host_*
 echo uninitialized >"$mnt/etc/machine-id"
 rm -f "$mnt/var/lib/systemd/random-seed"
