@@ -790,6 +790,6 @@ proposals/0618-phy-mediatek-tphy-let-a-U2-port-name-its-squelch-thr.patch
 proposals/0619-arm64-dts-mediatek-gemini-station-give-the-USB11-PHY.patch
 proposals/0620-usb-musb-mediatek-run-the-MT6797-USB11-controller-as.patch
 proposals/0623-usb-typec-fusb301-end-the-host-role-when-the-port-be.patch
+proposals/0624-usb-typec-fusb301-leave-the-controller-a-sink-on-rem.patch
 proposals/0625-arm64-dts-mediatek-gemini-station-scan-all-eMMC-HS20.patch
-proposals/0626-mmc-mtk-sd-DIAGNOSTIC-log-tuning-maps-and-request-er.patch
 proposals/0627-arm64-dts-mediatek-gemini-station-run-the-eMMC-at-HS.patch

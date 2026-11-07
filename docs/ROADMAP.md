@@ -93,7 +93,7 @@ Independent of each other, in no fixed order. Each record owns the detail.
 | [Bluetooth](hardware/mt6797-bluetooth.md#open-questions) | Range first; then a voice bridge to ALSA; a public userspace for release |
 | [GNSS](../experiments/2026-11-01-gemini-gnss-link/README.md) | Open sky, which decides whether a position is reachable on mainline |
 | [Charging](../experiments/2026-11-02-gemini-kernel-charge-guard/README.md) | A real charge reaching the limit; charge flow after a resume |
-| [microSD](../experiments/2026-11-05-gemini-microsd/README.md#follow-up) | Works on the station at UHS SDR104 with exFAT, hotplug and at boot; eMMC HS200 has silent read errors (fix its tuning, or step down to HS at 52 MHz); suspend |
+| [microSD](../experiments/2026-11-05-gemini-microsd/README.md#follow-up) | Works on the station at UHS SDR104 with exFAT, hotplug and at boot; eMMC at HS400 (one boot; writes and repeat boots open); suspend |
 | USB host and role switching | Right-port host works with modules loaded by hand (full and high speed, PIO). Left-port host failed its first test: the boost gave no VBUS and switching back to device needed a replug. DMA, loading at boot and detach handling open. [Hardware page](hardware/usb-c.md), [record](../experiments/2026-11-05-gemini-usb-c/README.md) |
 | Modem | Feasibility only. A safe transport and regulatory boundary come first |
 

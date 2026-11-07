@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-microsd` |
-| Status | `completed`: microSD at UHS SDR104 (192 MHz, about 86 MiB/s, vendor pad settings, exFAT), and the eMMC at HS200 (192 MHz), whose multi-block reads fail silently and fall back to single sectors (T6), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
+| Status | `completed`: microSD at UHS SDR104 (192 MHz, about 86 MiB/s, vendor pad settings, exFAT), and the eMMC at HS400 (192 MHz DDR, about 250 MB/s reads, T9) after HS200's reads failed silently (T6-T8d), with hotplug and a card at boot. Card detect needs VMCH kept on (patch 0580) |
 | Subsystem | MSDC1 (`mmc@11240000`), MT6351 VMCH and VMC, GPIO67 card detect, GPIO129-134 |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-05 |
@@ -1186,7 +1186,7 @@ separate CMD/DATA tuning from the map, not by trial.
 ### T8: the eMMC tuning map and error kinds (diagnostic)
 
 **Change.**
-[0626](../../patches/proposals/0626-mmc-mtk-sd-DIAGNOSTIC-log-tuning-maps-and-request-er.patch),
+0626 (removed after T9; in history at `74afd852`),
 for diagnosis only. It turns `mtk-sd`'s existing debug lines into info lines:
 - each scan's pass map, longest window and chosen phase;
 - the final shared delay and its edge.
@@ -1522,14 +1522,60 @@ write, no retry.
 | Falls back to HS200 or fails to switch | Record the error. HS at 52 MHz is the safe setting meanwhile |
 | eMMC absent | Stop, recover via Gemian, revert 0627 |
 
+### T9 result (2026-11-06)
+
+Boot `8cd1ffdc`, image station-work-71 from package `31eebf4e` (`9a35e96f`). `data`
+was read-only; nothing was written. Taint 0, no warning or Oops, `err_stats` all
+zero, no rate-limited lines dropped. Raw output is private.
+
+**Observed.**
+
+- `mmc0`: 200 MHz requested (191999939 Hz actual), 8-bit, timing 10 (MMC HS400),
+  1.80 V, "new HS400 MMC card". `mmc1` stayed at SDR104.
+- HS200 tuning: map `fffff003fffffffc` (pass cells 2-31 and 44-63), longest window
+  32, final delay 18, rising edge.
+- Strobe tuning: map `0000000000001fff` in the log's bit order, maxlen 13, final 4.
+  Final `PAD_DS_TUNE` `0x14011`: `DLY1` 4, `DLY3` 20, against the DT's `0x1401d`
+  (`DLY1` 7).
+- During the strobe scan, 10 data CRC lines on `cmd 8` (EXT_CSD), 1 block, events
+  `0xa040` once and `0x8040` nine times. These are the scan's failing cells, which the
+  diagnostic logs because CMD8 is not a tuning opcode. They are the boot's only 15
+  `11230000.mmc` lines with the maps and finals.
+- Registers, read while active, the same before and after the reads: `PAD_TUNE0`
+  `0x00322000`, `PAD_TUNE1` `0x00202000`, `PAD_DS_TUNE` `0x00014011`, `IOCON` `0x0`,
+  `PATCH_BIT0` `0x403c0446`.
+- Reads, with no data error and two interrupts per request throughout:
+
+  | Read | Requests | IRQs | Time | Rate |
+  | --- | --- | --- | --- | --- |
+  | 8 MiB at 0 MiB, each pass | 21 | 42 | about 0.045 s | about 190 MB/s |
+  | 8 MiB at 300, 8192, 8500, 20000 MiB, each pass | 17 | 34 | about 0.045 s | about 190 MB/s |
+  | 1 MiB × 1024 buffered from 8 GiB | 2049 | 4098 | 4.10 s | about 262 MB/s |
+  | 4 MiB × 64 direct | 512 | 1024 | 1.36 s | about 197 MB/s |
+  | 512 KiB × 256 direct from 4000 MiB | 256 | 512 | 1.07 s | about 251 MB/s |
+
+  The 8 MiB read at 300 MiB, which failed on request `0x1e6400` in every earlier
+  boot, and the reads from 4000 MiB, which took 56 s for 64 MiB in T8, ran clean.
+
+**Inferred.**
+
+- HS400 works on this eMMC with mainline's strobe tuning, and the read errors were an
+  HS200 sampling problem that HS400's data strobe avoids, as the vendor kernel does.
+- The strobe window passes 13 cells from 0, so the centring rule picks 4, not the
+  predicted 7-8. The vendor's scan passed 1-15. Both windows are wide; the
+  difference may be the 384 MHz source against the vendor's 400 MHz, not shown.
+- The DT's `DLY1` 7 is only the starting value; `mtk-sd` replaces it with its own
+  scan, so the value that matters on this board is `DLY3` 20.
+
+**Decision.** HS400 works. The diagnostic 0626 leaves the series; 0625 and 0627
+stay. Not shown: write rates, suspend, and HS400 over many boots and temperatures.
+
 ## Follow-up
 
 - Suspend and resume.
 - The VMC trim question in the
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
-- eMMC HS400 with the vendor's data-strobe delay
-  ([what the vendor runs](#what-the-vendor-actually-runs-hs400-not-hs200)).
-- eMMC HS200 data errors ([T6 result](#t6-result-2026-11-06)): 0625 widened the
-  tuning scan and healthy reads now run at 150-170 MB/s, but fallback remains
-  ([T7 result](#t7-result-2026-11-06)).
+- eMMC HS400 ([T9 result](#t9-result-2026-11-06)): write rates and repeat boots.
+  HS200 alone still has silent read errors ([T8 result](#t8-result-2026-11-06)), so
+  a board without HS400 should not rely on it.
