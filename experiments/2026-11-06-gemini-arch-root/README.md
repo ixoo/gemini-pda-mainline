@@ -1146,6 +1146,22 @@ keeping the owner's setup. Private journal under `station-work-84/card-boot1/`.
 - **Fix, `gemini-base` 13:** a drop-in orders `modprobe@drm` after `gemini-modules.service`, so
   `drm` is registered before logind starts. Not yet booted.
 
+### `gemini-base` 13 on the R5 card (2026-11-07, boot `4dbf5ee7`): sway starts
+
+`station-work-84` (`boot2` `a443d7d0`), card-9 with `gemini-base` 13 installed in place. Private
+journal under `station-work-84/card-boot-gb13/`.
+- **Order, as predicted:**
+  - the module index finished at 7.311 s;
+  - `drm_core_init` ran at 7.312 s;
+  - `modprobe@drm` finished at 7.3125 s;
+  - logind started at 11.83 s.
+- **sway:** the session started at 12.93 s, with no "Could not take device", no restart and no
+  `tty1` fallback. The owner: "it worked!!!".
+- **Wi-Fi:** joined at the first try, at 14.93 s.
+
+This confirms the cause recorded above: `drm` has to be registered before logind starts.
+Not yet confirmed in R5: the password on `tty2`, and `pacman` syncing under Landlock.
+
 ## Analysis
 
 Not started.
