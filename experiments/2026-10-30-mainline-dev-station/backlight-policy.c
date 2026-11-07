@@ -16,7 +16,8 @@
  * It also darkens the caps lock LED while the screen is dark: lid closed, console
  * blanked, or the backlight off at the end of the fade. Back on, the LED's trigger
  * is set again, which takes the real caps lock state. Without the LED driver the
- * writes fail and are tried again on the next wake.
+ * writes fail and are tried again on the next wake. With the lid closed or the
+ * console blanked it also takes CPUs 1-7 offline, and brings them back after.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -29,6 +30,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -241,6 +243,73 @@ static void caps_led(int dark)
 		caps_led_dark = dark;
 }
 
+/*
+ * CPUs 1-7 (the A53s) go offline while the screen is dark: about 15 mA of the
+ * 111 mA idle draw (2026-11-06-gemini-power-management, R1b). Only the CPUs this
+ * program took down come back, so one the owner offlined stays off; at start, when
+ * a previous run may have died with the screen dark, a lit screen brings all of
+ * them back. The A72s are never touched. The writes run in a child, since each CPU
+ * takes about 30 ms and a wake must not wait for them; a new switch first waits
+ * for the previous one.
+ */
+#define FIRST_CPU 1
+#define LAST_CPU 7
+/* 1 dark, 0 lit, -1 not yet switched. */
+static int cpus_dark = -1;
+static unsigned int cpus_taken;
+static pid_t cpus_child = -1;
+
+#ifndef CPU_SYSFS
+#define CPU_SYSFS "/sys/devices/system/cpu"
+#endif
+
+static void cpu_online_path(char *path, size_t size, int cpu)
+{
+	snprintf(path, size, CPU_SYSFS "/cpu%d/online", cpu);
+}
+
+static void cpus(int dark)
+{
+	char path[64];
+	unsigned int mask = 0;
+	pid_t pid;
+	int cpu, online;
+
+	if (dark == cpus_dark)
+		return;
+	if (cpus_child > 0)
+		waitpid(cpus_child, NULL, 0);
+	cpus_child = -1;
+	for (cpu = FIRST_CPU; cpu <= LAST_CPU; cpu++) {
+		cpu_online_path(path, sizeof(path), cpu);
+		online = read_number(path);
+		if (dark ? online == 1 :
+		    cpus_dark < 0 ? online == 0 : !!(cpus_taken & (1U << cpu)))
+			mask |= 1U << cpu;
+	}
+	cpus_dark = dark;
+	cpus_taken = dark ? mask : 0;
+	if (!mask)
+		return;
+	pid = fork();
+	if (pid < 0) {
+		say("cannot switch the CPUs: %s\n", strerror(errno));
+		return;
+	}
+	if (pid > 0) {
+		cpus_child = pid;
+		return;
+	}
+	for (cpu = FIRST_CPU; cpu <= LAST_CPU; cpu++) {
+		if (!(mask & (1U << cpu)))
+			continue;
+		cpu_online_path(path, sizeof(path), cpu);
+		if (put(path, dark ? "0" : "1"))
+			say("cpu%d did not go %s\n", cpu, dark ? "offline" : "online");
+	}
+	_exit(0);
+}
+
 static volatile sig_atomic_t blank_set;
 
 static void on_blank_set(int sig)
@@ -307,6 +376,7 @@ int main(void)
 		blanked = console_blanked();
 		/* No backlight reads -1, which must not count as dark. */
 		caps_led(closed || blanked || read_number(BL_POWER) > 0);
+		cpus(closed || blanked);
 
 		if (quick > 0)
 			quick--;

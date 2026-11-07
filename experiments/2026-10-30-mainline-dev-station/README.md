@@ -173,7 +173,11 @@ a 1 MiB log buffer.
 - [`backlight-policy.c`](backlight-policy.c), named `lid-guard` until 2026-11-03,
   is a small static program, respawned by init. Older entries here use the old
   name. The kernel's `gemini-lid` module has since taken over the lid; the program
-  keeps the brightness keys and fades. As first written:
+  keeps the brightness keys and fades. Since 2026-11-06 it also takes CPUs 1–7
+  offline while the lid is closed or the console blanked, and brings back the
+  ones it took
+  ([power R1b](../2026-11-06-gemini-power-management/README.md#r1b-result-2026-11-06));
+  not yet run on the device. As first written:
   - On `SW_LID` closed it inhibits the `keyboard-matrix` input device
     (`inhibited` = 1), powers the backlight down (`bl_power` = 4) and blanks
     the console. Open undoes all three.

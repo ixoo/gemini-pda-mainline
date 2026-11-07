@@ -566,8 +566,33 @@ no warning. The battery went from 87 to 85 % and the temperature from 24.6 to
 **Proposed policy (P2f).** When the display blanks (console blank or lid
 close), take CPUs 1–7 offline; bring them back when it unblanks. It goes in
 the station's existing userspace display policy, not the kernel. It needs no
-new kernel code: the `CPU_OFF` path is the one R1b used. It is the owner's
-choice whether a blanked screen with a background job should keep all CPUs.
+new kernel code: the `CPU_OFF` path is the one R1b used. The owner
+chose to add it on 2026-11-06.
+
+**P2f as written (not yet run on the device).** The station's
+[`backlight-policy`](../2026-10-30-mainline-dev-station/backlight-policy.c)
+runs this policy:
+- **Dark** (lid closed or console blanked): it offlines whichever of CPUs 1–7
+  are online.
+- **Lit:** it brings back only the CPUs it took. A CPU the owner offlined
+  stays off.
+- **Restart:** on start with the screen lit, it brings all of CPUs 1–7 back,
+  since a previous run may have died while dark.
+- **A72s:** never touched.
+- **No wait on wake:** the writes run in a child process, so a wake does not
+  wait the roughly 30 ms each CPU takes.
+
+The program builds with the station's `-static -Wall -Wextra -Werror`. A
+throwaway harness drove `cpus()` against a fake sysfs tree in the dev VM and
+passed seven cases: start lit or dark, repeat, and a quick dark-then-lit
+switch. The release image builds the same program, so it gets the policy
+too.
+
+**Acceptance on the device:**
+- Lid close and console blank each leave `online` reading `0`.
+- Waking restores `0-7`.
+- The display still lights within the usual time.
+- R1's blanked figure drops to about 96 mA.
 
 ### R3: the Gemian comparison
 
