@@ -780,12 +780,14 @@ that wrote them likely read 1968-based. Inference only; the writer is still not 
 
 **Owner decision (2026-11-07), relayed by the custodian:** the card root never mounts `nvdata`.
 Card preparation copies the 514-byte Wi-Fi record into the card's firmware directory as
-`WIFI.storage`, a private regular file (mode 0600), with `gemian-firmware SOURCE ROOT /nvdata`
-on the station, where `nvdata` is already mounted read-only. The card root has no `/nvdata`, and
+`WIFI.storage`, a private regular file (mode 0600), with `gemian-firmware SOURCE ROOT RECORD`
+on the station. The card root has no `/nvdata`, and
 stage 1 mounts `nvdata` into a root only when that directory exists, so station init is unchanged.
 `gemini-base` 10 drops the link, and `gemini-wifi.service` waits for the copied record instead of
-the mount. The station itself still mounts `nvdata` read-only; copying the record into RAM there
-needs a new `boot2` image and is not approved.
+the mount. Then the owner chose the station side too ("Stop mounting it"): stage 1 mounts `nvdata` only to
+copy the record into RAM, unmounts it, and no longer mounts it into a card root
+([station record](../2026-10-30-mainline-dev-station/README.md#nvdata-is-mounted-only-to-copy-the-wi-fi-record-2026-11-07)).
+`RECORD` on the station is that RAM copy, `/lib/firmware/mediatek/mt6797/WIFI.storage`.
 
 ### Step 4, R3 (predeclared): Wi-Fi, and the interface at scale 2
 
@@ -988,7 +990,7 @@ Run by the custodian, with the owner at the device. Boot image `station-work-81`
 
 ### Step 4, R5 (predeclared): one keymap from setup to sway
 
-**What changed since R4** (card only; `station-work-81` stays on `boot2`).
+**What changed since R4** (the card, and since the revision below, stage 1).
 - **Console keymaps for every layout** (`75e82eef`, owner): each Gemian layout is converted to a
   console keymap with the same composition as sway's, by `ckbcomp` from Debian's console-setup 1.216,
   fetched pinned and used at build time only (GPL-2.0-or-later, not installed). The build parses each
@@ -998,10 +1000,18 @@ Run by the custodian, with the owner at the device. Boot image `station-work-81`
 - **Scale 2.5** (owner) and **the session retried** after 3 s if it fails, at most five times a
   minute (`e3fbca2a`).
 
-**Candidate.** No new kernel or boot image: `station-work-81` (R4's package `b27d2b9f…`) stays.
-Card image `87402f22dcaad8f0f6c3fc40bb7a2f8dec1f1f15b70d5ae8b468143b6c730e25`, from `build-card.sh`
-at `e3fbca2a`, `gemini-base` 9 (`02bf9dd3…`), 315 packages, in the dev VM at `~/artifacts/arch-card-8/`.
-Container boot as before; the 24 console maps are installed, and `loadkeys` finds them by name.
+**Candidate (revised 2026-11-07, before any R5 boot: `nvdata` no longer mounted).**
+- **Kernel:** no new build. R4's package `b27d2b9f…` stays.
+- **Boot image:** a new one, composed from that package as for `station-work-81`, with stage 1
+  from this commit, which copies the Wi-Fi record into RAM and unmounts `nvdata`. One
+  `flash-boot2` write.
+- **Card image:** `f04952e10675f4966fdb4a10017b1bf756b5a3da4596ef2d86b06a55848de1c6`, from
+  `build-card.sh` at `5751db56`, `gemini-base` 10 (`9865231b…`), 315 packages, in the dev VM at
+  `~/artifacts/arch-card-9/`. It has no `/nvdata`, and no `WIFI.storage` until card preparation
+  copies the record. It replaces `arch-card-8` (`87402f22…`, `gemini-base` 9), which was written
+  but never booted.
+- **Card preparation:** `gemian-firmware SYSTEM_IMG ROOT /lib/firmware/mediatek/mt6797/WIFI.storage`
+  on the new station; seven files, `WIFI.storage` checked by size and against its source.
 
 **Hypothesis.**
 1. First boot asks the layout first; from then on the console types with it, so the passphrase and
@@ -1010,8 +1020,10 @@ Container boot as before; the 24 console maps are installed, and `loadkeys` find
 
 **The unique observation.** No boot has yet used one Gemini layout across setup, console and sway.
 
-**Before, on the running station:** R1's steps 1 to 6 with this card image and `gemian-firmware`
-from main; no `flash-boot2`, then `poweroff`.
+**Before, on the running station:** `flash-boot2` with the new boot image, `poweroff`, the owner
+selects `boot2` with a key at the prompt; on that station, check `nvdata=record-copied` and
+`nvdata=unmounted` in the status and that `/proc/mounts` has no `nvdata`. Then R1's steps 1 to 6
+with this card image and `gemian-firmware` as above, then `poweroff`.
 
 **On the device, the owner:** first boot as in R4, choosing their layout, with a password that uses
 Fn symbols; the Wi-Fi join in first boot. In sway: `sudo true` with that password. Then `sudo
@@ -1028,10 +1040,11 @@ up on `tty1`.
 | Password works in sway but not on `tty2` | `systemd-vconsole-setup` didn't apply `gemini-<layout>` |
 | Second boot: sway fails five times | the refusal is not a short race; capture `loginctl session-status` |
 | Second boot: sway after one or more retries | the race is real; look for its cause, keep the retry meanwhile |
-| `nvdata` changed | the open finding; read the mount count |
+| `nvdata` changed | now that only stage 1's brief read-only mount remains, a change narrows the writer to that mount or to something before Linux; read the mount count |
+| `nvdata=record-failed` | no Wi-Fi on the station or a new card; stop before the card write |
 | Any other eMMC hash changed | Stop |
 
-**Budget.** One card write, no `boot2` write. Up to two card boots, then one station boot for the
+**Budget.** One card write, one `boot2` write. Up to two card boots, then one station boot for the
 evidence.
 
 **Stop rules.** As R1.

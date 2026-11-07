@@ -76,7 +76,7 @@ expected to be the same across Gemian installs, which is an inference: one unit 
 Bluetooth's start and the GNSS host use the same CONSYS start, so they need the same files and nothing more.
 `WIFI.storage` is not firmware: it is the device's own Wi-Fi NVRAM record,
 with the board's RF calibration, and it is read in place from the `nvdata`
-partition, which every Gemini has. The system mounts that partition
+partition, which every Gemini has. The release image mounts that partition
 read-only at `/nvdata`, as Gemian does (`noload` keeps an unclean journal
 from being replayed onto the partition), and links the record into the
 firmware directory:
@@ -89,6 +89,9 @@ ln -s /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
 `noload` alone doesn't make that mount read-only on disk: ext4 still clears an orphan
 list unless the block device itself is read-only, so the release image sets it read-only
 first ([release RAM root](../RELEASE_READINESS.md#release-ram-root)).
+
+The development station (since 2026-11-07) mounts it the same way only to copy the record into
+RAM, then unmounts it; the card root carries its own copy (below).
 
 The record therefore always belongs to the same device. Its provenance is
 in the [storage contract](../../experiments/2026-09-05-mt6797-wifi-contract/PROVENANCE.md).
@@ -151,10 +154,10 @@ loads it when `/dev/gnss0` opens and refuses a file whose size or fragment count
 header. That boot has not run on the device.
 Like the rest, the hashes are of one unit's files, and none of the files is redistributed.
 
-Given a third argument, the directory where `nvdata` is mounted read-only (`/nvdata` on the
-station), `gemian-firmware` also copies the device's Wi-Fi record into the card root as a regular
+Given a third argument, the record itself (on the station, stage 1's RAM copy at
+`/lib/firmware/mediatek/mt6797/WIFI.storage`), `gemian-firmware` also copies the device's Wi-Fi record into the card root as a regular
 `WIFI.storage`, mode 0600, so the card root never mounts `nvdata`. The record is checked by size
-(514 bytes) and against its source; it is never printed. The station keeps the link above.
+(514 bytes) and against its source; it is never printed.
 
 The connectivity loader first received normal `request_firmware` failures and
 then Android `ueventd` supplied files from `/system/vendor/firmware`. The NVT

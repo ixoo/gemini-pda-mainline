@@ -943,6 +943,15 @@ The owner reports that typing works from boot.
 
 The script's failure handling from `7bbff26b` ran on boot `fccba04c`, image `96338704`, as the custodian reports, with `PASSIVE_SCAN=1` and a pinned access point: rc=0, phy after 0 s, `up=0`, `COMPLETED` on the usual channel, lease after 4 s, gateway ping 3 of 3, one connect and no disconnects, tainted=0. This shows the normal path only. The failure paths have run only against stubs, not on the device.
 
+## nvdata is mounted only to copy the Wi-Fi record (2026-11-07)
+
+Owner decision, after `nvdata`'s superblock changed with no read-write mount found
+([Arch root record](../2026-11-06-gemini-arch-root/README.md)): `init` sets the device read-only,
+mounts it `ro,noload`, copies the 514-byte Wi-Fi record into RAM as
+`/lib/firmware/mediatek/mt6797/WIFI.storage` (mode 0600), and unmounts it at once. Status lines:
+`nvdata=record-copied` or `record-failed`, then `nvdata=unmounted`. Nothing keeps `nvdata`
+mounted, and a card root gets no `nvdata` mount; it carries its own copy. Not yet booted.
+
 ## nvdata's block device is read-only (2026-11-04)
 
 `init` runs `blockdev --setro` on nvdata before mounting it (`2ab5699f`), because ext4 can

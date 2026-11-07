@@ -3,18 +3,19 @@
 # Copy the device firmware the mainline drivers use from the owner's own Gemian system into a
 # mounted root, at /usr/lib/firmware/mediatek/mt6797/. See docs/hardware/firmware.md.
 #
-# usage: gemian-firmware SOURCE ROOT [NVDATA]
+# usage: gemian-firmware SOURCE ROOT [RECORD]
 #   SOURCE  Gemian's Android system: its ext4 image (on the station, /mnt/data/data/system.img,
 #           from the linux partition init mounts read-only), or a directory holding vendor/.
 #   ROOT    the mounted target root, for example the card's gemini-arch partition.
-#   NVDATA  where nvdata is mounted read-only (on the station, /nvdata). Given, the device's
-#           514-byte Wi-Fi calibration record is copied as WIFI.storage, mode 0600, so the
-#           root never mounts nvdata. The record differs per device: it is never printed.
+#   RECORD  the device's 514-byte Wi-Fi calibration record (on the station, the copy stage 1
+#           made in RAM: /lib/firmware/mediatek/mt6797/WIFI.storage). Given, it is copied as
+#           WIFI.storage, mode 0600, so the root never mounts nvdata. It differs per device and
+#           is never printed.
 #
 # Every file is checked against its known SHA-256 before it is put in place. A file already in
 # place is checked and never replaced. An image is read through a read-only loop device and a
 # read-only mount. Reads no calibration, NVRAM or identifier except the Wi-Fi record, and that
-# only when NVDATA is given. Sends nothing anywhere. Runs under busybox sh or a full Linux userland, as root.
+# only when RECORD is given. Sends nothing anywhere. Runs under busybox sh or a full Linux userland, as root.
 # Exit: 0 every file in place, 1 a file missing or mismatched (named), 2 usage or setup.
 set -eu
 
@@ -31,10 +32,10 @@ mt6631_fm_v1_coeff.bin vendor/firmware/mt6631_fm_v1_coeff.bin d32f4a16b35f950ed1
 gnss_dsp_6797.bin vendor/lib/libmnl.so a99cacea8b7509d310d2b66e29fe71f3ed5c6b775c0a8a825f1c6a021370f497 gnss
 '
 
-[ "$#" -eq 2 ] || [ "$#" -eq 3 ] || { echo "usage: gemian-firmware SOURCE ROOT [NVDATA]" >&2; exit 2; }
+[ "$#" -eq 2 ] || [ "$#" -eq 3 ] || { echo "usage: gemian-firmware SOURCE ROOT [RECORD]" >&2; exit 2; }
 source=$1
 root=$2
-nvdata=${3:-}
+record=${3:-}
 [ -d "$root/usr/lib" ] || { echo "gemian-firmware: $root has no usr/lib" >&2; exit 2; }
 dir=$root/usr/lib/firmware/mediatek/mt6797
 mnt=
@@ -154,13 +155,9 @@ $FILES
 EOF
 
 # The Wi-Fi record: per device, so checked by size and, once in place, by comparison only.
-if [ -n "$nvdata" ]; then
-	record=$nvdata/APCFG/APRDEB/WIFI
+if [ -n "$record" ]; then
 	target=$dir/WIFI.storage
-	if ! awk -v m="$nvdata" '$2 == m && $4 ~ /^ro(,|$)/ { f = 1 } END { exit !f }' /proc/mounts; then
-		echo "WIFI.storage nvdata-not-mounted-ro"
-		status=1
-	elif [ ! -f "$record" ] || [ "$(wc -c <"$record")" -ne 514 ]; then
+	if [ ! -f "$record" ] || [ "$(wc -c <"$record")" -ne 514 ]; then
 		echo "WIFI.storage missing"
 		status=1
 	elif [ -e "$target" ] || [ -L "$target" ]; then

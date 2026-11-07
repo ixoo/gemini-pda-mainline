@@ -139,22 +139,13 @@ if [ -n "$handover" ]; then
         target=$($bb readlink "$new/sbin/init") || target=
         case $target in /*) check=$new$target ;; *) check=$new/sbin/init ;; esac
         modules=/lib/modules/$($bb uname -r)
-        nvdata=
-        for uevent in /sys/class/block/mmcblk0p*/uevent; do
-            $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
-        done
         if ! [ -x "$check" ]; then
             status "arch=refused no-init"
         elif ! $bb mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs "$new/usr/lib/modules" ||
              ! $bb cp -a "$modules" "$new/usr/lib/modules/"; then
             status arch=modules-failed
         else
-            if [ -n "$nvdata" ] && [ -d "$new/nvdata" ] &&
-               $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" "$new/nvdata"; then
-                status "nvdata=mounted device=$nvdata"
-            else
-                status "nvdata=mount-failed device=$nvdata"
-            fi
+            # The root carries its own copy of the Wi-Fi record; nvdata isn't mounted.
             status "arch=handover device=$arch"
             $bb printf 'Starting the root on %s.\n' "$arch" >/dev/tty1
             for fs in /dev /proc /sys /run; do
@@ -178,21 +169,32 @@ if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemi
 if $bb insmod "/lib/modules/$($bb uname -r)/leds-aw9120.ko"; then status leds=leds-aw9120; else status leds=insmod-failed; fi
 # The vibration motor, as an idle force-feedback input device; nothing plays on it.
 if $bb insmod "/lib/modules/$($bb uname -r)/regulator-haptic.ko"; then status haptic=regulator-haptic; else status haptic=insmod-failed; fi
-# The Wi-Fi calibration record, read in place from nvdata: read-only, and
-# noload so that an unclean journal is never replayed onto the partition. ext4 still
-# clears an orphan list on such a mount unless the device itself is read-only.
+# The Wi-Fi calibration record, copied into RAM (owner, 2026-11-07): nvdata is
+# mounted only for the copy, then unmounted, so nothing keeps it mounted. The
+# device goes read-only first, and noload keeps an unclean journal from being
+# replayed; ext4 still clears an orphan list unless the device is read-only.
 nvdata=
 for uevent in /sys/class/block/mmcblk0p*/uevent; do
     $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
 done
-if [ -n "$nvdata" ] && ! $bb blockdev --setro "$nvdata"; then
+record=/lib/firmware/mediatek/mt6797/WIFI.storage
+if [ -z "$nvdata" ]; then
+    status nvdata=none
+elif ! $bb blockdev --setro "$nvdata"; then
     status "nvdata=setro-failed device=$nvdata"
-elif [ -n "$nvdata" ] && $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
-    status "nvdata=mounted device=$nvdata"
-else
+elif ! $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" /nvdata; then
     status "nvdata=mount-failed device=$nvdata"
+else
+    if (umask 077 && $bb cp /nvdata/APCFG/APRDEB/WIFI "$record.partial") &&
+       [ "$($bb wc -c <"$record.partial")" -eq 514 ]; then
+        $bb mv "$record.partial" "$record"
+        status "nvdata=record-copied device=$nvdata"
+    else
+        $bb rm -f "$record.partial"
+        status "nvdata=record-failed device=$nvdata"
+    fi
+    if $bb umount /nvdata; then status nvdata=unmounted; else status nvdata=umount-failed; fi
 fi
-$bb ln -sf /nvdata/APCFG/APRDEB/WIFI /lib/firmware/mediatek/mt6797/WIFI.storage
 # Wi-Fi: CONSYS starts the firmware after probe and mac attaches when it is ready.
 for module in mt6797-wlan-core mt6797-consys mac; do
     if $bb insmod "/lib/modules/$($bb uname -r)/$module.ko"; then status "wifi=$module"; else status "wifi=$module-failed"; fi
