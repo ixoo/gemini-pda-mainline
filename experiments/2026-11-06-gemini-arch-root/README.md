@@ -450,6 +450,15 @@ Step 4 answers these.
   after `f60e405e`.
 - **Card image:** `79c921e3…` (`gemini-base` `bb075b3a…`, 235 packages), in the dev VM at
   `~/artifacts/arch-card-2/`, from `build-card.sh` as committed with this change.
+- **Changed before the boot (2026-11-07): the P5 image instead.** boot2 already holds
+  `station-work-77`, boot2 `93873a03…`, built from `eea46408` for the
+  [power record's P5](../2026-11-06-gemini-power-management/README.md#p5-2026-11-07-06330635-on-a-built-image)
+  and booted there as `ae534d13`. Between `f60e405e` and `eea46408` nothing changed in the station's
+  `initramfs/`, its build and compose scripts or `configs/`, so it has the same `init` with the
+  handover and the same config `8b1dc525…`. Its package `linux-7.1.3-gemini-86631330…` holds every
+  module the card's units load. It adds patches 0632–0635 (MTU3 suspend and reconnect, the
+  regulator late cleanup), tested on the device in P5. So step 7 writes nothing: it is only the
+  `poweroff`, and the budget has no boot2 write.
 
 **Hypothesis.** On a normal start with the card in, stage 1:
 1. shows the prompt and, with no key pressed, hands over (`arch=handover`);
@@ -482,7 +491,7 @@ Throughout, nothing writes the eMMC.
 6. Record SHA-256 of `boot`, `boot2`, `lk`, `nvram`, `nvdata` and `proinfo`, by GPT name
    and read-only.
 7. Write the boot image with `flash-boot2`, then `poweroff`. The owner selects `boot2`
-   with the card in.
+   with the card in. With the P5 image already on boot2 (see Candidate), only the `poweroff`.
 
 **On the device, the owner:**
 1. Leaves the 3 s prompt alone.
@@ -513,7 +522,7 @@ quoted publicly drops every line naming a network or an address.
 | sway up, no join | iwd on our driver. The journal's iwd and kernel lines decide whether to fall back to wpa_supplicant |
 | Any eMMC hash changed | Stop. Something wrote through the read-only flags |
 
-**Budget.** One `boot2` write and one card write. Up to two card boots, then one station
+**Budget.** One `boot2` write (none with the P5 image) and one card write. Up to two card boots, then one station
 boot for the evidence. No retries of an identical artifact.
 
 **Stop rules.** Stop on heat, a charging anomaly, an Oops or a watchdog loop.
