@@ -216,3 +216,9 @@ CONFIG_PM_ADVANCED_DEBUG=y
 CONFIG_PM_SLEEP_DEBUG=y
 CONFIG_RTC_CLASS=y
 CONFIG_RTC_DRV_MT6397=y
+# Landlock, which pacman 7 needs to sandbox its downloads on the Arch root
+# (2026-11-06-gemini-arch-root); CONFIG_LSM already lists it. POSIX message
+# queues complete the IPC namespace and back systemd's /dev/mqueue; named here
+# to override gemini-usbdiag.fragment's "not set". Userspace interfaces only.
+CONFIG_SECURITY_LANDLOCK=y
+CONFIG_POSIX_MQUEUE=y
