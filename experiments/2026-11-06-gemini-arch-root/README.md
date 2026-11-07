@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox, nothing booted |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
-| Date(s) | 2026-11-06 |
+| Date(s) | 2026-11-06 to 2026-11-07 |
 | Investigator(s) | Julien Etienne (owner decisions), Claude (design) |
 | Tracking issue | [Roadmap step 1](../../docs/ROADMAP.md#1-after-v1), [v1 gaps 1, 4, 6, 10](../../docs/RELEASE_READINESS.md#known-gaps-in-v1) |
 
@@ -526,6 +526,63 @@ quoted publicly drops every line naming a network or an address.
 boot for the evidence. No retries of an identical artifact.
 
 **Stop rules.** Stop on heat, a charging anomaly, an Oops or a watchdog loop.
+
+### R1 result (2026-11-07): handover and systemd, then a prompt on the serial console
+
+Run by the custodian. The private evidence (journal, `machine-id`, logs) is kept outside Git.
+
+**Before.**
+- Station boot `ae534d13`, the P5 image (`station-work-77`, boot2 `93873a03…`), stable USB power.
+- Card: 1430 GiB SD on `11240000.mmc`, not mounted; the owner confirmed it could be erased. Write
+  rc 0; the 4 GiB readback is `79c921e3…`, matching; one partition, `gemini-arch`.
+- `gemian-firmware` from `0a39b7be`: exit 0, six files copied, `gnss_dsp_6797.bin` 61,546 bytes,
+  `WIFI.storage` a link to `/nvdata`.
+- eMMC by GPT name, read-only: `boot` `1fa78de9…`, `boot2` `93873a03…`, `lk` `75ec9f0b…`, `nvram`
+  `3db493b4…`, `nvdata` `3e095b0a…`, `proinfo` `56de3103…`.
+
+**Card boot, observed.** The owner selected `boot2` with the card in and left the prompt alone. The
+panel showed stage 1's handover line and nothing after, and no key did anything. The device answered
+ping on its USB address and port 22 was closed, as designed. The owner held the power key. No photos.
+
+**Evidence boot `bfeee4e3`** (key pressed): `arch=kept-ram-root`; all six eMMC hashes identical to
+before; `/sys/fs/pstore` empty; `/var/lib/gemini` absent.
+
+**Journal** (one boot, 2,319 lines, ending at 19.2 s):
+- 6.47 s "Detected first boot", since `machine-id` is `uninitialized`. 7.03 s "Applying preset
+  policy", then 29 "Failed to preset all unit" lines, nearly all "Read-only file system": the root
+  is still the read-only mount stage 1 handed over.
+- 8.90 to 9.42 s `systemd-remount-fs`; `fsck` reports the root clean. So `PARTLABEL` in fstab
+  resolved, and the root went read-write.
+- `systemd-modules-load` inserted `gemini_lid`, and failed to find `pkcs8_key_parser`, from iwd's
+  `modules-load.d`. `depmod` warns that the copied `/lib/modules` has no `modules.order`,
+  `modules.builtin` or `modules.builtin.modinfo`.
+- 10.41 s the cfg80211 udev rule's `set-wireless-regdom` exited 1 (no country in its file yet).
+- 10.55 s "Starting Initial Setup": Arch's `systemd-firstboot.service`, enabled in
+  `sysinit.target.wants` by the systemd package, with `ConditionFirstBoot=yes`. It prompts for
+  locale, keymap, time zone and root password on `/dev/console`, which is `ttyS0` from the forced
+  command line, and mutes the console meanwhile. It never finished.
+- `usb0` came up from `50-gemini-usb0.network`; networkd and resolved ran.
+- After 12.23 s only kernel lines: `sysinit.target` never completed, so no `gemini-*` unit, getty,
+  iwd or sway started. The keyboard had probed at 1.26 s; nothing read `tty1`.
+
+**Reading.** Stage 1, the read-only eMMC, the handover and the root remount all work. The stop is
+not in the table: it is closest to "prompt, then no systemd output", but the cause is the stock
+`systemd-firstboot` waiting for answers on the serial console ahead of `sysinit.target`. The
+container test in step 3 had no console to block it, so it didn't show this. Nothing wrote the eMMC.
+
+**Next fixes for the card builder (R2).**
+1. Mask `systemd-firstboot.service`. `gemini-firstboot` already asks for what this device needs
+   on `tty1`, and the root stays locked.
+2. Ship `modules.builtin`, `modules.builtin.modinfo` and `modules.order` with the modules stage 1
+   copies, so `modprobe` knows a built-in from a missing module; then check whether
+   `pkcs8_key_parser` is built in or only absent.
+3. The first boot's preset pass runs before the remount, so it fails and leaves the units as
+   the builder enabled them. Decide whether that is acceptable, or whether the builder applies
+   presets itself. A bare `preset-all` is not that: Arch's default preset disables every unit
+   not listed, the gemini units included, so it would need a `gemini-base` preset file.
+
+**Budget used:** one card write, one card boot, one evidence boot, no boot2 write. The second card
+boot in the budget needs a new card image, so it is not a retry of an identical artifact.
 
 ## Analysis
 
