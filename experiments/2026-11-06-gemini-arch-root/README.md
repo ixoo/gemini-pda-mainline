@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped; the owner chose to continue, and R3 is predeclared |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 to 2026-11-07 |
@@ -767,6 +767,69 @@ calibration are intact.
 **Owner decision (2026-11-07):** "Let's take a note of it and keep going." Card iterations
 continue. The owner then dropped the proposed before/after copies of `nvdata`: "don't bother taking
 a copy of nvdata." The six eMMC hashes stay as before.
+
+### Step 4, R3 (predeclared): Wi-Fi, and the interface at scale 2
+
+**What changed since R2.**
+- **Kernel:** `CONFIG_RFKILL=y` in `gemini-a53-station-a72.fragment` (`69a9c63c`). iwd 3.12 exits
+  when `/dev/rfkill` is missing: its rfkill module fails with `-ENOENT`, it tears its modules down,
+  and the last line is "D-Bus disconnected". Reproduced in a container with the R2 card image; with
+  the VM's `/dev/rfkill` bound in, iwd got past rfkill and stopped only at nl80211, which a
+  container lacks. The release profile is unchanged.
+- **Card** (`gemini-base` 4):
+  - first boot restarts `gemini-wifi` after writing the country, since the unit already ran at
+    boot without one;
+  - the owner's interface choices: sway at scale 2, waybar as a left column in place of swaybar,
+    `wmenu` for the launcher, `LANG=C.UTF-8`, and a closing note that Mod is the Fn key.
+
+**Candidate.**
+- **Kernel:** Buildbox, profile `mt6797-a53-station-a72`, `BUILD_MODULES=1`, job
+  `bb2ed0c4…-mt6797-a53-station-a72-m1` (the record-only commit after `69a9c63c`; the build at
+  `69a9c63c` gave the same `Image.gz` and config), package `linux-7.1.3-gemini-d363158a…`,
+  `Image.gz` `9858b743…`, config `de3f80be…`, fetched under `artifacts/buildbox/bb2ed0c4…/`.
+  Against R2's config the only change is `CONFIG_RFKILL=y`, with its defaults `RFKILL_LEDS=y`,
+  `RFKILL_INPUT=y` and `RFKILL_GPIO=m`. Every module the card's units load is in it.
+- **Boot image:** composed by the custodian as for `station-work-79`, then written with `flash-boot2`.
+- **Card image:** `24d4812ed4471df41b059c6e464169667bb325da6d3f4ac77547c109ab6792ab`, from
+  `build-card.sh` at `69a9c63c`, `gemini-base` `5e4f881c…`, 315 packages (waybar brings GTK 3),
+  systemd 262.1, in the dev VM at `~/artifacts/arch-card-4/`.
+
+**Container boot of the card image** (as for R2): `systemd-firstboot` masked; `sysinit.target`,
+`basic.target` and `multi-user.target` reached; nothing waited on the console; `gemini-firstboot`
+failed only for want of `tty1`. `C.UTF-8`, the waybar files, the scale and the restart are in place.
+sway, run headless on the R2 image, used the waybar command for `bar-0`.
+
+**Hypothesis.** As R2 to the first-boot dialogue. Then:
+1. the country starts Wi-Fi: `gemini-wifi` restarts and loads the three modules;
+2. iwd stays up, `iwctl` joins as WPA2-PSK and `wlan0` gets an address from networkd;
+3. timesyncd sets the clock;
+4. sway comes up at scale 2 with waybar as a column on the left, and `pacman -Sy` works.
+
+**The unique observation.** No mainline boot has yet joined with iwd.
+
+**Before, on the running station:** R1's steps 1 to 6 with this card image and `gemian-firmware`
+from main, then step 7 with `flash-boot2` and `poweroff`.
+
+**On the device, the owner:** as in R2. After the join, in a foot terminal (Fn+Enter): `date` and
+`sudo pacman -Sy`. Photos once sway is up, showing the text size and the bar.
+
+**After, on the station:** as in R2, the six eMMC hashes included.
+
+**Readings.**
+
+| Observation | Reading and next |
+| --- | --- |
+| iwd still exits | The journal's iwd lines name the module; check `/dev/rfkill` exists |
+| iwd up, no networks seen | The driver's scan under iwd; compare with the station's wpa_supplicant |
+| Joined, no address | networkd on `wlan0`; check `50-gemini-wlan.network` matched |
+| Joined and addressed, `pacman -Sy` fails | DNS through resolved, or the keyring from first boot |
+| Text still small, or no bar | sway's output scale or waybar's start; the journal and `swaymsg -t get_outputs` decide |
+| Any eMMC hash changed | Stop, as before; `nvdata`'s mount count is already at its maximum, so it should not move |
+
+**Budget.** One `boot2` write and one card write. Up to two card boots, then one station boot for
+the evidence. No retries of an identical artifact.
+
+**Stop rules.** As R1.
 
 ## Analysis
 
