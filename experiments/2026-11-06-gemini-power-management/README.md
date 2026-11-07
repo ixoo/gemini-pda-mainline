@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `planned`: source, binary and configuration assessment done; no build, boot or device access; the first steps below are read-only |
+| Status | `running`: source, binary and configuration assessment done; R2 (clock and domain census) run by the custodian; R1 revised to an unplugged run; no build or suspend attempt |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -363,10 +363,21 @@ For the custodian. None has been run.
 - **Unique observation:** `current_now` averaged over 60 s at 1 s per sample in
   each of the three cases, with the `/proc/interrupts` and context-switch
   deltas for the same window.
-- **Method:** read-only, except the charge guard's existing admitted stop. No
-  module load other than the Wi-Fi modules' normal load and unload.
-- **Stop:** battery below 30 %, temperature above 45 °C, any kernel warning,
-  or the SSH link lost.
+- **Method:** with the cable in, the battery reads about −1 mA because the
+  charger runs the system from VBUS, and the bq25890 has no input-current ADC
+  ([R2 run](#r2-result-2026-11-06)). So the measurement runs unplugged:
+  1. a detached script logs `current_now`, `/proc/interrupts` and context
+     switches to `/mnt/data` once a second;
+  2. the owner unplugs the cable for about 4 minutes, then plugs it back in;
+  3. the custodian reads the log after SSH returns.
+
+  The run is read-only. Wi-Fi modules are loaded and unloaded the normal way.
+  The Wi-Fi-joined case is a radio action and stays out unless admitted.
+  Cutting the input with the charger's HIZ bit would avoid the unplug, but it
+  is an unadmitted charger write.
+- **Stop:** the script stops itself if the battery falls below 30 % or the
+  temperature rises above 45 °C, or on any kernel warning. A lost SSH link is
+  expected and is not a stop.
 - **Decision:** if the Wi-Fi-loaded case costs more than about 20 mA over the
   unloaded one, the adaptive receive poll moves up the Wi-Fi plan; the
   unloaded figure is the baseline every later step is measured against.
@@ -381,6 +392,55 @@ For the custodian. None has been run.
 - **Method:** debugfs reads only. **Stop:** none needed beyond a read failure.
 - **Decision:** each listed clock gets an owner (a driver or a DT consumer) or
   a recorded reason; P3 waits for that list.
+
+#### R2 result (2026-11-06)
+
+**Setup:** the custodian ran R2 on station-work-72 (boot2 image `55f5d6d6…`,
+built from `e4e09b1a`), boot `9a152abb`. The kernel was untainted and the
+command line included `clk_ignore_unused`. The native display was running, and
+the Wi-Fi modules were loaded but not joined. The raw census stays private
+with the custodian.
+
+**Clocks.**
+- Of 231 clocks, 201 read enabled in hardware, and 165 of those have an enable
+  count of zero.
+- The 165 overstate what is really ungated: dividers and muxes with no gate of
+  their own report their parent's state.
+- **PLLs running with no user:**
+  - TVDPLL, feeding DPI0;
+  - VDECPLL, feeding the video decoder;
+  - CODECPLL, feeding the encoder, MJC and the MDP, WDMA, WROT and larb4
+    clocks;
+  - the DSI1 MIPI TX PLL at 880 MHz, although DSI1 is unused;
+  - APLL1 and APLL2, with no audio stream playing;
+  - MFGPLL, still prepared while the GPU domains are off;
+  - the IMGPLL dividers, and the UNIVPLL and SYSPLL trees.
+- MSDCPLL is legitimately in use: its `d2` output is the eMMC's HS400 parent.
+- **Infra gates on with no user:** SPI0–5, IR TX, I2C2/3, PWM1–4, UART1–3,
+  GCE, the modem CCIF, CLDMA and C2K set, the crypto blocks, SCP, ICUSB,
+  MSDC2, APXGPT, the device APC and FHCTL.
+
+**Power domains.**
+- Only CONN and AUDIO are on.
+- AUDIO holds the audio controller in runtime **active** with no stream
+  playing. That matches the [audio boot](../2026-11-01-gemini-audio-boot/README.md)
+  observation.
+- ISP and the MFG domains are off.
+- MM, VDEC and VENC do not appear in the genpd summary, so they are not
+  under genpd control at all.
+
+**Runtime PM.**
+- Active: UART0, the audio controller and the USB controller.
+- Suspended: both MSDC hosts, the DRM device, OVL and RDMA.
+- 78 platform devices have no runtime PM.
+
+**What this changes:**
+- P3 is mainly about owners for unused PLLs. Giving the unused multimedia and
+  DSI1 PLLs and the modem, SPI and PWM gates a "gate me" path, or simply a
+  boot without `clk_ignore_unused` once the display's MM clocks are claimed,
+  is the largest clock-side lever found.
+- The audio controller staying active while idle is a driver fix of its own.
+- Every one of these is still unmeasured in milliamps, so R1 comes next.
 
 ### R3: the Gemian comparison
 
