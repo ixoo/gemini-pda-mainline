@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnect failed on P3 and P4, fixes 0633 v2, 0634 and 0635 compile-checked; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnect passes on a clean P4 boot with 0634 emulated; image with 0633–0635 next; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -900,6 +900,48 @@ whenever the charger sees VBUS, so a suspend that gets as far as MTU3 is
 proof the cable is out. D2 would treat a connected gadget at suspend as
 unplugged on this board (a DT flag naming the forced session) instead of
 waiting for a bus suspend. The resume-time reconnect of 0633 stays.
+
+#### P4 clean boot (2026-11-06): reconnect passes, 0634 confirmed by emulation
+
+**Setup.** P4 (`94a0fc40…`), clean boot `ba596ae6`, untainted from start to
+end. No `soft_connect` at any point. `power/wakeup` was set to `disabled` at
+45.7 s, which is what 0634 sets at probe. Wi-Fi was unloaded. Raw logs stay
+private with the custodian.
+
+| Point | IRQ count | Runtime PM | UDC | `OPSTATE` |
+| --- | --- | --- | --- | --- |
+| Start | 154 | active | configured | `0x12` |
+| G1, 5 s after unplug | 169 | active | configured | `0x13` |
+| G1, after resume | 170 | suspended | not attached | `0x3` |
+| G1, after replug | 232 | active | configured | `0x12` |
+| G2, 5 s after unplug | 278 | active | configured | `0x13` |
+| G2, after resume | 279 | suspended | not attached | `0x3` |
+| G2, after replug | 336 | active | configured | `0x12` |
+| G3, no suspend: unplug, then replug | 391, 448 | active | configured | `0x13`, `0x12` |
+
+**Cycle details.**
+- G1 and G2: s2idle for about 20 s each, rc 0, woken by the RTC on IRQ 191.
+- Each resume showed `pullup D-` then, 20 ms later, `pullup D+`.
+- After each replug the gadget reached `configured` within 0.5 s, and SSH
+  returned with no console input.
+- The eMMC hash matched both times; `suspend_stats` 2 successes, 0 failures;
+  no warning; battery 86 → 84 %.
+
+**Reading.**
+- The decision table's first row holds: 0634 is confirmed by emulation, and
+  D2 is not needed.
+- The second cycle still saw the unplug as a bus suspend, so 0633's
+  resume-time pullup cycle does not break detection.
+- With wakeup disabled, runtime PM read `suspended` after resume. That is
+  only the bookkeeping, since the callback no longer powers anything down.
+  The replug brought it back to active by itself.
+
+**Open.**
+- After a manual `soft_connect` cycle, the next unplug was not seen as a bus
+  suspend for the rest of that boot (P4, second run), and the reason is not
+  known. Use the kernel's own reconnect instead of a manual one.
+- Not shown on a built image yet: 0634 itself, and 0635 with a suspend in
+  the first 30 s after boot.
 
 ## Analysis
 
