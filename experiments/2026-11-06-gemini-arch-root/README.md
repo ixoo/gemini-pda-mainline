@@ -421,6 +421,84 @@ the VM:
 
 Step 4 answers these.
 
+### Step 4, R1 (predeclared): the first boot of the card root
+
+**Candidate.**
+- **Kernel:** the Buildbox package of `mt6797-a53-station-a72` with `BUILD_MODULES=1`, built at
+  the commit that adds this section. It holds the iwd options, and HEAD's station `init`
+  and `flash-boot2`.
+- **Boot image:** composed by `compose-station.py` as for any station image, with the
+  project's SSH key, since the station path stays the evidence path.
+- **Card image:** `855cc1d0…` (`gemini-base` `03cad732…`), in the dev VM at
+  `~/artifacts/arch-card-2/`.
+
+**Hypothesis.** On a normal start with the card in, stage 1:
+1. shows the prompt and, with no key pressed, hands over (`arch=handover`);
+2. sets the eMMC and its partitions read-only and mounts the card read-only.
+
+Then systemd 262:
+1. remounts the root read-write;
+2. runs `gemini-modules`, the three `modules-load.d` modules, `gemini-audio` and
+   `gemini-display`;
+3. runs the first-boot dialogue on `tty1`;
+4. with a country set, starts the Wi-Fi so that iwd joins as WPA2-PSK and `wlan0` gets an
+   address;
+5. starts sway on the panel.
+
+Throughout, nothing writes the eMMC.
+
+**The unique observation.** No mainline boot has yet run systemd, a persistent root or iwd.
+
+**Before, on the running station:**
+1. Confirm stable power.
+2. The owner confirms that the card in the slot can be erased, and that it is at least
+   4 GiB.
+3. Check that `/dev/mmcblk1` resolves under `11240000.mmc`, is at least 4 GiB, and isn't
+   mounted.
+4. Send the card image gzip-compressed over USB SSH, and write it with `dd` and `sync`.
+   Read the first 4 GiB back and require the image's SHA-256.
+5. Mount `mmcblk1p1` read-write and copy the regular files of the station's
+   `/lib/firmware/mediatek/mt6797/` into `usr/lib/firmware/mediatek/mt6797/`. Record their
+   hashes against the [firmware table](../../docs/hardware/firmware.md), then unmount.
+6. Record SHA-256 of `boot`, `boot2`, `lk`, `nvram`, `nvdata` and `proinfo`, by GPT name
+   and read-only.
+7. Write the boot image with `flash-boot2`, then `poweroff`. The owner selects `boot2`
+   with the card in.
+
+**On the device, the owner:**
+1. Leaves the 3 s prompt alone.
+2. Answers the first-boot questions: a user name and password, the country, and a join
+   to their usual WPA2 network with `iwctl`.
+3. Photographs the panel at the prompt, at the end of the boot messages and once sway is
+   up. Colour isn't judged.
+4. In sway, opens a terminal (Mod+Enter) and runs `sudo poweroff`.
+
+**After, on the station.** Boot `boot2` again and press a key at the prompt, which keeps
+the RAM root. Then:
+1. Repeat the hashes of step 6.
+2. Mount the card read-only and copy `/var/log/journal`, `/var/lib/gemini` and
+   `/etc/machine-id`.
+3. Read `/sys/fs/pstore`.
+
+The journal stays private and is read on the laptop with `journalctl --file`. Anything
+quoted publicly drops every line naming a network or an address.
+
+**Readings.**
+
+| Observation | Reading and next |
+| --- | --- |
+| `arch=` other than `handover` | Stage 1 refused; its reason is in the status file. Fix stage 1 |
+| Prompt, then no systemd output, or a restart after `panic=10` | `switch_root` or systemd start. pstore and the console photo decide |
+| systemd up, root still read-only | `systemd-remount-fs` didn't resolve `PARTLABEL`: use the device path or a stage-1 remount |
+| First boot done, no sway | Display or session. The journal says which unit |
+| sway up, no join | iwd on our driver. The journal's iwd and kernel lines decide whether to fall back to wpa_supplicant |
+| Any eMMC hash changed | Stop. Something wrote through the read-only flags |
+
+**Budget.** One `boot2` write and one card write. Up to two card boots, then one station
+boot for the evidence. No retries of an identical artifact.
+
+**Stop rules.** Stop on heat, a charging anomaly, an Oops or a watchdog loop.
+
 ## Analysis
 
 Not started.
