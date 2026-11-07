@@ -961,6 +961,9 @@ Run by the custodian, with the owner at the device. Boot image `station-work-81`
   it `/dev/dri/card0` ("Could not take device: Operation not permitted"), 3.4 s after the device
   appeared, and the session exited for good. In first boot the same session worked a few minutes
   in. Why logind refused isn't known from the journal.
+- A third boot of that card, the owner present, with sshd started for that boot only: the session
+  failed the same way at 13.8 s, and `systemctl restart` of it at 376 s brought sway up on `seat0`,
+  `tty1`. So it is a start-up race; R5's retries (3 s apart, five a minute) are meant to cover it.
 - The text console still had `KEYMAP=us` on that image, so the password the owner had reset under
   the Gemini map failed there; the custodian had them set a letters-and-digits one.
 
