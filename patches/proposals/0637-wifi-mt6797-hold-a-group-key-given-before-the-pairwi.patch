@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sat, 7 Nov 2026 10:43:27 -0500
+Subject: [PATCH] wifi: mt6797: hold a group key given before the pairwise key
+
+iwd installs the group key before the pairwise key, and the driver refused it,
+which ended the join and restarted the firmware, every time. The firmware takes
+them the other way round, so hold a group key that comes first and install it
+once the pairwise key is in. wpa_supplicant gives them the other way round and
+is unaffected.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   |  1 +
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  2 ++
+ drivers/net/wireless/mediatek/mt6797/main.c   | 27 ++++++++++++++++++-
+ 3 files changed, 29 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 02febf786..cad88b7b5 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -576,6 +576,7 @@ static void mt6797_mac_epoch_reset(struct mt6797_mac *mac)
+ 	memset(&mac->ccmp_rx, 0, sizeof(mac->ccmp_rx));
+ 	memset(&mac->ccmp_gtk_rx, 0, sizeof(mac->ccmp_gtk_rx));
+ 	mac->ccmp_gtk_attempted = false;
++	mac->ccmp_gtk_deferred = NULL;
+ 	mac->ccmp_last_checked_rx = 0;
+ 	mac->ccmp_timeout_ignored = 0;
+ 	reinit_completion(&mac->ccmp_dtim_done);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 8a5c45e03..e0adda689 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -616,6 +616,8 @@ struct mt6797_mac {
+ 	struct ieee80211_sta __rcu *ccmp_sta;
+ 	/* Cookies only: never dereferenced, withdrawn before DISABLE_KEY returns. */
+ 	struct ieee80211_key_conf *ccmp_ptk, *ccmp_gtk;
++	/* A group key given before the pairwise key, installed after it. */
++	struct ieee80211_key_conf *ccmp_gtk_deferred;
+ 	/* Serializes scan/join RX, TX status and completed key withdrawal. */
+ 	struct mutex ccmp_receive_mutex;
+ 	struct completion ccmp_key_done, ccmp_cleanup_done;
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index d50c208d2..04daa4c83 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1522,8 +1522,13 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 	struct ieee80211_key_seq seed, tid_seed[MT6797_CCMP_RX_TIDS - 1];
+ 	unsigned int tid;
+ 
+-	if (cmd == DISABLE_KEY)
++	if (cmd == DISABLE_KEY) {
++		mutex_lock(&mac->mutex);
++		if (mac->ccmp_gtk_deferred == key)
++			mac->ccmp_gtk_deferred = NULL;
++		mutex_unlock(&mac->mutex);
+ 		return mt6797_ccmp_disable_key(mac);
++	}
+ 
+ 	if (cmd == DISABLE_KEY)
+ 		return 0;
+@@ -1532,6 +1537,18 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		ret = -EOPNOTSUPP;
+ 		goto failed;
+ 	}
++	/* iwd installs the group key before the pairwise key, while the
++	 * firmware takes them the other way round: hold it until then.
++	 */
++	if (!pairwise && !sta && !mac->join_key_pairwise &&
++	    !mac->ccmp_gtk_deferred && !mac->ccmp_gtk_attempted &&
++	    vif == mac->vif && mac->join_rsn) {
++		mac->ccmp_gtk_deferred = key;
++		mutex_unlock(&mac->mutex);
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN join key deferred: group before pairwise\n");
++		return 0;
++	}
+ 	if ((mac->ccmp_closed ||
+ 	     (pairwise && mac->ccmp_ptk_attempted) ||
+ 				  (!pairwise && mac->ccmp_gtk_attempted))) {
+@@ -1681,7 +1698,15 @@ static int mt6797_mac_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
+ 		 "one-shot WLAN join key credit returned: %s\n",
+ 		 pairwise ? "pairwise" : "group");
+ 	if (pairwise) {
++		struct ieee80211_key_conf *deferred = mac->ccmp_gtk_deferred;
++
+ 		mac->join_key_pairwise = 1;
++		mac->ccmp_gtk_deferred = NULL;
++		mutex_unlock(&mac->mutex);
++		/* A failure ends the lifetime there; the pairwise key stands. */
++		if (deferred)
++			mt6797_mac_set_key(hw, SET_KEY, vif, NULL, deferred);
++		return 0;
+ 	} else {
+ 		mac->join_key_group = 1;
+ 		mac->join_group_key_id = key->keyidx;
+-- 
+2.43.0
+

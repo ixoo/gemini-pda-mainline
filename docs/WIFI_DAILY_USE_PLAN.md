@@ -21,6 +21,9 @@ Status: plan, updated 2026-11-01.
   data, down to MCS0 (0471), with gaps up to about 27 s and little actual roaming on the third walk. One access
   point refuses the handshake, channel 149 is not settled, and 0473 has run on a strong link only. The fixes are
   in boot2, booted once with a working link, and that image pins one access point with no `bgscan`, so it won't roam by itself.
+- iwd installs the group key before the pairwise key, which the driver refused, ending each join in a
+  firmware restart (custodian, boot `0993c976`). 0637 holds such a group key until the pairwise key is in.
+  Compiled only; not yet run with iwd.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
   firmware BSS slot is never reused. Fixing it means re-arming after a close, which needs device tests. Not started.
