@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 predeclared |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 to 2026-11-07 |
@@ -583,6 +583,81 @@ container test in step 3 had no console to block it, so it didn't show this. Not
 
 **Budget used:** one card write, one card boot, one evidence boot, no boot2 write. The second card
 boot in the budget needs a new card image, so it is not a retry of an identical artifact.
+
+### Step 4, R2 (predeclared): the panel as the console
+
+**What changed since R1.**
+- **Kernel command line:** `console=tty1` after `console=ttyS0`, in
+  `gemini-a53-station-a72.fragment` (`44bc7705`), on the owner's choice. `/dev/console` is
+  the last one named, so systemd's status, the emergency and rescue shells and any prompt
+  go to the panel; kernel messages at `loglevel=4` go to both. The station's own services
+  already name `tty1` or log to the kernel log; nothing there writes to `/dev/console`.
+  The release profile keeps its own line.
+- **Card:** the builder masks `systemd-firstboot.service`, and `gemini-firstboot` asks for
+  the time zone itself through `systemd-firstboot --prompt-timezone` on `tty1`
+  (`51bb5d45`, `gemini-base` 2). Arch's own unit was the only enabled one that waited on
+  a console; the R1 image was scanned for every unit with `ConditionFirstBoot` or tty input.
+
+**Candidate.**
+- **Kernel:** Buildbox, profile `mt6797-a53-station-a72`, `BUILD_MODULES=1`, at `44bc7705`.
+  It is P5 plus the command line and `0636`, the GNSS DSP boot in the `gnss-mt6797` module,
+  which nothing loads at boot. Job `44bc7705…-mt6797-a53-station-a72-m1`, package
+  `linux-7.1.3-gemini-1c6af8ff…`, `Image.gz` `540278a7…`, config `f6b79a90…`, fetched under
+  `artifacts/buildbox/44bc7705…/`. The config differs from P5's `8b1dc525…` only in
+  `CONFIG_CMDLINE`, and the package holds every module the card's units load.
+- **Boot image:** composed by the custodian as for the current station images (a72 tree,
+  same parent, project key), then written with `flash-boot2`.
+- **Card image:** `0b2487341eb62044d4331e0a4928f94b78734773f68b3065ac76109bbc11e75e`, from
+  `build-card.sh` at `51bb5d45`, `gemini-base` `742b5531…`, 235 packages, systemd 262.1,
+  in the dev VM at `~/artifacts/arch-card-3/`.
+
+**Container boot of the card image** (`systemd-nspawn -b`, a copy, no console input, 90 s):
+`systemd-firstboot.service` is linked to `/dev/null`; `sysinit.target`, `basic.target` and
+`multi-user.target` were reached; nothing waited on the console. `gemini-firstboot` failed
+only because a container has no `tty1`. The container didn't count it as a first boot, so
+this doesn't show the first-boot path.
+
+**Hypothesis.** As R1 up to the root remount. Then:
+1. systemd's status lines appear on the panel after stage 1's handover line;
+2. `sysinit.target` completes;
+3. `gemini-firstboot` asks on the panel for the time zone, a user and password, the country
+   and a join; systemd holds its status lines while it runs, because `tty1` is the console;
+4. iwd joins as WPA2-PSK and `wlan0` gets an address;
+5. sway starts on the panel.
+
+Throughout, nothing writes the eMMC.
+
+**The unique observation.** No mainline boot has yet had the panel as `/dev/console`, and
+none has completed systemd's first boot.
+
+**Before, on the running station:** R1's steps 1 to 6, with the new card image and
+`gemian-firmware` from main. Step 7 writes the new boot image with `flash-boot2`, then
+`poweroff`; the owner selects `boot2` with the card in.
+
+**On the device, the owner:** as in R1, plus the time zone question, which shows a paged
+list of zones. Photos of the panel at the prompt, during systemd's messages, and once sway
+is up.
+
+**After, on the station:** as in R1. Also confirm on the evidence boot that the station's
+own `tty1` shell and USB SSH still work with the panel as the console, since that boot runs
+the same kernel.
+
+**Readings.**
+
+| Observation | Reading and next |
+| --- | --- |
+| No systemd lines on the panel after the handover | `/dev/console` didn't move: check the booted command line, then the journal |
+| systemd lines, then a stop before the first-boot dialogue | Another unit waits; the journal names it |
+| Dialogue garbled by status lines | systemd didn't treat `tty1` as the console: give `gemini-firstboot` `TTYPath=/dev/console` |
+| First boot done, no sway | Display or session; the journal says which unit |
+| sway up, no join | iwd on our driver; decide on a wpa_supplicant fallback from the journal |
+| Station shell or SSH broken on the evidence boot | The console move affects the station: revert `44bc7705` for the station, keep it for the card |
+| Any eMMC hash changed | Stop. Something wrote through the read-only flags |
+
+**Budget.** One `boot2` write and one card write. Up to two card boots, then one station
+boot for the evidence. No retries of an identical artifact.
+
+**Stop rules.** As R1: heat, a charging anomaly, an Oops or a watchdog loop.
 
 ## Analysis
 
