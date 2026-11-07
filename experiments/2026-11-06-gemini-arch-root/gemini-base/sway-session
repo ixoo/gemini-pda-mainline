@@ -6,6 +6,16 @@
 # config.d drop-in can't change it: this runs sway on the packaged default with only
 # that line changed, regenerated each start so sway's own updates still apply. A
 # user's own ~/.config/sway/config is used as it is.
+# Diagnostic (R5): logind has refused sway the DRM device ("Could not take device:
+# Operation not permitted") on early starts. In logind that refusal comes from a session
+# without a seat or a device on another seat, so record both, and the active VT, in the
+# journal before sway asks.
+{
+    echo "gemini-session: session=${XDG_SESSION_ID:-none} tty0-active=$(cat /sys/class/tty/tty0/active 2>&1)"
+    loginctl show-session "${XDG_SESSION_ID:-}" -p Seat -p VTNr -p TTY -p Active -p State -p Type -p Class 2>&1
+    loginctl show-seat seat0 -p ActiveSession -p CanGraphical -p CanTTY 2>&1
+    udevadm info -q property -n /dev/dri/card0 2>&1 | grep -E '^(ID_SEAT|TAGS|CURRENT_TAGS)='
+} | sed 's/^/gemini-session: /' >&2
 user=${XDG_CONFIG_HOME:-$HOME/.config}/sway/config
 [ -e "$user" ] && exec sway
 out=${XDG_RUNTIME_DIR:?}/gemini-sway.config

@@ -1,0 +1,12 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# usage: session-fallback UNIT. A failure that will be retried leaves UNIT activating
+# (auto-restart); a final one, or the start limit, leaves it failed. Only then start
+# getty@tty1, which UNIT conflicts with.
+sleep 1
+state=$(systemctl show -P ActiveState "$1")
+if [ "$state" = failed ]; then
+    echo "gemini-session: $1 failed for good; starting getty@tty1"
+    exec systemctl start getty@tty1.service
+fi
+echo "gemini-session: $1 is $state; no getty"

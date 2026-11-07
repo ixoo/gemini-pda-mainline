@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+# Started by gemini-session@'s OnFailure=: gives tty1 a getty only when the session has
+# failed for good, not between its retries.
+[Unit]
+Description=Login prompt on tty1 once the sway session for %i has given up
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/gemini/session-fallback gemini-session@%i.service

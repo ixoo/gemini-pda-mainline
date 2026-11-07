@@ -1098,6 +1098,29 @@ From the custodian's reading of the private card journal (full R5 result to foll
   - In sway, Ctrl+Alt+Tab runs `chvt 2` through one passwordless sudo rule for `wheel`.
   - `gemini-base` 11; the station needs a new boot image for its map and `display-start`.
 
+### `gemini-base` 11 on the R5 card (2026-11-07, `station-work-84`, `boot2` `a443d7d0`)
+
+The custodian installed `gemini-base` 11 on card-9 in place (`pacman -U` from the station),
+keeping the owner's setup. Private journal under `station-work-84/card-boot1/`.
+- **Display:** `drm` at 13.18 s, `display-boot` `native` at 13.52 s.
+- **Consoles:** the owner switched to `tty5` and logged in.
+- **Wi-Fi:** joined at the first try, at 15.2 s.
+- **sway:** logind refused the DRM device on all six tries, from 17.22 s to the start limit at
+  35.6 s ("Could not take device: Operation not permitted", then "Found 0 GPUs"). This is R4's
+  symptom, but no retry recovered. After boot: `seat0` can do graphics and TTYs, `card0` has the
+  `seat`, `uaccess` and `master-of-seat` tags with the user's ACL, and the `tty5` login is
+  active. `systemd-vconsole-setup` ran again from 13.28 s to 14.54 s, overlapping the display
+  handover. The cause is not known.
+- **`OnFailure=` fired on every failure,** not just the last. Each one started `getty@tty1`, and
+  the next retry stopped it: the flashing the owner saw.
+
+**Changes, `gemini-base` 12.**
+- `sway-session` logs, before sway starts: the session's seat, VT, TTY, active state, state,
+  type and class; `seat0`'s active session; the active VT; and `card0`'s `ID_SEAT` and tags.
+  In logind, this refusal comes from a session without a seat, or from a device on another seat.
+- `OnFailure=` starts `gemini-session-fallback@`, which starts the getty only when the session
+  unit is `failed`, not while it waits to retry.
+
 ## Analysis
 
 Not started.
