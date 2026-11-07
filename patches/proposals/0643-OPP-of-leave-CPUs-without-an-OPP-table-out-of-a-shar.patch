@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 20:30:00 -0500
+Subject: [PATCH] OPP: of: leave CPUs without an OPP table out of a shared one
+
+dev_pm_opp_of_get_sharing_cpus() walks every possible CPU to find the
+ones that point at the same opp-shared table, and fails with -ENOENT as
+soon as one of them has no OPP table at all. cpufreq-dt reads -ENOENT as
+"this CPU has no operating-points-v2" and falls back to a single policy
+covering every CPU.
+
+On a system where only some clusters have OPP tables that merges
+unrelated clusters into one policy. On the MT6797 Gemini PDA, CPU0-3 and
+CPU4-7 each have an opp-shared table and the two Cortex-A72 cores have
+none; policy0 came up with related_cpus 0-9 and CPU4-7 got no policy of
+their own.
+
+A CPU without an OPP table cannot share this one, so skip it. -ENOENT
+still means that the CPU being asked about has no OPP table.
+---
+ drivers/opp/of.c | 7 +------
+ 1 file changed, 1 insertion(+), 6 deletions(-)
+
+diff --git a/drivers/opp/of.c b/drivers/opp/of.c
+index f96adfd5b..5abf98948 100644
+--- a/drivers/opp/of.c
++++ b/drivers/opp/of.c
+@@ -1305,12 +1305,7 @@ int dev_pm_opp_of_get_sharing_cpus(struct device *cpu_dev,
+ 		struct device_node *tmp_np __free(device_node) =
+ 			_opp_of_get_opp_desc_node(cpu_np, 0);
+ 
+-		if (!tmp_np) {
+-			pr_err("%pOF: Couldn't find opp node\n", cpu_np);
+-			return -ENOENT;
+-		}
+-
+-		/* CPUs are sharing opp node */
++		/* A CPU without an OPP node shares none; leave it out. */
+ 		if (np == tmp_np)
+ 			cpumask_set_cpu(cpu, cpumask);
+ 	}
+-- 
+2.43.0
+

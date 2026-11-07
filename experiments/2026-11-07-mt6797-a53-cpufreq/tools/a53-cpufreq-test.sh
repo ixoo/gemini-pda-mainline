@@ -116,6 +116,10 @@ step() {
 	done
 }
 
+# Screen blanking takes CPU1-7 offline; every stage needs CPU0-7.
+online=$(cat /sys/devices/system/cpu/online)
+[ "$online" = 0-7 ] || stop "CPUs online $online, not 0-7 (disable console blanking)"
+
 case "${1:-}" in
 t0)
 	uname -r
@@ -152,6 +156,10 @@ t3)
 			echo "policy$p $f $(cat "$d/$f")"
 		done
 	done
+	[ "$(xargs < "$(policy 0)/related_cpus")" = "0 1 2 3" ] ||
+		stop "policy0 is not CPU0-3"
+	[ "$(xargs < "$(policy 4)/related_cpus")" = "4 5 6 7" ] ||
+		stop "policy4 is not CPU4-7"
 	regs
 	measure 0 897000
 	measure 4 1209000

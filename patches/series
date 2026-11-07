@@ -1220,3 +1220,4 @@ proposals/0639-dt-bindings-clock-mediatek-add-the-MT6797-A53-cluste.patch
 proposals/0640-clk-mediatek-add-the-MT6797-A53-cluster-PLLs.patch
 proposals/0641-cpufreq-dt-leave-out-CPUs-that-have-no-OPPs.patch
 proposals/0642-arm64-dts-mediatek-gemini-station-scale-the-A53-clus.patch
+proposals/0643-OPP-of-leave-CPUs-without-an-OPP-table-out-of-a-shar.patch

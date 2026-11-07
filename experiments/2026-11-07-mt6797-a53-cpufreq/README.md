@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-a53-cpufreq` |
-| Status | `in progress`: attempt A1 stopped at t2 (sync DCM refusal, no writes); driver revised for A2 |
+| Status | `in progress`: A1 stopped at t2 (sync DCM), A2 at t3 (one policy for CPU0-9); no clock changed; A3 needs a new image |
 | Subsystem | MT6797 MCUMIXED PLLs and MCU FHCTL, cpufreq-dt, CPU cooling |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -76,8 +76,11 @@ a cluster faster than the firmware did. The LL cluster never needs one.
   boot image station-work-85 (boot2 `00bc384f…`), release
   `7.1.3-gemini-a53-station`.
 - A2 candidate: the same running kernel and boot image; only
-  `clk-mt6797-mcusys.ko` is rebuilt from the revised patch `0640` (see
-  [attempt A2](#attempt-a2-plan)).
+  `clk-mt6797-mcusys.ko` is rebuilt from the revised patch `0640`
+  (`8163e54101a9aec185dbb14b0446db5835766befb99b65d61127130a96fe5f1d`, Buildbox
+  job `708f75adb6a91b715c31477101ae0d2cd61bd676-mt6797-a53-station-a72-m1`).
+- A3 candidate: a new boot image carrying patch `0643` in the built-in OPP
+  core (see [attempt A3](#attempt-a3-plan)).
 - Vendor source: Gemian Linux 3.18 [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467),
   `drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c` (`set_cur_freq`,
   `adjust_posdiv`, `adjust_clkdiv`, `set_cur_volt_extbuck`), `mt_dcm.c`
@@ -93,6 +96,7 @@ a cluster faster than the firmware did. The LL cluster never needs one.
 | [`0640`](../../patches/proposals/0640-clk-mediatek-add-the-MT6797-A53-cluster-PLLs.patch) | `clk-mt6797-mcusys` (`=m`): LL and L PLLs through MCU FHCTL, cluster divider, MAINPLL-bridged post-divider, DVFSP semaphore 3, debugfs `registers` |
 | [`0641`](../../patches/proposals/0641-cpufreq-dt-leave-out-CPUs-that-have-no-OPPs.patch) | cpufreq-dt skips a present CPU with no OPP table and no OPPs instead of failing the whole probe (CPU8-9) |
 | [`0642`](../../patches/proposals/0642-arm64-dts-mediatek-gemini-station-scale-the-A53-clus.patch) | Station DT: clock node, two OPP tables, CPU clocks, `#cooling-cells`, cooling maps on `gpu-passive` (58 °C) |
+| [`0643`](../../patches/proposals/0643-OPP-of-leave-CPUs-without-an-OPP-table-out-of-a-shar.patch) | OPP core (built in): a CPU without an OPP table no longer fails the opp-shared scan, which made cpufreq-dt put every CPU in one policy |
 
 The fragment sets `CPU_FREQ=y` with schedutil, performance, powersave and
 userspace governors, statistics, `CPUFREQ_DT=m`, `CPUFREQ_DT_PLATDEV=y` and
@@ -185,6 +189,8 @@ items 1-5 only.
 Stop the test at the first of these, preserve `dmesg` and the stage output,
 and do not retry:
 
+- CPUs online other than `0-7` (checked at the start of every stage);
+- a policy whose `related_cpus` is not exactly CPU0-3 or CPU4-7 (t3);
 - a module refuses to load or the clock driver does not bind, or any line
   with `did not hold`, `not granted`, `not released`, `stopped at PCW`,
   `behind the driver`, `refusing`, `failed`, `error`, an Oops, a `BUG` or a
@@ -205,12 +211,15 @@ Station: the new boot2 image from this commit, written with `flash-boot2`, the
 A72 module not loaded (no secure MCUMIXED writer), stable power. Copy
 `cpu-mhz` (static build of [`tools/cpu-mhz.c`](tools/cpu-mhz.c)),
 `clk-mt6797-mcusys.ko`, `cpufreq-dt.ko` and the script into one directory.
+Turn console blanking off first: blanking makes `backlight-policy` take CPU1-7
+offline. On the station, `printf '\033[9;0]\033[13]' > /dev/tty1` and SIGUSR1
+to `backlight-policy` brought them back (A2).
 
 | Stage | Expected observation | If not |
 | --- | --- | --- |
 | t0 read-only | Boot ID new; `CONFIG_CPU_FREQ` core present, no policies; `0x10220744` decoded, each enabled divider at most 3 (CPU0-3) or 4 (CPU4-7); CPU0/3 about 897 MHz, CPU4/7 about 1274 MHz; `mainpll_hz` 1092000000; hash reference | Divider above that: stop. Clock not as recorded: stop |
 | t2 load clock driver | Driver bound to `1001a000.clock-controller`; `SYNC_DCM_CONFIG=0x00070707, floors 210000000 and 210000000 Hz`; `PLL0 at 897000000 Hz (PCW 0x114000 /2 /1)`, `PLL1 at 1274000000 Hz (PCW 0x0c4000 /1 /1)`; `registers` shows `hp_en=0`, `clk_con` bits 0-1 set, `sync_dcm=0x00070707`, `faulted=0` | Not bound, no debugfs node, probe refusal or fault: stop |
-| t3 load cpufreq-dt | policy0 `0-3`, policy4 `4-7`, governor performance, tables as above; one change: L to 1209 MHz (CON1 PCW `0xba000`), measured; `cpu8 has no OPPs` line; two `cpufreq-cpu*` cooling devices | No policy, wrong clock or hash: stop |
+| t3 load cpufreq-dt | policy0 `related_cpus` exactly `0 1 2 3`, policy4 `4 5 6 7`, governor performance, tables as above; one change: L to 1209 MHz (CON1 PCW `0xba000`), measured; `cpu8 has no OPPs` line; two `cpufreq-cpu*` cooling devices | No policy, wrong clock or hash: stop |
 | t4 LL sweep | Every point measured within 5 %, every hash equal, `ckdiv` field 8/10/11 as listed, post-divider stays /2 | Stop |
 | t5a L 1209/1092 | As t4, post-divider stays /1 | Stop |
 | t5b L below 1092 (items 6-8) | As t4; post-divider /2 from 962 MHz down; `muxsel` ends `…01……` for L; `clk_misc_cfg_0` bits 5:4 end 0 | Stop |
@@ -251,6 +260,33 @@ custodian stopped there. No register write happened: the check runs before
 the semaphore, FHCTL or any MCUMIXED access. After `rmmod` (rc 0) the word
 still read `0x00070707`. cpufreq-dt was never loaded. The full kernel log is
 kept privately.
+
+### Attempt A2 (2026-11-07)
+
+Same boot as A1 (`64401d75-9757-4793-8e30-d14960004264`). The custodian saved
+the A1 log privately and cleared the kernel log. Staged hashes matched the
+request: script `3c7f6eb4…`, `clk-mt6797-mcusys.ko` `8163e541…`,
+`cpufreq-dt.ko` `2c451b82…`, `cpu-mhz` `4168cfe5…` (A1 had used the
+custodian's own build of the same source, `89c0f11e…`, with the same hash
+reference).
+
+The first t0 stopped in `sched_setaffinity` with an empty CPU4 hash: only
+CPU0 was online. The console had blanked at 237 s and `backlight-policy` had
+taken CPU1-7 offline (`psci: CPU1..7 killed`). The custodian turned blanking
+off and signalled `backlight-policy`; CPU0-7 came back and t0 was run again.
+
+| Stage | Result |
+| --- | --- |
+| t0 | PASS. Same three words as A1; `sync_dcm` both clusters enabled, divider 3, floor 210 MHz; `mainpll_hz` 1092000000; CPU0/3/4/7 at 897/894/1273/1273 MHz; hash reference `5abed55b4a4c85e5`, CPU4 equal; 27.5 °C |
+| t2 | PASS. `SYNC_DCM_CONFIG=0x00070707, floors 210000000 and 210000000 Hz`; PLL0 897000000 Hz (PCW `0x114000` /2 /1), PLL1 1274000000 Hz (`0x0c4000` /1 /1); `muxsel=0x54`, `ckdiv=0`, `hp_en=0`, `clk_con=0x3`, `clk_misc_cfg_0=0xffff0000`, con1 `0xc1114000` and `0x400c4000`, `fh_cfg=0`, `min_rate=210000000`, `changes=0`, `faulted=0` |
+| t3 | STOP `no policy4`. One policy: policy0 `related_cpus` 0-9 (affected 0-7), performance, 221000-897000 kHz, latency 100000 ns, cur 897000; `cpu4` and `cpu8` link to policy0. Log: `/cpus/cpu@200: Couldn't find opp node`, `debugfs: 'cpu1' already exists in 'opp'` (and cpu2, cpu3) |
+
+After the stop every clock still read its boot value (CPU0/3/4/7 at
+896/897/1272/1273 MHz, CPU4 hash equal, both PLLs at boot rate, `changes=0`,
+`faulted=0`). cpufreq-dt was unloaded (rc 0); the clock driver stayed bound.
+No clock changed in A2: with the performance governor and policy0's table
+topping out at the 897 MHz boot rate, the one change requested was a no-op.
+The full kernel log is kept privately.
 
 ## Analysis
 
@@ -299,9 +335,48 @@ the pipeline's subshell. All three are fixed; `check_log` now also stops on
 - Decision: pass, then switch the default governor to schedutil and record
   support; a stop decides from its stage which mechanism needs work.
 
+### A2
+
+The clock driver bound and touched nothing beyond its probe: the sync DCM
+floor and the PLL readings are exactly as the A1 analysis predicted.
+
+The t3 stop is an OPP core behaviour. `dev_pm_opp_of_get_sharing_cpus()`
+walks every possible CPU to find the ones that share an opp-shared table and
+returns `-ENOENT` at the first CPU with no OPP table at all, here the A72 at
+`cpu@200` (`Couldn't find opp node`). cpufreq-dt reads `-ENOENT` as "no
+operating-points-v2" and falls back to marking every CPU as sharing
+(`cpumask_setall`), so CPU0-9 shared policy0 and CPU0's table. The
+`debugfs: 'cpu1' already exists` lines come from the same fallback adding
+tables twice. Patch `0641` did not cover this: it only stops cpufreq-dt
+failing when a CPU without OPPs is the one being initialised.
+
+Patch [`0643`](../../patches/proposals/0643-OPP-of-leave-CPUs-without-an-OPP-table-out-of-a-shar.patch)
+makes the scan skip a CPU with no OPP table, which cannot share the table
+being asked about. `-ENOENT` still means the CPU being asked about has none.
+The OPP core is built in (`CONFIG_PM_OPP=y`), so A3 needs a new image.
+Putting a dummy OPP table on the A72s in the DT would also need a new image,
+and would give cpufreq-dt a policy with no clock.
+
+The stage scripts gained two checks from A2: CPU0-7 online at the start of
+every stage (the first A2 t0 failed in `sched_setaffinity` because blanking
+had taken CPU1-7 offline), and t3 now checks each policy's `related_cpus`.
+
+### Attempt A3 plan
+
+- Candidate: a new boot2 image from the commit that adds `0643`, written
+  with `flash-boot2` and selected by the owner; same profile, modules from the
+  same package.
+- Writes: boot2 (standing approval), then the same register list as A1,
+  items 1-5, and items 6-8 for t5b only. Sync DCM is read, never written.
+- Stages: console blanking off, then t0 to t8.
+- Unique observation: two policies, CPU0-3 and CPU4-7, then every point
+  measured within 5 % with equal hashes.
+- Decision: pass, then switch the default governor to schedutil and record
+  support; a stop decides from its stage which mechanism needs work.
+
 ## Conclusion
 
-Pending A2.
+Pending A3.
 
 ## Follow-up
 
