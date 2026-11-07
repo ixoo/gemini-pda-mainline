@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped; the owner chose to continue; R3 got iwd up but no join (the driver refuses iwd's key order), no bar, and no Gemini keymap in sway |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped; the owner chose to continue; R3 got iwd up but no join (the driver refuses iwd's key order), no bar, and no Gemini keymap in sway; R4 joined with iwd, but the setup console's keymap differed from sway's |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 to 2026-11-07 |
@@ -930,6 +930,29 @@ showing the bar and the text size.
 the evidence. No retries of an identical artifact.
 
 **Stop rules.** As R1.
+
+### R4 result (2026-11-07): Wi-Fi joins with iwd; the setup keymap differs from sway's
+
+Run by the custodian, with the owner at the device. Boot image `station-work-81` (boot2
+`4ef93f07…`); evidence boot `7f8bde8f`, `arch=kept-ram-root`, pstore empty. Private evidence (journal,
+`/var/lib/gemini`, logs) is kept outside Git.
+
+**Observed.**
+- **Wi-Fi works:** the owner joined with `iwctl` from a sway terminal: "network is up now". So iwd
+  with 0637 joins on the card root, and networkd addressed the renamed interface.
+- **Keymap during setup:** "the keymap during the setup isn't correct and that's why my wifi password
+  is failing". The card's `KEYMAP=us` had replaced the Gemini console map stage 1 loads, so the
+  first-boot dialogue had no Fn layer. Fixed after the run (`70f0177b`, `KEYMAP=@kernel`).
+- **Passwords:** the user's password was typed under that plain US map; under the Gemini layout
+  chosen for sway, `sudo` then failed. The owner reset it from the station: the card mounted
+  read-write there, `passwd` in a chroot, typed by the owner on the station console; nothing else on
+  the card changed. Even with `70f0177b`, the console has the Gemini US map while sway has the chosen
+  layout, so a password can still type differently in the two unless the layout is US.
+- **The owner:** "do not turn sshd up by default on the card". It stays masked, with no key.
+- The bar and the scale weren't reported yet.
+
+**eMMC.** `boot`, `lk`, `nvram` and `proinfo` unchanged; `boot2` changed by the intended write;
+`nvdata` changed (`42c28749…` → `97653c9b…`), mount count 11 → 12, the open finding above.
 
 ## Analysis
 
