@@ -28,6 +28,9 @@ Status: plan, updated 2026-11-01.
   `wifi-up.sh` with wpa_supplicant then joined in its usual order, with no hold, a lease and 3 of 3. One join
   each. Two `cipher-mismatch` refusals after the iwd join didn't affect the ping. iwd renames the interface
   (`wlan3` here), and `wifi-up.sh` needed `DOWN=1` and a reload after iwd had used the phy.
+- A join that starts late in the 10 s after a scan was refused at authentication, which needs 850 ms left,
+  and the lifetime ended in a firmware restart (`-95`, branch 1). iwd hit it on the Arch card's first join,
+  9.2 s after its scan (custodian, R5). 0638 gives each join its own 10 s. Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
   firmware BSS slot is never reused. Fixing it means re-arming after a close, which needs device tests. Not started.

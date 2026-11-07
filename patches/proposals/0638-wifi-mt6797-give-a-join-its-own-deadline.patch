@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sat, 7 Nov 2026 14:45:38 -0500
+Subject: [PATCH] wifi: mt6797: give a join its own deadline
+
+A scan leaves the driver ready to join for 10 s, and a join had only what was
+left of that. iwd joined 9.2 s after its scan, so authentication was refused
+for lack of its 850 ms margin, which ended the lifetime in a firmware restart
+with -EOPNOTSUPP. Give the join a full 10 s from the moment its peer is added.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index cad88b7b5..5f443c04e 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -3113,6 +3113,10 @@ int mt6797_mac_join_add_peer(struct mt6797_mac *mac,
+ 	mac->join_peer_basic_rates = basic;
+ 	/* Reserve before any PIO: failure never authorizes a second peer attempt. */
+ 	mac->join_peer_used = true;
++	/* The join gets its own 10 s: the scan's may be nearly spent (iwd joined
++	 * 9.2 s after its scan), and authentication needs 850 ms of it left.
++	 */
++	mac->join_deadline = ktime_get_ns() + 10 * NSEC_PER_SEC;
+ 	mac->join_eapol_seen = 0;
+ 	mac->join_eapol_trace = 0;
+ 	mac->join_eapol_refused = 0;
+-- 
+2.43.0
+

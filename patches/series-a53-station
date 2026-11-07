@@ -646,6 +646,7 @@ proposals/0471-wifi-mt6797-send-data-at-the-rate-control-s-choice-b.patch
 proposals/0472-wifi-mt6797-ignore-a-repeated-answer-to-authenticati.patch
 proposals/0473-wifi-mt6797-keep-a-weak-link-until-its-failures-have.patch
 proposals/0637-wifi-mt6797-hold-a-group-key-given-before-the-pairwi.patch
+proposals/0638-wifi-mt6797-give-a-join-its-own-deadline.patch
 proposals/0474-Input-novatek-nt36xxx-follow-the-vendor-s-bring-up-s.patch
 proposals/0475-arm64-dts-mediatek-gemini-station-describe-the-touch.patch
 proposals/0476-pmdomain-mediatek-describe-the-MT6797-MFG-domains.patch
