@@ -954,6 +954,66 @@ Run by the custodian, with the owner at the device. Boot image `station-work-81`
 **eMMC.** `boot`, `lk`, `nvram` and `proinfo` unchanged; `boot2` changed by the intended write;
 `nvdata` changed (`42c28749…` → `97653c9b…`), mount count 11 → 12, the open finding above.
 
+**Later in R4.**
+- The owner: "yes the bar was there, the scale is a bit too small". So `waybar-bar` fixed the bar.
+- A second card boot, after first boot: Wi-Fi joined by itself (iwd connected at 13.25 s, a lease
+  at 13.34 s), so 0637 and `Type=wlan` hold across boots. sway did not start: at 14 s logind refused
+  it `/dev/dri/card0` ("Could not take device: Operation not permitted"), 3.4 s after the device
+  appeared, and the session exited for good. In first boot the same session worked a few minutes
+  in. Why logind refused isn't known from the journal.
+- The text console still had `KEYMAP=us` on that image, so the password the owner had reset under
+  the Gemini map failed there; the custodian had them set a letters-and-digits one.
+
+### Step 4, R5 (predeclared): one keymap from setup to sway
+
+**What changed since R4** (card only; `station-work-81` stays on `boot2`).
+- **Console keymaps for every layout** (`75e82eef`, owner): each Gemian layout is converted to a
+  console keymap with the same composition as sway's, by `ckbcomp` from Debian's console-setup 1.216,
+  fetched pinned and used at build time only (GPL-2.0-or-later, not installed). The build parses each
+  map with `loadkeys -u -b` and fails on a bad one. First boot asks the layout first, loads it on the
+  console at once, and keeps it in `vconsole.conf` and for sway. Before that, `KEYMAP=@kernel` keeps
+  stage 1's Gemini map (`70f0177b`).
+- **Scale 2.5** (owner) and **the session retried** after 3 s if it fails, at most five times a
+  minute (`e3fbca2a`).
+
+**Candidate.** No new kernel or boot image: `station-work-81` (R4's package `b27d2b9f…`) stays.
+Card image `87402f22dcaad8f0f6c3fc40bb7a2f8dec1f1f15b70d5ae8b468143b6c730e25`, from `build-card.sh`
+at `e3fbca2a`, `gemini-base` 9 (`02bf9dd3…`), 315 packages, in the dev VM at `~/artifacts/arch-card-8/`.
+Container boot as before; the 24 console maps are installed, and `loadkeys` finds them by name.
+
+**Hypothesis.**
+1. First boot asks the layout first; from then on the console types with it, so the passphrase and
+   the user's password type the same in setup, on the text console and in sway.
+2. sway comes up at scale 2.5 on first boot and, on a second boot, either at once or after a retry.
+
+**The unique observation.** No boot has yet used one Gemini layout across setup, console and sway.
+
+**Before, on the running station:** R1's steps 1 to 6 with this card image and `gemian-firmware`
+from main; no `flash-boot2`, then `poweroff`.
+
+**On the device, the owner:** first boot as in R4, choosing their layout, with a password that uses
+Fn symbols; the Wi-Fi join in first boot. In sway: `sudo true` with that password. Then `sudo
+poweroff`, boot the card again, log in on `tty2` with the same password, and see whether sway comes
+up on `tty1`.
+
+**After, on the station:** as in R4.
+
+**Readings.**
+
+| Observation | Reading and next |
+| --- | --- |
+| Setup still types differently from sway | the console map didn't load; the journal and `/etc/vconsole.conf` |
+| Password works in sway but not on `tty2` | `systemd-vconsole-setup` didn't apply `gemini-<layout>` |
+| Second boot: sway fails five times | the refusal is not a short race; capture `loginctl session-status` |
+| Second boot: sway after one or more retries | the race is real; look for its cause, keep the retry meanwhile |
+| `nvdata` changed | the open finding; read the mount count |
+| Any other eMMC hash changed | Stop |
+
+**Budget.** One card write, no `boot2` write. Up to two card boots, then one station boot for the
+evidence.
+
+**Stop rules.** As R1.
+
 ## Analysis
 
 Not started.
