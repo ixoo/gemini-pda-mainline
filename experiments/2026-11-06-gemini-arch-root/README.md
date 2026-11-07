@@ -1121,6 +1121,31 @@ keeping the owner's setup. Private journal under `station-work-84/card-boot1/`.
 - `OnFailure=` starts `gemini-session-fallback@`, which starts the getty only when the session
   unit is `failed`, not while it waits to retry.
 
+### `gemini-base` 12 on the R5 card (2026-11-07, boot `93343f9d`): the cause of sway's refusal
+
+- **Fallback:** the retries logged "no getty", and `tty1` got one login prompt at 36.4 s, after
+  the start limit. No more flashing.
+- **Diagnostic:** every try had a sound session (`seat0`, VT 1 active, the session active,
+  `card0` tagged for the seat). So the seat checks in logind's `TakeDevice` were not the source
+  of EPERM. The only other EPERM on that path is from `open()` itself, and a failed
+  `drmSetMaster` gives EBUSY or EACCES instead.
+- **Cause (from the journal, and systemd's units and source):**
+  - `systemd-logind.service` has `DeviceAllow=char-drm rw`, a device cgroup filter that systemd
+    resolves through `/proc/devices` when it sets the filter. logind is ordered after
+    `modprobe@drm` for that reason.
+  - On this boot, `modprobe@drm` finished at 7.344 s, in parallel with `gemini-modules.service`,
+    whose `depmod` finished at 7.345 s. With no `modules.dep`, `modprobe -q drm` loaded nothing.
+  - logind started at 12.64 s, and `drm` registered at 12.82 s, when `display-start` loaded it.
+    So logind's filter had no `drm` entry, and its own `open()` of `/dev/dri/card0` was refused.
+  - Restarts that worked came after something re-applied logind's cgroup settings: first boot's
+    `systemctl enable` (a daemon reload), a package install, or starting another system service.
+    That last one is an inference, from systemd re-applying a slice's member units when one
+    starts.
+  - On card boot 2, `modprobe@drm` won the race and loaded `drm` at 7.0 s, so logind could open
+    the device. There, `display-start` stopped instead (fixed in `gemini-base` 11).
+- **Fix, `gemini-base` 13:** a drop-in orders `modprobe@drm` after `gemini-modules.service`, so
+  `drm` is registered before logind starts. Not yet booted.
+
 ## Analysis
 
 Not started.
