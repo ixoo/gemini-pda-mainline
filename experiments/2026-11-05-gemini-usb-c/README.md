@@ -888,6 +888,41 @@ only `fusb301.ko`, so it can be tested by reloading that module, with no new
 image. Testing it needs a sink on the left port, so the owner at the device
 again; it is worth running together with the next boost test.
 
+### The left chip kept a source mode across a power-off (2026-11-06)
+
+Reported by the custodian, read by the owner by hand on `station-work-71`,
+boot `8cd1ffdc`, with no Type-C driver in the image and no USB link on the
+left port:
+
+| Register | Value | Meaning |
+| --- | --- | --- |
+| Modes `0x02` | `0x01` | source only |
+| Control `0x03` | `0x03` | |
+| Status `0x11` | `0x21` | attached, CC2, no VBUSOK |
+| Type `0x12` | `0x10` | sink attached |
+
+The laptop's dual-role port gave way to sink, so neither end supplied VBUS
+(VBUS 2.6 V, no power source, gadget not attached). With the owner's approval
+the owner wrote `0x04` to the Modes register and replugged: the link came back,
+Modes `0x04`, Status `0x2f` (VBUSOK, attached), Type `0x08` (source).
+
+Inference, not tested: the chip stays powered from the battery across a
+power-off and keeps its mode. Who wrote `0x01` isn't established. It is the
+value Gemian's driver writes; U4's last write through the driver was `sink`.
+It also conflicts with the station reading above, where both chips read `0x04`
+at a mainline boot, so what resets the chip is open.
+
+Consequences:
+
+- [0624](../../patches/proposals/0624-usb-typec-fusb301-leave-the-controller-a-sink-on-rem.patch)
+  (compile-checked, not run) makes `fusb301` put the chip back in sink on
+  `remove` and on `shutdown`, after ending the host role. The probe already
+  writes the mode it wants.
+- An image without the driver still depends on what the chip was left in.
+  Any test that changes the mode, by the driver or by hand, ends by writing
+  `0x04`. An image that relies on the left port for SSH and charging needs
+  either `fusb301` loaded or a station init that writes sink; not done.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 

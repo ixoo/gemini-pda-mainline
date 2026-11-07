@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 19:17:52 -0500
+Subject: [PATCH] usb: typec: fusb301: leave the controller a sink on remove
+ and shutdown
+
+On a Gemini PDA the controller stays powered across a power-off and
+keeps the mode it was last given. After a test left the left port in
+source-only mode, a later boot without this driver had no USB link and
+no charging on that port: the laptop at the other end gave way to sink,
+so neither end supplied VBUS.
+
+The probe already writes the mode it wants. On remove and shutdown,
+after ending the host role, put the controller back in its reset mode,
+sink only, so that whatever runs next finds the default.
+---
+ drivers/usb/typec/fusb301.c | 28 +++++++++++++++++++++++++---
+ 1 file changed, 25 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/usb/typec/fusb301.c b/drivers/usb/typec/fusb301.c
+index 19e68e22b..53bb09e46 100644
+--- a/drivers/usb/typec/fusb301.c
++++ b/drivers/usb/typec/fusb301.c
+@@ -505,17 +505,38 @@ static int fusb301_probe(struct i2c_client *client)
+ 	return ret;
+ }
+ 
+-static void fusb301_remove(struct i2c_client *client)
++/*
++ * The controller stays powered across a power-off and keeps its mode, and
++ * whatever runs next may rely on the reset default: stop the updates, end
++ * the host role and leave the controller a sink.
++ */
++static void fusb301_stop(struct fusb301 *fusb)
+ {
+-	struct fusb301 *fusb = i2c_get_clientdata(client);
++	int ret;
+ 
+-	/* Nothing may update the port once it goes. */
+ 	if (fusb->irq > 0)
+ 		disable_irq(fusb->irq);
+ 	else
+ 		cancel_delayed_work_sync(&fusb->poll);
+ 
+ 	fusb301_set_host(fusb, false);
++
++	ret = regmap_update_bits(fusb->regmap, FUSB301_REG_MODE,
++				 FUSB301_MODE_MASK, FUSB301_MODE_SINK);
++	if (ret)
++		dev_warn(fusb->dev, "failed to restore the sink mode: %d\n", ret);
++}
++
++static void fusb301_shutdown(struct i2c_client *client)
++{
++	fusb301_stop(i2c_get_clientdata(client));
++}
++
++static void fusb301_remove(struct i2c_client *client)
++{
++	struct fusb301 *fusb = i2c_get_clientdata(client);
++
++	fusb301_stop(fusb);
+ 	fusb301_unregister_partner(fusb);
+ 	typec_unregister_port(fusb->port);
+ 	usb_role_switch_put(fusb->role_sw);
+@@ -538,6 +559,7 @@ MODULE_DEVICE_TABLE(i2c, fusb301_i2c_id);
+ static struct i2c_driver fusb301_driver = {
+ 	.probe = fusb301_probe,
+ 	.remove = fusb301_remove,
++	.shutdown = fusb301_shutdown,
+ 	.driver = {
+ 		.name = "fusb301",
+ 		.of_match_table = fusb301_of_match,
+-- 
+2.43.0
+

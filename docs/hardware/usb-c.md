@@ -113,6 +113,19 @@ right port does not charge the device (user guide).
   does not carry over (**observed**). On that boot the left chip saw the
   laptop's C-to-C link as a 3 A source on CC2 with VBUS present
   (**observed**).
+- **A mode can survive a power-off** (**observed**, boot `8cd1ffdc`, no
+  Type-C driver loaded): the left chip read mode `0x01` (source only), status
+  `0x21` and type `0x10` (a sink attached). The laptop's dual-role port had
+  given way to sink, so neither end supplied VBUS: VBUS 2.6 V, no USB link and
+  no charging on the left port. Writing `0x04` and replugging brought the link
+  back (status `0x2f`, type `0x08`). **Inference:** the chip stays powered from
+  the battery across a power-off. Who wrote `0x01` isn't established: it is
+  Gemian's value, and the last mainline write before that boot was `sink`.
+  This conflicts with the earlier boot where both chips read `0x04`; what
+  resets the chip (a long power loss, Gemian's shutdown) is open. So nothing
+  may rely on the reset default: the driver writes its mode at probe and,
+  with 0624, restores sink on remove and shutdown, and a test that changes
+  the mode by hand restores `0x04` before it ends.
 - The `SS_SW` output switches a SuperSpeed mux by itself, without software
   (datasheet). No Gemini source says whether either port's `SS_SW` pin is wired.
 - **No USB Power Delivery** on either port. The FUSB301 has no PD engine; the
