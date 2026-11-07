@@ -867,6 +867,70 @@ station-to-station or R3 windows, none in another. Still open and unexplained.
 **Next.** The driver's key order (Wi-Fi driver session), the bar (investigate why waybar did not
 show), and the Gemian layouts with a layout question at first boot.
 
+### Step 4, R4 (predeclared): join with iwd, the bar, and the Gemini keyboard
+
+**What changed since R3.**
+- **Wi-Fi driver:** patch 0637 (`5e4cffbc`) holds a group key given before the pairwise key. On
+  the station the card's own iwd 3.12 then joined the owner's network, got a lease and pinged the
+  gateway five times out of five, with no restart; wpa_supplicant still joins. iwd recreates the
+  interface (it came up as `wlan3`), so the card matches it by type: `50-gemini-wlan.network` has
+  `Type=wlan`, and first boot asks iwd for the device name (`e63e084b`).
+- **Keyboard** (`5993fe1c`, owner): Gemian's Gemini layouts, `planet_vndr/gemini` from Gemian's public
+  `xkeyboard-config` at `64c6c0e4`, pinned by SHA-256 (`56baafdd…`) and fetched at package time, with
+  xkeyboard-config's licence. One complete keymap per layout, composed as Gemian's `planetgemini`
+  rules did; all 24 compile with the card's libxkbcommon. First boot asks for the layout. Fn is the
+  symbol layer, so sway's Mod is Ctrl+Alt, set by a session wrapper on Arch's default config;
+  floating windows drag with Alt. A headless sway read the result with no config error and 53
+  Ctrl+Alt bindings.
+- **Bar:** sway's `swaybar_command` is now one program, `waybar-bar`, which runs waybar with its
+  options. With the options on the sway line, no bar appeared in R3.
+
+**Candidate.**
+- **Kernel:** Buildbox job `e63e084b…-mt6797-a53-station-a72-m1`, package
+  `linux-7.1.3-gemini-b27d2b9f…`, fetched under `artifacts/buildbox/e63e084b…/`. `Image.gz`
+  `9858b743…` and config `de3f80be…` are R3's; only `mac.ko` differs. The card takes its modules
+  from the station's RAM root at handover, so the boot image changes.
+- **Boot image:** composed by the custodian as for `station-work-80`, written with `flash-boot2`.
+- **Card image:** `f1fcd84233ba9d24bb017f633b22fa1fa7e1d349cac2af7299c7a0182450c1af`, from
+  `build-card.sh` at `e63e084b`, `gemini-base` 6 (`594278b3…`), 315 packages, in the dev VM at
+  `~/artifacts/arch-card-6/`. Container boot as before: `sysinit.target` and `multi-user.target`
+  reached, nothing waited on the console, and the layouts, wrappers and `Type=wlan` are in place.
+
+**Hypothesis.** As R3 to the country. Then:
+1. first boot lists the layouts, and the chosen one is in sway, with Fn typing the printed symbols;
+2. iwd joins as WPA2-PSK, networkd gives the interface an address, timesyncd sets the clock, and
+   `sudo pacman -Sy` works;
+3. sway shows waybar as a column on the left, at scale 2; Ctrl+Alt+Enter opens a terminal.
+
+**The unique observation.** No mainline boot has yet joined with iwd, shown the Gemini layouts in
+a graphical session, or run waybar.
+
+**Before, on the running station:** R1's steps 1 to 6 with this card image and `gemian-firmware`
+from main, then step 7 with `flash-boot2` and `poweroff`. The six eMMC hashes as before; no copy of
+`nvdata` (owner).
+
+**On the device, the owner:** as in R3, choosing their layout at first boot. Then in a terminal
+(Ctrl+Alt+Enter): type a few Fn symbols, run `date` and `sudo pacman -Sy`. Photos once sway is up,
+showing the bar and the text size.
+
+**After, on the station:** as in R3.
+
+**Readings.**
+
+| Observation | Reading and next |
+| --- | --- |
+| No join | iwd and driver lines in the journal; compare with the station test of 0637 |
+| Joined, no address | networkd didn't match the renamed interface; check `Type=wlan` |
+| Still no bar | waybar's own errors in the user journal; run `waybar-bar` from a terminal |
+| Wrong symbols, or Ctrl+Alt bindings missing | the keymap file or the session wrapper; `swaymsg -t get_inputs` and the generated config in `/run/user/` |
+| `nvdata` hash changed | expected so far: the open finding above; read the mount count as in R3 |
+| Any other eMMC hash changed | Stop |
+
+**Budget.** One `boot2` write and one card write. Up to two card boots, then one station boot for
+the evidence. No retries of an identical artifact.
+
+**Stop rules.** As R1.
+
 ## Analysis
 
 Not started.
