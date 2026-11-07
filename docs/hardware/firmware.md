@@ -121,6 +121,27 @@ The GPT partition named `system` on this unit holds an Android boot image, not t
 - **Not covered:** a device with no Gemian, another partition layout, or a different vendor set. Those
   are untested, and a mismatch stops the radio. Stock Android's layout hasn't been read.
 
+### The set the card root carries
+
+A persistent root keeps its firmware on disk. The
+[Arch card root](../../experiments/2026-11-06-gemini-arch-root/README.md)'s
+[`gemian-firmware`](../../experiments/2026-11-06-gemini-arch-root/gemian-firmware) copies six files
+into its `/usr/lib/firmware/mediatek/mt6797/`, from Gemian's `system.img` (or a directory holding its
+`vendor/`), the same read-only way `firmware-get` does, checking each SHA-256. The three files above
+come with:
+
+| File | From (Gemian) | Bytes | SHA-256 | User |
+| --- | --- | --- | --- | --- |
+| `mt6631_fm_v1_patch.bin` | `/vendor/firmware/mt6631_fm_v1_patch.bin` | 1,028 | `ba35c74d26660729caf83b41a567e700f633b6c99384dfa6cbb3c17ceb767e26` | FM driver, by name |
+| `mt6631_fm_v1_coeff.bin` | `/vendor/firmware/mt6631_fm_v1_coeff.bin` | 1,092 | `d32f4a16b35f950ed1a57f2ae88f77ac4b5674d5c4210b65f6fe7912901fd8db` | FM driver, by name |
+| `gnss_dsp_6797.bin` | bytes 2,008,669 to 2,070,108 of `/vendor/lib/libmnl.so` | 61,440 | `898a5cca5aa3011d119a7c92a1c74720753a2b1c03e253cfd88bad4f8966f603` | GNSS host |
+
+The GNSS DSP image has no file of its own on Gemian: `libmnl.so` (SHA-256 `a2e3fe69…330f`) carries
+it, and it is what crosses the wire at each DSP boot
+([stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)). The name is this
+project's. No driver requests it yet; today's host reads it at an offset, which is 0 in this file.
+Like the rest, the hashes are of one unit's files, and none of the files is redistributed.
+
 The connectivity loader first received normal `request_firmware` failures and
 then Android `ueventd` supplied files from `/system/vendor/firmware`. The NVT
 touchscreen followed the same fallback path from `/system/etc/firmware`.

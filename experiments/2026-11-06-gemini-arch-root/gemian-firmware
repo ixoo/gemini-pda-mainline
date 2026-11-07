@@ -1,0 +1,105 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Copy the device firmware the mainline drivers use from the owner's own Gemian system into a
+# mounted root, at /usr/lib/firmware/mediatek/mt6797/. See docs/hardware/firmware.md.
+#
+# usage: gemian-firmware SOURCE ROOT
+#   SOURCE  Gemian's Android system: its ext4 image (on the station, /mnt/data/data/system.img,
+#           from the linux partition init mounts read-only), or a directory holding vendor/.
+#   ROOT    the mounted target root, for example the card's gemini-arch partition.
+#
+# Every file is checked against its known SHA-256 before it is put in place. A file already in
+# place is checked and never replaced. An image is read through a read-only loop device and a
+# read-only mount. Reads no calibration, NVRAM or identifier: the Wi-Fi record stays a link to
+# /nvdata. Sends nothing anywhere. Runs under busybox sh or a full Linux userland, as root.
+# Exit: 0 every file in place, 1 a file missing or mismatched (named), 2 usage or setup.
+set -eu
+
+# destination  source-in-SOURCE  sha256  [offset size]
+# The GNSS DSP image has no file of its own on Gemian: it is embedded in libmnl.so, whose
+# SHA-256 is a2e3fe69...330f (experiments/2026-11-01-gemini-gnss-stock-trace).
+FILES='
+ROMv3_patch_1_0_hdr.bin vendor/firmware/ROMv3_patch_1_0_hdr.bin 450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630
+ROMv3_patch_1_1_hdr.bin vendor/firmware/ROMv3_patch_1_1_hdr.bin 5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e
+WIFI_RAM_CODE_6797 vendor/firmware/WIFI_RAM_CODE_6797 a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd
+mt6631_fm_v1_patch.bin vendor/firmware/mt6631_fm_v1_patch.bin ba35c74d26660729caf83b41a567e700f633b6c99384dfa6cbb3c17ceb767e26
+mt6631_fm_v1_coeff.bin vendor/firmware/mt6631_fm_v1_coeff.bin d32f4a16b35f950ed1a57f2ae88f77ac4b5674d5c4210b65f6fe7912901fd8db
+gnss_dsp_6797.bin vendor/lib/libmnl.so 898a5cca5aa3011d119a7c92a1c74720753a2b1c03e253cfd88bad4f8966f603 2008669 61440
+'
+
+[ "$#" -eq 2 ] || { echo "usage: gemian-firmware SOURCE ROOT" >&2; exit 2; }
+source=$1
+root=$2
+[ -d "$root/usr/lib" ] || { echo "gemian-firmware: $root has no usr/lib" >&2; exit 2; }
+dir=$root/usr/lib/firmware/mediatek/mt6797
+mnt=
+loop=
+
+leave() {
+	set +e
+	rm -f "$dir"/*.partial
+	if [ -n "$mnt" ]; then
+		umount "$mnt"
+		rmdir "$mnt"
+	fi
+	[ -z "$loop" ] || losetup -d "$loop"
+	trap - EXIT
+	exit "$1"
+}
+trap 'leave 2' EXIT INT TERM
+sum() { sha256sum "$1" | cut -d' ' -f1; }
+
+if [ -f "$source" ]; then
+	# A read-only ext4 mount can still clear an orphan list, so the loop device refuses
+	# writes as well.
+	loop=$(losetup -f)
+	losetup -r "$loop" "$source"
+	[ "$(blockdev --getro "$loop")" = 1 ] || { echo "gemian-firmware: $loop is not read-only" >&2; leave 2; }
+	mnt=$(mktemp -d)
+	mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$loop" "$mnt"
+	from=$mnt
+elif [ -d "$source/vendor" ]; then
+	from=$source
+else
+	echo "gemian-firmware: $source is neither an image nor a directory with vendor/" >&2
+	leave 2
+fi
+
+mkdir -p "$dir"
+status=0
+while read -r name path hash offset size; do
+	[ -n "$name" ] || continue
+	target=$dir/$name
+	if [ -e "$target" ]; then
+		if [ "$(sum "$target")" = "$hash" ]; then
+			echo "$name kept"
+		else
+			echo "$name mismatch-in-place"
+			status=1
+		fi
+		continue
+	fi
+	if [ ! -f "$from/$path" ]; then
+		echo "$name missing"
+		status=1
+		continue
+	fi
+	if [ -n "$offset" ]; then
+		tail -c "+$((offset + 1))" "$from/$path" | head -c "$size" >"$target.partial"
+	else
+		cp "$from/$path" "$target.partial"
+	fi
+	if [ "$(sum "$target.partial")" != "$hash" ]; then
+		rm -f "$target.partial"
+		echo "$name mismatch"
+		status=1
+		continue
+	fi
+	chmod 0644 "$target.partial"
+	mv "$target.partial" "$target"
+	echo "$name copied"
+done <<EOF
+$FILES
+EOF
+sync
+leave "$status"

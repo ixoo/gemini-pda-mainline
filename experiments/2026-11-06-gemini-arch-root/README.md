@@ -58,8 +58,9 @@ Today's decisions:
 - **Removed from the tarball:** `linux-aarch64`, `linux-firmware` and `mkinitcpio`. They
   go in `IgnorePkg`, since only boot-slot writes change the kernel.
 - **Firmware.** The device's own files are copied to `/usr/lib/firmware/mediatek/mt6797/`,
-  with no package owning them. They come from `firmware-get`, or from Gemian's `/vendor/firmware` at install
-  ([firmware](../../docs/hardware/firmware.md)), and are never in a published image.
+  with no package owning them, by [`gemian-firmware`](gemian-firmware) from the owner's
+  Gemian system ([firmware](../../docs/hardware/firmware.md#the-set-the-card-root-carries)).
+  They are never in a published image.
 
 ### Placement and handover
 
@@ -475,9 +476,9 @@ Throughout, nothing writes the eMMC.
    mounted.
 4. Send the card image gzip-compressed over USB SSH, and write it with `dd` and `sync`.
    Read the first 4 GiB back and require the image's SHA-256.
-5. Mount `mmcblk1p1` read-write and copy the regular files of the station's
-   `/lib/firmware/mediatek/mt6797/` into `usr/lib/firmware/mediatek/mt6797/`. Record their
-   hashes against the [firmware table](../../docs/hardware/firmware.md), then unmount.
+5. Mount `mmcblk1p1` read-write and run [`gemian-firmware`](gemian-firmware)
+   `/mnt/data/data/system.img` on it, which copies the six files and checks each hash. Record
+   its output, then unmount.
 6. Record SHA-256 of `boot`, `boot2`, `lk`, `nvram`, `nvdata` and `proinfo`, by GPT name
    and read-only.
 7. Write the boot image with `flash-boot2`, then `poweroff`. The owner selects `boot2`
