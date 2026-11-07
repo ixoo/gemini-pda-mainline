@@ -514,8 +514,15 @@ The vendor DT describes two PSCI idle states for every CPU:
 
 | State | PSCI suspend parameter | Entry / exit / residency |
 | --- | --- | --- |
-| CPU retention | `0x0010000` | 600 / 600 / 1200 us |
+| Core power-down (bit 16 set; not retention) | `0x0010000` | 600 / 600 / 1200 us |
 | Cluster power-down | `0x1010000` | 800 / 1000 / 2000 us |
+
+The vendor kernel only ever requests `0x1010000`, and only after it has
+kicked an SPM PCM program. The secure firmware treats both parameters as
+power-down: it prepares the core (and the cluster, for the second), then waits
+in an EL3 `wfi` loop until the SPM cuts power. Neither state is safe without
+that program; see the
+[power-management assessment](../../experiments/2026-11-06-gemini-power-management/README.md#the-firmware-side).
 
 The vendor kernel additionally exposes `dpidle`, `soidle3`, `soidle`, `mcidle`
 and `slidle` through its own idle driver. These depend on SPM/PCM firmware.

@@ -58,7 +58,10 @@ cpufreq and power governors are the important gap the owner named. Suspend, cpui
 and cpufreq decide battery life and heat, and nothing in them has started.
 [Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a design
 proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)
-holds the defensible order for frequency scaling, starting with the A53s.
+holds the defensible order for frequency scaling, starting with the A53s. The
+[power-management assessment](../experiments/2026-11-06-gemini-power-management/README.md)
+holds the per-driver suspend and runtime-PM state and the ordered plan for s2idle,
+wake sources and cpuidle, starting with read-only measurements.
 
 ### 3. Small device checks already written down
 
