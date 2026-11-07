@@ -1,40 +1,70 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Fri, 6 Nov 2026 21:56:06 -0500
+Date: Fri, 6 Nov 2026 22:05:04 -0500
 Subject: [PATCH] usb: mtu3: reconnect after a suspend taken with a suspended
  bus
 
 With a suspended bus allowed to suspend the system, the gadget can go
 to sleep still marked connected. The system suspend powers the device
 IP and port down, which drops the link and the D+ pullup, and resume
-powers them on again without either: the gadget stayed "not attached"
-after a replug on the Gemini until a soft disconnect and connect from
-userspace re-asserted the pullup.
+powers them on again without either: on the Gemini the gadget stayed
+"not attached" after a replug until a soft disconnect and connect from
+userspace.
 
-Treat such a suspend as the disconnect it is: take the pullup down,
-report the disconnect to the gadget driver and drop the connection's
-runtime PM reference. At resume, assert the pullup again if the gadget
-wants it, so the host can enumerate the device afresh.
+Doing that disconnect at suspend does not work: taking the pullup down
+on a suspended bus keeps the IP from sleeping ("ip sleep failed") and
+the system suspend aborts. So leave the suspend as it is and repeat the
+userspace cure at resume: report the disconnect a VBUS drop would have,
+drop the connection's runtime PM reference, and cycle the pullup so the
+host can enumerate the device afresh.
 ---
- drivers/usb/mtu3/mtu3_core.c | 29 +++++++++++++++++++++++++++++
- 1 file changed, 29 insertions(+)
+ drivers/usb/mtu3/mtu3.h      |  1 +
+ drivers/usb/mtu3/mtu3_core.c | 35 +++++++++++++++++++++++++++++++++++
+ 2 files changed, 36 insertions(+)
 
+diff --git a/drivers/usb/mtu3/mtu3.h b/drivers/usb/mtu3/mtu3.h
+index 320a5e37e..597bb4b49 100644
+--- a/drivers/usb/mtu3/mtu3.h
++++ b/drivers/usb/mtu3/mtu3.h
+@@ -368,6 +368,7 @@ struct mtu3 {
+ 	unsigned gen2cp:1;
+ 	unsigned connected:1;
+ 	unsigned bus_suspended:1;
++	unsigned reconnect_on_resume:1;
+ 	unsigned async_callbacks:1;
+ 	unsigned separate_fifo:1;
+ 
 diff --git a/drivers/usb/mtu3/mtu3_core.c b/drivers/usb/mtu3/mtu3_core.c
-index ecae7a057..a64b0b13e 100644
+index ecae7a057..2b8f38617 100644
 --- a/drivers/usb/mtu3/mtu3_core.c
 +++ b/drivers/usb/mtu3/mtu3_core.c
-@@ -1045,6 +1045,26 @@ int ssusb_gadget_suspend(struct ssusb_mtk *ssusb, pm_message_t msg)
+@@ -1045,6 +1045,12 @@ int ssusb_gadget_suspend(struct ssusb_mtk *ssusb, pm_message_t msg)
  	if (mtu->connected && !mtu->bus_suspended)
  		return -EBUSY;
  
 +	/*
-+	 * Powering the device IP down drops the link, and the host must
-+	 * enumerate it again: take the pullup down and report a disconnect
-+	 * now, as a VBUS drop would have, rather than resume as connected.
++	 * Leave the suspended link as it is, or the IP will not sleep: the
++	 * reconnection waits for resume.
 +	 */
-+	if (mtu->connected) {
++	mtu->reconnect_on_resume = mtu->connected;
++
+ 	mtu3_dev_suspend(mtu);
+ 	synchronize_irq(mtu->irq);
+ 
+@@ -1060,5 +1066,34 @@ int ssusb_gadget_resume(struct ssusb_mtk *ssusb, pm_message_t msg)
+ 
+ 	mtu3_dev_resume(mtu);
+ 
++	/*
++	 * The power-down dropped the link and the D+ pullup, so the host has
++	 * to enumerate the device afresh: report the disconnect that a VBUS
++	 * drop would have, then cycle the pullup, which resume alone does not
++	 * restore.
++	 */
++	if (mtu->reconnect_on_resume) {
 +		unsigned long flags;
 +
++		mtu->reconnect_on_resume = 0;
 +		spin_lock_irqsave(&mtu->lock, flags);
 +		if (mtu->softconnect)
 +			mtu3_dev_on_off(mtu, 0);
@@ -45,22 +75,13 @@ index ecae7a057..a64b0b13e 100644
 +		spin_unlock_irqrestore(&mtu->lock, flags);
 +		/* The reference the connection took in mtu3_link_isr(). */
 +		pm_runtime_put(mtu->dev);
-+	}
 +
- 	mtu3_dev_suspend(mtu);
- 	synchronize_irq(mtu->irq);
- 
-@@ -1060,5 +1080,14 @@ int ssusb_gadget_resume(struct ssusb_mtk *ssusb, pm_message_t msg)
- 
- 	mtu3_dev_resume(mtu);
- 
-+	/* The pullup does not survive the power-down: assert it again. */
-+	if (mtu->is_active && mtu->softconnect) {
-+		unsigned long flags;
-+
-+		spin_lock_irqsave(&mtu->lock, flags);
-+		mtu3_dev_on_off(mtu, 1);
-+		spin_unlock_irqrestore(&mtu->lock, flags);
++		if (mtu->is_active && mtu->softconnect) {
++			usleep_range(10000, 20000);
++			spin_lock_irqsave(&mtu->lock, flags);
++			mtu3_dev_on_off(mtu, 1);
++			spin_unlock_irqrestore(&mtu->lock, flags);
++		}
 +	}
 +
  	return 0;

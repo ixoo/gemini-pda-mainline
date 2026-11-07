@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on the P2 image (s2idle entered and resumed, RTC and power-key wakes); gadget reattach fix 0633 compile-checked; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); 0633 v1 rejected on P3 (suspend aborted), v2 compile-checked; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -763,12 +763,48 @@ port down, which drops the link and the D+ pullup. Resume powers them on
 without restoring either. Before 0632 that suspend ran only while
 disconnected; now it can run with a suspended but still connected bus.
 
-**Fix: [0633](../../patches/proposals/0633-usb-mtu3-reconnect-after-a-suspend-taken-with-a-susp.patch).**
-Such a suspend is now treated as a disconnect: the pullup goes down, the
-gadget driver is told, and the connection's runtime PM reference is
-dropped. At resume the pullup goes up again when the gadget wants it, which
-is what the manual soft-connect cycle did. Compile-checked with `W=1`; built
-in, so it needs an image.
+**First fix, 0633 v1:** treat such a suspend as a disconnect at suspend time
+(pullup down, gadget driver told), then raise the pullup at resume. It was
+rejected on P3, below.
+
+#### P3 (2026-11-06): 0633 v1 rejected, suspend aborts
+
+**Setup.** station-work-75: boot2 `f04f8e24…`, built from `012d5dbb`, with
+the initramfs identical to P2. Boot `f570bf03`, untainted. The test was:
+unplug, wait 5 s, RTC +20 s s2idle, then replug with no console input.
+
+**Result: the suspend aborted in 0.3 s.**
+- dmesg showed `pullup D-`, then `ip sleep failed!!!`, `pullup D+`, and
+  `platform_pm_suspend returns -16` after the 100 ms wait.
+- After the abort the UDC read `not attached`. The eMMC hash still matched,
+  with no warning.
+- The replug brought SSH back with no console input, but no suspend had
+  happened, so it proves nothing about 0633.
+
+**Inference:** on a suspended bus, taking the pullup down changes the line
+state, and the IP no longer reaches sleep. On P2, in the same state with the
+pullup left alone, MTU3 suspended in 376 µs.
+
+**0633 v2, the patch now in the series (`0633-…`, same name).**
+- **Suspend:** exactly as on P2. It only notes that the gadget was connected.
+- **Resume, if it was connected:** report the disconnect a VBUS drop would
+  have reported, drop the connection's runtime PM reference, take the
+  pullup down, wait 10–20 ms, and raise it again.
+
+That is the manual cycle that cured P2, done by the kernel.
+Compile-checked with `W=1`; not yet on the device.
+
+**Test (G):** with the cable in and SSH working:
+1. Unplug, wait 5 s, run `rtcwake -m freeze -s 20`.
+2. Replug with no console input. Pass: within 30 s the UDC reads
+   `configured` and SSH returns. dmesg should show `pullup D-` then
+   `pullup D+` after the resume, with no `ip sleep failed`.
+3. Run it twice.
+4. Then one plain unplug and replug with no suspend.
+
+**Stop:** the suspend fails, or SSH is not back 60 s after a replug. In
+either case read the UDC state, and the owner recovers with the soft-connect
+cycle.
 
 ## Analysis
 
