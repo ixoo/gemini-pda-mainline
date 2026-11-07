@@ -1,0 +1,208 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 14:57:24 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: scale the A53 clusters
+
+Give CPU0-3 and CPU4-7 the MCUMIXED cluster clocks, an OPP table each,
+and #cooling-cells, and cool both clusters at the passive trip the
+vendor policy uses first, 58 C, beside the GPU.
+
+The firmware leaves the clusters' shared rail, VPROC1, at 1.00 V, and
+nothing here changes it. The tables hold the vendor operating points
+for this unit's speed bin whose base voltage is 1.00 V or less: 221 to
+897 MHz for CPU0-3 and 325 to 1209 MHz for CPU4-7. The clock driver
+never runs a cluster above the 897 and 1274 MHz the firmware left them
+at. Nothing changes a frequency until clk-mt6797-mcusys and cpufreq-dt
+load.
+---
+ .../mt6797-gemini-pda-station-a72.dts         | 177 ++++++++++++++++++
+ 1 file changed, 177 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index d54a0ac1c..2e66d8787 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -385,3 +385,180 @@ led@13 {
+ 		};
+ 	};
+ };
++
++/*
++ * Frequency scaling for the two A53 clusters. The firmware leaves their shared
++ * rail, VPROC1, at 1.00 V, and nothing here changes it. Each table holds the
++ * vendor operating points for this unit's speed bin whose base voltage is
++ * 1.00 V or less, so every point runs at or above the voltage the vendor gives
++ * it. The clock driver also never runs a cluster above the rate the firmware
++ * left it at (CPU0-3 897 MHz, CPU4-7 1274 MHz), during a change either.
++ * Nothing changes a frequency until clk-mt6797-mcusys and cpufreq-dt load.
++ */
++#include <dt-bindings/clock/mediatek,mt6797-mcusys.h>
++
++/ {
++	mcusys_pll: clock-controller@1001a000 {
++		compatible = "mediatek,mt6797-mcusys-pll";
++		reg = <0 0x1001a000 0 0x1000>, <0 0x10220000 0 0x1000>,
++		      <0 0x10000000 0 0x1000>;
++		reg-names = "mcumixed", "mcucfg", "topckgen";
++		clocks = <&infrasys CLK_INFRA_I2C_APPM>;
++		clock-names = "sema";
++		access-controllers = <&dvfsp_handoff>;
++		#clock-cells = <1>;
++	};
++
++	cluster0_opp: opp-table-cluster0 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp-221000000 {
++			opp-hz = /bits/ 64 <221000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-338000000 {
++			opp-hz = /bits/ 64 <338000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-481000000 {
++			opp-hz = /bits/ 64 <481000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-624000000 {
++			opp-hz = /bits/ 64 <624000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-715000000 {
++			opp-hz = /bits/ 64 <715000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-806000000 {
++			opp-hz = /bits/ 64 <806000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-897000000 {
++			opp-hz = /bits/ 64 <897000000>;
++			clock-latency-ns = <100000>;
++		};
++	};
++
++	cluster1_opp: opp-table-cluster1 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp-325000000 {
++			opp-hz = /bits/ 64 <325000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-468000000 {
++			opp-hz = /bits/ 64 <468000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-650000000 {
++			opp-hz = /bits/ 64 <650000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-832000000 {
++			opp-hz = /bits/ 64 <832000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-962000000 {
++			opp-hz = /bits/ 64 <962000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1092000000 {
++			opp-hz = /bits/ 64 <1092000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1209000000 {
++			opp-hz = /bits/ 64 <1209000000>;
++			clock-latency-ns = <100000>;
++		};
++	};
++
++	thermal-zones {
++		soc-thermal {
++			cooling-maps {
++				/* The vendor policy's first CPU cooling trip. */
++				map1 {
++					trip = <&gpu_passive>;
++					cooling-device =
++						<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
++
++				map2 {
++					trip = <&gpu_passive>;
++					cooling-device =
++						<&cpu4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
++			};
++		};
++	};
++};
++
++&cpu0 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_LL>;
++	operating-points-v2 = <&cluster0_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu1 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_LL>;
++	operating-points-v2 = <&cluster0_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu2 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_LL>;
++	operating-points-v2 = <&cluster0_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu3 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_LL>;
++	operating-points-v2 = <&cluster0_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu4 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_L>;
++	operating-points-v2 = <&cluster1_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu5 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_L>;
++	operating-points-v2 = <&cluster1_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu6 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_L>;
++	operating-points-v2 = <&cluster1_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu7 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_L>;
++	operating-points-v2 = <&cluster1_opp>;
++	#cooling-cells = <2>;
++};
+-- 
+2.43.0
+

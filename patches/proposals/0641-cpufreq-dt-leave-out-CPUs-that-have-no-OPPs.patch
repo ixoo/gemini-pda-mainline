@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 14:57:23 -0500
+Subject: [PATCH] cpufreq: dt: leave out CPUs that have no OPPs
+
+The probe sets up every present CPU and fails as a whole when one of them
+has no OPPs. On MT6797 the two A72 cores are present but their clock
+belongs to the secure firmware, so they have no OPP table, and the eight
+A53 cores, which have tables, then get no cpufreq either.
+
+Skip a CPU whose node has no OPP table and that has no OPPs added at run
+time. That CPU used to fail the probe, so no platform that works today
+changes. If such a CPU comes online, its policy init fails as for any CPU
+the driver has no data for, and the CPU stays online.
+---
+ drivers/cpufreq/cpufreq-dt.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/cpufreq/cpufreq-dt.c b/drivers/cpufreq/cpufreq-dt.c
+index 7d5079fd1..eec842afa 100644
+--- a/drivers/cpufreq/cpufreq-dt.c
++++ b/drivers/cpufreq/cpufreq-dt.c
+@@ -169,6 +169,17 @@ static int dt_cpufreq_early_init(struct device *dev, int cpu)
+ 	if (!cpu_dev)
+ 		return -EPROBE_DEFER;
+ 
++	/*
++	 * A CPU with no OPP table and no OPPs cannot be managed here. Leave it
++	 * out instead of failing the CPUs that can be.
++	 */
++	if (!of_property_present(cpu_dev->of_node, "operating-points-v2") &&
++	    !of_property_present(cpu_dev->of_node, "operating-points") &&
++	    dev_pm_opp_get_opp_count(cpu_dev) <= 0) {
++		dev_info(dev, "cpu%d has no OPPs, leaving it out\n", cpu);
++		return 0;
++	}
++
+ 	priv = devm_kzalloc(dev, sizeof(*priv), GFP_KERNEL);
+ 	if (!priv)
+ 		return -ENOMEM;
+-- 
+2.43.0
+

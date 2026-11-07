@@ -35,7 +35,9 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
 - **Release.** The owner declared [v1](RELEASE_READINESS.md): everything working so far, with limited testing, at the user's own risk. Profile `mt6797-a53-release` and a public RAM root have
   [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
   No one else can install or build it yet.
-- **Not started.** Suspend, cpuidle and cpufreq. No upstream submission.
+- **Not started.** Suspend and cpuidle. No upstream submission.
+- **Started.** cpufreq for the A53 clusters at the firmware's voltage: patches pushed, device
+  test [planned](../experiments/2026-11-07-mt6797-a53-cpufreq/README.md), not run.
 
 ## Current order of work
 
@@ -57,7 +59,10 @@ how the optional modules are offered, and a second unit.
 ### 2. Power
 
 cpufreq and power governors are the important gap the owner named. Suspend, cpuidle
-and cpufreq decide battery life and heat, and nothing in them has started.
+and cpufreq decide battery life and heat. Only A53 cpufreq has started: the
+[A53 cpufreq experiment](../experiments/2026-11-07-mt6797-a53-cpufreq/README.md) scales both
+clusters at the firmware's 1.00 V with schedutil and CPU cooling; its device test has not run.
+Voltage scaling, CCI and the A72s follow it.
 [Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a design
 proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)
 holds the defensible order for frequency scaling, starting with the A53s. The

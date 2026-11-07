@@ -379,6 +379,56 @@ Consequences:
   the same register state, but they do not turn it into a calibrated voltage
   measurement either.
 
+### 3.7 How an A53 frequency change is made
+
+The Gemian source sets the A53 cluster clocks in three stages (`mt_cpufreq.c`
+`set_cur_freq()`, `freqhopping/mt6797/mt_freqhopping.c`). Each is `source`
+confidence unless a mainline result is linked.
+
+| Stage | Register | What it does |
+| --- | --- | --- |
+| PLL | CON1 `0x1001a204` (LL) / `0x1001a214` (L): PCW bits 20:0, post-divider bits 26:24 (`0` /1, `1` /2, `2` /4), bit 31 change strobe | VCO = PCW x 26 MHz / 2^14; the vendor computes PCW as `(MHz << 14) / 26` |
+| Cluster divider | `0x1001a274`: LL bits 9:5, L bits 14:10 | Code `8` /1, `10` /2, `11` /4; `0` also reads as /1 |
+| Mux | `0x1001a270`: LL bits 3:2, L bits 5:4 | `1` ARMPLL, `2` MAINPLL |
+
+- **PCW changes go through the MCU frequency-hopping controller**, not a CON1
+  write. MCU FHCTL sits at MCUMIXED + `0xf00`: `HP_EN` `+0x0`, `CLK_CON`
+  `+0x4`, `RST_CON` `+0x8`, `SLOPE0` `+0xc`, then per PLL `n` (`0` LL, `1` L,
+  `2` CCI) `CFG`, `UPDNLMT`, `DDS`, `DVFS`, `MON` at `+0x34 + 0x14n` onward.
+  The vendor copies CON1's PCW into `DDS`, sets `CFG` to `0x5`, `SLOPE0` to
+  `0x6003c97`, sets the PLL's `HP_EN` bit, writes the target to `DVFS`, polls
+  `MON` every 10 us (up to 1 ms), writes `MON` back into CON1 and clears
+  `HP_EN` and `CFG`. The PLL slews without the cluster leaving it. Its init
+  sets each `CLK_CON` bit, pulses `RST_CON` and clears `CFG`, `UPDNLMT`, `DDS`.
+- **A post-divider change moves the cluster to MAINPLL for 2 us**: set TOPCKGEN
+  `CLK_MISC_CFG_0` (`0x10000104`) bits 5:4 to `3`, mux to `2`, write the
+  post-divider with the strobe, wait 2 us, clear bits 5:4, mux back to `1`.
+- **Order**: a larger post-divider or cluster divider is applied before the
+  hop and a smaller one after it, so the cluster never passes above both
+  endpoints. Divider changes need no mux switch.
+- **Which dividers**: for every point in the SB and FY tables, the vendor's
+  choice is the smallest total division that puts the VCO between 1050 and
+  2028 MHz, with up to /2 of it in the post-divider (checked against all 64
+  LL/L entries).
+- **Shared access**: every MCUMIXED access holds DVFSP hardware semaphore 3 at
+  `0x11015440` after writing `0x0b160001` to CSPM `0x11015000`; ATF takes the
+  same semaphore to change the A72 fields of the mux and divider registers.
+  MCU FHCTL reads may return zero once after a write, so the vendor reads
+  every word twice, repeats a zero result, and verifies writes up to three
+  times.
+- **Sync DCM**: MCUCFG `SYNC_DCM_CONFIG` (`0x10220744`) has a per-cluster
+  divider that the vendor DCM driver keeps at `MHz / 70` when enabled (LL bit 8,
+  L bit 16). The vendor kernel turns it on itself; a driver that does not
+  program it must find it off.
+
+On the mainline station the firmware leaves LL at 897 MHz (PCW `0x114000`,
+post-divider /2, cluster divider /1), L at 1274 MHz (`0x0c4000`, /1, /1), CCI at
+629.5 MHz and VPROC1 at 1.00 V; see the
+[one-read protected snapshot](../../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt)
+and the [read-only DA921x provider](../../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/runtime-attempt-1-success-20260817.txt).
+The [A53 cpufreq experiment](../../experiments/2026-11-07-mt6797-a53-cpufreq/README.md)
+drives this sequence from mainline.
+
 ## 4. Per-unit operating points
 
 The vendor source contains four OPP groups (FY, SB, M, L), selected by efuse
@@ -731,6 +781,12 @@ add a static per-unit OPP table, add the regulator and VSRAM/CCI tracking, then
 enable a standard governor. B-cluster frequency remains a separate secure
 backend and should not block A53 scaling. This is a design boundary, not an
 implemented feature.
+
+The first step is in the [A53 cpufreq experiment](../../experiments/2026-11-07-mt6797-a53-cpufreq/README.md):
+an LL/L clock provider that follows the vendor sequence of section 3.7, and
+cpufreq-dt with schedutil over the vendor points that need no more than the
+firmware's 1.00 V, with no regulator or CCI change. It is untested on
+hardware.
 
 ## 7. Gap register
 

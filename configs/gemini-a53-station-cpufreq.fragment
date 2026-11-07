@@ -1,0 +1,16 @@
+# A53 cluster frequency scaling on the station
+# (experiments/2026-11-07-mt6797-a53-cpufreq). The core and governors are built
+# in; the clock driver and cpufreq-dt are modules, so nothing changes a
+# frequency until both are loaded. Performance stays the default until the
+# first device test proves the transitions; schedutil is then selected at run
+# time.
+CONFIG_CPU_FREQ=y
+CONFIG_CPU_FREQ_STAT=y
+CONFIG_CPU_FREQ_DEFAULT_GOV_PERFORMANCE=y
+CONFIG_CPU_FREQ_GOV_PERFORMANCE=y
+CONFIG_CPU_FREQ_GOV_POWERSAVE=y
+CONFIG_CPU_FREQ_GOV_USERSPACE=y
+CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y
+CONFIG_CPUFREQ_DT=m
+CONFIG_CPUFREQ_DT_PLATDEV=y
+CONFIG_COMMON_CLK_MT6797_MCUSYS=m

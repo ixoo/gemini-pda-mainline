@@ -1,0 +1,943 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 14:57:21 -0500
+Subject: [PATCH] clk: mediatek: add the MT6797 A53 cluster PLLs
+
+Let cpufreq set the clock of the two Cortex-A53 clusters, CPU0-3 and
+CPU4-7, the way the vendor kernel does:
+
+- the PLL moves through the MCU frequency-hopping controller, which slews
+  it to the new PCW while the cluster keeps running from it;
+- the cluster divider grows before the PLL moves and shrinks after;
+- a post-divider change runs the cluster from MAINPLL for the 2 us the
+  PLL takes, opening that path in TOPCKGEN CLK_MISC_CFG_0.
+
+For each rate the driver picks the smallest total division that puts the
+VCO between 1050 and 2028 MHz, with up to /2 in the post-divider. That
+gives the vendor VCO and dividers for every point of its MT6797 tables.
+
+The secure firmware writes the A72 fields of the same mux and divider
+registers, so every access holds DVFSP hardware semaphore 3, through the
+DVFSP handoff that owns the CSPM window. MCU FHCTL reads can return zero
+once after a write, so words are read twice, zero results repeated and
+writes read back. Any failed step marks the device faulted; it then
+refuses further changes.
+
+The driver does not set the cluster voltage. It never sets a cluster
+above the rate it found at probe, and refuses a post-divider change on a
+cluster that started below MAINPLL, so no step runs a cluster faster
+than the firmware did. It refuses to probe if a cluster is not on its
+ARMPLL, its dividers are unknown, FHCTL is already hopping, or the
+MCUCFG sync DCM divider, which the vendor keeps in step with the clock,
+is on.
+
+debugfs "registers" reads the live PLL, divider, mux and FHCTL state.
+---
+ drivers/clk/mediatek/Kconfig             |  10 +
+ drivers/clk/mediatek/Makefile            |   1 +
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 860 +++++++++++++++++++++++
+ 3 files changed, 871 insertions(+)
+ create mode 100644 drivers/clk/mediatek/clk-mt6797-mcusys.c
+
+diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
+index a7e926a9c..8261c6dca 100644
+--- a/drivers/clk/mediatek/Kconfig
++++ b/drivers/clk/mediatek/Kconfig
+@@ -349,6 +349,16 @@ config COMMON_CLK_MT6797
+ 	help
+ 	  This driver supports MediaTek MT6797 basic clocks.
+ 
++config COMMON_CLK_MT6797_MCUSYS
++	tristate "Clock driver for MediaTek MT6797 Cortex-A53 cluster PLLs"
++	depends on COMMON_CLK_MT6797 && MTK_MT6797_DVFSP_HANDOFF
++	help
++	  This driver supports the PLLs of the two Cortex-A53 clusters on
++	  MediaTek MT6797, retuned through the MCU frequency-hopping
++	  controller, so cpufreq can scale their frequency. It does not
++	  change the cluster voltage and never raises a cluster above the
++	  rate the firmware left it at.
++
+ config COMMON_CLK_MT6797_RESET_KUNIT_TEST
+ 	tristate "Test MT6797 infracfg reset translation" if !KUNIT_ALL_TESTS
+ 	depends on KUNIT
+diff --git a/drivers/clk/mediatek/Makefile b/drivers/clk/mediatek/Makefile
+index 548467abe..49b0609b2 100644
+--- a/drivers/clk/mediatek/Makefile
++++ b/drivers/clk/mediatek/Makefile
+@@ -31,6 +31,7 @@ obj-$(CONFIG_COMMON_CLK_MT6795_VDECSYS) += clk-mt6795-vdecsys.o
+ obj-$(CONFIG_COMMON_CLK_MT6795_VENCSYS) += clk-mt6795-vencsys.o
+ obj-$(CONFIG_COMMON_CLK_MT6797) += clk-mt6797.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_RESET_KUNIT_TEST) += clk-mt6797-reset-test.o
++obj-$(CONFIG_COMMON_CLK_MT6797_MCUSYS) += clk-mt6797-mcusys.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_CAMSYS) += clk-mt6797-cam.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_IMGSYS) += clk-mt6797-img.o
+ obj-$(CONFIG_COMMON_CLK_MT6797_MJCSYS) += clk-mt6797-mjc.o
+diff --git a/drivers/clk/mediatek/clk-mt6797-mcusys.c b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+new file mode 100644
+index 000000000..757352df2
+--- /dev/null
++++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+@@ -0,0 +1,860 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 Cortex-A53 cluster PLLs in MCUMIXED.
++ *
++ * Each A53 cluster runs from its own PLL (ARMPLL0 for CPU0-3, ARMPLL1 for
++ * CPU4-7) followed by a post-divider in the PLL and a cluster clock divider
++ * in ARMPLLDIV_CKDIV. The PLL is retuned through the MCU frequency-hopping
++ * controller (FHCTL) at MCUMIXED + 0xf00, which slews the PLL to a new DDS
++ * value without a glitch, as the vendor kernel does.
++ *
++ * MCUMIXED is shared with the secure firmware, which reprograms the A72
++ * fields of the same mux and divider registers. Every access holds the DVFSP
++ * hardware semaphore 3, reached through the DVFSP handoff that owns the CSPM
++ * window.
++ *
++ * Each rate uses the vendor's post-divider and cluster divider for it. A
++ * post-divider change moves the cluster to MAINPLL (1092 MHz) for the 2 us the
++ * PLL takes, as the vendor does.
++ *
++ * This driver does not control the cluster voltage. It never raises a cluster
++ * above the rate it found at probe, so every rate it sets is at or below one
++ * the firmware already runs at the present voltage.
++ */
++
++#include <linux/bitfield.h>
++#include <linux/clk.h>
++#include <linux/clk-provider.h>
++#include <linux/debugfs.h>
++#include <linux/delay.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/seq_file.h>
++#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
++
++#include <dt-bindings/clock/mediatek,mt6797-mcusys.h>
++
++/* MCUMIXED */
++#define MCU_PLL_CON1(id)		(0x204 + (id) * 0x10)
++#define MCU_PLL_PCW			GENMASK(20, 0)
++#define MCU_PLL_POSDIV			GENMASK(26, 24)
++#define MCU_PLL_PCW_CHG			BIT(31)
++#define MCU_ARMPLLDIV_MUXSEL		0x270
++#define MCU_ARMPLLDIV_CKDIV		0x274
++#define MCU_MUX_ARMPLL			1
++#define MCU_MUX_MAINPLL			2
++#define MCU_POSDIV_SETTLE_US		2
++#define MCU_MAINPLL_RATE		1092000000UL
++
++/* MCU FHCTL */
++#define MCU_FH_HP_EN			0xf00
++#define MCU_FH_CLK_CON			0xf04
++#define MCU_FH_RST_CON			0xf08
++#define MCU_FH_SLOPE0			0xf0c
++#define MCU_FH_CFG(id)			(0xf34 + (id) * 0x14)
++#define MCU_FH_UPDNLMT(id)		(0xf38 + (id) * 0x14)
++#define MCU_FH_DDS(id)			(0xf3c + (id) * 0x14)
++#define MCU_FH_DVFS(id)			(0xf40 + (id) * 0x14)
++#define MCU_FH_MON(id)			(0xf44 + (id) * 0x14)
++#define MCU_FH_CFG_FHCTL_EN		BIT(0)
++#define MCU_FH_CFG_SFSTR_EN		BIT(2)
++#define MCU_FH_SLOPE0_VALUE		0x6003c97
++#define MCU_FH_POLL_US			10
++#define MCU_FH_POLL_COUNT		100
++
++/* CSPM, owned by the DVFSP handoff */
++#define CSPM_POWERON_CONFIG_EN		0x000
++#define CSPM_POWERON_CONFIG_VALUE	0x0b160001
++#define CSPM_SEMA3_M0			0x440
++#define CSPM_SEMA_HELD			BIT(0)
++#define CSPM_SEMA_TIMEOUT_US		2000
++
++/* TOPCKGEN: lets the cluster muxes take MAINPLL */
++#define TOP_CLK_MISC_CFG_0		0x104
++#define TOP_MISC_CPU_MAINPLL		GENMASK(5, 4)
++
++/* MCUCFG */
++#define MCUCFG_SYNC_DCM_CONFIG		0x744
++#define SYNC_DCM_MP0_DIV_EN		BIT(8)
++#define SYNC_DCM_MP1_DIV_EN		BIT(16)
++
++/* Register settle the vendor applies around every MCUMIXED access. */
++#define MCU_ACCESS_SETTLE_NS		200
++#define MCU_CKDIV_SETTLE_US		2
++
++/*
++ * With this VCO range, choosing the smallest total division and putting up
++ * to /2 of it in the post-divider gives the vendor's VCO, post-divider and
++ * cluster divider for every operating point in its MT6797 tables.
++ */
++#define MCU_VCO_MIN_MHZ			1050
++#define MCU_VCO_MAX_MHZ			2028
++
++#define MCU_NUM_PLLS			2
++
++struct mt6797_mcu_setting {
++	u32 pcw;
++	unsigned int posdiv;
++	unsigned int ckdiv;
++};
++
++struct mt6797_mcusys;
++
++struct mt6797_mcu_pll {
++	struct clk_hw hw;
++	struct mt6797_mcusys *mcu;
++	unsigned int id;
++	unsigned int ckdiv_shift;
++	unsigned long boot_rate;
++	struct mt6797_mcu_setting cur;
++	unsigned int last_poll;
++	unsigned int max_poll;
++	unsigned long changes;
++};
++
++struct mt6797_mcusys {
++	struct device *dev;
++	void __iomem *base;
++	void __iomem *topckgen;
++	struct clk *sema_clk;
++	struct mt6797_dvfsp_handoff *handoff;
++	struct mutex lock;
++	bool faulted;
++	struct mt6797_mcu_pll pll[MCU_NUM_PLLS];
++	struct dentry *debugfs;
++	struct clk_hw_onecell_data *data;
++};
++
++#define to_mcu_pll(_hw) container_of(_hw, struct mt6797_mcu_pll, hw)
++
++static const char * const mt6797_mcu_pll_names[MCU_NUM_PLLS] = {
++	[MT6797_CLK_MCU_LL] = "mcu-armpll-ll",
++	[MT6797_CLK_MCU_L] = "mcu-armpll-l",
++};
++
++static const unsigned int mt6797_mcu_ckdiv_shift[MCU_NUM_PLLS] = {
++	[MT6797_CLK_MCU_LL] = 5,
++	[MT6797_CLK_MCU_L] = 10,
++};
++
++static const u32 mt6797_mcu_sync_dcm_bit[MCU_NUM_PLLS] = {
++	[MT6797_CLK_MCU_LL] = SYNC_DCM_MP0_DIV_EN,
++	[MT6797_CLK_MCU_L] = SYNC_DCM_MP1_DIV_EN,
++};
++
++/*
++ * MCUMIXED reads can return zero right after a write on this SoC; the
++ * vendor reads every word twice and repeats a zero result.
++ */
++static u32 mcu_read(struct mt6797_mcusys *mcu, u32 offset)
++{
++	unsigned int i;
++	u32 val = 0;
++
++	ndelay(MCU_ACCESS_SETTLE_NS);
++	for (i = 0; i < 3 && !val; i++) {
++		readl(mcu->base + offset);
++		val = readl(mcu->base + offset);
++	}
++
++	return val;
++}
++
++static int mcu_write(struct mt6797_mcusys *mcu, u32 offset, u32 val, u32 mask)
++{
++	unsigned int i;
++
++	for (i = 0; i < 3; i++) {
++		writel(val, mcu->base + offset);
++		ndelay(MCU_ACCESS_SETTLE_NS);
++		if ((mcu_read(mcu, offset) & mask) == (val & mask))
++			return 0;
++	}
++
++	dev_err(mcu->dev, "write 0x%08x to +0x%03x did not hold\n", val, offset);
++	return -EIO;
++}
++
++static int mcu_update(struct mt6797_mcusys *mcu, u32 offset, u32 mask, u32 val)
++{
++	u32 reg = mcu_read(mcu, offset);
++
++	return mcu_write(mcu, offset, (reg & ~mask) | (val & mask), mask);
++}
++
++static int mt6797_mcu_decode_posdiv(u32 con1, unsigned int *posdiv)
++{
++	switch (FIELD_GET(MCU_PLL_POSDIV, con1)) {
++	case 0:
++		*posdiv = 1;
++		return 0;
++	case 1:
++		*posdiv = 2;
++		return 0;
++	case 2:
++		*posdiv = 4;
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++/* Divider codes the vendor uses: 8 is /1 (0 also reads as /1), 10 /2, 11 /4. */
++static int mt6797_mcu_decode_ckdiv(u32 field, unsigned int *ckdiv)
++{
++	switch (field) {
++	case 0:
++	case 8:
++		*ckdiv = 1;
++		return 0;
++	case 10:
++		*ckdiv = 2;
++		return 0;
++	case 11:
++		*ckdiv = 4;
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static u32 mt6797_mcu_encode_ckdiv(unsigned int ckdiv)
++{
++	return ckdiv == 4 ? 11 : ckdiv == 2 ? 10 : 8;
++}
++
++/* PCW is the VCO in MHz times 2^14 / 26, as the vendor computes it. */
++static u32 mt6797_mcu_pcw(unsigned int vco_mhz)
++{
++	return (vco_mhz << 14) / 26;
++}
++
++static unsigned long mt6797_mcu_rate(const struct mt6797_mcu_setting *s)
++{
++	u64 vco = (u64)s->pcw * 26000000;
++
++	return (unsigned long)((vco >> 14) / (s->posdiv * s->ckdiv));
++}
++
++static int mt6797_mcu_setting_for(unsigned long rate,
++				  struct mt6797_mcu_setting *s)
++{
++	unsigned int mhz = rate / 1000000;
++	unsigned int div, vco;
++
++	for (div = 1; div <= 8; div *= 2) {
++		vco = mhz * div;
++		if (vco < MCU_VCO_MIN_MHZ)
++			continue;
++		if (vco > MCU_VCO_MAX_MHZ)
++			return -EINVAL;
++		s->pcw = mt6797_mcu_pcw(vco);
++		s->posdiv = min(div, 2U);
++		s->ckdiv = div / s->posdiv;
++		return 0;
++	}
++
++	return -EINVAL;
++}
++
++struct mt6797_mcu_call {
++	struct mt6797_mcusys *mcu;
++	int (*fn)(struct mt6797_mcusys *mcu, void *arg);
++	void *arg;
++	bool started;
++};
++
++static int mt6797_mcu_sema_get(void __iomem *cspm)
++{
++	unsigned int i;
++
++	for (i = 0; i < CSPM_SEMA_TIMEOUT_US / MCU_FH_POLL_US; i++) {
++		writel(1, cspm + CSPM_SEMA3_M0);
++		if (readl(cspm + CSPM_SEMA3_M0) & CSPM_SEMA_HELD)
++			return 0;
++		udelay(MCU_FH_POLL_US);
++	}
++
++	return -ETIMEDOUT;
++}
++
++static int mt6797_mcu_sema_put(void __iomem *cspm)
++{
++	if (readl(cspm + CSPM_SEMA3_M0) & CSPM_SEMA_HELD)
++		writel(1, cspm + CSPM_SEMA3_M0);
++
++	return (readl(cspm + CSPM_SEMA3_M0) & CSPM_SEMA_HELD) ? -EIO : 0;
++}
++
++static int mt6797_mcu_execute(void *context, void __iomem *cspm)
++{
++	struct mt6797_mcu_call *call = context;
++	struct mt6797_mcusys *mcu = call->mcu;
++	int ret, put;
++
++	ret = clk_enable(mcu->sema_clk);
++	if (ret)
++		return ret;
++
++	writel(CSPM_POWERON_CONFIG_VALUE, cspm + CSPM_POWERON_CONFIG_EN);
++	readl(cspm + CSPM_POWERON_CONFIG_EN);
++
++	preempt_disable();
++	ret = mt6797_mcu_sema_get(cspm);
++	if (ret) {
++		dev_err(mcu->dev, "DVFSP semaphore 3 not granted\n");
++		goto out;
++	}
++
++	ndelay(MCU_ACCESS_SETTLE_NS);
++	call->started = true;
++	ret = call->fn(mcu, call->arg);
++
++	put = mt6797_mcu_sema_put(cspm);
++	if (put) {
++		dev_err(mcu->dev, "DVFSP semaphore 3 not released\n");
++		ret = ret ?: put;
++	}
++out:
++	preempt_enable();
++	clk_disable(mcu->sema_clk);
++	return ret;
++}
++
++/* Run @fn with the semaphore held. Called with mcu->lock held. */
++static int mt6797_mcu_locked(struct mt6797_mcusys *mcu,
++			     int (*fn)(struct mt6797_mcusys *mcu, void *arg),
++			     void *arg)
++{
++	struct mt6797_mcu_call call = { .mcu = mcu, .fn = fn, .arg = arg };
++	int ret;
++
++	lockdep_assert_held(&mcu->lock);
++	if (mcu->faulted)
++		return -EIO;
++
++	ret = mt6797_dvfsp_cspm_execute(mcu->handoff, mt6797_mcu_execute, &call);
++	if (ret && call.started) {
++		mcu->faulted = true;
++		dev_err(mcu->dev, "refusing further changes after error %d\n", ret);
++	}
++
++	return ret;
++}
++
++static int mt6797_mcu_read_setting(struct mt6797_mcu_pll *pll,
++				   struct mt6797_mcu_setting *s)
++{
++	struct mt6797_mcusys *mcu = pll->mcu;
++	u32 con1 = mcu_read(mcu, MCU_PLL_CON1(pll->id));
++	u32 ckdiv = mcu_read(mcu, MCU_ARMPLLDIV_CKDIV);
++	u32 mux = mcu_read(mcu, MCU_ARMPLLDIV_MUXSEL);
++
++	if (((mux >> (2 + 2 * pll->id)) & 0x3) != MCU_MUX_ARMPLL)
++		return -ENODEV;
++	if (mt6797_mcu_decode_posdiv(con1, &s->posdiv))
++		return -EINVAL;
++	if (mt6797_mcu_decode_ckdiv((ckdiv >> pll->ckdiv_shift) & 0x1f,
++				    &s->ckdiv))
++		return -EINVAL;
++	s->pcw = FIELD_GET(MCU_PLL_PCW, con1);
++
++	return 0;
++}
++
++static int mt6797_mcu_write_ckdiv(struct mt6797_mcu_pll *pll,
++				  unsigned int ckdiv)
++{
++	u32 mask = 0x1f << pll->ckdiv_shift;
++	int ret;
++
++	ret = mcu_update(pll->mcu, MCU_ARMPLLDIV_CKDIV, mask,
++			 mt6797_mcu_encode_ckdiv(ckdiv) << pll->ckdiv_shift);
++	udelay(MCU_CKDIV_SETTLE_US);
++
++	return ret;
++}
++
++static int mt6797_mcu_write_mux(struct mt6797_mcu_pll *pll, u32 sel)
++{
++	unsigned int shift = 2 + 2 * pll->id;
++
++	return mcu_update(pll->mcu, MCU_ARMPLLDIV_MUXSEL, 0x3 << shift,
++			  sel << shift);
++}
++
++static void mt6797_mcu_write_misc(struct mt6797_mcusys *mcu, u32 val)
++{
++	u32 reg = readl(mcu->topckgen + TOP_CLK_MISC_CFG_0);
++
++	writel((reg & ~TOP_MISC_CPU_MAINPLL) |
++	       FIELD_PREP(TOP_MISC_CPU_MAINPLL, val),
++	       mcu->topckgen + TOP_CLK_MISC_CFG_0);
++}
++
++/*
++ * Change the PLL post-divider with the cluster on MAINPLL, in the vendor's
++ * order: open the MAINPLL path, switch the mux, write the post-divider, wait,
++ * close the path and switch back.
++ */
++static int mt6797_mcu_write_posdiv(struct mt6797_mcu_pll *pll,
++				   unsigned int posdiv)
++{
++	struct mt6797_mcusys *mcu = pll->mcu;
++	u32 field = posdiv == 4 ? 2 : posdiv == 2 ? 1 : 0;
++	unsigned long flags;
++	u32 con1;
++	int ret, err;
++
++	/* The bridge must not run the cluster faster than the firmware did. */
++	if (pll->boot_rate < MCU_MAINPLL_RATE)
++		return -ERANGE;
++
++	local_irq_save(flags);
++	mt6797_mcu_write_misc(mcu, 3);
++	ret = mt6797_mcu_write_mux(pll, MCU_MUX_MAINPLL);
++	if (!ret) {
++		con1 = mcu_read(mcu, MCU_PLL_CON1(pll->id));
++		ret = mcu_write(mcu, MCU_PLL_CON1(pll->id),
++				(con1 & ~MCU_PLL_POSDIV) |
++				FIELD_PREP(MCU_PLL_POSDIV, field) |
++				MCU_PLL_PCW_CHG,
++				MCU_PLL_POSDIV | MCU_PLL_PCW);
++		udelay(MCU_POSDIV_SETTLE_US);
++	}
++	mt6797_mcu_write_misc(mcu, 0);
++	err = mt6797_mcu_write_mux(pll, MCU_MUX_ARMPLL);
++	local_irq_restore(flags);
++	ret = ret ?: err;
++	if (!ret)
++		pll->cur.posdiv = posdiv;
++
++	return ret;
++}
++
++/* Slew the PLL to @pcw through FHCTL, then hand control back to CON1. */
++static int mt6797_mcu_hop(struct mt6797_mcu_pll *pll, u32 pcw)
++{
++	struct mt6797_mcusys *mcu = pll->mcu;
++	unsigned int id = pll->id;
++	bool hopping = false;
++	unsigned long flags;
++	unsigned int i;
++	u32 con1, mon = 0;
++	int ret, err;
++
++	local_irq_save(flags);
++	con1 = mcu_read(mcu, MCU_PLL_CON1(id));
++	ret = mcu_write(mcu, MCU_FH_CFG(id), 0, ~0);
++	ret = ret ?: mcu_write(mcu, MCU_FH_DDS(id),
++			       FIELD_GET(MCU_PLL_PCW, con1) | BIT(31),
++			       MCU_PLL_PCW);
++	ret = ret ?: mcu_write(mcu, MCU_FH_CFG(id),
++			       MCU_FH_CFG_SFSTR_EN | MCU_FH_CFG_FHCTL_EN, ~0);
++	ret = ret ?: mcu_write(mcu, MCU_FH_SLOPE0, MCU_FH_SLOPE0_VALUE, ~0);
++	if (!ret) {
++		/* From here FHCTL drives the PLL, starting at its current PCW. */
++		hopping = true;
++		ret = mcu_update(mcu, MCU_FH_HP_EN, BIT(id), BIT(id));
++	}
++	ret = ret ?: mcu_write(mcu, MCU_FH_DVFS(id), pcw | BIT(31),
++			       MCU_PLL_PCW);
++	local_irq_restore(flags);
++	if (ret)
++		goto restore;
++
++	for (i = 0; i < MCU_FH_POLL_COUNT; i++) {
++		mon = mcu_read(mcu, MCU_FH_MON(id)) & MCU_PLL_PCW;
++		if (mon == pcw)
++			break;
++		udelay(MCU_FH_POLL_US);
++	}
++	pll->last_poll = i;
++	pll->max_poll = max(pll->max_poll, i);
++	if (i == MCU_FH_POLL_COUNT) {
++		dev_err(mcu->dev, "PLL%u stopped at PCW 0x%06x, wanted 0x%06x\n",
++			id, mon, pcw);
++		ret = -ETIMEDOUT;
++	}
++
++restore:
++	local_irq_save(flags);
++	if (hopping) {
++		/* Whatever FHCTL reached becomes CON1 before it lets go. */
++		mon = mcu_read(mcu, MCU_FH_MON(id)) & MCU_PLL_PCW;
++		con1 = mcu_read(mcu, MCU_PLL_CON1(id));
++		err = mcu_write(mcu, MCU_PLL_CON1(id),
++				(con1 & ~MCU_PLL_PCW) | mon | MCU_PLL_PCW_CHG,
++				MCU_PLL_PCW);
++		ret = ret ?: err;
++		err = mcu_update(mcu, MCU_FH_HP_EN, BIT(id), 0);
++		ret = ret ?: err;
++		pll->cur.pcw = mon;
++	}
++	err = mcu_write(mcu, MCU_FH_CFG(id), 0, ~0);
++	ret = ret ?: err;
++	local_irq_restore(flags);
++
++	return ret;
++}
++
++struct mt6797_mcu_change {
++	struct mt6797_mcu_pll *pll;
++	struct mt6797_mcu_setting target;
++};
++
++static int mt6797_mcu_change(struct mt6797_mcusys *mcu, void *arg)
++{
++	struct mt6797_mcu_change *c = arg;
++	struct mt6797_mcu_pll *pll = c->pll;
++	struct mt6797_mcu_setting live;
++	int ret;
++
++	/* Nothing else may have moved this PLL since the last change. */
++	ret = mt6797_mcu_read_setting(pll, &live);
++	if (ret || live.pcw != pll->cur.pcw || live.posdiv != pll->cur.posdiv ||
++	    live.ckdiv != pll->cur.ckdiv) {
++		dev_err(mcu->dev,
++			"PLL%u changed behind the driver: PCW 0x%06x /%u /%u\n",
++			pll->id, live.pcw, live.posdiv, live.ckdiv);
++		return -EBUSY;
++	}
++
++	/* Divide further before the PLL moves, divide less after it. */
++	if (c->target.posdiv > pll->cur.posdiv) {
++		ret = mt6797_mcu_write_posdiv(pll, c->target.posdiv);
++		if (ret)
++			return ret;
++	}
++
++	if (c->target.ckdiv > pll->cur.ckdiv) {
++		ret = mt6797_mcu_write_ckdiv(pll, c->target.ckdiv);
++		if (ret)
++			return ret;
++		pll->cur.ckdiv = c->target.ckdiv;
++	}
++
++	if (c->target.pcw != pll->cur.pcw) {
++		ret = mt6797_mcu_hop(pll, c->target.pcw);
++		if (ret)
++			return ret;
++	}
++
++	if (c->target.ckdiv < pll->cur.ckdiv) {
++		ret = mt6797_mcu_write_ckdiv(pll, c->target.ckdiv);
++		if (ret)
++			return ret;
++		pll->cur.ckdiv = c->target.ckdiv;
++	}
++
++	if (c->target.posdiv < pll->cur.posdiv) {
++		ret = mt6797_mcu_write_posdiv(pll, c->target.posdiv);
++		if (ret)
++			return ret;
++	}
++
++	pll->changes++;
++	return 0;
++}
++
++static unsigned long mt6797_mcu_recalc_rate(struct clk_hw *hw,
++					    unsigned long parent_rate)
++{
++	return mt6797_mcu_rate(&to_mcu_pll(hw)->cur);
++}
++
++static int mt6797_mcu_determine_rate(struct clk_hw *hw,
++				     struct clk_rate_request *req)
++{
++	struct mt6797_mcu_pll *pll = to_mcu_pll(hw);
++	struct mt6797_mcu_setting s;
++	unsigned long rate;
++
++	rate = clamp(req->rate, req->min_rate, min(req->max_rate,
++						   pll->boot_rate));
++	if (mt6797_mcu_setting_for(rate, &s))
++		return -EINVAL;
++
++	req->rate = mt6797_mcu_rate(&s);
++	return 0;
++}
++
++static int mt6797_mcu_set_rate(struct clk_hw *hw, unsigned long rate,
++			       unsigned long parent_rate)
++{
++	struct mt6797_mcu_pll *pll = to_mcu_pll(hw);
++	struct mt6797_mcusys *mcu = pll->mcu;
++	struct mt6797_mcu_change c = { .pll = pll };
++	int ret;
++
++	if (rate > pll->boot_rate)
++		return -EINVAL;
++	ret = mt6797_mcu_setting_for(rate, &c.target);
++	if (ret)
++		return ret;
++
++	mutex_lock(&mcu->lock);
++	ret = mt6797_mcu_locked(mcu, mt6797_mcu_change, &c);
++	mutex_unlock(&mcu->lock);
++
++	return ret;
++}
++
++static const struct clk_ops mt6797_mcu_pll_ops = {
++	.recalc_rate = mt6797_mcu_recalc_rate,
++	.determine_rate = mt6797_mcu_determine_rate,
++	.set_rate = mt6797_mcu_set_rate,
++};
++
++struct mt6797_mcu_probe_state {
++	struct mt6797_mcu_setting boot[MCU_NUM_PLLS];
++	int read_ret[MCU_NUM_PLLS];
++};
++
++/* Read both PLLs and bring their FHCTL channels to the vendor's idle state. */
++static int mt6797_mcu_init_hw(struct mt6797_mcusys *mcu, void *arg)
++{
++	struct mt6797_mcu_probe_state *st = arg;
++	unsigned int id;
++	int ret;
++
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		st->read_ret[id] = mt6797_mcu_read_setting(&mcu->pll[id],
++							   &st->boot[id]);
++		if (st->read_ret[id])
++			return 0;
++	}
++
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		if (mcu_read(mcu, MCU_FH_HP_EN) & BIT(id))
++			return -EBUSY;
++		ret = mcu_update(mcu, MCU_FH_CLK_CON, BIT(id), BIT(id));
++		ret = ret ?: mcu_update(mcu, MCU_FH_RST_CON, BIT(id), 0);
++		ret = ret ?: mcu_update(mcu, MCU_FH_RST_CON, BIT(id), BIT(id));
++		ret = ret ?: mcu_write(mcu, MCU_FH_CFG(id), 0, ~0);
++		ret = ret ?: mcu_write(mcu, MCU_FH_UPDNLMT(id), 0, ~0);
++		ret = ret ?: mcu_write(mcu, MCU_FH_DDS(id), 0, ~0);
++		if (ret)
++			return ret;
++	}
++
++	return 0;
++}
++
++struct mt6797_mcu_dump {
++	u32 con1[MCU_NUM_PLLS];
++	u32 cfg[MCU_NUM_PLLS];
++	u32 mon[MCU_NUM_PLLS];
++	u32 mux, ckdiv, hp_en, clk_con, misc;
++};
++
++static int mt6797_mcu_dump_hw(struct mt6797_mcusys *mcu, void *arg)
++{
++	struct mt6797_mcu_dump *d = arg;
++	unsigned int id;
++
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		d->con1[id] = mcu_read(mcu, MCU_PLL_CON1(id));
++		d->cfg[id] = mcu_read(mcu, MCU_FH_CFG(id));
++		d->mon[id] = mcu_read(mcu, MCU_FH_MON(id));
++	}
++	d->mux = mcu_read(mcu, MCU_ARMPLLDIV_MUXSEL);
++	d->ckdiv = mcu_read(mcu, MCU_ARMPLLDIV_CKDIV);
++	d->hp_en = mcu_read(mcu, MCU_FH_HP_EN);
++	d->clk_con = mcu_read(mcu, MCU_FH_CLK_CON);
++	d->misc = readl(mcu->topckgen + TOP_CLK_MISC_CFG_0);
++
++	return 0;
++}
++
++static int mt6797_mcu_registers_show(struct seq_file *m, void *unused)
++{
++	struct mt6797_mcusys *mcu = m->private;
++	struct mt6797_mcu_dump d = { };
++	unsigned int id;
++	int ret;
++
++	mutex_lock(&mcu->lock);
++	ret = mt6797_mcu_locked(mcu, mt6797_mcu_dump_hw, &d);
++	mutex_unlock(&mcu->lock);
++	if (ret)
++		return ret;
++
++	seq_printf(m, "muxsel=0x%08x ckdiv=0x%08x hp_en=0x%08x clk_con=0x%08x clk_misc_cfg_0=0x%08x\n",
++		   d.mux, d.ckdiv, d.hp_en, d.clk_con, d.misc);
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		struct mt6797_mcu_pll *pll = &mcu->pll[id];
++
++		seq_printf(m,
++			   "pll%u con1=0x%08x fh_cfg=0x%08x fh_mon=0x%08x rate=%lu boot_rate=%lu changes=%lu last_poll=%u max_poll=%u\n",
++			   id, d.con1[id], d.cfg[id], d.mon[id],
++			   mt6797_mcu_rate(&pll->cur), pll->boot_rate,
++			   pll->changes, pll->last_poll, pll->max_poll);
++	}
++	seq_printf(m, "faulted=%d\n", mcu->faulted);
++
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(mt6797_mcu_registers);
++
++/* Other drivers own these windows; this one touches a single register. */
++static void __iomem *mt6797_mcu_map_shared(struct platform_device *pdev,
++					   const char *name)
++{
++	struct resource *res;
++
++	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, name);
++	if (!res)
++		return IOMEM_ERR_PTR(-EINVAL);
++
++	return devm_ioremap(&pdev->dev, res->start, resource_size(res)) ?:
++	       IOMEM_ERR_PTR(-ENOMEM);
++}
++
++static int mt6797_mcu_check_sync_dcm(struct platform_device *pdev,
++				     struct mt6797_mcusys *mcu)
++{
++	void __iomem *mcucfg;
++	unsigned int id;
++	u32 val;
++
++	mcucfg = mt6797_mcu_map_shared(pdev, "mcucfg");
++	if (IS_ERR(mcucfg))
++		return PTR_ERR(mcucfg);
++	val = readl(mcucfg + MCUCFG_SYNC_DCM_CONFIG);
++	devm_iounmap(&pdev->dev, mcucfg);
++
++	dev_info(mcu->dev, "SYNC_DCM_CONFIG=0x%08x\n", val);
++	/*
++	 * A cluster's sync DCM divider follows its frequency. This driver does
++	 * not program it, so refuse while the firmware has it on.
++	 */
++	for (id = 0; id < MCU_NUM_PLLS; id++)
++		if (val & mt6797_mcu_sync_dcm_bit[id])
++			return dev_err_probe(mcu->dev, -EOPNOTSUPP,
++					     "sync DCM on for cluster %u\n", id);
++
++	return 0;
++}
++
++static int mt6797_mcu_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct mt6797_mcu_probe_state st = { };
++	struct mt6797_mcusys *mcu;
++	unsigned int id;
++	int ret;
++
++	mcu = devm_kzalloc(dev, sizeof(*mcu), GFP_KERNEL);
++	if (!mcu)
++		return -ENOMEM;
++	mcu->dev = dev;
++	mutex_init(&mcu->lock);
++
++	mcu->base = devm_platform_ioremap_resource_byname(pdev, "mcumixed");
++	if (IS_ERR(mcu->base))
++		return PTR_ERR(mcu->base);
++
++	mcu->topckgen = mt6797_mcu_map_shared(pdev, "topckgen");
++	if (IS_ERR(mcu->topckgen))
++		return PTR_ERR(mcu->topckgen);
++
++	ret = mt6797_mcu_check_sync_dcm(pdev, mcu);
++	if (ret)
++		return ret;
++
++	mcu->handoff = mt6797_dvfsp_handoff_get(dev);
++	if (IS_ERR(mcu->handoff))
++		return dev_err_probe(dev, PTR_ERR(mcu->handoff),
++				     "DVFSP handoff unavailable\n");
++
++	mcu->sema_clk = devm_clk_get_prepared(dev, "sema");
++	if (IS_ERR(mcu->sema_clk))
++		return dev_err_probe(dev, PTR_ERR(mcu->sema_clk),
++				     "semaphore clock unavailable\n");
++
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		mcu->pll[id].mcu = mcu;
++		mcu->pll[id].id = id;
++		mcu->pll[id].ckdiv_shift = mt6797_mcu_ckdiv_shift[id];
++	}
++
++	mutex_lock(&mcu->lock);
++	ret = mt6797_mcu_locked(mcu, mt6797_mcu_init_hw, &st);
++	mutex_unlock(&mcu->lock);
++	if (ret)
++		return dev_err_probe(dev, ret, "MCUMIXED init failed\n");
++
++	mcu->data = devm_kzalloc(dev, struct_size(mcu->data, hws, MCU_NUM_PLLS),
++				 GFP_KERNEL);
++	if (!mcu->data)
++		return -ENOMEM;
++	mcu->data->num = MCU_NUM_PLLS;
++
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		struct mt6797_mcu_pll *pll = &mcu->pll[id];
++		struct clk_init_data init = {
++			.name = mt6797_mcu_pll_names[id],
++			.ops = &mt6797_mcu_pll_ops,
++			/* The firmware runs this clock; it is never gated here. */
++			.flags = CLK_IS_CRITICAL,
++		};
++
++		if (st.read_ret[id])
++			return dev_err_probe(dev, st.read_ret[id],
++					     "PLL%u is in a state this driver does not handle\n",
++					     id);
++
++		pll->cur = st.boot[id];
++		pll->boot_rate = mt6797_mcu_rate(&pll->cur);
++		pll->hw.init = &init;
++		dev_info(dev, "PLL%u at %lu Hz (PCW 0x%06x /%u /%u), ceiling\n",
++			 id, pll->boot_rate, pll->cur.pcw, pll->cur.posdiv,
++			 pll->cur.ckdiv);
++
++		ret = devm_clk_hw_register(dev, &pll->hw);
++		if (ret)
++			return ret;
++		mcu->data->hws[id] = &pll->hw;
++	}
++
++	ret = devm_of_clk_add_hw_provider(dev, of_clk_hw_onecell_get, mcu->data);
++	if (ret)
++		return ret;
++
++	platform_set_drvdata(pdev, mcu);
++	mcu->debugfs = debugfs_create_dir(dev_name(dev), NULL);
++	debugfs_create_file("registers", 0400, mcu->debugfs, mcu,
++			    &mt6797_mcu_registers_fops);
++
++	return 0;
++}
++
++static void mt6797_mcu_remove(struct platform_device *pdev)
++{
++	struct mt6797_mcusys *mcu = platform_get_drvdata(pdev);
++
++	debugfs_remove_recursive(mcu->debugfs);
++}
++
++static const struct of_device_id mt6797_mcu_of_match[] = {
++	{ .compatible = "mediatek,mt6797-mcusys-pll" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_mcu_of_match);
++
++static struct platform_driver mt6797_mcu_driver = {
++	.probe = mt6797_mcu_probe,
++	.remove = mt6797_mcu_remove,
++	.driver = {
++		.name = "clk-mt6797-mcusys",
++		.of_match_table = mt6797_mcu_of_match,
++	},
++};
++module_platform_driver(mt6797_mcu_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 Cortex-A53 cluster PLL driver");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

@@ -1216,3 +1216,7 @@ proposals/0633-usb-mtu3-reconnect-after-a-suspend-taken-with-a-susp.patch
 proposals/0634-usb-mtu3-power-down-at-runtime-only-with-a-wake-path.patch
 proposals/0635-regulator-core-hold-the-late-cleanup-off-during-a-sy.patch
 proposals/0636-gnss-mt6797-boot-the-DSP-from-its-firmware-file.patch
+proposals/0639-dt-bindings-clock-mediatek-add-the-MT6797-A53-cluste.patch
+proposals/0640-clk-mediatek-add-the-MT6797-A53-cluster-PLLs.patch
+proposals/0641-cpufreq-dt-leave-out-CPUs-that-have-no-OPPs.patch
+proposals/0642-arm64-dts-mediatek-gemini-station-scale-the-A53-clus.patch
