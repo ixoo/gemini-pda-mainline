@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Gemini first boot: keyring, user, Wi-Fi country
+After=systemd-firstboot.service systemd-user-sessions.service gemini-modules.service
+Before=getty@tty1.service
+ConditionPathExists=!/var/lib/gemini/firstboot-done
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/gemini/firstboot
+ExecStartPost=/usr/bin/systemctl --no-block isolate graphical.target
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+
+[Install]
+WantedBy=multi-user.target

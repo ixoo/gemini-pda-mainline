@@ -1,0 +1,29 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# First boot, on the console: the package keyring, one user in wheel with a
+# password, the Wi-Fi country and a first join, then the autologin session.
+# A marker, not ConditionFirstBoot, so an interrupted run asks again next boot.
+set -u
+state=/var/lib/gemini
+echo "Gemini first boot."
+pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
+    echo "pacman-key failed; run it again later: pacman-key --init; pacman-key --populate archlinuxarm"
+while :; do
+    read -r -p "User name: " user
+    [[ "$user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && ! id "$user" >/dev/null 2>&1 && break
+    echo "Use lower case letters, digits, _ or -, for a new user."
+done
+useradd -m -G wheel "$user"
+until passwd "$user"; do :; done
+read -r -p "Wi-Fi country, two letters (empty keeps Wi-Fi off): " country
+country=$(echo "$country" | tr '[:lower:]' '[:upper:]')
+if [[ "$country" =~ ^[A-Z][A-Z]$ ]]; then
+    echo "WIRELESS_REGDOM=\"$country\"" >/etc/conf.d/wireless-regdom
+    systemctl start gemini-wifi.service iwd.service
+    echo "Join a network: station wlan0 scan, station wlan0 get-networks, station wlan0 connect NAME. Type quit when done."
+    iwctl
+fi
+systemctl enable "gemini-session@$user.service"
+systemctl set-default graphical.target
+touch "$state/firstboot-done"
+echo "Done. The session starts now."

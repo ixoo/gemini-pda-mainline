@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Move the console to the native Gemini display
+After=gemini-modules.service local-fs.target
+RequiresMountsFor=/var/lib/gemini
+ConditionPathExists=/usr/lib/modules/%v/mediatek-drm.ko
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/gemini/display-boot
+
+[Install]
+WantedBy=multi-user.target

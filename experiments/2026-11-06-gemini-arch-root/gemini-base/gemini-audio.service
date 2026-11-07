@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+[Unit]
+Description=Load the Gemini audio stack, quiet, routed to the headphones
+After=gemini-modules.service
+ConditionPathExists=/usr/lib/modules/%v/snd-soc-mt6797-afe.ko
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/gemini/audio-start
+
+[Install]
+WantedBy=multi-user.target

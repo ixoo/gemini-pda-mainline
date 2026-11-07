@@ -1,0 +1,2 @@
+# SPDX-License-Identifier: MIT
+%wheel ALL=(ALL:ALL) ALL

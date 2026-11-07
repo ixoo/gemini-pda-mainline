@@ -12,6 +12,7 @@
 # gemini-arch. The root is the tarball, with:
 #   - the kernel, linux-firmware and mkinitcpio packages removed, and ignored;
 #   - upgraded from the official repositories, with iwd, iw, wireless-regdb and sudo;
+#   - gemini-base built from ./gemini-base and installed, with its units enabled;
 #   - root locked and the default alarm user removed; sshd masked;
 #   - an uninitialised machine-id, so systemd treats the first boot as first;
 #   - an fstab line for the root, and the mount points stage 1 needs.
@@ -109,6 +110,30 @@ in_root pacman-key --gpgdir /run/pacman-gnupg --init >/dev/null 2>&1
 in_root pacman-key --gpgdir /run/pacman-gnupg --populate archlinuxarm >/dev/null 2>&1
 in_root pacman --gpgdir /run/pacman-gnupg -Syu --needed --noconfirm --noprogressbar "${EXTRA[@]}" >"$work/pacman.log" 2>&1 ||
 	{ tail -20 "$work/pacman.log" >&2; echo "build-card: pacman failed" >&2; exit 1; }
+
+# gemini-base (step 3), built from this directory with the station's audio-start and
+# display-start staged beside it, by makepkg as nobody; fakeroot only for the build.
+here=$(cd "$(dirname "$0")" && pwd)
+station=$here/../2026-10-30-mainline-dev-station/initramfs
+build=$mnt/run/build
+mkdir -p "$build/src" "$build/out"
+cp "$here"/gemini-base/* "$station/audio-start" "$station/display-start" "$build/src/"
+chown -R 65534:65534 "$build"
+in_root pacman --gpgdir /run/pacman-gnupg -S --needed --noconfirm --noprogressbar fakeroot >>"$work/pacman.log" 2>&1
+chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/run/build LANG=C \
+	PKGDEST=/run/build/out sh -c 'cd /run/build/src && makepkg --nodeps --noprogressbar' >"$work/makepkg.log" 2>&1 ||
+	{ tail -20 "$work/makepkg.log" >&2; echo "build-card: makepkg failed" >&2; exit 1; }
+base_pkg=$(ls "$build"/out/gemini-base-*.pkg.tar.*)
+cp "$base_pkg" "$out/"
+base_sha=$(sha256sum "$base_pkg" | cut -d' ' -f1)
+in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/run/build/out/${base_pkg##*/}" >>"$work/pacman.log" 2>&1 ||
+	{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing gemini-base failed" >&2; exit 1; }
+in_root pacman -Rns --noconfirm fakeroot >>"$work/pacman.log" 2>&1
+rm -rf "$build"
+in_root systemctl enable -q gemini-modules.service gemini-audio.service gemini-display.service \
+	gemini-wifi.service gemini-firstboot.service iwd.service systemd-pstore.service
+in_root systemctl set-default -q multi-user.target
+
 in_root gpgconf --homedir /run/pacman-gnupg --kill all
 rm -f "$resolv"
 if [ -e "$work/resolv.conf.saved" ] || [ -L "$work/resolv.conf.saved" ]; then mv "$work/resolv.conf.saved" "$resolv"; fi
@@ -130,8 +155,9 @@ packages=$(in_root pacman -Q | sha256sum | cut -d' ' -f1)
 count=$(in_root pacman -Qq | wc -l)
 systemd=$(in_root pacman -Q systemd | cut -d' ' -f2)
 in_root pacman -Q >"$out/packages.txt"
-# Only the directories that exist are searched.
-private=$(find "$mnt/usr/lib/firmware" "$mnt/nvdata" "$mnt/root" "$mnt/etc/ssh" -maxdepth 4 \
+# Only the directories that exist are searched, and only files: gemini-base's
+# WIFI.storage is a link to nvdata, which is mounted only on the device.
+private=$(find "$mnt/usr/lib/firmware" "$mnt/nvdata" "$mnt/root" "$mnt/etc/ssh" -maxdepth 4 -type f \
 	\( -name 'ssh_host_*' -o -name 'WIFI*' -o -name 'WMT_SOC*' -o -name 'authorized_keys' \) \
 	2>/dev/null | wc -l || true)
 [ "$private" -eq 0 ] || { echo "build-card: private files in the root" >&2; exit 1; }
@@ -154,6 +180,7 @@ cat >"$out/card.json" <<EOF
   "package_count": $count,
   "package_list_sha256": "$packages",
   "packages_added": "${EXTRA[*]}",
+  "gemini_base_sha256": "$base_sha",
   "systemd": "$systemd",
   "root_bytes_used": $used,
   "image_size": "$size",

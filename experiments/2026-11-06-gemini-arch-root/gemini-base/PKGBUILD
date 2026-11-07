@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: MIT
+# The Gemini PDA's boot-time setup for the Arch root (../README.md, step 3).
+# Built by ../build-card.sh, which stages the station's audio-start and
+# display-start here, so each script has one copy in the repository.
+pkgname=gemini-base
+pkgver=1
+pkgrel=1
+pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, sway session'
+arch=('any')
+url='https://github.com/ixoo/gemini-pda-mainline'
+license=('MIT')
+depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'sway' 'foot' 'ttf-dejavu')
+backup=('etc/iwd/main.conf' 'etc/vconsole.conf')
+options=('!debug' '!strip')
+source=(gemini-modules.service modules-load.conf gemini-audio.service audio-start
+        display-start display-boot gemini-display.service wifi-start gemini-wifi.service
+        tmpfiles.conf 50-gemini-usb0.network 50-gemini-wlan.network iwd-main.conf
+        logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
+        sway.conf firstboot gemini-firstboot.service)
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+            SKIP SKIP SKIP SKIP SKIP SKIP)
+
+package() {
+    local unit
+    for unit in gemini-modules.service gemini-audio.service gemini-display.service \
+        gemini-wifi.service gemini-session@.service gemini-firstboot.service; do
+        install -Dm644 "$unit" "$pkgdir/usr/lib/systemd/system/$unit"
+    done
+    install -Dm755 -t "$pkgdir/usr/lib/gemini" audio-start display-start display-boot wifi-start firstboot
+    install -Dm644 modules-load.conf "$pkgdir/usr/lib/modules-load.d/gemini.conf"
+    install -Dm644 tmpfiles.conf "$pkgdir/usr/lib/tmpfiles.d/gemini.conf"
+    install -Dm644 -t "$pkgdir/usr/lib/systemd/network" 50-gemini-usb0.network 50-gemini-wlan.network
+    install -Dm644 logind.conf "$pkgdir/usr/lib/systemd/logind.conf.d/50-gemini.conf"
+    install -Dm644 journald.conf "$pkgdir/usr/lib/systemd/journald.conf.d/50-gemini.conf"
+    install -Dm644 iwd-main.conf "$pkgdir/etc/iwd/main.conf"
+    install -Dm644 vconsole.conf "$pkgdir/etc/vconsole.conf"
+    install -Dm440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"
+    install -Dm644 sway.conf "$pkgdir/etc/sway/config.d/50-gemini.conf"
+    # The Wi-Fi calibration record, read in place from nvdata: a link, never a copy.
+    install -dm755 "$pkgdir/usr/lib/firmware/mediatek/mt6797"
+    ln -s /nvdata/APCFG/APRDEB/WIFI "$pkgdir/usr/lib/firmware/mediatek/mt6797/WIFI.storage"
+}

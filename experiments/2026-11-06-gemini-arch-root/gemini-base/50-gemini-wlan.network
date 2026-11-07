@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# iwd joins; networkd configures the address.
+[Match]
+Name=wlan0
+
+[Network]
+DHCP=ipv4

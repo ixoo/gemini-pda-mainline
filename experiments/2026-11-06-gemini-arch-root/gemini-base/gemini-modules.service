@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: MIT
+# Stage 1 puts this image's modules on a tmpfs at /usr/lib/modules. Index them
+# so modprobe works by name, and drop the alias index so udev loads nothing by
+# itself: as on the station, a module loads only when a unit or the owner asks.
+[Unit]
+Description=Index the boot image's kernel modules, without autoload aliases
+DefaultDependencies=no
+ConditionPathIsDirectory=/usr/lib/modules/%v
+Before=systemd-modules-load.service systemd-udev-trigger.service sysinit.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/depmod -a
+ExecStart=/usr/bin/rm -f /usr/lib/modules/%v/modules.alias /usr/lib/modules/%v/modules.alias.bin
+
+[Install]
+WantedBy=sysinit.target

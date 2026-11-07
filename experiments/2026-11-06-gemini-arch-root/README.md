@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 and 2 done in the VM and on Buildbox, nothing booted |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox, nothing booted |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 |
@@ -102,11 +102,11 @@ Today's decisions:
 - **The boot image** comes from Buildbox, unchanged, holding kernel, DTB and an
   initramfs with this kernel's modules. The modules are always the ones the running
   kernel was built with, whichever slot started it.
-- **Autoload.** `modules.alias` stays, so udev autoloads by device. A `modprobe.d`
-  file in `gemini-base` blacklists every module that isn't proven at boot, so
-  `modprobe` by hand still works: GPU, camera, A72, Bluetooth, GNSS, touch,
-  sensors, the Wi-Fi trio and the display. That keeps "nothing loads at boot until
-  proven".
+- **Autoload.** `gemini-modules.service` runs `depmod` on the tmpfs, then removes
+  `modules.alias`. udev then loads nothing by device, while `modprobe` by name and
+  `modules-load.d` still work. That keeps "nothing loads at boot until proven", as on
+  the station. It replaces the first design's `modprobe.d` blacklist, which would
+  have needed a list of every unproven module and kept up to date (step 3).
 - **Proven boot-time modules** load through `modules-load.d` (lid, LEDs, vibrator)
   or their own units below.
 - **Kernel updates.** `pacman -Syu` installs a new `linux-gemini`. Its hook runs
@@ -133,7 +133,7 @@ Today's decisions:
 | Thermal trips, hardware reset | Unchanged, kernel |
 | Left Type-C chip set to sink (`i2cset`) | Moves to the kernel through the usb-c work. The release config has no `/dev/i2c`, and the root shouldn't need it |
 | `nvdata` read-only for Wi-Fi calibration | Stage 1 sets it read-only, mounts it, and moves it into the root |
-| Wi-Fi modules and country | Built-in `cfg80211` can't take a country from module options under a forced command line. `gemini-regdom.service` runs `iw reg set` from Arch's `/etc/conf.d/wireless-regdom`, then `gemini-wifi.service` loads the three modules in order. iwd starts after them |
+| Wi-Fi modules and country | Built-in `cfg80211` can't take a country from module options under a forced command line. `gemini-wifi.service` runs `iw reg set` from Arch's `/etc/conf.d/wireless-regdom`, waits to see it applied, then loads the three modules in order. With no country it stays off. iwd starts after it |
 | Audio routes (`audio-start`) | `gemini-audio.service`, a oneshot running the same script. UCM later |
 | Native display with the hang marker | `gemini-display.service` with the same marker, in `/var/lib/gemini`. sway waits for it |
 | Lid (`gemini-lid`) | `modules-load.d`. `logind.conf.d` sets `HandleLidSwitch=ignore`, since there's no suspend and the kernel module already blanks the panel |
@@ -157,7 +157,8 @@ Today's decisions:
   - sudo;
   - sway with Mesa (Panfrost), and PipeWire and WirePlumber as user services;
   - pacman.
-- **First boot** runs a `ConditionFirstBoot` unit on the console:
+- **First boot** runs `gemini-firstboot.service` on the console. It's gated by a marker in
+  `/var/lib/gemini`, so an interrupted run asks again:
   1. `systemd-firstboot --prompt`;
   2. country;
   3. user name and password, with `useradd` into `wheel`;
@@ -236,7 +237,7 @@ First implementation steps, in order:
    - Observe, in order:
      1. stage 1 picks the card;
      2. systemd reaches the default target;
-     3. no blacklisted module is loaded;
+     3. no module loaded but those the units and `modules-load.d` load;
      4. the guard and thermal zones are present;
      5. an iwd WPA2-PSK join, then `pacman -Sy`;
      6. sway on the panel, with rotation and touch measured.
@@ -361,6 +362,64 @@ device remaining.
 
 **Not tested:** the image on a card or the device; anything at first boot, from the keyring
 and user to iwd.
+
+### Step 3 result
+
+**The [`gemini-base`](gemini-base/PKGBUILD) package**, `arch=any`, MIT. It contains:
+- `gemini-modules.service`: `depmod`, then no alias index;
+- `modules-load.d` entries for the lid, LEDs and vibrator;
+- `gemini-audio.service` running the station's own `audio-start`;
+- `gemini-display.service` running `display-start` behind the station's hang marker,
+  now in `/var/lib/gemini`;
+- `gemini-wifi.service` with the country gate;
+- networkd files for `usb0` (the station's fixed address) and `wlan0` (DHCP);
+- iwd set to leave addresses to networkd, with MAC randomisation off;
+- `logind.conf.d` setting the lid switch to `ignore`, and `journald.conf.d` making the
+  journal persistent at 64M;
+- `vconsole.conf` with `KEYMAP=us`, a wheel sudoers file, and the `WIFI.storage` link
+  into `/nvdata`;
+- a sway drop-in rotating the output 270° and mapping touch to it;
+- `gemini-session@.service`: sway on `tty1` with `PAMName=login` and software rendering
+  until Panfrost loads at boot;
+- `gemini-firstboot.service`, which:
+  - initialises the pacman keyring;
+  - creates one user in `wheel` with a password;
+  - asks for the Wi-Fi country and offers an `iwctl` join;
+  - then enables that user's session and the graphical target.
+
+It depends on `kmod`, `alsa-utils`, `iwd`, `iw`, `wireless-regdb`, `sudo`, `sway`, `foot`
+and `ttf-dejavu`.
+
+**`build-card.sh` builds and installs it.** It stages the station's `audio-start` and
+`display-start` beside the PKGBUILD, so each script keeps one copy. It builds with
+`makepkg` as `nobody`, using `fakeroot` that is installed for the build and removed, and
+installs with `pacman -U`. It then enables the units and `iwd`, plus `systemd-pstore`, and
+sets `multi-user.target` until the first boot finishes.
+
+**Run, 2026-11-06:** `gemini-base` `03cad732…`, 235 packages, 1.27 GB used, image
+`855cc1d0…`. The VM's device nodes were intact afterwards, and no mount or loop device
+was left behind.
+
+**Container boot**, `systemd-nspawn -b` of a copy of the previous image (`7525afd5…`), in
+the VM:
+- systemd 262.1 came up `degraded`, with these failures:
+  - `gemini-display`, because the container has no modules. Fixed by the condition above,
+    then rebuilt;
+  - `gemini-firstboot`, because there's no `/dev/tty1` in a container;
+  - `systemd-remount-fs`, because there are no block devices in a container, so
+    `PARTLABEL=gemini-arch` didn't resolve.
+- `systemd-analyze verify` passed on every `gemini-*` unit.
+- logind reported `HandleLidSwitch=ignore`, journald read `Storage=persistent` and
+  `SystemMaxUse=64M`, `visudo -c` passed, and the `WIFI.storage` link was in place.
+
+**Not tested:**
+- anything with the hardware: the modules, audio, display, Wi-Fi and the sway session;
+- the first-boot dialogue, which needs a console;
+- whether `systemd-remount-fs` resolves the label on the device and remounts the root
+  read-write, and whether `systemd-fsck-root` runs;
+- whether `systemd-firstboot` also prompts.
+
+Step 4 answers these.
 
 ## Analysis
 

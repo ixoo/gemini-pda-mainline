@@ -1,0 +1,27 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# The station's native display start, with its marker: a load that never
+# finished (a hang or a power loss) is skipped once, so the next boot keeps the
+# loader framebuffer. /var/lib/gemini/no-native-display skips it for good.
+state=/var/lib/gemini
+marker=$state/native-display-loading
+if [ -e "$state/no-native-display" ]; then
+    echo skipped
+    exit 0
+fi
+if [ -e "$marker" ]; then
+    rm -f "$marker"
+    sync
+    echo skipped-last-load-unfinished
+    exit 0
+fi
+if ! touch "$marker"; then
+    echo skipped-no-state
+    exit 1
+fi
+sync
+result=$(/usr/lib/gemini/display-start)
+echo "$result"
+[ "$result" = native ] || exit 1
+rm -f "$marker"
+sync
