@@ -5,3 +5,11 @@
 CONFIG_ARM64_MT6797_LATE_A72=y
 CONFIG_MTK_MT6797_DVFSP_HANDOFF=y
 CONFIG_MTK_MT6797_A72=m
+# The Arch card root (2026-11-06-gemini-arch-root, R1): systemd talks on /dev/console,
+# which is the last console= named. With only ttyS0 its boot status, emergency shell and
+# first-boot prompt went to the serial port and the panel showed nothing. tty1 last makes
+# /dev/console the panel; kernel messages at the same loglevel go to both. The station's
+# own services already name tty1 or log to the kernel log. The release profile sets its
+# own command line after this fragment.
+CONFIG_CMDLINE="console=ttyS0,921600n8 console=tty1 earlycon maxcpus=8 nokaslr loglevel=4 log_buf_len=8M initcall_debug rdinit=/init panic=10 pstore.kmsg_bytes=2048 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-CCMP-Stable-Monitor g_ether.iSerialNumber=GEMINI_CCMP_STABLE_MONITOR_20261014 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32"
+CONFIG_CMDLINE_FORCE=y
