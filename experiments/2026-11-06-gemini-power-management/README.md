@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1 (idle floor about 111 mA), R1b (CPUs 1–7 offline save about 15 mA, AUDIO off saves nothing) and R2 (clock census) run; P1 candidate (0628–0631, config) building; R3 and S1 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; P1 image booted; S1 stopped at step 2 (MTU3 -EBUSY), fix 0632 compile-checked; P2f CPU policy written; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -654,6 +654,64 @@ bq25890 changes are built in; FUSB301 is a module.
 - **Decision:** resume works, so measure R1's case suspended; or a named device
   fails resume, which becomes that driver's fix; or nothing resumes, which
   points at the platform (GIC, EINT, timer) and stops the line for review.
+
+#### S1 result (2026-11-06): stopped at step 2, MTU3 refused
+
+**Setup.** The custodian ran S1 on station-work-73, the P1 image: boot2
+`99b6d357…`, built from `1c659a42` (without `d28da6fa`). Boot `28323df3`,
+untainted.
+
+**Boot checks, all passed:**
+- `mem_sleep` read `[s2idle]`;
+- `rtc0` is the MT6351 RTC;
+- `keyboard-matrix`, `gpio-keys` and the USB controller have wakeup
+  attributes;
+- the PMIC keys arm their wake from their own suspend callback, so they have
+  no `power/wakeup` attribute.
+
+The RTC holds a 2070 date and logs an invalid alarm value at boot; it was not
+set for this test.
+
+**The run:** unplugged, A72s offline, Wi-Fi unloaded, display blanked,
+`pm_debug_messages` on.
+
+| Step | Result |
+| --- | --- |
+| 1, `pm_test=freezer` | Passed: `echo freeze` rc 0 in about 5.1 s; a 64 MiB eMMC read hashed the same before and after |
+| 2, `pm_test=devices` | **Failed in 0.2 s:** `mtu3 11271000.usb: platform_pm_suspend returns -16`, devices resumed after 5.8 ms. No other device reported an error; the eMMC hash still matched, HS400 held, no warning |
+| 3, 4 | Not run, by the stop rule |
+
+The gauge read 86 % before, 80 % at the end of the 20 s run and 86 % after
+the replug, so it can't measure windows this short.
+
+**Cause, from the source.**
+- `ssusb_gadget_suspend()` returns `-EBUSY` while `mtu->connected` is set.
+- Only a disconnect clears that flag, and the MAC sees a disconnect through
+  VBUS.
+- The station's PHY has `mediatek,force-b-session-valid`, so a removed cable
+  never looks like a disconnect. The controller only sees the bus go idle.
+- A soft disconnect (`soft_connect`) would not clear the flag.
+- Nor would a role switch to "none", which MTU3 maps back to the device role.
+
+**Fix: [0632](../../patches/proposals/0632-usb-mtu3-let-a-suspended-bus-suspend-the-system.patch).**
+MTU3 tracks a bus suspend (set on the suspend interrupt, cleared on resume and
+reset) and lets the system suspend while it lasts. An active link still
+refuses, as before. It is compile-checked with `W=1`, and built in, so it
+needs an image.
+
+**Its premise is an inference:** that an unplug raises the U2 suspend
+interrupt. That can be checked read-only on the running image: with the cable
+out, log the `11271000.usb` count in `/proc/interrupts` and
+`/sys/kernel/debug/mtu3/11271000.usb/link-state`.
+
+**Retry options.**
+- Retry S1 on the P1 image with a workaround in the script: unbind
+  `11271000.usb` from `mtu3` before the suspend and rebind it after the
+  replug. Gadget Ethernet then rebinds by itself. The unbind/rebind cycle is
+  itself untested on this unit.
+- Or wait for an image with 0632.
+
+Both need the owner's go.
 
 ## Analysis
 
