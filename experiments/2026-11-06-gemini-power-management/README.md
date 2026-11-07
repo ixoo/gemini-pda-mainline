@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: source, binary and configuration assessment done; R2 (clock and domain census) run by the custodian; R1 revised to an unplugged run; no build or suspend attempt |
+| Status | `running`: source, binary and configuration assessment done; R1 (idle floor about 111 mA, Wi-Fi unjoined +4 mA) and R2 (clock and domain census) run by the custodian; R1b and R3 proposed; no build or suspend attempt |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -393,6 +393,65 @@ For the custodian. None has been run.
 - **Decision:** each listed clock gets an owner (a driver or a DT consumer) or
   a recorded reason; P3 waits for that list.
 
+#### R1 result (2026-11-06)
+
+**Setup.** The custodian ran R1 on the same image and boot as R2 (boot2
+`55f5d6d6…` from `e4e09b1a`, boot `9a152abb`), untainted before and after.
+The cable was unplugged, the display blanked through `fb0/blank`, the lid
+open, eight CPUs online and `clk_ignore_unused` in force. One sample a second
+was logged to the data partition. The raw logs stay private with the
+custodian.
+
+| Case | Samples | Mean battery current | Range |
+| --- | --- | --- | --- |
+| Wi-Fi loaded, not joined | 52 | −115.3 mA at 4.168 V | −105 to −133 mA |
+| Wi-Fi unloaded | 60 | −111.0 mA at 4.160 V | −98 to −136 mA |
+
+- The first 8 samples of the loaded case were excluded: they read the charger
+  online at about 0 mA, because the cable briefly reconnected after the
+  unplug.
+- One −219 mA sample came right after the `rmmod`.
+- **The idle floor is about 111 mA, or about 0.46 W.** On the 4268 mAh design
+  capacity that is roughly 38 h idle with the display blanked.
+
+**Interrupts per 65 s window** (Wi-Fi loaded / unloaded):
+
+| Source | Loaded | Unloaded |
+| --- | --- | --- |
+| `arch_timer` (about 220/s across 8 CPUs) | 14183 | 14366 |
+| IPI function call | 5487 | 5246 |
+| IPI reschedule | 1284 | 1269 |
+| I2C `11007000` | 826 | 552 |
+| `mmc0` (the log's own writes) | 122 | 110 |
+
+- **Context switches:** the logging shell about 1570 per window, `rcu_preempt`
+  about 1185, every kworker under 350.
+- **Battery and temperature:** the battery went from 87 to 85 %, the
+  temperature from 24.8 to 24.9 °C, and no stop rule was hit. Wi-Fi was
+  reloaded afterwards.
+
+**Decision, by the predeclared rule.** Loaded but not joined, Wi-Fi costs
+about 4 mA, under the 20 mA threshold. So the adaptive receive poll does not
+move up the Wi-Fi plan for the unjoined case. The joined case was not run.
+
+**Analysis.**
+- The interrupt load is modest: about 27 timer ticks per CPU each second,
+  plus the IPIs.
+- The I2C bus at `11007000`, which carries the charger and the right FUSB301,
+  takes about 8–13 transfers a second while idle. That is the FUSB301 status
+  poll plus the charge guard, and it raises P2b's priority.
+- Most of the 111 mA is therefore unlikely to be wakeups. It is more likely
+  always-on power: the clocks R2 found running, the AUDIO domain held active,
+  VCORE at its run voltage, and eight CPUs idling in WFI rather than
+  powered off. R1b separates the CPU share.
+
+**Caveats.**
+- The 1 Hz logger and its eMMC writes are part of the load.
+- The gauge's averaging window is unknown.
+- The report also mentions the A72 cluster as online, while `maxcpus=8`
+  allows eight CPUs. Which eight were online should be confirmed on the next
+  run.
+
 #### R2 result (2026-11-06)
 
 **Setup:** the custodian ran R2 on station-work-72 (boot2 image `55f5d6d6…`,
@@ -441,6 +500,27 @@ with the custodian.
   is the largest clock-side lever found.
 - The audio controller staying active while idle is a driver fix of its own.
 - Every one of these is still unmeasured in milliamps, so R1 comes next.
+
+### R1b: what the CPUs and the AUDIO domain cost (proposed)
+
+- **Hypothesis:** offlining CPUs 1–7 through `CPU_OFF` (the working hotplug
+  path) and unloading the audio modules (so the AUDIO domain powers off) each
+  lower the 111 mA floor measurably.
+- **Method:** as in R1, unplugged, with the Wi-Fi modules unloaded. Run three
+  60 s windows in one unplug:
+  1. the R1 state;
+  2. CPUs 1–7 offline through `/sys/devices/system/cpu/cpuN/online`;
+  3. the audio modules also removed.
+
+  Restore everything after the replug. Record which CPUs are online at the
+  start.
+- **Stop:** R1's rules, plus any CPU that fails to come back online.
+- **Decision:**
+  - If CPU offlining saves more than about 10 mA, an idle hotplug policy
+    becomes the first CPU-power step, ahead of any SPM work.
+  - If the AUDIO domain saves more than about 5 mA, fixing the idle runtime
+    suspend of the audio controller moves ahead of the P2 module fixes.
+  - Otherwise both stay where they are, and P3 (clocks) is the next lever.
 
 ### R3: the Gemian comparison
 
