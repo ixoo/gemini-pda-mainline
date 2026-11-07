@@ -136,7 +136,7 @@ are in `release/`:
   key or firmware. `usb-ssh` makes the host key in RAM, so it
   changes on every boot, and `/run/station/host-key.pub` shows it on the console.
 - **Radio.** Init loads no Wi-Fi module by itself. `radio-start` needs a two-letter
-  `/etc/radio-country`, gets the three firmware files through `firmware-get`, then sets the
+  `/etc/radio-country`, gets the three Wi-Fi firmware files through `firmware-get` (which also copies the FM and GNSS files when it can), then sets the
   country, waits to see it applied, and loads the driver. Both live in RAM, so a tester sets the
   country after each boot and runs it by hand. `wifi-up.sh` runs it first on this image and stops if it doesn't start.
 - **Gemian.** `linux` mounts `ro,noload`, with the block device set read-only first, and

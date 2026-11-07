@@ -1,11 +1,14 @@
 #!/bin/busybox sh
 # SPDX-License-Identifier: MIT
 # shellcheck shell=dash
-# Put the connectivity firmware in RAM from the owner's own Gemian system. It reads the three
-# named files from /data/system.img on Gemian's linux partition, which init has already mounted
+# Put the connectivity firmware in RAM from the owner's own Gemian system. It reads the named
+# files from /data/system.img on Gemian's linux partition, which init has already mounted
 # read-only, through a read-only loop device. It starts no radio, writes to no partition, reads
 # no calibration or identifier, and sends nothing anywhere. Files go at reboot.
-# Prints one word: ready, no-gemian-system, or missing- or mismatch- with the file's name.
+# The three Wi-Fi files are required. The two FM files and the GNSS DSP image, which is cut out
+# of libmnl.so, are copied too, but a problem with one of them never stops Wi-Fi.
+# Prints one word: ready, no-gemian-system, or missing- or mismatch- with the file's name; or
+# ready-missing- or ready-mismatch- with the first FM or GNSS file that is not in place.
 # A file already in place, however it got there, is checked and never replaced.
 # See docs/hardware/firmware.md.
 export PATH=/bin
@@ -19,9 +22,14 @@ sum() {
     ROMv3_patch_1_0_hdr.bin) echo 450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630 ;;
     ROMv3_patch_1_1_hdr.bin) echo 5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e ;;
     WIFI_RAM_CODE_6797) echo a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd ;;
+    mt6631_fm_v1_patch.bin) echo ba35c74d26660729caf83b41a567e700f633b6c99384dfa6cbb3c17ceb767e26 ;;
+    mt6631_fm_v1_coeff.bin) echo d32f4a16b35f950ed1a57f2ae88f77ac4b5674d5c4210b65f6fe7912901fd8db ;;
+    gnss_dsp_6797.bin) echo 898a5cca5aa3011d119a7c92a1c74720753a2b1c03e253cfd88bad4f8966f603 ;;
     esac
 }
 names='ROMv3_patch_1_0_hdr.bin ROMv3_patch_1_1_hdr.bin WIFI_RAM_CODE_6797'
+extras='mt6631_fm_v1_patch.bin mt6631_fm_v1_coeff.bin gnss_dsp_6797.bin'
+note=
 matches() { [ "$($bb sha256sum "$1" | $bb cut -d' ' -f1)" = "$(sum "$2")" ]; }
 leave() {
     $bb grep -q " $source " /proc/mounts && $bb umount "$source"
@@ -29,7 +37,23 @@ leave() {
     $bb rm -f "$dir"/*.partial
     $bb rmdir "$source" 2>/dev/null
     echo "$1"
-    case "$1" in ready) exit 0 ;; *) exit 1 ;; esac
+    case "$1" in ready*) exit 0 ;; *) exit 1 ;; esac
+}
+# An FM or GNSS file that cannot be put in place is noted, once, and left out.
+extra() {
+    [ -n "$note" ] || note=-$1-$2
+    $bb rm -f "$dir/$2.partial"
+}
+# Copy one file into place under a temporary name; the GNSS image is a part of libmnl.so.
+fetch() {
+    case "$1" in
+    gnss_dsp_6797.bin)
+        [ -f "$source/vendor/lib/libmnl.so" ] || return 1
+        $bb tail -c +2008670 "$source/vendor/lib/libmnl.so" | $bb head -c 61440 >"$dir/$1.partial" ;;
+    *)
+        [ -f "$source/vendor/firmware/$1" ] || return 1
+        $bb cp "$source/vendor/firmware/$1" "$dir/$1.partial" ;;
+    esac
 }
 absent=
 for name in $names; do
@@ -39,20 +63,40 @@ for name in $names; do
         absent="$absent $name"
     fi
 done
-[ -n "$absent" ] || leave ready
-[ -f "$image" ] || leave no-gemian-system
+optional=
+for name in $extras; do
+    if [ -e "$dir/$name" ]; then
+        matches "$dir/$name" "$name" || extra mismatch "$name"
+    else
+        optional="$optional $name"
+    fi
+done
+[ -n "$absent$optional" ] || leave "ready$note"
+# No source: Wi-Fi fails only when it still needs a file.
+nosource() {
+    [ -z "$absent" ] || leave no-gemian-system
+    # shellcheck disable=SC2086 # a list of names
+    set -- $optional
+    leave "ready${note:--missing-$1}"
+}
+[ -f "$image" ] || nosource
 # The file system is mounted read-only, and the loop device refuses writes as well, since a
 # read-only ext4 mount can otherwise still clear an orphan list.
-loop=$($bb losetup -f) || { loop=; leave no-gemian-system; }
-$bb losetup -r "$loop" "$image" || { loop=; leave no-gemian-system; }
-[ "$($bb blockdev --getro "$loop")" = 1 ] || leave no-gemian-system
+loop=$($bb losetup -f) || { loop=; nosource; }
+$bb losetup -r "$loop" "$image" || { loop=; nosource; }
+[ "$($bb blockdev --getro "$loop")" = 1 ] || nosource
 $bb mkdir -p "$source" "$dir"
-$bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$loop" "$source" || leave no-gemian-system
+$bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$loop" "$source" || nosource
 for name in $absent; do
-    [ -f "$source/vendor/firmware/$name" ] || leave "missing-$name"
-    $bb cp "$source/vendor/firmware/$name" "$dir/$name.partial" || leave "missing-$name"
+    fetch "$name" || leave "missing-$name"
     matches "$dir/$name.partial" "$name" || leave "mismatch-$name"
     $bb chmod 0644 "$dir/$name.partial"
     $bb mv "$dir/$name.partial" "$dir/$name"
 done
-leave ready
+for name in $optional; do
+    fetch "$name" || { extra missing "$name"; continue; }
+    matches "$dir/$name.partial" "$name" || { extra mismatch "$name"; continue; }
+    $bb chmod 0644 "$dir/$name.partial"
+    $bb mv "$dir/$name.partial" "$dir/$name"
+done
+leave "ready$note"

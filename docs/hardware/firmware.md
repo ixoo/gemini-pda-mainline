@@ -101,7 +101,10 @@ log; nothing falls back to another path.
 
 The release image's [`firmware-get`](../../experiments/2026-10-30-mainline-dev-station/release/firmware-get)
 copies the three files into RAM from the owner's Gemian, and `radio-start` calls it on each boot, since
-nothing persists. On the one unit read, through its retained backup:
+nothing persists. Since 2026-11-07 it also copies the FM and GNSS files of the
+[card root's set](#the-set-the-card-root-carries) to the same directory, but only the three Wi-Fi files
+are required: a missing or mismatched FM or GNSS file is left out, the word becomes
+`ready-missing-` or `ready-mismatch-` with its name, and Wi-Fi still starts. On the one unit read, through its retained backup:
 
 | Step | Observed |
 | --- | --- |
@@ -113,7 +116,7 @@ The GPT partition named `system` on this unit holds an Android boot image, not t
 
 - **Read-only.** The image goes through a read-only loop device on a read-only mount. It writes to no
   partition, and it sends nothing anywhere.
-- **Nothing device-unique.** These three files are the same vendor files, and `firmware-get` prints one
+- **Nothing device-unique.** These are the same vendor files, and `firmware-get` prints one
   word. `WMT_SOC.cfg`, `nvram` and calibration aren't read by it. The calibration record stays where
   it is in `nvdata`, linked by `radio-start` as above.
 - **Hashes.** The expected list is the table above, in the script. A hash is not the file. Whether publishing

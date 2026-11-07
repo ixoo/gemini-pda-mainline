@@ -1241,3 +1241,27 @@ again. In a VM, the disk's flag alone kept boot2 read-only.
 
 Tested only in the dev VM so far: see the [Arch root record](../2026-11-06-gemini-arch-root/README.md#step-1-result).
 No image with this `init` has been composed or booted.
+
+## FM and GNSS firmware in `firmware-get` (2026-11-07)
+
+[`release/firmware-get`](release/firmware-get) now also copies `mt6631_fm_v1_patch.bin`,
+`mt6631_fm_v1_coeff.bin` and the GNSS DSP image `gnss_dsp_6797.bin`, cut out of `libmnl.so`, into
+`/lib/firmware/mediatek/mt6797/`, with the hashes in the
+[firmware table](../../docs/hardware/firmware.md#the-set-the-card-root-carries). The three Wi-Fi
+files stay the only required ones, so `radio-start` behaves as before.
+
+**Tested in the dev VM,** with a static busybox in a chroot and a stand-in `system.img` made from the
+private vendor copies:
+
+| Case | Printed |
+| --- | --- |
+| Image with all six | `ready`; six matching hashes |
+| Run again | `ready` |
+| Image without `libmnl.so` | `ready-missing-gnss_dsp_6797.bin`; Wi-Fi and FM files in place |
+| Wi-Fi files copied by hand, no image | `ready-missing-mt6631_fm_v1_patch.bin`, exit 0 |
+| Nothing, no image | `no-gemian-system`, exit 1 |
+| A bad GNSS file in place | `ready-mismatch-gnss_dsp_6797.bin`, file left alone |
+| Image without `WIFI_RAM_CODE_6797` | `missing-WIFI_RAM_CODE_6797`, exit 1 |
+
+No loop device or mount was left. The RAM root changes, so a release image composed after this has a
+new boot2 hash. None has been composed or booted.
