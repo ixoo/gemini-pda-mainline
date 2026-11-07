@@ -151,6 +151,11 @@ loads it when `/dev/gnss0` opens and refuses a file whose size or fragment count
 header. That boot has not run on the device.
 Like the rest, the hashes are of one unit's files, and none of the files is redistributed.
 
+Given a third argument, the directory where `nvdata` is mounted read-only (`/nvdata` on the
+station), `gemian-firmware` also copies the device's Wi-Fi record into the card root as a regular
+`WIFI.storage`, mode 0600, so the card root never mounts `nvdata`. The record is checked by size
+(514 bytes) and against its source; it is never printed. The station keeps the link above.
+
 The connectivity loader first received normal `request_firmware` failures and
 then Android `ueventd` supplied files from `/system/vendor/firmware`. The NVT
 touchscreen followed the same fallback path from `/system/etc/firmware`.

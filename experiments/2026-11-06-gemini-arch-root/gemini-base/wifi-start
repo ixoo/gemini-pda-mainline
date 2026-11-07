@@ -3,7 +3,7 @@
 # Nothing transmits until the owner sets a country in /etc/conf.d/wireless-regdom
 # (Arch's own file). The country goes first, and is seen applied, before the three
 # Wi-Fi modules load in order; cfg80211 is built in, so module options can't set it.
-# The calibration record is read in place from nvdata, which stage 1 mounts read-only.
+# The calibration record is the copy gemian-firmware put in /usr/lib/firmware; nvdata isn't mounted.
 # Arch's file is a list of commented lines; the last uncommented one counts.
 WIRELESS_REGDOM=$(sed -n 's/^WIRELESS_REGDOM="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' /etc/conf.d/wireless-regdom 2>/dev/null | tail -1)
 case "$WIRELESS_REGDOM" in

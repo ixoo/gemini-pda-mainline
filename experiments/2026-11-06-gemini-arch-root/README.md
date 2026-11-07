@@ -92,7 +92,8 @@ Today's decisions:
      carry on as the station.
   5. Show a 3 s prompt on the console. Any key keeps the RAM root, as the rescue.
   6. Mount the root **read-only**. Mount a tmpfs holding this image's modules
-     over `/usr/lib/modules`. Move `/nvdata` and `/run` into the new root. Then
+     over `/usr/lib/modules`. Move `/run` into the new root, and `/nvdata` only into
+     a root that has that directory (since `gemini-base` 10, the card root doesn't). Then
      `switch_root` to `/sbin/init`.
   7. systemd's `systemd-fsck-root` and `systemd-remount-fs` check the root and
      remount it read-write, as they would on any Arch system.
@@ -133,7 +134,7 @@ Today's decisions:
 | Charge guard (built into `bq25890`) | Unchanged, kernel. A oneshot logs its presence to the journal |
 | Thermal trips, hardware reset | Unchanged, kernel |
 | Left Type-C chip set to sink (`i2cset`) | Moves to the kernel through the usb-c work. The release config has no `/dev/i2c`, and the root shouldn't need it |
-| `nvdata` read-only for Wi-Fi calibration | Stage 1 sets it read-only, mounts it, and moves it into the root |
+| `nvdata` read-only for Wi-Fi calibration | Not mounted (owner, 2026-11-07): card preparation copies the Wi-Fi record into the root's firmware directory, and the root has no `/nvdata` |
 | Wi-Fi modules and country | Built-in `cfg80211` can't take a country from module options under a forced command line. `gemini-wifi.service` runs `iw reg set` from Arch's `/etc/conf.d/wireless-regdom`, waits to see it applied, then loads the three modules in order. With no country it stays off. iwd starts after it |
 | Audio routes (`audio-start`) | `gemini-audio.service`, a oneshot running the same script. UCM later |
 | Native display with the hang marker | `gemini-display.service` with the same marker, in `/var/lib/gemini`. sway waits for it |
@@ -767,6 +768,24 @@ calibration are intact.
 **Owner decision (2026-11-07):** "Let's take a note of it and keep going." Card iterations
 continue. The owner then dropped the proposed before/after copies of `nvdata`: "don't bother taking
 a copy of nvdata." The six eMMC hashes stay as before.
+
+**Later (2026-11-07), before R5's card boot.** `nvdata` changed again with no card or Gemian boot
+in between: the mount count went back to 1, and the last-check, mount and write times were set,
+with about 8 KiB written. The custodian placed it about 2 s into station boot `56dc88a8`, when
+station init mounts `nvdata`; no kernel log of that boot was kept. The station's RAM root has no
+`e2fsck`, `tune2fs` or `fsck` (its busybox carries only `mke2fs`), and Linux ext4 sets the
+last-check time only through the tuning ioctl `tune2fs` uses. The times read as 2094, today plus
+exactly 68 years: the offset between a 1900 and a 1968 year base in the MT6397 RTC, so the clock
+that wrote them likely read 1968-based. Inference only; the writer is still not identified.
+
+**Owner decision (2026-11-07), relayed by the custodian:** the card root never mounts `nvdata`.
+Card preparation copies the 514-byte Wi-Fi record into the card's firmware directory as
+`WIFI.storage`, a private regular file (mode 0600), with `gemian-firmware SOURCE ROOT /nvdata`
+on the station, where `nvdata` is already mounted read-only. The card root has no `/nvdata`, and
+stage 1 mounts `nvdata` into a root only when that directory exists, so station init is unchanged.
+`gemini-base` 10 drops the link, and `gemini-wifi.service` waits for the copied record instead of
+the mount. The station itself still mounts `nvdata` read-only; copying the record into RAM there
+needs a new `boot2` image and is not approved.
 
 ### Step 4, R3 (predeclared): Wi-Fi, and the interface at scale 2
 

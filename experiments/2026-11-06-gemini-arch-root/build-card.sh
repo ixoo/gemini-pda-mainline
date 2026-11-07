@@ -166,7 +166,8 @@ echo uninitialized >"$mnt/etc/machine-id"
 # The tarball's LANG=C makes foot warn and fall back; C.UTF-8 needs no locale-gen.
 echo LANG=C.UTF-8 >"$mnt/etc/locale.conf"
 rm -f "$mnt/var/lib/systemd/random-seed"
-mkdir -p "$mnt/nvdata" "$mnt/usr/lib/modules"
+# No /nvdata: stage 1 mounts nvdata into the root only where that directory exists.
+mkdir -p "$mnt/usr/lib/modules"
 echo 'PARTLABEL=gemini-arch / ext4 rw,noatime 0 1' >>"$mnt/etc/fstab"
 
 ! in_root pacman -Qq | grep -qE '^(linux-aarch64|linux-firmware|mkinitcpio)' ||
@@ -175,9 +176,10 @@ packages=$(in_root pacman -Q | sha256sum | cut -d' ' -f1)
 count=$(in_root pacman -Qq | wc -l)
 systemd=$(in_root pacman -Q systemd | cut -d' ' -f2)
 in_root pacman -Q >"$out/packages.txt"
-# Only the directories that exist are searched, and only files: gemini-base's
-# WIFI.storage is a link to nvdata, which is mounted only on the device.
-private=$(find "$mnt/usr/lib/firmware" "$mnt/nvdata" "$mnt/root" "$mnt/etc/ssh" -maxdepth 4 -type f \
+# Only the directories that exist are searched: WIFI.storage is copied in on the
+# device by gemian-firmware, never at build time.
+[ ! -e "$mnt/nvdata" ] || { echo "build-card: the root has /nvdata" >&2; exit 1; }
+private=$(find "$mnt/usr/lib/firmware" "$mnt/root" "$mnt/etc/ssh" -maxdepth 4 -type f \
 	\( -name 'ssh_host_*' -o -name 'WIFI*' -o -name 'WMT_SOC*' -o -name 'authorized_keys' \) \
 	2>/dev/null | wc -l || true)
 [ "$private" -eq 0 ] || { echo "build-card: private files in the root" >&2; exit 1; }

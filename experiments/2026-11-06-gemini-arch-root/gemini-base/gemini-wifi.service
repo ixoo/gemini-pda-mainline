@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 [Unit]
 Description=Set the Wi-Fi country, then start the MT6797 Wi-Fi
-After=gemini-modules.service nvdata.mount
+After=gemini-modules.service
 Before=iwd.service
-ConditionPathIsMountPoint=/nvdata
+ConditionPathExists=/usr/lib/firmware/mediatek/mt6797/WIFI.storage
 
 [Service]
 Type=oneshot
