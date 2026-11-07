@@ -412,6 +412,20 @@ the VM:
 - logind reported `HandleLidSwitch=ignore`, journald read `Storage=persistent` and
   `SystemMaxUse=64M`, `visudo -c` passed, and the `WIFI.storage` link was in place.
 
+**A wrong image hash, found before R1.** `855cc1d0…` above didn't match the file
+afterwards. The card's mount had propagated into the mount namespaces of the VM's
+long-running services (udevd, resolved, logind and others). Making the `/dev` and `/sys`
+binds slaves then stopped our unmounts from reaching those copies. The copies kept the
+loop device attached, and its last writes reached the file after the hash.
+
+`build-card.sh` now:
+- runs in a private mount namespace (`unshare --mount --propagation private`);
+- flushes and waits for the detach, recording `detach_wait_s`;
+- hashes the image twice, two seconds apart.
+
+The rebuild gave `detach_wait_s` 0 and image `79c921e3…`, unchanged 30 s later, with no
+process holding a mount of it. Images `7525afd5…` and `855cc1d0…` aren't used.
+
 **Not tested:**
 - anything with the hardware: the modules, audio, display, Wi-Fi and the sway session;
 - the first-boot dialogue, which needs a console;
@@ -429,8 +443,12 @@ Step 4 answers these.
   and `flash-boot2`.
 - **Boot image:** composed by `compose-station.py` as for any station image, with the
   project's SSH key, since the station path stays the evidence path.
-- **Card image:** `855cc1d0…` (`gemini-base` `03cad732…`), in the dev VM at
-  `~/artifacts/arch-card-2/`.
+- **Kernel package:** job `f60e405e…-mt6797-a53-station-a72-m1`, package
+  `linux-7.1.3-gemini-2fb41787…`, `Image.gz` `1cb93a0e…`, config `8b1dc525…`. It is
+  fetched under `artifacts/buildbox/f60e405e…/`. Nothing the composer reads changed
+  after `f60e405e`.
+- **Card image:** `79c921e3…` (`gemini-base` `bb075b3a…`, 235 packages), in the dev VM at
+  `~/artifacts/arch-card-2/`, from `build-card.sh` as committed with this change.
 
 **Hypothesis.** On a normal start with the card in, stage 1:
 1. shows the prompt and, with no key pressed, hands over (`arch=handover`);

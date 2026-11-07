@@ -30,6 +30,12 @@ EXTRA=(iwd iw wireless-regdb sudo)
 
 [ "$#" -ge 2 ] && [ "$#" -le 3 ] || { sed -n '3,4p' "$0" >&2; exit 2; }
 [ "$(id -u)" = 0 ] || { echo "build-card: run as root" >&2; exit 2; }
+# Everything runs in a private mount namespace: otherwise the card's mounts
+# propagate into long-running services' namespaces, and their copies keep the
+# loop device attached after the build (seen 2026-11-06).
+if [ -z "${BUILD_CARD_PRIVATE_NS:-}" ]; then
+	exec env BUILD_CARD_PRIVATE_NS=1 unshare --mount --propagation private "$0" "$@"
+fi
 [ "$(uname -m)" = aarch64 ] || { echo "build-card: needs an aarch64 host for the chroot" >&2; exit 2; }
 cache=$1
 out=$2
@@ -135,6 +141,13 @@ in_root systemctl enable -q gemini-modules.service gemini-audio.service gemini-d
 in_root systemctl set-default -q multi-user.target
 
 in_root gpgconf --homedir /run/pacman-gnupg --kill all
+# gpgconf doesn't stop every helper the keyring started, and a survivor keeps
+# the card's loop device attached until it exits.
+if pgrep -f pacman-gnupg >"$work/gpg-left.txt"; then
+	echo "build-card: stopping $(wc -l <"$work/gpg-left.txt") keyring helpers: $(pgrep -af pacman-gnupg | awk '{print $2}' | sort -u | tr '\n' ' ')" >&2
+	pkill -f pacman-gnupg
+	sleep 1
+fi
 rm -f "$resolv"
 if [ -e "$work/resolv.conf.saved" ] || [ -L "$work/resolv.conf.saved" ]; then mv "$work/resolv.conf.saved" "$resolv"; fi
 rm -rf "$mnt"/var/cache/pacman/pkg/*
@@ -167,9 +180,25 @@ for m in run dev sys proc; do umount -R "$mnt/$m"; done
 umount "$mnt"
 [ -z "$(mounts_under "$work")" ] || { echo "build-card: mounts remain under $work" >&2; exit 1; }
 e2fsck -fn "${loop}p1" >/dev/null
+# Flush the loop device and wait until it is really gone before hashing: a
+# detach is deferred while udev still holds it, and its last writes then reach
+# the file after an early hash (seen once, 2026-11-06).
+sync
+blockdev --flushbufs "${loop}p1" "$loop"
+udevadm settle
 losetup -d "$loop"
+detach_wait=0
+while losetup -j "$image" | grep -q .; do
+	[ "$detach_wait" -ge 300 ] && { echo "build-card: $loop still attached after 300 s" >&2; exit 1; }
+	sleep 1
+	detach_wait=$((detach_wait + 1))
+done
 loop=
+sync
 image_sha=$(sha256sum "$image" | cut -d' ' -f1)
+sleep 2
+sync
+[ "$(sha256sum "$image" | cut -d' ' -f1)" = "$image_sha" ] || { echo "build-card: image changed after detach" >&2; exit 1; }
 cat >"$out/card.json" <<EOF
 {
   "tarball_url": "$URL",
@@ -184,6 +213,7 @@ cat >"$out/card.json" <<EOF
   "systemd": "$systemd",
   "root_bytes_used": $used,
   "image_size": "$size",
+  "detach_wait_s": $detach_wait,
   "image_sha256": "$image_sha"
 }
 EOF
