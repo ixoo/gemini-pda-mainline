@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnect passes on a clean P4 boot with 0634 emulated; image with 0633–0635 next; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -941,7 +941,48 @@ private with the custodian.
   suspend for the rest of that boot (P4, second run), and the reason is not
   known. Use the kernel's own reconnect instead of a manual one.
 - Not shown on a built image yet: 0634 itself, and 0635 with a suspend in
-  the first 30 s after boot.
+  the first 30 s after boot (both shown in P5 below).
+
+#### P5 (2026-11-07): 0633–0635 on a built image
+
+**Setup.** Image `station-work-77` from `eea46408` (0633 v2, 0634, 0635),
+boot2 SHA-256 `93873a03e576e546bef371495543bec3f065849dd81db2a6c0cc4a1ef87b2d5a`.
+One boot, `ae534d13`, for both tests. Only the owner moved the cable; there
+was no console input and no `soft_connect` or `power/wakeup` write. Raw logs
+stay private with the custodian.
+
+**E: suspend inside the first 30 s (0635).**
+- s2idle with an RTC alarm 20 s ahead ran from 13.61 s to 33.50 s, rc 0,
+  woken on IRQ 191. The regulator late cleanup's 30 s point fell inside it.
+- After resume: taint 0, and no warning, oops or bug in the kernel log. P4
+  had the late cleanup's I2C warning at this point.
+- Resume showed 0633's `pullup D-` and `pullup D+`. The replug at 36.75 s
+  reached `configured` at 36.77 s with no input.
+- Limit: the late cleanup prints nothing on this board, so the evidence is
+  the missing warning with the suspend spanning 30 s, not a log line.
+
+**G: reconnect with no sysfs write (0634).**
+- `11271000.usb` has no `power/wakeup` file at all, so 0634 leaves it not
+  wake-capable, as intended.
+
+| Cycle | Suspend | After resume | Replug to `configured` |
+| --- | --- | --- | --- |
+| G1 | 174.08–193.46 s, rc 0, IRQ 191 | runtime PM suspended, `OPSTATE` `0x3` | 199.82 → 200.34 s, `OPSTATE` `0x12` |
+| G2 | 215.26–235.46 s, rc 0 | — | 241.86 → 241.87 s |
+| G3 (no suspend) | — | — | reconnected by about 258.6 s, IRQ count 1023 → 1077, SSH works |
+
+- The eMMC hash matched after G1. At the end: taint 0, `suspend_stats` 3
+  successes and 0 failures, battery 86 → 82 %, 24.2 °C.
+- G3 was marked a stop by the test script, not by a failure. Right after the
+  replug the UDC still read `configured` from before the unplug, with an
+  unchanged IRQ count and `OPSTATE` `0x13`. The script's next read caught
+  the host's reset (not configured), and 0.2 s later the gadget was
+  configured again. A replug check should wait for the IRQ count to change
+  or for `OPSTATE` `0x12`, not trust `configured` alone.
+
+**Reading.** 0634 and 0635 work on a built image, and the gadget reconnects
+after suspend with no console input. The owner's request to stop typing the
+disconnect/connect is met on this image.
 
 ## Analysis
 
