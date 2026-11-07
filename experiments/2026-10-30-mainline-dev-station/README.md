@@ -99,6 +99,13 @@ a 1 MiB log buffer.
   - records the CPUs, release and boot ID in `/run/station/status`;
   - mounts the one `mmcblk0` partition whose GPT name is `linux` at
     `/mnt/data` (ext4, `rw,noatime`), never choosing a partition by number;
+  - sets the left Type-C chip (FUSB301, I2C `1-0025`) to sink mode, because the
+    chip keeps its mode through a power-off and a source mode left by a test
+    removes VBUS and USB SSH from the left port. It reads before it writes, and
+    it leaves the mode alone when no driver-free chip answers or when
+    `/mnt/data/keep-left-typec-mode` exists. The result is recorded as
+    `left-typec=` in the status file. This needs `I2C_CHARDEV`, so the release
+    image, which leaves that out, gets no such reset;
   - then hands over to busybox init.
   - No step holds the boot: a failure is recorded and the rest still runs.
 - [`inittab`](initramfs/inittab):

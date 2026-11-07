@@ -56,6 +56,23 @@ elif $bb mount -t ext4 -o rw,noatime "$data" /mnt/data; then
 else
     status "data=mount-failed device=$data"
 fi
+# The left Type-C chip (FUSB301, I2C 1-0025) keeps its mode through a power-off,
+# so a source mode left by a test leaves the left port without VBUS or USB SSH.
+# Start it as a sink unless /mnt/data/keep-left-typec-mode exists or a driver owns it.
+left=/sys/bus/i2c/devices/1-0025
+if [ -e /mnt/data/keep-left-typec-mode ]; then
+    status left-typec=kept-by-file
+elif [ -e "$left/driver" ]; then
+    status left-typec=driver-owned
+elif [ "$($bb i2cget -fy 1 0x25 0x01 2>/dev/null)" != 0x12 ]; then
+    status left-typec=not-found
+elif [ "$($bb i2cget -fy 1 0x25 0x02)" = 0x04 ]; then
+    status left-typec=sink
+elif $bb i2cset -fy 1 0x25 0x02 0x04 && [ "$($bb i2cget -fy 1 0x25 0x02)" = 0x04 ]; then
+    status left-typec=set-sink
+else
+    status left-typec=set-failed
+fi
 # The lid policy (backlight off, keyboard inhibited while closed).
 if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemini-lid; else status lid=insmod-failed; fi
 # The indicator LEDs: nothing lit, and caps lock on the inside LED.
