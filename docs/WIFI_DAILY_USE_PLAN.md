@@ -23,7 +23,11 @@ Status: plan, updated 2026-11-01.
   in boot2, booted once with a working link, and that image pins one access point with no `bgscan`, so it won't roam by itself.
 - iwd installs the group key before the pairwise key, which the driver refused, ending each join in a
   firmware restart (custodian, boot `0993c976`). 0637 holds such a group key until the pairwise key is in.
-  Compiled only; not yet run with iwd.
+  On that boot, as the custodian reports, with `mac` 5c5b7083 from `5e4cffbc` swapped in: iwd 3.12 joined
+  5200 (held group key, then pairwise, then group), got a lease and 5 of 5 gateway pings, with no restart.
+  `wifi-up.sh` with wpa_supplicant then joined in its usual order, with no hold, a lease and 3 of 3. One join
+  each. Two `cipher-mismatch` refusals after the iwd join didn't affect the ping. iwd renames the interface
+  (`wlan3` here), and `wifi-up.sh` needed `DOWN=1` and a reload after iwd had used the phy.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
   firmware BSS slot is never reused. Fixing it means re-arming after a close, which needs device tests. Not started.
