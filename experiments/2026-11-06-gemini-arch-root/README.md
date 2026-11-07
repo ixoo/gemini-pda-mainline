@@ -789,6 +789,19 @@ copy the record into RAM, unmounts it, and no longer mounts it into a card root
 ([station record](../2026-10-30-mainline-dev-station/README.md#nvdata-is-mounted-only-to-copy-the-wi-fi-record-2026-11-07)).
 `RECORD` on the station is that RAM copy, `/lib/firmware/mediatek/mt6797/WIFI.storage`.
 
+**The writer runs before Linux (2026-11-07).** `station-work-82` (`boot2` `7ac0369f`, boot
+`2262f250`) worked as intended: `nvdata=record-copied`, `nvdata=unmounted`, no `nvdata` in
+`/proc/mounts`, the device read-only, and the kernel log shows only the read-only mount without
+journal at 2.396 s and its unmount at 2.412 s. Yet `nvdata` changed between boot `10db4660` and this
+one (`7c925690…` → `c87107d7…`): mount count 1 → 2, mount and write times set, last-check time
+unchanged. The times read 2094-11-07 19:14:31, 2026-11-07 19:14:31 UTC less the 68-year offset.
+This kernel started at 19:14:49.9 UTC (RTC time less uptime), so the write came about 19 s before
+Linux started, while the owner was selecting `boot2`. Linux only mounted read-only, on a read-only
+device. So the writer runs before Linux, in LK or the preloader, with a clock read 68 years
+ahead. This contradicts the earlier offline reading of LK and the preloader (no ext4 superblock
+handling found), which the bootloader work now has to revisit. Private evidence:
+`station-work-82/boot-2262f250-nvdata.txt` under ignored artifacts.
+
 ### Step 4, R3 (predeclared): Wi-Fi, and the interface at scale 2
 
 **What changed since R2.**
