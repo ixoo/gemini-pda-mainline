@@ -139,7 +139,9 @@ come with:
 The GNSS DSP image has no file of its own on Gemian: `libmnl.so` (SHA-256 `a2e3fe69…330f`) carries
 it, and it is what crosses the wire at each DSP boot
 ([stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)). The name is this
-project's. No driver requests it yet; today's host reads it at an offset, which is 0 in this file.
+project's. No driver requests it: the GNSS host
+([`gnss-minihost`](../../experiments/2026-11-01-gemini-gnss-stock-trace/gnss-minihost.c)) reads it
+from that path and refuses a file of any other size.
 Like the rest, the hashes are of one unit's files, and none of the files is redistributed.
 
 The connectivity loader first received normal `request_firmware` failures and

@@ -615,6 +615,11 @@ Conditions: a clean first Wi-Fi join, and `wlan0` up for the whole run. This ima
 
 ## Associated code
 
-- [gnss-outdoor.sh](gnss-outdoor.sh): the T5 run on the station.
+- [gnss-outdoor.sh](gnss-outdoor.sh): the T5 run on the station. Since 2026-11-07 it and
+  [gnss-minihost.c](../2026-11-01-gemini-gnss-stock-trace/gnss-minihost.c) read the DSP image from
+  `/lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin`, which
+  [`gemian-firmware`](../2026-11-06-gemini-arch-root/gemian-firmware) cuts out of `libmnl.so` and
+  hash-checks, instead of reading `libmnl.so` at an offset. The bytes sent are the same; T4 and T5
+  ran the earlier form. Changing to it was tested off the device only.
 - [test-stp-engine.c](test-stp-engine.c) and
   [run-tests.sh](run-tests.sh): `run-tests.sh PREPARED_LINUX_SOURCE`. No hardware.

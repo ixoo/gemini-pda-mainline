@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
 # One outdoor gnss-minihost session on the station, with no cable and no
-# session, so it stops itself on the limits below. BIN holds gnss-minihost,
-# params.txt and libmnl.so. Output goes to the data partition, so that a crash
+# session, so it stops itself on the limits below. BIN holds gnss-minihost and
+# params.txt; IMAGE is the DSP image gemian-firmware put in place. Output goes to the data partition, so that a crash
 # leaves it behind. Output holds position: it stays private.
 # Exit: 0 finished, 1 did not open, 2 a stop rule fired.
 set -u
 
 BIN=${BIN:-/run/gnss-outdoor}
+IMAGE=${IMAGE:-/lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin}
 OUT=${OUT:-/mnt/data/station/gnss-outdoor}
 DELAY=${DELAY:-180}
 SECONDS_ON=${SECONDS_ON:-600}
@@ -46,7 +47,7 @@ fi
 
 mark=$(dmesg | wc -l)
 echo "$mark" >"$OUT/dmesg.mark"
-"$BIN/gnss-minihost" /dev/gnss0 "$BIN/params.txt" "$BIN/libmnl.so" "$OUT/frames.log" "$SECONDS_ON" \
+"$BIN/gnss-minihost" /dev/gnss0 "$BIN/params.txt" "$IMAGE" "$OUT/frames.log" "$SECONDS_ON" \
 	>"$OUT/host.log" 2>&1 &
 host=$!
 

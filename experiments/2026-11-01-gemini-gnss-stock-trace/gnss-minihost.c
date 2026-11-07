@@ -3,9 +3,12 @@
  * Boot the GNSS DSP over /dev/gnss0 and record what it sends: gnss-minihost.py
  * for the station, which has no Python. /dev/gnss0 has poll, so one thread does.
  *
- * Usage: gnss-minihost DEVICE PARAMS LIBMNL OUTPUT SECONDS
+ * Usage: gnss-minihost DEVICE PARAMS IMAGE OUTPUT SECONDS
  * PARAMS is a private text file of "key value" lines; hex values may repeat.
- * Check LIBMNL's hash first: this program trusts it.
+ * IMAGE is the DSP image, /lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin, which
+ * gemian-firmware cuts out of libmnl.so and hash-checks (docs/hardware/firmware.md).
+ * It must be exactly image_size bytes; image_offset, from when this read libmnl.so,
+ * is accepted and ignored.
  * Exit: 0 full window, 3 signalled, 4 boot failed, 5 DSP silent, 6 write failed.
  */
 
@@ -382,13 +385,13 @@ int main(int argc, char **argv)
 {
 	struct sigaction action = { .sa_handler = on_signal };
 	uint8_t *image;
-	FILE *library;
+	FILE *file;
 	uint8_t stop[32];
 	int status, i;
 	size_t n;
 
 	if (argc != 6) {
-		fputs("usage: gnss-minihost DEVICE PARAMS LIBMNL OUTPUT SECONDS\n", stderr);
+		fputs("usage: gnss-minihost DEVICE PARAMS IMAGE OUTPUT SECONDS\n", stderr);
 		return 2;
 	}
 	if (read_params(argv[2]) || params.image_size <= 0 || params.status4.length != 2) {
@@ -396,13 +399,14 @@ int main(int argc, char **argv)
 		return 2;
 	}
 	image = malloc(params.image_size);
-	library = fopen(argv[3], "rb");
-	if (!image || !library || fseek(library, params.image_offset, SEEK_SET) ||
-	    fread(image, 1, params.image_size, library) != (size_t)params.image_size) {
+	file = fopen(argv[3], "rb");
+	if (!image || !file ||
+	    fread(image, 1, params.image_size, file) != (size_t)params.image_size ||
+	    fgetc(file) != EOF) {
 		fputs("cannot read the image\n", stderr);
 		return 2;
 	}
-	fclose(library);
+	fclose(file);
 	logfile = fopen(argv[4], "w");
 	if (!logfile) {
 		perror("output");
