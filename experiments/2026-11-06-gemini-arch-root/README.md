@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped; the owner chose to continue, and R3 is predeclared |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped; the owner chose to continue; R3 got iwd up but no join (the driver refuses iwd's key order), no bar, and no Gemini keymap in sway |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 to 2026-11-07 |
@@ -830,6 +830,42 @@ from main, then step 7 with `flash-boot2` and `poweroff`.
 the evidence. No retries of an identical artifact.
 
 **Stop rules.** As R1.
+
+### R3 result (2026-11-07): iwd up, no join; no bar; the keymap is missing
+
+Run by the custodian, with the owner at the device. Evidence boot `0993c976` (`station-work-80`,
+boot2 `0277e13a…`), `arch=kept-ram-root`, pstore empty. Private evidence (journals, logs) is kept
+outside Git.
+
+**eMMC.** `boot`, `lk`, `nvram` and `proinfo` unchanged; `boot2` changed by the intended write;
+`nvdata` changed again, `d1abc376…` → `42c28749…`. Read without copying it (owner): `s_mnt_count` is
+11, and `s_mtime`/`s_wtime` are still Nov 6 12:20. **Correction:** the count does not stop at
+`s_max_mnt_count`. The boot `32368f26` → `ed8a4c32` simply left it at 10, and R3's window raised it
+to 11. So it is not one increment per boot either: two in R2's window, one each in the next two
+station-to-station or R3 windows, none in another. Still open and unexplained.
+
+**Wi-Fi.**
+- rfkill fixed the start: iwd 3.12 stays up. `gemini-wifi` restarted after the country, the modules
+  loaded and the firmware started; iwd saw `phy0` and `wlan0`, and networkd matched
+  `50-gemini-wlan.network`.
+- The owner's connect left iwd at "connecting", with no further iwd state and no driver line.
+- **Cause, from a station test the owner approved** (the card's iwd in a read-only chroot of the
+  card, on `station-work-80`): authentication, association and the 4-way handshake all work.
+  iwd then installs the group key before the pairwise key; the driver refuses a group key that
+  comes first ("join key command refused: group status=-95"), iwd sees `-EINVAL`, disconnects,
+  and the driver restarts the WLAN. Three times. wpa_supplicant installs the pairwise key first,
+  which is why the station joins. The fix belongs in the driver; the Wi-Fi driver session has it.
+- iwd also logs that MD4 is missing, which matters only for EAP-MSCHAPv2, not PSK.
+
+**Interface.**
+- No bar was visible, and neither journal has a waybar line. Whether sway started swaybar or
+  waybar isn't logged; sway logged only that Xwayland and swaybg are missing.
+- The owner: "the graphical env doesn't have the gemini keymap". sway used plain US, so the Fn
+  layer the console has was missing. The owner's choice: package all of Gemian's Gemini layouts,
+  pick one at first boot, and make sway's Mod Ctrl+Alt, so that Fn is the symbol layer.
+
+**Next.** The driver's key order (Wi-Fi driver session), the bar (investigate why waybar did not
+show), and the Gemian layouts with a layout question at first boot.
 
 ## Analysis
 
