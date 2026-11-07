@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=7
+pkgver=8
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, sway session'
 arch=('any')
@@ -13,6 +13,10 @@ license=('MIT' 'custom:xkeyboard-config')
 # snapshot, under xkeyboard-config's permissive licence. Fetched pinned, never kept in
 # this repository.
 _xkbrev=64c6c0e4d5df00babe215f26eb5ca5b2e28c0ee9
+# The console keymaps are converted from those layouts at build time by ckbcomp, from
+# Debian's console-setup (GPL-2.0-or-later), fetched pinned; it is not installed.
+_csver=1.216
+makedepends=('perl' 'kbd' 'xkeyboard-config')
 depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'sway' 'waybar' 'wmenu' 'foot' 'ttf-dejavu')
 backup=('etc/iwd/main.conf' 'etc/vconsole.conf')
 options=('!debug' '!strip')
@@ -23,11 +27,13 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         sway.conf firstboot gemini-firstboot.service waybar.jsonc waybar.css
         sway-session waybar-bar
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
-        "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING")
+        "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
+        "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
-            '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d')
+            '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
+            '2a2c8d95973ad6b18d05a4667497d78e4bf97a0d69e4a1870750a19a2a75af6d')
 
 package() {
     local unit
@@ -63,6 +69,20 @@ package() {
             '	xkb_compat { include "complete" };' \
             "	xkb_symbols { include \"pc+planet_vndr/gemini($layout)+inet(evdev)+planet_vndr/gemini(escape)\" };" \
             '};' >"$dir/$layout.xkb"
+    done <"$dir/layouts.tsv"
+    # The same composition for the console, so first boot, the console and sway type
+    # the same characters. ckbcomp reads the Gemini symbols from this build directory.
+    # loadkeys -u -b parses each map as the Unicode console will, and fails the build
+    # on a map it rejects.
+    local kmaps="$pkgdir/usr/share/kbd/keymaps/gemini" inc="$srcdir/xkbinc"
+    install -dm755 "$kmaps" "$inc/symbols/planet_vndr"
+    cp gemini.xkb "$inc/symbols/planet_vndr/gemini"
+    while IFS="$(printf '\t')" read -r layout _; do
+        perl "ckbcomp-${_csver}" -I"$inc" -keycodes 'evdev+aliases(qwerty)' \
+            -symbols "pc+planet_vndr/gemini($layout)+inet(evdev)+planet_vndr/gemini(escape)" \
+            >"$srcdir/gemini-$layout.map" 2>/dev/null || return 1
+        loadkeys -u -b "$srcdir/gemini-$layout.map" >/dev/null 2>&1 || return 1
+        gzip -9n <"$srcdir/gemini-$layout.map" >"$kmaps/gemini-$layout.map.gz"
     done <"$dir/layouts.tsv"
     install -Dm644 waybar.jsonc "$pkgdir/usr/share/gemini/waybar/config.jsonc"
     install -Dm644 waybar.css "$pkgdir/usr/share/gemini/waybar/style.css"

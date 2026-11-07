@@ -1,19 +1,16 @@
 #!/bin/bash
 # SPDX-License-Identifier: MIT
-# First boot, on the console: the package keyring, the time zone, one user in wheel
+# First boot, on the console: the keyboard layout, the package keyring, the time zone, one user in wheel
 # with a password, the Wi-Fi country and a first join, then the autologin session.
 # The stock systemd-firstboot.service is masked, since it asks on the serial port.
 # A marker, not ConditionFirstBoot, so an interrupted run asks again next boot.
 set -u
 state=/var/lib/gemini
 echo "Gemini first boot."
-pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
-    echo "pacman-key failed; run it again later: pacman-key --init; pacman-key --populate archlinuxarm"
-# Asks only while /etc/localtime is unset; the list of zones is paged.
-systemd-firstboot --prompt-timezone ||
-    echo "No time zone set; set one later with: timedatectl set-timezone ZONE"
-# The keyboard layout for sway, from Gemian's Gemini layouts. Two-group layouts switch
-# between their two groups with both Shift keys together.
+# The keyboard layout first, so everything typed after it, passwords included, types
+# the same here, on the console later and in sway: one of Gemian's Gemini layouts,
+# loaded on this console at once and kept for the console and for sway. Two-group
+# layouts switch groups with both Shift keys together.
 layouts=/usr/share/gemini/xkb/layouts.tsv
 echo "Keyboard layouts:"
 awk -F '\t' '{ printf "  %-7s %s\n", $1, $2 }' "$layouts"
@@ -23,7 +20,14 @@ while :; do
     [[ "$layout" =~ ^[a-z_]+$ ]] && [ -e "/usr/share/gemini/xkb/$layout.xkb" ] && break
     echo "Type one of the codes on the left."
 done
+loadkeys -u "gemini-$layout" >/dev/null || echo "The console keymap did not load; it stays the Gemini US map."
+echo "KEYMAP=gemini-$layout" >/etc/vconsole.conf
 echo "input type:keyboard xkb_file /usr/share/gemini/xkb/$layout.xkb" >/etc/sway/config.d/60-gemini-keyboard.conf
+pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
+    echo "pacman-key failed; run it again later: pacman-key --init; pacman-key --populate archlinuxarm"
+# Asks only while /etc/localtime is unset; the list of zones is paged.
+systemd-firstboot --prompt-timezone ||
+    echo "No time zone set; set one later with: timedatectl set-timezone ZONE"
 while :; do
     read -r -p "User name: " user
     [[ "$user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && ! id "$user" >/dev/null 2>&1 && break

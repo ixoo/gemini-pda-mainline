@@ -127,7 +127,9 @@ build=$mnt/run/build
 mkdir -p "$build/src" "$build/out"
 cp "$here"/gemini-base/* "$station/audio-start" "$station/display-start" "$build/src/"
 chown -R 65534:65534 "$build"
-in_root pacman --gpgdir /run/pacman-gnupg -S --needed --noconfirm --noprogressbar fakeroot >>"$work/pacman.log" 2>&1
+# gemini-base's makedepends: perl and kbd come with the tarball; xkeyboard-config stays,
+# since sway needs it too.
+in_root pacman --gpgdir /run/pacman-gnupg -S --needed --noconfirm --noprogressbar fakeroot perl kbd xkeyboard-config >>"$work/pacman.log" 2>&1
 chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/run/build LANG=C \
 	PKGDEST=/run/build/out sh -c 'cd /run/build/src && makepkg --nodeps --noprogressbar' >"$work/makepkg.log" 2>&1 ||
 	{ tail -20 "$work/makepkg.log" >&2; echo "build-card: makepkg failed" >&2; exit 1; }
