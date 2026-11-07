@@ -3,12 +3,16 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=4
+pkgver=5
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, sway session'
 arch=('any')
 url='https://github.com/ixoo/gemini-pda-mainline'
-license=('MIT')
+license=('MIT' 'custom:xkeyboard-config')
+# The Gemini keyboard layouts: Gemian's fork of xkeyboard-config at its last release
+# snapshot, under xkeyboard-config's permissive licence. Fetched pinned, never kept in
+# this repository.
+_xkbrev=64c6c0e4d5df00babe215f26eb5ca5b2e28c0ee9
 depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'sway' 'waybar' 'wmenu' 'foot' 'ttf-dejavu')
 backup=('etc/iwd/main.conf' 'etc/vconsole.conf')
 options=('!debug' '!strip')
@@ -16,9 +20,14 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         display-start display-boot gemini-display.service wifi-start gemini-wifi.service
         tmpfiles.conf 50-gemini-usb0.network 50-gemini-wlan.network iwd-main.conf
         logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
-        sway.conf firstboot gemini-firstboot.service waybar.jsonc waybar.css)
+        sway.conf firstboot gemini-firstboot.service waybar.jsonc waybar.css
+        sway-session waybar-bar
+        "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
+        "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING")
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
-            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
+            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+            '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
+            '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d')
 
 package() {
     local unit
@@ -36,6 +45,25 @@ package() {
     install -Dm644 vconsole.conf "$pkgdir/etc/vconsole.conf"
     install -Dm440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"
     install -Dm644 sway.conf "$pkgdir/etc/sway/config.d/50-gemini.conf"
+    install -Dm755 -t "$pkgdir/usr/lib/gemini" sway-session waybar-bar
+    # Gemian's layouts, and one complete keymap per layout as Gemian's planetgemini rules
+    # composed it: pc + the layout + inet + the escape part. A complete keymap keeps the
+    # two-group layouts (ru, gr, cz...) whole, which a layout(variant) selection does not.
+    install -Dm644 gemini.xkb "$pkgdir/usr/share/xkeyboard-config-2/symbols/planet_vndr/gemini"
+    install -Dm644 xkeyboard-config-COPYING "$pkgdir/usr/share/licenses/$pkgname/xkeyboard-config-COPYING"
+    local dir="$pkgdir/usr/share/gemini/xkb" layout
+    install -dm755 "$dir"
+    awk '/^xkb_symbols "/ { v = $2; gsub(/"/, "", v) }
+         /name\[Group1\]/ && v != "" { n = $0; sub(/^[^"]*"/, "", n); sub(/".*$/, "", n); print v "\t" n; v = "" }' \
+        gemini.xkb >"$dir/layouts.tsv"
+    while IFS="$(printf '\t')" read -r layout _; do
+        printf '%s\n' 'xkb_keymap {' \
+            '	xkb_keycodes { include "evdev+aliases(qwerty)" };' \
+            '	xkb_types { include "complete" };' \
+            '	xkb_compat { include "complete" };' \
+            "	xkb_symbols { include \"pc+planet_vndr/gemini($layout)+inet(evdev)+planet_vndr/gemini(escape)\" };" \
+            '};' >"$dir/$layout.xkb"
+    done <"$dir/layouts.tsv"
     install -Dm644 waybar.jsonc "$pkgdir/usr/share/gemini/waybar/config.jsonc"
     install -Dm644 waybar.css "$pkgdir/usr/share/gemini/waybar/style.css"
     # The Wi-Fi calibration record, read in place from nvdata: a link, never a copy.

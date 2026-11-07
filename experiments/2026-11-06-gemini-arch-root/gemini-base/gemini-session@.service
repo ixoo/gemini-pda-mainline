@@ -20,7 +20,7 @@ UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland
 # Panfrost isn't loaded at boot yet, so wlroots renders in software.
 Environment=WLR_RENDERER=pixman
-ExecStart=/usr/bin/sway
+ExecStart=/usr/lib/gemini/sway-session
 Restart=no
 
 [Install]

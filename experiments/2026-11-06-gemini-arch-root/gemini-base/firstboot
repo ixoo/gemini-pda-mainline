@@ -12,6 +12,18 @@ pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
 # Asks only while /etc/localtime is unset; the list of zones is paged.
 systemd-firstboot --prompt-timezone ||
     echo "No time zone set; set one later with: timedatectl set-timezone ZONE"
+# The keyboard layout for sway, from Gemian's Gemini layouts. Two-group layouts switch
+# between their two groups with both Shift keys together.
+layouts=/usr/share/gemini/xkb/layouts.tsv
+echo "Keyboard layouts:"
+awk -F '\t' '{ printf "  %-7s %s\n", $1, $2 }' "$layouts"
+while :; do
+    read -r -p "Keyboard layout (empty keeps us): " layout
+    layout=${layout:-us}
+    [[ "$layout" =~ ^[a-z_]+$ ]] && [ -e "/usr/share/gemini/xkb/$layout.xkb" ] && break
+    echo "Type one of the codes on the left."
+done
+echo "input type:keyboard xkb_file /usr/share/gemini/xkb/$layout.xkb" >/etc/sway/config.d/60-gemini-keyboard.conf
 while :; do
     read -r -p "User name: " user
     [[ "$user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && ! id "$user" >/dev/null 2>&1 && break
@@ -32,5 +44,6 @@ fi
 systemctl enable "gemini-session@$user.service"
 systemctl set-default graphical.target
 touch "$state/firstboot-done"
-echo "Done. The session starts now. Mod is the Fn key: Fn+Enter opens a terminal,"
-echo "Fn+D a launcher, Fn+Shift+E leaves the session."
+echo "Done. The session starts now. Fn types the symbols printed on the keys. sway's"
+echo "shortcuts use Ctrl+Alt: Ctrl+Alt+Enter opens a terminal, Ctrl+Alt+D a launcher,"
+echo "Ctrl+Alt+Shift+E leaves the session."
