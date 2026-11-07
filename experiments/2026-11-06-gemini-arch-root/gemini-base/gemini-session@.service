@@ -3,6 +3,8 @@
 # 2026-11-06). gemini-firstboot enables it for the first user. Other VTs keep a getty.
 [Unit]
 Description=sway session for %i on tty1
+StartLimitIntervalSec=60
+StartLimitBurst=5
 After=systemd-user-sessions.service gemini-display.service gemini-firstboot.service
 Conflicts=getty@tty1.service
 Wants=gemini-display.service
@@ -21,7 +23,12 @@ Environment=XDG_SESSION_TYPE=wayland
 # Panfrost isn't loaded at boot yet, so wlroots renders in software.
 Environment=WLR_RENDERER=pixman
 ExecStart=/usr/lib/gemini/sway-session
-Restart=no
+# On a second boot (R4) logind refused sway the DRM device ("Could not take device:
+# Operation not permitted") at 14 s, 3 s after the device appeared, while the same
+# session worked a few minutes into first boot. Why it refused isn't known; a retry a
+# few seconds later covers a start-up race.
+Restart=on-failure
+RestartSec=3
 
 [Install]
 WantedBy=graphical.target
