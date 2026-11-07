@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: MIT
+// The Gemini's bar: a narrow column on the left edge (owner, R2).
+{
+    "position": "left",
+    "width": 44,
+    "modules-left": ["sway/workspaces", "sway/mode"],
+    "modules-right": ["network", "battery", "clock"],
+    "sway/workspaces": { "format": "{name}" },
+    "network": {
+        "format-wifi": "W",
+        "format-ethernet": "U",
+        "format-disconnected": "-",
+        "tooltip-format": "{ifname} {ipaddr}"
+    },
+    "battery": { "bat": "battery", "format": "{capacity}" },
+    "clock": { "format": "{:%H\n%M}", "tooltip-format": "{:%Y-%m-%d %H:%M}" }
+}

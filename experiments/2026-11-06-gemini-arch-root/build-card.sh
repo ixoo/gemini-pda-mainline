@@ -161,6 +161,8 @@ in_root systemctl mask -q sshd.service
 in_root systemctl mask -q systemd-firstboot.service
 rm -f "$mnt"/etc/ssh/ssh_host_*
 echo uninitialized >"$mnt/etc/machine-id"
+# The tarball's LANG=C makes foot warn and fall back; C.UTF-8 needs no locale-gen.
+echo LANG=C.UTF-8 >"$mnt/etc/locale.conf"
 rm -f "$mnt/var/lib/systemd/random-seed"
 mkdir -p "$mnt/nvdata" "$mnt/usr/lib/modules"
 echo 'PARTLABEL=gemini-arch / ext4 rw,noatime 0 1' >>"$mnt/etc/fstab"

@@ -30,4 +30,5 @@ fi
 systemctl enable "gemini-session@$user.service"
 systemctl set-default graphical.target
 touch "$state/firstboot-done"
-echo "Done. The session starts now."
+echo "Done. The session starts now. Mod is the Fn key: Fn+Enter opens a terminal,"
+echo "Fn+D a launcher, Fn+Shift+E leaves the session."
