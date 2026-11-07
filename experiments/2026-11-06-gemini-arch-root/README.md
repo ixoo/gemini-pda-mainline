@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 predeclared |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 to 3 done in the VM and on Buildbox; R1 (2026-11-07) handed over to the card and ran systemd, then stopped in the stock first-boot prompt on the serial console; R2 reached sway on the panel, then hit the stop rule: `nvdata`'s hash changed, cause unknown, card boots stopped |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 to 2026-11-07 |
@@ -658,6 +658,74 @@ the same kernel.
 boot for the evidence. No retries of an identical artifact.
 
 **Stop rules.** As R1: heat, a charging anomaly, an Oops or a watchdog loop.
+
+### R2 result (2026-11-07): first boot on the panel, then a stop on `nvdata`
+
+Run by the custodian, with the owner at the device. Private evidence (journal, photos, `nvdata`
+images, logs) is kept outside Git.
+
+**Identities.**
+- Before: station boot `bfeee4e3` (P5); card rewritten and firmware copied in that boot.
+- Card boot: journal boot `01f49ad0…`, about 466 s, shut down from sway with `poweroff`.
+- After: station boot `4407aa68`, image `station-work-79` (boot2 `e79a334a…`), booted command line
+  with `console=ttyS0,921600n8 console=tty1`. `arch=kept-ram-root`; USB SSH and a shell work.
+
+**Observed on the card boot.**
+- The first-boot dialogue ran on the panel, sway came up, a foot terminal opened with Fn+Enter and
+  typing worked. So `/dev/console` on `tty1` and the masked `systemd-firstboot` did what R2 asked.
+- Wi-Fi failed. `iwctl` waited for iwd until the owner interrupted it. iwd started three times; each
+  time it logged "Module rfkill failed to start: -2", then "D-Bus disconnected, quitting". Also,
+  `gemini-wifi.service` had already run at boot with no country (`off-no-country`), so first boot's
+  `systemctl start` of it did nothing: it needs a restart once the country is written.
+- foot warned that `C` is not a UTF-8 locale. The bar clock was wrong (no network to set it).
+- The owner: the interface is far too small, and the bar would be better as a side column. Done in
+  `9134421f` (scale 2, waybar on the left, `LANG=C.UTF-8`, a first-boot note that Mod is Fn).
+
+**eMMC hashes, before → after.** `boot`, `lk`, `nvram`, `proinfo` unchanged; `boot2` changed by the
+intended `flash-boot2` write; **`nvdata` changed**, `3e095b0a…` → `67981430…`. That is a stop rule:
+no card boot until it is understood. R1 had the same procedure without the console change, the
+boot2 write and the Wi-Fi start, and `nvdata` was unchanged across it.
+
+**What was checked.**
+- **Files are intact.** Mounted `ro,noload` and compared with the July backup, only one modem record
+  differs, last changed by Gemian on Nov 5; the Wi-Fi and Bluetooth records match July.
+- **No read-write mount of `nvdata`.** The superblock's last mount and write are still Nov 6 12:20,
+  mount count 9, from before the before-hash. The card journal shows one mount, by stage 1 at 5.02 s,
+  "ro without journal", after `setro`, and systemd's unmount at 466.37 s. No fsck, trim, `tune2fs` or
+  `blockdev` of `mmcblk0` appears. Two images of `nvdata` within boot `4407aa68` are identical.
+- **Not a trim through ext4:** in 7.1.3, `FITRIM` returns `-EROFS` on a `noload` mount with a journal.
+- **Not ext4's unmount, as far as the source shows:** `ext4_put_super` commits the superblock only on a
+  read-write mount; on a read-only one it only syncs the block device. R2 was, though, the first time
+  a mainline kernel unmounted `nvdata`: the station never does, and R1 ended on the power key.
+- **The read-only flag is not a barrier against the kernel.** In 7.1.3 `bio_check_ro()` prints "Trying
+  to write to read-only block-device" once per device and lets the write through. The flag refuses
+  opening the device for writing and a read-write mount, and stops ext4's orphan cleanup; a write the
+  kernel itself issues still lands. The card's kernel log has no such warning while journald ran,
+  which leaves the last seconds of shutdown and the station boots unlogged.
+- **The July backup can't localize it.** The 79 blocks that differ from July are the superblock, inode
+  table blocks, the journal (inode 8) and one file's data, which Gemian's own use since July explains.
+  Without an image from before R2, the changed bytes can't be told apart.
+
+**Reading.** The cause is unknown. New in R2 were the `console=tty1` kernel, the Wi-Fi start on the
+card, iwd, and a clean systemd shutdown that unmounted `nvdata`; the `flash-boot2` write also lifted
+the disk's read-only flag on the before boot. Calibration and records read the same as July.
+
+**Corrections to this record.**
+- The Safety section's read-only flags guard against userspace mistakes only, as it says; they don't
+  stop the kernel, so "nothing wrote the eMMC" can only come from the hashes.
+- The station's stage 1 mounts `linux` read-write, replaying its journal, before the handover, and
+  unmounts it. The card root never sees it, but "`linux` stays read-only" holds only after stage 1.
+
+**Next, for the owner to decide.** First localize, then change the design:
+1. Image all of `nvdata` (32 MiB, private) before and after each step, and compare, so the bytes and
+   the step are known.
+2. Station only: two boots of `station-work-79` with images between, to rule its kernel and the
+   station's shutdown in or out.
+3. Then one card boot with the same images, Wi-Fi off, then one with Wi-Fi.
+4. Whatever the cause: stage 1 can copy the 514-byte Wi-Fi record into RAM and unmount `nvdata`
+   before the handover, so the card root never mounts it.
+
+**Budget used:** one card write, one boot2 write, one card boot, one evidence boot.
 
 ## Analysis
 
