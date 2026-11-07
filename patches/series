@@ -1210,3 +1210,4 @@ proposals/0629-arm64-dts-mediatek-gemini-station-name-the-wakeup-so.patch
 proposals/0630-power-supply-bq25890-keep-the-charging-guard-s-limit.patch
 proposals/0631-usb-typec-fusb301-stop-reading-the-controller-across.patch
 proposals/0632-usb-mtu3-let-a-suspended-bus-suspend-the-system.patch
+proposals/0633-usb-mtu3-reconnect-after-a-suspend-taken-with-a-susp.patch

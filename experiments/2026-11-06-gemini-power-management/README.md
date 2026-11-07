@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; P1 image booted; S1 stopped at step 2 (MTU3 -EBUSY), fix 0632 compile-checked; P2f CPU policy written; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on the P2 image (s2idle entered and resumed, RTC and power-key wakes); gadget reattach fix 0633 compile-checked; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -711,7 +711,64 @@ out, log the `11271000.usb` count in `/proc/interrupts` and
   itself untested on this unit.
 - Or wait for an image with 0632.
 
-Both need the owner's go.
+Both need the owner's go. The owner chose a new image with 0632.
+
+#### S1 on P2 (2026-11-06): s2idle enters and resumes
+
+**Setup.** The custodian ran S1 on station-work-74: boot2 `f5ca7dc6…`, built
+from `b5a3d017` (P1 plus 0632 plus the CPU policy). Boot `16188838`, untainted
+throughout. Raw logs stay private with the custodian.
+
+**0632's premise held.** Plugged, the controller's interrupt count read 416.
+Three seconds after the unplug it read 431, the link state went from `0x12`
+to `0x13`, and the UDC still read `configured`. So the unplug arrives as a bus
+suspend.
+
+**S1 run:** unplugged, Wi-Fi unloaded, display blanked, CPUs 0–7.
+
+| Step | Result |
+| --- | --- |
+| 1, `pm_test=freezer` | rc 0, 5.1 s |
+| 2, `pm_test=devices` | rc 0; devices suspended in 12.4 ms; MTU3 suspended in 376 µs |
+| 3, `rtcwake` +20 s | Entered suspend-to-idle at 150.43 s; woken by IRQ 191 (the PMIC) at 169.71 s; out at 169.95 s; devices suspended in 16.3 ms |
+| 4, power key (RTC backup +60 s) | Entered at 192.20 s; woken by IRQ 191 at 193.04 s, about 0.8 s later, when the owner tapped the key; out at 193.27 s |
+
+- Step 4 is consistent with the power key but not proven: the RTC shares
+  IRQ 191 and no key event was logged.
+- After every step the 64 MiB eMMC read hashed the same, the eMMC stayed at
+  HS400, and there was no warning.
+- `suspend_stats`: 4 successes, 0 failures.
+
+**This is the first system suspend on this unit with mainline:** s2idle
+entered and resumed twice, with an RTC wake and a key wake.
+
+**Not shown:**
+- a suspended current figure (the gauge's counter units are unconfirmed);
+- a suspend longer than 20 s;
+- keyboard and lid wakes;
+- Wi-Fi across a suspend.
+
+**CPU policy (P2f), lid test with the cable in.**
+- Closing the lid took CPUs 1–7 down within 0.12 s.
+- Opening it brought them back within 17 ms, with no "did not go" line.
+- The console-blank path was not tested.
+
+**New defect: the gadget did not reattach after resume.**
+- After the replug, the UDC read `not attached` and the host saw nothing.
+- A second unplug and replug didn't help.
+- A `soft_connect` disconnect then connect from the console brought SSH back.
+
+**Cause, from the source.** MTU3's system suspend powers the device IP and
+port down, which drops the link and the D+ pullup. Resume powers them on
+without restoring either. Before 0632 that suspend ran only while
+disconnected; now it can run with a suspended but still connected bus.
+
+**Fix: [0633](../../patches/proposals/0633-usb-mtu3-reconnect-after-a-suspend-taken-with-a-susp.patch).**
+Such a suspend is now treated as a disconnect: the pullup goes down, the
+gadget driver is told, and the connection's runtime PM reference is
+dropped. At resume the pullup goes up again when the gadget wants it, which
+is what the manual soft-connect cycle did. Compile-checked with `W=1`; built
+in, so it needs an image.
 
 ## Analysis
 
