@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 /*
- * Boot the GNSS DSP over /dev/gnss0 and record what it sends: gnss-minihost.py
+ * Run the GNSS DSP over /dev/gnss0 and record what it sends: gnss-minihost.py
  * for the station, which has no Python. /dev/gnss0 has poll, so one thread does.
+ * gnss-mt6797 boots the DSP from its firmware file when the device opens, so
+ * this starts at the setup frames.
  *
- * Usage: gnss-minihost DEVICE PARAMS IMAGE OUTPUT SECONDS
+ * Usage: gnss-minihost DEVICE PARAMS OUTPUT SECONDS
  * PARAMS is a private text file of "key value" lines; hex values may repeat.
- * IMAGE is the DSP image, /lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin, which
- * gemian-firmware cuts out of libmnl.so and hash-checks (docs/hardware/firmware.md).
- * It must be exactly image_size bytes; image_offset, from when this read libmnl.so,
- * is accepted and ignored.
- * Exit: 0 full window, 3 signalled, 4 boot failed, 5 DSP silent, 6 write failed.
+ * Its image_offset, image_size and header, from when this booted the DSP
+ * itself, are accepted and ignored.
+ * Exit: 0 full window, 3 signalled, 4 open failed, 5 DSP silent, 6 write failed.
  */
 
 #include <errno.h>
@@ -23,9 +23,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#define FRAGMENT 1400
 #define EXIT_SIGNALLED 3
-#define EXIT_BOOT 4
+#define EXIT_OPEN 4
 #define EXIT_SILENT 5
 #define EXIT_WRITE 6
 #define MAX_ITEMS 16
@@ -39,8 +38,8 @@ struct item {
 };
 
 static struct {
-	long image_offset, image_size, first_millis;
-	struct item header, status4, setting, setting_first;
+	long first_millis;
+	struct item status4, setting, setting_first;
 	struct item setup[MAX_ITEMS], lists[MAX_ITEMS];
 	int setups, nlists;
 } params;
@@ -201,37 +200,14 @@ static void receive(int wait_ms, void (*handle)(unsigned int, const uint8_t *, s
 	}
 }
 
-static unsigned int wanted_id, wanted_seq;
-static int acknowledged;
 static double last_frame;
 
 static void on_frame(unsigned int id, const uint8_t *payload, size_t length)
 {
+	(void)id;
+	(void)payload;
+	(void)length;
 	last_frame = monotonic();
-	if (id == wanted_id && length >= 2 &&
-	    (unsigned int)(payload[0] | payload[1] << 8) == wanted_seq)
-		acknowledged = 1;
-}
-
-static int send_acked(const uint8_t *data, size_t length, unsigned int id, unsigned int seq)
-{
-	double wait = 0.2;
-	int attempt;
-
-	wanted_id = id;
-	wanted_seq = seq;
-	acknowledged = 0;
-	for (attempt = 0; attempt < 5; attempt++, wait *= 2) {
-		double deadline = monotonic() + wait;
-
-		if (send_bytes(data, length))
-			return -1;
-		while (!acknowledged && !signalled && monotonic() < deadline)
-			receive(50, on_frame);
-		if (acknowledged)
-			return 0;
-	}
-	return -1;
 }
 
 static int run_second(long millis, int first)
@@ -266,37 +242,14 @@ static int run_second(long millis, int first)
 	return send_bytes(out, n);
 }
 
-static int session(const uint8_t *image, double seconds)
+static int session(double seconds)
 {
-	static uint8_t out[2 * (FRAGMENT + 16)];
-	static uint8_t part[FRAGMENT + 2];
-	long count = (params.image_size + FRAGMENT - 1) / FRAGMENT, index;
+	static uint8_t out[2 * (MAX_ITEM + 8)];
 	double start, next_tick;
 	long millis = params.first_millis;
 	size_t n;
 	int i, first = 1;
 
-	n = put_frame(out, 0xfe08, params.header.data, params.header.length);
-	if (send_acked(out, n, 0xfe31, 0)) {
-		puts("no reply to the boot header");
-		return EXIT_BOOT;
-	}
-	for (index = 0; index < count; index++) {
-		long seq = index + 1, offset = index * FRAGMENT;
-		long size = params.image_size - offset < FRAGMENT ?
-			    params.image_size - offset : FRAGMENT;
-
-		part[0] = seq & 0xff;
-		part[1] = seq >> 8;
-		memcpy(part + 2, image + offset, size);
-		n = put_frame(out, 0xfe0c, part, size + 2);
-		if (send_acked(out, n, 0xfe32, seq)) {
-			printf("no acknowledgement for fragment %ld\n", seq);
-			return EXIT_BOOT;
-		}
-	}
-	printf("image sent, %ld fragments\n", count);
-	fflush(stdout);
 	for (i = 0; i < params.setups; i++) {
 		n = put_frame(out, 0xfe05, params.setup[i].data, params.setup[i].length);
 		if (send_bytes(out, n))
@@ -356,14 +309,11 @@ static int read_params(const char *path)
 
 		if (!two)
 			continue;
-		if (!strcmp(key, "image_offset"))
-			params.image_offset = atol(value);
-		else if (!strcmp(key, "image_size"))
-			params.image_size = atol(value);
-		else if (!strcmp(key, "first_millis"))
+		if (!strcmp(key, "image_offset") || !strcmp(key, "image_size") ||
+		    !strcmp(key, "header"))
+			continue;
+		if (!strcmp(key, "first_millis"))
 			params.first_millis = atol(value);
-		else if (!strcmp(key, "header"))
-			bad |= parse_hex(&params.header, value);
 		else if (!strcmp(key, "status4"))
 			bad |= parse_hex(&params.status4, value);
 		else if (!strcmp(key, "setting"))
@@ -384,30 +334,19 @@ static int read_params(const char *path)
 int main(int argc, char **argv)
 {
 	struct sigaction action = { .sa_handler = on_signal };
-	uint8_t *image;
-	FILE *file;
 	uint8_t stop[32];
 	int status, i;
 	size_t n;
 
-	if (argc != 6) {
-		fputs("usage: gnss-minihost DEVICE PARAMS IMAGE OUTPUT SECONDS\n", stderr);
+	if (argc != 5) {
+		fputs("usage: gnss-minihost DEVICE PARAMS OUTPUT SECONDS\n", stderr);
 		return 2;
 	}
-	if (read_params(argv[2]) || params.image_size <= 0 || params.status4.length != 2) {
+	if (read_params(argv[2]) || params.status4.length != 2) {
 		fputs("bad params\n", stderr);
 		return 2;
 	}
-	image = malloc(params.image_size);
-	file = fopen(argv[3], "rb");
-	if (!image || !file ||
-	    fread(image, 1, params.image_size, file) != (size_t)params.image_size ||
-	    fgetc(file) != EOF) {
-		fputs("cannot read the image\n", stderr);
-		return 2;
-	}
-	fclose(file);
-	logfile = fopen(argv[4], "w");
+	logfile = fopen(argv[3], "w");
 	if (!logfile) {
 		perror("output");
 		return 2;
@@ -416,13 +355,12 @@ int main(int argc, char **argv)
 	sigaction(SIGINT, &action, NULL);
 	device_fd = open(argv[1], O_RDWR);
 	if (device_fd < 0) {
-		perror("open");
-		return 2;
+		perror("open, which boots the DSP");
+		return EXIT_OPEN;
 	}
-	puts("device open");
+	puts("device open, DSP booted");
 	fflush(stdout);
-	status = session(image, atof(argv[5]));
-	free(image);
+	status = session(atof(argv[4]));
 	n = put_frame(stop, 0xfe05, (const uint8_t *)"\x04\x00", 2);
 	send_bytes(stop, n);
 	usleep(500000);

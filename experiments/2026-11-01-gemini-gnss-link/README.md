@@ -615,11 +615,15 @@ Conditions: a clean first Wi-Fi join, and `wlan0` up for the whole run. This ima
 
 ## Associated code
 
-- [gnss-outdoor.sh](gnss-outdoor.sh): the T5 run on the station. Since 2026-11-07 it and
-  [gnss-minihost.c](../2026-11-01-gemini-gnss-stock-trace/gnss-minihost.c) read the DSP image from
-  `/lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin`, which
-  [`gemian-firmware`](../2026-11-06-gemini-arch-root/gemian-firmware) cuts out of `libmnl.so` and
-  hash-checks, instead of reading `libmnl.so` at an offset. The bytes sent are the same; T4 and T5
-  ran the earlier form. Changing to it was tested off the device only.
+- [gnss-outdoor.sh](gnss-outdoor.sh): the T5 run on the station. Since 2026-11-07,
+  [0636](../../patches/proposals/0636-gnss-mt6797-boot-the-DSP-from-its-firmware-file.patch) makes
+  `gnss-mt6797` boot the DSP when the device opens, from
+  `/lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin`, the boot header followed by the image, which
+  [`gemian-firmware`](../2026-11-06-gemini-arch-root/gemian-firmware) builds from `libmnl.so`.
+  [gnss-minihost.c](../2026-11-01-gemini-gnss-stock-trace/gnss-minihost.c) therefore starts at the
+  setup frames, and neither it nor this script takes an image. T4 and T5 ran the earlier form, with
+  the host booting the DSP. The frames the driver builds equal, byte for byte, those the host sent
+  in T4 and T5, and replaying their captures through the driver's parser finds all 45
+  acknowledgments, also with the bytes cut into 1, 3 and 7-byte pieces. Not run on the device.
 - [test-stp-engine.c](test-stp-engine.c) and
   [run-tests.sh](run-tests.sh): `run-tests.sh PREPARED_LINUX_SOURCE`. No hardware.

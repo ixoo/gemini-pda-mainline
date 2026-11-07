@@ -1265,3 +1265,13 @@ private vendor copies:
 
 No loop device or mount was left. The RAM root changes, so a release image composed after this has a
 new boot2 hash. None has been composed or booted.
+
+**Later the same day, the GNSS file changed:** `gnss_dsp_6797.bin` is now the 106-byte boot header
+followed by the image, 61,546 bytes, which `gnss-mt6797` loads to boot the DSP
+([0636](../../patches/proposals/0636-gnss-mt6797-boot-the-DSP-from-its-firmware-file.patch)).
+`firmware-get` rebuilds the header from `libmnl.so` with busybox `od` and `awk`, as
+[`gemian-firmware`](../2026-11-06-gemini-arch-root/gemian-firmware) does, described with the
+[firmware table](../../docs/hardware/firmware.md#the-set-the-card-root-carries). Retested the same
+way: all six with the new hash, `ready` again, `ready-mismatch-gnss_dsp_6797.bin` for the old
+image-only file in place, and `ready-missing-gnss_dsp_6797.bin` with `WIFI_RAM_CODE_6797` copied
+when `libmnl.so` is absent. No loop device or mount was left.

@@ -137,14 +137,18 @@ come with:
 | --- | --- | --- | --- | --- |
 | `mt6631_fm_v1_patch.bin` | `/vendor/firmware/mt6631_fm_v1_patch.bin` | 1,028 | `ba35c74d26660729caf83b41a567e700f633b6c99384dfa6cbb3c17ceb767e26` | FM driver, by name |
 | `mt6631_fm_v1_coeff.bin` | `/vendor/firmware/mt6631_fm_v1_coeff.bin` | 1,092 | `d32f4a16b35f950ed1a57f2ae88f77ac4b5674d5c4210b65f6fe7912901fd8db` | FM driver, by name |
-| `gnss_dsp_6797.bin` | bytes 2,008,669 to 2,070,108 of `/vendor/lib/libmnl.so` | 61,440 | `898a5cca5aa3011d119a7c92a1c74720753a2b1c03e253cfd88bad4f8966f603` | GNSS host |
+| `gnss_dsp_6797.bin` | built from `/vendor/lib/libmnl.so`: the boot header, then bytes 2,008,669 to 2,070,108 | 61,546 | `a99cacea8b7509d310d2b66e29fe71f3ed5c6b775c0a8a825f1c6a021370f497` | `gnss-mt6797`, by name |
 
 The GNSS DSP image has no file of its own on Gemian: `libmnl.so` (SHA-256 `a2e3fe69…330f`) carries
 it, and it is what crosses the wire at each DSP boot
-([stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)). The name is this
-project's. No driver requests it: the GNSS host
-([`gnss-minihost`](../../experiments/2026-11-01-gemini-gnss-stock-trace/gnss-minihost.c)) reads it
-from that path and refuses a file of any other size.
+([stock trace](../../experiments/2026-11-01-gemini-gnss-stock-trace/README.md)). The name and layout
+are this project's: the 106-byte boot header `libmnl` sends first, then the 61,440-byte image.
+`libmnl` builds that header in code, so `gemian-firmware` rebuilds it the same way, from an 8-byte
+descriptor stored just before the image, two tables in `libmnl.so` and values derived from the
+26 MHz crystal. Rebuilt offline, it equals the header captured on stock byte for byte.
+`gnss-mt6797` ([0636](../../patches/proposals/0636-gnss-mt6797-boot-the-DSP-from-its-firmware-file.patch))
+loads it when `/dev/gnss0` opens and refuses a file whose size or fragment count disagrees with its
+header. That boot has not run on the device.
 Like the rest, the hashes are of one unit's files, and none of the files is redistributed.
 
 The connectivity loader first received normal `request_firmware` failures and

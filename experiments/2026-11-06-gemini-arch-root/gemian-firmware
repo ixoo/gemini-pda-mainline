@@ -15,16 +15,17 @@
 # Exit: 0 every file in place, 1 a file missing or mismatched (named), 2 usage or setup.
 set -eu
 
-# destination  source-in-SOURCE  sha256  [offset size]
+# destination  source-in-SOURCE  sha256  [offset size | gnss]
 # The GNSS DSP image has no file of its own on Gemian: it is embedded in libmnl.so, whose
-# SHA-256 is a2e3fe69...330f (experiments/2026-11-01-gemini-gnss-stock-trace).
+# SHA-256 is a2e3fe69...330f (experiments/2026-11-01-gemini-gnss-stock-trace). gnss builds the
+# file gnss-mt6797 loads from it, below.
 FILES='
 ROMv3_patch_1_0_hdr.bin vendor/firmware/ROMv3_patch_1_0_hdr.bin 450c2b0949cf879217ac9aef81b18b860982f0e69340784b448b54365d8cf630
 ROMv3_patch_1_1_hdr.bin vendor/firmware/ROMv3_patch_1_1_hdr.bin 5732c0730380e937b48ad169f2805b65e8d4a178265566c5083cb2cc2d249f1e
 WIFI_RAM_CODE_6797 vendor/firmware/WIFI_RAM_CODE_6797 a69383d74d829430487c39eef6b5e281b25f901595c903a632a10aa8631426dd
 mt6631_fm_v1_patch.bin vendor/firmware/mt6631_fm_v1_patch.bin ba35c74d26660729caf83b41a567e700f633b6c99384dfa6cbb3c17ceb767e26
 mt6631_fm_v1_coeff.bin vendor/firmware/mt6631_fm_v1_coeff.bin d32f4a16b35f950ed1a57f2ae88f77ac4b5674d5c4210b65f6fe7912901fd8db
-gnss_dsp_6797.bin vendor/lib/libmnl.so 898a5cca5aa3011d119a7c92a1c74720753a2b1c03e253cfd88bad4f8966f603 2008669 61440
+gnss_dsp_6797.bin vendor/lib/libmnl.so a99cacea8b7509d310d2b66e29fe71f3ed5c6b775c0a8a825f1c6a021370f497 gnss
 '
 
 [ "$#" -eq 2 ] || { echo "usage: gemian-firmware SOURCE ROOT" >&2; exit 2; }
@@ -48,6 +49,50 @@ leave() {
 }
 trap 'leave 2' EXIT INT TERM
 sum() { sha256sum "$1" | cut -d' ' -f1; }
+
+# The GNSS firmware is the boot header libmnl.so builds in code, rebuilt here the same way, then
+# the image. libmnl.so (a2e3fe69...330f) stores an 8-byte descriptor just before the image: its
+# size in words, two DSP addresses and a key. The rest of the header comes from two tables in
+# libmnl.so and values it derives from the 26 MHz crystal. The result's hash is checked as usual.
+gnss_dsp() {
+	desc=2008661
+	{
+		od -An -v -tu1 -j "$desc" -N 8 "$1" | sed 's/^/D /'
+		od -An -v -tu1 -j $((0xd2c00 + 5 * 72)) -N 72 "$1" | sed 's/^/R /'
+		od -An -v -tu1 -j $((0xd2f16)) -N 20 "$1" | sed 's/^/T /'
+		od -An -v -tu1 -j $((desc + 8)) -N 61440 "$1" | sed 's/^/I /'
+	} | awk '
+	function rnd(x,  f, c) { f = int(x); if (x < 0 && f != x) f--; c = (f == x) ? f : f + 1; return (x < (f + c) * 0.5) ? f : c }
+	function w(o, v) { h[o] = v % 256; h[o + 1] = int(v / 256) % 256 }
+	$1 == "D" { for (i = 2; i <= NF; i++) d[nd++] = $i; next }
+	$1 == "R" { for (i = 2; i <= NF; i++) r[nr++] = $i; next }
+	$1 == "T" { for (i = 2; i <= NF; i++) t[nt++] = $i; next }
+	$1 == "I" { for (i = 2; i <= NF; i++) { if (($i == 170 || $i == 222)) st[int(n / 1400)]++; n++ } }
+	END {
+		clk = 26000000; mhz = clk / 1e6
+		for (i = 0; i < 106; i++) h[i] = 0
+		h[0] = 26; w(6, int(clk / 57600)); w(8, int(clk / 38400))
+		for (i = 0; i < 8; i++) h[14 + i] = d[i]
+		frags = int((n + 8 + 1391) / 1400)
+		for (i = 0; i < frags; i++) count += st[i] >= 14 ? 2 : 1
+		w(22, count); h[28] = 5
+		# Values libmnl derives from the crystal; two come from its tables (26 MHz is entry 2).
+		k = int(1571328000 / clk); v8 = rnd(((1571328000 - clk * k) * 16777216) / clk)
+		v9 = rnd(16777216 * 4.092 / mhz); v10 = rnd(16777216 * 3.069 / mhz); v11 = rnd(67108864 * 1.023 / mhz)
+		w(30, 157); w(32, int(v8 / 65536) % 256 + k * 256); w(34, v8 % 65536)
+		w(36, rnd(157 / mhz * 3142.656 * 0.0625)); w(38, 0)
+		w(40, t[2] + 256 * t[3]); w(42, t[12] + 256 * t[13])
+		w(44, int(v9 / 65536)); w(46, v9 % 65536); w(48, int(v10 / 65536)); w(50, v10 % 65536)
+		w(52, int(v11 / 65536)); w(54, v11 % 65536); w(56, clk / 1000 - 1)
+		h[58] = 7
+		# The crystal row: 18 words at a 4-byte stride, words 5 to 8 taken from one byte.
+		for (i = 0; i < 18; i++) w(62 + 2 * i, (i >= 5 && i <= 8) ? r[4 * i + 1] : r[4 * i] + 256 * r[4 * i + 1])
+		for (i = 0; i < 8; i++) h[98 + i] = 72 + i
+		for (i = 0; i < 106; i++) printf "\\0%03o", h[i]
+		print ""
+	}' | { read -r esc; printf '%b' "$esc"; }
+	tail -c "+$((desc + 9))" "$1" | head -c 61440
+}
 
 if [ -f "$source" ]; then
 	# A read-only ext4 mount can still clear an orphan list, so the loop device refuses
@@ -84,7 +129,9 @@ while read -r name path hash offset size; do
 		status=1
 		continue
 	fi
-	if [ -n "$offset" ]; then
+	if [ "$offset" = gnss ]; then
+		gnss_dsp "$from/$path" >"$target.partial"
+	elif [ -n "$offset" ]; then
 		tail -c "+$((offset + 1))" "$from/$path" | head -c "$size" >"$target.partial"
 	else
 		cp "$from/$path" "$target.partial"
