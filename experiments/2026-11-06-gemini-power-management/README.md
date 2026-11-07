@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1 (idle floor about 111 mA) and R2 (clock census) run; P1 candidate written (0628–0631, config) and compile-checked; R1b, R3 and S1 not run |
+| Status | `running`: assessment done; R1 (idle floor about 111 mA), R1b (CPUs 1–7 offline save about 15 mA, AUDIO off saves nothing) and R2 (clock census) run; P1 candidate (0628–0631, config) building; R3 and S1 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -521,6 +521,53 @@ with the custodian.
   - If the AUDIO domain saves more than about 5 mA, fixing the idle runtime
     suspend of the audio controller moves ahead of the P2 module fixes.
   - Otherwise both stay where they are, and P3 (clocks) is the next lever.
+
+#### R1b result (2026-11-06)
+
+**Setup.** Same image and boot as R1 (`9a152abb`), untainted throughout,
+unplugged, Wi-Fi unloaded, display blanked. Three windows of 60 samples in one
+unplug, with the charger offline in all of them. A53 hotplug had no earlier
+mainline record, so the custodian flagged it and the owner approved the run
+directly. A pre-check with the cable in took CPU7 off and back on, about
+30 ms each way, with no warning.
+
+| Window | Mean battery current | Range |
+| --- | --- | --- |
+| CPUs 0–7 online | −111.2 mA at 4.162 V | −99 to −179 mA |
+| CPUs 1–7 offline | −96.0 mA | −80 to −153 mA |
+| also audio modules removed (AUDIO domain off) | −96.0 mA | — |
+
+**Interrupts per 65 s window** (base / CPUs off / audio off):
+
+| Source | Base | CPUs off | Audio off |
+| --- | --- | --- | --- |
+| `arch_timer` | 12516 | 4428 | 4386 |
+| IPI function call | 4327 | 0 | 0 |
+| IPI reschedule | 724 | 0 | 0 |
+| I2C `11007000` | 552 | 564 | 552 |
+
+Every CPU came back online with rc 0. Audio and Wi-Fi reloaded cleanly, with
+no warning. The battery went from 87 to 85 % and the temperature from 24.6 to
+25.1 °C. The R1 floor reproduced (111.2 against 111.0 mA).
+
+**Decisions, by the predeclared rules.**
+- **CPU hotplug saves about 15 mA (14 %), above the 10 mA threshold.** An idle
+  hotplug policy becomes the first CPU-power step, ahead of any SPM work.
+- **The AUDIO domain saves nothing measurable, under 5 mA.** The audio
+  controller's idle runtime-PM fix stays a correctness item, not a power one.
+
+**Analysis.**
+- About 96 mA remains with one CPU. That is the always-on SoC and board power
+  that only clock gating (P3), VCORE scaling or an SPM state can reach.
+- CPU0 alone still takes about 68 timer interrupts a second. The 1 Hz
+  logger, the I2C polling (unchanged at about 8.5 transfers a second) and RCU
+  account for some of that; the rest is unexplained.
+
+**Proposed policy (P2f).** When the display blanks (console blank or lid
+close), take CPUs 1–7 offline; bring them back when it unblanks. It goes in
+the station's existing userspace display policy, not the kernel. It needs no
+new kernel code: the `CPU_OFF` path is the one R1b used. It is the owner's
+choice whether a blanked screen with a background job should keep all CPUs.
 
 ### R3: the Gemian comparison
 
