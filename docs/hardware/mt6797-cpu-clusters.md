@@ -416,10 +416,15 @@ confidence unless a mainline result is linked.
   MCU FHCTL reads may return zero once after a write, so the vendor reads
   every word twice, repeats a zero result, and verifies writes up to three
   times.
-- **Sync DCM**: MCUCFG `SYNC_DCM_CONFIG` (`0x10220744`) has a per-cluster
-  divider that the vendor DCM driver keeps at `MHz / 70` when enabled (LL bit 8,
-  L bit 16). The vendor kernel turns it on itself; a driver that does not
-  program it must find it off.
+- **Sync DCM**: MCUCFG `SYNC_DCM_CONFIG` (`0x10220744`) has one byte each for
+  CCI (bits 6:0), LL (14:8) and L (22:16): enable, a 5-bit divider (an idle
+  cluster's clock is divided by up to divider + 1) and an update toggle. The
+  vendor sets the divider to `MHz / 70` (at most 31) before each frequency
+  drop and after each rise, so an enabled divider never exceeds MHz / 70; its
+  generic DCM-on path writes divider 3 for all three. On the mainline station
+  the firmware leaves `0x00070707`, all three enabled at divider 3, which
+  satisfies the vendor rule for any clock of 210 MHz or more
+  ([A53 cpufreq A1](../../experiments/2026-11-07-mt6797-a53-cpufreq/README.md#a1)).
 
 On the mainline station the firmware leaves LL at 897 MHz (PCW `0x114000`,
 post-divider /2, cluster divider /1), L at 1274 MHz (`0x0c4000`, /1, /1), CCI at

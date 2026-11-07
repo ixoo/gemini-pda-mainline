@@ -22,6 +22,7 @@ MHZ="$HERE/cpu-mhz"
 CF=/sys/devices/system/cpu/cpufreq
 REF=/tmp/a53-cpufreq-hash-ref
 TOL=5	# percent allowed between a measured and a requested clock
+DEV=1001a000.clock-controller
 
 stop() {
 	echo "STOP: $*"
@@ -30,13 +31,26 @@ stop() {
 }
 
 regs() {
-	r=""
-	for d in /sys/kernel/debug/*.clock-controller; do
-		[ -d "$d" ] && r=$d
-	done
-	[ -n "$r" ] || { echo "regs: no debugfs node"; return; }
-	cat "$r/registers" || stop "register readback failed"
-	grep -q 'faulted=0' "$r/registers" || stop "driver faulted"
+	r=/sys/kernel/debug/$DEV/registers
+	[ -r "$r" ] || stop "no debugfs node $r"
+	cat "$r" || stop "register readback failed"
+	grep -q 'faulted=0' "$r" || stop "driver faulted"
+}
+
+# sync_dcm_ok WORD: each enabled A53 sync DCM divider allows the lowest OPP
+# (the vendor keeps divider <= MHz / 70; CPU0-3 221 MHz, CPU4-7 325 MHz)
+sync_dcm_ok() {
+	sync_dcm_cluster "$1" 0 8 221
+	sync_dcm_cluster "$1" 1 16 325
+}
+
+# sync_dcm_cluster WORD CLUSTER EN_BIT LOWEST_OPP_MHZ
+sync_dcm_cluster() {
+	en=$(( ($1 >> $3) & 1 ))
+	sel=$(( ($1 >> ($3 + 1)) & 31 ))
+	echo "sync_dcm cluster$2 en $en div $sel floor_mhz $((en * sel * 70))"
+	[ $((en * sel * 70)) -le "$4" ] ||
+		stop "cluster$2 sync DCM divider $sel above the $4 MHz OPP"
 }
 
 soc_temp() {
@@ -54,7 +68,7 @@ check_temp() {
 
 check_log() {
 	if dmesg | grep -E 'mcusys|cpufreq|cpu-freq' |
-	   grep -qiE 'did not hold|not granted|not released|stopped at PCW|behind the driver|refusing|Oops|BUG|WARNING'; then
+	   grep -qiE 'did not hold|not granted|not released|stopped at PCW|behind the driver|refusing|failed|error|Oops|BUG|WARNING'; then
 		stop "fault in the kernel log"
 	fi
 }
@@ -93,7 +107,8 @@ step() {
 	shift 3
 	for k in "$@"; do
 		set_khz "$pol" "$k"
-		regs | grep -E "^pll|^muxsel"
+		regs > /tmp/a53-cpufreq-regs
+		grep -E "^pll|^muxsel" /tmp/a53-cpufreq-regs
 		measure "$a" "$k"
 		measure "$b" "$k"
 		hash_ok "$a"
@@ -108,6 +123,7 @@ t0)
 	for a in 0x10000104 0x10220744 0x1022074c; do
 		echo "$a $(devmem $a 32)"
 	done
+	sync_dcm_ok "$(devmem 0x10220744 32)"
 	[ -r /sys/kernel/debug/clk/mainpll/clk_rate ] &&
 		echo "mainpll_hz $(cat /sys/kernel/debug/clk/mainpll/clk_rate)"
 	ls "$CF" 2>&1
@@ -120,6 +136,8 @@ t0)
 t2)
 	insmod "$HERE/clk-mt6797-mcusys.ko" || stop "clk-mt6797-mcusys refused"
 	dmesg | grep mcusys | tail -n 5
+	[ -e /sys/bus/platform/drivers/clk-mt6797-mcusys/$DEV ] ||
+		stop "clk-mt6797-mcusys did not bind $DEV"
 	regs
 	check_log
 	;;

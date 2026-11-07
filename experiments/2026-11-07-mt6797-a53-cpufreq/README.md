@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-a53-cpufreq` |
-| Status | `planned`: patches and profile pushed, device test predeclared, not run |
+| Status | `in progress`: attempt A1 stopped at t2 (sync DCM refusal, no writes); driver revised for A2 |
 | Subsystem | MT6797 MCUMIXED PLLs and MCU FHCTL, cpufreq-dt, CPU cooling |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -66,8 +66,18 @@ a cluster faster than the firmware did. The LL cluster never needs one.
 - Kernel: Linux 7.1.3, profile `mt6797-a53-station-a72`, patches
   `0639`-`0642` (listed below) plus the configuration fragment
   [`gemini-a53-station-cpufreq.fragment`](../../configs/gemini-a53-station-cpufreq.fragment).
-- Candidate: filled in when the Buildbox package exists (commit, package and
-  boot image SHA-256).
+- A1 candidate: commit `a143ecb7`, Buildbox job
+  `a143ecb74f970bfe8711bf18814be560b0e97fef-mt6797-a53-station-a72-m1`,
+  package `linux-7.1.3-gemini-acd8293f0f55753c42e4b2f1f96cbbd1e5e555af61e9aa80781133183b110c9d`,
+  `Image.gz` `69bbb559a860c5418e15ef1d41c9c23078051b394b9038fe3bedf9119b1e6e0a`,
+  config `4bbd1bdb4b7563599d5be14ee865a1ac94ff4bbb4ff6f1adfc3bf12b7894f560`,
+  `clk-mt6797-mcusys.ko` `c29d692157ba1b31626a44ebdc0d220e6f1941511171396822e0e232ea5fc1d6`,
+  `cpufreq-dt.ko` `2c451b82224a8734e1cfb0908226efbcbff26a53822ca0dc20e60463101bb483`;
+  boot image station-work-85 (boot2 `00bc384f…`), release
+  `7.1.3-gemini-a53-station`.
+- A2 candidate: the same running kernel and boot image; only
+  `clk-mt6797-mcusys.ko` is rebuilt from the revised patch `0640` (see
+  [attempt A2](#attempt-a2-plan)).
 - Vendor source: Gemian Linux 3.18 [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467),
   `drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c` (`set_cur_freq`,
   `adjust_posdiv`, `adjust_clkdiv`, `set_cur_volt_extbuck`), `mt_dcm.c`
@@ -104,9 +114,12 @@ The clock driver:
   device is marked faulted and refuses further changes;
 - checks before each change that the PLL is exactly as it left it;
 - refuses to probe if a cluster's mux is not on its ARMPLL, its dividers are
-  not codes it knows, FHCTL is already hopping, or the MCUCFG sync DCM divider
-  is on for either cluster (the vendor keeps that divider in step with the
-  clock; this driver does not program it).
+  not codes it knows, or FHCTL is already hopping;
+- never writes MCUCFG sync DCM. It reads each cluster's divider at probe and
+  refuses rates below 70 MHz per divider step, the vendor's own rule; the
+  firmware's divider of 3 gives a 210 MHz floor, below every table point. It
+  refuses to probe if a cluster starts below its floor, and faults if
+  `SYNC_DCM_CONFIG` changes after probe.
 
 ## Safety assessment
 
@@ -172,10 +185,12 @@ items 1-5 only.
 Stop the test at the first of these, preserve `dmesg` and the stage output,
 and do not retry:
 
-- a module refuses to load, or any line with `did not hold`, `not granted`,
-  `not released`, `stopped at PCW`, `behind the driver`, `refusing`, an Oops,
-  a `BUG` or a `WARNING` from cpufreq or the clock driver;
-- debugfs shows `faulted=1`;
+- a module refuses to load or the clock driver does not bind, or any line
+  with `did not hold`, `not granted`, `not released`, `stopped at PCW`,
+  `behind the driver`, `refusing`, `failed`, `error`, an Oops, a `BUG` or a
+  `WARNING` from cpufreq or the clock driver;
+- an enabled sync DCM divider above the lowest table point's MHz / 70 (t0);
+- debugfs `registers` missing, or showing `faulted=1`;
 - a measured clock more than 5 % from the requested one;
 - any hash differing from the reference (power off: a wrong result may mean
   corrupted state);
@@ -193,8 +208,8 @@ A72 module not loaded (no secure MCUMIXED writer), stable power. Copy
 
 | Stage | Expected observation | If not |
 | --- | --- | --- |
-| t0 read-only | Boot ID new; `CONFIG_CPU_FREQ` core present, no policies; `0x10220744` bits 8 and 16 clear; CPU0/3 about 897 MHz, CPU4/7 about 1274 MHz; `mainpll_hz` 1092000000; hash reference | Sync DCM on: stop, the driver must program it first. Clock not as recorded: stop |
-| t2 load clock driver | `PLL0 at 897000000 Hz (PCW 0x114000 /2 /1)`, `PLL1 at 1274000000 Hz (PCW 0x0c4000 /1 /1)`; `registers` shows `hp_en=0`, `clk_con` bits 0-1 set, `faulted=0` | Probe refusal or fault: stop |
+| t0 read-only | Boot ID new; `CONFIG_CPU_FREQ` core present, no policies; `0x10220744` decoded, each enabled divider at most 3 (CPU0-3) or 4 (CPU4-7); CPU0/3 about 897 MHz, CPU4/7 about 1274 MHz; `mainpll_hz` 1092000000; hash reference | Divider above that: stop. Clock not as recorded: stop |
+| t2 load clock driver | Driver bound to `1001a000.clock-controller`; `SYNC_DCM_CONFIG=0x00070707, floors 210000000 and 210000000 Hz`; `PLL0 at 897000000 Hz (PCW 0x114000 /2 /1)`, `PLL1 at 1274000000 Hz (PCW 0x0c4000 /1 /1)`; `registers` shows `hp_en=0`, `clk_con` bits 0-1 set, `sync_dcm=0x00070707`, `faulted=0` | Not bound, no debugfs node, probe refusal or fault: stop |
 | t3 load cpufreq-dt | policy0 `0-3`, policy4 `4-7`, governor performance, tables as above; one change: L to 1209 MHz (CON1 PCW `0xba000`), measured; `cpu8 has no OPPs` line; two `cpufreq-cpu*` cooling devices | No policy, wrong clock or hash: stop |
 | t4 LL sweep | Every point measured within 5 %, every hash equal, `ckdiv` field 8/10/11 as listed, post-divider stays /2 | Stop |
 | t5a L 1209/1092 | As t4, post-divider stays /1 | Stop |
@@ -207,15 +222,86 @@ One run of each stage; t4 and t5b each include a full-range jump both ways.
 
 ## Observations
 
-Not run.
+### Attempt A1 (2026-11-07)
+
+Run by the device custodian on station-work-85, boot ID
+`64401d75-9757-4793-8e30-d14960004264`, release `7.1.3-gemini-a53-station`,
+battery 80 % on charger. Staged files matched their recorded SHA-256.
+
+t0 printed PASS:
+
+| Read | Value |
+| --- | --- |
+| `0x10000104` (TOPCKGEN `CLK_MISC_CFG_0`) | `0xFFFF0000` |
+| `0x10220744` (MCUCFG `SYNC_DCM_CONFIG`) | `0x00070707` |
+| `0x1022074c` (MCUCFG `SYNC_DCM_CLUSTER_CONFIG`) | `0x00009090` |
+| `mainpll_hz` | 1092000000 |
+| CPU0, CPU3 / CPU4 / CPU7 measured | 897 / 1273 / 1271 MHz |
+| Hash reference, CPU4 hash | `5abed55b4a4c85e5`, equal |
+| SoC temperature | 33 °C |
+| `/sys/devices/system/cpu/cpufreq` | present, empty |
+
+The README's t0 row required bits 8 and 16 of `0x10220744` clear and said to
+stop otherwise; both were set, but the script did not check that word.
+
+t2: `insmod` returned 0 but the driver did not bind. The kernel log showed
+`SYNC_DCM_CONFIG=0x00070707`, `sync DCM on for cluster 0` and probe failure
+-95 (`-EOPNOTSUPP`). The script printed `regs: no debugfs node` and PASS. The
+custodian stopped there. No register write happened: the check runs before
+the semaphore, FHCTL or any MCUMIXED access. After `rmmod` (rc 0) the word
+still read `0x00070707`. cpufreq-dt was never loaded. The full kernel log is
+kept privately.
 
 ## Analysis
 
-Pending.
+### A1
+
+The driver's refusal worked as written; the assumption behind it did not
+hold. The firmware leaves sync DCM on for CCI, CPU0-3 and CPU4-7: each byte of
+`0x00070707` is enable 1, divider 3, update toggle 0. That is exactly the
+state Gemian's `dcm_mcusys_sync_dcm(ON)` leaves (`MCUCFG_SYNC_DCM_ON |
+DIV_SEL4`, toggled 1 then 0), so this is the vendor's generic DCM-on value,
+not a frequency-specific one.
+
+Gemian's `mt_cpufreq.c` calls `sync_dcm_set_mp0_freq` or `_mp1_freq` with the
+target MHz before a frequency drop and after a rise, and `mt_dcm.c` sets the
+divider to `MHz / 70` (at most 31); its register comment gives the hardware
+limit as `CPU MHz / (4 × system timer MHz)`, with the 13 MHz system timer.
+So the vendor invariant is: an enabled divider never exceeds the cluster's
+MHz / 70. A divider of 3 meets it for every clock of 210 MHz or more, which
+covers every point in both tables (lowest 221 and 325 MHz). The vendor would
+set larger dividers at higher clocks; a smaller divider only divides the
+idle clock less, which costs some idle power and keeps more margin above the
+limit.
+
+The revised driver therefore needs no new write. It reads the dividers at
+probe, refuses any rate below 70 MHz per divider step, and faults if the
+register changes behind it. Programming the divider per frequency, as the
+vendor does, is a later power optimisation with its own write list.
+
+The A1 script had two gaps: t0 did not check the sync DCM word, and t2
+printed PASS when the driver was not bound. A third was found in review:
+`step` piped `regs` into `grep`, so a STOP inside `regs` would only have left
+the pipeline's subshell. All three are fixed; `check_log` now also stops on
+`failed` or `error` lines.
+
+### Attempt A2 plan
+
+- Candidate: the running station-work-85 kernel, with `clk-mt6797-mcusys.ko`
+  rebuilt from the revised `0640`. The profile has no module signing or
+  module versions, and the rebuild changes no other output (checked against
+  the A1 package), so no boot2 write or restart is needed.
+- Writes: the same list as A1, items 1-5 for t2-t5a and t6-t8, items 6-8 for
+  t5b only. Sync DCM is read, never written.
+- Stages: t0 to t8 as in [Procedure](#procedure), with the revised script.
+- Unique observation: the driver binds with floors of 210 MHz and every point
+  measures within 5 % with equal hashes.
+- Decision: pass, then switch the default governor to schedutil and record
+  support; a stop decides from its stage which mechanism needs work.
 
 ## Conclusion
 
-Pending.
+Pending A2.
 
 ## Follow-up
 

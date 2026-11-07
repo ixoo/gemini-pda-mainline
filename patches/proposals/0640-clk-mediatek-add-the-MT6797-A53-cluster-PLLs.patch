@@ -27,16 +27,20 @@ The driver does not set the cluster voltage. It never sets a cluster
 above the rate it found at probe, and refuses a post-divider change on a
 cluster that started below MAINPLL, so no step runs a cluster faster
 than the firmware did. It refuses to probe if a cluster is not on its
-ARMPLL, its dividers are unknown, FHCTL is already hopping, or the
-MCUCFG sync DCM divider, which the vendor keeps in step with the clock,
-is on.
+ARMPLL, its dividers are unknown, or FHCTL is already hopping.
+
+The firmware leaves MCUCFG sync DCM on, which divides an idle cluster's
+clock by up to its divider + 1. The vendor keeps that divider at or below
+the cluster MHz / 70. This driver does not write it: it reads the
+dividers at probe and keeps each cluster at or above 70 MHz per divider
+step, and faults if the register changes behind it.
 
 debugfs "registers" reads the live PLL, divider, mux and FHCTL state.
 ---
  drivers/clk/mediatek/Kconfig             |  10 +
  drivers/clk/mediatek/Makefile            |   1 +
- drivers/clk/mediatek/clk-mt6797-mcusys.c | 883 +++++++++++++++++++++++
- 3 files changed, 894 insertions(+)
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 915 +++++++++++++++++++++++
+ 3 files changed, 926 insertions(+)
  create mode 100644 drivers/clk/mediatek/clk-mt6797-mcusys.c
 
 diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
@@ -77,7 +81,7 @@ new file mode 100644
 index 000000000..6e6c6e5d4
 --- /dev/null
 +++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
-@@ -0,0 +1,883 @@
+@@ -0,0 +1,915 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * MT6797 Cortex-A53 cluster PLLs in MCUMIXED.
@@ -113,6 +117,7 @@ index 000000000..6e6c6e5d4
 +#include <linux/of.h>
 +#include <linux/platform_device.h>
 +#include <linux/seq_file.h>
++#include <linux/units.h>
 +#include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
 +
 +#include <dt-bindings/clock/mediatek,mt6797-mcusys.h>
@@ -159,7 +164,11 @@ index 000000000..6e6c6e5d4
 +/* MCUCFG */
 +#define MCUCFG_SYNC_DCM_CONFIG		0x744
 +#define SYNC_DCM_MP0_DIV_EN		BIT(8)
++#define SYNC_DCM_MP0_DIV_SEL		GENMASK(13, 9)
 +#define SYNC_DCM_MP1_DIV_EN		BIT(16)
++#define SYNC_DCM_MP1_DIV_SEL		GENMASK(21, 17)
++/* The vendor keeps an enabled sync DCM divider at or below cluster MHz / 70. */
++#define SYNC_DCM_MHZ_PER_DIV		70
 +
 +/* Register settle the vendor applies around every MCUMIXED access. */
 +#define MCU_ACCESS_SETTLE_NS		200
@@ -189,6 +198,7 @@ index 000000000..6e6c6e5d4
 +	unsigned int id;
 +	unsigned int ckdiv_shift;
 +	unsigned long boot_rate;
++	unsigned long min_rate;
 +	struct mt6797_mcu_setting cur;
 +	unsigned int last_poll;
 +	unsigned int max_poll;
@@ -199,6 +209,8 @@ index 000000000..6e6c6e5d4
 +	struct device *dev;
 +	void __iomem *base;
 +	void __iomem *topckgen;
++	void __iomem *mcucfg;
++	u32 sync_dcm;
 +	struct clk *sema_clk;
 +	struct mt6797_dvfsp_handoff *handoff;
 +	struct mutex lock;
@@ -220,9 +232,14 @@ index 000000000..6e6c6e5d4
 +	[MT6797_CLK_MCU_L] = 10,
 +};
 +
-+static const u32 mt6797_mcu_sync_dcm_bit[MCU_NUM_PLLS] = {
++static const u32 mt6797_mcu_sync_dcm_en[MCU_NUM_PLLS] = {
 +	[MT6797_CLK_MCU_LL] = SYNC_DCM_MP0_DIV_EN,
 +	[MT6797_CLK_MCU_L] = SYNC_DCM_MP1_DIV_EN,
++};
++
++static const u32 mt6797_mcu_sync_dcm_sel[MCU_NUM_PLLS] = {
++	[MT6797_CLK_MCU_LL] = SYNC_DCM_MP0_DIV_SEL,
++	[MT6797_CLK_MCU_L] = SYNC_DCM_MP1_DIV_SEL,
 +};
 +
 +/*
@@ -614,7 +631,16 @@ index 000000000..6e6c6e5d4
 +	struct mt6797_mcu_change *c = arg;
 +	struct mt6797_mcu_pll *pll = c->pll;
 +	struct mt6797_mcu_setting live;
++	u32 sync_dcm;
 +	int ret;
++
++	/* The rate floors come from the sync DCM dividers read at probe. */
++	sync_dcm = readl(mcu->mcucfg + MCUCFG_SYNC_DCM_CONFIG);
++	if (sync_dcm != mcu->sync_dcm) {
++		dev_err(mcu->dev, "SYNC_DCM_CONFIG changed behind the driver: 0x%08x\n",
++			sync_dcm);
++		return -EBUSY;
++	}
 +
 +	/* Nothing else may have moved this PLL since the last change. */
 +	ret = mt6797_mcu_read_setting(pll, &live);
@@ -676,9 +702,10 @@ index 000000000..6e6c6e5d4
 +	struct mt6797_mcu_setting s;
 +	unsigned long rate;
 +
-+	rate = clamp(req->rate, req->min_rate, min(req->max_rate,
-+						   pll->boot_rate));
-+	if (mt6797_mcu_setting_for(rate, &s))
++	rate = clamp(req->rate, max(req->min_rate, pll->min_rate),
++		     min(req->max_rate, pll->boot_rate));
++	if (mt6797_mcu_setting_for(rate, &s) ||
++	    mt6797_mcu_rate(&s) < pll->min_rate)
 +		return -EINVAL;
 +
 +	req->rate = mt6797_mcu_rate(&s);
@@ -698,6 +725,8 @@ index 000000000..6e6c6e5d4
 +	ret = mt6797_mcu_setting_for(rate, &c.target);
 +	if (ret)
 +		return ret;
++	if (mt6797_mcu_rate(&c.target) < pll->min_rate)
++		return -EINVAL;
 +
 +	mutex_lock(&mcu->lock);
 +	ret = mt6797_mcu_locked(mcu, mt6797_mcu_change, &c);
@@ -792,11 +821,14 @@ index 000000000..6e6c6e5d4
 +		struct mt6797_mcu_pll *pll = &mcu->pll[id];
 +
 +		seq_printf(m,
-+			   "pll%u con1=0x%08x fh_cfg=0x%08x fh_mon=0x%08x rate=%lu boot_rate=%lu changes=%lu last_poll=%u max_poll=%u\n",
++			   "pll%u con1=0x%08x fh_cfg=0x%08x fh_mon=0x%08x rate=%lu boot_rate=%lu min_rate=%lu changes=%lu last_poll=%u max_poll=%u\n",
 +			   id, d.con1[id], d.cfg[id], d.mon[id],
 +			   mt6797_mcu_rate(&pll->cur), pll->boot_rate,
-+			   pll->changes, pll->last_poll, pll->max_poll);
++			   pll->min_rate, pll->changes, pll->last_poll,
++			   pll->max_poll);
 +	}
++	seq_printf(m, "sync_dcm=0x%08x\n",
++		   readl(mcu->mcucfg + MCUCFG_SYNC_DCM_CONFIG));
 +	seq_printf(m, "faulted=%d\n", mcu->faulted);
 +
 +	return 0;
@@ -817,30 +849,29 @@ index 000000000..6e6c6e5d4
 +	       IOMEM_ERR_PTR(-ENOMEM);
 +}
 +
-+static int mt6797_mcu_check_sync_dcm(struct platform_device *pdev,
-+				     struct mt6797_mcusys *mcu)
++/*
++ * Sync DCM divides an idle cluster's clock by up to its divider + 1. The
++ * vendor rewrites the divider as MHz / 70 before each frequency drop and
++ * after each rise, so an enabled divider must never exceed MHz / 70.
++ * This driver leaves the firmware's dividers alone and keeps each
++ * cluster at or above 70 MHz per divider step instead.
++ */
++static void mt6797_mcu_read_sync_dcm(struct mt6797_mcusys *mcu)
 +{
-+	void __iomem *mcucfg;
 +	unsigned int id;
-+	u32 val;
 +
-+	mcucfg = mt6797_mcu_map_shared(pdev, "mcucfg");
-+	if (IS_ERR(mcucfg))
-+		return PTR_ERR(mcucfg);
-+	val = readl(mcucfg + MCUCFG_SYNC_DCM_CONFIG);
-+	devm_iounmap(&pdev->dev, mcucfg);
++	mcu->sync_dcm = readl(mcu->mcucfg + MCUCFG_SYNC_DCM_CONFIG);
++	for (id = 0; id < MCU_NUM_PLLS; id++) {
++		struct mt6797_mcu_pll *pll = &mcu->pll[id];
++		u32 sel = 0;
 +
-+	dev_info(mcu->dev, "SYNC_DCM_CONFIG=0x%08x\n", val);
-+	/*
-+	 * A cluster's sync DCM divider follows its frequency. This driver does
-+	 * not program it, so refuse while the firmware has it on.
-+	 */
-+	for (id = 0; id < MCU_NUM_PLLS; id++)
-+		if (val & mt6797_mcu_sync_dcm_bit[id])
-+			return dev_err_probe(mcu->dev, -EOPNOTSUPP,
-+					     "sync DCM on for cluster %u\n", id);
-+
-+	return 0;
++		if (mcu->sync_dcm & mt6797_mcu_sync_dcm_en[id])
++			sel = field_get(mt6797_mcu_sync_dcm_sel[id],
++					mcu->sync_dcm);
++		pll->min_rate = sel * SYNC_DCM_MHZ_PER_DIV * HZ_PER_MHZ;
++	}
++	dev_info(mcu->dev, "SYNC_DCM_CONFIG=0x%08x, floors %lu and %lu Hz\n",
++		 mcu->sync_dcm, mcu->pll[0].min_rate, mcu->pll[1].min_rate);
 +}
 +
 +static int mt6797_mcu_probe(struct platform_device *pdev)
@@ -865,9 +896,9 @@ index 000000000..6e6c6e5d4
 +	if (IS_ERR(mcu->topckgen))
 +		return PTR_ERR(mcu->topckgen);
 +
-+	ret = mt6797_mcu_check_sync_dcm(pdev, mcu);
-+	if (ret)
-+		return ret;
++	mcu->mcucfg = mt6797_mcu_map_shared(pdev, "mcucfg");
++	if (IS_ERR(mcu->mcucfg))
++		return PTR_ERR(mcu->mcucfg);
 +
 +	mcu->handoff = mt6797_dvfsp_handoff_get(dev);
 +	if (IS_ERR(mcu->handoff))
@@ -884,6 +915,7 @@ index 000000000..6e6c6e5d4
 +		mcu->pll[id].id = id;
 +		mcu->pll[id].ckdiv_shift = mt6797_mcu_ckdiv_shift[id];
 +	}
++	mt6797_mcu_read_sync_dcm(mcu);
 +
 +	mutex_lock(&mcu->lock);
 +	ret = mt6797_mcu_locked(mcu, mt6797_mcu_init_hw, &st);
@@ -913,6 +945,10 @@ index 000000000..6e6c6e5d4
 +
 +		pll->cur = st.boot[id];
 +		pll->boot_rate = mt6797_mcu_rate(&pll->cur);
++		if (pll->boot_rate < pll->min_rate)
++			return dev_err_probe(dev, -EOPNOTSUPP,
++					     "PLL%u starts below its sync DCM floor\n",
++					     id);
 +		pll->hw.init = &init;
 +		dev_info(dev, "PLL%u at %lu Hz (PCW 0x%06x /%u /%u), ceiling\n",
 +			 id, pll->boot_rate, pll->cur.pcw, pll->cur.posdiv,
