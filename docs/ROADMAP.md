@@ -47,7 +47,9 @@ budgets and stop conditions under the [safety rules](SAFETY.md).
 
 The owner shipped v1 on 2026-11-04 as it stands. Its [known gaps](RELEASE_READINESS.md#known-gaps-in-v1)
 come next as tester need shows: first the first install and a published kernel package. Those
-that change boot files go in one image.
+that change boot files go in one image. The persistent root has an agreed
+[design](../experiments/2026-11-06-gemini-arch-root/README.md): Arch Linux ARM, systemd-native,
+iwd and sway, developed on microSD first, with its first steps in order.
 
 Owner decisions there: Gemian's root read-only or one dedicated directory, the country protocol,
 how the optional modules are offered, and a second unit.
