@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); 0633 v1 rejected on P3 (suspend aborted), v2 compile-checked; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnect failed on P3 and P4, fixes 0633 v2, 0634 and 0635 compile-checked; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -805,6 +805,60 @@ Compile-checked with `W=1`; not yet on the device.
 **Stop:** the suspend fails, or SSH is not back 60 s after a replug. In
 either case read the UDC state, and the owner recovers with the soft-connect
 cycle.
+
+#### P4 (2026-11-06): suspend works, reconnect still fails, and a WARN
+
+**Setup.** station-work-76: boot2 `94a0fc40…`, built from `ddc6a1e2` (0633
+v2). Boot `7f43fdde`. Raw logs and an owner photo stay private with the
+custodian.
+
+**Suspend:**
+- The RTC +20 s s2idle completed: in at 29.57 s, woken by IRQ 191 at
+  49.07 s, out at 49.31 s.
+- No `ip sleep failed`; the eMMC hash matched.
+- 0633 v2's pullup cycle ran at 49.118 s and 49.138 s, with the cable still
+  out.
+
+**Reconnect: failed.**
+- Right after resume, and still 30 s after the owner's replug with no
+  console input, the UDC read `not attached` and the link state `0x0`.
+- The soft-connect cycle from the console recovered SSH.
+
+**A WARN (taint 512).**
+- At 31.71 s, inside the suspend, `__i2c_transfer()` warned.
+- Call chain: the regulator core's late cleanup (`regulator_init_complete_work`,
+  queued 30 s after late init) read the bq25890 VBUS regulator over the
+  suspended I2C0.
+- So any suspend in the first 30 s after boot hits it. It also shows that
+  timers and non-freezable work still run during s2idle.
+
+**Cause of the reconnect failure, from the source.**
+- MTU3's runtime callbacks power the controller, PHY and clocks down only when
+  `device_may_wakeup()`, because nothing else would bring it back.
+- But probe calls `device_init_wakeup(dev, true)` unconditionally, so on the
+  Gemini, which has no wake path, that check always passes.
+- 0633 v2 correctly drops the connection's runtime reference when it reports
+  the disconnect. The controller then runtime-suspended (link state `0x0`), and
+  a replug could never wake it.
+- The manual soft-connect works because MTU3's pullup call starts with
+  `pm_runtime_get_sync()`.
+- On P2 the reference was never dropped, but the pullup lost in the
+  power-down was never restored either. Hence the same symptom.
+
+**Fixes, compile-checked with `W=1`, both built in:**
+- [0634](../../patches/proposals/0634-usb-mtu3-power-down-at-runtime-only-with-a-wake-path.patch):
+  MTU3 enables wakeup, and with it runtime power-down, only when a wake path
+  exists (IP-sleep wakeup or a wakeup IRQ). On the Gemini the controller now
+  stays powered and keeps watching the bus. With 0633 v2 this gives:
+  - suspend as on P2;
+  - at resume, a reported disconnect and a pullup cycle;
+  - a replug the controller can see.
+- [0635](../../patches/proposals/0635-regulator-core-hold-the-late-cleanup-off-during-a-sy.patch):
+  the regulator late cleanup is queued on `system_freezable_wq`, so a suspend
+  holds it until resume.
+
+**Test:** test G on an image with 0633–0635. Add one suspend started within
+30 s of boot, which must leave no WARN and no taint.
 
 ## Analysis
 

@@ -799,3 +799,5 @@ proposals/0630-power-supply-bq25890-keep-the-charging-guard-s-limit.patch
 proposals/0631-usb-typec-fusb301-stop-reading-the-controller-across.patch
 proposals/0632-usb-mtu3-let-a-suspended-bus-suspend-the-system.patch
 proposals/0633-usb-mtu3-reconnect-after-a-suspend-taken-with-a-susp.patch
+proposals/0634-usb-mtu3-power-down-at-runtime-only-with-a-wake-path.patch
+proposals/0635-regulator-core-hold-the-late-cleanup-off-during-a-sy.patch

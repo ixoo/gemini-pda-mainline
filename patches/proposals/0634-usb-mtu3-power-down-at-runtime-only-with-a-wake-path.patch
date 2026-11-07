@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 22:23:06 -0500
+Subject: [PATCH] usb: mtu3: power down at runtime only with a wake
+ path
+
+The runtime PM callbacks power the controller, its PHY and clocks down
+only when device_may_wakeup(), because once down nothing but the
+IP-sleep wakeup or a wakeup interrupt brings it back for a host
+connecting or a cable attached. Probe sets the device as wakeup-enabled
+unconditionally, which defeats that check on a controller with neither.
+
+On the Gemini (no wakeup-source, no wakeup interrupt, and a PHY that
+forces the B-session valid so no VBUS change is seen), the controller
+runtime-suspended once a suspend's reconnection had dropped the last
+reference, and a replug was never noticed: the gadget stayed "not
+attached" until userspace cycled soft_connect, whose pullup call
+resumes the device.
+
+Enable wakeup only when a wake path is configured. Without one the
+controller stays powered and keeps watching the bus.
+---
+ drivers/usb/mtu3/mtu3_plat.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/mtu3/mtu3_plat.c b/drivers/usb/mtu3/mtu3_plat.c
+index 461575310..fb88fbdb7 100644
+--- a/drivers/usb/mtu3/mtu3_plat.c
++++ b/drivers/usb/mtu3/mtu3_plat.c
+@@ -358,7 +358,13 @@ static int mtu3_probe(struct platform_device *pdev)
+ 	pm_runtime_enable(dev);
+ 	pm_runtime_get_sync(dev);
+ 
+-	device_init_wakeup(dev, true);
++	/*
++	 * The runtime callbacks power the controller down only for a device
++	 * that may wake, since nothing else would bring it back for a host or
++	 * a cable. Claim that only with a wake path: the IP-sleep wakeup or a
++	 * wakeup interrupt.
++	 */
++	device_init_wakeup(dev, ssusb->uwk_en || ssusb->wakeup_irq > 0);
+ 
+ 	ret = ssusb_rscs_init(ssusb);
+ 	if (ret)
+-- 
+2.43.0
+

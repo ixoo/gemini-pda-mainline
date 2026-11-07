@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 6 Nov 2026 22:23:16 -0500
+Subject: [PATCH] regulator: core: hold the late cleanup off during a
+ system suspend
+
+The unused-regulator cleanup runs from delayed work 30 s after late
+init, on the system workqueue, which is not frozen for a suspend. A
+suspend entered inside that window runs it with devices suspended: on
+the Gemini a suspend-to-idle begun 28 s after boot had the cleanup read
+the bq25890 VBUS regulator through a suspended I2C adapter, and
+__i2c_transfer() warned.
+
+Queue it on system_freezable_wq instead, so a suspend holds it until
+the system resumes. Nothing else changes: it still runs once, at least
+30 s after late init.
+---
+ drivers/regulator/core.c | 8 ++++++--
+ 1 file changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/regulator/core.c b/drivers/regulator/core.c
+index dc5d67767..26f2fe731 100644
+--- a/drivers/regulator/core.c
++++ b/drivers/regulator/core.c
+@@ -6881,9 +6881,13 @@ static int __init regulator_init_complete(void)
+ 	 * a bit and hope we waited long enough.  It'd be better if
+ 	 * we'd only do this on systems that need it, and a kernel
+ 	 * command line option might be useful.
++	 *
++	 * The cleanup reads and switches regulators, possibly over buses
++	 * that are suspended with the system, so it must not run during a
++	 * suspend: use a freezable workqueue, which holds it until resume.
+ 	 */
+-	schedule_delayed_work(&regulator_init_complete_work,
+-			      msecs_to_jiffies(30000));
++	queue_delayed_work(system_freezable_wq, &regulator_init_complete_work,
++			   msecs_to_jiffies(30000));
+ 
+ 	return 0;
+ }
+-- 
+2.43.0
+
