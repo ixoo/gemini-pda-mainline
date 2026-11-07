@@ -287,11 +287,24 @@ change above.
 On the station's normal path, with no flags set, `flash-boot2` still wrote, verified,
 left every flag at `0`, and refused a wrong checksum.
 
+**Buildbox, 2026-11-06.**
+- **First build, `aa40fb18`:** stopped at configuration. The AF_ALG options select
+  `CRYPTO_USER_API`, which `gemini-usbdiag.fragment` asks to be off, and the profile
+  check enforces each symbol's last request.
+- **Fix, `32e00098`:** names `CRYPTO_USER_API=y` in the station fragment.
+- **Rebuild of `mt6797-a53-station-a72` with `BUILD_MODULES=1`:** validated. Job
+  `32e00098…-mt6797-a53-station-a72-m1`, package `linux-7.1.3-gemini-3b7c38d2…`,
+  config `8b1dc525…`, `Image.gz` `b8309b93…`, `hardware_write=none`.
+- **Resolved config:** `CRYPTO_USER_API`, `_HASH`, `_SKCIPHER`, `KEY_DH_OPERATIONS` and
+  `CRYPTO_DH` are `=y`. `MMC_MTK` is built in and `I2C_CHARDEV` stays on for the station.
+- **Not fetched:** `fetch-package` only follows HEAD, which has moved on, so the image is
+  built again from HEAD when step 4 composes it.
+- **Not built:** the release profile, which shares the fragment.
+
 **Not tested:**
 - the real eMMC, card detection timing and the console key on the device;
 - the station's own busybox;
-- a real systemd behind `switch_root`;
-- the Buildbox build with the new options.
+- a real systemd behind `switch_root`.
 
 ## Analysis
 
