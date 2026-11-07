@@ -789,7 +789,7 @@ copy the record into RAM, unmounts it, and no longer mounts it into a card root
 ([station record](../2026-10-30-mainline-dev-station/README.md#nvdata-is-mounted-only-to-copy-the-wi-fi-record-2026-11-07)).
 `RECORD` on the station is that RAM copy, `/lib/firmware/mediatek/mt6797/WIFI.storage`.
 
-**The writer runs before Linux (2026-11-07).** `station-work-82` (`boot2` `7ac0369f`, boot
+**The writer runs before the station's Linux (2026-11-07).** `station-work-82` (`boot2` `7ac0369f`, boot
 `2262f250`) worked as intended: `nvdata=record-copied`, `nvdata=unmounted`, no `nvdata` in
 `/proc/mounts`, the device read-only, and the kernel log shows only the read-only mount without
 journal at 2.396 s and its unmount at 2.412 s. Yet `nvdata` changed between boot `10db4660` and this
@@ -797,10 +797,20 @@ one (`7c925690…` → `c87107d7…`): mount count 1 → 2, mount and write time
 unchanged. The times read 2094-11-07 19:14:31, 2026-11-07 19:14:31 UTC less the 68-year offset.
 This kernel started at 19:14:49.9 UTC (RTC time less uptime), so the write came about 19 s before
 Linux started, while the owner was selecting `boot2`. Linux only mounted read-only, on a read-only
-device. So the writer runs before Linux, in LK or the preloader, with a clock read 68 years
-ahead. This contradicts the earlier offline reading of LK and the preloader (no ext4 superblock
-handling found), which the bootloader work now has to revisit. Private evidence:
-`station-work-82/boot-2262f250-nvdata.txt` under ignored artifacts.
+device. Private evidence: `station-work-82/boot-2262f250-nvdata.txt` under ignored artifacts.
+
+**Correction: a charging start of Gemian's kernel (inference, confirmed by the owner's
+observation).** The first reading of this boot (`0446ca24`) named LK or the preloader. The
+bootloader work found no ext4 or raw block writer in LK, the preloader, ATF or TEE. Its
+explanation: `poweroff` with the USB cable in lets the PMIC power the device up again. LK then
+starts in charging mode and boots the primary `boot`, Gemian's kernel, whose start-up checks
+`nvdata` (`e2fsck`, which resets the count and sets the last-check time) and mounts it
+read-write. The owner confirmed it: "Yes, charging screen" appears after the power-off and
+before they select `boot2`. That fits a write at 19:14:31, between the power-off at 19:14:01.7
+and this kernel's start at 19:14:49.9. Not verified: that Gemian's kernel stamps the time 68 years
+ahead. So neither the station's nor the card's Linux writes `nvdata`. Mounting it only to copy
+the record stays, but it was not the cause. The earlier "Gemian: no boot" counted only
+deliberate boots, not this charging start. No device action was taken for this correction.
 
 ### Step 4, R3 (predeclared): Wi-Fi, and the interface at scale 2
 
