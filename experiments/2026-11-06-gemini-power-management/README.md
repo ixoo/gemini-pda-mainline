@@ -860,6 +860,47 @@ custodian.
 **Test:** test G on an image with 0633–0635. Add one suspend started within
 30 s of boot, which must leave no WARN and no taint.
 
+#### P4, second run (2026-11-06): 0634 emulated, inconclusive
+
+**Setup.** Same boot (`7f43fdde`), at about 833 s of uptime, already
+tainted. Earlier in that boot the owner had cycled `soft_connect` once.
+`power/wakeup` was then set to `disabled`, which is what 0634 sets at probe.
+
+**Result.**
+- 5 s after the unplug the UDC still read `configured`, runtime PM was
+  active, and `U3D_USB20_OPSTATE` read `0x0`. On every earlier run it had read
+  `0x13` (the bus-suspended state) at this point.
+- The suspend failed in 16 µs with MTU3 `-EBUSY`: connected, with no bus
+  suspend seen.
+- The eMMC hash matched, and the plain replug kept SSH.
+
+**Two changes, not separated.** Either the earlier soft-connect cycle or the
+disabled wakeup stopped the unplug from showing as a bus suspend. The second
+is unlikely: with wakeup disabled the runtime callbacks only return early.
+If it was the pullup cycle, then 0633's own resume-time cycle would leave
+the next suspend refused. Test G's second cycle checks exactly that.
+
+**Next: a clean boot of P4.** Before any `soft_connect`, set `power/wakeup`
+to `disabled`, then run G with the uptime over 40 s. At each step, log:
+- the `11271000.usb` interrupt count;
+- `U3D_USB20_OPSTATE`;
+- runtime status.
+
+**Decisions:**
+
+| Result | Next |
+| --- | --- |
+| Both cycles pass | 0634 confirmed; build the image from `90333ab1` |
+| Cycle 1 passes, cycle 2 is refused with `0x0` after the unplug | A pullup cycle breaks bus-suspend detection, so 0632's premise is not reliable. Fall back to D2 below |
+| Cycle 1 shows `0x0` after the unplug | Bus-suspend detection is unreliable even from a clean start. Fall back to D2 |
+
+**D2, the fallback.** MTU3 has no VBUS input it could be fed: its extcon
+hook is for host ID only. On this board, 0630 already refuses suspend
+whenever the charger sees VBUS, so a suspend that gets as far as MTU3 is
+proof the cable is out. D2 would treat a connected gadget at suspend as
+unplugged on this board (a DT flag naming the forced session) instead of
+waiting for a bus suspend. The resume-time reconnect of 0633 stays.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
