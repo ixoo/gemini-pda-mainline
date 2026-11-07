@@ -415,9 +415,9 @@ With those dependencies already installed, `./scripts/check-repository` is
 equivalent. Linux CI supplies its own environment and runs the Linux-only
 artifact-provenance fixtures. The gate reports any local skips explicitly.
 A clean checkout can check a complete integration range with
-`./scripts/check-repository --base BASE_COMMIT`. The manual CI workflow accepts
-the same optional `base` revision, including when an earlier run failed before
-checking the full change set.
+`./scripts/check-repository --base BASE_COMMIT`. CI runs only when a version
+tag such as `v1` is pushed, and then checks every change since the previous
+version tag. The manual CI workflow accepts the same optional `base` revision.
 
 ## Repository publication gate
 

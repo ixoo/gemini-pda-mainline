@@ -1,9 +1,10 @@
 name: Repository checks
 
+# Run only for version tags such as v1; commits to main and pull requests do
+# not trigger CI. A manual run remains available for a chosen base revision.
 on:
   push:
-    branches: [main]
-  pull_request:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       base:
@@ -24,7 +25,7 @@ jobs:
     timeout-minutes: 15
     env:
       PYTHONDONTWRITEBYTECODE: '1'
-      CHECK_BASE_SHA: ${{ inputs.base || github.event.pull_request.base.sha || github.event.before }}
+      CHECK_BASE_SHA: ${{ inputs.base }}
     steps:
       - name: Read repository history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -40,8 +41,9 @@ jobs:
         run: |
           set -euo pipefail
           base_ref="${CHECK_BASE_SHA}"
-          if [[ -z "${base_ref}" || "${base_ref}" =~ ^0+$ ]]; then
-            base_ref="$(git rev-parse HEAD^)"
+          # A tag checks everything since the previous version tag.
+          if [[ -z "${base_ref}" ]]; then
+            base_ref="$(git describe --tags --abbrev=0 --match 'v*' HEAD^ 2>/dev/null || git rev-parse HEAD^)"
           fi
           /usr/bin/python3 scripts/check-repository --base "${base_ref}"
 
