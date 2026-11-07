@@ -37,6 +37,7 @@ DROP = {'init', 'etc/inittab', 'etc/passwd', 'etc/shells', 'bin/usb-auth',
         'bin/console-status', 'bin/kmsg-capture', 'bin/kmsg-seal', 'bin/x-record'}
 DIR, FILE, CHR, LNK = 0o040000, 0o100000, 0o020000, 0o120000
 KEY_B, KEY_N, K_HOLE = 48, 49, 0x0200
+KEY_1, K_CONS = 2, 0x0500
 # The kernel opens /dev/console from the archive before init mounts devtmpfs.
 CONSOLE = ('dev/console', CHR | 0o600, (5, 1))
 
@@ -66,6 +67,19 @@ def quiet_brightness_keys(keymap):
     # Fn+B was the hex digit B for typed code input, Fn+N the letter n.
     assert (table[KEY_B], table[KEY_N]) == (0x0915, 0x0b6e), (hex(table[KEY_B]), hex(table[KEY_N]))
     table[KEY_B] = table[KEY_N] = K_HOLE
+    return keymap[:offset] + struct.pack('<128H', *table) + keymap[offset + 256:]
+
+
+def console_switch_keys(keymap):
+    """In the busybox bkeymap, Ctrl+Alt+1 to 0 pick consoles 1 to 10 (no F-keys on the Gemini)."""
+    assert keymap[:7] == b'bkeymap'
+    flags = keymap[7:263]
+    ctrl_alt = 4 | 8
+    assert flags[ctrl_alt]
+    offset = 263 + 256 * sum(1 for t in range(ctrl_alt) if flags[t])
+    table = list(struct.unpack('<128H', keymap[offset:offset + 256]))
+    assert table[KEY_1:KEY_1 + 10] == [K_HOLE] * 10, [hex(v) for v in table[KEY_1:KEY_1 + 10]]
+    table[KEY_1:KEY_1 + 10] = [K_CONS + n for n in range(10)]
     return keymap[:offset] + struct.pack('<128H', *table) + keymap[offset + 256:]
 
 
@@ -137,7 +151,7 @@ def main(parent, modules, tools, release, output, authorized_key=None):
     for name in ['regulatory.db', 'regulatory.db.p7s']:
         files['lib/firmware/' + name] = (FILE | 0o644, (Path(tools)/name).read_bytes())
     mode, keymap = files['etc/gemini-us.bkeymap']
-    files['etc/gemini-us.bkeymap'] = (mode, quiet_brightness_keys(keymap))
+    files['etc/gemini-us.bkeymap'] = (mode, console_switch_keys(quiet_brightness_keys(keymap)))
     # The calibration record is copied from nvdata into RAM at boot, never carried.
     files.pop('lib/firmware/mediatek/mt6797/WIFI.storage', None)
     for d in ['mnt', 'mnt/data', 'nvdata', 'tmp', 'lib/modules', 'lib/modules/' + release]:

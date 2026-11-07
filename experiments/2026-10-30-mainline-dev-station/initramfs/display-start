@@ -8,6 +8,8 @@ dir=/lib/modules/$(uname -r)
 for module in phy-mtk-mipi-dsi-drv clk-mt6797-mm mtk-mmsys mtk-mutex drm_panel_orientation_quirks \
     drm panel-novatek-nt36672e drm_kms_helper drm_dma_helper cec drm_display_helper drm_client_lib \
     mediatek-drm; do
+    # Already loaded (on the card, modprobe@drm can load drm and its quirks first) is fine.
+    [ -d "/sys/module/$(echo "$module" | tr - _)" ] && continue
     if ! insmod "$dir/$module.ko" 2>/dev/null; then
         echo "$module-failed"
         exit 1

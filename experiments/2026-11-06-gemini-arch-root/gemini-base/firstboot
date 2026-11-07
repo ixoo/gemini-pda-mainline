@@ -53,4 +53,5 @@ systemctl set-default graphical.target
 touch "$state/firstboot-done"
 echo "Done. The session starts now. Fn types the symbols printed on the keys. sway's"
 echo "shortcuts use Ctrl+Alt: Ctrl+Alt+Enter opens a terminal, Ctrl+Alt+D a launcher,"
-echo "Ctrl+Alt+Shift+E leaves the session."
+echo "Ctrl+Alt+Shift+E leaves the session, Ctrl+Alt+Tab goes to a text console;"
+echo "on a console, Alt+Left/Right or Ctrl+Alt+1 to 0 switch consoles."

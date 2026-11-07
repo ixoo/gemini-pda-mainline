@@ -8,6 +8,8 @@ StartLimitBurst=5
 After=systemd-user-sessions.service gemini-display.service gemini-firstboot.service
 Conflicts=getty@tty1.service
 Wants=gemini-display.service
+# Once the retries are spent, tty1 gets a login prompt again.
+OnFailure=getty@tty1.service
 
 [Service]
 User=%i

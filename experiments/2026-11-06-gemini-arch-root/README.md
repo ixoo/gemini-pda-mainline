@@ -1072,6 +1072,32 @@ evidence.
 
 **Stop rules.** As R1.
 
+### R5, card boot 2 (2026-11-07, `station-work-83`, boot `057c908b`): no session, no console
+
+From the custodian's reading of the private card journal (full R5 result to follow):
+- `modprobe@drm.service` loaded `drm` at 7.0 s, and with it `drm_panel_orientation_quirks`.
+  `display-start` then failed its own `insmod` of that module ("already loaded") at 12.34 s, so no
+  DRM device appeared and sway failed six times with "Found 0 GPUs". On card boot 1,
+  `modprobe@drm` hadn't loaded `drm`, and `display-start` did at 13.09 s: the outcome depends on
+  start order.
+- The failed load left `display-boot`'s marker, so the next start skipped the display as if the
+  load had hung.
+- Once `gemini-session@` gave up, `tty1` had no login (the session conflicts with its getty), and
+  the Gemini keyboard has no F-keys to reach another console. The owner: "let's make sure we
+  implement a way to switch console with the gemini keyboard".
+
+**Fixes, after the run.**
+- `display-start` (station and card) treats a module already in `/sys/module` as loaded.
+- `display-boot` clears its marker whenever `display-start` returns; only a hang or power loss
+  leaves it.
+- `gemini-session@` starts `getty@tty1` when it fails for good.
+- **Console switching without F-keys:**
+  - Alt+Left/Right steps between consoles; the station's map already had it, and the card's maps
+    now do too.
+  - Ctrl+Alt+1 to 0 picks console 1 to 10, in both.
+  - In sway, Ctrl+Alt+Tab runs `chvt 2` through one passwordless sudo rule for `wheel`.
+  - `gemini-base` 11; the station needs a new boot image for its map and `display-start`.
+
 ## Analysis
 
 Not started.

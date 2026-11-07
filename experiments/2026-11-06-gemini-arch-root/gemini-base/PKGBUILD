@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=10
+pkgver=11
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, sway session'
 arch=('any')
@@ -81,6 +81,13 @@ package() {
         perl "ckbcomp-${_csver}" -I"$inc" -keycodes 'evdev+aliases(qwerty)' \
             -symbols "pc+planet_vndr/gemini($layout)+inet(evdev)+planet_vndr/gemini(escape)" \
             >"$srcdir/gemini-$layout.map" 2>/dev/null || return 1
+        # Console switching without F-keys: Alt+Left/Right step, Ctrl+Alt+1 to 0 pick.
+        {
+            printf 'alt keycode 105 = Decr_Console\nalt keycode 106 = Incr_Console\n'
+            for n in 1 2 3 4 5 6 7 8 9 10; do
+                printf 'control alt keycode %d = Console_%d\n' $((n + 1)) "$n"
+            done
+        } >>"$srcdir/gemini-$layout.map"
         loadkeys -u -b "$srcdir/gemini-$layout.map" >/dev/null 2>&1 || return 1
         gzip -9n <"$srcdir/gemini-$layout.map" >"$kmaps/gemini-$layout.map.gz"
     done <"$dir/layouts.tsv"
