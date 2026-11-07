@@ -35,8 +35,8 @@ debugfs "registers" reads the live PLL, divider, mux and FHCTL state.
 ---
  drivers/clk/mediatek/Kconfig             |  10 +
  drivers/clk/mediatek/Makefile            |   1 +
- drivers/clk/mediatek/clk-mt6797-mcusys.c | 860 +++++++++++++++++++++++
- 3 files changed, 871 insertions(+)
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 883 +++++++++++++++++++++++
+ 3 files changed, 894 insertions(+)
  create mode 100644 drivers/clk/mediatek/clk-mt6797-mcusys.c
 
 diff --git a/drivers/clk/mediatek/Kconfig b/drivers/clk/mediatek/Kconfig
@@ -74,10 +74,10 @@ index 548467abe..49b0609b2 100644
  obj-$(CONFIG_COMMON_CLK_MT6797_MJCSYS) += clk-mt6797-mjc.o
 diff --git a/drivers/clk/mediatek/clk-mt6797-mcusys.c b/drivers/clk/mediatek/clk-mt6797-mcusys.c
 new file mode 100644
-index 000000000..757352df2
+index 000000000..6e6c6e5d4
 --- /dev/null
 +++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
-@@ -0,0 +1,860 @@
+@@ -0,0 +1,883 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * MT6797 Cortex-A53 cluster PLLs in MCUMIXED.
@@ -312,6 +312,12 @@ index 000000000..757352df2
 +	return (vco_mhz << 14) / 26;
 +}
 +
++static bool mt6797_mcu_pcw_valid(u32 pcw)
++{
++	return pcw >= mt6797_mcu_pcw(MCU_VCO_MIN_MHZ) &&
++	       pcw <= mt6797_mcu_pcw(MCU_VCO_MAX_MHZ);
++}
++
 +static unsigned long mt6797_mcu_rate(const struct mt6797_mcu_setting *s)
 +{
 +	u64 vco = (u64)s->pcw * 26000000;
@@ -526,8 +532,15 @@ index 000000000..757352df2
 +	u32 con1, mon = 0;
 +	int ret, err;
 +
++	if (!mt6797_mcu_pcw_valid(pcw))
++		return -EINVAL;
++
 +	local_irq_save(flags);
 +	con1 = mcu_read(mcu, MCU_PLL_CON1(id));
++	if (!mt6797_mcu_pcw_valid(FIELD_GET(MCU_PLL_PCW, con1))) {
++		local_irq_restore(flags);
++		return -EIO;
++	}
 +	ret = mcu_write(mcu, MCU_FH_CFG(id), 0, ~0);
 +	ret = ret ?: mcu_write(mcu, MCU_FH_DDS(id),
 +			       FIELD_GET(MCU_PLL_PCW, con1) | BIT(31),
@@ -563,16 +576,26 @@ index 000000000..757352df2
 +restore:
 +	local_irq_save(flags);
 +	if (hopping) {
-+		/* Whatever FHCTL reached becomes CON1 before it lets go. */
++		/*
++		 * Whatever FHCTL reached becomes CON1 before it lets go. A MON
++		 * value out of range is not trusted: CON1 keeps the PCW it had,
++		 * and the PLL returns to it.
++		 */
 +		mon = mcu_read(mcu, MCU_FH_MON(id)) & MCU_PLL_PCW;
 +		con1 = mcu_read(mcu, MCU_PLL_CON1(id));
-+		err = mcu_write(mcu, MCU_PLL_CON1(id),
-+				(con1 & ~MCU_PLL_PCW) | mon | MCU_PLL_PCW_CHG,
-+				MCU_PLL_PCW);
-+		ret = ret ?: err;
++		if (mt6797_mcu_pcw_valid(mon)) {
++			err = mcu_write(mcu, MCU_PLL_CON1(id),
++					(con1 & ~MCU_PLL_PCW) | mon |
++					MCU_PLL_PCW_CHG, MCU_PLL_PCW);
++			ret = ret ?: err;
++			pll->cur.pcw = mon;
++		} else {
++			dev_err(mcu->dev, "PLL%u MON 0x%06x out of range\n",
++				id, mon);
++			ret = ret ?: -EIO;
++		}
 +		err = mcu_update(mcu, MCU_FH_HP_EN, BIT(id), 0);
 +		ret = ret ?: err;
-+		pll->cur.pcw = mon;
 +	}
 +	err = mcu_write(mcu, MCU_FH_CFG(id), 0, ~0);
 +	ret = ret ?: err;
