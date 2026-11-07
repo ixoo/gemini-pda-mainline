@@ -727,6 +727,28 @@ the disk's read-only flag on the before boot. Calibration and records read the s
 
 **Budget used:** one card write, one boot2 write, one card boot, one evidence boot.
 
+**Localized (2026-11-07, custodian).** The only byte that changed is the ext4 superblock's
+`s_mnt_count`, at partition offset 1076: 7 before R2, 9 after. Writing 7 back into the after image
+gives exactly the before hash. `s_mtime`, `s_wtime` and `s_kbytes_written` are unchanged;
+`s_max_mnt_count` is 10. Station-only boots of `station-work-79`, imaged each time: `4407aa68` 9,
+`32368f26` 10, `ed8a4c32` 10.
+
+| Boots | Image | Count |
+| --- | --- | --- |
+| R1: `ae534d13`, the card boot, `bfeee4e3` | P5 (`station-work-77`) | 7, unchanged |
+| R2 card boot, `4407aa68`, `32368f26` | `station-work-79` | 8, 9, 10 |
+| `ed8a4c32` | `station-work-79` | 10: stops at the maximum |
+
+**Reading.** It fits one increment per boot of `station-work-79`, up to `s_max_mnt_count`, and none
+for P5. The two images' RAM roots are identical apart from modules, and their board trees are
+identical, so the kernel is the difference: the `console=tty1` command line and the `gnss-mt6797`
+module from `0636`. But Linux's ext4 isn't a fit for the writer: it raises the count only on a
+read-write mount, always with `s_mtime`, commits `s_kbytes_written` with it, and doesn't stop at the
+maximum; every mount here was read-only on a read-only device, with no warning logged. The writer is
+not identified. Since the count now sits at the maximum, the same writer would no longer show, so
+another boot can't localize it further by this byte. Gemian's next boot will see the maximum and
+check the file system itself, as it does whenever the count is reached.
+
 ## Analysis
 
 Not started.
