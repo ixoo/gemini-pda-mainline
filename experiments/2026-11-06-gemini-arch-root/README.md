@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | running: design agreed with the owner on 2026-11-06; step 1 tested in the VM, not booted |
+| Status | running: design agreed with the owner on 2026-11-06; steps 1 and 2 done in the VM and on Buildbox, nothing booted |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 |
@@ -305,6 +305,62 @@ left every flag at `0`, and refused a wrong checksum.
 - the real eMMC, card detection timing and the console key on the device;
 - the station's own busybox;
 - a real systemd behind `switch_root`.
+
+### Step 2 result
+
+**[`build-card.sh`](build-card.sh), run as root in the dev VM:** `build-card.sh CACHE OUT [SIZE]`.
+
+**What it does:**
+- Fetches the official tarball and its `.sig` over HTTP.
+- Fetches the build key by its pinned fingerprint `68B3537F…52BDBE6A6`, refuses any other
+  fingerprint, and checks the tarball with `gpgv`. The project's
+  [signing page](https://archlinuxarm.org/about/package-signing) lists that key as
+  "Arch Linux ARM Build System".
+- Makes a sparse GPT image with one ext4 partition named `gemini-arch`, of the
+  64-bit ARM root type, and extracts the tarball there with `bsdtar -xp`.
+- In a chroot:
+  - removes `linux-aarch64`, every `linux-firmware*` package and `mkinitcpio*`, and adds
+    them to `IgnorePkg`;
+  - runs `pacman -Syu` with `iwd`, `iw`, `wireless-regdb` and `sudo`.
+- Locks root, removes the `alarm` user, and disables and masks `sshd`.
+- Writes `uninitialized` to `/etc/machine-id`, adds `/nvdata`, `/usr/lib/modules` and a
+  root `fstab` line.
+- Records every checksum in `card.json`.
+
+**Why packages are added.** The tarball has none of the Wi-Fi tools, and Wi-Fi is the
+root's only way to its packages. The full upgrade avoids a partial upgrade. pacman checks
+the packages against a keyring in `/run`, so the image ships no keyring and the first boot
+makes its own.
+
+**Run, 2026-11-06:**
+- tarball `42a4eeaa…`, 829,367,415 bytes, good signature from the build key;
+- 15 packages removed, 155 installed, systemd 262.1, iwd 3.12, wireless-regdb 2026.09.03;
+- 0.80 GB used in a 4 GiB image;
+- image `b7430bc5…`, kept in the VM. It isn't published: it holds no firmware or keys, but it
+  redistributes Arch binaries.
+
+**Read back from the image:**
+- the partition type and label are as above;
+- root reads `!`, no user has a UID of 1000 or more, and there's no keyring;
+- `sshd` links to `/dev/null` and isn't wanted by any target;
+- the machine-id is `uninitialized`;
+- `/sbin/init` resolves to systemd;
+- the package cache, `/usr/lib/firmware/mediatek` and `/usr/lib/modules` are empty;
+- `e2fsck -fn` is clean.
+
+**A mistake on the way, in the VM only.** An earlier version deleted its work directory
+while the chroot's bind of the VM's `/dev` was still mounted: pacman-key's gpg-agent held
+it busy. That deleted the VM's device nodes. No disk data was lost, and a VM restart
+restored them. The script now:
+- binds `/dev` and `/sys` as slaves;
+- stops gpg in the chroot;
+- removes the work directory only when nothing is mounted under it.
+
+The run above left the VM's `/dev` at 196 entries before and after, with no mount or loop
+device remaining.
+
+**Not tested:** the image on a card or the device; anything at first boot, from the keyring
+and user to iwd.
 
 ## Analysis
 
