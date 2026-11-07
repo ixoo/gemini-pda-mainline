@@ -13,3 +13,7 @@ CONFIG_MTK_MT6797_A72=m
 # own command line after this fragment.
 CONFIG_CMDLINE="console=ttyS0,921600n8 console=tty1 earlycon maxcpus=8 nokaslr loglevel=4 log_buf_len=8M initcall_debug rdinit=/init panic=10 pstore.kmsg_bytes=2048 g_ether.dev_addr=42:00:15:19:82:01 g_ether.host_addr=42:00:15:19:82:00 g_ether.iManufacturer=gemini-pda-mainline g_ether.iProduct=Gemini-CCMP-Stable-Monitor g_ether.iSerialNumber=GEMINI_CCMP_STABLE_MONITOR_20261014 clk_ignore_unused fbcon=rotate:3 consoleblank=0 fbcon=font:TER16x32"
 CONFIG_CMDLINE_FORCE=y
+# iwd 3.12, the Arch root's Wi-Fi daemon, treats a missing /dev/rfkill as fatal: its rfkill
+# module fails with -ENOENT and the daemon exits, logging "D-Bus disconnected" (R2,
+# reproduced in a container). Named here to override gemini-usbdiag.fragment's "not set".
+CONFIG_RFKILL=y

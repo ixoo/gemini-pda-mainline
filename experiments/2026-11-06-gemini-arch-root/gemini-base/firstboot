@@ -23,7 +23,9 @@ read -r -p "Wi-Fi country, two letters (empty keeps Wi-Fi off): " country
 country=$(echo "$country" | tr '[:lower:]' '[:upper:]')
 if [[ "$country" =~ ^[A-Z][A-Z]$ ]]; then
     echo "WIRELESS_REGDOM=\"$country\"" >/etc/conf.d/wireless-regdom
-    systemctl start gemini-wifi.service iwd.service
+    # gemini-wifi already ran at boot with no country; a restart applies this one.
+    systemctl restart gemini-wifi.service && systemctl start iwd.service ||
+        echo "Wi-Fi did not start; see: journalctl -u gemini-wifi -u iwd"
     echo "Join a network: station wlan0 scan, station wlan0 get-networks, station wlan0 connect NAME. Type quit when done."
     iwctl
 fi

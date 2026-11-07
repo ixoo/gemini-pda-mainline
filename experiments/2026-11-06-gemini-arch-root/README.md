@@ -749,6 +749,25 @@ not identified. Since the count now sits at the maximum, the same writer would n
 another boot can't localize it further by this byte. Gemian's next boot will see the maximum and
 check the file system itself, as it does whenever the count is reached.
 
+**Further checks (2026-11-07).**
+- LK and the preloader (bootloader session, offline): no ext4 superblock or mount-count handling;
+  `nvdata` appears only in LK's partition table, and nothing there writes it.
+- Not loaded at boot in `station-work-79`: `gnss-mt6797`. No kernel line names `mmcblk0p6` but the
+  read-only mount in the station boots, though two of those logs were kept only as a grep.
+- The card's fstab names only its own root, it has no mount unit for `nvdata`, and its journal
+  shows only stage 1's read-only mount and systemd's unmount at shutdown.
+- In the dev VM (kernel 6.8), on a private copy with the count set back to 7: three `ro,noload`
+  mounts on a read-only loop device and one on a writable one leave the image byte-identical; one
+  read-write mount raises the count to 8, sets the mount time and replays the journal. The device
+  shows the count alone, so not a Linux read-write mount.
+
+**Open, unexplained.** The writer of `nvdata`'s `s_mnt_count` is not identified. File data and
+calibration are intact.
+
+**Owner decision (2026-11-07):** "Let's take a note of it and keep going." Card iterations
+continue. From R3 on, the custodian images all of `nvdata` (32 MiB, private, read-only) before and
+after each boot, so any further change is compared byte by byte.
+
 ## Analysis
 
 Not started.
