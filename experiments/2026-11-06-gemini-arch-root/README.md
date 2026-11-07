@@ -765,8 +765,8 @@ check the file system itself, as it does whenever the count is reached.
 calibration are intact.
 
 **Owner decision (2026-11-07):** "Let's take a note of it and keep going." Card iterations
-continue. From R3 on, the custodian images all of `nvdata` (32 MiB, private, read-only) before and
-after each boot, so any further change is compared byte by byte.
+continue. The owner then dropped the proposed before/after copies of `nvdata`: "don't bother taking
+a copy of nvdata." The six eMMC hashes stay as before.
 
 ## Analysis
 
