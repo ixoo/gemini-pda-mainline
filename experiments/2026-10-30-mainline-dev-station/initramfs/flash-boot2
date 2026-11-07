@@ -5,7 +5,8 @@
 # 2026-10-30). usage: flash-boot2 IMAGE SHA256
 # Refuses unless the image is exactly 16 MiB with that SHA-256, and exactly
 # one mmcblk0 partition is named boot2: matching sysfs and node numbers,
-# 16 MiB, writable, not mounted, not swap. Records the predecessor checksum,
+# 16 MiB, writable (lifting a software read-only flag on boot2 alone),
+# not mounted, not swap. Records the predecessor checksum,
 # skips an already matching partition, writes with fsync, drops the page
 # cache and requires a matching full readback. Selecting boot2 at the next
 # boot stays a physical owner action.
@@ -43,6 +44,19 @@ number=$($bb cat "$sys/dev")
 node=$($bb stat -c '%t:%T' "$dev")
 [ "$number" = "$((0x${node%:*})):$((0x${node#*:}))" ] || fail "$dev does not match sysfs"
 [ "$(($($bb cat "$sys/size") * 512))" -eq "$SIZE" ] || fail "$dev is not 16 MiB"
+# A persistent root's handover sets the eMMC and each of its partitions read-only
+# (experiments/2026-11-06-gemini-arch-root). The disk's flag also makes every
+# partition read-only, so for the write it is lifted along with boot2's own, and
+# both are set again whatever the outcome; every other partition keeps its own
+# flag. The hardware's own protection is never touched.
+disk=/dev/${part%p*}
+[ -b "$disk" ] && [ "$($bb cat "/sys/class/block/${part%p*}/ro")" != 0 ] && disk_ro=1 || disk_ro=
+[ "$($bb cat "$sys/ro")" != 0 ] && part_ro=1 || part_ro=
+if [ -n "$disk_ro$part_ro" ]; then
+	trap '[ -n "$part_ro" ] && $bb blockdev --setro "$dev"; [ -n "$disk_ro" ] && $bb blockdev --setro "$disk"' EXIT
+	if [ -n "$disk_ro" ]; then $bb blockdev --setrw "$disk" || fail "$disk could not be made writable"; fi
+	if [ -n "$part_ro" ]; then $bb blockdev --setrw "$dev" || fail "$dev could not be made writable"; fi
+fi
 [ "$($bb cat "$sys/ro")" = 0 ] || fail "$dev is read-only"
 # shellcheck disable=SC2016 # an awk program, not shell
 if $bb awk -v d="$dev" '$1 == d {f = 1} END {exit !f}' /proc/mounts /proc/swaps; then

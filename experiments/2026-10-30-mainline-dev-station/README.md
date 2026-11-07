@@ -1218,3 +1218,26 @@ It's not shown that a reboot clears the state.
 The tested image's inputs come from there: kernel package `16e5acfd…` from `10f2e142`, and the RAM root from `5c263c74`.
 Nothing under `release/`, the compose scripts, patches, kernel or configs changed between them. The tag message names
 boot2 `99267ef0…` and what wasn't tested. This boot record landed on `main` after the tag.
+
+## Persistent root handover (2026-11-06)
+
+For the [Arch root](../2026-11-06-gemini-arch-root/README.md), `init` gains one branch after
+the Type-C step. On a normal start (`atag,boot` mode 0), with exactly one partition named
+`gemini-arch` off the eMMC, it waits 3 s for a key on the console. A key keeps the station.
+Otherwise it:
+
+- unmounts `/mnt/data`;
+- sets the eMMC and each of its partitions read-only;
+- mounts the card root read-only, with this image's modules on a tmpfs at `/usr/lib/modules`
+  and `nvdata` read-only at `/nvdata`;
+- runs `switch_root` to its `/sbin/init`.
+
+With no card, the station runs as before. Any refusal is recorded as `arch=` in the status
+file. A failure after the eMMC went read-only leaves the station running, with `/mnt/data`
+remounted read-only.
+
+`flash-boot2` lifts the disk's read-only flag and boot2's own for the write, then sets both
+again. In a VM, the disk's flag alone kept boot2 read-only.
+
+Tested only in the dev VM so far: see the [Arch root record](../2026-11-06-gemini-arch-root/README.md#step-1-result).
+No image with this `init` has been composed or booted.

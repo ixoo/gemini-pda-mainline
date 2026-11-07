@@ -196,6 +196,12 @@ CONFIG_SND_SOC_MT6797=m
 CONFIG_SND_SOC_MT6797_MT6351=m
 CONFIG_SND_SOC_MT6351=m
 CONFIG_SND_SOC_AW8738=m
+# iwd, the Arch root's Wi-Fi daemon (2026-11-06-gemini-arch-root), does its WPA
+# key derivation through AF_ALG hashes and ciphers and the keyctl DH operation.
+# Userspace interfaces only; no driver changes.
+CONFIG_CRYPTO_USER_API_HASH=y
+CONFIG_CRYPTO_USER_API_SKCIPHER=y
+CONFIG_KEY_DH_OPERATIONS=y
 # Suspend to idle and its wake sources (2026-11-06-gemini-power-management).
 # The secure firmware has no PSCI SYSTEM_SUSPEND, so s2idle is the only state;
 # CPU idle stays off because its power-down states need the vendor SPM program.

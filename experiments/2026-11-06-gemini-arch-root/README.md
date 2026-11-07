@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-arch-root` |
-| Status | planned: design agreed with the owner on 2026-11-06; nothing built or run |
+| Status | running: design agreed with the owner on 2026-11-06; step 1 tested in the VM, not booted |
 | Subsystem | Root filesystem, boot handover, userland |
 | Device variant | The project's development Gemini PDA |
 | Date(s) | 2026-11-06 |
@@ -82,8 +82,9 @@ Today's decisions:
 - **The branch, in order:**
   1. Do everything the station does today up to the root decision: guard and
      thermal status, and `nvdata` set read-only and mounted `ro,noload`.
-  2. Set every eMMC partition read-only with `blockdev --setro`. `flash-boot2`
-     clears that for `boot2` alone while it writes.
+  2. Set the eMMC and every partition on it read-only with `blockdev --setro`.
+     While it writes, `flash-boot2` clears the disk's flag and `boot2`'s, then sets both
+     again. The disk's flag alone keeps every partition read-only.
   3. In power-off charging mode (`atag,boot` mode 8), don't hand over. Stay in
      the RAM root ([LK behaviour](../2026-11-05-gemini-lk-behaviour/README.md)).
   4. Look for exactly one `PARTNAME=gemini-arch`. With none, or more than one,
@@ -113,7 +114,9 @@ Today's decisions:
   - The owner powers off and selects `boot2`.
   - Promotion to primary `boot` is a separate, later tool, outside standing
     approval ([install design](#follow-up)).
-- **Kernel options to add,** in `configs/gemini.fragment`, batched with the stage-1 change:
+- **Kernel options to add,** in `configs/gemini-a53-station.fragment`, which both the station and
+  release profiles use (`configs/gemini.fragment` serves only the `full` profile), batched
+  with the stage-1 change:
   - for iwd: `CRYPTO_USER_API_HASH`, `CRYPTO_USER_API_SKCIPHER` and
     `KEY_DH_OPERATIONS`, all off in the station config today;
   - systemd's own requirements were checked earlier (cgroups, fhandle, inotify,
@@ -208,10 +211,10 @@ write primary `boot`, `linux` or any other eMMC partition.
 First implementation steps, in order:
 
 1. **Kernel and stage 1, one image.**
-   - Add the three iwd options to `configs/gemini.fragment`.
+   - Add the three iwd options to `configs/gemini-a53-station.fragment`.
    - Add the handover branch to the station init, with the `setro` pass and the
      charging-mode check.
-   - Teach `flash-boot2` to clear `setro` on `boot2` alone.
+   - Teach `flash-boot2` to clear the read-only flags on the disk and `boot2` for the write.
    - Check with ShellCheck, then run init as PID 1 in the dev VM, as the release
      root was, with a loop image labelled `gemini-arch`.
    - One Buildbox build.
@@ -245,7 +248,50 @@ First implementation steps, in order:
 
 ## Observations
 
-None yet.
+### Step 1 result
+
+**Changes:**
+- [`configs/gemini-a53-station.fragment`](../../configs/gemini-a53-station.fragment) adds
+  `CRYPTO_USER_API_HASH`, `CRYPTO_USER_API_SKCIPHER` and `KEY_DH_OPERATIONS`.
+- The station's [`init`](../2026-10-30-mainline-dev-station/initramfs/init) gains the
+  handover branch.
+- [`flash-boot2`](../2026-10-30-mainline-dev-station/initramfs/flash-boot2) lifts the
+  disk's read-only flag and its own for the write. It records which were set and sets them
+  again on any exit.
+
+ShellCheck is clean on both scripts.
+
+**Dev VM, 2026-11-06.** Ubuntu's static busybox 1.36.1 stood in for the station's Alpine
+one. A test copy of `init` ran as PID 1 of a new PID and mount namespace, in a chroot
+on tmpfs:
+- a loop device stood in for the eMMC, with GPT partitions `boot2`, `linux` (ext4) and
+  `nvdata` (ext4), and `mmcblk0` replaced by its name;
+- a second loop device stood in for the card, with one `gemini-arch` partition using the
+  64-bit ARM root type and holding a stand-in root;
+- the copy read the boot mode from a file and the key from a file, and stopped after the
+  branch on the station's path.
+
+| Case | Result |
+| --- | --- |
+| Normal start, no key | `arch=handover`. In the new root, as PID 1: `/` ext4 `ro` from the card, a tmpfs at `/usr/lib/modules` holding this image's modules, `/nvdata` `ro,norecovery`, and `ro=1` on the disk and all three partitions. A write to `linux` was refused. `flash-boot2` wrote `boot2`, and the readback matched. Every flag read `1` again afterwards, and a second run exited 0 |
+| Key within 3 s | `arch=kept-ram-root`; `/mnt/data` still `rw`; no flags set |
+| Boot mode 8 | `arch=refused boot-mode=8`; nothing changed |
+| Two `gemini-arch` partitions | `arch=refused count=2`; nothing changed |
+| Root without `/sbin/init` | `arch=refused no-init`, then `station-continues`: eMMC read-only, `/mnt/data` remounted `ro,norecovery` |
+| No card | `arch=none` after 1 s; nothing changed |
+
+The first `flash-boot2` version cleared only `boot2`'s own flag. With the disk's flag still
+set, `boot2` stayed read-only on the VM's 6.8 kernel and the write was refused. Hence the
+change above.
+
+On the station's normal path, with no flags set, `flash-boot2` still wrote, verified,
+left every flag at `0`, and refused a wrong checksum.
+
+**Not tested:**
+- the real eMMC, card detection timing and the console key on the device;
+- the station's own busybox;
+- a real systemd behind `switch_root`;
+- the Buildbox build with the new options.
 
 ## Analysis
 

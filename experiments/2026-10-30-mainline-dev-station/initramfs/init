@@ -73,6 +73,105 @@ elif $bb i2cset -fy 1 0x25 0x02 0x04 && [ "$($bb i2cget -fy 1 0x25 0x02)" = 0x04
 else
     status left-typec=set-failed
 fi
+# A persistent root (experiments/2026-11-06-gemini-arch-root): exactly one partition
+# named gemini-arch, off the eMMC, with an init. It is handed over only on a normal
+# start, since LK leaves lk, nvram and boot writable in the other modes; and not if
+# a key is pressed within 3 s on the console, which keeps this RAM root as the rescue.
+# Otherwise every eMMC partition goes read-only, nvdata is mounted read-only, and
+# systemd gets the root read-only with this image's modules, to check and remount it.
+new=/newroot
+arch=
+count=0
+waited=0
+while :; do
+    arch=
+    count=0
+    for uevent in /sys/class/block/*/uevent; do
+        case $uevent in /sys/class/block/mmcblk0*) continue ;; esac
+        if $bb grep -qx PARTNAME=gemini-arch "$uevent"; then
+            arch=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
+            count=$((count + 1))
+        fi
+    done
+    [ "$count" -ge 1 ] && break
+    # Wait up to 5 s for a card that is present but not yet partitioned.
+    [ "$waited" -ge 5 ] && break
+    set -- /sys/class/mmc_host/mmc1/mmc1:*
+    [ "$waited" -ge 1 ] && ! [ -e "$1" ] && break
+    $bb sleep 1
+    waited=$((waited + 1))
+done
+mode=$($bb od -A n -t u4 -j 8 -N 4 /sys/firmware/devicetree/base/chosen/atag,boot 2>/dev/null | $bb tr -d ' ')
+handover=
+if [ "$count" -eq 0 ]; then
+    status arch=none
+elif [ "$count" -ne 1 ]; then
+    status "arch=refused count=$count"
+elif [ "$mode" != 0 ]; then
+    status "arch=refused boot-mode=${mode:-unknown}"
+else
+    $bb chvt 1
+    $bb loadkmap </etc/gemini-us.bkeymap
+    $bb printf '\nPress any key within 3 s to stay in the RAM shell.\n' >/dev/tty1
+    # shellcheck disable=SC3045 # busybox ash has read -t and -n
+    if read -r -t 3 -n 1 _ </dev/tty1; then
+        status arch=kept-ram-root
+        $bb printf 'Staying in the RAM shell.\n' >/dev/tty1
+    else
+        handover=1
+    fi
+fi
+if [ -n "$handover" ]; then
+    $bb grep -q ' /mnt/data ' /proc/mounts && { $bb sync; $bb umount /mnt/data || status data=umount-failed; }
+    ro=ok
+    for disk in /sys/class/block/mmcblk0 /sys/class/block/mmcblk0p*; do
+        [ -e "$disk/dev" ] || continue
+        $bb blockdev --setro "/dev/${disk##*/}" || ro=failed
+    done
+    $bb mkdir -p "$new"
+    if [ "$ro" != ok ] || $bb grep -q '^/dev/mmcblk0' /proc/mounts; then
+        status "arch=refused emmc-readonly=$ro"
+    elif ! $bb mount -t ext4 -o ro "$arch" "$new"; then
+        status "arch=mount-failed device=$arch"
+    else
+        # An absolute link is resolved inside the new root; a relative one,
+        # as Arch has, resolves there anyway.
+        target=$($bb readlink "$new/sbin/init") || target=
+        case $target in /*) check=$new$target ;; *) check=$new/sbin/init ;; esac
+        modules=/lib/modules/$($bb uname -r)
+        nvdata=
+        for uevent in /sys/class/block/mmcblk0p*/uevent; do
+            $bb grep -qx PARTNAME=nvdata "$uevent" && nvdata=/dev/$($bb sed -n 's/^DEVNAME=//p' "$uevent")
+        done
+        if ! [ -x "$check" ]; then
+            status "arch=refused no-init"
+        elif ! $bb mount -t tmpfs -o mode=0755,nosuid,nodev tmpfs "$new/usr/lib/modules" ||
+             ! $bb cp -a "$modules" "$new/usr/lib/modules/"; then
+            status arch=modules-failed
+        else
+            if [ -n "$nvdata" ] && [ -d "$new/nvdata" ] &&
+               $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$nvdata" "$new/nvdata"; then
+                status "nvdata=mounted device=$nvdata"
+            else
+                status "nvdata=mount-failed device=$nvdata"
+            fi
+            status "arch=handover device=$arch"
+            $bb printf 'Starting the root on %s.\n' "$arch" >/dev/tty1
+            for fs in /dev /proc /sys /run; do
+                $bb mount --move "$fs" "$new$fs"
+            done
+            exec $bb switch_root "$new" /sbin/init
+        fi
+        $bb umount "$new/usr/lib/modules" 2>/dev/null
+        $bb umount "$new" 2>/dev/null
+    fi
+    # Not handed over: the station runs on with the eMMC read-only, so remount
+    # the data partition read-only for the steps below.
+    status "arch=station-continues emmc=read-only"
+    if [ -n "$data" ] && $bb mount -t ext4 -o ro,noload,nosuid,nodev,noexec "$data" /mnt/data; then
+        status "data=mounted-ro device=$data"
+    fi
+fi
 # The lid policy (backlight off, keyboard inhibited while closed).
 if $bb insmod "/lib/modules/$($bb uname -r)/gemini-lid.ko"; then status lid=gemini-lid; else status lid=insmod-failed; fi
 # The indicator LEDs: nothing lit, and caps lock on the inside LED.
