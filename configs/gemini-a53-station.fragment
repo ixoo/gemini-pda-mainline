@@ -198,7 +198,10 @@ CONFIG_SND_SOC_MT6351=m
 CONFIG_SND_SOC_AW8738=m
 # iwd, the Arch root's Wi-Fi daemon (2026-11-06-gemini-arch-root), does its WPA
 # key derivation through AF_ALG hashes and ciphers and the keyctl DH operation.
-# Userspace interfaces only; no driver changes.
+# Userspace interfaces only; no driver changes. CRYPTO_USER_API is what the two
+# AF_ALG options select; it is named here to override gemini-usbdiag.fragment's
+# minimal-network "not set" from the July handoff diagnostic.
+CONFIG_CRYPTO_USER_API=y
 CONFIG_CRYPTO_USER_API_HASH=y
 CONFIG_CRYPTO_USER_API_SKCIPHER=y
 CONFIG_KEY_DH_OPERATIONS=y
