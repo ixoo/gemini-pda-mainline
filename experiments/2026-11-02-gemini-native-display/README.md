@@ -513,6 +513,23 @@ below 0xc0000000, and the default pool sits at the top of the first 4 GiB, so it
 at 0xf0000000. Panfrost's own buffers are shmem and are not affected. The config resolves in
 the dev VM; `CmaTotal` and the errors still have to be checked on the device.
 
+## CMA on the device, and the swiotlb message
+
+On station-work-91 (`65549ff5`, boot `50572be9`) the kernel reserved 256 MiB of CMA at
+0xf0000000, and `CmaTotal` read 262144 kB. With Umbriel, blur, foot and qutebrowser running,
+about 192 MiB stayed free. There were no `CREATE_DUMB` failures, and the owner reported
+"Smooth now".
+
+Twice around qutebrowser's start, the OVL logged that the swiotlb buffer was full for a
+4 MiB mapping. Our reading, not traced: the compositor imported a client's GPU buffer to try
+scanning it out directly. The display has no IOMMU here, so the OVL keeps the default 32-bit
+DMA mask. A shmem page above 4 GiB then has to bounce, and a 4 MiB segment is larger than
+swiotlb can bounce, so the mapping fails. Without an IOMMU the OVL can only scan out
+contiguous memory, and this import would fail anyway. The compositor then composites the
+buffer instead, which matches "no visible effect". The message is harmless until the display
+gets its IOMMU (M4U). We leave the DMA mask alone: nothing here shows the OVL can reach past
+4 GiB in the loader's bypass.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here
