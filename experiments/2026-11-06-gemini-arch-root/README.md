@@ -1610,6 +1610,15 @@ no adapter on D-Bus and the widget hides itself completely. With the service run
 shows: the off glyph while the adapter is powered down, and its normal glyph once powered.
 Whether to start bluetooth at boot is the owner's decision.
 
+The owner chose to start Bluetooth at boot with the radio off (`gemini-base` 27):
+
+- `build-card.sh` enables `bluetooth.service`.
+- bluez 5.87 powers every adapter it finds by default (`#AutoEnable=true`), and it owns
+  `/etc/bluetooth/main.conf` with no drop-in directory. So `build-card.sh` sets
+  `AutoEnable=false` in `[Policy]` in the image's copy, and fails if it can't.
+- The adapter appears to Noctalia unpowered, and the owner turns it on from the bar or the
+  control center. Starting the service is no radio action by itself.
+
 Not yet in a card image: the next card waits for the audio session's UCM profile.
 
 ## Analysis

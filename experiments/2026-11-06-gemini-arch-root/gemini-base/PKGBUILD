@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=26
+pkgver=27
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -22,7 +22,8 @@ depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'nocta
          # Profiling and power analysis (owner, 2026-11-07); the kernel side is
          # configs/gemini-a53-station-perf.fragment.
          'perf' 'trace-cmd' 'powertop' 'cpupower'
-         # Bluetooth's tools; bluetooth.service is left for the owner to start.
+         # Bluetooth: build-card.sh enables bluetooth.service with AutoEnable=false, so the
+         # radio stays off until the owner turns it on.
          'bluez' 'bluez-utils'
          # A browser (owner, 2026-11-08), with Qt's native Wayland platform.
          'qutebrowser' 'qt6-wayland')

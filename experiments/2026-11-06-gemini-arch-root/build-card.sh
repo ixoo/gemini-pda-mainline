@@ -170,7 +170,13 @@ rm -rf "$build"
 mapfile -t orphans < <(in_root pacman -Qdttq || true)
 [ "${#orphans[@]}" -eq 0 ] || in_root pacman -Rns --noconfirm "${orphans[@]}" >>"$work/pacman.log" 2>&1
 in_root systemctl enable -q gemini-modules.service gemini-audio.service gemini-display.service \
-	gemini-wifi.service gemini-firstboot.service iwd.service systemd-pstore.service
+	gemini-wifi.service gemini-firstboot.service iwd.service systemd-pstore.service bluetooth.service
+# bluetoothd runs from boot so Noctalia sees the adapter, but bluez powers every adapter it
+# finds unless AutoEnable is false; the owner turns the radio on (owner, 2026-11-08).
+# bluez owns main.conf and has no drop-in directory, so the image's copy is edited.
+sed -i 's/^#\?AutoEnable=.*/AutoEnable=false/' "$mnt/etc/bluetooth/main.conf"
+grep -qx 'AutoEnable=false' "$mnt/etc/bluetooth/main.conf" ||
+	{ echo "build-card: AutoEnable not set in bluetooth/main.conf" >&2; exit 1; }
 in_root systemctl set-default -q multi-user.target
 
 in_root gpgconf --homedir /run/pacman-gnupg --kill all
