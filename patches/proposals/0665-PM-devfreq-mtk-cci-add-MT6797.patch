@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:41:46 -0500
+Subject: [PATCH] PM / devfreq: mtk-cci: add MT6797
+
+The MT6797 CCI shares VPROC1 with the two Cortex-A53 clusters. Its SRAM
+supply follows VPROC1 through a regulator coupler, so the device tree
+gives no sram supply. The platform data then only bounds the voltage
+loop: VPROC1 up to the vendor's 1.2 V, and the vendor's 10-30 mV SRAM
+shift and 1.0-1.2 V SRAM range for completeness.
+
+The MT6797 clusters use cpufreq-dt, so let the driver build with it.
+---
+ drivers/devfreq/Kconfig           |  2 +-
+ drivers/devfreq/mtk-cci-devfreq.c | 13 +++++++++++++
+ 2 files changed, 14 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/devfreq/Kconfig b/drivers/devfreq/Kconfig
+index c999c4a1e..a497598cc 100644
+--- a/drivers/devfreq/Kconfig
++++ b/drivers/devfreq/Kconfig
+@@ -132,7 +132,7 @@ config ARM_TEGRA_DEVFREQ
+ 
+ config ARM_MEDIATEK_CCI_DEVFREQ
+ 	tristate "MEDIATEK CCI DEVFREQ Driver"
+-	depends on ARM_MEDIATEK_CPUFREQ || COMPILE_TEST
++	depends on ARM_MEDIATEK_CPUFREQ || CPUFREQ_DT || COMPILE_TEST
+ 	select DEVFREQ_GOV_PASSIVE
+ 	help
+ 	  This adds a devfreq driver for MediaTek Cache Coherent Interconnect
+diff --git a/drivers/devfreq/mtk-cci-devfreq.c b/drivers/devfreq/mtk-cci-devfreq.c
+index 4f0b5c8e4..4a780028b 100644
+--- a/drivers/devfreq/mtk-cci-devfreq.c
++++ b/drivers/devfreq/mtk-cci-devfreq.c
+@@ -423,6 +423,18 @@ static void mtk_ccifreq_remove(struct platform_device *pdev)
+ 		regulator_disable(drv->sram_reg);
+ }
+ 
++/*
++ * The SRAM supply follows VPROC1 through a regulator coupler, so these
++ * tracking values only bound the voltage loop.
++ */
++static const struct mtk_ccifreq_platform_data mt6797_platform_data = {
++	.min_volt_shift = 10000,
++	.max_volt_shift = 30000,
++	.proc_max_volt = 1200000,
++	.sram_min_volt = 1000000,
++	.sram_max_volt = 1200000,
++};
++
+ static const struct mtk_ccifreq_platform_data mt8183_platform_data = {
+ 	.min_volt_shift = 100000,
+ 	.max_volt_shift = 200000,
+@@ -438,6 +450,7 @@ static const struct mtk_ccifreq_platform_data mt8186_platform_data = {
+ };
+ 
+ static const struct of_device_id mtk_ccifreq_machines[] = {
++	{ .compatible = "mediatek,mt6797-cci", .data = &mt6797_platform_data },
+ 	{ .compatible = "mediatek,mt8183-cci", .data = &mt8183_platform_data },
+ 	{ .compatible = "mediatek,mt8186-cci", .data = &mt8186_platform_data },
+ 	{ },
+-- 
+2.43.0
+

@@ -441,6 +441,10 @@ at boot and longer runs are the next steps.
 
 ## Follow-up
 
+Items 1-4 below (boot loading, voltage scaling, CCI, capacity/energy model)
+are implemented, not yet tested, in
+[A53 voltage scaling](../2026-11-08-mt6797-a53-dvfs/README.md).
+
 - Load `clk-mt6797-mcusys` and `cpufreq-dt` at boot on the station, after a
   longer soak under real heat, and confirm the schedutil default on that
   image.

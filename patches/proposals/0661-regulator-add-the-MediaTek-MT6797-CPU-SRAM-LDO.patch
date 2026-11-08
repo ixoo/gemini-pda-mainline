@@ -1,0 +1,290 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:40:26 -0500
+Subject: [PATCH] regulator: add the MediaTek MT6797 CPU SRAM LDO
+
+The SRAM of the MT6797 Cortex-A53 clusters and the CCI runs from eight
+LDOs in INFRACFG_AO. CPULDO_CTRL_0 enables them, and each byte of
+CPULDO_CTRL_1 and CPULDO_CTRL_2 holds one LDO's 4-bit selector. The
+vendor kernel keeps all eight on one selector and writes it into every
+byte of both words. Selectors 3-15 are 900-1200 mV in 25 mV steps, and 0,
+1 and 2 are 1050, 600 and 700 mV.
+
+Register them as one voltage regulator. A change writes both words the
+way the vendor does and reads them back, then waits the vendor's settle
+time: 1 us per 12.5 mV up or 3.125 mV down, plus 5 us.
+
+The driver never switches the LDOs. It refuses to probe unless all eight
+are enabled and on one selector.
+---
+ drivers/regulator/Kconfig                  |  12 ++
+ drivers/regulator/Makefile                 |   1 +
+ drivers/regulator/mt6797-vsram-regulator.c | 221 +++++++++++++++++++++
+ 3 files changed, 234 insertions(+)
+ create mode 100644 drivers/regulator/mt6797-vsram-regulator.c
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index 2cfd5ec29..d6f0583bf 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -1209,6 +1209,18 @@ config REGULATOR_MT6397
+ 	  This driver supports the control of different power rails of device
+ 	  through regulator interface.
+ 
++config REGULATOR_MT6797_VSRAM
++	tristate "MediaTek MT6797 CPU SRAM LDO"
++	depends on (ARCH_MEDIATEK && MFD_SYSCON) || COMPILE_TEST
++	depends on OF
++	help
++	  Say y here to control the MT6797 SoC-internal LDOs that hold the
++	  SRAM of the Cortex-A53 clusters and the CCI (VSRAM_L). The driver
++	  sets their voltage; it never switches them on or off.
++
++	  This driver can also be built as a module. If so, the module is
++	  called mt6797-vsram-regulator.
++
+ config REGULATOR_MTK_DVFSRC
+ 	tristate "MediaTek DVFSRC regulator driver"
+ 	depends on MTK_DVFSRC
+diff --git a/drivers/regulator/Makefile b/drivers/regulator/Makefile
+index 6bde16d40..be7118aac 100644
+--- a/drivers/regulator/Makefile
++++ b/drivers/regulator/Makefile
+@@ -128,6 +128,7 @@ obj-$(CONFIG_REGULATOR_MT6363) += mt6363-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6370) += mt6370-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6380)	+= mt6380-regulator.o
+ obj-$(CONFIG_REGULATOR_MT6397)	+= mt6397-regulator.o
++obj-$(CONFIG_REGULATOR_MT6797_VSRAM)	+= mt6797-vsram-regulator.o
+ obj-$(CONFIG_REGULATOR_MTK_DVFSRC) += mtk-dvfsrc-regulator.o
+ obj-$(CONFIG_REGULATOR_QCOM_LABIBB) += qcom-labibb-regulator.o
+ obj-$(CONFIG_REGULATOR_QCOM_PM8008) += qcom-pm8008-regulator.o
+diff --git a/drivers/regulator/mt6797-vsram-regulator.c b/drivers/regulator/mt6797-vsram-regulator.c
+new file mode 100644
+index 000000000..e9921b95c
+--- /dev/null
++++ b/drivers/regulator/mt6797-vsram-regulator.c
+@@ -0,0 +1,221 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 CPU SRAM LDO (VSRAM_L) for CPU0-7 and the CCI.
++ *
++ * Eight SoC-internal LDOs in INFRACFG_AO hold the SRAM of the two Cortex-A53
++ * clusters and the CCI. CPULDO_CTRL_0 bits 7:0 enable them, and each byte of
++ * CPULDO_CTRL_1 and CPULDO_CTRL_2 holds one LDO's 4-bit selector. The vendor
++ * kernel keeps all eight enabled and on one selector, and sets a voltage by
++ * writing the same selector into every byte of both words.
++ *
++ * Selectors 3-15 are 900-1200 mV in 25 mV steps; 0 is 1050 mV, 1 is 600 mV
++ * and 2 is 700 mV. The driver reads any of them but, like the vendor, sets
++ * only 3-15.
++ *
++ * The driver only sets the voltage. It refuses to probe unless the LDOs are
++ * all enabled and on one selector, and it never switches them.
++ */
++
++#include <linux/mfd/syscon.h>
++#include <linux/minmax.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/regulator/driver.h>
++#include <linux/regulator/of_regulator.h>
++
++#define CPULDO_CTRL_0		0xf98
++#define  CPULDO_EN_ALL		0xff
++#define CPULDO_CTRL_1		0xf9c
++#define CPULDO_CTRL_2		0xfa0
++#define CPULDO_SEL_MASK		0xf
++#define CPULDO_SEL_WORD(sel)	((sel) * 0x01010101U)
++#define CPULDO_SEL_LINEAR	3	/* 900 mV, then 25 mV a step to 15 */
++#define CPULDO_SEL_MAX		15
++
++struct mt6797_vsram {
++	struct regmap *infracfg;
++};
++
++static const unsigned int mt6797_vsram_volts[] = {
++	1050000, 600000, 700000, 900000, 925000, 950000, 975000, 1000000,
++	1025000, 1050000, 1075000, 1100000, 1125000, 1150000, 1175000, 1200000,
++};
++
++/* Both words must hold one selector in every byte, as the vendor writes them. */
++static int mt6797_vsram_read_sel(struct regmap *map, unsigned int *sel)
++{
++	unsigned int ctrl1, ctrl2;
++	int ret;
++
++	ret = regmap_read(map, CPULDO_CTRL_1, &ctrl1);
++	if (ret)
++		return ret;
++	ret = regmap_read(map, CPULDO_CTRL_2, &ctrl2);
++	if (ret)
++		return ret;
++
++	*sel = ctrl1 & CPULDO_SEL_MASK;
++	if (ctrl1 != CPULDO_SEL_WORD(*sel) || ctrl2 != ctrl1)
++		return -EIO;
++
++	return 0;
++}
++
++static int mt6797_vsram_get_voltage_sel(struct regulator_dev *rdev)
++{
++	struct mt6797_vsram *vsram = rdev_get_drvdata(rdev);
++	unsigned int sel;
++	int ret;
++
++	ret = mt6797_vsram_read_sel(vsram->infracfg, &sel);
++
++	return ret ?: sel;
++}
++
++static int mt6797_vsram_set_voltage_sel(struct regulator_dev *rdev,
++					unsigned int sel)
++{
++	struct mt6797_vsram *vsram = rdev_get_drvdata(rdev);
++	unsigned int readback;
++	int ret;
++
++	ret = regmap_write(vsram->infracfg, CPULDO_CTRL_1, CPULDO_SEL_WORD(sel));
++	if (ret)
++		return ret;
++	ret = regmap_write(vsram->infracfg, CPULDO_CTRL_2, CPULDO_SEL_WORD(sel));
++	if (ret)
++		return ret;
++
++	ret = mt6797_vsram_read_sel(vsram->infracfg, &readback);
++	if (!ret && readback != sel)
++		ret = -EIO;
++
++	return ret;
++}
++
++static int mt6797_vsram_is_enabled(struct regulator_dev *rdev)
++{
++	struct mt6797_vsram *vsram = rdev_get_drvdata(rdev);
++	unsigned int ctrl0;
++	int ret;
++
++	ret = regmap_read(vsram->infracfg, CPULDO_CTRL_0, &ctrl0);
++	if (ret)
++		return ret;
++
++	return (ctrl0 & CPULDO_EN_ALL) == CPULDO_EN_ALL;
++}
++
++/*
++ * The vendor waits 1 us per 12.5 mV up and 1 us per 3.125 mV down, plus 5 us
++ * for the command.
++ */
++static int mt6797_vsram_set_voltage_time_sel(struct regulator_dev *rdev,
++					     unsigned int old_sel,
++					     unsigned int new_sel)
++{
++	int old_uV = mt6797_vsram_volts[old_sel];
++	int new_uV = mt6797_vsram_volts[new_sel];
++
++	if (new_uV >= old_uV)
++		return DIV_ROUND_UP(new_uV - old_uV, 12500) + 5;
++
++	return (old_uV - new_uV) / 3125 + 5;
++}
++
++/* Only the linear selectors 3-15, as the vendor writes; never 0, 1 or 2. */
++static int mt6797_vsram_map_voltage(struct regulator_dev *rdev, int min_uV,
++				    int max_uV)
++{
++	int sel = CPULDO_SEL_LINEAR;
++
++	if (min_uV > mt6797_vsram_volts[CPULDO_SEL_LINEAR])
++		sel += DIV_ROUND_UP(min_uV - mt6797_vsram_volts[CPULDO_SEL_LINEAR],
++				    25000);
++	if (sel > CPULDO_SEL_MAX || mt6797_vsram_volts[sel] > max_uV)
++		return -EINVAL;
++
++	return sel;
++}
++
++static const struct regulator_ops mt6797_vsram_ops = {
++	.list_voltage = regulator_list_voltage_table,
++	.map_voltage = mt6797_vsram_map_voltage,
++	.get_voltage_sel = mt6797_vsram_get_voltage_sel,
++	.set_voltage_sel = mt6797_vsram_set_voltage_sel,
++	.set_voltage_time_sel = mt6797_vsram_set_voltage_time_sel,
++	.is_enabled = mt6797_vsram_is_enabled,
++};
++
++static const struct regulator_desc mt6797_vsram_desc = {
++	.name = "vsram-l",
++	.type = REGULATOR_VOLTAGE,
++	.owner = THIS_MODULE,
++	.ops = &mt6797_vsram_ops,
++	.volt_table = mt6797_vsram_volts,
++	.n_voltages = ARRAY_SIZE(mt6797_vsram_volts),
++};
++
++static int mt6797_vsram_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct regulator_config config = { .dev = dev };
++	struct regulator_dev *rdev;
++	struct mt6797_vsram *vsram;
++	unsigned int ctrl0, sel;
++	int ret;
++
++	vsram = devm_kzalloc(dev, sizeof(*vsram), GFP_KERNEL);
++	if (!vsram)
++		return -ENOMEM;
++
++	vsram->infracfg = syscon_regmap_lookup_by_phandle(dev->of_node,
++							  "mediatek,infracfg");
++	if (IS_ERR(vsram->infracfg))
++		return dev_err_probe(dev, PTR_ERR(vsram->infracfg),
++				     "no INFRACFG_AO\n");
++
++	ret = regmap_read(vsram->infracfg, CPULDO_CTRL_0, &ctrl0);
++	if (ret)
++		return ret;
++	if ((ctrl0 & CPULDO_EN_ALL) != CPULDO_EN_ALL)
++		return dev_err_probe(dev, -ENODEV,
++				     "LDOs not all enabled: 0x%08x\n", ctrl0);
++
++	ret = mt6797_vsram_read_sel(vsram->infracfg, &sel);
++	if (ret)
++		return dev_err_probe(dev, ret,
++				     "LDOs not on one selector\n");
++
++	config.driver_data = vsram;
++	config.of_node = dev->of_node;
++	config.init_data = of_get_regulator_init_data(dev, dev->of_node,
++						      &mt6797_vsram_desc);
++	rdev = devm_regulator_register(dev, &mt6797_vsram_desc, &config);
++	if (IS_ERR(rdev))
++		return dev_err_probe(dev, PTR_ERR(rdev), "register failed\n");
++
++	dev_info(dev, "selector %u (%u uV)\n", sel, mt6797_vsram_volts[sel]);
++
++	return 0;
++}
++
++static const struct of_device_id mt6797_vsram_of_match[] = {
++	{ .compatible = "mediatek,mt6797-cpu-sram-ldo" },
++	{ }
++};
++MODULE_DEVICE_TABLE(of, mt6797_vsram_of_match);
++
++static struct platform_driver mt6797_vsram_driver = {
++	.driver = {
++		.name = "mt6797-vsram-regulator",
++		.of_match_table = mt6797_vsram_of_match,
++	},
++	.probe = mt6797_vsram_probe,
++};
++module_platform_driver(mt6797_vsram_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 CPU SRAM LDO regulator");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+

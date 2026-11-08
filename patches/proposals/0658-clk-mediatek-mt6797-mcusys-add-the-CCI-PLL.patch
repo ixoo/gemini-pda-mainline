@@ -1,0 +1,90 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:30:02 -0500
+Subject: [PATCH] clk: mediatek: mt6797-mcusys: add the CCI PLL
+
+The CCI runs from ARMPLL2 in MCUMIXED, with the same post-divider, mux
+(bits 7:6), divider (bits 19:15) and MCU FHCTL channel layout as the two
+A53 clusters. The vendor kernel changes it with the same sequence on
+FHCTL channel 2. Register it as a third clock, limited to 988 MHz, the
+top of the vendor table.
+
+Its sync DCM byte in SYNC_DCM_CONFIG (bits 6:0) gives its floor, as for
+the clusters.
+---
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-mcusys.c b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+index a345a1006..50a89e5e5 100644
+--- a/drivers/clk/mediatek/clk-mt6797-mcusys.c
++++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+@@ -3,10 +3,10 @@
+  * MT6797 Cortex-A53 cluster PLLs in MCUMIXED.
+  *
+  * Each A53 cluster runs from its own PLL (ARMPLL0 for CPU0-3, ARMPLL1 for
+- * CPU4-7) followed by a post-divider in the PLL and a cluster clock divider
+- * in ARMPLLDIV_CKDIV. The PLL is retuned through the MCU frequency-hopping
+- * controller (FHCTL) at MCUMIXED + 0xf00, which slews the PLL to a new DDS
+- * value without a glitch, as the vendor kernel does.
++ * CPU4-7), and the CCI from ARMPLL2, each followed by a post-divider in the
++ * PLL and a clock divider in ARMPLLDIV_CKDIV. The PLL is retuned through the
++ * MCU frequency-hopping controller (FHCTL) at MCUMIXED + 0xf00, which slews
++ * the PLL to a new DDS value without a glitch, as the vendor kernel does.
+  *
+  * MCUMIXED is shared with the secure firmware, which reprograms the A72
+  * fields of the same mux and divider registers. Every access holds the DVFSP
+@@ -81,6 +81,8 @@
+ 
+ /* MCUCFG */
+ #define MCUCFG_SYNC_DCM_CONFIG		0x744
++#define SYNC_DCM_CCI_DIV_EN		BIT(0)
++#define SYNC_DCM_CCI_DIV_SEL		GENMASK(5, 1)
+ #define SYNC_DCM_MP0_DIV_EN		BIT(8)
+ #define SYNC_DCM_MP0_DIV_SEL		GENMASK(13, 9)
+ #define SYNC_DCM_MP1_DIV_EN		BIT(16)
+@@ -100,7 +102,7 @@
+ #define MCU_VCO_MIN_MHZ			1050
+ #define MCU_VCO_MAX_MHZ			2028
+ 
+-#define MCU_NUM_PLLS			2
++#define MCU_NUM_PLLS			3
+ 
+ struct mt6797_mcu_setting {
+ 	u32 pcw;
+@@ -144,27 +146,32 @@ struct mt6797_mcusys {
+ static const char * const mt6797_mcu_pll_names[MCU_NUM_PLLS] = {
+ 	[MT6797_CLK_MCU_LL] = "mcu-armpll-ll",
+ 	[MT6797_CLK_MCU_L] = "mcu-armpll-l",
++	[MT6797_CLK_MCU_CCI] = "mcu-armpll-cci",
+ };
+ 
+ static const unsigned int mt6797_mcu_ckdiv_shift[MCU_NUM_PLLS] = {
+ 	[MT6797_CLK_MCU_LL] = 5,
+ 	[MT6797_CLK_MCU_L] = 10,
++	[MT6797_CLK_MCU_CCI] = 15,
+ };
+ 
+ static const u32 mt6797_mcu_sync_dcm_en[MCU_NUM_PLLS] = {
+ 	[MT6797_CLK_MCU_LL] = SYNC_DCM_MP0_DIV_EN,
+ 	[MT6797_CLK_MCU_L] = SYNC_DCM_MP1_DIV_EN,
++	[MT6797_CLK_MCU_CCI] = SYNC_DCM_CCI_DIV_EN,
+ };
+ 
+ static const u32 mt6797_mcu_sync_dcm_sel[MCU_NUM_PLLS] = {
+ 	[MT6797_CLK_MCU_LL] = SYNC_DCM_MP0_DIV_SEL,
+ 	[MT6797_CLK_MCU_L] = SYNC_DCM_MP1_DIV_SEL,
++	[MT6797_CLK_MCU_CCI] = SYNC_DCM_CCI_DIV_SEL,
+ };
+ 
+ /* The top of the vendor MT6797 tables, at its highest voltage. */
+ static const unsigned long mt6797_mcu_max_rate[MCU_NUM_PLLS] = {
+ 	[MT6797_CLK_MCU_LL] = 1547000000,
+ 	[MT6797_CLK_MCU_L] = 2002000000,
++	[MT6797_CLK_MCU_CCI] = 988000000,
+ };
+ 
+ /*
+-- 
+2.43.0
+

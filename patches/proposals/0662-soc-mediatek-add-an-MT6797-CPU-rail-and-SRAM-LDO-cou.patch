@@ -1,0 +1,211 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:40:26 -0500
+Subject: [PATCH] soc: mediatek: add an MT6797 CPU rail and SRAM LDO coupler
+
+VPROC1 feeds the MT6797 Cortex-A53 clusters and the CCI, and VSRAM_L
+feeds their SRAM. The vendor kernel keeps VSRAM_L at VPROC1 + 10 mV,
+within its own 1.0-1.2 V range. It raises VSRAM_L before VPROC1 and
+lowers it after, so VSRAM_L is never below VPROC1.
+
+The MediaTek coupler sets the SRAM supply first in both directions, so
+on a decrease the SRAM would briefly drop below its new target relative
+to the still-higher CPU rail. Add a coupler for the MT6797 pair that
+orders the two by direction. It attaches only to the regulators named
+vproc1 and vsram_l when the device tree couples them.
+
+At its 1.0 V floor VSRAM_L can sit well above VPROC1. The MediaTek
+coupler likewise ignores the spread there.
+---
+ drivers/soc/mediatek/Kconfig                  |   9 ++
+ drivers/soc/mediatek/Makefile                 |   1 +
+ .../soc/mediatek/mt6797-regulator-coupler.c   | 145 ++++++++++++++++++
+ 3 files changed, 155 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-regulator-coupler.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 984fba8f1..02712fee9 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -747,6 +747,15 @@ config MTK_PMIC_WRAP
+ 	  on different MediaTek SoCs. The PMIC wrapper is a proprietary
+ 	  hardware to connect the PMIC.
+ 
++config MTK_MT6797_REGULATOR_COUPLER
++	bool "MediaTek MT6797 CPU rail and SRAM LDO coupler"
++	depends on REGULATOR && (ARCH_MEDIATEK || COMPILE_TEST)
++	help
++	  Say y here to keep the MT6797 CPU SRAM LDO (VSRAM_L) 10 mV above
++	  the CPU rail (VPROC1), raised before it and lowered after it, as the
++	  vendor kernel does. It takes effect only for the two regulators the
++	  device tree couples.
++
+ config MTK_REGULATOR_COUPLER
+ 	bool "MediaTek SoC Regulator Coupler" if COMPILE_TEST
+ 	default ARCH_MEDIATEK
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 2b6d5041d..422a2eba7 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -82,6 +82,7 @@ obj-$(CONFIG_MTK_MT6797_PROTECTED_READBACK_KUNIT_TEST) += mt6797-protected-readb
+ obj-$(CONFIG_MTK_RAM_CONSOLE_PARSER) += mtk-ram-console.o
+ obj-$(CONFIG_MTK_RAM_CONSOLE_READER) += mtk-ram-console-reader.o
+ obj-$(CONFIG_MTK_PMIC_WRAP) += mtk-pmic-wrap.o
++obj-$(CONFIG_MTK_MT6797_REGULATOR_COUPLER) += mt6797-regulator-coupler.o
+ obj-$(CONFIG_MTK_REGULATOR_COUPLER) += mtk-regulator-coupler.o
+ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
+ obj-$(CONFIG_MTK_MMSYS) += mtk-mutex.o
+diff --git a/drivers/soc/mediatek/mt6797-regulator-coupler.c b/drivers/soc/mediatek/mt6797-regulator-coupler.c
+new file mode 100644
+index 000000000..0739b27c1
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-regulator-coupler.c
+@@ -0,0 +1,145 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 CPU rail and SRAM LDO coupler.
++ *
++ * VPROC1 feeds CPU0-7 and the CCI; VSRAM_L feeds their SRAM. The vendor
++ * kernel keeps VSRAM_L at VPROC1 + 10 mV within its own 1.0-1.2 V range, so
++ * never below VPROC1 except at the 1.2 V top where both are equal. It
++ * raises VSRAM_L before VPROC1 and lowers it after. At its 1.0 V floor
++ * VSRAM_L can sit well above VPROC1, which this coupler allows.
++ *
++ * The two regulators are coupled in the device tree; a change requested on
++ * the CPU rail first moves VSRAM_L up, or moves it down after the CPU rail.
++ * VSRAM_L takes no request of its own once something uses the CPU rail.
++ */
++
++#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
++#include <linux/init.h>
++#include <linux/minmax.h>
++#include <linux/of.h>
++#include <linux/regulator/coupler.h>
++#include <linux/regulator/driver.h>
++#include <linux/regulator/machine.h>
++#include <linux/string.h>
++#include <linux/suspend.h>
++
++#define MT6797_VSRAM_ABOVE_UV	10000
++
++struct mt6797_regulator_coupler {
++	struct regulator_coupler coupler;
++	struct regulator_dev *vsram;
++	struct regulator_dev *vproc;
++};
++
++#define to_mt6797_coupler(x) \
++	container_of(x, struct mt6797_regulator_coupler, coupler)
++
++static int mt6797_coupler_balance(struct regulator_coupler *coupler,
++				  struct regulator_dev *rdev,
++				  suspend_state_t state)
++{
++	struct mt6797_regulator_coupler *mc = to_mt6797_coupler(coupler);
++	struct regulator_dev *vsram = mc->vsram;
++	int min_uV = 0, max_uV = INT_MAX;
++	int cur_uV, sram_min_uV, sram_max_uV, ret;
++
++	if (!vsram || !mc->vproc)
++		return -EPERM;
++
++	if (rdev == vsram) {
++		/* Nothing has used the CPU rail yet; settle VSRAM alone. */
++		if (!mc->vproc->use_count)
++			return regulator_do_balance_voltage(rdev, state, true);
++		return -EPERM;
++	}
++
++	ret = regulator_check_consumers(rdev, &min_uV, &max_uV, state);
++	if (ret < 0)
++		return ret;
++
++	cur_uV = regulator_get_voltage_rdev(rdev);
++	if (cur_uV < 0)
++		return cur_uV;
++	if (!min_uV)
++		min_uV = cur_uV;
++
++	ret = regulator_check_voltage(rdev, &min_uV, &max_uV);
++	if (ret < 0)
++		return ret;
++
++	sram_max_uV = vsram->constraints->max_uV;
++	sram_min_uV = clamp(min_uV + MT6797_VSRAM_ABOVE_UV,
++			    vsram->constraints->min_uV, sram_max_uV);
++
++	/* Down: the CPU rail first, then VSRAM_L. */
++	if (min_uV < cur_uV) {
++		ret = regulator_do_balance_voltage(rdev, state, true);
++		if (ret)
++			return ret;
++		return regulator_set_voltage_rdev(vsram, sram_min_uV,
++						  sram_max_uV, state);
++	}
++
++	/* Up or level: VSRAM_L first, then the CPU rail. */
++	ret = regulator_set_voltage_rdev(vsram, sram_min_uV, sram_max_uV,
++					 state);
++	if (ret)
++		return ret;
++
++	return regulator_do_balance_voltage(rdev, state, true);
++}
++
++static int mt6797_coupler_attach(struct regulator_coupler *coupler,
++				 struct regulator_dev *rdev)
++{
++	struct mt6797_regulator_coupler *mc = to_mt6797_coupler(coupler);
++	const char *name = rdev_get_name(rdev);
++
++	if (rdev->coupling_desc.n_coupled != 2)
++		return 1;
++
++	if (!strcmp(name, "vsram_l")) {
++		if (mc->vsram)
++			return -EINVAL;
++		mc->vsram = rdev;
++	} else if (!strcmp(name, "vproc1")) {
++		if (mc->vproc)
++			return -EINVAL;
++		mc->vproc = rdev;
++	} else {
++		return 1;
++	}
++
++	return 0;
++}
++
++static int mt6797_coupler_detach(struct regulator_coupler *coupler,
++				 struct regulator_dev *rdev)
++{
++	struct mt6797_regulator_coupler *mc = to_mt6797_coupler(coupler);
++
++	if (rdev == mc->vsram)
++		mc->vsram = NULL;
++	if (rdev == mc->vproc)
++		mc->vproc = NULL;
++
++	return 0;
++}
++
++static struct mt6797_regulator_coupler mt6797_coupler = {
++	.coupler = {
++		.attach_regulator = mt6797_coupler_attach,
++		.detach_regulator = mt6797_coupler_detach,
++		.balance_voltage = mt6797_coupler_balance,
++	},
++};
++
++static int __init mt6797_regulator_coupler_init(void)
++{
++	if (!of_machine_is_compatible("mediatek,mt6797"))
++		return 0;
++
++	return regulator_coupler_register(&mt6797_coupler.coupler);
++}
++arch_initcall(mt6797_regulator_coupler_init);
+-- 
+2.43.0
+

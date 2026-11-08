@@ -821,3 +821,14 @@ proposals/0652-leds-aw9120-turn-the-outputs-off-while-the-system-sl.patch
 proposals/0653-soc-mediatek-mt6797-consys-refuse-a-system-suspend-w.patch
 proposals/0654-media-mediatek-mt6797-seninf-refuse-a-system-suspend.patch
 proposals/0655-ASoC-mediatek-mt6797-mt6351-suspend-the-card-with-th.patch
+proposals/0656-clk-mediatek-mt6797-mcusys-let-the-clusters-reach-th.patch
+proposals/0657-dt-bindings-clock-mediatek-add-the-MT6797-CCI-PLL-in.patch
+proposals/0658-clk-mediatek-mt6797-mcusys-add-the-CCI-PLL.patch
+proposals/0659-regulator-da9213-legacy-let-consumers-set-the-buck-v.patch
+proposals/0660-dt-bindings-regulator-add-the-MediaTek-MT6797-CPU-SR.patch
+proposals/0661-regulator-add-the-MediaTek-MT6797-CPU-SRAM-LDO.patch
+proposals/0662-soc-mediatek-add-an-MT6797-CPU-rail-and-SRAM-LDO-cou.patch
+proposals/0663-PM-devfreq-mtk-cci-make-the-intermediate-clock-optio.patch
+proposals/0664-dt-bindings-interconnect-mediatek-cci-add-MT6797.patch
+proposals/0665-PM-devfreq-mtk-cci-add-MT6797.patch
+proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch

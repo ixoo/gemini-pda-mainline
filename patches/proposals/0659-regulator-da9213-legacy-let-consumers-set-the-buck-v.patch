@@ -1,0 +1,216 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:31:24 -0500
+Subject: [PATCH] regulator: da9213-legacy: let consumers set the buck voltages
+
+The legacy DA9213-DA9215 provider only reported its outputs. The MT6797
+Gemini PDA's CPU frequency scaling needs to set them: BUCKA (VPROC1)
+feeds CPU0-7 and the CCI, and BUCKB (VPROC2) the Cortex-A72 pair.
+
+Add a writable build. Each output then takes its constraints from a
+"regulators" node (BUCKA, BUCKB) and sets its voltage with one
+read-modify-write of the selector register, holding the bus, followed by
+a read back. Bit 7 is kept as found, as the vendor kernel does. A change
+waits 1 us per 10 mV step and at least 25 us, the vendor's settle time.
+
+The outputs have no enable or disable operation, so the regulator core
+never switches one. On this board BUCKB's enable bit belongs to the A72
+bring-up. In this build the probe reads only the identity entries of its
+transcript, because a writable provider can legitimately find BUCKB on
+or a selector changed.
+---
+ drivers/regulator/Kconfig                   |  12 +++
+ drivers/regulator/da9213-legacy-regulator.c | 107 +++++++++++++++++++-
+ 2 files changed, 116 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/regulator/Kconfig b/drivers/regulator/Kconfig
+index e02f53da7..2cfd5ec29 100644
+--- a/drivers/regulator/Kconfig
++++ b/drivers/regulator/Kconfig
+@@ -434,6 +434,18 @@ config REGULATOR_DA9213_LEGACY_PROVIDER
+ 	  This is an offline/provider-boundary experiment. It does not establish
+ 	  rail ownership, constraints, rollback, suspend/resume, or CPU bring-up.
+ 
++config REGULATOR_DA9213_LEGACY_WRITABLE
++	bool "Dialog DA9213/DA9214/DA9215 legacy writable voltages"
++	depends on REGULATOR_DA9213_LEGACY_PROVIDER
++	depends on !REGULATOR_DA9213_LEGACY_OBSERVER
++	depends on !ARM64_MT6797_A72_PROVIDER_OWNER
++	help
++	  Say y here to let consumers set the buck output voltages within the
++	  constraints the device tree gives each output. Each change is one
++	  read-modify-write of the selector register with a read back. The
++	  outputs have no enable or disable operation. The probe then checks
++	  only the chip identity, not the rail state.
++
+ config REGULATOR_DA9213_LEGACY_OBSERVER
+ 	bool "Dialog legacy DA921x read-only provider observer"
+ 	depends on REGULATOR_DA9213_LEGACY_PROVIDER
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index d3f680dda..86308a984 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -132,6 +132,11 @@ static const struct da9213_legacy_sample da9213_legacy_samples[] = {
+ 	{ DA9213_LEGACY_PAGE2,   0x06, 0xd0 },
+ 	{ DA9213_LEGACY_PAGE2,   0x47, 0xc0 },
+ 	{ DA9213_LEGACY_PRIMARY, 0xd3, 0x1f },
++	/*
++	 * Rail state, not identity: a writable provider may find BUCKB on and
++	 * either selector changed, so it reads only the entries above.
++	 */
++#define DA9213_LEGACY_IDENTITY_SAMPLES	4
+ 	{ DA9213_LEGACY_PRIMARY, 0x5e, 0x00 },
+ 	{ DA9213_LEGACY_PRIMARY, 0xd9, 0x46 },
+ 	{ DA9213_LEGACY_PRIMARY, 0xda, 0x46 },
+@@ -222,16 +227,99 @@ static int da9213_legacy_is_enabled(struct regulator_dev *rdev)
+ 	return !!(value & DA9213_LEGACY_ENABLE_MASK);
+ }
+ 
++#if !IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_WRITABLE)
+ static const struct regulator_ops da9213_legacy_readonly_ops = {
+ 	.get_voltage_sel = da9213_legacy_get_voltage_sel,
+ 	.list_voltage = regulator_list_voltage_linear,
+ 	.is_enabled = da9213_legacy_is_enabled,
+ };
++#else
++/*
++ * One read-modify-write of the selector register, holding the bus so nothing
++ * else on it runs in between, then a read back. Bit 7 is kept as found, as
++ * the vendor kernel does.
++ */
++static int da9213_legacy_set_voltage_sel(struct regulator_dev *rdev,
++					 unsigned int sel)
++{
++	struct da9213_legacy *chip = rdev_get_drvdata(rdev);
++	struct i2c_adapter *adapter = chip->client->adapter;
++	u8 reg = da9213_legacy_vsel_reg[rdev_get_id(rdev)];
++	u8 buf[2] = { reg };
++	struct i2c_msg rd[2] = {
++		{ .addr = chip->client->addr, .len = 1, .buf = &reg },
++		{ .addr = chip->client->addr, .flags = I2C_M_RD, .len = 1,
++		  .buf = &buf[1] },
++	};
++	struct i2c_msg wr = {
++		.addr = chip->client->addr, .len = 2, .buf = buf,
++	};
++	u8 old;
++	int ret;
++
++	if (sel > DA9213_LEGACY_VSEL_MASK)
++		return -EINVAL;
++
++	i2c_lock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	ret = __i2c_transfer(adapter, rd, ARRAY_SIZE(rd));
++	if (ret != ARRAY_SIZE(rd))
++		goto out;
++	old = buf[1];
++	buf[1] = (old & ~DA9213_LEGACY_VSEL_MASK) | sel;
++	ret = __i2c_transfer(adapter, &wr, 1);
++	if (ret != 1)
++		goto out;
++	buf[1] = ~buf[1];
++	ret = __i2c_transfer(adapter, rd, ARRAY_SIZE(rd));
++	if (ret != ARRAY_SIZE(rd))
++		goto out;
++	ret = (buf[1] == ((old & ~DA9213_LEGACY_VSEL_MASK) | sel)) ? 0 : -EIO;
++out:
++	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
++	if (ret > 0)
++		ret = -EIO;
++	if (ret)
++		dev_err(chip->dev, "selector 0x%02x write failed: %d\n", reg, ret);
++
++	return ret;
++}
++
++/* The vendor waits 1 us per 10 mV step, and at least 25 us. */
++static int da9213_legacy_set_voltage_time_sel(struct regulator_dev *rdev,
++					      unsigned int old_sel,
++					      unsigned int new_sel)
++{
++	return max(abs((int)new_sel - (int)old_sel), 25);
++}
+ 
++static const struct regulator_ops da9213_legacy_writable_ops = {
++	.get_voltage_sel = da9213_legacy_get_voltage_sel,
++	.set_voltage_sel = da9213_legacy_set_voltage_sel,
++	.set_voltage_time_sel = da9213_legacy_set_voltage_time_sel,
++	.list_voltage = regulator_list_voltage_linear,
++	.map_voltage = regulator_map_voltage_linear,
++	.is_enabled = da9213_legacy_is_enabled,
++};
++#endif
++
++#if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_WRITABLE)
++/*
++ * Voltage only: the outputs have no enable or disable operation, so the
++ * regulator core never switches one. BUCKB's enable bit stays with the A72
++ * bring-up that owns it.
++ */
++#define DA9213_LEGACY_OPS	(&da9213_legacy_writable_ops)
++#else
++#define DA9213_LEGACY_OPS	(&da9213_legacy_readonly_ops)
++#endif
++
++/* The read-only build refuses a regulators node, so it never matches. */
+ #define DA9213_LEGACY_BUCK(_id)						\
+ {								\
+ 	.name = "DA9213-legacy-BUCK" #_id,				\
+-	.ops = &da9213_legacy_readonly_ops,				\
++	.ops = DA9213_LEGACY_OPS,					\
++	.of_match = (_id) ? "BUCKB" : "BUCKA",				\
++	.regulators_node = "regulators",				\
+ 	.type = REGULATOR_VOLTAGE,					\
+ 	.id = _id,							\
+ 	.n_voltages = (DA9213_LEGACY_MAX_UV -			\
+@@ -1593,10 +1681,11 @@ static int da9213_legacy_validate_node(struct i2c_client *client)
+ 	}
+ 
+ 	regulators = of_get_child_by_name(np, "regulators");
+-	if (regulators) {
++	if (regulators && !IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_WRITABLE)) {
+ 		of_node_put(regulators);
+ 		return -EOPNOTSUPP;
+ 	}
++	of_node_put(regulators);
+ 
+ 	return 0;
+ }
+@@ -1632,6 +1721,14 @@ static int da9213_legacy_read_sample(struct i2c_client *client,
+ 	return 0;
+ }
+ 
++static unsigned int da9213_legacy_sample_count(void)
++{
++	if (IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_WRITABLE))
++		return DA9213_LEGACY_IDENTITY_SAMPLES;
++
++	return ARRAY_SIZE(da9213_legacy_samples);
++}
++
+ static int da9213_legacy_probe(struct i2c_client *client)
+ {
+ 	struct da9213_legacy *chip;
+@@ -1677,7 +1774,7 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 
+ 	i2c_lock_bus(client->adapter, I2C_LOCK_ROOT_ADAPTER);
+ 	for (pass = 0; pass < DA9213_LEGACY_PASSES; pass++) {
+-		for (sample = 0; sample < ARRAY_SIZE(da9213_legacy_samples);
++		for (sample = 0; sample < da9213_legacy_sample_count();
+ 		     sample++) {
+ 			ret = da9213_legacy_read_sample(client, chip->page2,
+ 							&da9213_legacy_samples[sample]);
+@@ -1759,6 +1856,10 @@ static int da9213_legacy_probe(struct i2c_client *client)
+ 		dev_info(&client->dev,
+ 			 "%s positive provider armed; CPU admission remains closed\n",
+ 			 variant->name);
++	else if (IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_WRITABLE))
++		dev_info(&client->dev,
++			 "%s legacy direct-address identity matched; voltages are writable\n",
++			 variant->name);
+ 	else
+ 		dev_info(&client->dev,
+ 			 "%s legacy direct-address identity matched; provider is read-only\n",
+-- 
+2.43.0
+

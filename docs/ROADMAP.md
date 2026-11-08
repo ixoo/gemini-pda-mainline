@@ -38,7 +38,9 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
 - **Not started.** Suspend and cpuidle. No upstream submission.
 - **Started.** cpufreq for the A53 clusters at the firmware's voltage: schedutil and CPU
   cooling [pass on one boot](../experiments/2026-11-07-mt6797-a53-cpufreq/README.md#attempt-a3-2026-11-07)
-  from modules loaded by hand.
+  from modules loaded by hand. Voltage scaling to the full vendor range, the CCI and a
+  boot gate are [built and compile-checked](../experiments/2026-11-08-mt6797-a53-dvfs/README.md),
+  not run.
 
 ## Current order of work
 

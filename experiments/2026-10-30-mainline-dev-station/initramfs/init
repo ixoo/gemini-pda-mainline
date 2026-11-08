@@ -101,6 +101,45 @@ fi
         $bb sync
     fi
 )
+# CPU frequency scaling (experiments/2026-11-07-mt6797-a53-cpufreq): off until the
+# custodian creates /mnt/data/cpufreq-at-boot after the heat soak. Each module in the
+# list loads if this image carries it, in this order: the rail providers, the cluster
+# clocks, then the policies and the CCI. A load that never finished skips the next boot.
+(
+    marker=/mnt/data/cpufreq-loading
+    if ! $bb grep -q ' /mnt/data ' /proc/mounts; then
+        status cpufreq=skipped-no-data
+    elif ! [ -e /mnt/data/cpufreq-at-boot ]; then
+        status cpufreq=off
+    elif [ -e "$marker" ]; then
+        $bb rm -f "$marker"
+        $bb sync
+        status cpufreq=skipped-last-load-unfinished
+    elif ! $bb touch "$marker"; then
+        status cpufreq=skipped-no-data
+    else
+        $bb sync
+        result=loaded
+        for module in da9213-legacy-regulator mt6797-vsram-regulator clk-mt6797-mcusys \
+                      cpufreq-dt mtk-cci-devfreq; do
+            ko=/lib/modules/$($bb uname -r)/$module.ko
+            [ -e "$ko" ] || continue
+            if $bb insmod "$ko"; then
+                result="$result,$module"
+            else
+                result="failed-at-$module"
+                break
+            fi
+        done
+        # schedutil on every policy, whatever the image's default governor.
+        for policy in /sys/devices/system/cpu/cpufreq/policy*; do
+            [ -e "$policy/scaling_governor" ] && $bb echo schedutil >"$policy/scaling_governor"
+        done
+        status "cpufreq=$result"
+        $bb rm -f "$marker"
+        $bb sync
+    fi
+)
 # A persistent root (experiments/2026-11-06-gemini-arch-root): exactly one partition
 # named gemini-arch, off the eMMC, with an init. It is handed over only on a normal
 # start, since LK leaves lk, nvram and boot writable in the other modes; and not if

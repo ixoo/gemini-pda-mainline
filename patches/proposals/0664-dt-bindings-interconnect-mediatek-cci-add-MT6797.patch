@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:41:46 -0500
+Subject: [PATCH] dt-bindings: interconnect: mediatek,cci: add MT6797
+
+Add the MT6797 CCI. Its clock changes rate glitch-free by itself, so the
+intermediate clock becomes optional.
+---
+ .../devicetree/bindings/interconnect/mediatek,cci.yaml     | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/Documentation/devicetree/bindings/interconnect/mediatek,cci.yaml b/Documentation/devicetree/bindings/interconnect/mediatek,cci.yaml
+index 4d72525f4..88feaf403 100644
+--- a/Documentation/devicetree/bindings/interconnect/mediatek,cci.yaml
++++ b/Documentation/devicetree/bindings/interconnect/mediatek,cci.yaml
+@@ -19,6 +19,7 @@ properties:
+   compatible:
+     oneOf:
+       - enum:
++          - mediatek,mt6797-cci
+           - mediatek,mt8183-cci
+           - mediatek,mt8186-cci
+       - items:
+@@ -27,15 +28,19 @@ properties:
+           - const: mediatek,mt8183-cci
+ 
+   clocks:
++    minItems: 1
+     items:
+       - description:
+-          The multiplexer for clock input of the bus.
++          The multiplexer for clock input of the bus, or a clock that changes
++          rate glitch-free on its own, in which case there is no intermediate
++          clock.
+       - description:
+           A parent of "bus" clock which is used as an intermediate clock source
+           when the original clock source (PLL) is under transition and not
+           stable yet.
+ 
+   clock-names:
++    minItems: 1
+     items:
+       - const: cci
+       - const: intermediate
+-- 
+2.43.0
+

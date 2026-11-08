@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:41:46 -0500
+Subject: [PATCH] PM / devfreq: mtk-cci: make the intermediate clock optional
+
+The driver parks the CCI on an intermediate clock while it retunes the
+PLL, which suits a CCI clock that is a plain mux over the PLL. On the
+MT6797 the CCI clock is the PLL itself, retuned glitch-free through the
+MCU frequency-hopping controller. It has no intermediate clock to move
+to.
+
+Make the intermediate clock optional. Without it, set the rate on the
+CCI clock directly, still between the voltage increase and decrease.
+---
+ drivers/devfreq/mtk-cci-devfreq.c | 35 ++++++++++++++++++++++---------
+ 1 file changed, 25 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/devfreq/mtk-cci-devfreq.c b/drivers/devfreq/mtk-cci-devfreq.c
+index 4c22be728..4f0b5c8e4 100644
+--- a/drivers/devfreq/mtk-cci-devfreq.c
++++ b/drivers/devfreq/mtk-cci-devfreq.c
+@@ -140,7 +140,6 @@ static int mtk_ccifreq_target(struct device *dev, unsigned long *freq,
+ 	mutex_lock(&drv->reg_lock);
+ 
+ 	inter_voltage = drv->inter_voltage;
+-	cci_pll = clk_get_parent(drv->cci_clk);
+ 
+ 	opp_rate = *freq;
+ 	opp = devfreq_recommended_opp(dev, &opp_rate, 1);
+@@ -170,6 +169,18 @@ static int mtk_ccifreq_target(struct device *dev, unsigned long *freq,
+ 		}
+ 	}
+ 
++	/* Without an intermediate clock the cci clock changes rate itself. */
++	if (!drv->inter_clk) {
++		ret = clk_set_rate(drv->cci_clk, *freq);
++		if (ret) {
++			dev_err(dev, "failed to set cci rate: %d\n", ret);
++			goto out_restore_voltage;
++		}
++		goto scale_down;
++	}
++
++	cci_pll = clk_get_parent(drv->cci_clk);
++
+ 	/* switch the cci clock to intermediate clock source. */
+ 	ret = clk_set_parent(drv->cci_clk, drv->inter_clk);
+ 	if (ret) {
+@@ -193,6 +204,7 @@ static int mtk_ccifreq_target(struct device *dev, unsigned long *freq,
+ 		goto out_unlock;
+ 	}
+ 
++scale_down:
+ 	/*
+ 	 * If the new voltage is lower than the intermediate voltage or the
+ 	 * original voltage, scale down to the new voltage.
+@@ -271,7 +283,7 @@ static int mtk_ccifreq_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, ret, "failed to get cci clk\n");
+ 	}
+ 
+-	drv->inter_clk = devm_clk_get(dev, "intermediate");
++	drv->inter_clk = devm_clk_get_optional(dev, "intermediate");
+ 	if (IS_ERR(drv->inter_clk)) {
+ 		ret = PTR_ERR(drv->inter_clk);
+ 		return dev_err_probe(dev, ret,
+@@ -325,15 +337,18 @@ static int mtk_ccifreq_probe(struct platform_device *pdev)
+ 		goto out_disable_cci_clk;
+ 	}
+ 
+-	rate = clk_get_rate(drv->inter_clk);
+-	opp = dev_pm_opp_find_freq_ceil(dev, &rate);
+-	if (IS_ERR(opp)) {
+-		ret = PTR_ERR(opp);
+-		dev_err(dev, "failed to get intermediate opp: %d\n", ret);
+-		goto out_remove_opp_table;
++	if (drv->inter_clk) {
++		rate = clk_get_rate(drv->inter_clk);
++		opp = dev_pm_opp_find_freq_ceil(dev, &rate);
++		if (IS_ERR(opp)) {
++			ret = PTR_ERR(opp);
++			dev_err(dev, "failed to get intermediate opp: %d\n",
++				ret);
++			goto out_remove_opp_table;
++		}
++		drv->inter_voltage = dev_pm_opp_get_voltage(opp);
++		dev_pm_opp_put(opp);
+ 	}
+-	drv->inter_voltage = dev_pm_opp_get_voltage(opp);
+-	dev_pm_opp_put(opp);
+ 
+ 	rate = U32_MAX;
+ 	opp = dev_pm_opp_find_freq_floor(drv->dev, &rate);
+-- 
+2.43.0
+

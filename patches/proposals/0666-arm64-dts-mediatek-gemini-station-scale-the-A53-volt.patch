@@ -1,0 +1,494 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:44:41 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: scale the A53 voltages
+
+Add a station tree on top of the A72 station that lets CPU0-7 and the
+CCI follow the vendor's MT6797 operating points with their voltage:
+
+- the DA9214 on the legacy direct-address driver, with BUCKA (VPROC1,
+  770-1200 mV) and BUCKB (VPROC2, 800-1200 mV) writable within those
+  limits;
+- VSRAM_L, coupled to VPROC1 so it stays 10 mV above it;
+- full vendor tables, 221-1547 MHz for CPU0-3 and 325-2002 MHz for
+  CPU4-7, with VPROC1 as the CPU supply;
+- the CCI on the third MCU PLL, 234-988 MHz, following the faster
+  cluster through required-opps with the same vendor index;
+- capacity-dmips-mhz 740 for the A53s, against 1024 for an A72, as on
+  MT8173.
+
+Each point's voltage is the higher of the vendor base table and this
+unit's EEM-calibrated value plus the vendor's 62.5 mV cold adder, capped
+at 1.2 V. The EEM values were captured from this unit, so this tree is
+for this unit. The CCI's 169 MHz point is left out: it is below the
+firmware's sync DCM floor of 210 MHz.
+
+Nothing changes a voltage until the regulator, clock and cpufreq modules
+load. The energy model's dynamic-power-coefficient is still to be
+measured.
+---
+ arch/arm64/boot/dts/mediatek/Makefile         |   1 +
+ .../mt6797-gemini-pda-station-dvfs.dts        | 439 ++++++++++++++++++
+ 2 files changed, 440 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+
+diff --git a/arch/arm64/boot/dts/mediatek/Makefile b/arch/arm64/boot/dts/mediatek/Makefile
+index 35554fd8d..b96859022 100644
+--- a/arch/arm64/boot/dts/mediatek/Makefile
++++ b/arch/arm64/boot/dts/mediatek/Makefile
+@@ -14,6 +14,7 @@ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-a72-admission.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-wifi-service.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-station.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-station-a72.dtb
++dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-gemini-pda-station-dvfs.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt6797-x20-dev.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-rfb1.dtb
+ dtb-$(CONFIG_ARCH_MEDIATEK) += mt7622-bananapi-bpi-r64.dtb
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+new file mode 100644
+index 000000000..0a44d0d24
+--- /dev/null
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -0,0 +1,439 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Copyright (c) 2026 Julien Etienne
++ *
++ * The A72 station with CPU voltage scaling: CPU0-7 and the CCI follow the
++ * vendor's MT6797 operating points with VPROC1 (DA9214 BUCKA) and the SRAM
++ * LDO (VSRAM_L) set for each. Nothing changes a voltage until the regulator,
++ * clock and cpufreq modules load.
++ *
++ * Each point's voltage is the higher of the vendor base table and this unit's
++ * EEM-calibrated value plus the vendor's 62.5 mV adder at or below 33 C,
++ * capped at the vendor's 1.2 V and rounded up to the DA9214's 10 mV step.
++ * The EEM values come from this unit's Gemian capture, so this file is for
++ * this unit (experiments/2026-11-08-mt6797-a53-dvfs).
++ */
++
++#include "mt6797-gemini-pda-station-a72.dts"
++
++/delete-node/ &cluster0_opp;
++/delete-node/ &cluster1_opp;
++
++/ {
++	/* VSRAM_L: the SRAM LDOs of CPU0-7 and the CCI, kept above VPROC1. */
++	vsram_l: regulator-vsram-l {
++		compatible = "mediatek,mt6797-cpu-sram-ldo";
++		mediatek,infracfg = <&infrasys>;
++		regulator-name = "vsram_l";
++		regulator-min-microvolt = <1000000>;
++		regulator-max-microvolt = <1200000>;
++		regulator-coupled-with = <&vproc1>;
++		/* The coupler sets the spread itself; the core needs a value. */
++		regulator-coupled-max-spread = <430000>;
++	};
++
++	/* The CCI follows the faster of the two clusters, as the vendor's does. */
++	cci: cci {
++		compatible = "mediatek,mt6797-cci";
++		clocks = <&mcusys_pll MT6797_CLK_MCU_CCI>;
++		clock-names = "cci";
++		operating-points-v2 = <&cci_dvfs_opp>;
++		proc-supply = <&vproc1>;
++	};
++
++	/*
++	 * Each CPU point requires the CCI point with the same vendor index; the
++	 * CCI's 169 MHz point is below its sync DCM floor, so 234 MHz stands in.
++	 */
++	ll_dvfs_opp: opp-table-cluster0 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp-221000000 {
++			opp-hz = /bits/ 64 <221000000>;
++			opp-microvolt = <840000 840000 1200000>;
++			required-opps = <&cci_opp_234>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-338000000 {
++			opp-hz = /bits/ 64 <338000000>;
++			opp-microvolt = <860000 860000 1200000>;
++			required-opps = <&cci_opp_234>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-481000000 {
++			opp-hz = /bits/ 64 <481000000>;
++			opp-microvolt = <870000 870000 1200000>;
++			required-opps = <&cci_opp_325>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-624000000 {
++			opp-hz = /bits/ 64 <624000000>;
++			opp-microvolt = <900000 900000 1200000>;
++			required-opps = <&cci_opp_416>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-715000000 {
++			opp-hz = /bits/ 64 <715000000>;
++			opp-microvolt = <940000 940000 1200000>;
++			required-opps = <&cci_opp_481>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-806000000 {
++			opp-hz = /bits/ 64 <806000000>;
++			opp-microvolt = <970000 970000 1200000>;
++			required-opps = <&cci_opp_533>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-897000000 {
++			opp-hz = /bits/ 64 <897000000>;
++			opp-microvolt = <1000000 1000000 1200000>;
++			required-opps = <&cci_opp_611>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1014000000 {
++			opp-hz = /bits/ 64 <1014000000>;
++			opp-microvolt = <1040000 1040000 1200000>;
++			required-opps = <&cci_opp_676>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1118000000 {
++			opp-hz = /bits/ 64 <1118000000>;
++			opp-microvolt = <1070000 1070000 1200000>;
++			required-opps = <&cci_opp_754>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1222000000 {
++			opp-hz = /bits/ 64 <1222000000>;
++			opp-microvolt = <1120000 1120000 1200000>;
++			required-opps = <&cci_opp_819>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1274000000 {
++			opp-hz = /bits/ 64 <1274000000>;
++			opp-microvolt = <1140000 1140000 1200000>;
++			required-opps = <&cci_opp_845>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1339000000 {
++			opp-hz = /bits/ 64 <1339000000>;
++			opp-microvolt = <1160000 1160000 1200000>;
++			required-opps = <&cci_opp_884>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1391000000 {
++			opp-hz = /bits/ 64 <1391000000>;
++			opp-microvolt = <1180000 1180000 1200000>;
++			required-opps = <&cci_opp_910>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1443000000 {
++			opp-hz = /bits/ 64 <1443000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			required-opps = <&cci_opp_936>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1495000000 {
++			opp-hz = /bits/ 64 <1495000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			required-opps = <&cci_opp_975>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1547000000 {
++			opp-hz = /bits/ 64 <1547000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			required-opps = <&cci_opp_988>;
++			clock-latency-ns = <100000>;
++		};
++	};
++
++	l_dvfs_opp: opp-table-cluster1 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp-325000000 {
++			opp-hz = /bits/ 64 <325000000>;
++			opp-microvolt = <840000 840000 1200000>;
++			required-opps = <&cci_opp_234>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-468000000 {
++			opp-hz = /bits/ 64 <468000000>;
++			opp-microvolt = <860000 860000 1200000>;
++			required-opps = <&cci_opp_234>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-650000000 {
++			opp-hz = /bits/ 64 <650000000>;
++			opp-microvolt = <860000 860000 1200000>;
++			required-opps = <&cci_opp_325>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-832000000 {
++			opp-hz = /bits/ 64 <832000000>;
++			opp-microvolt = <900000 900000 1200000>;
++			required-opps = <&cci_opp_416>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-962000000 {
++			opp-hz = /bits/ 64 <962000000>;
++			opp-microvolt = <940000 940000 1200000>;
++			required-opps = <&cci_opp_481>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1092000000 {
++			opp-hz = /bits/ 64 <1092000000>;
++			opp-microvolt = <970000 970000 1200000>;
++			required-opps = <&cci_opp_533>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1209000000 {
++			opp-hz = /bits/ 64 <1209000000>;
++			opp-microvolt = <1000000 1000000 1200000>;
++			required-opps = <&cci_opp_611>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1352000000 {
++			opp-hz = /bits/ 64 <1352000000>;
++			opp-microvolt = <1040000 1040000 1200000>;
++			required-opps = <&cci_opp_676>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1495000000 {
++			opp-hz = /bits/ 64 <1495000000>;
++			opp-microvolt = <1070000 1070000 1200000>;
++			required-opps = <&cci_opp_754>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1625000000 {
++			opp-hz = /bits/ 64 <1625000000>;
++			opp-microvolt = <1110000 1110000 1200000>;
++			required-opps = <&cci_opp_819>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1703000000 {
++			opp-hz = /bits/ 64 <1703000000>;
++			opp-microvolt = <1130000 1130000 1200000>;
++			required-opps = <&cci_opp_845>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1755000000 {
++			opp-hz = /bits/ 64 <1755000000>;
++			opp-microvolt = <1160000 1160000 1200000>;
++			required-opps = <&cci_opp_884>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1820000000 {
++			opp-hz = /bits/ 64 <1820000000>;
++			opp-microvolt = <1170000 1170000 1200000>;
++			required-opps = <&cci_opp_910>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1885000000 {
++			opp-hz = /bits/ 64 <1885000000>;
++			opp-microvolt = <1190000 1190000 1200000>;
++			required-opps = <&cci_opp_936>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1950000000 {
++			opp-hz = /bits/ 64 <1950000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			required-opps = <&cci_opp_975>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2002000000 {
++			opp-hz = /bits/ 64 <2002000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			required-opps = <&cci_opp_988>;
++			clock-latency-ns = <100000>;
++		};
++	};
++
++	cci_dvfs_opp: opp-table-cci {
++		compatible = "operating-points-v2";
++
++		cci_opp_234: opp-234000000 {
++			opp-hz = /bits/ 64 <234000000>;
++			opp-microvolt = <860000 860000 1200000>;
++		};
++
++		cci_opp_325: opp-325000000 {
++			opp-hz = /bits/ 64 <325000000>;
++			opp-microvolt = <890000 890000 1200000>;
++		};
++
++		cci_opp_416: opp-416000000 {
++			opp-hz = /bits/ 64 <416000000>;
++			opp-microvolt = <910000 910000 1200000>;
++		};
++
++		cci_opp_481: opp-481000000 {
++			opp-hz = /bits/ 64 <481000000>;
++			opp-microvolt = <940000 940000 1200000>;
++		};
++
++		cci_opp_533: opp-533000000 {
++			opp-hz = /bits/ 64 <533000000>;
++			opp-microvolt = <970000 970000 1200000>;
++		};
++
++		cci_opp_611: opp-611000000 {
++			opp-hz = /bits/ 64 <611000000>;
++			opp-microvolt = <1020000 1020000 1200000>;
++		};
++
++		cci_opp_676: opp-676000000 {
++			opp-hz = /bits/ 64 <676000000>;
++			opp-microvolt = <1060000 1060000 1200000>;
++		};
++
++		cci_opp_754: opp-754000000 {
++			opp-hz = /bits/ 64 <754000000>;
++			opp-microvolt = <1100000 1100000 1200000>;
++		};
++
++		cci_opp_819: opp-819000000 {
++			opp-hz = /bits/ 64 <819000000>;
++			opp-microvolt = <1140000 1140000 1200000>;
++		};
++
++		cci_opp_845: opp-845000000 {
++			opp-hz = /bits/ 64 <845000000>;
++			opp-microvolt = <1150000 1150000 1200000>;
++		};
++
++		cci_opp_884: opp-884000000 {
++			opp-hz = /bits/ 64 <884000000>;
++			opp-microvolt = <1170000 1170000 1200000>;
++		};
++
++		cci_opp_910: opp-910000000 {
++			opp-hz = /bits/ 64 <910000000>;
++			opp-microvolt = <1190000 1190000 1200000>;
++		};
++
++		cci_opp_936: opp-936000000 {
++			opp-hz = /bits/ 64 <936000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++		};
++
++		cci_opp_975: opp-975000000 {
++			opp-hz = /bits/ 64 <975000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++		};
++
++		cci_opp_988: opp-988000000 {
++			opp-hz = /bits/ 64 <988000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++		};
++	};
++};
++
++/* The legacy direct-address driver with writable voltages, in place of dlg,da9214. */
++&da9214 {
++	compatible = "dlg,da9214-legacy";
++	reg = <0x68>, <0x69>;
++	reg-names = "primary", "page2";
++
++	regulators {
++		vproc1: BUCKA {
++			regulator-name = "vproc1";
++			regulator-min-microvolt = <770000>;
++			regulator-max-microvolt = <1200000>;
++			regulator-coupled-with = <&vsram_l>;
++			regulator-coupled-max-spread = <430000>;
++		};
++
++		/* For the A72 pair; nothing here consumes it yet. */
++		vproc2: BUCKB {
++			regulator-name = "vproc-big";
++			regulator-min-microvolt = <800000>;
++			regulator-max-microvolt = <1200000>;
++		};
++	};
++};
++
++/*
++ * capacity-dmips-mhz: the A53 against the A72's 1024, as on MT8173. The
++ * energy model's dynamic-power-coefficient is still to be measured
++ * (experiments/2026-11-08-mt6797-a53-dvfs); without it cpufreq-dt registers no
++ * energy model.
++ */
++
++&cpu0 {
++	operating-points-v2 = <&ll_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu1 {
++	operating-points-v2 = <&ll_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu2 {
++	operating-points-v2 = <&ll_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu3 {
++	operating-points-v2 = <&ll_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu4 {
++	operating-points-v2 = <&l_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu5 {
++	operating-points-v2 = <&l_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu6 {
++	operating-points-v2 = <&l_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
++
++&cpu7 {
++	operating-points-v2 = <&l_dvfs_opp>;
++	cpu-supply = <&vproc1>;
++	capacity-dmips-mhz = <740>;
++};
+-- 
+2.43.0
+

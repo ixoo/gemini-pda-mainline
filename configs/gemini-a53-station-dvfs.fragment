@@ -1,0 +1,19 @@
+# A53 voltage scaling on the station (experiments/2026-11-08-mt6797-a53-dvfs),
+# with the mt6797-gemini-pda-station-dvfs device tree. The regulators, clock,
+# cpufreq and CCI drivers are modules, so nothing sets a voltage until they
+# load. The coupler that keeps VSRAM_L above VPROC1 has to be built in, as
+# regulator couplers register before any regulator.
+CONFIG_REGULATOR_DA9213_LEGACY=m
+CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER=y
+CONFIG_REGULATOR_DA9213_LEGACY_WRITABLE=y
+CONFIG_REGULATOR_MT6797_VSRAM=m
+CONFIG_MTK_MT6797_REGULATOR_COUPLER=y
+CONFIG_PM_DEVFREQ=y
+CONFIG_DEVFREQ_GOV_PASSIVE=y
+CONFIG_ARM_MEDIATEK_CCI_DEVFREQ=m
+CONFIG_ENERGY_MODEL=y
+# The device test starts each policy where it is and steps it by hand, so the
+# userspace governor is the default here; the station init selects schedutil
+# when it loads these modules at boot.
+# CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL is not set
+CONFIG_CPU_FREQ_DEFAULT_GOV_USERSPACE=y

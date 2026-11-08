@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:30:02 -0500
+Subject: [PATCH] dt-bindings: clock: mediatek: add the MT6797 CCI PLL index
+
+The MT6797 MCUMIXED clock controller also provides the CCI PLL, ARMPLL2.
+Give it index 2, after the two Cortex-A53 cluster PLLs.
+---
+ include/dt-bindings/clock/mediatek,mt6797-mcusys.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/dt-bindings/clock/mediatek,mt6797-mcusys.h b/include/dt-bindings/clock/mediatek,mt6797-mcusys.h
+index ebfa93b8b..6ed14500f 100644
+--- a/include/dt-bindings/clock/mediatek,mt6797-mcusys.h
++++ b/include/dt-bindings/clock/mediatek,mt6797-mcusys.h
+@@ -4,5 +4,6 @@
+ 
+ #define MT6797_CLK_MCU_LL	0	/* CPU0-3 */
+ #define MT6797_CLK_MCU_L	1	/* CPU4-7 */
++#define MT6797_CLK_MCU_CCI	2
+ 
+ #endif
+-- 
+2.43.0
+

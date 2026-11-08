@@ -1,0 +1,136 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:30:01 -0500
+Subject: [PATCH] clk: mediatek: mt6797-mcusys: let the clusters reach the
+ vendor table tops
+
+The driver capped each cluster at the rate it found at probe, because it
+did not know the voltage. With the cluster rail described in the device
+tree, the OPP core raises the voltage before a frequency increase and
+lowers it after a decrease, so the clock no longer needs to know it.
+
+Limit each cluster to the top of the vendor MT6797 table instead: 1547 MHz
+for CPU0-3 and 2002 MHz for CPU4-7, both at the vendor's highest
+voltage.
+
+The post-divider change, which runs the cluster from MAINPLL (1092 MHz)
+for 2 us, was refused for a cluster that started below 1092 MHz. Refuse
+it instead when both the old and the new rate are below 1092 MHz. The rail
+then always supports at least one end of the change, so it supports
+MAINPLL.
+---
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 46 ++++++++++++++++--------
+ 1 file changed, 31 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-mcusys.c b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+index 06779342d..a345a1006 100644
+--- a/drivers/clk/mediatek/clk-mt6797-mcusys.c
++++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+@@ -17,9 +17,11 @@
+  * post-divider change moves the cluster to MAINPLL (1092 MHz) for the 2 us the
+  * PLL takes, as the vendor does.
+  *
+- * This driver does not control the cluster voltage. It never raises a cluster
+- * above the rate it found at probe, so every rate it sets is at or below one
+- * the firmware already runs at the present voltage.
++ * This driver does not control the voltage. Each clock is limited to the top
++ * of the vendor table for this SoC; a consumer raises the shared rail first,
++ * as the OPP core does. A post-divider change runs the clock at MAINPLL for
++ * 2 us, so it is refused unless the old or the new rate is at least MAINPLL's,
++ * which the rail then already supports.
+  */
+ 
+ #include <linux/bitfield.h>
+@@ -114,6 +116,7 @@ struct mt6797_mcu_pll {
+ 	unsigned int id;
+ 	unsigned int ckdiv_shift;
+ 	unsigned long boot_rate;
++	unsigned long max_rate;
+ 	unsigned long min_rate;
+ 	struct mt6797_mcu_setting cur;
+ 	unsigned int last_poll;
+@@ -158,6 +161,12 @@ static const u32 mt6797_mcu_sync_dcm_sel[MCU_NUM_PLLS] = {
+ 	[MT6797_CLK_MCU_L] = SYNC_DCM_MP1_DIV_SEL,
+ };
+ 
++/* The top of the vendor MT6797 tables, at its highest voltage. */
++static const unsigned long mt6797_mcu_max_rate[MCU_NUM_PLLS] = {
++	[MT6797_CLK_MCU_LL] = 1547000000,
++	[MT6797_CLK_MCU_L] = 2002000000,
++};
++
+ /*
+  * MCUMIXED reads can return zero right after a write on this SoC; the
+  * vendor reads every word twice and repeats a zero result.
+@@ -428,10 +437,6 @@ static int mt6797_mcu_write_posdiv(struct mt6797_mcu_pll *pll,
+ 	u32 con1;
+ 	int ret, err;
+ 
+-	/* The bridge must not run the cluster faster than the firmware did. */
+-	if (pll->boot_rate < MCU_MAINPLL_RATE)
+-		return -ERANGE;
+-
+ 	local_irq_save(flags);
+ 	mt6797_mcu_write_misc(mcu, 3);
+ 	ret = mt6797_mcu_write_mux(pll, MCU_MUX_MAINPLL);
+@@ -619,7 +624,7 @@ static int mt6797_mcu_determine_rate(struct clk_hw *hw,
+ 	unsigned long rate;
+ 
+ 	rate = clamp(req->rate, max(req->min_rate, pll->min_rate),
+-		     min(req->max_rate, pll->boot_rate));
++		     min(req->max_rate, pll->max_rate));
+ 	if (mt6797_mcu_setting_for(rate, &s) ||
+ 	    mt6797_mcu_rate(&s) < pll->min_rate)
+ 		return -EINVAL;
+@@ -636,7 +641,7 @@ static int mt6797_mcu_set_rate(struct clk_hw *hw, unsigned long rate,
+ 	struct mt6797_mcu_change c = { .pll = pll };
+ 	int ret;
+ 
+-	if (rate > pll->boot_rate)
++	if (rate > pll->max_rate)
+ 		return -EINVAL;
+ 	ret = mt6797_mcu_setting_for(rate, &c.target);
+ 	if (ret)
+@@ -645,7 +650,16 @@ static int mt6797_mcu_set_rate(struct clk_hw *hw, unsigned long rate,
+ 		return -EINVAL;
+ 
+ 	mutex_lock(&mcu->lock);
+-	ret = mt6797_mcu_locked(mcu, mt6797_mcu_change, &c);
++	/*
++	 * The post-divider bridge runs the clock at MAINPLL; the rail is only
++	 * known to support that if one end of the change is at least as fast.
++	 */
++	if (c.target.posdiv != pll->cur.posdiv &&
++	    max(mt6797_mcu_rate(&pll->cur), mt6797_mcu_rate(&c.target)) <
++	    MCU_MAINPLL_RATE)
++		ret = -ERANGE;
++	else
++		ret = mt6797_mcu_locked(mcu, mt6797_mcu_change, &c);
+ 	mutex_unlock(&mcu->lock);
+ 
+ 	return ret;
+@@ -861,14 +875,16 @@ static int mt6797_mcu_probe(struct platform_device *pdev)
+ 
+ 		pll->cur = st.boot[id];
+ 		pll->boot_rate = mt6797_mcu_rate(&pll->cur);
+-		if (pll->boot_rate < pll->min_rate)
++		pll->max_rate = mt6797_mcu_max_rate[id];
++		if (pll->boot_rate < pll->min_rate ||
++		    pll->boot_rate > pll->max_rate)
+ 			return dev_err_probe(dev, -EOPNOTSUPP,
+-					     "PLL%u starts below its sync DCM floor\n",
+-					     id);
++					     "PLL%u starts outside %lu-%lu Hz\n",
++					     id, pll->min_rate, pll->max_rate);
+ 		pll->hw.init = &init;
+-		dev_info(dev, "PLL%u at %lu Hz (PCW 0x%06x /%u /%u), ceiling\n",
++		dev_info(dev, "PLL%u at %lu Hz (PCW 0x%06x /%u /%u), up to %lu Hz\n",
+ 			 id, pll->boot_rate, pll->cur.pcw, pll->cur.posdiv,
+-			 pll->cur.ckdiv);
++			 pll->cur.ckdiv, pll->max_rate);
+ 
+ 		ret = devm_clk_hw_register(dev, &pll->hw);
+ 		if (ret)
+-- 
+2.43.0
+
