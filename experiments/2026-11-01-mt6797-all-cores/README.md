@@ -739,6 +739,48 @@ stuck in the firmware, with only the owner's force-off to recover.
 | CPU8 hangs again with `cluster prepared again` logged | The board sequence is not what the firmware waits for | Keep logs, no repeat; read the firmware's `CPU_ON` path |
 | The second cycle fails where the first passed | State left by the first cycle | Keep logs, no repeat |
 
+### Step 3: idle cost (proposed, not admitted, not run)
+
+How much battery do two idle A72s cost, against the cluster down? The MT6351 gauge reports
+battery current (`current_now`, µA) and a coulomb count (`charge_counter`, µAh), but only
+the battery's side: on USB the charger carries the load and the system current is not
+seen. So the measurement runs unplugged, and [`idle-cost.sh`](idle-cost.sh) runs on the
+device by itself while USB SSH is gone.
+
+It waits up to 5 min for USB power to go, then measures three idle phases: A72s online,
+both down (through step 2's path), online again. Each phase lasts 8 min, skips its first
+60 s, and samples `current_now` every 10 s, with the coulomb count at both ends. The
+repeat of the online phase shows drift, so a difference smaller than the drift between
+the two online phases is no result. Logic checked in the dev VM with fake sysfs: the full
+run, and the stop when external power returns. Not run on the device.
+
+What this measures: the cost of two A72s idling in WFI with the cluster powered, against
+the cluster down **with BUCKB still on**. So it understates what the vendor off path saves,
+because that also turns BUCKB off. That is a separate write for later. With no cpuidle,
+WFI is the A72s' only idle state.
+
+Candidate, no flash: boot2's station-work-87 image (`be1dbf5a...`) and `mt6797-a72.ko`
+`58a0a98f...`, as step 2 attempt 2, on a fresh boot. cpufreq stays unloaded and console
+blanking off, so the A53s stay where firmware put them and stay online. Wi-Fi, the display
+and everything else stay as they are in all three phases.
+
+Writes: as step 2 attempt 2, for one cluster cycle. Nothing new.
+
+Procedure: insmod, `online 0-9`, start `nohup ./idle-cost.sh 480 &`, then the owner
+unplugs USB and leaves the device untouched for about 30 min. When the log says `end`, or
+after 35 min, the owner plugs USB back in and the log is read.
+
+Stop rules, in the script: external power returning, `online` not as expected after a
+switch, an `echo` failing, the SoC at 75 C. A switch that hangs cannot be caught by the
+script; the owner stays within reach, and with no SSH after 35 min plugged back in, the
+owner forces power off.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| online and online2 agree, down differs by more than their gap | The idle cost of the A72s with the rail on | Decide whether the BUCKB-off path is worth a write list |
+| No clear difference | Below what the gauge resolves here | Longer phases, or accept it as small |
+| A stop | As the reason says | Read the log, no retry |
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
