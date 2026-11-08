@@ -151,8 +151,9 @@ Each program powers exactly one core, CPU0, or CPU4 in the `_by_mp1` file.
 The vendor picks the file by `cpu / 4` of the one online CPU, and requires
 `cpu % 4 == 0` (§5). `CPU_EXT_BUCK_ISO` is the word the
 [A72 module](mt6797-cpu-clusters.md#33-a72-external-preparation-and-mp2-control)
-clears before CPU8 returns, so any SPM sleep leaves the A72 cluster needing
-that preparation again. `INFRA_TOPAXI_PROTECTEN` is also written by mainline
+clears before CPU8 returns, so a sleep that powers the CPU down leaves the A72
+cluster needing that preparation again. With flag bit 0 (CPU stays powered)
+the sleep programs never write it. `INFRA_TOPAXI_PROTECTEN` is also written by mainline
 SCPSYS.
 
 **What the flags turn off** (`sleep_def_mt6797.h`, `SPM_SW_FLAG`): bit 0
@@ -162,9 +163,9 @@ off, bit 7 modem-infra power-down, bit 16 SYSRAM sleep, bit 18 the
 "segment 2" variant, bit 19 the vendor's thermal-check bypass. By default the
 programs gate the 26 MHz request (`SRCCLKENA`), put DRAM in self-refresh,
 power the DRAM PHY down, lower VCORE through the PMIC wrapper and drop the
-SoC's resource requests. The suspend program also powers infra down. What a
-program does beyond the registers listed cannot be read without a full
-decoder.
+SoC's resource requests. The suspend program also powers infra down. The
+full behaviour, including which flags each program actually tests, is in
+[MT6797 SPM programs](mt6797-spm-programs.md#35-inputs-that-change-the-path).
 
 **Event vectors:** each non-zero vector packs a program address in bits
 31:16, an "immediate" bit 7, a "resume" bit 6 and an event number in bits
@@ -172,9 +173,11 @@ decoder.
 `PCM_EVENT_VECTOR0`-`15` (`0x10006040`-`0x1000607c`); the program enables
 them itself (`PCM_EVENT_VECTOR_EN`, `0x080`).
 
-**The decoder.** The public PCM tools decode NOP, logic with immediate,
-loads, stores, jumps, calls and returns; much of each MT6797 program is
-outside that subset. Writing a new program is still not feasible.
+**The decoder.** The public PCM tools decode only part of the instruction
+set. A later pass decoded every instruction of all nine programs. The
+instruction set, each program's behaviour step by step, and a feasibility
+judgement for a project-written program are in
+[MT6797 SPM programs](mt6797-spm-programs.md).
 
 ## 4. How the vendor kernel loads and runs a program
 

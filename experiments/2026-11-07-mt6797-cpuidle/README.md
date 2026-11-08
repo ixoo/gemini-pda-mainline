@@ -923,6 +923,44 @@ hand. Nothing persists across that except what is already on storage, so
 the RAM root keeps the cards safe; the S0 values and this list are the
 starting point for the analysis.
 
+## The SPM programs decoded (2026-11-08)
+
+The owner asked for the programs themselves to be understood before deciding
+whether the project could write its own. This pass decoded all nine
+`pcm_*.bin` files statically in the RE VM; no device was touched. The
+instruction set and each program's behaviour, with observed and inferred
+kept apart, are in [MT6797 SPM programs](../../docs/hardware/mt6797-spm-programs.md).
+The decoder and the listings stay private.
+
+- **Instruction set:** every one of the 12,542 instructions decodes into
+  thirteen classes. These are register and immediate ALU operations, move and
+  load (absolute and register-indirect), three store forms, jumps and calls
+  (plain and conditional) with an 11-bit target and a delay slot, and return.
+  Still unsettled: the exact predicates of three compare opcodes, one
+  opcode used three times in the VCORE-DVFS programs, and the conditional
+  wait modes of `r14`.
+- **How the sleep works:** the programs are event-driven resource arbiters.
+  After a fixed entry (bus-master pause, CPU and cluster power-down, external
+  buck off over I2C6, ARM PLLs off), the SPM hardware raises events as the
+  merged resource requests drop. The PCM handles six wake/sleep pairs (26
+  MHz, infra, APSRC, VRF18, DDREN, NFC clock buffer). Suspend's 26 MHz sleep
+  handler also powers infra down and releases the 26 MHz clock buffer, which
+  is what lets VCORE fall to its PMIC sleep voltage. Deep idle keeps 26 MHz
+  and infra. SODI only arbitrates DRAM.
+- **S1's "CPU stays powered" mode:** `pcm_suspend.bin` tests flag bit 0 at
+  four points and skips the CPU, cluster and MCUSYS power steps and the
+  `CPU_EXT_BUCK_ISO` writes. The path exists in the shipped code. The decode
+  also found writes that S1's list lacked: the I2C6 soft reset, the external
+  buck write when flag bit 9 is clear, the `PASR_DPD_3` thermal-period
+  compare, the GCE, AUXADC and I2C_APPM gates, and `ddrphycfg_sel`. They
+  went to the S1 session, which took them in `8958275a`.
+- **A project-written program:** a reduced one (CPU, 26 MHz, infra and the
+  PMIC sleep voltage, without DRAM self-refresh) is feasible as original
+  work. A full replacement would have to copy the vendor's DRAM
+  self-refresh and PHY sequence and its timings as opaque constants, so it
+  would not be clean-room. The S1 measurement should decide whether the
+  reduced program is worth writing.
+
 ## Observations
 
 ### Attempt 1 (2026-11-07)
