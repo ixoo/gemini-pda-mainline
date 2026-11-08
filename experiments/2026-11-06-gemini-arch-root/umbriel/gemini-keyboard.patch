@@ -1,0 +1,60 @@
+Umbriel for the Gemini PDA keyboard (gemini-pda-mainline, MIT).
+
+- Load a complete keymap file named by UMBRIEL_XKB_KEYMAP_FILE. A keymap built
+  from layout and variant names keeps only one group per layout, so the two-group
+  Gemini layouts (ru, jp, ara, cz, sk, gr) lose their second group.
+- Accept Mod5 in keybinds: Fn is xkb level 3 (Mod5), and the media, volume and
+  brightness keysyms come from Fn plus a letter. Binds match modifiers exactly.
+
+diff --git a/src/config/keybind_parse.cpp b/src/config/keybind_parse.cpp
+index 7d1ae74..2685b2d 100644
+--- a/src/config/keybind_parse.cpp
++++ b/src/config/keybind_parse.cpp
+@@ -60,6 +60,9 @@ namespace umbriel {
+         output.modifiers |= WLR_MODIFIER_ALT;
+       } else if (modifier == "super" || modifier == "logo" || modifier == "win") {
+         output.modifiers |= WLR_MODIFIER_LOGO;
++      } else if (modifier == "mod5") {
++        // Level 3: a function layer such as the Gemini PDA's Fn key.
++        output.modifiers |= WLR_MODIFIER_MOD5;
+       } else {
+         return false;
+       }
+diff --git a/src/input/keyboard.cpp b/src/input/keyboard.cpp
+index 9547301..2c44cc3 100644
+--- a/src/input/keyboard.cpp
++++ b/src/input/keyboard.cpp
+@@ -17,6 +17,8 @@
+ #include "wlr.h"
+ 
+ #include <algorithm>
++#include <cstdio>
++#include <cstdlib>
+ #include <optional>
+ 
+ namespace umbriel {
+@@ -82,8 +84,22 @@ namespace umbriel {
+         .variant = names.variant.empty() ? nullptr : names.variant.c_str(),
+         .options = names.options.empty() ? nullptr : names.options.c_str(),
+     };
+-    xkb_keymap* keymap =
+-        context == nullptr ? nullptr : xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
++    // A complete keymap file, when UMBRIEL_XKB_KEYMAP_FILE names one, takes the place of the names:
++    // a keymap built from names keeps only one group per layout.
++    xkb_keymap* keymap = nullptr;
++    const char* keymapFile = std::getenv("UMBRIEL_XKB_KEYMAP_FILE");
++    if (context != nullptr && keymapFile != nullptr && keymapFile[0] != '\0') {
++      if (FILE* file = std::fopen(keymapFile, "r"); file != nullptr) {
++        keymap = xkb_keymap_new_from_file(context, file, XKB_KEYMAP_FORMAT_TEXT_V1, XKB_KEYMAP_COMPILE_NO_FLAGS);
++        std::fclose(file);
++      }
++      if (keymap == nullptr) {
++        wlr_log(WLR_ERROR, "failed to load keymap file %s; using the configured layout", keymapFile);
++      }
++    }
++    if (keymap == nullptr && context != nullptr) {
++      keymap = xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
++    }
+     if (keymap != nullptr) {
+       // Restoring lock state emits a synthetic modifiers event. It must not
+       // select an inactive keyboard as the user's current input source.

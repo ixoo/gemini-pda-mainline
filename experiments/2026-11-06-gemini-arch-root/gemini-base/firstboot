@@ -1,15 +1,16 @@
 #!/bin/bash
 # SPDX-License-Identifier: MIT
 # First boot, on the console: the keyboard layout, the package keyring, the time zone, one user in wheel
-# with a password, the Wi-Fi country and a first join, then the autologin session.
+# with a password and the Wi-Fi country, then the autologin session. Networks are joined
+# later from Noctalia (owner, 2026-11-08), through iwd.
 # The stock systemd-firstboot.service is masked, since it asks on the serial port.
 # A marker, not ConditionFirstBoot, so an interrupted run asks again next boot.
 set -u
 state=/var/lib/gemini
 echo "Gemini first boot."
 # The keyboard layout first, so everything typed after it, passwords included, types
-# the same here, on the console later and in niri: one of Gemian's Gemini layouts,
-# loaded on this console at once and kept for the console and for niri. Two-group
+# the same here, on the console later and in Umbriel: one of Gemian's Gemini layouts,
+# loaded on this console at once and kept for the console and for Umbriel. Two-group
 # layouts switch groups with both Shift keys together.
 layouts=/usr/share/gemini/xkb/layouts.tsv
 echo "Keyboard layouts:"
@@ -22,8 +23,6 @@ while :; do
 done
 loadkeys -u "gemini-$layout" >/dev/null || echo "The console keymap did not load; it stays the Gemini US map."
 echo "KEYMAP=gemini-$layout" >/etc/vconsole.conf
-printf 'input {\n    keyboard {\n        xkb {\n            file "/usr/share/gemini/xkb/%s.xkb"\n        }\n    }\n}\n' \
-    "$layout" >/etc/niri/gemini-keyboard.kdl
 pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
     echo "pacman-key failed; run it again later: pacman-key --init; pacman-key --populate archlinuxarm"
 # Asks only while /etc/localtime is unset; the list of zones is paged.
@@ -36,6 +35,7 @@ while :; do
 done
 useradd -m -G wheel "$user"
 until passwd "$user"; do :; done
+# The country stays here: nothing transmits until one is set, and Noctalia doesn't set it.
 read -r -p "Wi-Fi country, two letters (empty keeps Wi-Fi off): " country
 country=$(echo "$country" | tr '[:lower:]' '[:upper:]')
 if [[ "$country" =~ ^[A-Z][A-Z]$ ]]; then
@@ -46,17 +46,14 @@ if [[ "$country" =~ ^[A-Z][A-Z]$ ]]; then
     # Bluetooth and FM skipped at boot for want of the connectivity firmware; load them now.
     systemctl restart gemini-hw@bluetooth.service gemini-hw@fm.service ||
         echo "Bluetooth or FM did not load; see: journalctl -u gemini-hw@bluetooth -u gemini-hw@fm"
-    # iwd recreates the interface, so its name isn't always wlan0; ask iwd for it.
-    dev=$(iwctl station list 2>/dev/null | awk '$1 ~ /^wlan/ { print $1; exit }')
-    echo "Join a network: station ${dev:-DEVICE} scan, station ${dev:-DEVICE} get-networks,"
-    echo "station ${dev:-DEVICE} connect NAME (device list shows the device). Type quit when done."
-    iwctl
+    echo "Join a network from Noctalia's bar once the session starts."
 fi
 systemctl enable "gemini-session@$user.service"
 systemctl set-default graphical.target
 touch "$state/firstboot-done"
-echo "Done. The session starts now. Fn types the symbols printed on the keys. niri's"
-echo "shortcuts use Ctrl+Alt: Ctrl+Alt+Enter opens a terminal, Ctrl+Alt+D a launcher,"
-echo "Ctrl+Alt+Shift+/ lists the rest, Ctrl+Alt+Shift+E leaves the session,"
-echo "Ctrl+Alt+Tab goes to a text console;"
+echo "Done. The session starts now. Fn types the symbols printed on the keys. Umbriel's"
+echo "shortcuts use Ctrl+Alt: Ctrl+Alt+Space or the side key opens the launcher,"
+echo "Ctrl+Alt+T a terminal, Ctrl+Alt+Q closes a window, Ctrl+Alt+N picks a Wi-Fi network,"
+echo "Ctrl+Alt+I lists the rest, Ctrl+Alt+Backspace leaves the session, Ctrl+Alt+Tab goes"
+echo "to a text console; with Shift, use the right Shift key;"
 echo "on a console, Alt+Left/Right or Ctrl+Alt+1 to 0 switch consoles."

@@ -1262,6 +1262,135 @@ and drops `70-gemini-touch.rules`, whose matrix would be wrong for native coordi
 image built with 0647–0650. With the older kernel (`station-work-89`), card-16 (`gemini-base`
 17) is the matching root. Neither pairing has been built or booted yet.
 
+### Umbriel and Noctalia instead of niri and Waybar (owner, 2026-11-08)
+
+The owner asked to "Remove Waybar", "replace Niri with Umbriel and Noctalia", and said first-time
+setup "doesn't need to configure wifi": iwd runs, and the user joins networks from Noctalia.
+
+**The two projects:**
+
+- [Umbriel](https://github.com/noctalia-dev/umbriel) is the Noctalia project's own Wayland
+  compositor. It is built on wlroots 0.20, with a hard fork of SceneFX in-tree, and needs C++23.
+- Noctalia 5 is a native C++ shell, no longer Quickshell-based, and supports Umbriel directly.
+
+**Packaging:**
+
+- Arch Linux ARM ships `noctalia` 5.4.1 for aarch64, and every Umbriel dependency, including
+  `wlroots0.20`.
+- No repository or release ships Umbriel itself. The AUR has only `umbriel-git` and a
+  placeholder `umbriel`.
+- `umbriel/PKGBUILD` therefore pins upstream commit `94ab5961` by its archive checksum. It
+  follows the AUR recipe, without `xdg-desktop-portal-umbriel`, which only covers screen sharing
+  and input capture, and adds one small patch for the keyboard (below).
+- `build-card.sh` builds it in the card's chroot as `nobody`, installs it, then removes the build
+  tools that nothing needs any more.
+
+**Rotation:**
+
+- niri applied the kernel's panel orientation (Left Side Up, from 0649/0650) by itself. Umbriel
+  does not: neither its source nor wlroots reads the property.
+- `/etc/xdg/umbriel/config.toml` therefore sets `transform = "90"` on `DSI-1`. That is the same
+  wl_output transform niri derived from Left Side Up.
+- wlroots maps touch onto the output's box without rotating it, unlike niri.
+- With 0647/0648, touch reports the panel's portrait coordinates. Left Side Up puts the panel's
+  left edge at the top, so the screen point is (1 − panel y, panel x), in normalised coordinates.
+- `70-gemini-touch.rules` returns with matrix `0 -1 1 1 0 0`. This is derived, not yet seen on
+  the device. It agrees with card-14: the old driver's landscape coordinates were exactly that
+  point, which is why niri, rotating them again, needed a matrix.
+
+**Wi-Fi:**
+
+- First boot no longer runs `iwctl`; iwd is enabled at boot.
+- Noctalia picks iwd over D-Bus when neither NetworkManager nor wpa_supplicant is present.
+  iwd's D-Bus policy lets `wheel` use it, and the first user is in `wheel`.
+- The country question stays: nothing transmits until a country is set, Noctalia doesn't set
+  one, and Bluetooth and FM wait for it too.
+
+**Keyboard:**
+
+- Umbriel takes xkb layout names, not a keymap file.
+- libxkbcommon 1.13 builds one group per named layout, whatever the rules. Through names, the
+  two-group Gemini layouts (ru, jp, ara, cz, sk, gr) failed to compile in the VM, even with
+  rules of gemini-base's own; the other 18 matched their keymap files.
+- `umbriel/keymap-file.patch` (about 15 lines) lets `UMBRIEL_XKB_KEYMAP_FILE` name a complete
+  keymap file instead.
+- `umbriel-session` takes the layout first boot wrote to `/etc/vconsole.conf` and loads
+  `/usr/share/gemini/xkb/LAYOUT.xkb`, the same file niri used.
+
+**Pairing:** this root, `gemini-base` 19, goes with `station-work-90`, which is composed from
+`37c50274` with 0647–0650.
+
+**Browser:** the owner asked for qutebrowser, so gemini-base depends on `qutebrowser` and
+`qt6-wayland`. With it the root uses 2.4 GB of the 3.9 GB partition. In the VM, QtWebEngine
+6.11.3 under Qt 6.12 rendered a test page offscreen, in software. Whether Chromium uses the Mali
+through Panfrost, or falls back to software, needs the device.
+
+#### Keybindings on the Gemini keyboard (owner, 2026-11-08)
+
+The owner asked that the Umbriel and Noctalia bindings "make sense on the gemini". What the
+keyboard has ([keyboard](../../docs/hardware/keyboard.md)):
+
+- **Modifiers:** Ctrl and Alt at the bottom left, and both Shift keys.
+- **Fn:** it is `KEY_LEFTMETA`, but the Gemini layouts make it xkb level 3 (Mod5), the symbol
+  layer. There is no usable Super key, and Umbriel's default `Mod` (Super) never fires.
+- **Missing keys:** there are no F-keys (Shift+Fn+1 to 0 types F1 to F10), and no plain - = /
+  ; keys.
+- **Fn-layer actions:** Fn plus a letter gives the media, volume, brightness and Print keysyms.
+- **PMIC keys:** Esc is the power key, and the outer side key sends `XF86Send`.
+
+Two Umbriel facts shape the bindings:
+
+- Binds match the key's unshifted symbol, and the modifiers exactly. Fn+T arrives as
+  `XF86AudioMute` with Mod5, so a plain `XF86AudioMute` bind never fires. `gemini-keyboard.patch`
+  lets a bind name `Mod5`.
+- The matrix has no diodes. Ctrl (row 4, column 6) and Alt (row 4, column 1) plus a key in
+  column 1 or 6 (2 7 9 0 W R D H K L C Left) form a rectangle that reads a phantom key until
+  patch 0385's rescan clears it.
+  - Left Shift shares Ctrl's column, so Ctrl+Alt+left Shift reads a phantom C.
+  - The bindings avoid those columns where they can, and use the right Shift.
+
+| Keys | Action |
+| --- | --- |
+| Ctrl+Alt+Space, or the side key | Noctalia launcher |
+| Ctrl+Alt+A / N / B | Control Center: home / Network / Bluetooth |
+| Ctrl+Alt+T or Ctrl+Alt+Enter | Terminal (foot) |
+| Ctrl+Alt+Q | Close the window |
+| Ctrl+Alt+Z | Window switcher |
+| Ctrl+Alt+O | Overview |
+| Ctrl+Alt+Backspace | Noctalia session menu (log out, reboot, power off) |
+| Ctrl+Alt+I | Umbriel's binding cheat sheet |
+| Ctrl+Alt+Tab | Text console on tty2 (Ctrl+Alt+1 or Alt+Left comes back) |
+| Ctrl+Alt+arrows | Focus; with the right Shift, move |
+| Ctrl+Alt+1 to 5 | Workspace; with the right Shift, move the window there |
+| Ctrl+Alt+Comma / Period | Take the window into the column on the left / right |
+| Ctrl+Alt+S / F / G / V | Cycle width / maximize / fullscreen / float |
+| Fn+Q / W / E | Play-pause / previous / next |
+| Fn+T, Fn+C / V | Mute, volume down / up |
+| Fn+B / N | Brightness down / up |
+| Fn+R | Screenshot of a region |
+| Alt+drag | Move a window with the pointer |
+
+**Backspace (owner: "the backspace key was mapped to delete" under sway):**
+
+- The kernel isn't the cause: the matrix maps the key to `KEY_BACKSPACE` (row 6, column 2).
+- The cause wasn't found in the xkb symbols either. Every shipped keymap, sway's included, gives
+  BackSpace plain, Delete with Shift and XF86Tools with Fn.
+- The console map gives Delete (DEL, the backward erase) plain and Remove with Shift.
+- So a plain press erases backward in every layer we ship, and the sway report stays unexplained.
+  A held Shift would give Delete.
+- `gemini-base` 19 makes Fn+Backspace give Delete as well, in the keymap files and on the
+  console; Shift+Backspace still does.
+- Owner check: `xkbcli interactive-evdev --keymap /usr/share/gemini/xkb/LAYOUT.xkb` on a console
+  shows the keysym of each press.
+
+**Owner checks on the device:**
+
+- Ctrl+Alt+Left, Ctrl+Alt+2 and the right-Shift moves read no phantom key.
+- The Fn bindings fire.
+- The side key opens the launcher at runtime. LK only reads it at boot.
+- Noctalia's volume and brightness actions do something. There is no PipeWire daemon (audio is
+  ALSA), and the backlight path is untested.
+
 ## Analysis
 
 Not started.

@@ -12,7 +12,8 @@
 # gemini-arch. The root is the tarball, with:
 #   - the kernel, linux-firmware and mkinitcpio packages removed, and ignored;
 #   - upgraded from the official repositories, with iwd, iw, wireless-regdb and sudo;
-#   - gemini-base built from ./gemini-base and installed, with its units enabled;
+#   - Umbriel built from ./umbriel's pinned commit, and gemini-base built from
+#     ./gemini-base, both installed, with gemini-base's units enabled;
 #   - root locked and the default alarm user removed; sshd masked;
 #   - the stock systemd-firstboot.service masked: it asks on /dev/console, which is
 #     the serial port here, and holds sysinit.target until answered (R1);
@@ -119,16 +120,40 @@ in_root pacman-key --gpgdir /run/pacman-gnupg --populate archlinuxarm >/dev/null
 in_root pacman --gpgdir /run/pacman-gnupg -Syu --needed --noconfirm --noprogressbar "${EXTRA[@]}" >"$work/pacman.log" 2>&1 ||
 	{ tail -20 "$work/pacman.log" >&2; echo "build-card: pacman failed" >&2; exit 1; }
 
+here=$(cd "$(dirname "$0")" && pwd)
+# Umbriel, gemini-base's compositor, from ./umbriel's pinned upstream commit: no repository
+# ships it. Built by makepkg as nobody on the image's disk, since the build is larger
+# than /run; its build tools go in as dependencies and leave again once nothing needs them.
+umbriel_makedeps=(base-devel meson ninja nlohmann-json pkgconf wayland-protocols)
+umbriel_deps=$(sed -n "/^depends=(/,/)/p" "$here/umbriel/PKGBUILD" | tr -d "()'" | sed 's/^depends=//')
+# shellcheck disable=SC2086 # the dependency list splits on purpose
+in_root pacman --gpgdir /run/pacman-gnupg -S --needed --asdeps --noconfirm --noprogressbar \
+	"${umbriel_makedeps[@]}" $umbriel_deps >>"$work/pacman.log" 2>&1 ||
+	{ tail -20 "$work/pacman.log" >&2; echo "build-card: Umbriel's dependencies failed" >&2; exit 1; }
+ubuild=$mnt/var/tmp/umbriel-build
+mkdir -p "$ubuild/src" "$ubuild/out"
+cp "$here"/umbriel/* "$ubuild/src/"
+chown -R 65534:65534 "$ubuild"
+chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/var/tmp/umbriel-build LANG=C \
+	PKGDEST=/var/tmp/umbriel-build/out sh -c 'cd /var/tmp/umbriel-build/src && makepkg --nodeps --noprogressbar' \
+	>"$work/umbriel-makepkg.log" 2>&1 ||
+	{ tail -30 "$work/umbriel-makepkg.log" >&2; echo "build-card: building Umbriel failed" >&2; exit 1; }
+umbriel_pkg=$(ls "$ubuild"/out/umbriel-*.pkg.tar.*)
+cp "$umbriel_pkg" "$out/"
+umbriel_sha=$(sha256sum "$umbriel_pkg" | cut -d' ' -f1)
+in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/var/tmp/umbriel-build/out/${umbriel_pkg##*/}" >>"$work/pacman.log" 2>&1 ||
+	{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing Umbriel failed" >&2; exit 1; }
+rm -rf "$ubuild"
+
 # gemini-base (step 3), built from this directory with the station's audio-start and
 # display-start staged beside it, by makepkg as nobody; fakeroot only for the build.
-here=$(cd "$(dirname "$0")" && pwd)
 station=$here/../2026-10-30-mainline-dev-station/initramfs
 build=$mnt/run/build
 mkdir -p "$build/src" "$build/out"
 cp "$here"/gemini-base/* "$station/audio-start" "$station/display-start" "$build/src/"
 chown -R 65534:65534 "$build"
 # gemini-base's makedepends: perl and kbd come with the tarball; xkeyboard-config stays,
-# since niri needs it too.
+# since the compositor needs it too.
 in_root pacman --gpgdir /run/pacman-gnupg -S --needed --noconfirm --noprogressbar fakeroot perl kbd xkeyboard-config >>"$work/pacman.log" 2>&1
 chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/run/build LANG=C \
 	PKGDEST=/run/build/out sh -c 'cd /run/build/src && makepkg --nodeps --noprogressbar' >"$work/makepkg.log" 2>&1 ||
@@ -138,8 +163,12 @@ cp "$base_pkg" "$out/"
 base_sha=$(sha256sum "$base_pkg" | cut -d' ' -f1)
 in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/run/build/out/${base_pkg##*/}" >>"$work/pacman.log" 2>&1 ||
 	{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing gemini-base failed" >&2; exit 1; }
-in_root pacman -Rns --noconfirm fakeroot >>"$work/pacman.log" 2>&1
+in_root pacman -Rns --noconfirm fakeroot >>"$work/pacman.log" 2>&1 || true
 rm -rf "$build"
+# The build tools that nothing installed needs now (Umbriel's and gemini-base's), even as
+# an optional dependency (base-devel is pacman's).
+mapfile -t orphans < <(in_root pacman -Qdttq || true)
+[ "${#orphans[@]}" -eq 0 ] || in_root pacman -Rns --noconfirm "${orphans[@]}" >>"$work/pacman.log" 2>&1
 in_root systemctl enable -q gemini-modules.service gemini-audio.service gemini-display.service \
 	gemini-wifi.service gemini-firstboot.service iwd.service systemd-pstore.service
 in_root systemctl set-default -q multi-user.target
@@ -218,6 +247,7 @@ cat >"$out/card.json" <<EOF
   "package_count": $count,
   "package_list_sha256": "$packages",
   "packages_added": "${EXTRA[*]}",
+  "umbriel_sha256": "$umbriel_sha",
   "gemini_base_sha256": "$base_sha",
   "systemd": "$systemd",
   "root_bytes_used": $used,

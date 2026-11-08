@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+# The touchscreen reports panel-native portrait coordinates (patches 0647/0648, with the
+# DT's inversion), and Umbriel (wlroots) maps them onto the landscape output without
+# rotating them. This turns them to the panel's Left Side Up orientation: screen x =
+# 1 - panel y, screen y = panel x. Derived from card-14's owner-confirmed rule; not yet
+# confirmed on the device.
+ACTION=="add|change", KERNEL=="event*", ATTRS{name}=="Novatek NT36772 touchscreen", ENV{LIBINPUT_CALIBRATION_MATRIX}="0 -1 1 1 0 0"

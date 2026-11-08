@@ -1,9 +1,0 @@
-// SPDX-License-Identifier: MIT
-// The keyboard layout: Gemian's Gemini US until first boot writes the owner's choice.
-input {
-    keyboard {
-        xkb {
-            file "/usr/share/gemini/xkb/us.xkb"
-        }
-    }
-}

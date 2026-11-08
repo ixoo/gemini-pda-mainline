@@ -1,0 +1,97 @@
+# SPDX-License-Identifier: MIT
+# The Gemini's Umbriel session, with the Noctalia shell (owner, 2026-11-08: "Remove
+# Waybar", "replace Niri with Umbriel and Noctalia"). Installed as
+# /etc/xdg/umbriel/config.toml; a ~/.config/umbriel/config.toml replaces it whole.
+# The Gemini layouts make Fn (Super) the symbol layer, so every shortcut uses Ctrl+Alt.
+
+# The keyboard: umbriel-session loads the Gemini keymap file chosen at first boot.
+
+[general]
+autostart = ["noctalia"]
+# Dragging a window with the pointer: Alt alone, as before.
+mod_key = "Alt"
+
+# The panel is portrait-native and used in landscape. Umbriel (wlroots) does not apply
+# the kernel's panel orientation (Left Side Up), so the rotation is set here; touch is
+# turned to match by 70-gemini-touch.rules. 2160x1080 at about 400 dpi: scale 2.5
+# gives an 864x432 desktop (owner, R4).
+[output.DSI-1]
+transform = "90"
+scale = 2.5
+
+[input.touch]
+map_to_output = "DSI-1"
+
+# The Mali draws through Panfrost; blur costs a pass per frame on a small GPU.
+[appearance.blur]
+radius = 3
+
+# The Gemini keyboard (docs/hardware/keyboard.md): Ctrl and Alt sit at the bottom left,
+# Fn is xkb level 3 (Mod5, not Super), Esc is the power key, and the outer side key
+# sends XF86Send. There are no F-keys, and no plain - = / ; keys. Every shortcut is
+# Ctrl+Alt plus one key, preferring keys away from the matrix columns of Ctrl and Alt:
+# without diodes, Ctrl+Alt plus a key in those columns (2 7 9 0 W R D H K L C Left)
+# reads a third, phantom key until the driver's rescan clears it. With Shift, use the
+# right one: left Shift shares Ctrl's column, so Ctrl+Alt+left Shift reads a phantom C.
+[keybinds]
+# Launcher and shell: Ctrl+Alt with the thumb on Space, or the side key alone.
+"Ctrl+Alt+Space" = { action = "spawn noctalia msg panel-toggle launcher", repeat = false }
+"XF86Send" = { action = "spawn noctalia msg panel-toggle launcher", repeat = false }
+"Ctrl+Alt+A" = { action = "spawn noctalia msg panel-toggle control-center", repeat = false }
+"Ctrl+Alt+N" = { action = "spawn noctalia msg panel-toggle control-center network", repeat = false }
+"Ctrl+Alt+B" = { action = "spawn noctalia msg panel-toggle control-center bluetooth", repeat = false }
+"Ctrl+Alt+Backspace" = { action = "spawn noctalia msg panel-toggle session", repeat = false }
+"Ctrl+Alt+Z" = { action = "spawn noctalia msg window-switcher", repeat = false }
+"Ctrl+Alt+T" = { action = "spawn foot", repeat = false }
+"Ctrl+Alt+Return" = { action = "spawn foot", repeat = false }
+"Ctrl+Alt+Q" = { action = "window-close", repeat = false }
+"Ctrl+Alt+O" = { action = "overview-toggle", repeat = false }
+"Ctrl+Alt+I" = { action = "cheatsheet-toggle", repeat = false }
+# A text console without F-keys: tty2; there, Ctrl+Alt+1 or Alt+Left comes back.
+"Ctrl+Alt+Tab" = { action = "spawn sudo -n /usr/bin/chvt 2", repeat = false }
+
+"Ctrl+Alt+Left" = "window-focus-left"
+"Ctrl+Alt+Right" = "window-focus-right"
+"Ctrl+Alt+Up" = "window-focus-up"
+"Ctrl+Alt+Down" = "window-focus-down"
+"Ctrl+Alt+Shift+Left" = "column-move-left"
+"Ctrl+Alt+Shift+Right" = "column-move-right"
+"Ctrl+Alt+Shift+Up" = "window-move-up"
+"Ctrl+Alt+Shift+Down" = "window-move-down"
+
+"Ctrl+Alt+1" = "workspace-switch 1"
+"Ctrl+Alt+2" = "workspace-switch 2"
+"Ctrl+Alt+3" = "workspace-switch 3"
+"Ctrl+Alt+4" = "workspace-switch 4"
+"Ctrl+Alt+5" = "workspace-switch 5"
+"Ctrl+Alt+Shift+1" = "window-move-to-workspace 1"
+"Ctrl+Alt+Shift+2" = "window-move-to-workspace 2"
+"Ctrl+Alt+Shift+3" = "window-move-to-workspace 3"
+"Ctrl+Alt+Shift+4" = "window-move-to-workspace 4"
+"Ctrl+Alt+Shift+5" = "window-move-to-workspace 5"
+
+"Ctrl+Alt+Comma" = "window-consume-left"
+"Ctrl+Alt+Period" = "window-consume-right"
+"Ctrl+Alt+S" = "window-cycle-primary-extent"
+"Ctrl+Alt+F" = { action = "window-toggle-maximize", repeat = false }
+"Ctrl+Alt+G" = { action = "window-toggle-fullscreen", repeat = false }
+"Ctrl+Alt+V" = { action = "window-toggle-floating", repeat = false }
+
+# Fn plus a letter, as printed on the keys: Q W E media, T mute, C V volume, B N
+# brightness, R Print (Umbriel matches the Fn modifier as Mod5).
+"Mod5+XF86AudioPlay" = { action = "spawn noctalia msg media toggle", allow_when_locked = true, repeat = false }
+"Mod5+XF86AudioPrev" = { action = "spawn noctalia msg media previous", allow_when_locked = true }
+"Mod5+XF86AudioNext" = { action = "spawn noctalia msg media next", allow_when_locked = true }
+"Mod5+XF86AudioMute" = { action = "spawn noctalia msg volume-mute", allow_when_locked = true, repeat = false }
+"Mod5+XF86AudioLowerVolume" = { action = "spawn noctalia msg volume-down", allow_when_locked = true }
+"Mod5+XF86AudioRaiseVolume" = { action = "spawn noctalia msg volume-up", allow_when_locked = true }
+"Mod5+XF86MonBrightnessDown" = { action = "spawn noctalia msg brightness-down", allow_when_locked = true }
+"Mod5+XF86MonBrightnessUp" = { action = "spawn noctalia msg brightness-up", allow_when_locked = true }
+"Mod5+Print" = { action = "spawn noctalia msg screenshot-region", repeat = false }
+
+[layout.scrolling]
+default_extent_fraction = 1.0
+
+[[window_rule]]
+match.app_id = "^dev.noctalia.Noctalia$"
+default_floating = true

@@ -1,7 +1,8 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# The Gemini's niri session. niri reads ~/.config/niri/config.kdl if the user has one,
-# otherwise /etc/niri/config.kdl from this package.
+# The Gemini's Umbriel session, which starts the Noctalia shell. Umbriel reads
+# ~/.config/umbriel/config.toml if the user has one, otherwise
+# /etc/xdg/umbriel/config.toml from this package.
 # Diagnostic (R5): logind once refused the compositor the DRM device on early starts
 # (drm registered after logind; fixed in gemini-base 13). Kept for a few more boots:
 # the session's seat, VT and active state, and card0's seat tags, in the journal.
@@ -11,7 +12,7 @@
     loginctl show-seat seat0 -p ActiveSession -p CanGraphical -p CanTTY 2>&1
     udevadm info -q property -n /dev/dri/card0 2>&1 | grep -E '^(ID_SEAT|TAGS|CURRENT_TAGS)='
 } | sed 's/^/gemini-session: /' >&2
-# niri renders on the Mali through Panfrost, which gemini-hw@gpu loads before this
+# Umbriel renders on the Mali through Panfrost, which gemini-hw@gpu loads before this
 # session. With no render node (the GPU group failed, or the SoC was too hot for
 # Panfrost to start), Mesa renders in software (llvmpipe) and shows the result through
 # the display-only mediatek driver (kms_swrast).
@@ -27,4 +28,16 @@ else
     echo "gemini-session: no render node; rendering in software" >&2
     export GBM_ALWAYS_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
 fi
-exec niri --session
+export XDG_CURRENT_DESKTOP=umbriel XDG_SESSION_DESKTOP=umbriel
+# The keyboard layout chosen at first boot (KEYMAP=gemini-LAYOUT in /etc/vconsole.conf), as
+# its whole keymap file: Umbriel's layout names would drop the second group of the
+# two-group layouts (umbriel/gemini-keyboard.patch). Gemini US until first boot.
+layout=$(sed -n 's/^KEYMAP=gemini-\([a-z_]*\)$/\1/p' /etc/vconsole.conf 2>/dev/null)
+[ -f "/usr/share/gemini/xkb/${layout:-us}.xkb" ] || layout=us
+export UMBRIEL_XKB_KEYMAP_FILE="/usr/share/gemini/xkb/${layout:-us}.xkb"
+# The login's user bus, as niri --session used; a private one only if it is missing.
+if [ -S "${XDG_RUNTIME_DIR:-/nonexistent}/bus" ]; then
+    export DBUS_SESSION_BUS_ADDRESS="unix:path=$XDG_RUNTIME_DIR/bus"
+    exec umbriel
+fi
+exec dbus-run-session umbriel
