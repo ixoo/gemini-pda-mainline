@@ -73,6 +73,34 @@ elif $bb i2cset -fy 1 0x25 0x02 0x04 && [ "$($bb i2cget -fy 1 0x25 0x02)" = 0x04
 else
     status left-typec=set-failed
 fi
+# The A72s (experiments/2026-11-01-mt6797-all-cores): off until the custodian creates
+# /mnt/data/a72-at-boot after the A72 soak. They load before the CPU frequency modules
+# below, because the cluster clock driver keeps the words it finds at its probe and
+# bringing the A72s up changes some of them. A load that never finished skips the next
+# boot.
+(
+    marker=/mnt/data/a72-loading
+    if ! $bb grep -q ' /mnt/data ' /proc/mounts; then
+        status a72=skipped-no-data
+    elif ! [ -e /mnt/data/a72-at-boot ]; then
+        status a72=off
+    elif [ -e "$marker" ]; then
+        $bb rm -f "$marker"
+        $bb sync
+        status a72=skipped-last-load-unfinished
+    elif ! $bb touch "$marker"; then
+        status a72=skipped-no-data
+    else
+        $bb sync
+        if $bb insmod "/lib/modules/$($bb uname -r)/mt6797-a72.ko"; then
+            status "a72=loaded cpus=$($bb cat /sys/devices/system/cpu/online)"
+        else
+            status a72=failed
+        fi
+        $bb rm -f "$marker"
+        $bb sync
+    fi
+)
 # A persistent root (experiments/2026-11-06-gemini-arch-root): exactly one partition
 # named gemini-arch, off the eMMC, with an init. It is handed over only on a normal
 # start, since LK leaves lk, nvram and boot writable in the other modes; and not if
