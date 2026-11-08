@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-08-mt6797-a53-dvfs` |
-| Status | `planned`: patches, profile and init gate pushed, compile-checked; no device test run |
+| Status | `running`: V0-V3 passed on the station; V4 stopped on a kernel BUG (required OPPs, 2026-11-08); boot gate stays off |
 | Subsystem | DA9214 BUCKA/BUCKB, VSRAM_L LDO, MCUMIXED PLLs incl. CCI, cpufreq-dt, mtk-cci-devfreq, energy model |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-08 |
@@ -296,6 +296,29 @@ station RAM root: boot `52f4c5fd-c191-4955-9277-42bc774ea4c1`, release
 `0x10001f98` = `0x000000FF`, `0x10001f9c` = `0x10001fa0` = `0x0B0B0B0B` (code
 11 in every byte), DA9214 `0xd7` = `0x46` (1.00 V), `0x5d` = `0x01`, `0xd9` =
 `0x46`. Every V0 expectation holds; no stop condition.
+
+**V1-V4 (2026-11-08), stopped at V4 on a kernel BUG.** Run by the device custodian,
+owner-approved, on image D1 (`station-work-92`, boot2 `09ae90fd…`, from this profile at
+`980309cf`), station RAM root, boot `e79a664d-e06a-4c3e-a39f-57fe2100e5e5`, cable in, A72
+module not loaded. The kernel was already tainted W by an unrelated keyboard warning after
+an earlier s2idle cycle on this boot.
+
+- **V1 passed:** CPU0/3 at 896/894 MHz and CPU4/7 at 1271 MHz; DA9214 `0xd7` `0x46`
+  (1000 mV), VSRAM words `0x0B0B0B0B` (1100 mV); SoC 34.3 C.
+- **V2 passed:** "DA9214 legacy direct-address identity matched; voltages are writable",
+  VSRAM_L "selector 11 (1100000 uV)"; sysfs vproc1 and vproc-big 1000000, vsram_l 1100000,
+  equal to the hardware. No write.
+- **V3 passed:** sync DCM `0x00070707`; PLL0 897 MHz (up to 1547), PLL1 1274 MHz (up to
+  2002), PLL2 630 MHz (up to 988); `faulted=0`.
+- **V4 stopped:** `insmod cpufreq-dt` logged "cpu cpu4: Failed to set required opps: -16",
+  then "__target_index: Failed to change cpu frequency: -16", then `kernel BUG at
+  drivers/cpufreq/cpufreq.c:1528` in `cpufreq_online` (insmod, CPU4), followed by a
+  `kernel/context_tracking.c:107` warning in CPU4's idle loop. VPROC1, VSRAM_L and all three
+  PLLs then read unchanged: no write had been made. `poweroff -f` hung after it, so the owner
+  forced the power off. Inference: policy4 starts at the unlisted 1274 MHz, the core must
+  move it to a listed point, and that point's required OPP (the CCI link) cannot be set while
+  `mtk-cci-devfreq` is not loaded. The init's load order would hit the same BUG, so the boot
+  gate stays off.
 
 ## Analysis
 

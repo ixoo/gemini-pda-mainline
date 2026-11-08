@@ -164,7 +164,13 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
   73.3 mA suspended; L failed (a lid close woke the system through the keyboard expander),
   and audio breaks across a suspend
   ([P6 result](../2026-11-06-gemini-power-management/README.md#p6-result-2026-11-08-c-h-k-and-s-pass-audio-breaks-across-a-suspend-a-lid-close-wakes-through-the-keyboard)).
-  Boots 2 and 3 have not run.
+- Phase 1 boot 2 (boot `e79a664d…`): V1-V3 passed; V4 stopped on a kernel BUG when
+  `cpufreq-dt` could not set the CCI required OPP
+  ([DVFS observations](../2026-11-08-mt6797-a53-dvfs/README.md#observations)); V5-V10 wait
+  for a fix. On the same boot the AFE reads confirmed the audio reset across a suspend and L2
+  passed, with keypad IRQ warnings after it
+  ([power-management record](../2026-11-06-gemini-power-management/README.md)). Boot 3 has
+  not run.
 
 ## Analysis
 
