@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: MIT
+# The touchscreen driver already turns its coordinates to landscape (X = raw y,
+# Y = raw x max - 1 - x), and niri turns touch again by the output transform ("90"),
+# so libinput turns it back once. Owner-confirmed on card-14, 2026-11-08; "0 -1 1 1 0 0"
+# was flipped 180 degrees.
+ACTION=="add|change", KERNEL=="event*", ATTRS{name}=="Novatek NT36772 touchscreen", ENV{LIBINPUT_CALIBRATION_MATRIX}="0 1 0 -1 0 1"

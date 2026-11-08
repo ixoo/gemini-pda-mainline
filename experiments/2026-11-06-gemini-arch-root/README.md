@@ -1215,6 +1215,33 @@ while the Mali sat idle.
   stay on at idle. Each group's other limits are in
   [the support matrix](../../docs/HARDWARE_SUPPORT.md).
 
+### Card-14 first boot (2026-11-08, `station-work-89` `a01d1b0c`, boot `bc53ae17`)
+
+The owner: "works now!". Observed by the custodian over USB SSH:
+
+- All six `gemini-hw@` services are active, and no unit failed.
+- niri renders on the Mali: `/dev/dri/renderD128` exists and `niri-session` logged "rendering on
+  the GPU".
+- `panfrost`, `novatek_nt36xxx`, `bmi160_i2c`, `stk3310` and `hi556` are loaded, with no kernel
+  fault lines.
+- `btmt6797` and `radio_mt6797` were not seen in `lsmod`. Inference, not checked: `hw-load`
+  skips both without `mt6797_consys`, which `gemini-wifi` loads, and the card was not reachable
+  over Wi-Fi this boot.
+- About 30 systemd "Failed to preset all unit" lines appear at 8.8 s, before the root is
+  remounted read-write. The root is read-write afterwards.
+
+The owner reported two faults, and fixed both live:
+
+- **Upside down:** the display was upside down with `transform "270"`; `transform "90"` is the
+  right way up.
+- **Touch off by 90°:** `novatek-nt36xxx` already reports landscape coordinates (X = raw y, Y =
+  raw x max − 1 − x), and niri turns touch again by the output transform. A libinput calibration
+  matrix of `0 1 0 -1 0 1` fixes it; `0 -1 1 1 0 0` was 180° off.
+
+The owner asked for both in the next card. `gemini-base` 16 ships them: `niri.kdl` uses `"90"`,
+and `70-gemini-touch.rules` in `/usr/lib/udev/rules.d` sets the matrix. Removing the driver's own
+rotation would make the matrix unnecessary, but needs a kernel change, so it is left for later.
+
 ## Analysis
 
 Not started.
