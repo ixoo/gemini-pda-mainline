@@ -67,13 +67,17 @@ check_temp() {
 }
 
 check_log() {
+	# cpufreq-dt logs this for each A72 it leaves out; it is not a fault.
 	if dmesg | grep -E 'mcusys|cpufreq|cpu-freq' |
+	   grep -vE 'cpufreq_dt: failed to find data for cpu[89]$' |
 	   grep -qiE 'did not hold|not granted|not released|stopped at PCW|behind the driver|refusing|failed|error|Oops|BUG|WARNING'; then
 		stop "fault in the kernel log"
 	fi
 }
 
-# measure CPU KHZ: measured clock within TOL percent of KHZ
+# measure CPU KHZ: measured clock within TOL percent of KHZ. CPU0 takes most
+# interrupts and can read several percent low, so CPU0-3 are measured on CPU1
+# and CPU3.
 measure() {
 	m=$("$MHZ" "$1" 5 | awk '{print $4}')
 	echo "cpu$1 want_khz $2 measured_mhz $m"
@@ -165,7 +169,7 @@ t3)
 	[ "$(xargs < "$(policy 4)/related_cpus")" = "4 5 6 7" ] ||
 		stop "policy4 is not CPU4-7"
 	regs
-	measure 0 897000
+	measure 3 897000
 	measure 4 1209000
 	hash_ok 0
 	hash_ok 4
@@ -176,7 +180,7 @@ t3)
 	;;
 t4)
 	echo userspace > "$(policy 0)/scaling_governor"
-	step 0 0 3 806000 715000 624000 481000 338000 221000 \
+	step 0 1 3 806000 715000 624000 481000 338000 221000 \
 		338000 481000 624000 715000 806000 897000 221000 897000
 	;;
 t5a)

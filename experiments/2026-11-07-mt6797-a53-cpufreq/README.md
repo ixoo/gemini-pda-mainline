@@ -220,7 +220,11 @@ A72 module not loaded (no secure MCUMIXED writer), stable power. Copy
 `clk-mt6797-mcusys.ko`, `cpufreq-dt.ko` and the script into one directory.
 Turn console blanking off first: blanking makes `backlight-policy` take CPU1-7
 offline. On the station, `printf '\033[9;0]\033[13]' > /dev/tty1` and SIGUSR1
-to `backlight-policy` brought them back (A2).
+to `backlight-policy` brought them back (A2). After `429a80d5` the script
+measures CPU0-3 on CPU1 and CPU3: CPU0 takes most interrupts and read
+843-874 MHz at 897 MHz with Wi-Fi up and the A72s online, where CPU3 read
+897. With the A72s online, cpufreq-dt logs `failed to find data for cpu8`
+(and cpu9) for the CPUs it leaves out; the log check ignores exactly that line.
 
 | Stage | Expected observation | If not |
 | --- | --- | --- |
