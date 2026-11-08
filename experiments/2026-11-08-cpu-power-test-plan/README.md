@@ -145,6 +145,21 @@ online) are added here when that code exists. D2 is a second boot2 write.
   ([attempt 2](../2026-11-07-mt6797-cpuidle/README.md#attempt-2-2026-11-08)).
 - V0g was not run.
 
+**Image D1 installed (2026-11-08).** `station-work-92`, composed from Buildbox job
+`980309cf…-mt6797-a53-station-dvfs-m1` (package inventory `642ab49b…`) with the
+`station-dvfs` tree: Image.gz `08247521…`, DTB `55e030ae…`, initramfs `8ff876b4…`,
+boot2 `09ae90fd…` (12.75 MB). `flash-boot2` verified the write from the
+station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
+`CONFIG_CMA_SIZE_MBYTES=512`, the gated CPU modules and the rebuilt
+`backlight-policy` (`f66962ab…`). The card was rewritten with Arch card-23 (gemini-base
+24) for the same boot, readback equal.
+
+- First boot of D1 with card-23 (`d4a5ac06…`): the desktop came up and Wi-Fi joined
+  (Wi-Fi fixes 0669 and 0670); one `systemctl restart iwd` triggered one WLAN restart
+  and reconnected in 4 s with Bluetooth and FM still present. Details belong to the
+  Wi-Fi record.
+- None of Phase 1's CPU, suspend or SPM tests has run on D1 yet.
+
 ## Analysis
 
 None yet.
