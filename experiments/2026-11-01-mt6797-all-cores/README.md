@@ -739,7 +739,7 @@ stuck in the firmware, with only the owner's force-off to recover.
 | CPU8 hangs again with `cluster prepared again` logged | The board sequence is not what the firmware waits for | Keep logs, no repeat; read the firmware's `CPU_ON` path |
 | The second cycle fails where the first passed | State left by the first cycle | Keep logs, no repeat |
 
-### Step 3: idle cost (owner-approved, not run)
+### Step 3: idle cost (owner-approved, run; see Observations)
 
 The owner approved this on 2026-11-07.
 
@@ -1054,6 +1054,33 @@ So the A72s go down and come back on the station, including the whole cluster, w
 module redoes the board side first. One boot, two full cycles, by hand. BUCKB stayed on
 throughout.
 
+Step 3, boot `523f4681`, image boot2 `be1dbf5a...`, `mt6797-a72.ko` `58a0a98f...`,
+`idle-cost.sh` `ac285cd0...`, all verified on the device. The owner was present and
+unplugged USB. cpufreq unloaded, blanking off, the display lit, Wi-Fi modules loaded but
+not joined, all unchanged through the run. Result 0, no stop.
+
+| Phase | Samples | Mean current | SD | Mean voltage | Power | Coulomb count |
+| --- | --- | --- | --- | --- | --- | --- |
+| online | 48 | 412.2 mA | 20.0 mA | 3.935 V | 1.62 W | 344.5 mA |
+| down | 48 | 385.7 mA | 17.4 mA | 3.922 V | 1.51 W | 328.2 mA |
+| online2 | 48 | 422.4 mA | 15.7 mA | 3.897 V | 1.65 W | 350.0 mA |
+
+- Each phase is 480 s after a 60 s settle, sampling `current_now` every 10 s; the coulomb
+  column is the change in `charge_counter` over the phase. SoC 27.2-29.3 C throughout.
+- The cluster went down and came back once inside the run, with `cluster prepared again
+  for CPU8` logged, and `online` matched in every sample.
+- After the replug: `online 0-9`, taint 0, the post-load registers, no fault line.
+
+**Reading (inferred).** The two online phases differ by 10.2 mA, and both sit above down by
+more: 26.5 and 36.7 mA, or about 110 and 133 mW by current times voltage. Some of the
+online2 rise is the falling voltage at about constant power. The coulomb count gives a
+smaller difference, 16 and 22 mA; it averages differently from `current_now`. So two idle
+A72s cost roughly 100-130 mW against the cluster down, with BUCKB on in both, which this
+does not count. For scale, the power record's
+[blanked idle floor](../2026-11-06-gemini-power-management/README.md) was 111 mA, about
+0.43 W, so leaving the A72s up idle would add roughly a quarter to it. One run, one unit,
+at firmware's clocks and with the display on.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -1143,7 +1170,7 @@ literally first:
    and the cluster power after it, never ran on mainline. Needed for thermal emergencies,
    and so CPU_ON's firmware path (which programs the B PLL) can be coordinated with the
    clock driver. First CPU9, then both with the rail left on.
-3. **Idle cost.** On battery, A72s online against offline on one image, using step 2.
+3. **Idle cost.** Measured: about 100-130 mW for two idle A72s against the cluster down (see Step 3). On battery, A72s online against offline on one image, using step 2.
    The fuel gauge reads 0 on USB, so this needs unplugged runs.
 4. **A72 cpufreq.** First frequency only, at the 1.0 V the preloader left, within the
    vendor's points for that voltage, through the secure BigiDVFS interface firmware owns
