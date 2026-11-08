@@ -66,8 +66,10 @@ def main(package, parent, tools, output, authorized_key=None):
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
-    # Loaded only by hand, through hw-start.
-    for name in [] if not public else OPTIONAL:
+    # Loaded only by hand, through hw-start, on the release. The station's init loads none
+    # of these; they ride along for the Arch card root, which loads some at boot (gemini-base
+    # gemini-hw@.service), with FM's driver too (owner, 2026-11-07).
+    for name in OPTIONAL + ([] if public else ['radio-mt6797']):
         found = sorted(package.glob('modules/lib/modules/*/kernel/**/' + name + '.ko'))
         assert len(found) == 1, ('one module expected in the package', name, found)
         modules += found

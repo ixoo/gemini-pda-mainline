@@ -943,6 +943,14 @@ The owner reports that typing works from boot.
 
 The script's failure handling from `7bbff26b` ran on boot `fccba04c`, image `96338704`, as the custodian reports, with `PASSIVE_SCAN=1` and a pinned access point: rc=0, phy after 0 s, `up=0`, `COMPLETED` on the usual channel, lease after 4 s, gateway ping 3 of 3, one connect and no disconnects, tainted=0. This shows the normal path only. The failure paths have run only against stubs, not on the device.
 
+## The station image carries the hand-loaded modules (2026-11-07)
+
+`compose-station.py` packs the release's optional modules (touch, sensors, LEDs, GPU, camera,
+A72, Bluetooth, GNSS) and FM's `radio-mt6797` into the station RAM root too, for the Arch card
+root, which loads some at boot
+([record](../2026-11-06-gemini-arch-root/README.md#drivers-at-boot-and-niri-on-the-mali-owner-2026-11-07)).
+The station's `init` loads none of them; nothing changes on the station itself.
+
 ## The RAM root is xz-compressed (2026-11-07)
 
 With the perf fragment (`configs/gemini-a53-station-perf.fragment`), the composed boot image

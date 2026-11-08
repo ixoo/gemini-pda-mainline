@@ -1,0 +1,37 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Load one group of the drivers that were proven by hand on the station (owner,
+# 2026-11-07: "All features should be loaded"). The modules come from the boot image
+# (stage 1); gemini-modules indexes them, so modprobe pulls in their dependencies. The
+# orders follow the station's release/hw-start, providers before their users. Limits
+# are in docs/HARDWARE_SUPPORT.md. Prints one word: the group, or what stopped it.
+# usage: hw-load gpu|touch|sensors|camera|bluetooth|fm
+case "$1" in
+gpu) modules='clk-mt6797-mfg rt5735-regulator panfrost' ;;
+touch) modules=novatek-nt36xxx ;;
+sensors) modules='bmi160_i2c stk3310' ;;
+camera) modules='clk-mt6797-cam mt6797-seninf hi556' ;;
+bluetooth) modules='bluetooth rfcomm btmt6797' ;;
+fm) modules=radio-mt6797 ;;
+*)
+    echo usage
+    exit 2
+    ;;
+esac
+# Bluetooth and FM use the connectivity firmware, which gemini-wifi brings up once a
+# country is set.
+case "$1" in
+bluetooth | fm)
+    if [ ! -d /sys/module/mt6797_consys ]; then
+        echo needs-connectivity
+        exit 0
+    fi
+    ;;
+esac
+for module in $modules; do
+    if ! modprobe "$module"; then
+        echo "$module-failed"
+        exit 1
+    fi
+done
+echo "$1"

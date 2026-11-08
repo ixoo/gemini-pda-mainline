@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=14
+pkgver=15
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, niri session'
 arch=('any')
@@ -20,7 +20,9 @@ makedepends=('perl' 'kbd' 'xkeyboard-config')
 depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'niri' 'mesa' 'waybar' 'wmenu' 'foot' 'ttf-dejavu'
          # Profiling and power analysis (owner, 2026-11-07); the kernel side is
          # configs/gemini-a53-station-perf.fragment.
-         'perf' 'trace-cmd' 'powertop' 'cpupower')
+         'perf' 'trace-cmd' 'powertop' 'cpupower'
+         # Bluetooth's tools; bluetooth.service is left for the owner to start.
+         'bluez' 'bluez-utils')
 backup=('etc/iwd/main.conf' 'etc/vconsole.conf' 'etc/niri/gemini-keyboard.kdl')
 install=gemini-base.install
 options=('!debug' '!strip')
@@ -30,12 +32,12 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
         gemini-session-fallback@.service session-fallback modprobe-drm.conf
         niri.kdl niri-keyboard.kdl firstboot gemini-firstboot.service waybar.jsonc waybar.css
-        niri-session waybar-bar
+        niri-session waybar-bar hw-load gemini-hw@.service hw-radio.conf
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
-            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
             '2a2c8d95973ad6b18d05a4667497d78e4bf97a0d69e4a1870750a19a2a75af6d')
@@ -49,6 +51,17 @@ package() {
     done
     install -Dm755 -t "$pkgdir/usr/lib/gemini" audio-start display-start display-boot wifi-start firstboot
     install -Dm644 modules-load.conf "$pkgdir/usr/lib/modules-load.d/gemini.conf"
+    # The driver groups loaded at boot, enabled here so an upgrade enables them too.
+    install -Dm644 gemini-hw@.service "$pkgdir/usr/lib/systemd/system/gemini-hw@.service"
+    local group
+    install -dm755 "$pkgdir/usr/lib/systemd/system/multi-user.target.wants"
+    for group in gpu touch sensors camera bluetooth fm; do
+        ln -s ../gemini-hw@.service \
+            "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/gemini-hw@$group.service"
+    done
+    for group in bluetooth fm; do
+        install -Dm644 hw-radio.conf "$pkgdir/usr/lib/systemd/system/gemini-hw@$group.service.d/50-radio.conf"
+    done
     install -Dm644 modprobe-drm.conf \
         "$pkgdir/usr/lib/systemd/system/modprobe@drm.service.d/50-gemini.conf"
     install -Dm644 tmpfiles.conf "$pkgdir/usr/lib/tmpfiles.d/gemini.conf"
@@ -60,7 +73,7 @@ package() {
     install -Dm440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"
     install -Dm644 niri.kdl "$pkgdir/etc/niri/config.kdl"
     install -Dm644 niri-keyboard.kdl "$pkgdir/etc/niri/gemini-keyboard.kdl"
-    install -Dm755 -t "$pkgdir/usr/lib/gemini" niri-session waybar-bar session-fallback
+    install -Dm755 -t "$pkgdir/usr/lib/gemini" niri-session waybar-bar session-fallback hw-load
     # Gemian's layouts, and one complete keymap per layout as Gemian's planetgemini rules
     # composed it: pc + the layout + inet + the escape part. A complete keymap keeps the
     # two-group layouts (ru, gr, cz...) whole, which a layout(variant) selection does not.

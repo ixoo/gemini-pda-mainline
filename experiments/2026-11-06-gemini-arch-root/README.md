@@ -1184,6 +1184,37 @@ perf and power-analysis tools. `gemini-base` 14:
   were dropped. mt6797's device
   tree has no CPU PMU node, so perf gets no hardware counters until one is added.
 
+### Drivers at boot, and niri on the Mali (owner, 2026-11-07)
+
+The owner: "All features should be loaded to make full use of the device", and then "Yes, load
+them all". Until now, every driver proven only by hand on the station stayed unloaded (the
+repository's "nothing loads them at boot until they are proven"), so niri rendered in software
+while the Mali sat idle.
+
+- **Station image:** `compose-station.py` now packs the release's optional modules, plus FM's
+  `radio-mt6797`, into the station RAM root as well. The station's `init` loads none of them;
+  stage 1 copies them to the card.
+- **`gemini-base` 15:**
+  - `gemini-hw@<group>.service` runs `hw-load` at boot for six groups: `gpu`, `touch`,
+    `sensors`, `camera`, `bluetooth` and `fm`, in `release/hw-start`'s order.
+  - The groups load after the display, so the panel keeps `card0`. Bluetooth and FM also wait
+    for `gemini-wifi`, and skip with no country set.
+  - niri starts after the GPU group and renders on the Mali through Panfrost, falling back to
+    software when no render node appears.
+  - `bluez` and `bluez-utils` are installed; `bluetooth.service` is left for the owner to
+    start.
+- **Held back, each named by its own record:**
+  - cpuidle: "would hang every CPU at its first idle";
+  - the A72 pair: no cooling, only the 117 °C reset; loading at init is the record's step 9;
+  - A53 cpufreq: wants a soak under real heat first;
+  - USB host: `fusb301` takes over the left Type-C chip, which carries charging, and the
+    left-port host failed;
+  - GNSS: no position yet, and a firmware assert takes Wi-Fi down;
+  - Bluetooth voice: hand-load only.
+- **Limits that now apply at every boot:** with Panfrost loaded, the GPU's VGPU rail and LDOs
+  stay on at idle. Each group's other limits are in
+  [the support matrix](../../docs/HARDWARE_SUPPORT.md).
+
 ## Analysis
 
 Not started.

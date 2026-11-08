@@ -1,0 +1,13 @@
+# SPDX-License-Identifier: MIT
+# One group of drivers proven by hand on the station, loaded at boot (owner, 2026-11-07).
+# After the display: it keeps card0 for the panel, and touch needs the panel's rails up.
+# Enabled per group by the package (multi-user.target.wants); a group's own drop-in
+# adds its ordering.
+[Unit]
+Description=Load the Gemini's %i drivers
+After=gemini-modules.service gemini-display.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/gemini/hw-load %i

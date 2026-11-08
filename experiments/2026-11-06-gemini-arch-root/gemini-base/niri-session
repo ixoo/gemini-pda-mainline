@@ -11,4 +11,20 @@
     loginctl show-seat seat0 -p ActiveSession -p CanGraphical -p CanTTY 2>&1
     udevadm info -q property -n /dev/dri/card0 2>&1 | grep -E '^(ID_SEAT|TAGS|CURRENT_TAGS)='
 } | sed 's/^/gemini-session: /' >&2
+# niri renders on the Mali through Panfrost, which gemini-hw@gpu loads before this
+# session. With no render node (the GPU group failed, or the SoC was too hot for
+# Panfrost to start), Mesa renders in software (llvmpipe) and shows the result through
+# the display-only mediatek driver (kms_swrast).
+# Panfrost can finish probing just after its module loads.
+waited=0
+while [ -d /sys/module/panfrost ] && [ ! -e /dev/dri/renderD128 ] && [ "$waited" -lt 5 ]; do
+    sleep 1
+    waited=$((waited + 1))
+done
+if [ -e /dev/dri/renderD128 ]; then
+    echo "gemini-session: rendering on the GPU" >&2
+else
+    echo "gemini-session: no render node; rendering in software" >&2
+    export GBM_ALWAYS_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
+fi
 exec niri --session

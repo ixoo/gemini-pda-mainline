@@ -5,7 +5,7 @@
 Description=niri session for %i on tty1
 StartLimitIntervalSec=60
 StartLimitBurst=5
-After=systemd-user-sessions.service gemini-display.service gemini-firstboot.service
+After=systemd-user-sessions.service gemini-display.service gemini-firstboot.service gemini-hw@gpu.service
 Conflicts=getty@tty1.service
 Wants=gemini-display.service
 # Once the retries are spent, tty1 gets a login prompt again. OnFailure= also fires on
@@ -23,10 +23,8 @@ StandardOutput=journal
 UtmpIdentifier=tty1
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland
-# Panfrost isn't loaded at boot yet and niri needs EGL: Mesa renders in software
-# (llvmpipe) and shows the result through the display-only mediatek driver
-# (kms_swrast). Forced, so Mesa doesn't first try the GPU it can't find.
-Environment=GBM_ALWAYS_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
+# niri renders on the Mali (gemini-hw@gpu, before this); niri-session falls back to
+# software rendering when no render node appears.
 ExecStart=/usr/lib/gemini/niri-session
 # On a second boot (R4) logind refused the compositor the DRM device ("Could not take device:
 # Operation not permitted") at 14 s, 3 s after the device appeared, while the same
