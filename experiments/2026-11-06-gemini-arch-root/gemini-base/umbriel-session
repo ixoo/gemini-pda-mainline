@@ -28,6 +28,11 @@ else
     echo "gemini-session: no render node; rendering in software" >&2
     export GBM_ALWAYS_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
 fi
+# systemd sets SYSTEMD_EXEC_PID to this pid, so Umbriel would take itself for a user
+# service and launch apps with systemd-run --user --scope bound to its own unit. That
+# unit is the login's session scope in the system manager, which the user manager
+# cannot bind to, so every launch failed (card-18). Plain child processes instead.
+unset SYSTEMD_EXEC_PID
 export XDG_CURRENT_DESKTOP=umbriel XDG_SESSION_DESKTOP=umbriel
 # The keyboard layout chosen at first boot (KEYMAP=gemini-LAYOUT in /etc/vconsole.conf), as
 # its whole keymap file: Umbriel's layout names would drop the second group of the

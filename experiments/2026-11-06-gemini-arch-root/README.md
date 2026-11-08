@@ -1391,6 +1391,41 @@ Two Umbriel facts shape the bindings:
 - Noctalia's volume and brightness actions do something. There is no PipeWire daemon (audio is
   ALSA), and the backlight path is untested.
 
+### Card-18 first boots, and `gemini-base` 20 (2026-11-08, `station-work-90`)
+
+Observed by the custodian with card-18 (`gemini-base` 19):
+
+- Umbriel started on Panfrost, but every launch failed with `systemd-run: Failed to start
+  transient scope unit: Unit session-c1.scope not found`. Noctalia, foot and `chvt` never
+  ran, so no keybinding did anything.
+- With `unset SYSTEMD_EXEC_PID` added to the session script live on the card, boot `2ae75d4c`
+  started Noctalia and the owner saw it.
+- On that boot, Panfrost loaded with `renderD128` present and no kernel faults. The Bluetooth
+  and FM modules loaded once first boot had set the country, and `gemini-wifi` and iwd were
+  active.
+- CMA was 32768 kB total with 4036 kB free. Within seconds of start, Umbriel logged about 40
+  `DRM_IOCTL_MODE_CREATE_DUMB` ENOMEM errors ("Failed to create effect framebuffer").
+
+Cause, from Umbriel `94ab5961`:
+
+- **Launches.** Umbriel takes itself for a systemd user service when `SYSTEMD_EXEC_PID` equals
+  its own pid (`src/server/server.cpp`), which is true when `gemini-session@.service` execs the
+  session script. It then starts each app with `systemd-run --user --scope` bound to its own
+  unit, which is `session-c1.scope` in the system manager and unknown to the user manager.
+- **Memory.** umbrielfx allocates its offscreen buffers from the output's allocator. On this
+  display that means mediatek dumb buffers in CMA, one 9.3 MB buffer per full-screen target,
+  and the screen's own buffers nearly fill the 32 MiB. Blur and the animations use these
+  buffers; shadows do not. niri drew its effects in GPU memory, so it never hit this.
+
+`gemini-base` 20:
+
+- `umbriel-session` unsets `SYSTEMD_EXEC_PID` before starting Umbriel, so apps start as plain
+  child processes.
+- `umbriel.toml` turns blur and animations off, since they could not get buffers anyway. A
+  larger CMA reservation on the kernel side would allow them again.
+- Card-19 (dev VM, `gemini-base` 20, image sha256 `a576124182bc…`, 387 packages) pairs with
+  `station-work-90`. Umbriel's `config validate` passes on the image. Untested on the device.
+
 ## Analysis
 
 Not started.
