@@ -783,6 +783,61 @@ owner forces power off.
 | No clear difference | Below what the gauge resolves here | Longer phases, or accept it as small |
 | A stop | As the reason says | Read the log, no retry |
 
+### Step 4: A72 frequency, design (in progress, nothing built)
+
+Within today's 1.00 V (BUCKB selector `0x46`), the vendor's B points with a base voltage
+of 1.00 V or less are 338, 676, 845, 1001, 1131, 1378 and 1495 MHz
+([base table](../../docs/hardware/mt6797-cpu-clusters.md#43-vendor-base-table-for-the-selected-speed-bin)).
+The A72s run at the firmware's 750 MHz, so 1495 MHz would double them with no voltage
+change.
+
+**The firmware's B-PLL service is not safe on a running cluster (observed in the
+disassembly, meaning inferred).** The retained TEE (`2cd154f3...`) handles SMC
+`0xc20003b8` (`x1` = MHz) at `0x106450`. On every call, even within one post-divider band,
+it:
+
+1. clears bit 0 of `0x102224a0` on the live PLL;
+2. waits 1 us, then writes the post-divider (bits 14:12: 2 up to 500 MHz, 1 up to
+   1000 MHz, 0 above) and sets bit 0 again;
+3. waits 1 us, writes the PCW `(VCO << 24) / 26` to `0x102224a4` and pulses its bit 31
+   as the latch;
+4. waits about 22 us, and returns 0.
+
+It does no range check and has no guard on cluster power. It touches neither the B mux nor
+a semaphore. Bit 0 matches the PLL enable: the firmware's cluster-on path sets it before
+moving the mux onto the PLL, and its off path clears it only after moving the mux away.
+Those paths do the mux work under a semaphore at `0x11015448`, with the CSPM unlock
+`0x11015000` <- `0x0b160001`:
+- off: `0x1001a270` bit 0 cleared, B mux to 0;
+- on: bit 0 set, and `0x1001a274[4:0]` = 8.
+
+The A53 clock driver uses `0x11015440` for the same two words, so the firmware's B path and
+the A53 driver do not exclude each other. That is the real reason for the rule that no A53
+rate change may overlap a B `CPU_ON`.
+
+So a B rate change from Linux has to:
+1. take both semaphores;
+2. move B to mux 0 (`0x1001a270[1:0]`);
+3. call `0xc20003b8`;
+4. wait at least 20 us more;
+5. move the mux back to 1, and release.
+
+That is a read-modify-write of the word the A53 clock driver owns. So the plan is a B clock
+in `clk-mt6797-mcusys` rather than a second MCUMIXED writer. This is being agreed with the
+cpufreq session. Not yet known: what mux 0 selects. The firmware itself uses it, so it is
+presumably a safe slow source.
+
+Voltage above 1.00 V needs a writable BUCKB from the cpufreq session's DA921x provider and
+VSRAM_B through SMC `0xc20003bf`, raised before VPROC2 and lowered after it. Neither exists
+yet.
+
+**Spectre-v2 `Vulnerable` (answered).** The firmware is PSCI 0.2 and offers no SMCCC 1.1,
+so it has no `ARCH_WORKAROUND_1` to call, and the A72 has no other v2 mitigation. The
+speculative store bypass is the same: `ARCH_WORKAROUND_2` is absent, and the A72 lacks
+SSBS. The BHB loop is skipped once v2 reads vulnerable. So it is a firmware gap, not a
+configuration one, and there is no cheap fix. The A53s are unaffected, but the kernel
+reports per system.
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
