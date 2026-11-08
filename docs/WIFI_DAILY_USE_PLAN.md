@@ -34,7 +34,9 @@ Status: plan, updated 2026-11-01.
 - iwd stayed in "connecting" with nothing sent (card-18, custodian): it had asked for a scan inside the
   10 s join window of the previous one, which the driver refused as busy, and iwd waits for another scan to
   finish before retrying, which never happened. 0669 retires that idle window at once for the new scan.
-  Compiled only.
+  On the first boot of station-work-92 (D1, from `980309cf`, with 0669 and 0670) and card-23, the owner joined
+  with iwd: "wifi works!!!" (relayed by the custodian). One join on one boot, without logs yet, and the stall
+  was never reproducible on demand, so this fits 0669 without proving it.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
