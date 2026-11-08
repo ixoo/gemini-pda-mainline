@@ -36,7 +36,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0660`](../../patches/proposals/0660-dt-bindings-regulator-add-the-MediaTek-MT6797-CPU-SR.patch), [`0661`](../../patches/proposals/0661-regulator-add-the-MediaTek-MT6797-CPU-SRAM-LDO.patch) | VSRAM_L as one regulator over the eight INFRACFG_AO LDOs, writing the vendor's selector pattern into `CPULDO_CTRL_1`/`_2`. It sets only selectors 3-15 (900-1200 mV), refuses to probe unless all eight LDOs are enabled and on one selector, and never switches them |
 | [`0662`](../../patches/proposals/0662-soc-mediatek-add-an-MT6797-CPU-rail-and-SRAM-LDO-cou.patch) | A built-in regulator coupler: VSRAM_L = clamp(VPROC1 + 10 mV, 1.0 V, 1.2 V), raised before VPROC1 and lowered after it |
 | [`0663`](../../patches/proposals/0663-PM-devfreq-mtk-cci-make-the-intermediate-clock-optio.patch)-[`0665`](../../patches/proposals/0665-PM-devfreq-mtk-cci-add-MT6797.patch) | mtk-cci-devfreq with an optional intermediate clock (the MT6797 CCI PLL changes rate glitch-free itself) and an MT6797 entry; the passive governor follows cpufreq |
-| [`0666`](../../patches/proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch) | `mt6797-gemini-pda-station-dvfs.dts`: the station-a72 tree with the DA9214 on the legacy driver (BUCKA `vproc1` 770-1200 mV, BUCKB `vproc-big` 800-1200 mV, unused), VSRAM_L coupled to it, the full LL/L/CCI tables, `cpu-supply`, required-opps to the CCI, and `capacity-dmips-mhz = <740>` |
+| [`0666`](../../patches/proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch) | `mt6797-gemini-pda-station-dvfs.dts`: the station-a72 tree with the DA9214 on the legacy driver (BUCKA `vproc1` 770-1200 mV, BUCKB `vproc-big` 800-1200 mV, unused), VSRAM_L coupled to it, the full LL/L/CCI tables, `cpu-supply`, and required-opps to the CCI |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -53,9 +53,10 @@ then sets every policy to schedutil. It runs only when
 unfinished-load marker as the display. Nothing creates that file; the
 custodian creates it after the heat soak (V9).
 
-Energy model: `capacity-dmips-mhz` 740 for the A53s is MT8173's A53:A72 ratio,
-taken as a placeholder until measured. `dynamic-power-coefficient` is absent,
-so cpufreq-dt registers no energy model; V10 measures it.
+Energy model: `capacity-dmips-mhz` for all ten CPUs comes from the A72
+station tree, from the all-cores session's per-MHz measurements
+([all cores](../2026-11-01-mt6797-all-cores/README.md)). `dynamic-power-coefficient`
+is absent, so cpufreq-dt registers no energy model; V10 measures it.
 
 ### Voltages
 
