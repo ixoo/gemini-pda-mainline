@@ -600,3 +600,8 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    `panfrost_gem_open` twice, untainted, rendering fine (station-work-91). The buffer resolved to a Panfrost object its owner had marked purgeable. The madvise ioctl
    does not refuse that for a shared object, and its own comment expects userspace not to. This is upstream code that the MT6797 patches do not touch. The risk, from
    the source and not seen: under memory pressure the shrinker could purge pages another process is using. Userspace was Mesa 26.2.6, Qt WebEngine 6.11.3 and qutebrowser 3.7.0. A check under memory pressure has not been run.
+9. On the same card desktop (boot `2d9dc5ae`, Umbriel with effects), three job timeouts in 2 s, each `status=0x8` (still active), two on `js=0` fragment jobs and one with config
+   `0x3301`. The desktop recovered. This is not the import warning above. It is the same signature as the post-divider faults before `0493`, but rate logging was off, so it cannot be placed
+   against a rate change. The other candidates are a job truly longer than the 500 ms timeout at a low rate, or a userspace or GPU fault. `0668` lets
+   `mt6797_log_rates` be switched on through sysfs, without unloading the driver the compositor holds. The display's `swiotlb buffer is full` lines nearby
+   are the display's own DMA mapping, and nothing ties them to the GPU.

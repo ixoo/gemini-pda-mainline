@@ -1,0 +1,25 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 8 Nov 2026 15:47:09 -0500
+Subject: [PATCH] drm/panfrost: let MT6797 rate logging be switched on at
+ runtime
+
+GPU job timeouts on the Gemini desktop could not be placed against rate changes,
+because turning the log on meant unloading a driver the compositor holds.
+---
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index 2be345379..e62375cac 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -87,7 +87,7 @@ module_param_named(mt6797_dvfs, mt6797_dvfs, bool, 0444);
+ MODULE_PARM_DESC(mt6797_dvfs, "MT6797: use the OPP table, devfreq and cooling (default on)");
+ 
+ static bool mt6797_log_rates;
+-module_param_named(mt6797_log_rates, mt6797_log_rates, bool, 0444);
++module_param_named(mt6797_log_rates, mt6797_log_rates, bool, 0644);
+ MODULE_PARM_DESC(mt6797_log_rates, "MT6797: log each rate change, to place a fault among them");
+ 
+ static bool mt6797_idle_off = true;
