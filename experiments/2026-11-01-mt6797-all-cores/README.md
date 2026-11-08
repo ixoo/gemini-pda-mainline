@@ -584,7 +584,7 @@ apply.
 | Lists flat, or only the A53 clusters are right | Parser or late-CPU path | Read the source, no repeat until explained |
 | A fault after the load | New with the map, or the newer patches in this image | Compare with the soak, no repeat until explained |
 
-### Step 1: ten cores beside A53 cpufreq (owner-approved, not run)
+### Step 1: ten cores beside A53 cpufreq (owner-approved, run; see Observations)
 
 The owner approved this on 2026-11-07. One boot, one A72 module load, no retry.
 
@@ -809,6 +809,37 @@ byte-identical output on the trees it already accepted.
 - **Regression and reboot:** the owner confirmed the keyboard and a tone. Plain `reboot`,
   Gemian about 32 s later as boot `1b08f05b`.
 
+Step 1, boot `f50ee883`, image boot2 `a101d944...` (package `395047bd...` with the A72
+tree), modules and tools verified on the device. The owner was present. One A72 load, no
+retry.
+
+- **Order held:** t0 passed with `online 0-7`. `insmod=0` at 120.9 s, `online 0-9`, taint 0,
+  and `0x10220744` read `00070707` before and after, so CPU_ON did not change the word the
+  clock driver keeps. Its t2 then bound with the A3 floors and PLL readings.
+- **A72 clock, measured:** CPU8 750 MHz and CPU9 748 MHz, hashes equal to the A53
+  reference. After the soak, both read 750 MHz. The first measurement of it; earlier values
+  were read from registers.
+- **Shared words the bring-up changed:** against A3's t2, `muxsel` `0x55` (`0x54`), `ckdiv`
+  `0x8` (`0x0`) and TOPCKGEN `clk_misc_cfg_0` `0x01ff0000` (`0xffff0000`). The cpufreq session
+  confirmed none of these is a field its driver reads or writes.
+- **t3 stopped on a log line:** cpufreq-dt logs `failed to find data for cpu8` (and cpu9)
+  when the core offers it the already-online A72s, and returns `-ENODEV`. The script
+  matched `failed`. Everything else in t3 matched A3: policy0 CPU0-3, policy4 CPU4-7, L at
+  1209 MHz, hashes equal, `faulted=0`. The run continued on the same boot after `57178716`
+  excluded exactly that line and moved the LL measurement off CPU0, which read 843-874 MHz
+  with Wi-Fi and the log reader on it while CPU3 read 897.
+- **Scaling with ten online:** t6 passed: schedutil moved policy0 over 221-897 MHz and
+  policy4 over 832-1209 MHz through idle, load and idle, with every hash correct on CPU0-7.
+- **Load, 600 s under schedutil:** result 0, every hash correct, CPU7 311 rounds, CPU8 and
+  CPU9 309. SoC at most 51.6 C. About 7700 PLL changes in all by the end, `faulted=0`, and
+  `0x10220744` still `00070707`. Ping, download and tone ran.
+- **After:** `online 0-9`, taint 0, no warning, Oops, stall or wrapper error line, Wi-Fi
+  restarts 0 with one clean first join (finding 2 at 2 of 7). The keyboard worked. The tone
+  was heard only after the custodian switched the speaker route on, so `soak.sh`'s tone
+  result shows that playback ran, not that it was audible.
+- **Power-off:** clean, with the data partition unmounted. A plain reboot now lands in
+  Gemian on this device, so this replaced the reboot.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -888,7 +919,7 @@ module unloaded, and its patch 0643 keeps CPU8-9 out of cpufreq. In order, each 
 own boot request and owner decision, and each new register or regulator write listed
 literally first:
 
-1. **Ten cores beside A53 cpufreq, and the A72 clock.** The A72 bring-up is a one-way
+1. **Ten cores beside A53 cpufreq, and the A72 clock.** Passed on one boot, see Step 1. The A72 bring-up is a one-way
    sequence at module load, and `clk-mt6797-mcusys` faults if sync DCM changes after its
    probe. So the load order is the A72 module first, then the clock driver, then
    cpufreq-dt, and the clock driver stays the only MCUMIXED writer in Linux. Settled with
