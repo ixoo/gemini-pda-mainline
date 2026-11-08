@@ -116,9 +116,13 @@ step() {
 	done
 }
 
-# Screen blanking takes CPU1-7 offline; every stage needs CPU0-7.
+# Screen blanking takes CPU1-7 offline; every stage needs CPU0-7 (the A72s,
+# CPU8-9, may be online too).
 online=$(cat /sys/devices/system/cpu/online)
-[ "$online" = 0-7 ] || stop "CPUs online $online, not 0-7 (disable console blanking)"
+case $online in
+0-7|0-9) ;;
+*) stop "CPUs online $online, not 0-7 or 0-9 (disable console blanking)" ;;
+esac
 
 case "${1:-}" in
 t0)

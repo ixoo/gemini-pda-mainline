@@ -195,7 +195,8 @@ items 1-5 only.
 Stop the test at the first of these, preserve `dmesg` and the stage output,
 and do not retry:
 
-- CPUs online other than `0-7` (checked at the start of every stage);
+- CPUs online other than `0-7`, or `0-9` with the A72s (checked at the start
+  of every stage);
 - a policy whose `related_cpus` is not exactly CPU0-3 or CPU4-7 (t3);
 - a module refuses to load or the clock driver does not bind, or any line
   with `did not hold`, `not granted`, `not released`, `stopped at PCW`,
