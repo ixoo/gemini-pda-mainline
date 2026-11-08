@@ -584,7 +584,9 @@ apply.
 | Lists flat, or only the A53 clusters are right | Parser or late-CPU path | Read the source, no repeat until explained |
 | A fault after the load | New with the map, or the newer patches in this image | Compare with the soak, no repeat until explained |
 
-### Step 1: ten cores beside A53 cpufreq (proposed, not admitted, not run)
+### Step 1: ten cores beside A53 cpufreq (owner-approved, not run)
+
+The owner approved this on 2026-11-07. One boot, one A72 module load, no retry.
 
 Agreed with the cpufreq session on 2026-11-07: the A72 module loads first, then
 `clk-mt6797-mcusys`, then `cpufreq-dt`; the clock-first order is forbidden. The clock
