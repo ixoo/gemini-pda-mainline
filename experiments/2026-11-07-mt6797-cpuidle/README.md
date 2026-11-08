@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 ready. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The SPM route is costed for an owner decision |
+| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 ready. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The vendor's SPM sequence is reverse-engineered (2026-11-08) and Route A is designed as S0 (reads) and S1 (`mem` suspend), awaiting the owner |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -47,6 +47,16 @@ WFI.
   observed. C0 needs no new image, firmware call or register write.
 - **Enabling `CONFIG_CPU_IDLE` alone gains nothing**, and a PSCI power-down
   state in the DT without the SPM side would hang every CPU at its first idle.
+- **Idle A53s already retain (2026-11-08, inferred from the firmware).**
+  `tee1` turns on A53 hardware retention for every core it powers up, so
+  CPU1-7 probably drop into retention in WFI today; CPU0 probably does not.
+- **The vendor's way below WFI is known (2026-11-08).** One CPU (CPU0)
+  online, an SPM program loaded from DRAM and kicked, then the CPU goes down
+  through `CPU_SUSPEND` `0x1010000`, or stays in `wfi` at EL1 in a bring-up
+  mode. Suspend needs nothing else; deep idle and SODI need many clocks gated.
+  The programs can be read from the unit's `system.img` at runtime. See
+  [the vendor sequence](#the-vendor-sequence-reverse-engineered-2026-11-08)
+  and [MT6797 SPM sleep](../../docs/hardware/mt6797-spm-sleep.md).
 
 ## Provenance and environment
 
@@ -136,8 +146,10 @@ work (`0x10006218`, `0x10006240`, `0x10006244`). **Inference:** the program was
 written for another chip's SPM layout and is not an MT6797 MCDI program, which
 fits the switch being off. It also has no A72 path. It also writes the infra
 bus-protection registers `0x10001220`/`0x10001228`, which mainline SCPSYS
-writes too. No MT6797 per-core SPM program exists in the evidence, and the PCM
-instruction set is not documented, so the project cannot write its own.
+writes too. No MT6797 per-core SPM program exists in the evidence. A public
+decoder covers only part of the PCM instruction set
+([hardware page](../../docs/hardware/mt6797-spm-sleep.md#3-the-spm-program-files)),
+so the project cannot write its own.
 
 ## What mainline would need, if a state ever exists
 
@@ -207,7 +219,7 @@ policy is stopped for the run and restarted afterwards.
 | C1 | Depends on C0: a cluster-first idle hotplug policy (screen on), or nothing | Hotplug only | none, userspace | Not proposed |
 | H1 | The dark-screen hotplug policy takes the A72s too, when the module has them online; five blank/wake cycles | None new (see [H1](#stage-h1-the-a72s-in-the-dark-screen-policy)) | Running image; only `/bin/backlight-policy` replaced in the running initramfs | **Implemented, compile-checked, proposed** |
 | C2 | Per-core power-down in idle, through an SPM program or a firmware port | New SPM or `tee1` writes | New | Owner decision; blocked on a program that does not exist in the evidence |
-| S | System idle and suspend through the SPM (deep idle with only CPU0 online) | See [the SPM route](#the-spm-route-costed) | New module, then new image | Owner decision; costed, not implemented |
+| S | System idle and suspend through the SPM (deep idle with only CPU0 online) | See [the SPM route](#the-spm-route-costed) | New module, then new image | Owner decision; designed as [Route A, S0-S3](#route-a-smallest-form), not implemented |
 
 ### Stage C0 proposal
 
@@ -478,6 +490,247 @@ again for approval):
   inside the vendor binary and cannot be listed by Linux; that is the core of
   the rights and review problem.
 
+## The vendor sequence reverse-engineered (2026-11-08)
+
+The owner asked how the vendor stack really gets below WFI, so the project
+can choose a route. This pass read the unit's `tee1`, the nine SPM programs in
+the unit's Gemian `system.img`, and the vendor kernel's `spm_v2` and
+`cpuidle_v1` sources. Binary work ran privately in the RE VM; no device was
+touched. The durable facts, with what was observed kept apart from what was
+inferred, are in [MT6797 SPM sleep](../../docs/hardware/mt6797-spm-sleep.md).
+This section answers the four questions and proposes Route A.
+
+### Answers
+
+**1. Secure firmware.** *Observed:* `CPU_SUSPEND` power-down clears the
+core's `CPUECTLR` retention and its "SPARK" retention, spins until SPM
+`CPU_RET_STATUS` shows the core out of retention, sets the warm-boot entry
+and AArch64 reset state for cluster 0 core 0, and for a cluster request
+turns off the GIC CPU interface, leaves CCI and lets cluster 0's L2 reset.
+Then it waits in `wfi` for the SPM. It writes no SPM register, and there is
+no SiP call for sleep. *Inferred:* no cluster-off or MCDI-like path exists
+without an SPM program, and the firmware supports suspending CPU0 only. The
+state Linux must leave the SPM in, per path, is in
+[§4.2 of the hardware page](../../docs/hardware/mt6797-spm-sleep.md#42-what-linux-must-leave-the-spm-in).
+*New:* the firmware enables A53 hardware retention on every `CPU_ON`, so
+CPU1-7 are probably already retained in WFI today; the C0 `CPU_RET_STATUS`
+read `0xF6` fits that.
+
+**2. SPM programs.** *Observed:* a 16-bit length, the PCM code, a
+descriptor with sixteen event vectors, and a version string. The kernel
+copies the code into the `spm-reserve-memory` carveout, points `PCM_IM_PTR`
+at it, sets power control, wake masks and flags, loads the PMIC wrapper's 16
+sleep commands, kicks the PCM and takes the CPU down. Each sleep program
+powers exactly one core (CPU0, or CPU4 for `_by_mp1`) and its cluster, the
+DRAM PHY and the CPU buck isolation. Suspend also powers infra down. All of
+them gate the 26 MHz request, put DRAM in self-refresh and lower VCORE. The
+register sequence, flags, masks and PMIC tables are in sections 3-7 of the
+hardware page.
+
+**3. Entry conditions.** *Observed in the vendor source:* deep idle, SODI and
+SODI3 need one CPU online (CPU0 or CPU4), many infra and multimedia clocks
+gated, the multimedia domains off (and the display domain off for deep
+idle), and the next timer at least 2 or 5 ms away; APXGPT GPT4 carries the
+tick through the sleep. Suspend checks none of these. *Assessed for
+mainline:* suspend's only condition, CPU0 alone, is met by the kernel's own
+`mem` path. The idle states are blocked today by the unused infra gates R2
+found, by MSDCPLL (eMMC) for SODI3, and by the missing APXGPT and SYS_CIRQ
+support ([§5.3](../../docs/hardware/mt6797-spm-sleep.md#53-which-conditions-a-mainline-station-can-meet)).
+
+**4. Expected savings.** The vendor code holds no current figures. It
+implies under 10 mA in suspend (its fuel gauge treats that as "suspended"),
+with VCORE at 0.6-0.7 V instead of 0.9-1.0 V. Against the 96 mA left with
+CPU0 alone, the SPM can only remove what is inside the SoC and its rails; how
+much of the 96 mA that is stays unmeasured until S1. Per-core power-down in
+idle looks worth little: idle A53s already retain (C0 attempt 2 measures the
+remainder).
+
+**Programs at runtime.** Yes. They are files in Gemian's `system.img`
+(`/vendor/firmware/`, hashes on the hardware page), the same image
+[`firmware-get`](../../docs/hardware/firmware.md#getting-them-from-the-owners-own-device)
+already reads read-only for the Wi-Fi files. A loader needs only
+`pcm_suspend.bin` for S1. Nothing needs shipping, but the chosen install
+replaces Gemian, so the files must be copied off `system.img` before that,
+as [`gemian-firmware`](../../docs/hardware/firmware.md#the-set-the-card-root-carries)
+does for the radio files.
+
+### Route A, smallest form
+
+**Shape.** One `=m` module, `mt6797-spm-sleep`, that registers `mem` suspend
+operations. Linux's own suspend path already offlines CPU1-9 and suspends
+the devices; the module's `enter()` then runs the vendor suspend sequence on
+CPU0. Nothing is built in, no DT change, no idle state. `rmmod` removes the
+operations. Deep idle and SODI are not in Route A: they need the P3 clock
+work, a GPT clockevent and CIRQ first.
+
+**Which CPU path first.** S1 uses the "CPU stays powered" mode (flag bit 0):
+CPU0 executes `wfi` at EL1 while the program gates the rest. That needs no
+PSCI call, which matters because `cpu_suspend()` and
+`psci_cpu_suspend_enter()` are not exported in 7.1 and a module cannot use
+them without a built-in change. It also keeps CPU0's context, so a failed
+program cannot leave a half-restored CPU. The cost: the vendor shipped the
+power-down mode, and this mode is only seen in bring-up code, so whether the
+programs honour it is inferred. S2, the shipped power-down mode, follows only
+if S1 works and leaves enough current on CPU0's cluster to matter.
+
+**Stages.**
+
+| Stage | What | Writes | Image | Status |
+| --- | --- | --- | --- | --- |
+| S0 | Reads only: the SPM, PMIC-wrapper, MCUCFG, INFRACFG and PMIC words S1 will touch, so every read-modify-write has a known start value; `CPU_RET_STATUS` with the reader pinned to CPU0 and to CPU3; the SPARK words; the carveout's address; the `system.img` program hashes | None | Running | **Proposed** |
+| S1 | `mem` suspend on CPU0 with the suspend program, CPU stays powered, PCM-timer wake after 30 s | The list below | Running, plus the new module | **Proposed, after S0** |
+| S2 | As S1 with CPU power-down (`CPU_SUSPEND` `0x1010000`) | S1's list with flag bit 0 clear, plus one built-in export | New image | Owner decision after S1 |
+| S3 | Deep idle or SODI from CPU0's idle with the screen dark | New masks, APXGPT, CIRQ | New image | After P3 |
+
+### S0: reads
+
+32-bit reads on the station, cable in, no other test running:
+
+- SPM `0x10006000`-`0x100060c8`, `0x10006100`-`0x1000617c`,
+  `0x100061e4`, `0x10006290`, `0x10006320`, `0x10006328`, `0x1000632c`,
+  `0x10006540`-`0x10006564`, `0x10006600`-`0x1000661c`;
+  `0x100061e4` twice more under `taskset` on CPU0 and on CPU3.
+- PMIC wrapper slots `0x1000d10c`-`0x1000d188`.
+- MCUCFG `0x1022002c`, `0x1022022c`, `0x1022220c`, `0x10221c00`,
+  `0x10221c04`, `0x10223c00`, `0x10223c04`.
+- INFRACFG_AO `0x10001f00` (4 GB mode, bit 13); chip version `0x08000008`.
+- MT6351 through the station's existing PMIC read path: `0x0008`, `0x000c`,
+  `0x0200` (HWCID), `0x0204`, `0x044a`, `0x045c`, `0x0470`, `0x060a`,
+  `0x060c`, `0x06a8`, `0x06aa`.
+- The `spm-reserve-memory` base from the boot log or `/proc/iomem`.
+- The SHA-256 of `/vendor/firmware/pcm_suspend.bin` inside `system.img`, read
+  the way `firmware-get` reads.
+
+**Stop and redesign if:** `PCM_FSM_STA & 0x7fffff` is not `0x48490`;
+`PCM_REG1_DATA` is 1 (a resident program); the carveout is missing; the file
+hash differs.
+
+### S1: the write list, for owner approval
+
+All on CPU0, inside `enter()`, with interrupts off and CPU1-9 already offline.
+SPM base `0x10006000`. "RMW" changes only the named bits of the value read.
+Every SPM, wrapper and PMIC word written is read first and restored in X3-X4,
+except where the text says otherwise.
+
+**Preconditions, checked by reads; any failure returns `-EBUSY` with nothing
+written:** CPU0 is the only online CPU; `PCM_FSM_STA & 0x7fffff == 0x48490`;
+`PCM_REG1_DATA != 1`; `MD1_PWR_CON`, `C2K_PWR_CON` and `CONN_PWR_CON`
+(`0x320`, `0x328`, `0x32c`) all read `0x12` in bits 4:0 (modem, C2K and
+CONNSYS off: the Wi-Fi and Bluetooth modules unloaded); the console is
+suspended.
+
+**Once, at module load (no hardware write):** `request_firmware` of
+`mediatek/mt6797/pcm_suspend.bin`, checked against its SHA-256; its 1,822
+code words copied into the carveout at offset 0 (RAM, not a register); the
+SPM interrupt (SPI 180, level low) mapped through the `sysirq` domain,
+requested `IRQF_NO_SUSPEND` and marked for wake.
+
+PMIC (MT6351, through the PMIC wrapper's normal register access):
+
+| # | Register | Write |
+| --- | --- | --- |
+| P1 | `VGPU_ANA_CON7` `0x0470` | RMW bit 1 ← 1 (VGPU low-IQ) |
+| P2 | `STRUP_CON4` `0x0008`, `STRUP_CON6` `0x000c` | RMW bit 15 ← 1; RMW bit 9 ← 1 (power-good force) |
+| P3 | `BUCK_VCORE_CON6` `0x060c`; `SMPS_ANA_CON9` `0x044a` | RMW bits 6:0 ← `0x10` (0.7 V sleep voltage); RMW bits 9:8 ← 0 |
+
+S1 leaves out the vendor's static regulator sleep modes (hardware control and
+low-power mode on `SRCLKEN0` for the bucks and LDOs, §6 of the hardware
+page). Without them every rail stays in its normal mode during the sleep, and
+the program's slot commands alone set VCORE. That is a smaller saving but no
+rail changes behaviour. They come back as their own stage if S1 works.
+
+PMIC wrapper (`0x1000d000`): the 32 slot words saved, then
+
+| # | Register | Write |
+| --- | --- | --- |
+| W1 | `DVFS_ADRn` `0x1000d10c + 8n`, `DVFS_WDATAn` `0x1000d110 + 8n`, n = 0-15 | The suspend-phase table on the hardware page: slots 0-6 `0x060a` ← `0x40`, `0x3e`, `0x3b`, `0x38`, `0x36`, `0x33`, `0x30`; 7 `0x060c` ← `0x00`; 8 `0x044a` ← (read \| `0x0300`); 9 `0x060a` ← `0x1c`; 10, 11 `0x06a8` (`0x06aa` if HWCID is `0x5140`) ← `0x40`, `0x50`; 12, 13 `0x045c` ← read \| `0x2`, read & ~`0x2`; 14 `0x060c` ← `0x10`; 15 `0x044a` ← read & ~`0x0300` |
+
+SPM, in order:
+
+| # | Register | Write |
+| --- | --- | --- |
+| S1 | `SPM_CLK_CON` `0x00c`; `SPM_CLK_SETTLE` `0x010` | RMW bit 4 ← 1; `0x010` ← 0, read it as `m`, then ← 99 − `m` |
+| S2 | `PCM_CON0` `0x018` | `0x0b168004`; poll `PCM_FSM_STA` for `0x48490` (5 ms bound; on timeout stop, X3); `0x0b160004`; `0x0b16000c` |
+| S3 | `PCM_CON1` `0x01c` | `0x0b165c48` \| (read & `0x300`) |
+| S4 | `SPM_SW_INT_CLEAR` `0x094` | `0x1` |
+| S5 | `PCM_IM_PTR` `0x020`; `PCM_IM_LEN` `0x024` | carveout physical address, plus `0x40000000` if 4 GB mode is on and the address is in `0x40000000`-`0xbfffffff`; `0x71d` |
+| S6 | `PCM_CON0` | `0x0b16000e`, then `0x0b16000c` (instruction fetch) |
+| S7 | `PCM_REG_DATA_INI` `0x028`; `PCM_PWR_IO_EN` `0x02c` | ← `SPM_POWER_ON_VAL0` (`0x004`) as read; `0x00010000`; 0; ← `SPM_POWER_ON_VAL1` (`0x008`) as read; `0x00800000`; 0 |
+| S8 | `PCM_EVENT_VECTOR0`-`15` `0x040`-`0x07c` | The sixteen words of the hash-pinned file's descriptor |
+| S9 | `SPM_AP_STANDBY_CON` `0x014` | `0x04080011` \| (read & `0x00800000`): WFI AND, MP3 idle masked, modem 1 and CONN requests honoured, SCP request masked (no SCP firmware runs on mainline) |
+| S10 | `SPM_SRC_REQ` `0x0b8` | `0x00000040` (DVFS force-down only) |
+| S11 | `SPM_SRC_MASK` `0x0bc` | `0x10aa007e` |
+| S12 | `SPM_SRC2_MASK` `0x0c0` | `0x00f1001f` |
+| S13 | `SPM_CLK_CON` | RMW bit 6 ← 1 |
+| S14 | `MP0_CPU0-3_WFI_EN`, `MP1_CPU0-3_WFI_EN` `0x540`-`0x55c`; `MP2_CPU0/1_WFI_EN` `0x560`, `0x564` | 1 each |
+| S15 | `PCM_TIMER_VAL` `0x030`; `PCM_CON1` | `0x000f0000` (30 s at 32,768 Hz); RMW bit 5 ← 1, with key `0x0b16` |
+| S16 | `SPM_WAKEUP_EVENT_MASK` `0x0c4` | `0xffffffbe` (wake on PCM timer and EINT only) |
+| S17 | `SPM_IRQ_MASK` `0x0b4` | (read & `0x4`) \| `0x3fe00` (only the PCM-return and IRQ0 interrupts reach the GIC) |
+| S18 | `SPM_SCP_MAILBOX` `0x098` | 1 (as the vendor's efuse-path entry) |
+| S19 | `SPM_MAS_PAUSE_MASK_B` `0x408`; `SPM_MAS_PAUSE2_MASK_B` `0x40c` | `0xffffffff` each |
+| S20 | `PCM_REG_DATA_INI` | 0 |
+| S21 | `SPM_SW_FLAG` `0x600`; `SPM_SW_RSV_0` `0x608` | `0x000900b1` (CPU stays powered, VCORE DFS off, DRAM deep power-down off, modem-infra power-down off, SYSRAM sleep off, thermal check skipped), plus bit 18 if the chip version reads `0xca01`; 0 |
+| S22 | `SPM_CLK_CON` | RMW bit 5 ← 1 (infra DCM lock) |
+| S23 | `PCM_PWR_IO_EN` | `0x81` |
+| S24 | `PCM_CON0` | `0x0b16000d`, then `0x0b16000c` (the program starts) |
+
+CPU0:
+
+| # | Register | Write |
+| --- | --- | --- |
+| C1 | MCUCFG `MP0_AXI_CONFIG` `0x1022002c`, `MP1_AXI_CONFIG` `0x1022022c`, `MP2_AXI_CONFIG` `0x1022220c` | RMW bit 4 ← 1, bit 4 ← 1, bits 4 and 0 ← 1, each only if not already set (direct writes, as the vendor suspend file does) |
+| C2 | — | `dsb sy; wfi` at EL1. No PSCI or SiP call |
+| C3 | the three AXI words | restored to the values read before C1 |
+
+After the wake:
+
+| # | Register | Write |
+| --- | --- | --- |
+| X1 | — | Reads: `0x028`, `0x608`, `0x144`, `0x15c`, `0x160`, `0x41c`, `0x420`, `0x424`, `0x134`, `0x170`, `0x604`, `0x158`, logged as the wake reason |
+| X2 | `SPM_CPU_WAKEUP_EVENT` `0x0b0`; `SPM_WAKEUP_EVENT_MASK`; `SPM_IRQ_MASK`; `SPM_IRQ_STA` `0x158`; `SPM_SW_INT_CLEAR` | 0; `0xffffffff`; RMW bits 17:9 ← 1; `0x8`; `0x3ff` |
+| X3 | `PCM_PWR_IO_EN`; `PCM_CON1`; `PCM_CON0`; every word S1-S23 changed | 0; RMW bit 5 ← 0 with key; `0x0b168004`, poll, `0x0b160004` (the idle state C0 read); all others back to the values read before S1 |
+| X4 | Wrapper slots; P3, P2, P1 | The 32 saved words; P3 restored; P2 bits ← 0 and P1 bit ← 0, as the vendor does |
+
+Nothing in this list is a new firmware call. Every write is new on mainline.
+What the program itself writes while it runs (DRAM, clocks, infra, VCORE
+through the slots, the CPU buck isolation) cannot be listed by Linux; the
+register scan on the hardware page is the best available view of it.
+
+**After S1 the A72s need their preparation again**, since the program
+touches `CPU_EXT_BUCK_ISO`. The resume path brings CPU8 back through 0645's
+re-preparation, so no change is expected; S1 checks it.
+
+### S1 procedure, outcomes and stops
+
+**Hypothesis.** With only CPU0 online and the vendor suspend program running
+in "CPU stays powered" mode, the station sleeps for the 30 s PCM timer and
+resumes with every CPU and driver back, and the current during the sleep is
+well below 96 mA.
+
+**Unique observation.** The first SPM program run on mainline, and the first
+current figure below the hotplug floor.
+
+**Candidate.** The running boot2 image and the module built from the commit
+that records S1, loaded by hand. Wi-Fi and Bluetooth modules unloaded
+(CONNSYS off), A53 cpufreq loaded, A72 module as the custodian runs it.
+
+**Measurement.** The MT6351 coulomb counter (`FG_CAR`,
+[fuel gauge](../../docs/hardware/gemini-fuel-gauge.md)) read before and after
+three back-to-back 30 s suspends on battery, against the same span idle with
+CPU0 alone. At about 90 µAh per count, 90 s at 96 mA is about 27 counts, so
+a large drop is visible and a small one is not.
+
+| Outcome | Next |
+| --- | --- |
+| Three cycles resume, wake reason PCM timer, current clearly below 96 mA | Record the figure. Add the static regulator sleep modes as their own stage, then decide S2 |
+| Resume works, no saving | The program did not gate in this mode (flag bit 0 is not honoured as inferred). Stop Route A's S1 path; S2 is the only remaining SPM path |
+| Wake reason other than the timer, or abort before sleeping | Keep the status words; analyse before any retry |
+| No resume within 60 s | Force-off by the owner, as for any hang. Keep the S0 values and module log; no retry until the cause is known |
+
+**Stop** at the first: a precondition fails; the reset poll times out; an
+Oops, `WARNING` or RCU stall; a CPU that does not return after resume; USB
+SSH absent 60 s after the expected wake. No retry.
+
 ## Observations
 
 ### Attempt 1 (2026-11-07)
@@ -552,8 +805,8 @@ run. At the end: taint 0, no new fault line, unblank rc 0.
   reads). `PCM_CON0` holds only the PCM clock enable (vendor bit 2), without
   the kick bits or the run-state `EN_IM_SLEEP_DVS`. `PCM_IM_PTR`,
   `PCM_REG_DATA_INI`, `PCM_PWR_IO_EN`, `SPM_SW_FLAG` and every `WFI_EN` word
-  are 0. `PCM_FSM_STA` was not compared against a known idle value, so this is
-  not confirmed.
+  are 0. *Confirmed 2026-11-08:* the low 23 bits of `PCM_FSM_STA`
+  (`0x48490`) are the vendor's PCM reset value.
 - **`CPU_IDLE_STA` sees WFI.** Bits 10-17 read `0xFB`: seven A53s in
   `STANDBYWFI`, one not, which fits one CPU running the read.
 
@@ -568,7 +821,14 @@ power idle cores down on all three clusters.
 
 - C0 attempt 2 and H1, through the custodian, after owner approval, in the
   [order above](#device-tests-in-order).
-- The SPM route: an owner decision, with P3 measured first.
+- The SPM route: an owner decision. Route A's S0 (reads only) can run any
+  time; S1 needs approval of its write list and a module, which is a separate
+  owner decision. P3 is no longer a prerequisite for suspend, only for the
+  idle states (S3).
+- The [power-management record](../2026-11-06-gemini-power-management/README.md#the-firmware-side)
+  says the secure firmware writes no SPM power control; that holds for
+  suspend only (`CPU_ON` and `CPU_OFF` do write them). Its owner session may
+  want to note it.
 - If C1 follows, it reuses P2f's mechanism and needs no new write.
 - A GPT broadcast timer node and the cpuidle-psci skip for CPU8-9 are needed
   only once a real state exists; neither is worth a patch before then.

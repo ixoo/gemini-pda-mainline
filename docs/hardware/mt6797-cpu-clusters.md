@@ -583,7 +583,10 @@ that program; see the
 The vendor kernel additionally exposes `dpidle`, `soidle3`, `soidle`, `mcidle`
 and `slidle` through its own idle driver. These depend on SPM/PCM firmware.
 Mainline does not enable them; their PSCI suspend semantics and resume
-behavior are unproven on this board. CPU hotplug is separate from idle: HPS
+behavior are unproven on this board. The firmware's suspend path, the A53
+retention it already applies in WFI, and the vendor's program loading and
+entry conditions are in [MT6797 SPM sleep](mt6797-spm-sleep.md). CPU hotplug
+is separate from idle: HPS
 offlines whole cores, while the idle states retain or power down clusters
 without changing the online mask.
 

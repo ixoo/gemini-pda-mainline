@@ -17,6 +17,7 @@ the experiments that support or challenge it.
 | [Gemini audio input/output](gemini-audio.md) | AFE/codec topology, speaker/earpiece/headphone outputs, microphone inputs, headset jack, amplifier and mainline gaps. |
 | [MT6351 ACCDET](mt6351-accdet.md) | Headset-jack register contract, MICBIAS1, button AUXADC channel, and the plan for classification and buttons. |
 | [MT6797 CPU clusters](mt6797-cpu-clusters.md) | Ten-core identity, three-cluster topology, firmware/vendor ownership, per-cluster clocks, rails, OPP selection, hotplug, and mainline gaps. |
+| [MT6797 SPM sleep](mt6797-spm-sleep.md) | Secure-firmware suspend path, A53 retention, SPM program format and loading, deep idle/SODI/suspend entry conditions, PMIC sleep tables. |
 | [DA921x, I2C6, and Cortex-A72](da921x-i2c6-a72.md) | Current regulator/transport/CPU boundary, evidence limits, and safety invariants. |
 | [MT6797 live resource map](mt6797-live-resource-map.md) | Register, IRQ, clock, rail, storage, display, GPU, connectivity, and USB resources mapped to Linux boundaries. |
 | [MT6797 and Gemini interrupts](mt6797-interrupts.md) | GICv3, EINT, SPI/PPI/SGI map, dispatch paths, handler behavior, and live-evidence limits. |
