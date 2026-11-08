@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 20:05:15 -0500
+Subject: [PATCH] soc: mediatek: prepare the MT6797 A72 cluster again after it
+ went down
+
+When the last A72 goes down, the firmware asserts the cluster reset and the
+external buck isolation again, and the MP2 DCM word is lost. CPU_ON for CPU8
+after that never returned, and the CPU that issued it stalled in the
+firmware.
+
+Run the board sequence again before CPU8 comes back to a cluster that is
+down, and the DCM write once it is up, from CPU hotplug callbacks. BUCKB stays
+on in between, so the off check accepts it on. CPU9 cannot be the first back,
+since only CPU8 first has been proven. If the callbacks cannot be registered,
+CPU8 and CPU9 stay online.
+---
+ drivers/soc/mediatek/mt6797-a72.c | 90 +++++++++++++++++++++++++++----
+ 1 file changed, 81 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72.c b/drivers/soc/mediatek/mt6797-a72.c
+index 60edca088..fcf38beff 100644
+--- a/drivers/soc/mediatek/mt6797-a72.c
++++ b/drivers/soc/mediatek/mt6797-a72.c
+@@ -10,9 +10,12 @@
+  * when the kernel starts its CPUs, so CPU8 and CPU9 boot offline and come
+  * online here, when this module loads.
+  *
+- * This is one-way. The vendor sequence has no proven inverse past the
+- * isolation clear, so the module cannot be unloaded and the two CPUs cannot be
+- * taken offline. The voltage selector and the clock stay as firmware left them.
++ * The module cannot be unloaded: the vendor sequence has no proven inverse past
++ * the isolation clear. The A72s can still go down and come back. When the last
++ * one goes down the firmware asserts the cluster reset and the isolation
++ * again, so the sequence runs again before the first one comes back. BUCKB
++ * stays on in between. The voltage selector and the clock stay as firmware
++ * left them.
+  */
+ 
+ #include <linux/arm-smccc.h>
+@@ -76,6 +79,8 @@ struct mt6797_a72 {
+ 	struct mt6797_dvfsp_handoff *handoff;
+ };
+ 
++static struct mt6797_a72 *mt6797_a72;
++
+ static int spm_expect(struct mt6797_a72 *a72, u32 reg, u32 expected)
+ {
+ 	u32 val;
+@@ -126,9 +131,13 @@ static int secure_read(unsigned long addr, u32 *val)
+ 	return 0;
+ }
+ 
+-/* Refuse anything but the off state the sequence was proven from. */
+-static int mt6797_a72_check_off(struct mt6797_a72 *a72)
++/*
++ * Refuse anything but the off state the sequence was proven from. After the
++ * A72s have been down, BUCKB may already be on.
++ */
++static int mt6797_a72_check_off(struct mt6797_a72 *a72, bool rail_on)
+ {
++	int buck;
+ 	u32 status, status_2nd;
+ 	int ret;
+ 
+@@ -168,9 +177,14 @@ static int mt6797_a72_check_off(struct mt6797_a72 *a72)
+ 	if (ret)
+ 		return ret;
+ 
+-	ret = buck_expect(a72, DA9214_BUCKB_CONT, 0);
+-	if (ret)
+-		return ret;
++	buck = i2c_smbus_read_byte_data(a72->buck, DA9214_BUCKB_CONT);
++	if (buck < 0)
++		return buck;
++	if (buck != 0 && !(rail_on && buck == DA9214_BUCKB_EN)) {
++		dev_err(a72->dev, "DA9214 0x%02x is 0x%02x\n",
++			DA9214_BUCKB_CONT, buck);
++		return -ERANGE;
++	}
+ 	ret = buck_expect(a72, DA9214_VBUCKB_A, DA9214_VBUCKB_1000MV);
+ 	if (ret)
+ 		return ret;
+@@ -295,6 +309,45 @@ static void mt6797_a72_dcm_on(struct mt6797_a72 *a72)
+ 	writel(val, a72->mcucfg + MCUCFG_MP2_SYNC_DCM);
+ }
+ 
++/* Before CPU_ON for an A72 while the cluster is down. */
++static int mt6797_a72_prepare(unsigned int cpu)
++{
++	struct mt6797_a72 *a72 = mt6797_a72;
++	int ret;
++
++	if (cpu < 8 || cpu_online(8) || cpu_online(9))
++		return 0;
++	/* Only CPU8 has been brought up first. */
++	if (cpu != 8)
++		return -EBUSY;
++
++	ret = mt6797_a72_check_off(a72, true);
++	if (!ret)
++		ret = mt6797_a72_rail_on(a72);
++	if (!ret)
++		ret = mt6797_a72_sram_on(a72);
++	if (ret)
++		dev_crit(a72->dev, "CPU8 not prepared: %d\n", ret);
++	else
++		dev_info(a72->dev, "cluster prepared again for CPU8\n");
++	return ret;
++}
++
++/* On the first A72 up, as after CPU8 at load. */
++static int mt6797_a72_online(unsigned int cpu)
++{
++	if (cpu == 8 && !cpu_online(9))
++		mt6797_a72_dcm_on(mt6797_a72);
++	return 0;
++}
++
++/* Without the callbacks a cluster that went down could not come back. */
++static void mt6797_a72_keep_online(void)
++{
++	get_cpu_device(8)->offline_disabled = true;
++	get_cpu_device(9)->offline_disabled = true;
++}
++
+ static int mt6797_a72_probe(struct platform_device *pdev)
+ {
+ 	struct device *dev = &pdev->dev;
+@@ -344,7 +397,7 @@ static int mt6797_a72_probe(struct platform_device *pdev)
+ 	}
+ 	a72->pwrap = &pwrap->dev;
+ 
+-	ret = mt6797_a72_check_off(a72);
++	ret = mt6797_a72_check_off(a72, false);
+ 	if (ret) {
+ 		dev_err(dev, "not in the expected off state: %d\n", ret);
+ 		goto put_pwrap;
+@@ -379,6 +432,25 @@ static int mt6797_a72_probe(struct platform_device *pdev)
+ 
+ 	dev_info(dev, "CPU8 and CPU9 online\n");
+ 
++	/* The callbacks use the wrapper and the buck from here on. */
++	mt6797_a72 = a72;
++	ret = cpuhp_setup_state_nocalls(CPUHP_BP_PREPARE_DYN,
++					"soc/mt6797-a72:prepare",
++					mt6797_a72_prepare, NULL);
++	if (ret < 0)
++		goto keep_online;
++	ret = cpuhp_setup_state_nocalls(CPUHP_AP_ONLINE_DYN,
++					"soc/mt6797-a72:online",
++					mt6797_a72_online, NULL);
++	if (ret < 0)
++		goto keep_online;
++	return 0;
++
++keep_online:
++	dev_err(dev, "no hotplug callbacks: %d, CPU8 and CPU9 stay online\n", ret);
++	mt6797_a72_keep_online();
++	return 0;
++
+ put_pwrap:
+ 	put_device(a72->pwrap);
+ put_buck:
+-- 
+2.43.0
+

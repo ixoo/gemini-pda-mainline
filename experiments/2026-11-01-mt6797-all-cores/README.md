@@ -694,6 +694,46 @@ cleanly` or a `CPU_ON` failure; `online` other than expected; a hash mismatch; a
 | `0x10222274` lost after s2 | Cluster power-down resets the DCM word | CPU9 stays down; the module or a hotplug callback must restore it, a new patch |
 | CPU8 does not return in s2 | Cluster power-up needs something the module did once | Keep logs, no repeat until the firmware path is read |
 
+### Step 2, attempt 2: the cluster prepared again (proposed, not admitted, not run)
+
+[0645](../../patches/proposals/0645-soc-mediatek-prepare-the-MT6797-A72-cluster-again-af.patch) answers the attempt 1 hang. The module keeps its
+references after load and registers two CPU hotplug callbacks:
+
+- **Before CPU8 comes back to a cluster that is down** (neither A72 online), it runs the
+  load-time sequence again: the off check, the rail sequence and the SRAM LDO. The off
+  check now also accepts BUCKB already on, since the module leaves it on. The writes are
+  the same as at load: SPM `0x10006218` bit 0, the PWRAP reset, DA9214 `0x5e` written
+  `0x01` (already `0x01`), SPM `0x10006290` bits 1:0 cleared, and the SRAM LDO call. A
+  failure refuses the bring-up before `CPU_ON`, so the CPU stays down.
+- **Once CPU8 is up with CPU9 down**, it writes the MP2 DCM word as at load.
+- CPU9 cannot come back first to a cluster that is down (`-EBUSY`), because only CPU8
+  first has been proven.
+- If the callbacks cannot be registered, CPU8 and CPU9 are marked permanently online.
+
+BUCKB stays on while the cluster is down, which costs power; turning it off is the vendor's
+off path and a separate write for later. Compiled in the dev VM with `W=1`, no warning;
+checkpatch quiet.
+
+Hypothesis: with the board side redone, CPU8 comes back to a cluster that went down, then
+CPU9. Unique observation: the cluster's second power-up from the down state.
+
+Stages as attempt 1 with these changes. s1 is unchanged. In s2, after both go down and the
+registers are read: first `echo 1 > cpu9/online`, which must fail with `EBUSY` and leave
+`online 0-7`; then `echo 1 > cpu8/online`, which must log `cluster prepared again for
+CPU8` and give `online 0-8`, with the registers back to the post-load values and
+`0x10222274` at `0x0D`; then `echo 1 > cpu9/online`, giving `online 0-9`, with hashes and
+clocks on both. Then s2 repeats once more, to show a second cycle. s3 and s4 as before.
+
+Stop rules as attempt 1. The 30 s rule matters most here: a hang would again leave one CPU
+stuck in the firmware, with only the owner's force-off to recover.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| Both s2 cycles pass | A72 hotplug works from the cluster's down state | Step 3, idle cost |
+| `CPU8 not prepared` | The off check found a state the record doesn't know | Read the logged value, no retry |
+| CPU8 hangs again with `cluster prepared again` logged | The board sequence is not what the firmware waits for | Keep logs, no repeat; read the firmware's `CPU_ON` path |
+| The second cycle fails where the first passed | State left by the first cycle | Keep logs, no repeat |
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
