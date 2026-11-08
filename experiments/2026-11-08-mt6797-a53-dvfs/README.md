@@ -46,6 +46,21 @@ built in, because regulator couplers must register before any regulator. The
 default governor in this profile is `userspace`, so loading cpufreq-dt does
 not start scaling by itself. The DTB is `mt6797-gemini-pda-station-dvfs.dtb`.
 
+Candidate (compile-checked on Buildbox, not run): commit `8a848ed3`, job
+`8a848ed3b41f2443977c879304e31e418cb9aea9-mt6797-a53-station-dvfs-m1`,
+package `linux-7.1.3-gemini-5326cdb1f374dbf136f52ea4d288c57e0c77fbcfcd847a0f2100753af69b64a3`:
+
+| File | SHA-256 |
+| --- | --- |
+| `Image.gz` | `3c940e6e53c3d1716667cb7e6332cc744274db55569b97eea3286908237c559a` |
+| `mt6797-gemini-pda-station-dvfs.dtb` | `bc155d57e64fda85c93fc7c4c7e6bbc77d4012a156907db65cfd91e11a160f1b` |
+| `kernel.config` | `19046920fc478da20c41d15061195655b9e5b8c4999c4019d69d1f10dee5e576` |
+| `da9213-legacy-regulator.ko` | `760d7a63f1d5e6c6cd7caed1bb39bf0e71d4f7b39d26edbd98984d2667bd01e8` |
+| `mt6797-vsram-regulator.ko` | `efc041d2b3552b305f91f6ed6f5042ed4824bffc65914fb346503a193c847959` |
+| `clk-mt6797-mcusys.ko` | `f5c53ff9466ef9c78160b0ac040d9b595c4ca8c2633b24303840454170fc0fd6` |
+| `cpufreq-dt.ko` | `f558be9bfe9f82f31c5245fbba52d54ac3584fbfee98ebbb25f6582425dddba5` |
+| `mtk-cci-devfreq.ko` | `2f8edde688670cecf795eb1b40560409ec7b03d227fce5c26ed4483f10e5aadd` |
+
 Station init: the [station `init`](../2026-10-30-mainline-dev-station/initramfs/init)
 loads whichever of those five modules the image carries, in that order, and
 then sets every policy to schedutil. It runs only when
