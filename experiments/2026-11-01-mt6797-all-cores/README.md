@@ -584,6 +584,53 @@ apply.
 | Lists flat, or only the A53 clusters are right | Parser or late-CPU path | Read the source, no repeat until explained |
 | A fault after the load | New with the map, or the newer patches in this image | Compare with the soak, no repeat until explained |
 
+### Step 1: ten cores beside A53 cpufreq (proposed, not admitted, not run)
+
+Agreed with the cpufreq session on 2026-11-07: the A72 module loads first, then
+`clk-mt6797-mcusys`, then `cpufreq-dt`; the clock-first order is forbidden. The clock
+driver keeps the whole `0x10220744` word from its probe and faults if it changes, so it
+must probe after CPU_ON. It reads no B-cluster field. Whether the firmware's CPU_ON path
+takes DVFSP semaphore 3 is unverified, so no A53 rate change may overlap a B CPU_ON;
+here CPU_ON happens before cpufreq-dt loads.
+
+Candidate: the A53 cpufreq A3 package `395047bd...` (job `8996f539...-m1`), Image.gz
+`b025af20...`, `mt6797-gemini-pda-station-a72.dtb` `30bdeff8...` (cluster map, `a72-power`
+node, both A53 OPP tables), through `station-dt.sh` at `ba2c097a` or later;
+`mt6797-a72.ko` `bf228fbc...` (same source as `1e13d34d...`, rebuilt in the newer tree),
+`clk-mt6797-mcusys.ko` `8163e541...`, `cpufreq-dt.ko` `2c451b82...`, the cpufreq stage
+script at `429a80d5` (`2df2cc04...`, which accepts CPU8-9 online), `cpu-mhz`, and
+`soak.sh` `f3697965...`. No build.
+
+Writes: the A72 module's, as admitted for the bring-up attempts, then the A53 cpufreq
+record's A3 items 1-5, at stages t2, t3 and t6 only. Nothing new.
+
+Hypothesis: all ten CPUs stay online while schedutil scales CPU0-7, the clock driver
+never faults, and the A72 clock measures about 750 MHz. Unique observations: the A72
+clock measured, and A53 scaling with the A72s online.
+
+Stages, stopping at the first fault. Console blanking off first.
+
+| Stage | What | Expected |
+| --- | --- | --- |
+| s0 | cpufreq script `t0`; `devmem 0x10220744 32` | online `0-7`; as A3 t0 |
+| s1 | `insmod mt6797-a72.ko`; `devmem 0x10220744 32`; `cpu-mhz 8 5`, `cpu-mhz 9 5`; `cpu-mhz 8 hash` against t0's reference | online `0-9`, taint 0; both A72s near 750 MHz; hash equal. `0x10220744` before and after is recorded either way |
+| s2 | script `t2`, then `t3` | as A3: two policies, CPU0-3 and CPU4-7; `cpu8 has no OPPs` and `cpu9`; online `0-9` |
+| s3 | script `t6`, then `soak.sh load 600` under schedutil, then `cpu-mhz 8 5` | `t6` as A3; soak result 0; A72 clock unchanged; `faulted=0` |
+| s4 | registers, PMIC read, keyboard and one tone, one clean reboot | as the soak |
+
+Stop rules: both records' together. Any STOP from the cpufreq script, `faulted=1`, a
+hash mismatch, CPU8 or CPU9 leaving `online`, a soak.sh stop, a new `WARNING`, Oops or
+stall, or the SoC at 75 C. The A72s have no cooling; the 58 C passive trip cools the
+A53s only.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| All stages pass | Ten cores work beside A53 cpufreq in this order | Step 2, down and up |
+| `t2` or `t3` refuses, or the driver faults after `s1` | CPU_ON changed a word the clock driver keeps | Read `0x10220744`; the cpufreq session narrows the check; no repeat until fixed |
+| A72 clock far from 750 MHz | Firmware state differs from the earlier reads | Record it; it changes step 4's table, not this result |
+| A72 stops, or a hash mismatch | A72 or coherency fault beside scaling | Keep logs, `reboot -f` if needed, no repeat until explained |
+| Bring-up failure in `s1` | As attempt 1's table | As attempt 1's table |
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
