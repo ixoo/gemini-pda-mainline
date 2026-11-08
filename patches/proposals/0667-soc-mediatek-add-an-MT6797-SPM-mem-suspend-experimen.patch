@@ -23,20 +23,26 @@ mapped through sysirq and enabled for wake only during suspend). It
 restores every SPM, wrapper and MCUCFG word it changed and leaves the
 PCM in reset, as found. No PSCI or SiP call is made.
 
+The flags set SPM_FLAG_DIS_VPROC_VSRAM_DVS as well, so the program does
+not drive the A72 buck over I2C6. PASR_DPD_3 is zeroed for the sleep so
+the program's timer-wake loop returns on the first timer. The GCE,
+AUXADC and I2C_APPM gates the program flips are put back as found, and
+CLK_CFG_0 and the three gate words are logged before and after.
+
 Local experiment, not for upstream; it depends on a non-free program
 the project does not ship.
 ---
  drivers/soc/mediatek/Kconfig            |  14 +
  drivers/soc/mediatek/Makefile           |   1 +
- drivers/soc/mediatek/mt6797-spm-sleep.c | 731 ++++++++++++++++++++++++
- 3 files changed, 746 insertions(+)
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 794 ++++++++++++++++++++++++
+ 3 files changed, 809 insertions(+)
  create mode 100644 drivers/soc/mediatek/mt6797-spm-sleep.c
 
 diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
-index 984fba8f1..fd0ed53f8 100644
+index 02712fee9..579020d46 100644
 --- a/drivers/soc/mediatek/Kconfig
 +++ b/drivers/soc/mediatek/Kconfig
-@@ -960,4 +960,18 @@ config MTK_SOCINFO
+@@ -969,4 +969,18 @@ config MTK_SOCINFO
  	  information about the SoC to the userspace including the
  	  manufacturer name, marketing name and soc name.
  
@@ -56,20 +62,20 @@ index 984fba8f1..fd0ed53f8 100644
 +
  endmenu
 diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
-index 2b6d5041d..ad85b6575 100644
+index 422a2eba7..8eacdd373 100644
 --- a/drivers/soc/mediatek/Makefile
 +++ b/drivers/soc/mediatek/Makefile
-@@ -87,3 +87,4 @@ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
+@@ -88,3 +88,4 @@ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
  obj-$(CONFIG_MTK_MMSYS) += mtk-mutex.o
  obj-$(CONFIG_MTK_SVS) += mtk-svs.o
  obj-$(CONFIG_MTK_SOCINFO) += mtk-socinfo.o
 +obj-$(CONFIG_MT6797_SPM_SLEEP) += mt6797-spm-sleep.o
 diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
 new file mode 100644
-index 000000000..6d60db934
+index 000000000..8164bd151
 --- /dev/null
 +++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
-@@ -0,0 +1,731 @@
+@@ -0,0 +1,794 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * MT6797 SPM suspend, Route A stage S1 (local experiment).
@@ -119,6 +125,7 @@ index 000000000..6d60db934
 +#define MCUCFG_PHYS		0x10220000
 +#define MCUCFG_SIZE		0x3000
 +#define INFRA_AO_PHYS		0x10001000
++#define TOPCKGEN_PHYS		0x10000000
 +#define CHIPID_PHYS		0x08000000
 +
 +/* SPM registers */
@@ -165,6 +172,7 @@ index 000000000..6d60db934
 +#define SPM_SW_FLAG		0x600
 +#define SPM_SW_DEBUG		0x604
 +#define SPM_SW_RSV_0		0x608
++#define SPM_PASR_DPD_3		0x63c
 +
 +#define SPM_KEY			(0xb16 << 16)
 +#define PCM_KICK_L		BIT(0)
@@ -188,7 +196,11 @@ index 000000000..6d60db934
 +#define SPM_SYSCLK_SETTLE	99
 +
 +/* SPM_SW_FLAG for S1 */
-+#define S1_FLAGS		0x000900b1	/* CPU kept powered, see the record */
++/*
++ * CPU kept powered (bit 0) and no VPROC/VSRAM DVS (bit 9), so the program
++ * leaves the A72 buck on I2C6 alone; see the record.
++ */
++#define S1_FLAGS		0x000902b1
 +#define FLAG_EN_SEGMENT2	BIT(18)
 +
 +/* Wake sources: PCM timer and EINT */
@@ -204,6 +216,21 @@ index 000000000..6d60db934
 +#define MP1_AXI_CONFIG		0x022c
 +#define MP2_AXI_CONFIG		0x220c
 +#define ACINACTM		BIT(4)
++
++/* Infra clock-gate set/clear/status and TOPCKGEN CLK_CFG_0 */
++#define INFRA_CG0_SET		0x080
++#define INFRA_CG0_CLR		0x084
++#define INFRA_CG1_SET		0x088
++#define INFRA_CG1_CLR		0x08c
++#define INFRA_CG0_STA		0x090
++#define INFRA_CG1_STA		0x094
++#define INFRA_CG2_SET		0x0a8
++#define INFRA_CG2_CLR		0x0ac
++#define INFRA_CG2_STA		0x0b0
++#define CG0_GCE			BIT(9)
++#define CG1_AUXADC		BIT(10)
++#define CG2_I2C_APPM		BIT(1)
++#define CLK_CFG_0		0x040
 +
 +/* MT6351 */
 +#define MT6351_STRUP_CON4	0x0008
@@ -222,7 +249,7 @@ index 000000000..6d60db934
 +	SPM_CLK_CON, SPM_CLK_SETTLE, SPM_AP_STANDBY_CON, PCM_IM_PTR, PCM_IM_LEN,
 +	PCM_TIMER_VAL, SPM_SCP_MAILBOX, SPM_IRQ_MASK, SPM_SRC_REQ, SPM_SRC_MASK,
 +	SPM_SRC2_MASK, SPM_WAKEUP_EVENT_MASK, SPM_MAS_PAUSE_MASK_B,
-+	SPM_MAS_PAUSE2_MASK_B, SPM_SW_FLAG, SPM_SW_RSV_0,
++	SPM_MAS_PAUSE2_MASK_B, SPM_SW_FLAG, SPM_SW_RSV_0, SPM_PASR_DPD_3,
 +};
 +
 +struct spm_slot {
@@ -234,6 +261,7 @@ index 000000000..6d60db934
 +	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
 +	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
 +	u32 wfi_loops;
++	u32 cg_before[3], cg_after[3], clk_cfg0_before, clk_cfg0_after;
 +	bool returned;
 +};
 +
@@ -245,6 +273,8 @@ index 000000000..6d60db934
 +	void __iomem *pwrap;
 +	void __iomem *mcucfg;
 +	void __iomem *carve;
++	void __iomem *infra;
++	void __iomem *topck;
 +	u32 im_ptr;
 +	u32 im_len;
 +	u32 vec[16];
@@ -397,6 +427,31 @@ index 000000000..6d60db934
 +		writel(s.saved_slots[i], s.pwrap + PWRAP_DVFS_ADR(0) + 4 * i);
 +}
 +
++static void spm_gates_read(u32 cg[3], u32 *clk_cfg0)
++{
++	cg[0] = readl(s.infra + INFRA_CG0_STA);
++	cg[1] = readl(s.infra + INFRA_CG1_STA);
++	cg[2] = readl(s.infra + INFRA_CG2_STA);
++	*clk_cfg0 = readl(s.topck + CLK_CFG_0);
++}
++
++/* A status bit set means gated. Put back only the gates the program flips. */
++static void spm_gate_restore(u32 before, u32 after, u32 bit, u32 set, u32 clr)
++{
++	if ((before ^ after) & bit)
++		writel(bit, s.infra + ((before & bit) ? set : clr));
++}
++
++static void spm_gates_restore(void)
++{
++	u32 *b = s.wake.cg_before, *a = s.wake.cg_after;
++
++	spm_gates_read(a, &s.wake.clk_cfg0_after);
++	spm_gate_restore(b[0], a[0], CG0_GCE, INFRA_CG0_SET, INFRA_CG0_CLR);
++	spm_gate_restore(b[1], a[1], CG1_AUXADC, INFRA_CG1_SET, INFRA_CG1_CLR);
++	spm_gate_restore(b[2], a[2], CG2_I2C_APPM, INFRA_CG2_SET, INFRA_CG2_CLR);
++}
++
 +static bool spm_off(u32 off)
 +{
 +	return (spm_rd(off) & 0x1f) == 0x12;
@@ -444,6 +499,7 @@ index 000000000..6d60db934
 +	for (i = 0; i < 2 * PWRAP_DVFS_SLOTS; i++)
 +		s.saved_slots[i] = readl(s.pwrap + PWRAP_DVFS_ADR(0) + 4 * i);
 +	s.entered = true;
++	spm_gates_read(s.wake.cg_before, &s.wake.clk_cfg0_before);
 +
 +	/* W1: PMIC wrapper suspend phase */
 +	for (i = 0; i < PWRAP_DVFS_SLOTS; i++) {
@@ -509,6 +565,8 @@ index 000000000..6d60db934
 +
 +	/* S18-S24: flags and kick */
 +	spm_wr(SPM_SCP_MAILBOX, 1);
++	/* The timer-wake loop compares the mailbox with PASR_DPD_3 */
++	spm_wr(SPM_PASR_DPD_3, 0);
 +	spm_wr(SPM_MAS_PAUSE_MASK_B, 0xffffffff);
 +	spm_wr(SPM_MAS_PAUSE2_MASK_B, 0xffffffff);
 +	spm_wr(PCM_REG_DATA_INI, 0);
@@ -555,6 +613,7 @@ index 000000000..6d60db934
 +
 +	/* X3, X4 (wrapper slots): back to the state before entry */
 +	spm_restore();
++	spm_gates_restore();
 +
 +	/* C3 */
 +	writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
@@ -596,8 +655,12 @@ index 000000000..6d60db934
 +	if (!s.entered)
 +		return;
 +	dev_info(&s.pdev->dev,
-+		 "wake: returned=%d loops=%u r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
-+		 s.wake.returned, s.wake.wfi_loops, s.wake.r12, s.wake.r12_ext,
++		 "wake: returned=%d loops=%u cg0=%08x>%08x cg1=%08x>%08x cg2=%08x>%08x clk_cfg_0=%08x>%08x r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
++		 s.wake.returned, s.wake.wfi_loops,
++		 s.wake.cg_before[0], s.wake.cg_after[0],
++		 s.wake.cg_before[1], s.wake.cg_after[1],
++		 s.wake.cg_before[2], s.wake.cg_after[2],
++		 s.wake.clk_cfg0_before, s.wake.clk_cfg0_after, s.wake.r12, s.wake.r12_ext,
 +		 s.wake.raw_sta, s.wake.raw_ext_sta, s.wake.wake_misc,
 +		 s.wake.timer_out, s.wake.r13, s.wake.idle_sta,
 +		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
@@ -713,6 +776,10 @@ index 000000000..6d60db934
 +{
 +	if (s.carve)
 +		iounmap(s.carve);
++	if (s.topck)
++		iounmap(s.topck);
++	if (s.infra)
++		iounmap(s.infra);
 +	if (s.mcucfg)
 +		iounmap(s.mcucfg);
 +	if (s.pwrap)
@@ -761,8 +828,10 @@ index 000000000..6d60db934
 +	s.spm = ioremap(SPM_PHYS, 0x1000);
 +	s.pwrap = ioremap(PWRAP_PHYS, 0x1000);
 +	s.mcucfg = ioremap(MCUCFG_PHYS, MCUCFG_SIZE);
++	s.infra = ioremap(INFRA_AO_PHYS, 0x1000);
++	s.topck = ioremap(TOPCKGEN_PHYS, 0x1000);
 +	chip = ioremap(CHIPID_PHYS, 0x10);
-+	if (!s.spm || !s.pwrap || !s.mcucfg || !chip) {
++	if (!s.spm || !s.pwrap || !s.mcucfg || !s.infra || !s.topck || !chip) {
 +		if (chip)
 +			iounmap(chip);
 +		ret = -ENOMEM;

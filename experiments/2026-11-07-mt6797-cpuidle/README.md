@@ -717,10 +717,10 @@ SPM, in order:
 | S15 | `PCM_TIMER_VAL` `0x030`; `PCM_CON1` | `0x000f0000` (30 s at 32,768 Hz); RMW bit 5 ← 1, with key `0x0b16` |
 | S16 | `SPM_WAKEUP_EVENT_MASK` `0x0c4` | `0xffffffbe` (wake on PCM timer and EINT only) |
 | S17 | `SPM_IRQ_MASK` `0x0b4` | (read & `0x4`) \| `0x3fe00` (only the PCM-return and IRQ0 interrupts reach the GIC) |
-| S18 | `SPM_SCP_MAILBOX` `0x098` | 1 (as the vendor's efuse-path entry) |
+| S18 | `SPM_SCP_MAILBOX` `0x098`; `SPM_PASR_DPD_3` `0x63c` | 1 (as the vendor's efuse-path entry); 0, so the program's timer-wake loop returns on the first timer (added 2026-11-08 after the decode, restored in X3) |
 | S19 | `SPM_MAS_PAUSE_MASK_B` `0x408`; `SPM_MAS_PAUSE2_MASK_B` `0x40c` | `0xffffffff` each |
 | S20 | `PCM_REG_DATA_INI` | 0 |
-| S21 | `SPM_SW_FLAG` `0x600`; `SPM_SW_RSV_0` `0x608` | `0x000900b1` (CPU stays powered, VCORE DFS off, DRAM deep power-down off, modem-infra power-down off, SYSRAM sleep off, thermal check skipped), plus bit 18 if the chip version reads `0xca01`; 0. **With S0's value** (chip `0xca01`): `0x000d00b1` |
+| S21 | `SPM_SW_FLAG` `0x600`; `SPM_SW_RSV_0` `0x608` | `0x000902b1` (CPU stays powered, no VPROC/VSRAM DVS, VCORE DFS off, DRAM deep power-down off, modem-infra power-down off, SYSRAM sleep off, thermal check skipped), plus bit 18 if the chip version reads `0xca01`; 0. **With S0's value** (chip `0xca01`): `0x000d02b1`. Bit 9 was added after the decode: without it the program drives the A72 buck (DA9214) over I2C6 |
 | S22 | `SPM_CLK_CON` | RMW bit 5 ← 1 (infra DCM lock) |
 | S23 | `PCM_PWR_IO_EN` | `0x81` |
 | S24 | `PCM_CON0` | `0x0b16000d`, then `0x0b16000c` (the program starts) |
@@ -740,6 +740,7 @@ After the wake:
 | X1 | — | Reads: `0x028`, `0x608`, `0x144`, `0x15c`, `0x160`, `0x41c`, `0x420`, `0x424`, `0x134`, `0x170`, `0x604`, `0x158`, logged as the wake reason |
 | X2 | `SPM_CPU_WAKEUP_EVENT` `0x0b0`; `SPM_WAKEUP_EVENT_MASK`; `SPM_IRQ_MASK`; `SPM_IRQ_STA` `0x158`; `SPM_SW_INT_CLEAR` | 0; `0xffffffff`; RMW bits 17:9 ← 1; `0x8`; `0x3ff` |
 | X3 | `PCM_PWR_IO_EN`; `PCM_CON1`; `PCM_CON0`; every word S1-S23 changed | 0; RMW bit 5 ← 0 with key; `0x0b168004`, poll, `0x0b160004` (the idle state C0 read); all others back to the values read before S1 |
+| X5 | Infra gates GCE, AUXADC, I2C_APPM (set `0x10001080`/`88`/`a8`, clear `84`/`8c`/`ac`) | Only where the program left one different from before entry (status `0x10001090`/`94`/`b0`), written back to its state before entry. `CLK_CFG_0` (`0x10000040`) is read before and after and logged, not written |
 | X4 | Wrapper slots; P3, P2, P1 | The 32 saved words; P3 restored; P2 bits ← 0 and P1 bit ← 0, as the vendor does |
 
 Nothing in this list is a new firmware call. Every write is new on mainline.
@@ -774,7 +775,7 @@ a large drop is visible and a small one is not.
 | Outcome | Next |
 | --- | --- |
 | Three cycles resume, wake reason PCM timer, current clearly below 96 mA | Record the figure. Add the static regulator sleep modes as their own stage, then decide S2 |
-| Resume works, no saving | The program did not gate in this mode (flag bit 0 is not honoured as inferred). Stop Route A's S1 path; S2 is the only remaining SPM path |
+| Resume works, no saving | The program's "CPU stays powered" path gates too little to matter. S2 is the only remaining SPM path |
 | Wake reason other than the timer, or abort before sleeping | Keep the status words; analyse before any retry |
 | No resume within 60 s | Force-off by the owner, as for any hang. Keep the S0 values and module log; no retry until the cause is known |
 
@@ -810,6 +811,29 @@ disables the interrupt and logs one `wake:` line (returned flag, WFI loop
 count, `r12`, raw wake status, timer-out and the other X1 words). Failed
 preconditions return `-EBUSY` with nothing written; a PCM reset timeout
 returns `-EIO` after restoring.
+
+**What the program itself does (decode, 2026-11-08).** A separate session
+decoded `pcm_suspend.bin` in full, privately. Its findings, as relayed:
+
+- Flag bit 0 is tested at four places. Set, the program skips powering off
+  `MP0_CPU0`, `MP0_CPUSYS` and `MCUSYS`, skips `CPU_EXT_BUCK_ISO` at entry
+  and exit, and skips the CPU power-up. So "CPU stays powered" is a real
+  path, and S1 does not undo the A72 preparation.
+- With flag bit 9 clear, the program reprograms I2C6 and writes register
+  `0x1d` of slave `0x68` (the station's DA9214, the A72 buck) at entry and
+  exit. S1 now sets bit 9.
+- Unconditionally it soft-resets I2C6 (`0x1100e050` ← 1), ungates I2C_APPM
+  and gates it again at exit, gates GCE at entry and ungates it at exit, and
+  moves `ddrphycfg_sel` (`CLK_CFG_0`) to parent 0 and back to parent 1. Its
+  APSRC handlers gate AUXADC and flip `CLK_CFG_0` bit 8. These were not on
+  the S1 list; the module now puts the three gates back as found (X5) and
+  logs `CLK_CFG_0`. The I2C6 reset is covered by `i2c-mt65xx`'s resume,
+  which reinitialises the controller.
+- When the timer fires with `SPM_WAKEUP_MISC` bit 19 set, it compares
+  `SPM_SCP_MAILBOX` with `SPM_PASR_DPD_3` and may sleep again. S1 now zeroes
+  `PASR_DPD_3` (S18).
+- Flag bits 4, 5, 7, 16 and 18 are never tested by this program; they stay
+  set as the vendor sets them.
 
 **Differences from the S1 list as approved for review:**
 
@@ -858,7 +882,7 @@ package carries the module):
    module not loaded. Blank the display through `fb0/blank`.
 3. **Load.** `insmod mt6797-spm-sleep.ko timer_sec=30`. Expect
    `program 1822 words at 0x00000000bfdd0000, SPM pointer ffdd0000` and
-   `flags 000d00b1, HWCID 5140`. Immediately
+   `flags 000d02b1, HWCID 5140`. Immediately
    `echo s2idle > /sys/power/mem_sleep`, because loading makes `deep` the
    default.
 4. **Functional cycle, cable in.** `echo deep > /sys/power/mem_sleep;
@@ -883,11 +907,12 @@ program returned on its timer each time and give `timer_out`.
 | Outcome | Next |
 | --- | --- |
 | Suspended current far below 96 mA, resumes clean | The vendor programs deliver; record it; the static regulator modes next, then S2 |
-| Resumes clean, current near 96 mA | Flag bit 0 does not run the low-power sequence, or the slots are not honoured; S2 decides |
+| Resumes clean, current near 96 mA | The bit 0 path does not reach the low-power states, or the slots are not honoured; S2 decides |
 | `wake: returned=0` or `loops=1000000` | The program never signalled; stop, keep the log |
 
 **Stop** at the first: `insmod` error; `.enter` returning an error; a
-`wake:` line other than `returned=1`; an Oops, `WARNING` or RCU stall; a CPU
+`wake:` line other than `returned=1`, or one whose `clk_cfg_0` before and
+after differ; an Oops, `WARNING` or RCU stall; a CPU
 that does not return; no USB link 60 s after the expected wake in step 4.
 No retry.
 
