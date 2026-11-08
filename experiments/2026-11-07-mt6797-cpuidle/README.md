@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; stage C0 (measurement and register reads, no new write) owner-approved 2026-11-07, not run |
+| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 proposed |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -202,7 +202,7 @@ policy is stopped for the run and restarted afterwards.
 
 | Stage | What | Writes | Image | Status |
 | --- | --- | --- | --- | --- |
-| C0 | Idle current with A53 cpufreq at its idle points: all A53s online in WFI, then the L cluster down, then CPU1-7 down; SPM status reads in each state; the L clock checked after its cluster returns | None new (see below) | Running boot2 image | **Owner-approved 2026-11-07**, not run |
+| C0 | Idle current with A53 cpufreq at its idle points: all A53s online in WFI, then the L cluster down, then CPU1-7 down; SPM status reads in each state; the L clock checked after its cluster returns | None new (see below) | Running boot2 image | Attempt 1 run 2026-11-07, stopped at c3; **attempt 2 proposed** |
 | C1 | Depends on C0: a cluster-first idle hotplug policy (screen on), or nothing | Hotplug only | none, userspace | Not proposed |
 | C2 | Per-core power-down in idle, through an SPM program or a firmware port | New SPM or `tee1` writes | New | Owner decision; blocked on a program that does not exist in the evidence |
 
@@ -278,6 +278,30 @@ settling, with `/proc/interrupts` read at its start and end.
 
 One run. About 6 minutes on battery.
 
+### Attempt 2 changes
+
+Attempt 1 (see [Observations](#attempt-1-2026-11-07)) showed two faults in the
+procedure above. Attempt 2 runs it with these changes and nothing else:
+
+1. **Freeze `backlight-policy`, do not kill it.** Busybox init respawns it,
+   and the new copy blanked the console and took CPU1-3 down. Before c1:
+   console blanking off (`printf '\033[9;0]' > /dev/tty1`), then
+   `kill -STOP` on every `backlight-policy` process, checked with `ps`. Blank
+   only through `fb0/blank`. In c6: unblank `fb0`, then `kill -CONT`; the
+   policy took no CPU, so it brings none back.
+2. **Hold the clocks at the idle points.** Under schedutil, W1 sat at
+   624/832 MHz for much of the window, so the windows did not measure WFI at
+   the idle points. In c0, after schedutil is set, write `scaling_max_freq`
+   `221000` (policy0) and `325000` (policy4); restore `897000` and `1209000`
+   in c6. These are frequency requests inside the approved list (items 1-8);
+   no new write. With the clocks held, the c3 check "PLL1 and divider as
+   before c2" is exact again: in attempt 1 they had moved because schedutil
+   kept scaling between the reads.
+3. **The mask is checked per sample.** A window whose logged `online` mask
+   changes at any sample stops the run, instead of only at stage boundaries.
+
+Expected W1 then reads `scaling_cur_freq` 221000 and 325000 in every sample.
+
 ### Stop conditions
 
 Stop at the first of these, keep `dmesg` and the logs, and do not retry:
@@ -309,11 +333,82 @@ and the logger's own load. A72 idle cost is outside it.
 
 ## Observations
 
-None yet.
+### Attempt 1 (2026-11-07)
+
+Run by the device custodian. Boot `b15c1ad0-1fc1-4be6-9519-a63a1e8ff60c`,
+release `7.1.3-gemini-a53-station`, boot2 `be1dbf5a…` (station-work-87, by GPT
+name), `clk-mt6797-mcusys.ko` `8163e541…`, `cpufreq-dt.ko` `2c451b82…`,
+`cpu-mhz` `4168cfe5…`. A72 module not loaded. Battery 77 % to 74 %,
+27.3 °C to 25.4 °C. The raw logs stay private with the custodian.
+
+**c0** (cable in) passed: `online` `0-7`, taint 0, both drivers loaded,
+policy0 CPU0-3 and policy4 CPU4-7 on schedutil, `faulted=0`, sync DCM
+`0x00070707`. SPM reads (offsets from `0x10006000`):
+
+| Offset | Value | Offset | Value |
+| --- | --- | --- | --- |
+| `018` `PCM_CON0` | `00000004` | `180` `PWR_STATUS` | `2B00005E` |
+| `01c` `PCM_CON1` | `00006C00` | `184` `PWR_STATUS_2ND` | `2B00004E` |
+| `020` `PCM_IM_PTR` | `00000000` | `188` `CPU_PWR_STATUS` | `003DA008` |
+| `024` `PCM_IM_LEN` | `00000FFF` | `18c` `CPU_PWR_STATUS_2ND` | `003D82FF` |
+| `028` `PCM_REG_DATA_INI` | `00000000` | `1e4` `CPU_RET_STATUS` | `000000F6` |
+| `02c` `PCM_PWR_IO_EN` | `00000000` | `210`, `214` `MP0/MP1_CPUSYS_PWR_CON` | `0009004D` each |
+| `174` `CPU_IDLE_STA` | `0003EC00` | `220`-`23c` A53 core `PWR_CON` | `0001004D` each |
+| `17c` `PCM_FSM_STA` | `02848490` | `540`-`55c` `WFI_EN` | `0` each |
+| `600` `SPM_SW_FLAG` | `0` | `608`-`614` `SPM_SW_RSV_0-3` | `0` each |
+| `618`, `61c` `SPM_SW_RSV_4-5` | `FFFFFFFF` each | MCUCFG `0x10220744` | `00070707` |
+
+**The procedure fault.** `backlight-policy` was killed before c1, but busybox
+init restarted it at once (`backlight-policy: start: lid open` at 926.11 s).
+The new copy blanked the console at 1043.22 s, inside W2, and took CPU1-3
+down (`psci: CPU1/2/3 killed`, 1043.24-1043.29 s). It unblanked and brought
+them back at 1945.45 s, after the replug. It probably lit the backlight when
+it started, before W1; the logs cannot confirm that.
+
+**Windows** (battery, charger offline in every sample):
+
+| Window | Online | Samples | Mean | Range | Clocks (policy0/policy4, MHz) |
+| --- | --- | --- | --- | --- | --- |
+| W1 | `0-7` | 60 | −158.8 mA at 4.060 V | −140.0 to −187.3 | 624/325 in 30 samples, 221/832 in 26 |
+| W2, first part | `0-3` | 4 | −128.3 mA | — | — |
+| W2, rest | `0` (CPU1-3 taken by the policy) | 56 | −133.8 mA at 4.066 V | −114.2 to −144.4 | — |
+
+`arch_timer` rose from 20509 to 40490 over W1.
+
+**c2:** CPU4-7 down, rc 0, `psci: CPU4-7 killed` at 1029.30-1029.44 s. The
+clock driver before: `ckdiv` `0x2900`, PLL0 715 MHz, PLL1 325 MHz (CON1
+`0x410c8000`), changes 1877/1940, sync DCM `0x00070707`, `faulted=0`.
+
+**c3:** CPU4-7 back, rc 0, at 1107.91-1108.10 s. `online` read `0,4-7`, so the
+stage stopped by its rule. The clock driver after: `ckdiv` `0x2160`, PLL0
+221 MHz, PLL1 832 MHz (CON1 `0x41100000`), changes 2453/1998, sync DCM
+`0x00070707`, `faulted=0`. The `cpu-mhz` and hash check, W3 and W4 did not
+run. At the end: taint 0, no new fault line, unblank rc 0.
 
 ## Analysis
 
-Pending C0.
+**Attempt 1.**
+
+- **The L cluster went down and came back with the clock driver bound,
+  without a fault.** All four CPUs returned, sync DCM did not change, the
+  driver stayed unfaulted and kept scaling PLL1 afterwards (its change count
+  rose from 1940 to 1998). The PLL and divider differed from the c2 reads only
+  because schedutil was still changing them. That points away from the
+  firmware touching the L cluster clock on power-up. It is not proof: the
+  measured clock on CPU4 after c3 is missing, and a firmware change that the
+  driver later overwrote would not show.
+- **No current figure can be used.** W1 (159 mA) is well above R1's 111 mA,
+  which fits a lit backlight, and the clocks were not at the idle points. W2
+  mixes a probably unlit backlight with CPU1-3 also offline. Neither D nor L
+  can be taken from this run.
+- **No SPM program appears to be running on mainline** (inferred from the c0
+  reads). `PCM_CON0` holds only the PCM clock enable (vendor bit 2), without
+  the kick bits or the run-state `EN_IM_SLEEP_DVS`. `PCM_IM_PTR`,
+  `PCM_REG_DATA_INI`, `PCM_PWR_IO_EN`, `SPM_SW_FLAG` and every `WFI_EN` word
+  are 0. `PCM_FSM_STA` was not compared against a known idle value, so this is
+  not confirmed.
+- **`CPU_IDLE_STA` sees WFI.** Bits 10-17 read `0xFB`: seven A53s in
+  `STANDBYWFI`, one not, which fits one CPU running the read.
 
 ## Conclusion
 
@@ -324,7 +419,7 @@ power idle cores down on all three clusters.
 
 ## Follow-up
 
-- C0, through the custodian, after owner approval.
+- C0 attempt 2, through the custodian, after owner approval.
 - If C1 follows, it reuses P2f's mechanism and needs no new write.
 - A GPT broadcast timer node and the cpuidle-psci skip for CPU8-9 are needed
   only once a real state exists; neither is worth a patch before then.
