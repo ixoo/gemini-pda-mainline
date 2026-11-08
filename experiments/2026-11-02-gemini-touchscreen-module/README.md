@@ -5,10 +5,10 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-touchscreen-module` |
-| Status | `running`: T1 showed real multitouch from the module; T3, the panel's own coordinates, is prepared and not run |
+| Status | `completed`: T1 showed real multitouch from the module on one boot, on its first load and again after `rmmod` and `insmod` |
 | Subsystem | Novatek NT36772 touch controller, I2C4, EINT8, input multitouch |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
-| Date(s) | 2026-11-02, 2026-11-04, 2026-11-08 |
+| Date(s) | 2026-11-02, 2026-11-04 |
 | Investigator(s) | project session, device custody with the custodian session |
 | Tracking issue | none |
 
@@ -220,43 +220,6 @@ or contact counts, and nothing about reports reaching the event node on this ima
 
 Inference, not shown: blanking stops the controller sensing because the panel goes
 off. If that holds, a touch can't wake a blanked console on this path.
-
-### T3, prepared: the panel's own coordinates
-
-The driver turned contacts to the vendor's landscape layout itself: X was the raw
-y and Y the reversed raw x, over 2160x1080. niri maps touch to `DSI-1`, the
-1080x2160 portrait panel, and applies the output's transform (`90`) to touch too,
-so touch was turned twice. The Arch image worked around it with the libinput matrix
-`0 1 0 -1 0 1`, which the owner confirmed tracks the finger on card-14.
-
-Taking that matrix back through the old mapping gives what niri expects:
-x = raw x max - 1 - raw x and y = raw y max - 1 - raw y, the raw axes inverted on
-both sides. That is an inference from one confirmed matrix.
-
-[0647](../../patches/proposals/0647-Input-novatek-nt36xxx-report-the-panel-s-own-coordin.patch)
-drops the driver's rotation: it reports raw x and y over the firmware's 1080x2160
-through `touchscreen_report_pos()`, which applies the standard
-`touchscreen-inverted-*` and `touchscreen-swapped-x-y` properties.
-[0648](../../patches/proposals/0648-arm64-dts-mediatek-gemini-station-invert-the-touchsc.patch)
-sets `touchscreen-inverted-x` and `touchscreen-inverted-y` in the station tree. The
-module compiled with no warnings at `W=1` in the VM; the DT schemas were not run.
-
-The module swaps without a boot; 0648 needs a new image. So on the running image the
-new module reports raw coordinates, not inverted.
-
-Hypothesis: on the running image, with the new module and the libinput matrix
-`-1 0 1 0 -1 1` (both axes inverted) in place of the current rule, touch tracks the
-finger under niri's transform `90`. Then an image with 0648 tracks with no matrix.
-
-| Observation, new module on the running image | Meaning | Next |
-| --- | --- | --- |
-| Axes 0..1079 and 0..2159; with `-1 0 1 0 -1 1`, tracks the finger | Inference holds | Image with 0648, drop the rule; check with no matrix |
-| Tracks with no matrix | Raw axes already match the panel | Drop 0648 |
-| Off by a mirror or a quarter turn | Inference wrong | Find the matrix that tracks; express it with the touchscreen properties in 0648 |
-| Probe or interrupts differ from T1 | Regression in 0647 | `rmmod`, compare logs |
-
-The Arch image's rule must go when the kernel with 0647 and 0648 ships; its matrix was
-made for the old mapping and is wrong for the new one.
 
 ## Analysis
 
