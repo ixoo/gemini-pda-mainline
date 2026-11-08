@@ -1,0 +1,74 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 19:40:56 -0500
+Subject: [PATCH] arm64: mediatek: let the MT6797 A72s go down and come back
+
+The A72 ops refuse to take CPU8 and CPU9 offline, because the board sequence
+that powers them has no proven inverse. Going down and back through PSCI
+alone does not need one: the rail, its isolation and the SRAM LDO stay as the
+module left them, and the firmware does the core and cluster work as it does
+for CPU_ON.
+
+Allow it when the A72 module is configured, so the plain station keeps its
+behaviour.
+---
+ arch/arm64/kernel/mt6797_psci.c | 31 +++++++++++++++++++++++++++++++
+ 1 file changed, 31 insertions(+)
+
+diff --git a/arch/arm64/kernel/mt6797_psci.c b/arch/arm64/kernel/mt6797_psci.c
+index 391202921..e4272c91c 100644
+--- a/arch/arm64/kernel/mt6797_psci.c
++++ b/arch/arm64/kernel/mt6797_psci.c
+@@ -1974,11 +1974,38 @@ static int mt6797_psci_cpu_boot(unsigned int cpu)
+ }
+ 
+ #ifdef CONFIG_HOTPLUG_CPU
++#if IS_ENABLED(CONFIG_MTK_MT6797_A72)
++/*
++ * Once the A72 module has brought the board side up, an A72 can go down and
++ * come back through PSCI alone. The rail, its isolation and the SRAM LDO stay
++ * as the module left them.
++ */
++static bool mt6797_psci_cpu_can_disable(unsigned int cpu)
++{
++	return true;
++}
++
++static int mt6797_psci_a72_disable(unsigned int cpu)
++{
++	return cpu_psci_ops.cpu_disable(cpu);
++}
++
++static void mt6797_psci_a72_die(unsigned int cpu)
++{
++	cpu_psci_ops.cpu_die(cpu);
++}
++
++static int mt6797_psci_a72_kill(unsigned int cpu)
++{
++	return cpu_psci_ops.cpu_kill(cpu);
++}
++#else
+ static bool mt6797_psci_cpu_can_disable(unsigned int cpu)
+ {
+ 	return false;
+ }
+ #endif
++#endif
+ 
+ const struct cpu_operations mt6797_psci_ops = {
+ 	.name		= "mediatek,mt6797-psci",
+@@ -2009,6 +2036,10 @@ const struct cpu_operations mt6797_psci_ops = {
+ 	.cpu_disable = mt6797_psci_cpu_disable,
+ 	.cpu_die = mt6797_psci_cpu_die,
+ 	.cpu_kill = mt6797_psci_cpu_kill,
++#elif IS_ENABLED(CONFIG_MTK_MT6797_A72)
++	.cpu_disable = mt6797_psci_a72_disable,
++	.cpu_die = mt6797_psci_a72_die,
++	.cpu_kill = mt6797_psci_a72_kill,
+ #endif
+ #endif
+ };
+-- 
+2.43.0
+

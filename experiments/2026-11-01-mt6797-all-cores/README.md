@@ -633,6 +633,64 @@ A53s only.
 | A72 stops, or a hash mismatch | A72 or coherency fault beside scaling | Keep logs, `reboot -f` if needed, no repeat until explained |
 | Bring-up failure in `s1` | As attempt 1's table | As attempt 1's table |
 
+### Step 2: down and up (proposed, not admitted, not run)
+
+The A72 CPU operations report that CPU8 and CPU9 cannot be disabled, so the kernel gives
+them no `online` control. That was deliberate: the board sequence has no proven inverse.
+Going down and back through PSCI alone needs none, because nothing in the board sequence
+is undone: BUCKB stays on, its isolation stays cleared and the SRAM LDO stays set.
+[0644](../../patches/proposals/0644-arm64-mediatek-let-the-MT6797-A72s-go-down-and-come-.patch)
+lets them go down and come back when the A72 module is configured, by handing
+`cpu_disable`, `cpu_die` and `cpu_kill` to the standard PSCI operations. The plain station
+keeps its behaviour. Compiled in the dev VM with `W=1`, no warning.
+
+What goes down: on `CPU_OFF` the A72 enters WFI, and CPU0's `AFFINITY_INFO` query makes
+the firmware do the core teardown, and the cluster's when it is the last A72. On the way
+back, `CPU_ON` makes the firmware power the cluster and program the B PLL, as at first
+bring-up. Unknown: whether the MP2 sync DCM word `0x10222274`, which the module writes
+between CPU8 and CPU9, survives a cluster power-down. The firmware's `AFFINITY_INFO` is
+unbounded inside EL3, so a hang there is possible.
+
+cpufreq stays unloaded for the whole run, so no A53 rate change can overlap a `CPU_ON`, as
+agreed with the cpufreq session.
+
+Writes beyond step 1: Linux writes no register. It makes three secure calls the first
+bring-up did not repeat: PSCI `CPU_OFF` (`0x84000002`) on the A72 going down,
+`AFFINITY_INFO` (`0xc4000004`) from another CPU, and `CPU_ON` (`0xc4000003`) again. The
+firmware's own writes in those calls are its core and cluster power control.
+
+Hypothesis: CPU9 goes down and comes back with CPU8 online; then both go down and come
+back; the station keeps working and every hash is correct. Unique observations: A72
+hotplug on the station kernel, the last-A72 teardown on mainline, and the cluster
+registers after it.
+
+Candidate: a new image from the commit adding 0644, built on Buildbox. A request follows
+with its hashes.
+
+| Stage | What | Expected |
+| --- | --- | --- |
+| s0 | `insmod mt6797-a72.ko`; registers | `online 0-9`, taint 0, as step 1 |
+| s1 | Three times: `echo 0 > cpu9/online`, registers, hash on CPU8, `echo 1 > cpu9/online`, hash and clock on CPU9 | `0-8` then `0-9` each time; no `may not have shut down cleanly` |
+| s2 | `echo 0` to cpu9 then cpu8; registers; 10 s; `echo 1 > cpu8/online`; registers; then cpu9 only if `0x10222274` bits 6:0 still read `0x0d` | `0-7`, then `0-8`, then `0-9`; hashes and 750 MHz on both |
+| s3 | `soak.sh load 300` | result 0, `online 0-9` |
+| s4 | PMIC read, keyboard, one tone with the speaker route on, clean poweroff | as step 1 |
+
+The registers: SPM `0x10006188`, `0x1000618c`, `0x10006218`, `0x10006240`, `0x10006244`,
+`0x10006290`, and MCUCFG `0x10222274`, by `devmem` reads.
+
+Stop rules: any `echo` not returning within 30 s (a CPU or the firmware is stuck; keep the
+log, `poweroff -f`, and if that fails the owner forces power off); `may not have shut down
+cleanly` or a `CPU_ON` failure; `online` other than expected; a hash mismatch; any new
+`WARNING`, Oops or stall; the SoC at 75 C. On a stop with an A72 offline, leave it offline.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| All stages pass | A72 hotplug works with the rail left on | Step 3, idle cost, uses it |
+| s1 fails | Core-level down or up fails on the station kernel | Keep logs, compare with the isolated run, no repeat |
+| s2 down fails | Last-A72 teardown fails | Keep logs, no repeat; hotplug stays limited to CPU9 |
+| `0x10222274` lost after s2 | Cluster power-down resets the DCM word | CPU9 stays down; the module or a hotplug callback must restore it, a new patch |
+| CPU8 does not return in s2 | Cluster power-up needs something the module did once | Keep logs, no repeat until the firmware path is read |
+
 ## Observations
 
 One read-only reading on station 30, boot `4ac95e75`, with Wi-Fi associated and audio
