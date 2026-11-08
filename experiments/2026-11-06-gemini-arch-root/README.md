@@ -1591,6 +1591,27 @@ Card-24 (dev VM, `gemini-base` 25, image sha256 `cd7154c33a12…`, 417 packages)
 `station-work-91` or later. Umbriel's config check passes with the cursor settings. Untested on
 the device.
 
+### A simpler bar (`gemini-base` 26, 2026-11-08)
+
+The owner, with a photo of card-23's bar, which shows the network name beside the Wi-Fi icon
+and the volume value under its icon: "don't display the network name, icon is enough", "could
+we add bluetooth?", "don't display the volume value, icon is enough".
+
+`noctalia.toml` now:
+
+- adds `bluetooth` to the bar's end section, after `network`;
+- sets `show_label = false` on the network, Bluetooth and volume widgets.
+
+Noctalia 5.4.1's `config validate` passes with it, run from the card-24 image.
+
+In Noctalia 5.4.1 (`src/shell/bar/widgets/bluetooth_widget.cpp`), the Bluetooth widget draws
+only while bluez reports an adapter. The card leaves `bluetooth.service` stopped, so there is
+no adapter on D-Bus and the widget hides itself completely. With the service running, it
+shows: the off glyph while the adapter is powered down, and its normal glyph once powered.
+Whether to start bluetooth at boot is the owner's decision.
+
+Not yet in a card image: the next card waits for the audio session's UCM profile.
+
 ## Analysis
 
 Not started.

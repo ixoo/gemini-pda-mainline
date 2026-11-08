@@ -18,7 +18,7 @@ widget_spacing = 10
 font_scale = 1.15
 start  = ["launcher", "workspaces"]
 center = ["clock"]
-end    = ["network", "volume", "battery", "control-center"]
+end    = ["network", "bluetooth", "volume", "battery", "control-center"]
 
 [widget.clock]
 vertical_format = "{:%H\n%M}"
@@ -29,3 +29,15 @@ font_weight = 700
 # A vertical bar can't show the percent label, so the level is drawn as a fill.
 [widget.battery]
 display_mode = "graphic"
+
+# Icons only (owner, 2026-11-08: "don't display the network name, icon is enough", "don't
+# display the volume value"). Bluetooth's widget shows only while bluez runs: with
+# bluetooth.service stopped there is no adapter on D-Bus, and the widget hides itself.
+[widget.network]
+show_label = false
+
+[widget.bluetooth]
+show_label = false
+
+[widget.volume]
+show_label = false
