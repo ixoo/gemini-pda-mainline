@@ -520,6 +520,9 @@ On station-work-91 (`65549ff5`, boot `50572be9`) the kernel reserved 256 MiB of 
 about 192 MiB stayed free. There were no `CREATE_DUMB` failures, and the owner reported
 "Smooth now".
 
+At the owner's request the default is now 512 MiB, for heavier browser loads. It should
+land at 0xe0000000, still above every logged carve-out; built, not yet booted.
+
 Twice around qutebrowser's start, the OVL logged that the swiotlb buffer was full for a
 4 MiB mapping. Our reading, not traced: the compositor imported a client's GPU buffer to try
 scanning it out directly. The display has no IOMMU here, so the OVL keeps the default 32-bit
