@@ -22,16 +22,12 @@ scale = 2.5
 [input.touch]
 map_to_output = "DSI-1"
 
-# Blur and animations draw through full-screen offscreen buffers, which come from the
-# display's scanout allocator: contiguous memory (CMA, 32 MiB) that the screen's own
-# buffers nearly fill. With them on, card-18 logged about 40 "Failed to create effect
-# framebuffer" errors at start, and the effects were missing anyway. Shadows need no
-# such buffer. Turn these back on once the kernel reserves more CMA.
+# Blur and animations draw through full-screen offscreen buffers from the display's
+# contiguous memory (CMA). They need the 256 MiB CMA kernel (station-work-91 or later);
+# on the old 32 MiB they fail to allocate. The Mali draws through Panfrost, and blur
+# costs a pass per frame on a small GPU.
 [appearance.blur]
-enabled = false
-
-[animation]
-enabled = false
+radius = 3
 
 # The Gemini keyboard (docs/hardware/keyboard.md): Ctrl and Alt sit at the bottom left,
 # Fn is xkb level 3 (Mod5, not Super), Esc is the power key, and the outer side key

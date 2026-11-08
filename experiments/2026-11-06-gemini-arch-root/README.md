@@ -1452,6 +1452,42 @@ animations stay off: the 256 MiB CMA kernel (`65549ff5`) has not yet been tested
 Card-20 (dev VM, image sha256 `b7cea5be8283…`) carries it: no calibration rule on the image,
 and Umbriel's `config validate` passes. Untested on the device.
 
+### Effects with 256 MiB of CMA, hostname and a left bar (`gemini-base` 23, 2026-11-08)
+
+Measured by the custodian on `station-work-91` (`65549ff5`, boot `50572be9`) with card-18
+(`gemini-base` 19 plus the launch fix, blur and animations on):
+
+- The kernel logged `cma: Reserved 256 MiB at 0xf0000000`, and CmaTotal read 262144 kB.
+- CmaFree read 195812 kB at the desktop, and 192620 kB after a minute with the launcher, foot
+  and qutebrowser open, so about 68 MiB was in use.
+- No `CREATE_DUMB` or "Failed to create effect framebuffer" errors appeared. The owner: "Smooth
+  now". Touch worked with the identity calibration.
+
+`gemini-base` 23 (owner requests, 2026-11-08):
+
+- Blur and animations are back on, with blur radius 3. The card therefore needs
+  `station-work-91` or later; on a 32 MiB kernel the allocation errors and the lag return.
+- First boot asks for a hostname after the time zone. An empty answer keeps `gemini`. The name
+  goes to `/etc/hostname` and the running kernel; `nss-myhostname` resolves it.
+- Noctalia's bar is vertical on the left edge. Noctalia reads no system-wide config, only
+  `~/.config/noctalia/*.toml` merged in name order, plus GUI changes in
+  `~/.local/state/noctalia/settings.toml`. So the package installs
+  `/etc/skel/.config/noctalia/00-gemini.toml` (`[bar.default] position = "left"`), and the user
+  created at first boot gets a copy. The user's own files and GUI settings override it.
+  Checked against Noctalia 5.4.1: the file changes only that key in
+  `noctalia config export full`.
+- The bar shows the battery (owner, 2026-11-08). Noctalia's default bar already lists the
+  `battery` widget, which reads UPower and hides itself without one. Card-18 had no `upower`, so
+  `gemini-base` 23 depends on it. UPower starts on demand over D-Bus. On `station-work-91`,
+  `/sys/class/power_supply/battery` reads type Battery, capacity 98 and "Not charging" on USB;
+  the charger is `bq25890-charger-0`.
+
+Card-21 (dev VM, `gemini-base` 23, image sha256 `8550dfaab9a6…`, 393 packages, root 2.50 GB used)
+pairs with `station-work-91` or later. Checked read-only on the image: upower 1.91.5 with its
+D-Bus activation file, the bar default in `/etc/skel`, blur on, and the hostname prompt.
+Umbriel's and Noctalia's config checks pass. The prompt logic, run in the VM, kept `gemini` for
+an empty answer, rejected `-x`, and wrote `my-pda`. Untested on the device.
+
 ## Analysis
 
 Not started.

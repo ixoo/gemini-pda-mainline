@@ -1,8 +1,9 @@
 #!/bin/bash
 # SPDX-License-Identifier: MIT
-# First boot, on the console: the keyboard layout, the package keyring, the time zone, one user in wheel
-# with a password and the Wi-Fi country, then the autologin session. Networks are joined
-# later from Noctalia (owner, 2026-11-08), through iwd.
+# First boot, on the console: the keyboard layout, the package keyring, the time zone,
+# the hostname, one user in wheel with a password and the Wi-Fi country, then the
+# autologin session. Networks are joined later from Noctalia (owner, 2026-11-08),
+# through iwd.
 # The stock systemd-firstboot.service is masked, since it asks on the serial port.
 # A marker, not ConditionFirstBoot, so an interrupted run asks again next boot.
 set -u
@@ -28,6 +29,16 @@ pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
 # Asks only while /etc/localtime is unset; the list of zones is paged.
 systemd-firstboot --prompt-timezone ||
     echo "No time zone set; set one later with: timedatectl set-timezone ZONE"
+# Replaces the image's "alarm" (owner, 2026-11-08). nss-myhostname resolves it, so
+# /etc/hosts needs no line.
+while :; do
+    read -r -p "Hostname (empty keeps gemini): " host
+    host=${host:-gemini}
+    [[ "$host" =~ ^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$ ]] && break
+    echo "Use letters, digits and -, not at either end, up to 63 characters."
+done
+echo "$host" >/etc/hostname
+echo "$host" >/proc/sys/kernel/hostname
 while :; do
     read -r -p "User name: " user
     [[ "$user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && ! id "$user" >/dev/null 2>&1 && break

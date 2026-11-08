@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=21
+pkgver=23
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -18,7 +18,7 @@ _xkbrev=64c6c0e4d5df00babe215f26eb5ca5b2e28c0ee9
 _csver=1.216
 makedepends=('perl' 'kbd' 'xkeyboard-config')
 # umbriel comes from ../umbriel, built by ../build-card.sh; noctalia from Arch Linux ARM.
-depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'noctalia' 'mesa' 'foot' 'ttf-dejavu'
+depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'noctalia' 'upower' 'mesa' 'foot' 'ttf-dejavu'
          # Profiling and power analysis (owner, 2026-11-07); the kernel side is
          # configs/gemini-a53-station-perf.fragment.
          'perf' 'trace-cmd' 'powertop' 'cpupower'
@@ -33,13 +33,13 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         tmpfiles.conf 50-gemini-usb0.network 50-gemini-wlan.network iwd-main.conf
         logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
         gemini-session-fallback@.service session-fallback modprobe-drm.conf
-        umbriel.toml firstboot gemini-firstboot.service
+        umbriel.toml noctalia.toml firstboot gemini-firstboot.service
         umbriel-session hw-load gemini-hw@.service hw-radio.conf
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
-            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
             '2a2c8d95973ad6b18d05a4667497d78e4bf97a0d69e4a1870750a19a2a75af6d')
@@ -74,6 +74,9 @@ package() {
     install -Dm644 vconsole.conf "$pkgdir/etc/vconsole.conf"
     install -Dm440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"
     install -Dm644 umbriel.toml "$pkgdir/etc/xdg/umbriel/config.toml"
+    # Noctalia reads only the user's config directory, so the default reaches each user
+    # through useradd -m at first boot.
+    install -Dm644 noctalia.toml "$pkgdir/etc/skel/.config/noctalia/00-gemini.toml"
     install -Dm755 -t "$pkgdir/usr/lib/gemini" umbriel-session session-fallback hw-load
     # Gemian's layouts, and one complete keymap per layout as Gemian's planetgemini rules
     # composed it: pc + the layout + inet + the escape part. A complete keymap keeps the

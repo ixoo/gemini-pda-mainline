@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: MIT
+# The Gemini's Noctalia defaults, copied to each new user's ~/.config/noctalia/ at first
+# boot. Noctalia merges that directory's *.toml files in name order, so the user's own
+# config.toml, and settings changed in Noctalia, override these.
+
+# A vertical bar on the left edge (owner, 2026-11-08).
+[bar.default]
+position = "left"
