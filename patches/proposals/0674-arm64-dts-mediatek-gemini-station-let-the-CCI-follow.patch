@@ -1,0 +1,397 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 18:14:19 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: let the CCI follow
+ without required-opps
+
+The first station-dvfs run stopped when cpufreq-dt loaded. CPU4-7 boot
+at 1274 MHz, which the L table does not list, so cpufreq moves them to
+1352 MHz at once. That change failed with -EBUSY: the CPU points required
+CCI points, and the OPP core refuses to set a table whose required
+tables are not yet linked, before mtk-cci-devfreq has loaded. The core
+then hit its BUG for an unlisted frequency it could not leave. Loading
+mtk-cci-devfreq first is not possible, because its passive governor
+needs the cpufreq policies.
+
+Drop the required-opps. The passive governor then maps each cluster's
+place in its range onto the CCI's range, and the faster cluster wins.
+The CCI still sets the voltage of its own point, so VPROC1 stays high
+enough for it.
+
+Keep VSRAM_L at 1.10 V or above. That is where the firmware leaves it
+with VPROC1 at 1.00 V, 90 mV above the vendor kernel's VPROC1 + 10 mV
+rule.
+---
+ .../mt6797-gemini-pda-station-dvfs.dts        | 82 +++++++------------
+ 1 file changed, 28 insertions(+), 54 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+index 8ca0e023a..eaef3e010 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -20,19 +20,28 @@
+ /delete-node/ &cluster1_opp;
+ 
+ / {
+-	/* VSRAM_L: the SRAM LDOs of CPU0-7 and the CCI, kept above VPROC1. */
++	/*
++	 * VSRAM_L: the SRAM LDOs of CPU0-7 and the CCI, kept above VPROC1. The
++	 * firmware leaves it at 1.10 V with VPROC1 at 1.00 V; it never goes
++	 * below that here, though the vendor's own range starts at 1.0 V.
++	 */
+ 	vsram_l: regulator-vsram-l {
+ 		compatible = "mediatek,mt6797-cpu-sram-ldo";
+ 		mediatek,infracfg = <&infrasys>;
+ 		regulator-name = "vsram_l";
+-		regulator-min-microvolt = <1000000>;
++		regulator-min-microvolt = <1100000>;
+ 		regulator-max-microvolt = <1200000>;
+ 		regulator-coupled-with = <&vproc1>;
+ 		/* The coupler sets the spread itself; the core needs a value. */
+ 		regulator-coupled-max-spread = <430000>;
+ 	};
+ 
+-	/* The CCI follows the faster of the two clusters, as the vendor's does. */
++	/*
++	 * The CCI follows the two clusters through the passive governor: each
++	 * cluster's place in its range maps onto the CCI's range and the faster
++	 * one wins. The CCI sets the voltage of its own point, so any mapping
++	 * keeps VPROC1 high enough for it.
++	 */
+ 	cci: cci {
+ 		compatible = "mediatek,mt6797-cci";
+ 		clocks = <&mcusys_pll MT6797_CLK_MCU_CCI>;
+@@ -41,10 +50,7 @@ cci: cci {
+ 		proc-supply = <&vproc1>;
+ 	};
+ 
+-	/*
+-	 * Each CPU point requires the CCI point with the same vendor index; the
+-	 * CCI's 169 MHz point is below its sync DCM floor, so 234 MHz stands in.
+-	 */
++	/* The CCI's 169 MHz point is below its sync DCM floor of 210 MHz. */
+ 	ll_dvfs_opp: opp-table-cluster0 {
+ 		compatible = "operating-points-v2";
+ 		opp-shared;
+@@ -52,112 +58,96 @@ ll_dvfs_opp: opp-table-cluster0 {
+ 		opp-221000000 {
+ 			opp-hz = /bits/ 64 <221000000>;
+ 			opp-microvolt = <840000 840000 1200000>;
+-			required-opps = <&cci_opp_234>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-338000000 {
+ 			opp-hz = /bits/ 64 <338000000>;
+ 			opp-microvolt = <860000 860000 1200000>;
+-			required-opps = <&cci_opp_234>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-481000000 {
+ 			opp-hz = /bits/ 64 <481000000>;
+ 			opp-microvolt = <870000 870000 1200000>;
+-			required-opps = <&cci_opp_325>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-624000000 {
+ 			opp-hz = /bits/ 64 <624000000>;
+ 			opp-microvolt = <900000 900000 1200000>;
+-			required-opps = <&cci_opp_416>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-715000000 {
+ 			opp-hz = /bits/ 64 <715000000>;
+ 			opp-microvolt = <940000 940000 1200000>;
+-			required-opps = <&cci_opp_481>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-806000000 {
+ 			opp-hz = /bits/ 64 <806000000>;
+ 			opp-microvolt = <970000 970000 1200000>;
+-			required-opps = <&cci_opp_533>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-897000000 {
+ 			opp-hz = /bits/ 64 <897000000>;
+ 			opp-microvolt = <1000000 1000000 1200000>;
+-			required-opps = <&cci_opp_611>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1014000000 {
+ 			opp-hz = /bits/ 64 <1014000000>;
+ 			opp-microvolt = <1040000 1040000 1200000>;
+-			required-opps = <&cci_opp_676>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1118000000 {
+ 			opp-hz = /bits/ 64 <1118000000>;
+ 			opp-microvolt = <1070000 1070000 1200000>;
+-			required-opps = <&cci_opp_754>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1222000000 {
+ 			opp-hz = /bits/ 64 <1222000000>;
+ 			opp-microvolt = <1120000 1120000 1200000>;
+-			required-opps = <&cci_opp_819>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1274000000 {
+ 			opp-hz = /bits/ 64 <1274000000>;
+ 			opp-microvolt = <1140000 1140000 1200000>;
+-			required-opps = <&cci_opp_845>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1339000000 {
+ 			opp-hz = /bits/ 64 <1339000000>;
+ 			opp-microvolt = <1160000 1160000 1200000>;
+-			required-opps = <&cci_opp_884>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1391000000 {
+ 			opp-hz = /bits/ 64 <1391000000>;
+ 			opp-microvolt = <1180000 1180000 1200000>;
+-			required-opps = <&cci_opp_910>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1443000000 {
+ 			opp-hz = /bits/ 64 <1443000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+-			required-opps = <&cci_opp_936>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1495000000 {
+ 			opp-hz = /bits/ 64 <1495000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+-			required-opps = <&cci_opp_975>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1547000000 {
+ 			opp-hz = /bits/ 64 <1547000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+-			required-opps = <&cci_opp_988>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 	};
+@@ -169,112 +159,96 @@ l_dvfs_opp: opp-table-cluster1 {
+ 		opp-325000000 {
+ 			opp-hz = /bits/ 64 <325000000>;
+ 			opp-microvolt = <840000 840000 1200000>;
+-			required-opps = <&cci_opp_234>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-468000000 {
+ 			opp-hz = /bits/ 64 <468000000>;
+ 			opp-microvolt = <860000 860000 1200000>;
+-			required-opps = <&cci_opp_234>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-650000000 {
+ 			opp-hz = /bits/ 64 <650000000>;
+ 			opp-microvolt = <860000 860000 1200000>;
+-			required-opps = <&cci_opp_325>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-832000000 {
+ 			opp-hz = /bits/ 64 <832000000>;
+ 			opp-microvolt = <900000 900000 1200000>;
+-			required-opps = <&cci_opp_416>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-962000000 {
+ 			opp-hz = /bits/ 64 <962000000>;
+ 			opp-microvolt = <940000 940000 1200000>;
+-			required-opps = <&cci_opp_481>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1092000000 {
+ 			opp-hz = /bits/ 64 <1092000000>;
+ 			opp-microvolt = <970000 970000 1200000>;
+-			required-opps = <&cci_opp_533>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1209000000 {
+ 			opp-hz = /bits/ 64 <1209000000>;
+ 			opp-microvolt = <1000000 1000000 1200000>;
+-			required-opps = <&cci_opp_611>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1352000000 {
+ 			opp-hz = /bits/ 64 <1352000000>;
+ 			opp-microvolt = <1040000 1040000 1200000>;
+-			required-opps = <&cci_opp_676>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1495000000 {
+ 			opp-hz = /bits/ 64 <1495000000>;
+ 			opp-microvolt = <1070000 1070000 1200000>;
+-			required-opps = <&cci_opp_754>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1625000000 {
+ 			opp-hz = /bits/ 64 <1625000000>;
+ 			opp-microvolt = <1110000 1110000 1200000>;
+-			required-opps = <&cci_opp_819>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1703000000 {
+ 			opp-hz = /bits/ 64 <1703000000>;
+ 			opp-microvolt = <1130000 1130000 1200000>;
+-			required-opps = <&cci_opp_845>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1755000000 {
+ 			opp-hz = /bits/ 64 <1755000000>;
+ 			opp-microvolt = <1160000 1160000 1200000>;
+-			required-opps = <&cci_opp_884>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1820000000 {
+ 			opp-hz = /bits/ 64 <1820000000>;
+ 			opp-microvolt = <1170000 1170000 1200000>;
+-			required-opps = <&cci_opp_910>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1885000000 {
+ 			opp-hz = /bits/ 64 <1885000000>;
+ 			opp-microvolt = <1190000 1190000 1200000>;
+-			required-opps = <&cci_opp_936>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-1950000000 {
+ 			opp-hz = /bits/ 64 <1950000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+-			required-opps = <&cci_opp_975>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 
+ 		opp-2002000000 {
+ 			opp-hz = /bits/ 64 <2002000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+-			required-opps = <&cci_opp_988>;
+ 			clock-latency-ns = <100000>;
+ 		};
+ 	};
+@@ -282,77 +256,77 @@ opp-2002000000 {
+ 	cci_dvfs_opp: opp-table-cci {
+ 		compatible = "operating-points-v2";
+ 
+-		cci_opp_234: opp-234000000 {
++		opp-234000000 {
+ 			opp-hz = /bits/ 64 <234000000>;
+ 			opp-microvolt = <860000 860000 1200000>;
+ 		};
+ 
+-		cci_opp_325: opp-325000000 {
++		opp-325000000 {
+ 			opp-hz = /bits/ 64 <325000000>;
+ 			opp-microvolt = <890000 890000 1200000>;
+ 		};
+ 
+-		cci_opp_416: opp-416000000 {
++		opp-416000000 {
+ 			opp-hz = /bits/ 64 <416000000>;
+ 			opp-microvolt = <910000 910000 1200000>;
+ 		};
+ 
+-		cci_opp_481: opp-481000000 {
++		opp-481000000 {
+ 			opp-hz = /bits/ 64 <481000000>;
+ 			opp-microvolt = <940000 940000 1200000>;
+ 		};
+ 
+-		cci_opp_533: opp-533000000 {
++		opp-533000000 {
+ 			opp-hz = /bits/ 64 <533000000>;
+ 			opp-microvolt = <970000 970000 1200000>;
+ 		};
+ 
+-		cci_opp_611: opp-611000000 {
++		opp-611000000 {
+ 			opp-hz = /bits/ 64 <611000000>;
+ 			opp-microvolt = <1020000 1020000 1200000>;
+ 		};
+ 
+-		cci_opp_676: opp-676000000 {
++		opp-676000000 {
+ 			opp-hz = /bits/ 64 <676000000>;
+ 			opp-microvolt = <1060000 1060000 1200000>;
+ 		};
+ 
+-		cci_opp_754: opp-754000000 {
++		opp-754000000 {
+ 			opp-hz = /bits/ 64 <754000000>;
+ 			opp-microvolt = <1100000 1100000 1200000>;
+ 		};
+ 
+-		cci_opp_819: opp-819000000 {
++		opp-819000000 {
+ 			opp-hz = /bits/ 64 <819000000>;
+ 			opp-microvolt = <1140000 1140000 1200000>;
+ 		};
+ 
+-		cci_opp_845: opp-845000000 {
++		opp-845000000 {
+ 			opp-hz = /bits/ 64 <845000000>;
+ 			opp-microvolt = <1150000 1150000 1200000>;
+ 		};
+ 
+-		cci_opp_884: opp-884000000 {
++		opp-884000000 {
+ 			opp-hz = /bits/ 64 <884000000>;
+ 			opp-microvolt = <1170000 1170000 1200000>;
+ 		};
+ 
+-		cci_opp_910: opp-910000000 {
++		opp-910000000 {
+ 			opp-hz = /bits/ 64 <910000000>;
+ 			opp-microvolt = <1190000 1190000 1200000>;
+ 		};
+ 
+-		cci_opp_936: opp-936000000 {
++		opp-936000000 {
+ 			opp-hz = /bits/ 64 <936000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+ 		};
+ 
+-		cci_opp_975: opp-975000000 {
++		opp-975000000 {
+ 			opp-hz = /bits/ 64 <975000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+ 		};
+ 
+-		cci_opp_988: opp-988000000 {
++		opp-988000000 {
+ 			opp-hz = /bits/ 64 <988000000>;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+ 		};
+-- 
+2.43.0
+

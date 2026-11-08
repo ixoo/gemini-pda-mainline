@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 18:13:28 -0500
+Subject: [PATCH] PM / devfreq: passive: leave out CPUs that have no OPPs
+
+The passive governor waits for a cpufreq policy on every possible CPU,
+and fails its frequency update when an online CPU has none. On the
+MT6797 Gemini PDA only the two Cortex-A53 clusters have OPP tables:
+cpufreq-dt leaves the Cortex-A72 pair out, so CPU8 and CPU9 never get a
+policy. A CCI devfreq device that follows cpufreq then defers forever,
+and it would fail every update once the A72s come online.
+
+A CPU without OPPs is not scaled by cpufreq. Skip it when registering
+and when computing the target, as cpufreq-dt does. A CPU that has OPPs
+but no policy yet still defers the device, as before.
+---
+ drivers/devfreq/governor_passive.c | 18 +++++++++++++++++-
+ 1 file changed, 17 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/devfreq/governor_passive.c b/drivers/devfreq/governor_passive.c
+index d7feecd90..67936b217 100644
+--- a/drivers/devfreq/governor_passive.c
++++ b/drivers/devfreq/governor_passive.c
+@@ -15,6 +15,7 @@
+ #include <linux/device.h>
+ #include <linux/devfreq.h>
+ #include <linux/devfreq-governor.h>
++#include <linux/pm_opp.h>
+ #include <linux/units.h>
+ 
+ /**
+@@ -99,6 +100,18 @@ static unsigned long get_target_freq_by_required_opp(struct device *p_dev,
+ 	return target_freq;
+ }
+ 
++/*
++ * A possible CPU with no OPPs is not scaled by cpufreq at all, as the
++ * Cortex-A72 pair of the MT6797 when only its A53 clusters have tables. It
++ * neither holds the passive device back nor counts towards its frequency.
++ */
++static bool cpu_without_opps(unsigned int cpu)
++{
++	struct device *cpu_dev = get_cpu_device(cpu);
++
++	return cpu_dev && dev_pm_opp_get_opp_count(cpu_dev) <= 0;
++}
++
+ static int get_target_freq_with_cpufreq(struct devfreq *devfreq,
+ 					unsigned long *target_freq)
+ {
+@@ -114,7 +127,8 @@ static int get_target_freq_with_cpufreq(struct devfreq *devfreq,
+ 	for_each_online_cpu(cpu) {
+ 		policy = cpufreq_cpu_get(cpu);
+ 		if (!policy) {
+-			ret = -EINVAL;
++			if (!cpu_without_opps(cpu))
++				ret = -EINVAL;
+ 			continue;
+ 		}
+ 
+@@ -300,6 +314,8 @@ static int cpufreq_passive_register_notifier(struct devfreq *devfreq)
+ 	for_each_possible_cpu(cpu) {
+ 		policy = cpufreq_cpu_get(cpu);
+ 		if (!policy) {
++			if (cpu_without_opps(cpu))
++				continue;
+ 			ret = -EPROBE_DEFER;
+ 			goto err;
+ 		}
+-- 
+2.43.0
+

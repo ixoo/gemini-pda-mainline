@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-08-mt6797-a53-dvfs` |
-| Status | `running`: V0-V3 passed on the station; V4 stopped on a kernel BUG (required OPPs, 2026-11-08); boot gate stays off |
+| Status | `running`: V0-V3 passed on the station; V4 stopped on a kernel BUG (required OPPs, 2026-11-08), nothing written; fixed in `0673`/`0674`, which need a new image; boot gate stays off |
 | Subsystem | DA9214 BUCKA/BUCKB, VSRAM_L LDO, MCUMIXED PLLs incl. CCI, cpufreq-dt, mtk-cci-devfreq, energy model |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-08 |
@@ -34,9 +34,11 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0657`](../../patches/proposals/0657-dt-bindings-clock-mediatek-add-the-MT6797-CCI-PLL-in.patch), [`0658`](../../patches/proposals/0658-clk-mediatek-mt6797-mcusys-add-the-CCI-PLL.patch) | The CCI PLL (ARMPLL2, CON1 `0x1001a224`, mux bits 7:6, divider bits 19:15, MCU FHCTL channel 2), up to 988 MHz, as Gemian's `mt_cpufreq.c` drives it (`hopping_id = MCU_FH_PLL2`) |
 | [`0659`](../../patches/proposals/0659-regulator-da9213-legacy-let-consumers-set-the-buck-v.patch) | A writable build of the legacy DA921x provider. BUCKA and BUCKB voltages from a `regulators` node, set by one read-modify-write of `0xd7`/`0xd9` with a read back, waiting 1 us per 10 mV (at least 25 us). No enable or disable operation, so BUCKB's enable bit stays with the A72 module. The probe checks identity only |
 | [`0660`](../../patches/proposals/0660-dt-bindings-regulator-add-the-MediaTek-MT6797-CPU-SR.patch), [`0661`](../../patches/proposals/0661-regulator-add-the-MediaTek-MT6797-CPU-SRAM-LDO.patch) | VSRAM_L as one regulator over the eight INFRACFG_AO LDOs, writing the vendor's selector pattern into `CPULDO_CTRL_1`/`_2`. It sets only selectors 3-15 (900-1200 mV), refuses to probe unless all eight LDOs are enabled and on one selector, and never switches them |
-| [`0662`](../../patches/proposals/0662-soc-mediatek-add-an-MT6797-CPU-rail-and-SRAM-LDO-cou.patch) | A built-in regulator coupler: VSRAM_L = clamp(VPROC1 + 10 mV, 1.0 V, 1.2 V), raised before VPROC1 and lowered after it |
+| [`0662`](../../patches/proposals/0662-soc-mediatek-add-an-MT6797-CPU-rail-and-SRAM-LDO-cou.patch) | A built-in regulator coupler: VSRAM_L = clamp(VPROC1 + 10 mV, its DT minimum, 1.2 V), raised before VPROC1 and lowered after it |
 | [`0663`](../../patches/proposals/0663-PM-devfreq-mtk-cci-make-the-intermediate-clock-optio.patch)-[`0665`](../../patches/proposals/0665-PM-devfreq-mtk-cci-add-MT6797.patch) | mtk-cci-devfreq with an optional intermediate clock (the MT6797 CCI PLL changes rate glitch-free itself) and an MT6797 entry; the passive governor follows cpufreq |
-| [`0666`](../../patches/proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch) | `mt6797-gemini-pda-station-dvfs.dts`: the station-a72 tree with the DA9214 on the legacy driver (BUCKA `vproc1` 770-1200 mV, BUCKB `vproc-big` 800-1200 mV, unused), VSRAM_L coupled to it, the full LL/L/CCI tables, `cpu-supply`, and required-opps to the CCI |
+| [`0666`](../../patches/proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch) | `mt6797-gemini-pda-station-dvfs.dts`: the station-a72 tree with the DA9214 on the legacy driver (BUCKA `vproc1` 770-1200 mV, BUCKB `vproc-big` 800-1200 mV, unused), VSRAM_L coupled to it, the full LL/L/CCI tables and `cpu-supply` |
+| [`0673`](../../patches/proposals/0673-PM-devfreq-passive-leave-out-CPUs-that-have-no-OPPs.patch) | After D1: the passive devfreq governor skips a CPU with no OPPs (the A72s), instead of deferring forever or failing every update |
+| [`0674`](../../patches/proposals/0674-arm64-dts-mediatek-gemini-station-let-the-CCI-follow.patch) | After D1: no required-opps, so the CCI follows by interpolation; VSRAM_L floor 1.10 V, the firmware's own boot value |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -89,79 +91,84 @@ the DA9214's 10 mV step. It is never below what Gemian would apply on this unit
 at room temperature, and never below the uncalibrated table. Because the EEM
 column is per unit, the tree is for this unit only.
 
-VSRAM_L follows the vendor rule from `set_cur_volt_extbuck()`: VPROC1 + 10 mV,
-clamped to 1.0-1.2 V, rounded up to the LDO's 25 mV step.
+VSRAM_L follows the vendor rule from `set_cur_volt_extbuck()`, VPROC1 + 10 mV
+rounded up to the LDO's 25 mV step, but never below 1.10 V (`0674`) and
+never above 1.2 V. The vendor's own range starts at 1.0 V. The firmware leaves
+1.10 V with VPROC1 at 1.00 V (D1 V0-V2), so 1.10 V is the lowest value seen
+running.
 
-| LL MHz | VCO MHz | post-div | divider | PCW | Base mV | EEM mV | +62.5 | Set mV | VPROC1 sel | VSRAM_L | CCI MHz |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1547 | 1547 | /1 | /1 | `0x0ee000` | 1200 | 1170 | 1232.5 | 1200 | `0x5a` | 1200 (`15`) | 988 |
-| 1495 | 1495 | /1 | /1 | `0x0e6000` | 1190 | 1150 | 1212.5 | 1200 | `0x5a` | 1200 (`15`) | 975 |
-| 1443 | 1443 | /1 | /1 | `0x0de000` | 1170 | 1140 | 1202.5 | 1200 | `0x5a` | 1200 (`15`) | 936 |
-| 1391 | 1391 | /1 | /1 | `0x0d6000` | 1150 | 1110 | 1172.5 | 1180 | `0x58` | 1200 (`15`) | 910 |
-| 1339 | 1339 | /1 | /1 | `0x0ce000` | 1140 | 1090 | 1152.5 | 1160 | `0x56` | 1175 (`14`) | 884 |
-| 1274 | 1274 | /1 | /1 | `0x0c4000` | 1130 | 1070 | 1132.5 | 1140 | `0x54` | 1150 (`13`) | 845 |
-| 1222 | 1222 | /1 | /1 | `0x0bc000` | 1100 | 1050 | 1112.5 | 1120 | `0x52` | 1150 (`13`) | 819 |
-| 1118 | 1118 | /1 | /1 | `0x0ac000` | 1070 | 1000 | 1062.5 | 1070 | `0x4d` | 1100 (`11`) | 754 |
-| 1014 | 2028 | /2 | /1 | `0x138000` | 1040 | 960 | 1022.5 | 1040 | `0x4a` | 1050 (`9`) | 676 |
-| 897 | 1794 | /2 | /1 | `0x114000` | 1000 | 920 | 982.5 | 1000 | `0x46` | 1025 (`8`) | 611 |
-| 806 | 1612 | /2 | /1 | `0x0f8000` | 970 | 880 | 942.5 | 970 | `0x43` | 1000 (`7`) | 533 |
-| 715 | 1430 | /2 | /1 | `0x0dc000` | 940 | 840 | 902.5 | 940 | `0x40` | 1000 (`7`) | 481 |
-| 624 | 1248 | /2 | /1 | `0x0c0000` | 900 | 810 | 872.5 | 900 | `0x3c` | 1000 (`7`) | 416 |
-| 481 | 1924 | /2 | /2 | `0x128000` | 850 | 800 | 862.5 | 870 | `0x39` | 1000 (`7`) | 325 |
-| 338 | 1352 | /2 | /2 | `0x0d0000` | 800 | 790 | 852.5 | 860 | `0x38` | 1000 (`7`) | 234 |
-| 221 | 1768 | /2 | /4 | `0x110000` | 770 | 770 | 832.5 | 840 | `0x36` | 1000 (`7`) | 234 |
+| LL MHz | VCO MHz | post-div | divider | PCW | Base mV | EEM mV | +62.5 | Set mV | VPROC1 sel | VSRAM_L mV (sel) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1547 | 1547 | /1 | /1 | `0x0ee000` | 1200 | 1170 | 1232.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 1495 | 1495 | /1 | /1 | `0x0e6000` | 1190 | 1150 | 1212.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 1443 | 1443 | /1 | /1 | `0x0de000` | 1170 | 1140 | 1202.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 1391 | 1391 | /1 | /1 | `0x0d6000` | 1150 | 1110 | 1172.5 | 1180 | `0x58` | 1200 (`15`) |
+| 1339 | 1339 | /1 | /1 | `0x0ce000` | 1140 | 1090 | 1152.5 | 1160 | `0x56` | 1175 (`14`) |
+| 1274 | 1274 | /1 | /1 | `0x0c4000` | 1130 | 1070 | 1132.5 | 1140 | `0x54` | 1150 (`13`) |
+| 1222 | 1222 | /1 | /1 | `0x0bc000` | 1100 | 1050 | 1112.5 | 1120 | `0x52` | 1150 (`13`) |
+| 1118 | 1118 | /1 | /1 | `0x0ac000` | 1070 | 1000 | 1062.5 | 1070 | `0x4d` | 1100 (`11`) |
+| 1014 | 2028 | /2 | /1 | `0x138000` | 1040 | 960 | 1022.5 | 1040 | `0x4a` | 1100 (`11`) |
+| 897 | 1794 | /2 | /1 | `0x114000` | 1000 | 920 | 982.5 | 1000 | `0x46` | 1100 (`11`) |
+| 806 | 1612 | /2 | /1 | `0x0f8000` | 970 | 880 | 942.5 | 970 | `0x43` | 1100 (`11`) |
+| 715 | 1430 | /2 | /1 | `0x0dc000` | 940 | 840 | 902.5 | 940 | `0x40` | 1100 (`11`) |
+| 624 | 1248 | /2 | /1 | `0x0c0000` | 900 | 810 | 872.5 | 900 | `0x3c` | 1100 (`11`) |
+| 481 | 1924 | /2 | /2 | `0x128000` | 850 | 800 | 862.5 | 870 | `0x39` | 1100 (`11`) |
+| 338 | 1352 | /2 | /2 | `0x0d0000` | 800 | 790 | 852.5 | 860 | `0x38` | 1100 (`11`) |
+| 221 | 1768 | /2 | /4 | `0x110000` | 770 | 770 | 832.5 | 840 | `0x36` | 1100 (`11`) |
 
-| L MHz | VCO MHz | post-div | divider | PCW | Base mV | EEM mV | +62.5 | Set mV | VPROC1 sel | VSRAM_L | CCI MHz |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 2002 | 2002 | /1 | /1 | `0x134000` | 1200 | 1170 | 1232.5 | 1200 | `0x5a` | 1200 (`15`) | 988 |
-| 1950 | 1950 | /1 | /1 | `0x12c000` | 1190 | 1150 | 1212.5 | 1200 | `0x5a` | 1200 (`15`) | 975 |
-| 1885 | 1885 | /1 | /1 | `0x122000` | 1170 | 1120 | 1182.5 | 1190 | `0x59` | 1200 (`15`) | 936 |
-| 1820 | 1820 | /1 | /1 | `0x118000` | 1150 | 1100 | 1162.5 | 1170 | `0x57` | 1200 (`15`) | 910 |
-| 1755 | 1755 | /1 | /1 | `0x10e000` | 1140 | 1090 | 1152.5 | 1160 | `0x56` | 1175 (`14`) | 884 |
-| 1703 | 1703 | /1 | /1 | `0x106000` | 1130 | 1060 | 1122.5 | 1130 | `0x53` | 1150 (`13`) | 845 |
-| 1625 | 1625 | /1 | /1 | `0x0fa000` | 1100 | 1040 | 1102.5 | 1110 | `0x51` | 1125 (`12`) | 819 |
-| 1495 | 1495 | /1 | /1 | `0x0e6000` | 1070 | 1000 | 1062.5 | 1070 | `0x4d` | 1100 (`11`) | 754 |
-| 1352 | 1352 | /1 | /1 | `0x0d0000` | 1040 | 950 | 1012.5 | 1040 | `0x4a` | 1050 (`9`) | 676 |
-| 1209 | 1209 | /1 | /1 | `0x0ba000` | 1000 | 900 | 962.5 | 1000 | `0x46` | 1025 (`8`) | 611 |
-| 1092 | 1092 | /1 | /1 | `0x0a8000` | 970 | 850 | 912.5 | 970 | `0x43` | 1000 (`7`) | 533 |
-| 962 | 1924 | /2 | /1 | `0x128000` | 940 | 820 | 882.5 | 940 | `0x40` | 1000 (`7`) | 481 |
-| 832 | 1664 | /2 | /1 | `0x100000` | 900 | 790 | 852.5 | 900 | `0x3c` | 1000 (`7`) | 416 |
-| 650 | 1300 | /2 | /1 | `0x0c8000` | 850 | 790 | 852.5 | 860 | `0x38` | 1000 (`7`) | 325 |
-| 468 | 1872 | /2 | /2 | `0x120000` | 800 | 790 | 852.5 | 860 | `0x38` | 1000 (`7`) | 234 |
-| 325 | 1300 | /2 | /2 | `0x0c8000` | 770 | 770 | 832.5 | 840 | `0x36` | 1000 (`7`) | 234 |
+| L MHz | VCO MHz | post-div | divider | PCW | Base mV | EEM mV | +62.5 | Set mV | VPROC1 sel | VSRAM_L mV (sel) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2002 | 2002 | /1 | /1 | `0x134000` | 1200 | 1170 | 1232.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 1950 | 1950 | /1 | /1 | `0x12c000` | 1190 | 1150 | 1212.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 1885 | 1885 | /1 | /1 | `0x122000` | 1170 | 1120 | 1182.5 | 1190 | `0x59` | 1200 (`15`) |
+| 1820 | 1820 | /1 | /1 | `0x118000` | 1150 | 1100 | 1162.5 | 1170 | `0x57` | 1200 (`15`) |
+| 1755 | 1755 | /1 | /1 | `0x10e000` | 1140 | 1090 | 1152.5 | 1160 | `0x56` | 1175 (`14`) |
+| 1703 | 1703 | /1 | /1 | `0x106000` | 1130 | 1060 | 1122.5 | 1130 | `0x53` | 1150 (`13`) |
+| 1625 | 1625 | /1 | /1 | `0x0fa000` | 1100 | 1040 | 1102.5 | 1110 | `0x51` | 1125 (`12`) |
+| 1495 | 1495 | /1 | /1 | `0x0e6000` | 1070 | 1000 | 1062.5 | 1070 | `0x4d` | 1100 (`11`) |
+| 1352 | 1352 | /1 | /1 | `0x0d0000` | 1040 | 950 | 1012.5 | 1040 | `0x4a` | 1100 (`11`) |
+| 1209 | 1209 | /1 | /1 | `0x0ba000` | 1000 | 900 | 962.5 | 1000 | `0x46` | 1100 (`11`) |
+| 1092 | 1092 | /1 | /1 | `0x0a8000` | 970 | 850 | 912.5 | 970 | `0x43` | 1100 (`11`) |
+| 962 | 1924 | /2 | /1 | `0x128000` | 940 | 820 | 882.5 | 940 | `0x40` | 1100 (`11`) |
+| 832 | 1664 | /2 | /1 | `0x100000` | 900 | 790 | 852.5 | 900 | `0x3c` | 1100 (`11`) |
+| 650 | 1300 | /2 | /1 | `0x0c8000` | 850 | 790 | 852.5 | 860 | `0x38` | 1100 (`11`) |
+| 468 | 1872 | /2 | /2 | `0x120000` | 800 | 790 | 852.5 | 860 | `0x38` | 1100 (`11`) |
+| 325 | 1300 | /2 | /2 | `0x0c8000` | 770 | 770 | 832.5 | 840 | `0x36` | 1100 (`11`) |
 
-| CCI MHz | VCO MHz | post-div | divider | PCW | Base mV | EEM mV | +62.5 | Set mV | VPROC1 sel | VSRAM_L | CCI MHz |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 988 | 1976 | /2 | /1 | `0x130000` | 1200 | 1160 | 1222.5 | 1200 | `0x5a` | 1200 (`15`) |  |
-| 975 | 1950 | /2 | /1 | `0x12c000` | 1190 | 1150 | 1212.5 | 1200 | `0x5a` | 1200 (`15`) |  |
-| 936 | 1872 | /2 | /1 | `0x120000` | 1170 | 1130 | 1192.5 | 1200 | `0x5a` | 1200 (`15`) |  |
-| 910 | 1820 | /2 | /1 | `0x118000` | 1150 | 1120 | 1182.5 | 1190 | `0x59` | 1200 (`15`) |  |
-| 884 | 1768 | /2 | /1 | `0x110000` | 1140 | 1100 | 1162.5 | 1170 | `0x57` | 1200 (`15`) |  |
-| 845 | 1690 | /2 | /1 | `0x104000` | 1130 | 1080 | 1142.5 | 1150 | `0x55` | 1175 (`14`) |  |
-| 819 | 1638 | /2 | /1 | `0x0fc000` | 1100 | 1070 | 1132.5 | 1140 | `0x54` | 1150 (`13`) |  |
-| 754 | 1508 | /2 | /1 | `0x0e8000` | 1070 | 1030 | 1092.5 | 1100 | `0x50` | 1125 (`12`) |  |
-| 676 | 1352 | /2 | /1 | `0x0d0000` | 1040 | 990 | 1052.5 | 1060 | `0x4c` | 1075 (`10`) |  |
-| 611 | 1222 | /2 | /1 | `0x0bc000` | 1000 | 950 | 1012.5 | 1020 | `0x48` | 1050 (`9`) |  |
-| 533 | 1066 | /2 | /1 | `0x0a4000` | 970 | 900 | 962.5 | 970 | `0x43` | 1000 (`7`) |  |
-| 481 | 1924 | /2 | /2 | `0x128000` | 940 | 870 | 932.5 | 940 | `0x40` | 1000 (`7`) |  |
-| 416 | 1664 | /2 | /2 | `0x100000` | 900 | 840 | 902.5 | 910 | `0x3d` | 1000 (`7`) |  |
-| 325 | 1300 | /2 | /2 | `0x0c8000` | 850 | 820 | 882.5 | 890 | `0x3b` | 1000 (`7`) |  |
-| 234 | 1872 | /2 | /4 | `0x120000` | 800 | 790 | 852.5 | 860 | `0x38` | 1000 (`7`) |  |
+| CCI MHz | VCO MHz | post-div | divider | PCW | Base mV | EEM mV | +62.5 | Set mV | VPROC1 sel | VSRAM_L mV (sel) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 988 | 1976 | /2 | /1 | `0x130000` | 1200 | 1160 | 1222.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 975 | 1950 | /2 | /1 | `0x12c000` | 1190 | 1150 | 1212.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 936 | 1872 | /2 | /1 | `0x120000` | 1170 | 1130 | 1192.5 | 1200 | `0x5a` | 1200 (`15`) |
+| 910 | 1820 | /2 | /1 | `0x118000` | 1150 | 1120 | 1182.5 | 1190 | `0x59` | 1200 (`15`) |
+| 884 | 1768 | /2 | /1 | `0x110000` | 1140 | 1100 | 1162.5 | 1170 | `0x57` | 1200 (`15`) |
+| 845 | 1690 | /2 | /1 | `0x104000` | 1130 | 1080 | 1142.5 | 1150 | `0x55` | 1175 (`14`) |
+| 819 | 1638 | /2 | /1 | `0x0fc000` | 1100 | 1070 | 1132.5 | 1140 | `0x54` | 1150 (`13`) |
+| 754 | 1508 | /2 | /1 | `0x0e8000` | 1070 | 1030 | 1092.5 | 1100 | `0x50` | 1125 (`12`) |
+| 676 | 1352 | /2 | /1 | `0x0d0000` | 1040 | 990 | 1052.5 | 1060 | `0x4c` | 1100 (`11`) |
+| 611 | 1222 | /2 | /1 | `0x0bc000` | 1000 | 950 | 1012.5 | 1020 | `0x48` | 1100 (`11`) |
+| 533 | 1066 | /2 | /1 | `0x0a4000` | 970 | 900 | 962.5 | 970 | `0x43` | 1100 (`11`) |
+| 481 | 1924 | /2 | /2 | `0x128000` | 940 | 870 | 932.5 | 940 | `0x40` | 1100 (`11`) |
+| 416 | 1664 | /2 | /2 | `0x100000` | 900 | 840 | 902.5 | 910 | `0x3d` | 1100 (`11`) |
+| 325 | 1300 | /2 | /2 | `0x0c8000` | 850 | 820 | 882.5 | 890 | `0x3b` | 1100 (`11`) |
+| 234 | 1872 | /2 | /4 | `0x120000` | 800 | 790 | 852.5 | 860 | `0x38` | 1100 (`11`) |
 
 The CCI's 169 MHz point is left out: the firmware leaves its sync DCM divider at
 3, which needs at least 210 MHz (A53 cpufreq
-[A1](../2026-11-07-mt6797-a53-cpufreq/README.md#a1)). LL and L points that map to
-it require 234 MHz instead. VPROC1 is shared, so the rail is the highest of the
-three consumers' requests; the CCI point at the same vendor index is often
-10-20 mV above the cluster's.
+[A1](../2026-11-07-mt6797-a53-cpufreq/README.md#a1)). The CCI follows the
+clusters through the passive governor. Each cluster's place in its own range
+maps onto 234-988 MHz, and the faster cluster wins. VPROC1 is shared, so the
+rail is the highest of the three consumers' requests. The CCI asks for the
+voltage of its own point, so the mapping changes performance only, never
+the CCI's voltage margin.
 
 ### Open question: VSRAM_L below VPROC1 0.97 V
 
 Gemian's manual path clamps VSRAM_L to at least 1.0 V but also asserts that it
 is at most 30 mV above VPROC1, so that path would `BUG()` below VPROC1 0.97 V.
 On the live unit those points run through the CSPM PCM firmware instead, whose
-VSRAM_L choice there is not known. This tree keeps VSRAM_L at 1.0 V below that
-point, up to 230 mV above VPROC1 at 221 MHz. The MediaTek upstream coupler
+VSRAM_L choice there is not known. This tree keeps VSRAM_L at 1.10 V below that
+point, up to 260 mV above VPROC1 at 221 MHz. The MediaTek upstream coupler
 likewise ignores the spread while the SRAM sits at its floor. Test V0g measures
 what Gemian's PCM actually sets. If it sets VSRAM_L lower, the floor and the
 low points are revisited before V5.
@@ -199,7 +206,7 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
    per change, read back. `0xd9` (VPROC2) and `0x5e` are not written: BUCKB
    has no consumer.
 2. INFRACFG_AO `0x10001f9c` and `0x10001fa0` (VSRAM_L) ← selector × `0x01010101`,
-   selector 7-15 (1000-1200 mV). `0x10001f98` is not written.
+   selector 11-15 (1100-1200 mV). `0x10001f98` is not written.
 3. MCUMIXED, as A53 cpufreq items 1-8, for all three PLLs and every PCW in the
    tables above:
    - CON1 `0x1001a204` (LL), `0x1001a214` (L), `0x1001a224` (CCI);
@@ -222,7 +229,7 @@ outside the lists above.
 ### Limits
 
 - VPROC1 770-1200 mV by constraint, 840-1200 mV in the tables; VSRAM_L
-  1000-1200 mV; VSRAM_L never below VPROC1.
+  1100-1200 mV; VSRAM_L never below VPROC1.
 - CPU0-3 221-1547 MHz, CPU4-7 325-2002 MHz, CCI 234-988 MHz.
 - SoC temperature: stop above 80 C. The 58 C passive trip caps both
   clusters; 95 C hot, 110 C critical and the 117 C hardware reset stay armed.
@@ -257,15 +264,15 @@ building anything on it.
 
 | Test | Boot | What it does | Expected | Writes |
 | --- | --- | --- | --- | --- |
-| V0 | current station | Read `0x10001f98`, `0x10001f9c`, `0x10001fa0` and DA9214 `0xd7`, `0x5d`, `0xd9` | `CTRL_0` low byte `0xff`; `CTRL_1` = `CTRL_2` = code × `0x01010101` with code 7-15 (1.0-1.2 V); `0xd7` = `0x46` (1.00 V); VSRAM_L ≥ 1.00 V | none |
+| V0 | current station | Read `0x10001f98`, `0x10001f9c`, `0x10001fa0` and DA9214 `0xd7`, `0x5d`, `0xd9` | `CTRL_0` low byte `0xff`; `CTRL_1` = `CTRL_2` = code × `0x01010101` with code 11-15 (1.10-1.2 V); `0xd7` = `0x46` (1.00 V); VSRAM_L ≥ 1.10 V, so V2 writes nothing | none |
 | V0g (optional, recommended) | Gemian | With the vendor `userspace` policy pin LL at 221 MHz and L at 325 MHz, then at 897/1209 MHz; at each, read `0x10001f9c` and CSPM `SW_RSV3`-`6` (`0x11015614`-`0x11015620`, `V_CURR`/`VS_CURR`) | The PCM's VPROC1 and VSRAM_L codes at the low and middle points; decides the 1.0 V floor question | none (read-only Gemian inspection) |
 | V1 | new image, profile `mt6797-a53-station-dvfs`, DTB `station-dvfs` | A53 cpufreq t0 plus the V0 reads | As V0; cpufreq empty; all CPU0-7 online (blanking off) | boot2 |
 | V2 | V1 | `insmod da9213-legacy-regulator.ko`, then `mt6797-vsram-regulator.ko`; read `/sys/class/regulator/*/{name,microvolts}` and `regulator_summary` | `DA9214 legacy direct-address identity matched; voltages are writable`; vproc1 1000000, vproc-big 1000000, vsram_l = V0 value; no write (selectors unchanged) | none |
 | V3 | V1 | `insmod clk-mt6797-mcusys.ko`; debugfs `registers` | Three PLL lines: LL 897, L 1274 MHz, CCI ≈ 629.5 MHz, each "up to" 1547/2002/988 MHz; `faulted=0` | V3 list |
-| V4 | V1 | `insmod cpufreq-dt.ko` (userspace) | policy0 0-3 221-1547 MHz, policy4 4-7 325-2002 MHz; L moves from its unlisted 1274 to 1352 MHz: VSRAM_L 1050, then VPROC1 1040 mV, then the clock; LL stays at 897 MHz/1000 mV | V4-V9 items 1-3 |
+| V4 | V1 | `insmod cpufreq-dt.ko` (userspace) | policy0 0-3 221-1547 MHz, policy4 4-7 325-2002 MHz; L moves from its unlisted 1274 to 1352 MHz: VSRAM_L stays 1100, VPROC1 1040 mV, then the clock; LL stays at 897 MHz/1000 mV. A failure here is the core's `BUG_ON()` for an unlisted frequency: power off | V4-V9 items 1-3 |
 | V5 | V1 | CPU0-3 sweep: every LL point down then up, then 221↔1547 jumps; at each, measure CPU1 and CPU3, hash, read vproc1 and vsram_l | Clocks within 5 %, hashes equal, readbacks exactly the table, VSRAM_L ≥ VPROC1 | items 1-3 |
 | V6 | V1 | CPU4-7 the same, 325-2002 MHz, including both post-divider crossings | As V5 | items 1-3 |
-| V7 | V1 | `insmod mtk-cci-devfreq.ko`; step LL and L and read the devfreq `cur_freq` and the CCI PLL line; then schedutil on both, 10 s idle, 15 s of 8-CPU load, 10 s idle | CCI = the higher of the two clusters' mapped points; schedutil idles low and loads high; all load hashes equal; transitions counted | items 1-4 |
+| V7 | V1 | `insmod mtk-cci-devfreq.ko`; step LL and L and read the devfreq `cur_freq` and the CCI PLL line; then schedutil on both, 10 s idle, 15 s of 8-CPU load, 10 s idle | CCI = the higher of the two clusters' places mapped onto 234-988 MHz, rounded to a CCI point; schedutil idles low and loads high; all load hashes equal; transitions counted | items 1-4 |
 | V8 | V1 | Cooling: emulate 62 C, then release | Both policies' `scaling_max_freq` step down and come back | item 5 |
 | V9 | V1 | Heat soak: 10 min of 8-CPU load under schedutil, sampling every 10 s the SoC temperature, both policies' frequencies, vproc1, vsram_l and hashes | The passive trip at 58 C caps the clusters and holds the SoC below 80 C; no hash difference. Pass opens the boot gate | items 1-3 |
 | V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × V² / 10⁶) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
@@ -322,7 +329,39 @@ an earlier s2idle cycle on this boot.
 
 ## Analysis
 
-Pending.
+### V1-V4 on D1
+
+V0-V3 match the design: the providers bind without writing, and the
+clock driver reads all three PLLs, CCI included.
+
+V4 failed in the OPP core, before any write. CPU4-7 boot at 1274 MHz, which
+the L table does not list. The cpufreq core moves them at once to the next
+listed point, 1352 MHz, and calls `BUG_ON()` if that fails. The CPU points
+carried required-opps to CCI points, and any table with required-opps gets
+a `required_devs` array (`drivers/opp/of.c`). While the CCI table does not
+exist yet, `_set_required_opps()` returns `-EBUSY` for lazy linking.
+mtk-cci-devfreq cannot load first, because its passive governor needs the
+policies. Worse, that governor also waits for a policy on every possible CPU,
+and fails updates for an online CPU without one. CPU8-9 never get a policy,
+so the CCI device could never have probed here, in any order. The custodian's
+inference was right; the second blocker sat behind it.
+
+Both fixes need a new image: the OPP core and the governor are built in,
+and the tree changes.
+
+- `0674` drops the required-opps. The passive governor interpolates each
+  cluster's place in its range onto the CCI's, and the faster cluster wins.
+  The CCI requests its own point's voltage, so this is as safe as the index
+  mapping. The CCI still follows only the VPROC1 clusters, as the vendor's
+  does.
+- `0673` makes the passive governor skip a CPU with no OPPs.
+- `0674` also raises the VSRAM_L floor to 1.10 V, where the firmware left it
+  at VPROC1 1.00 V, 90 mV above the vendor kernel's +10 mV rule. The coupler
+  no longer lowers VSRAM_L below a state the firmware ran.
+
+The forced first change in V4 stays: if VPROC1 cannot be set then, the core
+still hits its `BUG_ON()`. That is upstream behaviour for an unlisted boot
+frequency, and the test treats it as a stop.
 
 ## Conclusion
 
