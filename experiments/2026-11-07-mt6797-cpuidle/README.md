@@ -813,7 +813,8 @@ preconditions return `-EBUSY` with nothing written; a PCM reset timeout
 returns `-EIO` after restoring.
 
 **What the program itself does (decode, 2026-11-08).** A separate session
-decoded `pcm_suspend.bin` in full, privately. Its findings, as relayed:
+decoded `pcm_suspend.bin` in full, privately; the durable result is
+[MT6797 SPM programs](../../docs/hardware/mt6797-spm-programs.md). In short:
 
 - Flag bit 0 is tested at four places. Set, the program skips powering off
   `MP0_CPU0`, `MP0_CPUSYS` and `MCUSYS`, skips `CPU_EXT_BUCK_ISO` at entry
@@ -828,7 +829,9 @@ decoded `pcm_suspend.bin` in full, privately. Its findings, as relayed:
   APSRC handlers gate AUXADC and flip `CLK_CFG_0` bit 8. These were not on
   the S1 list; the module now puts the three gates back as found (X5) and
   logs `CLK_CFG_0`. The I2C6 reset is covered by `i2c-mt65xx`'s resume,
-  which reinitialises the controller.
+  which reinitialises the controller; the station's iDVFS variant (0115)
+  writes only per-transfer registers outside `mtk_i2c_init_hw`, so the reset
+  loses nothing it relies on.
 - When the timer fires with `SPM_WAKEUP_MISC` bit 19 set, it compares
   `SPM_SCP_MAILBOX` with `SPM_PASR_DPD_3` and may sleep again. S1 now zeroes
   `PASR_DPD_3` (S18).
