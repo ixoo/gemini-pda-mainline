@@ -250,9 +250,11 @@ bit 0:
   file does this through the SiP register write `0xc200035e`; the suspend file
   writes the words directly. It executes `wfi` at EL1, then restores the three
   words. No PSCI call is made. The vendor used this for FPGA bring-up
-  and keeps it as a `LEGACY_SLEEP` build option for deep idle. That the
-  programs implement it is inferred from those code paths; it has not been
-  seen to work on silicon.
+  and keeps it as a `LEGACY_SLEEP` build option for deep idle. The decoded
+  programs do implement it: suspend, deep idle and SODI test flag bit 0 and
+  skip every CPU, cluster and MCUSYS power step and the `CPU_EXT_BUCK_ISO`
+  writes ([observed](mt6797-spm-programs.md#35-inputs-that-change-the-path)).
+  It has not been seen to work on silicon.
 
 ### 4.2 What Linux must leave the SPM in
 
