@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 proposed |
+| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 ready. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The SPM route is costed for an owner decision |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -195,7 +195,8 @@ the [all-cores record](../2026-11-01-mt6797-all-cores/README.md#follow-up-full-s
 C0 does not repeat it, and keeps the A72 module unloaded.
 
 **`backlight-policy` (P2f).** It offlines CPU1-7 when the display goes dark
-and brings back the ones it took. C0 must hold the CPU set itself, so the
+(lid closed or console blanked) and brings back the ones it took; since H1's
+change it also takes CPU8-9 when they are online. C0 must hold the CPU set itself, so the
 policy is stopped for the run and restarted afterwards.
 
 ## Plan
@@ -204,7 +205,9 @@ policy is stopped for the run and restarted afterwards.
 | --- | --- | --- | --- | --- |
 | C0 | Idle current with A53 cpufreq at its idle points: all A53s online in WFI, then the L cluster down, then CPU1-7 down; SPM status reads in each state; the L clock checked after its cluster returns | None new (see below) | Running boot2 image | Attempt 1 run 2026-11-07, stopped at c3; **attempt 2 proposed** |
 | C1 | Depends on C0: a cluster-first idle hotplug policy (screen on), or nothing | Hotplug only | none, userspace | Not proposed |
+| H1 | The dark-screen hotplug policy takes the A72s too, when the module has them online; five blank/wake cycles | None new (see [H1](#stage-h1-the-a72s-in-the-dark-screen-policy)) | Running image; only `/bin/backlight-policy` replaced in the running initramfs | **Implemented, compile-checked, proposed** |
 | C2 | Per-core power-down in idle, through an SPM program or a firmware port | New SPM or `tee1` writes | New | Owner decision; blocked on a program that does not exist in the evidence |
+| S | System idle and suspend through the SPM (deep idle with only CPU0 online) | See [the SPM route](#the-spm-route-costed) | New module, then new image | Owner decision; costed, not implemented |
 
 ### Stage C0 proposal
 
@@ -331,6 +334,150 @@ L cluster in WFI against off).
 Limits of C0: one unit, one boot, the fuel gauge's unknown averaging window,
 and the logger's own load. A72 idle cost is outside it.
 
+### Stage H1: the A72s in the dark-screen policy
+
+**What exists.** The console-blank half of P2f is not new: `backlight-policy`
+already called `cpus(closed || blanked)`, and attempt 1 of C0 observed it
+take CPU1-3 down on a console blank (1043.24 s) and bring them back on the
+unblank (1945.45 s). Screen blank is covered for the A53s.
+
+**What changed.**
+[`backlight-policy.c`](../2026-10-30-mainline-dev-station/backlight-policy.c)
+now handles CPU1-9:
+
+- going dark, it takes every online CPU from 1 to 9, so CPU8-9 when the
+  `mt6797-a72` module has brought them up;
+- going lit, it brings back only the CPUs it took, in ascending order, so
+  CPU8 is first back to a down A72 cluster, as 0645 requires (CPU9 first gets
+  `EBUSY`);
+- at start with the screen lit (a previous copy may have died dark), it
+  brings back offline A53s only. An A72 is never brought up unless this
+  program took it: without the module's board sequence, `CPU_ON` for CPU8
+  never returns ([step 2](../2026-11-01-mt6797-all-cores/README.md#observations)).
+
+No new kernel code, so no patch number. Checks: built with the release
+recipe's `gcc -static -O2 -Wall -Wextra -Werror` in the dev VM (aarch64, no
+warning). A throwaway harness drove `cpus()` against a fake sysfs tree:
+without the A72 module (CPU1-7 dark and back, CPU8-9 untouched), with the
+A72s online (CPU1-9 dark and back), with CPU3 and CPU9 offlined by the owner
+(both stay off), and a restart while lit with CPU5 off (CPU5 back, CPU8-9
+stay off). All matched.
+
+**Hypothesis.** On a dark screen the policy takes CPU1-9 down and brings
+them back on wake, CPU8 first, through 0645's re-preparation, every cycle.
+
+**Unique observation.** A72 cluster down and up driven by the screen state,
+repeated, instead of by hand.
+
+**Candidate.** The running boot2 image with the A72 module loaded
+(`online` `0-9`) and the A53 cpufreq modules loaded, as in all-cores step 1.
+The new binary is built from the commit that records this stage, copied over
+`/bin/backlight-policy` in the running initramfs, and the old process killed
+so init respawns the new one (`backlight-policy: start` in `dmesg`, new PID).
+
+**Firmware calls and writes for owner approval.** No new one:
+
+1. PSCI `CPU_OFF`, `AFFINITY_INFO` and `CPU_ON` for CPU1-9, through sysfs
+   `online` (R1b, P2f, all-cores step 2).
+2. The `mt6797-a72` module's re-preparation before CPU8 returns to a down
+   cluster, already approved for step 2 attempt 2: SPM `0x10006218` bit 0,
+   the PWRAP reset, DA9214 `0x5e` written `0x01`, SPM `0x10006290` bits 1:0
+   cleared, the SRAM LDO call, then the MP2 DCM word at `0x10222274`.
+3. The A53 cpufreq driver's approved list, items 1-8, as it scales.
+
+**Procedure.** Cable in (power is not measured here). Console blank timeout
+1 minute (`printf '\033[9;1]' > /dev/tty1`, then SIGUSR1 to the policy).
+Five cycles: wait for the blank, read `online` (expect `0`), press a key,
+read `online` within 5 s (expect `0-9`), check `dmesg` for `cluster prepared
+again for CPU8` before `CPU9: Booted`, run one `cpu-mhz` hash on CPU8 and
+CPU9. Then blanking off.
+
+**Stop** at the first of: `online` not `0` dark or not `0-9` within 5 s of the
+wake; a `did not go` line; `CPU8 not prepared`; a wrong hash; an Oops,
+`WARNING`, RCU stall or `faulted=1`; USB SSH unreachable for 60 s (a hang in
+`CPU_ON` leaves the policy's child and one CPU stuck in firmware; the owner's
+force-off is the only recovery, as in step 2 attempt 1). No retry.
+
+| Result | Next |
+| --- | --- |
+| Five cycles pass, and all-cores step 3 shows the A72s cost 2 mA or more online and idle | Keep CPU8-9 in the policy; the image built next carries it |
+| Five cycles pass, step 3 shows under 2 mA | The saving does not pay for the `CPU_ON` hang risk: set `LAST_CPU` back to 7 |
+| A cycle fails | Keep logs; `LAST_CPU` back to 7 before any image carries this; the A72 down/up path needs work first |
+
+### Device tests, in order
+
+1. All-cores step 3 (A72 idle cost on battery), already approved and queued;
+   it gives H1 its decision.
+2. C0 attempt 2 ([changes](#attempt-2-changes)), A72 module not loaded.
+3. H1, A72 module loaded. It can share a boot with 2 if C0 runs first.
+
+## The SPM route, costed
+
+The owner asked for idle power as far as it can go. Past hotplug, the only
+lever is the SPM, and only through its programs. This section is for the
+owner's decision; nothing here is built.
+
+**What it would save, and where.** Per-core idle power-down is not on offer by
+either route below: no MT6797 per-core (MCDI) program exists in the evidence.
+What the SPM programs do offer is system idle: deep idle (display off), SODI
+and SODI3 (display on), and suspend. The vendor enters them only with exactly
+one CPU online, which is the state P2f already creates whenever the screen is
+dark. They drop the 26 MHz clock, put DRAM in self-refresh and lower VCORE
+through the PMIC wrapper's sleep commands. So the target is the floor that
+hotplug leaves: about 96 mA with the display blanked and CPU0 alone (R1b).
+How much of it the SoC states remove is **not measured**: Gemian never
+reached deep idle or suspend in the retained captures (power-management
+record), and R3 has not run. Phones of this class typically stand by in
+single-digit to low tens of mA, but that figure includes no Gemini board
+loads, so the honest range is "somewhere between a few mA and most of the
+96 mA". A measurement that bounds it before any build: the floor with clocks
+gated (P3), since what stays on after P3 is what only the SPM can reach.
+
+| | Route A: Linux SPM driver, vendor programs loaded at runtime | Route B: replaced secure firmware |
+| --- | --- | --- |
+| What it is | A `=m` module that owns the SPM: loads a vendor `pcm_*.bin` into the SPM carveout, sets power control and wake masks, programs the PMIC wrapper's sleep commands, clones edge interrupts into CIRQ, arms the APXGPT wake timer, kicks the program, then issues `CPU_SUSPEND` `0x1010000`; resume reads the wake reason and undoes it. Entered from s2idle (and later CPU0's idle) when only CPU0 is online | A TF-A port with PSCI 1.0, `SYSTEM_SUSPEND` and the SPM sequence in EL3, as upstream TF-A does for other MediaTek SoCs; Linux then uses generic `deep` and `cpuidle-psci` |
+| Programs needed | `pcm_suspend.bin`, `pcm_deepidle.bin`, `pcm_sodi_ddrdfs.bin` and their `_by_mp1` variants (names from the vendor `mt_spm.c`), from the unit's own Gemian files | The same MT6797 programs, embedded in EL3; upstream TF-A has none for MT6797 |
+| Rights | Proprietary MediaTek firmware with no redistribution grant: the project cannot ship them. A loader reading them from the unit is local-only. The arrays embedded in GPL vendor files (vcorefs; the non-MT6797 MCDI image) come without source, so they are not treated as redistributable either | Same problem, plus a vendor-firmware dependency compiled into the secure world |
+| Also needed | Keeping the program files when Gemian is replaced (the chosen install replaces it); the station DT already reserves the SPM carveout | Rewriting every secure service the station uses today: `CPU_ON` with the B PLL, BigiDVFS calls, the secure register window, the SRAM LDO; the preloader's handoff format |
+| Approval boundary | Inside the standing scheme once its write list is approved: modules, then one image | Writes `tee1`, outside every current approval, and needs a proven recovery path below the preloader before the first write |
+| Cost (estimate) | The largest item in the power work, about the size of the A72 bring-up: the vendor suspend, deep idle and SODI sources (`mt_spm*.c`, `mt_sleep.c`, `mt_idle*.c`) are about 12,000 lines; a mainline module of perhaps 1000-1500 lines; many device stages, each with a hang risk recoverable only by force-off | Months, with a bricking risk to the boot chain; it still needs the programs |
+| Upstreamable | No | The Linux side yes; the firmware side only with programs that can be shipped |
+
+**Recommendation.** Route A, local-only, and only after P3 has shown what
+floor the SPM would act on. Route B removes no blocker (it needs the same
+programs) and adds the largest risk in the project.
+
+**Writes route A needs** (register level, from the vendor sequence; exact
+values are fixed per program at implementation, and each stage lists them
+again for approval):
+
+- SPM, base `0x10006000`, every write keyed with `0x0b16` in bits 31:16
+  where the vendor does: `POWERON_CONFIG_EN` `0x000` ← `0x0b160001`;
+  `PCM_CON0` `0x018` (reset, clock enable, IM kick, PCM kick); `PCM_CON1`
+  `0x01c` (IM slave, event lock, timer enable); `PCM_IM_PTR` `0x020` and
+  `PCM_IM_LEN` `0x024` (the program in the carveout); `PCM_REG_DATA_INI`
+  `0x028`; `PCM_PWR_IO_EN` `0x02c`; `PCM_TIMER_VAL` `0x030`;
+  `SPM_POWER_ON_VAL0` `0x004`; `SPM_CLK_CON` `0x00c`; `SPM_AP_STANDBY_CON`
+  `0x014`; `SPM_SW_INT_CLEAR` `0x094`; `SPM_CPU_WAKEUP_EVENT` `0x0b0`;
+  `SPM_IRQ_MASK` `0x0b4`; `SPM_SRC_REQ` `0x0b8`; `SPM_SRC_MASK` `0x0bc`;
+  `SPM_SRC2_MASK` `0x0c0`; `SPM_WAKEUP_EVENT_MASK` `0x0c4`;
+  `SPM_WAKEUP_EVENT_EXT_MASK` `0x0c8`; `SPM_IRQ_STA` `0x158` (write to
+  clear); `SPM_MAS_PAUSE_MASK_B` `0x408` and `SPM_MAS_PAUSE2_MASK_B` `0x40c`;
+  `WFI_EN` `0x540`-`0x56c` (MP0, MP1, MP2); `SPM_SW_FLAG` `0x600`;
+  `SPM_SW_RSV_0` `0x608`.
+- PMIC wrapper, base `0x1000d000`: the 16 sleep command slots,
+  `DVFS_ADR0`/`DVFS_WDATA0` at `0x10c`/`0x110` through `DVFS_ADR15`/
+  `DVFS_WDATA15` at `0x184`/`0x188`, loaded with the normal and sleep phases
+  (VCORE sleep voltage and low-power modes; exact PMIC registers from the
+  vendor `mt_spm_pmic_wrap.c` table for MT6797).
+- CIRQ (clone and flush of edge interrupts) and APXGPT at `0x10008000` (wake
+  timer); their exact registers come with the stage that adds them.
+- A new firmware call: PSCI `CPU_SUSPEND` (`0xc4000001`) with `0x1010000`,
+  never issued on mainline.
+- What the program itself does (DRAM self-refresh, 26 MHz, infra, VRF18) is
+  inside the vendor binary and cannot be listed by Linux; that is the core of
+  the rights and review problem.
+
 ## Observations
 
 ### Attempt 1 (2026-11-07)
@@ -419,7 +566,9 @@ power idle cores down on all three clusters.
 
 ## Follow-up
 
-- C0 attempt 2, through the custodian, after owner approval.
+- C0 attempt 2 and H1, through the custodian, after owner approval, in the
+  [order above](#device-tests-in-order).
+- The SPM route: an owner decision, with P3 measured first.
 - If C1 follows, it reuses P2f's mechanism and needs no new write.
 - A GPT broadcast timer node and the cpuidle-psci skip for CPU8-9 are needed
   only once a real state exists; neither is worth a patch before then.

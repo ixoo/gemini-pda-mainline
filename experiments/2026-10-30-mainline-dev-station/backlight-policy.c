@@ -17,7 +17,7 @@
  * blanked, or the backlight off at the end of the fade. Back on, the LED's trigger
  * is set again, which takes the real caps lock state. Without the LED driver the
  * writes fail and are tried again on the next wake. With the lid closed or the
- * console blanked it also takes CPUs 1-7 offline, and brings them back after.
+ * console blanked it also takes CPUs 1-9 offline, and brings them back after.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -244,16 +244,20 @@ static void caps_led(int dark)
 }
 
 /*
- * CPUs 1-7 (the A53s) go offline while the screen is dark: about 15 mA of the
+ * CPUs 1-9 go offline while the screen is dark: for the A53s, about 15 mA of the
  * 111 mA idle draw (2026-11-06-gemini-power-management, R1b). Only the CPUs this
  * program took down come back, so one the owner offlined stays off; at start, when
- * a previous run may have died with the screen dark, a lit screen brings all of
- * them back. The A72s are never touched. The writes run in a child, since each CPU
- * takes about 30 ms and a wake must not wait for them; a new switch first waits
- * for the previous one.
+ * a previous run may have died with the screen dark, a lit screen brings back the
+ * offline A53s. An A72 (CPU8-9) is taken only if it is online, which means the
+ * mt6797-a72 module brought it up, and comes back only if this program took it:
+ * bringing one up without that module never returns. They come back in order, so
+ * CPU8 is first back to a cluster that went down, as the module requires. The
+ * writes run in a child, since each CPU takes about 30 ms and a wake must not wait
+ * for them; a new switch first waits for the previous one.
  */
 #define FIRST_CPU 1
-#define LAST_CPU 7
+#define LAST_A53 7
+#define LAST_CPU 9
 /* 1 dark, 0 lit, -1 not yet switched. */
 static int cpus_dark = -1;
 static unsigned int cpus_taken;
@@ -284,7 +288,8 @@ static void cpus(int dark)
 		cpu_online_path(path, sizeof(path), cpu);
 		online = read_number(path);
 		if (dark ? online == 1 :
-		    cpus_dark < 0 ? online == 0 : !!(cpus_taken & (1U << cpu)))
+		    cpus_dark < 0 ? online == 0 && cpu <= LAST_A53 :
+		    !!(cpus_taken & (1U << cpu)))
 			mask |= 1U << cpu;
 	}
 	cpus_dark = dark;
