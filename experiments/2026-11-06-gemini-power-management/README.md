@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L woke through the keyboard (L2 replaces it); audio fix 0671 compile-checked; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1196,6 +1196,67 @@ that already run on the station, and none is a new class:
 - **MMSYS (26):** display clock gates from the DRM suspend and resume of an
   already blanked pipe.
 - **bq25890 (1):** the charging guard's resume pass (0630).
+
+#### L2 and the AFE register reads (2026-11-08)
+
+Run by the device custodian, owner-approved, on D1, RAM root, boot
+`e79a664d…`. `mac`, `mt6797-consys` and `mt6797-wlan-core` were unloaded.
+Raw logs stay private with the custodian.
+
+**AFE across one 20 s suspend** (rc 0, IRQ 191), read before and after:
+
+| Register | Before | After |
+| --- | --- | --- |
+| `PWR_STATUS` | `0x2B00005C` | `0x2B00005C` (AUDIO, bit 24, on) |
+| `AUDIO_PWR_CON` | `0x3330000D` | `0x3330000D` |
+| `AUDIO_TOP_CON0` | `0x87FD4078` | `0x80FD4038` |
+| `AFE_DAC_CON0` | `0x08000001` | `0x00000000` |
+| `AFE_CONN3` | `0` | `0` |
+| `AFE_ADDA_DL_SRC2_CON0` | `0x83001802` | `0x0F000000` |
+
+- The domain is on again after resume, but the AFE's registers are back at
+  their reset values. `aplay` then fails with `hw_ptr err`.
+- This is 0671's premise, now observed. Test A still needs an image or
+  module set carrying 0671.
+
+**L2: pass, but with a warning per keyboard row.**
+- The lid closed and `gemini-lid` inhibited the keyboard (rc 0).
+- `freeze` with a 120 s alarm. The owner opened the lid, and the system
+  woke after 45.2 s on IRQ 20 (Hall). The keyboard was restored (rc 0).
+- No wake came while the lid was closed. That shows an inhibited keypad
+  arms no row wake.
+- Right after the wake, eight `Unbalanced enable for IRQ 225`…`232`
+  warnings appeared, one per row, from `enable_irq()` in
+  `matrix_keypad_scan()`. Taint went to 512.
+
+**Why the warnings appear (from the log order and the code).**
+- `gemini-lid` restored the keyboard at 769.400 s, from work on the
+  non-freezable system workqueue. That was before the keypad's own resume
+  (769.455 s) and the AW9523's (769.450 s).
+- The uninhibit opened the keypad, and its scan enabled the row
+  interrupts.
+- `matrix_keypad_resume()` then found the device enabled and started it a
+  second time. The second scan enabled the rows again, which gave one
+  warning per row.
+- The first scan also read the expander before the expander's resume.
+- This happens on every lid-open wake, so it would hit suspend on lid
+  close every time.
+
+[0672](../../patches/proposals/0672-Input-gemini-lid-apply-the-lid-only-after-a-system-r.patch)
+queues `gemini-lid`'s work on `system_freezable_wq`. A lid change seen
+during a suspend or resume then applies once tasks are thawed, after every
+device has resumed, and the keypad is started once. A close before a
+suspend still applies at once. A close inside the freeze window applies
+after the next resume, and logind then suspends again. The patch is a
+module, compile-checked only. No change to `matrix_keypad` is needed:
+its suspend and resume are balanced when nothing changes the inhibit
+during the resume.
+
+Test **L3**:
+- Repeat L2 on 0672.
+- **Pass:** the wake on IRQ 20, "lid open, keyboard restored 0" logged
+  after the resume completes, no warning, taint unchanged, and a key works
+  after the open.
 
 ## Analysis
 
