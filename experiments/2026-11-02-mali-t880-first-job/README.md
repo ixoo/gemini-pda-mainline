@@ -605,3 +605,5 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    against a rate change. The other candidates are a job truly longer than the 500 ms timeout at a low rate, or a userspace or GPU fault. `0668` lets
    `mt6797_log_rates` be switched on through sysfs, without unloading the driver the compositor holds. The display's `swiotlb buffer is full` lines nearby
    are the display's own DMA mapping, and nothing ties them to the GPU.
+   At 460 s of uptime that boot had 44 rate changes, most of them crossing a post-divider (14 from 238 to 520 MHz alone), with DVFS and idle-off on and logging off. The
+   driver had the drain, so either a change slips past it, or the timeouts have another cause. Rate logging on the next occurrence decides it.
