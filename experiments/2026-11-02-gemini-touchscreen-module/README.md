@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-touchscreen-module` |
-| Status | `running`: T1 showed real multitouch from the module; T3, the panel's own coordinates, is prepared and not run |
+| Status | `completed`: T1 showed real multitouch from the module; T3, the panel's own coordinates, lined up with no calibration matrix |
 | Subsystem | Novatek NT36772 touch controller, I2C4, EINT8, input multitouch |
 | Device variant | Planet Computers Gemini PDA, MT6797X, boot2 station |
 | Date(s) | 2026-11-02, 2026-11-04, 2026-11-08 |
@@ -264,6 +264,25 @@ finger under niri's transform `90`. Then an image with 0648 tracks with no matri
 The Arch image's rule must go when the kernel with 0647 and 0648 ships; its matrix was
 made for the old mapping and is wrong for the new one.
 
+### T3 result, package `37c50274`
+
+Reported by the custodian on 2026-11-08; the boot ID was not reported. The interim
+test on the old image didn't run: the custodian tested 0647 to 0650 together.
+
+Under the Umbriel compositor `94ab5961` (wlroots 0.20, `DSI-1` transform `90`, touch
+mapped to `DSI-1`), touch lined up with no libinput calibration matrix. On a
+qutebrowser page of tap targets, every tap landed within about 15 px. The rule's
+matrix `0 -1 1 1 0 0` and three other trial matrices were wrong.
+
+That fits the first row of the table: the raw axes are inverted on both sides
+relative to the panel. It was shown under Umbriel, not under niri as the
+hypothesis said; both map touch through the output's transform. The matrix needed
+with the old driver differed between compositors, which is why the driver now
+reports the panel's own coordinates.
+
+Not shown: the axis ranges were not read, and the edges and corners were not
+measured separately.
+
 ## Analysis
 
 The hypothesis holds for a first load: the rails are up without a supply being
@@ -277,7 +296,9 @@ module can be iterated without a boot, on the one reload tried.
 ## Conclusion
 
 `confirmed` on one boot: real multitouch from a loadable module, on the first load
-and after one `rmmod` and `insmod`.
+and after one `rmmod` and `insmod`. With 0647 and 0648 touch reports the panel's
+own coordinates and lines up within about 15 px under a compositor that applies
+the output's transform, with no calibration matrix.
 
 ## Follow-up
 
