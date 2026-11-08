@@ -664,8 +664,11 @@ back; the station keeps working and every hash is correct. Unique observations: 
 hotplug on the station kernel, the last-A72 teardown on mainline, and the cluster
 registers after it.
 
-Candidate: a new image from the commit adding 0644, built on Buildbox. A request follows
-with its hashes.
+Candidate: package `e006f1e2...` (job `4331d16b...-mt6797-a53-station-a72-m1`, Buildbox-2),
+Image.gz `3400bd7f...`. Against step 1's `395047bd...`: 0644 in the Image, and the default
+governor changed to schedutil by the cpufreq session, which does not apply here because
+cpufreq stays unloaded. The A72 DTB (`30bdeff8...`) and every module, including
+`mt6797-a72.ko` `bf228fbc...`, are identical.
 
 | Stage | What | Expected |
 | --- | --- | --- |
