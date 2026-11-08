@@ -694,7 +694,7 @@ cleanly` or a `CPU_ON` failure; `online` other than expected; a hash mismatch; a
 | `0x10222274` lost after s2 | Cluster power-down resets the DCM word | CPU9 stays down; the module or a hotplug callback must restore it, a new patch |
 | CPU8 does not return in s2 | Cluster power-up needs something the module did once | Keep logs, no repeat until the firmware path is read |
 
-### Step 2, attempt 2: the cluster prepared again (proposed, not admitted, not run)
+### Step 2, attempt 2: the cluster prepared again (owner-approved, run; see Observations)
 
 [0645](../../patches/proposals/0645-soc-mediatek-prepare-the-MT6797-A72-cluster-again-af.patch) answers the attempt 1 hang. The module keeps its
 references after load and registers two CPU hotplug callbacks:
@@ -985,6 +985,31 @@ patch does that, **at least one A72 must stay online**. The image on boot2 (`be1
 does not enforce this. A single-CPU firmware hang also does not trip the watchdog, so the
 owner's force-off is the only recovery for it.
 
+Step 2 attempt 2, boot `233a2ca2` (the untouched boot after attempt 1's force-off, A72
+module first loaded at 1318 s), image boot2 `be1dbf5a...`, `mt6797-a72.ko` `58a0a98f...`
+verified on the device. The owner was present. cpufreq was never loaded. Every stage
+passed.
+
+- **s0 and s1 as attempt 1:** `online 0-9`, taint 0, the same post-load registers; CPU9 down
+  and back three times, hashes equal, 747-750 MHz.
+- **s2, two cycles:** both down gave `online 0-7` and the pre-module registers, as in
+  attempt 1. `echo 1 > cpu9/online` failed with `Device or resource busy` and left
+  `online 0-7`. `echo 1 > cpu8/online` logged `cluster prepared again for CPU8`, then
+  `CPU8: Booted secondary processor`, 1.5 ms later; the registers read the post-load
+  values except `0x10006244`, with `0x10222274=0x0D`. CPU9 then came back. Hashes equal and
+  747-750 MHz on both, each cycle. The DVFSP revalidation logged its sample before each
+  re-preparation and passed.
+- **s3, 300 s load:** result 0, every hash correct, CPU8 and CPU9 153 rounds, CPU7 164, peak
+  46.3 C.
+- **s4:** `online 0-9`, taint 0, no warning, Oops, stall, `not prepared` or `may not have
+  shut down` line, no wrapper error. Wi-Fi restarts 0, one clean first join (finding 2 at 2
+  of 8). The owner heard the tone with the speaker route on, and the keyboard worked. Clean
+  poweroff.
+
+So the A72s go down and come back on the station, including the whole cluster, when the
+module redoes the board side first. One boot, two full cycles, by hand. BUCKB stayed on
+throughout.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -1070,7 +1095,7 @@ literally first:
    cpufreq-dt, and the clock driver stays the only MCUMIXED writer in Linux. Settled with
    the cpufreq session before any request. The same run measures CPU8's clock with that
    experiment's `cpu-mhz` tool; 750 MHz has only been read, never measured. No new write.
-2. **Down and up.** On the station, CPU9 down and back passed and both down hung on the way back (see Step 2). CPU9 down and back is proven on isolated candidates; both A72s down,
+2. **Down and up.** Passed on one boot with 0645, which prepares the cluster again (see Step 2, attempt 2); without it, the way back hung. CPU9 down and back is proven on isolated candidates; both A72s down,
    and the cluster power after it, never ran on mainline. Needed for thermal emergencies,
    and so CPU_ON's firmware path (which programs the B PLL) can be coordinated with the
    clock driver. First CPU9, then both with the rail left on.
