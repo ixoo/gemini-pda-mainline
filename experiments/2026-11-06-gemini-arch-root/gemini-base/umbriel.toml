@@ -7,7 +7,10 @@
 # The keyboard: umbriel-session loads the Gemini keymap file chosen at first boot.
 
 [general]
-autostart = ["noctalia"]
+# The keybind cheatsheet opens once, at a user's first login (owner, 2026-11-08), through
+# /usr/lib/gemini/first-login, not at every start; Ctrl+Alt+I shows it any time.
+autostart = ["noctalia", "/usr/lib/gemini/first-login"]
+show_cheatsheet = false
 # Dragging a window with the pointer: Alt alone, as before.
 mod_key = "Alt"
 

@@ -1,0 +1,80 @@
+Umbriel's keybind cheatsheet on short outputs (gemini-pda-mainline, MIT).
+
+The Gemini's 2160x1080 panel at scale 2.5 is 864x432 logical, and the cheatsheet ran off
+its bottom edge (owner, 2026-11-08).
+- Collapse any full workspace digit run 1..n (n >= 2) into one row, not only 1..9.
+- Leave a margin of at most an eighth of the output height instead of a fixed 120 px.
+- Try 8 and 7 point text after 9 point, before giving up.
+
+diff --git a/src/scene/cheatsheet.cpp b/src/scene/cheatsheet.cpp
+index d932bdb..be829ed 100644
+--- a/src/scene/cheatsheet.cpp
++++ b/src/scene/cheatsheet.cpp
+@@ -61,8 +61,9 @@ namespace {
+   constexpr int kColumnMaxWidth = 600;
+   constexpr int kMaxColumns = 4;
+   // Body font sizes, largest first. A smaller font costs legibility on every line, so it is tried only after every
+-  // column count fails to fit. Below 9 the chord pills stop being readable.
+-  constexpr int kFontSizes[] = {11, 10, 9};
++  // column count fails to fit. 8 and 7 are for short outputs that fit nothing larger, such as a
++  // 2160x1080 panel at scale 2.5 (864x432), where they are still about 400 dpi.
++  constexpr int kFontSizes[] = {11, 10, 9, 8, 7};
+ 
+   // A display line is either a group header or a bind row.
+   struct DisplayLine {
+@@ -536,7 +537,9 @@ namespace umbriel {
+     // Everything the body has to share the panel with.
+     const int chromeHeight =
+         titleBuf.logicalHeight + kTitleBodyGap + kBodyFooterGap + footerBuf.logicalHeight + 2 * kPad;
+-    const int maxPanelHeight = haveOutput ? outputBox.height - 120 : std::numeric_limits<int>::max();
++    // A fixed 120 px margin is over a quarter of a short output's height; keep it to an eighth there.
++    const int maxPanelHeight =
++        haveOutput ? outputBox.height - std::min(120, outputBox.height / 8) : std::numeric_limits<int>::max();
+     // The body gets the output less the panel's own padding: what has to fit on
+     // screen is the panel, not the text inside it.
+     const int maxBodyWidth = haveOutput ? outputBox.width - 2 * kPad : std::numeric_limits<int>::max();
+diff --git a/src/scene/cheatsheet_rows.cpp b/src/scene/cheatsheet_rows.cpp
+index 2feda79..a87b256 100644
+--- a/src/scene/cheatsheet_rows.cpp
++++ b/src/scene/cheatsheet_rows.cpp
+@@ -762,7 +762,7 @@ namespace umbriel {
+       }
+ 
+       for (auto& [rk, indices] : groups) {
+-        // Check if we have the full 1..9 digit run.
++        // Check for a full digit run from 1: 1..n with n >= 2, each digit once.
+         std::vector<size_t> digitIndices;
+         std::vector<size_t> kpIndices;
+         for (size_t idx : indices) {
+@@ -775,9 +775,17 @@ namespace umbriel {
+             kpIndices.push_back(idx);
+           }
+         }
+-        if (digitIndices.size() < 9) {
++        const size_t runLength = digitIndices.size();
++        bool fullRun = runLength >= 2;
++        for (size_t digit = 1; fullRun && digit <= runLength; ++digit) {
++          fullRun = std::ranges::count_if(digitIndices, [&](size_t idx) {
++                      return rows[idx].keysym == XKB_KEY_1 + digit - 1;
++                    }) == 1;
++        }
++        if (!fullRun) {
+           continue; // no full run
+         }
++        const std::string last = std::to_string(runLength);
+ 
+         // Build the modifier prefix for the collapsed row.
+         std::string modPrefix;
+@@ -822,10 +830,8 @@ namespace umbriel {
+         }
+ 
+         // Replace the first digit index row with the collapsed version.
+-        rows[digitIndices[0]].chord = modPrefix
+-            + "1\xe2\x80\xa6"
+-              "9"; // 1…9
+-        rows[digitIndices[0]].action = std::string(specName) + " 1-9";
++        rows[digitIndices[0]].chord = modPrefix + "1\xe2\x80\xa6" + last; // 1…n
++        rows[digitIndices[0]].action = std::string(specName) + " 1-" + last;
+         if (!rk.submapAfter.empty()) {
+           rows[digitIndices[0]].action += " \xe2\x86\x92 " + rk.submapAfter;
+         }

@@ -1488,6 +1488,83 @@ D-Bus activation file, the bar default in `/etc/skel`, blur on, and the hostname
 Umbriel's and Noctalia's config checks pass. The prompt logic, run in the VM, kept `gemini` for
 an empty answer, rejected `-x`, and wrote `my-pda`. Untested on the device.
 
+### The keybind cheatsheet: first login only, and fitted (`gemini-base` 24, 2026-11-08)
+
+Owner, with a photo of card-18 at startup: "it's nice for the first boot (but it needs to fit),
+but not for the subsequent starts". In the photo, the Focus group and workspaces 4 and 5 ran off
+the bottom of the screen.
+
+Cause, from Umbriel `94ab5961` (`src/scene/cheatsheet.cpp`, `cheatsheet_rows.cpp`):
+
+- The cheatsheet opens at every start while `general.show_cheatsheet` is true, which is the
+  default.
+- The panel may use the output height less a fixed 120 px. On the 432 px desktop that leaves
+  312 px, and the title, footer and padding take about 120 of them.
+- The body tries 11, 10 and 9 point text in up to four columns, each at most 600 px wide. When
+  nothing fits, it keeps the last attempt.
+- A run of workspace binds collapses into one row only when all of 1 to 9 are bound. The card
+  binds 1 to 5, so `workspace-switch` and `window-move-to-workspace` took ten rows.
+
+Changes:
+
+- `umbriel/gemini-cheatsheet.patch` (Umbriel `pkgrel` 4):
+  - It collapses any full run 1..n, with n of at least 2.
+  - It caps the margin at an eighth of the output height (54 px here).
+  - It tries 8 and 7 point text after 9.
+- `umbriel.toml` sets `show_cheatsheet = false`.
+- Umbriel's autostart runs `/usr/lib/gemini/first-login`. Unless
+  `~/.local/state/gemini/cheatsheet-shown` exists, it runs `umbriel msg cheatsheet-open` and then
+  creates that marker. A failure leaves no marker, so the next login tries again. Ctrl+Alt+I
+  still shows the cheatsheet at any time.
+
+The fit is not measured. The dev VM has no DRM device, and Umbriel's renderer needs one. The
+layout arithmetic suggests three columns at 7 or 8 point, but only a screenshot on the device
+settles it.
+
+**The left bar, as kept.** The custodian tried a denser bar live on card-18, and the owner said
+"Keep it". It passed `noctalia config validate` there, and Noctalia reloaded it live.
+`noctalia.toml` now carries it:
+
+- full height: no end or edge margins, no radius, 40 px thick;
+- launcher and workspaces at the top, the clock (hours over minutes) in the centre, and network,
+  volume, battery and the control center at the bottom;
+- the battery drawn as a fill, since a vertical bar has no room for the percentage.
+
+The session widget is gone; its panel stays on Ctrl+Alt+Backspace and in the control center.
+
+**PipeWire.** The owner: "It looks like pipewire is missing and noctalia relies on it". On
+card-18 Noctalia logged `pipewire disabled: pipewire: failed to create context`, so the volume
+widget, the media controls and the Fn volume keys had nothing behind them.
+
+- `gemini-base` now depends on `pipewire`, `wireplumber`, `pipewire-pulse` and `pipewire-alsa`.
+- The card has no UCM profile or alsa-lib config, so WirePlumber's automatic profiles would
+  open unrouted and hostless PCMs. The audio session agreed to direct nodes instead:
+  - `50-gemini.conf` in `pipewire.conf.d` defines one sink, "Headphones", on
+    `hw:mt6797mt6351,0` at 48 kHz. That is Playback_1 (DL1), the only PCM that audio-start
+    routes to the MT6351 headphone drivers.
+  - `50-gemini.conf` in `wireplumber.conf.d` disables the card's automatic device.
+- Hardware gain stays where audio-start leaves it: Headphone Volume 0, which is −10 dB.
+  Volume is PipeWire's software volume.
+- PipeWire's 100% means full scale into the headphones, and full-scale output at −10 dB has
+  not been measured. So `first-login` sets the default sink to 35% once per user, with its own
+  marker; WirePlumber keeps later changes.
+- If 100% proves too quiet, the audio record's advice is to raise Headphone Volume by 2 at a
+  time with the owner listening, and to go no higher than 10 (0 dB) without a level check.
+- Speakers and capture stay off. Capture needs routing that audio-start does not set, and the
+  microphones are preliminary.
+
+Card-23 (dev VM, `gemini-base` 24 and Umbriel `pkgrel` 4, image sha256 `99a2da8ba983…`, 417
+packages, root 2.53 GB used) pairs with `station-work-91` or later. Checked read-only on the
+image:
+
+- pipewire 1.6.10 and wireplumber 0.5.18 are installed, and `pipewire.socket`,
+  `pipewire-pulse.socket` and `wireplumber` are enabled for every user under `/etc/systemd/user`;
+- both `50-gemini.conf` files parse with `spa-json-dump`;
+- `show_cheatsheet = false` is set and the autostart runs `first-login`;
+- Umbriel's config check passes, and so does Noctalia's with the packaged bar.
+
+Untested on the device: the cheatsheet's fit, the sink on the real card, and the 35% start.
+
 ## Analysis
 
 Not started.

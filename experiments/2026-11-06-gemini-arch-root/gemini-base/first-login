@@ -1,0 +1,24 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Once per user, at the first login, from Umbriel's autostart (owner, 2026-11-08). Each
+# step leaves its own marker; a failed step leaves none, so the next login tries again.
+state=${XDG_STATE_HOME:-$HOME/.local/state}/gemini
+mkdir -p "$state"
+
+# The headphone volume starts at 35%: PipeWire's 100% is full scale into the headphones,
+# and full-scale output has not been measured (audio record). WirePlumber keeps the
+# user's later changes.
+if [ ! -e "$state/volume-set" ]; then
+    tries=0
+    while ! wpctl inspect @DEFAULT_AUDIO_SINK@ >/dev/null 2>&1 && [ "$tries" -lt 20 ]; do
+        sleep 0.5
+        tries=$((tries + 1))
+    done
+    wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.35 && touch "$state/volume-set"
+fi
+
+# Umbriel's keybind cheatsheet: nice for the first boot, not for later starts.
+# Ctrl+Alt+I shows it any time; any key closes it.
+if [ ! -e "$state/cheatsheet-shown" ]; then
+    umbriel msg cheatsheet-open >/dev/null && touch "$state/cheatsheet-shown"
+fi

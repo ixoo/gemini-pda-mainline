@@ -3,6 +3,29 @@
 # boot. Noctalia merges that directory's *.toml files in name order, so the user's own
 # config.toml, and settings changed in Noctalia, override these.
 
-# A vertical bar on the left edge (owner, 2026-11-08).
+# A vertical bar on the left edge (owner, 2026-11-08), using the full height:
+# Noctalia's default 100 px end margins left about 230 of the 432 px for eight widgets.
+# Tried live on card-18; owner: "Keep it". The session panel stays on Ctrl+Alt+Backspace
+# and in the control center.
 [bar.default]
 position = "left"
+margin_ends = 0
+margin_edge = 0
+radius = 0
+thickness = 40
+padding = 8
+widget_spacing = 10
+font_scale = 1.15
+start  = ["launcher", "workspaces"]
+center = ["clock"]
+end    = ["network", "volume", "battery", "control-center"]
+
+[widget.clock]
+vertical_format = "{:%H\n%M}"
+tooltip_format = "{:%A %d %B}"
+font_scale = 1.3
+font_weight = 700
+
+# A vertical bar can't show the percent label, so the level is drawn as a fill.
+[widget.battery]
+display_mode = "graphic"
