@@ -1224,5 +1224,7 @@ proposals/0643-OPP-of-leave-CPUs-without-an-OPP-table-out-of-a-shar.patch
 proposals/0644-arm64-mediatek-let-the-MT6797-A72s-go-down-and-come-.patch
 proposals/0645-soc-mediatek-prepare-the-MT6797-A72-cluster-again-af.patch
 proposals/0646-arm64-dts-mediatek-mt6797-describe-the-CPU-PMU.patch
+proposals/0647-Input-novatek-nt36xxx-report-the-panel-s-own-coordin.patch
+proposals/0648-arm64-dts-mediatek-gemini-station-invert-the-touchsc.patch
 proposals/0649-drm-panel-nt36672e-report-the-panel-s-orientation.patch
 proposals/0650-arm64-dts-mediatek-gemini-give-the-panel-its-orienta.patch
