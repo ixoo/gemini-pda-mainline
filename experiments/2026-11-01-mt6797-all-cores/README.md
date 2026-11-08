@@ -633,7 +633,7 @@ A53s only.
 | A72 stops, or a hash mismatch | A72 or coherency fault beside scaling | Keep logs, `reboot -f` if needed, no repeat until explained |
 | Bring-up failure in `s1` | As attempt 1's table | As attempt 1's table |
 
-### Step 2: down and up (proposed, not admitted, not run)
+### Step 2: down and up (owner-approved, run; stopped in s2, see Observations)
 
 The A72 CPU operations report that CPU8 and CPU9 cannot be disabled, so the kernel gives
 them no `online` control. That was deliberate: the board sequence has no proven inverse.
@@ -901,6 +901,45 @@ retry.
 - **Power-off:** clean, with the data partition unmounted. A plain reboot now lands in
   Gemian on this device, so this replaced the reboot.
 
+Step 2, boot `240ae705`, image boot2 `be1dbf5a...` (package `e006f1e2...` with the A72
+tree), modules and tools verified on the device. The owner was present. cpufreq was
+never loaded. Stopped in s2; the owner forced power off. No retry.
+
+Registers below are `0x10006188 0x1000618c 0x10006218 0x10006240 0x10006244 0x10006290
+0x10222274`.
+
+- **s0:** `insmod=0` at 51.07 s, `online 0-9`, taint 0. Before: `003D8108 003D88FF
+  00010132 00010332 00010332 00000002 00000000`; after: `003F84C8 003D80FF 00010127
+  00010337 00010337 00000000 0000000D`.
+- **s1 passed, three rounds:** CPU9 down and up each time, `psci: CPU9 killed (polled 0
+  ms)` then `CPU9: Booted secondary processor`, `online` `0-8` then `0-9`, hashes equal,
+  CPU9 at 748-750 MHz. With CPU9 down only `0x10006244` changed (`00010337` to `00010332`),
+  besides the moving bits above the A72 mask; `0x10006290` stayed 0 and `0x10222274`
+  stayed `0x0D`.
+- **s2, both down:** both `echo 0` returned, `psci: CPU8 killed (polled 0 ms)`, `online 0-7`.
+  The registers read `003D8008 003D88FF 00010132 00010332 00010332 00000002 00000000`, the
+  same 10 s later: the pre-module state. MP2 reset is asserted again (`0x10006218` bit 0),
+  the external buck isolation is back (`0x10006290=2`) and the MP2 DCM word is 0.
+- **s2, CPU8 back:** `echo 1 > cpu8/online` at about 86 s never returned, with no `Booted`
+  line. From 107 s RCU reported CPU4 stalled (`4-...0`, `ncpus=9`), and the NMI from CPU2 got
+  no backtrace. The report repeated with the same grace period until about 400 s. Other CPUs
+  kept running: Wi-Fi logged at 454.9 s, then USB SSH failed. No Oops, `WARNING` or panic,
+  and the watchdog never fired, presumably because the CPUs still running kept it fed.
+
+**Analysis (inferred, fits the registers and the log).** When the last A72 goes down, the
+firmware takes the cluster back to its pre-module state, including the reset and the buck
+isolation that the module cleared. So the vendor off path is complete: the firmware does
+the inverse. What it doesn't do is redo the board side on the way back up. `CPU_ON` then
+waits inside the firmware for a cluster that cannot power up, on the CPU that issued it.
+That was most likely CPU4, which ran the shell's write; it stalled with interrupts masked
+in EL3, out of reach of the NMI. Not read: BUCKB and the SRAM LDO after the teardown.
+
+So any `CPU_ON` with no A72 online must be preceded by the module's board sequence again:
+the same writes as at load, followed by the DCM write once the first A72 is up. Until a
+patch does that, **at least one A72 must stay online**. The image on boot2 (`be1dbf5a`)
+does not enforce this. A single-CPU firmware hang also does not trip the watchdog, so the
+owner's force-off is the only recovery for it.
+
 Package `eff98241...` (job `e1add137...-m1`, Buildbox-2) built and linked the module and
 the Image with the earlier version of the options. It is an audit input, and superseded
 for booting because the plain station no longer carries these options.
@@ -986,7 +1025,7 @@ literally first:
    cpufreq-dt, and the clock driver stays the only MCUMIXED writer in Linux. Settled with
    the cpufreq session before any request. The same run measures CPU8's clock with that
    experiment's `cpu-mhz` tool; 750 MHz has only been read, never measured. No new write.
-2. **Down and up.** CPU9 down and back is proven on isolated candidates; both A72s down,
+2. **Down and up.** On the station, CPU9 down and back passed and both down hung on the way back (see Step 2). CPU9 down and back is proven on isolated candidates; both A72s down,
    and the cluster power after it, never ran on mainline. Needed for thermal emergencies,
    and so CPU_ON's firmware path (which programs the B PLL) can be coordinated with the
    clock driver. First CPU9, then both with the rail left on.
