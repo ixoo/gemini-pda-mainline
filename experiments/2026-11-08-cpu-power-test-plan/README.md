@@ -158,7 +158,13 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
   (Wi-Fi fixes 0669 and 0670); one `systemctl restart iwd` triggered one WLAN restart
   and reconnected in 4 s with Bluetooth and FM still present. Details belong to the
   Wi-Fi record.
-- None of Phase 1's CPU, suspend or SPM tests has run on D1 yet.
+- Phase 1 boot 1 (boot `17a3859e…`): H1 passed five of five cycles (CPU1-9 down on a
+  console blank, all ten back within a second of the key, CPU8 first after "cluster prepared
+  again", correct hashes on both A72s). The suspend tests passed C, H, K and S, with S at
+  73.3 mA suspended; L failed (a lid close woke the system through the keyboard expander),
+  and audio breaks across a suspend
+  ([P6 result](../2026-11-06-gemini-power-management/README.md#p6-result-2026-11-08-c-h-k-and-s-pass-audio-breaks-across-a-suspend-a-lid-close-wakes-through-the-keyboard)).
+  Boots 2 and 3 have not run.
 
 ## Analysis
 

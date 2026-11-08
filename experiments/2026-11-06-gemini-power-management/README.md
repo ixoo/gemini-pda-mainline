@@ -1092,6 +1092,36 @@ warning, oops, taint change, eMMC hash change or failed resume.
   during the suspend and the chip returns to its defaults (charging enabled,
   with no VBUS). At resume the guard rewrites its admitted settings.
 
+#### P6 result (2026-11-08): C, H, K and S pass; audio breaks across a suspend; a lid close wakes through the keyboard
+
+Run by the device custodian, owner-approved, on image D1 (`station-work-92`, boot2
+`09ae90fd…`, which carries 0651-0670; see the
+[test plan](../2026-11-08-cpu-power-test-plan/README.md)). Station RAM root, boot
+`17a3859e-6b05-4dcb-b27f-3b20f08fd009`, battery 94 % to 87 %. CPU8-9 were taken offline by
+hand first, so no suspend ran with the A72s online. Every resume left taint 0, boot2's hash
+unchanged and no warning line. Raw logs stay private with the custodian. `rtcwake` is not
+in the station's busybox, so each step armed `rtc0/wakealarm` and wrote `freeze` to
+`/sys/power/state` itself.
+
+| Test | Result |
+| --- | --- |
+| C | Pass. With CONSYS loaded and `mac` unloaded, `freeze` failed with `EBUSY` and "CONN is on, refusing to suspend". After unloading `mt6797-consys` and `mt6797-wlan-core`, a 20 s suspend returned 0, woken by IRQ 191 (the PMIC, RTC alarm) after 19.8 s |
+| H | Pass except audio. Two 20 s suspends returned 0 (IRQ 191). The AW9120 LED read 255 after resume. Touch reported after resume: 24936 bytes of events, its IRQ (`3-0062`) rose from 18 to 246. The 5 s touch window in the script was too short for the owner, so the touch check is from a separate 90 s capture. **Audio fails after resume**: `aplay` returns an I/O error, and the AFE logs `mtk_afe_pcm_pointer hw_ptr err` at the first stream. Reloading `snd-soc-mt6797-afe` and `mt6797-mt6351` and reapplying `audio-start`'s mixer settings brought playback back (rc 0), so the suspend breaks it |
+| K | Pass. One key press woke a 120 s suspend after 23.3 s, through IRQ 25 (`5-005b`, the keyboard expander), not IRQ 191 |
+| L | **Fail.** The suspend woke after 2.7 s, as the owner closed the lid, through IRQ 25, the keyboard expander, not the Hall lid line (IRQ 20) |
+| S | 600 s suspend, rc 0, woken by IRQ 191 on time. CPU1-7 offline, display blanked, LEDs off, CONSYS and camera unloaded: **mean 73.3 mA** (`charge_counter` −11898 to −24106 µAh over 599.5 s). S2 did not run (S was not under 60 mA) |
+
+**Writes during H's suspend** (`regmap_reg_write` trace, one 20 s cycle): INFRACFG syscon
+`0x10001000` 676, PMIC wrapper 71, I2C `5-005b` 60, AW9120 `4-002c` 42, MMSYS syscon
+`0x14000000` 26, the SPM power controller 14, bq25890 1. The record expected AW9120 only; the
+rest are the framework's clock, power-domain and wake paths, which the trace shows for the
+first time.
+
+**Reading.** s2idle on this firmware saves about 23 mA against R1b's 96 mA awake floor:
+the SoC stays at run voltage with its clocks as they were, as expected without the SPM. A
+lid close cannot drive a suspend on lid close yet, because the keyboard expander wakes the
+system as the lid closes. Audio needs a resume path before a suspend can be used with sound.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
