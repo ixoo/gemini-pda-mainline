@@ -1619,6 +1619,20 @@ The owner chose to start Bluetooth at boot with the radio off (`gemini-base` 27)
 - The adapter appears to Noctalia unpowered, and the owner turns it on from the bar or the
   control center. Starting the service is no radio action by itself.
 
+The owner also asked for a simpler, macOS-like launcher on Ctrl+Alt+Space (`gemini-base` 28):
+
+- `noctalia.toml` sets `[shell.launcher] layout = "simple"`: a search field over one result
+  list, instead of the full layout's toolbar and Recent, Pinned, All, Categories and Providers
+  tabs.
+- It also sets `categories = false` (no chip row), `compact = true` (tighter rows) and
+  `show_app_origin_indicator = false`.
+- The simple layout is a fixed 560x500 in Noctalia 5.4.1. The panel manager clamps any panel
+  to the output less its padding (`src/shell/panel/panel_manager.cpp`), so it fits the 432 px
+  height.
+- Noctalia's `config validate` passes, and `config export full` differs from the defaults in
+  exactly those four keys.
+- Not seen on the device yet.
+
 Not yet in a card image: the next card waits for the audio session's UCM profile.
 
 ## Analysis

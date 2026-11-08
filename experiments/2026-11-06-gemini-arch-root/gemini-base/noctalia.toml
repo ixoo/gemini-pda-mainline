@@ -41,3 +41,12 @@ show_label = false
 
 [widget.volume]
 show_label = false
+
+# The launcher (Ctrl+Alt+Space or the side key) as a plain search field over one list,
+# macOS-like (owner, 2026-11-08). The simple layout is 560x500; Noctalia clamps it to the
+# 432 px screen. No category chips, origin badges or larger rows.
+[shell.launcher]
+layout = "simple"
+categories = false
+compact = true
+show_app_origin_indicator = false
