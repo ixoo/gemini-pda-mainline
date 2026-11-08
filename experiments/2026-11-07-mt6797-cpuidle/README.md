@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; stage C0 (measurement and register reads, no new write) proposed for owner approval |
+| Status | `planned`: research done, no device run; stage C0 (measurement and register reads, no new write) owner-approved 2026-11-07, not run |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -202,7 +202,7 @@ policy is stopped for the run and restarted afterwards.
 
 | Stage | What | Writes | Image | Status |
 | --- | --- | --- | --- | --- |
-| C0 | Idle current with A53 cpufreq at its idle points: all A53s online in WFI, then the L cluster down, then CPU1-7 down; SPM status reads in each state; the L clock checked after its cluster returns | None new (see below) | Running boot2 image | **Proposed for approval** |
+| C0 | Idle current with A53 cpufreq at its idle points: all A53s online in WFI, then the L cluster down, then CPU1-7 down; SPM status reads in each state; the L clock checked after its cluster returns | None new (see below) | Running boot2 image | **Owner-approved 2026-11-07**, not run |
 | C1 | Depends on C0: a cluster-first idle hotplug policy (screen on), or nothing | Hotplug only | none, userspace | Not proposed |
 | C2 | Per-core power-down in idle, through an SPM program or a firmware port | New SPM or `tee1` writes | New | Owner decision; blocked on a program that does not exist in the evidence |
 
