@@ -22,3 +22,8 @@ CONFIG_DRM_FBDEV_EMULATION=y
 # size reflows the text and adds lines each time.
 CONFIG_DUMMY_CONSOLE_COLUMNS=135
 CONFIG_DUMMY_CONSOLE_ROWS=33
+# Scanout and compositor effect buffers are DRM dumb buffers from CMA, 9.3 MB each
+# at 1080x2160 XRGB. The default 32 MiB ran out within seconds of a SceneFX session.
+# Vendor carve-outs all sit below 0xc0000000, so 256 MiB lands at 0xf0000000, still
+# under 4 GiB. Movable pages use the pool while no driver holds it.
+CONFIG_CMA_SIZE_MBYTES=256

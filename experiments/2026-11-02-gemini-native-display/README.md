@@ -503,6 +503,16 @@ precedence while it stays on the command line. niri 26.04 reads the property its
 `transform "90"` would end up at 180. Compiled with `W=1` and the DTB checked in the dev VM;
 nothing is booted on it yet.
 
+## CMA for compositors (built, not yet booted)
+
+Under a wlroots compositor with SceneFX on package `37c50274`, `CmaTotal` was 32768 kB and
+`CmaFree` 4036 kB just after start. About 40 `DRM_IOCTL_MODE_CREATE_DUMB` calls then failed
+with ENOMEM. Scanout and effect buffers are mediatek-drm dumb buffers from CMA, 9.3 MB each.
+The display fragment now sets `CONFIG_CMA_SIZE_MBYTES=256`. The logged reservations all lie
+below 0xc0000000, and the default pool sits at the top of the first 4 GiB, so it should land
+at 0xf0000000. Panfrost's own buffers are shmem and are not affected. The config resolves in
+the dev VM; `CmaTotal` and the errors still have to be checked on the device.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here
