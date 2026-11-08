@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 ready. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The vendor's SPM sequence is reverse-engineered (2026-11-08) and Route A is designed as S0 (reads) and S1 (`mem` suspend), awaiting the owner |
+| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 ready. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The vendor's SPM sequence is reverse-engineered (2026-11-08) and Route A is designed; S0 (reads) ran on 2026-11-08 with no stop condition and showed every idle A53 already in retention; S1 (`mem` suspend) awaits the owner |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -47,9 +47,9 @@ WFI.
   observed. C0 needs no new image, firmware call or register write.
 - **Enabling `CONFIG_CPU_IDLE` alone gains nothing**, and a PSCI power-down
   state in the DT without the SPM side would hang every CPU at its first idle.
-- **Idle A53s already retain (2026-11-08, inferred from the firmware).**
-  `tee1` turns on A53 hardware retention for every core it powers up, so
-  CPU1-7 probably drop into retention in WFI today; CPU0 probably does not.
+- **Idle A53s already retain (2026-11-08, observed in S0).** All eight A53s,
+  CPU0 included, sit in hardware ("SPARK") retention when in WFI on the
+  station. `tee1` turns it on for every core it powers up.
 - **The vendor's way below WFI is known (2026-11-08).** One CPU (CPU0)
   online, an SPM program loaded from DRAM and kicked, then the CPU goes down
   through `CPU_SUSPEND` `0x1010000`, or stays in `wfi` at EL1 in a bring-up
@@ -512,9 +512,9 @@ no SiP call for sleep. *Inferred:* no cluster-off or MCDI-like path exists
 without an SPM program, and the firmware supports suspending CPU0 only. The
 state Linux must leave the SPM in, per path, is in
 [§4.2 of the hardware page](../../docs/hardware/mt6797-spm-sleep.md#42-what-linux-must-leave-the-spm-in).
-*New:* the firmware enables A53 hardware retention on every `CPU_ON`, so
-CPU1-7 are probably already retained in WFI today; the C0 `CPU_RET_STATUS`
-read `0xF6` fits that.
+*New:* the firmware enables A53 hardware retention on every `CPU_ON`. S0
+then observed every idle A53, CPU0 included, in retention
+([S0 result](#s0-result-2026-11-08)).
 
 **2. SPM programs.** *Observed:* a 16-bit length, the PCM code, a
 descriptor with sixteen event vectors, and a version string. The kernel
@@ -577,7 +577,7 @@ if S1 works and leaves enough current on CPU0's cluster to matter.
 
 | Stage | What | Writes | Image | Status |
 | --- | --- | --- | --- | --- |
-| S0 | Reads only: the SPM, PMIC-wrapper, MCUCFG, INFRACFG and PMIC words S1 will touch, so every read-modify-write has a known start value; `CPU_RET_STATUS` with the reader pinned to CPU0 and to CPU3; the SPARK words; the carveout's address; the `system.img` program hashes | None | Running | **Proposed** |
+| S0 | Reads only: the SPM, PMIC-wrapper, MCUCFG, INFRACFG and PMIC words S1 will touch, so every read-modify-write has a known start value; `CPU_RET_STATUS` with the reader pinned to CPU0 and to CPU3; the SPARK words; the carveout's address; the `system.img` program hashes | None | Running | **Done 2026-11-08**, no stop condition ([result](#s0-result-2026-11-08)) |
 | S1 | `mem` suspend on CPU0 with the suspend program, CPU stays powered, PCM-timer wake after 30 s | The list below | Running, plus the new module | **Proposed, after S0** |
 | S2 | As S1 with CPU power-down (`CPU_SUSPEND` `0x1010000`) | S1's list with flag bit 0 clear, plus one built-in export | New image | Owner decision after S1 |
 | S3 | Deep idle or SODI from CPU0's idle with the screen dark | New masks, APXGPT, CIRQ | New image | After P3 |
@@ -605,6 +605,57 @@ if S1 works and leaves enough current on CPU0's cluster to matter.
 `PCM_REG1_DATA` is 1 (a resident program); the carveout is missing; the file
 hash differs.
 
+### S0 result (2026-11-08)
+
+Run by the device custodian. Boot `50572be9-64e5-4759-aaad-a7df73eebf72`,
+release `7.1.3-gemini-a53-station`, boot2 `6c0fd742…` (station-work-91). Card
+root with the desktop session up, cable in, `online` `0-7`. The A72 module
+and A53 cpufreq were not loaded. Wi-Fi and Bluetooth were loaded. Taint 512
+came from an earlier Panfrost `WARN`, not from S0. Reads used busybox
+`devmem`; the PMIC reads used the PMIC wrapper's regmap in debugfs. Every
+read completed, with no fault. The raw log stays private with the
+custodian.
+
+**Stop conditions: none hit.** `PCM_FSM_STA` `0x02848490` (reset value),
+`PCM_REG1_DATA` 0, carveout present, `pcm_suspend.bin` hash matches. The
+other eight program hashes also match the hardware page.
+
+| What | Read | Meaning for S1 |
+| --- | --- | --- |
+| Carveout | `0xbfdd0000`-`0xbfde5fff`, 88 KiB, no-map | Program at `0xbfdd0000` |
+| INFRACFG_AO `0x10001f00` | `0x11403200` | 4 GB mode on (bit 13), so `PCM_IM_PTR` = `0xffdd0000` |
+| Chip version `0x08000008` | `0x0000ca01` | Flag bit 18 (segment 2) set |
+| MT6351 HWCID `0x0200` | `0x5140` | Slots 10 and 11 use `0x06aa` |
+| `MD1_PWR_CON`, `C2K_PWR_CON`, `CONN_PWR_CON` | `0x112`, `0x012`, `0x10d` | Modem and C2K off. CONNSYS was on with Wi-Fi/BT loaded, so S1's precondition needs those modules unloaded, as written |
+| `SPM_POWER_ON_VAL0`/`VAL1` | `0x00000000` / `0x00015830` | S7 copies them as read |
+| `SPM_CLK_CON` `0x00c` | `0x00008000` | S1, S13, S22 change bits 4, 6, 5 |
+| `SPM_AP_STANDBY_CON` `0x014` | `0x04f80000` | Bit 23 set, so S9 writes `0x04880011` |
+| `PCM_CON0`/`PCM_CON1` | `0x00000004` / `0x00006c00` | As in C0; no watchdog bits to keep |
+| `SPM_SRC_REQ`/`SRC_MASK`/`SRC2_MASK` | `0x40` / `0xe1fff07e` / `0x03f107df` | S10-S12 replace them; X3 restores |
+| Every `WFI_EN`, `SPM_SW_FLAG`, `SPM_SW_RSV_0`-`3` | 0 | Nothing else uses them |
+| `CPU_EXT_BUCK_ISO` `0x290` | `0x00000002` | The A72 cluster's isolation, A72 module not loaded |
+| PMIC wrapper slots `0x1000d10c`-`0x1000d188` | all 0 | Nothing loads them on mainline; X4 restores zeros |
+| MCUCFG `MP0`/`MP1_AXI_CONFIG` | `0x0b` / `0x0b` | `ACINACTM` (bit 4) clear on both, as expected with CPUs online |
+| MCUCFG `MP2_AXI_CONFIG` | `0x00000000` | `ACINACTM` clear even with the A72 cluster down |
+| SPARK `0x10221c00`/`04`, `0x10223c00`/`04` | `0x3f3f3f3f` / `0x0f`, `0x3f3f3f3f` / `0x0f` | All eight A53s, CPU0 included, have SPARK on |
+| MT6351 `0x060a` / `0x060c` | `0x0040` / `0x0040` | VCORE 1.0 V now; sleep voltage also 1.0 V |
+| MT6351 `0x044a`, `0x045c`, `0x0470` | `0xfb21`, `0x0000`, `0x0000` | `VSLEEP_SEL` is 3 now; low-IQ off |
+| MT6351 `0x0008`, `0x000c`, `0x0204` | `0x0000`, `0x0000`, `0x010b` | Power-good force bits clear |
+| MT6351 `0x06a8` / `0x06aa` | `0x0050` / `0x0050` | VSRAM_PROC 1.1 V |
+
+**Retention.** With the reader pinned to CPU0, `CPU_RET_STATUS` read
+`0xFE` and `CPU_IDLE_STA` `0x3F800`. Pinned to CPU3, they read `0xF6` and
+`0x3DC00`. Only the reading CPU's bits were clear, so every other A53,
+CPU0 included, was in WFI and in retention. That corrects this record's
+2026-11-08 inference that CPU0 lacked retention. C0 attempt 1's `0xF6` read
+was taken on CPU3. Durable facts are in
+[MT6797 SPM sleep §2](../../docs/hardware/mt6797-spm-sleep.md#2-a53-retention-spark-is-already-on-for-every-a53).
+
+**What S0 settles for S1.** Every data-dependent value in the S1 list is now
+fixed (below). One precondition was not met in this run (CONNSYS on), as
+expected, because the run kept Wi-Fi loaded. Nothing in S0 argues against
+S1.
+
 ### S1: the write list, for owner approval
 
 All on CPU0, inside `enter()`, with interrupts off and CPU1-9 already offline.
@@ -631,7 +682,7 @@ PMIC (MT6351, through the PMIC wrapper's normal register access):
 | --- | --- | --- |
 | P1 | `VGPU_ANA_CON7` `0x0470` | RMW bit 1 ← 1 (VGPU low-IQ) |
 | P2 | `STRUP_CON4` `0x0008`, `STRUP_CON6` `0x000c` | RMW bit 15 ← 1; RMW bit 9 ← 1 (power-good force) |
-| P3 | `BUCK_VCORE_CON6` `0x060c`; `SMPS_ANA_CON9` `0x044a` | RMW bits 6:0 ← `0x10` (0.7 V sleep voltage); RMW bits 9:8 ← 0 |
+| P3 | `BUCK_VCORE_CON6` `0x060c`; `SMPS_ANA_CON9` `0x044a` | RMW bits 6:0 ← `0x10` (0.7 V sleep voltage); RMW bits 9:8 ← 0. **With S0's values:** `0x0040` → `0x0010`; `0xfb21` → `0xf821` |
 
 S1 leaves out the vendor's static regulator sleep modes (hardware control and
 low-power mode on `SRCLKEN0` for the bucks and LDOs, §6 of the hardware
@@ -643,7 +694,7 @@ PMIC wrapper (`0x1000d000`): the 32 slot words saved, then
 
 | # | Register | Write |
 | --- | --- | --- |
-| W1 | `DVFS_ADRn` `0x1000d10c + 8n`, `DVFS_WDATAn` `0x1000d110 + 8n`, n = 0-15 | The suspend-phase table on the hardware page: slots 0-6 `0x060a` ← `0x40`, `0x3e`, `0x3b`, `0x38`, `0x36`, `0x33`, `0x30`; 7 `0x060c` ← `0x00`; 8 `0x044a` ← (read \| `0x0300`); 9 `0x060a` ← `0x1c`; 10, 11 `0x06a8` (`0x06aa` if HWCID is `0x5140`) ← `0x40`, `0x50`; 12, 13 `0x045c` ← read \| `0x2`, read & ~`0x2`; 14 `0x060c` ← `0x10`; 15 `0x044a` ← read & ~`0x0300` |
+| W1 | `DVFS_ADRn` `0x1000d10c + 8n`, `DVFS_WDATAn` `0x1000d110 + 8n`, n = 0-15 | The suspend-phase table on the hardware page: slots 0-6 `0x060a` ← `0x40`, `0x3e`, `0x3b`, `0x38`, `0x36`, `0x33`, `0x30`; 7 `0x060c` ← `0x00`; 8 `0x044a` ← (read \| `0x0300`); 9 `0x060a` ← `0x1c`; 10, 11 `0x06a8` (`0x06aa` if HWCID is `0x5140`) ← `0x40`, `0x50`; 12, 13 `0x045c` ← read \| `0x2`, read & ~`0x2`; 14 `0x060c` ← `0x10`; 15 `0x044a` ← read & ~`0x0300`. **With S0's values:** 8 `0x044a` ← `0xfb21`; 10, 11 `0x06aa`; 12 `0x045c` ← `0x0002`; 13 ← `0x0000`; 15 `0x044a` ← `0xf821` |
 
 SPM, in order:
 
@@ -653,11 +704,11 @@ SPM, in order:
 | S2 | `PCM_CON0` `0x018` | `0x0b168004`; poll `PCM_FSM_STA` for `0x48490` (5 ms bound; on timeout stop, X3); `0x0b160004`; `0x0b16000c` |
 | S3 | `PCM_CON1` `0x01c` | `0x0b165c48` \| (read & `0x300`) |
 | S4 | `SPM_SW_INT_CLEAR` `0x094` | `0x1` |
-| S5 | `PCM_IM_PTR` `0x020`; `PCM_IM_LEN` `0x024` | carveout physical address, plus `0x40000000` if 4 GB mode is on and the address is in `0x40000000`-`0xbfffffff`; `0x71d` |
+| S5 | `PCM_IM_PTR` `0x020`; `PCM_IM_LEN` `0x024` | carveout physical address, plus `0x40000000` if 4 GB mode is on and the address is in `0x40000000`-`0xbfffffff`; `0x71d`. **With S0's values:** `0xffdd0000` (carveout `0xbfdd0000`, 4 GB mode on) |
 | S6 | `PCM_CON0` | `0x0b16000e`, then `0x0b16000c` (instruction fetch) |
 | S7 | `PCM_REG_DATA_INI` `0x028`; `PCM_PWR_IO_EN` `0x02c` | ← `SPM_POWER_ON_VAL0` (`0x004`) as read; `0x00010000`; 0; ← `SPM_POWER_ON_VAL1` (`0x008`) as read; `0x00800000`; 0 |
 | S8 | `PCM_EVENT_VECTOR0`-`15` `0x040`-`0x07c` | The sixteen words of the hash-pinned file's descriptor |
-| S9 | `SPM_AP_STANDBY_CON` `0x014` | `0x04080011` \| (read & `0x00800000`): WFI AND, MP3 idle masked, modem 1 and CONN requests honoured, SCP request masked (no SCP firmware runs on mainline) |
+| S9 | `SPM_AP_STANDBY_CON` `0x014` | `0x04080011` \| (read & `0x00800000`): WFI AND, MP3 idle masked, modem 1 and CONN requests honoured, SCP request masked (no SCP firmware runs on mainline). **With S0's value:** `0x04880011` |
 | S10 | `SPM_SRC_REQ` `0x0b8` | `0x00000040` (DVFS force-down only) |
 | S11 | `SPM_SRC_MASK` `0x0bc` | `0x10aa007e` |
 | S12 | `SPM_SRC2_MASK` `0x0c0` | `0x00f1001f` |
@@ -669,7 +720,7 @@ SPM, in order:
 | S18 | `SPM_SCP_MAILBOX` `0x098` | 1 (as the vendor's efuse-path entry) |
 | S19 | `SPM_MAS_PAUSE_MASK_B` `0x408`; `SPM_MAS_PAUSE2_MASK_B` `0x40c` | `0xffffffff` each |
 | S20 | `PCM_REG_DATA_INI` | 0 |
-| S21 | `SPM_SW_FLAG` `0x600`; `SPM_SW_RSV_0` `0x608` | `0x000900b1` (CPU stays powered, VCORE DFS off, DRAM deep power-down off, modem-infra power-down off, SYSRAM sleep off, thermal check skipped), plus bit 18 if the chip version reads `0xca01`; 0 |
+| S21 | `SPM_SW_FLAG` `0x600`; `SPM_SW_RSV_0` `0x608` | `0x000900b1` (CPU stays powered, VCORE DFS off, DRAM deep power-down off, modem-infra power-down off, SYSRAM sleep off, thermal check skipped), plus bit 18 if the chip version reads `0xca01`; 0. **With S0's value** (chip `0xca01`): `0x000d00b1` |
 | S22 | `SPM_CLK_CON` | RMW bit 5 ← 1 (infra DCM lock) |
 | S23 | `PCM_PWR_IO_EN` | `0x81` |
 | S24 | `PCM_CON0` | `0x0b16000d`, then `0x0b16000c` (the program starts) |

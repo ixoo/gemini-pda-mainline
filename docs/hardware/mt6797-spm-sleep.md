@@ -66,7 +66,7 @@ cluster words) and in the `CPU_OFF` teardown. The
 "nothing in the secure firmware writes an MTCMOS or SPM power control" holds
 for suspend only.
 
-## 2. A53 retention ("SPARK") is already on for CPU1-7
+## 2. A53 retention ("SPARK") is already on for every A53
 
 **Observed in `tee1`:**
 
@@ -78,15 +78,28 @@ for suspend only.
   enters retention after a short time in WFI.
 - `CPU_OFF` and the suspend handler clear both.
 
-**Inferred:** on the mainline station, CPU1-7 already drop into hardware
-retention in WFI. CPU0, which no `CPU_ON` brought up, probably does not. The
-C0 reads fit this: `CPU_RET_STATUS` read `0x000000F6` (cores 1, 2 and 4-7)
-while `CPU_IDLE_STA` showed seven A53s in WFI and one running. If CPU3 ran
-the read, CPU0 sat in WFI without retention. The reads that would settle it
-are proposed as stage S0 in the record.
+**Observed on the mainline station** (cpuidle
+[S0](../../experiments/2026-11-07-mt6797-cpuidle/README.md#s0-result-2026-11-08),
+2026-11-08, CPU0-7 online, desktop idle):
 
-Consequence: per-core power-down would save less over WFI than a plain-WFI
-comparison suggests, because idle A53s are already retained.
+| Read on | `CPU_RET_STATUS` `0x100061e4` | `CPU_IDLE_STA` `0x10006174` |
+| --- | --- | --- |
+| CPU0 | `0x000000FE` | `0x0003F800` |
+| CPU3 | `0x000000F6` | `0x0003DC00` |
+
+- `CPU_RET_STATUS` bit *n* is A53 *n*, and `CPU_IDLE_STA` bit 10 + *n* is
+  its `STANDBYWFI`. The reading CPU's bits are the only ones clear; every
+  other A53 is in WFI and in retention.
+- The SPARK words read `0x3F3F3F3F` (LDO field) and `0x0F` (enable) for both
+  clusters, so all eight A53s have SPARK on, CPU0 included. Something before
+  Linux enabled it for CPU0, since no `CPU_ON` brings CPU0 up.
+
+So every idle A53 on the station is already in hardware retention, not plain
+WFI. The earlier guess that CPU0 lacked it was wrong: C0's `0xF6` was simply
+read on CPU3.
+
+Consequence (inferred): per-core power-down would save less over today's
+idle than a plain-WFI comparison suggests.
 
 ## 3. The SPM program files
 
@@ -369,8 +382,8 @@ The vendor code contains no current figures for these states. What it implies:
 - **VCORE from 0.90-1.0 V to 0.6-0.7 V** in suspend, and to 0.775 V in deep
   idle and SODI, with the 26 MHz request, DRAM and DRAM PHY, the PLLs and
   (in suspend) infra off, and the main LDOs in low-power mode.
-- **Retention already in WFI** for CPU1-7 (§2), so per-core power-down would
-  add little over today's WFI.
+- **Retention already in WFI** for every A53 (§2, observed), so per-core
+  power-down would add little over today's idle.
 
 Measured so far on mainline: 111 mA blanked, about 96 mA with only CPU0
 online ([R1b](../../experiments/2026-11-06-gemini-power-management/README.md#r1b-result-2026-11-06)).
