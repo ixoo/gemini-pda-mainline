@@ -1248,6 +1248,20 @@ set a country and restarted `gemini-wifi` (`on country=US`, `mt6797_consys` load
 retried the two groups. `gemini-base` 17 has `firstboot` restart both after Wi-Fi starts. On later
 boots the country is already set and `gemini-wifi` orders first; that path is not yet verified.
 
+### Rotation from the kernel (`gemini-base` 18, 2026-11-08)
+
+The owner asked for the rotation to come from the device tree. Patches 0647/0648 make touch
+report panel-native coordinates. Patches 0649/0650 report the panel's orientation (rotation
+270, "Left Side Up"). The display session read niri 26.04's `src/backend/tty.rs`: niri applies
+that orientation itself, then adds the config transform on top.
+
+`gemini-base` 18 therefore drops `transform "90"`, which would otherwise turn the screen 180°,
+and drops `70-gemini-touch.rules`, whose matrix would be wrong for native coordinates.
+
+**Pairing:** the root follows the boot2 kernel, so `gemini-base` 18 belongs only with a station
+image built with 0647–0650. With the older kernel (`station-work-89`), card-16 (`gemini-base`
+17) is the matching root. Neither pairing has been built or booted yet.
+
 ## Analysis
 
 Not started.

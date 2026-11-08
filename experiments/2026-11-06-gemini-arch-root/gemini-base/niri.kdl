@@ -15,11 +15,12 @@ input {
     mod-key "Alt"
 }
 
-// The panel is portrait-native and used in landscape. "90" is the right way up ("270"
-// was upside down on card-14, owner 2026-11-08). 2160x1080 at about 400 dpi: scale 2.5
-// gives an 864x432 desktop (owner, R4). Touch follows through 70-gemini-touch.rules.
+// The panel is portrait-native and used in landscape. From patches 0649/0650 the kernel
+// reports its orientation (Left Side Up), which niri applies by itself, so no transform
+// here: one would add to it. Touch reports panel-native coordinates (0647/0648), so it
+// needs no calibration matrix either. 2160x1080 at about 400 dpi: scale 2.5 gives an
+// 864x432 desktop (owner, R4).
 output "DSI-1" {
-    transform "90"
     scale 2.5
 }
 
