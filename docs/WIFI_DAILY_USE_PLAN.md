@@ -36,11 +36,15 @@ Status: plan, updated 2026-11-01.
   finish before retrying, which never happened. 0669 retires that idle window at once for the new scan.
   On the first boot of station-work-92 (D1, from `980309cf`, with 0669 and 0670) and card-23, the owner joined
   with iwd: "wifi works!!!" (relayed by the custodian). One join on one boot, without logs yet, and the stall
-  was never reproducible on demand, so this fits 0669 without proving it.
+  was never reproducible on demand, so this fits 0669 without proving it. A second boot, `d4a5ac06`, logged the
+  join: no `scan busy` in the whole boot, and iwd's connect scan was admitted and joined. Whether it fell in an
+  idle window, which is what 0669 changes, is not clear from the lines.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
-  first `up` still fails. Compiled only. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
+  first `up` still fails. On D1, boot `d4a5ac06`, as the custodian reports: one `systemctl restart iwd` gave that
+  failure, one `WLAN restart` 6 ms later, and iwd's new interface was connected with an address 3 s after the
+  restart. Bluetooth and FM re-probed and their devices were present afterwards; neither was exercised. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
   firmware BSS slot is never reused. Fixing it means re-arming after a close, which needs device tests. Not started.
 - Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
