@@ -1565,6 +1565,32 @@ image:
 
 Untested on the device: the cheatsheet's fit, the sink on the real card, and the 35% start.
 
+### Card-23 first login, and a hidden cursor (`gemini-base` 25, 2026-11-08)
+
+From the owner's photo of card-23 at first login, as relayed by the custodian:
+
+- The cheatsheet fits: every group and the footer are on screen, with the workspace binds
+  collapsed.
+- The bar is as kept.
+- The volume widget reads 35, so Noctalia found PipeWire.
+- The battery graphic shows 88.
+
+Not yet observed: sound through the headphones, and the cheatsheet staying away at the second
+login.
+
+The owner: "the mouse cursor is visible, it would be nice to have it disappear unless a mouse
+is connected". Umbriel `94ab5961` can already hide the cursor after a timeout without pointer
+motion, and on typing. Only pointer input (motion, buttons, scrolling, tablet tools) shows it
+again; touch does not (`src/input/cursor.cpp`). The Gemini has no pointing device, so
+`umbriel.toml` now sets `[input.cursor] hide_when_typing = true` and `hide_timeout_ms = 1500`.
+In practice the cursor stays hidden until a mouse moves. Showing it only while a mouse is
+attached would need Umbriel to track pointer devices; that is left unless the timeout falls
+short.
+
+Card-24 (dev VM, `gemini-base` 25, image sha256 `cd7154c33a12…`, 417 packages) pairs with
+`station-work-91` or later. Umbriel's config check passes with the cursor settings. Untested on
+the device.
+
 ## Analysis
 
 Not started.

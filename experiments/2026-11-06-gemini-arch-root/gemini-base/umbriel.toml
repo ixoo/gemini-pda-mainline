@@ -25,6 +25,13 @@ scale = 2.5
 [input.touch]
 map_to_output = "DSI-1"
 
+# No pointing device on the Gemini: the cursor hides after 1.5 s without pointer motion
+# and on typing, and a plugged-in mouse brings it back by moving (owner, 2026-11-08).
+# Touch does not show it.
+[input.cursor]
+hide_when_typing = true
+hide_timeout_ms = 1500
+
 # Blur and animations draw through full-screen offscreen buffers from the display's
 # contiguous memory (CMA). They need the 256 MiB CMA kernel (station-work-91 or later);
 # on the old 32 MiB they fail to allocate. The Mali draws through Panfrost, and blur
