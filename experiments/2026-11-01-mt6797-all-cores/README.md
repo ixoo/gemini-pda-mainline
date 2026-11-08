@@ -739,7 +739,9 @@ stuck in the firmware, with only the owner's force-off to recover.
 | CPU8 hangs again with `cluster prepared again` logged | The board sequence is not what the firmware waits for | Keep logs, no repeat; read the firmware's `CPU_ON` path |
 | The second cycle fails where the first passed | State left by the first cycle | Keep logs, no repeat |
 
-### Step 3: idle cost (proposed, not admitted, not run)
+### Step 3: idle cost (owner-approved, not run)
+
+The owner approved this on 2026-11-07.
 
 How much battery do two idle A72s cost, against the cluster down? The MT6351 gauge reports
 battery current (`current_now`, µA) and a coulomb count (`charge_counter`, µAh), but only
