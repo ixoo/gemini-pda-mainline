@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2086 # every unquoted word is a number, a kHz value or a fixed path
 # SPDX-License-Identifier: MIT
 #
 # A53 DVFS device test (experiments/2026-11-08-mt6797-a53-dvfs, V1-V9), one stage per call.
