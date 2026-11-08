@@ -832,3 +832,4 @@ proposals/0663-PM-devfreq-mtk-cci-make-the-intermediate-clock-optio.patch
 proposals/0664-dt-bindings-interconnect-mediatek-cci-add-MT6797.patch
 proposals/0665-PM-devfreq-mtk-cci-add-MT6797.patch
 proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch
+proposals/0667-soc-mediatek-add-an-MT6797-SPM-mem-suspend-experimen.patch

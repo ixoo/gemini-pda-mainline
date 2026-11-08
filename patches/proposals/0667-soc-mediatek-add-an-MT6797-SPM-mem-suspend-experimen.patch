@@ -1,0 +1,803 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:53:25 -0500
+Subject: [PATCH] soc: mediatek: add an MT6797 SPM mem suspend experiment
+
+Route A stage S1 of the cpuidle record: register "mem" suspend
+operations that run the vendor SPM suspend program on CPU0, with the
+CPU kept powered in WFI (SPM_FLAG_DIS_CPU_PDN) and a PCM-timer wake,
+so the project can measure what the vendor program delivers.
+
+The program is not part of the driver. At load it reads
+mediatek/mt6797/pcm_suspend.bin, the owner's own vendor file, checks
+its SHA-256, copies the code into the spm-reserve-memory carveout and
+takes the sixteen event vectors from the file's descriptor.
+
+.prepare sets the MT6351 sleep-side bits (VGPU low-IQ, power-good
+force, VCORE 0.7 V sleep voltage) through the PMIC wrapper's regmap.
+.enter checks that CPU0 is alone, the PCM is idle and the modem, C2K
+and CONNSYS are off, then loads the PMIC wrapper's suspend-phase
+commands, initialises and kicks the PCM, sets ACINACTM on the three
+clusters and waits in WFI for the PCM-return interrupt (SPM SPI 180,
+mapped through sysirq and enabled for wake only during suspend). It
+restores every SPM, wrapper and MCUCFG word it changed and leaves the
+PCM in reset, as found. No PSCI or SiP call is made.
+
+Local experiment, not for upstream; it depends on a non-free program
+the project does not ship.
+---
+ drivers/soc/mediatek/Kconfig            |  14 +
+ drivers/soc/mediatek/Makefile           |   1 +
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 731 ++++++++++++++++++++++++
+ 3 files changed, 746 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-spm-sleep.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 984fba8f1..fd0ed53f8 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -960,4 +960,18 @@ config MTK_SOCINFO
+ 	  information about the SoC to the userspace including the
+ 	  manufacturer name, marketing name and soc name.
+ 
++config MT6797_SPM_SLEEP
++	tristate "MT6797 SPM mem suspend experiment"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on SUSPEND && OF_RESERVED_MEM && MTK_PMIC_WRAP
++	select CRYPTO_LIB_SHA256
++	help
++	  Local Gemini PDA experiment, not for upstream. Registers "mem"
++	  suspend operations that run the vendor SPM suspend program with
++	  CPU0 kept powered in WFI and a PCM-timer wake. The program is
++	  not included: the module loads mediatek/mt6797/pcm_suspend.bin
++	  from the owner's own vendor files and checks its SHA-256.
++
++	  If unsure, say N.
++
+ endmenu
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 2b6d5041d..ad85b6575 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -87,3 +87,4 @@ obj-$(CONFIG_MTK_MMSYS) += mtk-mmsys.o
+ obj-$(CONFIG_MTK_MMSYS) += mtk-mutex.o
+ obj-$(CONFIG_MTK_SVS) += mtk-svs.o
+ obj-$(CONFIG_MTK_SOCINFO) += mtk-socinfo.o
++obj-$(CONFIG_MT6797_SPM_SLEEP) += mt6797-spm-sleep.o
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+new file mode 100644
+index 000000000..6d60db934
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -0,0 +1,731 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 SPM suspend, Route A stage S1 (local experiment).
++ *
++ * Runs the vendor's SPM suspend program for "mem" suspend, with CPU0 kept
++ * powered in WFI (SPM_FLAG_DIS_CPU_PDN) and a PCM-timer wake. The program
++ * is not part of this driver: it is read at load time from the owner's own
++ * copy of the vendor file and checked against its SHA-256. No PSCI or SiP
++ * call is made.
++ *
++ * The register sequence follows the project's analysis in
++ * docs/hardware/mt6797-spm-sleep.md and the S1 write list in
++ * experiments/2026-11-07-mt6797-cpuidle/README.md.
++ */
++
++#include <asm/barrier.h>
++#include <crypto/sha2.h>
++#include <linux/bits.h>
++#include <linux/delay.h>
++#include <linux/firmware.h>
++#include <linux/io.h>
++#include <linux/irq.h>
++#include <linux/irqdomain.h>
++#include <linux/interrupt.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/of_reserved_mem.h>
++#include <linux/platform_device.h>
++#include <linux/regmap.h>
++#include <linux/smp.h>
++#include <linux/suspend.h>
++#include <linux/unaligned.h>
++
++#define SPM_FW_NAME		"mediatek/mt6797/pcm_suspend.bin"
++
++static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
++	0xd6, 0xe8, 0xa0, 0xb8, 0x85, 0x1e, 0x78, 0xe9,
++	0x58, 0x91, 0xc9, 0x95, 0x60, 0x5f, 0xfb, 0xf2,
++	0x10, 0xea, 0xde, 0x56, 0x58, 0x3b, 0x14, 0xcf,
++	0x6b, 0x4a, 0x67, 0xe7, 0xd7, 0x70, 0xf4, 0xe0,
++};
++
++/* Physical blocks */
++#define SPM_PHYS		0x10006000
++#define PWRAP_PHYS		0x1000d000
++#define MCUCFG_PHYS		0x10220000
++#define MCUCFG_SIZE		0x3000
++#define INFRA_AO_PHYS		0x10001000
++#define CHIPID_PHYS		0x08000000
++
++/* SPM registers */
++#define POWERON_CONFIG_EN	0x000
++#define SPM_POWER_ON_VAL0	0x004
++#define SPM_POWER_ON_VAL1	0x008
++#define SPM_CLK_CON		0x00c
++#define SPM_CLK_SETTLE		0x010
++#define SPM_AP_STANDBY_CON	0x014
++#define PCM_CON0		0x018
++#define PCM_CON1		0x01c
++#define PCM_IM_PTR		0x020
++#define PCM_IM_LEN		0x024
++#define PCM_REG_DATA_INI	0x028
++#define PCM_PWR_IO_EN		0x02c
++#define PCM_TIMER_VAL		0x030
++#define PCM_EVENT_VECTOR0	0x040
++#define SPM_SW_INT_CLEAR	0x094
++#define SPM_SCP_MAILBOX		0x098
++#define SPM_CPU_WAKEUP_EVENT	0x0b0
++#define SPM_IRQ_MASK		0x0b4
++#define SPM_SRC_REQ		0x0b8
++#define SPM_SRC_MASK		0x0bc
++#define SPM_SRC2_MASK		0x0c0
++#define SPM_WAKEUP_EVENT_MASK	0x0c4
++#define PCM_REG1_DATA		0x104
++#define PCM_REG13_DATA		0x134
++#define PCM_REG12_EXT_DATA	0x144
++#define SPM_IRQ_STA		0x158
++#define SPM_WAKEUP_STA		0x15c
++#define SPM_WAKEUP_EXT_STA	0x160
++#define SUBSYS_IDLE_STA		0x170
++#define PCM_FSM_STA		0x17c
++#define MD1_PWR_CON		0x320
++#define C2K_PWR_CON		0x328
++#define CONN_PWR_CON		0x32c
++#define SPM_MAS_PAUSE_MASK_B	0x408
++#define SPM_MAS_PAUSE2_MASK_B	0x40c
++#define SPM_BSI_D0_SR		0x41c
++#define SPM_BSI_D1_SR		0x420
++#define SPM_BSI_D2_SR		0x424
++#define WFI_EN_FIRST		0x540	/* MP0_CPU0 .. MP2_CPU1, ten words */
++#define WFI_EN_COUNT		10
++#define SPM_SW_FLAG		0x600
++#define SPM_SW_DEBUG		0x604
++#define SPM_SW_RSV_0		0x608
++
++#define SPM_KEY			(0xb16 << 16)
++#define PCM_KICK_L		BIT(0)
++#define IM_KICK_L		BIT(1)
++#define PCM_CK_EN		BIT(2)
++#define EN_IM_SLEEP_DVS		BIT(3)
++#define PCM_SW_RESET		BIT(15)
++#define PCM_TIMER_EN		BIT(5)
++#define PCM_WDT_BITS		(BIT(9) | BIT(8))
++/* event lock, SRAM isolation and sleep, non-replace IM, MIF and SCP APB */
++#define PCM_CON1_INIT		0x5c48
++#define PCM_FSM_STA_DEF		0x48490
++#define PCM_RF_SYNC_R0		BIT(16)
++#define PCM_RF_SYNC_R7		BIT(23)
++#define PCM_PWRIO_R0_R7		0x81
++#define ISRS_PCM_RETURN		BIT(3)
++#define ISRM_RET_IRQ_AUX	0x3fe00
++#define SYS_SETTLE_SEL		BIT(4)
++#define SPM_LOCK_INFRA_DCM	BIT(5)
++#define CC_SRCLKENA_MASK_0	BIT(6)
++#define SPM_SYSCLK_SETTLE	99
++
++/* SPM_SW_FLAG for S1 */
++#define S1_FLAGS		0x000900b1	/* CPU kept powered, see the record */
++#define FLAG_EN_SEGMENT2	BIT(18)
++
++/* Wake sources: PCM timer and EINT */
++#define S1_WAKE_SRC		(BIT(0) | BIT(6))
++
++/* PMIC wrapper DVFS command slots */
++#define PWRAP_DVFS_ADR(n)	(0x10c + 8 * (n))
++#define PWRAP_DVFS_WDATA(n)	(0x110 + 8 * (n))
++#define PWRAP_DVFS_SLOTS	16
++
++/* MCUCFG */
++#define MP0_AXI_CONFIG		0x002c
++#define MP1_AXI_CONFIG		0x022c
++#define MP2_AXI_CONFIG		0x220c
++#define ACINACTM		BIT(4)
++
++/* MT6351 */
++#define MT6351_STRUP_CON4	0x0008
++#define MT6351_STRUP_CON6	0x000c
++#define MT6351_HWCID		0x0200
++#define MT6351_SMPS_ANA_CON9	0x044a
++#define MT6351_VCORE_ANA_CON7	0x045c
++#define MT6351_VGPU_ANA_CON7	0x0470
++#define MT6351_VCORE_CON5	0x060a
++#define MT6351_VCORE_CON6	0x060c
++#define MT6351_VSRAM_PROC_CON4	0x06a8
++#define MT6351_VSRAM_PROC_CON5	0x06aa
++
++/* SPM words saved before entry and restored afterwards, in this order */
++static const u16 spm_saved_regs[] = {
++	SPM_CLK_CON, SPM_CLK_SETTLE, SPM_AP_STANDBY_CON, PCM_IM_PTR, PCM_IM_LEN,
++	PCM_TIMER_VAL, SPM_SCP_MAILBOX, SPM_IRQ_MASK, SPM_SRC_REQ, SPM_SRC_MASK,
++	SPM_SRC2_MASK, SPM_WAKEUP_EVENT_MASK, SPM_MAS_PAUSE_MASK_B,
++	SPM_MAS_PAUSE2_MASK_B, SPM_SW_FLAG, SPM_SW_RSV_0,
++};
++
++struct spm_slot {
++	u32 addr;
++	u32 val;
++};
++
++struct spm_wake {
++	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
++	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
++	u32 wfi_loops;
++	bool returned;
++};
++
++static struct {
++	struct platform_device *pdev;
++	struct device *pwrap_dev;
++	struct regmap *pmic;
++	void __iomem *spm;
++	void __iomem *pwrap;
++	void __iomem *mcucfg;
++	void __iomem *carve;
++	u32 im_ptr;
++	u32 im_len;
++	u32 vec[16];
++	u32 flags;
++	bool hwcid_5140;
++	int irq;
++
++	/* per-suspend state */
++	bool pmic_done;
++	u32 pmic_saved[5];
++	struct spm_slot slots[PWRAP_DVFS_SLOTS];
++	u32 saved[ARRAY_SIZE(spm_saved_regs)];
++	u32 saved_vec[16];
++	u32 saved_wfi[WFI_EN_COUNT];
++	u32 saved_slots[2 * PWRAP_DVFS_SLOTS];
++	struct spm_wake wake;
++	int last_err;
++	bool entered;
++} s;
++
++static unsigned int timer_sec = 30;
++module_param(timer_sec, uint, 0644);
++MODULE_PARM_DESC(timer_sec, "PCM wake timer in seconds (1-600)");
++
++static inline u32 spm_rd(u32 off)
++{
++	return readl(s.spm + off);
++}
++
++static inline void spm_wr(u32 off, u32 val)
++{
++	writel(val, s.spm + off);
++}
++
++static irqreturn_t spm_irq_handler(int irq, void *data)
++{
++	u32 sta = spm_rd(SPM_IRQ_STA);
++
++	spm_wr(SPM_IRQ_STA, sta);
++	spm_wr(SPM_SW_INT_CLEAR, 0x3ff);
++	return IRQ_HANDLED;
++}
++
++/* ---- PMIC side: process context, in .prepare and .finish ---- */
++
++static const u16 pmic_saved_regs[] = {
++	MT6351_VGPU_ANA_CON7, MT6351_STRUP_CON4, MT6351_STRUP_CON6,
++	MT6351_VCORE_CON6, MT6351_SMPS_ANA_CON9,
++};
++
++static int spm_pmic_prepare(void)
++{
++	unsigned int v, ana9, ana7;
++	u32 vsram;
++	int i, ret;
++
++	for (i = 0; i < ARRAY_SIZE(pmic_saved_regs); i++) {
++		ret = regmap_read(s.pmic, pmic_saved_regs[i], &v);
++		if (ret)
++			return ret;
++		s.pmic_saved[i] = v;
++	}
++
++	/* P1 VGPU low-IQ, P2 power-good force, P3 VCORE 0.7 V sleep voltage */
++	ret = regmap_update_bits(s.pmic, MT6351_VGPU_ANA_CON7, BIT(1), BIT(1));
++	ret = ret ?: regmap_update_bits(s.pmic, MT6351_STRUP_CON4, BIT(15), BIT(15));
++	ret = ret ?: regmap_update_bits(s.pmic, MT6351_STRUP_CON6, BIT(9), BIT(9));
++	ret = ret ?: regmap_update_bits(s.pmic, MT6351_VCORE_CON6, 0x7f, 0x10);
++	ret = ret ?: regmap_update_bits(s.pmic, MT6351_SMPS_ANA_CON9, 0x300, 0);
++	s.pmic_done = true;
++	if (ret)
++		return ret;
++
++	ret = regmap_read(s.pmic, MT6351_SMPS_ANA_CON9, &ana9);
++	ret = ret ?: regmap_read(s.pmic, MT6351_VCORE_ANA_CON7, &ana7);
++	if (ret)
++		return ret;
++
++	vsram = s.hwcid_5140 ? MT6351_VSRAM_PROC_CON5 : MT6351_VSRAM_PROC_CON4;
++
++	/* Suspend-phase table: voltage code = (uV - 600000) / 6250 */
++	s.slots[0]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x40 };
++	s.slots[1]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x3e };
++	s.slots[2]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x3b };
++	s.slots[3]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x38 };
++	s.slots[4]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x36 };
++	s.slots[5]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x33 };
++	s.slots[6]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x30 };
++	s.slots[7]  = (struct spm_slot){ MT6351_VCORE_CON6, 0x00 };
++	s.slots[8]  = (struct spm_slot){ MT6351_SMPS_ANA_CON9, ana9 | 0x300 };
++	s.slots[9]  = (struct spm_slot){ MT6351_VCORE_CON5, 0x1c };
++	s.slots[10] = (struct spm_slot){ vsram, 0x40 };
++	s.slots[11] = (struct spm_slot){ vsram, 0x50 };
++	s.slots[12] = (struct spm_slot){ MT6351_VCORE_ANA_CON7, ana7 | BIT(1) };
++	s.slots[13] = (struct spm_slot){ MT6351_VCORE_ANA_CON7, ana7 & ~BIT(1) };
++	s.slots[14] = (struct spm_slot){ MT6351_VCORE_CON6, 0x10 };
++	s.slots[15] = (struct spm_slot){ MT6351_SMPS_ANA_CON9, ana9 & ~0x300 };
++	return 0;
++}
++
++static void spm_pmic_finish(void)
++{
++	int i;
++
++	if (!s.pmic_done)
++		return;
++	/* P3 restored; P2 and P1 cleared, as the vendor does */
++	regmap_write(s.pmic, MT6351_SMPS_ANA_CON9, s.pmic_saved[4]);
++	regmap_write(s.pmic, MT6351_VCORE_CON6, s.pmic_saved[3]);
++	regmap_update_bits(s.pmic, MT6351_STRUP_CON6, BIT(9), 0);
++	regmap_update_bits(s.pmic, MT6351_STRUP_CON4, BIT(15), 0);
++	regmap_update_bits(s.pmic, MT6351_VGPU_ANA_CON7, BIT(1), 0);
++	for (i = 0; i < ARRAY_SIZE(pmic_saved_regs); i++)
++		dev_dbg(&s.pdev->dev, "pmic %04x was %04x\n",
++			pmic_saved_regs[i], s.pmic_saved[i]);
++	s.pmic_done = false;
++}
++
++/* ---- SPM side: CPU0, interrupts off, in .enter ---- */
++
++static bool spm_pcm_reset(void)
++{
++	int i;
++
++	spm_wr(PCM_CON0, SPM_KEY | PCM_CK_EN | PCM_SW_RESET);
++	for (i = 0; i < 5000; i++) {
++		if ((spm_rd(PCM_FSM_STA) & 0x7fffff) == PCM_FSM_STA_DEF)
++			break;
++		udelay(1);
++	}
++	spm_wr(PCM_CON0, SPM_KEY | PCM_CK_EN);
++	return i < 5000;
++}
++
++static void spm_restore(void)
++{
++	int i;
++
++	spm_wr(PCM_PWR_IO_EN, 0);
++	spm_wr(PCM_CON1, SPM_KEY | (spm_rd(PCM_CON1) & ~PCM_TIMER_EN));
++	spm_pcm_reset();
++
++	for (i = 0; i < ARRAY_SIZE(spm_saved_regs); i++)
++		spm_wr(spm_saved_regs[i], s.saved[i]);
++	for (i = 0; i < 16; i++)
++		spm_wr(PCM_EVENT_VECTOR0 + 4 * i, s.saved_vec[i]);
++	for (i = 0; i < WFI_EN_COUNT; i++)
++		spm_wr(WFI_EN_FIRST + 4 * i, s.saved_wfi[i]);
++	for (i = 0; i < 2 * PWRAP_DVFS_SLOTS; i++)
++		writel(s.saved_slots[i], s.pwrap + PWRAP_DVFS_ADR(0) + 4 * i);
++}
++
++static bool spm_off(u32 off)
++{
++	return (spm_rd(off) & 0x1f) == 0x12;
++}
++
++static int spm_enter(suspend_state_t state)
++{
++	u32 con0, con1, settle, axi[3], v;
++	int i;
++
++	s.entered = false;
++	memset(&s.wake, 0, sizeof(s.wake));
++
++	if (state != PM_SUSPEND_MEM)
++		return -EINVAL;
++	if (num_online_cpus() != 1 || smp_processor_id() != 0)
++		return -EBUSY;
++	if ((spm_rd(PCM_FSM_STA) & 0x7fffff) != PCM_FSM_STA_DEF ||
++	    spm_rd(PCM_REG1_DATA) == 1)
++		return -EBUSY;
++	if (!spm_off(MD1_PWR_CON) || !spm_off(C2K_PWR_CON) ||
++	    !spm_off(CONN_PWR_CON))
++		return -EBUSY;
++
++	/* C1 first: if MCUCFG ignores the writes, stop before the SPM changes */
++	axi[0] = readl(s.mcucfg + MP0_AXI_CONFIG);
++	axi[1] = readl(s.mcucfg + MP1_AXI_CONFIG);
++	axi[2] = readl(s.mcucfg + MP2_AXI_CONFIG);
++	writel(axi[0] | ACINACTM, s.mcucfg + MP0_AXI_CONFIG);
++	writel(axi[1] | ACINACTM, s.mcucfg + MP1_AXI_CONFIG);
++	writel(axi[2] | ACINACTM | BIT(0), s.mcucfg + MP2_AXI_CONFIG);
++	if (!(readl(s.mcucfg + MP0_AXI_CONFIG) & ACINACTM)) {
++		writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
++		writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
++		writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
++		return -EIO;
++	}
++
++	for (i = 0; i < ARRAY_SIZE(spm_saved_regs); i++)
++		s.saved[i] = spm_rd(spm_saved_regs[i]);
++	for (i = 0; i < 16; i++)
++		s.saved_vec[i] = spm_rd(PCM_EVENT_VECTOR0 + 4 * i);
++	for (i = 0; i < WFI_EN_COUNT; i++)
++		s.saved_wfi[i] = spm_rd(WFI_EN_FIRST + 4 * i);
++	for (i = 0; i < 2 * PWRAP_DVFS_SLOTS; i++)
++		s.saved_slots[i] = readl(s.pwrap + PWRAP_DVFS_ADR(0) + 4 * i);
++	s.entered = true;
++
++	/* W1: PMIC wrapper suspend phase */
++	for (i = 0; i < PWRAP_DVFS_SLOTS; i++) {
++		writel(s.slots[i].addr, s.pwrap + PWRAP_DVFS_ADR(i));
++		writel(s.slots[i].val, s.pwrap + PWRAP_DVFS_WDATA(i));
++	}
++
++	/* S1: system clock settle */
++	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | SYS_SETTLE_SEL);
++	spm_wr(SPM_CLK_SETTLE, 0);
++	settle = spm_rd(SPM_CLK_SETTLE);
++	spm_wr(SPM_CLK_SETTLE, SPM_SYSCLK_SETTLE - settle);
++
++	/* S2-S4: reset and initialise the PCM */
++	if (!spm_pcm_reset()) {
++		spm_restore();
++		s.wake.returned = false;
++		writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
++		writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
++		writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
++		return -EIO;
++	}
++	spm_wr(PCM_CON0, SPM_KEY | PCM_CK_EN | EN_IM_SLEEP_DVS);
++	con1 = spm_rd(PCM_CON1) & PCM_WDT_BITS;
++	spm_wr(PCM_CON1, SPM_KEY | PCM_CON1_INIT | con1);
++	spm_wr(SPM_SW_INT_CLEAR, BIT(0));
++
++	/* S5-S6: fetch the program from the carveout */
++	spm_wr(PCM_IM_PTR, s.im_ptr);
++	spm_wr(PCM_IM_LEN, s.im_len);
++	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
++	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | IM_KICK_L);
++	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
++
++	/* S7: r0 and r7 from POWER_ON_VAL0/1 */
++	spm_wr(PCM_REG_DATA_INI, spm_rd(SPM_POWER_ON_VAL0));
++	spm_wr(PCM_PWR_IO_EN, PCM_RF_SYNC_R0);
++	spm_wr(PCM_PWR_IO_EN, 0);
++	spm_wr(PCM_REG_DATA_INI, spm_rd(SPM_POWER_ON_VAL1));
++	spm_wr(PCM_PWR_IO_EN, PCM_RF_SYNC_R7);
++	spm_wr(PCM_PWR_IO_EN, 0);
++
++	/* S8: event vectors from the file's descriptor */
++	for (i = 0; i < 16; i++)
++		spm_wr(PCM_EVENT_VECTOR0 + 4 * i, s.vec[i]);
++
++	/* S9-S14: power control */
++	v = spm_rd(SPM_AP_STANDBY_CON) & BIT(23);
++	spm_wr(SPM_AP_STANDBY_CON, v | 0x04080011);
++	spm_wr(SPM_SRC_REQ, 0x00000040);
++	spm_wr(SPM_SRC_MASK, 0x10aa007e);
++	spm_wr(SPM_SRC2_MASK, 0x00f1001f);
++	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | CC_SRCLKENA_MASK_0);
++	for (i = 0; i < WFI_EN_COUNT; i++)
++		spm_wr(WFI_EN_FIRST + 4 * i, 1);
++
++	/* S15-S17: wake timer, wake sources, interrupt mask */
++	spm_wr(PCM_TIMER_VAL, timer_sec * 32768);
++	spm_wr(PCM_CON1, spm_rd(PCM_CON1) | SPM_KEY | PCM_TIMER_EN);
++	spm_wr(SPM_WAKEUP_EVENT_MASK, ~(u32)S1_WAKE_SRC);
++	v = spm_rd(SPM_IRQ_MASK) & BIT(2);
++	spm_wr(SPM_IRQ_MASK, v | ISRM_RET_IRQ_AUX);
++
++	/* S18-S24: flags and kick */
++	spm_wr(SPM_SCP_MAILBOX, 1);
++	spm_wr(SPM_MAS_PAUSE_MASK_B, 0xffffffff);
++	spm_wr(SPM_MAS_PAUSE2_MASK_B, 0xffffffff);
++	spm_wr(PCM_REG_DATA_INI, 0);
++	spm_wr(SPM_SW_FLAG, s.flags);
++	spm_wr(SPM_SW_RSV_0, 0);
++	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | SPM_LOCK_INFRA_DCM);
++	spm_wr(PCM_PWR_IO_EN, PCM_PWRIO_R0_R7);
++	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
++	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
++	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
++
++	/* C2: CPU0 waits; the PCM-return interrupt ends the sleep */
++	for (i = 0; i < 1000000; i++) {
++		/* Complete every register write before the SPM sees CPU0 in WFI */
++		dsb(sy);
++		wfi();
++		if (spm_rd(SPM_IRQ_STA) & ISRS_PCM_RETURN) {
++			s.wake.returned = true;
++			break;
++		}
++	}
++	s.wake.wfi_loops = i;
++
++	/* X1: wake status */
++	s.wake.assert_pc = spm_rd(PCM_REG_DATA_INI);
++	s.wake.r12 = spm_rd(SPM_SW_RSV_0);
++	s.wake.r12_ext = spm_rd(PCM_REG12_EXT_DATA);
++	s.wake.raw_sta = spm_rd(SPM_WAKEUP_STA);
++	s.wake.raw_ext_sta = spm_rd(SPM_WAKEUP_EXT_STA);
++	s.wake.wake_misc = spm_rd(SPM_BSI_D0_SR);
++	s.wake.timer_out = spm_rd(SPM_BSI_D1_SR);
++	s.wake.r13 = spm_rd(PCM_REG13_DATA);
++	s.wake.idle_sta = spm_rd(SUBSYS_IDLE_STA);
++	s.wake.debug_flag = spm_rd(SPM_SW_DEBUG);
++	s.wake.event_reg = spm_rd(SPM_BSI_D2_SR);
++	s.wake.isr = spm_rd(SPM_IRQ_STA);
++
++	/* X2: clear */
++	spm_wr(SPM_CPU_WAKEUP_EVENT, 0);
++	spm_wr(SPM_WAKEUP_EVENT_MASK, 0xffffffff);
++	spm_wr(SPM_IRQ_MASK, spm_rd(SPM_IRQ_MASK) | ISRM_RET_IRQ_AUX);
++	spm_wr(SPM_IRQ_STA, ISRS_PCM_RETURN);
++	spm_wr(SPM_SW_INT_CLEAR, 0x3ff);
++
++	/* X3, X4 (wrapper slots): back to the state before entry */
++	spm_restore();
++
++	/* C3 */
++	writel(axi[0], s.mcucfg + MP0_AXI_CONFIG);
++	writel(axi[1], s.mcucfg + MP1_AXI_CONFIG);
++	writel(axi[2], s.mcucfg + MP2_AXI_CONFIG);
++	return s.wake.returned ? 0 : -ETIMEDOUT;
++}
++
++static int spm_valid(suspend_state_t state)
++{
++	return state == PM_SUSPEND_MEM;
++}
++
++static int spm_prepare(void)
++{
++	int ret;
++
++	if (timer_sec < 1 || timer_sec > 600)
++		return -EINVAL;
++	ret = spm_pmic_prepare();
++	if (ret) {
++		spm_pmic_finish();
++		return ret;
++	}
++	enable_irq(s.irq);
++	ret = enable_irq_wake(s.irq);
++	if (ret) {
++		disable_irq(s.irq);
++		spm_pmic_finish();
++	}
++	return ret;
++}
++
++static void spm_finish(void)
++{
++	disable_irq_wake(s.irq);
++	disable_irq(s.irq);
++	spm_pmic_finish();
++	if (!s.entered)
++		return;
++	dev_info(&s.pdev->dev,
++		 "wake: returned=%d loops=%u r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
++		 s.wake.returned, s.wake.wfi_loops, s.wake.r12, s.wake.r12_ext,
++		 s.wake.raw_sta, s.wake.raw_ext_sta, s.wake.wake_misc,
++		 s.wake.timer_out, s.wake.r13, s.wake.idle_sta,
++		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
++		 s.wake.assert_pc);
++}
++
++static const struct platform_suspend_ops spm_suspend_ops = {
++	.valid = spm_valid,
++	.prepare = spm_prepare,
++	.enter = spm_enter,
++	.finish = spm_finish,
++};
++
++/* ---- load ---- */
++
++static int spm_load_program(struct device *dev)
++{
++	const struct firmware *fw;
++	struct reserved_mem *rmem;
++	struct device_node *np;
++	u8 digest[SHA256_DIGEST_SIZE];
++	void __iomem *infra;
++	size_t n, desc;
++	u64 phys;
++	int i, ret;
++
++	np = of_find_compatible_node(NULL, NULL, "mediatek,spm-reserve-memory");
++	rmem = np ? of_reserved_mem_lookup(np) : NULL;
++	of_node_put(np);
++	if (!rmem || rmem->size < 0x2000)
++		return dev_err_probe(dev, -ENODEV, "no SPM carveout\n");
++
++	ret = request_firmware(&fw, SPM_FW_NAME, dev);
++	if (ret)
++		return ret;
++
++	sha256(fw->data, fw->size, digest);
++	if (memcmp(digest, spm_fw_sha256, sizeof(digest))) {
++		ret = dev_err_probe(dev, -EINVAL, "%s: SHA-256 mismatch\n", SPM_FW_NAME);
++		goto out;
++	}
++
++	n = get_unaligned_le16(fw->data);
++	desc = 2 + 4 * n;
++	if (n == 0 || 4 * n > 0x2000 || fw->size < desc + 72 ||
++	    get_unaligned_le16(fw->data + desc) != n) {
++		ret = dev_err_probe(dev, -EINVAL, "bad program layout\n");
++		goto out;
++	}
++	for (i = 0; i < 16; i++)
++		s.vec[i] = get_unaligned_le32(fw->data + desc + 8 + 4 * i);
++	s.im_len = n - 1;
++
++	s.carve = ioremap(rmem->base, 0x2000);
++	if (!s.carve) {
++		ret = -ENOMEM;
++		goto out;
++	}
++	memcpy_toio(s.carve, fw->data + 2, 4 * n);
++	/* The SPM fetches the program from DRAM: make the copy visible first */
++	wmb();
++
++	/* 4 GB mode: the SPM sees 0x40000000-0xbfffffff 0x40000000 higher */
++	phys = rmem->base;
++	infra = ioremap(INFRA_AO_PHYS, 0x1000);
++	if (!infra) {
++		ret = -ENOMEM;
++		goto out;
++	}
++	if ((readl(infra + 0xf00) & BIT(13)) &&
++	    phys >= 0x40000000 && phys < 0xc0000000)
++		phys += 0x40000000;
++	iounmap(infra);
++	if (phys > U32_MAX) {
++		ret = -ERANGE;
++		goto out;
++	}
++	s.im_ptr = phys;
++	dev_info(dev, "program %zu words at %pa, SPM pointer %08x\n",
++		 n, &rmem->base, s.im_ptr);
++out:
++	release_firmware(fw);
++	return ret;
++}
++
++static int spm_map_irq(struct device *dev)
++{
++	struct irq_fwspec spec = {
++		.param_count = 3,
++		.param = { 0 /* GIC_SPI */, 180, IRQ_TYPE_LEVEL_LOW },
++	};
++	struct device_node *np;
++	int irq, ret;
++
++	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6577-sysirq");
++	if (!np)
++		return -ENODEV;
++	spec.fwnode = of_fwnode_handle(np);
++	irq = irq_create_fwspec_mapping(&spec);
++	of_node_put(np);
++	if (irq <= 0)
++		return -ENXIO;
++	ret = request_irq(irq, spm_irq_handler, IRQF_NO_AUTOEN, "mt6797-spm", NULL);
++	if (ret) {
++		irq_dispose_mapping(irq);
++		return ret;
++	}
++	s.irq = irq;
++	return 0;
++}
++
++static void spm_unmap(void)
++{
++	if (s.carve)
++		iounmap(s.carve);
++	if (s.mcucfg)
++		iounmap(s.mcucfg);
++	if (s.pwrap)
++		iounmap(s.pwrap);
++	if (s.spm)
++		iounmap(s.spm);
++	if (s.pwrap_dev)
++		put_device(s.pwrap_dev);
++	if (s.pdev)
++		platform_device_unregister(s.pdev);
++}
++
++static int __init spm_sleep_init(void)
++{
++	struct platform_device *pwrap_pdev;
++	struct device_node *np;
++	void __iomem *chip;
++	unsigned int hwcid;
++	int ret;
++
++	if (!of_machine_is_compatible("mediatek,mt6797"))
++		return -ENODEV;
++
++	s.pdev = platform_device_register_simple("mt6797-spm-sleep", -1, NULL, 0);
++	if (IS_ERR(s.pdev))
++		return PTR_ERR(s.pdev);
++
++	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-pwrap");
++	pwrap_pdev = np ? of_find_device_by_node(np) : NULL;
++	of_node_put(np);
++	if (!pwrap_pdev) {
++		ret = -EPROBE_DEFER;
++		goto err;
++	}
++	s.pwrap_dev = &pwrap_pdev->dev;
++	s.pmic = dev_get_regmap(s.pwrap_dev, NULL);
++	if (!s.pmic) {
++		ret = -EPROBE_DEFER;
++		goto err;
++	}
++	ret = regmap_read(s.pmic, MT6351_HWCID, &hwcid);
++	if (ret)
++		goto err;
++	s.hwcid_5140 = hwcid == 0x5140;
++
++	s.spm = ioremap(SPM_PHYS, 0x1000);
++	s.pwrap = ioremap(PWRAP_PHYS, 0x1000);
++	s.mcucfg = ioremap(MCUCFG_PHYS, MCUCFG_SIZE);
++	chip = ioremap(CHIPID_PHYS, 0x10);
++	if (!s.spm || !s.pwrap || !s.mcucfg || !chip) {
++		if (chip)
++			iounmap(chip);
++		ret = -ENOMEM;
++		goto err;
++	}
++	s.flags = S1_FLAGS;
++	if (readl(chip + 8) == 0xca01)
++		s.flags |= FLAG_EN_SEGMENT2;
++	iounmap(chip);
++
++	ret = spm_load_program(&s.pdev->dev);
++	if (ret)
++		goto err;
++	ret = spm_map_irq(&s.pdev->dev);
++	if (ret)
++		goto err;
++
++	suspend_set_ops(&spm_suspend_ops);
++	dev_info(&s.pdev->dev, "mem suspend ready: flags %08x, HWCID %04x, timer %u s\n",
++		 s.flags, hwcid, timer_sec);
++	return 0;
++err:
++	spm_unmap();
++	return ret;
++}
++
++static void __exit spm_sleep_exit(void)
++{
++	suspend_set_ops(NULL);
++	free_irq(s.irq, NULL);
++	irq_dispose_mapping(s.irq);
++	spm_unmap();
++}
++
++module_init(spm_sleep_init);
++module_exit(spm_sleep_exit);
++MODULE_DESCRIPTION("MT6797 SPM mem suspend with the owner's vendor program (local experiment)");
++MODULE_LICENSE("GPL");

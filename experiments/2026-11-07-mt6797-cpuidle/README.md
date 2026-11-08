@@ -578,7 +578,7 @@ if S1 works and leaves enough current on CPU0's cluster to matter.
 | Stage | What | Writes | Image | Status |
 | --- | --- | --- | --- | --- |
 | S0 | Reads only: the SPM, PMIC-wrapper, MCUCFG, INFRACFG and PMIC words S1 will touch, so every read-modify-write has a known start value; `CPU_RET_STATUS` with the reader pinned to CPU0 and to CPU3; the SPARK words; the carveout's address; the `system.img` program hashes | None | Running | **Done 2026-11-08**, no stop condition ([result](#s0-result-2026-11-08)) |
-| S1 | `mem` suspend on CPU0 with the suspend program, CPU stays powered, PCM-timer wake after 30 s | The list below | Running, plus the new module | **Proposed, after S0** |
+| S1 | `mem` suspend on CPU0 with the suspend program, CPU stays powered, PCM-timer wake after 30 s | The list below | Running, plus the new module | **Implemented** as [0667](#s1-implementation-2026-11-08), compile-checked; write list awaits the owner |
 | S2 | As S1 with CPU power-down (`CPU_SUSPEND` `0x1010000`) | S1's list with flag bit 0 clear, plus one built-in export | New image | Owner decision after S1 |
 | S3 | Deep idle or SODI from CPU0's idle with the screen dark | New masks, APXGPT, CIRQ | New image | After P3 |
 
@@ -781,6 +781,122 @@ a large drop is visible and a small one is not.
 **Stop** at the first: a precondition fails; the reset poll times out; an
 Oops, `WARNING` or RCU stall; a CPU that does not return after resume; USB
 SSH absent 60 s after the expected wake. No retry.
+
+### S1 implementation (2026-11-08)
+
+The owner chose to measure what the vendor program delivers before
+considering a program of the project's own ("We can check the vendors
+outcome first", relayed by the device custodian). The S1 write list itself
+is not yet approved; the custodian puts it in its combined test plan.
+
+**The module.**
+[0667](../../patches/proposals/0667-soc-mediatek-add-an-MT6797-SPM-mem-suspend-experimen.patch)
+adds `mt6797-spm-sleep` (`CONFIG_MT6797_SPM_SLEEP`, tristate, default N). It
+contains no vendor code and no program bytes, only the program's SHA-256. At
+load it:
+
+- finds the `spm-reserve-memory` carveout, requests
+  `mediatek/mt6797/pcm_suspend.bin`, refuses any other hash, copies the 1,822
+  code words to the carveout and keeps the sixteen vectors;
+- computes the SPM pointer (4 GB mode adds `0x40000000`), the flags (bit 18
+  on chip `0xca01`) and the PMIC revision;
+- maps the SPM interrupt (SPI 180 through `sysirq`), leaves it disabled;
+- registers `mem` suspend operations. `timer_sec` (default 30, 1-600) sets
+  the PCM timer.
+
+`.prepare` enables the SPM interrupt for wake and writes P1-P3 through the
+PMIC wrapper's regmap. `.enter` runs the S1 list. `.finish` restores P1-P3,
+disables the interrupt and logs one `wake:` line (returned flag, WFI loop
+count, `r12`, raw wake status, timer-out and the other X1 words). Failed
+preconditions return `-EBUSY` with nothing written; a PCM reset timeout
+returns `-EIO` after restoring.
+
+**Differences from the S1 list as approved for review:**
+
+- C1 (`ACINACTM` on the three clusters) is written **first**, before any SPM
+  write, and read back; if `MP0_AXI_CONFIG` does not take it, `.enter`
+  returns `-EIO` having changed nothing else. The vendor sets it just before
+  `wfi`.
+- C2 is `wfi` in a loop that ends when `SPM_IRQ_STA` shows the PCM return,
+  bounded at 1,000,000 passes, so a wake that is not the program's does not
+  start the cleanup while the program still runs.
+- **No new firmware call.** S1 makes no PSCI or SiP call. `CPU_SUSPEND`
+  `0x1010000` belongs to S2 only.
+
+**Checks.** Compiled as an external module against the VM's prepared 7.1.3
+tree (patches through 0655) with `W=1`: no warning. Final linking was not
+possible without that tree's `Module.symvers`; every undefined symbol was
+checked against a full 7.1.3 build's exports and the source tree's
+`EXPORT_SYMBOL`s. `checkpatch` on the file: no error, no warning left (it reports only the missing `Signed-off-by`, which project patches do
+not invent, and MAINTAINERS). The Kconfig parses (`allnoconfig`). 0667 applies
+cleanly after 0656-0666. It is in `patches/series` and
+`patches/series-a53-station`, and
+[`gemini-a53-station-spm-sleep.fragment`](../../configs/gemini-a53-station-spm-sleep.fragment)
+(`CONFIG_MT6797_SPM_SLEEP=m`) is added to profiles `mt6797-a53-station-a72`
+and `mt6797-a53-station-dvfs`. Nothing loads the module at boot. Not built
+on Buildbox. Never run.
+
+**Where the program comes from.** The module asks for
+`mediatek/mt6797/pcm_suspend.bin`, so on the RAM root the file goes to
+`/lib/firmware/mediatek/mt6797/pcm_suspend.bin` (where `firmware-get` puts the
+radio files) and on the card root to `/usr/lib/firmware/mediatek/mt6797/`.
+Source: `/vendor/firmware/pcm_suspend.bin` inside Gemian's `/data/system.img`,
+read read-only as `firmware-get` does, or the custodian's private copy.
+SHA-256 `d6e8a0b8851e78e95891c995605ffbf210eade56583b14cf6b4a67e7d770f4e0`.
+
+**Device steps, in order** (after the owner approves the write list and a
+package carries the module):
+
+1. **Root and identity.** Boot the RAM root, not the card root, so a forced
+   power-off cannot corrupt a mounted file system. Record boot ID, boot2
+   identity, release, module SHA-256 and the program hash. Battery at least
+   50 %, cable in.
+2. **Quiet the station.** Unload the Wi-Fi and Bluetooth modules so CONNSYS
+   powers off; check `0x1000632c` bits 4:0 read `0x12`. Freeze every
+   `backlight-policy` and lid-suspend process with `kill -STOP` (they would
+   otherwise suspend through this module, or hotplug CPUs, mid-run). A72
+   module not loaded. Blank the display through `fb0/blank`.
+3. **Load.** `insmod mt6797-spm-sleep.ko timer_sec=30`. Expect
+   `program 1822 words at 0x00000000bfdd0000, SPM pointer ffdd0000` and
+   `flags 000d00b1, HWCID 5140`. Immediately
+   `echo s2idle > /sys/power/mem_sleep`, because loading makes `deep` the
+   default.
+4. **Functional cycle, cable in.** `echo deep > /sys/power/mem_sleep;
+   echo mem > /sys/power/state`. Expect the USB link to drop and return
+   about 30 s later, `wake: returned=1`, `r12` bit 0 (PCM timer), `online`
+   `0-7` afterwards, and no warning. Then `echo s2idle > /sys/power/mem_sleep`.
+5. **Measurement, on battery.** As a script started with `nohup` before the
+   unplug: wait 20 s; read `FG_CAR` (PMIC `0x0ca6`-`0x0caa`) and
+   `CLOCK_BOOTTIME`; 300 s idle with CPU1-7 offline (the 96 mA reference);
+   read both again; set `timer_sec=300`; three `mem` suspends back to back;
+   read both again; restore `s2idle`; save `dmesg`. Replug after about
+   20 minutes.
+6. **Restore.** `rmmod mt6797-spm-sleep`, `mem_sleep` `s2idle`, CPUs online,
+   `kill -CONT` the frozen processes, reload the radios.
+
+**What tells the vendor outcome.** Average suspended current
+= ΔQ(suspends) / time asleep, from `FG_CAR` (about 90 µAh per count; 900 s at
+10 mA is about 28 counts, at 96 mA about 270), against the idle window's
+ΔQ / 300 s, which should reproduce about 96 mA. The `wake:` lines show the
+program returned on its timer each time and give `timer_out`.
+
+| Outcome | Next |
+| --- | --- |
+| Suspended current far below 96 mA, resumes clean | The vendor programs deliver; record it; the static regulator modes next, then S2 |
+| Resumes clean, current near 96 mA | Flag bit 0 does not run the low-power sequence, or the slots are not honoured; S2 decides |
+| `wake: returned=0` or `loops=1000000` | The program never signalled; stop, keep the log |
+
+**Stop** at the first: `insmod` error; `.enter` returning an error; a
+`wake:` line other than `returned=1`; an Oops, `WARNING` or RCU stall; a CPU
+that does not return; no USB link 60 s after the expected wake in step 4.
+No retry.
+
+**Hang recovery.** If the program never returns, CPU0 sits in `wfi` with
+every other interrupt masked and the station is dead to USB and keys. The
+only recovery is the owner's forced power-off (long press), then boot2 by
+hand. Nothing persists across that except what is already on storage, so
+the RAM root keeps the cards safe; the S0 values and this list are the
+starting point for the analysis.
 
 ## Observations
 

@@ -1,0 +1,4 @@
+# SPM mem suspend experiment (experiments/2026-11-07-mt6797-cpuidle, Route A
+# S1). A module that does nothing until loaded by hand; it needs the owner's
+# own vendor program at mediatek/mt6797/pcm_suspend.bin.
+CONFIG_MT6797_SPM_SLEEP=m
