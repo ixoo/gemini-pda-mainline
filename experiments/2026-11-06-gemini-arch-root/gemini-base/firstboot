@@ -43,6 +43,9 @@ if [[ "$country" =~ ^[A-Z][A-Z]$ ]]; then
     # gemini-wifi already ran at boot with no country; a restart applies this one.
     systemctl restart gemini-wifi.service && systemctl start iwd.service ||
         echo "Wi-Fi did not start; see: journalctl -u gemini-wifi -u iwd"
+    # Bluetooth and FM skipped at boot for want of the connectivity firmware; load them now.
+    systemctl restart gemini-hw@bluetooth.service gemini-hw@fm.service ||
+        echo "Bluetooth or FM did not load; see: journalctl -u gemini-hw@bluetooth -u gemini-hw@fm"
     # iwd recreates the interface, so its name isn't always wlan0; ask iwd for it.
     dev=$(iwctl station list 2>/dev/null | awk '$1 ~ /^wlan/ { print $1; exit }')
     echo "Join a network: station ${dev:-DEVICE} scan, station ${dev:-DEVICE} get-networks,"

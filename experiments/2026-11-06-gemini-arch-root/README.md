@@ -1242,6 +1242,12 @@ The owner asked for both in the next card. `gemini-base` 16 ships them: `niri.kd
 and `70-gemini-touch.rules` in `/usr/lib/udev/rules.d` sets the matrix. Removing the driver's own
 rotation would make the matrix unnecessary, but needs a kernel change, so it is left for later.
 
+Bluetooth and FM on that boot (custodian): at boot `gemini-wifi` printed `off-no-country`, so
+both `gemini-hw@bluetooth` and `gemini-hw@fm` printed `needs-connectivity`. First-boot setup then
+set a country and restarted `gemini-wifi` (`on country=US`, `mt6797_consys` loaded), but nothing
+retried the two groups. `gemini-base` 17 has `firstboot` restart both after Wi-Fi starts. On later
+boots the country is already set and `gemini-wifi` orders first; that path is not yet verified.
+
 ## Analysis
 
 Not started.
