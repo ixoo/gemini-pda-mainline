@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-08-cpu-power-test-plan` |
-| Status | `planned`: no test in this plan has run; each phase waits for the owner's approval |
+| Status | `running`: Phase 0 ran on 2026-11-08 (V0 passed, C0 attempt 2 completed); Phase 1 waits for image D1 and the owner's approval |
 | Subsystem | A53 DVFS and CCI, A72, cpuidle hotplug policy, s2idle sleep hooks, SPM mem suspend |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-08 |
@@ -134,7 +134,16 @@ online) are added here when that code exists. D2 is a second boot2 write.
 
 ## Observations
 
-None yet.
+**Phase 0 (2026-11-08), boot `52f4c5fd…` on station-work-91, owner-approved.**
+
+- V0 passed: VPROC1 1.00 V, VSRAM code 11 in both control words
+  ([DVFS observations](../2026-11-08-mt6797-a53-dvfs/README.md#observations)).
+- C0 attempt 2 ran every stage with no stop: the A53 cluster clocks survive
+  hotplug, and CPU1-7 in WFI cost 34.5 mA over offline at the idle points, 74 %
+  of it in the L cluster. The blanked floor read 324 mA, about three times the
+  earlier 111 mA, with no cause found, so those figures are provisional
+  ([attempt 2](../2026-11-07-mt6797-cpuidle/README.md#attempt-2-2026-11-08)).
+- V0g was not run.
 
 ## Analysis
 

@@ -290,7 +290,12 @@ whether the station's default image moves to this profile.
 
 ## Observations
 
-Not run.
+**V0 (2026-11-08), passed.** Run by the device custodian, owner-approved, on the
+station RAM root: boot `52f4c5fd-c191-4955-9277-42bc774ea4c1`, release
+`7.1.3-gemini-a53-station`, boot2 `6c0fd742…` (station-work-91). Reads only:
+`0x10001f98` = `0x000000FF`, `0x10001f9c` = `0x10001fa0` = `0x0B0B0B0B` (code
+11 in every byte), DA9214 `0xd7` = `0x46` (1.00 V), `0x5d` = `0x01`, `0xd9` =
+`0x46`. Every V0 expectation holds; no stop condition.
 
 ## Analysis
 

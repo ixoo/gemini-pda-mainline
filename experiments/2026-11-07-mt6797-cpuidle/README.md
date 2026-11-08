@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault (a respawned `backlight-policy` took CPU1-3); the L cluster came back with the clock driver intact; attempt 2 ready. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The vendor's SPM sequence is reverse-engineered (2026-11-08) and Route A is designed; S0 (reads) ran on 2026-11-08 with no stop condition and showed every idle A53 already in retention; S1 (`mem` suspend) awaits the owner |
+| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault; attempt 2 (2026-11-08) passed every stage: the A53 clusters' clocks survive hotplug, and at the idle points CPU1-7 in WFI cost 34.5 mA over offline, 74 % of it in the L cluster, but the 324 mA blanked floor is unexplained, so the figures are provisional. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The vendor's SPM sequence is reverse-engineered (2026-11-08) and Route A is designed; S0 (reads) ran on 2026-11-08 with no stop condition and showed every idle A53 already in retention; S1 (`mem` suspend) awaits the owner |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -1018,6 +1018,55 @@ stage stopped by its rule. The clock driver after: `ckdiv` `0x2160`, PLL0
 `0x00070707`, `faulted=0`. The `cpu-mhz` and hash check, W3 and W4 did not
 run. At the end: taint 0, no new fault line, unblank rc 0.
 
+### Attempt 2 (2026-11-08)
+
+Run by the device custodian with the [attempt 2 changes](#attempt-2-changes),
+owner-approved. Boot `52f4c5fd-c191-4955-9277-42bc774ea4c1`, release
+`7.1.3-gemini-a53-station`, boot2 `6c0fd742…` (station-work-91, by GPT name),
+station RAM root. `clk-mt6797-mcusys.ko` `501a3876…` and `cpufreq-dt.ko`
+`f558be9b…` from that image's own package, `cpu-mhz` `4168cfe5…`. A72 module
+not loaded. Battery 98 % to 87 %; SoC 35.1 °C at the end. Raw logs stay private
+with the custodian.
+
+**c0** (cable in): `mac` and `mt6797-consys` unloaded at once;
+`mt6797-wlan-core` refused once with `EAGAIN` and unloaded on a retry (CONN
+off, VCN28/VCN18/VCN33 off). Console blanking off, `backlight-policy` stopped
+(state `T`), both drivers loaded, `faulted=0`, policy0 CPU0-3 and policy4
+CPU4-7 on schedutil, held at 221 and 325 MHz. Taint 0.
+
+**Windows** (battery, charger offline in every sample, `fb0` blanked, online
+mask as expected in every sample, clocks 221/325 MHz in every sample):
+
+| Window | Online | Samples | Mean | Range |
+| --- | --- | --- | --- | --- |
+| W1 | `0-7` | 60 | −324.4 mA at 4.189 V | −313.1 to −337.9 |
+| W2 | `0-3` | 60 | −298.8 mA at 4.191 V | −281.9 to −360.8 |
+| W3 | `0` | 60 | −289.9 mA at 4.188 V | −282.6 to −346.6 |
+| W4 | `0-7` | 60 | −324.3 mA at 4.171 V | −310.6 to −396.4 |
+
+**c2-c5:** every `online` write rc 0. After c3 and c5 PLL1, `ckdiv` and sync
+DCM matched the c2 reads exactly and the driver stayed `faulted=0`. `cpu-mhz`
+read CPU4 at 321 MHz (325 requested) after c3 and c5, and CPU1 at 218 MHz
+(221 requested), with the reference hash each time. `stop=0`, no new fault
+line, taint 0.
+
+**SPM at each window's end:**
+
+| Word | W1 (`0-7`) | W2 (`0-3`) | W3 (`0`) | W4 (`0-7`) |
+| --- | --- | --- | --- | --- |
+| `0x174` `CPU_IDLE_STA` | `0001FC00` | `0023DC00` | `0023F800` | `0002FC00` |
+| `0x188` `CPU_PWR_STATUS` | `003D9008` | `00399008` | `00398008` | `003D8408` |
+| `0x1e4` `CPU_RET_STATUS` | `000000FC` | `0000000A` | `00000000` | `000000DE` |
+| `0x214` `MP1_CPUSYS_PWR_CON` | `0009004D` | `00091132` | `00091132` | `0009004D` |
+
+`MP0_CPUSYS_PWR_CON` stayed `0009004D` and sync DCM `00070707` throughout.
+
+**The baseline is high.** W1 is about twice attempt 1's 159 mA and three
+times R1's 111 mA. Afterwards, with the cable in (the charge guard holding at
+98 %, so the battery still reported current), `fb0` blank set the backlight's
+`bl_power` to 4, so the blank did reach the backlight. CONN and its supplies
+were off. The cause of the extra draw is not found.
+
 ## Analysis
 
 **Attempt 1.**
@@ -1042,6 +1091,23 @@ run. At the end: taint 0, no new fault line, unblank rc 0.
   (`0x48490`) are the vendor's PCM reset value.
 - **`CPU_IDLE_STA` sees WFI.** Bits 10-17 read `0xFB`: seven A53s in
   `STANDBYWFI`, one not, which fits one CPU running the read.
+
+**Attempt 2.**
+
+- **The clock question is settled for this path.** Two L-cluster down/up
+  cycles, one with CPU1-3 too, left PLL1, the divider and sync DCM exactly as
+  before, the driver unfaulted and the measured clocks within 2 %. The
+  firmware's `CPU_ON` does not touch the A53 cluster clocks on this image.
+- **Differences, at the idle points:** D = W1 − W3 = 34.5 mA; L = W1 − W2 =
+  25.6 mA, 74 % of D; CPU1-3 add 8.9 mA. W1 and W4 agree to 0.1 mA, so the
+  windows did not drift. By the decision table that is the "L cluster carries
+  the saving" row.
+- **The absolute level is unexplained.** The differences are measured inside
+  one run at one battery voltage, but the 324 mA floor is far above every
+  earlier blanked figure. A battery just off a charge stop at 4.19 V, or some
+  load this image leaves on, may inflate both the floor and the differences.
+  Until a run reproduces about 111 mA with the same steps, D and L are
+  provisional.
 
 ## Conclusion
 
