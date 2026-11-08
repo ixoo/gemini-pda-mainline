@@ -16,6 +16,7 @@ usage: compose-station.py PACKAGE PARENT_INITRAMFS TOOLS OUTPUT_DIR [AUTHORIZED_
 """
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -24,7 +25,11 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 BOOT = REPO/'experiments/2026-07-12-boot-contract-recovery/scripts'
 NAME, CMDLINE = 'gemini-obs-P', 'bootopt=64S3,32N2,64N2'
-DTB = 'mt6797-gemini-pda-station-a72.dtb'
+DTB = os.environ.get('STATION_DTB', 'mt6797-gemini-pda-station-a72.dtb')
+# Loaded only by the init's off-by-default cpufreq gate or by hand, so packed when the
+# package has them (the mt6797-a53-station-dvfs profile) and skipped otherwise.
+GATED = ['da9213-legacy-regulator', 'mt6797-vsram-regulator', 'clk-mt6797-mcusys', 'cpufreq-dt',
+         'mtk-cci-devfreq', 'mt6797-spm-sleep']
 # The release image's optional groups, in release/hw-start.
 OPTIONAL = ['novatek-nt36xxx', 'kfifo_buf', 'industrialio-triggered-buffer', 'bmi160_core', 'bmi160_i2c', 'stk3310', 'leds-aw9120',
             'clk-mt6797-mfg', 'rt5735-regulator', 'drm_shmem_helper', 'gpu-sched', 'panfrost',
@@ -73,6 +78,10 @@ def main(package, parent, tools, output, authorized_key=None):
         found = sorted(package.glob('modules/lib/modules/*/kernel/**/' + name + '.ko'))
         assert len(found) == 1, ('one module expected in the package', name, found)
         modules += found
+    for name in [] if public else GATED:
+        found = sorted(package.glob('modules/lib/modules/*/kernel/**/' + name + '.ko'))
+        assert len(found) <= 1, ('at most one module expected in the package', name, found)
+        modules += found
     module = modules[0]
     release = release or module.parts[module.parts.index('modules') + 3]
     assert release.endswith('-gemini-a53-release' if public else '-gemini-a53-station'), release
@@ -110,7 +119,7 @@ def main(package, parent, tools, output, authorized_key=None):
     padded = output/'boot2-padded.img'
     padded.write_bytes(raw + bytes(16777216 - len(raw)))
     record = {'release': release, 'package': str(package.name), 'parent_initramfs_sha256': sha(parent),
-              'image_gz_sha256': sha(package/'Image.gz'), 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
+              'image_gz_sha256': sha(package/'Image.gz'), 'dtb_name': DTB, 'dtb_sha256': sha(dtb), 'modules_sha256': {m.name: sha(m) for m in modules},
               'backlight_policy_sha256': sha(Path(tools)/'backlight-policy'),
               **({} if public else {'power_status_sha256': sha(Path(tools)/'power-status')}),
               'regulatory_db_sha256': sha(Path(tools)/'regulatory.db'),
