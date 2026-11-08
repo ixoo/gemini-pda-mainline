@@ -31,6 +31,10 @@ Status: plan, updated 2026-11-01.
 - A join that starts late in the 10 s after a scan was refused at authentication, which needs 850 ms left,
   and the lifetime ended in a firmware restart (`-95`, branch 1). iwd hit it on the Arch card's first join,
   9.2 s after its scan (custodian, R5). 0638 gives each join its own 10 s. Compiled only.
+- iwd stayed in "connecting" with nothing sent (card-18, custodian): it had asked for a scan inside the
+  10 s join window of the previous one, which the driver refused as busy, and iwd waits for another scan to
+  finish before retrying, which never happened. 0669 retires that idle window at once for the new scan.
+  Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
   firmware BSS slot is never reused. Fixing it means re-arming after a close, which needs device tests. Not started.

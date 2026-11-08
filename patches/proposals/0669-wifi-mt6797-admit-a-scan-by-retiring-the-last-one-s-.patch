@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 8 Nov 2026 15:49:10 -0500
+Subject: [PATCH] wifi: mt6797: admit a scan by retiring the last one's idle
+ window
+
+A scan leaves the driver waiting 10 s for a join, and a scan requested in that
+window was refused as busy. iwd then waits for another scan to finish before it
+tries again, and none ever came: it stayed in "connecting" with nothing sent.
+Retire the idle window at once for the new scan, as its deadline would have.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c     | 15 +++++++++++++++
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h |  1 +
+ drivers/net/wireless/mediatek/mt6797/main.c     |  2 ++
+ 3 files changed, 18 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 5f443c04e..07c62bf03 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1032,6 +1032,21 @@ static void mt6797_mac_join_reopen_scan(struct mt6797_mac *mac)
+ 	spin_unlock_irqrestore(&mac->join_queue.lock, flags);
+ }
+ 
++/* A new scan while this lifetime's scan still waits for a join: retire the idle
++ * handoff now, as its deadline would, so that the scan is admitted. iwd waits
++ * for a refused scan to be followed by another one's results, which never came.
++ * Called with the mutex held.
++ */
++bool mt6797_mac_join_retire_idle_scan(struct mt6797_mac *mac)
++{
++	if (!mac->scan_used || mac->scan_active || !mac->join_scan_ready ||
++	    mac->join_peer_used || mac->first_error || mac->closing ||
++	    mt6797_mac_join_retire_idle_bss(mac) || mac->bss_active)
++		return false;
++	mt6797_mac_join_reopen_scan(mac);
++	return true;
++}
++
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_channel expected = {
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index e0adda689..eed317ccf 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -802,6 +802,7 @@ int mt6797_mac_join_open_lifetime(struct mt6797_mac *mac);
+ void mt6797_mac_join_read_bss(struct mt6797_mac *mac, struct ieee80211_vif *vif,
+ 			      const struct ieee80211_bss_conf *info);
+ void mt6797_mac_join_await(struct mt6797_mac *mac, bool teardown);
++bool mt6797_mac_join_retire_idle_scan(struct mt6797_mac *mac);
+ int mt6797_mac_send(struct mt6797_mac *mac,
+ 		    enum mt6797_normal_config_kind kind,
+ 			   const u8 *payload, size_t bytes);
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 04daa4c83..6eb62daab 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1012,6 +1012,8 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	 */
+ 	online = mac->join_data_phase && !mac->join_data_ended &&
+ 		 mac->join_channel_released && mac->join_sta_active && !mac->join_cleanup_done;
++	if (mac->scan_used && !online && !mac->scan_online && !mac->scan_online_cancel)
++		mt6797_mac_join_retire_idle_scan(mac);
+ 	if ((mac->scan_used && !online) || mac->scan_online || mac->scan_online_cancel) {
+ 		dev_info_ratelimited(wiphy_dev(hw->wiphy),
+ 				     "one-shot WLAN scan busy: used=%u data=%u ended=%u released=%u sta=%u cleanup=%u online=%u cancel=%u\n",
+-- 
+2.43.0
+
