@@ -926,6 +926,51 @@ hand. Nothing persists across that except what is already on storage, so
 the RAM root keeps the cards safe; the S0 values and this list are the
 starting point for the analysis.
 
+### S1 attempt 1 (2026-11-08): watchdog reset in the first suspend
+
+The custodian's run is recorded in the test plan,
+[boot 3](../2026-11-08-cpu-power-test-plan/README.md#boot-3-result-2026-11-08):
+the module loaded as expected, the last log line came just before the first
+30 s `mem` suspend, and the next boot was Gemian with `boot_reason=4`
+(`wdt_by_pass_pwk`) and RAM console `hw_status: 1`. No `wake:` line.
+
+**The watchdog explains the reset, and would have reset it even if the
+program worked** (from v7.1 source; not traced on the device):
+
+- `mtk_wdt` registers with `max_hw_heartbeat_ms` 31000 and timeout 31 s. With
+  `CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED` and nobody holding `/dev/watchdog`,
+  the watchdog core marks it `WDOG_HW_RUNNING` and pings it from a kernel
+  worker every half heartbeat, about 15.5 s.
+- `mtk_wdt_suspend()` stops it only `if (watchdog_active())`, which is false
+  for a watchdog that is only `WDOG_HW_RUNNING`. So it keeps counting.
+- In `mem` suspend no CPU runs the worker. At entry the last ping is 0 to
+  15.5 s old; add 30 s of PCM timer and the 31 s expiry falls inside the
+  sleep every time.
+- s2idle survives because the kick worker's timer still runs on the idle
+  CPU, which fits the 600 s s2idle results.
+
+So boot 3 says nothing about whether the program returns: a program that
+hangs and a program that wakes on time both end in this reset. I see no
+reason to think something other than the watchdog caused it; nothing points
+at the program, and nothing could, with this timing.
+
+**For the retry** (owner's choice, as the custodian put it):
+
+- (a) A feeder holding `/dev/watchdog` open for the run makes
+  `watchdog_active()` true, so the driver stops the watchdog at suspend and
+  restarts and pings it at resume. No new code. Close it with the magic
+  `V` afterwards, or the core goes back to pinging it as `HW_RUNNING`, which is
+  also fine.
+- (b) Patch `mtk_wdt_suspend()`/`mtk_wdt_resume()` to also stop and restart a
+  watchdog that is `watchdog_hw_running()`. A few lines, upstreamable, and the
+  durable fix: every future `mem` suspend on the station hits this. It is
+  built in, so it needs an image.
+- Either way, **make the first cycle short**: a PCM timer of 10 s. Then even
+  if the watchdog is still running, at most 15.5 + 10 s plus entry and exit
+  passes before the resume kicks it, under 31 s. A clean return on that
+  cycle shows the program returns, independently of the watchdog fix; the
+  30 s and 300 s cycles follow.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
