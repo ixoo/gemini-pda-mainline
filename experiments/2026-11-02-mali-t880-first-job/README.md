@@ -596,3 +596,7 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
 5. Clocks above 520 MHz need rail voltages above 1.0 V, a separate decision.
 6. Showing GPU output on screen, which belongs with the display work.
 7. Before upstream: `0493` takes `rate_lock` in `run_job`, while the rate change under that lock can allocate in the regulator and I2C paths. That breaks the fence-signalling rule against waiting on reclaim, a deadlock in principle under memory pressure, from review, not observed. `run_job` already calls `pm_runtime_get_sync`, which has the same issue. Fixing it needs a test, so it did not go in overnight.
+8. Under a real desktop, wlroots with qutebrowser on Arch, importing a dma-buf as a Panfrost handle hit `WARN_ON(bo->base.madv != PANFROST_MADV_WILLNEED)` in
+   `panfrost_gem_open` twice, untainted, rendering fine (station-work-91). The buffer resolved to a Panfrost object its owner had marked purgeable. The madvise ioctl
+   does not refuse that for a shared object, and its own comment expects userspace not to. This is upstream code that the MT6797 patches do not touch. The risk, from
+   the source and not seen: under memory pressure the shrinker could purge pages another process is using. It needs the userspace Mesa version, and a check under memory pressure.
