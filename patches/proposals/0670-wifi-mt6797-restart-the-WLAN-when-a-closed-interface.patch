@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sun, 8 Nov 2026 15:54:19 -0500
+Subject: [PATCH] wifi: mt6797: restart the WLAN when a closed interface is
+ brought up
+
+Taking an interface down closes this driver instance for good, and bringing an
+interface up again was refused with -EOPNOTSUPP until the module was reloaded.
+networkd brought a fresh wlan0 up and down before iwd replaced it with its own,
+and the new interface could never start. Ask CONSYS for a WLAN restart there, as
+a scan on a closed instance already does: a new phy comes back, and iwd and
+networkd take it up.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 6eb62daab..10f14bab4 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -1169,6 +1169,12 @@ static int mt6797_mac_start(struct ieee80211_hw *hw)
+ 	    !mac->first_error && !mac->join_closed) {
+ 		mac->started = true;
+ 		ret = 0;
++	} else if (mac->closing || mac->first_error || mac->join_closed) {
++		/* Taking an interface down closes this instance for good, and iwd
++		 * and networkd do that in turn. A restart brings back a new phy,
++		 * which they take up again.
++		 */
++		mt6797_consys_wlan_request_restart();
+ 	}
+ 	mutex_unlock(&mac->mutex);
+ 	return ret;
+-- 
+2.43.0
+

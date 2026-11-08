@@ -36,7 +36,9 @@ Status: plan, updated 2026-11-01.
   finish before retrying, which never happened. 0669 retires that idle window at once for the new scan.
   Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
-  `mac` is reloaded. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
+  `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
+  interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
+  first `up` still fails. Compiled only. It's by design so far: `remove_interface` sets `closing` and `stop` closes the join, so that a
   firmware BSS slot is never reused. Fixing it means re-arming after a close, which needs device tests. Not started.
 - Phases 5-6 are not started.
 Priorities stay in the [roadmap](ROADMAP.md#phase-b-usable-wi-fi). Demonstrated support stays in
