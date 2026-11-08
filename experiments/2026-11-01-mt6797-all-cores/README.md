@@ -831,8 +831,39 @@ runs of hours and idle cost stay open, all ten CPUs have not been loaded at once
 not run beside it, and the whole system now reports
 `Vulnerable` for Spectre-v2 and speculative store bypass.
 
-## Follow-up
+## Follow-up: full support before loading by default
 
-Next, in order, each its own owner decision: CPU capacity; idle power; a longer soak; load at init; then, as
-their own work, scheduler capacity (a 750 MHz A72 next to faster-clocked A53s),
-the down path, cpufreq and thermal cooling.
+The owner's goal, 2026-11-07: support the A72s fully, then load them by default. Since the
+last run, [A53 cpufreq](../2026-11-07-mt6797-a53-cpufreq/README.md) passed with the A72
+module unloaded, and its patch 0643 keeps CPU8-9 out of cpufreq. In order, each step its
+own boot request and owner decision, and each new register or regulator write listed
+literally first:
+
+1. **Ten cores beside A53 cpufreq, and the A72 clock.** The A72 bring-up is a one-way
+   sequence at module load, and `clk-mt6797-mcusys` faults if sync DCM changes after its
+   probe. So the load order is the A72 module first, then the clock driver, then
+   cpufreq-dt, and the clock driver stays the only MCUMIXED writer in Linux. Settled with
+   the cpufreq session before any request. The same run measures CPU8's clock with that
+   experiment's `cpu-mhz` tool; 750 MHz has only been read, never measured. No new write.
+2. **Down and up.** CPU9 down and back is proven on isolated candidates; both A72s down,
+   and the cluster power after it, never ran on mainline. Needed for thermal emergencies,
+   and so CPU_ON's firmware path (which programs the B PLL) can be coordinated with the
+   clock driver. First CPU9, then both with the rail left on.
+3. **Idle cost.** On battery, A72s online against offline on one image, using step 2.
+   The fuel gauge reads 0 on USB, so this needs unplugged runs.
+4. **A72 cpufreq.** First frequency only, at the 1.0 V the preloader left, within the
+   vendor's points for that voltage, through the secure BigiDVFS interface firmware owns
+   for the B PLL. Then voltage through a writable DA9214 BUCKB provider and the SRAM LDO,
+   each with its own write list. This is the largest step and has its own record.
+5. **Cooling on the A72s.** Follows from step 4 as cpufreq cooling on the passive trip.
+   Until then the A72s have only the 117 C hardware reset, and step 1's loads stay short.
+6. **Capacity and energy model.** `capacity-dmips-mhz` scales by each CPU's clock, and the
+   A72s have none, so capacity waits for step 4 (or a fixed clock on the A72 nodes). The
+   energy model needs measured power per point, using step 3's method.
+7. **Long soak under heat,** all ten loaded, with cooling.
+8. **Suspend and resume.** The station suspends with s2idle only, so the A72s stay online
+   in WFI and no hotplug is needed. One s2idle cycle with them online, then several.
+9. **Loading at init,** in step 1's order, once the above pass.
+
+Open beside these: PWRAP concurrency during the bring-up window, the system reporting
+`Vulnerable` for Spectre-v2, and Wi-Fi finding 2 (2 of 6 first joins).

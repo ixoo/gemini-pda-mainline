@@ -95,7 +95,7 @@ Independent of each other, in no fixed order. Each record owns the detail.
 
 | Subsystem | Next, from its record |
 | --- | --- |
-| [A72](../experiments/2026-11-01-mt6797-all-cores/README.md#follow-up) | CPU capacity, idle power, a longer soak, then loading at init, each its own owner decision |
+| [A72](../experiments/2026-11-01-mt6797-all-cores/README.md#follow-up-full-support-before-loading-by-default) | Full support, then loading by default: ten cores beside A53 cpufreq, down and up, idle cost, cpufreq and voltage, cooling, capacity, a soak under heat, suspend |
 | [GPU](../experiments/2026-11-02-mali-t880-first-job/README.md#follow-up) | A cap under real heat; VGPU and the LDOs off at idle; clocks above 520 MHz are a separate decision |
 | [Display](hardware/display-panel.md) | Linux's own panel init; a compositor on Panfrost; the [review items](../experiments/2026-11-02-gemini-native-display/README.md#what-stands-before-upstream) |
 | [Camera](../experiments/2026-11-04-gemini-camera-receiver/README.md#what-this-does-not-show) | An application; an SMI driver; M4U in place of the bypass; ruling out stray writes |
