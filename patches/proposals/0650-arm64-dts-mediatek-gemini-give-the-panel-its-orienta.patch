@@ -1,0 +1,29 @@
+From 8ad306fcf096452eec92b11586426368021b3150 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 8 Nov 2026 07:19:51 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: give the panel its orientation
+
+The portrait panel is mounted with its left side up in the clamshell. That is
+rotation 270, which DRM reports as Left Side Up: the console then rotates 90 degrees
+counter-clockwise, as fbcon=rotate:3 does today, and compositors that read the property
+rotate the same way.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 21dbe51..ff37dc5 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -487,6 +487,11 @@ &dsi0 {
+ 	panel@0 {
+ 		compatible = "planet,gemini-pda-nt36672";
+ 		reg = <0>;
++		/*
++		 * In the clamshell the panel's left side is up: its scan lines run
++		 * top to bottom, the first at the right edge.
++		 */
++		rotation = <270>;
+ 
+ 		port {
+ 			panel_in: endpoint {

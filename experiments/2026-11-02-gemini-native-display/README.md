@@ -492,6 +492,17 @@ log, or its cancel; the lid during a fade; a key in the window with the light of
 run:** 0521's bind behind a closed lid, and the battery run, so what a blank saves is
 unmeasured. The owner will raise anything they notice in use.
 
+## Panel orientation (built, not yet booted)
+
+`0649` has the panel driver read the standard `rotation` property and report it, and `0650`
+sets `rotation = <270>` on the Gemini panel, its left side up in the clamshell. DRM then
+gives the connector `panel orientation` = Left Side Up. The fbdev helper maps that to a
+90-degree counter-clockwise console, the same as `fbcon=rotate:3`, which still takes
+precedence while it stays on the command line. niri 26.04 reads the property itself, as a
+90-degree transform, and adds any `transform` in its config to it, so a config that keeps
+`transform "90"` would end up at 180. Compiled with `W=1` and the DTB checked in the dev VM;
+nothing is booted on it yet.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here

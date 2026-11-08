@@ -1,0 +1,62 @@
+From 08218115333a4d8ab2a07dadbc26cf76d723eb7b Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sun, 8 Nov 2026 07:19:51 -0500
+Subject: [PATCH] drm/panel: nt36672e: report the panel's orientation
+
+Read the standard rotation property and report it, so the connector carries the panel
+orientation property and the console and compositors can rotate for it.
+---
+ .../gpu/drm/panel/panel-novatek-nt36672e.c    | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+index a2dbd05..106f65b 100644
+--- a/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
++++ b/drivers/gpu/drm/panel/panel-novatek-nt36672e.c
+@@ -53,6 +53,7 @@ struct nt36672e_panel {
+ 	struct gpio_desc *reset_gpio;
+ 	struct regulator_bulk_data supplies[3];
+ 	const struct panel_desc *desc;
++	enum drm_panel_orientation orientation;
+ 	bool adopted;
+ };
+ 
+@@ -962,13 +963,27 @@ static int nt36672e_panel_get_modes(struct drm_panel *panel, struct drm_connecto
+ 		connector->display_info.bpc = 8;
+ 	drm_mode_probed_add(connector, mode);
+ 
++	/*
++	 * TODO: Remove once all drm drivers call
++	 * drm_connector_set_orientation_from_panel()
++	 */
++	drm_connector_set_panel_orientation(connector, ctx->orientation);
++
+ 	return 1;
+ }
+ 
++static enum drm_panel_orientation nt36672e_panel_get_orientation(struct drm_panel *panel)
++{
++	struct nt36672e_panel *ctx = to_nt36672e_panel(panel);
++
++	return ctx->orientation;
++}
++
+ static const struct drm_panel_funcs nt36672e_drm_funcs = {
+ 	.prepare = nt36672e_panel_prepare,
+ 	.unprepare = nt36672e_panel_unprepare,
+ 	.get_modes = nt36672e_panel_get_modes,
++	.get_orientation = nt36672e_panel_get_orientation,
+ };
+ 
+ static int nt36672e_panel_probe(struct mipi_dsi_device *dsi)
+@@ -1022,6 +1037,10 @@ static int nt36672e_panel_probe(struct mipi_dsi_device *dsi)
+ 	if (ret)
+ 		return dev_err_probe(dev, ret, "Failed to get backlight\n");
+ 
++	ret = of_drm_get_panel_orientation(dev->of_node, &ctx->orientation);
++	if (ret < 0)
++		return dev_err_probe(dev, ret, "Failed to get orientation\n");
++
+ 	ctx->panel.prepare_prev_first = true;
+ 
+ 	drm_panel_add(&ctx->panel);
