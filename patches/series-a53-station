@@ -837,3 +837,4 @@ proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch
 proposals/0667-soc-mediatek-add-an-MT6797-SPM-mem-suspend-experimen.patch
 proposals/0668-drm-panfrost-let-MT6797-rate-logging-be-switched-on-.patch
 proposals/0671-ASoC-mediatek-mt6797-set-the-AFE-up-again-after-a-sy.patch
+proposals/0672-Input-gemini-lid-apply-the-lid-only-after-a-system-r.patch

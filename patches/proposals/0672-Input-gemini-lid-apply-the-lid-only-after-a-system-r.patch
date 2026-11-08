@@ -1,0 +1,58 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 18:11:44 -0500
+Subject: [PATCH] Input: gemini-lid: apply the lid only after a system resume
+
+Opening the lid wakes the system, and the switch's report reaches the
+policy while devices are still resuming. Its work ran on the system
+workqueue, which is not frozen, so it uninhibited the keyboard before
+the keypad's own resume. The open started the keypad's scan; the
+keypad's resume then found the device enabled and started it again,
+and the second scan enabled the row interrupts a second time: one
+"Unbalanced enable" warning per row on every lid-open wake. The first
+scan also read the I2C expander before the expander had resumed.
+
+Queue the work on system_freezable_wq. A lid change seen during a
+suspend or resume then applies once tasks are thawed, after every
+device has resumed. A close before a suspend still applies at once.
+---
+ drivers/input/misc/gemini-lid.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index 183ac9519..873eae73d 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -70,6 +70,11 @@ static void gemini_lid_work_fn(struct work_struct *work)
+ 		gemini_lid_apply(READ_ONCE(lid_closed));
+ }
+ 
++/*
++ * Freezable, so that a lid opened during a system resume applies only once
++ * the resume is complete: uninhibiting the keyboard before its own resume
++ * starts it twice.
++ */
+ static DECLARE_WORK(gemini_lid_work, gemini_lid_work_fn);
+ 
+ static bool gemini_lid_is_keyboard(struct input_dev *dev)
+@@ -89,7 +94,7 @@ static bool gemini_lid_filter(struct input_handle *handle, unsigned int type,
+ 		lid_armed = true;
+ 	if (lid_armed && lid_closed != !!value) {
+ 		WRITE_ONCE(lid_closed, !!value);
+-		schedule_work(&gemini_lid_work);
++		queue_work(system_freezable_wq, &gemini_lid_work);
+ 	}
+ 
+ 	return false;
+@@ -124,7 +129,7 @@ static int gemini_lid_connect(struct input_handler *handler,
+ 		scoped_guard(mutex, &lid_lock)
+ 			lid_keyboard = dev;
+ 		if (READ_ONCE(lid_closed))
+-			schedule_work(&gemini_lid_work);
++			queue_work(system_freezable_wq, &gemini_lid_work);
+ 		return 0;
+ 	}
+ 
+-- 
+2.43.0
+
