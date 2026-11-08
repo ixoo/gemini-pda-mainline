@@ -1,4 +1,4 @@
 # SPDX-License-Identifier: MIT
 %wheel ALL=(ALL:ALL) ALL
-# Ctrl+Alt+Tab in sway: switch to the text console on tty2.
+# Ctrl+Alt+Tab in niri: switch to the text console on tty2.
 %wheel ALL=(root) NOPASSWD: /usr/bin/chvt 2

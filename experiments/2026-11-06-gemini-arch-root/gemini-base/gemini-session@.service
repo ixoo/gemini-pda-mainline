@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
-# The user's sway session on tty1, logged in without a password (owner decision,
+# The user's niri session on tty1, logged in without a password (owner decision,
 # 2026-11-06). gemini-firstboot enables it for the first user. Other VTs keep a getty.
 [Unit]
-Description=sway session for %i on tty1
+Description=niri session for %i on tty1
 StartLimitIntervalSec=60
 StartLimitBurst=5
 After=systemd-user-sessions.service gemini-display.service gemini-firstboot.service
@@ -23,10 +23,12 @@ StandardOutput=journal
 UtmpIdentifier=tty1
 UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland
-# Panfrost isn't loaded at boot yet, so wlroots renders in software.
-Environment=WLR_RENDERER=pixman
-ExecStart=/usr/lib/gemini/sway-session
-# On a second boot (R4) logind refused sway the DRM device ("Could not take device:
+# Panfrost isn't loaded at boot yet and niri needs EGL: Mesa renders in software
+# (llvmpipe) and shows the result through the display-only mediatek driver
+# (kms_swrast). Forced, so Mesa doesn't first try the GPU it can't find.
+Environment=GBM_ALWAYS_SOFTWARE=1 LIBGL_ALWAYS_SOFTWARE=1
+ExecStart=/usr/lib/gemini/niri-session
+# On a second boot (R4) logind refused the compositor the DRM device ("Could not take device:
 # Operation not permitted") at 14 s, 3 s after the device appeared, while the same
 # session worked a few minutes into first boot. Why it refused isn't known; a retry a
 # few seconds later covers a start-up race.

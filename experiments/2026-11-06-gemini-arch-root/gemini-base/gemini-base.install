@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: MIT
+# From sway to niri (gemini-base 14): carry the layout chosen at first boot over to
+# niri, from the line first boot wrote for sway. Only while niri still has the default.
+post_upgrade() {
+    old=/etc/sway/config.d/60-gemini-keyboard.conf
+    new=/etc/niri/gemini-keyboard.kdl
+    [ -f "$old" ] && grep -q '/usr/share/gemini/xkb/us\.xkb' "$new" || return 0
+    file=$(sed -n 's/^input type:keyboard xkb_file //p' "$old")
+    case $file in
+    /usr/share/gemini/xkb/*.xkb)
+        [ -f "$file" ] || return 0
+        printf 'input {\n    keyboard {\n        xkb {\n            file "%s"\n        }\n    }\n}\n' "$file" >"$new"
+        ;;
+    esac
+}

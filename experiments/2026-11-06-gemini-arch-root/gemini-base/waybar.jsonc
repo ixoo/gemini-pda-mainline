@@ -3,9 +3,9 @@
 {
     "position": "left",
     "width": 44,
-    "modules-left": ["sway/workspaces", "sway/mode"],
+    "modules-left": ["niri/workspaces"],
     "modules-right": ["network", "battery", "clock"],
-    "sway/workspaces": { "format": "{name}" },
+    "niri/workspaces": { "format": "{index}" },
     "network": {
         "format-wifi": "W",
         "format-ethernet": "U",

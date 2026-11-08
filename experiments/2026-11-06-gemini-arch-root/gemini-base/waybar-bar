@@ -1,5 +1,4 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# sway's swaybar_command for bar-0. sway runs that command as one program name, adding
-# "-b bar-0", so the options can't live in the sway config line; R3 showed no bar.
+# The bar with the Gemini's config and style, started by niri (spawn-at-startup).
 exec waybar -c /usr/share/gemini/waybar/config.jsonc -s /usr/share/gemini/waybar/style.css "$@"

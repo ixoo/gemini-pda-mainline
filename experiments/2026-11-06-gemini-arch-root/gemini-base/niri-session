@@ -1,0 +1,14 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# The Gemini's niri session. niri reads ~/.config/niri/config.kdl if the user has one,
+# otherwise /etc/niri/config.kdl from this package.
+# Diagnostic (R5): logind once refused the compositor the DRM device on early starts
+# (drm registered after logind; fixed in gemini-base 13). Kept for a few more boots:
+# the session's seat, VT and active state, and card0's seat tags, in the journal.
+{
+    echo "session=${XDG_SESSION_ID:-none} tty0-active=$(cat /sys/class/tty/tty0/active 2>&1)"
+    loginctl show-session "${XDG_SESSION_ID:-}" -p Seat -p VTNr -p TTY -p Active -p State -p Type -p Class 2>&1
+    loginctl show-seat seat0 -p ActiveSession -p CanGraphical -p CanTTY 2>&1
+    udevadm info -q property -n /dev/dri/card0 2>&1 | grep -E '^(ID_SEAT|TAGS|CURRENT_TAGS)='
+} | sed 's/^/gemini-session: /' >&2
+exec niri --session

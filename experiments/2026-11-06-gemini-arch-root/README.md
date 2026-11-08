@@ -1162,6 +1162,26 @@ journal under `station-work-84/card-boot-gb13/`.
 This confirms the cause recorded above: `drm` has to be registered before logind starts.
 Not yet confirmed in R5: the password on `tty2`, and `pacman` syncing under Landlock.
 
+### niri instead of sway, and profiling tools (owner, 2026-11-07)
+
+The owner: "I'd like to switch from sway to niri", and wants the kernel and the image to carry
+perf and power-analysis tools. `gemini-base` 14:
+- **niri 26.04** from Arch Linux ARM, with `/etc/niri/config.kdl`:
+  - `DSI-1` rotated 270 at scale 2.5, touch mapped to it;
+  - waybar as the left column;
+  - every shortcut on Ctrl+Alt, as with sway: Enter for foot, D for wmenu, Shift+/ for the list,
+    Shift+E to quit, Tab for `tty2`.
+  - The keyboard file is included from `/etc/niri/gemini-keyboard.kdl`, which first boot writes.
+    On upgrade, the layout chosen for sway carries over.
+- **Rendering:** niri needs EGL, and Panfrost isn't loaded at boot. The session forces Mesa's
+  software path (`GBM_ALWAYS_SOFTWARE`, `LIBGL_ALWAYS_SOFTWARE`): llvmpipe, shown through
+  `kms_swrast` on the display-only `mediatek` driver. Whether that works on the device, and how
+  fast, isn't known yet.
+- **Tools:** `perf`, `trace-cmd`, `powertop` and `cpupower`.
+- **Kernel:** `configs/gemini-a53-station-perf.fragment` in `mt6797-a53-station-a72` turns on
+  perf events, ftrace with the function tracers, kprobes, uprobes and BPF events. mt6797's device
+  tree has no CPU PMU node, so perf gets no hardware counters until one is added.
+
 ## Analysis
 
 Not started.

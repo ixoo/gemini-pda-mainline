@@ -1,0 +1,99 @@
+// SPDX-License-Identifier: MIT
+// The Gemini's niri session (owner, 2026-11-07: niri instead of sway). niri reads this
+// as /etc/niri/config.kdl when the user has no ~/.config/niri/config.kdl of their own.
+// The Gemini layouts make Fn (Super) the symbol layer, so every shortcut uses Ctrl+Alt,
+// as the sway session did.
+
+// The keyboard layout chosen at first boot (an xkb file), US until then.
+include "/etc/niri/gemini-keyboard.kdl"
+
+input {
+    touch {
+        map-to-output "DSI-1"
+    }
+    // Dragging a window with the pointer: Alt alone, as with sway.
+    mod-key "Alt"
+}
+
+// The panel is portrait-native and used in landscape, as fbcon=rotate:3 does on the
+// console. 2160x1080 at about 400 dpi: scale 2.5 gives an 864x432 desktop (owner, R4).
+output "DSI-1" {
+    transform "270"
+    scale 2.5
+}
+
+layout {
+    gaps 4
+    center-focused-column "never"
+    preset-column-widths {
+        proportion 0.5
+        proportion 1.0
+    }
+    default-column-width { proportion 1.0; }
+    focus-ring {
+        width 2
+    }
+}
+
+// The bar: a narrow column on the left edge (owner, R2).
+spawn-at-startup "/usr/lib/gemini/waybar-bar"
+
+hotkey-overlay {
+    skip-at-startup
+}
+prefer-no-csd
+screenshot-path "~/Pictures/Screenshot-%Y-%m-%d-%H-%M-%S.png"
+
+binds {
+    Ctrl+Alt+Shift+Slash { show-hotkey-overlay; }
+    Ctrl+Alt+Return hotkey-overlay-title="Terminal: foot" { spawn "foot"; }
+    Ctrl+Alt+D hotkey-overlay-title="Launcher: wmenu" { spawn "wmenu-run"; }
+    // A text console without F-keys: tty2; there, Ctrl+Alt+1 or Alt+Left comes back.
+    Ctrl+Alt+Tab hotkey-overlay-title="Text console (tty2)" { spawn "sudo" "-n" "/usr/bin/chvt" "2"; }
+    Ctrl+Alt+Shift+E { quit; }
+
+    Ctrl+Alt+O repeat=false { toggle-overview; }
+    Ctrl+Alt+Q repeat=false { close-window; }
+
+    Ctrl+Alt+Left { focus-column-left; }
+    Ctrl+Alt+Right { focus-column-right; }
+    Ctrl+Alt+Up { focus-window-up; }
+    Ctrl+Alt+Down { focus-window-down; }
+    Ctrl+Alt+Shift+Left { move-column-left; }
+    Ctrl+Alt+Shift+Right { move-column-right; }
+    Ctrl+Alt+Shift+Up { move-window-up; }
+    Ctrl+Alt+Shift+Down { move-window-down; }
+
+    Ctrl+Alt+Page_Up { focus-workspace-up; }
+    Ctrl+Alt+Page_Down { focus-workspace-down; }
+    Ctrl+Alt+1 { focus-workspace 1; }
+    Ctrl+Alt+2 { focus-workspace 2; }
+    Ctrl+Alt+3 { focus-workspace 3; }
+    Ctrl+Alt+4 { focus-workspace 4; }
+    Ctrl+Alt+5 { focus-workspace 5; }
+    Ctrl+Alt+6 { focus-workspace 6; }
+    Ctrl+Alt+7 { focus-workspace 7; }
+    Ctrl+Alt+8 { focus-workspace 8; }
+    Ctrl+Alt+9 { focus-workspace 9; }
+    Ctrl+Alt+Shift+1 { move-column-to-workspace 1; }
+    Ctrl+Alt+Shift+2 { move-column-to-workspace 2; }
+    Ctrl+Alt+Shift+3 { move-column-to-workspace 3; }
+    Ctrl+Alt+Shift+4 { move-column-to-workspace 4; }
+    Ctrl+Alt+Shift+5 { move-column-to-workspace 5; }
+    Ctrl+Alt+Shift+6 { move-column-to-workspace 6; }
+    Ctrl+Alt+Shift+7 { move-column-to-workspace 7; }
+    Ctrl+Alt+Shift+8 { move-column-to-workspace 8; }
+    Ctrl+Alt+Shift+9 { move-column-to-workspace 9; }
+
+    Ctrl+Alt+Comma { consume-or-expel-window-left; }
+    Ctrl+Alt+Period { consume-or-expel-window-right; }
+    Ctrl+Alt+R { switch-preset-column-width; }
+    Ctrl+Alt+F { maximize-column; }
+    Ctrl+Alt+Shift+F { fullscreen-window; }
+    Ctrl+Alt+V { toggle-window-floating; }
+    Ctrl+Alt+Minus { set-column-width "-10%"; }
+    Ctrl+Alt+Equal { set-column-width "+10%"; }
+
+    Print { screenshot; }
+    Ctrl+Alt+S { screenshot; }
+}

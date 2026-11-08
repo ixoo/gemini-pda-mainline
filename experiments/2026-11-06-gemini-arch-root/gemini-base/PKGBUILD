@@ -3,9 +3,9 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=13
+pkgver=14
 pkgrel=1
-pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, sway session'
+pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, niri session'
 arch=('any')
 url='https://github.com/ixoo/gemini-pda-mainline'
 license=('MIT' 'custom:xkeyboard-config')
@@ -17,21 +17,25 @@ _xkbrev=64c6c0e4d5df00babe215f26eb5ca5b2e28c0ee9
 # Debian's console-setup (GPL-2.0-or-later), fetched pinned; it is not installed.
 _csver=1.216
 makedepends=('perl' 'kbd' 'xkeyboard-config')
-depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'sway' 'waybar' 'wmenu' 'foot' 'ttf-dejavu')
-backup=('etc/iwd/main.conf' 'etc/vconsole.conf')
+depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'niri' 'mesa' 'waybar' 'wmenu' 'foot' 'ttf-dejavu'
+         # Profiling and power analysis (owner, 2026-11-07); the kernel side is
+         # configs/gemini-a53-station-perf.fragment.
+         'perf' 'trace-cmd' 'powertop' 'cpupower')
+backup=('etc/iwd/main.conf' 'etc/vconsole.conf' 'etc/niri/gemini-keyboard.kdl')
+install=gemini-base.install
 options=('!debug' '!strip')
 source=(gemini-modules.service modules-load.conf gemini-audio.service audio-start
         display-start display-boot gemini-display.service wifi-start gemini-wifi.service
         tmpfiles.conf 50-gemini-usb0.network 50-gemini-wlan.network iwd-main.conf
         logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
         gemini-session-fallback@.service session-fallback modprobe-drm.conf
-        sway.conf firstboot gemini-firstboot.service waybar.jsonc waybar.css
-        sway-session waybar-bar
+        niri.kdl niri-keyboard.kdl firstboot gemini-firstboot.service waybar.jsonc waybar.css
+        niri-session waybar-bar
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
-            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
             '2a2c8d95973ad6b18d05a4667497d78e4bf97a0d69e4a1870750a19a2a75af6d')
@@ -54,8 +58,9 @@ package() {
     install -Dm644 iwd-main.conf "$pkgdir/etc/iwd/main.conf"
     install -Dm644 vconsole.conf "$pkgdir/etc/vconsole.conf"
     install -Dm440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"
-    install -Dm644 sway.conf "$pkgdir/etc/sway/config.d/50-gemini.conf"
-    install -Dm755 -t "$pkgdir/usr/lib/gemini" sway-session waybar-bar session-fallback
+    install -Dm644 niri.kdl "$pkgdir/etc/niri/config.kdl"
+    install -Dm644 niri-keyboard.kdl "$pkgdir/etc/niri/gemini-keyboard.kdl"
+    install -Dm755 -t "$pkgdir/usr/lib/gemini" niri-session waybar-bar session-fallback
     # Gemian's layouts, and one complete keymap per layout as Gemian's planetgemini rules
     # composed it: pc + the layout + inet + the escape part. A complete keymap keeps the
     # two-group layouts (ru, gr, cz...) whole, which a layout(variant) selection does not.
@@ -74,7 +79,7 @@ package() {
             "	xkb_symbols { include \"pc+planet_vndr/gemini($layout)+inet(evdev)+planet_vndr/gemini(escape)\" };" \
             '};' >"$dir/$layout.xkb"
     done <"$dir/layouts.tsv"
-    # The same composition for the console, so first boot, the console and sway type
+    # The same composition for the console, so first boot, the console and niri type
     # the same characters. ckbcomp reads the Gemini symbols from this build directory.
     # loadkeys -u -b parses each map as the Unicode console will, and fails the build
     # on a map it rejects.

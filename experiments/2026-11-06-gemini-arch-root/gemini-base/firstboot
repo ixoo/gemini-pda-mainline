@@ -8,8 +8,8 @@ set -u
 state=/var/lib/gemini
 echo "Gemini first boot."
 # The keyboard layout first, so everything typed after it, passwords included, types
-# the same here, on the console later and in sway: one of Gemian's Gemini layouts,
-# loaded on this console at once and kept for the console and for sway. Two-group
+# the same here, on the console later and in niri: one of Gemian's Gemini layouts,
+# loaded on this console at once and kept for the console and for niri. Two-group
 # layouts switch groups with both Shift keys together.
 layouts=/usr/share/gemini/xkb/layouts.tsv
 echo "Keyboard layouts:"
@@ -22,7 +22,8 @@ while :; do
 done
 loadkeys -u "gemini-$layout" >/dev/null || echo "The console keymap did not load; it stays the Gemini US map."
 echo "KEYMAP=gemini-$layout" >/etc/vconsole.conf
-echo "input type:keyboard xkb_file /usr/share/gemini/xkb/$layout.xkb" >/etc/sway/config.d/60-gemini-keyboard.conf
+printf 'input {\n    keyboard {\n        xkb {\n            file "/usr/share/gemini/xkb/%s.xkb"\n        }\n    }\n}\n' \
+    "$layout" >/etc/niri/gemini-keyboard.kdl
 pacman-key --init >/dev/null && pacman-key --populate archlinuxarm >/dev/null ||
     echo "pacman-key failed; run it again later: pacman-key --init; pacman-key --populate archlinuxarm"
 # Asks only while /etc/localtime is unset; the list of zones is paged.
@@ -51,7 +52,8 @@ fi
 systemctl enable "gemini-session@$user.service"
 systemctl set-default graphical.target
 touch "$state/firstboot-done"
-echo "Done. The session starts now. Fn types the symbols printed on the keys. sway's"
+echo "Done. The session starts now. Fn types the symbols printed on the keys. niri's"
 echo "shortcuts use Ctrl+Alt: Ctrl+Alt+Enter opens a terminal, Ctrl+Alt+D a launcher,"
-echo "Ctrl+Alt+Shift+E leaves the session, Ctrl+Alt+Tab goes to a text console;"
+echo "Ctrl+Alt+Shift+/ lists the rest, Ctrl+Alt+Shift+E leaves the session,"
+echo "Ctrl+Alt+Tab goes to a text console;"
 echo "on a console, Alt+Left/Right or Ctrl+Alt+1 to 0 switch consoles."
