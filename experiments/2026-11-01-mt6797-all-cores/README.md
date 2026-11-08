@@ -714,6 +714,11 @@ BUCKB stays on while the cluster is down, which costs power; turning it off is t
 off path and a separate write for later. Compiled in the dev VM with `W=1`, no warning;
 checkpatch quiet.
 
+Candidate: package `e03bc788...` (job `cb9fff8a...-mt6797-a53-station-a72-m1`, Buildbox-2).
+Only `mt6797-a72.ko` differs from attempt 1's `e006f1e2...`, now `58a0a98f...`; the Image
+(`3400bd7f...`), configuration, DTB and every other module are identical. So boot2's
+station-work-87 image (`be1dbf5a...`) stays, and only the module file changes.
+
 Hypothesis: with the board side redone, CPU8 comes back to a cluster that went down, then
 CPU9. Unique observation: the cluster's second power-up from the down state.
 
