@@ -36,8 +36,9 @@ which also keeps the [earlier roadmap](../experiments/2026-10-05-repository-cons
   [booted once](../experiments/2026-10-30-mainline-dev-station/README.md#first-boot-of-the-release-image-2026-11-04).
   No one else can install or build it yet.
 - **Not started.** Suspend and cpuidle. No upstream submission.
-- **Started.** cpufreq for the A53 clusters at the firmware's voltage: patches pushed, device
-  test [planned](../experiments/2026-11-07-mt6797-a53-cpufreq/README.md), not run.
+- **Started.** cpufreq for the A53 clusters at the firmware's voltage: schedutil and CPU
+  cooling [pass on one boot](../experiments/2026-11-07-mt6797-a53-cpufreq/README.md#attempt-a3-2026-11-07)
+  from modules loaded by hand.
 
 ## Current order of work
 
@@ -61,8 +62,9 @@ how the optional modules are offered, and a second unit.
 cpufreq and power governors are the important gap the owner named. Suspend, cpuidle
 and cpufreq decide battery life and heat. Only A53 cpufreq has started: the
 [A53 cpufreq experiment](../experiments/2026-11-07-mt6797-a53-cpufreq/README.md) scales both
-clusters at the firmware's 1.00 V with schedutil and CPU cooling; its device test has not run.
-Voltage scaling, CCI and the A72s follow it.
+clusters at the firmware's 1.00 V with schedutil and CPU cooling, and passed on one boot from
+modules loaded by hand. Loading it at boot after a longer run under heat, then voltage
+scaling, CCI and the A72s follow it.
 [Power accounting](../experiments/2026-11-01-gemini-power-accounting/README.md) is a design
 proposal only. The [CPU clusters document](hardware/mt6797-cpu-clusters.md#61-can-a-standard-linux-governor-drive-cpu-frequency)
 holds the defensible order for frequency scaling, starting with the A53s. The

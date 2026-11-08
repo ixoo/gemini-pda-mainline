@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-a53-cpufreq` |
-| Status | `in progress`: A1 stopped at t2 (sync DCM), A2 at t3 (one policy for CPU0-9); no clock changed; A3 needs a new image |
+| Status | `pass`: A3 passed t0-t8 on station-work-86 (A1 and A2 stopped before any clock change) |
 | Subsystem | MT6797 MCUMIXED PLLs and MCU FHCTL, cpufreq-dt, CPU cooling |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -64,7 +64,7 @@ a cluster faster than the firmware did. The LL cluster never needs one.
 ## Provenance and environment
 
 - Kernel: Linux 7.1.3, profile `mt6797-a53-station-a72`, patches
-  `0639`-`0642` (listed below) plus the configuration fragment
+  `0639`-`0643` (listed below) plus the configuration fragment
   [`gemini-a53-station-cpufreq.fragment`](../../configs/gemini-a53-station-cpufreq.fragment).
 - A1 candidate: commit `a143ecb7`, Buildbox job
   `a143ecb74f970bfe8711bf18814be560b0e97fef-mt6797-a53-station-a72-m1`,
@@ -79,8 +79,13 @@ a cluster faster than the firmware did. The LL cluster never needs one.
   `clk-mt6797-mcusys.ko` is rebuilt from the revised patch `0640`
   (`8163e54101a9aec185dbb14b0446db5835766befb99b65d61127130a96fe5f1d`, Buildbox
   job `708f75adb6a91b715c31477101ae0d2cd61bd676-mt6797-a53-station-a72-m1`).
-- A3 candidate: a new boot image carrying patch `0643` in the built-in OPP
-  core (see [attempt A3](#attempt-a3-plan)).
+- A3 candidate: commit `8996f539`, Buildbox job
+  `8996f539c980e2700b7b732071541d0b9dd6aca6-mt6797-a53-station-a72-m1`,
+  package `linux-7.1.3-gemini-395047bdaecb27b7fc461a3a2fa601c2836f3212d037ad8dfbfacee4998d8bc6`,
+  `Image.gz` `b025af20eb8c8143ce158d256f8643156464ca075c34b614005f0b4f505c1d1a`;
+  config, station DTB and every module identical to the A2 package
+  (`clk-mt6797-mcusys.ko` `8163e541…`, `cpufreq-dt.ko` `2c451b82…`); boot
+  image station-work-86 (boot2 `a101d944…`).
 - Vendor source: Gemian Linux 3.18 [`59e00a91`](https://github.com/gemian/gemini-linux-kernel-3.18/tree/59e00a9144d782e148332009a835b99c43382467),
   `drivers/misc/mediatek/base/power/mt6797/mt_cpufreq.c` (`set_cur_freq`,
   `adjust_posdiv`, `adjust_clkdiv`, `set_cur_volt_extbuck`), `mt_dcm.c`
@@ -100,9 +105,10 @@ a cluster faster than the firmware did. The LL cluster never needs one.
 
 The fragment sets `CPU_FREQ=y` with schedutil, performance, powersave and
 userspace governors, statistics, `CPUFREQ_DT=m`, `CPUFREQ_DT_PLATDEV=y` and
-`COMMON_CLK_MT6797_MCUSYS=m`. The default governor is `performance` for this
-first image, so loading cpufreq-dt makes one predictable change (L to
-1209 MHz); schedutil is selected in stage t6.
+`COMMON_CLK_MT6797_MCUSYS=m`. The A1-A3 images default to `performance`, so
+loading cpufreq-dt makes one predictable change (L to 1209 MHz); schedutil is
+selected in stage t6. After A3 the fragment defaults to schedutil; no image
+with that default has booted yet.
 
 Test tools: [`tools/cpu-mhz.c`](tools/cpu-mhz.c) measures a CPU's clock from a
 dependent-add chain against the architected timer, and hashes 32 MiB pinned to
@@ -288,6 +294,30 @@ No clock changed in A2: with the performance governor and policy0's table
 topping out at the 897 MHz boot rate, the one change requested was a no-op.
 The full kernel log is kept privately.
 
+### Attempt A3 (2026-11-07)
+
+Station-work-86 (boot2 `a101d944…`, package `395047bd…` from `8996f539`),
+fresh boot `f38301d7-26bf-4988-9fb7-d8b7d1d1fd7f`, `7.1.3-gemini-a53-station`,
+battery 80 % not charging, console blanking off, CPU0-7 online. Staged hashes
+matched: script `78aba034…`, `clk-mt6797-mcusys.ko` `8163e541…`,
+`cpufreq-dt.ko` `2c451b82…`, `cpu-mhz` `4168cfe5…`. The custodian reports
+that the owner approved writes 6-8 in chat before t5b. Every stage printed
+PASS, and the kernel log has no fault string.
+
+| Stage | Result |
+| --- | --- |
+| t0 | Same words as A2 (`0x10220744` `0x00070707`, divider 3, floor 210 MHz on both clusters), MAINPLL 1092 MHz; CPU0/3/4/7 897/894/1271/1273 MHz; hash reference `5abed55b4a4c85e5`; 28.9 °C |
+| t2 | `SYNC_DCM_CONFIG=0x00070707, floors 210000000 and 210000000 Hz`; PLL0 897 MHz (`0x114000` /2 /1), PLL1 1274 MHz (`0x0c4000` /1 /1); `faulted=0` |
+| t3 | policy0 CPU0-3, 221000-897000 kHz, cur 897000; policy4 CPU4-7, 325000-1209000 kHz, cur 1209000. Log: `cpu8 has no OPPs, leaving it out` (and cpu9), `CPU4: Running at unlisted initial frequency: 1274000 kHz, changing to: 1209000 kHz`; no `Couldn't find opp node` or `already exists` line. PLL1 con1 `0xc00ba000`, `changes=1`. CPU0 895, CPU4 1206 MHz measured, hashes equal. Cooling devices `cpufreq-cpu0` and `cpufreq-cpu4`, `max_state` 6 each |
+| t4 | All 14 CPU0-3 steps within 5 % (221 MHz measured 218-219), hashes equal; `changes=14`, `max_poll` 3. `ckdiv` went `0x0` → `0x140` (/2) at 481 MHz, `0x160` (/4) at 221, `0x100` (/1) from 624 up; 27.7-28.4 °C |
+| t5a | 1092 and 1209 MHz twice each, measured 1088-1091 and 1205-1208 MHz |
+| t5b | 1092 → 962 → 832 → 650 → 468 → 325 and back, then 325 → 1209 → 325 → 1209; every point within 1 % (325 measured 322), hashes equal; `changes=19`; 27.9-30.2 °C |
+| t6 | schedutil. Idle: policy0 221000, policy4 832000; load: 897000 and 1209000; after load 624000 and 832000. Transitions policy0 14 → 293, policy4 22 → 423. `time_in_state` policy0: 221 MHz 2230, 897 MHz 6408, others 113-153; policy4: 325 MHz 2187, 1209 MHz 6397, 1092 MHz 236, others 106-138 (10 ms units). 60-69 load hashes per CPU on all 8, all equal. PLL1 `changes=490`, `faulted=0`, 29.6 °C |
+| t7 | Both cooling devices on trip 0. Emulated 62 °C capped policy0 at 806000 and policy4 at 1092000 (cur followed) for 10 s; within 1 s of release the limits returned to 897000 and 1209000 |
+| t8 | Both modules unloaded and reloaded; schedutil; policy0 624000, policy4 962000; PLL1 `changes=8`, `faulted=0`. PLL1 reported `1209000000` as its ceiling, because `rmmod` left it at 1209 MHz |
+
+The full kernel log and every stage's output are kept privately.
+
 ## Analysis
 
 ### A1
@@ -374,12 +404,41 @@ had taken CPU1-7 offline), and t3 now checks each policy's `related_cpus`.
 - Decision: pass, then switch the default governor to schedutil and record
   support; a stop decides from its stage which mechanism needs work.
 
+### A3
+
+The hypothesis holds on this unit. Under schedutil, CPU0-3 scale over
+221-897 MHz and CPU4-7 over 325-1209 MHz through the vendor's FHCTL hop,
+cluster divider and MAINPLL-bridged post-divider, at the firmware's 1.00 V.
+Every requested point measured within 5 % (most within 1 %), every hash
+matched across about 500 L-cluster transitions and 8 loaded CPUs, and the
+driver never faulted. Both clusters cooled on the 58 °C passive trip and
+recovered when the emulated temperature was released.
+
+Two behaviours are expected and harmless:
+
+- After the sweep the LL divider field reads `0x100` (code 8, /1) at 897 MHz
+  where the firmware left `0x0`. Both codes are /1; the driver writes the
+  vendor's code 8.
+- The ceiling is the rate found at probe, so a reload after `rmmod` at
+  1209 MHz caps L at 1209 MHz until the next boot. The table tops out at
+  1209 MHz, so nothing is lost; 1274 MHz was only the firmware's boot rate.
+
+Limits of the result: one unit, one boot, 27-31 °C, cooling shown only by
+emulated temperature, at most a few minutes of load, and the drivers loaded
+by hand.
+
 ## Conclusion
 
-Pending A3.
+A53 cpufreq works on the station: schedutil drives both A53 clusters over
+the vendor's 1.00 V operating points, with CPU cooling on the passive trip.
+The default governor is now schedutil in the fragment; loading the modules
+at boot and longer runs are the next steps.
 
 ## Follow-up
 
+- Load `clk-mt6797-mcusys` and `cpufreq-dt` at boot on the station, after a
+  longer soak under real heat, and confirm the schedutil default on that
+  image.
 - Voltage scaling: VPROC1 on DA9214 BUCKA and VSRAM_L, with the vendor
   ordering (VSRAM before VPROC up, after it down, 10-30 mV apart), to reach the
   upper points (LL 1547, L 2002 MHz) and lower the rail at low points. Needs a

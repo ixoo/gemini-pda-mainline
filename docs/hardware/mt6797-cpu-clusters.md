@@ -432,7 +432,8 @@ post-divider /2, cluster divider /1), L at 1274 MHz (`0x0c4000`, /1, /1), CCI at
 [one-read protected snapshot](../../experiments/2026-08-23-mainline-protected-clock-first-dmesg-call/results/runtime-attempt-1-pass-20260823.txt)
 and the [read-only DA921x provider](../../experiments/2026-08-17-mainline-da921x-readonly-provider-baseline/results/runtime-attempt-1-success-20260817.txt).
 The [A53 cpufreq experiment](../../experiments/2026-11-07-mt6797-a53-cpufreq/README.md)
-drives this sequence from mainline.
+drives this sequence from mainline; its attempt A3 measured every LL and L point
+it reached within 5 % of the requested rate.
 
 ## 4. Per-unit operating points
 
@@ -790,8 +791,9 @@ implemented feature.
 The first step is in the [A53 cpufreq experiment](../../experiments/2026-11-07-mt6797-a53-cpufreq/README.md):
 an LL/L clock provider that follows the vendor sequence of section 3.7, and
 cpufreq-dt with schedutil over the vendor points that need no more than the
-firmware's 1.00 V, with no regulator or CCI change. It is untested on
-hardware.
+firmware's 1.00 V, with no regulator or CCI change. It passed on one boot
+from modules loaded by hand
+([A3](../../experiments/2026-11-07-mt6797-a53-cpufreq/README.md#attempt-a3-2026-11-07)).
 
 ## 7. Gap register
 
