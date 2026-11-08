@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 7 Nov 2026 21:23:01 -0500
+Subject: [PATCH] arm64: dts: mediatek: mt6797: describe the CPU PMU
+
+perf has only software events on MT6797 because the SoC DT has no PMU
+node, so the ARMv8 PMU driver never probes.
+
+All ten cores, the eight Cortex-A53s and the two Cortex-A72s, signal
+their PMU overflow on PPI 7 (INTID 23), active low, the same per-CPU
+interrupt the vendor kernel uses. One PPI cannot be split between two
+CPU types here without GIC PPI partitions, so describe a single generic
+"arm,armv8-pmuv3" PMU that covers every CPU. The architected events,
+such as cycles and instructions, have the same numbers on both cores.
+---
+ arch/arm64/boot/dts/mediatek/mt6797.dtsi | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797.dtsi b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+index 94884ab..98bd5bd 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797.dtsi
++++ b/arch/arm64/boot/dts/mediatek/mt6797.dtsi
+@@ -249,6 +249,13 @@
+ 			status = "disabled";
+ 		};
+ 	};
++
++	pmu {
++		compatible = "arm,armv8-pmuv3";
++		interrupt-parent = <&gic>;
++		interrupts = <GIC_PPI 7 IRQ_TYPE_LEVEL_LOW>;
++	};
++
+ 	timer {
+ 		compatible = "arm,armv8-timer";
+ 		interrupt-parent = <&gic>;

@@ -1223,3 +1223,4 @@ proposals/0642-arm64-dts-mediatek-gemini-station-scale-the-A53-clus.patch
 proposals/0643-OPP-of-leave-CPUs-without-an-OPP-table-out-of-a-shar.patch
 proposals/0644-arm64-mediatek-let-the-MT6797-A72s-go-down-and-come-.patch
 proposals/0645-soc-mediatek-prepare-the-MT6797-A72-cluster-again-af.patch
+proposals/0646-arm64-dts-mediatek-mt6797-describe-the-CPU-PMU.patch
