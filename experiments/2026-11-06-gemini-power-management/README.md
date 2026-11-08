@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6 sleep hooks (0651–0655) compile-checked, tests C, H, K, L, S proposed; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L woke through the keyboard (L2 replaces it); audio fix 0671 compile-checked; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1121,6 +1121,81 @@ first time.
 the SoC stays at run voltage with its clocks as they were, as expected without the SPM. A
 lid close cannot drive a suspend on lid close yet, because the keyboard expander wakes the
 system as the lid closes. Audio needs a resume path before a suspend can be used with sound.
+
+#### P6 follow-up (2026-11-08): the two failures, from the code
+
+**L: the keyboard wake fires only because the lid closed during the suspend.**
+- `matrix_keypad_suspend()` arms the row wakes only while the input device
+  is enabled, that is, opened and not inhibited.
+- `gemini-lid` inhibits the keyboard when `SW_LID` reports closed. A suspend
+  entered with the lid already closed therefore arms no keyboard wake.
+- 0628 then leaves every AW9523 pin masked, and only the Hall line (IRQ 20,
+  on the opening edge) can wake the system.
+- In L the suspend began with the lid open, so the rows were armed. The lid
+  closing pressed keys against the screen side, and IRQ 25 woke the system
+  as the matrix should.
+- That is a different flow from suspend on lid close, where logind reacts
+  to the close, so the keyboard is already inhibited when the suspend starts.
+
+So no kernel change is proposed. If a suspend begun with the lid open is
+woken by a lid close, the resume finds the lid closed, `gemini-lid` inhibits
+the keyboard, and logind sees the close and suspends again. That costs one
+short wake.
+
+Test **L2** replaces L:
+- Load `gemini-lid` and close the lid. The log must say "keyboard
+  inhibited".
+- Write `freeze` with a 120 s alarm.
+- The owner opens the lid at about 40 s.
+- **Pass:** no wake before the open; the wake comes at the open on IRQ 20,
+  not 25 and not 191; the keyboard is restored and the display returns.
+- **Fail and stop:** a wake on IRQ 25 with the lid closed.
+
+**Audio: genpd resets the AFE.**
+- The AFE takes a runtime PM reference at probe and keeps it, so it is
+  never runtime suspended.
+- genpd still powers the AUDIO domain off at `suspend_noirq`: it compares
+  only the count of suspended devices with the count in the domain. That
+  happens with or without 0655.
+- The AFE comes back from reset while the driver takes it for configured,
+  hence `hw_ptr err`.
+- The H trace's 14 SPM writes fit one domain power-off and power-on. The
+  other domains were off or unloaded: MFG idle off, CONN unloaded.
+
+[0671](../../patches/proposals/0671-ASoC-mediatek-mt6797-set-the-AFE-up-again-after-a-sy.patch)
+fixes it the way mt8173 does: the AFE's DAI component gets the common
+`mtk_afe_suspend()` and `mtk_afe_resume()`. These are called through 0655's
+card ops. They stop the AFE before the suspend and set up its interrupt and
+memory interface defaults again after it. No register list is needed,
+because every AFE control is a DAPM control, which DAPM writes again at the
+next stream. The patch is a module, compile-checked only.
+
+Test **A**:
+- On an image or module set with 0671, load audio, apply `audio-start`'s
+  mixer settings and play a short file.
+- Run a 20 s RTC suspend, then play the same file with no reload and no
+  mixer change.
+- **Pass:** rc 0 both times, with no `hw_ptr err`.
+- New writes: the AFE's own runtime suspend and resume, which are
+  `AFE_DAC_CON0` (AFE on bit cleared), `AFE_IRQ_MCU_CLR` = `0xffff`,
+  `AFE_IRQ_MCU_EN`, `AFE_MEMIF_HDALIGN`, `AFE_MEMIF_MSB` and
+  `AFE_CONN_24BIT`, plus the audio clock gates. The driver makes the same
+  writes at probe and on every runtime transition.
+
+**What the H trace's writes are.** All of them are explained by code paths
+that already run on the station, and none is a new class:
+- **INFRACFG (676):** infra clock gates. `mtk-i2c` enables and disables its
+  clock around every transfer, and the AW9120, AW9523 and bq25890 traffic
+  of a cycle is mostly I2C. The AUDIO domain's bus protection adds a few.
+- **SPM (14):** the AUDIO domain off and on, as above.
+- **PMIC wrapper (71):** the RTC alarm, the PMIC interrupt wake masks and
+  the regulator and key state on suspend and resume.
+- **`5-005b` (60):** the AW9523. 0628 unmasks the armed rows and restores
+  the mask, and the keypad stops and restarts its column scan.
+- **AW9120 (42):** 0652, as listed in P6.
+- **MMSYS (26):** display clock gates from the DRM suspend and resume of an
+  already blanked pipe.
+- **bq25890 (1):** the charging guard's resume pass (0630).
 
 ## Analysis
 

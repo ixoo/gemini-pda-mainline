@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 17:44:49 -0500
+Subject: [PATCH] ASoC: mediatek: mt6797: set the AFE up again after a system
+ suspend
+
+The AFE takes a runtime PM reference at probe and keeps it, so runtime
+PM never stops it. A system suspend still powers its AUDIO domain off:
+genpd counts every device in the domain as suspended and turns the
+domain off at suspend_noirq. The AFE comes back from reset, while the
+driver still takes it for running and configured. On the Gemini the
+first stream after resume failed with "hw_ptr err", until the driver
+was reloaded.
+
+Use the common mtk_afe_suspend() and mtk_afe_resume() as the DAI
+component's callbacks, as mt8173 does. They run the runtime suspend and
+resume, which stop the AFE and set up its interrupt and memory
+interface defaults again. No register needs saving: every AFE control
+is a DAPM control, which DAPM writes again when the next stream powers
+its path.
+---
+ sound/soc/mediatek/mt6797/mt6797-afe-pcm.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+index 1c759822f..3e47c6937 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+@@ -385,8 +385,16 @@ static const struct snd_soc_dapm_route mt6797_memif_routes[] = {
+ 	{"UL_MONO_2_CH1", "ADDA_UL_CH2", "ADDA Capture"},
+ };
+ 
++/*
++ * The AFE stays runtime active, but a system suspend still powers its AUDIO
++ * domain off once every device in it has suspended, which resets the AFE.
++ * Stop it before and set it up again after, as runtime PM would. Every AFE
++ * control is a DAPM one, so DAPM rewrites the routing at the next stream.
++ */
+ static const struct snd_soc_component_driver mt6797_afe_pcm_dai_component = {
+ 	.name = "mt6797-afe-pcm-dai",
++	.suspend = mtk_afe_suspend,
++	.resume = mtk_afe_resume,
+ };
+ 
+ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+-- 
+2.43.0
+
