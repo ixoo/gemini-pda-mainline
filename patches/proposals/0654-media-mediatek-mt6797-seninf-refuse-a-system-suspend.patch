@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:23:44 -0500
+Subject: [PATCH] media: mediatek: mt6797-seninf: refuse a system
+ suspend while streaming
+
+Nothing stops the receiver and the sensor for a system sleep or starts
+them again after it. Refuse the suspend from .prepare while a stream is
+running; a stopped receiver is already runtime suspended.
+---
+ .../platform/mediatek/seninf/mt6797-seninf.c  | 22 +++++++++++++++++--
+ 1 file changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+index 0508ec4cf..873aee35b 100644
+--- a/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
++++ b/drivers/media/platform/mediatek/seninf/mt6797-seninf.c
+@@ -1350,8 +1350,26 @@ static int seninf_runtime_resume(struct device *dev)
+ 	return clk_bulk_prepare_enable(ARRAY_SIZE(seninf->clks), seninf->clks);
+ }
+ 
+-static DEFINE_RUNTIME_DEV_PM_OPS(seninf_pm_ops, seninf_runtime_suspend,
+-				 seninf_runtime_resume, NULL);
++/*
++ * Nothing stops and restarts a stream across a system sleep, so refuse one
++ * while streaming; stop the stream first.
++ */
++static int seninf_prepare(struct device *dev)
++{
++	struct mt6797_seninf *seninf = dev_get_drvdata(dev);
++
++	if (seninf->streaming) {
++		dev_info(dev, "streaming, refusing to suspend\n");
++		return -EBUSY;
++	}
++
++	return 0;
++}
++
++static const struct dev_pm_ops seninf_pm_ops = {
++	RUNTIME_PM_OPS(seninf_runtime_suspend, seninf_runtime_resume, NULL)
++	.prepare = pm_sleep_ptr(seninf_prepare),
++};
+ 
+ static int seninf_register_mclk(struct mt6797_seninf *seninf, unsigned int tg)
+ {
+-- 
+2.43.0
+

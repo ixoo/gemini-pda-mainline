@@ -1,0 +1,67 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:23:44 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: refuse a system suspend
+ while CONN is on
+
+The owner has no sleep callbacks. Once its device is suspended, genpd
+counts the CONN domain idle and powers it off, which loses the running
+connectivity firmware that WLAN, Bluetooth, GNSS and FM depend on, and
+resume powers CONN on with nothing to restart it.
+
+Refuse the suspend from .prepare while CONN is on, before any client's
+own suspend, such as mac80211's, has run. Unloading the module, which
+powers CONN off, is the way to suspend for now.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 28 ++++++++++++++++++++++++++++
+ 1 file changed, 28 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 571ff2ea6..a9bf2509e 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2874,6 +2874,33 @@ static void mt6797_consys_remove(struct platform_device *pdev)
+ }
+ #endif
+ 
++/*
++ * CONN keeps no state of its own across a system sleep: genpd would power
++ * the domain off once this device is suspended, losing the running firmware
++ * that WLAN, Bluetooth, GNSS and FM depend on, and nothing here restarts it.
++ * Refuse the sleep while CONN is on; unloading this module powers it off.
++ */
++static int mt6797_consys_prepare(struct device *dev)
++{
++	struct mt6797_consys *owner = &mt6797_consys;
++	bool on;
++
++	mutex_lock(&mt6797_consys_lock);
++	on = owner->conn_on;
++	mutex_unlock(&mt6797_consys_lock);
++
++	if (on) {
++		dev_info(dev, "CONN is on, refusing to suspend\n");
++		return -EBUSY;
++	}
++
++	return 0;
++}
++
++static const struct dev_pm_ops mt6797_consys_pm_ops = {
++	.prepare = pm_sleep_ptr(mt6797_consys_prepare),
++};
++
+ static const struct of_device_id mt6797_consys_of_match[] = {
+ 	{ .compatible = "mediatek,mt6797-consys" },
+ 	{}
+@@ -2888,6 +2915,7 @@ static struct platform_driver mt6797_consys_driver = {
+ 	.driver = {
+ 		.name = "mt6797-consys",
+ 		.of_match_table = mt6797_consys_of_match,
++		.pm = pm_sleep_ptr(&mt6797_consys_pm_ops),
+ 		.suppress_bind_attrs = true,
+ 	},
+ };
+-- 
+2.43.0
+

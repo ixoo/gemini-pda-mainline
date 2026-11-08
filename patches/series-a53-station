@@ -816,3 +816,8 @@ proposals/0647-Input-novatek-nt36xxx-report-the-panel-s-own-coordin.patch
 proposals/0648-arm64-dts-mediatek-gemini-station-invert-the-touchsc.patch
 proposals/0649-drm-panel-nt36672e-report-the-panel-s-orientation.patch
 proposals/0650-arm64-dts-mediatek-gemini-give-the-panel-its-orienta.patch
+proposals/0651-Input-novatek-nt36xxx-stop-reporting-across-a-system.patch
+proposals/0652-leds-aw9120-turn-the-outputs-off-while-the-system-sl.patch
+proposals/0653-soc-mediatek-mt6797-consys-refuse-a-system-suspend-w.patch
+proposals/0654-media-mediatek-mt6797-seninf-refuse-a-system-suspend.patch
+proposals/0655-ASoC-mediatek-mt6797-mt6351-suspend-the-card-with-th.patch

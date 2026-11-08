@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:23:44 -0500
+Subject: [PATCH] Input: novatek-nt36xxx: stop reporting across a
+ system suspend
+
+The driver has no sleep callbacks, so its threaded interrupt can run
+while the I2C adapter is suspended, and a finger down when the system
+goes to sleep stays down until the next report after resume.
+
+Disable the interrupt for the suspend and release every contact before
+it. The controller itself is left as it is: its sleep command is not
+known for this part.
+---
+ drivers/input/touchscreen/novatek-nt36xxx.c | 27 +++++++++++++++++++++
+ 1 file changed, 27 insertions(+)
+
+diff --git a/drivers/input/touchscreen/novatek-nt36xxx.c b/drivers/input/touchscreen/novatek-nt36xxx.c
+index de4494127..457685574 100644
+--- a/drivers/input/touchscreen/novatek-nt36xxx.c
++++ b/drivers/input/touchscreen/novatek-nt36xxx.c
+@@ -386,6 +386,32 @@ static int nvt36xxx_probe(struct i2c_client *client)
+ 	return 0;
+ }
+ 
++static int nvt36xxx_suspend(struct device *dev)
++{
++	struct nvt36xxx_data *data = dev_get_drvdata(dev);
++
++	disable_irq(data->client->irq);
++
++	/* A finger down at suspend would otherwise stay down until it lifts */
++	input_mt_sync_frame(data->input);
++	input_report_key(data->input, BTN_TOUCH, 0);
++	input_sync(data->input);
++
++	return 0;
++}
++
++static int nvt36xxx_resume(struct device *dev)
++{
++	struct nvt36xxx_data *data = dev_get_drvdata(dev);
++
++	enable_irq(data->client->irq);
++
++	return 0;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(nvt36xxx_pm_ops, nvt36xxx_suspend,
++				nvt36xxx_resume);
++
+ static const struct of_device_id nvt36xxx_of_match[] = {
+ 	{ .compatible = "novatek,nt36772-ts" },
+ 	{ }
+@@ -402,6 +428,7 @@ static struct i2c_driver nvt36xxx_driver = {
+ 	.driver = {
+ 		.name = "novatek-nt36xxx",
+ 		.of_match_table = nvt36xxx_of_match,
++		.pm = pm_sleep_ptr(&nvt36xxx_pm_ops),
+ 	},
+ 	.probe = nvt36xxx_probe,
+ 	.id_table = nvt36xxx_i2c_id,
+-- 
+2.43.0
+

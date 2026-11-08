@@ -1,0 +1,30 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:23:44 -0500
+Subject: [PATCH] leds: aw9120: turn the outputs off while the system
+ sleeps
+
+Each lit output draws milliamps, and nothing turns the indicators off
+for a suspend. Let the LED core do it: with LED_CORE_SUSPENDRESUME it
+sets every LED to zero before the chip's bus suspends and restores the
+brightness at resume, through the driver's normal brightness writes.
+---
+ drivers/leds/rgb/leds-aw9120.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/leds/rgb/leds-aw9120.c b/drivers/leds/rgb/leds-aw9120.c
+index 840194ac8..8d895c742 100644
+--- a/drivers/leds/rgb/leds-aw9120.c
++++ b/drivers/leds/rgb/leds-aw9120.c
+@@ -211,6 +211,8 @@ static int aw9120_register_led(struct aw9120 *chip, struct aw9120_led *led,
+ 	struct led_classdev *cdev = &led->mc.led_cdev;
+ 
+ 	cdev->max_brightness = LED_FULL;
++	/* Off while the system sleeps; each lit output costs milliamps */
++	cdev->flags |= LED_CORE_SUSPENDRESUME;
+ 
+ 	if (led->mc.num_colors) {
+ 		cdev->brightness_set_blocking = aw9120_mc_set;
+-- 
+2.43.0
+

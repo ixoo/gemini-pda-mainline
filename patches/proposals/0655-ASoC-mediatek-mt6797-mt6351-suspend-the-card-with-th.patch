@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 13:23:44 -0500
+Subject: [PATCH] ASoC: mediatek: mt6797-mt6351: suspend the card with
+ the system
+
+The machine driver has no power management operations, so a system
+suspend leaves streams running and the codec biased. Use the ASoC
+core's snd_soc_pm_ops, as other MediaTek machine drivers do.
+---
+ sound/soc/mediatek/mt6797/mt6797-mt6351.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-mt6351.c b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+index 2922f01d9..7b0b614a4 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-mt6351.c
++++ b/sound/soc/mediatek/mt6797/mt6797-mt6351.c
+@@ -318,6 +318,7 @@ MODULE_DEVICE_TABLE(of, mt6797_mt6351_dt_match);
+ static struct platform_driver mt6797_mt6351_driver = {
+ 	.driver = {
+ 		.name = "mt6797-mt6351",
++		.pm = &snd_soc_pm_ops,
+ #ifdef CONFIG_OF
+ 		.of_match_table = mt6797_mt6351_dt_match,
+ #endif
+-- 
+2.43.0
+

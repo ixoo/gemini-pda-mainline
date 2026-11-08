@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6 sleep hooks (0651–0655) compile-checked, tests C, H, K, L, S proposed; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -983,6 +983,114 @@ stay private with the custodian.
 **Reading.** 0634 and 0635 work on a built image, and the gadget reconnects
 after suspend with no console input. The owner's request to stop typing the
 disconnect/connect is met on this image.
+
+### P6 (2026-11-08): sleep hooks for the remaining station drivers
+
+The owner asked for every feature that suspend and runtime power management
+need, and then a test plan. cpuidle, the SPM, cpufreq and the A72s belong to
+their own sessions and are left out here. The five patches below are
+compile-checked in the VM (W=1, no warnings). None has run on the device.
+All five are modules in the station profile, so a running image built from
+the same tree can take them with `rmmod` and `insmod`.
+
+| Patch | Driver | Change |
+| --- | --- | --- |
+| [0651](../../patches/proposals/0651-Input-novatek-nt36xxx-stop-reporting-across-a-system.patch) | NT36772 touchscreen | Masks its interrupt across the suspend and releases every contact first. The controller is not told to sleep, because its sleep command is not known |
+| [0652](../../patches/proposals/0652-leds-aw9120-turn-the-outputs-off-while-the-system-sl.patch) | AW9120 LEDs | `LED_CORE_SUSPENDRESUME`: the LED core sets each LED to 0 before the bus suspends and restores it at resume |
+| [0653](../../patches/proposals/0653-soc-mediatek-mt6797-consys-refuse-a-system-suspend-w.patch) | CONSYS owner | Refuses the suspend from `.prepare` while CONN is on |
+| [0654](../../patches/proposals/0654-media-mediatek-mt6797-seninf-refuse-a-system-suspend.patch) | Camera receiver | Refuses the suspend from `.prepare` while streaming |
+| [0655](../../patches/proposals/0655-ASoC-mediatek-mt6797-mt6351-suspend-the-card-with-th.patch) | Audio card | `snd_soc_pm_ops`, so streams stop and the codec drops its bias for a suspend |
+
+**Why CONSYS refuses instead of suspending.** In code, genpd powers a domain
+off at `suspend_noirq` once every device in it has gone through suspend,
+whatever their runtime state (`genpd_sync_power_off` compares only the
+counts). CONN is not always-on, so with CONSYS loaded a suspend would cut
+CONN and lose the connectivity firmware, and nothing restarts it at resume.
+`.prepare` runs for every device before any device's suspend, so the refusal
+comes before mac80211 has disconnected or stopped anything. It makes no radio
+action. Earlier S1, P4 and P5 runs had Wi-Fi unloaded; whether CONSYS itself
+was loaded in them is not recorded.
+
+**Covered already, no change.**
+- **Keyboard and lid wake:** 0628 and 0629 are in the image since P2, but
+  neither wake has run. Tests K and L below cover them.
+- **Display:** a suspend with the CRTC on takes the same disable path as a
+  blank, which the station already uses on lid close.
+- **Others:** the GPU, vibrator, backlight, STK3x1x, MTU3, FUSB301, bq25890,
+  RTC and watchdog have sleep callbacks. The BMI160 only needs them while an
+  IIO buffer runs.
+- **Bluetooth, GNSS and FM** run through CONSYS, so 0653 covers them.
+
+**Left open, with the reason.**
+- **Wi-Fi across a suspend** needs a CONN sleep protocol (the vendor's WMT
+  sleep) that is not mapped. For now the card unloads `mac`,
+  `mt6797-wlan-core` and `mt6797-consys` before a suspend and loads them
+  after (see the card list below). This is the radio driver owner's call: it
+  is the same unload and reload the station already does by hand, and it
+  adds no new radio action.
+- **Unused clocks** (R2's PLLs and gates) stay on while `clk_ignore_unused` is
+  on the command line. Dropping that flag needs owners for the display's MM,
+  SMI and IOMMU clocks and for the loader-owned CONSYS and DVFSP users first.
+  That work belongs to the display and clock lines, not to a sleep hook.
+- **The audio controller held active while idle:** R1b measured no saving
+  from turning the AUDIO domain off. Its register map has no cache, so
+  letting it runtime-suspend risks a bus hang on a control access. Left
+  as is.
+- **Charger attached during a suspend** still charges without the guard
+  until the next resume. There are two ways to close it, and both need the
+  owner, because they add a charger write class. (a) Turn the bq25890
+  watchdog off for the suspend (REG07 bits 5:4 = `00`) and on again at
+  resume (`11`, 160 s, or the guard's current setting), and add
+  `wakeup-source` to the charger node so a VBUS change wakes the system,
+  after which 0630 refuses the next suspend. (b) Add the wake alone. Without
+  (a), each 40 s watchdog expiry asserts INT and wakes the system. Neither
+  is implemented.
+
+**What the card needs (for the arch-root session).**
+- `logind.conf`: `HandleLidSwitch=suspend`, `HandleLidSwitchExternalPower=ignore`
+  and `HandleLidSwitchDocked=ignore`. With a charger attached 0630 refuses
+  every suspend, so logind would only log failures.
+- `sleep.conf`: `MemorySleepMode=s2idle`. `deep` does not exist on this
+  firmware.
+- A `systemd-sleep` hook. On `pre`, stop the Wi-Fi daemon, unload
+  `mac mt6797-wlan-core mt6797-consys` and any Bluetooth, GNSS or FM
+  modules, and stop the camera stream. On `post`, load them back. This
+  waits for the radio driver owner's agreement.
+- The SSH gadget needs nothing: 0633 and 0634 reconnect it.
+- The lid switch reports `SW_LID` through `gpio-keys`, so udev tags it as a
+  power switch for logind.
+
+**Device tests, in order.** One image from this commit (profile
+`mt6797-a53-station-a72`), on battery unless a step says otherwise, Wi-Fi
+not joined. Each step's stop rules are the same as S1's: stop on any
+warning, oops, taint change, eMMC hash change or failed resume.
+
+| # | Test | Pass |
+| --- | --- | --- |
+| C | CONSYS loaded (WLAN `mac` unloaded, no join), `echo freeze > /sys/power/state` | `-EBUSY` and "CONN is on, refusing to suspend". No WLAN, STP or CONN message. Then unload `mt6797-consys` and run one 20 s RTC suspend: rc 0 |
+| H | Touchscreen and AW9120 loaded, one LED set lit, audio loaded with no stream, `rtcwake -m freeze -s 20` with `regmap_reg_write` tracing on | rc 0. The LED reads the same brightness after resume. Touch reports after resume. `aplay` of a short file plays. The trace lists the writes made (expected: AW9120 only) |
+| K | Lid open, blanked, `rtcwake -m freeze -s 120`; at about 20 s the owner presses one key | Resume well before 120 s. `pm_wakeup_irq` is the AW9523 parent EINT, not 191 |
+| L | Lid open, `rtcwake -m freeze -s 120`; the owner closes the lid at about 10 s and opens it at about 40 s | Still suspended after the close. Resume at the open, before 120 s. Display and keyboard return |
+| S | Suspended current: unplugged, blanked, LEDs off, CONSYS and camera unloaded, CPUs 1–7 offline. Read the fuel gauge's `charge_counter` and the boot-time clock, `rtcwake -m freeze -s 600`, read both again | rc 0, IRQ 191. Mean suspended current = Δ`charge_counter` / Δtime (44.98 µAh per step). Compare with R1b's 96 mA awake. The bq25890 guard restores its state after resume (the 40 s chip watchdog expires inside the 600 s) |
+| S2 | As S with CPUs 1–7 online | Only if S is under 60 mA, to see whether the offlining still matters asleep |
+
+**Every write the tests make.**
+- **sysfs:** `/sys/power/state` = `freeze`, through `echo` or `rtcwake`;
+  `/sys/class/rtc/rtc0/wakealarm` through `rtcwake`, which sets the MT6351
+  RTC alarm registers as in S1; `/sys/devices/system/cpu/cpu{1..7}/online`
+  = `0` then `1`, as in R1b; one AW9120 LED's `brightness` = `255` then `0`
+  (test H); the tracing control files.
+- **New in-kernel writes from these patches:** only 0652's. At suspend,
+  for each lit AW9120 output `n`: CMDR (`0x61`) = `0xa000 | n << 8`, then
+  GCR (`0x01`) = `0x0000` when the last output goes dark. At resume, GCR =
+  `0x0001` first, then CMDR = `0xa000 | n << 8 | pwm` with the saved PWM.
+  These are the writes the LED driver already makes for sysfs brightness
+  changes.
+- **0655:** ASoC may power down codec widgets that are still on. With no
+  stream, none are expected. Test H's trace records what actually happens.
+- **Not a write, but a state change:** in S, the bq25890 watchdog expires
+  during the suspend and the chip returns to its defaults (charging enabled,
+  with no VBUS). At resume the guard rewrites its admitted settings.
 
 ## Analysis
 
