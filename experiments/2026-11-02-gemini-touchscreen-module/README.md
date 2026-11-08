@@ -242,8 +242,10 @@ sets `touchscreen-inverted-x` and `touchscreen-inverted-y` in the station tree. 
 module compiled with no warnings at `W=1` in the VM; the DT schemas were not run.
 Package, not yet run: commit `37c50274`, which also carries the display session's
 0649 and 0650, profile `mt6797-a53-station-a72`, modules built, Buildbox-2,
-`SHA256SUMS` passed, `Image.gz` `bd53236c`. The built DTB and module were not
-inspected; Buildbox was unreachable afterwards.
+`SHA256SUMS` passed, `Image.gz` `bd53236c`. The custodian fetched it and found
+`touchscreen-inverted-x` and `touchscreen-inverted-y` on the touch node of the
+station DTB and `rotation = <270>` on the panel node; `novatek-nt36xxx.ko` is
+`5e981eab`. Composed as boot2 image `c739131b`, not yet written.
 
 The module swaps without a boot; 0648 needs a new image. So on the running image the
 new module reports raw coordinates, not inverted.
