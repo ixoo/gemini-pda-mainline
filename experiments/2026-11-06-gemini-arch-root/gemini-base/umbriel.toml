@@ -12,8 +12,8 @@ autostart = ["noctalia"]
 mod_key = "Alt"
 
 # The panel is portrait-native and used in landscape. Umbriel (wlroots) does not apply
-# the kernel's panel orientation (Left Side Up), so the rotation is set here; touch is
-# turned to match by 70-gemini-touch.rules. 2160x1080 at about 400 dpi: scale 2.5
+# the kernel's panel orientation (Left Side Up), so the rotation is set here. Touch
+# lands right with no calibration matrix (card-18). 2160x1080 at about 400 dpi: scale 2.5
 # gives an 864x432 desktop (owner, R4).
 [output.DSI-1]
 transform = "90"

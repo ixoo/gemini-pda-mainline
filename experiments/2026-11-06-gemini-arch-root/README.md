@@ -1296,7 +1296,8 @@ setup "doesn't need to configure wifi": iwd runs, and the user joins networks fr
   left edge at the top, so the screen point is (1 − panel y, panel x), in normalised coordinates.
 - `70-gemini-touch.rules` returns with matrix `0 -1 1 1 0 0`. This is derived, not yet seen on
   the device. It agrees with card-14: the old driver's landscape coordinates were exactly that
-  point, which is why niri, rotating them again, needed a matrix.
+  point, which is why niri, rotating them again, needed a matrix. Card-18 showed this matrix
+  wrong; touch needs none (see "Touch on card-18" below).
 
 **Wi-Fi:**
 
@@ -1425,6 +1426,31 @@ Cause, from Umbriel `94ab5961`:
   larger CMA reservation on the kernel side would allow them again.
 - Card-19 (dev VM, `gemini-base` 20, image sha256 `a576124182bc…`, 387 packages) pairs with
   `station-work-90`. Umbriel's `config validate` passes on the image. Untested on the device.
+
+### Touch on card-18, and `gemini-base` 21 (2026-11-08, `station-work-90`)
+
+Measured by the custodian on card-18 (kernel `37c50274`, Umbriel `94ab5961`, output transform
+90, touch mapped to `DSI-1`), with `LIBINPUT_CALIBRATION_MATRIX` set to the identity. A
+qutebrowser tap-target page in an 844x346 viewport recorded target → touch:
+
+| Target | Touch |
+|---|---|
+| (717, 69) | (728, 82) |
+| (717, 276) | (726, 285) |
+| (126, 276) | (141, 279) |
+| (422, 173) | (438, 179) |
+
+Every tap lands within about 16 px of its target. One first tap, made while the page loaded,
+was an outlier and is left out. The packaged `0 -1 1 1 0 0` was wrong, and the owner also
+found `0 1 0 -1 0 1`, `0 -1 1 -1 0 1` and `0 1 0 1 0 0` wrong.
+
+Inference: with this kernel the touchscreen already reports coordinates in the landscape frame
+of the rotated output, so the assumption above that it reports portrait coordinates was wrong.
+
+`gemini-base` 21 drops `70-gemini-touch.rules`, so libinput uses no calibration. Blur and
+animations stay off: the 256 MiB CMA kernel (`65549ff5`) has not yet been tested on the device.
+Card-20 (dev VM, image sha256 `b7cea5be8283…`) carries it: no calibration rule on the image,
+and Umbriel's `config validate` passes. Untested on the device.
 
 ## Analysis
 
