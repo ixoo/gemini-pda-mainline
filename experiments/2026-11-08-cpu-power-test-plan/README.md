@@ -169,8 +169,41 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
   ([DVFS observations](../2026-11-08-mt6797-a53-dvfs/README.md#observations)); V5-V10 wait
   for a fix. On the same boot the AFE reads confirmed the audio reset across a suspend and L2
   passed, with keypad IRQ warnings after it
-  ([power-management record](../2026-11-06-gemini-power-management/README.md)). Boot 3 has
-  not run.
+  ([power-management record](../2026-11-06-gemini-power-management/README.md)).
+- Phase 1 boot 3 (D1, boot `f7004450…`): S1 stopped in its first 30 s mem suspend with a
+  watchdog reset. See [boot 3](#boot-3-result-2026-11-08).
+
+### Boot 3 result (2026-11-08)
+
+**Setup, observed.** The module `mt6797-spm-sleep` (`a614fa91…`, from D1's package) loaded
+with the expected lines: program 1,822 words at `0xbfdd0000`, SPM pointer `ffdd0000`, flags
+`000d02b1`, HWCID `5140`. The vendor program's hash matched. The radios were unloaded,
+with CONNSYS off (`0x1000632c` = `0x112`), and `backlight-policy` was stopped. CPU1-7 were
+offline, the screen was blanked and nothing was tainted. The charger driver refuses a
+suspend with the cable in (0630), so the functional cycle ran on battery. The run was a
+detached script that synced its log before each suspend.
+
+**Observed.** The script logged its last line just before the first `mem` suspend
+(timer 30 s). Then the device rebooted by itself into Gemian. Gemian's command line
+reported `boot_reason=4`, `androidboot.bootreason=wdt_by_pass_pwk`, and its RAM console
+reported `hw_status: 1, fiq step 0`. Nothing else survived. No `wake:` line was written,
+so it is not known whether the program returned on its timer.
+
+**Inference, not proven.** The reset was the TOPRGU watchdog, not the program. The station
+kernel keeps the boot-armed watchdog running (`mtk-wdt`: timeout 31 s;
+`CONFIG_WATCHDOG_HANDLE_BOOT_ENABLED=y`). Mainline `mtk_wdt_suspend()` stops it only when
+`watchdog_active()`, that is, when userspace has opened `/dev/watchdog`. A watchdog the
+kernel keeps alive only through `WDOG_HW_RUNNING` keeps counting. In s2idle the core's
+kick timer still runs, which is why the 600 s s2idle tests survived. In a mem suspend no
+CPU runs, and a 30 s PCM timer plus entry and exit passes 31 s. The vendor kernel stops
+its watchdog around suspend.
+
+**Next.** Two ways to stop the watchdog for the suspend:
+- Hold `/dev/watchdog` open with a feeder for the run. The driver then stops the watchdog
+  at suspend and restarts it at resume, with no new code or register writes.
+- Fix `mtk_wdt` to stop a watchdog that is only `WDOG_HW_RUNNING` at suspend.
+
+Either way, the first retry also tells whether the program returns on its timer.
 
 ## Analysis
 
