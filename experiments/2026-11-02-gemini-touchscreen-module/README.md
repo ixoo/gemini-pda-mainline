@@ -240,6 +240,10 @@ through `touchscreen_report_pos()`, which applies the standard
 [0648](../../patches/proposals/0648-arm64-dts-mediatek-gemini-station-invert-the-touchsc.patch)
 sets `touchscreen-inverted-x` and `touchscreen-inverted-y` in the station tree. The
 module compiled with no warnings at `W=1` in the VM; the DT schemas were not run.
+Package, not yet run: commit `37c50274`, which also carries the display session's
+0649 and 0650, profile `mt6797-a53-station-a72`, modules built, Buildbox-2,
+`SHA256SUMS` passed, `Image.gz` `bd53236c`. The built DTB and module were not
+inspected; Buildbox was unreachable afterwards.
 
 The module swaps without a boot; 0648 needs a new image. So on the running image the
 new module reports raw coordinates, not inverted.
