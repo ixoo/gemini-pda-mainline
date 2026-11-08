@@ -7,8 +7,11 @@ replaces its bounded session scripts with this directory's initramfs/ files;
 adds the Wi-Fi, gemini-lid and, on the station, leds-aw9120 and regulator-haptic modules under lib/modules/<release>/ and, from TOOLS, the static
 backlight-policy and power-status binaries (built from their .c files), the static ALSA tools and their alsa/
 configuration (from build-alsa-tools.sh); gives Fn+B and Fn+N no console action, since backlight-policy
-uses them for brightness. Writes a newc archive with zero timestamps,
-compressed with gzip -n -9 like the parent.
+uses them for brightness. Writes a newc archive with zero timestamps, compressed with
+xz (CRC32, the check the kernel's unpacker takes; one thread, so the output is
+reproducible). gzip, as the parent has, left too little of boot2's 16 MiB for the perf
+kernel: the static binaries share most of their code, which xz finds and gzip's window
+doesn't (8.26 MB gzip, 3.66 MB xz, 2026-11-07).
 
 With AUTHORIZED_KEY the parent must be release/build-parent.sh's public one, holding no
 keys or firmware. init and usb-ssh come from release/ and radio-start, hw-start and firmware-get are added,
@@ -19,6 +22,7 @@ usage: build-station-initramfs.py PARENT_INITRAMFS MODULES TOOLS RELEASE OUTPUT 
 """
 import base64
 import hashlib
+import lzma
 import re
 import struct
 import runpy
@@ -163,9 +167,13 @@ def main(parent, modules, tools, release, output, authorized_key=None):
     for name in files:
         parent_dir = name.rpartition('/')[0]
         assert not parent_dir or files.get(parent_dir, (0,))[0] & DIR, ('no directory for', name)
-    data = subprocess.run(['gzip', '-n', '-9', '-c'], check=True, capture_output=True,
-                          input=newc(sorted((n, mode, d) for n, (mode, d) in files.items()))).stdout
-    back = parse_newc(data)
+    archive = newc(sorted((n, mode, d) for n, (mode, d) in files.items()))
+    data = subprocess.run(['xz', '--format=xz', '--check=crc32', '-9e', '--threads=1', '-c'],
+                          check=True, capture_output=True, input=archive).stdout
+    assert lzma.decompress(data) == archive
+    # The archive is checked with the parent's parser, which reads gzip.
+    back = parse_newc(subprocess.run(['gzip', '-n', '-9', '-c'], check=True, capture_output=True,
+                                     input=archive).stdout)
     assert {n: (m.mode, m.data) for n, m in back.items()} == files
     assert (back[CONSOLE[0]].rdevmajor, back[CONSOLE[0]].rdevminor) == CONSOLE[2]
     Path(output).write_bytes(data)

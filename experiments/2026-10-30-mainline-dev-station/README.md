@@ -943,6 +943,18 @@ The owner reports that typing works from boot.
 
 The script's failure handling from `7bbff26b` ran on boot `fccba04c`, image `96338704`, as the custodian reports, with `PASSIVE_SCAN=1` and a pinned access point: rc=0, phy after 0 s, `up=0`, `COMPLETED` on the usual channel, lease after 4 s, gateway ping 3 of 3, one connect and no disconnects, tainted=0. This shows the normal path only. The failure paths have run only against stubs, not on the device.
 
+## The RAM root is xz-compressed (2026-11-07)
+
+With the perf fragment (`configs/gemini-a53-station-perf.fragment`), the composed boot image
+was 17,342,464 bytes, over `boot2`'s 16 MiB (Image.gz 8,990,724, RAM root 8,300,403). Dropping
+the function tracers saved only 367 KB of Image.gz. The owner chose to compress the RAM root
+with xz instead of gzip: `build-station-initramfs.py` writes xz with a CRC32 check, the one the
+kernel's unpacker takes (`CONFIG_RD_XZ=y`), on one thread so the output is reproducible.
+station-work-84's RAM root goes from 8,263,753 bytes as gzip to 3,662,992 as xz, because its
+static binaries share most of their code. That leaves about 4.4 MB free in `boot2` with the
+perf kernel. The parent RAM root stays gzip. The extra unpack time at boot is not yet
+measured.
+
 ## nvdata is mounted only to copy the Wi-Fi record (2026-11-07)
 
 Owner decision, after `nvdata`'s superblock changed with no read-write mount found
