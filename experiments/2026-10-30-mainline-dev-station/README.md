@@ -952,8 +952,17 @@ with xz instead of gzip: `build-station-initramfs.py` writes xz with a CRC32 che
 kernel's unpacker takes (`CONFIG_RD_XZ=y`), on one thread so the output is reproducible.
 station-work-84's RAM root goes from 8,263,753 bytes as gzip to 3,662,992 as xz, because its
 static binaries share most of their code. That leaves about 4.4 MB free in `boot2` with the
-perf kernel. The parent RAM root stays gzip. The extra unpack time at boot is not yet
-measured.
+perf kernel. The parent RAM root stays gzip.
+
+**Booted (`station-work-88`, `boot2` `a2003148…`, boot `e67cb217`).** It was built from
+`b161467d` (package `d9e03ad1`) and `0bcbfef9`, and the boot image is 12,345,344 bytes.
+- LK passed the xz ramdisk through and the kernel unpacked it. Every station status line was
+  normal.
+- Unpacking took 1.67 s, from "Unpacking initramfs" at 0.759 s to "Freeing initrd memory" at
+  2.426 s. The gzip RAM root on `station-work-86` took 0.44 s.
+- `/init` now starts at 2.55 s instead of 1.34 s, about 1.2 s later.
+- The PMU node probed (`armv8_pmuv3`, 7 counters). Software, tracepoint, kprobe and uprobe
+  events are present.
 
 ## nvdata is mounted only to copy the Wi-Fi record (2026-11-07)
 
