@@ -1,5 +1,5 @@
 # Profiling and power analysis on the station and the Arch card root (owner,
-# 2026-11-07): perf, ftrace and trace-cmd, and powertop, which reads the power
+# 2026-11-07): perf, the tracepoints and trace-cmd, and powertop, which reads the power
 # tracepoints. gemini-handoff.fragment turns these off for the bring-up images.
 # mt6797's device tree has no CPU PMU node yet, so perf has software events,
 # tracepoints and timer sampling, not hardware counters; ARM_PMUV3 is here for
@@ -8,11 +8,12 @@ CONFIG_PERF_EVENTS=y
 CONFIG_PROFILING=y
 CONFIG_ARM_PMU=y
 CONFIG_ARM_PMUV3=y
+# The tracepoints (trace-cmd, powertop, perf trace), without the function tracers:
+# with them every function gets patchable entries and the boot image went 565 KB over
+# boot2's 16 MiB (station-work-88, 2026-11-07).
 CONFIG_FTRACE=y
-CONFIG_FUNCTION_TRACER=y
-CONFIG_FUNCTION_GRAPH_TRACER=y
-CONFIG_DYNAMIC_FTRACE=y
-CONFIG_FTRACE_SYSCALLS=y
+# CONFIG_FUNCTION_TRACER is not set
+# CONFIG_FTRACE_SYSCALLS is not set
 CONFIG_KPROBES=y
 CONFIG_KPROBE_EVENTS=y
 CONFIG_UPROBES=y

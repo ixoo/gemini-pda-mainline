@@ -1179,7 +1179,9 @@ perf and power-analysis tools. `gemini-base` 14:
   fast, isn't known yet.
 - **Tools:** `perf`, `trace-cmd`, `powertop` and `cpupower`.
 - **Kernel:** `configs/gemini-a53-station-perf.fragment` in `mt6797-a53-station-a72` turns on
-  perf events, ftrace with the function tracers, kprobes, uprobes and BPF events. mt6797's device
+  perf events, the tracepoints, kprobes, uprobes and BPF events. Its first form, with the
+  function tracers, made the station boot image 565 KB too big for `boot2` (16 MiB); they
+  were dropped. mt6797's device
   tree has no CPU PMU node, so perf gets no hardware counters until one is added.
 
 ## Analysis
