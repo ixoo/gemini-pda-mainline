@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 18:25:02 -0500
+Subject: [PATCH] cpufreq: dt: set the OPP of a CPU with a supply at init
+
+The regulator core counts a consumer's voltage only after the consumer
+has asked for one. For cpufreq-dt that is the policy's first frequency
+change. A policy that boots at a listed frequency makes no change at
+init, so its CPUs run there with no voltage request.
+
+On a rail that two policies share, as VPROC1 feeds both MT6797 Cortex-A53
+clusters, the other policy can then lower the rail below what the first
+one's clock needs. For example, CPU4-7 dropping to 325 MHz takes VPROC1
+to 840 mV while CPU0-3 still run at the 897 MHz they booted at, which
+needs 1000 mV.
+
+When the CPU has a supply, set its OPP at init, at the current clock.
+The OPP core applies a table in full the first time it is used, so this
+registers the voltage even when the rate does not change. A clock at an
+unlisted boot rate moves to the next OPP up here, where a failure fails
+the policy, instead of in the core's initial frequency check, which
+calls BUG_ON() on failure.
+---
+ drivers/cpufreq/cpufreq-dt.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/drivers/cpufreq/cpufreq-dt.c b/drivers/cpufreq/cpufreq-dt.c
+index eec842afa..1712b730a 100644
+--- a/drivers/cpufreq/cpufreq-dt.c
++++ b/drivers/cpufreq/cpufreq-dt.c
+@@ -102,6 +102,22 @@ static int cpufreq_init(struct cpufreq_policy *policy)
+ 		return ret;
+ 	}
+ 
++	/*
++	 * The regulator core counts this policy's voltage only once its OPP has
++	 * been set, so on a supply shared with another policy or device the
++	 * rail could drop below what this CPU's current clock needs. Set the OPP
++	 * now, at the current clock; an unlisted boot rate moves to the next
++	 * OPP up, where a failure can still be returned.
++	 */
++	if (priv->opp_token > 0) {
++		ret = dev_pm_opp_set_rate(cpu_dev, clk_get_rate(cpu_clk));
++		if (ret) {
++			dev_err(cpu_dev, "failed to set the initial OPP: %d\n", ret);
++			clk_put(cpu_clk);
++			return ret;
++		}
++	}
++
+ 	transition_latency = dev_pm_opp_get_max_transition_latency(cpu_dev);
+ 	if (!transition_latency)
+ 		transition_latency = CPUFREQ_DEFAULT_TRANSITION_LATENCY_NS;
+-- 
+2.43.0
+

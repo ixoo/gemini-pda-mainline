@@ -39,6 +39,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0666`](../../patches/proposals/0666-arm64-dts-mediatek-gemini-station-scale-the-A53-volt.patch) | `mt6797-gemini-pda-station-dvfs.dts`: the station-a72 tree with the DA9214 on the legacy driver (BUCKA `vproc1` 770-1200 mV, BUCKB `vproc-big` 800-1200 mV, unused), VSRAM_L coupled to it, the full LL/L/CCI tables and `cpu-supply` |
 | [`0673`](../../patches/proposals/0673-PM-devfreq-passive-leave-out-CPUs-that-have-no-OPPs.patch) | After D1: the passive devfreq governor skips a CPU with no OPPs (the A72s), instead of deferring forever or failing every update |
 | [`0674`](../../patches/proposals/0674-arm64-dts-mediatek-gemini-station-let-the-CCI-follow.patch) | After D1: no required-opps, so the CCI follows by interpolation; VSRAM_L floor 1.10 V, the firmware's own boot value |
+| [`0675`](../../patches/proposals/0675-cpufreq-dt-set-the-OPP-of-a-CPU-with-a-supply-at-ini.patch) | After D1, found in review: cpufreq-dt sets each regulated policy's OPP at init. Otherwise CPU0-3, booting at the listed 897 MHz, would hold no voltage request on the shared VPROC1 until their first change, and CPU4-7 could lower the rail under them. CPU4-7's move off the unlisted 1274 MHz also happens here, where it can fail cleanly, instead of in the core's `BUG_ON()` path. Module only |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -258,6 +259,11 @@ not retry:
   and the next boot is unchanged (the init gate is off).
 
 ## Device tests, in order
+
+The stages are scripted in [`tools/v-test.sh`](tools/v-test.sh), written by the
+device custodian; the expected rail per point and the V4/V7 checks were
+added after D1. Every stepped point checks the hardware VPROC1 and VSRAM_L
+against the table and the coupler rule.
 
 Each is one call; the custodian folds them into the test plan. "Read" means a
 `devmem` read of a 32-bit word; DA9214 reads use `i2cget -fy 6 0x68 REG` (or
