@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 19:39:22 -0500
+Subject: [PATCH] usb: mtu3: drop the pullup for a suspend taken with no host
+ session
+
+On the Gemini the PHY forces the B session valid, so the gadget stays
+pulled up with the cable out. After a resume that reconnected the
+gadget with no cable attached, a second system suspend half a second
+later failed: the IP did not report sleep within 100 ms ("ip sleep
+failed!!!") and the suspend returned -EBUSY. With a host session that
+was then lost to an unplug, the bus suspends and the IP sleeps as
+expected.
+
+When the gadget is pulled up but has no host session, take D+ down for
+the suspend and restore it at resume. The driver already treats a
+device that is not pulled up as one whose IP is not expected to sleep:
+it skips the wait and powers the PHY and clocks down. A session that
+the bus suspended keeps its pullup, as before.
+---
+ drivers/usb/mtu3/mtu3.h      |  1 +
+ drivers/usb/mtu3/mtu3_core.c | 27 ++++++++++++++++++++++++++-
+ 2 files changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/usb/mtu3/mtu3.h b/drivers/usb/mtu3/mtu3.h
+index 597bb4b49..93e644af5 100644
+--- a/drivers/usb/mtu3/mtu3.h
++++ b/drivers/usb/mtu3/mtu3.h
+@@ -369,6 +369,7 @@ struct mtu3 {
+ 	unsigned connected:1;
+ 	unsigned bus_suspended:1;
+ 	unsigned reconnect_on_resume:1;
++	unsigned pullup_off_in_suspend:1;
+ 	unsigned async_callbacks:1;
+ 	unsigned separate_fifo:1;
+ 
+diff --git a/drivers/usb/mtu3/mtu3_core.c b/drivers/usb/mtu3/mtu3_core.c
+index 2b8f38617..5d091dc44 100644
+--- a/drivers/usb/mtu3/mtu3_core.c
++++ b/drivers/usb/mtu3/mtu3_core.c
+@@ -1023,7 +1023,7 @@ bool ssusb_gadget_ip_sleep_check(struct ssusb_mtk *ssusb)
+ 		return true;
+ 
+ 	/* device is started and pullup D+, ip can sleep */
+-	if (mtu->is_active && mtu->softconnect)
++	if (mtu->is_active && mtu->softconnect && !mtu->pullup_off_in_suspend)
+ 		return true;
+ 
+ 	/* ip can't sleep if not pullup D+ when support device mode */
+@@ -1051,6 +1051,21 @@ int ssusb_gadget_suspend(struct ssusb_mtk *ssusb, pm_message_t msg)
+ 	 */
+ 	mtu->reconnect_on_resume = mtu->connected;
+ 
++	/*
++	 * Pulled up with no host session since, as after a pullup with the
++	 * cable out where the PHY forces the session valid, the IP does not
++	 * report sleep. Take D+ down for the suspend instead, the state in
++	 * which the IP is not expected to sleep, and put it back at resume.
++	 */
++	if (!mtu->connected && mtu->is_active && mtu->softconnect) {
++		unsigned long flags;
++
++		spin_lock_irqsave(&mtu->lock, flags);
++		mtu3_dev_on_off(mtu, 0);
++		mtu->pullup_off_in_suspend = 1;
++		spin_unlock_irqrestore(&mtu->lock, flags);
++	}
++
+ 	mtu3_dev_suspend(mtu);
+ 	synchronize_irq(mtu->irq);
+ 
+@@ -1066,6 +1081,16 @@ int ssusb_gadget_resume(struct ssusb_mtk *ssusb, pm_message_t msg)
+ 
+ 	mtu3_dev_resume(mtu);
+ 
++	if (mtu->pullup_off_in_suspend) {
++		unsigned long flags;
++
++		spin_lock_irqsave(&mtu->lock, flags);
++		mtu->pullup_off_in_suspend = 0;
++		if (mtu->is_active && mtu->softconnect)
++			mtu3_dev_on_off(mtu, 1);
++		spin_unlock_irqrestore(&mtu->lock, flags);
++	}
++
+ 	/*
+ 	 * The power-down dropped the link and the D+ pullup, so the host has
+ 	 * to enumerate the device afresh: report the disconnect that a VBUS
+-- 
+2.43.0
+

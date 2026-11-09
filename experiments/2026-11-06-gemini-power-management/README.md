@@ -1258,6 +1258,54 @@ Test **L3**:
   after the resume completes, no warning, taint unchanged, and a key works
   after the open.
 
+#### Second mem suspend refused by MTU3 (2026-11-08)
+
+Reported by the device custodian from the SPM mem path (0667) on D1, on
+battery with the cable out: boot 3 retry in the
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md). Raw log
+private.
+
+**What the log shows.**
+- The first `mem` suspend resumed. At resume 0633 cycled the pullup
+  (`pullup D-`, then `pullup D+` 17 ms later), so the gadget had gone into
+  that suspend still marked connected after an unplug.
+- The next `mem` suspend came 0.5 s after that resume. MTU3 waited the
+  full 100 ms, logged "ip sleep failed!!!", and returned -EBUSY.
+
+**Reading.**
+- The second suspend found the gadget pulled up and not connected: no
+  host had reset it since the cycle.
+- With a session that an unplug then suspended, as in P5, the IP sleeps.
+  Pulled up with no session since, it does not, at least not within
+  100 ms.
+- The s2idle tests never had this case. P5's suspends each began from a
+  suspended session, and P6's were not preceded by a reconnect cycle.
+- Why the IP needs a session to sleep is not known.
+
+[0676](../../patches/proposals/0676-usb-mtu3-drop-the-pullup-for-a-suspend-taken-with-no.patch)
+handles it:
+- A suspend taken while the gadget is pulled up with no host session takes
+  D+ down first and puts it back at resume.
+- For a device that is not pulled up, the driver already skips the IP
+  sleep wait and powers the PHY and clocks down.
+- A bus-suspended session keeps its pullup, as in P5.
+
+MTU3 is built in, so 0676 needs an image. It is compile-checked only.
+
+Test **U**:
+- On battery with the cable out, start with the gadget enumerated, then
+  unplug.
+- Run three suspends in a row, 0.5 s apart, by the path under test (`mem`
+  or `freeze`), each with a 20 s RTC alarm.
+- **Pass:** all three return 0. The second and third log `pullup D-` at
+  suspend and `pullup D+` at resume. Then replug, and SSH returns with no
+  console input.
+- On the `mem` path, also check that the SPM's wake report is unchanged
+  from the first suspend. The IP is now powered down without having
+  reported sleep, and whether the SPM program cares is not known.
+- New writes: only MTU3's own pullup control (`mtu3_hs_softconn_set`), as
+  0633 already makes.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
