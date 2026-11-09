@@ -171,7 +171,9 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
   passed, with keypad IRQ warnings after it
   ([power-management record](../2026-11-06-gemini-power-management/README.md)).
 - Phase 1 boot 3 (D1, boot `f7004450…`): S1 stopped in its first 30 s mem suspend with a
-  watchdog reset. See [boot 3](#boot-3-result-2026-11-08).
+  watchdog reset ([boot 3](#boot-3-result-2026-11-08)). In the retry (boot `93284025…`), a
+  10 s suspend returned on the PCM timer. The next suspend was refused by `mtu3`
+  ([retry](#boot-3-retry-2026-11-08)).
 
 ### Boot 3 result (2026-11-08)
 
@@ -204,6 +206,37 @@ its watchdog around suspend.
 - Fix `mtk_wdt` to stop a watchdog that is only `WDOG_HW_RUNNING` at suspend.
 
 Either way, the first retry also tells whether the program returns on its timer.
+
+### Boot 3 retry (2026-11-08)
+
+The owner chose the feeder ("Hold it open, retry"). It ran on D1 again, boot `93284025…`,
+with the same module and program. A shell feeder held `/dev/watchdog` open, and
+`watchdog0` read `active`, timeout 31 s. On the cable-in cycle, the first suspend was 10 s,
+as the cpuidle session advised.
+
+**Observed:**
+- **F1, 10 s mem suspend: the vendor program returned on its timer.** The `wake:` line was
+  `returned=1 loops=1 r12=00000001`. All three clock-gate words and `clk_cfg_0`
+  (`01010101`) matched before and after, and `timer_out` was `00050088`. Uptime advanced
+  10.3 s across the suspend. CPU0 stayed alone online, nothing was tainted, and there was
+  no warning.
+- **F2, 30 s: refused before sleeping.** On the F1 resume, `mtk-tphy` logged
+  `u2 phy0: forcing valid B-device session` and the gadget pulled D+ up, with no cable
+  attached. At F2 entry, `mtu3` failed with `ip sleep failed!!!` and `platform_pm_suspend`
+  returned -16, so the suspend aborted. The script stopped there. The earlier s2idle runs
+  suspended back to back on battery without this, so it follows a mem resume only.
+- **About 30 s after the script ended, the TOPRGU watchdog reset the device into Gemian:**
+  `boot_reason=4`, `hw_status: 1`. The feeder closed `/dev/watchdog` without the magic
+  `'V'` (a custodian choice, to keep the watchdog armed), so the kernel logged
+  `watchdog did not stop!`. With the timeout equal to `max_hw_heartbeat` (31 s), the core
+  does not ping an active watchdog that userspace has closed, so it expired. This is a
+  procedure error, not a program or kernel fault.
+
+**Result.** The program's "CPU stays powered" path enters and returns on its own PCM timer
+on mainline. The current measurement has not run. Before the next attempt:
+- The feeder closes with `'V'`.
+- The `mtu3` B-session forced on a mem resume must be fixed, or the gadget unbound for the
+  run.
 
 ## Analysis
 
