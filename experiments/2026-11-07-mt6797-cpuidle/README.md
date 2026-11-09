@@ -959,8 +959,10 @@ at the program, and nothing could, with this timing.
 - (a) A feeder holding `/dev/watchdog` open for the run makes
   `watchdog_active()` true, so the driver stops the watchdog at suspend and
   restarts and pings it at resume. No new code. Close it with the magic
-  `V` afterwards, or the core goes back to pinging it as `HW_RUNNING`, which is
-  also fine.
+  `V` afterwards. (This record first said a close without `V` was also fine;
+  the retry disproved that: the watchdog stays active, and with its timeout
+  equal to `max_hw_heartbeat_ms` the core does not ping it after the close,
+  so it reset the station.)
 - (b) Patch `mtk_wdt_suspend()`/`mtk_wdt_resume()` to also stop and restart a
   watchdog that is `watchdog_hw_running()`. A few lines, upstreamable, and the
   durable fix: every future `mem` suspend on the station hits this. It is
@@ -970,6 +972,24 @@ at the program, and nothing could, with this timing.
   passes before the resume kicks it, under 31 s. A clean return on that
   cycle shows the program returns, independently of the watchdog fix; the
   30 s and 300 s cycles follow.
+
+### S1 retry (2026-11-08): the program returns on its timer
+
+Run by the custodian with a `/dev/watchdog` feeder and a 10 s first cycle;
+recorded in the test plan,
+[boot 3 retry](../2026-11-08-cpu-power-test-plan/README.md#boot-3-retry-2026-11-08).
+
+- **The vendor suspend program ran and returned on its timer, on mainline,
+  once.** The wake line read `returned=1 loops=1`, `r12=00000001` (bit 0,
+  the PCM timer, in the vendor's wake-source layout), `timer_out=00050088`,
+  `clk_cfg_0` `01010101` before and after; uptime advanced 10.3 s, with no
+  warning and no taint.
+- The 30 s cycle did not start: MTU3 refused the suspend (`-16`) after it
+  forced a B-session on resume. That is the suspend session's to fix.
+- A later reset came from closing the feeder without `V` (see above), not
+  from the program.
+- **No current figure yet,** so the outcome table's question, whether the
+  vendor program saves power, is still open.
 
 ## The SPM programs decoded (2026-11-08)
 
