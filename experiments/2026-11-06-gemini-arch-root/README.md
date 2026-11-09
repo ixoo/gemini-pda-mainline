@@ -1633,6 +1633,17 @@ The owner also asked for a simpler, macOS-like launcher on Ctrl+Alt+Space (`gemi
   exactly those four keys.
 - Not seen on the device yet.
 
+A media player (owner, 2026-11-08, `gemini-base` 29):
+
+- `gemini-base` depends on `mpv` and `mpv-mpris`.
+- Against the card-24 image, pacman would download 3.3 MB for them: mpv, its plugin and nine
+  small libraries. ffmpeg is already on the card.
+- mpv has no MPRIS interface of its own. Noctalia's media controls and the Fn play, previous
+  and next binds (`noctalia msg media …`) work through MPRIS, so they need the plugin.
+  mpv-mpris 1.3 installs `/etc/mpv/scripts/mpris.so`, which mpv loads for every user.
+- Mainline has no MT6797 video decoder, so mpv decodes on the CPU. Playback speed is not
+  measured.
+
 Not yet in a card image: the next card waits for the audio session's UCM profile.
 
 ## Analysis
