@@ -991,6 +991,69 @@ recorded in the test plan,
 - **No current figure yet,** so the outcome table's question, whether the
   vendor program saves power, is still open.
 
+### S1 measured (2026-11-08)
+
+Run by the custodian on D1, boot `263ae72a…`, with the feeder closed with `V`
+and the `mtu3` gadget unbound; recorded in the test plan,
+[boot 3 second retry](../2026-11-08-cpu-power-test-plan/README.md#boot-3-second-retry-s1-measured-2026-11-08).
+
+- **Five `mem` suspends (10 s, 30 s, three of 300 s) all returned on the PCM
+  timer**: `returned=1 loops=1 r12=00000001` each time, gates and `clk_cfg_0`
+  unchanged, `timer_out` matching 10, 30 and 300 s, no fault, taint 0.
+- **Current**, from `charge_counter` (about ±3 % per window): the idle
+  reference with CPU0 alone, screen blank and radios off read 271 mA over
+  301 s; the three 300 s suspends read 43, 42 and 42 mA, each including about
+  0.7 s of entry and resume. s2idle on the same kind of setup read 73 mA (P6).
+
+By the S1 outcome table this is the first row: **the vendor program's
+"CPU stays powered" path delivers**, about 31 mA below s2idle and well under
+the 96 mA hotplug floor of R1b.
+
+Two things this does not settle:
+
+- **The awake floor has moved.** The 271 mA reference agrees with C0
+  attempt 2's W3 (290 mA, CPU0 alone) and not with R1b's 96 mA. Two runs on
+  two later images now show about 180 mA more awake draw than R1b with the
+  same CPUs, radios off and the backlight off. It vanishes in a `mem`
+  suspend, so it is something Linux keeps running while awake. That is now
+  the largest single power item, larger than anything S2 or S3 can win.
+- **What stays in the 42 mA** is not split: CPU0 and its cluster stay powered
+  in this mode, DRAM and the board's own loads are unknown.
+
+### Recommendation for owner decision 5 (S2 and S3)
+
+1. **First make S1 the station's suspend.** It already halves s2idle. What
+   it needs: the `mtk_wdt` fix (option b above) so no feeder is needed, the
+   `mtu3` fix (0676, in D2), and the static regulator sleep modes the S1
+   table names as the next stage. Then lid close uses `mem` instead of
+   `s2idle`. This is the largest practical gain for the least new risk: no
+   new firmware call, the module already exists.
+2. **Find the awake regression before S2.** About 180 mA awake against
+   R1b's figure dwarfs what S2 can save. A stepwise unload on battery (the
+   display driver, the GPU, the A53 DVFS modules, then the rest) on one boot
+   should name it.
+3. **Build S2 after 1, as one image stage.** Estimate, from C0 attempt 2's
+   differences at the idle points (CPU1-3 about 3 mA per core in WFI, the
+   whole L cluster 25.6 mA): powering down CPU0, the LL cluster, MCUSYS and
+   CCI could save on the order of 10-20 mA of the 42 mA. That is an
+   inference from awake WFI figures; a suspended core with its PLL off may
+   leak less. The costs: one built-in export so the module can call
+   `CPU_SUSPEND` `0x1010000`, a firmware call never issued on mainline; a
+   resume through the secure firmware's warm boot, where a failure loses
+   CPU0 and needs the owner's force-off; and keeping flag bit 9 set, so the
+   program still leaves the DA9214 to the A72 module and the DVFS work.
+   Worth doing, but after 1 and 2.
+4. **Do not build S3 now.** Deep idle and SODI keep 26 MHz and infra, so
+   they save less than suspend. They also need P3 (clock gating), a GPT
+   clockevent and CIRQ, and every device's interrupt to wake them. With S1
+   on lid close and the CPU policy on blank, S3 adds the least per unit of
+   risk. Revisit it after P3.
+5. **Do not wait for a project-written program.** The decode already answered
+   feasibility: a reduced program (no DRAM self-refresh) is original work and
+   possible, but it saves less than the vendor program now does. It matters
+   only if the station must stop depending on the unit's own vendor files,
+   for example for redistribution. That is a separate owner choice.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
