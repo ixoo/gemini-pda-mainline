@@ -1368,6 +1368,80 @@ own writes as approved for V1-V7, and reads. **Stops:** an Oops or
 that refuses to load or unload (record it and go to the next step); the
 battery under 30 %. Power off at the end.
 
+### Item 4 result (2026-11-09)
+
+Run by the custodian on a fresh station-work-95 boot, `b7dba389…`; recorded
+in the test plan ("D3 item 4", `4103b168`). Branch A ran:
+
+| Window | Average (`charge_counter`) |
+| --- | --- |
+| A0 | 80.2 mA |
+| A1, after one 30 s `mem` suspend (timer wake, rc 0) | 274.5 mA |
+| A2, after loading and unloading `clk-mt6797-mcusys` | 234.4 mA |
+| A3, after the DVFS stack loaded, LL at 221 MHz, all unloaded | 64.2 mA |
+
+- **Every register read was identical at A0, A1 and A2**: MCUMIXED, MCUCFG,
+  INFRACFG, TOPCKGEN, SPM, DRAM and the DA9214. The resume left none of the
+  read registers changed. A3 showed only the known LL, divider, `0x660` and
+  VPROC1 changes.
+- **The display came back on after the resume.** DRM read the panel again at
+  268.9 s. `clk_summary` listed 126 enabled clocks at A1 and A2
+  (`mipi_tx0_pll` and 13 `mm_*` display gates) against 112 at A0 and A3.
+  Nothing in the log shows when they went off between A2 and A3, with
+  `consoleblank` at 120 s.
+- After the resume, `soc-thermal` reads `ENODATA`.
+
+**Reading.** The 200 mA is most likely the display pipeline, not the SPM
+program or the CPU clusters. The resume brought the DSI link and the display
+clocks back although `fb0` had been blanked. The fall at A3 fits the
+kernel's console blank turning them off again, not the DVFS unload. Item 2's
+fall at U1 and C0 attempt 2's high windows may have the same cause, though
+their display state was not read. What A1 does not tell yet is whether the
+panel and backlight were lit, or only the pipeline was running.
+
+**`soc-thermal` returning `ENODATA` after a `mem` resume is a safety
+problem**: the passive and hot trips need that reading. Loading the SPM
+module at boot, or using lid-close suspend outside a test, must wait until
+the thermal driver reads again after a resume. That belongs to the suspend
+session or the thermal owner.
+
+### Item 5: the display across a resume (proposal)
+
+**Question.** Is the 200 mA after a `mem` resume the display pipeline
+coming back on while `fb0` is blanked, and does blanking again remove it?
+
+**Setup.** As item 4: a fresh boot, CPU0 alone, radios and A72 off,
+`backlight-policy` frozen with `kill -STOP`, battery. In addition, the
+kernel's console blank is off (`printf '\033[9;0]' > /dev/tty1`), so no
+timer changes the display behind the test. `fb0` is blanked with `4`
+(powerdown).
+
+**Reads** at each step: `fb0/blank`; the backlight's `brightness`,
+`actual_brightness` and `bl_power`; each DRM connector's `status`,
+`enabled` and `dpms`; the enabled `mm_*` and `mipi_*` clocks in
+`clk_summary`; the MM domain in `pm_genpd_summary`; new DRM and panel lines
+in `dmesg`; the SoC temperature through `soc-thermal`. The custodian or the
+owner also notes whether the panel is visibly lit.
+
+| Step | Action | Window |
+| --- | --- | --- |
+| E0 | none | 120 s (should read about 80 mA) |
+| E1 | load `mt6797-spm-sleep`; one 30 s `mem` suspend | 120 s |
+| E2 | `echo 4 > /sys/class/graphics/fb0/blank` again | 120 s |
+| E3 | `echo 0` then `4` to `fb0/blank` (a full unblank and blank) | 120 s |
+
+**What decides it.**
+
+| Result | Next |
+| --- | --- |
+| E1 high with the display clocks on, E2 or E3 back to about 80 mA | The display's resume does not keep a blanked display off. The fix goes to the display session; until then lid-close suspend must blank again after each resume (`backlight-policy` can do that) |
+| E1 high with the display clocks off | Something else the resume leaves on; read more blocks (GPU, MSDC, USB) |
+| E1 about 80 mA | The resume alone does not raise it; look again at what else ran before A1 in item 4 |
+
+**Writes.** None new: the S1 list as approved and `fb0` writes. **Stops:**
+the usual ones; also stop if `soc-thermal` reads `ENODATA` and the SoC is
+above 50 °C, since then nothing would cap it.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
