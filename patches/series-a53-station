@@ -846,3 +846,4 @@ proposals/0677-PM-devfreq-mtk-cci-set-the-rate-of-the-OPP-it-picked.patch
 proposals/0678-watchdog-mtk_wdt-stop-a-watchdog-running-from-boot-a.patch
 proposals/0679-soc-mediatek-mt6797-spm-sleep-add-the-static-PMIC-sl.patch
 proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch
+proposals/0681-usb-mtu3-set-the-device-up-again-when-suspend-reset-.patch

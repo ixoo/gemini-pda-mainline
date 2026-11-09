@@ -1379,6 +1379,47 @@ about nine cycles):
 - So the warning comes from neither driver nor from these patches. Its
   source is not known. It is a one-line warning with no taint.
 
+#### R-USB result and the fix (2026-11-09)
+
+Read by the device custodian on D3, boot `6dbf6d59`: the
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md),
+"D3 R-USB". Raw log private.
+
+- **`freeze` control:** the disconnect cleared only MAC `0x0084` and
+  `0x0800`. At the replug the gadget was configured at once, and every
+  register read its reference value again.
+- **After `mem`:** all nine MAC registers read 0.
+  - IPPC `0x00` went from `0x00011000` to `0x00011001`: the IP software
+    reset is asserted.
+  - IPPC `0x10` went from `0x01003D0F` to `0`: no clock status.
+  - IPPC `0x50` went from `0xC8` to `0x4D`: the U2 port disabled and
+    selected for the host, its reset value.
+  - The U2 PHY's eight registers were unchanged.
+- That is the record's first decision branch: the MAC and IPPC are reset,
+  and the PHY is kept.
+
+[0681](../../patches/proposals/0681-usb-mtu3-set-the-device-up-again-when-suspend-reset-.patch):
+- At resume, when the software reset reads asserted, MTU3 takes the IP out
+  of reset and repeats probe's device setup: the device reset, then the
+  port enable and selection (`mtu3_device_enable`, which turns `0x4D` back
+  into `0xC8`), then the CSR defaults and the speed.
+- The existing resume then powers the device on, enables its interrupts
+  and restores the pullup (0633 or 0676).
+- A host-side setup after such a reset is not done.
+- MTU3 is built in, so 0681 needs an image. Compile-checked only.
+
+Test **U2**, on an image carrying 0681:
+- On battery, enumerate the gadget, then unplug.
+- Run two `mem` suspends, then replug.
+- **Pass:** each resume logs "IP was reset in suspend, setting it up
+  again"; IPPC `0x00` reads `0x00011000` and `0x50` reads `0xC8` after
+  resume; the replug reaches `configured` with no console input and SSH
+  returns.
+- Repeat once with the cable in at suspend. 0630 refuses that suspend, so
+  nothing should change.
+- New writes: MTU3's own probe-time setup writes to its IPPC and MAC,
+  which probe already makes at every boot.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The

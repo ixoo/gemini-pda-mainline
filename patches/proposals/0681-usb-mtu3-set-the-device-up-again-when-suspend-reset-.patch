@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 9 Nov 2026 09:37:36 -0500
+Subject: [PATCH] usb: mtu3: set the device up again when suspend reset the IP
+
+Resume assumes that the IP kept its registers and restores only the
+power-down bits, the interrupt enables and the pullup. On the Gemini
+the SPM's mem suspend path cuts the IP's power. After resume the IPPC
+reads as after a power-on reset: the IP software reset is asserted, the
+U2 port is disabled and selected for the host, and every MAC register
+reads zero. The U2 PHY keeps its settings. The gadget then never
+enumerated again: a replug produced no interrupt, and neither a soft
+disconnect and connect nor a role write recovered it, because in dual
+role mode neither runs the device setup again. Suspend to idle keeps
+the registers and was not affected.
+
+At resume, when the software reset reads asserted, take the IP out of
+reset and repeat the device setup that probe does: the device reset,
+the port enable and selection, the CSR defaults and the speed. The
+existing resume then powers the device on, enables its interrupts and
+restores the pullup. A host-side setup after such a reset is not done
+here.
+---
+ drivers/usb/mtu3/mtu3_core.c | 20 ++++++++++++++++++++
+ drivers/usb/mtu3/mtu3_dr.h   |  4 ++++
+ drivers/usb/mtu3/mtu3_plat.c | 13 +++++++++++++
+ 3 files changed, 37 insertions(+)
+
+diff --git a/drivers/usb/mtu3/mtu3_core.c b/drivers/usb/mtu3/mtu3_core.c
+index 5d091dc44..88a13f91c 100644
+--- a/drivers/usb/mtu3/mtu3_core.c
++++ b/drivers/usb/mtu3/mtu3_core.c
+@@ -1030,6 +1030,26 @@ bool ssusb_gadget_ip_sleep_check(struct ssusb_mtk *ssusb)
+ 	return false;
+ }
+ 
++/*
++ * Set the device side up again after the IP was reset with every register
++ * at its default, as probe does: the port selection, the CSRs and the
++ * speed. Resume then powers the device on, enables its interrupts and
++ * restores the pullup as usual.
++ */
++void ssusb_gadget_restore(struct ssusb_mtk *ssusb)
++{
++	struct mtu3 *mtu = ssusb->u3d;
++
++	if (!mtu)
++		return;
++
++	mtu3_device_reset(mtu);
++	if (mtu3_device_enable(mtu))
++		dev_err(mtu->dev, "device enable failed after reset\n");
++	mtu3_regs_init(mtu);
++	mtu3_set_speed(mtu, mtu->speed);
++}
++
+ int ssusb_gadget_suspend(struct ssusb_mtk *ssusb, pm_message_t msg)
+ {
+ 	struct mtu3 *mtu = ssusb->u3d;
+diff --git a/drivers/usb/mtu3/mtu3_dr.h b/drivers/usb/mtu3/mtu3_dr.h
+index e325508bd..34ade5dc3 100644
+--- a/drivers/usb/mtu3/mtu3_dr.h
++++ b/drivers/usb/mtu3/mtu3_dr.h
+@@ -60,6 +60,7 @@ void ssusb_gadget_exit(struct ssusb_mtk *ssusb);
+ int ssusb_gadget_suspend(struct ssusb_mtk *ssusb, pm_message_t msg);
+ int ssusb_gadget_resume(struct ssusb_mtk *ssusb, pm_message_t msg);
+ bool ssusb_gadget_ip_sleep_check(struct ssusb_mtk *ssusb);
++void ssusb_gadget_restore(struct ssusb_mtk *ssusb);
+ 
+ #else
+ static inline int ssusb_gadget_init(struct ssusb_mtk *ssusb)
+@@ -87,6 +88,9 @@ static inline bool ssusb_gadget_ip_sleep_check(struct ssusb_mtk *ssusb)
+ 	return true;
+ }
+ 
++static inline void ssusb_gadget_restore(struct ssusb_mtk *ssusb)
++{}
++
+ #endif
+ 
+ 
+diff --git a/drivers/usb/mtu3/mtu3_plat.c b/drivers/usb/mtu3/mtu3_plat.c
+index fb88fbdb7..803bebe89 100644
+--- a/drivers/usb/mtu3/mtu3_plat.c
++++ b/drivers/usb/mtu3/mtu3_plat.c
+@@ -575,6 +575,19 @@ static int mtu3_resume_common(struct device *dev, pm_message_t msg)
+ 	if (ret)
+ 		goto phy_err;
+ 
++	/*
++	 * A suspend that cut the IP's power, such as the MT6797 SPM's mem
++	 * path, leaves it held in reset with every register at its default.
++	 * Take it out of reset and set the device side up again; a host
++	 * side would need its own setup, which is not done here.
++	 */
++	if (mtu3_readl(ssusb->ippc_base, U3D_SSUSB_IP_PW_CTRL0) & SSUSB_IP_SW_RST) {
++		dev_info(dev, "IP was reset in suspend, setting it up again\n");
++		ssusb_ip_sw_reset(ssusb);
++		if (!ssusb->is_host)
++			ssusb_gadget_restore(ssusb);
++	}
++
+ 	return resume_ip_and_ports(ssusb, msg);
+ 
+ phy_err:
+-- 
+2.43.0
+
