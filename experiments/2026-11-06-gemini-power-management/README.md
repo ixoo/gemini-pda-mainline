@@ -1369,7 +1369,7 @@ reconnect there makes the failure `mem`-specific.
 - **Nothing reset:** the cause is elsewhere, so look at the line state and
   the interrupt path.
 
-**`i2c 4-0020: Unbalanced pm_runtime_enable!`** (boot `d7f02aca`, once in
+**`i2c 4-0020: Unbalanced pm_runtime_enable!`** (boot `54c9d47b`, once in
 about nine cycles):
 - `4-0020` is the hi556 camera sensor's I2C client. No driver was bound:
   the `i2c` prefix is the bus name, which is printed when no driver is

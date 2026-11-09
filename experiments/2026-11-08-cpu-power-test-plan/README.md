@@ -334,7 +334,7 @@ bring it back. With 0676, every suspend logged `pullup D-` and every resume logg
 the last resume or at the replug. The owner powered off from the console. This went to the
 suspend session.
 
-**Boot `d7f02aca…`, T3-T4, observed.** The new `backlight-policy` (`7fc1cadd…`, from
+**Boot `54c9d47b…`, T3-T4, observed.** The new `backlight-policy` (`7fc1cadd…`, from
 `5ed802b4`) was renamed over `/bin/backlight-policy` and respawned by init, with
 `timer_sec=30`.
 - **T4, cable in.** A lid close tried a deep suspend; the bq25890 guard refused it, the
