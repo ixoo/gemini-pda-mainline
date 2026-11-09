@@ -353,6 +353,45 @@ lid close suspends to about 42 mA and re-suspends on timer wakes, and lid open w
 Two defects block making it the default: USB does not re-enumerate after a mem resume on
 battery, and the `4-0020` runtime-PM imbalance.
 
+### D3 item 2: the awake regression (2026-11-09)
+
+Item 2's stepwise unload, as in the [cpuidle record](../2026-11-07-mt6797-cpuidle/README.md),
+"Item 2", ran on boot `d7f02aca…` (D3, boot2 `1f201b4e…`). That boot had already run
+V1-V7, so the A53 DVFS modules were loaded with both policies on `userspace`: LL 897 MHz,
+L 1209 MHz (CPU4-7 offline), CCI 676 MHz, VPROC1 1060 mV. The radios were unloaded and
+`backlight-policy` stopped. The first arming saw no unplug within 15 minutes and ran
+nothing; the second ran in full. Each window was 120 s after 10 s of settling.
+
+| Window | Removed before it | Δcharge (µAh) / time (s) | Average | CPU0 idle |
+| --- | --- | --- | --- | --- |
+| U0 | nothing | 9,208 / 120.8 | 274.5 mA | 99.6 % |
+| U1 | policy0 to 221 MHz, then `mtk_cci_devfreq`, `cpufreq_dt`, `clk_mt6797_mcusys`, the VSRAM and DA9214 regulators | 2,379 / 121.9 | 70.2 mA | 98.5 % |
+| U2 | the GPU (nothing loaded) | 2,380 / 121.9 | 70.3 mA | 98.5 % |
+| U3 | the display stack (13 modules) | 2,276 / 121.9 | 67.2 mA | 98.5 % |
+| U4 | audio, haptics, AW9120 LEDs (camera, sensors, touchscreen not loaded) | 2,276 / 121.9 | 67.2 mA | 98.5 % |
+| U5 | `dropbear`, `backlight-policy`, the login shell stopped | 2,380 / 121.9 | 70.3 mA | 98.5 % |
+
+Observed:
+- Every module unloaded; no fault line, taint 0 throughout.
+- U0 reproduced the 271 mA reference. U1 dropped it by 204 mA; nothing after U1 changed
+  it by more than one `charge_counter` step.
+- Interrupts were the same in U0 and U1 (about 30 timer ticks a second, 1.1 a second on
+  `11007000.i2c`), and so was `pm_genpd_summary`. The three ARMPLLs left
+  `clk_summary` at the unload, with `clk_unregister: unregistering prepared clock`
+  for each, so their hardware state in U1 was not read.
+- From U1 on, the `current_now` average (93-95 mA) no longer agreed with
+  `charge_counter` (67-70 mA); in U0 both read 274-275 mA.
+
+Inference: what U1 removed was not running drivers. Boot 3's 271 mA reference
+(`263ae72a…`) ran without any of these modules loaded. So the drop came from the
+hardware state the steps left behind: LL at 221 MHz instead of the boot's 897 MHz,
+whatever the DA9214 held at its unload (VPROC1 was 1000 mV after the 221 MHz step), or
+something the mcusys unload did to the PLLs. The 96 mA of R1b and the 70 mA here
+suggest the boot leaves the A53 clusters at a costly point that nothing lowers unless
+the DVFS stack runs. Separating these needs one more stepwise run: the boot state,
+then the stack loaded at its lowest points, then each unload. That went to the cpuidle
+and cpufreq sessions.
+
 ## Analysis
 
 None yet.
