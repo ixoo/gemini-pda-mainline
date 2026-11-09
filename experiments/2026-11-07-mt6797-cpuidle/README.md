@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-07-mt6797-cpuidle` |
-| Status | `planned`: research done, no device run; C0 attempt 1 stopped at c3 on a procedure fault; attempt 2 (2026-11-08) passed every stage: the A53 clusters' clocks survive hotplug, and at the idle points CPU1-7 in WFI cost 34.5 mA over offline, 74 % of it in the L cluster, but the 324 mA blanked floor is unexplained, so the figures are provisional. The dark-screen hotplug policy now covers the A72s (compile-checked, H1 proposed). The vendor's SPM sequence is reverse-engineered (2026-11-08) and Route A is designed; S0 (reads) ran on 2026-11-08 with no stop condition and showed every idle A53 already in retention; S1 (`mem` suspend) awaits the owner |
+| Status | `running`: no per-core idle state exists on this firmware; hotplug on a dark screen and `mem` suspend through the vendor program (42 mA, 0678, lid close) work on D3; the 200 mA "awake regression" was the display relighting itself; `mem` suspend outside tests waits on USB, `soc-thermal` and display fixes after a resume; S2 next |
 | Subsystem | cpuidle, PSCI `CPU_SUSPEND`, SPM, CPU hotplug, A53 cpufreq, A72 module |
 | Device variant | Named Gemini PDA development unit, mainline station on boot2 |
 | Date(s) | 2026-11-07 |
@@ -1442,6 +1442,42 @@ owner also notes whether the panel is visibly lit.
 the usual ones; also stop if `soc-thermal` reads `ENODATA` and the SoC is
 above 50 °C, since then nothing would cap it.
 
+### Item 5 result (2026-11-09)
+
+Run by the custodian on a fresh station-work-95 boot, `6b9cf9c0…`, on
+battery with `consoleblank` 0; recorded in the test plan ("station-work-95
+item 5", `6449b128`).
+
+| Window | Display state | Average |
+| --- | --- | --- |
+| E0, `fb0` blanked with 4 (reads back 1) | DPMS off, `bl_power` 4, 2 display clocks | 114.1 mA |
+| E1, after one 30 s `mem` suspend | `fb0` 0, DPMS on, `bl_power` 0, 16 display clocks | 286.9 mA |
+| E2, `fb0` blanked with 4 again | off, 2 clocks | 77.1 mA |
+| E3, `fb0` 0 then 4 | off at the step | 209.8 mA |
+
+E0 and E3 are mixed windows: DRM read the panel again at 220.8 s (inside E0)
+and 562.8 s (inside E3) with no test step behind it, and the end read found
+the display on. No input was logged. `soc-thermal` read `ENODATA` after the
+resume again; the battery zone stayed near 24 °C. No fault, taint 0.
+
+**Conclusion of the search.** The "awake regression" was the display
+turning itself back on, backlight included. A `mem` resume unblanks it, and
+so does something else while `fb0` is blanked through sysfs, without any
+input. Blanked, the station idles at about 77-80 mA with CPU0 alone, close
+to R1b. With the display on, at the test's brightness, it draws about
+200 mA more. Nothing in the SPM program, the CPU clusters or the DVFS stack
+holds extra power. The fixes belong to the display session:
+
+- a blanked display must stay blanked across a system resume;
+- the spontaneous unblanks with `fb0` blanked through sysfs and no input.
+  One candidate is the VT layer: it does not know about a blank made through
+  `fb0/blank`, so console activity can redraw and unblank it. The station's
+  own policy blanks through the console, which the VT does know about.
+  `fb0/blank` was only the test's method.
+
+Until the display keeps its blank, lid-close suspend would wake to a lit
+screen inside a closed lid; that adds to the `soc-thermal` blocker above.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
@@ -1627,15 +1663,31 @@ were off. The cause of the extra draw is not found.
 
 ## Conclusion
 
-Pending C0. From the research alone: per-core and per-cluster idle power-down
-are not available on the installed firmware without an MT6797 SPM program,
-which the vendor evidence does not contain. Hotplug is the working way to
-power idle cores down on all three clusters.
+On the installed firmware there is no per-core idle state below WFI: the
+power-down states wait for an SPM program, and no MT6797 per-core program
+exists. The working levers on this unit are:
+
+- **hotplug** on a dark screen, for all three clusters (P2f and H1);
+- **`mem` suspend through the vendor suspend program** (Route A, S1): 42 mA
+  against 73 mA for s2idle, with the boot watchdog handled by 0678 and
+  suspend on lid close in `backlight-policy`. The PMIC sleep modes (0679)
+  showed no effect beyond drift and stay off.
+
+The supposed 200 mA awake regression was the display relighting itself; a
+blanked station with CPU0 alone idles at about 77-80 mA. Before `mem`
+suspend is used outside tests, three defects owned elsewhere must be
+fixed: USB does not enumerate after a resume, `soc-thermal` reads `ENODATA`
+after a resume, and the display does not stay blanked across a resume.
+S2 (CPU0 powered down in suspend) comes after those, per the owner's
+order.
 
 ## Follow-up
 
-- C0 attempt 2 and H1, through the custodian, after owner approval, in the
-  [order above](#device-tests-in-order).
+- The three blockers for `mem` suspend outside tests: USB after a resume
+  (suspend session), `soc-thermal` after a resume (suspend session or the
+  thermal owner), the display's blank across a resume and its spontaneous
+  unblanks (display session).
+- Then S2, as recommended for owner decision 5.
 - The SPM route: an owner decision. Route A's S0 (reads only) can run any
   time; S1 needs approval of its write list and a module, which is a separate
   owner decision. P3 is no longer a prerequisite for suspend, only for the
