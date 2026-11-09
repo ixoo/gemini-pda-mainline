@@ -281,6 +281,8 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
 7. V9p with `IPA_GAINS` writes those PID files of the `soc-thermal` zone
    after the policy write (which resets them): `k_po`, `k_pu`, `k_i`, `k_d`,
    `integral_cutoff`. The script refuses any other name and reads each back.
+   With `IPA_WEIGHTS` it also writes every `cdevN_weight` of the zone (the
+   listed cooling-device type's value, 1024 for the others) and reads each back.
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
@@ -351,7 +353,7 @@ building anything on it.
 | V7 | V1 | `insmod mtk-cci-devfreq.ko`; step LL and L and read the devfreq `cur_freq` and the CCI PLL line; then schedutil on both, 10 s idle, 15 s of 8-CPU load, 10 s idle | CCI = the higher of the two clusters' places mapped onto 234-988 MHz, rounded to a CCI point; schedutil idles low and loads high; all load hashes equal; transitions counted | items 1-4 |
 | V8 | V1 | Cooling: `power_allocator` on the zone, emulate 77 C (above the control trip), then release | At least one policy's `scaling_max_freq` drops within 10 s; both come back | item 5 |
 | V9 | V1 | Heat soak from below 45 C: `power_allocator` on the zone, 10 min of 8-CPU load under schedutil, sampling every 10 s the SoC temperature, both policies' frequencies, vproc1, vsram_l and hashes | The allocator settles the SoC near 75 C and below 80 C; no hash difference. Pass opens the boot gate | items 1-3, 5 |
-| V9p | V1, cold | V9 with the allocator's budget, PID terms, CPU limits and zone temperature traced, raw trace kept in `/tmp/v9p-trace.txt`; `IPA_GAINS="k_po=60 k_pu=60 k_i=10 integral_cutoff=3000"` sets the tuned gains | Defaults: the trace shows why the caps swing (below). Tuned: mean near 75 C, below 77 C, no poll-to-poll swing | items 1-3, 5-7 |
+| V9p | V1, cold | V9 with the allocator's budget, PID terms, CPU limits and zone temperature traced, raw trace kept in `/tmp/v9p-trace.txt`; `IPA_GAINS="k_po=60 k_pu=60 k_i=10 integral_cutoff=3000"` sets the tuned gains, `IPA_WEIGHTS="cpufreq-cpu0=4096"` the cooling weights | Defaults: the trace shows why the caps swing (below). Tuned: mean near 75 C, below 77 C, no poll-to-poll swing | items 1-3, 5-7 |
 | V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × mV² / 10⁹) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
 | V11 | new boot, same image | Create `/mnt/data/cpufreq-at-boot`; power off; owner selects boot2 | Station status `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq`; schedutil on both policies | items 1-4 at boot |
 
@@ -486,6 +488,22 @@ record is in [the CPU power test plan](../2026-11-08-cpu-power-test-plan/README.
   rises about 5.8 C for each watt granted to the clusters (fit over 150-540 s). With the
   budget steady at full power, the reading moved 0.2 C (s.d.) from poll to poll.
 
+station-work-96 (`0681`-`0683`, init `3891147c`), boot `53187f71…`, cable in, `v-test.sh`
+`dd6c7e18`; the custodian's record is in the CPU power test plan:
+
+- **V1-V8 passed** (V7 16,039 and V8 3,030 traced events, 0 violations).
+- **V9p with k_po 60, k_pu 60, k_i 10, integral_cutoff 3000** (read back; k_d 0,
+  sustainable power 1500) passed: 151,872 events, 0 violations, 20,445 VPROC1 sets, hashes
+  equal. The 10 s samples from t+50 to t+530 s averaged 75.0 C (71.0-77.1 C; 70.2 C and
+  63.2-75.6 C with the defaults). Per poll, 9.7 % of readings were above 77 C, the highest
+  79.5 C, and the reading moved 3.0 C (s.d.) from poll to poll (9.3 C with the defaults).
+- From about 50 s the LL cap sat at 221 MHz (briefly 338) while the L cap moved between
+  1092 and 2002 MHz. Hashes per CPU: CPU0-3 1,021-1,041 and CPU4-7 3,641-3,724, 18,922 in
+  all, against 2,515-2,553, 2,784-2,810 and 21,347 with the defaults: 11 % less work at a
+  5 C higher temperature.
+- The budget fell from 1.10 W (100-200 s) to 0.80 W (500-600 s), with the integral at
+  -0.45 to -0.76 W; the LL request at 221 MHz was 35-42 mW, the L request 0.76-1.07 W.
+
 ## Analysis
 
 ### V1-V4 on D1
@@ -596,6 +614,38 @@ the target. The model puts the SoC at the 75 C target with about 15 % more
 power for the CPUs. The model leaves out the operating-point steps and the GPU,
 so V9p with these gains is the test. If they hold, the station init writes them
 after `power_allocator`.
+
+### V9p on station-work-96: one cluster starves
+
+The tuned gains fixed the loop: the mean sits on the 75 C target and the
+poll-to-poll swing dropped from 9.3 to 3.0 C. The split between the clusters
+went wrong instead. The allocator divides the budget in proportion to each
+actor's requested power. cpufreq cooling computes that request at the
+*current*, already capped, frequency, and then grants the highest point whose
+power fits, rounding down. Once LL is at 221 MHz it requests about 40 mW, gets
+about the same, and its next point (338 MHz) needs 1.6 times that, so it never
+climbs out. Either cluster can end up trapped. With the defaults, every other
+poll gave full power and reset both requests, which hid this.
+
+LL and L are both A53 clusters, so a MHz is worth the same on either, and the
+energy model makes LL far cheaper per MHz: 112 µW/MHz at its 1547 MHz top, against
+129-186 µW/MHz for L from 1209 MHz up. At about 0.95 W for the CPUs, the dynamic-power
+optimum is LL 1118 / L 1092 MHz (8,840 MHz in all). LL at its top with L at 650 MHz
+comes within 1 % of that. LL stuck at 221 with L at 1495 is 22 % below it. The
+hashes say the same: 11 % less work while running 5 C hotter.
+
+A cooling weight on LL makes LL the side that wins. The allocator multiplies
+each request by weight/1024 once any weight is set, so the weights are 4096 for
+`cpufreq-cpu0` and 1024 for `cpufreq-cpu4` and the GPU. LL then climbs out of
+221 MHz even against L's full 1.48 W request (that needs a ratio of at least
+2.9), and in the plant model it settles at its top with L near 670 MHz. L is
+not trapped either: once LL's share exceeds its 692 mW maximum, the allocator
+hands the surplus to L. Only below about 0.7 W does L sit at its bottom, which
+is still within 7 % of the optimum there.
+
+The test is the same V9p with the same gains plus `IPA_WEIGHTS`, with total
+hashes as the measure. If it holds, the weights become `contribution` in the
+cooling maps and the gains go into the station init.
 
 ### D3 item 3: the deferred CCI probe
 

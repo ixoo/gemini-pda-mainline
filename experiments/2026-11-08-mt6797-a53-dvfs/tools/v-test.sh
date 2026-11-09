@@ -24,6 +24,15 @@ ipa() { z=$(zone); [ -n "$z" ] || stop "no soc-thermal zone"; echo power_allocat
 gains() { for kv in ${IPA_GAINS:-}; do k=${kv%%=*}; v=${kv#*=}
     case $k in k_po|k_pu|k_i|k_d|integral_cutoff) ;; *) stop "IPA_GAINS: $k not allowed";; esac
     echo "$v" > "$z/$k" || stop "write $k"; [ "$(cat "$z/$k")" = "$v" ] || stop "$k reads $(cat "$z/$k"), not $v"; done; }
+# weights: with IPA_WEIGHTS ("cpufreq-cpu0=4096"), write every cooling instance weight of
+# the zone: the listed type's value, 1024 for the rest. The allocator scales each request
+# by weight/1024 once any weight is set, so an instance left at 0 would get no power.
+weights() { [ -n "${IPA_WEIGHTS:-}" ] || return 0
+  for l in "$z"/cdev[0-9]*_weight; do d=${l%_weight}; ty=$(cat "$d/type"); v=1024
+    for kv in $IPA_WEIGHTS; do [ "${kv%%=*}" = "$ty" ] && v=${kv#*=}; done
+    case $v in *[!0-9]*|'') stop "IPA_WEIGHTS: bad value $v";; esac
+    echo "$v" > "$l" || stop "write $l"; [ "$(cat "$l")" = "$v" ] || stop "$l reads $(cat "$l"), not $v"
+    echo "weight ${l##*/} $ty $v"; done; }
 soc_temp() { for z in /sys/class/thermal/thermal_zone*; do [ "$(cat $z/type)" = soc-thermal ] && { cat $z/temp; return; }; done; echo 0; }
 check_temp() { t=$(soc_temp); echo "soc_temp_mC $t"; [ "$t" -lt 80000 ] || stop "SoC at $t"; }
 check_log() {
@@ -170,7 +179,7 @@ v8) ipa; trace_start v8; for p in 0 4; do echo performance > $CF/policy$p/scalin
     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do sleep 1; echo "t+$i max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq)"; done
     [ "$(cat $CF/policy0/scaling_max_freq)" = 1547000 ] && [ "$(cat $CF/policy4/scaling_max_freq)" = 2002000 ] || stop "cooling did not release"
     for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done; sleep 2; trace_end v8; volts live; regs; check_log ;;
-v9|v9p) t=$(soc_temp); [ "$t" -lt 45000 ] || stop "SoC at $t; start V9 cold (below 45 C)"; ipa; [ "$STAGE" = v9p ] && gains
+v9|v9p) t=$(soc_temp); [ "$t" -lt 45000 ] || stop "SoC at $t; start V9 cold (below 45 C)"; ipa; [ "$STAGE" = v9p ] && { gains; weights; }
     for k in k_po k_pu k_i k_d integral_cutoff sustainable_power; do printf '%s %s ' $k "$(cat $z/$k)"; done; echo
     trace_start $STAGE; for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
     pids=""; for c in 0 1 2 3 4 5 6 7; do (end=$(($(date +%s)+600)); while [ "$(date +%s)" -lt "$end" ]; do $MHZ $c hash; done > /tmp/v9-load-$c) & pids="$pids $!"; done
