@@ -1285,6 +1285,89 @@ already approved for V1-V7, and reads. **Stops:** an Oops or `WARNING`; a
 module that refuses to load or unload (record it and skip to the next step);
 the battery under 30 %. Power off at the end.
 
+### Item 3 result (2026-11-09)
+
+Run by the custodian on a fresh D3 boot, `2902b8f5…`; recorded in the test
+plan ("D3 item 3", `ae43916e`). **The boot state is cheap:** N0 read
+80.2 mA by `charge_counter`. The windows read N0 80.2, N1 77.1, N2 77.1,
+N3 80.2, N4 (LL at 221 MHz) 70.3, N5 (CCI devfreq) 88.6, N6 88.7, N7
+(`cpufreq-dt` out) 70.3, N8 70.3, N9 67.2 mA, with no fault and taint 0.
+
+- No DVFS module loaded at boot. Boot registers: LL CON1 `0xC1114000`
+  (897 MHz), L `0x400C4000` (1274 MHz), CCI `0xC10C1D89`, sync DCM
+  `0x00070707`, VSRAM_L `0x0B`, DA9214 `0xd7` = `0x46`. N4 changed only LL
+  (`0x41110000`, divider field `0x160`); at N9 `0xd7` read `0x36`.
+- The CCI devfreq probe deferred (`-517`, CPU4-7 offline), yet VSRAM_L
+  went to `0x0F` (1200 mV) at N5 and stayed until `cpufreq-dt` unloaded:
+  about 18 mA. The custodian sent this to the cpufreq session as a probe
+  error-path leak.
+- The DA9214 reads while its driver was bound failed (`EBUSY`; its regmap
+  has no debugfs node), so only the boot and N9 values exist.
+- `current_now` again disagreed with `charge_counter` from N4 on.
+
+**Reading.** The 271 mA state is not the boot state and not any single step
+of the DVFS stack. It came from earlier work on the same boot: item 2's
+reference followed the DVFS tests V1-V7, and boot 3's followed a 30 s `mem`
+suspend. C0 attempt 2's 290-324 mA followed V0 on its boot. Something in that
+work raises it, and the full DVFS unload of item 2 cleared it.
+
+### Item 4: what raises the 271 mA state (proposal)
+
+**Question.** Does a `mem` resume raise it, does the DVFS load test (V7:
+CPU1-7 online under schedutil, CCI 676-988 MHz) raise it, and what register
+state differs when it is high?
+
+**Setup.** A fresh D3 boot, nothing run before it. CPU0 alone, `fb0` blanked,
+`backlight-policy` frozen with `kill -STOP`, radios and the A72 module
+unloaded, battery, cable out after setup. Windows of 120 s after 10 s of
+settling, by `charge_counter`. "High" means 150 mA or more.
+
+**Reads**, at boot and after every step (all reads; `devmem` for MMIO; the
+DA9214 by `i2cget` only while its driver is not bound, by its regulators'
+sysfs voltages while it is):
+
+- MCUMIXED: `0x1001a200`, `0x1001a204`, `0x1001a210`, `0x1001a214`,
+  `0x1001a220`, `0x1001a224`, `0x1001a270`, `0x1001a274`; FHCTL
+  `0x1001af00`, `0x1001af04`.
+- MCUCFG DCM and bus (vendor `mt_dcm.c` names): `0x1022002c`, `0x1022022c`,
+  `0x10220648`, `0x10220660`, `0x10220668`, `0x10220740`, `0x10220744`,
+  `0x1022074c`, `0x10222274`.
+- INFRACFG_AO: `0x10001000` (`TOP_CKMUXSEL`), `0x10001010` (`TOP_DCMCTL`),
+  `0x10001024`, `0x10001028`, `0x1000102c` (bus dividers), `0x10001070`,
+  `0x10001074` (infra and peri bus DCM), `0x10001078`, `0x1000107c` (memory
+  DCM), `0x10001f18`, the gate status words `0x10001090`, `0x10001094`,
+  `0x100010b0`, and VSRAM_L `0x10001f98`, `0x10001f9c`, `0x10001fa0`.
+- TOPCKGEN `CLK_CFG_0`-`7`, `0x10000040` to `0x100000b0` in steps of
+  `0x10`.
+- SPM: `0x1000600c`, `0x10006018`, `0x10006180`-`0x1000618c`, `0x10006600`.
+- DRAMC `0x102141dc`, `0x102141ec`; EMI `0x10203060`.
+- DA9214 at `0x68`: `0x50`-`0x5f`, `0xd0`-`0xdf`.
+- `clk_summary` (enabled clocks only), `lsmod`, SoC temperature.
+
+| Step | Action | Then |
+| --- | --- | --- |
+| A0 | none | window; reads (should read about 80 mA) |
+| A1 | load `mt6797-spm-sleep`; one 30 s `mem` suspend | window; reads |
+| A2 | only if A1 is high: load and unload `clk-mt6797-mcusys` | window; reads |
+| A3 | only if still high: the DVFS stack loaded, policy0 at 221 MHz, then unloaded in item 2's order | window; reads |
+| B1 | only if A1 is not high: load the DVFS stack and run V7 as the A53 DVFS session runs it, then CPU1-7 offline again | window; reads |
+| B2-B5 | only if B1 is high: unload the CCI devfreq, `cpufreq-dt`, `clk-mt6797-mcusys`, the regulators, one per step | window and reads after each |
+
+About 20-25 minutes on battery, depending on the branch.
+
+**What decides it.** The first step whose window is high names the cause,
+whether a resume or the load test. The reads that differ from A0 at that
+step say which block is left changed: a PLL, a DCM bit, a bus divider, an
+infra clock, VSRAM or a buck. The step that brings it back down confirms
+it. The fix goes to the owner of what changed: the SPM sleep module (this
+record) for a resume, the A53 DVFS session for the load test.
+
+**Writes.** None new: the S1 list as approved for boot 3, the DVFS stack's
+own writes as approved for V1-V7, and reads. **Stops:** an Oops or
+`WARNING`; no wake within 60 s of the expected one (force-off); a module
+that refuses to load or unload (record it and go to the next step); the
+battery under 30 %. Power off at the end.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
