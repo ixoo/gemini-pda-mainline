@@ -615,6 +615,60 @@ Inference (corrected after the display session's triage):
   - read `fb0/blank` just before the suspend;
   - read the display state at both ends of each window.
 
+### station-work-96 V1-V8 and V9p with the proposed gains (2026-11-09)
+
+station-work-96 carries 0681, 0682 and 0683 and init `3891147c…`. Its boot2 was
+`86322507…` (unpadded `ebc032be…`), package `b2dcbbb3…` from `e3bec7e8`. It ran on boot
+`53187f71…`, cable in, with `v-test.sh` `dd6c7e18…` checked on the station.
+
+The owner approved the four zone writes, with these gains:
+`IPA_GAINS="k_po=60 k_pu=60 k_i=10 integral_cutoff=3000"`. The script read them back.
+
+Observed:
+- **V1-V8 passed.** V7 (rerun because 0682 changed `mtk-cci-devfreq.ko`) had 16,039
+  events and 0 violations. V8 had 3,030 events and 0 violations.
+- At boot, 0683's thermal driver armed the hardware reset at 117 °C with
+  `REQ_MODE=0x003c0003`.
+- **V9p passed:** 151,872 events, 0 violations, hashes equal, no fault line.
+
+Temperature over the 10 s samples from t+50 to t+530 s, with the same load each time:
+
+| | Old gains (station-work-95) | New gains |
+| --- | --- | --- |
+| Mean | 70.2 °C | 75.0 °C |
+| Range | 63.2-75.6 °C | 71.0-77.1 °C (77.1 twice) |
+| VPROC1 sets | 29,182 | 20,445 |
+
+Per-CPU hash counts, little cluster / big cluster:
+
+| | Old gains | New gains |
+| --- | --- | --- |
+| CPU0-3 | 2,515-2,553 | 1,021-1,041 |
+| CPU4-7 | 2,784-2,810 | 3,641-3,724 |
+| Total | 21,347 | 18,922 |
+
+- With the new gains the little-cluster cap sat at its lowest point (221 MHz, 338 MHz
+  briefly) from t+50 s to the end. The big-cluster cap moved between 1092 and 2002 MHz.
+
+Inference:
+- The new gains removed the top-to-bottom swing and hold the mean at the 75 °C target.
+  The "never above 77" criterion missed by 0.1 °C twice.
+- The allocator gave almost the whole budget to the big cluster. Total work was 11 %
+  lower than with the old gains, even though the SoC ran 5 °C hotter.
+- The tuning trades the swing for a starved little cluster. That is the cpufreq
+  session's call before the gains go into the init.
+
+### station-work-96: what waits for the owner (2026-11-09)
+
+The owner is away for 24 h, with no reboot and no cable change possible. Deferred:
+- T-M, the display trace across a suspend, and U2: each needs the cable out for the
+  `mem` suspend and a replug.
+- U2's cable-in check (the guard should refuse the suspend): if the guard failed, USB
+  could stay down with nobody there to recover the station.
+- V11: it needs a reboot.
+
+Running meanwhile, cable in: a passive display relight watch (below).
+
 ## Analysis
 
 None yet.
