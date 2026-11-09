@@ -177,6 +177,13 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
 - Boot 3 second retry (boot `263ae72a…`): all five mem suspends returned. Suspended current
   was about 42 mA, against 271 mA idle and 73 mA for s2idle
   ([S1 measured](#boot-3-second-retry-s1-measured-2026-11-08)).
+- D2 (station-work-93, boot2 `ed088a5a…`, from `4a1c6f22`; boot `bb910b05…`): V1-V6
+  passed. V4 now loads cleanly: policy4 moved 1274 → 1352 MHz, VPROC1 1040 mV, VSRAM_L
+  1100 mV. V7 stopped: the CCI followed the clusters by interpolation to 626.08 MHz, which
+  is not a table point, while VPROC1 held 1020 mV, the 611 MHz point's voltage. The station
+  was powered off at that stop. Details are in the
+  [DVFS record](../2026-11-08-mt6797-a53-dvfs/README.md); the private logs are in
+  `artifacts/station-work-93/phase1/`.
 
 ### Boot 3 result (2026-11-08)
 
