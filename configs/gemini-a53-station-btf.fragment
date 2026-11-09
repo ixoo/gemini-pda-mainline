@@ -2,9 +2,11 @@
 # add to the station's boot image now that the RAM root is xz-compressed. Not
 # booted. BTF needs DWARF at build time; pahole turns it into the .BTF section,
 # and modules get their own. The kernel headers archive is a module, so it stays
-# out of boot2 until it is loaded.
+# out of boot2 until it is loaded. arm64's defconfig reduces the debug info, which
+# BTF cannot use.
 # CONFIG_DEBUG_INFO_NONE is not set
 CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
+# CONFIG_DEBUG_INFO_REDUCED is not set
 CONFIG_DEBUG_INFO_BTF=y
 CONFIG_DEBUG_INFO_BTF_MODULES=y
 CONFIG_FUNCTION_TRACER=y
