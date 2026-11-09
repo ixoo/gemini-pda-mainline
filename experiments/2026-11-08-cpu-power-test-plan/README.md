@@ -567,6 +567,41 @@ Inference:
 - V9, the boot gate, now passes on station-work-95. Whether cpufreq loads at boot
   (V11) is the cpufreq session's call.
 
+### station-work-95 item 5: the display across a resume (2026-11-09)
+
+The cpuidle session's item 5, on a fresh station-work-95 boot `6b9cf9c0…`, on battery.
+Setup as item 4, plus console blank off (`consoleblank` read 0) and `fb0` blanked with
+`4`. The V9p sessions before it ran on earlier boots.
+
+| Window | Step before it | `fb0/blank`, connector `dpms`, `bl_power` | `mm_*`/`mipi_*` clocks on | Average (charge counter) |
+| --- | --- | --- | --- | --- |
+| E0 | `fb0` blank 4 | 1, Off, 4 | 2 | 114.1 mA |
+| E1 | one 30 s `mem` suspend (`rc=0`, timer wake) | 0, On, 0 | 16 | 286.9 mA |
+| E2 | `fb0` blank 4 again | 1, Off, 4 | 2 | 77.1 mA |
+| E3 | `fb0` 0, then 4 | 1, Off, 4 at the step | 2 at the step | 209.8 mA |
+
+Observed:
+- After the resume, `fb0/blank` read 0. The connector read `dpms On`, `bl_power` read 0
+  (backlight on), and the 14 display clocks were back on. Blanking again (E2) brought
+  the draw to 77 mA.
+- `fb0/blank` reads back 1 after a write of 4.
+- DRM read the panel again three times with no step of the test behind it: at 220.8 s
+  (inside E0), at 562.8 s (inside E3), and after E3, where the end read showed the
+  display on.
+  - The log shows no input event, but input is not logged.
+  - E0 and E3 are therefore mixed windows, which explains their 114 and 210 mA.
+- soc-thermal read `ENODATA` from the resume on, as in item 4. `battery-thermal` stayed
+  at 23.9-24.5 °C, so the extra stop never applied.
+- No fault line, taint 0. The device powered off by itself at 670 s.
+
+Inference:
+- The ~200 mA after a `mem` resume is the display: the resume turns a blanked display
+  fully back on, backlight included. Blanking again removes it. The fix belongs to the
+  display session.
+- Something else also unblanks the display while `consoleblank` is 0. A key or lid
+  event is the likeliest cause. Until it is known, power windows need the display state
+  read at both ends.
+
 ## Analysis
 
 None yet.
