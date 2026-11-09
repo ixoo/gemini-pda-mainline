@@ -41,6 +41,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0674`](../../patches/proposals/0674-arm64-dts-mediatek-gemini-station-let-the-CCI-follow.patch) | After D1: no required-opps, so the CCI follows by interpolation; VSRAM_L floor 1.10 V, the firmware's own boot value |
 | [`0675`](../../patches/proposals/0675-cpufreq-dt-set-the-OPP-of-a-CPU-with-a-supply-at-ini.patch) | After D1, found in review: cpufreq-dt sets each regulated policy's OPP at init. Otherwise CPU0-3, booting at the listed 897 MHz, would hold no voltage request on the shared VPROC1 until their first change, and CPU4-7 could lower the rail under them. CPU4-7's move off the unlisted 1274 MHz also happens here, where it can fail cleanly, instead of in the core's `BUG_ON()` path. Module only |
 | [`0677`](../../patches/proposals/0677-PM-devfreq-mtk-cci-set-the-rate-of-the-OPP-it-picked.patch) | After D2 V7: mtk-cci-devfreq passes the devfreq flags and sets the rate of the OPP it picked, so an interpolated request rounds up to a CCI point for both clock and voltage. It used to take the voltage of the point below and set the raw rate. Module only |
+| [`0680`](../../patches/proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch) | After D3 V9: power-allocator cooling. CPU0-7 get `dynamic-power-coefficient` (78 and 129) for an energy model; a 75 C passive control trip carries both clusters and the GPU; 100 ms passive polling; 1.5 W `sustainable-power`. Needs a new image |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -96,8 +97,21 @@ custodian creates it after the heat soak (V9).
 
 Energy model: `capacity-dmips-mhz` for all ten CPUs comes from the A72
 station tree, from the all-cores session's per-MHz measurements
-([all cores](../2026-11-01-mt6797-all-cores/README.md)). `dynamic-power-coefficient`
-is absent, so cpufreq-dt registers no energy model; V10 measures it.
+([all cores](../2026-11-01-mt6797-all-cores/README.md)). Since `0680`,
+`dynamic-power-coefficient` is 78 for CPU0-3 and 129 for CPU4-7, fitted to the
+vendor's per-core dynamic power for each operating point at its base voltage
+(mW = C × MHz × mV² / 10⁹); every point is within 11 % of the fit. With it
+cpufreq-dt registers an energy model and both clusters can be power-allocator
+actors. V10 can check the fit against this unit.
+
+Thermal: since `0680` the `soc-thermal` zone also has a 75 C passive control
+trip, the vendor's adaptive CPU budget target, with both clusters and the GPU
+on it, 100 ms passive polling and a 1.5 W first `sustainable-power`. The 58 C
+trip is the allocator's switch-on point. No device tree property picks a
+zone's governor: the station init (and V8/V9) set `power_allocator` on the
+zone, which refuses to bind, leaving step-wise, unless every device on the
+control trip has an energy model. Set it only while the zone is below 58 C,
+because the allocator does not touch the 58 C step-wise instances.
 
 ### Voltages
 
@@ -244,8 +258,11 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
 4. On loading `mtk-cci-devfreq`: VPROC1 to the CCI table's top voltage (1.2 V)
    and VSRAM_L to 1.2 V, which upstream's driver does at probe. The passive
    governor then sets the CCI point.
-5. V8 writes the `soc-thermal` zone's `emul_temp` (62000, then 0), as A53
-   cpufreq t7.
+5. V8 writes the `soc-thermal` zone's `emul_temp` (77000, then 0), as A53
+   cpufreq t7. V8 and V9 write `power_allocator` to the zone's `policy`; the
+   station init does the same once the boot gate is open.
+6. V7's schedutil phase, V8 and V9 write tracefs control files and
+   `trace_marker` (owner-approved for D3).
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
@@ -255,8 +272,8 @@ outside the lists above.
 - VPROC1 770-1200 mV by constraint, 840-1200 mV in the tables; VSRAM_L
   1100-1200 mV; VSRAM_L never below VPROC1.
 - CPU0-3 221-1547 MHz, CPU4-7 325-2002 MHz, CCI 234-988 MHz.
-- SoC temperature: stop above 80 C. The 58 C passive trip caps both
-  clusters; 95 C hot, 110 C critical and the 117 C hardware reset stay armed.
+- SoC temperature: stop above 80 C. The power allocator, from 58 C, holds
+  the zone near 75 C; 95 C hot, 110 C critical and the 117 C hardware reset stay armed.
 - Load runs are bounded (15 s in V7, 10 min in V9) and the battery stays on
   the charger except in V10.
 
@@ -314,9 +331,9 @@ building anything on it.
 | V5 | V1 | CPU0-3 sweep: every LL point down then up, then 221↔1547 jumps; at each, measure CPU1 and CPU3, hash, read vproc1 and vsram_l | Clocks within 5 %, hashes equal, readbacks exactly the table, VSRAM_L ≥ VPROC1 | items 1-3 |
 | V6 | V1 | CPU4-7 the same, 325-2002 MHz, including both post-divider crossings | As V5 | items 1-3 |
 | V7 | V1 | `insmod mtk-cci-devfreq.ko`; step LL and L and read the devfreq `cur_freq` and the CCI PLL line; then schedutil on both, 10 s idle, 15 s of 8-CPU load, 10 s idle | CCI = the higher of the two clusters' places mapped onto 234-988 MHz, rounded to a CCI point; schedutil idles low and loads high; all load hashes equal; transitions counted | items 1-4 |
-| V8 | V1 | Cooling: emulate 62 C, then release | Both policies' `scaling_max_freq` step down and come back | item 5 |
-| V9 | V1 | Heat soak: 10 min of 8-CPU load under schedutil, sampling every 10 s the SoC temperature, both policies' frequencies, vproc1, vsram_l and hashes | The passive trip at 58 C caps the clusters and holds the SoC below 80 C; no hash difference. Pass opens the boot gate | items 1-3 |
-| V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × V² / 10⁶) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
+| V8 | V1 | Cooling: `power_allocator` on the zone, emulate 77 C (above the control trip), then release | At least one policy's `scaling_max_freq` drops within 10 s; both come back | item 5 |
+| V9 | V1 | Heat soak from below 45 C: `power_allocator` on the zone, 10 min of 8-CPU load under schedutil, sampling every 10 s the SoC temperature, both policies' frequencies, vproc1, vsram_l and hashes | The allocator settles the SoC near 75 C and below 80 C; no hash difference. Pass opens the boot gate | items 1-3, 5 |
+| V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × mV² / 10⁹) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
 | V11 | new boot, same image | Create `/mnt/data/cpufreq-at-boot`; power off; owner selects boot2 | Station status `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq`; schedutil on both policies | items 1-4 at boot |
 
 After a pass: record support, fill the energy model, and decide with the owner
@@ -404,6 +421,23 @@ the device custodian, owner-approved, on image D3 (`station-work-94`, from `5ed8
   shell time while the rail moves within milliseconds, so the stop says nothing about
   ordering. The script now traces the schedutil phases instead.
 
+**V1-V9 (2026-11-09), stopped at V9 on the 80 C limit.** Run by the device custodian,
+owner-approved, on D3, boot `6dbf6d59…`, scripts from `d9e52a18`.
+
+- **V1-V7 passed.** V7's traced schedutil phase: 28,884 events, 0 violations, no
+  overrun. Idle 221/1625 MHz with CCI 819 MHz; under load 1495/1950 MHz with CCI 975.
+  10 s after the load policy0 still read 1495 MHz and the CCI 988 MHz; policy4 was back at
+  1352.
+- **V8 passed:** emulated 62 C capped both policies one step (1495/1950 MHz), then
+  released; 0 violations.
+- **V9 stopped:** started warm (64 C at t+10 s, after V5-V8 back to back). The 58 C
+  step-wise trip held the clusters only one to three steps down: the caps swung between
+  1391/1820 and 1339/1755 MHz every 10 s while the SoC rose about 1 C per 10 s to 80.1 C.
+  No fault, taint 0. Afterwards both cooling devices read 0/15 and the SoC 34 C.
+- Two setup slips, not DVFS results: debugfs unmounted (V3 rerun after removing the
+  clock module), and the backlight policy took CPU1-7 offline at console blank during V5
+  (V5 rerun). The script now checks both.
+
 ## Analysis
 
 ### V1-V4 on D1
@@ -454,6 +488,24 @@ least-upper-bound flag, so the request rounds up, and the clock, the voltage and
 devfreq's record all name the same point. For the V7 case that is 676 MHz at
 that point's voltage. The change is in the `mtk-cci-devfreq` module only;
 `tools/v-test.sh` already expects table points and needs no change.
+
+### V9 on D3
+
+Step-wise steps a cooling device up only while the trend is rising and down
+while it is falling. The SoC sensor's reading jitters by more than the
+heating per 1 s poll, so the trend flips nearly every poll and the state
+random-walks around one to three steps instead of accumulating. That is
+step-wise working as designed with one trip and a slow, noisy rise; it holds
+no temperature.
+
+The vendor does not use trips for this either: its adaptive CPU cooler runs a
+power budget toward a 75 C junction target from 58 C. The upstream
+equivalent is the power allocator, which needs an energy model for each CPU
+cooling device. The vendor's own per-core dynamic-power table fits
+`P = C × f × V²` closely per cluster, so `0680` takes the coefficients from
+it rather than waiting for V10, and adds the 75 C control trip. The 1.5 W
+sustainable power only seeds the controller's gains. V9's trace of the
+allocator, if needed, would show the granted power to tune it.
 
 ## Conclusion
 

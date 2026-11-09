@@ -135,6 +135,12 @@ fi
         for policy in /sys/devices/system/cpu/cpufreq/policy*; do
             [ -e "$policy/scaling_governor" ] && $bb echo schedutil >"$policy/scaling_governor"
         done
+        # Power allocator on the SoC zone; it refuses to bind, and step-wise stays,
+        # unless every cooling device on the control trip has an energy model.
+        for zone in /sys/class/thermal/thermal_zone*; do
+            [ "$($bb cat "$zone/type" 2>/dev/null)" = soc-thermal ] || continue
+            $bb echo power_allocator >"$zone/policy" 2>/dev/null && result="$result,power_allocator"
+        done
         status "cpufreq=$result"
         $bb rm -f "$marker"
         $bb sync

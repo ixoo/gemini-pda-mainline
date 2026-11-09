@@ -1,0 +1,144 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 9 Nov 2026 08:04:58 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: power allocator cooling
+ for DVFS
+
+Under 8-CPU load the step-wise governor on the 58 C trip held the
+clusters only one to three steps down, because the sensor's noise
+flips the trend between rising and falling on every poll. The SoC
+kept warming about 1 C every 10 s past 80 C.
+
+The vendor kernel instead runs an adaptive power budget: from 58 C it
+holds a 75 C target. Do the same with the power allocator governor:
+
+- give CPU0-7 a dynamic-power-coefficient, so cpufreq-dt registers an
+  energy model and both clusters become power actors. The values, 78
+  for CPU0-3 and 129 for CPU4-7, are fitted to the vendor's per-core
+  dynamic power for each operating point at its base voltage; each
+  point is within 11 % of the fit;
+- add a 75 C passive control trip with both clusters and the GPU on
+  it, keeping the 58 C trip as the switch-on point;
+- poll every 100 ms while passive, and give a first sustainable-power
+  estimate of 1.5 W, below the 1.9 W at which 8-CPU load still warmed
+  past 70 C.
+
+No device tree property chooses a zone's governor, so the zone is set
+to power_allocator at run time.
+---
+ .../mt6797-gemini-pda-station-dvfs.dts        | 61 +++++++++++++++++--
+ 1 file changed, 57 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+index eaef3e010..4feb0d924 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -358,48 +358,101 @@ vproc2: BUCKB {
+ };
+ 
+ /*
+- * capacity-dmips-mhz comes from the A72 station tree. The energy model's
+- * dynamic-power-coefficient is still to be measured
+- * (experiments/2026-11-08-mt6797-a53-dvfs); without it cpufreq-dt registers no
+- * energy model.
++ * Power allocator cooling for the SoC zone, as the vendor's adaptive CPU
++ * budget does: from the 58 C trip, hold the junction near 75 C. Both
++ * clusters and the GPU are power actors at the control trip; the 58 C maps
++ * from the station tree stay for the step-wise governor. The zone's policy
++ * is set to power_allocator at run time. sustainable-power is a first
++ * estimate, below the 1.9 W at which 8-CPU load still warmed past 70 C.
++ */
++&{/thermal-zones/soc-thermal} {
++	polling-delay-passive = <100>;
++	sustainable-power = <1500>;
++
++	trips {
++		soc_control: soc-control {
++			temperature = <75000>;
++			hysteresis = <2000>;
++			type = "passive";
++		};
++	};
++
++	cooling-maps {
++		map-control-ll {
++			trip = <&soc_control>;
++			cooling-device =
++				<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++		};
++
++		map-control-l {
++			trip = <&soc_control>;
++			cooling-device =
++				<&cpu4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++		};
++
++		map-control-gpu {
++			trip = <&soc_control>;
++			cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++		};
++	};
++};
++
++/*
++ * capacity-dmips-mhz comes from the A72 station tree. dynamic-power-coefficient
++ * is fitted to the vendor's per-core dynamic power for each operating point at
++ * its base voltage (mW = C x MHz x mV^2 / 10^9): 78 for CPU0-3, 129 for CPU4-7.
+  */
+ 
+ &cpu0 {
+ 	operating-points-v2 = <&ll_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <78>;
+ };
+ 
+ &cpu1 {
+ 	operating-points-v2 = <&ll_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <78>;
+ };
+ 
+ &cpu2 {
+ 	operating-points-v2 = <&ll_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <78>;
+ };
+ 
+ &cpu3 {
+ 	operating-points-v2 = <&ll_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <78>;
+ };
+ 
+ &cpu4 {
+ 	operating-points-v2 = <&l_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <129>;
+ };
+ 
+ &cpu5 {
+ 	operating-points-v2 = <&l_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <129>;
+ };
+ 
+ &cpu6 {
+ 	operating-points-v2 = <&l_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <129>;
+ };
+ 
+ &cpu7 {
+ 	operating-points-v2 = <&l_dvfs_opp>;
+ 	cpu-supply = <&vproc1>;
++	dynamic-power-coefficient = <129>;
+ };
+-- 
+2.43.0
+

@@ -12,8 +12,13 @@ MHZ=/tmp/cf/cpu-mhz; M=/lib/modules/$(uname -r)
 CF=/sys/devices/system/cpu/cpufreq; REF=/tmp/v-hash-ref; TOL=5
 DEV=1001a000.clock-controller
 CHK=$(dirname "$0")/v-trace-check.awk; TR=/sys/kernel/tracing; [ -d $TR/events ] || TR=/sys/kernel/debug/tracing
-stop() { echo "STOP: $*"; [ -n "${tpid:-}" ] && { kill $tpid 2>/dev/null; echo 0 > $TR/tracing_on; }; dmesg | grep -iE 'da921|da9213|vsram|mcusys|cpufreq|cci|devfreq|thermal|coupl' | tail -n 30; exit 1; }
+stop() { echo "STOP: $*"; [ -n "${pids:-}" ] && kill $pids 2>/dev/null; [ -n "${tpid:-}" ] && { kill $tpid 2>/dev/null; echo 0 > $TR/tracing_on; }; dmesg | grep -iE 'da921|da9213|vsram|mcusys|cpufreq|cci|devfreq|thermal|coupl' | tail -n 30; exit 1; }
 regs() { r=/sys/kernel/debug/$DEV/registers; [ -r "$r" ] || stop "no $r"; cat "$r"; grep -q 'faulted=0' "$r" || stop "driver faulted"; }
+online_ok() { case $(cat /sys/devices/system/cpu/online) in 0-7|0-9) ;; *) stop "CPUs online $(cat /sys/devices/system/cpu/online) (console blank?)";; esac; }
+zone() { for z in /sys/class/thermal/thermal_zone*; do [ "$(cat $z/type)" = soc-thermal ] && echo $z; done; }
+# ipa: the power allocator on the SoC zone (0680), as the station init sets it.
+ipa() { z=$(zone); [ -n "$z" ] || stop "no soc-thermal zone"; echo power_allocator > $z/policy || stop "power_allocator refused (no energy model?)"
+  [ "$(cat $z/policy)" = power_allocator ] || stop "zone policy $(cat $z/policy)"; echo "zone $z policy power_allocator sustainable_power $(cat $z/sustainable_power)"; }
 soc_temp() { for z in /sys/class/thermal/thermal_zone*; do [ "$(cat $z/type)" = soc-thermal ] && { cat $z/temp; return; }; done; echo 0; }
 check_temp() { t=$(soc_temp); echo "soc_temp_mC $t"; [ "$t" -lt 80000 ] || stop "SoC at $t"; }
 check_log() {
@@ -101,8 +106,8 @@ measure() { m=$($MHZ $1 5 | awk '{print $4}'); echo "cpu$1 want_khz $2 measured_
   awk -v m=$m -v k=$2 -v t=$TOL 'BEGIN{d=m*1000-k; if(d<0)d=-d; exit !(d*100<=k*t)}' || stop "cpu$1 at $m MHz, wanted $2 kHz"; }
 hash_ok() { h=$($MHZ $1 hash | awk '{print $2}'); echo "cpu$1 hash $h"; [ "$h" = "$(cat $REF)" ] || { stop "cpu$1 hash $h"; }; }
 set_khz() { p=$CF/policy$1; echo $2 > $p/scaling_setspeed || stop "setspeed $2 refused"; cur=$(cat $p/scaling_cur_freq); echo "policy$1 set $2 cur $cur"; [ "$cur" = "$2" ] || stop "policy$1 reports $cur after $2"; check_log; }
-step() { pol=$1; a=$2; b=$3; shift 3; for k in "$@"; do set_khz $pol $k; grep -E '^pll|^muxsel' /sys/kernel/debug/$DEV/registers; volts; expect; measure $a $k; measure $b $k; hash_ok $a; check_temp; done; }
-case $(cat /sys/devices/system/cpu/online) in 0-7|0-9) ;; *) stop "CPUs online $(cat /sys/devices/system/cpu/online)";; esac
+step() { pol=$1; a=$2; b=$3; shift 3; for k in "$@"; do online_ok; set_khz $pol $k; grep -E '^pll|^muxsel' /sys/kernel/debug/$DEV/registers; volts; expect; measure $a $k; measure $b $k; hash_ok $a; check_temp; done; }
+online_ok; grep -q ' /sys/kernel/debug debugfs ' /proc/mounts || stop "debugfs not mounted"
 case "$STAGE" in
 v1) uname -r; cat /proc/sys/kernel/random/boot_id; for c in 0 3 4 7; do $MHZ $c 5; done
     $MHZ 0 hash | awk '{print $2}' > $REF; echo "hash_ref $(cat $REF)"; hash_ok 4; volts; check_temp
@@ -146,17 +151,20 @@ v7) insmod $M/mtk-cci-devfreq.ko || stop "cci refused"; sleep 2; D=$CCI
     done
     sched_load ;;
 v7s) [ -d $CCI ] || stop "no CCI devfreq"; sched_load ;; # the V7 schedutil phase alone, CCI already loaded
-v8) z=""; for d in /sys/class/thermal/thermal_zone*; do [ "$(cat $d/type)" = soc-thermal ] && z=$d; done
-    trace_start v8; for p in 0 4; do echo performance > $CF/policy$p/scaling_governor; done
-    echo 62000 > $z/emul_temp || stop "emul_temp refused"
-    for i in 1 2 3 4 5 6 7 8 9 10; do sleep 1; echo "t+$i max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq)"; done
+v8) ipa; trace_start v8; for p in 0 4; do echo performance > $CF/policy$p/scaling_governor; done
+    # 77 C is above the 75 C control trip, so the allocator must cut the budget.
+    echo 77000 > $z/emul_temp || stop "emul_temp refused"; capped=0
+    for i in 1 2 3 4 5 6 7 8 9 10; do sleep 1; m0=$(cat $CF/policy0/scaling_max_freq); m4=$(cat $CF/policy4/scaling_max_freq)
+      echo "t+$i max0 $m0 max4 $m4"; [ "$m0" -lt 1547000 ] || [ "$m4" -lt 2002000 ] && capped=1; done
+    [ $capped = 1 ] || { echo 0 > $z/emul_temp; stop "no cap at 77 C"; }
     echo 0 > $z/emul_temp
     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do sleep 1; echo "t+$i max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq)"; done
     [ "$(cat $CF/policy0/scaling_max_freq)" = 1547000 ] && [ "$(cat $CF/policy4/scaling_max_freq)" = 2002000 ] || stop "cooling did not release"
     for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done; sleep 2; trace_end v8; volts live; regs; check_log ;;
-v9) trace_start v9; for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
+v9) t=$(soc_temp); [ "$t" -lt 45000 ] || stop "SoC at $t; start V9 cold (below 45 C)"; ipa
+    trace_start v9; for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
     pids=""; for c in 0 1 2 3 4 5 6 7; do (end=$(($(date +%s)+600)); while [ "$(date +%s)" -lt "$end" ]; do $MHZ $c hash; done > /tmp/v9-load-$c) & pids="$pids $!"; done
-    i=0; while [ $i -lt 60 ]; do sleep 10; i=$((i+1)); t=$(soc_temp)
+    i=0; while [ $i -lt 60 ]; do sleep 10; i=$((i+1)); t=$(soc_temp); online_ok
       echo "t+$((i*10)) soc $t f0 $(cat $CF/policy0/scaling_cur_freq) f4 $(cat $CF/policy4/scaling_cur_freq) max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq) $(volts live | cut -d' ' -f1-6)"
       [ "$t" -lt 80000 ] || { kill $pids; stop "SoC at $t"; }; done
     wait $pids; trace_end v9
