@@ -1,0 +1,95 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 9 Nov 2026 10:53:49 -0500
+Subject: [PATCH] thermal/drivers/mediatek/auxadc_thermal: set MT6797 up again
+ after a suspend loses it
+
+The driver has no sleep callbacks. On the Gemini the SPM's mem suspend
+path cuts power to the thermal controller or to the AUXADC: after
+resume every bank reads an invalid sample, the zone read fails with
+-ENODATA until the next boot, and the trips and the hardware thermal
+reset, which compares the same samples, have no input. Suspend to idle
+keeps the controller running and was not affected.
+
+At resume, when a bank has no valid sample, close the MT6797 setup
+transaction and run it again, as probe does: the clocks, the controller
+reset, the APMIXED buffer, the AUXADC channel and the banks, up to a
+valid first sample. Then arm the hardware reset again if it was armed,
+with the checks that probe uses. The thermal core does not poll zones
+until every device has resumed. The other SoCs are unchanged.
+---
+ drivers/thermal/mediatek/auxadc_thermal.c | 52 +++++++++++++++++++++++
+ 1 file changed, 52 insertions(+)
+
+diff --git a/drivers/thermal/mediatek/auxadc_thermal.c b/drivers/thermal/mediatek/auxadc_thermal.c
+index a9d55a3b0..5854f5f72 100644
+--- a/drivers/thermal/mediatek/auxadc_thermal.c
++++ b/drivers/thermal/mediatek/auxadc_thermal.c
+@@ -2421,12 +2421,64 @@ static void mtk_thermal_remove(struct platform_device *pdev)
+ 	}
+ }
+ 
++static bool mt6797_thermal_banks_valid(struct mtk_thermal *mt)
++{
++	int i, temp;
++
++	for (i = 0; i < mt->conf->num_banks; i++) {
++		mtk_thermal_get_bank(&mt->banks[i]);
++		temp = mtk_thermal_bank_temperature(&mt->banks[i]);
++		mtk_thermal_put_bank(&mt->banks[i]);
++		if (temp == THERMAL_TEMP_INVALID || temp == INT_MIN)
++			return false;
++	}
++
++	return true;
++}
++
++/*
++ * A suspend that cuts the thermal controller's or the AUXADC's power, such
++ * as the MT6797 SPM's mem path, leaves the banks without valid samples: the
++ * zone then reads nothing and the hardware reset has no input. Run probe's
++ * setup again, and arm the hardware reset again if it was armed. Zone
++ * polling is stopped until after every device has resumed.
++ */
++static int mtk_thermal_resume(struct device *dev)
++{
++	struct mtk_thermal *mt = dev_get_drvdata(dev);
++	const struct mtk_thermal_transaction_ops *ops =
++		&mt6797_thermal_transaction_ops;
++	bool armed;
++	int ret;
++
++	if (mt->conf->version != MTK_THERMAL_V4 || mt6797_thermal_banks_valid(mt))
++		return 0;
++
++	dev_warn(dev, "thermal banks lost their state in suspend, setting them up again\n");
++	armed = mt->protect_armed;
++	mt6797_thermal_protect_disarm(mt);
++	mtk_thermal_transaction_close(mt, ops, &mt->transaction);
++	ret = mtk_thermal_transaction_execute(mt, ops, &mt->transaction,
++					      mt->conf->num_banks);
++	if (ret) {
++		dev_crit(dev, "thermal banks not set up again: %d\n", ret);
++		return ret;
++	}
++	if (armed && mt6797_thermal_protect_arm(mt))
++		dev_crit(dev, "hardware thermal reset not armed again\n");
++
++	return 0;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(mtk_thermal_pm_ops, NULL, mtk_thermal_resume);
++
+ static struct platform_driver mtk_thermal_driver = {
+ 	.probe = mtk_thermal_probe,
+ 	.remove = mtk_thermal_remove,
+ 	.driver = {
+ 		.name = "mtk-thermal",
+ 		.of_match_table = mtk_thermal_of_match,
++		.pm = pm_sleep_ptr(&mtk_thermal_pm_ops),
+ 	},
+ };
+ 
+-- 
+2.43.0
+

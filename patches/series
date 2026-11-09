@@ -1260,3 +1260,4 @@ proposals/0679-soc-mediatek-mt6797-spm-sleep-add-the-static-PMIC-sl.patch
 proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch
 proposals/0681-usb-mtu3-set-the-device-up-again-when-suspend-reset-.patch
 proposals/0682-PM-devfreq-mtk-cci-drop-the-voltage-request-when-it-.patch
+proposals/0683-thermal-drivers-mediatek-auxadc_thermal-set-MT6797-u.patch

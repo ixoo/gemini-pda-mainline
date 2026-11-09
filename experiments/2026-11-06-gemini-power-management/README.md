@@ -1420,6 +1420,48 @@ Test **U2**, on an image carrying 0681:
 - New writes: MTU3's own probe-time setup writes to its IPPC and MAC,
   which probe already makes at every boot.
 
+#### Thermal zone lost after a mem resume (2026-11-09)
+
+Reported by the device custodian from cpuidle item 4: `station-work-95`,
+boot `b7dba389`, one 30 s `mem` suspend through `mt6797-spm-sleep`, rc 0.
+Every later read of `soc-thermal` failed with ENODATA for about 430 s,
+until power-off. Raw logs private.
+
+**Reading (from the code).**
+- `mtk_read_temp()` returns `THERMAL_TEMP_INVALID` when no bank has a
+  valid sample, and the core turns that into ENODATA. So after the resume
+  the banks stopped producing samples.
+- The likely cause: the `mem` path cut the power of the thermal
+  controller or the AUXADC. The SSUSB IP was reset the same way (R-USB).
+- The driver has no sleep callbacks.
+- The hardware thermal reset compares the same samples, so it most likely
+  had no input either. That is a safety gap, not only a reporting one.
+- The cpuidle session's interim rule covers it until a fix runs: no
+  lid-close suspend outside tests, and no SPM module at boot.
+
+[0683](../../patches/proposals/0683-thermal-drivers-mediatek-auxadc_thermal-set-MT6797-u.patch):
+- At resume, if any MT6797 bank has no valid sample, close the setup
+  transaction and run it again, as probe does: clocks, controller reset,
+  APMIXED buffer, AUXADC channel and banks, up to a valid first sample.
+- Then arm the hardware reset again if it was armed, with probe's checks.
+- s2idle keeps valid samples, so it is untouched.
+- The thermal core polls no zone until every device has resumed.
+- The thermal driver is built in, so 0683 needs an image. Compile-checked
+  only.
+
+Test **T-M**:
+- On an image with 0683, record `soc-thermal` and the "hardware thermal
+  reset armed" line with its `REQ_MODE` at boot.
+- Run one 30 s `mem` suspend.
+- **Pass:** the resume logs "thermal banks lost their state in suspend,
+  setting them up again" and a new "hardware thermal reset armed" line
+  with the same `REQ_MODE`; `soc-thermal` reads a plausible value within
+  1 s and stays readable for 5 min.
+- **Fail and stop:** "not set up again" or "not armed again".
+- New writes: the driver's probe-time setup (the APMIXED `TS_CON1`
+  buffer, the AUXADC channel, the bank registers and the TOPRGU thermal
+  route), which every boot already makes.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
