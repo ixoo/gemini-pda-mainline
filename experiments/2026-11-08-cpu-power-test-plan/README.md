@@ -392,6 +392,34 @@ the DVFS stack runs. Separating these needs one more stepwise run: the boot stat
 then the stack loaded at its lowest points, then each unload. That went to the cpuidle
 and cpufreq sessions.
 
+### D3 V1-V9 with the traced schedutil phases (2026-11-09)
+
+Owner-approved, tracing included. Boot `6dbf6d59…` (D3, boot2 `1f201b4e…`), cable in,
+`v-test.sh` and `v-trace-check.awk` from `d9e52a18` with their hashes checked on the
+station. Two setup slips stopped stages before any DVFS check failed:
+- debugfs was not mounted on this boot, so V3 found no `registers` file. The mcusys
+  module was unloaded, debugfs and tracefs mounted, and the run resumed at V3.
+- `backlight-policy` blanked the console at 238 s and took CPU1-7 offline in V5's
+  1547 MHz step. It was frozen with `kill -STOP`, CPU1-7 brought back, and V5 rerun.
+
+Observed:
+- **V1-V8 passed.** V5 and V6 swept every point with clocks within 5 %, equal hashes and
+  exact table voltages.
+- **V7's traced schedutil phase:** 28,884 clock and rail events, no violation, no ring
+  overrun. Idle 221/1625 MHz with CCI 819 MHz; load 1495/1950 MHz with CCI 975 MHz.
+- **V8:** emulated 62 °C capped both policies one step (1495/1950 MHz); the cap
+  released at 0. Its trace had no violation.
+- **V9 stopped on its 80 °C limit at t+150 s.** It started warm (64 °C at t+10 s, after
+  V5-V8). The 58 °C passive trip under `step_wise` held the caps only one to three
+  steps down, swinging between 1339/1755 and 1391/1820 MHz every 10 s, while the SoC
+  rose about 1 °C every 10 s to 80.1 °C. Hashes were not reached; no fault, taint 0.
+  The load stopped and the SoC was back at 34 °C minutes later.
+
+Inference: the cooling acts, but too weakly to hold an 8-CPU load. `step_wise` moves
+one state per poll and gives a step back whenever the trend dips, so it never reaches
+the deep caps a sustained load needs. V9 is the boot gate, so cpufreq at boot (V11)
+stays closed. The trip and governor tuning went to the cpufreq session.
+
 ## Analysis
 
 None yet.
