@@ -22,6 +22,7 @@ the experiments that support or challenge it.
 | [MT6797 live resource map](mt6797-live-resource-map.md) | Register, IRQ, clock, rail, storage, display, GPU, connectivity, and USB resources mapped to Linux boundaries. |
 | [MT6797 and Gemini interrupts](mt6797-interrupts.md) | GICv3, EINT, SPI/PPI/SGI map, dispatch paths, handler behavior, and live-evidence limits. |
 | [Mali-T880 GPU](mali-t880.md) | GPU identity, MFG power/clock/rail map, RT5735, OPP/DVFS, firmware/userspace boundary, and Panfrost configuration recipe. |
+| [MT6797 video codec](mt6797-video-codec.md) | VDEC, VENC and MJC registers, interrupts, domains, clocks, larbs, vendor userspace control model, and the mainline gap. |
 | [MT6797 thermal observation](mt6797-thermal-observation.md) | Aggregate temperature semantics, shared bank ownership, precision and freshness limits. |
 | [MT6797 thermal management](mt6797-thermal-management.md) | Sensor banks, efuse/LK calibration handoff, conversion formulas, trips, cooling policy, and firmware ownership. |
 | [MT6351 PMIC auxiliary ADC](mt6351-pmic-adc.md) | Register window, channel scaling, consumers, modem share ring, and upstream coverage. |
