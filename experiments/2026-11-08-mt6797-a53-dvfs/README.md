@@ -88,6 +88,16 @@ Only `mtk-cci-devfreq.ko` differs from the `4a1c6f22` package
 image, DTBs, config and every other module are byte-identical. It replaces the
 module on the D2 station, with no new image.
 
+Candidate after D3 (0680), compile-checked on Buildbox, not run: commit `1768fe04`,
+job `1768fe04b7ca814ba382c7c0ba1e58760e7c88ad-mt6797-a53-station-dvfs-m1`, package
+`linux-7.1.3-gemini-695c71d4e7170e8c30d381576c7218d5caa78ef4506f1ca42c2194c526cd8237`.
+`Image.gz` `56a0a2dfd1e6f9dbbadf058bfdf6a602d6ece8dea0d391404f3f9e91b8baa81f`,
+`mt6797-gemini-pda-station-dvfs.dtb`
+`72a485eac5d86d18f05181ae61a7b4c8a62ea1101c3b3fc60f0848e1b2e2f29b`, config
+`ffbe2b61…` unchanged. Against the `3e338a46` package the image changes with the
+series (`0678`, `0679` from other sessions), and of the modules only
+`mt6797-spm-sleep.ko` changes; every DVFS module is identical.
+
 Station init: the [station `init`](../2026-10-30-mainline-dev-station/initramfs/init)
 loads whichever of those five modules the image carries, in that order, and
 then sets every policy to schedutil. It runs only when
