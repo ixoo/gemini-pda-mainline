@@ -174,6 +174,9 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
   watchdog reset ([boot 3](#boot-3-result-2026-11-08)). In the retry (boot `93284025…`), a
   10 s suspend returned on the PCM timer. The next suspend was refused by `mtu3`
   ([retry](#boot-3-retry-2026-11-08)).
+- Boot 3 second retry (boot `263ae72a…`): all five mem suspends returned. Suspended current
+  was about 42 mA, against 271 mA idle and 73 mA for s2idle
+  ([S1 measured](#boot-3-second-retry-s1-measured-2026-11-08)).
 
 ### Boot 3 result (2026-11-08)
 
@@ -237,6 +240,50 @@ on mainline. The current measurement has not run. Before the next attempt:
 - The feeder closes with `'V'`.
 - The `mtu3` B-session forced on a mem resume must be fixed, or the gadget unbound for the
   run.
+
+### Boot 3 second retry: S1 measured (2026-11-08)
+
+The owner chose the retry with USB unbound. It ran on D1, boot `263ae72a…`, with the same
+module and program. The feeder held `/dev/watchdog` and closed it with `'V'`. The `mtu3`
+gadget was unbound after the unplug and bound again at the end. Otherwise the setup matched
+the first retry: CONNSYS `0x112`, `backlight-policy` stopped, CPU1-7 offline, screen blank.
+
+**Observed:** all five mem suspends returned on the PCM timer: F1 10 s, F2 30 s, M1-M3
+300 s each.
+- Every `wake:` line read `returned=1 loops=1 r12=00000001` (bit 0, the PCM timer).
+- The three clock-gate words and `clk_cfg_0` (`01010101`) matched before and after.
+- `timer_out` read `00050088`, `000f0088`, then `00960088`/`00960088`/`00960089`, which is
+  10, 30 and 300 s in the upper half-word.
+- The run ended `stop=0` with no new fault line and taint 0. The kernel log holds five
+  `PM: suspend exit` lines.
+
+Charge from the fuel gauge's `charge_counter`, which moves in steps of about 103 µAh:
+
+| Window | Δcharge (µAh) | Elapsed (s) | Average current |
+| --- | --- | --- | --- |
+| R: idle, CPU0 alone, screen blank, radios off | 22,658 | 301.05 | 271 mA |
+| M1: mem suspend, PCM timer 300 s | 3,621 | 300.75 | 43 mA |
+| M2 | 3,518 | 300.74 | 42 mA |
+| M3 | 3,518 | 300.75 | 42 mA |
+
+Each M window includes about 0.7 s of entry and resume. The count resolution is about
+±3 % per window.
+
+**Analysis.**
+- The vendor program's "CPU stays powered" path (flag bit 0) cuts the current to about
+  42 mA, against 73 mA for s2idle (P6 S) and 271 mA idle in this run.
+- The idle reference came out at 271 mA, not the 96 mA C0 predicted. The C0 floor question
+  is still open, and this run does not settle it.
+- So the program delivers a real saving. That argues for S2 (CPU0 powered down) and the
+  static regulator sleep modes as the next steps, per the S1 decision table.
+
+**Procedure faults, for the next run.** Unbinding and rebinding `mtu3` brought the
+controller back with `usb0` down and the SSH server gone. The owner restored them from the
+console: `ip link set usb0 up`, the address, and an `init` respawn of `usb-ssh`. The `mtu3`
+fix 0676 (in D2) removes the need to unbind.
+
+**Next.** D2 (station-work-93, boot2 `ed088a5a…`, from `4a1c6f22`) is written and verified
+(predecessor D1 `09ae90fd…`). The owner decides whether to build S2/S3 (owner decision 5).
 
 ## Analysis
 
