@@ -78,6 +78,15 @@ Compared with D1's modules, `cpufreq-dt.ko` (`7e86b951…`, 0675),
 The run uses `tools/v-test.sh` at sha256 `bf763922…`. At V4, a "failed to set
 the initial OPP" line counts as a stop.
 
+D2 with 0677, for the V7-V9 rerun, compile-checked on Buildbox but not run:
+commit `3e338a46`, job
+`3e338a464cff131c0b4132f6941040ac6a2c0b14-mt6797-a53-station-dvfs-m1`, package
+`linux-7.1.3-gemini-03a493e96015f6fcce56a6c4b1b765f1ce8d08352f8a5a62a83d7a98c032e9ca`.
+Only `mtk-cci-devfreq.ko` differs from the `4a1c6f22` package
+(`90b5722757d492614657e727daca338887693a668a137a1da6df61d52a319dbe`); the
+image, DTBs, config and every other module are byte-identical. It replaces the
+module on the D2 station, with no new image.
+
 Station init: the [station `init`](../2026-10-30-mainline-dev-station/initramfs/init)
 loads whichever of those five modules the image carries, in that order, and
 then sets every policy to schedutil. It runs only when
