@@ -1133,6 +1133,39 @@ changing; USB SSH absent 60 s after an expected wake (owner's force-off).
 | T1 resets | 0678 does not stop the watchdog on this path; read `WDT_MODE` before suspend on the next boot |
 | T3 fails | The policy or the lid wake needs work before lid-close suspend is used |
 
+### Item 1 result (2026-11-08)
+
+Run by the custodian on D3 (station-work-94, boot2 `1f201b4e…`, from
+`5ed802b4`); recorded in the test plan,
+[D3 item 1](../2026-11-08-cpu-power-test-plan/README.md#d3-item-1-s1-as-the-stations-suspend-2026-11-08).
+
+- **T0:** the module loaded as in boot 3, and `mem_sleep` read `s2idle [deep]`.
+  Before any write the fields read: `TOP_CON` `0x010b`; all four bucks
+  `CON1` `0x0000` and `CON9` `0x0001`; the LDOs `da68`, `da68`, `da62`,
+  `da62`, `da62`, `0260` in table order; the bucks' `CON6` `0040`, `0040`,
+  `0040`, `000c`.
+- **T1: 0678 works.** A 60 s `mem` suspend with no feeder returned on the
+  timer, with no reset.
+- **T2:** two suspends with `pmic_modes=0` read 44.6 and 43.3 mA, then two
+  with `pmic_modes=1` read 42.1 and 40.9 mA (about ±1 mA per window). Every
+  field read back as before after each suspend.
+- **T3:** three lid closes, with 2, 16 and 1 timer re-suspends; each open
+  woke with `r12=0x40`; `returned=1` throughout, no warning. One resume logged
+  `i2c 4-0020: Unbalanced pm_runtime_enable!` (sent to the suspend session).
+- **T4:** with the cable in, the close was refused once, logged, and the
+  station stayed up.
+- **Blocking defect, outside this record:** after a `mem` resume on battery,
+  USB never enumerates again on a replug, even after `soft_connect` and role
+  cycles; only a reboot recovers it. The suspend session has it.
+
+**Reading.** The suspend path, the watchdog fix and lid-close suspend work.
+The modes show no effect that can be told from drift: the four windows fell
+steadily (44.6, 43.3, 42.1, 40.9 mA), about 1.2 mA per window both within
+each setting and between them, so the 2.5 mA "saving" is the same size as
+the trend. By the table, and on this reading, `pmic_modes` stays off. If
+it is ever worth another look, interleave the windows (off, on, off, on).
+Loading the module at boot waits for the USB fix and a soak.
+
 ### Item 2: find the awake regression (proposal)
 
 **Question.** With CPU0 alone, the screen blanked, the radios off and
