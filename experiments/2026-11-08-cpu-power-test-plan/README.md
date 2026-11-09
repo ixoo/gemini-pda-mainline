@@ -585,22 +585,35 @@ Observed:
   (backlight on), and the 14 display clocks were back on. Blanking again (E2) brought
   the draw to 77 mA.
 - `fb0/blank` reads back 1 after a write of 4.
-- DRM read the panel again three times with no step of the test behind it: at 220.8 s
-  (inside E0), at 562.8 s (inside E3), and after E3, where the end read showed the
-  display on.
+- DRM enabled the panel twice with no step of the test behind it.
+  - `dmesg` time excludes the 31 s of suspend, so after the resume it runs 31 s behind
+    `/proc/uptime`. The 504.8 s enable is E3's scripted unblank.
+  - The first unprompted enable was at 220.8 s, inside E0 and 19 s before the suspend
+    entry at 239.6 s. The display was therefore already on when the suspend began.
+  - The second was at 562.8 s in `dmesg` time, 593.8 s uptime, inside E3. The end read
+    showed the display on.
   - The log shows no input event, but input is not logged.
   - E0 and E3 are therefore mixed windows, which explains their 114 and 210 mA.
 - soc-thermal read `ENODATA` from the resume on, as in item 4. `battery-thermal` stayed
   at 23.9-24.5 °C, so the extra stop never applied.
 - No fault line, taint 0. The device powered off by itself at 670 s.
 
-Inference:
-- The ~200 mA after a `mem` resume is the display: the resume turns a blanked display
-  fully back on, backlight included. Blanking again removes it. The fix belongs to the
-  display session.
-- Something else also unblanks the display while `consoleblank` is 0. A key or lid
-  event is the likeliest cause. Until it is known, power windows need the display state
-  read at both ends.
+Inference (corrected after the display session's triage):
+- E1's 287 mA is the display being on, and blanking it (E2) gives 77 mA. The ~200 mA is
+  the display.
+- Item 5 alone doesn't show that a resume unblanks a blanked display, because the
+  display was on before this suspend.
+- Item 4 does show it. Its display was blanked at 137.3 s, with A0 at 112 clocks, and
+  the next panel enable in its `dmesg` is at the resume (268.9 s, after the suspend
+  entry at 268.8 s).
+- The unprompted unblanks fit the VT layer: a blank through `fb0/blank` sets the VT
+  blanked, and any event from an input device bound to the VT keyboard handler unblanks
+  it (pmic keys, keyboard matrix, gpio-keys lid, headphone jack). The source of those
+  events is not known.
+- The next display-blank run should:
+  - log every input event (type, code, value and timestamp);
+  - read `fb0/blank` just before the suspend;
+  - read the display state at both ends of each window.
 
 ## Analysis
 
