@@ -4,6 +4,15 @@
 # and modules get their own. The kernel headers archive is a module, so it stays
 # out of boot2 until it is loaded. arm64's defconfig reduces the debug info, which
 # BTF cannot use.
+#
+# Result (ce66951a against D3's 5ed802b4, both composed from the same parent RAM
+# root and tools, modules stripped of DWARF with BTF kept):
+# - Image.gz 8,625,642 -> 10,724,764 bytes (+2.10 MB). The kernel's .BTF section
+#   is 5.51 MB before compression, the mcount table 0.35 MB, text +0.5 MB.
+# - The xz RAM root 4,068,808 -> 4,346,488 bytes (+0.28 MB): the modules' BTF.
+# - boot.img 12,744,704 -> 15,122,432 bytes (+2.38 MB), 1.58 MiB under boot2's
+#   16 MiB. It fits, but only with the modules stripped: unstripped they are
+#   265 MB instead of 29 MB, so a booted profile also needs INSTALL_MOD_STRIP.
 # CONFIG_DEBUG_INFO_NONE is not set
 CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT=y
 # CONFIG_DEBUG_INFO_REDUCED is not set
