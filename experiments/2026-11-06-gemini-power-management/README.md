@@ -1306,6 +1306,79 @@ Test **U**:
 - New writes: only MTU3's own pullup control (`mtu3_hs_softconn_set`), as
   0633 already makes.
 
+#### No USB after a replug following mem suspends (2026-11-08)
+
+Reported by the device custodian on D3, which carries 0676: item 1 of the
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md), boot
+`1d20d160`. Raw logs private.
+
+**Observed.**
+- The gadget was enumerated, then unplugged. Five `mem` suspends followed,
+  all rc 0, so 0676 removed the refusal.
+- The first resume ran 0633's cycle (`pullup D-`, then `D+`). Each later
+  suspend logged `pullup D-` (0676), and each resume logged the PHY's
+  "forcing valid B-device session", then `pullup D+`.
+- At the replug the host saw nothing. The UDC read `not attached` and
+  `bq25890` online 1.
+- There was no MTU3 or PHY log line after the last resume, at the replug or
+  later.
+- A second replug, a `soft_connect` cycle and a role write did not recover
+  it. A reboot did.
+
+**Reading from the code (not yet measured).**
+- MTU3's resume sets only the power-down bits, the interrupt enables and
+  the pullup. It assumes the controller's other registers survived.
+- s2idle keeps them: P5's replugs after the same cycle worked.
+- If the SPM `mem` program powers the SSUSB block or its PHY down, the
+  gadget's speed and endpoint setup, the IPPC port settings and the U2 PHY
+  tuning (set by `phy_init`, which resume does not run again) are all at
+  reset values.
+- In OTG mode a `soft_connect` cycle does not run `mtu3_start()` again, and
+  a role write to the current role does nothing. That fits the failed
+  recovery.
+- This is the leading hypothesis. Which registers are lost decides the
+  fix, so no patch yet.
+
+**Proposed read-only check (test R-USB).**
+
+Read these 32-bit registers at four points:
+1. gadget enumerated;
+2. after the unplug;
+3. after one `mem` resume with the cable out;
+4. after the replug.
+
+The registers:
+- **MAC** at `0x11271000`, offsets `0x0004` `0x0084` `0x0100` `0x0800`
+  `0x0850` `0x2404` `0x240c` `0x2418` `0x2460`;
+- **IPPC** at `0x11280700`, offsets `0x00` `0x04` `0x08` `0x10` `0x50`
+  `0x98`;
+- **U2 PHY** at `0x11290800`, offsets `0x000` `0x014` `0x018` `0x020`
+  `0x030` `0x068` `0x06c` `0x080`.
+
+These are reads only. MTU3's clocks are on after every resume, because
+its runtime suspend does nothing without a wake path (0634).
+
+Control: the same unplug, one `freeze` suspend, then a replug, on D3. A
+reconnect there makes the failure `mem`-specific.
+
+**Decision.**
+- **Only MAC and IPPC reset:** run the device controller's start sequence
+  again at resume when the reset is detected.
+- **PHY also reset:** run `phy_exit` and `phy_init` around the PHY power
+  cycle on that path.
+- **Nothing reset:** the cause is elsewhere, so look at the line state and
+  the interrupt path.
+
+**`i2c 4-0020: Unbalanced pm_runtime_enable!`** (boot `d7f02aca`, once in
+about nine cycles):
+- `4-0020` is the hi556 camera sensor's I2C client. No driver was bound:
+  the `i2c` prefix is the bus name, which is printed when no driver is
+  bound.
+- The hi556 probe defers on the camera receiver's clock before it touches
+  runtime PM, and the receiver was unbound too.
+- So the warning comes from neither driver nor from these patches. Its
+  source is not known. It is a one-line warning with no taint.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
