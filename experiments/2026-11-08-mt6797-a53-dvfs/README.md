@@ -66,6 +66,17 @@ DTB (no required-opps, VSRAM_L floor 1.10 V) are new:
 | `cpufreq-dt.ko` | `f558be9bfe9f82f31c5245fbba52d54ac3584fbfee98ebbb25f6582425dddba5` |
 | `mtk-cci-devfreq.ko` | `2f8edde688670cecf795eb1b40560409ec7b03d227fce5c26ed4483f10e5aadd` |
 
+D2, composed by the custodian as `station-work-93` and not yet flashed: built from
+commit `4a1c6f22` (which includes 0673-0676), job
+`4a1c6f22e8b762582691c6369dc05d4b02bfacde-mt6797-a53-station-dvfs-m1`, package
+`ec8cb8e7…`, config `ffbe2b61…`, `Image.gz` `4d79ccc96ac4ce5a…`, board DTB
+after `station-dt.sh` `8c59eff2…` (no required-opps), initramfs `1ebb2ced…`,
+boot2 `ed088a5a07e869663fbb77449d3a901834a60d49ac602a67b6d026bed870dead`.
+Compared with D1's modules, `cpufreq-dt.ko` (`7e86b951…`, 0675),
+`gemini-lid.ko` and `snd-soc-mt6797-afe.ko` changed; the other DVFS modules did not.
+The run uses `tools/v-test.sh` at sha256 `bf763922…`. At V4, a "failed to set
+the initial OPP" line counts as a stop.
+
 Station init: the [station `init`](../2026-10-30-mainline-dev-station/initramfs/init)
 loads whichever of those five modules the image carries, in that order, and
 then sets every policy to schedutil. It runs only when
