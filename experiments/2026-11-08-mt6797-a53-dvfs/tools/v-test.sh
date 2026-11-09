@@ -61,7 +61,8 @@ volts() {
 }
 # trace_start NAME: park both policies at fixed points, seed the checker with the
 # steady clocks and rails, then trace every clock and rail change and stream it
-# through v-trace-check.awk (raw text kept in /tmp/NAME-trace.txt when NAME is v7s).
+# through v-trace-check.awk (raw text kept in /tmp/NAME-trace.txt when NAME is v7s or
+# v9p). v9p also traces the power allocator's budget, PID terms and CPU limits.
 trace_start() {
   [ -r "$CHK" ] || stop "no $CHK"; [ -d $TR/events/clk ] && [ -d $TR/events/regulator ] || stop "no clk/regulator trace events"
   for p in 0 4; do echo userspace > $CF/policy$p/scaling_governor; done
@@ -69,10 +70,13 @@ trace_start() {
   echo 0 > $TR/tracing_on; echo > $TR/set_event; echo > $TR/trace; echo 4096 > $TR/buffer_size_kb
   for e in clk/clk_set_rate clk/clk_set_rate_complete regulator/regulator_set_voltage regulator/regulator_set_voltage_complete; do
     echo 1 > $TR/events/$e/enable || stop "trace event $e"; done
+  [ "$1" = v9p ] && for e in thermal_power_allocator/thermal_power_allocator thermal_power_allocator/thermal_power_allocator_pid \
+      thermal/thermal_power_cpu_limit thermal/thermal_temperature; do
+    echo 1 > $TR/events/$e/enable || stop "trace event $e"; done
   echo 1 > $TR/tracing_on
   cr() { cat /sys/kernel/debug/clk/$1/clk_rate; }
   echo "seed ll=$(cr mcu-armpll-ll) l=$(cr mcu-armpll-l) cci=$(cr mcu-armpll-cci) vproc1=$(rg vproc1) vsram_l=$(rg vsram_l)" > $TR/trace_marker
-  raw=""; [ "$1" = v7s ] && raw=/tmp/$1-trace.txt
+  raw=""; case $1 in v7s|v9p) raw=/tmp/$1-trace.txt;; esac
   awk -v raw="$raw" -f "$CHK" $TR/trace_pipe > /tmp/$1-trace-check.txt & tpid=$!
 }
 # trace_end NAME: close the trace and stop on any ordering violation or lost event.
@@ -161,15 +165,16 @@ v8) ipa; trace_start v8; for p in 0 4; do echo performance > $CF/policy$p/scalin
     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do sleep 1; echo "t+$i max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq)"; done
     [ "$(cat $CF/policy0/scaling_max_freq)" = 1547000 ] && [ "$(cat $CF/policy4/scaling_max_freq)" = 2002000 ] || stop "cooling did not release"
     for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done; sleep 2; trace_end v8; volts live; regs; check_log ;;
-v9) t=$(soc_temp); [ "$t" -lt 45000 ] || stop "SoC at $t; start V9 cold (below 45 C)"; ipa
-    trace_start v9; for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
+v9|v9p) t=$(soc_temp); [ "$t" -lt 45000 ] || stop "SoC at $t; start V9 cold (below 45 C)"; ipa
+    for k in k_po k_pu k_i k_d integral_cutoff sustainable_power; do printf '%s %s ' $k "$(cat $z/$k)"; done; echo
+    trace_start $STAGE; for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
     pids=""; for c in 0 1 2 3 4 5 6 7; do (end=$(($(date +%s)+600)); while [ "$(date +%s)" -lt "$end" ]; do $MHZ $c hash; done > /tmp/v9-load-$c) & pids="$pids $!"; done
     i=0; while [ $i -lt 60 ]; do sleep 10; i=$((i+1)); t=$(soc_temp); online_ok
       echo "t+$((i*10)) soc $t f0 $(cat $CF/policy0/scaling_cur_freq) f4 $(cat $CF/policy4/scaling_cur_freq) max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq) $(volts live | cut -d' ' -f1-6)"
       [ "$t" -lt 80000 ] || { kill $pids; stop "SoC at $t"; }; done
-    wait $pids; trace_end v9
+    wait $pids; trace_end $STAGE
     for c in 0 1 2 3 4 5 6 7; do n=$(awk '{print $2}' /tmp/v9-load-$c | sort -u); echo "cpu$c load_hashes $(wc -l < /tmp/v9-load-$c) distinct $n"; [ "$n" = "$(cat $REF)" ] || stop "cpu$c load hash"; done
     for p in 0 4; do cat $CF/policy$p/stats/time_in_state | tr '\n' ' '; echo; done; regs; volts live; check_log; check_temp ;;
-*) echo "usage: $0 v1..v9 | v7s"; exit 2 ;;
+*) echo "usage: $0 v1..v9 | v7s | v9p"; exit 2 ;;
 esac
 echo "PASS $STAGE"

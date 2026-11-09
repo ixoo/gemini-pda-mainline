@@ -275,7 +275,9 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
    cpufreq t7. V8 and V9 write `power_allocator` to the zone's `policy`; the
    station init does the same once the boot gate is open.
 6. V7's schedutil phase, V8 and V9 write tracefs control files and
-   `trace_marker` (owner-approved for D3).
+   `trace_marker` (owner-approved for D3). V9p also enables four thermal
+   events: `thermal_power_allocator`, `thermal_power_allocator_pid`,
+   `thermal_power_cpu_limit` and `thermal_temperature`.
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
@@ -346,6 +348,7 @@ building anything on it.
 | V7 | V1 | `insmod mtk-cci-devfreq.ko`; step LL and L and read the devfreq `cur_freq` and the CCI PLL line; then schedutil on both, 10 s idle, 15 s of 8-CPU load, 10 s idle | CCI = the higher of the two clusters' places mapped onto 234-988 MHz, rounded to a CCI point; schedutil idles low and loads high; all load hashes equal; transitions counted | items 1-4 |
 | V8 | V1 | Cooling: `power_allocator` on the zone, emulate 77 C (above the control trip), then release | At least one policy's `scaling_max_freq` drops within 10 s; both come back | item 5 |
 | V9 | V1 | Heat soak from below 45 C: `power_allocator` on the zone, 10 min of 8-CPU load under schedutil, sampling every 10 s the SoC temperature, both policies' frequencies, vproc1, vsram_l and hashes | The allocator settles the SoC near 75 C and below 80 C; no hash difference. Pass opens the boot gate | items 1-3, 5 |
+| V9p | V1, cold | V9 with the allocator's budget, PID terms, CPU limits and zone temperature traced, raw trace kept in `/tmp/v9p-trace.txt` | The same pass conditions as V9; the trace shows why the caps swing (below) | items 1-3, 5, 6 |
 | V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × mV² / 10⁹) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
 | V11 | new boot, same image | Create `/mnt/data/cpufreq-at-boot`; power off; owner selects boot2 | Station status `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq`; schedutil on both policies | items 1-4 at boot |
 
@@ -451,6 +454,19 @@ owner-approved, on D3, boot `6dbf6d59…`, scripts from `d9e52a18`.
   clock module), and the backlight policy took CPU1-7 offline at console blank during V5
   (V5 rerun). The script now checks both.
 
+station-work-95 (`1768fe04`, with `0680`), boot `f49ed0bf…`, cable in; the custodian's
+record is in [the CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md):
+
+- **V1-V9 passed in one run.** V7: 14,492 traced events, 0 violations; idle
+  1014/1352 MHz with the CCI at 754, load 1495/1950 with the CCI at 975. V8: the
+  emulated 77 C capped both policies to 221/325 MHz within 5 s and released at 0.
+- **V9 under `power_allocator`** (sustainable power 1500): from 34.5 C the SoC read
+  67.7 C after 10 s, then stayed between 62.7 and 75.4 C, a 70.1 C mean over the 10 s
+  samples; it never reached 80. The caps moved between the top points and as low as
+  338/468 MHz from one sample to the next, with VPROC1 between 890 and 1200 mV. 158,882
+  traced events (26,380 VPROC1 sets in 600 s), 0 violations, no overrun, hashes equal.
+  After the load the SoC fell to 42.8 C. No fault, taint 0.
+
 ## Analysis
 
 ### V1-V4 on D1
@@ -519,6 +535,33 @@ cooling device. The vendor's own per-core dynamic-power table fits
 it rather than waiting for V10, and adds the 75 C control trip. The 1.5 W
 sustainable power only seeds the controller's gains. V9's trace of the
 allocator, if needed, would show the granted power to tune it.
+
+### V9 on station-work-95
+
+The power allocator does what step-wise could not: it held the SoC under the
+75 C target with all eight CPUs loaded. It does it badly, though. The budget
+swings from full to nearly nothing within seconds, the clusters spend the run
+jumping between the top and bottom of their tables, and the mean sits about
+5 C below the target. Power scales with V², so alternating between 1.2 V and
+0.9 V costs more energy for the same work than holding a middle point.
+
+The estimated constants, from the 58 C switch-on trip, the 75 C control trip
+and 1.5 W, are k_pu = 2 × 1500 / 17 ≈ 176 mW/C, k_po ≈ 88 mW/C and
+k_i ≈ 18 mW/C per 100 ms poll. Two causes fit, and the samples can't separate
+them:
+
+- **Proportional gain against a fast sensor.** The SoC read went from 34.5 to
+  67.7 C in 10 s, so the sensor follows die power within a poll or two. At
+  176 mW/C, a 1 C reading jitter moves the budget by about 8 % of the clusters'
+  2.2 W, and a 5 C swing moves it by 40 %.
+- **The integral only winds down.** With `integral_cutoff` 0 the integral
+  grows only while the SoC is above 75 C, and nothing unwinds it below. Every
+  overshoot lowers the budget for the rest of the run, which matches later
+  samples running cooler (63-73 C) with deeper caps.
+
+V9p traces the PID terms to tell them apart. The gains, `integral_cutoff` and
+sustainable power are all zone sysfs files, so tuning needs no new image.
+Each test value is a write for the owner's approval.
 
 ### D3 item 3: the deferred CCI probe
 
