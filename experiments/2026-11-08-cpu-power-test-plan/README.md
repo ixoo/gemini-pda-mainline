@@ -420,6 +420,74 @@ one state per poll and gives a step back whenever the trend dips, so it never re
 the deep caps a sustained load needs. V9 is the boot gate, so cpufreq at boot (V11)
 stays closed. The trip and governor tuning went to the cpufreq session.
 
+### D3 R-USB: what a mem suspend resets (2026-11-09)
+
+The suspend session's read-only check, on boot `6dbf6d59…` after the V runs. CPU1-7
+offline, radios unloaded, `mt6797-spm-sleep` loaded with the vendor program
+(`d6e8a0b8…`). The SSUSB MAC, IPPC and U2 PHY registers it named were read at each
+point. The `freeze` control woke from a 30 s RTC alarm; the `mem` path from S1's
+30 s PCM timer.
+
+| Point | UDC | MAC | IPPC | U2 PHY |
+| --- | --- | --- | --- | --- |
+| Enumerated | configured | reference | reference | reference |
+| Unplugged | configured | as reference (`0x2460` 12→13) | as reference | as reference |
+| After `freeze` | not attached | `0x0084` and `0x0800` cleared by the disconnect | as reference | as reference |
+| Replugged after `freeze` | configured at once | as reference | as reference | as reference |
+| Unplugged again | configured | as reference | as reference | as reference |
+| After `mem` (rc 0, `r12=1`) | not attached | **all nine read 0** | **`0x00` 0x00011000→0x00011001, `0x10` 0x01003D0F→0, `0x50` 0xC8→0x4D** | as reference |
+
+After the `mem` resume the charger reported no cable for the script's ten-minute wait,
+so no replug point was read. The gadget never returned and the owner restarted the
+station.
+
+Inference: S1's `mem` program resets the SSUSB MAC and IPPC, while the U2 PHY keeps its
+settings. That matches the suspend session's first decision branch: run the device
+controller's start sequence again at resume when the reset is detected; `phy_init` is
+not needed. Sent to the suspend session.
+
+### D3 item 3: the boot state is cheap (2026-11-09)
+
+The cpuidle session's item 3, on a fresh boot `2902b8f5…` with nothing run first.
+CPU0 alone, `fb0` blanked, `backlight-policy` stopped, radios unloaded, on battery.
+Each window was 120 s after 10 s of settling.
+
+| Window | Step before it | Average (charge counter) | `current_now` |
+| --- | --- | --- | --- |
+| N0 | none: the boot state | 80.2 mA | 78.7 mA |
+| N1 | DA9214 and VSRAM regulators loaded | 77.1 mA | 78.5 mA |
+| N2 | `clk-mt6797-mcusys` loaded | 77.1 mA | 78.2 mA |
+| N3 | `cpufreq-dt` loaded, policy0 `userspace` 897 MHz | 80.2 mA | 78.0 mA |
+| N4 | policy0 221 MHz | 70.3 mA | 98.9 mA |
+| N5 | CCI devfreq loaded (probe deferred) | 88.6 mA | 122.8 mA |
+| N6 | CCI devfreq unloaded | 88.7 mA | 124.8 mA |
+| N7 | `cpufreq-dt` unloaded | 70.3 mA | 98.2 mA |
+| N8 | `clk-mt6797-mcusys` unloaded | 70.3 mA | 98.9 mA |
+| N9 | regulators unloaded | 67.2 mA | 98.0 mA |
+
+Observed:
+- Every load and unload succeeded; no fault line, taint 0.
+- At boot no DVFS module was loaded. The boot state read LL at `0xC1114000` (897 MHz),
+  L at `0x400C4000` (1274 MHz), CCI at `0xC10C1D89` (630 MHz), sync DCM `0x00070707`,
+  VSRAM_L `0x0B` (1100 mV) and DA9214 `0xd7` `0x46` (1000 mV).
+- N4 changed only LL (`0x41110000`, divider `0x160`); at N9 `0xd7` read `0x36` (840 mV).
+- The CCI devfreq probe deferred (`failed to add devfreq device: -517`, CPU4-7 offline).
+  Even so, VSRAM_L rose to `0x0F` (1200 mV) at N5 and stayed there until `cpufreq-dt`
+  unloaded at N7.
+- With the driver bound, the DA9214 reads failed (`Device or resource busy`), because
+  its regmap is not in debugfs. Only the boot and N9 values were read.
+- The `current_now` average disagreed with the charge counter from N4 on, as it did in
+  item 2.
+
+Inference:
+- The 271 mA state is not where the boot leaves the station: N0 drew 80 mA. Item 2's
+  U0 (`d7f02aca`, after V1-V7) and boot 3's R (`263ae72a`, after a `mem` suspend) both
+  came after earlier work on the same boot. Something that work did, and the DVFS
+  unload in item 2 cleared, holds the extra current.
+- The DVFS stack itself costs little: LL at 221 MHz and 840 mV saves about 10 mA.
+- The deferred CCI probe leaves VSRAM_L at 1200 mV, which costs about 18 mA, until
+  `cpufreq-dt` goes. That is a leak in the probe's error path, for the DVFS session.
+
 ## Analysis
 
 None yet.
