@@ -1204,6 +1204,87 @@ boot2 again, so a driver that does not come back cleanly needs no recovery.
 **Stops.** A module that refuses to unload is skipped and recorded; an Oops
 or `WARNING`; the battery under 30 %.
 
+### Item 2 result (2026-11-09)
+
+Run by the custodian on D3, boot `d7f02aca…`; recorded in the test plan,
+[D3 item 2](../2026-11-08-cpu-power-test-plan/README.md#d3-item-2-the-awake-regression-2026-11-09).
+The boot had already run the DVFS tests, so the A53 DVFS stack was loaded
+(LL 897 MHz, CCI 676 MHz, VPROC1 1060 mV). U0 read 274.5 mA; U1 (policy0 to
+221 MHz, then `mtk_cci_devfreq`, `cpufreq_dt`, `clk_mt6797_mcusys` and the
+VSRAM and DA9214 regulators unloaded) read 70.2 mA; nothing after U1 moved it.
+CPU0 was over 98 % idle, and interrupts and `pm_genpd_summary` were the same
+in U0 and U1.
+
+**Reading.**
+
+- **The 200 mA is a hardware state, not running code.** Boot 3's 271 mA
+  reference had none of these modules loaded, and U1 is below R1b. Something
+  in the boot state of the newer images costs about 200 mA, and the U1
+  sequence clears it.
+- **The two gauges disagree after U1.** `current_now` read 93-95 mA where
+  `charge_counter` read 67-70 mA, while in U0 both read 274-275 mA. R1 and
+  R1b used `current_now` (96-111 mA). So R1b's 96 mA most likely *was* the
+  low state U1 reaches, and the newer images boot into the high one.
+  Comparisons from here use `charge_counter`.
+- **Candidates for what U1 changed:** the LL clock (897 to 221 MHz) and
+  VPROC1 (1060 to 1000 mV) are too small for 200 mA at 99 % idle. More
+  likely is a mode or a gate that one of the unloads reset: the DA9214
+  regulator's remove or a buck mode it set (a forced-PWM buck alone can draw
+  tens of mA), the `clk-mt6797-mcusys` unload unregistering three prepared
+  PLLs, or something built in or loaded at boot on the newer images that
+  R1b's image lacked.
+
+### Item 3: which step holds the 200 mA (proposal)
+
+**Question.** Is the newer images' boot state itself at about 270 mA, and if
+so, which single load or unload of the DVFS stack moves it?
+
+**Method.** A fresh boot of D3, nothing run before it. CPU0 alone, `fb0`
+blanked, `backlight-policy` frozen with `kill -STOP`, radios and the A72
+module unloaded. Battery, cable out after setup. Each window is 120 s after
+10 s of settling, measured by `charge_counter` (with `current_now` logged
+beside it). At the start of the run and after every step, record:
+
+- `lsmod`, to settle whether any of these modules loaded at boot by
+  themselves;
+- MCUMIXED `0x1001a200`, `0x1001a204`, `0x1001a210`, `0x1001a214`,
+  `0x1001a220`, `0x1001a224` (ARMPLL CON0 and CON1 for LL, L, CCI),
+  `0x1001a270` (mux), `0x1001a274` (divider), FHCTL `0x1001af00` and
+  `0x1001af04`;
+- MCUCFG `0x10220740`-`0x1022074c` (sync DCM);
+- INFRACFG_AO `0x10001f98`, `0x10001f9c`, `0x10001fa0` (VSRAM_L);
+- DA9214 at `0x68`, direct-address reads `0x50`-`0x5f` and `0xd0`-`0xdf`
+  (the read-only provider's addresses, no page change): through the
+  driver's regmap debugfs while it is bound, with `i2cget` while it is not;
+- SoC temperature.
+
+| Window | Step before it |
+| --- | --- |
+| N0 | none: the boot state |
+| N1 | load the DA9214 and VSRAM regulator modules |
+| N2 | load `clk-mt6797-mcusys` |
+| N3 | load `cpufreq-dt`; policy0 `userspace` at 897 MHz (the boot rate) |
+| N4 | policy0 at 221 MHz |
+| N5 | load the CCI devfreq at its lowest point |
+| N6 | unload the CCI devfreq |
+| N7 | unload `cpufreq-dt` |
+| N8 | unload `clk-mt6797-mcusys` |
+| N9 | unload the regulators |
+
+About 22 minutes on battery.
+
+**What decides it.** If N0 reads about 70 mA, the boot state is cheap and
+the stack raises it: the window where it jumps, and the registers that
+changed there, name the step. If N0 reads about 270 mA, the boot state is
+costly: the unload window where it falls, and its register diff, name what
+clears it. Either way the next change is a fix in that driver or a boot-time
+setting, decided with the A53 DVFS session, which owns those drivers.
+
+**Writes.** None new: the DVFS stack's own loads, rate requests and unloads,
+already approved for V1-V7, and reads. **Stops:** an Oops or `WARNING`; a
+module that refuses to load or unload (record it and skip to the next step);
+the battery under 30 %. Power off at the end.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
