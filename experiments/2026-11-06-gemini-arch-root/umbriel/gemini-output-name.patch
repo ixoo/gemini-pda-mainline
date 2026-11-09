@@ -1,0 +1,25 @@
+Umbriel names a DRM output that has no EDID (gemini-pda-mainline, MIT).
+
+wlroots 0.20 builds a DRM output's description as "make model (connector)". The Gemini's
+DSI panel has no EDID, so make and model are NULL and the description reads
+"(null) (null) (DSI-1)", which Noctalia shows as the display's name (owner, 2026-11-08).
+Describe such an output as "Built-in display (DSI-1)" instead.
+
+ok
+diff --git a/src/output/output.cpp b/src/output/output.cpp
+index 3238e6f..d9077ac 100644
+--- a/src/output/output.cpp
++++ b/src/output/output.cpp
+@@ -156,6 +156,12 @@ namespace umbriel {
+       : m_server(&server), m_output(output), m_defaultScale(output->scale),
+         m_hdrStaticMetadata(hdrStaticMetadataForOutput(output)) {
+     m_output->data = this;
++    // wlroots builds a DRM output's description from the EDID's make and model, so a panel
++    // without an EDID, such as a DSI panel, is described as "(null) (null) (DSI-1)".
++    if (wlr_output_is_drm(m_output) && m_output->make == nullptr && m_output->model == nullptr) {
++      const std::string description = std::format("Built-in display ({})", m_output->name);
++      wlr_output_set_description(m_output, description.c_str());
++    }
+     wlr_output_init_render(m_output, m_server->allocator(), m_server->renderer());
+     // Create the scene output before the initial configuration so startup and
+     // resume modesets carry rendered content instead of wlroots' empty buffer.

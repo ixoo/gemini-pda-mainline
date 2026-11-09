@@ -4,7 +4,7 @@
 # config.toml, and settings changed in Noctalia, override these.
 
 # A vertical bar on the left edge (owner, 2026-11-08), using the full height:
-# Noctalia's default 100 px end margins left about 230 of the 432 px for eight widgets.
+# Noctalia's default 100 px end margins left about 230 of the then 432 px for eight widgets.
 # Tried live on card-18; owner: "Keep it". The session panel stays on Ctrl+Alt+Backspace
 # and in the control center.
 [bar.default]
@@ -15,7 +15,8 @@ radius = 0
 thickness = 40
 padding = 8
 widget_spacing = 10
-font_scale = 1.15
+# Bar text at 1.3 (owner, 2026-11-08); the clock scales its own text on top.
+font_scale = 1.3
 start  = ["launcher", "workspaces"]
 center = ["clock"]
 end    = ["network", "bluetooth", "volume", "battery", "control-center"]
@@ -31,22 +32,39 @@ font_weight = 700
 display_mode = "graphic"
 
 # Icons only (owner, 2026-11-08: "don't display the network name, icon is enough", "don't
-# display the volume value"). Bluetooth's widget shows only while bluez runs: with
-# bluetooth.service stopped there is no adapter on D-Bus, and the widget hides itself.
+# display the volume value"), and bigger, to fill the 40 px width (scale 1.6, tried live on
+# card-23); the battery keeps its size. Bluetooth's widget shows only while bluez runs:
+# with bluetooth.service stopped there is no adapter on D-Bus, and the widget hides itself.
+[widget.launcher]
+scale = 1.6
+
 [widget.network]
 show_label = false
+scale = 1.6
 
 [widget.bluetooth]
 show_label = false
+scale = 1.6
 
 [widget.volume]
 show_label = false
+scale = 1.6
+
+[widget.control-center]
+scale = 1.6
 
 # The launcher (Ctrl+Alt+Space or the side key) as a plain search field over one list,
 # macOS-like (owner, 2026-11-08). The simple layout is 560x500; Noctalia clamps it to the
-# 432 px screen. No category chips, origin badges or larger rows.
+# 470 px screen. No category chips, origin badges or larger rows.
 [shell.launcher]
 layout = "simple"
 categories = false
 compact = true
 show_app_origin_indicator = false
+
+# Display brightness (owner, 2026-11-08: "the display brightness should work"). The PWM
+# backlight is a platform device with no link to the DSI connector, so Noctalia can't match
+# /sys/class/backlight/backlight to an output on its own; name it here. Noctalia writes
+# through logind's SetBrightness.
+[brightness.monitor.DSI-1]
+backlight_device = "backlight"

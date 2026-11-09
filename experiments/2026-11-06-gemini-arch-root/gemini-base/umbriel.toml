@@ -16,11 +16,11 @@ mod_key = "Alt"
 
 # The panel is portrait-native and used in landscape. Umbriel (wlroots) does not apply
 # the kernel's panel orientation (Left Side Up), so the rotation is set here. Touch
-# lands right with no calibration matrix (card-18). 2160x1080 at about 400 dpi: scale 2.5
-# gives an 864x432 desktop (owner, R4).
+# lands right with no calibration matrix (card-18). 2160x1080 at about 400 dpi: scale 2.3
+# gives a desktop of about 939x470 (owner, 2026-11-08; 2.5 and 864x432 before).
 [output.DSI-1]
 transform = "90"
-scale = 2.5
+scale = 2.3
 
 [input.touch]
 map_to_output = "DSI-1"

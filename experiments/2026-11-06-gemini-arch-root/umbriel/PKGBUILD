@@ -4,11 +4,12 @@
 # this pinned upstream commit in the card's chroot. Follows the AUR's umbriel-git recipe,
 # without xdg-desktop-portal-umbriel (screen sharing and input capture only), and with
 # gemini-keyboard.patch: whole Gemini keymap files, and Mod5 (Fn) in keybinds; and with
-# gemini-cheatsheet.patch: a cheatsheet that fits the 864x432 desktop.
+# gemini-cheatsheet.patch: a cheatsheet that fits the 864x432 desktop; and with
+# gemini-output-name.patch: a name for the EDID-less DSI panel.
 pkgname=umbriel
 _commit=94ab5961dce31cd53e5cdca76d2723d73fc2e189
 pkgver=0.1.0.r20261108.94ab596
-pkgrel=4
+pkgrel=5
 pkgdesc='A Wayland compositor built on wlroots'
 arch=('aarch64')
 url='https://github.com/noctalia-dev/umbriel'
@@ -19,12 +20,13 @@ depends=('cairo' 'gcc-libs' 'glibc' 'jemalloc' 'lcms2' 'libdrm' 'libdisplay-info
 makedepends=('meson' 'ninja' 'nlohmann-json' 'pkgconf' 'wayland-protocols')
 options=('!debug')
 source=("umbriel-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz" gemini-keyboard.patch
-        gemini-cheatsheet.patch)
-sha256sums=('e6ea803bafc0cc0ff7a99864ab694ae54f33b69d144a4165597bfffc30926814' SKIP SKIP)
+        gemini-cheatsheet.patch gemini-output-name.patch)
+sha256sums=('e6ea803bafc0cc0ff7a99864ab694ae54f33b69d144a4165597bfffc30926814' SKIP SKIP SKIP)
 
 prepare() {
     patch -d "umbriel-${_commit}" -p1 <gemini-keyboard.patch
     patch -d "umbriel-${_commit}" -p1 <gemini-cheatsheet.patch
+    patch -d "umbriel-${_commit}" -p1 <gemini-output-name.patch
 }
 
 build() {

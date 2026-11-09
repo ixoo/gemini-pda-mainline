@@ -1644,7 +1644,48 @@ A media player (owner, 2026-11-08, `gemini-base` 29):
 - Mainline has no MT6797 video decoder, so mpv decodes on the CPU. Playback speed is not
   measured.
 
-Not yet in a card image: the next card waits for the audio session's UCM profile.
+Bigger bar icons and a display name (owner, 2026-11-08, `gemini-base` 30, Umbriel `pkgrel` 5):
+
+- The owner wanted the bar's icons to fill its width. Tried live on card-23 and approved:
+  `scale = 1.6` on the launcher, network, Bluetooth, volume and control-center widgets.
+  The battery keeps its size, at the owner's request.
+- Noctalia's control center listed the display as "(null) (null) (DSI-1)". wlroots 0.20
+  (`backend/drm/drm.c`) builds a DRM output's description with
+  `snprintf("%s %s… (%s…)", make, model, …, name)`. Make and model come from the EDID, which
+  the DSI panel lacks, so they are NULL and glibc prints "(null)". Noctalia shows that
+  description.
+- `umbriel/gemini-output-name.patch` sets the description to "Built-in display (DSI-1)" for
+  a DRM output with neither make nor model. Other outputs keep wlroots' description. The
+  root cause, a NULL passed to `%s`, is wlroots'; an upstream fix there would make the
+  patch unnecessary.
+
+- Brightness (owner: "the display brightness should work"). Noctalia skipped
+  `/sys/class/backlight/backlight` with "could not be matched to an active output". The PWM
+  backlight is a platform device with no link to the DSI connector, so the Monitor tab's
+  slider showed "Disabled".
+- `noctalia.toml` now pins it with `[brightness.monitor.DSI-1] backlight_device = "backlight"`.
+  Applied live on card-23, Noctalia logged that it used the configured backlight for DSI-1.
+  Writes go through logind's `SetBrightness`. A kernel-side link between the panel and its
+  backlight might make the pin unnecessary.
+
+- Owner, tried live on card-23: 2.2 and then 2.3 for the output scale ("ok perfect! let's bake
+  this in the next card"), and "bar text scale should be 1.3". `umbriel.toml` sets
+  `[output.DSI-1] scale = 2.3`, giving a desktop of about 939x470 (it was 864x432), and `noctalia.toml` sets `[bar.default] font_scale = 1.3` (it was
+  1.15). The clock's own `font_scale` 1.3 stays.
+
+Card-25 (dev VM, `gemini-base` 30 and Umbriel `pkgrel` 5, image sha256 `299d4ac7c28d…`, 429
+packages, root 2.55 GB used) pairs with `station-work-91` or later. It carries `gemini-base` 26
+to 30: the simpler bar, Bluetooth at boot with the radio off, the simple launcher, mpv, and the
+changes above. Checked read-only on the image:
+
+- Umbriel's and Noctalia's config checks pass. A first build had appended the icon scales as
+  repeated `[widget.*]` tables, which TOML rejects. The scales now sit in the existing tables.
+- `AutoEnable=false` is set and `bluetooth.service` is enabled.
+- `/etc/mpv/scripts/mpris.so` is present.
+- `umbriel` contains the "Built-in display" description.
+
+Untested on the device. The UCM audio profile is not in it; it waits for the audio session's
+test.
 
 ## Analysis
 
