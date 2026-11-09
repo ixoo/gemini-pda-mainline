@@ -131,16 +131,26 @@ fi
                 break
             fi
         done
-        # schedutil on every policy, whatever the image's default governor.
-        for policy in /sys/devices/system/cpu/cpufreq/policy*; do
-            [ -e "$policy/scaling_governor" ] && $bb echo schedutil >"$policy/scaling_governor"
-        done
-        # Power allocator on the SoC zone; it refuses to bind, and step-wise stays,
-        # unless every cooling device on the control trip has an energy model.
-        for zone in /sys/class/thermal/thermal_zone*; do
-            [ "$($bb cat "$zone/type" 2>/dev/null)" = soc-thermal ] || continue
-            $bb echo power_allocator >"$zone/policy" 2>/dev/null && result="$result,power_allocator"
-        done
+        # A CCI probe can defer and still load. Unbound, nothing keeps VPROC1 up for
+        # the CCI's boot rate, so unload the policies while they hold their first point.
+        if [ "${result#failed}" = "$result" ] && [ -e /proc/device-tree/cci ] &&
+           ! [ -e /sys/bus/platform/drivers/mtk-ccifreq/cci ]; then
+            $bb rmmod mtk_cci_devfreq 2>/dev/null
+            $bb rmmod cpufreq_dt 2>/dev/null
+            result=failed-cci-unbound
+        fi
+        if [ "${result#failed}" = "$result" ]; then
+            # schedutil on every policy, whatever the image's default governor.
+            for policy in /sys/devices/system/cpu/cpufreq/policy*; do
+                [ -e "$policy/scaling_governor" ] && $bb echo schedutil >"$policy/scaling_governor"
+            done
+            # Power allocator on the SoC zone; it refuses to bind, and step-wise stays,
+            # unless every cooling device on the control trip has an energy model.
+            for zone in /sys/class/thermal/thermal_zone*; do
+                [ "$($bb cat "$zone/type" 2>/dev/null)" = soc-thermal ] || continue
+                $bb echo power_allocator >"$zone/policy" 2>/dev/null && result="$result,power_allocator"
+            done
+        fi
         status "cpufreq=$result"
         $bb rm -f "$marker"
         $bb sync

@@ -42,6 +42,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0675`](../../patches/proposals/0675-cpufreq-dt-set-the-OPP-of-a-CPU-with-a-supply-at-ini.patch) | After D1, found in review: cpufreq-dt sets each regulated policy's OPP at init. Otherwise CPU0-3, booting at the listed 897 MHz, would hold no voltage request on the shared VPROC1 until their first change, and CPU4-7 could lower the rail under them. CPU4-7's move off the unlisted 1274 MHz also happens here, where it can fail cleanly, instead of in the core's `BUG_ON()` path. Module only |
 | [`0677`](../../patches/proposals/0677-PM-devfreq-mtk-cci-set-the-rate-of-the-OPP-it-picked.patch) | After D2 V7: mtk-cci-devfreq passes the devfreq flags and sets the rate of the OPP it picked, so an interpolated request rounds up to a CCI point for both clock and voltage. It used to take the voltage of the point below and set the raw rate. Module only |
 | [`0680`](../../patches/proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch) | After D3 V9: power-allocator cooling. CPU0-7 get `dynamic-power-coefficient` (78 and 129) for an energy model; a 75 C passive control trip carries both clusters and the GPU; 100 ms passive polling; 1.5 W `sustainable-power`. Needs a new image |
+| [`0682`](../../patches/proposals/0682-PM-devfreq-mtk-cci-drop-the-voltage-request-when-it-.patch) | After D3 item 3: mtk-cci-devfreq gives up its voltage request on a failed probe and in `remove()`. A deferred probe used to leave VSRAM_L at 1.20 V (and, by inference, VPROC1 at the CCI's top point), because putting a regulator consumer does not settle the rail again. Module only |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -100,7 +101,9 @@ series (`0678`, `0679` from other sessions), and of the modules only
 
 Station init: the [station `init`](../2026-10-30-mainline-dev-station/initramfs/init)
 loads whichever of those five modules the image carries, in that order, and
-then sets every policy to schedutil. It runs only when
+then sets every policy to schedutil. If the tree has the CCI but the driver did
+not bind (a deferred probe still loads), it unloads the CCI and cpufreq-dt
+while the policies hold their first point and reports `failed-cci-unbound`. It runs only when
 `/mnt/data/cpufreq-at-boot` exists, after the A72 block, and with the same
 unfinished-load marker as the display. Nothing creates that file; the
 custodian creates it after the heat soak (V9).
@@ -516,6 +519,24 @@ cooling device. The vendor's own per-core dynamic-power table fits
 it rather than waiting for V10, and adds the 75 C control trip. The 1.5 W
 sustainable power only seeds the controller's gains. V9's trace of the
 allocator, if needed, would show the granted power to tune it.
+
+### D3 item 3: the deferred CCI probe
+
+The probe raises its request to the top CCI point before adding the devfreq
+device. On `-EPROBE_DEFER` (CPU4-7 offline, so no policy4) the error path
+disabled and released the regulators but never lowered the request, and the
+regulator core does not rebalance a rail when a consumer is put. VSRAM_L
+therefore stayed at 1.20 V, and VPROC1 presumably at 1.20 V too (the DA9214
+was unreadable while bound), until `cpufreq-dt` unloaded. `0682` drops the
+request on that path and in `remove()`.
+
+Without the CCI bound, nothing holds VPROC1 up for the CCI's boot rate. In
+item 3 N4, LL at 221 MHz requested 840 mV on VPROC1 (read back at N9, after
+the unloads) while the CCI ran at its 630 MHz boot rate. The firmware runs that rate at 1.00 V, and the table puts it
+at 1.06 V. V5 and V6 also step the clusters before V7 loads the CCI, but the
+other cluster holds its 1.00 V point (L at 1209 MHz in V5, LL at 897 MHz in
+V6), so VPROC1 stays at the firmware's own value there. Only a run with one
+cluster offline, as in item 3, goes below it.
 
 ## Conclusion
 
