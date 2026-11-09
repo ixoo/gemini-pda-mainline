@@ -184,6 +184,9 @@ station-work-91 RAM root (predecessor `6c0fd742…`). It carries 0651-0670,
   was powered off at that stop. Details are in the
   [DVFS record](../2026-11-08-mt6797-a53-dvfs/README.md); the private logs are in
   `artifacts/station-work-93/phase1/`.
+- D3 (station-work-94, boot2 `1f201b4e…`, from `5ed802b4`): item 1 of the cpuidle plan, S1
+  as the station's suspend. T1, T2, T3 and T4 passed, with one USB defect
+  ([D3 item 1](#d3-item-1-s1-as-the-stations-suspend-2026-11-08)).
 
 ### Boot 3 result (2026-11-08)
 
@@ -291,6 +294,64 @@ fix 0676 (in D2) removes the need to unbind.
 
 **Next.** D2 (station-work-93, boot2 `ed088a5a…`, from `4a1c6f22`) is written and verified
 (predecessor D1 `09ae90fd…`). The owner decides whether to build S2/S3 (owner decision 5).
+
+### D3 item 1: S1 as the station's suspend (2026-11-08)
+
+The candidate was D3: D2's inputs plus 0677 (CCI rounding), 0678 (`mtk_wdt` stops a
+`HW_RUNNING` watchdog across suspend) and 0679 (static PMIC sleep modes, `pmic_modes`,
+default off). It was written over D2 (`ed088a5a…`) and verified. The owner approved the
+D1, M1-M15 and L1 writes ("go for D3"). The procedure is in the
+[cpuidle record](../2026-11-07-mt6797-cpuidle/README.md), "Item 1". The setup matched
+boot 3: radios unloaded, CPU1-7 offline, vendor program staged by hand, no watchdog
+feeder, `mtu3` left bound.
+
+**Boot `1d20d160…`, T0-T2, observed:**
+- **T0.** The module loaded as in boot 3, `mem_sleep` read `s2idle [deep]`, and the 15
+  M-fields read through the PMIC wrapper regmap: `0204` `010b`; bucks CON1 `0000`, CON9
+  `0001`; LDOs `da68`/`da68`/`da62`/`da62`/`da62`/`0260`. The four bucks' CON6 read
+  `0040`, `0040`, `0040` and `000c`.
+- **T1.** One 60 s suspend returned on the PCM timer (`r12=1`) after 60.3 s, with no
+  reset. 0678 kept the boot-armed 31 s watchdog stopped.
+- **T2.** Four 300 s suspends, each returning on the timer, with the M-fields read back
+  equal after every one. The run ended `stop=0` with no fault and no taint.
+
+| Run | `pmic_modes` | Δcharge (µAh) / time (s) | Average |
+| --- | --- | --- | --- |
+| T1 | off | 724 / 60.4 | 43.2 mA |
+| T2 off a | off | 3,725 / 300.75 | 44.6 mA |
+| T2 off b | off | 3,621 / 300.76 | 43.3 mA |
+| T2 on a | on | 3,517 / 300.76 | 42.1 mA |
+| T2 on b | on | 3,414 / 300.77 | 40.9 mA |
+
+The modes saved about 2.5 mA, which is under the 3 mA bar the plan set for turning them on
+by default. Each window resolves to about ±1 mA, so the figure is borderline.
+
+**USB defect, observed.** After the run the owner replugged, and the host never
+enumerated the gadget. The UDC state read `not attached` while the charger reported
+online. A `soft_connect` disconnect/connect and a `usb_role` none/device cycle did not
+bring it back. With 0676, every suspend logged `pullup D-` and every resume logged
+`forcing valid B-device session` then `pullup D+`. Nothing from `mtu3` was logged after
+the last resume or at the replug. The owner powered off from the console. This went to the
+suspend session.
+
+**Boot `d7f02aca…`, T3-T4, observed.** The new `backlight-policy` (`7fc1cadd…`, from
+`5ed802b4`) was renamed over `/bin/backlight-policy` and respawned by init, with
+`timer_sec=30`.
+- **T4, cable in.** A lid close tried a deep suspend; the bq25890 guard refused it, the
+  policy logged `lid suspend refused` once, and the station stayed up. Two further closes
+  before the unplug did the same.
+- **T3, on battery, three closes.** Each close logged `PM: suspend entry (deep)`. While the
+  lid stayed closed the policy suspended again after each timer wake: 2, 16 and 1
+  re-suspends in the three closes. Each open woke the station on `r12=0x40` (the EINT bit
+  in S1's wake mask), and `gemini-lid` restored the keyboard. Every `wake:` line read
+  `returned=1` with unchanged gates and `clk_cfg_0`.
+- One resume logged `i2c 4-0020: Unbalanced pm_runtime_enable!`, a `dev_warn`, not a
+  `WARNING` splat. This went to the suspend session.
+
+**Analysis.** S1 works as the station's suspend: the watchdog no longer needs a feeder,
+lid close suspends to about 42 mA and re-suspends on timer wakes, and lid open wakes it.
+Two defects block making it the default: USB does not re-enumerate after a mem resume on
+battery, and the `4-0020` runtime-PM imbalance.
 
 ## Analysis
 
