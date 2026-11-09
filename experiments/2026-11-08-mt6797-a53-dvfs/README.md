@@ -278,6 +278,9 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
    `trace_marker` (owner-approved for D3). V9p also enables four thermal
    events: `thermal_power_allocator`, `thermal_power_allocator_pid`,
    `thermal_power_cpu_limit` and `thermal_temperature`.
+7. V9p with `IPA_GAINS` writes those PID files of the `soc-thermal` zone
+   after the policy write (which resets them): `k_po`, `k_pu`, `k_i`, `k_d`,
+   `integral_cutoff`. The script refuses any other name and reads each back.
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
@@ -348,7 +351,7 @@ building anything on it.
 | V7 | V1 | `insmod mtk-cci-devfreq.ko`; step LL and L and read the devfreq `cur_freq` and the CCI PLL line; then schedutil on both, 10 s idle, 15 s of 8-CPU load, 10 s idle | CCI = the higher of the two clusters' places mapped onto 234-988 MHz, rounded to a CCI point; schedutil idles low and loads high; all load hashes equal; transitions counted | items 1-4 |
 | V8 | V1 | Cooling: `power_allocator` on the zone, emulate 77 C (above the control trip), then release | At least one policy's `scaling_max_freq` drops within 10 s; both come back | item 5 |
 | V9 | V1 | Heat soak from below 45 C: `power_allocator` on the zone, 10 min of 8-CPU load under schedutil, sampling every 10 s the SoC temperature, both policies' frequencies, vproc1, vsram_l and hashes | The allocator settles the SoC near 75 C and below 80 C; no hash difference. Pass opens the boot gate | items 1-3, 5 |
-| V9p | V1, cold | V9 with the allocator's budget, PID terms, CPU limits and zone temperature traced, raw trace kept in `/tmp/v9p-trace.txt` | The same pass conditions as V9; the trace shows why the caps swing (below) | items 1-3, 5, 6 |
+| V9p | V1, cold | V9 with the allocator's budget, PID terms, CPU limits and zone temperature traced, raw trace kept in `/tmp/v9p-trace.txt`; `IPA_GAINS="k_po=60 k_pu=60 k_i=10 integral_cutoff=3000"` sets the tuned gains | Defaults: the trace shows why the caps swing (below). Tuned: mean near 75 C, below 77 C, no poll-to-poll swing | items 1-3, 5-7 |
 | V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × mV² / 10⁹) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
 | V11 | new boot, same image | Create `/mnt/data/cpufreq-at-boot`; power off; owner selects boot2 | Station status `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq`; schedutil on both policies | items 1-4 at boot |
 
@@ -466,6 +469,22 @@ record is in [the CPU power test plan](../2026-11-08-cpu-power-test-plan/README.
   338/468 MHz from one sample to the next, with VPROC1 between 890 and 1200 mV. 158,882
   traced events (26,380 VPROC1 sets in 600 s), 0 violations, no overrun, hashes equal.
   After the load the SoC fell to 42.8 C. No fault, taint 0.
+- **V9p with the default gains passed** (same boot, owner-approved trace events): k_po 90,
+  k_pu 180, k_i 18, k_d 0, integral_cutoff 0. From 27.5 C, 64.9 C at t+10 s, then
+  63.2-75.6 C, 40.7 C at the end. 204,274 events, 0 violations, 29,182 VPROC1 sets,
+  hashes equal. The trace has 5,671 PID updates, one per 105 ms. Per 50 s window:
+
+  | Window | Mean / min / max SoC | Mean budget | Integral term | Polls with a >4 C jump |
+  | --- | --- | --- | --- | --- |
+  | 0-50 s | 70.5 / 59.5 / 74.5 C | 2.00 W | 0 | 0 % |
+  | 100-150 s | 71.7 / 65.7 / 76.1 C | 1.42 W | -0.73 W | 87 % |
+  | 300-350 s | 69.7 / 62.9 / 75.3 C | 1.31 W | -1.10 W | 100 % |
+  | 550-600 s | 68.8 / 59.7 / 75.3 C | 1.22 W | -1.35 W | 99 % |
+
+  From about 100 s on, the reading alternates every poll between about 65 and 75 C, and
+  the caps alternate between the top points and about 715-806/962-1092 MHz. The next poll's reading
+  rises about 5.8 C for each watt granted to the clusters (fit over 150-540 s). With the
+  budget steady at full power, the reading moved 0.2 C (s.d.) from poll to poll.
 
 ## Analysis
 
@@ -547,21 +566,36 @@ jumping between the top and bottom of their tables, and the mean sits about
 
 The estimated constants, from the 58 C switch-on trip, the 75 C control trip
 and 1.5 W, are k_pu = 2 × 1500 / 17 ≈ 176 mW/C, k_po ≈ 88 mW/C and
-k_i ≈ 18 mW/C per 100 ms poll. Two causes fit, and the samples can't separate
-them:
+k_i ≈ 18 mW/C per 100 ms poll (sysfs shows them as 180, 90 and 18).
 
-- **Proportional gain against a fast sensor.** The SoC read went from 34.5 to
-  67.7 C in 10 s, so the sensor follows die power within a poll or two. At
-  176 mW/C, a 1 C reading jitter moves the budget by about 8 % of the clusters'
-  2.2 W, and a 5 C swing moves it by 40 %.
-- **The integral only winds down.** With `integral_cutoff` 0 the integral
-  grows only while the SoC is above 75 C, and nothing unwinds it below. Every
-  overshoot lowers the budget for the rest of the run, which matches later
-  samples running cooler (63-73 C) with deeper caps.
+V9p shows both suspected causes, working together:
 
-V9p traces the PID terms to tell them apart. The gains, `integral_cutoff` and
-sustainable power are all zone sysfs files, so tuning needs no new image.
-Each test value is a write for the owner's approval.
+- **The integral only winds down.** With `integral_cutoff` 0 it integrates only
+  above 75 C, so every overshoot lowers the budget for good: -1.35 W by the end,
+  and the mean fell from 73.4 to 68.8 C.
+- **That puts the loop on the wrong gain.** The sensor answers within one poll,
+  at about 5.8 C/W. Below the target, the error uses k_pu: 176 mW/C × 5.8 C/W ≈ 1.0,
+  so each poll's correction overturns the last one, and the reading flips about
+  10 C every poll. Above the target, k_po gives about 0.5. The more the integral
+  drags the mean below 75 C, the more of the time the loop runs on k_pu.
+
+A two-part plant fitted to the trace reproduces the default run: 5.8 C/W
+within a poll, plus 28 C/W with a 13.6 s time constant, from 27.5 C. It gives a
+68.0 C mean, swings every poll and 1.20 W. In that model:
+
+| Gains (k_po / k_pu / k_i / integral_cutoff) | Mean / max SoC | Mean budget | Poll-to-poll s.d. |
+| --- | --- | --- | --- |
+| 90 / 180 / 18 / 0 (default) | 68.0 / 74.5 C | 1.20 W | 11.5 C |
+| 90 / 180 / 18 / 3000 | 75.0 / 76.3 C | 1.41 W | 0.7 C |
+| 60 / 60 / 10 / 3000 | 75.0 / 75.8 C | 1.41 W | 0.35 C |
+| 120 / 120 / 10 / 3000 | 75.0 / 76.0 C | 1.41 W | 0.5 C |
+
+The proposal is 60 / 60 / 10 / 3000: a fast-loop gain of about 0.35 on either
+side of the target. The integral now also runs from 72 C up, so it unwinds below
+the target. The model puts the SoC at the 75 C target with about 15 % more
+power for the CPUs. The model leaves out the operating-point steps and the GPU,
+so V9p with these gains is the test. If they hold, the station init writes them
+after `power_allocator`.
 
 ### D3 item 3: the deferred CCI probe
 
