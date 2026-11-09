@@ -3,14 +3,16 @@
 # SPDX-License-Identifier: MIT
 #
 # A53 DVFS device test (experiments/2026-11-08-mt6797-a53-dvfs, V1-V9), one stage per call.
-# Run as root on the station RAM root; cpu-mhz in /tmp/cf; modules from the image.
+# Run as root on the station RAM root; cpu-mhz in /tmp/cf; modules from the image;
+# v-trace-check.awk next to this script.
 # Written by the device custodian; expectations after D1 added here.
 set -u
 STAGE=${1:-}
 MHZ=/tmp/cf/cpu-mhz; M=/lib/modules/$(uname -r)
 CF=/sys/devices/system/cpu/cpufreq; REF=/tmp/v-hash-ref; TOL=5
 DEV=1001a000.clock-controller
-stop() { echo "STOP: $*"; dmesg | grep -iE 'da921|da9213|vsram|mcusys|cpufreq|cci|devfreq|thermal|coupl' | tail -n 30; exit 1; }
+CHK=$(dirname "$0")/v-trace-check.awk; TR=/sys/kernel/tracing; [ -d $TR/events ] || TR=/sys/kernel/debug/tracing
+stop() { echo "STOP: $*"; [ -n "${tpid:-}" ] && { kill $tpid 2>/dev/null; echo 0 > $TR/tracing_on; }; dmesg | grep -iE 'da921|da9213|vsram|mcusys|cpufreq|cci|devfreq|thermal|coupl' | tail -n 30; exit 1; }
 regs() { r=/sys/kernel/debug/$DEV/registers; [ -r "$r" ] || stop "no $r"; cat "$r"; grep -q 'faulted=0' "$r" || stop "driver faulted"; }
 soc_temp() { for z in /sys/class/thermal/thermal_zone*; do [ "$(cat $z/type)" = soc-thermal ] && { cat $z/temp; return; }; done; echo 0; }
 check_temp() { t=$(soc_temp); echo "soc_temp_mC $t"; [ "$t" -lt 80000 ] || stop "SoC at $t"; }
@@ -36,16 +38,55 @@ CCI=/sys/class/devfreq/cci
 max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
 # vsram_code CODE: the VSRAM_L selector's millivolts
 vsram_mv() { case $1 in 0) echo 1050;; 1) echo 600;; 2) echo 700;; *) echo $(( 900 + ($1 - 3) * 25 ));; esac; }
-volts() { # real hardware: DA9214 0xd7 and INFRACFG VSRAM words
+# volts [live]: real hardware, DA9214 0xd7 and INFRACFG VSRAM words. The reads are
+# separate, so they pair only while nothing changes; under schedutil ("live") only
+# the checks that hold for any single read remain, and the trace checks the order.
+volts() {
   sel=$(( $(i2cget -fy 6 0x68 0xd7) & 0x7f )); vp=$(( 300 + sel * 10 ))
   w1=$(devmem 0x10001f9c 32); w2=$(devmem 0x10001fa0 32); code=$(( w1 & 0xf )); vs=$(vsram_mv $code)
   echo "hw vproc1_mV $vp (sel 0x$(printf %x $sel)) vsram_mV $vs (f9c $w1 fa0 $w2) sysfs vproc1 $(rg vproc1) vsram_l $(rg vsram_l)"
+  for w in $w1 $w2; do c=$(( w & 0xf ))
+    [ $(( w )) -eq $(( c * 0x01010101 )) ] || stop "VSRAM word $w is not one selector"
+    [ "$(vsram_mv $c)" -ge 1100 ] && [ "$(vsram_mv $c)" -le 1200 ] || stop "VSRAM_L word $w outside 1100-1200 mV"; done
+  [ "$vp" -ge 770 ] && [ "$vp" -le 1200 ] || stop "VPROC1 $vp outside 770-1200 mV"
+  [ "${1:-}" = live ] && return
   [ "$w1" = "$w2" ] || stop "VSRAM words differ"
-  [ $(( w1 )) -eq $(( code * 0x01010101 )) ] || stop "VSRAM word $w1 is not one selector"
   [ "$vs" -ge "$vp" ] || stop "VSRAM_L $vs below VPROC1 $vp"
-  [ "$vs" -ge 1100 ] || stop "VSRAM_L $vs below its 1100 mV floor"
   [ "$(rg vproc1)" = "none" ] || [ "$(rg vproc1)" = "$((vp*1000))" ] || stop "vproc1 sysfs $(rg vproc1) != hw $vp mV"
 }
+# trace_start NAME: park both policies at fixed points, seed the checker with the
+# steady clocks and rails, then trace every clock and rail change and stream it
+# through v-trace-check.awk (raw text kept in /tmp/NAME-trace.txt when NAME is v7s).
+trace_start() {
+  [ -r "$CHK" ] || stop "no $CHK"; [ -d $TR/events/clk ] && [ -d $TR/events/regulator ] || stop "no clk/regulator trace events"
+  for p in 0 4; do echo userspace > $CF/policy$p/scaling_governor; done
+  set_khz 0 897000; set_khz 4 1209000; sleep 1; volts; expect
+  echo 0 > $TR/tracing_on; echo > $TR/set_event; echo > $TR/trace; echo 4096 > $TR/buffer_size_kb
+  for e in clk/clk_set_rate clk/clk_set_rate_complete regulator/regulator_set_voltage regulator/regulator_set_voltage_complete; do
+    echo 1 > $TR/events/$e/enable || stop "trace event $e"; done
+  echo 1 > $TR/tracing_on
+  cr() { cat /sys/kernel/debug/clk/$1/clk_rate; }
+  echo "seed ll=$(cr mcu-armpll-ll) l=$(cr mcu-armpll-l) cci=$(cr mcu-armpll-cci) vproc1=$(rg vproc1) vsram_l=$(rg vsram_l)" > $TR/trace_marker
+  raw=""; [ "$1" = v7s ] && raw=/tmp/$1-trace.txt
+  awk -v raw="$raw" -f "$CHK" $TR/trace_pipe > /tmp/$1-trace-check.txt & tpid=$!
+}
+# trace_end NAME: close the trace and stop on any ordering violation or lost event.
+trace_end() {
+  echo end > $TR/trace_marker; wait $tpid; trc=$?; echo 0 > $TR/tracing_on; echo > $TR/set_event
+  cat /tmp/$1-trace-check.txt
+  ov=$(cat $TR/per_cpu/cpu*/stats | awk '/^overrun:/{s+=$2} END{print s+0}'); echo "trace overrun $ov"
+  [ "$ov" = 0 ] || stop "trace overran"; [ "$trc" = 0 ] || stop "trace ordering check failed"
+}
+# sched_load: the V7 schedutil phase, traced.
+sched_load() { D=$CCI; trace_start v7s
+    for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; echo "policy$p trans_before $(cat $CF/policy$p/stats/total_trans)"; done
+    sleep 10; for p in 0 4; do echo "policy$p idle_cur $(cat $CF/policy$p/scaling_cur_freq)"; done; echo "cci idle $(cat $D/cur_freq)"
+    pids=""; for c in 0 1 2 3 4 5 6 7; do (end=$(($(date +%s)+15)); while [ "$(date +%s)" -lt "$end" ]; do $MHZ $c hash; done > /tmp/v-load-$c) & pids="$pids $!"; done
+    sleep 5; for p in 0 4; do echo "policy$p load_cur $(cat $CF/policy$p/scaling_cur_freq)"; done; echo "cci load $(cat $D/cur_freq)"; volts live
+    wait $pids; sleep 10; for p in 0 4; do echo "policy$p idle_cur $(cat $CF/policy$p/scaling_cur_freq) trans_after $(cat $CF/policy$p/stats/total_trans)"; done; echo "cci idle $(cat $D/cur_freq)"
+    trace_end v7s
+    for c in 0 1 2 3 4 5 6 7; do n=$(awk '{print $2}' /tmp/v-load-$c | sort -u); echo "cpu$c load_hashes $(wc -l < /tmp/v-load-$c) distinct $n"; [ "$n" = "$(cat $REF)" ] || stop "cpu$c load hash"; done
+    regs; volts live; check_log; check_temp; }
 # expect: with the policies steady, VPROC1 is the highest table voltage of its
 # consumers and VSRAM_L is VPROC1 + 10 mV rounded up to 25 mV, within 1100-1200 mV.
 expect() {
@@ -103,29 +144,24 @@ v7) insmod $M/mtk-cci-devfreq.ko || stop "cci refused"; sleep 2; D=$CCI
       case $pair in "221000 325000") [ "$cur" = 234000000 ] || stop "CCI $cur at the lowest points";;
         "1547000 2002000") [ "$cur" = 988000000 ] || stop "CCI $cur at the highest points";; esac
     done
-    for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; echo "policy$p trans_before $(cat $CF/policy$p/stats/total_trans)"; done
-    sleep 10; for p in 0 4; do echo "policy$p idle_cur $(cat $CF/policy$p/scaling_cur_freq)"; done; echo "cci idle $(cat $D/cur_freq)"
-    pids=""; for c in 0 1 2 3 4 5 6 7; do (end=$(($(date +%s)+15)); while [ "$(date +%s)" -lt "$end" ]; do $MHZ $c hash; done > /tmp/v-load-$c) & pids="$pids $!"; done
-    sleep 5; for p in 0 4; do echo "policy$p load_cur $(cat $CF/policy$p/scaling_cur_freq)"; done; echo "cci load $(cat $D/cur_freq)"; volts
-    wait $pids; sleep 10; for p in 0 4; do echo "policy$p idle_cur $(cat $CF/policy$p/scaling_cur_freq) trans_after $(cat $CF/policy$p/stats/total_trans)"; done; echo "cci idle $(cat $D/cur_freq)"
-    for c in 0 1 2 3 4 5 6 7; do n=$(awk '{print $2}' /tmp/v-load-$c | sort -u); echo "cpu$c load_hashes $(wc -l < /tmp/v-load-$c) distinct $n"; [ "$n" = "$(cat $REF)" ] || stop "cpu$c load hash"; done
-    regs; volts; check_log; check_temp ;;
+    sched_load ;;
+v7s) [ -d $CCI ] || stop "no CCI devfreq"; sched_load ;; # the V7 schedutil phase alone, CCI already loaded
 v8) z=""; for d in /sys/class/thermal/thermal_zone*; do [ "$(cat $d/type)" = soc-thermal ] && z=$d; done
-    for p in 0 4; do echo performance > $CF/policy$p/scaling_governor; done
+    trace_start v8; for p in 0 4; do echo performance > $CF/policy$p/scaling_governor; done
     echo 62000 > $z/emul_temp || stop "emul_temp refused"
     for i in 1 2 3 4 5 6 7 8 9 10; do sleep 1; echo "t+$i max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq)"; done
     echo 0 > $z/emul_temp
     for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do sleep 1; echo "t+$i max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq)"; done
     [ "$(cat $CF/policy0/scaling_max_freq)" = 1547000 ] && [ "$(cat $CF/policy4/scaling_max_freq)" = 2002000 ] || stop "cooling did not release"
-    for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done; volts; regs; check_log ;;
-v9) for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
+    for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done; sleep 2; trace_end v8; volts live; regs; check_log ;;
+v9) trace_start v9; for p in 0 4; do echo schedutil > $CF/policy$p/scaling_governor; done
     pids=""; for c in 0 1 2 3 4 5 6 7; do (end=$(($(date +%s)+600)); while [ "$(date +%s)" -lt "$end" ]; do $MHZ $c hash; done > /tmp/v9-load-$c) & pids="$pids $!"; done
     i=0; while [ $i -lt 60 ]; do sleep 10; i=$((i+1)); t=$(soc_temp)
-      echo "t+$((i*10)) soc $t f0 $(cat $CF/policy0/scaling_cur_freq) f4 $(cat $CF/policy4/scaling_cur_freq) max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq) $(volts | cut -d' ' -f1-6)"
+      echo "t+$((i*10)) soc $t f0 $(cat $CF/policy0/scaling_cur_freq) f4 $(cat $CF/policy4/scaling_cur_freq) max0 $(cat $CF/policy0/scaling_max_freq) max4 $(cat $CF/policy4/scaling_max_freq) $(volts live | cut -d' ' -f1-6)"
       [ "$t" -lt 80000 ] || { kill $pids; stop "SoC at $t"; }; done
-    wait $pids
+    wait $pids; trace_end v9
     for c in 0 1 2 3 4 5 6 7; do n=$(awk '{print $2}' /tmp/v9-load-$c | sort -u); echo "cpu$c load_hashes $(wc -l < /tmp/v9-load-$c) distinct $n"; [ "$n" = "$(cat $REF)" ] || stop "cpu$c load hash"; done
-    for p in 0 4; do cat $CF/policy$p/stats/time_in_state | tr '\n' ' '; echo; done; regs; volts; check_log; check_temp ;;
-*) echo "usage: $0 v1..v9"; exit 2 ;;
+    for p in 0 4; do cat $CF/policy$p/stats/time_in_state | tr '\n' ' '; echo; done; regs; volts live; check_log; check_temp ;;
+*) echo "usage: $0 v1..v9 | v7s"; exit 2 ;;
 esac
 echo "PASS $STAGE"

@@ -283,8 +283,20 @@ not retry:
 
 The stages are scripted in [`tools/v-test.sh`](tools/v-test.sh), written by the
 device custodian; the expected rail per point and the V4/V7 checks were
-added after D1. Every stepped point checks the hardware VPROC1 and VSRAM_L
-against the table and the coupler rule.
+added after D1. Every fixed point checks the hardware VPROC1 and VSRAM_L
+against the table and the coupler rule. After D3 the schedutil phases (V7's
+load phase, V8 and V9) no longer pair separate sysfs and I2C reads, which
+cannot be taken at one instant while the governor moves. They check only
+what any single read must satisfy (VPROC1 770-1200 mV, each VSRAM_L word one
+selector at 1100-1200 mV). Each of those phases is traced instead:
+`clk_set_rate`, `regulator_set_voltage` and their `_complete` events stream
+through [`tools/v-trace-check.awk`](tools/v-trace-check.awk). The phase starts
+from fixed points, which seed the check. While a change is in flight, a clock
+counts at the higher of its old and new rate, and a rail at the lower of its
+old and requested voltage. At every event VPROC1 must cover the table voltage
+of all three PLLs, and VSRAM_L must be at or above VPROC1 and 1100 mV. Every
+PLL target must be a table point. A violation, a lost event or a ring-buffer
+overrun stops the stage. `v7s` reruns V7's schedutil phase alone.
 
 Each is one call; the custodian folds them into the test plan. "Read" means a
 `devmem` read of a 32-bit word; DA9214 reads use `i2cget -fy 6 0x68 REG` (or
@@ -372,6 +384,25 @@ profile at `4a1c6f22`), boot `bb910b05…`, script `tools/v-test.sh` `bf763922�
   (the 611 MHz point's voltage). devfreq logged "Couldn't update frequency transition
   information" three times. The CCI ran about 2.5 % above its voltage's point until the
   power-off at the stop.
+
+**V1-V7 (2026-11-08), stopped in V7's schedutil phase on a sampling race.** Run by
+the device custodian, owner-approved, on image D3 (`station-work-94`, from `5ed802b4`,
+`mtk-cci-devfreq.ko` `90b57227…` with 0677), boot `d7f02aca…`.
+
+- **V1-V6 passed again.**
+- **V7's fixed pairs passed, the CCI now on table points with the PLL equal to
+  `cur_freq`:** 221/325 MHz gave CCI 234 MHz at 860 mV; 897/325, 611 at 1020; 221/1209,
+  676 at 1060 (D2: 626.08); 1547/2002, 988 with VPROC1 1200 and VSRAM_L 1200 mV
+  (`0x0F0F0F0F`); 897/1209, 676 at 1060. No "Couldn't update" line.
+- **Schedutil:** idle 1014000/325000 kHz with CCI 754 MHz; under 8-CPU load
+  1443000/1885000 kHz with CCI 936 MHz. Then `volts` stopped on "vproc1 sysfs 1190000
+  != hw 1200 mV". No kernel warning, taint 0.
+- **Afterwards, by hand:** with schedutil running, two sysfs reads around one I2C read
+  differed (1140 and 1170 mV), and one row paired hardware 940 mV with frequencies that
+  need 1100 mV. At fixed userspace points (897000/1209000, CCI 676) sysfs gave 1060000 and
+  the hardware `0x4c`, three times in a row. Inference: the separate reads are each a process apart in
+  shell time while the rail moves within milliseconds, so the stop says nothing about
+  ordering. The script now traces the schedutil phases instead.
 
 ## Analysis
 
