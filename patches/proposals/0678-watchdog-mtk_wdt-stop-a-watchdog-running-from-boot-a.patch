@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 20:21:16 -0500
+Subject: [PATCH] watchdog: mtk_wdt: stop a watchdog running from boot
+ across suspend
+
+With WATCHDOG_HANDLE_BOOT_ENABLED and no user of /dev/watchdog, the
+core keeps a watchdog the bootloader left running alive with its own
+worker (WDOG_HW_RUNNING). mtk_wdt_suspend() stops the hardware only
+when the watchdog is active, so such a watchdog keeps counting through
+a system suspend in which no CPU runs that worker. On MT6797 the 31 s
+timeout then resets the system during any suspend longer than about
+15 s past the last kick.
+
+Stop and restart the hardware for a watchdog that is running from boot
+as well. The core still owns it after resume and keeps kicking it.
+---
+ drivers/watchdog/mtk_wdt.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/watchdog/mtk_wdt.c b/drivers/watchdog/mtk_wdt.c
+index 9ee35ef1d..2ac5e4d97 100644
+--- a/drivers/watchdog/mtk_wdt.c
++++ b/drivers/watchdog/mtk_wdt.c
+@@ -854,7 +854,12 @@ static int mtk_wdt_suspend(struct device *dev)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = dev_get_drvdata(dev);
+ 
+-	if (watchdog_active(&mtk_wdt->wdt_dev))
++	/*
++	 * A watchdog left running from boot, which the core keeps alive with
++	 * no user, keeps counting in a suspend where no CPU runs that kick.
++	 */
++	if (watchdog_active(&mtk_wdt->wdt_dev) ||
++	    watchdog_hw_running(&mtk_wdt->wdt_dev))
+ 		mtk_wdt_stop(&mtk_wdt->wdt_dev);
+ 
+ 	return 0;
+@@ -864,7 +869,8 @@ static int mtk_wdt_resume(struct device *dev)
+ {
+ 	struct mtk_wdt_dev *mtk_wdt = dev_get_drvdata(dev);
+ 
+-	if (watchdog_active(&mtk_wdt->wdt_dev)) {
++	if (watchdog_active(&mtk_wdt->wdt_dev) ||
++	    watchdog_hw_running(&mtk_wdt->wdt_dev)) {
+ 		mtk_wdt_start(&mtk_wdt->wdt_dev);
+ 		mtk_wdt_ping(&mtk_wdt->wdt_dev);
+ 	}

@@ -1054,6 +1054,123 @@ Two things this does not settle:
    only if the station must stop depending on the unit's own vendor files,
    for example for redistribution. That is a separate owner choice.
 
+### Item 1: S1 as the station's suspend (prepared 2026-11-08)
+
+The owner approved the order above ("Its order: suspend, idle", relayed by
+the custodian). Item 1 has three parts:
+
+- [`0678`](../../patches/proposals/0678-watchdog-mtk_wdt-stop-a-watchdog-running-from-boot-a.patch),
+  built in: `mtk_wdt_suspend()` and `mtk_wdt_resume()` also stop and restart a
+  watchdog that is only `watchdog_hw_running()`. The core keeps owning and
+  kicking it after resume. No feeder is needed any more. Upstreamable.
+- [`0679`](../../patches/proposals/0679-soc-mediatek-mt6797-spm-sleep-add-the-static-PMIC-sl.patch),
+  module: the static PMIC sleep modes in `mt6797-spm-sleep`, behind a new
+  `pmic_modes` parameter (default off, writable at runtime), so one boot can
+  compare with and without them. The table follows the vendor's
+  `spm_pmic_power_mode(PMIC_PWR_SUSPEND)`, minus three things: each rail's
+  enable and enable-control bits (the vendor turns rails on that mainline
+  keeps off, and clearing enable control could turn one off), VSRAM_PROC's
+  0.7 V sleep voltage (CPU0 stays powered in this mode), and the vendor's
+  unexplained whole-word write of `0x020e` to `LDO_VA10_CON0`.
+- [`backlight-policy.c`](../2026-10-30-mainline-dev-station/backlight-policy.c):
+  on a lid close, if `/sys/power/mem_sleep` offers `[deep]` (that is, the SPM
+  module is loaded), it writes `mem` to `/sys/power/state`. A refusal (a
+  charger attached, a radio on) is logged once and waits for the next close.
+  After a PCM-timer wake with the lid still closed it suspends again, unless
+  that suspend returned within 2 s. Without the module nothing changes:
+  `mem` would mean s2idle, which this policy does not use. Lid open wakes
+  through the Hall EINT, which S1's wake mask (S16) admits.
+
+Loading the module at boot stays out until this stage passes, as the project
+does for every new module.
+
+Checks: in a private VM worktree of the series through 0677, both patches
+compile with `W=1` and no warning (`mtk_wdt.o`; the module with `M=`), and
+checkpatch reports only the missing sign-off, which the project does not
+invent. `backlight-policy` builds with the release flags. None of it has
+run.
+
+**Writes for owner approval**, beyond the S1 list already approved for
+boot 3:
+
+| # | Where | Write |
+| --- | --- | --- |
+| D1 | TOPRGU `WDT_MODE` `0x10007000` | At suspend: enable bit 0 cleared, written with the mode key, by the driver's existing stop. At resume: the driver's existing start and kick (timeout, mode, `WDT_RST` kick), as at boot |
+| M1-M8 | MT6351 `BUCK_VCORE_CON9` `0x0612`, `BUCK_VGPU_CON9` `0x0626`, `BUCK_VS1_CON9` `0x0676`, `BUCK_VS2_CON9` `0x068a`; `BUCK_VCORE_CON1` `0x0602`, `BUCK_VGPU_CON1` `0x0616`, `BUCK_VS1_CON1` `0x0666`, `BUCK_VS2_CON1` `0x067a` | Only with `pmic_modes=1`, in `.prepare`: CON9 bit 8 ← 1 (sleep voltage enabled); CON1 bits 5:3 ← 0 (selected by SRCLKEN0) |
+| M9-M14 | MT6351 `LDO_VA18_CON0` `0x0a00`, `LDO_VUSB33_CON0` `0x0a16`, `LDO_VIO28_CON0` `0x0a34`, `LDO_VIO18_CON0` `0x0a4c`, `LDO_VA10_CON0` `0x0a6e`, `LDO_VLDO28_CON0` `0x0a9c` | Only with `pmic_modes=1`: bit 2 ← 1 (low-power mode under hardware control), bits 7:5 ← 0 (SRCLKEN0). Bits 1 and 3 (enable, on control) untouched |
+| M15 | MT6351 `TOP_CON` `0x0204` | Only with `pmic_modes=1`: bit 6 ← 1 (oscillator in hardware mode) |
+| M-restore | the same fields | In `.finish`, each field back to its value read in `.prepare` |
+| L1 | `/sys/power/state` | `mem`, from `backlight-policy` on a lid close; the suspend is the S1 path |
+
+The sleep voltages these select are whatever the preloader left in each
+buck's `CON6`; T0 reads them, since the vendor relied on the same
+preloader values.
+
+**Candidate.** Profile `mt6797-a53-station-dvfs` from the commit that records
+this stage: D2's inputs plus 0678 and 0679. 0678 is built in, so it needs a
+new image (a boot2 write under the standing approval). The module and
+`backlight-policy` come from the same package and commit; the vendor program
+is staged by hand as for boot 3.
+
+**Procedure** (owner present; Wi-Fi, Bluetooth and FM unloaded; A72 module
+not loaded; no watchdog feeder):
+
+| Stage | Action | Pass | Stop |
+| --- | --- | --- | --- |
+| T0 | Cable in: identity, taint; load `mt6797-spm-sleep`; read `mem_sleep` (expect `s2idle [deep]`); read the 15 M-fields and the four bucks' `CON6` through the wrapper regmap's debugfs | Module lines as in boot 3; values recorded | Load error |
+| T1 | Unplug. `timer_sec=60`, `pmic_modes=0`, one `mem` suspend | `wake: returned=1`, r12 bit 0, uptime +60 s, no reset. This is 0678: a 60 s sleep outlives the 31 s timeout | A reset or no wake within 120 s: force-off, no retry |
+| T2 | `timer_sec=300`. Two suspends with `pmic_modes=0`, then two with `pmic_modes=1`, with `charge_counter` read before and after each | All four return on the timer; after each `pmic_modes=1` suspend the 15 fields read back as in T0 | A field not restored; a wake other than the timer |
+| T3 | Copy the new `backlight-policy` over `/bin/backlight-policy`, kill the old one so init respawns it. `timer_sec=30`. Close the lid for about 90 s, then open it. Repeat twice more | Each close logs `PM: suspend entry (deep)`; the first close shows at least two timer wakes and re-suspends; the open wakes it with the EINT bit in r12; display back, a key works, no warning | A wake loop (`woke at once`), a missing display or keyboard, a warning |
+| T4 | Cable in, close the lid | `lid suspend refused` logged once, station stays up | A suspend with the cable in |
+
+Stops shared by every stage: an Oops, `WARNING` or RCU stall; taint
+changing; USB SSH absent 60 s after an expected wake (owner's force-off).
+
+| Result | Next |
+| --- | --- |
+| T1-T4 pass, T2 shows 3 mA or more saved with the modes | `pmic_modes` defaults on; load the module at boot after a longer soak |
+| T1-T4 pass, the modes save less | Leave them off; load at boot after the soak |
+| T1 resets | 0678 does not stop the watchdog on this path; read `WDT_MODE` before suspend on the next boot |
+| T3 fails | The policy or the lid wake needs work before lid-close suspend is used |
+
+### Item 2: find the awake regression (proposal)
+
+**Question.** With CPU0 alone, the screen blanked, the radios off and
+`backlight-policy` stopped, the station drew 96 mA in R1b (image from
+`e4e09b1a`) and about 271-290 mA in the last two runs (station-work-91 and
+D1). What draws the other ~180 mA?
+
+**Method.** One boot, on battery, cable out after setup. Hold the R1b state:
+CPU1-9 offline, `fb0` blanked, the policy frozen with `kill -STOP`, radios
+unloaded. Then remove one group at a time and measure each step for 120 s
+with `charge_counter` and `current_now` at 1 Hz, after 10 s of settling.
+With each window also record: `/proc/stat` CPU0 idle share, `/proc/interrupts`
+deltas, the five busiest threads (`top -bn1`), VPROC1 and VCORE voltages
+from their regulators, and at the start and end `clk_summary` (enabled
+clocks) and `pm_genpd_summary`.
+
+| Window | Removed before it |
+| --- | --- |
+| U0 | nothing (the reference; should reproduce 271 mA) |
+| U1 | the A53 DVFS and cpufreq modules (`cpufreq-dt`, the CCI devfreq, `clk-mt6797-mcusys`), after setting the policies to their lowest point; VPROC1 recorded before and after |
+| U2 | the GPU (`panfrost`; MFG domain off in `pm_genpd_summary`) |
+| U3 | the display stack (the DRM and panel modules), after the blank |
+| U4 | audio, camera receiver, sensors, touchscreen, vibrator, AW9120 LEDs |
+| U5 | userspace that is not needed: any logger other than the window's own, `getty` on tty1 |
+
+**What decides it.** The step whose removal drops the current by 30 mA or
+more names the holder; it goes to that driver's session. If U0 shows CPU0
+busy (idle share under 90 %) the cause is a thread or an interrupt storm
+instead, named by `top` and `/proc/interrupts`. If no step drops it, the
+next step is an image comparison against R1b's inputs.
+
+**Writes.** None new: module unloads and reloads, sysfs, reads. Nothing is
+reloaded between windows; at the end the station is powered off and boots
+boot2 again, so a driver that does not come back cleanly needs no recovery.
+
+**Stops.** A module that refuses to unload is skipped and recorded; an Oops
+or `WARNING`; the battery under 30 %.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding

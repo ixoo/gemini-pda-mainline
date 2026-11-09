@@ -1,0 +1,139 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 20:22:47 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: add the static PMIC
+ sleep modes
+
+The vendor sets static MT6351 sleep modes before each suspend: VCORE,
+VGPU, VS1 and VS2 take their sleep voltage when SRCLKEN0 drops, the
+VA18, VUSB33, VIO28, VIO18, VA10 and VLDO28 LDOs enter low-power mode
+on SRCLKEN0, and the oscillator follows SRCLKEN0. They act only while
+the suspend program has released the 26 MHz request.
+
+Apply them in .prepare when the pmic_modes parameter is set, and put
+every changed field back in .finish. Unlike the vendor, leave each
+rail's enable and enable-control bits alone, so no rail changes
+whether it is on, and leave VSRAM_PROC's sleep voltage out while CPU0
+stays powered. The parameter is off by default, so the suspended
+current can be compared with and without the modes on one boot.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 78 +++++++++++++++++++++++++
+ 1 file changed, 78 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 6d60db934..e1a6b53ce 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -183,6 +183,8 @@ static struct {
+ 	/* per-suspend state */
+ 	bool pmic_done;
+ 	u32 pmic_saved[5];
++	bool modes_done;
++	u32 modes_saved[15];
+ 	struct spm_slot slots[PWRAP_DVFS_SLOTS];
+ 	u32 saved[ARRAY_SIZE(spm_saved_regs)];
+ 	u32 saved_vec[16];
+@@ -197,6 +199,10 @@ static unsigned int timer_sec = 30;
+ module_param(timer_sec, uint, 0644);
+ MODULE_PARM_DESC(timer_sec, "PCM wake timer in seconds (1-600)");
+ 
++static bool pmic_modes;
++module_param(pmic_modes, bool, 0644);
++MODULE_PARM_DESC(pmic_modes, "Set the static PMIC sleep modes for each suspend");
++
+ static inline u32 spm_rd(u32 off)
+ {
+ 	return readl(s.spm + off);
+@@ -223,6 +229,75 @@ static const u16 pmic_saved_regs[] = {
+ 	MT6351_VCORE_CON6, MT6351_SMPS_ANA_CON9,
+ };
+ 
++/*
++ * The vendor's static sleep modes for suspend, applied before each suspend
++ * and put back after it. They act only while SRCLKEN0 is low, that is while
++ * the program has released the 26 MHz request: the bucks then take their
++ * sleep voltage (VSLEEP_EN, selected by SRCLKEN0), the LDOs their low-power
++ * mode, and the oscillator follows SRCLKEN0. The vendor calls also write
++ * each rail's enable and enable-control bits, which would change which
++ * rails are on; those are left alone. VSRAM_PROC's sleep voltage is left
++ * out too, because CPU0 stays powered in this mode.
++ */
++static const struct {
++	u16 reg;
++	u16 mask;
++	u16 val;
++} spm_modes[] = {
++	{ 0x0612, BIT(8), BIT(8) },	/* BUCK_VCORE_CON9: VSLEEP_EN */
++	{ 0x0602, 0x38, 0 },		/* BUCK_VCORE_CON1: VOSEL_SEL SRCLKEN0 */
++	{ 0x0626, BIT(8), BIT(8) },	/* BUCK_VGPU_CON9 */
++	{ 0x0616, 0x38, 0 },		/* BUCK_VGPU_CON1 */
++	{ 0x0676, BIT(8), BIT(8) },	/* BUCK_VS1_CON9 */
++	{ 0x0666, 0x38, 0 },		/* BUCK_VS1_CON1 */
++	{ 0x068a, BIT(8), BIT(8) },	/* BUCK_VS2_CON9 */
++	{ 0x067a, 0x38, 0 },		/* BUCK_VS2_CON1 */
++	{ 0x0a00, 0xe4, BIT(2) },	/* LDO_VA18_CON0: MODE_CTRL, SRCLKEN0 */
++	{ 0x0a16, 0xe4, BIT(2) },	/* LDO_VUSB33_CON0 */
++	{ 0x0a34, 0xe4, BIT(2) },	/* LDO_VIO28_CON0 */
++	{ 0x0a4c, 0xe4, BIT(2) },	/* LDO_VIO18_CON0 */
++	{ 0x0a6e, 0xe4, BIT(2) },	/* LDO_VA10_CON0 */
++	{ 0x0a9c, 0xe4, BIT(2) },	/* LDO_VLDO28_CON0 */
++	{ 0x0204, BIT(6), BIT(6) },	/* TOP_CON: oscillator in hardware mode */
++};
++
++static int spm_modes_set(void)
++{
++	unsigned int v;
++	int i, ret;
++
++	BUILD_BUG_ON(ARRAY_SIZE(spm_modes) != ARRAY_SIZE(s.modes_saved));
++	for (i = 0; i < ARRAY_SIZE(spm_modes); i++) {
++		ret = regmap_read(s.pmic, spm_modes[i].reg, &v);
++		if (ret)
++			return ret;
++		s.modes_saved[i] = v;
++	}
++	s.modes_done = true;
++	for (i = 0; i < ARRAY_SIZE(spm_modes); i++) {
++		ret = regmap_update_bits(s.pmic, spm_modes[i].reg,
++					 spm_modes[i].mask, spm_modes[i].val);
++		if (ret)
++			return ret;
++	}
++	for (i = 0; i < ARRAY_SIZE(spm_modes); i++)
++		dev_dbg(&s.pdev->dev, "pmic mode %04x was %04x\n",
++			spm_modes[i].reg, s.modes_saved[i]);
++	return 0;
++}
++
++static void spm_modes_restore(void)
++{
++	int i;
++
++	if (!s.modes_done)
++		return;
++	for (i = ARRAY_SIZE(spm_modes) - 1; i >= 0; i--)
++		regmap_update_bits(s.pmic, spm_modes[i].reg, spm_modes[i].mask,
++				   s.modes_saved[i]);
++	s.modes_done = false;
++}
++
+ static int spm_pmic_prepare(void)
+ {
+ 	unsigned int v, ana9, ana7;
+@@ -243,6 +318,8 @@ static int spm_pmic_prepare(void)
+ 	ret = ret ?: regmap_update_bits(s.pmic, MT6351_VCORE_CON6, 0x7f, 0x10);
+ 	ret = ret ?: regmap_update_bits(s.pmic, MT6351_SMPS_ANA_CON9, 0x300, 0);
+ 	s.pmic_done = true;
++	if (!ret && pmic_modes)
++		ret = spm_modes_set();
+ 	if (ret)
+ 		return ret;
+ 
+@@ -277,6 +354,7 @@ static void spm_pmic_finish(void)
+ {
+ 	int i;
+ 
++	spm_modes_restore();
+ 	if (!s.pmic_done)
+ 		return;
+ 	/* P3 restored; P2 and P1 cleared, as the vendor does */

@@ -18,6 +18,8 @@
  * is set again, which takes the real caps lock state. Without the LED driver the
  * writes fail and are tried again on the next wake. With the lid closed or the
  * console blanked it also takes CPUs 1-9 offline, and brings them back after.
+ * When the lid closes and "deep" is on offer (the SPM sleep module is loaded),
+ * it suspends to memory, again after each timer wake while the lid stays closed.
  */
 #include <dirent.h>
 #include <errno.h>
@@ -42,6 +44,10 @@
 #define CONSOLE "/dev/tty1"
 #define BLANK_SECONDS "/sys/module/kernel/parameters/consoleblank"
 #define CAPS_LED_TRIGGER "/sys/class/leds/red:indicator-7/trigger"
+#define MEM_SLEEP "/sys/power/mem_sleep"
+#define POWER_STATE "/sys/power/state"
+/* A suspend that returns sooner than this was woken at once: don't loop on it. */
+#define SUSPEND_MIN_MS 2000
 /* The fades: long enough to see, short enough not to hold a wake back. */
 #define DIM_LEVEL 16
 #define FADE_DOWN_STEPS 40
@@ -125,13 +131,15 @@ static int open_events(const char *dir)
 static int put(const char *path, const char *value)
 {
 	int fd = open(path, O_WRONLY | O_CLOEXEC);
-	int ok;
+	ssize_t n;
+	int ret;
 
 	if (fd < 0)
 		return -errno;
-	ok = write(fd, value, strlen(value)) == (ssize_t)strlen(value);
+	n = write(fd, value, strlen(value));
+	ret = n < 0 ? -errno : n == (ssize_t)strlen(value) ? 0 : -EIO;
 	close(fd);
-	return ok ? 0 : -EIO;
+	return ret;
 }
 
 /* The console number the kernel has blanked, 0 if none. */
@@ -315,6 +323,55 @@ static void cpus(int dark)
 	_exit(0);
 }
 
+/* The lid's state from the switch itself, -1 if it can't be read. */
+static int lid_now(int fd)
+{
+	unsigned long sw[(SW_MAX + 8 * sizeof(long)) / (8 * sizeof(long))] = { 0 };
+
+	if (ioctl(fd, EVIOCGSW(sizeof(sw)), sw) < 0)
+		return -1;
+	return !!(sw[SW_LID / (8 * sizeof(long))] & (1UL << (SW_LID % (8 * sizeof(long)))));
+}
+
+/*
+ * Suspend to memory while the lid stays closed, only when the kernel offers
+ * "deep": without the SPM sleep module, "mem" would mean s2idle, which this
+ * policy does not use. A refusal (a charger attached, a radio on) is reported
+ * once and waits for the next close. After a timer wake with the lid still
+ * closed it suspends again, unless that suspend came back at once.
+ */
+static void lid_suspend(int fd)
+{
+	char modes[64] = "";
+	int mfd, n, ret;
+
+	mfd = open(MEM_SLEEP, O_RDONLY | O_CLOEXEC);
+	if (mfd < 0)
+		return;
+	n = read(mfd, modes, sizeof(modes) - 1);
+	close(mfd);
+	if (n <= 0 || !strstr(modes, "[deep]"))
+		return;
+	if (cpus_child > 0)
+		waitpid(cpus_child, NULL, 0);
+	cpus_child = -1;
+	for (;;) {
+		long long start = now_ms();
+
+		ret = put(POWER_STATE, "mem");
+		if (ret) {
+			say("lid suspend refused: %s\n", strerror(-ret));
+			return;
+		}
+		if (lid_now(fd) != 1)
+			return;
+		if (now_ms() - start < SUSPEND_MIN_MS) {
+			say("lid suspend woke at once; staying up\n");
+			return;
+		}
+	}
+}
+
 static volatile sig_atomic_t blank_set;
 
 static void on_blank_set(int sig)
@@ -330,6 +387,7 @@ int main(void)
 	struct input_event ev;
 	struct pollfd fds[3];
 	int fd, kfd, pfd, closed, fn = 0, restore = -1, quick = 0, was_blanked = 0, wait = 0;
+	int suspend_due = 0;
 	long long last_input = now_ms();
 	/* No SA_RESTART: the signal must end the poll. */
 	struct sigaction blank_action = { .sa_handler = on_blank_set };
@@ -382,6 +440,11 @@ int main(void)
 		/* No backlight reads -1, which must not count as dark. */
 		caps_led(closed || blanked || read_number(BL_POWER) > 0);
 		cpus(closed || blanked);
+		if (suspend_due) {
+			suspend_due = 0;
+			if (closed)
+				lid_suspend(fd);
+		}
 
 		if (quick > 0)
 			quick--;
@@ -472,6 +535,7 @@ int main(void)
 		if (ev.type != EV_SW || ev.code != SW_LID)
 			continue;
 		closed = !!ev.value;
+		suspend_due = closed;
 		quick = 20;
 		if (restore >= 0) {
 			/* The lid module owns the light now. */
