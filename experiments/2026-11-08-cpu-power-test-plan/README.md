@@ -488,6 +488,51 @@ Inference:
 - The deferred CCI probe leaves VSRAM_L at 1200 mV, which costs about 18 mA, until
   `cpufreq-dt` goes. That is a leak in the probe's error path, for the DVFS session.
 
+### D3 item 4: one mem suspend raises the current (2026-11-09)
+
+The cpuidle session's item 4 ran on a fresh station-work-95 boot `b7dba389…`. The image
+was boot2 `b2b13892…` (unpadded `ba637ff9…`), with init `73e709dc…`. Nothing ran before
+the item. The setup matched item 3: CPU0 alone, `fb0` blanked, `backlight-policy`
+stopped, radios unloaded, on battery, and each window was 120 s after 10 s of settling.
+A1 read high, so the script took branch A.
+
+| Window | Step before it | Average (charge counter) | `current_now` |
+| --- | --- | --- | --- |
+| A0 | none: the boot state | 80.2 mA | 80.1 mA |
+| A1 | `mt6797-spm-sleep` loaded, one 30 s `mem` suspend | 274.5 mA | 275.9 mA |
+| A2 | `clk-mt6797-mcusys` loaded and unloaded | 234.4 mA | 236.0 mA |
+| A3 | DVFS stack loaded, policy0 221 MHz, CCI devfreq loaded, then all unloaded | 64.2 mA | 92.8 mA |
+
+Observed:
+- The suspend returned `rc=0` after 30.3 s, and the PCM timer woke it (`r12=00000001`).
+  Every load and unload succeeded. There was no fault line, taint stayed 0, and the
+  device powered off by itself at 700 s.
+- On a boot where nothing else ran, one `mem` suspend reproduced the 271 mA state.
+- The A0-A2 register reads were identical: MCUMIXED, MCUCFG, INFRACFG, TOPCKGEN, SPM,
+  DRAM and DA9214. The suspend left no visible change in any of them.
+- At A3, only the item 3 N4/N9 pattern changed: LL `0x1001a204` went `0xC1114000` to
+  `0x41110000`, the divider `0x1001a274` went 0 to `0x160`, MCUCFG `0x10220660` went
+  `0x157` to `0x117`, and DA9214 `0xd7` went `0x46` to `0x36`.
+- The A2 unload logged `clk_unregister: unregistering prepared clock` for
+  `mcu-armpll-cci`, `-l` and `-ll`. The A3 unload logged the same.
+- The CCI probe deferred again (`-517`).
+- After the resume, DRM read the panel again (`dsi get 1 byte data`, 268.9 s).
+  - The clock summary listed 126 enabled clocks at A1 and A2, as at boot. A0 and A3
+    listed 112.
+  - The 14 extra clocks are `mipi_tx0_pll` and the display `mm_*` gates.
+  - Nothing in `dmesg` marks when the display clocks went off between A2 (431 s) and
+    A3 (566 s).
+  - `consoleblank` reads 120 s.
+- The soc-thermal zone read failed (`No data available`) after the resume.
+
+Inference:
+- The extra ~195 mA comes from the `mem` suspend and resume. The resumed display
+  pipeline is one candidate. The A3 drop happened alongside both the DVFS cycle and
+  the display clocks going off, so this run can't separate the two.
+- The `mcusys` load and unload alone was worth about 40 mA (A2).
+- The next run should hold the display state fixed across the resume, or read it
+  between steps. That run belongs to the cpuidle session.
+
 ## Analysis
 
 None yet.
