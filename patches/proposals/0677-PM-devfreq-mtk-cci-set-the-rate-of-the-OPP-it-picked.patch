@@ -1,0 +1,70 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 20:17:54 -0500
+Subject: [PATCH] PM / devfreq: mtk-cci: set the rate of the OPP it picked
+
+The target callback looks up the OPP for the requested rate, takes its
+voltage, and then sets the clock to the requested rate rather than to
+the OPP's rate. It also ignores the devfreq flags and always takes the
+highest OPP at or below the request.
+
+That holds only while every requested rate is an OPP, as it is when the
+passive governor follows the CPU through required-opps. Without
+required-opps the passive governor interpolates between the CPU and
+CCI tables, and the request falls between two OPPs. The CCI then runs
+above the rate its voltage was chosen for. On an MT6797 a request of
+626.08 MHz between the 611 and 676 MHz OPPs ran the CCI at 625 MHz on
+the 611 MHz voltage. devfreq also could not find that rate in its table
+for the transition statistics.
+
+Pass the devfreq flags to devfreq_recommended_opp() and let it round
+the rate to the OPP it returns, as the other devfreq drivers do. Without
+the least-upper-bound flag that is the lowest OPP at or above the
+request, so the voltage and the clock come from the same OPP, and
+devfreq records the rate that was set.
+---
+ drivers/devfreq/mtk-cci-devfreq.c | 21 ++++++++++-----------
+ 1 file changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/devfreq/mtk-cci-devfreq.c b/drivers/devfreq/mtk-cci-devfreq.c
+index 4a780028b..b5a6b34a5 100644
+--- a/drivers/devfreq/mtk-cci-devfreq.c
++++ b/drivers/devfreq/mtk-cci-devfreq.c
+@@ -134,24 +134,23 @@ static int mtk_ccifreq_target(struct device *dev, unsigned long *freq,
+ 	if (!drv)
+ 		return -EINVAL;
+ 
+-	if (drv->pre_freq == *freq)
+-		return 0;
+-
+-	mutex_lock(&drv->reg_lock);
+-
+-	inter_voltage = drv->inter_voltage;
+-
+ 	opp_rate = *freq;
+-	opp = devfreq_recommended_opp(dev, &opp_rate, 1);
++	opp = devfreq_recommended_opp(dev, freq, flags);
+ 	if (IS_ERR(opp)) {
+-		dev_err(dev, "failed to find opp for freq: %ld\n", opp_rate);
+-		ret = PTR_ERR(opp);
+-		goto out_unlock;
++		dev_err(dev, "failed to find opp for freq: %lu\n", opp_rate);
++		return PTR_ERR(opp);
+ 	}
+ 
+ 	voltage = dev_pm_opp_get_voltage(opp);
+ 	dev_pm_opp_put(opp);
+ 
++	if (drv->pre_freq == *freq)
++		return 0;
++
++	mutex_lock(&drv->reg_lock);
++
++	inter_voltage = drv->inter_voltage;
++
+ 	pre_voltage = regulator_get_voltage(drv->proc_reg);
+ 	if (pre_voltage < 0) {
+ 		dev_err(dev, "invalid vproc value: %d\n", pre_voltage);
+-- 
+2.43.0
+

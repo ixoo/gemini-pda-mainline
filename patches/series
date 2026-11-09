@@ -1254,3 +1254,4 @@ proposals/0673-PM-devfreq-passive-leave-out-CPUs-that-have-no-OPPs.patch
 proposals/0674-arm64-dts-mediatek-gemini-station-let-the-CCI-follow.patch
 proposals/0675-cpufreq-dt-set-the-OPP-of-a-CPU-with-a-supply-at-ini.patch
 proposals/0676-usb-mtu3-drop-the-pullup-for-a-suspend-taken-with-no.patch
+proposals/0677-PM-devfreq-mtk-cci-set-the-rate-of-the-OPP-it-picked.patch

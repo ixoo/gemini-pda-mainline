@@ -40,6 +40,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0673`](../../patches/proposals/0673-PM-devfreq-passive-leave-out-CPUs-that-have-no-OPPs.patch) | After D1: the passive devfreq governor skips a CPU with no OPPs (the A72s), instead of deferring forever or failing every update |
 | [`0674`](../../patches/proposals/0674-arm64-dts-mediatek-gemini-station-let-the-CCI-follow.patch) | After D1: no required-opps, so the CCI follows by interpolation; VSRAM_L floor 1.10 V, the firmware's own boot value |
 | [`0675`](../../patches/proposals/0675-cpufreq-dt-set-the-OPP-of-a-CPU-with-a-supply-at-ini.patch) | After D1, found in review: cpufreq-dt sets each regulated policy's OPP at init. Otherwise CPU0-3, booting at the listed 897 MHz, would hold no voltage request on the shared VPROC1 until their first change, and CPU4-7 could lower the rail under them. CPU4-7's move off the unlisted 1274 MHz also happens here, where it can fail cleanly, instead of in the core's `BUG_ON()` path. Module only |
+| [`0677`](../../patches/proposals/0677-PM-devfreq-mtk-cci-set-the-rate-of-the-OPP-it-picked.patch) | After D2 V7: mtk-cci-devfreq passes the devfreq flags and sets the rate of the OPP it picked, so an interpolated request rounds up to a CCI point for both clock and voltage. It used to take the voltage of the point below and set the raw rate. Module only |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -346,6 +347,23 @@ an earlier s2idle cycle on this boot.
   `mtk-cci-devfreq` is not loaded. The init's load order would hit the same BUG, so the boot
   gate stays off.
 
+**V1-V7 (2026-11-08), stopped at V7 on an interpolated CCI rate.** Run by the device
+custodian, owner-approved, on image D2 (`station-work-93`, boot2 `ed088a5a…`, from this
+profile at `4a1c6f22`), boot `bb910b05…`, script `tools/v-test.sh` `bf763922…`.
+
+- **V1-V3 passed:** VSRAM_L 1100 mV (code 11), providers and clocks as on D1.
+- **V4 passed, as predicted for 0675:** "Running at unlisted initial frequency: 1274000
+  kHz, changing to: 1352000 kHz"; policy0 897000, policy4 1352000; DA9214 `0xd7` `0x4a`
+  (1040 mV), VSRAM_L 1100 mV; measured 894 and 1350 MHz.
+- **V5-V6 passed:** all 34 points on each cluster, with rails as tabled; SoC at most 32 C.
+- **V7 stopped:** `mtk-cci-devfreq` probed without deferring, governor passive.
+  LL 221000 with L 325000 gave CCI 234 MHz and VPROC1 860 mV; LL 897000 with L 325000 gave
+  CCI 611 MHz and 1020 mV; both as expected. LL 221000 with L 1209000 gave devfreq
+  `cur_freq` 626080000 and PLL2 624999755 Hz, which is not a CCI point, with VPROC1 1020 mV
+  (the 611 MHz point's voltage). devfreq logged "Couldn't update frequency transition
+  information" three times. The CCI ran about 2.5 % above its voltage's point until the
+  power-off at the stop.
+
 ## Analysis
 
 ### V1-V4 on D1
@@ -380,7 +398,22 @@ and the tree changes.
 
 The forced first change in V4 stays: if VPROC1 cannot be set then, the core
 still hits its `BUG_ON()`. That is upstream behaviour for an unlisted boot
-frequency, and the test treats it as a stop.
+frequency, and the test treats it as a stop. With 0675 this move now happens
+in cpufreq-dt's init, where a failure only stops the policy from registering.
+
+### V7 on D2
+
+Interpolation makes the passive governor ask for rates between CCI points.
+`mtk_ccifreq_target()` looked up the point at or below the request
+(`devfreq_recommended_opp()` with a fixed flag of 1), took that point's voltage,
+and then set the clock to the raw request. Upstream boards follow through
+required-opps, so every request there is a point and the mismatch never shows.
+`0677` passes the devfreq flags and lets the lookup round `*freq` to the point
+it returns, as the other devfreq drivers do. Normal updates carry no
+least-upper-bound flag, so the request rounds up, and the clock, the voltage and
+devfreq's record all name the same point. For the V7 case that is 676 MHz at
+that point's voltage. The change is in the `mtk-cci-devfreq` module only;
+`tools/v-test.sh` already expects table points and needs no change.
 
 ## Conclusion
 
