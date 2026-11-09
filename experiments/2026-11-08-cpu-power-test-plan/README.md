@@ -533,6 +533,40 @@ Inference:
 - The next run should hold the display state fixed across the resume, or read it
   between steps. That run belongs to the cpuidle session.
 
+### station-work-95 V1-V9 with power_allocator (2026-11-09)
+
+The rerun after the cpufreq session's 0680 (`1768fe04`, identity `63d58a82`). The owner
+approved the two new writes: `power_allocator` in the soc-thermal `policy`, and an
+emulated 77 °C in place of 62 °C. The image was station-work-95: boot2 `b2b13892…`,
+init `73e709dc…`. It ran on boot `f49ed0bf…`, the boot after item 4, cable in.
+
+Setup:
+- `v-test.sh` `c7725a3f…` and `v-trace-check.awk` `1a24f2a8…`, with hashes checked on the
+  station.
+- debugfs and tracefs mounted, `backlight-policy` frozen and CPU0-7 online before V1.
+- The radios stayed loaded.
+
+Observed:
+- **V1-V9 passed in one run.** There was no fault line and taint stayed 0.
+- **V7 traced schedutil:** 14,492 events, no violation. Idle was 1014/1352 MHz with the
+  CCI at 754 MHz; load was 1495/1950 MHz with the CCI at 975 MHz.
+- **V8:** the emulated 77 °C capped both policies to their lowest points (221/325 MHz)
+  within 5 s, and the cap released at 0. The trace had 2,138 events, no violation.
+- **V9:** a 600 s load on all eight CPUs.
+  - It started at 34.5 °C and reached 67.7 °C at t+10 s.
+  - `power_allocator` (sustainable power 1500) then held the SoC between 62.7 and
+    75.4 °C. The caps moved every poll, between 1547/2002 and 338/468 MHz, with VPROC1
+    between 890 and 1200 mV.
+  - The SoC never reached the 80 °C stop, and fell to 42.8 °C after the load ended.
+  - Every CPU's hashes matched.
+  - The trace had 158,882 clock and rail events and no violation.
+
+Inference:
+- 0680's thermal setup holds a sustained 8-CPU load below 76 °C, where `step_wise` let
+  it reach 80 °C in 150 s.
+- V9, the boot gate, now passes on station-work-95. Whether cpufreq loads at boot
+  (V11) is the cpufreq session's call.
+
 ## Analysis
 
 None yet.
