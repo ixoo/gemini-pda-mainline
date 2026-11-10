@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A and L3 not run; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1461,6 +1461,35 @@ Test **T-M**:
 - New writes: the driver's probe-time setup (the APMIXED `TS_CON1`
   buffer, the AUXADC channel, the bank registers and the TOPRGU thermal
   route), which every boot already makes.
+
+#### T-M and U2 pass (2026-11-10)
+
+Run by the device custodian on `station-work-96` (boot2 `86322507…`, which
+carries 0681, 0682 and 0683), boot `53187f71`. Two 30 s `mem` suspends on
+battery, then a replug. Record:
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md),
+commit `8b1ba929`. Raw logs private.
+
+- **T-M (0683): pass.**
+  - Both resumes logged "thermal banks lost their state in suspend,
+    setting them up again".
+  - Both re-armed the hardware reset at 117000 mC, against the boot
+    baseline `REQ_MODE=0x003c0003`.
+  - `soc-thermal` stayed readable from 1 s after each resume through a
+    10 min window, at 21.5–24.8 °C. There was no ENODATA.
+- **U2 (0681): pass.**
+  - Both resumes logged "IP was reset in suspend, setting it up again".
+  - After the replug the UDC was configured within 1 s.
+  - IPPC, MAC, `bq25890` and FUSB301 were back at their pre-unplug values.
+  - So the charger saw this replug. The earlier missed replug (R-USB) did
+    not recur, and its cause is not established.
+- No fault line, and taint 0.
+- U2's cable-in step was not run. It is not needed: on D3 the guard
+  (0630) already refused a `mem` suspend with the cable in.
+- **Display:** a resume turns the panel on through fbcon's resume pan.
+  That belongs to the display line.
+- **Still to run:** test A (0671, audio after a suspend) and L3 (0672, no
+  keypad warning after a lid-open wake).
 
 ## Analysis
 
