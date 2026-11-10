@@ -533,7 +533,7 @@ buffer instead, which matches "no visible effect". The message is harmless until
 gets its IOMMU (M4U). We leave the DMA mask alone: nothing here shows the OVL can reach past
 4 GiB in the loader's bypass.
 
-## A blanked display relit by a resume (built, not yet booted)
+## A blanked display relit by a resume (fixed by 0684)
 
 The power tests found the display on after a `mem` resume that had started blanked
 through `fb0/blank`. A stacktrace kprobe on the panel's prepare, on station-work-96, gave
@@ -546,7 +546,16 @@ clocks were on. No input event was involved. The record is in the
 
 `0684` makes an atomic pan only record the offsets while `fb_info->blank` is not
 `FB_BLANK_UNBLANK`. The unblank commits the modesets, offsets included. It is in
-`drm_kms_helper`, a module. It compiled with `W=1` in the dev VM; it is not yet booted.
+`drm_kms_helper`, a module. It compiled with `W=1` in the dev VM.
+
+It passed on station-work-97, boot `56832cd1`, with the loaded `drm_kms_helper` checked
+first. `fb0` was blanked with 1, then 4, before one 30 s `mem` suspend, with the kprobe on.
+The panel was not prepared across the resume. Afterwards the connector read `dpms Off`,
+`bl_power` read 4, only `mm_sel` and `mm_smi_common` were on, and `fb0/blank` still read 4.
+The draw was 74.5 mA over 60 s, against about 200 mA before the fix. A Space press then gave
+exactly one prepare, through the fbdev unblank, and the owner saw the console drawn normally.
+Every other prepare in the trace came while the display was on. The record is in the
+[power test plan](../2026-11-08-cpu-power-test-plan/README.md).
 
 ## What stands before upstream
 
