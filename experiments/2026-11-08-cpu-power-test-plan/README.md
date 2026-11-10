@@ -819,6 +819,53 @@ The `v9p-trace.txt` and `*-trace-check.txt` files in `artifacts/station-work-96/
 are stale copies from the earlier run; only `log.txt`, `v9p.txt` and `dmesg.txt` belong
 to this attempt.
 
+The cpufreq session traced the messages to a gap during hotplug:
+- A CPU is marked online before cpufreq adds it to its policy. Any cpufreq transition in
+  that gap makes the passive governor's lookup fail.
+- It fails before `devfreq_set_target`, so nothing is written.
+- That is an upstream race, not one of our patches.
+
+It cleared a rerun on the same boot. The full log was saved to the station and then
+cleared with `dmesg -c`.
+
+### station-work-96 weighted V9p (2026-11-10)
+
+The rerun used the same command, `v-test.sh` `36b8a783…`, from 26.8 °C with the cable in
+and no hotplug. **PASS v9p:**
+- Load hashes were equal on every CPU, with no fault line and `faulted=0`.
+- The trace check counted 128,219 events with 0 violations.
+
+The temperature is from the 10 s samples, t+50 to t+530 s. The hashes are the per-CPU
+counts. The first two columns are copied from the section above.
+
+| | Old gains (sw95) | Tuned gains | Tuned + weights |
+| --- | --- | --- | --- |
+| Mean | 70.2 °C | 75.0 °C | 74.8 °C |
+| Range | 63.2-75.6 °C | 71.0-77.1 °C | 73.5-76.9 °C |
+| CPU0-3 hashes | 2,515-2,553 | 1,021-1,041 | 3,232-3,244 |
+| CPU4-7 hashes | 2,784-2,810 | 3,641-3,724 | 1,998-2,006 |
+| Total | 21,347 | 18,922 | 20,970 |
+
+Observed:
+- The little-cluster frequency was 1547 MHz in 53 of the 60 samples.
+- The big cluster moved between 325 and 2002 MHz, most often at 325 MHz (14 samples)
+  and 650 MHz (12 samples).
+- No sample exceeded 77 °C.
+
+Inference:
+- The weights stop the little cluster starving and keep the 75 °C target without the
+  swing. Total work rose 10.8 % over the unweighted tuned run.
+- It is still 1.8 % below the old gains. Those gains swung across a wider range, at a
+  mean 4.6 °C cooler.
+- The pass bar the cpufreq session set was more than 21,347 hashes. It took that figure
+  for the unweighted tuned run, but it is the old-gains total. Against that bar, the
+  run falls short by 377 hashes. Whether the weights go into the init is the cpufreq
+  session's call.
+
+The evidence is private in `artifacts/station-work-96/v9w2/`. `v9p-trace.txt` is
+`08932b3b…`, and the log saved before the clear is `/mnt/data/dmesg-before-v9w2.txt` on
+the station.
+
 ## Analysis
 
 None yet.
