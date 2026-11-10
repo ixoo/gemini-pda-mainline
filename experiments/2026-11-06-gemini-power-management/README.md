@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A and L3 not run; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1490,6 +1490,36 @@ commit `8b1ba929`. Raw logs private.
   That belongs to the display line.
 - **Still to run:** test A (0671, audio after a suspend) and L3 (0672, no
   keypad warning after a lid-open wake).
+
+#### Test A and L3 pass (2026-11-10)
+
+Run by the device custodian on `station-work-96`, boot `53187f71`: s2idle,
+on battery, with `mt6797-spm-sleep` unloaded. Record: the
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md),
+"station-work-96 Test A and L3", commit `afb0bc24`. Raw logs private.
+
+- **A (0671): pass.**
+  - The first playback returned 0. A 20 s RTC suspend returned 0. The
+    second playback returned 0 with no reload and no mixer change.
+  - There was no `hw_ptr err`.
+  - That suspend woke on IRQ 25, the keyboard expander, not the RTC.
+  - The kernel log has "lid closed, keyboard inhibited" just after that
+    resume, so the lid was closed during the suspend. That fits the
+    keys-against-the-screen wake already explained under L: the suspend
+    was begun with the lid open.
+- **L3 (0672): pass.**
+  - The lid was closed first ("keyboard inhibited 0"), then a suspend with
+    a 120 s alarm. The owner opened the lid at 28.6 s, and it woke on
+    IRQ 20.
+  - "lid open, keyboard restored 0" came after the device resume, at
+    "Restarting tasks". There was no "Unbalanced enable" warning, and
+    taint stayed 0.
+  - Key A reported a press and a release afterwards. USB was configured
+    after the replug.
+- **Guard:** with the cable in, an s2idle suspend was also refused
+  ("guard: charger attached, refusing to suspend", -EBUSY). That is 0630's
+  design: any suspend is refused while a charger is attached, whatever the
+  sleep state.
 
 ## Analysis
 
