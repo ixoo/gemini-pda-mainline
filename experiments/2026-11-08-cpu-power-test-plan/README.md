@@ -911,8 +911,8 @@ sleep hook was corrected (card-27, `a5ee113b`) and so was the suspend record
   ended after 24.2 s with `pm_wakeup_irq` 191, the MT6351's EINT parent.
 - The next suspend was refused: bq25890 logged "guard: charger attached, refusing to
   suspend", and mtu3 also returned -16 with USB connected.
-- The CHRDET count went from 4 to 47 across this one plug. That is many interrupts for
-  one plug-in, and the cause is not identified.
+- The CHRDET count appeared to go from 4 to 47 across this one plug. That was a counting
+  error in the script, not interrupts (see the rerun below).
 
 **W3 (charger plug wakes mem), woke on the PMIC.**
 - The test was a `mem` suspend with the SPM timer at 120 s; the owner was asked to plug
@@ -934,6 +934,48 @@ already on. They are the DRM resume after W2 and W3, and the refused suspend's a
 
 After the replug, the UDC was `configured`, the kprobe was removed, faults 0, taint 0.
 The evidence is private in `artifacts/station-work-97/`.
+
+### station-work-97 CHRDET trace and timed W3 (2026-11-10)
+
+The run was `cw3-run.sh`, on the same boot `56832cd1`, from uptime 944 s, with the owner
+present. It read MT6351 INT_CON0-3 (`0x2c2`, `0x2c8`, `0x2ce`, `0x2d4`) and INT_STATUS0-3
+(`0x2e0`-`0x2e6`) through the PMIC wrapper's regmap. Those reads came before the mem
+suspends, after them, and once awake.
+
+**There is no CHRDET storm. The 4 → 47 in W2 was a counting error.** The script summed
+fields 2-9 of the `chrdet` line in `/proc/interrupts`. That file only shows columns for
+online CPUs. With CPU1-7 offline, field 4 is the hardware IRQ number 46, so the sum
+jumped by 46:
+- The count read 10 → 52 when CPU1-7 went offline.
+- It read 53 → 11 when they came back online.
+
+Sampled every second with all CPUs online:
+- The plug added 1 and the unplug added 1, 9 → 10 in total over 30 s out, 60 s
+  attached and 30 s out.
+- There was nothing in between.
+
+**A 30 s cable-out mem suspend:** a timer wake (`r12=0x1`, `timer_out=0x000f0088`) with no
+CHRDET count.
+
+**W3, failed.** The station started a mem suspend with the SPM timer at 120 s. The owner
+started a stopwatch at the logged "GO" (uptime 1185.3) and plugged the cable in at 21 s.
+- The station resumed 120.75 s after GO.
+- The wake line read `loops=2 r12=0x00000041 raw=0x00000040 misc=0x00090000`
+  `timer_out=0x003c0088`. So the SPM slept the full 120 s (0x3c × 2 s) and returned on
+  its timer, with the EINT bit also set.
+- CHRDET counted one interrupt across the suspend.
+- INT_CON2 was `0x4000`, CHRDET enabled. INT_STATUS0-3 were `0000` both right before and
+  right after the suspend.
+
+Inference:
+- The PMIC had no pending status bit at entry, so the "line already high" explanation
+  is ruled out.
+- CPU0 left WFI once early (`loops=2`), and CHRDET was counted, so the plug's interrupt
+  reached the GIC. But the SPM program did not return on its EINT event.
+- The delay is on the SPM side. The first W3's 58.6 s wake was therefore not the plug
+  either.
+
+The evidence is private in `artifacts/station-work-97/cw3/`.
 
 ## Analysis
 
