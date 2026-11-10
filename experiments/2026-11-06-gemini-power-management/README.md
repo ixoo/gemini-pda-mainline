@@ -1559,8 +1559,15 @@ session).**
 A `systemd-sleep` hook, for example
 `/usr/lib/systemd/system-sleep/gemini-radios`:
 - **`pre`:** stop the Wi-Fi daemon (`iwd`) and any Bluetooth service.
-  Then `modprobe -r mac mt6797-wlan-core btmt6797 gnss-mt6797
-  radio-mt6797 mt6797-consys`, ignoring modules that are not loaded.
+  Then unload, in this order, skipping modules that are not loaded:
+  `mac`, `btmt6797`, `gnss-mt6797`, `radio-mt6797`, `mt6797-consys`,
+  `mt6797-wlan-core`.
+  - `mt6797-wlan-core` returns EAGAIN while `mt6797-consys` is loaded.
+    The custodian measured this on `station-work-96` and `-97`, boot
+    `56832cd1`.
+  - Bluetooth, GNSS and FM use CONSYS's exported calls, so they go before
+    it. That order is from the code and is untested.
+  - The card's hook (gemini-base 32, card-27) uses this order.
 - **`post`:** load back the modules that were loaded before, in
   `wifi-start`'s proven boot order (`mt6797-wlan-core`, `mt6797-consys`,
   `mac`). Then start the daemons that were running. The card's hook
