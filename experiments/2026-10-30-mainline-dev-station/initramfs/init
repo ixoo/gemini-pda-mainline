@@ -148,7 +148,14 @@ fi
             # unless every cooling device on the control trip has an energy model.
             for zone in /sys/class/thermal/thermal_zone*; do
                 [ "$($bb cat "$zone/type" 2>/dev/null)" = soc-thermal ] || continue
-                $bb echo power_allocator >"$zone/policy" 2>/dev/null && result="$result,power_allocator"
+                $bb echo power_allocator >"$zone/policy" 2>/dev/null || continue
+                result="$result,power_allocator"
+                # Binding estimates the PID gains from sustainable-power; those
+                # oscillate about 9 C around 75 C. These held it within 3.4 C
+                # (experiments/2026-11-08-mt6797-a53-dvfs).
+                for gain in k_po=60 k_pu=60 k_i=10 integral_cutoff=3000; do
+                    $bb echo "${gain#*=}" >"$zone/${gain%%=*}" 2>/dev/null
+                done
             done
         fi
         status "cpufreq=$result"

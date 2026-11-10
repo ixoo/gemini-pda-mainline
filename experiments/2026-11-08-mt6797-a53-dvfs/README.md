@@ -43,6 +43,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0677`](../../patches/proposals/0677-PM-devfreq-mtk-cci-set-the-rate-of-the-OPP-it-picked.patch) | After D2 V7: mtk-cci-devfreq passes the devfreq flags and sets the rate of the OPP it picked, so an interpolated request rounds up to a CCI point for both clock and voltage. It used to take the voltage of the point below and set the raw rate. Module only |
 | [`0680`](../../patches/proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch) | After D3 V9: power-allocator cooling. CPU0-7 get `dynamic-power-coefficient` (78 and 129) for an energy model; a 75 C passive control trip carries both clusters and the GPU; 100 ms passive polling; 1.5 W `sustainable-power`. Needs a new image |
 | [`0682`](../../patches/proposals/0682-PM-devfreq-mtk-cci-drop-the-voltage-request-when-it-.patch) | After D3 item 3: mtk-cci-devfreq gives up its voltage request on a failed probe and in `remove()`. A deferred probe used to leave VSRAM_L at 1.20 V (and, by inference, VPROC1 at the CCI's top point), because putting a regulator consumer does not settle the rail again. Module only |
+| [`0687`](../../patches/proposals/0687-arm64-dts-mediatek-gemini-station-weight-the-LL-clus.patch) | After the weighted V9p: the soc-thermal control maps carry `contribution` 4096 for LL and 1024 for L and the GPU, the weights that run tested at run time. Device tree; next non-V11 image |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -646,6 +647,33 @@ is still within 7 % of the optimum there.
 The test is the same V9p with the same gains plus `IPA_WEIGHTS`, with total
 hashes as the measure. If it holds, the weights become `contribution` in the
 cooling maps and the gains go into the station init.
+
+### Weighted V9p on station-work-96
+
+The run is recorded in the
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md) ("station-work-96
+weighted V9p"). The first attempt stopped at its first log check and measured
+nothing. About 70 s earlier, CPU1-7 had been brought back online, and the CCI's
+passive governor logged "failed to update the frequency." for CPU3-7. Every failure
+in the CCI driver's own target prints its own error, and none appeared, so the
+update failed in the governor itself: it returns `-EINVAL` for an online CPU that
+cpufreq has not yet added to its policy. That gap lies between a CPU coming online
+and cpufreq's hotplug callback. The update is dropped before any clock or rail is
+set, and the next transition of that policy retries it. Afterwards the CCI was at
+611 MHz, which is what interpolation gives for LL at 897 MHz. This is an upstream
+hotplug race, not a fault in these patches. The rerun on the same boot, after
+`dmesg -c`, made 20,970 hashes: 10.8 % more than the 18,922 of the unweighted
+tuned run. The SoC averaged 74.8 C (73.5-76.9 C), and LL held 1547 MHz in 53 of 60
+samples. That is 1.8 % below the old-gains run, which averaged 4.6 C cooler but
+swung 63-76 C. The pass bar of 21,347 sent with the request was the old-gains
+total; the correct comparison is the unweighted tuned run.
+
+LL at its top with L at 325-650 MHz is the split the energy model puts within a
+few percent of the optimum, so a smaller LL weight would gain at most a few
+percent and costs a boot. The weights stay at 4096/1024: `0687` puts them in the
+device tree as `contribution`, and the station init writes the gains
+60/60/10/3000 after it sets `power_allocator`. Both reach the device with the
+next non-V11 image.
 
 ### D3 item 3: the deferred CCI probe
 

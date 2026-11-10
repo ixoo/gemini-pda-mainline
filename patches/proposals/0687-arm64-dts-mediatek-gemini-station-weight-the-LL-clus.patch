@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 10 Nov 2026 18:10:45 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: weight the LL cluster's
+ power share
+
+The power allocator splits its budget in proportion to each actor's
+weighted power request. A cluster's request is its energy-model power at
+its current point, so the cheaper LL cluster asks for less, gets less,
+and steps down further. Under 8-CPU load at the 75 C target it fell to
+221 MHz while the L cluster kept most of the budget.
+
+Both clusters are Cortex-A53, so a MHz is worth the same on either. For
+a budget near 1 W, LL at its top point with L around 650 MHz is within
+1 % of the best split, and LL at 221 MHz is about 22 % below it.
+
+Give the LL control map a contribution of 4096 and the L and GPU maps
+1024. With these weights, set at run time on the station, LL stayed at
+1547 MHz in 53 of 60 samples and the work done under the 75 C target
+rose 10.8 % over equal weights, with the junction at 73.5-76.9 C.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+index 4feb0d924..5904e09c4 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -364,6 +364,12 @@ vproc2: BUCKB {
+  * from the station tree stay for the step-wise governor. The zone's policy
+  * is set to power_allocator at run time. sustainable-power is a first
+  * estimate, below the 1.9 W at which 8-CPU load still warmed past 70 C.
++ *
++ * The allocator splits the budget in proportion to each actor's weighted
++ * request. With equal weights the LL cluster, which asks for less power per
++ * MHz, is pushed to its lowest point while the L cluster keeps most of the
++ * budget. Weighting LL four times lets it keep its top point, which is
++ * within 1 % of the best split of a ~1 W budget between the two A53 clusters.
+  */
+ &{/thermal-zones/soc-thermal} {
+ 	polling-delay-passive = <100>;
+@@ -380,6 +386,7 @@ soc_control: soc-control {
+ 	cooling-maps {
+ 		map-control-ll {
+ 			trip = <&soc_control>;
++			contribution = <4096>;
+ 			cooling-device =
+ 				<&cpu0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+ 				<&cpu1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+@@ -389,6 +396,7 @@ map-control-ll {
+ 
+ 		map-control-l {
+ 			trip = <&soc_control>;
++			contribution = <1024>;
+ 			cooling-device =
+ 				<&cpu4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+ 				<&cpu5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+@@ -398,6 +406,7 @@ map-control-l {
+ 
+ 		map-control-gpu {
+ 			trip = <&soc_control>;
++			contribution = <1024>;
+ 			cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+-- 
+2.43.0
+
