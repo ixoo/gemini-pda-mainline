@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686 compile-checked (W1-W3 next); Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1520,6 +1520,75 @@ on battery, with `mt6797-spm-sleep` unloaded. Record: the
   ("guard: charger attached, refusing to suspend", -EBUSY). That is 0630's
   design: any suspend is refused while a charger is attached, whatever the
   sleep state.
+
+#### Owner decisions: charger wake, Wi-Fi across a suspend (2026-11-10)
+
+Relayed by the device custodian, in the owner's words:
+1. "If a charger is plugged during a suspend, the device should wake up."
+2. "wifi unload/reload during a suspend is ok."
+
+0630's refusal to start a suspend with a charger attached stays as it is.
+
+**Charger wake (0685, 0686).**
+- The `bq25890` has no interrupt line here (its driver polls it). The
+  left port's FUSB301 is polled, and the right port is source-only. So
+  neither can wake the system.
+- The MT6351's own charger detection can, through its CHRDET interrupt
+  (hwirq 46). The PMIC interrupt already wakes the system for the power
+  key and the RTC.
+- [0685](../../patches/proposals/0685-mfd-mt6397-give-the-MT6351-fuel-gauge-the-charger-de.patch)
+  passes CHRDET to the fuel gauge cell.
+- [0686](../../patches/proposals/0686-power-supply-mt6351-fuel-gauge-wake-on-a-charger-att.patch)
+  requests it, reports a battery-supply change from it and makes it a
+  wakeup interrupt.
+- After such a wake, the charger's resume pass applies the guard, and
+  0630 refuses the next suspend while the charger stays attached.
+- This takes the owner's option without the watchdog write: no charger
+  register is written. Both are built in, so they need an image.
+  Compile-checked only.
+- Whether CHRDET follows VBUS on this board is not yet shown. Test W1
+  decides it.
+- New writes: the PMIC interrupt controller sets the CHRDET enable bit,
+  INT_CON2 (`0x02ce`) bit 14, through its standard enable. It clears that
+  interrupt's status bit in INT_STATUS2 (`0x02e4`) when the interrupt
+  fires.
+
+**Wi-Fi across a suspend: what the card needs (for the arch-root
+session).**
+
+A `systemd-sleep` hook, for example
+`/usr/lib/systemd/system-sleep/gemini-radios`:
+- **`pre`:** stop the Wi-Fi daemon (`iwd`) and any Bluetooth service.
+  Then `modprobe -r mac mt6797-wlan-core btmt6797 gnss-mt6797
+  radio-mt6797 mt6797-consys`, ignoring modules that are not loaded.
+- **`post`:** load back the modules that were loaded before, Wi-Fi first:
+  `mt6797-consys`, then `mt6797-wlan-core` and `mac`. Then start the
+  daemons that were running.
+- Record what was loaded in `pre`, so that `post` restores only that. A
+  radio the user had off stays off.
+- Without the hook, 0653 refuses every suspend while CONSYS is loaded,
+  so logind's suspend fails safely and nothing breaks.
+
+With the earlier card items: `HandleLidSwitch=suspend`,
+`HandleLidSwitchExternalPower=ignore`, `HandleLidSwitchDocked=ignore`.
+`MemorySleepMode` follows what the cpuidle session makes the station
+default; s2idle until then.
+
+**Device tests.**
+- **W1 (awake, decides CHRDET):** on battery, read the `chrdet` line in
+  `/proc/interrupts`. Plug a charger and wait 5 s, then unplug and wait
+  5 s. **Pass:** the count rises at the plug, at least.
+  `power/wakeup` of the fuel gauge device reads `enabled`.
+- **W2 (s2idle):** on battery, with CONSYS unloaded, suspend with a 120 s
+  alarm. The owner plugs the charger at about 20 s. **Pass:** the system
+  wakes well before 120 s on the PMIC interrupt (191). The guard logs
+  the charger, and the next suspend attempt is refused (0630).
+- **W3 (`mem`):** as W2 on the SPM `mem` path. This also needs the PMIC
+  interrupt in the SPM wake mask, which the cpuidle session owns.
+- **R-W (Wi-Fi hook, once the card has it):** with Wi-Fi joined, close
+  the lid, wait 60 s, then open it. **Pass:** the hook unloads the
+  modules, the suspend returns 0, and Wi-Fi rejoins after the open with
+  no manual step. One join only, under the existing rejoin rules.
 
 ## Analysis
 

@@ -850,3 +850,5 @@ proposals/0681-usb-mtu3-set-the-device-up-again-when-suspend-reset-.patch
 proposals/0682-PM-devfreq-mtk-cci-drop-the-voltage-request-when-it-.patch
 proposals/0683-thermal-drivers-mediatek-auxadc_thermal-set-MT6797-u.patch
 proposals/0684-drm-fb-helper-don-t-unblank-the-display-when-panning.patch
+proposals/0685-mfd-mt6397-give-the-MT6351-fuel-gauge-the-charger-de.patch
+proposals/0686-power-supply-mt6351-fuel-gauge-wake-on-a-charger-att.patch

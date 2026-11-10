@@ -1,0 +1,82 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 10 Nov 2026 18:02:42 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: wake on a charger
+ attached in suspend
+
+On the Gemini the bq25890 charger has no interrupt line: its driver
+polls it, and a charge-limit guard refuses to suspend while a charger is
+attached. A charger attached during a suspend was therefore seen only
+at the next resume, and charged without the guard until then.
+
+Request the PMIC's charger-detect interrupt when the cell provides it,
+report a change of the battery supply from it, and make it a wakeup
+interrupt. A charger attached during a suspend now wakes the system,
+and the charger's resume pass applies its policy at once. No charger
+register is written.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 30 ++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 36e347e37..63cbfa375 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -16,10 +16,12 @@
+ #include <linux/bitfield.h>
+ #include <linux/delay.h>
+ #include <linux/iio/consumer.h>
++#include <linux/interrupt.h>
+ #include <linux/mod_devicetable.h>
+ #include <linux/module.h>
+ #include <linux/mutex.h>
+ #include <linux/platform_device.h>
++#include <linux/pm_wakeirq.h>
+ #include <linux/power_supply.h>
+ #include <linux/regmap.h>
+ #include <linux/thermal.h>
+@@ -246,6 +248,16 @@ static const struct power_supply_desc mt6351_fg_desc = {
+ 	.get_property = mt6351_fg_get_property,
+ };
+ 
++/* The PMIC's charger detection changed: a charger came or went. */
++static irqreturn_t mt6351_fg_chrdet(int irq, void *data)
++{
++	struct mt6351_fg *fg = data;
++
++	power_supply_changed(fg->psy);
++
++	return IRQ_HANDLED;
++}
++
+ static int mt6351_fg_probe(struct platform_device *pdev)
+ {
+ 	struct power_supply_battery_info *info;
+@@ -298,6 +310,24 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+ 			      info->factory_internal_resistance_uohm / 1000 : 0;
+ 	WRITE_ONCE(fg->info, info);
+ 
++	/*
++	 * A charger attached while the system sleeps wakes it, so that the
++	 * charger's own policy, such as a charge limit, applies at once.
++	 */
++	ret = platform_get_irq_byname_optional(pdev, "chrdet");
++	if (ret > 0) {
++		int irq = ret;
++
++		ret = devm_request_threaded_irq(dev, irq, NULL, mt6351_fg_chrdet,
++						IRQF_ONESHOT, "chrdet", fg);
++		if (ret)
++			return dev_err_probe(dev, ret, "cannot request chrdet\n");
++		device_init_wakeup(dev, true);
++		ret = devm_pm_set_wake_irq(dev, irq);
++		if (ret)
++			return dev_err_probe(dev, ret, "cannot wake on chrdet\n");
++	}
++
+ 	return 0;
+ }
+ 
+-- 
+2.43.0
+

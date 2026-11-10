@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 10 Nov 2026 18:02:41 -0500
+Subject: [PATCH] mfd: mt6397: give the MT6351 fuel gauge the
+ charger-detect interrupt
+
+The MT6351 raises CHRDET when its charger detection changes. Pass it to
+the fuel gauge cell as "chrdet", the way the keys and the RTC get
+theirs, so that the battery driver can report a charger arriving and
+wake the system for it.
+---
+ drivers/mfd/mt6397-core.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/mfd/mt6397-core.c b/drivers/mfd/mt6397-core.c
+index 807d2bbba..e4c2f34cf 100644
+--- a/drivers/mfd/mt6397-core.c
++++ b/drivers/mfd/mt6397-core.c
+@@ -128,6 +128,10 @@ static const struct resource mt6351_sound_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_ACCDET_EINT, "accdet_eint"),
+ };
+ 
++static const struct resource mt6351_fuel_gauge_resources[] = {
++	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_CHRDET, "chrdet"),
++};
++
+ static const struct resource mt6351_keys_resources[] = {
+ 	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_PWRKEY, "powerkey"),
+ 	DEFINE_RES_IRQ_NAMED(MT6351_IRQ_HOMEKEY, "homekey"),
+@@ -234,6 +238,8 @@ static const struct mfd_cell mt6351_devs[] = {
+ 		.of_compatible = "mediatek,mt6351-auxadc",
+ 	}, {
+ 		.name = "mt6351-fuel-gauge",
++		.num_resources = ARRAY_SIZE(mt6351_fuel_gauge_resources),
++		.resources = mt6351_fuel_gauge_resources,
+ 		.of_compatible = "mediatek,mt6351-fuel-gauge",
+ 	}, {
+ 		.name = "mt6351-regulator",
+-- 
+2.43.0
+
