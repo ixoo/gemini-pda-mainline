@@ -1687,6 +1687,56 @@ changes above. Checked read-only on the image:
 Untested on the device. The UCM audio profile is not in it; it waits for the audio session's
 test.
 
+### Suspend on lid close, with the radios unloaded (`gemini-base` 31, 2026-11-10)
+
+From the [power-management record](../2026-11-06-gemini-power-management/README.md)
+("Owner decisions: charger wake, Wi-Fi across a suspend"): the owner approved unloading and
+reloading Wi-Fi around a suspend ("wifi unload/reload during a suspend is ok"). The kernel
+refuses a suspend while CONSYS is loaded (0653), so the card needs a `systemd-sleep` hook.
+
+`/usr/lib/systemd/system-sleep/gemini-radios`:
+
+- **`pre`:**
+  - It stops iwd and bluetoothd if they are running.
+  - It records them, and which of `mac`, `mt6797-wlan-core`, `btmt6797`, `gnss-mt6797`,
+    `radio-mt6797` and `mt6797-consys` are loaded, in `/run/gemini/sleep-radios`.
+  - It unloads them in that order. A module still busy is retried once a second for up to
+    10 s; on the station, `mt6797-wlan-core` returned EAGAIN once just after `mac` went.
+- **`post`:** it restores only what was loaded:
+  - Wi-Fi through `wifi-start`, the card's boot path, which sets the country and loads the
+    modules in its proven order. If only CONSYS was loaded, it loads just
+    `mt6797-wlan-core` and `mt6797-consys`.
+  - Then Bluetooth and FM through `hw-load`, GNSS through `modprobe`, and then the daemons
+    that were running.
+- If an unload still fails, the hook lets the suspend go on, and the kernel refuses it
+  safely.
+
+The logind and sleep settings follow the record:
+
+- `HandleLidSwitch=suspend`, while `HandleLidSwitchExternalPower` and `HandleLidSwitchDocked`
+  stay `ignore`.
+- `[Sleep] MemorySleepMode=s2idle`, in `sleep.conf.d`, until the cpuidle work makes `mem`
+  the default.
+
+Checks:
+
+- ShellCheck passes.
+- A local run with stub `modprobe`, `systemctl`, `wifi-start` and `hw-load`, and a fake
+  `/sys/module`, gave the expected sequence:
+  - with iwd running, and `mac`, `mt6797-wlan-core`, `btmt6797` and `mt6797-consys` loaded,
+    `pre` recorded them, stopped iwd, retried `mt6797-wlan-core` once and left nothing
+    loaded;
+  - `post` ran `wifi-start` and `hw-load bluetooth`, restarted only iwd, and removed the
+    state file.
+- Untested on the device. The power-management session's R-W test (lid closed for 60 s with
+  Wi-Fi joined) decides it.
+
+Card-26 (dev VM, `gemini-base` 31, image sha256 `8848f0e6ab68…`, 429 packages) is card-25 plus
+the hook. On the image: `gemini-radios` is installed mode 0755, `sleep.conf.d/50-gemini.conf`
+sets s2idle, and `logind.conf.d/50-gemini.conf` sets lid suspend on battery only. Pair it only
+with a kernel that refuses a suspend while CONSYS is loaded (0653) or a charger is attached
+(0630): with this card, closing the lid suspends.
+
 ## Analysis
 
 Not started.

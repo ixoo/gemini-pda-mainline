@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=30
+pkgver=31
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -38,12 +38,12 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
         gemini-session-fallback@.service session-fallback modprobe-drm.conf
         umbriel.toml noctalia.toml pipewire-gemini.conf wireplumber-gemini.conf firstboot gemini-firstboot.service
-        umbriel-session first-login hw-load gemini-hw@.service hw-radio.conf
+        umbriel-session first-login sleep-radios sleep.conf hw-load gemini-hw@.service hw-radio.conf
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
-            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+            SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
             '2a2c8d95973ad6b18d05a4667497d78e4bf97a0d69e4a1870750a19a2a75af6d')
@@ -74,6 +74,8 @@ package() {
     install -Dm644 -t "$pkgdir/usr/lib/systemd/network" 50-gemini-usb0.network 50-gemini-wlan.network
     install -Dm644 logind.conf "$pkgdir/usr/lib/systemd/logind.conf.d/50-gemini.conf"
     install -Dm644 journald.conf "$pkgdir/usr/lib/systemd/journald.conf.d/50-gemini.conf"
+    install -Dm644 sleep.conf "$pkgdir/usr/lib/systemd/sleep.conf.d/50-gemini.conf"
+    install -Dm755 sleep-radios "$pkgdir/usr/lib/systemd/system-sleep/gemini-radios"
     install -Dm644 iwd-main.conf "$pkgdir/etc/iwd/main.conf"
     install -Dm644 vconsole.conf "$pkgdir/etc/vconsole.conf"
     install -Dm440 sudoers "$pkgdir/etc/sudoers.d/10-gemini-wheel"

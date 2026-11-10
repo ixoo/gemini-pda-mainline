@@ -1,0 +1,64 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# systemd-sleep hook: the connectivity radios are unloaded across a suspend and loaded
+# back after it (owner, 2026-11-10: "wifi unload/reload during a suspend is ok"). The
+# kernel refuses a suspend while CONSYS is loaded (0653), so without this hook every
+# suspend fails safely. Specified in experiments/2026-11-06-gemini-power-management
+# ("Owner decisions: charger wake, Wi-Fi across a suspend").
+# pre: stop iwd and bluetoothd, unload the radio modules, and record what was running.
+# post: load back only what was loaded, Wi-Fi first through wifi-start (its proven boot
+# order), then Bluetooth, FM and GNSS, and start the daemons that were running.
+# usage (from systemd-sleep): sleep-radios pre|post suspend|hibernate|...
+state=/run/gemini/sleep-radios
+modules='mac mt6797-wlan-core btmt6797 gnss-mt6797 radio-mt6797 mt6797-consys'
+
+loaded() { [ -d "/sys/module/$(echo "$1" | tr - _)" ]; }
+
+# A module can still be busy just after its user went: mt6797-wlan-core returned
+# EAGAIN once right after mac was removed, and went 2 s later.
+unload() {
+    tries=0
+    until modprobe -r "$1" 2>/dev/null; do
+        tries=$((tries + 1))
+        [ "$tries" -ge 10 ] && { echo "sleep-radios: $1 still loaded" >&2; return 1; }
+        sleep 1
+    done
+}
+
+case "$1" in
+pre)
+    mkdir -p "${state%/*}"
+    : >"$state"
+    for unit in iwd bluetooth; do
+        if systemctl -q is-active "$unit.service"; then
+            echo "unit $unit" >>"$state"
+            systemctl stop "$unit.service"
+        fi
+    done
+    for module in $modules; do
+        loaded "$module" && echo "module $module" >>"$state"
+    done
+    for module in $modules; do
+        loaded "$module" && unload "$module"
+    done
+    exit 0
+    ;;
+post)
+    [ -f "$state" ] || exit 0
+    had() { grep -qx "$1" "$state"; }
+    if had 'module mac'; then
+        /usr/lib/gemini/wifi-start >/dev/null || echo "sleep-radios: wifi-start failed" >&2
+    elif had 'module mt6797-consys'; then
+        # Wi-Fi was off, but Bluetooth or FM needed the connectivity firmware.
+        modprobe mt6797-wlan-core && modprobe mt6797-consys
+    fi
+    had 'module btmt6797' && /usr/lib/gemini/hw-load bluetooth >/dev/null
+    had 'module radio-mt6797' && /usr/lib/gemini/hw-load fm >/dev/null
+    had 'module gnss-mt6797' && modprobe gnss-mt6797
+    for unit in iwd bluetooth; do
+        had "unit $unit" && systemctl start "$unit.service"
+    done
+    rm -f "$state"
+    exit 0
+    ;;
+esac
