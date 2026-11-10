@@ -766,6 +766,59 @@ Item 5's relights at 220.8 s and 562.8 s were not reproduced in this window.
 
 No fault lines, taint 0. The evidence is private in `artifacts/station-work-96/tmu2/`.
 
+### station-work-96 Test A and L3 (2026-11-10)
+
+These were the suspend session's two open tests, from
+[power management](../2026-11-06-gemini-power-management/README.md). They ran on boot
+`53187f71` with s2idle and `mt6797-spm-sleep` unloaded. `audio-start`'s state was in
+place: speaker off, headphones at 0.
+
+**The guard refuses s2idle too.** A first try of Test A with the cable in failed: the
+suspend returned EBUSY. bq25890 logged "guard: charger attached, refusing to suspend"
+and returned -16. 0630 therefore refuses every suspend with the cable in, not only
+`mem`. Both plays returned rc 0, but the test did not count. The rerun was on battery,
+with the owner present (`al3-run.sh`, `1c42b93e…`).
+
+**Test A (0671), passed.**
+- A 2 s silent file played with rc 0.
+- A 20 s RTC suspend followed: rc 0, `pm_wakeup_irq` 25.
+- The same file played again with no reload and no mixer change: rc 0.
+- No `hw_ptr err` in the log.
+
+**L3 (0672), passed.**
+- The lid close logged "lid closed, keyboard inhibited 0".
+- A suspend with a 120 s alarm followed. The owner opened the lid after 28.6 s, and the
+  station woke on IRQ 20.
+- "lid open, keyboard restored 0" came after the device resume, at "Restarting tasks",
+  before "PM: suspend exit".
+- No "Unbalanced enable" warning, taint 0.
+- After the resume, event1 recorded a key A (code 30) press and release.
+
+After the replug, the UDC was `configured`. There were no fault lines. The evidence is
+private in `artifacts/station-work-96/al3/`.
+
+### station-work-96 weighted V9p: stopped before measuring (2026-11-10)
+
+The owner approved the weighted V9p: `v-test.sh` `36b8a783…`, with
+`IPA_GAINS="k_po=60 k_pu=60 k_i=10 integral_cutoff=3000"` and
+`IPA_WEIGHTS="cpufreq-cpu0=4096"`. The weights were written as cdev0/1 `cpufreq-cpu0`
+4096 and cdev2/3 `cpufreq-cpu4` 1024.
+
+The run stopped at its first log check. Nothing was measured.
+
+About 70 s before the run, CPU1-7 were brought back online. They had been offline for
+about 25 min, across the suspend runs above. At each online of CPU3-CPU7,
+`devfreq cci: failed to update the frequency.` was logged once.
+
+Afterwards:
+- CCI: passive, 611 MHz, its transition count still rising.
+- `faulted=0`, taint 0.
+
+Whether this is a hotplug defect in the CCI devfreq is the cpufreq session's question.
+The `v9p-trace.txt` and `*-trace-check.txt` files in `artifacts/station-work-96/v9w/`
+are stale copies from the earlier run; only `log.txt`, `v9p.txt` and `dmesg.txt` belong
+to this attempt.
+
 ## Analysis
 
 None yet.
