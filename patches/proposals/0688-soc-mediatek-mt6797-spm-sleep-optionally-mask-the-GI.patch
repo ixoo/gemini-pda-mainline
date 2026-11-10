@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Tue, 10 Nov 2026 18:41:36 -0500
+Date: Tue, 10 Nov 2026 18:46:04 -0500
 Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally mask the GIC
  while CPU0 waits
 
@@ -16,16 +16,16 @@ Add a gic_mask parameter that, around the WFI loop, disables every SPI
 but the SPM's (SPI 180, INTID 212) at the distributor and restores the
 saved enable bits afterwards. Off by default, so one boot can compare.
 ---
- drivers/soc/mediatek/mt6797-spm-sleep.c | 70 ++++++++++++++++++++++++-
- 1 file changed, 69 insertions(+), 1 deletion(-)
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 71 ++++++++++++++++++++++++-
+ 1 file changed, 70 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
-index e1a6b53ce..4a9c133a0 100644
+index 0be7a3fa0..533e06ca2 100644
 --- a/drivers/soc/mediatek/mt6797-spm-sleep.c
 +++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
-@@ -48,6 +48,16 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
- #define MCUCFG_SIZE		0x3000
+@@ -49,6 +49,16 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
  #define INFRA_AO_PHYS		0x10001000
+ #define TOPCKGEN_PHYS		0x10000000
  #define CHIPID_PHYS		0x08000000
 +#define GICD_PHYS		0x19000000
 +
@@ -40,7 +40,7 @@ index e1a6b53ce..4a9c133a0 100644
  
  /* SPM registers */
  #define POWERON_CONFIG_EN	0x000
-@@ -173,6 +183,10 @@ static struct {
+@@ -195,6 +205,10 @@ static struct {
  	void __iomem *pwrap;
  	void __iomem *mcucfg;
  	void __iomem *carve;
@@ -48,10 +48,10 @@ index e1a6b53ce..4a9c133a0 100644
 +	unsigned int gic_regs;
 +	u32 gic_saved[GIC_MAX_REGS];
 +	bool gic_masked;
+ 	void __iomem *infra;
+ 	void __iomem *topck;
  	u32 im_ptr;
- 	u32 im_len;
- 	u32 vec[16];
-@@ -203,6 +217,10 @@ static bool pmic_modes;
+@@ -227,6 +241,10 @@ static bool pmic_modes;
  module_param(pmic_modes, bool, 0644);
  MODULE_PARM_DESC(pmic_modes, "Set the static PMIC sleep modes for each suspend");
  
@@ -62,7 +62,7 @@ index e1a6b53ce..4a9c133a0 100644
  static inline u32 spm_rd(u32 off)
  {
  	return readl(s.spm + off);
-@@ -408,6 +426,41 @@ static bool spm_off(u32 off)
+@@ -457,6 +475,41 @@ static bool spm_off(u32 off)
  	return (spm_rd(off) & 0x1f) == 0x12;
  }
  
@@ -104,7 +104,7 @@ index e1a6b53ce..4a9c133a0 100644
  static int spm_enter(suspend_state_t state)
  {
  	u32 con0, con1, settle, axi[3], v;
-@@ -526,6 +579,15 @@ static int spm_enter(suspend_state_t state)
+@@ -578,6 +631,15 @@ static int spm_enter(suspend_state_t state)
  	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
  	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
  
@@ -120,7 +120,7 @@ index e1a6b53ce..4a9c133a0 100644
  	/* C2: CPU0 waits; the PCM-return interrupt ends the sleep */
  	for (i = 0; i < 1000000; i++) {
  		/* Complete every register write before the SPM sees CPU0 in WFI */
-@@ -537,6 +599,7 @@ static int spm_enter(suspend_state_t state)
+@@ -589,6 +651,7 @@ static int spm_enter(suspend_state_t state)
  		}
  	}
  	s.wake.wfi_loops = i;
@@ -128,22 +128,23 @@ index e1a6b53ce..4a9c133a0 100644
  
  	/* X1: wake status */
  	s.wake.assert_pc = spm_rd(PCM_REG_DATA_INI);
-@@ -719,6 +782,8 @@ static void spm_unmap(void)
+@@ -776,6 +839,8 @@ static void spm_unmap(void)
  {
  	if (s.carve)
  		iounmap(s.carve);
 +	if (s.gicd)
 +		iounmap(s.gicd);
- 	if (s.mcucfg)
- 		iounmap(s.mcucfg);
- 	if (s.pwrap)
-@@ -768,12 +833,15 @@ static int __init spm_sleep_init(void)
- 	s.pwrap = ioremap(PWRAP_PHYS, 0x1000);
- 	s.mcucfg = ioremap(MCUCFG_PHYS, MCUCFG_SIZE);
+ 	if (s.topck)
+ 		iounmap(s.topck);
+ 	if (s.infra)
+@@ -831,12 +896,16 @@ static int __init spm_sleep_init(void)
+ 	s.infra = ioremap(INFRA_AO_PHYS, 0x1000);
+ 	s.topck = ioremap(TOPCKGEN_PHYS, 0x1000);
  	chip = ioremap(CHIPID_PHYS, 0x10);
--	if (!s.spm || !s.pwrap || !s.mcucfg || !chip) {
+-	if (!s.spm || !s.pwrap || !s.mcucfg || !s.infra || !s.topck || !chip) {
 +	s.gicd = ioremap(GICD_PHYS, 0x1000);
-+	if (!s.spm || !s.pwrap || !s.mcucfg || !chip || !s.gicd) {
++	if (!s.spm || !s.pwrap || !s.mcucfg || !s.infra || !s.topck || !chip ||
++	    !s.gicd) {
  		if (chip)
  			iounmap(chip);
  		ret = -ENOMEM;
