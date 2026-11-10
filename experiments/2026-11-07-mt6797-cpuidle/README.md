@@ -1508,6 +1508,13 @@ not the timer, but not at the plug. Recorded in the test plan,
   `misc` and `isr` give its raw wake sources. They are in the kept log and
   settle when the SPM woke without a rerun.
 
+The kept wake lines settle when the SPM woke. `timer_out` is the SPM's
+sleep in 32,768 Hz ticks: the 30 s timer wake read `0x000f0088`
+(30.004 s); W3 read `0x001d4850`, **58.6 s**, with `raw=0x40` (EINT) and
+`misc=0x00010000` (the timer wake read `0x00080000`). So the SPM program
+itself slept through the plug and woke on an EINT event about 38 s after
+it. When CPU0's one early WFI exit happened is not known.
+
 One candidate fits the plug's interrupt storm in W2 (CHRDET 4 → 47 for one
 plug, cause unknown): if the MT6351's shared, level-high interrupt line was
 still high when the suspend began, the SPM would see no new EINT edge at the
