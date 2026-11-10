@@ -849,3 +849,4 @@ proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch
 proposals/0681-usb-mtu3-set-the-device-up-again-when-suspend-reset-.patch
 proposals/0682-PM-devfreq-mtk-cci-drop-the-voltage-request-when-it-.patch
 proposals/0683-thermal-drivers-mediatek-auxadc_thermal-set-MT6797-u.patch
+proposals/0684-drm-fb-helper-don-t-unblank-the-display-when-panning.patch

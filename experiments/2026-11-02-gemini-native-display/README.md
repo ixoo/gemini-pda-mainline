@@ -533,6 +533,21 @@ buffer instead, which matches "no visible effect". The message is harmless until
 gets its IOMMU (M4U). We leave the DMA mask alone: nothing here shows the OVL can reach past
 4 GiB in the loader's bypass.
 
+## A blanked display relit by a resume (built, not yet booted)
+
+The power tests found the display on after a `mem` resume that had started blanked
+through `fb0/blank`. A stacktrace kprobe on the panel's prepare, on station-work-96, gave
+the same stack for both resumes: `mtk_drm_sys_complete`, then the fbdev client resume,
+`fbcon_resumed`, `redraw_screen` and `fbcon_switch`. The rotated console's
+`ccw_update_start` then pans, and `drm_fb_helper_pan_display` commits the client's modesets
+with the CRTC active. `fb0/blank` still read 1 while the panel, the backlight and 16 display
+clocks were on. No input event was involved. The record is in the
+[power test plan](../2026-11-08-cpu-power-test-plan/README.md).
+
+`0684` makes an atomic pan only record the offsets while `fb_info->blank` is not
+`FB_BLANK_UNBLANK`. The unblank commits the modesets, offsets included. It is in
+`drm_kms_helper`, a module. It compiled with `W=1` in the dev VM; it is not yet booted.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here
