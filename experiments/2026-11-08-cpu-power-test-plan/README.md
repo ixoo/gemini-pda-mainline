@@ -920,11 +920,14 @@ sleep hook was corrected (card-27, `a5ee113b`) and so was the suspend record
 - The resume came after 59.3 s of uptime, with `wake: returned=1 loops=2`.
 - `r12=0x00000040` is the EINT event, not the timer (`0x1`).
 - CHRDET counted 47 → 49.
-- The owner reports plugging in at about 20 s, as instructed. So the plug did not wake
-  the station on the first SPM loop. The wake came about 39 s later, on the second
-  loop, through the EINT bit.
-- **W3 did not pass:** it woke on the PMIC, but not at the plug. Why the first loop
-  missed it is open.
+- The owner estimates plugging in at about 20 s.
+- The SPM's `timer_out` reads `0x001d4850`, which is 58.6 s at 32 kHz. A 30 s timer
+  wake reads `0x000f0088`. So the SPM slept 58.6 s and woke on the EINT.
+- `loops=2` is one extra WFI exit; it is not a re-entry (the suspend session's
+  reading).
+- **W3 is inconclusive.** Either the plug came at about 58 s, or an earlier CHRDET edge
+  did not wake the SPM. A rerun with the plug timed on a stopwatch from the "suspends
+  now" prompt decides it. Pass: the wake lands within about 2 s of the plug.
 
 Other prepares in the trace (530.19, 532.88 and 545.81 s) came while the display was
 already on. They are the DRM resume after W2 and W3, and the refused suspend's abort.
