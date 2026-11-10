@@ -1520,6 +1520,72 @@ plug, cause unknown): if the MT6351's shared, level-high interrupt line was
 still high when the suspend began, the SPM would see no new EINT edge at the
 plug, and would wake only on a later change of the line.
 
+**Timed W3 rerun (2026-11-10).** Same boot; recorded in the test plan,
+"station-work-97 CHRDET trace and timed W3" (`d77d3feb`). The owner plugged
+in 21 s after a logged start, and the station resumed 120.75 s after it. The
+wake line read `loops=2 r12=0x00000041 raw=0x00000040 misc=0x00090000
+timer_out=0x003c0088`: the SPM slept the full 120 s and returned on its timer
+with the EINT event also latched. CHRDET counted one interrupt across the
+suspend. The MT6351 `INT_STATUS0`-`3` all read `0000`, and its `INT_CON`
+words were unchanged, before and after both this suspend and a plain 30 s
+one. The "line already high" candidate is out: the W2 "storm" was a counting
+error (offline CPUs drop their `/proc/interrupts` columns).
+
+**Reading.** The plug's interrupt reached the SPM (EINT latched) and the GIC
+(CPU0 left WFI once, the interrupt was counted), but the program did not end
+its sleep on it. What differs from the vendor flow is that S1 leaves the
+GIC as Linux left it: every wake interrupt stays enabled, so the plug takes
+CPU0 out of WFI at the GIC while the program sleeps. The vendor masks every
+GIC interrupt but the SPM's before its suspend (`mt_irq_mask_all`, then
+`mt_irq_unmask_for_sleep(SPM_IRQ0_ID)` in `mt_spm_sleep.c`), so in its flow
+only the program wakes the CPU. The suspend program likely reads CPU0
+leaving `STANDBYWFI` (S9 sets "WFI AND") in its own way, and misses the
+wake event; that is inferred, not traced. The lid wakes in T3 did end the
+sleep on EINT, but their timing against the open was not measured.
+
+[`0688`](../../patches/proposals/0688-soc-mediatek-mt6797-spm-sleep-optionally-mask-the-GI.patch)
+adds a `gic_mask` parameter (default off): around the WFI loop it disables
+every SPI but the SPM's (SPI 180, INTID 212) at the GIC distributor and puts
+the saved enable bits back afterwards. A wake interrupt then stays pending at
+the GIC and is taken after the resume, as in the vendor flow. Compile-checked
+with `W=1`, checkpatch quiet. Module only: no new image if the package is
+otherwise identical to the running one.
+
+**Writes for owner approval** (only with `gic_mask=1`, CPU0 with interrupts
+off, inside `.enter`):
+
+| # | Register | Write |
+| --- | --- | --- |
+| G1 | GICD `ISENABLER1`-`n` `0x19000104` + 4i | read and saved (`n` from `GICD_TYPER` bits 4:0, at most 31) |
+| G2 | GICD `ICENABLER1`-`n` `0x19000184` + 4i | the saved enables, minus INTID 212's bit (register 6, bit 20) |
+| G3 | GICD `CTLR` `0x19000000` | read until RWP (bit 31) clears, 10 ms bound |
+| G4 | GICD `ISENABLER1`-`n` | after the loop, the saved words again (only set bits; nothing newly enabled) |
+
+**Test W3b** (fresh boot, cable out since boot, the usual S1 setup, timer
+120 s; the script logs `date +%s.%N` before each `echo mem`, and the owner
+acts on a logged "GO"):
+
+| Step | `gic_mask` | Owner action at 20 s | Pass |
+| --- | --- | --- | --- |
+| G0 | 0 | open the lid (closed before `mem`) | records how the lid behaves without the mask: `timer_out` and `loops` |
+| G1 | 1 | open the lid | `timer_out` about 20 s, `r12` EINT, `loops=1` |
+| G2 | 1 | plug the charger in | `timer_out` about 20 s, `r12` EINT, `loops=1`, CHRDET counted |
+| G3 | 1 | none | a plain timer wake, `loops=1`, no fault |
+
+Also read before and after each suspend: `/proc/interrupts` 191 and 209
+(summed over the online CPUs only), and the EINT bank holding EINT176
+(bank 5, bit 16): status, mask and sensitivity at base `+0x014`, `+0x094`,
+`+0x154` from the station DT's EINT `reg`. **Stop** on an Oops or `WARNING`,
+a missing wake within 60 s of the timer, or interrupts that do not work
+after the resume (keyboard, USB SSH): G4 should restore every enable bit,
+and a lost one would show there.
+
+| Result | Next |
+| --- | --- |
+| G1 and G2 wake at the action with `loops=1` | The GIC race is the cause; `gic_mask` defaults on |
+| G2 still sleeps to the timer with the mask on | Not the GIC race; the program's handling of a level EINT is next (read the EINT controller's wake output) |
+| G0 already wakes at the open | Lid edges get through without the mask and only the level PMIC line fails; G2 decides it |
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding

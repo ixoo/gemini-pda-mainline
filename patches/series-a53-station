@@ -853,3 +853,4 @@ proposals/0684-drm-fb-helper-don-t-unblank-the-display-when-panning.patch
 proposals/0685-mfd-mt6397-give-the-MT6351-fuel-gauge-the-charger-de.patch
 proposals/0686-power-supply-mt6351-fuel-gauge-wake-on-a-charger-att.patch
 proposals/0687-arm64-dts-mediatek-gemini-station-weight-the-LL-clus.patch
+proposals/0688-soc-mediatek-mt6797-spm-sleep-optionally-mask-the-GI.patch

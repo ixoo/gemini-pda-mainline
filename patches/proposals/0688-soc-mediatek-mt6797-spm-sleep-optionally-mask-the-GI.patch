@@ -1,0 +1,156 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 10 Nov 2026 18:41:36 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally mask the GIC
+ while CPU0 waits
+
+A charger plug-in, through the MT6351 interrupt on EINT176, did not wake
+a mem suspend at the plug: CPU0 left WFI once (loops=2), the interrupt
+was counted after resume, and the SPM program slept on to its timer
+with the EINT event latched. In this mode CPU0 stays powered, so a wake
+interrupt reaches it at the GIC as well as reaching the SPM. The vendor
+masks every GIC interrupt but the SPM's before suspend, so only the
+program wakes the CPU.
+
+Add a gic_mask parameter that, around the WFI loop, disables every SPI
+but the SPM's (SPI 180, INTID 212) at the distributor and restores the
+saved enable bits afterwards. Off by default, so one boot can compare.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 70 ++++++++++++++++++++++++-
+ 1 file changed, 69 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index e1a6b53ce..4a9c133a0 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -48,6 +48,16 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define MCUCFG_SIZE		0x3000
+ #define INFRA_AO_PHYS		0x10001000
+ #define CHIPID_PHYS		0x08000000
++#define GICD_PHYS		0x19000000
++
++#define GICD_CTLR		0x0000
++#define GICD_CTLR_RWP		BIT(31)
++#define GICD_TYPER		0x0004
++#define GICD_ISENABLER		0x0100
++#define GICD_ICENABLER		0x0180
++#define GIC_MAX_REGS		32
++/* The SPM's interrupt, SPI 180, is GIC INTID 212 (sysirq only inverts it). */
++#define SPM_GIC_INTID		(32 + 180)
+ 
+ /* SPM registers */
+ #define POWERON_CONFIG_EN	0x000
+@@ -173,6 +183,10 @@ static struct {
+ 	void __iomem *pwrap;
+ 	void __iomem *mcucfg;
+ 	void __iomem *carve;
++	void __iomem *gicd;
++	unsigned int gic_regs;
++	u32 gic_saved[GIC_MAX_REGS];
++	bool gic_masked;
+ 	u32 im_ptr;
+ 	u32 im_len;
+ 	u32 vec[16];
+@@ -203,6 +217,10 @@ static bool pmic_modes;
+ module_param(pmic_modes, bool, 0644);
+ MODULE_PARM_DESC(pmic_modes, "Set the static PMIC sleep modes for each suspend");
+ 
++static bool gic_mask;
++module_param(gic_mask, bool, 0644);
++MODULE_PARM_DESC(gic_mask, "Disable every SPI but the SPM's at the GIC while CPU0 waits");
++
+ static inline u32 spm_rd(u32 off)
+ {
+ 	return readl(s.spm + off);
+@@ -408,6 +426,41 @@ static bool spm_off(u32 off)
+ 	return (spm_rd(off) & 0x1f) == 0x12;
+ }
+ 
++static void spm_gic_wait_rwp(void)
++{
++	int i;
++
++	for (i = 0; i < 10000 && (readl(s.gicd + GICD_CTLR) & GICD_CTLR_RWP); i++)
++		udelay(1);
++}
++
++/* Disable every SPI but the SPM's; the enable bits are put back after. */
++static void spm_gic_mask(void)
++{
++	unsigned int i;
++	u32 keep;
++
++	for (i = 1; i < s.gic_regs; i++) {
++		s.gic_saved[i] = readl(s.gicd + GICD_ISENABLER + 4 * i);
++		keep = i == SPM_GIC_INTID / 32 ? BIT(SPM_GIC_INTID % 32) : 0;
++		writel(s.gic_saved[i] & ~keep, s.gicd + GICD_ICENABLER + 4 * i);
++	}
++	spm_gic_wait_rwp();
++	s.gic_masked = true;
++}
++
++static void spm_gic_restore(void)
++{
++	unsigned int i;
++
++	if (!s.gic_masked)
++		return;
++	for (i = 1; i < s.gic_regs; i++)
++		writel(s.gic_saved[i], s.gicd + GICD_ISENABLER + 4 * i);
++	spm_gic_wait_rwp();
++	s.gic_masked = false;
++}
++
+ static int spm_enter(suspend_state_t state)
+ {
+ 	u32 con0, con1, settle, axi[3], v;
+@@ -526,6 +579,15 @@ static int spm_enter(suspend_state_t state)
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
+ 
++	/*
++	 * The vendor masks every GIC interrupt but the SPM's before its suspend
++	 * (mt_irq_mask_all), so only the program wakes the CPU. Here CPU0 stays
++	 * powered, and without this a wake interrupt can take it out of WFI at
++	 * the GIC while the program goes on sleeping.
++	 */
++	if (gic_mask)
++		spm_gic_mask();
++
+ 	/* C2: CPU0 waits; the PCM-return interrupt ends the sleep */
+ 	for (i = 0; i < 1000000; i++) {
+ 		/* Complete every register write before the SPM sees CPU0 in WFI */
+@@ -537,6 +599,7 @@ static int spm_enter(suspend_state_t state)
+ 		}
+ 	}
+ 	s.wake.wfi_loops = i;
++	spm_gic_restore();
+ 
+ 	/* X1: wake status */
+ 	s.wake.assert_pc = spm_rd(PCM_REG_DATA_INI);
+@@ -719,6 +782,8 @@ static void spm_unmap(void)
+ {
+ 	if (s.carve)
+ 		iounmap(s.carve);
++	if (s.gicd)
++		iounmap(s.gicd);
+ 	if (s.mcucfg)
+ 		iounmap(s.mcucfg);
+ 	if (s.pwrap)
+@@ -768,12 +833,15 @@ static int __init spm_sleep_init(void)
+ 	s.pwrap = ioremap(PWRAP_PHYS, 0x1000);
+ 	s.mcucfg = ioremap(MCUCFG_PHYS, MCUCFG_SIZE);
+ 	chip = ioremap(CHIPID_PHYS, 0x10);
+-	if (!s.spm || !s.pwrap || !s.mcucfg || !chip) {
++	s.gicd = ioremap(GICD_PHYS, 0x1000);
++	if (!s.spm || !s.pwrap || !s.mcucfg || !chip || !s.gicd) {
+ 		if (chip)
+ 			iounmap(chip);
+ 		ret = -ENOMEM;
+ 		goto err;
+ 	}
++	s.gic_regs = min_t(unsigned int,
++			   (readl(s.gicd + GICD_TYPER) & 0x1f) + 1, GIC_MAX_REGS);
+ 	s.flags = S1_FLAGS;
+ 	if (readl(chip + 8) == 0xca01)
+ 		s.flags |= FLAG_EN_SEGMENT2;
