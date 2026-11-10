@@ -950,8 +950,8 @@ jumped by 46:
 - It read 53 → 11 when they came back online.
 
 Sampled every second with all CPUs online:
-- The plug added 1 and the unplug added 1, 9 → 10 in total over 30 s out, 60 s
-  attached and 30 s out.
+- The count went 7 → 8 at the first unplug, → 9 at the plug and → 10 at the second
+  unplug. That covers 30 s out, 60 s attached and 30 s out.
 - There was nothing in between.
 
 **A 30 s cable-out mem suspend:** a timer wake (`r12=0x1`, `timer_out=0x000f0088`) with no
