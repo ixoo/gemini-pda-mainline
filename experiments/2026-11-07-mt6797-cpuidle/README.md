@@ -1478,6 +1478,20 @@ holds extra power. The fixes belong to the display session:
 Until the display keeps its blank, lid-close suspend would wake to a lit
 screen inside a closed lid; that adds to the `soc-thermal` blocker above.
 
+### Charger plug-in wake in `mem` (2026-11-10)
+
+The suspend session's test W3 needs a charger plug-in (MT6351 CHRDET,
+patches 0685 and 0686) to wake a `mem` suspend. No change to
+`mt6797-spm-sleep` is needed for that. The MT6351 interrupt reaches the SoC
+as EINT176 ([0007](../../patches/v7.1.3/0007-arm64-dts-mediatek-mt6797-add-PMIC-wrapper.patch),
+IRQ 191 on the station), and S1's wake mask (S16, `0xffffffbe`) already
+unmasks the EINT event, bit 6. T3's lid opens woke through that same bit
+(`r12=0x40`). The EINT controller arms only lines marked for wake, so the
+MT6351 interrupt chip must arm its parent when the CHRDET child is marked,
+as it does for the power key and the RTC in s2idle. Not yet shown under
+`mem`: W3 is the first PMIC wake there. If W3 does not wake, the next reads
+are the wake line's `r12` and the EINT wake mask for EINT176.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
