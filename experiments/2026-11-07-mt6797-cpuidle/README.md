@@ -1492,6 +1492,27 @@ as it does for the power key and the RTC in s2idle. Not yet shown under
 `mem`: W3 is the first PMIC wake there. If W3 does not wake, the next reads
 are the wake line's `r12` and the EINT wake mask for EINT176.
 
+**W3 result (2026-11-10).** On station-work-97 (boot `56832cd1…`), a `mem`
+suspend with a 120 s timer, the owner plugging in at about 20 s, resumed
+at about 59 s with `wake: returned=1 loops=2 r12=0x00000040`: the EINT event,
+not the timer, but not at the plug. Recorded in the test plan,
+"station-work-97". Two notes for reading it:
+
+- `loops` is not an SPM loop. It counts the WFIs CPU0 ran in `.enter`
+  before the PCM-return interrupt. `loops=2` means CPU0 woke once early,
+  with no PCM return, most likely on the plug's interrupt itself reaching the
+  GIC, and went back to WFI. So the interrupt reached CPU0 at the plug; the
+  SPM program did not return until later.
+- The wake line's `timer_out` gives the SPM's own sleep length (its upper
+  half-word counted 5, 15 and 150 for 10, 30 and 300 s), and `raw`,
+  `misc` and `isr` give its raw wake sources. They are in the kept log and
+  settle when the SPM woke without a rerun.
+
+One candidate fits the plug's interrupt storm in W2 (CHRDET 4 → 47 for one
+plug, cause unknown): if the MT6351's shared, level-high interrupt line was
+still high when the suspend began, the SPM would see no new EINT edge at the
+plug, and would wake only on a later change of the line.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
