@@ -866,6 +866,70 @@ The evidence is private in `artifacts/station-work-96/v9w2/`. `v9p-trace.txt` is
 `08932b3b…`, and the log saved before the clear is `/mnt/data/dmesg-before-v9w2.txt` on
 the station.
 
+### station-work-97: V11, 0684, W1-W3 (2026-11-10)
+
+Image: built from `bca6ccc6` (854 patches, package `62e5dba0…`).
+- boot.img `2b4b3733…`, boot2 `c0b4b88b…`.
+- `flash-boot2` verified the write; the predecessor was station-work-96 (`86322507…`).
+- The owner selected boot2, and the station booted as `56832cd1`.
+- The readback of `mmcblk0p30` matched boot.img.
+- The loaded `drm_kms_helper.ko` was `73b51f8a…`, the 0684 build.
+
+**V11, passed.** Before power-off, `/mnt/data/cpufreq-at-boot` was created. At boot the
+status read `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq,power_allocator`.
+- soc-thermal was on `power_allocator`, and CCI was passive at 884 MHz.
+- Taint 0, no fault lines.
+
+Battery run (`sw97-run.sh`), with the owner present.
+
+**Setup.** Backlight-policy was frozen, and `pcm_suspend.bin` (`d6e8a0b8…`) was staged.
+The first launch stopped before any test: `mt6797_wlan_core` was still EAGAIN after
+10 s of retries. Once `mt6797_consys` was unloaded, it unloaded at once. So wlan-core
+cannot unload while consys is loaded, and the order must be mac, consys, wlan-core.
+station-work-96's "retry" only worked because consys had gone in between. The card's
+sleep hook was corrected (card-27, `a5ee113b`) and so was the suspend record
+(`94bc6cb2`).
+
+**W1 (0685/0686, awake), passed.** CHRDET (virq 209) counted 2 → 3 at the plug and
+→ 4 at the unplug. The fuel gauge's `power/wakeup` read `enabled`.
+
+**0684 (a blanked display across a mem resume), passed.**
+- Before the suspend, fb0 was blanked with 1 and then 4. It read DPMS Off, `bl_power`
+  4, with only `mm_sel` and `mm_smi_common` on.
+- After a 30 s `mem` suspend (rc 0, `r12=0x1`), the trace had no
+  `nt36672e_panel_prepare`. The state was unchanged: fb0 still 4, DPMS Off, `bl_power`
+  4, the same two clocks.
+- The drain over 60 s after the resume was 74.5 mA, against item 5's 200 mA.
+- The owner then pressed Space. One prepare followed, through `fb_blank` →
+  `drm_fb_helper_blank` → `drm_client_modeset_dpms`. The display came back with 16
+  display clocks.
+- The owner saw the console drawn normally, neither shifted nor torn, so the deferred
+  pan offsets applied.
+
+**W2 (charger plug wakes s2idle), passed.**
+- With a 120 s alarm, the owner plugged the cable in after about 20 s. The suspend
+  ended after 24.2 s with `pm_wakeup_irq` 191, the MT6351's EINT parent.
+- The next suspend was refused: bq25890 logged "guard: charger attached, refusing to
+  suspend", and mtu3 also returned -16 with USB connected.
+- The CHRDET count went from 4 to 47 across this one plug. That is many interrupts for
+  one plug-in, and the cause is not identified.
+
+**W3 (charger plug wakes mem), woke on the PMIC.**
+- The test was a `mem` suspend with the SPM timer at 120 s; the owner was asked to plug
+  in after about 20 s.
+- The resume came after 59.3 s of uptime, with `wake: returned=1 loops=2`.
+- `r12=0x00000040` is the EINT event, not the timer (`0x1`).
+- CHRDET counted 47 → 49.
+- Inference: the PMIC EINT woke the station before its timer. It is not shown whether
+  the plug fired on the first SPM loop: `loops=2` and the 59 s are longer than the
+  instructed 20 s.
+
+Other prepares in the trace (530.19, 532.88 and 545.81 s) came while the display was
+already on. They are the DRM resume after W2 and W3, and the refused suspend's abort.
+
+After the replug, the UDC was `configured`, the kprobe was removed, faults 0, taint 0.
+The evidence is private in `artifacts/station-work-97/`.
+
 ## Analysis
 
 None yet.
