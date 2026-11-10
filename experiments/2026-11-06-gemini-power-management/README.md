@@ -1561,9 +1561,10 @@ A `systemd-sleep` hook, for example
 - **`pre`:** stop the Wi-Fi daemon (`iwd`) and any Bluetooth service.
   Then `modprobe -r mac mt6797-wlan-core btmt6797 gnss-mt6797
   radio-mt6797 mt6797-consys`, ignoring modules that are not loaded.
-- **`post`:** load back the modules that were loaded before, Wi-Fi first:
-  `mt6797-consys`, then `mt6797-wlan-core` and `mac`. Then start the
-  daemons that were running.
+- **`post`:** load back the modules that were loaded before, in
+  `wifi-start`'s proven boot order (`mt6797-wlan-core`, `mt6797-consys`,
+  `mac`). Then start the daemons that were running. The card's hook
+  (card-26, `cbdbb676`) does this.
 - Record what was loaded in `pre`, so that `post` restores only that. A
   radio the user had off stays off.
 - Without the hook, 0653 refuses every suspend while CONSYS is loaded,
