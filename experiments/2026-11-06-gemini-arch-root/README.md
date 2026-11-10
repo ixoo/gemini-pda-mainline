@@ -1740,6 +1740,27 @@ with a kernel that refuses a suspend while CONSYS is loaded (0653) or a charger 
 0630 guard refused both `mem` and `s2idle` with the cable in. The R-W test follows the
 current `station-work-97` tests.
 
+**Unload order fixed (`gemini-base` 32).**
+
+- Card-26's `pre` would have failed on the device. The custodian measured on
+  `station-work-97` (boot `56832cd1`) and `station-work-96`: `mt6797_wlan_core` returns
+  EAGAIN for as long as `mt6797_consys` is loaded.
+  - After `mac`, ten 1 s retries still failed.
+  - Once CONSYS was unloaded, `rmmod mt6797_wlan_core` succeeded at once.
+  - The earlier "retry after 2 s" had CONSYS removed in between.
+- The hook now unloads `mac`, `btmt6797`, `gnss-mt6797` and `radio-mt6797`, then
+  `mt6797-consys`, then `mt6797-wlan-core`. Bluetooth, GNSS and FM call CONSYS's exported
+  STP functions, so CONSYS can't unload while they are loaded. That follows from the code
+  (suspend session), but is untested on the device. The power-management record has the same
+  order (`94bc6cb2`).
+- The 10 s retry stays, for a module still busy for a moment after its user went.
+- `post` is unchanged.
+- A stub run in which `mt6797-wlan-core` refuses while CONSYS is loaded, and CONSYS refuses
+  while any of its users is, unloaded everything first time. It then restored Wi-Fi,
+  Bluetooth, FM and both daemons.
+- Card-27 (dev VM, `gemini-base` 32, image sha256 `a1a0e7ae25d8…`, 429 packages) replaces
+  card-26, with the same pairing (`station-work-97` or a descendant).
+
 ## Analysis
 
 Not started.

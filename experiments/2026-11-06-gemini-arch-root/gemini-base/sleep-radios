@@ -10,12 +10,13 @@
 # order), then Bluetooth, FM and GNSS, and start the daemons that were running.
 # usage (from systemd-sleep): sleep-radios pre|post suspend|hibernate|...
 state=/run/gemini/sleep-radios
-modules='mac mt6797-wlan-core btmt6797 gnss-mt6797 radio-mt6797 mt6797-consys'
+# Unload order: CONSYS's users first, then CONSYS, then the Wi-Fi core, which stays busy
+# (EAGAIN) for as long as CONSYS is loaded (station-work-96 and -97).
+modules='mac btmt6797 gnss-mt6797 radio-mt6797 mt6797-consys mt6797-wlan-core'
 
 loaded() { [ -d "/sys/module/$(echo "$1" | tr - _)" ]; }
 
-# A module can still be busy just after its user went: mt6797-wlan-core returned
-# EAGAIN once right after mac was removed, and went 2 s later.
+# A module can still be busy for a moment just after its user went.
 unload() {
     tries=0
     until modprobe -r "$1" 2>/dev/null; do
