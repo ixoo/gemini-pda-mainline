@@ -669,6 +669,44 @@ The owner is away for 24 h, with no reboot and no cable change possible. Deferre
 
 Running meanwhile, cable in: a passive display relight watch (below).
 
+### station-work-96 relight watch (2026-11-09 to 2026-11-10)
+
+The question came from the display session: with fb0 blanked through sysfs and nobody
+near the device, does the panel relight by itself?
+
+Setup, from the station on boot `53187f71`:
+- Cable in, CPUs 0-7 online, `backlight-policy` stopped, console blank 0.
+- A kprobe on `nt36672e_panel_prepare` with a stacktrace trigger.
+- Readers on the VT-bound input devices: event0, event1, event2 and event4.
+- `echo 1 > fb0/blank`.
+- Every 60 s, a check on fb0/blank, with a re-blank after any relight.
+
+The watch ran from uptime 928 s to 72943 s, which is 20 h.
+
+Observed:
+- **No relight.** fb0/blank read 1 at every check, and the log has no `RELIT` line.
+- The kprobe trace holds no entry, so the panel was never prepared again.
+- All four input readers captured 0 bytes.
+- The input IRQs the watch counts at every tick (PMIC, keypad, gpio-keys, lid, jack)
+  never changed.
+- soc-thermal ran between 21 and 25 °C.
+- No fault lines, taint 0. At the end the battery was at 77 % with the charger online.
+- At the end, the watch removed the kprobe (0 left) and fb0 stayed blanked.
+
+Between the start and end snapshots of `/proc/interrupts`:
+- 1400b000.ovl rose by 14 and 1401c000.dsi by 5.
+- The start snapshot was taken before the blank, so those counts may come from the
+  blank itself. That is inference; the per-tick count did not include ovl or dsi.
+- The other deltas are USB, i2c and mmc activity under SSH and the charger.
+
+Conclusion for the display session: a sysfs blank holds for 20 h on a mainline station
+with no input. The display was on after item 4's resume, but that was not a spontaneous
+relight. The relight comes from the resume path: either the fbdev resume (c), or an
+input event (d) during the resume. Telling (c) from (d) still needs the deferred
+mem-suspend trace in `tmu2-run.sh`.
+
+The evidence is private in `artifacts/station-work-96/relight/`.
+
 ## Analysis
 
 None yet.
