@@ -1735,7 +1735,10 @@ Card-26 (dev VM, `gemini-base` 31, image sha256 `8848f0e6ab68…`, 429 packages)
 the hook. On the image: `gemini-radios` is installed mode 0755, `sleep.conf.d/50-gemini.conf`
 sets s2idle, and `logind.conf.d/50-gemini.conf` sets lid suspend on battery only. Pair it only
 with a kernel that refuses a suspend while CONSYS is loaded (0653) or a charger is attached
-(0630): with this card, closing the lid suspends.
+(0630): with this card, closing the lid suspends. The custodian pairs it with
+`station-work-97` (from `bca6ccc6`) or a descendant, which carries both; `station-work-96`'s
+0630 guard refused both `mem` and `s2idle` with the cable in. The R-W test follows the
+current `station-work-97` tests.
 
 ## Analysis
 
