@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686 compile-checked (W1-W3 next); Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686: W1 and W2 pass, W3 woke on the EINT (plug timing and a CHRDET count jump open); Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1597,6 +1597,41 @@ default; s2idle until then.
   the lid, wait 60 s, then open it. **Pass:** the hook unloads the
   modules, the suspend returns 0, and Wi-Fi rejoins after the open with
   no manual step. One join only, under the existing rejoin rules.
+
+#### W1–W3 on station-work-97 (2026-11-10)
+
+Run by the device custodian, boot `56832cd1` (from `bca6ccc6`). Record:
+the [CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md),
+"station-work-97", commit `3190ed4d`. Raw logs private. At boot the fuel
+gauge's wakeup read `enabled`, and CHRDET is virq 209.
+
+- **W1: pass.** CHRDET counted 2 → 3 at the plug and → 4 at the unplug.
+  It follows VBUS on this board.
+- **W2: pass.** In s2idle with a 120 s alarm, the owner plugged in at
+  about 20 s. The suspend ended at 24.2 s, woken by IRQ 191. The next
+  suspend was refused by the guard (0630). MTU3 also refused it, with
+  the host session live.
+- **W3: woke on the charger.**
+  - The SPM reported `r12=0x40`, the EINT event, and `raw=0x40`.
+  - `timer_out` was `0x001d4850`. In the timer wakes it equals the
+    programmed time in 32 kHz ticks (`0x000f0088` for 30 s), so it reads
+    as the time asleep: 58.6 s.
+  - So the SPM slept 58.6 s and woke on the EINT. Either the plug came at
+    about 58 s, or an earlier CHRDET edge did not wake it.
+  - `loops=2` is one extra WFI exit before the PCM-return check, as when
+    the EINT also reaches the GIC. Timer wakes show `loops=1`. Nothing
+    suggests the SPM re-entered.
+  - A rerun with the plug time taken on a stopwatch decides between the
+    two.
+- **Open: CHRDET counted 4 → 47 between W1 and W2's resume.**
+  - W1's plug and W3's plug added 1 and 2. The extra 43 came somewhere in
+    that window, which also held the 0684 display step and a `mem`
+    suspend with the cable out. The run did not sample the count often
+    enough to place them.
+  - A storm while plugged would mean repeated wakes or wasted interrupt
+    work. Decision: sample the count each second through a plug, 60 s
+    attached and idle, and an unplug. Steady while attached is fine. A
+    climb while attached needs a fix in the interrupt handling.
 
 ## Analysis
 
