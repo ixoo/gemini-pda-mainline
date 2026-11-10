@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686: W1 and W2 pass, W3 woke on the EINT (plug timing and a CHRDET count jump open); Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686: W1 and W2 pass, W3 not passed: under mem the plug woke the station only about 38 s late (SPM side, a pre-entry PMIC status read decides), CHRDET count jump open; Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1621,8 +1621,21 @@ gauge's wakeup read `enabled`, and CHRDET is virq 209.
   - `loops=2` is one extra WFI exit before the PCM-return check, as when
     the EINT also reaches the GIC. Timer wakes show `loops=1`. Nothing
     suggests the SPM re-entered.
-  - A rerun with the plug time taken on a stopwatch decides between the
-    two.
+  - **Owner's answer: the plug came at about 20 s.** So under `mem` the
+    plug did not wake the station; a later EINT event did, about 38 s
+    after the plug. The custodian records W3 as not passed.
+  - s2idle woke within about 4 s of the plug (W2), so the CHRDET child,
+    the MT6351 interrupt chip and the EINT176 arming work. The delay is
+    specific to the `mem` path, the SPM side, which the cpuidle session
+    owns.
+  - Two `mem`-side explanations fit, and one read separates them:
+    (1) the PMIC's interrupt line was already asserted at entry, by a
+    pending, unhandled status bit, so the plug made no new edge for the
+    SPM's EINT event; (2) EINT176's detection or debounce does not run
+    under the SPM program until something else re-triggers it. Read the
+    MT6351 `INT_STATUS0`–`3` (`0x02e0`–`0x02e6`) and `INT_CON0`–`3`
+    through the PMIC wrapper's regmap debugfs just before writing
+    `mem`. Any status bit set that is also enabled points to (1).
 - **Open: CHRDET counted 4 → 47 between W1 and W2's resume.**
   - W1's plug and W3's plug added 1 and 2. The extra 43 came somewhere in
     that window, which also held the 0684 display step and a `mem`
