@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-06-gemini-power-management` |
-| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686: W1 and W2 pass, W3 not passed: under mem the plug woke the station only about 38 s late (SPM side, a pre-entry PMIC status read decides), CHRDET count jump open; Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
+| Status | `running`: assessment done; R1, R1b, R2 run; S1 passed on P2 (s2idle with RTC and power-key wakes); gadget reconnects after suspend with no console input on the 0633–0635 image (P5); P6: C, H, K, S pass, 73.3 mA suspended; L2 passed on IRQ 20 with an unbalanced-IRQ warning per row (0672 fixes it, L3 next); AFE reset across suspend confirmed by register reads, fix 0671 compile-checked; mem path: MTU3 (0676, 0681) and thermal (0683) resume fixes pass (U2, T-M); A (0671) and L3 (0672) pass; charger wake 0685/0686: W1 and W2 pass, charger wake works in s2idle; under mem it does not (EINT176 under the SPM program, cpuidle's), no CHRDET storm; Wi-Fi hook specified for the card; CPU policy shown on lid close; R3 not run |
 | Subsystem | System suspend (s2idle, PSCI), cpuidle, runtime PM, SCPSYS power domains, clocks, wakeup sources, every station driver |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-06 |
@@ -1645,6 +1645,28 @@ gauge's wakeup read `enabled`, and CHRDET is virq 209.
     work. Decision: sample the count each second through a plug, 60 s
     attached and idle, and an unplug. Steady while attached is fine. A
     climb while attached needs a fix in the interrupt handling.
+
+#### CHRDET trace and timed W3 (2026-11-10)
+
+Run by the device custodian on `station-work-97`. Record: the
+[CPU power test plan](../2026-11-08-cpu-power-test-plan/README.md),
+"station-work-97 CHRDET trace and timed W3", commit `d77d3feb`.
+
+- **No CHRDET storm.** The 4 → 47 jump was the script's: it summed
+  fields 2–9 of the `/proc/interrupts` line. With CPUs 1–7 offline, only
+  CPU0's column is printed, so the sum took in the hwirq number 46.
+- Sampled each second with every CPU online: one count per plug and per
+  unplug, and none during 60 s attached.
+- **W3 fails, and not on the PMIC side.**
+  - With the plug timed at 21 s, the SPM slept the full 120 s
+    (`timer_out=0x003c0088`, `r12=0x41`, `loops=2`).
+  - MT6351 `INT_STATUS0`–`3` read `0000`, and `INT_CON2` read `0x4000`
+    (CHRDET enabled), both right before and right after the suspend. So
+    no PMIC line was held at entry.
+  - That is explanation (2): EINT176's detection under the SPM program.
+    It belongs to the cpuidle session, which has the wake line.
+- The charger wake therefore works in s2idle (W2) and not yet in `mem`.
+  Nothing in 0685 or 0686 needs to change.
 
 ## Analysis
 
