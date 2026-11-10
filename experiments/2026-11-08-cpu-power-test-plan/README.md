@@ -707,6 +707,65 @@ mem-suspend trace in `tmu2-run.sh`.
 
 The evidence is private in `artifacts/station-work-96/relight/`.
 
+### station-work-96 T-M, display trace and U2 (2026-11-10)
+
+The run was `tmu2-run.sh` (`b565a17c…`), on the same boot `53187f71`, at uptime about
+105700 s, with the owner present.
+
+Setup:
+- `pcm_suspend.bin` staged, hash `d6e8a0b8…`.
+- The Wi-Fi modules unloaded. `mt6797_wlan_core` returned EAGAIN once and unloaded on the
+  retry. CONNSYS was off (`0x112`).
+- `backlight-policy` stopped (state T).
+- After the unplug: CPU1-7 offline, the `panelprep` kprobe with a stacktrace, readers
+  on event0/1/2/4, `fb0/blank` 1.
+- Then `mt6797-spm-sleep`, and two 30 s `mem` suspends, M1 and M2.
+
+**T-M (0683), passed.** On both resumes, mtk-thermal logged "thermal banks lost their
+state in suspend, setting them up again" and re-armed the hardware reset at 117000 mC.
+soc-thermal stayed readable right after each resume and for 10 minutes after, with
+readings of 21.5-24.8 °C. There was no ENODATA.
+
+**U2 (0681), passed.** Both resumes logged "IP was reset in suspend, setting it up
+again". On battery, the UDC read `not attached`, as expected with no cable. After the
+replug, the UDC was `configured` within 1 s. The registers were back to their pre-unplug
+values:
+- IPPC `0x10` = `0x01003D0F`.
+- MAC `0x0084` = `0x00010001`, `0x0800` = `0x01000003`.
+- bq25890 `0b` = `0x36`.
+- FUSB301 on i2c1 `0x11` = `0x2f`.
+
+**Display after a resume: cause (c).** `fb0/blank` still read 1 after each resume, but
+DPMS was On, `bl_power` 0, with 16 MM clocks on. Both resume prepares (M1, M2) have the
+same stack:
+
+`pm_suspend` → `dpm_resume_end` → `dpm_complete` → `mtk_drm_sys_complete` →
+`drm_mode_config_helper_resume` → `drm_client_dev_resume` → `drm_fbdev_client_resume` →
+`drm_fb_helper_set_suspend_unlocked` → `fb_set_suspend` → `fbcon_resumed` →
+`redraw_screen` → `fbcon_switch` → `ccw_update_start` → `fb_pan_display` →
+`drm_fb_helper_pan_display` → `drm_client_modeset_commit_locked` → atomic commit →
+`panel_bridge_atomic_pre_enable` → `nt36672e_panel_prepare`
+
+So the fbcon redraw on resume pans the rotated console. The pan is a full modeset
+commit that enables the CRTC and the panel, even though fb0 is blanked. No input event
+is involved. This also explains item 4's display-on resume.
+
+**Battery relight check, no relight.** fb0 was blanked again when the T-M window
+started. From the M2 resume to the replug, about 15 min on battery, the kprobe recorded
+no panel prepare.
+
+One more prepare came just before the replug:
+- Its stack runs `console_callback` → `poke_blanked_console` → `unblank_screen` →
+  `fbcon_blank` → `drm_fb_helper_blank` → panel prepare, which is cause (d).
+- event1, the keyboard matrix, recorded the only input of the run: one Left Ctrl
+  (code 29) press and release, 0.2 s apart.
+- It came about 3 s before the charger came online, so it was probably the owner's hand
+  during the replug. That is inference.
+
+Item 5's relights at 220.8 s and 562.8 s were not reproduced in this window.
+
+No fault lines, taint 0. The evidence is private in `artifacts/station-work-96/tmu2/`.
+
 ## Analysis
 
 None yet.
