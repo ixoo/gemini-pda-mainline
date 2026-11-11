@@ -1980,6 +1980,22 @@ ShellCheck passes on `first-login` and `build-card.sh`; the package isn't built 
 check at the first boot: Noctalia shows "Speaker" as the output and "Mic" as the input, a
 headphone plug switches the output, and the microphone starts muted.
 
+### PipeWire found no profile on card-32 (`gemini-base` 40, 2026-11-11)
+
+Card-32 (image `694dd988…`, gemini-base 39) on station-work-101, boot `0bad0df9`: the
+output was PipeWire's Dummy Output. ACP probes each UCM profile by opening its PCMs before
+enabling any device, so capture PCM 3 opened with its route off; the kernel answered
+"Capture_1: ASoC: no backend DAIs enabled" and EINVAL, and both HiFi profiles, which each
+include Mic, were dropped (`spa-acp-tool`: "input PCM open failed"). The custodian moved the
+two `UL1_CH* ADDA_UL_CH*` route switches into the verb's EnableSequence in a temporary
+`ALSA_CONFIG_UCM2` copy, and PipeWire then chose "HiFi (Mic, Speaker)" with the sink "Built-in
+Audio Speaker" and the source "Built-in Audio Mic". The microphone switches still gate the
+capsules. The audio session made the same change in its profile (`4e52b4f4`), and
+gemini-base 40 carries it. `first-login` behaved as meant: with no sink it left no marker,
+so it retries at the next login.
+
+Not yet tried on the device: headphone switching, capture with `pw-record`.
+
 ## Analysis
 
 Not started.
