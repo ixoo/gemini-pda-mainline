@@ -632,6 +632,37 @@ on top of 0734.
 - Outside 10-45 °C the charger stops at 4.240 V, below the 4.312 V threshold, so no taper
   reading is taken. The rest after termination still corrects.
 
+**Follow-up on the same boot** (private log `artifacts/card-32/cv-taper-10min.txt`):
+- Sampling started at 3003 s, after the charger had already terminated:
+  - `status` `Not charging`, 4.263 V, current about 0, capacity 85.
+- At 3243 s the 5-minute rest reading moved capacity from 85 to 92 % and `charge_now` from
+  3642 to 3927 mAh. That is 4.263 V on the table, 92 %. No fault.
+
+**What it shows: a completed charge rests at about 92 % on the table, not 100 %.**
+- The charger stops at 4.336 V with its termination current still flowing (the bq25896
+  default, 256 mA), and the cell then relaxes.
+- The vendor-derived table puts 100 % at 4.357 V, which this charge never reaches.
+- The vendor reported 100 % at termination because its UI SOC is scaled: `Full` when
+  `UI_SOC2` is 100 with a charger. So "Gemian reads higher" is also a difference of scale.
+- 0735's taper reading (about 95 %, V − I × R, which ignores the charging overpotential) will
+  be followed by the rest reading (about 92 %). So a 2-3 point drop just after a charge is
+  expected. V12's 3-point tolerance covers it.
+
+**Owner decision: what 100 % means.**
+1. **Table-true:** keep it as it is. A full charge reads about 92-94 %, and `charge_full` (the
+   learned Q) is the cell's whole table capacity.
+2. **Charger-full is 100 %, as the vendor did:**
+   - each rest reading after a termination records the table capacity there (about 92);
+   - the driver reports capacity scaled so that value is 100;
+   - `charge_full` becomes the usable charge, Q × that share, so health, time to full and time
+     to empty are on the same scale;
+   - learning stays on the table scale.
+
+   This is a driver change, an image item.
+
+Option 2 is recommended (inference): a phone that never shows 100 % after charging looks broken,
+and the usable charge is what the time estimates should use.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
