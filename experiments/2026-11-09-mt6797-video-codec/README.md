@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-09-mt6797-video-codec` |
-| Status | `completed` (offline source, configuration and binary analysis; no build, boot or device access) |
+| Status | `completed` (offline source, configuration and binary analysis, plus one read-only vendor decode on Gemian, V5; no mainline build or boot) |
 | Subsystem | VDEC, VENC, MJC; their power domains, clocks, SMI larbs, M4U ports and userspace stack |
 | Device variant | Named Gemini PDA (MT6797X); retained Gemian `3.18.41+` captures |
 | Date(s) | 2026-11-08 |
@@ -293,9 +293,11 @@ queued with the custodian remains the authority for the running unit.
 - Mainline's VENC and MJC domains have no clock, while the vendor powers them
   with `venc_sel` and `mjc_sel` running. Whether SRAM power-up acknowledges
   without those muxes is unknown.
-- Whether VP8, VP9 and VC-1 run in hardware, in software or split on this unit
-  is not settled. The kernel lock admits all three; `libvcodecdrv.so` has
-  VP9 and VP8 HAL functions and also opens software libraries for them.
+- VP8, VP9 and VC-1 were first left open here. A later, deeper static pass
+  settled them: the vendor decoder selects its hardware path for all three on
+  this chip. The software libraries are reachable only through an export that
+  nothing calls. That pass rests on decompiled vendor code and is kept
+  private.
 - The VDEC clock rate and voltage: the specification asks for 500 MHz, and the
   vendor raises the MMDVFS (Vcore) step while decoding. Mainline has no Vcore
   scaling, so the safe `vdec_sel` parent at the station's fixed Vcore is
@@ -321,7 +323,77 @@ and Linux 7.1.3 with the local series:
   interrupt handling, but relies on VPU or SCP firmware that MT6797 lacks. A
   mainline decoder would be a new AP-driven stateless driver.
 
-No hardware behaviour is claimed.
+No hardware behaviour is claimed by the static analysis; V5 below adds the
+first device observation.
+
+## V5: vendor HEVC decode on Gemian (2026-11-11)
+
+**What ran.** The device custodian ran this read-only check on Gemian boot
+`56e31061` (`3.18.41+`), and the owner approved it.
+
+- **Decode:** the vendor test tool `vendor/bin/mfv_ut`, in the Android
+  container, decoded two synthetic HEVC Main clips: 352x288, 30 frames,
+  generated with ffmpeg `testsrc2`. One has one slice per picture; the other
+  has four slices with WPP.
+- **Trace attempt:** the vendor register-trace property was set during the
+  runs and reset afterwards.
+- **What the tool cannot test:** `mfv_ut` has no plain H.264 decode test;
+  its only H.264 test is the secure one, and that needs a library Gemian
+  lacks.
+- **Changes:** nothing outside the container was written.
+
+**Observed:**
+
+- **Device nodes:** `/dev/Vcodec` (char 160:0) and `/dev/MJC` (168:0).
+- **Interrupts:** `/proc/interrupts` lists GIC 267 and 272 as `Vcodec` and
+  275 as `MJC`. These are SPI 235 (VENC), 240 (VDEC) and 243 (MJC) plus 32,
+  as the DT says.
+- **HEVC decode:** both clips decoded completely ("success", 30 output
+  buffers each). Each took under a second, and SoC temperature rose from 29.8
+  to 31.3 °C.
+- **Interrupt counts:** the VDEC count went from 0 to 30 for the single-slice
+  clip and from 30 to 60 for the four-slice clip, so one interrupt per
+  picture in both cases. VENC and MJC stayed at 0.
+- **Lock timeout:** the vendor driver logs one hardware-lock timeout on its
+  first lock, then proceeds normally.
+- **Clocks at idle:** `vdec_sel` runs at 338 MHz from VDECPLL; `venc_sel`,
+  `mjc_sel` and `mm_sel` run at 325 MHz.
+- **eFuse:** in the `dev_info` capability word, the bits that the vendor
+  library uses to disable HEVC, above-1080p decode, DivX 3.11 and MJC are all
+  clear.
+- **DEVAPC at boot:** violations on the `MJC_CONFIG` and `VDEC_GLOBAL_CON`
+  slaves.
+- **Gemian container:** ClearMotion is supported but off by default
+  (`persist.sys.display.clearMotion=0`).
+
+**Not obtained:**
+
+- **Register trace:** the trace file could not be created, because the
+  container's `/mnt/sdcard` points at storage that does not exist there.
+- **Decoded output:** the test wrote no decoded output files.
+- **VP9 and VP8:** both runs failed right after reading their configuration,
+  with no interrupt. Their error text goes only to the Android log daemon,
+  which the container lacks.
+
+**Analysis:**
+
+- **Hardware decode works:** this is the first observation of VDEC decoding
+  on this unit. HEVC decode works in hardware through the vendor stack on the
+  named Gemini.
+- **One trigger per picture [I]:** one interrupt per picture regardless of
+  slice count supports the hardware decoding a whole multi-slice picture from
+  one trigger. That fits a frame-based V4L2 stateless decoder.
+- **Clock rate:** the 338 MHz VDEC clock is lower than the specification's
+  500 MHz and is the vendor's own working point. It is a safe first target for
+  mainline.
+- **DEVAPC violations:** they suggest early vendor code touching the VDEC and
+  MJC control blocks while protected or unpowered. A mainline driver should
+  access them only with the domain on.
+
+**Next device run (V6):** give the trace property a writable `/mnt/sdcard`
+in the container, rerun the two HEVC clips for a register trace, and
+diagnose the VP9 and VP8 failures statically first. An H.264 trace needs a
+small harness, since `mfv_ut` has no plain H.264 test.
 
 ## Follow-up
 

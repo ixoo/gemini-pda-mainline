@@ -7,7 +7,9 @@ Evidence, chronology, file identities and the staged plan are in the
 [video codec record](../../experiments/2026-11-09-mt6797-video-codec/README.md).
 
 Status on mainline: no device node and no driver for any of the three. Video
-plays through software decoding.
+plays through software decoding. On Gemian, the vendor stack's hardware
+HEVC decode has been observed working on the named unit
+([V5](../../experiments/2026-11-09-mt6797-video-codec/README.md#v5-vendor-hevc-decode-on-gemian-2026-11-11)).
 
 ## Resources
 
@@ -31,7 +33,11 @@ and register table (part 2, sections 4.7 and 4.8; part 1, TOPRGU).
 - VENC interrupt: status `+0x05C`, acknowledge `+0x060`; SPS `0x1`, PPS `0x2`,
   frame `0x4`, DRAM `0x8`, pause `0x10`, switch `0x20`, VPS `0x80`.
 - The specification asks for 500 MHz VDEC and SMI clocks; the vendor raises the
-  MMDVFS (Vcore) step while decoding.
+  MMDVFS (Vcore) step while decoding. Observed on Gemian: `vdec_sel` at 338 MHz
+  from VDECPLL; `venc_sel`, `mjc_sel` and `mm_sel` at 325 MHz.
+- Linux interrupt numbers under Gemian: GIC 272 (VDEC), 267 (VENC), 275 (MJC).
+  The vendor HEVC decode raised one VDEC interrupt per picture for both
+  single-slice and four-slice pictures.
 
 Open: which of `venc_0` and `venc_1` clocks larb3 (vendor references
 disagree); whether VENC and MJC SRAM power up without their muxes running.
@@ -42,9 +48,11 @@ Per the public specification: decode of MPEG-1/2, MPEG-4 ASP, DivX/Xvid,
 H.263/Sorenson, H.264 CBP/MP/HP, HEVC Main up to level 5, VC-1/WMV9, VP8 and
 VP9 up to 4096x2160 at 30 fps, output in MediaTek block-tiled NV12; encode of
 H.264 High up to 1080p60 and HEVC Main up to 2160p30. Gemian's codec
-configuration limits all decoders to 1920x1088 and adds eFuse gating read from
-LK's `atag,devinfo`. Whether VP8, VP9 and VC-1 decode in hardware on this unit,
-in software or split is not established.
+configuration limits all decoders to 1920x1088 and adds eFuse gating from the
+`dev_info` capability bits read by the vendor library; on the named unit those bits
+leave HEVC, above-1080p, DivX 3.11 and MJC enabled. The vendor decoder selects
+its hardware path for VP8, VP9 and VC-1 as well; hardware decode is
+demonstrated only for HEVC so far.
 
 ## Vendor control model
 
