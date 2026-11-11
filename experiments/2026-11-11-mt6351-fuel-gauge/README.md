@@ -522,7 +522,7 @@ not a seed: its units and temperature basis are the vendor model's.
     are safer.
   - Not on a device.
 
-## Opportunistic learning: design proposal (owner request, not built)
+## Opportunistic learning (owner request)
 
 The owner: "our driver should learn when a charge/discharge cycle gives the opportunity".
 0732 already learns from any pair of 30-minute rests. The gap is the low point: on battery the
@@ -577,8 +577,30 @@ Without a reboot in between, a few such days bring `charge_full` within about 5 
 - Whether (a) is enough on its own: no charging change, slower convergence.
 - (c) waits on suspend.
 
-**Image items:** (a) and the step-weighting rules, in the driver. Nothing is built until the
-owner decides.
+**Owner decision (2026-11-11, through the custodian):** "Light use only": (a) plus the
+existing rest and overnight-charge readings. (b) is declined, with no charging change. (c)
+waits for suspend.
+
+**Built:** [0734](../../patches/proposals/0734-power-supply-mt6351-fuel-gauge-learn-from-light-stea.patch),
+on top of 0732.
+- **The steady reading:**
+  - a steady period starts at a window discharging 70-150 mA, and ends at any window outside
+    that range or more than 10 mA from the first;
+  - after 10 minutes, one reading is taken: V − I × R in the OCV table, used only below 30 % or
+    above 70 %.
+- **Spans and steps:**
+  - a pair including such a reading needs 50 points and steps 1/8 of the gap;
+  - two such readings step 1/16;
+  - rest pairs keep 40 points and 1/4.
+- **Every step is capped at 5 % of the design** (213 mAh).
+- **The log line** gains the step: `full charge … uAh from … uAh over … points, step 1/N`.
+  Steady readings are logged at debug level (`steady reading: …`).
+- **Convergence, checked by hand:**
+  - a 1/8 step closes 12.5 % of the remaining gap, so light-use pairs alone take about 15
+    pairs to bring an 18 % error within 5 %;
+  - a 30-minute rest pair (1/4) closes a quarter;
+  - the first light-use pair against a 3.5 Ah cell moves 4268 to 4172 mAh.
+- Compiled at W=1 and checkpatch clean; not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 

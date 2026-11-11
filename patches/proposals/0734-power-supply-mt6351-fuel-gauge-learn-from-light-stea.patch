@@ -1,0 +1,177 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 16:53:10 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: learn from light, steady
+ use
+
+On battery the Gemini always draws at least 70 mA, so it never rests and
+the full charge was only learned from a deliberate cycle with charging
+held at a low level.
+
+Also take a reading after 10 minutes of a light, steady discharge: 70 to
+150 mA, every window within 10 mA of the first. The voltage corrected by
+I x R gives the capacity in the OCV table, and the reading is used only
+below 30 % or above 70 %, where the curve is steep. It is less certain
+than a rest, so a pair with such a reading needs 50 points instead of 40
+and moves the full charge by 1/8 of the gap instead of 1/4, or 1/16 when
+both readings are of this kind. No step moves the full charge by more
+than 5 % of the design.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 83 +++++++++++++++++++++---
+ 1 file changed, 73 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 1e5a2da..e282646 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -68,6 +68,24 @@
+ #define MT6351_FG_LEARN_MIN_MC		15000
+ #define MT6351_FG_LEARN_MAX_MC		35000
+ #define MT6351_FG_LEARN_DELTA_MC	10000
++/*
++ * A load-corrected reading: discharging at a light, steady load for this long,
++ * every window within MT6351_FG_STEADY_UA of the first, taken only where the
++ * OCV curve is steep. It is less certain than a rest, so it needs a wider
++ * span and moves the full charge by a smaller step.
++ */
++#define MT6351_FG_STEADY_MS		(600 * MSEC_PER_SEC)
++#define MT6351_FG_STEADY_MIN_UA		70000
++#define MT6351_FG_STEADY_MAX_UA		150000
++#define MT6351_FG_STEADY_UA		10000
++#define MT6351_FG_STEADY_LOW_SOC	30
++#define MT6351_FG_STEADY_HIGH_SOC	70
++#define MT6351_FG_LEARN_SOC_LOADED	50
++/* Step divisors toward a new full charge: a rest, and a load-corrected reading. */
++#define MT6351_FG_STEP_REST		4
++#define MT6351_FG_STEP_LOADED		8
++/* No step moves the full charge by more than this share of the design. */
++#define MT6351_FG_STEP_MAX_PCT		5
+ /* The full charge is kept within these percentages of the design. */
+ #define MT6351_FG_FULL_MIN_PCT		50
+ #define MT6351_FG_FULL_MAX_PCT		110
+@@ -107,7 +125,13 @@ struct mt6351_fg {
+ 	/* The full charge, learned or restored, and the last learning reading. */
+ 	s64 full_uah;
+ 	bool rest_learned;
++	/* A light, steady discharge: since when, at what current. */
++	ktime_t steady_start;
++	int steady_ua;
++	bool steady;
++	bool steady_learned;
+ 	bool learn_valid;
++	int learn_step;
+ 	s64 learn_car;
+ 	int learn_soc;
+ 	int learn_mc;
+@@ -170,6 +194,15 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 		fg->resting = true;
+ 		fg->rest_learned = false;
+ 	}
++
++	if (-fg->win_ua < MT6351_FG_STEADY_MIN_UA || -fg->win_ua > MT6351_FG_STEADY_MAX_UA) {
++		fg->steady = false;
++	} else if (!fg->steady || abs(fg->win_ua - fg->steady_ua) > MT6351_FG_STEADY_UA) {
++		fg->steady_start = fg->win_start;
++		fg->steady_ua = fg->win_ua;
++		fg->steady = true;
++		fg->steady_learned = false;
++	}
+ 	fg->win_start = now;
+ 	fg->win_car = car;
+ 
+@@ -289,10 +322,11 @@ static void mt6351_fg_set_full(struct mt6351_fg *fg, s64 uah)
+  * the full charge moves a quarter of the way to it. Returns true when the
+  * full charge changed. Called under the lock.
+  */
+-static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc)
++static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc,
++			    int step)
+ {
+-	s64 dq_uah, q_uah;
+-	int dsoc;
++	s64 dq_uah, q_uah, max_uah;
++	int dsoc, span, div;
+ 	bool ok;
+ 
+ 	if (mc < MT6351_FG_LEARN_MIN_MC || mc > MT6351_FG_LEARN_MAX_MC) {
+@@ -305,14 +339,20 @@ static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc)
+ 	     abs(mc - fg->learn_mc) <= MT6351_FG_LEARN_DELTA_MC;
+ 	dsoc = soc - fg->learn_soc;
+ 	dq_uah = div_s64(mt6351_fg_car_nah(fg, fg->car - fg->learn_car), 1000);
++	/* The less certain reading sets the span and step; two loaded ones halve it. */
++	div = max(step, fg->learn_step);
++	if (step == MT6351_FG_STEP_LOADED && fg->learn_step == MT6351_FG_STEP_LOADED)
++		div *= 2;
++	span = div > MT6351_FG_STEP_REST ? MT6351_FG_LEARN_SOC_LOADED : MT6351_FG_LEARN_SOC;
+ 
+ 	fg->learn_valid = true;
++	fg->learn_step = step;
+ 	fg->learn_car = fg->car;
+ 	fg->learn_soc = soc;
+ 	fg->learn_mc = mc;
+ 	fg->learn_time = now;
+ 
+-	if (!ok || abs(dsoc) < MT6351_FG_LEARN_SOC) {
++	if (!ok || abs(dsoc) < span) {
+ 		dev_dbg(fg->dev, "learning: reading at %d %%, no pair\n", soc);
+ 		return false;
+ 	}
+@@ -325,9 +365,11 @@ static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc)
+ 		return false;
+ 	}
+ 
+-	q_uah = fg->full_uah + div_s64(q_uah - fg->full_uah, 4);
+-	dev_info(fg->dev, "full charge %lld uAh from %lld uAh over %d points\n",
+-		 q_uah, dq_uah, dsoc);
++	max_uah = div_s64((s64)fg->info->charge_full_design_uah * MT6351_FG_STEP_MAX_PCT, 100);
++	q_uah = fg->full_uah + clamp_t(s64, div_s64(q_uah - fg->full_uah, div),
++				       -max_uah, max_uah);
++	dev_info(fg->dev, "full charge %lld uAh from %lld uAh over %d points, step 1/%d\n",
++		 q_uah, dq_uah, dsoc, div);
+ 	mt6351_fg_set_full(fg, q_uah);
+ 
+ 	return true;
+@@ -338,8 +380,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ {
+ 	ktime_t now = ktime_get_boottime();
+ 	s64 full = fg->full_uah;
+-	int uv, mc, ret;
+-	bool settled;
++	int uv = 0, mc = 0, ret;
++	bool settled, steep;
+ 	s64 uah, rest_ms = 0;
+ 
+ 	guard(mutex)(&fg->lock);
+@@ -372,7 +414,28 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 
+ 		if (rest_ms >= MT6351_FG_LEARN_REST_MS && !fg->rest_learned) {
+ 			fg->rest_learned = true;
+-			*full_changed = mt6351_fg_learn(fg, now, ret, mc);
++			*full_changed = mt6351_fg_learn(fg, now, ret, mc,
++							MT6351_FG_STEP_REST);
++			full = fg->full_uah;
++		}
++	}
++
++	/* A load-corrected reading, once per steady period, where the curve is steep. */
++	if (fg->steady && !fg->steady_learned &&
++	    ktime_ms_delta(now, fg->steady_start) >= MT6351_FG_STEADY_MS) {
++		fg->steady_learned = true;
++		ret = mt6351_fg_voltage(fg, &uv);
++		if (!ret)
++			ret = thermal_zone_get_temp(fg->tz, &mc);
++		if (!ret) {
++			uv -= (s64)ua * fg->resistance_mohm / 1000;
++			ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
++		}
++		dev_dbg(fg->dev, "steady reading: %d uV at %d uA, %d mC: %d\n", uv, ua, mc, ret);
++		steep = ret < MT6351_FG_STEADY_LOW_SOC || ret > MT6351_FG_STEADY_HIGH_SOC;
++		if (ret >= 0 && steep &&
++		    mt6351_fg_learn(fg, now, ret, mc, MT6351_FG_STEP_LOADED)) {
++			*full_changed = true;
+ 			full = fg->full_uah;
+ 		}
+ 	}
+-- 
+2.54.0 (Apple Git-157)
+
