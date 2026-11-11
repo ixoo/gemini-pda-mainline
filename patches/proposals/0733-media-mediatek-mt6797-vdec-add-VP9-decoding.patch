@@ -1,0 +1,1577 @@
+From 445ad1b8de121d710e7514fdfb81d209545a576d Mon Sep 17 00:00:00 2001
+From: VM build <vm@localhost>
+Date: Wed, 11 Nov 2026 16:34:58 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: add VP9 decoding
+
+Program the MT6797 video decoder for VP9 profile 0 (8-bit 4:2:0) through
+the V4L2 stateless VP9 API. The CPU programs the frame header,
+segmentation, loop filter and dequantisation registers from the frame
+control, and lets the hardware parse the compressed header from the
+bitstream and apply the forward probability updates. The hardware
+decodes every tile. After the decode interrupt the driver reads the
+probabilities and symbol counts back and performs the backward
+adaptation with the v4l2-vp9 helpers.
+
+References must have the frame size; reference scaling is rejected.
+Each reference chroma plane is addressed on its own, so separately
+allocated planes work. The VP9 state makes the context large, so it is
+now allocated with kvzalloc. The register sequence comes from reverse
+engineering and has not been compared with a hardware trace yet.
+---
+ .../platform/mediatek/mt6797-vdec/Kconfig     |    9 +-
+ .../platform/mediatek/mt6797-vdec/Makefile    |    3 +-
+ .../mediatek/mt6797-vdec/mt6797-vdec-core.c   |   76 +-
+ .../mediatek/mt6797-vdec/mt6797-vdec-vp9.c    | 1221 +++++++++++++++++
+ .../mediatek/mt6797-vdec/mt6797-vdec.h        |   49 +-
+ 5 files changed, 1332 insertions(+), 26 deletions(-)
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/Kconfig b/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+index 89b16e8ef..62cd8f2fe 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
++++ b/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+@@ -6,12 +6,13 @@ config VIDEO_MT6797_VDEC
+ 	depends on VIDEO_DEV && OF && PM
+ 	select MEDIA_CONTROLLER
+ 	select V4L2_H264
++	select V4L2_VP9
+ 	select VIDEOBUF2_DMA_CONTIG
+ 	select V4L2_MEM2MEM_DEV
+ 	help
+-	  Prototype V4L2 stateless HEVC and H.264 decoder for the MT6797
++	  Prototype V4L2 stateless HEVC, H.264 and VP9 decoder for the MT6797
+ 	  video decoder block. It programs the decoder registers from the CPU
+-	  for every picture, decoding 8-bit 4:2:0 HEVC Main and progressive
+-	  H.264 Baseline, Main and High slices submitted through the request
+-	  API, and outputs MM21 frames. Say M to build it
++	  for every picture, decoding 8-bit 4:2:0 HEVC Main, progressive
++	  H.264 Baseline, Main and High, and VP9 profile 0 frames submitted
++	  through the request API, and outputs MM21 frames. Say M to build it
+ 	  as a module; nothing loads it automatically.
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/Makefile b/drivers/media/platform/mediatek/mt6797-vdec/Makefile
+index f77238c8f..b5e361e50 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/Makefile
++++ b/drivers/media/platform/mediatek/mt6797-vdec/Makefile
+@@ -1,3 +1,4 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ obj-$(CONFIG_VIDEO_MT6797_VDEC) += mt6797-vdec.o
+-mt6797-vdec-y := mt6797-vdec-core.o mt6797-vdec-hevc.o mt6797-vdec-h264.o
++mt6797-vdec-y := mt6797-vdec-core.o mt6797-vdec-hevc.o mt6797-vdec-h264.o \
++		 mt6797-vdec-vp9.o
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+index cb7facee0..57fe5c476 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -4,9 +4,10 @@
+  *
+  * The VDEC has no firmware: the CPU programs its registers for every
+  * picture. This driver exposes it as a stateless memory-to-memory decoder
+- * (HEVC or H.264 slices in, MM21 frames out). Without an IOMMU on this platform the
+- * decoder uses physical addresses, so LARB1's per-port MMU enable is cleared
+- * after every power-up and buffers are allocated below 4 GiB.
++ * (HEVC or H.264 slices or VP9 frames in, MM21 frames out). Without an IOMMU
++ * on this platform the decoder uses physical addresses, so LARB1's per-port
++ * MMU enable is cleared after every power-up and buffers are allocated below
++ * 4 GiB.
+  */
+ 
+ #include <linux/delay.h>
+@@ -30,7 +31,15 @@ static bool mvdec_is_h264(u32 fourcc)
+ 	return fourcc == V4L2_PIX_FMT_H264_SLICE;
+ }
+ 
+-/* HEVC frames are padded to 64x64 CTBs, H.264 frames to 16x32 tiles. */
++static bool mvdec_is_vp9(u32 fourcc)
++{
++	return fourcc == V4L2_PIX_FMT_VP9_FRAME;
++}
++
++/*
++ * HEVC frames are padded to 64x64 CTBs, VP9 frames to 64x64 superblocks and
++ * H.264 frames to 16x32 tiles.
++ */
+ static void mvdec_fill_dst(struct v4l2_pix_format_mplane *pix, u32 codec)
+ {
+ 	unsigned int w, h;
+@@ -62,7 +71,7 @@ static void mvdec_clamp(struct v4l2_pix_format_mplane *pix)
+ static void mvdec_fill_src(struct v4l2_pix_format_mplane *pix)
+ {
+ 	mvdec_clamp(pix);
+-	if (!mvdec_is_h264(pix->pixelformat))
++	if (!mvdec_is_h264(pix->pixelformat) && !mvdec_is_vp9(pix->pixelformat))
+ 		pix->pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
+ 	pix->num_planes = 1;
+ 	pix->field = V4L2_FIELD_NONE;
+@@ -86,6 +95,7 @@ static int mvdec_enum_fmt_out(struct file *file, void *priv,
+ {
+ 	static const u32 fmts[] = {
+ 		V4L2_PIX_FMT_HEVC_SLICE, V4L2_PIX_FMT_H264_SLICE,
++		V4L2_PIX_FMT_VP9_FRAME,
+ 	};
+ 
+ 	if (f->index >= ARRAY_SIZE(fmts))
+@@ -107,7 +117,8 @@ static int mvdec_enum_framesizes(struct file *file, void *priv,
+ 				 struct v4l2_frmsizeenum *fs)
+ {
+ 	if (fs->index || (fs->pixel_format != V4L2_PIX_FMT_HEVC_SLICE &&
+-			  fs->pixel_format != V4L2_PIX_FMT_H264_SLICE))
++			  fs->pixel_format != V4L2_PIX_FMT_H264_SLICE &&
++			  fs->pixel_format != V4L2_PIX_FMT_VP9_FRAME))
+ 		return -EINVAL;
+ 	fs->type = V4L2_FRMSIZE_TYPE_STEPWISE;
+ 	fs->stepwise.min_width = MVDEC_MIN_SIZE;
+@@ -247,6 +258,11 @@ static const struct v4l2_ctrl_config mvdec_ctrls[] = {
+ 	  .min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+ 	  .max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+ 	  .def = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN },
++	{ .id = V4L2_CID_STATELESS_VP9_FRAME },
++	{ .id = V4L2_CID_MPEG_VIDEO_VP9_PROFILE,
++	  .min = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
++	  .max = V4L2_MPEG_VIDEO_VP9_PROFILE_0,
++	  .def = V4L2_MPEG_VIDEO_VP9_PROFILE_0 },
+ };
+ 
+ static int mvdec_init_ctrls(struct mvdec_ctx *ctx)
+@@ -387,12 +403,18 @@ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 
+ 	memset(&ctx->hevc, 0, sizeof(ctx->hevc));
+ 	memset(&ctx->h264, 0, sizeof(ctx->h264));
+-	/* One zeroed collocated-MV buffer per capture buffer. */
+-	if (mvdec_is_h264(ctx->src_fmt.pixelformat))
++	memset(&ctx->vp9, 0, sizeof(ctx->vp9));
++	/*
++	 * One zeroed collocated-MV buffer per capture buffer. VP9 keeps a
++	 * single one, for the previous frame, in its working buffers.
++	 */
++	if (mvdec_is_vp9(ctx->src_fmt.pixelformat))
++		size = 0;
++	else if (mvdec_is_h264(ctx->src_fmt.pixelformat))
+ 		size = mvdec_h264_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
+ 	else
+ 		size = mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
+-	for (i = 0; i < vb2_get_num_buffers(vq) && i < VIDEO_MAX_FRAME; i++) {
++	for (i = 0; size && i < vb2_get_num_buffers(vq) && i < VIDEO_MAX_FRAME; i++) {
+ 		ctx->mv[i].size = size;
+ 		ctx->mv[i].cpu = dma_alloc_coherent(ctx->dev->dev, size,
+ 						    &ctx->mv[i].dma, GFP_KERNEL);
+@@ -401,8 +423,10 @@ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 			return -ENOMEM;
+ 		}
+ 	}
+-	if (mvdec_is_h264(ctx->src_fmt.pixelformat)) {
+-		int ret = mvdec_h264_start(ctx);
++	if (mvdec_is_h264(ctx->src_fmt.pixelformat) ||
++	    mvdec_is_vp9(ctx->src_fmt.pixelformat)) {
++		int ret = mvdec_is_vp9(ctx->src_fmt.pixelformat) ?
++			  mvdec_vp9_start(ctx) : mvdec_h264_start(ctx);
+ 
+ 		if (ret) {
+ 			mvdec_free_aux(ctx);
+@@ -498,15 +522,19 @@ static void mvdec_device_run(void *priv)
+ 	struct mvdec_dev *vdev = ctx->dev;
+ 	struct vb2_v4l2_buffer *src, *dst;
+ 	bool h264 = mvdec_is_h264(ctx->src_fmt.pixelformat);
++	bool vp9 = mvdec_is_vp9(ctx->src_fmt.pixelformat);
+ 	struct mvdec_hevc_run run = {};
+ 	struct mvdec_h264_run run264 = {};
++	struct mvdec_vp9_run run_vp9 = {};
+ 	int ret;
+ 
+ 	src = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
+ 	dst = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
+ 	v4l2_ctrl_request_setup(src->vb2_buf.req_obj.req, &ctx->hdl);
+ 
+-	if (h264) {
++	if (vp9) {
++		run_vp9.frame = mvdec_ctrl(ctx, V4L2_CID_STATELESS_VP9_FRAME, NULL);
++	} else if (h264) {
+ 		run264.sps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_H264_SPS, NULL);
+ 		run264.pps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_H264_PPS, NULL);
+ 		run264.scaling = mvdec_ctrl(ctx,
+@@ -541,7 +569,9 @@ static void mvdec_device_run(void *priv)
+ 	writel(0, vdev->larb + MVDEC_LARB_MMU_EN);
+ 
+ 	vdev->running = ctx;
+-	if (h264)
++	if (vp9)
++		ret = mvdec_vp9_run(ctx, src, dst, &run_vp9);
++	else if (h264)
+ 		ret = mvdec_h264_run(ctx, src, dst, &run264);
+ 	else
+ 		ret = mvdec_hevc_run(ctx, src, dst, &run);
+@@ -579,9 +609,14 @@ static irqreturn_t mvdec_irq(int irq, void *data)
+ static irqreturn_t mvdec_irq_thread(int irq, void *data)
+ {
+ 	struct mvdec_dev *vdev = data;
+-
+-	if (cancel_delayed_work(&vdev->watchdog))
+-		mvdec_job_done(vdev, VB2_BUF_STATE_DONE);
++	enum vb2_buffer_state state = VB2_BUF_STATE_DONE;
++
++	if (!cancel_delayed_work(&vdev->watchdog))
++		return IRQ_HANDLED;
++	/* VP9 reads its probabilities and counts back before completion. */
++	if (vdev->running && mvdec_is_vp9(vdev->running->src_fmt.pixelformat))
++		state = mvdec_vp9_done(vdev->running);
++	mvdec_job_done(vdev, state);
+ 	return IRQ_HANDLED;
+ }
+ 
+@@ -606,11 +641,12 @@ static int mvdec_open(struct file *file)
+ 	struct mvdec_ctx *ctx;
+ 	int ret;
+ 
+-	ctx = kzalloc_obj(*ctx);
++	/* Large: the VP9 probability contexts live here. */
++	ctx = kvzalloc_obj(*ctx);
+ 	if (!ctx)
+ 		return -ENOMEM;
+ 	if (mutex_lock_interruptible(&vdev->lock)) {
+-		kfree(ctx);
++		kvfree(ctx);
+ 		return -ERESTARTSYS;
+ 	}
+ 	v4l2_fh_init(&ctx->fh, video_devdata(file));
+@@ -639,7 +675,7 @@ static int mvdec_open(struct file *file)
+ err_fh:
+ 	v4l2_fh_exit(&ctx->fh);
+ 	mutex_unlock(&vdev->lock);
+-	kfree(ctx);
++	kvfree(ctx);
+ 	return ret;
+ }
+ 
+@@ -656,7 +692,7 @@ static int mvdec_release(struct file *file)
+ 	v4l2_ctrl_handler_free(&ctx->hdl);
+ 	mvdec_free_mv(ctx);
+ 	mvdec_free_aux(ctx);
+-	kfree(ctx);
++	kvfree(ctx);
+ 	return 0;
+ }
+ 
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+new file mode 100644
+index 000000000..5518a8f72
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+@@ -0,0 +1,1221 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 VDEC: VP9 register programming.
++ *
++ * The decoder has no firmware. For every frame the CPU resets the core,
++ * programs the frame header, segmentation, loop filter and dequantisation
++ * registers, the reference and output buffers and the tile layout, and loads
++ * the frame context into the probability SRAM. The V4L2 frame control stands
++ * in for the uncompressed header, so the bit reader starts on the compressed
++ * header. The hardware bool decoder parses that header and applies the
++ * forward probability updates to the SRAM itself; the CPU reads only tx_mode
++ * and reference_select through it. After the decode interrupt the CPU copies
++ * the updated probabilities and the symbol counts out by DMA, adapts the
++ * saved frame context and stores it (mvdec_vp9_done()).
++ *
++ * Supported: profile 0 (8-bit 4:2:0) frames, one per OUTPUT buffer and
++ * starting at its first byte (userspace splits superframes), with references
++ * of the frame's own size. A show_existing_frame needs no decode and never
++ * reaches the driver. Everything else is rejected with -EINVAL before the
++ * decoder starts.
++ *
++ * Register meanings come from reverse engineering. The sequence follows the
++ * vendor programming model but has not been compared with a hardware trace.
++ */
++
++#include <linux/bits.h>
++#include <linux/iopoll.h>
++#include <linux/minmax.h>
++#include <linux/string.h>
++#include <linux/unaligned.h>
++#include <media/v4l2-vp9.h>
++#include <media/videobuf2-dma-contig.h>
++
++#include "mt6797-vdec.h"
++
++/* VP9 VLD: bit reader, bool decoder, header registers, probability SRAM */
++#define VVLD_PEEK		0x00	/* 32-bit window, no shift */
++#define VVLD_SHIFT(n)		(4 * (n))	/* shift n = 1..32 bits */
++#define VVLD_BOOL_BIT		0x84	/* one bool-coded bit */
++#define VVLD_BOOL_2BIT		0x88	/* two bool-coded bits */
++#define VVLD_ENABLE		0xa4
++#define VVLD_FRAME		0xa8
++#define VVLD_SEG_FEATURES	0xac
++#define VVLD_REFS		0xb0
++#define VVLD_TX_MODE		0xb4
++#define VVLD_START		0xb8
++#define VVLD_TILE_MODE		0xbc
++#define VVLD_TILES		0xc4
++#define VVLD_UPDATE		0xc8	/* forward update command */
++#define VVLD_UPDATE_DONE	0xcc
++#define VVLD_TILE_RESET		0x100
++#define VVLD_TILE_FIFO		0x104
++#define VVLD_BOOL_INIT		0x110
++#define VVLD_BOOL_READY		BIT(16)
++#define VVLD_BITS		0x138	/* bits consumed */
++#define VVLD_BITS_RESET		0x144
++#define VVLD_ERROR		0x15c
++#define VVLD_SRAM_A_ADDR	0x198	/* 16 bytes per line */
++#define VVLD_SRAM_A_DATA	0x19c
++#define VVLD_SRAM_B_ADDR	0x1a0	/* 4 bytes per line */
++#define VVLD_SRAM_B_DATA	0x1a4
++#define VVLD_SRAM_WRITE		BIT(16)
++#define VVLD_COUNT_CLEAR	0x1a8
++#define VVLD_DMA_SEL		0x1dc
++#define VVLD_DMA_ADDR		0x1e0
++#define VVLD_DMA_KICK		0x1e8
++#define VVLD_DMA_DONE		0x1ec
++#define VVLD_SEG_TREE0		0x1f0
++#define VVLD_SEG_TREE1		0x1f4
++#define VVLD_SEG_PRED		0x1f8
++
++/* VVLD_UPDATE commands: parse one group of forward updates into the SRAM. */
++#define UPD_TX			BIT(0)
++#define UPD_COEF		BIT(1)
++#define UPD_SKIP		BIT(2)
++#define UPD_INTER_MODE		BIT(3)
++#define UPD_INTERP		BIT(4)
++#define UPD_INTRA_INTER		BIT(5)
++#define UPD_COMP_INTER		BIT(6)
++#define UPD_SINGLE_REF		BIT(7)
++#define UPD_COMP_REF		BIT(8)
++#define UPD_Y_MODE		BIT(9)
++#define UPD_PARTITION		BIT(10)
++#define UPD_MV_INT		BIT(11)
++#define UPD_MV_FP		BIT(12)
++#define UPD_MV_HP		BIT(13)
++
++/* VVLD_DMA_SEL: tables the decoder can copy out after a frame */
++#define DMA_COUNTS		1
++#define DMA_PROBS		2
++
++#define VLD_FETCH		0x8c
++#define VLD_FETCH_STATUS	0xe8
++#define VLD_STATUS		0xf4
++#define VLD_CTRL		0x108
++
++/* Margin past the data that the bitstream window covers. */
++#define VP9_BS_MARGIN		0x200
++/* At most this many tiles are queued through VVLD_TILE_FIFO. */
++#define VP9_FIFO_TILES		8
++#define VP9_MAX_TILES		256
++
++#define VP9_PROB_SIZE		0xa00
++#define VP9_COUNT_SIZE		0x4000
++#define VP9_TILE_LIST_SIZE	0x1000
++#define VP9_COEF_LINE		20	/* SRAM bytes per tx, plane, ref and band */
++#define VP9_COEF_LINES		96
++
++/* Working buffers in ctx->aux[] */
++enum {
++	VP9_AUX_MV,			/* motion vectors, read and written */
++	VP9_AUX_TILE,			/* tile list when the FIFO is too short */
++	VP9_AUX_SEG,			/* segment ids, read and written */
++	VP9_AUX_PROB,			/* probability table image */
++	VP9_AUX_COUNT,			/* symbol counts */
++	VP9_AUX_NUM,
++};
++
++/*
++ * The probability table as the SRAM holds it and as DMA copies it out: the
++ * coefficient lines (16 bytes in the A half, 4 in the B half), then the A
++ * half of the other contexts from 0x780 and their B half from 0x980.
++ */
++struct vp9_field {
++	u16 img;		/* offset in the table image */
++	u16 ctx;		/* offset in struct v4l2_vp9_frame_context */
++	u8 rows;
++	u8 len;			/* bytes per row */
++	u8 stride;		/* image bytes per row */
++	bool tx_skip;		/* tx or skip probabilities */
++};
++
++#define VP9_FIELD(i, m, r, l, s, t) \
++	{ i, offsetof(struct v4l2_vp9_frame_context, m), r, l, s, t }
++
++static const struct vp9_field vp9_fields[] = {
++	VP9_FIELD(0x780, y_mode, 4, 9, 16, false),
++	VP9_FIELD(0x7c0, interp_filter, 4, 2, 16, false),
++	VP9_FIELD(0x820, comp_mode, 1, 5, 0, false),
++	VP9_FIELD(0x830, comp_ref, 1, 5, 0, false),
++	VP9_FIELD(0x840, single_ref, 1, 10, 0, false),
++	VP9_FIELD(0x850, mv.joint, 1, 3, 0, false),
++	VP9_FIELD(0x860, mv.sign[0], 1, 1, 0, false),
++	VP9_FIELD(0x861, mv.classes[0], 1, 10, 0, false),
++	VP9_FIELD(0x870, mv.sign[1], 1, 1, 0, false),
++	VP9_FIELD(0x871, mv.classes[1], 1, 10, 0, false),
++	VP9_FIELD(0x880, mv.class0_bit[0], 1, 1, 0, false),
++	VP9_FIELD(0x881, mv.bits[0], 1, 10, 0, false),
++	VP9_FIELD(0x890, mv.class0_bit[1], 1, 1, 0, false),
++	VP9_FIELD(0x891, mv.bits[1], 1, 10, 0, false),
++	VP9_FIELD(0x8a0, mv.class0_fr[0], 1, 6, 0, false),
++	VP9_FIELD(0x8a6, mv.fr[0], 1, 3, 0, false),
++	VP9_FIELD(0x8a9, mv.class0_hp[0], 1, 1, 0, false),
++	VP9_FIELD(0x8aa, mv.hp[0], 1, 1, 0, false),
++	VP9_FIELD(0x8b0, mv.class0_fr[1], 1, 6, 0, false),
++	VP9_FIELD(0x8b6, mv.fr[1], 1, 3, 0, false),
++	VP9_FIELD(0x8b9, mv.class0_hp[1], 1, 1, 0, false),
++	VP9_FIELD(0x8ba, mv.hp[1], 1, 1, 0, false),
++	VP9_FIELD(0x8c0, uv_mode, 10, 9, 16, false),
++	VP9_FIELD(0x980, partition, 16, 3, 4, false),
++	VP9_FIELD(0x9c0, inter_mode, 7, 3, 4, false),
++	VP9_FIELD(0x9dc, skip, 1, 3, 0, true),
++	VP9_FIELD(0x9e0, tx8, 2, 1, 4, true),
++	VP9_FIELD(0x9e8, tx16, 2, 2, 4, true),
++	VP9_FIELD(0x9f0, tx32, 2, 3, 4, true),
++	VP9_FIELD(0x9f8, is_inter, 1, 4, 0, false),
++};
++
++/* SRAM loads after the coefficient lines, in the vendor order. */
++struct vp9_sram_run {
++	u16 addr_reg;
++	u16 line;
++	u16 img;
++	u8 words;
++};
++
++static const struct vp9_sram_run vp9_sram_runs[] = {
++	{ VVLD_SRAM_A_ADDR, 0x1d0, 0x8c0, 40 },	/* uv_mode */
++	{ VVLD_SRAM_A_ADDR, 0x180, 0x780, 16 },	/* y_mode */
++	{ VVLD_SRAM_A_ADDR, 0x190, 0x7c0, 16 },	/* interp_filter */
++	{ VVLD_SRAM_B_ADDR, 0x060, 0x980, 16 },	/* partition */
++	{ VVLD_SRAM_B_ADDR, 0x07e, 0x9f8, 1 },	/* is_inter */
++	{ VVLD_SRAM_A_ADDR, 0x1a8, 0x820, 2 },	/* comp_mode */
++	{ VVLD_SRAM_A_ADDR, 0x1ac, 0x830, 2 },	/* comp_ref */
++	{ VVLD_SRAM_A_ADDR, 0x1b0, 0x840, 3 },	/* single_ref */
++	{ VVLD_SRAM_B_ADDR, 0x078, 0x9e0, 6 },	/* tx8, tx16, tx32 */
++	{ VVLD_SRAM_B_ADDR, 0x077, 0x9dc, 1 },	/* skip */
++	{ VVLD_SRAM_B_ADDR, 0x070, 0x9c0, 7 },	/* inter_mode */
++	{ VVLD_SRAM_A_ADDR, 0x1b4, 0x850, 1 },	/* mv joint */
++	{ VVLD_SRAM_A_ADDR, 0x1b8, 0x860, 24 },	/* mv components */
++};
++
++/* Symbol counts as the decoder writes them (DMA_COUNTS). */
++struct vp9_hw_counts {
++	struct {
++		u32 band0[4];			/* 3 used */
++		u32 band[5][6];
++		u32 pad[2];
++	} eob[4][2][2];
++	u32 pad0[1024 - 4 * 2 * 2 * 36];
++	struct {
++		u32 band0[3][4];
++		u32 band[5][6][4];
++	} coef[4][2][2];
++	u32 intra_inter[4][2];
++	u32 comp_inter[5][2];
++	u32 pad1[2];
++	u32 comp_ref[5][2];
++	u32 pad2[2];
++	u32 single_ref[5][2][2];
++	u32 inter_mode[7][4];
++	u32 y_mode[4][12];
++	u32 uv_mode[10][10];
++	u32 partition[16][4];
++	u32 interp[4][4];
++	u32 tx8[2][2];
++	u32 tx16[2][4];
++	u32 tx32[2][4];
++	u32 skip[3][4];
++	u32 joint[4];
++	struct {
++		u32 sign[2];
++		u32 class0[2];
++		u32 classes[12];
++		u32 bits[10][2];
++		u32 pad[4];
++		u32 class0_fp[2][4];
++		u32 fp[4];
++		u32 class0_hp[2];
++		u32 hp[2];
++	} mv[2];
++};
++
++static_assert(offsetof(struct vp9_hw_counts, mv[1]) == 0x3740);
++
++/* 8-bit dequantisation, section 8.6.1 of the VP9 specification */
++static const u16 vp9_dc_q[256] = {
++	4, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15, 16,
++	17, 18, 19, 19, 20, 21, 22, 23, 24, 25, 26, 26,
++	27, 28, 29, 30, 31, 32, 32, 33, 34, 35, 36, 37,
++	38, 38, 39, 40, 41, 42, 43, 43, 44, 45, 46, 47,
++	48, 48, 49, 50, 51, 52, 53, 53, 54, 55, 56, 57,
++	57, 58, 59, 60, 61, 62, 62, 63, 64, 65, 66, 66,
++	67, 68, 69, 70, 70, 71, 72, 73, 74, 74, 75, 76,
++	77, 78, 78, 79, 80, 81, 81, 82, 83, 84, 85, 85,
++	87, 88, 90, 92, 93, 95, 96, 98, 99, 101, 102, 104,
++	105, 107, 108, 110, 111, 113, 114, 116, 117, 118, 120, 121,
++	123, 125, 127, 129, 131, 134, 136, 138, 140, 142, 144, 146,
++	148, 150, 152, 154, 156, 158, 161, 164, 166, 169, 172, 174,
++	177, 180, 182, 185, 187, 190, 192, 195, 199, 202, 205, 208,
++	211, 214, 217, 220, 223, 226, 230, 233, 237, 240, 243, 247,
++	250, 253, 257, 261, 265, 269, 272, 276, 280, 284, 288, 292,
++	296, 300, 304, 309, 313, 317, 322, 326, 330, 335, 340, 344,
++	349, 354, 359, 364, 369, 374, 379, 384, 389, 395, 400, 406,
++	411, 417, 423, 429, 435, 441, 447, 454, 461, 467, 475, 482,
++	489, 497, 505, 513, 522, 530, 539, 549, 559, 569, 579, 590,
++	602, 614, 626, 640, 654, 668, 684, 700, 717, 736, 755, 775,
++	796, 819, 843, 869, 896, 925, 955, 988, 1022, 1058, 1098, 1139,
++	1184, 1232, 1282, 1336,
++};
++
++static const u16 vp9_ac_q[256] = {
++	4, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
++	19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
++	31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
++	43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54,
++	55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66,
++	67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78,
++	79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90,
++	91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
++	104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126,
++	128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150,
++	152, 155, 158, 161, 164, 167, 170, 173, 176, 179, 182, 185,
++	188, 191, 194, 197, 200, 203, 207, 211, 215, 219, 223, 227,
++	231, 235, 239, 243, 247, 251, 255, 260, 265, 270, 275, 280,
++	285, 290, 295, 300, 305, 311, 317, 323, 329, 335, 341, 347,
++	353, 359, 366, 373, 380, 387, 394, 401, 408, 416, 424, 432,
++	440, 448, 456, 465, 474, 483, 492, 501, 510, 520, 530, 540,
++	550, 560, 571, 582, 593, 604, 615, 627, 639, 651, 663, 676,
++	689, 702, 715, 729, 743, 757, 771, 786, 801, 816, 832, 848,
++	864, 881, 898, 915, 933, 951, 969, 988, 1007, 1026, 1046, 1066,
++	1087, 1108, 1129, 1151, 1173, 1196, 1219, 1243, 1267, 1292, 1317, 1343,
++	1369, 1396, 1423, 1451, 1479, 1508, 1537, 1567, 1597, 1628, 1660, 1692,
++	1725, 1759, 1793, 1828,
++};
++
++/* A frame being programmed. */
++struct vp9_pic {
++	struct mvdec_dev *vdev;
++	const struct v4l2_ctrl_vp9_frame *f;
++	u32 w, h;
++	u32 mi_cols, mi_rows, sb_cols, sb_rows;
++	u32 pitch;
++	u32 cur_y, cur_c;
++	u32 ref_y[3], ref_c[3];
++	bool key, intra, lossless;
++	u8 tx_mode, ref_mode;
++};
++
++static bool fflag(const struct vp9_pic *p, u32 flag)
++{
++	return p->f->flags & flag;
++}
++
++static void vvld_write(struct mvdec_dev *vdev, u32 off, u32 val)
++{
++	mvdec_write(vdev, MVDEC_VP9_VLD + off, val);
++}
++
++static u32 vvld_read(struct mvdec_dev *vdev, u32 off)
++{
++	return mvdec_read(vdev, MVDEC_VP9_VLD + off);
++}
++
++static void mvdec_rmw(struct mvdec_dev *vdev, u32 off, u32 clear, u32 set)
++{
++	mvdec_write(vdev, off, (mvdec_read(vdev, off) & ~clear) | set);
++}
++
++static int mvdec_poll(struct mvdec_dev *vdev, u32 off, u32 mask, u32 want,
++		      unsigned int timeout_us)
++{
++	u32 val;
++
++	return readl_poll_timeout_atomic(vdev->base + off, val,
++					 (val & mask) == want, 1, timeout_us);
++}
++
++static size_t vp9_aux_size(unsigned int idx, unsigned int width,
++			   unsigned int height)
++{
++	unsigned int sbs = DIV_ROUND_UP(width, 64) * DIV_ROUND_UP(height, 64);
++
++	switch (idx) {
++	case VP9_AUX_MV:
++		return sbs * 0x240 + 0x480;
++	case VP9_AUX_SEG:
++		return sbs * 0x20 + 0x100;
++	case VP9_AUX_TILE:
++		return VP9_TILE_LIST_SIZE;
++	case VP9_AUX_PROB:
++		return VP9_PROB_SIZE;
++	default:
++		return VP9_COUNT_SIZE;
++	}
++}
++
++int mvdec_vp9_start(struct mvdec_ctx *ctx)
++{
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < VP9_AUX_NUM; i++) {
++		ret = mvdec_alloc_aux(ctx, i, vp9_aux_size(i, ctx->dst_fmt.width,
++							   ctx->dst_fmt.height));
++		if (ret)
++			return ret;
++	}
++	return 0;
++}
++
++/* ---- probability tables -------------------------------------------------- */
++
++/*
++ * Coefficient probabilities used in a line: one per tx size, plane, reference
++ * and band (the order of v4l2_vp9_frame_context.coef), three per context,
++ * three contexts in band 0 and six in the others.
++ */
++static unsigned int vp9_coef_bytes(unsigned int line)
++{
++	return line % 6 ? 18 : 9;
++}
++
++static void vp9_ctx_to_img(const struct v4l2_vp9_frame_context *c, u8 *img)
++{
++	const struct vp9_field *f;
++	unsigned int line, r;
++
++	memset(img, 0, VP9_PROB_SIZE);
++	for (line = 0; line < VP9_COEF_LINES; line++)
++		memcpy(img + line * VP9_COEF_LINE, (const u8 *)c->coef + line * 18,
++		       vp9_coef_bytes(line));
++	for (f = vp9_fields; f < vp9_fields + ARRAY_SIZE(vp9_fields); f++)
++		for (r = 0; r < f->rows; r++)
++			memcpy(img + f->img + r * f->stride,
++			       (const u8 *)c + f->ctx + r * f->len, f->len);
++}
++
++/* Read the table image back; @tx_skip_only limits it to tx and skip. */
++static void vp9_img_to_ctx(const u8 *img, struct v4l2_vp9_frame_context *c,
++			   bool tx_skip_only)
++{
++	const struct vp9_field *f;
++	unsigned int line, r;
++
++	for (line = 0; !tx_skip_only && line < VP9_COEF_LINES; line++)
++		memcpy((u8 *)c->coef + line * 18, img + line * VP9_COEF_LINE,
++		       vp9_coef_bytes(line));
++	for (f = vp9_fields; f < vp9_fields + ARRAY_SIZE(vp9_fields); f++) {
++		if (tx_skip_only && !f->tx_skip)
++			continue;
++		for (r = 0; r < f->rows; r++)
++			memcpy((u8 *)c + f->ctx + r * f->len,
++			       img + f->img + r * f->stride, f->len);
++	}
++}
++
++/*
++ * Load a frame context into the SRAM: the coefficient lines through both
++ * halves, then the other contexts. Address writes carry VVLD_SRAM_WRITE and
++ * the address then advances with every data write.
++ */
++static void vp9_load_probs(struct mvdec_dev *vdev, const u8 *img)
++{
++	const struct vp9_sram_run *s;
++	unsigned int i, w;
++
++	vvld_write(vdev, VVLD_SRAM_A_ADDR, VVLD_SRAM_WRITE);
++	vvld_write(vdev, VVLD_SRAM_B_ADDR, VVLD_SRAM_WRITE);
++	for (i = 0; i < VP9_COEF_LINES; i++) {
++		for (w = 0; w < 4; w++)
++			vvld_write(vdev, VVLD_SRAM_A_DATA,
++				   get_unaligned_le32(img + i * VP9_COEF_LINE + 4 * w));
++		vvld_write(vdev, VVLD_SRAM_B_DATA,
++			   get_unaligned_le32(img + i * VP9_COEF_LINE + 16));
++	}
++	for (s = vp9_sram_runs; s < vp9_sram_runs + ARRAY_SIZE(vp9_sram_runs); s++) {
++		vvld_write(vdev, s->addr_reg, VVLD_SRAM_WRITE | s->line);
++		for (w = 0; w < s->words; w++)
++			vvld_write(vdev, s->addr_reg + 4,
++				   get_unaligned_le32(img + s->img + 4 * w));
++	}
++}
++
++/* Copy a table out of the decoder into a working buffer. */
++static int vp9_dma_out(struct mvdec_dev *vdev, u32 sel, dma_addr_t dst)
++{
++	vvld_write(vdev, VVLD_DMA_SEL, sel);
++	vvld_write(vdev, VVLD_DMA_ADDR, lower_32_bits(dst));
++	vvld_write(vdev, VVLD_DMA_KICK, sel);
++	return mvdec_poll(vdev, MVDEC_VP9_VLD + VVLD_DMA_DONE, BIT(0), BIT(0), 1000);
++}
++
++/*
++ * Coefficient counts hold the three token counts and the "more coefficients"
++ * count; the end-of-block branch counts are separate.
++ */
++static void vp9_map_coef_counts(struct v4l2_vp9_frame_symbol_counts *c,
++				struct vp9_hw_counts *hw, unsigned int i,
++				unsigned int j, unsigned int k)
++{
++	unsigned int l, m;
++	u32 *cf, *eob;
++
++	for (l = 0; l < 6; l++) {
++		for (m = 0; m < (l ? 6 : 3); m++) {
++			cf = l ? hw->coef[i][j][k].band[l - 1][m] : hw->coef[i][j][k].band0[m];
++			eob = l ? &hw->eob[i][j][k].band[l - 1][m] : &hw->eob[i][j][k].band0[m];
++			c->coeff[i][j][k][l][m] = (u32 (*)[3])cf;
++			c->eob[i][j][k][l][m][0] = eob;
++			c->eob[i][j][k][l][m][1] = &cf[3];
++		}
++	}
++}
++
++/* Point the V4L2 count helper at the decoder's count table. */
++static void vp9_map_counts(struct mvdec_vp9_state *st, struct vp9_hw_counts *hw)
++{
++	struct v4l2_vp9_frame_symbol_counts *c = &st->counts;
++	struct mvdec_vp9_counts *cp = &st->copies;
++	unsigned int i, j, k;
++
++	c->partition = &hw->partition;
++	c->intra_inter = &hw->intra_inter;
++	c->tx32p = &hw->tx32;
++	c->tx16p = &hw->tx16;
++	c->tx8p = &hw->tx8;
++	c->uv_mode = &hw->uv_mode;
++	c->comp = &hw->comp_inter;
++	c->comp_ref = &hw->comp_ref;
++	c->single_ref = &hw->single_ref;
++	c->mv_mode = &hw->inter_mode;
++	c->mv_joint = &hw->joint;
++
++	/* The rest have a different row length in the decoder's table. */
++	for (i = 0; i < 3; i++)
++		memcpy(cp->skip[i], hw->skip[i], sizeof(cp->skip[i]));
++	for (i = 0; i < 4; i++) {
++		memcpy(cp->y_mode[i], hw->y_mode[i], sizeof(cp->y_mode[i]));
++		memcpy(cp->filter[i], hw->interp[i], sizeof(cp->filter[i]));
++	}
++	for (i = 0; i < 2; i++) {
++		memcpy(cp->sign[i], hw->mv[i].sign, sizeof(cp->sign[i]));
++		memcpy(cp->classes[i], hw->mv[i].classes, sizeof(cp->classes[i]));
++		memcpy(cp->class0[i], hw->mv[i].class0, sizeof(cp->class0[i]));
++		memcpy(cp->bits[i], hw->mv[i].bits, sizeof(cp->bits[i]));
++		memcpy(cp->class0_fp[i], hw->mv[i].class0_fp, sizeof(cp->class0_fp[i]));
++		memcpy(cp->fp[i], hw->mv[i].fp, sizeof(cp->fp[i]));
++		memcpy(cp->class0_hp[i], hw->mv[i].class0_hp, sizeof(cp->class0_hp[i]));
++		memcpy(cp->hp[i], hw->mv[i].hp, sizeof(cp->hp[i]));
++	}
++	c->skip = &cp->skip;
++	c->y_mode = &cp->y_mode;
++	c->filter = &cp->filter;
++	c->sign = &cp->sign;
++	c->classes = &cp->classes;
++	c->class0 = &cp->class0;
++	c->bits = &cp->bits;
++	c->class0_fp = &cp->class0_fp;
++	c->fp = &cp->fp;
++	c->class0_hp = &cp->class0_hp;
++	c->hp = &cp->hp;
++
++	for (i = 0; i < 4; i++)
++		for (j = 0; j < 2; j++)
++			for (k = 0; k < 2; k++)
++				vp9_map_coef_counts(c, hw, i, j, k);
++}
++
++/* ---- validation and buffers --------------------------------------------- */
++
++static void vp9_tile_log2_range(u32 sb_cols, u32 *min_log2, u32 *max_log2)
++{
++	u32 l = 0;
++
++	while ((64U << l) < sb_cols)
++		l++;
++	*min_log2 = l;
++	l = 1;
++	while ((sb_cols >> l) >= 4)
++		l++;
++	*max_log2 = l - 1;
++}
++
++static int vp9_check(struct mvdec_ctx *ctx, const struct v4l2_ctrl_vp9_frame *f)
++{
++	const struct v4l2_pix_format_mplane *fmt = &ctx->dst_fmt;
++	u32 w, h, pitch = fmt->plane_fmt[0].bytesperline, lo, hi;
++
++	if (!f)
++		return -EINVAL;
++	/* Profile 0: 8-bit 4:2:0. */
++	if (f->profile || f->bit_depth != 8 ||
++	    !(f->flags & V4L2_VP9_FRAME_FLAG_X_SUBSAMPLING) ||
++	    !(f->flags & V4L2_VP9_FRAME_FLAG_Y_SUBSAMPLING))
++		return -EINVAL;
++	w = f->frame_width_minus_1 + 1;
++	h = f->frame_height_minus_1 + 1;
++	if (w > fmt->width || h > fmt->height || pitch % 64 || ALIGN(w, 64) > pitch ||
++	    (u64)pitch * ALIGN(h, 64) > fmt->plane_fmt[0].sizeimage ||
++	    (u64)pitch * ALIGN(h, 64) / 2 > fmt->plane_fmt[1].sizeimage)
++		return -EINVAL;
++	if (f->interpolation_filter > V4L2_VP9_INTERP_FILTER_SWITCHABLE ||
++	    f->reference_mode > V4L2_VP9_REFERENCE_MODE_SELECT ||
++	    f->frame_context_idx >= V4L2_VP9_NUM_FRAME_CTX ||
++	    f->reset_frame_context > V4L2_VP9_RESET_FRAME_CTX_ALL ||
++	    !f->uncompressed_header_size || !f->compressed_header_size)
++		return -EINVAL;
++	vp9_tile_log2_range(DIV_ROUND_UP(w, 64), &lo, &hi);
++	if (f->tile_cols_log2 < lo || f->tile_cols_log2 > hi || f->tile_rows_log2 > 2)
++		return -EINVAL;
++	return 0;
++}
++
++static int vp9_buf(struct vb2_buffer *vb, u32 *y, u32 *c)
++{
++	dma_addr_t py = vb2_dma_contig_plane_dma_addr(vb, 0);
++	dma_addr_t pc = vb2_dma_contig_plane_dma_addr(vb, 1);
++
++	/* MC+0x224 takes Y >> 9 and MC+0x228 C >> 8. */
++	if (py & 0x1ff || pc & 0xff)
++		return -EINVAL;
++	*y = lower_32_bits(py);
++	*c = lower_32_bits(pc);
++	return 0;
++}
++
++/*
++ * LAST, GOLDEN and ALTREF. Intra frames point all three at the output
++ * buffer; inter frames need each reference decoded at the frame's size.
++ */
++static int vp9_refs(struct mvdec_ctx *ctx, struct vp9_pic *p)
++{
++	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
++	const struct mvdec_vp9_state *st = &ctx->vp9;
++	const u64 ts[3] = {
++		p->f->last_frame_ts, p->f->golden_frame_ts, p->f->alt_frame_ts,
++	};
++	struct vb2_buffer *vb;
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < 3; i++) {
++		if (p->intra) {
++			p->ref_y[i] = p->cur_y;
++			p->ref_c[i] = p->cur_c;
++			continue;
++		}
++		vb = vb2_find_buffer(vq, ts[i]);
++		if (!vb || st->buf_w[vb->index] != p->w || st->buf_h[vb->index] != p->h)
++			return -EINVAL;
++		ret = vp9_buf(vb, &p->ref_y[i], &p->ref_c[i]);
++		if (ret)
++			return ret;
++	}
++	return 0;
++}
++
++/* First 8x8 row or column of tile @idx of 1 << @log2 (section 6.4.2). */
++static u32 vp9_tile_start(u32 idx, u32 mis, u32 log2)
++{
++	return min((((mis + 7) >> 3) * idx >> log2) << 3, mis);
++}
++
++/* Size of the next tile, moving *off past its size field. */
++static int vp9_tile_size(const u8 *va, u32 len, u32 *off, bool last, u32 *size)
++{
++	if (last) {
++		*size = len - *off;
++		return 0;
++	}
++	if (len - *off < 4)
++		return -EINVAL;
++	*size = get_unaligned_be32(va + *off);
++	*off += 4;
++	return *size > len - *off ? -EINVAL : 0;
++}
++
++static int vp9_check_tiles(const struct vp9_pic *p, const u8 *va, u32 len)
++{
++	const struct v4l2_ctrl_vp9_frame *f = p->f;
++	u32 n = 1 << (f->tile_cols_log2 + f->tile_rows_log2), i, size;
++	u32 off = f->uncompressed_header_size + f->compressed_header_size;
++	int ret;
++
++	for (i = 0; i < n; i++) {
++		ret = vp9_tile_size(va, len, &off, i == n - 1, &size);
++		if (ret)
++			return ret;
++		off += size;
++	}
++	return 0;
++}
++
++/* ---- programming -------------------------------------------------------- */
++
++static void vp9_reset(struct mvdec_dev *vdev)
++{
++	mvdec_write(vdev, MVDEC_GCON + 0x00, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0xf4, 0);
++	mvdec_write(vdev, MVDEC_MISC + 0xec, 1);
++	mvdec_write(vdev, MVDEC_GCON + 0x18, 1);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x101);
++	mvdec_write(vdev, MVDEC_MISC + 0xc8, 0xfdff);
++	/* Sub-module clock gates, non-compressed output. */
++	mvdec_write(vdev, MVDEC_MISC + 0xcc, 0x71e31182);
++	mvdec_write(vdev, MVDEC_MISC + 0x178, 0xfffff0c1);
++	mvdec_write(vdev, MVDEC_MISC + 0x84, 2);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0);
++	mvdec_write(vdev, MVDEC_MISC + 0x04, 3);
++	vvld_write(vdev, VVLD_ENABLE, 1);
++}
++
++static int vp9_clear_counts(struct mvdec_dev *vdev)
++{
++	vvld_write(vdev, VVLD_COUNT_CLEAR, 1);
++	return mvdec_poll(vdev, MVDEC_VP9_VLD + VVLD_COUNT_CLEAR, BIT(0), 0, 1000);
++}
++
++static void vp9_reset_bits(struct mvdec_dev *vdev)
++{
++	vvld_write(vdev, VVLD_BITS_RESET, 1);
++	vvld_write(vdev, VVLD_BITS_RESET, 0);
++	vvld_read(vdev, VVLD_BITS);
++}
++
++/*
++ * Bitstream window over the OUTPUT buffer (both VLDs), and the barrel
++ * shifter on the first byte of the compressed header at @rd.
++ */
++static int vp9_bitstream(struct mvdec_dev *vdev, u32 base, u32 rd, u32 end)
++{
++	u32 top = end + VP9_BS_MARGIN, i;
++	int ret;
++
++	mvdec_write(vdev, MVDEC_VLD + 0xb4, base >> 6);		/* VFIFO start */
++	mvdec_write(vdev, MVDEC_VLD + 0xb8, top >> 6);		/* VFIFO end */
++	mvdec_write(vdev, MVDEC_VLD2 + 0xb4, base >> 6);
++	mvdec_write(vdev, MVDEC_VLD2 + 0xb8, top >> 6);
++	mvdec_rmw(vdev, MVDEC_VLD + 0xec, 0, BIT(28));
++	mvdec_rmw(vdev, MVDEC_VLD2 + 0xec, 0, BIT(28));
++	/* VLD SRAM: when bit 15 is set, wait for bit 0. */
++	if (mvdec_read(vdev, MVDEC_VLD + VLD_STATUS) & BIT(15)) {
++		ret = mvdec_poll(vdev, MVDEC_VLD + VLD_STATUS, BIT(0), BIT(0), 50000);
++		if (ret)
++			return ret;
++	}
++	mvdec_write(vdev, MVDEC_VLD + 0xb0, rd);			/* read pointer */
++	mvdec_write(vdev, MVDEC_VLD + 0x110, top & ~0x3f);	/* write pointer */
++	for (i = 0; i < 5; i++)
++		mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x100);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0);
++	mvdec_write(vdev, MVDEC_VLD + VLD_FETCH, 0x100000);	/* initial fetch */
++	ret = mvdec_poll(vdev, MVDEC_VLD + VLD_FETCH_STATUS, BIT(0), BIT(0), 50000);
++	if (ret)
++		return ret;
++	mvdec_write(vdev, MVDEC_VLD + VLD_FETCH, 0x800000);	/* load the shifter */
++	/* The shifter loads from a 16-byte boundary: drop the bytes before rd. */
++	for (i = 0; i < (rd & 0xf); i++) {
++		vvld_read(vdev, VVLD_PEEK);
++		vvld_read(vdev, VVLD_SHIFT(8));
++	}
++	vp9_reset_bits(vdev);
++	return 0;
++}
++
++static bool seg_feature(const struct v4l2_vp9_segmentation *seg, unsigned int i,
++			unsigned int feature)
++{
++	return seg->feature_enabled[i] & V4L2_VP9_SEGMENT_FEATURE_ENABLED(feature);
++}
++
++/*
++ * VVLD_SEG_FEATURES: [7:0] skip enabled per segment, [23:8] two-bit
++ * reference frame per segment, [31:24] reference feature enabled.
++ */
++static u32 vp9_seg_features(const struct v4l2_vp9_segmentation *seg)
++{
++	u32 skip = 0, ref = 0, ref_en = 0;
++	unsigned int i;
++
++	for (i = 0; i < 8; i++) {
++		if (seg_feature(seg, i, V4L2_VP9_SEG_LVL_SKIP))
++			skip |= BIT(i);
++		if (seg_feature(seg, i, V4L2_VP9_SEG_LVL_REF_FRAME)) {
++			ref_en |= BIT(i);
++			ref |= (seg->feature_data[i][V4L2_VP9_SEG_LVL_REF_FRAME] & 3) << (2 * i);
++		}
++	}
++	return skip | (ref | ref_en << 16) << 8;
++}
++
++/* Per-segment loop filter level deltas or levels, eight bits each. */
++static u32 vp9_seg_lf(const struct v4l2_vp9_segmentation *seg, unsigned int first)
++{
++	u32 v = 0;
++	unsigned int i;
++
++	for (i = 0; i < 4; i++)
++		if (seg_feature(seg, first + i, V4L2_VP9_SEG_LVL_ALT_L))
++			v |= ((u32)seg->feature_data[first + i][V4L2_VP9_SEG_LVL_ALT_L] & 0xff)
++			     << (8 * i);
++	return v;
++}
++
++static void vp9_write_header(struct vp9_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_vp9_frame *f = p->f;
++	const struct v4l2_vp9_segmentation *seg = &f->seg;
++	const struct v4l2_vp9_loop_filter *lf = &f->lf;
++	bool seg_en = seg->flags & V4L2_VP9_SEGMENTATION_FLAG_ENABLED;
++	u32 v, lf_en = 0;
++	unsigned int i;
++
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x70, p->w | p->h << 16);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x68, (p->sb_cols - 1) | (p->sb_rows - 1) << 16);
++	vvld_write(vdev, VVLD_ENABLE, 1);
++
++	/* Bit 0 (inter frame) stays clear for 8-bit intra-only frames. */
++	v = (p->intra ? 0 : BIT(0)) | f->interpolation_filter << 24;
++	if (fflag(p, V4L2_VP9_FRAME_FLAG_INTRA_ONLY))
++		v |= BIT(1);
++	if (p->lossless)
++		v |= BIT(2);
++	if (fflag(p, V4L2_VP9_FRAME_FLAG_PARALLEL_DEC_MODE))
++		v |= BIT(3);
++	if (fflag(p, V4L2_VP9_FRAME_FLAG_ERROR_RESILIENT))
++		v |= BIT(4);
++	if (seg_en)
++		v |= BIT(8);
++	if (seg->flags & V4L2_VP9_SEGMENTATION_FLAG_UPDATE_MAP)
++		v |= BIT(9);
++	if (seg->flags & V4L2_VP9_SEGMENTATION_FLAG_TEMPORAL_UPDATE)
++		v |= BIT(10);
++	if (fflag(p, V4L2_VP9_FRAME_FLAG_ALLOW_HIGH_PREC_MV))
++		v |= BIT(31);
++	vvld_write(vdev, VVLD_FRAME, v);
++	vvld_write(vdev, VVLD_SEG_FEATURES, vp9_seg_features(seg));
++
++	v = lf->flags & V4L2_VP9_LOOP_FILTER_FLAG_DELTA_ENABLED ? 1 : 0;
++	mvdec_write(vdev, MVDEC_PP + 0xd8, v | lf->sharpness << 8 | lf->level << 16);
++	if (v) {
++		for (i = 0, v = 0; i < 4; i++)
++			v |= (u32)(u8)lf->ref_deltas[i] << (8 * i);
++		mvdec_write(vdev, MVDEC_PP + 0xdc, v);
++		mvdec_write(vdev, MVDEC_PP + 0xe0, (u8)lf->mode_deltas[0] |
++			    (u32)(u8)lf->mode_deltas[1] << 8);
++	}
++	if (seg_en) {
++		/* [7:0] segments with a level feature, [8] absolute levels. */
++		for (i = 0; i < 8; i++)
++			if (seg_feature(seg, i, V4L2_VP9_SEG_LVL_ALT_L))
++				lf_en |= BIT(i);
++		if (seg->flags & V4L2_VP9_SEGMENTATION_FLAG_ABS_OR_DELTA_UPDATE)
++			v = lf_en | BIT(8);
++		else
++			v = lf_en;
++		/* The vendor clears the word when no segment uses it. */
++		if (!lf_en && !(seg->flags & V4L2_VP9_SEGMENTATION_FLAG_UPDATE_DATA))
++			v = 0;
++		mvdec_write(vdev, MVDEC_PP + 0xe4, v);
++		mvdec_write(vdev, MVDEC_PP + 0xe8, vp9_seg_lf(seg, 0));
++		mvdec_write(vdev, MVDEC_PP + 0xec, vp9_seg_lf(seg, 4));
++	}
++	if (p->lossless)
++		mvdec_write(vdev, MVDEC_PP + 0x9c0, 0xe00);
++}
++
++static void vp9_write_segmentation(struct mvdec_ctx *ctx, const struct vp9_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_vp9_segmentation *seg = &p->f->seg;
++	u32 map = lower_32_bits(ctx->aux[VP9_AUX_SEG].dma);
++	const u8 *t = seg->tree_probs, *q = seg->pred_probs;
++
++	if (!(seg->flags & V4L2_VP9_SEGMENTATION_FLAG_ENABLED))
++		return;
++	vvld_write(vdev, VVLD_SEG_TREE0, t[0] | t[1] << 8 | t[2] << 16 | (u32)t[3] << 24);
++	vvld_write(vdev, VVLD_SEG_TREE1, t[4] | t[5] << 8 | t[6] << 16);
++	vvld_write(vdev, VVLD_SEG_PRED, q[0] | q[1] << 8 | q[2] << 16);
++	/* One segment id map, read for prediction and rewritten. */
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x118, map);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x11c, map);
++}
++
++static int vp9_update(struct mvdec_dev *vdev, u32 cmd)
++{
++	vvld_write(vdev, VVLD_UPDATE, cmd);
++	vvld_write(vdev, VVLD_UPDATE, 0);
++	return mvdec_poll(vdev, MVDEC_VP9_VLD + VVLD_UPDATE_DONE, cmd, cmd, 1500);
++}
++
++/*
++ * compressed_header(): the CPU reads tx_mode and reference_select, the
++ * hardware applies each group of forward updates on command.
++ */
++static int vp9_compressed_header(struct mvdec_ctx *ctx, struct vp9_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	struct mvdec_vp9_state *st = &ctx->vp9;
++	u32 bias = p->f->ref_frame_sign_bias;
++	bool last = bias & V4L2_VP9_SIGN_BIAS_LAST;
++	bool golden = !!(bias & V4L2_VP9_SIGN_BIAS_GOLDEN);
++	bool alt = !!(bias & V4L2_VP9_SIGN_BIAS_ALT);
++	u32 cmd;
++	int ret;
++
++	vvld_write(vdev, VVLD_BOOL_INIT, 1);
++	ret = mvdec_poll(vdev, MVDEC_VP9_VLD + VVLD_BOOL_INIT, VVLD_BOOL_READY,
++			 VVLD_BOOL_READY, 1000);
++	if (ret)
++		return ret;
++	p->tx_mode = 0;				/* ONLY_4X4 */
++	if (!p->lossless) {
++		p->tx_mode = vvld_read(vdev, VVLD_BOOL_2BIT) & 3;
++		if (p->tx_mode == 3)		/* ALLOW_32X32 or TX_MODE_SELECT */
++			p->tx_mode += vvld_read(vdev, VVLD_BOOL_BIT) ? 1 : 0;
++	}
++	vvld_write(vdev, VVLD_TX_MODE, p->tx_mode);
++	if (p->tx_mode == V4L2_VP9_TX_MODE_SELECT) {
++		ret = vp9_update(vdev, UPD_TX);
++		if (ret)
++			return ret;
++	}
++	ret = vp9_update(vdev, UPD_COEF);
++	if (!ret)
++		ret = vp9_update(vdev, UPD_SKIP);
++	if (ret || p->intra)
++		return ret;
++
++	ret = vp9_update(vdev, UPD_INTER_MODE);
++	if (!ret && p->f->interpolation_filter == V4L2_VP9_INTERP_FILTER_SWITCHABLE)
++		ret = vp9_update(vdev, UPD_INTERP);
++	if (!ret)
++		ret = vp9_update(vdev, UPD_INTRA_INTER);
++	if (ret)
++		return ret;
++
++	/* reference_select, only when the sign biases allow compound refs */
++	p->ref_mode = V4L2_VP9_REFERENCE_MODE_SINGLE_REFERENCE;
++	if ((golden != last || alt != last) && vvld_read(vdev, VVLD_BOOL_BIT))
++		p->ref_mode = vvld_read(vdev, VVLD_BOOL_BIT) ?
++			      V4L2_VP9_REFERENCE_MODE_SELECT :
++			      V4L2_VP9_REFERENCE_MODE_COMPOUND_REFERENCE;
++	if (p->ref_mode != p->f->reference_mode)
++		return -EINVAL;
++	/* Fixed and variable compound references; kept for single frames. */
++	if (p->ref_mode) {
++		if (last == golden) {
++			st->comp_fixed = 3;
++			st->comp_var[0] = 1;
++			st->comp_var[1] = 2;
++		} else if (last == alt) {
++			st->comp_fixed = 2;
++			st->comp_var[0] = 1;
++			st->comp_var[1] = 3;
++		} else {
++			st->comp_fixed = 1;
++			st->comp_var[0] = 2;
++			st->comp_var[1] = 3;
++		}
++	}
++
++	cmd = 0;
++	if (p->ref_mode == V4L2_VP9_REFERENCE_MODE_SELECT)
++		cmd |= UPD_COMP_INTER;
++	if (p->ref_mode != V4L2_VP9_REFERENCE_MODE_COMPOUND_REFERENCE)
++		cmd |= UPD_SINGLE_REF;
++	if (p->ref_mode != V4L2_VP9_REFERENCE_MODE_SINGLE_REFERENCE)
++		cmd |= UPD_COMP_REF;
++	cmd |= UPD_Y_MODE | UPD_PARTITION | UPD_MV_INT | UPD_MV_FP;
++	if (fflag(p, V4L2_VP9_FRAME_FLAG_ALLOW_HIGH_PREC_MV))
++		cmd |= UPD_MV_HP;
++	/* One command per group, in bit order. */
++	while (cmd) {
++		ret = vp9_update(vdev, cmd & ~(cmd - 1));
++		if (ret)
++			return ret;
++		cmd &= cmd - 1;
++	}
++	return 0;
++}
++
++/* Segment qindex, section 8.6.1 get_qindex(). */
++static u32 vp9_qindex(const struct v4l2_ctrl_vp9_frame *f, unsigned int i)
++{
++	const struct v4l2_vp9_segmentation *seg = &f->seg;
++	s32 q;
++
++	if (!(seg->flags & V4L2_VP9_SEGMENTATION_FLAG_ENABLED) ||
++	    !seg_feature(seg, i, V4L2_VP9_SEG_LVL_ALT_Q))
++		return f->quant.base_q_idx;
++	q = seg->feature_data[i][V4L2_VP9_SEG_LVL_ALT_Q];
++	if (!(seg->flags & V4L2_VP9_SEGMENTATION_FLAG_ABS_OR_DELTA_UPDATE))
++		q += f->quant.base_q_idx;
++	return clamp(q, 0, 255);
++}
++
++static u32 vp9_q(const u16 *table, u32 q, s32 delta)
++{
++	return table[clamp((s32)q + delta, 0, 255)];
++}
++
++static void vp9_write_pic(struct mvdec_ctx *ctx, const struct vp9_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct mvdec_vp9_state *st = &ctx->vp9;
++	const struct v4l2_ctrl_vp9_frame *f = p->f;
++	bool prev_mvs;
++	unsigned int i;
++	u32 q, mv = lower_32_bits(ctx->aux[VP9_AUX_MV].dma);
++
++	vvld_write(vdev, VVLD_REFS, p->ref_mode | st->comp_fixed << 8 |
++		   f->ref_frame_sign_bias << 17 |
++		   (st->comp_var[0] | st->comp_var[1] << 2) << 24);
++
++	/* Collocated MVs of the previous frame, written back in place. */
++	prev_mvs = p->w == st->last_w && p->h == st->last_h && st->last_show &&
++		   !fflag(p, V4L2_VP9_FRAME_FLAG_INTRA_ONLY) &&
++		   !fflag(p, V4L2_VP9_FRAME_FLAG_ERROR_RESILIENT);
++	mvdec_rmw(vdev, MVDEC_MV + 0x3c4, BIT(0), prev_mvs ? BIT(0) : 0);
++	mvdec_write(vdev, MVDEC_MV + 0x3c0, mv >> 4);
++	mvdec_write(vdev, MVDEC_MV + 0x20c, mv >> 4);
++
++	for (i = 0; i < 3; i++) {
++		mvdec_write(vdev, MVDEC_MC + 0xd28 + 4 * i, p->ref_y[i]);
++		mvdec_write(vdev, MVDEC_MC + 0xd34 + 4 * i, p->ref_c[i]);
++	}
++	if (!p->key) {
++		mvdec_write(vdev, MVDEC_MC + 0xd80, 0);		/* no scaling */
++		for (i = 0; i < 3; i++) {
++			mvdec_write(vdev, MVDEC_MC + 0xd4c + 4 * i, p->w | p->h << 16);
++			mvdec_write(vdev, MVDEC_MC + 0xd70 + 4 * i, p->pitch >> 4);
++		}
++		/* Largest reference block, unscaled, for each reference. */
++		mvdec_write(vdev, MVDEC_MC + 0xd7c, 0x07770777);
++	}
++	mvdec_write(vdev, MVDEC_MC + 0xd88, p->mi_rows | p->mi_cols << 16);
++
++	mvdec_write(vdev, MVDEC_MC + 0x220, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x224, p->cur_y >> 9);
++	mvdec_write(vdev, MVDEC_MC + 0x228, p->cur_c >> 8);
++	mvdec_write(vdev, MVDEC_MC + 0x22c, p->pitch >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0x238, 3);
++	mvdec_write(vdev, MVDEC_MC + 0x250, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x260, p->sb_cols * 4 - 1);
++	mvdec_write(vdev, MVDEC_MC + 0x264, p->sb_rows * 4 - 1);
++	mvdec_write(vdev, MVDEC_PP + 0xf0, p->w | p->h << 16);
++
++	/* Per segment: Y DC and AC, then UV DC and AC dequantisers. */
++	mvdec_write(vdev, MVDEC_PP + 0x504, 1);
++	for (i = 0; i < 8; i++) {
++		q = vp9_qindex(f, i);
++		mvdec_write(vdev, MVDEC_VLD + 0x260, 2 * i);
++		mvdec_write(vdev, MVDEC_VLD + 0x264,
++			    vp9_q(vp9_dc_q, q, f->quant.delta_q_y_dc) |
++			    vp9_q(vp9_ac_q, q, 0) << 16);
++		mvdec_write(vdev, MVDEC_VLD + 0x260, 2 * i + 1);
++		mvdec_write(vdev, MVDEC_VLD + 0x264,
++			    vp9_q(vp9_dc_q, q, f->quant.delta_q_uv_dc) |
++			    vp9_q(vp9_ac_q, q, f->quant.delta_q_uv_ac) << 16);
++	}
++	mvdec_write(vdev, MVDEC_PP + 0x504, 0);
++	mvdec_write(vdev, MVDEC_MC + 0xa60, 0);		/* no compressed output */
++}
++
++/*
++ * Tiles: column count and non-empty row count, then four words per tile:
++ * bits from the 16-byte aligned start to the tile end, that start, the bit
++ * offset into it, and the tile size in superblocks. More than eight tiles go
++ * through a list in memory instead of the FIFO.
++ */
++static void vp9_write_tiles(struct mvdec_ctx *ctx, const struct vp9_pic *p,
++			    const u8 *va, u32 base, u32 len)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_vp9_frame *f = p->f;
++	u32 cols = 1 << f->tile_cols_log2, rows = 1 << f->tile_rows_log2;
++	u32 off = f->uncompressed_header_size + f->compressed_header_size;
++	u32 *list = ctx->aux[VP9_AUX_TILE].cpu;
++	u32 r, c, live = rows, sb_r, sb_c, size, pa, w[4];
++	bool fifo;
++
++	for (r = 0; r < rows; r++)
++		if (vp9_tile_start(r + 1, p->mi_rows, f->tile_rows_log2) ==
++		    vp9_tile_start(r, p->mi_rows, f->tile_rows_log2))
++			live--;
++	fifo = live * cols <= VP9_FIFO_TILES;
++	vvld_write(vdev, VVLD_TILES, (cols - 1) | (live - 1) << 16);
++	vvld_write(vdev, VVLD_TILE_RESET, 0);
++	for (r = 0; r < rows; r++) {
++		sb_r = (vp9_tile_start(r + 1, p->mi_rows, f->tile_rows_log2) -
++			vp9_tile_start(r, p->mi_rows, f->tile_rows_log2) + 7) >> 3;
++		for (c = 0; c < cols; c++) {
++			/* Checked by vp9_check_tiles(). */
++			vp9_tile_size(va, len, &off, r == rows - 1 && c == cols - 1, &size);
++			pa = base + off;
++			off += size;
++			if (!sb_r)
++				continue;
++			sb_c = (vp9_tile_start(c + 1, p->mi_cols, f->tile_cols_log2) -
++				vp9_tile_start(c, p->mi_cols, f->tile_cols_log2) + 7) >> 3;
++			w[0] = (((pa - base) * 8) & 0x78) + size * 8;
++			w[1] = pa & ~0xf;
++			w[2] = (pa & 0xf) << 3;
++			w[3] = ((sb_c - 1) & 0x3f) | ((sb_r - 1) & 0x1ff) << 6;
++			if (fifo) {
++				vvld_write(vdev, VVLD_TILE_FIFO, w[0]);
++				vvld_write(vdev, VVLD_TILE_FIFO, w[1]);
++				vvld_write(vdev, VVLD_TILE_FIFO, w[2]);
++				vvld_write(vdev, VVLD_TILE_FIFO, w[3]);
++			} else {
++				memcpy(list, w, sizeof(w));
++				list += 4;
++			}
++		}
++	}
++	mvdec_write(vdev, MVDEC_VLD + 0x140, 0x100014);
++	mvdec_write(vdev, MVDEC_VLD2 + 0x140, 0x100014);
++	if (!fifo)
++		mvdec_write(vdev, MVDEC_VLD_TOP + 0xb8,
++			    lower_32_bits(ctx->aux[VP9_AUX_TILE].dma));
++	vvld_write(vdev, VVLD_TILE_MODE, fifo ? 0x10111 : 0x111);
++}
++
++int mvdec_vp9_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
++		  struct vb2_v4l2_buffer *dst, const struct mvdec_vp9_run *run)
++{
++	struct mvdec_dev *vdev = ctx->dev;
++	struct mvdec_vp9_state *st = &ctx->vp9;
++	const struct v4l2_ctrl_vp9_frame *f = run->frame;
++	struct vp9_pic p = { .vdev = vdev, .f = f };
++	dma_addr_t src_pa;
++	const u8 *va;
++	unsigned int i;
++	u32 len, pa;
++	u8 fctx;
++	int ret;
++
++	ret = vp9_check(ctx, f);
++	if (ret) {
++		dev_dbg(vdev->dev, "unsupported VP9 frame\n");
++		return ret;
++	}
++	for (i = 0; i < VP9_AUX_NUM; i++)
++		if (!ctx->aux[i].cpu)
++			return -EINVAL;
++
++	/* The OUTPUT buffer must cover the window end the decoder may fetch. */
++	src_pa = vb2_dma_contig_plane_dma_addr(&src->vb2_buf, 0);
++	va = vb2_plane_vaddr(&src->vb2_buf, 0);
++	len = vb2_get_plane_payload(&src->vb2_buf, 0);
++	if (!va || src_pa & 0x3f || len + VP9_BS_MARGIN > vb2_plane_size(&src->vb2_buf, 0) ||
++	    f->uncompressed_header_size + f->compressed_header_size >= len)
++		return -EINVAL;
++	pa = lower_32_bits(src_pa);
++
++	p.w = f->frame_width_minus_1 + 1;
++	p.h = f->frame_height_minus_1 + 1;
++	p.mi_cols = DIV_ROUND_UP(p.w, 8);
++	p.mi_rows = DIV_ROUND_UP(p.h, 8);
++	p.sb_cols = DIV_ROUND_UP(p.w, 64);
++	p.sb_rows = DIV_ROUND_UP(p.h, 64);
++	p.pitch = ctx->dst_fmt.plane_fmt[0].bytesperline;
++	p.key = fflag(&p, V4L2_VP9_FRAME_FLAG_KEY_FRAME);
++	p.intra = p.key || fflag(&p, V4L2_VP9_FRAME_FLAG_INTRA_ONLY);
++	p.lossless = !f->quant.base_q_idx && !f->quant.delta_q_y_dc &&
++		     !f->quant.delta_q_uv_dc && !f->quant.delta_q_uv_ac;
++
++	ret = vp9_buf(&dst->vb2_buf, &p.cur_y, &p.cur_c);
++	if (!ret)
++		ret = vp9_refs(ctx, &p);
++	if (!ret)
++		ret = vp9_check_tiles(&p, va, len);
++	if (ret)
++		goto out;
++
++	/* setup_past_independence(): reset contexts and the segment map. */
++	fctx = v4l2_vp9_reset_frame_ctx(f, st->ctx);
++	if (p.intra || fflag(&p, V4L2_VP9_FRAME_FLAG_ERROR_RESILIENT))
++		memset(ctx->aux[VP9_AUX_SEG].cpu, 0, ctx->aux[VP9_AUX_SEG].size);
++
++	vp9_reset(vdev);
++	ret = vp9_clear_counts(vdev);
++	if (!ret)
++		ret = vp9_bitstream(vdev, pa, pa + f->uncompressed_header_size, pa + len);
++	if (ret)
++		goto out;
++	vp9_write_header(&p);
++	vp9_write_segmentation(ctx, &p);
++	vp9_ctx_to_img(&st->ctx[fctx], ctx->aux[VP9_AUX_PROB].cpu);
++	vp9_load_probs(vdev, ctx->aux[VP9_AUX_PROB].cpu);
++	vp9_reset_bits(vdev);
++	ret = vp9_compressed_header(ctx, &p);
++	if (ret)
++		goto out;
++	vvld_read(vdev, VVLD_BITS);
++	vp9_write_pic(ctx, &p);
++	vp9_write_tiles(ctx, &p, va, pa, len);
++	ret = vp9_clear_counts(vdev);
++	if (ret)
++		goto out;
++	mvdec_rmw(vdev, MVDEC_VLD_TOP + 0x124, GENMASK(15, 0), 0x10);
++
++	/* What mvdec_vp9_done() needs once the frame is decoded. */
++	st->flags = f->flags;
++	st->fctx = fctx;
++	st->tx_mode = p.tx_mode;
++	st->ref_mode = p.ref_mode;
++	st->interp = f->interpolation_filter;
++	st->w = p.w;
++	st->h = p.h;
++	st->buf_w[dst->vb2_buf.index] = p.w;
++	st->buf_h[dst->vb2_buf.index] = p.h;
++	vvld_write(vdev, VVLD_START, 1);
++out:
++	if (ret)
++		dev_dbg(vdev->dev, "VP9 frame not started: %d\n", ret);
++	return ret;
++}
++
++/*
++ * After the decode interrupt: copy the probabilities (with the forward
++ * updates applied) and the symbol counts out, then refresh_probs(): adapt
++ * the saved context and store it (section 6.1.2).
++ */
++enum vb2_buffer_state mvdec_vp9_done(struct mvdec_ctx *ctx)
++{
++	struct mvdec_dev *vdev = ctx->dev;
++	struct mvdec_vp9_state *st = &ctx->vp9;
++	struct v4l2_vp9_frame_context *fc = &st->ctx[st->fctx];
++	bool intra = st->flags & (V4L2_VP9_FRAME_FLAG_KEY_FRAME |
++				  V4L2_VP9_FRAME_FLAG_INTRA_ONLY);
++	u32 err;
++	int ret;
++
++	err = vvld_read(vdev, VVLD_ERROR);
++	ret = vp9_dma_out(vdev, DMA_PROBS, ctx->aux[VP9_AUX_PROB].dma);
++	if (!ret)
++		ret = vp9_dma_out(vdev, DMA_COUNTS, ctx->aux[VP9_AUX_COUNT].dma);
++	if (!ret && st->flags & V4L2_VP9_FRAME_FLAG_REFRESH_FRAME_CTX) {
++		if (st->flags & (V4L2_VP9_FRAME_FLAG_ERROR_RESILIENT |
++				 V4L2_VP9_FRAME_FLAG_PARALLEL_DEC_MODE)) {
++			/* Store the frame's probabilities as they are. */
++			vp9_img_to_ctx(ctx->aux[VP9_AUX_PROB].cpu, fc, false);
++		} else {
++			/*
++			 * Adapt from the saved context. Intra frames keep
++			 * their own tx and skip probabilities.
++			 */
++			if (intra)
++				vp9_img_to_ctx(ctx->aux[VP9_AUX_PROB].cpu, fc, true);
++			vp9_map_counts(st, ctx->aux[VP9_AUX_COUNT].cpu);
++			v4l2_vp9_adapt_coef_probs(fc, &st->counts, !st->last_inter, intra);
++			if (!intra)
++				v4l2_vp9_adapt_noncoef_probs(fc, &st->counts, st->ref_mode,
++							     st->interp, st->tx_mode,
++							     st->flags);
++		}
++	}
++	st->last_w = st->w;
++	st->last_h = st->h;
++	st->last_show = st->flags & V4L2_VP9_FRAME_FLAG_SHOW_FRAME;
++	st->last_inter = !(st->flags & V4L2_VP9_FRAME_FLAG_KEY_FRAME);
++	if (err || ret) {
++		dev_dbg(vdev->dev, "VP9 decode error %#x, %d\n", err, ret);
++		return VB2_BUF_STATE_ERROR;
++	}
++	return VB2_BUF_STATE_DONE;
++}
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+index 18ccde535..496a84c23 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+@@ -13,6 +13,7 @@
+ #include <media/v4l2-ctrls.h>
+ #include <media/v4l2-device.h>
+ #include <media/v4l2-mem2mem.h>
++#include <media/v4l2-vp9.h>
+ #include <media/videobuf2-v4l2.h>
+ 
+ #define MVDEC_NAME		"mt6797-vdec"
+@@ -32,7 +33,9 @@
+ #define MVDEC_AVC_VLD		0x23000
+ #define MVDEC_MV		0x24000
+ #define MVDEC_PP		0x25000
++#define MVDEC_VLD2		0x27800
+ #define MVDEC_HEVC_VLD		0x28000
++#define MVDEC_VP9_VLD		0x28400
+ 
+ #define MVDEC_MISC_IRQ_CFG	0xa4
+ 
+@@ -75,8 +78,12 @@ struct mvdec_h264_run {
+ 	const struct v4l2_ctrl_h264_decode_params *decode;
+ };
+ 
++struct mvdec_vp9_run {
++	const struct v4l2_ctrl_vp9_frame *frame;
++};
++
+ /* Per-context working buffers a codec may need (mvdec_alloc_aux()). */
+-#define MVDEC_AUX_BUFS		4
++#define MVDEC_AUX_BUFS		5
+ 
+ struct mvdec_aux_buf {
+ 	void *cpu;
+@@ -106,6 +113,39 @@ struct mvdec_hevc_state {
+ 	s32 poc[MVDEC_HEVC_SLOTS];	/* POC last decoded into each buffer */
+ };
+ 
++/* VP9 symbol counts whose rows the decoder pads (mt6797-vdec-vp9.c). */
++struct mvdec_vp9_counts {
++	u32 skip[3][2];
++	u32 y_mode[4][10];
++	u32 filter[4][3];
++	u32 sign[2][2];
++	u32 classes[2][11];
++	u32 class0[2][2];
++	u32 bits[2][10][2];
++	u32 class0_fp[2][2][4];
++	u32 fp[2][4];
++	u32 class0_hp[2][2];
++	u32 hp[2][2];
++};
++
++/* VP9 state kept across frames (mt6797-vdec-vp9.c). */
++struct mvdec_vp9_state {
++	struct v4l2_vp9_frame_context ctx[V4L2_VP9_NUM_FRAME_CTX];
++	struct v4l2_vp9_frame_symbol_counts counts;
++	struct mvdec_vp9_counts copies;
++	u16 buf_w[VIDEO_MAX_FRAME];	/* size last decoded into each buffer */
++	u16 buf_h[VIDEO_MAX_FRAME];
++	/* the frame in the decoder */
++	u32 flags;
++	u16 w, h;
++	u8 fctx, tx_mode, ref_mode, interp;
++	/* the frame before it */
++	u16 last_w, last_h;
++	bool last_show, last_inter;
++	/* compound references, kept while frames use single references */
++	u8 comp_fixed, comp_var[2];
++};
++
+ struct mvdec_ctx {
+ 	struct v4l2_fh fh;
+ 	struct mvdec_dev *dev;
+@@ -116,6 +156,7 @@ struct mvdec_ctx {
+ 	struct mvdec_mv_buf mv[VIDEO_MAX_FRAME];
+ 	struct mvdec_hevc_state hevc;
+ 	struct mvdec_h264_state h264;
++	struct mvdec_vp9_state vp9;
+ 	struct mvdec_aux_buf aux[MVDEC_AUX_BUFS];
+ };
+ 
+@@ -148,4 +189,10 @@ int mvdec_h264_start(struct mvdec_ctx *ctx);
+ int mvdec_h264_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
+ 		   struct vb2_v4l2_buffer *dst, const struct mvdec_h264_run *run);
+ 
++/* mt6797-vdec-vp9.c */
++int mvdec_vp9_start(struct mvdec_ctx *ctx);
++int mvdec_vp9_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
++		  struct vb2_v4l2_buffer *dst, const struct mvdec_vp9_run *run);
++enum vb2_buffer_state mvdec_vp9_done(struct mvdec_ctx *ctx);
++
+ #endif /* _MT6797_VDEC_H */
+-- 
+2.43.0
+

@@ -964,6 +964,42 @@ Untested: long-term references, explicit B weights, memory-management
 operations, POC type 1, interlaced streams (rejected), real-world streams,
 larger sizes, sustained playback and power.
 
+## Stage 3d: VP9 in the same driver (built, device test pending)
+
+[Patch 0733](../../patches/proposals/0733-media-mediatek-mt6797-vdec-add-VP9-decoding.patch)
+adds VP9 profile 0 (8-bit 4:2:0) through the V4L2 stateless VP9 API:
+
+- The CPU programs the frame header, segmentation, loop filter and
+  dequantisation from the frame control.
+- The hardware parses the compressed header from the bitstream and applies
+  the forward probability updates, as the vendor does. The driver therefore
+  does not register `V4L2_CID_STATELESS_VP9_COMPRESSED_HDR`.
+- After the decode interrupt, the driver reads the probabilities and symbol
+  counts back and adapts the saved frame context with the kernel's `v4l2-vp9`
+  helpers.
+- Each reference's chroma is addressed on its own (`MC+0xD34` to `+0xD3C`),
+  so the V11 problem does not apply.
+- Reference scaling is rejected. Show-existing frames are left to userspace,
+  as other stateless drivers do.
+
+*Evidence so far:* a register model built from the private reverse-engineering
+notes agrees with the C file on 105 frames of six clips. The clips are the
+V5 clip and synthetic ones with tile columns, segmentation, a hidden altref
+frame, compound prediction, error resilience and lossless coding. The symbol
+counts in that harness are synthetic, so backward adaptation is checked only
+against the model. No vendor VP9 register trace exists; the sequence is
+unproven on hardware [I].
+
+*Main risks for the first run:*
+
+- the hardware compressed-header parse starting part-way into the buffer;
+- the order of the `MC+0xD88` frame-size fields (the decompile disagrees with
+  the earlier note);
+- probability SRAM addressing;
+- tile list words;
+- count readback and adaptation, visible only on streams with
+  `frame_parallel_decoding_mode = 0`.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).
