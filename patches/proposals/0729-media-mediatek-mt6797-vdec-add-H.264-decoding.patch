@@ -1,0 +1,1202 @@
+From 33128a948af9febe197a556e1d9cd0e013e6197d Mon Sep 17 00:00:00 2001
+From: VM build <vm@localhost>
+Date: Wed, 11 Nov 2026 15:46:15 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: add H.264 decoding
+
+Program the MT6797 video decoder for progressive 8-bit 4:2:0 H.264
+(Baseline, Main and High) through the V4L2 stateless H.264 API, next to
+the existing HEVC path. As for HEVC there is no firmware: for every
+picture the CPU resets the core, reads the first slice header through
+the hardware bit reader, programs the SPS, PPS, slice, POC and initial
+reference list registers from the controls and the v4l2-h264 list
+helpers, lets the hardware parse the list modifications and weight
+tables, and starts one decode for all slices of the picture.
+
+Frame-based decoding with Annex-B start codes only. The register
+sequence comes from reverse engineering and has not been compared with
+a hardware trace yet.
+---
+ .../platform/mediatek/mt6797-vdec/Kconfig     |  10 +-
+ .../platform/mediatek/mt6797-vdec/Makefile    |   2 +-
+ .../mediatek/mt6797-vdec/mt6797-vdec-core.c   | 135 ++-
+ .../mediatek/mt6797-vdec/mt6797-vdec-h264.c   | 811 ++++++++++++++++++
+ .../mediatek/mt6797-vdec/mt6797-vdec.h        |  33 +
+ 5 files changed, 967 insertions(+), 24 deletions(-)
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/Kconfig b/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+index 0f054afe1..89b16e8ef 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
++++ b/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+@@ -5,11 +5,13 @@ config VIDEO_MT6797_VDEC
+ 	depends on V4L_MEM2MEM_DRIVERS
+ 	depends on VIDEO_DEV && OF && PM
+ 	select MEDIA_CONTROLLER
++	select V4L2_H264
+ 	select VIDEOBUF2_DMA_CONTIG
+ 	select V4L2_MEM2MEM_DEV
+ 	help
+-	  Prototype V4L2 stateless HEVC decoder for the MT6797 video decoder
+-	  block. It programs the decoder registers from the CPU for every
+-	  picture, decoding Main profile 8-bit 4:2:0 HEVC slices submitted
+-	  through the request API, and outputs MM21 frames. Say M to build it
++	  Prototype V4L2 stateless HEVC and H.264 decoder for the MT6797
++	  video decoder block. It programs the decoder registers from the CPU
++	  for every picture, decoding 8-bit 4:2:0 HEVC Main and progressive
++	  H.264 Baseline, Main and High slices submitted through the request
++	  API, and outputs MM21 frames. Say M to build it
+ 	  as a module; nothing loads it automatically.
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/Makefile b/drivers/media/platform/mediatek/mt6797-vdec/Makefile
+index 24bcaa89d..f77238c8f 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/Makefile
++++ b/drivers/media/platform/mediatek/mt6797-vdec/Makefile
+@@ -1,3 +1,3 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ obj-$(CONFIG_VIDEO_MT6797_VDEC) += mt6797-vdec.o
+-mt6797-vdec-y := mt6797-vdec-core.o mt6797-vdec-hevc.o
++mt6797-vdec-y := mt6797-vdec-core.o mt6797-vdec-hevc.o mt6797-vdec-h264.o
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+index 108480235..cb7facee0 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -4,7 +4,7 @@
+  *
+  * The VDEC has no firmware: the CPU programs its registers for every
+  * picture. This driver exposes it as a stateless memory-to-memory decoder
+- * (HEVC slices in, MM21 frames out). Without an IOMMU on this platform the
++ * (HEVC or H.264 slices in, MM21 frames out). Without an IOMMU on this platform the
+  * decoder uses physical addresses, so LARB1's per-port MMU enable is cleared
+  * after every power-up and buffers are allocated below 4 GiB.
+  */
+@@ -25,9 +25,23 @@
+ 
+ /* ---- formats ---------------------------------------------------------- */
+ 
+-static void mvdec_fill_dst(struct v4l2_pix_format_mplane *pix)
++static bool mvdec_is_h264(u32 fourcc)
+ {
+-	unsigned int w = ALIGN(pix->width, 64), h = ALIGN(pix->height, 64);
++	return fourcc == V4L2_PIX_FMT_H264_SLICE;
++}
++
++/* HEVC frames are padded to 64x64 CTBs, H.264 frames to 16x32 tiles. */
++static void mvdec_fill_dst(struct v4l2_pix_format_mplane *pix, u32 codec)
++{
++	unsigned int w, h;
++
++	if (mvdec_is_h264(codec)) {
++		w = ALIGN(pix->width, 16);
++		h = ALIGN(pix->height, 32);
++	} else {
++		w = ALIGN(pix->width, 64);
++		h = ALIGN(pix->height, 64);
++	}
+ 
+ 	pix->pixelformat = V4L2_PIX_FMT_MM21;
+ 	pix->num_planes = 2;
+@@ -48,7 +62,8 @@ static void mvdec_clamp(struct v4l2_pix_format_mplane *pix)
+ static void mvdec_fill_src(struct v4l2_pix_format_mplane *pix)
+ {
+ 	mvdec_clamp(pix);
+-	pix->pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
++	if (!mvdec_is_h264(pix->pixelformat))
++		pix->pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
+ 	pix->num_planes = 1;
+ 	pix->field = V4L2_FIELD_NONE;
+ 	pix->plane_fmt[0].bytesperline = 0;
+@@ -69,9 +84,13 @@ static int mvdec_querycap(struct file *file, void *priv,
+ static int mvdec_enum_fmt_out(struct file *file, void *priv,
+ 			      struct v4l2_fmtdesc *f)
+ {
+-	if (f->index)
++	static const u32 fmts[] = {
++		V4L2_PIX_FMT_HEVC_SLICE, V4L2_PIX_FMT_H264_SLICE,
++	};
++
++	if (f->index >= ARRAY_SIZE(fmts))
+ 		return -EINVAL;
+-	f->pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
++	f->pixelformat = fmts[f->index];
+ 	return 0;
+ }
+ 
+@@ -87,7 +106,8 @@ static int mvdec_enum_fmt_cap(struct file *file, void *priv,
+ static int mvdec_enum_framesizes(struct file *file, void *priv,
+ 				 struct v4l2_frmsizeenum *fs)
+ {
+-	if (fs->index || fs->pixel_format != V4L2_PIX_FMT_HEVC_SLICE)
++	if (fs->index || (fs->pixel_format != V4L2_PIX_FMT_HEVC_SLICE &&
++			  fs->pixel_format != V4L2_PIX_FMT_H264_SLICE))
+ 		return -EINVAL;
+ 	fs->type = V4L2_FRMSIZE_TYPE_STEPWISE;
+ 	fs->stepwise.min_width = MVDEC_MIN_SIZE;
+@@ -127,7 +147,7 @@ static int mvdec_try_fmt_cap(struct file *file, void *priv,
+ 	/* The capture size follows the coded size of the output queue. */
+ 	pix->width = ctx->src_fmt.width;
+ 	pix->height = ctx->src_fmt.height;
+-	mvdec_fill_dst(pix);
++	mvdec_fill_dst(pix, ctx->src_fmt.pixelformat);
+ 	return 0;
+ }
+ 
+@@ -143,7 +163,7 @@ static int mvdec_s_fmt_out(struct file *file, void *priv, struct v4l2_format *f)
+ 	ctx->src_fmt = f->fmt.pix_mp;
+ 	ctx->dst_fmt.width = ctx->src_fmt.width;
+ 	ctx->dst_fmt.height = ctx->src_fmt.height;
+-	mvdec_fill_dst(&ctx->dst_fmt);
++	mvdec_fill_dst(&ctx->dst_fmt, ctx->src_fmt.pixelformat);
+ 	return 0;
+ }
+ 
+@@ -206,6 +226,23 @@ static const struct v4l2_ctrl_config mvdec_ctrls[] = {
+ 	  .min = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
+ 	  .max = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
+ 	  .def = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B },
++	{ .id = V4L2_CID_STATELESS_H264_SPS },
++	{ .id = V4L2_CID_STATELESS_H264_PPS },
++	{ .id = V4L2_CID_STATELESS_H264_SCALING_MATRIX },
++	{ .id = V4L2_CID_STATELESS_H264_DECODE_PARAMS },
++	{ .id = V4L2_CID_STATELESS_H264_DECODE_MODE,
++	  .min = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
++	  .max = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED,
++	  .def = V4L2_STATELESS_H264_DECODE_MODE_FRAME_BASED },
++	{ .id = V4L2_CID_STATELESS_H264_START_CODE,
++	  .min = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
++	  .max = V4L2_STATELESS_H264_START_CODE_ANNEX_B,
++	  .def = V4L2_STATELESS_H264_START_CODE_ANNEX_B },
++	{ .id = V4L2_CID_MPEG_VIDEO_H264_PROFILE,
++	  .min = V4L2_MPEG_VIDEO_H264_PROFILE_BASELINE,
++	  .max = V4L2_MPEG_VIDEO_H264_PROFILE_HIGH,
++	  .menu_skip_mask = BIT(V4L2_MPEG_VIDEO_H264_PROFILE_EXTENDED),
++	  .def = V4L2_MPEG_VIDEO_H264_PROFILE_MAIN },
+ 	{ .id = V4L2_CID_MPEG_VIDEO_HEVC_PROFILE,
+ 	  .min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+ 	  .max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
+@@ -301,6 +338,31 @@ static void mvdec_buf_request_complete(struct vb2_buffer *vb)
+ 	v4l2_ctrl_request_complete(vb->req_obj.req, &ctx->hdl);
+ }
+ 
++int mvdec_alloc_aux(struct mvdec_ctx *ctx, unsigned int idx, size_t size)
++{
++	struct mvdec_aux_buf *b;
++
++	if (idx >= MVDEC_AUX_BUFS || ctx->aux[idx].cpu)
++		return -EINVAL;
++	b = &ctx->aux[idx];
++	b->size = PAGE_ALIGN(size);
++	b->cpu = dma_alloc_coherent(ctx->dev->dev, b->size, &b->dma, GFP_KERNEL);
++	return b->cpu ? 0 : -ENOMEM;
++}
++
++static void mvdec_free_aux(struct mvdec_ctx *ctx)
++{
++	unsigned int i;
++
++	for (i = 0; i < MVDEC_AUX_BUFS; i++) {
++		if (!ctx->aux[i].cpu)
++			continue;
++		dma_free_coherent(ctx->dev->dev, ctx->aux[i].size, ctx->aux[i].cpu,
++				  ctx->aux[i].dma);
++		ctx->aux[i].cpu = NULL;
++	}
++}
++
+ static void mvdec_free_mv(struct mvdec_ctx *ctx)
+ {
+ 	unsigned int i;
+@@ -324,8 +386,12 @@ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 		return 0;
+ 
+ 	memset(&ctx->hevc, 0, sizeof(ctx->hevc));
++	memset(&ctx->h264, 0, sizeof(ctx->h264));
+ 	/* One zeroed collocated-MV buffer per capture buffer. */
+-	size = mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
++	if (mvdec_is_h264(ctx->src_fmt.pixelformat))
++		size = mvdec_h264_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
++	else
++		size = mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
+ 	for (i = 0; i < vb2_get_num_buffers(vq) && i < VIDEO_MAX_FRAME; i++) {
+ 		ctx->mv[i].size = size;
+ 		ctx->mv[i].cpu = dma_alloc_coherent(ctx->dev->dev, size,
+@@ -335,6 +401,15 @@ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 			return -ENOMEM;
+ 		}
+ 	}
++	if (mvdec_is_h264(ctx->src_fmt.pixelformat)) {
++		int ret = mvdec_h264_start(ctx);
++
++		if (ret) {
++			mvdec_free_aux(ctx);
++			mvdec_free_mv(ctx);
++			return ret;
++		}
++	}
+ 	return 0;
+ }
+ 
+@@ -353,8 +428,10 @@ static void mvdec_stop_streaming(struct vb2_queue *vq)
+ 		v4l2_ctrl_request_complete(vbuf->vb2_buf.req_obj.req, &ctx->hdl);
+ 		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
+ 	}
+-	if (!V4L2_TYPE_IS_OUTPUT(vq->type))
++	if (!V4L2_TYPE_IS_OUTPUT(vq->type)) {
+ 		mvdec_free_mv(ctx);
++		mvdec_free_aux(ctx);
++	}
+ }
+ 
+ static const struct vb2_ops mvdec_qops = {
+@@ -420,19 +497,35 @@ static void mvdec_device_run(void *priv)
+ 	struct mvdec_ctx *ctx = priv;
+ 	struct mvdec_dev *vdev = ctx->dev;
+ 	struct vb2_v4l2_buffer *src, *dst;
++	bool h264 = mvdec_is_h264(ctx->src_fmt.pixelformat);
+ 	struct mvdec_hevc_run run = {};
++	struct mvdec_h264_run run264 = {};
+ 	int ret;
+ 
+ 	src = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
+ 	dst = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
+ 	v4l2_ctrl_request_setup(src->vb2_buf.req_obj.req, &ctx->hdl);
+ 
+-	run.sps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SPS, NULL);
+-	run.pps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_PPS, NULL);
+-	run.slices = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
+-				&run.num_slices);
+-	run.decode = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_DECODE_PARAMS, NULL);
+-	run.scaling = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SCALING_MATRIX, NULL);
++	if (h264) {
++		run264.sps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_H264_SPS, NULL);
++		run264.pps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_H264_PPS, NULL);
++		run264.scaling = mvdec_ctrl(ctx,
++					    V4L2_CID_STATELESS_H264_SCALING_MATRIX,
++					    NULL);
++		run264.decode = mvdec_ctrl(ctx,
++					   V4L2_CID_STATELESS_H264_DECODE_PARAMS,
++					   NULL);
++	} else {
++		run.sps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SPS, NULL);
++		run.pps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_PPS, NULL);
++		run.slices = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
++					&run.num_slices);
++		run.decode = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_DECODE_PARAMS,
++					NULL);
++		run.scaling = mvdec_ctrl(ctx,
++					 V4L2_CID_STATELESS_HEVC_SCALING_MATRIX,
++					 NULL);
++	}
+ 	v4l2_m2m_buf_copy_metadata(src, dst);
+ 
+ 	ret = pm_runtime_resume_and_get(vdev->dev);
+@@ -448,7 +541,10 @@ static void mvdec_device_run(void *priv)
+ 	writel(0, vdev->larb + MVDEC_LARB_MMU_EN);
+ 
+ 	vdev->running = ctx;
+-	ret = mvdec_hevc_run(ctx, src, dst, &run);
++	if (h264)
++		ret = mvdec_h264_run(ctx, src, dst, &run264);
++	else
++		ret = mvdec_hevc_run(ctx, src, dst, &run);
+ 	v4l2_ctrl_request_complete(src->vb2_buf.req_obj.req, &ctx->hdl);
+ 	if (ret) {
+ 		dev_dbg(vdev->dev, "decode not started: %d\n", ret);
+@@ -533,7 +629,7 @@ static int mvdec_open(struct file *file)
+ 	mvdec_fill_src(&ctx->src_fmt);
+ 	ctx->dst_fmt.width = ctx->src_fmt.width;
+ 	ctx->dst_fmt.height = ctx->src_fmt.height;
+-	mvdec_fill_dst(&ctx->dst_fmt);
++	mvdec_fill_dst(&ctx->dst_fmt, ctx->src_fmt.pixelformat);
+ 	v4l2_fh_add(&ctx->fh, file);
+ 	mutex_unlock(&vdev->lock);
+ 	return 0;
+@@ -559,6 +655,7 @@ static int mvdec_release(struct file *file)
+ 	mutex_unlock(&vdev->lock);
+ 	v4l2_ctrl_handler_free(&ctx->hdl);
+ 	mvdec_free_mv(ctx);
++	mvdec_free_aux(ctx);
+ 	kfree(ctx);
+ 	return 0;
+ }
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+new file mode 100644
+index 000000000..cb97353ee
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+@@ -0,0 +1,811 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 VDEC: H.264 register programming.
++ *
++ * The decoder has no firmware. For every picture the CPU resets the core,
++ * points the bitstream window at the OUTPUT buffer and reads the first slice
++ * header through the hardware bit reader (AVC_VLD). The SPS, PPS and decode
++ * parameter controls decide which syntax elements are present; the slice
++ * values come from the reader. Once the header has been read up to
++ * num_ref_idx_active_override, the CPU programs the initial reference lists
++ * and the SPS, PPS and slice registers, then lets the hardware parse
++ * ref_pic_list_modification() and pred_weight_table() itself. After the rest
++ * of the header the reader sits on the first bit of slice_data(), and a
++ * single start decodes every slice of the picture.
++ *
++ * Supported: frame-based decoding with Annex-B start codes, the whole picture
++ * in one OUTPUT buffer starting with the first slice's start code,
++ * progressive (frame_mbs_only) 8-bit 4:2:0 Baseline, Main and High streams
++ * without slice groups, SP or SI slices, at most 17 capture buffers.
++ * Everything else is rejected with -EINVAL before the decoder starts.
++ *
++ * Register meanings come from reverse engineering. The sequence follows the
++ * vendor programming model but has not been compared with a hardware trace.
++ */
++
++#include <linux/bits.h>
++#include <linux/iopoll.h>
++#include <linux/limits.h>
++#include <linux/math.h>
++#include <linux/minmax.h>
++#include <linux/slab.h>
++#include <media/v4l2-h264.h>
++#include <media/videobuf2-dma-contig.h>
++
++#include "mt6797-vdec.h"
++
++/* AVC_VLD bit reader and parse commands */
++#define AVLD_PEEK		0x00	/* 32-bit window, no shift */
++#define AVLD_SHIFT(n)		(4 * (n))	/* shift n = 1..32 bits */
++#define AVLD_MODE		0x84
++#define AVLD_LIST_RESET		0x228	/* clear the hardware list state */
++#define AVLD_CMD_RPLM		0x22c	/* parse ref_pic_list_modification() */
++#define AVLD_CMD_PWT		0x230	/* parse pred_weight_table() */
++#define AVLD_CABAC_INIT		0x234
++#define AVLD_START		0x238
++#define AVLD_UE			0x23c
++#define AVLD_SE			0x240
++#define AVLD_STATUS		0x25c
++#define AVLD_STATUS_BUSY	BIT(25)
++#define AVLD_SHIFTER_RESET	0x28c
++
++#define VLD_FETCH_STATUS	0xe8
++#define VLD_STATUS		0xf4
++#define VLD_CTRL		0x108
++
++#define H264_SLICE_P		0
++#define H264_SLICE_B		1
++#define H264_SLICE_I		2
++#define H264_NAL_SLICE		1
++#define H264_NAL_IDR		5
++
++/* Capture buffers the 5-bit slot field of the list attributes can name. */
++#define H264_SLOTS		17
++/* Prefetch margin past the data that the bitstream window covers. */
++#define H264_BS_MARGIN		0x100
++#define H264_LIST_REGS		32
++
++/* Working buffers in ctx->aux[] */
++enum {
++	H264_AUX_PRED,			/* intra prediction line buffer */
++	H264_AUX_VLD,			/* VLD wrapper */
++	H264_AUX_PP,			/* post-processing wrapper */
++};
++
++static const size_t h264_aux_size[] = {
++	[H264_AUX_PRED] = 0x8000,
++	[H264_AUX_VLD] = 0xf000,
++	[H264_AUX_PP] = 0x1e000,
++};
++
++/* Collocated MV buffer: 64 bytes per 16x16 block, plus a 512-byte tail. */
++size_t mvdec_h264_mv_size(unsigned int width, unsigned int height)
++{
++	return PAGE_ALIGN((ALIGN(height, 32) / 16) * (ALIGN(width, 16) / 16) * 64 +
++			  0x200);
++}
++
++int mvdec_h264_start(struct mvdec_ctx *ctx)
++{
++	unsigned int i;
++	int ret;
++
++	for (i = 0; i < ARRAY_SIZE(h264_aux_size); i++) {
++		ret = mvdec_alloc_aux(ctx, i, h264_aux_size[i]);
++		if (ret)
++			return ret;
++	}
++	return 0;
++}
++
++/* A capture buffer as the decoder sees it. */
++struct mvdec_h264_buf {
++	u32 y;
++	u32 c;
++	u32 mv;
++	u8 slot;
++};
++
++/* A DPB entry used for reference. */
++struct mvdec_h264_ref {
++	struct mvdec_h264_buf buf;
++	u32 pic_num;		/* PicNum, or LongTermPicNum */
++	s32 top;
++	s32 bot;
++	bool lt;
++};
++
++struct mvdec_h264_pic {
++	struct mvdec_dev *vdev;
++	const struct v4l2_ctrl_h264_sps *sps;
++	const struct v4l2_ctrl_h264_pps *pps;
++	const struct v4l2_ctrl_h264_decode_params *dec;
++	unsigned int w, h;		/* coded size in pixels */
++	unsigned int pitch;
++	struct mvdec_h264_buf cur;
++	struct mvdec_h264_ref refs[V4L2_H264_NUM_DPB_ENTRIES];
++	struct v4l2_h264_reflist_builder builder;
++	struct v4l2_h264_reference p[V4L2_H264_REF_LIST_LEN];
++	struct v4l2_h264_reference b0[V4L2_H264_REF_LIST_LEN];
++	struct v4l2_h264_reference b1[V4L2_H264_REF_LIST_LEN];
++
++	/* from the slice header */
++	u32 nal_ref_idc;
++	bool idr;
++	u32 first_mb;
++	u32 slice_type;			/* as coded, 0..9 */
++	u32 st;				/* slice_type % 5 */
++	bool spatial;
++	u32 nl0, nl1;			/* num_ref_idx_lX_active_minus1 */
++	u32 cabac_init;
++	s32 qp_delta;
++	u32 dis;
++	s32 alpha, beta;
++};
++
++static bool sps_flag(const struct mvdec_h264_pic *p, u32 flag)
++{
++	return p->sps->flags & flag;
++}
++
++static bool pps_flag(const struct mvdec_h264_pic *p, u32 flag)
++{
++	return p->pps->flags & flag;
++}
++
++static void avld_write(struct mvdec_dev *vdev, u32 off, u32 val)
++{
++	mvdec_write(vdev, MVDEC_AVC_VLD + off, val);
++}
++
++static void mvdec_rmw(struct mvdec_dev *vdev, u32 off, u32 clear, u32 set)
++{
++	mvdec_write(vdev, off, (mvdec_read(vdev, off) & ~clear) | set);
++}
++
++static int mvdec_poll(struct mvdec_dev *vdev, u32 off, u32 mask, u32 want,
++		      unsigned int timeout_us)
++{
++	u32 val;
++
++	return readl_poll_timeout_atomic(vdev->base + off, val,
++					 (val & mask) == want, 1, timeout_us);
++}
++
++/* Run a hardware parse command; the register reads non-zero when done. */
++static int avld_command(struct mvdec_dev *vdev, u32 off)
++{
++	u32 val;
++
++	avld_write(vdev, off, 1);
++	return readl_poll_timeout_atomic(vdev->base + MVDEC_AVC_VLD + off, val,
++					 val, 1, 1500);
++}
++
++/* ---- hardware bit reader ---------------------------------------------- */
++
++static void br_skip(struct mvdec_dev *vdev, unsigned int n)
++{
++	for (; n >= 32; n -= 32)
++		mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_SHIFT(32));
++	if (n)
++		mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_SHIFT(n));
++}
++
++/* u(n), n = 0..32: peek the window, then shift. */
++static u32 br_u(struct mvdec_dev *vdev, unsigned int n)
++{
++	u32 v;
++
++	if (!n)
++		return 0;
++	v = mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_PEEK);
++	if (n < 32)
++		v >>= 32 - n;
++	br_skip(vdev, n);
++	return v;
++}
++
++static u32 br_ue(struct mvdec_dev *vdev)
++{
++	return mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_UE);
++}
++
++static s32 br_se(struct mvdec_dev *vdev)
++{
++	return (s32)mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_SE);
++}
++
++/* ---- validation and buffers --------------------------------------------- */
++
++static int mvdec_h264_check(struct mvdec_ctx *ctx, const struct mvdec_h264_run *run)
++{
++	const struct v4l2_ctrl_h264_sps *sps = run->sps;
++	const struct v4l2_ctrl_h264_pps *pps = run->pps;
++	const struct v4l2_plane_pix_format *y = &ctx->dst_fmt.plane_fmt[0];
++	unsigned int w, h;
++
++	if (!sps || !pps || !run->decode)
++		return -EINVAL;
++	if (pps->flags & V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT && !run->scaling)
++		return -EINVAL;
++	/* 8-bit 4:2:0 progressive frames only: no fields, MBAFF or 4:4:4. */
++	if (sps->chroma_format_idc != 1 || sps->bit_depth_luma_minus8 ||
++	    sps->bit_depth_chroma_minus8 ||
++	    sps->flags & (V4L2_H264_SPS_FLAG_SEPARATE_COLOUR_PLANE |
++			  V4L2_H264_SPS_FLAG_QPPRIME_Y_ZERO_TRANSFORM_BYPASS) ||
++	    !(sps->flags & V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY) ||
++	    run->decode->flags & V4L2_H264_DECODE_PARAM_FLAG_FIELD_PIC)
++		return -EINVAL;
++	if (sps->pic_order_cnt_type > 2 || sps->log2_max_frame_num_minus4 > 12 ||
++	    sps->log2_max_pic_order_cnt_lsb_minus4 > 12 || pps->num_slice_groups_minus1)
++		return -EINVAL;
++	w = (sps->pic_width_in_mbs_minus1 + 1) * 16;
++	h = (sps->pic_height_in_map_units_minus1 + 1) * 16;
++	if (w > y->bytesperline || (u64)y->bytesperline * ALIGN(h, 32) > y->sizeimage)
++		return -EINVAL;
++	return 0;
++}
++
++static int mvdec_h264_buf(struct mvdec_ctx *ctx, struct vb2_buffer *vb,
++			  struct mvdec_h264_buf *b)
++{
++	dma_addr_t y, c;
++
++	if (vb->index >= H264_SLOTS || !ctx->mv[vb->index].cpu)
++		return -EINVAL;
++	y = vb2_dma_contig_plane_dma_addr(vb, 0);
++	c = vb2_dma_contig_plane_dma_addr(vb, 1);
++	/* MC+0x224 takes Y >> 9 and MC+0x228 C >> 8. */
++	if (y & 0x1ff || c & 0xff)
++		return -EINVAL;
++	b->y = lower_32_bits(y);
++	b->c = lower_32_bits(c);
++	b->mv = lower_32_bits(ctx->mv[vb->index].dma);
++	b->slot = vb->index;
++	return 0;
++}
++
++/*
++ * Resolve every active DPB entry to its capture buffer and build the initial
++ * (default) lists. The hardware applies ref_pic_list_modification() itself.
++ */
++static int mvdec_h264_refs(struct mvdec_ctx *ctx, struct mvdec_h264_pic *p)
++{
++	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
++	const struct v4l2_h264_dpb_entry *dpb = p->dec->dpb;
++	struct vb2_buffer *vb;
++	unsigned int i;
++	int ret;
++
++	v4l2_h264_init_reflist_builder(&p->builder, p->dec, p->sps, dpb);
++	for (i = 0; i < V4L2_H264_NUM_DPB_ENTRIES; i++) {
++		struct mvdec_h264_ref *r = &p->refs[i];
++
++		if (!(dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE))
++			continue;
++		/* A missing reference rejects the picture. */
++		vb = vb2_find_buffer(vq, dpb[i].reference_ts);
++		if (!vb)
++			return -EINVAL;
++		ret = mvdec_h264_buf(ctx, vb, &r->buf);
++		if (ret)
++			return ret;
++		/* FrameNumWrap, or LongTermFrameIdx: the frame picture numbers. */
++		r->pic_num = p->builder.refs[i].frame_num;
++		r->lt = p->builder.refs[i].longterm;
++		r->top = dpb[i].top_field_order_cnt;
++		r->bot = dpb[i].bottom_field_order_cnt;
++	}
++	v4l2_h264_build_p_ref_list(&p->builder, p->p);
++	v4l2_h264_build_b_ref_lists(&p->builder, p->b0, p->b1);
++	return 0;
++}
++
++/* ---- programming -------------------------------------------------------- */
++
++static void mvdec_h264_reset(struct mvdec_dev *vdev)
++{
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x101);
++	mvdec_write(vdev, MVDEC_GCON + 0x00, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0x84, 2);
++	/* Sub-module power-down bits; the top bits are kept. */
++	mvdec_rmw(vdev, MVDEC_MISC + 0x00, GENMASK(21, 0), 0x801ff0);
++	mvdec_write(vdev, MVDEC_MISC + 0xc8, 0xfff7);
++	/* Sub-module clock gates, non-compressed output. */
++	mvdec_write(vdev, MVDEC_MISC + 0xcc, 0x51e30182);
++	mvdec_write(vdev, MVDEC_MISC + 0x178, 0xfffffe60);
++	mvdec_write(vdev, MVDEC_MISC + 0xf4, 0);
++	mvdec_write(vdev, MVDEC_MISC + 0x84, 2);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0);
++	mvdec_write(vdev, MVDEC_GCON + 0x18, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0xec, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0x04, 0x10);
++	mvdec_write(vdev, MVDEC_MISC + 0x160, 0x65ff10);
++}
++
++/* Wait for the VLD SRAM: when bit 15 is set, until bit 0 is set. */
++static int mvdec_h264_sram_wait(struct mvdec_dev *vdev)
++{
++	if (!(mvdec_read(vdev, MVDEC_VLD + VLD_STATUS) & BIT(15)))
++		return 0;
++	return mvdec_poll(vdev, MVDEC_VLD + VLD_STATUS, BIT(0), BIT(0), 50000);
++}
++
++/*
++ * Bitstream window over the OUTPUT buffer, the barrel shifter on its first
++ * byte, then past the start code and the NAL header.
++ */
++static int mvdec_h264_bitstream(struct mvdec_h264_pic *p, u32 pa, u32 len,
++				u32 pred)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	u32 end = pa + len + H264_BS_MARGIN;
++	u32 nal, type;
++	int ret;
++
++	mvdec_write(vdev, MVDEC_VLD + 0xc0, 0x40000);
++	avld_write(vdev, AVLD_MODE, 0xae00e007);
++	mvdec_rmw(vdev, MVDEC_VLD_TOP + 0x54, 0, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x24, 6);		/* H.264 */
++	mvdec_write(vdev, MVDEC_VLD + 0xb4, pa >> 6);	/* VFIFO start */
++	mvdec_write(vdev, MVDEC_VLD + 0xb8, end >> 6);	/* VFIFO end */
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x28, pred);
++	avld_write(vdev, AVLD_SHIFTER_RESET, 1);
++	avld_write(vdev, AVLD_SHIFTER_RESET, 0);
++
++	ret = mvdec_h264_sram_wait(vdev);
++	if (ret)
++		return ret;
++	mvdec_rmw(vdev, MVDEC_VLD + 0x110, 0, 1);
++	mvdec_write(vdev, MVDEC_VLD + 0xb0, pa);	/* read pointer */
++	mvdec_write(vdev, MVDEC_VLD + 0xb0, pa);
++	mvdec_write(vdev, MVDEC_VLD + 0x110, end);	/* write pointer */
++	avld_write(vdev, AVLD_SHIFTER_RESET, 1);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x100);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0);
++	mvdec_write(vdev, MVDEC_VLD + 0xcc, 0);
++	mvdec_write(vdev, MVDEC_VLD + 0x8c, 0x100000);	/* initial fetch */
++	ret = mvdec_poll(vdev, MVDEC_VLD + VLD_FETCH_STATUS, BIT(0), BIT(0), 50000);
++	if (ret)
++		return ret;
++	mvdec_write(vdev, MVDEC_VLD + 0x8c, 0x800000);	/* load the shifter */
++	avld_write(vdev, AVLD_SHIFTER_RESET, 0);
++
++	/* 4-byte (00 00 00 01) or 3-byte (00 00 01) start code at offset 0. */
++	nal = mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_PEEK);
++	if (nal == 0x00000001)
++		br_skip(vdev, 8);
++	else if (nal >> 8 != 0x000001)
++		return -EINVAL;
++	nal = mvdec_read(vdev, MVDEC_AVC_VLD + AVLD_PEEK) & 0xff;
++	br_skip(vdev, 32);
++
++	type = nal & 0x1f;
++	p->nal_ref_idc = (nal >> 5) & 3;
++	p->idr = type == H264_NAL_IDR;
++	if (nal & 0x80 || (type != H264_NAL_SLICE && type != H264_NAL_IDR) ||
++	    p->idr != !!(p->dec->flags & V4L2_H264_DECODE_PARAM_FLAG_IDR_PIC))
++		return -EINVAL;
++	return 0;
++}
++
++/* First slice header, from first_mb_in_slice to num_ref_idx_active. */
++static int mvdec_h264_walk_head(struct mvdec_h264_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_h264_sps *sps = p->sps;
++
++	p->first_mb = br_ue(vdev);
++	p->slice_type = br_ue(vdev);
++	/* SP and SI slices are not supported. */
++	if (p->slice_type > 9 || p->slice_type % 5 > H264_SLICE_I)
++		return -EINVAL;
++	p->st = p->slice_type % 5;
++	if (br_ue(vdev) != p->pps->pic_parameter_set_id)
++		return -EINVAL;
++	br_u(vdev, sps->log2_max_frame_num_minus4 + 4);	/* frame_num */
++	if (p->idr)
++		br_ue(vdev);			/* idr_pic_id */
++	if (sps->pic_order_cnt_type == 0) {
++		br_u(vdev, sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
++		if (pps_flag(p, V4L2_H264_PPS_FLAG_BOTTOM_FIELD_PIC_ORDER_IN_FRAME_PRESENT))
++			br_se(vdev);		/* delta_pic_order_cnt_bottom */
++	} else if (sps->pic_order_cnt_type == 1 &&
++		   !sps_flag(p, V4L2_H264_SPS_FLAG_DELTA_PIC_ORDER_ALWAYS_ZERO)) {
++		br_se(vdev);			/* delta_pic_order_cnt[0] */
++		if (pps_flag(p, V4L2_H264_PPS_FLAG_BOTTOM_FIELD_PIC_ORDER_IN_FRAME_PRESENT))
++			br_se(vdev);		/* delta_pic_order_cnt[1] */
++	}
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_REDUNDANT_PIC_CNT_PRESENT))
++		br_ue(vdev);			/* redundant_pic_cnt */
++	if (p->st == H264_SLICE_B)
++		p->spatial = br_u(vdev, 1);	/* direct_spatial_mv_pred_flag */
++	p->nl0 = p->pps->num_ref_idx_l0_default_active_minus1;
++	p->nl1 = p->pps->num_ref_idx_l1_default_active_minus1;
++	if (p->st != H264_SLICE_I && br_u(vdev, 1)) {
++		p->nl0 = br_ue(vdev);
++		if (p->st == H264_SLICE_B)
++			p->nl1 = br_ue(vdev);
++	}
++	if (p->nl0 > 31 || p->nl1 > 31)
++		return -EINVAL;
++	if (p->st != H264_SLICE_B)
++		p->nl1 = 0;
++	return 0;
++}
++
++/*
++ * Rest of the header: the hardware parses ref_pic_list_modification() and
++ * pred_weight_table(), the CPU reads dec_ref_pic_marking() through the
++ * deblocking fields. That leaves the reader on the first bit of slice_data().
++ */
++static int mvdec_h264_walk_tail(struct mvdec_h264_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	unsigned int i;
++	u32 op;
++	int ret;
++
++	if (p->st != H264_SLICE_I) {
++		ret = avld_command(vdev, AVLD_CMD_RPLM);
++		if (ret)
++			return ret;
++	}
++	if ((pps_flag(p, V4L2_H264_PPS_FLAG_WEIGHTED_PRED) && p->st == H264_SLICE_P) ||
++	    (p->pps->weighted_bipred_idc == 1 && p->st == H264_SLICE_B)) {
++		u32 misc = mvdec_read(vdev, MVDEC_MISC + 0xf0);
++
++		mvdec_write(vdev, MVDEC_MISC + 0xf0, misc | 1);
++		ret = avld_command(vdev, AVLD_CMD_PWT);
++		/* The vendor sequence then writes AVC_VLD+0xF0; kept as observed. */
++		avld_write(vdev, 0xf0, misc & ~1);
++		if (ret)
++			return ret;
++	}
++
++	if (p->nal_ref_idc) {
++		if (p->idr) {
++			br_u(vdev, 1);		/* no_output_of_prior_pics_flag */
++			br_u(vdev, 1);		/* long_term_reference_flag */
++		} else if (br_u(vdev, 1)) {	/* adaptive_ref_pic_marking_mode */
++			for (i = 0; ; i++) {
++				if (i == 66)
++					return -EINVAL;
++				op = br_ue(vdev);
++				if (!op)
++					break;
++				if (op == 1 || op == 2 || op == 3 || op == 4 || op == 6)
++					br_ue(vdev);
++				if (op == 3)
++					br_ue(vdev);
++			}
++		}
++	}
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_ENTROPY_CODING_MODE) && p->st != H264_SLICE_I) {
++		p->cabac_init = br_ue(vdev);
++		if (p->cabac_init > 2)
++			return -EINVAL;
++	}
++	p->qp_delta = br_se(vdev);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT)) {
++		p->dis = br_ue(vdev);
++		if (p->dis > 2)
++			return -EINVAL;
++		if (p->dis != 1) {
++			p->alpha = br_se(vdev);
++			p->beta = br_se(vdev);
++		}
++	}
++	return 0;
++}
++
++/* PicNum word and the attribute bits shared by a list entry's two words. */
++static void ref_words(const struct mvdec_h264_ref *r, u32 *num, u32 *attr)
++{
++	*num = (r->pic_num & 0x7ffff) | (r->lt ? BIT(19) : 0);
++	*attr = r->buf.slot << 23 | (r->lt ? BIT(20) : 0) |
++		(r->top <= r->bot ? BIT(21) : 0);
++}
++
++static int mvdec_h264_write_lists(struct mvdec_h264_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_h264_decode_params *dec = p->dec;
++	bool d8 = sps_flag(p, V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE);
++	unsigned int i, n = p->builder.num_valid;
++	const struct mvdec_h264_ref *r;
++	u32 num, attr;
++	int ret;
++
++	/* P list; unused entries point at the current picture. */
++	mvdec_write(vdev, MVDEC_MC + 0x564, 0);
++	avld_write(vdev, AVLD_LIST_RESET, 1);
++	ret = mvdec_poll(vdev, MVDEC_AVC_VLD + AVLD_LIST_RESET, BIT(0), 0, 1500);
++	if (ret)
++		return ret;
++	avld_write(vdev, 0xa0, 1 << (p->sps->log2_max_frame_num_minus4 + 4));
++	avld_write(vdev, 0xa4, dec->frame_num);		/* CurrPicNum */
++	for (i = 0; i < H264_LIST_REGS; i++)
++		mvdec_write(vdev, MVDEC_MC + 0x3dc + 4 * i, p->cur.y);
++	for (i = 0; i < H264_LIST_REGS; i++)
++		mvdec_write(vdev, MVDEC_MV + 0x180 + 4 * i, p->cur.mv >> 4);
++	for (i = 0; i < n; i++) {
++		r = &p->refs[p->p[i].index];
++		ref_words(r, &num, &attr);
++		mvdec_write(vdev, MVDEC_MC + 0x3dc + 4 * i, r->buf.y);
++		avld_write(vdev, 0xa8 + 4 * i, num);
++		mvdec_write(vdev, MVDEC_MV + 8 * i, attr);
++		mvdec_write(vdev, MVDEC_MV + 8 * i + 4, attr | BIT(22));
++	}
++
++	/* Current POC, then the B lists with their collocated MV buffers. */
++	mvdec_write(vdev, MVDEC_MV + 0x204, dec->top_field_order_cnt & 0x3ffff);
++	mvdec_write(vdev, MVDEC_MV + 0x208, dec->bottom_field_order_cnt & 0x3ffff);
++	mvdec_write(vdev, MVDEC_MV + 0x200,
++		    min(dec->top_field_order_cnt, dec->bottom_field_order_cnt) & 0x3ffff);
++	mvdec_write(vdev, MVDEC_MC + 0x568, 0);
++	mvdec_write(vdev, MVDEC_MC + 0x56c, 0);
++	for (i = 0; i < H264_LIST_REGS; i++)
++		mvdec_write(vdev, MVDEC_MC + 0x45c + 4 * i, p->cur.y);
++	for (i = 0; i < H264_LIST_REGS; i++)
++		mvdec_write(vdev, MVDEC_MC + 0x4dc + 4 * i, p->cur.y);
++	for (i = 0; i < n; i++) {
++		if (d8)		/* reduced collocated MV buffer */
++			mvdec_rmw(vdev, MVDEC_MV + 0x220, 0, BIT(5));
++		r = &p->refs[p->b0[i].index];
++		ref_words(r, &num, &attr);
++		mvdec_write(vdev, MVDEC_MC + 0x45c + 4 * i, r->buf.y);
++		avld_write(vdev, 0x128 + 4 * i, num);
++		mvdec_write(vdev, MVDEC_MV + 0x80 + 8 * i, attr | (r->top & 0x3ffff));
++		mvdec_write(vdev, MVDEC_MV + 0x84 + 8 * i,
++			    attr | BIT(22) | (r->bot & 0x3ffff));
++		r = &p->refs[p->b1[i].index];
++		ref_words(r, &num, &attr);
++		mvdec_write(vdev, MVDEC_MC + 0x4dc + 4 * i, r->buf.y);
++		avld_write(vdev, 0x1a8 + 4 * i, num);
++		mvdec_write(vdev, MVDEC_MV + 0x100 + 8 * i, attr | (r->top & 0x3ffff));
++		mvdec_write(vdev, MVDEC_MV + 0x104 + 8 * i,
++			    attr | BIT(22) | (r->bot & 0x3ffff));
++		mvdec_write(vdev, MVDEC_MV + 0x180 + 8 * i, r->buf.mv >> 4);
++		mvdec_write(vdev, MVDEC_MV + 0x184 + 8 * i,
++			    (r->buf.mv >> 4) + (d8 ? 2 : 4));
++	}
++	return 0;
++}
++
++static void sl_write(struct mvdec_dev *vdev, u32 base, const u8 *c, unsigned int num)
++{
++	unsigned int k;
++
++	for (k = 0; k < num; k += 4) {
++		mvdec_write(vdev, MVDEC_VLD + 0x260, base + k + 0x200);
++		mvdec_write(vdev, MVDEC_VLD + 0x264, (u32)c[k] << 24 | c[k + 1] << 16 |
++			    c[k + 2] << 8 | c[k + 3]);
++		mvdec_write(vdev, MVDEC_VLD + 0x260, base + k + 0x100);
++	}
++}
++
++/*
++ * Scaling lists in raster order, as V4L2 supplies them: the six 4x4 lists,
++ * then the Intra and Inter Y 8x8 lists.
++ */
++static void mvdec_h264_write_scaling(struct mvdec_dev *vdev,
++				     const struct v4l2_ctrl_h264_scaling_matrix *m)
++{
++	unsigned int i;
++
++	for (i = 0; i < 6; i++)
++		sl_write(vdev, 16 * i, m->scaling_list_4x4[i], 16);
++	sl_write(vdev, 0x60, m->scaling_list_8x8[0], 64);
++	sl_write(vdev, 0xa0, m->scaling_list_8x8[1], 64);
++}
++
++static void mvdec_h264_write_params(struct mvdec_h264_pic *p, bool scaling)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_h264_sps *sps = p->sps;
++	const struct v4l2_ctrl_h264_pps *pps = p->pps;
++	u32 v;
++
++	v = (sps->chroma_format_idc & 3) | (sps->log2_max_frame_num_minus4 & 0xf) << 2 |
++	    (sps->pic_order_cnt_type & 3) << 6 |
++	    (sps->log2_max_pic_order_cnt_lsb_minus4 & 0xf) << 8 |
++	    (sps->max_num_ref_frames & 0x1f) << 13 | BIT(21);
++	if (sps_flag(p, V4L2_H264_SPS_FLAG_DELTA_PIC_ORDER_ALWAYS_ZERO))
++		v |= BIT(12);
++	if (sps_flag(p, V4L2_H264_SPS_FLAG_FRAME_MBS_ONLY))
++		v |= BIT(18);
++	if (sps_flag(p, V4L2_H264_SPS_FLAG_MB_ADAPTIVE_FRAME_FIELD))
++		v |= BIT(19);
++	if (sps_flag(p, V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE))
++		v |= BIT(20);
++	avld_write(vdev, 0x88, v);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x68, sps->pic_width_in_mbs_minus1 |
++		    sps->pic_height_in_map_units_minus1 << 16);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x100, (sps->bit_depth_luma_minus8 & 0xf) |
++		    (sps->bit_depth_chroma_minus8 & 0xf) << 4);
++
++	v = (pps->weighted_bipred_idc & 3) << 3 | ((u32)pps->pic_init_qp_minus26 & 0x3f) << 5 |
++	    ((u32)pps->chroma_qp_index_offset & 0x1f) << 11 |
++	    ((u32)pps->second_chroma_qp_index_offset & 0x1f) << 19;
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_ENTROPY_CODING_MODE))
++		v |= BIT(0);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_BOTTOM_FIELD_PIC_ORDER_IN_FRAME_PRESENT))
++		v |= BIT(1);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_WEIGHTED_PRED))
++		v |= BIT(2);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT))
++		v |= BIT(16);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_CONSTRAINED_INTRA_PRED))
++		v |= BIT(17);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_TRANSFORM_8X8_MODE))
++		v |= BIT(18);
++	avld_write(vdev, 0x90, v);
++	/* [17:10]: the eight lists are loaded; [18]: scaling matrix in use. */
++	avld_write(vdev, 0x94, (pps->num_ref_idx_l0_default_active_minus1 & 0x1f) |
++		   (pps->num_ref_idx_l1_default_active_minus1 & 0x1f) << 5 |
++		   (scaling ? GENMASK(18, 10) : 0));
++
++	mvdec_rmw(vdev, MVDEC_AVC_VLD + 0x8c, GENMASK(16, 0), p->first_mb & 0x1fff);
++	mvdec_rmw(vdev, MVDEC_AVC_VLD + 0x98, GENMASK(31, 13),
++		  (p->slice_type & 0xf) << 13 | (p->spatial ? BIT(19) : 0) |
++		  (p->nl0 & 0x1f) << 20 | (p->nl1 & 0x1f) << 25);
++}
++
++/* Lowest and end address of the collocated MV buffers of this context. */
++static void mvdec_h264_mv_window(struct mvdec_ctx *ctx, u32 *lo, u32 *hi)
++{
++	unsigned int i;
++
++	*lo = U32_MAX;
++	*hi = 0;
++	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
++		if (!ctx->mv[i].cpu)
++			continue;
++		*lo = min_t(u32, *lo, lower_32_bits(ctx->mv[i].dma));
++		*hi = max_t(u32, *hi, lower_32_bits(ctx->mv[i].dma + ctx->mv[i].size));
++	}
++}
++
++static int mvdec_h264_decode(struct mvdec_ctx *ctx, struct mvdec_h264_pic *p)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	u32 ysize = p->pitch * ALIGN(p->h, 32);
++	u32 lo = min(p->cur.y, p->cur.c);
++	u32 hi = max(p->cur.y + ysize, p->cur.c + ysize / 2);
++	u32 mv_lo, mv_hi;
++	int ret;
++
++	if (sps_flag(p, V4L2_H264_SPS_FLAG_DIRECT_8X8_INFERENCE))
++		mvdec_rmw(vdev, MVDEC_MV + 0x220, 0, BIT(5));
++	mvdec_write(vdev, MVDEC_MISC + 0x04, 3);
++	mvdec_write(vdev, MVDEC_MC + 0x90, 4);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x58, U32_MAX);
++	mvdec_write(vdev, MVDEC_MC + 0x208, p->w);
++	mvdec_write(vdev, MVDEC_MC + 0x20c, p->h);
++	mvdec_write(vdev, MVDEC_MISC + 0x04, 0x10);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x70, p->w | p->h << 16);
++	avld_write(vdev, 0x280, 0xbfdfb0f7);			/* error mask */
++	mvdec_write(vdev, MVDEC_MC + 0x220, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x224, p->cur.y >> 9);
++	mvdec_write(vdev, MVDEC_MC + 0x228, p->cur.c >> 8);
++	mvdec_write(vdev, MVDEC_MC + 0x250, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x238, 3);
++	mvdec_write(vdev, MVDEC_MC + 0x260, p->w / 16 - 1);
++	mvdec_write(vdev, MVDEC_MC + 0x264, p->h / 16 - 1);
++	mvdec_write(vdev, MVDEC_MC + 0x22c, DIV_ROUND_UP(p->pitch, 16));
++	/* Output write window, covering both planes. */
++	mvdec_write(vdev, MVDEC_MC + 0x850, hi >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0x854, lo >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0x858, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x5e4, 0x20000);
++	mvdec_write(vdev, MVDEC_MC + 0x560, p->cur.y);
++	/* Chroma offset from luma; the vendor layout has C right after Y. */
++	mvdec_write(vdev, MVDEC_MC + 0x55c, p->cur.c - p->cur.y);
++	mvdec_write(vdev, MVDEC_MC + 0x980, DIV_ROUND_UP(p->pitch, 16));
++	avld_write(vdev, 0x2c8, 0xf9040039);
++	mvdec_write(vdev, MVDEC_MV + 0x20c, p->cur.mv >> 4);
++	avld_write(vdev, 0x9c, ((u32)p->qp_delta & 0x7f) | (p->dis & 3) << 7 |
++		   ((u32)p->alpha & 0xf) << 9 | ((u32)p->beta & 0xf) << 13 |
++		   (p->nal_ref_idc & 3) << 17 | (p->idr ? BIT(19) : 0) |
++		   (p->cabac_init & 3) << 20);
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_ENTROPY_CODING_MODE))
++		avld_write(vdev, AVLD_CABAC_INIT, 1);
++	ret = mvdec_poll(vdev, MVDEC_AVC_VLD + AVLD_STATUS, AVLD_STATUS_BUSY, 0, 1500);
++	if (ret)
++		return ret;
++	mvdec_rmw(vdev, MVDEC_MC + 0x5e4, 0, BIT(12));
++	/* Frame (not field) output. */
++	mvdec_rmw(vdev, MVDEC_MC + 0x920, 0, BIT(24));
++	mvdec_rmw(vdev, MVDEC_MC + 0x768, GENMASK(2, 0), 4);
++	mvdec_rmw(vdev, MVDEC_MISC + 0xf0, 0, 1);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x6c, (p->sps->pic_width_in_mbs_minus1 + 1) *
++		    (p->sps->pic_height_in_map_units_minus1 + 1));	/* MBs */
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x50, U32_MAX);
++	mvdec_write(vdev, MVDEC_MC + 0xa20, lower_32_bits(ctx->aux[H264_AUX_VLD].dma));
++	mvdec_write(vdev, MVDEC_MC + 0xa24, lower_32_bits(ctx->aux[H264_AUX_PP].dma));
++	avld_write(vdev, 0x2d0, 0x103);
++	avld_write(vdev, 0x2d4, 0xc210);
++	mvdec_rmw(vdev, MVDEC_MISC + 0x28, 0, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0x3c, lo);
++	mvdec_write(vdev, MVDEC_MISC + 0x40, hi);
++	mvdec_h264_mv_window(ctx, &mv_lo, &mv_hi);
++	mvdec_write(vdev, MVDEC_MISC + 0x54, mv_lo);
++	mvdec_write(vdev, MVDEC_MISC + 0x58, mv_hi);
++	avld_write(vdev, AVLD_MODE, 0xae80e007);	/* with error concealment */
++	avld_write(vdev, AVLD_START, 1);
++	return 0;
++}
++
++int mvdec_h264_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
++		   struct vb2_v4l2_buffer *dst, const struct mvdec_h264_run *run)
++{
++	struct mvdec_dev *vdev = ctx->dev;
++	struct mvdec_h264_pic *p;
++	dma_addr_t src_pa;
++	unsigned int i;
++	u32 len;
++	int ret;
++
++	ret = mvdec_h264_check(ctx, run);
++	if (ret) {
++		dev_dbg(vdev->dev, "unsupported H.264 stream\n");
++		return ret;
++	}
++	for (i = 0; i < ARRAY_SIZE(h264_aux_size); i++)
++		if (!ctx->aux[i].cpu)
++			return -EINVAL;
++
++	/* The OUTPUT buffer must cover the window end the decoder may fetch. */
++	src_pa = vb2_dma_contig_plane_dma_addr(&src->vb2_buf, 0);
++	len = vb2_get_plane_payload(&src->vb2_buf, 0);
++	if (!len || src_pa & 0x3f ||
++	    len + H264_BS_MARGIN > vb2_plane_size(&src->vb2_buf, 0))
++		return -EINVAL;
++
++	p = kzalloc_obj(*p);
++	if (!p)
++		return -ENOMEM;
++	p->vdev = vdev;
++	p->sps = run->sps;
++	p->pps = run->pps;
++	p->dec = run->decode;
++	p->w = (p->sps->pic_width_in_mbs_minus1 + 1) * 16;
++	p->h = (p->sps->pic_height_in_map_units_minus1 + 1) * 16;
++	p->pitch = ctx->dst_fmt.plane_fmt[0].bytesperline;
++
++	ret = mvdec_h264_buf(ctx, &dst->vb2_buf, &p->cur);
++	if (ret)
++		goto out;
++	ret = mvdec_h264_refs(ctx, p);
++	if (ret)
++		goto out;
++
++	ret = mvdec_h264_sram_wait(vdev);
++	if (ret)
++		goto out;
++	mvdec_h264_reset(vdev);
++	ret = mvdec_h264_bitstream(p, lower_32_bits(src_pa), len,
++				   lower_32_bits(ctx->aux[H264_AUX_PRED].dma));
++	if (ret)
++		goto out;
++	ret = mvdec_h264_walk_head(p);
++	if (ret)
++		goto out;
++	ret = mvdec_h264_write_lists(p);
++	if (ret)
++		goto out;
++	if (pps_flag(p, V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT))
++		mvdec_h264_write_scaling(vdev, run->scaling);
++	mvdec_h264_write_params(p, pps_flag(p, V4L2_H264_PPS_FLAG_SCALING_MATRIX_PRESENT));
++	ret = mvdec_h264_walk_tail(p);
++	if (ret)
++		goto out;
++	ret = mvdec_h264_decode(ctx, p);
++out:
++	if (ret)
++		dev_dbg(vdev->dev, "H.264 picture not started: %d\n", ret);
++	kfree(p);
++	return ret;
++}
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+index ac046d24a..18ccde535 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+@@ -29,6 +29,7 @@
+ #define MVDEC_VLD		0x21000
+ #define MVDEC_VLD_TOP		0x21800
+ #define MVDEC_MC		0x22000
++#define MVDEC_AVC_VLD		0x23000
+ #define MVDEC_MV		0x24000
+ #define MVDEC_PP		0x25000
+ #define MVDEC_HEVC_VLD		0x28000
+@@ -67,6 +68,27 @@ struct mvdec_hevc_run {
+ 	const struct v4l2_ctrl_hevc_scaling_matrix *scaling;
+ };
+ 
++struct mvdec_h264_run {
++	const struct v4l2_ctrl_h264_sps *sps;
++	const struct v4l2_ctrl_h264_pps *pps;
++	const struct v4l2_ctrl_h264_scaling_matrix *scaling;
++	const struct v4l2_ctrl_h264_decode_params *decode;
++};
++
++/* Per-context working buffers a codec may need (mvdec_alloc_aux()). */
++#define MVDEC_AUX_BUFS		4
++
++struct mvdec_aux_buf {
++	void *cpu;
++	dma_addr_t dma;
++	size_t size;
++};
++
++/* H.264 state kept across pictures (mt6797-vdec-h264.c). */
++struct mvdec_h264_state {
++	u32 reserved;
++};
++
+ /* Per capture buffer: the collocated MV buffer the decoder needs. */
+ struct mvdec_mv_buf {
+ 	void *cpu;
+@@ -93,6 +115,8 @@ struct mvdec_ctx {
+ 	struct v4l2_pix_format_mplane dst_fmt;
+ 	struct mvdec_mv_buf mv[VIDEO_MAX_FRAME];
+ 	struct mvdec_hevc_state hevc;
++	struct mvdec_h264_state h264;
++	struct mvdec_aux_buf aux[MVDEC_AUX_BUFS];
+ };
+ 
+ static inline struct mvdec_ctx *fh_to_ctx(struct v4l2_fh *fh)
+@@ -115,4 +139,13 @@ size_t mvdec_hevc_mv_size(unsigned int width, unsigned int height);
+ int mvdec_hevc_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
+ 		   struct vb2_v4l2_buffer *dst, const struct mvdec_hevc_run *run);
+ 
++/* mt6797-vdec-core.c */
++int mvdec_alloc_aux(struct mvdec_ctx *ctx, unsigned int idx, size_t size);
++
++/* mt6797-vdec-h264.c */
++size_t mvdec_h264_mv_size(unsigned int width, unsigned int height);
++int mvdec_h264_start(struct mvdec_ctx *ctx);
++int mvdec_h264_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
++		   struct vb2_v4l2_buffer *dst, const struct mvdec_h264_run *run);
++
+ #endif /* _MT6797_VDEC_H */
+-- 
+2.43.0
+
