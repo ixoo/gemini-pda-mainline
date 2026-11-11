@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-08-gemini-audio-ucm` |
-| Status | `running`: profile confirmed on card-31; speaker volume cap pending |
+| Status | `completed`: speaker, microphone and the S32_LE fix work under PipeWire; headphone switching untested |
 | Subsystem | audio: card profile for PipeWire |
 | Device variant | named Gemini PDA (MT6797X), Arch card root |
 | Date(s) | 2026-11-08 |
@@ -170,6 +170,11 @@ both HiFi profiles are dropped. With the two `UL1_CH* ADDA_UL_CH*` switches move
 Mic appeared. The profile now does that. The switches are DAPM routing: with the microphone pins off, they
 power nothing.
 
+gemini-base 40, with that profile, installed live on the same boot (`0bad0df9`), run by the custodian and the
+Arch session: active profile "HiFi (Mic, Speaker)", sink "Built-in Audio Speaker" at 0.60, source "Built-in
+Audio Mic", muted by default. With the microphone briefly unmuted, `pw-record` captured a 1 kHz −15 dBFS tone
+played on the speaker: Goertzel magnitude 84-94 left and 53-60 right, against about 1.0 before the tone.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -216,8 +221,10 @@ clicks at start or stop.
 
 ## Conclusion
 
-`confirmed` for the profile on card-31: speakers, headphones on the jack and the microphones work through
-UCM. Not established: a safe maximum speaker level for music.
+`confirmed` for the profile on card-31 through `alsaucm`, and under PipeWire on card-32: the speaker sink
+and microphone source appear with the owner's names, and capture works. The speaker distortion was the
+S32_LE fault, fixed by `0712`; `0707` removes the click at start. Not established: headphone switching on the
+jack under PipeWire, and pops at capture start.
 
 ## Follow-up
 
