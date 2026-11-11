@@ -598,8 +598,10 @@ hashes as above (`307ea6d8`, `7fea7bb1`). Private evidence:
   were captured for every clock event (85k lines). This is harmless, and the
   `vdec_sel` lines were still separable. Tracefs cleanup was verified.
   Private evidence: `artifacts/card-32/v8-*.txt`.
-- **Panel:** the owner's visual check of the panel during the loads is
-  pending.
+- **Panel: no change (closed).** The owner watched a rerun on the same boot,
+  `0bad0df9`: unload and reload the clock driver, load the probe (domain on
+  about 0.1 s, 0 interrupts), unload it. No flicker and no blank. Afterwards
+  `vdec` was `off-0` and the `vdec_sel` enable count 0.
 
 **Analysis.** The resource description holds on mainline:
 
