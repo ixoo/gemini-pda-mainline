@@ -973,7 +973,7 @@ first and defers as a whole if any is not ready. 0706 couples CPU8-9's supply
 VPROC2 with VSRAM_B, which only the A72 module provides, and `regulator_get()`
 defers a consumer of a coupled regulator until all its couples are registered. So
 with the A72s off no A53 policy existed when the CCI loaded.
-[0721](../../patches/proposals/0721-cpufreq-dt-leave-out-offline-CPUs-whose-resources-ar.patch)
+[0725](../../patches/proposals/0725-cpufreq-dt-leave-out-offline-CPUs-whose-resources-ar.patch)
 leaves such an offline CPU out instead. That restores station-work-100's state, with
 the A53 policies in place before the CCI. With the A72 module loaded first, VSRAM_B
 is registered and CPU8-9 are online, so nothing is left out.
