@@ -1,0 +1,267 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 16:23:22 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: learn the full charge
+
+charge_full was the design capacity, so UPower's battery health always
+read 100 % and the capacity was counted against a full charge the aged
+cell no longer holds.
+
+Learn it from pairs of OCV readings taken after 30 minutes at rest. The
+counted charge between two readings at least 40 points apart, at 15 to
+35 C and within 10 C and 72 hours of each other, over the change in
+capacity, is the full charge. A result outside 50 to 110 % of the design,
+or with charge and capacity moving in opposite directions, is dropped. The
+full charge moves a quarter of the way to each accepted result, and the
+change is logged and reported.
+
+The kernel keeps nothing across boots, so charge_full is writable within
+the same range: userspace saves it on the change event and restores it at
+boot. Capacity and charge_now are counted against it.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 155 ++++++++++++++++++++++-
+ 1 file changed, 148 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 9913aae..1e5a2da 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -57,6 +57,21 @@
+ /* Inside the idle current for this long, the voltage is taken as the OCV. */
+ #define MT6351_FG_REST_MS		(300 * MSEC_PER_SEC)
+ 
++/*
++ * Learning the full charge: two OCV readings, each after this long a rest,
++ * at least MT6351_FG_LEARN_SOC points apart, within the temperature range and
++ * MT6351_FG_LEARN_MS of each other, give the charge per point.
++ */
++#define MT6351_FG_LEARN_REST_MS		(1800 * MSEC_PER_SEC)
++#define MT6351_FG_LEARN_MS		(72LL * 3600 * MSEC_PER_SEC)
++#define MT6351_FG_LEARN_SOC		40
++#define MT6351_FG_LEARN_MIN_MC		15000
++#define MT6351_FG_LEARN_MAX_MC		35000
++#define MT6351_FG_LEARN_DELTA_MC	10000
++/* The full charge is kept within these percentages of the design. */
++#define MT6351_FG_FULL_MIN_PCT		50
++#define MT6351_FG_FULL_MAX_PCT		110
++
+ /*
+  * Within this current, the battery is reported as not charging while a supply
+  * is online, and as discharging otherwise.
+@@ -89,6 +104,14 @@ struct mt6351_fg {
+ 	s64 anchor_uah;
+ 	s64 anchor_car;
+ 	bool anchored;
++	/* The full charge, learned or restored, and the last learning reading. */
++	s64 full_uah;
++	bool rest_learned;
++	bool learn_valid;
++	s64 learn_car;
++	int learn_soc;
++	int learn_mc;
++	ktime_t learn_time;
+ };
+ 
+ /*
+@@ -145,6 +168,7 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 	} else if (!fg->resting) {
+ 		fg->rest_start = fg->win_start;
+ 		fg->resting = true;
++		fg->rest_learned = false;
+ 	}
+ 	fg->win_start = now;
+ 	fg->win_car = car;
+@@ -242,18 +266,87 @@ static int mt6351_fg_voltage(struct mt6351_fg *fg, int *uv)
+  * battery has rested long enough for the voltage to settle, for example held
+  * at a charge limit on the charger. Until then, the OCV reading is reported.
+  */
++/* Is a full charge within the accepted share of the design capacity? */
++static bool mt6351_fg_full_ok(struct mt6351_fg *fg, s64 uah)
++{
++	s64 design = fg->info->charge_full_design_uah;
++
++	return uah * 100 >= design * MT6351_FG_FULL_MIN_PCT &&
++	       uah * 100 <= design * MT6351_FG_FULL_MAX_PCT;
++}
++
++/* A new full charge: keep the capacity of the last OCV reading. */
++static void mt6351_fg_set_full(struct mt6351_fg *fg, s64 uah)
++{
++	if (fg->anchored && fg->full_uah > 0)
++		fg->anchor_uah = div64_s64(fg->anchor_uah * uah, fg->full_uah);
++	fg->full_uah = uah;
++}
++
++/*
++ * One OCV reading after a long rest. Paired with the previous one, the
++ * counted charge between them over the change in capacity is the full charge;
++ * the full charge moves a quarter of the way to it. Returns true when the
++ * full charge changed. Called under the lock.
++ */
++static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc)
++{
++	s64 dq_uah, q_uah;
++	int dsoc;
++	bool ok;
++
++	if (mc < MT6351_FG_LEARN_MIN_MC || mc > MT6351_FG_LEARN_MAX_MC) {
++		dev_dbg(fg->dev, "learning: %d mC out of range\n", mc);
++		return false;
++	}
++
++	ok = fg->learn_valid &&
++	     ktime_ms_delta(now, fg->learn_time) <= MT6351_FG_LEARN_MS &&
++	     abs(mc - fg->learn_mc) <= MT6351_FG_LEARN_DELTA_MC;
++	dsoc = soc - fg->learn_soc;
++	dq_uah = div_s64(mt6351_fg_car_nah(fg, fg->car - fg->learn_car), 1000);
++
++	fg->learn_valid = true;
++	fg->learn_car = fg->car;
++	fg->learn_soc = soc;
++	fg->learn_mc = mc;
++	fg->learn_time = now;
++
++	if (!ok || abs(dsoc) < MT6351_FG_LEARN_SOC) {
++		dev_dbg(fg->dev, "learning: reading at %d %%, no pair\n", soc);
++		return false;
++	}
++
++	/* Charging raises both; a sign mismatch is a bad pair. */
++	q_uah = div_s64(dq_uah * 100, dsoc);
++	if (q_uah <= 0 || !mt6351_fg_full_ok(fg, q_uah)) {
++		dev_dbg(fg->dev, "learning: %lld uAh over %d points rejected\n",
++			dq_uah, dsoc);
++		return false;
++	}
++
++	q_uah = fg->full_uah + div_s64(q_uah - fg->full_uah, 4);
++	dev_info(fg->dev, "full charge %lld uAh from %lld uAh over %d points\n",
++		 q_uah, dq_uah, dsoc);
++	mt6351_fg_set_full(fg, q_uah);
++
++	return true;
++}
++
+ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+-			      int *charge_uah)
++			      int *charge_uah, bool *full_changed)
+ {
+-	s64 full = fg->info->charge_full_design_uah;
++	ktime_t now = ktime_get_boottime();
++	s64 full = fg->full_uah;
+ 	int uv, mc, ret;
+ 	bool settled;
+-	s64 uah;
++	s64 uah, rest_ms = 0;
+ 
+ 	guard(mutex)(&fg->lock);
+ 
+-	settled = fg->resting &&
+-		  ktime_ms_delta(ktime_get_boottime(), fg->rest_start) >= MT6351_FG_REST_MS;
++	if (fg->resting)
++		rest_ms = ktime_ms_delta(now, fg->rest_start);
++	settled = rest_ms >= MT6351_FG_REST_MS;
+ 	if (!fg->anchored || settled) {
+ 		ret = mt6351_fg_voltage(fg, &uv);
+ 		if (!ret)
+@@ -276,6 +369,12 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		fg->anchor_uah = div_s64(full * ret, 100);
+ 		fg->anchor_car = fg->car;
+ 		fg->anchored = true;
++
++		if (rest_ms >= MT6351_FG_LEARN_REST_MS && !fg->rest_learned) {
++			fg->rest_learned = true;
++			*full_changed = mt6351_fg_learn(fg, now, ret, mc);
++			full = fg->full_uah;
++		}
+ 	}
+ 
+ 	uah = fg->anchor_uah + div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
+@@ -291,6 +390,7 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 				  union power_supply_propval *val)
+ {
+ 	struct mt6351_fg *fg = power_supply_get_drvdata(psy);
++	bool full_changed = false;
+ 	int ua, uah, mc, ret;
+ 
+ 	/* The battery description is read just after registration. */
+@@ -313,6 +413,9 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 		val->intval = mc / 100;
+ 		return 0;
+ 	case POWER_SUPPLY_PROP_CHARGE_FULL:
++		scoped_guard(mutex, &fg->lock)
++			val->intval = fg->full_uah;
++		return 0;
+ 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+ 		val->intval = fg->info->charge_full_design_uah;
+ 		return 0;
+@@ -349,12 +452,47 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+ 		return 0;
+ 	case POWER_SUPPLY_PROP_CAPACITY:
+-		return mt6351_fg_capacity(fg, ua, &val->intval, &uah);
++		ret = mt6351_fg_capacity(fg, ua, &val->intval, &uah, &full_changed);
++		break;
+ 	case POWER_SUPPLY_PROP_CHARGE_NOW:
+-		return mt6351_fg_capacity(fg, ua, &ret, &val->intval);
++		ret = mt6351_fg_capacity(fg, ua, &mc, &val->intval, &full_changed);
++		break;
+ 	default:
+ 		return -EINVAL;
+ 	}
++
++	/* Userspace saves a learned full charge on this event. */
++	if (full_changed)
++		power_supply_changed(psy);
++
++	return ret;
++}
++
++/* A full charge saved by userspace, restored at boot. */
++static int mt6351_fg_set_property(struct power_supply *psy,
++				  enum power_supply_property psp,
++				  const union power_supply_propval *val)
++{
++	struct mt6351_fg *fg = power_supply_get_drvdata(psy);
++
++	if (!READ_ONCE(fg->info))
++		return -ENODATA;
++	if (psp != POWER_SUPPLY_PROP_CHARGE_FULL)
++		return -EINVAL;
++	if (!mt6351_fg_full_ok(fg, val->intval))
++		return -ERANGE;
++
++	scoped_guard(mutex, &fg->lock)
++		mt6351_fg_set_full(fg, val->intval);
++	power_supply_changed(psy);
++
++	return 0;
++}
++
++static int mt6351_fg_property_is_writeable(struct power_supply *psy,
++					   enum power_supply_property psp)
++{
++	return psp == POWER_SUPPLY_PROP_CHARGE_FULL;
+ }
+ 
+ static const enum power_supply_property mt6351_fg_props[] = {
+@@ -379,6 +517,8 @@ static const struct power_supply_desc mt6351_fg_desc = {
+ 	.properties = mt6351_fg_props,
+ 	.num_properties = ARRAY_SIZE(mt6351_fg_props),
+ 	.get_property = mt6351_fg_get_property,
++	.set_property = mt6351_fg_set_property,
++	.property_is_writeable = mt6351_fg_property_is_writeable,
+ };
+ 
+ /* The PMIC's charger detection changed: a charger came or went. */
+@@ -441,6 +581,7 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, -EINVAL, "monitored battery has no OCV table\n");
+ 	fg->resistance_mohm = info->factory_internal_resistance_uohm > 0 ?
+ 			      info->factory_internal_resistance_uohm / 1000 : 0;
++	fg->full_uah = info->charge_full_design_uah;
+ 	WRITE_ONCE(fg->info, info);
+ 
+ 	/* Open the first current window now, so the current is known 5 s on. */
+-- 
+2.54.0 (Apple Git-157)
+

@@ -896,3 +896,4 @@ proposals/0728-arm64-dts-mediatek-gemini-station-give-the-A53-OPPs-.patch
 proposals/0729-media-mediatek-mt6797-vdec-add-H.264-decoding.patch
 proposals/0730-power-supply-mt6351-fuel-gauge-report-the-charge-now.patch
 proposals/0731-media-mediatek-mt6797-vdec-give-H.264-references-the.patch
+proposals/0732-power-supply-mt6351-fuel-gauge-learn-the-full-charge.patch

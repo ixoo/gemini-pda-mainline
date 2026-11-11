@@ -417,7 +417,7 @@ charging from a computer port at 1.5 A):
 
   It is one reading after boot and is left as it is.
 
-## Learned capacity: design proposal (owner request, not built)
+## Learned capacity (owner request)
 
 The owner: "It shows 100% battery health, but I think that's wrong". UPower's health is
 `energy-full` ÷ `energy-full-design`. With 0730, that is `charge_full` ÷ `charge_full_design`,
@@ -485,12 +485,33 @@ itself and needs userspace to keep the result across boots.
 `battery_meter` attributes above) gives the vendor's Qmax for this cell. It is a sanity check,
 not a seed: its units and temperature basis are the vendor model's.
 
-**Decisions for the owner:**
-- the writable `charge_full`;
-- the persistent file and its unit's owner;
-- whether to build the calibration helper.
+**Owner decisions (2026-11-11, through the custodian):**
+- "Yes, build it": driver learning, a writable `charge_full`, and a gemini-base unit that keeps
+  it.
+- "Yes, build the helper": the calibration-cycle script.
 
-Nothing is built until then.
+**Driver side:** [0732](../../patches/proposals/0732-power-supply-mt6351-fuel-gauge-learn-the-full-charge.patch).
+- Learning: as above.
+  - A pair is taken at the first capacity read after 30 min at rest.
+  - The first reading of a boot has no partner, because the counter resets at boot.
+  - An accepted result is logged at info level (`full charge … uAh from … uAh over … points`)
+    and raises a `power_supply` change event. Rejections are logged at debug level.
+- `charge_full` is readable and writable.
+  - A write outside 50-110 % of the 4268 mAh design gets `ERANGE`.
+  - A write keeps the current capacity reading: the last OCV reading is rescaled.
+- `capacity` and `charge_now` count against `charge_full`; `charge_full_design` stays 4268000.
+- Compiled at W=1 and checkpatch clean. The pair arithmetic was checked by hand: 2.45 Ah over
+  70 points gives 3.5 Ah, and the full charge moves from 4268 to 4076 mAh. Not on a device.
+
+**Userspace side (arch-root, gemini-base):**
+- **The unit:**
+  - at boot, write the saved value to `/sys/class/power_supply/battery/charge_full`;
+  - on a `power_supply` change event for `battery`, and at shutdown, save `charge_full` to
+    `/var/lib/gemini/battery-charge-full`, only if it differs from `charge_full_design`, or a
+    value was already saved.
+- **The calibration helper:** it drives the cycle above through the guard's
+  `charge_control_*` thresholds, which belong to the charging session (0695). It restores the
+  thresholds it found, and reports `charge_full` before and after.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
