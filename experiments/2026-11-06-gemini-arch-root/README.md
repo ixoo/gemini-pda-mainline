@@ -2021,6 +2021,11 @@ it at power-off, so gemini-base keeps it:
   `gemini-battery-capacity.service` at shutdown: writes the value only when it differs from
   the file, and never creates the file with the design value, so a fresh install keeps none
   until something is learned. Change uevents are frequent; the save costs one attribute read.
+- From 0736 (`a7c590bc`, "charger finished = 100 %"), the driver reports `charge_full` and
+  `charge_full_design` as usable charge, a fixed 93 % of the table charge: 3969240 µAh at
+  design, writes accepted from 1984620 to 4366164. The scripts need no change, since they
+  save what they read and compare with `charge_full_design`. A value saved under 0732's scale
+  would restore about 7 % high under 0736; none had been saved when it changed.
 - A battery swap isn't detected: the driver exposes no serial or model name, and the cell
   has only an NTC. After fitting a new battery, `rm /var/lib/gemini/battery-charge-full`, and
   the gauge learns the new cell over its cycles.
