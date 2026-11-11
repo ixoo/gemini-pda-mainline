@@ -1994,7 +1994,13 @@ capsules. The audio session made the same change in its profile (`4e52b4f4`), an
 gemini-base 40 carries it. `first-login` behaved as meant: with no sink it left no marker,
 so it retries at the next login.
 
-Not yet tried on the device: headphone switching, capture with `pw-record`.
+Installed live on card-32 (package `8a75f1b7…`, boot `0bad0df9`), with the custodian's
+temporary override removed and PipeWire restarted: Active Profile "HiFi (Mic, Speaker)", sink
+"Built-in Audio Speaker" at 0.60, source "Built-in Audio Mic" muted. Capture through
+PipeWire works: with the microphone briefly unmuted, a 1 kHz tone at -15 dBFS from `pw-play`
+on the speaker gave a `pw-record` Goertzel 1 kHz magnitude of 84–94 on the left channel and
+53–60 on the right, against about 1.0 before the tone; the microphone was muted again after.
+Not yet tried: headphone switching (needs headphones plugged in), pops at capture start.
 
 ## Analysis
 
