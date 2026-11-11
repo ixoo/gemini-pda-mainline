@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 14:19:58 -0500
+Subject: [PATCH] cpufreq: dt: leave out offline CPUs whose resources are not
+ ready
+
+The probe requests every present CPU's OPP resources first and defers
+as a whole if any of them is not ready. A CPU that is offline may take
+its supply or clock from a driver that brings it up later, or not at
+all; the probe then defers forever and no CPU gets a policy.
+
+On the MT6797 Gemini PDA the two Cortex-A72 cores come up from a module
+that also provides their SRAM LDO, which is coupled with their supply.
+The regulator core defers a consumer of a coupled regulator until all
+its couples are registered, so without that module cpufreq-dt deferred
+and the Cortex-A53 clusters went unmanaged.
+
+Leave such a CPU out with a message. A CPU that is online, or that fails
+for another reason, still fails the probe as before. A CPU left out has
+no policy if it comes up later.
+---
+ drivers/cpufreq/cpufreq-dt.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/drivers/cpufreq/cpufreq-dt.c b/drivers/cpufreq/cpufreq-dt.c
+index 1712b730a..6dc7b6349 100644
+--- a/drivers/cpufreq/cpufreq-dt.c
++++ b/drivers/cpufreq/cpufreq-dt.c
+@@ -312,6 +312,17 @@ static int dt_cpufreq_probe(struct platform_device *pdev)
+ 	/* Request resources early so we can return in case of -EPROBE_DEFER */
+ 	for_each_present_cpu(cpu) {
+ 		ret = dt_cpufreq_early_init(&pdev->dev, cpu);
++		/*
++		 * An offline CPU's supply or clock may come from a driver that
++		 * brings the CPU up later, or never. Leave it out rather than
++		 * hold back the CPUs that are running.
++		 */
++		if (ret == -EPROBE_DEFER && !cpu_online(cpu)) {
++			dev_info(&pdev->dev,
++				 "cpu%d is offline and not ready, leaving it out\n",
++				 cpu);
++			continue;
++		}
+ 		if (ret)
+ 			goto err;
+ 	}
+-- 
+2.43.0
+

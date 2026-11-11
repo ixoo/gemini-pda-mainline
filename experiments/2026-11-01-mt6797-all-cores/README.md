@@ -960,7 +960,31 @@ voltage.
 [0715](../../patches/proposals/0715-PM-devfreq-passive-do-not-wait-for-the-policies-of-o.patch)
 leaves offline CPUs without a policy out of the passive registration. A policy
 that appears later is skipped as an unknown parent, so the CCI follows the A53
-clusters only. Confirmation needs a boot of an image with 0715. Its station status
+clusters only. **station-work-103 (observed).** With 0715 and the 0702 guard (boot2
+`14c0112b`, main `4aef2e99`), a hand load on boot `b8fb3cbf` with the A72s off
+went as follows:
+- the rail providers loaded;
+- `clk-mt6797-mcusys` bound;
+- cpufreq-dt loaded but its probe deferred (517);
+- the station hung during the `mtk-cci-devfreq` insmod, and the watchdog reset it.
+
+So 0715 alone was not enough. cpufreq-dt's probe gets every present CPU's resources
+first and defers as a whole if any is not ready. 0706 couples CPU8-9's supply
+VPROC2 with VSRAM_B, which only the A72 module provides, and `regulator_get()`
+defers a consumer of a coupled regulator until all its couples are registered. So
+with the A72s off no A53 policy existed when the CCI loaded.
+[0721](../../patches/proposals/0721-cpufreq-dt-leave-out-offline-CPUs-whose-resources-ar.patch)
+leaves such an offline CPU out instead. That restores station-work-100's state, with
+the A53 policies in place before the CCI. With the A72 module loaded first, VSRAM_B
+is registered and CPU8-9 are online, so nothing is left out.
+
+Not explained: why the CCI probe hangs with no CPU policy at all, rather than
+deferring as it did when only some policies were missing. Its clock cannot gate
+(the cluster PLLs have no enable or disable), and the drop of its voltage request
+leaves VPROC1 where it was. Until that is understood, the station init should load
+`mtk-cci-devfreq` only once cpufreq-dt has created policies.
+
+Confirmation needs a boot of an image with 0715 and 0721. Its station status
 must read `cpufreq=loaded,...` and not `failed-cci-unbound`, with the CCI bound at
 `/sys/bus/platform/drivers/mtk-ccifreq/cci`.
 
