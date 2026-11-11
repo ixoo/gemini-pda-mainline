@@ -977,6 +977,56 @@ Inference:
 
 The evidence is private in `artifacts/station-work-97/cw3/`.
 
+### station-work-97 W3b: the GIC mask (0688) (2026-11-11)
+
+This tests the cpuidle session's 0688, which adds a `gic_mask` parameter to
+`mt6797-spm-sleep`. The module was built from `2054b72e` (`53f9eb60…`); the kernel Image
+is unchanged (`5de214f9…`), so it was loaded on the running boot `56832cd1`.
+- `insmod` was clean: no version or symbol complaint.
+- `mem_sleep` read `s2idle [deep]` afterwards. Before the insmod it already listed
+  `deep`, so the deep entry does not disappear when the module is unloaded.
+
+The owner approved writes G1-G4: with `gic_mask=1`, save the GICD SPI enables, disable all
+but INTID 212, poll RWP, and restore after the wait. The run was `w3b-run.sh`
+(`14c80787…`), on battery, with the owner present and a stopwatch. Each case was a `mem`
+suspend with `timer_sec` 120. The owner acted at about 20 s each time, timed from the lid
+close or from the "GO" cue.
+
+The first launch stopped after G0, before any masked case. The stop was a false alarm
+from the script's own filter: it matched `i2c 4-0020: Unbalanced pm_runtime_enable!`
+during the resume. 4-0020 is the `hi556` camera sensor, which has no driver. The filter
+was narrowed to the genirq "Unbalanced enable/disable for" lines, and the run was
+relaunched from G0.
+
+Wake times are `timer_out` / 32768 Hz:
+
+| Case | `gic_mask` | Owner action | SPM slept | `r12` | `loops` |
+| --- | --- | --- | --- | --- | --- |
+| G0 | 0 | lid open at ~20 s | 17.6 s | `0x40` (EINT) | 3 |
+| G1 | 1 | lid open at ~20 s | 18.9 s | `0x40` | 0 |
+| G2 | 1 | charger plug at ~20 s after GO | 23.8 s | `0x40` | 0 |
+| G3 | 1 | none | 120.0 s | `0x1` (timer) | 0 |
+
+Observed:
+- A key press after G1 and after G2 arrived on event1 within 1-4 s, so the restored
+  enables worked.
+- After the replug, the UDC was `configured`. No fault lines, taint 0.
+- At every entry and exit:
+  - EINT bank 5 read `sta 0`, `mask 0xFFFEFFFF` (EINT176 unmasked), `sens 0xFFFFFFFF`.
+  - MT6351 INT_STATUS0-3 read 0, and INT_CON2 read `0x4000`.
+- `/proc/interrupts` 191 and 209 each rose by 1 across G2 and by 2 between G2 and G3
+  (the unplug).
+
+Inference:
+- With the GIC masked, the charger plug wakes `mem` (G2). Without the mask the same plug
+  did not (the timed W3: a full 120 s timer wake). The lid wake works either way.
+- With the mask, CPU0 does not leave WFI before the PCM return (`loops=0`). Without it,
+  it left 2-3 times.
+- The timer still works under the mask (G3).
+- Whether `gic_mask=1` becomes the default is the cpuidle session's call.
+
+The evidence is private in `artifacts/station-work-97/w3b/`.
+
 ## Analysis
 
 None yet.
