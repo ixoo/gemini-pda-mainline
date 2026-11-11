@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-10-gemini-gnss-daemon` |
-| Status | `running`: the daemon feeds gpsd and GeoClue with standard NMEA; it passes offline tests against retained captures, with real gpsd and GeoClue in the dev VM; it has not run on the device |
+| Status | `running`: the daemon feeds gpsd and GeoClue with standard NMEA, and Noctalia switches it on and off; it passes offline tests against retained captures, with real gpsd and GeoClue in the dev VM; it has not run on the device |
 | Subsystem | GNSS userspace, `gnss-mt6797`, gpsd |
 | Device variant | Gemini PDA (MT6797X), Arch card root |
 | Date(s) | 2026-11-10 |
@@ -21,6 +21,9 @@ A later requirement, also in the owner's words: "It needs to be done in a standa
 software that require a position to be able to use it." So the daemon produces only standard NMEA
 0183, and applications reach it through gpsd (libgps clients) and GeoClue (desktop applications and
 browsers). There is no Gemini-specific client interface.
+
+And on switching it: "I don't want the gnss to be up by default, only when activated in noctalia
+(if possible)".
 
 Nothing did. With [0636](../../patches/proposals/0636-gnss-mt6797-boot-the-DSP-from-its-firmware-file.patch),
 opening `/dev/gnss0` boots the DSP, and
@@ -55,8 +58,30 @@ facts in [the driver notes](../../docs/hardware/gemini-gnss-driver.md); it conta
   starting it switches the GPS radio on.
 - [geoclue-gnss-mt6797.conf](geoclue-gnss-mt6797.conf), installed as
   `/etc/geoclue/conf.d/90-gnss-mt6797.conf`, points GeoClue's `[network-nmea]` source at the socket.
-- [PKGBUILD](PKGBUILD) packages all three, depending on `gpsd` and `geoclue`, for the Arch root to
-  build next to `gemini-base`.
+- [noctalia-gnss](noctalia-gnss), the Noctalia 5 plugin `gemini/gnss`: a control-center tile
+  (`gemini/gnss:toggle`) and a bar indicator (`gemini/gnss:indicator`). Each polls
+  `systemctl is-active gnss-mt6797.service` every 2 s, shows on or off, and starts or stops the
+  service on click, with a notification if that fails. Nothing else starts the GPS.
+- [gnss-mt6797.rules](gnss-mt6797.rules), a polkit rule: the user at the device's active local
+  session may start, stop and restart `gnss-mt6797.service` without a password. Every other unit
+  and action keeps polkit's normal rules.
+- [PKGBUILD](PKGBUILD) packages all of it, depending on `gpsd`, `geoclue` and `polkit`, for the
+  Arch root to build next to `gemini-base`. The plugin goes to `/usr/share/noctalia/plugins/gnss/`.
+
+## Noctalia
+
+From the Noctalia 5.4.1 documentation and its official example plugins:
+- **No built-in location toggle:** shortcut tiles are built-in types, and `custom_button` runs a
+  command but shows no state. A Luau plugin can declare a `[[shortcut]]` tile, with `setActive`
+  for its state, and a `[[widget]]` for the bar, and run commands with `noctalia.runAsync`.
+- **Plugin API level:** 24, for `runAsync` with an argument list; 5.4.1 accepts 3 to 43.
+- **Loading:** plugins load from the user's data directory or a configured source. A
+  `[[plugins.source]]` with `kind = "path"` and `location = "/usr/share/noctalia/plugins"` should
+  find `gnss/`, and `[plugins] enabled = ["gemini/gnss"]` turns it on. A bar widget is placed with
+  `type = "gemini/gnss:indicator"`. The tile is added from Noctalia's control-center settings; a
+  TOML form for plugin tiles is not documented. These belong in the root's `noctalia.toml`.
+- **Commands run as the session user,** by inference: the docs' examples use `systemctl --user`.
+  Hence the polkit rule.
 
 ## gpsd and GeoClue on Arch
 
@@ -121,8 +146,13 @@ playing step 6, and GeoClue's demo agent and `where-am-i` client (accuracy level
 each described "GPS GGA" with an accuracy from HDOP. Socket and pty were created with the
 intended groups and modes. Without an agent, `where-am-i` waited and timed out, as above.
 
+**polkit:** in the dev VM with dummy units, the rule without its session condition let a normal user
+start and stop `gnss-mt6797.service` and refused another unit and `enable`. The real rule refused the
+same start from an SSH session, which is not an active local session. polkit logged no rule error.
+
 **Not tested:** anything on the device; the card's Python, gpsd and GeoClue; `gpsdctl` through
-`gpsd.socket`; the search list's effect on acquisition.
+`gpsd.socket`; the search list's effect on acquisition; the Noctalia plugin, which has no Luau
+interpreter here and has not been loaded by Noctalia; the polkit rule from a real seat session.
 
 ## How each path gets tested on the device
 

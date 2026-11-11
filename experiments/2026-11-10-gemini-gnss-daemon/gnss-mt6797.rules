@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: MIT
+// Lets the user at the device's own active session switch the GPS on and off without a
+// password, so Noctalia's GPS tile works. Only gnss-mt6797.service, and only start, stop
+// and restart; any other unit or action keeps polkit's normal rules.
+polkit.addRule(function (action, subject) {
+    if (action.id == "org.freedesktop.systemd1.manage-units" &&
+        action.lookup("unit") == "gnss-mt6797.service" &&
+        ["start", "stop", "restart"].indexOf(action.lookup("verb")) >= 0 &&
+        subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
+});

@@ -4,6 +4,8 @@
 # needs, /usr/lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin, comes from gemian-firmware,
 # and the kernel needs patch 0636. The root should enable gpsd.socket, and its session
 # should run a GeoClue agent, without which GeoClue answers no application.
+# The GPS stays off until switched on from Noctalia's GPS tile or indicator (the
+# gemini/gnss plugin), which a polkit rule allows for the active local session only.
 pkgname=gnss-mt6797d
 pkgver=1
 pkgrel=1
@@ -11,13 +13,16 @@ pkgdesc='Gemini PDA GNSS: runs the MT6797 GNSS DSP and publishes NMEA for gpsd'
 arch=('any')
 url='https://github.com/ixoo/gemini-pda-mainline'
 license=('MIT')
-depends=('python' 'kmod' 'gpsd' 'geoclue')
+depends=('python' 'kmod' 'gpsd' 'geoclue' 'polkit')
 backup=('etc/geoclue/conf.d/90-gnss-mt6797.conf')
-source=(gnss-mt6797d gnss-mt6797.service geoclue-gnss-mt6797.conf)
-sha256sums=(SKIP SKIP SKIP)
+source=(gnss-mt6797d gnss-mt6797.service geoclue-gnss-mt6797.conf gnss-mt6797.rules
+        noctalia-gnss/plugin.toml noctalia-gnss/shortcut.luau noctalia-gnss/indicator.luau)
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
 
 package() {
     install -Dm755 gnss-mt6797d "$pkgdir/usr/bin/gnss-mt6797d"
     install -Dm644 gnss-mt6797.service "$pkgdir/usr/lib/systemd/system/gnss-mt6797.service"
     install -Dm644 geoclue-gnss-mt6797.conf "$pkgdir/etc/geoclue/conf.d/90-gnss-mt6797.conf"
+    install -Dm644 gnss-mt6797.rules "$pkgdir/usr/share/polkit-1/rules.d/50-gnss-mt6797.rules"
+    install -Dm644 -t "$pkgdir/usr/share/noctalia/plugins/gnss" plugin.toml shortcut.luau indicator.luau
 }

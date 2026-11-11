@@ -1,0 +1,22 @@
+# SPDX-License-Identifier: MIT
+# GPS on and off from Noctalia: a control-center tile and a bar indicator that show whether
+# gnss-mt6797.service runs and start or stop it on click. The GPS is off until switched on here.
+id = "gemini/gnss"
+name = "GPS"
+version = "1.0.0"
+# runAsync with an argument list needs level 24.
+plugin_api = 24
+author = "gemini"
+license = "MIT"
+dependencies = []
+tags = ["gps", "location"]
+icon = "map-pin"
+description = "Switch the Gemini PDA's GPS receiver on and off."
+
+[[shortcut]]
+id = "toggle"
+entry = "shortcut.luau"
+
+[[widget]]
+id = "indicator"
+entry = "indicator.luau"
