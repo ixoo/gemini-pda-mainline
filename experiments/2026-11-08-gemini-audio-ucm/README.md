@@ -40,6 +40,8 @@ mixer wrong, or a tone is not heard on the selected output.
   stream plays.
 - Headphones have the higher priority, so with the jack in they are selected; the speakers are
   the default otherwise.
+- Device comments are the names the owner expects to see in the desktop's audio panel:
+  "Speaker", "Headphones" and "Mic".
 - The microphones are AIN0 and AIN2 at 18 dB PGA, the tested capture setting. Which physical
   microphone each one is, is not established.
 
