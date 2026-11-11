@@ -1,0 +1,91 @@
+From 1c5602c1f5f734acb0868305a5658b732c1add4b Mon Sep 17 00:00:00 2001
+From: VM build <vm@localhost>
+Date: Wed, 11 Nov 2026 16:17:45 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: give H.264 references their own
+ chroma address
+
+V4L2 allocates the luma and chroma planes of a capture buffer
+separately, so the distance between them differs from buffer to buffer.
+The H.264 path only programmed reference luma addresses and the current
+picture's chroma offset, so the motion compensation read reference chroma
+from the wrong place: on hardware every inter frame had correct luma and
+wrong chroma.
+
+Program the per-reference chroma tables next to the luma ones and enable
+them, as the HEVC path does. The B-list tables and the enable bit are the
+ones HEVC uses; the P-list table address follows the same layout.
+---
+ .../mediatek/mt6797-vdec/mt6797-vdec-h264.c   | 21 +++++++++++++++----
+ 1 file changed, 17 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+index cb97353ee..b0a63029a 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+@@ -518,22 +518,29 @@ static int mvdec_h264_write_lists(struct mvdec_h264_pic *p)
+ 	u32 num, attr;
+ 	int ret;
+ 
+-	/* P list; unused entries point at the current picture. */
++	/*
++	 * P list; unused entries point at the current picture. Luma and chroma
++	 * come from separate tables, since V4L2 allocates the planes apart.
++	 */
+ 	mvdec_write(vdev, MVDEC_MC + 0x564, 0);
++	mvdec_write(vdev, MVDEC_MC + 0xb5c, 1);
+ 	avld_write(vdev, AVLD_LIST_RESET, 1);
+ 	ret = mvdec_poll(vdev, MVDEC_AVC_VLD + AVLD_LIST_RESET, BIT(0), 0, 1500);
+ 	if (ret)
+ 		return ret;
+ 	avld_write(vdev, 0xa0, 1 << (p->sps->log2_max_frame_num_minus4 + 4));
+ 	avld_write(vdev, 0xa4, dec->frame_num);		/* CurrPicNum */
+-	for (i = 0; i < H264_LIST_REGS; i++)
++	for (i = 0; i < H264_LIST_REGS; i++) {
+ 		mvdec_write(vdev, MVDEC_MC + 0x3dc + 4 * i, p->cur.y);
++		mvdec_write(vdev, MVDEC_MC + 0xb60 + 4 * i, p->cur.c);
++	}
+ 	for (i = 0; i < H264_LIST_REGS; i++)
+ 		mvdec_write(vdev, MVDEC_MV + 0x180 + 4 * i, p->cur.mv >> 4);
+ 	for (i = 0; i < n; i++) {
+ 		r = &p->refs[p->p[i].index];
+ 		ref_words(r, &num, &attr);
+ 		mvdec_write(vdev, MVDEC_MC + 0x3dc + 4 * i, r->buf.y);
++		mvdec_write(vdev, MVDEC_MC + 0xb60 + 4 * i, r->buf.c);
+ 		avld_write(vdev, 0xa8 + 4 * i, num);
+ 		mvdec_write(vdev, MVDEC_MV + 8 * i, attr);
+ 		mvdec_write(vdev, MVDEC_MV + 8 * i + 4, attr | BIT(22));
+@@ -546,16 +553,21 @@ static int mvdec_h264_write_lists(struct mvdec_h264_pic *p)
+ 		    min(dec->top_field_order_cnt, dec->bottom_field_order_cnt) & 0x3ffff);
+ 	mvdec_write(vdev, MVDEC_MC + 0x568, 0);
+ 	mvdec_write(vdev, MVDEC_MC + 0x56c, 0);
+-	for (i = 0; i < H264_LIST_REGS; i++)
++	for (i = 0; i < H264_LIST_REGS; i++) {
+ 		mvdec_write(vdev, MVDEC_MC + 0x45c + 4 * i, p->cur.y);
+-	for (i = 0; i < H264_LIST_REGS; i++)
++		mvdec_write(vdev, MVDEC_MC + 0xbe0 + 4 * i, p->cur.c);
++	}
++	for (i = 0; i < H264_LIST_REGS; i++) {
+ 		mvdec_write(vdev, MVDEC_MC + 0x4dc + 4 * i, p->cur.y);
++		mvdec_write(vdev, MVDEC_MC + 0xc60 + 4 * i, p->cur.c);
++	}
+ 	for (i = 0; i < n; i++) {
+ 		if (d8)		/* reduced collocated MV buffer */
+ 			mvdec_rmw(vdev, MVDEC_MV + 0x220, 0, BIT(5));
+ 		r = &p->refs[p->b0[i].index];
+ 		ref_words(r, &num, &attr);
+ 		mvdec_write(vdev, MVDEC_MC + 0x45c + 4 * i, r->buf.y);
++		mvdec_write(vdev, MVDEC_MC + 0xbe0 + 4 * i, r->buf.c);
+ 		avld_write(vdev, 0x128 + 4 * i, num);
+ 		mvdec_write(vdev, MVDEC_MV + 0x80 + 8 * i, attr | (r->top & 0x3ffff));
+ 		mvdec_write(vdev, MVDEC_MV + 0x84 + 8 * i,
+@@ -563,6 +575,7 @@ static int mvdec_h264_write_lists(struct mvdec_h264_pic *p)
+ 		r = &p->refs[p->b1[i].index];
+ 		ref_words(r, &num, &attr);
+ 		mvdec_write(vdev, MVDEC_MC + 0x4dc + 4 * i, r->buf.y);
++		mvdec_write(vdev, MVDEC_MC + 0xc60 + 4 * i, r->buf.c);
+ 		avld_write(vdev, 0x1a8 + 4 * i, num);
+ 		mvdec_write(vdev, MVDEC_MV + 0x100 + 8 * i, attr | (r->top & 0x3ffff));
+ 		mvdec_write(vdev, MVDEC_MV + 0x104 + 8 * i,
+-- 
+2.43.0
+

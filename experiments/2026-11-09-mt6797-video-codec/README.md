@@ -859,7 +859,7 @@ Untested: B-frames, larger sizes, real-world streams, scaling lists, tiles,
 long-term references, sustained playback and power. mpv and qutebrowser
 still need the VA-API bridge (Stage 4).
 
-## Stage 3c: H.264 in the same driver (built, V11 pending)
+## Stage 3c: H.264 in the same driver (V11: luma exact, chroma fix pending)
 
 [Patch 0729](../../patches/proposals/0729-media-mediatek-mt6797-vdec-add-H.264-decoding.patch)
 adds progressive 8-bit 4:2:0 H.264 (Baseline, Main, High) to `mt6797-vdec`
@@ -890,8 +890,52 @@ list-modification and weight-table commands; one start for multi-slice
 pictures. Not exercised by any clip: long-term references, explicit B
 weights, memory-management operations, POC type 1.
 
-**Next device run (V11).** Decode the three clips with `v4l2slh264dec` and
-compare every frame with the software decode.
+### V11 result
+
+*Run.* The device custodian ran it on station-work-107: boot2 `9e73c047`,
+main `c386b7e9` (contains `3db664d7`), `Image.gz` `278b7a00…`, boot
+`a1651d02`, on the Arch card, with GStreamer 1.28.8. The modules equal the
+reference build: `mt6797-vdec.ko` `f18c44ed…`, `v4l2-h264.ko` `11579ba4…`,
+`clk-mt6797-vdec.ko` `307ea6d8…`. Evidence (private):
+`artifacts/card-32/v11-*`.
+
+*Observed:*
+
+- The driver lists `S265` and `S264`. `v4l2slh264dec` registers.
+- `single` and `multi` each decoded 30 frames with 30 decoder interrupts;
+  `hi-b` decoded 24 with 24 interrupts. No driver errors, timeouts or
+  rejected pictures. SoC 35.7–37.3 °C.
+- Afterwards the domain was off and the `vdec_sel` enable count was 0.
+- HEVC regression: `hevc-single` output is byte-identical to V10's.
+
+*Result.* Detiled on the host, frame 0 of every clip and every frame's luma
+match the software decode. That covers I, P and B pictures, four slices,
+CABAC, 8x8 transform, scaling lists and temporal direct. Inter-frame chroma
+is wrong everywhere (2 of 30, 2 of 30 and 2 of 24 frames match in full).
+
+*Analysis.* The parsing, slice-header walk, reference lists, motion vectors
+and luma reconstruction are right. Inter chroma reads the wrong memory
+[I]. The H.264 path programmed only reference luma addresses plus one
+chroma offset, that of the current picture (`MC+0x55C`). The vendor's
+buffers keep chroma right after luma, so one offset served every buffer.
+V4L2 allocates the two planes separately, so the distance varies per
+buffer. The HEVC path writes a chroma address per reference and sets
+`MC+0xB5C = 1`; VP9 has per-reference chroma registers too.
+
+[Patch 0731](../../patches/proposals/0731-media-mediatek-mt6797-vdec-give-H.264-references-the.patch)
+writes the per-reference chroma tables:
+
+- B-list 0 at `MC+0xBE0` and B-list 1 at `MC+0xC60`, as HEVC does [O in
+  HEVC];
+- the P list at `MC+0xB60`, mirroring the P luma table at `MC+0x3DC` [I];
+- `MC+0xB5C = 1` to enable them.
+
+The C port and the model still agree on 84/84 pictures.
+
+**Next device run (V12).** Repeat V11 with 0731. If P-frame chroma becomes
+exact, the inferred P table is right. If only B-referenced chroma is fixed,
+the P table is elsewhere. If nothing changes, the H.264 mode ignores the
+tables and the planes must be contiguous.
 
 ## Follow-up
 
