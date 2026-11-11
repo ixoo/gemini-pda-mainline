@@ -613,3 +613,11 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    About a minute after two of those timeouts, a video showed part of a desktop panel holding fragments of another window's text on alternate frames, with the
    next frame clean. A buffer left half-written by a killed job, and then kept by a client that redraws only damaged regions, would show on one of its two buffers only,
    until it is redrawn whole (inference). Whether this needs a preceding timeout, and whether a fresh surface clears it, is not yet known.
+   With the rate log on, the same boot caught two more. The rate fell to 238 MHz at 884.44 s, an idle drop. The governor then asked four times to go back to 520 MHz, and
+   each was skipped by the drain as not idle. The jobs timed out at 885.25 and 885.83 s, well away from any rate change. So no change slipped past the drain. A job long at
+   238 MHz blocks the very raise that would shorten it, and passes the 500 ms timeout. The drain turns a slow job into a timeout. In this pattern it is the
+   cause, not the cure (inference from one capture).
+
+   The way out without the drain is to never cross a post-divider. The vendor's own split (type 12, cid 2 to 4) uses post-divider 4 for 250 to 900 MHz, and 8 only below that.
+   Mainline picks 2 at 520 MHz, because the MFGPLL's minimum VCO defaults to 1000 MHz. With a 1400 MHz minimum, 365, 442.5 and 520 MHz all use 4. Dropping 238 MHz, which idle
+   power-off makes worth little, then leaves no crossing at all. A floor of 365 MHz through devfreq's `min_freq` tests the first half on the running boot.
