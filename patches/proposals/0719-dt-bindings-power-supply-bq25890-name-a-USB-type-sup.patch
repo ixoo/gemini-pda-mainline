@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 13:33:03 -0500
+Subject: [PATCH] dt-bindings: power: supply: bq25890: name a USB type
+ supply for the guard
+
+Describe linux,guard-usb-detect, the power supply whose USB type
+tells the guard a dedicated charger is attached.
+---
+ .../devicetree/bindings/power/supply/bq25890.yaml      | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+index a2e66d92e..c0bd6020d 100644
+--- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
++++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+@@ -46,6 +46,14 @@ properties:
+       and capacity. Charging stops outside its operating-range-celsius and
+       resumes inside its alert-celsius; an unreadable temperature stops it.
+ 
++  linux,guard-usb-detect:
++    $ref: /schemas/types.yaml#/definitions/string
++    description:
++      With linux,guard-battery, the name of a power supply that reports the
++      USB type of the attached charger. On a dedicated or Apple charger the
++      driver raises the input limit and the charge current, and returns to
++      the chip's own input limit when the battery is hot.
++
+   linux,guard-end-threshold:
+     $ref: /schemas/types.yaml#/definitions/uint32
+     minimum: 50
+@@ -118,6 +126,8 @@ dependencies:
+     - linux,no-chip-config
+   linux,guard-end-threshold:
+     - linux,guard-battery
++  linux,guard-usb-detect:
++    - linux,guard-battery
+ 
+ if:
+   not:
+-- 
+2.43.0
+

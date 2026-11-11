@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 13:35:01 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: raise the charge
+ currents on a wall charger
+
+Name the MT6351 BC1.1 detection's supply to the charger's guard, so a
+dedicated charger gets the higher input limit and charge current.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index e7b849fd8..fa4bcc07d 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -517,6 +517,8 @@ charger@6b {
+ 		linux,no-chip-config;
+ 		linux,guard-battery = "battery";
+ 		linux,guard-end-threshold = <80>;
++		/* The MT6351 BC1.1 detection module's supply. */
++		linux,guard-usb-detect = "mt6351-usb";
+ 
+ 		/* VBUS for the left USB-C port as a host; see the ports below. */
+ 		usb0_vbus: usb-otg-vbus {
+-- 
+2.43.0
+

@@ -742,3 +742,26 @@ therefore misread a wall charger plugged in after a computer.
   charger, with no charger write at all.
 - **Then:** the guard sets the capped input limit and charge current from that type, a separate
   step with its own approval.
+
+**Implemented, with the owner's approval of the change and the caps:**
+- [0717](../../patches/proposals/0717-power-supply-add-MT6351-BC1.1-USB-charger-type-detec.patch):
+  a module that runs the vendor's BC1.1 steps at each plug and reports `mt6351-usb`'s `usb_type`.
+- [0718](../../patches/proposals/0718-power-supply-bq25890-raise-the-currents-on-a-dedicat.patch):
+  the guard sets 1.5 A input and 1.024 A charge on a dedicated or Apple charger, rewriting both
+  each pass with the watchdog fed. It returns to 500 mA from 45 °C on the battery until it's under
+  43 °C, or when the charger goes. A host, a charging host and an unknown charger keep 500 mA.
+- [0719](../../patches/proposals/0719-dt-bindings-power-supply-bq25890-name-a-USB-type-sup.patch) and
+  [0720](../../patches/proposals/0720-arm64-dts-mediatek-gemini-station-raise-the-charge-c.patch):
+  name the supply to the guard with `linux,guard-usb-detect`.
+
+All four are clean at `W=1`, and the binding and station DTB pass their schema checks. They apply
+in both series, and the station series gives the exact driver files compiled. Nothing has
+booted.
+
+**Known effects and limits:**
+- Feeding the watchdog on a wall charger keeps whatever charge voltage the bootloader left, at
+  most the battery's design 4.352 V. Each limit still stops charging first.
+- The module finds the PMIC and the PHY port from the device tree and creates its own device,
+  because the PMIC's MFD has no cell for this block yet. That's a blocker before upstream.
+
+D1 tests the module alone on the running card; D2 tests the guard on the next image.

@@ -68,6 +68,8 @@ CONFIG_BATTERY_MT6351=y
 # (2026-11-02-gemini-kernel-charge-guard). Emulation is only how a 50 C stop can
 # be tested; it can mask the real reading below 60 C, so it goes once proven.
 CONFIG_CHARGER_BQ25890=y
+# The MT6351 BC1.1 USB charger type, read by the charger guard on a wall charger.
+CONFIG_CHARGER_MT6351_USB_TYPE=m
 CONFIG_THERMAL_EMULATION=y
 # With modules on, defconfig's =m options would become modules that nothing
 # loads. Keep each one built in, as in the soak kernel without modules.

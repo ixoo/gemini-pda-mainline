@@ -881,3 +881,7 @@ proposals/0712-ASoC-mediatek-mt6797-describe-the-memif-HD-alignment.patch
 proposals/0713-drm-panfrost-check-the-MT6797-start-temperature-only.patch
 proposals/0715-PM-devfreq-passive-do-not-wait-for-the-policies-of-o.patch
 proposals/0716-soc-mediatek-add-an-MT6797-video-decoder-register-re.patch
+proposals/0717-power-supply-add-MT6351-BC1.1-USB-charger-type-detec.patch
+proposals/0718-power-supply-bq25890-raise-the-currents-on-a-dedicat.patch
+proposals/0719-dt-bindings-power-supply-bq25890-name-a-USB-type-sup.patch
+proposals/0720-arm64-dts-mediatek-gemini-station-raise-the-charge-c.patch

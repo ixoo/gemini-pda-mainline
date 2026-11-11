@@ -1,0 +1,436 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 13:30:32 -0500
+Subject: [PATCH] power: supply: add MT6351 BC1.1 USB charger type
+ detection
+
+The MT6797's USB 2.0 PHY can hand D+ and D- to the MT6351 PMIC's BC1.1
+comparators. The vendor kernel uses that to tell a host from a charging
+host and a dedicated or Apple charger, and sets its charger's input
+limit from the result; the BQ25896's own detection, on lines that don't
+reach it, reads every port as a host.
+
+Detect the type at each plug as the vendor does: switch the lines, run
+data contact detection and the primary and secondary steps, and switch
+them back. Report it as a USB power supply's usb_type. Nothing is
+written to the charger.
+
+The PMIC and the PHY port are found from the device tree, and the
+module creates its own device, since the PMIC's MFD has no cell for
+this block yet.
+---
+ drivers/power/supply/Kconfig           |   9 +
+ drivers/power/supply/Makefile          |   1 +
+ drivers/power/supply/mt6351-usb-type.c | 368 +++++++++++++++++++++++++
+ 3 files changed, 378 insertions(+)
+ create mode 100644 drivers/power/supply/mt6351-usb-type.c
+
+diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
+index f1ed82724..db30caedf 100644
+--- a/drivers/power/supply/Kconfig
++++ b/drivers/power/supply/Kconfig
+@@ -840,6 +840,15 @@ config CHARGER_BQ25890
+ 	help
+ 	  Say Y to enable support for the TI BQ25890 battery charger.
+ 
++config CHARGER_MT6351_USB_TYPE
++	tristate "MediaTek MT6351 USB charger type detection"
++	depends on MFD_MT6397 && OF
++	help
++	  Say Y or M to detect the type of a USB charger (SDP, CDP, DCP or
++	  Apple) with the MT6351 PMIC's BC1.1 block, switching the MT6797
++	  USB 2.0 PHY's data lines to it at a plug. The result is reported
++	  as a power supply's usb_type for a charger driver to use.
++
+ config CHARGER_BQ25980
+ 	tristate "TI BQ25980 battery charger driver"
+ 	depends on I2C
+diff --git a/drivers/power/supply/Makefile b/drivers/power/supply/Makefile
+index b58c72ace..ff5ca3c80 100644
+--- a/drivers/power/supply/Makefile
++++ b/drivers/power/supply/Makefile
+@@ -105,6 +105,7 @@ obj-$(CONFIG_CHARGER_BQ24735)	+= bq24735-charger.o
+ obj-$(CONFIG_CHARGER_BQ2515X)	+= bq2515x_charger.o
+ obj-$(CONFIG_CHARGER_BQ257XX)	+= bq257xx_charger.o
+ obj-$(CONFIG_CHARGER_BQ25890)	+= bq25890_charger.o
++obj-$(CONFIG_CHARGER_MT6351_USB_TYPE)	+= mt6351-usb-type.o
+ obj-$(CONFIG_CHARGER_BQ25980)	+= bq25980_charger.o
+ obj-$(CONFIG_CHARGER_BQ256XX)	+= bq256xx_charger.o
+ obj-$(CONFIG_CHARGER_RK817)	+= rk817_charger.o
+diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
+new file mode 100644
+index 000000000..a0b7aa2c5
+--- /dev/null
++++ b/drivers/power/supply/mt6351-usb-type.c
+@@ -0,0 +1,368 @@
++// SPDX-License-Identifier: GPL-2.0
++/*
++ * USB charger type detection with the MT6351 PMIC's BC1.1 block.
++ *
++ * On the MT6797 the USB port's D+ and D- reach either the USB 2.0 PHY or,
++ * with the PHY's BC11_SW_EN set, the PMIC's BC1.1 comparators. With VBUS
++ * present this switches the lines to the PMIC, runs the BC1.1 steps (data
++ * contact detection, then primary and secondary detection) and switches them
++ * back. The result is reported as a USB power supply's usb_type, so that a
++ * charger driver can pick its input limit. No charger register is written.
++ *
++ * The PMIC and the PHY port are found from the device tree. The PHY port's
++ * register is shared with the T-PHY driver, which writes it only when the PHY
++ * is set up; detection runs only at a plug, for about 0.4 s.
++ */
++
++#include <linux/bits.h>
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_address.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <linux/power_supply.h>
++#include <linux/regmap.h>
++#include <linux/workqueue.h>
++
++#define MT6351_CHR_CON0			0x0f78
++#define MT6351_RGS_CHRDET		BIT(5)
++
++#define MT6351_CHR_CON20		0x0fa0
++#define MT6351_BC11_BB_CTRL		BIT(0)
++#define MT6351_BC11_RST			BIT(1)
++#define MT6351_BC11_VSRC_EN		GENMASK(3, 2)
++#define MT6351_BC11_CMP_OUT		BIT(7)
++
++#define MT6351_CHR_CON21		0x0fa2
++#define MT6351_BC11_VREF_VTH		GENMASK(1, 0)
++#define MT6351_BC11_CMP_EN		GENMASK(3, 2)
++#define MT6351_BC11_IPD_EN		GENMASK(5, 4)
++#define MT6351_BC11_IPU_EN		GENMASK(7, 6)
++#define MT6351_BC11_BIAS_EN		BIT(8)
++
++/* The T-PHY's USBPHYACR6 in a USB 2.0 port, and its BC1.1 line switch. */
++#define TPHY_U2_USBPHYACR6		0x018
++#define TPHY_U2_BC11_SW_EN		BIT(23)
++
++#define USB_TYPE_POLL			msecs_to_jiffies(1000)
++
++struct mt6351_usb_type {
++	struct device *dev;
++	struct regmap *regmap;
++	void __iomem *acr6;
++	struct clk *phy_clk;
++	struct power_supply *psy;
++	struct delayed_work work;
++	bool online;
++	int usb_type;
++};
++
++static void bc11_set(struct mt6351_usb_type *ut, unsigned int reg, u32 mask, u32 val)
++{
++	regmap_update_bits(ut->regmap, reg, mask, (val << __ffs(mask)) & mask);
++}
++
++static bool bc11_cmp_out(struct mt6351_usb_type *ut)
++{
++	unsigned int val;
++
++	if (regmap_read(ut->regmap, MT6351_CHR_CON20, &val))
++		return false;
++	return val & MT6351_BC11_CMP_OUT;
++}
++
++/* One comparator step: set up, settle for 80 ms, read, and clear again. */
++static bool bc11_step(struct mt6351_usb_type *ut, u32 vsrc, u32 ipu, u32 ipd,
++		      u32 vth, u32 cmp)
++{
++	bool out;
++
++	if (vsrc)
++		bc11_set(ut, MT6351_CHR_CON20, MT6351_BC11_VSRC_EN, vsrc);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_IPU_EN, ipu);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_IPD_EN, ipd);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_VREF_VTH, vth);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_CMP_EN, cmp);
++	msleep(80);
++	out = bc11_cmp_out(ut);
++
++	bc11_set(ut, MT6351_CHR_CON20, MT6351_BC11_VSRC_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_IPU_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_IPD_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_VREF_VTH, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_CMP_EN, 0);
++	return out;
++}
++
++static void phy_switch(struct mt6351_usb_type *ut, bool to_pmic)
++{
++	u32 val = readl(ut->acr6);
++
++	if (to_pmic)
++		val |= TPHY_U2_BC11_SW_EN;
++	else
++		val &= ~TPHY_U2_BC11_SW_EN;
++	writel(val, ut->acr6);
++}
++
++/* Leave the PMIC's BC1.1 block off and the lines with the PHY. */
++static void bc11_release(struct mt6351_usb_type *ut)
++{
++	regmap_update_bits(ut->regmap, MT6351_CHR_CON20, MT6351_BC11_VSRC_EN, 0);
++	regmap_update_bits(ut->regmap, MT6351_CHR_CON21,
++			   MT6351_BC11_VREF_VTH | MT6351_BC11_CMP_EN |
++			   MT6351_BC11_IPD_EN | MT6351_BC11_IPU_EN | MT6351_BC11_BIAS_EN, 0);
++	phy_switch(ut, false);
++}
++
++/*
++ * The BC1.1 steps as the vendor kernel runs them. With data contact detected
++ * (a resistive D+), step A1 tells an Apple 2.1 A charger from another
++ * non-standard one; otherwise A2 finds no port (a host) or a charging port,
++ * which B2 splits into a dedicated charger and a charging host.
++ */
++static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
++{
++	int type, ret;
++
++	ret = clk_prepare_enable(ut->phy_clk);
++	if (ret)
++		return ret;
++
++	phy_switch(ut, true);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_BIAS_EN, 1);
++	bc11_set(ut, MT6351_CHR_CON20, MT6351_BC11_VSRC_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_VREF_VTH, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_CMP_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_IPU_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON21, MT6351_BC11_IPD_EN, 0);
++	bc11_set(ut, MT6351_CHR_CON20, MT6351_BC11_RST, 1);
++	bc11_set(ut, MT6351_CHR_CON20, MT6351_BC11_BB_CTRL, 1);
++	msleep(50);
++
++	if (bc11_step(ut, 0, 2, 1, 1, 2)) {		/* DCD */
++		if (bc11_step(ut, 0, 0, 1, 0, 1))	/* A1 */
++			type = POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID;
++		else
++			type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
++	} else if (bc11_step(ut, 2, 0, 1, 0, 1)) {	/* A2 */
++		if (bc11_step(ut, 0, 2, 0, 1, 1))	/* B2 */
++			type = POWER_SUPPLY_USB_TYPE_DCP;
++		else
++			type = POWER_SUPPLY_USB_TYPE_CDP;
++	} else {
++		type = POWER_SUPPLY_USB_TYPE_SDP;
++	}
++
++	bc11_release(ut);
++	clk_disable_unprepare(ut->phy_clk);
++	return type;
++}
++
++static void mt6351_usb_type_work(struct work_struct *work)
++{
++	struct mt6351_usb_type *ut =
++		container_of(work, struct mt6351_usb_type, work.work);
++	unsigned int con0;
++	bool online;
++	int type;
++
++	if (!regmap_read(ut->regmap, MT6351_CHR_CON0, &con0)) {
++		online = con0 & MT6351_RGS_CHRDET;
++		if (online && !ut->online) {
++			type = mt6351_usb_type_detect(ut);
++			if (type < 0) {
++				dev_warn(ut->dev, "detection failed: %d\n", type);
++				type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
++			}
++			dev_info(ut->dev, "charger attached: %s\n",
++				 type == POWER_SUPPLY_USB_TYPE_SDP ? "SDP (host)" :
++				 type == POWER_SUPPLY_USB_TYPE_CDP ? "CDP (charging host)" :
++				 type == POWER_SUPPLY_USB_TYPE_DCP ? "DCP (dedicated charger)" :
++				 type == POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID ?
++				 "Apple 2.1 A charger" : "non-standard charger");
++			WRITE_ONCE(ut->usb_type, type);
++			WRITE_ONCE(ut->online, true);
++			power_supply_changed(ut->psy);
++		} else if (!online && ut->online) {
++			WRITE_ONCE(ut->usb_type, POWER_SUPPLY_USB_TYPE_UNKNOWN);
++			WRITE_ONCE(ut->online, false);
++			power_supply_changed(ut->psy);
++		}
++	}
++
++	queue_delayed_work(system_power_efficient_wq, &ut->work, USB_TYPE_POLL);
++}
++
++static int mt6351_usb_type_get_property(struct power_supply *psy,
++					enum power_supply_property psp,
++					union power_supply_propval *val)
++{
++	struct mt6351_usb_type *ut = power_supply_get_drvdata(psy);
++
++	switch (psp) {
++	case POWER_SUPPLY_PROP_ONLINE:
++		val->intval = READ_ONCE(ut->online);
++		return 0;
++	case POWER_SUPPLY_PROP_USB_TYPE:
++		val->intval = READ_ONCE(ut->usb_type);
++		return 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static const enum power_supply_property mt6351_usb_type_props[] = {
++	POWER_SUPPLY_PROP_ONLINE,
++	POWER_SUPPLY_PROP_USB_TYPE,
++};
++
++static const struct power_supply_desc mt6351_usb_type_desc = {
++	.name = "mt6351-usb",
++	.type = POWER_SUPPLY_TYPE_USB,
++	.usb_types = BIT(POWER_SUPPLY_USB_TYPE_UNKNOWN) |
++		     BIT(POWER_SUPPLY_USB_TYPE_SDP) |
++		     BIT(POWER_SUPPLY_USB_TYPE_CDP) |
++		     BIT(POWER_SUPPLY_USB_TYPE_DCP) |
++		     BIT(POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID),
++	.properties = mt6351_usb_type_props,
++	.num_properties = ARRAY_SIZE(mt6351_usb_type_props),
++	.get_property = mt6351_usb_type_get_property,
++};
++
++/* The PMIC's regmap belongs to its PMIC wrapper, the MFD device's parent. */
++static struct regmap *mt6351_usb_type_regmap(void)
++{
++	struct device_node *np;
++	struct platform_device *pdev;
++	struct regmap *map = NULL;
++
++	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6351");
++	if (!np)
++		return NULL;
++	pdev = of_find_device_by_node(np);
++	of_node_put(np);
++	if (!pdev)
++		return NULL;
++	if (pdev->dev.parent)
++		map = dev_get_regmap(pdev->dev.parent, NULL);
++	put_device(&pdev->dev);
++	return map;
++}
++
++static void mt6351_usb_type_clk_put(void *data)
++{
++	clk_put(data);
++}
++
++static void mt6351_usb_type_stop(void *data)
++{
++	struct mt6351_usb_type *ut = data;
++
++	cancel_delayed_work_sync(&ut->work);
++}
++
++static int mt6351_usb_type_probe(struct platform_device *pdev)
++{
++	struct power_supply_config cfg = {};
++	struct device *dev = &pdev->dev;
++	struct mt6351_usb_type *ut;
++	struct device_node *tphy, *port;
++	struct resource res;
++	int ret;
++
++	ut = devm_kzalloc(dev, sizeof(*ut), GFP_KERNEL);
++	if (!ut)
++		return -ENOMEM;
++	ut->dev = dev;
++
++	ut->regmap = mt6351_usb_type_regmap();
++	if (!ut->regmap)
++		return dev_err_probe(dev, -EPROBE_DEFER, "no MT6351 regmap\n");
++
++	/* USB0's 2.0 port: the first child of the MT6797 T-PHY. */
++	tphy = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-tphy");
++	if (!tphy)
++		return dev_err_probe(dev, -ENODEV, "no MT6797 T-PHY\n");
++	port = of_get_next_available_child(tphy, NULL);
++	of_node_put(tphy);
++	if (!port)
++		return dev_err_probe(dev, -ENODEV, "no T-PHY port\n");
++	ret = of_address_to_resource(port, 0, &res);
++	if (!ret) {
++		ut->phy_clk = of_clk_get(port, 0);
++		if (IS_ERR(ut->phy_clk))
++			ret = PTR_ERR(ut->phy_clk);
++	}
++	of_node_put(port);
++	if (ret)
++		return dev_err_probe(dev, ret, "no T-PHY port register or clock\n");
++	ret = devm_add_action_or_reset(dev, mt6351_usb_type_clk_put, ut->phy_clk);
++	if (ret)
++		return ret;
++	ut->acr6 = devm_ioremap(dev, res.start + TPHY_U2_USBPHYACR6, sizeof(u32));
++	if (!ut->acr6)
++		return -ENOMEM;
++
++	ut->usb_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
++	INIT_DELAYED_WORK(&ut->work, mt6351_usb_type_work);
++
++	cfg.drv_data = ut;
++	ut->psy = devm_power_supply_register(dev, &mt6351_usb_type_desc, &cfg);
++	if (IS_ERR(ut->psy))
++		return dev_err_probe(dev, PTR_ERR(ut->psy), "cannot register\n");
++
++	/* Registered after the supply, so it runs first at removal. */
++	ret = devm_add_action_or_reset(dev, mt6351_usb_type_stop, ut);
++	if (ret)
++		return ret;
++
++	/* A charger already attached is detected at the first pass. */
++	queue_delayed_work(system_power_efficient_wq, &ut->work, 0);
++	return 0;
++}
++
++static struct platform_driver mt6351_usb_type_driver = {
++	.probe = mt6351_usb_type_probe,
++	.driver = {
++		.name = "mt6351-usb-type",
++	},
++};
++
++static struct platform_device *mt6351_usb_type_pdev;
++
++/*
++ * The PMIC's MFD has no cell for this block yet, so the module creates its
++ * own device.
++ */
++static int __init mt6351_usb_type_init(void)
++{
++	struct platform_device *pdev;
++	int ret;
++
++	ret = platform_driver_register(&mt6351_usb_type_driver);
++	if (ret)
++		return ret;
++
++	pdev = platform_device_register_simple("mt6351-usb-type", PLATFORM_DEVID_NONE, NULL, 0);
++	if (IS_ERR(pdev)) {
++		platform_driver_unregister(&mt6351_usb_type_driver);
++		return PTR_ERR(pdev);
++	}
++	mt6351_usb_type_pdev = pdev;
++	return 0;
++}
++module_init(mt6351_usb_type_init);
++
++static void __exit mt6351_usb_type_exit(void)
++{
++	platform_device_unregister(mt6351_usb_type_pdev);
++	platform_driver_unregister(&mt6351_usb_type_driver);
++}
++module_exit(mt6351_usb_type_exit);
++
++MODULE_DESCRIPTION("MT6351 BC1.1 USB charger type detection");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+
