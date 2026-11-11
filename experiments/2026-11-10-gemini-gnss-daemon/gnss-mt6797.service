@@ -12,7 +12,7 @@ ExecStartPre=/usr/bin/modprobe gnss-mt6797
 ExecStart=/usr/bin/gnss-mt6797d
 # Hand the pty to gpsd through its control socket, which gpsd.socket provides and which starts
 # gpsd on demand. Without that socket, gpsd is left alone.
-ExecStartPost=-/bin/sh -c 'sleep 1; [ -S /run/gpsd.sock ] && /usr/bin/gpsdctl add /run/gnss-mt6797/nmea'
+ExecStartPost=-/bin/sh -c 'i=0; while [ ! -e /run/gnss-mt6797/nmea ] && [ $i -lt 50 ]; do sleep 0.2; i=$((i + 1)); done; [ -S /run/gpsd.sock ] && /usr/bin/gpsdctl add /run/gnss-mt6797/nmea'
 ExecStopPost=-/bin/sh -c '[ -S /run/gpsd.sock ] && /usr/bin/gpsdctl remove /run/gnss-mt6797/nmea'
 RuntimeDirectory=gnss-mt6797
 Restart=no
