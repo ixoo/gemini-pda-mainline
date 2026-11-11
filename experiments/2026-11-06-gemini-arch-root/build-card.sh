@@ -29,7 +29,9 @@ set -euo pipefail
 FINGERPRINT=68B3537F39A313B3E574D06777193F152BDBE6A6
 URL=http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
 ROOT_TYPE=b921b045-1df0-41c3-af44-4c6f280d3fae
-KEYSERVER=hkps://keyserver.ubuntu.com
+# Any keyserver will do, since only the fingerprint is trusted; KEYSERVER= overrides it
+# when this one is down (keyserver.ubuntu.com timed out on 2026-11-11).
+KEYSERVER=${KEYSERVER:-hkps://keyserver.ubuntu.com}
 # Not in the tarball, and needed before the root has any network.
 EXTRA=(iwd iw wireless-regdb sudo)
 
