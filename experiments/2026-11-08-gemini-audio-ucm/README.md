@@ -159,7 +159,9 @@ from package `97655c74` (commit `5abb47f2`): `snd-soc-aw8738.ko` `b6e12ad4…`, 
 DAPM trace of one play: headphone outputs' power-up events at 122.345 and 122.348 s, then the amplifiers'
 at 122.348 and 122.389 s; at power-down the amplifiers at 124.439 and 124.441 s, then the outputs at
 124.443 s. Three tones from silence, 8 s apart, on the speakers. The owner: "no clicks!".
-YouTube through PipeWire and a microphone capture through PipeWire were not run on this boot.
+Then YouTube through PipeWire on the same boot: at the old sink 0.35 it was now very quiet. With the sink
+at 0.60 and the owner adjusting the browser and the output slider: "all works", with no clipping reported.
+A microphone capture through PipeWire was not run, since this card has no PipeWire source yet.
 
 ## Analysis
 
