@@ -752,8 +752,10 @@ therefore misread a wall charger plugged in after a computer.
   battery until it's under 43 °C, or when the charger goes. A host, a charging host and a
   non-standard charger keep 500 mA. The module reports a non-standard charger as `Unknown` while
   online, and retries a failed detection rather than report it.
-  **Pending the owner's answer:** whether non-standard chargers get the caps too. d037922f briefly
-  gave them the caps without approval; the guard is back to dedicated and Apple only.
+  **Decided by the owner:** "1.5A is great for all the chargers we know can support it. 500mA
+  otherwise". So non-standard chargers stay at 500 mA, as 4aef2e99 has it. d037922f had briefly
+  given them the caps without approval. A 1.5 A or 3 A Rp advertisement from the FUSB301 would be a
+  charger known to support it, which is future work that needs the FUSB301's board nodes.
 - [0719](../../patches/proposals/0719-dt-bindings-power-supply-bq25890-name-a-USB-type-sup.patch) and
   [0720](../../patches/proposals/0720-arm64-dts-mediatek-gemini-station-raise-the-charge-c.patch):
   name the supply to the guard with `linux,guard-usb-detect`.
