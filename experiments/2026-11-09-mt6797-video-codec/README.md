@@ -964,7 +964,7 @@ Untested: long-term references, explicit B weights, memory-management
 operations, POC type 1, interlaced streams (rejected), real-world streams,
 larger sizes, sustained playback and power.
 
-## Stage 3d: VP9 in the same driver (V14: compound fixed, reference-bounds fix pending)
+## Stage 3d: VP9 in the same driver (V15 passed 2026-11-11)
 
 [Patch 0733](../../patches/proposals/0733-media-mediatek-mt6797-vdec-add-VP9-decoding.patch)
 adds VP9 profile 0 (8-bit 4:2:0) through the V4L2 stateless VP9 API:
@@ -1063,6 +1063,8 @@ it, still agree on 105/105 frames.
 - `vp9`, `lossless`, `tiles` and `feat` came out **byte-identical to V13**.
 - No errors, timeouts or rejections; H.264 and HEVC regressions unchanged;
   afterwards the domain was off.
+- Panel: the owner reported the screen normal during the decodes (about
+  17:32 device time).
 
 *Result.* Taking `reference_mode` from the bitstream fixed the rejections.
 The `MC+0xD88` swap had no effect, so that diagnosis was wrong. `compound`
@@ -1082,7 +1084,41 @@ cross that false edge.
 writes `h | w << 16` and restores `MC+0xD88` to the decompile's order, rows
 low, which matches. The C port and the model still agree on 105/105 frames.
 
-**Next device run (V15).** Repeat V14 with 0740.
+### V15 result
+
+**VP9 decodes bit-exact through the mainline V4L2 stateless driver.**
+
+*Run.* Station-work-110 (boot2 `8f095f7a`, main `32671da9`, `Image.gz`
+`5a01adf8…`, identical to the `8d63c36e` build), boot `0ce7590c`, with that
+package's modules: `mt6797-vdec.ko` `94fa3be9…`, the others as in V14.
+The custodian's first two attempts staged modules from the build's other
+profile; they failed to load with unknown symbols, and nothing probed or
+decoded. Evidence (private): `artifacts/card-32/v15-*`.
+
+*Observed:* interrupts 30, 4, 6, 21 and 43, one per decoded frame; no
+errors, timeouts or genpd errors; SoC 33.5 °C; afterwards the domain off
+and the `vdec_sel` enable count 0. H.264 and HEVC regressions unchanged.
+
+*Result.* Detiled on the host, every shown frame matches the software
+decode: **30/30 `vp9`, 4/4 `lossless`, 6/6 `tiles`, 20/20 `feat`, 40/40
+`compound`**.
+
+*Analysis.* With the reference bounds in the right order, the decompile-only
+model holds on hardware for:
+
+- inter prediction, single and compound;
+- four tile columns and error-resilient frames;
+- segmentation;
+- a hidden altref frame;
+- lossless coding;
+- probability adaptation across frames. `feat` and `compound` adapt, and
+  the readback, `v4l2-vp9` adaptation and SRAM reload kept them exact to the
+  last frame.
+
+Untested: intra-only frames, `reset_frame_context` 2 and 3, segment
+skip/reference/loop-filter features, compound-only mode, reference scaling
+(rejected), profiles 1 to 3, real-world streams, larger sizes, sustained
+playback and power.
 
 ## Follow-up
 

@@ -7,8 +7,8 @@ Evidence, chronology, file identities and the staged plan are in the
 [video codec record](../../experiments/2026-11-09-mt6797-video-codec/README.md).
 
 Status on mainline: a prototype V4L2 stateless decoder (`mt6797-vdec`,
-local) decodes HEVC Main 8-bit and progressive H.264 (Baseline, Main, High)
-bit-exact on test clips. VP9 and the
+local) decodes HEVC Main 8-bit, progressive H.264 (Baseline, Main, High)
+and VP9 profile 0 bit-exact on test clips. The
 encoder have no driver; players need a VA-API bridge. Bring-up diagnostics also showed the
 hardware works:
 
@@ -61,6 +61,11 @@ and register table (part 2, sections 4.7 and 4.8; part 1, TOPRGU).
   chroma from luma plus one offset, which fails when the planes are
   allocated apart
   ([V11, V12](../../experiments/2026-11-09-mt6797-video-codec/README.md#v12-result)).
+- VP9 references use their own registers: `MC+0xD28` to `D30` luma and
+  `MC+0xD34` to `D3C` chroma. Their bounds, `MC+0xD4C` to `D54`, take the
+  height in the low half and the width in the high half; swapped, the
+  hardware clamps reference reads at x = height
+  ([V13 to V15](../../experiments/2026-11-09-mt6797-video-codec/README.md#v15-result)).
 
 Open: which of `venc_0` and `venc_1` clocks larb3 (vendor references
 disagree); whether VENC and MJC SRAM power up without their muxes running.
@@ -75,7 +80,7 @@ configuration limits all decoders to 1920x1088 and adds eFuse gating from the
 `dev_info` capability bits read by the vendor library; on the named unit those bits
 leave HEVC, above-1080p, DivX 3.11 and MJC enabled. The vendor decoder selects
 its hardware path for VP8, VP9 and VC-1 as well; hardware decode is
-demonstrated only for HEVC and H.264 so far.
+demonstrated only for HEVC, H.264 and VP9 so far.
 
 ## Vendor control model
 
