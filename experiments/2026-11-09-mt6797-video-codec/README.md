@@ -584,8 +584,12 @@ hashes as above (`307ea6d8`, `7fea7bb1`). Private evidence:
     domain and enables `vdec_sel` while the summary prints, so it reports
     counts it holds itself. The same explains `vdec_larb1_cken` reading
     hardware-on.
-  - **Direct reads show nothing left on.** Read without runtime PM, the
-    per-clock files show `vdec_sel` and `vdecpll` at 0 and 0.
+  - **The counts balance.** The saved trace has 6 prepares, 6 enables, 6
+    disables and 6 unprepares of `vdec_sel`: one cycle from the load and
+    five from the `grep` of `clk_summary`. The probe trace is 1/1/1/1.
+  - **Direct reads show nothing left on**, as reported by the custodian (the
+    read is not in the saved files). The per-clock files show `vdec_sel` and
+    `vdecpll` at 0 and 0.
   - **Rule:** with runtime-PM clock providers, judge counts from
     `/sys/kernel/debug/clk/<clk>/clk_{enable,prepare}_count`, not from
     `clk_summary`.
