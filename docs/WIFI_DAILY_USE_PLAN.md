@@ -42,7 +42,10 @@ Status: plan, updated 2026-11-01.
 - On an idle connected link the join worker ran about 4,100 times a second, near a fifth of a CPU (card-31,
   custodian's trace): work stayed pending without progress, and the pump polled at once 32 times, waited one
   tick and started over. 0709 backs it off to the idle interval after 200 such passes and logs the pending
-  state once. What stays pending is not known yet. Compiled only.
+  state once. On card-32, boot `a71d4762`, as the custodian reports: at most 74 workqueue items a second
+  in all, load 0.01, and one `pump stalled: queued=1` with nothing else pending. That one frame is the reserved
+  deauthentication, held in the queue for the whole data phase; 0714 leaves it out of the pending test.
+  Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the

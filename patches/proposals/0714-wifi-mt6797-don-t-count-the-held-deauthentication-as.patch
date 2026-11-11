@@ -1,0 +1,37 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Wed, 11 Nov 2026 13:26:24 -0500
+Subject: [PATCH] wifi: mt6797: don't count the held deauthentication as pump
+ work
+
+The reserved deauthentication waits in the queue for the whole data phase,
+and the pump counted it as pending work: on an idle link it polled as if busy,
+until 0709 backed it off. Its one log line named it: queued=1 and nothing
+else. Leave a held reservation, alone in the queue, out of the pending test.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 43bc2e74d..80fc80f16 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2938,7 +2938,14 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	pass_delay = msecs_to_jiffies(20);
+ 	spin_lock_irqsave(&mac->join_queue.lock, flags);
+ 	unsigned int delay_ms;
+-	bool pending = !skb_queue_empty(&mac->join_queue) ||
++	/* The reserved deauthentication waits in the queue for the whole data
++	 * phase; held alone, it is not work for the pump.
++	 */
++	bool held = skb_queue_len(&mac->join_queue) == 1 &&
++		skb_peek(&mac->join_queue) == mac->join_internal &&
++		(ktime_get_ns() < mac->join_hold_until ||
++		 mt6797_ccmp_pm_holds_deauth(mac));
++	bool pending = (!skb_queue_empty(&mac->join_queue) && !held) ||
+ 		mac->join_inflight || mac->data_slots.count || mac->join_credit_pending ||
+ 		mac->join_page_debt || mac->join_data_page_debt;
+ 
+-- 
+2.43.0
+
