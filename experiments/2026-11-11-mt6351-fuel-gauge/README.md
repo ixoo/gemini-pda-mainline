@@ -820,6 +820,27 @@ action level, which belongs to arch-root.
 3. **Learning R in the driver** is possible: each steady period at a counted charge gives
    (OCV − V) ÷ I. It is not proposed until a fixed measured value shows its limits.
 
+**Voltage backstop (owner-approved, gemini-base, built by arch-root):**
+- **The rule:** power off cleanly after 3 consecutive 10 s reads below a threshold while
+  discharging. The threshold given is **3.00 V**, refined after T5.
+- **The hardware cut-off:**
+  - The MT6351's UVLO switches the board off when VSYS falls below `RG_UVLO_VTHL` (`CHR_CON17`
+    `0x0F9A` bits 4:0, 2.50 V + 50 mV per step).
+  - The vendor kernel sets 2.60 V (`POWER_UVLO_VOLT_LEVEL 2600`). Mainline does not write it;
+    T5 reads it.
+- **What the vendor did in software:** DLPT shuts down at 3.1 V
+  (`SHUTDOWN_SYSTEM_VOLTAGE 3100`), after throttling the CPUs, which mainline does not do.
+  `V_0PERCENT_TRACKING` is 3.45 V.
+- **Margins:**
+  - bursts between polls, about 1 A at a fast-step R of about 0.25 Ω (pending T5), go about
+    0.25 V below the polled value;
+  - VSYS sits about 0.05 V under the battery through the BATFET;
+  - a polled 2.90 V could therefore touch 2.60 V. 3.00 V leaves 0.1 V, and is the usual Li-ion
+    discharge cut-off.
+- **Why not 3.30 V:** at 1.8 A and 0.4 Ω, 3.30 V loaded is an OCV of about 4.02 V, about 70 %.
+- **In use:** 3.00 V trips around 15-20 % under a 1.8 A load. At 0.5 A or less it would need an
+  OCV under 3.2 V, below the table's empty point, so the gauge's levels act first.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
