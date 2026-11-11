@@ -2158,8 +2158,14 @@ never on voltage. The owner chose (through the custodian):
   reads `voltage_now` every 10 s. Three reads in a row under `MIN_UV`
   (`/etc/gemini/battery-guard.conf`) make it notify each user session over
   `org.freedesktop.Notifications` with `gdbus` (the card has no `notify-send`), wait 10 s and
-  power off. A short spike resets the count. `MIN_UV` is a 3.30 V placeholder until the
-  fuel-gauge session gives this cell's brown-out voltage under load, less a margin.
+  power off. A short spike resets the count. `MIN_UV` is 3.00 V from `gemini-base` 49, the
+  fuel-gauge session's number: the MT6351 cuts the board off below its UVLO (2.60 V in the
+  vendor kernel; mainline leaves the bootloader's value), load bursts between polls sag
+  about 0.25 V further, and VSYS sits about 0.05 V below the battery. The first placeholder,
+  3.30 V, would power off a healthy battery under heavy use: a browser session read 3.48 V at
+  90 %. At 1.8 A, 3.00 V trips around 15–20 % charge; at 0.5 A or less it never trips before
+  the gauge reads empty. It may move within 2.95–3.10 V once the fast-step resistance and the
+  actual UVLO are measured.
 
 Both configuration files are `backup=` files. Checked: `noctalia config validate` against
 card-32's Noctalia; the guard's logic against a fake sysfs (charging at low voltage: no

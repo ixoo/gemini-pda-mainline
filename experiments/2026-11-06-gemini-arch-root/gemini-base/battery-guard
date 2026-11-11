@@ -5,7 +5,7 @@
 # brown-out. While the battery discharges, a voltage below MIN_UV (/etc/gemini/battery-guard.conf)
 # on three reads 10 s apart, so not a short load spike, notifies the session and powers off.
 bat=/sys/class/power_supply/battery
-MIN_UV=3300000
+MIN_UV=3000000
 # shellcheck source=/dev/null
 [ -r /etc/gemini/battery-guard.conf ] && . /etc/gemini/battery-guard.conf
 low=0
