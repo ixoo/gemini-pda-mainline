@@ -859,6 +859,40 @@ Untested: B-frames, larger sizes, real-world streams, scaling lists, tiles,
 long-term references, sustained playback and power. mpv and qutebrowser
 still need the VA-API bridge (Stage 4).
 
+## Stage 3c: H.264 in the same driver (built, V11 pending)
+
+[Patch 0729](../../patches/proposals/0729-media-mediatek-mt6797-vdec-add-H.264-decoding.patch)
+adds progressive 8-bit 4:2:0 H.264 (Baseline, Main, High) to `mt6797-vdec`
+through the V4L2 stateless H.264 API, frame-based with Annex-B start codes.
+The pattern is HEVC's: for every picture the CPU resets the core, reads the
+first slice header through the hardware bit reader, programs the SPS, PPS,
+slice, POC and initial reference-list registers from the controls and the
+kernel's `v4l2-h264` list helpers, lets the hardware parse list modifications
+and weight tables, and starts one decode for all slices.
+
+*Evidence so far:*
+
+- A register model built from the private reverse-engineering notes agrees
+  with the C file write-for-write (writes, bit-reader reads and the start
+  window) on 84 pictures across three clips: the two V5 Main clips (P only,
+  one and four slices) and a synthetic High clip with B-frames, 8x8 transform,
+  scaling lists, two slices and temporal direct. The start window equals the
+  first 32 bits of `slice_data()` as FFmpeg locates it on all 84 pictures.
+- Unlike HEVC, no vendor H.264 register trace exists: the mfv_ut test tool
+  has no plain H.264 case. The sequence is unproven on hardware [I].
+- Buildbox: main `3db664d7`, profile `mt6797-a53-station-dvfs`, package
+  `SHA256SUMS` `ddbe9d91…`, `Image.gz` `dc9b7c79…`; `mt6797-vdec.ko`
+  `f18c44ed…`, `v4l2-h264.ko` `11579ba4…`.
+
+*Main risks for the first run:* chroma in a separate plane (`MC+0x55C`, as
+HEVC's offset, which worked); no end marker after the last slice; the hardware
+list-modification and weight-table commands; one start for multi-slice
+pictures. Not exercised by any clip: long-term references, explicit B
+weights, memory-management operations, POC type 1.
+
+**Next device run (V11).** Decode the three clips with `v4l2slh264dec` and
+compare every frame with the software decode.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).
