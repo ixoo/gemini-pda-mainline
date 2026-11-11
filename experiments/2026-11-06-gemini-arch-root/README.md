@@ -2023,9 +2023,14 @@ it at power-off, so gemini-base keeps it:
   until something is learned. Change uevents are frequent; the save costs one attribute read.
 - From 0736 (`a7c590bc`, "charger finished = 100 %"), the driver reports `charge_full` and
   `charge_full_design` as usable charge, a fixed 93 % of the table charge: 3969240 µAh at
-  design, writes accepted from 1984620 to 4366164. The scripts need no change, since they
-  save what they read and compare with `charge_full_design`. A value saved under 0732's scale
-  would restore about 7 % high under 0736; none had been saved when it changed.
+  design, writes accepted from 1984620 to 4366164. A number saved under 0732's scale would
+  restore about 7 % high, and card-32's file already held 4268000 from a test write. So from
+  `gemini-base` 46 the file holds "charge_full charge_full_design" as read when saved, and
+  the restore writes value × today's design ÷ saved design. A single number is 0732's
+  format, taken with a design of 4268000. That is exact in both directions and for any later
+  scale change. Checked against a fake sysfs: 0732's 4268000 restores as 3969240 on 0736
+  (health 100 %), a 0732-learned 3500000 as 3255000, and a 0736-saved 3600000 as 3870967 on a
+  0732-only image; non-numeric or zero fields change nothing.
 - A battery swap isn't detected: the driver exposes no serial or model name, and the cell
   has only an NTC. After fitting a new battery, `rm /var/lib/gemini/battery-charge-full`, and
   the gauge learns the new cell over its cycles.

@@ -8,11 +8,19 @@
 # udev passes the battery's sysfs directory; the shutdown unit uses the default.
 dir=${2:-/sys/class/power_supply/battery}
 file=/var/lib/gemini/battery-charge-full
+num() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; }
 case "$1" in
 restore)
     [ -r "$file" ] || exit 0
-    value=$(cat "$file")
-    case "$value" in '' | *[!0-9]*) exit 0 ;; esac
+    # "charge_full charge_full_design" as saved, rescaled to today's design value, since
+    # 0736 changed the scale to usable charge. A single number is 0732's format, whose
+    # design value was 4268000 µAh.
+    read -r value saved_design _ <"$file"
+    saved_design=${saved_design:-4268000}
+    num "$value" && num "$saved_design" && [ "$saved_design" -gt 0 ] || exit 0
+    design=$(cat "$dir/charge_full_design" 2>/dev/null)
+    num "$design" || exit 0
+    value=$((value * design / saved_design))
     # The driver refuses values outside 50-110 % of the design capacity (ERANGE), and
     # answers ENODATA for a moment after the battery registers, so try three times.
     for _ in 1 2 3; do
@@ -23,12 +31,13 @@ restore)
     ;;
 save)
     value=$(cat "$dir/charge_full" 2>/dev/null) || exit 0
-    case "$value" in '' | *[!0-9]*) exit 0 ;; esac
-    [ "$value" = "$(cat "$file" 2>/dev/null)" ] && exit 0
+    design=$(cat "$dir/charge_full_design" 2>/dev/null) || exit 0
+    num "$value" && num "$design" || exit 0
+    [ "$value $design" = "$(cat "$file" 2>/dev/null)" ] && exit 0
     # A fresh install keeps no file until the driver has learned something.
-    [ -e "$file" ] || [ "$value" != "$(cat "$dir/charge_full_design" 2>/dev/null)" ] || exit 0
+    [ -e "$file" ] || [ "$value" != "$design" ] || exit 0
     mkdir -p "${file%/*}"
-    printf '%s\n' "$value" >"$file.new" && mv "$file.new" "$file"
+    printf '%s %s\n' "$value" "$design" >"$file.new" && mv "$file.new" "$file"
     exit 0
     ;;
 esac
