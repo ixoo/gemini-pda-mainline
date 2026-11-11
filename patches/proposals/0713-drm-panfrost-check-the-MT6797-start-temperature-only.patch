@@ -1,0 +1,41 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 11 Nov 2026 11:36:01 -0500
+Subject: [PATCH] drm/panfrost: check the MT6797 start temperature only at a
+ fixed clock
+
+The 55 C start check came from bring-up, before the GPU had a cooling device. A
+Gemini booted warm after charging read 57 C, refused the GPU, and its desktop ran
+the whole session without one.
+
+With DVFS, the default, the cooling device and the SoC trips at 58 C and above
+handle heat, so start regardless. Keep the check for the fixed clocks, which have no
+cooling device.
+---
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c | 13 ++++++++++---
+ 1 file changed, 10 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index 73c48b404..60dc25891 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -259,9 +259,16 @@ static int mt6797_power_early(struct panfrost_device *pfdev)
+ 	if (IS_ERR(rstc))
+ 		return PTR_ERR(rstc);
+ 
+-	ret = mt6797_check_temperature(dev);
+-	if (ret)
+-		goto err_put_reset;
++	/*
++	 * A fixed clock has no cooling device, so it does not start on a hot SoC.
++	 * With DVFS the cooling device and the SoC's trips handle heat, and refusing
++	 * would leave a session started warm, as after charging, with no GPU.
++	 */
++	if (!mt6797_dvfs) {
++		ret = mt6797_check_temperature(dev);
++		if (ret)
++			goto err_put_reset;
++	}
+ 
+ 	if (mt6797_dvfs) {
+ 		/*

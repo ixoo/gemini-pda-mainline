@@ -627,3 +627,5 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    A floor of 365 MHz through `min_freq` did not hold on that boot: 28 changes to 238 MHz followed, and timeout 7 came in the same pattern. devfreq clamps a governor's choice
    to min_freq, but lets a maximum below the minimum win, and the power allocator from `0687` can lower the GPU's maximum under load. That fits, but is not shown: the
    cooling state read 0 when idle. The image with `0690`-`0692` takes 238 MHz out of the table, so no maximum or floor can reach it.
+10. A card boot after a long charge read SoC 57.2 C at the GPU's probe, so the bring-up start check at 55 C refused it, and the desktop ran without a GPU until a manual reload at 97 s, by
+    then 37.4 C. `0713` keeps that check only for the fixed clocks. With DVFS, the default, the cooling device and the SoC's trips handle heat. Compile-checked only.
