@@ -169,7 +169,7 @@ in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/run/b
 # gnss-mt6797.service switches the GPS radio on.
 gnss=$here/../2026-11-10-gemini-gnss-daemon
 mkdir -p "$build/gnss"
-cp "$gnss/PKGBUILD" "$gnss/gnss-mt6797d" "$gnss/gnss-mt6797.service" "$build/gnss/"
+cp "$gnss/PKGBUILD" "$gnss/gnss-mt6797d" "$gnss/gnss-mt6797.service" "$gnss/geoclue-gnss-mt6797.conf" "$build/gnss/"
 chown -R 65534:65534 "$build/gnss"
 chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/run/build LANG=C \
 	PKGDEST=/run/build/out sh -c 'cd /run/build/gnss && makepkg --nodeps --noprogressbar' >"$work/gnss-makepkg.log" 2>&1 ||

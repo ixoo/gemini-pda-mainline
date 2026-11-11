@@ -9,7 +9,10 @@
 [general]
 # The keybind cheatsheet opens once, at a user's first login (owner, 2026-11-08), through
 # /usr/lib/gemini/first-login, not at every start; Ctrl+Alt+I shows it any time.
-autostart = ["noctalia", "/usr/lib/gemini/first-login"]
+# GeoClue answers an application only once an agent authorises it, and neither Umbriel
+# nor Noctalia runs XDG autostart entries, so its demo agent starts here (owner,
+# 2026-11-10: positions "in a standard way for all software").
+autostart = ["noctalia", "/usr/lib/gemini/first-login", "/usr/lib/geoclue-2.0/demos/agent"]
 show_cheatsheet = false
 # Dragging a window with the pointer: Alt alone, as before.
 mod_key = "Alt"

@@ -1795,6 +1795,50 @@ which has 0636) or a descendant. Checked read-only on the image:
 - `gnss-mt6797d --help` runs under the card's Python 3.14.9;
 - the sleep hook lists `gnss-mt6797`.
 
+### GeoClue for every application (`gemini-base` 34, 2026-11-10)
+
+Owner, relayed by the custodian: "It needs to be done in a standard way for all software that
+require a position to be able to use it." gpsd serves libgps clients, but desktop applications
+and browsers ask GeoClue. The design was agreed with the GNSS session.
+
+- **GNSS package** (`712770f4`):
+  - The daemon now also serves its NMEA on a UNIX socket, `/run/gnss-mt6797/nmea.sock`
+    (group `geoclue`, 0660). Arch Linux ARM's GeoClue 2.8.2 reads that socket through
+    `[network-nmea] nmea-socket=`, which the package's
+    `/etc/geoclue/conf.d/90-gnss-mt6797.conf` sets.
+  - The package now depends on gpsd and geoclue. `build-card.sh` copies that conf file too.
+- **Agent:**
+  - GeoClue answers an application only once an agent authorises it, or once its config lists
+    the application with `allowed=true` (Firefox and Epiphany are listed).
+  - Neither Umbriel nor Noctalia runs XDG autostart entries, so `umbriel.toml`'s autostart
+    starts GeoClue's demo agent, `/usr/lib/geoclue-2.0/demos/agent`, which GeoClue's
+    whitelist accepts.
+  - In the GNSS session's VM test, GeoClue 2.7.0 with this agent and drop-in gave 406
+    locations described "GPS GGA" from the daemon on a fake device.
+- **No network sources:** `gemini-base` installs `/etc/geoclue/conf.d/95-gemini.conf`, which
+  turns off GeoClue's IP, Wi-Fi, 3G, CDMA and modem sources.
+  - Otherwise an application asking for a position while GPS is off would make GeoClue send
+    the device's address to an online lookup service (BeaconDB by default).
+  - Positions come only from the GNSS receiver, and a later conf.d file can turn a source
+    back on.
+- **Radio unchanged:** GPS stays off until `gnss-mt6797.service` is started. An application
+  asking GeoClue gets no position until then.
+- Qt's GeoClue 2 positioning plugin, which QtWebEngine and so qutebrowser use, was already on
+  the card (`qt6-positioning`).
+
+Card-29 (dev VM, `gemini-base` 34, GNSS package from `230df821`, image sha256
+`860fb1ef9bc6…`, 438 packages, root 2.57 GB used) supersedes card-28. It pairs with
+`station-work-98` or a descendant. Checked read-only on the image:
+
+- geoclue 2.8.2, gpsd 3.27.5 and `gnss-mt6797d` are installed;
+- `/etc/geoclue/conf.d` holds `90-gnss-mt6797.conf`, which sets the NMEA socket, and
+  `95-gemini.conf`;
+- the demo agent is at the autostart path;
+- the `geoclue` and `uucp` groups exist;
+- `gpsd.socket` is enabled, and Umbriel's config check passes.
+
+Not run on the device.
+
 ## Analysis
 
 Not started.
