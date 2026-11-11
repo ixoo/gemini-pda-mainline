@@ -18,13 +18,14 @@ restore)
     read -r value saved_design _ <"$file"
     saved_design=${saved_design:-4268000}
     num "$value" && num "$saved_design" && [ "$saved_design" -gt 0 ] || exit 0
-    design=$(cat "$dir/charge_full_design" 2>/dev/null)
-    num "$design" || exit 0
-    value=$((value * design / saved_design))
     # The driver refuses values outside 50-110 % of the design capacity (ERANGE), and
-    # answers ENODATA for a moment after the battery registers, so try three times.
+    # answers ENODATA for every property, the design included, for a moment after the
+    # battery registers, so try three times.
     for _ in 1 2 3; do
-        echo "$value" >"$dir/charge_full" 2>/dev/null && break
+        design=$(cat "$dir/charge_full_design" 2>/dev/null)
+        if num "$design"; then
+            echo $((value * design / saved_design)) >"$dir/charge_full" 2>/dev/null && break
+        fi
         sleep 1
     done
     exit 0

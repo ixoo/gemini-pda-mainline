@@ -2030,7 +2030,9 @@ it at power-off, so gemini-base keeps it:
   format, taken with a design of 4268000. That is exact in both directions and for any later
   scale change. Checked against a fake sysfs: 0732's 4268000 restores as 3969240 on 0736
   (health 100 %), a 0732-learned 3500000 as 3255000, and a 0736-saved 3600000 as 3870967 on a
-  0732-only image; non-numeric or zero fields change nothing.
+  0732-only image; non-numeric or zero fields change nothing. While the driver answers
+  ENODATA it does so for the design value too, so from `gemini-base` 47 the design is read
+  inside the three tries (checked with the design file appearing 1.5 s late).
 - A battery swap isn't detected: the driver exposes no serial or model name, and the cell
   has only an NTC. After fitting a new battery, `rm /var/lib/gemini/battery-charge-full`, and
   the gauge learns the new cell over its cycles.
