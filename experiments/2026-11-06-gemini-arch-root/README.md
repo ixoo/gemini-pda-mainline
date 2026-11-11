@@ -2109,6 +2109,18 @@ noctalia package, kept apart:
 Built in an Arch chroot over card-32's image (`5.4.1-1.3`, `c738be76…`). Not yet seen on the
 device.
 
+### The owner's sudo policy survives upgrades (`gemini-base` 44, 2026-11-11)
+
+`/etc/sudoers.d/10-gemini-wheel` (wheel may use sudo with a password, and `chvt 2` without
+one, for Ctrl+Alt+Tab) wasn't a `backup=` file, so each `pacman -U` of gemini-base replaced the
+owner's edit: on card-32 their NOPASSWD rule went with gemini-base 40 and again with 42
+(journal 16:52:29 install, 16:52:54 "a password is required"). It is in `backup=` now: an
+edited file stays, and an upgrade that changes the package's copy installs it as `.pacnew`
+beside it. A fresh card keeps the same default; the policy itself is unchanged.
+
+The upgrade from 42 is already covered: 42 recorded no hash for the file, so pacman keeps a
+copy on disk that differs from 44's and writes `.pacnew`.
+
 ## Analysis
 
 Not started.
