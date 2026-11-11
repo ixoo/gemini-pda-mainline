@@ -1,0 +1,2125 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 15:30:00 -0500
+Subject: [PATCH] media: mediatek: add an MT6797 stateless HEVC decoder
+ prototype
+
+The MT6797 VDEC has no firmware: the CPU programs its registers for every
+picture. Expose it as a V4L2 stateless memory-to-memory decoder: HEVC
+slices in (frame-based, Annex-B), MM21 frames out (two planes).
+
+Per picture the driver walks the first slice header through the decoder
+bit reader, programs the picture, reference and buffer registers from the
+HEVC controls and the DPB, lets the hardware parse reference-list
+modification and prediction weights itself, and issues one start; the
+hardware decodes every slice of the picture. Without an IOMMU the decoder
+uses physical addresses: LARB1 per-port translation is cleared after each
+power-up and buffers are allocated below 4 GiB.
+
+The programming was reconstructed from observed register traces and is
+written independently. Main profile, 8-bit 4:2:0 only; 10-bit, other chroma
+formats and slice-based decoding are rejected. Validated offline against
+60 recorded pictures; not yet run on hardware.
+
+Prototype, not for upstream submission in this form.
+---
+ drivers/media/platform/mediatek/Kconfig       |    1 +
+ drivers/media/platform/mediatek/Makefile      |    1 +
+ .../platform/mediatek/mt6797-vdec/Kconfig     |   15 +
+ .../platform/mediatek/mt6797-vdec/Makefile    |    3 +
+ .../mediatek/mt6797-vdec/mt6797-vdec-core.c   |  719 ++++++++++
+ .../mediatek/mt6797-vdec/mt6797-vdec-hevc.c   | 1182 +++++++++++++++++
+ .../mediatek/mt6797-vdec/mt6797-vdec.h        |  118 ++
+ 7 files changed, 2039 insertions(+)
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/Makefile
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c
+ create mode 100644 drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+
+diff --git a/drivers/media/platform/mediatek/Kconfig b/drivers/media/platform/mediatek/Kconfig
+index 995638f8a..d16fdcf19 100644
+--- a/drivers/media/platform/mediatek/Kconfig
++++ b/drivers/media/platform/mediatek/Kconfig
+@@ -7,4 +7,5 @@ source "drivers/media/platform/mediatek/mdp/Kconfig"
+ source "drivers/media/platform/mediatek/vcodec/Kconfig"
+ source "drivers/media/platform/mediatek/vpu/Kconfig"
+ source "drivers/media/platform/mediatek/mdp3/Kconfig"
++source "drivers/media/platform/mediatek/mt6797-vdec/Kconfig"
+ source "drivers/media/platform/mediatek/seninf/Kconfig"
+diff --git a/drivers/media/platform/mediatek/Makefile b/drivers/media/platform/mediatek/Makefile
+index 5da75fe97..29122cdf7 100644
+--- a/drivers/media/platform/mediatek/Makefile
++++ b/drivers/media/platform/mediatek/Makefile
+@@ -5,3 +5,4 @@ obj-y += vcodec/
+ obj-y += vpu/
+ obj-y += mdp3/
+ obj-y += seninf/
++obj-y += mt6797-vdec/
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/Kconfig b/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+new file mode 100644
+index 000000000..0f054afe1
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/Kconfig
+@@ -0,0 +1,15 @@
++# SPDX-License-Identifier: GPL-2.0-only
++config VIDEO_MT6797_VDEC
++	tristate "MediaTek MT6797 video decoder (stateless prototype)"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on V4L_MEM2MEM_DRIVERS
++	depends on VIDEO_DEV && OF && PM
++	select MEDIA_CONTROLLER
++	select VIDEOBUF2_DMA_CONTIG
++	select V4L2_MEM2MEM_DEV
++	help
++	  Prototype V4L2 stateless HEVC decoder for the MT6797 video decoder
++	  block. It programs the decoder registers from the CPU for every
++	  picture, decoding Main profile 8-bit 4:2:0 HEVC slices submitted
++	  through the request API, and outputs MM21 frames. Say M to build it
++	  as a module; nothing loads it automatically.
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/Makefile b/drivers/media/platform/mediatek/mt6797-vdec/Makefile
+new file mode 100644
+index 000000000..24bcaa89d
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/Makefile
+@@ -0,0 +1,3 @@
++# SPDX-License-Identifier: GPL-2.0-only
++obj-$(CONFIG_VIDEO_MT6797_VDEC) += mt6797-vdec.o
++mt6797-vdec-y := mt6797-vdec-core.o mt6797-vdec-hevc.o
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+new file mode 100644
+index 000000000..108480235
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -0,0 +1,719 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 video decoder (VDEC), V4L2 stateless prototype.
++ *
++ * The VDEC has no firmware: the CPU programs its registers for every
++ * picture. This driver exposes it as a stateless memory-to-memory decoder
++ * (HEVC slices in, MM21 frames out). Without an IOMMU on this platform the
++ * decoder uses physical addresses, so LARB1's per-port MMU enable is cleared
++ * after every power-up and buffers are allocated below 4 GiB.
++ */
++
++#include <linux/delay.h>
++#include <linux/dma-mapping.h>
++#include <linux/interrupt.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/slab.h>
++#include <media/v4l2-event.h>
++#include <media/v4l2-ioctl.h>
++#include <media/videobuf2-dma-contig.h>
++
++#include "mt6797-vdec.h"
++
++/* ---- formats ---------------------------------------------------------- */
++
++static void mvdec_fill_dst(struct v4l2_pix_format_mplane *pix)
++{
++	unsigned int w = ALIGN(pix->width, 64), h = ALIGN(pix->height, 64);
++
++	pix->pixelformat = V4L2_PIX_FMT_MM21;
++	pix->num_planes = 2;
++	pix->field = V4L2_FIELD_NONE;
++	pix->colorspace = V4L2_COLORSPACE_REC709;
++	pix->plane_fmt[0].bytesperline = w;
++	pix->plane_fmt[0].sizeimage = w * h;
++	pix->plane_fmt[1].bytesperline = w;
++	pix->plane_fmt[1].sizeimage = w * h / 2;
++}
++
++static void mvdec_clamp(struct v4l2_pix_format_mplane *pix)
++{
++	pix->width = clamp(pix->width, MVDEC_MIN_SIZE, MVDEC_MAX_WIDTH);
++	pix->height = clamp(pix->height, MVDEC_MIN_SIZE, MVDEC_MAX_HEIGHT);
++}
++
++static void mvdec_fill_src(struct v4l2_pix_format_mplane *pix)
++{
++	mvdec_clamp(pix);
++	pix->pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
++	pix->num_planes = 1;
++	pix->field = V4L2_FIELD_NONE;
++	pix->plane_fmt[0].bytesperline = 0;
++	if (pix->plane_fmt[0].sizeimage < SZ_64K)
++		pix->plane_fmt[0].sizeimage = max_t(u32, SZ_1M,
++						    pix->width * pix->height);
++}
++
++static int mvdec_querycap(struct file *file, void *priv,
++			  struct v4l2_capability *cap)
++{
++	strscpy(cap->driver, MVDEC_NAME, sizeof(cap->driver));
++	strscpy(cap->card, "MT6797 VDEC", sizeof(cap->card));
++	strscpy(cap->bus_info, "platform:" MVDEC_NAME, sizeof(cap->bus_info));
++	return 0;
++}
++
++static int mvdec_enum_fmt_out(struct file *file, void *priv,
++			      struct v4l2_fmtdesc *f)
++{
++	if (f->index)
++		return -EINVAL;
++	f->pixelformat = V4L2_PIX_FMT_HEVC_SLICE;
++	return 0;
++}
++
++static int mvdec_enum_fmt_cap(struct file *file, void *priv,
++			      struct v4l2_fmtdesc *f)
++{
++	if (f->index)
++		return -EINVAL;
++	f->pixelformat = V4L2_PIX_FMT_MM21;
++	return 0;
++}
++
++static int mvdec_enum_framesizes(struct file *file, void *priv,
++				 struct v4l2_frmsizeenum *fs)
++{
++	if (fs->index || fs->pixel_format != V4L2_PIX_FMT_HEVC_SLICE)
++		return -EINVAL;
++	fs->type = V4L2_FRMSIZE_TYPE_STEPWISE;
++	fs->stepwise.min_width = MVDEC_MIN_SIZE;
++	fs->stepwise.max_width = MVDEC_MAX_WIDTH;
++	fs->stepwise.step_width = 16;
++	fs->stepwise.min_height = MVDEC_MIN_SIZE;
++	fs->stepwise.max_height = MVDEC_MAX_HEIGHT;
++	fs->stepwise.step_height = 16;
++	return 0;
++}
++
++static int mvdec_g_fmt_out(struct file *file, void *priv, struct v4l2_format *f)
++{
++	f->fmt.pix_mp = fh_to_ctx(file_to_v4l2_fh(file))->src_fmt;
++	return 0;
++}
++
++static int mvdec_g_fmt_cap(struct file *file, void *priv, struct v4l2_format *f)
++{
++	f->fmt.pix_mp = fh_to_ctx(file_to_v4l2_fh(file))->dst_fmt;
++	return 0;
++}
++
++static int mvdec_try_fmt_out(struct file *file, void *priv,
++			     struct v4l2_format *f)
++{
++	mvdec_fill_src(&f->fmt.pix_mp);
++	return 0;
++}
++
++static int mvdec_try_fmt_cap(struct file *file, void *priv,
++			     struct v4l2_format *f)
++{
++	struct mvdec_ctx *ctx = fh_to_ctx(file_to_v4l2_fh(file));
++	struct v4l2_pix_format_mplane *pix = &f->fmt.pix_mp;
++
++	/* The capture size follows the coded size of the output queue. */
++	pix->width = ctx->src_fmt.width;
++	pix->height = ctx->src_fmt.height;
++	mvdec_fill_dst(pix);
++	return 0;
++}
++
++static int mvdec_s_fmt_out(struct file *file, void *priv, struct v4l2_format *f)
++{
++	struct mvdec_ctx *ctx = fh_to_ctx(file_to_v4l2_fh(file));
++	struct vb2_queue *vq;
++
++	vq = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, f->type);
++	if (vb2_is_busy(vq))
++		return -EBUSY;
++	mvdec_fill_src(&f->fmt.pix_mp);
++	ctx->src_fmt = f->fmt.pix_mp;
++	ctx->dst_fmt.width = ctx->src_fmt.width;
++	ctx->dst_fmt.height = ctx->src_fmt.height;
++	mvdec_fill_dst(&ctx->dst_fmt);
++	return 0;
++}
++
++static int mvdec_s_fmt_cap(struct file *file, void *priv, struct v4l2_format *f)
++{
++	struct mvdec_ctx *ctx = fh_to_ctx(file_to_v4l2_fh(file));
++	struct vb2_queue *vq;
++
++	vq = v4l2_m2m_get_vq(ctx->fh.m2m_ctx, f->type);
++	if (vb2_is_busy(vq))
++		return -EBUSY;
++	mvdec_try_fmt_cap(file, priv, f);
++	ctx->dst_fmt = f->fmt.pix_mp;
++	return 0;
++}
++
++static const struct v4l2_ioctl_ops mvdec_ioctl_ops = {
++	.vidioc_querycap		= mvdec_querycap,
++	.vidioc_enum_framesizes		= mvdec_enum_framesizes,
++	.vidioc_enum_fmt_vid_cap	= mvdec_enum_fmt_cap,
++	.vidioc_g_fmt_vid_cap_mplane	= mvdec_g_fmt_cap,
++	.vidioc_try_fmt_vid_cap_mplane	= mvdec_try_fmt_cap,
++	.vidioc_s_fmt_vid_cap_mplane	= mvdec_s_fmt_cap,
++	.vidioc_enum_fmt_vid_out	= mvdec_enum_fmt_out,
++	.vidioc_g_fmt_vid_out_mplane	= mvdec_g_fmt_out,
++	.vidioc_try_fmt_vid_out_mplane	= mvdec_try_fmt_out,
++	.vidioc_s_fmt_vid_out_mplane	= mvdec_s_fmt_out,
++
++	.vidioc_reqbufs			= v4l2_m2m_ioctl_reqbufs,
++	.vidioc_querybuf		= v4l2_m2m_ioctl_querybuf,
++	.vidioc_qbuf			= v4l2_m2m_ioctl_qbuf,
++	.vidioc_dqbuf			= v4l2_m2m_ioctl_dqbuf,
++	.vidioc_prepare_buf		= v4l2_m2m_ioctl_prepare_buf,
++	.vidioc_create_bufs		= v4l2_m2m_ioctl_create_bufs,
++	.vidioc_expbuf			= v4l2_m2m_ioctl_expbuf,
++	.vidioc_streamon		= v4l2_m2m_ioctl_streamon,
++	.vidioc_streamoff		= v4l2_m2m_ioctl_streamoff,
++
++	.vidioc_decoder_cmd		= v4l2_m2m_ioctl_stateless_decoder_cmd,
++	.vidioc_try_decoder_cmd		= v4l2_m2m_ioctl_stateless_try_decoder_cmd,
++
++	.vidioc_subscribe_event		= v4l2_ctrl_subscribe_event,
++	.vidioc_unsubscribe_event	= v4l2_event_unsubscribe,
++};
++
++/* ---- controls --------------------------------------------------------- */
++
++static const struct v4l2_ctrl_config mvdec_ctrls[] = {
++	{ .id = V4L2_CID_STATELESS_HEVC_SPS },
++	{ .id = V4L2_CID_STATELESS_HEVC_PPS },
++	{ .id = V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
++	  .dims = { MVDEC_MAX_SLICES } },
++	{ .id = V4L2_CID_STATELESS_HEVC_SCALING_MATRIX },
++	{ .id = V4L2_CID_STATELESS_HEVC_DECODE_PARAMS },
++	{ .id = V4L2_CID_STATELESS_HEVC_DECODE_MODE,
++	  .min = V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED,
++	  .max = V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED,
++	  .def = V4L2_STATELESS_HEVC_DECODE_MODE_FRAME_BASED },
++	{ .id = V4L2_CID_STATELESS_HEVC_START_CODE,
++	  .min = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
++	  .max = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B,
++	  .def = V4L2_STATELESS_HEVC_START_CODE_ANNEX_B },
++	{ .id = V4L2_CID_MPEG_VIDEO_HEVC_PROFILE,
++	  .min = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
++	  .max = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN,
++	  .def = V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN },
++};
++
++static int mvdec_init_ctrls(struct mvdec_ctx *ctx)
++{
++	unsigned int i;
++
++	v4l2_ctrl_handler_init(&ctx->hdl, ARRAY_SIZE(mvdec_ctrls));
++	for (i = 0; i < ARRAY_SIZE(mvdec_ctrls); i++)
++		v4l2_ctrl_new_custom(&ctx->hdl, &mvdec_ctrls[i], NULL);
++	if (ctx->hdl.error) {
++		int ret = ctx->hdl.error;
++
++		v4l2_ctrl_handler_free(&ctx->hdl);
++		return ret;
++	}
++	ctx->fh.ctrl_handler = &ctx->hdl;
++	return v4l2_ctrl_handler_setup(&ctx->hdl);
++}
++
++static const void *mvdec_ctrl(struct mvdec_ctx *ctx, u32 id, unsigned int *elems)
++{
++	struct v4l2_ctrl *c = v4l2_ctrl_find(&ctx->hdl, id);
++
++	if (!c)
++		return NULL;
++	if (elems)
++		*elems = c->elems;
++	return c->p_cur.p;
++}
++
++/* ---- queues ----------------------------------------------------------- */
++
++static int mvdec_queue_setup(struct vb2_queue *vq, unsigned int *nbuffers,
++			     unsigned int *num_planes, unsigned int sizes[],
++			     struct device *alloc_devs[])
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vq);
++	struct v4l2_pix_format_mplane *pix = V4L2_TYPE_IS_OUTPUT(vq->type) ?
++		&ctx->src_fmt : &ctx->dst_fmt;
++	unsigned int i;
++
++	if (*num_planes) {
++		if (*num_planes != pix->num_planes)
++			return -EINVAL;
++		for (i = 0; i < pix->num_planes; i++)
++			if (sizes[i] < pix->plane_fmt[i].sizeimage)
++				return -EINVAL;
++		return 0;
++	}
++	*num_planes = pix->num_planes;
++	for (i = 0; i < pix->num_planes; i++)
++		sizes[i] = pix->plane_fmt[i].sizeimage;
++	return 0;
++}
++
++static int mvdec_buf_prepare(struct vb2_buffer *vb)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
++	struct v4l2_pix_format_mplane *pix = V4L2_TYPE_IS_OUTPUT(vb->type) ?
++		&ctx->src_fmt : &ctx->dst_fmt;
++	unsigned int i;
++
++	for (i = 0; i < pix->num_planes; i++) {
++		if (vb2_plane_size(vb, i) < pix->plane_fmt[i].sizeimage)
++			return -EINVAL;
++		if (!V4L2_TYPE_IS_OUTPUT(vb->type))
++			vb2_set_plane_payload(vb, i, pix->plane_fmt[i].sizeimage);
++	}
++	return 0;
++}
++
++static int mvdec_buf_out_validate(struct vb2_buffer *vb)
++{
++	to_vb2_v4l2_buffer(vb)->field = V4L2_FIELD_NONE;
++	return 0;
++}
++
++static void mvdec_buf_queue(struct vb2_buffer *vb)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
++
++	v4l2_m2m_buf_queue(ctx->fh.m2m_ctx, to_vb2_v4l2_buffer(vb));
++}
++
++static void mvdec_buf_request_complete(struct vb2_buffer *vb)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
++
++	v4l2_ctrl_request_complete(vb->req_obj.req, &ctx->hdl);
++}
++
++static void mvdec_free_mv(struct mvdec_ctx *ctx)
++{
++	unsigned int i;
++
++	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
++		if (!ctx->mv[i].cpu)
++			continue;
++		dma_free_coherent(ctx->dev->dev, ctx->mv[i].size, ctx->mv[i].cpu,
++				  ctx->mv[i].dma);
++		ctx->mv[i].cpu = NULL;
++	}
++}
++
++static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vq);
++	size_t size;
++	unsigned int i;
++
++	if (V4L2_TYPE_IS_OUTPUT(vq->type))
++		return 0;
++
++	memset(&ctx->hevc, 0, sizeof(ctx->hevc));
++	/* One zeroed collocated-MV buffer per capture buffer. */
++	size = mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
++	for (i = 0; i < vb2_get_num_buffers(vq) && i < VIDEO_MAX_FRAME; i++) {
++		ctx->mv[i].size = size;
++		ctx->mv[i].cpu = dma_alloc_coherent(ctx->dev->dev, size,
++						    &ctx->mv[i].dma, GFP_KERNEL);
++		if (!ctx->mv[i].cpu) {
++			mvdec_free_mv(ctx);
++			return -ENOMEM;
++		}
++	}
++	return 0;
++}
++
++static void mvdec_stop_streaming(struct vb2_queue *vq)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vq);
++	struct vb2_v4l2_buffer *vbuf;
++
++	for (;;) {
++		if (V4L2_TYPE_IS_OUTPUT(vq->type))
++			vbuf = v4l2_m2m_src_buf_remove(ctx->fh.m2m_ctx);
++		else
++			vbuf = v4l2_m2m_dst_buf_remove(ctx->fh.m2m_ctx);
++		if (!vbuf)
++			break;
++		v4l2_ctrl_request_complete(vbuf->vb2_buf.req_obj.req, &ctx->hdl);
++		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
++	}
++	if (!V4L2_TYPE_IS_OUTPUT(vq->type))
++		mvdec_free_mv(ctx);
++}
++
++static const struct vb2_ops mvdec_qops = {
++	.queue_setup		= mvdec_queue_setup,
++	.buf_prepare		= mvdec_buf_prepare,
++	.buf_out_validate	= mvdec_buf_out_validate,
++	.buf_queue		= mvdec_buf_queue,
++	.buf_request_complete	= mvdec_buf_request_complete,
++	.start_streaming	= mvdec_start_streaming,
++	.stop_streaming		= mvdec_stop_streaming,
++};
++
++static int mvdec_queue_init(void *priv, struct vb2_queue *src_vq,
++			    struct vb2_queue *dst_vq)
++{
++	struct mvdec_ctx *ctx = priv;
++	int ret;
++
++	src_vq->type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
++	src_vq->io_modes = VB2_MMAP | VB2_DMABUF;
++	src_vq->drv_priv = ctx;
++	src_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
++	src_vq->ops = &mvdec_qops;
++	src_vq->mem_ops = &vb2_dma_contig_memops;
++	src_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
++	src_vq->lock = &ctx->vb_mutex;
++	src_vq->dev = ctx->dev->dev;
++	src_vq->supports_requests = true;
++	src_vq->requires_requests = true;
++	ret = vb2_queue_init(src_vq);
++	if (ret)
++		return ret;
++
++	dst_vq->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
++	dst_vq->io_modes = VB2_MMAP | VB2_DMABUF;
++	dst_vq->drv_priv = ctx;
++	dst_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
++	dst_vq->ops = &mvdec_qops;
++	dst_vq->mem_ops = &vb2_dma_contig_memops;
++	dst_vq->timestamp_flags = V4L2_BUF_FLAG_TIMESTAMP_COPY;
++	dst_vq->lock = &ctx->vb_mutex;
++	dst_vq->dev = ctx->dev->dev;
++	return vb2_queue_init(dst_vq);
++}
++
++/* ---- running a job ---------------------------------------------------- */
++
++static void mvdec_job_done(struct mvdec_dev *vdev, enum vb2_buffer_state state)
++{
++	struct mvdec_ctx *ctx = vdev->running;
++
++	if (!ctx)
++		return;
++	vdev->running = NULL;
++	clk_disable_unprepare(vdev->larb_clk);
++	clk_disable_unprepare(vdev->vdec_clk);
++	pm_runtime_put_autosuspend(vdev->dev);
++	v4l2_m2m_buf_done_and_job_finish(vdev->m2m_dev, ctx->fh.m2m_ctx, state);
++}
++
++static void mvdec_device_run(void *priv)
++{
++	struct mvdec_ctx *ctx = priv;
++	struct mvdec_dev *vdev = ctx->dev;
++	struct vb2_v4l2_buffer *src, *dst;
++	struct mvdec_hevc_run run = {};
++	int ret;
++
++	src = v4l2_m2m_next_src_buf(ctx->fh.m2m_ctx);
++	dst = v4l2_m2m_next_dst_buf(ctx->fh.m2m_ctx);
++	v4l2_ctrl_request_setup(src->vb2_buf.req_obj.req, &ctx->hdl);
++
++	run.sps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SPS, NULL);
++	run.pps = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_PPS, NULL);
++	run.slices = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SLICE_PARAMS,
++				&run.num_slices);
++	run.decode = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_DECODE_PARAMS, NULL);
++	run.scaling = mvdec_ctrl(ctx, V4L2_CID_STATELESS_HEVC_SCALING_MATRIX, NULL);
++	v4l2_m2m_buf_copy_metadata(src, dst);
++
++	ret = pm_runtime_resume_and_get(vdev->dev);
++	if (ret)
++		goto err_request;
++	ret = clk_prepare_enable(vdev->vdec_clk);
++	if (ret)
++		goto err_pm;
++	ret = clk_prepare_enable(vdev->larb_clk);
++	if (ret)
++		goto err_vdec;
++	/* The domain power-up resets LARB1 to translated ports. */
++	writel(0, vdev->larb + MVDEC_LARB_MMU_EN);
++
++	vdev->running = ctx;
++	ret = mvdec_hevc_run(ctx, src, dst, &run);
++	v4l2_ctrl_request_complete(src->vb2_buf.req_obj.req, &ctx->hdl);
++	if (ret) {
++		dev_dbg(vdev->dev, "decode not started: %d\n", ret);
++		mvdec_job_done(vdev, VB2_BUF_STATE_ERROR);
++		return;
++	}
++	schedule_delayed_work(&vdev->watchdog,
++			      msecs_to_jiffies(MVDEC_TIMEOUT_MS));
++	return;
++
++err_vdec:
++	clk_disable_unprepare(vdev->vdec_clk);
++err_pm:
++	pm_runtime_put_autosuspend(vdev->dev);
++err_request:
++	v4l2_ctrl_request_complete(src->vb2_buf.req_obj.req, &ctx->hdl);
++	v4l2_m2m_buf_done_and_job_finish(vdev->m2m_dev, ctx->fh.m2m_ctx,
++					 VB2_BUF_STATE_ERROR);
++}
++
++static irqreturn_t mvdec_irq(int irq, void *data)
++{
++	struct mvdec_dev *vdev = data;
++	u32 cfg = MVDEC_MISC + MVDEC_MISC_IRQ_CFG;
++
++	/* The CPU clears the decoder interrupt through MISC+0xA4. */
++	mvdec_write(vdev, cfg, mvdec_read(vdev, cfg) | 0x11);
++	mvdec_write(vdev, cfg, mvdec_read(vdev, cfg) & ~0x10);
++	return vdev->running ? IRQ_WAKE_THREAD : IRQ_HANDLED;
++}
++
++static irqreturn_t mvdec_irq_thread(int irq, void *data)
++{
++	struct mvdec_dev *vdev = data;
++
++	if (cancel_delayed_work(&vdev->watchdog))
++		mvdec_job_done(vdev, VB2_BUF_STATE_DONE);
++	return IRQ_HANDLED;
++}
++
++static void mvdec_watchdog(struct work_struct *work)
++{
++	struct mvdec_dev *vdev = container_of(to_delayed_work(work),
++					      struct mvdec_dev, watchdog);
++
++	dev_err(vdev->dev, "decode timed out\n");
++	mvdec_job_done(vdev, VB2_BUF_STATE_ERROR);
++}
++
++static const struct v4l2_m2m_ops mvdec_m2m_ops = {
++	.device_run	= mvdec_device_run,
++};
++
++/* ---- file operations -------------------------------------------------- */
++
++static int mvdec_open(struct file *file)
++{
++	struct mvdec_dev *vdev = video_drvdata(file);
++	struct mvdec_ctx *ctx;
++	int ret;
++
++	ctx = kzalloc_obj(*ctx);
++	if (!ctx)
++		return -ENOMEM;
++	if (mutex_lock_interruptible(&vdev->lock)) {
++		kfree(ctx);
++		return -ERESTARTSYS;
++	}
++	v4l2_fh_init(&ctx->fh, video_devdata(file));
++	ctx->dev = vdev;
++	mutex_init(&ctx->vb_mutex);
++	ret = mvdec_init_ctrls(ctx);
++	if (ret)
++		goto err_fh;
++	ctx->fh.m2m_ctx = v4l2_m2m_ctx_init(vdev->m2m_dev, ctx, mvdec_queue_init);
++	if (IS_ERR(ctx->fh.m2m_ctx)) {
++		ret = PTR_ERR(ctx->fh.m2m_ctx);
++		goto err_ctrls;
++	}
++	ctx->src_fmt.width = 1920;
++	ctx->src_fmt.height = 1088;
++	mvdec_fill_src(&ctx->src_fmt);
++	ctx->dst_fmt.width = ctx->src_fmt.width;
++	ctx->dst_fmt.height = ctx->src_fmt.height;
++	mvdec_fill_dst(&ctx->dst_fmt);
++	v4l2_fh_add(&ctx->fh, file);
++	mutex_unlock(&vdev->lock);
++	return 0;
++
++err_ctrls:
++	v4l2_ctrl_handler_free(&ctx->hdl);
++err_fh:
++	v4l2_fh_exit(&ctx->fh);
++	mutex_unlock(&vdev->lock);
++	kfree(ctx);
++	return ret;
++}
++
++static int mvdec_release(struct file *file)
++{
++	struct mvdec_dev *vdev = video_drvdata(file);
++	struct mvdec_ctx *ctx = fh_to_ctx(file_to_v4l2_fh(file));
++
++	v4l2_fh_del(&ctx->fh, file);
++	v4l2_fh_exit(&ctx->fh);
++	mutex_lock(&vdev->lock);
++	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
++	mutex_unlock(&vdev->lock);
++	v4l2_ctrl_handler_free(&ctx->hdl);
++	mvdec_free_mv(ctx);
++	kfree(ctx);
++	return 0;
++}
++
++static const struct v4l2_file_operations mvdec_fops = {
++	.owner		= THIS_MODULE,
++	.open		= mvdec_open,
++	.release	= mvdec_release,
++	.poll		= v4l2_m2m_fop_poll,
++	.unlocked_ioctl	= video_ioctl2,
++	.mmap		= v4l2_m2m_fop_mmap,
++};
++
++static int mvdec_request_validate(struct media_request *req)
++{
++	if (vb2_request_buffer_cnt(req) != 1)
++		return -EINVAL;
++	return vb2_request_validate(req);
++}
++
++static const struct media_device_ops mvdec_media_ops = {
++	.req_validate	= mvdec_request_validate,
++	.req_queue	= v4l2_m2m_request_queue,
++};
++
++/* ---- probe ------------------------------------------------------------ */
++
++static int mvdec_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct mvdec_dev *vdev;
++	unsigned long rate;
++	int ret;
++
++	vdev = devm_kzalloc(dev, sizeof(*vdev), GFP_KERNEL);
++	if (!vdev)
++		return -ENOMEM;
++	vdev->dev = dev;
++	mutex_init(&vdev->lock);
++	INIT_DELAYED_WORK(&vdev->watchdog, mvdec_watchdog);
++
++	vdev->base = devm_ioremap(dev, MVDEC_WIN_BASE, MVDEC_WIN_SIZE);
++	vdev->larb = devm_ioremap(dev, MVDEC_LARB1_BASE, SZ_4K);
++	if (!vdev->base || !vdev->larb)
++		return -ENOMEM;
++	vdev->vdec_clk = devm_clk_get(dev, "vdec");
++	if (IS_ERR(vdev->vdec_clk))
++		return PTR_ERR(vdev->vdec_clk);
++	vdev->larb_clk = devm_clk_get(dev, "larb");
++	if (IS_ERR(vdev->larb_clk))
++		return PTR_ERR(vdev->larb_clk);
++	rate = clk_get_rate(vdev->vdec_clk);
++	if (!rate || rate > MVDEC_MAX_RATE)
++		return dev_err_probe(dev, -ERANGE, "vdec clock %lu Hz\n", rate);
++	vdev->irq = platform_get_irq(pdev, 0);
++	if (vdev->irq < 0)
++		return vdev->irq;
++	ret = devm_request_threaded_irq(dev, vdev->irq, mvdec_irq,
++					mvdec_irq_thread, 0, MVDEC_NAME, vdev);
++	if (ret)
++		return ret;
++	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
++	if (ret)
++		return ret;
++
++	pm_runtime_set_autosuspend_delay(dev, 100);
++	pm_runtime_use_autosuspend(dev);
++	ret = devm_pm_runtime_enable(dev);
++	if (ret)
++		return ret;
++
++	ret = v4l2_device_register(dev, &vdev->v4l2_dev);
++	if (ret)
++		return ret;
++	vdev->m2m_dev = v4l2_m2m_init(&mvdec_m2m_ops);
++	if (IS_ERR(vdev->m2m_dev)) {
++		ret = PTR_ERR(vdev->m2m_dev);
++		goto err_v4l2;
++	}
++
++	vdev->mdev.dev = dev;
++	strscpy(vdev->mdev.model, MVDEC_NAME, sizeof(vdev->mdev.model));
++	strscpy(vdev->mdev.bus_info, "platform:" MVDEC_NAME,
++		sizeof(vdev->mdev.bus_info));
++	media_device_init(&vdev->mdev);
++	vdev->mdev.ops = &mvdec_media_ops;
++	vdev->v4l2_dev.mdev = &vdev->mdev;
++
++	vdev->vfd = (struct video_device) {
++		.name		= MVDEC_NAME,
++		.vfl_dir	= VFL_DIR_M2M,
++		.fops		= &mvdec_fops,
++		.ioctl_ops	= &mvdec_ioctl_ops,
++		.minor		= -1,
++		.release	= video_device_release_empty,
++		.lock		= &vdev->lock,
++		.v4l2_dev	= &vdev->v4l2_dev,
++		.device_caps	= V4L2_CAP_VIDEO_M2M_MPLANE | V4L2_CAP_STREAMING,
++	};
++	video_set_drvdata(&vdev->vfd, vdev);
++	ret = video_register_device(&vdev->vfd, VFL_TYPE_VIDEO, -1);
++	if (ret)
++		goto err_m2m;
++	ret = v4l2_m2m_register_media_controller(vdev->m2m_dev, &vdev->vfd,
++						 MEDIA_ENT_F_PROC_VIDEO_DECODER);
++	if (ret)
++		goto err_vfd;
++	ret = media_device_register(&vdev->mdev);
++	if (ret)
++		goto err_mc;
++
++	platform_set_drvdata(pdev, vdev);
++	dev_info(dev, "registered as /dev/video%d, vdec clock %lu Hz\n",
++		 vdev->vfd.num, rate);
++	return 0;
++
++err_mc:
++	v4l2_m2m_unregister_media_controller(vdev->m2m_dev);
++err_vfd:
++	video_unregister_device(&vdev->vfd);
++err_m2m:
++	v4l2_m2m_release(vdev->m2m_dev);
++err_v4l2:
++	v4l2_device_unregister(&vdev->v4l2_dev);
++	return ret;
++}
++
++static void mvdec_remove(struct platform_device *pdev)
++{
++	struct mvdec_dev *vdev = platform_get_drvdata(pdev);
++
++	cancel_delayed_work_sync(&vdev->watchdog);
++	media_device_unregister(&vdev->mdev);
++	v4l2_m2m_unregister_media_controller(vdev->m2m_dev);
++	media_device_cleanup(&vdev->mdev);
++	video_unregister_device(&vdev->vfd);
++	v4l2_m2m_release(vdev->m2m_dev);
++	v4l2_device_unregister(&vdev->v4l2_dev);
++}
++
++static const struct of_device_id mvdec_of_match[] = {
++	{ .compatible = "mediatek,mt6797-vcodec-dec" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, mvdec_of_match);
++
++static struct platform_driver mvdec_driver = {
++	.probe	= mvdec_probe,
++	.remove	= mvdec_remove,
++	.driver	= {
++		.name		= MVDEC_NAME,
++		.of_match_table	= mvdec_of_match,
++	},
++};
++module_platform_driver(mvdec_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 video decoder, V4L2 stateless prototype");
++MODULE_LICENSE("GPL");
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c
+new file mode 100644
+index 000000000..f7b07d61b
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c
+@@ -0,0 +1,1182 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 VDEC: HEVC register programming.
++ *
++ * The decoder has no firmware. For every picture the CPU resets the core,
++ * points the bitstream window at the OUTPUT buffer and walks the first
++ * slice segment header through the hardware bit reader (HEVC_VLD). The
++ * walk positions the reader on the first bit of slice_segment_data() and
++ * issues the hardware parse commands for ref_pic_lists_modification() and
++ * pred_weight_table() at the points the hardware expects them. The CPU then
++ * programs the SPS, PPS, slice, reference and output registers from the V4L2
++ * controls and starts the decode. The hardware decodes every slice of the
++ * access unit from that single start.
++ *
++ * Supported: frame-based decoding with Annex-B start codes, the whole access
++ * unit in one OUTPUT buffer starting with the first slice's start code,
++ * Main profile, 8-bit 4:2:0, CTB 16 to 64, at most 17 capture buffers.
++ * Everything else is rejected with -EINVAL before the decoder starts.
++ *
++ * Register meanings come from reverse engineering. The programming sequence
++ * matches the vendor driver write for write on Main 8-bit 4:2:0 streams with
++ * P and I slices, explicit slice RPS, WPP and pred_weight_table. B slices,
++ * long-term references, tiles, scaling lists, list modification, PCM and
++ * unaligned bitstream starts follow the same model but were not exercised.
++ */
++
++#include <linux/bits.h>
++#include <linux/iopoll.h>
++#include <linux/limits.h>
++#include <linux/log2.h>
++#include <linux/math.h>
++#include <linux/minmax.h>
++#include <linux/slab.h>
++#include <linux/string.h>
++#include <media/videobuf2-dma-contig.h>
++
++#include "mt6797-vdec.h"
++
++/* HEVC_VLD bit reader */
++#define HVLD_PEEK		0x00	/* 32-bit window, no shift */
++#define HVLD_SHIFT(n)		(4 * (n))	/* shift n = 1..32 bits */
++#define HVLD_STATUS		0x84	/* write: bitstream mode; [10:8] bit phase */
++#define HVLD_BITCNT		0x88	/* bit8 pulse resets the bit counter */
++#define HVLD_START		0x90
++#define HVLD_CMD		0x94
++#define HVLD_CMD_PWT		BIT(0)	/* parse pred_weight_table() */
++#define HVLD_CMD_RPL		BIT(4)	/* parse ref_pic_lists_modification() */
++#define HVLD_UE			0x98
++#define HVLD_SE			0x9c
++
++#define VLD_STATUS		0xf4
++#define VLD_FETCH_STATUS	0xe8
++#define VLD_CTRL		0x108
++
++#define HEVC_SLICE_B		V4L2_HEVC_SLICE_TYPE_B
++#define HEVC_SLICE_P		V4L2_HEVC_SLICE_TYPE_P
++#define HEVC_SLICE_I		V4L2_HEVC_SLICE_TYPE_I
++
++#define HEVC_NAL_IDR_W_RADL	19
++#define HEVC_NAL_IDR_N_LP	20
++
++#define HEVC_MAX_REFS		16
++/* NumPicTotalCurr: at most 8 in Main; HEVC_VLD+0xCC holds 4 bits. */
++#define HEVC_MAX_TOTAL_CURR	8
++#define HEVC_BITMAP_WORDS	17	/* 0x140..0x17c + 0x1c0 (rows likewise) */
++
++/* Collocated MV buffer: 64 bytes per 16x16 block, plus a 512-byte tail. */
++size_t mvdec_hevc_mv_size(unsigned int width, unsigned int height)
++{
++	return PAGE_ALIGN((ALIGN(width, 64) / 16) * (ALIGN(height, 64) / 16) * 64 +
++			  512);
++}
++
++/* A capture buffer as the decoder sees it. */
++struct mvdec_hevc_buf {
++	u32 y;
++	u32 c;
++	u32 mv;
++	s32 poc;
++	u8 slot;
++	u8 lt;
++};
++
++struct mvdec_hevc_pic {
++	struct mvdec_dev *vdev;
++	const struct v4l2_ctrl_hevc_sps *sps;
++	const struct v4l2_ctrl_hevc_pps *pps;
++	const struct v4l2_ctrl_hevc_slice_params *sl;
++	const struct v4l2_ctrl_hevc_decode_params *dec;
++	unsigned int ctb_log2;
++	unsigned int ctb;
++	unsigned int w, h;
++	unsigned int wc, hc;
++	bool idr;
++	unsigned int n;			/* NumPicTotalCurr */
++	struct mvdec_hevc_buf cur;
++	struct mvdec_hevc_buf ec;
++	struct mvdec_hevc_buf l0[HEVC_MAX_REFS];
++	struct mvdec_hevc_buf l1[HEVC_MAX_REFS];
++	u8 lt_slots[V4L2_HEVC_DPB_ENTRIES_NUM_MAX];
++	unsigned int num_lt_slots;
++};
++
++/* Values only the slice header walk can provide (absent from V4L2). */
++struct mvdec_hevc_walk {
++	int rps_count;		/* num_negative+num_positive of an explicit RPS */
++	u32 rps_ref_ndp;	/* NumDeltaPocs[RefRpsIdx] of a predicted RPS */
++	u32 nlt_sps;
++	u32 nlt_pics;
++};
++
++static bool sps_flag(const struct mvdec_hevc_pic *p, u64 flag)
++{
++	return p->sps->flags & flag;
++}
++
++static bool pps_flag(const struct mvdec_hevc_pic *p, u64 flag)
++{
++	return p->pps->flags & flag;
++}
++
++static bool sl_flag(const struct mvdec_hevc_pic *p, u64 flag)
++{
++	return p->sl->flags & flag;
++}
++
++/* Clipped POC distance, as the MV registers take it. */
++static s32 poc_diff(s32 cur, s32 ref)
++{
++	return clamp_t(s64, (s64)cur - ref, -128, 127);
++}
++
++static void hvld_write(struct mvdec_dev *vdev, u32 off, u32 val)
++{
++	mvdec_write(vdev, MVDEC_HEVC_VLD + off, val);
++}
++
++static int mvdec_poll(struct mvdec_dev *vdev, u32 off, u32 mask, u32 want,
++		      unsigned int timeout_us)
++{
++	u32 val;
++
++	return readl_poll_timeout_atomic(vdev->base + off, val,
++					 (val & mask) == want, 1, timeout_us);
++}
++
++/* ---- hardware bit reader ---------------------------------------------- */
++
++static void br_skip(struct mvdec_dev *vdev, unsigned int n)
++{
++	for (; n >= 32; n -= 32)
++		mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_SHIFT(32));
++	if (n)
++		mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_SHIFT(n));
++}
++
++/* u(n), n = 0..32: peek the window, then shift. */
++static u32 br_u(struct mvdec_dev *vdev, unsigned int n)
++{
++	u32 v;
++
++	if (!n)
++		return 0;
++	v = mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_PEEK);
++	if (n < 32)
++		v >>= 32 - n;
++	br_skip(vdev, n);
++	return v;
++}
++
++static u32 br_ue(struct mvdec_dev *vdev)
++{
++	return mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_UE);
++}
++
++static s32 br_se(struct mvdec_dev *vdev)
++{
++	return (s32)mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_SE);
++}
++
++/* ---- register values derived from the controls ------------------------- */
++
++static u32 reg_bc(const struct mvdec_hevc_pic *p)
++{
++	/* dependent_slice_segment_flag (bit 30) is 0 for the first segment. */
++	return (p->idr ? BIT(31) : 0) | (p->sl->slice_type & 3) << 28 |
++	       (order_base_2(p->wc * p->hc) & 0x1f) << 20;
++}
++
++static u32 reg_c4_early(const struct mvdec_hevc_pic *p)
++{
++	u32 st = p->sl->slice_type;
++	u32 l0 = st != HEVC_SLICE_I ? p->sl->num_ref_idx_l0_active_minus1 + 1 : 0;
++	u32 l1 = st == HEVC_SLICE_B ? p->sl->num_ref_idx_l1_active_minus1 + 1 : 0;
++
++	/* An absent list encodes as 0xf. */
++	return ((l1 - 1) & 0xf) << 4 | ((l0 - 1) & 0xf);
++}
++
++static u32 reg_cc(unsigned int n)
++{
++	return (order_base_2(n) & 7) << 4 | (n & 0xf);
++}
++
++static u32 reg_c0(const struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_slice_params *sl = p->sl;
++	bool sao = sps_flag(p, V4L2_HEVC_SPS_FLAG_SAMPLE_ADAPTIVE_OFFSET);
++	int qp = 26 + p->pps->init_qp_minus26 + sl->slice_qp_delta;
++	int cb = sl->slice_cb_qp_offset + p->pps->pps_cb_qp_offset;
++	int cr = sl->slice_cr_qp_offset + p->pps->pps_cr_qp_offset;
++	u32 v = 0;
++
++	if (sao && sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_SAO_LUMA))
++		v |= BIT(5);
++	if (sao && sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_SAO_CHROMA))
++		v |= BIT(6);
++	if (sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_CABAC_INIT))
++		v |= BIT(7);
++	return v | ((u32)qp & 0x7f) << 8 | ((u32)cb & 0x1f) << 16 |
++	       ((u32)cr & 0x1f) << 24;
++}
++
++static u32 reg_c4(const struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_slice_params *sl = p->sl;
++	u32 st = sl->slice_type;
++	u32 merge = st == HEVC_SLICE_I ? 0 : 5 - sl->five_minus_max_num_merge_cand;
++	u32 coll = st == HEVC_SLICE_I ? 0 : sl->collocated_ref_idx;
++	bool tmvp = !p->idr &&
++		    sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_TEMPORAL_MVP_ENABLED);
++	bool col_l0 = st != HEVC_SLICE_B ||
++		      sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_COLLOCATED_FROM_L0);
++	bool mvd_l1_zero = st == HEVC_SLICE_B &&
++			   sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_MVD_L1_ZERO);
++	bool dis = false;
++	s32 beta = 0, tc = 0;
++	u32 v;
++
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT)) {
++		dis = sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_DEBLOCKING_FILTER_DISABLED);
++		beta = sl->slice_beta_offset_div2;
++		tc = sl->slice_tc_offset_div2;
++	}
++	v = reg_c4_early(p) | (coll & 0xf) << 8 | (merge & 7) << 12 |
++	    ((u32)beta & 0x1f) << 16 | ((u32)tc & 0x1f) << 21;
++	if (tmvp)
++		v |= BIT(26);
++	if (col_l0)
++		v |= BIT(27);
++	if (mvd_l1_zero)
++		v |= BIT(28);
++	if (sl_flag(p, V4L2_HEVC_SLICE_PARAMS_FLAG_SLICE_LOOP_FILTER_ACROSS_SLICES_ENABLED))
++		v |= BIT(29);
++	if (dis)
++		v |= BIT(30);
++	return v;
++}
++
++static u32 reg_c8(const struct mvdec_hevc_walk *w, u32 last_rps_count)
++{
++	return (w->rps_ref_ndp & 0x1f) | (last_rps_count & 0x3f) << 8 |
++	       ((w->nlt_sps + w->nlt_pics) & 0x1f) << 16 |
++	       (w->nlt_sps & 0x1f) << 24;
++}
++
++static u32 reg_a0(const struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_sps *sps = p->sps;
++	bool pcm = sps_flag(p, V4L2_HEVC_SPS_FLAG_PCM_ENABLED);
++	/* Without PCM the vendor programs its default sample depth, 7. */
++	u32 bl = pcm ? sps->pcm_sample_bit_depth_luma_minus1 : 7;
++	u32 bc = pcm ? sps->pcm_sample_bit_depth_chroma_minus1 : 7;
++	u32 v = sps->chroma_format_idc & 3;
++
++	if (pcm)
++		v |= BIT(2);
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_LISTS_MODIFICATION_PRESENT))
++		v |= BIT(3);
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_AMP_ENABLED))
++		v |= BIT(4);
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_SAMPLE_ADAPTIVE_OFFSET))
++		v |= BIT(5);
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_PCM_LOOP_FILTER_DISABLED))
++		v |= BIT(6);
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_SPS_TEMPORAL_MVP_ENABLED))
++		v |= BIT(7);
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_LONG_TERM_REF_PICS_PRESENT))
++		v |= BIT(22);
++	return v | (bl & 0xf) << 8 | (bc & 0xf) << 12 |
++	       (sps->num_long_term_ref_pics_sps & 0x3f) << 16 |
++	       (sps->num_short_term_ref_pic_sets & 0x7f) << 24;
++}
++
++static u32 reg_a4(const struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_sps *sps = p->sps;
++	u32 lt = max_t(u32, 1, order_base_2(sps->num_long_term_ref_pics_sps & 0x3f));
++	u32 st = max_t(u32, 1, order_base_2(sps->num_short_term_ref_pic_sets & 0x7f));
++	u32 v = (lt & 7) << 12 | (st & 7) << 8 |
++		((sps->log2_max_pic_order_cnt_lsb_minus4 + 4) & 0x1f);
++
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_STRONG_INTRA_SMOOTHING_ENABLED))
++		v |= BIT(16);
++	return v;
++}
++
++static u32 reg_a8(const struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_sps *sps = p->sps;
++	u32 mintb = sps->log2_min_luma_transform_block_size_minus2 + 2;
++	u32 maxtb = mintb + sps->log2_diff_max_min_luma_transform_block_size;
++	u32 minpcm = 7, maxpcm = 5;	/* vendor defaults without PCM */
++
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_PCM_ENABLED)) {
++		minpcm = sps->log2_min_pcm_luma_coding_block_size_minus3 + 3;
++		maxpcm = minpcm + sps->log2_diff_max_min_pcm_luma_coding_block_size;
++	}
++	return ((sps->log2_min_luma_coding_block_size_minus3 + 3) & 7) |
++	       (p->ctb_log2 & 7) << 4 | (mintb & 7) << 8 | (maxtb & 7) << 12 |
++	       (minpcm & 7) << 16 | (maxpcm & 7) << 20 |
++	       (sps->max_transform_hierarchy_depth_inter & 7) << 24 |
++	       (sps->max_transform_hierarchy_depth_intra & 7) << 28;
++}
++
++static u32 reg_ac(const struct mvdec_hevc_pic *p)
++{
++	static const u64 bits[] = {
++		V4L2_HEVC_PPS_FLAG_SIGN_DATA_HIDING_ENABLED,
++		V4L2_HEVC_PPS_FLAG_CABAC_INIT_PRESENT,
++		V4L2_HEVC_PPS_FLAG_CONSTRAINED_INTRA_PRED,
++		V4L2_HEVC_PPS_FLAG_TRANSFORM_SKIP_ENABLED,
++		V4L2_HEVC_PPS_FLAG_WEIGHTED_PRED,
++		V4L2_HEVC_PPS_FLAG_WEIGHTED_BIPRED,
++		V4L2_HEVC_PPS_FLAG_OUTPUT_FLAG_PRESENT,
++		V4L2_HEVC_PPS_FLAG_TRANSQUANT_BYPASS_ENABLED,
++		V4L2_HEVC_PPS_FLAG_DEPENDENT_SLICE_SEGMENT_ENABLED,
++		V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED,
++		0,	/* bit 10 unused */
++		V4L2_HEVC_PPS_FLAG_SLICE_SEGMENT_HEADER_EXTENSION_PRESENT,
++	};
++	const struct v4l2_ctrl_hevc_pps *pps = p->pps;
++	unsigned int i;
++	u32 v = 0;
++
++	for (i = 0; i < ARRAY_SIZE(bits); i++)
++		if (bits[i] && pps_flag(p, bits[i]))
++			v |= BIT(i);
++	return v | (pps->num_ref_idx_l0_default_active_minus1 & 0xf) << 16 |
++	       (pps->num_ref_idx_l1_default_active_minus1 & 0xf) << 20 |
++	       ((pps->log2_parallel_merge_level_minus2 + 2) & 7) << 24 |
++	       (pps->num_extra_slice_header_bits & 7) << 28;
++}
++
++static u32 reg_b0(const struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_pps *pps = p->pps;
++	u32 v = ((p->ctb_log2 - pps->diff_cu_qp_delta_depth) & 7) << 4 |
++		((u32)(26 + pps->init_qp_minus26) & 0x7f) << 8 |
++		((u32)pps->pps_cb_qp_offset & 0x1f) << 16 |
++		((u32)pps->pps_cr_qp_offset & 0x1f) << 24;
++
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_CU_QP_DELTA_ENABLED))
++		v |= BIT(0);
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_PPS_SLICE_CHROMA_QP_OFFSETS_PRESENT))
++		v |= BIT(1);
++	return v;
++}
++
++static u32 reg_b4(const struct mvdec_hevc_pic *p)
++{
++	bool tiles = pps_flag(p, V4L2_HEVC_PPS_FLAG_TILES_ENABLED);
++	/* Loop filtering across tiles reads as enabled without tiles. */
++	bool lfat = !tiles ||
++		    pps_flag(p, V4L2_HEVC_PPS_FLAG_LOOP_FILTER_ACROSS_TILES_ENABLED);
++
++	return (tiles ? BIT(0) : 0) | (p->pps->num_tile_columns_minus1 & 0x1f) << 8 |
++	       (p->pps->num_tile_rows_minus1 & 0x1f) << 16 | (lfat ? BIT(24) : 0);
++}
++
++static u32 reg_b8(const struct mvdec_hevc_pic *p)
++{
++	u32 v = ((u32)p->pps->pps_beta_offset_div2 & 0x1f) << 4 |
++		((u32)p->pps->pps_tc_offset_div2 & 0x1f) << 9;
++
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_PPS_LOOP_FILTER_ACROSS_SLICES_ENABLED))
++		v |= BIT(0);
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT))
++		v |= BIT(1);
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_OVERRIDE_ENABLED))
++		v |= BIT(2);
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_PPS_DISABLE_DEBLOCKING_FILTER))
++		v |= BIT(3);
++	return v;
++}
++
++/*
++ * Tile boundary bitmap: bit k is set when a tile column (row) ends at CTB
++ * column (row) k. Without tiles the picture is one tile. Checked against
++ * the picture size in mvdec_hevc_check().
++ */
++static void tile_bitmap(u32 *map, unsigned int ctbs, unsigned int num,
++			const u8 *size_minus1, bool uniform)
++{
++	unsigned int i, end = 0;
++
++	memset(map, 0, HEVC_BITMAP_WORDS * sizeof(*map));
++	for (i = 0; i < num; i++) {
++		if (uniform)
++			end = ((i + 1) * ctbs) / num;
++		else if (i < num - 1)
++			end += size_minus1[i] + 1;
++		else
++			end = ctbs;
++		map[(end - 1) / 32] |= BIT((end - 1) % 32);
++	}
++}
++
++/* ---- slice segment header walk ------------------------------------------ */
++
++static int walk_st_rps(struct mvdec_hevc_pic *p, struct mvdec_hevc_walk *w)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	u32 idx = p->sps->num_short_term_ref_pic_sets;
++	u32 i, nn, np;
++
++	if (idx && br_u(vdev, 1)) {
++		/* inter_ref_pic_set_prediction_flag */
++		u32 nref = p->dec->num_delta_pocs_of_ref_rps_idx;
++
++		if (br_ue(vdev) >= idx)		/* delta_idx_minus1 */
++			return -EINVAL;
++		if (nref > 2 * V4L2_HEVC_DPB_ENTRIES_NUM_MAX)
++			return -EINVAL;
++		br_u(vdev, 1);			/* delta_rps_sign */
++		br_ue(vdev);			/* abs_delta_rps_minus1 */
++		for (i = 0; i <= nref; i++)
++			if (!br_u(vdev, 1))	/* used_by_curr_pic_flag */
++				br_u(vdev, 1);	/* use_delta_flag */
++		w->rps_ref_ndp = nref;
++		return 0;
++	}
++	nn = br_ue(vdev);
++	np = br_ue(vdev);
++	if (nn > V4L2_HEVC_DPB_ENTRIES_NUM_MAX || np > V4L2_HEVC_DPB_ENTRIES_NUM_MAX)
++		return -EINVAL;
++	for (i = 0; i < nn + np; i++) {
++		br_ue(vdev);			/* delta_poc_sX_minus1 */
++		br_u(vdev, 1);			/* used_by_curr_pic_sX_flag */
++	}
++	w->rps_count = nn + np;
++	return 0;
++}
++
++/*
++ * Read the first slice segment header through the hardware reader, in syntax
++ * order, and leave the reader on the first bit of slice_segment_data(). The
++ * SPS/PPS controls decide which fields are present; the values come from the
++ * reader. The hardware parses ref_pic_lists_modification() and
++ * pred_weight_table() itself when commanded at their first bit.
++ */
++static int mvdec_hevc_walk(struct mvdec_hevc_pic *p, struct mvdec_hevc_walk *w)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_hevc_sps *sps = p->sps;
++	const struct v4l2_ctrl_hevc_pps *pps = p->pps;
++	u32 nal = p->sl->nal_unit_type;
++	u32 lsb_bits = sps->log2_max_pic_order_cnt_lsb_minus4 + 4;
++	bool tmvp = false, sao_l = false, sao_c = false, dis = false;
++	u32 i, n, st, len, nl0 = 0, nl1 = 0;
++	int ret;
++
++	memset(w, 0, sizeof(*w));
++	w->rps_count = -1;
++
++	hvld_write(vdev, HVLD_BITCNT, 0x100);
++	hvld_write(vdev, HVLD_BITCNT, 0);
++
++	/* first_slice_segment_in_pic_flag: frame-based decoding needs it set. */
++	if (!br_u(vdev, 1))
++		return -EINVAL;
++	if (nal >= 16 && nal <= 23)
++		br_u(vdev, 1);			/* no_output_of_prior_pics_flag */
++	br_ue(vdev);				/* slice_pic_parameter_set_id */
++	for (i = 0; i < pps->num_extra_slice_header_bits; i++)
++		br_u(vdev, 1);			/* slice_reserved_flag */
++	st = br_ue(vdev);
++	if (st != p->sl->slice_type)
++		return -EINVAL;
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_OUTPUT_FLAG_PRESENT))
++		br_u(vdev, 1);			/* pic_output_flag */
++	hvld_write(vdev, 0xbc, reg_bc(p));
++	/* separate_colour_plane_flag is rejected, so no colour_plane_id. */
++
++	if (!p->idr) {
++		br_u(vdev, lsb_bits);		/* slice_pic_order_cnt_lsb */
++		if (!br_u(vdev, 1)) {		/* short_term_ref_pic_set_sps_flag */
++			ret = walk_st_rps(p, w);
++			if (ret)
++				return ret;
++		} else if (sps->num_short_term_ref_pic_sets > 1) {
++			br_u(vdev, order_base_2(sps->num_short_term_ref_pic_sets));
++		}
++		if (sps_flag(p, V4L2_HEVC_SPS_FLAG_LONG_TERM_REF_PICS_PRESENT)) {
++			if (sps->num_long_term_ref_pics_sps)
++				w->nlt_sps = br_ue(vdev);
++			w->nlt_pics = br_ue(vdev);
++			if (w->nlt_sps > sps->num_long_term_ref_pics_sps ||
++			    w->nlt_pics > 32 || w->nlt_sps + w->nlt_pics > 32)
++				return -EINVAL;
++			for (i = 0; i < w->nlt_sps + w->nlt_pics; i++) {
++				if (i < w->nlt_sps) {
++					/* lt_idx_sps */
++					br_u(vdev, order_base_2(sps->num_long_term_ref_pics_sps));
++				} else {
++					br_u(vdev, lsb_bits);	/* poc_lsb_lt */
++					br_u(vdev, 1);	/* used_by_curr_pic_lt_flag */
++				}
++				if (br_u(vdev, 1))	/* delta_poc_msb_present_flag */
++					br_ue(vdev);	/* delta_poc_msb_cycle_lt */
++			}
++		}
++		if (sps_flag(p, V4L2_HEVC_SPS_FLAG_SPS_TEMPORAL_MVP_ENABLED))
++			tmvp = br_u(vdev, 1);	/* slice_temporal_mvp_enabled_flag */
++	}
++	if (sps_flag(p, V4L2_HEVC_SPS_FLAG_SAMPLE_ADAPTIVE_OFFSET)) {
++		sao_l = br_u(vdev, 1);
++		if (sps->chroma_format_idc)
++			sao_c = br_u(vdev, 1);
++	}
++	if (st != HEVC_SLICE_I) {
++		nl0 = pps->num_ref_idx_l0_default_active_minus1 + 1;
++		if (st == HEVC_SLICE_B)
++			nl1 = pps->num_ref_idx_l1_default_active_minus1 + 1;
++		if (br_u(vdev, 1)) {		/* num_ref_idx_active_override_flag */
++			nl0 = br_ue(vdev) + 1;
++			if (st == HEVC_SLICE_B)
++				nl1 = br_ue(vdev) + 1;
++		}
++		if (nl0 > 15 || nl1 > 15)
++			return -EINVAL;
++		hvld_write(vdev, 0xc4, reg_c4_early(p));
++		if (p->n > 1 &&
++		    pps_flag(p, V4L2_HEVC_PPS_FLAG_LISTS_MODIFICATION_PRESENT)) {
++			hvld_write(vdev, 0xcc, reg_cc(p->n));
++			hvld_write(vdev, HVLD_CMD, HVLD_CMD_RPL);
++			ret = mvdec_poll(vdev, MVDEC_HEVC_VLD + HVLD_CMD,
++					 HVLD_CMD_RPL, 0, 1500);
++			if (ret)
++				return ret;
++		}
++		if (st == HEVC_SLICE_B)
++			br_u(vdev, 1);		/* mvd_l1_zero_flag */
++		if (pps_flag(p, V4L2_HEVC_PPS_FLAG_CABAC_INIT_PRESENT))
++			br_u(vdev, 1);		/* cabac_init_flag */
++		if (tmvp) {
++			bool col_l0 = true;
++
++			if (st == HEVC_SLICE_B)
++				col_l0 = br_u(vdev, 1);
++			if ((col_l0 && nl0 > 1) || (!col_l0 && nl1 > 1))
++				br_ue(vdev);	/* collocated_ref_idx */
++		}
++		if ((pps_flag(p, V4L2_HEVC_PPS_FLAG_WEIGHTED_PRED) && st == HEVC_SLICE_P) ||
++		    (pps_flag(p, V4L2_HEVC_PPS_FLAG_WEIGHTED_BIPRED) && st == HEVC_SLICE_B)) {
++			hvld_write(vdev, HVLD_CMD, HVLD_CMD_PWT);
++			ret = mvdec_poll(vdev, MVDEC_HEVC_VLD + HVLD_CMD,
++					 HVLD_CMD_PWT, 0, 1500);
++			if (ret)
++				return ret;
++		}
++		br_ue(vdev);			/* five_minus_max_num_merge_cand */
++	}
++	br_se(vdev);				/* slice_qp_delta */
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_PPS_SLICE_CHROMA_QP_OFFSETS_PRESENT)) {
++		br_se(vdev);
++		br_se(vdev);
++	}
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_CONTROL_PRESENT)) {
++		dis = pps_flag(p, V4L2_HEVC_PPS_FLAG_PPS_DISABLE_DEBLOCKING_FILTER);
++		if (pps_flag(p, V4L2_HEVC_PPS_FLAG_DEBLOCKING_FILTER_OVERRIDE_ENABLED) &&
++		    br_u(vdev, 1)) {		/* deblocking_filter_override_flag */
++			dis = br_u(vdev, 1);
++			if (!dis) {
++				br_se(vdev);	/* slice_beta_offset_div2 */
++				br_se(vdev);	/* slice_tc_offset_div2 */
++			}
++		}
++	}
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_PPS_LOOP_FILTER_ACROSS_SLICES_ENABLED) &&
++	    (sao_l || sao_c || !dis))
++		br_u(vdev, 1);	/* slice_loop_filter_across_slices_enabled_flag */
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_TILES_ENABLED) ||
++	    pps_flag(p, V4L2_HEVC_PPS_FLAG_ENTROPY_CODING_SYNC_ENABLED)) {
++		/* Entry points are read and dropped; the hardware finds them. */
++		n = br_ue(vdev);
++		if (n >= p->wc * p->hc)
++			return -EINVAL;
++		if (n) {
++			len = br_ue(vdev) + 1;
++			if (len > 32)
++				return -EINVAL;
++			for (i = 0; i < n; i++)
++				br_u(vdev, len);
++		}
++	}
++	if (pps_flag(p, V4L2_HEVC_PPS_FLAG_SLICE_SEGMENT_HEADER_EXTENSION_PRESENT)) {
++		n = br_ue(vdev);
++		if (n > 256)
++			return -EINVAL;
++		for (i = 0; i < n; i++)
++			br_u(vdev, 8);
++	}
++	/* byte_alignment(): at least one bit, up to the next byte boundary. */
++	n = (mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_STATUS) >> 8) & 7;
++	br_skip(vdev, 8 - n);
++	return 0;
++}
++
++/* ---- buffers ------------------------------------------------------------ */
++
++static int mvdec_hevc_buf(struct mvdec_ctx *ctx, struct vb2_buffer *vb,
++			  struct mvdec_hevc_buf *b)
++{
++	dma_addr_t y, c;
++
++	/* The slot id is 5 bits and is programmed as slot + 1. */
++	if (vb->index >= MVDEC_HEVC_SLOTS || !ctx->mv[vb->index].cpu)
++		return -EINVAL;
++	y = vb2_dma_contig_plane_dma_addr(vb, 0);
++	c = vb2_dma_contig_plane_dma_addr(vb, 1);
++	/* MC+0x224 takes Y >> 9 and MC+0x228 C >> 8. */
++	if (y & 0x1ff || c & 0xff)
++		return -EINVAL;
++	b->y = lower_32_bits(y);
++	b->c = lower_32_bits(c);
++	b->mv = lower_32_bits(ctx->mv[vb->index].dma);
++	b->slot = vb->index;
++	b->lt = 0;
++	return 0;
++}
++
++static int mvdec_hevc_ref(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p,
++			  unsigned int idx, struct mvdec_hevc_buf *b)
++{
++	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
++	const struct v4l2_hevc_dpb_entry *e;
++	struct vb2_buffer *vb;
++	int ret;
++
++	if (idx >= p->dec->num_active_dpb_entries)
++		return -EINVAL;
++	e = &p->dec->dpb[idx];
++	/* A missing reference rejects the picture. */
++	vb = vb2_find_buffer(vq, e->timestamp);
++	if (!vb)
++		return -EINVAL;
++	ret = mvdec_hevc_buf(ctx, vb, b);
++	if (ret)
++		return ret;
++	b->poc = e->pic_order_cnt_val;
++	b->lt = !!(e->flags & V4L2_HEVC_DPB_ENTRY_LONG_TERM_REFERENCE);
++	return 0;
++}
++
++/*
++ * Reference lists as the hardware wants them: the initial lists
++ * (RefPicListTemp0/1) cycled to 16 entries,
++ *   L0 = StCurrBefore, StCurrAfter, LtCurr
++ *   L1 = StCurrAfter, StCurrBefore, LtCurr.
++ * The hardware applies list_entry_lX from the bitstream itself.
++ */
++static int mvdec_hevc_lists(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p)
++{
++	const struct v4l2_ctrl_hevc_decode_params *dec = p->dec;
++	unsigned int nb = dec->num_poc_st_curr_before;
++	unsigned int na = dec->num_poc_st_curr_after;
++	unsigned int nl = dec->num_poc_lt_curr;
++	struct mvdec_hevc_buf t[HEVC_MAX_TOTAL_CURR];
++	unsigned int i, j, k = 0;
++	int ret = 0;
++
++	if (dec->num_active_dpb_entries > V4L2_HEVC_DPB_ENTRIES_NUM_MAX)
++		return -EINVAL;
++	p->n = nb + na + nl;
++	if (p->n > HEVC_MAX_TOTAL_CURR)
++		return -EINVAL;
++	for (i = 0; i < nb && !ret; i++)
++		ret = mvdec_hevc_ref(ctx, p, dec->poc_st_curr_before[i], &t[k++]);
++	for (i = 0; i < na && !ret; i++)
++		ret = mvdec_hevc_ref(ctx, p, dec->poc_st_curr_after[i], &t[k++]);
++	for (i = 0; i < nl && !ret; i++)
++		ret = mvdec_hevc_ref(ctx, p, dec->poc_lt_curr[i], &t[k++]);
++	if (ret)
++		return ret;
++	for (i = 0; p->n && i < HEVC_MAX_REFS; i++) {
++		j = i % p->n;
++		p->l0[i] = t[j];
++		if (j < na)
++			p->l1[i] = t[nb + j];
++		else if (j < na + nb)
++			p->l1[i] = t[j - na];
++		else
++			p->l1[i] = t[j];
++	}
++
++	/* Slots of every long-term picture in the DPB, for MV+0x328. */
++	p->num_lt_slots = 0;
++	for (i = 0; i < dec->num_active_dpb_entries; i++) {
++		struct mvdec_hevc_buf b;
++
++		if (!(dec->dpb[i].flags & V4L2_HEVC_DPB_ENTRY_LONG_TERM_REFERENCE))
++			continue;
++		ret = mvdec_hevc_ref(ctx, p, i, &b);
++		if (ret)
++			return ret;
++		p->lt_slots[p->num_lt_slots++] = b.slot;
++	}
++	return 0;
++}
++
++/*
++ * Error-concealment reference (driver policy): among the other capture
++ * buffers that hold a decoded picture, the one with the nearest POC, the
++ * lowest index winning ties; otherwise the current buffer.
++ */
++static void mvdec_hevc_choose_ec(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p)
++{
++	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
++	struct mvdec_hevc_state *s = &ctx->hevc;
++	s64 best_d = S64_MAX;
++	unsigned int i;
++
++	p->ec = p->cur;
++	for (i = 0; i < MVDEC_HEVC_SLOTS; i++) {
++		struct mvdec_hevc_buf b;
++		struct vb2_buffer *vb;
++		s64 d;
++
++		if (i == p->cur.slot || !(s->held & BIT(i)))
++			continue;
++		vb = vb2_get_buffer(vq, i);
++		if (!vb || mvdec_hevc_buf(ctx, vb, &b))
++			continue;
++		d = abs((s64)p->dec->pic_order_cnt_val - s->poc[i]);
++		if (d < best_d) {
++			best_d = d;
++			p->ec = b;
++		}
++	}
++}
++
++/* ---- validation --------------------------------------------------------- */
++
++static int mvdec_hevc_check(struct mvdec_ctx *ctx, const struct mvdec_hevc_run *run)
++{
++	const struct v4l2_ctrl_hevc_sps *sps = run->sps;
++	const struct v4l2_ctrl_hevc_pps *pps = run->pps;
++	const struct v4l2_ctrl_hevc_slice_params *sl = run->slices;
++	unsigned int min_cb, ctb_log2, ctb, wc, hc, i, sum;
++
++	if (!sps || !pps || !sl || !run->num_slices || !run->decode)
++		return -EINVAL;
++	if (sps->flags & V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED && !run->scaling)
++		return -EINVAL;
++	/* 8-bit 4:2:0 only: no 10-bit, 4:0:0, 4:2:2, 4:4:4 or colour planes. */
++	if (sps->chroma_format_idc != 1 || sps->bit_depth_luma_minus8 ||
++	    sps->bit_depth_chroma_minus8 ||
++	    sps->flags & V4L2_HEVC_SPS_FLAG_SEPARATE_COLOUR_PLANE)
++		return -EINVAL;
++	if (!sps->pic_width_in_luma_samples || !sps->pic_height_in_luma_samples ||
++	    sps->pic_width_in_luma_samples > ctx->dst_fmt.width ||
++	    sps->pic_height_in_luma_samples > ctx->dst_fmt.height)
++		return -EINVAL;
++	min_cb = sps->log2_min_luma_coding_block_size_minus3 + 3;
++	ctb_log2 = min_cb + sps->log2_diff_max_min_luma_coding_block_size;
++	if (ctb_log2 < 4 || ctb_log2 > 6)
++		return -EINVAL;
++	if (sps->log2_max_pic_order_cnt_lsb_minus4 > 12 ||
++	    sps->num_short_term_ref_pic_sets > 64 ||
++	    sps->num_long_term_ref_pics_sps > 32 ||
++	    pps->num_extra_slice_header_bits > 7)
++		return -EINVAL;
++
++	ctb = 1 << ctb_log2;
++	wc = DIV_ROUND_UP(sps->pic_width_in_luma_samples, ctb);
++	hc = DIV_ROUND_UP(sps->pic_height_in_luma_samples, ctb);
++	if (pps->flags & V4L2_HEVC_PPS_FLAG_TILES_ENABLED) {
++		/* Tile bitmaps are ported but untested on hardware. */
++		if (pps->num_tile_columns_minus1 >= min_t(unsigned int, wc, 20) ||
++		    pps->num_tile_rows_minus1 >= min_t(unsigned int, hc, 22))
++			return -EINVAL;
++		if (!(pps->flags & V4L2_HEVC_PPS_FLAG_UNIFORM_SPACING)) {
++			for (i = 0, sum = 0; i < pps->num_tile_columns_minus1; i++)
++				sum += pps->column_width_minus1[i] + 1;
++			if (sum >= wc)
++				return -EINVAL;
++			for (i = 0, sum = 0; i < pps->num_tile_rows_minus1; i++)
++				sum += pps->row_height_minus1[i] + 1;
++			if (sum >= hc)
++				return -EINVAL;
++		}
++	}
++
++	/* VCL NAL unit types 0..9 and 16..21 only. */
++	if ((sl->nal_unit_type > 9 && sl->nal_unit_type < 16) ||
++	    sl->nal_unit_type > 21 || sl->slice_type > HEVC_SLICE_I)
++		return -EINVAL;
++	return 0;
++}
++
++/* ---- programming -------------------------------------------------------- */
++
++static void mvdec_hevc_reset(struct mvdec_dev *vdev)
++{
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x101);
++	mvdec_write(vdev, MVDEC_MISC + 0xf4, 0);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x101);
++	mvdec_write(vdev, MVDEC_MISC + 0xc8, 0xfeff);
++	/* Sub-module clock gates, non-UFO output. */
++	mvdec_write(vdev, MVDEC_MISC + 0xcc, 0x77e30182);
++	mvdec_write(vdev, MVDEC_MISC + 0x178, 0xfffffa60);
++	mvdec_write(vdev, MVDEC_MISC + 0x84, 2);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0);
++	mvdec_write(vdev, MVDEC_GCON + 0x18, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0xec, 1);
++	mvdec_write(vdev, MVDEC_MISC + 0x04, 0x100);
++}
++
++/* Wait for the VLD SRAM: when bit 15 is set, until bit 0 is set. */
++static int mvdec_hevc_sram_wait(struct mvdec_dev *vdev)
++{
++	if (!(mvdec_read(vdev, MVDEC_VLD + VLD_STATUS) & BIT(15)))
++		return 0;
++	return mvdec_poll(vdev, MVDEC_VLD + VLD_STATUS, BIT(0), BIT(0), 50000);
++}
++
++/*
++ * Bitstream window over the OUTPUT buffer and the barrel shifter on the
++ * first slice's start code, then past the start code and NAL header.
++ */
++static int mvdec_hevc_bitstream(struct mvdec_hevc_pic *p, u32 pa, u32 len)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	u32 end = pa + len + 0x200;
++	u32 win, i;
++	int ret;
++
++	hvld_write(vdev, HVLD_STATUS, 1);	/* HEVC bitstream mode */
++	mvdec_write(vdev, MVDEC_VLD + 0xec, 0x10000000);
++	mvdec_write(vdev, MVDEC_VLD + 0xb4, pa >> 6);	/* VFIFO start */
++	mvdec_write(vdev, MVDEC_VLD + 0xb8, end >> 6);	/* VFIFO end */
++	ret = mvdec_hevc_sram_wait(vdev);
++	if (ret)
++		return ret;
++	mvdec_write(vdev, MVDEC_VLD + 0xb0, pa);	/* read pointer */
++	mvdec_write(vdev, MVDEC_VLD + 0x110, end & ~0x3f);	/* write pointer */
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0x100);
++	mvdec_write(vdev, MVDEC_VLD + VLD_CTRL, 0);
++	mvdec_write(vdev, MVDEC_VLD + 0x8c, 0x100000);	/* initial fetch */
++	ret = mvdec_poll(vdev, MVDEC_VLD + VLD_FETCH_STATUS, BIT(0), BIT(0),
++			 50000);
++	if (ret)
++		return ret;
++	mvdec_write(vdev, MVDEC_VLD + 0x8c, 0x800000);	/* load the shifter */
++
++	/*
++	 * The shifter loads from a 16-byte boundary: drop the bytes before
++	 * the read pointer. Untested: the vendor also consults
++	 * HEVC_VLD+0x84[27:24] here, and every traced buffer was aligned.
++	 */
++	for (i = 0; i < (pa & 0xf); i++)
++		mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_SHIFT(8));
++
++	/* 4-byte (00 00 00 01) or 3-byte (00 00 01) start code at offset 0. */
++	win = mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_PEEK);
++	if (win == 0x00000001)
++		br_skip(vdev, 8);
++	else if (win >> 8 != 0x000001)
++		return -EINVAL;
++	br_skip(vdev, 8);
++	/* Check the NAL header against the controls before the walk. */
++	win = mvdec_read(vdev, MVDEC_HEVC_VLD + HVLD_PEEK);
++	if (((win >> 9) & 0x3f) != p->sl->nal_unit_type)
++		return -EINVAL;
++	br_skip(vdev, 32);
++	return 0;
++}
++
++static void mvdec_hevc_write_refs(struct mvdec_hevc_pic *p, u32 len)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_hevc_slice_params *sl = p->sl;
++	s32 poc = p->dec->pic_order_cnt_val;
++	unsigned int i, best = 0, nl0 = 0, nl1 = 0;
++	s32 d, best_d = S32_MAX;
++	u32 word;
++	bool nobwd;
++
++	mvdec_write(vdev, MVDEC_MC + 0xa60, 0);		/* no UFO */
++
++	/* Error-concealment preset: every list entry on the EC picture. */
++	for (i = 0; i < HEVC_MAX_REFS; i++) {
++		mvdec_write(vdev, MVDEC_MC + 0x4dc + 4 * i, p->ec.y);
++		mvdec_write(vdev, MVDEC_MC + 0x45c + 4 * i, p->ec.y);
++		mvdec_write(vdev, MVDEC_MC + 0xbe0 + 4 * i, p->ec.c);
++		mvdec_write(vdev, MVDEC_MC + 0xc60 + 4 * i, p->ec.c);
++		mvdec_write(vdev, MVDEC_MV + 4 * i, p->ec.mv >> 4);
++		mvdec_write(vdev, MVDEC_MV + 0x40 + 4 * i, p->ec.mv >> 4);
++	}
++	hvld_write(vdev, 0xe0, 0xfffefffb);	/* error enable mask */
++	/* Probably the data end for error detection; vendor-derived +6. */
++	hvld_write(vdev, 0xd0, len + 6);
++	hvld_write(vdev, 0xd4, 0x04011d01);
++	mvdec_write(vdev, MVDEC_PP + 0x40,
++		    pps_flag(p, V4L2_HEVC_PPS_FLAG_TILES_ENABLED) ?
++		    0x80004011 : 0x7011);
++
++	/* L0 entry with the smallest clipped |POC difference|, first wins. */
++	for (i = 0; i < p->n; i++) {
++		d = abs(poc_diff(poc, p->l0[i].poc));
++		if (d < best_d) {
++			best_d = d;
++			best = i;
++		}
++	}
++	mvdec_write(vdev, MVDEC_MV + 0x210, best << 4);
++
++	/* 1 when no active reference follows the current picture. */
++	if (sl->slice_type != HEVC_SLICE_I)
++		nl0 = sl->num_ref_idx_l0_active_minus1 + 1;
++	if (sl->slice_type == HEVC_SLICE_B)
++		nl1 = sl->num_ref_idx_l1_active_minus1 + 1;
++	nobwd = p->n;
++	for (i = 0; nobwd && i < min_t(unsigned int, nl0, HEVC_MAX_REFS); i++)
++		nobwd = p->l0[i].poc <= poc;
++	for (i = 0; nobwd && i < min_t(unsigned int, nl1, HEVC_MAX_REFS); i++)
++		nobwd = p->l1[i].poc <= poc;
++	mvdec_write(vdev, MVDEC_MV + 0x320, nobwd);
++
++	if (p->n) {
++		word = 0;
++		for (i = 0; i < HEVC_MAX_REFS; i++)
++			word |= (u32)p->l0[i].lt << i | (u32)p->l1[i].lt << (16 + i);
++		mvdec_write(vdev, MVDEC_MV + 0x324, word);
++	}
++	/* Long-term DPB slots, four per word (untested). */
++	for (i = 0; i < p->num_lt_slots; i += 4) {
++		unsigned int j;
++
++		word = 0;
++		for (j = 0; j < 4 && i + j < p->num_lt_slots; j++)
++			word |= ((p->lt_slots[i + j] + 1) & 0x1f) << (8 * j);
++		mvdec_write(vdev, MVDEC_MV + 0x328 + i, word);
++	}
++	if (p->n) {
++		for (i = 0; i < HEVC_MAX_REFS; i++)
++			mvdec_write(vdev, MVDEC_MV + 0x338 + 4 * i,
++				    ((p->l0[i].slot + 1) & 0x1f) << 8 |
++				    ((u32)poc_diff(poc, p->l0[i].poc) & 0xff));
++		for (i = 0; i < HEVC_MAX_REFS; i++)
++			mvdec_write(vdev, MVDEC_MV + 0x378 + 4 * i,
++				    ((p->l1[i].slot + 1) & 0x1f) << 8 |
++				    ((u32)poc_diff(poc, p->l1[i].poc) & 0xff));
++	}
++	mvdec_write(vdev, MVDEC_MV + 0x20c, p->cur.mv >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0xb5c, 1);
++	if (!p->n)
++		return;
++	for (i = 0; i < HEVC_MAX_REFS; i++) {
++		mvdec_write(vdev, MVDEC_MV + 4 * i, p->l0[i].mv >> 4);
++		mvdec_write(vdev, MVDEC_MC + 0x45c + 4 * i, p->l0[i].y);
++		mvdec_write(vdev, MVDEC_MC + 0xbe0 + 4 * i, p->l0[i].c);
++	}
++	for (i = 0; i < HEVC_MAX_REFS; i++) {
++		mvdec_write(vdev, MVDEC_MV + 0x40 + 4 * i, p->l1[i].mv >> 4);
++		mvdec_write(vdev, MVDEC_MC + 0x4dc + 4 * i, p->l1[i].y);
++		mvdec_write(vdev, MVDEC_MC + 0xc60 + 4 * i, p->l1[i].c);
++	}
++}
++
++static void mvdec_hevc_write_output(struct mvdec_hevc_pic *p, u32 pitch)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	u32 wpix = p->wc * p->ctb, hpix = p->hc * p->ctb;
++
++	mvdec_write(vdev, MVDEC_MC + 0xaf8,
++		    mvdec_read(vdev, MVDEC_MC + 0xaf8) | BIT(8));
++	mvdec_write(vdev, MVDEC_MC + 0x208, p->w);
++	mvdec_write(vdev, MVDEC_MC + 0x20c, p->h);
++	/* The vendor writes its fixed-buffer pitch first; it is the same. */
++	mvdec_write(vdev, MVDEC_MC + 0x980, pitch >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0x980, pitch >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0x934, p->cur.c - p->cur.y);
++	mvdec_write(vdev, MVDEC_MC + 0x220, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x224, p->cur.y >> 9);
++	mvdec_write(vdev, MVDEC_MC + 0x228, p->cur.c >> 8);
++	mvdec_write(vdev, MVDEC_MC + 0x22c, wpix >> 4);
++	mvdec_write(vdev, MVDEC_MC + 0x238, p->sps->chroma_format_idc ? 3 : 2);
++	mvdec_write(vdev, MVDEC_MC + 0x250, 1);
++	mvdec_write(vdev, MVDEC_MC + 0x260, (wpix >> 4) - 1);
++	mvdec_write(vdev, MVDEC_MC + 0x264, (hpix >> 4) - 1);
++	/* 10-bit output (MC+0xCEC, PP+0xB8C/0xB90) is rejected earlier. */
++}
++
++static u32 sl_word(const u8 *r, unsigned int stride, unsigned int i)
++{
++	return r[i] | r[i + stride] << 8 | r[i + 2 * stride] << 16 |
++	       (u32)r[i + 3 * stride] << 24;
++}
++
++static void sl_pair(struct mvdec_dev *vdev, unsigned int *idx, u32 word)
++{
++	mvdec_write(vdev, MVDEC_VLD + 0x260, (*idx)++);
++	mvdec_write(vdev, MVDEC_VLD + 0x264, word);
++}
++
++/* 8x8 base matrices: each column of the top half, then of the bottom half. */
++static void sl_write_8x8(struct mvdec_dev *vdev, unsigned int *idx,
++			 const u8 (*mats)[64], unsigned int num)
++{
++	unsigned int i, j;
++
++	for (j = 0; j < num; j++) {
++		for (i = 0; i < 8; i++) {
++			sl_pair(vdev, idx, sl_word(mats[j], 8, i));
++			sl_pair(vdev, idx, sl_word(mats[j], 8, 32 + i));
++		}
++	}
++}
++
++/*
++ * Scaling lists (untested). V4L2 supplies raster order; a 4x4 word holds a
++ * column of the matrix. 248 index/data pairs cover sizeId 0..3.
++ */
++static void mvdec_hevc_write_scaling(struct mvdec_hevc_pic *p,
++				     const struct v4l2_ctrl_hevc_scaling_matrix *m)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	bool en = sps_flag(p, V4L2_HEVC_SPS_FLAG_SCALING_LIST_ENABLED);
++	unsigned int i, j, idx = 0;
++	const u8 *dc16, *dc32;
++
++	mvdec_write(vdev, MVDEC_PP + 0x630, en);
++	if (!en)
++		return;
++	dc16 = m->scaling_list_dc_coef_16x16;
++	dc32 = m->scaling_list_dc_coef_32x32;
++	mvdec_write(vdev, MVDEC_PP + 0x634,
++		    dc16[0] | dc16[1] << 8 | dc16[2] << 16 | (u32)dc16[3] << 24);
++	mvdec_write(vdev, MVDEC_PP + 0x638,
++		    dc16[4] | dc16[5] << 8 | dc32[0] << 16 | (u32)dc32[1] << 24);
++	mvdec_write(vdev, MVDEC_PP + 0x504, 1);	/* open the SRAM */
++	for (j = 0; j < 6; j++)
++		for (i = 0; i < 4; i++)
++			sl_pair(vdev, &idx, sl_word(m->scaling_list_4x4[j], 4, i));
++	sl_write_8x8(vdev, &idx, m->scaling_list_8x8, 6);
++	sl_write_8x8(vdev, &idx, m->scaling_list_16x16, 6);
++	sl_write_8x8(vdev, &idx, m->scaling_list_32x32, 2);
++	mvdec_write(vdev, MVDEC_PP + 0x504, 0);
++}
++
++static void mvdec_hevc_write_params(struct mvdec_hevc_pic *p, u32 c8)
++{
++	struct mvdec_dev *vdev = p->vdev;
++	const struct v4l2_ctrl_hevc_pps *pps = p->pps;
++	bool tiles = pps_flag(p, V4L2_HEVC_PPS_FLAG_TILES_ENABLED);
++	bool uniform = !tiles || pps_flag(p, V4L2_HEVC_PPS_FLAG_UNIFORM_SPACING);
++	u32 col[HEVC_BITMAP_WORDS], row[HEVC_BITMAP_WORDS];
++	unsigned int i;
++
++	hvld_write(vdev, 0xc0, reg_c0(p));
++	hvld_write(vdev, 0xc4, reg_c4(p));
++	hvld_write(vdev, 0xc8, c8);
++	hvld_write(vdev, 0xcc, reg_cc(p->n));
++	hvld_write(vdev, 0xf4, 0xffff0015 | p->sl->nal_unit_type << 8);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x68,
++		    ((p->hc - 1) & 0xfff) << 16 | ((p->wc - 1) & 0xfff));
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x70, p->w | p->h << 16);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x94,
++		    (p->wc & 0xfff) | (p->hc & 0xfff) << 16);
++	mvdec_write(vdev, MVDEC_VLD_TOP + 0x100,
++		    (p->sps->bit_depth_luma_minus8 & 0xf) |
++		    (p->sps->bit_depth_chroma_minus8 & 0xf) << 4);
++	hvld_write(vdev, 0xa0, reg_a0(p));
++	hvld_write(vdev, 0xa4, reg_a4(p));
++	hvld_write(vdev, 0xa8, reg_a8(p));
++	hvld_write(vdev, 0xac, reg_ac(p));
++	hvld_write(vdev, 0xb0, reg_b0(p));
++	hvld_write(vdev, 0xb4, reg_b4(p));
++	hvld_write(vdev, 0xb8, reg_b8(p));
++
++	tile_bitmap(col, p->wc, tiles ? pps->num_tile_columns_minus1 + 1 : 1,
++		    pps->column_width_minus1, uniform);
++	tile_bitmap(row, p->hc, tiles ? pps->num_tile_rows_minus1 + 1 : 1,
++		    pps->row_height_minus1, uniform);
++	for (i = 0; i < 16; i++)
++		hvld_write(vdev, 0x140 + 4 * i, col[i]);
++	hvld_write(vdev, 0x1c0, col[16]);
++	for (i = 0; i < 16; i++)
++		hvld_write(vdev, 0x180 + 4 * i, row[i]);
++	hvld_write(vdev, 0x1d0, row[16]);
++}
++
++int mvdec_hevc_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
++		   struct vb2_v4l2_buffer *dst, const struct mvdec_hevc_run *run)
++{
++	struct mvdec_dev *vdev = ctx->dev;
++	struct mvdec_hevc_state *s = &ctx->hevc;
++	struct mvdec_hevc_walk w;
++	struct mvdec_hevc_pic *p;
++	dma_addr_t src_pa;
++	u32 len;
++	int ret;
++
++	ret = mvdec_hevc_check(ctx, run);
++	if (ret) {
++		dev_dbg(vdev->dev, "unsupported HEVC stream\n");
++		return ret;
++	}
++
++	/* The OUTPUT buffer must cover the window end the decoder may fetch. */
++	src_pa = vb2_dma_contig_plane_dma_addr(&src->vb2_buf, 0);
++	len = vb2_get_plane_payload(&src->vb2_buf, 0);
++	if (!len || len + 0x200 > vb2_plane_size(&src->vb2_buf, 0))
++		return -EINVAL;
++
++	p = kzalloc_obj(*p);
++	if (!p)
++		return -ENOMEM;
++	p->vdev = vdev;
++	p->sps = run->sps;
++	p->pps = run->pps;
++	p->sl = &run->slices[0];	/* later slices are parsed by the hardware */
++	p->dec = run->decode;
++	p->ctb_log2 = p->sps->log2_min_luma_coding_block_size_minus3 + 3 +
++		      p->sps->log2_diff_max_min_luma_coding_block_size;
++	p->ctb = 1 << p->ctb_log2;
++	p->w = p->sps->pic_width_in_luma_samples;
++	p->h = p->sps->pic_height_in_luma_samples;
++	p->wc = DIV_ROUND_UP(p->w, p->ctb);
++	p->hc = DIV_ROUND_UP(p->h, p->ctb);
++	p->idr = p->sl->nal_unit_type == HEVC_NAL_IDR_W_RADL ||
++		 p->sl->nal_unit_type == HEVC_NAL_IDR_N_LP;
++
++	ret = mvdec_hevc_buf(ctx, &dst->vb2_buf, &p->cur);
++	if (ret)
++		goto out;
++	ret = mvdec_hevc_lists(ctx, p);
++	if (ret)
++		goto out;
++	mvdec_hevc_choose_ec(ctx, p);
++
++	ret = mvdec_hevc_sram_wait(vdev);
++	if (ret)
++		goto out;
++	mvdec_hevc_reset(vdev);
++	ret = mvdec_hevc_bitstream(p, lower_32_bits(src_pa), len);
++	if (ret)
++		goto out;
++	ret = mvdec_hevc_walk(p, &w);
++	if (ret)
++		goto out;
++
++	/* HEVC_VLD+0xC8[13:8] keeps the last explicitly coded RPS size. */
++	if (w.rps_count >= 0)
++		s->last_rps_count = w.rps_count;
++
++	mvdec_hevc_write_refs(p, len);
++	mvdec_hevc_write_output(p, ctx->dst_fmt.plane_fmt[0].bytesperline);
++	mvdec_hevc_write_scaling(p, run->scaling);
++	mvdec_hevc_write_params(p, reg_c8(&w, s->last_rps_count));
++
++	s->held |= BIT(p->cur.slot);
++	s->poc[p->cur.slot] = p->dec->pic_order_cnt_val;
++	hvld_write(vdev, HVLD_START, 1);
++out:
++	if (ret)
++		dev_dbg(vdev->dev, "HEVC picture not started: %d\n", ret);
++	kfree(p);
++	return ret;
++}
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+new file mode 100644
+index 000000000..ac046d24a
+--- /dev/null
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+@@ -0,0 +1,118 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * MT6797 video decoder (VDEC), V4L2 stateless prototype.
++ */
++
++#ifndef _MT6797_VDEC_H
++#define _MT6797_VDEC_H
++
++#include <linux/clk.h>
++#include <linux/io.h>
++#include <linux/mutex.h>
++#include <linux/workqueue.h>
++#include <media/v4l2-ctrls.h>
++#include <media/v4l2-device.h>
++#include <media/v4l2-mem2mem.h>
++#include <media/videobuf2-v4l2.h>
++
++#define MVDEC_NAME		"mt6797-vdec"
++
++/* Physical layout of the VDEC register window. */
++#define MVDEC_WIN_BASE		0x16000000
++#define MVDEC_WIN_SIZE		0x29000
++#define MVDEC_LARB1_BASE	0x16010000
++#define MVDEC_LARB_MMU_EN	0xfc0
++
++/* Offsets of the register blocks inside the window. */
++#define MVDEC_GCON		0x00000
++#define MVDEC_MISC		0x20000
++#define MVDEC_VLD		0x21000
++#define MVDEC_VLD_TOP		0x21800
++#define MVDEC_MC		0x22000
++#define MVDEC_MV		0x24000
++#define MVDEC_PP		0x25000
++#define MVDEC_HEVC_VLD		0x28000
++
++#define MVDEC_MISC_IRQ_CFG	0xa4
++
++#define MVDEC_MAX_WIDTH		1920
++#define MVDEC_MAX_HEIGHT	1088
++#define MVDEC_MIN_SIZE		64
++#define MVDEC_MAX_RATE		338000000UL
++#define MVDEC_TIMEOUT_MS	500
++#define MVDEC_MAX_SLICES	64
++
++struct mvdec_dev {
++	struct v4l2_device v4l2_dev;
++	struct media_device mdev;
++	struct video_device vfd;
++	struct v4l2_m2m_dev *m2m_dev;
++	struct device *dev;
++	void __iomem *base;
++	void __iomem *larb;
++	struct clk *vdec_clk;
++	struct clk *larb_clk;
++	int irq;
++	struct mutex lock;		/* serialises ioctls */
++	struct delayed_work watchdog;
++	struct mvdec_ctx *running;	/* context of the job in hardware */
++};
++
++struct mvdec_hevc_run {
++	const struct v4l2_ctrl_hevc_sps *sps;
++	const struct v4l2_ctrl_hevc_pps *pps;
++	const struct v4l2_ctrl_hevc_slice_params *slices;
++	unsigned int num_slices;
++	const struct v4l2_ctrl_hevc_decode_params *decode;
++	const struct v4l2_ctrl_hevc_scaling_matrix *scaling;
++};
++
++/* Per capture buffer: the collocated MV buffer the decoder needs. */
++struct mvdec_mv_buf {
++	void *cpu;
++	dma_addr_t dma;
++	size_t size;
++};
++
++/* Capture buffers the 5-bit HEVC slot ids can name (programmed as slot + 1). */
++#define MVDEC_HEVC_SLOTS	17
++
++/* HEVC state kept across pictures (mt6797-vdec-hevc.c). */
++struct mvdec_hevc_state {
++	u32 last_rps_count;		/* size of the last explicit slice RPS */
++	u32 held;			/* capture buffers holding a picture */
++	s32 poc[MVDEC_HEVC_SLOTS];	/* POC last decoded into each buffer */
++};
++
++struct mvdec_ctx {
++	struct v4l2_fh fh;
++	struct mvdec_dev *dev;
++	struct v4l2_ctrl_handler hdl;
++	struct mutex vb_mutex;		/* vb2 queue lock */
++	struct v4l2_pix_format_mplane src_fmt;
++	struct v4l2_pix_format_mplane dst_fmt;
++	struct mvdec_mv_buf mv[VIDEO_MAX_FRAME];
++	struct mvdec_hevc_state hevc;
++};
++
++static inline struct mvdec_ctx *fh_to_ctx(struct v4l2_fh *fh)
++{
++	return container_of(fh, struct mvdec_ctx, fh);
++}
++
++static inline u32 mvdec_read(struct mvdec_dev *vdev, u32 off)
++{
++	return readl(vdev->base + off);
++}
++
++static inline void mvdec_write(struct mvdec_dev *vdev, u32 off, u32 val)
++{
++	writel(val, vdev->base + off);
++}
++
++/* mt6797-vdec-hevc.c */
++size_t mvdec_hevc_mv_size(unsigned int width, unsigned int height);
++int mvdec_hevc_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
++		   struct vb2_v4l2_buffer *dst, const struct mvdec_hevc_run *run);
++
++#endif /* _MT6797_VDEC_H */

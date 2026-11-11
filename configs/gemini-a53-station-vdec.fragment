@@ -7,3 +7,5 @@ CONFIG_MTK_MT6797_VDEC_PROBE=m
 # Stage 3a: the register replay diagnostic (0716), loaded by hand with a
 # privately built replay blob in /lib/firmware/mediatek/mt6797/.
 CONFIG_MTK_MT6797_VDEC_REPLAY=m
+# Stage 3b: the V4L2 stateless HEVC decoder prototype (0727), loaded by hand.
+CONFIG_VIDEO_MT6797_VDEC=m

@@ -739,6 +739,63 @@ the 13 were an address the converter forgot to relocate; that is fixed.
 **Next: Stage 3b**, a V4L2 stateless HEVC decoder module that derives these
 registers from the stateless controls instead of a recorded sequence.
 
+## Stage 3b: a V4L2 stateless HEVC decoder (prepared 2026-11-11, not built or run)
+
+**Approach.** The vendor register sequence was first turned, privately, into
+a model that computes every write of a picture from the HEVC headers and the
+DPB, inputs a V4L2 stateless driver has. The model's writes were compared
+with the 60 recorded pictures of both V6 clips: 58 are identical. The other
+two differ by one in a single register that holds a byte count from the
+vendor test tool's buffer layout, not from the stream.
+
+The model was then ported to kernel C. A host harness compiles the driver's
+own source unchanged against a mock register file that emulates the bit
+reader. The C port equals the model on all 60 pictures and the trace on the
+same 58. Deliberately broken variants drop to 0–2 matches per clip, so the
+check does catch errors. Model, harness and traces stay private; the driver
+is written independently from them. The owner chose on 2026-11-11 to publish
+it.
+
+**0727, `mt6797-vdec` (module, prototype).**
+
+- **Interface:** a V4L2 stateless memory-to-memory decoder. HEVC slices go in
+  through the request API (frame-based, Annex-B start codes); MM21 frames
+  come out in two planes, padded to 64x64.
+- **Per picture:**
+  - it walks the first slice header through the decoder's bit reader;
+  - it programs the picture, reference, POC and buffer registers from the
+    controls and the DPB;
+  - it lets the hardware parse reference-list modification and prediction
+    weights itself;
+  - it issues one start; the hardware decodes every slice of the picture.
+- **Without an IOMMU:** LARB1 translation is cleared after each power-up, and
+  buffers are allocated below 4 GiB. Each capture buffer gets a zeroed
+  collocated-MV buffer.
+- **Rejected:** 10-bit, chroma other than 4:2:0, slice-based decoding, more
+  than 8 current references, and capture buffer indices above 16.
+- **Ported but untested:** tiles, scaling lists, B and long-term references,
+  list modification and PCM. None was exercised by the two clips.
+
+**Checked:**
+
+- `W=1` builds without warnings.
+- Checkpatch reports only the expected warnings: a new file without a
+  MAINTAINERS entry, and the local compatible.
+- 0727 applies on top of the committed series.
+- `check-repository` and the series validation pass.
+
+**Not checked:** Buildbox build, device.
+
+**Known risk:** a register the vendor sets to the chroma plane's offset from
+luma within one buffer. With two separate planes that offset is arbitrary,
+and its meaning is unknown. It is the first suspect if the first decode
+fails.
+
+**Next device run (V10).** Load the driver on a matching image. Decode the
+synthetic clips with GStreamer 1.28's `v4l2slh265dec` on the Arch card, which
+is present in Arch Linux ARM's `gst-plugins-bad-libs`, writing raw MM21. On
+the host, detile each frame and compare it with the `.framemd5` reference.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).
