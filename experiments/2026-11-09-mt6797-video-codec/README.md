@@ -1097,7 +1097,8 @@ decoded. Evidence (private): `artifacts/card-32/v15-*`.
 
 *Observed:* interrupts 30, 4, 6, 21 and 43, one per decoded frame; no
 errors, timeouts or genpd errors; SoC 33.5 °C; afterwards the domain off
-and the `vdec_sel` enable count 0. H.264 and HEVC regressions unchanged.
+and the `vdec_sel` enable count 0. H.264 and HEVC regressions unchanged. The owner
+reported the panel normal during the decodes.
 
 *Result.* Detiled on the host, every shown frame matches the software
 decode: **30/30 `vp9`, 4/4 `lossless`, 6/6 `tiles`, 20/20 `feat`, 40/40
