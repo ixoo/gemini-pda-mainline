@@ -1,0 +1,128 @@
+A more compact battery card in Noctalia's Power tab (gemini-pda-mainline, MIT).
+
+The owner asked for a more compact battery panel (2026-11-11) and chose this layout: the time
+left follows the state ("Discharging · 3h 20m"), and the charge rate, the temperature and the
+battery health share one line, so the separate Battery Health card goes. Applies after
+gemini-battery-temp.patch. Gemini-only, not part of the upstream temperature change.
+
+--- a/src/shell/control_center/tabs/power_tab.cpp
++++ b/src/shell/control_center/tabs/power_tab.cpp
+@@ -142,7 +142,6 @@
+   buildStatusCard(*content, scale);
+   buildProfilesCard(*content, scale);
+   buildChargingCard(*content, scale);
+-  buildHealthCard(*content, scale);
+   buildPeripheralsCard(*content, scale);
+ 
+   m_root->addChild(std::move(scroll));
+@@ -223,53 +222,31 @@
+       })
+   );
+ 
+-  auto timeRow = ui::row(
+-      {.out = &m_timeRow, .align = FlexAlign::Center, .gap = Style::spaceXs * scale, .visible = false},
+-      ui::glyph({
+-          .glyph = "clock",
+-          .glyphSize = Style::fontSizeCaption * scale,
+-          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+-      }),
+-      ui::label({
+-          .out = &m_timeLabel,
+-          .text = "",
+-          .fontSize = Style::fontSizeCaption * scale,
+-          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+-      })
+-  );
+-  card->addChild(std::move(timeRow));
+-
+-  auto rateRow = ui::row(
+-      {.out = &m_rateRow, .align = FlexAlign::Center, .gap = Style::spaceXs * scale, .visible = false},
+-      ui::glyph({
+-          .glyph = "bolt",
+-          .glyphSize = Style::fontSizeCaption * scale,
+-          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+-      }),
+-      ui::label({
+-          .out = &m_rateLabel,
+-          .text = "",
+-          .fontSize = Style::fontSizeCaption * scale,
+-          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+-      })
+-  );
+-  card->addChild(std::move(rateRow));
+-
+-  auto temperatureRow = ui::row(
+-      {.out = &m_temperatureRow, .align = FlexAlign::Center, .gap = Style::spaceXs * scale, .visible = false},
+-      ui::glyph({
+-          .glyph = "temperature",
+-          .glyphSize = Style::fontSizeCaption * scale,
+-          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+-      }),
+-      ui::label({
+-          .out = &m_temperatureLabel,
+-          .text = "",
+-          .fontSize = Style::fontSizeCaption * scale,
+-          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
+-      })
++  // Rate, temperature and health share one line; each item hides on its own.
++  auto detailItem = [scale](Flex** row, const char* glyph, Label** label) {
++    return ui::row(
++        {.out = row, .align = FlexAlign::Center, .gap = Style::spaceXs * scale, .visible = false},
++        ui::glyph({
++            .glyph = glyph,
++            .glyphSize = Style::fontSizeCaption * scale,
++            .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
++        }),
++        ui::label({
++            .out = label,
++            .text = "",
++            .fontSize = Style::fontSizeCaption * scale,
++            .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
++        })
++    );
++  };
++  card->addChild(
++      ui::row(
++          {.align = FlexAlign::Center, .gap = Style::spaceMd * scale},
++          detailItem(&m_rateRow, "bolt", &m_rateLabel),
++          detailItem(&m_temperatureRow, "temperature", &m_temperatureLabel),
++          detailItem(&m_healthCard, "heartbeat", &m_healthLabel)
++      )
+   );
+-  card->addChild(std::move(temperatureRow));
+ 
+   root.addChild(std::move(card));
+ }
+@@ -665,9 +642,6 @@
+   if (m_percentLabel != nullptr) {
+     m_percentLabel->setText(std::format("{:.0F}%", state.percentage));
+   }
+-  if (m_stateLabel != nullptr) {
+-    m_stateLabel->setText(batteryStateLabel(state.state));
+-  }
+   if (m_levelBar != nullptr) {
+     m_levelBar->setProgress(static_cast<float>(std::clamp(state.percentage / 100.0, 0.0, 1.0)));
+     const bool low = state.state == BatteryState::Discharging && state.percentage <= 20.0;
+@@ -676,17 +650,12 @@
+ 
+   const bool charging = state.state == BatteryState::Charging || state.state == BatteryState::PendingCharge;
+   const std::int64_t seconds = charging ? state.timeToFull : state.timeToEmpty;
+-  if (m_timeRow != nullptr) {
+-    const bool show = seconds > 0;
+-    m_timeRow->setVisible(show);
+-    if (show && m_timeLabel != nullptr) {
+-      const std::string duration = formatDuration(std::chrono::seconds{seconds});
+-      m_timeLabel->setText(
+-          i18n::tr(
+-              charging ? "control-center.power.time-to-full" : "control-center.power.time-to-empty", "time", duration
+-          )
+-      );
++  if (m_stateLabel != nullptr) {
++    std::string text = batteryStateLabel(state.state);
++    if (seconds > 0) {
++      text += " · " + formatDuration(std::chrono::seconds{seconds});
+     }
++    m_stateLabel->setText(text);
+   }
+ 
+   if (m_rateRow != nullptr) {

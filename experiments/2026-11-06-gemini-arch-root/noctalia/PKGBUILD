@@ -1,12 +1,14 @@
 # SPDX-License-Identifier: MIT
 # Noctalia, the repository's 5.4.1 recipe (Arch's packaging, by Peter Jung and the Noctalia
 # team), rebuilt with gemini-cpu-name.patch: arm64 has no "model name" in /proc/cpuinfo, so
-# Noctalia's System panel said "Unknown CPU" (owner, 2026-11-10). pkgrel 1.1 is newer than
-# the repository's 5.4.1-1, and the repository's next release replaces it.
+# Noctalia's System panel said "Unknown CPU" (owner, 2026-11-10), and with
+# gemini-battery-temp.patch: the battery temperature in the Power tab, and
+# gemini-power-compact.patch: a more compact battery card (owner, 2026-11-11). pkgrel 1.3 is
+# newer than the repository's 5.4.1-1, and its next release replaces it.
 _pkgname=noctalia
 pkgname=noctalia
 pkgver=5.4.1
-pkgrel=1.1
+pkgrel=1.3
 pkgdesc='A sleek, customizable desktop shell crafted for Wayland'
 arch=('aarch64')
 url='https://github.com/noctalia-dev/noctalia'
@@ -21,11 +23,13 @@ optdepends=('ddcutil: monitor brightness control'
             'upower: battery and power device integration')
 makedepends=('meson' 'ninja' 'nlohmann-json' 'pkgconf' 'stb' 'wayland-protocols')
 source=("${_pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz"
-        gemini-cpu-name.patch)
-sha256sums=('6069d922e9d72488c74e4ce335314ce2203f08bd4641380bfe1bd137004597fa' SKIP)
+        gemini-cpu-name.patch gemini-battery-temp.patch gemini-power-compact.patch)
+sha256sums=('6069d922e9d72488c74e4ce335314ce2203f08bd4641380bfe1bd137004597fa' SKIP SKIP SKIP)
 
 prepare() {
     patch -d "${_pkgname}-${pkgver}" -p1 <gemini-cpu-name.patch
+    patch -d "${_pkgname}-${pkgver}" -p1 <gemini-battery-temp.patch
+    patch -d "${_pkgname}-${pkgver}" -p1 <gemini-power-compact.patch
 }
 
 build() {

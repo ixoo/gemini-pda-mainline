@@ -2089,6 +2089,26 @@ four hooks. ShellCheck passes on the script. Not on the device yet. Since `/etc/
 only new users, an existing user needs the new `00-gemini.toml` copied into
 `~/.config/noctalia/`.
 
+### Battery temperature and a compact battery card in Noctalia (noctalia 5.4.1-1.3, 2026-11-11)
+
+The owner asked to see the battery temperature in Noctalia's Power tab, and for a more
+compact battery panel. Neither is configurable in Noctalia 5.4.1, so both are patches in our
+noctalia package, kept apart:
+
+- `gemini-battery-temp.patch`: Noctalia reads UPower's `Temperature` with the other battery
+  properties, and the battery card shows it under the charge rate ("25.7 °C"), only when it
+  is above 0. The first build showed nothing on card-32 (station-work-107, boot `a1651d02`):
+  UPower's DisplayDevice reports 0 for `Temperature` while `battery_battery` reports 25.3, so
+  the state built from the display device now takes the temperature from the system
+  battery. The same change is drafted for upstream Noctalia and checked on its main branch
+  (build, clang-format 23, clang-tidy); it is not opened.
+- `gemini-power-compact.patch`, the owner's choice B of three layouts: the time left follows
+  the state ("Discharging · 3h 20m"), and the rate, temperature and battery health share one
+  line, so the separate Battery Health card goes. `power_tab.cpp` only; not for upstream.
+
+Built in an Arch chroot over card-32's image (`5.4.1-1.3`, `c738be76…`). Not yet seen on the
+device.
+
 ## Analysis
 
 Not started.

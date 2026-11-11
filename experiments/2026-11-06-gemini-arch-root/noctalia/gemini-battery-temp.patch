@@ -1,0 +1,100 @@
+Noctalia shows the battery temperature in its Power tab (gemini-pda-mainline, MIT).
+
+UPower reports each battery's Temperature, but Noctalia 5.4.1 doesn't read it (owner,
+2026-11-11: "In the noctalia power panel, could we see the battery temperature?"). Read it
+with the other battery properties, and show it in the battery card under the charge rate,
+only when the device reports one. UPower's display device doesn't aggregate Temperature (it
+reads 0 there, 25.3 on the battery), so the state built from it takes the temperature from
+the system battery. The same change is drafted for upstream Noctalia.
+
+--- a/src/dbus/upower/upower_service.cpp
++++ b/src/dbus/upower/upower_service.cpp
+@@ -487,6 +487,10 @@
+     next = readDeviceState(*m_displayDeviceProxy);
+     next.onBattery = getPropertyOr<bool>(*m_upowerProxy, kUpowerInterface, "OnBattery", false);
+     if (next.isPresent) {
++      // UPower's display device does not aggregate Temperature.
++      if (const auto* battery = defaultSystemBattery(); battery != nullptr) {
++        next.temperature = battery->state.temperature;
++      }
+       return next;
+     }
+   }
+@@ -516,6 +520,7 @@
+   next.timeToFull = getPropertyOr<std::int64_t>(proxy, kDeviceInterface, "TimeToFull", 0);
+   next.energyRate = getPropertyOr<double>(proxy, kDeviceInterface, "EnergyRate", 0.0);
+   next.energy = getPropertyOr<double>(proxy, kDeviceInterface, "Energy", 0.0);
++  next.temperature = getPropertyOr<double>(proxy, kDeviceInterface, "Temperature", 0.0);
+ 
+   // Fallback calculation for timeToEmpty / timeToFull if they are reported as 0 or less
+   if (next.state == BatteryState::Discharging && next.timeToEmpty <= 0 && next.energyRate > 0.0 && next.energy > 0.0) {
+--- a/src/dbus/upower/upower_service.h
++++ b/src/dbus/upower/upower_service.h
+@@ -106,6 +106,7 @@
+   std::int64_t timeToEmpty = 0; // seconds
+   std::int64_t timeToFull = 0;  // seconds
+   double energy = 0.0;          // Wh
++  double temperature = 0.0;     // degrees Celsius; 0 when the device does not report it
+   bool isPresent = false;
+   bool onBattery = false;
+ 
+--- a/src/shell/control_center/tabs/power_tab.cpp
++++ b/src/shell/control_center/tabs/power_tab.cpp
+@@ -255,6 +255,22 @@
+   );
+   card->addChild(std::move(rateRow));
+ 
++  auto temperatureRow = ui::row(
++      {.out = &m_temperatureRow, .align = FlexAlign::Center, .gap = Style::spaceXs * scale, .visible = false},
++      ui::glyph({
++          .glyph = "temperature",
++          .glyphSize = Style::fontSizeCaption * scale,
++          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
++      }),
++      ui::label({
++          .out = &m_temperatureLabel,
++          .text = "",
++          .fontSize = Style::fontSizeCaption * scale,
++          .color = colorSpecFromRole(ColorRole::OnSurfaceVariant),
++      })
++  );
++  card->addChild(std::move(temperatureRow));
++
+   root.addChild(std::move(card));
+ }
+ 
+@@ -406,6 +422,8 @@
+   m_timeLabel = nullptr;
+   m_rateRow = nullptr;
+   m_rateLabel = nullptr;
++  m_temperatureRow = nullptr;
++  m_temperatureLabel = nullptr;
+   m_chargingCard = nullptr;
+   m_chargingList = nullptr;
+   m_chargeLimitRows.clear();
+@@ -678,6 +696,14 @@
+       m_rateLabel->setText(std::format("{:.1F} W", state.energyRate));
+     }
+   }
++
++  if (m_temperatureRow != nullptr) {
++    const bool show = state.temperature > 0.0;
++    m_temperatureRow->setVisible(show);
++    if (show && m_temperatureLabel != nullptr) {
++      m_temperatureLabel->setText(std::format("{:.1F} °C", state.temperature));
++    }
++  }
+ }
+ 
+ void PowerTab::syncPowerProfiles() {
+--- a/src/shell/control_center/tabs/power_tab.h
++++ b/src/shell/control_center/tabs/power_tab.h
+@@ -79,6 +79,8 @@
+   Label* m_timeLabel = nullptr;
+   Flex* m_rateRow = nullptr;
+   Label* m_rateLabel = nullptr;
++  Flex* m_temperatureRow = nullptr;
++  Label* m_temperatureLabel = nullptr;
+ 
+   // Battery charging limits
+   Flex* m_chargingCard = nullptr;
