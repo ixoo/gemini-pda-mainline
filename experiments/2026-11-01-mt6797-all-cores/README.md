@@ -987,9 +987,18 @@ CPU policy holding its own vote, VPROC1 dropped to 770 mV under boot rates of ab
 restores the voltage read before the probe raised it, and the station init now loads
 `mtk-cci-devfreq` only once `policy0` exists (`failed-no-policy` otherwise).
 
-Confirmation needs a boot of an image with 0715, 0725 and 0726. Its station status
-must read `cpufreq=loaded,...` and not `failed-cci-unbound`, with the CCI bound at
-`/sys/bus/platform/drivers/mtk-ccifreq/cci`.
+**station-work-104 (observed, one boot).** On boot2 `8b4064cb` (main `9f096f4d`,
+with 0715, 0725 and 0726), a hand load on boot `db80c436` with the A72s off and
+`cpufreq-at-boot` off loaded all five modules with no hang:
+- cpufreq-dt logged "cpu8 is offline and not ready, leaving it out", and the same
+  for cpu9;
+- it created policy0 (CPU0-3, 897 MHz) and policy4 (CPU4-7, moved from the
+  unlisted 1274 MHz to 1352 MHz), with energy-model domains for both;
+- `mtk-cci-devfreq` bound under the passive governor at 754 MHz;
+- the SoC went from 33.8 C to 36.0 C.
+
+This confirms 0725 with the A72s off, on one boot. Loading at boot on the next image
+is the custodian's V11 repeat. The A72-on path (T4a) has not run.
 
 **T4a: A72 frequency, no voltage change.** Profile `mt6797-a53-station-a72`, A72
 tree. Load the A72 module, then `clk-mt6797-mcusys`, then `cpufreq-dt`.
