@@ -193,6 +193,29 @@ record flagged. A re-reading after a rest can still move capacity by a few point
   - Both read hundreds of mA: card-31's readings came from the cable, and nothing is broken.
 - **Stops:** the battery under 30 %; any PMIC read error; the station not on the expected boot.
 
+**T1 attempt 1, 2026-11-11 about 11:40, card-31, boot `242ba06e…`, unplugged:**
+- Stopped at its first check: capacity read 2 %, under the 30 % floor. No register dump was
+  taken.
+- Three sysfs reads 2 s apart, backlight 512/1023, video playing over Wi-Fi:
+
+  | `voltage_now` | `capacity` | `current_now` | `status` |
+  |---|---|---|---|
+  | 3631091 | 15 | −4364 | Discharging |
+  | 3565502 | 3 | −1454 | Not charging |
+  | 3592364 | 3 | −639714 | Discharging |
+
+- **Reading:**
+  - The register is not stuck. Unplugged, it gave one real-looking discharge (−640 mA) among
+    near-zero samples under a steady load. That fits a single latched sample being unreliable,
+    which is the case for 0710's counter window. `charge_counter` was not read, so this is not
+    yet confirmed.
+  - Capacity follows each sample's I × R correction: 15 % with −4 mA, 3 % with −640 mA.
+  - The `Not charging` row is this image's pre-0708 status rule.
+  - From 60 % at about 11:09 to about 3 % at about 11:40 is far more than 4268 mAh can lose in
+    31 minutes at these currents. So the earlier readings, taken just after a charge, were high;
+    the loaded 3.57-3.63 V now is genuinely low. Inference.
+- **Rerun** above 30 %, with `charge_counter` in every sample.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
