@@ -841,6 +841,100 @@ action level, which belongs to arch-root.
 - **In use:** 3.00 V trips around 15-20 % under a 1.8 A load. At 0.5 A or less it would need an
   OCV under 3.2 V, below the table's empty point, so the gauge's levels act first.
 
+## Adaptive resistance and capacity to the cut-off: design proposal (owner direction, not built)
+
+The owner: "This sounds very specific to this battery... what will happen with the same setting
+on other devices? I'd like this to be more adaptive". So instead of a measured value for this
+unit:
+- the driver learns R;
+- the capacity runs to the voltage cut-off under the learned R;
+- the backstop is a device constant.
+
+The DT keeps only the new-cell starting value.
+
+**New facts:**
+- **LK sets the hardware cut-off to 2.70 V on this unit.** `CHR_CON17` `0x0F9A` read `0x0004`, so
+  `RG_UVLO_VTHL` = 4, 2.50 V + 4 × 50 mV. Mainline does not change it; the vendor kernel set
+  2.60 V.
+- **The vendor's resistance profiles** (`r_profile_t0`-`t3`, at −10/0/25/50 °C) have a mid-range
+  median (3.7-3.9 V) of 1006, 567, 92 and 51 mΩ. Relative to 25 °C that is about ×11, ×6.2,
+  ×1 and ×0.55.
+
+### 1. Learning R
+
+**Two estimates,** both only while discharging on battery, at 15-35 °C, normalised to 25 °C with
+the vendor profile's ratio (log-interpolated between its four temperatures):
+
+| Estimate | From | Rule | Used for |
+|---|---|---|---|
+| Sustained, R_eff | a steady load of at least 300 mA for 2 min (windows within 10 % of each other), with the charge counted from a reading of the last 24 h | (OCV(counted charge) − V) ÷ \|I\| | OCV corrections and the 0 % point |
+| Fast, R_fast | two consecutive 5 s windows with a current change of at least 300 mA, with the voltage sampled at each window's close | ΔV ÷ ΔI | the margin against bursts |
+
+**Bounds and steps:**
+- accepted between 50 mΩ and 1.5 Ω;
+- each update moves 1/16 of the way, capped at ±10 %, at most once per 10 minutes;
+- debug log for each estimate, info log for each update.
+
+**Starting value:** the DT's 165 mΩ, which stays a new-cell value. This unit should converge
+toward about 0.4 Ω (R_eff) over a few days of use. T5 validates both estimates.
+
+### 2. Capacity to the cut-off
+
+- **0 % is the charge at which the cell, under its typical recent load, reaches the cut-off.**
+  - The typical load I_typ is a slow average of the discharge current, with a 30-minute time
+    constant, bounded 0.2-2 A, starting at 0.5 A.
+  - The empty point SoC₀ (on the table) is where OCV(SoC₀) − I_typ × R_eff(T) = V_cut.
+  - V_cut = the backstop + 0.10 V, so the gauge reaches 0 % before the backstop acts.
+- **The scale:**
+
+  | Value | Definition |
+  |---|---|
+  | `capacity` | (table SoC − SoC₀) ÷ (93 % − SoC₀), clamped 0-100 |
+  | `charge_now` | Q × (table SoC − SoC₀) |
+  | `charge_full` | Q × (93 % − SoC₀) |
+  | `charge_full_design` | Q_design × (93 % − SoC₀ for a new cell at 0.5 A and 25 °C) |
+
+  - Health is `charge_full` ÷ `charge_full_design`, clamped to 100. It now includes the
+    resistance ageing, as Impedance Track's full charge does.
+  - Capacity is always `charge_now` ÷ `charge_full`.
+- **No jumps:** SoC₀ moves at most one point per 5 minutes. The cold-temperature rise in R
+  shrinks the usable charge gradually and visibly.
+- **Example, this cell at 25 °C:**
+  - at 0.5 A and 0.4 Ω, SoC₀ is where OCV = 3.20 + 0.20 = 3.40 V, the table's 0 %. So
+    light use loses nothing.
+  - under sustained 1.8 A browsing, OCV = 3.20 + 0.72 = 3.92 V, about 57 % of the table. The
+    display then tells the truth: at that load the cell has only that much left above the
+    cut-off.
+
+### 3. Persistence
+
+- `charge_full` becomes derived and read-only.
+- **Two new driver attributes,** read-write, under the battery's device:
+  - `learned_full_uah`, Q on the table scale;
+  - `learned_resistance_uohm`, R_eff at 25 °C.
+- **gemini-base saves** `<value> <basis>` for each, the basis being the DT's design value
+  (4268000) and starting R (165000), and rescales on restore.
+- **Migration:** the existing file's `charge_full charge_full_design` converts as Q =
+  value × 4268000 ÷ design_saved.
+
+### 4. Backstop: a device constant, **3.10 V**
+
+- **What it covers:**
+  - the cut-off: UVLO 2.70 V (LK);
+  - bursts between polls: up to 1 A at an aged cell's fast R of up to 0.25 Ω, 0.25 V;
+  - the BATFET drop: 0.05 V;
+  - a margin: 0.10 V.
+- **Same on every Gemini,** since LK is the same. T5's fast R confirms the burst figure.
+- **Why not 3.00 V:** the 3.00 V given earlier assumed the vendor's 2.60 V UVLO.
+
+### Owner decisions
+
+- Build 1-4 as described, as an image item plus a gemini-base change?
+- With part 2, the displayed charge depends on recent load. Heavy use makes the percentage drop
+  faster, and it recovers partly when the load lightens, as phones with Impedance Track do. Is
+  that wanted, or should 0 % stay fixed at the table's empty point under a light load, with
+  only the backstop handling heavy load?
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
