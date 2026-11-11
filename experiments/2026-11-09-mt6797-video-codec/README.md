@@ -440,6 +440,42 @@ decode, then GStreamer `v4l2slh264dec` or FFmpeg `v4l2-request`. Then bind SMI
 and M4U, and add the de-tiling path for display. HEVC and VP9 follow the same
 pattern only after H.264 works.
 
+**Stage 4, userspace: one VA-API backend for qutebrowser and mpv.** The owner
+wants qutebrowser itself to decode in hardware, not hand videos to mpv. The
+packages were checked on 2026-11-11 against the Arch Linux ARM aarch64
+`extra` repository:
+
+- `qt6-webengine` (library 6.12.0) has Chromium's VA-API decoder
+  (`VaapiVideoDecoder`, `VaapiWrapper`). It loads `libva` at run time, and
+  carries the `AcceleratedVideoDecodeLinuxGL`, `...ZeroCopyGL` and
+  `VaapiIgnoreDriverChecks` feature switches. It has no V4L2 decoder.
+  Chromium's V4L2 decode path is built only for ChromeOS, so VA-API is the
+  only route into QtWebEngine.
+- `ffmpeg` 9.0.2 links `libva` and has the stateful `*_v4l2m2m` decoders, but
+  no V4L2 request (stateless) decoder. `mpv` 0.41.0 links `libva`.
+- So a VA-API driver over the V4L2 stateless decoder serves both
+  qutebrowser and `mpv --hwdec=vaapi` with stock packages.
+- Bootlin's `libva-v4l2-request` has had no commit since 2019. An actively
+  maintained successor,
+  [live-display/libva-v4l2_request](https://github.com/live-display/libva-v4l2_request)
+  (updated 2026-11), covers MPEG-2, H.264, HEVC, VP8, VP9 and AV1. Its README
+  reports unpatched Firefox and mpv working through it. Chromium is not
+  reported there.
+
+What the stage needs:
+
+- MediaTek support in that backend, or a fork of it.
+- Conversion of the decoder's tiled MM21 output to linear NV12, so Chromium
+  and Panfrost can import frames: CPU or GPU at first, MDP later.
+- In qutebrowser, the QtWebEngine VA-API features enabled through
+  `QTWEBENGINE_CHROMIUM_FLAGS`, with the driver checks ignored.
+- A Greasemonkey userscript that makes YouTube offer H.264 (it reports VP9
+  and AV1 as unsupported). MT6797 has no AV1 decoder, and H.264 then covers
+  YouTube up to 1080p.
+
+Chromium's acceptance of a non-Intel/AMD VA-API driver on Panfrost is the
+least certain link and is tested first, once Stage 3 decodes.
+
 **Later or not at all.** VENC (needs the RCPU blob path and its own contract),
 JPEG (try upstream `mtk-jpeg` with MT6797 data, which is far smaller), MJC (no).
 
