@@ -1,0 +1,467 @@
+From f0c56c451af6d95e389c081401ae4fba46e6e8d9 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 18:52:54 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: support capture buffers created
+ at any time
+
+VA-API clients through libva-v4l2-request create CAPTURE buffers one at a
+time with VIDIOC_CREATE_BUFS, also after STREAMON, and their pools can
+hold more than 17 buffers. The driver only worked for buffers that
+existed at STREAMON and had vb2 indices below 17:
+
+- start_streaming() allocated a collocated-MV buffer for each capture
+  buffer existing at that moment. Later buffers had none, so H.264 and
+  HEVC rejected them.
+- H.264 and HEVC programmed the vb2 index as the hardware picture slot
+  and rejected indices of 17 and above.
+
+Allocate the MV buffer in buf_init() and free it in buf_cleanup(), sized
+for the codec and CAPTURE format at that time; VP9 still gets none. The
+OUTPUT format can still change while CAPTURE buffers exist, so the
+decoders also reject a buffer whose MV buffer is too small for the
+current format. STREAMON zeroes the MV buffers, as the fresh allocations
+did before.
+
+Map the current picture and its DPB references to hardware slots 0..16
+per context. A buffer keeps its slot while it is the current picture or
+in the DPB and loses it when it leaves. A buffer without a slot takes its
+own index when that is free, otherwise the lowest free slot. Sixteen
+references and the current picture always fit; anything more is
+rejected. With up to 17 buffers every buffer keeps slot = index, so the
+programming is unchanged for such pools in any order of use.
+
+The HEVC error-concealment state (which buffers hold a picture and its
+POC) describes capture buffers rather than hardware slots, so key it by
+vb2 index over all VIDEO_MAX_FRAME buffers.
+---
+ .../mediatek/mt6797-vdec/mt6797-vdec-core.c   | 94 +++++++++++--------
+ .../mediatek/mt6797-vdec/mt6797-vdec-h264.c   | 35 +++++--
+ .../mediatek/mt6797-vdec/mt6797-vdec-hevc.c   | 47 +++++++---
+ .../mediatek/mt6797-vdec/mt6797-vdec.h        | 43 ++++++++-
+ 4 files changed, 160 insertions(+), 59 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+index 57fe5c476..966ac4c16 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -340,6 +340,54 @@ static int mvdec_buf_out_validate(struct vb2_buffer *vb)
+ 	return 0;
+ }
+ 
++/* VP9 keeps its single collocated-MV buffer in its working buffers. */
++static size_t mvdec_mv_size(struct mvdec_ctx *ctx)
++{
++	u32 codec = ctx->src_fmt.pixelformat;
++
++	if (mvdec_is_vp9(codec))
++		return 0;
++	if (mvdec_is_h264(codec))
++		return mvdec_h264_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
++	return mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
++}
++
++/* Each capture buffer gets its collocated-MV buffer, whenever it is created. */
++static int mvdec_buf_init(struct vb2_buffer *vb)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
++	struct mvdec_mv_buf *mv;
++	size_t size;
++
++	if (V4L2_TYPE_IS_OUTPUT(vb->type))
++		return 0;
++	if (vb->index >= VIDEO_MAX_FRAME)
++		return -EINVAL;
++	size = mvdec_mv_size(ctx);
++	if (!size)
++		return 0;
++	mv = &ctx->mv[vb->index];
++	mv->cpu = dma_alloc_coherent(ctx->dev->dev, size, &mv->dma, GFP_KERNEL);
++	if (!mv->cpu)
++		return -ENOMEM;
++	mv->size = size;
++	return 0;
++}
++
++static void mvdec_buf_cleanup(struct vb2_buffer *vb)
++{
++	struct mvdec_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
++	struct mvdec_mv_buf *mv;
++
++	if (V4L2_TYPE_IS_OUTPUT(vb->type) || vb->index >= VIDEO_MAX_FRAME)
++		return;
++	mv = &ctx->mv[vb->index];
++	if (!mv->cpu)
++		return;
++	dma_free_coherent(ctx->dev->dev, mv->size, mv->cpu, mv->dma);
++	mv->cpu = NULL;
++}
++
+ static void mvdec_buf_queue(struct vb2_buffer *vb)
+ {
+ 	struct mvdec_ctx *ctx = vb2_get_drv_priv(vb->vb2_queue);
+@@ -379,23 +427,9 @@ static void mvdec_free_aux(struct mvdec_ctx *ctx)
+ 	}
+ }
+ 
+-static void mvdec_free_mv(struct mvdec_ctx *ctx)
+-{
+-	unsigned int i;
+-
+-	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
+-		if (!ctx->mv[i].cpu)
+-			continue;
+-		dma_free_coherent(ctx->dev->dev, ctx->mv[i].size, ctx->mv[i].cpu,
+-				  ctx->mv[i].dma);
+-		ctx->mv[i].cpu = NULL;
+-	}
+-}
+-
+ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ {
+ 	struct mvdec_ctx *ctx = vb2_get_drv_priv(vq);
+-	size_t size;
+ 	unsigned int i;
+ 
+ 	if (V4L2_TYPE_IS_OUTPUT(vq->type))
+@@ -404,25 +438,11 @@ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 	memset(&ctx->hevc, 0, sizeof(ctx->hevc));
+ 	memset(&ctx->h264, 0, sizeof(ctx->h264));
+ 	memset(&ctx->vp9, 0, sizeof(ctx->vp9));
+-	/*
+-	 * One zeroed collocated-MV buffer per capture buffer. VP9 keeps a
+-	 * single one, for the previous frame, in its working buffers.
+-	 */
+-	if (mvdec_is_vp9(ctx->src_fmt.pixelformat))
+-		size = 0;
+-	else if (mvdec_is_h264(ctx->src_fmt.pixelformat))
+-		size = mvdec_h264_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
+-	else
+-		size = mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height);
+-	for (i = 0; size && i < vb2_get_num_buffers(vq) && i < VIDEO_MAX_FRAME; i++) {
+-		ctx->mv[i].size = size;
+-		ctx->mv[i].cpu = dma_alloc_coherent(ctx->dev->dev, size,
+-						    &ctx->mv[i].dma, GFP_KERNEL);
+-		if (!ctx->mv[i].cpu) {
+-			mvdec_free_mv(ctx);
+-			return -ENOMEM;
+-		}
+-	}
++	memset(ctx->slot, 0, sizeof(ctx->slot));
++	/* Each stream starts with zeroed collocated-MV buffers. */
++	for (i = 0; i < VIDEO_MAX_FRAME; i++)
++		if (ctx->mv[i].cpu)
++			memset(ctx->mv[i].cpu, 0, ctx->mv[i].size);
+ 	if (mvdec_is_h264(ctx->src_fmt.pixelformat) ||
+ 	    mvdec_is_vp9(ctx->src_fmt.pixelformat)) {
+ 		int ret = mvdec_is_vp9(ctx->src_fmt.pixelformat) ?
+@@ -430,7 +450,6 @@ static int mvdec_start_streaming(struct vb2_queue *vq, unsigned int count)
+ 
+ 		if (ret) {
+ 			mvdec_free_aux(ctx);
+-			mvdec_free_mv(ctx);
+ 			return ret;
+ 		}
+ 	}
+@@ -452,14 +471,14 @@ static void mvdec_stop_streaming(struct vb2_queue *vq)
+ 		v4l2_ctrl_request_complete(vbuf->vb2_buf.req_obj.req, &ctx->hdl);
+ 		v4l2_m2m_buf_done(vbuf, VB2_BUF_STATE_ERROR);
+ 	}
+-	if (!V4L2_TYPE_IS_OUTPUT(vq->type)) {
+-		mvdec_free_mv(ctx);
++	if (!V4L2_TYPE_IS_OUTPUT(vq->type))
+ 		mvdec_free_aux(ctx);
+-	}
+ }
+ 
+ static const struct vb2_ops mvdec_qops = {
+ 	.queue_setup		= mvdec_queue_setup,
++	.buf_init		= mvdec_buf_init,
++	.buf_cleanup		= mvdec_buf_cleanup,
+ 	.buf_prepare		= mvdec_buf_prepare,
+ 	.buf_out_validate	= mvdec_buf_out_validate,
+ 	.buf_queue		= mvdec_buf_queue,
+@@ -690,7 +709,6 @@ static int mvdec_release(struct file *file)
+ 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
+ 	mutex_unlock(&vdev->lock);
+ 	v4l2_ctrl_handler_free(&ctx->hdl);
+-	mvdec_free_mv(ctx);
+ 	mvdec_free_aux(ctx);
+ 	kvfree(ctx);
+ 	return 0;
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+index b0a63029a..4b9b53258 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+@@ -16,7 +16,7 @@
+  * Supported: frame-based decoding with Annex-B start codes, the whole picture
+  * in one OUTPUT buffer starting with the first slice's start code,
+  * progressive (frame_mbs_only) 8-bit 4:2:0 Baseline, Main and High streams
+- * without slice groups, SP or SI slices, at most 17 capture buffers.
++ * without slice groups, SP or SI slices.
+  * Everything else is rejected with -EINVAL before the decoder starts.
+  *
+  * Register meanings come from reverse engineering. The sequence follows the
+@@ -59,8 +59,6 @@
+ #define H264_NAL_SLICE		1
+ #define H264_NAL_IDR		5
+ 
+-/* Capture buffers the 5-bit slot field of the list attributes can name. */
+-#define H264_SLOTS		17
+ /* Prefetch margin past the data that the bitstream window covers. */
+ #define H264_BS_MARGIN		0x100
+ #define H264_LIST_REGS		32
+@@ -250,9 +248,11 @@ static int mvdec_h264_check(struct mvdec_ctx *ctx, const struct mvdec_h264_run *
+ static int mvdec_h264_buf(struct mvdec_ctx *ctx, struct vb2_buffer *vb,
+ 			  struct mvdec_h264_buf *b)
+ {
++	const struct mvdec_mv_buf *mv = &ctx->mv[vb->index];
+ 	dma_addr_t y, c;
+ 
+-	if (vb->index >= H264_SLOTS || !ctx->mv[vb->index].cpu)
++	if (!ctx->slot[vb->index] || !mv->cpu ||
++	    mv->size < mvdec_h264_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height))
+ 		return -EINVAL;
+ 	y = vb2_dma_contig_plane_dma_addr(vb, 0);
+ 	c = vb2_dma_contig_plane_dma_addr(vb, 1);
+@@ -261,11 +261,31 @@ static int mvdec_h264_buf(struct mvdec_ctx *ctx, struct vb2_buffer *vb,
+ 		return -EINVAL;
+ 	b->y = lower_32_bits(y);
+ 	b->c = lower_32_bits(c);
+-	b->mv = lower_32_bits(ctx->mv[vb->index].dma);
+-	b->slot = vb->index;
++	b->mv = lower_32_bits(mv->dma);
++	b->slot = ctx->slot[vb->index] - 1;
+ 	return 0;
+ }
+ 
++/* Hardware slots for the current picture and the references in the DPB. */
++static int mvdec_h264_slots(struct mvdec_ctx *ctx, const struct mvdec_h264_pic *p,
++			    struct vb2_buffer *dst)
++{
++	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
++	const struct v4l2_h264_dpb_entry *dpb = p->dec->dpb;
++	u64 bufs = BIT_ULL(dst->index);
++	struct vb2_buffer *vb;
++	unsigned int i;
++
++	for (i = 0; i < V4L2_H264_NUM_DPB_ENTRIES; i++) {
++		if (!(dpb[i].flags & V4L2_H264_DPB_ENTRY_FLAG_ACTIVE))
++			continue;
++		vb = vb2_find_buffer(vq, dpb[i].reference_ts);
++		if (vb)
++			bufs |= BIT_ULL(vb->index);
++	}
++	return mvdec_map_slots(ctx, bufs);
++}
++
+ /*
+  * Resolve every active DPB entry to its capture buffer and build the initial
+  * (default) lists. The hardware applies ref_pic_list_modification() itself.
+@@ -788,6 +808,9 @@ int mvdec_h264_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
+ 	p->h = (p->sps->pic_height_in_map_units_minus1 + 1) * 16;
+ 	p->pitch = ctx->dst_fmt.plane_fmt[0].bytesperline;
+ 
++	ret = mvdec_h264_slots(ctx, p, &dst->vb2_buf);
++	if (ret)
++		goto out;
+ 	ret = mvdec_h264_buf(ctx, &dst->vb2_buf, &p->cur);
+ 	if (ret)
+ 		goto out;
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c
+index f7b07d61b..6d03ac947 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-hevc.c
+@@ -14,7 +14,7 @@
+  *
+  * Supported: frame-based decoding with Annex-B start codes, the whole access
+  * unit in one OUTPUT buffer starting with the first slice's start code,
+- * Main profile, 8-bit 4:2:0, CTB 16 to 64, at most 17 capture buffers.
++ * Main profile, 8-bit 4:2:0, CTB 16 to 64.
+  * Everything else is rejected with -EINVAL before the decoder starts.
+  *
+  * Register meanings come from reverse engineering. The programming sequence
+@@ -622,10 +622,11 @@ static int mvdec_hevc_walk(struct mvdec_hevc_pic *p, struct mvdec_hevc_walk *w)
+ static int mvdec_hevc_buf(struct mvdec_ctx *ctx, struct vb2_buffer *vb,
+ 			  struct mvdec_hevc_buf *b)
+ {
++	const struct mvdec_mv_buf *mv = &ctx->mv[vb->index];
+ 	dma_addr_t y, c;
+ 
+-	/* The slot id is 5 bits and is programmed as slot + 1. */
+-	if (vb->index >= MVDEC_HEVC_SLOTS || !ctx->mv[vb->index].cpu)
++	if (!mv->cpu ||
++	    mv->size < mvdec_hevc_mv_size(ctx->dst_fmt.width, ctx->dst_fmt.height))
+ 		return -EINVAL;
+ 	y = vb2_dma_contig_plane_dma_addr(vb, 0);
+ 	c = vb2_dma_contig_plane_dma_addr(vb, 1);
+@@ -634,12 +635,32 @@ static int mvdec_hevc_buf(struct mvdec_ctx *ctx, struct vb2_buffer *vb,
+ 		return -EINVAL;
+ 	b->y = lower_32_bits(y);
+ 	b->c = lower_32_bits(c);
+-	b->mv = lower_32_bits(ctx->mv[vb->index].dma);
+-	b->slot = vb->index;
++	b->mv = lower_32_bits(mv->dma);
++	/* Programmed as slot + 1; unused for a buffer without a slot (EC). */
++	b->slot = ctx->slot[vb->index] - 1;
+ 	b->lt = 0;
+ 	return 0;
+ }
+ 
++/* Hardware slots for the current picture and every picture in the DPB. */
++static int mvdec_hevc_slots(struct mvdec_ctx *ctx, const struct mvdec_hevc_pic *p,
++			    struct vb2_buffer *dst)
++{
++	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
++	unsigned int i, n = p->dec->num_active_dpb_entries;
++	u64 bufs = BIT_ULL(dst->index);
++	struct vb2_buffer *vb;
++
++	if (n > V4L2_HEVC_DPB_ENTRIES_NUM_MAX)
++		return -EINVAL;
++	for (i = 0; i < n; i++) {
++		vb = vb2_find_buffer(vq, p->dec->dpb[i].timestamp);
++		if (vb)
++			bufs |= BIT_ULL(vb->index);
++	}
++	return mvdec_map_slots(ctx, bufs);
++}
++
+ static int mvdec_hevc_ref(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p,
+ 			  unsigned int idx, struct mvdec_hevc_buf *b)
+ {
+@@ -724,7 +745,8 @@ static int mvdec_hevc_lists(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p)
+  * buffers that hold a decoded picture, the one with the nearest POC, the
+  * lowest index winning ties; otherwise the current buffer.
+  */
+-static void mvdec_hevc_choose_ec(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p)
++static void mvdec_hevc_choose_ec(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p,
++				 unsigned int cur)
+ {
+ 	struct vb2_queue *vq = v4l2_m2m_get_dst_vq(ctx->fh.m2m_ctx);
+ 	struct mvdec_hevc_state *s = &ctx->hevc;
+@@ -732,12 +754,12 @@ static void mvdec_hevc_choose_ec(struct mvdec_ctx *ctx, struct mvdec_hevc_pic *p
+ 	unsigned int i;
+ 
+ 	p->ec = p->cur;
+-	for (i = 0; i < MVDEC_HEVC_SLOTS; i++) {
++	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
+ 		struct mvdec_hevc_buf b;
+ 		struct vb2_buffer *vb;
+ 		s64 d;
+ 
+-		if (i == p->cur.slot || !(s->held & BIT(i)))
++		if (i == cur || !(s->held & BIT_ULL(i)))
+ 			continue;
+ 		vb = vb2_get_buffer(vq, i);
+ 		if (!vb || mvdec_hevc_buf(ctx, vb, &b))
+@@ -1143,13 +1165,16 @@ int mvdec_hevc_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
+ 	p->idr = p->sl->nal_unit_type == HEVC_NAL_IDR_W_RADL ||
+ 		 p->sl->nal_unit_type == HEVC_NAL_IDR_N_LP;
+ 
++	ret = mvdec_hevc_slots(ctx, p, &dst->vb2_buf);
++	if (ret)
++		goto out;
+ 	ret = mvdec_hevc_buf(ctx, &dst->vb2_buf, &p->cur);
+ 	if (ret)
+ 		goto out;
+ 	ret = mvdec_hevc_lists(ctx, p);
+ 	if (ret)
+ 		goto out;
+-	mvdec_hevc_choose_ec(ctx, p);
++	mvdec_hevc_choose_ec(ctx, p, dst->vb2_buf.index);
+ 
+ 	ret = mvdec_hevc_sram_wait(vdev);
+ 	if (ret)
+@@ -1171,8 +1196,8 @@ int mvdec_hevc_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
+ 	mvdec_hevc_write_scaling(p, run->scaling);
+ 	mvdec_hevc_write_params(p, reg_c8(&w, s->last_rps_count));
+ 
+-	s->held |= BIT(p->cur.slot);
+-	s->poc[p->cur.slot] = p->dec->pic_order_cnt_val;
++	s->held |= BIT_ULL(dst->vb2_buf.index);
++	s->poc[dst->vb2_buf.index] = p->dec->pic_order_cnt_val;
+ 	hvld_write(vdev, HVLD_START, 1);
+ out:
+ 	if (ret)
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+index 496a84c23..5b5d94ea4 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+@@ -6,6 +6,7 @@
+ #ifndef _MT6797_VDEC_H
+ #define _MT6797_VDEC_H
+ 
++#include <linux/bitops.h>
+ #include <linux/clk.h>
+ #include <linux/io.h>
+ #include <linux/mutex.h>
+@@ -103,14 +104,17 @@ struct mvdec_mv_buf {
+ 	size_t size;
+ };
+ 
+-/* Capture buffers the 5-bit HEVC slot ids can name (programmed as slot + 1). */
+-#define MVDEC_HEVC_SLOTS	17
++/*
++ * Hardware picture slots: up to 16 references and the current picture. The
++ * vendor DPB never holds more pictures, so higher slot ids are untested.
++ */
++#define MVDEC_SLOTS		17
+ 
+ /* HEVC state kept across pictures (mt6797-vdec-hevc.c). */
+ struct mvdec_hevc_state {
+ 	u32 last_rps_count;		/* size of the last explicit slice RPS */
+-	u32 held;			/* capture buffers holding a picture */
+-	s32 poc[MVDEC_HEVC_SLOTS];	/* POC last decoded into each buffer */
++	u64 held;			/* capture buffers holding a picture */
++	s32 poc[VIDEO_MAX_FRAME];	/* POC last decoded into each buffer */
+ };
+ 
+ /* VP9 symbol counts whose rows the decoder pads (mt6797-vdec-vp9.c). */
+@@ -154,6 +158,7 @@ struct mvdec_ctx {
+ 	struct v4l2_pix_format_mplane src_fmt;
+ 	struct v4l2_pix_format_mplane dst_fmt;
+ 	struct mvdec_mv_buf mv[VIDEO_MAX_FRAME];
++	u8 slot[VIDEO_MAX_FRAME];	/* hardware slot + 1 per buffer, 0: none */
+ 	struct mvdec_hevc_state hevc;
+ 	struct mvdec_h264_state h264;
+ 	struct mvdec_vp9_state vp9;
+@@ -165,6 +170,36 @@ static inline struct mvdec_ctx *fh_to_ctx(struct v4l2_fh *fh)
+ 	return container_of(fh, struct mvdec_ctx, fh);
+ }
+ 
++/*
++ * Map the capture buffers in @bufs (a mask of vb2 indices: the current
++ * picture and its references) to hardware slots. A buffer keeps its slot
++ * while it stays in the set and loses it when it leaves. A buffer without a
++ * slot takes its own index when that is free, so up to MVDEC_SLOTS buffers
++ * map one to one, and otherwise the lowest free slot.
++ */
++static inline int mvdec_map_slots(struct mvdec_ctx *ctx, u64 bufs)
++{
++	unsigned int i, s;
++	u32 used = 0;
++
++	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
++		if (!(bufs & BIT_ULL(i)))
++			ctx->slot[i] = 0;
++		else if (ctx->slot[i])
++			used |= BIT(ctx->slot[i] - 1);
++	}
++	for (i = 0; i < VIDEO_MAX_FRAME; i++) {
++		if (!(bufs & BIT_ULL(i)) || ctx->slot[i])
++			continue;
++		s = i < MVDEC_SLOTS && !(used & BIT(i)) ? i : ffz(used);
++		if (s >= MVDEC_SLOTS)
++			return -EINVAL;
++		used |= BIT(s);
++		ctx->slot[i] = s + 1;
++	}
++	return 0;
++}
++
+ static inline u32 mvdec_read(struct mvdec_dev *vdev, u32 off)
+ {
+ 	return readl(vdev->base + off);
+-- 
+2.43.0
+

@@ -1,0 +1,662 @@
+From 3c8cc605a3f72b4a3d37b2358ea3eb6d981ee40f Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 18:35:18 -0500
+Subject: [PATCH 1/2] Detile MediaTek MM21 on the CPU into dma-buf heap NV12
+
+MediaTek stateless decoders such as mt6797-vdec output only MM21: two
+non-contiguous planes of 16x32 luma tiles and 16x16 interleaved CbCr
+tiles. No GPU, display controller or client can use it, and on MT6797
+there is no mem2mem device to convert it, so the existing converter
+chain refused such streams.
+
+Add MM21 to the format table as a decoder-only format and give the
+converter chain a software mode for it:
+
+- The surface backing is linear NV12 allocated from
+  /dev/dma_heap/system, so it exports as a dma-buf like the RGA
+  backing. Its pitch is aligned to 64 bytes and it covers the
+  decoder's padded size; the chroma plane follows the luma rows.
+- The CPU detiles each frame (mm21.c), streaming each tile of the
+  uncached decoder buffer sequentially, bracketed with
+  DMA_BUF_IOCTL_SYNC on the decoder planes and on the backing. The
+  write sync also waits for a GPU still reading the previous frame.
+- Conversion happens on the first read through v4l2r_surface_ready(),
+  and vaEndPicture() waits for the decode and the conversion of its
+  target. Chromium exports each surface once and never calls
+  vaSyncSurface(), so the backing must be current when vaEndPicture()
+  returns. A frame overwritten before it was read is not converted.
+- When no decoder can produce NV12, bare surfaces (exported before
+  their first decode) get heap backing in the same layout, so a
+  dma-buf a client exported early stays the one that is updated.
+
+References stay in the decoder's MM21 buffers. vaDeriveImage and
+vaGetImage read the NV12 backing.
+---
+ README             |  25 +++++-
+ src/context.c      |   8 ++
+ src/convert.c      | 192 ++++++++++++++++++++++++++++++++++++++++++++-
+ src/driver.c       |  11 +++
+ src/meson.build    |   1 +
+ src/mm21.c         |  65 +++++++++++++++
+ src/mm21.h         |  31 ++++++++
+ src/surface.c      |  99 ++++++++++++++++++++++-
+ src/v4l2_request.h |   7 +-
+ 9 files changed, 433 insertions(+), 6 deletions(-)
+ create mode 100644 src/mm21.c
+ create mode 100644 src/mm21.h
+
+diff --git a/README b/README
+index 381c514..1417115 100644
+--- a/README
++++ b/README
+@@ -319,6 +319,29 @@ It adds the NV15 source format, enables the hardware 10-bit unpacker and
+ scaling) 10-bit fetch path mis-addresses every other 128-pixel tile.
+ 
+ 
++MediaTek MM21 and the software converter
++----------------------------------------
++
++Some MediaTek decoders (e.g. mt6797-vdec) output only MM21: two planes
++of 16x32 luma and 16x16 interleaved CbCr tiles. Nothing on such SoCs can
++import it, and there is no converter device, so the driver detiles MM21
++on the CPU:
++
++- Each surface gets a linear NV12 backing from /dev/dma_heap/system
++  (CONFIG_DMABUF_HEAPS_SYSTEM), exported like any other NV12 surface.
++  Bare surfaces get the same layout when no decoder can produce NV12,
++  so a dma-buf exported before the first decode stays valid.
++- vaEndPicture() waits for the decode and detiles the frame, bracketed
++  with DMA_BUF_IOCTL_SYNC on both buffers. Clients such as Chromium
++  export each surface once and never call vaSyncSurface(), so the
++  backing has to be current when vaEndPicture() returns.
++- Reference frames stay in the decoder's MM21 buffers.
++- vaDeriveImage()/vaGetImage() read the NV12 backing.
++
++The cost is one CPU copy per frame (about 3 MiB at 1080p), read from the
++decoder's uncached buffer.
++
++
+ Video processing: rotation and mirroring
+ ----------------------------------------
+ 
+@@ -412,7 +435,7 @@ Known limitations
+   VA-API never exposes the SPS st_ref_pic_set() syntax, so these devices
+   cannot be driven correctly over VA-API at all.
+ - Tiled/compressed CAPTURE formats can be exported as dma-bufs but not
+-  read back with vaGetImage() (no CPU detiling).
++  read back with vaGetImage() (no CPU detiling, except MM21).
+ 
+ 
+ License
+diff --git a/src/context.c b/src/context.c
+index d905a6b..ccecaae 100644
+--- a/src/context.c
++++ b/src/context.c
+@@ -1005,6 +1005,14 @@ VAStatus v4l2r_EndPicture(VADriverContextP va_ctx, VAContextID context_id)
+ 	status = ctx->vpp ? v4l2r_vpp_end_picture(ctx) :
+ 		 ctx->codec->end_picture(ctx);
+ 
++	/* The software converter fills the surface backing on the CPU, which
++	 * no dma-buf fence covers. Clients that export a surface once and
++	 * never sync it again (Chromium) read the backing right after this
++	 * call, so finish the decode and the conversion here. */
++	if (status == VA_STATUS_SUCCESS && ctx->conv && ctx->conv->software &&
++	    ctx->pic.target)
++		status = v4l2r_surface_ready(ctx->pic.target);
++
+ 	ctx->in_picture = false;
+ 	ctx->pic.output = NULL;
+ 	ctx->pic.target = NULL;
+diff --git a/src/convert.c b/src/convert.c
+index c117126..06c0005 100644
+--- a/src/convert.c
++++ b/src/convert.c
+@@ -10,6 +10,11 @@
+  * and overlap subsequent decodes; readers wait for the result through
+  * v4l2r_surface_ready().
+  *
++ * Decoders whose only CAPTURE format is the MediaTek MM21 block layout get
++ * a software converter instead when no device can read MM21 (MT6797 has
++ * none): the surface backing is linear NV12 from the system dma-buf heap,
++ * and the CPU detiles each frame into it. See "software converter" below.
++ *
+  * The same converter also backs the VAEntrypointVideoProc implementation
+  * at the end of this file: surface-to-surface blits with rotation,
+  * mirroring and scaling (VAProcPipelineParameterBuffer). When the source
+@@ -28,10 +33,13 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <sys/ioctl.h>
++#include <sys/mman.h>
+ #include <unistd.h>
+ 
++#include <linux/dma-buf.h>
+ #include <linux/videodev2.h>
+ 
++#include "mm21.h"
+ #include "v4l2_request.h"
+ 
+ #define V4L2R_CONVERT_TIMEOUT_MS 2000
+@@ -42,6 +50,149 @@
+ #define V4L2R_VPP_MIN_DIM 34
+ #define V4L2R_VPP_MAX_DIM 8192
+ 
++/*
++ * --- software converter (MediaTek MM21) ---
++ *
++ * The conversion runs on the first read of the surface: v4l2r_convert_kick()
++ * only marks the surface, and v4l2r_convert_wait() - reached through
++ * v4l2r_surface_ready() from vaSyncSurface, vaExportSurfaceHandle,
++ * vaDeriveImage and vaGetImage - detiles it. vaEndPicture() also waits for
++ * the surface (see v4l2r_EndPicture): some clients (Chromium) export each
++ * surface once and never sync it again, so the backing must be current when
++ * vaEndPicture returns. A frame overwritten before anyone read it is simply
++ * not converted.
++ *
++ * The backing is linear NV12 at the decoder's padded size (whole tiles),
++ * with the line pitch aligned to 64 bytes and the chroma plane right after
++ * the luma rows of the backing. Consumers crop to the visible size as with
++ * any other decoder's padded CAPTURE buffers.
++ */
++
++static VAStatus convert_setup_software(struct v4l2r_context *ctx)
++{
++	const struct v4l2_pix_format_mplane *src = &ctx->capture_format.fmt.pix_mp;
++	struct v4l2_pix_format_mplane *dst;
++	struct v4l2r_convert *conv;
++	uint32_t src_pitch, height, pitch;
++
++	if (!V4L2_TYPE_IS_MULTIPLANAR(ctx->capture_format.type) ||
++	    src->num_planes != 2)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++
++	src_pitch = src->plane_fmt[0].bytesperline;
++	if (!src_pitch || src_pitch % 16 ||
++	    src->plane_fmt[1].bytesperline != src_pitch)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++
++	/* Padded height: whole 32-line luma tiles. */
++	height = src->plane_fmt[0].sizeimage / src_pitch;
++	height -= height % 32;
++	if (height < src->height ||
++	    src->plane_fmt[1].sizeimage < src_pitch * (height / 2))
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++
++	pitch = (src_pitch + 63) & ~63u;
++
++	conv = calloc(1, sizeof(*conv));
++	if (!conv)
++		return VA_STATUS_ERROR_ALLOCATION_FAILED;
++
++	conv->fd = -1;
++	conv->software = true;
++	conv->output_format = ctx->capture_format;
++	conv->capture_format = (struct v4l2_format) {
++		.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
++	};
++	dst = &conv->capture_format.fmt.pix_mp;
++	dst->pixelformat = V4L2_PIX_FMT_NV12;
++	dst->width = src_pitch;
++	dst->height = height;
++	dst->num_planes = 1;
++	dst->plane_fmt[0].bytesperline = pitch;
++	dst->plane_fmt[0].sizeimage = pitch * height + pitch * (height / 2);
++	for (unsigned int i = 0; i < V4L2R_CONVERT_SLOTS; i++)
++		conv->jobs[i].capture_index = -1;
++
++	ctx->conv = conv;
++
++	v4l2r_log("converting MM21 to NV12 on the CPU (%ux%u, pitch %u)\n",
++		  dst->width, dst->height, pitch);
++
++	return VA_STATUS_SUCCESS;
++}
++
++static void dmabuf_sync(int fd, uint64_t flags)
++{
++	struct dma_buf_sync sync = {
++		.flags = flags,
++	};
++
++	if (fd < 0)
++		return;
++
++	while (ioctl(fd, DMA_BUF_IOCTL_SYNC, &sync) < 0 &&
++	       (errno == EINTR || errno == EAGAIN))
++		continue;
++}
++
++/* Detile the surface's decoded CAPTURE buffer into its NV12 backing.
++ * ctx->mutex must be held. */
++static VAStatus convert_software(struct v4l2r_context *ctx,
++				 struct v4l2r_surface *surface)
++{
++	const struct v4l2_pix_format_mplane *dst =
++		&ctx->conv->capture_format.fmt.pix_mp;
++	struct v4l2r_surface_backing *backing;
++	struct v4l2r_frame_view src;
++	uint32_t rows;
++	uint64_t t0;
++
++	if (v4l2r_surface_convert_backing(ctx->drv, surface) !=
++	    VA_STATUS_SUCCESS)
++		return VA_STATUS_ERROR_ALLOCATION_FAILED;
++	backing = surface->backing;
++
++	if (v4l2r_surface_capture_view(surface, true, &src) !=
++	    VA_STATUS_SUCCESS || src.nb_planes != 2)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++
++	if (!backing->map[0]) {
++		void *addr = mmap(NULL, backing->plane_size[0],
++				  PROT_READ | PROT_WRITE, MAP_SHARED,
++				  backing->dmabuf_fd[0], 0);
++		if (addr == MAP_FAILED)
++			return VA_STATUS_ERROR_OPERATION_FAILED;
++		backing->map[0] = addr;
++	}
++
++	rows = dst->height < backing->height ? dst->height : backing->height;
++
++	t0 = v4l2r_now_ns();
++
++	/* The write sync also waits for readers of the previous frame (a GPU
++	 * still sampling the backing) through the dma-buf fences. */
++	dmabuf_sync(src.dmabuf_fd[0], DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ);
++	dmabuf_sync(src.dmabuf_fd[1], DMA_BUF_SYNC_START | DMA_BUF_SYNC_READ);
++	dmabuf_sync(backing->dmabuf_fd[0],
++		    DMA_BUF_SYNC_START | DMA_BUF_SYNC_WRITE);
++
++	v4l2r_mm21_detile(backing->map[0],
++			  (uint8_t *)backing->map[0] +
++			  (size_t)backing->pitch * backing->height,
++			  backing->pitch, src.map[0], src.map[1], src.pitch,
++			  dst->width, rows);
++
++	dmabuf_sync(backing->dmabuf_fd[0],
++		    DMA_BUF_SYNC_END | DMA_BUF_SYNC_WRITE);
++	dmabuf_sync(src.dmabuf_fd[1], DMA_BUF_SYNC_END | DMA_BUF_SYNC_READ);
++	dmabuf_sync(src.dmabuf_fd[0], DMA_BUF_SYNC_END | DMA_BUF_SYNC_READ);
++
++	v4l2r_trace("detile (surface 0x%08x buf #%d): %.2f ms\n", surface->id,
++		    surface->capture_index, (v4l2r_now_ns() - t0) / 1e6);
++
++	return VA_STATUS_SUCCESS;
++}
++
+ VAStatus v4l2r_convert_setup(struct v4l2r_context *ctx)
+ {
+ 	struct v4l2r_driver *drv = ctx->drv;
+@@ -52,6 +203,13 @@ VAStatus v4l2r_convert_setup(struct v4l2r_context *ctx)
+ 	uint32_t width = v4l2r_format_width(&ctx->capture_format);
+ 	uint32_t height = v4l2r_format_height(&ctx->capture_format);
+ 
++#if defined(V4L2_PIX_FMT_MM21)
++	/* A two-plane MM21 buffer cannot be imported into a single-plane
++	 * converter source anyway; detile it on the CPU. */
++	if (src_pixelformat == V4L2_PIX_FMT_MM21)
++		return convert_setup_software(ctx);
++#endif
++
+ 	if (!v4l2r_converter_supports(drv, src_pixelformat))
+ 		return VA_STATUS_ERROR_OPERATION_FAILED;
+ 
+@@ -167,7 +325,8 @@ void v4l2r_convert_destroy(struct v4l2r_context *ctx)
+ 
+ 	/* Closing the fd tears down the m2m context including any queued
+ 	 * jobs; importer-side dma-buf references are dropped with it. */
+-	close(conv->fd);
++	if (conv->fd >= 0)
++		close(conv->fd);
+ 	free(conv);
+ 	ctx->conv = NULL;
+ }
+@@ -258,6 +417,12 @@ void v4l2r_convert_kick(struct v4l2r_context *ctx, int capture_index)
+ 	if (!surface)
+ 		return;
+ 
++	/* Converted on first read, see v4l2r_convert_wait(). */
++	if (conv->software) {
++		surface->convert_pending = true;
++		return;
++	}
++
+ 	convert_reap(ctx, false);
+ 
+ 	/* All slots busy: wait one out. */
+@@ -335,6 +500,18 @@ void v4l2r_convert_drain_index(struct v4l2r_context *ctx, int capture_index)
+ 		return;
+ 
+ 	pthread_mutex_lock(&ctx->mutex);
++
++	/* Software: nothing in flight. A frame about to be overwritten that
++	 * nobody read needs no conversion anymore. */
++	if (conv->software) {
++		if (capture_index >= 0 && capture_index < (int)ctx->nb_captures &&
++		    ctx->captures[capture_index].surface)
++			ctx->captures[capture_index].surface->convert_pending =
++				false;
++		pthread_mutex_unlock(&ctx->mutex);
++		return;
++	}
++
+ 	while (in_flight) {
+ 		in_flight = false;
+ 		for (unsigned int i = 0; i < V4L2R_CONVERT_SLOTS; i++) {
+@@ -360,6 +537,19 @@ VAStatus v4l2r_convert_wait(struct v4l2r_surface *surface)
+ 		return VA_STATUS_SUCCESS;
+ 
+ 	pthread_mutex_lock(&ctx->mutex);
++
++	if (ctx->conv->software) {
++		if (surface->convert_pending &&
++		    surface->capture_index >= 0) {
++			status = convert_software(ctx, surface);
++			if (status != VA_STATUS_SUCCESS)
++				v4l2r_log("MM21 conversion failed\n");
++		}
++		surface->convert_pending = false;
++		pthread_mutex_unlock(&ctx->mutex);
++		return status;
++	}
++
+ 	while (surface->convert_pending) {
+ 		if (convert_reap(ctx, true) < 0) {
+ 			v4l2r_log("failed waiting for format conversion\n");
+diff --git a/src/driver.c b/src/driver.c
+index 1f93497..6db2876 100644
+--- a/src/driver.c
++++ b/src/driver.c
+@@ -142,6 +142,17 @@ static const struct v4l2r_format_info format_infos[] = {
+ 	{ V4L2_PIX_FMT_NV12_32L32, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED,
+ 	  0, VA_RT_FORMAT_YUV420, 8, false },
+ #endif
++#if defined(V4L2_PIX_FMT_MM21)
++	/* MediaTek block layout: 16x32 luma and 16x16 CbCr tiles in two
++	 * planes. Decoder-only; the CPU detiles it into NV12 (convert.c). */
++	{ V4L2_PIX_FMT_MM21, DRM_FORMAT_NV12,
++#if defined(DRM_FORMAT_MOD_MTK_16L_32S_TILE)
++	  DRM_FORMAT_MOD_MTK_16L_32S_TILE,
++#else
++	  DRM_FORMAT_MOD_INVALID,
++#endif
++	  0, VA_RT_FORMAT_YUV420, 8, false },
++#endif
+ #if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
+ 	{ V4L2_PIX_FMT_NV15, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR,
+ 	  0, VA_RT_FORMAT_YUV420_10, 10, false },
+diff --git a/src/meson.build b/src/meson.build
+index 6034a33..cd52153 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -3,6 +3,7 @@ sources = [
+   'handles.c',
+   'context.c',
+   'convert.c',
++  'mm21.c',
+   'decode.c',
+   'surface.c',
+   'buffer.c',
+diff --git a/src/mm21.c b/src/mm21.c
+new file mode 100644
+index 0000000..a78b120
+--- /dev/null
++++ b/src/mm21.c
+@@ -0,0 +1,65 @@
++/*
++ * MediaTek MM21 block layout to linear NV12, on the CPU.
++ *
++ * Each tile is read front to back in one pass, so the source - often an
++ * uncached decoder buffer - is streamed sequentially, while the 16-byte
++ * row stores land in at most 32 destination lines that stay in the cache.
++ * Each 16-byte row copy compiles to one paired load and store.
++ *
++ * Copyright (C) 2026 Julien Etienne <julien.etienne@gmail.com>
++ *
++ * SPDX-License-Identifier: GPL-3.0-or-later
++ */
++
++#include <stddef.h>
++#include <string.h>
++
++#include "mm21.h"
++
++static inline __attribute__((always_inline)) void
++detile_plane(uint8_t *dst, uint32_t dst_pitch, const uint8_t *src,
++	     uint32_t src_pitch, uint32_t width, uint32_t rows,
++	     const unsigned int tile_h)
++{
++	const size_t tile_size = 16 * tile_h;
++	const size_t tile_row_size = (size_t)src_pitch * tile_h;
++	uint32_t cols = (width + 15) / 16;
++
++	if (cols > src_pitch / 16)
++		cols = src_pitch / 16;
++
++	for (uint32_t y = 0; y < rows; y += tile_h) {
++		const uint8_t *s = src + (size_t)(y / tile_h) * tile_row_size;
++		uint8_t *d = dst + (size_t)y * dst_pitch;
++
++		if (rows - y >= tile_h) {
++			for (uint32_t x = 0; x < cols; x++) {
++				const uint8_t *t = s + x * tile_size;
++				uint8_t *o = d + x * 16;
++
++				for (unsigned int r = 0; r < tile_h; r++)
++					memcpy(o + (size_t)r * dst_pitch,
++					       t + r * 16, 16);
++			}
++		} else {
++			/* Partial last tile row. */
++			for (uint32_t x = 0; x < cols; x++) {
++				const uint8_t *t = s + x * tile_size;
++				uint8_t *o = d + x * 16;
++
++				for (unsigned int r = 0; r < rows - y; r++)
++					memcpy(o + (size_t)r * dst_pitch,
++					       t + r * 16, 16);
++			}
++		}
++	}
++}
++
++void v4l2r_mm21_detile(uint8_t *dst_y, uint8_t *dst_uv, uint32_t dst_pitch,
++		       const uint8_t *src_y, const uint8_t *src_uv,
++		       uint32_t src_pitch, uint32_t width, uint32_t height)
++{
++	detile_plane(dst_y, dst_pitch, src_y, src_pitch, width, height, 32);
++	detile_plane(dst_uv, dst_pitch, src_uv, src_pitch, width,
++		     (height + 1) / 2, 16);
++}
+diff --git a/src/mm21.h b/src/mm21.h
+new file mode 100644
+index 0000000..51e1f09
+--- /dev/null
++++ b/src/mm21.h
+@@ -0,0 +1,31 @@
++/*
++ * MediaTek MM21 block layout to linear NV12, on the CPU.
++ *
++ * Copyright (C) 2026 Julien Etienne <julien.etienne@gmail.com>
++ *
++ * SPDX-License-Identifier: GPL-3.0-or-later
++ */
++
++#ifndef V4L2_REQUEST_MM21_H
++#define V4L2_REQUEST_MM21_H
++
++#include <stdint.h>
++
++/*
++ * Detile one MM21 frame into linear NV12.
++ *
++ * MM21 has two planes with the same line pitch (src_pitch, a multiple of
++ * 16). The luma plane is a raster of 16x32 tiles (512 bytes each, 16-byte
++ * rows); the interleaved CbCr plane is a raster of 16x16 tiles (256 bytes).
++ * The luma plane must hold height rows rounded up to 32, the chroma plane
++ * height / 2 rows rounded up to 16.
++ *
++ * width is the number of bytes per row to produce (rounded up to whole
++ * 16-byte tile columns, so dst_pitch must be at least that), height the
++ * number of luma rows. dst_y and dst_uv may point into the same buffer.
++ */
++void v4l2r_mm21_detile(uint8_t *dst_y, uint8_t *dst_uv, uint32_t dst_pitch,
++		       const uint8_t *src_y, const uint8_t *src_uv,
++		       uint32_t src_pitch, uint32_t width, uint32_t height);
++
++#endif /* V4L2_REQUEST_MM21_H */
+diff --git a/src/surface.c b/src/surface.c
+index f7fe03d..283cc37 100644
+--- a/src/surface.c
++++ b/src/surface.c
+@@ -18,6 +18,7 @@
+ #include <sys/mman.h>
+ #include <unistd.h>
+ 
++#include <linux/dma-heap.h>
+ #include <linux/videodev2.h>
+ 
+ #include <drm_fourcc.h>
+@@ -445,6 +446,57 @@ next:
+ 	return VA_STATUS_ERROR_OPERATION_FAILED;
+ }
+ 
++/*
++ * Linear NV12 backing from the system dma-buf heap, for decoders that cannot
++ * produce NV12 themselves (MediaTek MM21). The chroma plane follows height
++ * luma rows of pitch bytes in the same buffer.
++ */
++static VAStatus backing_alloc_heap(struct v4l2r_surface *surface,
++				   uint32_t width, uint32_t height,
++				   uint32_t pitch)
++{
++	struct v4l2r_surface_backing *backing;
++	struct dma_heap_allocation_data data = {
++		.len = (uint64_t)pitch * height + (uint64_t)pitch * (height / 2),
++		.fd_flags = O_RDWR | O_CLOEXEC,
++	};
++	int heap;
++
++	heap = open("/dev/dma_heap/system", O_RDONLY | O_CLOEXEC);
++	if (heap < 0) {
++		v4l2r_log("cannot open /dev/dma_heap/system: %s\n",
++			  strerror(errno));
++		return VA_STATUS_ERROR_ALLOCATION_FAILED;
++	}
++
++	if (ioctl(heap, DMA_HEAP_IOCTL_ALLOC, &data) < 0) {
++		v4l2r_log("dma-buf heap allocation of %llu bytes failed: %s\n",
++			  (unsigned long long)data.len, strerror(errno));
++		close(heap);
++		return VA_STATUS_ERROR_ALLOCATION_FAILED;
++	}
++	close(heap);
++
++	backing = calloc(1, sizeof(*backing));
++	if (!backing) {
++		close(data.fd);
++		return VA_STATUS_ERROR_ALLOCATION_FAILED;
++	}
++	for (unsigned int i = 0; i < VIDEO_MAX_PLANES; i++)
++		backing->dmabuf_fd[i] = -1;
++
++	backing->pixelformat = V4L2_PIX_FMT_NV12;
++	backing->width = width;
++	backing->height = height;
++	backing->pitch = pitch;
++	backing->nb_planes = 1;
++	backing->plane_size[0] = data.len;
++	backing->dmabuf_fd[0] = data.fd;
++
++	surface->backing = backing;
++	return VA_STATUS_SUCCESS;
++}
++
+ /* Backing for a bare (unbound) surface, sized like the surface itself. */
+ static VAStatus backing_alloc_default(struct v4l2r_driver *drv,
+ 				      struct v4l2r_surface *surface)
+@@ -459,8 +511,24 @@ static VAStatus backing_alloc_default(struct v4l2r_driver *drv,
+ 	     !v4l2r_converter_available(drv)))
+ 		pixelformat = V4L2_PIX_FMT_P010;
+ 
+-	return backing_alloc(drv, surface, surface->width, surface->height,
+-			     pixelformat);
++	if (backing_alloc(drv, surface, surface->width, surface->height,
++			  pixelformat) == VA_STATUS_SUCCESS)
++		return VA_STATUS_SUCCESS;
++
++	/*
++	 * No decoder produces NV12 (MediaTek MM21 decoders): take it from the
++	 * dma-buf heap, in the layout the MM21 software converter uses - pitch
++	 * aligned to 64 and height padded to whole 64-line blocks, the largest
++	 * decoder padding - so the backing stays the same buffer once the
++	 * surface is decoded into. Clients that export a surface before its
++	 * first decode and keep that dma-buf (Chromium) depend on this.
++	 */
++	if (pixelformat != V4L2_PIX_FMT_NV12)
++		return VA_STATUS_ERROR_OPERATION_FAILED;
++
++	return backing_alloc_heap(surface, surface->width,
++				  (surface->height + 63) & ~63u,
++				  (surface->width + 63) & ~63u);
+ }
+ 
+ /*
+@@ -480,6 +548,33 @@ VAStatus v4l2r_surface_convert_backing(struct v4l2r_driver *drv,
+ 
+ 	pix_mp = &conv->capture_format.fmt.pix_mp;
+ 
++	/* Software MM21 conversion: any NV12 heap backing with the converter's
++	 * pitch and at least its padded height can be kept. */
++	if (conv->software) {
++		uint32_t pitch = pix_mp->plane_fmt[0].bytesperline;
++
++		if (surface->backing &&
++		    (surface->backing->pixelformat != V4L2_PIX_FMT_NV12 ||
++		     surface->backing->nb_planes != 1 ||
++		     surface->backing->pitch != pitch ||
++		     surface->backing->height < pix_mp->height ||
++		     surface->backing->plane_size[0] <
++		     (uint64_t)pitch * surface->backing->height * 3 / 2)) {
++			v4l2r_log("replacing the backing of surface 0x%08x "
++				  "(pitch %u height %u, need %u and %u)\n",
++				  surface->id, surface->backing->pitch,
++				  surface->backing->height, pitch,
++				  pix_mp->height);
++			v4l2r_surface_free_backing(surface);
++		}
++
++		if (surface->backing)
++			return VA_STATUS_SUCCESS;
++
++		return backing_alloc_heap(surface, pix_mp->width,
++					  pix_mp->height, pitch);
++	}
++
+ 	/* Backing left over from pre-decode probing may have the wrong
+ 	 * size; replace it. */
+ 	if (surface->backing &&
+diff --git a/src/v4l2_request.h b/src/v4l2_request.h
+index 80ca83e..8e6a075 100644
+--- a/src/v4l2_request.h
++++ b/src/v4l2_request.h
+@@ -321,11 +321,14 @@ struct v4l2r_context {
+ /*
+  * Per-context state of the format converter chain: decoded frames are run
+  * through a mem2mem converter (decoder CAPTURE dma-buf in, surface backing
+- * dma-buf out) as soon as their decode finishes. All fields are protected
+- * by ctx->mutex.
++ * dma-buf out) as soon as their decode finishes. Without a converter device
++ * the MediaTek MM21 block layout is detiled on the CPU instead (software:
++ * fd is -1, no jobs, the backing is allocated from the system dma-buf heap).
++ * All fields are protected by ctx->mutex.
+  */
+ struct v4l2r_convert {
+ 	int fd;
++	bool software;				/* CPU detiling, see convert.c */
+ 	struct v4l2_format output_format;	/* source = decoder CAPTURE format */
+ 	struct v4l2_format capture_format;	/* destination, NV12 */
+ 	uint32_t busy;				/* bitmask of in-flight slots */
+-- 
+2.43.0
+

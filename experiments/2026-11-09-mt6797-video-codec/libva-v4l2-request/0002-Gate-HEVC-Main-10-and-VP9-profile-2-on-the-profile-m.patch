@@ -1,0 +1,124 @@
+From 752d72b32f8a2c8932b24b0c7e10face463d7e5c Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 18:35:33 -0500
+Subject: [PATCH 2/2] Gate HEVC Main 10 and VP9 profile 2 on the profile menu
+ controls
+
+The 10-bit HEVC probe sets a 10-bit SPS without a request and treats
+acceptance as support. Decoders that validate the SPS only when a
+decode runs (mt6797-vdec) accept it, so Main 10 was advertised and
+every 10-bit stream then failed at decode time instead of falling back
+to software. VP9 profile 2 was advertised for any VP9 decoder.
+
+Read the maximum of V4L2_CID_MPEG_VIDEO_HEVC_PROFILE and
+V4L2_CID_MPEG_VIDEO_VP9_PROFILE as well: a menu that stops below Main
+10 or profile 2 means the decoder is 8-bit only. Decoders without
+these controls keep the current behaviour.
+---
+ src/driver.c       | 51 +++++++++++++++++++++++++++++++++++++++++++---
+ src/v4l2_request.h |  3 +++
+ 2 files changed, 51 insertions(+), 3 deletions(-)
+
+diff --git a/src/driver.c b/src/driver.c
+index 6db2876..904e39e 100644
+--- a/src/driver.c
++++ b/src/driver.c
+@@ -318,6 +318,23 @@ static bool video_device_probe_hevc_10bit(int fd, uint32_t output_type)
+ #endif
+ }
+ 
++/*
++ * Whether a codec profile menu control (V4L2_CID_MPEG_VIDEO_*_PROFILE)
++ * reaches the given value. Decoders that do not expose the control are
++ * assumed capable, as before.
++ */
++static bool profile_control_reaches(int fd, uint32_t id, int64_t value)
++{
++	struct v4l2_query_ext_ctrl control = {
++		.id = id,
++	};
++
++	if (ioctl(fd, VIDIOC_QUERY_EXT_CTRL, &control) < 0)
++		return true;
++
++	return control.maximum >= value;
++}
++
+ static bool video_device_is_request_decoder(const char *path,
+ 					    struct v4l2r_decoder *decoder)
+ {
+@@ -369,12 +386,26 @@ static bool video_device_is_request_decoder(const char *path,
+ 	}
+ 
+ 	decoder->hevc_10bit = false;
++	decoder->vp9_10bit = false;
+ 	for (unsigned int i = 0; i < decoder->nb_pixelformats; i++) {
+-		if (decoder->pixelformats[i] == V4L2_PIX_FMT_HEVC_SLICE) {
++		/*
++		 * Some decoders validate the SPS only at decode time and accept
++		 * a 10-bit SPS here (mt6797-vdec), so also honour the profile
++		 * menu: a maximum below Main 10 means 8-bit only.
++		 */
++		if (decoder->pixelformats[i] == V4L2_PIX_FMT_HEVC_SLICE)
+ 			decoder->hevc_10bit =
++				profile_control_reaches(fd,
++					V4L2_CID_MPEG_VIDEO_HEVC_PROFILE,
++					V4L2_MPEG_VIDEO_HEVC_PROFILE_MAIN_10) &&
+ 				video_device_probe_hevc_10bit(fd, output_type);
+-			break;
+-		}
++#if HAVE_V4L2_CTRL_VP9
++		if (decoder->pixelformats[i] == V4L2_PIX_FMT_VP9_FRAME)
++			decoder->vp9_10bit =
++				profile_control_reaches(fd,
++					V4L2_CID_MPEG_VIDEO_VP9_PROFILE,
++					V4L2_MPEG_VIDEO_VP9_PROFILE_2);
++#endif
+ 	}
+ 
+ 	close(fd);
+@@ -617,6 +648,17 @@ static bool driver_supports_hevc_10bit(struct v4l2r_driver *drv)
+ 	return false;
+ }
+ 
++/* Whether some decoder may decode VP9 profile 2. */
++static bool driver_supports_vp9_10bit(struct v4l2r_driver *drv)
++{
++	for (unsigned int i = 0; i < drv->nb_decoders; i++) {
++		if (drv->decoders[i].vp9_10bit)
++			return true;
++	}
++
++	return false;
++}
++
+ /*
+  * Whether a decode profile is usable: some decoder must accept the codec's
+  * coded format, and for 10-bit profiles the hardware must actually support the
+@@ -633,6 +675,9 @@ static bool driver_supports_profile(struct v4l2r_driver *drv, VAProfile profile)
+ 	if (profile == VAProfileHEVCMain10 && !driver_supports_hevc_10bit(drv))
+ 		return false;
+ 
++	if (profile == VAProfileVP9Profile2 && !driver_supports_vp9_10bit(drv))
++		return false;
++
+ 	return true;
+ }
+ 
+diff --git a/src/v4l2_request.h b/src/v4l2_request.h
+index 8e6a075..2923c5e 100644
+--- a/src/v4l2_request.h
++++ b/src/v4l2_request.h
+@@ -98,6 +98,9 @@ struct v4l2r_decoder {
+ 	 * device can do 10-bit (e.g. Allwinner A64 lacks it), and the kernel only
+ 	 * rejects it at decode time, so probe it up front and gate Main10. */
+ 	bool hevc_10bit;
++	/* Whether this decoder may take VP9 profile 2 (10-bit). False when its
++	 * VP9 profile menu control stops below profile 2. */
++	bool vp9_10bit;
+ };
+ 
+ /*
+-- 
+2.43.0
+

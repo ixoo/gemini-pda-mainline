@@ -1121,6 +1121,46 @@ skip/reference/loop-filter features, compound-only mode, reference scaling
 (rejected), profiles 1 to 3, real-world streams, larger sizes, sustained
 playback and power.
 
+## Stage 4: VA-API for mpv and qutebrowser (built, device test pending)
+
+One VA-API driver serves both stock Arch Linux ARM `mpv --hwdec=vaapi` and
+QtWebEngine's Chromium decoder. The [package directory](libva-v4l2-request/README.md)
+holds a `PKGBUILD` and two patches for
+[libva-v4l2_request](https://github.com/live-display/libva-v4l2_request)
+(GPL-3.0-or-later, pinned to `cac6ece`):
+
+- MM21 is a decoder-only format. The VDEC has no linear output mode (the
+  vendor converts with MDP or shows block buffers directly), and mainline has
+  no MT6797 converter, so the driver detiles each frame on the CPU into a
+  linear NV12 buffer from the system dma-buf heap. Clients import that buffer
+  like any other NV12 surface.
+- `vaEndPicture` waits for the decode and the detile, because Chromium does
+  not call `vaSyncSurface` and exports each surface once.
+- The driver offers only the profiles mt6797-vdec accepts: H.264 Constrained
+  Baseline, Main and High; HEVC Main; VP9 Profile 0.
+
+*Driver change found on the way.* The backend creates capture buffers one at
+a time with `VIDIOC_CREATE_BUFS`, also after `STREAMON`, and its pools can
+exceed 17 buffers. mt6797-vdec allocated H.264 and HEVC motion-vector buffers
+only at `STREAMON` and used the buffer index, capped at 17, as the hardware
+picture slot, so H.264 and HEVC would have failed from the second frame.
+[Patch 0744](../../patches/proposals/0744-media-mediatek-mt6797-vdec-support-capture-buffers-c.patch)
+allocates each motion-vector buffer when its capture buffer is created and
+maps pictures to hardware slots 0 to 16 that stay stable while a picture is
+referenced. Buffers below 17 keep slot = index, so the programming for the
+clips proven in V10 to V15 is unchanged. The register models and C agree on
+all earlier cases and on new 24-buffer cases used in scrambled order.
+
+*Off-device evidence.* The detiler reproduces V12's H.264 frames (30/30 against
+the software decode) and matches an address formula at nine sizes up to
+1920x1152. The package builds in an Arch Linux ARM chroot (libva 2.24.1), and
+`vainfo` loads it. The detile took about 0.25 ms per 1080p frame in the dev
+VM; on the A72, from uncached buffers, it will be slower and is unmeasured.
+
+*Not yet shown:* any decode through the driver, Panfrost import of the NV12
+buffers, mpv, and whether Arch's qt6-webengine (6.11.3, Chromium 140) is built
+with VA-API and accepts this driver.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).
