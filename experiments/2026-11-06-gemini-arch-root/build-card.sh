@@ -13,7 +13,8 @@
 #   - the kernel, linux-firmware and mkinitcpio packages removed, and ignored;
 #   - upgraded from the official repositories, with iwd, iw, wireless-regdb and sudo;
 #   - Umbriel built from ./umbriel's pinned commit, and gemini-base built from
-#     ./gemini-base, both installed, with gemini-base's units enabled;
+#     ./gemini-base, both installed, with gemini-base's units enabled, and the GNSS
+#     daemon built from ../2026-11-10-gemini-gnss-daemon, installed but not enabled;
 #   - root locked and the default alarm user removed; sshd masked;
 #   - the stock systemd-firstboot.service masked: it asks on /dev/console, which is
 #     the serial port here, and holds sysinit.target until answered (R1);
@@ -163,6 +164,21 @@ cp "$base_pkg" "$out/"
 base_sha=$(sha256sum "$base_pkg" | cut -d' ' -f1)
 in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/run/build/out/${base_pkg##*/}" >>"$work/pacman.log" 2>&1 ||
 	{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing gemini-base failed" >&2; exit 1; }
+# The GNSS daemon (owner, 2026-11-10: "gnss userland to produce a fix and position"), the
+# GNSS session's package, built the same way from its own directory. Not enabled: starting
+# gnss-mt6797.service switches the GPS radio on.
+gnss=$here/../2026-11-10-gemini-gnss-daemon
+mkdir -p "$build/gnss"
+cp "$gnss/PKGBUILD" "$gnss/gnss-mt6797d" "$gnss/gnss-mt6797.service" "$build/gnss/"
+chown -R 65534:65534 "$build/gnss"
+chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/run/build LANG=C \
+	PKGDEST=/run/build/out sh -c 'cd /run/build/gnss && makepkg --nodeps --noprogressbar' >"$work/gnss-makepkg.log" 2>&1 ||
+	{ tail -20 "$work/gnss-makepkg.log" >&2; echo "build-card: building the GNSS daemon failed" >&2; exit 1; }
+gnss_pkg=$(ls "$build"/out/gnss-mt6797d-*.pkg.tar.*)
+cp "$gnss_pkg" "$out/"
+gnss_sha=$(sha256sum "$gnss_pkg" | cut -d' ' -f1)
+in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/run/build/out/${gnss_pkg##*/}" >>"$work/pacman.log" 2>&1 ||
+	{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing the GNSS daemon failed" >&2; exit 1; }
 in_root pacman -Rns --noconfirm fakeroot >>"$work/pacman.log" 2>&1 || true
 rm -rf "$build"
 # The build tools that nothing installed needs now (Umbriel's and gemini-base's), even as
@@ -170,7 +186,8 @@ rm -rf "$build"
 mapfile -t orphans < <(in_root pacman -Qdttq || true)
 [ "${#orphans[@]}" -eq 0 ] || in_root pacman -Rns --noconfirm "${orphans[@]}" >>"$work/pacman.log" 2>&1
 in_root systemctl enable -q gemini-modules.service gemini-audio.service gemini-display.service \
-	gemini-wifi.service gemini-firstboot.service iwd.service systemd-pstore.service bluetooth.service
+	gemini-wifi.service gemini-firstboot.service iwd.service systemd-pstore.service bluetooth.service \
+	gpsd.socket
 # bluetoothd runs from boot so Noctalia sees the adapter, but bluez powers every adapter it
 # finds unless AutoEnable is false; the owner turns the radio on (owner, 2026-11-08).
 # bluez owns main.conf and has no drop-in directory, so the image's copy is edited.
@@ -255,6 +272,7 @@ cat >"$out/card.json" <<EOF
   "packages_added": "${EXTRA[*]}",
   "umbriel_sha256": "$umbriel_sha",
   "gemini_base_sha256": "$base_sha",
+  "gnss_mt6797d_sha256": "$gnss_sha",
   "systemd": "$systemd",
   "root_bytes_used": $used,
   "image_size": "$size",

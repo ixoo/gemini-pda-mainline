@@ -5,7 +5,8 @@
 # kernel refuses a suspend while CONSYS is loaded (0653), so without this hook every
 # suspend fails safely. Specified in experiments/2026-11-06-gemini-power-management
 # ("Owner decisions: charger wake, Wi-Fi across a suspend").
-# pre: stop iwd and bluetoothd, unload the radio modules, and record what was running.
+# pre: stop iwd, bluetoothd and the GNSS daemon (which holds /dev/gnss0), unload the radio
+# modules, and record what was running.
 # post: load back only what was loaded, Wi-Fi first through wifi-start (its proven boot
 # order), then Bluetooth, FM and GNSS, and start the daemons that were running.
 # usage (from systemd-sleep): sleep-radios pre|post suspend|hibernate|...
@@ -30,7 +31,7 @@ case "$1" in
 pre)
     mkdir -p "${state%/*}"
     : >"$state"
-    for unit in iwd bluetooth; do
+    for unit in iwd bluetooth gnss-mt6797; do
         if systemctl -q is-active "$unit.service"; then
             echo "unit $unit" >>"$state"
             systemctl stop "$unit.service"
@@ -56,7 +57,7 @@ post)
     had 'module btmt6797' && /usr/lib/gemini/hw-load bluetooth >/dev/null
     had 'module radio-mt6797' && /usr/lib/gemini/hw-load fm >/dev/null
     had 'module gnss-mt6797' && modprobe gnss-mt6797
-    for unit in iwd bluetooth; do
+    for unit in iwd bluetooth gnss-mt6797; do
         had "unit $unit" && systemctl start "$unit.service"
     done
     rm -f "$state"

@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and
 # display-start here, so each script has one copy in the repository.
 pkgname=gemini-base
-pkgver=32
+pkgver=33
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -29,7 +29,10 @@ depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'nocta
          'qutebrowser' 'qt6-wayland'
          # A media player (owner, 2026-11-08); mpv-mpris lets Noctalia's media controls and
          # the Fn media keys drive it.
-         'mpv' 'mpv-mpris')
+         'mpv' 'mpv-mpris'
+         # gpsd, for the GNSS daemon's NMEA (build-card.sh adds gnss-mt6797d and enables
+         # gpsd.socket, so gpsdctl finds a running gpsd rather than starting its own).
+         'gpsd')
 backup=('etc/iwd/main.conf' 'etc/vconsole.conf')
 options=('!debug' '!strip')
 source=(gemini-modules.service modules-load.conf gemini-audio.service audio-start

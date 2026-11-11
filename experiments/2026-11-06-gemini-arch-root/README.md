@@ -1761,6 +1761,40 @@ current `station-work-97` tests.
 - Card-27 (dev VM, `gemini-base` 32, image sha256 `a1a0e7ae25d8…`, 429 packages) replaces
   card-26, with the same pairing (`station-work-97` or a descendant).
 
+### GNSS daemon and gpsd (`gemini-base` 33, 2026-11-10)
+
+The owner asked, relayed by the custodian: "Do we have the gnss userland to produce a fix and
+position? If not can we write it and package it for arch on the sdcard?" The GNSS session
+wrote `gnss-mt6797d` ([its record](../2026-11-10-gemini-gnss-daemon/README.md), `4f6ef122`).
+It runs the MT6797 GNSS DSP through `/dev/gnss0` and publishes NMEA on a pty at
+`/run/gnss-mt6797/nmea`.
+
+- **Build:** `build-card.sh` builds that package from the GNSS session's directory, the same
+  way as `gemini-base`, and installs it. Its hash goes in `card.json`.
+- **Not enabled:** `gnss-mt6797.service` isn't enabled, since starting it switches the GPS
+  radio on.
+- **Needs:** a kernel with 0636, and `gnss_dsp_6797.bin`, which `gemian-firmware` already
+  makes from the owner's Gemian.
+- **gpsd:** `gemini-base` now depends on `gpsd`, and `build-card.sh` enables `gpsd.socket`.
+  The unit hands its pty to gpsd with `gpsdctl add`. With no gpsd control socket, `gpsdctl`
+  starts gpsd itself, here inside the unit's sandbox, with `PrivateNetwork`, where no client
+  could reach it. Socket activation keeps gpsd off until a client or `gpsdctl` connects.
+- **Sleep hook:** `gemini-radios` now also stops and restarts `gnss-mt6797.service`. Without
+  that, the daemon's open `/dev/gnss0` would keep `gnss-mt6797` loaded, and with it CONSYS,
+  so every suspend would be refused while GPS ran.
+- Not run on the device. The daemon was tested offline by the GNSS session (replays, a
+  fake-device loop, and gpsd 3.25 reading its pty in the dev VM).
+
+Card-28 (dev VM, `gemini-base` 33, image sha256 `0368fe4e9a2c…`, 432 packages, root 2.55 GB
+used) is card-27 plus the GNSS daemon and gpsd, and pairs with `station-work-98` (`47b11c27`,
+which has 0636) or a descendant. Checked read-only on the image:
+
+- `gnss-mt6797d` 1-1 and gpsd 3.27.5 are installed;
+- `gpsd.socket` is enabled, and nothing under `/etc/systemd/system` enables
+  `gnss-mt6797.service`;
+- `gnss-mt6797d --help` runs under the card's Python 3.14.9;
+- the sleep hook lists `gnss-mt6797`.
+
 ## Analysis
 
 Not started.
