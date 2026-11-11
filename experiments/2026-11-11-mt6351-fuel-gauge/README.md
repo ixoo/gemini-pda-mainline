@@ -685,7 +685,10 @@ on top of 0735.
   - a taper reading of 95 % shows 100 %;
   - health is `charge_full` ÷ `charge_full_design`, still the learned share of the design.
 - **The guard** (0695) compares its limits with this capacity. An 80 % limit now stops at
-  about 74 % of the table, the same 80 % the owner sees.
+  about 74 % of the table, the same 80 % the owner sees. The charging session confirmed it reads
+  only `capacity`.
+  - Its 5-point resume band is now 5 displayed points, about 4.65 table points.
+  - With the limit at 80, charging ends about 6 table points lower than before.
 - Compiled at W=1 and checkpatch clean; not on a device.
 
 ## Station-work-108 (0732, 0734, 0735), boot `940593bc…`
@@ -711,7 +714,14 @@ From the custodian. Charging from a computer's charging port at 1.5 A, limit 100
   - V3's writes made gemini-base save `/var/lib/gemini/battery-charge-full` = 4268000, the
     design value on 0732's table scale.
   - Under 0736 that would be restored as a usable charge, so capacity would read about 7 % low.
-  - It is to be deleted before the 0736 image boots.
+  - **Fix, in gemini-base** (asked of the Arch root session; the custodian holds the 0736 image
+    until it lands):
+    - save `<charge_full> <charge_full_design>` together;
+    - restore value × current design ÷ saved design;
+    - treat a legacy single-integer file as saved against 4268000, since only 0732 wrote that
+      format.
+  - This is exact across 0732, 0736 and later scales. The legacy 4268000 restores as 3969240
+    (100 % health), and a 0732-learned 3500000 as 3255000.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
