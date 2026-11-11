@@ -1,0 +1,94 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 11 Nov 2026 11:24:10 -0500
+Subject: [PATCH] ASoC: mediatek: mt6797: describe the memif HD alignment bits
+
+mtk_memif_set_format() takes S32_LE as 24-bit data aligned to the most
+significant bits, by setting the memif's HD align bit. The MT6797 memif
+table gives no align register, so the write goes to register 0,
+AUDIO_TOP_CON0, bit 0, and the memif keeps reading the low 24 bits.
+S32_LE playback is then 48 dB too loud and wraps; on the Gemini PDA
+PipeWire opens the PCM as S32_LE and music distorted well below full
+scale.
+
+Give each memif its bit in AFE_MEMIF_HDALIGN.
+---
+ sound/soc/mediatek/mt6797/mt6797-afe-pcm.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+index 3e47c69..10cc4ed 100644
+--- a/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
++++ b/sound/soc/mediatek/mt6797/mt6797-afe-pcm.c
+@@ -412,6 +412,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = DL1_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = DL1_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = DL1_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -429,6 +431,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = DL2_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = DL2_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = DL2_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -446,6 +450,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = DL3_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = DL3_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = DL3_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -463,6 +469,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = VUL_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = VUL_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = VUL_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -480,6 +488,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = AWB_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = AWB_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = AWB_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -497,6 +507,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = VUL_DATA2_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = VUL_DATA2_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = VUL_DATA2_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -514,6 +526,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = DAI_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = DAI_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = DAI_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},
+@@ -531,6 +545,8 @@ static const struct mtk_base_memif_data memif_data[MT6797_MEMIF_NUM] = {
+ 		.enable_shift = MOD_DAI_ON_SFT,
+ 		.hd_reg = AFE_MEMIF_HD_MODE,
+ 		.hd_shift = MOD_DAI_HD_SFT,
++		.hd_align_reg = AFE_MEMIF_HDALIGN,
++		.hd_align_mshift = MOD_DAI_HD_ALIGN_SFT,
+ 		.agent_disable_reg = -1,
+ 		.msb_reg = -1,
+ 	},

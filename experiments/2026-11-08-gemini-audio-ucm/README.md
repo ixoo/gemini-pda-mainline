@@ -132,6 +132,19 @@ the amplifiers' power-up events (Speaker Amp R and L DRV, about 44 ms each for t
 4340.917 and 4340.962 s, before the headphone outputs' power-up events at 4341.006 and 4341.009 s. At
 power-down the amplifiers went first, at 4343.013 and 4343.015 s, then the outputs at 4343.017 s.
 
+Then the custodian found the YouTube distortion. PipeWire opens PCM 0 as S32_LE (`hw_params`: S32_LE,
+48 kHz, 2 channels); every clean tone before was S16_LE through `aplay`. The owner's thresholds, stream
+45 % clean and 55 % distorted at sink 0.35, put the peaks near −48 and −43 dBFS. A capture of the sink
+monitor showed clean samples, peak −12.0 dBFS, at the distorting setting. Speaker into microphone, same
+1 kHz tone, PipeWire off:
+
+| Format and level | Mic fundamental (dBFS) | THD |
+| --- | --- | --- |
+| S16_LE −40 dBFS | −59.1 | 0.4 % |
+| S32_LE −40 dBFS | −29.3 | 155 % |
+| S16_LE −30 dBFS | −48.8 | 0.3 % |
+| S32_LE −30 dBFS | −32.4 | 59 % |
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -157,6 +170,15 @@ bass out of the headphones, unless it follows the selected output.
 The filter test refutes the bass reading for the YouTube saturation: removing the bass made no audible
 difference. The cause is still unknown. The levels argue against the speaker or DAC: at those volumes
 music reaches the DAC far below the −15 dBFS that tones stay clean at.
+
+**The YouTube distortion is S32_LE handling in the AFE.** An S32_LE sample comes out about 30 dB louder
+and garbled, which fits the memif reading the low 24 bits of each 32-bit word: −48 dBFS is 2⁻⁸, where
+that starts to wrap. In the driver, `mtk_memif_set_format()` handles S32_LE by setting the memif's HD
+align bit, but the MT6797 memif table names no align register, so the write lands in register 0,
+`AUDIO_TOP_CON0`, bit 0. [`0712`](../../patches/proposals/0712-ASoC-mediatek-mt6797-describe-the-memif-HD-alignment.patch)
+gives each memif its bit in `AFE_MEMIF_HDALIGN`. Capture has the same fault, so a PipeWire microphone
+source in S32_LE would be 48 dB too quiet until it lands. The level and bass readings above are
+withdrawn: the tones never used S32_LE.
 
 The rough start is an ordering fault. DAPM sorts output drivers of one type by register before
 component, so the amplifiers, with no register, power up before the headphone outputs that feed them,
