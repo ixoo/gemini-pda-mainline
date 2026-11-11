@@ -907,6 +907,8 @@ reference build: `mt6797-vdec.ko` `f18c44ed…`, `v4l2-h264.ko` `11579ba4…`,
   rejected pictures. SoC 35.7–37.3 °C.
 - Afterwards the domain was off and the `vdec_sel` enable count was 0.
 - HEVC regression: `hevc-single` output is byte-identical to V10's.
+- Panel: the owner reported the display stayed normal during the decodes
+  (about 16:14 device time). Every V11 stop criterion is clear.
 
 *Result.* Detiled on the host, frame 0 of every clip and every frame's luma
 match the software decode. That covers I, P and B pictures, four slices,
