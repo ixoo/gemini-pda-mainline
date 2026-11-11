@@ -58,7 +58,9 @@ facts in [the driver notes](../../docs/hardware/gemini-gnss-driver.md); it conta
   starting it switches the GPS radio on.
 - [geoclue-gnss-mt6797.conf](geoclue-gnss-mt6797.conf), installed as
   `/etc/geoclue/conf.d/90-gnss-mt6797.conf`, points GeoClue's `[network-nmea]` source at the socket.
-- [noctalia-gnss](noctalia-gnss), the Noctalia 5 plugin `gemini/gnss`: a control-center tile
+- [noctalia-plugin.toml](noctalia-plugin.toml), [noctalia-shortcut.luau](noctalia-shortcut.luau)
+  and [noctalia-indicator.luau](noctalia-indicator.luau), the Noctalia 5 plugin `gemini/gnss`,
+  installed as `plugin.toml`, `shortcut.luau` and `indicator.luau`: a control-center tile
   (`gemini/gnss:toggle`) and a bar indicator (`gemini/gnss:indicator`). Each polls
   `systemctl is-active gnss-mt6797.service` every 2 s, shows on or off, and starts or stops the
   service on click, with a notification if that fails. Nothing else starts the GPS.

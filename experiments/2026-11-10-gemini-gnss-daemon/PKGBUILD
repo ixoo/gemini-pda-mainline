@@ -16,7 +16,7 @@ license=('MIT')
 depends=('python' 'kmod' 'gpsd' 'geoclue' 'polkit')
 backup=('etc/geoclue/conf.d/90-gnss-mt6797.conf')
 source=(gnss-mt6797d gnss-mt6797.service geoclue-gnss-mt6797.conf gnss-mt6797.rules
-        noctalia-gnss/plugin.toml noctalia-gnss/shortcut.luau noctalia-gnss/indicator.luau)
+        noctalia-plugin.toml noctalia-shortcut.luau noctalia-indicator.luau)
 sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP)
 
 package() {
@@ -24,5 +24,9 @@ package() {
     install -Dm644 gnss-mt6797.service "$pkgdir/usr/lib/systemd/system/gnss-mt6797.service"
     install -Dm644 geoclue-gnss-mt6797.conf "$pkgdir/etc/geoclue/conf.d/90-gnss-mt6797.conf"
     install -Dm644 gnss-mt6797.rules "$pkgdir/usr/share/polkit-1/rules.d/50-gnss-mt6797.rules"
-    install -Dm644 -t "$pkgdir/usr/share/noctalia/plugins/gnss" plugin.toml shortcut.luau indicator.luau
+    # The Noctalia plugin gemini/gnss; makepkg finds local sources only beside this file.
+    local plugin="$pkgdir/usr/share/noctalia/plugins/gnss"
+    install -Dm644 noctalia-plugin.toml "$plugin/plugin.toml"
+    install -Dm644 noctalia-shortcut.luau "$plugin/shortcut.luau"
+    install -Dm644 noctalia-indicator.luau "$plugin/indicator.luau"
 }
