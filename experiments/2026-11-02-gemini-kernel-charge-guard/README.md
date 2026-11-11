@@ -694,3 +694,28 @@ only, with +363 appearing while discharging. A 30 s average read −363.
   the safe side. When the voltage relaxes after the stop, capacity can fall back inside the
   5-point band and charging resumes, so short stop-and-resume cycles near the limit are possible.
   This is an inference, not observed.
+
+## A wall charger stays at 500 mA (2026-11-12)
+
+The owner asked for faster charging on a wall charger. On card-32, boot `0bad0df9…`, with a QC
+wall charger, the custodian read:
+- REG00 `0x48`: 500 mA input limit.
+- REG02 `0x11`: the chip's own detection on; `HVDCP_EN` and `MAXC_EN` off.
+- REG0B `0x36`: `VBUS_STAT` SDP, charging fast, power good.
+- REG13 `0x48`: the input limit in force, 500 mA.
+- The battery took about 0.1 A.
+
+**Why:** the vendor detects the charger type on the MT6351, switching the USB D+/D- to the
+PMIC's BC1.1 block, and writes the input limit from the result. It turns the BQ25896's own
+detection off ([F6-F7](../2026-10-04-gemini-charging-re/README.md)). Mainline leaves the chip's
+detection at its defaults, and it reports SDP for a computer and for this wall charger alike.
+
+**Proposed, not run:** one forced detection (`FORCE_DPDM`) on the wall charger with no host, to
+learn whether the chip can see the lines at all. The driver change follows from that:
+- **If it reads DCP:** force a detection after a plug.
+- **If not:** classify on the PMIC, or use a rule that a supply no USB host configures within a few
+  seconds is a wall charger.
+
+Either way the proposal caps the result at 1.5 A input and 1.024 A charge, falls back to
+500 mA from 45 °C, and keeps QC's high voltage off: the bootloader rejects VBUS above 6.5 V.
+These are charger writes beyond `CHG_CONFIG`, so they wait for the owner.
