@@ -98,6 +98,16 @@ Before this, on the same card with the manual sink, the owner found YouTube satu
 100 % stream volume, and 55 % is the most without saturation, at a sink volume of 0.35. Both are the
 desktop's figures. If both are PipeWire's cubic volumes, that is about −43 dB.
 
+Same card and setup, 2 s sines on both channels straight to the speaker PCM, each twice, levels chosen by
+halving, owner's words:
+
+| Frequency | Levels (dBFS) and owner |
+| --- | --- |
+| 100 Hz | −40, −25, −15: not heard |
+| 200 Hz | −40, −25: "nothing"; −20: "rattly"; −15: "rattly" |
+| 400 Hz | −40: "nothing"; −25, −20, −15: clean |
+| 1 kHz | −25, −15: clean, and −55 to −30 clean in the ladder |
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -107,6 +117,16 @@ Speaker saturation is not fixed by the profile. `Headphone Volume` is already at
 lower exists in hardware. A 1 kHz sine is clean at −30 dBFS, yet music distorts near −43 dB if the volume
 figures are cubic. Inference: the distortion depends on frequency, such as bass overdriving the small
 speakers, which a 1 kHz tone does not show. Low-frequency tones test that.
+
+They point that way: 200 Hz rattles as soon as it is audible, and 400 Hz and 1 kHz stay clean to −15 dBFS.
+So a level cap alone does not help, and the speaker needs the bass removed, a high-pass somewhere between
+200 and 400 Hz; the exact corner is not measured. The levels do not fully fit the YouTube figures: on the
+cubic reading, music's bass would sit well below −20 dBFS when it saturated. So whether the high-pass
+removes the saturation the owner hears needs a listen with music. Stock's kernel does not use the AFE's
+downlink IIR, so stock's speaker compensation, if any, is in its closed audio HAL.
+
+The speakers and headphones share one PCM and one DL path, so any filter on that path also takes the
+bass out of the headphones, unless it follows the selected output.
 
 ## Conclusion
 
