@@ -9,10 +9,11 @@ whose charger can't classify the port applies to a wall charger too.
 
 With linux,guard-usb-detect naming a supply that reports the USB
 type, the guard sets a 1.5 A input limit and a 1.024 A charge current
-while that supply reports a dedicated, Apple or non-standard charger
-online, and brings the input back to 500 mA from a battery at 45 C until
-it is under 43 C, or when the charger goes. A host and a charging host
-keep 500 mA. These values are the owner's, in defines.
+while that supply reports a dedicated or Apple charger online, and
+brings the input back to 500 mA from a battery at 45 C until it is under
+43 C, or when the charger goes. A host, a charging host and a
+non-standard charger keep 500 mA. These values are the owner's, in
+defines.
 
 The chip's watchdog and its own detection at a plug reset both
 registers, so each pass rewrites them, and the guard keeps the watchdog
@@ -22,11 +23,11 @@ while it is fed, at most the battery's design 4.352 V.
 Only these two registers join the guard's write filter, and only the
 guard writes them.
 ---
- drivers/power/supply/bq25890_charger.c | 109 +++++++++++++++++++++++--
- 1 file changed, 103 insertions(+), 6 deletions(-)
+ drivers/power/supply/bq25890_charger.c | 108 +++++++++++++++++++++++--
+ 1 file changed, 102 insertions(+), 6 deletions(-)
 
 diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
-index 9ad14a7f0..a141259c5 100644
+index 9ad14a7f0..6d5dcd3f3 100644
 --- a/drivers/power/supply/bq25890_charger.c
 +++ b/drivers/power/supply/bq25890_charger.c
 @@ -39,6 +39,18 @@
@@ -79,15 +80,15 @@ index 9ad14a7f0..a141259c5 100644
  		return 0;
  
  	return regmap_field_write(bq->rmap_fields[field_id], val);
-@@ -1317,6 +1334,73 @@ static int bq25890_guard_notifier(struct notifier_block *nb, unsigned long event
+@@ -1317,6 +1334,72 @@ static int bq25890_guard_notifier(struct notifier_block *nb, unsigned long event
  	return NOTIFY_OK;
  }
  
 +/*
-+ * Whether the higher currents apply: a dedicated, Apple or non-standard
-+ * charger reported online by the board's USB type supply, which reports a
-+ * non-standard one as Unknown, and a battery under 45 C, or under 43 C to
-+ * return. A host or a charging host keeps the chip's 500 mA.
++ * Whether the higher currents apply: a dedicated or Apple charger reported
++ * online by the board's USB type supply, and a battery under 45 C, or under
++ * 43 C to return. A host, a charging host and a non-standard charger, which
++ * the supply reports as Unknown, keep the chip's 500 mA.
 + */
 +static bool bq25890_guard_wall(struct bq25890_device *bq, int temp)
 +{
@@ -104,8 +105,7 @@ index 9ad14a7f0..a141259c5 100644
 +	if (!power_supply_get_property(usb, POWER_SUPPLY_PROP_ONLINE, &val) && val.intval &&
 +	    !power_supply_get_property(usb, POWER_SUPPLY_PROP_USB_TYPE, &val))
 +		wall = val.intval == POWER_SUPPLY_USB_TYPE_DCP ||
-+		       val.intval == POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID ||
-+		       val.intval == POWER_SUPPLY_USB_TYPE_UNKNOWN;
++		       val.intval == POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID;
 +	power_supply_put(usb);
 +
 +	if (!wall || temp >= BQ25890_GUARD_WALL_HOT)
@@ -153,7 +153,7 @@ index 9ad14a7f0..a141259c5 100644
  /*
   * The charging guard: one pass decides, then writes only CHG_CONFIG, with the
   * other bits of the register as read. While charging is stopped every pass
-@@ -1333,6 +1417,7 @@ static void bq25890_guard_work(struct work_struct *work)
+@@ -1333,6 +1416,7 @@ static void bq25890_guard_work(struct work_struct *work)
  	int end = READ_ONCE(bq->guard_end);
  	int start = READ_ONCE(bq->guard_start);
  	bool was_temp = bq->guard_temp, was_full = bq->guard_full;
@@ -161,7 +161,7 @@ index 9ad14a7f0..a141259c5 100644
  	int temp, capacity, chg, otg, ret;
  	bool stop;
  
-@@ -1358,7 +1443,12 @@ static void bq25890_guard_work(struct work_struct *work)
+@@ -1358,7 +1442,12 @@ static void bq25890_guard_work(struct work_struct *work)
  	ret = chg < 0 ? chg : otg < 0 ? otg : 0;
  	if (!ret && chg == stop)
  		ret = bq25890_field_write(bq, F_CHG_CFG, !stop);
@@ -175,7 +175,7 @@ index 9ad14a7f0..a141259c5 100644
  		ret = bq25890_field_write(bq, F_WD_RST, 1);
  
  	if (ret)
-@@ -1367,6 +1457,11 @@ static void bq25890_guard_work(struct work_struct *work)
+@@ -1367,6 +1456,11 @@ static void bq25890_guard_work(struct work_struct *work)
  		dev_info(bq->dev, "guard: charging %s: temp=%d capacity=%d limit=%d%s%s\n",
  			 stop ? "stopped" : "allowed", temp, capacity, end,
  			 bq->guard_temp ? " temperature" : "", bq->guard_full ? " full" : "");
@@ -187,7 +187,7 @@ index 9ad14a7f0..a141259c5 100644
  
  	queue_delayed_work(system_power_efficient_wq, &bq->guard_work,
  			   BQ25890_GUARD_PERIOD);
-@@ -1795,6 +1890,8 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+@@ -1795,6 +1889,8 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
  		    bq->guard_end > BQ25890_GUARD_END_OFF)
  			return dev_err_probe(bq->dev, -EINVAL, "bad guard end threshold\n");
  		bq->guard_start = bq->guard_end - BQ25890_GUARD_RESUME_MARGIN;

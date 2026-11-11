@@ -747,11 +747,13 @@ therefore misread a wall charger plugged in after a computer.
 - [0717](../../patches/proposals/0717-power-supply-add-MT6351-BC1.1-USB-charger-type-detec.patch):
   a module that runs the vendor's BC1.1 steps at each plug and reports `mt6351-usb`'s `usb_type`.
 - [0718](../../patches/proposals/0718-power-supply-bq25890-raise-the-currents-on-a-dedicat.patch):
-  the guard sets 1.5 A input and 1.024 A charge on a dedicated, Apple or non-standard charger, as
-  the owner approved, rewriting both each pass with the watchdog fed. It returns to 500 mA from
-  45 °C on the battery until it's under 43 °C, or when the charger goes. A host and a charging host
-  keep 500 mA. The module reports a non-standard charger as `Unknown` while online, and retries a
-  failed detection rather than report it.
+  the guard sets 1.5 A input and 1.024 A charge on a dedicated or Apple charger, as the owner
+  approved, rewriting both each pass with the watchdog fed. It returns to 500 mA from 45 °C on the
+  battery until it's under 43 °C, or when the charger goes. A host, a charging host and a
+  non-standard charger keep 500 mA. The module reports a non-standard charger as `Unknown` while
+  online, and retries a failed detection rather than report it.
+  **Pending the owner's answer:** whether non-standard chargers get the caps too. d037922f briefly
+  gave them the caps without approval; the guard is back to dedicated and Apple only.
 - [0719](../../patches/proposals/0719-dt-bindings-power-supply-bq25890-name-a-USB-type-sup.patch) and
   [0720](../../patches/proposals/0720-arm64-dts-mediatek-gemini-station-raise-the-charge-c.patch):
   name the supply to the guard with `linux,guard-usb-detect`.
