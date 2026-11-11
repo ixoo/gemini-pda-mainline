@@ -265,6 +265,31 @@ Two explanations, which need opposite fixes:
   would come from two voltage/current pairs at different loads a few seconds apart, from T1's
   samples.
 
+**T1 attempt 2, card-31 boot `d41819cc…`, unplugged, video playing (about 2 CPUs busy):**
+- Stopped at the 3.80 V floor: `voltage_now` read 3.47 V.
+- Follow-up reads 2 s apart:
+
+  | Uptime (s) | `voltage_now` | `current_now` | `charge_counter` | `capacity` |
+  |---|---|---|---|---|
+  | 621.5 | 3.546 V | −964 mA | −27003 | 23 |
+  | 623.6 | 3.669 V | −575 mA | −27520 | 27 |
+  | 625.6 | 3.529 V | −1262 mA | −28037 | 15 |
+  | 627.7 | 3.573 V | −1059 mA | −28555 | 19 |
+  | 629.8 | 3.587 V | −866 mA | −29072 | 49 |
+
+- **The counter runs on this boot,** unlike `242ba06e…`: 2069 µAh in 8.26 s is 0.90 A. The
+  register's mean over the same samples is 0.95 A. The two agree within 5 %, which supports the
+  counter's scale, the same for both registers.
+- **A straight-line fit of V = OCV + R × I gives R ≈ 0.20 Ω and an OCV of about 3.77 V,** about
+  29 % on the table. The voltage and current come from separate reads 2 s apart and the
+  register is one sample, so this is rough. It puts the resistance near the DT's 165 mΩ, not
+  the 0.4-0.5 Ω a comparison with a different boot's charging voltage would suggest.
+- **Reading (inference):**
+  - The battery was genuinely low, about a quarter to a third, under a 0.9 A load.
+  - The reported capacity jumped from 15 to 49 % because each read pairs the voltage with a
+    different instantaneous current sample, not because of the table or the resistance.
+  - 0710's windowed current and 0711's counting remove that jumping.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
