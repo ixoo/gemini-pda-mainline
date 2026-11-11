@@ -108,6 +108,18 @@ halving, owner's words:
 | 400 Hz | −40: "nothing"; −25, −20, −15: clean |
 | 1 kHz | −25, −15: clean, and −55 to −30 clean in the ladder |
 
+At the owner's suggestion the custodian then played sines into the speakers and recorded them with the
+built-in microphones (Speaker and Mic devices together, `PGA Volume` 3,3, jack out). Mic fundamental for
+a −25 dBFS input, uncorrected for the microphone's own response:
+
+| Hz | 150 | 200 | 250 | 300 | 350 | 400 | 500 | 600 | 800 | 1000 | 1500 | 2000 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| dBFS | −75.1 | −83.8 | −79.7 | −76.0 | −70.8 | −63.2 | −62.7 | −53.5 | −43.1 | −44.2 | −34.8 | −41.1 |
+
+At 1 kHz the microphone tracked the input linearly from −40 to −15 dBFS. Its residual stayed at the noise
+floor, about −55 dBFS, everywhere, including 200 Hz at −15 dBFS where the owner heard rattle, so this
+setup cannot see the rattle.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -120,7 +132,9 @@ speakers, which a 1 kHz tone does not show. Low-frequency tones test that.
 
 They point that way: 200 Hz rattles as soon as it is audible, and 400 Hz and 1 kHz stay clean to −15 dBFS.
 So a level cap alone does not help, and the speaker needs the bass removed, a high-pass somewhere between
-200 and 400 Hz; the exact corner is not measured. The levels do not fully fit the YouTube figures: on the
+200 and 400 Hz; the exact corner is not measured. The microphone loop shows the speakers give about 20 dB
+less at 400-500 Hz than at 1 kHz and 30-40 dB less below 350 Hz, so a high-pass there costs little audible
+level. The levels do not fully fit the YouTube figures: on the
 cubic reading, music's bass would sit well below −20 dBFS when it saturated. So whether the high-pass
 removes the saturation the owner hears needs a listen with music. Stock's kernel does not use the AFE's
 downlink IIR, so stock's speaker compensation, if any, is in its closed audio HAL.
