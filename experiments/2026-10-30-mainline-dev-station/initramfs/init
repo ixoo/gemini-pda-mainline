@@ -124,6 +124,13 @@ fi
                       cpufreq-dt mtk-cci-devfreq; do
             ko=/lib/modules/$($bb uname -r)/$module.ko
             [ -e "$ko" ] || continue
+            # With no CPU policy, the CCI is VPROC1's only consumer; skip it.
+            if [ "$module" = mtk-cci-devfreq ] &&
+               ! [ -e /sys/devices/system/cpu/cpufreq/policy0 ]; then
+                $bb rmmod cpufreq_dt 2>/dev/null
+                result=failed-no-policy
+                break
+            fi
             if $bb insmod "$ko"; then
                 result="$result,$module"
             else

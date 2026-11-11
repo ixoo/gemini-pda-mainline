@@ -1,0 +1,123 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 14:24:06 -0500
+Subject: [PATCH] PM / devfreq: mtk-cci: restore the boot voltage instead of
+ dropping the request
+
+A request of 0 to INT_MAX does not drop a consumer's vote: the regulator
+core clamps it to the rail's constraints and keeps it as a request for
+the lowest allowed voltage. When the probe failed after raising its
+request, it therefore asked for the rail's minimum. With a CPU policy
+still holding its own vote that was harmless. With no CPU policy at all
+(cpufreq-dt deferred), the CCI was the only consumer, and the shared
+VPROC1 rail went to its 770 mV floor while the CCI and the CPUs still ran
+at their boot rates, which need about 1.0 V. The SoC hard-hung as the
+probe deferred.
+
+The CCI keeps running at its boot rate until the passive governor sets
+it, so read the rail's voltage before raising it and put the request
+back to that voltage on a failed probe. In remove() the request already
+matches the CCI's current rate, so leave it there rather than lowering it.
+---
+ drivers/devfreq/mtk-cci-devfreq.c | 36 +++++++++++++++----------------
+ 1 file changed, 17 insertions(+), 19 deletions(-)
+
+diff --git a/drivers/devfreq/mtk-cci-devfreq.c b/drivers/devfreq/mtk-cci-devfreq.c
+index b1ded9c2c..304822505 100644
+--- a/drivers/devfreq/mtk-cci-devfreq.c
++++ b/drivers/devfreq/mtk-cci-devfreq.c
+@@ -34,6 +34,7 @@ struct mtk_ccifreq_drv {
+ 	struct notifier_block opp_nb;
+ 	const struct mtk_ccifreq_platform_data *soc_data;
+ 	int vtrack_max;
++	int boot_voltage;
+ };
+ 
+ static int mtk_ccifreq_set_voltage(struct mtk_ccifreq_drv *drv, int new_voltage)
+@@ -229,18 +230,6 @@ static int mtk_ccifreq_target(struct device *dev, unsigned long *freq,
+ 	return ret;
+ }
+ 
+-/*
+- * Give up the voltage request before the regulators are put: putting a
+- * consumer does not settle the regulator again, so a raised request would
+- * otherwise hold the rail until another consumer changes its own request.
+- */
+-static void mtk_ccifreq_drop_voltage(struct mtk_ccifreq_drv *drv)
+-{
+-	regulator_set_voltage(drv->proc_reg, 0, INT_MAX);
+-	if (drv->sram_reg)
+-		regulator_set_voltage(drv->sram_reg, 0, INT_MAX);
+-}
+-
+ static int mtk_ccifreq_opp_notifier(struct notifier_block *nb,
+ 				    unsigned long event, void *data)
+ {
+@@ -329,6 +318,16 @@ static int mtk_ccifreq_probe(struct platform_device *pdev)
+ 		}
+ 	}
+ 
++	/*
++	 * The CCI keeps running at its boot rate until the passive governor
++	 * changes it, so a failed probe puts the request back to this voltage.
++	 */
++	drv->boot_voltage = regulator_get_voltage(drv->proc_reg);
++	if (drv->boot_voltage < 0) {
++		ret = drv->boot_voltage;
++		goto out_free_resources;
++	}
++
+ 	/*
+ 	 * We assume min voltage is 0 and tracking target voltage using
+ 	 * min_volt_shift for each iteration.
+@@ -375,13 +374,13 @@ static int mtk_ccifreq_probe(struct platform_device *pdev)
+ 	if (ret) {
+ 		dev_err(dev, "failed to scale to highest voltage %lu in proc_reg\n",
+ 			opp_volt);
+-		goto out_drop_voltage;
++		goto out_restore_voltage;
+ 	}
+ 
+ 	passive_data = devm_kzalloc(dev, sizeof(*passive_data), GFP_KERNEL);
+ 	if (!passive_data) {
+ 		ret = -ENOMEM;
+-		goto out_drop_voltage;
++		goto out_restore_voltage;
+ 	}
+ 
+ 	passive_data->parent_type = CPUFREQ_PARENT_DEV;
+@@ -392,19 +391,19 @@ static int mtk_ccifreq_probe(struct platform_device *pdev)
+ 		ret = -EPROBE_DEFER;
+ 		dev_err(dev, "failed to add devfreq device: %ld\n",
+ 			PTR_ERR(drv->devfreq));
+-		goto out_drop_voltage;
++		goto out_restore_voltage;
+ 	}
+ 
+ 	drv->opp_nb.notifier_call = mtk_ccifreq_opp_notifier;
+ 	ret = dev_pm_opp_register_notifier(dev, &drv->opp_nb);
+ 	if (ret) {
+ 		dev_err(dev, "failed to register opp notifier: %d\n", ret);
+-		goto out_drop_voltage;
++		goto out_restore_voltage;
+ 	}
+ 	return 0;
+ 
+-out_drop_voltage:
+-	mtk_ccifreq_drop_voltage(drv);
++out_restore_voltage:
++	mtk_ccifreq_set_voltage(drv, drv->boot_voltage);
+ 
+ out_remove_opp_table:
+ 	dev_pm_opp_of_remove_table(dev);
+@@ -432,7 +431,6 @@ static void mtk_ccifreq_remove(struct platform_device *pdev)
+ 	dev_pm_opp_unregister_notifier(dev, &drv->opp_nb);
+ 	dev_pm_opp_of_remove_table(dev);
+ 	clk_disable_unprepare(drv->cci_clk);
+-	mtk_ccifreq_drop_voltage(drv);
+ 	regulator_disable(drv->proc_reg);
+ 	if (drv->sram_reg)
+ 		regulator_disable(drv->sram_reg);
+-- 
+2.43.0
+

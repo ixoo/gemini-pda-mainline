@@ -44,6 +44,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0680`](../../patches/proposals/0680-arm64-dts-mediatek-gemini-station-power-allocator-co.patch) | After D3 V9: power-allocator cooling. CPU0-7 get `dynamic-power-coefficient` (78 and 129) for an energy model; a 75 C passive control trip carries both clusters and the GPU; 100 ms passive polling; 1.5 W `sustainable-power`. Needs a new image |
 | [`0682`](../../patches/proposals/0682-PM-devfreq-mtk-cci-drop-the-voltage-request-when-it-.patch) | After D3 item 3: mtk-cci-devfreq gives up its voltage request on a failed probe and in `remove()`. A deferred probe used to leave VSRAM_L at 1.20 V (and, by inference, VPROC1 at the CCI's top point), because putting a regulator consumer does not settle the rail again. Module only |
 | [`0687`](../../patches/proposals/0687-arm64-dts-mediatek-gemini-station-weight-the-LL-clus.patch) | After the weighted V9p: the soc-thermal control maps carry `contribution` 4096 for LL and 1024 for L and the GPU, the weights that run tested at run time. Device tree; next non-V11 image |
+| [`0726`](../../patches/proposals/0726-PM-devfreq-mtk-cci-restore-the-boot-voltage-instead-.patch) | Fixes `0682`: a request of 0 to INT_MAX is clamped to VPROC1's 770 mV floor, not dropped. With no CPU policy (station-work-102 and -103), that put the rail under the boot rates and hard-hung the SoC. A failed probe now restores the voltage found at probe, and `remove()` leaves the request alone. Module only |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -688,7 +689,13 @@ disabled and released the regulators but never lowered the request, and the
 regulator core does not rebalance a rail when a consumer is put. VSRAM_L
 therefore stayed at 1.20 V, and VPROC1 presumably at 1.20 V too (the DA9214
 was unreadable while bound), until `cpufreq-dt` unloaded. `0682` drops the
-request on that path and in `remove()`.
+request on that path and in `remove()`. That was wrong: the regulator core clamps a 0 to INT_MAX
+request to the rail's constraints, so it became a request for VPROC1's 770 mV
+floor. While a CPU policy held its own vote, nothing changed. With none
+(station-work-102 and -103, where `cpufreq-dt` deferred), the rail dropped
+under the boot rates and the SoC hard-hung in the CCI probe. `0726` restores
+the voltage read at probe instead. The station init also skips the CCI when
+no policy exists (`failed-no-policy`).
 
 Without the CCI bound, nothing holds VPROC1 up for the CCI's boot rate. In
 item 3 N4, LL at 221 MHz requested 840 mV on VPROC1 (read back at N9, after
