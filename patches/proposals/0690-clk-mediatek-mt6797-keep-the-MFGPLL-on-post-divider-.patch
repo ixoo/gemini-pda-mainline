@@ -1,0 +1,50 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 10 Nov 2026 22:01:43 -0500
+Subject: [PATCH] clk: mediatek: mt6797: keep the MFGPLL on
+ post-divider 4 from 250 MHz
+
+Without a divider table the MFGPLL takes post-divider 2 at 520 MHz, 4 at 365 and
+442.5 MHz and 8 at 238 MHz, from the default 1000 MHz VCO minimum. A GPU job running
+across a divider change is lost about one time in a hundred, and the GPU driver's
+drain before a change then held raises back until long jobs timed out.
+
+Use the vendor's split instead: post-divider 4 from 250 MHz to 900 MHz, 8 below. Then
+the GPU's table from 365 to 520 MHz never changes the divider.
+---
+ drivers/clk/mediatek/clk-mt6797.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797.c b/drivers/clk/mediatek/clk-mt6797.c
+index 1da144714..7a6b53ab8 100644
+--- a/drivers/clk/mediatek/clk-mt6797.c
++++ b/drivers/clk/mediatek/clk-mt6797.c
+@@ -676,13 +676,26 @@ static int mtk_infrasys_init(struct platform_device *pdev)
+ 			_pd_reg, _pd_shift, _tuner_reg, _pcw_reg, _pcw_shift, \
+ 			NULL)
+ 
++/*
++ * The vendor's GPU table runs the MFGPLL with post-divider 4 from 250 to 900 MHz
++ * and 8 below. Without a table, mainline picks 2 at 520 MHz, from the default
++ * 1000 MHz VCO minimum. A job running across a divider change is lost now and then.
++ */
++static const struct mtk_pll_div_table mfgpll_div_table[] = {
++	{ .div = 0, .freq = MT6797_PLL_FMAX },
++	{ .div = 1, .freq = 1000 * MHZ },
++	{ .div = 2, .freq = 900 * MHZ },
++	{ .div = 3, .freq = 250 * MHZ },
++	{ /* sentinel */ }
++};
++
+ static const struct mtk_pll_data plls[] = {
+ 	PLL(CLK_APMIXED_MAINPLL, "mainpll", 0x0220, 0x022C, 0xF0000100, PLL_AO,
+ 	    21, 0x220, 4, 0x0, 0x224, 0),
+ 	PLL(CLK_APMIXED_UNIVPLL, "univpll", 0x0230, 0x023C, 0xFE000010, 0, 7,
+ 	    0x230, 4, 0x0, 0x234, 14),
+-	PLL(CLK_APMIXED_MFGPLL, "mfgpll", 0x0240, 0x024C, 0x00000100, 0, 21,
+-	    0x244, 24, 0x0, 0x244, 0),
++	PLL_B(CLK_APMIXED_MFGPLL, "mfgpll", 0x0240, 0x024C, 0x00000100, 0, 21,
++	      0x244, 24, 0x0, 0x244, 0, mfgpll_div_table),
+ 	PLL(CLK_APMIXED_MSDCPLL, "msdcpll", 0x0250, 0x025C, 0x00000120, 0, 21,
+ 	    0x250, 4, 0x0, 0x254, 0),
+ 	PLL(CLK_APMIXED_IMGPLL, "imgpll", 0x0260, 0x026C, 0x00000120, 0, 21,

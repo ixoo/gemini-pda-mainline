@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 10 Nov 2026 22:01:44 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini: leave 238 MHz out of
+ the GPU table
+
+It is the only point on MFGPLL post-divider 8, so every change to or from it
+crossed a divider. Idle power-off already removes the GPU's cost when idle, so the
+lowest point saves little. Raise the rail's floor to match.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts  | 12 ++++--------
+ 1 file changed, 4 insertions(+), 8 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index e3c564e32..e7b849fd8 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -179,18 +179,14 @@ battery: battery {
+ 	};
+ 
+ 	/*
+-	 * The vendor's type 12 table to 520 MHz, each request rounded up to a
+-	 * voltage the RT5735 can output. 520 MHz has the 1.0 V the vendor asks for
++	 * The vendor's type 12 table from 365 to 520 MHz, each request rounded up to
++	 * a voltage the RT5735 can output. 238 MHz is left out: it alone needs another
++	 * MFGPLL post-divider, and idle power-off already takes the GPU's idle cost. 520 MHz has the 1.0 V the vendor asks for
+ 	 * before EEM, since mainline has no EEM.
+ 	 */
+ 	gpu_opp_table: opp-table-gpu {
+ 		compatible = "operating-points-v2";
+ 
+-		opp-238000000 {
+-			opp-hz = /bits/ 64 <238000000>;
+-			opp-microvolt = <850000>;
+-		};
+-
+ 		opp-365000000 {
+ 			opp-hz = /bits/ 64 <365000000>;
+ 			opp-microvolt = <912500>;
+@@ -374,7 +370,7 @@ &i2c7 {
+ };
+ 
+ &rt5735_vgpu {
+-	regulator-min-microvolt = <850000>;
++	regulator-min-microvolt = <912500>;
+ 	regulator-max-microvolt = <1000000>;
+ 	regulator-enable-ramp-delay = <350>;
+ 	regulator-ramp-delay = <4000>;

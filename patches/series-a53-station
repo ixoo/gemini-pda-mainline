@@ -855,3 +855,6 @@ proposals/0686-power-supply-mt6351-fuel-gauge-wake-on-a-charger-att.patch
 proposals/0687-arm64-dts-mediatek-gemini-station-weight-the-LL-clus.patch
 proposals/0688-soc-mediatek-mt6797-spm-sleep-optionally-mask-the-GI.patch
 proposals/0689-soc-mediatek-mt6797-spm-sleep-mask-the-GIC-by-default.patch
+proposals/0690-clk-mediatek-mt6797-keep-the-MFGPLL-on-post-divider-.patch
+proposals/0691-arm64-dts-mediatek-gemini-leave-238-MHz-out-of-the-G.patch
+proposals/0692-drm-panfrost-drain-the-MT6797-GPU-only-across-a-post.patch

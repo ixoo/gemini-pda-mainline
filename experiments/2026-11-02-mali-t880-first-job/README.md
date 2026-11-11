@@ -621,3 +621,5 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    The way out without the drain is to never cross a post-divider. The vendor's own split (type 12, cid 2 to 4) uses post-divider 4 for 250 to 900 MHz, and 8 only below that.
    Mainline picks 2 at 520 MHz, because the MFGPLL's minimum VCO defaults to 1000 MHz. With a 1400 MHz minimum, 365, 442.5 and 520 MHz all use 4. Dropping 238 MHz, which idle
    power-off makes worth little, then leaves no crossing at all. A floor of 365 MHz through devfreq's `min_freq` tests the first half on the running boot.
+   `0690` gives the MFGPLL the vendor's divider table (4 from 250 to 900 MHz, 8 below). `0691` drops 238 MHz and raises the rail floor to 0.9125 V. `0692` drains only for a change that crosses
+   a divider, which the table no longer has. Compile-checked only; it needs a boot.

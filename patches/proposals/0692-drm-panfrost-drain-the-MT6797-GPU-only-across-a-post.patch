@@ -1,0 +1,110 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 10 Nov 2026 22:01:44 -0500
+Subject: [PATCH] drm/panfrost: drain the MT6797 GPU only across a
+ post-divider
+
+The drain before every rate change held raises back while a job ran, so after an
+idle drop to the lowest rate a long job kept its slow clock until it passed the 500 ms
+timeout. Twice on the Gemini desktop the governor asked four times to raise it and
+was refused.
+
+The clock driver now keeps 365 to 520 MHz on one post-divider, so drain only for a
+change that crosses one, which the table no longer has.
+---
+ drivers/gpu/drm/panfrost/panfrost_devfreq.c | 15 ++++++++++-----
+ drivers/gpu/drm/panfrost/panfrost_device.h  |  2 ++
+ drivers/gpu/drm/panfrost/panfrost_mt6797.c  |  9 +++++++++
+ 3 files changed, 21 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_devfreq.c b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+index c425a056d..f3353dede 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_devfreq.c
++++ b/drivers/gpu/drm/panfrost/panfrost_devfreq.c
+@@ -31,9 +31,10 @@ static void panfrost_devfreq_update_utilization(struct panfrost_devfreq *pfdevfr
+ }
+ 
+ /*
+- * On a platform with a power sequence (MT6797), changing the PLL's divider under a
+- * running job loses the job now and then. Hold new jobs back and let those on the
+- * hardware finish. A job longer than this skips the change, until the next poll.
++ * On MT6797, changing the PLL's divider under a running job loses the job now and
++ * then. Hold new jobs back and let those on the hardware finish. A job longer than
++ * this skips the change, until the next poll, and as that also holds a raise back,
++ * the platform keeps its table off such changes.
+  */
+ #define PANFROST_RATE_DRAIN_TIMEOUT_US	200000
+ 
+@@ -42,6 +43,7 @@ static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
+ {
+ 	struct panfrost_device *pfdev = dev_get_drvdata(dev);
+ 	struct dev_pm_opp *opp;
++	bool drained = false;
+ 	int err;
+ 
+ 	opp = devfreq_recommended_opp(dev, freq, flags);
+@@ -49,13 +51,16 @@ static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
+ 		return PTR_ERR(opp);
+ 	dev_pm_opp_put(opp);
+ 
+-	if (pfdev->comp->platform_ops) {
++	if (pfdev->comp->platform_ops &&
++	    pfdev->comp->platform_ops->rate_change_drains(pfdev->pfdevfreq.current_frequency,
++							  *freq)) {
+ 		bool idle;
+ 
+ 		if (*freq == pfdev->pfdevfreq.current_frequency)
+ 			return 0;
+ 
+ 		mutex_lock(&pfdev->rate_lock);
++		drained = true;
+ 		if (readx_poll_timeout(panfrost_jm_hw_idle, pfdev, idle, idle, 100,
+ 				       PANFROST_RATE_DRAIN_TIMEOUT_US)) {
+ 			mutex_unlock(&pfdev->rate_lock);
+@@ -68,7 +73,7 @@ static int panfrost_devfreq_target(struct device *dev, unsigned long *freq,
+ 	}
+ 
+ 	err = dev_pm_opp_set_rate(dev, *freq);
+-	if (pfdev->comp->platform_ops)
++	if (drained)
+ 		mutex_unlock(&pfdev->rate_lock);
+ 
+ 	if (!err && pfdev->comp->platform_ops && pfdev->comp->platform_ops->log_rates() &&
+diff --git a/drivers/gpu/drm/panfrost/panfrost_device.h b/drivers/gpu/drm/panfrost/panfrost_device.h
+index 42615eb89..a4bc0f205 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_device.h
++++ b/drivers/gpu/drm/panfrost/panfrost_device.h
+@@ -106,6 +106,8 @@ struct panfrost_platform_ops {
+ 	bool (*use_opps)(void);
+ 	/* Whether to log each rate change. */
+ 	bool (*log_rates)(void);
++	/* Whether a change between these rates must wait for the GPU to drain. */
++	bool (*rate_change_drains)(unsigned long from, unsigned long to);
+ };
+ 
+ /*
+diff --git a/drivers/gpu/drm/panfrost/panfrost_mt6797.c b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+index e62375cac..73c48b404 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_mt6797.c
++++ b/drivers/gpu/drm/panfrost/panfrost_mt6797.c
+@@ -402,6 +402,14 @@ static bool mt6797_use_opps(void)
+ 	return mt6797_dvfs;
+ }
+ 
++/* The clock driver's MFGPLL table changes post-divider at 250 MHz. */
++#define MT6797_MFGPLL_DIV8_MAX_HZ	250000000UL
++
++static bool mt6797_rate_change_drains(unsigned long from, unsigned long to)
++{
++	return (from <= MT6797_MFGPLL_DIV8_MAX_HZ) != (to <= MT6797_MFGPLL_DIV8_MAX_HZ);
++}
++
+ static bool mt6797_logs_rates(void)
+ {
+ 	return mt6797_log_rates;
+@@ -415,4 +423,5 @@ const struct panfrost_platform_ops panfrost_mt6797_ops = {
+ 	.keep_powered = mt6797_keep_powered,
+ 	.use_opps = mt6797_use_opps,
+ 	.log_rates = mt6797_logs_rates,
++	.rate_change_drains = mt6797_rate_change_drains,
+ };
