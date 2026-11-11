@@ -571,17 +571,29 @@ hashes as above (`307ea6d8`, `7fea7bb1`). Private evidence:
 
 **Open:**
 
-- **VDEC mux clock leak (confirmed).** An idle re-read 74 s after the
-  second probe load still shows `vdec_sel` (and `vdecpll`) with enable and
-  prepare counts of 1 and hardware on, while the domain is `off-0`. The read
-  after step 2, before any probe ran, already showed the same count. So the
-  extra enable comes with the VDECSYS clock driver's load. Reading the code,
-  the domain driver's on/off paths and the runtime-PM path in
-  `mtk_clk_simple_probe` look balanced, so the culprit is not identified.
-  `vdec_larb1_cken` reads hardware-on with an enable count of 0, either a read
-  through the unpowered block or the bit's polarity. Next: a clock-event trace
-  with stack traces across one reload of `clk-mt6797-vdec` (V8). The leak
-  costs only a running 338 MHz mux; it does not affect the domain.
+- **VDEC mux clock: no leak; the observer caused it (V8, same boot
+  `0bad0df9`).** An idle re-read had shown `vdec_sel` and `vdecpll` at enable
+  and prepare count 1 with the domain `off-0`. V8 traced every `vdec_sel`
+  event across an unload and reload of `clk-mt6797-vdec`.
+  - **The events are balanced.** Loading the driver enables `vdec_sel` once
+    through `scpsys_power_on` ← `genpd_dev_pm_attach` ← `platform_probe`, and
+    the asynchronous genpd power-off disables it 2 ms later. The probe load is
+    balanced too.
+  - **The summary itself raises the count.** The read of `clk_summary`
+    runtime-resumes the VDECSYS provider to read its gates. That powers the
+    domain and enables `vdec_sel` while the summary prints, so it reports
+    counts it holds itself. The same explains `vdec_larb1_cken` reading
+    hardware-on.
+  - **Direct reads show nothing left on.** Read without runtime PM, the
+    per-clock files show `vdec_sel` and `vdecpll` at 0 and 0.
+  - **Rule:** with runtime-PM clock providers, judge counts from
+    `/sys/kernel/debug/clk/<clk>/clk_{enable,prepare}_count`, not from
+    `clk_summary`.
+
+  The trace setup's stack triggers carried no filter of their own, so stacks
+  were captured for every clock event (85k lines). This is harmless, and the
+  `vdec_sel` lines were still separable. Tracefs cleanup was verified.
+  Private evidence: `artifacts/card-32/v8-*.txt`.
 - **Panel:** the owner's visual check of the panel during the loads is
   pending.
 
