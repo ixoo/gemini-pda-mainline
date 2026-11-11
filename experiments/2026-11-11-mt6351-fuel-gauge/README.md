@@ -399,6 +399,24 @@ Reading:
   - `energy-rate` about |`current_now`| × 4.352 V;
   - a `time to full` line while charging, or `time to empty` unplugged, within a minute or two.
 
+**0730 verified on station-work-107** (boot2 `9e73c047…`, main `c386b7e9`, boot `a1651d02…`;
+charging from a computer port at 1.5 A):
+- sysfs:
+  - `capacity` 89;
+  - `charge_now` 3798837 and `charge_full` 4268000, a ratio of 0.890 that matches `capacity`;
+  - `current_now` +258 mA.
+- UPower: `energy` 16.53 Wh, `energy-full` and `energy-full-design` 18.57 Wh, `energy-rate`
+  0.80-1.02 W. By 87 s uptime it read `charging` with `time to full: 2.0 hours`, on the battery
+  and on the display device. The owner sees the time in Noctalia.
+- At 33 s, UPower briefly read `discharging` with `time to empty: 20.6 hours`, about 0.8 W.
+  Likely ours (inference):
+  - the first counter window runs from probe to the first read, so it includes boot time,
+    when the system can draw on the battery before the guard's first pass enables charging;
+  - UPower treats any negative `current_now` as discharging;
+  - the next window was right.
+
+  It is one reading after boot and is left as it is.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
