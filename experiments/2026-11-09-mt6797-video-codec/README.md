@@ -447,7 +447,25 @@ small harness, since `mfv_ut` has no plain H.264 test.
   The register-level traces and contract stay private, because they rest on
   vendor code.
 
-## Stage 1: VDEC resource probe (prepared 2026-11-11, not yet built or run)
+## Stage 1: VDEC resource probe (built 2026-11-11, not yet run)
+
+**Package.** The build ran on the `buildbox` alias, chosen by the owner
+because buildbox-1 to -3 were unreachable from the laptop.
+
+- Commit `6ee24da5`, profile `mt6797-a53-station-dvfs`, modules built, 874
+  patches. It carries everything else committed up to that point too.
+- Job `6ee24da5…-mt6797-a53-station-dvfs-m1`, package inventory and
+  `SHA256SUMS` `2d983244`; fetched and checked locally.
+
+| File | SHA-256 |
+| --- | --- |
+| `Image.gz` | `50681900c5133612a7a5b59b785f43ccdf51b2f13ce71a2ddc871dda0571d2f0` |
+| `mt6797-gemini-pda-station-dvfs.dtb` | `5fec0913a0f51d54f24a8484e5bb7b8bd0e017952c61a8e74fe5fd70c80232b9` |
+| `clk-mt6797-vdec.ko` | `307ea6d8fcdf471ccf88d86b79d48eb9964673225b7db9393096c50750bc0acc` |
+| `mt6797-vdec-probe.ko` | `7fea7bb1179fff1a8cc7dd32d1e284a5e5fdfccd622190c2e651fa1a4d0d9036` |
+
+The DTB contains `power-domain@0` (VDEC and MM muxes), VDECSYS with
+`power-domains`, and `video-codec@16020000`.
 
 **Station facts that shaped it.** All three come from a package
 configuration and a station capture.
