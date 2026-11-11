@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0700-0706 and compile-checked only; their device tests T4a-T9 await owner approval, and the release default awaits the owner's Spectre-v2 decision |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0700-0706 and compile-checked only; their device tests T4a-T9 await owner approval, and the owner accepted the Spectre-v2 report for a release default on 2026-11-11 |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -997,18 +997,13 @@ No new write beyond T4b's and those tracefs and thermal sysfs writes.
 loaded, as the power record's S1 test, which shares its procedure. No new
 writes.
 
-**Release decision (owner).** Loading the A72 module makes the whole system
-report `Vulnerable` for Spectre-v2 and speculative store bypass: the firmware
-has no SMCCC 1.1, so there is no `ARCH_WORKAROUND_1` or `_2` to call, and the
-A72 has no other mitigation (see Step 4). The A53s alone report neither. A
-user-space process on the A72s can, in principle, read across privilege
-boundaries by branch-target injection. Before T9 the owner chooses:
-- the A72s load by default in the release, with that report documented; or
-- the release keeps them opt-in through `/mnt/data/a72-at-boot`, and the
-  default image reports the A53 state only.
-
-T9 runs either way, to prove the init path; only the release default
-differs.
+**Release decision (owner, 2026-11-11).** Loading the A72 module makes the
+whole system report `Vulnerable` for Spectre-v2 and speculative store bypass:
+the firmware has no SMCCC 1.1, so there is no `ARCH_WORKAROUND_1` or `_2` to
+call, and the A72 has no other mitigation (see Step 4). The A53s alone report
+neither. The owner's decision: "spectre is acceptable". The release loads the
+A72s by default once T4a-T9 pass, and its notes state that report. Until then
+they stay opt-in through `/mnt/data/a72-at-boot`.
 
 **T9: loading at init.** Create `/mnt/data/a72-at-boot` and
 `/mnt/data/cpufreq-at-boot`, power off, and the owner selects boot2. Read the
