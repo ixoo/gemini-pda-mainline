@@ -1570,6 +1570,36 @@ zero, no rate-limited lines dropped. Raw output is private.
 **Decision.** HS400 works. The diagnostic 0626 leaves the series; 0625 and 0627
 stay. Not shown: write rates, suspend, and HS400 over many boots and temperatures.
 
+### The card as the running root (2026-11-10, unattended)
+
+Boot `58bcf387`, image station-work-98 (`47b11c27`). The root filesystem is ext4 on
+`mmcblk1p1`, on an SDXC card written with a 4 GiB image, used for normal desktop work
+including a browser. This is not a predeclared test. The raw `dmesg` is private.
+
+**Observed.**
+
+- `mmc1` came up at SDR104, 191999939 Hz, 4-bit, 1.8 V. `mmc0` came up at HS400.
+- In 1258 s there were 6 `mtk-sd` lines, all between 631.5061 and 631.5065 s:
+  `msdc_track_cmd_data: cmd=12 arg=00000000; host->error=0x00000002`. That is a
+  command timeout on a stand-alone CMD12.
+- There were no I/O errors, no ext4 errors and no `blk_update_request` lines.
+- `err_stats` for both hosts was all 0.
+
+**Inferred.**
+
+- Six CMD12s in a row are one `mmc_blk_send_stop`, which sends CMD12 with 5 retries.
+  Block recovery (`mmc_blk_mq_rw_recovery`) sends it after a read or write fails,
+  when the card is not ready for data.
+- The card answered none of them, and the request then completed, since nothing
+  reached the filesystem.
+- The error that started recovery is not visible. `mtk-sd` logs transfer errors only
+  at debug level, and this kernel has no dynamic debug. `err_stats` counts only
+  failed tunings on this host (see the [T6 result](#t6-result-2026-11-06)). Its zero
+  rules out a failed retune, nothing more.
+- There are two readings. One is a data CRC error at SDR104, as the eMMC had at
+  HS200. The other is a write error while the card was busy programming, where an SD
+  card ignores CMD12. This boot does not tell them apart.
+
 ## Follow-up
 
 - Suspend and resume.
@@ -1577,5 +1607,8 @@ stay. Not shown: write rates, suspend, and HS400 over many boots and temperature
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
 - eMMC HS400 ([T9 result](#t9-result-2026-11-06)): write rates and repeat boots.
+- The card's one CMD12 recovery as root
+  ([the card as root](#the-card-as-the-running-root-2026-11-10-unattended)). If it
+  recurs, rebuild with logging of transfer errors to see which error starts it.
   HS200 alone still has silent read errors ([T8 result](#t8-result-2026-11-06)), so
   a board without HS400 should not rely on it.
