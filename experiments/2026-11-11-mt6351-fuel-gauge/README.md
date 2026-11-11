@@ -763,6 +763,63 @@ From the custodian. Charging from a computer's charging port at 1.5 A, limit 100
   restored loses 1 µAh per boot (3800000 → 3799999). That is negligible. A round-up in
   `set_property` would make it exact, and is left for the next driver change.
 
+## The cell's resistance is about 0.4 Ω, not 0.165 Ω (station-work-110, boot `0ce7590c…`)
+
+**The data:**
+- During the calibration discharge, unplugged with a browser keeping about four cores busy.
+- Five samples 30 s apart (private `artifacts/card-32/gauge-stuck-sample.txt`):
+  - `capacity` 98 → 96;
+  - `charge_now` falling 14.6 mAh per 30 s, about 1.75 A, matching `current_now`;
+  - 3.48-3.55 V.
+- The count started from this boot's "charge finished" point, so the charge is the most
+  trustworthy value available.
+
+**Effective resistance:** at the counted charge (89.3-90.7 % of the table), the table's OCV is
+4.237-4.246 V.
+
+| Table % | OCV | V | I | (OCV − V) ÷ I |
+|---|---|---|---|---|
+| 90.7 | 4.246 | 3.546 | 1.79 A | 0.390 Ω |
+| 90.4 | 4.244 | 3.522 | 1.66 A | 0.435 Ω |
+| 90.0 | 4.242 | 3.477 | 1.79 A | 0.427 Ω |
+| 89.7 | 4.239 | 3.520 | 1.77 A | 0.405 Ω |
+| 89.3 | 4.237 | 3.552 | 1.73 A | 0.396 Ω |
+
+- About 0.40 Ω under a sustained load. That includes the polarisation that builds over minutes
+  and the whole path, not only the cell's ohmic part.
+- The DT's 165 mΩ (0372) is the vendor profile's new-cell mid-range 90 mΩ plus the 75 mΩ meter
+  path. This cell is the original one.
+- The earlier 0.20 Ω fit (`d41819cc…`) paired voltages and currents read 2 s apart over a narrow
+  current range. It is superseded.
+
+**What a low R explains (inference):**
+- **The first reading under boot load comes out low.** At 0.5 A, 0.24 Ω missing is about
+  120 mV, about 10 points in the mid-range. That matches station-work-103 and -107.
+- **Card-31's 2-15 % at about 1 A.**
+- **Taper readings (0735) come out high.** At 191 mA, about 45 mV, which the clamp at 100 hides.
+- **0734's light-load readings are biased low**, about 25 mV at 100 mA. So the learned capacity
+  would come out a few percent low. Rest pairs are unaffected, since the current is near zero.
+
+**Brownout under load (inference):** at 1.8 A and 0.4 Ω the terminal sits about 0.7 V below the
+OCV. A cell at an OCV of 3.75 V (about 20 %) would read about 3.0 V under that load. A heavy
+load at a low charge can therefore drop the system before 0 %. This bears on UPower's critical
+action level, which belongs to arch-root.
+
+**Next:**
+1. **Measure (T5, read-only).** At about 60 %, unplugged, alternate an idle minute (screen
+   blanked) and a loaded minute (the browser), three times. Read `voltage_now` and
+   `current_now` every 5 s.
+   - The step at each change gives the fast resistance.
+   - The end of each minute gives the one-minute value.
+   - With today's sustained figure, that fixes the value to use.
+2. **Fix (DT, image):** set `factory-internal-resistance-micro-ohms` in 0372's battery node
+   from T5.
+   - It is one value for every use. The steady readings (0734, 10 min at 70-150 mA) and the
+     boot reading are closest to the one-minute-to-sustained figure.
+   - The vendor's per-temperature resistance profiles could scale it later.
+3. **Learning R in the driver** is possible: each steady period at a counted charge gives
+   (OCV − V) ÷ I. It is not proposed until a fixed measured value shows its limits.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
