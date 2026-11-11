@@ -72,7 +72,11 @@ the headphone tone:
 
 ## Observations
 
-None yet.
+Before any UCM test, on card-27 (boot `58bcf387`, station-work-98 kernel), run by the custodian. Speakers
+enabled by hand through PipeWire's single headphone sink: `Speaker Switch` on, `Headphone Volume` 0, sink
+volume 0.25. The owner first reported sound on the left speaker only. Both amplifier enables (GPIO243/244)
+were owned by their amplifiers and high while playing. With the left and right tones, then music, the
+owner: "all sounds ok". So both speakers work on this kernel; the first report was not a fault.
 
 ## Analysis
 
