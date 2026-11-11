@@ -978,13 +978,16 @@ leaves such an offline CPU out instead. That restores station-work-100's state, 
 the A53 policies in place before the CCI. With the A72 module loaded first, VSRAM_B
 is registered and CPU8-9 are online, so nothing is left out.
 
-Not explained: why the CCI probe hangs with no CPU policy at all, rather than
-deferring as it did when only some policies were missing. Its clock cannot gate
-(the cluster PLLs have no enable or disable), and the drop of its voltage request
-leaves VPROC1 where it was. Until that is understood, the station init should load
-`mtk-cci-devfreq` only once cpufreq-dt has created policies.
+The CCI hang itself (found by the cpufreq session): on a failed probe, 0682 gave
+up its request with `regulator_set_voltage(proc, 0, INT_MAX)`. The core clamps that
+to the constraints, so it stays a live request for VPROC1's 770 mV floor. With no
+CPU policy holding its own vote, VPROC1 dropped to 770 mV under boot rates of about
+1.0 V. The cpufreq session's
+[0726](../../patches/proposals/0726-PM-devfreq-mtk-cci-restore-the-boot-voltage-instead-.patch)
+restores the voltage read before the probe raised it, and the station init now loads
+`mtk-cci-devfreq` only once `policy0` exists (`failed-no-policy` otherwise).
 
-Confirmation needs a boot of an image with 0715 and 0721. Its station status
+Confirmation needs a boot of an image with 0715, 0725 and 0726. Its station status
 must read `cpufreq=loaded,...` and not `failed-cci-unbound`, with the CCI bound at
 `/sys/bus/platform/drivers/mtk-ccifreq/cci`.
 
