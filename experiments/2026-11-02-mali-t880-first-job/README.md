@@ -610,3 +610,6 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    Again on boot `58bcf387` (kernel from `47b11c27`, with `0493` and `0668`): 4 timeouts in about 7 minutes, against 108 rate changes, 37 of them 238 to 520 MHz. The GPU's
    power-allocator cooling sat at 0 of 3, so `0687` is not the cause. A job starting just after a divider change, while the PLL may still be settling, is not covered by
    the drain (inference). But in run 19 many jobs started within milliseconds of a change, with no fault, so the log is still needed.
+   About a minute after two of those timeouts, a video showed part of a desktop panel holding fragments of another window's text on alternate frames, with the
+   next frame clean. A buffer left half-written by a killed job, and then kept by a client that redraws only damaged regions, would show on one of its two buffers only,
+   until it is redrawn whole (inference). Whether this needs a preceding timeout, and whether a fresh surface clears it, is not yet known.
