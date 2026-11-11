@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Wed, 11 Nov 2026 10:17:04 -0500
+Subject: [PATCH] ASoC: aw8738: switch the amplifier on after the outputs that
+ feed it
+
+DAPM orders output drivers of the same type by register before component,
+so the amplifier's widget, with no register, powers up before a codec
+output driver that has one. On the Gemini PDA the AW8736 amplifiers were
+on 90 ms before the MT6351 headphone outputs that feed them started their
+power-up, and their transient was heard on the speakers.
+
+Give the amplifier a later DAPM sub-sequence. It then powers up after the
+other output drivers and down before them, as amplifiers should.
+---
+ sound/soc/codecs/aw8738.c | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/sound/soc/codecs/aw8738.c b/sound/soc/codecs/aw8738.c
+index aa0a48e..fb4bd42 100644
+--- a/sound/soc/codecs/aw8738.c
++++ b/sound/soc/codecs/aw8738.c
+@@ -41,8 +41,15 @@ static int aw8738_drv_event(struct snd_soc_dapm_widget *w,
+ 
+ static const struct snd_soc_dapm_widget aw8738_dapm_widgets[] = {
+ 	SND_SOC_DAPM_INPUT("IN"),
+-	SND_SOC_DAPM_OUT_DRV_E("DRV", SND_SOC_NOPM, 0, 0, NULL, 0, aw8738_drv_event,
+-			       SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
++	{
++		.id = snd_soc_dapm_out_drv,
++		.name = "DRV",
++		.reg = SND_SOC_NOPM,
++		.event = aw8738_drv_event,
++		.event_flags = SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD,
++		/* After the outputs that feed it on power-up, before them on power-down */
++		.subseq = 1,
++	},
+ 	SND_SOC_DAPM_OUTPUT("OUT"),
+ };
+ 

@@ -1284,3 +1284,4 @@ proposals/0703-soc-mediatek-mt6797-a72-provide-the-cluster-SRAM-LDO.patch
 proposals/0704-soc-mediatek-mt6797-coupler-keep-VSRAM-B-above-the-A.patch
 proposals/0705-arm64-dts-mediatek-gemini-station-A72-scale-the-A72.patch
 proposals/0706-arm64-dts-mediatek-gemini-station-DVFS-scale-the-A72.patch
+proposals/0707-ASoC-aw8738-switch-the-amplifier-on-after-the-output.patch

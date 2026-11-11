@@ -121,6 +121,17 @@ At 1 kHz the microphone tracked the input linearly from −40 to −15 dBFS. Its
 floor, about −55 dBFS, everywhere, including 200 Hz at −15 dBFS where the owner heard rattle, so this
 setup cannot see the rattle.
 
+A filter test followed: a PipeWire filter-chain sink with a 4th-order high-pass at 450 Hz and a −4 dB
+cut at 1.6 kHz ([`speaker-filter-test.conf`](speaker-filter-test.conf)), ahead of the card's sink, with
+the same YouTube video. With the filter the owner heard "still clipping above 60% volume", and without
+it the same. Afterwards the file was removed.
+
+The owner also described a 1 kHz −15 dBFS tone through PipeWire, from a suspended sink, as "clean in the
+middle, start and stop were a bit rough". A DAPM trace of one direct play (Speaker device, jack out):
+the amplifiers' power-up events (Speaker Amp R and L DRV, about 44 ms each for the mode pulses) ran at
+4340.917 and 4340.962 s, before the headphone outputs' power-up events at 4341.006 and 4341.009 s. At
+power-down the amplifiers went first, at 4343.013 and 4343.015 s, then the outputs at 4343.017 s.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -142,6 +153,16 @@ downlink IIR, so stock's speaker compensation, if any, is in its closed audio HA
 
 The speakers and headphones share one PCM and one DL path, so any filter on that path also takes the
 bass out of the headphones, unless it follows the selected output.
+
+The filter test refutes the bass reading for the YouTube saturation: removing the bass made no audible
+difference. The cause is still unknown. The levels argue against the speaker or DAC: at those volumes
+music reaches the DAC far below the −15 dBFS that tones stay clean at.
+
+The rough start is an ordering fault. DAPM sorts output drivers of one type by register before
+component, so the amplifiers, with no register, power up before the headphone outputs that feed them,
+and the outputs' power-up transient reaches the speakers. Power-down is already in the right order.
+[`0707`](../../patches/proposals/0707-ASoC-aw8738-switch-the-amplifier-on-after-the-output.patch)
+gives the amplifiers a later DAPM sub-sequence.
 
 ## Conclusion
 
