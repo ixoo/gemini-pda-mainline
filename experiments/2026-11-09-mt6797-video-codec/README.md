@@ -447,7 +447,7 @@ small harness, since `mfv_ut` has no plain H.264 test.
   The register-level traces and contract stay private, because they rest on
   vendor code.
 
-## Stage 1: VDEC resource probe (built 2026-11-11, not yet run)
+## Stage 1: VDEC resource probe (built and run 2026-11-11, V7)
 
 **Package.** The build ran on the `buildbox` alias, chosen by the owner
 because buildbox-1 to -3 were unreachable from the laptop.
@@ -538,6 +538,58 @@ Steps:
 *Risks:* VDEC is a hardware child of MM, which genpd does not model; the
 probe relies on MM being on, as it is whenever the display runs. The VDECSYS
 driver's own registration is the first VDEC power cycle on mainline.
+
+**V7 result (2026-11-11).** The device custodian ran it on station-work-101:
+boot2 image from main `ac39772d` (which contains `6ee24da5`), card 32, boot
+`0bad0df9`. The two modules were taken from that package with the same
+hashes as above (`307ea6d8`, `7fea7bb1`). Private evidence:
+`artifacts/card-32/v7-step4.txt` and `dmesg-0bad0df9-after-v7.txt`.
+
+- **Domain registration:** at boot the `vdec` domain registered and stayed
+  `off-0`.
+- **Clock driver:** loading `clk-mt6797-vdec` probed VDECSYS in about 1 ms,
+  and the domain was `off-0` afterwards.
+- **Probe, both loads:** each load reported `vdec clock 338000000 Hz, larb
+  clock 325000000 Hz`, then `VDEC domain on`. Interrupt 246 (SPI 240) fired 0
+  times in 100 ms. The domain was released and back to `off-0`. Each probe
+  took about 105 ms. Both loads read identical values:
+
+  | Register | Value | Reading |
+  | --- | --- | --- |
+  | VDECSYS `+0x00` | `0x111` | core, active and engine clock enables set |
+  | VDECSYS `+0x08` | `0x1` | LARB1 clock enable set |
+  | VDECSYS `+0x10`, `+0x14` | `0x1`, `0x1` | sub-system and larb out of reset |
+  | VDECSYS `+0x18` | `0x10` | DCM control |
+  | VDECSYS `+0x1C` | `0x0aaaaaaa` | SRAM configuration |
+  | VDEC_MISC `+0x84` | `0x0` | clock select at reset value; the vendor programs it |
+  | VDEC_MISC `+0xA4` | `0x0` | no interrupt pending |
+  | VDEC_MISC `+0xC8`, `+0xCC`, `+0x178` | `0xffffffff` each | every sub-module power-down bit set, the reset state the specification describes |
+
+- **No faults:** no hang, and no new display-driver errors. Only
+  `swiotlb`-full lines appeared, and they predate the test. The session
+  stayed active.
+
+**Open:**
+
+- **VDEC clock state after the domain powered off:** the clock summary read
+  after the clock driver loaded showed `vdec_sel` enabled once and
+  `vdec_larb1_cken` hardware-on, while the domain read `off-0`. That read
+  probably caught the clock driver's asynchronous runtime-PM release. An idle
+  re-read is requested.
+- **Panel:** the owner's visual check of the panel during the loads is
+  pending.
+
+**Analysis.** The resource description holds on mainline:
+
+- the VDEC domain powers on and off through genpd with MM unmodelled;
+- the two gates and the register windows are where the DT says;
+- the decoder interrupt is quiet at power-on;
+- the registers come up in the documented reset state: everything out of
+  reset, sub-modules powered down.
+
+Stage 3, a decoder prototype, can build on this. The registers the vendor
+programs before decoding (the clock select and power-down masks) start from
+known values.
 
 ## Follow-up
 
