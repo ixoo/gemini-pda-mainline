@@ -290,6 +290,56 @@ Two explanations, which need opposite fixes:
     different instantaneous current sample, not because of the table or the resistance.
   - 0710's windowed current and 0711's counting remove that jumping.
 
+**T1 completed, same boot `d41819cc…`, light load** (private output
+`artifacts/card-31-audio/fuel-gauge-t1b.txt`):
+- **The gauge stopped measuring after a charger plug/unplug on this boot.**
+  - At 621-630 s, before any plug, it measured 0.6-1.3 A.
+  - The owner plugged in at about 830 s and unplugged at about 840 s.
+  - From 849 to 913 s, unplugged: `charge_counter` moved one step, and `current_now` read
+    0-1.5 mA.
+  - The backlight from 0 to 512 dropped the voltage by about 40 mV (about 0.2 A at 0.2 Ω), with
+    no change in the current read.
+- **The FGADC kept converting.**
+  - `FG_NTER` (`CON4`-`CON6`, conversions since boot) rose at about 16 per second, so it was
+    not reset.
+  - The full-resolution counter integrated about 1 mA over 61 s.
+  - `CON17` (`FG_CIC2`) moved from −87 to −1.
+- **The front end sees almost no voltage across the sense resistor.**
+- **Configuration was unchanged across the event:**
+  - `CON0` `0x0029`, `CON15` `0x0008`, `CON16` `0x1000`, `TOP_CKPDN_CON2` `0x3070`;
+  - `FG_GAIN` (`CON27`) `0x0400`;
+  - `FG_OFFSET` and `FG_ADJUST_OFFSET_VALUE` `0x0000` in both dumps.
+
+  Since this boot measured correctly before the plug with the same zero offset, `FG_OFFSET`
+  is not the trigger.
+- **Gemian's charger-detect handler does nothing to the FGADC.** `chrdet_int_handler` pulses
+  `RG_USBDL_RST` and runs the charger task. The fault is in what mainline does, or fails to
+  restore, around a plug or unplug: a PMIC rail, a USB PHY or gadget step, or the bq25890 path.
+  The datasheet gives the FG a 2.8 V supply without naming the rail.
+- **Consequence for 0710-0711:** with the front end blind, the counter is blind too, so neither
+  patch helps in this state. The charging session's bounded late-limit case applies.
+
+### T4: what a plug/unplug changes (read-only request)
+
+- **Hypothesis:** a PMIC register (an LDO, a USB or charger-detect control) or a bq25890 setting
+  changes on the plug/unplug, and the FG front end then reads near zero.
+- **Procedure:**
+  1. Fresh station boot, unplugged, light load. Check that the gauge measures: `current_now`
+     at tens to hundreds of mA, and `charge_counter` falling across 3 samples 10 s apart.
+  2. Take a full PMIC regmap dump (A) and the bq25890 registers through the charging session's
+     read-only method.
+  3. Plug the same cable and port for 15 s; note whether USB enumerates. Unplug.
+  4. Repeat the check from step 1. If the gauge is blind, take dump B and the bq25890
+     registers again.
+  5. Plug in again for 15 s, unplug, check once more: does a second event restore it?
+- **Writes:** none. Plugging and unplugging is the owner's action.
+- **Decision:**
+  - The A/B diff names the registers that changed; each is traced to the driver that wrote it.
+  - With no PMIC or bq25890 difference, the change is outside these registers: the board path or
+    the USB PHY side.
+  - If the gauge still measures after step 3, repeat with the other port type (computer or wall).
+- **Stops:** voltage under 3.65 V; any PMIC read error.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
