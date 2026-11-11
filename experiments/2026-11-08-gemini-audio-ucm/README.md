@@ -163,6 +163,13 @@ Then YouTube through PipeWire on the same boot: at the old sink 0.35 it was now 
 at 0.60 and the owner adjusting the browser and the output slider: "all works", with no clipping reported.
 A microphone capture through PipeWire was not run, since this card has no PipeWire source yet.
 
+On card-32 with gemini-base and station-work-101, the custodian found WirePlumber showing only "Dummy
+Output". ACP opens capture PCM 3 to probe the profile before it enables the Mic device; with the UL1 route
+off, the front end has no backend ("no backend DAIs enabled for Capture_1"), the open fails with EINVAL and
+both HiFi profiles are dropped. With the two `UL1_CH* ADDA_UL_CH*` switches moved into the verb, Speaker and
+Mic appeared. The profile now does that. The switches are DAPM routing: with the microphone pins off, they
+power nothing.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
