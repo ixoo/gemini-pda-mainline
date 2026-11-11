@@ -284,12 +284,11 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
    `integral_cutoff`. The script refuses any other name and reads each back.
    With `IPA_WEIGHTS` it also writes every `cdevN_weight` of the zone (the
    listed cooling-device type's value, 1024 for the others) and reads each back.
-8. In images from `f8a599c4` on (`0700`), every `clk-mt6797-mcusys` transaction,
-   A53 changes included, also takes the firmware's A72 semaphore. The order is
-   CSPM `0x11015440` ← `1` (semaphore 3, A53 cpufreq item 2), then
-   `0x11015448` ← `1`. Release is `0x11015448` ← `1`, then `0x11015440` ← `1`.
-   The firmware's CPU_ON path for the A72 cluster holds the same semaphore, so
-   an A53 rate change can no longer overlap it.
+8. Withdrawn. `0700` added a second CSPM write, `0x11015448`. `0e90a668` removed
+   it: `0x11015440`, `0x444` and `0x448` are master ports 0-2 of the same
+   semaphore 3, so holding port 0 (item 2) already excludes the firmware's A72
+   path. With `0700` on station-work-101, every MCUMIXED transaction timed out.
+   Images from `0e90a668` on write only `0x11015440`.
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
