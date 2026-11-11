@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-10-gemini-gnss-daemon` |
-| Status | `running`: the daemon, its unit and package spec pass offline tests against retained captures; it has not run on the device |
+| Status | `running`: the daemon feeds gpsd and GeoClue with standard NMEA; it passes offline tests against retained captures, with real gpsd and GeoClue in the dev VM; it has not run on the device |
 | Subsystem | GNSS userspace, `gnss-mt6797`, gpsd |
 | Device variant | Gemini PDA (MT6797X), Arch card root |
 | Date(s) | 2026-11-10 |
@@ -16,6 +16,11 @@
 
 The owner asked: "Do we have the gnss userland to produce a fix and position? If not can we write
 it and package it for arch on the sdcard?"
+
+A later requirement, also in the owner's words: "It needs to be done in a standard way for all
+software that require a position to be able to use it." So the daemon produces only standard NMEA
+0183, and applications reach it through gpsd (libgps clients) and GeoClue (desktop applications and
+browsers). There is no Gemini-specific client interface.
 
 Nothing did. With [0636](../../patches/proposals/0636-gnss-mt6797-boot-the-DSP-from-its-firmware-file.patch),
 opening `/dev/gnss0` boots the DSP, and
@@ -37,13 +42,39 @@ facts in [the driver notes](../../docs/hardware/gemini-gnss-driver.md); it conta
   clock by least squares, with Earth rotation, satellite clock, relativity and group delay.
 - **Orbits:** decodes GPS subframes 1 to 3 from `0xFE2B` with LNAV parity, and keeps an ephemeris
   when its issue numbers agree. It needs no network and no assistance.
-- **Output:** NMEA `GGA`, `GSA`, `RMC` and `GSV` once a second, to a pty linked at
-  `/run/gnss-mt6797/nmea`. Without a fix it still writes `GGA`, `RMC` and `GSV`, marked invalid.
+- **Output:** NMEA `GGA`, `GSA`, `RMC` and `GSV` once a second, to two places. Without a fix it
+  still writes `GGA`, `RMC` and `GSV`, marked invalid.
+  - `/run/gnss-mt6797/nmea`, a link to a pty, for gpsd. gpsd drops root before it opens a device
+    added later, so the pty goes to gpsd's group, `uucp` on Arch, mode 0660.
+  - `/run/gnss-mt6797/nmea.sock`, a Unix socket that sends every client the same sentences, for
+    GeoClue's NMEA source. It goes to group `geoclue`, which GeoClue runs as, mode 0660.
 - **Records:** `--record FILE` keeps both directions in the `frames.log` format; `--replay FILE`
   decodes one and prints NMEA.
-- [gnss-mt6797.service](gnss-mt6797.service) loads the module, runs the daemon and hands the pty to a
-  running gpsd. It is not enabled: starting it switches the GPS radio on.
-- [PKGBUILD](PKGBUILD) packages both, for the Arch root to build next to `gemini-base`.
+- [gnss-mt6797.service](gnss-mt6797.service) loads the module, runs the daemon and adds the pty to
+  gpsd with `gpsdctl` through `/run/gpsd.sock`, which `gpsd.socket` provides. It is not enabled:
+  starting it switches the GPS radio on.
+- [geoclue-gnss-mt6797.conf](geoclue-gnss-mt6797.conf), installed as
+  `/etc/geoclue/conf.d/90-gnss-mt6797.conf`, points GeoClue's `[network-nmea]` source at the socket.
+- [PKGBUILD](PKGBUILD) packages all three, depending on `gpsd` and `geoclue`, for the Arch root to
+  build next to `gemini-base`.
+
+## gpsd and GeoClue on Arch
+
+Read from GeoClue 2.8.2's source and Arch's gpsd 3.27.5 packaging; Arch Linux ARM ships the same
+GeoClue version.
+
+- **GeoClue:** `nmea-socket=PATH` in `[network-nmea]`, with `enable=true`, adds a local socket as
+  an NMEA service next to any found through Avahi. Drop-in files in `/etc/geoclue/conf.d/` override
+  `geoclue.conf`, in name order. GeoClue connects as a client; when the socket is absent or closes,
+  it marks the service broken and retries all of them every 5 s. It reads `GGA` (ignored without a
+  fix; accuracy from HDOP) and `RMC` (ignored unless status `A`), and reports this source at
+  accuracy level `EXACT`.
+- **GeoClue agent:** GeoClue answers an application only after an agent in the user's session
+  authorises it; with no agent, a client waits. The Arch package installs its demo agent as an XDG
+  autostart entry, so the card's session has to start XDG autostart entries or the agent itself.
+- **gpsd:** Arch builds it with group `uucp`, installs `gpsd.socket`, `gpsd.service` and
+  `/etc/default/gpsd` with no devices, and `gpsdctl` adds a device through the control socket.
+  `gpsd.socket` has to be enabled.
 
 **Limitations:**
 - GPS only: GLONASS and BeiDou records are tracked and listed but not used for position.
@@ -79,12 +110,29 @@ GPS+GLONASS solutions from the broadcast orbit file, and 10 to 11 m higher, whic
 atmospheric corrections. Its horizontal scatter is 2.8 m at p50, 5.5 m at p90 and 8 m at p99. These
 are the same counts as the earlier private solver it was rewritten from.
 
+The live-loop check also confirms the socket carries exactly the bytes the pty does.
+
 **gpsd:** step 6's NMEA through a pty into gpsd 3.25 in the dev VM gave 293 TPV reports in mode 3,
 with position, and 221 SKY reports. Ubuntu's AppArmor profile stops gpsd opening a pty, so that
 test ran a copy of the binary outside the profiled path; Arch has no such profile.
 
-**Not tested:** anything on the device; the card's Python; the search list's effect on acquisition;
-gpsd on Arch.
+**GeoClue:** in the dev VM, GeoClue 2.7.0 with this drop-in, the daemon driven by a fake device
+playing step 6, and GeoClue's demo agent and `where-am-i` client (accuracy level 8): 406 locations,
+each described "GPS GGA" with an accuracy from HDOP. Socket and pty were created with the
+intended groups and modes. Without an agent, `where-am-i` waited and timed out, as above.
+
+**Not tested:** anything on the device; the card's Python, gpsd and GeoClue; `gpsdctl` through
+`gpsd.socket`; the search list's effect on acquisition.
+
+## How each path gets tested on the device
+
+Once the card has the package, in the one approved open-sky run:
+- **gpsd:** with `gpsd.socket` enabled, start `gnss-mt6797.service`; `gpspipe -w` must show the
+  device added and `TPV` in mode 3, and `cgps` must show the same satellites as the daemon's `GSV`.
+- **GeoClue:** in the same run, a GeoClue client in the owner's session, `where-am-i` or GNOME Maps
+  or Firefox's location prompt, must get a location described "GPS GGA" with accuracy of a few
+  metres, while Wi-Fi location is unavailable or worse.
+- Record only counts, modes, accuracies and descriptions; positions stay private.
 
 ## Device test, when proposed
 

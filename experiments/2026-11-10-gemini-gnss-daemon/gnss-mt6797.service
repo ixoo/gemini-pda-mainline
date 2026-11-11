@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 # The Gemini PDA's GNSS receiver. Not enabled: starting it switches the GPS radio on,
 # so it runs only when started, for example with "systemctl start gnss-mt6797".
-# NMEA appears at /run/gnss-mt6797/nmea, a pty gpsd or any NMEA reader can open.
+# NMEA appears at /run/gnss-mt6797/nmea, a pty that gpsd reads, and at
+# /run/gnss-mt6797/nmea.sock, the socket GeoClue's NMEA source reads.
 [Unit]
 Description=MT6797 GNSS receiver (switches the GPS radio on)
 Documentation=https://github.com/ixoo/gemini-pda-mainline/tree/main/experiments/2026-11-10-gemini-gnss-daemon
@@ -9,13 +10,13 @@ Documentation=https://github.com/ixoo/gemini-pda-mainline/tree/main/experiments/
 [Service]
 ExecStartPre=/usr/bin/modprobe gnss-mt6797
 ExecStart=/usr/bin/gnss-mt6797d
-# Hand the pty to a running gpsd; harmless when gpsd is absent.
-ExecStartPost=-/bin/sh -c 'sleep 1; [ -x /usr/bin/gpsdctl ] && /usr/bin/gpsdctl add /run/gnss-mt6797/nmea'
-ExecStopPost=-/bin/sh -c '[ -x /usr/bin/gpsdctl ] && /usr/bin/gpsdctl remove /run/gnss-mt6797/nmea'
+# Hand the pty to gpsd through its control socket, which gpsd.socket provides and which starts
+# gpsd on demand. Without that socket, gpsd is left alone.
+ExecStartPost=-/bin/sh -c 'sleep 1; [ -S /run/gpsd.sock ] && /usr/bin/gpsdctl add /run/gnss-mt6797/nmea'
+ExecStopPost=-/bin/sh -c '[ -S /run/gpsd.sock ] && /usr/bin/gpsdctl remove /run/gnss-mt6797/nmea'
 RuntimeDirectory=gnss-mt6797
 Restart=no
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
-PrivateNetwork=yes

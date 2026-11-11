@@ -5,10 +5,10 @@
 gnss-mt6797 boots the DSP when the device opens. This sends the setup frames,
 feeds the DSP each second, decodes its measurements and GPS navigation data,
 solves a GPS position, and writes NMEA to a pty that gpsd or any NMEA reader can
-open. Written from this project's protocol notes (docs/hardware/gemini-gnss-driver.md);
+open, and to a Unix socket GeoClue's NMEA source connects to. Written from this project's protocol notes (docs/hardware/gemini-gnss-driver.md);
 it contains no vendor code.
 
-usage: gnss-mt6797d [--device DEV] [--link PATH] [--record FILE]
+usage: gnss-mt6797d [--device DEV] [--link PATH] [--socket PATH] [--record FILE]
        gnss-mt6797d --replay FILE      decode a recorded session, NMEA to stdout
 
 Opening the device starts the receiver, which is a radio action. The record file
@@ -16,11 +16,13 @@ and the NMEA hold position: keep them private.
 """
 
 import argparse
+import grp
 import math
 import os
 import pty
 import select
 import signal
+import socket
 import statistics
 import sys
 import time
@@ -484,11 +486,23 @@ def replay(path):
     return 0
 
 
+def give(path, group, mode):
+    """Hand path to group, when it exists and this runs as root, with mode."""
+    try:
+        if os.geteuid() == 0:
+            os.chown(path, -1, grp.getgrnam(group).gr_gid)
+    except KeyError:
+        pass
+    os.chmod(path, mode)
+
+
 def open_link(path):
-    """A pty whose slave gpsd or any reader opens through the symlink path."""
+    """A pty whose slave gpsd or any reader opens through the symlink path. gpsd drops
+    root before it opens a device added later, so the slave goes to its group, uucp on Arch."""
     master, slave = pty.openpty()
     tty.setraw(slave)
     name = os.ttyname(slave)
+    give(name, "uucp", 0o660)
     tmp = path + ".new"
     try:
         os.unlink(tmp)
@@ -500,13 +514,57 @@ def open_link(path):
     return master, slave
 
 
+class Listeners:
+    """A Unix socket that sends each second's NMEA to every client, as GeoClue's NMEA source
+    expects (nmea-socket in its [network-nmea] section). GeoClue runs as user geoclue."""
+
+    def __init__(self, path):
+        self.path = path
+        self.clients = []
+        try:
+            os.unlink(path)
+        except FileNotFoundError:
+            pass
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(path)
+        give(path, "geoclue", 0o660)
+        self.server.listen(4)
+        self.server.setblocking(False)
+
+    def accept(self):
+        try:
+            while True:
+                client, _ = self.server.accept()
+                client.setblocking(False)
+                self.clients.append(client)
+        except BlockingIOError:
+            pass
+
+    def send(self, data):
+        for client in list(self.clients):
+            try:
+                client.sendall(data)
+            except OSError:          # gone, or too slow to keep up: drop it
+                client.close()
+                self.clients.remove(client)
+
+    def close(self):
+        for client in self.clients:
+            client.close()
+        self.server.close()
+        try:
+            os.unlink(self.path)
+        except FileNotFoundError:
+            pass
+
+
 def write_all(fd, data):
     while data:
         n = os.write(fd, data)
         data = data[n:]
 
 
-def run(device, link, record_path):
+def run(device, link, socket_path, record_path):
     stopping = []
     signal.signal(signal.SIGTERM, lambda *_: stopping.append(1))
     signal.signal(signal.SIGINT, lambda *_: stopping.append(1))
@@ -516,11 +574,13 @@ def run(device, link, record_path):
             break
         time.sleep(0.1)
     master, slave = open_link(link)
+    listeners = Listeners(socket_path)
     fd = os.open(device, os.O_RDWR)          # boots the DSP, or fails
     print("device open, DSP booted; NMEA at %s" % link, flush=True)
     deframer, navigator = Deframer(), Navigator()
     poller = select.poll()
     poller.register(fd, select.POLLIN)
+    poller.register(listeners.server.fileno(), select.POLLIN)
     status = 0
     try:
         for item in SETUP:
@@ -539,7 +599,10 @@ def run(device, link, record_path):
                 first = False
                 millis = (millis + 1000) & 0xFFFF
                 next_tick += 1
-            for _ in poller.poll(max(10, int((next_tick - time.monotonic()) * 1000))):
+            for ready, _ in poller.poll(max(10, int((next_tick - time.monotonic()) * 1000))):
+                if ready != fd:
+                    listeners.accept()
+                    continue
                 data = os.read(fd, 4096)
                 record("R", data)
                 for ident, payload in deframer.feed(data):
@@ -549,10 +612,12 @@ def run(device, link, record_path):
                         if report["fix"] and not fixes:
                             print("first fix", flush=True)
                         fixes += report["fix"] is not None
+                        text = nmea(report, navigator, time.time()).encode()
                         try:
-                            os.write(master, nmea(report, navigator, time.time()).encode())
+                            os.write(master, text)
                         except BlockingIOError:
                             pass        # no reader is draining the pty
+                        listeners.send(text)
             if time.monotonic() - last_frame > 10 and time.monotonic() - start > 30:
                 print("DSP silent for 10 s", flush=True)
                 status = 5
@@ -564,6 +629,7 @@ def run(device, link, record_path):
         os.close(fd)
         os.close(slave)
         os.close(master)
+        listeners.close()
         if os.path.islink(link):
             os.unlink(link)
         print("stopped, %d fixes, %d bad frames" % (fixes, deframer.bad), flush=True)
@@ -574,12 +640,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--device", default="/dev/gnss0")
     parser.add_argument("--link", default="/run/gnss-mt6797/nmea")
+    parser.add_argument("--socket", default="/run/gnss-mt6797/nmea.sock")
     parser.add_argument("--record")
     parser.add_argument("--replay")
     args = parser.parse_args()
     if args.replay:
         return replay(args.replay)
-    return run(args.device, args.link, args.record)
+    return run(args.device, args.link, args.socket, args.record)
 
 
 if __name__ == "__main__":

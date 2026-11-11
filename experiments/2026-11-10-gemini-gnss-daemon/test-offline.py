@@ -14,6 +14,7 @@ import importlib.machinery
 import importlib.util
 import os
 import pty
+import socket
 import signal
 import subprocess
 import sys
@@ -85,7 +86,7 @@ tty.setraw(dev)
 tty.setraw(fake)
 link = os.path.join(os.environ.get("TMPDIR", "/tmp"), "gnss-test-nmea-%d" % os.getpid())
 proc = subprocess.Popen([sys.executable, "-I", os.path.join(HERE, "gnss-mt6797d"), "--device", os.ttyname(dev),
-                         "--link", link], stdout=subprocess.PIPE, text=True,
+                         "--link", link, "--socket", link + ".sock"], stdout=subprocess.PIPE, text=True,
                         env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
 for _ in range(50):
     if os.path.islink(link):
@@ -93,6 +94,10 @@ for _ in range(50):
     time.sleep(0.1)
 reader = os.open(link, os.O_RDONLY | os.O_NONBLOCK)
 tty.setraw(reader)
+sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+sock.connect(link + ".sock")
+sock.setblocking(False)
+from_socket = bytearray()
 received = bytearray()
 nmea = bytearray()
 os.set_blocking(fake, False)
@@ -104,6 +109,10 @@ def drain():
             buf += os.read(fd, 65536)
         except BlockingIOError:
             pass
+    try:
+        from_socket.extend(sock.recv(65536))
+    except BlockingIOError:
+        pass
 
 
 for _, b in lines(sys.argv[2], "R"):
@@ -130,8 +139,10 @@ check("live loop sent the setup", [f for f in sent if f[0] == 0xFE05][:8] ==
 check("live loop sent per-second frames", sum(f[0] == 0xFE00 for f in sent) >= 2)
 check("live loop sent stop last", sent[-1:] == [(0xFE05, b"\x04\x00")])
 check("live loop wrote fixes to the pty", fixes > 100, "%d GGA fixes" % fixes)
+check("the socket got the same NMEA as the pty", len(from_socket) > 0 and bytes(from_socket) == bytes(nmea),
+      "%d and %d bytes" % (len(from_socket), len(nmea)))
 check("checksums of every sentence", all(
     "%02X" % eval("0" + "".join("^%d" % ord(c) for c in l[1:l.index("*")])) == l[l.index("*") + 1:l.index("*") + 3]
     for l in text.splitlines() if l.startswith("$") and "*" in l))
-check("daemon exited 0 and removed its link", proc.returncode == 0 and not os.path.lexists(link), out.strip().splitlines()[-1:])
+check("daemon exited 0 and removed its link and socket", proc.returncode == 0 and not os.path.lexists(link) and not os.path.lexists(link + ".sock"), out.strip().splitlines()[-1:])
 sys.exit(1 if failed else 0)
