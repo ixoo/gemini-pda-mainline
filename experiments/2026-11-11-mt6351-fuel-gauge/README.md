@@ -745,6 +745,24 @@ on top of 0736, keeps the full charge at or below the design:
   another card or scale is now held at the design, or refused if above 110 %.
 - Compiled at W=1 and checkpatch clean; not on a device.
 
+## Station-work-109 (0736, 0737, gemini-base 47), boot `359475be…`
+
+From the custodian. Charging from a computer's charging port at 1.5 A, limit 100.
+- **V14/V21 pass:**
+  - `charge_full` = `charge_full_design` = `charge_now` = 3969240, `capacity` 100, UPower
+    health 100 %;
+  - the legacy file (4268000) converted, and now reads `3969240 3969240`.
+- **V19 pass:** 4200000 reads back as 3969240.
+- **V20 pass:** 5000000 gives `ERANGE` and changes nothing.
+- **V17 pass:** 3800000 reads back 3799999 and UPower shows 95.7 % health; 1900000 gives
+  `ERANGE`; the restore to 3969240 was saved.
+- **No warning or Oops;** the kernel is not tainted.
+- **Pending:** V15, V16, V18 and V22, which need a charge to the end, an unplug or the 80 %
+  limit.
+- **Known:** the write converts to the table scale rounding down, so a value that is saved and
+  restored loses 1 µAh per boot (3800000 → 3799999). That is negligible. A round-up in
+  `set_property` would make it exact, and is left for the next driver change.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
