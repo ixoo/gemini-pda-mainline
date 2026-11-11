@@ -1,0 +1,43 @@
+From b167f6b90c4ce0b8d063a5d296c6e9aa99e9e3b1 Mon Sep 17 00:00:00 2001
+From: VM build <vm@localhost>
+Date: Wed, 11 Nov 2026 17:34:25 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: fix the VP9 reference bounds
+
+The per-reference bound registers take the height in their low half and
+the width in their high half. With the halves swapped the hardware
+clamped motion-compensated reads at a width equal to the frame height,
+so on hardware every inter frame went wrong from x = height to the right
+edge, and everywhere on frames wider than tall by a large margin.
+
+Restore the mode-info size register to rows low, columns high: swapping
+it in the previous change had no effect on the output, and this order
+matches the other size registers.
+---
+ .../media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c    | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+index 22a371635..d6a6d9cf0 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+@@ -981,14 +981,15 @@ static void vp9_write_pic(struct mvdec_ctx *ctx, const struct vp9_pic *p)
+ 	}
+ 	if (!p->key) {
+ 		mvdec_write(vdev, MVDEC_MC + 0xd80, 0);		/* no scaling */
++		/* Reference bounds: height in the low half, width in the high. */
+ 		for (i = 0; i < 3; i++) {
+-			mvdec_write(vdev, MVDEC_MC + 0xd4c + 4 * i, p->w | p->h << 16);
++			mvdec_write(vdev, MVDEC_MC + 0xd4c + 4 * i, p->h | p->w << 16);
+ 			mvdec_write(vdev, MVDEC_MC + 0xd70 + 4 * i, p->pitch >> 4);
+ 		}
+ 		/* Largest reference block, unscaled, for each reference. */
+ 		mvdec_write(vdev, MVDEC_MC + 0xd7c, 0x07770777);
+ 	}
+-	mvdec_write(vdev, MVDEC_MC + 0xd88, p->mi_cols | p->mi_rows << 16);
++	mvdec_write(vdev, MVDEC_MC + 0xd88, p->mi_rows | p->mi_cols << 16);
+ 
+ 	mvdec_write(vdev, MVDEC_MC + 0x220, 1);
+ 	mvdec_write(vdev, MVDEC_MC + 0x224, p->cur_y >> 9);
+-- 
+2.43.0
+

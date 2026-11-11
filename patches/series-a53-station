@@ -904,3 +904,4 @@ proposals/0736-power-supply-mt6351-fuel-gauge-report-a-finished-cha.patch
 proposals/0737-power-supply-mt6351-fuel-gauge-keep-the-full-charge-.patch
 proposals/0738-media-mediatek-mt6797-vdec-fix-VP9-inter-frames.patch
 proposals/0739-arm64-dts-mediatek-gemini-station-read-the-board-temp.patch
+proposals/0740-media-mediatek-mt6797-vdec-fix-the-VP9-reference-bou.patch

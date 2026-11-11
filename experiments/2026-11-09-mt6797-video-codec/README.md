@@ -964,7 +964,7 @@ Untested: long-term references, explicit B weights, memory-management
 operations, POC type 1, interlaced streams (rejected), real-world streams,
 larger sizes, sustained playback and power.
 
-## Stage 3d: VP9 in the same driver (V13: key frames exact, inter fix pending)
+## Stage 3d: VP9 in the same driver (V14: compound fixed, reference-bounds fix pending)
 
 [Patch 0733](../../patches/proposals/0733-media-mediatek-mt6797-vdec-add-VP9-decoding.patch)
 adds VP9 profile 0 (8-bit 4:2:0) through the V4L2 stateless VP9 API:
@@ -1034,7 +1034,8 @@ compressed-header parse, probability SRAM loading and tile words all work.
 - **`MC+0xD88`.** Errors that start at a width equal to the frame height
   mean the hardware clamps reference reads with width and height swapped.
   `MC+0xD88` takes `mi_cols` in its low half, as note 30 had it, and the
-  decompile reading was wrong [I, strong]. In `tiles` (1024x192) the swap
+  decompile reading was wrong [I, strong]. *V14 disproved this: swapping
+  `MC+0xD88` changed nothing; the swapped register was `MC+0xD4C`.* In `tiles` (1024x192) the swap
   also corrupts motion-vector candidates near the false edge, which would
   explain errors everywhere [I].
 - **`compound`.** The driver rejected each frame whose compressed header
@@ -1048,7 +1049,40 @@ swaps the `MC+0xD88` halves and takes `reference_mode` from the bitstream.
 The C port and the model, now fed `reference_mode = 0` as GStreamer sends
 it, still agree on 105/105 frames.
 
-**Next device run (V14).** Repeat V13 with 0738.
+### V14 result
+
+*Run.* Station-work-109 (boot2 `c103dd89`, main `e30efd47`, `Image.gz`
+`3c2a5d04…`, identical to the `3c9bb730` build), boot `359475be`.
+`mt6797-vdec.ko` `f13ffe69…`; the other modules are unchanged. Evidence
+(private): `artifacts/card-32/v14-*`.
+
+*Observed:*
+
+- `compound` now raised 43 interrupts, one per decoded frame, and its output
+  changed.
+- `vp9`, `lossless`, `tiles` and `feat` came out **byte-identical to V13**.
+- No errors, timeouts or rejections; H.264 and HEVC regressions unchanged;
+  afterwards the domain was off.
+
+*Result.* Taking `reference_mode` from the bitstream fixed the rejections.
+The `MC+0xD88` swap had no effect, so that diagnosis was wrong. `compound`
+still matches only its key frame; its inter-frame errors start near x = 217
+on frame 1.
+
+*Analysis.* The vendor writes each reference's bounds to `MC+0xD4C + 4i` as
+field `+0x68` in the low half and field `+0x64` in the high half. The same
+code derives the reference pitch from `+0x64`, so `+0x64` is the width, and
+the register takes the **height low and the width high** [O in the
+decompile]. The driver wrote `w | h << 16`. The hardware therefore clamped
+reference reads at x = height. That matches `vp9` (288) and `feat` (360). In
+`tiles` (1024x192) and `compound` (320x240), most motion-compensated reads
+cross that false edge.
+
+[Patch 0740](../../patches/proposals/0740-media-mediatek-mt6797-vdec-fix-the-VP9-reference-bou.patch)
+writes `h | w << 16` and restores `MC+0xD88` to the decompile's order, rows
+low, which matches. The C port and the model still agree on 105/105 frames.
+
+**Next device run (V15).** Repeat V14 with 0740.
 
 ## Follow-up
 
