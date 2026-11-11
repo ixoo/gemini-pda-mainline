@@ -395,6 +395,58 @@ in the container, rerun the two HEVC clips for a register trace, and
 diagnose the VP9 and VP8 failures statically first. An H.264 trace needs a
 small harness, since `mfv_ut` has no plain H.264 test.
 
+## V6: HEVC register traces and a decoded frame (2026-11-11)
+
+**What ran.** The device custodian ran this on Gemian boot `2487bfc8`
+(`3.18.41+`), at the owner's choice. All changes stayed inside the container.
+
+- **Earlier diagnosis:** before the run, static analysis had settled two V5
+  failures.
+  - `mfv_ut`'s VP9 and VP8 tests query the decoder with a 0x0 picture size,
+    which this vendor library always refuses, so `mfv_ut` cannot test those
+    codecs.
+  - The HEVC test writes decoded output only when its golden-reference check
+    fails.
+- **Trace path:** the container's `/storage` is a tmpfs, and
+  `/storage/self/primary` was a dangling symlink. Creating its target gave
+  the vendor trace file somewhere to go.
+- **Runs:** the two V5 HEVC clips decoded again with the trace on. One more
+  run used the golden check with a missing reference, to dump frame 0.
+- **Order:** the dump ran first, because the first attempt to create the
+  directory failed for want of `PATH`; the traces were run after it.
+
+**Observed:**
+
+- **Traces:** about 13,400 register accesses for the single-slice clip and
+  14,400 for the four-slice clip, over 30 pictures each.
+- **One start per picture:** both traces contain exactly one decoder start
+  per picture. A four-slice picture adds only three extra iterations of the
+  decoder's hardware start-code scan, which locates the later slices; they are
+  never programmed separately. The VDEC interrupt count rose by 30 per clip.
+- **Coverage:** every register the vendor library wrote falls on a register
+  or register array that the earlier static analysis had already described,
+  and the constant values agree with it.
+- **Frame 0:** the dump is bit-exact with the ffmpeg software decode of
+  frame 0 when read as MediaTek's MM21 layout: 16x32 luma tiles, 16x16
+  interleaved-chroma tiles, a separate chroma buffer, the 384x320 allocation
+  cropped to 352x288. Reading it as linear NV12 does not match.
+- **Device state:** no fault; SoC 28.4 → 30.5 °C; each run took under a
+  second.
+
+**Analysis.**
+
+- **Driver mode settled:** the hardware decodes every slice of a picture
+  from a single start, so a V4L2 stateless driver can work frame by frame. It
+  takes the whole access unit plus the first slice's parameters, and positions
+  the decoder's bit reader at the first slice header, as the vendor code does.
+- **Output format settled:** `V4L2_PIX_FMT_MM21` exactly. A VA-API backend or
+  MDP has to detile it to NV12 for the browser and GPU.
+- **Prototype order:** the static HEVC register contract is now confirmed
+  against a real decode, with no unknown registers left for this clip type.
+  An HEVC-first prototype is therefore at least as well grounded as H.264.
+  The register-level traces and contract stay private, because they rest on
+  vendor code.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).

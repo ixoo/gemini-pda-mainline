@@ -37,7 +37,12 @@ and register table (part 2, sections 4.7 and 4.8; part 1, TOPRGU).
   from VDECPLL; `venc_sel`, `mjc_sel` and `mm_sel` at 325 MHz.
 - Linux interrupt numbers under Gemian: GIC 272 (VDEC), 267 (VENC), 275 (MJC).
   The vendor HEVC decode raised one VDEC interrupt per picture for both
-  single-slice and four-slice pictures.
+  single-slice and four-slice pictures, and its register trace shows one
+  decoder start per picture.
+- Decoder output is MediaTek MM21 (`V4L2_PIX_FMT_MM21`): 16x32 luma tiles,
+  16x16 interleaved-CbCr tiles, chroma in a separate buffer. This is
+  bit-exact with a software decode of the same frame
+  ([V6](../../experiments/2026-11-09-mt6797-video-codec/README.md#v6-hevc-register-traces-and-a-decoded-frame-2026-11-11)).
 
 Open: which of `venc_0` and `venc_1` clocks larb3 (vendor references
 disagree); whether VENC and MJC SRAM power up without their muxes running.
