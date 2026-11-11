@@ -900,3 +900,4 @@ proposals/0732-power-supply-mt6351-fuel-gauge-learn-the-full-charge.patch
 proposals/0733-media-mediatek-mt6797-vdec-add-VP9-decoding.patch
 proposals/0734-power-supply-mt6351-fuel-gauge-learn-from-light-stea.patch
 proposals/0735-power-supply-mt6351-fuel-gauge-correct-the-capacity-.patch
+proposals/0736-power-supply-mt6351-fuel-gauge-report-a-finished-cha.patch

@@ -663,6 +663,31 @@ on top of 0734.
 Option 2 is recommended (inference): a phone that never shows 100 % after charging looks broken,
 and the usable charge is what the time estimates should use.
 
+**Owner decision (2026-11-11, through the custodian):** "Charger finished = 100 %".
+
+**Built:** [0736](../../patches/proposals/0736-power-supply-mt6351-fuel-gauge-report-a-finished-cha.patch),
+on top of 0735.
+- **Scale:** `capacity`, `charge_now`, `charge_full` and `charge_full_design` are reported
+  against the usable charge, a fixed 93 % of the table's. That is the measured 92 % rest after
+  termination, with a point of margin.
+- **Why it is fixed rather than learned per boot:** a saved and restored `charge_full` must mean
+  the same on every boot. A scale learned per boot would make the value drift by about 1 % per
+  boot.
+- **A finished charge:**
+  - a 5-minute rest on the charger after a taper reading (0735) counts from 100 % of the usable
+    charge, and the OCV re-readings are held off for the rest of that rest;
+  - a discharge clears the taper mark.
+- **Learning is unchanged,** on the table scale. `charge_full` written by userspace is in usable
+  units: the accepted range becomes 1984620-4366164 µAh.
+- **At design capacity:**
+  - the usable charge is 3969 mAh;
+  - a plain rest at 92 % on the table shows 99 %;
+  - a taper reading of 95 % shows 100 %;
+  - health is `charge_full` ÷ `charge_full_design`, still the learned share of the design.
+- **The guard** (0695) compares its limits with this capacity. An 80 % limit now stops at
+  about 74 % of the table, the same 80 % the owner sees.
+- Compiled at W=1 and checkpatch clean; not on a device.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.

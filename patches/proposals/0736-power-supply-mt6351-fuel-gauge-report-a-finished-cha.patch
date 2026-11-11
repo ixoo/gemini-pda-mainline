@@ -1,0 +1,159 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 17:15:06 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: report a finished charge as
+ 100 %
+
+The charger ends a charge at 4.336 V with its termination current still
+flowing, and the cell then rests at about 92 % of the OCV table, whose
+100 % is 4.357 V. A finished charge therefore never read 100 %, where the
+vendor stack scaled its displayed charge so that it did.
+
+Report the capacity, the charge now and both full charges against the
+usable charge, 93 % of the table's. When the battery rests on the
+charger after reaching the charger's constant-voltage taper, which is a
+finished charge, count from 100 % of the usable charge and keep that
+through the rest. The scale is fixed, so a full charge written back by
+userspace means the same on every boot; the learning stays on the table's
+scale.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 51 ++++++++++++++++++++----
+ 1 file changed, 43 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 45aa6e2..9e6aff3 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -93,6 +93,13 @@
+ #define MT6351_FG_CV_MS			(300 * MSEC_PER_SEC)
+ #define MT6351_FG_CV_MAX_UA		300000
+ #define MT6351_FG_CV_MARGIN_UV		40000
++/*
++ * The share of the OCV table's full charge that a finished charge leaves: the
++ * charger ends at 4.336 V with its termination current flowing, and the cell
++ * then rests at about 92 %. Capacity, the charge now and the full charges are
++ * reported against this usable charge, so a finished charge reads 100 %.
++ */
++#define MT6351_FG_USABLE_PERMILLE	930
+ /* No step moves the full charge by more than this share of the design. */
+ #define MT6351_FG_STEP_MAX_PCT		5
+ /* The full charge is kept within these percentages of the design. */
+@@ -143,6 +150,9 @@ struct mt6351_fg {
+ 	/* The last reading in the constant-voltage taper. */
+ 	ktime_t cv_time;
+ 	bool cv_valid;
++	/* A charge reached the taper; the rest after it is a finished charge. */
++	bool taper_seen;
++	bool full_rest;
+ 	bool learn_valid;
+ 	int learn_step;
+ 	s64 learn_car;
+@@ -211,8 +221,11 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 	fg->win_ua = div_s64(dq_nah * 3600, ms);
+ 	fg->win_ua_valid = true;
+ 
++	if (fg->win_ua <= -MT6351_FG_IDLE_UA)
++		fg->taper_seen = false;
+ 	if (abs(fg->win_ua) >= MT6351_FG_IDLE_UA) {
+ 		fg->resting = false;
++		fg->full_rest = false;
+ 	} else if (!fg->resting) {
+ 		fg->rest_start = fg->win_start;
+ 		fg->resting = true;
+@@ -323,6 +336,12 @@ static int mt6351_fg_voltage(struct mt6351_fg *fg, int *uv)
+  * battery has rested long enough for the voltage to settle, for example held
+  * at a charge limit on the charger. Until then, the OCV reading is reported.
+  */
++/* The usable part of a charge on the OCV table's scale. */
++static s64 mt6351_fg_usable(s64 uah)
++{
++	return div_s64(uah * MT6351_FG_USABLE_PERMILLE, 1000);
++}
++
+ /* Is a full charge within the accepted share of the design capacity? */
+ static bool mt6351_fg_full_ok(struct mt6351_fg *fg, s64 uah)
+ {
+@@ -426,14 +445,25 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 			return ret;
+ 		ret = clamp(ret, 0, 100);
+ 		if (!fg->win_ua_valid || full <= 0) {
+-			*capacity = ret;
+-			*charge_uah = div_s64(max_t(s64, full, 0) * ret, 100);
++			uah = div_s64(max_t(s64, full, 0) * ret, 100);
++			ret = DIV_ROUND_CLOSEST(ret * 1000, MT6351_FG_USABLE_PERMILLE);
++			*capacity = min(ret, 100);
++			*charge_uah = min(uah, mt6351_fg_usable(max_t(s64, full, 0)));
+ 			return 0;
+ 		}
+ 		dev_dbg(fg->dev, "%s OCV reading: %d uV at %d uA, %d mC: %d %%\n",
+ 			fg->anchored ? "rest" : "first", uv, ua, mc, ret);
+-		fg->anchor_uah = div_s64(full * ret, 100);
+-		fg->anchor_car = fg->car;
++		if (settled && fg->taper_seen) {
++			/* The rest after a finished charge: 100 % of the usable charge. */
++			dev_dbg(fg->dev, "charge finished\n");
++			fg->anchor_uah = mt6351_fg_usable(full);
++			fg->anchor_car = fg->car;
++			fg->taper_seen = false;
++			fg->full_rest = true;
++		} else if (!fg->full_rest) {
++			fg->anchor_uah = div_s64(full * ret, 100);
++			fg->anchor_car = fg->car;
++		}
+ 		fg->anchored = true;
+ 
+ 		if (rest_ms >= MT6351_FG_LEARN_REST_MS && !fg->rest_learned) {
+@@ -460,6 +490,7 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 			fg->anchor_car = fg->car;
+ 			fg->cv_time = now;
+ 			fg->cv_valid = true;
++			fg->taper_seen = true;
+ 		}
+ 	}
+ 
+@@ -483,6 +514,7 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		}
+ 	}
+ 
++	full = mt6351_fg_usable(full);
+ 	uah = fg->anchor_uah + div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
+ 	uah = clamp_t(s64, uah, 0, full);
+ 	*capacity = div64_s64(uah * 100 + full / 2, full);
+@@ -520,10 +552,10 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 		return 0;
+ 	case POWER_SUPPLY_PROP_CHARGE_FULL:
+ 		scoped_guard(mutex, &fg->lock)
+-			val->intval = fg->full_uah;
++			val->intval = mt6351_fg_usable(fg->full_uah);
+ 		return 0;
+ 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+-		val->intval = fg->info->charge_full_design_uah;
++		val->intval = mt6351_fg_usable(fg->info->charge_full_design_uah);
+ 		return 0;
+ 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
+ 		val->intval = fg->info->voltage_max_design_uv;
+@@ -580,16 +612,19 @@ static int mt6351_fg_set_property(struct power_supply *psy,
+ 				  const union power_supply_propval *val)
+ {
+ 	struct mt6351_fg *fg = power_supply_get_drvdata(psy);
++	s64 full;
+ 
+ 	if (!READ_ONCE(fg->info))
+ 		return -ENODATA;
+ 	if (psp != POWER_SUPPLY_PROP_CHARGE_FULL)
+ 		return -EINVAL;
+-	if (!mt6351_fg_full_ok(fg, val->intval))
++	/* Userspace sees the usable charge; the driver keeps the table's. */
++	full = div_s64((s64)val->intval * 1000, MT6351_FG_USABLE_PERMILLE);
++	if (!mt6351_fg_full_ok(fg, full))
+ 		return -ERANGE;
+ 
+ 	scoped_guard(mutex, &fg->lock)
+-		mt6351_fg_set_full(fg, val->intval);
++		mt6351_fg_set_full(fg, full);
+ 	power_supply_changed(psy);
+ 
+ 	return 0;
+-- 
+2.54.0 (Apple Git-157)
+
