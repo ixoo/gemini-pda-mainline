@@ -607,3 +607,6 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    are the display's own DMA mapping, and nothing ties them to the GPU.
    At 460 s of uptime that boot had 44 rate changes, most of them crossing a post-divider (14 from 238 to 520 MHz alone), with DVFS and idle-off on and logging off. The
    driver had the drain, so either a change slips past it, or the timeouts have another cause. Rate logging on the next occurrence decides it.
+   Again on boot `58bcf387` (kernel from `47b11c27`, with `0493` and `0668`): 4 timeouts in about 7 minutes, against 108 rate changes, 37 of them 238 to 520 MHz. The GPU's
+   power-allocator cooling sat at 0 of 3, so `0687` is not the cause. A job starting just after a divider change, while the PLL may still be settling, is not covered by
+   the drain (inference). But in run 19 many jobs started within milliseconds of a change, with no fault, so the log is still needed.
