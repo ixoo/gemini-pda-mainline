@@ -623,3 +623,6 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    power-off makes worth little, then leaves no crossing at all. A floor of 365 MHz through devfreq's `min_freq` tests the first half on the running boot.
    `0690` gives the MFGPLL the vendor's divider table (4 from 250 to 900 MHz, 8 below). `0691` drops 238 MHz and raises the rail floor to 0.9125 V. `0692` drains only for a change that crosses
    a divider, which the table no longer has. Compile-checked only; it needs a boot.
+   A floor of 365 MHz through `min_freq` did not hold on that boot: 28 changes to 238 MHz followed, and timeout 7 came in the same pattern. devfreq clamps a governor's choice
+   to min_freq, but lets a maximum below the minimum win, and the power allocator from `0687` can lower the GPU's maximum under load. That fits, but is not shown: the
+   cooling state read 0 when idle. The image with `0690`-`0692` takes 238 MHz out of the table, so no maximum or floor can reach it.
