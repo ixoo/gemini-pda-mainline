@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: MIT
+# The battery voltage backstop (battery-guard).
+[Unit]
+Description=Power off before the battery browns out
+ConditionPathExists=/sys/class/power_supply/battery/voltage_now
+
+[Service]
+ExecStart=/usr/lib/gemini/battery-guard
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

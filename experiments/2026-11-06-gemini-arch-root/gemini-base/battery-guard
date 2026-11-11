@@ -1,0 +1,40 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# A voltage backstop for UPower's percentage-based critical action (owner, 2026-11-11). The
+# worn cell sags under load, so the gauge can read well above empty while the voltage is near
+# brown-out. While the battery discharges, a voltage below MIN_UV (/etc/gemini/battery-guard.conf)
+# on three reads 10 s apart, so not a short load spike, notifies the session and powers off.
+bat=/sys/class/power_supply/battery
+MIN_UV=3300000
+# shellcheck source=/dev/null
+[ -r /etc/gemini/battery-guard.conf ] && . /etc/gemini/battery-guard.conf
+low=0
+while sleep 10; do
+    if [ "$(cat "$bat/status" 2>/dev/null)" != Discharging ]; then
+        low=0
+        continue
+    fi
+    uv=$(cat "$bat/voltage_now" 2>/dev/null) || continue
+    case "$uv" in '' | *[!0-9]*) continue ;; esac
+    if [ "$uv" -ge "$MIN_UV" ]; then
+        low=0
+        continue
+    fi
+    low=$((low + 1))
+    [ "$low" -lt 3 ] && continue
+    echo "battery-guard: $uv µV below $MIN_UV µV for 30 s on battery; powering off"
+    for bus in /run/user/*/bus; do
+        [ -S "$bus" ] || continue
+        uid=${bus#/run/user/}
+        uid=${uid%/bus}
+        runuser -u "$(id -nu "$uid")" -- env DBUS_SESSION_BUS_ADDRESS="unix:path=$bus" \
+            gdbus call --session --dest org.freedesktop.Notifications \
+            --object-path /org/freedesktop/Notifications \
+            --method org.freedesktop.Notifications.Notify gemini 0 battery-empty \
+            "Battery too low" "The battery voltage is too low; powering off in 10 s." \
+            '[]' '{"urgency": <byte 2>}' 10000 >/dev/null 2>&1
+    done
+    sleep 10
+    systemctl poweroff
+    exit 0
+done

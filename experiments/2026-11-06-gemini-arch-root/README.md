@@ -2141,6 +2141,32 @@ permissions differ on /etc/sudoers.d/": `install -D` made the directory 0755 in 
 while sudo's is 0750. gemini-base 45 (`cd908a63…`) creates it as 0750 first; its listing shows
 `drwxr-x---`.
 
+### Low-battery policy and a voltage backstop (`gemini-base` 48, 2026-11-11)
+
+The fuel-gauge session measured the owner's original cell at about 0.39–0.44 Ω under sustained
+load, 2.5× the device tree's new-cell 165 mΩ. At 1.8 A the terminal sits about 0.7 V below the
+open-circuit voltage, about 3.0 V at a true 20 %, so heavy use near empty can brown out before
+UPower's stock poweroff at 2 %. UPower 1.91.5 acts only on a percentage or a time to empty,
+never on voltage. The owner chose (through the custodian):
+
+- UPower, in `/etc/UPower/UPower.conf.d/50-gemini.conf`: low at 20 %, critical at 12 %, and a
+  clean poweroff at 8 % (`CriticalPowerAction=PowerOff`, as `Auto` resolves on a card without
+  hibernation). UPower needs the three to run downwards, or it falls back to its defaults.
+- Noctalia's low-battery notification at 20 % (`[battery] warning_threshold`), with UPower's
+  low.
+- A voltage backstop, `gemini-battery-guard.service`: while the battery reads Discharging, it
+  reads `voltage_now` every 10 s. Three reads in a row under `MIN_UV`
+  (`/etc/gemini/battery-guard.conf`) make it notify each user session over
+  `org.freedesktop.Notifications` with `gdbus` (the card has no `notify-send`), wait 10 s and
+  power off. A short spike resets the count. `MIN_UV` is a 3.30 V placeholder until the
+  fuel-gauge session gives this cell's brown-out voltage under load, less a margin.
+
+Both configuration files are `backup=` files. Checked: `noctalia config validate` against
+card-32's Noctalia; the guard's logic against a fake sysfs (charging at low voltage: no
+action; discharging at 3.5 V: none; at 3.2 V: poweroff after the third read; two low reads
+then recovery: none); ShellCheck. Not on a device. The custodian installs it after the owner's
+calibration, since a poweroff mid-cycle would lose it.
+
 ## Analysis
 
 Not started.

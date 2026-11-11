@@ -34,6 +34,10 @@ font_weight = 700
 [widget.battery]
 display_mode = "graphic"
 
+# The low-battery notification at 20 %, with UPower's "low" (owner, 2026-11-11; upower.conf).
+[battery]
+warning_threshold = 20
+
 # Icons only (owner, 2026-11-08: "don't display the network name, icon is enough", "don't
 # display the volume value"), and bigger, to fill the 40 px width (scale 1.6, tried live on
 # card-23); the battery keeps its size. Bluetooth's widget shows only while bluez runs:
