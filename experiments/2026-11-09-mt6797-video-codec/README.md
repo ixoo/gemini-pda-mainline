@@ -840,6 +840,8 @@ main `f2659f67` (which contains `7340d107`), `Image.gz` `de9b8882…`, boot
   controls, which the driver does not offer.
 - **No faults:** no driver errors or timeouts, and no genpd errors. SoC 37–38
   °C. Afterwards the domain was off and the `vdec_sel` enable count 0.
+- **Panel:** the owner reported the display stayed normal during the decodes
+  (about 15:17 device time). Every V10 stop criterion is clear.
 
 *Result.* On the host, every frame was detiled (16x32 luma, 16x16 chroma
 tiles) and compared with the software decoder's per-frame MD5. **30/30
