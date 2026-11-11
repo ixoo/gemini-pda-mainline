@@ -2123,6 +2123,12 @@ NOPASSWD rule, then 44 (`50546fcc…`) installed. pacman warned "installed as
 10-gemini-wheel.pacnew" and the edit stayed. sudo ignores `sudoers.d` files whose names
 contain a dot, so the `.pacnew` copy has no effect.
 
+On card-32 (custodian, after the owner restored NOPASSWD): 44 installed with the `.pacnew`
+warning, and `sudo -l` still shows "(ALL : ALL) NOPASSWD: ALL". pacman also warned "directory
+permissions differ on /etc/sudoers.d/": `install -D` made the directory 0755 in the package,
+while sudo's is 0750. gemini-base 45 (`cd908a63…`) creates it as 0750 first; its listing shows
+`drwxr-x---`.
+
 ## Analysis
 
 Not started.
