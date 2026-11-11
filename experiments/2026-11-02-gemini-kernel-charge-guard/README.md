@@ -638,3 +638,41 @@ live capacity, so nothing enables charging:
 
 `EnableChargeThreshold(false)` writes end 100, which lets the device charge above 80 %. It needs
 the owner's go-ahead before it's tried.
+
+### First reports from the widget, boot `242ba06e…` (2026-11-11)
+
+From the custodian, on the owner's card, gemini-base 37 with 0695.
+
+**The switch works.** Turned off from Noctalia, both supplies read start 95 and end 100, and the
+guard logged `charging allowed: temp=255 capacity=71 limit=100`. The charger read online,
+`Charging`, `Fast`, with a 500 mA input limit on the computer's USB port. The battery's current
+read −363, then 0. So 500 mA in covered little more than the lit screen, and the owner saw
+nothing happen.
+
+**Input limit on a wall charger:** earlier boots read REG00 `0x48`, 500 mA, with both the
+computer and the owner's fast charger classified as a computer port
+([charging notes](../../docs/hardware/gemini-charging.md#2-boot-chain)). A wall charger would
+probably be held at 500 mA too. Raising it means the driver writing REG00, a charger write
+beyond `CHG_CONFIG` that needs the owner's decision, plus a way to know the charger can supply
+more. The candidates are the MT6351's own charger detection and the Type-C port. A read-only
+check on a wall charger would read REG00 (limit), REG0B (`VBUS_STAT`, bits 7:5) and REG13 (the
+limit in force).
+
+**"Plugged in" while unplugged:** the charger read offline and `Discharging`, but the battery read
+`Not charging`, and UPower showed `pending-charge`, which Noctalia shows as plugged in. The
+battery's `current_now` read −1091, about 1 mA, while it was running on the battery with the
+screen lit. The gauge reported anything within 20 mA as not charging, from the current alone.
+That logic is the gauge's, not the guard's or 0695's.
+[0708](../../patches/proposals/0708-power-supply-mt6351-fuel-gauge-report-discharging-wi.patch)
+reports discharging within that band unless some supply is online. A battery held at the limit
+on the charger still reads not charging. Compiled at `W=1`, `checkpatch --strict` clean, and
+applies in both series. Not on a device.
+
+**Open, the current reading and the jump from 79 % to 60 % on unplugging:** earlier records show
+this gauge's `current_now` at 93-300 mA when the station ran, but also stuck at 0, and
+disagreeing with `charge_counter` after some steps ([cpuidle](../2026-11-07-mt6797-cpuidle/README.md)).
+A reading near zero under load would explain the jump. Capacity is the voltage corrected by I × R,
+so with I read as about 0, the loaded voltage under a few hundred mA reads several percent low.
+This is an inference. A read-only sample unplugged would separate a stuck current register from
+a stopped counter: `current_now`, `voltage_now`, `charge_counter` and `capacity` every 10 s for a
+minute, the suspend count, and `FGADC_CON0`.

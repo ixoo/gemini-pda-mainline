@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 11:11:29 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: report discharging with no
+ supply online
+
+The status came from the measured current alone, with a 20 mA band
+reported as not charging. Unplugged, a current inside that band, or a
+current register that reads near zero, then reported not charging, and
+UPower took the battery to be waiting on a charger: a desktop showed it
+as plugged in.
+
+Inside the band, report not charging only while some supply is online,
+and discharging otherwise. A battery held at a charge limit with the
+charger attached still reads not charging.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 63cbfa375..bfdefd105 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -44,7 +44,10 @@
+ #define MT6351_FG_CHARGE_NAH		44983
+ #define MT6351_FG_SENSE_BASE_MOHM	20
+ 
+-/* Within this current, the battery is reported as not charging. */
++/*
++ * Within this current, the battery is reported as not charging while a supply
++ * is online, and as discharging otherwise.
++ */
+ #define MT6351_FG_IDLE_UA		20000
+ 
+ struct mt6351_fg {
+@@ -185,6 +188,9 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 	case POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN:
+ 		val->intval = fg->info->voltage_min_design_uv;
+ 		return 0;
++	case POWER_SUPPLY_PROP_SCOPE:
++		/* Asked of every supply when the core looks for one online. */
++		return -EINVAL;
+ 	default:
+ 		break;
+ 	}
+@@ -203,7 +209,7 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 	case POWER_SUPPLY_PROP_STATUS:
+ 		if (ua > MT6351_FG_IDLE_UA)
+ 			val->intval = POWER_SUPPLY_STATUS_CHARGING;
+-		else if (ua < -MT6351_FG_IDLE_UA)
++		else if (ua < -MT6351_FG_IDLE_UA || power_supply_is_system_supplied() <= 0)
+ 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+ 		else
+ 			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+-- 
+2.43.0
+
