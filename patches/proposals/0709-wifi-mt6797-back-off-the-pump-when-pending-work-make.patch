@@ -1,0 +1,81 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Wed, 11 Nov 2026 11:19:00 -0500
+Subject: [PATCH] wifi: mt6797: back off the pump when pending work makes no
+ progress
+
+On an idle connected link the join worker ran about 4,100 times a second, near
+a fifth of a CPU: work stayed pending without progress, and the pump polled at
+once 32 times, waited one tick and started over. Keep counting passes without
+progress, poll each tick after the first 32, and after 200 poll as if idle.
+Progress still resets it, so a busy link polls as before. Log the pending state
+once when it first stalls, to find what stays pending.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   | 19 ++++++++++++++-----
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  4 ++++
+ 2 files changed, 18 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 07c62bf03..43bc2e74d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -38,7 +38,9 @@ mt6797_join_rearm_ready(const struct mt6797_join_rearm_state *s)
+ }
+ 
+ /* Scheduling only. Count consecutive no-progress iterations, not submitted
+- * frames or retired completions. Idle alone gets the long interval.
++ * frames or retired completions. Idle gets the long interval, and so does work
++ * pending without progress for long: a pending item that never moved kept the
++ * pump at about 4,000 passes a second on an idle link.
+  */
+ static inline unsigned int
+ mt6797_join_pump_delay(unsigned int *zero_runs, bool pending, bool progress)
+@@ -51,12 +53,13 @@ mt6797_join_pump_delay(unsigned int *zero_runs, bool pending, bool progress)
+ 		*zero_runs = 0;
+ 		return 0;
+ 	}
+-	if (*zero_runs < MT6797_JOIN_PUMP_MAX_ZERO) {
++	if (*zero_runs < MT6797_JOIN_PUMP_STALLED)
+ 		(*zero_runs)++;
++	if (*zero_runs <= MT6797_JOIN_PUMP_MAX_ZERO)
+ 		return 0;
+-	}
+-	*zero_runs = 0;
+-	return MT6797_JOIN_PUMP_PENDING_MS;
++	if (*zero_runs < MT6797_JOIN_PUMP_STALLED)
++		return MT6797_JOIN_PUMP_PENDING_MS;
++	return MT6797_JOIN_PUMP_IDLE_MS;
+ }
+ 
+ /* native_rx holds checked PTK+GTK for this caller, never native ciphertext.
+@@ -2941,6 +2944,12 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 
+ 	delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
+ 					  pending, pump_progress);
++	if (pending && delay_ms == MT6797_JOIN_PUMP_IDLE_MS)
++		dev_info_once(wiphy_dev(mac->hw->wiphy),
++			      "one-shot WLAN join pump stalled: queued=%u inflight=%u slots=%u credit=%u debt=%u data_debt=%u\n",
++			      skb_queue_len(&mac->join_queue), !!mac->join_inflight,
++			      mac->data_slots.count, mac->join_credit_pending,
++			      mac->join_page_debt, mac->join_data_page_debt);
+ 	pass_delay = msecs_to_jiffies(delay_ms);
+ 	if (mac->join_running)
+ 		schedule_delayed_work(&mac->join_work, pass_delay);
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index eed317ccf..5ea15d88d 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -154,6 +154,10 @@ struct mt6797_join_rearm_state {
+ };
+ 
+ #define MT6797_JOIN_PUMP_MAX_ZERO 32U
++/* No-progress passes after which pending work is polled as if idle: with one
++ * tick a pass beyond MAX_ZERO, about 0.7 s at HZ=250.
++ */
++#define MT6797_JOIN_PUMP_STALLED 200U
+ 
+ /* EAPOL frames each way per lifetime: the 4-way handshake's two, and up to
+  * two more until the pairwise key is submitted, for the access point's
+-- 
+2.43.0
+

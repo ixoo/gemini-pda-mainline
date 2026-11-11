@@ -860,6 +860,7 @@ proposals/0691-arm64-dts-mediatek-gemini-leave-238-MHz-out-of-the-G.patch
 proposals/0692-drm-panfrost-drain-the-MT6797-GPU-only-across-a-post.patch
 proposals/0693-drm-panfrost-do-not-let-a-BO-shared-through-dma-buf-.patch
 proposals/0694-wifi-mt6797-wait-for-a-disconnect-s-re-arm-before-re.patch
+proposals/0709-wifi-mt6797-back-off-the-pump-when-pending-work-make.patch
 proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch
 proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
 proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch
