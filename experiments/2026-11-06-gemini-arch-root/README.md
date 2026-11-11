@@ -2118,8 +2118,10 @@ owner's edit: on card-32 their NOPASSWD rule went with gemini-base 40 and again 
 edited file stays, and an upgrade that changes the package's copy installs it as `.pacnew`
 beside it. A fresh card keeps the same default; the policy itself is unchanged.
 
-The upgrade from 42 is already covered: 42 recorded no hash for the file, so pacman keeps a
-copy on disk that differs from 44's and writes `.pacnew`.
+Tested in an overlay over card-32's image: gemini-base 42 installed, the file edited to a
+NOPASSWD rule, then 44 (`50546fcc…`) installed. pacman warned "installed as
+10-gemini-wheel.pacnew" and the edit stayed. sudo ignores `sudoers.d` files whose names
+contain a dot, so the `.pacnew` copy has no effect.
 
 ## Analysis
 
