@@ -1,0 +1,42 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 14:14:53 -0500
+Subject: [PATCH] dt-bindings: power: supply: bq25890: describe the guard's
+ charge voltage by temperature
+
+Describe linux,guard-charge-voltage-by-temperature, which lets the
+guard set the charge voltage by the battery's temperature.
+---
+ .../devicetree/bindings/power/supply/bq25890.yaml        | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+index c0bd6020d..b1d11e431 100644
+--- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
++++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+@@ -54,6 +54,13 @@ properties:
+       driver raises the input limit and the charge current, and returns to
+       the chip's own input limit when the battery is hot.
+ 
++  linux,guard-charge-voltage-by-temperature:
++    type: boolean
++    description:
++      With linux,guard-battery, the driver sets the charge voltage by the
++      battery's temperature, higher inside a moderate band than outside it,
++      as the board's vendor charges its cell.
++
+   linux,guard-end-threshold:
+     $ref: /schemas/types.yaml#/definitions/uint32
+     minimum: 50
+@@ -128,6 +135,8 @@ dependencies:
+     - linux,guard-battery
+   linux,guard-usb-detect:
+     - linux,guard-battery
++  linux,guard-charge-voltage-by-temperature:
++    - linux,guard-battery
+ 
+ if:
+   not:
+-- 
+2.43.0
+

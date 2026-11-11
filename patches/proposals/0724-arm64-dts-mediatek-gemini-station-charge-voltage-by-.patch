@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 14:15:48 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: charge voltage by
+ battery temperature
+
+Let the charger's guard set the charge voltage by the battery's
+temperature, as the vendor charges this cell.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index fa4bcc07d..7bb97988f 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -519,6 +519,7 @@ charger@6b {
+ 		linux,guard-end-threshold = <80>;
+ 		/* The MT6351 BC1.1 detection module's supply. */
+ 		linux,guard-usb-detect = "mt6351-usb";
++		linux,guard-charge-voltage-by-temperature;
+ 
+ 		/* VBUS for the left USB-C port as a host; see the ports below. */
+ 		usb0_vbus: usb-otg-vbus {
+-- 
+2.43.0
+

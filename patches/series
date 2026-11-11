@@ -1298,3 +1298,6 @@ proposals/0718-power-supply-bq25890-raise-the-currents-on-a-dedicat.patch
 proposals/0719-dt-bindings-power-supply-bq25890-name-a-USB-type-sup.patch
 proposals/0720-arm64-dts-mediatek-gemini-station-raise-the-charge-c.patch
 proposals/0721-power-supply-mt6351-fuel-gauge-log-each-OCV-reading.patch
+proposals/0722-power-supply-bq25890-set-the-charge-voltage-by-the-b.patch
+proposals/0723-dt-bindings-power-supply-bq25890-describe-the-guard-.patch
+proposals/0724-arm64-dts-mediatek-gemini-station-charge-voltage-by-.patch

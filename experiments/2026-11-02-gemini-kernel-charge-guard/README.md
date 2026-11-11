@@ -817,3 +817,30 @@ and a non-standard charger keep 500 mA. A computer already attached at boot or a
 reads SDP, as D1 showed, so it gets 1.5 A only from its next plug. Some hubs and docks report
 CDP too. Compiled at `W=1` and clean under `checkpatch --strict`; it needs an image, and isn't on
 a device yet.
+
+## Charge voltage by temperature (2026-11-12)
+
+The fuel-gauge session found that the vendor charges this cell to 4.34 V between 10 and 45 °C,
+4.24 V at 0-10 and 45-60 °C, and 4.04 V below 0 °C. Mainline left whichever voltage was in place:
+the bootloader's 4.352 V until the chip's watchdog first expired, then the chip's 4.208 V. At
+4.208 V a full charge reads about 87 % on the vendor's OCV table.
+
+**The owner chose B, Gemian's 4.34 V**, from: always 4.208 V; the vendor's voltages by
+temperature; or leave it.
+
+- [0722](../../patches/proposals/0722-power-supply-bq25890-set-the-charge-voltage-by-the-b.patch):
+  with `linux,guard-charge-voltage-by-temperature`, the guard writes REG06 `VREG` each pass when it
+  differs: 4.34 V (4.336 V in the chip's steps) from 10 °C to under 45 °C, and 4.24 V outside,
+  with 2 °C of hysteresis back in. It feeds the watchdog every pass while this is on.
+- Below 0 °C charging is already stopped by the cold stop, so 4.04 V isn't needed. REG06 joins
+  the guard's writes.
+- [0723](../../patches/proposals/0723-dt-bindings-power-supply-bq25890-describe-the-guard-.patch) and
+  [0724](../../patches/proposals/0724-arm64-dts-mediatek-gemini-station-charge-voltage-by-.patch): the binding and the station property.
+
+Tested: `W=1` and `checkpatch --strict` clean. The binding, as the series builds it, passes its
+schema check, and the station DTB carries the property. Everything applies in both series and gives
+the compiled driver file. Nothing has booted.
+
+**Side effect:** feeding the watchdog every pass keeps every other register as the bootloader left
+it while the guard runs, including its IR compensation and clamp in REG08. If the guard stops, the
+watchdog returns the chip's defaults, including 4.208 V.

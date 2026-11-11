@@ -1,0 +1,163 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 14:14:53 -0500
+Subject: [PATCH] power: supply: bq25890: set the charge voltage by the
+ battery's temperature
+
+The guard leaves the charge voltage as it finds it: the bootloader's
+4.352 V until the chip's watchdog first expires, then the chip's 4.208 V.
+Which one applies depends on what the guard has done since boot, and the
+lower one ends a charge well short of the vendor's full.
+
+With linux,guard-charge-voltage-by-temperature, set it as the vendor
+charges this cell: 4.34 V (4.336 V in the chip's steps) from 10 C to
+under 45 C, 4.24 V outside that band, with 2 C of hysteresis back in.
+Charging itself stops outside the battery's limits. The values are the
+owner's choice, in defines.
+
+The watchdog resets the voltage, so each pass rewrites it when it
+differs, and the guard keeps the watchdog fed while this is on. If the
+guard stops, the watchdog returns the chip's lower 4.208 V.
+---
+ drivers/power/supply/bq25890_charger.c | 73 +++++++++++++++++++++++---
+ 1 file changed, 67 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index 8b314c608..ef26062e0 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -51,6 +51,19 @@
+ #define BQ25890_GUARD_WALL_COOL		430
+ #define BQ25890_GUARD_IINLIM_uA		500000
+ 
++/*
++ * The charge voltage by battery temperature, as the vendor charges this cell
++ * and as the owner chose: 4.34 V from 10 C to under 45 C, 4.24 V outside that
++ * band, in 0.1 C, with 2 C of hysteresis back into it. In the chip's 16 mV
++ * steps 4.34 V is 4.336 V. Charging itself stops at 0 C and 50 C, from the
++ * battery's limits.
++ */
++#define BQ25890_GUARD_VREG_HIGH_uV	4340000
++#define BQ25890_GUARD_VREG_LOW_uV	4240000
++#define BQ25890_GUARD_VREG_COLD		100
++#define BQ25890_GUARD_VREG_HOT		450
++#define BQ25890_GUARD_VREG_MARGIN	20
++
+ enum bq25890_chip_version {
+ 	BQ25890,
+ 	BQ25892,
+@@ -160,6 +173,8 @@ struct bq25890_device {
+ 	struct notifier_block guard_nb;
+ 	const char *guard_usb_type;
+ 	bool guard_wall;
++	bool guard_cv;
++	bool guard_vreg_high;
+ 	bool guard_temp;
+ 	bool guard_full;
+ 	unsigned int guard_unread;
+@@ -412,12 +427,12 @@ static int bq25890_field_write(struct bq25890_device *bq,
+ 	 * the OTG boost enable, the input limit and the charge current reach
+ 	 * the chip; all other writes in this driver stop here. The boost is
+ 	 * written only through its regulator, which exists only when the board
+-	 * describes it, and the two currents only by the guard, on a 1.5 A
+-	 * charger.
++	 * describes it, the two currents only by the guard, on a 1.5 A
++	 * charger, and the charge voltage only by the guard, by temperature.
+ 	 */
+ 	if (bq->no_chip_config && field_id != F_CHG_CFG &&
+ 	    field_id != F_WD_RST && field_id != F_OTG_CFG &&
+-	    field_id != F_IINLIM && field_id != F_ICHG)
++	    field_id != F_IINLIM && field_id != F_ICHG && field_id != F_VREG)
+ 		return 0;
+ 
+ 	return regmap_field_write(bq->rmap_fields[field_id], val);
+@@ -1402,6 +1417,39 @@ static int bq25890_guard_currents(struct bq25890_device *bq, bool wall)
+ 	return 0;
+ }
+ 
++/* Whether the battery is in the band for the higher charge voltage. */
++static bool bq25890_guard_vreg_high(struct bq25890_device *bq, int temp)
++{
++	if (temp == INT_MIN || temp < BQ25890_GUARD_VREG_COLD ||
++	    temp >= BQ25890_GUARD_VREG_HOT)
++		return false;
++	if (temp >= BQ25890_GUARD_VREG_COLD + BQ25890_GUARD_VREG_MARGIN &&
++	    temp < BQ25890_GUARD_VREG_HOT - BQ25890_GUARD_VREG_MARGIN)
++		return true;
++	return bq->guard_vreg_high;
++}
++
++/* The register value for the band's charge voltage. */
++static u8 bq25890_guard_vreg_idx(bool high)
++{
++	return bq25890_find_idx(high ? BQ25890_GUARD_VREG_HIGH_uV :
++				BQ25890_GUARD_VREG_LOW_uV, TBL_VREG);
++}
++
++/* Write the charge voltage for the band when it differs, as the watchdog resets it. */
++static int bq25890_guard_vreg(struct bq25890_device *bq, bool high)
++{
++	u8 vreg = bq25890_guard_vreg_idx(high);
++	int cur;
++
++	cur = bq25890_field_read(bq, F_VREG);
++	if (cur < 0)
++		return cur;
++	if (cur == vreg)
++		return 0;
++	return bq25890_field_write(bq, F_VREG, vreg);
++}
++
+ /*
+  * The charging guard: one pass decides, then writes only CHG_CONFIG, with the
+  * other bits of the register as read. While charging is stopped every pass
+@@ -1418,7 +1466,7 @@ static void bq25890_guard_work(struct work_struct *work)
+ 	int end = READ_ONCE(bq->guard_end);
+ 	int start = READ_ONCE(bq->guard_start);
+ 	bool was_temp = bq->guard_temp, was_full = bq->guard_full;
+-	bool was_wall = bq->guard_wall;
++	bool was_wall = bq->guard_wall, was_vreg_high = bq->guard_vreg_high;
+ 	int temp, capacity, chg, otg, ret;
+ 	bool stop;
+ 
+@@ -1448,8 +1496,15 @@ static void bq25890_guard_work(struct work_struct *work)
+ 		bq->guard_wall = bq25890_guard_wall(bq, temp);
+ 		ret = bq25890_guard_currents(bq, bq->guard_wall);
+ 	}
+-	/* The kick also keeps a 1.5 A charger's currents from resetting. */
+-	if (!ret && (stop || otg || bq->guard_wall))
++	if (!ret && bq->guard_cv) {
++		bq->guard_vreg_high = bq25890_guard_vreg_high(bq, temp);
++		ret = bq25890_guard_vreg(bq, bq->guard_vreg_high);
++	}
++	/*
++	 * The kick also keeps a 1.5 A charger's currents and the charge
++	 * voltage from resetting.
++	 */
++	if (!ret && (stop || otg || bq->guard_wall || bq->guard_cv))
+ 		ret = bq25890_field_write(bq, F_WD_RST, 1);
+ 
+ 	if (ret)
+@@ -1463,6 +1518,10 @@ static void bq25890_guard_work(struct work_struct *work)
+ 			 BQ25890_GUARD_WALL_IINLIM_uA / 1000, BQ25890_GUARD_WALL_ICHG_uA / 1000);
+ 	else if (!ret && !bq->guard_wall && was_wall)
+ 		dev_info(bq->dev, "guard: input back to %u mA\n", BQ25890_GUARD_IINLIM_uA / 1000);
++	if (!ret && bq->guard_cv && bq->guard_vreg_high != was_vreg_high)
++		dev_info(bq->dev, "guard: charge voltage %u mV at temp=%d\n",
++			 bq25890_find_val(bq25890_guard_vreg_idx(bq->guard_vreg_high),
++					  TBL_VREG) / 1000, temp);
+ 
+ 	queue_delayed_work(system_power_efficient_wq, &bq->guard_work,
+ 			   BQ25890_GUARD_PERIOD);
+@@ -1893,6 +1952,8 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+ 		bq->guard_start = bq->guard_end - BQ25890_GUARD_RESUME_MARGIN;
+ 		device_property_read_string(bq->dev, "linux,guard-usb-detect",
+ 					    &bq->guard_usb_type);
++		bq->guard_cv = device_property_read_bool(bq->dev,
++							 "linux,guard-charge-voltage-by-temperature");
+ 		return 0;
+ 	}
+ 
+-- 
+2.43.0
+
