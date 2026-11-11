@@ -739,7 +739,7 @@ the 13 were an address the converter forgot to relocate; that is fixed.
 **Next: Stage 3b**, a V4L2 stateless HEVC decoder module that derives these
 registers from the stateless controls instead of a recorded sequence.
 
-## Stage 3b: a V4L2 stateless HEVC decoder (prepared 2026-11-11, not built or run)
+## Stage 3b: a V4L2 stateless HEVC decoder (built 2026-11-11, not run)
 
 **Approach.** The vendor register sequence was first turned, privately, into
 a model that computes every write of a picture from the HEVC headers and the
@@ -784,7 +784,18 @@ it.
 - 0727 applies on top of the committed series.
 - `check-repository` and the series validation pass.
 
-**Not checked:** Buildbox build, device.
+**Package.** Buildbox-2 built commit `7340d107`, profile
+`mt6797-a53-station-dvfs`, with modules (`SHA256SUMS` `0f218767…`), fetched
+and checked locally:
+
+- `Image.gz` `1efdd20b…`
+- station DTB `865e89d5…`
+- `mt6797-vdec.ko` `b514e243653ad1c0cc248497ced89a4cd36f77f3f055e176eaec44b024fe4918`,
+  depending on `videodev`, `mc`, `v4l2-mem2mem`, `videobuf2-common`,
+  `videobuf2-v4l2` and `videobuf2-dma-contig`
+- `clk-mt6797-vdec.ko` unchanged (`307ea6d8…`)
+
+**Not checked:** device.
 
 **Known risk:** a register the vendor sets to the chroma plane's offset from
 luma within one buffer. With two separate planes that offset is arbitrary,
