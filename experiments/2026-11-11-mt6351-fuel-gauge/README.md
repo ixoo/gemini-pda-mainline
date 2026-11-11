@@ -522,6 +522,64 @@ not a seed: its units and temperature basis are the vendor model's.
     are safer.
   - Not on a device.
 
+## Opportunistic learning: design proposal (owner request, not built)
+
+The owner: "our driver should learn when a charge/discharge cycle gives the opportunity".
+0732 already learns from any pair of 30-minute rests. The gap is the low point: on battery the
+Gemini draws at least 70 mA, so it never rests.
+
+**What the vendor did:**
+- The MT6351 samples the battery voltage itself when it wakes from sleep, before the system
+  loads it: `AUXADC_ADC_OUT_WAKEUP_SWCHR`, read by `get_hw_ocv`.
+- After a long suspend at a few mA, that is a rested OCV. The kernel tells the daemon with
+  `IS_HW_OCV_UPDATE` and keeps `g_hw_ocv_before_sleep`.
+- The daemon's aging thresholds are `AGING1_LOAD_SOC 70` and `AGING1_UPDATE_SOC 30`. By
+  inference, the pair starts at or above 70 % and spans at least 30 points. The daemon's
+  algorithm itself was not disassembled.
+- So the vendor's natural rest points came from suspend.
+
+**The sources, with expected accuracy per reading (inference):**
+
+| Source | When it happens | Error per reading | Step toward Q |
+|---|---|---|---|
+| Rest of 30 min on the charger (0732) | held at the limit, or after charge termination | ±1-2 points | 1/4 |
+| Charge termination at 4.336 V, then the 30 min rest | an overnight charge | ±1 point; the high end | 1/4 (already 0732) |
+| (a) Load-corrected OCV, V − I × R, R ≈ 0.20 Ω, at a light steady load | screen off and idle on battery: steady 70-150 mA for 10 min, windows within ±10 mA of each other | ±3-4 points: about 0.05 Ω of R uncertainty × I, plus polarisation; worst in the flat 40-60 % region | 1/8; 1/16 if both readings are load-corrected |
+| (b) A charging hold-off at plug-in, the battery idle on the charger | plug-in after a discharge | 10 min: ±3 points; 30 min: ±2 | 1/8 at 10 min, 1/4 at 30 |
+| (c) The first reading after a long suspend, as the vendor did | once suspend draws a few mA | ±2 points | 1/4 |
+
+**Driver rules (image items):**
+- A pair still needs 40 points (50 when either reading is load-corrected), the same boot,
+  72 h, 15-35 °C and 10 °C between the readings.
+- The step toward Q is the smaller of the two readings' steps.
+- Each accepted step is capped at 5 % of the design capacity, so ordinary use converges over a
+  few cycles without a jump.
+- (a): a reading is taken once per steady period, and only below 30 % or above 70 %, where
+  the OCV curve is steep enough for a 10 mV error to stay within about 3 points.
+- (c): needs a fresh 5 s current window after resume. The window spanning the suspend would
+  correct the waking voltage with the sleep current. It waits on working low-current suspend:
+  the measured 73 mA is not a rest.
+- The counter's own gain error (CAR_TUNE, chip trim) is absorbed: the learned Q is in counter
+  units, so the percentage stays consistent with the counter.
+
+**A normal cycle with (a) and (b):**
+1. Charge overnight: termination plus a 30 min rest gives the high point.
+2. Through the day, an idle stretch below 30 % gives (a), or plugging in at the end of the day
+   with a hold-off gives (b).
+3. The pair is accepted with a 1/8 step.
+
+Without a reboot in between, a few such days bring `charge_full` within about 5 %.
+
+**Owner decisions:**
+- (b) needs a guard change, the charging session's: hold charging off for 10 or 30 minutes at
+  plug-in. Only below some level (for example 40 %), only at 15-35 °C, and skipped when the
+  owner wants a fast charge. It delays every such charge by that long.
+- Whether (a) is enough on its own: no charging change, slower convergence.
+- (c) waits on suspend.
+
+**Image items:** (a) and the step-weighting rules, in the driver. Nothing is built until the
+owner decides.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
