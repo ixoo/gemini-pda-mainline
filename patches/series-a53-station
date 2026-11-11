@@ -875,4 +875,6 @@ proposals/0705-arm64-dts-mediatek-gemini-station-A72-scale-the-A72.patch
 proposals/0706-arm64-dts-mediatek-gemini-station-DVFS-scale-the-A72.patch
 proposals/0707-ASoC-aw8738-switch-the-amplifier-on-after-the-output.patch
 proposals/0708-power-supply-mt6351-fuel-gauge-report-discharging-wi.patch
+proposals/0710-power-supply-mt6351-fuel-gauge-take-the-current-from.patch
+proposals/0711-power-supply-mt6351-fuel-gauge-count-the-capacity-fr.patch
 proposals/0712-ASoC-mediatek-mt6797-describe-the-memif-HD-alignment.patch

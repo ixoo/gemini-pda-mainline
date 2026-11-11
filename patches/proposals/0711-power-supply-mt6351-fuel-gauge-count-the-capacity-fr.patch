@@ -1,0 +1,155 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 11:23:27 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: count the capacity
+ from an OCV reading
+
+The capacity was the OCV table at the terminal voltage corrected by I x R,
+on every read. That follows the load: unplugging a Gemini at 79 % read
+60 %, with a lit screen and a current that read near zero.
+
+Take an OCV reading once a counter window gives the current, and count
+from there: the charge at that reading plus the counter's change since,
+against the design capacity. Take a new reading when the battery has
+rested, within the 20 mA idle band, for 5 minutes, for example when it is
+held at a charge limit on the charger, so that counter and capacity errors
+do not build up. Until the first window, the OCV reading is reported as
+before.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 80 ++++++++++++++++++++----
+ 1 file changed, 67 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 80eaf12..1160c98 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -54,6 +54,9 @@
+ /* The current is the counter's change over at least this long. */
+ #define MT6351_FG_WINDOW_MS		5000
+ 
++/* Inside the idle current for this long, the voltage is taken as the OCV. */
++#define MT6351_FG_REST_MS		(300 * MSEC_PER_SEC)
++
+ /*
+  * Within this current, the battery is reported as not charging while a supply
+  * is online, and as discharging otherwise.
+@@ -78,6 +81,14 @@ struct mt6351_fg {
+ 	bool win_valid;
+ 	int win_ua;
+ 	bool win_ua_valid;
++	/* The latest counter value, and since when the battery has rested. */
++	s64 car;
++	ktime_t rest_start;
++	bool resting;
++	/* The charge at an OCV reading, and the counter then. */
++	s64 anchor_uah;
++	s64 anchor_car;
++	bool anchored;
+ };
+ 
+ /*
+@@ -128,6 +139,13 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 	dq_nah = mt6351_fg_car_nah(fg, car - fg->win_car);
+ 	fg->win_ua = div_s64(dq_nah * 3600, ms);
+ 	fg->win_ua_valid = true;
++
++	if (abs(fg->win_ua) >= MT6351_FG_IDLE_UA) {
++		fg->resting = false;
++	} else if (!fg->resting) {
++		fg->rest_start = fg->win_start;
++		fg->resting = true;
++	}
+ 	fg->win_start = now;
+ 	fg->win_car = car;
+ 
+@@ -192,6 +210,7 @@ static int mt6351_fg_read(struct mt6351_fg *fg, int *current_ua, int *charge_uah
+ 	car = sign_extend64(((u64)car_h << 19) | ((u64)car_l << 3) | (car_f & 0x7), 34);
+ 	*charge_uah = div_s64(mt6351_fg_car_nah(fg, car), 1000);
+ 
++	fg->car = car;
+ 	mt6351_fg_window(fg, car, *current_ua);
+ 	if (fg->win_ua_valid)
+ 		*current_ua = fg->win_ua;
+@@ -215,12 +234,58 @@ static int mt6351_fg_voltage(struct mt6351_fg *fg, int *uv)
+ 	return 0;
+ }
+ 
++/*
++ * The capacity is counted: the charge at the last OCV reading plus the
++ * counter's change since, against the design capacity. The OCV reading, the
++ * voltage corrected by I x R and looked up in the battery's OCV table, is
++ * taken once a counter window gives the current, and again whenever the
++ * battery has rested long enough for the voltage to settle, for example held
++ * at a charge limit on the charger. Until then, the OCV reading is reported.
++ */
++static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity)
++{
++	s64 full = fg->info->charge_full_design_uah;
++	int uv, mc, ret;
++	bool settled;
++	s64 uah;
++
++	guard(mutex)(&fg->lock);
++
++	settled = fg->resting &&
++		  ktime_ms_delta(ktime_get_boottime(), fg->rest_start) >= MT6351_FG_REST_MS;
++	if (!fg->anchored || settled) {
++		ret = mt6351_fg_voltage(fg, &uv);
++		if (!ret)
++			ret = thermal_zone_get_temp(fg->tz, &mc);
++		if (ret)
++			return ret;
++		/* The open-circuit voltage: charging current raises the terminal. */
++		uv -= (s64)ua * fg->resistance_mohm / 1000;
++		ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
++		if (ret < 0)
++			return ret;
++		ret = clamp(ret, 0, 100);
++		if (!fg->win_ua_valid || full <= 0) {
++			*capacity = ret;
++			return 0;
++		}
++		fg->anchor_uah = div_s64(full * ret, 100);
++		fg->anchor_car = fg->car;
++		fg->anchored = true;
++	}
++
++	uah = fg->anchor_uah + div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
++	*capacity = clamp_t(s64, div64_s64(uah * 100 + full / 2, full), 0, 100);
++
++	return 0;
++}
++
+ static int mt6351_fg_get_property(struct power_supply *psy,
+ 				  enum power_supply_property psp,
+ 				  union power_supply_propval *val)
+ {
+ 	struct mt6351_fg *fg = power_supply_get_drvdata(psy);
+-	int uv, ua, uah, mc, ret;
++	int ua, uah, mc, ret;
+ 
+ 	/* The battery description is read just after registration. */
+ 	if (!READ_ONCE(fg->info))
+@@ -277,18 +342,7 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+ 		return 0;
+ 	case POWER_SUPPLY_PROP_CAPACITY:
+-		ret = mt6351_fg_voltage(fg, &uv);
+-		if (!ret)
+-			ret = thermal_zone_get_temp(fg->tz, &mc);
+-		if (ret)
+-			return ret;
+-		/* The open-circuit voltage: charging current raises the terminal. */
+-		uv -= (s64)ua * fg->resistance_mohm / 1000;
+-		ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
+-		if (ret < 0)
+-			return ret;
+-		val->intval = clamp(ret, 0, 100);
+-		return 0;
++		return mt6351_fg_capacity(fg, ua, &val->intval);
+ 	default:
+ 		return -EINVAL;
+ 	}
+-- 
+2.54.0 (Apple Git-157)
+
