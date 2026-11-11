@@ -5,9 +5,9 @@
 state=${XDG_STATE_HOME:-$HOME/.local/state}/gemini
 mkdir -p "$state"
 
-# The output volume starts at 35%. PipeWire's 100% is full scale, and the speakers saturate
-# at high stream volumes (owner, 2026-11-11: YouTube clean up to 55%); the audio session is
-# measuring a cap. WirePlumber keeps the user's later changes.
+# The output volume starts at 60% (owner, 2026-11-11: YouTube clean on the speakers at 60%
+# with kernel fixes 0707 and 0712; the 35% before was tuned to the 0712 bug, and too quiet
+# without it). WirePlumber keeps the user's later changes.
 wait_for() {
     tries=0
     while ! wpctl inspect "$1" >/dev/null 2>&1 && [ "$tries" -lt 20 ]; do
@@ -17,7 +17,7 @@ wait_for() {
 }
 if [ ! -e "$state/volume-set" ]; then
     wait_for @DEFAULT_AUDIO_SINK@
-    wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.35 && touch "$state/volume-set"
+    wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.60 && touch "$state/volume-set"
 fi
 
 # The microphone starts muted (owner, 2026-11-11); WirePlumber keeps it that way until

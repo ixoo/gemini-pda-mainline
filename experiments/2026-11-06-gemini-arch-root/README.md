@@ -1969,10 +1969,12 @@ microphone captured. So gemini-base now uses it instead of its manual sink:
   are gone, so WirePlumber makes the devices from the profile. `audio-start` stays.
 - `first-login` mutes the default source once (owner, on card-31: the microphone muted by
   default), with its own marker, so a card that already ran it mutes once at the next login.
-- The output still starts at 35%. The owner found the speakers saturate at high stream
-  volumes: YouTube at 100% distorted, and 55% was the most without. Headphone Volume is
-  already at its -10 dB floor, so the profile can't lower it. The audio session is measuring
-  where distortion starts and will send a cap; until then, the speakers can saturate.
+- The output starts at 60% (`gemini-base` 39, owner on card-31: YouTube "all works" at 0.60).
+  The earlier saturation was a kernel bug, not a level problem: PipeWire opens the PCM as
+  S32_LE and the AFE read the low 24 bits of each word, about 48 dB too loud. Kernel patch
+  0712 fixes it and 0707 removes the speaker click at start (main `5abb47f2`). The 35% before
+  was tuned to the bug. The card carries no kernel, so 60% holds only with a station image
+  that has both; with an older one it distorts on the speakers.
 
 ShellCheck passes on `first-login` and `build-card.sh`; the package isn't built yet. To
 check at the first boot: Noctalia shows "Speaker" as the output and "Mic" as the input, a
