@@ -1586,6 +1586,42 @@ and a lost one would show there.
 | G2 still sleeps to the timer with the mask on | Not the GIC race; the program's handling of a level EINT is next (read the EINT controller's wake output) |
 | G0 already wakes at the open | Lid edges get through without the mask and only the level PMIC line fails; G2 decides it |
 
+**W3b result (2026-11-10).** Run by the custodian on the same boot,
+`56832cd1…`, with the 0688 module (`53f9eb60…`, from `2054b72e`) swapped in
+by `insmod`, which loaded cleanly. Recorded in the test plan,
+"station-work-97 W3b". Each case is a `mem` suspend with a 120 s timer, the
+owner acting at about 20 s:
+
+| Case | `gic_mask` | Action | SPM slept | `r12` | `loops` |
+| --- | --- | --- | --- | --- | --- |
+| G0 | 0 | lid open | 17.6 s | `0x40` | 3 |
+| G1 | 1 | lid open | 18.9 s | `0x40` | 0 |
+| G2 | 1 | charger plug | 23.8 s | `0x40` | 0 |
+| G3 | 1 | none | 120.0 s | `0x1` | 0 |
+
+A key worked within 1-4 s after G1 and G2, so every enable came back; no
+fault, taint 0, USB back after the replug. The EINT bank holding EINT176 read
+status 0, mask `0xFFFEFFFF` (EINT176 unmasked), sensitivity `0xFFFFFFFF` at
+every entry and exit; IRQs 191 and 209 each rose by one across G2.
+
+**Reading.**
+- **The GIC race was the cause.** With the mask the charger plug woke the
+  program at the plug. The lid's EINT woke it promptly even without the mask
+  (G0), so only the PMIC's interrupt was lost to the race.
+- `loops` counts CPU0's early WFI exits; 0 means none. Unmasked, CPU0 left
+  WFI early in every suspend, timer wakes included (`loops=1` before); masked,
+  it never did.
+- `/sys/power/mem_sleep` keeps listing `deep` after the module is removed
+  (`[s2idle] deep`): the kernel does not drop the label with the operations.
+  `deep` is only selected while the module is loaded, which is what
+  `backlight-policy` checks, and a `mem` request without the module is
+  refused by the kernel, so it is harmless.
+
+[`0689`](../../patches/proposals/0689-soc-mediatek-mt6797-spm-sleep-mask-the-GIC-by-default.patch)
+makes `gic_mask` default to on, as the vendor flow is; `gic_mask=0` still
+gives the old behaviour. One line in the module; it applies on
+`series-a53-station` through 0688 as `scripts/kernel` applies patches.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding

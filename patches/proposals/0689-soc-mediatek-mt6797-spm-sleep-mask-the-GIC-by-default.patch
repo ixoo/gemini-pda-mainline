@@ -1,0 +1,28 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Tue, 10 Nov 2026 21:30:00 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: mask the GIC by default
+
+With gic_mask set, a charger plug-in woke a 120 s mem suspend at the
+plug (the SPM slept 23.8 s), a lid open woke it at 18.9 s, and CPU0
+never left WFI before the program returned. Without it the plug was
+missed until the timer. Interrupts worked after each resume.
+
+Mask the GIC by default, as the vendor does; gic_mask=0 still gives the
+old behaviour for comparison.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -242,7 +242,7 @@ module_param(pmic_modes, bool, 0644);
+ MODULE_PARM_DESC(pmic_modes, "Set the static PMIC sleep modes for each suspend");
+ 
+-static bool gic_mask;
++static bool gic_mask = true;
+ module_param(gic_mask, bool, 0644);
+ MODULE_PARM_DESC(gic_mask, "Disable every SPI but the SPM's at the GIC while CPU0 waits");
+ 
+ static inline u32 spm_rd(u32 off)
