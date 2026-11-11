@@ -373,6 +373,31 @@ Reading:
 - That accounts for part of "Gemian reads higher". Whether 4.208 V stays as a gentler limit or
   goes to 4.34 V is the owner's call, through the charging session.
 
+**Time to full and to empty (owner request, 2026-11-11):**
+- UPower's Linux backend (`src/linux/up-device-supply-battery.c`, upstream master) picks charge
+  units only when the battery has `charge_full`.
+  - It then reads `charge_full`, `charge_full_design`, `charge_now` and `current_now`.
+  - It converts them to energy with `voltage_max_design` (4.352 V here).
+  - From those it computes `time-to-full` while charging and `time-to-empty` otherwise.
+    `power_now` is not read in charge units.
+- Without `charge_full` or `energy_full` it uses energy units, finds no energy and reports 0 Wh
+  with no time estimates. That is what station-work-105 showed.
+- [0730](../../patches/proposals/0730-power-supply-mt6351-fuel-gauge-report-the-charge-now.patch)
+  adds:
+  - `charge_now`: the counted charge behind `capacity`, clamped to full;
+  - `charge_full`: the design 4268 mAh. The real capacity is not learned.
+- Compiled at W=1 and checkpatch clean; not on a device.
+- **Limits:**
+  - UPower's time to full counts up to 100 % of the design capacity. Mainline charges only to
+    4.208 V, about 87 % on the table, and the guard may stop at a lower limit, so the estimate
+    runs long.
+  - The time to empty is only as good as 0711's starting point.
+- **To verify:** `upower -i /org/freedesktop/UPower/devices/battery_battery` should show:
+  - `energy` about `charge_now` × 4.352 V;
+  - `energy-full` about 18.6 Wh;
+  - `energy-rate` about |`current_now`| × 4.352 V;
+  - a `time to full` line while charging, or `time to empty` unplugged, within a minute or two.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
