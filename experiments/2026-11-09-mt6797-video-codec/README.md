@@ -859,7 +859,7 @@ Untested: B-frames, larger sizes, real-world streams, scaling lists, tiles,
 long-term references, sustained playback and power. mpv and qutebrowser
 still need the VA-API bridge (Stage 4).
 
-## Stage 3c: H.264 in the same driver (V11: luma exact, chroma fix pending)
+## Stage 3c: H.264 in the same driver (V12 passed 2026-11-11)
 
 [Patch 0729](../../patches/proposals/0729-media-mediatek-mt6797-vdec-add-H.264-decoding.patch)
 adds progressive 8-bit 4:2:0 H.264 (Baseline, Main, High) to `mt6797-vdec`
@@ -934,10 +934,35 @@ writes the per-reference chroma tables:
 
 The C port and the model still agree on 84/84 pictures.
 
-**Next device run (V12).** Repeat V11 with 0731. If P-frame chroma becomes
-exact, the inferred P table is right. If only B-referenced chroma is fixed,
-the P table is elsewhere. If nothing changes, the H.264 mode ignores the
-tables and the planes must be contiguous.
+### V12 result
+
+**H.264 decodes bit-exact through the mainline V4L2 stateless driver.**
+
+*Run.* The custodian swapped only the module on the V11 boot (station-work-107,
+boot `a1651d02`). Build `7d626ed0` (contains 0731) produced the same
+`Image.gz` `278b7a00…` and config as the running image; `mt6797-vdec.ko`
+`7d2108c7…`, the other modules as in V11. Evidence (private):
+`artifacts/card-32/v12-*`.
+
+*Observed:* 30, 30 and 24 decoder interrupts for the three clips, no driver
+errors, timeouts or rejected pictures, SoC 34.8–38.1 °C; afterwards the
+domain off and the `vdec_sel` enable count 0. The HEVC regression output is
+again byte-identical to V10's.
+
+*Result.* Detiled on the host: **30/30 frames match for `single`, 30/30 for
+`multi` and 24/24 for `hi-b`.**
+
+*Analysis.* The per-reference chroma tables fix chroma for P and B pictures,
+which confirms the inferred P-list chroma table at `MC+0xB60` and the
+`MC+0xB5C` enable in H.264 mode. A register model built only from the
+decompile, with no vendor trace, drove the hardware correctly once the
+buffer-layout difference was handled: I, P and B pictures, CAVLC and CABAC,
+four slices, explicit P weights, 8x8 transform, scaling lists and temporal
+direct.
+
+Untested: long-term references, explicit B weights, memory-management
+operations, POC type 1, interlaced streams (rejected), real-world streams,
+larger sizes, sustained playback and power.
 
 ## Follow-up
 

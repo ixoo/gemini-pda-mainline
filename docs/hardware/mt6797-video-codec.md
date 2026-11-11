@@ -6,8 +6,9 @@ their established resources, the vendor control model and the mainline gap.
 Evidence, chronology, file identities and the staged plan are in the
 [video codec record](../../experiments/2026-11-09-mt6797-video-codec/README.md).
 
-Status on mainline: a prototype V4L2 stateless HEVC decoder (`mt6797-vdec`,
-local) decodes HEVC Main 8-bit bit-exact on test clips. H.264, VP9 and the
+Status on mainline: a prototype V4L2 stateless decoder (`mt6797-vdec`,
+local) decodes HEVC Main 8-bit and progressive H.264 (Baseline, Main, High)
+bit-exact on test clips. VP9 and the
 encoder have no driver; players need a VA-API bridge. Bring-up diagnostics also showed the
 hardware works:
 
@@ -53,6 +54,13 @@ and register table (part 2, sections 4.7 and 4.8; part 1, TOPRGU).
   16x16 interleaved-CbCr tiles, chroma in a separate buffer. This is
   bit-exact with a software decode of the same frame
   ([V6](../../experiments/2026-11-09-mt6797-video-codec/README.md#v6-hevc-register-traces-and-a-decoded-frame-2026-11-11)).
+- Reference chroma: with `MC+0xB5C = 1` the motion compensation takes each
+  reference's chroma address from its own table (P list `MC+0xB60`, B lists
+  and HEVC L0/L1 `MC+0xBE0` and `MC+0xC60`), next to the luma tables
+  (`MC+0x3DC`, `+0x45C`, `+0x4DC`). Without it, H.264 derives reference
+  chroma from luma plus one offset, which fails when the planes are
+  allocated apart
+  ([V11, V12](../../experiments/2026-11-09-mt6797-video-codec/README.md#v12-result)).
 
 Open: which of `venc_0` and `venc_1` clocks larb3 (vendor references
 disagree); whether VENC and MJC SRAM power up without their muxes running.
@@ -67,7 +75,7 @@ configuration limits all decoders to 1920x1088 and adds eFuse gating from the
 `dev_info` capability bits read by the vendor library; on the named unit those bits
 leave HEVC, above-1080p, DivX 3.11 and MJC enabled. The vendor decoder selects
 its hardware path for VP8, VP9 and VC-1 as well; hardware decode is
-demonstrated only for HEVC so far.
+demonstrated only for HEVC and H.264 so far.
 
 ## Vendor control model
 
