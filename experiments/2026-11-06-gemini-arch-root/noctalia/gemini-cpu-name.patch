@@ -1,0 +1,153 @@
+Noctalia names an ARM processor (gemini-pda-mainline, MIT).
+
+Noctalia 5.4.1 reads the CPU name only from /proc/cpuinfo's "model name", which arm64
+kernels never print, so its System panel says "Unknown CPU" on the Gemini PDA (owner,
+2026-11-10). Fall back the way lscpu and fastfetch describe ARM processors: the SoC from
+/sys/devices/soc0/machine or the device tree's last "compatible" entry, and the online
+cores decoded from their implementer and part numbers. On the Gemini this reads
+"MediaTek MT6797 (8× Cortex-A53)". A "model name", where the kernel prints one, still wins.
+
+diff --git a/src/system/hardware_info.cpp b/src/system/hardware_info.cpp
+index f1f508f28..5457dd602 100644
+--- a/src/system/hardware_info.cpp
++++ b/src/system/hardware_info.cpp
+@@ -18,11 +18,129 @@
+ #include <fstream>
+ #include <mutex>
+ #include <string>
++#include <string_view>
+ #include <sys/statvfs.h>
++#include <utility>
+ #include <vector>
+ 
+ namespace {
+ 
++  // arm64 kernels print no "model name" in /proc/cpuinfo. Describe the processor the way
++  // lscpu and fastfetch do there: the SoC from socinfo or the device tree, and the online
++  // cores decoded from their implementer and part numbers.
++  std::string readTrimmedFile(const std::string& path) {
++    std::ifstream file{path};
++    std::string text;
++    std::getline(file, text, '\0');
++    return StringUtils::trim(text);
++  }
++
++  std::string socName(const std::string& root) {
++    if (std::string machine = readTrimmedFile(root + "/sys/devices/soc0/machine"); !machine.empty()) {
++      return machine;
++    }
++    // The device tree's last "compatible" entry names the SoC, for example "mediatek,mt6797".
++    std::ifstream file{root + "/proc/device-tree/compatible", std::ios::binary};
++    std::string entry;
++    std::string last;
++    while (std::getline(file, entry, '\0')) {
++      if (!entry.empty()) {
++        last = entry;
++      }
++    }
++    const auto comma = last.find(',');
++    if (comma == std::string::npos || comma + 1 >= last.size()) {
++      return {};
++    }
++    static constexpr std::pair<std::string_view, std::string_view> kVendors[] = {
++        {"allwinner", "Allwinner"}, {"amlogic", "Amlogic"},     {"apple", "Apple"},
++        {"brcm", "Broadcom"},       {"fsl", "NXP"},             {"mediatek", "MediaTek"},
++        {"nvidia", "NVIDIA"},       {"nxp", "NXP"},             {"qcom", "Qualcomm"},
++        {"rockchip", "Rockchip"},   {"samsung", "Samsung"},     {"ti", "TI"},
++    };
++    std::string vendor = last.substr(0, comma);
++    for (const auto& [key, name] : kVendors) {
++      if (vendor == key) {
++        vendor = name;
++        break;
++      }
++    }
++    std::string model = last.substr(comma + 1);
++    std::ranges::transform(model, model.begin(), [](unsigned char c) { return std::toupper(c); });
++    return vendor + " " + model;
++  }
++
++  std::string_view armCoreName(unsigned long part) {
++    switch (part) {
++    case 0xd01: return "Cortex-A32";
++    case 0xd03: return "Cortex-A53";
++    case 0xd04: return "Cortex-A35";
++    case 0xd05: return "Cortex-A55";
++    case 0xd07: return "Cortex-A57";
++    case 0xd08: return "Cortex-A72";
++    case 0xd09: return "Cortex-A73";
++    case 0xd0a: return "Cortex-A75";
++    case 0xd0b: return "Cortex-A76";
++    case 0xd0c: return "Neoverse-N1";
++    case 0xd0d: return "Cortex-A77";
++    case 0xd41: return "Cortex-A78";
++    case 0xd44: return "Cortex-X1";
++    case 0xd46: return "Cortex-A510";
++    case 0xd47: return "Cortex-A710";
++    case 0xd48: return "Cortex-X2";
++    case 0xd4d: return "Cortex-A715";
++    case 0xd4e: return "Cortex-X3";
++    case 0xd80: return "Cortex-A520";
++    case 0xd81: return "Cortex-A720";
++    case 0xd82: return "Cortex-X4";
++    default: return {};
++    }
++  }
++
++  // "8× Cortex-A53", or "4× Cortex-A55 + 4× Cortex-A76", in the order the cores appear.
++  std::string armCores(const std::string& root) {
++    std::ifstream file{root + "/proc/cpuinfo"};
++    std::vector<std::pair<std::string, int>> counts;
++    std::string line;
++    unsigned long implementer = 0;
++    while (std::getline(file, line)) {
++      const auto colon = line.find(':');
++      if (colon == std::string::npos) {
++        continue;
++      }
++      const std::string key = StringUtils::trim(line.substr(0, colon));
++      const std::string value = StringUtils::trim(line.substr(colon + 1));
++      if (key == "CPU implementer") {
++        implementer = std::strtoul(value.c_str(), nullptr, 0);
++      } else if (key == "CPU part" && implementer == 0x41) {
++        const std::string_view name = armCoreName(std::strtoul(value.c_str(), nullptr, 0));
++        if (name.empty()) {
++          continue;
++        }
++        auto it = std::ranges::find_if(counts, [&](const auto& c) { return c.first == name; });
++        if (it == counts.end()) {
++          counts.emplace_back(std::string(name), 1);
++        } else {
++          ++it->second;
++        }
++      }
++    }
++    std::string text;
++    for (const auto& [name, count] : counts) {
++      text += std::format("{}{}× {}", text.empty() ? "" : " + ", count, name);
++    }
++    return text;
++  }
++
++  std::string describeArmCpu(const std::string& root) {
++    const std::string soc = socName(root);
++    const std::string cores = armCores(root);
++    if (!soc.empty() && !cores.empty()) {
++      return std::format("{} ({})", soc, cores);
++    }
++    return soc.empty() ? cores : soc;
++  }
++
+   std::string readCpuModel() {
+     std::ifstream file{"/proc/cpuinfo"};
+     if (!file.is_open()) {
+@@ -38,6 +156,9 @@ namespace {
+         }
+       }
+     }
++    if (std::string arm = describeArmCpu(""); !arm.empty()) {
++      return arm;
++    }
+     return i18n::tr("system.hardware.unknown-cpu");
+   }
+ 

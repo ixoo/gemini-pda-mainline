@@ -68,3 +68,47 @@ show_app_origin_indicator = false
 # through logind's SetBrightness.
 [brightness.monitor.DSI-1]
 backlight_device = "backlight"
+
+# The GPS switch (owner, 2026-11-10: GNSS "only when activated in noctalia"): the GNSS
+# package's plugin, gemini/gnss, from its path source, as a control-center tile. Listing
+# plugin sources or shortcuts replaces Noctalia's defaults, so the default sources stay
+# listed. The Home tab shows six tiles: the defaults without the power-profile tile, since
+# the card has no power-profiles-daemon, and with GPS after Bluetooth.
+[plugins]
+enabled = ["gemini/gnss"]
+
+[[plugins.source]]
+name = "official"
+kind = "git"
+location = "https://github.com/noctalia-dev/official-plugins"
+enabled = true
+
+[[plugins.source]]
+name = "community"
+kind = "git"
+location = "https://github.com/noctalia-dev/community-plugins"
+enabled = true
+
+[[plugins.source]]
+name = "gemini"
+kind = "path"
+location = "/usr/share/noctalia/plugins"
+enabled = true
+
+[[control_center.shortcuts]]
+type = "wifi"
+
+[[control_center.shortcuts]]
+type = "bluetooth"
+
+[[control_center.shortcuts]]
+type = "gemini/gnss:toggle"
+
+[[control_center.shortcuts]]
+type = "caffeine"
+
+[[control_center.shortcuts]]
+type = "nightlight"
+
+[[control_center.shortcuts]]
+type = "notification"

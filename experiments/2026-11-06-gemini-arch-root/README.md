@@ -1839,6 +1839,75 @@ Card-29 (dev VM, `gemini-base` 34, GNSS package from `230df821`, image sha256
 
 Not run on the device.
 
+### The processor's name (2026-11-10)
+
+The owner: "the cpu is marked as 'Unknown', it would be good to address it". Noctalia's System
+panel showed "Unknown CPU".
+
+- **Cause:** Noctalia 5.4.1 reads the CPU name only from `/proc/cpuinfo`'s "model name"
+  (`src/system/hardware_info.cpp`), which arm64 kernels never print. Upstream main has not
+  changed it. A kernel `soc0` entry alone would not help, since Noctalia never reads it.
+- **Patch:** `noctalia/gemini-cpu-name.patch` falls back the way `lscpu` and fastfetch
+  describe ARM processors:
+  - the SoC from `/sys/devices/soc0/machine`, else from the device tree's last `compatible`
+    entry, through a small vendor table;
+  - and the online cores, decoded from their implementer and part numbers.
+  - A "model name" still wins where the kernel prints one.
+- **Expected on the Gemini:** "MediaTek MT6797 (8× Cortex-A53)". The Cortex-A72 cores are
+  offline, so they are not listed.
+- **Tested:** standalone against fake roots: the Gemini, a mixed Rockchip SoC with and
+  without `soc0`, and one with nothing to describe, which keeps "Unknown CPU".
+- **Package:** `noctalia/` is the repository's 5.4.1 recipe (Arch's packaging) with that
+  patch, as `pkgrel` 1.1. That is newer than the repository's 5.4.1-1, and its next release
+  replaces it.
+- **build-card.sh:** builds it like Umbriel, through one `build_local` function. Each
+  package's dependencies and build tools come from its own PKGBUILD.
+
+### A GPS switch in Noctalia (`gemini-base` 35, 2026-11-10)
+
+The owner, in the GNSS session: "I don't want the gnss to be up by default, only when
+activated in noctalia (if possible)". The GNSS package (`4e6b52c8`) adds:
+
+- a Noctalia plugin, `gemini/gnss`, under `/usr/share/noctalia/plugins/gnss/`, with a
+  control-center tile that starts and stops `gnss-mt6797.service`;
+- a polkit rule that lets the active local session start, stop and restart that one unit
+  without a password.
+
+`build-card.sh` now copies the GNSS package directory whole, since its sources include the
+`noctalia-gnss/` plugin at that path. `noctalia.toml` now:
+
+- enables the plugin and adds a `gemini` path source at `/usr/share/noctalia/plugins`.
+- keeps Noctalia's `official` and `community` git sources listed. An explicit
+  `[[plugins.source]]` list replaces Noctalia's defaults (`src/config/config_service.cpp`).
+- lists the control-center tiles: Wi-Fi, Bluetooth, GPS, caffeine, night light and
+  notifications. An explicit list replaces the defaults here too.
+  - The Home tab shows six tiles, so the default power-profile tile is the one left out;
+    the card has no power-profiles-daemon.
+  - The GNSS session raised the six-tile limit.
+
+The bar gets no GPS indicator, since the owner asked for a simpler bar. The service is still
+not enabled. Whether Noctalia loads the plugin, and the polkit rule lets its commands
+through, can only be seen on the device; the GNSS session folds those checks into its GPS
+device run.
+
+Card-30 (dev VM, `gemini-base` 35, Noctalia 5.4.1-1.1, image sha256 `242eb0601f46…`, 438
+packages, root 2.57 GB used) is card-29 plus the processor name and the GPS switch. It pairs
+with `station-work-98` or a descendant.
+
+Checked read-only on the image:
+
+- the Noctalia binary carries the new core names;
+- the plugin's three files and `50-gnss-mt6797.rules` are installed;
+- Noctalia's `config validate` passes with the plugin, sources and tiles;
+- no build tool (gcc, meson, base-devel, stb, fakeroot) is left.
+
+Two build fixes on the way:
+
+- Noctalia's compile ran the 8 GiB dev VM out of memory at ninja's default ten jobs, so the
+  recipe uses four.
+- makepkg looks up a local source by its file name, so `build-card.sh` also copies the
+  plugin files flat beside the GNSS PKGBUILD.
+
 ## Analysis
 
 Not started.

@@ -12,7 +12,8 @@
 # gemini-arch. The root is the tarball, with:
 #   - the kernel, linux-firmware and mkinitcpio packages removed, and ignored;
 #   - upgraded from the official repositories, with iwd, iw, wireless-regdb and sudo;
-#   - Umbriel built from ./umbriel's pinned commit, and gemini-base built from
+#   - Umbriel built from ./umbriel's pinned commit, Noctalia from ./noctalia (the
+#     repository's version with a patch), and gemini-base built from
 #     ./gemini-base, both installed, with gemini-base's units enabled, and the GNSS
 #     daemon built from ../2026-11-10-gemini-gnss-daemon, installed but not enabled;
 #   - root locked and the default alarm user removed; sshd masked;
@@ -122,29 +123,38 @@ in_root pacman --gpgdir /run/pacman-gnupg -Syu --needed --noconfirm --noprogress
 	{ tail -20 "$work/pacman.log" >&2; echo "build-card: pacman failed" >&2; exit 1; }
 
 here=$(cd "$(dirname "$0")" && pwd)
-# Umbriel, gemini-base's compositor, from ./umbriel's pinned upstream commit: no repository
-# ships it. Built by makepkg as nobody on the image's disk, since the build is larger
-# than /run; its build tools go in as dependencies and leave again once nothing needs them.
-umbriel_makedeps=(base-devel meson ninja nlohmann-json pkgconf wayland-protocols)
-umbriel_deps=$(sed -n "/^depends=(/,/)/p" "$here/umbriel/PKGBUILD" | tr -d "()'" | sed 's/^depends=//')
-# shellcheck disable=SC2086 # the dependency list splits on purpose
-in_root pacman --gpgdir /run/pacman-gnupg -S --needed --asdeps --noconfirm --noprogressbar \
-	"${umbriel_makedeps[@]}" $umbriel_deps >>"$work/pacman.log" 2>&1 ||
-	{ tail -20 "$work/pacman.log" >&2; echo "build-card: Umbriel's dependencies failed" >&2; exit 1; }
-ubuild=$mnt/var/tmp/umbriel-build
-mkdir -p "$ubuild/src" "$ubuild/out"
-cp "$here"/umbriel/* "$ubuild/src/"
-chown -R 65534:65534 "$ubuild"
-chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/var/tmp/umbriel-build LANG=C \
-	PKGDEST=/var/tmp/umbriel-build/out sh -c 'cd /var/tmp/umbriel-build/src && makepkg --nodeps --noprogressbar' \
-	>"$work/umbriel-makepkg.log" 2>&1 ||
-	{ tail -30 "$work/umbriel-makepkg.log" >&2; echo "build-card: building Umbriel failed" >&2; exit 1; }
-umbriel_pkg=$(ls "$ubuild"/out/umbriel-*.pkg.tar.*)
-cp "$umbriel_pkg" "$out/"
-umbriel_sha=$(sha256sum "$umbriel_pkg" | cut -d' ' -f1)
-in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/var/tmp/umbriel-build/out/${umbriel_pkg##*/}" >>"$work/pacman.log" 2>&1 ||
-	{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing Umbriel failed" >&2; exit 1; }
-rm -rf "$ubuild"
+# Packages built here from ./umbriel (Umbriel at a pinned upstream commit: no repository
+# ships it) and ./noctalia (the repository's Noctalia with a patch). Each is built by
+# makepkg as nobody on the image's disk, since the build is larger than /run; its
+# dependencies and build tools, read from its PKGBUILD, go in as dependencies, and the
+# build tools leave again once nothing needs them. Prints the package's SHA-256.
+# usage: build_local DIR NAME
+build_local() {
+	local dir=$here/$1 name=$2 deps lbuild pkg
+	# The recipes are this directory's own, which makepkg sources anyway.
+	# shellcheck disable=SC1091,SC2154 # sourced at run time; arrays the PKGBUILD defines
+	deps=$(cd "$dir" && . ./PKGBUILD && echo "${depends[*]} ${makedepends[*]}")
+	# shellcheck disable=SC2086 # the dependency list splits on purpose
+	in_root pacman --gpgdir /run/pacman-gnupg -S --needed --asdeps --noconfirm --noprogressbar \
+		base-devel $deps >>"$work/pacman.log" 2>&1 ||
+		{ tail -20 "$work/pacman.log" >&2; echo "build-card: $name's dependencies failed" >&2; exit 1; }
+	lbuild=$mnt/var/tmp/$1-build
+	mkdir -p "$lbuild/src" "$lbuild/out"
+	cp "$dir"/* "$lbuild/src/"
+	chown -R 65534:65534 "$lbuild"
+	chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME="/var/tmp/$1-build" LANG=C \
+		PKGDEST="/var/tmp/$1-build/out" sh -c "cd /var/tmp/$1-build/src && makepkg --nodeps --noprogressbar" \
+		>"$work/$1-makepkg.log" 2>&1 ||
+		{ tail -30 "$work/$1-makepkg.log" >&2; echo "build-card: building $name failed" >&2; exit 1; }
+	pkg=$(ls "$lbuild"/out/"$1"-[0-9]*.pkg.tar.*)
+	cp "$pkg" "$out/"
+	in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/var/tmp/$1-build/out/${pkg##*/}" >>"$work/pacman.log" 2>&1 ||
+		{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing $name failed" >&2; exit 1; }
+	sha256sum "$pkg" | cut -d' ' -f1
+	rm -rf "$lbuild"
+}
+umbriel_sha=$(build_local umbriel Umbriel)
+noctalia_sha=$(build_local noctalia Noctalia)
 
 # gemini-base (step 3), built from this directory with the station's audio-start and
 # display-start staged beside it, by makepkg as nobody; fakeroot only for the build.
@@ -169,7 +179,10 @@ in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/run/b
 # gnss-mt6797.service switches the GPS radio on.
 gnss=$here/../2026-11-10-gemini-gnss-daemon
 mkdir -p "$build/gnss"
-cp "$gnss/PKGBUILD" "$gnss/gnss-mt6797d" "$gnss/gnss-mt6797.service" "$gnss/geoclue-gnss-mt6797.conf" "$build/gnss/"
+# The whole directory. makepkg looks for a local source by its file name in the build
+# directory, so plugin files in a noctalia-gnss/ subdirectory (4e6b52c8) also go there flat.
+cp -R "$gnss"/. "$build/gnss/"
+if [ -d "$gnss/noctalia-gnss" ]; then cp "$gnss"/noctalia-gnss/* "$build/gnss/"; fi
 chown -R 65534:65534 "$build/gnss"
 chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME=/run/build LANG=C \
 	PKGDEST=/run/build/out sh -c 'cd /run/build/gnss && makepkg --nodeps --noprogressbar' >"$work/gnss-makepkg.log" 2>&1 ||
@@ -271,6 +284,7 @@ cat >"$out/card.json" <<EOF
   "package_list_sha256": "$packages",
   "packages_added": "${EXTRA[*]}",
   "umbriel_sha256": "$umbriel_sha",
+  "noctalia_sha256": "$noctalia_sha",
   "gemini_base_sha256": "$base_sha",
   "gnss_mt6797d_sha256": "$gnss_sha",
   "systemd": "$systemd",

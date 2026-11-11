@@ -1,0 +1,49 @@
+# SPDX-License-Identifier: MIT
+# Noctalia, the repository's 5.4.1 recipe (Arch's packaging, by Peter Jung and the Noctalia
+# team), rebuilt with gemini-cpu-name.patch: arm64 has no "model name" in /proc/cpuinfo, so
+# Noctalia's System panel said "Unknown CPU" (owner, 2026-11-10). pkgrel 1.1 is newer than
+# the repository's 5.4.1-1, and the repository's next release replaces it.
+_pkgname=noctalia
+pkgname=noctalia
+pkgver=5.4.1
+pkgrel=1.1
+pkgdesc='A sleek, customizable desktop shell crafted for Wayland'
+arch=('aarch64')
+url='https://github.com/noctalia-dev/noctalia'
+license=('MIT')
+depends=('bash' 'cairo' 'curl' 'fontconfig' 'freetype2' 'git' 'glib2' 'glibc' 'harfbuzz'
+         'hicolor-icon-theme' 'jemalloc' 'libgcc' 'libglvnd' 'libical' 'libjxl' 'libpipewire'
+         'libqalculate' 'librsvg' 'libsecret' 'libsndfile' 'libsodium' 'libstdc++' 'libwebp'
+         'libwireplumber' 'libxkbcommon' 'libxml2' 'md4c' 'pam' 'polkit' 'pango' 'sdbus-cpp'
+         'tomlplusplus' 'wayland')
+optdepends=('ddcutil: monitor brightness control'
+            'power-profiles-daemon: power profile management'
+            'upower: battery and power device integration')
+makedepends=('meson' 'ninja' 'nlohmann-json' 'pkgconf' 'stb' 'wayland-protocols')
+source=("${_pkgname}-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz"
+        gemini-cpu-name.patch)
+sha256sums=('6069d922e9d72488c74e4ce335314ce2203f08bd4641380bfe1bd137004597fa' SKIP)
+
+prepare() {
+    patch -d "${_pkgname}-${pkgver}" -p1 <gemini-cpu-name.patch
+}
+
+build() {
+    CXXFLAGS+=" -Wno-unused-result"
+    arch-meson "${_pkgname}-${pkgver}" build-release -Db_ndebug=true -Dtests=disabled
+    # Four jobs: at ninja's default of ten, the 8 GiB dev VM ran out of memory (about
+    # 0.9 GB per compiler).
+    meson compile -C build-release -j 4
+    for shell in bash fish zsh; do
+        build-release/noctalia completions "$shell" >"${shell}-completion"
+    done
+}
+
+package() {
+    meson install -C build-release --destdir "${pkgdir}"
+    install -Dm644 "${_pkgname}-${pkgver}/LICENSE" "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+    install -Dm644 "${_pkgname}-${pkgver}/README.md" "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+    install -Dm644 bash-completion "$pkgdir/usr/share/bash-completion/completions/noctalia"
+    install -Dm644 fish-completion "$pkgdir/usr/share/fish/vendor_completions.d/noctalia.fish"
+    install -Dm644 zsh-completion "$pkgdir/usr/share/zsh/site-functions/_noctalia"
+}
