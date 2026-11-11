@@ -676,3 +676,21 @@ so with I read as about 0, the loaded voltage under a few hundred mA reads sever
 This is an inference. A read-only sample unplugged would separate a stuck current register from
 a stopped counter: `current_now`, `voltage_now`, `charge_counter` and `capacity` every 10 s for a
 minute, the suspend count, and `FGADC_CON0`.
+
+**Follow-up, same boot:** 15 one-second samples of `current_now` read 0, ±363, −727 and −1091
+only, with +363 appearing while discharging. A 30 s average read −363.
+- **The steps are the gauge's normal resolution.** One count is 158.122 µA, scaled by
+  20/10 mΩ for the sense resistor and by 1.15 for `car-tune` 115: 363.68 µA. `current_now` is
+  in µA, so −1091 is about 1.1 mA, not 1.1 A.
+- **What's wrong is that the register stays within three counts of zero** while the device runs
+  unplugged with a lit screen and Wi-Fi. Earlier station boots read 93-300 mA from the same
+  register, so this is a state on this boot, not the scale or a calibration. A `car-tune`
+  calibration would change readings by a percentage, not take them from hundreds of mA to zero.
+- **Capacity doesn't count charge.** It's the OCV table at the voltage less I × R. With I read as
+  about 0, it reads the loaded voltage, which fits 79 % falling to 60 % on unplugging.
+  `charge_counter` isn't used for capacity.
+- **Effect on the guard:** it uses this capacity. While charging, the uncorrected voltage is
+  raised by the charging current, so capacity reads high and charging stops before a true 80 %,
+  the safe side. When the voltage relaxes after the stop, capacity can fall back inside the
+  5-point band and charging resumes, so short stop-and-resume cycles near the limit are possible.
+  This is an inference, not observed.
