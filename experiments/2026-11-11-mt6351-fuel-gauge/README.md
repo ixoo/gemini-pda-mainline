@@ -368,10 +368,11 @@ Reading:
 - The vendor charges this high-voltage cell to 4.34 V between 10 and 45 °C
   (`HIGH_BATTERY_VOLTAGE_SUPPORT`, `JEITA_TEMP_POS_10_TO_POS_45_CV_VOLTAGE`); 4.24 V outside that
   range, 4.04 V below 0 °C.
-- Mainline leaves the bq25896 at its 4.208 V default. On the vendor-derived OCV table, a fully
-  charged mainline battery is about 87 %, and capacity never reaches 100 % on mainline.
-- That accounts for part of "Gemian reads higher". Whether 4.208 V stays as a gentler limit or
-  goes to 4.34 V is the owner's call, through the charging session.
+- Station-work-103 still had the bq25896's 4.208 V default, about 87 % on the vendor-derived OCV
+  table. That accounts for part of "Gemian reads higher" on that boot.
+- **Since 0722-0724** (`f6c96bde`, on the device from station-work-104, the owner's choice), the
+  guard sets 4.336 V at 10-45 °C and 4.240 V outside that range. REG06 read `0x7e` on boots
+  `db80c436…` and `ea3bef10…`. A full charge now ends near the vendor's full.
 
 **Time to full and to empty (owner request, 2026-11-11):**
 - UPower's Linux backend (`src/linux/up-device-supply-battery.c`, upstream master) picks charge
@@ -388,9 +389,9 @@ Reading:
   - `charge_full`: the design 4268 mAh. The real capacity is not learned.
 - Compiled at W=1 and checkpatch clean; not on a device.
 - **Limits:**
-  - UPower's time to full counts up to 100 % of the design capacity. Mainline charges only to
-    4.208 V, about 87 % on the table, and the guard may stop at a lower limit, so the estimate
-    runs long.
+  - UPower's time to full counts up to 100 % of the design capacity. With the 4.336 V charge
+    voltage that is close. A charge limit below 100 %, or charging outside 10-45 °C (4.240 V),
+    makes the estimate run long.
   - The time to empty is only as good as 0711's starting point.
 - **To verify:** `upower -i /org/freedesktop/UPower/devices/battery_battery` should show:
   - `energy` about `charge_now` × 4.352 V;
