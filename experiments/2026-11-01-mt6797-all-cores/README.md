@@ -991,6 +991,11 @@ Pass: the allocator binds with the A72s on its control trip, holds the SoC near
 test, as the cpufreq session's V9. If the A72 pair takes most of the budget
 while the A53s fall to their lowest points, its weight is tuned at run time
 through `cdevN_weight`, as the LL weight was, and the value goes into the tree.
+Weights count only relative to the other actors on the control trip, so the
+A72s' 1024 starts level with L, and LL's 4096 is now shared against three
+actors. The station init's PID gains (`k_po=60 k_pu=60 k_i=10
+integral_cutoff=3000`) were tuned without the A72s; T7 also checks that they
+still hold 75 C without poll-to-poll swings, and retunes them if not.
 No new write beyond T4b's and those tracefs and thermal sysfs writes.
 
 **T8: suspend.** Two s2idle cycles with the A72s online and all policies
