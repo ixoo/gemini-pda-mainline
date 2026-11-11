@@ -55,6 +55,7 @@ minimum gain. Stop on a loud or distorted speaker.
 ## Associated code
 
 - [`ucm-test.sh`](ucm-test.sh): device test, root.
+- [`speaker-filter-test.conf`](speaker-filter-test.conf): test only, a filtered speaker sink for a live A/B.
 
 ## Procedure
 
