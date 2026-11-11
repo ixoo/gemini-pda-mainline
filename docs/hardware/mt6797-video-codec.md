@@ -6,8 +6,13 @@ their established resources, the vendor control model and the mainline gap.
 Evidence, chronology, file identities and the staged plan are in the
 [video codec record](../../experiments/2026-11-09-mt6797-video-codec/README.md).
 
-Status on mainline: no device node and no driver for any of the three. Video
-plays through software decoding. On Gemian, the vendor stack's hardware
+Status on mainline: no decoder driver yet, so video plays through software
+decoding. Bring-up diagnostics show the hardware works:
+
+- the VDEC power domain, clocks and interrupt behave as described;
+- a register replay of the vendor sequence decoded an HEVC picture
+  bit-exactly, with physical buffers
+  ([Stage 1 and 3a](../../experiments/2026-11-09-mt6797-video-codec/README.md#stage-3a-replay-one-hevc-picture-on-mainline-v9-passed-2026-11-11)). On Gemian, the vendor stack's hardware
 HEVC decode has been observed working on the named unit
 ([V5](../../experiments/2026-11-09-mt6797-video-codec/README.md#v5-vendor-hevc-decode-on-gemian-2026-11-11)).
 
@@ -39,6 +44,9 @@ and register table (part 2, sections 4.7 and 4.8; part 1, TOPRGU).
   The vendor HEVC decode raised one VDEC interrupt per picture for both
   single-slice and four-slice pictures, and its register trace shows one
   decoder start per picture.
+- After the VDEC domain powers on, LARB1's per-port MMU enable (`+0xFC0`)
+  reads `0x3ff`: all ten decoder ports translated. Without an IOMMU driver it
+  must be cleared for physical addresses.
 - Decoder output is MediaTek MM21 (`V4L2_PIX_FMT_MM21`): 16x32 luma tiles,
   16x16 interleaved-CbCr tiles, chroma in a separate buffer. This is
   bit-exact with a software decode of the same frame

@@ -616,7 +616,7 @@ programs before decoding (the clock select and power-down masks) start from
 known values.
 
 
-## Stage 3a: replay one HEVC picture on mainline (built 2026-11-11, not run)
+## Stage 3a: replay one HEVC picture on mainline (V9 passed 2026-11-11)
 
 Before writing a V4L2 driver, prove the whole hardware path on mainline with
 the register sequence the vendor library actually used. The V6 trace of
@@ -688,6 +688,55 @@ loaded by hand.
 | Output differs inside 352x288 | Wrong reference or MV buffer contents, or a missing initialisation | Compare against the trace; no device change |
 | Any hang or display disturbance | Stop as in V7 | Power off, preserve evidence |
 
+
+**V9 result (2026-11-11): a bit-exact HEVC picture decoded on mainline.**
+
+*Run.* The device custodian ran it on station-work-103 rather than a separate
+image: boot2 `14c0112b`, main `4aef2e99` (which contains `d03147b6`),
+`Image.gz` `698dc203…`, boot `b8fb3cbf`.
+
+- **Modules:** taken from that package. `mt6797-vdec-replay.ko` `17d5a84a…`
+  is identical to the `d03147b6` build; `clk-mt6797-vdec.ko` is `307ea6d8…`.
+- **Blob:** `b21c5c69…`, placed in `/lib/firmware` and removed afterwards.
+- **Evidence (private):** `artifacts/card-32/v9-run.txt` and
+  `v9-output.bin`.
+
+*Observed:*
+
+- **Buffers:** physical, below 4 GiB, at `0xe0140000`, `0xe0180000` and
+  `0xe1480000`. No IOMMU was used.
+- **LARB1 translation:** LARB1's per-port MMU enable read `0x3ff` right after
+  the domain powered on, so all ten VDEC ports default to translated. The
+  replay cleared it to 0.
+- **Run:** 294 operations, 1 decoder interrupt, 15 read mismatches.
+- **Output:** both planes' SHA-256 equal Gemian's dump of the same frame
+  (`5914fc2c…`, `8e86aa52…`). Detiled as MM21 and cropped to 352x288 on the
+  host, the frame's MD5 is `2aa334e9…`, the same as the ffmpeg software
+  decode of frame 0.
+- **Afterwards:** the domain was off and the `vdec_sel` enable count 0. No new
+  display errors. The owner's panel check is pending.
+
+*Mismatches.* 13 of the 15 fall in the vendor library's start-code pre-scan,
+which runs before the decode to find where the picture ends. On Gemian it ran
+to the end of the chunk; on mainline it stopped early. The likely cause is
+that the replay buffer is zero-filled after the 3786-byte chunk, while
+Gemian's 6 MiB input buffer held more data [I]. The sequence then resets the
+bit reader, and every read up to the decoder start matched. The other two are
+a bitstream checksum (fewer bytes scanned) and a final status read. Two of
+the 13 were an address the converter forgot to relocate; that is fixed.
+
+*Analysis:*
+
+- **Hardware path proven:** on mainline the VDEC decodes HEVC with physical
+  buffers, LARB1 translation off, the vendor's 338 MHz clock and the
+  documented interrupt clear, and the result is bit-exact.
+- **No scan needed:** a V4L2 stateless driver gets slice positions from
+  userspace, so it never needs the vendor's pre-scan.
+- **Driver requirement:** without an IOMMU, a driver must clear LARB1's MMU
+  enable before decoding (or program the IOMMU).
+
+**Next: Stage 3b**, a V4L2 stateless HEVC decoder module that derives these
+registers from the stateless controls instead of a recorded sequence.
 
 ## Follow-up
 
