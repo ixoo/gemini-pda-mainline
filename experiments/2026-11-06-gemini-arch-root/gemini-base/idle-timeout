@@ -1,0 +1,20 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# The screen turns off after 2 min on battery and 10 min on the charger (owner, 2026-11-11).
+# Noctalia has one timeout per idle behavior, so its hooks run this at startup and whenever
+# the battery starts or stops discharging; it writes the timeout into a config file of its
+# own, which Noctalia reloads when it changes. The user's config.toml sorts after it and
+# wins, as do timeouts changed in Noctalia's settings.
+# usage: idle-timeout (from Noctalia's started and battery_* hooks)
+file=${XDG_CONFIG_HOME:-$HOME/.config}/noctalia/50-gemini-idle.toml
+if [ "$(cat /sys/class/power_supply/battery/status 2>/dev/null)" = Discharging ]; then
+    timeout=120
+else
+    timeout=600
+fi
+text="# Written by /usr/lib/gemini/idle-timeout: 120 s on battery, 600 s on the charger.
+[idle.behavior.screen-off]
+timeout = $timeout"
+[ "$(cat "$file" 2>/dev/null)" = "$text" ] && exit 0
+mkdir -p "${file%/*}"
+printf '%s\n' "$text" >"$file.new" && mv "$file.new" "$file"

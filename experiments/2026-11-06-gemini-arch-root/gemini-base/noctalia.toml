@@ -69,6 +69,22 @@ show_app_origin_indicator = false
 [brightness.monitor.DSI-1]
 backlight_device = "backlight"
 
+# The screen turns off when idle (owner, 2026-11-11: "10min if plugged, 2min if not"); no
+# lock. Noctalia's idle respects inhibitors, such as a playing video. One behavior has one
+# timeout, so the hooks below have /usr/lib/gemini/idle-timeout write 120 or 600 s into
+# 50-gemini-idle.toml at startup and whenever the power source changes; 120 s stands until
+# then.
+[idle.behavior.screen-off]
+enabled = true
+action = "screen_off"
+timeout = 120
+
+[hooks]
+started = "/usr/lib/gemini/idle-timeout"
+battery_charging = "/usr/lib/gemini/idle-timeout"
+battery_discharging = "/usr/lib/gemini/idle-timeout"
+battery_plugged = "/usr/lib/gemini/idle-timeout"
+
 # The GPS switch (owner, 2026-11-10: GNSS "only when activated in noctalia"): the GNSS
 # package's plugin, gemini/gnss, from its path source, as a control-center tile. Listing
 # plugin sources or shortcuts replaces Noctalia's defaults, so the default sources stay

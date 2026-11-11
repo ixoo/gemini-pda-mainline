@@ -2052,6 +2052,34 @@ on one yet: the first station image built at or after `b4cf64c0` (station-work-1
 guard leaves the battery idle (within ±20 mA) while holding is asked of the charging
 session.
 
+### The screen turns off when idle (`gemini-base` 42, 2026-11-11)
+
+The card had no screen blanking. The owner: "I'd like 10min if plugged, 2min if not", screen
+off only, no lock. Noctalia's idle manager does it over `ext-idle-notify`, with Umbriel
+turning the output off and on, and it respects idle inhibitors: Wayland idle-inhibit, and
+`org.freedesktop.ScreenSaver` over D-Bus, which browsers use during video.
+
+Noctalia 5.4.1 gives each idle behavior one timeout, with no power-source condition, but it
+reloads its config directory on change and has hooks for Noctalia's startup and for the
+battery's state. No patch is needed:
+
+- `00-gemini.toml` turns on `[idle.behavior.screen-off]` (`action = "screen_off"`, 120 s), and
+  sets the hooks `started`, `battery_charging`, `battery_discharging` and `battery_plugged`
+  to `/usr/lib/gemini/idle-timeout`.
+- `idle-timeout` writes `~/.config/noctalia/50-gemini-idle.toml` with 120 s when the battery
+  reads Discharging and 600 s otherwise, which includes holding at the charge limit. It
+  writes only a changed file, atomically, and Noctalia reloads it.
+- The user's own `config.toml` sorts after `50-gemini-idle.toml` and wins, as do settings
+  changed in Noctalia's Settings window, so a timeout the user picks there holds on both
+  power sources. `noctalia msg config-set` was not used, because it stores into those same
+  user overrides.
+
+Checked against card-32's Noctalia 5.4.1: `noctalia config validate` passes, and with a 600 s
+`50-gemini-idle.toml` beside it, `config export full` gives `timeout = 600.0` and lists the
+four hooks. ShellCheck passes on the script. Not on the device yet. Since `/etc/skel` reaches
+only new users, an existing user needs the new `00-gemini.toml` copied into
+`~/.config/noctalia/`.
+
 ## Analysis
 
 Not started.

@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and display-start
 # and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=41
+pkgver=42
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -43,11 +43,11 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         umbriel.toml noctalia.toml mt6797-mt6351.conf HiFi.conf firstboot gemini-firstboot.service
         umbriel-session first-login sleep-radios sleep.conf geoclue.conf hw-load gemini-hw@.service hw-radio.conf
         charge-limit charge-limit.rules battery-capacity battery-capacity.rules
-        gemini-battery-capacity.service gemini-battery-calibrate
+        gemini-battery-capacity.service gemini-battery-calibrate idle-timeout
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
-sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
@@ -93,7 +93,8 @@ package() {
     # build-card.sh): WirePlumber makes the Speaker, Headphones and Mic devices from it.
     install -Dm644 mt6797-mt6351.conf "$pkgdir/usr/share/alsa/ucm2/conf.d/mt6797-mt6351/mt6797-mt6351.conf"
     install -Dm644 HiFi.conf "$pkgdir/usr/share/alsa/ucm2/Gemini/HiFi.conf"
-    install -Dm755 -t "$pkgdir/usr/lib/gemini" umbriel-session first-login session-fallback hw-load charge-limit
+    install -Dm755 -t "$pkgdir/usr/lib/gemini" umbriel-session first-login session-fallback hw-load charge-limit \
+        idle-timeout
     install -Dm644 charge-limit.rules "$pkgdir/usr/lib/udev/rules.d/61-gemini-charge-limit.rules"
     # The battery's learned full charge (0732): restored and saved by udev, saved at shutdown.
     install -Dm755 battery-capacity "$pkgdir/usr/lib/gemini/battery-capacity"
