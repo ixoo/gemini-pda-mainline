@@ -1,0 +1,98 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 17:26:07 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station: read the board
+ temperature
+
+Enable the SoC AUXADC and read the board NTC on its AUX_IN0, the
+vendor's proxy for skin temperature, as a board-thermal zone with no
+trips. A 100 kOhm NTC sits behind a 390 kOhm pull-up to 1.8 V; the
+lookup table is the vendor's NTC resistance table converted to that
+divider in mV, the ADC driver's processed unit.
+---
+ .../mediatek/mt6797-gemini-pda-station.dts    | 58 +++++++++++++++++++
+ 1 file changed, 58 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index 7bb97988f..95f959787 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -35,6 +35,53 @@ bluetooth-voice-sound {
+ 	 * IIO processed reading, raw x 3600 (the channel's x2 against 1.8 V),
+ 	 * that is the node voltage in mV x 4096.
+ 	 */
++	/*
++	 * The board NTC, the vendor's proxy for skin temperature: a 100 kOhm
++	 * NTC on AUX_IN0 behind a 390 kOhm pull-up to 1.8 V, read in mV. The
++	 * table is the vendor's NTC resistance table converted to that divider.
++	 */
++	board_ntc: thermal-sensor-board {
++		compatible = "generic-adc-thermal";
++		#thermal-sensor-cells = <0>;
++		io-channels = <&auxadc 0>;
++		io-channel-names = "sensor-channel";
++		temperature-lookup-table = <
++			(-40000) 1649
++			(-35000) 1593
++			(-30000) 1524
++			(-25000) 1439
++			(-20000) 1340
++			(-15000) 1228
++			(-10000) 1108
++			(-5000) 983
++			0 858
++			5000 739
++			10000 629
++			15000 529
++			20000 442
++			25000 367
++			30000 304
++			35000 251
++			40000 207
++			45000 171
++			50000 141
++			55000 117
++			60000 97
++			65000 81
++			70000 67
++			75000 57
++			80000 48
++			85000 40
++			90000 34
++			95000 29
++			100000 25
++			105000 21
++			110000 18
++			115000 16
++			120000 14
++			125000 12>;
++	};
++
+ 	battery_ntc: thermal-sensor-battery {
+ 		compatible = "generic-adc-thermal";
+ 		#thermal-sensor-cells = <0>;
+@@ -209,6 +256,13 @@ thermal-zones {
+ 		 * table's 60 C end, the vendor battery zone's critical point,
+ 		 * the system powers off whatever userspace is doing.
+ 		 */
++		/* Read only: no trips, nothing acts on it yet. */
++		board-thermal {
++			polling-delay-passive = <0>;
++			polling-delay = <10000>;
++			thermal-sensors = <&board_ntc>;
++		};
++
+ 		battery-thermal {
+ 			polling-delay-passive = <0>;
+ 			polling-delay = <10000>;
+@@ -927,3 +981,7 @@ &usb11_u2 {
+ &usb11 {
+ 	status = "okay";
+ };
++
++&auxadc {
++	status = "okay";
++};
+-- 
+2.43.0
+

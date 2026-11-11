@@ -859,3 +859,36 @@ custodian:
 **Change:** the detection is now built in (`CONFIG_CHARGER_MT6351_USB_TYPE=y`), proven on three
 boots. It waits 10 s before its first detection, because the USB controller's PHY setup clears the
 line switch at boot. Until then the guard keeps 500 mA. Compiled at `W=1`; it needs an image.
+
+## A board-temperature charge limiter (2026-11-12)
+
+**The gap:** with the 1.5 A caps, only a battery at 45 °C lowered the current. Nothing reacted to
+the device itself being hot. Gemian's thermal policy lowered charge current from a 47 °C board
+temperature, measured by the board NTC (`mtktsAP`) on the SoC AUXADC's `AUX_IN0`. The exact
+`clbcct`/`clabcct` current values weren't recovered.
+
+**The owner decided, through the custodian:**
+- Use the board NTC as the sensor, adding the SoC AUXADC driver, read-only first.
+- Gemian's start temperature:
+
+| Board temperature | Input | Charge current |
+| --- | --- | --- |
+| under 47 °C | 1.5 A | 1.024 A |
+| 47 °C to under 52 °C | 1.0 A | 512 mA |
+| 52 °C and up, or unreadable | 500 mA | the chip's own |
+
+Each step returns 3 °C lower. No SoC-temperature backstop for now. Currents are the lowest of
+this, the charger-type caps and the battery's 45 °C rule. It writes only REG00 and REG04, which the
+guard already writes.
+
+**Step 1, the sensor only:**
+[0739](../../patches/proposals/0739-arm64-dts-mediatek-gemini-station-read-the-board-temp.patch) enables the SoC AUXADC
+(`CONFIG_MEDIATEK_MT6577_AUXADC=y`) and reads `AUX_IN0` as `board-thermal`, with no trips.
+- **Sensor:** a 100 kΩ NTC behind a 390 kΩ pull-up to 1.8 V, read in mV as `raw × 1500 / 4096`.
+- **Table:** the vendor's NTC table 6 converted to that divider.
+- **Checked:** the station DTB builds with the node and zone, and the patch applies in both series.
+- **Schema finding:** `dtbs_check` reports that `mediatek,mt6797-auxadc` isn't in the upstream
+  ADC binding. That's pre-existing upstream, and a blocker before upstream.
+- **Not yet shown:** that the table matches this board, since the vendor driver also took NTC
+  parameters from the Android thermal policy at runtime. The read-only check decides that, before
+  the guard uses the reading.
