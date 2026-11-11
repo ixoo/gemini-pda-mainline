@@ -2002,6 +2002,44 @@ on the speaker gave a `pw-record` Goertzel 1 kHz magnitude of 84–94 on the lef
 53–60 on the right, against about 1.0 before the tone; the microphone was muted again after.
 Not yet tried: headphone switching (needs headphones plugged in), pops at capture start.
 
+### Keeping the learned battery capacity (`gemini-base` 41, 2026-11-11)
+
+The owner approved the fuel-gauge session's learned capacity
+([its record](../2026-11-11-mt6351-fuel-gauge/README.md), "Learned capacity"): kernel patch
+0732 makes `charge_full` (µAh) writable, accepting 50–110 % of the 4268000 µAh design (ERANGE
+otherwise), and raises a change uevent when the driver learns a new value. The kernel forgets
+it at power-off, so gemini-base keeps it:
+
+- `battery-capacity restore`, from `62-gemini-battery-capacity.rules` when the battery
+  appears: writes `/var/lib/gemini/battery-charge-full` back into `charge_full`. A missing or
+  non-numeric file, or an ERANGE, changes nothing. udev runs it before announcing the
+  battery, so UPower sees the learned value first, as with the charge-limit restore.
+- `battery-capacity save`, from the same rules on each change uevent and from
+  `gemini-battery-capacity.service` at shutdown: writes the value only when it differs from
+  the file, and never creates the file with the design value, so a fresh install keeps none
+  until something is learned. Change uevents are frequent; the save costs one attribute read.
+- A battery swap isn't detected: a saved value stays until the gauge learns the new cell.
+
+`gemini-battery-calibrate` (root) walks the owner through one calibration cycle with the
+charge guard's thresholds (0695), restoring the user's own on any exit, Ctrl-C included:
+
+1. End 100 and start 99, so it charges to full; once charging stops and the current is within
+   ±20 mA, 30 min plugged in for the rested full reading.
+2. End 50 and start 0. The guard's end can't go below 50, but its "full" latch holds from the
+   end down to the start, so with the battery full the latch holds charging through the
+   discharge. The owner unplugs and uses it down to 20–30 %, then plugs in again.
+3. Charging is held at that level for a 30 min rested low reading. If it charges instead, the
+   helper stops.
+4. It reports `charge_full` before and after and the gauge's "full charge" log lines.
+
+It warns when a step breaks the gauge's rules (15–35 °C, readings 40 points apart, within
+72 h), and restarts a 30 min count when the current or temperature leaves its window.
+
+Checked: ShellCheck on both scripts; `udevadm verify` on the rule; the save and restore logic
+against a fake sysfs directory (fresh design value: no file; learned value: saved; restore;
+non-numeric file: ignored). Not on a device: it needs a station image with 0732, which isn't
+on one yet. The custodian verifies it once it is.
+
 ## Analysis
 
 Not started.

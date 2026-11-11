@@ -1,0 +1,94 @@
+#!/bin/bash
+# SPDX-License-Identifier: MIT
+# Walks the owner through one battery calibration cycle, so the fuel gauge (0732) can learn
+# the battery's full charge (owner, 2026-11-11). The gauge learns from two rested readings
+# far apart: one after a full charge, one low, with the charger attached and charging held.
+# This sets the charge limits for each step and restores them on any exit.
+# usage: sudo gemini-battery-calibrate
+set -u
+bat=/sys/class/power_supply/battery
+rest_s=1800 # the gauge wants 30 min within +/-20 mA for a rested reading
+poll_s=30
+
+[ "$(id -u)" = 0 ] || { echo "Run it as root: sudo gemini-battery-calibrate" >&2; exit 1; }
+for a in charge_full capacity status current_now temp charge_control_start_threshold \
+    charge_control_end_threshold; do
+    [ -e "$bat/$a" ] || { echo "No $bat/$a: this needs a station image with 0695 and 0732." >&2; exit 1; }
+done
+
+get() { cat "$bat/$1"; }
+say() { printf '%s  %s\n' "$(date +%H:%M)" "$*"; }
+# An end sets the start 5 points below it (0695), so a start is written after its end.
+limits() { echo "$1" >"$bat/charge_control_end_threshold" && echo "$2" >"$bat/charge_control_start_threshold"; }
+
+old_end=$(get charge_control_end_threshold)
+old_start=$(get charge_control_start_threshold)
+full_before=$(get charge_full)
+restore() {
+    trap - EXIT INT TERM
+    limits "$old_end" "$old_start" && say "Charge limits restored: $old_start-$old_end %."
+}
+trap restore EXIT
+trap 'exit 130' INT TERM
+
+temp_ok() {
+    local t
+    t=$(get temp)
+    if [ "$t" -lt 150 ] || [ "$t" -gt 350 ]; then
+        say "The battery is at $((t / 10)) °C; the gauge only accepts 15-35 °C."
+        return 1
+    fi
+}
+abs_ma() { local c; c=$(($(get current_now) / 1000)); echo "${c#-}"; }
+
+# A rested reading: 30 min with the current within +/-20 mA. Restarts the count if it moves.
+rest() {
+    local since=$SECONDS
+    say "$1: leave it plugged in for 30 min. The count restarts if the current moves."
+    while [ $((SECONDS - since)) -lt "$rest_s" ]; do
+        sleep "$poll_s"
+        if [ "$(abs_ma)" -gt 20 ]; then
+            since=$SECONDS
+        fi
+        temp_ok || since=$SECONDS
+    done
+    say "$1: rested reading done at $(get capacity) %."
+}
+
+say "Battery $(get capacity) %, learned full charge $((full_before / 1000)) mAh," \
+    "limits $old_start-$old_end %."
+say "Step 1 of 3: charge to full. Keep the charger plugged in."
+limits 100 99
+until [ "$(get status)" != Charging ] && [ "$(abs_ma)" -le 20 ]; do
+    sleep "$poll_s"
+done
+rest "Full"
+full_at=$SECONDS
+# The guard's end can't go below 50 %, but its "full" latch holds from the end down to the
+# start (0695): with end 50 and start 0, set while the battery is full, charging stays held
+# through the discharge and after the replug.
+limits 50 0
+
+say "Step 2 of 3: unplug and use it down to about 20-30 %. Then plug the charger back in."
+until [ "$(get status)" = Discharging ]; do sleep "$poll_s"; done
+until [ "$(get status)" != Discharging ]; do sleep "$poll_s"; done
+low=$(get capacity)
+if [ "$low" -gt 60 ]; then
+    say "Plugged in at $low %: the two readings must be 40 points apart, so this pair won't count."
+fi
+if [ $((SECONDS - full_at)) -gt $((72 * 3600)) ]; then
+    say "More than 72 h since the full reading: this pair won't count."
+fi
+
+sleep "$poll_s"
+if [ "$(get status)" = Charging ]; then
+    say "It is charging instead of holding at $low %, so there can be no low reading. Stopping."
+    exit 1
+fi
+say "Step 3 of 3: charging is held at $low % for the low reading."
+rest "Low"
+
+full_after=$(get charge_full)
+say "Learned full charge: $((full_before / 1000)) mAh before, $((full_after / 1000)) mAh now."
+dmesg | grep "full charge" | tail -3
+[ "$full_after" = "$full_before" ] && say "No new value: see the gauge's log above for the reason."

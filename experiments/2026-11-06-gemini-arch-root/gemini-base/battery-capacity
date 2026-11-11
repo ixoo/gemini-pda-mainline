@@ -1,0 +1,31 @@
+#!/bin/sh
+# SPDX-License-Identifier: MIT
+# Keeps the battery's learned full charge across boots (owner, 2026-11-11). The fuel gauge
+# learns charge_full (0732) but forgets it at power-off; this restores it when the battery
+# appears and saves it when the driver changes it and at shutdown.
+# usage: battery-capacity restore|save [SYSFS_DIR]
+# udev passes the battery's sysfs directory; the shutdown unit uses the default.
+dir=${2:-/sys/class/power_supply/battery}
+file=/var/lib/gemini/battery-charge-full
+case "$1" in
+restore)
+    [ -r "$file" ] || exit 0
+    value=$(cat "$file")
+    case "$value" in '' | *[!0-9]*) exit 0 ;; esac
+    # The driver refuses values outside 50-110 % of the design capacity (ERANGE).
+    echo "$value" >"$dir/charge_full" 2>/dev/null
+    exit 0
+    ;;
+save)
+    value=$(cat "$dir/charge_full" 2>/dev/null) || exit 0
+    case "$value" in '' | *[!0-9]*) exit 0 ;; esac
+    [ "$value" = "$(cat "$file" 2>/dev/null)" ] && exit 0
+    # A fresh install keeps no file until the driver has learned something.
+    [ -e "$file" ] || [ "$value" != "$(cat "$dir/charge_full_design" 2>/dev/null)" ] || exit 0
+    mkdir -p "${file%/*}"
+    printf '%s\n' "$value" >"$file.new" && mv "$file.new" "$file"
+    exit 0
+    ;;
+esac
+echo "usage: battery-capacity restore|save [SYSFS_DIR]" >&2
+exit 2

@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+# Saves the battery's learned full charge at shutdown (battery-capacity), while /var is
+# still mounted. Restoring at boot is udev's, when the battery appears.
+[Unit]
+Description=Keep the battery's learned full charge
+After=local-fs.target
+ConditionPathExists=/sys/class/power_supply/battery/charge_full
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/gemini/battery-capacity save
+ExecStop=/usr/lib/gemini/battery-capacity save
+
+[Install]
+WantedBy=multi-user.target
