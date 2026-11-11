@@ -48,6 +48,7 @@ rest() {
     while [ $((SECONDS - since)) -lt "$rest_s" ]; do
         sleep "$poll_s"
         if [ "$(abs_ma)" -gt 20 ]; then
+            [ $((SECONDS - since)) -ge 600 ] && say "$1: the current is $(abs_ma) mA, outside +/-20 mA; still waiting."
             since=$SECONDS
         fi
         temp_ok || since=$SECONDS
@@ -64,6 +65,7 @@ until [ "$(get status)" != Charging ] && [ "$(abs_ma)" -le 20 ]; do
 done
 rest "Full"
 full_at=$SECONDS
+full_temp=$(get temp)
 # The guard's end can't go below 50 %, but its "full" latch holds from the end down to the
 # start (0695): with end 50 and start 0, set while the battery is full, charging stays held
 # through the discharge and after the replug.
@@ -75,6 +77,10 @@ until [ "$(get status)" != Discharging ]; do sleep "$poll_s"; done
 low=$(get capacity)
 if [ "$low" -gt 60 ]; then
     say "Plugged in at $low %: the two readings must be 40 points apart, so this pair won't count."
+fi
+t=$(get temp)
+if [ $((t > full_temp ? t - full_temp : full_temp - t)) -gt 100 ]; then
+    say "The battery is $(((t - full_temp) / 10)) °C off the full reading; the gauge accepts 10 °C."
 fi
 if [ $((SECONDS - full_at)) -gt $((72 * 3600)) ]; then
     say "More than 72 h since the full reading: this pair won't count."
@@ -91,4 +97,7 @@ rest "Low"
 full_after=$(get charge_full)
 say "Learned full charge: $((full_before / 1000)) mAh before, $((full_after / 1000)) mAh now."
 dmesg | grep "full charge" | tail -3
-[ "$full_after" = "$full_before" ] && say "No new value: see the gauge's log above for the reason."
+if [ "$full_after" = "$full_before" ]; then
+    say "No new value. The gauge logs rejected pairs only at debug level:"
+    say "  echo 'file mt6351-fuel-gauge.c +p' > /sys/kernel/debug/dynamic_debug/control"
+fi

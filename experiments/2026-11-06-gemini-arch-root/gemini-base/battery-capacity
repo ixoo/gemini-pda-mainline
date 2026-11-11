@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # Keeps the battery's learned full charge across boots (owner, 2026-11-11). The fuel gauge
 # learns charge_full (0732) but forgets it at power-off; this restores it when the battery
-# appears and saves it when the driver changes it and at shutdown.
+# appears and saves it when the driver changes it and at shutdown. After fitting a new
+# battery, remove /var/lib/gemini/battery-charge-full so the gauge learns the new cell.
 # usage: battery-capacity restore|save [SYSFS_DIR]
 # udev passes the battery's sysfs directory; the shutdown unit uses the default.
 dir=${2:-/sys/class/power_supply/battery}
@@ -12,8 +13,12 @@ restore)
     [ -r "$file" ] || exit 0
     value=$(cat "$file")
     case "$value" in '' | *[!0-9]*) exit 0 ;; esac
-    # The driver refuses values outside 50-110 % of the design capacity (ERANGE).
-    echo "$value" >"$dir/charge_full" 2>/dev/null
+    # The driver refuses values outside 50-110 % of the design capacity (ERANGE), and
+    # answers ENODATA for a moment after the battery registers, so try three times.
+    for _ in 1 2 3; do
+        echo "$value" >"$dir/charge_full" 2>/dev/null && break
+        sleep 1
+    done
     exit 0
     ;;
 save)

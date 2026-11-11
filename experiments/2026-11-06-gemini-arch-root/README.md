@@ -2012,13 +2012,18 @@ it at power-off, so gemini-base keeps it:
 
 - `battery-capacity restore`, from `62-gemini-battery-capacity.rules` when the battery
   appears: writes `/var/lib/gemini/battery-charge-full` back into `charge_full`. A missing or
-  non-numeric file, or an ERANGE, changes nothing. udev runs it before announcing the
-  battery, so UPower sees the learned value first, as with the charge-limit restore.
+  non-numeric file, or an ERANGE, changes nothing. The driver answers ENODATA for a moment
+  after the battery registers, so the write is tried three times, 1 s apart. udev runs it
+  before announcing the battery, so UPower sees the learned value first, as with the
+  charge-limit restore. The successful write raises a change uevent, which finds the value
+  already saved.
 - `battery-capacity save`, from the same rules on each change uevent and from
   `gemini-battery-capacity.service` at shutdown: writes the value only when it differs from
   the file, and never creates the file with the design value, so a fresh install keeps none
   until something is learned. Change uevents are frequent; the save costs one attribute read.
-- A battery swap isn't detected: a saved value stays until the gauge learns the new cell.
+- A battery swap isn't detected: the driver exposes no serial or model name, and the cell
+  has only an NTC. After fitting a new battery, `rm /var/lib/gemini/battery-charge-full`, and
+  the gauge learns the new cell over its cycles.
 
 `gemini-battery-calibrate` (root) walks the owner through one calibration cycle with the
 charge guard's thresholds (0695), restoring the user's own on any exit, Ctrl-C included:
@@ -2032,13 +2037,20 @@ charge guard's thresholds (0695), restoring the user's own on any exit, Ctrl-C i
    helper stops.
 4. It reports `charge_full` before and after and the gauge's "full charge" log lines.
 
-It warns when a step breaks the gauge's rules (15–35 °C, readings 40 points apart, within
-72 h), and restarts a 30 min count when the current or temperature leaves its window.
+It warns when a step breaks the gauge's rules (15–35 °C and within 10 °C of each other,
+readings 40 points apart, within 72 h on the same boot), and restarts a 30 min count when the
+current or temperature leaves its window. The gauge takes each reading at the first capacity
+read after the 30 min, which UPower's polling provides. Accepted pairs show in `dmesg` as
+"full charge N uAh from M uAh over P points"; rejections only at debug level, which the helper
+says how to enable when nothing was learned.
 
 Checked: ShellCheck on both scripts; `udevadm verify` on the rule; the save and restore logic
 against a fake sysfs directory (fresh design value: no file; learned value: saved; restore;
 non-numeric file: ignored). Not on a device: it needs a station image with 0732, which isn't
-on one yet. The custodian verifies it once it is.
+on one yet: the first station image built at or after `b4cf64c0` (station-work-107 has only
+0730, where `charge_full` is read-only). The custodian verifies it once it is. Whether the
+guard leaves the battery idle (within ±20 mA) while holding is asked of the charging
+session.
 
 ## Analysis
 
