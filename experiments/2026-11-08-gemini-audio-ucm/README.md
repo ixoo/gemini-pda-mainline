@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-08-gemini-audio-ucm` |
-| Status | `planned`: profile written; not run on the device |
+| Status | `running`: profile confirmed on card-31; speaker volume cap pending |
 | Subsystem | audio: card profile for PipeWire |
 | Device variant | named Gemini PDA (MT6797X), Arch card root |
 | Date(s) | 2026-11-08 |
@@ -80,13 +80,38 @@ volume 0.25. The owner first reported sound on the left speaker only. Both ampli
 were owned by their amplifiers and high while playing. With the left and right tones, then music, the
 owner: "all sounds ok". So both speakers work on this kernel; the first report was not a fault.
 
+**card-31 (boot `242ba06e`, station-work-100 kernel), run by the custodian with the owner's PipeWire
+stopped**, the steps of `ucm-test.sh` by hand from a copy of the profile made before the device comments
+were renamed. `/proc/asound/cards` gives the driver name `mt6797-mt6351`, so the entry directory is right.
+
+- `alsaucm` lists the `HiFi` verb and the Speaker, Headphones and Mic devices, with `PlaybackPCM` on
+  device 0, `CapturePCM` on device 3 and `JackControl` `Headphone Jack`.
+- Speaker, jack out: only `Speaker Switch` on; −50 dBFS tone three times, rc 0. The owner: "yes it worked".
+- Headphones, jack in: only `Headphone Switch` on. The owner: "yes heard the tone only in headphones".
+- Mic: both microphone switches on, `PGA Volume` 3,3; 2 s capture, rc 0, RMS −40.0 and −39.1 dBFS. The
+  owner was not asked to judge it.
+- Setting the verb again turns every switch off; `PGA Volume` stays 3,3.
+- Speaker ladder, 1 kHz tones straight to the PCM, each twice, owner asked after each: clean at −55, −50,
+  −45, −40, −35 and −30 dBFS.
+
+Before this, on the same card with the manual sink, the owner found YouTube saturates the speakers at
+100 % stream volume, and 55 % is the most without saturation, at a sink volume of 0.35. Both are the
+desktop's figures. If both are PipeWire's cubic volumes, that is about −43 dB.
+
 ## Analysis
 
-None yet.
+The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
+tone plays only on its own output.
+
+Speaker saturation is not fixed by the profile. `Headphone Volume` is already at its minimum, and nothing
+lower exists in hardware. A 1 kHz sine is clean at −30 dBFS, yet music distorts near −43 dB if the volume
+figures are cubic. Inference: the distortion depends on frequency, such as bass overdriving the small
+speakers, which a 1 kHz tone does not show. Low-frequency tones test that.
 
 ## Conclusion
 
-`inconclusive`: nothing here has run.
+`confirmed` for the profile on card-31: speakers, headphones on the jack and the microphones work through
+UCM. Not established: a safe maximum speaker level for music.
 
 ## Follow-up
 
