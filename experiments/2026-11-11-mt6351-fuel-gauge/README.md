@@ -238,6 +238,33 @@ Two explanations, which need opposite fixes:
 - its first `[kernel]AvgVbat … bat_vol` ADC line. Gemian's `voltage_now` is a table lookup,
   not the ADC.
 
+**Answers so far:**
+- **The power-off was the owner's own, from the desktop:** a clean `systemctl poweroff` in the
+  journal. It was not a low-battery action and not a brownout.
+- **Next station boot `eb10883d…`** (same station-work-100 kernel), cable in, about 87 s
+  uptime, after a Gemian charging session of unknown length. Five reads 2 s apart:
+
+  | Property | Reading |
+  |---|---|
+  | `voltage_now` | 4.041-4.083 V |
+  | `current_now` | +79 to +112 mA |
+  | `capacity` | 72-77 % |
+  | `status` | `Charging` |
+
+  Less I × R, that is an OCV of about 4.03-4.06 V, which the table maps to 71-73 %. The voltage
+  path reads plausibly here.
+- **Reading (inference):**
+  - The 3.57-3.63 V earlier was the cell under a heavy load: video, Wi-Fi and the Wi-Fi
+    worker's spin.
+  - If its real resistance is well above the 165 mΩ in the DT, as an aged cell's can be, the
+    voltage-based capacity reads far too low under load. That is the error 0711's counting
+    removes.
+  - The OCV reading taken at boot under load still carries it, until the first rest reading.
+  - How much was recharged in between is unknown, so the 86 % against 3 % gap is not settled.
+- **Still wanted:** Gemian's boot line (B) and T1 with the counter. A measured cell resistance
+  would come from two voltage/current pairs at different loads a few seconds apart, from T1's
+  samples.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
