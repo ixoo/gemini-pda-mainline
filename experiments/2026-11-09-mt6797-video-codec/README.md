@@ -571,11 +571,17 @@ hashes as above (`307ea6d8`, `7fea7bb1`). Private evidence:
 
 **Open:**
 
-- **VDEC clock state after the domain powered off:** the clock summary read
-  after the clock driver loaded showed `vdec_sel` enabled once and
-  `vdec_larb1_cken` hardware-on, while the domain read `off-0`. That read
-  probably caught the clock driver's asynchronous runtime-PM release. An idle
-  re-read is requested.
+- **VDEC mux clock leak (confirmed).** An idle re-read 74 s after the
+  second probe load still shows `vdec_sel` (and `vdecpll`) with enable and
+  prepare counts of 1 and hardware on, while the domain is `off-0`. The read
+  after step 2, before any probe ran, already showed the same count. So the
+  extra enable comes with the VDECSYS clock driver's load. Reading the code,
+  the domain driver's on/off paths and the runtime-PM path in
+  `mtk_clk_simple_probe` look balanced, so the culprit is not identified.
+  `vdec_larb1_cken` reads hardware-on with an enable count of 0, either a read
+  through the unpowered block or the bit's polarity. Next: a clock-event trace
+  with stack traces across one reload of `clk-mt6797-vdec` (V8). The leak
+  costs only a running 338 MHz mux; it does not affect the domain.
 - **Panel:** the owner's visual check of the panel during the loads is
   pending.
 
