@@ -714,7 +714,8 @@ image: boot2 `14c0112b`, main `4aef2e99` (which contains `d03147b6`),
   host, the frame's MD5 is `2aa334e9…`, the same as the ffmpeg software
   decode of frame 0.
 - **Afterwards:** the domain was off and the `vdec_sel` enable count 0. No new
-  display errors. The owner's panel check is pending.
+  display errors. The owner reported the panel stayed normal during the
+  replay.
 
 *Mismatches.* 13 of the 15 fall in the vendor library's start-code pre-scan,
 which runs before the decode to find where the picture ends. On Gemian it ran
