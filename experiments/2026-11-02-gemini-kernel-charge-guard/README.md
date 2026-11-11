@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `completed`: G1-G6 passed on the device, the overflow fix is confirmed at 24.8-25 °C, and the cold stop's decisions are shown by emulation; a really hot or cold battery and charge current were not tested |
+| Status | `running`: G1-G6 and the cold stop's emulation run passed; the battery thresholds for UPower (0695) are compile-checked and not yet on a device |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -563,3 +563,78 @@ cold reason by 4 °C, and the new neutral log reason works.
 - **Why capacity read 95.** It read 94 before the power-off and at 10.98 s, and 95 by 41.7 s. That
   was after a powered-off period on the cable, and during emulation, which selects another OCV
   table. These can't be separated here.
+
+## The limit from the desktop's battery widget (2026-11-11)
+
+The owner asked whether the charging limit could be chosen from the Noctalia battery widget, and
+then asked for it.
+
+**Where it stood,** from the custodian's read-only check on boot `58bcf387…`:
+- The charger, `bq25890-charger-0`, has `charge_control_start_threshold` 75 and
+  `charge_control_end_threshold` 80. The `battery` supply, from the fuel gauge, has neither.
+- UPower 1.91.5 runs, and reports `ChargeThresholdSupported=false` for the battery.
+- Noctalia 5.4.1 already offers the control, through UPower's `EnableChargeThreshold`, on a
+  device that reports support. So Noctalia needs no change.
+
+**What UPower 1.91.5 does,** from its source:
+- **Support:** decided only by a udev property on the battery device, `CHARGE_LIMIT`, written as
+  start and end, such as `75,80`. Without it the battery is never offered. If the battery has the
+  two attributes, their live values replace those in `CHARGE_LIMIT` when they're between 0 and 100,
+  exclusive. UPower reads all this once, when it first sees the battery.
+- **Enable:** writes start, then end, using the values read at that first look.
+- **Disable:** writes start 0, then end 100.
+- A write fails only if both files fail.
+- **Persistence:** UPower keeps the choice in `charging-threshold-status` in its state directory.
+  When it starts, it writes the thresholds again only if that says enabled. With no file, or one
+  that says disabled, it writes nothing and reports the limit as off.
+- **Permission:** polkit action `org.freedesktop.UPower.enable-charging-limit`, allowed for an active
+  local session and refused for an inactive one.
+
+**The kernel side,**
+[0695](../../patches/proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch):
+- While the guard runs, it adds the two thresholds to the `battery` supply as a power supply
+  extension. They're backed by the charger's own values, so both places always agree.
+- The start becomes writable, from 0 to below the end. Writing an end still sets the start 5
+  points below it, as before, so a different start has to be written after the end. UPower writes
+  the end last, so through UPower the start is always 5 points below the end. With
+  `CHARGE_LIMIT` `75,80` that's what it asks for anyway.
+- The boot default stays 80 and 75, from the device tree, and the guard's decisions don't change.
+- Disabling through UPower gives end 100, which turns the limit off, and start 95.
+- The attributes appear when the guard first finds the battery. A notifier runs that pass as soon
+  as the battery registers, about 1 s into boot rather than 11 s.
+- **Gauge unbound and bound again:** the new battery gets the extension again. The old one keeps a
+  small record of it, because unregistering from a battery that's going would queue work on it.
+- **Not handled:** the charger and the gauge unbinding at the same moment. Only root can do that, as
+  in tests.
+
+Compiled at `W=1` on top of the later 0601 and 0630, with `checkpatch --strict` clean. It applies in
+both series, and the station series then gives the file that was compiled. **Nothing has booted.**
+It's built into the driver, so it needs an image, not a module.
+
+**Needed in the root filesystem,** for the session that packages it:
+- A udev rule on the battery, `SUBSYSTEM=="power_supply", KERNEL=="battery",
+  ENV{CHARGE_LIMIT}="75,80"`. Without it UPower never offers the control.
+- UPower's `charging-threshold-status` set to `1` on a new install, so the widget starts by showing
+  the limit that the kernel applies at boot.
+- **One mismatch remains:** after the user turns the limit off, the next boot starts at 80 again in
+  the kernel, while UPower still says off. A boot step before UPower that writes 100 to the
+  battery's end when the file says `0` would keep the two in step. The alternative, a kernel that
+  boots with the limit off, would leave the station and any boot without UPower charging past 80,
+  against the owner's policy.
+- **Polkit:** no rule is needed if Noctalia's session is active in logind; `loginctl show-session`
+  should report `Active=yes`. Otherwise a rule for that user and action is needed.
+
+**Device plan,** read-only apart from the threshold writes, and never lifting the limit above the
+live capacity, so nothing enables charging:
+
+| Step | Expected |
+| --- | --- |
+| Read `battery/charge_control_{start,end}_threshold` and `battery/extensions` | 75, 80, a `bq25890-guard` link |
+| On the battery: end to a value at or below capacity, then start 5 lower than that | The charger's attributes show the same values; `full` holds |
+| Start at or above the end | `EINVAL` |
+| With the udev rule, restart UPower | `ChargeThresholdSupported=true`, start 75, end 80 |
+| `EnableChargeThreshold(true)` | 75 and 80 written; no change |
+| Restore end 80 | 75 and 80 |
+
+`EnableChargeThreshold(false)` writes end 100, which lets the device charge above 80 %. It needs
+the owner's go-ahead before it's tried.

@@ -1,0 +1,271 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 08:02:58 -0500
+Subject: [PATCH] power: supply: bq25890: offer the guard's thresholds on the
+ battery
+
+Userspace such as UPower looks for charge_control_start_threshold and
+charge_control_end_threshold on the battery, not on the charger. Register
+them there as a power supply extension while the guard runs, backed by the
+same values as the charger's own attributes.
+
+The start threshold becomes writable, from 0 to below the end. Writing an
+end sets the start 5 points below it, as before, so a different start has
+to be written after the end.
+
+The extension is registered at the first pass that finds the battery, and
+a notifier runs a pass as soon as the battery registers. A battery that
+goes keeps a small record of the extension, since unregistering from a
+battery that is going would queue work on it; the guard lets it go and
+offers the thresholds again on the next battery. A charger and battery
+unbinding at the same moment is not handled.
+---
+ drivers/power/supply/bq25890_charger.c | 150 ++++++++++++++++++++++---
+ 1 file changed, 137 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index a1cb5475e..9ad14a7f0 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -143,6 +143,9 @@ struct bq25890_device {
+ 	struct delayed_work guard_work;
+ 	const char *guard_battery;
+ 	u32 guard_end;
++	u32 guard_start;
++	struct power_supply *guard_ext;
++	struct notifier_block guard_nb;
+ 	bool guard_temp;
+ 	bool guard_full;
+ 	unsigned int guard_unread;
+@@ -511,6 +514,27 @@ static void bq25890_update_state(struct bq25890_device *bq,
+ 			ret, !ret, 25000, 1000000);
+ }
+ 
++/*
++ * Set a capacity threshold. An end sets the start 5 points below it, so a
++ * different start has to be written after the end.
++ */
++static int bq25890_guard_set_threshold(struct bq25890_device *bq,
++				       enum power_supply_property psp, int val)
++{
++	if (psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD) {
++		if (val < BQ25890_GUARD_END_MIN || val > BQ25890_GUARD_END_OFF)
++			return -EINVAL;
++		WRITE_ONCE(bq->guard_start, val - BQ25890_GUARD_RESUME_MARGIN);
++		WRITE_ONCE(bq->guard_end, val);
++	} else {
++		if (val < 0 || val >= READ_ONCE(bq->guard_end))
++			return -EINVAL;
++		WRITE_ONCE(bq->guard_start, val);
++	}
++	mod_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
++	return 0;
++}
++
+ static int bq25890_power_supply_get_property(struct power_supply *psy,
+ 					     enum power_supply_property psp,
+ 					     union power_supply_propval *val)
+@@ -706,7 +730,7 @@ static int bq25890_power_supply_get_property(struct power_supply *psy,
+ 		break;
+ 
+ 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD:
+-		val->intval = READ_ONCE(bq->guard_end) - BQ25890_GUARD_RESUME_MARGIN;
++		val->intval = READ_ONCE(bq->guard_start);
+ 		break;
+ 
+ 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
+@@ -729,14 +753,10 @@ static int bq25890_power_supply_set_property(struct power_supply *psy,
+ 	int maxval, ret;
+ 	u8 lval;
+ 
+-	if (bq->guard_battery && psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD) {
+-		if (val->intval < BQ25890_GUARD_END_MIN ||
+-		    val->intval > BQ25890_GUARD_END_OFF)
+-			return -EINVAL;
+-		WRITE_ONCE(bq->guard_end, val->intval);
+-		mod_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
+-		return 0;
+-	}
++	if (bq->guard_battery &&
++	    (psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD ||
++	     psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD))
++		return bq25890_guard_set_threshold(bq, psp, val->intval);
+ 
+ 	if (bq->no_chip_config)
+ 		return -EPERM;
+@@ -769,7 +789,8 @@ static int bq25890_power_supply_property_is_writeable(struct power_supply *psy,
+ {
+ 	struct bq25890_device *bq = power_supply_get_drvdata(psy);
+ 
+-	if (psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD)
++	if (psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD ||
++	    psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD)
+ 		return true;
+ 
+ 	if (bq->no_chip_config)
+@@ -1183,7 +1204,7 @@ static bool bq25890_guard_temp(struct bq25890_device *bq, struct power_supply *b
+ 
+ /* Whether the capacity limit stops charging. If unreadable, the last answer stands. */
+ static bool bq25890_guard_full(struct bq25890_device *bq, struct power_supply *batt,
+-			       int end, int *capacity)
++			       int start, int end, int *capacity)
+ {
+ 	union power_supply_propval val;
+ 	int ret;
+@@ -1201,12 +1222,101 @@ static bool bq25890_guard_full(struct bq25890_device *bq, struct power_supply *b
+ 		return bq->guard_full;
+ 	if (val.intval >= end)
+ 		return true;
+-	if (val.intval <= end - BQ25890_GUARD_RESUME_MARGIN)
++	if (val.intval <= start)
+ 		return false;
+ 
+ 	return bq->guard_full;
+ }
+ 
++static const enum power_supply_property bq25890_guard_ext_props[] = {
++	POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD,
++	POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD,
++};
++
++static int bq25890_guard_ext_get(struct power_supply *psy,
++				 const struct power_supply_ext *ext, void *data,
++				 enum power_supply_property psp,
++				 union power_supply_propval *val)
++{
++	struct bq25890_device *bq = data;
++
++	if (psp == POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD)
++		val->intval = READ_ONCE(bq->guard_start);
++	else
++		val->intval = READ_ONCE(bq->guard_end);
++	return 0;
++}
++
++static int bq25890_guard_ext_set(struct power_supply *psy,
++				 const struct power_supply_ext *ext, void *data,
++				 enum power_supply_property psp,
++				 const union power_supply_propval *val)
++{
++	return bq25890_guard_set_threshold(data, psp, val->intval);
++}
++
++static int bq25890_guard_ext_writeable(struct power_supply *psy,
++				       const struct power_supply_ext *ext,
++				       void *data, enum power_supply_property psp)
++{
++	return 1;
++}
++
++/* The thresholds again on the battery, where userspace looks for them. */
++static const struct power_supply_ext bq25890_guard_ext = {
++	.name = "bq25890-guard",
++	.properties = bq25890_guard_ext_props,
++	.num_properties = ARRAY_SIZE(bq25890_guard_ext_props),
++	.get_property = bq25890_guard_ext_get,
++	.set_property = bq25890_guard_ext_set,
++	.property_is_writeable = bq25890_guard_ext_writeable,
++};
++
++/*
++ * Offer the thresholds on @batt, taking over its reference. The core keeps an
++ * extension until it is unregistered, even once its battery has gone, and
++ * unregistering it from a battery that is going would queue work on that
++ * battery. So a battery that went is only let go, leaving its small record
++ * behind, and a new one gets the extension again.
++ */
++static struct power_supply *bq25890_guard_offer(struct bq25890_device *bq,
++						struct power_supply *batt)
++{
++	int ret;
++
++	if (batt == bq->guard_ext)
++		return batt;
++
++	if (bq->guard_ext) {
++		power_supply_put(bq->guard_ext);
++		bq->guard_ext = NULL;
++	}
++	if (!batt)
++		return NULL;
++
++	ret = power_supply_register_extension(batt, &bq25890_guard_ext, bq->dev, bq);
++	if (ret) {
++		dev_warn(bq->dev, "guard cannot offer its thresholds on the battery: %d\n", ret);
++		return batt;
++	}
++	bq->guard_ext = batt;
++	return NULL;
++}
++
++/* Run a pass as soon as the battery registers, rather than up to 10 s later. */
++static int bq25890_guard_notifier(struct notifier_block *nb, unsigned long event,
++				  void *data)
++{
++	struct bq25890_device *bq = container_of(nb, struct bq25890_device, guard_nb);
++	struct power_supply *psy = data;
++
++	if (event == PSY_EVENT_PROP_CHANGED && psy != READ_ONCE(bq->guard_ext) &&
++	    psy->desc->name && !strcmp(psy->desc->name, bq->guard_battery))
++		mod_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
++
++	return NOTIFY_OK;
++}
++
+ /*
+  * The charging guard: one pass decides, then writes only CHG_CONFIG, with the
+  * other bits of the register as read. While charging is stopped every pass
+@@ -1221,13 +1331,15 @@ static void bq25890_guard_work(struct work_struct *work)
+ 		container_of(work, struct bq25890_device, guard_work.work);
+ 	struct power_supply *batt = power_supply_get_by_name(bq->guard_battery);
+ 	int end = READ_ONCE(bq->guard_end);
++	int start = READ_ONCE(bq->guard_start);
+ 	bool was_temp = bq->guard_temp, was_full = bq->guard_full;
+ 	int temp, capacity, chg, otg, ret;
+ 	bool stop;
+ 
+ 	bq->guard_temp = bq25890_guard_temp(bq, batt, &temp);
+-	bq->guard_full = bq25890_guard_full(bq, batt, end, &capacity);
++	bq->guard_full = bq25890_guard_full(bq, batt, start, end, &capacity);
+ 	stop = bq->guard_temp || bq->guard_full;
++	batt = bq25890_guard_offer(bq, batt);
+ 	if (batt)
+ 		power_supply_put(batt);
+ 
+@@ -1265,7 +1377,14 @@ static void bq25890_guard_stop(void *data)
+ {
+ 	struct bq25890_device *bq = data;
+ 
++	power_supply_unreg_notifier(&bq->guard_nb);
+ 	disable_delayed_work_sync(&bq->guard_work);
++	if (bq->guard_ext) {
++		if (!READ_ONCE(bq->guard_ext->removing))
++			power_supply_unregister_extension(bq->guard_ext, &bq25890_guard_ext);
++		power_supply_put(bq->guard_ext);
++		bq->guard_ext = NULL;
++	}
+ }
+ 
+ static int bq25890_set_otg_cfg(struct bq25890_device *bq, u8 val)
+@@ -1675,6 +1794,7 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+ 		if (bq->guard_end < BQ25890_GUARD_END_MIN ||
+ 		    bq->guard_end > BQ25890_GUARD_END_OFF)
+ 			return dev_err_probe(bq->dev, -EINVAL, "bad guard end threshold\n");
++		bq->guard_start = bq->guard_end - BQ25890_GUARD_RESUME_MARGIN;
+ 		return 0;
+ 	}
+ 
+@@ -1828,6 +1948,10 @@ static int bq25890_probe(struct i2c_client *client)
+ 			return ret;
+ 		/* Inside the hysteresis at the first pass, the safe answer stands. */
+ 		bq->guard_temp = true;
++		bq->guard_nb.notifier_call = bq25890_guard_notifier;
++		ret = power_supply_reg_notifier(&bq->guard_nb);
++		if (ret)
++			return ret;
+ 		queue_delayed_work(system_power_efficient_wq, &bq->guard_work, 0);
+ 	}
+ 
+-- 
+2.43.0
+

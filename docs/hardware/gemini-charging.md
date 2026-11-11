@@ -184,6 +184,9 @@ thermally constrained subsystem.
 - the same guard stops charging at a capacity limit from the fuel gauge, 80 %
   by default and set in `charge_control_end_threshold`, resuming 5 points
   lower. This is a longevity policy, not a safety stop.
+- 0695 also offers the two thresholds on the `battery` supply, where UPower and
+  desktop battery widgets look for them. UPower also needs a `CHARGE_LIMIT` udev
+  property on the battery. Not yet on a device.
 - shown on the device: the guard binds at boot, holds charging off past the
   chip's watchdog, stops and resumes on the limit and its hysteresis, on an
   emulated 50/47 °C and on an unreadable battery, and the watchdog restores
