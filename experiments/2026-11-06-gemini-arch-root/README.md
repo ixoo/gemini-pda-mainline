@@ -1908,6 +1908,14 @@ Two build fixes on the way:
 - makepkg looks up a local source by its file name, so `build-card.sh` also copies the
   plugin files flat beside the GNSS PKGBUILD.
 
+### Clock at the top, no launcher button (`gemini-base` 36, 2026-11-11)
+
+The owner, trying it live on card-27 (boot `58bcf387`): "move the clock to the top of it" and
+"I don't need the search under the clock, remove this icon", then "Keep it". `noctalia.toml`'s
+bar now has `start = ["clock", "workspaces"]`, an empty centre, and the same end section. The
+launcher stays on Ctrl+Alt+Space and the side key, so the launcher widget's scale entry goes.
+Noctalia's `config validate` passes. It is in no card image yet, and rides with the next one.
+
 ## Analysis
 
 Not started.

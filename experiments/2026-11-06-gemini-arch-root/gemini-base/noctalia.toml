@@ -17,8 +17,11 @@ padding = 8
 widget_spacing = 10
 # Bar text at 1.3 (owner, 2026-11-08); the clock scales its own text on top.
 font_scale = 1.3
-start  = ["launcher", "workspaces"]
-center = ["clock"]
+# The clock at the top, and no launcher button (owner, 2026-11-11: "move the clock to the
+# top of it", "I don't need the search under the clock, remove this icon"; tried live on
+# card-27, "Keep it"). The launcher stays on Ctrl+Alt+Space and the side key.
+start  = ["clock", "workspaces"]
+center = []
 end    = ["network", "bluetooth", "volume", "battery", "control-center"]
 
 [widget.clock]
@@ -35,9 +38,6 @@ display_mode = "graphic"
 # display the volume value"), and bigger, to fill the 40 px width (scale 1.6, tried live on
 # card-23); the battery keeps its size. Bluetooth's widget shows only while bluez runs:
 # with bluetooth.service stopped there is no adapter on D-Bus, and the widget hides itself.
-[widget.launcher]
-scale = 1.6
-
 [widget.network]
 show_label = false
 scale = 1.6
