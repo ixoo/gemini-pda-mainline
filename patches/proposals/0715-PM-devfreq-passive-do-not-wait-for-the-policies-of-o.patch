@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 13:28:09 -0500
+Subject: [PATCH] PM / devfreq: passive: do not wait for the policies of
+ offline CPUs
+
+The passive governor's registration wants a cpufreq policy for every
+possible CPU that has OPPs, and defers the probe until each exists. A CPU
+that is offline has no policy, so a system that keeps CPUs offline until
+later never gets past the deferral.
+
+On the MT6797 Gemini PDA the two Cortex-A72 cores come up late from a
+module, or not at all, and now have OPP tables. With them offline,
+mtk-cci-devfreq deferred on every retry. Each retry raised the CPU rail to
+the CCI's top voltage and dropped the request again, leaving the CCI at
+its boot rate with the rail at the A53 policies' request. The station then
+stopped responding until the watchdog reset it.
+
+Leave offline CPUs without a policy out of the registration.
+get_target_freq_with_cpufreq() already skips a policy it has no parent
+data for, so a policy that appears when such a CPU comes online is
+ignored, as before for unknown policies.
+---
+ drivers/devfreq/governor_passive.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/devfreq/governor_passive.c b/drivers/devfreq/governor_passive.c
+index 67936b217..8e9591835 100644
+--- a/drivers/devfreq/governor_passive.c
++++ b/drivers/devfreq/governor_passive.c
+@@ -314,7 +314,12 @@ static int cpufreq_passive_register_notifier(struct devfreq *devfreq)
+ 	for_each_possible_cpu(cpu) {
+ 		policy = cpufreq_cpu_get(cpu);
+ 		if (!policy) {
+-			if (cpu_without_opps(cpu))
++			/*
++			 * A CPU without OPPs is never a parent. An offline CPU
++			 * may have no policy until it comes up, and a policy
++			 * created later is left out like any unknown one.
++			 */
++			if (cpu_without_opps(cpu) || !cpu_online(cpu))
+ 				continue;
+ 			ret = -EPROBE_DEFER;
+ 			goto err;
+-- 
+2.43.0
+

@@ -935,26 +935,34 @@ semaphore 3. With port 0 held, port 2 cannot be granted, so every transaction
 failed. It also means the overlap 0700 was meant to close does not exist.
 0700 is withdrawn from both series; 0702 applies and compiles without it.
 
-**Boot hang on station-work-102 (observed; cause inferred, not yet confirmed).**
-station-work-102 (boot2 `5a7e9b2d`, main `4e52b4f4`, 0700 withdrawn, DVFS profile)
-hung twice inside the init's cpufreq block, with the A72 module off, until the
-hardware watchdog reset it. The next boots reported
-`cpufreq=skipped-last-load-unfinished`, and nothing survived in pstore. Of the
-cpufreq modules only `clk-mt6797-mcusys` changed from station-work-100, by 0702.
-On station-work-101 the same driver failed before registering any clock, which
-fits that image not hanging.
+**Boot hang on station-work-102 (observed; cause inferred).** station-work-102
+(boot2 `5a7e9b2d`, main `4e52b4f4`, 0700 withdrawn, DVFS profile) hung twice in
+the init's cpufreq block with the A72 module off, until the hardware watchdog reset
+it. The next boots reported `cpufreq=skipped-last-load-unfinished`; nothing
+survived in pstore. station-work-100 loaded the same block.
 
-Inference: registering the A72 clock reads its rate. 0702 read the B-PLL registers
-(`0x102224a0`/`a4`) through the secure read whenever the B mux read as on the PLL.
-Those registers are in the A72 cluster's MCUCFG2 block: the vendor's bring-up
-releases the cluster-top reset (SPM `0x10006218` bit 0) before its first read of
-`0x102224a0`. So with the A72s never brought up, a mux left on the PLL leads to a
-read into a cluster in reset, which can stall the bus. 0702 now reads the rate only
-while an A72 is online, and under semaphore 3. The firmware holds that semaphore when
-it moves the mux off the PLL, which it does before powering the cluster down.
-Two read-only reads on a booted station with the A72s off would confirm the
-inference: the B mux (`0x1001a270` bits 1:0) reading 1, and `0x10006218` bit 0
-reading 0.
+First inference, refuted: 0702's rate read reaching the A72 cluster's PLL
+registers while the cluster is in reset. On boot `a71d4762` of the same image, the
+B mux (`0x1001a270` bits 1:0) read 0 with the cluster top in reset (`0x10006218`
+bit 0 = 0), so that read was never reached. 0702 keeps the guard: it reads the PLL
+only with an A72 online and under semaphore 3.
+
+Second inference: 0705 and 0706 give CPU8-9 OPP tables. The devfreq passive
+governor requires a cpufreq policy for every possible CPU with OPPs. With the A72s
+offline, CPU8-9 have none, so `mtk-cci-devfreq` deferred on every retry. Each retry
+raised VPROC1 to the CCI's top voltage and then dropped the request. The CCI was
+left at its boot rate with VPROC1 at the A53 policies' request, which the init's own
+comment names as the unsafe state ("nothing keeps VPROC1 up for the CCI's boot
+rate"). Unloading the modules afterwards does not raise the rail again.
+station-work-101 did not hang because cpufreq-dt never got its clocks and set no
+voltage.
+
+[0715](../../patches/proposals/0715-PM-devfreq-passive-do-not-wait-for-the-policies-of-o.patch)
+leaves offline CPUs without a policy out of the passive registration. A policy
+that appears later is skipped as an unknown parent, so the CCI follows the A53
+clusters only. Confirmation needs a boot of an image with 0715. Its station status
+must read `cpufreq=loaded,...` and not `failed-cci-unbound`, with the CCI bound at
+`/sys/bus/platform/drivers/mtk-ccifreq/cci`.
 
 **T4a: A72 frequency, no voltage change.** Profile `mt6797-a53-station-a72`, A72
 tree. Load the A72 module, then `clk-mt6797-mcusys`, then `cpufreq-dt`.
