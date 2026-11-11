@@ -2044,6 +2044,15 @@ read after the 30 min, which UPower's polling provides. Accepted pairs show in `
 "full charge N uAh from M uAh over P points"; rejections only at debug level, which the helper
 says how to enable when nothing was learned.
 
+What ends the hold (charging session, checked against the guard): nothing in the guard clears
+the latch on unplug or replug, but a reboot or power-off does (the next boot starts at
+80/75, and powered off with the cable in the bootloader charges unguarded), as does anything
+that rewrites the thresholds: Noctalia's charge-limit switch, a UPower restart, or any write
+of end 100. The helper tells the owner not to power off or touch the switch, checks that the
+thresholds still read 50/0 at every poll while holding, and stops if they don't or if the
+battery charges. Both rested readings need the charger to carry the whole system, so it
+asks for a wall charger and an idle screen (`gemini-base` 43).
+
 Checked: ShellCheck on both scripts; `udevadm verify` on the rule; the save and restore logic
 against a fake sysfs directory (fresh design value: no file; learned value: saved; restore;
 non-numeric file: ignored). Not on a device: it needs a station image with 0732, which isn't

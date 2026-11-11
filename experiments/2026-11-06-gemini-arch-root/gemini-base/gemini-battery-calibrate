@@ -41,12 +41,24 @@ temp_ok() {
 }
 abs_ma() { local c; c=$(($(get current_now) / 1000)); echo "${c#-}"; }
 
+# While the guard's latch holds charging, anything that rewrites the thresholds ends the hold:
+# Noctalia's charge-limit switch, a UPower restart, or a reboot.
+holding=0
+hold_ok() {
+    [ "$holding" = 1 ] || return 0
+    if [ "$(get charge_control_end_threshold)" != 50 ] || [ "$(get charge_control_start_threshold)" != 0 ]; then
+        say "The charge limits were changed by something else, so charging is no longer held. Stopping."
+        exit 1
+    fi
+}
+
 # A rested reading: 30 min with the current within +/-20 mA. Restarts the count if it moves.
 rest() {
     local since=$SECONDS
     say "$1: leave it plugged in for 30 min. The count restarts if the current moves."
     while [ $((SECONDS - since)) -lt "$rest_s" ]; do
         sleep "$poll_s"
+        hold_ok
         if [ "$(abs_ma)" -gt 20 ]; then
             [ $((SECONDS - since)) -ge 600 ] && say "$1: the current is $(abs_ma) mA, outside +/-20 mA; still waiting."
             since=$SECONDS
@@ -59,6 +71,8 @@ rest() {
 say "Battery $(get capacity) %, learned full charge $((full_before / 1000)) mAh," \
     "limits $old_start-$old_end %."
 say "Step 1 of 3: charge to full. Keep the charger plugged in."
+say "Use a wall charger and leave the screen idle: on a 500 mA computer port the battery"
+say "makes up the shortfall, and the current never settles within +/-20 mA."
 limits 100 99
 until [ "$(get status)" != Charging ] && [ "$(abs_ma)" -le 20 ]; do
     sleep "$poll_s"
@@ -70,10 +84,12 @@ full_temp=$(get temp)
 # start (0695): with end 50 and start 0, set while the battery is full, charging stays held
 # through the discharge and after the replug.
 limits 50 0
+holding=1
 
 say "Step 2 of 3: unplug and use it down to about 20-30 %. Then plug the charger back in."
-until [ "$(get status)" = Discharging ]; do sleep "$poll_s"; done
-until [ "$(get status)" != Discharging ]; do sleep "$poll_s"; done
+say "Until the end: don't power off or reboot, and don't touch the charge-limit switch."
+until [ "$(get status)" = Discharging ]; do sleep "$poll_s"; hold_ok; done
+until [ "$(get status)" != Discharging ]; do sleep "$poll_s"; hold_ok; done
 low=$(get capacity)
 if [ "$low" -gt 60 ]; then
     say "Plugged in at $low %: the two readings must be 40 points apart, so this pair won't count."
@@ -86,12 +102,14 @@ if [ $((SECONDS - full_at)) -gt $((72 * 3600)) ]; then
     say "More than 72 h since the full reading: this pair won't count."
 fi
 
+# The charger's status is polled, up to 10 s behind the chip.
 sleep "$poll_s"
+hold_ok
 if [ "$(get status)" = Charging ]; then
     say "It is charging instead of holding at $low %, so there can be no low reading. Stopping."
     exit 1
 fi
-say "Step 3 of 3: charging is held at $low % for the low reading."
+say "Step 3 of 3: charging is held at $low % for the low reading. Wall charger, screen idle."
 rest "Low"
 
 full_after=$(get charge_full)
