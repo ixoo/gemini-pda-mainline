@@ -145,6 +145,22 @@ monitor showed clean samples, peak −12.0 dBFS, at the distorting setting. Spea
 | S16_LE −30 dBFS | −48.8 | 0.3 % |
 | S32_LE −30 dBFS | −32.4 | 59 % |
 
+**`0707` and `0712` on card-31 (boot `d41819cc`, `7.1.3-gemini-a53-station`), run by the custodian.** Modules
+from package `97655c74` (commit `5abb47f2`): `snd-soc-aw8738.ko` `b6e12ad4…`, `snd-soc-mt6797-afe.ko`
+`617327d3…`, `mt6797-mt6351.ko` `f1f743ec…`, swapped in by `rmmod` and `insmod` with no errors.
+
+| Format and level | Mic fundamental (dBFS) | THD |
+| --- | --- | --- |
+| S16_LE −40 dBFS | −60.8 | 0.5 % |
+| S32_LE −40 dBFS | −61.9 | 1.1 % |
+| S16_LE −30 dBFS | −50.0 | 0.5 % |
+| S32_LE −30 dBFS | −51.7 | 0.4 % |
+
+DAPM trace of one play: headphone outputs' power-up events at 122.345 and 122.348 s, then the amplifiers'
+at 122.348 and 122.389 s; at power-down the amplifiers at 124.439 and 124.441 s, then the outputs at
+124.443 s. Three tones from silence, 8 s apart, on the speakers. The owner: "no clicks!".
+YouTube through PipeWire and a microphone capture through PipeWire were not run on this boot.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -180,11 +196,14 @@ gives each memif its bit in `AFE_MEMIF_HDALIGN`. Capture has the same fault, so 
 source in S32_LE would be 48 dB too quiet until it lands. The level and bass readings above are
 withdrawn: the tones never used S32_LE.
 
+`0712` fixes it: S32_LE now plays within 1.7 dB of S16_LE with THD about 1 % or less.
+
 The rough start is an ordering fault. DAPM sorts output drivers of one type by register before
 component, so the amplifiers, with no register, power up before the headphone outputs that feed them,
 and the outputs' power-up transient reaches the speakers. Power-down is already in the right order.
 [`0707`](../../patches/proposals/0707-ASoC-aw8738-switch-the-amplifier-on-after-the-output.patch)
-gives the amplifiers a later DAPM sub-sequence.
+gives the amplifiers a later DAPM sub-sequence. With it the outputs power up first and the owner heard no
+clicks at start or stop.
 
 ## Conclusion
 
