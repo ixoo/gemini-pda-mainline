@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0700-0706 and compile-checked only; their device tests T4a-T9 await owner approval, and the owner accepted the Spectre-v2 report for a release default on 2026-11-11 |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0701-0706 and compile-checked only; 0700 regressed on station-work-101 and is withdrawn; their device tests T4a-T9 await owner approval, and the owner accepted the Spectre-v2 report for a release default on 2026-11-11 |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -806,17 +806,18 @@ it:
 It does no range check and has no guard on cluster power. It touches neither the B mux nor
 a semaphore. Bit 0 matches the PLL enable: the firmware's cluster-on path sets it before
 moving the mux onto the PLL, and its off path clears it only after moving the mux away.
-Those paths do the mux work under a semaphore at `0x11015448`, with the CSPM unlock
+Those paths do the mux work under semaphore 3, through its master port 2 at `0x11015448`, with the CSPM unlock
 `0x11015000` <- `0x0b160001`:
 - off: `0x1001a270` bit 0 cleared, B mux to 0;
 - on: bit 0 set, and `0x1001a274[4:0]` = 8.
 
-The A53 clock driver uses `0x11015440` for the same two words, so the firmware's B path and
-the A53 driver do not exclude each other. That is the real reason for the rule that no A53
-rate change may overlap a B `CPU_ON`.
+The A53 clock driver takes the same semaphore 3 through master port 0 at `0x11015440`;
+port 1 at `0x11015444` is the CPU SPM's. So the firmware's B path and the A53 driver already
+exclude each other. (This design first read `0x448` as a second semaphore, and `0700` took
+it as well; see "0700 regression" below.)
 
 So a B rate change from Linux has to:
-1. take both semaphores;
+1. take semaphore 3;
 2. move B to mux 0 (`0x1001a270[1:0]`);
 3. call `0xc20003b8`;
 4. wait at least 20 us more;
@@ -845,20 +846,17 @@ voltage, cooling, capacity, an energy-model scaffold and loading at init. This
 section lists what exists and the ordered device tests. Every test needs the
 owner's approval of its write list; none has run.
 
-**What is built.** Patches 0700 to 0706, on the series through 0699, were
+**What is built.** Patches 0701 to 0706, on the series through 0699, were
 compile-checked in the dev VM: the three changed drivers with `W=1` and no
 warning, the A72, DVFS and plain station trees, and strict checkpatch, which
 reports only the missing `Signed-off-by`:
 
-- [0700](../../patches/proposals/0700-clk-mediatek-mt6797-mcusys-hold-the-firmware-s-A72.patch):
-  the cluster clock driver holds the firmware's A72 semaphore
-  (`0x11015448`) as well as semaphore 3 around every MCUMIXED transaction. This
-  closes the overlap with a B `CPU_ON` found in step 4's design, and it changes
-  the A53 driver's writes too.
+- `0700`, which also took `0x11015448`, is withdrawn: see "0700 regression"
+  below.
 - [0701](../../patches/proposals/0701-dt-bindings-clock-mediatek-add-the-MT6797-A72-cluste.patch)
   and [0702](../../patches/proposals/0702-clk-mediatek-mt6797-mcusys-add-the-A72-cluster-PLL.patch):
-  the A72 PLL as clock 3 of `clk-mt6797-mcusys`. A change holds both
-  semaphores, moves the A72 mux to 0, calls the firmware's PLL service, waits
+  the A72 PLL as clock 3 of `clk-mt6797-mcusys`. A change holds
+  semaphore 3, moves the A72 mux to 0, calls the firmware's PLL service, waits
   20 us, reads the post-divider and PCW back through the secure read, and moves
   the mux back. Other behaviour:
   - A mismatch leaves the mux at 0 and faults the driver.
@@ -926,12 +924,21 @@ steps apply throughout:
 - a measured clock more than 5 % from the request;
 - the SoC at 75 C.
 
+**0700 regression (station-work-101, observed).** On boot `0bad0df9` (boot2
+`c676e880`, main `ac39772d`, DVFS profile, 0700-0702 applied, A72 module not
+loaded), `clk-mt6797-mcusys` failed its probe: "firmware A72 semaphore not
+granted", then `-ETIMEDOUT` from the MCUMIXED init. cpufreq-dt deferred and no
+policy existed; CPU0-7 stayed online at their boot rates. The vendor's own
+names give the cause: `0x440`, `0x444` and `0x448` are master ports 0 (the
+kernel's frequency hopping), 1 (CPU SPM) and 2 (the firmware) of one
+semaphore 3. With port 0 held, port 2 cannot be granted, so every transaction
+failed. It also means the overlap 0700 was meant to close does not exist.
+0700 is withdrawn from both series; 0702 applies and compiles without it.
+
 **T4a: A72 frequency, no voltage change.** Profile `mt6797-a53-station-a72`, A72
 tree. Load the A72 module, then `clk-mt6797-mcusys`, then `cpufreq-dt`.
 
 Writes beyond the earlier admitted lists:
-- CSPM `0x11015448` <- 1 to take, and <- 1 to release, around every clock
-  driver transaction. This includes the A53 ones.
 - MCUMIXED `0x1001a270` bits 1:0 <- 0, then <- 1, around each A72 change.
 - SMC `0xc20003b8`, `x1` in {338, 676, 845, 1001, 1131, 1378, 1495}.
 - Inside that SMC, the firmware's own writes: `0x102224a0` bit 0 off and on, its
@@ -943,7 +950,7 @@ Stages:
    1.1 V.
 2. Under userspace, each A72 point in turn, upward then back down. Measure CPU8
    with `cpu-mhz` and hash on CPU8 and CPU9 at each.
-3. The A53 stages t3-t6, now with both semaphores.
+3. The A53 stages t3-t6 again, with the A72 clock registered.
 4. Schedutil on all three policies, then a 10 min `soak.sh` load.
 5. Emulate 62 C on the SoC zone: `policy8`'s ceiling must drop, then recover on
    release.
@@ -956,7 +963,7 @@ Stages:
 | All pass | The A72s scale to 1495 MHz at 1.0 V | T4b |
 | `B PLL reads ...` | The firmware wrote something else | Stop; the A72s stay off the PLL; read it |
 | A72s hang on the first change | Mux 0 is not a running clock, or the bridge is wrong | Force-off; back to the firmware |
-| A53 stages fail now | The second semaphore | Bisect with 0700 alone |
+| A53 stages fail now | The A72 clock's registration | Bisect with 0702 alone |
 
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
@@ -1407,7 +1414,7 @@ literally first:
 4. **A72 cpufreq.** First frequency only, at the 1.0 V the preloader left, within the
    vendor's points for that voltage, through the secure BigiDVFS interface firmware owns
    for the B PLL. Then voltage through a writable DA9214 BUCKB provider and the SRAM LDO,
-   each with its own write list. Built as 0700-0706, not run: see "Steps 4 to 9".
+   each with its own write list. Built as 0701-0706, not run: see "Steps 4 to 9".
 5. **Cooling on the A72s.** Follows from step 4 as cpufreq cooling on the passive trip.
    Until then the A72s have only the 117 C hardware reset, and step 1's loads stay short.
    Built in 0705 (step-wise, 58 C) and 0706 (power allocator, 75 C), not run.

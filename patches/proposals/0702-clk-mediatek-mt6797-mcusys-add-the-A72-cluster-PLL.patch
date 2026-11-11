@@ -9,7 +9,7 @@ MHz) retunes it. That service turns the PLL off, writes the post-divider,
 turns it on and writes the PCW, on every call, without moving the cluster's
 mux. Called on a running cluster, it would stop the A72s' clock.
 
-Do what the firmware's own cluster paths do: with both semaphores held,
+Do what the firmware's own cluster paths do: with semaphore 3 held,
 move the A72 mux in ARMPLLDIV_MUXSEL off the PLL, call the service, wait,
 check the post-divider and PCW it wrote through the secure read service,
 and move the mux back. A mismatch leaves the cluster off the PLL and
@@ -35,7 +35,7 @@ index 0c06247c6..88821edac 100644
 + * CPU_ON and changes it through its BigiDVFS PLL service. That service turns
 + * the PLL off and on again on every call and leaves the mux alone, so the A72
 + * clock moves the cluster's mux off the PLL around the call, as the firmware's
-+ * own paths do, with both semaphores held.
++ * own paths do, with semaphore 3 held.
 + *
   * This driver does not control the voltage. Each clock is limited to the top
   * of the vendor table for this SoC; a consumer raises the shared rail first,
