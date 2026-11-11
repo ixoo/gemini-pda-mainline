@@ -1,0 +1,202 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 17:47:28 -0500
+Subject: [PATCH] power: supply: bq25890: step the charge currents down
+ with the board's temperature
+
+On a 1.5 A charger the guard's only cut was the battery reaching 45 C,
+so a device heated by its SoC or the sun kept charging at full rate.
+
+With linux,guard-board-zone naming the board's thermal zone, the guard
+steps the raised currents down by the board's temperature, as the
+vendor's thermal policy did from 47 C: 1.0 A input and 512 mA charge
+from 47 C, and the chip's 500 mA input from 52 C or with the board
+unreadable. Each step returns 3 C lower. The currents are the lowest of
+these, the charger-type caps and the battery's 45 C rule. The values are
+the owner's, in defines.
+
+Only the input limit and the charge current are written, as before.
+---
+ drivers/power/supply/bq25890_charger.c | 100 +++++++++++++++++++++----
+ 1 file changed, 84 insertions(+), 16 deletions(-)
+
+diff --git a/drivers/power/supply/bq25890_charger.c b/drivers/power/supply/bq25890_charger.c
+index ef26062e0..ce090db63 100644
+--- a/drivers/power/supply/bq25890_charger.c
++++ b/drivers/power/supply/bq25890_charger.c
+@@ -19,6 +19,7 @@
+ 
+ #include <linux/acpi.h>
+ #include <linux/of.h>
++#include <linux/thermal.h>
+ 
+ #define BQ25890_MANUFACTURER		"Texas Instruments"
+ #define BQ25890_IRQ_PIN			"bq25890_irq"
+@@ -51,6 +52,19 @@
+ #define BQ25890_GUARD_WALL_COOL		430
+ #define BQ25890_GUARD_IINLIM_uA		500000
+ 
++/*
++ * On a 1.5 A charger the board's temperature steps the currents down: from
++ * 47 C to a 1.0 A input and a 512 mA charge, and from 52 C, or with the board
++ * unreadable, to the chip's 500 mA input. Each step returns 3 C lower. In
++ * m°C, as the board's thermal zone reports. The owner chose Gemian's 47 C
++ * start.
++ */
++#define BQ25890_GUARD_WARM_IINLIM_uA	1000000
++#define BQ25890_GUARD_WARM_ICHG_uA	512000
++#define BQ25890_GUARD_BOARD_WARM	47000
++#define BQ25890_GUARD_BOARD_HOT		52000
++#define BQ25890_GUARD_BOARD_MARGIN	3000
++
+ /*
+  * The charge voltage by battery temperature, as the vendor charges this cell
+  * and as the owner chose: 4.34 V from 10 C to under 45 C, 4.24 V outside that
+@@ -172,6 +186,8 @@ struct bq25890_device {
+ 	struct power_supply *guard_ext;
+ 	struct notifier_block guard_nb;
+ 	const char *guard_usb_type;
++	const char *guard_board_zone;
++	int guard_board;
+ 	bool guard_wall;
+ 	bool guard_cv;
+ 	bool guard_vreg_high;
+@@ -1383,32 +1399,72 @@ static bool bq25890_guard_wall(struct bq25890_device *bq, int temp)
+ }
+ 
+ /*
+- * On a 1.5 A charger, write the higher input limit and charge current
+- * when they differ: the chip's watchdog and its own detection at a plug both
+- * reset them. Otherwise bring an input limit above 500 mA back down.
++ * The board's step: 0 cool, 1 warm, 2 hot or unreadable, with the margin
++ * below each threshold to step back down. Without a board zone the board
++ * never limits.
++ */
++static int bq25890_guard_board(struct bq25890_device *bq, int *mc)
++{
++	static const int up[] = { 0, BQ25890_GUARD_BOARD_WARM, BQ25890_GUARD_BOARD_HOT };
++	struct thermal_zone_device *tz;
++	int level = bq->guard_board;
++
++	*mc = INT_MIN;
++	if (!bq->guard_board_zone)
++		return 0;
++
++	tz = thermal_zone_get_zone_by_name(bq->guard_board_zone);
++	if (IS_ERR(tz) || thermal_zone_get_temp(tz, mc)) {
++		*mc = INT_MIN;
++		return 2;
++	}
++
++	while (level < 2 && *mc >= up[level + 1])
++		level++;
++	while (level > 0 && *mc < up[level] - BQ25890_GUARD_BOARD_MARGIN)
++		level--;
++	return level;
++}
++
++/* The input limit and charge current for a 1.5 A charger at a board step below 2. */
++static void bq25890_guard_raised(int board, u32 *iinlim, u32 *ichg)
++{
++	*iinlim = board ? BQ25890_GUARD_WARM_IINLIM_uA : BQ25890_GUARD_WALL_IINLIM_uA;
++	*ichg = board ? BQ25890_GUARD_WARM_ICHG_uA : BQ25890_GUARD_WALL_ICHG_uA;
++}
++
++/*
++ * On a 1.5 A charger with the board below its hot step, write the raised
++ * input limit and charge current when they differ: the chip's watchdog and
++ * its own detection at a plug both reset them. Otherwise bring an input limit
++ * above 500 mA back down.
+  */
+-static int bq25890_guard_currents(struct bq25890_device *bq, bool wall)
++static int bq25890_guard_currents(struct bq25890_device *bq, bool raise, int board)
+ {
+-	u8 iinlim = bq25890_find_idx(wall ? BQ25890_GUARD_WALL_IINLIM_uA :
+-				     BQ25890_GUARD_IINLIM_uA, TBL_IINLIM);
+-	u8 ichg = bq25890_find_idx(BQ25890_GUARD_WALL_ICHG_uA, TBL_ICHG);
++	u32 iinlim_ua = BQ25890_GUARD_IINLIM_uA, ichg_ua = 0;
++	u8 iinlim, ichg;
+ 	int cur, ret;
+ 
+ 	/* A board without the supply keeps whatever the chip chose. */
+ 	if (!bq->guard_usb_type)
+ 		return 0;
+ 
++	if (raise)
++		bq25890_guard_raised(board, &iinlim_ua, &ichg_ua);
++	iinlim = bq25890_find_idx(iinlim_ua, TBL_IINLIM);
++
+ 	cur = bq25890_field_read(bq, F_IINLIM);
+ 	if (cur < 0)
+ 		return cur;
+-	if (wall ? cur != iinlim : cur > iinlim) {
++	if (raise ? cur != iinlim : cur > iinlim) {
+ 		ret = bq25890_field_write(bq, F_IINLIM, iinlim);
+ 		if (ret)
+ 			return ret;
+ 	}
+-	if (!wall)
++	if (!raise)
+ 		return 0;
+ 
++	ichg = bq25890_find_idx(ichg_ua, TBL_ICHG);
+ 	cur = bq25890_field_read(bq, F_ICHG);
+ 	if (cur < 0)
+ 		return cur;
+@@ -1466,7 +1522,11 @@ static void bq25890_guard_work(struct work_struct *work)
+ 	int end = READ_ONCE(bq->guard_end);
+ 	int start = READ_ONCE(bq->guard_start);
+ 	bool was_temp = bq->guard_temp, was_full = bq->guard_full;
+-	bool was_wall = bq->guard_wall, was_vreg_high = bq->guard_vreg_high;
++	bool was_vreg_high = bq->guard_vreg_high;
++	bool was_raised = bq->guard_wall && bq->guard_board < 2;
++	int was_board = bq->guard_board, board_mc;
++	bool raised;
++	u32 iinlim_ua, ichg_ua;
+ 	int temp, capacity, chg, otg, ret;
+ 	bool stop;
+ 
+@@ -1494,7 +1554,9 @@ static void bq25890_guard_work(struct work_struct *work)
+ 		ret = bq25890_field_write(bq, F_CHG_CFG, !stop);
+ 	if (!ret) {
+ 		bq->guard_wall = bq25890_guard_wall(bq, temp);
+-		ret = bq25890_guard_currents(bq, bq->guard_wall);
++		bq->guard_board = bq25890_guard_board(bq, &board_mc);
++		ret = bq25890_guard_currents(bq, bq->guard_wall && bq->guard_board < 2,
++					     bq->guard_board);
+ 	}
+ 	if (!ret && bq->guard_cv) {
+ 		bq->guard_vreg_high = bq25890_guard_vreg_high(bq, temp);
+@@ -1513,11 +1575,15 @@ static void bq25890_guard_work(struct work_struct *work)
+ 		dev_info(bq->dev, "guard: charging %s: temp=%d capacity=%d limit=%d%s%s\n",
+ 			 stop ? "stopped" : "allowed", temp, capacity, end,
+ 			 bq->guard_temp ? " temperature" : "", bq->guard_full ? " full" : "");
+-	if (!ret && bq->guard_wall && !was_wall)
+-		dev_info(bq->dev, "guard: 1.5 A charger: input %u mA, charge %u mA\n",
+-			 BQ25890_GUARD_WALL_IINLIM_uA / 1000, BQ25890_GUARD_WALL_ICHG_uA / 1000);
+-	else if (!ret && !bq->guard_wall && was_wall)
+-		dev_info(bq->dev, "guard: input back to %u mA\n", BQ25890_GUARD_IINLIM_uA / 1000);
++	raised = bq->guard_wall && bq->guard_board < 2;
++	if (!ret && raised && (!was_raised || bq->guard_board != was_board)) {
++		bq25890_guard_raised(bq->guard_board, &iinlim_ua, &ichg_ua);
++		dev_info(bq->dev, "guard: 1.5 A charger, board %d mC: input %u mA, charge %u mA\n",
++			 board_mc, iinlim_ua / 1000, ichg_ua / 1000);
++	} else if (!ret && !raised && was_raised) {
++		dev_info(bq->dev, "guard: input back to %u mA%s\n", BQ25890_GUARD_IINLIM_uA / 1000,
++			 bq->guard_wall ? ", board hot or unreadable" : "");
++	}
+ 	if (!ret && bq->guard_cv && bq->guard_vreg_high != was_vreg_high)
+ 		dev_info(bq->dev, "guard: charge voltage %u mV at temp=%d\n",
+ 			 bq25890_find_val(bq25890_guard_vreg_idx(bq->guard_vreg_high),
+@@ -1954,6 +2020,8 @@ static int bq25890_fw_probe(struct bq25890_device *bq)
+ 					    &bq->guard_usb_type);
+ 		bq->guard_cv = device_property_read_bool(bq->dev,
+ 							 "linux,guard-charge-voltage-by-temperature");
++		device_property_read_string(bq->dev, "linux,guard-board-zone",
++					    &bq->guard_board_zone);
+ 		return 0;
+ 	}
+ 
+-- 
+2.43.0
+

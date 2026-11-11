@@ -892,3 +892,27 @@ guard already writes.
 - **Not yet shown:** that the table matches this board, since the vendor driver also took NTC
   parameters from the Android thermal policy at runtime. The read-only check decides that, before
   the guard uses the reading.
+
+**Step 1 on boot `0ce7590c…`,** station-work-110 at 32671da9, as reported by the custodian:
+- The SoC AUXADC probed with no errors. At idle `in_voltage0_input` read 277 mV, so `board-thermal`
+  read 32.6 °C, between the battery's 25.8 °C and the SoC's 38.3 °C.
+- `soc-thermal` was unaffected, the `hardware thermal reset armed` line was present, and there were
+  no AUXADC errors.
+- After about 4 minutes of all-core load the SoC read about 75 °C, the board went from about
+  32.6 °C to 45.3 °C (169 mV), and the battery stayed at 26.3 °C. The run was cut short for a
+  battery calibration, and the idle half wasn't run.
+
+**Reading:** the sensor tracks device heat and the SoC's own zone is unaffected. Absolute accuracy
+isn't shown, since the table converts the same millivolts. An error would only shift where the
+limiter acts: high means it cuts early, the safe side, and low means it cuts late, no worse than
+without it. Full CPU load alone brought the board near 47 °C in 4 minutes.
+
+**Step 2:**
+- [0741](../../patches/proposals/0741-power-supply-bq25890-step-the-charge-currents-down-w.patch): the guard steps the raised currents by the board
+  temperature, with the owner's values.
+- [0742](../../patches/proposals/0742-dt-bindings-power-supply-bq25890-name-the-board-s-th.patch) and [0743](../../patches/proposals/0743-arm64-dts-mediatek-gemini-station-limit-charging-by-.patch):
+  `linux,guard-board-zone = "board-thermal"`.
+
+Tested: clean at `W=1` and `checkpatch --strict`, and the binding passes its schema check. The
+station DTB carries the property, and the series gives the compiled driver and the built DTS.
+Nothing booted.

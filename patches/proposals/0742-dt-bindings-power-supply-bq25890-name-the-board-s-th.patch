@@ -1,0 +1,43 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 17:47:28 -0500
+Subject: [PATCH] dt-bindings: power: supply: bq25890: name the board's
+ thermal zone for the guard
+
+Describe linux,guard-board-zone, the thermal zone whose temperature
+steps the guard's raised charge currents down.
+---
+ .../devicetree/bindings/power/supply/bq25890.yaml      | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/power/supply/bq25890.yaml b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+index b1d11e431..de0c3dc1b 100644
+--- a/Documentation/devicetree/bindings/power/supply/bq25890.yaml
++++ b/Documentation/devicetree/bindings/power/supply/bq25890.yaml
+@@ -61,6 +61,14 @@ properties:
+       battery's temperature, higher inside a moderate band than outside it,
+       as the board's vendor charges its cell.
+ 
++  linux,guard-board-zone:
++    $ref: /schemas/types.yaml#/definitions/string
++    description:
++      With linux,guard-usb-detect, the name of the thermal zone of the
++      board's temperature. On a charger whose currents the driver raises,
++      it steps them down as the board warms, and back to the chip's own
++      input limit when it is hot or unreadable.
++
+   linux,guard-end-threshold:
+     $ref: /schemas/types.yaml#/definitions/uint32
+     minimum: 50
+@@ -137,6 +145,8 @@ dependencies:
+     - linux,guard-battery
+   linux,guard-charge-voltage-by-temperature:
+     - linux,guard-battery
++  linux,guard-board-zone:
++    - linux,guard-usb-detect
+ 
+ if:
+   not:
+-- 
+2.43.0
+
