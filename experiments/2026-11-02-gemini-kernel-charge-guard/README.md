@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-02-gemini-kernel-charge-guard` |
-| Status | `running`: G1-G6 and the cold stop's emulation run passed; the battery thresholds for UPower (0695) are compile-checked and not yet on a device |
+| Status | `completed`: G1-G6 and the cold stop's emulation run passed, the overflow fix is confirmed, and charger-type detection and the wall-charger currents ran on the device; a really hot or cold battery was not tested |
 | Subsystem | BQ25896 charger, MT6351 fuel gauge and battery NTC |
 | Device variant | named Gemini PDA (MT6797X), development station |
 | Date(s) | 2026-11-02 to 2026-11-03 |
@@ -771,3 +771,39 @@ booted.
   because the PMIC's MFD has no cell for this block yet. That's a blocker before upstream.
 
 D1 tests the module alone on the running card; D2 tests the guard on the next image.
+
+**D1 and D2, boot `b8fb3cbf…`,** station-work-103, boot2 `14c0112b…`, built from main at 4aef2e99.
+Run by the custodian with `usbtype-d1.sh` `ada8e11c…` and `mt6351-usb-type.ko` `8ee622fb…` from that
+package. Tainted 0.
+
+**D1, detection:**
+
+| Step | Result |
+| --- | --- |
+| Load with the Mac attached and enumerated | `CDP (charging host)`; USB SSH stayed up |
+| QC charger plugged | `DCP (dedicated charger)` |
+| Unplug, Mac plugged | `CDP`; REG00 `0x48`, REG04 `0x20`; USB SSH up |
+| `rmmod` | the supply goes; `0fa0` keeps `BB_CTRL` and `RST` set, as the vendor leaves them |
+| Loaded again with the Mac still attached and enumerated | **`SDP`**, against `CDP` at both plugs |
+
+So detection gives a different answer while a host session is already running than at a plug.
+Today it changes nothing, since SDP and CDP both keep 500 mA. If CDP were ever given the higher
+currents, a module load or a boot with a computer already attached would under-classify it, which
+errs on the safe side.
+
+**D2, the guard on the QC charger:**
+- 1.6 s after detection: `guard: dedicated charger: input 1500 mA, charge 1024 mA`, with REG00
+  `0x5c`, REG04 `0x10`, and REG13 `0x1c`, a 1.5 A input limit in force.
+- The battery took 495 mA at 67 %, against about 0.1 A before. Over 10 minutes, sampled every
+  30 s:
+  - current fell from 483 to 376 mA, at a constant 4.207 V;
+  - capacity went from 67 to 69 %;
+  - battery 25.9-26.5 °C, SoC 33.9-34.4 °C;
+  - REG00 and the DCP type held.
+- Unplugging brought `guard: input back to 500 mA`.
+
+**Reading:** the wall charger now charges about five times faster, with no heating seen in
+10 minutes. The cell sat at the chip's default 4.208 V charge voltage throughout, so this was the
+constant-voltage phase, and the current followed the cell, not the 1.024 A cap. The cap and the
+45 °C fallback haven't been reached on the device. A 4.2 V cell at 67-69 % also says the reported
+capacity may be low; that belongs to the fuel gauge.

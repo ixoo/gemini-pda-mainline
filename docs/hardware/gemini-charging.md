@@ -184,6 +184,12 @@ thermally constrained subsystem.
 - the same guard stops charging at a capacity limit from the fuel gauge, 80 %
   by default and set in `charge_control_end_threshold`, resuming 5 points
   lower. This is a longevity policy, not a safety stop.
+- on a dedicated or Apple charger, detected by the MT6351's BC1.1 block in a
+  module (0717) as the vendor did, the guard raises the input to 1.5 A and the
+  charge current to 1.024 A, back to 500 mA from 45 °C (0718). Hosts and
+  non-standard chargers keep the chip's 500 mA. Shown on the device: a QC
+  charger reads DCP and charges at about 0.5 A in constant voltage, against
+  0.1 A before.
 - 0695 also offers the two thresholds on the `battery` supply, where UPower and
   desktop battery widgets look for them. UPower also needs a `CHARGE_LIMIT` udev
   property on the battery. Not yet on a device.
