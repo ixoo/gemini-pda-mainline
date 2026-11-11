@@ -512,6 +512,15 @@ not a seed: its units and temperature basis are the vendor model's.
 - **The calibration helper:** it drives the cycle above through the guard's
   `charge_control_*` thresholds, which belong to the charging session (0695). It restores the
   thresholds it found, and reports `charge_full` before and after.
+- **Built** in gemini-base 41 (`c7f2a0d1`), recorded in the
+  [Arch root record](../2026-11-06-gemini-arch-root/README.md) under "Keeping the learned
+  battery capacity".
+  - The guard's end threshold cannot go below 50. The helper holds charging at the low point
+    with end 50 and start 0, set once the battery is full, relying on the guard's full latch.
+  - The low reading needs the charger to carry the whole system: on a 500 mA computer port, a
+    lit screen can pull the battery current outside ±20 mA. A wall charger and an idle screen
+    are safer.
+  - Not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
