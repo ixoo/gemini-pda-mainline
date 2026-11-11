@@ -1019,6 +1019,8 @@ Evidence (private): `artifacts/card-32/v13-*`.
 - H.264 and HEVC regression outputs are byte-identical to V12 and V10.
 - The custodian's first pass read the wrong interrupt column; a second pass
   gave byte-identical outputs and the counts above.
+- Panel: the owner reported the display stayed normal during the decodes
+  (about 17:20 device time).
 
 *Result.* Detiled on the host, **the key frame of every clip matches**:
 352x288, lossless, four tile columns, and two tile columns with
