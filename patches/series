@@ -1304,3 +1304,4 @@ proposals/0724-arm64-dts-mediatek-gemini-station-charge-voltage-by-.patch
 proposals/0725-cpufreq-dt-leave-out-offline-CPUs-whose-resources-ar.patch
 proposals/0726-PM-devfreq-mtk-cci-restore-the-boot-voltage-instead-.patch
 proposals/0727-media-mediatek-add-an-MT6797-stateless-HEVC-decoder-.patch
+proposals/0728-arm64-dts-mediatek-gemini-station-give-the-A53-OPPs-.patch
