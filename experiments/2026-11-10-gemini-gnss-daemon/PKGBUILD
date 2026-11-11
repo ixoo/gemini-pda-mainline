@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: MIT
+# The Gemini PDA's GNSS host for the Arch root. The DSP firmware it needs,
+# /usr/lib/firmware/mediatek/mt6797/gnss_dsp_6797.bin, comes from gemian-firmware,
+# and the kernel needs patch 0636.
+pkgname=gnss-mt6797d
+pkgver=1
+pkgrel=1
+pkgdesc='Gemini PDA GNSS: runs the MT6797 GNSS DSP and publishes NMEA for gpsd'
+arch=('any')
+url='https://github.com/ixoo/gemini-pda-mainline'
+license=('MIT')
+depends=('python' 'kmod')
+optdepends=('gpsd: share positions with applications')
+source=(gnss-mt6797d gnss-mt6797.service)
+sha256sums=(SKIP SKIP)
+
+package() {
+    install -Dm755 gnss-mt6797d "$pkgdir/usr/bin/gnss-mt6797d"
+    install -Dm644 gnss-mt6797.service "$pkgdir/usr/lib/systemd/system/gnss-mt6797.service"
+}

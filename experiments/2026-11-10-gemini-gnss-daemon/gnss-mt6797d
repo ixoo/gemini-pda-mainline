@@ -1,0 +1,586 @@
+#!/usr/bin/python3
+# SPDX-License-Identifier: MIT
+"""Run the MT6797 GNSS DSP through /dev/gnss0 and publish NMEA.
+
+gnss-mt6797 boots the DSP when the device opens. This sends the setup frames,
+feeds the DSP each second, decodes its measurements and GPS navigation data,
+solves a GPS position, and writes NMEA to a pty that gpsd or any NMEA reader can
+open. Written from this project's protocol notes (docs/hardware/gemini-gnss-driver.md);
+it contains no vendor code.
+
+usage: gnss-mt6797d [--device DEV] [--link PATH] [--record FILE]
+       gnss-mt6797d --replay FILE      decode a recorded session, NMEA to stdout
+
+Opening the device starts the receiver, which is a radio action. The record file
+and the NMEA hold position: keep them private.
+"""
+
+import argparse
+import math
+import os
+import pty
+import select
+import signal
+import statistics
+import sys
+import time
+import tty
+
+# Frames ---------------------------------------------------------------------
+
+MARK, ESCAPE = 0xAA, 0xDE
+
+
+def frame(ident, payload=b""):
+    """One host frame: AA F0, length, ID, payload, sum, AA 0F, with AA and DE escaped."""
+    head = bytes(((len(payload) + 4) & 0xFF, ((len(payload) + 4) >> 8) & 0x0F,
+                  ident & 0xFF, ident >> 8))
+    total = sum(head) + sum(payload)
+    body = head + bytes(payload) + bytes((total & 0xFF, (total >> 8) & 0xFF))
+    out = bytearray(b"\xaa\xf0")
+    for b in body:
+        out += b"\xde\xe0" if b == ESCAPE else b"\xde\xdf" if b == MARK else bytes((b,))
+    return bytes(out + b"\xaa\x0f")
+
+
+class Deframer:
+    """Splits the DSP's byte stream into (ID, payload) for frames whose sum checks."""
+
+    def __init__(self):
+        self.pending = bytearray()
+        self.bad = 0
+
+    def feed(self, data):
+        self.pending += data
+        frames = []
+        while True:
+            begin = self.pending.find(b"\xaa\xf0")
+            if begin < 0:
+                del self.pending[:-1]
+                break
+            end = self.pending.find(b"\xaa\x0f", begin + 2)
+            if end < 0:
+                del self.pending[:begin]
+                break
+            raw = bytearray()
+            escaped = False
+            for b in self.pending[begin + 2:end]:
+                if escaped:
+                    raw.append(MARK if b == 0xDF else ESCAPE if b == 0xE0 else b)
+                    escaped = False
+                elif b == ESCAPE:
+                    escaped = True
+                else:
+                    raw.append(b)
+            del self.pending[:end + 2]
+            length = (raw[0] | (raw[1] & 0x0F) << 8) - 4 if len(raw) >= 2 else -1
+            if length < 0 or len(raw) != length + 6 or \
+                    (sum(raw[:4 + length]) & 0xFFFF) != (raw[4 + length] | raw[5 + length] << 8):
+                self.bad += 1
+                continue
+            frames.append((raw[2] | raw[3] << 8, bytes(raw[4:4 + length])))
+        return frames
+
+
+def descramble(payload):
+    """Measurement and navigation payloads are rotated right by 3 bits, then XORed with 0x59."""
+    return bytes((((b >> 3) | (b << 5)) & 0xFF) ^ 0x59 for b in payload)
+
+
+# What the host sends ---------------------------------------------------------
+
+# Setup commands after the boot, each a u16 command and its arguments, as stock sends them.
+SETUP = ("3200000100", "0a0000000000000000", "3200000000", "3600000000",
+         "2a00000000", "3400000100", "0f0000e803", "1500000200")
+STATUS4 = bytes.fromhex("ed24")          # what stock sends while it has no fix
+SETTING = bytes.fromhex("060010a8e803ffffffff")
+SETTING_FIRST = bytes.fromhex("10001000")
+FIRST_MILLIS = 1011
+GPS_EPOCH = 315964800                     # 1980-01-06 in Unix time
+LEAP = 18                                 # GPS - UTC, seconds
+
+
+def search_list():
+    """List type 1: every satellite once, in number order, as (number, constellation) pairs.
+    Stock orders this by expected visibility, which depends on place and time."""
+    pairs = [(n, 1) for n in range(1, 33)] + [(n, 16) for n in range(1, 15)] + \
+            [(n, 32) for n in range(1, 15)]
+    return bytes((1, len(pairs))) + b"".join(bytes(p) for p in pairs)
+
+
+LISTS = (b"\x00\x00", search_list())
+
+
+def second_frames(millis, first, now):
+    """The frames the host sends each second; now is Unix time."""
+    week_seconds = (now - GPS_EPOCH + LEAP) % 604800
+    units = int(week_seconds / 1.5)
+    status = bytearray(17)
+    status[4:6] = STATUS4
+    status[11:15] = bytes(((units >> 16) & 0xFF, (units >> 24) & 0xFF, units & 0xFF, (units >> 8) & 0xFF))
+    out = frame(0xFE00, bytes((0, 0, millis & 0xFF, (millis >> 8) & 0xFF)))
+    out += frame(0xFE01, bytes(status))
+    for item in LISTS:
+        out += frame(0xFE03, item)
+    if first:
+        out += frame(0xFE04, b"\xff" * 28)
+    out += frame(0xFE08, SETTING)
+    if first:
+        out += frame(0xFE08, SETTING_FIRST)
+    out += frame(0xFE1C)
+    out += frame(0xFE05, b"\x29\x00")
+    return out
+
+
+STOP = frame(0xFE05, b"\x04\x00")
+
+# GPS navigation --------------------------------------------------------------
+
+PI = 3.1415926535898
+MU = 3.986005e14
+OMEGA_E = 7.2921151467e-5
+C = 299792458.0
+F_REL = -4.442807633e-10
+
+
+def signed(v, n):
+    return v - (1 << n) if v >> (n - 1) & 1 else v
+
+
+def parity(d24, d29, d30):
+    """The six LNAV parity bits of 24 data bits, after the previous word's last two."""
+    b = [None] + [(d24 >> (23 - i)) & 1 for i in range(24)]
+
+    def x(start, idx):
+        v = start
+        for i in idx:
+            v ^= b[i]
+        return v
+    return (x(d29, (1, 2, 3, 5, 6, 10, 11, 12, 13, 14, 17, 18, 20, 23)) << 5 |
+            x(d30, (2, 3, 4, 6, 7, 11, 12, 13, 14, 15, 18, 19, 21, 24)) << 4 |
+            x(d29, (1, 3, 4, 5, 7, 8, 12, 13, 14, 15, 16, 19, 20, 22)) << 3 |
+            x(d30, (2, 4, 5, 6, 8, 9, 13, 14, 15, 16, 17, 20, 21, 23)) << 2 |
+            x(d30, (1, 3, 5, 6, 7, 9, 10, 14, 15, 16, 17, 18, 21, 22, 24)) << 1 |
+            x(d29, (3, 5, 6, 8, 9, 10, 11, 13, 15, 19, 22, 23, 24)))
+
+
+def subframe(d):
+    """0xFE2B, descrambled: byte 2-3 the satellite, 4 the subframe ID, then ten words of four
+    bytes: data high, parity in the low 6 bits, data low, data middle. Returns (sv, id, words)
+    when every word after the first passes parity, else None."""
+    if len(d) < 46:
+        return None
+    w = [d[6 + 4 * i:10 + 4 * i] for i in range(10)]
+    prev = w[0][1] & 0x3F
+    for a, p, lo, mid in w[1:]:
+        if parity(a << 16 | mid << 8 | lo, (prev >> 1) & 1, prev & 1) != (p & 0x3F):
+            return None
+        prev = p & 0x3F
+    words = [a << 16 | mid << 8 | lo for a, p, lo, mid in w]
+    if words[0] >> 16 != 0x8B or (words[1] >> 2) & 7 != d[4]:
+        return None
+    return d[2] | d[3] << 8, d[4], words
+
+
+def ephemeris(a, b, c):
+    """Clock and orbit from subframes 1 to 3 (IS-GPS-200)."""
+    e = dict(week=(a[2] >> 14) + 2048, tgd=signed(a[6] & 0xFF, 8) * 2 ** -31,
+             toc=(a[7] & 0xFFFF) * 16, af2=signed(a[8] >> 16, 8) * 2 ** -55,
+             af1=signed(a[8] & 0xFFFF, 16) * 2 ** -43, af0=signed(a[9] >> 2, 22) * 2 ** -31,
+             iodc=((a[2] >> 6 & 3) << 8) | (a[7] >> 16), iode2=b[2] >> 16, iode3=c[9] >> 16,
+             crs=signed(b[2] & 0xFFFF, 16) * 2 ** -5, dn=signed(b[3] >> 8, 16) * 2 ** -43 * PI,
+             m0=signed(((b[3] & 0xFF) << 24) | b[4], 32) * 2 ** -31 * PI,
+             cuc=signed(b[5] >> 8, 16) * 2 ** -29, e=(((b[5] & 0xFF) << 24) | b[6]) * 2 ** -33,
+             cus=signed(b[7] >> 8, 16) * 2 ** -29, sa=(((b[7] & 0xFF) << 24) | b[8]) * 2 ** -19,
+             toe=(b[9] >> 8) * 16, cic=signed(c[2] >> 8, 16) * 2 ** -29,
+             om0=signed(((c[2] & 0xFF) << 24) | c[3], 32) * 2 ** -31 * PI,
+             cis=signed(c[4] >> 8, 16) * 2 ** -29,
+             i0=signed(((c[4] & 0xFF) << 24) | c[5], 32) * 2 ** -31 * PI,
+             crc=signed(c[6] >> 8, 16) * 2 ** -5,
+             w=signed(((c[6] & 0xFF) << 24) | c[7], 32) * 2 ** -31 * PI,
+             omd=signed(c[8], 24) * 2 ** -43 * PI, idot=signed((c[9] >> 2) & 0x3FFF, 14) * 2 ** -43 * PI)
+    consistent = e["iode2"] == e["iode3"] == (e["iodc"] & 0xFF) and e["toe"] == e["toc"]
+    return e if consistent and 4000 < e["sa"] ** 2 / 1e3 < 40000 else None
+
+
+def wrap(t):
+    return (t + 302400) % 604800 - 302400
+
+
+def satellite(e, t):
+    """Position (ECEF, at transmission) and clock offset of a satellite at GPS time of week t."""
+    a = e["sa"] ** 2
+    n = math.sqrt(MU / a ** 3) + e["dn"]
+    tk = wrap(t - e["toe"])
+    m = e["m0"] + n * tk
+    ea = m
+    for _ in range(10):
+        ea = m + e["e"] * math.sin(ea)
+    tc = wrap(t - e["toc"])
+    dt = e["af0"] + e["af1"] * tc + e["af2"] * tc * tc + F_REL * e["e"] * e["sa"] * math.sin(ea) - e["tgd"]
+    tk = wrap(t - dt - e["toe"])
+    m = e["m0"] + n * tk
+    ea = m
+    for _ in range(10):
+        ea = m + e["e"] * math.sin(ea)
+    v = math.atan2(math.sqrt(1 - e["e"] ** 2) * math.sin(ea), math.cos(ea) - e["e"])
+    p = v + e["w"]
+    u = p + e["cus"] * math.sin(2 * p) + e["cuc"] * math.cos(2 * p)
+    r = a * (1 - e["e"] * math.cos(ea)) + e["crs"] * math.sin(2 * p) + e["crc"] * math.cos(2 * p)
+    i = e["i0"] + e["idot"] * tk + e["cis"] * math.sin(2 * p) + e["cic"] * math.cos(2 * p)
+    x, y = r * math.cos(u), r * math.sin(u)
+    o = e["om0"] + (e["omd"] - OMEGA_E) * tk - OMEGA_E * e["toe"]
+    return (x * math.cos(o) - y * math.cos(i) * math.sin(o),
+            x * math.sin(o) + y * math.cos(i) * math.cos(o), y * math.sin(i)), dt
+
+
+# Position ---------------------------------------------------------------------
+
+A_WGS, E2_WGS = 6378137.0, 6.69437999014e-3
+
+
+def geodetic(x):
+    lon = math.atan2(x[1], x[0])
+    p = math.hypot(x[0], x[1])
+    lat = math.atan2(x[2], p * (1 - E2_WGS))
+    for _ in range(6):
+        n = A_WGS / math.sqrt(1 - E2_WGS * math.sin(lat) ** 2)
+        h = p / math.cos(lat) - n
+        lat = math.atan2(x[2], p * (1 - E2_WGS * n / (n + h)))
+    return math.degrees(lat), math.degrees(lon), h
+
+
+def look(rx, sat):
+    """Elevation and azimuth in degrees of sat seen from rx."""
+    lat, lon, _ = geodetic(rx)
+    sl, cl = math.sin(math.radians(lat)), math.cos(math.radians(lat))
+    so, co = math.sin(math.radians(lon)), math.cos(math.radians(lon))
+    d = [s - r for s, r in zip(sat, rx)]
+    e = -so * d[0] + co * d[1]
+    n = -sl * co * d[0] - sl * so * d[1] + cl * d[2]
+    u = cl * co * d[0] + cl * so * d[1] + sl * d[2]
+    return math.degrees(math.atan2(u, math.hypot(e, n))), math.degrees(math.atan2(e, n)) % 360
+
+
+def solve4(h, y):
+    """Least squares by the normal equations; returns (dx, inverse of H^T H)."""
+    n = 4
+    a = [[sum(r[i] * r[j] for r in h) for j in range(n)] + [float(i == j) for j in range(n)] +
+         [sum(r[i] * v for r, v in zip(h, y))] for i in range(n)]
+    for i in range(n):
+        k = max(range(i, n), key=lambda q: abs(a[q][i]))
+        a[i], a[k] = a[k], a[i]
+        if abs(a[i][i]) < 1e-12:
+            raise ZeroDivisionError
+        for j in range(n):
+            if j != i:
+                g = a[j][i] / a[i][i]
+                a[j] = [p - g * q for p, q in zip(a[j], a[i])]
+    return [a[i][2 * n] / a[i][i] for i in range(n)], \
+           [[a[i][n + j] / a[i][i] for j in range(n)] for i in range(n)]
+
+
+def position(meas, x0):
+    """meas: (sv, satellite position, pseudorange). Returns (x, residuals, dop) or None."""
+    x = list(x0)
+    q = None
+    for _ in range(12):
+        h, y = [], []
+        for _, p, pr in meas:
+            th = OMEGA_E * pr / C
+            s = (p[0] * math.cos(th) + p[1] * math.sin(th), -p[0] * math.sin(th) + p[1] * math.cos(th), p[2])
+            r = math.dist(s, x[:3])
+            h.append([(x[j] - s[j]) / r for j in range(3)] + [1.0])
+            y.append(pr - r - x[3])
+        try:
+            dx, q = solve4(h, y)
+        except ZeroDivisionError:
+            return None
+        x = [a + b for a, b in zip(x, dx)]
+        if max(abs(v) for v in dx) < 1e-3:
+            break
+    res = []
+    for _, p, pr in meas:
+        th = OMEGA_E * pr / C
+        s = (p[0] * math.cos(th) + p[1] * math.sin(th), -p[0] * math.sin(th) + p[1] * math.cos(th), p[2])
+        res.append(pr - math.dist(s, x[:3]) - x[3])
+    lat, lon, _ = geodetic(x)
+    sl, cl = math.sin(math.radians(lat)), math.cos(math.radians(lat))
+    so, co = math.sin(math.radians(lon)), math.cos(math.radians(lon))
+    rot = ((-so, co, 0), (-sl * co, -sl * so, cl), (cl * co, cl * so, sl))
+    enu = [[sum(rot[i][k] * q[k][m] for k in range(3)) for m in range(3)] for i in range(3)]
+    enu = [[sum(enu[i][k] * rot[j][k] for k in range(3)) for j in range(3)] for i in range(3)]
+    hdop = math.sqrt(max(enu[0][0] + enu[1][1], 0))
+    vdop = math.sqrt(max(enu[2][2], 0))
+    pdop = math.sqrt(max(q[0][0] + q[1][1] + q[2][2], 0))
+    return x, res, (pdop, hdop, vdop)
+
+
+class Navigator:
+    """Turns DSP frames into fixes: keeps subframes and ephemerides, groups each second's
+    measurements between 0xFE28 and 0xFE2C, and solves when four GPS satellites have orbits."""
+
+    def __init__(self):
+        self.subframes = {}
+        self.ephemerides = {}
+        self.epoch = None
+        self.x = [0.0, 0.0, 0.0, 0.0]
+        self.have_position = False
+
+    def handle(self, ident, payload):
+        """Returns a report at the end of each epoch, else None."""
+        if ident == 0xFE2B:
+            got = subframe(descramble(payload))
+            if got and got[1] in (1, 2, 3):
+                sv, sid, words = got
+                self.subframes.setdefault(sv, {})[sid] = words
+                s = self.subframes[sv]
+                if len(s) == 3:
+                    e = ephemeris(s[1], s[2], s[3])
+                    if e:
+                        self.ephemerides[sv] = e
+        elif ident == 0xFE28:
+            self.epoch = []
+        elif ident == 0xFE29 and self.epoch is not None:
+            self.epoch.append(descramble(payload))
+        elif ident == 0xFE2C and self.epoch is not None:
+            report = self.solve(self.epoch)
+            self.epoch = None
+            return report
+        return None
+
+    @staticmethod
+    def m32(d, o):
+        return (d[o + 1] << 24) | (d[o] << 16) | (d[o + 3] << 8) | d[o + 2]
+
+    def solve(self, records):
+        seen = []      # (constellation, sv, signal) for every channel
+        gps = []       # (sv, transmit time) for valid GPS records
+        for d in records:
+            if len(d) < 39:
+                continue
+            seen.append((d[2], d[1], d[3]))
+            if d[2] == 1 and d[6] == 0x40:
+                # Transmit time: whole 1.5 s units, then whole and fractional chips.
+                gps.append((d[1], 1.5 * self.m32(d, 21) +
+                            (self.m32(d, 25) + (d[29] | d[30] << 8) / 65536.0) / 1.023e6))
+        report = dict(seen=seen, fix=None, sats={})
+        if len(gps) < 4:
+            return report
+        mid = statistics.median(t for _, t in gps)
+        close = [(sv, t) for sv, t in gps if abs(wrap(t - mid)) < 0.05]
+        if not close:
+            return report
+        rx = max(t for _, t in close) + 0.075        # nominal travel time; the clock absorbs the rest
+        meas = []
+        for sv, t in close:
+            e = self.ephemerides.get(sv)
+            if not e:
+                continue
+            p, dt = satellite(e, t)
+            meas.append((sv, p, C * (wrap(rx - t) + dt)))
+            report["sats"][sv] = p
+        if len(meas) < 4:
+            return report
+        got = position(meas, self.x if self.have_position else [0.0, 0.0, 0.0, 0.0])
+        if not got:
+            return report
+        x, res, dop = got
+        rms = math.sqrt(sum(r * r for r in res) / len(res))
+        lat, lon, h = geodetic(x)
+        if rms > 50 or not -1000 < h < 10000:
+            return report
+        self.x, self.have_position = x, True
+        week = next(iter(self.ephemerides.values()))["week"]
+        tow = rx - x[3] / C
+        report["fix"] = dict(lat=lat, lon=lon, h=h, used=[m[0] for m in meas], dop=dop, rms=rms,
+                             unix=GPS_EPOCH + week * 604800 + tow - LEAP)
+        return report
+
+
+# NMEA --------------------------------------------------------------------------
+
+def sentence(body):
+    check = 0
+    for ch in body.encode():
+        check ^= ch
+    return "$%s*%02X\r\n" % (body, check)
+
+
+def angle(value, width, signs):
+    a = abs(value)
+    d = int(a)
+    return "%0*d%07.4f" % (width, d, (a - d) * 60), signs[0] if value >= 0 else signs[1]
+
+
+def nmea(report, navigator, now):
+    fix = report["fix"]
+    t = time.gmtime(fix["unix"] if fix else now)
+    frac = ((fix["unix"] if fix else now) % 1)
+    hms = "%02d%02d%05.2f" % (t.tm_hour, t.tm_min, t.tm_sec + frac)
+    dmy = "%02d%02d%02d" % (t.tm_mday, t.tm_mon, t.tm_year % 100)
+    out = []
+    if fix:
+        lat, ns = angle(fix["lat"], 2, "NS")
+        lon, ew = angle(fix["lon"], 3, "EW")
+        pdop, hdop, vdop = fix["dop"]
+        # Height is above the WGS 84 ellipsoid: there is no geoid model here.
+        out.append(sentence("GPGGA,%s,%s,%s,%s,%s,1,%02d,%.1f,%.1f,M,,M,," %
+                            (hms, lat, ns, lon, ew, len(fix["used"]), hdop, fix["h"])))
+        out.append(sentence("GPGSA,A,3,%s,%.1f,%.1f,%.1f" %
+                            (",".join(["%02d" % s for s in fix["used"][:12]] + [""] * (12 - len(fix["used"][:12]))),
+                             pdop, hdop, vdop)))
+        out.append(sentence("GPRMC,%s,A,%s,%s,%s,%s,,,%s,,,A" % (hms, lat, ns, lon, ew, dmy)))
+    else:
+        out.append(sentence("GPGGA,%s,,,,,0,00,,,M,,M,," % hms))
+        out.append(sentence("GPRMC,%s,V,,,,,,,%s,,,N" % (hms, dmy)))
+    gps = {}
+    for const, sv, signal in report["seen"]:
+        if const == 1 and 1 <= sv <= 32:
+            gps[sv] = max(signal, gps.get(sv, 0))
+    rows = []
+    for sv in sorted(gps):
+        el = az = ""
+        e = navigator.ephemerides.get(sv)
+        if navigator.have_position and e and fix:
+            p, _ = satellite(e, fix["unix"] - GPS_EPOCH + LEAP - 604800 * e["week"])
+            elv, azv = look(navigator.x[:3], p)
+            el, az = "%02d" % max(round(elv), 0), "%03d" % round(azv)
+        rows.append("%02d,%s,%s,%s" % (sv, el, az, "%02d" % gps[sv] if gps[sv] else ""))
+    pages = max(1, (len(rows) + 3) // 4)
+    for i in range(pages):
+        part = rows[4 * i:4 * i + 4]
+        out.append(sentence("GPGSV,%d,%d,%02d%s" % (pages, i + 1, len(rows),
+                                                    "".join("," + r for r in part))))
+    return "".join(out)
+
+
+# Running -------------------------------------------------------------------------
+
+class Recorder:
+    def __init__(self, path):
+        self.file = open(path, "w") if path else None
+
+    def __call__(self, kind, data):
+        if self.file:
+            self.file.write("%.3f %s %s\n" % (time.time(), kind, data.hex()))
+            self.file.flush()
+
+
+def replay(path):
+    deframer, navigator = Deframer(), Navigator()
+    fixes = epochs = 0
+    for line in open(path):
+        parts = line.split()
+        if len(parts) != 3 or parts[1] != "R":
+            continue
+        for ident, payload in deframer.feed(bytes.fromhex(parts[2])):
+            report = navigator.handle(ident, payload)
+            if report:
+                epochs += 1
+                fixes += report["fix"] is not None
+                sys.stdout.write(nmea(report, navigator, float(parts[0])))
+    print("epochs %d fixes %d bad frames %d" % (epochs, fixes, deframer.bad), file=sys.stderr)
+    return 0
+
+
+def open_link(path):
+    """A pty whose slave gpsd or any reader opens through the symlink path."""
+    master, slave = pty.openpty()
+    tty.setraw(slave)
+    name = os.ttyname(slave)
+    tmp = path + ".new"
+    try:
+        os.unlink(tmp)
+    except FileNotFoundError:
+        pass
+    os.symlink(name, tmp)
+    os.replace(tmp, path)
+    os.set_blocking(master, False)
+    return master, slave
+
+
+def write_all(fd, data):
+    while data:
+        n = os.write(fd, data)
+        data = data[n:]
+
+
+def run(device, link, record_path):
+    stopping = []
+    signal.signal(signal.SIGTERM, lambda *_: stopping.append(1))
+    signal.signal(signal.SIGINT, lambda *_: stopping.append(1))
+    record = Recorder(record_path)
+    for _ in range(100):                     # the module may have just loaded
+        if os.path.exists(device):
+            break
+        time.sleep(0.1)
+    master, slave = open_link(link)
+    fd = os.open(device, os.O_RDWR)          # boots the DSP, or fails
+    print("device open, DSP booted; NMEA at %s" % link, flush=True)
+    deframer, navigator = Deframer(), Navigator()
+    poller = select.poll()
+    poller.register(fd, select.POLLIN)
+    status = 0
+    try:
+        for item in SETUP:
+            data = frame(0xFE05, bytes.fromhex(item))
+            record("W", data)
+            write_all(fd, data)
+        start = next_tick = time.monotonic()
+        last_frame = start
+        millis, first, fixes = FIRST_MILLIS, True, 0
+        while not stopping:
+            now = time.monotonic()
+            if now >= next_tick:
+                data = second_frames(millis, first, time.time())
+                record("W", data)
+                write_all(fd, data)
+                first = False
+                millis = (millis + 1000) & 0xFFFF
+                next_tick += 1
+            for _ in poller.poll(max(10, int((next_tick - time.monotonic()) * 1000))):
+                data = os.read(fd, 4096)
+                record("R", data)
+                for ident, payload in deframer.feed(data):
+                    last_frame = time.monotonic()
+                    report = navigator.handle(ident, payload)
+                    if report:
+                        if report["fix"] and not fixes:
+                            print("first fix", flush=True)
+                        fixes += report["fix"] is not None
+                        try:
+                            os.write(master, nmea(report, navigator, time.time()).encode())
+                        except BlockingIOError:
+                            pass        # no reader is draining the pty
+            if time.monotonic() - last_frame > 10 and time.monotonic() - start > 30:
+                print("DSP silent for 10 s", flush=True)
+                status = 5
+                break
+    finally:
+        record("W", STOP)
+        write_all(fd, STOP)
+        time.sleep(0.5)
+        os.close(fd)
+        os.close(slave)
+        os.close(master)
+        if os.path.islink(link):
+            os.unlink(link)
+        print("stopped, %d fixes, %d bad frames" % (fixes, deframer.bad), flush=True)
+    return status
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--device", default="/dev/gnss0")
+    parser.add_argument("--link", default="/run/gnss-mt6797/nmea")
+    parser.add_argument("--record")
+    parser.add_argument("--replay")
+    args = parser.parse_args()
+    if args.replay:
+        return replay(args.replay)
+    return run(args.device, args.link, args.record)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
