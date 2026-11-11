@@ -739,7 +739,7 @@ the 13 were an address the converter forgot to relocate; that is fixed.
 **Next: Stage 3b**, a V4L2 stateless HEVC decoder module that derives these
 registers from the stateless controls instead of a recorded sequence.
 
-## Stage 3b: a V4L2 stateless HEVC decoder (built 2026-11-11, not run)
+## Stage 3b: a V4L2 stateless HEVC decoder (V10 passed 2026-11-11)
 
 **Approach.** The vendor register sequence was first turned, privately, into
 a model that computes every write of a picture from the HEVC headers and the
@@ -806,6 +806,56 @@ fails.
 synthetic clips with GStreamer 1.28's `v4l2slh265dec` on the Arch card, which
 is present in Arch Linux ARM's `gst-plugins-bad-libs`, writing raw MM21. On
 the host, detile each frame and compare it with the `.framemd5` reference.
+
+### V10 result
+
+**HEVC decodes bit-exact through the mainline V4L2 stateless driver.**
+
+*Run.* The device custodian ran it on station-work-105: boot2 `5e45a3d8`,
+main `f2659f67` (which contains `7340d107`), `Image.gz` `de9b8882…`, boot
+`ea3bef10`, on the Arch card.
+
+- **Modules:** from that package. `mt6797-vdec.ko` `b514e243…` and
+  `clk-mt6797-vdec.ko` `307ea6d8…` are identical to the reference build.
+  `v4l2-mem2mem.ko` was copied in from the package; it is not in the card's
+  station module set.
+- **GStreamer:** 1.28.8, installed on the card for the test only (arch-root's
+  decision), not added to the card build.
+- **Evidence (private):** `artifacts/card-32/v10-*`.
+
+*Observed:*
+
+- **Load order:** the first load deferred its probe because the VDECSYS
+  clock module was not loaded yet. With it loaded, the driver registered
+  `/dev/video1` at 338 MHz. `v4l2-ctl` lists OUTPUT `S265` and CAPTURE `MM21`.
+- **Element:** `v4l2slh265dec` registers. GStreamer names MM21
+  `NV12_16L32S`, so the request's `format=MM21` caps did not link, and
+  nothing decoded until the caps were corrected.
+- **Decodes:** `single` and `multi` each reached EOS in about 0.09 s, with 30
+  decoder interrupts each.
+- **Output:** with no video meta downstream, GStreamer copied each frame into
+  a 352x288 tile layout (152064 bytes per frame).
+- **Non-fatal GStreamer warning:** a `VIDIOC_G_EXT_CTRLS` failed with
+  `EINVAL`, most likely its probe for the newer long-term/short-term RPS
+  controls, which the driver does not offer.
+- **No faults:** no driver errors or timeouts, and no genpd errors. SoC 37–38
+  °C. Afterwards the domain was off and the `vdec_sel` enable count 0.
+
+*Result.* On the host, every frame was detiled (16x32 luma, 16x16 chroma
+tiles) and compared with the software decoder's per-frame MD5. **30/30
+frames match for `single` and 30/30 for `multi`.** The chroma-offset risk
+named above did not materialise.
+
+*Analysis.* The register model and its C port, built from recorded traces,
+drive the hardware correctly through a standard V4L2 stateless client:
+
+- for I and P pictures;
+- for multi-slice pictures with WPP;
+- with references, MV buffers and the DPB managed from the controls.
+
+Untested: B-frames, larger sizes, real-world streams, scaling lists, tiles,
+long-term references, sustained playback and power. mpv and qutebrowser
+still need the VA-API bridge (Stage 4).
 
 ## Follow-up
 

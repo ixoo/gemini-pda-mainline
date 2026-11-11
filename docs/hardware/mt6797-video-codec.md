@@ -6,8 +6,10 @@ their established resources, the vendor control model and the mainline gap.
 Evidence, chronology, file identities and the staged plan are in the
 [video codec record](../../experiments/2026-11-09-mt6797-video-codec/README.md).
 
-Status on mainline: no decoder driver yet, so video plays through software
-decoding. Bring-up diagnostics show the hardware works:
+Status on mainline: a prototype V4L2 stateless HEVC decoder (`mt6797-vdec`,
+local) decodes HEVC Main 8-bit bit-exact on test clips. H.264, VP9 and the
+encoder have no driver; players need a VA-API bridge. Bring-up diagnostics also showed the
+hardware works:
 
 - the VDEC power domain, clocks and interrupt behave as described;
 - a register replay of the vendor sequence decoded an HEVC picture
