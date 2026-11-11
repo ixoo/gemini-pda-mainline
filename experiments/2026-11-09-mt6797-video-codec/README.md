@@ -616,7 +616,7 @@ programs before decoding (the clock select and power-down masks) start from
 known values.
 
 
-## Stage 3a: replay one HEVC picture on mainline (prepared 2026-11-11, not built or run)
+## Stage 3a: replay one HEVC picture on mainline (built 2026-11-11, not run)
 
 Before writing a V4L2 driver, prove the whole hardware path on mainline with
 the register sequence the vendor library actually used. The V6 trace of
@@ -654,11 +654,23 @@ the probe, so only one of the two is loaded at a time.
 applies on top of the committed series. Checkpatch shows only the expected
 warnings.
 
-**Not checked:** Buildbox build, device.
+**Package.** Buildbox-2 built commit `d03147b6`, profile
+`mt6797-a53-station-dvfs`, with modules; the package's `SHA256SUMS` is
+`06e6f16f…`, fetched and checked locally.
 
-**Next device run (V9).** The same image as V7 plus 0716's module. It needs
-a module-only build, no new boot image, if the running image matches the
-build.
+- `Image.gz` `3a4721d59534c67d63a946638d35e2a84ca9cb649925406ba27bb565ad6dc4b6`
+- `mt6797-vdec-replay.ko` `17d5a84af6984d48de8f58e00eef44b521173c5ed5feab19bcca8f9e0192ef7a`
+- The DTB (`5fec0913…`), `clk-mt6797-vdec.ko` and `mt6797-vdec-probe.ko` are
+  byte-identical to the V7 build.
+
+The image differs from the one the station runs (`34a85195…`, built from
+`ac39772d`) because of other sessions' changes since then. So V9 needs this
+package as a new boot2 image.
+
+**Not checked:** device.
+
+**Next device run (V9).** This package as the boot2 image, then 0716's module
+loaded by hand.
 
 - *Hypothesis:* the mainline VDEC, driven by Gemian's recorded sequence with
   physical buffer addresses, decodes picture 0 identically.
