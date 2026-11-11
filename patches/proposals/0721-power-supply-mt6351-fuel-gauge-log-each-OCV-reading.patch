@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 14:13:10 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: log each OCV reading
+
+The counted capacity starts from an OCV reading and takes a new one after
+a rest. On one boot the starting reading came out about 11 points below
+what the charging voltage gave later, and nothing showed what it had
+used. Log each reading, first or after a rest, with the open-circuit
+voltage, the window current, the temperature and the capacity, at debug
+level.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 173f30e..090492f 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -269,6 +269,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity)
+ 			*capacity = ret;
+ 			return 0;
+ 		}
++		dev_dbg(fg->dev, "%s OCV reading: %d uV at %d uA, %d mC: %d %%\n",
++			fg->anchored ? "rest" : "first", uv, ua, mc, ret);
+ 		fg->anchor_uah = div_s64(full * ret, 100);
+ 		fg->anchor_car = fg->car;
+ 		fg->anchored = true;
+-- 
+2.54.0 (Apple Git-157)
+

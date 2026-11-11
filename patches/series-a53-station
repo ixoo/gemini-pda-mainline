@@ -885,3 +885,4 @@ proposals/0717-power-supply-add-MT6351-BC1.1-USB-charger-type-detec.patch
 proposals/0718-power-supply-bq25890-raise-the-currents-on-a-dedicat.patch
 proposals/0719-dt-bindings-power-supply-bq25890-name-a-USB-type-sup.patch
 proposals/0720-arm64-dts-mediatek-gemini-station-raise-the-charge-c.patch
+proposals/0721-power-supply-mt6351-fuel-gauge-log-each-OCV-reading.patch

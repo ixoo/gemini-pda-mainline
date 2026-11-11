@@ -354,8 +354,15 @@ Reading:
   not logged.
 - **It self-corrects at charge termination.** The charger stops at its termination current, the
   battery then rests within ±20 mA, and 0711 takes a new reading after 5 minutes.
-- **A follow-up worth considering** (not done): a `dev_dbg` at each OCV reading, giving voltage,
-  current and result, so the boot reading can be checked.
+- **Follow-up:** [0721](../../patches/proposals/0721-power-supply-mt6351-fuel-gauge-log-each-OCV-reading.patch)
+  logs each OCV reading at debug level, first or after a rest: the corrected voltage, the window
+  current, the temperature and the result.
+  - To see it: the first reading comes about 5 s after probe, at the first capacity read, which
+    is usually before userspace could turn the message on. So use the boot parameter
+    `dyndbg="file mt6351-fuel-gauge.c +p"`.
+  - Rest readings can also be turned on at runtime through
+    `/sys/kernel/debug/dynamic_debug/control`.
+  - Compiled at W=1 and checkpatch clean; not on a device.
 
 **Charge voltage (charging session's area):**
 - The vendor charges this high-voltage cell to 4.34 V between 10 and 45 °C
