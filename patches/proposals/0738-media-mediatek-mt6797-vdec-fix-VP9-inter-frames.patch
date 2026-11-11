@@ -1,0 +1,57 @@
+From 44856fb070e42722bd71b0094572b1cfee817bbd Mon Sep 17 00:00:00 2001
+From: VM build <vm@localhost>
+Date: Wed, 11 Nov 2026 17:21:53 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: fix VP9 inter frames
+
+Two fixes from the first hardware run, where every key frame decoded
+bit-exact and every inter frame did not:
+
+- The motion-compensation frame-size register takes the width in mode-info
+  units in its low half and the height in its high half. With the halves
+  swapped the hardware clamped reference reads at a width equal to the
+  frame height.
+
+- Take reference_mode from the compressed header, which the hardware
+  parses, instead of rejecting frames whose control value differs.
+  Userspace that leaves the compressed header to the driver does not fill
+  that control field, so every compound frame was rejected.
+---
+ .../platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c    | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+index 5518a8f72..22a371635 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-vp9.c
+@@ -887,14 +887,16 @@ static int vp9_compressed_header(struct mvdec_ctx *ctx, struct vp9_pic *p)
+ 	if (ret)
+ 		return ret;
+ 
+-	/* reference_select, only when the sign biases allow compound refs */
++	/*
++	 * reference_select, only when the sign biases allow compound refs. The
++	 * bitstream decides: userspace that leaves the compressed header to the
++	 * hardware does not fill the control's reference_mode.
++	 */
+ 	p->ref_mode = V4L2_VP9_REFERENCE_MODE_SINGLE_REFERENCE;
+ 	if ((golden != last || alt != last) && vvld_read(vdev, VVLD_BOOL_BIT))
+ 		p->ref_mode = vvld_read(vdev, VVLD_BOOL_BIT) ?
+ 			      V4L2_VP9_REFERENCE_MODE_SELECT :
+ 			      V4L2_VP9_REFERENCE_MODE_COMPOUND_REFERENCE;
+-	if (p->ref_mode != p->f->reference_mode)
+-		return -EINVAL;
+ 	/* Fixed and variable compound references; kept for single frames. */
+ 	if (p->ref_mode) {
+ 		if (last == golden) {
+@@ -986,7 +988,7 @@ static void vp9_write_pic(struct mvdec_ctx *ctx, const struct vp9_pic *p)
+ 		/* Largest reference block, unscaled, for each reference. */
+ 		mvdec_write(vdev, MVDEC_MC + 0xd7c, 0x07770777);
+ 	}
+-	mvdec_write(vdev, MVDEC_MC + 0xd88, p->mi_rows | p->mi_cols << 16);
++	mvdec_write(vdev, MVDEC_MC + 0xd88, p->mi_cols | p->mi_rows << 16);
+ 
+ 	mvdec_write(vdev, MVDEC_MC + 0x220, 1);
+ 	mvdec_write(vdev, MVDEC_MC + 0x224, p->cur_y >> 9);
+-- 
+2.43.0
+

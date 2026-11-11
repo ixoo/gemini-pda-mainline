@@ -964,7 +964,7 @@ Untested: long-term references, explicit B weights, memory-management
 operations, POC type 1, interlaced streams (rejected), real-world streams,
 larger sizes, sustained playback and power.
 
-## Stage 3d: VP9 in the same driver (built, device test pending)
+## Stage 3d: VP9 in the same driver (V13: key frames exact, inter fix pending)
 
 [Patch 0733](../../patches/proposals/0733-media-mediatek-mt6797-vdec-add-VP9-decoding.patch)
 adds VP9 profile 0 (8-bit 4:2:0) through the V4L2 stateless VP9 API:
@@ -999,6 +999,54 @@ unproven on hardware [I].
 - tile list words;
 - count readback and adaptation, visible only on streams with
   `frame_parallel_decoding_mode = 0`.
+
+### V13 result
+
+*Run.* The device custodian ran it on station-work-108: boot2 `0655c5b6`,
+main `69a1a82a` (contains `ef75d288`), boot `940593bc`. The modules equal the
+reference build: `mt6797-vdec.ko` `cf674aa9…`, `v4l2-vp9.ko` `f12ce842…`.
+Evidence (private): `artifacts/card-32/v13-*`.
+
+*Observed:*
+
+- The driver lists `VP9F`; `v4l2slvp9dec` registers and negotiates without
+  the compressed-header control.
+- Every clip reached EOS with no driver errors, timeouts or genpd errors
+  logged. SoC 37.6 °C. Afterwards the domain was off and the `vdec_sel`
+  enable count 0.
+- Interrupts: 30, 4, 6 and 21 for `vp9`, `lossless`, `tiles` and `feat`, as
+  expected. `compound` raised only 2 for 43 frames.
+- H.264 and HEVC regression outputs are byte-identical to V12 and V10.
+- The custodian's first pass read the wrong interrupt column; a second pass
+  gave byte-identical outputs and the counts above.
+
+*Result.* Detiled on the host, **the key frame of every clip matches**:
+352x288, lossless, four tile columns, and two tile columns with
+segmentation. Inter frames do not. In `vp9` and `feat`, luma errors start
+exactly at x = 288 and x = 360, each clip's height, and run to the right
+edge. In `compound` and `tiles` the inter frames are wrong everywhere.
+
+*Analysis.* Header and segmentation programming, the hardware
+compressed-header parse, probability SRAM loading and tile words all work.
+
+- **`MC+0xD88`.** Errors that start at a width equal to the frame height
+  mean the hardware clamps reference reads with width and height swapped.
+  `MC+0xD88` takes `mi_cols` in its low half, as note 30 had it, and the
+  decompile reading was wrong [I, strong]. In `tiles` (1024x192) the swap
+  also corrupts motion-vector candidates near the false edge, which would
+  explain errors everywhere [I].
+- **`compound`.** The driver rejected each frame whose compressed header
+  selects compound prediction, because the control's `reference_mode` (0)
+  differed from the bitstream. GStreamer fills that field only when it parses
+  the compressed header itself, which it skips for this driver [I]. The
+  rejected frames left stale buffers, hence 2 interrupts for 43 frames.
+
+[Patch 0738](../../patches/proposals/0738-media-mediatek-mt6797-vdec-fix-VP9-inter-frames.patch)
+swaps the `MC+0xD88` halves and takes `reference_mode` from the bitstream.
+The C port and the model, now fed `reference_mode = 0` as GStreamer sends
+it, still agree on 105/105 frames.
+
+**Next device run (V14).** Repeat V13 with 0738.
 
 ## Follow-up
 
