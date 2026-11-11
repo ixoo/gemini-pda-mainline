@@ -45,7 +45,9 @@ Status: plan, updated 2026-11-01.
   state once. On card-32, boot `a71d4762`, as the custodian reports: at most 74 workqueue items a second
   in all, load 0.01, and one `pump stalled: queued=1` with nothing else pending. That one frame is the reserved
   deauthentication, held in the queue for the whole data phase; 0714 leaves it out of the pending test.
-  Compiled only.
+  On station-work-103, boot `b8fb3cbf`, as the custodian reports: the join worker ran 45 times a second on an
+  idle link, the idle interval, with no `pump stalled` line. A disconnect, and so the held frame's release,
+  was not exercised.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
