@@ -1,0 +1,66 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 17:21:05 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: keep the full charge at
+ most the design
+
+A learned or written full charge was accepted up to 110 % of the design,
+so the battery health, charge_full over charge_full_design, could read
+above 100 %.
+
+Keep the full charge at or below the design. A learning pair may still
+estimate up to 110 %, since one reading carries noise, and a write still
+needs 50-110 %, so that a saved value on another scale is not refused
+outright; either is then held at the design. The capacity, the charge
+now and both full charges stay within 0-100 % of one another.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 16 ++++++++++++----
+ 1 file changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 9e6aff3..1a05387 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -102,7 +102,11 @@
+ #define MT6351_FG_USABLE_PERMILLE	930
+ /* No step moves the full charge by more than this share of the design. */
+ #define MT6351_FG_STEP_MAX_PCT		5
+-/* The full charge is kept within these percentages of the design. */
++/*
++ * A learned or written full charge must be within these percentages of the
++ * design to be taken; it is then kept at or below the design, so the health
++ * never reads above 100 %.
++ */
+ #define MT6351_FG_FULL_MIN_PCT		50
+ #define MT6351_FG_FULL_MAX_PCT		110
+ 
+@@ -351,9 +355,13 @@ static bool mt6351_fg_full_ok(struct mt6351_fg *fg, s64 uah)
+ 	       uah * 100 <= design * MT6351_FG_FULL_MAX_PCT;
+ }
+ 
+-/* A new full charge: keep the capacity of the last OCV reading. */
++/*
++ * A new full charge, at most the design: keep the capacity of the last OCV
++ * reading.
++ */
+ static void mt6351_fg_set_full(struct mt6351_fg *fg, s64 uah)
+ {
++	uah = min_t(s64, uah, fg->info->charge_full_design_uah);
+ 	if (fg->anchored && fg->full_uah > 0)
+ 		fg->anchor_uah = div64_s64(fg->anchor_uah * uah, fg->full_uah);
+ 	fg->full_uah = uah;
+@@ -411,9 +419,9 @@ static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc,
+ 	max_uah = div_s64((s64)fg->info->charge_full_design_uah * MT6351_FG_STEP_MAX_PCT, 100);
+ 	q_uah = fg->full_uah + clamp_t(s64, div_s64(q_uah - fg->full_uah, div),
+ 				       -max_uah, max_uah);
+-	dev_info(fg->dev, "full charge %lld uAh from %lld uAh over %d points, step 1/%d\n",
+-		 q_uah, dq_uah, dsoc, div);
+ 	mt6351_fg_set_full(fg, q_uah);
++	dev_info(fg->dev, "full charge %lld uAh from %lld uAh over %d points, step 1/%d\n",
++		 fg->full_uah, dq_uah, dsoc, div);
+ 
+ 	return true;
+ }
+-- 
+2.54.0 (Apple Git-157)
+

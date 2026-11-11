@@ -723,6 +723,28 @@ From the custodian. Charging from a computer's charging port at 1.5 A, limit 100
   - This is exact across 0732, 0736 and later scales. The legacy 4268000 restores as 3969240
     (100 % health), and a 0732-learned 3500000 as 3255000.
 
+## Values stay within 0-100 % (owner requirement)
+
+The owner: "Values must be consistent and should never be above 100% or below 0%".
+[0737](../../patches/proposals/0737-power-supply-mt6351-fuel-gauge-keep-the-full-charge-.patch),
+on top of 0736, keeps the full charge at or below the design:
+- A learning pair may still estimate up to 110 % (noise), and a write still needs 50-110 %, so
+  a saved value from another scale is not refused outright. Either is then held at the design.
+- With 0711-0736 already clamping `capacity` to 0-100 and `charge_now` to 0-`charge_full`,
+  every value now holds:
+
+  | Value | Range |
+  |---|---|
+  | `capacity` | 0-100 |
+  | `charge_now` | 0 to `charge_full` |
+  | `charge_full` | at most `charge_full_design` |
+  | health in UPower | at most 100 % |
+
+- `capacity` is computed against the same `charge_full` that is reported.
+- Card-32's saved 4268000 converts to 3969240 under gemini-base 47. Any higher value from
+  another card or scale is now held at the design, or refused if above 110 %.
+- Compiled at W=1 and checkpatch clean; not on a device.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
