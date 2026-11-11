@@ -719,3 +719,26 @@ learn whether the chip can see the lines at all. The driver change follows from 
 Either way the proposal caps the result at 1.5 A input and 1.024 A charge, falls back to
 500 mA from 45 °C, and keeps QC's high voltage off: the bootloader rejects VBUS above 6.5 V.
 These are charger writes beyond `CHG_CONFIG`, so they wait for the owner.
+
+**T1, boot `a71d4762…`, with the owner's approval:** the custodian ran `dpdm-t1.sh` `53e81d61…` on
+card-32, with only the QC charger attached.
+- It wrote `FORCE_DPDM` once. The chip had cleared the bit by the first read, 60 ms later.
+- REG0B stayed SDP and REG00 stayed 500 mA across 15 reads over 3.5 s, so no restore was
+  needed. Tainted 0.
+
+So the chip can't classify a charger through these lines. It's not proven that detection
+actually ran, but the bit clearing itself suggests it did.
+
+Another reading rules out the simpler fallback: after the Mac was unplugged, the USB gadget still
+reported `configured`. A rule of "no USB host configures the gadget within a few seconds" would
+therefore misread a wall charger plugged in after a computer.
+
+**Proposed next:** classify on the MT6351, as the vendor does, in a new module.
+- **Detection:** the PMIC's BC1.1 steps in `CHR_CON20`, wrapped in the USB PHY switch that hands
+  D+/D- to the PMIC. It runs on a plug, signalled through the battery supply's change from the
+  charger-detect interrupt.
+- **Result:** reported as a power supply with a USB type.
+- **First device test:** loading the module and reading the result, with the Mac and with the wall
+  charger, with no charger write at all.
+- **Then:** the guard sets the capped input limit and charge current from that type, a separate
+  step with its own approval.
