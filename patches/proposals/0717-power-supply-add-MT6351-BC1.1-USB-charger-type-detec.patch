@@ -1,8 +1,7 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
 Date: Wed, 11 Nov 2026 13:30:32 -0500
-Subject: [PATCH] power: supply: add MT6351 BC1.1 USB charger type
- detection
+Subject: [PATCH] power: supply: add MT6351 BC1.1 USB charger type detection
 
 The MT6797's USB 2.0 PHY can hand D+ and D- to the MT6351 PMIC's BC1.1
 comparators. The vendor kernel uses that to tell a host from a charging
@@ -21,8 +20,8 @@ this block yet.
 ---
  drivers/power/supply/Kconfig           |   9 +
  drivers/power/supply/Makefile          |   1 +
- drivers/power/supply/mt6351-usb-type.c | 368 +++++++++++++++++++++++++
- 3 files changed, 378 insertions(+)
+ drivers/power/supply/mt6351-usb-type.c | 371 +++++++++++++++++++++++++
+ 3 files changed, 381 insertions(+)
  create mode 100644 drivers/power/supply/mt6351-usb-type.c
 
 diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
@@ -59,10 +58,10 @@ index b58c72ace..ff5ca3c80 100644
  obj-$(CONFIG_CHARGER_RK817)	+= rk817_charger.o
 diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
 new file mode 100644
-index 000000000..a0b7aa2c5
+index 000000000..1a51ea6b1
 --- /dev/null
 +++ b/drivers/power/supply/mt6351-usb-type.c
-@@ -0,0 +1,368 @@
+@@ -0,0 +1,371 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * USB charger type detection with the MT6351 PMIC's BC1.1 block.
@@ -72,7 +71,8 @@ index 000000000..a0b7aa2c5
 + * present this switches the lines to the PMIC, runs the BC1.1 steps (data
 + * contact detection, then primary and secondary detection) and switches them
 + * back. The result is reported as a USB power supply's usb_type, so that a
-+ * charger driver can pick its input limit. No charger register is written.
++ * charger driver can pick its input limit: a non-standard charger reads
++ * Unknown while online. No charger register is written.
 + *
 + * The PMIC and the PHY port are found from the device tree. The PHY port's
 + * register is shared with the T-PHY driver, which writes it only when the PHY
@@ -240,8 +240,9 @@ index 000000000..a0b7aa2c5
 +		if (online && !ut->online) {
 +			type = mt6351_usb_type_detect(ut);
 +			if (type < 0) {
-+				dev_warn(ut->dev, "detection failed: %d\n", type);
-+				type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
++				/* Not reported online, so the next pass tries again. */
++				dev_warn_ratelimited(ut->dev, "detection failed: %d\n", type);
++				goto out;
 +			}
 +			dev_info(ut->dev, "charger attached: %s\n",
 +				 type == POWER_SUPPLY_USB_TYPE_SDP ? "SDP (host)" :
@@ -259,6 +260,7 @@ index 000000000..a0b7aa2c5
 +		}
 +	}
 +
++out:
 +	queue_delayed_work(system_power_efficient_wq, &ut->work, USB_TYPE_POLL);
 +}
 +
