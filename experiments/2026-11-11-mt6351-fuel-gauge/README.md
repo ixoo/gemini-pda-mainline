@@ -688,6 +688,31 @@ on top of 0735.
   about 74 % of the table, the same 80 % the owner sees.
 - Compiled at W=1 and checkpatch clean; not on a device.
 
+## Station-work-108 (0732, 0734, 0735), boot `940593bc…`
+
+From the custodian. Charging from a computer's charging port at 1.5 A, limit 100.
+- **V1 pass:**
+  - `charge_full` 4268000, equal to the design;
+  - `capacity` 94, with `charge_now` 4015690, a ratio of 0.941;
+  - UPower health 100 %, 1.3 h to full.
+  - The boot reading was 94, where station-work-107 started at 85. That supports 0735's
+    dropping of the boot window.
+- **V2 pass:** `charge_full` is `-rw-r--r--`.
+- **V3 pass:**
+  - 3800000 was accepted. `capacity` stayed 94, `charge_now` rescaled to 3576513, and UPower
+    showed 16.54 Wh and 89.0 % health within 50 s.
+  - 1000000 gave `ERANGE` and left 3800000.
+  - 4268000 restored it.
+- **V4 pass:** no warning or Oops; the kernel is not tainted.
+- **V10 pass:** no early `discharging` with the charger online from boot.
+- **Pending:** V5-V9 and V11-V13, which need a cycle, a steady light-use period or a charge
+  from below 80 %.
+- **Test residue:**
+  - V3's writes made gemini-base save `/var/lib/gemini/battery-charge-full` = 4268000, the
+    design value on 0732's table scale.
+  - Under 0736 that would be restored as a usable charge, so capacity would read about 7 % low.
+  - It is to be deleted before the 0736 image boots.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
