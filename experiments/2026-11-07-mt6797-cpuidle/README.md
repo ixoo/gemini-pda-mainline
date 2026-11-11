@@ -1622,6 +1622,42 @@ makes `gic_mask` default to on, as the vendor flow is; `gic_mask=0` still
 gives the old behaviour. One line in the module; it applies on
 `series-a53-station` through 0688 as `scripts/kernel` applies patches.
 
+**Blockers cleared (2026-11-10).** The custodian reports all three passed on
+the device, recorded in the test plan: USB after a resume (0681, U2 on
+station-work-96, and after W2, W3 and W3b), `soc-thermal` after a resume
+(0683, T-M on station-work-96: banks set up again, the 117 °C reset re-armed,
+readable for 10 minutes), and the display's blank (0684 on station-work-97,
+74.5 mA after the resume).
+
+### K1: an overnight soak before `mem` becomes the default (proposal)
+
+Five suspends per run is not yet a default. One long run on the station
+first, then the module loads at boot (station image) and the card moves from
+`MemorySleepMode=s2idle` (its `gemini-base/sleep.conf` waits on this
+record) to `deep`.
+
+- **Candidate:** the running station image with the module from 0689
+  (`gic_mask` on by default) by `insmod`, `pmic_modes` off, `timer_sec` 600,
+  `backlight-policy` with lid-close suspend, the radios unloaded (the card's
+  sleep hook does that there), no A72 module.
+- **Run:** on battery, lid closed for at least two hours, so the station
+  re-suspends after each 10-minute timer wake (about 12 cycles an hour). At
+  the end: open the lid, check a key, the display, USB after a replug, and
+  `soc-thermal`; then one charger-plug wake with the lid closed.
+- **Measure:** `charge_counter` and time across the whole run (the average,
+  awake gaps included); every wake line (`returned=1`, `r12` timer or EINT,
+  `loops=0`); the count of cycles.
+- **Pass:** every cycle returns, no fault or taint, all checks at the end
+  pass, and the average stays near 42 mA plus the short awake gaps.
+- **Stop:** any `returned=0`, a missing wake (no USB 60 s after the lid
+  opens: the owner's force-off), an Oops or `WARNING`.
+- **Writes:** none new: the S1 list, G1-G4, `mem` from the policy.
+
+After K1 passes: the station image loads `mt6797-spm-sleep` at boot (the
+program file is the owner's, staged as for the radio firmware), and the
+Arch root session switches the card to `deep` with the module and
+`pcm_suspend.bin` installed there.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
@@ -1818,12 +1854,12 @@ exists. The working levers on this unit are:
   showed no effect beyond drift and stay off.
 
 The supposed 200 mA awake regression was the display relighting itself; a
-blanked station with CPU0 alone idles at about 77-80 mA. Before `mem`
-suspend is used outside tests, three defects owned elsewhere must be
-fixed: USB does not enumerate after a resume, `soc-thermal` reads `ENODATA`
-after a resume, and the display does not stay blanked across a resume.
-S2 (CPU0 powered down in suspend) comes after those, per the owner's
-order.
+blanked station with CPU0 alone idles at about 77-80 mA. The three
+resume defects that blocked `mem` suspend outside tests (USB, `soc-thermal`,
+the display's blank) are fixed by other sessions, and masking the GIC
+(0688, default on in 0689) lets a charger plug-in wake it. An overnight soak
+(K1) comes before it loads at boot and the card switches to it; S2 (CPU0
+powered down in suspend) follows, per the owner's order.
 
 ## Follow-up
 
