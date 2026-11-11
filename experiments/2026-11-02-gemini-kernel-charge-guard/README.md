@@ -807,3 +807,13 @@ errs on the safe side.
 constant-voltage phase, and the current followed the cell, not the 1.024 A cap. The cap and the
 45 °C fallback haven't been reached on the device. A 4.2 V cell at 67-69 % also says the reported
 capacity may be low; that belongs to the fuel gauge.
+
+**The owner adds charging hosts, 2026-11-12:** asked whether the MacBook's CDP ports should get
+1.5 A too, with both caveats stated, the owner answered "Yes, add CDP". The custodian relayed it.
+
+0718 now gives CDP the same caps and the same 45 °C fallback as a DCP; a CDP port is rated for
+1.5 A. The log line reads `guard: 1.5 A charger: input 1500 mA, charge 1024 mA`. A plain host
+and a non-standard charger keep 500 mA. A computer already attached at boot or at a module load
+reads SDP, as D1 showed, so it gets 1.5 A only from its next plug. Some hubs and docks report
+CDP too. Compiled at `W=1` and clean under `checkpatch --strict`; it needs an image, and isn't on
+a device yet.
