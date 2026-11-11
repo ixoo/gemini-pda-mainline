@@ -1,0 +1,108 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 17:02:24 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: correct the capacity at the
+ top of a charge
+
+The counted capacity starts from an OCV reading taken at the first
+current window. That window opens at probe and spans the rest of the
+boot, when the battery can carry the load before charging starts, so the
+starting point has come out about ten points low on two boots. On one, a
+cell in the charger's constant-voltage taper at 4.335 V and 191 mA, about
+95 % on the OCV table, read 85 % and fell from the 89 % shown before the
+first window.
+
+Drop the first window. Then, while charging at up to 300 mA within 40 mV
+of the design maximum voltage, which is the charger's taper, take a new
+OCV reading, at most every 5 minutes: there the terminal voltage less
+I x R is close to the OCV, and the capacity reaches the right value
+before the charge ends.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 43 ++++++++++++++++++++++++
+ 1 file changed, 43 insertions(+)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index e282646..45aa6e2 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -84,6 +84,15 @@
+ /* Step divisors toward a new full charge: a rest, and a load-corrected reading. */
+ #define MT6351_FG_STEP_REST		4
+ #define MT6351_FG_STEP_LOADED		8
++/*
++ * Near the top of a charge, in the charger's constant-voltage taper, the
++ * terminal voltage less I x R is a good OCV: take a new reading at most this
++ * often while charging within this current and this close to the design
++ * maximum voltage.
++ */
++#define MT6351_FG_CV_MS			(300 * MSEC_PER_SEC)
++#define MT6351_FG_CV_MAX_UA		300000
++#define MT6351_FG_CV_MARGIN_UV		40000
+ /* No step moves the full charge by more than this share of the design. */
+ #define MT6351_FG_STEP_MAX_PCT		5
+ /* The full charge is kept within these percentages of the design. */
+@@ -112,6 +121,7 @@ struct mt6351_fg {
+ 	ktime_t win_start;
+ 	s64 win_car;
+ 	bool win_valid;
++	bool win_first_done;
+ 	int win_ua;
+ 	bool win_ua_valid;
+ 	/* The latest counter value, and since when the battery has rested. */
+@@ -130,6 +140,9 @@ struct mt6351_fg {
+ 	int steady_ua;
+ 	bool steady;
+ 	bool steady_learned;
++	/* The last reading in the constant-voltage taper. */
++	ktime_t cv_time;
++	bool cv_valid;
+ 	bool learn_valid;
+ 	int learn_step;
+ 	s64 learn_car;
+@@ -182,6 +195,17 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 	if (ms < MT6351_FG_WINDOW_MS)
+ 		return;
+ 
++	/*
++	 * The first window opens at probe and spans the rest of the boot, when
++	 * the battery can carry the load before charging starts: drop it.
++	 */
++	if (!fg->win_first_done) {
++		fg->win_first_done = true;
++		fg->win_start = now;
++		fg->win_car = car;
++		return;
++	}
++
+ 	/* nAh over ms: x 3600 gives uA. */
+ 	dq_nah = mt6351_fg_car_nah(fg, car - fg->win_car);
+ 	fg->win_ua = div_s64(dq_nah * 3600, ms);
+@@ -420,6 +444,25 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		}
+ 	}
+ 
++	/* In the charger's constant-voltage taper, the voltage gives the capacity. */
++	if (fg->anchored && ua > 0 && ua <= MT6351_FG_CV_MAX_UA &&
++	    (!fg->cv_valid || ktime_ms_delta(now, fg->cv_time) >= MT6351_FG_CV_MS) &&
++	    !mt6351_fg_voltage(fg, &uv) &&
++	    uv >= fg->info->voltage_max_design_uv - MT6351_FG_CV_MARGIN_UV &&
++	    !thermal_zone_get_temp(fg->tz, &mc)) {
++		uv -= (s64)ua * fg->resistance_mohm / 1000;
++		ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
++		if (ret >= 0) {
++			ret = clamp(ret, 0, 100);
++			dev_dbg(fg->dev, "taper OCV reading: %d uV at %d uA, %d mC: %d %%\n",
++				uv, ua, mc, ret);
++			fg->anchor_uah = div_s64(full * ret, 100);
++			fg->anchor_car = fg->car;
++			fg->cv_time = now;
++			fg->cv_valid = true;
++		}
++	}
++
+ 	/* A load-corrected reading, once per steady period, where the curve is steep. */
+ 	if (fg->steady && !fg->steady_learned &&
+ 	    ktime_ms_delta(now, fg->steady_start) >= MT6351_FG_STEADY_MS) {
+-- 
+2.54.0 (Apple Git-157)
+

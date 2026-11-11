@@ -602,6 +602,36 @@ on top of 0732.
   - the first light-use pair against a 3.5 Ah cell moves 4268 to 4172 mAh.
 - Compiled at W=1 and checkpatch clean; not on a device.
 
+## Capacity falling while charging (station-work-107, boot `a1651d02…`)
+
+**Observed by the owner:**
+- The guard's boot line read `capacity=89`.
+- About 50 minutes into charging from a computer's charging port (1.5 A input), it read 85 %,
+  `Charging`, +191 mA, 4.335 V (the 4.336 V constant-voltage setpoint), 24.6 °C.
+- UPower showed 0.85 W and 3.2 h to full.
+
+**Reading:**
+- **Not the counter.** `current_now` is the counter's own change, and it was positive.
+- **The 89 % came before the first current window,** from the old voltage reading, which the
+  charging current raises.
+- **0711's starting point came from the first window.** That window opens at probe and spans
+  boot, when the battery carries the load (the brief `discharging` UPower showed at 33 s on
+  the same boot). It came out low, and the counted charge since had climbed back to 85.
+- **In the taper,** 4.335 V less 191 mA × 0.165 Ω is 4.303 V, 95 % on the table. So the start
+  was about 10 points low, as on station-work-103.
+
+**Fix:** [0735](../../patches/proposals/0735-power-supply-mt6351-fuel-gauge-correct-the-capacity-.patch),
+on top of 0734.
+- It drops the first window.
+- While charging at up to 300 mA within 40 mV of the 4.352 V design maximum, which is the
+  charger's taper, it takes a new OCV reading, V − I × R, at most every 5 minutes. On these
+  numbers it would read 95 %.
+- Readings are logged at debug level (`taper OCV reading: …`). They feed the count, not the
+  learning.
+- Compiled at W=1 and checkpatch clean; not on a device.
+- Outside 10-45 °C the charger stops at 4.240 V, below the 4.312 V threshold, so no taper
+  reading is taken. The rest after termination still corrects.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
