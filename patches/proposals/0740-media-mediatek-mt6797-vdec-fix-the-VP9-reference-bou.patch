@@ -1,5 +1,5 @@
 From b167f6b90c4ce0b8d063a5d296c6e9aa99e9e3b1 Mon Sep 17 00:00:00 2001
-From: VM build <vm@localhost>
+From: Julien Etienne <julien.etienne@gmail.com>
 Date: Wed, 11 Nov 2026 17:34:25 -0500
 Subject: [PATCH] media: mediatek: mt6797-vdec: fix the VP9 reference bounds
 

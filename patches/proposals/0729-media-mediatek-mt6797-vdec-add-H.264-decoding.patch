@@ -1,5 +1,5 @@
 From 33128a948af9febe197a556e1d9cd0e013e6197d Mon Sep 17 00:00:00 2001
-From: VM build <vm@localhost>
+From: Julien Etienne <julien.etienne@gmail.com>
 Date: Wed, 11 Nov 2026 15:46:15 -0500
 Subject: [PATCH] media: mediatek: mt6797-vdec: add H.264 decoding
 

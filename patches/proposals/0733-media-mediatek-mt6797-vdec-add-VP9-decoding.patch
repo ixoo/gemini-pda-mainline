@@ -1,5 +1,5 @@
 From 445ad1b8de121d710e7514fdfb81d209545a576d Mon Sep 17 00:00:00 2001
-From: VM build <vm@localhost>
+From: Julien Etienne <julien.etienne@gmail.com>
 Date: Wed, 11 Nov 2026 16:34:58 -0500
 Subject: [PATCH] media: mediatek: mt6797-vdec: add VP9 decoding
 
