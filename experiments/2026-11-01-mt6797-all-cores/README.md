@@ -935,6 +935,27 @@ semaphore 3. With port 0 held, port 2 cannot be granted, so every transaction
 failed. It also means the overlap 0700 was meant to close does not exist.
 0700 is withdrawn from both series; 0702 applies and compiles without it.
 
+**Boot hang on station-work-102 (observed; cause inferred, not yet confirmed).**
+station-work-102 (boot2 `5a7e9b2d`, main `4e52b4f4`, 0700 withdrawn, DVFS profile)
+hung twice inside the init's cpufreq block, with the A72 module off, until the
+hardware watchdog reset it. The next boots reported
+`cpufreq=skipped-last-load-unfinished`, and nothing survived in pstore. Of the
+cpufreq modules only `clk-mt6797-mcusys` changed from station-work-100, by 0702.
+On station-work-101 the same driver failed before registering any clock, which
+fits that image not hanging.
+
+Inference: registering the A72 clock reads its rate. 0702 read the B-PLL registers
+(`0x102224a0`/`a4`) through the secure read whenever the B mux read as on the PLL.
+Those registers are in the A72 cluster's MCUCFG2 block: the vendor's bring-up
+releases the cluster-top reset (SPM `0x10006218` bit 0) before its first read of
+`0x102224a0`. So with the A72s never brought up, a mux left on the PLL leads to a
+read into a cluster in reset, which can stall the bus. 0702 now reads the rate only
+while an A72 is online, and under semaphore 3. The firmware holds that semaphore when
+it moves the mux off the PLL, which it does before powering the cluster down.
+Two read-only reads on a booted station with the A72s off would confirm the
+inference: the B mux (`0x1001a270` bits 1:0) reading 1, and `0x10006218` bit 0
+reading 0.
+
 **T4a: A72 frequency, no voltage change.** Profile `mt6797-a53-station-a72`, A72
 tree. Load the A72 module, then `clk-mt6797-mcusys`, then `cpufreq-dt`.
 

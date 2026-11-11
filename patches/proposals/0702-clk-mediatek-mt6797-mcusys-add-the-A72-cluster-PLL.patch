@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Julien Etienne <julien.etienne@gmail.com>
-Date: Sun, 8 Nov 2026 15:00:39 -0500
+From: x <x@x>
+Date: Wed, 11 Nov 2026 13:22:58 -0500
 Subject: [PATCH] clk: mediatek: mt6797-mcusys: add the A72 cluster PLL
 
 The A72 cluster's PLL belongs to the secure firmware: CPU_ON programs it,
@@ -19,15 +19,22 @@ The rate is read back through the secure read service on every request,
 since CPU_ON reprograms the PLL behind this driver, and is 0 while the mux
 is off the PLL. A change is refused while both A72s are down. The range is
 the vendor's B table, 338 MHz to 2522 MHz; the voltage is the consumer's.
+
+The B-PLL registers sit in the A72 cluster's MCUCFG2 block, readable only
+while the cluster is out of reset. Before the first A72 bring-up the mux
+can read as on the PLL with the cluster still held in reset, so the rate
+is read only while an A72 is online, and under semaphore 3, which the
+firmware holds when it moves the mux off the PLL before powering the
+cluster down. Otherwise it reads as 0.
 ---
- drivers/clk/mediatek/clk-mt6797-mcusys.c | 194 ++++++++++++++++++++++-
- 1 file changed, 191 insertions(+), 3 deletions(-)
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 231 ++++++++++++++++++++++-
+ 1 file changed, 228 insertions(+), 3 deletions(-)
 
 diff --git a/drivers/clk/mediatek/clk-mt6797-mcusys.c b/drivers/clk/mediatek/clk-mt6797-mcusys.c
-index 0c06247c6..88821edac 100644
+index 50a89e5e5..bd5dc263c 100644
 --- a/drivers/clk/mediatek/clk-mt6797-mcusys.c
 +++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
-@@ -19,6 +19,12 @@
+@@ -17,6 +17,12 @@
   * post-divider change moves the cluster to MAINPLL (1092 MHz) for the 2 us the
   * PLL takes, as the vendor does.
   *
@@ -40,7 +47,7 @@ index 0c06247c6..88821edac 100644
   * This driver does not control the voltage. Each clock is limited to the top
   * of the vendor table for this SoC; a consumer raises the shared rail first,
   * as the OPP core does. A post-divider change runs the clock at MAINPLL for
-@@ -26,9 +32,11 @@
+@@ -24,9 +30,11 @@
   * which the rail then already supports.
   */
  
@@ -52,7 +59,7 @@ index 0c06247c6..88821edac 100644
  #include <linux/debugfs.h>
  #include <linux/delay.h>
  #include <linux/io.h>
-@@ -107,6 +115,20 @@
+@@ -104,6 +112,20 @@
  
  #define MCU_NUM_PLLS			3
  
@@ -73,7 +80,7 @@ index 0c06247c6..88821edac 100644
  struct mt6797_mcu_setting {
  	u32 pcw;
  	unsigned int posdiv;
-@@ -129,6 +151,12 @@ struct mt6797_mcu_pll {
+@@ -126,6 +148,12 @@ struct mt6797_mcu_pll {
  	unsigned long changes;
  };
  
@@ -86,7 +93,7 @@ index 0c06247c6..88821edac 100644
  struct mt6797_mcusys {
  	struct device *dev;
  	void __iomem *base;
-@@ -140,6 +168,7 @@ struct mt6797_mcusys {
+@@ -137,6 +165,7 @@ struct mt6797_mcusys {
  	struct mutex lock;
  	bool faulted;
  	struct mt6797_mcu_pll pll[MCU_NUM_PLLS];
@@ -94,7 +101,7 @@ index 0c06247c6..88821edac 100644
  	struct dentry *debugfs;
  	struct clk_hw_onecell_data *data;
  };
-@@ -692,6 +721,146 @@ static const struct clk_ops mt6797_mcu_pll_ops = {
+@@ -678,6 +707,180 @@ static const struct clk_ops mt6797_mcu_pll_ops = {
  	.set_rate = mt6797_mcu_set_rate,
  };
  
@@ -129,13 +136,20 @@ index 0c06247c6..88821edac 100644
 +	*pcw = div_u64(vco << 24, 26) & B_PLL_PCW_MASK;
 +}
 +
-+/* The cluster's rate, or 0 when its mux is not on the PLL. */
-+static unsigned long mt6797_b_rate(struct mt6797_mcusys *mcu)
++/*
++ * Under semaphore 3: the cluster's rate, or 0 when its mux is not on the PLL.
++ * The firmware moves the mux off the PLL under the same semaphore before it
++ * powers the cluster down, so a mux on the PLL here means the B-PLL registers
++ * can be read.
++ */
++static int mt6797_b_read_rate(struct mt6797_mcusys *mcu, void *arg)
 +{
++	unsigned long *rate = arg;
 +	unsigned int ckdiv;
 +	u32 con0, pcw;
 +	u64 hz;
 +
++	*rate = 0;
 +	if (((mcu_read(mcu, MCU_ARMPLLDIV_MUXSEL) >> B_MUX_SHIFT) & 0x3) !=
 +	    MCU_MUX_ARMPLL)
 +		return 0;
@@ -149,13 +163,40 @@ index 0c06247c6..88821edac 100644
 +	hz = ((u64)(pcw & B_PLL_PCW_MASK) * 26 * HZ_PER_MHZ) >> 24;
 +	hz >>= FIELD_GET(B_PLL_POSDIV, con0);
 +	/* The firmware takes whole MHz. */
-+	return DIV_ROUND_CLOSEST_ULL(hz, ckdiv * HZ_PER_MHZ) * HZ_PER_MHZ;
++	*rate = DIV_ROUND_CLOSEST_ULL(hz, ckdiv * HZ_PER_MHZ) * HZ_PER_MHZ;
++	return 0;
++}
++
++/*
++ * The B-PLL registers sit in the A72 cluster's MCUCFG2 block and are only
++ * readable while the cluster is out of reset. Before the first A72 bring-up
++ * the mux can read as on the PLL with the cluster still held in reset, so
++ * nothing is read unless an A72 is online.
++ */
++static unsigned long mt6797_b_rate(struct mt6797_mcusys *mcu)
++{
++	unsigned long rate;
++
++	lockdep_assert_held(&mcu->lock);
++	if (!cpu_online(8) && !cpu_online(9))
++		return 0;
++	if (mt6797_mcu_locked(mcu, mt6797_b_read_rate, &rate))
++		return 0;
++
++	return rate;
 +}
 +
 +static unsigned long mt6797_b_recalc_rate(struct clk_hw *hw,
 +					  unsigned long parent_rate)
 +{
-+	return mt6797_b_rate(to_mcu_bpll(hw)->mcu);
++	struct mt6797_mcusys *mcu = to_mcu_bpll(hw)->mcu;
++	unsigned long rate;
++
++	mutex_lock(&mcu->lock);
++	rate = mt6797_b_rate(mcu);
++	mutex_unlock(&mcu->lock);
++
++	return rate;
 +}
 +
 +static int mt6797_b_determine_rate(struct clk_hw *hw,
@@ -241,16 +282,31 @@ index 0c06247c6..88821edac 100644
  struct mt6797_mcu_probe_state {
  	struct mt6797_mcu_setting boot[MCU_NUM_PLLS];
  	int read_ret[MCU_NUM_PLLS];
-@@ -778,6 +947,8 @@ static int mt6797_mcu_registers_show(struct seq_file *m, void *unused)
+@@ -743,11 +946,14 @@ static int mt6797_mcu_registers_show(struct seq_file *m, void *unused)
+ {
+ 	struct mt6797_mcusys *mcu = m->private;
+ 	struct mt6797_mcu_dump d = { };
++	unsigned long b_rate = 0;
+ 	unsigned int id;
+ 	int ret;
+ 
+ 	mutex_lock(&mcu->lock);
+ 	ret = mt6797_mcu_locked(mcu, mt6797_mcu_dump_hw, &d);
++	if (!ret)
++		b_rate = mt6797_b_rate(mcu);
+ 	mutex_unlock(&mcu->lock);
+ 	if (ret)
+ 		return ret;
+@@ -764,6 +970,8 @@ static int mt6797_mcu_registers_show(struct seq_file *m, void *unused)
  			   pll->min_rate, pll->changes, pll->last_poll,
  			   pll->max_poll);
  	}
-+	seq_printf(m, "b_rate=%lu b_changes=%lu\n", mt6797_b_rate(mcu),
++	seq_printf(m, "b_rate=%lu b_changes=%lu\n", b_rate,
 +		   mcu->bpll.changes);
  	seq_printf(m, "sync_dcm=0x%08x\n",
  		   readl(mcu->mcucfg + MCUCFG_SYNC_DCM_CONFIG));
  	seq_printf(m, "faulted=%d\n", mcu->faulted);
-@@ -874,11 +1045,12 @@ static int mt6797_mcu_probe(struct platform_device *pdev)
+@@ -860,11 +1068,12 @@ static int mt6797_mcu_probe(struct platform_device *pdev)
  	if (ret)
  		return dev_err_probe(dev, ret, "MCUMIXED init failed\n");
  
@@ -265,7 +321,7 @@ index 0c06247c6..88821edac 100644
  
  	for (id = 0; id < MCU_NUM_PLLS; id++) {
  		struct mt6797_mcu_pll *pll = &mcu->pll[id];
-@@ -913,6 +1085,22 @@ static int mt6797_mcu_probe(struct platform_device *pdev)
+@@ -899,6 +1108,22 @@ static int mt6797_mcu_probe(struct platform_device *pdev)
  		mcu->data->hws[id] = &pll->hw;
  	}
  
@@ -288,7 +344,7 @@ index 0c06247c6..88821edac 100644
  	ret = devm_of_clk_add_hw_provider(dev, of_clk_hw_onecell_get, mcu->data);
  	if (ret)
  		return ret;
-@@ -948,5 +1136,5 @@ static struct platform_driver mt6797_mcu_driver = {
+@@ -934,5 +1159,5 @@ static struct platform_driver mt6797_mcu_driver = {
  };
  module_platform_driver(mt6797_mcu_driver);
  
