@@ -216,6 +216,28 @@ record flagged. A re-reading after a rest can still move capacity by a few point
     the loaded 3.57-3.63 V now is genuinely low. Inference.
 - **Rerun** above 30 %, with `charge_counter` in every sample.
 
+**Owner report, minutes later:**
+- Card-31 became unreachable.
+- Started on the Gemian side with the cable in, Gemian read **86 %**: "the problem is that it
+  reads low".
+- Whether the card powered off on UPower's critical action or browned out is not yet known.
+
+Two explanations, which need opposite fixes:
+- **Our voltage is wrong by about 0.5 V.** The station table maps 3.63 V to 3 %, and 86 % needs
+  about 4.19 V. Our voltage was checked only at the top, against the BQ25896 at 4.31 V.
+- **Gemian's 86 % is not a measurement.** At boot, `dod_init_in_kernel` takes the SOC its last
+  session saved in the RTC spare byte:
+  - always, when no battery was removed and no charger is present, if that value is non-zero;
+  - on a charger, unless that value is more than 10 points from its voltage-based `gFG_sw_soc`.
+
+  A stale value can survive a mainline session that drained the battery.
+
+**Asked of the custodian (read-only):**
+- the previous card boot's journal: a clean UPower action, or an abrupt end;
+- Gemian's `[dod_init_in_kernel] rtc_fg_soc=… gFG_sw_soc=… gFG_hw_soc=… preD0=…` line;
+- its first `[kernel]AvgVbat … bat_vol` ADC line. Gemian's `voltage_now` is a table lookup,
+  not the ADC.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
