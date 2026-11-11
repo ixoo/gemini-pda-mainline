@@ -20,8 +20,8 @@ this block yet.
 ---
  drivers/power/supply/Kconfig           |   9 +
  drivers/power/supply/Makefile          |   1 +
- drivers/power/supply/mt6351-usb-type.c | 371 +++++++++++++++++++++++++
- 3 files changed, 381 insertions(+)
+ drivers/power/supply/mt6351-usb-type.c | 376 +++++++++++++++++++++++++
+ 3 files changed, 386 insertions(+)
  create mode 100644 drivers/power/supply/mt6351-usb-type.c
 
 diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
@@ -58,10 +58,10 @@ index b58c72ace..ff5ca3c80 100644
  obj-$(CONFIG_CHARGER_RK817)	+= rk817_charger.o
 diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
 new file mode 100644
-index 000000000..1a51ea6b1
+index 000000000..2e116cc15
 --- /dev/null
 +++ b/drivers/power/supply/mt6351-usb-type.c
-@@ -0,0 +1,371 @@
+@@ -0,0 +1,376 @@
 +// SPDX-License-Identifier: GPL-2.0
 +/*
 + * USB charger type detection with the MT6351 PMIC's BC1.1 block.
@@ -113,6 +113,11 @@ index 000000000..1a51ea6b1
 +#define TPHY_U2_BC11_SW_EN		BIT(23)
 +
 +#define USB_TYPE_POLL			msecs_to_jiffies(1000)
++/*
++ * The USB controller's PHY setup clears the line switch, so the first
++ * detection waits for it rather than race it at boot.
++ */
++#define USB_TYPE_FIRST			msecs_to_jiffies(10000)
 +
 +struct mt6351_usb_type {
 +	struct device *dev;
@@ -388,7 +393,7 @@ index 000000000..1a51ea6b1
 +		return ret;
 +
 +	/* A charger already attached is detected at the first pass. */
-+	queue_delayed_work(system_power_efficient_wq, &ut->work, 0);
++	queue_delayed_work(system_power_efficient_wq, &ut->work, USB_TYPE_FIRST);
 +	return 0;
 +}
 +

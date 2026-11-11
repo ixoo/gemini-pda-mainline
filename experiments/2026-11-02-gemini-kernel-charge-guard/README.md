@@ -844,3 +844,18 @@ the compiled driver file. Nothing has booted.
 **Side effect:** feeding the watchdog every pass keeps every other register as the bootloader left
 it while the guard runs, including its IR compensation and clamp in REG08. If the guard stops, the
 watchdog returns the chip's defaults, including 4.208 V.
+
+**Boot `db80c436…`, station-work-104 at 9f096f4d, the Mac attached at boot,** as reported by the
+custodian:
+- **Charge voltage passes.** `guard: charge voltage 4336 mV at temp=261` at 2.8 s, and REG06
+  read `0x7e` then and at about 95 s, so the watchdog is fed.
+- **CDP passes once the module is loaded.** It wasn't loaded at boot: the module creates its own
+  device, so nothing loads it. Loaded by hand at 103.8 s with the Mac still enumerated, it read CDP
+  this time, where boot `b8fb3cbf…` read SDP.
+- 9 s later: `guard: 1.5 A charger: input 1500 mA, charge 1024 mA`, with REG00 `0x5c`, REG04 `0x10`,
+  REG06 `0x7e` and REG13 `0x5c`. The battery took 258 mA at 4.357 V at 80 % and 25.3 °C.
+- The terminal voltage above 4.336 V is the bootloader's IR compensation, kept by the fed watchdog.
+
+**Change:** the detection is now built in (`CONFIG_CHARGER_MT6351_USB_TYPE=y`), proven on three
+boots. It waits 10 s before its first detection, because the USB controller's PHY setup clears the
+line switch at boot. Until then the guard keeps 500 mA. Compiled at `W=1`; it needs an image.
