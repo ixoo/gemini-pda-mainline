@@ -1273,3 +1273,7 @@ proposals/0692-drm-panfrost-drain-the-MT6797-GPU-only-across-a-post.patch
 proposals/0693-drm-panfrost-do-not-let-a-BO-shared-through-dma-buf-.patch
 proposals/0694-wifi-mt6797-wait-for-a-disconnect-s-re-arm-before-re.patch
 proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch
+proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
+proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch
+proposals/0698-soc-mediatek-add-an-MT6797-video-decoder-resource-pr.patch
+proposals/0699-arm64-dts-mediatek-gemini-station-describe-the-video.patch

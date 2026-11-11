@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 09:00:00 -0500
+Subject: [PATCH 699/699] arm64: dts: mediatek: gemini station: describe the
+ video decoder
+
+Add the VDEC power domain with the VDEC and MM muxes, put VDECSYS in it,
+and add the decoder node: VDEC_MISC, SPI 240, the domain and the core and
+LARB1 gates. No driver binds at boot; the resource probe module binds it
+when loaded by hand.
+
+The vcodec-dec compatible is local until a real binding exists.
+---
+ .../mt6797-gemini-pda-station-a72.dts         | 25 +++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 2e66d8787..8e8829737 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -125,6 +125,14 @@ pins-control {
+ };
+ 
+ &conn_power {
++	power-domain@0 {
++		reg = <MT6797_POWER_DOMAIN_VDEC>;
++		clocks = <&topckgen CLK_TOP_MUX_VDEC>,
++			 <&topckgen CLK_TOP_MUX_MM>;
++		clock-names = "vdec", "mm";
++		#power-domain-cells = <0>;
++	};
++
+ 	power-domain@2 {
+ 		reg = <MT6797_POWER_DOMAIN_ISP>;
+ 		clocks = <&topckgen CLK_TOP_MUX_MM>;
+@@ -133,6 +141,10 @@ power-domain@2 {
+ 	};
+ };
+ 
++&vdecsys {
++	power-domains = <&conn_power MT6797_POWER_DOMAIN_VDEC>;
++};
++
+ &camsys {
+ 	power-domains = <&conn_power MT6797_POWER_DOMAIN_ISP>;
+ };
+@@ -562,3 +574,16 @@ &cpu7 {
+ 	operating-points-v2 = <&cluster1_opp>;
+ 	#cooling-cells = <2>;
+ };
++
++/ {
++	video-codec@16020000 {
++		compatible = "mediatek,mt6797-vcodec-dec";
++		reg = <0 0x16020000 0 0x1000>;
++		interrupts = <GIC_SPI 240 IRQ_TYPE_LEVEL_LOW>;
++		power-domains = <&conn_power MT6797_POWER_DOMAIN_VDEC>;
++		clocks = <&vdecsys CLK_VDEC_CKEN>,
++			 <&vdecsys CLK_VDEC_LARB1_CKEN>;
++		clock-names = "vdec", "larb";
++		mediatek,vdecsys = <&vdecsys>;
++	};
++};

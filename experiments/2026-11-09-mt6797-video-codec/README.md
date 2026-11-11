@@ -447,6 +447,80 @@ small harness, since `mfv_ut` has no plain H.264 test.
   The register-level traces and contract stay private, because they rest on
   vendor code.
 
+## Stage 1: VDEC resource probe (prepared 2026-11-11, not yet built or run)
+
+**Station facts that shaped it.** All three come from a package
+configuration and a station capture.
+
+- **Power domains:** the station uses `mtk-pm-domains`. Its DT declares
+  domains one by one under `&conn_power`, each with `KEEP_DEFAULT_OFF`. On
+  the 2026-11-09 capture only CONN, AUDIO, ISP and the MFG domains exist.
+  MM is not modelled: it stays physically on for the display, unowned.
+- **Clocks and SMI:** the newest station package
+  (`9046a224`, `mt6797-a53-station-dvfs`) has the VDECSYS clock driver, SMI
+  and the IOMMU off.
+- **VDEC clock:** `vdec_sel` is at 338 MHz from VDECPLL, unprepared, the same
+  as under Gemian.
+
+**Changes** (proposals `0696`–`0699`, appended to `patches/series` and
+`patches/series-a53-station`; new fragment
+[`gemini-a53-station-vdec.fragment`](../../configs/gemini-a53-station-vdec.fragment)
+in the three station profiles):
+
+| Patch | What | Kind |
+| --- | --- | --- |
+| 0696 | VDEC domain in the MT6797 `mtk-pm-domains` table: PWR_CON `0x300`, status bit 7, one SRAM bank, `KEEP_DEFAULT_OFF`, as ISP was added | built-in |
+| 0697 | VDECSYS clocks use runtime PM. Their gate registers sit inside the VDEC domain, so the clock core powers the domain for access, and `clk_summary` cannot read an unpowered block | module (`COMMON_CLK_MT6797_VDECSYS=m`) |
+| 0698 | `mt6797-vdec-probe`: powers the domain through runtime PM and enables the VDEC core and LARB1 gates. It logs VDECSYS `+0x00`–`+0x1C` and VDEC_MISC `+0x84`, `+0xA4`, `+0xC8`, `+0xCC`, `+0x178`, counts SPI 240 for 100 ms (stops at 1000), then powers off. It refuses a VDEC clock of 0 or above 338 MHz. It writes no decoder register | module (`MTK_MT6797_VDEC_PROBE=m`), local only |
+| 0699 | Station DT: the VDEC domain (clocks: VDEC and MM muxes), VDECSYS placed in it, and a decoder node (`video-codec@16020000`, SPI 240, the domain, two gates). The compatible `mediatek,mt6797-vcodec-dec` is local until a binding exists. No driver binds at boot | DT |
+
+**Checked so far.** The series applies (863 + 4 patches) to a VM tree. The
+probe, the VDECSYS clock driver and the domain table compile with `W=1`
+against the dvfs package's configuration, without warnings. The station-a72
+DTB builds; the dvfs DTS includes it. Checkpatch reports only the expected
+warnings: the compatible is undocumented and there is no MAINTAINERS entry.
+`check-repository` and the series validation pass. **Not checked:** Buildbox
+build, DT schema and the device.
+
+The release profile shares this series, so it gets the domain entry and the
+DT nodes but neither module. That is harmless.
+
+**Image.** 0696 and 0699 need a new boot2 image, so they ride the next
+batched station image. The two modules then iterate without a boot.
+
+**Device protocol (V7, for the custodian once the image is installed).**
+
+- *Hypothesis:* with MM physically on, the VDEC domain powers on and off
+  through genpd. The gates set the VDECSYS clock-enable bits. VDEC_MISC reads
+  back the vendor's reset values. SPI 240 stays quiet.
+- *Unique observation:* the probe's log lines and the `vdec` genpd state,
+  with the display checked before and after.
+
+Steps:
+
+1. Identity; `pm_genpd_summary` shows `vdec off-0`; the panel shows the
+   console.
+2. `insmod clk-mt6797-vdec.ko`. The domain powers on once during clock
+   registration, then off. Read dmesg, `pm_genpd_summary` and the `vdec_*`
+   lines of `clk_summary`.
+3. `insmod mt6797-vdec-probe.ko`. Read its lines, then `pm_genpd_summary`
+   (`vdec` off again) and the panel.
+4. `rmmod mt6797_vdec_probe`. `insmod` once more for a second, non-first
+   load.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Domain on, both CKEN bits set, MISC readable, 0 interrupts, display intact | Resource description right | Stage 3: HEVC-first stateless prototype |
+| `VDEC domain did not power on` (genpd timeout) | SRAM acknowledge or clock order differs from the vendor's | Stop; compare with the vendor sequence; no retry |
+| Hang on a register read | Block not really powered or clocked | Power off and preserve evidence; no retry; rethink the DT |
+| Interrupt count > 0 | Line asserted at power-on | Note it; check the MISC `+0xA4` value; module change |
+| `outside 1..338000000` | Unexpected VDEC clock | No power-on happened; read `clk_summary`; rethink |
+| Display disturbed | MM or a shared clock touched | `rmmod`, preserve logs, stop, tell the owner |
+
+*Risks:* VDEC is a hardware child of MM, which genpd does not model; the
+probe relies on MM being on, as it is whenever the display runs. The VDECSYS
+driver's own registration is the first VDEC power cycle on mainline.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).

@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 09:00:00 -0500
+Subject: [PATCH 697/699] clk: mediatek: mt6797: power VDECSYS through runtime
+ PM
+
+The VDECSYS gate registers live inside the VDEC power domain. With the
+domain described, let the clock core power it for register access, so
+reading the gate state with the domain off cannot touch an unpowered
+block.
+---
+ drivers/clk/mediatek/clk-mt6797-vdec.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-vdec.c b/drivers/clk/mediatek/clk-mt6797-vdec.c
+index 80bbbb0c4..0247bb7e3 100644
+--- a/drivers/clk/mediatek/clk-mt6797-vdec.c
++++ b/drivers/clk/mediatek/clk-mt6797-vdec.c
+@@ -41,6 +41,7 @@ static const struct mtk_clk_desc vdec_desc = {
+ 	.num_clk_ids = CLK_VDEC_NR,
+ 	.clks = vdec_clks,
+ 	.num_clks = ARRAY_SIZE(vdec_clks),
++	.need_runtime_pm = true,
+ };
+ 
+ static const struct of_device_id of_match_clk_mt6797_vdec[] = {

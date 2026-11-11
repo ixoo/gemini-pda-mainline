@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 09:00:00 -0500
+Subject: [PATCH 696/699] pmdomain: mediatek: describe the MT6797 VDEC domain
+
+The video decoder sits in this domain (SPM PWR_CON 0x300, status bit 7,
+one SRAM bank). The vendor kernel powers it with the standard sequence
+and no bus protection, parented on the VDEC clock mux. It stays off until
+a consumer asks, like the ISP domain.
+---
+ drivers/pmdomain/mediatek/mt6797-pm-domains.h | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/drivers/pmdomain/mediatek/mt6797-pm-domains.h b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+index 636ce6b59..e6a835ac2 100644
+--- a/drivers/pmdomain/mediatek/mt6797-pm-domains.h
++++ b/drivers/pmdomain/mediatek/mt6797-pm-domains.h
+@@ -7,6 +7,8 @@
+ #include <dt-bindings/power/mt6797-power.h>
+ 
+ #define MT6797_SPM_POWERON_CONFIG	0x0b160001
++#define MT6797_SPM_VDE_PWR_CON		0x300
++#define MT6797_PWR_STATUS_VDE		BIT(7)
+ #define MT6797_SPM_ISP_PWR_CON		0x308
+ #define MT6797_PWR_STATUS_ISP		BIT(5)
+ #define MT6797_SPM_AUDIO_PWR_CON	0x314
+@@ -42,6 +44,17 @@ static enum scpsys_bus_prot_block scpsys_bus_prot_blocks_mt6797[] = {
+ };
+ 
+ static const struct scpsys_domain_data scpsys_domain_data_mt6797[] = {
++	[MT6797_POWER_DOMAIN_VDEC] = {
++		.name = "vdec",
++		.sta_mask = MT6797_PWR_STATUS_VDE,
++		.ctl_offs = MT6797_SPM_VDE_PWR_CON,
++		.pwr_sta_offs = MT6797_SPM_PWR_STATUS,
++		.pwr_sta2nd_offs = MT6797_SPM_PWR_STATUS_2ND,
++		.sram_pdn_bits = BIT(8),
++		.sram_pdn_ack_bits = BIT(12),
++		.spm_poweron_config = MT6797_SPM_POWERON_CONFIG,
++		.caps = MTK_SCPD_KEEP_DEFAULT_OFF,
++	},
+ 	[MT6797_POWER_DOMAIN_ISP] = {
+ 		.name = "isp",
+ 		.sta_mask = MT6797_PWR_STATUS_ISP,

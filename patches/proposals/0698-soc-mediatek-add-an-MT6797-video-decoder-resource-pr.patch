@@ -1,0 +1,233 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 09:00:00 -0500
+Subject: [PATCH 698/699] soc: mediatek: add an MT6797 video decoder resource
+ probe
+
+A bring-up diagnostic, not a decoder. On probe it powers the VDEC domain,
+enables the VDEC core and LARB1 gates, logs a few VDECSYS and VDEC_MISC
+registers and the decoder interrupt count over 100 ms, and powers off
+again. It refuses a VDEC clock above the vendor working point of 338 MHz
+and writes no decoder register. Build as a module and load by hand.
+
+Not for upstream submission.
+---
+ drivers/soc/mediatek/Kconfig             |  11 ++
+ drivers/soc/mediatek/Makefile            |   1 +
+ drivers/soc/mediatek/mt6797-vdec-probe.c | 176 +++++++++++++++++++++++
+ 3 files changed, 188 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-vdec-probe.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 579020d46..140adaaff 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -58,6 +58,17 @@ config MTK_MT6797_CONSYS
+ 	  As a module (mt6797-consys), unloading it stops the WLAN firmware
+ 	  and powers CONN off, so the next load starts it again.
+ 
++config MTK_MT6797_VDEC_PROBE
++	tristate "MediaTek MT6797 video decoder resource probe"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on OF && PM && MFD_SYSCON
++	help
++	  Diagnostic for bring-up. On probe it powers the MT6797 VDEC domain,
++	  enables the VDEC core and LARB1 clock gates, logs a few VDECSYS and
++	  VDEC_MISC registers and the decoder interrupt count over 100 ms, then
++	  powers everything off. It writes no decoder register and decodes
++	  nothing. Build it as a module and load it by hand.
++
+ config MTK_MT6797_A72_POWER
+ 	bool "MediaTek MT6797 Cortex-A72 power resource observer"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 8eacdd373..e85a3bed0 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -89,3 +89,4 @@ obj-$(CONFIG_MTK_MMSYS) += mtk-mutex.o
+ obj-$(CONFIG_MTK_SVS) += mtk-svs.o
+ obj-$(CONFIG_MTK_SOCINFO) += mtk-socinfo.o
+ obj-$(CONFIG_MT6797_SPM_SLEEP) += mt6797-spm-sleep.o
++obj-$(CONFIG_MTK_MT6797_VDEC_PROBE) += mt6797-vdec-probe.o
+diff --git a/drivers/soc/mediatek/mt6797-vdec-probe.c b/drivers/soc/mediatek/mt6797-vdec-probe.c
+new file mode 100644
+index 000000000..bc6c857ce
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-vdec-probe.c
+@@ -0,0 +1,176 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 video decoder resource probe.
++ *
++ * A diagnostic, not a decoder. On probe it powers the VDEC domain through
++ * runtime PM, enables the VDEC core and LARB1 gates, reads a few VDECSYS and
++ * VDEC_MISC registers, watches the decoder interrupt for 100 ms, and powers
++ * everything off again. It writes no decoder register.
++ */
++
++#include <linux/clk.h>
++#include <linux/delay.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/regmap.h>
++
++/* The vendor runs vdec_sel at 338 MHz from VDECPLL; refuse anything faster. */
++#define VDEC_PROBE_MAX_RATE	338000000UL
++#define VDEC_PROBE_IRQ_LIMIT	1000
++
++static const unsigned int gcon_regs[] = {
++	0x00,	/* VDEC_CKEN */
++	0x08,	/* VDEC_LARB1_CKEN */
++	0x10,	/* VDEC_RESETB */
++	0x14,	/* LARB_RESTB */
++	0x18,	/* VDEC_DCM_CON */
++	0x1c,	/* VDEC_SRAM_CFG */
++};
++
++static const unsigned int misc_regs[] = {
++	0x84,	/* clock select */
++	0xa4,	/* interrupt configuration and done status */
++	0xc8,	/* power-down control */
++	0xcc,	/* power-down control */
++	0x178,	/* power-down control */
++};
++
++struct vdec_probe {
++	struct device *dev;
++	void __iomem *misc;
++	struct regmap *gcon;
++	struct clk *vdec;
++	struct clk *larb;
++	int irq;
++	atomic_t irq_count;
++};
++
++static irqreturn_t vdec_probe_irq(int irq, void *data)
++{
++	struct vdec_probe *vp = data;
++
++	if (atomic_inc_return(&vp->irq_count) >= VDEC_PROBE_IRQ_LIMIT)
++		disable_irq_nosync(irq);
++	return IRQ_HANDLED;
++}
++
++static void vdec_probe_dump(struct vdec_probe *vp, const char *when)
++{
++	unsigned int i, val;
++
++	for (i = 0; i < ARRAY_SIZE(gcon_regs); i++) {
++		if (regmap_read(vp->gcon, gcon_regs[i], &val))
++			dev_info(vp->dev, "%s: GCON+0x%02x read failed\n", when,
++				 gcon_regs[i]);
++		else
++			dev_info(vp->dev, "%s: GCON+0x%02x = 0x%08x\n", when,
++				 gcon_regs[i], val);
++	}
++	for (i = 0; i < ARRAY_SIZE(misc_regs); i++)
++		dev_info(vp->dev, "%s: MISC+0x%03x = 0x%08x\n", when,
++			 misc_regs[i], readl(vp->misc + misc_regs[i]));
++}
++
++static int vdec_probe_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	struct vdec_probe *vp;
++	unsigned long rate;
++	int ret;
++
++	vp = devm_kzalloc(dev, sizeof(*vp), GFP_KERNEL);
++	if (!vp)
++		return -ENOMEM;
++	vp->dev = dev;
++	atomic_set(&vp->irq_count, 0);
++
++	vp->misc = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(vp->misc))
++		return PTR_ERR(vp->misc);
++	vp->gcon = syscon_regmap_lookup_by_phandle(dev->of_node,
++						   "mediatek,vdecsys");
++	if (IS_ERR(vp->gcon))
++		return dev_err_probe(dev, PTR_ERR(vp->gcon), "no VDECSYS\n");
++	vp->vdec = devm_clk_get(dev, "vdec");
++	if (IS_ERR(vp->vdec))
++		return dev_err_probe(dev, PTR_ERR(vp->vdec), "no vdec clock\n");
++	vp->larb = devm_clk_get(dev, "larb");
++	if (IS_ERR(vp->larb))
++		return dev_err_probe(dev, PTR_ERR(vp->larb), "no larb clock\n");
++	vp->irq = platform_get_irq(pdev, 0);
++	if (vp->irq < 0)
++		return vp->irq;
++
++	rate = clk_get_rate(vp->vdec);
++	dev_info(dev, "vdec clock %lu Hz, larb clock %lu Hz\n", rate,
++		 clk_get_rate(vp->larb));
++	if (!rate || rate > VDEC_PROBE_MAX_RATE)
++		return dev_err_probe(dev, -ERANGE,
++				     "vdec clock %lu Hz outside 1..%lu, refusing\n",
++				     rate, VDEC_PROBE_MAX_RATE);
++
++	ret = devm_pm_runtime_enable(dev);
++	if (ret)
++		return ret;
++	ret = pm_runtime_resume_and_get(dev);
++	if (ret)
++		return dev_err_probe(dev, ret, "VDEC domain did not power on\n");
++	dev_info(dev, "VDEC domain on\n");
++
++	ret = clk_prepare_enable(vp->vdec);
++	if (ret) {
++		dev_err(dev, "vdec clock enable failed: %d\n", ret);
++		goto out_pm;
++	}
++	ret = clk_prepare_enable(vp->larb);
++	if (ret) {
++		dev_err(dev, "larb clock enable failed: %d\n", ret);
++		goto out_vdec;
++	}
++
++	vdec_probe_dump(vp, "on");
++
++	ret = request_irq(vp->irq, vdec_probe_irq, 0, dev_name(dev), vp);
++	if (ret) {
++		dev_err(dev, "interrupt %d request failed: %d\n", vp->irq, ret);
++	} else {
++		msleep(100);
++		free_irq(vp->irq, vp);
++		dev_info(dev, "interrupt %d: %d in 100 ms%s\n", vp->irq,
++			 atomic_read(&vp->irq_count),
++			 atomic_read(&vp->irq_count) >= VDEC_PROBE_IRQ_LIMIT ?
++			 " (limit reached, line disabled)" : "");
++	}
++	ret = 0;
++
++	clk_disable_unprepare(vp->larb);
++out_vdec:
++	clk_disable_unprepare(vp->vdec);
++out_pm:
++	pm_runtime_put_sync(dev);
++	dev_info(dev, "VDEC domain released, probe %s\n", ret ? "failed" : "done");
++	return ret;
++}
++
++static const struct of_device_id vdec_probe_of_match[] = {
++	{ .compatible = "mediatek,mt6797-vcodec-dec" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, vdec_probe_of_match);
++
++static struct platform_driver vdec_probe_driver = {
++	.probe = vdec_probe_probe,
++	.driver = {
++		.name = "mt6797-vdec-probe",
++		.of_match_table = vdec_probe_of_match,
++	},
++};
++module_platform_driver(vdec_probe_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 video decoder resource probe");
++MODULE_LICENSE("GPL");
