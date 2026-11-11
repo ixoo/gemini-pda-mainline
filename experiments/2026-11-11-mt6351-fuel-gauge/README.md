@@ -417,6 +417,81 @@ charging from a computer port at 1.5 A):
 
   It is one reading after boot and is left as it is.
 
+## Learned capacity: design proposal (owner request, not built)
+
+The owner: "It shows 100% battery health, but I think that's wrong". UPower's health is
+`energy-full` ÷ `energy-full-design`. With 0730, that is `charge_full` ÷ `charge_full_design`,
+and 0730 reports the design value for both.
+
+**How Linux handles it.** Gauges with their own firmware (bq27xxx, max17042) learn the full
+charge and report `charge_full`. The kernel does not persist anything. Userspace reads the
+value, and UPower shows the ratio. A host-side gauge like this one has to do the learning
+itself and needs userspace to keep the result across boots.
+
+**What the vendor did:**
+- `fuelgauged`/`libfgauge.so` learn a Qmax from two OCV points and the counter between them.
+- They log it as `MTK_FG: [FGADC_AQ] (FG1%, OCV1, CAR1, FG2%, OCV2, CAR2, Qmax_T_new_0mA, …,
+  aging factor1 …)` and `[FGADC_UI_FG] … Qmax_T_0mAH` through `/dev/kmsg`, and pass it to the
+  kernel with `SET_QMAX`.
+- The binaries reference no file path and no property, so the learned value is not persisted.
+  It is relearned each session.
+- The kernel shows it read-only in `/sys/devices/platform/battery_meter/FG_g_fg_dbg_bat_qmax`,
+  beside `FG_Aging_Factor` and `FG_Battery_Cycle`.
+
+**Proposed learning, in the driver.** It reuses 0711's rest readings:
+- **The event is a pair of rest OCV readings with counted charge between them.** Each reading
+  needs 30 min within ±20 mA, not the 5 min used for counting, so the voltage has relaxed.
+  The end of a full charge counts as such a reading once the battery has rested on the charger.
+- **The estimate is** Q = ΔCAR ÷ (SoC₁ − SoC₂).
+- **A pair is rejected if:**
+  - the SoC difference is under 40 points (each OCV reading carries about ±2-3 points);
+  - either reading is outside 15-35 °C, or the two differ by more than 10 °C;
+  - more than 72 h separate them (counter drift);
+  - the counter or the current window was invalid, or the boot changed between them (the
+    counter resets at boot);
+  - Q falls outside 50-110 % of the design capacity.
+- **An accepted Q moves `charge_full` a quarter of the way** toward the new value, so one bad
+  pair cannot swing it.
+- `capacity` and `charge_now` are then counted against `charge_full`, not the design value.
+- Each accepted or rejected pair is logged at debug level, as in 0721.
+
+**When it happens in practice.** On battery the Gemini never rests: it draws at least
+70 mA. So the low point needs the charger attached with charging held off.
+- **Passive:** a battery held at the charge limit gives high points. A low point only comes
+  from plugging in below the start threshold with charging held, which rarely happens on its
+  own.
+- **A deliberate calibration cycle, about one discharge:**
+  1. Charge to full with the limit at 100. Leave it on the charger 30 min after it finishes.
+  2. Unplug and use it down to about 20-30 %.
+  3. Plug in with charging held: set the end threshold below the current level. Leave it
+     30 min.
+  4. Restore the limits.
+
+  A small script can drive steps 1, 3 and 4 and say when a pair was accepted.
+
+**Keeping it across boots** (owner decision):
+- `charge_full` becomes writable in the driver, accepting 50-110 % of the design.
+- A unit restores it at boot from `/var/lib/gemini/battery-charge-full`, and saves it at
+  shutdown and whenever the driver reports a change.
+- The unit belongs in the board package (gemini-base), installed by the Arch root work.
+- No hardware write is involved: a sysfs attribute and a file.
+
+**What UPower then shows:**
+- Health: `capacity` = `charge_full` ÷ `charge_full_design`, for example 83 % after learning.
+- The percentage is counted against the learned full charge.
+- The time to full and to empty use that full charge.
+
+**Reference value:** one read-only Gemian boot (`dmesg | grep FGADC_AQ\|FGADC_UI_FG`, the
+`battery_meter` attributes above) gives the vendor's Qmax for this cell. It is a sanity check,
+not a seed: its units and temperature basis are the vendor model's.
+
+**Decisions for the owner:**
+- the writable `charge_full`;
+- the persistent file and its unit's owner;
+- whether to build the calibration helper.
+
+Nothing is built until then.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
