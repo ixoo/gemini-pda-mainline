@@ -859,3 +859,4 @@ proposals/0690-clk-mediatek-mt6797-keep-the-MFGPLL-on-post-divider-.patch
 proposals/0691-arm64-dts-mediatek-gemini-leave-238-MHz-out-of-the-G.patch
 proposals/0692-drm-panfrost-drain-the-MT6797-GPU-only-across-a-post.patch
 proposals/0693-drm-panfrost-do-not-let-a-BO-shared-through-dma-buf-.patch
+proposals/0694-wifi-mt6797-wait-for-a-disconnect-s-re-arm-before-re.patch

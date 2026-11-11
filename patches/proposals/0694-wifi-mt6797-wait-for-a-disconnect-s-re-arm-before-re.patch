@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Wed, 11 Nov 2026 07:40:21 -0500
+Subject: [PATCH] wifi: mt6797: wait for a disconnect's re-arm before refusing
+ a scan
+
+A link lost overnight was never rejoined. The disconnect queued its re-arm,
+iwd asked for a scan before the worker ran it, and the driver refused it as
+busy; the re-arm ran 18 ms later. iwd retries a refused scan only after
+another scan finishes, and none came for 53 minutes, until a manual scan.
+
+While a re-arm is pending, drop the mutex and wait for it, 20 ms at a
+time up to 1 s, then decide. The re-arm worker takes only this mutex. A
+wait that runs out refuses the scan as before.
+---
+ drivers/net/wireless/mediatek/mt6797/main.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/main.c b/drivers/net/wireless/mediatek/mt6797/main.c
+index 10f14bab4..56f340bb9 100644
+--- a/drivers/net/wireless/mediatek/mt6797/main.c
++++ b/drivers/net/wireless/mediatek/mt6797/main.c
+@@ -997,8 +997,10 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 	bool online;
+ 	unsigned int i, probing = 0, passive = 0;
+ 	u64 mask = 0;
++	unsigned int rearm_waits = 0;
+ 	int ret = -EOPNOTSUPP, slot;
+ 
++retry:
+ 	mutex_lock(&mac->mutex);
+ 	/* A closed lifetime has nothing left to scan with. */
+ 	if (mac->vif == vif && (mac->closing || mac->first_error || mac->join_closed))
+@@ -1014,6 +1016,22 @@ static int mt6797_mac_hw_scan(struct ieee80211_hw *hw, struct ieee80211_vif *vif
+ 		 mac->join_channel_released && mac->join_sta_active && !mac->join_cleanup_done;
+ 	if (mac->scan_used && !online && !mac->scan_online && !mac->scan_online_cancel)
+ 		mt6797_mac_join_retire_idle_scan(mac);
++	/* A disconnect queues its re-arm, and iwd asks for a scan before the
++	 * worker has run it. iwd retries a refused scan only after another scan
++	 * finishes, and none comes. Wait for the re-arm, which takes only this
++	 * mutex, up to 1 s.
++	 */
++	if (mac->scan_used && !online && mac->join_rearm_pending &&
++	    !mac->scan_online && !mac->scan_online_cancel && rearm_waits < 50) {
++		rearm_waits++;
++		mutex_unlock(&mac->mutex);
++		msleep(20);
++		goto retry;
++	}
++	if (rearm_waits)
++		dev_info(wiphy_dev(hw->wiphy),
++			 "one-shot WLAN scan waited for the re-arm: waits=%u pending=%u\n",
++			 rearm_waits, mac->join_rearm_pending);
+ 	if ((mac->scan_used && !online) || mac->scan_online || mac->scan_online_cancel) {
+ 		dev_info_ratelimited(wiphy_dev(hw->wiphy),
+ 				     "one-shot WLAN scan busy: used=%u data=%u ended=%u released=%u sta=%u cleanup=%u online=%u cancel=%u\n",
