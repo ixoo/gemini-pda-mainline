@@ -160,12 +160,12 @@ The project's local `mt6351-fuel-gauge` (0367-0373) registers a `battery` supply
 station and [read correctly on station 13b](../../experiments/2026-10-31-gemini-fuel-gauge/README.md),
 with capacity uncalibrated. The kernel charge guard stops on that capacity.
 
-Under mainline, `FG_CURRENT_OUT` has at times read within a few counts of zero
-while the counter kept integrating hundreds of milliamps. Gemian's reads of the
-same register are sane, and the cause is open. The counter's low bits 13:0,
-which the vendor discards, give 6.31 nAh resolution on this board.
-[0710-0711](../../experiments/2026-11-11-mt6351-fuel-gauge/README.md) take the
-current from the counter and count capacity from an OCV reading. An upstream
+Under mainline, `FG_CURRENT_OUT` has disagreed with the counter by about a third,
+and on one boot both read near zero with `FG_OFFSET` 0. LK and the vendor kernel
+each reset the offset, time and charge at boot; mainline relies on LK's reset.
+The counter's low bits 13:0, which the vendor discards, give 6.31 nAh resolution
+on this board. [0710-0711](../../experiments/2026-11-11-mt6351-fuel-gauge/README.md)
+take the current from the counter and count capacity from an OCV reading. An upstream
 implementation would need:
 
 - a wrapper regmap and the latched counter/current transaction;

@@ -56,10 +56,39 @@ No device access. Nothing private is quoted.
 
 **The register works under Gemian.** In the retained logs, every one of 7446 `IBat` samples on
 battery reads a discharge above 50 mA (−300 to −1600 mA). Near-zero values appear only on USB
-(1190 of 1840), where a full battery sits idle. So the near-zero `FG_CURRENT_OUT` on card-31 is
-a mainline-side state, not the chip's normal behaviour. The vendor reads the register no
-differently from us. The difference must be in the PMIC state around it, which a register dump
-can show (T1 below).
+(1190 of 1840), where a full battery sits idle. So a near-zero `FG_CURRENT_OUT` on battery is a
+mainline-side state, not the chip's normal behaviour. The vendor reads the register no
+differently from us.
+
+**The vendor initialises the FGADC twice per boot; mainline relies on the first.** LK
+(`lk/platform/mt6797/mt_battery.c`, under `DLPT_FEATURE_SUPPORT`) and then the vendor kernel
+(`battery_meter_initial` → `fgauge_initialization`) each run:
+1. `CON0` low byte `0x28`, then `0x29`: `FG_ON`, `FG_CAL` 2, `FG_AUTOCALRATE` 2;
+2. `CON0` upper byte `0x71`: `SW_CR` with `OFFSET_RST`, `TIME_RST` and `CHARGE_RST`, which
+   restarts the offset calibration and zeroes the counter;
+3. `FG_OSR` 8;
+4. reads the current until it is non-zero, up to 1000 tries.
+
+Neither writes `FG_OFFSET` (`CON13`) or `FG_ADJUST_OFFSET_VALUE` (`CON12`) directly: the offset
+comes from the hardware's own calibration after `OFFSET_RST`. Nothing writes `CON14`-`CON33`,
+so `FG_SLP_EN` and the FIR bypasses keep their reset values. The kernel's capacity counts charge
+in the userspace daemon from `FG_CAR`, anchored to OCV.
+
+**Card-31 state, from the charging session's read-only dump (2026-11-11):**
+- `CON0` `0x0029`, `CON15` `0x0008`, `CON16` `0x1000`, as on a working station boot.
+- The FGADC is clocked and out of reset.
+- **One difference: `CON13` `FG_OFFSET` reads 0, against `0x0032` on a working station boot**
+  (station-work-86).
+- **The counter agreed with the register: both were near zero.** The vendor slice moved from
+  −41901 to −42005 µAh in about an hour. Raw `CON2` fell about 33 units per 10 s plugged into a
+  500 mA port, about 0.6 mA.
+- Plugged in, a near-zero battery current can be real. The unplugged snapshot is still pending
+  (T1).
+
+**Leading hypothesis (inference):** the offset calibration did not complete on this boot, and
+the front end is not measuring the sense resistor. If unplugged readings also stay near zero,
+the fix is the vendor's own boot step, re-run by the driver. That is an FGADC reset, a PMIC
+write that needs its own test, not part of 0710-0711.
 
 **The datasheet only names `FG_CURRENT_OUT` as the first stage's output.** It does not document
 `CON15`-`CON33`. Names and fields come from the vendor header.
@@ -70,10 +99,10 @@ can show (T1 below).
   station 13b and in cpuidle window U0 (274 mA, matching the counter). They also show it wrong:
   - 93-95 mA against the counter's 67-70 after U1;
   - wrong again from N4 on ([cpuidle](../2026-11-07-mt6797-cpuidle/README.md));
-  - near zero on card-31.
+  - near zero on card-31, where the counter was near zero too.
 
-  The counter matched the expected step resolution and gave consistent results across those
-  windows. The record already moved its power measurements to the counter.
+  Where the two disagreed, the counter matched the expected step resolution and gave consistent
+  results across windows. The cpuidle record moved its power measurements to the counter.
 - **Capacity:** the OCV table at V − I × R. With I near zero:
   - on USB, the charging voltage reads high;
   - on battery, the loaded voltage reads low, about 19 points of the jump from 79 % to 60 %.
@@ -114,13 +143,14 @@ need an image, batched with other built-in work.
 
 **Not checked:** any device run; a full kernel build.
 
-**Ownership, proposed by message to the charging-protection session (no objection at the time
-of writing):**
+**Ownership, agreed by message with the charging-protection session:**
 - this record owns `mt6351-fuel-gauge.c`;
 - the charging-protection session owns bq25890, the guard, 0695 and 0708's status rule, which
   0710 leaves as it is.
 
-The guard reads `capacity`. Counted capacity removes the voltage swing near the limit that that
+The guard needs these kept: the supply name `battery`; a `capacity` soon after registration;
+`temp` and its four limits readable; and no `charge_control_*` properties on the gauge, which
+0695 adds as an extension. 0710-0711 keep all of them. The guard reads `capacity`. Counted capacity removes the voltage swing near the limit that that
 record flagged. A re-reading after a rest can still move capacity by a few points.
 
 ## Limitations
@@ -156,10 +186,11 @@ record flagged. A re-reading after a rest can still move capacity by a few point
 - **Decision:**
   - `CON15` other than `0x0008`, or a `CON16`/`CON26`/`CON27` field set that the vendor never
     writes: name that field, and find what set it (LK or a mainline driver).
-  - All as expected, the counter's slope at hundreds of mA and `FG_CURRENT_OUT` within a few
-    counts of zero: the register is unreliable here. 0710 stands as the fix.
-  - The counter is flat too: the counter is also stopped. Stop; 0710 would not help, and the
-    item becomes the FGADC clock or enable.
+  - The counter's slope is at hundreds of mA and `FG_CURRENT_OUT` within a few counts of zero:
+    the register is unreliable here, and 0710 is the fix.
+  - The counter is near zero too, with `FG_OFFSET` 0: the FGADC is not measuring. 0710-0711
+    would not help. The next item is re-running the vendor's init step, as its own write test.
+  - Both read hundreds of mA: card-31's readings came from the cable, and nothing is broken.
 - **Stops:** the battery under 30 %; any PMIC read error; the station not on the expected boot.
 
 ### T2: the image with 0710-0711 (next built-in batch)

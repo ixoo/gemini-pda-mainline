@@ -4,13 +4,11 @@ Date: Wed, 11 Nov 2026 11:23:27 -0500
 Subject: [PATCH] power: supply: mt6351-fuel-gauge: take the current
  from the coulomb counter
 
-On the Gemini under mainline, FG_CURRENT_OUT has read 0 to 3 counts
-(0 to about 1.1 mA) with the screen lit on battery, while the coulomb
-counter over the same time showed a few hundred milliamps. The vendor
-kernel reads the same register with the same latch sequence and gets
-plausible values, so the cause lies on the mainline side and is not known.
-A current that reads near zero leaves the status at the wrong state and
-takes the I x R correction out of the capacity.
+FG_CURRENT_OUT is a single latched sample. On the Gemini under mainline
+it has disagreed with the coulomb counter over the same minutes, for
+example 93-95 mA against the counter's 67-70 mA, while both agreed at
+274 mA earlier in the same boot. The counter integrates every
+conversion, so its change over time is the better current.
 
 Read the whole 35-bit counter, its two's complement value with the
 fraction below bit 14 that the vendor's 17-bit slice drops, and report
@@ -94,9 +92,9 @@ index bfdefd1..80eaf12 100644
 +/*
 + * The battery current is the counter's change over a window of at least
 + * MT6351_FG_WINDOW_MS. The instantaneous FG_CURRENT_OUT register is only used
-+ * until the first window closes: on the Gemini under mainline it has read a
-+ * few counts while the counter, and the vendor kernel's reads of the same
-+ * register, showed hundreds of milliamps.
++ * until the first window closes: it is one sample, and on the Gemini it has
++ * disagreed with the counter by a third over the same minutes, where the
++ * counter integrates every conversion.
 + */
 +static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
 +{
