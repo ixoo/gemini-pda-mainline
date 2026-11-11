@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Tue, 10 Nov 2026 22:15:37 -0500
+Subject: [PATCH] drm/panfrost: do not let a BO shared through dma-buf become
+ purgeable
+
+On the Gemini desktop, QtWebEngine imported dma-bufs of BOs their owner had marked
+purgeable, about once per video frame, and panfrost_gem_open warned each time,
+1466 times in one session. The shrinker could purge such a BO under the process
+that just imported it.
+
+madvise already refuses DONTNEED for a BO with more than one user it can see.
+Refuse it too while the BO is exported or imported, since its other users only
+show up when they import it.
+---
+ drivers/gpu/drm/panfrost/panfrost_drv.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/gpu/drm/panfrost/panfrost_drv.c b/drivers/gpu/drm/panfrost/panfrost_drv.c
+index 75113073c..ed2061706 100644
+--- a/drivers/gpu/drm/panfrost/panfrost_drv.c
++++ b/drivers/gpu/drm/panfrost/panfrost_drv.c
+@@ -503,6 +503,15 @@ static int panfrost_ioctl_madvise(struct drm_device *dev, void *data,
+ 			ret = -EINVAL;
+ 			goto out_unlock_mappings;
+ 		}
++
++		/*
++		 * A BO shared through dma-buf has users this driver cannot see
++		 * until they import it, so it must never be purged under them.
++		 */
++		if (gem_obj->dma_buf || drm_gem_is_imported(gem_obj)) {
++			ret = -EINVAL;
++			goto out_unlock_mappings;
++		}
+ 	}
+ 
+ 	args->retained = drm_gem_shmem_madvise_locked(&bo->base, args->madv);
