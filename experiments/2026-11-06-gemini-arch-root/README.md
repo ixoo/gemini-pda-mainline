@@ -1925,6 +1925,32 @@ bar now has `start = ["clock", "workspaces"]`, an empty centre, and the same end
 launcher stays on Ctrl+Alt+Space and the side key, so the launcher widget's scale entry goes.
 Noctalia's `config validate` passes. It is in no card image yet, and rides with the next one.
 
+### A charge-limit switch (`gemini-base` 37, 2026-11-11)
+
+The owner asked for a charge-limit switch in Noctalia's Power tab. The kernel side, a
+`charge_control_end_threshold` of 80 from boot, is 0695 and needs the next station image.
+UPower 1.91.5, read in its source and on the card-30 image:
+
+- UPower offers the control only for a battery whose udev properties include `CHARGE_LIMIT`.
+  `61-gemini-charge-limit.rules` sets `75,80` on the `battery` power supply. A live sysfs
+  end threshold between 1 and 99 overrides the 80.
+- Switching on writes those thresholds to sysfs, and switching off writes 0 and 100. The
+  choice is saved as a bare `1` or `0` in `/var/lib/upower/charging-threshold-status`, which
+  the upower package leaves absent, so UPower would start with the switch off. A tmpfiles
+  `f` line creates it as `1`, matching the kernel's 80, and leaves an existing file alone
+  (checked with `systemd-tmpfiles --root`, which wrote one byte, `1`).
+- At start-up UPower writes the thresholds only when the saved switch is on. With it off, the
+  kernel's 80 would come back after a reboot while Noctalia showed the limit off. The same
+  udev rule runs `charge-limit` when the battery appears, which writes 100 when the saved
+  switch is `0`. udev runs it before announcing the battery, so UPower sees the corrected
+  value.
+- `org.freedesktop.UPower.enable-charging-limit` allows an active local session without a
+  password, and upower's own polkit rule doesn't touch it. The autologin session on tty1 was
+  active on `seat0` in the R4 diagnostics above, so the card needs no polkit rule.
+
+`udevadm verify` passes on the rule and ShellCheck on the script. It rides with the next
+card; the switch itself is not tried on the device yet.
+
 ## Analysis
 
 Not started.

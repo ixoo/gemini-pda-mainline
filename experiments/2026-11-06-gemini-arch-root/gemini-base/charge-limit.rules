@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: MIT
+# The charge limit (owner, 2026-11-11: a charge-limit switch in Noctalia's Power tab). The
+# kernel stops charging at charge_control_end_threshold, 80 from boot (0695). UPower offers
+# its charge-limit control only for a battery with CHARGE_LIMIT set, and turns the limit on
+# by writing these start and end values; off writes 0 and 100.
+SUBSYSTEM=="power_supply", KERNEL=="battery", ENV{CHARGE_LIMIT}="75,80"
+# UPower doesn't write the threshold at start-up when its saved switch is off, so the
+# kernel's boot default would come back while Noctalia still shows the limit off.
+ACTION=="add", SUBSYSTEM=="power_supply", KERNEL=="battery", \
+  TEST=="charge_control_end_threshold", RUN+="/usr/lib/gemini/charge-limit"
