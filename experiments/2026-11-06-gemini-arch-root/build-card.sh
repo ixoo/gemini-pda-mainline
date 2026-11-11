@@ -161,9 +161,11 @@ noctalia_sha=$(build_local noctalia Noctalia)
 # gemini-base (step 3), built from this directory with the station's audio-start and
 # display-start staged beside it, by makepkg as nobody; fakeroot only for the build.
 station=$here/../2026-10-30-mainline-dev-station/initramfs
+ucm=$here/../2026-11-08-gemini-audio-ucm/ucm2
 build=$mnt/run/build
 mkdir -p "$build/src" "$build/out"
-cp "$here"/gemini-base/* "$station/audio-start" "$station/display-start" "$build/src/"
+cp "$here"/gemini-base/* "$station/audio-start" "$station/display-start" \
+	"$ucm/conf.d/mt6797-mt6351/mt6797-mt6351.conf" "$ucm/Gemini/HiFi.conf" "$build/src/"
 chown -R 65534:65534 "$build"
 # gemini-base's makedepends: perl and kbd come with the tarball; xkeyboard-config stays,
 # since the compositor needs it too.

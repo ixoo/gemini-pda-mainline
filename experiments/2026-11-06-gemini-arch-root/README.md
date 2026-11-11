@@ -1951,6 +1951,33 @@ UPower 1.91.5, read in its source and on the card-30 image:
 `udevadm verify` passes on the rule and ShellCheck on the script. It rides with the next
 card; the switch itself is not tried on the device yet.
 
+Built into card-31 (image `a6da8be0…`, gemini-base 37 `92c80879…`), from main `7f6b6baf`.
+On a read-only mount of the image: the rule, the script, the tmpfiles line and the new bar.
+
+### Speaker, headphones and microphone through UCM (`gemini-base` 38, 2026-11-11)
+
+The [audio UCM profile](../2026-11-08-gemini-audio-ucm/README.md) passed on card-31 (its
+record, main `2b0c1623`): with `alsaucm` and PipeWire stopped, Speaker, Headphones and Mic
+each set only their own switches, the owner heard each tone on the right output, and the
+microphone captured. So gemini-base now uses it instead of its manual sink:
+
+- `build-card.sh` stages the profile's two files beside the PKGBUILD, as it does
+  `audio-start`, and gemini-base installs them under `/usr/share/alsa/ucm2/`
+  (`conf.d/mt6797-mt6351/mt6797-mt6351.conf` and `Gemini/HiFi.conf`). It depends on
+  `alsa-ucm-conf` now, whose `ucm.conf` leads alsa-lib to `conf.d`.
+- The PipeWire sink on `hw:mt6797mt6351,0` and the WirePlumber rule that disabled the card
+  are gone, so WirePlumber makes the devices from the profile. `audio-start` stays.
+- `first-login` mutes the default source once (owner, on card-31: the microphone muted by
+  default), with its own marker, so a card that already ran it mutes once at the next login.
+- The output still starts at 35%. The owner found the speakers saturate at high stream
+  volumes: YouTube at 100% distorted, and 55% was the most without. Headphone Volume is
+  already at its -10 dB floor, so the profile can't lower it. The audio session is measuring
+  where distortion starts and will send a cap; until then, the speakers can saturate.
+
+ShellCheck passes on `first-login` and `build-card.sh`; the package isn't built yet. To
+check at the first boot: Noctalia shows "Speaker" as the output and "Mic" as the input, a
+headphone plug switches the output, and the microphone starts muted.
+
 ## Analysis
 
 Not started.

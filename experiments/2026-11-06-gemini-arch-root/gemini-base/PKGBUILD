@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 # The Gemini PDA's boot-time setup for the Arch root (../README.md, step 3).
-# Built by ../build-card.sh, which stages the station's audio-start and
-# display-start here, so each script has one copy in the repository.
+# Built by ../build-card.sh, which stages the station's audio-start and display-start
+# and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=37
+pkgver=38
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -18,7 +18,7 @@ _xkbrev=64c6c0e4d5df00babe215f26eb5ca5b2e28c0ee9
 _csver=1.216
 makedepends=('perl' 'kbd' 'xkeyboard-config')
 # umbriel comes from ../umbriel, built by ../build-card.sh; noctalia from Arch Linux ARM.
-depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'noctalia' 'upower' 'pipewire' 'wireplumber' 'pipewire-pulse' 'pipewire-alsa' 'mesa' 'foot' 'ttf-dejavu'
+depends=('kmod' 'alsa-utils' 'iwd' 'iw' 'wireless-regdb' 'sudo' 'umbriel' 'noctalia' 'upower' 'alsa-ucm-conf' 'pipewire' 'wireplumber' 'pipewire-pulse' 'pipewire-alsa' 'mesa' 'foot' 'ttf-dejavu'
          # Profiling and power analysis (owner, 2026-11-07); the kernel side is
          # configs/gemini-a53-station-perf.fragment.
          'perf' 'trace-cmd' 'powertop' 'cpupower'
@@ -40,7 +40,7 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         tmpfiles.conf 50-gemini-usb0.network 50-gemini-wlan.network iwd-main.conf
         logind.conf journald.conf vconsole.conf sudoers gemini-session@.service
         gemini-session-fallback@.service session-fallback modprobe-drm.conf
-        umbriel.toml noctalia.toml pipewire-gemini.conf wireplumber-gemini.conf firstboot gemini-firstboot.service
+        umbriel.toml noctalia.toml mt6797-mt6351.conf HiFi.conf firstboot gemini-firstboot.service
         umbriel-session first-login sleep-radios sleep.conf geoclue.conf hw-load gemini-hw@.service hw-radio.conf
         charge-limit charge-limit.rules
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
@@ -88,8 +88,10 @@ package() {
     # Noctalia reads only the user's config directory, so the default reaches each user
     # through useradd -m at first boot.
     install -Dm644 noctalia.toml "$pkgdir/etc/skel/.config/noctalia/00-gemini.toml"
-    install -Dm644 pipewire-gemini.conf "$pkgdir/usr/share/pipewire/pipewire.conf.d/50-gemini.conf"
-    install -Dm644 wireplumber-gemini.conf "$pkgdir/usr/share/wireplumber/wireplumber.conf.d/50-gemini.conf"
+    # The audio card's UCM profile (experiments/2026-11-08-gemini-audio-ucm, staged here by
+    # build-card.sh): WirePlumber makes the Speaker, Headphones and Mic devices from it.
+    install -Dm644 mt6797-mt6351.conf "$pkgdir/usr/share/alsa/ucm2/conf.d/mt6797-mt6351/mt6797-mt6351.conf"
+    install -Dm644 HiFi.conf "$pkgdir/usr/share/alsa/ucm2/Gemini/HiFi.conf"
     install -Dm755 -t "$pkgdir/usr/lib/gemini" umbriel-session first-login session-fallback hw-load charge-limit
     install -Dm644 charge-limit.rules "$pkgdir/usr/lib/udev/rules.d/61-gemini-charge-limit.rules"
     # Gemian's layouts, and one complete keymap per layout as Gemian's planetgemini rules
