@@ -1643,6 +1643,15 @@ A media player (owner, 2026-11-08, `gemini-base` 29):
   mpv-mpris 1.3 installs `/etc/mpv/scripts/mpris.so`, which mpv loads for every user.
 - Mainline has no MT6797 video decoder, so mpv decodes on the CPU. Playback speed is not
   measured.
+- Gemian does the same (owner question, 2026-11-11; read-only check on Gemian boot
+  `56e31061`, kernel 3.18.41+, Debian 9). Its kernel has the vendor decoder built in
+  (`/dev/Vcodec` and `/dev/MJC`, root-only), and the Android 7.1.1 container lists MediaTek
+  OMX decoders for AVC, HEVC, VP9, VP8, MPEG-4, H.263, DivX, Xvid and VC-1. Nothing on the
+  Debian side reaches them: no droidmedia, gst-droid or OMX/hybris GStreamer element, and no
+  `hwdec` setting for its mpv 0.23. Its desktop players decode in software too. The decoder
+  hardware itself works on this unit: the
+  [video codec experiment](../2026-11-09-mt6797-video-codec/README.md) decoded HEVC through
+  `/dev/Vcodec` with MediaTek's own test tool during the same boot.
 
 Bigger bar icons and a display name (owner, 2026-11-08, `gemini-base` 30, Umbriel `pkgrel` 5):
 
