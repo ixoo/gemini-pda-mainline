@@ -4,3 +4,6 @@
 # through runtime PM (0697); the probe reads registers only (0698).
 CONFIG_COMMON_CLK_MT6797_VDECSYS=m
 CONFIG_MTK_MT6797_VDEC_PROBE=m
+# Stage 3a: the register replay diagnostic (0716), loaded by hand with a
+# privately built replay blob in /lib/firmware/mediatek/mt6797/.
+CONFIG_MTK_MT6797_VDEC_REPLAY=m

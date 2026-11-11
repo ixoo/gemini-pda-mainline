@@ -615,6 +615,68 @@ Stage 3, a decoder prototype, can build on this. The registers the vendor
 programs before decoding (the clock select and power-down masks) start from
 known values.
 
+
+## Stage 3a: replay one HEVC picture on mainline (prepared 2026-11-11, not built or run)
+
+Before writing a V4L2 driver, prove the whole hardware path on mainline with
+the register sequence the vendor library actually used. The V6 trace of
+picture 0 of the single-slice clip (an I picture) is converted privately
+into a replay blob. It holds:
+
+- the register writes, with the three buffer addresses (bitstream,
+  collocated MV buffer, output frame) relocated;
+- the register reads, with the values Gemian returned;
+- the bitstream chunk Gemian fed: 3786 bytes, `dumpBistream000.raw`.
+
+The trace, the converter and the blob stay private, because they come from
+vendor code.
+
+**0716, `mt6797-vdec-replay` (module, local only):**
+
+- loads the blob with `request_firmware()` and allocates its buffers below
+  4 GiB;
+- powers the VDEC domain and the two gates;
+- clears the LARB1 per-port MMU enable (`+0xFC0`), so the decoder uses
+  physical addresses (the station has no IOMMU);
+- runs the sequence.
+  - Bit-reader reads are checked exactly.
+  - Other reads poll up to 2 ms for the recorded value.
+  - After the start write it waits for SPI 240 and clears it as the vendor
+    driver's interrupt handler does.
+- logs the SHA-256 of the output planes and leaves the frame in debugfs.
+
+It only touches the VDEC window (`0x16000000`–`0x16028FFF`) and LARB1
+`+0xFC0`, and keeps the 338 MHz clock guard. It binds the same compatible as
+the probe, so only one of the two is loaded at a time.
+
+**Checked:** the converter produces 294 operations, 3 buffers and an
+8544-byte blob. The module compiles with `W=1` without warnings, and 0716
+applies on top of the committed series. Checkpatch shows only the expected
+warnings.
+
+**Not checked:** Buildbox build, device.
+
+**Next device run (V9).** The same image as V7 plus 0716's module. It needs
+a module-only build, no new boot image, if the running image matches the
+build.
+
+- *Hypothesis:* the mainline VDEC, driven by Gemian's recorded sequence with
+  physical buffer addresses, decodes picture 0 identically.
+- *Pass:* every read matches, one decoder interrupt, and the output planes'
+  SHA-256 equal Gemian's dump (`dumpY000` `5914fc2c…`, `dumpC000`
+  `8e86aa52…`). If only the padding outside 352x288 differs, the detiled,
+  cropped frame must still match the software reference frame 0 (MD5
+  `2aa334e9…`), checked on the host from the debugfs copy.
+
+| Observation | Meaning | Next |
+| --- | --- | --- |
+| Hashes equal, reads match | Hardware path proven on mainline | Stage 3b: V4L2 stateless HEVC driver computing these registers from controls |
+| Reads match, no interrupt in 1 s | Decode stalled; likely DMA addressing (larb or physical address) | Read the MISC and HEVC status registers; check LARB1 MMU_EN; no retry |
+| Early read mismatch (bit reader) | Bitstream not where the hardware reads it | Check buffer content and VLD window registers |
+| Output differs inside 352x288 | Wrong reference or MV buffer contents, or a missing initialisation | Compare against the trace; no device change |
+| Any hang or display disturbance | Stop as in V7 | Power off, preserve evidence |
+
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).

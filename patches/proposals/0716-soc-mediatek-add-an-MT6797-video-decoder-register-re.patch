@@ -1,0 +1,460 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 13:30:00 -0500
+Subject: [PATCH] soc: mediatek: add an MT6797 video decoder register replay
+
+A bring-up diagnostic, not a decoder. On probe it loads a replay blob with
+request_firmware(), allocates the buffers it describes below 4 GiB, powers
+the VDEC domain, clears the LARB1 per-port MMU enable so the decoder uses
+physical addresses, and runs the recorded register sequence: writes with
+buffer addresses relocated, reads checked against the recorded values,
+and waits for the decoder interrupt. It logs the SHA-256 of the output
+frame planes and leaves the frame in debugfs. It refuses a VDEC clock
+above 338 MHz and touches only the VDEC window and LARB1 MMU_EN.
+
+The replay blob is built privately from a vendor register trace and is
+not part of this tree. Not for upstream submission.
+---
+ drivers/soc/mediatek/Kconfig              |  14 +
+ drivers/soc/mediatek/Makefile             |   1 +
+ drivers/soc/mediatek/mt6797-vdec-replay.c | 397 ++++++++++++++++++++++
+ 3 files changed, 412 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-vdec-replay.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 140adaaff..51a6e758d 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -69,6 +69,20 @@ config MTK_MT6797_VDEC_PROBE
+ 	  powers everything off. It writes no decoder register and decodes
+ 	  nothing. Build it as a module and load it by hand.
+ 
++config MTK_MT6797_VDEC_REPLAY
++	tristate "MediaTek MT6797 video decoder register replay"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on OF && PM
++	select FW_LOADER
++	select CRYPTO_LIB_SHA256
++	help
++	  Diagnostic for bring-up. On probe it loads a register replay blob
++	  with request_firmware(), allocates the buffers it describes, powers
++	  the MT6797 VDEC domain, runs the recorded register sequence with
++	  buffer addresses relocated and reads checked, waits for the decoder
++	  interrupt, and logs the SHA-256 of the output frame. The output is
++	  left in debugfs. Build it as a module and load it by hand.
++
+ config MTK_MT6797_A72_POWER
+ 	bool "MediaTek MT6797 Cortex-A72 power resource observer"
+ 	depends on ARM64 && ARCH_MEDIATEK && OF
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index e85a3bed0..68d094364 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -90,3 +90,4 @@ obj-$(CONFIG_MTK_SVS) += mtk-svs.o
+ obj-$(CONFIG_MTK_SOCINFO) += mtk-socinfo.o
+ obj-$(CONFIG_MT6797_SPM_SLEEP) += mt6797-spm-sleep.o
+ obj-$(CONFIG_MTK_MT6797_VDEC_PROBE) += mt6797-vdec-probe.o
++obj-$(CONFIG_MTK_MT6797_VDEC_REPLAY) += mt6797-vdec-replay.o
+diff --git a/drivers/soc/mediatek/mt6797-vdec-replay.c b/drivers/soc/mediatek/mt6797-vdec-replay.c
+new file mode 100644
+index 000000000..5982b6fce
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-vdec-replay.c
+@@ -0,0 +1,397 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * MT6797 video decoder register replay.
++ *
++ * A bring-up diagnostic, not a decoder. On probe it loads a replay blob with
++ * request_firmware(), allocates the DMA buffers the blob describes below
++ * 4 GiB, powers the VDEC domain, puts LARB1 in physical-address mode, and
++ * executes the blob: register writes (optionally relocated to the buffers),
++ * register reads checked against expected values, and waits for the decoder
++ * interrupt. It then logs the SHA-256 of the output buffer's two planes,
++ * exposes the buffer through debugfs, and powers everything off.
++ *
++ * Register accesses are limited to the VDEC window 0x16000000-0x16028fff.
++ */
++
++#include <crypto/sha2.h>
++#include <linux/clk.h>
++#include <linux/completion.h>
++#include <linux/debugfs.h>
++#include <linux/delay.h>
++#include <linux/dma-mapping.h>
++#include <linux/firmware.h>
++#include <linux/interrupt.h>
++#include <linux/io.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
++#include <linux/slab.h>
++#include <linux/vmalloc.h>
++
++#define VR_MAGIC		0x31505256	/* "VRP1" */
++#define VR_WIN_BASE		0x16000000
++#define VR_WIN_SIZE		0x29000
++#define VR_LARB1_BASE		0x16010000
++#define VR_LARB_MMU_EN		0xfc0
++#define VR_MISC_IRQ_CFG		(0x20000 + 0xa4)
++#define VR_MAX_BUFS		8
++#define VR_MAX_BUF_SIZE		SZ_8M
++#define VR_MAX_OPS		100000
++#define VR_MAX_RATE		338000000UL
++#define VR_POLL_US		2000
++#define VR_LOG_MISMATCHES	16
++
++enum { VR_WRITE = 1, VR_WRITE_REL, VR_READ, VR_READ_REL, VR_WAIT_IRQ };
++
++static char *firmware = "mediatek/mt6797/vdec-replay.bin";
++module_param(firmware, charp, 0444);
++MODULE_PARM_DESC(firmware, "replay blob loaded with request_firmware()");
++
++struct vr_op {
++	__le32 op, reg, a, b;
++};
++
++struct vr_buf {
++	void *cpu;
++	dma_addr_t dma;
++	u32 size;
++};
++
++struct vdec_replay {
++	struct device *dev;
++	void __iomem *win;
++	void __iomem *larb;
++	struct clk *vdec, *larb_clk;
++	int irq;
++	struct completion done;
++	atomic_t irqs;
++	struct vr_buf bufs[VR_MAX_BUFS];
++	u32 nbufs;
++	struct debugfs_blob_wrapper blob;
++	struct dentry *dir;
++};
++
++static irqreturn_t vr_irq(int irq, void *data)
++{
++	struct vdec_replay *vr = data;
++	void __iomem *cfg = vr->win + VR_MISC_IRQ_CFG;
++
++	writel(readl(cfg) | 0x11, cfg);
++	writel(readl(cfg) & ~0x10, cfg);
++	atomic_inc(&vr->irqs);
++	complete(&vr->done);
++	return IRQ_HANDLED;
++}
++
++static int vr_reg(struct vdec_replay *vr, u32 reg, void __iomem **addr)
++{
++	if (reg < VR_WIN_BASE || reg >= VR_WIN_BASE + VR_WIN_SIZE || reg & 3)
++		return -EINVAL;
++	*addr = vr->win + (reg - VR_WIN_BASE);
++	return 0;
++}
++
++static int vr_rel(struct vdec_replay *vr, u32 a, u32 off, u32 *val)
++{
++	u32 id = a & 0xffff, shift = a >> 16;
++	u64 pa;
++
++	if (id >= vr->nbufs || off >= vr->bufs[id].size || shift > 12)
++		return -EINVAL;
++	pa = vr->bufs[id].dma + off;
++	*val = pa >> shift;
++	return 0;
++}
++
++/* Bit-reader reads consume bits; never re-read them. */
++static bool vr_consuming(u32 reg)
++{
++	u32 off = reg - VR_WIN_BASE;
++
++	if ((off >= 0x28004 && off <= 0x28080) ||
++	    (off >= 0x21004 && off <= 0x21080))
++		return true;
++	return off == 0x28098 || off == 0x2809c;
++}
++
++static int vr_run(struct vdec_replay *vr, const struct vr_op *ops, u32 nops,
++		  u32 *mismatches)
++{
++	u32 i, waits = 0;
++
++	for (i = 0; i < nops; i++) {
++		u32 op = le32_to_cpu(ops[i].op), reg = le32_to_cpu(ops[i].reg);
++		u32 a = le32_to_cpu(ops[i].a), b = le32_to_cpu(ops[i].b);
++		void __iomem *addr = NULL;
++		u32 val, exp;
++		int ret;
++
++		if (op != VR_WAIT_IRQ) {
++			ret = vr_reg(vr, reg, &addr);
++			if (ret) {
++				dev_err(vr->dev, "op %u: register 0x%08x outside window\n",
++					i, reg);
++				return ret;
++			}
++		}
++		switch (op) {
++		case VR_WRITE:
++			writel(a, addr);
++			break;
++		case VR_WRITE_REL:
++			ret = vr_rel(vr, a, b, &val);
++			if (ret)
++				return ret;
++			writel(val, addr);
++			break;
++		case VR_READ:
++		case VR_READ_REL:
++			if (op == VR_READ_REL) {
++				ret = vr_rel(vr, a, b, &exp);
++				if (ret)
++					return ret;
++			} else {
++				exp = a;
++			}
++			val = readl(addr);
++			if (val != exp && !(op == VR_READ && (b & 1)) &&
++			    !vr_consuming(reg)) {
++				unsigned int t;
++
++				for (t = 0; t < VR_POLL_US && val != exp; t++) {
++					udelay(1);
++					val = readl(addr);
++				}
++			}
++			if (val != exp) {
++				if (*mismatches < VR_LOG_MISMATCHES)
++					dev_info(vr->dev,
++						 "op %u: read 0x%08x = 0x%08x, expected 0x%08x\n",
++						 i, reg, val, exp);
++				(*mismatches)++;
++			}
++			break;
++		case VR_WAIT_IRQ:
++			if (!wait_for_completion_timeout(&vr->done,
++							 msecs_to_jiffies(a))) {
++				dev_err(vr->dev, "op %u: no decoder interrupt in %u ms\n",
++					i, a);
++				return -ETIMEDOUT;
++			}
++			reinit_completion(&vr->done);
++			waits++;
++			break;
++		default:
++			dev_err(vr->dev, "op %u: unknown op %u\n", i, op);
++			return -EINVAL;
++		}
++	}
++	dev_info(vr->dev, "%u ops done, %u interrupt waits, %u read mismatches\n",
++		 nops, waits, *mismatches);
++	return 0;
++}
++
++static void vr_free_bufs(void *data)
++{
++	struct vdec_replay *vr = data;
++	u32 i;
++
++	for (i = 0; i < vr->nbufs; i++)
++		dma_free_coherent(vr->dev, vr->bufs[i].size, vr->bufs[i].cpu,
++				  vr->bufs[i].dma);
++	vr->nbufs = 0;
++}
++
++static int vr_load(struct vdec_replay *vr, const struct firmware *fw,
++		   const struct vr_op **ops, u32 *nops, u32 *out_buf,
++		   u32 *out_len, u32 *out_split)
++{
++	const __le32 *w = (const __le32 *)fw->data;
++	size_t pos;
++	u32 i, nbufs;
++	int ret;
++
++	if (fw->size < 28 || le32_to_cpu(w[0]) != VR_MAGIC ||
++	    le32_to_cpu(w[1]) != 1)
++		return -EINVAL;
++	nbufs = le32_to_cpu(w[2]);
++	*nops = le32_to_cpu(w[3]);
++	*out_buf = le32_to_cpu(w[4]);
++	*out_len = le32_to_cpu(w[5]);
++	*out_split = le32_to_cpu(w[6]);
++	if (!nbufs || nbufs > VR_MAX_BUFS || !*nops || *nops > VR_MAX_OPS ||
++	    *out_buf >= nbufs)
++		return -EINVAL;
++	pos = 28 + 8 * nbufs;
++	if (fw->size < pos)
++		return -EINVAL;
++
++	ret = dma_set_mask_and_coherent(vr->dev, DMA_BIT_MASK(32));
++	if (ret)
++		return ret;
++	ret = devm_add_action_or_reset(vr->dev, vr_free_bufs, vr);
++	if (ret)
++		return ret;
++	for (i = 0; i < nbufs; i++) {
++		u32 size = le32_to_cpu(w[7 + 2 * i]);
++		u32 init = le32_to_cpu(w[8 + 2 * i]);
++
++		if (!size || size > VR_MAX_BUF_SIZE || init > size)
++			return -EINVAL;
++		if (fw->size < pos + init)
++			return -EINVAL;
++		vr->bufs[i].size = PAGE_ALIGN(size);
++		vr->bufs[i].cpu = dma_alloc_coherent(vr->dev, vr->bufs[i].size,
++						     &vr->bufs[i].dma, GFP_KERNEL);
++		if (!vr->bufs[i].cpu)
++			return -ENOMEM;
++		vr->nbufs = i + 1;
++		memset(vr->bufs[i].cpu, 0, vr->bufs[i].size);
++		memcpy(vr->bufs[i].cpu, fw->data + pos, init);
++		pos += ALIGN(init, 4);
++		dev_info(vr->dev, "buffer %u: %u bytes at %pad, %u initialised\n",
++			 i, vr->bufs[i].size, &vr->bufs[i].dma, init);
++	}
++	if (*out_len > vr->bufs[*out_buf].size || *out_split > *out_len)
++		return -EINVAL;
++	if (fw->size < pos + (size_t)*nops * sizeof(struct vr_op))
++		return -EINVAL;
++	*ops = (const struct vr_op *)(fw->data + pos);
++	return 0;
++}
++
++static int vdec_replay_probe(struct platform_device *pdev)
++{
++	struct device *dev = &pdev->dev;
++	u32 nops, out_buf, out_len, out_split, mismatches = 0;
++	const struct firmware *fw;
++	const struct vr_op *ops;
++	struct vdec_replay *vr;
++	u8 hash[SHA256_DIGEST_SIZE];
++	unsigned long rate;
++	u32 mmu;
++	int ret;
++
++	vr = devm_kzalloc(dev, sizeof(*vr), GFP_KERNEL);
++	if (!vr)
++		return -ENOMEM;
++	vr->dev = dev;
++	init_completion(&vr->done);
++	atomic_set(&vr->irqs, 0);
++
++	vr->win = devm_ioremap(dev, VR_WIN_BASE, VR_WIN_SIZE);
++	vr->larb = devm_ioremap(dev, VR_LARB1_BASE, SZ_4K);
++	if (!vr->win || !vr->larb)
++		return -ENOMEM;
++	vr->vdec = devm_clk_get(dev, "vdec");
++	if (IS_ERR(vr->vdec))
++		return PTR_ERR(vr->vdec);
++	vr->larb_clk = devm_clk_get(dev, "larb");
++	if (IS_ERR(vr->larb_clk))
++		return PTR_ERR(vr->larb_clk);
++	vr->irq = platform_get_irq(pdev, 0);
++	if (vr->irq < 0)
++		return vr->irq;
++	rate = clk_get_rate(vr->vdec);
++	if (!rate || rate > VR_MAX_RATE)
++		return dev_err_probe(dev, -ERANGE, "vdec clock %lu Hz, refusing\n",
++				     rate);
++
++	ret = request_firmware(&fw, firmware, dev);
++	if (ret)
++		return dev_err_probe(dev, ret, "cannot load %s\n", firmware);
++	ret = vr_load(vr, fw, &ops, &nops, &out_buf, &out_len, &out_split);
++	if (ret) {
++		dev_err(dev, "invalid replay blob %s: %d\n", firmware, ret);
++		goto out_fw;
++	}
++	dev_info(dev, "%s: %zu bytes, %u buffers, %u ops\n", firmware,
++		 fw->size, vr->nbufs, nops);
++
++	ret = devm_pm_runtime_enable(dev);
++	if (ret)
++		goto out_fw;
++	ret = pm_runtime_resume_and_get(dev);
++	if (ret) {
++		dev_err(dev, "VDEC domain did not power on: %d\n", ret);
++		goto out_fw;
++	}
++	ret = clk_prepare_enable(vr->vdec);
++	if (ret)
++		goto out_pm;
++	ret = clk_prepare_enable(vr->larb_clk);
++	if (ret)
++		goto out_vdec;
++
++	mmu = readl(vr->larb + VR_LARB_MMU_EN);
++	writel(0, vr->larb + VR_LARB_MMU_EN);
++	dev_info(dev, "LARB1 MMU_EN 0x%08x -> 0x%08x\n", mmu,
++		 readl(vr->larb + VR_LARB_MMU_EN));
++
++	ret = request_irq(vr->irq, vr_irq, 0, dev_name(dev), vr);
++	if (ret)
++		goto out_larb;
++	ret = vr_run(vr, ops, nops, &mismatches);
++	free_irq(vr->irq, vr);
++	dev_info(dev, "decoder interrupts: %d\n", atomic_read(&vr->irqs));
++
++	if (!ret) {
++		struct vr_buf *ob = &vr->bufs[out_buf];
++
++		sha256(ob->cpu, out_split, hash);
++		dev_info(dev, "output plane 0 (%u bytes) sha256 %*phN\n", out_split,
++			 (int)sizeof(hash), hash);
++		sha256(ob->cpu + out_split, out_len - out_split, hash);
++		dev_info(dev, "output plane 1 (%u bytes) sha256 %*phN\n",
++			 out_len - out_split, (int)sizeof(hash), hash);
++		vr->blob.data = vmalloc(out_len);
++		if (vr->blob.data) {
++			memcpy(vr->blob.data, ob->cpu, out_len);
++			vr->blob.size = out_len;
++			vr->dir = debugfs_create_dir("mt6797-vdec-replay", NULL);
++			debugfs_create_blob("output", 0400, vr->dir, &vr->blob);
++		}
++	}
++
++out_larb:
++	clk_disable_unprepare(vr->larb_clk);
++out_vdec:
++	clk_disable_unprepare(vr->vdec);
++out_pm:
++	pm_runtime_put_sync(dev);
++	dev_info(dev, "VDEC domain released, replay %s\n", ret ? "failed" : "done");
++out_fw:
++	release_firmware(fw);
++	if (ret)
++		return ret;
++	platform_set_drvdata(pdev, vr);
++	return 0;
++}
++
++static void vdec_replay_remove(struct platform_device *pdev)
++{
++	struct vdec_replay *vr = platform_get_drvdata(pdev);
++
++	debugfs_remove_recursive(vr->dir);
++	vfree(vr->blob.data);
++}
++
++static const struct of_device_id vdec_replay_of_match[] = {
++	{ .compatible = "mediatek,mt6797-vcodec-dec" },
++	{ /* sentinel */ }
++};
++MODULE_DEVICE_TABLE(of, vdec_replay_of_match);
++
++static struct platform_driver vdec_replay_driver = {
++	.probe = vdec_replay_probe,
++	.remove = vdec_replay_remove,
++	.driver = {
++		.name = "mt6797-vdec-replay",
++		.of_match_table = vdec_replay_of_match,
++	},
++};
++module_platform_driver(vdec_replay_driver);
++
++MODULE_DESCRIPTION("MediaTek MT6797 video decoder register replay");
++MODULE_LICENSE("GPL");
