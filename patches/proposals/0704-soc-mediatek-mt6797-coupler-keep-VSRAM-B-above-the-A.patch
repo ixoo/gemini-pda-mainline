@@ -1,0 +1,161 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 15:02:17 -0500
+Subject: [PATCH] soc: mediatek: mt6797 coupler: keep VSRAM_B above the A72
+ rail too
+
+The A72 cluster rail, VPROC2 ("vproc-big"), has its own SRAM LDO, VSRAM_B,
+with the same vendor rule as VPROC1 and VSRAM_L: 10 mV above the rail,
+raised before it and lowered after.
+
+Hold a small table of rail and SRAM LDO name pairs instead of one pair, and
+balance each coupled pair by the same rule.
+---
+ .../soc/mediatek/mt6797-regulator-coupler.c   | 79 ++++++++++++-------
+ 1 file changed, 52 insertions(+), 27 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-regulator-coupler.c b/drivers/soc/mediatek/mt6797-regulator-coupler.c
+index 0739b27c1..746a6eace 100644
+--- a/drivers/soc/mediatek/mt6797-regulator-coupler.c
++++ b/drivers/soc/mediatek/mt6797-regulator-coupler.c
+@@ -2,15 +2,16 @@
+ /*
+  * MT6797 CPU rail and SRAM LDO coupler.
+  *
+- * VPROC1 feeds CPU0-7 and the CCI; VSRAM_L feeds their SRAM. The vendor
+- * kernel keeps VSRAM_L at VPROC1 + 10 mV within its own 1.0-1.2 V range, so
+- * never below VPROC1 except at the 1.2 V top where both are equal. It
+- * raises VSRAM_L before VPROC1 and lowers it after. At its 1.0 V floor
+- * VSRAM_L can sit well above VPROC1, which this coupler allows.
++ * VPROC1 feeds CPU0-7 and the CCI, with VSRAM_L for their SRAM; VPROC2
++ * ("vproc-big") feeds the A72 cluster, with VSRAM_B. The vendor kernel keeps
++ * each SRAM LDO at its rail + 10 mV within its own 1.0-1.2 V range, so never
++ * below the rail except at the 1.2 V top where both are equal. It raises the
++ * SRAM LDO before the rail and lowers it after. At its 1.0 V floor the SRAM
++ * LDO can sit well above the rail, which this coupler allows.
+  *
+- * The two regulators are coupled in the device tree; a change requested on
+- * the CPU rail first moves VSRAM_L up, or moves it down after the CPU rail.
+- * VSRAM_L takes no request of its own once something uses the CPU rail.
++ * Each pair is coupled in the device tree; a change requested on the CPU
++ * rail first moves its SRAM LDO up, or moves it down after the rail. An SRAM
++ * LDO takes no request of its own once something uses its rail.
+  */
+ 
+ #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+@@ -26,10 +27,16 @@
+ 
+ #define MT6797_VSRAM_ABOVE_UV	10000
+ 
++struct mt6797_coupled_pair {
++	const char *vproc_name;
++	const char *vsram_name;
++	struct regulator_dev *vproc;
++	struct regulator_dev *vsram;
++};
++
+ struct mt6797_regulator_coupler {
+ 	struct regulator_coupler coupler;
+-	struct regulator_dev *vsram;
+-	struct regulator_dev *vproc;
++	struct mt6797_coupled_pair pairs[2];
+ };
+ 
+ #define to_mt6797_coupler(x) \
+@@ -40,16 +47,22 @@ static int mt6797_coupler_balance(struct regulator_coupler *coupler,
+ 				  suspend_state_t state)
+ {
+ 	struct mt6797_regulator_coupler *mc = to_mt6797_coupler(coupler);
+-	struct regulator_dev *vsram = mc->vsram;
++	struct mt6797_coupled_pair *pair = NULL;
++	struct regulator_dev *vsram;
+ 	int min_uV = 0, max_uV = INT_MAX;
+ 	int cur_uV, sram_min_uV, sram_max_uV, ret;
++	unsigned int i;
+ 
+-	if (!vsram || !mc->vproc)
++	for (i = 0; i < ARRAY_SIZE(mc->pairs); i++)
++		if (rdev == mc->pairs[i].vproc || rdev == mc->pairs[i].vsram)
++			pair = &mc->pairs[i];
++	if (!pair || !pair->vsram || !pair->vproc)
+ 		return -EPERM;
++	vsram = pair->vsram;
+ 
+ 	if (rdev == vsram) {
+ 		/* Nothing has used the CPU rail yet; settle VSRAM alone. */
+-		if (!mc->vproc->use_count)
++		if (!pair->vproc->use_count)
+ 			return regulator_do_balance_voltage(rdev, state, true);
+ 		return -EPERM;
+ 	}
+@@ -95,34 +108,42 @@ static int mt6797_coupler_attach(struct regulator_coupler *coupler,
+ {
+ 	struct mt6797_regulator_coupler *mc = to_mt6797_coupler(coupler);
+ 	const char *name = rdev_get_name(rdev);
++	struct regulator_dev **slot;
++	unsigned int i;
+ 
+ 	if (rdev->coupling_desc.n_coupled != 2)
+ 		return 1;
+ 
+-	if (!strcmp(name, "vsram_l")) {
+-		if (mc->vsram)
+-			return -EINVAL;
+-		mc->vsram = rdev;
+-	} else if (!strcmp(name, "vproc1")) {
+-		if (mc->vproc)
++	for (i = 0; i < ARRAY_SIZE(mc->pairs); i++) {
++		struct mt6797_coupled_pair *pair = &mc->pairs[i];
++
++		if (!strcmp(name, pair->vsram_name))
++			slot = &pair->vsram;
++		else if (!strcmp(name, pair->vproc_name))
++			slot = &pair->vproc;
++		else
++			continue;
++		if (*slot)
+ 			return -EINVAL;
+-		mc->vproc = rdev;
+-	} else {
+-		return 1;
++		*slot = rdev;
++		return 0;
+ 	}
+ 
+-	return 0;
++	return 1;
+ }
+ 
+ static int mt6797_coupler_detach(struct regulator_coupler *coupler,
+ 				 struct regulator_dev *rdev)
+ {
+ 	struct mt6797_regulator_coupler *mc = to_mt6797_coupler(coupler);
++	unsigned int i;
+ 
+-	if (rdev == mc->vsram)
+-		mc->vsram = NULL;
+-	if (rdev == mc->vproc)
+-		mc->vproc = NULL;
++	for (i = 0; i < ARRAY_SIZE(mc->pairs); i++) {
++		if (rdev == mc->pairs[i].vsram)
++			mc->pairs[i].vsram = NULL;
++		if (rdev == mc->pairs[i].vproc)
++			mc->pairs[i].vproc = NULL;
++	}
+ 
+ 	return 0;
+ }
+@@ -133,6 +154,10 @@ static struct mt6797_regulator_coupler mt6797_coupler = {
+ 		.detach_regulator = mt6797_coupler_detach,
+ 		.balance_voltage = mt6797_coupler_balance,
+ 	},
++	.pairs = {
++		{ .vproc_name = "vproc1", .vsram_name = "vsram_l" },
++		{ .vproc_name = "vproc-big", .vsram_name = "vsram_b" },
++	},
+ };
+ 
+ static int __init mt6797_regulator_coupler_init(void)
+-- 
+2.43.0
+

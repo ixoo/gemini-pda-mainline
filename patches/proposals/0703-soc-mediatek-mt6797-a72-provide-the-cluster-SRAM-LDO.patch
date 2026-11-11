@@ -1,0 +1,220 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 15:01:49 -0500
+Subject: [PATCH] soc: mediatek: mt6797-a72: provide the cluster SRAM LDO as a
+ regulator
+
+The A72 cluster SRAM LDO, VSRAM_B, is set only through the firmware service
+the module already calls at bring-up. A voltage change on the cluster rail
+has to move it too: raised before the rail, lowered after.
+
+Register it as a regulator, "vsram_b", when the a72-power node has a
+regulator child, so a coupler can keep it above the rail. Its selector is
+the firmware's: 900 mV at 3 and 25 mV a step. A set checks the selector and
+calibration the firmware wrote. With both A72s down the cluster is off, so
+the voltage is kept and applied by the next bring-up, which now uses the
+last voltage set instead of always 1.1 V.
+---
+ drivers/soc/mediatek/mt6797-a72.c | 123 +++++++++++++++++++++++++++++-
+ 1 file changed, 119 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72.c b/drivers/soc/mediatek/mt6797-a72.c
+index fcf38beff..ed3aa57ad 100644
+--- a/drivers/soc/mediatek/mt6797-a72.c
++++ b/drivers/soc/mediatek/mt6797-a72.c
+@@ -16,6 +16,10 @@
+  * again, so the sequence runs again before the first one comes back. BUCKB
+  * stays on in between. The voltage selector and the clock stay as firmware
+  * left them.
++ *
++ * The cluster's SRAM LDO, VSRAM_B, is also a regulator here, since only the
++ * firmware's service sets it. The cluster comes up with it at 1.1 V, or at
++ * the last voltage a consumer set.
+  */
+ 
+ #include <linux/arm-smccc.h>
+@@ -30,6 +34,8 @@
+ #include <linux/of_platform.h>
+ #include <linux/platform_device.h>
+ #include <linux/regmap.h>
++#include <linux/regulator/driver.h>
++#include <linux/regulator/of_regulator.h>
+ #include <linux/reset.h>
+ #include <linux/soc/mediatek/mt6797-dvfsp-handoff.h>
+ #include <linux/soc/mediatek/mtk-pmic-wrap.h>
+@@ -62,7 +68,13 @@
+ #define  SRAM_LDO_1100MV		110000
+ #define SRAM_SELECTOR			0x102222b0
+ #define  SRAM_SELECTOR_MASK		GENMASK(11, 0)
+-#define  SRAM_SELECTOR_1100MV		0x8fb
++#define  SRAM_SELECTOR_STATE		0x8f0
++#define  SRAM_SELECTOR_SEL		GENMASK(3, 0)
++/* The firmware's selector: 900 mV at 3, then 25 mV a step. */
++#define SRAM_MIN_UV			900000
++#define SRAM_STEP_UV			25000
++#define SRAM_MIN_SEL			3
++#define SRAM_N_SEL			16
+ #define SRAM_CALIBRATION		0x102222b4
+ #define  SRAM_CALIBRATION_MASK		GENMASK(15, 0)
+ 
+@@ -77,6 +89,9 @@ struct mt6797_a72 {
+ 	struct i2c_client *buck;
+ 	struct device *pwrap;
+ 	struct mt6797_dvfsp_handoff *handoff;
++	/* Serialises the SRAM LDO between the regulator and the hotplug path. */
++	struct mutex sram_lock;
++	int sram_uv;
+ };
+ 
+ static struct mt6797_a72 *mt6797_a72;
+@@ -269,13 +284,20 @@ static int mt6797_a72_rail_on(struct mt6797_a72 *a72)
+ 	return ret;
+ }
+ 
+-static int mt6797_a72_sram_on(struct mt6797_a72 *a72)
++static int mt6797_a72_sram_sel(int uv)
++{
++	return SRAM_MIN_SEL + (uv - SRAM_MIN_UV) / SRAM_STEP_UV;
++}
++
++/* Set the SRAM LDO and check the selector and calibration the firmware wrote. */
++static int mt6797_a72_sram_set(struct mt6797_a72 *a72, int uv)
+ {
+ 	struct arm_smccc_res res;
+ 	u32 selector[2], calibration[2];
+ 	int i, ret;
+ 
+-	arm_smccc_smc(SMC_SRAM_LDO_SET, SRAM_LDO_1100MV, 0, 0, 0, 0, 0, 0, &res);
++	lockdep_assert_held(&a72->sram_lock);
++	arm_smccc_smc(SMC_SRAM_LDO_SET, uv / 10, 0, 0, 0, 0, 0, 0, &res);
+ 	if (res.a0)
+ 		return -EIO;
+ 	usleep_range(GUARD_US, GUARD_US + 20);
+@@ -289,16 +311,105 @@ static int mt6797_a72_sram_on(struct mt6797_a72 *a72)
+ 			return ret;
+ 	}
+ 	if (selector[0] != selector[1] || calibration[0] != calibration[1] ||
+-	    (selector[1] & SRAM_SELECTOR_MASK) != SRAM_SELECTOR_1100MV ||
++	    (selector[1] & SRAM_SELECTOR_MASK) !=
++	    (SRAM_SELECTOR_STATE | mt6797_a72_sram_sel(uv)) ||
+ 	    !(calibration[1] & SRAM_CALIBRATION_MASK) ||
+ 	    (calibration[1] & ~SRAM_CALIBRATION_MASK)) {
+ 		dev_err(a72->dev, "SRAM LDO reads 0x%08x 0x%08x, 0x%08x 0x%08x\n",
+ 			selector[0], selector[1], calibration[0], calibration[1]);
+ 		return -ERANGE;
+ 	}
++	a72->sram_uv = uv;
+ 	return 0;
+ }
+ 
++static int mt6797_a72_sram_on(struct mt6797_a72 *a72)
++{
++	int ret;
++
++	mutex_lock(&a72->sram_lock);
++	ret = mt6797_a72_sram_set(a72, a72->sram_uv);
++	mutex_unlock(&a72->sram_lock);
++	return ret;
++}
++
++static int mt6797_a72_vsram_get_sel(struct regulator_dev *rdev)
++{
++	struct mt6797_a72 *a72 = rdev_get_drvdata(rdev);
++	int sel;
++
++	mutex_lock(&a72->sram_lock);
++	sel = mt6797_a72_sram_sel(a72->sram_uv);
++	mutex_unlock(&a72->sram_lock);
++	return sel;
++}
++
++/*
++ * With both A72s down the cluster is off; keep the voltage for the next
++ * bring-up, which sets it before CPU_ON.
++ */
++static int mt6797_a72_vsram_set_sel(struct regulator_dev *rdev,
++				    unsigned int sel)
++{
++	struct mt6797_a72 *a72 = rdev_get_drvdata(rdev);
++	int uv = regulator_list_voltage_linear(rdev, sel);
++	int ret = 0;
++
++	if (uv < 0)
++		return uv;
++
++	/*
++	 * No hotplug lock: this runs from cpufreq while an A72 comes online,
++	 * with the hotplug lock held for write.
++	 */
++	mutex_lock(&a72->sram_lock);
++	if (cpu_online(8) || cpu_online(9))
++		ret = mt6797_a72_sram_set(a72, uv);
++	else
++		a72->sram_uv = uv;
++	mutex_unlock(&a72->sram_lock);
++	return ret;
++}
++
++static const struct regulator_ops mt6797_a72_vsram_ops = {
++	.list_voltage = regulator_list_voltage_linear,
++	.map_voltage = regulator_map_voltage_linear,
++	.get_voltage_sel = mt6797_a72_vsram_get_sel,
++	.set_voltage_sel = mt6797_a72_vsram_set_sel,
++};
++
++static const struct regulator_desc mt6797_a72_vsram_desc = {
++	.name = "vsram_b",
++	.ops = &mt6797_a72_vsram_ops,
++	.type = REGULATOR_VOLTAGE,
++	.owner = THIS_MODULE,
++	.min_uV = SRAM_MIN_UV,
++	.uV_step = SRAM_STEP_UV,
++	.linear_min_sel = SRAM_MIN_SEL,
++	.n_voltages = SRAM_N_SEL,
++};
++
++/* VSRAM_B for a coupler that keeps it above the cluster's rail, if described. */
++static void mt6797_a72_register_vsram(struct mt6797_a72 *a72)
++{
++	struct regulator_config config = { .dev = a72->dev, .driver_data = a72 };
++	struct regulator_dev *rdev;
++	struct device_node *np;
++
++	np = of_get_child_by_name(a72->dev->of_node, "regulator");
++	if (!np)
++		return;
++	config.of_node = np;
++	config.init_data = of_get_regulator_init_data(a72->dev, np,
++						      &mt6797_a72_vsram_desc);
++	rdev = devm_regulator_register(a72->dev, &mt6797_a72_vsram_desc,
++				       &config);
++	of_node_put(np);
++	if (IS_ERR(rdev))
++		dev_err(a72->dev, "VSRAM_B regulator not registered: %ld\n",
++			PTR_ERR(rdev));
++}
++
+ static void mt6797_a72_dcm_on(struct mt6797_a72 *a72)
+ {
+ 	u32 val = readl(a72->mcucfg + MCUCFG_MP2_SYNC_DCM) & ~MP2_SYNC_DCM_MASK;
+@@ -360,6 +471,8 @@ static int mt6797_a72_probe(struct platform_device *pdev)
+ 	if (!a72)
+ 		return -ENOMEM;
+ 	a72->dev = dev;
++	mutex_init(&a72->sram_lock);
++	a72->sram_uv = SRAM_LDO_1100MV * 10;
+ 
+ 	a72->mcucfg = devm_platform_ioremap_resource(pdev, 0);
+ 	if (IS_ERR(a72->mcucfg))
+@@ -432,6 +545,8 @@ static int mt6797_a72_probe(struct platform_device *pdev)
+ 
+ 	dev_info(dev, "CPU8 and CPU9 online\n");
+ 
++	mt6797_a72_register_vsram(a72);
++
+ 	/* The callbacks use the wrapper and the buck from here on. */
+ 	mt6797_a72 = a72;
+ 	ret = cpuhp_setup_state_nocalls(CPUHP_BP_PREPARE_DYN,
+-- 
+2.43.0
+

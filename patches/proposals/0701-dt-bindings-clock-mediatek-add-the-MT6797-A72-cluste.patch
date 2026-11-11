@@ -1,0 +1,26 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 15:00:39 -0500
+Subject: [PATCH] dt-bindings: clock: mediatek: add the MT6797 A72 cluster PLL
+ index
+
+The A72 cluster's PLL is reached through the secure firmware, by the same
+MCUMIXED provider that owns the mux it shares with the other clusters.
+---
+ include/dt-bindings/clock/mediatek,mt6797-mcusys.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/include/dt-bindings/clock/mediatek,mt6797-mcusys.h b/include/dt-bindings/clock/mediatek,mt6797-mcusys.h
+index 6ed14500f..a0e02c1f1 100644
+--- a/include/dt-bindings/clock/mediatek,mt6797-mcusys.h
++++ b/include/dt-bindings/clock/mediatek,mt6797-mcusys.h
+@@ -5,5 +5,6 @@
+ #define MT6797_CLK_MCU_LL	0	/* CPU0-3 */
+ #define MT6797_CLK_MCU_L	1	/* CPU4-7 */
+ #define MT6797_CLK_MCU_CCI	2
++#define MT6797_CLK_MCU_B	3	/* CPU8-9, through the secure firmware */
+ 
+ #endif
+-- 
+2.43.0
+

@@ -1,0 +1,229 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 08:49:22 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station DVFS: scale the A72
+ voltage
+
+Give CPU8-9 VPROC2 (DA9214 BUCKB) as their supply and the vendor's whole
+base table for this speed bin, with each point's voltage by the A53
+tables' rule: the higher of the base voltage and this unit's EEM value
+plus 62.5 mV, capped at 1.2 V and rounded up to 10 mV. The TT-segment
+points are left out.
+
+Couple VPROC2 with VSRAM_B so the coupler raises the SRAM LDO before the
+rail and lowers it after.
+
+Make the pair a power actor on the 75 C control trip, so the power
+allocator, which refuses to bind unless every device on that trip has an
+energy model, still binds with the A72s online and holds them to its
+budget. Their dynamic-power-coefficient, 396, is fitted to the vendor's
+per-core dynamic power for each operating point at its base voltage, as
+for the A53s (mW = C x MHz x mV^2 / 10^9); every point from 676 MHz up is
+within 8 % of the fit, and 338 MHz is 34 % below it. The pair starts at
+the neutral weight of 1024.
+---
+ .../mt6797-gemini-pda-station-dvfs.dts        | 147 +++++++++++++++++-
+ 1 file changed, 144 insertions(+), 3 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+index 5904e09c4..7c7d18a71 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -18,6 +18,7 @@
+ 
+ /delete-node/ &cluster0_opp;
+ /delete-node/ &cluster1_opp;
++/delete-node/ &cluster2_opp;
+ 
+ / {
+ 	/*
+@@ -348,18 +349,20 @@ vproc1: BUCKA {
+ 			regulator-coupled-max-spread = <430000>;
+ 		};
+ 
+-		/* For the A72 pair; nothing here consumes it yet. */
++		/* The A72 pair, with VSRAM_B from the A72 module. */
+ 		vproc2: BUCKB {
+ 			regulator-name = "vproc-big";
+ 			regulator-min-microvolt = <800000>;
+ 			regulator-max-microvolt = <1200000>;
++			regulator-coupled-with = <&vsram_b>;
++			regulator-coupled-max-spread = <430000>;
+ 		};
+ 	};
+ };
+ 
+ /*
+  * Power allocator cooling for the SoC zone, as the vendor's adaptive CPU
+- * budget does: from the 58 C trip, hold the junction near 75 C. Both
++ * budget does: from the 58 C trip, hold the junction near 75 C. The three
+  * clusters and the GPU are power actors at the control trip; the 58 C maps
+  * from the station tree stay for the step-wise governor. The zone's policy
+  * is set to power_allocator at run time. sustainable-power is a first
+@@ -370,6 +373,8 @@ vproc2: BUCKB {
+  * MHz, is pushed to its lowest point while the L cluster keeps most of the
+  * budget. Weighting LL four times lets it keep its top point, which is
+  * within 1 % of the best split of a ~1 W budget between the two A53 clusters.
++ * The A72 pair starts at the neutral weight; its own weight is still to be
++ * tuned under load.
+  */
+ &{/thermal-zones/soc-thermal} {
+ 	polling-delay-passive = <100>;
+@@ -409,13 +414,22 @@ map-control-gpu {
+ 			contribution = <1024>;
+ 			cooling-device = <&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 		};
++
++		map-control-b {
++			trip = <&soc_control>;
++			contribution = <1024>;
++			cooling-device =
++				<&cpu8 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++				<&cpu9 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++		};
+ 	};
+ };
+ 
+ /*
+  * capacity-dmips-mhz comes from the A72 station tree. dynamic-power-coefficient
+  * is fitted to the vendor's per-core dynamic power for each operating point at
+- * its base voltage (mW = C x MHz x mV^2 / 10^9): 78 for CPU0-3, 129 for CPU4-7.
++ * its base voltage (mW = C x MHz x mV^2 / 10^9): 78 for CPU0-3, 129 for CPU4-7
++ * and 396 for CPU8-9.
+  */
+ 
+ &cpu0 {
+@@ -465,3 +479,130 @@ &cpu7 {
+ 	cpu-supply = <&vproc1>;
+ 	dynamic-power-coefficient = <129>;
+ };
++
++/*
++ * The A72 pair over the vendor's whole base table for this speed bin, by the
++ * same rule as the A53 tables: the higher of the base voltage and this unit's
++ * EEM value plus 62.5 mV, capped at 1.2 V and rounded up to 10 mV. The
++ * TT-segment points (2431 and 2587 MHz) are left out; 2392 and 2522 MHz take
++ * 1.2 V.
++ */
++&vsram_b {
++	regulator-coupled-with = <&vproc2>;
++	regulator-coupled-max-spread = <430000>;
++};
++
++/ {
++	b_dvfs_opp: opp-table-cluster2 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp-338000000 {
++			opp-hz = /bits/ 64 <338000000>;
++			opp-microvolt = <870000 870000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-676000000 {
++			opp-hz = /bits/ 64 <676000000>;
++			opp-microvolt = <870000 870000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-845000000 {
++			opp-hz = /bits/ 64 <845000000>;
++			opp-microvolt = <880000 880000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1001000000 {
++			opp-hz = /bits/ 64 <1001000000>;
++			opp-microvolt = <900000 900000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1131000000 {
++			opp-hz = /bits/ 64 <1131000000>;
++			opp-microvolt = <930000 930000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1378000000 {
++			opp-hz = /bits/ 64 <1378000000>;
++			opp-microvolt = <980000 980000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1495000000 {
++			opp-hz = /bits/ 64 <1495000000>;
++			opp-microvolt = <1000000 1000000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1677000000 {
++			opp-hz = /bits/ 64 <1677000000>;
++			opp-microvolt = <1040000 1040000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1885000000 {
++			opp-hz = /bits/ 64 <1885000000>;
++			opp-microvolt = <1080000 1080000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2093000000 {
++			opp-hz = /bits/ 64 <2093000000>;
++			opp-microvolt = <1110000 1110000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2158000000 {
++			opp-hz = /bits/ 64 <2158000000>;
++			opp-microvolt = <1130000 1130000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2223000000 {
++			opp-hz = /bits/ 64 <2223000000>;
++			opp-microvolt = <1140000 1140000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2262000000 {
++			opp-hz = /bits/ 64 <2262000000>;
++			opp-microvolt = <1150000 1150000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2327000000 {
++			opp-hz = /bits/ 64 <2327000000>;
++			opp-microvolt = <1170000 1170000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2392000000 {
++			opp-hz = /bits/ 64 <2392000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-2522000000 {
++			opp-hz = /bits/ 64 <2522000000>;
++			opp-microvolt = <1200000 1200000 1200000>;
++			clock-latency-ns = <100000>;
++		};
++	};
++};
++
++&cpu8 {
++	operating-points-v2 = <&b_dvfs_opp>;
++	cpu-supply = <&vproc2>;
++	dynamic-power-coefficient = <396>;
++};
++
++&cpu9 {
++	operating-points-v2 = <&b_dvfs_opp>;
++	cpu-supply = <&vproc2>;
++	dynamic-power-coefficient = <396>;
++};
+-- 
+2.43.0
+

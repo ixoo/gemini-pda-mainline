@@ -865,3 +865,10 @@ proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
 proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch
 proposals/0698-soc-mediatek-add-an-MT6797-video-decoder-resource-pr.patch
 proposals/0699-arm64-dts-mediatek-gemini-station-describe-the-video.patch
+proposals/0700-clk-mediatek-mt6797-mcusys-hold-the-firmware-s-A72.patch
+proposals/0701-dt-bindings-clock-mediatek-add-the-MT6797-A72-cluste.patch
+proposals/0702-clk-mediatek-mt6797-mcusys-add-the-A72-cluster-PLL.patch
+proposals/0703-soc-mediatek-mt6797-a72-provide-the-cluster-SRAM-LDO.patch
+proposals/0704-soc-mediatek-mt6797-coupler-keep-VSRAM-B-above-the-A.patch
+proposals/0705-arm64-dts-mediatek-gemini-station-A72-scale-the-A72.patch
+proposals/0706-arm64-dts-mediatek-gemini-station-DVFS-scale-the-A72.patch

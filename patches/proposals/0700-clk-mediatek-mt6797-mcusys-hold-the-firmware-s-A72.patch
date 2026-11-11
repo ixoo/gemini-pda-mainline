@@ -1,0 +1,110 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 14:59:17 -0500
+Subject: [PATCH] clk: mediatek: mt6797-mcusys: hold the firmware's A72
+ semaphore too
+
+The secure firmware changes the A72 fields of ARMPLLDIV_MUXSEL and
+ARMPLLDIV_CKDIV in CPU_ON and CPU_OFF under the semaphore at CSPM + 0x448,
+not DVFSP semaphore 3. A cluster change here could therefore overlap a
+CPU_ON for an A72 and lose one of the two read-modify-writes.
+
+Hold that semaphore as well for every transaction, taken after semaphore 3
+and released before it, with the same bounded wait.
+---
+ drivers/clk/mediatek/clk-mt6797-mcusys.c | 36 ++++++++++++++++--------
+ 1 file changed, 25 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/clk/mediatek/clk-mt6797-mcusys.c b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+index 50a89e5e5..0c06247c6 100644
+--- a/drivers/clk/mediatek/clk-mt6797-mcusys.c
++++ b/drivers/clk/mediatek/clk-mt6797-mcusys.c
+@@ -10,8 +10,10 @@
+  *
+  * MCUMIXED is shared with the secure firmware, which reprograms the A72
+  * fields of the same mux and divider registers. Every access holds the DVFSP
+- * hardware semaphore 3, reached through the DVFSP handoff that owns the CSPM
+- * window.
++ * hardware semaphore 3, as the vendor kernel does, and also the semaphore at
++ * CSPM + 0x448, which the firmware takes for its own A72 mux and divider
++ * changes in CPU_ON and CPU_OFF. Both are reached through the DVFSP handoff
++ * that owns the CSPM window.
+  *
+  * Each rate uses the vendor's post-divider and cluster divider for it. A
+  * post-divider change moves the cluster to MAINPLL (1092 MHz) for the 2 us the
+@@ -72,6 +74,7 @@
+ #define CSPM_POWERON_CONFIG_EN		0x000
+ #define CSPM_POWERON_CONFIG_VALUE	0x0b160001
+ #define CSPM_SEMA3_M0			0x440
++#define CSPM_SEMA_FW_B			0x448
+ #define CSPM_SEMA_HELD			BIT(0)
+ #define CSPM_SEMA_TIMEOUT_US		2000
+ 
+@@ -302,13 +305,13 @@ struct mt6797_mcu_call {
+ 	bool started;
+ };
+ 
+-static int mt6797_mcu_sema_get(void __iomem *cspm)
++static int mt6797_mcu_sema_get(void __iomem *cspm, u32 sema)
+ {
+ 	unsigned int i;
+ 
+ 	for (i = 0; i < CSPM_SEMA_TIMEOUT_US / MCU_FH_POLL_US; i++) {
+-		writel(1, cspm + CSPM_SEMA3_M0);
+-		if (readl(cspm + CSPM_SEMA3_M0) & CSPM_SEMA_HELD)
++		writel(1, cspm + sema);
++		if (readl(cspm + sema) & CSPM_SEMA_HELD)
+ 			return 0;
+ 		udelay(MCU_FH_POLL_US);
+ 	}
+@@ -316,12 +319,12 @@ static int mt6797_mcu_sema_get(void __iomem *cspm)
+ 	return -ETIMEDOUT;
+ }
+ 
+-static int mt6797_mcu_sema_put(void __iomem *cspm)
++static int mt6797_mcu_sema_put(void __iomem *cspm, u32 sema)
+ {
+-	if (readl(cspm + CSPM_SEMA3_M0) & CSPM_SEMA_HELD)
+-		writel(1, cspm + CSPM_SEMA3_M0);
++	if (readl(cspm + sema) & CSPM_SEMA_HELD)
++		writel(1, cspm + sema);
+ 
+-	return (readl(cspm + CSPM_SEMA3_M0) & CSPM_SEMA_HELD) ? -EIO : 0;
++	return (readl(cspm + sema) & CSPM_SEMA_HELD) ? -EIO : 0;
+ }
+ 
+ static int mt6797_mcu_execute(void *context, void __iomem *cspm)
+@@ -338,17 +341,28 @@ static int mt6797_mcu_execute(void *context, void __iomem *cspm)
+ 	readl(cspm + CSPM_POWERON_CONFIG_EN);
+ 
+ 	preempt_disable();
+-	ret = mt6797_mcu_sema_get(cspm);
++	ret = mt6797_mcu_sema_get(cspm, CSPM_SEMA3_M0);
+ 	if (ret) {
+ 		dev_err(mcu->dev, "DVFSP semaphore 3 not granted\n");
+ 		goto out;
+ 	}
++	ret = mt6797_mcu_sema_get(cspm, CSPM_SEMA_FW_B);
++	if (ret) {
++		dev_err(mcu->dev, "firmware A72 semaphore not granted\n");
++		goto put3;
++	}
+ 
+ 	ndelay(MCU_ACCESS_SETTLE_NS);
+ 	call->started = true;
+ 	ret = call->fn(mcu, call->arg);
+ 
+-	put = mt6797_mcu_sema_put(cspm);
++	put = mt6797_mcu_sema_put(cspm, CSPM_SEMA_FW_B);
++	if (put) {
++		dev_err(mcu->dev, "firmware A72 semaphore not released\n");
++		ret = ret ?: put;
++	}
++put3:
++	put = mt6797_mcu_sema_put(cspm, CSPM_SEMA3_M0);
+ 	if (put) {
+ 		dev_err(mcu->dev, "DVFSP semaphore 3 not released\n");
+ 		ret = ret ?: put;
+-- 
+2.43.0
+

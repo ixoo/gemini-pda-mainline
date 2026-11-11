@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Capacity, idle cost, a longer soak and loading at init remain, each its own owner decision |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0700-0706 and compile-checked only; their device tests T4a-T9 await owner approval, and the release default awaits the owner's Spectre-v2 decision |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -783,7 +783,7 @@ owner forces power off.
 | No clear difference | Below what the gauge resolves here | Longer phases, or accept it as small |
 | A stop | As the reason says | Read the log, no retry |
 
-### Step 4: A72 frequency, design (in progress, nothing built)
+### Step 4: A72 frequency, design
 
 Within today's 1.00 V (BUCKB selector `0x46`), the vendor's B points with a base voltage
 of 1.00 V or less are 338, 676, 845, 1001, 1131, 1378 and 1495 MHz
@@ -837,6 +837,183 @@ speculative store bypass is the same: `ARCH_WORKAROUND_2` is absent, and the A72
 SSBS. The BHB loop is skipped once v2 reads vulnerable. So it is a firmware gap, not a
 configuration one, and there is no cheap fix. The A53s are unaffected, but the kernel
 reports per system.
+
+### Steps 4 to 9: what is built, and the test plan (proposed, not admitted, not run)
+
+The owner asked on 2026-11-08, and again on 2026-11-11 for the A72s in the release, for the rest of full support: A72 frequency and
+voltage, cooling, capacity, an energy-model scaffold and loading at init. This
+section lists what exists and the ordered device tests. Every test needs the
+owner's approval of its write list; none has run.
+
+**What is built.** Patches 0700 to 0706, on the series through 0699, were
+compile-checked in the dev VM: the three changed drivers with `W=1` and no
+warning, the A72, DVFS and plain station trees, and strict checkpatch, which
+reports only the missing `Signed-off-by`:
+
+- [0700](../../patches/proposals/0700-clk-mediatek-mt6797-mcusys-hold-the-firmware-s-A72.patch):
+  the cluster clock driver holds the firmware's A72 semaphore
+  (`0x11015448`) as well as semaphore 3 around every MCUMIXED transaction. This
+  closes the overlap with a B `CPU_ON` found in step 4's design, and it changes
+  the A53 driver's writes too.
+- [0701](../../patches/proposals/0701-dt-bindings-clock-mediatek-add-the-MT6797-A72-cluste.patch)
+  and [0702](../../patches/proposals/0702-clk-mediatek-mt6797-mcusys-add-the-A72-cluster-PLL.patch):
+  the A72 PLL as clock 3 of `clk-mt6797-mcusys`. A change holds both
+  semaphores, moves the A72 mux to 0, calls the firmware's PLL service, waits
+  20 us, reads the post-divider and PCW back through the secure read, and moves
+  the mux back. Other behaviour:
+  - A mismatch leaves the mux at 0 and faults the driver.
+  - The rate is read back through the secure read, uncached.
+  - A change is refused while both A72s are down.
+  - The range is 338 to 2522 MHz.
+  - Mux 0 is presumed to be the 26 MHz crystal, as in the vendor's naming. The
+    firmware uses it for the same purpose.
+- [0703](../../patches/proposals/0703-soc-mediatek-mt6797-a72-provide-the-cluster-SRAM-LDO.patch):
+  the A72 module provides VSRAM_B as a regulator, `vsram_b`, through the
+  firmware's SRAM LDO service: 900 mV + 25 mV a step from selector 3, read back
+  after each set. With both A72s down it only stores the voltage, and the next
+  bring-up applies it instead of a fixed 1.1 V.
+- [0704](../../patches/proposals/0704-soc-mediatek-mt6797-coupler-keep-VSRAM-B-above-the-A.patch):
+  the cpufreq session's coupler holds two pairs, adding `vproc-big` with
+  `vsram_b`.
+- [0705](../../patches/proposals/0705-arm64-dts-mediatek-gemini-station-A72-scale-the-A72.patch),
+  the A72 station tree:
+  - CPU8-9 get the A72 clock, a table of the ≤1.00 V points (338, 676, 845,
+    1001, 1131, 1378 and 1495 MHz) and `#cooling-cells`, with a map on the
+    58 C passive trip.
+  - The `vsram_b` node, at 1.0-1.2 V.
+  - `capacity-dmips-mhz` 645 for the A53s and 1024 for the A72s, from step 1's
+    hash rates per MHz.
+- [0706](../../patches/proposals/0706-arm64-dts-mediatek-gemini-station-DVFS-scale-the-A72.patch),
+  the DVFS station tree:
+  - CPU8-9 get `cpu-supply = <&vproc2>`.
+  - The whole base B table from 338 to 2522 MHz, at 870-1200 mV by the A53
+    tables' rule: the higher of the base voltage and EEM + 62.5 mV, rounded up
+    to 10 mV. The TT-segment points are left out.
+  - `vproc-big` and `vsram_b` are coupled.
+  - The pair is a power actor on the 75 C control trip of the cpufreq
+    session's power-allocator zone, at the neutral weight 1024. The allocator
+    refuses to bind unless every device on that trip has an energy model, and a
+    CPU left off the trip is not held to the budget, so the A72s need both.
+- **Energy model:** `dynamic-power-coefficient` 396 for CPU8-9 in the DVFS tree,
+  fitted as `0680` fitted the A53s' 78 and 129: to the vendor's per-core dynamic
+  power at each point's base voltage (mW = C × MHz × mV² / 10⁹). The same fit
+  gives 78 for the LL cluster. Every A72 point from 676 MHz up is within 8 % of
+  the fit; 338 MHz is 34 % below it. This is the vendor's table, not this unit:
+  a measurement by step 3's method can replace it. The A72 tree, which keeps
+  step-wise cooling, has none.
+- **Loading at init:** `764471d3` loads the A72 module before the cpufreq
+  modules, gated on `/mnt/data/a72-at-boot`, which stays absent until the soak
+  passes.
+
+Not built: a Buildbox package. Each test below names its profile, and the
+request carries the package hashes.
+
+**Expected capacities, as a read-only check.** Once all three policies exist,
+`arch_topology` scales capacity by each policy's top frequency, so
+`cpu_capacity` should read:
+- A72 tree: about 387, 521 and 1024 for the LL, L and A72 clusters;
+- DVFS tree: 395, 512 and 1024.
+
+**Ordered device tests.**
+
+Each test runs after the one before it passes. The stop rules of the earlier
+steps apply throughout:
+- a hash mismatch;
+- an A72 going quiet;
+- `online` other than expected;
+- a new `WARNING`, Oops or stall;
+- `faulted=1`;
+- a measured clock more than 5 % from the request;
+- the SoC at 75 C.
+
+**T4a: A72 frequency, no voltage change.** Profile `mt6797-a53-station-a72`, A72
+tree. Load the A72 module, then `clk-mt6797-mcusys`, then `cpufreq-dt`.
+
+Writes beyond the earlier admitted lists:
+- CSPM `0x11015448` <- 1 to take, and <- 1 to release, around every clock
+  driver transaction. This includes the A53 ones.
+- MCUMIXED `0x1001a270` bits 1:0 <- 0, then <- 1, around each A72 change.
+- SMC `0xc20003b8`, `x1` in {338, 676, 845, 1001, 1131, 1378, 1495}.
+- Inside that SMC, the firmware's own writes: `0x102224a0` bit 0 off and on, its
+  bits 14:12, and `0x102224a4` PCW with its bit 31 pulsed.
+- SMC `0xc200035f` reads of `0x102224a0` and `0x102224a4`.
+
+Stages:
+1. Check `policy8` covers 8-9 and that the A72 module registered `vsram_b` at
+   1.1 V.
+2. Under userspace, each A72 point in turn, upward then back down. Measure CPU8
+   with `cpu-mhz` and hash on CPU8 and CPU9 at each.
+3. The A53 stages t3-t6, now with both semaphores.
+4. Schedutil on all three policies, then a 10 min `soak.sh` load.
+5. Emulate 62 C on the SoC zone: `policy8`'s ceiling must drop, then recover on
+   release.
+6. Both A72s down and up with the policies loaded. Expect `-EBUSY` in between,
+   and a resync from the firmware's 750 MHz after `CPU_ON`.
+7. Read `cpu_capacity`.
+
+| Result | Meaning | Next |
+| --- | --- | --- |
+| All pass | The A72s scale to 1495 MHz at 1.0 V | T4b |
+| `B PLL reads ...` | The firmware wrote something else | Stop; the A72s stay off the PLL; read it |
+| A72s hang on the first change | Mux 0 is not a running clock, or the bridge is wrong | Force-off; back to the firmware |
+| A53 stages fail now | The second semaphore | Bisect with 0700 alone |
+
+**T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
+cpufreq session's own A53 voltage test passes on that profile. Same loading
+order: the A72 module, then the cpufreq session's modules, as in the init.
+
+New writes:
+- DA9214 BUCKB voltage through the cpufreq session's provider: register `0xd9`
+  between `0x39` and `0x5a` (870-1200 mV, 300 mV + 10 mV a code), as that
+  provider writes it.
+- SMC `0xc20003bf` from 100000 to 120000 (VSRAM_B 1.0-1.2 V), always set before
+  BUCKB on the way up and after it on the way down.
+
+Stages:
+1. Userspace points upward from 338 MHz, each with:
+   - the BUCKB selector and the VSRAM_B selector read back;
+   - CPU8's clock measured;
+   - hashes on CPU8 and CPU9.
+2. Downward again.
+3. Schedutil and a 10 min load.
+
+Stop on:
+- a voltage readback mismatch;
+- a coupler refusal;
+- any stop above.
+
+**T7: soak under heat.** After T4b, on the DVFS profile, from below 45 C:
+`power_allocator` on the SoC zone (as the station init sets it), all ten CPUs
+loaded under schedutil for 60 min, sampling every 10 s the SoC temperature, the
+three policies' frequencies, VPROC1, VPROC2, VSRAM_L, VSRAM_B and the hashes.
+Pass: the allocator binds with the A72s on its control trip, holds the SoC near
+75 C and below 80 C, and no hash differs. Stop at 80 C instead of 75 C for this
+test, as the cpufreq session's V9. If the A72 pair takes most of the budget
+while the A53s fall to their lowest points, its weight is tuned at run time
+through `cdevN_weight`, as the LL weight was, and the value goes into the tree.
+No new write beyond T4b's and those tracefs and thermal sysfs writes.
+
+**T8: suspend.** Two s2idle cycles with the A72s online and all policies
+loaded, as the power record's S1 test, which shares its procedure. No new
+writes.
+
+**Release decision (owner).** Loading the A72 module makes the whole system
+report `Vulnerable` for Spectre-v2 and speculative store bypass: the firmware
+has no SMCCC 1.1, so there is no `ARCH_WORKAROUND_1` or `_2` to call, and the
+A72 has no other mitigation (see Step 4). The A53s alone report neither. A
+user-space process on the A72s can, in principle, read across privilege
+boundaries by branch-target injection. Before T9 the owner chooses:
+- the A72s load by default in the release, with that report documented; or
+- the release keeps them opt-in through `/mnt/data/a72-at-boot`, and the
+  default image reports the A53 state only.
+
+T9 runs either way, to prove the init path; only the release default
+differs.
+
+**T9: loading at init.** Create `/mnt/data/a72-at-boot` and
+`/mnt/data/cpufreq-at-boot`, power off, and the owner selects boot2. Read the
+init status lines for the order, `online 0-9` and the three policies. Then a
+second boot to show it repeats.
 
 ## Observations
 
@@ -1230,12 +1407,14 @@ literally first:
 4. **A72 cpufreq.** First frequency only, at the 1.0 V the preloader left, within the
    vendor's points for that voltage, through the secure BigiDVFS interface firmware owns
    for the B PLL. Then voltage through a writable DA9214 BUCKB provider and the SRAM LDO,
-   each with its own write list. This is the largest step and has its own record.
+   each with its own write list. Built as 0700-0706, not run: see "Steps 4 to 9".
 5. **Cooling on the A72s.** Follows from step 4 as cpufreq cooling on the passive trip.
    Until then the A72s have only the 117 C hardware reset, and step 1's loads stay short.
+   Built in 0705 (step-wise, 58 C) and 0706 (power allocator, 75 C), not run.
 6. **Capacity and energy model.** `capacity-dmips-mhz` scales by each CPU's clock, and the
    A72s have none, so capacity waits for step 4 (or a fixed clock on the A72 nodes). The
-   energy model needs measured power per point, using step 3's method.
+   energy model needs measured power per point, using step 3's method. Built: capacity
+   645/1024 in 0705, and in 0706 a coefficient fitted to the vendor's table until measured.
 7. **Long soak under heat,** all ten loaded, with cooling.
 8. **Suspend and resume.** The station suspends with s2idle only, so the A72s stay online
    in WFI and no hotplug is needed. One s2idle cycle with them online, then several.

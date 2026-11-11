@@ -1,0 +1,167 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sun, 8 Nov 2026 15:02:52 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station A72: scale the A72 pair
+
+Give CPU8-9 the A72 cluster PLL from clk-mt6797-mcusys and an operating
+point table of the vendor points for this speed bin whose base voltage is
+1.00 V or less, the voltage the firmware leaves on VPROC2: 338 to 1495 MHz.
+cpufreq-dt then makes a third policy, and the A72s cool on the same passive
+trip as the A53s.
+
+Describe the cluster SRAM LDO, which the A72 module provides, and the
+relative capacity of the two cores from this project's own measurement,
+not the vendor's tables.
+---
+ .../mt6797-gemini-pda-station-a72.dts         | 124 ++++++++++++++++++
+ 1 file changed, 124 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 2e66d8787..0f804db4e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -76,6 +76,17 @@ a72-power@10222000 {
+ 		access-controllers = <&dvfsp_handoff>;
+ 		resets = <&watchdog MT6797_TOPRGU_PWRAP_SPI_CTL_RST>;
+ 		reset-names = "pwrap";
++
++		/*
++		 * The cluster's SRAM LDO, set through the firmware. The
++		 * module brings it up at 1.1 V; nothing else sets it unless
++		 * a coupled rail asks.
++		 */
++		vsram_b: regulator {
++			regulator-name = "vsram_b";
++			regulator-min-microvolt = <1000000>;
++			regulator-max-microvolt = <1200000>;
++		};
+ 	};
+ };
+ 
+@@ -510,6 +521,13 @@ map2 {
+ 						<&cpu6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+ 						<&cpu7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+ 				};
++
++				map3 {
++					trip = <&gpu_passive>;
++					cooling-device =
++						<&cpu8 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
++						<&cpu9 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
+ 			};
+ 		};
+ 	};
+@@ -562,3 +580,109 @@ &cpu7 {
+ 	operating-points-v2 = <&cluster1_opp>;
+ 	#cooling-cells = <2>;
+ };
++
++/*
++ * Frequency scaling for the A72 pair, through the secure firmware's PLL
++ * service, at the 1.00 V the firmware leaves on VPROC2 (DA9214 BUCKB): the
++ * vendor operating points for this unit's speed bin whose base voltage is
++ * 1.00 V or less. Nothing changes the A72 clock until clk-mt6797-mcusys and
++ * cpufreq-dt load, after the A72 module.
++ */
++/ {
++	cluster2_opp: opp-table-cluster2 {
++		compatible = "operating-points-v2";
++		opp-shared;
++
++		opp-338000000 {
++			opp-hz = /bits/ 64 <338000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-676000000 {
++			opp-hz = /bits/ 64 <676000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-845000000 {
++			opp-hz = /bits/ 64 <845000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1001000000 {
++			opp-hz = /bits/ 64 <1001000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1131000000 {
++			opp-hz = /bits/ 64 <1131000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1378000000 {
++			opp-hz = /bits/ 64 <1378000000>;
++			clock-latency-ns = <100000>;
++		};
++
++		opp-1495000000 {
++			opp-hz = /bits/ 64 <1495000000>;
++			clock-latency-ns = <100000>;
++		};
++	};
++};
++
++&cpu8 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_B>;
++	operating-points-v2 = <&cluster2_opp>;
++	#cooling-cells = <2>;
++};
++
++&cpu9 {
++	clocks = <&mcusys_pll MT6797_CLK_MCU_B>;
++	operating-points-v2 = <&cluster2_opp>;
++	#cooling-cells = <2>;
++};
++
++/*
++ * Work per MHz, from one 64 MiB SHA-256 timed on single idle CPUs: an A53
++ * does about 0.63 of an A72's (experiments/2026-11-01-mt6797-all-cores).
++ */
++
++&cpu0 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu1 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu2 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu3 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu4 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu5 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu6 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu7 {
++	capacity-dmips-mhz = <645>;
++};
++
++&cpu8 {
++	capacity-dmips-mhz = <1024>;
++};
++
++&cpu9 {
++	capacity-dmips-mhz = <1024>;
++};
+-- 
+2.43.0
+
