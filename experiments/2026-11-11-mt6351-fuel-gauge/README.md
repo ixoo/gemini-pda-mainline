@@ -340,6 +340,32 @@ Two explanations, which need opposite fixes:
   - If the gauge still measures after step 3, repeat with the other port type (computer or wall).
 - **Stops:** voltage under 3.65 V; any PMIC read error.
 
+**First run with 0710-0711, station-work-103, boot `b8fb3cbf…`** (from the custodian; private
+log `artifacts/card-32/d2-thermal.txt`):
+- Charging from a wall charger in constant-voltage mode at 4.207 V for 10 minutes.
+- Current tapered from 483 to 376 mA; `capacity` read 67 → 69 %.
+
+Reading:
+- **The counting is right.** The logged current integrates to 70.8 mAh over 619 s, 1.66 % of
+  4268 mAh, against the 2 points reported.
+- **The OCV reading at boot was about 11 points low.** 4.207 V less 376 mA × 0.165-0.20 Ω is an
+  OCV of 4.13-4.15 V, about 80 % on the table, not 67-69 %. The boot reading pairs one voltage
+  sample with the first 5 s window's current, taken in an unsettled boot state. That state is
+  not logged.
+- **It self-corrects at charge termination.** The charger stops at its termination current, the
+  battery then rests within ±20 mA, and 0711 takes a new reading after 5 minutes.
+- **A follow-up worth considering** (not done): a `dev_dbg` at each OCV reading, giving voltage,
+  current and result, so the boot reading can be checked.
+
+**Charge voltage (charging session's area):**
+- The vendor charges this high-voltage cell to 4.34 V between 10 and 45 °C
+  (`HIGH_BATTERY_VOLTAGE_SUPPORT`, `JEITA_TEMP_POS_10_TO_POS_45_CV_VOLTAGE`); 4.24 V outside that
+  range, 4.04 V below 0 °C.
+- Mainline leaves the bq25896 at its 4.208 V default. On the vendor-derived OCV table, a fully
+  charged mainline battery is about 87 %, and capacity never reaches 100 % on mainline.
+- That accounts for part of "Gemian reads higher". Whether 4.208 V stays as a gentler limit or
+  goes to 4.34 V is the owner's call, through the charging session.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
