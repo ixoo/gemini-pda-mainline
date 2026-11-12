@@ -190,6 +190,10 @@ thermally constrained subsystem.
   non-standard chargers keep the chip's 500 mA. Shown on the device: a QC
   charger reads DCP and charges at about 0.5 A in constant voltage, against
   0.1 A before.
+- on those chargers the board NTC (`board-thermal`, SoC AUXADC `AUX_IN0`) steps
+  the currents down to 1.0 A and 512 mA from 47 °C, and to 500 mA from 52 °C or
+  when unreadable, with 3 °C hysteresis (0739, 0741-0743). Shown by emulation on
+  the device; real use with full load stayed under 47 °C.
 - 0695 also offers the two thresholds on the `battery` supply, where UPower and
   desktop battery widgets look for them. UPower also needs a `CHARGE_LIMIT` udev
   property on the battery. Not yet on a device.

@@ -937,3 +937,21 @@ The custodian sampled every 15 s through 5 minutes of 8-core load, then 5 minute
   and recovered at about 2 °C a minute. The battery stayed at 24-25 °C.
 - So in this test the limiter would not have acted. Sun, a closed case or longer load may still
   reach it; that's untested.
+
+**Step 2 on boot `71c291ae…`,** station-work-112 at 2c8894ed, on the Mac (CDP), as reported by the
+custodian. The boot line was `guard: 1.5 A charger, board 39090 mC: input 1500 mA, charge 1024 mA`.
+Each step was emulated on `board-thermal` for 12 s:
+
+| Board | REG00 / REG04 | Guard line |
+| --- | --- | --- |
+| real 37.3 °C | `0x5c` / `0x10` | |
+| 48 °C | `0x52` / `0x08` | `input 1000 mA, charge 512 mA` |
+| 53 °C | `0x48` / `0x08` | `input back to 500 mA, board hot or unreadable` |
+| 50 °C | `0x48` / `0x08` | held |
+| 48.5 °C | `0x52` / `0x08` | `input 1000 mA, charge 512 mA` |
+| 45 °C | `0x52` / `0x08` | held |
+| 43 °C | `0x5c` / `0x10` | `input 1500 mA, charge 1024 mA` |
+| emulation off | `0x5c` / `0x10` | |
+
+Every step and both hysteresis holds matched. Not run: 10 minutes on the QC charger with the screen
+on, under real heat. The full-load run above stayed below 47 °C.
