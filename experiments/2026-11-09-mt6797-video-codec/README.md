@@ -1121,7 +1121,7 @@ skip/reference/loop-filter features, compound-only mode, reference scaling
 (rejected), profiles 1 to 3, real-world streams, larger sizes, sustained
 playback and power.
 
-## Stage 4: VA-API for mpv and qutebrowser (V17: bit-exact, detile too slow; fix pending)
+## Stage 4: VA-API for mpv and qutebrowser (V18: works in mpv and qutebrowser)
 
 One VA-API driver serves both stock Arch Linux ARM `mpv --hwdec=vaapi` and
 QtWebEngine's Chromium decoder. The [package directory](libva-v4l2-request/README.md)
@@ -1256,6 +1256,60 @@ release 2 (`6c224a83…`). The dma-buf heap was opened to group `video`
   1080p fullscreen. So the display path (mpv's renderer, Panfrost and
   composition on this panel) is a second ceiling, separate from decoding.
   It is not addressed here.
+
+### V18 result
+
+*Run.* Station-work-112, the same boot as V17 (`71c291ae`). The `f0b7ed9e`
+build's `Image.gz` and station DTB equal 112's, so only `mt6797-vdec.ko` was
+swapped, to `7462cee7…` (patch 0748). Package release 3 (`ec545eb6…`,
+patch 0004). Evidence (private): `artifacts/card-32/v18-*`.
+
+*Observed:*
+
+- **Detile, H.264 1080p, cached capture buffers:**
+
+  | Run | Min (ms) | Median (ms) | Max (ms) | 300 frames, decode and detile (s) |
+  | --- | --- | --- | --- | --- |
+  | V18, cached | 4.6 | 6.9 | 17.6 | 6.5 |
+  | V17, uncached | 41 | 50 | 61 | 18.1 |
+
+- **Still bit-exact.** `ffmpeg -hwaccel vaapi` framemd5 matches the software
+  reference on every frame of all eight clips. With frame download, the
+  1080p clips took 5.1 s (H.264), 5.7 s (HEVC) and 5.4 s (VP9), against
+  15 to 16 s in V17.
+- **Faster than real time without display.** mpv `--vo=null --untimed
+  --hwdec=vaapi-copy` decoded 10 s of 1080p30 in 6.4 s (H.264), 5.7 s (HEVC)
+  and 6.7 s (VP9), using 5.0 to 5.7 s of CPU. Software decoding of the same
+  H.264 clip used 13.8 s of CPU. With `--hwdec=vaapi` and no video output,
+  mpv silently fell back to software, since that mode needs a GPU output.
+- **mpv on the panel**, `--hwdec=vaapi --fs`, H.264 1080p:
+  - hardware decoding, 151 of 300 frames dropped (V17: 233), CPU about 84 %
+    idle;
+  - the owner: "Smoother, still judders".
+- **qutebrowser**, 1080p test page, through VA-API:
+  - H.264: 556 frames decoded, 36 dropped;
+  - VP9: 531 decoded, 24 dropped;
+  - decoder interrupts rose accordingly, and the driver logged decoding on
+    `/dev/video1` for both.
+  - The saved `qute://gpu` page turned out to be an error page, so that
+    section is still uncaptured.
+- No errors, timeouts or genpd errors; afterwards the domain was off.
+
+*Result.*
+
+- **Decoding:** hardware decode through VA-API is bit-exact and faster than
+  real time at 1080p for H.264, HEVC and VP9. qutebrowser plays 1080p H.264
+  and VP9 in hardware with about 5 to 6 % of frames dropped.
+- **mpv's remaining judder** at 1080p fullscreen is the display-path ceiling
+  seen in V17, where even software decoding dropped 70 %. It is outside the
+  decoder.
+
+*Next.* Zero-copy for mpv: Mesa 26.2.6 Panfrost already imports
+`DRM_FORMAT_MOD_MTK_16L_32S_TILE` from the two plane dma-bufs and detiles on
+the GPU. The VA-API driver would export the decoder buffers with that modifier,
+as an opt-in. Mesa converts an imported buffer only once, so clients that keep
+one image per surface (Chromium) stay on the CPU detile. The GPU session's
+plan for this awaits the owner's approval.
 
 ## Follow-up
 
