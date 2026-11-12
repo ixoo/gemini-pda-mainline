@@ -2332,6 +2332,21 @@ active-session ACL; and chose the video group over opening the heap to everyone:
 The cost: a member can take memory through the heap that isn't charged to its memory
 cgroup. `udevadm verify` passes on the rule, ShellCheck on `firstboot`. Not on a device yet.
 
+### mpv's fast profile by default (`gemini-base` 58, 2026-11-12)
+
+The custodian measured mpv on card-32 (DP1/DP2: an H.264 1080p30 clip, fullscreen, 10 s,
+VA-API with CPU detiling, system Mesa). mpv's default renderer (gpu-next with high-quality
+scalers) saturates the Mali-T880 and dropped 145–149 of 300 frames; `--profile=fast` dropped 2,
+and mpv's GPU fragment time fell from 13.4 s to 5.4 s per 7 s. Compositor screenshots of the
+two match at SSIM 0.994, the difference being the scalers, and on a correctly tagged BT.709
+clip the fast profile's bar colours equal the reference decode. `--vo=dmabuf-wayland` dropped
+1 but shows BT.709 video with BT.601 colours (red 230 instead of 252), since Umbriel converts
+YUV as BT.601 whatever the tag, so it is no default until the compositor honours colour tags.
+
+The owner: "Yes, make it default". gemini-base ships `/etc/mpv/mpv.conf` with `profile=fast`,
+as a `backup=` file; no package owned that path. Hardware decoding stays mpv's default. Not
+yet on the device.
+
 ## Analysis
 
 Not started.
