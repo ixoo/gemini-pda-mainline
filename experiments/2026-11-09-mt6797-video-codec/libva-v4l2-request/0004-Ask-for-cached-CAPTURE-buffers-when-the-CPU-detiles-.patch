@@ -1,0 +1,37 @@
+From bafba4bbe68ff0da8bfd768544362649c1dc7fe0 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 21:50:14 -0500
+Subject: [PATCH] Ask for cached CAPTURE buffers when the CPU detiles MM21
+
+The software MM21 converter reads every decoded frame with the CPU. vb2
+dma-contig maps CAPTURE buffers uncached on non-coherent SoCs, and the
+detile of a 1080p frame took about 50 ms on the MT6797 A72 cores, against
+about 7 ms for the hardware decode. Request V4L2_MEMORY_FLAG_NON_COHERENT
+for MM21 CAPTURE buffers; vb2 then maps them cached and syncs them at
+QBUF and DQBUF. Drivers that do not allow cache hints clear the flag.
+---
+ src/context.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/context.c b/src/context.c
+index ccecaae..f9a0b6f 100644
+--- a/src/context.c
++++ b/src/context.c
+@@ -388,6 +388,14 @@ static int capture_buffer_new(struct v4l2r_context *ctx)
+ 	struct v4l2r_capture_buffer *capture;
+ 	size_t bufsize = capture_format_bytes(&ctx->capture_format);
+ 
++#if defined(V4L2_PIX_FMT_MM21) && defined(V4L2_MEMORY_FLAG_NON_COHERENT)
++	/* MM21 frames are detiled by the CPU: ask for cached buffers, which
++	 * vb2 syncs at QBUF and DQBUF. Reading uncached memory took ~50 ms per
++	 * 1080p frame on the A72. Drivers that do not allow the hint clear it. */
++	if (v4l2r_format_pixelformat(&ctx->capture_format) == V4L2_PIX_FMT_MM21)
++		buffers.flags = V4L2_MEMORY_FLAG_NON_COHERENT;
++#endif
++
+ 	if (ctx->nb_captures >= V4L2R_MAX_CAPTURE_BUFFERS) {
+ 		v4l2r_log("CAPTURE buffer limit reached (%u buffers, ~%llu MiB); "
+ 			  "refusing to allocate more\n", ctx->nb_captures,
+-- 
+2.43.0
+

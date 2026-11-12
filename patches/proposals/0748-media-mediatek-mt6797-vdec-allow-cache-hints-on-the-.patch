@@ -1,0 +1,38 @@
+From c645180c0499bf7d03556e85f0047d39ea52f9f0 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 21:50:27 -0500
+Subject: [PATCH] media: mediatek: mt6797-vdec: allow cache hints on the
+ capture queue
+
+Userspace that detiles the MM21 frames with the CPU, such as a VA-API
+driver, reads every decoded frame. vb2 dma-contig maps the buffers
+uncached on this non-coherent SoC, and reading a 1080p frame took about
+50 ms on the A72 cores, against about 7 ms for the hardware decode.
+
+Allow V4L2_MEMORY_FLAG_NON_COHERENT on the capture queue so such clients
+can ask for cached buffers, which vb2 syncs at QBUF and DQBUF. Clients
+that do not ask keep coherent buffers.
+---
+ .../media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c  | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+index 966ac4c16..17b9d677e 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -510,6 +510,12 @@ static int mvdec_queue_init(void *priv, struct vb2_queue *src_vq,
+ 
+ 	dst_vq->type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+ 	dst_vq->io_modes = VB2_MMAP | VB2_DMABUF;
++	/*
++	 * Userspace that reads decoded frames with the CPU (a software
++	 * detiler) can ask for cached buffers; vb2 then syncs them at QBUF
++	 * and DQBUF.
++	 */
++	dst_vq->allow_cache_hints = 1;
+ 	dst_vq->drv_priv = ctx;
+ 	dst_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
+ 	dst_vq->ops = &mvdec_qops;
+-- 
+2.43.0
+

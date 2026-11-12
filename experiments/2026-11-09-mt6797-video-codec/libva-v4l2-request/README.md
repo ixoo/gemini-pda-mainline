@@ -42,6 +42,15 @@ yet. H.264 and HEVC need a kernel with mt6797-vdec patch 0744; see
   MM21 CAPTURE buffers have two planes, so vb2 rejected every CAPTURE
   queue and dequeue with `EINVAL`. Found on the first device run (V16).
 
+`0004-Ask-for-cached-CAPTURE-buffers-when-the-CPU-detiles-.patch`
+
+- vb2 maps CAPTURE buffers uncached on this SoC. Detiling a 1080p frame
+  from them took about 50 ms on the A72 (V17), against about 7 ms for the
+  hardware decode. The driver now requests
+  `V4L2_MEMORY_FLAG_NON_COHERENT` for MM21 buffers. It needs mt6797-vdec
+  patch 0748, which allows that hint; on older kernels the flag is
+  ignored.
+
 ## Permission for the dma-buf heap
 
 The NV12 buffers come from `/dev/dma_heap/system`, which the kernel creates

@@ -1121,7 +1121,7 @@ skip/reference/loop-filter features, compound-only mode, reference scaling
 (rejected), profiles 1 to 3, real-world streams, larger sizes, sustained
 playback and power.
 
-## Stage 4: VA-API for mpv and qutebrowser (V16: driver loads, decode blocked; fixes pending)
+## Stage 4: VA-API for mpv and qutebrowser (V17: bit-exact, detile too slow; fix pending)
 
 One VA-API driver serves both stock Arch Linux ARM `mpv --hwdec=vaapi` and
 QtWebEngine's Chromium decoder. The [package directory](libva-v4l2-request/README.md)
@@ -1194,6 +1194,54 @@ arch-root's agreement. Evidence (private): `artifacts/card-32/v16-*`.
   rule tagging `/dev/dma_heap/system` for `uaccess` gives the logged-in user
   access. Card policy is arch-root's decision.
 - Patch 0744 is confirmed harmless for the existing GStreamer path.
+
+### V17 result (steps 1 to 5)
+
+*Run.* Same boot as V16 (station-work-112, boot `71c291ae`), package
+release 2 (`6c224a83…`). The dma-buf heap was opened to group `video`
+(gemini-base 57; owner's choice). Evidence (private):
+`artifacts/card-32/v17-*`.
+
+*Observed:*
+
+- **Bit-exact.** `ffmpeg -hwaccel vaapi` decodes match the software
+  reference on every frame of every clip: H.264 352x288 (one and four
+  slices) and 176x144 High with B-frames, HEVC, two VP9 clips, and the three
+  1080p30 clips. One decoder interrupt per decoded frame; no decode errors.
+- **1080p timing:**
+
+  | Path | H.264 | HEVC | VP9 |
+  | --- | --- | --- | --- |
+  | VA-API, with frame download (s) | 15.8 | 15.4 | 16.2 |
+  | Software (s) | 5.0 | 7.8 | 5.1 |
+
+  Each clip is 300 frames, 10 s of video.
+- **H.264 split.**
+  - VA-API decode plus detile, without download: 18.1 s for 300 frames.
+    Detile took 41 to 61 ms per frame, median 50 ms.
+  - The hardware alone, through GStreamer into a null sink: 2.17 s for 300
+    frames, about 7 ms per frame (138 fps).
+- **mpv, 1080p fullscreen on the panel, 10 s each:**
+  - `--hwdec=vaapi` reported hardware decoding for all three codecs, and
+    dropped 223 to 233 of 300 frames.
+  - `vaapi-copy` dropped 232.
+  - Software (`--hwdec=no`) dropped 210.
+  - The owner found software the smoothest. No black screens.
+
+*Analysis.*
+
+- **The detile.** The decoder is fast; the CPU detile is the bottleneck.
+  vb2 maps the capture buffers uncached on this non-coherent SoC, so the
+  detiler reads 3 MB per frame from uncached memory [I, strong].
+  - Driver patch
+    [0748](../../patches/proposals/0748-media-mediatek-mt6797-vdec-allow-cache-hints-on-the-.patch)
+    allows `V4L2_MEMORY_FLAG_NON_COHERENT` on the capture queue.
+  - Package patch 0004 (release 3) requests it for MM21. vb2 then maps the
+    buffers cached and syncs them at `QBUF` and `DQBUF`.
+- **The display path.** Even software decoding dropped 70 % of frames at
+  1080p fullscreen. So the display path (mpv's renderer, Panfrost and
+  composition on this panel) is a second ceiling, separate from decoding.
+  It is not addressed here.
 
 ## Follow-up
 
