@@ -1366,7 +1366,9 @@ Evidence (private): `artifacts/card-32/v19-shots/` and `v19-*`.
 
 ### V20 result: zero-copy with patched Mesa
 
-The GPU session found the cause in Mesa. On Midgard and Bifrost,
+The GPU session found the cause in Mesa
+([GPU record, follow-up 12](../2026-11-02-mali-t880-first-job/README.md#follow-up)).
+On Midgard and Bifrost,
 `emit_image_bufs()` bounds images by `height0`, while the detile's source
 views hold one row per tile.
 [Its Mesa patch](../2026-11-02-mali-t880-first-job/mesa/0001-panfrost-detile-all-MTK-tile-rows-on-Midgard-and-Bifrost.patch) exposes all tile rows. The device custodian ran
@@ -1386,7 +1388,8 @@ station as in V19, and `LIBVA_V4L2_REQUEST_MM21_EXPORT=1`. Evidence
   | Zero-copy HEVC | 143 | 81 % |
   | Zero-copy VP9 | 140 | 81 % |
 
-- The GPU detile costs about 0.8 s of GPU time per 300 frames. No GPU faults.
+- The GPU detile costs about 2.7 ms per 1080p frame (about 0.8 s of GPU
+  time per 300 frames). No GPU faults.
 - The display ceiling, about half the frames dropped, is unchanged.
 
 Zero-copy saves CPU time and works for mpv with the patched Mesa. It stays
