@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
-# What the fuel gauge learned (battery-capacity): restored when the gauge driver binds, the
-# first moment its learned_* attributes exist (they appear after the battery supply's add
-# event), and saved when the driver reports a change. Change uevents are frequent; the save
-# reads four attributes and writes only new values.
+# What the fuel gauge learned (battery-capacity): restored at boot by
+# gemini-battery-capacity.service, since the driver binds in the initramfs before udev
+# starts; restored here when the gauge driver binds later, the first moment its learned_*
+# attributes exist; and saved when the driver reports a change. Change uevents are frequent;
+# the save reads four attributes and writes only new values.
 ACTION=="bind", SUBSYSTEM=="platform", DRIVER=="mt6351-fuel-gauge", \
   RUN+="/usr/lib/gemini/battery-capacity restore"
 ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="battery", \

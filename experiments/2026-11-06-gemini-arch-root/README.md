@@ -2296,6 +2296,20 @@ The helper's ending had one real weakness: it restored the limits as soon as its
 
 ShellCheck passes; the line parsing was checked on the reported line. Not run on a device.
 
+### Restoring Q and R at boot (`gemini-base` 56, 2026-11-11)
+
+gemini-base 55 on station-work-112 (0745–0747, boot `71c291ae`, custodian): the restore never
+ran at boot. `learned_full_uah` stayed 4268000 and the old file was untouched. The gauge
+driver binds in the station's initramfs, before the card's udev starts, and udev's coldplug
+replays add and change, not bind, so the `bind` rule never fired; the unit only saved at
+start. Run by hand, `battery-capacity restore` did everything right: `learned_full_uah`
+4163262, `charge_full` 3871833, UPower health 97.546 %, `battery-learned` written with
+`full 4163262 4268000` and `resistance 165000 165000`, the old file removed.
+
+`gemini-battery-capacity.service` now restores at start (after local file systems, before
+UPower; only where `device/learned_full_uah` exists) and saves at stop. The `bind` rule stays
+for a driver bound later. A second restore writes the same values.
+
 ## Analysis
 
 Not started.

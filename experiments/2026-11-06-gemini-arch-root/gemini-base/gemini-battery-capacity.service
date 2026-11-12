@@ -1,13 +1,17 @@
 # SPDX-License-Identifier: MIT
-# Saves the battery's learned full charge at shutdown (battery-capacity), while /var is
-# still mounted. Restoring at boot is udev's, when the battery appears.
+# Restores what the fuel gauge learned at boot and saves it at shutdown (battery-capacity),
+# while /var is mounted. The gauge driver binds in the station initramfs, before the card's
+# udev starts, and udev's coldplug replays add and change but not bind, so the restore runs
+# here; the bind rule covers a driver bound later. Pulled in at boot by the package's
+# multi-user.target.wants symlink.
 [Unit]
-Description=Keep the battery's learned full charge
+Description=Keep what the battery gauge learned
 After=local-fs.target
-ConditionPathExists=/sys/class/power_supply/battery/charge_full
+Before=upower.service
+ConditionPathExists=/sys/class/power_supply/battery/device/learned_full_uah
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/lib/gemini/battery-capacity save
+ExecStart=/usr/lib/gemini/battery-capacity restore
 ExecStop=/usr/lib/gemini/battery-capacity save
