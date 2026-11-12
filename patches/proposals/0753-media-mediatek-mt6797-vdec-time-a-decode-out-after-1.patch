@@ -1,0 +1,31 @@
+From 8c6aec440cc947bdfa6953322894b29cdac4125a Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 18:25:25 -0500
+Subject: [PATCH 753/753] media: mediatek: mt6797-vdec: time a decode out after
+ 100 ms
+
+A 1080p picture decodes in about 7 ms on this decoder. A 500 ms watchdog
+only makes a picture that never finishes (a corrupt stream) cost a
+client half a second each. Use 100 ms, still an order of magnitude
+above the measured decode time.
+---
+ drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+index 5b5d94ea4..3781c236f 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec.h
+@@ -44,7 +44,8 @@
+ #define MVDEC_MAX_HEIGHT	1088
+ #define MVDEC_MIN_SIZE		64
+ #define MVDEC_MAX_RATE		338000000UL
+-#define MVDEC_TIMEOUT_MS	500
++/* A 1080p picture takes about 7 ms; a stuck one is reset at once. */
++#define MVDEC_TIMEOUT_MS	100
+ #define MVDEC_MAX_SLICES	64
+ 
+ struct mvdec_dev {
+-- 
+2.43.0
+

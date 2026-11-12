@@ -1447,6 +1447,48 @@ Suspend (step 6) was not run. Evidence (private): `artifacts/card-32/v21/`.
 - *Next:* rerun V21 steps 1 (per-clock files), 5 and 6 with 0750 and 0751.
   Boot loading waits for that.
 
+### V22 result: V21 rerun, partial
+
+*Run.* Station-work-112, boot `8990918b`, `mt6797-vdec.ko` `54bf86ee…`
+(0750 and 0751), package release 4 with the CPU detile. Evidence
+(private): `artifacts/card-32/v22/`.
+
+*Observed:*
+
+- **Idle, read from the per-clock files:** `vdecpll`, `vdec_sel` and all
+  four VDEC gates were at 0 for both enable and prepare counts, 5 s after
+  loading and 2 s after a decode; the domain was off. V21's "held" clocks
+  were the `clk_summary` observer effect.
+- **Regression:** H.264, HEVC and VP9 1080p, 600 frames each, through
+  VA-API, match the software decode.
+- **Corrupt H.264** (`bad-h264-1000`) again ran to the 180 s limit: 340
+  timeouts, about one every 0.54 s, with no interrupt. The run was then cut
+  short by an unrelated USB disconnect, so the other corrupt files and the
+  check after them were not run.
+- **Suspend** was skipped. The root filesystem is on the microSD card,
+  whose suspend behaviour is not established.
+
+*Analysis.*
+
+- **The client was never stalled.** ffmpeg's log shows it moving through the
+  file the whole time: each corrupt H.264 picture hung the decoder on its
+  own and cost the full 500 ms watchdog. V21's reading, "stalled until the
+  client closes", was wrong. A 300-picture corrupt stream simply takes
+  about 3 minutes.
+- **0750 is not the fix.** Its power cycle found nothing to reset; it stays
+  as harmless hygiene.
+- **The cause** [I]: our driver decodes straight from the client's buffer,
+  while the vendor appends an access unit delimiter after each picture "so
+  the HW sees an end marker". When corruption throws the parse off, the
+  decoder never reaches its macroblock count and waits for more data.
+- [Patch 0752](../../patches/proposals/0752-media-mediatek-mt6797-vdec-end-each-H.264-picture-wi.patch)
+  writes that delimiter (and zeros) into the margin after the data, which
+  the bitstream window already covers.
+- [Patch 0753](../../patches/proposals/0753-media-mediatek-mt6797-vdec-time-a-decode-out-after-1.patch)
+  cuts the watchdog from 500 ms to 100 ms, still an order of magnitude above
+  the 7 ms a 1080p picture takes.
+- The H.264 C port and model still agree on all 168 harness pictures.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).

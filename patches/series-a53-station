@@ -916,3 +916,5 @@ proposals/0748-media-mediatek-mt6797-vdec-allow-cache-hints-on-the-.patch
 proposals/0749-regulator-da9213-legacy-answer-VPROC1-reads-from-the.patch
 proposals/0750-media-mediatek-mt6797-vdec-power-cycle-the-decoder-a.patch
 proposals/0751-media-mediatek-mt6797-vdec-support-system-sleep.patch
+proposals/0752-media-mediatek-mt6797-vdec-end-each-H.264-picture-wi.patch
+proposals/0753-media-mediatek-mt6797-vdec-time-a-decode-out-after-1.patch

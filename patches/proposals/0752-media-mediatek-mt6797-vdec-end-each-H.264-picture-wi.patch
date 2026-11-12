@@ -1,0 +1,68 @@
+From c2539d7fe416dbeb8e4fc8041e639245fa1815fc Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 18:25:24 -0500
+Subject: [PATCH 752/753] media: mediatek: mt6797-vdec: end each H.264 picture
+ with a delimiter
+
+On hardware, a corrupt H.264 picture never raised the decode interrupt:
+each one cost the full watchdog, so a corrupt 300-picture stream took
+about three minutes. HEVC and VP9 finish corrupt pictures. The vendor
+library appends an access unit delimiter after every picture so that
+the decoder sees an end marker; the driver decoded straight from the
+client buffer without one.
+
+Write a delimiter and zeros into the margin after the picture data that
+the bitstream window already covers. Good streams still end on their
+macroblock count.
+---
+ .../mediatek/mt6797-vdec/mt6797-vdec-h264.c   | 20 +++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+index 4b9b53258..290341c20 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-h264.c
+@@ -29,6 +29,7 @@
+ #include <linux/math.h>
+ #include <linux/minmax.h>
+ #include <linux/slab.h>
++#include <linux/string.h>
+ #include <media/v4l2-h264.h>
+ #include <media/videobuf2-dma-contig.h>
+ 
+@@ -216,6 +217,24 @@ static s32 br_se(struct mvdec_dev *vdev)
+ 
+ /* ---- validation and buffers --------------------------------------------- */
+ 
++/*
++ * Put an access unit delimiter and zeros after the picture data, inside the
++ * margin the bitstream window covers. The decoder stops a picture on its
++ * macroblock count; when a corrupt picture throws the parse off, the start
++ * code is what lets it end the picture instead of waiting for more data
++ * until the watchdog fires. Buffers without a kernel mapping go without.
++ */
++static void mvdec_h264_end_marker(struct vb2_buffer *vb, u32 len)
++{
++	static const u8 aud[] = { 0x00, 0x00, 0x00, 0x01, 0x09, 0xf0 };
++	u8 *va = vb2_plane_vaddr(vb, 0);
++
++	if (!va)
++		return;
++	memcpy(va + len, aud, sizeof(aud));
++	memset(va + len + sizeof(aud), 0, H264_BS_MARGIN - sizeof(aud));
++}
++
+ static int mvdec_h264_check(struct mvdec_ctx *ctx, const struct mvdec_h264_run *run)
+ {
+ 	const struct v4l2_ctrl_h264_sps *sps = run->sps;
+@@ -796,6 +815,7 @@ int mvdec_h264_run(struct mvdec_ctx *ctx, struct vb2_v4l2_buffer *src,
+ 	if (!len || src_pa & 0x3f ||
+ 	    len + H264_BS_MARGIN > vb2_plane_size(&src->vb2_buf, 0))
+ 		return -EINVAL;
++	mvdec_h264_end_marker(&src->vb2_buf, len);
+ 
+ 	p = kzalloc_obj(*p);
+ 	if (!p)
+-- 
+2.43.0
+
