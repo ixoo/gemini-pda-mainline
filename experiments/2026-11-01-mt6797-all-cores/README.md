@@ -1030,6 +1030,46 @@ Stages:
 | A72s hang on the first change | Mux 0 is not a running clock, or the bridge is wrong | Force-off; back to the firmware |
 | A53 stages fail now | The A72 clock's registration | Bisect with 0702 alone |
 
+**T4a result (observed, one boot; stopped at stage 6).** Boot `c75ab45e`, boot2
+`29ed9001`, the `mt6797-a53-station-a72` package from `8d63c36e` (inventory
+`f431e8bf...`). The custodian loaded the A72 module, then `clk-mt6797-mcusys`, then
+cpufreq-dt.
+1. Pass. CPU0-9 online; policy8 covered CPU8-9 over 338-1495 MHz; `vsram_b` read
+   1.10 V. cpufreq moved CPU8 from the firmware's unlisted 750 MHz to 845 MHz.
+   The profile's default schedutil had already made 25 A72 changes before
+   userspace was set.
+2. Pass. Every point, up and down. CPU8 measured within 0.3 % of each request; the
+   driver's read-back rate equalled the request; the hashes on CPU8 and CPU9 were
+   correct; SoC at most 37.9 C.
+3. Pass. The A53 stages t4-t6 with ten CPUs online.
+4. Pass. A 10 min schedutil soak: 4195 A72 changes, no hash mismatch, no fault, SoC
+   about 67 C at most. During the soak the GPU reported 77 scheduler timeouts and
+   the display showed transient corruption. That is passed to the GPU work; this
+   tree has no CCI scaling.
+5. Pass. With 62 C emulated, policy8's ceiling fell to 1378 MHz, and it came back
+   to 1495 MHz when the emulation was released.
+6. Fail. With both A72s down, a change returned `-EBUSY` as intended. After both
+   came back, cpufreq reported 845 MHz, but the driver read 750 MHz and CPU8
+   measured 750 MHz. The hashes stayed correct.
+7. `cpu_capacity` read 387, 521 and 1024, as expected.
+
+Cause of stage 6 (inferred from the code): the firmware's `CPU_ON` for the first
+A72 sets the PLL to 750 MHz. cpufreq then saw the unlisted rate and asked for
+845 MHz, but the OPP layer still held 845 MHz as current and skipped the change.
+0702 now remembers the last rate it set and adds a CPU hotplug callback, registered
+before cpufreq-dt's, which puts that rate back when the first A72 of the cluster
+comes up. Repeating stage 6 on an image with it is the next A72 boot; stages 1-5
+and 7 need not repeat.
+
+**Found for T4b (code reading, not run).** When the cluster comes back, the A72
+module's re-preparation requires BUCKB to read 1.0 V (selector `0x46`). On the DVFS
+tree the rail can be anywhere from 870 to 1200 mV when the last A72 goes down, so
+the re-preparation would refuse and both A72s would stay down. The firmware's
+`CPU_ON` also starts the cluster at 750 MHz on whatever rail it finds, and 870 mV is
+below the 880 mV of the 845 MHz point. T4b's down-and-up stage needs a design for
+this first: for example, raise the rail to at least 1.0 V through the regulator
+before `CPU_ON`, and restore the clock before releasing that request.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
