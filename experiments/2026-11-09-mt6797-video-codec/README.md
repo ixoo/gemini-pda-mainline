@@ -1121,7 +1121,7 @@ skip/reference/loop-filter features, compound-only mode, reference scaling
 (rejected), profiles 1 to 3, real-world streams, larger sizes, sustained
 playback and power.
 
-## Stage 4: VA-API for mpv and qutebrowser (built, device test pending)
+## Stage 4: VA-API for mpv and qutebrowser (V16: driver loads, decode blocked; fixes pending)
 
 One VA-API driver serves both stock Arch Linux ARM `mpv --hwdec=vaapi` and
 QtWebEngine's Chromium decoder. The [package directory](libva-v4l2-request/README.md)
@@ -1160,6 +1160,40 @@ VM; on the A72, from uncached buffers, it will be slower and is unmeasured.
 *Not yet shown:* any decode through the driver, Panfrost import of the NV12
 buffers, mpv, and whether Arch's qt6-webengine (6.11.3, Chromium 140) is built
 with VA-API and accepts this driver.
+
+### V16 result
+
+*Run.* Station-work-112 (boot2 `976cee30`, main `2c8894ed`, contains
+`02f095cc`), boot `71c291ae`, `mt6797-vdec.ko` `1b9ca659…`. The package
+(`a8cac915…`) and `libva-utils` were installed for the test only, with
+arch-root's agreement. Evidence (private): `artifacts/card-32/v16-*`.
+
+*Observed:*
+
+- **GStreamer regressions** with patch 0744 are byte-identical to V12, V10
+  and V15 for H.264, HEVC and VP9.
+- **`vainfo`** loads the driver, finds the decoder, and lists H.264
+  Constrained Baseline, Main and High, HEVC Main and VP9 Profile 0, all VLD.
+- **`ffmpeg -hwaccel vaapi`** on the first clip fails before any hardware
+  decode (no decoder interrupt):
+  - the driver cannot open `/dev/dma_heap/system`, which is root-only on the
+    card;
+  - every CAPTURE `QBUF` returns `EINVAL`;
+  - ffmpeg reports decode errors and spins at 99 % CPU until killed.
+- Following the no-retry rule, the custodian stopped there; mpv and
+  qutebrowser were not run.
+
+*Analysis.*
+
+- **The `EINVAL`.** The backend's `queue_buffer()` and `dequeue_buffer()`
+  pass a one-entry plane array on multi-planar queues. vb2 rejects arrays
+  shorter than the buffer's planes, and MM21 has two. The off-device tests
+  used the single-plane `visl` driver, so they missed it. Package patch
+  0003 (pkgrel 2) passes full arrays.
+- **The heap.** It holds the linear NV12 frames, so it is required. A udev
+  rule tagging `/dev/dma_heap/system` for `uaccess` gives the logged-in user
+  access. Card policy is arch-root's decision.
+- Patch 0744 is confirmed harmless for the existing GStreamer path.
 
 ## Follow-up
 

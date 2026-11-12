@@ -1,0 +1,40 @@
+From 65cadafa5b631d09700f71a63f6b90af5db1ac1c Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 21:37:29 -0500
+Subject: [PATCH] Pass the full plane array when queueing decode buffers
+
+queue_buffer() and dequeue_buffer() gave VIDIOC_QBUF and VIDIOC_DQBUF a
+one-entry plane array on multi-planar queues. vb2 rejects a plane array
+shorter than the buffer's planes with EINVAL, so decoders with a
+two-plane CAPTURE format (MediaTek MM21) could neither queue nor dequeue
+a CAPTURE buffer. Pass VIDEO_MAX_PLANES entries, as the buffer queries
+already do.
+---
+ src/decode.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/decode.c b/src/decode.c
+index 777750b..b68d9e0 100644
+--- a/src/decode.c
++++ b/src/decode.c
+@@ -105,7 +105,7 @@ static int queue_buffer(struct v4l2r_context *ctx, struct v4l2_buffer *buffer)
+ 	if (V4L2_TYPE_IS_MULTIPLANAR(buffer->type)) {
+ 		planes[0].bytesused = buffer->bytesused;
+ 		buffer->bytesused = 0;
+-		buffer->length = 1;
++		buffer->length = VIDEO_MAX_PLANES;
+ 		buffer->m.planes = planes;
+ 	}
+ 
+@@ -171,7 +171,7 @@ static int dequeue_buffer(struct v4l2r_context *ctx, enum v4l2_buf_type type)
+ 	};
+ 
+ 	if (V4L2_TYPE_IS_MULTIPLANAR(type)) {
+-		buffer.length = 1;
++		buffer.length = VIDEO_MAX_PLANES;
+ 		buffer.m.planes = planes;
+ 	}
+ 
+-- 
+2.43.0
+

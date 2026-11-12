@@ -36,6 +36,23 @@ yet. H.264 and HEVC need a kernel with mt6797-vdec patch 0744; see
   Main, and VP9 Profile 0. MPEG-2, VP8 and AV1 are not listed, because the
   decoder does not offer them.
 
+`0003-Pass-the-full-plane-array-when-queueing-decode-buffe.patch`
+
+- The driver gave `VIDIOC_QBUF` and `VIDIOC_DQBUF` a one-entry plane array.
+  MM21 CAPTURE buffers have two planes, so vb2 rejected every CAPTURE
+  queue and dequeue with `EINVAL`. Found on the first device run (V16).
+
+## Permission for the dma-buf heap
+
+The NV12 buffers come from `/dev/dma_heap/system`, which the kernel creates
+as root-only. Without access, decoding fails ("cannot open
+/dev/dma_heap/system: Permission denied"). A udev rule gives the logged-in
+user access, for example `/etc/udev/rules.d/70-dma-heap.rules`:
+
+    SUBSYSTEM=="dma_heap", KERNEL=="system", TAG+="uaccess"
+
+The file name must sort before systemd's `73-seat-late.rules`.
+
 The codec paths needed no other change:
 
 - H.264: the driver already reads the decode-mode and start-code control
