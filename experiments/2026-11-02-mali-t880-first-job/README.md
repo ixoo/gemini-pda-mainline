@@ -629,3 +629,6 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
    cooling state read 0 when idle. The image with `0690`-`0692` takes 238 MHz out of the table, so no maximum or floor can reach it.
 10. A card boot after a long charge read SoC 57.2 C at the GPU's probe, so the bring-up start check at 55 C refused it, and the desktop ran without a GPU until a manual reload at 97 s, by
     then 37.4 C. `0713` keeps that check only for the fixed clocks. With DVFS, the default, the cooling device and the SoC's trips handle heat. Compile-checked only.
+11. On an image with `0690`-`0693` and `0713`, during a 10-minute CPU soak on CPU7 to CPU9, A72s included, 77 job timeouts came only in the soak window, with transient corruption on the panel. The SoC
+    reached about 67 C, above the 58 C passive trip. The rate log was off. Candidates: memory bandwidth taken by the soak; the cooling cap moving the rate under load, now within one divider,
+    which is untested under heat; or the 520 MHz point itself, which now runs the MFGPLL at 2080 MHz with post-divider 4 and had not run long before. A repeat with the rate log on comes first.
