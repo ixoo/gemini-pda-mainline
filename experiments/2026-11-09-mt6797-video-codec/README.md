@@ -1396,6 +1396,57 @@ Zero-copy saves CPU time and works for mpv with the patched Mesa. It stays
 opt-in until the card's Mesa carries the fix, and qutebrowser stays on the
 CPU detile, since Chromium keeps one image per surface.
 
+### V21 result: readiness for loading at boot
+
+The owner asked to plan hardware decoding by default: decoder modules
+loaded at boot, VA-API system-wide, mpv `hwdec=auto-safe`. V21 checked
+whether the driver is ready.
+
+*Run.* Station-work-112, boot `8990918b`, `mt6797-vdec.ko` `7462cee7…`
+loaded by hand, package release 4 with the CPU detile, stock Mesa.
+Suspend (step 6) was not run. Evidence (private): `artifacts/card-32/v21/`.
+
+*Observed:*
+
+- **Idle with the module loaded:** the `vdec` domain was off 5 s after
+  loading and 2 s after a playback. The decoder's gates read 0. `vdec_sel`
+  and VDECPLL read enabled (1/1) while the domain was off; they read 0
+  after unloading all four modules.
+  - This matches V8's observer effect: the reading came from `clk_summary`,
+    which runtime-resumes the VDECSYS clock provider, and its consumer
+    column named the power domain. The provider is gone after unloading,
+    so nothing resumes it then.
+  - To be re-read through the per-clock `clk_enable_count` files [I].
+- **`rmmod` during playback** is refused ("in use"); playback continues.
+- **Two clients at once** (H.264 and HEVC 1080p, 600 frames each) are both
+  bit-exact.
+- **10 minutes of looped 1080p H.264** in mpv: 17,839 decoder interrupts,
+  10 frames dropped, SoC at most 44.2 °C, no driver or genpd messages.
+- **Corrupt streams** (ffmpeg's `noise` bitstream filter on the 1080p clips),
+  decoded through VA-API:
+  - Safe: after every corrupt file, a good clip still decoded bit-exact;
+    no kernel fault, display disturbance or genpd error.
+  - HEVC and VP9 finished, with up to 6 timeouts each.
+  - **H.264 stalled.** After the first bad picture, every later job in the
+    same session timed out with no interrupt (about 340 per 3-minute run),
+    until the client was killed. A new session recovered.
+
+*Analysis and fixes.*
+
+- [Patch 0750](../../patches/proposals/0750-media-mediatek-mt6797-vdec-power-cycle-the-decoder-a.patch):
+  after a timeout the driver released runtime PM with the 100 ms
+  autosuspend, and the client's next job kept the domain on. So the wedged
+  H.264 engine was never reset; the per-picture H.264 reset does not clear
+  it. A new session recovered because its idle gap let the domain switch
+  off. 0750 powers the domain down at once after a timeout, so the next job
+  starts from a power-cycled decoder, and rate-limits the message [I,
+  untested].
+- [Patch 0751](../../patches/proposals/0751-media-mediatek-mt6797-vdec-support-system-sleep.patch)
+  adds system sleep. On suspend it stops the mem2mem queue (waiting for the
+  running job) and forces runtime suspend; resume undoes both [untested].
+- *Next:* rerun V21 steps 1 (per-clock files), 5 and 6 with 0750 and 0751.
+  Boot loading waits for that.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).

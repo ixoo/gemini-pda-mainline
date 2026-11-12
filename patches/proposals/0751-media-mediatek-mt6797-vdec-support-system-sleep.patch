@@ -1,0 +1,59 @@
+From b3cce71effa96e02a8e112dae843bc85bc343404 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 17:54:05 -0500
+Subject: [PATCH 751/751] media: mediatek: mt6797-vdec: support system sleep
+
+The driver had runtime PM only, so a decode in flight at system suspend
+was not drained. Stop the mem2mem queue (waiting for the running job to
+finish or time out) and force the device runtime-suspended on suspend,
+so the power domain can switch off; undo both on resume.
+---
+ .../mediatek/mt6797-vdec/mt6797-vdec-core.c   | 26 +++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+index 6e77b0200..06a959813 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -873,12 +873,38 @@ static const struct of_device_id mvdec_of_match[] = {
+ };
+ MODULE_DEVICE_TABLE(of, mvdec_of_match);
+ 
++/*
++ * System sleep: let the running job finish (or time out), hold back new
++ * ones, and leave the device runtime-suspended so the domain can power
++ * off. Resume undoes both.
++ */
++static int mvdec_suspend(struct device *dev)
++{
++	struct mvdec_dev *vdev = dev_get_drvdata(dev);
++
++	v4l2_m2m_suspend(vdev->m2m_dev);
++	return pm_runtime_force_suspend(dev);
++}
++
++static int mvdec_resume(struct device *dev)
++{
++	struct mvdec_dev *vdev = dev_get_drvdata(dev);
++	int ret;
++
++	ret = pm_runtime_force_resume(dev);
++	v4l2_m2m_resume(vdev->m2m_dev);
++	return ret;
++}
++
++static DEFINE_SIMPLE_DEV_PM_OPS(mvdec_pm_ops, mvdec_suspend, mvdec_resume);
++
+ static struct platform_driver mvdec_driver = {
+ 	.probe	= mvdec_probe,
+ 	.remove	= mvdec_remove,
+ 	.driver	= {
+ 		.name		= MVDEC_NAME,
+ 		.of_match_table	= mvdec_of_match,
++		.pm		= pm_sleep_ptr(&mvdec_pm_ops),
+ 	},
+ };
+ module_platform_driver(mvdec_driver);
+-- 
+2.43.0
+

@@ -1,0 +1,85 @@
+From e4c8bb7ef228131335d4ed5001db8bc2f01b33b1 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 17:54:04 -0500
+Subject: [PATCH 750/751] media: mediatek: mt6797-vdec: power-cycle the decoder
+ after a timeout
+
+On hardware, an H.264 decode of a corrupt picture can time out and leave
+the engine wedged: every later job in the same session timed out too,
+about 340 times in 3 minutes, until the client closed its file. A new
+session recovered, because the idle gap let the power domain switch off.
+With autosuspend, a client queueing its next job right after the timeout
+keeps the domain on, and the per-picture reset does not clear the state.
+
+Power the domain down synchronously after a timeout, so the next job
+starts from a decoder reset by the power cycle, and rate-limit the
+message.
+---
+ .../mediatek/mt6797-vdec/mt6797-vdec-core.c   | 23 ++++++++++++++-----
+ 1 file changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+index 17b9d677e..6e77b0200 100644
+--- a/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
++++ b/drivers/media/platform/mediatek/mt6797-vdec/mt6797-vdec-core.c
+@@ -528,7 +528,15 @@ static int mvdec_queue_init(void *priv, struct vb2_queue *src_vq,
+ 
+ /* ---- running a job ---------------------------------------------------- */
+ 
+-static void mvdec_job_done(struct mvdec_dev *vdev, enum vb2_buffer_state state)
++/*
++ * Finish the running job. After a timeout the engine can stay wedged (an
++ * H.264 decode of a corrupt picture never finishes again in the same
++ * session), and with autosuspend a client queueing its next job keeps the
++ * domain powered. Power the domain down at once instead, so the next job
++ * starts from a decoder reset by the power cycle.
++ */
++static void mvdec_job_done(struct mvdec_dev *vdev, enum vb2_buffer_state state,
++			   bool reset)
+ {
+ 	struct mvdec_ctx *ctx = vdev->running;
+ 
+@@ -537,7 +545,10 @@ static void mvdec_job_done(struct mvdec_dev *vdev, enum vb2_buffer_state state)
+ 	vdev->running = NULL;
+ 	clk_disable_unprepare(vdev->larb_clk);
+ 	clk_disable_unprepare(vdev->vdec_clk);
+-	pm_runtime_put_autosuspend(vdev->dev);
++	if (reset)
++		pm_runtime_put_sync_suspend(vdev->dev);
++	else
++		pm_runtime_put_autosuspend(vdev->dev);
+ 	v4l2_m2m_buf_done_and_job_finish(vdev->m2m_dev, ctx->fh.m2m_ctx, state);
+ }
+ 
+@@ -603,7 +614,7 @@ static void mvdec_device_run(void *priv)
+ 	v4l2_ctrl_request_complete(src->vb2_buf.req_obj.req, &ctx->hdl);
+ 	if (ret) {
+ 		dev_dbg(vdev->dev, "decode not started: %d\n", ret);
+-		mvdec_job_done(vdev, VB2_BUF_STATE_ERROR);
++		mvdec_job_done(vdev, VB2_BUF_STATE_ERROR, false);
+ 		return;
+ 	}
+ 	schedule_delayed_work(&vdev->watchdog,
+@@ -641,7 +652,7 @@ static irqreturn_t mvdec_irq_thread(int irq, void *data)
+ 	/* VP9 reads its probabilities and counts back before completion. */
+ 	if (vdev->running && mvdec_is_vp9(vdev->running->src_fmt.pixelformat))
+ 		state = mvdec_vp9_done(vdev->running);
+-	mvdec_job_done(vdev, state);
++	mvdec_job_done(vdev, state, false);
+ 	return IRQ_HANDLED;
+ }
+ 
+@@ -650,8 +661,8 @@ static void mvdec_watchdog(struct work_struct *work)
+ 	struct mvdec_dev *vdev = container_of(to_delayed_work(work),
+ 					      struct mvdec_dev, watchdog);
+ 
+-	dev_err(vdev->dev, "decode timed out\n");
+-	mvdec_job_done(vdev, VB2_BUF_STATE_ERROR);
++	dev_err_ratelimited(vdev->dev, "decode timed out\n");
++	mvdec_job_done(vdev, VB2_BUF_STATE_ERROR, true);
+ }
+ 
+ static const struct v4l2_m2m_ops mvdec_m2m_ops = {
+-- 
+2.43.0
+
