@@ -30,6 +30,10 @@ DTB = os.environ.get('STATION_DTB', 'mt6797-gemini-pda-station-a72.dtb')
 # package has them (the mt6797-a53-station-dvfs profile) and skipped otherwise.
 GATED = ['da9213-legacy-regulator', 'mt6797-vsram-regulator', 'clk-mt6797-mcusys', 'cpufreq-dt',
          'mtk-cci-devfreq', 'mt6797-spm-sleep']
+# The video decoder and its helpers, station only (owner, 2026-11-12: "go ahead with
+# decoder loaded at boot"); gemini-base loads them on the Arch card root. The diagnostic
+# mt6797-vdec-probe and -replay match the same node and are deliberately not packed.
+VIDEO = ['v4l2-mem2mem', 'v4l2-h264', 'v4l2-vp9', 'clk-mt6797-vdec', 'mt6797-vdec']
 # The release image's optional groups, in release/hw-start.
 OPTIONAL = ['novatek-nt36xxx', 'kfifo_buf', 'industrialio-triggered-buffer', 'bmi160_core', 'bmi160_i2c', 'stk3310', 'leds-aw9120',
             'clk-mt6797-mfg', 'rt5735-regulator', 'drm_shmem_helper', 'gpu-sched', 'panfrost',
@@ -75,6 +79,10 @@ def main(package, parent, tools, output, authorized_key=None):
     # of these; they ride along for the Arch card root, which loads some at boot (gemini-base
     # gemini-hw@.service), with FM's driver too (owner, 2026-11-07).
     for name in OPTIONAL + ([] if public else ['radio-mt6797']):
+        found = sorted(package.glob('modules/lib/modules/*/kernel/**/' + name + '.ko'))
+        assert len(found) == 1, ('one module expected in the package', name, found)
+        modules += found
+    for name in [] if public else VIDEO:
         found = sorted(package.glob('modules/lib/modules/*/kernel/**/' + name + '.ko'))
         assert len(found) == 1, ('one module expected in the package', name, found)
         modules += found
