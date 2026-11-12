@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: MIT
+# Hardware video decoding for members of the video group (owner, 2026-11-11), local or
+# remote, as systemd already grants the decoder's /dev/video* and /dev/media* nodes. The
+# VA-API driver allocates its frames from the system DMA heap, which systemd leaves
+# root-only. Only the system heap; firstboot puts the user in the video group.
+SUBSYSTEM=="dma_heap", KERNEL=="system", GROUP="video", MODE="0660"

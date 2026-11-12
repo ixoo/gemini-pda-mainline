@@ -2310,6 +2310,28 @@ start. Run by hand, `battery-capacity restore` did everything right: `learned_fu
 UPower; only where `device/learned_full_uah` exists) and saves at stop. The `bind` rule stays
 for a driver bound later. A second restore writes the same values.
 
+### Hardware video decoding for the video group (`gemini-base` 57, 2026-11-11)
+
+The vcodec session's VA-API test (V16) on card-32 stopped at `/dev/dma_heap/system`: root:root
+0600, so the driver, running as the owner, could not allocate its frames ("Permission
+denied"), and every CAPTURE QBUF failed. The system heap hands out ordinary memory that
+several devices can share without copying: the decoder writes a frame into it and the GPU
+can display it directly. systemd 262 grants the decoder's own `/dev/video*` and
+`/dev/media*` to group `video` (0660) plus an ACL for the active local session, the DRM render
+node to everyone (0666), and the heap to nobody.
+
+The owner wants hardware decoding for any session, remote ones included, so not by the
+active-session ACL; and chose the video group over opening the heap to everyone:
+
+- `71-gemini-dma-heap.rules`: `SUBSYSTEM=="dma_heap", KERNEL=="system", GROUP="video",
+  MODE="0660"`, the system heap only.
+- `firstboot` creates the user in `wheel,video`, so the decoder nodes and the heap open to
+  them from any session. An existing card needs `usermod -aG video USER` once, then a new
+  login.
+
+The cost: a member can take memory through the heap that isn't charged to its memory
+cgroup. `udevadm verify` passes on the rule, ShellCheck on `firstboot`. Not on a device yet.
+
 ## Analysis
 
 Not started.

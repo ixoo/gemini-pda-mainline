@@ -44,7 +44,8 @@ while :; do
     [[ "$user" =~ ^[a-z_][a-z0-9_-]{0,31}$ ]] && ! id "$user" >/dev/null 2>&1 && break
     echo "Use lower case letters, digits, _ or -, for a new user."
 done
-useradd -m -G wheel "$user"
+# video: hardware video decoding, also from a remote session (dma-heap.rules).
+useradd -m -G wheel,video "$user"
 until passwd "$user"; do :; done
 # The country stays here: nothing transmits until one is set, and Noctalia doesn't set it.
 read -r -p "Wi-Fi country, two letters (empty keeps Wi-Fi off): " country
