@@ -327,6 +327,29 @@ BQ25896 watchdog (40 s) and the battery task (about 10 s unless the project
 overrides `BAT_TASK_PERIOD_SECOND`). `CLOSE_POWEROFF_WAKEUP_PERIOD` is 30 s,
 but only for the critically-low-battery/poweroff wake period.
 
+### 2.5 Compressed-audio offload
+
+The Gemini has no working audio offload. Its stock decode runs on the AP.
+Details and citations are in the
+[offload RE](../../experiments/2026-11-12-mt6797-audio-offload-re/README.md).
+
+- **Vendor design (MediaTek's generic MT6797 source).**
+  `MTK_AUDIO_TUNNELING_SUPPORT` decodes MP3, and only MP3 (PCM aside), on the
+  SCP, a Cortex-M4 running FreeRTOS. The AP writes bitstream into a 4 MiB ring
+  in the `scp_share` reservation through `/dev/offloadservice` and the
+  `audio_ipi` protocol. The SCP writes PCM to AFE SRAM, and memif DL3 plays it.
+  The AP drops its wakelock when the ring is full and may suspend. The SCP
+  wakes it with `MP3_NEEDDATA`.
+- **Gemini build.** The live Gemian kernel has the option unset, so the
+  offload driver and the MP3 IPI task are absent. The `offload` test in
+  `ConditionEnterSuspend()` never fires. The SCP image in `scp1` and `scp2`
+  (identical) is a 37 KiB DVFS-only build with no audio code. No audio-DSP
+  firmware is in `/system/vendor/firmware`.
+- **Idle rule worth reusing.** Vendor playback from AFE SRAM (48 KiB at
+  `0x11221000`, at most 32 KiB per DL buffer) leaves deep idle and SODI
+  allowed. A DRAM buffer forbids both through `AudDrv_Emi_Clk_On()`. Mainline
+  `mt6797-afe-pcm.c` uses DRAM buffers only, up to 384 KiB.
+
 ## 3. Inputs
 
 | Input | Codec path | Bias | HAL path |
