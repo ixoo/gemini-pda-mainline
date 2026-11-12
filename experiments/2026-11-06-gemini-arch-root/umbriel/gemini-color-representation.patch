@@ -11,9 +11,18 @@ dmabuf with EGL_EXT_image_dma_buf_import's YUV colour-space and sample-range hin
 from the surface's representation. A buffer is re-imported only when its hints change.
 
 diff --git a/src/server/server.cpp b/src/server/server.cpp
-index aaee6dd..9c1ba32 100644
+index aaee6dd..918e1f4 100644
 --- a/src/server/server.cpp
 +++ b/src/server/server.cpp
+@@ -72,7 +72,7 @@ namespace umbriel {
+     // Security-context clients only receive reviewed, ordinary application
+     // protocols. New globals stay unavailable until they are classified here.
+     // [[security_context_rule]] widens the set for matching clients.
+-    constexpr std::array<std::string_view, 32> kAllowedSecurityContextGlobals{
++    constexpr std::array<std::string_view, 33> kAllowedSecurityContextGlobals{
+         "wl_shm",
+         "wl_drm",
+         "zwp_linux_dmabuf_v1",
 @@ -88,6 +88,7 @@ namespace umbriel {
          "wp_content_type_manager_v1",
          "wl_output",
