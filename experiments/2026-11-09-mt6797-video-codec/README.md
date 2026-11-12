@@ -1489,6 +1489,58 @@ Suspend (step 6) was not run. Evidence (private): `artifacts/card-32/v21/`.
   the 7 ms a 1080p picture takes.
 - The H.264 C port and model still agree on all 168 harness pictures.
 
+### V23 result: corrupt streams with the end marker and 100 ms watchdog
+
+*Run.* Station-work-112, boot `8990918b`, `mt6797-vdec.ko` `2957e0e4…`
+(0752 and 0753), package release 4 with the CPU detile. The small H.264
+clips had been cleared from `/tmp`, so the good-stream check used the 1080p
+clips. Evidence (private): `artifacts/card-32/v23/`.
+
+*Observed:*
+
+- **Good streams:** H.264, HEVC and VP9 1080p, 600 frames each, through
+  VA-API, still match the software decode.
+- **Corrupt streams**, decoded through VA-API:
+
+  | File | rc | Time (s) | Decoder interrupts | Timeouts | Good clip after |
+  | --- | --- | --- | --- | --- | --- |
+  | bad-h264-1000 | 0 | 71.4 | 3 | 140 | bit-exact |
+  | bad-h264-200 | 0 | 69.1 | 1 | 141 | bit-exact |
+  | bad-hevc-1000 | 0 | 6.4 | 269 | 1 | bit-exact |
+  | bad-hevc-200 | 0 | 2.3 | 52 | 1 | bit-exact |
+  | bad-vp9-1000 | 0 | 14.9 | 590 | 6 | bit-exact |
+  | bad-vp9-200 | 0 | 14.2 | 531 | 6 | bit-exact |
+
+- After each file the domain was off. No kernel fault, genpd or Panfrost
+  error.
+
+*Analysis.*
+
+- **The end marker doesn't end corrupt H.264 pictures.** Corrupt pictures
+  that start still never raise the interrupt [O]; the rest are rejected
+  by the driver's header checks before starting.
+- **The cost is bounded.** With the 100 ms watchdog, each H.264 file
+  finishes in about 70 s instead of running past 180 s; at worst a player
+  slows down on a broken stream.
+- **No harm:** a good clip decodes bit-exact after every corrupt file.
+- **HEVC and VP9** conceal corrupt pictures and finish quickly.
+- 0752 stays: it matches the vendor's input contract and is harmless.
+- **Why H.264 hangs remains open.** The vendor may detect the error through
+  a status register and reset the engine itself.
+
+*Readiness for loading at boot.* Shown:
+
+- correct decoding, through all the clients;
+- idle with nothing held;
+- refusal to unload while in use;
+- concurrent clients;
+- 10 minutes of playback at 44 °C or below;
+- corrupt streams handled safely, bounded at about 100 ms per hung
+  picture.
+
+Not shown: system suspend and resume. 0751 is in place but untested,
+because suspend with the microSD root is not established yet.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).
