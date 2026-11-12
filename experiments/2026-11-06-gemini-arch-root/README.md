@@ -2270,6 +2270,32 @@ starts a newly installed unit, and `systemctl` called it disabled because the un
 `[Install]` sections are gone, so both show as static. After an install, start them once by
 hand or reboot.
 
+### The calibration helper waits for the gauge (`gemini-base` 55, 2026-11-11)
+
+The owner's first calibration on card-32 learned a full charge at 20:19; the helper then
+restored the limits (95/100), charging resumed, and capacity jumped 44 → 76 within a minute.
+The fuel-gauge session traced the jump to the gauge: the first read after charging resumed
+still counted as a rest and took the charging voltage for an OCV. 0747 (`2c8894ed`) fixes it.
+The helper's ending had one real weakness: it restored the limits as soon as its own
+30-minute count ended, while the driver takes its reading at the first capacity read after
+30 min of its own rest, which can start seconds later. It learned this time by timing.
+
+`gemini-base` 55:
+
+- turns the gauge driver's debug messages on for the cycle and off at exit, so its
+  "learning: …" reasons show (needs debugfs);
+- after the low rest, keeps charging held and reads the capacity every 30 s until the
+  driver prints a new "full charge … from M uAh over P points" line, for up to 15 min, then
+  shows the gauge's last "learning" lines if none came;
+- reports the learned full charge before and after from `learned_full_uah` on the adaptive
+  gauge (0746), whose `charge_full` is load-dependent, and `charge_full` before it;
+- prints the pair's own estimate, M × 100 ÷ |P| (here 1963017 × 100 ÷ 51 = 3849 mAh), and
+  that the learned value moves a quarter of the way toward it per cycle;
+- on images before the adaptive gauge, says the capacity may read high until the next
+  charge finishes.
+
+ShellCheck passes; the line parsing was checked on the reported line. Not run on a device.
+
 ## Analysis
 
 Not started.

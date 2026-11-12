@@ -1,6 +1,6 @@
 #!/bin/bash
 # SPDX-License-Identifier: MIT
-# Walks the owner through one battery calibration cycle, so the fuel gauge (0732) can learn
+# Walks the owner through one battery calibration cycle, so the fuel gauge (0732, 0746) can learn
 # the battery's full charge (owner, 2026-11-11). The gauge learns from two rested readings
 # far apart: one after a full charge, one low, with the charger attached and charging held.
 # This sets the charge limits for each step and restores them on any exit.
@@ -17,19 +17,30 @@ for a in charge_full capacity status current_now temp charge_control_start_thres
 done
 
 get() { cat "$bat/$1"; }
+# The learned full charge: on the adaptive gauge (0746) learned_full_uah, on the OCV table's
+# scale; before it, charge_full.
+learned() {
+    if [ -e "$bat/device/learned_full_uah" ]; then cat "$bat/device/learned_full_uah"; else get charge_full; fi
+}
+# The gauge says why it took or refused a reading only at debug level, so its debug messages
+# are on for the cycle (needs debugfs).
+dyndbg=/sys/kernel/debug/dynamic_debug/control
+debug() { [ -w "$dyndbg" ] && echo "file mt6351-fuel-gauge.c $1" >"$dyndbg" 2>/dev/null; }
 say() { printf '%s  %s\n' "$(date +%H:%M)" "$*"; }
 # An end sets the start 5 points below it (0695), so a start is written after its end.
 limits() { echo "$1" >"$bat/charge_control_end_threshold" && echo "$2" >"$bat/charge_control_start_threshold"; }
 
 old_end=$(get charge_control_end_threshold)
 old_start=$(get charge_control_start_threshold)
-full_before=$(get charge_full)
+full_before=$(learned)
 restore() {
     trap - EXIT INT TERM
+    debug -p
     limits "$old_end" "$old_start" && say "Charge limits restored: $old_start-$old_end %."
 }
 trap restore EXIT
 trap 'exit 130' INT TERM
+debug +p
 
 temp_ok() {
     local t
@@ -78,6 +89,7 @@ until [ "$(get status)" != Charging ] && [ "$(abs_ma)" -le 20 ]; do
     sleep "$poll_s"
 done
 rest "Full"
+dmesg | grep "mt6351-fuel-gauge.*learning:" | tail -1
 full_at=$SECONDS
 full_temp=$(get temp)
 # The guard's end can't go below 50 %, but its "full" latch holds from the end down to the
@@ -110,12 +122,35 @@ if [ "$(get status)" = Charging ]; then
     exit 1
 fi
 say "Step 3 of 3: charging is held at $low % for the low reading. Wall charger, screen idle."
+seen=$(dmesg | grep -c "full charge")
 rest "Low"
+# The driver takes its reading at the first capacity read after 30 min of its own rest, which
+# can start a little later than this count; keep charging held, reading the capacity, until it
+# reports the pair, for up to 15 min.
+waited=0
+until [ "$(dmesg | grep -c "full charge")" -gt "$seen" ]; do
+    if [ "$waited" -ge 900 ]; then
+        say "The gauge reported no pair within 15 min. Its last word:"
+        dmesg | grep "mt6351-fuel-gauge.*learning" | tail -3
+        break
+    fi
+    sleep "$poll_s"
+    waited=$((waited + poll_s))
+    hold_ok
+    get capacity >/dev/null
+done
 
-full_after=$(get charge_full)
+full_after=$(learned)
 say "Learned full charge: $((full_before / 1000)) mAh before, $((full_after / 1000)) mAh now."
-dmesg | grep "full charge" | tail -3
-if [ "$full_after" = "$full_before" ]; then
-    say "No new value. The gauge logs rejected pairs only at debug level:"
-    say "  echo 'file mt6351-fuel-gauge.c +p' > /sys/kernel/debug/dynamic_debug/control"
+line=$(dmesg | grep "full charge" | tail -1)
+echo "$line"
+# "full charge N uAh from M uAh over P points": this pair's own estimate is M x 100 / |P|. The
+# learned value moves only a quarter of the way toward it per cycle.
+m=$(echo "$line" | sed -n 's/.*from \([0-9]*\) uAh over -\{0,1\}\([0-9]*\) points.*/\1/p')
+pts=$(echo "$line" | sed -n 's/.*from \([0-9]*\) uAh over -\{0,1\}\([0-9]*\) points.*/\2/p')
+if [ -n "$m" ] && [ -n "$pts" ] && [ "$pts" -gt 0 ]; then
+    say "This cycle measured $((m * 100 / pts / 1000)) mAh; the learned value moves a quarter of the way toward it each cycle."
+fi
+if [ ! -e "$bat/device/learned_full_uah" ]; then
+    say "Charging resumes now; the capacity may read high until the next charge finishes."
 fi
