@@ -2391,6 +2391,14 @@ into the station image's module set (`77541707`). gemini-base 59:
   and software decoding otherwise. `vo=dmabuf-wayland` is a later step, after its format test.
 - qutebrowser is unchanged; its hardware decoding stays opt-in.
 
+The video session's conditions, all met without more configuration: the card's modules are
+the booted image's own (stage 1's tmpfs), so they match it, and `mt6797-vdec` needs patches
+0744–0753 (reference `b605c35f`); `mt6797-vdec-probe` and `mt6797-vdec-replay`, which match the
+same compatible string, aren't packed into the image, and without `modules.alias` udev
+couldn't load them anyway; `LIBVA_V4L2_REQUEST_MM21_EXPORT` stays unset, since the card's Mesa
+lacks the Panfrost MTK detile fix. System suspend with the decoder loaded is untested (0751);
+the sleep hook doesn't unload it.
+
 Built: `libva-v4l2-request-mt6797-1.2.20260715-4` (`b4c51d0f…`) in an Arch chroot over
 card-32's image, no compiler warnings. ShellCheck passes on `hw-load` and `build-card.sh`. Not
 on a device: it needs a station image built at or after `77541707`.
