@@ -1,0 +1,239 @@
+Umbriel honours a YUV client's colour representation (gemini-pda-mainline, MIT).
+
+Umbriel did not create the wp_color_representation_manager_v1 global, and its renderer
+advertised no colour encodings, so a client could not say which YUV matrix and range its
+buffers use. EGL then imported every YUV dmabuf with the driver's default, BT.601 limited
+range. A BT.709 video through mpv's dmabuf-wayland path came out with BT.601 colours
+(card-32, 2026-11-12).
+
+Create the global, advertise BT.601, BT.709 and BT.2020, and import an external-only
+dmabuf with EGL_EXT_image_dma_buf_import's YUV colour-space and sample-range hints taken
+from the surface's representation. A buffer is re-imported only when its hints change.
+
+diff --git a/src/server/server.cpp b/src/server/server.cpp
+index aaee6dd..9c1ba32 100644
+--- a/src/server/server.cpp
++++ b/src/server/server.cpp
+@@ -88,6 +88,7 @@ namespace umbriel {
+         "wp_content_type_manager_v1",
+         "wl_output",
+         "wp_color_manager_v1",
++        "wp_color_representation_manager_v1",
+         "xdg_wm_base",
+         "xdg_toplevel_tag_manager_v1",
+         "xdg_toplevel_drag_manager_v1",
+@@ -640,6 +641,10 @@ namespace umbriel {
+       if (linuxDmabuf == nullptr) {
+         throw std::runtime_error("failed to create linux-dmabuf global");
+       }
++      // Lets YUV clients say which matrix and range their buffers use.
++      if (wlr_color_representation_manager_v1_create_with_renderer(m_display, 1, m_renderer) == nullptr) {
++        kLog.warn("failed to create color-representation global");
++      }
+     }
+ 
+     const bool explicitSync = drmFd >= 0 && m_renderer->features.timeline && m_backend->features.timeline;
+diff --git a/src/wlr.h b/src/wlr.h
+index 1f15fdb..3aae601 100644
+--- a/src/wlr.h
++++ b/src/wlr.h
+@@ -23,6 +23,7 @@ extern "C" {
+ #include <wlr/render/wlr_renderer.h>
+ #include <wlr/types/wlr_alpha_modifier_v1.h>
+ #include <wlr/types/wlr_color_management_v1.h>
++#include <wlr/types/wlr_color_representation_v1.h>
+ #include <wlr/types/wlr_compositor.h>
+ #include <wlr/types/wlr_content_type_v1.h>
+ #include <wlr/types/wlr_cursor.h>
+diff --git a/umbrielfx/internal/render/egl.h b/umbrielfx/internal/render/egl.h
+index 80fc017..7ef40c6 100644
+--- a/umbrielfx/internal/render/egl.h
++++ b/umbrielfx/internal/render/egl.h
+@@ -1,6 +1,7 @@
+ #ifndef RENDER_EGL_H
+ #define RENDER_EGL_H
+ 
++#include <wlr/render/color.h>
+ #include <wlr/render/egl.h>
+ 
+ enum wlr_egl_drm_fd_strategy {
+@@ -94,6 +95,15 @@ void wlr_egl_destroy(struct wlr_egl* egl);
+ EGLImageKHR
+ wlr_egl_create_image_from_dmabuf(struct wlr_egl* egl, struct wlr_dmabuf_attributes* attributes, bool* external_only);
+ 
++/**
++ * As wlr_egl_create_image_from_dmabuf(), with the YUV matrix and range hints of
++ * EGL_EXT_image_dma_buf_import. NONE leaves a hint at the driver's default.
++ */
++EGLImageKHR wlr_egl_create_image_from_dmabuf_yuv(
++    struct wlr_egl* egl, struct wlr_dmabuf_attributes* attributes, bool* external_only,
++    enum wlr_color_encoding encoding, enum wlr_color_range range
++);
++
+ /**
+  * Get DMA-BUF formats suitable for sampling usage.
+  */
+diff --git a/umbrielfx/internal/render/fx_renderer/fx_renderer.h b/umbrielfx/internal/render/fx_renderer/fx_renderer.h
+index 3d64eae..5a1b10f 100644
+--- a/umbrielfx/internal/render/fx_renderer/fx_renderer.h
++++ b/umbrielfx/internal/render/fx_renderer/fx_renderer.h
+@@ -8,6 +8,7 @@
+ #include <stdbool.h>
+ #include <time.h>
+ #include <umbrielfx/render/fx_renderer/fx_renderer.h>
++#include <wlr/render/color.h>
+ #include <wlr/render/egl.h>
+ #include <wlr/render/interface.h>
+ #include <wlr/render/swapchain.h>
+@@ -42,6 +43,9 @@ GLuint fx_framebuffer_get_fbo(struct fx_framebuffer* buffer);
+ // active texture unit and unbinds the target after importing its EGLImage.
+ GLuint fx_framebuffer_get_texture(struct fx_framebuffer* buffer);
+ 
++// Re-imports an external-only buffer when its YUV matrix or range changes.
++void fx_framebuffer_set_yuv(struct fx_framebuffer* buffer, enum wlr_color_encoding encoding, enum wlr_color_range range);
++
+ /**
+  * Attaches a stencil renderbuffer to the framebuffer on first use. Leaves the
+  * framebuffer bound. Returns false when no stencil could be attached.
+@@ -80,6 +84,9 @@ struct fx_framebuffer {
+   bool capture_protected;
+ 
+   EGLImageKHR image;
++  // YUV hints the image was imported with, for external-only buffers
++  enum wlr_color_encoding yuv_encoding;
++  enum wlr_color_range yuv_range;
+   GLuint rbo;
+   GLuint fbo;
+   GLuint tex;
+diff --git a/umbrielfx/render/egl.c b/umbrielfx/render/egl.c
+index a38e70a..f4063d1 100644
+--- a/umbrielfx/render/egl.c
++++ b/umbrielfx/render/egl.c
+@@ -767,6 +767,15 @@ bool wlr_egl_restore_context(struct wlr_egl_context* context) {
+ 
+ EGLImageKHR
+ wlr_egl_create_image_from_dmabuf(struct wlr_egl* egl, struct wlr_dmabuf_attributes* attributes, bool* external_only) {
++  return wlr_egl_create_image_from_dmabuf_yuv(
++      egl, attributes, external_only, WLR_COLOR_ENCODING_NONE, WLR_COLOR_RANGE_NONE
++  );
++}
++
++EGLImageKHR wlr_egl_create_image_from_dmabuf_yuv(
++    struct wlr_egl* egl, struct wlr_dmabuf_attributes* attributes, bool* external_only,
++    enum wlr_color_encoding encoding, enum wlr_color_range range
++) {
+   if (!egl->exts.KHR_image_base || !egl->exts.EXT_image_dma_buf_import) {
+     wlr_log(WLR_ERROR, "dmabuf import extension not present");
+     return NULL;
+@@ -780,7 +789,7 @@ wlr_egl_create_image_from_dmabuf(struct wlr_egl* egl, struct wlr_dmabuf_attribut
+   }
+ 
+   unsigned int atti = 0;
+-  EGLint attribs[50];
++  EGLint attribs[54];
+   attribs[atti++] = EGL_WIDTH;
+   attribs[atti++] = attributes->width;
+   attribs[atti++] = EGL_HEIGHT;
+@@ -820,6 +829,35 @@ wlr_egl_create_image_from_dmabuf(struct wlr_egl* egl, struct wlr_dmabuf_attribut
+     }
+   }
+ 
++  switch (encoding) {
++  case WLR_COLOR_ENCODING_BT601:
++    attribs[atti++] = EGL_YUV_COLOR_SPACE_HINT_EXT;
++    attribs[atti++] = EGL_ITU_REC601_EXT;
++    break;
++  case WLR_COLOR_ENCODING_BT709:
++    attribs[atti++] = EGL_YUV_COLOR_SPACE_HINT_EXT;
++    attribs[atti++] = EGL_ITU_REC709_EXT;
++    break;
++  case WLR_COLOR_ENCODING_BT2020:
++    attribs[atti++] = EGL_YUV_COLOR_SPACE_HINT_EXT;
++    attribs[atti++] = EGL_ITU_REC2020_EXT;
++    break;
++  default:
++    break;
++  }
++  switch (range) {
++  case WLR_COLOR_RANGE_LIMITED:
++    attribs[atti++] = EGL_SAMPLE_RANGE_HINT_EXT;
++    attribs[atti++] = EGL_YUV_NARROW_RANGE_EXT;
++    break;
++  case WLR_COLOR_RANGE_FULL:
++    attribs[atti++] = EGL_SAMPLE_RANGE_HINT_EXT;
++    attribs[atti++] = EGL_YUV_FULL_RANGE_EXT;
++    break;
++  default:
++    break;
++  }
++
+   // Our clients don't expect our usage to trash the buffer contents
+   attribs[atti++] = EGL_IMAGE_PRESERVED_KHR;
+   attribs[atti++] = EGL_TRUE;
+diff --git a/umbrielfx/render/fx_renderer/fx_framebuffer.c b/umbrielfx/render/fx_renderer/fx_framebuffer.c
+index 4358081..c2ce0e9 100644
+--- a/umbrielfx/render/fx_renderer/fx_framebuffer.c
++++ b/umbrielfx/render/fx_renderer/fx_framebuffer.c
+@@ -54,6 +54,33 @@ GLuint fx_framebuffer_get_texture(struct fx_framebuffer* buffer) {
+   return buffer->tex;
+ }
+ 
++void fx_framebuffer_set_yuv(struct fx_framebuffer* buffer, enum wlr_color_encoding encoding, enum wlr_color_range range) {
++  if (!buffer->external_only || (buffer->yuv_encoding == encoding && buffer->yuv_range == range)) {
++    return;
++  }
++
++  struct wlr_dmabuf_attributes dmabuf = {0};
++  if (!wlr_buffer_get_dmabuf(buffer->buffer, &dmabuf)) {
++    return;
++  }
++  bool external_only;
++  EGLImageKHR image =
++      wlr_egl_create_image_from_dmabuf_yuv(buffer->renderer->egl, &dmabuf, &external_only, encoding, range);
++  if (image == EGL_NO_IMAGE_KHR) {
++    return;
++  }
++
++  if (buffer->tex != 0) {
++    glBindTexture(GL_TEXTURE_EXTERNAL_OES, buffer->tex);
++    buffer->renderer->procs.glEGLImageTargetTexture2DOES(GL_TEXTURE_EXTERNAL_OES, image);
++    glBindTexture(GL_TEXTURE_EXTERNAL_OES, 0);
++  }
++  wlr_egl_destroy_image(buffer->renderer->egl, buffer->image);
++  buffer->image = image;
++  buffer->yuv_encoding = encoding;
++  buffer->yuv_range = range;
++}
++
+ GLuint fx_framebuffer_get_fbo(struct fx_framebuffer* buffer) {
+   if (buffer->external_only) {
+     wlr_log(WLR_ERROR, "DMA-BUF format is external-only");
+diff --git a/umbrielfx/render/fx_renderer/fx_pass.c b/umbrielfx/render/fx_renderer/fx_pass.c
+index cae9385..9429800 100644
+--- a/umbrielfx/render/fx_renderer/fx_pass.c
++++ b/umbrielfx/render/fx_renderer/fx_pass.c
+@@ -1959,6 +1959,9 @@ void fx_render_pass_add_texture(struct fx_gles_render_pass* pass, const struct f
+     // EGL_EXT_image_dma_buf_import_modifiers requires
+     // GL_OES_EGL_image_external
+     assert(renderer->exts.OES_egl_image_external);
++    if (texture->buffer != NULL) {
++      fx_framebuffer_set_yuv(texture->buffer, options->color_encoding, options->color_range);
++    }
+     shader = use_clamp ? (use_effects ? &renderer->shaders.tex_clamp_effects_ext : &renderer->shaders.tex_clamp_ext)
+                        : (use_effects ? &renderer->shaders.tex_effects_ext : &renderer->shaders.tex_ext);
+     break;
+diff --git a/umbrielfx/render/fx_renderer/fx_renderer.c b/umbrielfx/render/fx_renderer/fx_renderer.c
+index 9f0f98d..be2ecea 100644
+--- a/umbrielfx/render/fx_renderer/fx_renderer.c
++++ b/umbrielfx/render/fx_renderer/fx_renderer.c
+@@ -593,7 +593,9 @@ struct wlr_renderer* fx_renderer_create_egl(struct wlr_egl* egl) {
+     return NULL;
+   }
+   wlr_renderer_init(&renderer->wlr_renderer, &renderer_impl, WLR_BUFFER_CAP_DMABUF);
+-  renderer->wlr_renderer.color_encodings = 0;
++  // External YUV imports take these as EGL_EXT_image_dma_buf_import hints.
++  renderer->wlr_renderer.color_encodings =
++      WLR_COLOR_ENCODING_BT601 | WLR_COLOR_ENCODING_BT709 | WLR_COLOR_ENCODING_BT2020;
+   renderer->wlr_renderer.features.input_color_transform = true;
+   renderer->wlr_renderer.features.output_color_transform = false;
+ 
