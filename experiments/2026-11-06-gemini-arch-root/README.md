@@ -2173,6 +2173,24 @@ action; discharging at 3.5 V: none; at 3.2 V: poweroff after the third read; two
 then recovery: none); ShellCheck. Not on a device. The custodian installs it after the owner's
 calibration, since a poweroff mid-cycle would lose it.
 
+The owner then asked for behaviour that adapts to the battery, not values tuned to this cell
+("what will happen with the same setting on other devices?"), and approved the fuel-gauge
+session's adaptive design (its record, "Adaptive resistance"): the gauge learns the cell's
+resistance, and 0 % becomes the charge at which the cell, under its recent typical load,
+reaches the cut-off. With that, `gemini-base` 50 replaces 48–49's battery-specific choices;
+48 and 49 were never installed:
+
+- No UPower drop-in: UPower's own defaults stand (low 20 %, critical 5 %, a clean poweroff at
+  2 % through `Auto`, which resolves to PowerOff on a card without hibernation), since 0 %
+  now means "about to reach the cut-off".
+- The guard at 3.10 V, the same on every Gemini: the bootloader sets the MT6351's hardware
+  cut-off (UVLO) to 2.70 V on every unit (`CHR_CON17` `0x0F9A` = `0x0004`, read by the
+  custodian), plus 0.25 V for load bursts between polls (up to 1 A at an aged cell's fast
+  resistance of up to 0.25 Ω), 0.05 V across the BATFET and a 0.10 V margin. The adaptive
+  gauge reaches 0 % at 0.10 V above it, so the guard only catches what the gauge misses.
+- Noctalia's warning stays at 20 %.
+
+
 ## Analysis
 
 Not started.
