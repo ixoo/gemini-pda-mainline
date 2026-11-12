@@ -2200,8 +2200,8 @@ of its basis, R within 50000–1500000 µΩ, ERANGE otherwise), with read-only b
 `design_full_uah` (4268000) and `design_resistance_uohm` (165000). A change of either raises a
 change uevent, as before.
 
-`battery-capacity` keeps the same rules, file and triggers, and chooses by what the driver
-offers:
+In `gemini-base` 51 (superseded by 52, below), `battery-capacity` kept the same rules, file
+and triggers, and chose by what the driver offers:
 
 - With 0746, the file holds `full <Q> <basis>` and `resistance <R> <basis>`. Each restores as
   value × today's basis ÷ saved basis, the basis read inside the three tries. A file saved
@@ -2218,6 +2218,33 @@ nothing; R learned alone is saved; changed bases rescale both values; on an olde
 new-format file neither restores into `charge_full` nor gets overwritten; an old file still
 restores there; a non-numeric file changes nothing. ShellCheck passes. Not on a device: it
 needs a station image with 0746.
+
+The fuel-gauge session's answers from the 0745–0746 code then changed three things
+(`gemini-base` 52, replacing 51, which was never installed):
+
+- **When to restore.** The attributes are driver `dev_groups`, created only after probe
+  returns, while the battery supply's `add` uevent fires during probe. 51's restore on `add`
+  would have found no attributes and restored nothing. The rule now restores on the gauge
+  driver's `bind` (`ACTION=="bind", SUBSYSTEM=="platform", DRIVER=="mt6351-fuel-gauge"`), and
+  saves on the battery's change uevents as before.
+- **Older images.** Without the attributes, the script does nothing, neither restore nor
+  save: those are transitional development images, and the new file then never holds
+  usable-scale values.
+- **The file.** Q and R go to `/var/lib/gemini/battery-learned`. An old
+  `battery-charge-full` migrates as Q = value × 4268000 ÷ its design when the gauge binds;
+  the restore then writes the new file itself and removes the old one. The bind restore and
+  a battery change can run in parallel, so until then a save is skipped while Q still reads
+  its basis (it would store the unrestored value); a value learned since is saved anyway.
+  A migration whose write fails keeps the old file for the next boot, and an unreadable old
+  file is removed.
+
+Checked against a fake sysfs (11 cases): migrating "3800000 3969240" gives Q = 4086021
+(confirmed by the fuel-gauge session) and removes the old file; card-32's "3969240 3969240"
+and 0732's 4268000 give 4268000; a save before the restore keeps the old file; a fresh
+install writes nothing; R learned alone is saved; changed bases rescale both; an image
+without the attributes leaves everything alone; a failed migration write keeps the old file;
+a junk old file goes; a learned Q is saved even with the migration pending. The rule passes
+`udevadm verify`. Not on a device: it needs a station image built at or after `1f532f3b`.
 
 ## Analysis
 

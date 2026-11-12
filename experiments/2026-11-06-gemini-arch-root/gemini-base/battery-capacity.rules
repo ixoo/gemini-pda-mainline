@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: MIT
-# The battery's learned full charge (battery-capacity): restored when the battery appears,
-# before UPower is told about it, and saved when the driver reports a change. Change
-# uevents are frequent; the save reads one attribute and writes only a new value.
-ACTION=="add", SUBSYSTEM=="power_supply", KERNEL=="battery", TEST=="charge_full", \
-  RUN+="/usr/lib/gemini/battery-capacity restore /sys$devpath"
-ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="battery", TEST=="charge_full", \
-  RUN+="/usr/lib/gemini/battery-capacity save /sys$devpath"
+# What the fuel gauge learned (battery-capacity): restored when the gauge driver binds, the
+# first moment its learned_* attributes exist (they appear after the battery supply's add
+# event), and saved when the driver reports a change. Change uevents are frequent; the save
+# reads four attributes and writes only new values.
+ACTION=="bind", SUBSYSTEM=="platform", DRIVER=="mt6351-fuel-gauge", \
+  RUN+="/usr/lib/gemini/battery-capacity restore"
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="battery", \
+  RUN+="/usr/lib/gemini/battery-capacity save"

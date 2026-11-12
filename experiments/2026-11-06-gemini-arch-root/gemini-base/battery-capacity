@@ -1,29 +1,29 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
 # Keeps what the fuel gauge learns about the battery across boots (owner, 2026-11-11): the
-# driver forgets it at power-off, so this restores it when the battery appears and saves it
-# when the driver changes it and at shutdown. After fitting a new battery, remove
-# /var/lib/gemini/battery-charge-full so the gauge learns the new cell.
+# driver forgets it at power-off, so this restores it when the gauge driver binds and saves
+# it when the driver changes it and at shutdown. After fitting a new battery, remove
+# /var/lib/gemini/battery-learned so the gauge learns the new cell.
 #
-# The adaptive gauge (0746) learns a full charge Q and a resistance R, in
-# device/learned_full_uah and device/learned_resistance_uohm, each with a read-only basis
-# (device/design_full_uah, device/design_resistance_uohm). The file then holds
+# The adaptive gauge (0745-0746) learns a full charge Q and a resistance R, in
+# device/learned_full_uah and device/learned_resistance_uohm under the battery supply, each
+# with a read-only basis (device/design_full_uah, device/design_resistance_uohm). The file
 #   full <Q> <basis>
 #   resistance <R> <basis>
-# and a restore rescales each value to today's basis. Before 0746 the gauge learned only a
-# writable charge_full, saved as "<charge_full> <charge_full_design>" (0736), or as a single
-# number in 0732's scale, where charge_full_design was 4268000. On 0746 that file restores
-# as Q, rescaled to the table scale, and is rewritten in the new format at the next save.
-# usage: battery-capacity restore|save [SYSFS_DIR]
-# udev passes the battery's sysfs directory; the shutdown unit uses the default.
-dir=${2:-/sys/class/power_supply/battery}
-dev=$dir/device
-file=/var/lib/gemini/battery-charge-full
+# restores each value rescaled to today's basis. On an image without these attributes it
+# does nothing. A full charge saved before 0746 in /var/lib/gemini/battery-charge-full,
+# "<charge_full> <charge_full_design>" (0736) or 0732's single number (design 4268000),
+# restores as Q = value x 4268000 / its design, and goes once the new file is saved.
+# usage: battery-capacity restore|save
+dev=/sys/class/power_supply/battery/device
+file=/var/lib/gemini/battery-learned
+old=/var/lib/gemini/battery-charge-full
 num() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; }
 
-# Write value x basis-now / basis-saved to an attribute. The driver answers ENODATA for every
-# property, the bases included, for a moment after the battery registers, so read the basis
-# and write three times, 1 s apart; out-of-range values fail with ERANGE and change nothing.
+[ -e "$dev/learned_full_uah" ] || exit 0
+
+# Write value x basis-now / basis-saved to an attribute, three tries 1 s apart (the driver
+# answers ENODATA until it has the battery description); ERANGE changes nothing.
 put() { # ATTRIBUTE VALUE SAVED_BASIS BASIS_ATTRIBUTE
     num "$2" && num "$3" && [ "$3" -gt 0 ] || return 0
     for _ in 1 2 3; do
@@ -33,65 +33,53 @@ put() { # ATTRIBUTE VALUE SAVED_BASIS BASIS_ATTRIBUTE
         fi
         sleep 1
     done
+    return 1
 }
 
-# Atomically replace the file with $1, unless it already says that.
-store() {
-    [ "$1" = "$(cat "$file" 2>/dev/null)" ] && return 0
+# Save Q and R with their bases, if changed. A fresh install keeps no file until the
+# driver has learned something; a migration in progress keeps the old file until then.
+save() {
+    q=$(cat "$dev/learned_full_uah" 2>/dev/null)
+    qb=$(cat "$dev/design_full_uah" 2>/dev/null)
+    r=$(cat "$dev/learned_resistance_uohm" 2>/dev/null)
+    rb=$(cat "$dev/design_resistance_uohm" 2>/dev/null)
+    num "$q" && num "$qb" && num "$r" && num "$rb" || return 0
+    text="full $q $qb
+resistance $r $rb"
+    [ "$text" = "$(cat "$file" 2>/dev/null)" ] && return 0
+    [ -e "$file" ] || [ "$1" = migrated ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ] || return 0
     mkdir -p "${file%/*}"
-    printf '%s\n' "$1" >"$file.new" && mv "$file.new" "$file"
+    printf '%s\n' "$text" >"$file.new" && mv "$file.new" "$file" && rm -f "$old"
 }
 
 case "$1" in
 restore)
-    [ -r "$file" ] || exit 0
-    read -r first second _ <"$file"
-    if [ -e "$dev/learned_full_uah" ]; then
-        case "$first" in
-        full | resistance)
-            while read -r name value basis; do
-                case "$name" in
-                full) put "$dev/learned_full_uah" "$value" "$basis" "$dev/design_full_uah" ;;
-                resistance) put "$dev/learned_resistance_uohm" "$value" "$basis" "$dev/design_resistance_uohm" ;;
-                esac
-            done <"$file"
-            ;;
-        *)
-            # A charge_full saved before 0746: Q = value x 4268000 / its saved design.
-            num "$first" && num "${second:-4268000}" && [ "${second:-4268000}" -gt 0 ] || exit 0
-            put "$dev/learned_full_uah" $((first * 4268000 / ${second:-4268000})) 4268000 "$dev/design_full_uah"
-            ;;
-        esac
-    else
-        # An image before 0746: restore charge_full, rescaled to today's design value.
-        case "$first" in full | resistance) exit 0 ;; esac
-        put "$dir/charge_full" "$first" "${second:-4268000}" "$dir/charge_full_design"
+    if [ -r "$file" ]; then
+        while read -r name value basis; do
+            case "$name" in
+            full) put "$dev/learned_full_uah" "$value" "$basis" "$dev/design_full_uah" ;;
+            resistance) put "$dev/learned_resistance_uohm" "$value" "$basis" "$dev/design_resistance_uohm" ;;
+            esac
+        done <"$file"
+    elif [ -r "$old" ]; then
+        read -r value design _ <"$old"
+        design=${design:-4268000}
+        num "$value" && num "$design" && [ "$design" -gt 0 ] || { rm -f "$old"; exit 0; }
+        put "$dev/learned_full_uah" $((value * 4268000 / design)) 4268000 "$dev/design_full_uah" &&
+            save migrated
     fi
     exit 0
     ;;
 save)
-    if [ -e "$dev/learned_full_uah" ]; then
-        q=$(cat "$dev/learned_full_uah" 2>/dev/null)
-        qb=$(cat "$dev/design_full_uah" 2>/dev/null)
-        r=$(cat "$dev/learned_resistance_uohm" 2>/dev/null)
-        rb=$(cat "$dev/design_resistance_uohm" 2>/dev/null)
-        num "$q" && num "$qb" && num "$r" && num "$rb" || exit 0
-        # A fresh install keeps no file until the driver has learned something.
-        [ -e "$file" ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ] || exit 0
-        store "full $q $qb
-resistance $r $rb"
-    else
-        # An image before 0746 leaves a file saved by a later one alone.
-        read -r first _ <"$file" 2>/dev/null
-        case "$first" in full | resistance) exit 0 ;; esac
-        value=$(cat "$dir/charge_full" 2>/dev/null) || exit 0
-        design=$(cat "$dir/charge_full_design" 2>/dev/null) || exit 0
-        num "$value" && num "$design" || exit 0
-        [ -e "$file" ] || [ "$value" != "$design" ] || exit 0
-        store "$value $design"
+    # Until the restore has migrated an old file, a save would store the unrestored value;
+    # a value the driver has learned since is saved anyway.
+    if [ -e "$old" ] && [ ! -e "$file" ] &&
+        [ "$(cat "$dev/learned_full_uah" 2>/dev/null)" = "$(cat "$dev/design_full_uah" 2>/dev/null)" ]; then
+        exit 0
     fi
+    save
     exit 0
     ;;
 esac
-echo "usage: battery-capacity restore|save [SYSFS_DIR]" >&2
+echo "usage: battery-capacity restore|save" >&2
 exit 2
