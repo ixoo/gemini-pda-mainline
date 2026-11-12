@@ -12,27 +12,32 @@ Make 0 % the charge at which the cell, under its typical load, reaches
 the cut-off: the open-circuit voltage less the typical load times the
 learned resistance at the battery's temperature meets 3.20 V, the
 Gemini's 3.10 V backstop plus 0.10 V. The typical load is the discharge
-current averaged over about 30 minutes, 0.2-2 A, starting at 0.5 A; the
-empty point moves at most a point a minute and at most to 80 % of the
-table. The capacity, the charge now and the full charge are the usable
-charge above it; the design full charge is a new cell's at 0.5 A and
-25 C. A heavy load makes the percentage fall faster and a lighter one
-gives some back, and 0 % means the cell is about to stop holding the
-load.
+current averaged over about 30 minutes, 0.2-2 A, starting at 0.5 A, and
+off battery it returns to 0.5 A, so a charge ends against a light load;
+the empty point moves at most a point a minute and at most to 80 % of
+the table.
 
-The full charge is now derived, so it is read-only. The learned table
-full charge is in learned_full_uah, which userspace can write back
+The reported charge is what remains above that point, so the time to
+empty, the charge over the current, is what the load leaves. The full
+charge stays the learned full charge's usable part and the design full
+charge the design's, so the health changes only with ageing. The
+capacity is the charge over the full charge: a heavy load makes it fall
+faster, a lighter one gives some back, and 0 % means the cell is about
+to stop holding the load.
+
+The full charge is now the learned value, read-only here. The learned
+table full charge is in learned_full_uah, which userspace can write back
 within 50-110 % of the design, held at the design; design_full_uah is
 the DT's, the basis for keeping it.
 ---
- drivers/power/supply/mt6351-fuel-gauge.c | 185 +++++++++++++++++------
- 1 file changed, 142 insertions(+), 43 deletions(-)
+ drivers/power/supply/mt6351-fuel-gauge.c | 183 +++++++++++++++++------
+ 1 file changed, 141 insertions(+), 42 deletions(-)
 
 diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
-index 050fcda..d770bb8 100644
+index 050fcda..ffdad4c 100644
 --- a/drivers/power/supply/mt6351-fuel-gauge.c
 +++ b/drivers/power/supply/mt6351-fuel-gauge.c
-@@ -131,6 +131,22 @@
+@@ -131,6 +131,23 @@
  #define MT6351_FG_R_MIN_UOHM		50000
  #define MT6351_FG_R_MAX_UOHM		1500000
  
@@ -41,8 +46,9 @@ index 050fcda..d770bb8 100644
 + * Gemini's 3.10 V backstop (LK's 2.70 V UVLO, bursts and the BATFET drop)
 + * plus 0.10 V, so the gauge reaches 0 % first. The typical load is the
 + * discharge current averaged over about MT6351_FG_ITYP_TAU_MS, within the
-+ * bounds. The empty point moves at most a point per MT6351_FG_EMPTY_MS and
-+ * stays at or below MT6351_FG_EMPTY_MAX_PCT of the table.
++ * bounds; off battery it returns to the starting value at the same rate. The
++ * empty point moves at most a point per MT6351_FG_EMPTY_MS and stays at or
++ * below MT6351_FG_EMPTY_MAX_PCT of the table.
 + */
 +#define MT6351_FG_CUTOFF_UV		3200000
 +#define MT6351_FG_ITYP_INIT_UA		500000
@@ -55,28 +61,32 @@ index 050fcda..d770bb8 100644
  /*
   * The resistance against 25 C, per mille, every 5 C from -10 to 50 C: the
   * vendor profiles' mid-range resistance at -10, 0, 25 and 50 C, interpolated
-@@ -151,6 +167,12 @@ struct mt6351_fg {
+@@ -151,6 +168,11 @@ struct mt6351_fg {
  	struct mutex lock;
  	u32 sense_mohm;
  	u32 car_tune;
-+	/* The typical load, and the empty point on the table now and for a new cell. */
++	/* The typical load, and the empty point on the table. */
 +	s64 ityp_ua;
 +	int empty_pct;
-+	int empty_design_pct;
 +	bool empty_valid;
 +	ktime_t empty_time;
  	/* The resistance at 25 C: learned or restored, and the DT's starting value. */
  	s64 r25_uohm;
  	s64 r_design_uohm;
-@@ -304,6 +326,15 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+@@ -304,6 +326,20 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
  	fg->win_ua = div_s64(dq_nah * 3600, ms);
  	fg->win_ua_valid = true;
  
-+	/* The typical load follows the discharge; on a charger it holds. */
-+	if (fg->win_ua <= -MT6351_FG_IDLE_UA) {
++	/*
++	 * The typical load follows the discharge; off battery it returns to the
++	 * starting value, so a charge ends against a light load.
++	 */
++	{
 +		s64 w = min_t(s64, ms, MT6351_FG_ITYP_TAU_MS);
++		s64 target = fg->win_ua <= -MT6351_FG_IDLE_UA ? -fg->win_ua :
++			     MT6351_FG_ITYP_INIT_UA;
 +
-+		fg->ityp_ua += div_s64((-fg->win_ua - fg->ityp_ua) * w, MT6351_FG_ITYP_TAU_MS);
++		fg->ityp_ua += div_s64((target - fg->ityp_ua) * w, MT6351_FG_ITYP_TAU_MS);
 +		fg->ityp_ua = clamp_t(s64, fg->ityp_ua, MT6351_FG_ITYP_MIN_UA,
 +				      MT6351_FG_ITYP_MAX_UA);
 +	}
@@ -84,7 +94,7 @@ index 050fcda..d770bb8 100644
  	if (fg->win_ua <= -MT6351_FG_IDLE_UA)
  		fg->taper_seen = false;
  	if (abs(fg->win_ua) >= MT6351_FG_IDLE_UA) {
-@@ -527,6 +558,41 @@ static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc,
+@@ -527,6 +563,40 @@ static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc,
  	return true;
  }
  
@@ -98,21 +108,20 @@ index 050fcda..d770bb8 100644
 +	return clamp(pct, 0, MT6351_FG_EMPTY_MAX_PCT);
 +}
 +
-+/* The full charge as reported: the usable charge above the empty point. */
++/*
++ * The full charge as reported: the learned full charge's usable part, which
++ * only ageing moves, so the health, the full charge over the design, stays
++ * stable whatever the load.
++ */
 +static s64 mt6351_fg_rep_full(struct mt6351_fg *fg)
 +{
-+	s64 design = fg->info->charge_full_design_uah;
-+	s64 design_full = mt6351_fg_usable(design) -
-+			  div_s64(design * fg->empty_design_pct, 100);
-+	s64 full = mt6351_fg_usable(fg->full_uah) -
-+		   div_s64(fg->full_uah * fg->empty_pct, 100);
-+
-+	return clamp_t(s64, full, 1, design_full);
++	return max_t(s64, mt6351_fg_usable(fg->full_uah), 1);
 +}
 +
 +/*
-+ * The reported capacity and charge for a charge on the table's scale: above
-+ * the empty point, against the reported full charge.
++ * The reported charge is what remains above the empty point, which follows
++ * the load, so the time to empty is the charge over the current; the
++ * capacity is that charge over the full charge, exactly.
 + */
 +static void mt6351_fg_report(struct mt6351_fg *fg, s64 uah, int *capacity, int *charge_uah)
 +{
@@ -126,7 +135,7 @@ index 050fcda..d770bb8 100644
  /*
   * The resistance from a steady load: the OCV at the counted charge less the
   * voltage, over the current. Returns true when it changed. Called under the
-@@ -583,6 +649,22 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+@@ -583,6 +653,22 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
  
  	guard(mutex)(&fg->lock);
  
@@ -149,7 +158,7 @@ index 050fcda..d770bb8 100644
  	if (fg->resting)
  		rest_ms = ktime_ms_delta(now, fg->rest_start);
  	settled = rest_ms >= MT6351_FG_REST_MS;
-@@ -598,11 +680,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+@@ -598,11 +684,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
  		if (ret < 0)
  			return ret;
  		ret = clamp(ret, 0, 100);
@@ -163,7 +172,7 @@ index 050fcda..d770bb8 100644
  			return 0;
  		}
  		dev_dbg(fg->dev, "%s OCV reading: %d uV at %d uA, %d mC: %d %%\n",
-@@ -675,11 +754,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+@@ -675,11 +758,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
  	if (mt6351_fg_learn_r(fg, now, ua, full))
  		*full_changed = true;
  
@@ -176,7 +185,7 @@ index 050fcda..d770bb8 100644
  
  	return 0;
  }
-@@ -713,10 +789,12 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+@@ -713,7 +793,7 @@ static int mt6351_fg_get_property(struct power_supply *psy,
  		return 0;
  	case POWER_SUPPLY_PROP_CHARGE_FULL:
  		scoped_guard(mutex, &fg->lock)
@@ -184,14 +193,8 @@ index 050fcda..d770bb8 100644
 +			val->intval = mt6351_fg_rep_full(fg);
  		return 0;
  	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
--		val->intval = mt6351_fg_usable(fg->info->charge_full_design_uah);
-+		val->intval = mt6351_fg_usable(fg->info->charge_full_design_uah) -
-+			      div_s64((s64)fg->info->charge_full_design_uah *
-+				      fg->empty_design_pct, 100);
- 		return 0;
- 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
- 		val->intval = fg->info->voltage_max_design_uv;
-@@ -767,36 +845,6 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 		val->intval = mt6351_fg_usable(fg->info->charge_full_design_uah);
+@@ -767,36 +847,6 @@ static int mt6351_fg_get_property(struct power_supply *psy,
  	return ret;
  }
  
@@ -228,7 +231,7 @@ index 050fcda..d770bb8 100644
  static const enum power_supply_property mt6351_fg_props[] = {
  	POWER_SUPPLY_PROP_STATUS,
  	POWER_SUPPLY_PROP_PRESENT,
-@@ -819,8 +867,6 @@ static const struct power_supply_desc mt6351_fg_desc = {
+@@ -819,8 +869,6 @@ static const struct power_supply_desc mt6351_fg_desc = {
  	.properties = mt6351_fg_props,
  	.num_properties = ARRAY_SIZE(mt6351_fg_props),
  	.get_property = mt6351_fg_get_property,
@@ -237,13 +240,11 @@ index 050fcda..d770bb8 100644
  };
  
  /* The PMIC's charger detection changed: a charger came or went. */
-@@ -885,6 +931,9 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+@@ -885,6 +933,7 @@ static int mt6351_fg_probe(struct platform_device *pdev)
  	fg->r_design_uohm = clamp(info->factory_internal_resistance_uohm,
  				  MT6351_FG_R_MIN_UOHM, MT6351_FG_R_MAX_UOHM);
  	fg->r25_uohm = fg->r_design_uohm;
 +	fg->ityp_ua = MT6351_FG_ITYP_INIT_UA;
-+	fg->empty_design_pct = mt6351_fg_empty(info, MT6351_FG_ITYP_INIT_UA,
-+					       fg->r_design_uohm, 25000);
  	fg->full_uah = info->charge_full_design_uah;
  	WRITE_ONCE(fg->info, info);
  

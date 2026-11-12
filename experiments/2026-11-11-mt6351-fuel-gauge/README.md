@@ -956,21 +956,31 @@ capacity to the cut-off:**
   - I_typ is a time-weighted 30-min average of discharge, held on the charger, bounded
     0.2-2 A, starting at 0.5 A.
   - Empty moves a point a minute at most, and stops at 80 % of the table.
-- **Derived values:** `capacity`, `charge_now` and `charge_full` are the usable charge above
-  empty. `charge_full_design` is a new cell's at 0.5 A and 25 °C, and `charge_full` is capped
-  there.
-- **Interface:** `charge_full` is read-only again. The table Q is in `learned_full_uah`,
-  read-write within 50-110 % held at the design, and `design_full_uah` is the basis.
-- **Simulated on this cell** (R₂₅ 0.40 Ω, 25 °C, Q unlearned):
+- **Revised after the owner chose "Health stays stable"** (2026-11-11, before any boot):
+  - `charge_full` is the learned full charge's usable part (93 % of Q), and
+    `charge_full_design` the design's (3969240). Health, `charge_full` ÷ `charge_full_design`,
+    = Q ÷ design, moves only with learning.
+  - `charge_now` is the charge left above the load-aware empty point, so UPower's time to
+    empty, `charge_now` ÷ `current_now` (× the design voltage on both sides), is what the load
+    really leaves.
+  - `capacity` = `charge_now` ÷ `charge_full` exactly, and is what UPower shows as the
+    percentage. UPower's `energy` ÷ `energy-full` is the same ratio, so the percentage and the
+    energies agree.
+  - Off battery, the typical load returns to 0.5 A at the same 30-minute rate, so a charge ends
+    against a light load and a finished charge reads 100 %.
+- **Interface:** `charge_full` is read-only. The table Q is in `learned_full_uah`, read-write
+  within 50-110 % held at the design, and `design_full_uah` is the basis.
+- **Simulated on this cell** (R₂₅ 0.40 Ω, 25 °C, Q unlearned; health 100 % at every load):
 
-  | Load | Empty point (table) | Health | 90 % of the table shows | 60 % shows |
-  |---|---|---|---|---|
-  | 0.5 A | 0 % | 100 % | 97 % | 65 % |
-  | 1.0 A | 2 % | 98 % | 97 % | 64 % |
-  | 1.8 A sustained | 58 % | 38 % | 91 % | 6 % |
+  | Load | Empty (table) | Table 93 % shows | 90 % | 60 % | 30 % |
+  |---|---|---|---|---|---|
+  | 0.5 A | 0 % | 100 %, 476 min | 97 % | 65 % | 32 %, 154 min |
+  | 1.0 A | 2 % | 98 %, 233 min | 95 % | 62 % | 30 %, 72 min |
+  | 1.8 A sustained | 58 % | 38 %, 50 min | 34 %, 46 min | 2 %, 3 min | 0 % |
 
-  A new cell at 1.8 A empties at 1 %. **Health therefore depends on load:** under a sustained
-  heavy load it shows what this cell offers against a new one at that load. Owner to note.
+  Under a sustained heavy load the percentage and the time fall to what the cell can still
+  deliver at that load. The empty point rises a table point per minute at most, so the fall
+  builds over about an hour of heavy use and reverses as the load eases.
 
 Both compiled at W=1 and checkpatch clean, applied in sequence after 0737. Not on a device.
 
