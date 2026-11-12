@@ -46,6 +46,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0687`](../../patches/proposals/0687-arm64-dts-mediatek-gemini-station-weight-the-LL-clus.patch) | After the weighted V9p: the soc-thermal control maps carry `contribution` 4096 for LL and 1024 for L and the GPU, the weights that run tested at run time. Device tree; next non-V11 image |
 | [`0726`](../../patches/proposals/0726-PM-devfreq-mtk-cci-restore-the-boot-voltage-instead-.patch) | Fixes `0682`: a request of 0 to INT_MAX is clamped to VPROC1's 770 mV floor, not dropped. With no CPU policy (station-work-102 and -103), that put the rail under the boot rates and hard-hung the SoC. A failed probe now restores the voltage found at probe, and `remove()` leaves the request alone. Module only |
 | [`0728`](../../patches/proposals/0728-arm64-dts-mediatek-gemini-station-give-the-A53-OPPs-.patch) | The A53 OPPs declare a 500 us clock latency instead of 100 us. A VPROC1 change alone averaged 336 us on the station, and schedutil's rate limit (1.5 times the latency) was 204 us. On station-work-105 at idle the clusters changed 6 times/s and the CCI 4 times/s, so this corrects the description; it is not a power fix. Device tree; next image |
+| [`0749`](../../patches/proposals/0749-regulator-da9213-legacy-answer-VPROC1-reads-from-the.patch) | VPROC1 reads come from the last write that read back correctly, not from I2C6. A rail change drops from six transfers to three, and a request that leaves the rail alone needs none. Each write still reads the register first and refuses with `changed behind the driver` if it differs. BUCKB still reads the chip. Module only |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -291,6 +292,10 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
    semaphore 3, so holding port 0 (item 2) already excludes the firmware's A72
    path. With `0700` on station-work-101, every MCUMIXED transaction timed out.
    Images from `0e90a668` on write only `0x11015440`.
+9. V12b writes the global schedutil tunable
+   `/sys/devices/system/cpu/cpufreq/schedutil/rate_limit_us` (there is no
+   per-policy copy with `cpufreq-dt`): 2000, then 5000, then back to the value
+   read at the start (804 with `0728`).
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
@@ -364,6 +369,9 @@ building anything on it.
 | V9p | V1, cold | V9 with the allocator's budget, PID terms, CPU limits and zone temperature traced, raw trace kept in `/tmp/v9p-trace.txt`; `IPA_GAINS="k_po=60 k_pu=60 k_i=10 integral_cutoff=3000"` sets the tuned gains, `IPA_WEIGHTS="cpufreq-cpu0=4096"` the cooling weights | Defaults: the trace shows why the caps swing (below). Tuned: mean near 75 C, below 77 C, no poll-to-poll swing | items 1-3, 5-7 |
 | V10 | V1 | Energy model: on battery, per cluster, one busy CPU pinned at each point for 10 s, the rest idle; record the fuel gauge's average `current_now` and `voltage_now` against an idle baseline | Power per point for `dynamic-power-coefficient` (mW = C × MHz × mV² / 10⁹) and the capacity ratio from a fixed workload's time per MHz | items 1-3 |
 | V11 | new boot, same image | Create `/mnt/data/cpufreq-at-boot`; power off; owner selects boot2 | Station status `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq`; schedutil on both policies | items 1-4 at boot |
+| V12a | station image with schedutil at boot | Switch cost under video: 20 s of the station-work-112 mpv H.264 1080p playback with `sched_switch` (filtered to `sugov*`), `clk_set_rate` and `regulator_set_voltage` traced; before and after, both policies' `stats/total_trans`, the CCI's `trans_stat` total, `/proc/interrupts` (I2C6 line), the clock debugfs `registers`, mpv's dropped frames and, once, `energy_model/cpu{0,4}/ps:*/inefficient`. [`tools/v-switch-cost.awk`](tools/v-switch-cost.awk) reads the trace | Per sugov thread: changes/s, wall and CPU time per change, PLL and rail sets per change, CPU share | item 6 |
+| V12b | as V12a | V12a again at `rate_limit_us` 2000 and 5000, then restore | Fewer changes/s and less sugov CPU, with no more dropped frames | items 6, 9 |
+| V12c | first image with `0749` | V12a again | Rail sets cost three I2C6 transfers each, and I2C6 interrupts per change fall | item 6 |
 
 After a pass: record support, fill the energy model, and decide with the owner
 whether the station's default image moves to this profile.
@@ -705,6 +713,50 @@ at 1.06 V. V5 and V6 also step the clusters before V7 loads the CCI, but the
 other cluster holds its 1.00 V point (L at 1209 MHz in V5, LL at 897 MHz in
 V6), so VPROC1 stays at the firmware's own value there. Only a run with one
 cluster offline, as in item 3, goes below it.
+
+### Switch cost under video (V12)
+
+On station-work-112 (boot `8990918b`), `perf record -a` during mpv H.264
+1080p playback attributed 14.3 % of samples to `sugov:0`, more than mpv's
+decode threads. The top symbols were the PLL change, `__delay_cycles`,
+`mtk_i2c_transfer` and unlock points where interrupts come back on.
+Over 761 s, policy0 made 62 changes/s and policy4 made 24/s. The samples are
+relative and do not give CPU time; V12 measures it.
+
+Reading the code, one cluster change does all of this in the sugov thread:
+
+- **The cluster's PLL.** The FHCTL slew is polled every 10 us with preemption
+  off for 70-120 us.
+- **The CCI's change.** It follows synchronously through the passive governor
+  and moves on most cluster changes, since it has 15 points: a second PLL
+  slew and a second VPROC1 request.
+- **I2C6 transfers for each VPROC1 request.** Each one sleeps under the DVFSP
+  lease:
+  - The coupler reads the rail once.
+  - A set reads the old voltage and the old selector, does a read-modify-write
+    with readback (three transfers), then reads the result.
+  - So a request that moves the rail costs six transfers, and one that does
+    not still costs one.
+
+If a change takes longer than the 804 us rate limit, the thread never idles
+while the load moves, and the two sugov threads queue on the I2C6 lease. That
+would explain `sugov:4` in D state.
+
+Three levers, in order of risk:
+
+1. **`0749`**, which removes the reads (above).
+2. **A longer `rate_limit_us`**, set by the init like the allocator's gains.
+   Choose it from V12a's wall time per change, so the thread is idle most of
+   the time.
+3. **Only if V12 shows the PLL polling dominates:** let the clock driver drop
+   semaphore 3 and sleep during the slew. This needs its own safety review,
+   because the semaphore is shared with the firmware. Thinning the CCI table
+   is a fourth option if V12 shows CCI changes per cluster change near 1.
+
+The energy model should already make schedutil skip OPPs that share a
+voltage with a faster one (LL 1443 and 1495 MHz, L 468 and 1950 MHz), so
+removing them from the table would change little. V12a confirms this from
+the `inefficient` flags in the `energy_model` debugfs.
 
 ## Conclusion
 

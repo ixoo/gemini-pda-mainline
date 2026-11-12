@@ -913,3 +913,4 @@ proposals/0745-power-supply-mt6351-fuel-gauge-learn-the-cell-s-resi.patch
 proposals/0746-power-supply-mt6351-fuel-gauge-count-the-capacity-do.patch
 proposals/0747-power-supply-mt6351-fuel-gauge-end-a-rest-when-the-v.patch
 proposals/0748-media-mediatek-mt6797-vdec-allow-cache-hints-on-the-.patch
+proposals/0749-regulator-da9213-legacy-answer-VPROC1-reads-from-the.patch

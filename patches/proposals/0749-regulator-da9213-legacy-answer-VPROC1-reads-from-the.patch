@@ -1,0 +1,97 @@
+Only this driver writes BUCKA. Keep the selector of the last write that read
+change made behind the driver is still caught. BUCKB keeps reading the chip,
+ERROR: Missing Signed-off-by: line(s)
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 15:54:04 -0500
+Subject: [PATCH] regulator: da9213-legacy: answer VPROC1 reads from the last
+ verified write
+
+Each schedutil change of an A53 cluster or the CCI asks the regulator
+core for VPROC1 several times: the coupler reads it, and every set
+reads the old voltage, the old selector and the result. Each read is
+an I2C6 transfer through the DVFSP lease, so a change that moves the
+rail costs six transfers and one that does not still costs one or two.
+
+Only this driver writes BUCKA. Keep the selector of the last write
+that read back correctly and answer reads from it. A set still reads
+the register first and now refuses to write when it differs from that
+selector, so a change made behind the driver is still caught. BUCKB
+keeps reading the chip, as the secure firmware writes its selector.
+---
+ drivers/regulator/da9213-legacy-regulator.c | 25 +++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
+
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index 86308a984..b5501872d 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -87,6 +87,9 @@ struct da9213_legacy {
+ 	struct i2c_client *client;
+ 	struct i2c_client *page2;
+ 	const struct da9213_legacy_variant *variant;
++	/* VPROC1's selector as last written and read back; see below. */
++	u8 vproc1_sel;
++	bool vproc1_known;
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_PROVIDER)
+ 	struct regulator_dev *rdev[2];
+ #if IS_ENABLED(CONFIG_REGULATOR_DA9213_LEGACY_OBSERVER)
+@@ -197,12 +200,21 @@ static int da9213_legacy_read_reg(struct da9213_legacy *chip, u8 reg,
+ 	return 0;
+ }
+ 
++/*
++ * Only this driver writes BUCKA (VPROC1), so after a verified write its
++ * selector is known and a read needs no I2C transfer. Each write still reads
++ * the register first and refuses to go on if it differs. BUCKB is always read
++ * from the chip: the vendor's secure firmware writes its selector.
++ */
+ static int da9213_legacy_get_voltage_sel(struct regulator_dev *rdev)
+ {
+ 	struct da9213_legacy *chip = rdev_get_drvdata(rdev);
+ 	unsigned int value;
+ 	int ret;
+ 
++	if (rdev_get_id(rdev) == 0 && chip->vproc1_known)
++		return chip->vproc1_sel;
++
+ 	ret = da9213_legacy_read_reg(chip,
+ 				     da9213_legacy_vsel_reg[rdev_get_id(rdev)],
+ 				     &value);
+@@ -244,6 +256,7 @@ static int da9213_legacy_set_voltage_sel(struct regulator_dev *rdev,
+ {
+ 	struct da9213_legacy *chip = rdev_get_drvdata(rdev);
+ 	struct i2c_adapter *adapter = chip->client->adapter;
++	bool vproc1 = rdev_get_id(rdev) == 0;
+ 	u8 reg = da9213_legacy_vsel_reg[rdev_get_id(rdev)];
+ 	u8 buf[2] = { reg };
+ 	struct i2c_msg rd[2] = {
+@@ -265,6 +278,14 @@ static int da9213_legacy_set_voltage_sel(struct regulator_dev *rdev,
+ 	if (ret != ARRAY_SIZE(rd))
+ 		goto out;
+ 	old = buf[1];
++	if (vproc1 && chip->vproc1_known &&
++	    (old & DA9213_LEGACY_VSEL_MASK) != chip->vproc1_sel) {
++		dev_err(chip->dev,
++			"selector 0x%02x changed behind the driver: 0x%02x, last written 0x%02x\n",
++			reg, old, chip->vproc1_sel);
++		ret = -EBUSY;
++		goto out;
++	}
+ 	buf[1] = (old & ~DA9213_LEGACY_VSEL_MASK) | sel;
+ 	ret = __i2c_transfer(adapter, &wr, 1);
+ 	if (ret != 1)
+@@ -278,6 +299,10 @@ static int da9213_legacy_set_voltage_sel(struct regulator_dev *rdev,
+ 	i2c_unlock_bus(adapter, I2C_LOCK_ROOT_ADAPTER);
+ 	if (ret > 0)
+ 		ret = -EIO;
++	if (vproc1) {
++		chip->vproc1_sel = sel;
++		chip->vproc1_known = !ret;
++	}
+ 	if (ret)
+ 		dev_err(chip->dev, "selector 0x%02x write failed: %d\n", reg, ret);
+ 
+-- 
+2.43.0
+
