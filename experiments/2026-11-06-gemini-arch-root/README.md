@@ -2367,6 +2367,34 @@ entries in 32; the display session fixed the size. Built in an Arch chroot over 
 image (wlroots0.20 0.20.2): `umbriel-0.1.0.r20261108.94ab596-6`, `efefcb79…`, no compiler
 warnings. Not yet on the device.
 
+### Hardware video decoding by default (`gemini-base` 59, 2026-11-12)
+
+The owner approved "go ahead with decoder loaded at boot", on the video session's readiness
+summary (V23, `3db24f23`; system suspend untested, and the station doesn't suspend). The
+custodian packed `v4l2-mem2mem`, `v4l2-h264`, `v4l2-vp9`, `clk-mt6797-vdec` and `mt6797-vdec`
+into the station image's module set (`77541707`). gemini-base 59:
+
+- **Loads the decoder at boot** as a `video` group of `hw-load`, enabled with the others:
+  `clk-mt6797-vdec`, then `mt6797-vdec`, which doesn't depend on its clock by symbol and
+  would otherwise defer its probe; `modprobe` pulls the rest from `modules.dep`. Modalias
+  loading doesn't happen here, since `gemini-modules` deletes `modules.alias`. A boot image
+  without the decoder (`modinfo` finds no `mt6797-vdec`) prints `not-in-image` and succeeds.
+- **Depends on the VA-API driver**, `libva-v4l2-request-mt6797` (the video session's recipe,
+  `1.2.20260715-4`, MM21 export off by default). `build-card.sh` builds it before gemini-base
+  with `build_local`, which now takes a recipe directory outside this one and a package
+  name, and records its checksum in `card.json`.
+- **Selects the driver without a variable:** libva loads the driver named after the render
+  node's kernel driver, `panfrost`, and Mesa has no `panfrost_drv_video.so`, so gemini-base
+  ships that name as a symlink to `v4l2_request_drv_video.so`. Every session finds it,
+  SSH commands included, with no `LIBVA_DRIVER_NAME`.
+- **mpv:** `hwdec=auto-safe` beside `profile=fast`, so VA-API is used when it takes the stream
+  and software decoding otherwise. `vo=dmabuf-wayland` is a later step, after its format test.
+- qutebrowser is unchanged; its hardware decoding stays opt-in.
+
+Built: `libva-v4l2-request-mt6797-1.2.20260715-4` (`b4c51d0f…`) in an Arch chroot over
+card-32's image, no compiler warnings. ShellCheck passes on `hw-load` and `build-card.sh`. Not
+on a device: it needs a station image built at or after `77541707`.
+
 ## Analysis
 
 Not started.

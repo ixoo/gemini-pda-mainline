@@ -5,7 +5,7 @@
 # (stage 1); gemini-modules indexes them, so modprobe pulls in their dependencies. The
 # orders follow the station's release/hw-start, providers before their users. Limits
 # are in docs/HARDWARE_SUPPORT.md. Prints one word: the group, or what stopped it.
-# usage: hw-load gpu|touch|sensors|camera|bluetooth|fm
+# usage: hw-load gpu|touch|sensors|camera|bluetooth|fm|video
 case "$1" in
 gpu) modules='clk-mt6797-mfg rt5735-regulator panfrost' ;;
 touch) modules=novatek-nt36xxx ;;
@@ -13,14 +13,25 @@ sensors) modules='bmi160_i2c stk3310' ;;
 camera) modules='clk-mt6797-cam mt6797-seninf hi556' ;;
 bluetooth) modules='bluetooth rfcomm btmt6797' ;;
 fm) modules=radio-mt6797 ;;
+# The video decoder (owner, 2026-11-12: "go ahead with decoder loaded at boot"). The decoder
+# doesn't depend on its clock module by symbol, so the clock comes first, or the decoder's
+# probe defers until it loads.
+video) modules='clk-mt6797-vdec mt6797-vdec' ;;
 *)
     echo usage
     exit 2
     ;;
 esac
 # Bluetooth and FM use the connectivity firmware, which gemini-wifi brings up once a
-# country is set.
+# country is set. A boot image from before the decoder was packed (77541707) has no video
+# modules.
 case "$1" in
+video)
+    if ! modinfo -n mt6797-vdec >/dev/null 2>&1; then
+        echo not-in-image
+        exit 0
+    fi
+    ;;
 bluetooth | fm)
     if [ ! -d /sys/module/mt6797_consys ]; then
         echo needs-connectivity

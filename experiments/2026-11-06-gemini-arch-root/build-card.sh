@@ -130,9 +130,10 @@ here=$(cd "$(dirname "$0")" && pwd)
 # makepkg as nobody on the image's disk, since the build is larger than /run; its
 # dependencies and build tools, read from its PKGBUILD, go in as dependencies, and the
 # build tools leave again once nothing needs them. Prints the package's SHA-256.
-# usage: build_local DIR NAME
+# usage: build_local DIR NAME [PKGNAME], DIR relative to this directory; PKGNAME defaults
+# to DIR's own name.
 build_local() {
-	local dir=$here/$1 name=$2 deps lbuild pkg
+	local dir=$here/$1 name=$2 pkgname=${3:-${1##*/}} deps lbuild pkg
 	# The recipes are this directory's own, which makepkg sources anyway.
 	# shellcheck disable=SC1091,SC2154 # sourced at run time; arrays the PKGBUILD defines
 	deps=$(cd "$dir" && . ./PKGBUILD && echo "${depends[*]} ${makedepends[*]}")
@@ -140,23 +141,26 @@ build_local() {
 	in_root pacman --gpgdir /run/pacman-gnupg -S --needed --asdeps --noconfirm --noprogressbar \
 		base-devel $deps >>"$work/pacman.log" 2>&1 ||
 		{ tail -20 "$work/pacman.log" >&2; echo "build-card: $name's dependencies failed" >&2; exit 1; }
-	lbuild=$mnt/var/tmp/$1-build
+	lbuild=$mnt/var/tmp/$pkgname-build
 	mkdir -p "$lbuild/src" "$lbuild/out"
 	cp "$dir"/* "$lbuild/src/"
 	chown -R 65534:65534 "$lbuild"
-	chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME="/var/tmp/$1-build" LANG=C \
-		PKGDEST="/var/tmp/$1-build/out" sh -c "cd /var/tmp/$1-build/src && makepkg --nodeps --noprogressbar" \
-		>"$work/$1-makepkg.log" 2>&1 ||
-		{ tail -30 "$work/$1-makepkg.log" >&2; echo "build-card: building $name failed" >&2; exit 1; }
-	pkg=$(ls "$lbuild"/out/"$1"-[0-9]*.pkg.tar.*)
+	chroot "$mnt" /usr/bin/runuser -u nobody -- /usr/bin/env -i PATH=/usr/bin HOME="/var/tmp/$pkgname-build" LANG=C \
+		PKGDEST="/var/tmp/$pkgname-build/out" sh -c "cd /var/tmp/$pkgname-build/src && makepkg --nodeps --noprogressbar" \
+		>"$work/$pkgname-makepkg.log" 2>&1 ||
+		{ tail -30 "$work/$pkgname-makepkg.log" >&2; echo "build-card: building $name failed" >&2; exit 1; }
+	pkg=$(ls "$lbuild"/out/"$pkgname"-[0-9]*.pkg.tar.*)
 	cp "$pkg" "$out/"
-	in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/var/tmp/$1-build/out/${pkg##*/}" >>"$work/pacman.log" 2>&1 ||
+	in_root pacman --gpgdir /run/pacman-gnupg -U --noconfirm --noprogressbar "/var/tmp/$pkgname-build/out/${pkg##*/}" >>"$work/pacman.log" 2>&1 ||
 		{ tail -20 "$work/pacman.log" >&2; echo "build-card: installing $name failed" >&2; exit 1; }
 	sha256sum "$pkg" | cut -d' ' -f1
 	rm -rf "$lbuild"
 }
 umbriel_sha=$(build_local umbriel Umbriel)
 noctalia_sha=$(build_local noctalia Noctalia)
+# The VA-API driver for the video decoder, the video session's recipe; gemini-base depends
+# on it, so it comes first.
+libva_sha=$(build_local ../2026-11-09-mt6797-video-codec/libva-v4l2-request "the VA-API driver" libva-v4l2-request-mt6797)
 
 # gemini-base (step 3), built from this directory with the station's audio-start and
 # display-start staged beside it, by makepkg as nobody; fakeroot only for the build.
@@ -289,6 +293,7 @@ cat >"$out/card.json" <<EOF
   "packages_added": "${EXTRA[*]}",
   "umbriel_sha256": "$umbriel_sha",
   "noctalia_sha256": "$noctalia_sha",
+  "libva_v4l2_request_sha256": "$libva_sha",
   "gemini_base_sha256": "$base_sha",
   "gnss_mt6797d_sha256": "$gnss_sha",
   "systemd": "$systemd",
