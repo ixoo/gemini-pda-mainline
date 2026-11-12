@@ -10,6 +10,15 @@ Status: built and unit-tested off the device. Nothing has run on the Gemini
 yet. H.264 and HEVC need a kernel with mt6797-vdec patch 0744; see
 [Driver requirement](#driver-requirement-on-demand-capture-buffers).
 
+## Driver selection on the Gemini card
+
+libva loads the driver named after the render node's kernel driver, so on
+the card it looks for `panfrost_drv_video.so`. `gemini-base` (59 onward)
+ships that name as a symlink to `v4l2_request_drv_video.so` and depends on
+this package. No `LIBVA_DRIVER_NAME` is needed there. This package installs
+only `v4l2_request_drv_video.so`; adding the symlink here would conflict
+with `gemini-base`. Elsewhere, set `LIBVA_DRIVER_NAME=v4l2_request`.
+
 ## What the patches change
 
 `0001-Detile-MediaTek-MM21-on-the-CPU-into-dma-buf-heap-NV.patch`
