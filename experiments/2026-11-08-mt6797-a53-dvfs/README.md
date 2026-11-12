@@ -797,6 +797,9 @@ removing them from the table would change little. V12a confirmed it: the
     so these runs show no playback cost.
   - Each change still costs about 1 ms of CPU.
 
+The owner approved 5000 at boot: the station init writes it after setting
+schedutil, from the image that also carries `0749`. V12c measures both.
+
 `0749` should halve the I2C6 transfers per change. A thinner CCI table remains the lever if the CCI still
 doubles the work after both.
 

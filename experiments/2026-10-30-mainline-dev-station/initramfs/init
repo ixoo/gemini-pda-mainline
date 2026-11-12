@@ -151,6 +151,9 @@ fi
             for policy in /sys/devices/system/cpu/cpufreq/policy*; do
                 [ -e "$policy/scaling_governor" ] && $bb echo schedutil >"$policy/scaling_governor"
             done
+            # A change costs about 2 ms of I2C6 and PLL work; at the default
+            # 804 us, sugov:0 ran back to back during video (A53 DVFS V12).
+            $bb echo 5000 >/sys/devices/system/cpu/cpufreq/schedutil/rate_limit_us 2>/dev/null
             # Power allocator on the SoC zone; it refuses to bind, and step-wise stays,
             # unless every cooling device on the control trip has an energy model.
             for zone in /sys/class/thermal/thermal_zone*; do
