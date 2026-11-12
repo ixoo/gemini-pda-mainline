@@ -1311,6 +1311,59 @@ as an opt-in. Mesa converts an imported buffer only once, so clients that keep
 one image per surface (Chromium) stay on the CPU detile. The GPU session's
 plan for this awaits the owner's approval.
 
+### V19 result: zero-copy export to Panfrost
+
+*Run.* Station-work-112, boot `71c291ae`, `mt6797-vdec.ko` `7462cee7…`,
+package release 4 (`b82192f7…`, patch 0005, the opt-in
+`LIBVA_V4L2_REQUEST_MM21_EXPORT`). The GPU session added GPU checks.
+Evidence (private): `artifacts/card-32/v19-shots/` and `v19-*`.
+
+*Observed:*
+
+- **Renderer.** mpv's Vulkan context fails (`VK_ERROR_INCOMPATIBLE_DRIVER`).
+  Its default falls back to OpenGL on Panfrost (`Mali-T880 MC4 (Panfrost)`,
+  Mesa 26.2.6), the same as `--gpu-api=opengl`. So V18 already rendered on
+  the GPU; the software-Vulkan explanation for the judder was wrong.
+- **Playback matrix**, H.264 1080p fullscreen, 10 s:
+
+  | Row | Path | Dropped of 300 | CPU idle |
+  | --- | --- | --- | --- |
+  | a | software decode | 210 | 68 % |
+  | b | VA-API, CPU detile | 146 | 78 % |
+  | c | VA-API, zero-copy | 144 | 83 % |
+  | d | zero-copy, default API | 145 | 81 % |
+
+  Zero-copy HEVC and VP9 dropped 153 and 145. Every VA-API row raised 300
+  decoder interrupts.
+- **Picture.** mpv imported through EGL (`GL_EXT_EGL_image_storage`) with no
+  errors.
+  - The CPU-detile row is correct.
+  - The zero-copy rows are correct only in a band at the top. The owner
+    saw corruption over most of the frame, in the zero-copy rows only.
+  - Screenshots of the same frame:
+    - rows 0 to 287: luma correct in zero-copy;
+    - chroma: correct for 4 tile rows on the right half of the frame and
+      5 on the left;
+    - everything after that: raw tiles read as linear.
+- **GPU:** no Panfrost job timeouts or faults, 520 MHz throughout, at most
+  45.9 °C. The per-row GPU time was not captured for the zero-copy rows.
+
+*Analysis.*
+
+- **Mesa's detile is incomplete** [I, strong]:
+  - Luma: 9 tile rows × 120 tiles = 1080 tiles, the luma height.
+  - Chroma: 4 rows plus 60 tiles = 540 tiles, the chroma height.
+  - So Mesa detiled exactly as many tiles per plane as the plane has
+    lines, not all of them. The exported layout is right wherever the
+    detile ran: a wrong pitch, offset or plane would break the first tile
+    rows too.
+  - Handed to the GPU session, which owns Panfrost.
+- **Zero-copy stays off by default**, and qutebrowser keeps the CPU detile.
+- **The 1080p judder is not about decoding.** Even with no CPU detile,
+  about half the frames drop on the GPU-rendered fullscreen path. Software
+  decoding drops 70 %. The cause is in display or composition and needs the
+  display and GPU work.
+
 ## Follow-up
 
 Durable facts: [MT6797 video codec hardware](../../docs/hardware/mt6797-video-codec.md).
