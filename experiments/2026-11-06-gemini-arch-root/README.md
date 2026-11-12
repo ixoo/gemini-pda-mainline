@@ -2344,8 +2344,13 @@ clip the fast profile's bar colours equal the reference decode. `--vo=dmabuf-way
 YUV as BT.601 whatever the tag, so it is no default until the compositor honours colour tags.
 
 The owner: "Yes, make it default". gemini-base ships `/etc/mpv/mpv.conf` with `profile=fast`,
-as a `backup=` file; no package owned that path. Hardware decoding stays mpv's default. Not
-yet on the device.
+as a `backup=` file; no package owned that path. Hardware decoding stays mpv's default.
+
+On card-32 (boot `8990918b`, custodian): a plain `mpv --hwdec=vaapi --fs`, with no profile
+flag, logs "Applying profile 'fast'" and dropped 1 of 300 frames on each of two runs (H.264
+1080p30). A paused frame captured with grim is pixel-identical (SSIM 1.0) to the earlier
+`--profile=fast` capture. The same install confirmed 57's heap rule: `/dev/dma_heap/system`
+root:video 0660, the owner in video, and the battery guard and capacity units active.
 
 ## Analysis
 
