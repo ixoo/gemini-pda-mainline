@@ -1,0 +1,64 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 20:22:49 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: end a rest when the voltage
+ moves
+
+A rest reading pairs the voltage now with the current of the last
+counter window. When a charge or a load starts between that window and
+the read, the voltage already carries the new current while the window
+still reads idle. On station-work-110, a battery resting at 44 %
+started charging when a charge limit was lifted, and the next read took
+the charging voltage as an OCV: capacity jumped to 76 %, and counted on
+from there.
+
+A rested cell's voltage moves a few mV over seconds. If the voltage is
+more than 25 mV from the last window's closing voltage, the rest is
+over: take no rest reading, end the rest, and keep counting.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index ffdad4c..140d12a 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -56,6 +56,12 @@
+ 
+ /* Inside the idle current for this long, the voltage is taken as the OCV. */
+ #define MT6351_FG_REST_MS		(300 * MSEC_PER_SEC)
++/*
++ * A rested cell's voltage moves a few mV over seconds: a reading this far from
++ * the last window's closing voltage means a load or a charge started since that
++ * window, so the rest is over and no rest reading is taken.
++ */
++#define MT6351_FG_REST_DV_UV		25000
+ 
+ /*
+  * Learning the full charge: two OCV readings, each after this long a rest,
+@@ -678,6 +684,14 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 			ret = thermal_zone_get_temp(fg->tz, &mc);
+ 		if (ret)
+ 			return ret;
++		/* The current is from the last window: check the rest still holds. */
++		if (settled && fg->win_prev_valid &&
++		    abs(uv - fg->win_prev_uv) > MT6351_FG_REST_DV_UV) {
++			dev_dbg(fg->dev, "rest ended: %d uV after %d uV\n", uv, fg->win_prev_uv);
++			fg->resting = false;
++			fg->full_rest = false;
++			goto counted;
++		}
+ 		/* The open-circuit voltage: charging current raises the terminal. */
+ 		uv = mt6351_fg_ocv(fg, uv, ua, mc);
+ 		ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
+@@ -755,6 +769,7 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		}
+ 	}
+ 
++counted:
+ 	if (mt6351_fg_learn_r(fg, now, ua, full))
+ 		*full_changed = true;
+ 
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1004,6 +1004,34 @@ Both compiled at W=1 and checkpatch clean, applied in sequence after 0737. Not o
   that wanted, or should 0 % stay fixed at the table's empty point under a light load, with
   only the backstop handling heavy load?
 
+## First learned capacity (station-work-110, boot `0ce7590c…`, 0732-0737)
+
+The owner's `gemini-battery-calibrate` cycle gave:
+
+```
+mt6351-fuel-gauge: full charge 4163263 uAh from -1963017 uAh over -51 points, step 1/4
+```
+
+- **The pair's own estimate is** 1963017 µAh × 100 ÷ 51 = **3849 mAh**, about 90 % of the
+  design. 4163263 is the quarter step toward it from 4268000; the log prints the result.
+- **After it:** `charge_full` 3871834 (0.93 × Q), UPower health 97.5 %. Later pairs keep moving
+  toward about 3.85 Ah.
+- **The readings:**
+  - the low rest was on the charger with charging held, displayed 41-44, current within ±1 mA;
+    its first reading replaced a loaded 51;
+  - the high was the rest after the calibration's full charge.
+- The saved value is backed up privately (eMMC p29 and the host).
+- gemini-base 53 converts it to Q = 4163262 on 0746, a 1 µAh rounding.
+
+**A bug it showed, fixed by
+[0747](../../patches/proposals/0747-power-supply-mt6351-fuel-gauge-end-a-rest-when-the-v.patch):**
+- Right after the step, the helper restored the 95/100 limits and charging resumed.
+- The next capacity read, still marked as a rest, paired the charging voltage with the last
+  window's idle current, and capacity jumped from 44 to 76 %.
+- 0747 ends the rest and takes no reading when the voltage is more than 25 mV from the last
+  window's closing voltage. A rested cell moves a few mV over seconds.
+- On top of 0746. Compiled at W=1 and checkpatch clean; not on a device.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.

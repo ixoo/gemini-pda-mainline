@@ -911,3 +911,4 @@ proposals/0743-arm64-dts-mediatek-gemini-station-limit-charging-by-.patch
 proposals/0744-media-mediatek-mt6797-vdec-support-capture-buffers-c.patch
 proposals/0745-power-supply-mt6351-fuel-gauge-learn-the-cell-s-resi.patch
 proposals/0746-power-supply-mt6351-fuel-gauge-count-the-capacity-do.patch
+proposals/0747-power-supply-mt6351-fuel-gauge-end-a-rest-when-the-v.patch
