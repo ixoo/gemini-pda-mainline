@@ -2352,6 +2352,21 @@ flag, logs "Applying profile 'fast'" and dropped 1 of 300 frames on each of two 
 `--profile=fast` capture. The same install confirmed 57's heap rule: `/dev/dma_heap/system`
 root:video 0660, the owner in video, and the battery guard and capacity units active.
 
+### Umbriel honours BT.709 video (Umbriel `pkgrel` 6, 2026-11-12)
+
+mpv's `--vo=dmabuf-wayland` showed BT.709 video with BT.601 colours (red 230 instead of 252)
+because Umbriel never created `wp_color_representation_manager_v1`, so a client could not tag
+its YUV buffers, and EGL imported them all with BT.601 limited range. The display session's
+`gemini-color-representation.patch` (`d41e2bd5`) creates the global, advertises BT.601, BT.709
+and BT.2020, re-imports an external-only YUV dmabuf with EGL's colour-space and sample-range
+hints from the surface's representation, and allows the global for security-context clients.
+
+The recipe applies it after `gemini-output-name.patch`, as `pkgrel` 6. The first compile
+failed: the security-context allowlist is a fixed `std::array` and the new global made 33
+entries in 32; the display session fixed the size. Built in an Arch chroot over card-32's
+image (wlroots0.20 0.20.2): `umbriel-0.1.0.r20261108.94ab596-6`, `efefcb79…`, no compiler
+warnings. Not yet on the device.
+
 ## Analysis
 
 Not started.
