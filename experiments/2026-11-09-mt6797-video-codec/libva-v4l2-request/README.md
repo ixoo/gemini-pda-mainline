@@ -51,6 +51,21 @@ yet. H.264 and HEVC need a kernel with mt6797-vdec patch 0744; see
   patch 0748, which allows that hint; on older kernels the flag is
   ignored.
 
+`0005-Optionally-export-MM21-surfaces-tiled-for-zero-copy-.patch`
+
+- With `LIBVA_V4L2_REQUEST_MM21_EXPORT=1` there is no CPU detile.
+  Surfaces export the decoder's two MM21 planes as `DRM_FORMAT_NV12` with
+  `DRM_FORMAT_MOD_MTK_16L_32S_TILE`, one dma-buf per plane at offset 0.
+  Mesa Panfrost (26.2) imports that modifier and detiles on the GPU.
+- Opt-in, because:
+  - VA-API has no modifier negotiation;
+  - the importer may detile a buffer only once, so clients that keep one
+    image per surface (Chromium, so qutebrowser) can show stale frames;
+  - `vaDeriveImage` and `vaGetImage` (mpv `--hwdec=vaapi-copy`) cannot
+    read tiled surfaces.
+- Use it with mpv `--hwdec=vaapi` on an OpenGL (EGL) output, for example
+  `--gpu-api=opengl`.
+
 ## Permission for the dma-buf heap
 
 The NV12 buffers come from `/dev/dma_heap/system`, which the kernel creates

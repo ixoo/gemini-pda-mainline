@@ -1,0 +1,107 @@
+From 50cbb047eb6e4fbf0fc340127c5970e183e4ba61 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 22:06:26 -0500
+Subject: [PATCH] Optionally export MM21 surfaces tiled for zero-copy GPU
+ import
+
+With LIBVA_V4L2_REQUEST_MM21_EXPORT=1, MM21 decoders get no CPU detile:
+surfaces export the decoder's two MM21 planes as DRM_FORMAT_NV12 with
+DRM_FORMAT_MOD_MTK_16L_32S_TILE, one dma-buf per plane at offset 0, for
+GPU drivers that import that modifier (Mesa Panfrost detiles it on the
+GPU). CAPTURE buffers then stay coherent, since the CPU no longer reads
+them.
+
+The mode is opt-in: VA-API has no modifier negotiation, an importer may
+detile a buffer only once (so clients that keep one image per surface,
+such as Chromium, can show stale frames), and vaDeriveImage/vaGetImage
+cannot read tiled surfaces. Without the switch the CPU detile stays the
+default.
+---
+ src/context.c      | 11 ++++++++++-
+ src/driver.c       | 26 ++++++++++++++++++++++++++
+ src/v4l2_request.h |  3 +++
+ 3 files changed, 39 insertions(+), 1 deletion(-)
+
+diff --git a/src/context.c b/src/context.c
+index f9a0b6f..986ce3e 100644
+--- a/src/context.c
++++ b/src/context.c
+@@ -392,7 +392,8 @@ static int capture_buffer_new(struct v4l2r_context *ctx)
+ 	/* MM21 frames are detiled by the CPU: ask for cached buffers, which
+ 	 * vb2 syncs at QBUF and DQBUF. Reading uncached memory took ~50 ms per
+ 	 * 1080p frame on the A72. Drivers that do not allow the hint clear it. */
+-	if (v4l2r_format_pixelformat(&ctx->capture_format) == V4L2_PIX_FMT_MM21)
++	if (v4l2r_format_pixelformat(&ctx->capture_format) == V4L2_PIX_FMT_MM21 &&
++	    !v4l2r_mm21_export())
+ 		buffers.flags = V4L2_MEMORY_FLAG_NON_COHERENT;
+ #endif
+ 
+@@ -626,6 +627,14 @@ VAStatus v4l2r_context_bind_surface(struct v4l2r_context *ctx,
+ 				v4l2r_format_by_pixelformat(
+ 					v4l2r_format_pixelformat(&ctx->capture_format));
+ 
++#if defined(V4L2_PIX_FMT_MM21)
++			if (info && info->pixelformat == V4L2_PIX_FMT_MM21 &&
++			    v4l2r_mm21_export()) {
++				v4l2r_log("exporting MM21 tiled with "
++					  "DRM_FORMAT_MOD_MTK_16L_32S_TILE, no CPU detile\n");
++				info = NULL;
++			}
++#endif
+ 			if (info && !info->va_fourcc) {
+ 				v4l2r_convert_setup(ctx);
+ 				if (!ctx->conv) {
+diff --git a/src/driver.c b/src/driver.c
+index 904e39e..bab5152 100644
+--- a/src/driver.c
++++ b/src/driver.c
+@@ -197,6 +197,32 @@ static const struct v4l2r_format_info format_infos[] = {
+ #endif
+ };
+ 
++/*
++ * MM21 zero-copy export (opt-in): skip the CPU detile and export the
++ * decoder's two MM21 planes as NV12 with DRM_FORMAT_MOD_MTK_16L_32S_TILE,
++ * for clients whose EGL/GPU driver imports that modifier and that import
++ * every frame anew (mpv). Clients that keep one image per surface
++ * (Chromium) can show stale frames, since an importer may detile only once.
++ * vaDeriveImage/vaGetImage cannot read tiled surfaces in this mode.
++ */
++bool v4l2r_mm21_export(void)
++{
++	static int enabled = -1;
++
++#if defined(DRM_FORMAT_MOD_MTK_16L_32S_TILE)
++	if (enabled < 0) {
++		const char *env = getenv("LIBVA_V4L2_REQUEST_MM21_EXPORT");
++
++		enabled = env && *env && *env != '0';
++	}
++	return enabled;
++#else
++	/* Without the modifier the tiled planes cannot be described. */
++	(void)enabled;
++	return false;
++#endif
++}
++
+ const struct v4l2r_format_info *v4l2r_format_by_pixelformat(uint32_t pixelformat)
+ {
+ 	for (unsigned int i = 0; i < sizeof(format_infos) / sizeof(format_infos[0]); i++) {
+diff --git a/src/v4l2_request.h b/src/v4l2_request.h
+index 2923c5e..a98cb91 100644
+--- a/src/v4l2_request.h
++++ b/src/v4l2_request.h
+@@ -570,6 +570,9 @@ bool v4l2r_converter_supports(struct v4l2r_driver *drv, uint32_t pixelformat);
+  * Called once from the CAPTURE setup path; on failure the context decodes
+  * without conversion (and 10-bit output stays NV15). */
+ VAStatus v4l2r_convert_setup(struct v4l2r_context *ctx);
++
++/* LIBVA_V4L2_REQUEST_MM21_EXPORT: export MM21 frames tiled, zero-copy. */
++bool v4l2r_mm21_export(void);
+ void v4l2r_convert_destroy(struct v4l2r_context *ctx);
+ 
+ /* Queue the conversion of a just-decoded CAPTURE buffer into its surface's
+-- 
+2.43.0
+

@@ -1,17 +1,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # libva-v4l2_request, the VA-API driver for V4L2 stateless decoders (Ondrej Jirman's
-# live-display fork, pinned to cac6ece of 2026-07-15), rebuilt with four patches for the
+# live-display fork, pinned to cac6ece of 2026-07-15), rebuilt with five patches for the
 # Gemini PDA's mt6797-vdec decoder: 0001 detiles its MM21 frames on the CPU into
 # dma-buf heap NV12, 0002 stops advertising HEVC Main 10 and VP9 profile 2, which
 # the decoder rejects, 0003 passes full plane arrays to QBUF/DQBUF, which MM21's
-# two-plane CAPTURE buffers need, and 0004 asks for cached CAPTURE buffers for the CPU
-# detile. The driver is v4l2_request_drv_video.so; select it with
+# two-plane CAPTURE buffers need, 0004 asks for cached CAPTURE buffers for the CPU
+# detile, and 0005 adds an opt-in zero-copy export of the tiled frames. The driver is v4l2_request_drv_video.so; select it with
 # LIBVA_DRIVER_NAME=v4l2_request.
 _pkgname=libva-v4l2_request
 _commit=cac6ece0e23ac1f944dd3af266680aff0c3184df
 pkgname=libva-v4l2-request-mt6797
 pkgver=1.2.20260715
-pkgrel=3
+pkgrel=4
 pkgdesc='VA-API driver for V4L2 stateless decoders, with MediaTek MM21 support (Gemini PDA)'
 arch=('aarch64')
 url='https://github.com/live-display/libva-v4l2_request'
@@ -24,14 +24,16 @@ source=("${_pkgname}-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz"
         0001-Detile-MediaTek-MM21-on-the-CPU-into-dma-buf-heap-NV.patch
         0002-Gate-HEVC-Main-10-and-VP9-profile-2-on-the-profile-m.patch
         0003-Pass-the-full-plane-array-when-queueing-decode-buffe.patch
-        0004-Ask-for-cached-CAPTURE-buffers-when-the-CPU-detiles-.patch)
-sha256sums=('106a2f6d2f7f603435684ca49d217d43aadc1b9c6bc26ad97daa3fe47dc3a04c' SKIP SKIP SKIP SKIP)
+        0004-Ask-for-cached-CAPTURE-buffers-when-the-CPU-detiles-.patch
+        0005-Optionally-export-MM21-surfaces-tiled-for-zero-copy-.patch)
+sha256sums=('106a2f6d2f7f603435684ca49d217d43aadc1b9c6bc26ad97daa3fe47dc3a04c' SKIP SKIP SKIP SKIP SKIP)
 
 prepare() {
     patch -d "${_pkgname}-${_commit}" -p1 <0001-Detile-MediaTek-MM21-on-the-CPU-into-dma-buf-heap-NV.patch
     patch -d "${_pkgname}-${_commit}" -p1 <0002-Gate-HEVC-Main-10-and-VP9-profile-2-on-the-profile-m.patch
     patch -d "${_pkgname}-${_commit}" -p1 <0003-Pass-the-full-plane-array-when-queueing-decode-buffe.patch
     patch -d "${_pkgname}-${_commit}" -p1 <0004-Ask-for-cached-CAPTURE-buffers-when-the-CPU-detiles-.patch
+    patch -d "${_pkgname}-${_commit}" -p1 <0005-Optionally-export-MM21-surfaces-tiled-for-zero-copy-.patch
 }
 
 build() {
