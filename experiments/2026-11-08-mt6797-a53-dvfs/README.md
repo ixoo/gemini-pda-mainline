@@ -778,8 +778,26 @@ removing them from the table would change little. V12a confirmed it: the
 - **Frames:** mpv dropped 12 of 600 frames with tracing on, against 1 of 300
   in an untraced run of the same settings.
 
-`0749` should halve the I2C6 transfers. The rate limit (V12b) bounds the
-number of changes. A thinner CCI table remains the lever if the CCI still
+**V12b** (same boot; the owner approved write item 9):
+
+- **Runs:** at each setting, one untraced and one traced 20 s run. The
+  limit was restored to 804 and read back.
+- **Results:**
+
+  | `rate_limit_us` | policy0 changes/s (untraced) | I2C6 IRQ/s | `sugov:0` CPU (traced) | wall per run, p90 | dropped of 600 (untraced, traced) |
+  | --- | --- | --- | --- | --- | --- |
+  | 804 | 266.5 | 3519 | 22.7 % | 6.1 ms | 2, 2 |
+  | 2000 | 193.8 | 2600 | 17.6 % | 2.6 ms | 1, 13 |
+  | 5000 | 119.6 | 1595 | 12.0 % | 2.7 ms | 11, 2 |
+
+- **What it shows:**
+  - At 5000, the limit halves the changes and the sugov CPU.
+  - The I2C6 load stays at about 13 interrupts per policy0 change.
+  - Dropped frames vary between 1 and 13 with no trend against the setting,
+    so these runs show no playback cost.
+  - Each change still costs about 1 ms of CPU.
+
+`0749` should halve the I2C6 transfers per change. A thinner CCI table remains the lever if the CCI still
 doubles the work after both.
 
 ## Conclusion
