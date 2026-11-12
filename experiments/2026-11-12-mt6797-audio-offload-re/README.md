@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-12-mt6797-audio-offload-re` |
-| Status | `completed`: offline source and firmware review; no build, boot or device access. M1 run on the speaker (confounded); M1b proposed |
+| Status | `completed`: offline source and firmware review; no build, boot or device access. M1 and M1b run: decode costs nothing measurable, the powered playback path about 58 mA on the speaker; headphone repeat pending |
 | Subsystem | audio: MT6797 AFE, SCP (CM4) companion core, vendor audio HAL; power |
 | Device variant | named Gemini PDA (MT6797X), Gemian `3.18.41+` and the mainline station |
 | Date(s) | 2026-11-12 |
@@ -230,6 +230,10 @@ sessions already own that work, and it helps every use, not only music.
 offload audio. MediaTek's MP3-on-SCP design exists in the generic 6797 source.
 The Gemini kernel compiles it out, and its SCP firmware has no audio code.
 
+Measured afterwards (M1b): decoding MP3 in software costs nothing
+measurable. Powering the speaker playback path costs about 58 mA. Offload
+would remove neither cost.
+
 Recommendation:
 
 1. **Do not start SCP offload now.** It means firmware written from scratch,
@@ -296,7 +300,7 @@ No kernel warning and no `hw_ptr` error.
   cannot split amplifier, analogue path, AFE and decode.
 - The 96 mA floor does not apply, because the display was on.
 
-**M1b (proposed):**
+**M1b (run 2026-11-12, result below):**
 - Setup: display blanked, CPU0 only. Four windows:
   1. silent;
   2. `mpv --ao=null`, decode only, no audio device;
@@ -311,6 +315,47 @@ No kernel warning and no `hw_ptr` error.
   fix, not offload. If the path dominates, it goes to the gemini-audio
   session. Headphones would be the on-the-move case: repeat 3–4 on
   headphones if the owner can plug them in.
+### M1b result (2026-11-12)
+
+Same boot `8990918b`, unplugged, display off throughout (DPMS off), Wi-Fi up
+in every window, CPUs 1–7 offline, speaker at 0.30, 60 samples at 1 s per
+window. Battery 98 %, 24.1–24.3 °C. No kernel warning and no `hw_ptr` error.
+
+| Window | Mean current | Range | AFE IRQ `asys-isr` | Context switches | I2C6 IRQs | `mpv` CPU | `pipewire` CPU |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| W1 silent | 164.5 mA | 154–223 | 0 | 50k | 12.9k | — | — |
+| W2 decode only, `--ao=null` | 159.8 mA | 152–164 | 0 | 85k | 14.8k | 7.1 s | — |
+| W3 silent WAV to the speaker | 222.0 mA | 216–226 | 2957 | 60k | 15.5k | — | 1.26 s |
+| W4 `mpv` to the speaker | 232.7 mA | 224–237 | 2972 | 142k | 33.5k | 12.0 s | 2.25 s |
+
+Counts are per 60 s window.
+
+- **Sink rate:** PipeWire ran at 48 kHz with the 44.1 kHz file, so W4
+  includes resampling.
+- **CPU0 frequency:** W1–W3 spent about 46 s at 221 MHz and 5.5–6 s at
+  1547 MHz. W4 moved 18 s to 338 MHz and 4.5 s to 481 MHz, with 6.7 s at
+  1547 MHz.
+- **Sampler load:** the 1 Hz sampler forks several processes per sample on
+  the only CPU, which adds the 1547 MHz bursts. W1 is above R1b's 96 mA
+  because Wi-Fi and the Arch userspace were running. Only the differences
+  between windows are used.
+
+**Reading:**
+- **Decode:** W2 − W1 = −4.7 mA, within noise. Software MP3 decode costs
+  nothing measurable, so offload cannot save anything here.
+- **Playback path:** W3 − W1 = +57.5 mA while playing digital silence. This
+  is the AFE, the MT6351 DAC and speaker path, and the AW8738 amplifier being
+  powered.
+- **Signal-dependent speaker share:** W4 − W3 = +10.8 mA. This includes the
+  extra CPU work of resampling and mixing, which raised CPU0's frequency and
+  doubled the I2C6 traffic of the CPU DVFS.
+- **AFE wakeups:** about 49 interrupts a second, one per 20 ms PipeWire
+  period. M1 showed that fewer wakeups save about 1 mA.
+- **Decision:** by the predeclared table the path dominates. It goes to the
+  gemini-audio session, and offload stays parked.
+- **Open:** the headphone case has not been measured. On headphones the
+  speaker amplifier is off, so the path share there is the open number for
+  on-the-move use.
 - Dependencies: the gemini-audio session (AFE SRAM, buffer limits, AFE runtime
   PM); the cpuidle and SPM sessions (deep idle); the suspend session (`mem`
   with audio running).

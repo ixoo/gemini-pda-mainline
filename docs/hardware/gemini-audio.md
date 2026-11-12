@@ -349,6 +349,10 @@ Details and citations are in the
   `0x11221000`, at most 32 KiB per DL buffer) leaves deep idle and SODI
   allowed. A DRAM buffer forbids both through `AudDrv_Emi_Clk_On()`. Mainline
   `mt6797-afe-pcm.c` uses DRAM buffers only, up to 384 KiB.
+- **Measured cost on mainline (M1b, one boot, speaker).** Software MP3 decode
+  adds nothing measurable. A powered speaker path playing digital silence adds
+  about 58 mA, and real signal about 11 mA more. Headphones have not been
+  measured.
 
 ## 3. Inputs
 
