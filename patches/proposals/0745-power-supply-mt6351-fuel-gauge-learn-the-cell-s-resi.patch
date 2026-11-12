@@ -1,0 +1,380 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Wed, 11 Nov 2026 19:04:06 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: learn the cell's resistance
+
+Every OCV reading corrects the terminal voltage by the current times a
+fixed resistance, the DT's new-cell 165 mOhm. On an aged Gemini cell the
+resistance under a sustained load measured about 0.4 Ohm, so readings
+under load came out ten or more points low, and the light-load learning
+was biased. Another unit's cell will differ again.
+
+Learn it per battery. Under a steady discharge of at least 300 mA for two
+minutes, every window within a tenth of the first, the OCV at the
+counted charge less the voltage, over the current, is the resistance.
+The counted charge has to come from a rest or finished-charge reading of
+the last 24 hours, so the estimate does not rest on an earlier loaded
+reading. It is taken at 15-35 C, normalised to 25 C with the vendor
+profiles' temperature dependence, and moves 1/16 of the way, at most a
+tenth and once per 10 minutes, within 50 mOhm-1.5 Ohm. The DT value is
+the starting point. Every I x R correction uses the learned value at the
+battery's temperature. A load step between two windows gives a fast
+estimate, logged at debug level for comparison.
+
+The learned value is in learned_resistance_uohm, which userspace can
+write back at boot within the same bounds; design_resistance_uohm is the
+DT's. A change raises a power_supply event so it can be saved.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 220 ++++++++++++++++++++++-
+ 1 file changed, 214 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 1a05387..050fcda 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -116,6 +116,30 @@
+  */
+ #define MT6351_FG_IDLE_UA		20000
+ 
++/*
++ * The cell's resistance, learned: under a steady discharge of at least
++ * MT6351_FG_RLOAD_UA for MT6351_FG_RLOAD_MS, every window within a tenth of
++ * the first, the OCV at the counted charge less the voltage, over the
++ * current. Only within MT6351_FG_RTRUST_MS of a rest or finished-charge
++ * reading, at 15-35 C, at most every MT6351_FG_RSTEP_MS, moving 1/16 of the
++ * way and at most a tenth, within the bounds. It is kept at 25 C.
++ */
++#define MT6351_FG_RLOAD_UA		300000
++#define MT6351_FG_RLOAD_MS		(120 * MSEC_PER_SEC)
++#define MT6351_FG_RTRUST_MS		(24LL * 3600 * MSEC_PER_SEC)
++#define MT6351_FG_RSTEP_MS		(600 * MSEC_PER_SEC)
++#define MT6351_FG_R_MIN_UOHM		50000
++#define MT6351_FG_R_MAX_UOHM		1500000
++
++/*
++ * The resistance against 25 C, per mille, every 5 C from -10 to 50 C: the
++ * vendor profiles' mid-range resistance at -10, 0, 25 and 50 C, interpolated
++ * on a log scale.
++ */
++static const u16 mt6351_fg_r_temp[] = {
++	10935, 8209, 6163, 4284, 2978, 2070, 1439, 1000, 889, 790, 702, 624, 554,
++};
++
+ struct mt6351_fg {
+ 	struct device *dev;
+ 	struct regmap *regmap;
+@@ -127,7 +151,20 @@ struct mt6351_fg {
+ 	struct mutex lock;
+ 	u32 sense_mohm;
+ 	u32 car_tune;
+-	u32 resistance_mohm;
++	/* The resistance at 25 C: learned or restored, and the DT's starting value. */
++	s64 r25_uohm;
++	s64 r_design_uohm;
++	/* A steady load for the resistance, and the last update. */
++	ktime_t rl_start;
++	int rl_ua;
++	bool rl_on;
++	bool rl_done;
++	ktime_t r_time;
++	bool r_updated;
++	/* The previous window's current and closing voltage, for the step estimate. */
++	int win_prev_ua;
++	int win_prev_uv;
++	bool win_prev_valid;
+ 	/* The counter window the current is taken over, under the lock. */
+ 	ktime_t win_start;
+ 	s64 win_car;
+@@ -143,6 +180,9 @@ struct mt6351_fg {
+ 	s64 anchor_uah;
+ 	s64 anchor_car;
+ 	bool anchored;
++	/* When the last OCV reading was taken, and whether it was at rest. */
++	ktime_t anchor_time;
++	bool anchor_trusted;
+ 	/* The full charge, learned or restored, and the last learning reading. */
+ 	s64 full_uah;
+ 	bool rest_learned;
+@@ -186,6 +226,42 @@ static s64 mt6351_fg_car_nah(struct mt6351_fg *fg, s64 car)
+ 	return car < 0 ? -(s64)nah : nah;
+ }
+ 
++/* The resistance at a temperature, from the one at 25 C. */
++static s64 mt6351_fg_r_uohm(struct mt6351_fg *fg, int mc)
++{
++	int t = clamp(mc, -10000, 50000) + 10000;
++	int i = min_t(int, t / 5000, ARRAY_SIZE(mt6351_fg_r_temp) - 2);
++	int f = mt6351_fg_r_temp[i] +
++		(mt6351_fg_r_temp[i + 1] - mt6351_fg_r_temp[i]) * (t - i * 5000) / 5000;
++
++	return div_s64(fg->r25_uohm * f, 1000);
++}
++
++/* The open-circuit voltage at a terminal voltage and current. */
++static int mt6351_fg_ocv(struct mt6351_fg *fg, int uv, int ua, int mc)
++{
++	return uv - div_s64((s64)ua * mt6351_fg_r_uohm(fg, mc), 1000000);
++}
++
++/* The OCV table's voltage at a capacity in per mille, at a temperature. */
++static int mt6351_fg_cap2ocv(struct mt6351_fg *fg, int permille, int mc)
++{
++	const struct power_supply_battery_ocv_table *t;
++	int size, i;
++
++	t = power_supply_find_ocv2cap_table(fg->info, mc / 1000, &size);
++	if (!t || size < 2)
++		return -EINVAL;
++	/* The table runs from full to empty. */
++	for (i = 1; i < size - 1 && t[i].capacity * 10 > permille; i++)
++		;
++	if (t[i - 1].capacity == t[i].capacity)
++		return t[i].ocv;
++	return t[i].ocv + div_s64((s64)(t[i - 1].ocv - t[i].ocv) *
++				  (permille - t[i].capacity * 10),
++				  (t[i - 1].capacity - t[i].capacity) * 10);
++}
++
+ /*
+  * The battery current is the counter's change over a window of at least
+  * MT6351_FG_WINDOW_MS. The instantaneous FG_CURRENT_OUT register is only used
+@@ -193,10 +269,13 @@ static s64 mt6351_fg_car_nah(struct mt6351_fg *fg, s64 car)
+  * disagreed with the counter by a third over the same minutes, where the
+  * counter integrates every conversion.
+  */
++static int mt6351_fg_voltage(struct mt6351_fg *fg, int *uv);
++
+ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ {
+ 	ktime_t now = ktime_get_boottime();
+ 	s64 ms, dq_nah;
++	int uv;
+ 
+ 	if (!fg->win_valid) {
+ 		fg->win_start = now;
+@@ -236,6 +315,28 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 		fg->rest_learned = false;
+ 	}
+ 
++	/* A steady load for the resistance: windows within a tenth of the first. */
++	if (-fg->win_ua < MT6351_FG_RLOAD_UA) {
++		fg->rl_on = false;
++	} else if (!fg->rl_on || abs(fg->win_ua - fg->rl_ua) * 10 > -fg->rl_ua) {
++		fg->rl_start = fg->win_start;
++		fg->rl_ua = fg->win_ua;
++		fg->rl_on = true;
++		fg->rl_done = false;
++	}
++
++	/* A load step between two windows, logged to check the learned value. */
++	if (!mt6351_fg_voltage(fg, &uv)) {
++		if (fg->win_prev_valid && fg->win_ua < 0 && fg->win_prev_ua < 0 &&
++		    abs(fg->win_ua - fg->win_prev_ua) >= MT6351_FG_RLOAD_UA)
++			dev_dbg(fg->dev, "step resistance: %lld uOhm\n",
++				div_s64((s64)(uv - fg->win_prev_uv) * 1000000,
++					fg->win_ua - fg->win_prev_ua));
++		fg->win_prev_ua = fg->win_ua;
++		fg->win_prev_uv = uv;
++		fg->win_prev_valid = true;
++	}
++
+ 	if (-fg->win_ua < MT6351_FG_STEADY_MIN_UA || -fg->win_ua > MT6351_FG_STEADY_MAX_UA) {
+ 		fg->steady = false;
+ 	} else if (!fg->steady || abs(fg->win_ua - fg->steady_ua) > MT6351_FG_STEADY_UA) {
+@@ -426,6 +527,51 @@ static bool mt6351_fg_learn(struct mt6351_fg *fg, ktime_t now, int soc, int mc,
+ 	return true;
+ }
+ 
++/*
++ * The resistance from a steady load: the OCV at the counted charge less the
++ * voltage, over the current. Returns true when it changed. Called under the
++ * lock.
++ */
++static bool mt6351_fg_learn_r(struct mt6351_fg *fg, ktime_t now, int ua, s64 full)
++{
++	s64 uah, r, step;
++	int uv, mc, ocv, permille;
++
++	if (!fg->rl_on || fg->rl_done || !fg->anchored || !fg->anchor_trusted ||
++	    ktime_ms_delta(now, fg->rl_start) < MT6351_FG_RLOAD_MS ||
++	    ktime_ms_delta(now, fg->anchor_time) > MT6351_FG_RTRUST_MS ||
++	    (fg->r_updated && ktime_ms_delta(now, fg->r_time) < MT6351_FG_RSTEP_MS))
++		return false;
++	fg->rl_done = true;
++
++	if (mt6351_fg_voltage(fg, &uv) || thermal_zone_get_temp(fg->tz, &mc) ||
++	    mc < MT6351_FG_LEARN_MIN_MC || mc > MT6351_FG_LEARN_MAX_MC || ua >= 0)
++		return false;
++
++	uah = fg->anchor_uah + div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
++	permille = clamp_t(s64, div64_s64(uah * 1000, full), 0, 1000);
++	ocv = mt6351_fg_cap2ocv(fg, permille, mc);
++	if (ocv < 0)
++		return false;
++
++	/* At this temperature, then at 25 C. */
++	r = div_s64((s64)(ocv - uv) * 1000000, -ua);
++	r = div64_s64(r * fg->r25_uohm, mt6351_fg_r_uohm(fg, mc));
++	dev_dbg(fg->dev, "resistance: %lld uOhm at 25 C from %d uV, %d uV at %d uA, %d mC\n",
++		r, ocv, uv, ua, mc);
++	if (r < MT6351_FG_R_MIN_UOHM || r > MT6351_FG_R_MAX_UOHM)
++		return false;
++
++	step = clamp_t(s64, div_s64(r - fg->r25_uohm, 16),
++		       -div_s64(fg->r25_uohm, 10), div_s64(fg->r25_uohm, 10));
++	fg->r25_uohm += step;
++	fg->r_time = now;
++	fg->r_updated = true;
++	dev_info(fg->dev, "resistance %lld uOhm at 25 C\n", fg->r25_uohm);
++
++	return step != 0;
++}
++
+ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 			      int *charge_uah, bool *full_changed)
+ {
+@@ -447,7 +593,7 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		if (ret)
+ 			return ret;
+ 		/* The open-circuit voltage: charging current raises the terminal. */
+-		uv -= (s64)ua * fg->resistance_mohm / 1000;
++		uv = mt6351_fg_ocv(fg, uv, ua, mc);
+ 		ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
+ 		if (ret < 0)
+ 			return ret;
+@@ -473,6 +619,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 			fg->anchor_car = fg->car;
+ 		}
+ 		fg->anchored = true;
++		fg->anchor_time = now;
++		fg->anchor_trusted = settled;
+ 
+ 		if (rest_ms >= MT6351_FG_LEARN_REST_MS && !fg->rest_learned) {
+ 			fg->rest_learned = true;
+@@ -488,7 +636,7 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 	    !mt6351_fg_voltage(fg, &uv) &&
+ 	    uv >= fg->info->voltage_max_design_uv - MT6351_FG_CV_MARGIN_UV &&
+ 	    !thermal_zone_get_temp(fg->tz, &mc)) {
+-		uv -= (s64)ua * fg->resistance_mohm / 1000;
++		uv = mt6351_fg_ocv(fg, uv, ua, mc);
+ 		ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
+ 		if (ret >= 0) {
+ 			ret = clamp(ret, 0, 100);
+@@ -496,6 +644,8 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 				uv, ua, mc, ret);
+ 			fg->anchor_uah = div_s64(full * ret, 100);
+ 			fg->anchor_car = fg->car;
++			fg->anchor_time = now;
++			fg->anchor_trusted = false;
+ 			fg->cv_time = now;
+ 			fg->cv_valid = true;
+ 			fg->taper_seen = true;
+@@ -510,7 +660,7 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		if (!ret)
+ 			ret = thermal_zone_get_temp(fg->tz, &mc);
+ 		if (!ret) {
+-			uv -= (s64)ua * fg->resistance_mohm / 1000;
++			uv = mt6351_fg_ocv(fg, uv, ua, mc);
+ 			ret = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
+ 		}
+ 		dev_dbg(fg->dev, "steady reading: %d uV at %d uA, %d mC: %d\n", uv, ua, mc, ret);
+@@ -522,6 +672,9 @@ static int mt6351_fg_capacity(struct mt6351_fg *fg, int ua, int *capacity,
+ 		}
+ 	}
+ 
++	if (mt6351_fg_learn_r(fg, now, ua, full))
++		*full_changed = true;
++
+ 	full = mt6351_fg_usable(full);
+ 	uah = fg->anchor_uah + div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
+ 	uah = clamp_t(s64, uah, 0, full);
+@@ -694,6 +847,7 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+ 		return -ENOMEM;
+ 	fg->dev = dev;
+ 	mutex_init(&fg->lock);
++	platform_set_drvdata(pdev, fg);
+ 
+ 	/* The regmap is the PMIC wrapper's, parent of the mt6397 MFD. */
+ 	fg->regmap = dev_get_regmap(dev->parent->parent, NULL);
+@@ -728,8 +882,9 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+ 		return dev_err_probe(dev, ret, "no monitored battery\n");
+ 	if (!info->ocv_table[0])
+ 		return dev_err_probe(dev, -EINVAL, "monitored battery has no OCV table\n");
+-	fg->resistance_mohm = info->factory_internal_resistance_uohm > 0 ?
+-			      info->factory_internal_resistance_uohm / 1000 : 0;
++	fg->r_design_uohm = clamp(info->factory_internal_resistance_uohm,
++				  MT6351_FG_R_MIN_UOHM, MT6351_FG_R_MAX_UOHM);
++	fg->r25_uohm = fg->r_design_uohm;
+ 	fg->full_uah = info->charge_full_design_uah;
+ 	WRITE_ONCE(fg->info, info);
+ 
+@@ -757,6 +912,58 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+ 	return 0;
+ }
+ 
++/* The learned resistance at 25 C, for userspace to keep across boots. */
++static ssize_t learned_resistance_uohm_show(struct device *dev,
++					    struct device_attribute *attr, char *buf)
++{
++	struct mt6351_fg *fg = dev_get_drvdata(dev);
++
++	guard(mutex)(&fg->lock);
++	return sysfs_emit(buf, "%lld\n", fg->r25_uohm);
++}
++
++static ssize_t learned_resistance_uohm_store(struct device *dev,
++					     struct device_attribute *attr,
++					     const char *buf, size_t count)
++{
++	struct mt6351_fg *fg = dev_get_drvdata(dev);
++	u32 r;
++	int ret;
++
++	ret = kstrtou32(buf, 0, &r);
++	if (ret)
++		return ret;
++	if (r < MT6351_FG_R_MIN_UOHM || r > MT6351_FG_R_MAX_UOHM)
++		return -ERANGE;
++	if (!READ_ONCE(fg->info))
++		return -ENODATA;
++
++	scoped_guard(mutex, &fg->lock)
++		fg->r25_uohm = r;
++	power_supply_changed(fg->psy);
++
++	return count;
++}
++static DEVICE_ATTR_RW(learned_resistance_uohm);
++
++static ssize_t design_resistance_uohm_show(struct device *dev,
++					   struct device_attribute *attr, char *buf)
++{
++	struct mt6351_fg *fg = dev_get_drvdata(dev);
++
++	if (!READ_ONCE(fg->info))
++		return -ENODATA;
++	return sysfs_emit(buf, "%lld\n", fg->r_design_uohm);
++}
++static DEVICE_ATTR_RO(design_resistance_uohm);
++
++static struct attribute *mt6351_fg_attrs[] = {
++	&dev_attr_learned_resistance_uohm.attr,
++	&dev_attr_design_resistance_uohm.attr,
++	NULL
++};
++ATTRIBUTE_GROUPS(mt6351_fg);
++
+ static const struct of_device_id mt6351_fg_of_match[] = {
+ 	{ .compatible = "mediatek,mt6351-fuel-gauge" },
+ 	{ }
+@@ -767,6 +974,7 @@ static struct platform_driver mt6351_fg_driver = {
+ 	.driver = {
+ 		.name = "mt6351-fuel-gauge",
+ 		.of_match_table = mt6351_fg_of_match,
++		.dev_groups = mt6351_fg_groups,
+ 	},
+ 	.probe = mt6351_fg_probe,
+ };
+-- 
+2.54.0 (Apple Git-157)
+

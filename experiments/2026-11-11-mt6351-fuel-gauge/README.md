@@ -841,7 +841,7 @@ action level, which belongs to arch-root.
 - **In use:** 3.00 V trips around 15-20 % under a 1.8 A load. At 0.5 A or less it would need an
   OCV under 3.2 V, below the table's empty point, so the gauge's levels act first.
 
-## Adaptive resistance and capacity to the cut-off: design proposal (owner direction, not built)
+## Adaptive resistance and capacity to the cut-off (owner direction)
 
 The owner: "This sounds very specific to this battery... what will happen with the same setting
 on other devices? I'd like this to be more adaptive". So instead of a measured value for this
@@ -927,7 +927,60 @@ toward about 0.4 Ω (R_eff) over a few days of use. T5 validates both estimates.
 - **Same on every Gemini,** since LK is the same. T5's fast R confirms the burst figure.
 - **Why not 3.00 V:** the 3.00 V given earlier assumed the vendor's 2.60 V UVLO.
 
-### Owner decisions
+### Owner decisions (2026-11-11, through the custodian)
+
+- (a) "Yes, build it". (b) "Load-aware": the percentage falls faster under heavy use, gives
+  some back when the load lightens, and 0 % means about to shut down.
+
+### Built
+
+**[0745](../../patches/proposals/0745-power-supply-mt6351-fuel-gauge-learn-the-cell-s-resi.patch),
+the learned resistance:**
+- **R_eff** comes from a steady discharge of at least 300 mA for 2 min, windows within a tenth
+  of the first.
+  - It is only taken within 24 h of a rest or finished-charge reading, so the counted charge it
+    compares against does not itself come from a loaded reading.
+  - 15-35 °C, normalised to 25 °C by the vendor profiles' log-interpolated factor in 5 °C steps.
+  - 1/16 steps capped at a tenth, once per 10 min, bounded 50 mΩ-1.5 Ω. The DT's 165 mΩ is the
+    start.
+- **Every I × R correction** (first, rest, taper, steady and learning readings) uses R(T).
+- **The fast step estimate** between windows is logged at debug level (`step resistance: …`)
+  for T5. It drives nothing, because the backstop is a fixed constant.
+- **Attributes** under the battery's device: `learned_resistance_uohm`, read-write within the
+  bounds, and `design_resistance_uohm`, the basis.
+- A change raises a `power_supply` event.
+
+**[0746](../../patches/proposals/0746-power-supply-mt6351-fuel-gauge-count-the-capacity-do.patch),
+capacity to the cut-off:**
+- **Empty** is where OCV − I_typ × R(T) = 3.20 V.
+  - I_typ is a time-weighted 30-min average of discharge, held on the charger, bounded
+    0.2-2 A, starting at 0.5 A.
+  - Empty moves a point a minute at most, and stops at 80 % of the table.
+- **Derived values:** `capacity`, `charge_now` and `charge_full` are the usable charge above
+  empty. `charge_full_design` is a new cell's at 0.5 A and 25 °C, and `charge_full` is capped
+  there.
+- **Interface:** `charge_full` is read-only again. The table Q is in `learned_full_uah`,
+  read-write within 50-110 % held at the design, and `design_full_uah` is the basis.
+- **Simulated on this cell** (R₂₅ 0.40 Ω, 25 °C, Q unlearned):
+
+  | Load | Empty point (table) | Health | 90 % of the table shows | 60 % shows |
+  |---|---|---|---|---|
+  | 0.5 A | 0 % | 100 % | 97 % | 65 % |
+  | 1.0 A | 2 % | 98 % | 97 % | 64 % |
+  | 1.8 A sustained | 58 % | 38 % | 91 % | 6 % |
+
+  A new cell at 1.8 A empties at 1 %. **Health therefore depends on load:** under a sustained
+  heavy load it shows what this cell offers against a new one at that load. Owner to note.
+
+Both compiled at W=1 and checkpatch clean, applied in sequence after 0737. Not on a device.
+
+**gemini-base change (Arch root):**
+- save `learned_full_uah design_full_uah` and `learned_resistance_uohm design_resistance_uohm`;
+- restore each as value × basis now ÷ saved basis;
+- migrate today's file `charge_full charge_full_design` (usable units, or a legacy single
+  number) as Q = value × 4268000 ÷ the saved design, the legacy basis being 4268000.
+
+### Owner decisions (as proposed)
 
 - Build 1-4 as described, as an image item plus a gemini-base change?
 - With part 2, the displayed charge depends on recent load. Heavy use makes the percentage drop
