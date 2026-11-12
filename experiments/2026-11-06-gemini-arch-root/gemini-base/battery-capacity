@@ -36,8 +36,10 @@ put() { # ATTRIBUTE VALUE SAVED_BASIS BASIS_ATTRIBUTE
     return 1
 }
 
-# Save Q and R with their bases, if changed. A fresh install keeps no file until the
-# driver has learned something; a migration in progress keeps the old file until then.
+# Save Q and R with their bases, if changed. Both still at their bases means nothing learned
+# or restored yet: a fresh install, or a save racing the restore at bind (a battery change
+# uevent can run beside it), which would overwrite the file with the defaults. So that state
+# is never saved, except as the result of a migration. Resetting means deleting the file.
 save() {
     q=$(cat "$dev/learned_full_uah" 2>/dev/null)
     qb=$(cat "$dev/design_full_uah" 2>/dev/null)
@@ -47,7 +49,7 @@ save() {
     text="full $q $qb
 resistance $r $rb"
     [ "$text" = "$(cat "$file" 2>/dev/null)" ] && return 0
-    [ -e "$file" ] || [ "$1" = migrated ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ] || return 0
+    [ "$1" = migrated ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ] || return 0
     mkdir -p "${file%/*}"
     printf '%s\n' "$text" >"$file.new" && mv "$file.new" "$file" && rm -f "$old"
 }

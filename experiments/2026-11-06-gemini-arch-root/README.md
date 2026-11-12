@@ -2246,6 +2246,14 @@ without the attributes leaves everything alone; a failed migration write keeps t
 a junk old file goes; a learned Q is saved even with the migration pending. The rule passes
 `udevadm verify`. Not on a device: it needs a station image built at or after `1f532f3b`.
 
+The same race remained for a file already in the new format (fuel-gauge session's review):
+a battery change uevent beside the bind restore could save Q and R still at their bases
+over the learned values, and the restore would then read the defaults. `gemini-base` 53 never
+saves both-at-basis, except as the result of a migration; a learned or restored value
+practically never sits exactly on its basis, and resetting is deleting the file. Two more
+fake-sysfs cases: a save before the restore leaves a new-format file unchanged, and a restore
+followed by a save leaves it unchanged too.
+
 ## Analysis
 
 Not started.
