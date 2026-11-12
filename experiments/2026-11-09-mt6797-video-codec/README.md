@@ -1195,7 +1195,7 @@ arch-root's agreement. Evidence (private): `artifacts/card-32/v16-*`.
   access. Card policy is arch-root's decision.
 - Patch 0744 is confirmed harmless for the existing GStreamer path.
 
-### V17 result (steps 1 to 5)
+### V17 result
 
 *Run.* Same boot as V16 (station-work-112, boot `71c291ae`), package
 release 2 (`6c224a83…`). The dma-buf heap was opened to group `video`
@@ -1227,6 +1227,20 @@ release 2 (`6c224a83…`). The dma-buf heap was opened to group `video`
   - `vaapi-copy` dropped 232.
   - Software (`--hwdec=no`) dropped 210.
   - The owner found software the smoothest. No black screens.
+- **qutebrowser decodes through VA-API.**
+  - Arch's QtWebEngine (6.11.3) is built with VA-API.
+  - Launched with the feature switches in the package README, playing the
+    1080p H.264 page, the browser's GPU process held the render node,
+    `/dev/media1` and `/dev/video1`.
+  - The driver logged decoding H.264 with the CPU MM21 conversion.
+    Chromium's `VaapiVideoDecoder` and `VideoDecoderPipeline` initialised
+    for H.264 High at 1920x1080. Decoder interrupts rose by 194 during
+    playback. No VA-API errors.
+  - Playback was choppy, as with mpv. The owner saw no display glitch
+    beyond that.
+  - Not captured: `qute://gpu` and the page's decoded/dropped counts. The
+    VP9 and HEVC pages were not tried.
+- Afterwards the domain was off and the `vdec_sel` enable count was 0.
 
 *Analysis.*
 
