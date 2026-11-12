@@ -916,3 +916,24 @@ without it. Full CPU load alone brought the board near 47 °C in 4 minutes.
 Tested: clean at `W=1` and `checkpatch --strict`, and the binding passes its schema check. The
 station DTB carries the property, and the series gives the compiled driver and the built DTS.
 Nothing booted.
+
+**Full sensor run, same boot `0ce7590c…`, on the Mac (CDP) at 1.5 A, charging, without the limiter.**
+The custodian sampled every 15 s through 5 minutes of 8-core load, then 5 minutes idle:
+
+| Point | SoC | Board (mV) | Battery | Battery current |
+| --- | --- | --- | --- | --- |
+| Baseline | 28.7 °C | 28.65 °C (321) | 24.6 °C | +1.05 A |
+| Load, 60 s | 71.5 °C | 37.3 °C (231) | | +0.40 A |
+| Load, 240 s | 74.8 °C | 42.8 °C (187) | | |
+| Load, 300 s | | 42.9 °C (186) | | +0.60 A |
+| Idle, 60 s | 36.2 °C | 36.8 °C (235) | | +1.05 A |
+| Idle, 300 s | 31.8 °C | 33.0 °C (272) | 25.2 °C | |
+
+**Reading:**
+- The 1.024 A charge cap was reached and held: 1.05 A into the battery at baseline and again once
+  idle. This is the first time the cap has been seen in force; D2 ran in constant voltage.
+- Under load the system used most of the 1.5 A input, and the battery's share fell to 0.4-0.6 A.
+- The board peaked near 43 °C after 5 minutes of full load while charging, below the 47 °C step,
+  and recovered at about 2 °C a minute. The battery stayed at 24-25 °C.
+- So in this test the limiter would not have acted. Sun, a closed case or longer load may still
+  reach it; that's untested.
