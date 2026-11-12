@@ -974,7 +974,13 @@ capacity to the cut-off:**
 
 Both compiled at W=1 and checkpatch clean, applied in sequence after 0737. Not on a device.
 
-**gemini-base change (Arch root):**
+**gemini-base change (Arch root), built in gemini-base 53 (`69e497fc`):**
+- It restores on the driver's bind event, because the attributes are `dev_groups`, created
+  after probe and so after the battery's `add` uevent.
+- On images without them it does nothing.
+- A save never stores both values at their bases, except right after a migration, so a save
+  racing the restore cannot overwrite what was learned.
+- Fake-sysfs cases pass; not on a device.
 - save `learned_full_uah design_full_uah` and `learned_resistance_uohm design_resistance_uohm`;
 - restore each as value × basis now ÷ saved basis;
 - migrate today's file `charge_full charge_full_design` (usable units, or a legacy single
