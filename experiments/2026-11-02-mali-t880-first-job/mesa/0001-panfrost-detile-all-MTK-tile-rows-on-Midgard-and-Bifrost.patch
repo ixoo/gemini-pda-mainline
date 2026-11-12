@@ -1,0 +1,63 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 11:00:31 +0000
+Subject: [PATCH] panfrost: detile all MTK tile rows on Midgard and Bifrost
+
+panfrost_mtk_detile_compute() reads each tiled plane through a linear
+image view with one row per tile, so the source view holds
+(pitch / tile width) x (tile rows) rows. On Midgard and Bifrost,
+emit_image_bufs() bounds image accesses with the attribute buffer's T
+dimension, which it takes from the resource's height0: the picture
+height. The detile then stops after height0 tiles, and everything past
+them stays tiled. A 1920x1080 H.264 frame on a Mali-T880 is correct for
+the first 1080 luma tiles (288 rows) and 540 chroma tiles, and garbled
+below.
+
+Expose the full tile row count in height0 while the detile job is
+emitted, and restore it afterwards. Valhall images take their size from
+the image layout and are not affected.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/gallium/drivers/panfrost/pan_cmdstream.c | 18 ++++++++++++++++++
+ 1 file changed, 18 insertions(+)
+
+diff --git a/src/gallium/drivers/panfrost/pan_cmdstream.c b/src/gallium/drivers/panfrost/pan_cmdstream.c
+index bcb3abe..4ba5093 100644
+--- a/src/gallium/drivers/panfrost/pan_cmdstream.c
++++ b/src/gallium/drivers/panfrost/pan_cmdstream.c
+@@ -3957,6 +3957,19 @@ panfrost_mtk_detile_compute(struct panfrost_context *ctx, struct pipe_blit_info
+          DIV_ROUND_UP(uv_src->height0, 16);
+    }
+ 
++   /* Midgard and Bifrost bound image accesses by the S/T dimensions of the
++    * attribute buffer, which emit_image_bufs() takes from width0/height0.
++    * The tiled sources are linear views with one row per tile, so height0
++    * (the picture height) would stop the detile after height0 tiles. Expose
++    * all tile rows while the job is emitted. */
++   unsigned y_src_height0 = y_src ? y_src->height0 : 0;
++   unsigned uv_src_height0 = uv_src ? uv_src->height0 : 0;
++
++   if (y_src)
++      y_src->height0 = pan_resource(y_src)->image.props.extent_px.height;
++   if (uv_src)
++      uv_src->height0 = pan_resource(uv_src)->image.props.extent_px.height;
++
+    image[0].resource = y_src;
+    image[0].format = PIPE_FORMAT_R8G8B8A8_UINT;
+    image[0].shader_access = image[0].access = PIPE_IMAGE_ACCESS_READ;
+@@ -4028,6 +4041,11 @@ panfrost_mtk_detile_compute(struct panfrost_context *ctx, struct pipe_blit_info
+    panfrost_resource_restore_format(pan_resource(uv_src), &uv_src_save);
+    panfrost_resource_restore_format(pan_resource(y_dst), &y_dst_save);
+    panfrost_resource_restore_format(pan_resource(uv_dst), &uv_dst_save);
++
++   if (y_src)
++      y_src->height0 = y_src_height0;
++   if (uv_src)
++      uv_src->height0 = uv_src_height0;
+ }
+ 
+ static void *
+-- 
+2.39.5
+
