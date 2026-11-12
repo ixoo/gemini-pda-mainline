@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-12-mt6797-audio-offload-re` |
-| Status | `completed`: offline source and firmware review; no build, boot or device access. Playback-current measurement M1 proposed |
+| Status | `completed`: offline source and firmware review; no build, boot or device access. M1 run on the speaker (confounded); M1b proposed |
 | Subsystem | audio: MT6797 AFE, SCP (CM4) companion core, vendor audio HAL; power |
 | Device variant | named Gemini PDA (MT6797X), Gemian `3.18.41+` and the mainline station |
 | Date(s) | 2026-11-12 |
@@ -248,7 +248,7 @@ Recommendation:
 
 - Durable facts: [Gemini audio §offload](../../docs/hardware/gemini-audio.md#25-compressed-audio-offload)
   and the audio row of the [vendor kernel ABI](../../docs/hardware/vendor-kernel-abi.md).
-- **M1 (proposed, custodian).**
+- **M1 (run 2026-11-12, see result below).**
   - Hypothesis: MP3 playback adds under 10 mA to the 96 mA awake floor, and a
     larger PipeWire quantum recovers little of it.
   - Unique observation: mean `current_now` over 60 s windows, as in R1b.
@@ -266,6 +266,51 @@ Recommendation:
       session ships a music-player latency setting;
     - over 10 mA and window 3 does not help: find the cost (resampling, the
       codec bias, the AFE's runtime PM) with the audio session.
+### M1 result (2026-11-12)
+
+Card-32 Arch root, boot `8990918b`. Unplugged, CPUs 1–7 offline, 60 samples
+at 1 s per window with a 10 s settle, battery 100 → 99 %, 24.4–24.7 °C.
+
+**Deviations that limit it:**
+- the display stayed on;
+- Wi-Fi stayed up as the SSH path;
+- the only sink was the built-in speaker (AW8738 amplifier) at volume 0.30
+  with pink noise, with no headphones;
+- the sink rate was not captured.
+
+| Window | Mean current | Range | `arch_timer` | Context switches | `mpv` CPU | `pipewire` CPU |
+| --- | --- | --- | --- | --- | --- | --- |
+| W1 silent | 383.8 mA | 367–483 | 11,694 | 49,838 | — | — |
+| W2 `mpv`, PipeWire defaults | 457.6 mA | 451–511 | 22,269 | 126,086 | 12.25 s | 2.18 s |
+| W3 `PIPEWIRE_LATENCY=8192/48000` | 456.6 mA | 450–522 | 19,654 | 114,127 | 11.25 s | 1.46 s |
+
+No kernel warning and no `hw_ptr` error.
+
+**Reading:**
+- Playback added 73.8 mA. The larger quantum recovered 1.0 mA, so wakeups
+  are not the cost.
+- By the predeclared table, this is the third branch: over 10 mA, and the
+  larger quantum does not help.
+- But the speaker amplifier driving pink noise is in that figure. So is
+  `mpv` at about 20 % of CPU0, far above typical MP3 decode cost. The run
+  cannot split amplifier, analogue path, AFE and decode.
+- The 96 mA floor does not apply, because the display was on.
+
+**M1b (proposed):**
+- Setup: display blanked, CPU0 only. Four windows:
+  1. silent;
+  2. `mpv --ao=null`, decode only, no audio device;
+  3. a silent 44.1 kHz WAV through PipeWire to the speaker, path powered with
+     no decode;
+  4. W2 repeated.
+- Also log CPU0's `time_in_state` deltas and the AFE's `/proc/interrupts`
+  line.
+- What the windows give: decode cost = 2 − 1; path cost = 3 − 1; the
+  signal-dependent speaker share is the rest.
+- Decision: if decode is over 10 mA, the decoder setup or CPU frequency is the
+  fix, not offload. If the path dominates, it goes to the gemini-audio
+  session. Headphones would be the on-the-move case: repeat 3–4 on
+  headphones if the owner can plug them in.
 - Dependencies: the gemini-audio session (AFE SRAM, buffer limits, AFE runtime
   PM); the cpuidle and SPM sessions (deep idle); the suspend session (`mem`
   with audio running).
