@@ -632,3 +632,23 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
 11. On an image with `0690`-`0693` and `0713`, during a 10-minute CPU soak on CPU7 to CPU9, A72s included, 77 job timeouts came only in the soak window, with transient corruption on the panel. The SoC
     reached about 67 C, above the 58 C passive trip. The rate log was off. Candidates: memory bandwidth taken by the soak; the cooling cap moving the rate under load, now within one divider,
     which is untested under heat; or the 520 MHz point itself, which now runs the MFGPLL at 2080 MHz with post-divider 4 and had not run long before. A repeat with the rate log on comes first.
+12. **Zero-copy video: Mesa's MediaTek detile on Midgard.** Mesa 26.2.6 imports the decoder's MM21 planes
+    (`DRM_FORMAT_MOD_MTK_16L_32S_TILE`, from the [video codec](../2026-11-09-mt6797-video-codec/README.md)
+    experiment's opt-in export) and detiles them with a compute job. In video V19 only the first 1080 luma tiles
+    (288 rows) and 540 chroma tiles of a 1080p frame came out right. The detile reads each plane through a view with
+    one row per tile, but on Midgard and Bifrost `emit_image_bufs()` bounds image accesses by the resource's
+    `height0`, the picture height [I, strong: the tile counts match exactly]. Mesa
+    [patch 0001](mesa/0001-panfrost-detile-all-MTK-tile-rows-on-Midgard-and-Bifrost.patch) exposes all tile rows
+    while the job is emitted. Upstream Mesa main has the same code. [`build-mesa-overlay.sh`](mesa/build-mesa-overlay.sh)
+    builds Mesa 26.2.6 with it, Panfrost only, as an overlay that one process opts into through environment variables;
+    the system Mesa stays untouched.
+    - **V20, boot `71c291ae`,** overlay `173ac10e…`, GL version `3.1 Mesa 26.2.6` (the system one ends in `-arch1.1`).
+      The zero-copy screenshots at 3 s and 5 s, windowed (H.264, HEVC, VP9) and fullscreen (H.264, VP9), are
+      identical to the CPU-detile control: SSIM 1.000000 and PSNR infinite in every 120-row band. The V19 shots scored
+      about 0.10 below the top band with the same tool. No GPU fault or timeout, at most 37.1 C [O].
+    - **Cost:** per 10 s of fullscreen 1080p H.264, the vertex-tiler (compute) time rose from 0.15 s to 0.97 s, about
+      2.7 ms of GPU per frame. CPU idle rose from 75 % to 79 % [O].
+    - **Not solved:** about 145 of 300 frames still drop in every mode, CPU or GPU detile alike. Fragment time is about
+      6.6 to 6.8 s per 10 s, so the GPU spends most of the time on mpv's rendering and scaling; the display ceiling is
+      there, not in decoding [I, moderate]. Chromium keeps the CPU path: Mesa converts an import once, so a client
+      that keeps one image per decoder buffer would show stale frames.
