@@ -755,8 +755,32 @@ Three levers, in order of risk:
 
 The energy model should already make schedutil skip OPPs that share a
 voltage with a faster one (LL 1443 and 1495 MHz, L 468 and 1950 MHz), so
-removing them from the table would change little. V12a confirms this from
-the `inefficient` flags in the `energy_model` debugfs.
+removing them from the table would change little. V12a confirmed it: the
+`inefficient` flags are set on exactly those four points.
+
+**V12a** (station-work-112, boot `8990918b`):
+
+- **Run:** 20 s of the H.264 1080p30 clip, with `mpv --hwdec=vaapi --fs` on
+  profile `fast` and `rate_limit_us` at 804. Over 22 s of trace, no events
+  were lost.
+- **Changes:** policy0 made 231 changes/s and policy4 made 21/s. The CCI
+  made 227/s, so it followed nearly every cluster change.
+- **I2C6 load:** 3065 interrupts/s, about 12 per change. Each change sends
+  two VPROC1 requests (one from the cluster, one from the CCI) at six
+  transfers each.
+- **Batched changes:** the tool's "changes" count runs from one S sleep to
+  the next. With work queued, the sugov thread does about 1.8 changes before
+  it sleeps, so each run shows about 3.6 PLL sets and 7.2 rail sets
+  (VPROC1 and VSRAM_L).
+- **Cost:** `sugov:0` was busy 21.8 % of one CPU, about 0.9 ms of CPU and
+  2 ms of wall time per change. That is more than twice the rate limit, so it
+  ran back to back. `sugov:4` used 1.1 %.
+- **Frames:** mpv dropped 12 of 600 frames with tracing on, against 1 of 300
+  in an untraced run of the same settings.
+
+`0749` should halve the I2C6 transfers. The rate limit (V12b) bounds the
+number of changes. A thinner CCI table remains the lever if the CCI still
+doubles the work after both.
 
 ## Conclusion
 

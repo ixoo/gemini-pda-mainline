@@ -3,10 +3,11 @@
 # Cost of the schedutil frequency changes on the A53 DVFS station (V12).
 # Input: ftrace text with sched_switch (filtered to the sugov threads),
 # clk_set_rate and regulator_set_voltage. A sugov kthread sleeps in S only
-# while it has no work; it waits in D for I2C, locks and ramps. So each run
-# from one S sleep to the next is one change (with the CCI it drives).
-# Per thread: changes, wall and CPU time per change, PLL and rail sets per
-# change, and the thread's CPU time as a share of one CPU over the trace.
+# while it has no work; it waits in D for I2C, locks and ramps. Each run
+# from one S sleep to the next is reported as a "change": with work queued
+# it can hold several frequency changes, so divide by stats/total_trans
+# for per-change figures. Per thread: runs, wall and CPU time per run, PLL
+# and rail sets per run, and CPU time as a share of one CPU.
 # Use: awk -f v-switch-cost.awk trace
 
 function hist_pct(t, p,   n, i, c) {
