@@ -1,44 +1,95 @@
 #!/bin/sh
 # SPDX-License-Identifier: MIT
-# Keeps the battery's learned full charge across boots (owner, 2026-11-11). The fuel gauge
-# learns charge_full (0732) but forgets it at power-off; this restores it when the battery
-# appears and saves it when the driver changes it and at shutdown. After fitting a new
-# battery, remove /var/lib/gemini/battery-charge-full so the gauge learns the new cell.
+# Keeps what the fuel gauge learns about the battery across boots (owner, 2026-11-11): the
+# driver forgets it at power-off, so this restores it when the battery appears and saves it
+# when the driver changes it and at shutdown. After fitting a new battery, remove
+# /var/lib/gemini/battery-charge-full so the gauge learns the new cell.
+#
+# The adaptive gauge (0746) learns a full charge Q and a resistance R, in
+# device/learned_full_uah and device/learned_resistance_uohm, each with a read-only basis
+# (device/design_full_uah, device/design_resistance_uohm). The file then holds
+#   full <Q> <basis>
+#   resistance <R> <basis>
+# and a restore rescales each value to today's basis. Before 0746 the gauge learned only a
+# writable charge_full, saved as "<charge_full> <charge_full_design>" (0736), or as a single
+# number in 0732's scale, where charge_full_design was 4268000. On 0746 that file restores
+# as Q, rescaled to the table scale, and is rewritten in the new format at the next save.
 # usage: battery-capacity restore|save [SYSFS_DIR]
 # udev passes the battery's sysfs directory; the shutdown unit uses the default.
 dir=${2:-/sys/class/power_supply/battery}
+dev=$dir/device
 file=/var/lib/gemini/battery-charge-full
 num() { case "$1" in '' | *[!0-9]*) return 1 ;; esac; }
-case "$1" in
-restore)
-    [ -r "$file" ] || exit 0
-    # "charge_full charge_full_design" as saved, rescaled to today's design value, since
-    # 0736 changed the scale to usable charge. A single number is 0732's format, whose
-    # design value was 4268000 µAh.
-    read -r value saved_design _ <"$file"
-    saved_design=${saved_design:-4268000}
-    num "$value" && num "$saved_design" && [ "$saved_design" -gt 0 ] || exit 0
-    # The driver refuses values outside 50-110 % of the design capacity (ERANGE), and
-    # answers ENODATA for every property, the design included, for a moment after the
-    # battery registers, so try three times.
+
+# Write value x basis-now / basis-saved to an attribute. The driver answers ENODATA for every
+# property, the bases included, for a moment after the battery registers, so read the basis
+# and write three times, 1 s apart; out-of-range values fail with ERANGE and change nothing.
+put() { # ATTRIBUTE VALUE SAVED_BASIS BASIS_ATTRIBUTE
+    num "$2" && num "$3" && [ "$3" -gt 0 ] || return 0
     for _ in 1 2 3; do
-        design=$(cat "$dir/charge_full_design" 2>/dev/null)
-        if num "$design"; then
-            echo $((value * design / saved_design)) >"$dir/charge_full" 2>/dev/null && break
+        basis=$(cat "$4" 2>/dev/null)
+        if num "$basis"; then
+            echo $(($2 * basis / $3)) >"$1" 2>/dev/null && return 0
         fi
         sleep 1
     done
+}
+
+# Atomically replace the file with $1, unless it already says that.
+store() {
+    [ "$1" = "$(cat "$file" 2>/dev/null)" ] && return 0
+    mkdir -p "${file%/*}"
+    printf '%s\n' "$1" >"$file.new" && mv "$file.new" "$file"
+}
+
+case "$1" in
+restore)
+    [ -r "$file" ] || exit 0
+    read -r first second _ <"$file"
+    if [ -e "$dev/learned_full_uah" ]; then
+        case "$first" in
+        full | resistance)
+            while read -r name value basis; do
+                case "$name" in
+                full) put "$dev/learned_full_uah" "$value" "$basis" "$dev/design_full_uah" ;;
+                resistance) put "$dev/learned_resistance_uohm" "$value" "$basis" "$dev/design_resistance_uohm" ;;
+                esac
+            done <"$file"
+            ;;
+        *)
+            # A charge_full saved before 0746: Q = value x 4268000 / its saved design.
+            num "$first" && num "${second:-4268000}" && [ "${second:-4268000}" -gt 0 ] || exit 0
+            put "$dev/learned_full_uah" $((first * 4268000 / ${second:-4268000})) 4268000 "$dev/design_full_uah"
+            ;;
+        esac
+    else
+        # An image before 0746: restore charge_full, rescaled to today's design value.
+        case "$first" in full | resistance) exit 0 ;; esac
+        put "$dir/charge_full" "$first" "${second:-4268000}" "$dir/charge_full_design"
+    fi
     exit 0
     ;;
 save)
-    value=$(cat "$dir/charge_full" 2>/dev/null) || exit 0
-    design=$(cat "$dir/charge_full_design" 2>/dev/null) || exit 0
-    num "$value" && num "$design" || exit 0
-    [ "$value $design" = "$(cat "$file" 2>/dev/null)" ] && exit 0
-    # A fresh install keeps no file until the driver has learned something.
-    [ -e "$file" ] || [ "$value" != "$design" ] || exit 0
-    mkdir -p "${file%/*}"
-    printf '%s %s\n' "$value" "$design" >"$file.new" && mv "$file.new" "$file"
+    if [ -e "$dev/learned_full_uah" ]; then
+        q=$(cat "$dev/learned_full_uah" 2>/dev/null)
+        qb=$(cat "$dev/design_full_uah" 2>/dev/null)
+        r=$(cat "$dev/learned_resistance_uohm" 2>/dev/null)
+        rb=$(cat "$dev/design_resistance_uohm" 2>/dev/null)
+        num "$q" && num "$qb" && num "$r" && num "$rb" || exit 0
+        # A fresh install keeps no file until the driver has learned something.
+        [ -e "$file" ] || [ "$q" != "$qb" ] || [ "$r" != "$rb" ] || exit 0
+        store "full $q $qb
+resistance $r $rb"
+    else
+        # An image before 0746 leaves a file saved by a later one alone.
+        read -r first _ <"$file" 2>/dev/null
+        case "$first" in full | resistance) exit 0 ;; esac
+        value=$(cat "$dir/charge_full" 2>/dev/null) || exit 0
+        design=$(cat "$dir/charge_full_design" 2>/dev/null) || exit 0
+        num "$value" && num "$design" || exit 0
+        [ -e "$file" ] || [ "$value" != "$design" ] || exit 0
+        store "$value $design"
+    fi
     exit 0
     ;;
 esac

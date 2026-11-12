@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and display-start
 # and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=50
+pkgver=51
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')

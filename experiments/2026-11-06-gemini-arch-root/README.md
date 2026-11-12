@@ -2191,6 +2191,34 @@ reaches the cut-off. With that, `gemini-base` 50 replaces 48–49's battery-spec
 - Noctalia's warning stays at 20 %.
 
 
+### Keeping the adaptive gauge's capacity and resistance (`gemini-base` 51, 2026-11-11)
+
+The adaptive gauge (0745–0746, `1f532f3b`) learns a full charge Q and a resistance R, and
+makes `charge_full` read-only and load-dependent. They are under the battery's platform
+device: `learned_full_uah` and `learned_resistance_uohm` (read-write; Q is held within 50–110 %
+of its basis, R within 50000–1500000 µΩ, ERANGE otherwise), with read-only bases
+`design_full_uah` (4268000) and `design_resistance_uohm` (165000). A change of either raises a
+change uevent, as before.
+
+`battery-capacity` keeps the same rules, file and triggers, and chooses by what the driver
+offers:
+
+- With 0746, the file holds `full <Q> <basis>` and `resistance <R> <basis>`. Each restores as
+  value × today's basis ÷ saved basis, the basis read inside the three tries. A file saved
+  before 0746 (`<charge_full> <charge_full_design>`, or 0732's single number) restores as
+  Q = value × 4268000 ÷ its saved design, and the save that follows rewrites it in the new
+  format. Nothing is saved until Q or R differs from its basis, or a file exists.
+- Without 0746, `charge_full` is restored and saved as in `gemini-base` 47. A file already in
+  the new format is left alone, so booting an older station image doesn't lose R.
+
+Checked against fake sysfs directories (11 cases): migrating "3969240 3969240" gives
+Q = 4268000, "3800000 3969240" 4086021 (3800000 × 4268000 ÷ 3969240 = 4086021.5), and 0732's
+4268000 gives 4268000; the save after a migration writes both lines; a fresh install writes
+nothing; R learned alone is saved; changed bases rescale both values; on an older image a
+new-format file neither restores into `charge_full` nor gets overwritten; an old file still
+restores there; a non-numeric file changes nothing. ShellCheck passes. Not on a device: it
+needs a station image with 0746.
+
 ## Analysis
 
 Not started.
