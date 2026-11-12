@@ -1,5 +1,7 @@
 # SPDX-License-Identifier: MIT
 # The battery voltage backstop (battery-guard).
+# Pulled in at boot by the package's multi-user.target.wants symlink, so it has no [Install]
+# section and systemctl shows it as static; pacman does not start it on install.
 [Unit]
 Description=Power off before the battery browns out
 ConditionPathExists=/sys/class/power_supply/battery/voltage_now
@@ -7,6 +9,3 @@ ConditionPathExists=/sys/class/power_supply/battery/voltage_now
 [Service]
 ExecStart=/usr/lib/gemini/battery-guard
 Restart=on-failure
-
-[Install]
-WantedBy=multi-user.target

@@ -11,6 +11,3 @@ Type=oneshot
 RemainAfterExit=yes
 ExecStart=/usr/lib/gemini/battery-capacity save
 ExecStop=/usr/lib/gemini/battery-capacity save
-
-[Install]
-WantedBy=multi-user.target

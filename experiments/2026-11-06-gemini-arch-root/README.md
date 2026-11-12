@@ -2254,6 +2254,22 @@ practically never sits exactly on its basis, and resetting is deleting the file.
 fake-sysfs cases: a save before the restore leaves a new-format file unchanged, and a restore
 followed by a save leaves it unchanged too.
 
+### Clean poweroff as UPower's critical action (`gemini-base` 54, 2026-11-11)
+
+gemini-base 53 on card-32 (station-work-110, boot `0ce7590c`, custodian): UPower's
+`GetCriticalAction` answered "Sleep". With no drop-in, `Auto` picks suspend when the system
+can suspend, and suspend isn't reliable on the Gemini yet, so at the critical level it would
+suspend and keep draining, against the owner's choice of a clean poweroff. `gemini-base` 54
+ships `/etc/UPower/UPower.conf.d/50-gemini.conf` (a `backup=` file) with only
+`CriticalPowerAction=PowerOff`; UPower's percentages stay its own.
+
+The guard also read "disabled" after `pacman -U` and wasn't running. The package has shipped
+its `multi-user.target.wants` symlink since 48, so it starts at every boot; pacman just never
+starts a newly installed unit, and `systemctl` called it disabled because the unit had an
+`[Install]` section with no symlink in `/etc`. The guard's and the capacity unit's
+`[Install]` sections are gone, so both show as static. After an install, start them once by
+hand or reboot.
+
 ## Analysis
 
 Not started.
