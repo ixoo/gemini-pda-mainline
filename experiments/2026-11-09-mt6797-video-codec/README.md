@@ -1121,7 +1121,7 @@ skip/reference/loop-filter features, compound-only mode, reference scaling
 (rejected), profiles 1 to 3, real-world streams, larger sizes, sustained
 playback and power.
 
-## Stage 4: VA-API for mpv and qutebrowser (V18: works in mpv and qutebrowser)
+## Stage 4: VA-API for mpv and qutebrowser (V18 and V20: works; zero-copy with patched Mesa)
 
 One VA-API driver serves both stock Arch Linux ARM `mpv --hwdec=vaapi` and
 QtWebEngine's Chromium decoder. The [package directory](libva-v4l2-request/README.md)
@@ -1363,6 +1363,35 @@ Evidence (private): `artifacts/card-32/v19-shots/` and `v19-*`.
   about half the frames drop on the GPU-rendered fullscreen path. Software
   decoding drops 70 %. The cause is in display or composition and needs the
   display and GPU work.
+
+### V20 result: zero-copy with patched Mesa
+
+The GPU session found the cause in Mesa. On Midgard and Bifrost,
+`emit_image_bufs()` bounds images by `height0`, while the detile's source
+views hold one row per tile.
+[Its Mesa patch](../2026-11-02-mali-t880-first-job/mesa/0001-panfrost-detile-all-MTK-tile-rows-on-Midgard-and-Bifrost.patch) exposes all tile rows. The device custodian ran
+V20 with that patched Mesa 26.2.6 as an opt-in overlay (`173ac10e…`), the
+station as in V19, and `LIBVA_V4L2_REQUEST_MM21_EXPORT=1`. Evidence
+(private): `artifacts/card-32/v20-shots/`.
+
+- **Pixel-identical:** zero-copy screenshots of H.264, HEVC and VP9 match the
+  CPU-detile path exactly (SSIM 1.0, PSNR infinite, in every 120-row band),
+  windowed and fullscreen, at t = 3 s and t = 5 s.
+- **Matrix**, 10 s at 1080p fullscreen, 300 decoder interrupts each:
+
+  | Path | Dropped of 300 | CPU idle |
+  | --- | --- | --- |
+  | CPU detile | 147 to 149 | 75 to 76 % |
+  | Zero-copy H.264 | 146 to 147 | 79 % |
+  | Zero-copy HEVC | 143 | 81 % |
+  | Zero-copy VP9 | 140 | 81 % |
+
+- The GPU detile costs about 0.8 s of GPU time per 300 frames. No GPU faults.
+- The display ceiling, about half the frames dropped, is unchanged.
+
+Zero-copy saves CPU time and works for mpv with the patched Mesa. It stays
+opt-in until the card's Mesa carries the fix, and qutebrowser stays on the
+CPU detile, since Chromium keeps one image per surface.
 
 ## Follow-up
 

@@ -63,8 +63,11 @@ yet. H.264 and HEVC need a kernel with mt6797-vdec patch 0744; see
     image per surface (Chromium, so qutebrowser) can show stale frames;
   - `vaDeriveImage` and `vaGetImage` (mpv `--hwdec=vaapi-copy`) cannot
     read tiled surfaces.
-- Use it with mpv `--hwdec=vaapi` on an OpenGL (EGL) output, for example
-  `--gpu-api=opengl`.
+- Use it with mpv `--hwdec=vaapi` on an OpenGL (EGL) output.
+- It needs a Mesa with the Panfrost fix that detiles all MTK tile rows
+  ([patch](../../2026-11-02-mali-t880-first-job/mesa/0001-panfrost-detile-all-MTK-tile-rows-on-Midgard-and-Bifrost.patch)). With stock Mesa 26.2.6 only a
+  band at the top of each frame is detiled (V19). With the fix, frames are
+  pixel-identical to the CPU detile (V20).
 
 ## Permission for the dma-buf heap
 
