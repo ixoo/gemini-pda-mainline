@@ -690,6 +690,23 @@ device tree as `contribution`, and the station init writes the gains
 60/60/10/3000 after it sets `power_allocator`. Both reach the device with the
 next non-V11 image.
 
+The same message recurs on every P2f blank, when CPU1-7 go offline and come
+back. A last-CPU offline sends no frequency notification, so the CCI could have
+kept policy4's point while blanked. On station-work-112 (boot `8990918b`,
+`rate_limit_us` 804), the custodian read `cci/trans_stat` and policy0's
+`time_in_state` right after offlining CPU7-1 and again after a bare 60 s sleep,
+with the display off and the device unplugged. The CCI followed policy0 point for
+point:
+
+| CCI | CCI time | policy0 | policy0 time |
+| --- | --- | --- | --- |
+| 234 MHz | 56,188 ms | 221 MHz | 56,170 ms |
+| 988 MHz | 1,536 ms | 1547 MHz | 1,520 ms |
+| Transitions | 217 | Transitions | 232 |
+
+So the message is log noise and the passive governor needs no patch. I2C6 ran at
+about 52 interrupts/s in that quiet window.
+
 ### D3 item 3: the deferred CCI probe
 
 The probe raises its request to the top CCI point before adding the devfreq
