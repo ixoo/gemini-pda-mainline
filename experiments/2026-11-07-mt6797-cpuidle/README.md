@@ -1658,6 +1658,198 @@ program file is the owner's, staged as for the radio firmware), and the
 Arch root session switches the card to `deep` with the module and
 `pcm_suspend.bin` installed there.
 
+## Deep idle with the screen off: the SODI route (plan, 2026-11-13)
+
+The owner chose to pursue the vendor's system idle states instead of more
+hotplug automation ("Pursue SODI instead", relayed by the custodian). The
+target is the screen-off state while the station stays awake: music playing,
+a download running, the Wi-Fi link kept. This section plans it from what is
+already known (the [programs page](../../docs/hardware/mt6797-spm-programs.md),
+the [SPM sleep page](../../docs/hardware/mt6797-spm-sleep.md), this record's
+S0-S1, W3b and items 1-5). Nothing is built yet.
+
+### Which state
+
+The vendor has three system idle states, all entered from the last online
+CPU's idle path, each a different SPM program (§4-5 of the programs page):
+
+| State | Program | Display | What it gates (observed in the program) | Vendor entry conditions |
+| --- | --- | --- | --- | --- |
+| Deep idle | `pcm_deepidle.bin` | domain **off** | DRAM self-refresh, DRAM PHY off, MAINPLL off, the CPU (or not, flag 0); VCORE to 0.775 V through the wrapper slots; 26 MHz and infra stay on | one CPU online (CPU0 or CPU4); ISP, VDEC, VENC, MFG, MJC and the display domain off; the listed infra gates off; MSDC clocks off; next timer at least 2 ms away |
+| SODI | `pcm_sodi.bin` | may stay on | DRAM clocks gated or the PHY down when no master needs DRAM (APSRC); 26 MHz, infra and VRF18 stay up | as deep idle, but the display domain may stay on and only the listed display clocks must be off |
+| SODI3 | `pcm_sodi.bin`, flag 14 | may stay on | as SODI, two APSRC steps changed (not traced) | as SODI, plus UNIVPLL and MSDCPLL off, the audio bus and 26 MHz gates off, the display PWM on the low-power oscillator, uptime over 30 s |
+
+**For a dark screen the vendor's state is deep idle, not SODI.** SODI is
+its screen-*on* idle state, used when the display domain must stay up. Deep
+idle saves more because MAINPLL and the PHY go down too. The plan therefore
+aims at deep idle and keeps SODI as the fallback while the display domain
+cannot be powered down on a blank. Both use the same loader, entry path and
+wake handling, so the work is shared. SODI3 is out: it needs MSDCPLL off,
+and the eMMC runs from it.
+
+**What stays possible inside it.** The vendor's deep-idle wake mask adds
+APXGPT and the audio interrupt to suspend's sources, and its PMIC table keeps
+VA18 and VUSB33 out of low-power mode "for audio MP3". So music playback is a
+designed case: the audio DMA interrupt ends each idle period, and the AFE's
+APLL and 26 MHz stay up. CONNSYS keeps its 26 MHz, infra and DRAM requests
+honoured through the SPM masks (`conn_mask_b` 1 in the vendor's deep-idle
+`pwr_ctrl`) and wakes the program through CONN2AP (wake bit 5), so a joined,
+idle Wi-Fi link is designed to survive it; each beacon or packet ends one
+idle period. A download keeps DRAM, MSDC and Wi-Fi busy, so the state simply
+is not entered while data moves.
+
+**Exit latency.** The vendor accepts deep idle and SODI only when the next
+timer is at least 2 ms away, and its DT gives the cluster power-down 800 us
+entry, 1000 us exit and 2000 us minimum residency. The exit includes DRAM
+self-refresh exit and the MAINPLL relock. So about 1 ms exit is the working
+estimate, to be measured in stage D3.
+
+### How it enters and leaves the one-CPU state
+
+Deep idle needs exactly one CPU online. The station already has that
+whenever the screen is dark: `backlight-policy` takes CPU1-7 down on a blank
+or lid close, and since H1 it takes CPU8-9 down too when the A72 module has
+them online. This route builds on that existing dark-screen hotplug; it is
+not the cluster-hotplug automation the owner declined. When the screen
+lights, the CPUs come back and the state is no longer entered, with no extra
+code. The SPM itself does not hotplug.
+
+The **A72 retest** matters only in one way: if the A72s end up online by
+default, the dark policy must keep taking them down first, which H1 already
+does. The programs never touch the A72 buck while flag 9 is set (as in S1),
+and they leave the A72s' `CPU_EXT_BUCK_ISO` alone while flag 0 is set.
+
+### The mainline mechanism
+
+A `=m` module (`mt6797-spm-idle`, or a second mode of `mt6797-spm-sleep`
+sharing the loader) registers a **cpuidle driver for CPU0 only**, with two
+states: WFI, and "deep idle". `cpuidle_register()` is exported, so the
+driver can live in a module; the kernel needs `CONFIG_CPU_IDLE` and a
+governor (`menu` or `teo`), both built in. The deep-idle state's `enter`:
+
+1. Checks its conditions each time and falls back to WFI with a counted
+   reason if one fails (as the vendor's block counters do): one CPU online;
+   the infra gate status words (`0x10001090`, `0x10001094`, `0x100010b0`)
+   against the vendor masks; MSDC idle; the display domain (deep idle) or
+   display clocks (SODI); next timer at least 2 ms away.
+2. Hands the tick to the SPM: the PCM timer is set to the next timer event
+   less the exit latency, and the local timer is masked for the wait. The
+   vendor uses APXGPT GPT4 for this because it powers the CPU down; with the
+   CPU kept powered (flag 0, as S1), the PCM timer avoids a new timer
+   driver.
+3. Masks the GIC as 0688 does and **clones the enabled edge SPIs into
+   SYS_CIRQ** (`0x10204000`), so that any device interrupt, not just the
+   suspend wake sources, ends the state through the SYS_CIRQ wake (bit 22).
+   This is the lesson of W3: in idle, every interrupt must wake the program,
+   not CPU0 behind its back. Upstream `irq-mtk-cirq` has the same register
+   layout but no MT6797 entry; the module can program the block itself while
+   it is in the state.
+4. Loads the PMIC wrapper's deep-idle phase, sets the deep-idle `pwr_ctrl`
+   and wake mask, kicks the program, executes WFI, and on the PCM return
+   reads the wake reason, restores the GIC and CIRQ, replays CIRQ, and
+   reprograms the local timer with what is left.
+
+Keeping the program in the SPM's instruction memory between entries,
+instead of fetching it each time, is a later optimisation; the first stages
+reload it each time, as S1 does.
+
+### What must exist first, in order
+
+1. **K1 passes** (`mem` as the station's suspend). Same loader, same
+   program handling, same GIC mask; deep idle reuses all of it.
+2. **The idle conditions can be met.** Today they cannot: `clk_ignore_unused`
+   keeps the infra gates the vendor requires off (SPI0-5, UART1-3, PWM,
+   I2C, SSUSB, ...) running, R2 found PLLs with no user, and the display
+   domain was not seen to power down on a blank. That is P3 in the
+   [power-management record](../2026-11-06-gemini-power-management/README.md#plan)
+   plus the display session's blank, owned elsewhere and built in or DT, so
+   they go into one image. **This is the long pole.** It also saves power on
+   its own, before any SPM state.
+3. **The cpuidle core** (`CONFIG_CPU_IDLE`, a governor) in the image, in the
+   same batch as 2. With no driver registered it changes nothing.
+4. Then the module stages below.
+
+### Stages
+
+| Stage | What | Writes | Image |
+| --- | --- | --- | --- |
+| D0 | Census in the dark state (CPU0 alone, blanked), three cases: idle; Wi-Fi joined and idle; music playing. Reads only | None | Running |
+| D1 | A `=m` module that only evaluates the entry conditions at each CPU0 idle and counts how often each one blocks, through debugfs (no SPM write) | None | Running, plus the module |
+| D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
+| D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running |
+| D4 | D3 with a device interrupt as the wake: a key, then an audio period, then a Wi-Fi packet, each through SYS_CIRQ | D3 plus CIRQ | Running |
+| D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | Running |
+| D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
+
+**D0 reads** (dark, CPU0 alone, 60 s per case): the three infra gate status
+words; `PWR_STATUS`/`_2ND` (`0x10006180`/`184`: the display domain is bit 3);
+the PLL enables in APMIXED for MSDCPLL, UNIVPLL, MAINPLL, APLL1/2 and the MIPI
+TX PLLs; `CLK_CFG_0`-`7`; the enabled clocks in `clk_summary`; every MSDC
+host's runtime PM status; GICD `ISENABLER1`-`n` (which SPIs CIRQ would have
+to clone); the SYS_CIRQ block's registers at `0x10204000` (read only, to see
+its reset state); `/proc/interrupts` deltas for CPU0 (how often idle would
+be broken, by whom); and the governor's view of idle lengths from
+`/sys/devices/system/cpu/cpu0/cpuidle` once the core is built (not today).
+
+- *Hypothesis:* the blanked station fails the vendor's conditions on the
+  infra gates and the display domain, and passes on one CPU, MSDC and the
+  multimedia domains.
+- *Unique observation:* the exact list of blocking gates and domains in each
+  of the three cases.
+- *Decision:* the list becomes P3's work list; if Wi-Fi or audio themselves
+  hold a required gate, deep idle with them active is out and only plain
+  dark idle remains for those cases.
+
+**D3 writes** (for approval when D3 is prepared, register level now, values
+pinned from S0-style reads first, as for S1): the S1 list with the deep-idle
+program (`pcm_deepidle.bin`, hash-pinned) in place of the suspend one; the
+deep-idle phase in wrapper slots 7 and 8 (`TOP_CON` bit 3, `SRCLKEN_IN2`)
+instead of suspend's; the vendor deep-idle `pwr_ctrl` in `SPM_AP_STANDBY_CON`,
+`SPM_SRC_REQ`, `SPM_SRC_MASK` and `SPM_SRC2_MASK` (CONN and modem requests
+honoured, DVFS force-down); its wake mask (the vendor's suspend sources,
+which already include SYS_CIRQ, plus APXGPT and audio; S1 used only the
+timer and EINT); flags 0, 9 and 19 as in S1; G1-G4 as in 0688; and the
+CPU0 timer mask around the WFI. No PSCI or SiP call. **D4 adds** the
+SYS_CIRQ block: its sensitivity, polarity and mask words cloned from the GIC
+for the enabled edge SPIs, its enable at entry, and its flush and disable at
+exit.
+
+### What it should save
+
+| State | Today | Expected |
+| --- | --- | --- |
+| Awake, blanked, CPU0 alone | 77-80 mA | unchanged until P3 |
+| After P3 alone | unmeasured | some of the gap to `mem`: unused PLLs and gates off |
+| Deep idle when nothing is active | — | between 42 mA (`mem`, which also turns 26 MHz and infra off) and the post-P3 figure; inferred about 50-65 mA |
+| With music or a joined Wi-Fi link | — | weighted by residency: every audio period or Wi-Fi beacon ends one idle period, and each exit costs about 1 ms awake |
+| s2idle / `mem` (for reference) | 73 / 42 mA | unchanged |
+
+These are inferences from the program's behaviour and this record's
+measurements, not vendor figures; D5 measures them. If P3 alone closes most of
+the gap, deep idle may add little, and D1's counters will show whether the
+conditions are met often enough to matter.
+
+### Main risks
+
+- **DRAM in self-refresh while a bus master needs it.** The program brings
+  DRAM back on a master's request (APSRC) only for masters whose requests
+  the masks honour. A device the masks do not cover (audio DMA, MSDC, USB)
+  writing DRAM during the sleep would corrupt memory or hang the bus. The
+  vendor's conditions keep those blocks gated; D1 checks them every entry,
+  and D3/D4 end with a hash check.
+- **A missed wake.** W3 showed what happens when an interrupt reaches CPU0
+  but not the program. In idle every interrupt must reach the program,
+  which depends on SYS_CIRQ covering every enabled edge SPI and on level
+  SPIs reaching it as events. D4 tests the three that matter.
+- **A hang with no recovery but force-off**, as for every SPM stage.
+- **The dependency on P3 and the display blank**, owned by other sessions
+  and not yet started.
+- **Entry cost.** Reloading 2,000 words and re-initialising the PCM at
+  every entry may cost hundreds of microseconds; if D5 shows it matters, the
+  program stays resident between entries.
+- **Rights:** the same as Route A. The program is the owner's own vendor
+  file, loaded at runtime and never shipped.
+
 ## The SPM programs decoded (2026-11-08)
 
 The owner asked for the programs themselves to be understood before deciding
