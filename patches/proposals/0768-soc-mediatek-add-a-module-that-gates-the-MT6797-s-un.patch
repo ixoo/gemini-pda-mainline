@@ -1,0 +1,260 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 13:16:59 -0500
+Subject: [PATCH] soc: mediatek: add a module that gates the MT6797's unused
+ infra clocks
+
+The station boots with clk_ignore_unused, which the display, Wi-Fi and
+the GPU still need, so infra gates the loader left on stay on with no
+driver behind them. The SPM's deep idle and SODI require them off: the
+D0 census found ICUSB, the PWMs, UART1-3, SPI0-5, IR TX, AES_TOP1, the
+two ANC_MD32 clocks, VAD_WRAP, CPUM and L2C_SRAM on in every sample.
+
+Gate exactly those, and only one that no enabled device tree node lists
+and that the clock framework shows unprepared, by writing the infra
+clock-gate set register. A disable through the clock framework would also
+gate an unused parent in TOPCKGEN, which is why the module does not go
+through it. Unloading writes the clear register for exactly the gates it
+set. A driver that later enables one of these clocks ungates it as usual.
+
+Local Gemini PDA experiment.
+---
+ drivers/soc/mediatek/Kconfig              |  13 ++
+ drivers/soc/mediatek/Makefile             |   1 +
+ drivers/soc/mediatek/mt6797-gate-unused.c | 196 ++++++++++++++++++++++
+ 3 files changed, 210 insertions(+)
+ create mode 100644 drivers/soc/mediatek/mt6797-gate-unused.c
+
+diff --git a/drivers/soc/mediatek/Kconfig b/drivers/soc/mediatek/Kconfig
+index 51a6e758d..1b47aba5d 100644
+--- a/drivers/soc/mediatek/Kconfig
++++ b/drivers/soc/mediatek/Kconfig
+@@ -1008,4 +1008,17 @@ config MT6797_SPM_SLEEP
+ 
+ 	  If unsure, say N.
+ 
++config MT6797_GATE_UNUSED
++	tristate "Gate the MT6797 infra clocks the Gemini PDA does not use"
++	depends on ARCH_MEDIATEK || COMPILE_TEST
++	depends on COMMON_CLK_MT6797 && MFD_SYSCON
++	help
++	  Local Gemini PDA experiment. Gates a fixed list of infra clocks
++	  (PWM, UART1-3, SPI, IR TX, AES, ANC, VAD, CPUM, L2C SRAM, ICUSB)
++	  that no enabled device tree node uses and that have no user in the
++	  clock framework, so the SPM idle states can be entered. Unloading
++	  ungates exactly what it gated.
++
++	  If unsure, say N.
++
+ endmenu
+diff --git a/drivers/soc/mediatek/Makefile b/drivers/soc/mediatek/Makefile
+index 68d094364..ae159cb3e 100644
+--- a/drivers/soc/mediatek/Makefile
++++ b/drivers/soc/mediatek/Makefile
+@@ -91,3 +91,4 @@ obj-$(CONFIG_MTK_SOCINFO) += mtk-socinfo.o
+ obj-$(CONFIG_MT6797_SPM_SLEEP) += mt6797-spm-sleep.o
+ obj-$(CONFIG_MTK_MT6797_VDEC_PROBE) += mt6797-vdec-probe.o
+ obj-$(CONFIG_MTK_MT6797_VDEC_REPLAY) += mt6797-vdec-replay.o
++obj-$(CONFIG_MT6797_GATE_UNUSED) += mt6797-gate-unused.o
+diff --git a/drivers/soc/mediatek/mt6797-gate-unused.c b/drivers/soc/mediatek/mt6797-gate-unused.c
+new file mode 100644
+index 000000000..0ba055a6a
+--- /dev/null
++++ b/drivers/soc/mediatek/mt6797-gate-unused.c
+@@ -0,0 +1,196 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Gate the MT6797 infra clocks that nothing on the Gemini PDA station uses.
++ *
++ * The station boots with clk_ignore_unused, which the display, Wi-Fi and the
++ * GPU still need, so infra gates the loader left on stay on although no
++ * driver claims them. The SPM's deep idle and SODI need them off. This
++ * module gates a fixed list of them through the infra clock-gate set
++ * registers, and only a gate that no device tree node uses and that the
++ * clock framework shows unprepared (no user). It writes the set register
++ * directly instead of enabling and disabling the clock, because a disable
++ * through the framework would also gate an unused parent in TOPCKGEN.
++ * Unloading writes the clear register for exactly the gates it set, so the
++ * hardware goes back to how it was found. A driver that later enables one
++ * of these clocks through the framework ungates it as usual.
++ *
++ * Local Gemini PDA experiment.
++ */
++
++#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
++#include <dt-bindings/clock/mt6797-clk.h>
++#include <linux/bits.h>
++#include <linux/clk.h>
++#include <linux/clk-provider.h>
++#include <linux/err.h>
++#include <linux/mfd/syscon.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/regmap.h>
++
++/* Infra clock-gate registers per group: set (gate), clear (ungate), status */
++static const struct {
++	u32 set, clr, sta;
++} groups[] = {
++	{ 0x080, 0x084, 0x090 },
++	{ 0x088, 0x08c, 0x094 },
++	{ 0x0a8, 0x0ac, 0x0b0 },
++};
++
++static const struct {
++	unsigned int id;
++	u8 group;
++	u8 bit;
++	const char *name;
++} gates[] = {
++	{ CLK_INFRA_ICUSB, 0, 8, "infra_icusb" },
++	{ CLK_INFRA_PWM_HCLK, 0, 15, "infra_pwm_hclk" },
++	{ CLK_INFRA_PWM1, 0, 16, "infra_pwm1" },
++	{ CLK_INFRA_PWM2, 0, 17, "infra_pwm2" },
++	{ CLK_INFRA_PWM3, 0, 18, "infra_pwm3" },
++	{ CLK_INFRA_PWM4, 0, 19, "infra_pwm4" },
++	{ CLK_INFRA_PWM, 0, 21, "infra_pwm" },
++	{ CLK_INFRA_UART1, 0, 23, "infra_uart1" },
++	{ CLK_INFRA_UART2, 0, 24, "infra_uart2" },
++	{ CLK_INFRA_UART3, 0, 25, "infra_uart3" },
++	{ CLK_INFRA_SPI, 1, 1, "infra_spi" },
++	{ CLK_INFRA_CPUM, 1, 11, "infra_cpum" },
++	{ CLK_INFRA_L2C_SRAM, 1, 22, "infra_l2c_sram" },
++	{ CLK_INFRA_SPI1, 2, 10, "infra_spi1" },
++	{ CLK_INFRA_ANC_MD32, 2, 12, "infra_anc_md32" },
++	{ CLK_INFRA_ANC_MD32_32K, 2, 13, "infra_anc_md32_32k" },
++	{ CLK_INFRA_AES_TOP1, 2, 17, "infra_aes_top1" },
++	{ CLK_INFRA_SPI2, 2, 19, "infra_spi2" },
++	{ CLK_INFRA_SPI3, 2, 20, "infra_spi3" },
++	{ CLK_INFRA_SPI4, 2, 21, "infra_spi4" },
++	{ CLK_INFRA_SPI5, 2, 22, "infra_spi5" },
++	{ CLK_INFRA_IRTX, 2, 23, "infra_irtx" },
++	{ CLK_INFRA_VAD_WRAP_SOC, 2, 29, "infra_vad_wrap_soc" },
++};
++
++static struct regmap *infra;
++static struct device_node *infra_np;
++static u32 gated[ARRAY_SIZE(groups)];
++
++/* Does an enabled device tree node list this infra clock? */
++static bool dt_user(unsigned int id, const char *name)
++{
++	struct of_phandle_args args;
++	struct device_node *np;
++	int i;
++
++	for_each_node_with_property(np, "clocks") {
++		if (!of_device_is_available(np))
++			continue;
++		for (i = 0; !of_parse_phandle_with_args(np, "clocks", "#clock-cells",
++							 i, &args); i++) {
++			bool hit = args.np == infra_np && args.args_count == 1 &&
++				   args.args[0] == id;
++
++			of_node_put(args.np);
++			if (hit) {
++				pr_info("%s: used by %pOF, left on\n", name, np);
++				of_node_put(np);
++				return true;
++			}
++		}
++	}
++	return false;
++}
++
++/* Is the clock prepared in the clock framework, that is, does it have a user? */
++static bool ccf_user(unsigned int id)
++{
++	struct of_phandle_args args = {
++		.np = infra_np, .args_count = 1, .args = { id },
++	};
++	struct clk *clk;
++	bool used;
++
++	clk = of_clk_get_from_provider(&args);
++	if (IS_ERR(clk))
++		return true;	/* unknown: leave it alone */
++	used = clk_hw_is_prepared(__clk_get_hw(clk));
++	clk_put(clk);
++	return used;
++}
++
++static int __init gate_unused_init(void)
++{
++	u32 before[ARRAY_SIZE(groups)], after[ARRAY_SIZE(groups)], sta;
++	unsigned int i, n = 0;
++	int ret;
++
++	if (!of_machine_is_compatible("mediatek,mt6797"))
++		return -ENODEV;
++	infra_np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-infracfg");
++	if (!infra_np)
++		return -ENODEV;
++	infra = syscon_node_to_regmap(infra_np);
++	if (IS_ERR(infra)) {
++		of_node_put(infra_np);
++		return PTR_ERR(infra);
++	}
++
++	for (i = 0; i < ARRAY_SIZE(groups); i++) {
++		ret = regmap_read(infra, groups[i].sta, &before[i]);
++		if (ret)
++			goto err;
++	}
++
++	for (i = 0; i < ARRAY_SIZE(gates); i++) {
++		u32 bit = BIT(gates[i].bit);
++		unsigned int g = gates[i].group;
++
++		if (before[g] & bit)
++			continue;	/* already gated */
++		if (dt_user(gates[i].id, gates[i].name))
++			continue;
++		if (ccf_user(gates[i].id)) {
++			pr_info("%s: has a user, left on\n", gates[i].name);
++			continue;
++		}
++		ret = regmap_write(infra, groups[g].set, bit);
++		if (ret)
++			goto err;
++		gated[g] |= bit;
++		n++;
++		pr_info("gated %s\n", gates[i].name);
++	}
++
++	for (i = 0; i < ARRAY_SIZE(groups); i++) {
++		ret = regmap_read(infra, groups[i].sta, &sta);
++		if (ret)
++			goto err;
++		after[i] = sta;
++		pr_info("infra 0x%03x: 0x%08x -> 0x%08x\n", groups[i].sta,
++			before[i], after[i]);
++	}
++	pr_info("%u unused infra gates gated\n", n);
++	return 0;
++err:
++	pr_err("register access failed: %d\n", ret);
++	for (i = 0; i < ARRAY_SIZE(groups); i++)
++		if (gated[i])
++			regmap_write(infra, groups[i].clr, gated[i]);
++	of_node_put(infra_np);
++	return ret;
++}
++
++static void __exit gate_unused_exit(void)
++{
++	unsigned int i;
++
++	/* Ungate exactly what this module gated, as the hardware was found */
++	for (i = 0; i < ARRAY_SIZE(groups); i++)
++		if (gated[i])
++			regmap_write(infra, groups[i].clr, gated[i]);
++	pr_info("unused infra gates restored\n");
++	of_node_put(infra_np);
++}
++
++module_init(gate_unused_init);
++module_exit(gate_unused_exit);
++MODULE_DESCRIPTION("Gate the MT6797 infra clocks the Gemini PDA station does not use");
++MODULE_LICENSE("GPL");

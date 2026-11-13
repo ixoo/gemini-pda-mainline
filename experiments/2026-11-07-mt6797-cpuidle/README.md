@@ -1935,6 +1935,76 @@ fewer wakeups is its own lever and worth chasing alongside P3, starting with
 which processes arm the timers (`/proc/timer_list` or a short trace of
 `hrtimer_start` on CPU0).
 
+### G1: gating the unused infra clocks (prepared 2026-11-13)
+
+The owner approved the module and its writes ("yes", relayed by the
+custodian).
+[`0768`](../../patches/proposals/0768-soc-mediatek-add-a-module-that-gates-the-MT6797-s-un.patch)
+adds `mt6797-gate-unused` (`=m`, `CONFIG_MT6797_GATE_UNUSED` in
+`gemini-a53-station-spm-sleep.fragment`). At load it gates D0's group 1, and
+only a gate that is still on, that no enabled device tree node lists in its
+`clocks`, and that the clock framework shows unprepared (no user):
+
+- **One change from the proposal:** it writes the infra set registers
+  directly instead of `clk_prepare_enable` then `clk_disable_unprepare`.
+  Through the framework, the disable would also gate an unused parent:
+  `spi_sel`, `anc_md32_sel` and possibly `mm_sel` (L2C_SRAM's parent, which
+  the display may hold without a framework user) are TOPCKGEN muxes, and
+  writing them is outside the approved list. The direct write touches only
+  the approved registers and leaves the framework's counts as they were. A
+  driver that later enables one of these clocks ungates it as usual.
+- **Unloading restores the hardware.** `rmmod` writes the clear register
+  for exactly the bits the module set.
+- **Nothing on the station uses these.** UART1-3 are `disabled` in
+  `mt6797.dtsi` and nothing enables them; the console is UART0 (`ttyS0` and
+  `tty1` on the command line). The SPI controllers come from
+  [0073](../../patches/v7.1.3/0073-arm64-dts-mediatek-mt6797-add-disabled-SPI-controllers.patch)
+  and are disabled; no MT6797 PWM, IR or AES node exists; ICUSB is only on
+  the disabled USB 1.1 node from 0070. The module checks all of this again
+  at run time and logs every gate it leaves on and why.
+- Compile-checked with `W=1` in a clean tree of `series-a53-station` plus
+  0768, applied as `scripts/kernel` does; checkpatch quiet apart from the
+  usual new-file `MAINTAINERS` note.
+
+**Writes for owner approval (approved 2026-11-13):**
+
+| # | Register | Write |
+| --- | --- | --- |
+| G1a | INFRACFG_AO `INFRA0` set `0x10001080` | `0x03af8100` at most: ICUSB 8, PWM_HCLK 15, PWM1-4 16-19, PWM 21, UART1-3 23-25 |
+| G1b | `INFRA1` set `0x10001088` | `0x00400802` at most: SPI 1, CPUM 11, L2C_SRAM 22 |
+| G1c | `INFRA2` set `0x100010a8` | `0x20fa3400` at most: SPI1 10, ANC_MD32 12, ANC_MD32_32K 13, AES_TOP1 17, SPI2-5 19-22, IRTX 23, VAD_WRAP 29 |
+| G1d | the clear registers `0x10001084`, `0x1000108c`, `0x100010ac` | at `rmmod` only, the same bits the module set |
+
+"At most": a bit is left out when its gate is already off or has a user.
+
+**Request G1** (the running card root, boot `e7e3b009…`, station-work-116):
+
+1. Baseline: the blanked current on the same software, as the custodian
+   plans, just before the load.
+2. `insmod mt6797-gate-unused.ko` (built from the commit recording this
+   stage; only this module differs from the running `850e177e` package).
+   Keep the `mt6797_gate_unused` lines from `dmesg`.
+3. D0 `wifi-idle` again with the same script.
+4. The blanked current again, same method and length as step 1.
+5. Watch for anything that stops working: display, keyboard and LEDs,
+   audio, Wi-Fi, microSD, the touchscreen, the fuel gauge.
+6. `rmmod mt6797-gate-unused`, read the three status words: they must be
+   back to step 2's "before" values.
+
+- *Hypothesis:* the listed gates have no user, so gating them breaks
+  nothing, removes them from D0's blocking list, and lowers the blanked
+  current a little.
+- *Unique observation:* D0's list with group 1 gone, and the current change
+  from gating only driverless infra clocks.
+- *Decision:*
+
+| Result | Next |
+| --- | --- |
+| All listed gates gated, nothing breaks, D0 lists only groups 2 and 3 | Keep the module; group 2 (I2C2/3, AP_DMA, SSUSB) next with their drivers' owners |
+| A gate is left on with a user named in the log | Find that user; if it is real, drop the gate from the list |
+| Something breaks after the load | `rmmod` at once (it restores); find which gate it was by bisecting the list |
+| The current does not move | Expected for gates alone: their value is unblocking deep idle, not the gating itself |
+
 ### What it should save
 
 | State | Today | Expected |

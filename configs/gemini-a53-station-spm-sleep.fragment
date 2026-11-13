@@ -2,3 +2,6 @@
 # S1). A module that does nothing until loaded by hand; it needs the owner's
 # own vendor program at mediatek/mt6797/pcm_suspend.bin.
 CONFIG_MT6797_SPM_SLEEP=m
+# Gates the infra clocks nothing on the station uses, when loaded by hand
+# (the same record, "D0 result"). Unloading ungates exactly what it gated.
+CONFIG_MT6797_GATE_UNUSED=m
