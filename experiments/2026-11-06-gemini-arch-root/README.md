@@ -2511,3 +2511,27 @@ Built in an Arch chroot over card-32's image: `gemini-base-61` (`c3c97725…`) a
 `umbriel-0.1.0.r20261108.94ab596-7` (`b7c33b96…`), no compiler warnings. ShellCheck passes on
 `first-login`, and its link step was tested in scratch home directories (created, a removed link
 stays removed, a user's file is kept). Not on the device.
+
+#### The internal UART powers down on the card (gemini-base 62, 2026-11-13)
+
+The cpuidle session found that the internal UART keeps the AP_DMA bus clock on, one of the last
+infra clocks blocking deep idle (SODI): `8250_mtk` never runtime-suspends `11002000.serial` while
+the port is held. The custodian's read-only checks on the card (boot `e7e3b009`) found two
+holders, matching the device's `runtime_usage=2`: the kernel console (`console=ttyS0`), and
+`serial-getty@ttyS0`, which systemd's getty generator starts for every serial console and whose
+agetty keeps `/dev/ttyS0` open. Nobody reads that UART on the card.
+
+The command line is the station kernel's built-in `CONFIG_CMDLINE`, shared by the station RAM
+root, which keeps its serial console. So the card releases the port at runtime instead of
+needing a new image:
+
+- `serial-getty@ttyS0.service` is masked (a `/dev/null` link in `/usr/lib/systemd/system`).
+- `gemini-serial-console.service`, started with `multi-user.target`, writes `N` to
+  `/sys/class/tty/ttyS0/console`, the serial core's switch that detaches the port as the kernel
+  console. Messages until then, boot and initramfs included, still reach the UART. It writes
+  `Y` again at shutdown, so the power-off messages do too. Writing `Y` by hand, then running
+  agetty, gives a session on the UART for debugging.
+
+Expected: `11002000.serial` at `runtime_usage` 0 and `suspended`. Built in an Arch chroot over
+card-32's image: `gemini-base-62` (`5d90886c…`); `systemd-analyze verify` passes on the unit.
+Not on the device.

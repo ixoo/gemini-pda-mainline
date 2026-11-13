@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: MIT
+# Lets the internal UART (ttyS0) power down on the card root (2026-11-13). The station kernel
+# names ttyS0 as a console, and while it is one, its 8250_mtk device stays runtime-active and
+# keeps the AP_DMA bus clock on, which blocks deep idle. Nobody reads that UART on the card,
+# so once the card is up this detaches ttyS0 as the kernel console; boot and initramfs
+# messages before then still reach it. It re-attaches at shutdown, so the power-off messages
+# reach it too. gemini-base also masks serial-getty@ttyS0, the other holder.
+# For a session on the UART: echo Y > /sys/class/tty/ttyS0/console, and run agetty by hand.
+# Pulled in by the package's multi-user.target.wants symlink, so it has no [Install] section.
+[Unit]
+Description=Detach the internal UART as the kernel console
+ConditionPathIsReadWrite=/sys/class/tty/ttyS0/console
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c 'echo N >/sys/class/tty/ttyS0/console'
+ExecStop=/bin/sh -c 'echo Y >/sys/class/tty/ttyS0/console'

@@ -3,7 +3,7 @@
 # Built by ../build-card.sh, which stages the station's audio-start and display-start
 # and the audio UCM profile here, so each file has one copy in the repository.
 pkgname=gemini-base
-pkgver=61
+pkgver=62
 pkgrel=1
 pkgdesc='Gemini PDA boot-time setup: modules, audio, display, Wi-Fi country, first boot, Umbriel and Noctalia session'
 arch=('any')
@@ -51,11 +51,11 @@ source=(gemini-modules.service modules-load.conf gemini-audio.service audio-star
         charge-limit charge-limit.rules battery-capacity battery-capacity.rules
         gemini-battery-capacity.service gemini-battery-calibrate idle-timeout
         battery-guard battery-guard.conf gemini-battery-guard.service upower.conf dma-heap.rules mpv.conf
-        gemini-no-av1.user.js noctalia-power.toml
+        gemini-no-av1.user.js noctalia-power.toml gemini-serial-console.service
         "gemini.xkb::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/symbols/planet_vndr/gemini"
         "xkeyboard-config-COPYING::https://raw.githubusercontent.com/gemian/xkeyboard-config/${_xkbrev}/COPYING"
         "ckbcomp-${_csver}::https://salsa.debian.org/installer-team/console-setup/-/raw/debian/${_csver}/Keyboard/ckbcomp")
-sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
+sha256sums=(SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP SKIP
             '56baafdde43da9e3d66474f231a9bfd9d8d9fda40cd4c4af939ae1251db426cb'
             '6ca90f4b67dced4062894d6d77f4cc39343df9e359fc12f5e5d3c89ef2a3ef6d'
@@ -135,6 +135,12 @@ package() {
     install -Dm644 gemini-battery-guard.service "$pkgdir/usr/lib/systemd/system/gemini-battery-guard.service"
     ln -s ../gemini-battery-guard.service \
         "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/gemini-battery-guard.service"
+    # The internal UART powers down: no getty on it (systemd's generator starts one for every
+    # serial console), and ttyS0 detached as the kernel console once the card is up.
+    ln -s /dev/null "$pkgdir/usr/lib/systemd/system/serial-getty@ttyS0.service"
+    install -Dm644 gemini-serial-console.service "$pkgdir/usr/lib/systemd/system/gemini-serial-console.service"
+    ln -s ../gemini-serial-console.service \
+        "$pkgdir/usr/lib/systemd/system/multi-user.target.wants/gemini-serial-console.service"
     # Gemian's layouts, and one complete keymap per layout as Gemian's planetgemini rules
     # composed it: pc + the layout + inet + the escape part. A complete keymap keeps the
     # two-group layouts (ru, gr, cz...) whole, which a layout(variant) selection does not.
