@@ -47,6 +47,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0726`](../../patches/proposals/0726-PM-devfreq-mtk-cci-restore-the-boot-voltage-instead-.patch) | Fixes `0682`: a request of 0 to INT_MAX is clamped to VPROC1's 770 mV floor, not dropped. With no CPU policy (station-work-102 and -103), that put the rail under the boot rates and hard-hung the SoC. A failed probe now restores the voltage found at probe, and `remove()` leaves the request alone. Module only |
 | [`0728`](../../patches/proposals/0728-arm64-dts-mediatek-gemini-station-give-the-A53-OPPs-.patch) | The A53 OPPs declare a 500 us clock latency instead of 100 us. A VPROC1 change alone averaged 336 us on the station, and schedutil's rate limit (1.5 times the latency) was 204 us. On station-work-105 at idle the clusters changed 6 times/s and the CCI 4 times/s, so this corrects the description; it is not a power fix. Device tree; next image |
 | [`0749`](../../patches/proposals/0749-regulator-da9213-legacy-answer-VPROC1-reads-from-the.patch) | VPROC1 reads come from the last write that read back correctly, not from I2C6. A rail change drops from six transfers to three, and a request that leaves the rail alone needs none. Each write still reads the register first and refuses with `changed behind the driver` if it differs. BUCKB still reads the chip. Module only |
+| [`0756`](../../patches/proposals/0756-regulator-da9213-legacy-answer-the-VPROC1-enable-che.patch) | After a verified VPROC1 write, the enable check answers 1 without I2C6. The driver has no enable operation, and BUCKA feeds the CCI and the clusters the kernel runs on. BUCKB still reads the chip. Module only |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -373,6 +374,7 @@ building anything on it.
 | V12b | as V12a | V12a again at `rate_limit_us` 2000 and 5000, then restore | Fewer changes/s and less sugov CPU, with no more dropped frames | items 6, 9 |
 | V12c | first image with `0749` | V12a again | Rail sets cost three I2C6 transfers each, and I2C6 interrupts per change fall | item 6 |
 | V12d | as V12c | 20 s of the V12c playback with `perf record -g -t $(pgrep -x sugov:0)`; `perf report --no-children --stdio`, plus the same report with `--children` | Where the remaining CPU time per change goes: PLL polling, regulator core and coupler, I2C path or OPP | item 6 |
+| V12e | first image with `0756` | V12c again | Fewer I2C6 interrupts per policy0 change than V12c's 5.1, and less `sugov:0` CPU than 9.67 %; no `changed behind the driver` | item 6 |
 
 After a pass: record support, fill the energy model, and decide with the owner
 whether the station's default image moves to this profile.
@@ -852,6 +854,32 @@ doubles the work after both.
   - V12d profiles the thread before any further change. Candidate levers are
     the clock-driver sleep, the regulator coupler's work per request, and a
     thinner CCI table (each change still moves the CCI).
+
+**V12d** (same boot as V12c, owner-approved):
+
+- **Run:** `perf record -g -F 2000` on the `sugov:0` thread during 22 s of the
+  V12c playback, giving 7,055 samples. mpv dropped 2 frames.
+- **Inclusive time:**
+
+  | Path | Share of `sugov:0` |
+  | --- | --- |
+  | The CCI following through the passive notifier (`devfreq_update_target`) | 49.0 % |
+  | `regulator_set_voltage`, mostly the MT6797 coupler's balancing | 40.0 % |
+  | `clk_set_rate`, nearly all under the DVFSP semaphore in `mt6797_mcu_change` | 37.0 % |
+  | `__i2c_transfer` | 23.2 % |
+  | `da9213_legacy_is_enabled`, an I2C6 read on every request | 12.8 % |
+  | The passive governor's target computation, about half of it OPP lookups | 9.3 % |
+
+  The paths overlap: the CCI's share includes its own clock and regulator work.
+- **Self time:** the IRQ re-enable after long IRQ-off sections leads at 14.9 %.
+  The PLL slew poll follows at 13.8 %, then the delay loops (`__const_udelay`
+  10.2 % inclusive).
+- **What it shows:**
+  - Half the thread's work is the CCI following the cluster.
+  - The enable check is the cheapest fix: `0756` drops its read.
+  - Next in size are the PLL busy-poll, about a third of the thread, and a
+    thinner CCI table, which halves the work whenever the CCI does not move.
+    Both change behaviour, so V12e first measures `0756` alone.
 
 ## Conclusion
 

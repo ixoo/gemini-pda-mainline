@@ -1,0 +1,48 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 20:17:29 -0500
+Subject: [PATCH] regulator: da9213-legacy: answer the VPROC1 enable check
+ without I2C
+
+On the MT6797 A53 station, a perf profile of the schedutil thread during
+1080p video spent 13 % of its time in da9213_legacy_is_enabled(): the
+regulator core checks the enable state on every voltage request, and each
+check is an I2C6 transfer under the DVFS lease.
+
+The driver has no enable operation, and BUCKA (VPROC1) feeds the CCI and
+the CPU clusters the kernel runs on, so it cannot be off once a write to
+it was verified. Answer 1 from then on, as the selector read already
+does. BUCKB is still read from the chip.
+---
+ drivers/regulator/da9213-legacy-regulator.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/drivers/regulator/da9213-legacy-regulator.c b/drivers/regulator/da9213-legacy-regulator.c
+index b5501872d..06f72be24 100644
+--- a/drivers/regulator/da9213-legacy-regulator.c
++++ b/drivers/regulator/da9213-legacy-regulator.c
+@@ -224,12 +224,21 @@ static int da9213_legacy_get_voltage_sel(struct regulator_dev *rdev)
+ 	return value & DA9213_LEGACY_VSEL_MASK;
+ }
+ 
++/*
++ * The driver has no enable operation, and BUCKA (VPROC1) feeds the CCI and the
++ * CPU clusters this kernel runs on, so it cannot be off once a write to it
++ * was verified. The regulator core asks on every voltage request; answer
++ * without an I2C transfer from then on. BUCKB is always read from the chip.
++ */
+ static int da9213_legacy_is_enabled(struct regulator_dev *rdev)
+ {
+ 	struct da9213_legacy *chip = rdev_get_drvdata(rdev);
+ 	unsigned int value;
+ 	int ret;
+ 
++	if (rdev_get_id(rdev) == 0 && chip->vproc1_known)
++		return 1;
++
+ 	ret = da9213_legacy_read_reg(chip,
+ 				     da9213_legacy_cont_reg[rdev_get_id(rdev)],
+ 				     &value);
+-- 
+2.43.0
+
