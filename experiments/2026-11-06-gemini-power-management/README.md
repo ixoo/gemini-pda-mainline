@@ -1668,6 +1668,41 @@ Run by the device custodian on `station-work-97`. Record: the
 - The charger wake therefore works in s2idle (W2) and not yet in `mem`.
   Nothing in 0685 or 0686 needs to change.
 
+#### First lid-close suspend on the card root (2026-11-12, unplanned)
+
+Reported by the device custodian: card-32 Arch root, `station-work-112`,
+boot `8990918b`. logind suspended on a lid close during an audio
+measurement, on battery. Raw logs private.
+
+- The s2idle suspend returned, and the root on microSD stayed rw.
+  `mmcblk1` resumed with no I/O error.
+- The radio sleep hook unloaded Wi-Fi and reloaded it, and Wi-Fi rejoined
+  about 4 s after the resume.
+- `aplay` was running across the suspend. PipeWire's restart then logged
+  16 `hw_ptr err`, which is the running-stream case the audio session
+  set aside (test A covered only an idle card). It is passed to the
+  audio line.
+- **Battery current after the resume: open.**
+  - The same measurement state read 150.6 mA before the suspend and
+    284.5 mA after it, steady over the following minutes and across every
+    audio state of the second run.
+  - The gauge was not stuck. `current_now` changes once per FGADC latch,
+    about every 5 s, so five equal samples in a row are normal.
+  - The cause is not known. Candidates are anything that the resume or
+    the hook left on: Wi-Fi joined where it was not before, the panel or
+    backlight lit by the resume, the audio path held up by the broken
+    stream, or a clock or domain left running.
+- Check (reads only), before a suspend and 60 s after its resume, in the
+  same state:
+  - battery current;
+  - `bl_power` and brightness, and `fb0` blank;
+  - Wi-Fi link state;
+  - `/sys/kernel/debug/clk/clk_summary` and `pm_genpd/pm_genpd_summary`;
+  - runtime PM status of the audio, display and USB devices;
+  - two `/proc/interrupts` reads 10 s apart.
+
+  The difference between the two sets names the cause.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
