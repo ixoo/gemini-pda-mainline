@@ -2005,6 +2005,75 @@ only a gate that is still on, that no enabled device tree node lists in its
 | Something breaks after the load | `rmmod` at once (it restores); find which gate it was by bisecting the list |
 | The current does not move | Expected for gates alone: their value is unblocking deep idle, not the gating itself |
 
+### G1 result (2026-11-13)
+
+Run by the custodian on the card root (boot `e7e3b009…`, station-work-116),
+module `5f274cd8…`. The load gated 22 gates and left `infra_icusb` on because
+the enabled `/usb@11200000` node lists it.
+
+| Word | Before | Gated |
+| --- | --- | --- |
+| `0x10001090` | `0x00001800` | `0x03af9800` |
+| `0x10001094` | `0x00004014` | `0x00404816` |
+| `0x100010b0` | `0x080000e7` | `0x28fa34e7` |
+
+- **Current**, screen blanked, CPU0 alone, 600 samples at 1 Hz each:
+  152.8 mA before, 149.9 mA gated, **2.9 mA less**.
+- **Nothing broke:** the owner checked the display, keyboard and LEDs, touch
+  and audio; the custodian checked Wi-Fi, a microSD read and the fuel gauge;
+  taint 0.
+- **D0 with the gates off:** deep idle is blocked by `0x094` bits 17 and 18
+  (DISP_PWM, AP_DMA), `0x090` bits 8, 13 and 14 (ICUSB, I2C2, I2C3) and
+  `0x0b0` bits 3, 4, 9, 18 and 24 (I2C2 IMM and ARB, SSUSB_REF, BUS and
+  SYS); SODI by the same less DISP_PWM.
+- **`rmmod` restored exactly the module's bits:** `0x090` and `0x0b0`
+  matched their values before the load. In `0x094` the module's bits 1, 11
+  and 22 were back, and bits 4 (MSDC1) and 14 (MFG_VCG) had been changed
+  meanwhile by their own drivers at runtime.
+
+**Decision, by the G1 table:** the first row. The module stays. The 2.9 mA
+is about what gates alone were expected to give; their value is that
+group 1 is gone from the blocking list.
+
+**What is left, and who can clear it** (traced in `mt6797.dtsi` and the
+drivers):
+
+- **I2C2, I2C3 and the I2C2 IMM and ARB clocks** belong to the controllers
+  `i2c8` (`0x11009000`) and `i2c9` (`0x1100d000`). Both are `disabled` and
+  nothing in the series enables them, so these gates are driverless too,
+  left on by the loader. They can join the module's list, which needs the
+  owner's approval of four more bits (below).
+- **AP_DMA** is the `bus` clock of every UART and I2C controller. The
+  `8250_mtk` driver keeps UART0's clocks on while the port is in use and
+  releases them in runtime suspend, but a console on the port keeps it in
+  use. Both command lines carry `console=ttyS0`. On the card root, where
+  nobody reads the internal UART, dropping it lets UART0 suspend and
+  AP_DMA gate between I2C transfers. That is an Arch root setting, the
+  Arch root session's to decide; the station keeps its serial console.
+- **ICUSB and SSUSB_REF, BUS and SYS** are held by the enabled USB node,
+  that is, by MTU3 with the cable out. The USB sessions own its runtime
+  power-down.
+- **DISP_PWM and the display domain** are the display session's. They block
+  deep idle only; **SODI does not need them**.
+
+So once the I2C bits are gated and the console is off the UART, SODI is
+blocked only by the USB controller's clocks. Deep idle also needs the
+display's two items.
+
+**G2 writes for owner approval:** the same module with four more gates, all
+under the same checks (still on, no enabled DT node, no clock framework
+user):
+
+| # | Register | Write |
+| --- | --- | --- |
+| G2a | `INFRA0` set `0x10001080` (and clear `0x10001084` at `rmmod`) | I2C2 bit 13, I2C3 bit 14 |
+| G2b | `INFRA2` set `0x100010a8` (and clear `0x100010ac` at `rmmod`) | I2C2_IMM bit 3, I2C2_ARB bit 4 |
+
+**The baseline is high.** 152.8 mA blanked with CPU0 alone on the card
+root, against 77-80 mA on the station's RAM root, has nothing to do with
+these gates. It is worth a separate look at what the card root's software
+(the desktop, the joined Wi-Fi link, the loggers) keeps busy.
+
 ### What it should save
 
 | State | Today | Expected |
