@@ -1800,6 +1800,40 @@ be broken, by whom); and the governor's view of idle lengths from
   hold a required gate, deep idle with them active is out and only plain
   dark idle remains for those cases.
 
+**D0 script** (owner-approved 2026-11-13, "please proceed"):
+[`tools/d0-census.py`](tools/d0-census.py), run as root with `python3 -I`.
+`run CASE` waits for the desktop's own idle blank (DPMS off, `bl_power` 4;
+it does not blank by itself), records whether anything hotplugged on the
+blank, takes CPU1-9 offline (descending), records 60 s at 1 Hz, and brings
+them back in ascending order, so CPU8 is first back to the A72 cluster. It
+writes `/tmp/d0-CASE.log`. `cirq` reads the SYS_CIRQ block once, separately
+and last.
+
+- Every register access is a single 32-bit load through `/dev/mem`
+  (`CONFIG_DEVMEM=y`, `CONFIG_STRICT_DEVMEM=y` without `IO_STRICT` in the
+  station fragment); the mapping is read-write only so that `ctypes` can make
+  that load, and nothing is stored.
+- Only always-on blocks: INFRACFG_AO gate status `0x10001090`, `0x10001094`,
+  `0x100010b0`; SPM `0x10006018`, `0x10006174`, `0x1000617c`, `0x10006180`-
+  `0x1000618c`; TOPCKGEN `CLK_CFG_0`-`7` (`0x10000040` + `0x10`·i); APMIXED
+  PLL `CON0` at `0x1000c220`, `230`, `240`, `250`, `260`, `270`, `290`,
+  `2a0`, `2b4`, `2e4`; GICD `TYPER` `0x19000004` and `ISENABLER1`-`n`
+  `0x19000104` + 4i; SYS_CIRQ (`cirq` only) `0x10204000`-`018`, `080`-`098`,
+  `140`-`158`, `200`-`218`, `300`.
+- MMSYS, AUDIO and MSDC registers are never read; their state comes from
+  `clk_summary`, `pm_genpd_summary` and runtime PM in sysfs.
+- The vendor's deep-idle and SODI gate masks (`mt_idle_mt6797.c`; INFRA0 is
+  `0x94`, INFRA1 `0x90`, INFRA2 `0xb0`) and its power-status bits (display
+  3, ISP 5, VDEC 7, MFG 12, MJC 20, VENC 21, audio 24) are applied to every
+  sample, so the log names the blocking bits and how often each blocks.
+
+**Cases.** Wi-Fi is the custodian's SSH path on the card root, so the "idle"
+case is Wi-Fi joined and idle, with the SSH session quiet (start the script
+detached). `music`: start playback in the owner's session first (`mpv` or
+`pw-play` with a file of at least 5 minutes, to the speaker), then run the
+case. A `download` case (a large `curl` to a file) is optional. Dry-run on a
+fake sysfs and register file on the host; not run on the device.
+
 **D3 writes** (for approval when D3 is prepared, register level now, values
 pinned from S0-style reads first, as for S1): the S1 list with the deep-idle
 program (`pcm_deepidle.bin`, hash-pinned) in place of the suspend one; the
