@@ -2074,6 +2074,46 @@ root, against 77-80 mA on the station's RAM root, has nothing to do with
 these gates. It is worth a separate look at what the card root's software
 (the desktop, the joined Wi-Fi link, the loggers) keeps busy.
 
+### AP_DMA and the detached serial console (0769, 2026-11-13)
+
+The Arch root session detached the `ttyS0` console on the card
+(`console=N` through the port's sysfs `console` attribute, the getty masked),
+but `11002000.serial` stayed runtime-active, so AP_DMA still could not gate.
+Checked against v7.1:
+
+- `uart_configure_port()` powers every port on and powers down only
+  non-console ports, so a console port stays at `UART_PM_STATE_ON`. On
+  `8250_mtk` that state holds a runtime PM reference
+  (`mtk8250_do_pm`), and runtime suspend is what releases the UART and AP_DMA
+  clocks.
+- `uart_console()` only compares the console's index with the line, so it
+  stays true after `unregister_console()`.
+- `port->console` is set once in `serial_core_add_one_port()`, and
+  `tty_port_shutdown()` returns early on it, so a close never powers the
+  port off either.
+- In addition, `uart_resume_port()` powers a console port back on after
+  every suspend, which would undo any detach at the first resume.
+
+[`0769`](../../patches/proposals/0769-serial-core-power-a-port-down-when-its-console-is-de.patch)
+(built in, `serial_core.c`, which no other patch in the series touches):
+on detach it clears `port->console` and powers the port off unless it is
+open; on re-attach it powers it on and sets the flag before registering;
+a hangup and a resume treat the port as a console only while its console is
+registered. Compiled with `W=1` on pristine 7.1.3, checkpatch quiet; it
+applies with `--unidiff-zero`. It is meant to be upstreamable. It goes into
+the next batched image. The station keeps `console=ttyS0` and its serial
+boot log; only the card's detach unit uses this.
+
+**Check on that image** (card root):
+
+1. After boot, with the detach unit run: `11002000.serial`
+   `power/runtime_status` reads `suspended` and `runtime_usage` reads 0.
+2. D0 `wifi-idle`: INFRA1 (`0x094`) bit 18, AP_DMA, gated in most samples
+   (I2C transfers still ungate it briefly).
+3. One `mem` suspend and resume: still `suspended` afterwards.
+4. `echo 1 > /sys/class/tty/ttyS0/console`: the console prints again and the
+   port is active; `echo 0` suspends it again.
+
 ### What it should save
 
 | State | Today | Expected |
