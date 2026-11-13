@@ -923,8 +923,8 @@ slowed further and approved the live writes):
     sets most of that time.
   - At 20 ms, the CPU share halves again, but full speed comes about 9 ms later,
     and in the worst trials more than one display refresh later.
-  - So 10 ms is the better setting. Changing the init's value needs the owner's
-    approval.
+  - So 10 ms is the better setting. The owner approved 10000 at boot, and the
+    station init writes it from the next image.
 
 ## Conclusion
 
