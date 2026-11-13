@@ -1003,6 +1003,42 @@ Expected rates:
 - **Expected saving:** about 0.8 ms of CPU and at most three rail moves per
   wakeup. It is probably only a few mA, so the measurement decides.
 
+**V13** (custodian, card-32, boot `e7e3b009`, `v13.py` `4abe0b5a`):
+
+- **Setup:** gemini-base 61, umbriel 7 and Wi-Fi `0767` reduced the desktop and
+  Wi-Fi wakeups first. The device was unplugged and blanked, with CPU0 alone
+  and no SSH during the windows.
+- **Results:**
+
+  | Window | policy0 changes/s | `sugov:0` switches/s | `arch_timer` IRQ/s | I2C6 IRQ/s | current mean (sd) |
+  | --- | --- | --- | --- | --- | --- |
+  | A traced, 301 s | 1.24 | 7.62 | 66.9 | 4.46 | 146.9 mA (2.6) |
+  | A untraced, 601 s | 1.28 | 7.94 | 67.1 | 4.67 | 144.8 mA (3.1) |
+  | B (481 MHz) traced | 0.78 | 4.82 | 66.6 | 3.01 | 144.1 mA (1.4) |
+  | B (481 MHz) untraced | 0.74 | 4.61 | 67.2 | 2.89 | 144.1 mA (2.2) |
+
+- **Where CPU0 ran:** uncapped, it spent 96 % of the time at 221 MHz. The
+  remaining 4 % was split between 338, 481 and 1547 MHz.
+- **No saving from the 481 MHz cap.** It removed about 40 % of the changes and
+  of the I2C6 traffic, yet the current changed by only 0.7 mA, inside the spread.
+  A2 did not run, so the result has no drift bracket.
+- **The run stopped at window C.** Its first write, 221000, read back 481000.
+  - Writing `scaling_max_freq` only updates a frequency QoS request. The
+    cpufreq core applies the new limit from a work item
+    (`cpufreq_notifier_max()` calls `schedule_work()`, then `handle_update()`
+    runs).
+  - An immediate read can still show the old limit. Window B's write read back
+    in time only by chance.
+  - The script now polls the readback for up to 2 s.
+- **Decision:**
+  - Uncapped CPU0 already sits at 221 MHz almost all the time, and the
+    481 MHz cap's 40 % fewer changes showed no current difference. A 221 MHz
+    cap would remove the remaining 1.3 changes and 4.7 I2C6 interrupts a
+    second. Its saving is then likely also inside the gauge's 2-3 mA spread.
+  - Window C would not change the decision, so it is skipped.
+  - Schedutil stays uncapped while blanked. The wakeups shrink at their
+    sources instead, and `0766` removes the energy model's 1 s work.
+
 ## Conclusion
 
 Pending.

@@ -113,7 +113,13 @@ def online():
 
 def set_cap(log, khz):
     wtext(POLICY0 + "/scaling_max_freq", khz)
-    got = rtext(POLICY0 + "/scaling_max_freq")
+    # The write only updates a QoS request; cpufreq applies it from a work
+    # item, so the attribute can show the old limit for a moment.
+    for _ in range(20):
+        got = rtext(POLICY0 + "/scaling_max_freq")
+        if got == khz:
+            break
+        time.sleep(0.1)
     log("scaling_max_freq <- %s, read back %s" % (khz, got))
     if got != khz:
         raise Stop("scaling_max_freq read back %s, not %s" % (got, khz))
