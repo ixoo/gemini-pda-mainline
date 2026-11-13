@@ -1,0 +1,57 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 12:58:01 -0500
+Subject: [PATCH] PM: EM: retry the capacity update only for CPUs with a perf
+ domain
+
+em_check_capacity_update() walks every possible CPU and reschedules
+itself a second later while any of them has no cpufreq policy. A CPU
+that is never brought online never gets a policy, so the work runs once
+a second forever. On an MT6797 board running only its two Cortex-A53
+clusters, the two Cortex-A72 CPUs stay offline and a 120 s trace of the
+idle, blanked system showed em_update_workfn 117 times.
+
+A CPU without a perf domain has nothing to update. Look up the perf
+domain first and only wait for the policy of a CPU that has one. A
+cluster whose perf domain is registered later runs the check again from
+em_dev_register_perf_domain().
+---
+ kernel/power/energy_model.c | 15 ++++++++++-----
+ 1 file changed, 10 insertions(+), 5 deletions(-)
+
+diff --git a/kernel/power/energy_model.c b/kernel/power/energy_model.c
+index e610cf8e9..d4a6ad54e 100644
+--- a/kernel/power/energy_model.c
++++ b/kernel/power/energy_model.c
+@@ -867,6 +867,16 @@ static void em_check_capacity_update(void)
+ 		if (cpumask_test_cpu(cpu, cpu_done_mask))
+ 			continue;
+ 
++		/*
++		 * A CPU without a perf domain has nothing to update. Waiting
++		 * for its policy would retry every second forever when it
++		 * never gets one, such as a CPU that is never brought online.
++		 */
++		dev = get_cpu_device(cpu);
++		pd = em_pd_get(dev);
++		if (!pd || em_is_artificial(pd))
++			continue;
++
+ 		policy = cpufreq_cpu_get(cpu);
+ 		if (!policy) {
+ 			failed_cpus++;
+@@ -874,11 +884,6 @@ static void em_check_capacity_update(void)
+ 		}
+ 		cpufreq_cpu_put(policy);
+ 
+-		dev = get_cpu_device(cpu);
+-		pd = em_pd_get(dev);
+-		if (!pd || em_is_artificial(pd))
+-			continue;
+-
+ 		cpumask_or(cpu_done_mask, cpu_done_mask,
+ 			   em_span_cpus(pd));
+ 
+-- 
+2.43.0
+

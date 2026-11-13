@@ -1338,3 +1338,4 @@ proposals/0757-Input-gemini-lid-hold-the-backlight-off-apart-from-t.patch
 proposals/0758-mmc-mtk-sd-power-the-card-off-for-real-through-a-car.patch
 proposals/0759-arm64-dts-mediatek-gemini-station-let-the-microSD-sl.patch
 proposals/0765-power-supply-mt6351-usb-type-detect-at-the-charger-d.patch
+proposals/0766-PM-EM-retry-the-capacity-update-only-for-CPUs-with-a.patch

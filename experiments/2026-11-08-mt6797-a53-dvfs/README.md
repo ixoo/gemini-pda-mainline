@@ -48,6 +48,7 @@ Patches, in series order (`patches/series` and `patches/series-a53-station`):
 | [`0728`](../../patches/proposals/0728-arm64-dts-mediatek-gemini-station-give-the-A53-OPPs-.patch) | The A53 OPPs declare a 500 us clock latency instead of 100 us. A VPROC1 change alone averaged 336 us on the station, and schedutil's rate limit (1.5 times the latency) was 204 us. On station-work-105 at idle the clusters changed 6 times/s and the CCI 4 times/s, so this corrects the description; it is not a power fix. Device tree; next image |
 | [`0749`](../../patches/proposals/0749-regulator-da9213-legacy-answer-VPROC1-reads-from-the.patch) | VPROC1 reads come from the last write that read back correctly, not from I2C6. A rail change drops from six transfers to three, and a request that leaves the rail alone needs none. Each write still reads the register first and refuses with `changed behind the driver` if it differs. BUCKB still reads the chip. Module only |
 | [`0756`](../../patches/proposals/0756-regulator-da9213-legacy-answer-the-VPROC1-enable-che.patch) | After a verified VPROC1 write, the enable check answers 1 without I2C6. The driver has no enable operation, and BUCKA feeds the CCI and the clusters the kernel runs on. BUCKB still reads the chip. Module only |
+| [`0766`](../../patches/proposals/0766-PM-EM-retry-the-capacity-update-only-for-CPUs-with-a.patch) | The energy model's capacity check skips CPUs without a perf domain instead of rescheduling itself every second while one has no cpufreq policy; on the A53 station the never-onlined A72 CPU8-9 kept it running forever. Built in |
 
 Profile `mt6797-a53-station-dvfs`: the `mt6797-a53-station-a72` fragments plus
 [`gemini-a53-station-dvfs.fragment`](../../configs/gemini-a53-station-dvfs.fragment).
@@ -297,6 +298,8 @@ now also for FHCTL channel 2 at probe: `CLK_CON` `0x1001af04` bit 2 ← 1,
    `/sys/devices/system/cpu/cpufreq/schedutil/rate_limit_us` (there is no
    per-policy copy with `cpufreq-dt`): 2000, then 5000, then back to the value
    read at the start (804 with `0728`).
+10. V13b and V13c write `policy0/scaling_max_freq` while the display is blanked:
+    481000 for V13b, 221000 for V13c, then 1547000, read back each time.
 
 No PMIC (MT6351), BUCKB, `0x5e`, VSRAM_B, A72 or secure call, and no write
 outside the lists above.
@@ -375,6 +378,10 @@ building anything on it.
 | V12c | first image with `0749` | V12a again | Rail sets cost three I2C6 transfers each, and I2C6 interrupts per change fall | item 6 |
 | V12d | as V12c | 20 s of the V12c playback with `perf record -g -t $(pgrep -x sugov:0)`; `perf report --no-children --stdio`, plus the same report with `--children` | Where the remaining CPU time per change goes: PLL polling, regulator core and coupler, I2C path or OPP | item 6 |
 | V12e | first image with `0756` | V12c again | Fewer I2C6 interrupts per policy0 change than V12c's 5.1, and less `sugov:0` CPU than 9.67 %; no `changed behind the driver` | item 6 |
+| V13a | station image, blanked, CPU0 alone | 10 min idle on battery: the wakeup census, plus `power:cpu_frequency` on cpu0, `regulator_set_voltage`, and `hrtimer_expire_entry`, which shows whether the sugov deadline timers fire; then the fuel gauge's mean `current_now` over a second 10 min with no trace | Baseline changes/s, OPPs visited, rail moves/s, current | item 6 |
+| V13b | as V13a | V13a with `scaling_max_freq` 481000 while blanked | Fewer changes and almost no rail moves; current against V13a | items 6, 10 |
+| V13c | as V13a | V13a with `scaling_max_freq` 221000 while blanked, then 60 s of blanked audio playback | No sugov wakeups and no DVFS I2C6; current against V13a; clean audio | items 6, 10 |
+| V13d | first image with `0766` | Census only | `em_update_workfn` 0 per 120 s | item 6 |
 
 After a pass: record support, fill the energy model, and decide with the owner
 whether the station's default image moves to this profile.
@@ -926,6 +933,66 @@ slowed further and approved the live writes):
   - So 10 ms is the better setting. The owner approved 10000 at boot, and the
     station init writes it from the next image. At the owner's request, the
     custodian also wrote 10000 live on boot `e02c9413` and read it back.
+
+### Idle wakeups while blanked (V13)
+
+The custodian's census on station-work-116 (boot `e7e3b009`,
+`rate_limit_us` 10000) covered 120 s blanked, with CPU0 alone and Wi-Fi joined
+and idle. Per second it found:
+
+- 15.6 `sugov:0` wakeups;
+- 16.7 starts of its deadline timer;
+- 9.2 I2C6 interrupts;
+- about one `em_update_workfn` run.
+
+From the code:
+
+- **Each sugov wakeup is a real frequency change.** Schedutil queues its
+  thread only when the resolved frequency differs from the last request
+  (`sugov_update_next_freq`), and the cpufreq core skips a target equal to
+  `policy->cur`.
+  - At 10 ms the limit allows 100 changes/s, so it does not bind at 15.6/s.
+  - The changes come from load: short bursts of utilization raise CPU0, and
+    the next update lowers it again.
+  - The 52/s of Wi-Fi join work is the largest source in the census.
+- **A request that leaves the rail alone costs no I2C.** The regulator core
+  returns early on an unchanged consumer request. With `0749` and `0756`, a
+  balance that leaves the rail alone reads nothing, and a rail move costs three
+  transfers: check, write and readback.
+  - So 9.2 interrupts/s is about three rail moves a second.
+  - At low frequencies the CCI sets VPROC1, not LL: CCI 234 MHz needs 860 mV,
+    above LL's 840 mV at 221 MHz and equal to LL's 860 mV at 338 MHz. The rail
+    moves only when the CCI point moves.
+  - The check and the readback are the driver's safety, so they stay.
+- **`em_update_workfn` never stops.** `em_check_capacity_update()` reschedules
+  itself a second later while any possible CPU lacks a cpufreq policy. The A72
+  CPU8-9 never come online, so it ran every second from boot, blanked or not.
+  `0766` skips CPUs without a perf domain.
+- **A longer rate limit while blanked would help little.** The limit only spaces
+  changes. At 15.6/s it rarely binds, and a longer one leaves each burst's
+  raised frequency in place longer.
+  - Capping `scaling_max_freq` while blanked removes changes at the source: at
+    221 MHz, schedutil resolves every request to the current frequency and never
+    wakes.
+  - It costs speed for blanked work such as audio decoding or downloads. V13
+    measures whether the saving shows on the fuel gauge.
+
+Expected rates:
+
+| Case | sugov wakeups/s | I2C6 IRQ/s | `em_update_workfn` per 120 s |
+| --- | --- | --- | --- |
+| Census | 15.6 | 9.2 | 117 |
+| Cap 481 MHz | below 15.6, by how often load needs more | about 0 to 3: CCI 234-416 MHz | 117 |
+| Cap 221 MHz | 0 | 0 from DVFS | 117 |
+| `0766` | unchanged | unchanged | 0 |
+
+- **Decision:** if V13c lowers the mean blanked current by more than the gauge's
+  spread between the two 10 min windows and the audio stays clean, I propose
+  writing the cap in the blank hook that already offlines CPU1-7, with the
+  unblank hook restoring it. Otherwise schedutil stays, and the wakeups shrink
+  only as their sources (Wi-Fi, shell) are fixed.
+- **Expected saving:** about 0.8 ms of CPU and at most three rail moves per
+  wakeup. It is probably only a few mA, so the measurement decides.
 
 ## Conclusion
 
