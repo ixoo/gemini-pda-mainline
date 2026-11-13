@@ -648,7 +648,12 @@ most; jobs over 200 ms, which skip a rate change; VGPU and the LDOs off at idle,
       about 0.10 below the top band with the same tool. No GPU fault or timeout, at most 37.1 C [O].
     - **Cost:** per 10 s of fullscreen 1080p H.264, the vertex-tiler (compute) time rose from 0.15 s to 0.97 s, about
       2.7 ms of GPU per frame. CPU idle rose from 75 % to 79 % [O].
-    - **Not solved:** about 145 of 300 frames still drop in every mode, CPU or GPU detile alike. Fragment time is about
-      6.6 to 6.8 s per 10 s, so the GPU spends most of the time on mpv's rendering and scaling; the display ceiling is
-      there, not in decoding [I, moderate]. Chromium keeps the CPU path: Mesa converts an import once, so a client
-      that keeps one image per decoder buffer would show stale frames.
+    - **Dropped frames: mpv's scalers.** About 145 of 300 frames dropped in every mode, CPU or GPU detile alike, with
+      fragment time about 6.6 to 6.8 s per 10 s. The custodian then measured mpv's renderer directly: its default
+      high-quality scalers saturate the T880, and `--profile=fast` dropped 2 of 300, with fragment time down from 13.4 s
+      to 5.4 s per 7 s. `gemini-base` now ships `profile=fast` as mpv's default, recorded in
+      [the Arch root record](../2026-11-06-gemini-arch-root/README.md#mpvs-fast-profile-by-default-gemini-base-58-2026-11-12) [O].
+    - Chromium keeps the CPU path: Mesa converts an import once, so a client that keeps one image per decoder buffer
+      would show stale frames.
+    - **Counters:** the Mesa overlay also carries `panquick`, Mesa's sampler for named T880 counters (needs
+      `unstable_ioctls`, which taints). Not run: the scaler question it was for is already answered.
