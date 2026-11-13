@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 # Build Mesa's Panfrost EGL/GLES/GL driver, patched, in a throwaway Arch Linux
 # ARM chroot, as an overlay under /opt/mesa-overlay for the station's Arch root.
-# Clients opt in per process; the installed Mesa stays untouched.
+# Clients opt in per process; the installed Mesa stays untouched. Also
+# carries panquick, Mesa's GPU counter sampler.
 # Run as root in the aarch64 dev VM:
 #   ALARM_TARBALL=ArchLinuxARM-aarch64-latest.tar.gz build-mesa-overlay.sh ROOT OUT PATCH...
 set -euo pipefail
@@ -57,10 +58,12 @@ meson setup b --prefix=/opt/mesa-overlay --buildtype=release \
 	-Dglvnd=enabled -Degl=enabled -Dgbm=enabled -Dgles1=disabled \
 	-Dgles2=enabled -Dopengl=true -Dglx=disabled -Dllvm=enabled \
 	-Dvideo-codecs= -Dgallium-va=disabled \
-	-Dgallium-rusticl=false -Dtools= -Dvalgrind=disabled \
+	-Dgallium-rusticl=false -Dtools=panfrost -Dvalgrind=disabled \
 	-Dlibunwind=disabled -Dlmsensors=disabled >/build/meson.log
 ninja -C b >/build/ninja.log
 DESTDIR=/build/dest ninja -C b install >/build/install.log
+# panquick (named GPU counters) is built but not installed by Mesa.
+install -Dm755 b/src/panfrost/perf/panquick /build/dest/opt/mesa-overlay/bin/panquick
 "
 tar -C "$root/build/dest" --owner=0 --group=0 -cJf "$out/mesa-overlay.tar.xz" opt
 sha256sum "$out/mesa-overlay.tar.xz"
