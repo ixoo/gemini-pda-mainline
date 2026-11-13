@@ -1724,6 +1724,25 @@ measurement, on battery. Raw logs private.
   its pre-suspend level within 60 s. A second run with the display lit
   before the close must come back lit.
 
+**Test BL: pass in both cases (2026-11-12).** Run by the device custodian
+with the owner's approval on card-32, boot `4b7955ba` (`station-work-114`).
+`gemini-lid` was swapped by `rmmod`/`insmod` to the 0755 build of the
+same tree. Each case was a lid-close s2idle through logind, unplugged.
+Raw logs private.
+- **Display blanked before the close:**
+  - After the open, `bl_power` still read 4 and DPMS read Off.
+  - The current 60 s after the resume was 166.3 mA, against 208.7 mA
+    before. There was no 134 mA rise. The lower reading likely includes
+    Wi-Fi still reloading.
+  - The owner: "the screen stayed dark".
+- **Display lit before the close:** it came back lit and stayed lit until
+  the desktop's own 2 min idle screen-off.
+- No `hw_ptr` or warning line. That makes three clean s2idle cycles on the
+  microSD root.
+- **Seen in passing:** after the radio hook's reload, the Wi-Fi interface
+  came back as `wlan2`, not `wlan0`. That belongs to the radio and card
+  lines: anything matched by interface name would miss it.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
