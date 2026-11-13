@@ -2099,6 +2099,36 @@ checkpatch quiet. The `.ko` comes from a Buildbox build of the commit that
 records this, as every loaded module does; a VM build is for compile checks
 only. G1's sequence repeats with it.
 
+### G2 result (2026-11-13)
+
+Run by the custodian on the same boot, `e7e3b009…`, with the module from
+the Buildbox build of `6a90f367` (`c83879e6…`, vermagic matching). The
+pre-checks found no platform device for `0x11009000`, `0x1100d000` or
+`0x11013000`, and a prepare count of 0 on all four clocks. The load gated 26
+gates, ICUSB left on as before:
+
+| Word | Before | Gated |
+| --- | --- | --- |
+| `0x10001090` | `0x00001800` | `0x03aff800` (G1 plus bits 13 and 14) |
+| `0x10001094` | `0x00004014` | `0x00404816` (as G1) |
+| `0x100010b0` | `0x080000e7` | `0x28fa34ff` (G1 plus bits 3 and 4) |
+
+- **Current**, blanked, CPU0 alone, 600 samples each, battery at 72 %:
+  156.3 mA before, 153.5 mA gated, 2.7 mA less, the same as G1's 2.9 mA.
+  The four I2C gates add nothing measurable; the baseline rose about
+  3.5 mA since G1 with the lower charge.
+- **D0 `wifi-idle`** (60 samples, none unblanked): deep idle is now blocked
+  by `0x094` bits 17 and 18 (DISP_PWM, AP_DMA), `0x090` bit 8 (ICUSB) and
+  `0x0b0` bits 9, 18 and 24 (SSUSB_REF, BUS, SYS); SODI by the same less
+  DISP_PWM. `0x090` bit 11 (I2C0) blocked in 1 of 60 samples: a transfer on
+  `i2c0` caught in flight, which its driver gates between transfers.
+- The `0x090` bits 13 and 14 that left the list *are* the module's: I2C2 and
+  I2C3 (the census's "INFRA1" is the vendor name for `0x090`).
+
+**What blocks SODI now:** AP_DMA, which 0769 should free on the card root,
+and the USB controller's ICUSB and SSUSB clocks. Deep idle also needs
+DISP_PWM and the display domain. The module's own list is done.
+
 ### AP_DMA and the detached serial console (0769, 2026-11-13)
 
 The Arch root session detached the `ttyS0` console on the card
