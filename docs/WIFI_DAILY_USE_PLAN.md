@@ -54,7 +54,9 @@ Status: plan, updated 2026-11-01.
   quiet spell can wait up to 100 ms longer. An interrupt-driven receive would remove the polling, but is not
   started. On card-32 (boot `e7e3b009`, custodian) it changed nothing, 54 a second: about 6 broadcast or
   multicast frames a second kept the link from counting as quiet. 0767 counts only frames under the pairwise
-  key and the station's own. Compiled only.
+  key and the station's own. On the same boot with 0767 swapped in, idle with the screen blanked and nothing
+  streaming over SSH: 10.6 join work runs a second over 120 s (was 54), timer interrupts 47.6 a second (was
+  about 113), with about 2.3 broadcast or multicast frames a second still arriving. SSH stayed usable. One run.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
