@@ -1,0 +1,9 @@
+# Tickless trial, stage T1 (experiments/2026-11-13-gemini-tickless): offload RCU
+# callbacks from every CPU and let them wait lazily, so RCU neither holds the
+# tick on nor wakes an idle CPU to run them. DEFAULT_ALL stands in for
+# rcu_nocbs=all, so the shared CONFIG_CMDLINE does not change. Not proven yet.
+CONFIG_RCU_EXPERT=y
+CONFIG_RCU_NOCB_CPU=y
+CONFIG_RCU_NOCB_CPU_DEFAULT_ALL=y
+CONFIG_RCU_LAZY=y
+# CONFIG_RCU_LAZY_DEFAULT_OFF is not set
