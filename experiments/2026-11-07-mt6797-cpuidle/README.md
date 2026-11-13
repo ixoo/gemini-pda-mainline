@@ -2074,6 +2074,31 @@ root, against 77-80 mA on the station's RAM root, has nothing to do with
 these gates. It is worth a separate look at what the card root's software
 (the desktop, the joined Wi-Fi link, the loggers) keeps busy.
 
+### G2: the disabled I2C controllers' gates (prepared 2026-11-13)
+
+The owner approved G2 ("go", relayed by the custodian).
+[`0770`](../../patches/proposals/0770-soc-mediatek-mt6797-gate-unused-gate-the-disabled-I2.patch)
+adds I2C2 and I2C3 (`0x10001080` bits 13 and 14) and I2C2_IMM and I2C2_ARB
+(`0x100010a8` bits 3 and 4) to `mt6797-gate-unused`, with the matching
+clears at `rmmod`, under the same three checks.
+
+**Nothing on the station uses them**, from the source: the clocks belong to
+`i2c8` (`0x11009000`: I2C2, I2C2_ARB), `i2c9` (`0x1100d000`: I2C3,
+I2C3_ARB) and `i2c2` (`0x11013000`: I2C2_IMM, I2C2_ARB), all three
+`disabled` in `mt6797.dtsi`, and no patch in the series enables them. A
+disabled node gets no platform device, so no driver can hold their clocks.
+On the device the module checks again (enabled DT node, clock framework
+user), and the custodian can confirm beforehand, read-only:
+`ls /sys/bus/platform/devices | grep -E '11009000|1100d000|11013000'`
+(expect nothing) and
+`/sys/kernel/debug/clk/infra_i2c2{,_imm,_arb}/clk_prepare_count` and
+`infra_i2c3` (expect 0).
+
+Compile-checked with `W=1` on `series-a53-station` through 0769 plus 0770;
+checkpatch quiet. The `.ko` comes from a Buildbox build of the commit that
+records this, as every loaded module does; a VM build is for compile checks
+only. G1's sequence repeats with it.
+
 ### AP_DMA and the detached serial console (0769, 2026-11-13)
 
 The Arch root session detached the `ttyS0` console on the card

@@ -930,3 +930,4 @@ proposals/0765-power-supply-mt6351-usb-type-detect-at-the-charger-d.patch
 proposals/0766-PM-EM-retry-the-capacity-update-only-for-CPUs-with-a.patch
 proposals/0768-soc-mediatek-add-a-module-that-gates-the-MT6797-s-un.patch
 proposals/0769-serial-core-power-a-port-down-when-its-console-is-de.patch
+proposals/0770-soc-mediatek-mt6797-gate-unused-gate-the-disabled-I2.patch

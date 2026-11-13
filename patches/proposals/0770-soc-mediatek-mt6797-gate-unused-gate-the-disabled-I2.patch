@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 16:35:21 -0500
+Subject: [PATCH] soc: mediatek: mt6797-gate-unused: gate the disabled I2C
+ controllers' clocks
+
+The I2C2 and I2C3 gates and the I2C2 IMM and ARB clocks belong to the
+controllers i2c8 (0x11009000), i2c9 (0x1100d000) and i2c2
+(0x11013000), which are disabled on the Gemini PDA. The loader leaves
+them on, and after the first list was gated they were among the last
+infra gates keeping the SPM's idle states out. Gate them too, under the
+same checks.
+---
+ drivers/soc/mediatek/mt6797-gate-unused.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-gate-unused.c b/drivers/soc/mediatek/mt6797-gate-unused.c
+index 0ba055a6a..447c73382 100644
+--- a/drivers/soc/mediatek/mt6797-gate-unused.c
++++ b/drivers/soc/mediatek/mt6797-gate-unused.c
+@@ -1,6 +1,9 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * Gate the MT6797 infra clocks that nothing on the Gemini PDA station uses.
++ * Gate the MT6797 infra clocks that nothing on the Gemini PDA station uses:
++ * the clocks of blocks with no driver here (PWM, UART1-3, SPI, IR TX, AES,
++ * ANC, VAD, CPUM, L2C SRAM, ICUSB) and of the disabled I2C controllers
++ * i2c2, i2c8 and i2c9 (I2C2, I2C3, I2C2_IMM, I2C2_ARB).
+  *
+  * The station boots with clk_ignore_unused, which the display, Wi-Fi and the
+  * GPU still need, so infra gates the loader left on stay on although no
+@@ -45,6 +48,8 @@ static const struct {
+ 	const char *name;
+ } gates[] = {
+ 	{ CLK_INFRA_ICUSB, 0, 8, "infra_icusb" },
++	{ CLK_INFRA_I2C2, 0, 13, "infra_i2c2" },
++	{ CLK_INFRA_I2C3, 0, 14, "infra_i2c3" },
+ 	{ CLK_INFRA_PWM_HCLK, 0, 15, "infra_pwm_hclk" },
+ 	{ CLK_INFRA_PWM1, 0, 16, "infra_pwm1" },
+ 	{ CLK_INFRA_PWM2, 0, 17, "infra_pwm2" },
+@@ -57,6 +62,8 @@ static const struct {
+ 	{ CLK_INFRA_SPI, 1, 1, "infra_spi" },
+ 	{ CLK_INFRA_CPUM, 1, 11, "infra_cpum" },
+ 	{ CLK_INFRA_L2C_SRAM, 1, 22, "infra_l2c_sram" },
++	{ CLK_INFRA_I2C2_IMM, 2, 3, "infra_i2c2_imm" },
++	{ CLK_INFRA_I2C2_ARB, 2, 4, "infra_i2c2_arb" },
+ 	{ CLK_INFRA_SPI1, 2, 10, "infra_spi1" },
+ 	{ CLK_INFRA_ANC_MD32, 2, 12, "infra_anc_md32" },
+ 	{ CLK_INFRA_ANC_MD32_32K, 2, 13, "infra_anc_md32_32k" },
