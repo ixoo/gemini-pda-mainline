@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Fri, 13 Nov 2026 13:07:45 -0500
+Subject: [PATCH] wifi: mt6797: let only unicast frames end a quiet spell
+
+0760 counted any received frame as activity. A LAN sends a few broadcasts and
+multicasts a second, so the link never counted as quiet: on card-32 the join
+work still ran 54 times a second. Count a frame under the pairwise key, and
+the station's own transmissions, but not group frames, which are still
+delivered, at up to 100 ms more latency.
+---
+ drivers/net/wireless/mediatek/mt6797/data.c     | 5 +++++
+ drivers/net/wireless/mediatek/mt6797/join.c     | 1 -
+ drivers/net/wireless/mediatek/mt6797/mac-priv.h | 2 +-
+ 3 files changed, 6 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/data.c b/drivers/net/wireless/mediatek/mt6797/data.c
+index 888024c41..51c27b320 100644
+--- a/drivers/net/wireless/mediatek/mt6797/data.c
++++ b/drivers/net/wireless/mediatek/mt6797/data.c
+@@ -1357,6 +1357,11 @@ static int mt6797_ccmp_deliver_rx(struct mt6797_mac *mac, size_t bytes,
+ 		dev_kfree_skb(skb);
+ 		return 0;
+ 	}
++	/* Only a frame under the pairwise key ends a quiet spell: a LAN's
++	 * broadcasts and multicasts, a few a second, would otherwise keep the
++	 * receive poll at its short interval for good.
++	 */
++	mac->join_pump_active_ns = ktime_get_ns();
+ checked:
+ 	if (mt6797_join_le16(mac->join_packet + 16) & 0x0080)
+ 		mac->qos_rx++;
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 7be981d31..219f3f01c 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2519,7 +2519,6 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			if (ret)
+ 				goto failed;
+ 			got = true;
+-			mac->join_pump_active_ns = ktime_get_ns();
+ 			branch = 5;
+ 			/* Count the actual consumed length into the sample or the drain
+ 			 * bucket. nd_over marks the post-stop phase (window over by any
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 226b83862..bfaea6138 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -168,7 +168,7 @@ struct mt6797_join_rearm_state {
+ 
+ #define MT6797_JOIN_PUMP_IDLE_MS 20U
+ 
+-/* Receive is polled: with no frame either way for this long on an
++/* Receive is polled: with no unicast frame either way for this long on an
+  * established link, poll at the quiet interval instead, to save wakeups.
+  */
+ #define MT6797_JOIN_PUMP_QUIET_AFTER_NS (1ULL * NSEC_PER_SEC)
+-- 
+2.43.0
+

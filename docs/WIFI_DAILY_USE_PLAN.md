@@ -52,7 +52,9 @@ Status: plan, updated 2026-11-01.
   on an idle station: about 52 a second (card-32 census). 0760 polls every 100 ms after 1 s with nothing either
   way, nothing pending and no frame held for reordering; any frame brings back 20 ms. The first frame after a
   quiet spell can wait up to 100 ms longer. An interrupt-driven receive would remove the polling, but is not
-  started. Compiled only.
+  started. On card-32 (boot `e7e3b009`, custodian) it changed nothing, 54 a second: about 6 broadcast or
+  multicast frames a second kept the link from counting as quiet. 0767 counts only frames under the pairwise
+  key and the station's own. Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
