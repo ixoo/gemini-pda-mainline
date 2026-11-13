@@ -2532,6 +2532,22 @@ needing a new image:
   `Y` again at shutdown, so the power-off messages do too. Writing `Y` by hand, then running
   agetty, gives a session on the UART for debugging.
 
-Expected: `11002000.serial` at `runtime_usage` 0 and `suspended`. Built in an Arch chroot over
-card-32's image: `gemini-base-62` (`5d90886c…`); `systemd-analyze verify` passes on the unit.
-Not on the device.
+Built in an Arch chroot over card-32's image: `gemini-base-62` (`5d90886c…`);
+`systemd-analyze verify` passes on the unit.
+
+**Result** (custodian, applied live on boot `e7e3b009`, not yet across a reboot): the getty is
+masked and nothing holds `/dev/ttyS0`; the console reads `N` and `console/active` shows only
+`tty1`. But `11002000.serial` stays `active`, with `runtime_usage` down from 2 to 1, so this
+alone doesn't let the UART suspend. From the v7.1.3 sources:
+
+- The detach drops 8250_core's console reference: `serial8250_console_exit` puts the one taken
+  when the port registered as the console.
+- serial_core's power-on reference stays. It powers the port on at configure
+  (`mtk8250_do_pm` takes a runtime reference) and powers it off on close only for non-console
+  ports. The tty port's `console` flag is set once, when the port is added, and the detach
+  doesn't clear it, so `tty_port_shutdown` keeps skipping the shutdown.
+
+Releasing it needs a kernel change: dropping `console=ttyS0` from the station kernel's built-in
+command line, which the station RAM root shares, or a serial_core change that clears the flag
+and powers the port off on detach. Both are built-in, so either waits for a batched image. The
+masked getty didn't change the count; it stays because an open getty would hold the port on.
