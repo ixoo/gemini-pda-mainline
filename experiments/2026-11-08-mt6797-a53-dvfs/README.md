@@ -372,6 +372,7 @@ building anything on it.
 | V12a | station image with schedutil at boot | Switch cost under video: 20 s of the station-work-112 mpv H.264 1080p playback with `sched_switch` (filtered to `sugov*`), `clk_set_rate` and `regulator_set_voltage` traced; before and after, both policies' `stats/total_trans`, the CCI's `trans_stat` total, `/proc/interrupts` (I2C6 line), the clock debugfs `registers`, mpv's dropped frames and, once, `energy_model/cpu{0,4}/ps:*/inefficient`. [`tools/v-switch-cost.awk`](tools/v-switch-cost.awk) reads the trace | Per sugov thread: changes/s, wall and CPU time per change, PLL and rail sets per change, CPU share | item 6 |
 | V12b | as V12a | V12a again at `rate_limit_us` 2000 and 5000, then restore | Fewer changes/s and less sugov CPU, with no more dropped frames | items 6, 9 |
 | V12c | first image with `0749` | V12a again | Rail sets cost three I2C6 transfers each, and I2C6 interrupts per change fall | item 6 |
+| V12d | as V12c | 20 s of the V12c playback with `perf record -g -t $(pgrep -x sugov:0)`; `perf report --no-children --stdio`, plus the same report with `--children` | Where the remaining CPU time per change goes: PLL polling, regulator core and coupler, I2C path or OPP | item 6 |
 
 After a pass: record support, fill the energy model, and decide with the owner
 whether the station's default image moves to this profile.
@@ -819,6 +820,38 @@ schedutil, from the image that also carries `0749`. V12c measures both.
 
 `0749` should halve the I2C6 transfers per change. A thinner CCI table remains the lever if the CCI still
 doubles the work after both.
+
+**V12c** (station-work-114, boot `4b7955ba`, source `77541707`):
+
+- **Setup:**
+  - The image carries `0749` and the init's `rate_limit_us` of 5000, which
+    read back 5000 at boot.
+  - The clip is a BT.709-tagged 1080p H.264 test pattern. mpv ran with no
+    flags and decoded through VA-API.
+  - One untraced and one traced 20 s run, with no lost events.
+- **Results:**
+
+  | Run | policy0 changes/s | I2C6 IRQ/s | `sugov:0` CPU | wall per run, mean/p90 | dropped of 600 |
+  | --- | --- | --- | --- | --- | --- |
+  | V12b, 5000, no `0749` | 119.6 | 1595 | 12.0 % | 2.0/2.7 ms | 11, 2 |
+  | V12c untraced | 117.6 | 607 | - | - | 8 |
+  | V12c traced | 119.3 | 603 | 9.67 % | 1.4/2.0 ms | 2 |
+
+- **What it shows:**
+  - **`0749` works.** I2C6 interrupts per policy0 change fell from about 13.3
+    to about 5.1. No `changed behind the driver` line and no kernel warning
+    appeared.
+  - **The changes are no longer batched.** Each `sugov:0` run is now about one
+    change: 1.98 PLL sets and 3.96 rail sets per run. These are the cluster and
+    the CCI, each with VPROC1 and VSRAM_L.
+  - **CPU cost.** From V12a, `sugov:0` fell from 22.7 % to 9.7 % of one CPU.
+    `sugov:4` used 0.28 %.
+- **What remains:** each change still costs 0.81 ms of CPU.
+  - PLL polling explains at most 0.24 ms: two slews of 70-120 us.
+  - Five I2C6 interrupts do not explain the rest.
+  - V12d profiles the thread before any further change. Candidate levers are
+    the clock-driver sleep, the regulator coupler's work per request, and a
+    thinner CCI table (each change still moves the CCI).
 
 ## Conclusion
 
