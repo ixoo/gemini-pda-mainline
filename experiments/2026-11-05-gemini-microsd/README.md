@@ -1600,6 +1600,129 @@ including a browser. This is not a predeclared test. The raw `dmesg` is private.
   HS200. The other is a write error while the card was busy programming, where an SD
   card ignores CMD12. This boot does not tell them apart.
 
+### The card hangs in screen-off idle (2026-11-12, -13)
+
+Reported by the custodian, with the owner's request to investigate. Two boots of the
+station image (the second is station-work-115, boot `e02c9413`, Image.gz
+`abd51ea9`), with the card as root (ext4 on `mmcblk1p1`). This is the same physical
+card as in [the card as root](#the-card-as-the-running-root-2026-11-10-unattended):
+it has the same relative card address. Raw logs are private. This section is
+analysis only; no device test has run.
+
+**Observed.**
+
+| | Fault 1 (11-12) | Fault 2 (11-13) |
+| --- | --- | --- |
+| Lid closed (screen blanked, no suspend) | 31085 s | 2741 s |
+| First error | 37032.81 s | 9644.90 s |
+| Screen-off time before the fault | 1.65 h | 1.92 h |
+| Charger | 1.5 A, connected | 1.5 A, connected |
+| Failing request | write | write |
+
+- Neither boot logged "PM: suspend entry". No `mmc`, regulator or thermal line
+  appears between the lid close and the fault.
+- Both faults have the same `mtk-sd` sequence, all with `host->error=0x2`
+  (`REQ_CMD_TMO`, a command with no response):
+  1. 2 × CMD13 (SEND_STATUS) timeouts;
+  2. 6 × CMD12 (STOP) timeouts;
+  3. 4 × CMD13 timeouts; steps 1-3 take about 1.3 ms;
+  4. about 2.1 s later, `mmc1: Card stuck being busy! __mmc_poll_for_busy`,
+     `tried to HW reset card, got error -110`, `mmcblk1: recovery failed!`;
+  5. write I/O errors, the ext4 journal aborts, and the filesystem goes
+     read-only.
+- Each later request repeats steps 1-3, now 0.7 ms apart, and fails at once.
+- After fault 1 the lid was opened at 64785 s. A read at 64904 s failed the same
+  way: the card was still unusable 7.7 h later.
+- No CMD8, CMD55 or ACMD41 timeout line appears anywhere.
+- Earlier, on 11-10 at 631 s and under desktop use, the same card had only step 2,
+  and that request completed.
+
+**What the source says** (Linux 7.1.3 `drivers/mmc`, as built):
+
+- Steps 1-3 are `mmc_blk_mq_rw_recovery` after a failed request:
+  - CMD13 is sent twice without retries;
+  - then `mmc_blk_fix_state` sends CMD12 with 5 retries (`mmc_blk_send_stop`);
+  - then it polls for busy with CMD13, which has 3 retries;
+  - the poll's CMD13 error ends `fix_state`.
+
+  The error that failed the request in the first place is logged only at debug
+  level (see the 11-10 note above). So the trigger is not in these logs.
+- Step 4 is `mmc_blk_reset`, then `mmc_hw_reset`, then `mmc_sd_hw_reset`. That runs
+  `mmc_power_cycle` and then `mmc_sd_init_card`. Re-initialisation sends CMD0, CMD8,
+  and then ACMD41 (`mmc_send_app_op_cond`), which polls for up to
+  `SD_APP_OP_COND_TIMEOUT_MS`, 2000 ms. "Card stuck being busy" with that 2 s gap
+  is that poll timing out, so the error is -110.
+- In that poll, `sd_app_op_cond_cb` returns command errors at once, and `mtk-sd`
+  logs every command timeout outside tuning. With no CMD8, CMD55 or ACMD41 line,
+  the card answered those commands at the 400 kHz init clock. For 2 s, though, it
+  kept reporting that power-up was not complete.
+- `mmc_power_cycle` cannot remove the card's power on this board:
+  - `mtk-sd` powers off by setting `vmmc` to 0 and disabling `vqmmc` (VMC).
+  - The station DT's `vmmc` is VMCH, marked `regulator-always-on` by
+    [0580](../../patches/proposals/0580-arm64-dts-mediatek-gemini-station-keep-the-microSD-c.patch),
+    because card detect reads wrong with VMCH off.
+  - So the "power cycle" only drops VMC (I/O) for about 2 ms, and the card stays
+    powered. That fits a card that answers but never finishes power-up, and that
+    stays unusable for hours, until a power-off.
+- Host runtime PM: `mtk-sd` autosuspends 50 ms after the last request. Its
+  runtime suspend saves the registers and gates the MSDC clocks; resume ungates
+  them and writes the registers back. It does not touch the regulators. Nothing in
+  the DT gives the card runtime PM: there is no `MMC_CAP_AGGRESSIVE_PM`, so
+  `mmc_sd_runtime_suspend` never runs.
+- The images in both faults have no cpuidle and no SPM idle state
+  ([cpuidle record](../2026-11-07-mt6797-cpuidle/README.md)). The A53 DVFS work
+  scales the CPU rails, VSRAM_L and the CCI
+  ([DVFS record](../2026-11-08-mt6797-a53-dvfs/README.md)). It does not touch
+  Vcore, VMCH, VMC or the MSDC clock source.
+
+**Inferred.**
+
+- **Firm:** recovery can't work on this board. The card ends up in a state that
+  only removing VMCH clears, and nothing can remove VMCH while the system runs.
+  So any wedge of the card becomes a read-only root until the next power-off.
+  That holds whatever the trigger.
+- **Open:** what puts the card in that state. Before recovery it answered nothing,
+  even CMD13, which a card busy programming still answers. Something stopped it
+  at the command level, at 192 MHz, on a write, after about 1.7-1.9 h of sparse
+  writes with the screen off and the charger on. Suspend and its resume order are
+  not involved in these two faults.
+
+**Hypotheses, most likely first.**
+
+| | Hypothesis | For | Against |
+| --- | --- | --- | --- |
+| H1 | The card's own controller stalls (firmware, or internal work after long idle). This one card, or its model | Command-level silence; the same card had the milder 11-10 event; it still answers at 400 kHz after a fake power cycle but can't finish power-up | One card; no comparison with another card under the same idle |
+| H2 | SDR104 margin at 192 MHz drifts (temperature, charging) until a transfer fails and the card is left mid-transfer | Faults come after long warm idle with charging (board 43-47 °C was logged before the lid closed) | Pure timeouts, no response CRC errors; the T-series map showed a wide window for this slot |
+| H3 | A supply disturbance on VMCH or VMC while charging (VMC also has no vendor +40 mV trim, see the power record) | Both faults with the 1.5 A charger connected | No regulator line logged; no measurement |
+| H4 | A host runtime-PM race: a request starts while the MSDC clock is gated or not yet stable | The clocks gate and ungate around every sparse write in idle | Thousands of such cycles per hour without a fault; the restore covers the tuning registers |
+
+**Cheap discriminating tests** (proposals for the custodian; one change per run).
+Each run repeats the faults' setup:
+- the card as root, screen off by lid close;
+- the charger connected unless the test says otherwise;
+- at least 3 h of idle;
+- `dmesg` captured live.
+
+The fault came in two of two such runs, so one clean run is weak evidence. Two
+clean runs in a row would be meaningful. Every test starts with an fsck of the
+card's filesystem.
+
+| Test | Change | Cost | If it faults | If it stays clean |
+| --- | --- | --- | --- | --- |
+| S1 | Lower the card clock at run time to 100 MHz: `echo 100000000 > /sys/kernel/debug/mmc1/clock` after boot. The timing mode and tuning stay as they are; the eye only widens | No build; undone at the next re-init or boot | Against H2 | For H2: cap the slot at SDR50 in the DT |
+| S2 | Keep the host clocked: `echo on > /sys/bus/platform/devices/11240000.mmc/power/control` | No build; a little idle power | Against H4 | For H4: look at runtime resume on this slot |
+| S3 | The same idle with the charger disconnected, on battery | No build; needs the charge | Against H3 as the only cause | For H3 (or heat): measure the rails |
+| S4 | The same idle with a card of another model, same image | A second card prepared as root | For a host or board cause (H2-H4); continue S1-S3 | For H1: a card or model problem; record and avoid that model |
+
+S1 also mitigates H2 and S4 mitigates H1. If the fault happens during a test,
+capture `/sys/kernel/debug/mmc1/ios` before anything else, then power off: a reboot
+alone doesn't remove VMCH.
+
+**Separate from the trigger: a reset that works.** Fixing recovery needs a real
+VMCH off-time in `mmc_sd_hw_reset` without losing card detect. One option is to drop
+0580's `regulator-always-on` and have the slot keep VMCH on itself, except during a
+power cycle. That is a design change, not a test, and it needs its own record.
+
 ## Follow-up
 
 - Suspend and resume.
@@ -1607,8 +1730,8 @@ including a browser. This is not a predeclared test. The raw `dmesg` is private.
   [power record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
   still needs settling if UHS needs the vendor's +40 mV.
 - eMMC HS400 ([T9 result](#t9-result-2026-11-06)): write rates and repeat boots.
-- The card's one CMD12 recovery as root
-  ([the card as root](#the-card-as-the-running-root-2026-11-10-unattended)). If it
-  recurs, rebuild with logging of transfer errors to see which error starts it.
   HS200 alone still has silent read errors ([T8 result](#t8-result-2026-11-06)), so
   a board without HS400 should not rely on it.
+- The card stops answering during long screen-off idle, and the reset can't recover
+  it ([the card hangs in idle](#the-card-hangs-in-screen-off-idle-2026-11-12-13)):
+  run the tests S1-S4 there, and design a reset that really removes VMCH.
