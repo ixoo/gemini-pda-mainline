@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 08:17:40 -0500
+Subject: [PATCH] Input: gemini-lid: hold the backlight off apart from the
+ display's state
+
+0755 lights the backlight on open only if it was lit at the close. A
+display that blanks while the lid is closed is missed: on the Gemini,
+with a charger attached the lid close does not suspend, the desktop's
+idle timeout turned the display off while the lid was closed, and the
+open lit the backlight behind the dark panel until a key press woke the
+display.
+
+The policy and the panel used the same state, the backlight's power and
+blank flags, so the policy could not tell what the display wanted. Hold
+the backlight off with BL_CORE_SUSPENDED instead, which nothing else
+sets on this board, and leave the power and blank state to the panel
+and DPMS. The backlight is lit only while neither holds it off: on open
+it lights again only if the display is still on, and a later unblank
+lights it as usual. A display that unblanks while the lid is closed
+stays dark until the open.
+---
+ drivers/input/misc/gemini-lid.c | 21 ++++++++++-----------
+ 1 file changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index 00fbf68b2..89a2b4154 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -25,8 +25,6 @@ static DEFINE_MUTEX(lid_lock);
+ static struct input_dev *lid_keyboard;
+ static bool lid_exiting;
+ static bool lid_applied_closed;
+-/* The backlight was lit when the lid closed, so the open lights it again. */
+-static bool lid_backlight_was_on;
+ 
+ static void gemini_lid_apply(bool closed)
+ {
+@@ -50,16 +48,17 @@ static void gemini_lid_apply(bool closed)
+ 		mutex_lock(&bd->ops_lock);
+ 		if (bd->ops) {
+ 			/*
+-			 * Restore only what the close turned off: a display
+-			 * blanked before the close, by DPMS or a console blank,
+-			 * stays dark, with no backlight behind a sleeping panel.
++			 * Hold the backlight off with its own flag, apart from
++			 * the power and blank state that the panel and DPMS
++			 * keep. On open it lights again only if the display
++			 * still wants it, however that changed while the lid
++			 * was closed, and a later unblank lights it as usual.
+ 			 */
+-			if (closed) {
+-				lid_backlight_was_on = !backlight_is_blank(bd);
+-				backlight_disable(bd);
+-			} else if (lid_backlight_was_on) {
+-				backlight_enable(bd);
+-			}
++			if (closed)
++				bd->props.state |= BL_CORE_SUSPENDED;
++			else
++				bd->props.state &= ~BL_CORE_SUSPENDED;
++			backlight_update_status(bd);
+ 		}
+ 		mutex_unlock(&bd->ops_lock);
+ 	}
+-- 
+2.43.0
+

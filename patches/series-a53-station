@@ -921,3 +921,4 @@ proposals/0753-media-mediatek-mt6797-vdec-time-a-decode-out-after-1.patch
 proposals/0754-ASoC-mediatek-mt6797-keep-open-streams-working-acros.patch
 proposals/0755-Input-gemini-lid-light-the-backlight-on-open-only-if.patch
 proposals/0756-regulator-da9213-legacy-answer-the-VPROC1-enable-che.patch
+proposals/0757-Input-gemini-lid-hold-the-backlight-off-apart-from-t.patch

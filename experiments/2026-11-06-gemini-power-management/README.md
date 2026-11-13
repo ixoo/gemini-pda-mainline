@@ -1743,6 +1743,48 @@ Raw logs private.
   came back as `wlan2`, not `wlan0`. That belongs to the radio and card
   lines: anything matched by interface name would miss it.
 
+#### A display blanked while the lid is closed (2026-11-13)
+
+Reported by the device custodian, at the owner's request ("yes key press
+brings the screen back. Please fix it"): card-32, boot `859e5f66`
+(`station-work-115`), with 0755 loaded. Raw logs private.
+
+**What happened.**
+- The lid closed with the display lit and a charger attached, so logind
+  did not suspend.
+- While the lid was closed, the desktop's idle timeout blanked the
+  output.
+- The open relit the backlight, because it had been lit at the close.
+  The panel stayed dark with the backlight on until a key press.
+
+**Why 0755 missed it.** 0755 looked only at the state at the close. The
+policy and the panel shared the backlight's power and blank flags, so
+nothing recorded what the display wanted while the lid was closed.
+
+**The fix.**
+[0757](../../patches/proposals/0757-Input-gemini-lid-hold-the-backlight-off-apart-from-t.patch):
+- The lid holds the backlight off with `BL_CORE_SUSPENDED`, which nothing
+  else sets on this board: `pwm-backlight` does not opt into the core's
+  suspend handling.
+- The power and blank state are left to the panel and DPMS.
+- The backlight lights only while neither holds it off. On open it lights
+  again only if the display is still on, and a later unblank lights it
+  as usual.
+- A display that unblanks while the lid is closed stays dark until the
+  open.
+- It replaces 0755's recorded flag. It is a module. Compile-checked in the
+  VM.
+
+**Tests** (custodian's list, on the charger unless stated):
+- **(a)** Close with the display lit, wait more than 2 min for the idle
+  blank, then open. The backlight stays off. A key press then brings back
+  both the screen and the backlight.
+- **(b)** Close with the display lit and open within 2 min. Both come back
+  at once.
+- **(c)** Idle blank first, then close and open. The display stays dark.
+- **(d)** A lid-close suspend on battery, then open. As today: a lit
+  display comes back lit.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The
