@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-01-mt6797-all-cores` |
-| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0701-0706 and compile-checked only; 0700 regressed on station-work-101 and is withdrawn; their device tests T4a-T9 await owner approval, and the owner accepted the Spectre-v2 report for a release default on 2026-11-11 |
+| Status | `running`; bring-up attempt 2 passed on one boot: both A72s online beside the station, a finite load on each, idle, and a clean reboot. A 30 min soak also passed on one boot, with every hash correct, and the cluster map reads 4+4+2 with the A72s joining late. Idle cost measured, and again per cluster in R1 (2026-11-13, A72 pair about 90 mW idle, CPU4-7 about 45 mW). R1 also passed bring-up, a 30 min soak and hotplug on the release base, with the A72s unmanaged at 750 MHz. Steps 4-9 (A72 frequency and voltage, cooling, capacity, energy model, init loading) are built as 0701-0706 and compile-checked only; 0700 regressed on station-work-101 and is withdrawn; their device tests T4a-T9 await owner approval, and the owner accepted the Spectre-v2 report for a release default on 2026-11-11 |
 | Subsystem | MT6797 Cortex-A72 CPU8/CPU9, arm64 late CPU admission, DA9214 BUCKB, PMIC wrapper |
 | Device variant | Planet Computers Gemini PDA, MT6797X, named development unit |
 | Date(s) | 2026-11-01 |
@@ -1070,7 +1070,7 @@ below the 880 mV of the 845 MHz point. T4b's down-and-up stage needs a design fo
 this first: for example, raise the rail to at least 1.0 V through the regulator
 before `CPU_ON`, and restore the clock before releasing that request.
 
-**A72 retest on the station-dvfs image (proposed 2026-11-13, not run).** The
+**A72 retest on the station-dvfs image (R1, owner-approved, run; results below).** The
 owner asked to retest the A72s on a current image. On the DVFS tree a CPU8 policy
 means A72 voltage writes (T4b, not admitted), and the re-up design above is open. So
 this retest loads the A72 module by hand after the init's cpufreq block. 0725 then
@@ -1081,6 +1081,78 @@ need a CPU8 policy, so they stay with the A72 profile or T4b. 0715 now also skip
 online CPU that has no policy. Before, the CCI's passive governor failed every
 update with `-EINVAL` while an A72 ran without one, and held the CCI at its last
 rate.
+
+**R1 result (observed, one boot, all four stages passed).** station-work-116, boot
+`e7e3b009`, boot2 `0dcebdab...`, from `850e177e`:
+- the `mt6797-a53-station-dvfs` package `6c4680ea...` (Image.gz `0c5ad777...`, DTB
+  `a12fe05f...`);
+- `mt6797-a72.ko` `0bf24e34...`;
+- `idle-cost.sh` `0938cbda...`.
+
+The init loaded cpufreq at boot, at a 10 ms rate limit, with the A72s off.
+cpufreq-dt left out CPU8 and CPU9 as offline and not ready.
+
+1. **Bring-up.** The module loaded, `online` read 0-9, and no policy8 existed (cpufreq
+   logged "failed to find data" for CPU8-9, as expected). The clock driver read
+   750 MHz, CPU8 and CPU9 measured 750 MHz, and their hashes matched the A53
+   reference. The CCI made 216 transitions in 30 s of light load, with no update
+   failure. The kernel stayed untainted.
+2. **Soak, 30 min** (`soak.sh load 1800`, with the A53s on schedutil and the zone on
+   the power allocator).
+   - Hash rounds: CPU7 10299, CPU8 7137, CPU9 7138, with no mismatch.
+   - The SoC peaked at 63.8 C. No fault line.
+   - The allocator held policy4 at 1755-2002 MHz; the CCI ran at 754-988 MHz.
+3. **Hotplug.**
+   - The A72s went down and up twice, each time back at 750 MHz with correct hashes.
+   - CPU4-7 went down and up three times, first on this kernel, with correct
+     hashes. Online read `0-3,8-9` while they were down.
+   - The 5 % check against `scaling_cur_freq` could not work under schedutil: the
+     policy drops as soon as the measuring load ends, so even before any hotplug it
+     read 1994 against 1495 MHz.
+   - Pinned instead with the performance governor at a 2002 and a 1209 MHz cap,
+     CPU4 measured 2000 and 1208 MHz before the third round and 2000 and 1207 MHz
+     after it. So firmware does not leave the L PLL at another rate across a
+     cluster off and on.
+4. **Idle cost on battery** (five 8 min phases, lid open, screen blanked, Wi-Fi
+   associated, A53s on schedutil).
+   - Means, in mA:
+
+     | Phase | CPUs online | Mean |
+     | --- | --- | --- |
+     | online | 0-9 | 201.3 |
+     | down | 0-7 | 158.5 |
+     | llonly | 0-3 | 147.7 |
+     | down2 | 0-7 | 216.3 |
+     | online2 | 0-9 | 178.2 |
+
+   - The display lit again by itself during down2, and the start of the first
+     online phase had four samples above 250 mA. The custodian left out the samples
+     above 250 mA. That gives online 183.3 and down2 159.4, so the repeat phases
+     agree within 5.1 mA (all ten) and 0.9 mA (no A72s).
+
+Interpretation:
+- **The A72 pair, idle in WFI at 750 MHz and 1.0 V:** about 21.8 mA against the
+  cluster down with BUCKB on, or about 90 mW at about 4.1 V. Step 3 estimated
+  100-130 mW.
+- **CPU4-7 online and idle:** about 11.3 mA, or about 45 mW, against CPU0-3 alone.
+- These are differences of means with a few mA of drift, on one unit and one
+  boot.
+- The A72 figure understates what the vendor off path would save, because BUCKB
+  stays on.
+
+What R1 settles: the A72s come up, compute correctly for 30 min beside A53 scaling,
+the CCI and the power allocator, and go down and back up on the release base. With
+the amended 0715, the CCI keeps scaling while they run without a policy. CPU4-7
+hotplug works and keeps the L rate.
+
+What it does not settle:
+- A72 frequency scaling and the T4a stage 6 restore, which need a CPU8 policy;
+- runs of hours;
+- suspend with the A72s online.
+
+The recommendation to the owner stands: keep `a72-at-boot` off until A72 scaling has
+passed, because loading by default today means A72s at a fixed 750 MHz with no cooling
+of their own. The owner's decision is pending.
 
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
