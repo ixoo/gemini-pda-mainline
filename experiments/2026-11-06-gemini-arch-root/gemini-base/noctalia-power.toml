@@ -3,9 +3,10 @@
 # ~/.config/noctalia once; remove the link to drop these settings, or override them in a
 # later-named file or the settings window.
 
-# The Caps/Num/Scroll Lock OSD polls every 200 ms (5 wakeups/s, screen on or off). The Gemini
-# keyboard has no lock LEDs, and Noctalia sees the lock state only while it has keyboard
-# focus, so the OSD could not follow it anyway.
+# The Caps/Num/Scroll Lock OSD polls every 200 ms (5 wakeups/s, screen on or off). It reads
+# input LEDs named *::capslock, which the Gemini's matrix keyboard doesn't have (its caps lock
+# LED is red:indicator-7), and otherwise Noctalia sees the lock state only while it has
+# keyboard focus, so the OSD could not follow it anyway.
 [osd.kinds]
 lock_keys = false
 

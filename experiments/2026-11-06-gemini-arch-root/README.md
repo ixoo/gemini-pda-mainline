@@ -2485,9 +2485,10 @@ upowerd and D-Bus. Read against Umbriel `94ab5961`, Noctalia 5.4.1 and UPower 1.
   qualifies: after the suspension sync, which runs on every visibility, map, capture and
   overview change, and after a configure is sent to a toplevel. The tick stops itself once
   nothing qualifies. The patch carries an upstream-ready message.
-- **Noctalia, 4.9/s:** the Caps/Num/Scroll Lock OSD polls every 200 ms. The Gemini keyboard has
-  no lock LEDs, and Noctalia's own key state only updates while it has keyboard focus, so the
-  OSD couldn't follow the lock keys anyway. `[osd.kinds] lock_keys = false` stops the poll; no
+- **Noctalia, 4.9/s:** the Caps/Num/Scroll Lock OSD polls every 200 ms. It reads input LEDs
+  named `*::capslock`, which the matrix keyboard doesn't have (its caps lock LED is
+  `red:indicator-7`), and Noctalia's own key state only updates while it has keyboard focus, so
+  the OSD couldn't follow the lock keys anyway. `[osd.kinds] lock_keys = false` stops the poll; no
   bar uses the `lock_keys` widget.
 - **Noctalia, about 1/s:** its system monitor thread samples CPU, memory, network, GPU and disk
   whether or not anything shows them. It now polls every 10 s for CPU, memory and network and 30
@@ -2551,3 +2552,15 @@ Releasing it needs a kernel change: dropping `console=ttyS0` from the station ke
 command line, which the station RAM root shares, or a serial_core change that clears the flag
 and powers the port off on detach. Both are built-in, so either waits for a batched image. The
 masked getty didn't change the count; it stays because an open getty would hold the port on.
+
+#### Unused infra clocks gated at boot on the card (gemini-base 63, 2026-11-13)
+
+The custodian passed this decision to the card root after the cpuidle session's G2 on card-32
+(boot `e7e3b009`). `mt6797-gate-unused` gates 26 infra clocks nothing on the Gemini uses: G1's
+22 plus the I2C2/I2C3 four from 0770, with `infra_icusb` left on. It saves about 2.7–2.9 mA
+blanked; the owner found "everything still works" with it loaded, and `rmmod` restores its
+register bits exactly, with taint 0. gemini-base 63 adds it to `modules-load.d`. Images before
+0770 load their own build, G1's 22 gates (0768); images after it load all 26. The station RAM
+root doesn't load it.
+
+Built in an Arch chroot over card-32's image: `gemini-base-63` (`f38c3044…`). Not on the device.
