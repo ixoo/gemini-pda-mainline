@@ -924,7 +924,8 @@ slowed further and approved the live writes):
   - At 20 ms, the CPU share halves again, but full speed comes about 9 ms later,
     and in the worst trials more than one display refresh later.
   - So 10 ms is the better setting. The owner approved 10000 at boot, and the
-    station init writes it from the next image.
+    station init writes it from the next image. At the owner's request, the
+    custodian also wrote 10000 live on boot `e02c9413` and read it back.
 
 ## Conclusion
 
