@@ -175,10 +175,34 @@ Arch session: active profile "HiFi (Mic, Speaker)", sink "Built-in Audio Speaker
 Audio Mic", muted by default. With the microphone briefly unmuted, `pw-record` captured a 1 kHz −15 dBFS tone
 played on the speaker: Goertzel magnitude 84-94 left and 53-60 right, against about 1.0 before the tone.
 
+**Playback power, card-32 (boot `8990918b`, station-work-112), run by the custodian.** On battery, display
+off, CPU0 only, PipeWire stopped, a silent S16 stream straight to PCM 0, 60 one-second `current_now`
+samples per state. An unplanned lid-close suspend split the run; the baselines differ between parts, so
+only differences within a part count.
+
+| State | Mean (mA) | Difference |
+| --- | --- | --- |
+| Part 1: no stream | 150.6 | |
+| Part 1: stream, both outputs off | 149.5 | about 0 over no stream: the AFE side |
+| Part 1: stream, headphone output on, headphones in | 157.0 | +7.5 over outputs off |
+| Part 2: no stream | 284.5 | |
+| Part 2: stream, headphone output on, headphones out | 291.1 | +6.6 |
+| Part 2: stream, speakers on | 355.4 | +64.3 over the headphone output |
+
+The memif interrupt ran at 8.2 per second. The `aplay` left running across the suspend then logged
+"mtk_afe_pcm_pointer hw_ptr err" 16 times after resume and failed with an I/O error.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
 tone plays only on its own output.
+
+The speaker amplifiers are nearly all of the playback cost, and they are on only while a stream holds the
+path, so the saving is in closing idle streams; PipeWire suspends idle nodes after a few seconds. A stream
+open across a system suspend breaks: `0671` only stops and restarts the AFE, and a resumed stream is not
+given its memif addresses again.
+[`0754`](../../patches/proposals/0754-ASoC-mediatek-mt6797-keep-open-streams-working-acros.patch) saves and
+restores them with the rate, format and routing registers.
 
 Speaker saturation is not fixed by the profile. `Headphone Volume` is already at its minimum, and nothing
 lower exists in hardware. A 1 kHz sine is clean at −30 dBFS, yet music distorts near −43 dB if the volume
@@ -223,7 +247,9 @@ clicks at start or stop.
 
 `confirmed` for the profile on card-31 through `alsaucm`, and under PipeWire on card-32: the speaker sink
 and microphone source appear with the owner's names, and capture works. The speaker distortion was the
-S32_LE fault, fixed by `0712`; `0707` removes the click at start. Not established: headphone switching on the
+S32_LE fault, fixed by `0712`; `0707` removes the click at start. Playing costs about 64 mA for the
+two speaker amplifiers, even with silence, about 7 mA for the codec's headphone stage, and nothing measurable
+for the AFE. Not established: headphone switching on the
 jack under PipeWire, and pops at capture start.
 
 ## Follow-up
