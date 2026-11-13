@@ -1,0 +1,122 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 12:58:29 -0500
+Subject: [PATCH] power: supply: mt6351-usb-type: detect at the charger-detect
+ interrupt
+
+The driver read the PMIC's charger-detect bit every second to find a
+plug or an unplug, which woke an otherwise idle system about once a
+second on battery.
+
+The fuel gauge already reports a battery change on the PMIC's CHRDET
+interrupt. Watch the power supply notifier for battery changes instead
+and run a pass then; keep the first pass at boot, after the USB PHY
+setup, and retry a failed detection only while the charger stays
+attached. Idle, the driver no longer wakes the system.
+---
+ drivers/power/supply/mt6351-usb-type.c | 40 ++++++++++++++++++++++----
+ 1 file changed, 35 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
+index 2e116cc15..c7f3306df 100644
+--- a/drivers/power/supply/mt6351-usb-type.c
++++ b/drivers/power/supply/mt6351-usb-type.c
+@@ -20,6 +20,7 @@
+ #include <linux/delay.h>
+ #include <linux/io.h>
+ #include <linux/module.h>
++#include <linux/notifier.h>
+ #include <linux/of.h>
+ #include <linux/of_address.h>
+ #include <linux/of_platform.h>
+@@ -48,7 +49,8 @@
+ #define TPHY_U2_USBPHYACR6		0x018
+ #define TPHY_U2_BC11_SW_EN		BIT(23)
+ 
+-#define USB_TYPE_POLL			msecs_to_jiffies(1000)
++/* A failed detection is retried while the charger stays attached. */
++#define USB_TYPE_RETRY			msecs_to_jiffies(1000)
+ /*
+  * The USB controller's PHY setup clears the line switch, so the first
+  * detection waits for it rather than race it at boot.
+@@ -62,6 +64,8 @@ struct mt6351_usb_type {
+ 	struct clk *phy_clk;
+ 	struct power_supply *psy;
+ 	struct delayed_work work;
++	struct notifier_block nb;
++	bool started;
+ 	bool online;
+ 	int usb_type;
+ };
+@@ -176,14 +180,18 @@ static void mt6351_usb_type_work(struct work_struct *work)
+ 	bool online;
+ 	int type;
+ 
++	WRITE_ONCE(ut->started, true);
++
+ 	if (!regmap_read(ut->regmap, MT6351_CHR_CON0, &con0)) {
+ 		online = con0 & MT6351_RGS_CHRDET;
+ 		if (online && !ut->online) {
+ 			type = mt6351_usb_type_detect(ut);
+ 			if (type < 0) {
+-				/* Not reported online, so the next pass tries again. */
++				/* Not reported online, so the retry tries again. */
+ 				dev_warn_ratelimited(ut->dev, "detection failed: %d\n", type);
+-				goto out;
++				queue_delayed_work(system_power_efficient_wq,
++						   &ut->work, USB_TYPE_RETRY);
++				return;
+ 			}
+ 			dev_info(ut->dev, "charger attached: %s\n",
+ 				 type == POWER_SUPPLY_USB_TYPE_SDP ? "SDP (host)" :
+@@ -200,9 +208,25 @@ static void mt6351_usb_type_work(struct work_struct *work)
+ 			power_supply_changed(ut->psy);
+ 		}
+ 	}
++}
+ 
+-out:
+-	queue_delayed_work(system_power_efficient_wq, &ut->work, USB_TYPE_POLL);
++/*
++ * The fuel gauge reports a battery change on the PMIC's charger-detect
++ * interrupt, so a plug and an unplug arrive here without polling. Its other
++ * battery changes are rare and cost one register read.
++ */
++static int mt6351_usb_type_notify(struct notifier_block *nb,
++				  unsigned long event, void *data)
++{
++	struct mt6351_usb_type *ut = container_of(nb, struct mt6351_usb_type, nb);
++	struct power_supply *psy = data;
++
++	/* Until the first pass, the PHY setup may still clear the switch. */
++	if (event == PSY_EVENT_PROP_CHANGED && READ_ONCE(ut->started) &&
++	    psy->desc->type == POWER_SUPPLY_TYPE_BATTERY)
++		mod_delayed_work(system_power_efficient_wq, &ut->work, 0);
++
++	return NOTIFY_OK;
+ }
+ 
+ static int mt6351_usb_type_get_property(struct power_supply *psy,
+@@ -270,6 +294,7 @@ static void mt6351_usb_type_stop(void *data)
+ {
+ 	struct mt6351_usb_type *ut = data;
+ 
++	power_supply_unreg_notifier(&ut->nb);
+ 	cancel_delayed_work_sync(&ut->work);
+ }
+ 
+@@ -323,6 +348,11 @@ static int mt6351_usb_type_probe(struct platform_device *pdev)
+ 	if (IS_ERR(ut->psy))
+ 		return dev_err_probe(dev, PTR_ERR(ut->psy), "cannot register\n");
+ 
++	ut->nb.notifier_call = mt6351_usb_type_notify;
++	ret = power_supply_reg_notifier(&ut->nb);
++	if (ret)
++		return dev_err_probe(dev, ret, "cannot watch the battery\n");
++
+ 	/* Registered after the supply, so it runs first at removal. */
+ 	ret = devm_add_action_or_reset(dev, mt6351_usb_type_stop, ut);
+ 	if (ret)
+-- 
+2.43.0
+
