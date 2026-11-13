@@ -8,6 +8,8 @@
 dir=/lib/modules/$(uname -r)
 for module in snd snd-timer snd-pcm snd-pcm-dmaengine snd-soc-core \
     snd-soc-mtk-common snd-soc-mt6351 snd-soc-aw8738 snd-soc-mt6797-afe mt6797-mt6351; do
+    # Already loaded, as on a second run: keep going and set the mixer.
+    grep -q "^$(echo "$module" | tr - _) " /proc/modules && continue
     if ! insmod "$dir/$module.ko" 2>/dev/null; then
         echo "$module-failed"
         exit 1

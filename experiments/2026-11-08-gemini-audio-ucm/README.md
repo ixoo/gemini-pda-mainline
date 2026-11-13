@@ -192,6 +192,14 @@ only differences within a part count.
 The memif interrupt ran at 8.2 per second. The `aplay` left running across the suspend then logged
 "mtk_afe_pcm_pointer hw_ptr err" 16 times after resume and failed with an I/O error.
 
+**`0754`, card-32 (boot `4b7955ba`, station-work-114), run by the custodian.** `snd-soc-mt6797-afe.ko`
+`36be2cb1…` swapped in, PipeWire stopped, both outputs off. A silent `aplay` to PCM 0 ran across a 20 s
+s2idle cycle (RTC alarm, `systemctl suspend`). After resume `aplay` reported "Suspended. Trying resume. Failed.
+Restarting stream. Done." and kept running: RUNNING, `hw_ptr` advancing 96,852 frames in about 2 s, no
+"hw_ptr err" and no audio kernel messages. A fresh 1 s `aplay` afterwards returned 0. A PipeWire stream
+across suspend was not tried. Running `audio-start` again after the module swap printed `snd-failed`,
+because it tried to load modules already loaded; it now skips those.
+
 ## Analysis
 
 The hypothesis holds: the profile is found, each device's sequence sets only its own switches, and each
@@ -202,7 +210,8 @@ path, so the saving is in closing idle streams; PipeWire suspends idle nodes aft
 open across a system suspend breaks: `0671` only stops and restarts the AFE, and a resumed stream is not
 given its memif addresses again.
 [`0754`](../../patches/proposals/0754-ASoC-mediatek-mt6797-keep-open-streams-working-acros.patch) saves and
-restores them with the rate, format and routing registers.
+restores them with the rate, format and routing registers. With it a stream left open across s2idle carries on after
+resume: ALSA re-prepares it, since the AFE does not support a native resume.
 
 Speaker saturation is not fixed by the profile. `Headphone Volume` is already at its minimum, and nothing
 lower exists in hardware. A 1 kHz sine is clean at −30 dBFS, yet music distorts near −43 dB if the volume
