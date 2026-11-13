@@ -1,0 +1,50 @@
+From 253f22d3d6b97748c9cb250c5618362f0c7ce862 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 08:28:41 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: let the microSD slot
+ hold VMCH
+
+VMCH was always on so that card detect works. That also stops a reset
+from removing the card's power, and a card that stopped answering stays
+unusable until the next power-off.
+
+Give the slot VMCH as its cd-supply and drop always-on. The slot keeps
+VMCH on, and turns it off for a moment when it powers the card off.
+
+Needs the mtk-sd cd-supply change. Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index a2a49a1..ec5bbac 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -648,13 +648,14 @@
+ 	/*
+ 	 * The vendor driver turns VMCH back on at the end of the slot's probe
+ 	 * and leaves it on with no card. With it off, the card-detect pin
+-	 * reads low whether a card is in or not.
++	 * reads low whether a card is in or not. The slot holds it on through
++	 * its cd-supply instead of always-on, so that a power cycle of the
++	 * card can still remove it.
+ 	 */
+ 	mt6351_vmch_reg: ldo-vmch {
+ 		regulator-name = "vmch";
+ 		regulator-min-microvolt = <3000000>;
+ 		regulator-max-microvolt = <3000000>;
+-		regulator-always-on;
+ 	};
+ 
+ 	mt6351_vmc_reg: ldo-vmc {
+@@ -744,6 +745,7 @@
+ 	sd-uhs-sdr104;
+ 	disable-wp;
+ 	cd-gpios = <&pio 67 GPIO_ACTIVE_HIGH>;
++	cd-supply = <&mt6351_vmch_reg>;
+ 	vmmc-supply = <&mt6351_vmch_reg>;
+ 	vqmmc-supply = <&mt6351_vmc_reg>;
+ 	no-mmc;
+-- 
+2.54.0 (Apple Git-157)
+

@@ -1,0 +1,128 @@
+From d414b01c3fe557a8e78a94cf00048cc303a0d67e Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 08:28:41 -0500
+Subject: [PATCH] mmc: mtk-sd: power the card off for real through a
+ card-detect supply
+
+On the Gemini the microSD card-detect switch is referenced to the card
+supply VMCH, so the board keeps VMCH always on. A power cycle of the
+card then only drops VMC: mmc_sd_hw_reset() cannot reset a card that
+stopped answering, and the block layer leaves the filesystem read-only
+until the next power-off.
+
+Let a slot name the supply that card detect needs as cd-supply. The
+host holds it on from probe, so card detect works with the card powered
+off, and drops it for card_off_ms (default 100 ms) whenever the card is
+powered off, after vmmc and vqmmc. A reset, a removal or a suspend then
+removes the card's power before it comes back on.
+
+card_off_ms=0 keeps the old behaviour, for comparison.
+
+Not yet run on hardware.
+---
+ drivers/mmc/host/mtk-sd.c | 61 +++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 61 insertions(+)
+
+diff --git a/drivers/mmc/host/mtk-sd.c b/drivers/mmc/host/mtk-sd.c
+index 1098911..78244e1 100644
+--- a/drivers/mmc/host/mtk-sd.c
++++ b/drivers/mmc/host/mtk-sd.c
+@@ -361,6 +361,16 @@
+ #define MSDC_MMAP_FLAG BIT(2)
+ 
+ #define MTK_MMC_AUTOSUSPEND_DELAY	50
++
++/*
++ * How long a card power-off keeps the card-detect supply off as well, so
++ * that the card really loses power before it comes back on.
++ */
++static unsigned int card_off_ms = 100;
++module_param(card_off_ms, uint, 0644);
++MODULE_PARM_DESC(card_off_ms,
++		 "ms the card-detect supply stays off at a card power-off (0: not at all)");
++
+ #define CMD_TIMEOUT         (HZ/10 * 5)	/* 100ms x5 */
+ #define DAT_TIMEOUT         (HZ    * 5)	/* 1000ms x5 */
+ 
+@@ -506,6 +516,8 @@ struct msdc_host {
+ 	u32 src_clk_freq;	/* source clock frequency */
+ 	unsigned char timing;
+ 	bool vqmmc_enabled;
++	struct regulator *cd_supply; /* also holds vmmc on for card detect */
++	bool cd_supply_enabled;
+ 	u32 latch_ck;
+ 	u32 hs400_ds_delay;
+ 	u32 hs400_ds_dly3;
+@@ -2152,6 +2164,35 @@ static void msdc_init_gpd_bd(struct msdc_host *host, struct msdc_dma *dma)
+ 	}
+ }
+ 
++/*
++ * Card detect needs the card supply on, so the slot holds it on even with the
++ * card powered off. A power cycle that is to reset the card has to remove it
++ * for a while all the same.
++ */
++static void msdc_cd_supply_pulse(struct msdc_host *host)
++{
++	int ret;
++
++	regulator_disable(host->cd_supply);
++	msleep(card_off_ms);
++	ret = regulator_enable(host->cd_supply);
++	if (ret) {
++		host->cd_supply_enabled = false;
++		dev_err(host->dev, "card-detect supply stays off: %d\n", ret);
++		return;
++	}
++	dev_info(host->dev, "card powered off for %u ms\n", card_off_ms);
++}
++
++static void msdc_cd_supply_off(void *data)
++{
++	struct msdc_host *host = data;
++
++	if (host->cd_supply_enabled)
++		regulator_disable(host->cd_supply);
++	host->cd_supply_enabled = false;
++}
++
+ static void msdc_ops_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
+ {
+ 	struct msdc_host *host = mmc_priv(mmc);
+@@ -2189,6 +2230,9 @@ static void msdc_ops_set_ios(struct mmc_host *mmc, struct mmc_ios *ios)
+ 			regulator_disable(mmc->supply.vqmmc);
+ 			host->vqmmc_enabled = false;
+ 		}
++
++		if (host->cd_supply_enabled && card_off_ms)
++			msdc_cd_supply_pulse(host);
+ 		break;
+ 	default:
+ 		break;
+@@ -3030,6 +3074,23 @@ static int msdc_drv_probe(struct platform_device *pdev)
+ 	if (ret)
+ 		return ret;
+ 
++	host->cd_supply = devm_regulator_get_optional(&pdev->dev, "cd");
++	if (IS_ERR(host->cd_supply)) {
++		if (PTR_ERR(host->cd_supply) != -ENODEV)
++			return PTR_ERR(host->cd_supply);
++		host->cd_supply = NULL;
++	} else {
++		ret = regulator_enable(host->cd_supply);
++		if (ret)
++			return dev_err_probe(&pdev->dev, ret,
++					     "Cannot enable card-detect supply\n");
++		host->cd_supply_enabled = true;
++		ret = devm_add_action_or_reset(&pdev->dev, msdc_cd_supply_off,
++					       host);
++		if (ret)
++			return ret;
++	}
++
+ 	ret = msdc_of_clock_parse(pdev, host);
+ 	if (ret)
+ 		return ret;
+-- 
+2.54.0 (Apple Git-157)
+

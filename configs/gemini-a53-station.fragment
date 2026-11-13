@@ -227,3 +227,8 @@ CONFIG_RTC_DRV_MT6397=y
 # to override gemini-usbdiag.fragment's "not set". Userspace interfaces only.
 CONFIG_SECURITY_LANDLOCK=y
 CONFIG_POSIX_MQUEUE=y
+# MMC fault injection (inert until set in debugfs), so the microSD record's
+# R1 test can drive one request through the block layer's card reset.
+CONFIG_FAULT_INJECTION=y
+CONFIG_FAULT_INJECTION_DEBUG_FS=y
+CONFIG_FAIL_MMC_REQUEST=y

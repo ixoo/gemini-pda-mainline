@@ -1723,6 +1723,162 @@ VMCH off-time in `mmc_sd_hw_reset` without losing card detect. One option is to 
 0580's `regulator-always-on` and have the slot keep VMCH on itself, except during a
 power cycle. That is a design change, not a test, and it needs its own record.
 
+### The card hang: vendor comparison and a real power cycle (2026-11-13)
+
+The owner asked to treat the hang as a power-management problem, compare the vendor
+kernel, and make the host recover the card. This is analysis and code only. Nothing
+has run on the device, and no Gemian boot was needed: the public Gemian kernel
+([`mt6797/sd.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/sd.c),
+[`msdc_io.c`](https://github.com/gemian/gemini-linux-kernel-3.18/blob/8cfe6596a503612e3332d9c26e292a19525a7f07/drivers/mmc/host/mediatek/mt6797/msdc_io.c),
+the MT6351 field map in `mach/upmu_hw.h`) and the earlier T-series register reads
+answer the questions below. The retained Gemian logs have no long idle with a card
+in, so they say nothing about the hang itself.
+
+**Vendor against mainline, slot 1** (source, not run):
+
+| | Vendor kernel | Mainline station |
+| --- | --- | --- |
+| Card power off (`MMC_POWER_OFF`) | VMCH and VMC both off, pins pulled down, 10 ms wait (`msdc_set_power_mode`, `msdc_sd_power`) | VMC off only; VMCH is `regulator-always-on` (0580); no wait, pins unchanged |
+| Card power on | VMCH, VMC on, 10 ms wait, then reads the MT6351 VMCH over-current flag (`OCSTATUS1` `0x0212` bit 4) and powers off again if set | VMC on; no over-current check |
+| VMCH with no card | Turned on at the end of probe and left on, for card detect | Always on |
+| VMCH, VMC voltage | 3.0 V; VMC 3.0 V, then 1.8 V for UHS with the VMC trim lowered by 2 steps (+40 mV) | 3.0 V; VMC 3.0/1.8 V with the firmware trim |
+| LDO low-power mode | Not touched by the kernel | Not touched. T1 read `0x0a2e` and `0x0aaa` as `0xda62` with a card in: enabled, software mode (`MODE_CTRL` 0, `ON_CTRL` 0), normal mode (`DA_QI_*_MODE` 0) |
+| Clock gating when idle | `msdc_gate_clock(host, 1)` arms a 5 s timer; the clock goes off 5 s after the last request. Before gating it sets `MSDC_CFG` mode to MS; when ungating it re-writes the divider (div+1, then div) and waits for `CKSTB`, with a retry | Runtime PM autosuspend after 50 ms; gates the clocks and saves registers. On resume, ungates, polls `CKSTB` and restores `MSDC_CFG` |
+| Periodic or thermal retune | None | None; retune only after a CRC error |
+| Stuck card | `msdc_set_bad_card_and_remove` after a stuck state: the card is removed, not recovered (`sd.c` near line 5284) | Block-layer reset with a "power cycle" that leaves VMCH on, so it fails (-110) |
+
+**Inferred.**
+
+- Both kernels leave the LDO modes to the firmware. In the one reading there is,
+  VMCH and VMC run in software-controlled normal mode. An idle low-power mode on
+  those LDOs is therefore unlikely. It has not been checked at a fault, though.
+- The clearest power-management difference is the clock gating. In screen-off
+  idle, every sparse write on mainline wakes the host from runtime suspend and
+  gates it again 50 ms later. During active use, requests keep it awake. That
+  makes many gate cycles an hour in exactly the state where both faults
+  happened. The vendor keeps the clock 5 s after a request, and on the way back
+  re-programs the divider and checks it, with a retry. A rare bad clock start
+  would leave the card with no usable clock in the middle of a request. That
+  matches the command-level silence, and the card wedged mid-write.
+- The vendor does not recover a stuck card either; it removes it. Recovery is new
+  ground, but the vendor shows what a real power-off is on this board: both
+  supplies off and about 10 ms.
+
+**Hypotheses, revised order.**
+
+| | Hypothesis | Change since the last section |
+| --- | --- | --- |
+| H4 | Host runtime PM: a clock-gating cycle in idle goes wrong and the card is wedged mid-request | Up from last: the vendor keeps the clock 100 times longer after a request and checks it on ungating; idle is exactly where mainline gates most |
+| H1 | The card's own controller stalls | Unchanged |
+| H3 | VMCH or VMC disturbance (over-current or a low-power mode) while charging | Down: the LDOs are in software normal mode; an over-current flag at a fault is still unread |
+| H2 | SDR104 margin drift | Unchanged; neither kernel retunes on time or heat |
+
+**Recovery: a real power cycle.**
+
+[0758](../../patches/proposals/0758-mmc-mtk-sd-power-the-card-off-for-real-through-a-car.patch)
+lets an `mtk-sd` slot name the supply that card detect needs, as `cd-supply`:
+- The host enables it at probe and holds it, so card detect keeps working with the
+  card powered off.
+- At every card power-off (`MMC_POWER_OFF`), after `vmmc` and `vqmmc`, the host
+  drops it for `card_off_ms` (module parameter, default 100 ms), takes it back,
+  and logs "card powered off for N ms".
+- `card_off_ms=0` keeps today's behaviour.
+
+[0759](../../patches/proposals/0759-arm64-dts-mediatek-gemini-station-let-the-microSD-sl.patch)
+gives the station's slot VMCH as `cd-supply` and drops 0580's always-on. The two
+patches belong together.
+
+`mtk-sd` is built in (it also drives the eMMC), so this needs an image.
+
+- **What it changes.** `mmc_sd_hw_reset` runs `mmc_power_cycle` and then
+  re-initialises. The card is now without VMCH and VMC for about 100 ms, as the
+  SD specification requires for a reset and as the vendor does (10 ms). The card
+  restarts at 3.3 V signalling, and the core re-runs the 1.8 V switch and tuning.
+- **Card detect during the pulse.** GPIO67 reads "no card" while VMCH is off. The
+  card-detect interrupt schedules a rescan after the debounce delay. The rescan
+  waits for the host claim, so it runs after the reset. The card then answers
+  CMD13 and is kept. With the slot empty, the pulse can't make an edge.
+- **What the block layer does with it.** In `mmc_blk_mq_rw_recovery`, a reset that
+  succeeds returns with the retries left, and `mmc_blk_mq_complete_rq` requeues the
+  request. So if the card comes back, the write that failed is retried. ext4 sees
+  no error, and the journal does not abort. Only when the reset itself fails does
+  the request end in an I/O error, which happens today on every fault.
+- **Costs.**
+  - About 100 ms more on every card power-off: removal, shutdown, suspend, and an
+    empty-slot scan at boot.
+  - A recovery stalls I/O for that plus a re-init, roughly half a second.
+  - During system suspend VMCH stays on, as now.
+  - If the card is truly dead (H1 at its worst), a real power cycle may not help
+    either, and the result is what happens today.
+- **What is not known.** Whether VMCH falls below 0.5 V within 100 ms depends on
+  whether its discharge path (`RG_VMCH_NDIS_EN`, `VMCH_ANA_CON1` `0x0ad0` bit 1) is
+  on. R1 reads it.
+- **Not done here.** `cd-supply` is not in the `mtk-sd` binding yet. Upstream would
+  need that binding change and review.
+
+The station profile also gains `CONFIG_FAIL_MMC_REQUEST` (fault injection, inert
+until set in debugfs). R1 needs it to drive a request through the reset.
+
+**Device requests (proposals; the custodian schedules them with the owner).**
+
+*At the next fault (any image), before the power-off.* These are read-only:
+1. `sh experiments/2026-11-05-gemini-microsd/sd-state.sh`;
+2. MT6351 `0x0212` (`OCSTATUS1`: bit 3 VMC, bit 4 VMCH over-current) and `0x0ad0`
+   (`NDIS_EN` bit 1), read through regmap debugfs as `sd-state.sh` does.
+
+What it decides: an over-current bit set points to H3; `0x0a2e` or `0x0aaa` showing
+low-power mode (bit 8 set) points to H3. Don't `devmem` the MSDC1 registers: the host
+is runtime-suspended and its clocks are gated.
+
+*S2 first* (no build; tests H4, the leading hypothesis). It runs as written above:
+- `echo on > /sys/bus/platform/devices/11240000.mmc/power/control` after boot;
+- lid closed, charger on, at least 3 h, two runs.
+
+| Outcome | Decision |
+| --- | --- |
+| Clean twice | H4 likely. Then try a longer autosuspend for slot 1 (`power/autosuspend_delay_ms`, for example 5000 as the vendor) for two runs, then make it the DT/driver default |
+| Fault | H4 is out. Read the at-fault registers, then S4 (another card) or S1 |
+
+*R1: the recovery path* (needs the image with 0758/0759 and fault injection; one
+boot; root on the card is fine, but an eMMC root is safer for the first run).
+Hypothesis: with `card_off_ms=100` a reset brings the card back at SDR104, and the
+request that failed completes. With `card_off_ms=0` a reset of a healthy card
+either fails as in the faults or comes back without UHS.
+
+1. Boot. Record `ios` for `mmc1` (SDR104, 1.80 V) and `dmesg | grep 11240000`
+   (no "card powered off" yet with a card in).
+2. Read `0x0ad0`, `0x0a2e`, `0x0aaa`.
+3. With the default `card_off_ms` of 100:
+   - in `/sys/kernel/debug/mmc1/fail_mmc_request`, set `probability` 100,
+     `interval` 1, `times` 2 and `verbose` 1;
+   - then read one sector directly:
+     `dd if=/dev/mmcblk1 of=/dev/null bs=512 count=1 skip=4096 iflag=direct`;
+   - record the result, the new `11240000.mmc` and `mmc1` lines, and `ios`.
+
+   Expect:
+   - "card powered off for 100 ms";
+   - no "recovery failed";
+   - `dd` exits 0;
+   - `ios` back at SDR104, 1.80 V;
+   - the card still present after the card-detect debounce.
+4. Then the comparison: run step 3 again with
+   `echo 0 > /sys/module/mtk_sd/parameters/card_off_ms`.
+   - A failed reset here blocks further read resets until a read succeeds. So if
+     the card is left unusable, restore it by taking the card out and putting it
+     back (owner), or by a power-off.
+   - Set `card_off_ms` back to 100 afterwards.
+
+Two injected failures on one request take it through exactly one reset (data
+error, then the reset before the last retry), and the third try succeeds. Stop on a
+warning or Oops, or if an injection lands on a write. With the eMMC as root, nothing
+on the card is mounted, so no write is at risk.
+
+| Step 3 (100 ms) | Step 4 (`card_off_ms=0`) | Decision |
+| --- | --- | --- |
+| Recovers at SDR104 | Fails with -110, as the faults | The fake power cycle explains why the faults are unrecoverable; 0758/0759 fix recovery. Keep them in the station image |
+| Fails | Fails | 100 ms may not be enough: check `NDIS_EN`, try 500 ms after a reinsertion |
+| Recovers | Recovers | A healthy card survives a fake cycle; the cards in the faults were really wedged. 0758/0759 still give the real power-off |
+
 ## Follow-up
 
 - Suspend and resume.
@@ -1734,4 +1890,6 @@ power cycle. That is a design change, not a test, and it needs its own record.
   a board without HS400 should not rely on it.
 - The card stops answering during long screen-off idle, and the reset can't recover
   it ([the card hangs in idle](#the-card-hangs-in-screen-off-idle-2026-11-12-13)):
-  run the tests S1-S4 there, and design a reset that really removes VMCH.
+  S2 and the at-fault reads come first
+  ([vendor comparison](#the-card-hang-vendor-comparison-and-a-real-power-cycle-2026-11-13)).
+  The recovery change (0758/0759) needs R1.
