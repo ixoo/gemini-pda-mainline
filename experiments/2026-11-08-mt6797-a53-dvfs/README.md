@@ -900,6 +900,32 @@ and `0756`): this is the V12c workload.
   Both levers change behaviour, the poll under a semaphore shared with the
   firmware. They wait for an owner decision.
 
+**V12f** (same boot as V12e; the owner asked whether schedutil could be
+slowed further and approved the live writes):
+
+- **Method:**
+  - `rate_limit_us` was written live to 10000, then 20000, then restored to 5000
+    and read back. Each setting got the V12e video runs.
+  - Ramp latency comes from eight trials per setting. Each trial waits 2 s
+    idle, writes a trace marker, then runs a 0.5 s busy loop pinned to CPU0.
+  - `power:cpu_frequency` timed the marker to the first raise and to 1547 MHz.
+- **Results:**
+
+  | `rate_limit_us` | policy0 changes/s | I2C6 IRQ/s | `sugov:0` CPU | dropped of 600 | first raise, mean | to 1547 MHz, mean (range) |
+  | --- | --- | --- | --- | --- | --- | --- |
+  | 5000 (V12e) | 117 | 376 | 8.57 % | 1 | 5.0 ms | 13.9 ms (10.2-24.8) |
+  | 10000 | 62.6 | 191 | 5.39 % | 2 | 7.5 ms | 14.4 ms (8.4-24.0) |
+  | 20000 | 43.0 | 132 | 3.44 % | 3 | 14.5 ms | 22.6 ms (18.8-28.8) |
+
+- **What it shows:**
+  - At 10 ms, `sugov:0` uses 37 % less CPU than at 5 ms, and full speed comes
+    only 0.5 ms later on average. The load's utilization ramp, not the limit,
+    sets most of that time.
+  - At 20 ms, the CPU share halves again, but full speed comes about 9 ms later,
+    and in the worst trials more than one display refresh later.
+  - So 10 ms is the better setting. Changing the init's value needs the owner's
+    approval.
+
 ## Conclusion
 
 Pending.
