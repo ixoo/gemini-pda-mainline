@@ -185,6 +185,14 @@ To confirm hardware decoding:
   `/dev/video*` and `/dev/media*`. QtWebEngine runs the GPU code inside the
   browser process (`--in-process-gpu`).
 
+`0006-Report-the-decoder-s-real-maximum-surface-size.patch`
+
+- The driver advertised a 4096x4096 maximum surface for every config.
+  Chromium builds its supported-size list from that, so it would pick
+  VA-API for 1440p or 4K streams that mt6797-vdec (1920x1088 at most)
+  rejects only when the decode context is created. The driver now reports
+  the largest size the decoder gives through `VIDIOC_ENUM_FRAMESIZES`.
+
 ## Driver requirement: on-demand capture buffers
 
 The backend creates one CAPTURE buffer per surface on demand, with

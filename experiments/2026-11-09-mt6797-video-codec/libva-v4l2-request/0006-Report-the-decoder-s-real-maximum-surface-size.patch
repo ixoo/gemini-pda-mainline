@@ -1,0 +1,109 @@
+From 2e265eb714e7ddae91179ae098bfb0f41e863ba3 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 21:52:33 -0500
+Subject: [PATCH] Report the decoder's real maximum surface size
+
+QuerySurfaceAttributes advertised 4096x4096 for every config. Clients
+such as Chromium build their supported-resolution list from it, so they
+chose VA-API for streams larger than the decoder accepts (mt6797-vdec
+stops at 1920x1088) and failed only when the context was created. Report
+the largest size VIDIOC_ENUM_FRAMESIZES gives for the config's coded
+format on the decoders that accept it, keeping 4096x4096 when none
+answers.
+---
+ src/surface.c | 58 +++++++++++++++++++++++++++++++++++++++++++++++++--
+ 1 file changed, 56 insertions(+), 2 deletions(-)
+
+diff --git a/src/surface.c b/src/surface.c
+index 283cc37..f4becc9 100644
+--- a/src/surface.c
++++ b/src/surface.c
+@@ -156,12 +156,64 @@ VAStatus v4l2r_QuerySurfaceStatus(VADriverContextP va_ctx,
+ 	return VA_STATUS_SUCCESS;
+ }
+ 
++/*
++ * Largest coded size any decoder accepting this config's codec reports
++ * through VIDIOC_ENUM_FRAMESIZES; 4096x4096 when none answers. Clients pick
++ * hardware decoding by these limits, so advertising more than the decoder
++ * takes (mt6797-vdec stops at 1920x1088) makes them choose VA-API for
++ * streams that then fail when the context is created.
++ */
++static void max_frame_size(struct v4l2r_driver *drv,
++			   const struct v4l2r_config *cfg,
++			   uint32_t *max_w, uint32_t *max_h)
++{
++	uint32_t w = 0, h = 0;
++
++	for (unsigned int i = 0; cfg->codec && i < drv->nb_decoders; i++) {
++		const struct v4l2r_decoder *dec = &drv->decoders[i];
++		struct v4l2_frmsizeenum fs = {
++			.pixel_format = cfg->codec->pixelformat,
++		};
++		bool accepts = false;
++		int fd;
++
++		for (unsigned int j = 0; j < dec->nb_pixelformats; j++)
++			accepts |= dec->pixelformats[j] == fs.pixel_format;
++		if (!accepts)
++			continue;
++
++		fd = open(dec->video_path, O_RDWR | O_CLOEXEC);
++		if (fd < 0)
++			continue;
++		for (; ioctl(fd, VIDIOC_ENUM_FRAMESIZES, &fs) == 0; fs.index++) {
++			uint32_t fw, fh;
++
++			if (fs.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
++				fw = fs.discrete.width;
++				fh = fs.discrete.height;
++			} else {
++				fw = fs.stepwise.max_width;
++				fh = fs.stepwise.max_height;
++			}
++			if (fw > w)
++				w = fw;
++			if (fh > h)
++				h = fh;
++		}
++		close(fd);
++	}
++
++	*max_w = w ? w : 4096;
++	*max_h = h ? h : 4096;
++}
++
+ VAStatus v4l2r_QuerySurfaceAttributes(VADriverContextP va_ctx, VAConfigID config,
+ 				      VASurfaceAttrib *attrib_list,
+ 				      unsigned int *num_attribs)
+ {
+ 	struct v4l2r_driver *drv = v4l2r_driver(va_ctx);
+ 	struct v4l2r_config *cfg;
++	uint32_t max_w, max_h;
+ 	unsigned int i = 0;
+ 
+ 	cfg = V4L2R_CONFIG_GET(drv, config);
+@@ -218,16 +270,18 @@ VAStatus v4l2r_QuerySurfaceAttributes(VADriverContextP va_ctx, VAConfigID config
+ 	attrib_list[i].value.value.i = 32;
+ 	i++;
+ 
++	max_frame_size(drv, cfg, &max_w, &max_h);
++
+ 	attrib_list[i].type = VASurfaceAttribMaxWidth;
+ 	attrib_list[i].flags = VA_SURFACE_ATTRIB_GETTABLE;
+ 	attrib_list[i].value.type = VAGenericValueTypeInteger;
+-	attrib_list[i].value.value.i = 4096;
++	attrib_list[i].value.value.i = max_w;
+ 	i++;
+ 
+ 	attrib_list[i].type = VASurfaceAttribMaxHeight;
+ 	attrib_list[i].flags = VA_SURFACE_ATTRIB_GETTABLE;
+ 	attrib_list[i].value.type = VAGenericValueTypeInteger;
+-	attrib_list[i].value.value.i = 4096;
++	attrib_list[i].value.value.i = max_h;
+ 	i++;
+ 
+ 	*num_attribs = i;
+-- 
+2.43.0
+
