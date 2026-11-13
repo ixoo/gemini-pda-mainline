@@ -378,10 +378,19 @@ building anything on it.
 | V12c | first image with `0749` | V12a again | Rail sets cost three I2C6 transfers each, and I2C6 interrupts per change fall | item 6 |
 | V12d | as V12c | 20 s of the V12c playback with `perf record -g -t $(pgrep -x sugov:0)`; `perf report --no-children --stdio`, plus the same report with `--children` | Where the remaining CPU time per change goes: PLL polling, regulator core and coupler, I2C path or OPP | item 6 |
 | V12e | first image with `0756` | V12c again | Fewer I2C6 interrupts per policy0 change than V12c's 5.1, and less `sugov:0` CPU than 9.67 %; no `changed behind the driver` | item 6 |
-| V13a | station image, blanked, CPU0 alone | 10 min idle on battery: the wakeup census, plus `power:cpu_frequency` on cpu0, `regulator_set_voltage`, and `hrtimer_expire_entry`, which shows whether the sugov deadline timers fire; then the fuel gauge's mean `current_now` over a second 10 min with no trace | Baseline changes/s, OPPs visited, rail moves/s, current | item 6 |
-| V13b | as V13a | V13a with `scaling_max_freq` 481000 while blanked | Fewer changes and almost no rail moves; current against V13a | items 6, 10 |
-| V13c | as V13a | V13a with `scaling_max_freq` 221000 while blanked, then 60 s of blanked audio playback | No sugov wakeups and no DVFS I2C6; current against V13a; clean audio | items 6, 10 |
+| V13a | station image, blanked, CPU0 alone | [`tools/v13.py`](tools/v13.py) window A, uncapped. It runs 300 s with `power:cpu_frequency`, `sugov*` wakeups, `regulator_set_voltage`, `hrtimer_expire_entry`, IRQs and work items in the ring buffer. Then 600 s untraced. The fuel gauge's `current_now` is read at 1 Hz throughout. Window A2 repeats the untraced part at the end, to bracket the gauge's drift | Baseline changes/s, OPPs visited, rail moves/s, timers, current | item 6 |
+| V13b | as V13a | Window B: V13a with `scaling_max_freq` 481000 | Fewer changes and almost no rail moves; current against A and A2 | items 6, 10 |
+| V13c | as V13a | Window C: V13a with `scaling_max_freq` 221000, then a 60 s quiet tone through `pw-play` | No sugov wakeups and no DVFS I2C6; current against A and A2. A clean tone is judged in the next paragraph | items 6, 10 |
 | V13d | first image with `0766` | Census only | `em_update_workfn` 0 per 120 s | item 6 |
+
+**A clean V13c tone** is judged without listening. It needs all of these:
+
+- `pw-play` exits 0 after 60 ± 2 s.
+- Each RUNNING ALSA playback substream's `hw_ptr` advances at its `hw_params`
+  rate within 1 %, and no XRUN state is seen.
+- `pw-top` at 30 s shows ERR 0 for the playback node and the sink.
+- No new ASoC or AFE kernel line appears.
+- No xrun or underrun line from PipeWire appears in the journal.
 
 After a pass: record support, fill the energy model, and decide with the owner
 whether the station's default image moves to this profile.
