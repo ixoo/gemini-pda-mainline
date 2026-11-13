@@ -1,6 +1,6 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Julien Etienne <julien.etienne@gmail.com>
-Date: Wed, 11 Nov 2026 13:28:09 -0500
+Date: Fri, 13 Nov 2026 10:15:12 -0500
 Subject: [PATCH] PM / devfreq: passive: do not wait for the policies of
  offline CPUs
 
@@ -16,19 +16,39 @@ the CCI's top voltage and dropped the request again, leaving the CCI at
 its boot rate with the rail at the A53 policies' request. The station then
 stopped responding until the watchdog reset it.
 
-Leave offline CPUs without a policy out of the registration.
-get_target_freq_with_cpufreq() already skips a policy it has no parent
-data for, so a policy that appears when such a CPU comes online is
-ignored, as before for unknown policies.
+Leave offline CPUs without a policy out of the registration. Once they
+come up, a policy created for them is skipped as one the governor has no
+parent data for, and a CPU that cpufreq left out and so has no policy at
+all is now skipped too, instead of failing every update with -EINVAL and
+holding the CCI at its last rate.
 ---
- drivers/devfreq/governor_passive.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+ drivers/devfreq/governor_passive.c | 17 ++++++++++++-----
+ 1 file changed, 12 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/devfreq/governor_passive.c b/drivers/devfreq/governor_passive.c
-index 67936b217..8e9591835 100644
+index 67936b217..6c9c99360 100644
 --- a/drivers/devfreq/governor_passive.c
 +++ b/drivers/devfreq/governor_passive.c
-@@ -314,7 +314,12 @@ static int cpufreq_passive_register_notifier(struct devfreq *devfreq)
+@@ -125,12 +125,14 @@ static int get_target_freq_with_cpufreq(struct devfreq *devfreq,
+ 	int ret = 0;
+ 
+ 	for_each_online_cpu(cpu) {
++		/*
++		 * A CPU without a policy is not followed: it has no OPPs, its
++		 * policy is not created yet, or it came up after cpufreq
++		 * left it out.
++		 */
+ 		policy = cpufreq_cpu_get(cpu);
+-		if (!policy) {
+-			if (!cpu_without_opps(cpu))
+-				ret = -EINVAL;
++		if (!policy)
+ 			continue;
+-		}
+ 
+ 		parent_cpu_data = get_parent_cpu_data(p_data, policy);
+ 		if (!parent_cpu_data) {
+@@ -314,7 +316,12 @@ static int cpufreq_passive_register_notifier(struct devfreq *devfreq)
  	for_each_possible_cpu(cpu) {
  		policy = cpufreq_cpu_get(cpu);
  		if (!policy) {

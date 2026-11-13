@@ -1070,6 +1070,18 @@ below the 880 mV of the 845 MHz point. T4b's down-and-up stage needs a design fo
 this first: for example, raise the rail to at least 1.0 V through the regulator
 before `CPU_ON`, and restore the clock before releasing that request.
 
+**A72 retest on the station-dvfs image (proposed 2026-11-13, not run).** The
+owner asked to retest the A72s on a current image. On the DVFS tree a CPU8 policy
+means A72 voltage writes (T4b, not admitted), and the re-up design above is open. So
+this retest loads the A72 module by hand after the init's cpufreq block. 0725 then
+leaves CPU8-9 out, and they run unmanaged at the firmware's 750 MHz and 1.0 V. The
+retest covers bring-up on the release base, stability under load beside A53
+scaling and the CCI, hotplug, and idle cost on battery. A72 scaling and stage 6
+need a CPU8 policy, so they stay with the A72 profile or T4b. 0715 now also skips an
+online CPU that has no policy. Before, the CCI's passive governor failed every
+update with `-EINVAL` while an A72 ran without one, and held the CCI at its last
+rate.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
