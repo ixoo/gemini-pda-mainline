@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Fri, 13 Nov 2026 12:57:44 -0500
+Subject: [PATCH] wifi: mt6797: poll a quiet link every 100 ms
+
+Receive is polled, and the join worker polled every 20 ms on an idle
+connected link: about 52 wakeups a second, the largest source on an idle
+station with the screen off. When nothing has been received or sent for 1 s,
+nothing is pending and no frame is held for reordering, poll every 100 ms
+instead. The first frame after a quiet spell waits up to 100 ms longer, and
+any frame either way brings back the 20 ms interval.
+---
+ drivers/net/wireless/mediatek/mt6797/join.c   | 22 +++++++++++++++++++
+ .../net/wireless/mediatek/mt6797/mac-priv.h   |  7 ++++++
+ 2 files changed, 29 insertions(+)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index 80fc80f16..7be981d31 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -1050,6 +1050,22 @@ bool mt6797_mac_join_retire_idle_scan(struct mt6797_mac *mac)
+ 	return true;
+ }
+ 
++/* An established link with nothing received or sent for a while and no
++ * frame held for reordering, whose deadline needs the short interval.
++ */
++static bool mt6797_mac_join_quiet(const struct mt6797_mac *mac)
++{
++	unsigned int tid;
++
++	if (!mac->join_data_phase || mac->join_data_ended || !mac->join_pump_active_ns ||
++	    ktime_get_ns() - mac->join_pump_active_ns < MT6797_JOIN_PUMP_QUIET_AFTER_NS)
++		return false;
++	for (tid = 0; tid < MT6797_RX_REORDER_TIDS; tid++)
++		if (mac->rx_reorder[tid].waiting || mac->rx_reorder[tid].has_bubble)
++			return false;
++	return true;
++}
++
+ static int mt6797_mac_join_control_event(struct mt6797_mac *mac, size_t bytes)
+ {
+ 	struct mt6797_join_channel expected = {
+@@ -2503,6 +2519,7 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 			if (ret)
+ 				goto failed;
+ 			got = true;
++			mac->join_pump_active_ns = ktime_get_ns();
+ 			branch = 5;
+ 			/* Count the actual consumed length into the sample or the drain
+ 			 * bucket. nd_over marks the post-stop phase (window over by any
+@@ -2951,6 +2968,11 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 
+ 	delay_ms = mt6797_join_pump_delay(&mac->join_pump_zero_runs,
+ 					  pending, pump_progress);
++	if (pump_progress)
++		mac->join_pump_active_ns = ktime_get_ns();
++	if (delay_ms == MT6797_JOIN_PUMP_IDLE_MS && !pending &&
++	    mt6797_mac_join_quiet(mac))
++		delay_ms = MT6797_JOIN_PUMP_QUIET_MS;
+ 	if (pending && delay_ms == MT6797_JOIN_PUMP_IDLE_MS)
+ 		dev_info_once(wiphy_dev(mac->hw->wiphy),
+ 			      "one-shot WLAN join pump stalled: queued=%u inflight=%u slots=%u credit=%u debt=%u data_debt=%u\n",
+diff --git a/drivers/net/wireless/mediatek/mt6797/mac-priv.h b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+index 5ea15d88d..226b83862 100644
+--- a/drivers/net/wireless/mediatek/mt6797/mac-priv.h
++++ b/drivers/net/wireless/mediatek/mt6797/mac-priv.h
+@@ -168,6 +168,12 @@ struct mt6797_join_rearm_state {
+ 
+ #define MT6797_JOIN_PUMP_IDLE_MS 20U
+ 
++/* Receive is polled: with no frame either way for this long on an
++ * established link, poll at the quiet interval instead, to save wakeups.
++ */
++#define MT6797_JOIN_PUMP_QUIET_AFTER_NS (1ULL * NSEC_PER_SEC)
++#define MT6797_JOIN_PUMP_QUIET_MS 100U
++
+ #define MT6797_JOIN_PUMP_PENDING_MS 1U
+ 
+ /*
+@@ -471,6 +477,7 @@ struct mt6797_mac {
+ 	struct sk_buff_head join_queue;
+ 	struct delayed_work join_work;
+ 	unsigned int join_pump_zero_runs;
++	u64 join_pump_active_ns;
+ 	struct mt6797_data_slots data_slots;
+ 	struct sk_buff *join_inflight;
+ 	u64 join_deadline, join_frame_deadline;
+-- 
+2.43.0
+

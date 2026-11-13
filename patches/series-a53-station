@@ -862,6 +862,7 @@ proposals/0693-drm-panfrost-do-not-let-a-BO-shared-through-dma-buf-.patch
 proposals/0694-wifi-mt6797-wait-for-a-disconnect-s-re-arm-before-re.patch
 proposals/0709-wifi-mt6797-back-off-the-pump-when-pending-work-make.patch
 proposals/0714-wifi-mt6797-don-t-count-the-held-deauthentication-as.patch
+proposals/0760-wifi-mt6797-poll-a-quiet-link-every-100-ms.patch
 proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch
 proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
 proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch

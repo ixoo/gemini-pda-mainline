@@ -48,6 +48,11 @@ Status: plan, updated 2026-11-01.
   On station-work-103, boot `b8fb3cbf`, as the custodian reports: the join worker ran 45 times a second on an
   idle link, the idle interval, with no `pump stalled` line. A disconnect, and so the held frame's release,
   was not exercised.
+- Receive is polled, with no interrupt in this driver, so the 20 ms idle interval was the largest wakeup source
+  on an idle station: about 52 a second (card-32 census). 0760 polls every 100 ms after 1 s with nothing either
+  way, nothing pending and no frame held for reordering; any frame brings back 20 ms. The first frame after a
+  quiet spell can wait up to 100 ms longer. An interrupt-driven receive would remove the polling, but is not
+  started. Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
