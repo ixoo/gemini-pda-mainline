@@ -2462,5 +2462,11 @@ at 2.7–3.3 cores, the system 54 % idle and the SoC at 65–72 °C; after, VP9 
 (370 decoder interrupts per 10 s), the renderer at 0.9 core, the system 68 % idle and the SoC at
 58–60 °C. YouTube chose 854×480, so 1080p is unmeasured.
 
-Built: `gemini-base-60` (`a39b4878…`) in an Arch chroot over card-32's image. ShellCheck passes
+With VA-API on by default, the video session's driver release 5 (`d75efa75`, patch 0006)
+reports the decoder's real maximum size, 1920×1088, instead of 4096×4096, so Chromium decodes
+1440p and 4K streams in software rather than choosing a decoder that refuses them.
+`build-card.sh` builds it from the video session's directory as before.
+
+Built: `gemini-base-60` (`a39b4878…`) in an Arch chroot over card-32's image. Built with it:
+`libva-v4l2-request-mt6797-1.2.20260715-5` (`88f0a610…`), no compiler warnings. ShellCheck passes
 on `umbriel-session` and `first-login`. Not yet installed on the device.
