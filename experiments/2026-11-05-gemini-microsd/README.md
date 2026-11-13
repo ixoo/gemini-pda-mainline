@@ -1807,7 +1807,14 @@ patches belong together.
   - About 100 ms more on every card power-off: removal, shutdown, suspend, and an
     empty-slot scan at boot.
   - A recovery stalls I/O for that plus a re-init, roughly half a second.
-  - During system suspend VMCH stays on, as now.
+  - Every system suspend, s2idle included, now really powers the card off
+    (`_mmc_sd_suspend` calls `mmc_power_off`). VMCH is back on through the
+    suspend, and resume re-initialises the card from cold. Today the card keeps
+    VMCH through that path. With the card as root, a failed re-init at resume
+    removes the card at the post-suspend rescan. That is a hang, not a read-only
+    root. Until R1 and R2 pass, a card-root boot of an image with 0758/0759 takes
+    `mtk_sd.card_off_ms=0` on the kernel command line, which keeps VMCH on as
+    0580 did.
   - If the card is truly dead (H1 at its worst), a real power cycle may not help
     either, and the result is what happens today.
 - **What is not known.** Whether VMCH falls below 0.5 V within 100 ms depends on
@@ -1878,6 +1885,11 @@ on the card is mounted, so no write is at risk.
 | Recovers at SDR104 | Fails with -110, as the faults | The fake power cycle explains why the faults are unrecoverable; 0758/0759 fix recovery. Keep them in the station image |
 | Fails | Fails | 100 ms may not be enough: check `NDIS_EN`, try 500 ms after a reinsertion |
 | Recovers | Recovers | A healthy card survives a fake cycle; the cards in the faults were really wedged. 0758/0759 still give the real power-off |
+
+*R2: suspend with the card as root* (after R1; attended; on battery). Use
+`card_off_ms=100` and run 3-5 s2idle cycles. After each resume, expect "card
+powered off for 100 ms", `ios` back at SDR104 at 1.80 V, and no `mmc1` errors.
+Only then drop the command-line override.
 
 ## Follow-up
 
