@@ -881,6 +881,25 @@ doubles the work after both.
     thinner CCI table, which halves the work whenever the CCI does not move.
     Both change behaviour, so V12e first measures `0756` alone.
 
+**V12e** (station-work-115, boot `e02c9413`, source `d6a8894c`, with `0749`
+and `0756`): this is the V12c workload.
+
+| Run | policy0 changes/s | I2C6 IRQ/s | `sugov:0` CPU | CPU per run | wall per run, mean/p90 | dropped of 600 |
+| --- | --- | --- | --- | --- | --- | --- |
+| V12c traced | 119.3 | 603 | 9.67 % | 810 us | 1.4/2.0 ms | 2 |
+| V12e untraced | 117.2 | 376 | - | - | - | 1 |
+| V12e traced | 112.6 | 332 | 8.57 % | 732 us | 1.2/2.2 ms | 1 |
+
+- **`0756` works.** I2C6 fell to about 3.2 interrupts per policy0 change,
+  from 5.1. No `changed behind the driver`, WARNING or BUG line appeared.
+- **Overall, V12a to V12e:**
+  - `sugov:0` dropped from 22.7 % to 8.6 % of one CPU.
+  - I2C6 dropped from 3519 to 376 interrupts/s.
+  - The playback dropped no more frames than before.
+- **What is left** are the PLL busy-poll and the CCI following each change.
+  Both levers change behaviour, the poll under a semaphore shared with the
+  firmware. They wait for an owner decision.
+
 ## Conclusion
 
 Pending.
