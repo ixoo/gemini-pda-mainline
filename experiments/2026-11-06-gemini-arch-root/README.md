@@ -2388,7 +2388,22 @@ into the station image's module set (`77541707`). gemini-base 59:
   ships that name as a symlink to `v4l2_request_drv_video.so`. Every session finds it,
   SSH commands included, with no `LIBVA_DRIVER_NAME`.
 - **mpv:** `hwdec=auto-safe` beside `profile=fast`, so VA-API is used when it takes the stream
-  and software decoding otherwise. `vo=dmabuf-wayland` is a later step, after its format test.
+  and software decoding otherwise.
+
+  `vo=dmabuf-wayland` stays off: the owner chose "Keep current default" after the
+  custodian's tests on card-32 (boot `4b7955ba`). Switching to it per file doesn't work in
+  mpv 0.41:
+  - an auto profile on `hwdec_current == "vaapi"` flaps, about four apply-and-restore cycles
+    per file, because the VO switch reopens the decoder and `hwdec_current` briefly reads
+    `no`;
+  - a condition on the codec and profile applies once but mid-stream, and the decoder reopen
+    breaks VP9 ("Not all references are available"), falling back to software with 127
+    frames dropped;
+  - a Lua `on_preloaded` hook switches before decoding, but the track list then has no
+    profile or bit depth, so 10-bit files would get dmabuf-wayland and no picture.
+
+  The default as built plays hardware H.264, HEVC and VP9 fullscreen with 1–3 of 300 frames
+  dropped.
 - qutebrowser is unchanged; its hardware decoding stays opt-in.
 
 The video session's conditions, all met without more configuration: the card's modules are
