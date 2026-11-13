@@ -2129,6 +2129,13 @@ gates, ICUSB left on as before:
 and the USB controller's ICUSB and SSUSB clocks. Deep idle also needs
 DISP_PWM and the display domain. The module's own list is done.
 
+**G2 finished and passed.** With the 26 gates off the owner found
+"everything still works". `rmmod` returned 0, and `0x090` and `0x0b0` read
+back exactly as before the load. In `0x094` the module's bits 1, 11 and 22
+were ungated again; bit 4 (MSDC1) is driven at runtime by its own driver.
+Taint 0, no new SD errors. The module is ready to load at boot on the card
+root, which is the Arch root session's to set up.
+
 ### AP_DMA and the detached serial console (0769, 2026-11-13)
 
 The Arch root session detached the `ttyS0` console on the card
