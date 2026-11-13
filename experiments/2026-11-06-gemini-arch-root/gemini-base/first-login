@@ -32,3 +32,17 @@ fi
 if [ ! -e "$state/cheatsheet-shown" ]; then
     umbriel msg cheatsheet-open >/dev/null && touch "$state/cheatsheet-shown"
 fi
+
+# qutebrowser reads userscripts only from the user's data directory, so each user gets a link
+# to the packaged one, which then follows package updates. A file of the same name the user
+# already has stays; once linked, removing it is the user's choice and sticks.
+gm=${XDG_DATA_HOME:-$HOME/.local/share}/qutebrowser/greasemonkey
+if [ ! -e "$state/no-av1-linked" ]; then
+    if [ -e "$gm/gemini-no-av1.user.js" ] || [ -L "$gm/gemini-no-av1.user.js" ]; then
+        touch "$state/no-av1-linked"
+    else
+        mkdir -p "$gm" &&
+            ln -s /usr/share/gemini/qutebrowser/gemini-no-av1.user.js "$gm/gemini-no-av1.user.js" &&
+            touch "$state/no-av1-linked"
+    fi
+fi

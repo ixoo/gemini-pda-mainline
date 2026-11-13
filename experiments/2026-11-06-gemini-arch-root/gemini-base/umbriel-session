@@ -34,6 +34,12 @@ fi
 # cannot bind to, so every launch failed (card-18). Plain child processes instead.
 unset SYSTEMD_EXEC_PID
 export XDG_CURRENT_DESKTOP=umbriel XDG_SESSION_DESKTOP=umbriel
+# Hardware video decoding in QtWebEngine, so qutebrowser (owner, 2026-11-12). Chromium uses
+# VA-API only on drivers it knows (Intel, AMD) unless VaapiIgnoreDriverChecks is set; libva
+# finds the decoder's driver through panfrost_drv_video.so. No --use-gl=egl. A value the
+# login already set is kept.
+: "${QTWEBENGINE_CHROMIUM_FLAGS:=--enable-features=AcceleratedVideoDecoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL,VaapiIgnoreDriverChecks}"
+export QTWEBENGINE_CHROMIUM_FLAGS
 # The keyboard layout chosen at first boot (KEYMAP=gemini-LAYOUT in /etc/vconsole.conf), as
 # its whole keymap file: Umbriel's layout names would drop the second group of the
 # two-group layouts (umbriel/gemini-keyboard.patch). Gemini US until first boot.

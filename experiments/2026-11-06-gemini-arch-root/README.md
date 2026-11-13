@@ -2404,7 +2404,7 @@ into the station image's module set (`77541707`). gemini-base 59:
 
   The default as built plays hardware H.264, HEVC and VP9 fullscreen with 1–3 of 300 frames
   dropped.
-- qutebrowser is unchanged; its hardware decoding stays opt-in.
+- qutebrowser is unchanged; its hardware decoding stays opt-in (until gemini-base 60, below).
 
 The video session's conditions, all met without more configuration: the card's modules are
 the booted image's own (stage 1's tmpfs), so they match it, and `mt6797-vdec` needs patches
@@ -2435,3 +2435,32 @@ Not started.
 - The left Type-C chip's sink mode belongs in the kernel, with the usb-c work.
 - The [support matrix](../../docs/HARDWARE_SUPPORT.md) changes only once step 4
   has a result.
+
+#### qutebrowser decodes video in hardware (gemini-base 60, owner, 2026-11-12)
+
+The custodian ran qutebrowser with VA-API on card-32 (boot `e02c9413`, gemini-base 59), and
+the owner asked for it by default ("let's bake it in the image"). The video session had kept it
+opt-in until its corrupt-stream test passed; V23 did (about 100 ms per hung picture).
+
+- **Chromium flags:** `umbriel-session` sets `QTWEBENGINE_CHROMIUM_FLAGS` to
+  `--enable-features=AcceleratedVideoDecoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL,VaapiIgnoreDriverChecks`,
+  unless the login already set it. `VaapiIgnoreDriverChecks` is the one that matters:
+  Chromium otherwise uses VA-API only on Intel and AMD drivers. No `--use-gl=egl`, and no
+  `LIBVA_DRIVER_NAME`, since gemini-base 59's `panfrost_drv_video.so` link selects the driver.
+  The session's environment reaches existing users without touching their qutebrowser config;
+  on the card only qutebrowser uses QtWebEngine.
+- **Codec userscript:** `gemini-no-av1.user.js` (the custodian's test script) reports AV1 and
+  10-bit VP9 (`vp09.01`–`03`) as unsupported through `MediaSource.isTypeSupported`,
+  `canPlayType` and `mediaCapabilities.decodingInfo`, so YouTube sends 8-bit VP9 or H.264.
+  qutebrowser reads userscripts only from the user's data directory, so the package installs
+  it in `/usr/share/gemini/qutebrowser/` and `first-login` links it into
+  `~/.local/share/qutebrowser/greasemonkey/` once per user, existing users included. A file of
+  that name the user already has stays, and a removed link stays removed.
+
+The custodian's measurement over the same 10 s of YouTube: before, AV1 in software, the renderer
+at 2.7–3.3 cores, the system 54 % idle and the SoC at 65–72 °C; after, VP9 through the decoder
+(370 decoder interrupts per 10 s), the renderer at 0.9 core, the system 68 % idle and the SoC at
+58–60 °C. YouTube chose 854×480, so 1080p is unmeasured.
+
+Built: `gemini-base-60` (`a39b4878…`) in an Arch chroot over card-32's image. ShellCheck passes
+on `umbriel-session` and `first-login`. Not yet installed on the device.
