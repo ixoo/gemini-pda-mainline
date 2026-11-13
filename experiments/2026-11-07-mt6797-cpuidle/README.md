@@ -1848,6 +1848,93 @@ SYS_CIRQ block: its sensitivity, polarity and mask words cloned from the GIC
 for the enabled edge SPIs, its enable at entry, and its flush and disable at
 exit.
 
+### D0 result (2026-11-13)
+
+Run by the custodian on the card root (card-32, boot `e7e3b009…`,
+station-work-116, A72s online and taken down by the script), script
+`c59e96d3` with its hash checked on the device. Cases `wifi-idle` and
+`music` (a tone through `pw-play` to the speaker, PCM running), then `cirq`;
+the optional download case was skipped. No error, taint 0, CPUs back to 0-9
+each time. Nothing hotplugged on the blank: the card root, unlike the
+station's init, has no dark-screen CPU policy. The custodian's own loggers
+ran throughout (an evdev reader, a 10 s `/proc/interrupts` loop writing to the
+microSD, `dmesg -w` over Wi-Fi), so part of the `mmc1` interrupts are theirs.
+Raw logs stay private with the custodian.
+
+**Both cases gave the same result in all 60 samples.**
+
+| Word | Value | Blocking for deep idle (mainline clock names) |
+| --- | --- | --- |
+| `0x10001090` (mainline infra0) | `0x00001800` | ICUSB; I2C2, I2C3; PWM_HCLK, PWM1-4, PWM; UART1-3 |
+| `0x10001094` (mainline infra1) | `0x00004014` | SPI (SPI0); CPUM; DISP_PWM (deep idle only); AP_DMA; L2C_SRAM |
+| `0x100010b0` (mainline infra2) | `0x000000e7` | I2C2 IMM and ARB; SSUSB_REF, SSUSB_BUS, SSUSB_SYS; SPI1-5; ANC_MD32, ANC_MD32_32K; AES_TOP1; IRTX; VAD_WRAP |
+
+SODI's list is the same without DISP_PWM. Power domains on: the display
+(DIS) and AUDIO in every sample, with the panel DPMS off and `bl_power` 4;
+ISP, VDEC, MFG, MJC and VENC off. `PCM_CON0` `0x4` and `PCM_FSM_STA`
+`0x02848490`: the SPM idle, as before. SYS_CIRQ: no status, every line
+masked, `CONTROL` `0x80000000` (not enabled); its sensitivity and polarity
+words hold reset-like values, so D4 has to program them all.
+
+CPU0's interrupts per 60 s, with CPU1-9 offline:
+
+| Source | Wi-Fi idle | Music |
+| --- | --- | --- |
+| `arch_timer` | 8,683 (145/s) | 11,397 (190/s) |
+| `asys-isr` (audio) | — | 2,831 (47/s) |
+| I2C `1100e000` | 885 | 675 |
+| `mmc1` (microSD, mostly the loggers) | 697 | 433 |
+| IRQ work | 247 | 198 |
+| I2C `11007000` | 84 | 70 |
+
+No CONSYS or Wi-Fi interrupt line appeared in either window.
+
+**Decision, by the record's table.**
+
+- **The hypothesis holds.** The idle conditions fail on infra gates and,
+  for deep idle, on the display domain and DISP_PWM. One CPU, MSDC and the
+  multimedia domains pass.
+- **Audio and Wi-Fi do not rule deep idle out.** Neither added a gate bit
+  or a domain the vendor requires off. The AUDIO domain is not a deep-idle
+  or SODI condition (only SODI3 adds the audio gates), and the joined Wi-Fi
+  link held none of the listed gates. So the case "deep idle with them
+  active is out" does not apply.
+- **P3's work list**, sorted by who can clear each item:
+  1. *Gates with no driver on the station* (R2 also found them on with no
+     user): ICUSB, PWM_HCLK, PWM1-4, PWM, UART1-3, SPI0-5, IRTX, AES_TOP1,
+     ANC_MD32 and its 32k clock, VAD_WRAP, CPUM, L2C_SRAM. Nothing on the
+     station drives these blocks (the console is UART0, the backlight is
+     DISP_PWM, the LEDs are on I2C), so they only stay on because
+     `clk_ignore_unused` skips the late gating.
+  2. *Gates with a driver that should release them:* I2C2 and I2C3 with
+     their IMM and ARB clocks, and AP_DMA (`i2c-mt65xx` enables both per
+     transfer; whether a bus on I2C2/3 is held open needs the clock
+     summary from the run); SSUSB_REF, BUS and SYS (MTU3 with the cable out,
+     which 0634 already powers down at runtime only with a wake path).
+  3. *Display:* DISP_PWM and the DIS domain, both still on with the panel
+     blanked. They block deep idle only; SODI allows them. That is the
+     display session's.
+- **Next step for group 1**, cheaper than a boot without
+  `clk_ignore_unused` (which the display, Wi-Fi and GPU still need): a small
+  `=m` module that, for exactly those named clocks and only if the clock
+  framework shows no user, runs `clk_prepare_enable` then
+  `clk_disable_unprepare`. That gates each one through the framework,
+  writing only the infra clock-gate set and clear registers (`0x10001080`/
+  `84`, `0x10001088`/`8c`, `0x100010a8`/`ac`) for those bits. Then D0
+  again shows what is left, and measures the current change.
+
+**Wake rate.** On CPU0 alone the local timer fires about 145 times a
+second idle and 190 with music, and the audio interrupt 47 times a second
+(about 21 ms periods). With `NO_HZ_IDLE` and HZ 250 that is high for an
+idle system: timers from userspace (the desktop, PipeWire, the loggers)
+keep waking CPU0. Each wake would end a deep-idle period, and each exit
+costs about 1 ms, so at about 175 wakes a second idle the exits alone would
+take some 15-20 % of the time. Average gaps of 5-7 ms still leave room
+above the 2 ms threshold, and the 21 ms audio period is long enough. But
+fewer wakeups is its own lever and worth chasing alongside P3, starting with
+which processes arm the timers (`/proc/timer_list` or a short trace of
+`hrtimer_start` on CPU0).
+
 ### What it should save
 
 | State | Today | Expected |
