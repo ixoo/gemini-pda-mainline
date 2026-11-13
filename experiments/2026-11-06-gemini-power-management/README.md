@@ -1703,6 +1703,27 @@ measurement, on battery. Raw logs private.
 
   The difference between the two sets names the cause.
 
+- **Owner's observation:** "I think the screen was blank, but the
+  backlight was on". The image carried 0684.
+- **Reading from the code:** `gemini-lid` turns the backlight off at a
+  close and on at an open, whatever the display was doing. The display
+  had been blanked for the measurement before the lid closed. So the open
+  lit the backlight behind a sleeping panel. That fits the observation
+  and the size of the rise.
+- [0755](../../patches/proposals/0755-Input-gemini-lid-light-the-backlight-on-open-only-if.patch)
+  records at the close whether the backlight was lit, and the open turns
+  it back on only then. A display blanked before the close stays dark
+  until its own unblank, by DPMS or the console. `gemini-lid` is a module.
+  Compile-checked only.
+- **Test BL** (with the owner's go-ahead, the root being on microSD):
+  1. Blank the display.
+  2. Close the lid and let logind suspend.
+  3. Open the lid.
+
+  **Pass:** `bl_power` still reads off and the battery current is back at
+  its pre-suspend level within 60 s. A second run with the display lit
+  before the close must come back lit.
+
 ## Analysis
 
 - **Firmware facts are from disassembly; the hang is an inference.** The

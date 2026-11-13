@@ -1,0 +1,56 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Thu, 12 Nov 2026 19:14:09 -0500
+Subject: [PATCH] Input: gemini-lid: light the backlight on open only if it was
+ lit
+
+The policy turns the backlight off when the lid closes and on when it
+opens, whatever the display was doing. On the Gemini the display had
+been blanked before a lid-close suspend. After the lid opened, the
+panel stayed dark with the backlight lit, and the battery current read
+about 134 mA higher than before the suspend.
+
+Record at the close whether the backlight was lit, and on the open turn
+it back on only then. A display blanked before the close stays dark,
+and its own unblank, by DPMS or the console, restores the backlight as
+usual.
+---
+ drivers/input/misc/gemini-lid.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/input/misc/gemini-lid.c b/drivers/input/misc/gemini-lid.c
+index 873eae73d..00fbf68b2 100644
+--- a/drivers/input/misc/gemini-lid.c
++++ b/drivers/input/misc/gemini-lid.c
+@@ -25,6 +25,8 @@ static DEFINE_MUTEX(lid_lock);
+ static struct input_dev *lid_keyboard;
+ static bool lid_exiting;
+ static bool lid_applied_closed;
++/* The backlight was lit when the lid closed, so the open lights it again. */
++static bool lid_backlight_was_on;
+ 
+ static void gemini_lid_apply(bool closed)
+ {
+@@ -47,10 +49,17 @@ static void gemini_lid_apply(bool closed)
+ 	if (bd) {
+ 		mutex_lock(&bd->ops_lock);
+ 		if (bd->ops) {
+-			if (closed)
++			/*
++			 * Restore only what the close turned off: a display
++			 * blanked before the close, by DPMS or a console blank,
++			 * stays dark, with no backlight behind a sleeping panel.
++			 */
++			if (closed) {
++				lid_backlight_was_on = !backlight_is_blank(bd);
+ 				backlight_disable(bd);
+-			else
++			} else if (lid_backlight_was_on) {
+ 				backlight_enable(bd);
++			}
+ 		}
+ 		mutex_unlock(&bd->ops_lock);
+ 	}
+-- 
+2.43.0
+
