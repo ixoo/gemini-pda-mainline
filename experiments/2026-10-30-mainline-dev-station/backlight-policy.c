@@ -247,7 +247,16 @@ static int caps_led_dark = -1;
 
 static void caps_led(int dark)
 {
-	if (dark != caps_led_dark && !put(CAPS_LED_TRIGGER, dark ? "none" : "kbd-capslock"))
+	int err;
+
+	if (dark == caps_led_dark)
+		return;
+	if (dark)
+		err = put(CAPS_LED_TRIGGER, "none");
+	/* The keypad's trigger follows a compositor too; an older kernel has only the console's. */
+	else if ((err = put(CAPS_LED_TRIGGER, "keyboard-matrix-capslock")))
+		err = put(CAPS_LED_TRIGGER, "kbd-capslock");
+	if (!err)
 		caps_led_dark = dark;
 }
 

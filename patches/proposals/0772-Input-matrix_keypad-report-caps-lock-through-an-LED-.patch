@@ -1,0 +1,100 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 17:13:02 -0500
+Subject: [PATCH 2/3] Input: matrix_keypad - report caps lock through an LED
+ trigger
+
+The kbd-capslock trigger follows the console's lock state only. Under a
+Wayland compositor the console keyboard is off and the compositor keeps
+caps lock itself, setting it with EV_LED on keyboards that declare it, so
+an indicator on that trigger never lights.
+
+With linux,capslock-trigger, declare LED_CAPSL and pass its state to an
+LED trigger named after the device. The console sends its LED state the
+same way, so one trigger serves both.
+
+Not yet run on hardware.
+---
+ drivers/input/keyboard/matrix_keypad.c | 45 ++++++++++++++++++++++++++
+ 1 file changed, 45 insertions(+)
+
+diff --git a/drivers/input/keyboard/matrix_keypad.c b/drivers/input/keyboard/matrix_keypad.c
+index 12409b36e..885609453 100644
+--- a/drivers/input/keyboard/matrix_keypad.c
++++ b/drivers/input/keyboard/matrix_keypad.c
+@@ -18,6 +18,7 @@
+ #include <linux/module.h>
+ #include <linux/gpio.h>
+ #include <linux/input/matrix_keypad.h>
++#include <linux/leds.h>
+ #include <linux/slab.h>
+ #include <linux/of.h>
+ 
+@@ -33,6 +34,7 @@ struct matrix_keypad {
+ 	unsigned int held_poll_ms;
+ 	bool drive_inactive_cols;
+ 	bool needs_ghost_filter;
++	struct led_trigger *capslock_trigger;
+ 
+ 	struct gpio_desc *row_gpios[MATRIX_MAX_ROWS];
+ 	unsigned int num_row_gpios;
+@@ -557,6 +559,45 @@ static int matrix_keypad_setup_interrupts(struct platform_device *pdev,
+ 	return 0;
+ }
+ 
++static int matrix_keypad_event(struct input_dev *dev, unsigned int type,
++			       unsigned int code, int value)
++{
++	struct matrix_keypad *keypad = input_get_drvdata(dev);
++
++	if (type == EV_LED && code == LED_CAPSL)
++		led_trigger_event(keypad->capslock_trigger,
++				  value ? LED_FULL : LED_OFF);
++	return 0;
++}
++
++static void matrix_keypad_free_trigger(void *data)
++{
++	struct matrix_keypad *keypad = data;
++
++	led_trigger_unregister_simple(keypad->capslock_trigger);
++}
++
++static int matrix_keypad_setup_capslock(struct platform_device *pdev,
++					struct matrix_keypad *keypad)
++{
++	const char *name;
++
++	if (!device_property_read_bool(&pdev->dev, "linux,capslock-trigger"))
++		return 0;
++
++	name = devm_kasprintf(&pdev->dev, GFP_KERNEL, "%s-capslock",
++			      dev_name(&pdev->dev));
++	if (!name)
++		return -ENOMEM;
++
++	led_trigger_register_simple(name, &keypad->capslock_trigger);
++	input_set_capability(keypad->input_dev, EV_LED, LED_CAPSL);
++	keypad->input_dev->event = matrix_keypad_event;
++
++	return devm_add_action_or_reset(&pdev->dev, matrix_keypad_free_trigger,
++					keypad);
++}
++
+ static int matrix_keypad_probe(struct platform_device *pdev)
+ {
+ 	struct matrix_keypad *keypad;
+@@ -622,6 +663,10 @@ static int matrix_keypad_probe(struct platform_device *pdev)
+ 	input_set_capability(input_dev, EV_MSC, MSC_SCAN);
+ 	input_set_drvdata(input_dev, keypad);
+ 
++	err = matrix_keypad_setup_capslock(pdev, keypad);
++	if (err)
++		return err;
++
+ 	err = devm_add_action_or_reset(&pdev->dev, matrix_keypad_cancel_work,
+ 				       keypad);
+ 	if (err)
+-- 
+2.43.0
+

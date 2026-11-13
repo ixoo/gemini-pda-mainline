@@ -192,7 +192,10 @@ probes and drives LEDs on the station at 3.5 mA:
 The station device tree names the LEDs by group without assigning a purpose:
 `rgb:indicator-1` to `-5` follow the daemon's block numbers, `rgb:indicator-6` is the
 extra RGB, and `red:indicator-7` and `blue:indicator-7` are outputs 19 and 20. By the
-owner's choice, `red:indicator-7` defaults to `kbd-capslock`, from patch 0577; the
+owner's choice, `red:indicator-7` shows caps lock. Patch 0577 set it to `kbd-capslock`,
+which follows only the console, so it never lit under sway. Patch 0773 moves it to
+the keypad's `keyboard-matrix-capslock`, which follows either
+([record](../../experiments/2026-11-13-gemini-capslock-led/README.md)). The
 other LEDs have no default trigger. The default worked on the device, and `timer`
 works from userspace. The station's `init` loads the module, shown on the device. The
 station's `backlight-policy` darkens the caps lock LED while the screen is dark, then

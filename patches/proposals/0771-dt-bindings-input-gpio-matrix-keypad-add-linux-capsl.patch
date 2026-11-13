@@ -1,0 +1,36 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 17:13:02 -0500
+Subject: [PATCH 1/3] dt-bindings: input: gpio-matrix-keypad: add
+ linux,capslock-trigger
+
+A board can put its caps lock indicator on a separate LED controller. Let
+the keypad accept the caps lock LED state and pass it on as an LED
+trigger, so that the indicator follows caps lock whether the console or a
+compositor tracks it.
+---
+ .../devicetree/bindings/input/gpio-matrix-keypad.yaml     | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+index 9181ad3a0..1e90eb80b 100644
+--- a/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
++++ b/Documentation/devicetree/bindings/input/gpio-matrix-keypad.yaml
+@@ -76,6 +76,14 @@ properties:
+       interval instead of requesting interrupts for the row GPIOs. Polling
+       cannot wake a suspended system.
+ 
++  linux,capslock-trigger:
++    type: boolean
++    description:
++      The board has a caps lock indicator. The keypad then accepts the caps
++      lock LED state from the input layer and reports it through an LED
++      trigger named after the device, with "-capslock" appended, so that an
++      indicator on another controller can follow it.
++
+   held-poll-interval:
+     $ref: /schemas/types.yaml#/definitions/uint32
+     minimum: 1
+-- 
+2.43.0
+

@@ -1343,3 +1343,6 @@ proposals/0766-PM-EM-retry-the-capacity-update-only-for-CPUs-with-a.patch
 proposals/0768-soc-mediatek-add-a-module-that-gates-the-MT6797-s-un.patch
 proposals/0769-serial-core-power-a-port-down-when-its-console-is-de.patch
 proposals/0770-soc-mediatek-mt6797-gate-unused-gate-the-disabled-I2.patch
+proposals/0771-dt-bindings-input-gpio-matrix-keypad-add-linux-capsl.patch
+proposals/0772-Input-matrix_keypad-report-caps-lock-through-an-LED-.patch
+proposals/0773-arm64-dts-mediatek-gemini-station-follow-caps-lock-f.patch

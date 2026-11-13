@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 17:13:03 -0500
+Subject: [PATCH 3/3] arm64: dts: mediatek: gemini station: follow caps lock
+ from the keypad
+
+The caps lock LED never lit under the Wayland session: it followed
+kbd-capslock, which only the console sets. Have the keypad report caps
+lock and the inside red LED follow it, from either the console or a
+compositor.
+
+Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts | 2 +-
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts     | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+index 0d7e6059b..f66aff5cd 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-a72.dts
+@@ -396,7 +396,7 @@ led@12 {
+ 			function = LED_FUNCTION_INDICATOR;
+ 			function-enumerator = <7>;
+ 			led-max-microamp = <3500>;
+-			linux,default-trigger = "kbd-capslock";
++			linux,default-trigger = "keyboard-matrix-capslock";
+ 		};
+ 
+ 		led@13 {
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index ec5bbac52..da19e3cc4 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -335,6 +335,8 @@ &aw9523 {
+ 	held-poll-interval = <20>;
+ 	/* A key wakes the system while the lid is open (needs the AW9523 wake). */
+ 	wakeup-source;
++	/* Caps lock from the console or a compositor, for the indicator LED. */
++	linux,capslock-trigger;
+ };
+ 
+ /* Opening the lid wakes the system; closing it does not. */
+-- 
+2.43.0
+
