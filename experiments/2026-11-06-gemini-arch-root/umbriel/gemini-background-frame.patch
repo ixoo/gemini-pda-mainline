@@ -1,0 +1,201 @@
+Umbriel's background-frame tick runs only while a window needs it (gemini-pda-mainline, MIT).
+
+Upstream-ready message:
+
+  server: arm the background-frame tick only while a window needs it
+
+  The 100 ms background-frame tick sends frame callbacks to mapped
+  toplevels that are off the rendered scene but cannot be suspended (X11
+  windows, xdg clients older than v6) and to suspended ones that still
+  owe a commit for a configure. It re-armed itself unconditionally, so
+  the compositor woke ten times a second even when no window qualified,
+  including with every output powered off.
+
+  Arm it only when a view qualifies: after the suspension sync, which
+  already runs on every scene visibility, map, capture and overview
+  change, and after a configure is sent to a toplevel, which can leave a
+  suspended hidden view owing a commit. The tick stops itself once
+  nothing qualifies.
+
+  On a battery device with an idle desktop and the output blanked, this
+  removes about 10 wakeups/s.
+
+Measured on a Gemini PDA (custodian census, 2026-11-13): 1198 timerfd arms in 120 s with the
+output off, all from this tick.
+
+diff --git a/src/server/server.cpp b/src/server/server.cpp
+--- a/src/server/server.cpp
++++ b/src/server/server.cpp
+@@ -1231,10 +1231,9 @@
+     // (see kBackgroundFrameIntervalMs and Server::onBackgroundFrameTimer).
+     m_backgroundFrameTimer =
+         wl_event_loop_add_timer(wl_display_get_event_loop(m_display), onBackgroundFrameTimer, this);
+-    if (m_backgroundFrameTimer != nullptr) {
+-      wl_event_source_timer_update(m_backgroundFrameTimer, kBackgroundFrameIntervalMs);
+-    }
+-    // Armed only while a hidden window has a background_render rule (see Server::armBackgroundRenderTimer).
++    // Armed only while a window needs it (see Server::armBackgroundFrameTimer).
++    // The background-render tick likewise only while a hidden window has a background_render rule (see
++    // Server::armBackgroundRenderTimer).
+     m_backgroundRenderTimer =
+         wl_event_loop_add_timer(wl_display_get_event_loop(m_display), onBackgroundRenderTimer, this);
+     setenv(
+diff --git a/src/server/server.h b/src/server/server.h
+--- a/src/server/server.h
++++ b/src/server/server.h
+@@ -594,6 +594,9 @@
+     // Arms the background-render tick for the fastest refresh among hidden `background_render` windows, or disarms it
+     // when there are none.
+     void armBackgroundRenderTimer();
++    // Arms the background-frame tick if a window needs it and it is not already running; the tick stops itself once
++    // none does, so an idle desktop has no periodic wakeup.
++    void armBackgroundFrameTimer();
+     static int onStartupRulesTimer(void* data);
+     static int onTerminateSignal(int signal, void* data);
+     static void onLayerKeyboardFocusChange(wl_listener* listener, void* data);
+@@ -954,6 +957,7 @@
+     std::unordered_set<std::string> m_allowedInputNames;
+     std::unordered_set<std::string> m_deniedInputNames;
+     wl_event_source* m_backgroundFrameTimer = nullptr;
++    bool m_backgroundFrameArmed = false;
+     // Paces hidden `background_render` windows at their output's refresh rate; disarmed while none is hidden.
+     wl_event_source* m_backgroundRenderTimer = nullptr;
+     // One-shot refresh when dynamic startup rules expire.
+diff --git a/src/server/server_events.cpp b/src/server/server_events.cpp
+--- a/src/server/server_events.cpp
++++ b/src/server/server_events.cpp
+@@ -1014,21 +1014,28 @@
+     }
+   }
+ 
++  namespace {
++    // A presented view gets its callbacks from the outputs that draw it, including the outgoing workspace mid-slide,
++    // and a background_render view from its own faster tick. A suspended one gets them only to commit a configure it
++    // still owes, such as a resize while hidden.
++    bool needsBackgroundFrame(const View& view) {
++      return view.mapped()
++          && !view.presented()
++          && !view.backgroundRender()
++          && !(view.suspended() && !view.configureOutstanding());
++    }
++  } // namespace
++
+   // Sends frame callbacks to toplevels off the rendered scene that could not be suspended (see
+-  // kBackgroundFrameIntervalMs).
++  // kBackgroundFrameIntervalMs), and keeps ticking only while one needs them.
+   int Server::onBackgroundFrameTimer(void* data) {
+     auto* self = static_cast<Server*>(data);
+     timespec now{};
+     clock_gettime(CLOCK_MONOTONIC, &now);
++    self->m_backgroundFrameArmed = false;
+ 
+     for (const auto& view : self->m_registry.all()) {
+-      // A presented view gets its callbacks from the outputs that draw it, including the outgoing workspace mid-slide,
+-      // and a background_render view from its own faster tick. A suspended one gets them only to commit a configure it
+-      // still owes, such as a resize while hidden.
+-      if (!view->mapped()
+-          || view->presented()
+-          || view->backgroundRender()
+-          || (view->suspended() && !view->configureOutstanding())) {
++      if (!needsBackgroundFrame(*view)) {
+         continue;
+       }
+       view->forEachSurface(
+@@ -1039,12 +1046,20 @@
+       );
+     }
+ 
+-    if (self->m_backgroundFrameTimer != nullptr) {
+-      wl_event_source_timer_update(self->m_backgroundFrameTimer, kBackgroundFrameIntervalMs);
+-    }
++    self->armBackgroundFrameTimer();
+     return 0;
+   }
+ 
++  void Server::armBackgroundFrameTimer() {
++    if (m_backgroundFrameTimer == nullptr || m_backgroundFrameArmed) {
++      return;
++    }
++    if (std::ranges::none_of(m_registry.all(), [](const auto& view) { return needsBackgroundFrame(*view); })) {
++      return;
++    }
++    m_backgroundFrameArmed = wl_event_source_timer_update(m_backgroundFrameTimer, kBackgroundFrameIntervalMs) == 0;
++  }
++
+   namespace {
+     // A hidden background_render window's callback interval: its output's refresh period, or 60 Hz when the output
+     // reports none (headless and nested outputs).
+@@ -1113,6 +1128,7 @@
+       view->syncSuspendedState();
+     }
+     server->armBackgroundRenderTimer();
++    server->armBackgroundFrameTimer();
+   }
+ 
+   bool Server::viewRenderedOffscreen(const View& view) const {
+diff --git a/src/view/view.cpp b/src/view/view.cpp
+--- a/src/view/view.cpp
++++ b/src/view/view.cpp
+@@ -231,6 +231,9 @@
+       wl_signal_add(&m_toplevel->events.set_parent, &m_setParent);
+       wl_signal_add(&m_toplevel->events.set_title, &m_setTitle);
+       wl_signal_add(&m_toplevel->events.set_app_id, &m_setAppId);
++      // A configure sent while the view is hidden and suspended needs frame callbacks until it is committed.
++      m_xdgConfigure.notify = onXdgConfigure;
++      wl_signal_add(&m_toplevel->base->events.configure, &m_xdgConfigure);
+       // wlroots prepares the first capabilities event before exposing the toplevel. Adjust that pending event directly,
+       // because the public setter schedules a configure and the surface is not initialized until its initial commit.
+       m_toplevel->scheduled.wm_capabilities &= ~WLR_XDG_TOPLEVEL_WM_CAPABILITIES_MINIMIZE;
+@@ -323,7 +326,7 @@
+     for (wl_listener* listener :
+          {&m_map, &m_unmap, &m_commit, &m_destroy, &m_requestMove, &m_requestResize, &m_requestMaximize,
+           &m_requestMinimize, &m_requestFullscreen, &m_setParent, &m_setTitle, &m_setAppId, &m_xRequestConfigure,
+-          &m_xRequestActivate, &m_xSetHints, &m_xShapeChanged, &m_setDecorations}) {
++          &m_xRequestActivate, &m_xSetHints, &m_xShapeChanged, &m_setDecorations, &m_xdgConfigure}) {
+       removeListener(*listener);
+     }
+     if (m_rootSurfaceDestroy.link.next != nullptr) {
+@@ -916,6 +919,12 @@
+   void View::onSetTitle(wl_listener* listener, void* /*data*/) {
+     View* self = wl_container_of(listener, self, m_setTitle);
+     self->handleSetTitle();
++  }
++
++  void View::onXdgConfigure(wl_listener* listener, void* /*data*/) {
++    View* self = wl_container_of(listener, self, m_xdgConfigure);
++    // The suspension sync re-arms the background-frame tick if this configure leaves a hidden view owing a commit.
++    self->m_server->scheduleSuspensionSync();
+   }
+ 
+   void View::onSetAppId(wl_listener* listener, void* /*data*/) {
+diff --git a/src/view/view.h b/src/view/view.h
+--- a/src/view/view.h
++++ b/src/view/view.h
+@@ -598,6 +598,7 @@
+     static void onDialogDestroy(wl_listener* listener, void* data);
+     static void onSetTitle(wl_listener* listener, void* data);
+     static void onSetAppId(wl_listener* listener, void* data);
++    static void onXdgConfigure(wl_listener* listener, void* data);
+     static void onForeignActivate(wl_listener* listener, void* data);
+     static void onForeignClose(wl_listener* listener, void* data);
+     static void onForeignMinimize(wl_listener* listener, void* data);
+@@ -1131,6 +1132,7 @@
+     wl_listener m_setParent{};
+     wl_listener m_setTitle{};
+     wl_listener m_setAppId{};
++    wl_listener m_xdgConfigure{};
+     wl_listener m_foreignActivate{};
+     wl_listener m_foreignClose{};
+     wl_listener m_foreignMinimize{};
+diff --git a/src/view/view_lifecycle.cpp b/src/view/view_lifecycle.cpp
+--- a/src/view/view_lifecycle.cpp
++++ b/src/view/view_lifecycle.cpp
+@@ -1198,7 +1198,7 @@
+     for (wl_listener* listener :
+          {&m_map, &m_unmap, &m_commit, &m_destroy, &m_requestMove, &m_requestResize, &m_requestMaximize,
+           &m_requestMinimize, &m_requestFullscreen, &m_setParent, &m_setTitle, &m_setAppId, &m_xRequestConfigure,
+-          &m_xRequestActivate, &m_xSetHints, &m_xShapeChanged, &m_setDecorations}) {
++          &m_xRequestActivate, &m_xSetHints, &m_xShapeChanged, &m_setDecorations, &m_xdgConfigure}) {
+       removeListener(*listener);
+     }
+     m_sceneTree->node.data = nullptr;

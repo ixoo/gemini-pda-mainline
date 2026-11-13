@@ -46,3 +46,16 @@ if [ ! -e "$state/no-av1-linked" ]; then
             touch "$state/no-av1-linked"
     fi
 fi
+
+# Noctalia settings that cut wakeups on battery, linked once per user like the userscript: a
+# file of that name the user already has stays, and a removed link stays removed.
+nc=${XDG_CONFIG_HOME:-$HOME/.config}/noctalia
+if [ ! -e "$state/noctalia-power-linked" ]; then
+    if [ -e "$nc/10-gemini-power.toml" ] || [ -L "$nc/10-gemini-power.toml" ]; then
+        touch "$state/noctalia-power-linked"
+    else
+        mkdir -p "$nc" &&
+            ln -s /usr/share/gemini/noctalia/10-gemini-power.toml "$nc/10-gemini-power.toml" &&
+            touch "$state/noctalia-power-linked"
+    fi
+fi

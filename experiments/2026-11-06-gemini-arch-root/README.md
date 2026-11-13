@@ -2470,3 +2470,44 @@ reports the decoder's real maximum size, 1920×1088, instead of 4096×4096, so C
 Built: `gemini-base-60` (`a39b4878…`) in an Arch chroot over card-32's image. Built with it:
 `libva-v4l2-request-mt6797-1.2.20260715-5` (`88f0a610…`), no compiler warnings. ShellCheck passes
 on `umbriel-session` and `first-login`. Not yet installed on the device.
+
+#### Fewer desktop wakeups with the screen off (gemini-base 61, umbriel pkgrel 7, owner, 2026-11-13)
+
+The owner asked to "challenge our update frequency to be reasonable and limit wake up given it
+is a device running on battery". The custodian's census (card-32, boot `e7e3b009`, gemini-base
+60, output blanked, CPU0 only, 120 s) counted about 30 wakeups/s between Umbriel, Noctalia,
+upowerd and D-Bus. Read against Umbriel `94ab5961`, Noctalia 5.4.1 and UPower 1.91.5:
+
+- **Umbriel, 10/s:** its 100 ms background-frame tick sends frame callbacks to hidden windows
+  that can't be suspended (X11, xdg clients older than v6) and to suspended ones that owe a
+  commit. It re-armed itself unconditionally, even with no such window and with the output off
+  (1198 timerfd arms in 120 s). `gemini-background-frame.patch` arms it only while a view
+  qualifies: after the suspension sync, which runs on every visibility, map, capture and
+  overview change, and after a configure is sent to a toplevel. The tick stops itself once
+  nothing qualifies. The patch carries an upstream-ready message.
+- **Noctalia, 4.9/s:** the Caps/Num/Scroll Lock OSD polls every 200 ms. The Gemini keyboard has
+  no lock LEDs, and Noctalia's own key state only updates while it has keyboard focus, so the
+  OSD couldn't follow the lock keys anyway. `[osd.kinds] lock_keys = false` stops the poll; no
+  bar uses the `lock_keys` widget.
+- **Noctalia, about 1/s:** its system monitor thread samples CPU, memory, network, GPU and disk
+  whether or not anything shows them. It now polls every 10 s for CPU, memory and network and 30
+  s for disk, with GPU off, since it has no reader for the Mali. That's about 0.1–0.2/s, and the
+  control centre's System tab updates every 10 s.
+- **UPower, unchanged:** not a steady 3/s but one burst every 30 s, about 450 wakeups in about
+  110 ms. It re-reads the battery over I²C and sends the property changes over D-Bus. The
+  interval is fixed in UPower, and the battery reports charge changes only through this poll.
+
+The Noctalia settings are `/usr/share/gemini/noctalia/10-gemini-power.toml`. Noctalia reads only
+the user's config directory, so `first-login` links the file into `~/.config/noctalia/` once per
+user, existing users included. A file of that name the user already has stays, and a removed
+link stays removed. A later-named file or the settings window overrides it.
+
+Expected with the output off: Umbriel about 0/s, unless an X11 or old-xdg window sits on a
+hidden workspace; Noctalia about 0.2/s; UPower's 30 s burst as before. Kernel work outside this
+root dominates what remains: the Wi-Fi driver's `mt6797_mac_join_work` ran 52 times a second in
+the same census.
+
+Built in an Arch chroot over card-32's image: `gemini-base-61` (`c3c97725…`) and
+`umbriel-0.1.0.r20261108.94ab596-7` (`b7c33b96…`), no compiler warnings. ShellCheck passes on
+`first-login`, and its link step was tested in scratch home directories (created, a removed link
+stays removed, a user's file is kept). Not on the device.
