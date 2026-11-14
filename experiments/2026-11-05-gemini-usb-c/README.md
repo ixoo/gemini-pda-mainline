@@ -923,6 +923,50 @@ Consequences:
   `0x04`. An image that relies on the left port for SSH and charging needs
   either `fusb301` loaded or a station init that writes sink; not done.
 
+### Idle clocks with no cable, R1 (2026-11-14)
+
+Asked by the cpuidle work: with Wi-Fi joined and the cable out, SODI waited
+only on ICUSB (INFRA `0x090` bit 8) and SSUSB_REF/BUS/SYS (INFRA `0x0b0` bits
+9, 18, 24). R1 was a read-only script, run by the custodian on
+`station-work-125`, boot `0da78fe9`, card root, cable out (both supplies
+offline). Full output kept privately.
+
+- No USB module loaded: no MUSB glue, no xHCI, no `fusb301`, no Type-C
+  class; no autoload configuration. `/sys/class/typec` empty.
+- `11200000.usb` (right port, USB11) and `11270000.usb` (xHCI): no driver.
+- `11271000.usb` (left port, MTU3): bound, `control=on`, runtime active,
+  usage 1. Role `device`, gadget `not attached`, no MTU3 interrupts in 60 s.
+- `infra_icusb`: enable and prepare count 0, gate on, no consumer. The loader
+  left it on; gate-unused logged "used by /usb@11200000, left on", because it
+  skips a clock that an enabled node lists.
+- `infra_ssusb_ref`, `_bus`, `_sys`: enable 1 each, held by MTU3 (`ref_ck`,
+  `mcu_ck`, `sys_ck`).
+
+So:
+
+- **ICUSB** needs no USB change. Gate-unused could gate a clock whose listing
+  node has no bound driver: a driver that binds later enables it as usual.
+  That module belongs to the cpuidle work. Disabling the USB11 node instead
+  would remove the right-port host.
+- **SSUSB** is MTU3 held on by design. Probe forbids runtime PM, and 0634
+  keeps the clocks on without a wake path, because the PHY forces the
+  B-session valid and a powered-down MTU3 can't see a cable.
+
+**Proposal, not written: power MTU3 down while there is no VBUS.** The PMIC's
+charger-detect already tells the charger-type driver when VBUS comes and goes
+(0765). That driver would set MTU3's role switch to *none* when VBUS goes and
+to *device* when it comes, after its BC1.1 pass, and it would never override
+*host*. MTU3 would treat *none* as "no cable": stop the gadget and allow the
+runtime suspend with PHY and clocks off; *device* and *host* keep it on as
+now. Both drivers are built in, so this needs a new image. The risk is the
+USB SSH link: a missed plug leaves the gadget off until the next VBUS change,
+so the test needs Wi-Fi SSH as the fallback (the role is writable from
+userspace). Expected effect: no SSUSB clock with the cable out; a plug brings
+the gadget up after the BC1.1 pass, about half a second.
+
+The I2C interrupts in the same sample (bus 6 about 6/s, bus 0 about 1.4/s)
+are not USB: no USB driver is on those buses on this image.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 
