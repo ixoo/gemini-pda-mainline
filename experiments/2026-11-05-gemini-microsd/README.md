@@ -2500,6 +2500,91 @@ mainline does, and logged no error in 768 of them. No I/O error or warning.
 - The lead is MSDC1's own configuration on mainline. T12 (`CKPDN`) comes first,
   and it waits for the owner's admission.
 
+### T12 result (2026-11-14)
+
+Image 122, boot `faf18904`, card root, on battery, setting A, g traced. The owner
+admitted T12 with the text in the request. MSDC1 `power/control` was `on`
+throughout. Raw traces are private.
+
+| Arm | Runs (failed CMD18) | Total |
+| --- | --- | --- |
+| `CKPDN` set (`0x02100093`) | a1 7/322, a2 8/401, a3 7/322 | 22/1045 |
+| `CKPDN` clear (`0x02100091`) | b1 7/323, b2 7/416, b3 8/322 | 22/1061 |
+| `CKPDN` set again | z1 8/325 | |
+
+**Observed.**
+
+- During b2 the bit was set again, probably by a clock change in recovery; that run
+  also had extra CMD18s. It was cleared again before b3. b1 and b3 ran entirely
+  with the bit clear and failed 7 and 8 times.
+- No `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+- The script's exit handler wrote the bit after `power/control` was back on `auto`.
+  The controller was suspended by then, so the write read back 0 and didn't land.
+  Afterwards the controller resumed normally with `MSDC_CFG` `0x02100093`, and a
+  4 MiB read ran at 64.6 MB/s. Future scripts restore registers before releasing
+  `power/control`.
+
+**Inferred.**
+
+- The free-running SD clock doesn't cause the errors.
+- Gemian is clean with the same card, the same reads and the same request size.
+  The remaining differences are in MSDC1's own configuration. The data sampling
+  path is the strongest:
+  - **Mainline** samples read data through 47 pad delay cells (31 in the first
+    field, 16 in the second), with latch clock 0 and `CKGEN_MSDC_DLY_SEL` 1, which
+    `mtk-sd` hard-codes.
+  - **Gemian** gets its sampling point from latch clock 1, one internal clock cycle
+    later, plus 8 delay cells, with CKGEN 0.
+  - A chain of 47 cells drifts with its supply and temperature far more than one of
+    8. Mainline's tuning measures it during 64 back-to-back CMD19s. That would fit
+    errors that the tuning block passes, that move about between runs, and that
+    follow load changes. This is not shown.
+- `SDC_CFG` bit 20 (SDIO interrupt detection) and `PATCH_BIT1` bit 16 remain behind
+  it.
+
+### T13: Gemian's data sampling path (diagnostic register writes, needs the owner's admission)
+
+**Hypothesis.** With MSDC1's read-data sampling set as Gemian sets it (latch clock
+1, CKGEN 0, data delay 8, no second field), g stops failing.
+
+**Limitation.** On a CRC error mainline retunes, and its tuning writes latch clock 0
+and new delays back. So the setting holds only until the first error in a run. The
+measure is the number of requests before that first failure, and whether the
+setting is still in place at the end of the run.
+
+**Writes**, MSDC1 `power/control` `on` throughout, each a whole-register write of the
+values derived from this boot's reads:
+
+| Register | Mainline (R3) | T13 | Field changes |
+| --- | --- | --- | --- |
+| `PAD_TUNE1` `0x112400f4` | `0x002f2f00` | `0x002f0000` | second data delay 0, its select bit clear; CMD unchanged |
+| `PAD_TUNE0` `0x112400f0` | `0x003f3f00` | `0x003f2800` | data delay 8; CMD unchanged |
+| `PATCH_BIT0` `0x112400b0` | `0x403c0446` | `0x403c00c6` | latch clock 1, CKGEN 0; other bits unchanged |
+
+Written in that order. CMD sampling is left as mainline has it.
+
+**Procedure.** Image 122, card root, on battery, setting A, g traced.
+
+1. `power/control` `on`. Read the three registers. If they differ from the R3 column,
+   stop and report; the T13 values would then need deriving again.
+2. Arm 0: g twice.
+3. Arm 1: three times, apply the writes and read them back, then run g. After each
+   run read the three registers; `PATCH_BIT0` bits 9:7 show whether a retune
+   reverted them.
+4. Write back the three values read in step 1, read back, then `power/control`
+   `auto`.
+5. Arm 0: g once.
+
+**Stop.** At any `mmc1` error line, I/O error, `EXT4-fs error`, `Remounting`,
+warning or Oops: write back step 1's values, then `power/control` `auto`, then
+report. A data CRC error that only causes a retune isn't a stop.
+
+| Arm 1 | Decision |
+| --- | --- |
+| All three runs clean, the setting still in place | The sampling path causes it. Image test: `mediatek,latch-ck = <1>` on `mmc1` so the tuning places the delay, plus CKGEN 0 if the latch alone isn't enough |
+| A first failure about as soon as arm 0's (around 45 requests) | Not the sampling path. Next: `SDC_CFG` bit 20, then `PATCH_BIT1` bit 16 |
+| Failures in the first few requests of every run | The delay doesn't fit mainline's 192 MHz. Inconclusive, so test it with the image, which tunes the delay itself |
+
 ## Follow-up
 
 - Suspend and resume.
