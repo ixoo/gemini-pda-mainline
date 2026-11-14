@@ -2227,6 +2227,44 @@ afterwards. Raw traces are private.
 The Gemian comparison waits for a read that reproduces on mainline, and then uses
 that read.
 
+### The S3b read and 1 MiB forced-idle reads, same boot (2026-11-14)
+
+Boot `4fb1600d`, setting A (CCI 234 MHz), traced like the forced-idle runs.
+Hottest thermal zone 28.4 °C before, 26.0-26.3 °C during. No new `mmc1`, I/O or EXT4
+line. Raw traces are private.
+
+| Run | Read | Failed CMD18 |
+| --- | --- | --- |
+| s1 | `dd bs=1M count=128 skip=1024` | 29/399 |
+| s2 | same | 10/324 |
+| s3 | same | 1/319 |
+| g1 | 128 separate 1 MiB reads, 5 ms between them | 6/328 |
+| g2 | same | 6/296 |
+
+**Observed.**
+
+- Every one of the 52 failures followed 2 ms or more of bus idle. None followed a
+  start less than 0.5 ms after the previous CMD18 completed. Most of the two
+  512 KiB halves of a 1 MiB read were not back to back either.
+- The same three reads failed less each time: 29, 10, 1.
+- Some addresses failed again across runs, `0x201400` three times.
+
+**Inferred.**
+
+- The errors are back on this boot, so the kernel change (HZ=100) didn't remove
+  them. 1 MiB reads reproduce them where 512 KiB reads over the same region gave
+  1/970. Why the request size matters isn't known.
+- The repeated identical read settling from 29 to 1 suggests the card, or its
+  state for that region, changes after a read. That points towards the card (H1),
+  but doesn't show it.
+- g held steady at about 2 %, so it becomes the standard stress.
+
+**Next: Gemian runs g** on this card, three runs, for about 900 requests. At the
+mainline rate that should give about 18 failures.
+- **None or nearly none:** a host setting mainline lacks. The VMC trim comes
+  next, then drive and tuning values.
+- **A similar rate:** the card itself.
+
 ## Follow-up
 
 - Suspend and resume.
