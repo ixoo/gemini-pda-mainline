@@ -2067,6 +2067,77 @@ afterwards:
 | fails | fails | clean | the CPU's own speed (latency, idle) |
 | like the others | | | none of these; the card or the I/O supply |
 
+### S3b: the split, and idle time before a request (2026-11-14)
+
+Boot `9a7d0389`, station-work-121, A72s offline. The custodian traced three 128 MiB
+direct reads per setting from the S3 table. A setting restore wrote an empty CCI
+`max_freq`, so the last run, z1, ran with the CCI held at 988 MHz. Raw traces are
+private.
+
+| Setting | During | Failed CMD18 |
+| --- | --- | --- |
+| A, all low | LITTLE 221/325 MHz, CCI 234 | 39, 0, 34 of about 310 (7.8 %) |
+| B, CPU low, CCI high | LITTLE 221/325, CCI 988 | 13, 0, 1 (1.4 %) |
+| C, CPU high, CCI low | LITTLE 1547/2002, CCI 234 | 6, 5, 10 (2.4 %) |
+| z1, schedutil, CCI 988 | | 16/321 (5.0 %) |
+
+**Observed** (all 16 traced runs of S3 and S3b, 7404 CMD18 with 200 failures):
+
+- Failures need idle time on the bus. Measured from the previous `mmc1` command's
+  completion to the request's start:
+
+  | Idle before the request | Failed |
+  | --- | --- |
+  | under 0.5 ms | 0/563 |
+  | 0.5-2 ms | 46/1270 |
+  | 2 ms or more | 154/3571 |
+
+- The same card addresses fail again and again: 31 of the 132 1 MiB-aligned starts
+  ever failed, and the worst failed in 13 of 17 runs. 1 MiB-aligned requests, the
+  first half of each `dd` block, which follow `dd`'s gap, fail 145/2221. The
+  512 KiB-aligned second halves fail 55/2177.
+- Identical settings can give 39 or 0 failures.
+
+**What the source says.**
+
+- `msdc_set_mclk` clears `MSDC_CFG_CKPDN` (bit 1) every time it sets the clock. So
+  the controller is left free to stop the SD clock while the bus is idle
+  (inferred from how the vendor uses the bit).
+- The vendor's normal paths never touch the bit. Its autotuning (`autok.c`) sets
+  it to 1 to force the clock on while it tunes, then puts the old value back.
+- Mainline's tuning sends 64 CMD19 back to back, so the clock hardly stops either.
+
+**Inferred.**
+
+- The tuning measures a running clock, and a real request after an idle gap
+  starts on a stopped one. A sampling problem of the first transfer after the
+  clock restarts would fit everything so far:
+  - only after idle;
+  - not lowered by halving the clock;
+  - more at low CPU and CCI points, which stretch the gaps between requests;
+  - invisible to tuning.
+
+  The addresses that fail again and again are partly the gap pattern (first halves
+  of `dd` blocks). Some address or content dependence stays unexplained.
+- Not shown: what `CKPDN` 1 actually does on MT6797, or that the restart is the
+  cause.
+
+**Proposed T10 (a diagnostic register write; needs the owner's admission).**
+
+- Keep MSDC1 clocked with `echo on > /sys/bus/platform/devices/11240000.mmc/power/control`,
+  so its registers can be written safely.
+- Run setting A (the worst) with three traced 128 MiB reads per arm:
+  - arm 0: `MSDC_CFG` as it is;
+  - arm 1: `MSDC_CFG` bit 1 set with a `devmem` read-modify-write at `0x11240000`.
+- Then clear the bit and set `power/control` back to `auto`.
+- Stop on any `mmc1` error line, I/O error or EXT4 error.
+
+| Arm 0 | Arm 1 | Decision |
+| --- | --- | --- |
+| fails | clean | The clock stopping when idle causes the errors: set `CKPDN` on the SD slot in `mtk-sd` (a small patch), then test the hang the same way |
+| fails | fails | Not the idle clock: content dump of the failing blocks, or S4 |
+| clean | | Inconclusive: repeat with more idle (`dd bs=512K` with a 5 ms pause) |
+
 ## Follow-up
 
 - Suspend and resume.
