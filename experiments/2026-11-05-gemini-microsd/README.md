@@ -2347,8 +2347,10 @@ Raw lists are private.
 
 **Other differences:**
 
-- **Pads.** Two microSD pins have the opposite pull strength (`R0`/`R1` bits 15-16).
-  One Schmitt-trigger bit (`0x10002830` bit 26) is set on mainline only.
+- **Pads.** The pull-strength bits (`R0`/`R1` bits 15-16) and one Schmitt-trigger
+  bit (`0x10002830` bit 26) differ, but they belong to other pins. The microSD
+  pins use pull bits 18-23 and Schmitt bits 0-2, which match on both kernels
+  (see T11 result).
 - **MSDC1 sampling path.** Mainline uses data latch clock 0 with `CKGEN_MSDC_DLY_SEL`
   1, and pad delays of 47 for CMD and data, through the second delay field.
   Gemian uses latch clock 1 with CKGEN 0, and a data delay of 8 and a CMD delay
@@ -2364,8 +2366,8 @@ Raw lists are private.
 - The supply trims are the one difference the vendor sets on purpose and mainline
   doesn't, at a level outside tuning. They fit a fault that depends on the card
   waking after idle and not on the clock.
-- Next come the pad pulls and Schmitt bit, then the sampling path. Mainline's own
-  tuning places the sampling path, so it's the least likely.
+- Next comes the sampling path. Mainline's own tuning places it, so it's the least
+  likely.
 
 ### T11: the vendor's supply trims (diagnostic PMIC write, needs the owner's admission)
 
@@ -2407,6 +2409,70 @@ warning or Oops: `rmmod sd-trim` if it's loaded, then report. No retries.
 | 8 or more failures | 0-1 | The trims cause the errors. Split VMCH and VMC with the parameters, then a regulator-driver or DT change for the slot |
 | 8 or more | similar to arm 0 | Not the trims. Next, the pad pulls and Schmitt bit as runtime pinconf writes, then the sampling path |
 | under 8 | | No baseline. Repeat the arms on a boot that reproduces |
+
+### T11 result (2026-11-14)
+
+Image 122, boot `08e9a8ff`, card root, on battery, setting A (CCI 234 MHz), g with
+`mmc1` traced. The owner admitted T11 with the text in the request. The custodian
+ran three baseline runs instead of two, so the three-run rule applies as written.
+Raw traces are private.
+
+| Arm | Runs (failed CMD18) | Total |
+| --- | --- | --- |
+| Firmware trims (`0x0ace` `0x0005`, `0x0ae2` `0x031b`) | b1 7/320, b2 8/392, b3 7/320 | 22/1032 (2.1 %) |
+| Gemian's trims (`0x0000`, `0x0300`) | m1 8/323, m2 8/392, m3 2/318 | 18/1033 (1.7 %) |
+| Firmware trims again | r1 7/325 | |
+
+**Observed.**
+
+- The module set and restored both fields as logged. The register reads matched
+  each time.
+- No `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+
+**Inferred.**
+
+- The supply trims don't cause the CRC errors.
+- The R3 pad differences belong to other pins. The vendor's MSDC1 masks (`msdc_io.h`)
+  put the microSD pulls at bits 18-23 of `0x10002500`-`0x10002520` and its Schmitt
+  triggers at bits 0-2 of `0x10002830`. Both kernels read the same values there.
+  Slew rate (`0x10002430`) wasn't read.
+- What's left is MSDC1's own configuration. One bit stands out, because it fits a
+  fault that needs idle time:
+  - `MSDC_CFG` bit 1 (`CKPDN`) is 0 on Gemian. The controller then stops the SD
+    clock whenever it has nothing to do.
+  - Mainline sets it after every clock change, so the clock runs continuously
+    between requests (T10).
+  - The vendor sets it only while autok tunes.
+- The other MSDC1 differences:
+  - `SDC_CFG`: SDIO detection, bit 20 set on mainline, which Gemian has clear;
+  - `PATCH_BIT1` bit 16 and the turnaround counters;
+  - the sampling path (latch clock, CKGEN delay, pad delays).
+
+### T12: the SD clock stopped when idle, as Gemian runs it (diagnostic register write, needs the owner's admission)
+
+**Hypothesis.** With `MSDC_CFG.CKPDN` cleared, g stops failing.
+
+**Procedure.** Image 122, card root, on battery, setting A, g traced as before.
+
+1. `echo on > /sys/bus/platform/devices/11240000.mmc/power/control`, so MSDC1 stays
+   clocked and its registers can be written. Read `MSDC_CFG` (`0x11240000`); it is
+   expected to read `0x02100093`.
+2. Arm 0: g three times.
+3. Clear bit 1 with a read-modify-write of `0x11240000`, through `/dev/mem`. The
+   register must read back with bit 1 clear and everything else unchanged.
+4. Arm 1: g three times. Read `MSDC_CFG` after each run. A clock change sets the
+   bit again; if it is set again, record that and clear it once more.
+5. Set bit 1 back, then `echo auto > …/power/control`.
+6. Arm 0 again: g once.
+
+**Stop.** At any `mmc1` error line, I/O error, `EXT4-fs error`, `Remounting`,
+warning or Oops: set bit 1 back, restore `power/control`, then report. No retries.
+
+| Arm 0 (4 runs) | Arm 1 (3 runs) | Decision |
+| --- | --- | --- |
+| 8 or more | 0-1 | The free-running clock causes it. Patch `mtk-sd` to leave `CKPDN` clear on the SD slot after a clock change, then test the hang the same way |
+| 8 or more | similar | Not the idle clock. Next: `SDC_CFG` bit 20, then `PATCH_BIT1` bit 16 |
+| under 8 | | No baseline |
 
 ## Follow-up
 
