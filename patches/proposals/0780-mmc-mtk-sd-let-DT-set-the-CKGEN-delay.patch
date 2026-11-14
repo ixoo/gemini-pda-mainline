@@ -1,0 +1,55 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 13:56:26 -0500
+Subject: [PATCH 2/3] mmc: mtk-sd: let DT set the CKGEN delay
+
+msdc_init_hw() sets CKGEN_MSDC_DLY_SEL to one stage on every host. The
+Gemini PDA's microSD slot fails about 2 % of multi-block reads at SDR104
+with a data CRC error in that setting. With no stage, data latch clock 1
+and a short data delay, as the vendor kernel runs it, the same reads ran
+without an error.
+
+Read mediatek,ckgen-delay, keeping one stage when it is absent.
+
+Not yet run on hardware.
+---
+ drivers/mmc/host/mtk-sd.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/mmc/host/mtk-sd.c b/drivers/mmc/host/mtk-sd.c
+index 78244e1..fbd0493 100644
+--- a/drivers/mmc/host/mtk-sd.c
++++ b/drivers/mmc/host/mtk-sd.c
+@@ -519,6 +519,7 @@ struct msdc_host {
+ 	struct regulator *cd_supply; /* also holds vmmc on for card detect */
+ 	bool cd_supply_enabled;
+ 	u32 latch_ck;
++	u32 ckgen_dly;
+ 	u32 hs400_ds_delay;
+ 	u32 hs400_ds_dly3;
+ 	u32 hs200_cmd_int_delay; /* cmd internal delay for HS200/SDR104 */
+@@ -1975,8 +1976,8 @@ static void msdc_init_hw(struct msdc_host *host)
+ 	/* Enable CRC phase timeout during data write operation */
+ 	val |= MSDC_PATCH_BIT_DECRCTMO;
+ 
+-	/* Set CKGEN delay to one stage */
+-	val |= FIELD_PREP(MSDC_CKGEN_MSDC_DLY_SEL, 1);
++	/* Set CKGEN delay, one stage unless DT says otherwise */
++	val |= FIELD_PREP(MSDC_CKGEN_MSDC_DLY_SEL, host->ckgen_dly);
+ 
+ 	/* First MSDC_PATCH_BIT setup is done: pull the trigger! */
+ 	writel(val, host->base + MSDC_PATCH_BIT);
+@@ -2951,6 +2952,10 @@ static void msdc_of_property_parse(struct platform_device *pdev,
+ 	of_property_read_u32(pdev->dev.of_node, "mediatek,latch-ck",
+ 			     &host->latch_ck);
+ 
++	host->ckgen_dly = 1;
++	of_property_read_u32(pdev->dev.of_node, "mediatek,ckgen-delay",
++			     &host->ckgen_dly);
++
+ 	of_property_read_u32(pdev->dev.of_node, "hs400-ds-delay",
+ 			     &host->hs400_ds_delay);
+ 
+-- 
+2.54.0 (Apple Git-157)
+

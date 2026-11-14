@@ -1,0 +1,45 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 13:56:26 -0500
+Subject: [PATCH 3/3] arm64: dts: mediatek: gemini-station: sample microSD data
+ as the vendor does
+
+With latch clock 1 alone the tuning still settles on a data delay of
+about 45 cells, and reads fail CRC at the same rate or worse. Written at
+runtime, a data delay of 8 with latch clock 1 failed as before with one
+CKGEN stage (24 of 1063 reads) and not at all with none (0 of 1054).
+
+Set no CKGEN stage and limit the tuning to 32 steps so that it chooses
+a short delay.
+
+Needs the mtk-sd ckgen-delay change. Not yet run on hardware.
+---
+ .../boot/dts/mediatek/mt6797-gemini-pda-station.dts    | 10 ++++++----
+ 1 file changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index ebb7c3b..28b745e 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -751,12 +751,14 @@
+ 	vmmc-supply = <&mt6351_vmch_reg>;
+ 	vqmmc-supply = <&mt6351_vmc_reg>;
+ 	/*
+-	 * Latch read data one internal clock later, as the vendor kernel
+-	 * does. With latch 0 the tuning settles on about 47 delay cells,
+-	 * and reads that start after the bus has been idle fail CRC a few
+-	 * percent of the time although the tuning block passes.
++	 * Sample read data as the vendor kernel does: latch one internal
++	 * clock later, no CKGEN stage and a short pad delay. The tuning
++	 * block also passes at delays of 33-61, but real reads there fail
++	 * CRC a few percent of the time, so keep the scan to 0-31.
+ 	 */
+ 	mediatek,latch-ck = <1>;
++	mediatek,ckgen-delay = <0>;
++	mediatek,tuning-step = <32>;
+ 	no-mmc;
+ 	no-sdio;
+ 	status = "okay";
+-- 
+2.54.0 (Apple Git-157)
+

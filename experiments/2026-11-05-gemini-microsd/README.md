@@ -2703,6 +2703,58 @@ reports its first failure.
 | fails | clean | CKGEN 0 is needed too: a small `mtk-sd` change, with the short delay |
 | fails | fails | T13's state can't be reproduced this way. Compare all registers against T13 |
 
+### T15 result: the short delay needs CKGEN 0 (2026-11-14)
+
+Image 123, boot `08ee3eff`, card root, on battery, setting A, g traced. The owner
+admitted T15. Values were derived live under the latch-1, CKGEN-1 guards and
+restored to step 1's values. Raw traces are private.
+
+| Arm | Runs (failed CMD18, first failure) | Total |
+| --- | --- | --- |
+| As booted (latch 1, CKGEN 1, delay 45-48) | 20/326 #54 | |
+| Delay 8, CKGEN 1 | 9/400 #71, 7/322 #46, 8/341 #90 | 24/1063 |
+| Delay 8, CKGEN 0 | 0/320, 0/412, 0/322 | 0/1054 |
+
+**Observed.** In arm 1 the first failure came at the usual pace, and each one
+retuned the delay back to 39-47. In arm 2 the registers held through all three
+runs. No `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+
+**Inferred.**
+
+- With CKGEN at one stage, a short delay fails like the long one. With no stage
+  it is clean, as in T13. CKGEN 0 is needed.
+- Untested: CKGEN 0 at a long delay. The change below avoids that case.
+
+**Change.**
+
+- [0779](../../patches/proposals/0779-dt-bindings-mmc-mtk-sd-add-mediatek-ckgen-delay.patch)
+  describes `mediatek,ckgen-delay`.
+- [0780](../../patches/proposals/0780-mmc-mtk-sd-let-DT-set-the-CKGEN-delay.patch)
+  has `mtk-sd` read it, keeping one stage when it is absent, so the eMMC's HS400
+  is unchanged.
+- [0781](../../patches/proposals/0781-arm64-dts-mediatek-gemini-station-sample-microSD-dat.patch)
+  sets it to 0 on `mmc1` and limits the tuning to 32 steps, so that it chooses a
+  short delay. 0778's latch stays.
+- Not compiled yet.
+
+### T16: the image with CKGEN 0 and 32-step tuning
+
+Same procedure as T14, on an image built from the commit adding this section or
+later (`mt6797-a53-station-dvfs`).
+
+1. Check the DTB's `mmc@11240000`: `mediatek,latch-ck` 1, `mediatek,ckgen-delay` 0,
+   `mediatek,tuning-step` 32.
+2. On the boot, read `PATCH_BIT0` (latch 1, CKGEN 0) and the tuned data delay,
+   which must be under 32. Also read `mmc0`'s `PATCH_BIT0` at `0x11230000 + 0xb0`
+   while the eMMC is active: CKGEN 1, unchanged.
+3. g three times at setting A and three times at schedutil.
+
+| Result | Decision |
+| --- | --- |
+| 0-1 failures in 6 runs | Fixed. Soak, then the screen-off hang test |
+| Failures, data delay under 32 | Compare the tuned delay with 8. If it is far off, pin the delay or narrow the scan |
+| eMMC or microSD error lines at boot | Revert 0781 first; 0779/0780 change nothing without the property |
+
 ## Follow-up
 
 - Suspend and resume.
