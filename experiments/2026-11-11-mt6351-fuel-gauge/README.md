@@ -1032,6 +1032,47 @@ mt6351-fuel-gauge: full charge 4163263 uAh from -1963017 uAh over -51 points, st
   window's closing voltage. A rested cell moves a few mV over seconds.
 - On top of 0746. Compiled at W=1 and checkpatch clean; not on a device.
 
+## Vendor battery throttling, and a UVLO cut under load (2026-11-14)
+
+**The cut:**
+- Card-31 boot `9c688df7…` powered off abruptly during the all-cores T4b soak: about 1.5 A,
+  ten CPUs loaded, the A72s at 2093 MHz. No log, no pstore, no DA9214 or BQ25890 fault.
+- At rest after power-on: 3.751 V, about 23 % on the table. The displayed 60 % was carried
+  from the 44 → 76 jump that 0747 fixes.
+- At 1.5 A and about 0.4 Ω the terminal sits about 0.6 V under the OCV, and bursts reach LK's
+  2.70 V UVLO. This is inferred.
+- The PMIC status registers read afterwards, read-only:
+  - `TOP_RST_STATUS` `0x02BC` = 0, with bits VPWRIN, DDLO, UVLO, RTC_DDLO, CHRWDT and CHRDET
+    `RSTB_STATUS`. Only the vendor kernel ever clears it, through `0x02C0`, and its polarity is
+    not yet established;
+  - `STRUP_CON12` `0x0018` bit 14 `JUST_PWRKEY_RST` = 0;
+  - `TOP_RST_MISC` `0x02B6` bit 2 `WDTRSTB_STATUS` = 0;
+  - `STRUP_CON1` bits 10:8 `PMU_THR_STATUS` = 0, a live value.
+- The custodian compares `0x02BC` after a known clean power-off.
+- The 3.10 V backstop polls every 10 s, so it cannot catch a burst-driven cut.
+
+**What the vendor kernel does** (`mt_pmic.h`, `power/mt6797/pmic.c`, `base/power/ppm_v1`,
+`pbm_v1`): every mechanism sets a CPU power budget in PPM's `pwr_thro` policy, plus GPU
+limits.
+
+| Mechanism | Trigger | Action |
+|---|---|---|
+| LBAT | AUXADC hardware comparator with IRQ: `POWER_INT0/1/2` 3.40/3.25/3.10 V | 600 mW CPU budget below 3.25 V and below 3.10 V; released above 3.40 V |
+| Battery percent | UI SoC ≤ 15 % | 600 mW |
+| BATOC | the FG current comparator (`FG_CUR_LTH/HTH`) | 600 mW from 7.0 A, released at 5.95 A |
+| DLPT | PTIM measures R_ac from simultaneous V/I samples | Imix = I + (V − 3.10 V) ÷ R_ac becomes PBM's power budget for CPU and GPU, after leakage, modem and flash; power-off below a floor |
+
+The vendor's UVLO is 2.60 V. The vendor caps ahead of time from an impedance-based headroom
+and keeps a hardware comparator as the fast backstop; it does not rely on polling.
+
+**Proposed split (with the all-cores session, not built):**
+- **The gauge** exposes `max_current_ua` = (OCV − 3.10 V) ÷ R(T), updated at each counter
+  window with band events, so it adds no wakeups.
+- **The CPU side** caps A72 then A53 with `freq_qos` from a per-OPP current table.
+- **The LBAT comparator IRQ** as a later backstop.
+
+On this cell: at an OCV of 3.75 V, about 1.6 A of headroom; at 3.9 V, about 2.0 A.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.
