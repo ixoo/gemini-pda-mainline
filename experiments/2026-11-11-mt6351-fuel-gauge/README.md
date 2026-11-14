@@ -1098,6 +1098,19 @@ against it.
   - from full, a 0.35 V sag at 1.2 A, about 0.3 Ω.
 
   The cap matters mainly at low charge with all cores loaded.
+- **First boot with 0784 and 0787** (station-work-126, boot `7e99a260…`):
+  - `current_max` read 4826242 µA at 3.898 V, −714 mA and 81 %. At about 4.08 V OCV that
+    implies R ≈ 0.2 Ω, so the aged-cell floor had been dropped.
+  - 0787 counted R as known after any write, including gemini-base restoring the DT's own
+    165000 saved beside the learned Q, or after the first learning step. The learned value then
+    sits well under the cell's 0.3-0.4 Ω for many slow updates.
+- **[0790](../../patches/proposals/0790-power-supply-mt6351-fuel-gauge-base-the-headroom-on-.patch)
+  fixes the rule:**
+  - the headroom uses the larger of the learned R and the latest accepted estimate, at
+    temperature;
+  - before any estimate it keeps 3× the new-cell value, unless userspace restored a value
+    other than the DT's.
+  - Compiled at W=1 and checkpatch clean; not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
