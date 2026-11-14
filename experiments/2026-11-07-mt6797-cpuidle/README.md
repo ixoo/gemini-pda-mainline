@@ -2209,6 +2209,22 @@ loaded the G2 module by hand (same 26 gates) and is adding it to the list.
 boot: bit 27 has no mainline clock, and the vendor's SODI3 mask names bits 26
 and 27 as the audio 26 MHz gates. It is not a deep-idle or SODI condition.
 
+### Screen-on SODI and the scanout FIFO (note, 2026-11-14)
+
+The custodian found in the vendor display driver (`disp_lowpower.c`,
+`_acquire_wrot_resource`; recorded in
+[display-panel §3.6](../../docs/hardware/display-panel.md)) that in video
+mode the vendor lends MDP WROT's SRAM to RDMA0 while the display idles
+(`DISP_REG_RDMA_SRAM_SEL`, RDMA `0x0b0`, then the RDMA FIFO settings again),
+"to increase the SODI ratio". A deeper scanout FIFO leaves longer gaps
+without DRAM traffic, which is when SODI can gate DRAM.
+
+That matters only for **screen-on** SODI, where the panel keeps scanning out.
+The target here is the dark screen, where DPMS is off and RDMA reads nothing,
+so it changes nothing in the current plan or its blocking list. If
+screen-on SODI is ever pursued, mainline `mediatek-drm` would need the same
+SRAM borrowing, and the display session would own it.
+
 ### What it should save
 
 | State | Today | Expected |
