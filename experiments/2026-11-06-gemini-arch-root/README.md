@@ -2564,3 +2564,12 @@ register bits exactly, with taint 0. gemini-base 63 adds it to `modules-load.d`.
 root doesn't load it.
 
 Built in an Arch chroot over card-32's image: `gemini-base-63` (`f38c3044…`). Not on the device.
+
+#### No control-center button on the bar (gemini-base 64, 2026-11-14)
+
+The owner: "remove the bottom icon, I never use it as clicking any other opens the same panel
+which I can then navigate". `noctalia.toml` drops `control-center` from the bar's end group and
+its widget section. The network, bluetooth, volume and battery icons still open the control
+center, and the session panel stays on Ctrl+Alt+Backspace. Not yet tried on the card; the
+existing user's `~/.config/noctalia/00-gemini.toml` needs the same edit, since `/etc/skel` is
+only copied for new users.
