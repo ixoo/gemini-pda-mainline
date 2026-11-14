@@ -2265,6 +2265,21 @@ against the blanked awake current; the MM-domain work is planned only if
 deep idle's extra plus the domain's own leakage then look worth more than a
 few mA.
 
+**ICUSB (0789, 2026-11-14).** usb-c's idle read (`0c57166a`) found
+`infra_icusb` with no user in the clock framework and no driver bound to
+`/usb@11200000` (the MUSB driver is neither loaded nor autoloaded): a loader
+leftover that `mt6797-gate-unused` skipped only because an enabled node lists
+it.
+[`0789`](../../patches/proposals/0789-soc-mediatek-mt6797-gate-unused-gate-a-clock-whose-n.patch)
+counts a listing node as a user only when a driver is bound to its platform
+device; a node that is not a platform device still counts as one, and a
+driver that binds later enables the clock through the framework as usual. It
+writes the same ICUSB bit that G1 approved (`0x10001080` bit 8, clear at
+`rmmod`), so no new write. Compile-checked with `W=1` on the full station
+series; checkpatch quiet. SSUSB_REF, BUS and SYS stay with usb-c: MTU3
+(`11271000.usb`) holds them, with runtime PM forbidden and the gadget pulled
+up, until its runtime power-off is written.
+
 **G2 on that image.** `mt6797-gate-unused` was not in the station image,
 because `compose-station.py` packs a fixed module list; the custodian
 loaded the G2 module by hand (same 26 gates) and is adding it to the list.

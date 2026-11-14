@@ -1,0 +1,68 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 18:32:53 -0500
+Subject: [PATCH] soc: mediatek: mt6797-gate-unused: gate a clock whose node
+ has no driver
+
+ICUSB stayed on because the enabled /usb@11200000 node lists it, although
+no driver binds that node on the station: the loader left the gate on and
+nothing claims it. Count a listing node as a user only when a driver is
+bound to its platform device. A driver that binds later enables the clock
+through the clock framework as usual. A node that is not a platform
+device still counts as a user.
+---
+ drivers/soc/mediatek/mt6797-gate-unused.c | 27 ++++++++++++++++++++++-
+ 1 file changed, 26 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-gate-unused.c b/drivers/soc/mediatek/mt6797-gate-unused.c
+index 447c73382..8ad2acc05 100644
+--- a/drivers/soc/mediatek/mt6797-gate-unused.c
++++ b/drivers/soc/mediatek/mt6797-gate-unused.c
+@@ -30,6 +30,8 @@
+ #include <linux/mfd/syscon.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
+ #include <linux/regmap.h>
+ 
+ /* Infra clock-gate registers per group: set (gate), clear (ungate), status */
+@@ -80,7 +82,25 @@ static struct regmap *infra;
+ static struct device_node *infra_np;
+ static u32 gated[ARRAY_SIZE(groups)];
+ 
+-/* Does an enabled device tree node list this infra clock? */
++/*
++ * Is a node that lists the clock a user? Only if a driver is bound to its
++ * platform device: a driver that binds later enables the clock through the
++ * clock framework as usual. A node that is not a platform device counts as
++ * a user, to stay on the safe side.
++ */
++static bool node_in_use(struct device_node *np)
++{
++	struct platform_device *pdev = of_find_device_by_node(np);
++	bool bound;
++
++	if (!pdev)
++		return true;
++	bound = pdev->dev.driver;
++	put_device(&pdev->dev);
++	return bound;
++}
++
++/* Does an enabled device tree node with a bound driver list this clock? */
+ static bool dt_user(unsigned int id, const char *name)
+ {
+ 	struct of_phandle_args args;
+@@ -96,6 +116,11 @@ static bool dt_user(unsigned int id, const char *name)
+ 				   args.args[0] == id;
+ 
+ 			of_node_put(args.np);
++			if (hit && !node_in_use(np)) {
++				pr_info("%s: listed by %pOF, which has no driver bound\n",
++					name, np);
++				break;
++			}
+ 			if (hit) {
+ 				pr_info("%s: used by %pOF, left on\n", name, np);
+ 				of_node_put(np);
