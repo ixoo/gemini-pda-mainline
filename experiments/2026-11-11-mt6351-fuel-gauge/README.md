@@ -1086,6 +1086,18 @@ against it.
   The CPU limit treats `learned_resistance_uohm` equal to `design_resistance_uohm` as not yet
   learned.
 - Compiled at W=1 and checkpatch clean; not on a device.
+- **[0787](../../patches/proposals/0787-power-supply-mt6351-fuel-gauge-keep-the-headroom-saf.patch)
+  moves that caution into the gauge**, at the all-cores session's request, so the CPU module
+  reads only the standard property:
+  - until R is learned or written since probe, `current_max` assumes up to 3× the DT's
+    new-cell resistance at the battery's temperature (0.495 Ω at 25 °C);
+  - at an OCV of 3.75 V that reports 1.31 A, against this cell's real 1.62 A;
+  - generic rather than per battery, so the DT keeps only the new-cell value.
+- The all-cores session's T4c found heat, not supply, limits the A72s for sustained loads:
+  - 1677 MHz near 67 °C, past 70 °C within 2 s at 1885 MHz;
+  - from full, a 0.35 V sag at 1.2 A, about 0.3 Ω.
+
+  The cap matters mainly at low charge with all cores loaded.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
