@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-13-gemini-tickless` |
-| Status | `running`: T0 measured on the base image; T1 and T2 next |
+| Status | `running`: T0 and T1 measured; lazy RCU folded into the station fragments; T2 (HZ 100) next |
 | Subsystem | Timer tick, RCU, scheduler tick rate |
 | Device variant | Named Gemini PDA development unit, card root on the station kernel |
 | Date(s) | 2026-11-13 |
@@ -152,6 +152,48 @@ larger wakers belong to other owners, and the custodian passes them on:
 the Wi-Fi driver's join work at 11/s and TCP's orphan-count timer at
 9.6/s (wifi-daily), schedutil at about 8-11/s (cpufreq), and `upowerd`,
 `gdbus` and `dbus-broker` at about 14/s together (Arch root).
+
+### T1: lazy RCU (2026-11-14)
+
+Run by the custodian on station-work-121 (`mt6797-a53-station-dvfs-rcu-lazy`,
+boot2 `4dfa17e2…`), boot `9a7d0389…`, same method as T0: 11 `rcuo` threads,
+26 gates, no RCU stall or warning, the A72s offline, battery at 86-85 %.
+
+| | T0 | T1 |
+| --- | --- | --- |
+| tick restarts, 120 s | 5,922 (49.4/s) | 5,536 (46.1/s) |
+| `arch_timer` interrupts | 5,173 | 4,863 |
+| RCU thread wakeups | `rcu_preempt` 314 | `rcuog/0` 237, `rcu_preempt` 149, `rcuop/0` 131: 520 |
+| current | 143.6 mA (sd 1.7) at 4.135 V | 145.2 mA (sd 2.0) at 4.106 V |
+
+Power is 594.0 against 596.4 mW, a 0.4 % difference inside run-to-run
+noise. **Confound:** the run started 11 minutes after boot, so
+`systemd-tmpfiles-clean` (15 minutes after boot) fired inside T1's window
+(`systemd` 283, `systemd-userwork` 300, `systemd-tmpfiles` 74 wakeups,
+`process_srcu` 310 work items). That inflates T1's wakeups, not T0's.
+
+**Reading.**
+- Tick restarts, the proxy for idle exits, fell by about 7 % despite the
+  extra systemd work in T1's window.
+- More RCU thread wakeups, not fewer: the callbacks now run in the `rcuog`
+  and `rcuop` kthreads. A wakeup of a kthread is not by itself an idle exit,
+  and the tick restarts went down, so the expected removal of RCU's own
+  wakeups did not show as fewer wakeups, only as fewer tick restarts.
+- The current is unchanged within noise.
+
+**Decision, by the rule:** T1 is no worse than T0, so **lazy RCU is
+folded in**: the same five options are now in `gemini-a53-station.fragment`
+(every station profile and the release) and `configs/gemini.fragment`. The
+`-rcu-lazy` profile stays for the record and for T2.
+
+**One correction for the other owners.** `tcp_orphan_update` is not a
+waker: in 7.1 its timer is `TIMER_DEFERRABLE` (`net/ipv4/tcp.c`) and re-arms
+every 100 ms, so it only runs when the CPU is awake anyway. The census counts
+its re-arms, not wakeups, and the count stays near 10/s with no orphan
+sockets at all. `mt6797_mac_join_work` (11/s), schedutil (about 7/s) and the
+desktop's D-Bus services (about 14/s) remain real wakers for their owners.
+`timerfd_tmrproc` rose from 19 to 143 between the runs, likely userspace on
+the card.
 
 ## Conclusion
 

@@ -75,3 +75,12 @@ CONFIG_MUSB_PIO_ONLY=y
 # resource node; no Gemini machine-card or analog route is enabled yet.
 CONFIG_SND_SOC_MT6797=m
 CONFIG_SND_SOC_MT6797_MT6351=m
+# Offload RCU callbacks from every CPU and batch them lazily, so RCU neither
+# holds the tick on nor wakes an idle CPU to run them. Measured in
+# experiments/2026-11-13-gemini-tickless (T1): no worse in current, about 7 %
+# fewer tick restarts with CPU0 alone. DEFAULT_ALL stands in for rcu_nocbs=all.
+CONFIG_RCU_EXPERT=y
+CONFIG_RCU_NOCB_CPU=y
+CONFIG_RCU_NOCB_CPU_DEFAULT_ALL=y
+CONFIG_RCU_LAZY=y
+# CONFIG_RCU_LAZY_DEFAULT_OFF is not set

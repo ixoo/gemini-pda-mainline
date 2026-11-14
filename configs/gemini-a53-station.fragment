@@ -232,3 +232,12 @@ CONFIG_POSIX_MQUEUE=y
 CONFIG_FAULT_INJECTION=y
 CONFIG_FAULT_INJECTION_DEBUG_FS=y
 CONFIG_FAIL_MMC_REQUEST=y
+# Offload RCU callbacks from every CPU and batch them lazily, so RCU neither
+# holds the tick on nor wakes an idle CPU to run them. Measured in
+# experiments/2026-11-13-gemini-tickless (T1): no worse in current, about 7 %
+# fewer tick restarts with CPU0 alone. DEFAULT_ALL stands in for rcu_nocbs=all.
+CONFIG_RCU_EXPERT=y
+CONFIG_RCU_NOCB_CPU=y
+CONFIG_RCU_NOCB_CPU_DEFAULT_ALL=y
+CONFIG_RCU_LAZY=y
+# CONFIG_RCU_LAZY_DEFAULT_OFF is not set
