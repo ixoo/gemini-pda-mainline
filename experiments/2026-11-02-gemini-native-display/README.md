@@ -533,6 +533,50 @@ buffer instead, which matches "no visible effect". The message is harmless until
 gets its IOMMU (M4U). We leave the DMA mask alone: nothing here shows the OVL can reach past
 4 GiB in the loader's bypass.
 
+## Pre-rotated client buffers for direct scanout (VM only, 2026-11-14)
+
+The display cannot rotate the scanout ([3.6](../../docs/hardware/display-panel.md#36-rotation-in-hardware)),
+so a full-screen client can skip the compositor's pass only if it draws already rotated
+and says so with `wl_surface.set_buffer_transform`. Neither side does that today:
+
+- mpv master (`649001d4`) leaves `wl_surface.preferred_buffer_transform` unhandled. Only
+  `--vo=dmabuf-wayland` sets a buffer transform, and only for the video's own rotation.
+  No earlier mpv proposal was found for the GPU VOs.
+- wlroots (master `72956e7` and 0.20.2) checks the transform before it sends the scanout
+  feedback, and the feedback is what carries the output's transform as the preferred one.
+  While compositing it sends NORMAL. A client following the hint therefore never matches a
+  rotated output. Umbriel's own scene copy (`umbrielfx`, pinned `94ab596`) has the same
+  order and reports the case as `TRANSFORM`.
+- libplacebo rotates the video for a rotated target but not target-relative overlays, so
+  mpv's OSD would come out sideways.
+
+Four small patches, kept outside this repository and not yet sent upstream:
+
+- mpv: vo_gpu_next follows the hint on its Wayland OpenGL and Vulkan contexts.
+- libplacebo: overlays rotate with the target.
+- wlroots: a transform mismatch counts as a scanout candidate, and the hint is sent
+  before the check.
+- Umbriel: the same change for its scene copy.
+
+vo=gpu is unchanged.
+
+Tested in the dev VM only: an Arch Linux ARM root with sway 1.12 on vkms, and llvmpipe and
+lavapipe clients over shared memory. With stock wlroots, a full-screen mpv on a rotated
+output only received transform 0 and never became a scanout candidate. With the patches it
+received the output's transform (1, 2 and 3 tested, and changed live) and set it on its
+surface, and wlroots then tried scanout. That try fails for shared-memory buffers, which is
+expected. Going back to a composited floating window returned it to 0. Video and OSD were
+upright in every screenshot, on both OpenGL and Vulkan.
+
+Not shown:
+
+- an actual direct scanout;
+- anything on the Gemini;
+- power.
+
+On the Gemini the display also needs contiguous client buffers ([above](#cma-on-the-device-and-the-swiotlb-message)),
+so a device run can still end in an import failure.
+
 ## A blanked display relit by a resume (fixed by 0684)
 
 The power tests found the display on after a `mem` resume that had started blanked
