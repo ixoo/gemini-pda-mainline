@@ -1827,6 +1827,16 @@ and last.
   3, ISP 5, VDEC 7, MFG 12, MJC 20, VENC 21, audio 24) are applied to every
   sample, so the log names the blocking bits and how often each blocks.
 
+**A measurement caveat** (from the camera session, 2026-11-14): in 7.1,
+reading `clk_summary` runtime-resumes every clock provider that has runtime
+PM. The camera receiver provides the MCLK clocks, so each read briefly powers
+the ISP domain and enables `cam_camsys` and `cam_seninf`. The script's
+`clk_summary` snapshots therefore show those blocks on; per-clock
+`clk_enable_count` files do not perturb anything. The 1 Hz samples are
+register reads and are unaffected, but the first ones came one second after
+the start snapshot. Since 2026-11-14 the script waits 10 s after that
+snapshot before the window.
+
 **Cases.** Wi-Fi is the custodian's SSH path on the card root, so the "idle"
 case is Wi-Fi joined and idle, with the SSH session quiet (start the script
 detached). `music`: start playback in the owner's session first (`mpv` or

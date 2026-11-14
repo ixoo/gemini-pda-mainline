@@ -310,6 +310,11 @@ def run(case):
         log.block("pm_genpd_summary:", rtext("/sys/kernel/debug/pm_genpd/pm_genpd_summary"))
         log.block("clk_summary, enable count > 0:", enabled_clocks())
         log.sync()
+        # Reading clk_summary runtime-resumes every clock provider with
+        # runtime PM (seninf powers the ISP domain for it), so let them
+        # suspend again before the window. Its snapshots show those blocks
+        # on; the 1 Hz samples below are register reads and are not affected.
+        time.sleep(10)
 
         irq0 = interrupts()
         counts = {st: {g: [0] * 32 for g in CG} for st in MASKS}
