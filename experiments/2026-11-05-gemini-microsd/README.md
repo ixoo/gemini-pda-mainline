@@ -2265,6 +2265,59 @@ mainline rate that should give about 18 failures.
   next, then drive and tuning values.
 - **A similar rate:** the card itself.
 
+### Gemian, the same card, the 1 MiB forced-idle stress (2026-11-14)
+
+Gemian 3.18.41+ (#7, 2019-03-29), boot `ae60a241`, card-32 as `mmcblk1`, not
+mounted, on battery. Vendor DVFS as is (no cpufreq policy sysfs; cores 4 and 8 to
+4-5 online). The custodian ran g three times (128 × 1 MiB direct reads with 5 ms
+between them, cache dropped before each run). Raw dmesg is private.
+
+**Observed.**
+
+- 0 new CRC, `msdc1` or `mmc1` lines in 3 × 128 reads, and no I/O error. The vendor's
+  interrupt path logs every data CRC error with `pr_err` ("MSDC_INT_DATCRCERR"),
+  rate-limited but always printing the first. So a 0 means no error. The boot
+  log shows msdc1 lines, so logging was live.
+- 6.1-6.2 s per run, about 49 MB/s per read, against 14.9-15.5 s on mainline at
+  setting A.
+- The vendor queue takes 1 MiB requests (`max_sectors_kb` 4096). Mainline's is
+  512 KiB, so it splits each read into two CMD18.
+- The vendor tuned SDR104 at 200 MHz with its own autok. Its boot log has one
+  "Autok tune LATCH_CK error".
+
+**From the mainline traces** (fi and sg runs on `4fb1600d`, bucketed by idle before
+each CMD18):
+
+- fi and g sent the same commands over the same sectors, 512 KiB CMD18s, almost
+  all after 12 ms or more of idle. fi failed 1/1024; g failed 12/510.
+- The continuous reads failed only after 1.5-8 ms of idle, never after more than
+  8 ms.
+
+**Inferred.**
+
+- Gemian at 0 against about 18 expected favours a host-side cause over the card
+  (H1 weakened). It doesn't prove it. Mainline also has zero runs (f1, f2, one S3b A
+  run), and Gemian differs in request size, tuning and CPU speed.
+- Idle on its own is not the cause. With the same commands and gaps, fi and g
+  differ twenty-fold. What differs is what the system does around them: one dd
+  process per 512 KiB, or a process waiting on two queued halves. The S3b idle
+  pattern is real but not the mechanism.
+- The candidates left are host settings that the vendor applies and mainline
+  doesn't: VMC trim, pad settings, MSDC path bits. They are cheapest to find by
+  reading them on both kernels.
+
+**Next: R3, a read-only register comparison**, with the card active (a background
+direct read running, so the clock is on):
+
+- On mainline: `sd-state.sh` (pads, MT6351 `0x0ae2` with VMC at 1.8 V), and MSDC1
+  `0x11240000`-`0x112402fc` with `devmem` while `power/control` is `on`. Skip `0x18`
+  and `0x1c`, the FIFO data ports.
+- On Gemian, at its next boot: the same MSDC1 range and pad registers, and MT6351
+  `0x0ae2` through the vendor's PMIC access.
+
+Every difference becomes one diagnostic write on mainline, or the VMC trim module,
+each needing its own admission.
+
 ## Follow-up
 
 - Suspend and resume.
