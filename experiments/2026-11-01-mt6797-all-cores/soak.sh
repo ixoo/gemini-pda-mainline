@@ -4,12 +4,13 @@
 # A72 soak on the station: soak.sh load|idle SECONDS. Runs on the device from
 # RAM, after the A72 module has loaded, and stops itself on the limits below.
 # Optional traffic, run every 15 min: PING_TARGET, WGET_URL, TONE_CMD.
+# SOC_LIMIT (millidegrees, default 75000) is the SoC stop.
 # Exit: 0 finished, 1 a stop rule fired.
 set -u
 
 MODE=$1
 SECONDS_TO_RUN=$2
-SOC_LIMIT=75000
+SOC_LIMIT=${SOC_LIMIT:-75000}
 BATT_LIMIT=450
 CAPACITY_MIN=30
 FAULTS='WARNING|Oops|BUG:|Internal error|rcu_preempt detected|self-detected|Sending NMI|pwrap.*(err|fail)'
