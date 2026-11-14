@@ -1982,6 +1982,34 @@ Boot `3f3e037b` of station-work-120 (package `57181f2d…`, from `64c1f85e`, wit
   192 MHz causes the CRC errors, and H2 is open again. S1 has to be repeated on an
   image with 0774, counting CRC errors, not measuring rate.
 
+### S1 again, counting errors (2026-11-14)
+
+Boot `3f3e037b`, station-work-120 with 0774. The custodian ran four traced direct
+reads of 128 MiB at the same offset (skip=1024). The only change was the debugfs
+clock. No new `mmc1`, I/O or EXT4 line appeared. Raw traces are private.
+
+| Run | Clock | Rate | CMD18 | Failed CMD18 (CRC) | CMD17 | CMD19 |
+| --- | --- | --- | --- | --- | --- | --- |
+| a | 192 MHz | 7.5 MB/s | 402 | 31 (7.7 %) | 31744 | 1984 |
+| b1 | 96 MHz | 7.9 MB/s | 339 | 25 (7.4 %) | 25600 | 1600 |
+| b2 | 96 MHz | 35.3 MB/s | 295 | 0 | 0 | 0 |
+| c | 192 MHz | 9.4 MB/s | 337 | 23 (6.8 %) | 23552 | 1472 |
+
+**Observed.**
+
+- Every run has exactly 1024 CMD17 and 64 CMD19 per failed CMD18, so 0774 holds.
+- At 96 MHz one run failed at the same rate as at 192 MHz, and the next was clean.
+
+**Inferred.**
+
+- Halving the clock doubles the timing window but doesn't lower the error rate,
+  so the CRC errors are not sampling margin (H2 out).
+- They come and go over time on the same sectors. That points to noise or a
+  supply level on the card's I/O (H3), or the card itself (H1).
+- One more cause would fit how the errors come and go: the A53 voltage scaling
+  that these station images run since 11-12, changing the DA9214 CPU rails, the
+  CPU SRAM LDOs and the PLLs as load changes. That is where the next test looks.
+
 ## Follow-up
 
 - Suspend and resume.
