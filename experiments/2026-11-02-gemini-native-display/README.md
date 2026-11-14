@@ -616,8 +616,12 @@ bit 17), held by the PWM, and the DIS domain.
   the comment on its display section), so no driver can power the domain off. Doing so
   is a separate step with open questions: the SMI larbs, which stay in the loader's
   bypass with no driver, would be reset; the PWM would leave display mutex 0, through
-  which its duty latches; and the census also shows the camera's `seninf` holding
-  `mm_smi_common` and its camera clocks while runtime-suspended.
+  which its duty latches; and `mm_smi_common` is marked critical (`0565`), because the
+  display relies on the gate the loader left open, which keeps `mm_sel` on too. The
+  census's `cam_camsys` and `cam_seninf` counts were an artifact: reading `clk_summary`
+  resumes `seninf`, a clock provider, for the read. Per-clock debugfs counts read 0.
+- **Decision (cpuidle session):** no measured saving of deep idle over SODI exists, and
+  SODI allows both holders, so the DIS-domain work waits for the SODI measurement.
 
 ## What stands before upstream
 
