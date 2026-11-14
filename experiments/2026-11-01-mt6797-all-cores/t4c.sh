@@ -65,8 +65,8 @@ worker() {
 sample() {
 	zones=
 	for z in "$THERMAL"/thermal_zone*; do
-		t=$(cat "$z/temp" 2>/dev/null) || continue
-		zones="$zones ${z##*thermal_zone}:$t"
+		zt=$(cat "$z/temp" 2>/dev/null) || continue
+		zones="$zones ${z##*thermal_zone}:$zt"
 	done
 	soc=$(cat "$THERMAL/thermal_zone0/temp")
 	i=$(cat "$BAT/current_now")
