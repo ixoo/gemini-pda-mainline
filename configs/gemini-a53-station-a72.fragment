@@ -17,3 +17,4 @@ CONFIG_CMDLINE_FORCE=y
 # module fails with -ENOENT and the daemon exits, logging "D-Bus disconnected" (R2,
 # reproduced in a container). Named here to override gemini-usbdiag.fragment's "not set".
 CONFIG_RFKILL=y
+CONFIG_CPUFREQ_BATTERY_HEADROOM=m

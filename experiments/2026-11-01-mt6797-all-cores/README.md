@@ -1276,6 +1276,27 @@ throttling.
 The writes are within T4b's admitted list. It was dry-run in the dev VM against
 substituted paths, for a pass and for each stop.
 
+**Battery-aware CPU cap (built, compile-checked, not run).** The vendor kernel never let
+CPU load reach the cut-off. Its low-battery comparator (3.40/3.25/3.10 V) and its
+dynamic headroom (DLPT, from the battery's measured impedance) both set a CPU power
+budget ahead of time. The fuel-gauge session will report the headroom as the
+battery's `current_max`: (OCV - 3.10 V) / R(T), with a change event when it crosses a
+band.
+
+[0785](../../patches/proposals/0785-cpufreq-cap-frequencies-to-the-battery-s-current-hea.patch)
+adds `battery-headroom` (`=m`, not loaded by anything):
+- On each change event it adds a named charger's input limit while that charger is
+  online, takes off a 700 mA reserve for the rest of the system, and caps the CPU
+  policies through `freq_qos`.
+- Each policy's worst case is all its CPUs busy at the cap. The current comes from
+  the energy model's power plus 30 %, at 3.1 V.
+- Policies are cut from the highest capacity down, so the A72s go first.
+- With no headroom reported, nothing is capped.
+
+The reserve, margin and floor are estimates until T4c and a measured energy model
+replace them. Loading the A72s by default waits on this module running with the
+gauge's value.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.

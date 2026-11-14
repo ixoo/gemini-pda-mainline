@@ -1,0 +1,358 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 15:26:49 -0500
+Subject: [PATCH] cpufreq: cap frequencies to the battery's current headroom
+
+A battery with a high internal resistance can sag below its under-voltage
+cut-off under a burst of CPU load, and the PMIC then cuts power with no
+warning. On the MT6797 Gemini PDA an aged cell at about 3.75 V lost power
+this way with both Cortex-A72s at 2.1 GHz and about 1.5 A drawn.
+
+Add a module that keeps the CPUs' worst-case current under the headroom
+the battery's power supply reports as POWER_SUPPLY_PROP_CURRENT_MAX, plus
+a named charger's input limit while it is online, less a reserve for the
+rest of the system. A policy's worst case is all its CPUs busy at their
+cap, from the energy model's power with a leakage margin, at a floor
+voltage. Policies are cut from the highest capacity down, one state at a
+time, on each change the supplies report, with no polling. With no
+headroom reported, nothing is capped.
+---
+ drivers/cpufreq/Kconfig            |  12 ++
+ drivers/cpufreq/Makefile           |   1 +
+ drivers/cpufreq/battery-headroom.c | 289 +++++++++++++++++++++++++++++
+ 3 files changed, 302 insertions(+)
+ create mode 100644 drivers/cpufreq/battery-headroom.c
+
+diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
+index db83f3365..d94e7f63d 100644
+--- a/drivers/cpufreq/Kconfig
++++ b/drivers/cpufreq/Kconfig
+@@ -204,6 +204,18 @@ config CPU_FREQ_GOV_SCHEDUTIL
+ 
+ comment "CPU frequency scaling drivers"
+ 
++config CPUFREQ_BATTERY_HEADROOM
++	tristate "Cap CPU frequencies to the battery's current headroom"
++	depends on ENERGY_MODEL && POWER_SUPPLY
++	help
++	  Keep the CPUs' worst-case current, from the energy model, under the
++	  current a battery reports it can deliver before its terminal falls
++	  to a floor (POWER_SUPPLY_PROP_CURRENT_MAX), less a reserve for the
++	  rest of the system. This guards a battery with a high internal
++	  resistance against an under-voltage cut-off under load.
++
++	  If in doubt, say N.
++
+ config CPUFREQ_DT
+ 	tristate "Generic DT based cpufreq driver"
+ 	depends on HAVE_CLK && OF
+diff --git a/drivers/cpufreq/Makefile b/drivers/cpufreq/Makefile
+index 385c9fcc6..3989d213d 100644
+--- a/drivers/cpufreq/Makefile
++++ b/drivers/cpufreq/Makefile
+@@ -14,6 +14,7 @@ obj-$(CONFIG_CPU_FREQ_GOV_CONSERVATIVE)	+= cpufreq_conservative.o
+ obj-$(CONFIG_CPU_FREQ_GOV_COMMON)		+= cpufreq_governor.o
+ obj-$(CONFIG_CPU_FREQ_GOV_ATTR_SET)	+= cpufreq_governor_attr_set.o
+ 
++obj-$(CONFIG_CPUFREQ_BATTERY_HEADROOM)	+= battery-headroom.o
+ obj-$(CONFIG_CPUFREQ_DT)		+= cpufreq-dt.o
+ obj-$(CONFIG_CPUFREQ_DT_RUST)		+= rcpufreq_dt.o
+ obj-$(CONFIG_CPUFREQ_DT_PLATDEV)	+= cpufreq-dt-platdev.o
+diff --git a/drivers/cpufreq/battery-headroom.c b/drivers/cpufreq/battery-headroom.c
+new file mode 100644
+index 000000000..14dd895e9
+--- /dev/null
++++ b/drivers/cpufreq/battery-headroom.c
+@@ -0,0 +1,289 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Cap CPU frequencies to the battery's current headroom.
++ *
++ * A battery with a high internal resistance can sag below its under-voltage
++ * cut-off under a burst of CPU load, and the PMIC then cuts power with no
++ * warning. The battery's power supply reports how much current it can deliver
++ * before its terminal falls to a floor as POWER_SUPPLY_PROP_CURRENT_MAX. This
++ * module keeps the CPUs' worst-case current under that headroom, plus a
++ * charger's input limit while one is online, less a reserve for the rest of
++ * the system.
++ *
++ * Each policy's worst case is every CPU in it busy at its frequency cap. Its
++ * current is the energy model's power for that state, times the CPUs in the
++ * policy, plus a leakage margin, divided by the floor voltage. Policies are cut
++ * from the highest capacity down, one state at a time, until the total fits.
++ * With no headroom reported, nothing is capped.
++ */
++
++#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
++
++#include <linux/arch_topology.h>
++#include <linux/cpufreq.h>
++#include <linux/cpumask.h>
++#include <linux/energy_model.h>
++#include <linux/module.h>
++#include <linux/mutex.h>
++#include <linux/pm_qos.h>
++#include <linux/power_supply.h>
++#include <linux/rcupdate.h>
++#include <linux/sort.h>
++#include <linux/string.h>
++
++#define MAX_POLICIES	4
++
++static char *battery = "battery";
++module_param(battery, charp, 0444);
++MODULE_PARM_DESC(battery, "power supply that reports the current headroom");
++
++static char *charger = "";
++module_param(charger, charp, 0444);
++MODULE_PARM_DESC(charger, "power supply whose input limit adds while online");
++
++static unsigned int reserve_ua = 700000;
++module_param(reserve_ua, uint, 0444);
++MODULE_PARM_DESC(reserve_ua, "current kept for everything but the CPUs (uA)");
++
++static unsigned int vmin_uv = 3100000;
++module_param(vmin_uv, uint, 0444);
++MODULE_PARM_DESC(vmin_uv, "battery voltage the CPU current is reckoned at (uV)");
++
++static unsigned int leak_pct = 30;
++module_param(leak_pct, uint, 0444);
++MODULE_PARM_DESC(leak_pct, "margin on the energy model's power (percent)");
++
++struct bh_policy {
++	struct cpufreq_policy *policy;
++	struct em_perf_domain *pd;
++	struct freq_qos_request req;
++	unsigned int ncpus;
++	unsigned long capacity;
++	int cap;			/* index of the capped EM state */
++};
++
++static struct bh_policy bh[MAX_POLICIES];
++static unsigned int nr_bh;
++static DEFINE_MUTEX(bh_lock);
++static long last_budget = LONG_MIN;
++
++/* Worst-case current of @p at EM state @idx, in uA. */
++static u64 bh_current(struct bh_policy *p, int idx)
++{
++	struct em_perf_state *table;
++	u64 uw;
++
++	rcu_read_lock();
++	table = em_perf_state_from_pd(p->pd);
++	uw = (u64)table[idx].power * p->ncpus * (100 + leak_pct) / 100;
++	rcu_read_unlock();
++
++	/* uW / uV = A; scale to uA. */
++	return div_u64(uw * 1000000, vmin_uv);
++}
++
++static unsigned long bh_freq(struct bh_policy *p, int idx)
++{
++	unsigned long khz;
++
++	rcu_read_lock();
++	khz = em_perf_state_from_pd(p->pd)[idx].frequency;
++	rcu_read_unlock();
++	return khz;
++}
++
++static int bh_read(const char *name, enum power_supply_property prop, int *val)
++{
++	union power_supply_propval pv;
++	struct power_supply *psy;
++	int ret;
++
++	if (!name || !*name)
++		return -ENODEV;
++	psy = power_supply_get_by_name(name);
++	if (!psy)
++		return -ENODEV;
++	ret = power_supply_get_property(psy, prop, &pv);
++	power_supply_put(psy);
++	if (!ret)
++		*val = pv.intval;
++	return ret;
++}
++
++/* Headroom in uA, or -1 for no cap. */
++static long bh_headroom(void)
++{
++	int headroom, online, limit;
++
++	if (bh_read(battery, POWER_SUPPLY_PROP_CURRENT_MAX, &headroom) ||
++	    headroom <= 0)
++		return -1;
++	if (!bh_read(charger, POWER_SUPPLY_PROP_ONLINE, &online) && online &&
++	    !bh_read(charger, POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &limit) &&
++	    limit > 0)
++		headroom += limit;
++	return headroom;
++}
++
++static void bh_update(void)
++{
++	long headroom, budget;
++	u64 total;
++	unsigned int i;
++	bool cut;
++
++	mutex_lock(&bh_lock);
++	headroom = bh_headroom();
++	budget = headroom < 0 ? LONG_MAX : headroom - (long)reserve_ua;
++
++	total = 0;
++	for (i = 0; i < nr_bh; i++) {
++		bh[i].cap = bh[i].pd->nr_perf_states - 1;
++		total += bh_current(&bh[i], bh[i].cap);
++	}
++
++	/* Cut the highest-capacity policy first, one state at a time. */
++	while (budget != LONG_MAX && total > (u64)max(budget, 0L)) {
++		cut = false;
++		for (i = 0; i < nr_bh && !cut; i++) {
++			if (bh[i].cap == 0)
++				continue;
++			total -= bh_current(&bh[i], bh[i].cap);
++			bh[i].cap--;
++			total += bh_current(&bh[i], bh[i].cap);
++			cut = true;
++		}
++		if (!cut)
++			break;
++	}
++
++	for (i = 0; i < nr_bh; i++)
++		freq_qos_update_request(&bh[i].req, budget == LONG_MAX ?
++					FREQ_QOS_MAX_DEFAULT_VALUE :
++					bh_freq(&bh[i], bh[i].cap));
++
++	if (budget != last_budget) {
++		if (budget == LONG_MAX)
++			pr_info("no headroom reported, no cap\n");
++		else
++			pr_info("headroom %ld uA, CPU budget %ld uA, caps %lu/%lu/%lu/%lu kHz\n",
++				headroom, budget,
++				nr_bh > 0 ? bh_freq(&bh[0], bh[0].cap) : 0,
++				nr_bh > 1 ? bh_freq(&bh[1], bh[1].cap) : 0,
++				nr_bh > 2 ? bh_freq(&bh[2], bh[2].cap) : 0,
++				nr_bh > 3 ? bh_freq(&bh[3], bh[3].cap) : 0);
++		last_budget = budget;
++	}
++	mutex_unlock(&bh_lock);
++}
++
++static int bh_notify(struct notifier_block *nb, unsigned long event, void *data)
++{
++	struct power_supply *psy = data;
++	const char *name = psy->desc->name;
++
++	if (event == PSY_EVENT_PROP_CHANGED &&
++	    (!strcmp(name, battery) || (*charger && !strcmp(name, charger))))
++		bh_update();
++	return NOTIFY_OK;
++}
++
++static struct notifier_block bh_nb = {
++	.notifier_call = bh_notify,
++};
++
++static int bh_cmp(const void *a, const void *b)
++{
++	const struct bh_policy *pa = a, *pb = b;
++
++	return pb->capacity > pa->capacity ? 1 :
++	       pb->capacity < pa->capacity ? -1 : 0;
++}
++
++static void bh_release(void)
++{
++	while (nr_bh) {
++		nr_bh--;
++		freq_qos_remove_request(&bh[nr_bh].req);
++		cpufreq_cpu_put(bh[nr_bh].policy);
++	}
++}
++
++static int __init bh_init(void)
++{
++	struct cpufreq_policy *policy;
++	struct em_perf_domain *pd;
++	unsigned int cpu, i, j, n;
++	int ret = 0;
++
++	if (!vmin_uv)
++		return -EINVAL;
++
++	for_each_online_cpu(cpu) {
++		if (nr_bh == MAX_POLICIES)
++			break;
++		policy = cpufreq_cpu_get(cpu);
++		if (!policy)
++			continue;
++		for (i = 0; i < nr_bh && bh[i].policy != policy; i++)
++			;
++		pd = em_cpu_get(cpu);
++		if (i < nr_bh || !pd) {
++			if (i == nr_bh)
++				pr_info("cpu%u has no energy model, left uncapped\n",
++					cpu);
++			cpufreq_cpu_put(policy);
++			continue;
++		}
++		bh[nr_bh].policy = policy;
++		bh[nr_bh].pd = pd;
++		bh[nr_bh].ncpus = cpumask_weight(policy->related_cpus);
++		bh[nr_bh].capacity = arch_scale_cpu_capacity(cpu);
++		bh[nr_bh].cap = pd->nr_perf_states - 1;
++		nr_bh++;
++	}
++	if (!nr_bh)
++		return -ENODEV;
++
++	sort(bh, nr_bh, sizeof(bh[0]), bh_cmp, NULL);
++	n = nr_bh;
++	for (i = 0; i < n; i++) {
++		ret = freq_qos_add_request(&bh[i].policy->constraints,
++					   &bh[i].req, FREQ_QOS_MAX,
++					   FREQ_QOS_MAX_DEFAULT_VALUE);
++		if (ret < 0) {
++			/* Policies from i on hold a reference but no request. */
++			for (j = i; j < n; j++)
++				cpufreq_cpu_put(bh[j].policy);
++			nr_bh = i;
++			goto fail;
++		}
++		pr_info("policy%u: %u CPUs, %lu mA at its top state\n",
++			bh[i].policy->cpu, bh[i].ncpus,
++			(unsigned long)div_u64(bh_current(&bh[i], bh[i].cap), 1000));
++	}
++
++	ret = power_supply_reg_notifier(&bh_nb);
++	if (ret)
++		goto fail;
++	bh_update();
++	return 0;
++
++fail:
++	bh_release();
++	return ret;
++}
++
++static void __exit bh_exit(void)
++{
++	power_supply_unreg_notifier(&bh_nb);
++	mutex_lock(&bh_lock);
++	bh_release();
++	mutex_unlock(&bh_lock);
++}
++
++module_init(bh_init);
++module_exit(bh_exit);
++
++MODULE_DESCRIPTION("Cap CPU frequencies to the battery's current headroom");
++MODULE_LICENSE("GPL");
+-- 
+2.43.0
+
