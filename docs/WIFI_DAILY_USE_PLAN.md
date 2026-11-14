@@ -59,7 +59,10 @@ Status: plan, updated 2026-11-01.
   about 113), with about 2.3 broadcast or multicast frames a second still arriving. SSH stayed usable. One run.
 - The Wi-Fi stack held the AP-DMA clock on whenever Wi-Fi was up, which blocks SODI and deep idle (cpuidle,
   image 124): the HIF from attach to free, and the WMT setup from its first check to CONSYS unload. 0782 enables
-  it only around each HIF DMA transfer, and 0783 only for the WMT check. Compiled only.
+  it only around each HIF DMA transfer, and 0783 only for the WMT check. On station-work-125, boot `0da78fe9`,
+  as the custodian reports: enable count 0 at idle while joined and after a download, the gate closed in 199 of
+  200 samples, and AP_DMA gone from the SODI and deep idle blockers. Three 64 MiB downloads ran at about 39.5
+  Mbit/s against about 40 before, with no new errors. CONSYS and Bluetooth started; FM was not checked.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
