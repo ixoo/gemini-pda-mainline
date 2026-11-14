@@ -8,8 +8,10 @@
 # at 845 MHz, stops the load and exits 1. Between points it waits for the SoC
 # to cool to COOL. Runs after the six modules, with policy8 on userspace.
 # Limits (env): SOC_LIMIT 70000, VBAT_MIN 3500000 uV, IBAT_MAX 2500000 uA,
-# HOLD 60 s, COOL 45000. CPU_MHZ is the cpu-mhz tool (default /tmp/cpu-mhz).
-# The log is /tmp/t4c.log, one line a second.
+# HOLD 60 s, COOL 45000. VBAT_START (uV), if set, is the least battery voltage
+# at rest to start, for a run on battery. CPU_MHZ is the cpu-mhz tool (default
+# /tmp/cpu-mhz). LOG (default /tmp/t4c.log) gets one line a second and is synced
+# each time, so put it on persistent storage to keep it through a power cut.
 set -u
 
 CPU=${CPU:-/sys/devices/system/cpu}
@@ -24,13 +26,14 @@ VBAT_MIN=${VBAT_MIN:-3500000}
 IBAT_MAX=${IBAT_MAX:-2500000}
 HOLD=${HOLD:-60}
 COOL=${COOL:-45000}
-LOG=/tmp/t4c.log
+LOG=${LOG:-/tmp/t4c.log}
+VBAT_START=${VBAT_START:-0}
 RUN=/tmp/t4c.run
 BAD=/tmp/t4c.bad
 FAULTS='WARNING|Oops|BUG:|Internal error|rcu_.*stall|self-detected|Sending NMI|failed to update|BUCKB|SRAM LDO|B PLL reads|coupl'
 SAFE=845000
 
-say() { echo "$(cut -d' ' -f1 /proc/uptime) $*" | tee -a "$LOG"; }
+say() { echo "$(cut -d' ' -f1 /proc/uptime) $*" | tee -a "$LOG"; sync "$LOG" 2>/dev/null || sync; }
 
 rail_path() {
 	for r in "$REGULATORS"/regulator.*; do
@@ -84,6 +87,8 @@ rm -f "$RUN" "$BAD"
 VPROC=$(rail_path vproc-big)
 VSRAM=$(rail_path vsram_b)
 [ -n "$VPROC" ] && [ -n "$VSRAM" ] || { say "STOP no vproc-big or vsram_b"; exit 1; }
+v=$(cat "$BAT/voltage_now")
+[ "$v" -ge "$VBAT_START" ] || { say "STOP battery at rest $v, below $VBAT_START"; exit 1; }
 REF=$(hash_on 0)
 [ -n "$REF" ] || { say "STOP reference hash failed"; exit 1; }
 BASE=$($DMESG | grep -cE "$FAULTS")

@@ -1255,6 +1255,24 @@ from 1495 to 2522 MHz, for 60 s each.
 
 The first run is on USB power, then the same on battery. The point and the reading
 at which a run stops, and whether USB power changes it, separate heat from supply.
+
+**Likeliest cause, from the fuel-gauge session (inferred, not yet confirmed from the
+PMIC):** the MT6351's hardware undervoltage cut-off. LK sets it at 2.70 V, and it cuts
+power at once, with no log. This cell's effective resistance under load is about
+0.4 ohm. The gauge read about 30 points high on that image (fixed in 0747); the voltage
+at rest after the cut, 3.751 V, puts the real charge at about 25-30 %. So the T4b soak
+loaded a cell at about 3.75-3.8 V, which sags to about 3.15-3.2 V at 1.5 A, and A72
+bursts can reach 2.70 V.
+
+For that reason t4c.sh:
+- writes its log to a path given as `LOG` and syncs it every second, so a log on
+  persistent storage survives a cut;
+- with `VBAT_START`, refuses a battery run below that voltage at rest, which should
+  be 3.9 V.
+
+If this is confirmed, loading the A72s by default needs a battery-aware CPU limit
+first. Mainline has nothing like the vendor's low-battery and over-current
+throttling.
 The writes are within T4b's admitted list. It was dry-run in the dev VM against
 substituted paths, for a pass and for each stop.
 
