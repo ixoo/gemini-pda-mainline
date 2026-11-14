@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 13:33:41 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini-station: latch microSD read data
+ one clock later
+
+At SDR104 the microSD slot fails about 2 % of multi-block reads with a
+data CRC error. The failures follow bus idle time, and the 64-cell tuning
+passes throughout. The tuning settles on 45-47 pad delay cells with the
+default data latch clock.
+
+The vendor kernel reads the same card cleanly, with the same reads and
+the same request size. It latches read data one internal clock later
+and needs only 8 delay cells. With that latch and delay written at
+runtime, 942 reads ran without an error, against 23 of 1045 with the
+mainline values on the same boot.
+
+Set mediatek,latch-ck to 1 so that the tuning works from the later
+latch.
+
+The runtime test also set the CKGEN delay to 0, which mtk-sd fixes at 1;
+this change leaves it at 1. Not yet run on hardware.
+---
+ arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+index da19e3c..ebb7c3b 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station.dts
+@@ -750,6 +750,13 @@
+ 	cd-supply = <&mt6351_vmch_reg>;
+ 	vmmc-supply = <&mt6351_vmch_reg>;
+ 	vqmmc-supply = <&mt6351_vmc_reg>;
++	/*
++	 * Latch read data one internal clock later, as the vendor kernel
++	 * does. With latch 0 the tuning settles on about 47 delay cells,
++	 * and reads that start after the bus has been idle fail CRC a few
++	 * percent of the time although the tuning block passes.
++	 */
++	mediatek,latch-ck = <1>;
+ 	no-mmc;
+ 	no-sdio;
+ 	status = "okay";
+-- 
+2.54.0 (Apple Git-157)
+

@@ -2585,6 +2585,75 @@ report. A data CRC error that only causes a retune isn't a stop.
 | A first failure about as soon as arm 0's (around 45 requests) | Not the sampling path. Next: `SDC_CFG` bit 20, then `PATCH_BIT1` bit 16 |
 | Failures in the first few requests of every run | The delay doesn't fit mainline's 192 MHz. Inconclusive, so test it with the image, which tunes the delay itself |
 
+### T13 result: Gemian's data sampling removes the errors (2026-11-14)
+
+Boot `faf18904`, image 122, card root, on battery, setting A (CCI 234 MHz), g
+traced. The owner admitted T13. The first step-1 read found `PAD_TUNE1` at
+`0x002e2e00` after a retune (delay 45), so the arm-1 values were derived from the
+live registers with masks that change only the data fields. Each register was
+read back after writing, and step 1's values were restored before
+`power/control` went back to `auto`. Raw traces are private.
+
+| Arm | Run | Failed CMD18 | First failure | Time |
+| --- | --- | --- | --- | --- |
+| Mainline sampling | a1 | 7/327 | #54 | 16.1 s |
+| | a2 | 8/398 | #58 | 17.3 s |
+| Gemian sampling (latch 1, CKGEN 0, data delay 8) | g1 | 0/322 | | 10.3 s |
+| | g2 | 0/302 | | 10.6 s |
+| | g3 | 0/318 | | 10.6 s |
+| Mainline sampling | z1 | 8/320 | #53 | 17.0 s |
+
+**Observed.**
+
+- With Gemian's sampling: 0 failures in 942 CMD18. The registers held their
+  values through all three runs, so no retune happened.
+- With mainline's sampling: 23 failures in 1045, the first after 53-58 requests.
+  The retunes moved the delays between 41 and 48.
+- Runs with Gemian's sampling were about 35 % faster, with no single-sector
+  fallback.
+- No `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+
+**Inferred.**
+
+- The microSD CRC errors come from mainline's data sampling: latch clock 0 with
+  about 45 delay cells. Gemian's latch clock 1 with 8 cells reads cleanly at
+  mainline's 192 MHz.
+- The tuning can't see this, because the tuning block passes at the long delay.
+  The cause is presumably that the long delay chain drifts with supply or load.
+  That would fit errors after idle and at low operating points, but the
+  mechanism isn't measured.
+- The runtime test changed the latch and CKGEN together. `mtk-sd` takes the latch
+  from DT (`mediatek,latch-ck`), and its tuning resets the latch to that value.
+  CKGEN is fixed at 1 in `msdc_init_hw`.
+
+**Change.**
+[0778](../../patches/proposals/0778-arm64-dts-mediatek-gemini-station-latch-microSD-read.patch)
+sets `mediatek,latch-ck = <1>` on `mmc1`, so the tuning works from the later
+latch. It's DT only, so it needs an image. Built, not booted.
+
+### T14: the image with `mediatek,latch-ck = <1>`
+
+**Hypothesis.** The tuning picks a short data delay from latch 1, and g runs
+clean with no runtime writes.
+
+**Procedure.** One boot of an image that includes 0778. Card root, on battery.
+Read-only on the card apart from the root's own writes.
+
+1. Record the boot ID, taint and `ios`. With `power/control` `on`, read
+   `PATCH_BIT0`, `PAD_TUNE0` and `PAD_TUNE1`. Latch (bits 9:7) should read 1;
+   record the tuned delays.
+2. g three times at setting A, then three times at schedutil, traced as before.
+3. Read the three registers again, then set `power/control` back to `auto`.
+
+**Stop.** At any `mmc1` error line, I/O error, `EXT4-fs error`, `Remounting`,
+warning or Oops.
+
+| Result | Decision |
+| --- | --- |
+| 0-1 failures in 6 runs | Fixed. Follow with a long soak and the screen-off hang test |
+| Errors at about the old rate, latch 1, delay 32 or more | The tuning again chose a long chain. Add `mediatek,tuning-step = <32>`, or test CKGEN 0 at runtime |
+| Errors, latch 1 with a short delay | CKGEN matters. Test CKGEN 0 at runtime (`PATCH_BIT0` bits 14:10), then a small `mtk-sd` change |
+
 ## Follow-up
 
 - Suspend and resume.
