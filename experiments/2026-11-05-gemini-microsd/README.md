@@ -2102,7 +2102,9 @@ private.
 
 - `msdc_set_mclk` clears `MSDC_CFG_CKPDN` (bit 1) every time it sets the clock. So
   the controller is left free to stop the SD clock while the bus is idle
-  (inferred from how the vendor uses the bit).
+  (inferred from how the vendor uses the bit). **Wrong:** it clears the bit only
+  while it changes the divider, and sets it again once the clock is stable. T10
+  read the bit set.
 - The vendor's normal paths never touch the bit. Its autotuning (`autok.c`) sets
   it to 1 to force the clock on while it tunes, then puts the old value back.
 - Mainline's tuning sends 64 CMD19 back to back, so the clock hardly stops either.
@@ -2137,6 +2139,45 @@ private.
 | fails | clean | The clock stopping when idle causes the errors: set `CKPDN` on the SD slot in `mtk-sd` (a small patch), then test the hang the same way |
 | fails | fails | Not the idle clock: content dump of the failing blocks, or S4 |
 | clean | | Inconclusive: repeat with more idle (`dd bs=512K` with a 5 ms pause) |
+
+### T10 result (2026-11-14)
+
+Boot `9a7d0389`, station-work-121, setting A (LITTLE pinned lowest, CCI 234 MHz).
+`power/control` for MSDC1 was `on`, so runtime PM didn't gate it. The owner
+admitted the test. Raw traces are private.
+
+**Observed.**
+
+- `MSDC_CFG` read `0x02100093` before any write, with bit 1 (`CKPDN`) already set.
+  It read the same after every run, so arm 1's write changed nothing.
+- Six traced 128 MiB reads in that one state failed 47, 22, 21, 13, 6 and 30
+  times: 139/2089 (6.7 %), like S3b's A.
+- No new `mmc1`, I/O or EXT4 line.
+
+**Inferred.**
+
+- The SD clock already runs between requests, so the idle-gap dependence comes
+  from something else. The T10 premise came from misreading `msdc_set_mclk`
+  (corrected above).
+- Runtime PM was held off and the errors stayed, so host clock gating
+  (`msdc_runtime_suspend`) doesn't cause the CRC errors either.
+- What's left fits a card that needs time to come back after its bus has been
+  idle, either in its own logic (H1) or in its I/O supply (H3). Together with the
+  repeated addresses, the next tests compare cards and kernels instead of
+  registers.
+
+**Next.**
+
+1. **A forced-idle stress test**, read-only, as the standard measurement from
+   now on: 256 direct reads of 512 KiB with 5 ms of sleep between them, traced.
+   It should fail at a high, repeatable rate in setting A.
+2. **S4**: the same stress on a second UHS card of another model, same image.
+   - The other card clean: this card or its model (H1).
+   - Both fail: the board, I/O supply or host settings (H3), with the vendor's
+     VMC +40 mV trim next.
+3. **Gemian**: the same stress on this card under the vendor kernel, which logs
+   MSDC1 CRC errors at error level. Clean there and failing on mainline means a
+   host setting mainline lacks: the VMC trim, driving, or `autok` values.
 
 ## Follow-up
 
