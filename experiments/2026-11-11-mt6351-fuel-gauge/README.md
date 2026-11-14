@@ -1073,6 +1073,20 @@ and keeps a hardware comparator as the fast backstop; it does not rely on pollin
 
 On this cell: at an OCV of 3.75 V, about 1.6 A of headroom; at 3.9 V, about 2.0 A.
 
+**Built, the gauge side:** [0784](../../patches/proposals/0784-power-supply-mt6351-fuel-gauge-report-the-current-th.patch),
+on top of 0747. The all-cores session asked for it, and is writing the CPU-limit module
+against it.
+- **`current_max`** = (OCV − 3.10 V) ÷ R(T), in µA, positive.
+  - The OCV comes from the counted charge once there is an OCV reading, otherwise from
+    V − I × R.
+  - Updated with each counter window, at no extra wakeup. The guard reads every 10 s.
+  - A 100 mA band change raises a `power_supply` event.
+- **Caution:** until R is learned or restored, R(T) is the new-cell 165 mΩ. On this cell that
+  makes the headroom about 2.4× too optimistic (3.94 A against 1.62 A at an OCV of 3.75 V).
+  The CPU limit treats `learned_resistance_uohm` equal to `design_resistance_uohm` as not yet
+  learned.
+- Compiled at W=1 and checkpatch clean; not on a device.
+
 ### T2: the image with 0710-0711 (next built-in batch)
 
 - **Hypothesis:** `current_now` follows the counter and capacity no longer jumps on unplugging.

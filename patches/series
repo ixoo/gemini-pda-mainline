@@ -1356,3 +1356,4 @@ proposals/0778-arm64-dts-mediatek-gemini-station-latch-microSD-read.patch
 proposals/0779-dt-bindings-mmc-mtk-sd-add-mediatek-ckgen-delay.patch
 proposals/0780-mmc-mtk-sd-let-DT-set-the-CKGEN-delay.patch
 proposals/0781-arm64-dts-mediatek-gemini-station-sample-microSD-dat.patch
+proposals/0784-power-supply-mt6351-fuel-gauge-report-the-current-th.patch

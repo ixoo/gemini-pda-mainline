@@ -1,0 +1,170 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 15:25:48 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: report the current the
+ battery can supply
+
+An aged Gemini cell under a heavy CPU load fell to the PMIC's
+under-voltage cut-off and the board lost power at once, with nothing
+logged. The vendor kernel throttles the CPUs ahead of that from an
+impedance-based headroom: the current the battery can supply before its
+terminal reaches 3.10 V.
+
+Report that headroom as current_max: the open-circuit voltage, from the
+counted charge once there is an OCV reading or else the voltage less
+I x R, less 3.10 V, over the learned resistance at the battery's
+temperature. It is updated with each counter window, and a change of a
+100 mA band raises a power_supply event, so a CPU limit can follow it
+without polling.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 79 ++++++++++++++++++++++--
+ 1 file changed, 74 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index 140d12a..002a4ef 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -154,6 +154,15 @@
+ #define MT6351_FG_EMPTY_MS		(60 * MSEC_PER_SEC)
+ #define MT6351_FG_EMPTY_MAX_PCT		80
+ 
++/*
++ * The current the battery can supply before its terminal falls to
++ * MT6351_FG_HEADROOM_UV, the vendor's low-battery throttling point and the
++ * Gemini's backstop, reported as the maximum current. A change of a band
++ * raises a power_supply event, so a CPU limit can follow it without polling.
++ */
++#define MT6351_FG_HEADROOM_UV		3100000
++#define MT6351_FG_HEADROOM_BAND_UA	100000
++
+ /*
+  * The resistance against 25 C, per mille, every 5 C from -10 to 50 C: the
+  * vendor profiles' mid-range resistance at -10, 0, 25 and 50 C, interpolated
+@@ -174,6 +183,11 @@ struct mt6351_fg {
+ 	struct mutex lock;
+ 	u32 sense_mohm;
+ 	u32 car_tune;
++	/* The current the battery can supply, and its band for events. */
++	int headroom_ua;
++	int headroom_band;
++	bool headroom_valid;
++	bool headroom_changed;
+ 	/* The typical load, and the empty point on the table. */
+ 	s64 ityp_ua;
+ 	int empty_pct;
+@@ -394,6 +408,43 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 		ms, fg->win_ua, reg_ua);
+ }
+ 
++/*
++ * The current the battery can supply before its terminal reaches the
++ * headroom voltage: the OCV, from the counted charge once there is an OCV
++ * reading or else the voltage less I x R, less that voltage, over the
++ * resistance at the battery's temperature. Called under the lock.
++ */
++static void mt6351_fg_headroom(struct mt6351_fg *fg)
++{
++	int mc, uv, ocv, band;
++	s64 uah, r;
++
++	if (!READ_ONCE(fg->info) || thermal_zone_get_temp(fg->tz, &mc))
++		return;
++
++	if (fg->anchored && fg->full_uah > 0) {
++		uah = fg->anchor_uah +
++		      div_s64(mt6351_fg_car_nah(fg, fg->car - fg->anchor_car), 1000);
++		uah = clamp_t(s64, div64_s64(uah * 1000, fg->full_uah), 0, 1000);
++		ocv = mt6351_fg_cap2ocv(fg, uah, mc);
++	} else if (!mt6351_fg_voltage(fg, &uv)) {
++		ocv = mt6351_fg_ocv(fg, uv, fg->win_ua, mc);
++	} else {
++		return;
++	}
++	if (ocv < 0)
++		return;
++
++	r = max_t(s64, mt6351_fg_r_uohm(fg, mc), 1);
++	fg->headroom_ua = clamp_t(s64, div64_s64((s64)(ocv - MT6351_FG_HEADROOM_UV) * 1000000, r),
++				  0, INT_MAX);
++	band = fg->headroom_ua / MT6351_FG_HEADROOM_BAND_UA;
++	if (fg->headroom_valid && band != fg->headroom_band)
++		fg->headroom_changed = true;
++	fg->headroom_band = band;
++	fg->headroom_valid = true;
++}
++
+ /*
+  * The latched read, as the vendor does it: request the latch, wait for the
+  * latch status, read the current and the counter, clear, wait for the status
+@@ -453,8 +504,10 @@ static int mt6351_fg_read(struct mt6351_fg *fg, int *current_ua, int *charge_uah
+ 
+ 	fg->car = car;
+ 	mt6351_fg_window(fg, car, *current_ua);
+-	if (fg->win_ua_valid)
++	if (fg->win_ua_valid) {
+ 		*current_ua = fg->win_ua;
++		mt6351_fg_headroom(fg);
++	}
+ 
+ 	return 0;
+ }
+@@ -830,13 +883,25 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 	if (ret)
+ 		return ret;
+ 
++	/* A band change of the headroom is reported once, with this read. */
++	scoped_guard(mutex, &fg->lock) {
++		full_changed = fg->headroom_changed;
++		fg->headroom_changed = false;
++	}
++
+ 	switch (psp) {
+ 	case POWER_SUPPLY_PROP_CURRENT_NOW:
+ 		val->intval = ua;
+-		return 0;
++		break;
++	case POWER_SUPPLY_PROP_CURRENT_MAX:
++		scoped_guard(mutex, &fg->lock) {
++			ret = fg->headroom_valid ? 0 : -ENODATA;
++			val->intval = fg->headroom_ua;
++		}
++		break;
+ 	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+ 		val->intval = uah;
+-		return 0;
++		break;
+ 	case POWER_SUPPLY_PROP_STATUS:
+ 		if (ua > MT6351_FG_IDLE_UA)
+ 			val->intval = POWER_SUPPLY_STATUS_CHARGING;
+@@ -844,7 +909,7 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+ 		else
+ 			val->intval = POWER_SUPPLY_STATUS_NOT_CHARGING;
+-		return 0;
++		break;
+ 	case POWER_SUPPLY_PROP_CAPACITY:
+ 		ret = mt6351_fg_capacity(fg, ua, &val->intval, &uah, &full_changed);
+ 		break;
+@@ -855,7 +920,10 @@ static int mt6351_fg_get_property(struct power_supply *psy,
+ 		return -EINVAL;
+ 	}
+ 
+-	/* Userspace saves a learned full charge on this event. */
++	/*
++	 * Userspace saves a learned value on this event; a CPU limit follows the
++	 * headroom.
++	 */
+ 	if (full_changed)
+ 		power_supply_changed(psy);
+ 
+@@ -868,6 +936,7 @@ static const enum power_supply_property mt6351_fg_props[] = {
+ 	POWER_SUPPLY_PROP_TECHNOLOGY,
+ 	POWER_SUPPLY_PROP_VOLTAGE_NOW,
+ 	POWER_SUPPLY_PROP_CURRENT_NOW,
++	POWER_SUPPLY_PROP_CURRENT_MAX,
+ 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
+ 	POWER_SUPPLY_PROP_CAPACITY,
+ 	POWER_SUPPLY_PROP_CHARGE_NOW,
+-- 
+2.54.0 (Apple Git-157)
+
