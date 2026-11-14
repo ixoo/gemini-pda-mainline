@@ -2202,6 +2202,17 @@ before. Compile-checked with `W=1` on 7.1.3 plus 0769, checkpatch quiet,
 applies with `--unidiff-zero`. Expected on the image with 0777: usage 0,
 runtime suspended, AP_DMA gated between I2C transfers.
 
+**0777 on the device** (station-work-124, built from `fd9ca150` with 0769
+and 0777, boot `9c688df7…`, card root, custodian's report): after the
+detach, `11002000.serial` reads `suspended` with `runtime_usage` 0, and
+`/proc/consoles` lists only `tty1` and `ramoops`. The UART part works.
+AP_DMA (`0x094` bit 18) still read on in 200 of 200 samples at 50 ms, so
+something else holds it. `i2c-mt65xx` enables its clocks, AP_DMA included,
+only for each transfer, and a disable back to a count of zero would gate the
+hardware, so another consumer must be holding an enable. The next read, on
+any later boot: the `infra_ap_dma` line and its consumers in
+`/sys/kernel/debug/clk/clk_summary`, and its `clk_enable_count`.
+
 **G2 on that image.** `mt6797-gate-unused` was not in the station image,
 because `compose-station.py` packs a fixed module list; the custodian
 loaded the G2 module by hand (same 26 gates) and is adding it to the list.
