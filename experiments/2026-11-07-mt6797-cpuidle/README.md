@@ -2231,6 +2231,25 @@ change belongs to the Wi-Fi and CONSYS owner: enable `ap-dma` only around a
 WMT exchange and while a HIF DMA transfer is in flight, and release it in
 between. Until then, SODI and deep idle cannot be entered with Wi-Fi up.
 
+**AP_DMA freed (2026-11-14).** Wi-Fi's fix, 0782 (the WLAN HIF enables
+the clock only around each DMA transfer) and 0783 (CONSYS enables it only to
+check that the BTIF channels are idle), ran on station-work-125 (boot2
+`8d413f38…`, from `f6a93500`), boot `0da78fe9…`, card root, Wi-Fi joined at
+about −67 dBm, `mt6797-gate-unused` loaded. Custodian's report:
+
+- `infra_ap_dma` enable count 0 in every read, idle and after a download;
+  `0x094` bit 18 gated in 199 of 200 samples at 50 ms (0 of 200 before);
+- D0 `wifi-idle`, 60 samples, none unblanked: AP_DMA is in neither list.
+  **SODI is now blocked only by ICUSB (`0x090` bit 8) and SSUSB_REF, BUS
+  and SYS (`0x0b0` bits 9, 18, 24)**, every sample. Deep idle adds DISP_PWM
+  (`0x094` bit 17) and the display domain;
+- three 64 MiB downloads at about 39.5 Mbit/s against about 40 before, no new
+  Wi-Fi error; Bluetooth probed and `hci0` set up, powered off as before.
+
+So the only blocker left for SODI with Wi-Fi joined is the USB controller
+holding its clocks with the cable out. That is the USB sessions' runtime
+power-down; deep idle also waits on the display's two items.
+
 **G2 on that image.** `mt6797-gate-unused` was not in the station image,
 because `compose-station.py` packs a fixed module list; the custodian
 loaded the G2 module by hand (same 26 gates) and is adding it to the list.
