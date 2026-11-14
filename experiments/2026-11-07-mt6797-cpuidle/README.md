@@ -2176,6 +2176,39 @@ boot log; only the card's detach unit uses this.
 4. `echo 1 > /sys/class/tty/ttyS0/console`: the console prints again and the
    port is active; `echo 0` suspends it again.
 
+### 0769 on the device, and 0777 (2026-11-13)
+
+On station-work-120 (`64c1f85e`, with 0769), boot `3f3e037b…`, card root
+(custodian's report): after the card's detach unit ran (`console=N`, nobody
+holding `/dev/ttyS0`, `/proc/consoles` listing only `tty1` and `ramoops`),
+`11002000.serial` was still runtime-active with a usage count of 1, and
+AP_DMA (`0x094` bit 18) stayed on. Attaching the console again raised the
+count to 2 and detaching brought it back to 1.
+
+**Why** (from the source, fits all three numbers): at boot the port holds two
+references, one from `serial8250_console_setup()` and one from
+`uart_configure_port()`'s power-on. Something opened and closed `ttyS0`
+while it was still the console. That close skipped the shutdown
+(`tty_port_shutdown()` returns early for a console port), so the port
+stayed *initialized* with nobody holding it. 0769 powers a port off on
+detach only if it is not initialized, so it skipped the power-off. The
+console's own reference is the one that came and went with each toggle.
+
+[`0777`](../../patches/proposals/0777-serial-core-shut-down-a-closed-port-when-its-console.patch)
+(built in, on top of 0769): on detach, a port that no one has open but
+that is still initialized gets the shutdown the earlier close skipped,
+which ends in the power-off; a never-initialized port is powered off as
+before. Compile-checked with `W=1` on 7.1.3 plus 0769, checkpatch quiet,
+applies with `--unidiff-zero`. Expected on the image with 0777: usage 0,
+runtime suspended, AP_DMA gated between I2C transfers.
+
+**G2 on that image.** `mt6797-gate-unused` was not in the station image,
+because `compose-station.py` packs a fixed module list; the custodian
+loaded the G2 module by hand (same 26 gates) and is adding it to the list.
+`0x0b0` read `0xe7` before gating, where it read `0x080000e7` on the earlier
+boot: bit 27 has no mainline clock, and the vendor's SODI3 mask names bits 26
+and 27 as the audio 26 MHz gates. It is not a deep-idle or SODI condition.
+
 ### What it should save
 
 | State | Today | Expected |

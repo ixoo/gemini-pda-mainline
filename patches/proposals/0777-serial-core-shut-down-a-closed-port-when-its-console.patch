@@ -1,0 +1,46 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 20:16:15 -0500
+Subject: [PATCH] serial: core: shut down a closed port when its console is
+ detached
+
+A port that was opened and closed while it was the console keeps
+tty_port_initialized() set, because tty_port_shutdown() returns early
+for console ports. Detaching the console then left it powered: the
+power-off on detach only covered a port that had never been
+initialized, and nothing else shut it down, so on MediaTek 8250 one
+runtime PM reference stayed and kept the UART's bus clock on.
+
+On detach, if no one has the port open, run the shutdown the earlier
+close skipped, which also powers the port off; power off a port that
+was never initialized as before.
+---
+ drivers/tty/serial/serial_core.c | 15 +++++++++++++--
+ 1 file changed, 13 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/tty/serial/serial_core.c b/drivers/tty/serial/serial_core.c
+index 81f78890b..f8661d8dd 100644
+--- a/drivers/tty/serial/serial_core.c
++++ b/drivers/tty/serial/serial_core.c
+@@ -2981,8 +2981,19 @@ static ssize_t console_store(struct device *dev,
+ 		 * power it off now if nobody has it open, as for any other port.
+ 		 */
+ 		port->console = false;
+-		if (!tty_port_initialized(port))
+-			uart_change_pm(state, UART_PM_STATE_OFF);
++		if (!tty_port_active(port)) {
++			/*
++			 * A close while it was the console skipped the shutdown
++			 * and left the port initialized; do that shutdown now,
++			 * which also powers it off.
++			 */
++			if (tty_port_initialized(port)) {
++				tty_port_set_initialized(port, false);
++				port->ops->shutdown(port);
++			} else {
++				uart_change_pm(state, UART_PM_STATE_OFF);
++			}
++		}
+ 	} else if (!oldconsole && newconsole) {
+ 		if (!uart_console(uport))
+ 			return -ENOENT;

@@ -937,3 +937,4 @@ proposals/0773-arm64-dts-mediatek-gemini-station-follow-caps-lock-f.patch
 proposals/0774-mmc-core-start-each-request-in-multi-block-mode.patch
 proposals/0775-arm64-dts-mediatek-gemini-station-DVFS-keep-VPROC2-a.patch
 proposals/0776-soc-mediatek-mt6797-a72-bring-the-cluster-back-on-a-.patch
+proposals/0777-serial-core-shut-down-a-closed-port-when-its-console.patch
