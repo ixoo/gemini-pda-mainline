@@ -1,0 +1,38 @@
+From 97da4b1f6a8c03a3823262838099b069e92646e6 Mon Sep 17 00:00:00 2001
+From: Gemini Mainline Experiment <gemini-mainline@example.invalid>
+Date: Sat, 14 Nov 2026 18:20:50 -0500
+Subject: [PATCH] pwm: mtk-disp: gate the MT6797 clocks while off at duty 0
+
+At duty 0 the MT6797 block is switched off, but pwm-backlight still holds the
+PWM enabled, so the driver kept its clocks running. Release them once the block
+is off. The next non-zero duty enables them again before touching a register,
+as for a disabled PWM.
+---
+ drivers/pwm/pwm-mtk-disp.c | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/pwm/pwm-mtk-disp.c b/drivers/pwm/pwm-mtk-disp.c
+index eb1d81a..c8263bc 100644
+--- a/drivers/pwm/pwm-mtk-disp.c
++++ b/drivers/pwm/pwm-mtk-disp.c
+@@ -177,9 +177,17 @@ static int mtk_disp_pwm_apply(struct pwm_chip *chip, struct pwm_device *pwm,
+ 					 0x0);
+ 	}
+ 
+-	if (!off)
+-		mtk_disp_pwm_update_bits(mdp, DISP_PWM_EN, mdp->data->enable_mask,
+-					 mdp->data->enable_mask);
++	/* Off, the block needs no clock until the next non-zero duty. */
++	if (off) {
++		if (mdp->clk_mm)
++			clk_disable_unprepare(mdp->clk_mm);
++		clk_disable_unprepare(mdp->clk_main);
++		mdp->enabled = false;
++		return 0;
++	}
++
++	mtk_disp_pwm_update_bits(mdp, DISP_PWM_EN, mdp->data->enable_mask,
++				 mdp->data->enable_mask);
+ 	mdp->enabled = true;
+ 
+ 	return 0;

@@ -601,6 +601,24 @@ exactly one prepare, through the fbdev unblank, and the owner saw the console dr
 Every other prepare in the trace came while the display was on. The record is in the
 [power test plan](../2026-11-08-cpu-power-test-plan/README.md).
 
+## The blanked display and deep idle (0788 built, not yet booted)
+
+The cpuidle census on station-work-125 found two display holders that block the deep-idle
+program, but not SODI, while the display is blanked: `infra_disp_pwm` (INFRA `0x094`
+bit 17), held by the PWM, and the DIS domain.
+
+- **The PWM clock.** pwm-backlight has no supply or enable GPIO here, so it leaves the
+  PWM enabled at duty 0. `0514` switches the block off at duty 0 but kept the clocks
+  running. `0788` releases them once the block is off; the next non-zero duty enables
+  them before it touches a register. `PWM_MTK_DISP` is built in, so this needs an image.
+  It compiled with `W=1` in the dev VM; it is not yet booted.
+- **The DIS domain.** The station DT names no domain on the display nodes on purpose (see
+  the comment on its display section), so no driver can power the domain off. Doing so
+  is a separate step with open questions: the SMI larbs, which stay in the loader's
+  bypass with no driver, would be reset; the PWM would leave display mutex 0, through
+  which its duty latches; and the census also shows the camera's `seninf` holding
+  `mm_smi_common` and its camera clocks while runtime-suspended.
+
 ## What stands before upstream
 
 An independent review of the display and lid patches found these, not changed here

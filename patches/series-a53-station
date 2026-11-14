@@ -948,3 +948,4 @@ proposals/0784-power-supply-mt6351-fuel-gauge-report-the-current-th.patch
 proposals/0785-cpufreq-cap-frequencies-to-the-battery-s-current-hea.patch
 proposals/0786-arm64-dts-mediatek-gemini-station-DVFS-make-fast-A72.patch
 proposals/0787-power-supply-mt6351-fuel-gauge-keep-the-headroom-saf.patch
+proposals/0788-pwm-mtk-disp-gate-the-MT6797-clocks-while-off-at-dut.patch
