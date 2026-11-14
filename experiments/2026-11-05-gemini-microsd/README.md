@@ -2474,6 +2474,32 @@ warning or Oops: set bit 1 back, restore `power/control`, then report. No retrie
 | 8 or more | similar | Not the idle clock. Next: `SDC_CFG` bit 20, then `PATCH_BIT1` bit 16 |
 | under 8 | | No baseline |
 
+### Gemian with mainline's request size (2026-11-14)
+
+Gemian 3.18.41+ #7, boot `563f857d`, card-32 not mounted. g as before, with the
+block queue's `max_sectors_kb` changed at runtime, a software setting only. Counted:
+new `crc`/`msdc1`/`mmc1` dmesg lines, and the `/sys/block/mmcblk1/stat` delta.
+Raw files are private.
+
+| Runs | `max_sectors_kb` | Reads per run | New error lines | Time per run |
+| --- | --- | --- | --- | --- |
+| h1-h3 | 512 | 256 | 0, 0, 0 | 5.8-5.9 s |
+| c1-c3 | 4096 | 128 | 0, 0, 0 | 5.8-6.0 s |
+
+**Observed.** At 512 Gemian split each 1 MiB read into two 512 KiB requests, as
+mainline does, and logged no error in 768 of them. No I/O error or warning.
+`max_sectors_kb` was set back to 4096.
+
+**Inferred.**
+
+- Request size and the split are out. With the same card, the same reads and the
+  same request size, Gemian stays clean where mainline fails about 2 %.
+- One workload difference remains: Gemian ran its CPUs faster (about 6 s per run
+  against 15 s at mainline's setting A). Mainline also failed at schedutil
+  (S3, 3-5 %), so CPU speed alone doesn't explain the gap.
+- The lead is MSDC1's own configuration on mainline. T12 (`CKPDN`) comes first,
+  and it waits for the owner's admission.
+
 ## Follow-up
 
 - Suspend and resume.
