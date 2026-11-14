@@ -1376,6 +1376,38 @@ named, so its caps are logged as the headroom moves.
 Hypothesis: with the A72s capped at 1677 MHz, the power allocator holds the SoC near
 75 C and below 80 C for 60 min with every CPU loaded, and no hash differs.
 
+**T7 attempt 1 (observed, owner-approved, image 126, boot `7e99a260`; ended by a
+microSD fault, not by a T7 rule).**
+
+Setup: the six modules matched T4b, `battery-headroom` was `6f7e5348...`, boost read 0,
+policy8's top was 1677 MHz, schedutil ran at a 10 ms rate limit, and the power
+allocator had the init's gains. The charger was online at a 1.5 A input limit.
+
+What ran:
+- For about 530 s with all ten CPUs loaded, the SoC sat at 73-77 C.
+- The allocator held the A72s mostly at 338-1001 MHz and the A53 policies at about
+  0.9-1.5 GHz.
+- The battery drew about 60-110 mA, so the charger barely covered the load.
+- No hash differed and no thermal stop fired.
+
+How it ended: at 644.7 s the microSD holding the root hung ("Card stuck being busy",
+failed reset, I/O errors, journal abort, read-only). `t7.sh` blocked in its log sync
+and never reached a rule. The custodian stopped the load and capped the A72s. The
+microSD fault is the microSD session's to explain. T7 needs a full rerun once it is
+understood.
+
+What it shows so far: with three CPU actors, the allocator does hold the SoC near its
+75 C target. It does so by keeping the A72s far below their top, which is the expected
+trade, not a fault.
+
+`battery-headroom` logged about 18,000 lines in 14 min, because the headroom changes
+with every gauge window. 0785 now updates the caps and logs only when a cap moves.
+
+Also on that image, `current_max` read about 2 times too high from a resistance
+restored part-way through learning. The fuel-gauge session's 0790 keeps the
+aged-cell floor until each boot's first measured estimate. The cap is not to be
+relied on at low charge before an image with 0790.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.

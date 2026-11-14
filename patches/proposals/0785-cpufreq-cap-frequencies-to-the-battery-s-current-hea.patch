@@ -16,14 +16,14 @@ reserve for the rest of the system. A policy's worst case is all its
 CPUs busy at their cap, from the energy model's power with a leakage
 margin, at a floor voltage. Policies are cut from the highest capacity
 down, one state at a time, on each change the supplies report, with no
-polling. While the battery reports no headroom, as before its gauge's
-first reading, a fallback_ua parameter stands in for it; left at 0,
-nothing is capped.
+polling, and it touches the caps and logs only when one moves. While the
+battery reports no headroom, as before its gauge's first reading, a
+fallback_ua parameter stands in for it; left at 0, nothing is capped.
 ---
  drivers/cpufreq/Kconfig            |  12 ++
  drivers/cpufreq/Makefile           |   1 +
- drivers/cpufreq/battery-headroom.c | 301 +++++++++++++++++++++++++++++
- 3 files changed, 314 insertions(+)
+ drivers/cpufreq/battery-headroom.c | 308 +++++++++++++++++++++++++++++
+ 3 files changed, 321 insertions(+)
  create mode 100644 drivers/cpufreq/battery-headroom.c
 
 diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
@@ -63,10 +63,10 @@ index 385c9fcc6..3989d213d 100644
  obj-$(CONFIG_CPUFREQ_DT_PLATDEV)	+= cpufreq-dt-platdev.o
 diff --git a/drivers/cpufreq/battery-headroom.c b/drivers/cpufreq/battery-headroom.c
 new file mode 100644
-index 000000000..53d1d6603
+index 000000000..851ee004e
 --- /dev/null
 +++ b/drivers/cpufreq/battery-headroom.c
-@@ -0,0 +1,301 @@
+@@ -0,0 +1,308 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Cap CPU frequencies to the battery's current headroom.
@@ -139,7 +139,8 @@ index 000000000..53d1d6603
 +static struct bh_policy bh[MAX_POLICIES];
 +static unsigned int nr_bh;
 +static DEFINE_MUTEX(bh_lock);
-+static long last_budget = LONG_MIN;
++static unsigned long last_caps[MAX_POLICIES];
++static bool last_capped = true;
 +
 +/* Worst-case current of @p at EM state @idx, in uA. */
 +static u64 bh_current(struct bh_policy *p, int idx)
@@ -208,10 +209,11 @@ index 000000000..53d1d6603
 +
 +static void bh_update(void)
 +{
++	unsigned long caps[MAX_POLICIES];
 +	long headroom, budget;
-+	u64 total;
++	bool cut, changed;
 +	unsigned int i;
-+	bool cut;
++	u64 total;
 +
 +	mutex_lock(&bh_lock);
 +	headroom = bh_headroom();
@@ -238,22 +240,27 @@ index 000000000..53d1d6603
 +			break;
 +	}
 +
-+	for (i = 0; i < nr_bh; i++)
-+		freq_qos_update_request(&bh[i].req, budget == LONG_MAX ?
-+					FREQ_QOS_MAX_DEFAULT_VALUE :
-+					bh_freq(&bh[i], bh[i].cap));
-+
-+	if (budget != last_budget) {
-+		if (budget == LONG_MAX)
++	/* Update and log only when a cap moves; the headroom moves often. */
++	changed = (budget == LONG_MAX) == last_capped;
++	for (i = 0; i < nr_bh; i++) {
++		caps[i] = budget == LONG_MAX ? 0 : bh_freq(&bh[i], bh[i].cap);
++		if (caps[i] != last_caps[i])
++			changed = true;
++	}
++	if (changed) {
++		for (i = 0; i < nr_bh; i++) {
++			freq_qos_update_request(&bh[i].req, caps[i] ?:
++						FREQ_QOS_MAX_DEFAULT_VALUE);
++			last_caps[i] = caps[i];
++		}
++		last_capped = budget != LONG_MAX;
++		if (!last_capped)
 +			pr_info("no headroom reported, no cap\n");
 +		else
 +			pr_info("headroom %ld uA, CPU budget %ld uA, caps %lu/%lu/%lu/%lu kHz\n",
-+				headroom, budget,
-+				nr_bh > 0 ? bh_freq(&bh[0], bh[0].cap) : 0,
-+				nr_bh > 1 ? bh_freq(&bh[1], bh[1].cap) : 0,
-+				nr_bh > 2 ? bh_freq(&bh[2], bh[2].cap) : 0,
-+				nr_bh > 3 ? bh_freq(&bh[3], bh[3].cap) : 0);
-+		last_budget = budget;
++				headroom, budget, caps[0],
++				nr_bh > 1 ? caps[1] : 0, nr_bh > 2 ? caps[2] : 0,
++				nr_bh > 3 ? caps[3] : 0);
 +	}
 +	mutex_unlock(&bh_lock);
 +}
