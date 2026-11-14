@@ -2318,6 +2318,92 @@ direct read running, so the clock is on):
 Every difference becomes one diagnostic write on mainline, or the VMC trim module,
 each needing its own admission.
 
+### R3 result: mainline and Gemian registers with the card active (2026-11-14)
+
+Read-only, through `/dev/mem` (python `mmap`) and the MT6351 interfaces, while a
+background direct-read loop kept the card active. Mainline: boot `ca480729`,
+image 122, MSDC1 `power/control` `on` during the reads. Gemian: boot `b7d7ce15`.
+Raw lists are private.
+
+**MT6351 supply trims:**
+
+| Register | Mainline | Gemian |
+| --- | --- | --- |
+| `0x0ace` (VMCH, CAL bits 4:0) | `0x0005` | `0x0000` |
+| `0x0ae2` (VMC, VOSEL 10:8 = 3 for 1.8 V, CAL 4:0) | `0x031b` | `0x0300` |
+
+**From the public vendor source** (`sd.c`, `msdc_set_host_power_control()` for host 1):
+
+- The vendor's MSDC1 probe subtracts 5 from VMCH_CAL and `0x1b` from VMC_CAL, modulo
+  32. Its comments call the firmware values a +100 mV calibration that it
+  doesn't want at 3.0 V.
+- The firmware leaves 5 and `0x1b`, as T1 read at mainline entry. So Gemian
+  runs both at 0.
+- Its later "+40 mV" step at 1.8 V computes 0 - 2 = `0xfffffffe`. Its PMIC write
+  rejects that, as the [trim record](../2026-07-12-mt6797-msdc-recovery/MICROSD_POWER.md#the-18-v-trim-subtraction-has-a-refusal-boundary)
+  predicted, so VMC stays at 0.
+- Mainline never touches the CAL fields. It runs both rails with the firmware
+  trims, which the vendor treats as 100 mV off.
+
+**Other differences:**
+
+- **Pads.** Two microSD pins have the opposite pull strength (`R0`/`R1` bits 15-16).
+  One Schmitt-trigger bit (`0x10002830` bit 26) is set on mainline only.
+- **MSDC1 sampling path.** Mainline uses data latch clock 0 with `CKGEN_MSDC_DLY_SEL`
+  1, and pad delays of 47 for CMD and data, through the second delay field.
+  Gemian uses latch clock 1 with CKGEN 0, and a data delay of 8 and a CMD delay
+  of 4, from its own autok at 200 MHz.
+  - `PATCH_BIT1` also differs: bit 16, the turnaround counters and `GET_BUSY_MA`.
+  - `PATCH_BIT2` differs in the response and CRC-status sampling fields (write
+    side).
+- The rest (interrupt, DMA address and last-command registers) is request state,
+  not configuration.
+
+**Inferred.**
+
+- The supply trims are the one difference the vendor sets on purpose and mainline
+  doesn't, at a level outside tuning. They fit a fault that depends on the card
+  waking after idle and not on the clock.
+- Next come the pad pulls and Schmitt bit, then the sampling path. Mainline's own
+  tuning places the sampling path, so it's the least likely.
+
+### T11: the vendor's supply trims (diagnostic PMIC write, needs the owner's admission)
+
+**Hypothesis.** With VMCH_CAL and VMC_CAL at 0, as Gemian runs them, the 1 MiB
+forced-idle stress (g) stops failing on mainline.
+
+**Tool.** [`sd-trim/sd-trim.c`](sd-trim/sd-trim.c), a diagnostic module, built out
+of tree against image 122's configuration.
+
+- It gets the `vmch` and `vmc` regulators by name and writes only the CAL bits
+  (4:0) of `0x0ace` and `0x0ae2` through the regulator's regmap. It logs the
+  register and voltage before and after.
+- Unloading puts the saved values back. A parameter of -1 leaves that rail alone,
+  which allows a later split.
+- Nothing loads it at boot, and a restart returns the firmware values.
+
+**Procedure.** Image 122, card root, on battery, setting A, traced like the earlier
+g runs. Read-only on the card apart from the root's own writes.
+
+1. Record the boot ID, taint, `ios`, the regulators and the PMIC registers
+   (`sd-state.sh`).
+2. Arm 0: g twice, with no module.
+3. `insmod sd-trim.ko vmch_cal=0 vmc_cal=0`. Check that dmesg shows both set lines
+   and that `0x0ace` reads `0x0000` and `0x0ae2` `0x0300`.
+4. Arm 1: g three times.
+5. `rmmod sd-trim`. Check that the restored lines appear and that the registers
+   read `0x0005` and `0x031b`.
+6. Arm 0 again: g once.
+
+**Stop.** At any `mmc1` error line, I/O error, `EXT4-fs error`, `Remounting`,
+warning or Oops: `rmmod sd-trim` if it's loaded, then report. No retries.
+
+| Arm 0 (3 runs) | Arm 1 (3 runs) | Decision |
+| --- | --- | --- |
+| 8 or more failures | 0-1 | The trims cause the errors. Split VMCH and VMC with the parameters, then a regulator-driver or DT change for the slot |
+| 8 or more | similar to arm 0 | Not the trims. Next, the pad pulls and Schmitt bit as runtime pinconf writes, then the sampling path |
+| under 8 | | No baseline. Repeat the arms on a boot that reproduces |
+
 ## Follow-up
 
 - Suspend and resume.
