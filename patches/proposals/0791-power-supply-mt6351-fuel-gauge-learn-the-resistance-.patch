@@ -1,0 +1,49 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 18:46:41 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: learn the resistance in
+ larger steps
+
+The learned resistance moved 1/16 of the way to each estimate, at most a
+tenth. From the new-cell 165 mOhm toward an aged Gemini cell's 0.4 Ohm
+that takes nine or more updates, each after a steady load at least ten
+minutes from the last, so for hours the OCV corrections and the empty
+point used a resistance well under the cell's. Two updates had reached
+only 199.65 mOhm on station-work-126, with estimates above 0.43 Ohm.
+
+Move a quarter of the way, at most a quarter. One estimate scatters by
+about a tenth to a fifth, which a quarter step still smooths; the value
+comes within a tenth of an aged cell's in about six updates.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index d1cb73c..fd28bf4 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -127,8 +127,8 @@
+  * MT6351_FG_RLOAD_UA for MT6351_FG_RLOAD_MS, every window within a tenth of
+  * the first, the OCV at the counted charge less the voltage, over the
+  * current. Only within MT6351_FG_RTRUST_MS of a rest or finished-charge
+- * reading, at 15-35 C, at most every MT6351_FG_RSTEP_MS, moving 1/16 of the
+- * way and at most a tenth, within the bounds. It is kept at 25 C.
++ * reading, at 15-35 C, at most every MT6351_FG_RSTEP_MS, moving a quarter of
++ * the way and at most a quarter, within the bounds. It is kept at 25 C.
+  */
+ #define MT6351_FG_RLOAD_UA		300000
+ #define MT6351_FG_RLOAD_MS		(120 * MSEC_PER_SEC)
+@@ -710,8 +710,8 @@ static bool mt6351_fg_learn_r(struct mt6351_fg *fg, ktime_t now, int ua, s64 ful
+ 	fg->r_raw25_uohm = r;
+ 	fg->r_raw_valid = true;
+ 
+-	step = clamp_t(s64, div_s64(r - fg->r25_uohm, 16),
+-		       -div_s64(fg->r25_uohm, 10), div_s64(fg->r25_uohm, 10));
++	step = clamp_t(s64, div_s64(r - fg->r25_uohm, 4),
++		       -div_s64(fg->r25_uohm, 4), div_s64(fg->r25_uohm, 4));
+ 	fg->r25_uohm += step;
+ 	fg->r_time = now;
+ 	fg->r_updated = true;
+-- 
+2.54.0 (Apple Git-157)
+

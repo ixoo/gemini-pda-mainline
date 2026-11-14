@@ -1108,8 +1108,19 @@ against it.
   fixes the rule:**
   - the headroom uses the larger of the learned R and the latest accepted estimate, at
     temperature;
-  - before any estimate it keeps 3× the new-cell value, unless userspace restored a value
-    other than the DT's.
+  - before this boot's first estimate it keeps 3× the new-cell value, whatever was restored.
+  - Compiled at W=1 and checkpatch clean; not on a device.
+- **What the custodian's read-only reads showed** (`7e99a260…`):
+  - `learned_resistance_uohm` 199650 had been restored from `battery-learned`, saved on an
+    earlier boot; this boot had no learning lines yet.
+  - 199650 is exactly two +10 %-capped steps from 165000, so the raw estimates were above
+    0.43 Ω.
+  - A saved R can therefore still be converging, so 0790, amended in place before any boot,
+    keeps the floor until this boot's own estimate.
+- **[0791](../../patches/proposals/0791-power-supply-mt6351-fuel-gauge-learn-the-resistance-.patch)**
+  learns R in quarter steps capped at a quarter, instead of 1/16 steps capped at a tenth.
+  - 165 → 206 → 258 → 298 → 329 mΩ toward 0.42 Ω, within a tenth in about six updates, against
+    nine or more before.
   - Compiled at W=1 and checkpatch clean; not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)

@@ -5,26 +5,26 @@ Subject: [PATCH] power: supply: mt6351-fuel-gauge: base the headroom on the
  latest resistance estimate
 
 The headroom dropped its aged-cell assumption as soon as the resistance
-counted as learned or restored: after the first learning step, or after
-userspace wrote back the DT's own value, saved beside a learned full
-charge. On station-work-126 current_max read 4.83 A, which implies about
-0.2 Ohm, on a cell measured at 0.3-0.4 Ohm. The learned value moves in
-small steps from the new-cell value, so it understates an aged cell's
-resistance for many updates.
+counted as learned or restored. On station-work-126 current_max read
+4.83 A, implying about 0.2 Ohm, on a cell measured at 0.3-0.4 Ohm: the
+restored value, 199.65 mOhm, had been saved after only two capped
+learning steps from the new-cell 165 mOhm. The learned value approaches
+an aged cell's resistance in steps, so a learned or restored value can
+understate it for a long time.
 
 Use the larger of the learned resistance and the latest accepted
-estimate, at the battery's temperature. Before any estimate, keep the
-aged-cell assumption unless userspace restored a value other than the
-DT's.
+estimate, at the battery's temperature. Until this boot's first
+estimate, keep the aged-cell assumption whatever value was restored; the
+restored value still serves the capacity.
 ---
- drivers/power/supply/mt6351-fuel-gauge.c | 23 ++++++++++++++++-------
- 1 file changed, 16 insertions(+), 7 deletions(-)
+ drivers/power/supply/mt6351-fuel-gauge.c | 25 ++++++++++++++----------
+ 1 file changed, 15 insertions(+), 10 deletions(-)
 
 diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
-index 6e50c2b..ec980c4 100644
+index 6e50c2b..d1cb73c 100644
 --- a/drivers/power/supply/mt6351-fuel-gauge.c
 +++ b/drivers/power/supply/mt6351-fuel-gauge.c
-@@ -163,9 +163,11 @@
+@@ -163,9 +163,12 @@
  #define MT6351_FG_HEADROOM_UV		3100000
  #define MT6351_FG_HEADROOM_BAND_UA	100000
  /*
@@ -33,19 +33,20 @@ index 6e50c2b..ec980c4 100644
 - * never overstates what the battery can supply.
 + * The headroom must not overstate what the battery can supply. It uses the
 + * larger of the learned resistance and the latest accepted estimate, since
-+ * the learned value approaches a new cell's slowly. Before any estimate, and
-+ * unless userspace has restored a value other than the DT's, it assumes an
-+ * aged cell at up to this many times the DT's new-cell value.
++ * the learned value approaches an aged cell's in steps, and a restored value
++ * may have been saved before it got there. Before this boot's first
++ * estimate, it assumes an aged cell at up to this many times the DT's
++ * new-cell value.
   */
  #define MT6351_FG_R_UNKNOWN_FACTOR	3
  
-@@ -209,8 +211,10 @@ struct mt6351_fg {
+@@ -209,8 +212,9 @@ struct mt6351_fg {
  	bool rl_done;
  	ktime_t r_time;
  	bool r_updated;
 -	/* The resistance was learned or restored since probe. */
-+	/* A value other than the DT's was restored, and the latest estimate. */
- 	bool r_known;
+-	bool r_known;
++	/* The latest accepted estimate. */
 +	s64 r_raw25_uohm;
 +	bool r_raw_valid;
  	/* The previous window's current and closing voltage, for the step estimate. */
@@ -58,7 +59,7 @@ index 6e50c2b..ec980c4 100644
 -	if (!fg->r_known)
 +	if (fg->r_raw_valid)
 +		r = max(r, div64_s64(r * fg->r_raw25_uohm, fg->r25_uohm));
-+	else if (!fg->r_known)
++	else
  		r = max(r, div_s64(r * MT6351_FG_R_UNKNOWN_FACTOR * fg->r_design_uohm,
  				   fg->r25_uohm));
  	fg->headroom_ua = clamp_t(s64, div64_s64((s64)(ocv - MT6351_FG_HEADROOM_UV) * 1000000, r),
@@ -78,17 +79,18 @@ index 6e50c2b..ec980c4 100644
  	dev_info(fg->dev, "resistance %lld uOhm at 25 C\n", fg->r25_uohm);
  
  	return step != 0;
-@@ -1085,7 +1092,9 @@ static ssize_t learned_resistance_uohm_store(struct device *dev,
+@@ -1083,10 +1090,8 @@ static ssize_t learned_resistance_uohm_store(struct device *dev,
+ 	if (!READ_ONCE(fg->info))
+ 		return -ENODATA;
  
- 	scoped_guard(mutex, &fg->lock) {
+-	scoped_guard(mutex, &fg->lock) {
++	scoped_guard(mutex, &fg->lock)
  		fg->r25_uohm = r;
 -		fg->r_known = true;
-+		/* A restored value was learned; the DT's own was not. */
-+		if (r != fg->r_design_uohm)
-+			fg->r_known = true;
- 	}
+-	}
  	power_supply_changed(fg->psy);
  
+ 	return count;
 -- 
 2.54.0 (Apple Git-157)
 
