@@ -2213,6 +2213,24 @@ hardware, so another consumer must be holding an enable. The next read, on
 any later boot: the `infra_ap_dma` line and its consumers in
 `/sys/kernel/debug/clk/clk_summary`, and its `clk_enable_count`.
 
+**Who holds AP_DMA** (custodian's read, same boot, Wi-Fi joined):
+`infra_ap_dma` had an enable count of 2 and a prepare count of 9. Its
+consumers are CONSYS (`ap-dma`), seven I2C controllers (`dma`) and the UART
+(`bus`, now suspended). From the source, the two lasting enables are both
+the Wi-Fi stack's:
+
+- the CONSYS owner (0393) enables `ap-dma` when it sets up the WMT channel
+  (`mt6797_wmt_query_setup`) and releases it only when CONSYS unloads;
+- the WLAN driver (0392) takes the same clock for its HIF data path
+  (`hif->dma_clk`) and releases it only at teardown.
+
+The I2C controllers enable it per transfer only. So AP_DMA stays on for as
+long as Wi-Fi is up, which on the card root is always. The vendor allows
+Wi-Fi during deep idle, so its stack does not hold the clock that way. The
+change belongs to the Wi-Fi and CONSYS owner: enable `ap-dma` only around a
+WMT exchange and while a HIF DMA transfer is in flight, and release it in
+between. Until then, SODI and deep idle cannot be entered with Wi-Fi up.
+
 **G2 on that image.** `mt6797-gate-unused` was not in the station image,
 because `compose-station.py` packs a fixed module list; the custodian
 loaded the G2 module by hand (same 26 gates) and is adding it to the list.
