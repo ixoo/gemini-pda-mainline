@@ -2600,4 +2600,18 @@ offset uses the same column origin as the presentation. The patch carries an ups
 message.
 
 Built in an Arch chroot over card-32's image: `umbriel-0.1.0.r20261108.94ab596-8` (`e5930a13…`), no
-compiler warnings. Not on the device.
+compiler warnings.
+
+**Result** (custodian, card-32, image 122, boot `08e9a8ff`, installed with `pacman -U`, session
+restarted, steps driven with `umbriel msg`, checked with `grim` captures; logical geometry):
+
+1. With qutebrowser fullscreen and foot focused to its left, there was no band at the right
+   edge: the browser was at 939×469+981+10 and foot at 879×449+50+10.
+2. With the browser focused, it covered the whole output, bar area included, with no gap at
+   either edge.
+3. In the mirror case, a new foot to the right of the fullscreen browser was focused and there
+   was no band at the left edge; the browser was at 939×469−861+10.
+4. With fullscreen off, the browser was at 879×449+50+10 and its neighbours at +941 and −841,
+   the usual width and 12 px gap.
+
+The card image builder builds Umbriel from this recipe, so the next card image carries pkgrel 8.
