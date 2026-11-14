@@ -2654,6 +2654,55 @@ warning or Oops.
 | Errors at about the old rate, latch 1, delay 32 or more | The tuning again chose a long chain. Add `mediatek,tuning-step = <32>`, or test CKGEN 0 at runtime |
 | Errors, latch 1 with a short delay | CKGEN matters. Test CKGEN 0 at runtime (`PATCH_BIT0` bits 14:10), then a small `mtk-sd` change |
 
+### T14 result: latch 1 alone isn't enough (2026-11-14)
+
+Image 123 (station-work-123), package `7095ff7c…` from `e06bad54`, profile
+`mt6797-a53-station-dvfs`. The DTB has `mediatek,latch-ck = <1>` on `mmc1`. Boot
+`08ee3eff`, taint 0, SDR104 at 192 MHz. Raw traces are private.
+
+**Observed.**
+
+- After the boot tuning, `PATCH_BIT0` read `0x403c04c6` (latch 1, CKGEN 1).
+  `PAD_TUNE0` read `0x003f3f00` and `PAD_TUNE1` `0x002d2d00`, so the data delay
+  was 32 + 13 = 45. After the runs it was 48.
+
+| Setting | Runs (failed CMD18, first failure) | Total |
+| --- | --- | --- |
+| A (CCI 234 MHz) | 25/341 #55, 15/398 #46, 23/325 #46 | 63/1064 (5.9 %) |
+| schedutil (CCI 754-819 MHz) | 5/320 #81, 14/414 #53, 3/322 #101 | 22/1056 (2.1 %) |
+
+- No `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+
+**Inferred.**
+
+- With latch 1 the tuning still centres its window on a delay of about 45. The
+  failure rate at setting A is higher than with latch 0 (about 2 %). So the latch
+  isn't what made T13 clean. The short delay or CKGEN 0 is.
+- The tuning block passes over a wide window that reaches into long delays, and
+  the tuning picks its centre. Real reads fail there.
+
+### T15: a short delay with latch 1, with and without CKGEN 0 (diagnostic register writes, needs the owner's admission)
+
+On image 123, the same registers as T13. Each arm derives its values from the live
+registers, guarded by latch 1 and CKGEN 1, and writes them in the order `0xf4`,
+`0xf0`, `0xb0` with readback. A retune puts the long delay back, so each run
+reports its first failure.
+
+- Arm 0: as booted, g once.
+- Arm 1: a short delay only. `PAD_TUNE1` `v & ~0x3f00`, `PAD_TUNE0`
+  `(v & ~0x1f00) | 0x0800` (data delay 8). `PATCH_BIT0` is left alone, with CKGEN
+  1. g three times, re-applied before each run.
+- Arm 2: as arm 1, plus `PATCH_BIT0` `v & ~0x7c00` (CKGEN 0, latch stays 1). g three
+  times, re-applied before each run.
+- Restore step 1's values in the order `0xb0`, `0xf0`, `0xf4`, then
+  `power/control` `auto`. Stop rules as in T13.
+
+| Arm 1 | Arm 2 | Decision |
+| --- | --- | --- |
+| clean | clean | The short delay is what matters. Add `mediatek,tuning-step = <32>` so the tuning can only choose 0-31, and check that it lands near 8 |
+| fails | clean | CKGEN 0 is needed too: a small `mtk-sd` change, with the short delay |
+| fails | fails | T13's state can't be reproduced this way. Compare all registers against T13 |
+
 ## Follow-up
 
 - Suspend and resume.
