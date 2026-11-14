@@ -52,7 +52,10 @@ def main(package, parent, tools, output, authorized_key=None):
     release = (package/'kernel.release').read_text().strip() if (package/'kernel.release').exists() else None
     modules = []
     for path in ['net/wireless/mediatek/mt6797/mac.ko', 'net/wireless/mediatek/mt6797/mt6797-wlan-core.ko',
-                 'soc/mediatek/mt6797-consys.ko', 'input/misc/gemini-lid.ko'] + ([] if public else ['leds/rgb/leds-aw9120.ko', 'input/misc/regulator-haptic.ko']):
+                 'soc/mediatek/mt6797-consys.ko', 'input/misc/gemini-lid.ko'] + ([] if public else [
+                     'leds/rgb/leds-aw9120.ko', 'input/misc/regulator-haptic.ko',
+                     # gemini-base 63 loads it on the card root (cpuidle G2).
+                     'soc/mediatek/mt6797-gate-unused.ko']):
         found = sorted(package.glob('modules/lib/modules/*/kernel/drivers/' + path))
         assert len(found) == 1, ('one module expected in the package', path, found)
         modules += found
