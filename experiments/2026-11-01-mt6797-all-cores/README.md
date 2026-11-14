@@ -1182,10 +1182,18 @@ order: the A72 module, then the cpufreq session's modules, as in the init.
 
 New writes:
 - DA9214 BUCKB voltage through the cpufreq session's provider: register `0xd9`
-  between `0x39` and `0x5a` (870-1200 mV, 300 mV + 10 mV a code), as that
+  between `0x3a` and `0x5a` (880-1200 mV since 0775, 300 mV + 10 mV a code), as that
   provider writes it.
 - SMC `0xc20003bf` from 100000 to 120000 (VSRAM_B 1.0-1.2 V), always set before
   BUCKB on the way up and after it on the way down.
+- The A72 clock sequence from T4a (`0x1001a270[1:0]` to 0 and back, SMC
+  `0xc20003b8`, secure reads) for the points above 1495 MHz too: 1677, 1885, 2093,
+  2158, 2223, 2262, 2327, 2392 and 2522 MHz.
+
+[`t4b.sh`](t4b.sh) runs the sweeps and the hotplug stage on the device. At each
+point it checks the rate, both rails against the table, the clock driver's
+read-back, CPU8's measured clock and hashes on CPU8 and CPU9, and it stops at the
+first rule broken. It was dry-run in the dev VM against substituted paths.
 
 Stages:
 1. Userspace points upward from 338 MHz, each with:
