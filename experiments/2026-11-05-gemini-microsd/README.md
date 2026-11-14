@@ -2179,6 +2179,54 @@ admitted the test. Raw traces are private.
    MSDC1 CRC errors at error level. Clean there and failing on mainline means a
    host setting mainline lacks: the VMC trim, driving, or `autok` values.
 
+### Forced-idle stress (2026-11-14)
+
+Boot `4fb1600d`, image 122 (HZ=100 with lazy RCU), card as root, on battery. The
+script reads 256 separate 512 KiB blocks with `iflag=direct` and sleeps 5 ms
+between them, over the same 1 GiB region as S3b, with `mmc1` traced. Before it the
+screen had been blanked for about 30 min. Governors and CCI limits were restored
+afterwards. Raw traces are private.
+
+| Run | Setting | Failed CMD18 | Time |
+| --- | --- | --- | --- |
+| f1 | A (LITTLE 221/325 MHz, CCI 234 MHz) | 0/324 | 16.2 s |
+| f2 | A | 0/323 | 17.0 s |
+| f3 | A | 1/323 | 17.6 s |
+| f4 | schedutil (CCI 819 MHz) | 0/400 | 10.3 s |
+
+**Observed.**
+
+- The gaps were there: about 297 of the ~325 requests per run started 2 ms or more
+  after the previous one completed. In S3b that bucket failed 154/3571 (4.3 %).
+- Each read went out as one 1024-block CMD18. The one failure was a data CRC error
+  (`-84`) at `0x217800`, followed by a retune.
+- No new `mmc1`, I/O or EXT4 line.
+
+**Inferred.**
+
+- Idle before a request isn't enough to cause the errors, at least on this boot.
+  S3b's reads differ in two ways:
+  - each 1 MiB `dd` block became two 512 KiB requests issued back to back, with the
+    second queued while the first ran;
+  - they ran on a different boot and kernel (HZ=250), with a card already warm
+    from earlier runs.
+- So the forced-idle script isn't the standard measurement proposed after T10.
+  Before comparing kernels, the S3b read must reproduce on this boot.
+
+**Next, on the same boot (read-only, traced, setting A):**
+
+1. The S3b read three times: `dd bs=1M count=128 skip=1024 iflag=direct`.
+2. The forced-idle script with `bs=1M`: 128 reads with 5 ms of sleep between them.
+
+| S3b read | 1 MiB forced-idle | Reading |
+| --- | --- | --- |
+| fails | fails | Two queued requests matter, not idle alone; the 1 MiB forced-idle read becomes the standard measurement |
+| fails | clean | Streaming matters, not idle; the S3b read becomes the measurement |
+| clean | clean | The rate changed with the boot or kernel (or the card's state); find what reproduces it before Gemian |
+
+The Gemian comparison waits for a read that reproduces on mainline, and then uses
+that read.
+
 ## Follow-up
 
 - Suspend and resume.
