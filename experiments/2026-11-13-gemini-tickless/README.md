@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-13-gemini-tickless` |
-| Status | `running`: T0 and T1 measured; lazy RCU folded into the station fragments; T2 (HZ 100) next |
+| Status | `running`: T0-T2 measured; lazy RCU folded into the station fragments; HZ 100 meets the tick criterion and waits for the owner's responsiveness checks |
 | Subsystem | Timer tick, RCU, scheduler tick rate |
 | Device variant | Named Gemini PDA development unit, card root on the station kernel |
 | Date(s) | 2026-11-13 |
@@ -194,6 +194,52 @@ sockets at all. `mt6797_mac_join_work` (11/s), schedutil (about 7/s) and the
 desktop's D-Bus services (about 14/s) remain real wakers for their owners.
 `timerfd_tmrproc` rose from 19 to 143 between the runs, likely userspace on
 the card.
+
+### T2: lazy RCU and HZ 100 (2026-11-14)
+
+Run by the custodian on station-work-122 (`mt6797-a53-station-dvfs-rcu-lazy-hz100`),
+boot `4fb1600d…`, same method as T1: blanked, CPU0 alone, census 120 s, then
+600 samples at 1 Hz. The window started after 960 s of uptime, so
+`systemd-tmpfiles-clean` fell outside it (no `systemd-userwork` or `systemd`
+wakers this time). Raw files stay private with the custodian.
+
+| | T0 (HZ 250) | T1 (HZ 250, lazy RCU) | T2 (HZ 100, lazy RCU) |
+| --- | --- | --- | --- |
+| tick restarts, 120 s | 5,922 | 5,536 | 4,710 (39.3/s) |
+| `arch_timer` interrupts | 5,173 | 4,863 | 4,264 (35.5/s) |
+| current | 143.6 mA at 4.135 V | 145.2 mA at 4.106 V | 147.0 mA at 4.044 V |
+| power | 593.8 mW | 596.2 mW | 594.5 mW |
+| battery | 99-98 % | 86-85 % | 84 % |
+
+- **Top wakers, 120 s:** `kworker/0:1` 1,198; `sugov:0` 800; `gdbus` 619;
+  `upowerd` 545; unbound kworkers 499; `dbus-broker` 468; `rcuog/0` 323;
+  `kcompactd0` 235; `rcu_preempt` 190; `rcuop/0` 184; `noctalia` 183;
+  `battery-guard` 157.
+- **Timers started:** `delayed_work_timer_fn` 1,700; `tcp_orphan_update`
+  1,090 (deferrable, not a waker); `process_timeout` 892.
+- **Work items:** `mt6797_mac_join_work` 1,155 (9.6/s, still the largest
+  single source); `thermal_zone_device_check` 137; `vmstat_shepherd` 120.
+
+**Reading.**
+- Against T1, tick restarts fell 15 % and `arch_timer` interrupts 12 %. Part
+  of that is T1's tmpfiles confound (about 580 systemd wakeups in T1's
+  window), so the HZ share alone is not separable from these runs. Against
+  T0, which had no confound, the two changes together cut tick restarts by
+  20 % and `arch_timer` interrupts by 18 %.
+- Power is unchanged: 594.5 mW against 596.2 mW in T1 and 593.8 mW in T0,
+  all within run-to-run noise. The CPU still leaves idle about
+  35 times a second for the Wi-Fi join work, schedutil and the desktop's
+  D-Bus and UPower polling; the tick only follows those wakeups.
+- So HZ 100 meets the tick criterion of the decision rule, but not a power
+  one. Its only argument is the owner's "tickless as much as possible".
+
+**Decision, by the rule:** T2 lowers ticks, so `HZ_100` is folded in **only
+if** the owner's three checks match T1: typing and scrolling in the desktop,
+5 minutes of music with no PipeWire underrun in the journal, and a timed
+Wi-Fi download within T1's time. Any lag, underrun or slower download keeps
+`HZ_250`. Until then the fragment stays in the `-hz100` profile only. The
+download is the check most likely to differ: driver timeouts and `msleep()`
+polling round up to 10 ms jiffies instead of 4 ms.
 
 ## Conclusion
 
