@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-13-gemini-tickless` |
-| Status | `planned`: two named profiles prepared, config resolution checked; nothing built or run |
+| Status | `running`: T0 measured on the base image; T1 and T2 next |
 | Subsystem | Timer tick, RCU, scheduler tick rate |
 | Device variant | Named Gemini PDA development unit, card root on the station kernel |
 | Date(s) | 2026-11-13 |
@@ -117,7 +117,41 @@ those owners.
 
 ## Observations
 
-None yet.
+### T0: the base image (2026-11-13)
+
+Run by the custodian on station-work-120 (boot2 `ff5fb22a…`, package
+`57181f2d…` from `64c1f85e`, `mt6797-a53-station-dvfs`: HZ 250, no lazy
+RCU), boot `3f3e037b…`, card root with gemini-base 63. `mt6797-gate-unused`
+loaded by hand (26 gates), no `rcuo` threads. On battery at 99-98 %, screen
+blanked by the idle timer, CPU0 alone, 30 s settle. The census recorded 120 s
+into the ring buffer with no SSH traffic in the window. Raw files stay
+private with the custodian.
+
+| Count, 120 s | Total | Per second |
+| --- | --- | --- |
+| tick restarts (`hrtimer_start` of `tick_nohz_handler`) | 5,922 | 49.4 |
+| `arch_timer` interrupts | 5,173 | 43.1 |
+| schedutil's `dl_task_timer` | 1,269 | 10.6 |
+| `hrtimer_wakeup` (sleeps and poll timeouts) | 1,378 | 11.5 |
+| `rcu_preempt` wakeups | 314 | 2.6 |
+
+- **Other interrupts:** I2C `1100e000` 543, IPIs 154, I2C `11007000` 154,
+  `11240000.mmc` 144.
+- **Top wakers:** `kworker/0:0` 1,314; `sugov:0` 927; `gdbus` 697; `upowerd`
+  514; `dbus-broker` 497; unbound kworkers 721; `rcu_preempt` 314;
+  `kcompactd0` 235; `cat` 192; `noctalia` 191; `battery-guard` 170.
+- **Timers started:** `delayed_work_timer_fn` 1,867; `tcp_orphan_update`
+  1,148 (9.6/s); `process_timeout` 974; `mix_interrupt_randomness` 117.
+- **Work items:** `mt6797_mac_join_work` 1,318 (11/s);
+  `thermal_zone_device_check` 141; `vmstat_shepherd` 120.
+- **Current:** 600 samples at 1 Hz, mean 143.6 mA (sd 1.7) at 4.135 V.
+
+**Reading.** RCU's own share is small: `rcu_preempt` wakes about 2.6 times a
+second, so T1 can at most remove that and the tick restarts it causes. The
+larger wakers belong to other owners, and the custodian passes them on:
+the Wi-Fi driver's join work at 11/s and TCP's orphan-count timer at
+9.6/s (wifi-daily), schedutil at about 8-11/s (cpufreq), and `upowerd`,
+`gdbus` and `dbus-broker` at about 14/s together (Arch root).
 
 ## Conclusion
 
