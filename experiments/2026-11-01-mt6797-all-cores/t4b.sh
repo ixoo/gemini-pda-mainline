@@ -55,9 +55,14 @@ rail() {
 faults() { $DMESG | grep -cE "$FAULTS"; }
 field() { tr ' ' '\n' <"$REGS" | sed -n "s/^$1=//p"; }
 
+# cpu-mhz prints "hash H ms T" and "cpu C mhz M"; keep H and M.
+hash_on() { "$TOOL" "$1" hash | awk '$1 == "hash" { print $2 }'; }
+mhz_on() { "$TOOL" "$1" | awk '$3 == "mhz" { print $4 }'; }
+
 hashes() {
 	for c in 8 9; do
-		h=$("$TOOL" "$c" hash) || stop "hash on cpu$c failed"
+		h=$(hash_on "$c")
+		[ -n "$h" ] || stop "hash on cpu$c failed"
 		[ "$h" = "$REF" ] || stop "hash on cpu$c: $h, wanted $REF"
 	done
 }
@@ -72,8 +77,8 @@ check() {
 	vsram=$(rail vsram_b)
 	brate=$(field b_rate)
 	faulted=$(field faulted)
-	meas=$("$TOOL" 8) || stop "cpu-mhz 8 failed"
-	meas=${meas%%.*}
+	meas=$(mhz_on 8)
+	[ -n "$meas" ] || stop "cpu-mhz 8 failed"
 	soc=$(cat "$SOC")
 	say "mhz=$mhz cur=$cur vproc=$vproc vsram=$vsram b_rate=$brate meas=$meas soc=$soc online=$(cat "$CPU/online")"
 	[ "$cur" = "$khz" ] || stop "policy8 at $cur, wanted $khz"
@@ -105,7 +110,8 @@ set_point() {
 [ "$(cat "$CPU/online")" = 0-9 ] || stop "online $(cat "$CPU/online"), wanted 0-9"
 [ "$(cat "$P8/related_cpus")" = "8 9" ] || stop "policy8 covers $(cat "$P8/related_cpus")"
 [ "$(cat "$P8/scaling_governor")" = userspace ] || stop "policy8 is not on userspace"
-REF=$("$TOOL" 0 hash) || stop "reference hash failed"
+REF=$(hash_on 0)
+[ -n "$REF" ] || stop "reference hash failed"
 BASE=$(faults)
 say "start $* ref=$REF faults=$BASE"
 
