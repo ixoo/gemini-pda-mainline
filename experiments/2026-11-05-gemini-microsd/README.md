@@ -2010,6 +2010,63 @@ clock. No new `mmc1`, I/O or EXT4 line appeared. Raw traces are private.
   that these station images run since 11-12, changing the DA9214 CPU rails, the
   CPU SRAM LDOs and the PLLs as load changes. That is where the next test looks.
 
+### S3: the CRC errors against CPU frequency (2026-11-14)
+
+Boot `9a7d0389`, station-work-121 (with 0774), on battery, with the A72s offline.
+The custodian traced 128 MiB direct reads with the `mmc1` events,
+`power/cpu_frequency` and `regulator_set_voltage_complete`. No `mmc1`, I/O or EXT4
+line appeared. Raw traces are private.
+
+| Run | Governors | MB/s | Failed CMD18 |
+| --- | --- | --- | --- |
+| c1, c2 | schedutil | 13.7, 10.6 | 12/320, 16/318 |
+| p1, p2, p3 | performance | 36.2, 40.1, 60.8 | 4/286, 3/316, 0/285 |
+| r1, r2 | schedutil | 9.2, 9.8 | 24/316, 18/421 |
+
+**Observed.**
+
+- A failed CMD18 almost never overlaps a frequency or voltage change within its
+  own start-to-done window: 2 of 70, against 2-20 % of good requests.
+- By the LITTLE cluster's frequency at the request's start, across the schedutil
+  runs:
+
+  | Frequency | Failed |
+  | --- | --- |
+  | 221 MHz | 61/906 (6.7 %) |
+  | 338 MHz | 9/267 (3.4 %) |
+  | 481-1547 MHz | 0/165 |
+
+- At performance, two of three runs still failed a few times.
+
+**Inferred.**
+
+- The errors follow the operating point the cluster sits at, not the switching.
+- At a low LITTLE point three things are low together:
+  - the CCI, which follows the LITTLE clusters through the passive devfreq
+    governor;
+  - the shared VPROC1 rail, with VSRAM_L;
+  - the CPU's own speed, so interrupts are serviced later and the bus idles
+    between requests.
+
+  S3 doesn't separate them. That the performance runs weren't entirely clean says
+  something else adds to it.
+
+**Next: three settings to split them.** Each is a runtime sysfs change, restored
+afterwards:
+
+| Setting | LITTLE policies | CCI devfreq | Low together |
+| --- | --- | --- | --- |
+| A | pinned at the lowest point | as is (follows, low) | CCI, rail, CPU |
+| B | pinned at the lowest point | `min_freq` set to its top | CPU only |
+| C | performance | `max_freq` set to its bottom | CCI only (the rail stays high for the CPUs) |
+
+| A | B | C | Reading |
+| --- | --- | --- | --- |
+| fails | clean | fails | CCI clock or bandwidth |
+| fails | clean | clean | the rail voltage |
+| fails | fails | clean | the CPU's own speed (latency, idle) |
+| like the others | | | none of these; the card or the I/O supply |
+
 ## Follow-up
 
 - Suspend and resume.
