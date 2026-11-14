@@ -1,5 +1,6 @@
 # Tickless trial, stage T2 (experiments/2026-11-13-gemini-tickless): HZ 100
-# instead of 250, on top of the lazy RCU fragment. Not proven yet.
+# instead of 250, on top of the lazy RCU fragment. Now also in the station
+# fragments; this profile stays for the record.
 CONFIG_HZ_100=y
 # CONFIG_HZ_250 is not set
 CONFIG_HZ=100

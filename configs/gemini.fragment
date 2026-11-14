@@ -84,3 +84,10 @@ CONFIG_RCU_NOCB_CPU=y
 CONFIG_RCU_NOCB_CPU_DEFAULT_ALL=y
 CONFIG_RCU_LAZY=y
 # CONFIG_RCU_LAZY_DEFAULT_OFF is not set
+# HZ 100: each busy period that restarts the tick takes fewer tick interrupts.
+# experiments/2026-11-13-gemini-tickless (T2): with lazy RCU, 20 % fewer tick
+# restarts than T0, no measurable current change; typing, scrolling, music
+# and a Wi-Fi download were unaffected.
+CONFIG_HZ_100=y
+# CONFIG_HZ_250 is not set
+CONFIG_HZ=100

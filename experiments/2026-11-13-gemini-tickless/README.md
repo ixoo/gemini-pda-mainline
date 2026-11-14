@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-13-gemini-tickless` |
-| Status | `running`: T0-T2 measured; lazy RCU folded into the station fragments; HZ 100 meets the tick criterion and waits for the owner's responsiveness checks |
+| Status | `complete`: T0-T2 measured; lazy RCU and HZ 100 folded into the station fragments |
 | Subsystem | Timer tick, RCU, scheduler tick rate |
 | Device variant | Named Gemini PDA development unit, card root on the station kernel |
 | Date(s) | 2026-11-13 |
@@ -241,6 +241,35 @@ Wi-Fi download within T1's time. Any lag, underrun or slower download keeps
 download is the check most likely to differ: driver timeouts and `msleep()`
 polling round up to 10 ms jiffies instead of 4 ms.
 
+**Owner checks (2026-11-14),** run by the custodian on the same image, boot
+`ca480729…`:
+
+- Typing and scrolling in the desktop: fine, in the owner's words "the audio
+  is fine, scrolling works too".
+- Music: played by the owner; no underrun or xrun line in the system or user
+  journal for the boot.
+- Wi-Fi download: 3 × 64 MiB over HTTP from a LAN host, 12.98, 13.53 and
+  12.92 s (41.4, 39.7 and 41.6 Mbit/s) at -52 dBm on a 5.8 GHz, 40 MHz
+  channel. T1 had no timed download, so there is no same-configuration
+  baseline; the result sits inside the Wi-Fi records' 37-47 Mbit/s iperf
+  receive band.
+- A fullscreen browser column showed beside the terminal in the compositor's
+  scrolling layout and went away when fullscreen was turned off. That is a
+  compositor layout issue, unrelated to HZ.
+
+**Decision, by the rule:** the three checks match, so **`HZ_100` is folded
+in**: `gemini-a53-station.fragment` and `configs/gemini.fragment` now set it.
+The `-hz100` profile stays for the record. The download check is the weakest
+of the three (no same-configuration baseline); a regression in a later Wi-Fi
+record that tracks jiffy timeouts would reopen it.
+
 ## Conclusion
 
-Pending.
+- Lazy RCU with offloaded callbacks and HZ 100 together cut tick restarts by
+  about 20 % and `arch_timer` interrupts by about 18 % with CPU0 alone and the
+  screen blanked. Both are now in the station fragments.
+- Neither change moved the blanked current measurably (about 594 mW in all
+  three runs). The CPU still wakes about 35 times a second, and the tick only
+  follows those wakeups. Their sources belong to other owners: the Wi-Fi
+  driver's `mt6797_mac_join_work` (about 10/s), schedutil, and the desktop's
+  D-Bus and UPower polling.
