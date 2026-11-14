@@ -7,11 +7,12 @@
 # gemini-cheatsheet.patch: a cheatsheet that fits the 864x432 desktop; and with
 # gemini-output-name.patch: a name for the EDID-less DSI panel; and with
 # gemini-color-representation.patch: a YUV client's BT.709/BT.2020 tag honoured (2026-11-12); and with
-# gemini-background-frame.patch: no 10 Hz frame tick while no window needs it (2026-11-13).
+# gemini-background-frame.patch: no 10 Hz frame tick while no window needs it (2026-11-13); and with
+# gemini-fullscreen-overhang.patch: a fullscreen column clear of its neighbours past a panel (2026-11-14).
 pkgname=umbriel
 _commit=94ab5961dce31cd53e5cdca76d2723d73fc2e189
 pkgver=0.1.0.r20261108.94ab596
-pkgrel=7
+pkgrel=8
 pkgdesc='A Wayland compositor built on wlroots'
 arch=('aarch64')
 url='https://github.com/noctalia-dev/umbriel'
@@ -23,8 +24,8 @@ makedepends=('meson' 'ninja' 'nlohmann-json' 'pkgconf' 'wayland-protocols')
 options=('!debug')
 source=("umbriel-${_commit}.tar.gz::${url}/archive/${_commit}.tar.gz" gemini-keyboard.patch
         gemini-cheatsheet.patch gemini-output-name.patch gemini-color-representation.patch
-        gemini-background-frame.patch)
-sha256sums=('e6ea803bafc0cc0ff7a99864ab694ae54f33b69d144a4165597bfffc30926814' SKIP SKIP SKIP SKIP SKIP)
+        gemini-background-frame.patch gemini-fullscreen-overhang.patch)
+sha256sums=('e6ea803bafc0cc0ff7a99864ab694ae54f33b69d144a4165597bfffc30926814' SKIP SKIP SKIP SKIP SKIP SKIP)
 
 prepare() {
     patch -d "umbriel-${_commit}" -p1 <gemini-keyboard.patch
@@ -32,6 +33,7 @@ prepare() {
     patch -d "umbriel-${_commit}" -p1 <gemini-output-name.patch
     patch -d "umbriel-${_commit}" -p1 <gemini-color-representation.patch
     patch -d "umbriel-${_commit}" -p1 <gemini-background-frame.patch
+    patch -d "umbriel-${_commit}" -p1 <gemini-fullscreen-overhang.patch
 }
 
 build() {

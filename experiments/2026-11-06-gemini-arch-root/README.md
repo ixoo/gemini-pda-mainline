@@ -2573,3 +2573,31 @@ its widget section. The network, bluetooth, volume and battery icons still open 
 center, and the session panel stays on Ctrl+Alt+Backspace. Not yet tried on the card; the
 existing user's `~/.config/noctalia/00-gemini.toml` needs the same edit, since `/etc/skel` is
 only copied for new users.
+
+#### A fullscreen window's band beside the focused column (umbriel pkgrel 8, owner, 2026-11-14)
+
+The owner's report, through the custodian (card-32, image 122, boot `ca480729`, umbriel 7):
+qutebrowser fullscreen, then focus moved to foot, which drew in its column beside the Noctalia
+bar with a band of about 50 px of the browser at the right edge of the 2160×1078 output. A
+`grim` capture shows the band, so it is in the composited frame. Leaving fullscreen made it go
+away.
+
+Cause, in Umbriel `94ab5961`:
+
+- A fullscreen member of the scrolling strip is presented against the whole output, anchored
+  to its column (`Workspace::fullscreenTargetBox`: the output's x plus the column's offset).
+  Tiled columns are laid out inside the usable area, which starts after the left-hand bar's
+  exclusive zone.
+- The strip reserves the struts a fullscreen window overhangs (`columnBleed`), but not the
+  exclusive zones. So a fullscreen column to the right of the focused one starts the bar's
+  width early, and as part of the fullscreen tree it draws over the focused column.
+- The band is the bar's width less the gap.
+
+`gemini-fullscreen-overhang.patch` reserves the exclusive zones along the strip as part of a
+fullscreen column's bleed. The workspace passes them to the layout at each arrange, and to drag
+previews. A focused fullscreen window still covers the output exactly: the covering scroll
+offset uses the same column origin as the presentation. The patch carries an upstream-ready
+message.
+
+Built in an Arch chroot over card-32's image: `umbriel-0.1.0.r20261108.94ab596-8` (`e5930a13…`), no
+compiler warnings. Not on the device.

@@ -1,0 +1,126 @@
+Umbriel keeps a fullscreen column clear of its neighbours past a panel (gemini-pda-mainline, MIT).
+
+Upstream-ready message:
+
+  layout/scrolling: reserve the exclusive zones beside a fullscreen column
+
+  A fullscreen member of the scrolling strip is presented against the
+  whole output, anchored to its column, while the strip lays columns out
+  inside the usable area. The strip reserved the struts a fullscreen or
+  maximize-to-edges window overhangs, but not the layer-shell exclusive
+  zones a fullscreen window also covers. With a panel on the left, a
+  fullscreen column to the right of the focused one therefore started
+  the panel's width early and drew a band of itself over the focused
+  column's side of the output (it is in the fullscreen tree, above the
+  tiles).
+
+  Reserve the exclusive zones along the strip as part of a fullscreen
+  column's bleed, as the struts already are. The workspace passes them
+  to the layout at each arrange and to drag previews. The covering
+  scroll offset is unchanged, since presentation and the strip use the
+  same column origin, so a focused fullscreen window still covers the
+  output exactly.
+
+Seen on a Gemini PDA (owner, 2026-11-14): qutebrowser fullscreen, focus moved to foot, a band of
+about 50 px of the browser at the output's right edge, in the composited frame.
+
+diff --git a/src/layout/layout.h b/src/layout/layout.h
+--- a/src/layout/layout.h
++++ b/src/layout/layout.h
+@@ -261,6 +261,14 @@
+     virtual ~Layout() = default;
+     void setConfig(const ResolvedLayoutConfig* config) { m_config = config; }
+     const ResolvedLayoutConfig* layoutConfig() const { return m_config; }
++    // How far the output extends past the usable area before and after it along the strip (layer-shell exclusive
++    // zones). A fullscreen window covers the whole output, so the strip reserves this beside a fullscreen column.
++    void setOutputOverhang(int before, int after) {
++      m_outputOverhangBefore = before;
++      m_outputOverhangAfter = after;
++    }
++    int outputOverhangBefore() const { return m_outputOverhangBefore; }
++    int outputOverhangAfter() const { return m_outputOverhangAfter; }
+ 
+     void setConstraints(LayoutConstraintsFn constraints) { m_constraints = constraints; }
+     LayoutConstraints constraintsFor(const View* view) const {
+@@ -389,6 +397,8 @@
+ 
+     const ResolvedLayoutConfig* m_config = nullptr;
+     LayoutConstraintsFn m_constraints = nullptr;
++    int m_outputOverhangBefore = 0;
++    int m_outputOverhangAfter = 0;
+   };
+ 
+   // Single source of truth for the pointer-to-edge proposal shared by every layout and by floating resize:
+diff --git a/src/layout/scrolling.cpp b/src/layout/scrolling.cpp
+--- a/src/layout/scrolling.cpp
++++ b/src/layout/scrolling.cpp
+@@ -211,12 +211,23 @@
+       return false;
+     }
+ 
++    bool columnHasFullscreen(const Column& column, const Layout& layout) {
++      for (size_t row = 0; row < column.views.size(); ++row) {
++        const View* view = column.views[row];
++        if (view != nullptr && !column.tabs.hidden(row) && layout.constraintsFor(view).fullscreen) {
++          return true;
++        }
++      }
++      return false;
++    }
++
+     // Fullscreen and maximize-to-edges views are presented against the wider
+     // usable area, so they bleed one strut past each end of the strut-inset
+     // strip. The strip reserves that overhang, otherwise the neighboring column
+     // lands underneath the window. Fullscreen is presented against the whole
+-    // output, so only its strut share is reserved and it still bleeds over a
+-    // layer-shell exclusive zone.
++    // output, so it also bleeds over the layer-shell exclusive zones along the
++    // strip; those are reserved too, or a fullscreen column beside the focused
++    // one shows a band of itself over the neighbor.
+     struct ColumnBleed {
+       int before = 0;
+       int after = 0;
+@@ -228,8 +239,13 @@
+       }
+       const LayoutStruts& struts = layout.layoutConfig()->struts;
+       const bool vertical = layout.layoutConfig()->scrolling.direction == ScrollingDirection::Vertical;
+-      return vertical ? ColumnBleed{.before = struts.top, .after = struts.bottom}
+-                      : ColumnBleed{.before = struts.left, .after = struts.right};
++      ColumnBleed bleed = vertical ? ColumnBleed{.before = struts.top, .after = struts.bottom}
++                                   : ColumnBleed{.before = struts.left, .after = struts.right};
++      if (columnHasFullscreen(column, layout)) {
++        bleed.before += layout.outputOverhangBefore();
++        bleed.after += layout.outputOverhangAfter();
++      }
++      return bleed;
+     }
+ 
+   } // namespace
+diff --git a/src/workspace/workspace.cpp b/src/workspace/workspace.cpp
+--- a/src/workspace/workspace.cpp
++++ b/src/workspace/workspace.cpp
+@@ -683,6 +683,7 @@
+     std::unique_ptr<Layout> preview = createLayout(m_layout->mode());
+     preview->setConfig(&m_layoutConfig);
+     preview->setConstraints(&viewLayoutConstraints);
++    preview->setOutputOverhang(m_layout->outputOverhangBefore(), m_layout->outputOverhangAfter());
+     if (capture.snapshot == nullptr || !preview->restoreState(*capture.snapshot, capture.members)) {
+       kLog.error("failed to restore layout preview");
+       return nullptr;
+@@ -1016,6 +1017,16 @@
+       return;
+     }
+ 
++    {
++      // The exclusive zones along the strip, which a fullscreen column covers (see ColumnBleed).
++      wlr_box outputBox{};
++      wlr_output_layout_get_box(m_group->server()->outputLayout(), output->wlr(), &outputBox);
++      const bool vertical = m_layoutConfig.scrolling.direction == ScrollingDirection::Vertical;
++      const int before = vertical ? usable.y - outputBox.y : usable.x - outputBox.x;
++      const int after = vertical ? (outputBox.y + outputBox.height) - (usable.y + usable.height)
++                                 : (outputBox.x + outputBox.width) - (usable.x + usable.width);
++      m_layout->setOutputOverhang(std::max(0, before), std::max(0, after));
++    }
+     m_layout->arrange(applyLayoutStruts(usable, m_layoutConfig.struts));
+     // Tab visibility follows the layout on hidden workspaces too, so a workspace always comes back showing the right
+     // tabs.
