@@ -2250,6 +2250,21 @@ So the only blocker left for SODI with Wi-Fi joined is the USB controller
 holding its clocks with the cable out. That is the USB sessions' runtime
 power-down; deep idle also waits on the display's two items.
 
+**Deep idle versus SODI, and the display (2026-11-14).** The display
+session fixed DISP_PWM (0788, built in, next image) and assessed powering the
+MM domain down on a blank. That is a larger step: the station DT names no
+power domain on the display nodes, SMI larb0 has no driver and would lose
+its loader bypass, the PWM duty latches through display mutex membership that
+DRM does not restore, and the camera receiver holds MM clocks. Its question,
+whether deep idle saves measurably more than SODI, has no evidence behind
+either answer. The vendor material holds no current figures. In the
+programs, deep idle adds MAINPLL off, the SRCLKEN_IN2 sleep phase, VCORE
+low-IQ and SYSRAM sleep to SODI's DRAM arbitration. Both power the CPU side
+down and bring VCORE to 0.775 V. **Decision:** SODI first (D3-D5), measured
+against the blanked awake current; the MM-domain work is planned only if
+deep idle's extra plus the domain's own leakage then look worth more than a
+few mA.
+
 **G2 on that image.** `mt6797-gate-unused` was not in the station image,
 because `compose-station.py` packs a fixed module list; the custodian
 loaded the G2 module by hand (same 26 gates) and is adding it to the list.
