@@ -1232,6 +1232,32 @@ Before any repeat:
 - a first sustained run should go point by point, on USB power, to separate heat from
   supply.
 
+**After T4b: fault reads (observed, boot `cf0f7530`, the first after the cut, all reads
+only).**
+- DA9214: `EVENT_B` `0x03` (power-good A and B, likely this boot's own power-up
+  edges), with no over-current or temperature event latched. `STATUS_A` `0x03`,
+  `STATUS_B` `0xc1`, `EVENT_A` `0x02`.
+- TOPRGU `0x1000700c` read 0.
+- BQ25890 `REG0C` read 0 twice.
+
+So the A72 rail's controller saw no over-current or over-temperature. Heat and
+battery-side protection remain. The MT6351's own power-off reason is not yet read.
+
+**T4c design: one A72 point at a time (proposed, not run).**
+[`t4c.sh`](t4c.sh) loads only CPU8 and CPU9, with hashes, at one point after another
+from 1495 to 2522 MHz, for 60 s each.
+- It samples every second: every thermal zone, the battery's current and voltage,
+  VPROC2, VSRAM_B and policy8.
+- At the first limit it caps policy8 at 845 MHz before it stops the load. The
+  limits are the SoC at 70 C, the battery below 3.5 V or above 2.5 A, a hash
+  mismatch, a new fault line, or CPUs going offline.
+- Between points it waits for the SoC to cool below 45 C.
+
+The first run is on USB power, then the same on battery. The point and the reading
+at which a run stops, and whether USB power changes it, separate heat from supply.
+The writes are within T4b's admitted list. It was dry-run in the dev VM against
+substituted paths, for a pass and for each stop.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
