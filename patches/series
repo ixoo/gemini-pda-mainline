@@ -1346,3 +1346,4 @@ proposals/0770-soc-mediatek-mt6797-gate-unused-gate-the-disabled-I2.patch
 proposals/0771-dt-bindings-input-gpio-matrix-keypad-add-linux-capsl.patch
 proposals/0772-Input-matrix_keypad-report-caps-lock-through-an-LED-.patch
 proposals/0773-arm64-dts-mediatek-gemini-station-follow-caps-lock-f.patch
+proposals/0774-mmc-core-start-each-request-in-multi-block-mode.patch

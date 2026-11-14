@@ -1891,6 +1891,60 @@ on the card is mounted, so no write is at risk.
 powered off for 100 ms", `ios` back at SDR104 at 1.80 V, and no `mmc1` errors.
 Only then drop the command-line override.
 
+### Slow reads after an error: a sticky single-block flag (2026-11-13)
+
+Boot `e7e3b009` of station-work-116 (`850e177e`), with the card as root and
+`card_off_ms` at 0. Measured by the custodian; the raw log and trace are private.
+
+**Observed.**
+
+- At 20728.9 s there were six CMD12 timeouts within 0.6 ms, as on 11-10. After
+  that, no I/O error.
+- Direct reads of `mmcblk1` dropped from 59.3 MB/s earlier on the boot to
+  2.3-10.5 MB/s, at SDR104 with no new log lines.
+- A 32 MiB direct read took 98-196 block requests and 27-39 thousand `mmc1`
+  interrupts.
+- The shared CMD/DATA delay read `PAD_TUNE0` `0x003f3f00`, `PAD_TUNE1`
+  `0x002f2f00`: delay 47. That is the middle of the longest passing window,
+  33-61 in T8's map.
+- S1: at 96 MHz the read was as slow as at 192 MHz, about 5 MB/s.
+- An `mmc_request_start`/`done` trace of an 8 MiB direct read logged 5700 CMD17
+  (all 512 B, no errors), 45 CMD18 and one retune.
+  - One CMD18 failed with a data CRC error (-84). No timeouts.
+  - The CMD17 runs walk consecutive sectors, and many came with no error before
+    them in that request.
+  - Each CMD17 took 0.3-0.4 ms.
+
+**What the source says.**
+
+- `mmc_blk_mq_complete_rq` (and the CQE path) sets `MQRQ_XFER_SINGLE_BLOCK` in a
+  failed request's `mmc_queue_req` before requeueing it. With the flag set,
+  `mmc_blk_data_prep` sends one sector per command.
+- `mmc_mq_queue_rq` resets `retries` when it first sees a request, but never the
+  flags.
+- `mmc_queue_req` is the blk-mq request's private data, which is reused for every
+  later request with the same tag. So each tag that ever saw an error moves one
+  sector per command until reboot. A card re-init doesn't clear it.
+- Upstream added the flag in `c7c6d4f51038` (writes) and `d34124edffdb` (reads).
+  Linux master has the same code today.
+
+**Inferred.** The slowdown is this host-side state, not the card and not timing
+margin. The CRC errors themselves are rare: 1 in 45 multi-block reads at a centred
+delay. Each one, though, slows its tag for the rest of the boot. The eMMC fallback
+seen in T6-T8 at HS200 was probably made worse the same way.
+
+**Change.**
+[0774](../../patches/proposals/0774-mmc-core-start-each-request-in-multi-block-mode.patch)
+clears the flags along with the retry count when a request is first issued. A
+requeued request keeps `RQF_DONTPREP`, so it keeps its single-block retry. The
+change is in the MMC core, which is built in, so it needs an image.
+
+**Test.** On an image with 0774:
+- after any data error, CMD17 runs appear only inside the request that failed;
+- direct reads stay near the earlier rate after the error;
+- the `mmc_request_*` trace from this section, repeated, shows CMD18 for new
+  requests.
+
 ## Follow-up
 
 - Suspend and resume.

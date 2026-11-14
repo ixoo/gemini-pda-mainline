@@ -1,0 +1,42 @@
+From a1db919ed12b22c5fa2393f75b0cf9beab8b028f Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 19:51:51 -0500
+Subject: [PATCH] mmc: core: start each request in multi-block mode
+
+mmc_blk sets MQRQ_XFER_SINGLE_BLOCK in a request's mmc_queue_req when
+that request fails and is requeued, so that the retry goes one sector at
+a time. The flag is never cleared. mmc_queue_req lives in the blk-mq
+request's private data and is reused for every later request with the
+same tag, so after one error every request on that tag is transferred
+one sector per command until the queue goes away.
+
+On a microSD card at SDR104 one CRC error left reads at about 5 MB/s:
+a trace showed 5700 CMD17 against 45 CMD18 for an 8 MiB read, with a
+single data error among them.
+
+Clear the flags with the retry count when a request is first issued.
+A requeued request keeps RQF_DONTPREP and so keeps its single-block
+retry.
+
+Not yet run on hardware.
+
+Fixes: c7c6d4f51038 ("mmc: block: use single block write in retry")
+---
+ drivers/mmc/core/queue.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/drivers/mmc/core/queue.c b/drivers/mmc/core/queue.c
+index 39fcb66..9da77ed 100644
+--- a/drivers/mmc/core/queue.c
++++ b/drivers/mmc/core/queue.c
+@@ -295,6 +295,7 @@ static blk_status_t mmc_mq_queue_rq(struct blk_mq_hw_ctx *hctx,
+ 
+ 	if (!(req->rq_flags & RQF_DONTPREP)) {
+ 		req_to_mmc_queue_req(req)->retries = 0;
++		req_to_mmc_queue_req(req)->flags = 0;
+ 		req->rq_flags |= RQF_DONTPREP;
+ 	}
+ 
+-- 
+2.54.0 (Apple Git-157)
+
