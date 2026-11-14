@@ -2755,6 +2755,77 @@ later (`mt6797-a53-station-dvfs`).
 | Failures, data delay under 32 | Compare the tuned delay with 8. If it is far off, pin the delay or narrow the scan |
 | eMMC or microSD error lines at boot | Revert 0781 first; 0779/0780 change nothing without the property |
 
+### T16 result: no CRC errors (2026-11-14)
+
+Image station-work-124, package `af4dd2b9…` from `fd9ca150`, profile
+`mt6797-a53-station-dvfs`. This was the first compile of 0779-0781, with no new
+warnings. Before the boot2 write the DTB showed `mmc@11240000` with `latch-ck` 1,
+`ckgen-delay` 0 and `tuning-step` 32, and `mmc@11230000` with no `ckgen-delay`.
+Boot `ac34c097`, taint 0. Raw traces are private.
+
+**Observed.**
+
+- `mmc0` (HS400) and `mmc1` (SDR104, 192 MHz, 1.8 V) probed with no error line.
+- `mmc1` after the boot tuning: `PATCH_BIT0` `0x403c00c6` (latch 1, CKGEN 0),
+  `PAD_TUNE0` `0x00272700` (data delay 7), `PAD_TUNE1` data delay 0. The same after
+  the runs, so no retune happened.
+- `mmc0` `PATCH_BIT0` `0x403c0446` (latch 0, CKGEN 1), unchanged.
+
+| Setting | Runs (failed CMD18, time) |
+| --- | --- |
+| A (CCI 234 MHz) | 0/321 9.9 s, 0/323 10.4 s, 0/401 10.4 s |
+| schedutil | 0/327 6.5 s, 0/322 6.5 s, 0/295 6.6 s |
+
+- 0 failures in 1989 CMD18. At setting A the stress took about 10 s per run,
+  against 15-30 s before; at schedutil 6.5 s, against 8-14 s.
+- No `mmc0`, `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+
+**Inferred.**
+
+- The microSD CRC errors are fixed on this boot by sampling read data as the
+  vendor does. The tuning picked a delay of 7, next to Gemian's 8. One boot, one
+  card. A soak and repeat boots are still to come.
+- Whether the screen-off hang shares this cause is open. Its failing commands
+  timed out on writes; they weren't CRC errors.
+
+### T17: soak, read-only (on 124)
+
+Card root, on battery, screen on, at normal governors. Trace only failed `mmc1`
+requests: filter `name == "mmc1" && data_err != 0` on `mmc_request_done`, so the
+buffer stays small. Count all requests from `/sys/block/mmcblk1/stat` before and
+after.
+
+1. One full sequential read of the card: `dd if=/dev/mmcblk1 of=/dev/null bs=1M
+   iflag=direct`.
+2. g repeated for 30 min at setting A, then 30 min at schedutil.
+
+Stop at any `mmc1`, I/O, EXT4, `Remounting`, warning or Oops line.
+
+Pass: no failed request. Any failure: report its argument, its gap to the
+previous request, and the registers. Read the registers with `power/control` on
+and restore it afterwards, as before.
+
+### T18: screen-off idle with the card root (on 124)
+
+The conditions of both earlier faults: lid closed (screen blanked, no suspend),
+charger connected, card root, normal background activity. Two runs of at least
+4 h each; the faults came after 1.65 h and 1.92 h.
+
+- Before: the boot ID, `ios`, and the `mmc1` registers (`power/control` on, then
+  `auto`).
+- During: the same failed-request trace as T17, plus `dmesg -w` saved on the
+  device.
+- After: look for any `mmc1` line and the `mmc_request_done` failures, re-read
+  the registers, and write a test file to the root with `sync`.
+- If it faults: the at-fault reads from the hang request (`sd-state.sh`, MT6351
+  `0x0212` and `0x0ad0`) before anything else, then the usual recovery. Keep all
+  of it private.
+
+| Result | Decision |
+| --- | --- |
+| Both runs clean | The hang likely shared the CRC cause. Record it, and a longer unattended night follows |
+| A fault | A separate cause. The at-fault reads decide; R1/R2 (0758/0759) is the recovery path |
+
 ## Follow-up
 
 - Suspend and resume.
