@@ -1907,7 +1907,8 @@ Boot `e7e3b009` of station-work-116 (`850e177e`), with the card as root and
 - The shared CMD/DATA delay read `PAD_TUNE0` `0x003f3f00`, `PAD_TUNE1`
   `0x002f2f00`: delay 47. That is the middle of the longest passing window,
   33-61 in T8's map.
-- S1: at 96 MHz the read was as slow as at 192 MHz, about 5 MB/s.
+- S1: at 96 MHz the read was as slow as at 192 MHz, about 5 MB/s. (That measured
+  the sticky state, not the error rate; see the next section.)
 - An `mmc_request_start`/`done` trace of an 8 MiB direct read logged 5700 CMD17
   (all 512 B, no errors), 45 CMD18 and one retune.
   - One CMD18 failed with a data CRC error (-84). No timeouts.
@@ -1944,6 +1945,42 @@ change is in the MMC core, which is built in, so it needs an image.
 - direct reads stay near the earlier rate after the error;
 - the `mmc_request_*` trace from this section, repeated, shows CMD18 for new
   requests.
+
+### 0774 on the device, and the CRC errors themselves (2026-11-14)
+
+Boot `3f3e037b` of station-work-120 (package `57181f2d…`, from `64c1f85e`, with
+0774). The card is root, at SDR104 192 MHz. Measured by the custodian with
+`mmc_request_*` traces; raw traces are private.
+
+**Observed.**
+
+- 8 MiB direct read: 73.4 MB/s, 53 CMD18, no errors.
+- 128 MiB direct read: 5.0 MB/s. Paired start and done events give:
+  - 328 CMD18, of which 49 failed with a data CRC error. Every failure was 1024
+    blocks (512 KiB) with nothing transferred.
+  - 52224 CMD17 (51 requests' worth), with no errors.
+  - 51 retune sweeps (3264 CMD19), with 316 failing cells.
+- Most CMD17 fall inside the range of a failed CMD18: 28656 of the 30703 places
+  where the sector run breaks. The rest are about two requests' worth not matched
+  to a failed CMD18 in the trace.
+- Errors came from 219.0 to 245.5 s, spread through the read. The 8 MiB read, and
+  a 128 MiB read at another offset (61.5 MB/s), were clean.
+- Each sweep's map is different. The failing band wanders between cells 22 and
+  33, plus 58-63, so the longest window stays about 25 cells wide around 45.
+- dmesg: no `mmc1` error lines.
+
+**Inferred.**
+
+- 0774 works: one-sector reads stay inside the requests that failed. The slowness
+  that remains is the CRC error rate: 15 % of multi-block reads in that stretch,
+  against 1 in 45 on `e7e3b009`. Each failure costs a retune and 1024 single-sector
+  reads.
+- The errors come at a delay that the tuning block passes, with a window about 25
+  cells wide. Real data fails where the 64-byte tuning pattern doesn't.
+- **Correction to S1.** On `e7e3b009` the slowness was the sticky flag of the
+  previous section, which doesn't depend on the clock. So S1 did not test whether
+  192 MHz causes the CRC errors, and H2 is open again. S1 has to be repeated on an
+  image with 0774, counting CRC errors, not measuring rate.
 
 ## Follow-up
 
