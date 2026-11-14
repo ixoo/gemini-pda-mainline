@@ -1152,7 +1152,8 @@ What it does not settle:
 
 The recommendation to the owner stands: keep `a72-at-boot` off until A72 scaling has
 passed, because loading by default today means A72s at a fixed 750 MHz with no cooling
-of their own. The owner's decision is pending.
+of their own. The owner decided on 2026-11-13: wait for A72 scaling. `a72-at-boot` stays
+off until T4b and the steps after it pass.
 
 **Re-up design for T4b (2026-11-13, compile-checked, not run).** The owner set
 the goal of full A72 support, loaded by default. The re-up problem found after T4a
