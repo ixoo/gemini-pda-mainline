@@ -1176,6 +1176,62 @@ is solved without a new writer:
 
 Neither patch adds a register write.
 
+**T4b result (owner-approved 2026-11-14, one boot; stages 1-4 passed, stage 5 ended in a
+power cut).**
+
+Setup: station-work-124 (boot2 `923cffb1...`, from `fd9ca150`, package `af4dd2b9...`),
+boot `9c688df7`, on battery at 61 %, with `cpufreq-at-boot` and `a72-at-boot` off. The
+custodian hand-loaded the six modules in the request's order; all hashes matched. The
+scripts were `t4b.sh` `92041c93...` and `soak.sh` `d1f2380d...`.
+
+1. **Load.** Passed. policy8 covered CPU8-9 on userspace. cpufreq-dt moved CPU8 from the
+   firmware's 750 MHz to 845 MHz, with VPROC2 880 mV and VSRAM_B 1.0 V. The clock
+   driver read 845 MHz, CPU8 measured 845 MHz, and the clock driver was not faulted.
+2. **Up the table.** Passed. All 16 points from 338 to 2522 MHz: VPROC2 followed the
+   table from 880 to 1200 mV, VSRAM_B stayed 1.0-1.2 V and at least 10 mV above the
+   rail below the top, CPU8 measured within 1 MHz of each point, and the hashes on
+   CPU8 and CPU9 matched CPU0. The SoC went from 28.3 to 37.4 C.
+3. **Down the table.** Passed, all 16 points.
+4. **Hotplug at 338 and 2093 MHz.** Passed both times. The A72 module logged "cluster
+   prepared again" on a scaled rail, the clock driver logged "A72 clock restored",
+   and VPROC2 did not move while both A72s were down. This also passes T4a stage 6.
+5. **Schedutil and the power allocator.**
+   - Setup: all three policies on schedutil, and `soc-thermal` on the power
+     allocator with the init's gains. Then `SOC_LIMIT=80000 soak.sh load 600`,
+     which hashes on CPU7, CPU8 and CPU9, with a 10 s sampler.
+   - Sample 1: SoC 32.0 C; LL 1118, L 1352 and A72 845 MHz; battery -246 mA.
+   - Sample 2, 10 s later: SoC 72.1 C; LL 221 and L 325 MHz, both at their
+     lowest; A72 2093 MHz; battery -1493 mA.
+   - About 60 s later the device lost power without any log. The persistent journal
+     ends 75 s into the soak with no thermal, regulator, coupler, warning or
+     shutdown line, and pstore was empty.
+
+What stages 1-4 show (observed, one boot): A72 voltage scaling over the whole base
+table works on this unit, and the re-up design (0775, 0776) and the rate restore (0702)
+work.
+
+What stage 5 shows: under sustained load the power allocator gave its budget to the A72s
+and left them at 2093 MHz, while it took the A53s to their lowest points. The SoC sensor
+rose 40 C in 10 s. Both the soak script and the sampler poll every 10 s, so neither could
+act on that.
+
+Cause of the power cut (unknown; candidates, none observed):
+1. **Thermal.** A CPU hotspot reaching the 117 C hardware trip. The documented action
+   is a TOPRGU reset, not a power-off, so this needs the reset path to end in power-off.
+2. **Battery side.** Undervoltage or over-current protection at about 1.5 A and rising.
+3. **DA9214.** A BUCKB over-current, temperature or power-good event.
+
+The read-only reads requested next are DA9214 `EVENT_B` (`0x53`: power-good B,
+temperature warning and critical, over-current B) and `STATUS_B`, the charger's
+`REG0C`, and TOPRGU `0x1000700c` bit 18.
+
+Until the cause is known, the A72s stay out of sustained load above 1495 MHz.
+Before any repeat:
+- the monitor must poll at least every 1 s;
+- the A72s need a cap or their own trip below the allocator's;
+- a first sustained run should go point by point, on USB power, to separate heat from
+  supply.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
