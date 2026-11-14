@@ -1352,6 +1352,30 @@ marks the A72 points from 1885 MHz up as `turbo-mode`. cpufreq leaves them out u
 boost is switched on, so the A72s' sustained top is 1677 MHz. 0785 covers low
 charge.
 
+**T7 design: 60 min, all ten loaded, under heat (proposed 2026-11-14, not run).**
+The owner asked for T7 after T4c.
+
+The image is station-dvfs with:
+- 0784, the gauge's `current_max`;
+- 0785, `battery-headroom`;
+- 0786, A72 points from 1885 MHz boost only, so the A72s' top is 1677 MHz.
+
+[`t7.sh`](t7.sh) loads all ten CPUs with hashes for the given time, under schedutil
+on the three policies and the power allocator on the SoC zone.
+- It samples every second: every thermal zone, each policy's rate, the CCI, VPROC1,
+  VSRAM_L, VPROC2, VSRAM_B, and the battery's current and voltage.
+- It syncs its log on each line.
+- At the first limit it caps the A72s at 845 MHz before stopping. The limits are
+  the SoC at 80 C, the battery below 3.5 V or above 2.5 A, a hash mismatch, a new
+  fault line, or CPUs going offline.
+- It was dry-run in the dev VM.
+
+It runs first on a wall charger, with `battery-headroom` loaded and the charger
+named, so its caps are logged as the headroom moves.
+
+Hypothesis: with the A72s capped at 1677 MHz, the power allocator holds the SoC near
+75 C and below 80 C for 60 min with every CPU loaded, and no hash differs.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
