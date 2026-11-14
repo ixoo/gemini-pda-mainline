@@ -1291,11 +1291,47 @@ adds `battery-headroom` (`=m`, not loaded by anything):
 - Each policy's worst case is all its CPUs busy at the cap. The current comes from
   the energy model's power plus 30 %, at 3.1 V.
 - Policies are cut from the highest capacity down, so the A72s go first.
-- With no headroom reported, nothing is capped.
+- It counts 85 % of the charger's input limit, since the charger draws that at its
+  input, ahead of its conversion loss. On the station the charger is
+  `bq25890-charger-0`.
+- While the battery reports no headroom, `fallback_ua` stands in for it. Left at 0,
+  nothing is capped.
+
+The gauge's `current_max` (0784, `a048254a`) uses the new cell's 165 mOhm until it
+has learned the real resistance. The fuel-gauge session was asked to apply a
+conservative floor until then; that request was not yet answered.
 
 The reserve, margin and floor are estimates until T4c and a measured energy model
 replace them. Loading the A72s by default waits on this module running with the
 gauge's value.
+
+**T4c run A, on a charger (observed, owner-approved, boot `cf0f7530`, image 124,
+`t4c.sh` `f65df596...`; stopped on temperature).** The charger was online throughout,
+and the battery was charging at every point.
+- **1495 MHz:** held 60 s with the SoC at most 68.6 C. Some samples show policy8 at
+  1378 MHz: the thermal framework's own cooling throttled the A72s below the 70 C
+  stop.
+- **1677 MHz:** held 60 s with the SoC at most 67.2 C. In the cool wait the SoC zone
+  fell from 63.3 to 48.2 C in about 2 s.
+- **1885 MHz:** the SoC rose from about 48 C past 70 C within 2-3 s, and the script
+  stopped at 72.9 C, capping the A72s at 845 MHz.
+- The other zones stayed near 40 and 25 C.
+
+Reading:
+- On this unit, two loaded A72s at 1885 MHz or more heat the SoC sensor faster than
+  any 100 ms-scale controller can follow, even with ample supply.
+- The SoC zone tracks the A72 hotspot within about a second.
+- T4b's cut fits heat and battery sag together: 72 C at +10 s, then the allocator
+  holding the A72s at 2093 MHz on a weak cell.
+
+So before loading by default:
+- A72 sustained load stays at 1677 MHz or below. This needs either a cap on
+  policy8 or the A72s' own passive trip, below the allocator's 75 C and acting
+  within one poll.
+- The higher points are for short bursts only, once something can hold them there.
+
+Run B (battery) was not run yet. It would add battery sag at 1495 and 1677 MHz,
+which the cap module's reserve needs.
 
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading

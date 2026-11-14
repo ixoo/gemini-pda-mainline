@@ -3,24 +3,27 @@ From: Julien Etienne <julien.etienne@gmail.com>
 Date: Sat, 14 Nov 2026 15:26:49 -0500
 Subject: [PATCH] cpufreq: cap frequencies to the battery's current headroom
 
-A battery with a high internal resistance can sag below its under-voltage
-cut-off under a burst of CPU load, and the PMIC then cuts power with no
-warning. On the MT6797 Gemini PDA an aged cell at about 3.75 V lost power
-this way with both Cortex-A72s at 2.1 GHz and about 1.5 A drawn.
+A battery with a high internal resistance can sag below its
+under-voltage cut-off under a burst of CPU load, and the PMIC then cuts
+power with no warning. On the MT6797 Gemini PDA an aged cell at about
+3.75 V lost power this way with both Cortex-A72s at 2.1 GHz and about
+1.5 A drawn.
 
 Add a module that keeps the CPUs' worst-case current under the headroom
-the battery's power supply reports as POWER_SUPPLY_PROP_CURRENT_MAX, plus
-a named charger's input limit while it is online, less a reserve for the
-rest of the system. A policy's worst case is all its CPUs busy at their
-cap, from the energy model's power with a leakage margin, at a floor
-voltage. Policies are cut from the highest capacity down, one state at a
-time, on each change the supplies report, with no polling. With no
-headroom reported, nothing is capped.
+the battery's power supply reports as POWER_SUPPLY_PROP_CURRENT_MAX,
+plus 85 % of a named charger's input limit while it is online, less a
+reserve for the rest of the system. A policy's worst case is all its
+CPUs busy at their cap, from the energy model's power with a leakage
+margin, at a floor voltage. Policies are cut from the highest capacity
+down, one state at a time, on each change the supplies report, with no
+polling. While the battery reports no headroom, as before its gauge's
+first reading, a fallback_ua parameter stands in for it; left at 0,
+nothing is capped.
 ---
  drivers/cpufreq/Kconfig            |  12 ++
  drivers/cpufreq/Makefile           |   1 +
- drivers/cpufreq/battery-headroom.c | 289 +++++++++++++++++++++++++++++
- 3 files changed, 302 insertions(+)
+ drivers/cpufreq/battery-headroom.c | 301 +++++++++++++++++++++++++++++
+ 3 files changed, 314 insertions(+)
  create mode 100644 drivers/cpufreq/battery-headroom.c
 
 diff --git a/drivers/cpufreq/Kconfig b/drivers/cpufreq/Kconfig
@@ -60,10 +63,10 @@ index 385c9fcc6..3989d213d 100644
  obj-$(CONFIG_CPUFREQ_DT_PLATDEV)	+= cpufreq-dt-platdev.o
 diff --git a/drivers/cpufreq/battery-headroom.c b/drivers/cpufreq/battery-headroom.c
 new file mode 100644
-index 000000000..14dd895e9
+index 000000000..53d1d6603
 --- /dev/null
 +++ b/drivers/cpufreq/battery-headroom.c
-@@ -0,0 +1,289 @@
+@@ -0,0 +1,301 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Cap CPU frequencies to the battery's current headroom.
@@ -80,7 +83,8 @@ index 000000000..14dd895e9
 + * current is the energy model's power for that state, times the CPUs in the
 + * policy, plus a leakage margin, divided by the floor voltage. Policies are cut
 + * from the highest capacity down, one state at a time, until the total fits.
-+ * With no headroom reported, nothing is capped.
++ * While the battery reports no headroom, fallback_ua stands in for it; with
++ * that left at 0, nothing is capped.
 + */
 +
 +#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
@@ -105,7 +109,11 @@ index 000000000..14dd895e9
 +
 +static char *charger = "";
 +module_param(charger, charp, 0444);
-+MODULE_PARM_DESC(charger, "power supply whose input limit adds while online");
++MODULE_PARM_DESC(charger, "power supply whose input limit, less 15 %, adds while online");
++
++static unsigned int fallback_ua;
++module_param(fallback_ua, uint, 0444);
++MODULE_PARM_DESC(fallback_ua, "headroom assumed while none is reported (uA, 0: no cap)");
 +
 +static unsigned int reserve_ua = 700000;
 +module_param(reserve_ua, uint, 0444);
@@ -182,12 +190,19 @@ index 000000000..14dd895e9
 +	int headroom, online, limit;
 +
 +	if (bh_read(battery, POWER_SUPPLY_PROP_CURRENT_MAX, &headroom) ||
-+	    headroom <= 0)
-+		return -1;
++	    headroom < 0) {
++		if (!fallback_ua)
++			return -1;
++		headroom = fallback_ua;
++	}
 +	if (!bh_read(charger, POWER_SUPPLY_PROP_ONLINE, &online) && online &&
 +	    !bh_read(charger, POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, &limit) &&
 +	    limit > 0)
-+		headroom += limit;
++		/*
++		 * The limit is drawn at the input, ahead of the charger's
++		 * conversion loss; count 85 % of it.
++		 */
++		headroom += limit / 100 * 85;
 +	return headroom;
 +}
 +
