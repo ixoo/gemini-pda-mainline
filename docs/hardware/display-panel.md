@@ -217,6 +217,36 @@ and recovery. This inherited state is a compatibility assumption: LK's panel
 configuration and the kernel's command table must agree. A mainline boot that
 replaces LK must initialise the panel itself.
 
+### 3.6 Rotation in hardware
+
+The panel scans 1080x2160 portrait and the device is used in landscape, so
+something has to turn the picture 90 degrees. Nothing on the way from memory to
+the panel can do it; only flips (180 degrees and mirrors) are available there.
+Source reading, not a hardware test:
+
+| Stage | What it can do | Evidence |
+| --- | --- | --- |
+| Panel | Flips only. The init table's `0x36` (MADCTL) = `0x03` sets the two flip bits. A 90-degree turn needs the row/column exchange of a frame memory, and a video-mode panel shows each line as it arrives | `inferred`; no controller datasheet |
+| OVL | Per-layer vertical and horizontal flip, so 180 degrees. The vendor's only hardware rotation option, `MTK_LCM_PHYSICAL_ROTATION_HW`, is documented as 180 degrees: it sets `L_CON` bits 9 and 10 and mirrors the DSI update region | `confirmed` in the pinned Gemian kernel (`ddp_ovl.c`, `ddp_dsi.c`) |
+| RDMA | None. The vendor disables the OVL bypass when rotation is on because "rdma don't support rotation" | `confirmed` in source (`primary_display.c`) |
+| MDP `WROT0/1` | 90/180/270, but memory to memory: a full-frame read and write per frame, about 9 MB each way at 32 bpp, never in the display path. The vendor drives it from closed userspace through CMDQ; mainline has no MT6797 MDP driver | `confirmed` as memory-to-memory in source; not used here |
+
+`CONFIG_MTK_LCM_PHYSICAL_ROTATION="90"` in the Gemian config is a string nothing
+in the kernel acts on; it describes the angle for Android's user interface.
+
+The video-mode low-power code borrows WROT's SRAM for RDMA0
+(`_acquire_wrot_resource`, `DISP_REG_RDMA_SRAM_SEL`), commented "Share wrot sram
+for vdo mode increase enter sodi ratio": a deeper scanout FIFO leaves longer
+gaps without DRAM traffic. Using WROT to rotate would compete with that.
+
+So on mainline the rotation belongs where a frame is already being drawn:
+fbcon rotates in software, and a compositor folds the turn into its GPU
+composition pass at almost no extra cost. The panel reports `rotation = <270>`
+for that. Zero-copy scanout of a full-screen client then needs the client to
+draw already rotated and declare it with Wayland's `wl_surface.set_buffer_transform`:
+wlroots refuses direct scanout unless the buffer's transform equals the
+output's.
+
 ## 4. Gemian userspace path
 
 ### 4.1 Xorg display driver
@@ -357,7 +387,7 @@ measured refresh under mainline at those settings is 54.00 Hz.
 | --- | --- |
 | Physical panel controller | `observed`, not complete: under mainline DCS `0x0a` reads `0x9c` and `0xdb` reads `0x80`, as the NT36672 path expects and unlike the SSD2092 unit's `0x0a` = `0x1c`. `0xf4` was not read. The vendor kernel's table, byte-identical to the mainline descriptor's, runs on this unit on every Gemian boot |
 | Panel bias device semantics | `observed` writes only; LP3101 voltages/currents unproven |
-| Landscape rotation stage | `observed` - held in landscape, the panel scans 1080x2160 rotated 90 degrees with no mirror: lines run top to bottom, the first at the right edge. Which stage rotates under Gemian is unresolved |
+| Landscape rotation stage | `observed` - held in landscape, the panel scans 1080x2160 rotated 90 degrees with no mirror: lines run top to bottom, the first at the right edge. No hardware stage can turn the scanout 90 degrees ([3.6](#36-rotation-in-hardware)); under Gemian the Xorg DDX's `Rotate` option turns it in its GLES draw and always hands HWC a layer with `transform = 0`. Whether a live Gemian sets that option was not checked |
 | Refresh rate | `observed` - 54.00 flips per second under mainline at the vendor's lane rate and porches, agreeing with the vendor's `5405` debug field |
 | Vendor HWC composition policy | Proprietary; not retained. The live OVL path is consistent with direct scanout of the X framebuffer |
 | Cold-boot panel initialisation | Kernel sets `is_lcm_inited` from the presence of LK's `videolfb` tag and inherits LK's panel state; exact per-session state not captured |
