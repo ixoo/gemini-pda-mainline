@@ -1,0 +1,62 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 20:06:28 -0500
+Subject: [PATCH 1/2] arm64: dts: mediatek: gemini station DVFS: keep VPROC2 at
+ 880 mV or more
+
+VPROC2 keeps the voltage of the A72s' last operating point while both
+are down, since their cpufreq policy only goes inactive. When the first
+comes back, the firmware's CPU_ON starts the cluster at 750 MHz on that
+rail. The 338 and 676 MHz points sat at 870 mV, below the 880 mV of the
+845 MHz point, the lowest that covers 750 MHz on this unit.
+
+Raise those two points to 880 mV and make 880 mV VPROC2's floor, so no
+request, the release of one included, can take the rail lower.
+---
+ .../dts/mediatek/mt6797-gemini-pda-station-dvfs.dts   | 11 +++++++----
+ 1 file changed, 7 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+index 2c7b78468..be6dd8cff 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -352,7 +352,8 @@ vproc1: BUCKA {
+ 		/* The A72 pair, with VSRAM_B from the A72 module. */
+ 		vproc2: BUCKB {
+ 			regulator-name = "vproc-big";
+-			regulator-min-microvolt = <800000>;
++			/* The firmware's CPU_ON starts the A72s at 750 MHz on it. */
++			regulator-min-microvolt = <880000>;
+ 			regulator-max-microvolt = <1200000>;
+ 			regulator-coupled-with = <&vsram_b>;
+ 			regulator-coupled-max-spread = <430000>;
+@@ -485,7 +486,9 @@ &cpu7 {
+  * same rule as the A53 tables: the higher of the base voltage and this unit's
+  * EEM value plus 62.5 mV, capped at 1.2 V and rounded up to 10 mV. The
+  * TT-segment points (2431 and 2587 MHz) are left out; 2392 and 2522 MHz take
+- * 1.2 V.
++ * 1.2 V. 338 and 676 MHz take 880 mV rather than 870 mV: VPROC2 keeps the
++ * last point's voltage while both A72s are down, and the firmware's CPU_ON
++ * starts the cluster at 750 MHz, which the 845 MHz point's 880 mV covers.
+  */
+ &vsram_b {
+ 	regulator-coupled-with = <&vproc2>;
+@@ -499,13 +502,13 @@ b_dvfs_opp: opp-table-cluster2 {
+ 
+ 		opp-338000000 {
+ 			opp-hz = /bits/ 64 <338000000>;
+-			opp-microvolt = <870000 870000 1200000>;
++			opp-microvolt = <880000 880000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-676000000 {
+ 			opp-hz = /bits/ 64 <676000000>;
+-			opp-microvolt = <870000 870000 1200000>;
++			opp-microvolt = <880000 880000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+-- 
+2.43.0
+

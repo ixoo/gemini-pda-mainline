@@ -1154,6 +1154,27 @@ The recommendation to the owner stands: keep `a72-at-boot` off until A72 scaling
 passed, because loading by default today means A72s at a fixed 750 MHz with no cooling
 of their own. The owner's decision is pending.
 
+**Re-up design for T4b (2026-11-13, compile-checked, not run).** The owner set
+the goal of full A72 support, loaded by default. The re-up problem found after T4a
+is solved without a new writer:
+- VPROC2 keeps the voltage of the A72s' last operating point while both are down,
+  because their cpufreq policy only goes inactive.
+- [0775](../../patches/proposals/0775-arm64-dts-mediatek-gemini-station-DVFS-keep-VPROC2-a.patch)
+  makes 880 mV VPROC2's floor, both as its regulator minimum and as the lowest A72
+  point. 338 and 676 MHz move from 870 to 880 mV. 880 mV is this unit's voltage for
+  845 MHz, so it covers the 750 MHz that the firmware's `CPU_ON` starts the cluster
+  at, whatever point came last.
+- [0776](../../patches/proposals/0776-soc-mediatek-mt6797-a72-bring-the-cluster-back-on-a-.patch)
+  lets the A72 module prepare the cluster again with BUCKB's `0xd9` anywhere from
+  `0x3a` to `0x5a` (880-1200 mV). `0xda` must still read `0x46`, since the
+  provider writes only `0xd9`. The first bring-up at module load still requires
+  1.0 V.
+- 0702 then puts the last clock rate back before cpufreq reads it.
+- VSRAM_B comes back at the voltage the coupler last set, which the A72 module
+  stores while both A72s are down.
+
+Neither patch adds a register write.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.

@@ -1347,3 +1347,5 @@ proposals/0771-dt-bindings-input-gpio-matrix-keypad-add-linux-capsl.patch
 proposals/0772-Input-matrix_keypad-report-caps-lock-through-an-LED-.patch
 proposals/0773-arm64-dts-mediatek-gemini-station-follow-caps-lock-f.patch
 proposals/0774-mmc-core-start-each-request-in-multi-block-mode.patch
+proposals/0775-arm64-dts-mediatek-gemini-station-DVFS-keep-VPROC2-a.patch
+proposals/0776-soc-mediatek-mt6797-a72-bring-the-cluster-back-on-a-.patch

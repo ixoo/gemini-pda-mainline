@@ -1,0 +1,76 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Fri, 13 Nov 2026 20:06:28 -0500
+Subject: [PATCH 2/2] soc: mediatek: mt6797-a72: bring the cluster back on a
+ scaled VPROC2
+
+The cluster's preparation after both A72s were down required BUCKB at
+1.0 V, as the preloader leaves it. With A72 voltage scaling, VPROC2 is
+wherever the last operating point left it, so the A72s could not come
+back.
+
+Accept VPROC2 from its 880 mV floor to 1.2 V when preparing the cluster
+again. The firmware's CPU_ON starts it at 750 MHz, which the floor
+covers, and the clock driver puts the last rate back. The first bring-up
+at module load still requires 1.0 V.
+---
+ drivers/soc/mediatek/mt6797-a72.c | 29 ++++++++++++++++++++++++++++-
+ 1 file changed, 28 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-a72.c b/drivers/soc/mediatek/mt6797-a72.c
+index ed3aa57ad..3ecf6fa4d 100644
+--- a/drivers/soc/mediatek/mt6797-a72.c
++++ b/drivers/soc/mediatek/mt6797-a72.c
+@@ -62,6 +62,9 @@
+ #define DA9214_VBUCKB_A			0xd9
+ #define DA9214_VBUCKB_B			0xda
+ #define  DA9214_VBUCKB_1000MV		0x46
++/* 300 mV + 10 mV a step: VPROC2's floor and top under voltage scaling. */
++#define  DA9214_VBUCKB_880MV		0x3a
++#define  DA9214_VBUCKB_1200MV		0x5a
+ 
+ #define SMC_REG_READ			0xc200035fUL
+ #define SMC_SRAM_LDO_SET		0xc20003bfUL
+@@ -126,6 +129,20 @@ static int buck_expect(struct mt6797_a72 *a72, u8 reg, u8 expected)
+ 	return 0;
+ }
+ 
++static int buck_expect_range(struct mt6797_a72 *a72, u8 reg, u8 min, u8 max)
++{
++	int val = i2c_smbus_read_byte_data(a72->buck, reg);
++
++	if (val < 0)
++		return val;
++	if (val < min || val > max) {
++		dev_err(a72->dev, "DA9214 0x%02x is 0x%02x, expected 0x%02x-0x%02x\n",
++			reg, val, min, max);
++		return -ERANGE;
++	}
++	return 0;
++}
++
+ static int pwrap_reset_expect(struct mt6797_a72 *a72, int expected)
+ {
+ 	int status = reset_control_status(a72->pwrap_reset);
+@@ -200,7 +217,17 @@ static int mt6797_a72_check_off(struct mt6797_a72 *a72, bool rail_on)
+ 			DA9214_BUCKB_CONT, buck);
+ 		return -ERANGE;
+ 	}
+-	ret = buck_expect(a72, DA9214_VBUCKB_A, DA9214_VBUCKB_1000MV);
++	/*
++	 * After the A72s have been down, a voltage consumer may have left
++	 * VPROC2 anywhere from its 880 mV floor to 1.2 V. The firmware's CPU_ON
++	 * starts the cluster at 750 MHz, which the floor covers.
++	 */
++	if (rail_on)
++		ret = buck_expect_range(a72, DA9214_VBUCKB_A,
++					DA9214_VBUCKB_880MV,
++					DA9214_VBUCKB_1200MV);
++	else
++		ret = buck_expect(a72, DA9214_VBUCKB_A, DA9214_VBUCKB_1000MV);
+ 	if (ret)
+ 		return ret;
+ 	return buck_expect(a72, DA9214_VBUCKB_B, DA9214_VBUCKB_1000MV);
+-- 
+2.43.0
+
