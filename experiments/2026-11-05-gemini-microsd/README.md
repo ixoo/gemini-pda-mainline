@@ -2826,6 +2826,16 @@ charger connected, card root, normal background activity. Two runs of at least
 | Both runs clean | The hang likely shared the CRC cause. Record it, and a longer unattended night follows |
 | A fault | A separate cause. The at-fault reads decide; R1/R2 (0758/0759) is the recovery path |
 
+### T17 and T18: not run (2026-11-14)
+
+The owner declined the soak and the screen-off idle test: the fix stays on image
+124, and any SD error or hang will show in daily use. If one appears, the custodian
+takes the at-fault reads before recovery (`sd-state.sh`, MT6351 `0x0212` and
+`0x0ad0`, the three `mmc1` registers). So the screen-off hang is not shown fixed.
+
+Separately, on 124, two continuous direct reads (`bs=4M`, 64 blocks) ran at 71.5
+and 75.8 MB/s with no error.
+
 ## Follow-up
 
 - Suspend and resume.
