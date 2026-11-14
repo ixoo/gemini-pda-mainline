@@ -2381,6 +2381,10 @@ of tree against image 122's configuration.
 - Unloading puts the saved values back. A parameter of -1 leaves that rail alone,
   which allows a later split.
 - Nothing loads it at boot, and a restart returns the firmware values.
+- Built from `e95ed0af` on Buildbox-2 with the same GCC 12.2.0, against image
+  122's `kernel.config` (package `38fbc8e1…`). `sd-trim.ko` sha256 `30a59c40…eb72e`.
+  Its vermagic matches the image's modules, and all nine imports are exported in
+  the image's `System.map`. It is built, not yet loaded.
 
 **Procedure.** Image 122, card root, on battery, setting A, traced like the earlier
 g runs. Read-only on the card apart from the root's own writes.
