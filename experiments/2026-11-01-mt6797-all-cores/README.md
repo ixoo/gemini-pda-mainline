@@ -1330,8 +1330,27 @@ So before loading by default:
   within one poll.
 - The higher points are for short bursts only, once something can hold them there.
 
-Run B (battery) was not run yet. It would add battery sag at 1495 and 1677 MHz,
-which the cap module's reserve needs.
+**T4c run B, on battery (observed, same boot).** The battery was charged to full
+(4.06 V while supplying 417 mA), then unplugged, with VBAT_START at 3.9 V. The result
+matched run A:
+
+| MHz | SoC max | Board max | Battery current, peak | Battery voltage, min | Result |
+| --- | --- | --- | --- | --- | --- |
+| 1495 | 67.7 C | 39.7 C | -1.27 A | 3.718 V | held 60 s, 18 samples throttled to 1378 MHz |
+| 1677 | 66.1 C | 39.5 C | -1.15 A | 3.730 V | held 60 s |
+| 1885 | 71.5 C | — | — | 3.708 V | stopped on temperature within about 2 s |
+
+From full, the battery sagged about 0.35 V at about 1.2 A (about 0.3 ohm), far above
+the 2.70 V cut-off. The board zone peaked near 39.7 C on both runs, so the charger's
+heat was not what limited run A.
+
+Conclusion of T4c: heat limits sustained A72 speed on this unit to 1677 MHz, with
+supply or not. T4b's cut needed all ten cores loaded on a battery at about 25 % real
+charge, on top of that heat.
+[0786](../../patches/proposals/0786-arm64-dts-mediatek-gemini-station-DVFS-make-fast-A72.patch)
+marks the A72 points from 1885 MHz up as `turbo-mode`. cpufreq leaves them out until
+boost is switched on, so the A72s' sustained top is 1677 MHz. 0785 covers low
+charge.
 
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading

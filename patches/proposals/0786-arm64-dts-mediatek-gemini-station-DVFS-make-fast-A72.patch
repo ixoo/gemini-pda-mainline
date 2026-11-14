@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 17:58:01 -0500
+Subject: [PATCH] arm64: dts: mediatek: gemini station DVFS: make fast A72
+ points boost
+
+On this unit two loaded Cortex-A72s at 1885 MHz heat the SoC sensor from
+about 48 C past 70 C within 2-3 s, on a charger and on a full battery
+alike, faster than the thermal loop can follow. At 1495 and 1677 MHz the
+same load holds near 67 C under the existing cooling.
+
+Mark the points from 1885 MHz up as turbo-mode, so cpufreq leaves them
+out until boost is switched on, and the A72s' sustained top is 1677 MHz.
+---
+ .../dts/mediatek/mt6797-gemini-pda-station-dvfs.dts  | 12 ++++++++++++
+ 1 file changed, 12 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+index be6dd8cff..f75ebeb9f 100644
+--- a/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
++++ b/arch/arm64/boot/dts/mediatek/mt6797-gemini-pda-station-dvfs.dts
+@@ -489,6 +489,10 @@ &cpu7 {
+  * 1.2 V. 338 and 676 MHz take 880 mV rather than 870 mV: VPROC2 keeps the
+  * last point's voltage while both A72s are down, and the firmware's CPU_ON
+  * starts the cluster at 750 MHz, which the 845 MHz point's 880 mV covers.
++ *
++ * From 1885 MHz up the points are boost only: two loaded A72s heat the SoC
++ * past 70 C within 2-3 s there, faster than the thermal loop can follow, while
++ * 1677 MHz holds near 67 C. Writing 1 to cpufreq's boost makes them available.
+  */
+ &vsram_b {
+ 	regulator-coupled-with = <&vproc2>;
+@@ -550,48 +554,56 @@ opp-1677000000 {
+ 
+ 		opp-1885000000 {
+ 			opp-hz = /bits/ 64 <1885000000>;
++			turbo-mode;
+ 			opp-microvolt = <1080000 1080000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2093000000 {
+ 			opp-hz = /bits/ 64 <2093000000>;
++			turbo-mode;
+ 			opp-microvolt = <1110000 1110000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2158000000 {
+ 			opp-hz = /bits/ 64 <2158000000>;
++			turbo-mode;
+ 			opp-microvolt = <1130000 1130000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2223000000 {
+ 			opp-hz = /bits/ 64 <2223000000>;
++			turbo-mode;
+ 			opp-microvolt = <1140000 1140000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2262000000 {
+ 			opp-hz = /bits/ 64 <2262000000>;
++			turbo-mode;
+ 			opp-microvolt = <1150000 1150000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2327000000 {
+ 			opp-hz = /bits/ 64 <2327000000>;
++			turbo-mode;
+ 			opp-microvolt = <1170000 1170000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2392000000 {
+ 			opp-hz = /bits/ 64 <2392000000>;
++			turbo-mode;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+ 
+ 		opp-2522000000 {
+ 			opp-hz = /bits/ 64 <2522000000>;
++			turbo-mode;
+ 			opp-microvolt = <1200000 1200000 1200000>;
+ 			clock-latency-ns = <500000>;
+ 		};
+-- 
+2.43.0
+
