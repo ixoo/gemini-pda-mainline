@@ -103,7 +103,7 @@ while [ "$(now)" -lt "$END" ] && [ ! -e "$STOP" ]; do
 	# /proc/stat moves about 1000 ticks per 10 s; a quiet sample is a frozen CPU.
 	[ $((c8 - last8)) -lt 100 ] && why="cpu8 frozen"
 	[ $((c9 - last9)) -lt 100 ] && why="cpu9 frozen"
-	[ "$soc" -ge $SOC_LIMIT ] && why="soc $soc"
+	[ "$soc" -ge "$SOC_LIMIT" ] && why="soc $soc"
 	[ "$batt" -ge $BATT_LIMIT ] && why="battery temperature $batt"
 	[ "$cap" -lt $CAPACITY_MIN ] && why="capacity $cap"
 	[ "$(cat /sys/devices/system/cpu/online)" = 0-9 ] || why="online changed"
