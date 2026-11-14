@@ -1,0 +1,54 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sat, 14 Nov 2026 14:48:15 -0500
+Subject: [PATCH 783/783] soc: mediatek: mt6797-consys: release the AP-DMA
+ clock after the WMT check
+
+The WMT setup enabled the AP-DMA clock to check that the BTIF DMA channels are
+idle, and held it until CONSYS unloaded, which kept the SoC out of SODI and
+deep idle. Disable it once the check is done and keep it only prepared until
+unload.
+---
+ drivers/soc/mediatek/mt6797-consys.c |  2 +-
+ drivers/soc/mediatek/mt6797-wmt.h    | 11 ++++++++---
+ 2 files changed, 9 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index a9bf2509e..12a685e74 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -2864,7 +2864,7 @@ static void mt6797_consys_remove(struct platform_device *pdev)
+ 	if (owner->wmt_query.btif_clock_held)
+ 		clk_disable_unprepare(owner->wmt_query.btif_clk);
+ 	if (owner->wmt_query.clocks_held)
+-		clk_disable_unprepare(owner->wmt_query.dma_clk);
++		clk_unprepare(owner->wmt_query.dma_clk);
+ 	pm_genpd_remove_device(dev);
+ 	dev_info(dev, "CONSYS unloaded: WLAN stop=%d, CONN %s, VCN28 %s, VCN18 %s\n",
+ 		 stop, !owner->conn_on ? "never on" : off ? "NOT confirmed off" : "off",
+diff --git a/drivers/soc/mediatek/mt6797-wmt.h b/drivers/soc/mediatek/mt6797-wmt.h
+index 07979eefe..d93d274c8 100644
+--- a/drivers/soc/mediatek/mt6797-wmt.h
++++ b/drivers/soc/mediatek/mt6797-wmt.h
+@@ -874,10 +874,15 @@ static int mt6797_wmt_query_setup(struct mt6797_wmt_query *query)
+ 	ret = clk_prepare_enable(query->dma_clk);
+ 	if (ret)
+ 		return ret;
++	/* Prepared from here to unload; enabled only for this check, since held
++	 * on it kept the SoC out of its deep idle states.
++	 */
+ 	query->clocks_held = true;
+-	if (!mt6797_wmt_dma_idle(query->dma_tx) ||
+-	    !mt6797_wmt_dma_idle(query->dma_rx))
+-		return -EBUSY;
++	ret = mt6797_wmt_dma_idle(query->dma_tx) &&
++	      mt6797_wmt_dma_idle(query->dma_rx) ? 0 : -EBUSY;
++	clk_disable(query->dma_clk);
++	if (ret)
++		return ret;
+ 	ret = clk_prepare_enable(query->btif_clk);
+ 	if (ret)
+ 		return ret;
+-- 
+2.43.0
+

@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Sat, 14 Nov 2026 14:48:14 -0500
+Subject: [PATCH 782/783] wifi: mt6797: enable the AP-DMA clock only around a
+ HIF transfer
+
+The HIF held the AP-DMA clock from attach to free, and that kept the SoC out
+of SODI and deep idle whenever Wi-Fi was up. Prepare it at attach and enable
+it only for each DMA transfer. A transfer that fails may leave its channel
+running, so the clock then stays on until the HIF is freed.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c | 33 +++++++++++++++++-----
+ 1 file changed, 26 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 6aeb8b5de..89887dd36 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -348,6 +348,8 @@ struct mt6797_hif {
+ 	phys_addr_t dma_fifo;
+ 	struct device *dma_dev;
+ 	struct clk *dma_clk;
++	/* Left on after a transfer that failed, whose channel may still run. */
++	bool dma_clk_stuck;
+ 	void *dma_buffer;
+ 	dma_addr_t dma_phys;
+ 	size_t dma_buffer_bytes;
+@@ -511,7 +513,9 @@ void mt6797_hif_free(struct mt6797_hif *hif)
+ 	if (hif && hif->dma) {
+ 		dma_free_coherent(hif->dma_dev, hif->dma_buffer_bytes, hif->dma_buffer,
+ 				  hif->dma_phys);
+-		clk_disable_unprepare(hif->dma_clk);
++		if (hif->dma_clk_stuck)
++			clk_disable(hif->dma_clk);
++		clk_unprepare(hif->dma_clk);
+ 	}
+ 	if (hif)
+ 		kfree(hif->rx_batch_agg);
+@@ -531,19 +535,22 @@ int mt6797_hif_attach_dma(struct mt6797_hif *hif, void __iomem *window,
+ 	error = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
+ 	if (error)
+ 		return error;
+-	error = clk_prepare_enable(clk);
++	/* Enabled only around each transfer: held on, it kept the SoC out of
++	 * its deep idle states whenever Wi-Fi was up.
++	 */
++	error = clk_prepare(clk);
+ 	if (error)
+ 		return error;
+ 	hif->dma_buffer = dma_alloc_coherent(dev, MT6797_APDMA_BUFFER_BYTES,
+ 					     &hif->dma_phys, GFP_KERNEL);
+ 	if (!hif->dma_buffer) {
+-		clk_disable_unprepare(clk);
++		clk_unprepare(clk);
+ 		return -ENOMEM;
+ 	}
+ 	if (upper_32_bits(hif->dma_phys) || upper_32_bits(fifo)) {
+ 		dma_free_coherent(dev, MT6797_APDMA_BUFFER_BYTES, hif->dma_buffer,
+ 				  hif->dma_phys);
+-		clk_disable_unprepare(clk);
++		clk_unprepare(clk);
+ 		return -ERANGE;
+ 	}
+ 	hif->dma_buffer_bytes = MT6797_APDMA_BUFFER_BYTES;
+@@ -657,9 +664,21 @@ static int mt6797_hif_data_transfer(struct mt6797_hif *hif, unsigned int port,
+ 	bool admitted = direction == MT6797_HIF_READ ?
+ 		1 : 1;
+ 
+-	if (hif->dma && admitted && payload_bytes >= MT6797_HIF_DMA_MIN_BYTES)
+-		return mt6797_hif_dma_transfer(hif, port, direction, buffer,
+-					       payload_bytes, capacity, result);
++	if (hif->dma && admitted && payload_bytes >= MT6797_HIF_DMA_MIN_BYTES) {
++		int error = 0;
++
++		if (!hif->dma_clk_stuck)
++			error = clk_enable(hif->dma_clk);
++		if (error)
++			return error;
++		error = mt6797_hif_dma_transfer(hif, port, direction, buffer,
++						payload_bytes, capacity, result);
++		if (error)
++			hif->dma_clk_stuck = true;
++		if (!hif->dma_clk_stuck)
++			clk_disable(hif->dma_clk);
++		return error;
++	}
+ 	return mt6797_hif_pio_transfer(&hif->io, port, direction, buffer,
+ 				       payload_bytes, capacity, result);
+ }
+-- 
+2.43.0
+

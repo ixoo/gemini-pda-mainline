@@ -57,6 +57,9 @@ Status: plan, updated 2026-11-01.
   key and the station's own. On the same boot with 0767 swapped in, idle with the screen blanked and nothing
   streaming over SSH: 10.6 join work runs a second over 120 s (was 54), timer interrupts 47.6 a second (was
   about 113), with about 2.3 broadcast or multicast frames a second still arriving. SSH stayed usable. One run.
+- The Wi-Fi stack held the AP-DMA clock on whenever Wi-Fi was up, which blocks SODI and deep idle (cpuidle,
+  image 124): the HIF from attach to free, and the WMT setup from its first check to CONSYS unload. 0782 enables
+  it only around each HIF DMA transfer, and 0783 only for the WMT check. Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
