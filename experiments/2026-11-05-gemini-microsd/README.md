@@ -2920,6 +2920,28 @@ card's `systemd-sleep` hook, which unloads the radios. The next attempt suspends
 through `systemctl suspend` (an RTC alarm set with `rtcwake -m no`) or the lid,
 with access over USB SSH.
 
+### R2 through systemd: one clean cycle, then stopped (2026-11-14)
+
+Same boot (`4638d84c`), on battery, `card_off_ms` 100, suspended with
+`systemctl suspend` after an RTC alarm.
+
+**Observed, cycle 1.**
+
+- A real s2idle sleep from 394.53 s to 433.34 s.
+- `mmc_bus_suspend` logged exactly one "card powered off for 100 ms" and returned 0
+  after 116 ms. Resume returned 0.
+- After resume: SDR104, 1.8 V, the same card, root `rw`, the root write and the
+  8 MiB read both fine. No `mmc1`, I/O or EXT4 line.
+
+**Stopped.** A warning, "i2c-6: Transfer while suspended": the I2C6 controller's
+early resume returned -5, and a CPU-frequency voltage write to the DA9214
+failed. That is a resume bug in the I2C and cpufreq path, unrelated to the SD
+card, and is with those sessions. `card_off_ms` went back to 0.
+
+**Inferred.** The suspend power-off path with the real cut worked once. Cycles 2-5
+wait for the I2C6 resume fix, so that the run has no unrelated changes such as
+turning cpufreq off.
+
 ## Follow-up
 
 - Suspend and resume.
