@@ -2881,7 +2881,7 @@ the board at about 50 °C. Raw logs are private.
   would do in place. Whether they actually do is what R1 tests, on a RAM-root
   boot.
 
-### R1 result (2026-11-15)
+### R1 result (2026-11-14)
 
 Image station-work-126 (from `f15103ce`, with fault injection and 0758/0759), RAM
 root, boot `fc0e85a2`, taint 0. `mmcblk1` was not mounted, and `card_off_ms`
