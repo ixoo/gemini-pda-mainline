@@ -2629,4 +2629,15 @@ networkd/iwd up-down race behind 0670 isn't shown. `main.conf` is a backup file,
 edited copy gets a `.pacnew` instead.
 
 Built in an Arch chroot over card-32's image: `gemini-base-65` (`3b6368ec…`), which also carries
-64's bar change. Not on the device.
+64's bar change.
+
+**Result** (custodian, card-32, image 127, boot `83709573`): installed with no `.pacnew`. After
+one `systemctl suspend` through `sleep-radios`, which reloaded the modules, Wi-Fi came back as
+wlan0 and connected; before, the name climbed.
+
+One catch on the first switch-over: `systemctl restart iwd`, while the old iwd's `wlan4`
+existed, left no netdev at all. The old iwd deleted its own netdev on exit, the kernel's
+default was long gone, and the new iwd logged "No default interface for wiphy 4". Wi-Fi stayed
+down until `iw phy phy4 interface add wlan0 type managed`, after which iwd connected at once. A
+boot or a module reload creates the kernel's default netdev again, so when upgrading in place,
+reboot instead of restarting iwd.
