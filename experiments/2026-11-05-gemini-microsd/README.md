@@ -2973,6 +2973,52 @@ Raw logs are private.
 suspend. Together with R1 and the hang under load, 0758/0759 with `card_off_ms`
 100 stay as the station's microSD power handling.
 
+### Repeated hangs at idle on the charger, image 127 (2026-11-15)
+
+Image station-work-127, boot `338dbf30`. Card root, `card_off_ms` 100, on the wall
+charger, idle after the A72 soak ended at about 1255 s. No suspend. Raw logs are
+private.
+
+**Observed.**
+
+| Time (s) | What happened |
+| --- | --- |
+| 11396.78 | CMD13/CMD12 time out (`host->error=0x2`); "card powered off for 100 ms"; recovered |
+| 13873.35 | The same; recovered |
+| 15139.43 | The same; cut at 15139.54 |
+| 15140.11 | Timeouts again, 0.58 s after that cut. No second cut; "recovery failed", write I/O errors, the journal aborted, the root went read-only |
+| 34124 | The custodian's read hung the card again; the cut recovered it, back at SDR104 |
+
+- Nothing else in the log in the 20 s before any of the hangs: no charger or
+  guard events, no thermal lines. The charger guard last changed the charge
+  current at 1251 s.
+- At-fault PMIC: `0x0212` 0 (no over-current), VMCH 3.0 V, VMC 1.8 V,
+  `0x0ad0` `0x001a`.
+- After a plain power-off and a boot2 start (boot `ecf10bd3`), ext4 replayed its
+  journal and `systemd-fsck` called the filesystem clean.
+
+**From the source** (`drivers/mmc/core/block.c`, 7.1.3).
+
+- `mmc_blk_reset()` sets a per-direction `reset_done` bit and refuses a second
+  reset (`-EEXIST`) until a request in that direction completes.
+  `mmc_blk_rw_reset_success()` clears the bit on completion.
+- At 15139 the reset cut the card's power, but no write completed before the next
+  timeout 0.58 s later. So the block layer refused the second reset and failed
+  the requests. That's the core's guard against reset loops, not a limit in
+  0758/0759.
+
+**Inferred.**
+
+- The power cut recovers a hung card, three times here. It doesn't cover a card
+  that hangs again before its first successful write after the cut.
+- The hang is much more frequent than before: three times in about 63 minutes at
+  idle.
+- Every hang recorded so far happened on the charger: both screen-off faults, the
+  load fault on 126, and these. R2 and the T-series ran on battery with none.
+  That points back at H3, a supply or noise effect while charging. It isn't shown:
+  the time spent on battery with the card root hasn't been counted. A failing card
+  also fits the rising rate.
+
 ## Follow-up
 
 - Suspend and resume.
