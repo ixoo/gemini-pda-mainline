@@ -2616,7 +2616,7 @@ restarted, steps driven with `umbriel msg`, checked with `grim` captures; logica
 
 The card image builder builds Umbriel from this recipe, so the next card image carries pkgrel 8.
 
-#### Wi-Fi keeps the name wlan0 across suspends (gemini-base 64, 2026-11-14)
+#### Wi-Fi keeps the name wlan0 across suspends (gemini-base 65, 2026-11-14)
 
 wifi-daily, through the custodian: after each `systemctl suspend` the name went up by one, to
 wlan4 after four cycles (card-32, image 127, boot `83709573`). `sleep-radios` reloads the radio
@@ -2628,4 +2628,5 @@ Wi-Fi by type, so the climbing name broke nothing. Whether the change also avoid
 networkd/iwd up-down race behind 0670 isn't shown. `main.conf` is a backup file, so a locally
 edited copy gets a `.pacnew` instead.
 
-Built in an Arch chroot over card-32's image: `gemini-base-64` (`d6952395…`). Not on the device.
+Built in an Arch chroot over card-32's image: `gemini-base-65` (`3b6368ec…`), which also carries
+64's bar change. Not on the device.
