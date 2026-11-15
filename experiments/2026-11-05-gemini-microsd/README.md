@@ -2881,6 +2881,34 @@ the board at about 50 °C. Raw logs are private.
   would do in place. Whether they actually do is what R1 tests, on a RAM-root
   boot.
 
+### R1 result (2026-11-15)
+
+Image station-work-126 (from `f15103ce`, with fault injection and 0758/0759), RAM
+root, boot `fc0e85a2`, taint 0. `mmcblk1` was not mounted, and `card_off_ms`
+read 100. The owner approved R1. Raw logs are private.
+
+**Observed.**
+
+- Step 1: SDR104, 192 MHz, 1.8 V, card `mmc1:d555`. No "card powered off" line.
+- Step 2: MT6351 `0x0212` `0000`, `0x0a2e` and `0x0aaa` `da62`, `0x0ad0` `001a`.
+- Step 3, `card_off_ms` 100: two injected failures, then "card powered off for
+  100 ms" 110 ms later, and no "recovery failed". `dd` returned 0, the card came
+  back at SDR104 and 1.8 V with the same name, and an 8 MiB read was clean.
+- Step 4, `card_off_ms` 0: two injected failures and no power-off line. `dd`
+  returned 0, again SDR104 with the same name, and the 8 MiB read was clean.
+- No `mmc0` error, warning, Oops or I/O error.
+
+**Inferred** (third row of the R1 table).
+
+- The real VMCH cut runs on the error-reset path and the card comes back from it
+  at SDR104. 0758/0759 work as built.
+- A healthy card also survives the old VMC-only reset, so R1 can't show that the
+  cut is needed. The real fault at 644 s on 126 shows it: there the VMC-only
+  reset failed with -110, while a full power cycle revived the same card.
+- Keep 0758/0759. Next is R2: the card root through suspend with `card_off_ms`
+  100. If R2 passes, the tmpfiles override that sets 0 on the card root can go,
+  with the owner's yes.
+
 ## Follow-up
 
 - Suspend and resume.
