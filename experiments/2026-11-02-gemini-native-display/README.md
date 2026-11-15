@@ -601,7 +601,7 @@ exactly one prepare, through the fbdev unblank, and the owner saw the console dr
 Every other prepare in the trace came while the display was on. The record is in the
 [power test plan](../2026-11-08-cpu-power-test-plan/README.md).
 
-## The blanked display and deep idle (0788 built, not yet booted)
+## The blanked display and deep idle (0788 passed)
 
 The cpuidle census on station-work-125 found two display holders that block the deep-idle
 program, but not SODI, while the display is blanked: `infra_disp_pwm` (INFRA `0x094`
@@ -611,7 +611,10 @@ bit 17), held by the PWM, and the DIS domain.
   PWM enabled at duty 0. `0514` switches the block off at duty 0 but kept the clocks
   running. `0788` releases them once the block is off; the next non-zero duty enables
   them before it touches a register. `PWM_MTK_DISP` is built in, so this needs an image.
-  It compiled with `W=1` in the dev VM; it is not yet booted.
+  It passed on station-work-126, boot `4638d84c`, on battery. Blanked by the idle timer,
+  `infra_disp_pwm` read enable count 0 and INFRA `0x094` bit 17 was gated in 100 of 100
+  samples. A key woke it with the clock back on and brightness at its previous 512. The
+  owner then confirmed that the Fn brightness keys still change it. No warning or PWM error.
 - **The DIS domain.** The station DT names no domain on the display nodes on purpose (see
   the comment on its display section), so no driver can power the domain off. Doing so
   is a separate step with open questions: the SMI larbs, which stay in the loader's
