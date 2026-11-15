@@ -2952,6 +2952,27 @@ driver default, 100: a reset or suspend of the card cuts VMCH for 100 ms.
 Nothing in `gemini-base` sets it, so new card builds get 100 as well. R2
 cycles 2-5 still wait for the I2C6 resume fix.
 
+### R2 result: five clean suspend cycles (2026-11-14)
+
+Cycles 2-5 ran on image station-work-127 (with the I2C6 resume fix, 0792/0793),
+boot `83709573`. Card root, battery, `card_off_ms` 100 as the boot default. Each
+cycle set an RTC alarm, then `systemctl suspend` through the radio sleep hook.
+Raw logs are private.
+
+**Observed.**
+
+- Four real s2idle sleeps of 38-44 s, each with exactly one "card powered off for
+  100 ms". `mmc_bus_suspend` returned 0 after 102-110 ms.
+- After each one: SDR104, 1.8 V, 192 MHz, the same card, root `rw`, the root write
+  read back, and an 8 MiB read at 29-31 MB/s.
+- No `mmc1` error, "recovery failed", I/O, EXT4, `Remounting` or warning line.
+  The I2C6 resume worked.
+- With cycle 1 on image 126, that makes five of five clean.
+
+**Inferred.** R2 passes. With the real VMCH cut, the card root survives s2idle
+suspend. Together with R1 and the hang under load, 0758/0759 with `card_off_ms`
+100 stay as the station's microSD power handling.
+
 ## Follow-up
 
 - Suspend and resume.
