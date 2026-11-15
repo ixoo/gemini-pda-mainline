@@ -2868,6 +2868,19 @@ the board at about 50 °C. Raw logs are private.
   the card stayed busy, which fits a card that only a real power cut can reset.
   0758/0759 provide that cut, but it was disabled on the card root.
 
+**After a full power-off** (boot `5bc04f96`, same image, card root, charger out):
+
+- The card came back at SDR104 (192 MHz, 4 bits, 1.8 V), detected at boot like any
+  other.
+- The read-only mount replayed the ext4 journal, and `systemd-fsck` then found the
+  filesystem clean.
+- The writes that failed at the fault were to a desktop log, a journal file
+  systemd had already set aside, and the soak's own output files, which were also
+  saved on the host. Nothing else was lost.
+- So the card wasn't damaged. A full power cycle revived it, which is what 0758/0759
+  would do in place. Whether they actually do is what R1 tests, on a RAM-root
+  boot.
+
 ## Follow-up
 
 - Suspend and resume.
