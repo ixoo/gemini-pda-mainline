@@ -2836,6 +2836,38 @@ takes the at-fault reads before recovery (`sd-state.sh`, MT6351 `0x0212` and
 Separately, on 124, two continuous direct reads (`bs=4M`, 64 blocks) ran at 71.5
 and 75.8 MB/s with no error.
 
+### The card hangs under load, with the sampling fix (2026-11-14)
+
+Image station-work-126 (from `f15103ce`, with 0778-0781), boot `7e99a260`. Card
+root, charger connected (1.5 A). All ten CPUs were loaded from 112 s, during the
+A72 soak (T7 of that record). The SoC ran at 73-77 °C under `power_allocator`,
+the board at about 50 °C. Raw logs are private.
+
+**Observed.**
+
+- No `mmc1` line before 642.61 s. Then CMD13 and CMD12 timed out with
+  `host->error=0x2` (no response, not CRC), as in both screen-off faults.
+- At 644.71 s: "Card stuck being busy", the hardware reset failed with -110, and
+  "recovery failed". Then write I/O errors, ext4 aborted its journal and remounted
+  read-only, and read errors followed from 870 s.
+- No "card powered off" line: `card_off_ms` is 0 on the card root, so the reset
+  dropped only VMC and VMCH stayed on.
+- At-fault reads at 955 s, with the load stopped:
+  - `ios`: 400 kHz, 1 bit, legacy timing, 3.3 V signalling, power on;
+  - VMCH and VMC both enabled at 3.0 V;
+  - MT6351 `0x0212` = 0, so no over-current flag;
+  - `0x0ad0` `0x001a`, `0x0ace` `0x0005`, `0x0ae2` `0x061b`;
+  - the runtime-PM and card-state reads hung.
+
+**Inferred.**
+
+- The hang is the same fault class as in screen-off idle: the card stops answering
+  commands. The sampling fix removed the CRC errors, not this. It isn't specific to
+  idle; it came here under full load, hot, on the charger.
+- The supply didn't trip. The host fell back to identification mode at 3.3 V and
+  the card stayed busy, which fits a card that only a real power cut can reset.
+  0758/0759 provide that cut, but it was disabled on the card root.
+
 ## Follow-up
 
 - Suspend and resume.
