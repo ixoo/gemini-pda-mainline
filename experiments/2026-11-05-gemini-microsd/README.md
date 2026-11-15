@@ -3015,9 +3015,14 @@ private.
   idle.
 - Every hang recorded so far happened on the charger: both screen-off faults, the
   load fault on 126, and these. R2 and the T-series ran on battery with none.
-  That points back at H3, a supply or noise effect while charging. It isn't shown:
-  the time spent on battery with the card root hasn't been counted. A failing card
-  also fits the rising rate.
+  The custodian estimates that at least 80 % of the card-root time since 11-10 was
+  on the charger or USB, with short battery stretches (R2, the T-series). So the
+  charger correlation is weak. A supply or noise effect while charging (H3) and a
+  failing card (H1, which fits the rising rate) both stay open. A charger-versus-
+  battery idle run would separate them; it is offered to the owner.
+- The 34124 hang was also on the charger. The owner approved a forced fsck:
+  `tune2fs -E force_fsck` set the filesystem to "clean with errors", so the next
+  boot's preen checks it fully.
 
 ## Follow-up
 
