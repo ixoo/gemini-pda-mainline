@@ -1,0 +1,65 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 20:47:07 -0500
+Subject: [PATCH 792/793] soc: mediatek: mt6797-dvfsp-handoff: report why an
+ I2C6 PM clock check failed
+
+A failed I2C6 clock check in the sleep path faults the handoff and refuses
+I2C6 for the rest of the boot, but the fault is recorded without a message,
+so the log only shows -EIO from mtk_i2c_resume_early. Print which check
+failed and its counters: for the cleanup window, the PCM, I2C_APPM and
+AP-DMA failure counts and the selected sample; for the held check, each
+term.
+---
+ drivers/soc/mediatek/mt6797-dvfsp-handoff.c | 28 ++++++++++++++++++++-
+ 1 file changed, 27 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+index 3012afcd4..2e9ee38bb 100644
+--- a/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
++++ b/drivers/soc/mediatek/mt6797-dvfsp-handoff.c
+@@ -1742,7 +1742,7 @@ int
+ mt6797_dvfsp_handoff_validate_clock_pm(
+ 	struct mt6797_dvfsp_handoff *handoff, bool gated)
+ {
+-	struct mt6797_dvfsp_snapshot *snapshot;
++	struct mt6797_dvfsp_snapshot *snapshot = NULL;
+ 	int ret = 0;
+ 
+ 	if (!handoff)
+@@ -1782,6 +1782,32 @@ mt6797_dvfsp_handoff_validate_clock_pm(
+ 		handoff, gated ? "consumer-cleanup-validation-failed" :
+ 				 "consumer-held-clocks-not-ungated",
+ 		false);
++	/* Name the failed term: the fault refuses I2C6 until reboot. */
++	if (gated)
++		dev_err(handoff->dev,
++			"pm_consumer_check=cleanup validation=failed "
++			"samples=%u pcm_failures=%u main_failures=%u "
++			"dma_invalid=%u dma_gated=%u dma_unchanged=%u "
++			"selected=%u\n",
++			handoff->consumer_post_samples,
++			handoff->consumer_post_pcm_failures,
++			handoff->consumer_post_main_failures,
++			handoff->consumer_post_dma_invalid,
++			handoff->consumer_post_dma_gated,
++			handoff->consumer_post_dma_unchanged,
++			handoff->consumer_post_selected);
++	else
++		dev_err(handoff->dev,
++			"pm_consumer_check=held validation=failed "
++			"an_match=%d pcm_equal=%d main_ungated=%d "
++			"dma_valid=%d dma_ungated=%d\n",
++			mt6797_dvfsp_snapshot_matches_an(snapshot),
++			mt6797_dvfsp_pcm_equal(
++				&handoff->samples[MT6797_DVFSP_PRE0],
++				snapshot),
++			mt6797_dvfsp_gate_is(snapshot, false),
++			snapshot->infra1_pdn_sta_valid,
++			mt6797_dvfsp_dma_gate_is(snapshot, false));
+ 	ret = -EIO;
+ 
+ unlock_pm:
+-- 
+2.43.0
+

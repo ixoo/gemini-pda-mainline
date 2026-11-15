@@ -1039,6 +1039,31 @@ Expected rates:
   - Schedutil stays uncapped while blanked. The wakeups shrink at their
     sources instead, and `0766` removes the energy model's 1 s work.
 
+### I2C6 lost after s2idle (image 126)
+
+- **Observed** by the custodian on boot `4638d84c…` (microSD R2, card root,
+  cpufreq loaded): after one s2idle cycle, `mtk_i2c_resume_early` for I2C6
+  returned -EIO after 39.4 ms. Every later DA9214 access got -ESHUTDOWN, and
+  the CCI and CPU voltage moves failed until reboot. About 50 earlier
+  resumes, about 20 of them with cpufreq loaded, all passed in 39-42 ms.
+- **Cause, inferred:** -EIO comes from the DVFSP handoff guard's PM clock
+  check, which faults the handoff without a message. Since 0103 its 32-sample
+  cleanup window requires the shared AP-DMA gate to keep its boot state.
+  Image 126 is the first suspend with `0782` and `0783`, after which the Wi-Fi
+  and CONSYS drivers enable AP-DMA per transfer instead of holding it, so
+  the boot state no longer holds at resume.
+- **While faulted** the rails stay at their pre-suspend voltages. Raises fail
+  before the frequency moves, and lowers leave a higher voltage than needed,
+  so the state is safe but degraded.
+- **Patches (built in, next image):** `0792` prints the failed term and the
+  counters; `0793` keeps the AP-DMA baseline check at probe only and in the
+  sleep path requires just a valid readback, keeping the PCM signature and
+  I2C_APPM checks.
+- **Test:** on an image with both, repeat the R2 suspend. Pass: the resume
+  succeeds and the DA9214 rails move afterwards. If the check still fails,
+  `0792`'s line names the term; any `pcm_failures` stops the work as a
+  safety finding.
+
 ## Conclusion
 
 Pending.
