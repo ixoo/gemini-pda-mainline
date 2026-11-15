@@ -2942,6 +2942,16 @@ card, and is with those sessions. `card_off_ms` went back to 0.
 wait for the I2C6 resume fix, so that the run has no unrelated changes such as
 turning cpufreq off.
 
+### The real power cut enabled on the card root (2026-11-14)
+
+The owner chose to enable it before R2 finishes. On card-32 (boot `9052df2f`,
+image 126) the override was a hand-placed, unpackaged
+`/etc/tmpfiles.d/gemini-sd-card-off.conf` that wrote 0 to `card_off_ms`. It was
+renamed to `.disabled`, and the runtime value set to 100. Boots now get the
+driver default, 100: a reset or suspend of the card cuts VMCH for 100 ms.
+Nothing in `gemini-base` sets it, so new card builds get 100 as well. R2
+cycles 2-5 still wait for the I2C6 resume fix.
+
 ## Follow-up
 
 - Suspend and resume.
