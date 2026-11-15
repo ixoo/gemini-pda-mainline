@@ -1063,6 +1063,18 @@ Expected rates:
   succeeds and the DA9214 rails move afterwards. If the check still fails,
   `0792`'s line names the term; any `pcm_failures` stops the work as a
   safety finding.
+- **Result (2026-11-14):** the custodian ran station-work-127 (`8e71332c`,
+  both patches), boot `83709573…`, card root, battery, cpufreq loaded, A72s
+  off. Four s2idle cycles ran through `systemctl suspend`, with the sleep
+  hook reloading Wi-Fi each time, so AP-DMA toggled every cycle.
+  - No resume error, "Transfer while suspended", WARNING, failed voltage
+    scaling or DVFSP fault appeared anywhere in the boot, and `0792`'s line
+    never fired. `vproc1` (1140000 µV) and `vproc-big` read normally
+    afterwards.
+  - The cause is confirmed by the fix rather than by counters: 4 of 4 cycles
+    passed with `0793`, against 1 of 1 failing on the first image with
+    `0782`/`0783`. 4 of 4 is a small count, and `0792` stays in place to name
+    the term if the check ever fails again.
 
 ## Conclusion
 
