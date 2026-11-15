@@ -1136,6 +1136,15 @@ against it.
   - The other `power_supply_changed` callers were checked: learning, writes and the
     charger-detect IRQ are all rate-bound.
   - Compiled at W=1 and checkpatch clean; not on a device.
+- **0794 on the device** (image 128, main `59b6ae6a`, card-32 boot `0a971265…`; from the
+  custodian):
+  - **V32 passes:** 0 battery change events in 60 s at idle, against 190 in 10 s on 127.
+  - upowerd fell from 55 % to 1.2 % CPU, and udevd went quiet. The I2C controller `11007000`
+    fell from about 770 to 1.4 interrupts/s: the storm's property reads included charger
+    reads.
+  - Idle battery current, screen off with Wi-Fi up, averaged −149 mA over 10 min, against
+    −380 to −570 mA on 127.
+  - No warning, Oops or failed unit.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
