@@ -3013,7 +3013,8 @@ private.
   that hangs again before its first successful write after the cut.
 - The hang is much more frequent than before: three times in about 63 minutes at
   idle.
-- Every hang recorded so far happened on the charger: both screen-off faults, the
+- Every hang recorded up to this run happened on the charger (the next run found
+  one on battery): both screen-off faults, the
   load fault on 126, and these. R2 and the T-series ran on battery with none.
   The custodian estimates that at least 80 % of the card-root time since 11-10 was
   on the charger or USB, with short battery stretches (R2, the T-series). So the
@@ -3023,6 +3024,36 @@ private.
 - The 34124 hang was also on the charger. The owner approved a forced fsck:
   `tune2fs -E force_fsck` set the filesystem to "clean with errors", so the next
   boot's preen checks it fully.
+
+### Charger-versus-battery idle test, image 127 (2026-11-15)
+
+Image station-work-127, boot `51294f2a`. Card root, `card_off_ms` 100, suspend
+blocked throughout, idle. Raw logs are private.
+
+**Observed.**
+
+| Half | Time (s) | Supply | Screen | Hangs |
+| --- | --- | --- | --- | --- |
+| 1 | 608-8790 | Battery | Off (`bl_power` 4) the whole time | 1, at 3631.31 |
+| 2 | 8790-16012 | 1.5 A wall charger | On the whole time | 0 |
+
+- The battery-half hang was the same kind: CMD13/CMD12 timeouts with
+  `host->error=0x2`. One 100 ms cut at 3631.43 recovered it. No "recovery failed",
+  and the root stayed `rw` in both halves.
+- Nothing SD-related in the minutes before it. The only other lines were CONSYS
+  rx-refused messages at 1947-2036 s.
+- Plugging in the charger woke the screen. The test's inhibitor blocked "idle",
+  so the compositor never blanked it again. That was a setup mistake.
+- The idle drain on battery with the screen off was 380-570 mA (89 % to 65 % in 2 h).
+
+**Inferred.**
+
+- The hang isn't charger-only: it happened on battery. That weakens H3 as stated in
+  the previous section.
+- Supply and screen state changed together, so the zero on the charger doesn't
+  separate them. With hangs every hour or two, one against zero is also within chance.
+- A clean rerun would block only sleep and the lid, so the screen blanks in both halves. The
+  custodian is asking the owner.
 
 ## Follow-up
 
