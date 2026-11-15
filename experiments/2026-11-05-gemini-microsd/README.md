@@ -2909,6 +2909,17 @@ read 100. The owner approved R1. Raw logs are private.
   100. If R2 passes, the tmpfiles override that sets 0 on the card root can go,
   with the owner's yes.
 
+### R2, first attempt: no suspend happened (2026-11-14)
+
+Image 126, boot `4638d84c`, card root, charger out, `card_off_ms` 100 at runtime.
+Both cycles used `rtcwake -m freeze`. Each was refused at once:
+`mt6797-consys` returned -16 from prepare, as 0653 does while CONSYS is loaded.
+No "card powered off" line appeared, so nothing was tested. `card_off_ms` went
+back to 0, and no `mmc1`, I/O or EXT4 line appeared. Raw `rtcwake` bypasses the
+card's `systemd-sleep` hook, which unloads the radios. The next attempt suspends
+through `systemctl suspend` (an RTC alarm set with `rtcwake -m no`) or the lid,
+with access over USB SSH.
+
 ## Follow-up
 
 - Suspend and resume.
