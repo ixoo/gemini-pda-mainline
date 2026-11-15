@@ -1122,6 +1122,20 @@ against it.
   - 165 → 206 → 258 → 298 → 329 mΩ toward 0.42 Ω, within a tenth in about six updates, against
     nine or more before.
   - Compiled at W=1 and checkpatch clean; not on a device.
+- **An event loop on station-work-127** (boot `83709573…`, 0784-0791):
+  - the battery sent about 14 change uevents a second at idle (69 in 5 s);
+  - `udevadm settle` and pacman's udev hook timed out;
+  - each event ran gemini-base's save, and on 126 the CPU module logged 18k lines in 14 min.
+  - **Cause, in 0784:** the headroom was recomputed on every read, and an event fired per
+    band-edge crossing. The event's own property reads recomputed it, and a value at an edge
+    flipped with temperature or voltage noise.
+- **[0794](../../patches/proposals/0794-power-supply-mt6351-fuel-gauge-stop-the-headroom-eve.patch)**
+  - recomputes only when a counter window closes;
+  - raises an event only for a move of a band from the value last reported, at most once per
+    30 s.
+  - The other `power_supply_changed` callers were checked: learning, writes and the
+    charger-detect IRQ are all rate-bound.
+  - Compiled at W=1 and checkpatch clean; not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 

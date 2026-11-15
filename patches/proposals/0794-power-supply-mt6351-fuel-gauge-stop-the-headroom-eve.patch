@@ -1,0 +1,145 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Sat, 14 Nov 2026 21:13:32 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: stop the headroom event
+ loop
+
+The headroom was recomputed on every read, and a crossing of a 100 mA
+band edge raised a power_supply event. The event makes the core read
+every property, each read recomputed the headroom, and a value at a band
+edge flips with the smallest change of temperature or voltage: on
+station-work-127 the battery sent about 14 change events a second at
+idle, the udev queue never emptied, and every event ran userspace.
+
+Recompute the headroom only when a counter window closes, and raise an
+event only when it has moved a band from the value last reported, at
+most once every 30 seconds.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 46 ++++++++++++++++--------
+ 1 file changed, 31 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index fd28bf4..e3ecf8f 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -157,11 +157,14 @@
+ /*
+  * The current the battery can supply before its terminal falls to
+  * MT6351_FG_HEADROOM_UV, the vendor's low-battery throttling point and the
+- * Gemini's backstop, reported as the maximum current. A change of a band
+- * raises a power_supply event, so a CPU limit can follow it without polling.
++ * Gemini's backstop, reported as the maximum current. A move of a band from
++ * the last value reported raises a power_supply event, at most one per
++ * MT6351_FG_HEADROOM_EVENT_MS, so a CPU limit can follow it without polling.
+  */
+ #define MT6351_FG_HEADROOM_UV		3100000
+ #define MT6351_FG_HEADROOM_BAND_UA	100000
++/* At most one headroom event per this long. */
++#define MT6351_FG_HEADROOM_EVENT_MS	(30 * MSEC_PER_SEC)
+ /*
+  * The headroom must not overstate what the battery can supply. It uses the
+  * larger of the learned resistance and the latest accepted estimate, since
+@@ -194,7 +197,8 @@ struct mt6351_fg {
+ 	u32 car_tune;
+ 	/* The current the battery can supply, and its band for events. */
+ 	int headroom_ua;
+-	int headroom_band;
++	int headroom_notified_ua;
++	ktime_t headroom_notified;
+ 	bool headroom_valid;
+ 	bool headroom_changed;
+ 	/* The typical load, and the empty point on the table. */
+@@ -325,7 +329,7 @@ static int mt6351_fg_cap2ocv(struct mt6351_fg *fg, int permille, int mc)
+  */
+ static int mt6351_fg_voltage(struct mt6351_fg *fg, int *uv);
+ 
+-static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
++static bool mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ {
+ 	ktime_t now = ktime_get_boottime();
+ 	s64 ms, dq_nah;
+@@ -335,12 +339,12 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 		fg->win_start = now;
+ 		fg->win_car = car;
+ 		fg->win_valid = true;
+-		return;
++		return false;
+ 	}
+ 
+ 	ms = ktime_ms_delta(now, fg->win_start);
+ 	if (ms < MT6351_FG_WINDOW_MS)
+-		return;
++		return false;
+ 
+ 	/*
+ 	 * The first window opens at probe and spans the rest of the boot, when
+@@ -350,7 +354,7 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 		fg->win_first_done = true;
+ 		fg->win_start = now;
+ 		fg->win_car = car;
+-		return;
++		return false;
+ 	}
+ 
+ 	/* nAh over ms: x 3600 gives uA. */
+@@ -418,6 +422,8 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+ 
+ 	dev_dbg(fg->dev, "%lld ms: counter %d uA, FG_CURRENT_OUT %d uA\n",
+ 		ms, fg->win_ua, reg_ua);
++
++	return true;
+ }
+ 
+ /*
+@@ -428,7 +434,8 @@ static void mt6351_fg_window(struct mt6351_fg *fg, s64 car, int reg_ua)
+  */
+ static void mt6351_fg_headroom(struct mt6351_fg *fg)
+ {
+-	int mc, uv, ocv, band;
++	ktime_t now = ktime_get_boottime();
++	int mc, uv, ocv;
+ 	s64 uah, r;
+ 
+ 	if (!READ_ONCE(fg->info) || thermal_zone_get_temp(fg->tz, &mc))
+@@ -455,10 +462,19 @@ static void mt6351_fg_headroom(struct mt6351_fg *fg)
+ 				   fg->r25_uohm));
+ 	fg->headroom_ua = clamp_t(s64, div64_s64((s64)(ocv - MT6351_FG_HEADROOM_UV) * 1000000, r),
+ 				  0, INT_MAX);
+-	band = fg->headroom_ua / MT6351_FG_HEADROOM_BAND_UA;
+-	if (fg->headroom_valid && band != fg->headroom_band)
++	/*
++	 * An event for a move of a band from the value last reported, not for
++	 * every crossing of a band edge, and no more than one per interval.
++	 */
++	if (!fg->headroom_valid) {
++		fg->headroom_notified_ua = fg->headroom_ua;
++		fg->headroom_notified = now;
++	} else if (abs(fg->headroom_ua - fg->headroom_notified_ua) >= MT6351_FG_HEADROOM_BAND_UA &&
++		   ktime_ms_delta(now, fg->headroom_notified) >= MT6351_FG_HEADROOM_EVENT_MS) {
++		fg->headroom_notified_ua = fg->headroom_ua;
++		fg->headroom_notified = now;
+ 		fg->headroom_changed = true;
+-	fg->headroom_band = band;
++	}
+ 	fg->headroom_valid = true;
+ }
+ 
+@@ -520,11 +536,11 @@ static int mt6351_fg_read(struct mt6351_fg *fg, int *current_ua, int *charge_uah
+ 	*charge_uah = div_s64(mt6351_fg_car_nah(fg, car), 1000);
+ 
+ 	fg->car = car;
+-	mt6351_fg_window(fg, car, *current_ua);
+-	if (fg->win_ua_valid) {
+-		*current_ua = fg->win_ua;
++	/* The headroom follows the windows, not every read. */
++	if (mt6351_fg_window(fg, car, *current_ua))
+ 		mt6351_fg_headroom(fg);
+-	}
++	if (fg->win_ua_valid)
++		*current_ua = fg->win_ua;
+ 
+ 	return 0;
+ }
+-- 
+2.54.0 (Apple Git-157)
+

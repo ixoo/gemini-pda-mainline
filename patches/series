@@ -1366,3 +1366,4 @@ proposals/0790-power-supply-mt6351-fuel-gauge-base-the-headroom-on-.patch
 proposals/0791-power-supply-mt6351-fuel-gauge-learn-the-resistance-.patch
 proposals/0792-soc-mediatek-mt6797-dvfsp-handoff-report-why-an-I2C6.patch
 proposals/0793-soc-mediatek-mt6797-dvfsp-handoff-do-not-hold-the-sh.patch
+proposals/0794-power-supply-mt6351-fuel-gauge-stop-the-headroom-eve.patch
