@@ -7,7 +7,8 @@
 # battery's current and voltage. At the first limit it caps the A72s at
 # 845 MHz, stops the load and exits 1. Runs after the six modules, with the
 # policies on schedutil and the SoC zone on the power allocator.
-# Limits (env): SOC_LIMIT 80000, VBAT_MIN 3500000 uV, IBAT_MAX 2500000 uA.
+# Limits (env): SOC_LIMIT 80000, VBAT_MIN 3500000 uV, IBAT_MAX 2500000 uA,
+# BATT_LIMIT 450 (battery temperature, tenths of C).
 # VBAT_START (uV), if set, is the least battery voltage at rest to start.
 # CPU_MHZ is the cpu-mhz tool (default /tmp/cpu-mhz). LOG (default
 # /tmp/t7.log) gets one line a second, synced, so put it on persistent storage.
@@ -24,6 +25,7 @@ SOC_LIMIT=${SOC_LIMIT:-80000}
 VBAT_MIN=${VBAT_MIN:-3500000}
 IBAT_MAX=${IBAT_MAX:-2500000}
 VBAT_START=${VBAT_START:-0}
+BATT_LIMIT=${BATT_LIMIT:-450}
 LOG=${LOG:-/tmp/t7.log}
 RUN=/tmp/t7.run
 BAD=/tmp/t7.bad
@@ -68,11 +70,13 @@ sample() {
 	soc=$(cat "$THERMAL/thermal_zone0/temp")
 	i=$(cat "$BAT/current_now")
 	v=$(cat "$BAT/voltage_now")
+	bt=$(cat "$BAT/temp")
 	cci=$(cat "$CCI" 2>/dev/null)
-	say "p0=$(cat "$P/policy0/scaling_cur_freq") p4=$(cat "$P/policy4/scaling_cur_freq") p8=$(cat "$P/policy8/scaling_cur_freq") cci=$cci vproc1=$(cat "$VPROC1") vsram_l=$(cat "$VSRAML") vproc2=$(cat "$VPROC2") vsram_b=$(cat "$VSRAMB") i=$i v=$v zones=$zones"
+	say "p0=$(cat "$P/policy0/scaling_cur_freq") p4=$(cat "$P/policy4/scaling_cur_freq") p8=$(cat "$P/policy8/scaling_cur_freq") cci=$cci vproc1=$(cat "$VPROC1") vsram_l=$(cat "$VSRAML") vproc2=$(cat "$VPROC2") vsram_b=$(cat "$VSRAMB") i=$i v=$v bt=$bt zones=$zones"
 	[ "$soc" -lt "$SOC_LIMIT" ] || halt "soc $soc"
 	[ "${i#-}" -le "$IBAT_MAX" ] || halt "battery current $i"
 	[ "$v" -ge "$VBAT_MIN" ] || halt "battery voltage $v"
+	[ "$bt" -lt "$BATT_LIMIT" ] || halt "battery temperature $bt"
 	[ ! -e "$BAD" ] || halt "hash mismatch $(cat "$BAD")"
 	[ "$($DMESG | grep -cE "$FAULTS")" = "$BASE" ] || halt "new fault lines in dmesg"
 	[ "$(cat "$CPU/online")" = 0-9 ] || halt "online $(cat "$CPU/online")"
@@ -99,7 +103,7 @@ REF=$(hash_on 0)
 [ -n "$REF" ] || { say "STOP reference hash failed"; exit 1; }
 BASE=$($DMESG | grep -cE "$FAULTS")
 trap 'halt "interrupted"' INT TERM
-say "start seconds=$1 soc_limit=$SOC_LIMIT vbat_min=$VBAT_MIN ibat_max=$IBAT_MAX boost=$(cat "$P/boost" 2>/dev/null) p8_max=$(cat "$P/policy8/scaling_max_freq") ref=$REF"
+say "start seconds=$1 soc_limit=$SOC_LIMIT batt_limit=$BATT_LIMIT vbat_min=$VBAT_MIN ibat_max=$IBAT_MAX boost=$(cat "$P/boost" 2>/dev/null) p8_max=$(cat "$P/policy8/scaling_max_freq") ref=$REF"
 touch "$RUN"
 for c in 0 1 2 3 4 5 6 7 8 9; do worker "$c" & done
 t=0

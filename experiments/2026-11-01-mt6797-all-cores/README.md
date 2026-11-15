@@ -1408,6 +1408,47 @@ restored part-way through learning. The fuel-gauge session's 0790 keeps the
 aged-cell floor until each boot's first measured estimate. The cap is not to be
 relied on at low charge before an image with 0790.
 
+**T7 attempt 2 (observed, owner-approved, image 127, boot `338dbf30`; stopped on the
+80 C rule after about 19 min).**
+
+Setup: as attempt 1, with `battery-headroom` `6a67f22e` (logging fixed), a wall charger
+at a 1.5 A input limit, and the log on `/dev/shm`, mirrored every 5 s.
+
+Results over 562 samples at 1 Hz with all ten CPUs loaded:
+- **SoC:** 74.6 C on average, with 78.9 C the highest sample. The stop came on an
+  80.9 C reading between samples.
+- **Board:** 46.3 C at 3 min, 50.2 C at 9 min, 51.5 C at the end, and still rising.
+- **A72s:** 338 MHz in 549 of 562 samples, and a few samples at 676-1131 MHz.
+- **A53s:** LL averaged 1.09 GHz and L 0.86 GHz. The CCI ran at 533-988 MHz.
+- **Battery:** charging at first, then a net drain of up to 379 mA from about 5 min.
+  The 1.5 A input does not cover all-ten load. The lowest voltage was 3.928 V.
+- No hash differed, no fault line appeared, and the microSD held.
+
+Reading:
+- The allocator holds its 75 C target on average with three CPU actors. It does it
+  by giving the A72s almost nothing. That is the efficient choice: at the same
+  voltage an A72 costs about three times an A53's power per MHz for about 1.6 times
+  its work. Under heat the A72s therefore add nothing, and their worth is in bursts.
+- The spikes past 78 C plausibly come from the rare A72 steps up. Two A72 cores
+  going from 338 to 1131 MHz add about 0.8 W at once, and the SoC sensor follows the
+  A72 hotspot within about a second. Inferred, not shown.
+- Nothing came near a protection point. The highest reading, 80.9 C, is below the
+  vendor's lowest static CPU clamp (85 C) and far below the 117 C hardware reset.
+  The 80 C stop was this test's own margin.
+- `t7.sh` did not watch the battery temperature, and the board kept rising. It now
+  stops at 45.0 C battery temperature, as `soak.sh` does.
+
+**Proposed T7 attempt 3** (owner decision):
+- the same setup, with the A72 actor's weight on the control trip lowered from 1024
+  to 256 at run time (`cdevN_weight` of `cpufreq-cpu8`), so the allocator stops
+  stepping the A72s up into spikes;
+- the SoC stop at 85 C, the vendor's lowest static clamp, instead of 80 C;
+- the new battery temperature stop at 45 C.
+
+Pass is 60 min with no hash mismatch, no fault and no stop. If the spikes remain with
+the A72s held at 338 MHz, the A72s are not their cause, and the allocator's gains need
+the cpufreq session.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
