@@ -73,7 +73,14 @@ Status: plan, updated 2026-11-01.
   WHIER 0, so the WHIER write did not take. The vendor's AHB bus driver also sets CCCR IENx (function 0,
   register 4) when it claims the interrupt; 0810 does too. On the device it read back 0 (`ienx=0x00`), with
   WHIER still 0. The same CMD52 path does take at CONSYS probe, where IOEx reads back set, and the vendor
-  writes IENx before the firmware starts, so 0811 sets it there. Compiled only.
+  writes IENx before the firmware starts, so 0811 sets it there. On boot `2d4dcc57` with 0811's CONSYS and
+  0810's `mac` swapped in, as the custodian reports: probe read IENx back as 0x03, and the WLAN interrupt fired
+  and served receive. A 25-ping flood took 24.5 to 33.9 ms (was 33 to 65 ms polled). A 60 s download ran at
+  33.8 Mbit/s with about 4,290 interrupts a second and no storm. In the cpuidle D4c window C, all 60 SODI periods
+  ended early on the WLAN line and laptop pings took 3.4 to 266.7 ms (was up to 2.6 s). The arming read-back
+  still shows IENx and WHIER as 0 after the firmware starts, so whether the later writes do anything is not
+  known; the probe-time IENx is what made the difference. At idle with an SSH session open, the join worker ran
+  about 7 times a second, from about 2.5 interrupts a second, against a target of about 1. One boot, one run.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the
