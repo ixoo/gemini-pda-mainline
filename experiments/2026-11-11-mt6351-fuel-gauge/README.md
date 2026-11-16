@@ -1172,6 +1172,14 @@ against it.
   3.0-4.45 V, and keeps the loaded reading only as a fallback.
   - It logs `start-up OCV N uV: P % of the OCV table`.
   - Compiled at W=1 and checkpatch clean; not on a device.
+- **0796 on the device:**
+  - **Image:** 131 (`f812917e`, boot2 `4d7a98f1…`); boot `93ef6bc5…`, A53 only, on battery,
+    after about 5 min off.
+  - **At probe:** `start-up OCV 4175079 uV: 84 % of the OCV table`.
+  - **Steady from the start:** the guard read 90 at 3.2 s and 11.6 s, and capacity read 90 at
+    18.5 s (3.911 V, −0.88 A) and at 87 s (3.982 V, −0.38 A). 84 ÷ 0.93 ≈ 90, so there was no
+    swing.
+  - **Still to do:** the long-rest check, after a long off period on battery.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
