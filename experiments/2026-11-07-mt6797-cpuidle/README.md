@@ -1776,7 +1776,7 @@ reload it each time, as S1 does.
 | D0 | Census in the dark state (CPU0 alone, blanked), three cases: idle; Wi-Fi joined and idle; music playing. Reads only | None | Running |
 | D1 | A `=m` module that only evaluates the entry conditions at each CPU0 idle and counts how often each one blocks, through debugfs (no SPM write) | None | Running, plus the module |
 | D2 | P3 and the display blank (other sessions), then D1 again | Theirs | New, batched with `CONFIG_CPU_IDLE` |
-| D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running |
+| D3 | One deep-idle period on demand from debugfs, PCM-timer wake, CPU kept powered, GIC masked, no cpuidle yet; then a DRAM hash check | The S1 list adapted (below) | Running; passed on image 134 |
 | D4 | D3 with a device interrupt as the wake: a key, then an audio period, then a Wi-Fi packet, each through SYS_CIRQ | D3 plus CIRQ | Running |
 | D5 | The cpuidle state enabled, dark screen: idle, Wi-Fi joined, music; current and residency | D4 | Running |
 | D6 | The CPU power-down variant (as S2), if D5 shows CPU0 in WFI is still worth taking down | D5 plus `CPU_SUSPEND` `0x1010000` and one export | New |
@@ -2325,7 +2325,7 @@ Where each way of saving CPU and SoC power stands on this unit:
 | s2idle | Kernel | Works | 73 mA | — |
 | `mem` suspend (Route A, S1) | `mt6797-spm-sleep` + vendor `pcm_suspend.bin`, CPU kept powered | Works on the station; lid close, charger wake (0688/0689) | 42 mA | Soak K1; loading at boot |
 | Unused infra gates | `mt6797-gate-unused` (0768, 0770, 0789) | Works, 26 gates (+ ICUSB with 0789) | about 3 mA | — |
-| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Planned (D3-D5) | — | SSUSB_REF, BUS, SYS held by MTU3 (usb-c designing runtime off) |
+| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | One period on demand returns, CG and PDN (D3, image 134); device wakes (D4) and cpuidle (D5) next | — | Nothing in D0 on image 134 (cable out, MTU3 runtime off) |
 | Deep idle | Vendor `pcm_deepidle.bin` | Deferred | — | SODI first; then DISP_PWM (0788) and the display domain |
 | Lazy RCU | Config | Folded into the station fragments | tick restarts −7 % | — |
 | HZ 100 | Config | T2 pending | — | — |
@@ -2511,6 +2511,45 @@ full series. No write list change.
 | CG and PDN both pass | D4: the vendor's full SODI wake set, SYS_CIRQ, and wakes from a key, an audio period and a Wi-Fi packet |
 | CG passes, PDN fails | Keep CG mode; find what PDN mode needs |
 | CG fails | Read the wake line and `SPM_SW_DEBUG`; no retry until analysed |
+
+**D0 and D3 on image 134 (2026-11-16, boot `fef9e0f2…`).** Custodian's
+report. Image 134 is `753574f7` (`Image.gz` `d78174ab…`); the SPM module
+(`3a4a13ab…`) came from the `73e8f7b7` build, whose `Image.gz` is the same
+`d78174ab…`, so it matches the kernel exactly. `d3.sh` `4d95f17d…`,
+`d0-census.py` `431a75de…`. Cable out, MTU3 `power/control` `auto` and
+runtime-suspended, `mt6797-gate-unused` loaded, battery 100 %, taint 0
+before and after.
+
+- **D0, Wi-Fi joined and idle** (blanked, CPU1-7 offline, 60 s): every
+  sample blanked. **Nothing blocks SODI:** the INFRA0, INFRA1 and INFRA2
+  blocking bits are `0` in every sample and no power domain blocks. For
+  deep idle only the display domain (DIS) remains; DISP_PWM no longer shows.
+  This is the first time all SODI conditions hold on mainline.
+- **D3:** both programs loaded (`pcm_suspend` 1822 words at `bfdd0000`,
+  `pcm_sodi` 1583 words at `+0x2000`, SPM pointer `ffdd2000`). All 14
+  periods returned on the PCM timer (`returned=1 loops=0 r12=00000001`) and
+  the memory hash (`5abed55b4a4c85e5`) was equal after each:
+
+| Periods | Mode | `timer_out` | Slept |
+| --- | --- | --- | --- |
+| 1 × 100 ms | CG | `0ccf` | 100 ms |
+| 1 × 1000 ms | CG | `8003` | 1000 ms |
+| 10 × 1000 ms | CG | `8003` each | 1000 ms each |
+| 1 × 100 ms | PDN | `0ccf` | 100 ms |
+| 1 × 1000 ms | PDN | `8003` | 1000 ms |
+
+The rest of every wake line was the same: the infra gate words
+(`03eff900`, `00464816`, `21fe36ff`) and `clk_cfg_0` (`01010101`)
+unchanged across each period; `r12_ext` 0, `raw` 0, `r13` `00060400`,
+`idle` `000001f7`, event `90100000`, `dummy1` `0000000d`,
+`pasr_dpd_0` 0. The restore brought back CPUs 0-7, `power/control` and the
+radios; Wi-Fi SSH returned within two minutes. No WARNING, Oops, BUG or RCU
+stall; `done, PASS`.
+
+**Decision:** CG and PDN both pass, so the next stage is D4. The SODI program
+runs and returns on its timer with the system otherwise awake. This says
+nothing yet about current (D3 did not measure it) or about wakes from
+devices.
 
 After D3: D4 adds SYS_CIRQ and the vendor's full wake set, and wakes from a
 key, an audio period and a Wi-Fi packet; D5 is the CPU0-only cpuidle driver.
