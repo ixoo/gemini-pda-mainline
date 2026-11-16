@@ -870,6 +870,7 @@ proposals/0807-wifi-mt6797-serve-receive-from-the-WLAN-interrupt.patch
 proposals/0808-arm64-dts-mediatek-gemini-give-the-WLAN-its-interrup.patch
 proposals/0809-wifi-mt6797-read-back-the-interrupt-registers-after-.patch
 proposals/0810-wifi-mt6797-set-the-SDIO-like-master-interrupt-enabl.patch
+proposals/0811-soc-mediatek-mt6797-consys-set-the-HIF-interrupt-ena.patch
 proposals/0695-power-supply-bq25890-offer-the-guard-s-thresholds-on-.patch
 proposals/0696-pmdomain-mediatek-describe-the-MT6797-VDEC-domain.patch
 proposals/0697-clk-mediatek-mt6797-power-VDECSYS-through-runtime-PM.patch

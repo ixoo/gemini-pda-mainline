@@ -71,7 +71,9 @@ Status: plan, updated 2026-11-01.
   with nothing to read is given up. On image 136 (custodian) the interrupt never fired: the GIC had SPI 283
   enabled, level and inverted for active low, but never pending, and 0809's read-back showed WHLPCR 0x101 and
   WHIER 0, so the WHIER write did not take. The vendor's AHB bus driver also sets CCCR IENx (function 0,
-  register 4) when it claims the interrupt; 0810 does too. Compiled only.
+  register 4) when it claims the interrupt; 0810 does too. On the device it read back 0 (`ienx=0x00`), with
+  WHIER still 0. The same CMD52 path does take at CONSYS probe, where IOEx reads back set, and the vendor
+  writes IENx before the firmware starts, so 0811 sets it there. Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the

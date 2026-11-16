@@ -1,0 +1,44 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 15:37:15 -0500
+Subject: [PATCH] soc: mediatek: mt6797-consys: set the HIF interrupt enable at
+ probe
+
+The mac driver's CCCR IENx write after the firmware started read back 0, and
+the WLAN interrupt never fired. The vendor's bus driver sets IENx when it
+claims the interrupt, before the firmware starts, and its comment says the
+write signals CONNSYS. Set it at probe, right after IOEx, and log it as read
+back.
+---
+ drivers/soc/mediatek/mt6797-consys.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/drivers/soc/mediatek/mt6797-consys.c b/drivers/soc/mediatek/mt6797-consys.c
+index 12a685e74..d6f33573c 100644
+--- a/drivers/soc/mediatek/mt6797-consys.c
++++ b/drivers/soc/mediatek/mt6797-consys.c
+@@ -70,6 +70,11 @@
+ #define MT6797_HIF_CCCR_IOEX	0x0002
+ #define MT6797_HIF_CCCR_IORX	0x0003
+ #define MT6797_HIF_WIFI_FUNCTION	BIT(1)
++/* CCCR IENx: the master interrupt enable and function 1's, as the vendor's bus
++ * driver sets them when it claims the interrupt, before the firmware starts.
++ */
++#define MT6797_HIF_CCCR_IENX	0x0004
++#define MT6797_HIF_IENX_WIFI	(BIT(1) | BIT(0))
+ #define MT6797_HIF_WCIR_ID	0x0279
+ #define MT6797_HIF_WHLPCR	0x0004
+ #define MT6797_HIF_WRPLR	0x0090
+@@ -839,6 +844,9 @@ static bool mt6797_consys_probe_hif(struct device *dev,
+ 		ret = -EIO;
+ 		goto stopped;
+ 	}
++	mt6797_consys_hif_cccr_write(owner, MT6797_HIF_CCCR_IENX, MT6797_HIF_IENX_WIFI);
++	dev_info(dev, "one-shot HIF interrupt enable: IENx=0x%02x\n",
++		 mt6797_consys_hif_cccr_read(owner, MT6797_HIF_CCCR_IENX));
+ 	writel(BIT(28) | 4, owner->hif + MT6797_HIF_CMD_SETUP);
+ 	wcir = readl(owner->hif + MT6797_HIF_CMD53_DATA);
+ 	dev_info(dev, "one-shot HIF WCIR=0x%08x\n", wcir);
+-- 
+2.43.0
+
