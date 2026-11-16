@@ -3055,6 +3055,41 @@ blocked throughout, idle. Raw logs are private.
 - A clean rerun would block only sleep and the lid, so the screen blanks in both halves. The
   custodian is asking the owner.
 
+### Idle rerun with the screen off in both halves, image 128 (2026-11-15)
+
+Image station-work-128 (127 plus 0794, which stops the MT6351 battery uevent
+loop), boot `0a971265`. Card root, `card_off_ms` 100. Only sleep and the lid were
+inhibited, so the screen stayed blank (`bl_power` 4) throughout. Raw logs are
+private.
+
+**Observed.**
+
+| Supply | Time (s) | Hangs | Cuts |
+| --- | --- | --- | --- |
+| Battery | 1400-1700 | 0 | 0 |
+| 1.5 A wall charger | 1700-8890 | 0 | 0 |
+
+- No `msdc_track` line in the whole boot to 8919 s. The root stayed `rw`.
+- The boot made 3642 writes to the card in 8900 s. There are no write counts for
+  image 127.
+- On image 127 the battery sent about 14-19 change uevents a second at idle.
+  `upowerd` ran at about 55 % CPU and writes its history under `/var/lib/upower`
+  on the card root; one history file there has grown to 497 KB.
+
+**Inferred.**
+
+- The charger doesn't explain the hangs. On image 127 the card hung on the charger
+  (3 in about 1 h) and on battery (1 in 2 h). On image 128 it didn't hang on the
+  charger in 2 h with the screen off. H3 as a charger effect is dropped.
+- The battery half here was only 300 s, so it says nothing on its own.
+- The image changed with the outcome. One candidate is load: image 127's uevent
+  loop drove `upowerd` and so many more small root writes, plus CPU and IRQ load.
+  The hang under load on image 126 fits that. It's untested: there's no write
+  count for 127, and 2 h without a hang at an hourly rate is weak evidence.
+  H1 (a failing card) stays open.
+- What would test it is a longer idle run on image 128 counting hangs per hour,
+  against the 127 rate.
+
 ## Follow-up
 
 - Suspend and resume.
