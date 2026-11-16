@@ -2749,7 +2749,10 @@ and the rerun drops that source with `D4_WAKE` and repeats.
   running SODI periods while the display lit and scanned out. SODI honours
   the display's DRAM requests (`SPM_SRC2_MASK`), but the screen-on case is
   the open scanout-FIFO question (note of 2026-11-14), not part of D4. The
-  custodian is asking the owner whether ordinary unblanks also scramble.
+  custodian asked the owner whether ordinary unblanks also scramble; the
+  answer was "No, first time". That supports SODI as the cause. So D5's
+  driver must refuse SODI while the display scans out, until the screen-on
+  case is studied.
 
 **Why packets did not wake.** The WLAN HIF interrupt is SPI 283, which is
 level-triggered. 0804 clones only edge SPIs into SYS_CIRQ, as upstream does
