@@ -967,6 +967,69 @@ the gadget up after the BC1.1 pass, about half a second.
 The I2C interrupts in the same sample (bus 6 about 6/s, bus 0 about 1.4/s)
 are not USB: no USB driver is on those buses on this image.
 
+### Power MTU3 down while there is no VBUS (2026-11-16)
+
+Written after R1, at the owner's request; compile-checked, not run.
+
+- [0800](../../patches/proposals/0800-usb-mtu3-stop-and-power-down-a-device-default-port-w.patch)
+  (MTU3, built in): for a port whose role switch defaults to device,
+  `USB_ROLE_NONE` becomes a role of its own. The port is switched to the
+  device side and stopped, a partner that left unnoticed gets its
+  disconnect, and runtime PM may then power the controller down (PHY off,
+  `sys_ck`, `ref_ck`, `mcu_ck` off) even without a wake path, because the
+  provider sets a role again when a partner comes. A host-default port keeps
+  the old mapping of *none* to host. A runtime power-down is tracked so that
+  resume mirrors it, and a system suspend leaves a runtime-suspended
+  controller alone instead of disabling its clocks twice.
+- [0801](../../patches/proposals/0801-power-supply-mt6351-usb-type-set-the-USB-role-from-V.patch)
+  (charger-type driver, built in): the PMIC's charger-detect sees VBUS where
+  MTU3 can't, since the PHY forces the B-session valid. The driver sets MTU3's
+  role switch to *none* when VBUS goes and to *device* when it comes, after
+  the BC1.1 pass (also when that pass fails), and never overrides *host*.
+
+Upstream runtime-PM policy stays: MTU3's probe forbids runtime PM, so the
+power-down happens only after userspace writes `auto` to the controller's
+`power/control`. Until then the only change is that the gadget stops while
+VBUS is absent. Writing `on` again keeps the clocks on, with no new image.
+
+Both pieces are built in, so a test needs a new image: MTU3 is built in for
+the SSH gadget, and the charger-type driver for the charging limits at boot.
+Before 0801 the controller's role switch had no user on the default image;
+when the left `fusb301` is loaded it also sets roles, and the two meet only
+in the host case, which 0801 leaves alone.
+
+Checked in the VM: each patch builds with W=1 and passes checkpatch, applied
+after the series' other MTU3 patches (0632–0634, 0676, 0681) and the
+charger-type patches (0717, 0765); no other series patch touches those
+files.
+
+Open until M1: whether BC1.1 detection still reads the type correctly with
+the T-PHY powered off, and whether the gadget comes back on every plug.
+
+**M1, written in advance, not run.** The image is built from the commit that
+adds 0800 and 0801, profile `mt6797-a53-station-a72`. Wi-Fi SSH is the control
+path throughout; the owner plugs and unplugs the laptop's cable.
+
+1. Cable in. Read: the role (`device`), the gadget state (`configured`),
+   `mt6351-usb` online and `usb_type`, MTU3 `power/control`, `runtime_status`,
+   and the clock enable counts for `infra_ssusb_sys`, `_bus` and `_ref`.
+2. `echo auto` to `/sys/bus/platform/devices/11271000.usb/power/control`.
+3. Owner unplugs. After 10 s read the same values. *Expected:* role `none`,
+   gadget `not attached`, `runtime_status=suspended`, the three SSUSB clocks
+   at enable 0, no "ip sleep failed".
+4. Optional, with the cpuidle census: SSUSB no longer in the SODI blockers.
+5. Owner plugs the laptop back. *Expected:* within about 2 s
+   "charger attached" with the same type as step 1, role `device`, controller
+   active, gadget `configured`, USB SSH back.
+6. Repeat steps 3 and 5 three times.
+
+*Stop:* USB SSH not back 10 s after a plug → over Wi-Fi, `echo device` to
+`/sys/class/usb_role/11271000.usb-role-switch/role`, then `echo on` to the
+controller's `power/control`; keep the kernel log and stop. Any WARN, oops or
+taint change, a clock "already disabled" or "unprepared" warning, or "ip
+sleep failed" → `echo on` to `power/control`, keep the log, stop. Wi-Fi SSH
+lost with the cable out → the owner plugs the cable back.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 

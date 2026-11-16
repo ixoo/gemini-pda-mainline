@@ -1,0 +1,222 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 09:36:25 -0500
+Subject: [PATCH 800/801] usb: mtu3: stop and power down a device-default port
+ with no partner
+
+A role switch provider sets USB_ROLE_NONE when no partner is attached.
+The dual-role switch mapped that to the default role, so a port that
+defaults to device kept its gadget pulled up and, without a wake path,
+its PHY and clocks on: with no partner the controller never powers down.
+
+For a port that defaults to device, treat USB_ROLE_NONE as a role of its
+own: switch the port to the device side, stop it, report the disconnect
+of a partner that left without the link noticing, and let runtime PM
+power the controller down even without a wake path, since the provider
+sets a role again when a partner comes. A host-default port keeps the
+old mapping, as it has to keep watching for a device.
+
+Track a runtime power-down so that resume mirrors it, and leave a
+runtime-suspended controller alone across a system suspend instead of
+disabling its clocks twice.
+---
+ drivers/usb/mtu3/mtu3.h        |  3 +++
+ drivers/usb/mtu3/mtu3_dr.c     | 28 +++++++++++++++++++------
+ drivers/usb/mtu3/mtu3_gadget.c | 24 +++++++++++++++++++++
+ drivers/usb/mtu3/mtu3_plat.c   | 38 ++++++++++++++++++++++++++++++----
+ 4 files changed, 83 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/usb/mtu3/mtu3.h b/drivers/usb/mtu3/mtu3.h
+index 93e644af5..adbf3a4b4 100644
+--- a/drivers/usb/mtu3/mtu3.h
++++ b/drivers/usb/mtu3/mtu3.h
+@@ -223,6 +223,7 @@ struct otg_switch_mtk {
+ 	enum usb_role default_role;
+ 	struct usb_role_switch *role_sw;
+ 	bool role_sw_used;
++	bool role_none;
+ 	bool is_u3_drd;
+ 	bool manual_drd_enabled;
+ };
+@@ -262,6 +263,7 @@ struct ssusb_mtk {
+ 	struct otg_switch_mtk otg_switch;
+ 	enum usb_dr_mode dr_mode;
+ 	bool is_host;
++	bool rpm_powered_down;
+ 	int u2_ports;
+ 	int u3_ports;
+ 	int u2p_dis_msk;
+@@ -442,6 +444,7 @@ void mtu3_dev_on_off(struct mtu3 *mtu, int is_on);
+ int mtu3_gadget_setup(struct mtu3 *mtu);
+ void mtu3_gadget_cleanup(struct mtu3 *mtu);
+ void mtu3_gadget_reset(struct mtu3 *mtu);
++void mtu3_drop_connection(struct mtu3 *mtu);
+ void mtu3_gadget_suspend(struct mtu3 *mtu);
+ void mtu3_gadget_resume(struct mtu3 *mtu);
+ void mtu3_gadget_disconnect(struct mtu3 *mtu);
+diff --git a/drivers/usb/mtu3/mtu3_dr.c b/drivers/usb/mtu3/mtu3_dr.c
+index ffa5b9401..c2f1b3698 100644
+--- a/drivers/usb/mtu3/mtu3_dr.c
++++ b/drivers/usb/mtu3/mtu3_dr.c
+@@ -135,13 +135,17 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+ 	enum usb_role current_role;
+ 
+ 	current_role = ssusb->is_host ? USB_ROLE_HOST : USB_ROLE_DEVICE;
+-
+-	if (desired_role == USB_ROLE_NONE) {
+-		/* the default mode is host as probe does */
++	if (otg_sx->role_none)
++		current_role = USB_ROLE_NONE;
++
++	/*
++	 * A host port keeps watching for a device, so with no partner it
++	 * returns to host as probe does. A port that defaults to device has
++	 * nothing to do without a partner: it stops, and may power down.
++	 */
++	if (desired_role == USB_ROLE_NONE &&
++	    otg_sx->default_role != USB_ROLE_DEVICE)
+ 		desired_role = USB_ROLE_HOST;
+-		if (otg_sx->default_role == USB_ROLE_DEVICE)
+-			desired_role = USB_ROLE_DEVICE;
+-	}
+ 
+ 	if (current_role == desired_role)
+ 		return;
+@@ -159,6 +163,7 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+ 		ssusb->is_host = true;
+ 		break;
+ 	case USB_ROLE_DEVICE:
++		otg_sx->role_none = false;
+ 		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
+ 		ssusb->is_host = false;
+ 		ssusb_set_vbus(otg_sx, 0);
+@@ -166,6 +171,14 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+ 		mtu3_start(mtu);
+ 		break;
+ 	case USB_ROLE_NONE:
++		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
++		ssusb->is_host = false;
++		ssusb_set_vbus(otg_sx, 0);
++		switch_port_to_device(ssusb);
++		mtu3_stop(mtu);
++		mtu3_drop_connection(mtu);
++		otg_sx->role_none = true;
++		break;
+ 	default:
+ 		dev_err(ssusb->dev, "invalid role\n");
+ 	}
+@@ -272,6 +285,9 @@ static enum usb_role ssusb_role_sw_get(struct usb_role_switch *sw)
+ {
+ 	struct ssusb_mtk *ssusb = usb_role_switch_get_drvdata(sw);
+ 
++	if (ssusb->otg_switch.role_none)
++		return USB_ROLE_NONE;
++
+ 	return ssusb->is_host ? USB_ROLE_HOST : USB_ROLE_DEVICE;
+ }
+ 
+diff --git a/drivers/usb/mtu3/mtu3_gadget.c b/drivers/usb/mtu3/mtu3_gadget.c
+index aa800db6b..f63d9cfac 100644
+--- a/drivers/usb/mtu3/mtu3_gadget.c
++++ b/drivers/usb/mtu3/mtu3_gadget.c
+@@ -762,6 +762,30 @@ void mtu3_gadget_disconnect(struct mtu3 *mtu)
+ 	usb_gadget_set_state(&mtu->g, USB_STATE_NOTATTACHED);
+ }
+ 
++/*
++ * The partner went away without the link reporting it, as when a role switch
++ * stops the device side: report the disconnect and drop the reference the
++ * connection took in mtu3_link_isr().
++ */
++void mtu3_drop_connection(struct mtu3 *mtu)
++{
++	unsigned long flags;
++	bool connected;
++
++	spin_lock_irqsave(&mtu->lock, flags);
++	connected = mtu->connected;
++	if (connected) {
++		mtu->connected = 0;
++		mtu->bus_suspended = 0;
++		mtu3_gadget_disconnect(mtu);
++		mtu->g.speed = USB_SPEED_UNKNOWN;
++	}
++	spin_unlock_irqrestore(&mtu->lock, flags);
++
++	if (connected)
++		pm_runtime_put(mtu->dev);
++}
++
+ void mtu3_gadget_reset(struct mtu3 *mtu)
+ {
+ 	dev_dbg(mtu->dev, "gadget RESET\n");
+diff --git a/drivers/usb/mtu3/mtu3_plat.c b/drivers/usb/mtu3/mtu3_plat.c
+index 803bebe89..cb1849177 100644
+--- a/drivers/usb/mtu3/mtu3_plat.c
++++ b/drivers/usb/mtu3/mtu3_plat.c
+@@ -598,28 +598,58 @@ static int mtu3_resume_common(struct device *dev, pm_message_t msg)
+ 
+ static int __maybe_unused mtu3_suspend(struct device *dev)
+ {
++	struct ssusb_mtk *ssusb = dev_get_drvdata(dev);
++
++	/* Already powered down at runtime: runtime resume powers it up. */
++	if (ssusb->rpm_powered_down)
++		return 0;
++
+ 	return mtu3_suspend_common(dev, PMSG_SUSPEND);
+ }
+ 
+ static int __maybe_unused mtu3_resume(struct device *dev)
+ {
++	struct ssusb_mtk *ssusb = dev_get_drvdata(dev);
++
++	if (ssusb->rpm_powered_down)
++		return 0;
++
+ 	return mtu3_resume_common(dev, PMSG_SUSPEND);
+ }
+ 
++/*
++ * Power down at runtime only when something will bring the controller back:
++ * a wake path, or a role switch that stopped it for want of a partner and
++ * sets a role again when one comes.
++ */
+ static int __maybe_unused mtu3_runtime_suspend(struct device *dev)
+ {
+-	if (!device_may_wakeup(dev))
++	struct ssusb_mtk *ssusb = dev_get_drvdata(dev);
++	int ret;
++
++	if (!device_may_wakeup(dev) && !ssusb->otg_switch.role_none)
+ 		return 0;
+ 
+-	return mtu3_suspend_common(dev, PMSG_AUTO_SUSPEND);
++	ret = mtu3_suspend_common(dev, PMSG_AUTO_SUSPEND);
++	if (!ret)
++		ssusb->rpm_powered_down = true;
++
++	return ret;
+ }
+ 
+ static int __maybe_unused mtu3_runtime_resume(struct device *dev)
+ {
+-	if (!device_may_wakeup(dev))
++	struct ssusb_mtk *ssusb = dev_get_drvdata(dev);
++	int ret;
++
++	if (!ssusb->rpm_powered_down)
+ 		return 0;
+ 
+-	return mtu3_resume_common(dev, PMSG_AUTO_SUSPEND);
++	ret = mtu3_resume_common(dev, PMSG_AUTO_SUSPEND);
++	if (!ret)
++		ssusb->rpm_powered_down = false;
++
++	return ret;
+ }
+ 
+ static const struct dev_pm_ops mtu3_pm_ops = {
+-- 
+2.43.0
+
