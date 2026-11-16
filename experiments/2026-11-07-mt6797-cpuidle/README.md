@@ -2325,7 +2325,7 @@ Where each way of saving CPU and SoC power stands on this unit:
 | s2idle | Kernel | Works | 73 mA | — |
 | `mem` suspend (Route A, S1) | `mt6797-spm-sleep` + vendor `pcm_suspend.bin`, CPU kept powered | Works on the station; lid close, charger wake (0688/0689) | 42 mA | Soak K1; loading at boot |
 | Unused infra gates | `mt6797-gate-unused` (0768, 0770, 0789) | Works, 26 gates (+ ICUSB with 0789) | about 3 mA | — |
-| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key wakes them (D4); cpuidle (D5) next | — | Packets cannot wake it: the Wi-Fi driver polls instead of using SPI 283 |
+| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key and an inbound packet wake them (D4, D4c); cpuidle (D5) next | — | — |
 | Deep idle | Vendor `pcm_deepidle.bin` | Deferred | — | SODI first; then DISP_PWM (0788) and the display domain |
 | Lazy RCU | Config | Folded into the station fragments | tick restarts −7 % | — |
 | HZ 100 | Config | T2 pending | — | — |
@@ -2899,6 +2899,29 @@ D4c is window C again, within the approved D4b list, with no write change:
 | --- | --- |
 | Packets wake SODI through SPI 283 | D5, with the Wi-Fi poll counted among the idle wakers in its census |
 | No early wakes, word 6 bit 19 never set | Check that the line was cloned (the `cloned=` word 6) and whether the driver had fallen back to polling (its log) |
+
+**D4c result (2026-11-16, image 136, boot `2d4dcc57…`).** Custodian's report:
+- *Candidate:* image 136 (`35259fb3`), with the `mt6797-consys` (`ea4e60fe…`)
+  and mac (`7b34e126…`) modules swapped in from the `917113e8` build. That
+  build adds 0811, which enables CONSYS's interrupt outputs at probe; the
+  details are in the Wi-Fi records.
+- The image's `mt6797-spm-sleep.ko` was `9cf7b397…`; `d4.sh` `97ae6706`
+  (`6c6a34f9`), run with `D4_CIRQ_LEVEL=1`. Cable out, battery 83 %.
+- **Packets now wake SODI.** In window C, all 60 periods ended early, and
+  every wake named both `conn2ap` and `cirq`: the WLAN line through SYS_CIRQ
+  and, now that CONSYS's outputs are enabled, CONN2AP too. Slept
+  min/median/max: 11/253/667 ms. The laptop's 180 pings: no loss, RTT
+  3.4/29.5/266.7 ms (min/avg/max), against up to 2.6 s in D4b. 38 echo
+  requests arrived in the window; the other wakes were other inbound
+  traffic.
+- Memory hash equal, no refusals, taint 0, no warning; the CPUs were
+  restored.
+- Windows A and B did not run: the screen was lit when A started, so the
+  script started no period. The key wake already passed in D4b.
+
+**D4 is complete.** SODI periods are ended by the PCM timer, a key (EINT,
+or SYS_CIRQ), and an inbound packet (SYS_CIRQ and CONN2AP), with memory
+intact. The next stage is D5.
 
 ### What it should save
 
