@@ -239,7 +239,7 @@ Each one joins, gets DHCP and carries a 60 s transfer.
   On a quiet joined link the WLAN interrupt matches received frames (about 3 a second), but SODI periods end
   every 56 ms at the median, which fits the 102.4 ms beacon interval: the firmware runs with power save off
   (`IEEE80211_CONF_PS` is refused) and wakes for every beacon. Two separate mechanisms, from the vendor's gen3
-  driver (Planet source, `nic/nic.c`, `nic/nic_pwr_mgt.c`, `include/nic_cmd_event.h`):
+  driver:
 
   - *802.11 power save.* `CMD_ID_POWER_SAVE_MODE` (0x05), `{ bss_index, ps_profile, 2 reserved }`; the
     profile values (constant awake, fast PS, maximum PS) are still to be confirmed from the vendor's OID code.
