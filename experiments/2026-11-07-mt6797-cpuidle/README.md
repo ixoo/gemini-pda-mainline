@@ -2469,10 +2469,18 @@ synced line by line. Control link: Wi-Fi SSH to start it with the cable
 already out (the owner pulls it before the launch; the script refuses with
 external power on). Thirty seconds later it unloads the radios through the
 card's own sleep hook (`/usr/lib/systemd/system-sleep/gemini-radios pre`),
-so SSH drops, and it unbinds the gadget (`11271000.usb` from `mtu3`). At
-the end it binds the gadget, runs the hook's `post` (Wi-Fi first, then
-whatever else was loaded) and SSH returns. On image 131, which has no 0801,
-the S1 unbind is safe. It checks the module's vermagic, the program's and
+so SSH drops. Then, on an image with usb-c's 0800/0801 (image 133 on), it
+sets the gadget's `power/control` to `auto`, so that with the cable out MTU3
+powers down at runtime and the SSUSB clocks gate; on image 131 (no 0801)
+`D3_UNBIND=1` unbinds the gadget instead, as S1 did. Images with 0801
+should not have MTU3 unbound: usb-c reports that role control would not
+come back after a rebind there, and the window between the role class's
+registration check and the call races an unbind (the class's check itself
+prevents the callback running after an unbind; fixed in `a8533226` by a
+lookup per VBUS change). Without a module path the script loads the image's
+own module. At the end it puts `power/control` back (or binds the gadget),
+runs the hook's `post` (Wi-Fi first, then whatever else was loaded) and SSH
+returns; the custodian then reads the log over Wi-Fi. It checks the module's vermagic, the program's and
 `cpu-mhz`'s hashes and that `mt6797-gate-unused` is loaded before changing
 anything. A wrong memory hash syncs the log and powers off.
 

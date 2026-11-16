@@ -5,13 +5,16 @@
 # SODI periods on mainline, one at a time from /sys/kernel/debug/sodi_once_ms,
 # on the card root. Run as root, detached, with the cable out:
 #
-#   setsid nohup sh d3.sh /path/to/mt6797-spm-sleep.ko </dev/null >/dev/null 2>&1 &
+#   setsid nohup sh d3.sh [/path/to/mt6797-spm-sleep.ko] </dev/null >/dev/null 2>&1 &
 #
-# It waits 30 s so the SSH session can end, then unloads the radios (Wi-Fi
-# goes, so SSH goes), unbinds the USB gadget, loads the module, waits for the
-# desktop's idle blank, takes CPU1-9 offline and runs the periods, each
-# followed by a memory hash. Then it puts everything back and Wi-Fi returns.
-# The log is /var/tmp/d3.log, synced after every line.
+# Without a path it loads the image's own module. It waits 30 s so the SSH
+# session can end, then unloads the radios (Wi-Fi goes, so SSH goes), lets
+# MTU3 power down at runtime (power/control "auto"; with the cable out the
+# SSUSB clocks then gate), or with D3_UNBIND=1 unbinds the gadget instead
+# (image 131), loads the module, waits for the desktop's idle blank, takes
+# CPU1-9 offline and runs the periods, each followed by a memory hash. Then
+# it puts everything back and Wi-Fi returns. The log is /var/tmp/d3.log,
+# synced after every line.
 #
 # Hypothesis: the SODI program runs and returns on its timer in CG and PDN
 # mode while the system is otherwise awake, with memory intact.
@@ -36,6 +39,7 @@ CPUS=/sys/devices/system/cpu
 TAKEN=""
 UNBOUND=""
 RADIOS_DOWN=""
+USB_CONTROL=""
 
 exec >>"$LOG" 2>&1
 
@@ -59,6 +63,10 @@ restore() {
 	[ -w "$PARAM/sodi_pdn" ] && echo 0 >"$PARAM/sodi_pdn"
 	if [ -n "$UNBOUND" ]; then
 		echo "$USB" >/sys/bus/platform/drivers/mtu3/bind && log "gadget bound again"
+	fi
+	if [ -n "$USB_CONTROL" ]; then
+		echo "$USB_CONTROL" >"/sys/bus/platform/devices/$USB/power/control" &&
+			log "gadget power/control back to $USB_CONTROL"
 	fi
 	if [ -n "$RADIOS_DOWN" ]; then
 		"$RADIOS" post suspend && log "radios back"
@@ -121,12 +129,16 @@ period() {
 DMESG0=$(dmesg | wc -l)
 log "D3 start, $(uname -r), boot $(cat /proc/sys/kernel/random/boot_id), taint $(cat /proc/sys/kernel/tainted)"
 [ "$(id -u)" -eq 0 ] || stop "not root"
-[ -f "$KO" ] || stop "usage: d3.sh /path/to/mt6797-spm-sleep.ko"
-log "module $(sha256sum "$KO" | cut -c1-16)…, vermagic $(modinfo -F vermagic "$KO")"
-case $(modinfo -F vermagic "$KO") in
-"$(uname -r) "*) ;;
-*) stop "the module's vermagic does not match $(uname -r)" ;;
-esac
+if [ -n "$KO" ]; then
+	[ -f "$KO" ] || stop "no module at $KO"
+	log "module $(sha256sum "$KO" | cut -c1-16)…, vermagic $(modinfo -F vermagic "$KO")"
+	case $(modinfo -F vermagic "$KO") in
+	"$(uname -r) "*) ;;
+	*) stop "the module's vermagic does not match $(uname -r)" ;;
+	esac
+else
+	log "the image's module: $(modinfo -F filename mt6797-spm-sleep 2>/dev/null)"
+fi
 [ "$(sha256sum "$FW" | cut -d' ' -f1)" = "$FW_SHA" ] || stop "$FW missing or its hash differs"
 case $(sha256sum "$MHZ" | cut -c1-8) in
 "$MHZ_SHA") ;;
@@ -146,16 +158,28 @@ sleep 30
 "$RADIOS" pre suspend || stop "the radios did not unload"
 RADIOS_DOWN=1
 log "radios unloaded"
-if [ -e "/sys/bus/platform/drivers/mtu3/$USB" ]; then
+if [ "${D3_UNBIND:-0}" = 1 ]; then
+	# Image 131 only: images with 0801 must not unbind MTU3
 	echo "$USB" >/sys/bus/platform/drivers/mtu3/unbind || stop "the gadget did not unbind"
 	UNBOUND=1
 	log "gadget unbound"
+else
+	ctl=/sys/bus/platform/devices/$USB/power/control
+	USB_CONTROL=$(cat "$ctl")
+	echo auto >"$ctl" || stop "power/control not set"
+	log "gadget power/control auto (was $USB_CONTROL), $(cat "/sys/bus/platform/devices/$USB/power/runtime_status") now"
+	sleep 10
+	log "gadget runtime $(cat "/sys/bus/platform/devices/$USB/power/runtime_status")"
 fi
 
 if [ -d /sys/module/mt6797_spm_sleep ]; then
 	rmmod mt6797_spm_sleep || stop "the running SPM module did not unload"
 fi
-insmod "$KO" || stop "insmod failed"
+if [ -n "$KO" ]; then
+	insmod "$KO" || stop "insmod failed"
+else
+	modprobe mt6797-spm-sleep || stop "modprobe failed"
+fi
 new_dmesg | grep -E 'mt6797-spm-sleep|pcm_' | sed 's/^/    /'
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"
 
