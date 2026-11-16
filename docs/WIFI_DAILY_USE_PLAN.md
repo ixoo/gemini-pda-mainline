@@ -68,7 +68,10 @@ Status: plan, updated 2026-11-01.
   driven wifi"), 0807 serves receive from the WLAN interrupt that 0808 adds to the device tree (GIC SPI 283,
   active low, as on the vendor kernel): WHIER gets the vendor's default sources, WHLPCR's host interrupt is
   enabled once a link is up, and a quiet link is polled once a second. A line that keeps waking the worker
-  with nothing to read is given up. Compiled only; the DT line needs an image.
+  with nothing to read is given up. On image 136 (custodian) the interrupt never fired: the GIC had SPI 283
+  enabled, level and inverted for active low, but never pending, and 0809's read-back showed WHLPCR 0x101 and
+  WHIER 0, so the WHIER write did not take. The vendor's AHB bus driver also sets CCCR IENx (function 0,
+  register 4) when it claims the interrupt; 0810 does too. Compiled only.
 - `ip link set wlan0 down` is one-way today: a later `up` fails with `Operation not supported` (boot `64622312`) until
   `mac` is reloaded. networkd and iwd hit it on card-18: networkd took a fresh `wlan0` up and down, then iwd's own
   interface could never start. 0670 makes such an `up` request a WLAN restart, which brings back a new phy; the

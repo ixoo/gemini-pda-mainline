@@ -1,0 +1,130 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: build <build@localhost>
+Date: Mon, 16 Nov 2026 15:07:17 -0500
+Subject: [PATCH] wifi: mt6797: set the SDIO-like master interrupt enable when
+ arming
+
+The WLAN interrupt never fired, and WHIER read back 0 after arming. The
+vendor's AHB bus driver also sets CCCR IENx, function 0 register 4, with the
+master interrupt enable and function 1's bit when it claims the interrupt;
+its comment says that is what lets CONNSYS raise it. Set it before WHIER, and
+log it as read back.
+---
+ drivers/net/wireless/mediatek/mt6797/hif.c  | 44 ++++++++++++++++++++-
+ drivers/net/wireless/mediatek/mt6797/hif.h  |  3 +-
+ drivers/net/wireless/mediatek/mt6797/join.c |  8 ++--
+ 3 files changed, 49 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.c b/drivers/net/wireless/mediatek/mt6797/hif.c
+index 75bdf5fe5..7b0f17c76 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.c
++++ b/drivers/net/wireless/mediatek/mt6797/hif.c
+@@ -950,6 +950,39 @@ EXPORT_SYMBOL_GPL(mt6797_hif_rx_batch_stats);
+ #define MT6797_HIF_WHIER		0x14
+ #define MT6797_HIF_WHIER_DEFAULT	(GENMASK(31, 8) | BIT(6) | BIT(2) | BIT(1) | BIT(0))
+ 
++/* CCCR IENx, function 0: the master interrupt enable (bit 0) and function 1's
++ * (bit 1), which the vendor sets when it claims the interrupt; without them the
++ * HIF raises no interrupt to the host.
++ */
++#define MT6797_HIF_CCCR_IENX		0x04
++#define MT6797_HIF_CCCR_IENX_WIFI	(BIT(1) | BIT(0))
++#define MT6797_HIF_CMD52_DATA		0x0004
++
++/* CMD52, function 0: one CCCR byte through the setup word and its data port. */
++static int mt6797_hif_cccr_write_locked(struct mt6797_hif *hif, unsigned int reg,
++					u8 value)
++{
++	int error = mt6797_hif_guard(hif);
++
++	if (error)
++		return error;
++	writel(BIT(31) | (reg << 9) | value, (u8 __iomem *)hif->base);
++	writel(value, (u8 __iomem *)hif->base + MT6797_HIF_CMD52_DATA);
++	return mt6797_hif_guard(hif);
++}
++
++static int mt6797_hif_cccr_read_locked(struct mt6797_hif *hif, unsigned int reg,
++				       u8 *value)
++{
++	int error = mt6797_hif_guard(hif);
++
++	if (error)
++		return error;
++	writel(reg << 9, (u8 __iomem *)hif->base);
++	*value = readl((u8 __iomem *)hif->base + MT6797_HIF_CMD52_DATA);
++	return mt6797_hif_guard(hif);
++}
++
+ static int mt6797_hif_write32_locked(struct mt6797_hif *hif, unsigned int reg,
+ 				     u32 value)
+ {
+@@ -961,15 +994,22 @@ static int mt6797_hif_write32_locked(struct mt6797_hif *hif, unsigned int reg,
+ 	return mt6797_hif_write(hif, 0x1000, value);
+ }
+ 
+-int mt6797_hif_host_interrupt(struct mt6797_hif *hif, bool enable, u64 deadline_ns)
++int mt6797_hif_host_interrupt(struct mt6797_hif *hif, bool enable, u64 deadline_ns,
++			      u8 *ienx)
+ {
+ 	int error;
+ 
+-	if (!hif)
++	if (!hif || !ienx)
+ 		return -EINVAL;
++	*ienx = 0;
+ 	if (!mutex_trylock(&hif->mutex))
+ 		return -EBUSY;
+ 	error = mt6797_hif_enter(hif, deadline_ns);
++	if (!error && enable)
++		error = mt6797_hif_cccr_write_locked(hif, MT6797_HIF_CCCR_IENX,
++						     MT6797_HIF_CCCR_IENX_WIFI);
++	if (!error && enable)
++		error = mt6797_hif_cccr_read_locked(hif, MT6797_HIF_CCCR_IENX, ienx);
+ 	if (!error && enable)
+ 		error = mt6797_hif_write32_locked(hif, MT6797_HIF_WHIER,
+ 						  MT6797_HIF_WHIER_DEFAULT);
+diff --git a/drivers/net/wireless/mediatek/mt6797/hif.h b/drivers/net/wireless/mediatek/mt6797/hif.h
+index fa24af6b9..e60654d67 100644
+--- a/drivers/net/wireless/mediatek/mt6797/hif.h
++++ b/drivers/net/wireless/mediatek/mt6797/hif.h
+@@ -137,7 +137,8 @@ int mt6797_hif_read32(struct mt6797_hif *hif, unsigned int reg, u64 deadline_ns,
+ /* The host interrupt on: WHIER's sources as the vendor sets them, then WHLPCR's
+  * global enable; off: the global enable cleared. Busy callers get -EBUSY.
+  */
+-int mt6797_hif_host_interrupt(struct mt6797_hif *hif, bool enable, u64 deadline_ns);
++int mt6797_hif_host_interrupt(struct mt6797_hif *hif, bool enable, u64 deadline_ns,
++			      u8 *ienx);
+ /* One ordinary section only, <=1 MiB. Caller supplies immutable, validated,
+  * distinct metadata/data and retains them until return. Successful submission
+  * is neither whole-image completion nor permission to issue START.
+diff --git a/drivers/net/wireless/mediatek/mt6797/join.c b/drivers/net/wireless/mediatek/mt6797/join.c
+index b5fde4773..640ae551b 100644
+--- a/drivers/net/wireless/mediatek/mt6797/join.c
++++ b/drivers/net/wireless/mediatek/mt6797/join.c
+@@ -2958,8 +2958,10 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 	/* Once a link is up, the WLAN interrupt serves receive. */
+ 	if (mac->irq > 0 && !mac->irq_armed && !mac->irq_gave_up &&
+ 	    mac->join_data_phase && !mac->join_data_ended) {
++		u8 ienx = 0;
+ 		int irq_ret = mt6797_hif_host_interrupt(mac->hif, true,
+-							ktime_get_ns() + 100 * NSEC_PER_MSEC);
++							ktime_get_ns() + 100 * NSEC_PER_MSEC,
++							&ienx);
+ 
+ 		if (!irq_ret) {
+ 			mac->irq_armed = true;
+@@ -2977,8 +2979,8 @@ void mt6797_mac_join_work(struct work_struct *work)
+ 				mt6797_hif_read32(mac->hif, 0x14, end, &whier);
+ 			}
+ 			dev_info(wiphy_dev(mac->hw->wiphy),
+-				 "one-shot WLAN interrupt armed: status=%d whlpcr=0x%08x whier=0x%08x\n",
+-				 irq_ret, whlpcr, whier);
++				 "one-shot WLAN interrupt armed: status=%d ienx=0x%02x whlpcr=0x%08x whier=0x%08x\n",
++				 irq_ret, ienx, whlpcr, whier);
+ 		}
+ 	}
+ 	pass_delay = msecs_to_jiffies(20);
+-- 
+2.43.0
+
