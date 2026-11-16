@@ -1581,6 +1581,34 @@ only at 154.9 s on boot 2, after the load had ended.
   stay off by default for battery use until an image with it shows the first cap
   within a gauge window of the first valid headroom.
 
+**T10 result (observed, owner-approved, image 130 with 0795, boot `c364c1a2`; the first
+cap passed).** Image 130 is built from b858c0ca. Its initramfs and module hashes match
+image 129. An earlier boot, `9945f5b8`, had a USB charging host attached and does not
+count.
+
+On battery, cable out, with the gauge at 100 %:
+- `battery-headroom` logged "no headroom reported" at 4.1 s and its first caps at
+  18.0 s: headroom 2.56 A, CPU budget 1.86 A. The policies' maximums took the caps.
+  At that headroom none was below a policy's top.
+- The T9 status, hash, clock and rail checks passed, with taint 0.
+- A 120 s load on all ten ended `passed`: the SoC at most 76.5 C, the battery at most
+  2.01 A and at least 3.522 V (at 1.71 A, the A72s at 1131 MHz). At rest afterwards the
+  battery read 4.099 V.
+
+Reading:
+- 0795 closes the first-cap gap: the cap came about 14 s after the module's first
+  read, within the expected 10-20 s.
+- The sag fits the resistance the gauge uses. A headroom of 2.56 A from about 4.10 V
+  to the 3.10 V target means about 0.39 ohm. At 1.71 A that predicts about 3.43 V, and
+  3.52 V was measured, so the gauge was on the safe side. The window-averaged current
+  lags bursts, which explains the larger sag in the first sample.
+- The cap aims the terminal at 3.10 V under load, as the vendor's throttling did.
+  The PMIC cuts off at 2.70 V. `t7.sh`'s 3.5 V stop is that test's own margin, not a
+  protection point, so on battery at lower charge `t7.sh` will stop before the cap
+  limits anything.
+- Not shown: the cap holding a load at low charge, where T4b lost power without it.
+  That is the measurement that decides battery default-on.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
