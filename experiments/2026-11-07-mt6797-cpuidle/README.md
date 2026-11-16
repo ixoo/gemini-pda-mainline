@@ -2325,7 +2325,7 @@ Where each way of saving CPU and SoC power stands on this unit:
 | s2idle | Kernel | Works | 73 mA | — |
 | `mem` suspend (Route A, S1) | `mt6797-spm-sleep` + vendor `pcm_suspend.bin`, CPU kept powered | Works on the station; lid close, charger wake (0688/0689) | 42 mA | Soak K1; loading at boot |
 | Unused infra gates | `mt6797-gate-unused` (0768, 0770, 0789) | Works, 26 gates (+ ICUSB with 0789) | about 3 mA | — |
-| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | One period on demand returns, CG and PDN (D3, image 134); device wakes (D4) and cpuidle (D5) next | — | Nothing in D0 on image 134 (cable out, MTU3 runtime off) |
+| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Periods on demand return, CG and PDN (D3); a key wakes them (D4); cpuidle (D5) next | — | Packets cannot wake it: the Wi-Fi driver polls instead of using SPI 283 |
 | Deep idle | Vendor `pcm_deepidle.bin` | Deferred | — | SODI first; then DISP_PWM (0788) and the display domain |
 | Lazy RCU | Config | Folded into the station fragments | tick restarts −7 % | — |
 | HZ 100 | Config | T2 pending | — | — |
@@ -2818,6 +2818,53 @@ with the 0806 module from `147b0400` or later.
 | Packets wake through CIRQ, the key through EINT | D5, with `sodi_cirq_level` on by default and the display-blank check in the driver |
 | Periods end at once on `cirq` with no packet | Read the status words for the line that is always asserted; leave it out or find its holder |
 | Packets still do not wake | CIRQ records edges only; the WLAN wake then needs CONSYS's CONN2AP handshake (wifi-daily) |
+
+**D4b result (2026-11-16, same boot `4cc2b9ba…`).** Custodian's report:
+- *Candidate:* module `9cf7b397…` from the `40e98f28` build (`Image.gz`
+  `785d7151…`, image 135); `d4.sh` `7eaa5029` with `D4_CIRQ_LEVEL=1`.
+- *Setup:* battery 91 %, cable out, Wi-Fi up, taint 0 throughout, no
+  refusals. Every hash was equal; no warning.
+- **SYS_CIRQ records level lines.** 22 lines were cloned in all 91 periods.
+  In window B the owner's key, asked for at the right time, ended a period
+  after 649 ms with `r12` `00400000` (SYS_CIRQ) and CIRQ status word 3 bit
+  2: line 98, SPI 170, the EINT controller's level parent. With edge-only
+  CIRQ (run 2) the same key woke through the SPM's EINT bit instead. Either
+  way, a key wakes SODI.
+- **A quiet baseline:** in window A, 0 of 20 periods ended early. With Wi-Fi
+  joined and every enabled SPI able to wake the program, nothing woke SODI
+  in 40 s.
+- **Packets still did not wake.** In window C, 0 of 60 periods ended early,
+  with 155 echo requests in the window and the CIRQ status 0 throughout. The
+  laptop's 180 pings: no loss, RTT 6.2/701.2/2051.4 ms (min/avg/max).
+- d4.sh logged "no key wake" because it counted only the EINT and keypad
+  bits as a key. The CIRQ wake above is the key (the EINT10 count went from
+  263 to 277).
+
+**Why packets do not wake (found from the evidence and the source).** In
+every period the cloned word 6 was `00000001`, so line 211 (SPI 283, the
+WLAN HIF interrupt) was **not enabled at the GIC**. The mainline Wi-Fi
+driver (`drivers/net/wireless/mediatek/mt6797/`) requests no WLAN
+interrupt: it polls the HIF from delayed work (the join pump, 20 ms
+passes when busy, longer when quiet). `mt6797-consys` requests only the STP
+interrupt. So nothing in hardware announces a packet to the AP. A packet
+waits for the next poll, and during a SODI period the poll's timer cannot
+fire until the period ends. This is not a SODI fault. The same latency
+would follow any idle state that holds the timer off, and the poll itself
+is a regular wakeup.
+
+**Conclusion of D4.** SODI periods return with memory intact. A key wakes
+them through EINT, or through SYS_CIRQ with level recording. SYS_CIRQ does
+record level SPIs, so `sodi_cirq_level` becomes D5's default: any device
+that uses its interrupt can end a period. A packet can wake SODI only once
+the Wi-Fi driver takes its RX on SPI 283 instead of polling, which is the
+Wi-Fi driver's work. Until then, under D5's idle driver, the menu governor
+will see the poll timer as the next event, so SODI periods end at each poll
+and packet latency stays what polling gives today.
+
+D5 also has to keep three findings from D4:
+- refuse SODI while the screen is lit (the scramble);
+- check the GIC pending words before each entry;
+- leave APXGPT out.
 
 ### What it should save
 
