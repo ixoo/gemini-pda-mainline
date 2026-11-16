@@ -1145,6 +1145,14 @@ against it.
   - Idle battery current, screen off with Wi-Fi up, averaged −149 mA over 10 min, against
     −380 to −570 mA on 127.
   - No warning, Oops or failed unit.
+- **[0795](../../patches/proposals/0795-power-supply-mt6351-fuel-gauge-announce-the-first-he.patch)
+  announces the first headroom value.**
+  - The all-cores session's T9 (image 129) found battery-headroom capping nothing until an
+    unrelated event: the first cap came at 155 s on boot `2f6856a8…`, and at 20.6 s on
+    `b7e1b7c5…` after a charger event.
+  - 0794 had made the first valid value set the reference without raising an event. It now
+    raises one; the band and 30 s rules apply from there.
+  - Compiled at W=1 and checkpatch clean; not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
