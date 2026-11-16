@@ -1371,3 +1371,4 @@ proposals/0795-power-supply-mt6351-fuel-gauge-announce-the-first-he.patch
 proposals/0796-power-supply-mt6351-fuel-gauge-start-from-the-PMIC-s.patch
 proposals/0800-usb-mtu3-stop-and-power-down-a-device-default-port-w.patch
 proposals/0801-power-supply-mt6351-usb-type-set-the-USB-role-from-V.patch
+proposals/0802-soc-mediatek-mt6797-spm-sleep-run-one-SODI-period-on.patch

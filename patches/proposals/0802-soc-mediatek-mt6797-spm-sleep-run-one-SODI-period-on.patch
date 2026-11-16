@@ -1,0 +1,504 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 09:42:13 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: run one SODI period on
+ demand
+
+Stage D3 of the cpuidle record: a debugfs file, sodi_once_ms, runs the
+vendor SODI program once on CPU0 while the system is otherwise awake,
+ended by the PCM timer after 1-2000 ms. It reuses the suspend path's
+loader, PCM reset, kick, wake read-back and restore, now one function
+for both programs, with what differs (program, SPM_SRC_REQ,
+SPM_SRC2_MASK, WFI enables, flags, timer, wrapper slots) in a scenario.
+
+The SODI program, pcm_sodi.bin from the owner's vendor files, is
+hash-pinned and copied into the carveout after the suspend program; it
+is optional. Its flags are the suspend ones without bit 7, which pcm_sodi
+reads with another meaning, and with DIS_VCORE_DVS, so it issues no PMIC
+wrapper command; CG mode (DRAM self-refresh only) unless sodi_pdn is set.
+For the wait the local timer's interrupt is masked, so CPU0 stays in WFI,
+and I2C6 is locked, since the program soft-resets it. The period is
+refused unless AP DMA and USB are clock-gated, as SODI does not honour
+their DRAM requests. DUMMY1_PWR_CON and SPM_PASR_DPD_0, which the program
+uses, are logged; PASR_DPD_0 is restored.
+
+Local experiment, depends on a non-free program the project does not ship.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 247 ++++++++++++++++++++----
+ 1 file changed, 212 insertions(+), 35 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 1171a9680..4f79ee9f7 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -14,16 +14,21 @@
+  */
+ 
+ #include <asm/barrier.h>
++#include <asm/sysreg.h>
++#include <clocksource/arm_arch_timer.h>
+ #include <crypto/sha2.h>
+ #include <linux/bits.h>
++#include <linux/debugfs.h>
+ #include <linux/delay.h>
+ #include <linux/firmware.h>
++#include <linux/i2c.h>
+ #include <linux/io.h>
+ #include <linux/irq.h>
+ #include <linux/irqdomain.h>
+ #include <linux/interrupt.h>
+ #include <linux/module.h>
+ #include <linux/of.h>
++#include <linux/of_address.h>
+ #include <linux/of_platform.h>
+ #include <linux/of_reserved_mem.h>
+ #include <linux/platform_device.h>
+@@ -41,6 +46,15 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
+ 	0x6b, 0x4a, 0x67, 0xe7, 0xd7, 0x70, 0xf4, 0xe0,
+ };
+ 
++#define SODI_FW_NAME		"mediatek/mt6797/pcm_sodi.bin"
++
++static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
++	0xdd, 0xa8, 0xcc, 0xa1, 0xe1, 0x10, 0xd5, 0x71,
++	0x37, 0xaf, 0xb8, 0xef, 0x49, 0x57, 0xda, 0x75,
++	0x8c, 0x19, 0xd3, 0x8d, 0xb4, 0x5e, 0xa2, 0xbb,
++	0x30, 0xbc, 0x71, 0x33, 0xcc, 0x12, 0x2a, 0xe4,
++};
++
+ /* Physical blocks */
+ #define SPM_PHYS		0x10006000
+ #define PWRAP_PHYS		0x1000d000
+@@ -104,7 +118,9 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define SPM_SW_FLAG		0x600
+ #define SPM_SW_DEBUG		0x604
+ #define SPM_SW_RSV_0		0x608
++#define SPM_PASR_DPD_0		0x630
+ #define SPM_PASR_DPD_3		0x63c
++#define DUMMY1_PWR_CON		0x2b4
+ 
+ #define SPM_KEY			(0xb16 << 16)
+ #define PCM_KICK_L		BIT(0)
+@@ -138,6 +154,19 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
+ /* Wake sources: PCM timer and EINT */
+ #define S1_WAKE_SRC		(BIT(0) | BIT(6))
+ 
++/*
++ * SPM_SW_FLAG for one SODI period (D3): S1's flags without bit 7, which
++ * pcm_sodi tests in its NFC clock-buffer handlers with another meaning, and
++ * with DIS_VCORE_DVS (bit 3), so the program issues no PMIC-wrapper command
++ * at all. CG mode (bit 12) keeps the DRAM PHY and MEMPLL up: DRAM only goes
++ * into self-refresh. sodi_pdn clears it.
++ */
++#define SODI_FLAGS		((S1_FLAGS & ~BIT(7)) | BIT(3) | BIT(12))
++#define SODI_FLAG_CG_MODE	BIT(12)
++
++/* The I2C controller the programs reset (I2C6: the CPU bucks) */
++#define I2C6_PHYS		0x1100e000
++
+ /* PMIC wrapper DVFS command slots */
+ #define PWRAP_DVFS_ADR(n)	(0x10c + 8 * (n))
+ #define PWRAP_DVFS_WDATA(n)	(0x110 + 8 * (n))
+@@ -162,6 +191,8 @@ static const u8 spm_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define CG0_GCE			BIT(9)
+ #define CG1_AUXADC		BIT(10)
+ #define CG2_I2C_APPM		BIT(1)
++#define CG1_AP_DMA		BIT(18)
++#define CG2_SSUSB		(BIT(9) | BIT(18) | BIT(24))
+ #define CLK_CFG_0		0x040
+ 
+ /* MT6351 */
+@@ -182,6 +213,7 @@ static const u16 spm_saved_regs[] = {
+ 	PCM_TIMER_VAL, SPM_SCP_MAILBOX, SPM_IRQ_MASK, SPM_SRC_REQ, SPM_SRC_MASK,
+ 	SPM_SRC2_MASK, SPM_WAKEUP_EVENT_MASK, SPM_MAS_PAUSE_MASK_B,
+ 	SPM_MAS_PAUSE2_MASK_B, SPM_SW_FLAG, SPM_SW_RSV_0, SPM_PASR_DPD_3,
++	SPM_PASR_DPD_0,
+ };
+ 
+ struct spm_slot {
+@@ -189,6 +221,17 @@ struct spm_slot {
+ 	u32 val;
+ };
+ 
++/* What differs between the suspend program and one SODI period */
++struct spm_scen {
++	u32 im_ptr, im_len, vec[16];
++	u32 src_req, src2_mask;
++	unsigned int wfi_count;	/* WFI_EN words set, from MP0_CPU0 */
++	u32 ticks;		/* PCM timer, 32,768 Hz */
++	u32 flags;
++	bool slots;		/* load the PMIC wrapper's suspend phase */
++	bool ready;
++};
++
+ struct spm_wake {
+ 	u32 assert_pc, r12, r12_ext, raw_sta, raw_ext_sta, wake_misc;
+ 	u32 timer_out, r13, idle_sta, debug_flag, event_reg, isr;
+@@ -211,12 +254,13 @@ static struct {
+ 	bool gic_masked;
+ 	void __iomem *infra;
+ 	void __iomem *topck;
+-	u32 im_ptr;
+-	u32 im_len;
+-	u32 vec[16];
++	struct spm_scen sleep;
++	struct spm_scen sodi;
+ 	u32 flags;
+ 	bool hwcid_5140;
+ 	int irq;
++	struct dentry *debugfs;
++	u32 dummy1;
+ 
+ 	/* per-suspend state */
+ 	bool pmic_done;
+@@ -245,6 +289,10 @@ static bool gic_mask = true;
+ module_param(gic_mask, bool, 0644);
+ MODULE_PARM_DESC(gic_mask, "Disable every SPI but the SPM's at the GIC while CPU0 waits");
+ 
++static bool sodi_pdn;
++module_param(sodi_pdn, bool, 0644);
++MODULE_PARM_DESC(sodi_pdn, "SODI test in PDN mode (DRAM PHY and MEMPLL off) instead of CG mode");
++
+ static inline u32 spm_rd(u32 off)
+ {
+ 	return readl(s.spm + off);
+@@ -510,7 +558,11 @@ static void spm_gic_restore(void)
+ 	s.gic_masked = false;
+ }
+ 
+-static int spm_enter(suspend_state_t state)
++/*
++ * Run one program on CPU0 with interrupts off, from the PCM reset to its
++ * return, and put the SPM back as it was found.
++ */
++static int spm_run(const struct spm_scen *sc)
+ {
+ 	u32 con0, con1, settle, axi[3], v;
+ 	int i;
+@@ -518,15 +570,12 @@ static int spm_enter(suspend_state_t state)
+ 	s.entered = false;
+ 	memset(&s.wake, 0, sizeof(s.wake));
+ 
+-	if (state != PM_SUSPEND_MEM)
+-		return -EINVAL;
+ 	if (num_online_cpus() != 1 || smp_processor_id() != 0)
+ 		return -EBUSY;
+ 	if ((spm_rd(PCM_FSM_STA) & 0x7fffff) != PCM_FSM_STA_DEF ||
+ 	    spm_rd(PCM_REG1_DATA) == 1)
+ 		return -EBUSY;
+-	if (!spm_off(MD1_PWR_CON) || !spm_off(C2K_PWR_CON) ||
+-	    !spm_off(CONN_PWR_CON))
++	if (!spm_off(MD1_PWR_CON) || !spm_off(C2K_PWR_CON))
+ 		return -EBUSY;
+ 
+ 	/* C1 first: if MCUCFG ignores the writes, stop before the SPM changes */
+@@ -554,11 +603,12 @@ static int spm_enter(suspend_state_t state)
+ 	s.entered = true;
+ 	spm_gates_read(s.wake.cg_before, &s.wake.clk_cfg0_before);
+ 
+-	/* W1: PMIC wrapper suspend phase */
+-	for (i = 0; i < PWRAP_DVFS_SLOTS; i++) {
++	/* W1: PMIC wrapper suspend phase (SODI issues no wrapper command) */
++	for (i = 0; sc->slots && i < PWRAP_DVFS_SLOTS; i++) {
+ 		writel(s.slots[i].addr, s.pwrap + PWRAP_DVFS_ADR(i));
+ 		writel(s.slots[i].val, s.pwrap + PWRAP_DVFS_WDATA(i));
+ 	}
++	s.dummy1 = spm_rd(DUMMY1_PWR_CON);
+ 
+ 	/* S1: system clock settle */
+ 	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | SYS_SETTLE_SEL);
+@@ -581,8 +631,8 @@ static int spm_enter(suspend_state_t state)
+ 	spm_wr(SPM_SW_INT_CLEAR, BIT(0));
+ 
+ 	/* S5-S6: fetch the program from the carveout */
+-	spm_wr(PCM_IM_PTR, s.im_ptr);
+-	spm_wr(PCM_IM_LEN, s.im_len);
++	spm_wr(PCM_IM_PTR, sc->im_ptr);
++	spm_wr(PCM_IM_LEN, sc->im_len);
+ 	con0 = spm_rd(PCM_CON0) & ~(IM_KICK_L | PCM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN | IM_KICK_L);
+ 	spm_wr(PCM_CON0, con0 | SPM_KEY | PCM_CK_EN);
+@@ -597,20 +647,20 @@ static int spm_enter(suspend_state_t state)
+ 
+ 	/* S8: event vectors from the file's descriptor */
+ 	for (i = 0; i < 16; i++)
+-		spm_wr(PCM_EVENT_VECTOR0 + 4 * i, s.vec[i]);
++		spm_wr(PCM_EVENT_VECTOR0 + 4 * i, sc->vec[i]);
+ 
+ 	/* S9-S14: power control */
+ 	v = spm_rd(SPM_AP_STANDBY_CON) & BIT(23);
+ 	spm_wr(SPM_AP_STANDBY_CON, v | 0x04080011);
+-	spm_wr(SPM_SRC_REQ, 0x00000040);
++	spm_wr(SPM_SRC_REQ, sc->src_req);
+ 	spm_wr(SPM_SRC_MASK, 0x10aa007e);
+-	spm_wr(SPM_SRC2_MASK, 0x00f1001f);
++	spm_wr(SPM_SRC2_MASK, sc->src2_mask);
+ 	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | CC_SRCLKENA_MASK_0);
+-	for (i = 0; i < WFI_EN_COUNT; i++)
++	for (i = 0; i < sc->wfi_count; i++)
+ 		spm_wr(WFI_EN_FIRST + 4 * i, 1);
+ 
+ 	/* S15-S17: wake timer, wake sources, interrupt mask */
+-	spm_wr(PCM_TIMER_VAL, timer_sec * 32768);
++	spm_wr(PCM_TIMER_VAL, sc->ticks);
+ 	spm_wr(PCM_CON1, spm_rd(PCM_CON1) | SPM_KEY | PCM_TIMER_EN);
+ 	spm_wr(SPM_WAKEUP_EVENT_MASK, ~(u32)S1_WAKE_SRC);
+ 	v = spm_rd(SPM_IRQ_MASK) & BIT(2);
+@@ -623,7 +673,7 @@ static int spm_enter(suspend_state_t state)
+ 	spm_wr(SPM_MAS_PAUSE_MASK_B, 0xffffffff);
+ 	spm_wr(SPM_MAS_PAUSE2_MASK_B, 0xffffffff);
+ 	spm_wr(PCM_REG_DATA_INI, 0);
+-	spm_wr(SPM_SW_FLAG, s.flags);
++	spm_wr(SPM_SW_FLAG, sc->flags);
+ 	spm_wr(SPM_SW_RSV_0, 0);
+ 	spm_wr(SPM_CLK_CON, spm_rd(SPM_CLK_CON) | SPM_LOCK_INFRA_DCM);
+ 	spm_wr(PCM_PWR_IO_EN, PCM_PWRIO_R0_R7);
+@@ -685,6 +735,16 @@ static int spm_enter(suspend_state_t state)
+ 	return s.wake.returned ? 0 : -ETIMEDOUT;
+ }
+ 
++static int spm_enter(suspend_state_t state)
++{
++	if (state != PM_SUSPEND_MEM)
++		return -EINVAL;
++	if (!spm_off(CONN_PWR_CON))
++		return -EBUSY;
++	s.sleep.ticks = timer_sec * 32768;
++	return spm_run(&s.sleep);
++}
++
+ static int spm_valid(suspend_state_t state)
+ {
+ 	return state == PM_SUSPEND_MEM;
+@@ -710,16 +770,23 @@ static int spm_prepare(void)
+ 	return ret;
+ }
+ 
++static void spm_log_wake(const char *what);
++
+ static void spm_finish(void)
+ {
+ 	disable_irq_wake(s.irq);
+ 	disable_irq(s.irq);
+ 	spm_pmic_finish();
++	spm_log_wake("wake");
++}
++
++static void spm_log_wake(const char *what)
++{
+ 	if (!s.entered)
+ 		return;
+ 	dev_info(&s.pdev->dev,
+-		 "wake: returned=%d loops=%u cg0=%08x>%08x cg1=%08x>%08x cg2=%08x>%08x clk_cfg_0=%08x>%08x r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
+-		 s.wake.returned, s.wake.wfi_loops,
++		 "%s: returned=%d loops=%u cg0=%08x>%08x cg1=%08x>%08x cg2=%08x>%08x clk_cfg_0=%08x>%08x r12=%08x r12_ext=%08x raw=%08x ext=%08x misc=%08x timer_out=%08x r13=%08x idle=%08x debug=%08x event=%08x isr=%08x pc=%08x\n",
++		 what, s.wake.returned, s.wake.wfi_loops,
+ 		 s.wake.cg_before[0], s.wake.cg_after[0],
+ 		 s.wake.cg_before[1], s.wake.cg_after[1],
+ 		 s.wake.cg_before[2], s.wake.cg_after[2],
+@@ -728,7 +795,93 @@ static void spm_finish(void)
+ 		 s.wake.timer_out, s.wake.r13, s.wake.idle_sta,
+ 		 s.wake.debug_flag, s.wake.event_reg, s.wake.isr,
+ 		 s.wake.assert_pc);
++	dev_info(&s.pdev->dev, "%s: dummy1=%08x pasr_dpd_0=%08x\n", what, s.dummy1,
++		 spm_rd(SPM_PASR_DPD_0));
++}
++
++/* The I2C6 adapter: the programs soft-reset I2C6, so no transfer may run */
++static struct i2c_adapter *spm_i2c6(void)
++{
++	struct device_node *np;
++	struct resource res;
++
++	for_each_compatible_node(np, NULL, "mediatek,mt6797-i2c") {
++		if (!of_address_to_resource(np, 0, &res) && res.start == I2C6_PHYS) {
++			struct i2c_adapter *adap = of_find_i2c_adapter_by_node(np);
++
++			of_node_put(np);
++			return adap;
++		}
++	}
++	return NULL;
++}
++
++/*
++ * One SODI period on CPU0 while the system is otherwise awake (stage D3):
++ * the PCM timer ends it after the given milliseconds. The local timer's
++ * interrupt is masked for the wait so that CPU0 stays in WFI, and I2C6 is
++ * held so that the program's reset does not cut a transfer.
++ */
++static int sodi_once(u64 ms)
++{
++	struct i2c_adapter *i2c6;
++	u64 cntv, cntp;
++	int ret;
++
++	if (!s.sodi.ready)
++		return -ENODEV;
++	if (ms < 1 || ms > 2000)
++		return -EINVAL;
++	/*
++	 * SODI does not honour DRAM requests from AP DMA or USB: refuse unless
++	 * both are clock-gated, as the vendor's conditions require.
++	 */
++	if (!(readl(s.infra + INFRA_CG1_STA) & CG1_AP_DMA) ||
++	    (~readl(s.infra + INFRA_CG2_STA) & CG2_SSUSB)) {
++		dev_info(&s.pdev->dev, "sodi: AP DMA or USB clocks running, refused\n");
++		return -EBUSY;
++	}
++	i2c6 = spm_i2c6();
++	if (!i2c6)
++		return -ENODEV;
++	ret = spm_pmic_prepare();
++	if (ret)
++		goto out_pmic;
++
++	s.sodi.ticks = div_u64(ms * 32768, 1000);
++	s.sodi.flags = (s.flags & ~BIT(7)) | BIT(3) | SODI_FLAG_CG_MODE;
++	if (sodi_pdn)
++		s.sodi.flags &= ~SODI_FLAG_CG_MODE;
++
++	i2c_lock_bus(i2c6, I2C_LOCK_ROOT_ADAPTER);
++	enable_irq(s.irq);
++	preempt_disable();
++	local_irq_disable();
++	cntv = read_sysreg(cntv_ctl_el0);
++	cntp = read_sysreg(cntp_ctl_el0);
++	write_sysreg(cntv | ARCH_TIMER_CTRL_IT_MASK, cntv_ctl_el0);
++	write_sysreg(cntp | ARCH_TIMER_CTRL_IT_MASK, cntp_ctl_el0);
++	isb();
++	ret = spm_run(&s.sodi);
++	write_sysreg(cntv, cntv_ctl_el0);
++	write_sysreg(cntp, cntp_ctl_el0);
++	isb();
++	local_irq_enable();
++	preempt_enable();
++	disable_irq(s.irq);
++	i2c_unlock_bus(i2c6, I2C_LOCK_ROOT_ADAPTER);
++	spm_log_wake(sodi_pdn ? "sodi pdn" : "sodi cg");
++out_pmic:
++	spm_pmic_finish();
++	put_device(&i2c6->dev);
++	return ret;
++}
++
++static int sodi_set(void *data, u64 ms)
++{
++	return sodi_once(ms);
+ }
++DEFINE_DEBUGFS_ATTRIBUTE(sodi_fops, NULL, sodi_set, "%llu\n");
+ 
+ static const struct platform_suspend_ops spm_suspend_ops = {
+ 	.valid = spm_valid,
+@@ -739,7 +892,12 @@ static const struct platform_suspend_ops spm_suspend_ops = {
+ 
+ /* ---- load ---- */
+ 
+-static int spm_load_program(struct device *dev)
++/*
++ * Copy a hash-pinned program into the carveout at the given offset and take
++ * its event vectors from the file's descriptor.
++ */
++static int spm_load_program(struct device *dev, const char *name, const u8 *sha,
++			    unsigned int offset, struct spm_scen *sc)
+ {
+ 	const struct firmware *fw;
+ 	struct reserved_mem *rmem;
+@@ -753,16 +911,16 @@ static int spm_load_program(struct device *dev)
+ 	np = of_find_compatible_node(NULL, NULL, "mediatek,spm-reserve-memory");
+ 	rmem = np ? of_reserved_mem_lookup(np) : NULL;
+ 	of_node_put(np);
+-	if (!rmem || rmem->size < 0x2000)
+-		return dev_err_probe(dev, -ENODEV, "no SPM carveout\n");
++	if (!rmem || rmem->size < offset + 0x2000)
++		return dev_err_probe(dev, -ENODEV, "no SPM carveout for %s\n", name);
+ 
+-	ret = request_firmware(&fw, SPM_FW_NAME, dev);
++	ret = request_firmware(&fw, name, dev);
+ 	if (ret)
+ 		return ret;
+ 
+ 	sha256(fw->data, fw->size, digest);
+-	if (memcmp(digest, spm_fw_sha256, sizeof(digest))) {
+-		ret = dev_err_probe(dev, -EINVAL, "%s: SHA-256 mismatch\n", SPM_FW_NAME);
++	if (memcmp(digest, sha, sizeof(digest))) {
++		ret = dev_err_probe(dev, -EINVAL, "%s: SHA-256 mismatch\n", name);
+ 		goto out;
+ 	}
+ 
+@@ -774,20 +932,21 @@ static int spm_load_program(struct device *dev)
+ 		goto out;
+ 	}
+ 	for (i = 0; i < 16; i++)
+-		s.vec[i] = get_unaligned_le32(fw->data + desc + 8 + 4 * i);
+-	s.im_len = n - 1;
++		sc->vec[i] = get_unaligned_le32(fw->data + desc + 8 + 4 * i);
++	sc->im_len = n - 1;
+ 
+-	s.carve = ioremap(rmem->base, 0x2000);
++	if (!s.carve)
++		s.carve = ioremap(rmem->base, 0x4000);
+ 	if (!s.carve) {
+ 		ret = -ENOMEM;
+ 		goto out;
+ 	}
+-	memcpy_toio(s.carve, fw->data + 2, 4 * n);
++	memcpy_toio(s.carve + offset, fw->data + 2, 4 * n);
+ 	/* The SPM fetches the program from DRAM: make the copy visible first */
+ 	wmb();
+ 
+ 	/* 4 GB mode: the SPM sees 0x40000000-0xbfffffff 0x40000000 higher */
+-	phys = rmem->base;
++	phys = rmem->base + offset;
+ 	infra = ioremap(INFRA_AO_PHYS, 0x1000);
+ 	if (!infra) {
+ 		ret = -ENOMEM;
+@@ -801,9 +960,10 @@ static int spm_load_program(struct device *dev)
+ 		ret = -ERANGE;
+ 		goto out;
+ 	}
+-	s.im_ptr = phys;
+-	dev_info(dev, "program %zu words at %pa, SPM pointer %08x\n",
+-		 n, &rmem->base, s.im_ptr);
++	sc->im_ptr = phys;
++	sc->ready = true;
++	dev_info(dev, "%s: %zu words at %pa + %#x, SPM pointer %08x\n",
++		 name, n, &rmem->base, offset, sc->im_ptr);
+ out:
+ 	release_firmware(fw);
+ 	return ret;
+@@ -911,9 +1071,25 @@ static int __init spm_sleep_init(void)
+ 		s.flags |= FLAG_EN_SEGMENT2;
+ 	iounmap(chip);
+ 
+-	ret = spm_load_program(&s.pdev->dev);
++	s.sleep.src_req = 0x00000040;
++	s.sleep.src2_mask = 0x00f1001f;
++	s.sleep.wfi_count = WFI_EN_COUNT;
++	s.sleep.flags = s.flags;
++	s.sleep.slots = true;
++	ret = spm_load_program(&s.pdev->dev, SPM_FW_NAME, spm_fw_sha256, 0, &s.sleep);
+ 	if (ret)
+ 		goto err;
++
++	/* SODI (D3) is optional: suspend works without it */
++	s.sodi.src_req = 0;
++	s.sodi.src2_mask = 0x08ff009f;
++	s.sodi.wfi_count = 8;
++	if (spm_load_program(&s.pdev->dev, SODI_FW_NAME, sodi_fw_sha256, 0x2000,
++			     &s.sodi))
++		dev_info(&s.pdev->dev, "no SODI program, SODI test off\n");
++	else
++		s.debugfs = debugfs_create_file_unsafe("sodi_once_ms", 0200, NULL,
++						       NULL, &sodi_fops);
+ 	ret = spm_map_irq(&s.pdev->dev);
+ 	if (ret)
+ 		goto err;
+@@ -929,6 +1105,7 @@ static int __init spm_sleep_init(void)
+ 
+ static void __exit spm_sleep_exit(void)
+ {
++	debugfs_remove(s.debugfs);
+ 	suspend_set_ops(NULL);
+ 	free_irq(s.irq, NULL);
+ 	irq_dispose_mapping(s.irq);

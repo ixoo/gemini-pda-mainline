@@ -2357,18 +2357,106 @@ exactly (`SPM_SRC_MASK` `0x10aa007e`), which checks it.
 | PMIC power-good force | P2 | the same (`__spm_pmic_pg_force_on`) |
 | PCM timer | 10-300 s | 1 s, then 10 s |
 
-**Open before implementing,** each needing a read or the decode:
+**The open points, answered by the PCM decode session** (2026-11-16, from
+its private listing):
 
-1. `SPM_SW_RSV_5`: the SODI program loads its VCORE state from bits 24:23.
-   C0 read `0xFFFFFFFF` there on mainline (no resident VCORE-DVFS program
-   writes it). What the program does with state 3 is not traced; the PCM
-   decode session can answer it.
-2. The vendor sets SMI common's async DCM (`MMU_SMI_ASYNC_CFG`, M4U `0xb80`,
-   bits 15:14) around SODI. The M4U block has no mainline owner and may be
-   clock-gated, so D3 leaves it out; whether SODI needs it with the display
-   off is open.
-3. `__spm_bsi_top_init_setting` (only with modem, C2K and CONN off): its
-   writes are not yet listed.
+1. `SPM_SW_RSV_5` bit 23 only picks which wrapper slot the PDN-mode APSRC
+   wake handler restores VCORE with. With DIS_VCORE_DVS (flag 3) set, SODI
+   issues **no wrapper command at all**, so the register and the wrapper
+   table do not matter. No DRAM-frequency or PLL step depends on it.
+2. **Flag 7 means something else in `pcm_sodi`** (it drives an unidentified
+   register pair at `0x10229004`/`0x10229008` in the NFC clock-buffer
+   handlers), so D3 clears it. Bits 4, 5, 16, 18 and 19 are not tested by
+   `pcm_sodi`.
+3. Entry mode is CG (DRAM self-refresh only) when flag 12 or
+   `DUMMY1_PWR_CON` bit 1 is set, otherwise PDN (DRAM PHY down, MEMPLL off).
+   The program can rewrite `SPM_AP_STANDBY_CON` bits 24, 25 and 27 and uses
+   `SPM_PASR_DPD_0` as a counter, so both are restored afterwards. Entry
+   gates the ARM PLLs and exit restores them unconditionally; I2C_APPM is
+   ungated and the I2C6 soft reset happens, as in suspend.
+
+The SMI async DCM and the BSI setting stay out of D3: the display is off,
+and the BSI setting applies only with modem, C2K and CONN off.
+
+### D3 implementation (0802, 2026-11-16)
+
+[`0802`](../../patches/proposals/0802-soc-mediatek-mt6797-spm-sleep-run-one-SODI-period-on.patch)
+turns S1's `.enter` into one function for both programs and adds a debugfs
+file, `/sys/kernel/debug/sodi_once_ms`. Writing 1-2000 runs one SODI period
+of that many milliseconds on CPU0 and logs a `sodi cg:` (or `sodi pdn:`)
+wake line like S1's, plus `DUMMY1_PWR_CON` and `SPM_PASR_DPD_0`. The SODI
+program is optional at load; suspend works without it.
+
+The period is refused unless:
+- CPU0 is the only online CPU and the PCM is idle;
+- the modem and C2K are off (CONN may be on, as SODI honours it);
+- **AP DMA (`0x094` bit 18) and SSUSB (`0x0b0` bits 9, 18, 24) are gated**,
+  since SODI does not honour their DRAM requests, as the vendor's
+  conditions require.
+
+For the wait, I2C6 is locked so that the program's reset cuts no transfer,
+and CPU0's local timer interrupt is masked so that CPU0 stays in WFI.
+Compile-checked with `W=1` on the full station series; checkpatch quiet.
+Module only.
+
+**D3 writes for owner approval.** S1's approved list with these
+differences:
+
+| # | Register | D3 |
+| --- | --- | --- |
+| program | carveout + `0x2000` (RAM) | `pcm_sodi.bin`, 1,583 words, SHA-256 `dda8cca1…122ae4` |
+| W1 | PMIC wrapper slots | **not written** |
+| S5 | `PCM_IM_PTR`, `PCM_IM_LEN` | `0xffdd2000` (carveout + `0x2000`, 4 GB mode), `0x62e` |
+| S8 | event vectors | the SODI file's sixteen words |
+| S10 | `SPM_SRC_REQ` | `0x00000000` |
+| S12 | `SPM_SRC2_MASK` | `0x08ff009f` |
+| S14 | `WFI_EN` | `0x540`-`0x55c` only (MP0 and MP1) |
+| S15 | `PCM_TIMER_VAL` | the period in 32,768 Hz ticks (1-2000 ms) |
+| S21 | `SPM_SW_FLAG` | `0x000d1239` in CG mode, `0x000d0239` in PDN mode (`sodi_pdn=1`) |
+| X3 | restore | also `SPM_PASR_DPD_0` (`0x630`); `SPM_AP_STANDBY_CON` was already restored |
+| T1 | CPU0 `CNTV_CTL_EL0`, `CNTP_CTL_EL0` (system registers) | IMASK set for the wait, then the values read before |
+| R1 | `DUMMY1_PWR_CON` (`0x2b4`) | read and logged only |
+
+P1-P3 (PMIC sleep-side bits) and G1-G4 (GIC mask) as already approved. What
+the program itself does inside: gate the ARM PLLs, put DRAM in self-refresh
+(CG) or also power the PHY and MEMPLL down (PDN), ungate I2C_APPM and
+reset I2C6, then undo all of it on the way out.
+
+### Request D3 (proposed)
+
+- **Candidate:** the running image with `mt6797-spm-sleep.ko` from a
+  Buildbox build of the commit recording this stage (module only), and the
+  owner's `pcm_sodi.bin` staged at `/lib/firmware/mediatek/mt6797/` next to
+  `pcm_suspend.bin`. Its hash must match, or the load says "no SODI
+  program".
+- **Setup:** a detached script with its log on storage. On battery, cable
+  out, the USB gadget unbound (so SSUSB gates), the radios unloaded
+  (Wi-Fi off, so AP DMA stays gated), `mt6797-gate-unused` loaded, CPU1-9
+  offline, the screen blanked, no watchdog feeder needed (0678).
+- **Steps:**
+  1. A memory reference: `cpu-mhz` hash on CPU0.
+  2. `echo 100 > /sys/kernel/debug/sodi_once_ms`, then the hash again.
+  3. 1000 ms, then the hash.
+  4. Ten periods of 1000 ms in a row, then the hash.
+  5. `sodi_pdn=1`, then 100 ms and 1000 ms, each followed by the hash.
+  6. Restore: radios, gadget, CPUs.
+- **Hypothesis:** the SODI program runs and returns on its timer in both
+  modes while the system is otherwise awake, with memory intact.
+- **Unique observation:** the first SODI period on mainline, and whether
+  PDN mode (PHY down) returns as CG mode does.
+- **Pass:** every write returns 0 and logs `returned=1 loops=0`, `r12` with
+  bit 0 (timer), `timer_out` matching the period; every hash equal; clocks
+  and gates as before (the logged before/after words); no warning, taint 0.
+- **Stop** at the first of: a refusal (the log names which gate); `returned=0`;
+  a wrong hash (power off: memory may be corrupt); an Oops, `WARNING` or RCU
+  stall; no USB SSH after the restore within 60 s (a hang: the owner's
+  force-off). No retry.
+
+| Result | Next |
+| --- | --- |
+| CG and PDN both pass | D4: the vendor's full SODI wake set, SYS_CIRQ, and wakes from a key, an audio period and a Wi-Fi packet |
+| CG passes, PDN fails | Keep CG mode; find what PDN mode needs |
+| CG fails | Read the wake line and `SPM_SW_DEBUG`; no retry until analysed |
 
 After D3: D4 adds SYS_CIRQ and the vendor's full wake set, and wakes from a
 key, an audio period and a Wi-Fi packet; D5 is the CPU0-only cpuidle driver.
