@@ -2422,6 +2422,17 @@ the program itself does inside: gate the ARM PLLs, put DRAM in self-refresh
 (CG) or also power the PHY and MEMPLL down (PDN), ungate I2C_APPM and
 reset I2C6, then undo all of it on the way out.
 
+**USB side (usb-c's design, 2026-11-16, 0800 and 0801).** A "none" role
+for MTU3 while VBUS is absent stops the gadget and lets runtime PM power the
+controller down without a wake path: PHY off, and `sys_ck`, `ref_ck` and
+`mcu_ck` (SSUSB_SYS, REF and BUS) disabled. It needs
+`11271000.usb/power/control` set to `auto`, which something at boot must
+write on the card (the Arch root session's). A plug is seen through the
+PMIC's CHRDET EINT, which the type driver turns back into the device role;
+that is the wake path W3b already proved under the GIC mask. Once on an
+image, D3 can run with the cable out and `auto` set instead of an unbound
+gadget, and 0802's own gate check confirms SSUSB is gated.
+
 ### Request D3 (proposed)
 
 - **Candidate:** the running image with `mt6797-spm-sleep.ko` from a
