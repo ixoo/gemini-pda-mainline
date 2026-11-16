@@ -16,15 +16,18 @@ power the controller down even without a wake path, since the provider
 sets a role again when a partner comes. A host-default port keeps the
 old mapping, as it has to keep watching for a device.
 
+Leaving device or none for none or device keeps VBUS as it is: only
+leaving the host role turns it off, since only that role turned it on.
+
 Track a runtime power-down so that resume mirrors it, and leave a
 runtime-suspended controller alone across a system suspend instead of
 disabling its clocks twice.
 ---
  drivers/usb/mtu3/mtu3.h        |  3 +++
- drivers/usb/mtu3/mtu3_dr.c     | 28 +++++++++++++++++++------
+ drivers/usb/mtu3/mtu3_dr.c     | 33 ++++++++++++++++++++++-------
  drivers/usb/mtu3/mtu3_gadget.c | 24 +++++++++++++++++++++
  drivers/usb/mtu3/mtu3_plat.c   | 38 ++++++++++++++++++++++++++++++----
- 4 files changed, 83 insertions(+), 10 deletions(-)
+ 4 files changed, 87 insertions(+), 11 deletions(-)
 
 diff --git a/drivers/usb/mtu3/mtu3.h b/drivers/usb/mtu3/mtu3.h
 index 93e644af5..adbf3a4b4 100644
@@ -55,7 +58,7 @@ index 93e644af5..adbf3a4b4 100644
  void mtu3_gadget_resume(struct mtu3 *mtu);
  void mtu3_gadget_disconnect(struct mtu3 *mtu);
 diff --git a/drivers/usb/mtu3/mtu3_dr.c b/drivers/usb/mtu3/mtu3_dr.c
-index ffa5b9401..c2f1b3698 100644
+index ffa5b9401..66f886965 100644
 --- a/drivers/usb/mtu3/mtu3_dr.c
 +++ b/drivers/usb/mtu3/mtu3_dr.c
 @@ -135,13 +135,17 @@ static void ssusb_mode_sw_work(struct work_struct *work)
@@ -82,21 +85,25 @@ index ffa5b9401..c2f1b3698 100644
  
  	if (current_role == desired_role)
  		return;
-@@ -159,6 +163,7 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+@@ -159,13 +163,25 @@ static void ssusb_mode_sw_work(struct work_struct *work)
  		ssusb->is_host = true;
  		break;
  	case USB_ROLE_DEVICE:
 +		otg_sx->role_none = false;
  		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
  		ssusb->is_host = false;
- 		ssusb_set_vbus(otg_sx, 0);
-@@ -166,6 +171,14 @@ static void ssusb_mode_sw_work(struct work_struct *work)
+-		ssusb_set_vbus(otg_sx, 0);
++		/* Only the host role turned VBUS on. */
++		if (current_role == USB_ROLE_HOST)
++			ssusb_set_vbus(otg_sx, 0);
+ 		switch_port_to_device(ssusb);
  		mtu3_start(mtu);
  		break;
  	case USB_ROLE_NONE:
 +		ssusb_set_force_mode(ssusb, MTU3_DR_FORCE_DEVICE);
 +		ssusb->is_host = false;
-+		ssusb_set_vbus(otg_sx, 0);
++		if (current_role == USB_ROLE_HOST)
++			ssusb_set_vbus(otg_sx, 0);
 +		switch_port_to_device(ssusb);
 +		mtu3_stop(mtu);
 +		mtu3_drop_connection(mtu);
@@ -105,7 +112,7 @@ index ffa5b9401..c2f1b3698 100644
  	default:
  		dev_err(ssusb->dev, "invalid role\n");
  	}
-@@ -272,6 +285,9 @@ static enum usb_role ssusb_role_sw_get(struct usb_role_switch *sw)
+@@ -272,6 +288,9 @@ static enum usb_role ssusb_role_sw_get(struct usb_role_switch *sw)
  {
  	struct ssusb_mtk *ssusb = usb_role_switch_get_drvdata(sw);
  

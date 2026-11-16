@@ -1033,6 +1033,34 @@ taint change, a clock "already disabled" or "unprepared" warning, or "ip
 sleep failed" → `echo on` to `power/control`, keep the log, stop. Wi-Fi SSH
 lost with the cable out → the owner plugs the cable back.
 
+**M1 stopped at the first unplug (2026-11-16).** Run by the custodian with the
+owner. Image 132, built from `46349c02` (profile `mt6797-a53-station-dvfs`):
+package `linux-7.1.3-gemini-6ecdccfc…`, `Image.gz` `52bee93f…`, boot2
+`355277e3…`, written with `flash-boot2` and verified. Boot `f966a460`.
+
+- Baseline, cable in, laptop CDP: role `device`, gadget `configured`,
+  `mt6351-usb` online with type CDP, MTU3 `control=on`, active, usage 2, the
+  three SSUSB clocks at enable 1, `usb0` up and USB SSH working, taint 0.
+  After `echo auto`: usage 1, clocks unchanged.
+- Unplug: within a few milliseconds of "pullup D-", the regulator core
+  warned "unbalanced disables for regulator-dummy" from `ssusb_set_vbus()` in
+  `ssusb_mode_sw_work()`. The watcher stopped on it (`echo device` to the
+  role, `echo on` to `power/control`), and the switch back to device warned
+  again. So the runtime power-down was never reached or checked.
+- With `control=on`, a further unplug and plug warned once more, but the
+  plug path worked: "charger attached: CDP (charging host)", role `device`,
+  "pullup D+", gadget `configured`, `usb0` up with its address, and a new SSH
+  session over USB. Four warnings in all, taint `W` (512).
+
+Cause: MTU3 has no VBUS supply on this board, so it got the dummy
+regulator. The role work turns VBUS off on every switch into device, which
+was balanced only because device used to be entered from host alone. 0800's
+switches between device and none disabled it with no matching enable.
+
+Fix, folded into 0800 (compile-checked, not run): only a switch out of host
+turns VBUS off, since only host turned it on. 0801 is unchanged. Image 132
+carries the earlier 0800, so M1 runs again on a new image, from the start.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 
