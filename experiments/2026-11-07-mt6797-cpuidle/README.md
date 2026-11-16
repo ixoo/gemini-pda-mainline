@@ -2726,6 +2726,93 @@ anything. Compile-checked with `W=1`; checkpatch is quiet.
 records this. If another source turns out stuck, the script stops early,
 and the rerun drops that source with `D4_WAKE` and repeats.
 
+**D4, second run (2026-11-16, same boot `4cc2b9ba…`).** Custodian's report:
+- *Candidate:* module `72b2966a…` from the `b4ad7ebd` build, whose
+  `Image.gz` is image 135's `785d7151…`; `d4.sh` `53b6e211`.
+- *Setup:* battery 92 %, cable out, Wi-Fi up, taint 0 before and after, no
+  refusals. Every hash was equal; no warning.
+- **Totals over 80 periods:** 79 ended on the timer at 2000 ms, and one on
+  EINT at 456 ms. SYS_CIRQ cloned 0 lines, status 0.
+- **A key wakes SODI.** In window A, `r12` `00000040`, slept 456 ms: the
+  owner's key press, through the keyboard's EINT10 (its count went from 241
+  to 263). Memory was intact. The custodian asked for the key while A was
+  still running (A took 53 s), so window B then found the screen already
+  lit.
+- **Inbound packets do not wake SODI.** In window C, 0 of 60 periods ended
+  early, though 119 echo requests arrived in the window. The laptop's 180
+  pings: no loss, RTT 31.5/592.7/2631.2 ms (min/avg/max). Each packet waited
+  for the 2 s PCM timer. CONSYS never raised CONN2AP.
+- **The screen scrambled briefly when it lit** (the owner's report). dmesg
+  shows only the lines earlier unblanks on this boot also show (`swiotlb
+  buffer is full` from the OVL, and a DSI read). **Probably SODI:** A does
+  not check the backlight, so after the key woke the panel, A went on
+  running SODI periods while the display lit and scanned out. SODI honours
+  the display's DRAM requests (`SPM_SRC2_MASK`), but the screen-on case is
+  the open scanout-FIFO question (note of 2026-11-14), not part of D4. The
+  custodian is asking the owner whether ordinary unblanks also scramble.
+
+**Why packets did not wake.** The WLAN HIF interrupt is SPI 283, which is
+level-triggered. 0804 clones only edge SPIs into SYS_CIRQ, as upstream does
+for suspend, and run 1 showed that no enabled SPI here is edge. The vendor
+relies on CONSYS raising CONN2AP. On mainline it never did; perhaps it
+needs a WMT host-sleep handshake that mainline doesn't send (not
+investigated). The general fix, which matches the plan's rule that in idle
+every interrupt must reach the program, is to record **level** SPIs in
+SYS_CIRQ too.
+
+**Change.**
+[`0806`](../../patches/proposals/0806-soc-mediatek-mt6797-spm-sleep-optionally-record-leve.patch)
+adds `sodi_cirq_level`, off by default. When set:
+- every enabled level SPI in the CIRQ range is recorded too, with its
+  polarity;
+- the block leaves edge-only mode;
+- the SPM's own SPI 180 and the CIRQ output SPI 291 are never recorded.
+
+That level lines are recorded outside edge-only mode is inferred from
+upstream's name for the bit ("edge_only mode, record edge-triggered
+interrupts"). The run tests it. On the flush, the block may replay a level
+line that has already dropped. Its driver then sees one interrupt with
+nothing to do, which is harmless in a short test.
+
+d4.sh: `D4_CIRQ_LEVEL=1` loads the module with the parameter. No period
+starts while the screen is lit, in any window. Compile-checked with `W=1`;
+checkpatch is quiet. With the parameter off, the module behaves as 0805.
+
+**D4b writes for owner approval** (only with `sodi_cirq_level=1`; in
+addition to the approved D4 list):
+
+| # | Register | D4b |
+| --- | --- | --- |
+| Q3b | CIRQ `SENS_SET` `0x10204180`-`198` (7 words) | the cloned level lines |
+| Q4, Q5 | `POL_SET`/`POL_CLR`, `MASK_CLR` | as D4, now including the level lines |
+| Q6 | CIRQ `CON` `0x10204300` | at entry: read value with `0x2` (edge only) cleared and `0x1` (enable) set; the exit is unchanged |
+
+Nothing outside SYS_CIRQ changes.
+
+### Request D4b (proposed)
+
+- **Candidate:** `mt6797-spm-sleep.ko` from a Buildbox build of the commit
+  recording this (0806), on image 135 or later; d4.sh from the same commit,
+  run with `D4_CIRQ_LEVEL=1`.
+- **Windows and stops:** as D4. The custodian should ask for the key only
+  after the log shows "B: press one key once". Reading the log over SSH
+  during B is fine, since B ends only on a key wake (EINT or keypad).
+- **Hypothesis:** with level SPIs recorded, an inbound packet ends a period
+  through the SYS_CIRQ wake (`r12` bit 22), and the CIRQ status names SPI
+  283. The key still wakes through EINT.
+- **Unique observation:** whether SYS_CIRQ records level lines, and the
+  natural wake rate with every interrupt able to end SODI.
+- **Pass:** in C, most periods end early by `cirq` with the status showing
+  SPI 283 (line 211: word 6, bit 19), and the laptop's RTTs fall well under
+  2 s. In B, one key wake. Every hash is equal, and the screen never lights
+  during a period.
+
+| Result | Next |
+| --- | --- |
+| Packets wake through CIRQ, the key through EINT | D5, with `sodi_cirq_level` on by default and the display-blank check in the driver |
+| Periods end at once on `cirq` with no packet | Read the status words for the line that is always asserted; leave it out or find its holder |
+| Packets still do not wake | CIRQ records edges only; the WLAN wake then needs CONSYS's CONN2AP handshake (wifi-daily) |
+
 ### What it should save
 
 | State | Today | Expected |

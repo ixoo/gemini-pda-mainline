@@ -8,7 +8,10 @@
 #   setsid nohup sh d4.sh /path/to/mt6797-spm-sleep.ko </dev/null >/dev/null 2>&1 &
 #
 # D4_WAKE=0x... sets the module's sodi_wake_src (within the vendor set; the
-# default leaves APXGPT out, 0805).
+# default leaves APXGPT out, 0805). D4_CIRQ_LEVEL=1 sets sodi_cirq_level, so
+# level SPIs (the WLAN interrupt among them) are recorded in SYS_CIRQ (0806).
+# No period starts while the screen is lit: SODI with the display scanning
+# out is not part of D4.
 #
 # Wi-Fi stays up. The script waits for the desktop's idle blank, takes
 # CPU1-9 offline and runs three windows of 2000 ms periods:
@@ -159,6 +162,10 @@ early() {
 	[ "$SLEPT" -lt 1900 ]
 }
 
+blank() {
+	[ "$(cat /sys/class/backlight/*/bl_power 2>/dev/null | head -n 1)" = 4 ]
+}
+
 # ---- checks before anything changes ----
 DMESG0=$(dmesg | wc -l)
 REFUSED=0
@@ -174,6 +181,9 @@ case $(modinfo -F vermagic "$KO") in
 esac
 grep -q 'sodi cirq' "$KO" || stop "the module has no SYS_CIRQ (0804)"
 grep -q 'sodi_wake_src' "$KO" || stop "the module has no sodi_wake_src (0805)"
+if [ "${D4_CIRQ_LEVEL:-0}" = 1 ]; then
+	grep -q 'sodi_cirq_level' "$KO" || stop "the module has no sodi_cirq_level (0806)"
+fi
 [ "$(sha256sum "$FW" | cut -d' ' -f1)" = "$FW_SHA" ] || stop "$FW missing or its hash differs"
 [ "$(sha256sum "$FW_SUSPEND" | cut -d' ' -f1)" = "$FW_SUSPEND_SHA" ] ||
 	stop "$FW_SUSPEND missing or its hash differs"
@@ -201,7 +211,11 @@ log "gadget power/control auto (was $USB_CONTROL), runtime $(cat "/sys/bus/platf
 if [ -d /sys/module/mt6797_spm_sleep ]; then
 	rmmod mt6797_spm_sleep || stop "the running SPM module did not unload"
 fi
-insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} || stop "insmod failed"
+level=""
+[ "${D4_CIRQ_LEVEL:-0}" = 1 ] && level=sodi_cirq_level=1
+# shellcheck disable=SC2086 # empty parameters must vanish
+insmod "$KO" ${D4_WAKE:+sodi_wake_src=$D4_WAKE} $level || stop "insmod failed"
+[ -n "$level" ] && log "sodi_cirq_level $(cat /sys/module/mt6797_spm_sleep/parameters/sodi_cirq_level)"
 log "sodi_wake_src $(printf '%08x' "$(cat /sys/module/mt6797_spm_sleep/parameters/sodi_wake_src)")"
 new_dmesg | grep -E 'mt6797-spm-sleep|pcm_' | sed 's/^/    /'
 [ -e "$SODI" ] || stop "no $SODI: the SODI program was not loaded"
@@ -240,6 +254,7 @@ log "C: pings arriving, 60 periods"
 early_c=0
 pkt_c=0
 for i in $(seq 1 60); do
+	blank || { log "C: the screen lit, window ends"; break; }
 	period
 	early && early_c=$((early_c + 1))
 	[ $(( (0x$R12 >> 5) & 1 | (0x$R12 >> 22) & 1 )) -eq 1 ] && pkt_c=$((pkt_c + 1))
@@ -262,6 +277,7 @@ done
 log "A: 20 periods"
 early_a=0
 for i in $(seq 1 20); do
+	blank || { log "A: the screen lit, window ends"; break; }
 	period
 	early && early_a=$((early_a + 1))
 	check_hash "period $i of A"
@@ -274,7 +290,7 @@ log "B: press one key once (up to 300 s)"
 key=0
 start=$(date +%s)
 while [ $(( $(date +%s) - start )) -lt 300 ]; do
-	if [ "$(cat /sys/class/backlight/*/bl_power 2>/dev/null | head -n 1)" != 4 ]; then
+	if ! blank; then
 		log "B: the screen lit with no key wake seen"
 		break
 	fi

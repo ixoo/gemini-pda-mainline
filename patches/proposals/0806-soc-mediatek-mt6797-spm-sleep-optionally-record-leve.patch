@@ -1,0 +1,127 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 14:40:00 -0500
+Subject: [PATCH] soc: mediatek: mt6797-spm-sleep: optionally record level SPIs
+ in SYS_CIRQ
+
+In the second D4 run a key ended a SODI period through EINT, but inbound
+Wi-Fi packets did not: CONSYS never raised CONN2AP, and the WLAN HIF
+interrupt (SPI 283) is level, so the edge-only clone left it out and each
+packet waited for the PCM timer.
+
+Add sodi_cirq_level, off by default. When set, every enabled level SPI in
+the CIRQ range is recorded too, with its polarity, and the block leaves
+edge-only mode, so any device interrupt can end the period through the
+SYS_CIRQ wake. The SPM interrupt and the CIRQ output are never recorded.
+---
+ drivers/soc/mediatek/mt6797-spm-sleep.c | 53 ++++++++++++++++++-------
+ 1 file changed, 38 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/soc/mediatek/mt6797-spm-sleep.c b/drivers/soc/mediatek/mt6797-spm-sleep.c
+index 920ca3d68..e915d46e3 100644
+--- a/drivers/soc/mediatek/mt6797-spm-sleep.c
++++ b/drivers/soc/mediatek/mt6797-spm-sleep.c
+@@ -186,6 +186,8 @@ static const u8 sodi_fw_sha256[SHA256_DIGEST_SIZE] = {
+ #define CIRQ_EN			BIT(0)
+ #define CIRQ_EDGE		BIT(1)
+ #define CIRQ_FLUSH		BIT(2)
++#define CIRQ_OWN_SPI		291	/* SYS_CIRQ's own output */
++#define CIRQ_SENS_SET		0x180
+ 
+ /* MCUCFG sysirq polarity words: a set bit inverts a low or falling SPI */
+ #define SYSIRQ_POL0		0x620	/* SPI 0-255 */
+@@ -349,6 +351,15 @@ static unsigned int sodi_wake_src = SODI_WAKE_SRC & ~WAKE_APXGPT;
+ module_param(sodi_wake_src, uint, 0644);
+ MODULE_PARM_DESC(sodi_wake_src, "SODI wake sources, within 0x0f57c5f5 (the timer is always on)");
+ 
++/*
++ * Also record level SPIs in SYS_CIRQ (not edge-only mode). In D4 the WLAN
++ * HIF interrupt (SPI 283, level) did not end a period and CONSYS never
++ * raised CONN2AP, so a packet waited for the PCM timer.
++ */
++static bool sodi_cirq_level;
++module_param(sodi_cirq_level, bool, 0644);
++MODULE_PARM_DESC(sodi_cirq_level, "SODI: record level SPIs in SYS_CIRQ too, not only edge SPIs");
++
+ static bool sodi_pdn;
+ module_param(sodi_pdn, bool, 0644);
+ MODULE_PARM_DESC(sodi_pdn, "SODI test in PDN mode (DRAM PHY and MEMPLL off) instead of CG mode");
+@@ -629,43 +640,55 @@ static bool spm_spi_inverted(unsigned int spi)
+ 
+ /*
+  * Before the GIC is masked: record every enabled edge SPI in SYS_CIRQ, with
+- * its polarity, and nothing else (the vendor's mt_cirq_clone_gic and
+- * mt_cirq_enable, in edge-only mode as upstream).
++ * its polarity (the vendor's mt_cirq_clone_gic and mt_cirq_enable, in
++ * edge-only mode as upstream). With sodi_cirq_level, enabled level SPIs too,
++ * with the block out of edge-only mode. The SPM's own SPI and SYS_CIRQ's
++ * output are never recorded.
+  */
+ static void spm_cirq_enable(void)
+ {
+-	unsigned int w, b, line, intid;
+-	u32 edge, rise;
++	bool level = READ_ONCE(sodi_cirq_level);
++	unsigned int w, b, line, intid, spi;
++	u32 edge, lvl, rise;
+ 
+ 	s.cirq_lines = 0;
+ 	for (w = 0; w < CIRQ_WORDS; w++) {
+ 		writel(~0u, s.cirq + CIRQ_MASK_SET + 4 * w);
+ 		writel(~0u, s.cirq + CIRQ_ACK + 4 * w);
+ 		edge = 0;
++		lvl = 0;
+ 		rise = 0;
+ 		for (b = 0; b < 32; b++) {
+ 			line = 32 * w + b;
+ 			if (line >= CIRQ_LINES)
+ 				break;
+-			intid = 32 + CIRQ_SPI_FIRST + line;
++			spi = CIRQ_SPI_FIRST + line;
++			intid = 32 + spi;
++			if (intid == SPM_GIC_INTID || spi == CIRQ_OWN_SPI)
++				continue;
+ 			if (!(readl(s.gicd + GICD_ISENABLER + 4 * (intid / 32)) &
+ 			      BIT(intid % 32)))
+ 				continue;
+-			if (!(readl(s.gicd + GICD_ICFGR + 4 * (intid / 16)) &
+-			      BIT(2 * (intid % 16) + 1)))
++			if (readl(s.gicd + GICD_ICFGR + 4 * (intid / 16)) &
++			    BIT(2 * (intid % 16) + 1))
++				edge |= BIT(b);
++			else if (level)
++				lvl |= BIT(b);
++			else
+ 				continue;
+-			edge |= BIT(b);
+-			if (!spm_spi_inverted(CIRQ_SPI_FIRST + line))
++			if (!spm_spi_inverted(spi))
+ 				rise |= BIT(b);
+ 		}
+-		s.cirq_edge[w] = edge;
+-		s.cirq_lines += hweight32(edge);
++		s.cirq_edge[w] = edge | lvl;
++		s.cirq_lines += hweight32(edge | lvl);
+ 		writel(edge, s.cirq + CIRQ_SENS_CLR + 4 * w);
++		writel(lvl, s.cirq + CIRQ_SENS_SET + 4 * w);
+ 		writel(rise, s.cirq + CIRQ_POL_SET + 4 * w);
+-		writel(edge & ~rise, s.cirq + CIRQ_POL_CLR + 4 * w);
+-		writel(edge, s.cirq + CIRQ_MASK_CLR + 4 * w);
++		writel((edge | lvl) & ~rise, s.cirq + CIRQ_POL_CLR + 4 * w);
++		writel(edge | lvl, s.cirq + CIRQ_MASK_CLR + 4 * w);
+ 	}
+-	writel(readl(s.cirq + CIRQ_CON) | CIRQ_EN | CIRQ_EDGE, s.cirq + CIRQ_CON);
++	writel((readl(s.cirq + CIRQ_CON) & ~CIRQ_EDGE) | CIRQ_EN |
++	       (level ? 0 : CIRQ_EDGE), s.cirq + CIRQ_CON);
+ }
+ 
+ /* Before the GIC is restored: note, replay and disable (mt_cirq_flush) */
+@@ -1027,7 +1050,7 @@ static int sodi_once(u64 ms)
+ 	spm_log_wake(sodi_pdn ? "sodi pdn" : "sodi cg");
+ 	if (s.entered)
+ 		dev_info(&s.pdev->dev,
+-			 "sodi cirq: %u lines edge=%08x %08x %08x %08x %08x %08x %08x sta=%08x %08x %08x %08x %08x %08x %08x\n",
++			 "sodi cirq: %u lines cloned=%08x %08x %08x %08x %08x %08x %08x sta=%08x %08x %08x %08x %08x %08x %08x\n",
+ 			 s.cirq_lines, s.cirq_edge[0], s.cirq_edge[1], s.cirq_edge[2],
+ 			 s.cirq_edge[3], s.cirq_edge[4], s.cirq_edge[5], s.cirq_edge[6],
+ 			 s.cirq_sta[0], s.cirq_sta[1], s.cirq_sta[2], s.cirq_sta[3],

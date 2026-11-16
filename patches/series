@@ -1375,3 +1375,4 @@ proposals/0802-soc-mediatek-mt6797-spm-sleep-run-one-SODI-period-on.patch
 proposals/0803-soc-mediatek-mt6797-spm-sleep-find-I2C6-by-path-and-.patch
 proposals/0804-soc-mediatek-mt6797-spm-sleep-SODI-device-wakes-thro.patch
 proposals/0805-soc-mediatek-mt6797-spm-sleep-leave-APXGPT-out-of-th.patch
+proposals/0806-soc-mediatek-mt6797-spm-sleep-optionally-record-leve.patch
