@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# T7 on the station: t7.sh SECONDS. Loads all ten CPUs with hashes under the
+# T7 on the station: t7.sh SECONDS (of uptime). Loads all ten CPUs with hashes under the
 # governors and thermal policy already set, and samples once a second: every
 # thermal zone, each policy's rate, the CCI, the four CPU rails, and the
 # battery's current and voltage. At the first limit it caps the A72s at
@@ -106,10 +106,10 @@ trap 'halt "interrupted"' INT TERM
 say "start seconds=$1 soc_limit=$SOC_LIMIT batt_limit=$BATT_LIMIT vbat_min=$VBAT_MIN ibat_max=$IBAT_MAX boost=$(cat "$P/boost" 2>/dev/null) p8_max=$(cat "$P/policy8/scaling_max_freq") ref=$REF"
 touch "$RUN"
 for c in 0 1 2 3 4 5 6 7 8 9; do worker "$c" & done
-t=0
-while [ "$t" -lt "$1" ]; do
+# Run for SECONDS of uptime, not a count of samples: a sample takes over a second.
+END=$(($(cut -d. -f1 /proc/uptime) + $1))
+while [ "$(cut -d. -f1 /proc/uptime)" -lt "$END" ]; do
 	sleep 1
-	t=$((t + 1))
 	sample
 done
 rm -f "$RUN"

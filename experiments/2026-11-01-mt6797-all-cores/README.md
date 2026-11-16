@@ -1449,6 +1449,53 @@ Pass is 60 min with no hash mismatch, no fault and no stop. If the spikes remain
 the A72s held at 338 MHz, the A72s are not their cause, and the allocator's gains need
 the cpufreq session.
 
+**T7 attempt 3 (observed, owner-approved, image 128, boot `2765f020`; passed, 92 min).**
+
+Setup:
+- the seven modules as in attempt 2, with `battery-headroom` naming `bq25890-charger-0`;
+- schedutil at a 10 ms rate limit, and the power allocator at the init's gains;
+- the `cpufreq-cpu8` actor's weight on the control trip set to 256;
+- the SoC stop at 85 C, the battery stop at 45 C;
+- a wall charger at a 1.5 A input limit;
+- at the start, the battery at 24.4 C, the board at 28.2 C and the SoC at 29.3 C at rest.
+
+`battery-headroom` capped policy8 at 1495 MHz, not 1677 MHz, from the start. It
+reported a headroom of 2122714 uA and a CPU budget of 1422714 uA, so the module ran
+with the gauge's value for the whole test.
+
+`t7.sh` counted loop passes, not seconds, and a pass takes about 2.6 s. So "3600"
+meant about 2.6 h. Attempt 2 had stopped early, so this did not show before. The
+custodian ended the run after 92 min, past the intended 60. The log reads
+`STOP interrupted`, and `t7.sh` capped the A72s at 845 MHz as designed. `t7.sh` now
+runs for the given seconds of uptime.
+
+Results over 2139 samples with all ten CPUs loaded:
+- No hash differed, no fault line appeared, and no stop fired. Taint 0; the microSD
+  held.
+- **SoC:** 82.5 C at most, with four samples at or above 80 C.
+- **A72s:** 338 MHz in 2137 of 2139 samples. The other two were the first sample at
+  1495 MHz and one at 676 MHz.
+- **A53s:** LL averaged 1.05 GHz and L 773 MHz.
+- **Battery:** at most 28.6 C, at least 3.785 V, and a drain of at most 693 mA on
+  the charger. It ended at 87 %.
+
+Reading:
+- By its stated rule (60 min, no mismatch, no fault, no stop) T7 passes. Ten CPUs
+  ran 92 min under heat, the power allocator and the battery cap with correct
+  results.
+- The spikes past 80 C remained with the A72s held at 338 MHz throughout. So the
+  A72 steps up did not cause them, and the inference from attempt 2 is withdrawn.
+  The allocator's response to the A53s and the GPU is the cpufreq session's to
+  tune. The spikes stayed below the vendor's lowest static clamp (85 C).
+- At weight 256 the A72s stayed at their floor under sustained heat. At 1024 (attempt 2) they
+  stepped up in 13 of 562 samples. Since the weight did not change the spikes, the
+  tree keeps 1024.
+- What this does not show: the A72s at speed under heat. Under sustained all-ten
+  load the allocator spends the budget on the A53s, as expected, and the A72s'
+  worth is in short bursts. T4b and T4c covered the A72 points themselves.
+
+Next: T8 (suspend with the A72s online), then T9.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
