@@ -2792,7 +2792,10 @@ addition to the approved D4 list):
 
 Nothing outside SYS_CIRQ changes.
 
-### Request D4b (proposed)
+**Approved** by the owner on 2026-11-16 ("Approve D4b"), for the list above
+with the 0806 module from `147b0400` or later.
+
+### Request D4b (approved 2026-11-16)
 
 - **Candidate:** `mt6797-spm-sleep.ko` from a Buildbox build of the commit
   recording this (0806), on image 135 or later; d4.sh from the same commit,
