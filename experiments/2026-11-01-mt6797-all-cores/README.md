@@ -1612,8 +1612,8 @@ Reading:
 **Owner decision (2026-11-16):** keep the A72s off at boot while on battery until the
 cap is shown at low charge. `a72-at-boot` is renamed `.off` and `cpufreq-at-boot` stays
 set, so the station boots A53-only and the init skips `battery-headroom`. The low-charge
-test (T11, the cap holding all-ten load from 3.70-3.80 V at rest) is proposed and not
-approved.
+test (T11, the cap holding all-ten load from 3.70-3.80 V at rest) was approved later
+the same day; it waits for the battery to rest at that level.
 
 **battery-headroom's margins from the battery runs (desk analysis, 2026-11-16).** The
 owner asked for this ahead of T11. The inputs are:
