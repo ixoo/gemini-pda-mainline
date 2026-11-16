@@ -2463,6 +2463,19 @@ gadget, and 0802's own gate check confirms SSUSB is gated.
   stall; no USB SSH after the restore within 60 s (a hang: the owner's
   force-off). No retry.
 
+**Script:** [`tools/d3.sh`](tools/d3.sh), run detached as root on the card
+root with the module path as its argument; it logs to `/var/tmp/d3.log`,
+synced line by line. Control link: Wi-Fi SSH to start it with the cable
+already out (the owner pulls it before the launch; the script refuses with
+external power on). Thirty seconds later it unloads the radios through the
+card's own sleep hook (`/usr/lib/systemd/system-sleep/gemini-radios pre`),
+so SSH drops, and it unbinds the gadget (`11271000.usb` from `mtu3`). At
+the end it binds the gadget, runs the hook's `post` (Wi-Fi first, then
+whatever else was loaded) and SSH returns. On image 131, which has no 0801,
+the S1 unbind is safe. It checks the module's vermagic, the program's and
+`cpu-mhz`'s hashes and that `mt6797-gate-unused` is loaded before changing
+anything. A wrong memory hash syncs the log and powers off.
+
 | Result | Next |
 | --- | --- |
 | CG and PDN both pass | D4: the vendor's full SODI wake set, SYS_CIRQ, and wakes from a key, an audio period and a Wi-Fi packet |
