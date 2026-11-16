@@ -2917,11 +2917,41 @@ D4c is window C again, within the approved D4b list, with no write change:
 - Memory hash equal, no refusals, taint 0, no warning; the CPUs were
   restored.
 - Windows A and B did not run: the screen was lit when A started, so the
-  script started no period. The key wake already passed in D4b. Asked
-  whether they touched the device around 15:52:05, the owner was not
-  sure, so the cause of that unblank is unknown; it is not counted as a
-  spontaneous unblank. A rerun of A and B needs the owner's yes and hands
-  off the device for the whole run.
+  script started no period. The key wake already passed in D4b. The
+  owner was not sure whether they touched the device around 15:52:05,
+  but the aw9523 line 4 count went from 0 to 1 by the time A started, so
+  a keypad edge did happen: most likely an accidental key press, not a
+  spontaneous unblank.
+
+#### D4c rerun of windows A and B
+
+With the owner's yes, the device untouched until the custodian asked for
+the key, and no SSH connection from 18:07:16 until B was running. Same
+boot 2d4dcc57 and image 136 with the 0811 CONSYS module, the image's
+`mt6797-spm-sleep.ko` (9cf7b397), `D4_CIRQ_LEVEL=1`, cable out, battery
+73 %. The script runs C first, so C ran again.
+
+- **C:** all 60 periods ended early on conn2ap and SYS_CIRQ; slept
+  19/246/834 ms (min/median/max), 43 echo requests in the window. Laptop
+  ping 180 sent, 177 received; round trips 4.9/41.7/556.8 ms.
+- **A (quiet):** all 20 periods ended early, each on conn2ap and
+  SYS_CIRQ (STA6 bit 19); slept 4/56/956 ms. With no laptop traffic and
+  no SSH, the joined Wi-Fi link still ends a SODI period within about
+  56 ms at the median. Whether that is real inbound traffic (broadcast,
+  multicast, beacons passed up) or CONSYS events on CONN2AP is unknown.
+- **B (key):** 101 periods, all ended by conn2ap and SYS_CIRQ; slept
+  0/317/1219 ms, none with an EINT or key bit. The owner pressed one key
+  at about 18:13:10; the aw9523 line 4 count went from 2 to 3 and the
+  screen lit, but no period recorded the key. With periods this short
+  and awake gaps for the hash check, the key was most likely taken while
+  the CPU was awake. Inconclusive, neither pass nor fail; D4b showed the
+  key wake with polled Wi-Fi. An isolated key test with this driver
+  needs Wi-Fi quiet (down, or the WLAN line out of the wake set).
+- Every hash equal, no refusals, taint 0, no warning; CPUs restored.
+
+For D5 this is the main finding: an idle joined link rarely lets a
+period run to its timer, so the WLAN wake rate bounds what SODI can
+save while Wi-Fi is up.
 
 **D4 is complete.** SODI periods are ended by the PCM timer, a key (EINT,
 or SYS_CIRQ), and an inbound packet (SYS_CIRQ and CONN2AP), with memory
