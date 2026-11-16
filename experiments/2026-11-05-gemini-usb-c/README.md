@@ -1128,8 +1128,14 @@ built from `753574f7`: package `linux-7.1.3-gemini-1c2966b7…`, `Image.gz`
 So with `power/control=auto` the left port holds no SSUSB clock while VBUS is
 absent, and a plug restores the gadget, USB SSH and the charger type. Held
 for the controller, BC1.1 reads correctly. Not covered: a wall charger or
-other charger types after a power-down, a system suspend while powered down,
-and the card root setting `auto` by itself at boot.
+other charger types after a power-down, and a system suspend while powered
+down.
+
+The card root sets `auto` at boot since gemini-base 66, with a udev rule. On
+image 134, boot `764f1282`, with the cable out at boot and nothing done by
+hand, MTU3 read `control=auto`, runtime suspended, with the SSUSB clocks at
+enable 0. A plug then read CDP, the guard set 1.5 A, and the role, gadget,
+`usb0` and USB SSH came back; taint 0 (custodian report).
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
