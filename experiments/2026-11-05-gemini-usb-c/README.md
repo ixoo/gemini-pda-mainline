@@ -5,7 +5,7 @@
 | Field | Value |
 | --- | --- |
 | ID | `2026-11-05-gemini-usb-c` |
-| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached; 0623 fixes the second, compile-checked only; the left port powers down with no VBUS (0800, 0801), M2 passed on boot `fef9e0f2` |
+| Status | `running`: source study done; both-port support written (0595–0604); U1 and U2 passed on boot `9207cc89`, U1 after two failures (I2C adapters deferred: fw_devlink, then the adapter's `vbus` bus-supply lookup finding the Type-C children); U3 passed (right-port host, full and high speed) after 0608 and 0620; U4 (left-port host) failed: no boost VBUS, and `sink` did not end the source state while a partner was attached; 0623 fixes the second, compile-checked only; the left port powers down with no VBUS (0800, 0801), M2 passed on boot `fef9e0f2`, M3 (wall charger) on boot `4cc2b9ba` |
 | Subsystem | MTU3/xHCI, USB11 MUSB, T-PHY, FUSB301/FUSB301A, BQ25896 boost, SiI902x HDMI |
 | Device variant | named Gemini PDA (MT6797X); Gemian `3.18.41+` evidence from earlier records |
 | Date(s) | 2026-11-05 to 2026-11-06 |
@@ -1157,6 +1157,26 @@ non-standard charger (which may still be a host) or a failed detection set
 *device*. M3 on the next image: a wall charger after a power-down should read
 DCP, set 1.5 A, keep role `none` and the SSUSB clocks at 0, with no pullup in
 the log; then a laptop plug should still bring back the gadget and USB SSH.
+
+**M3 passed (2026-11-16).** Run by the custodian with the owner. Image 135,
+built from `27f2e76b`: package `linux-7.1.3-gemini-861478f7…`, `Image.gz`
+`785d7151…`, boot2 `30ec309e…`, written with `flash-boot2` and verified. Boot
+`4cc2b9ba`, gemini-base 66, taint 0, no warnings.
+
+1. Cable out at boot: role `none`, `control=auto` from the card's rule,
+   runtime suspended, usage 0, the SSUSB clocks at enable 0.
+2. Wall charger: "charger attached: DCP (dedicated charger)", the guard set
+   1.5 A, the battery charged at about 0.33 A. After 20 s: role `none`, gadget
+   `not attached`, runtime suspended, the SSUSB clocks at enable 0 and prepare
+   0, and no pullup after the attach.
+3. Laptop after the wall charger: pullup, CDP, the guard at 1.5 A, role
+   `device`, gadget `configured`, clocks on, `usb0` up and a new USB SSH
+   session.
+
+So on a wall charger the left port now charges at 1.5 A without holding the
+SSUSB clocks. Seen in passing, not USB: the charger guard refused two
+suspend requests during the laptop plug ("charger attached, refusing to
+suspend").
 
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
