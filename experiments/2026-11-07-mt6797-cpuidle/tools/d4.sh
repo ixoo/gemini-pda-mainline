@@ -135,6 +135,10 @@ period() {
 	tout=$(echo "$line" | sed -n 's/.* timer_out=\([0-9a-f]*\).*/\1/p')
 	SLEPT=$(( 0x${tout:-0} * 1000 / 32768 ))
 	sta=$(echo "$out" | grep "sodi cirq:" | tail -n 1 | sed -n 's/.*cirq: \([0-9]*\) lines.* sta=\(.*\)/\1 lines, sta \2/p')
+	# CIRQ status words 3 and 6: SPI 170 (EINT parent) is word 3 bit 2,
+	# SPI 283 (WLAN HIF) word 6 bit 19
+	STA3=$(echo "$sta" | awk '{print $7}')
+	STA6=$(echo "$sta" | awk '{print $10}')
 	log "    r12 $R12, slept $SLEPT ms; $(wake_names "$R12"); cirq $sta"
 	if [ "$SLEPT" -eq 0 ] && [ "$R12" = "$LAST_R12" ]; then
 		INSTANT=$((INSTANT + 1))
@@ -257,9 +261,9 @@ for i in $(seq 1 60); do
 	blank || { log "C: the screen lit, window ends"; break; }
 	period
 	early && early_c=$((early_c + 1))
-	[ $(( (0x$R12 >> 5) & 1 | (0x$R12 >> 22) & 1 )) -eq 1 ] && pkt_c=$((pkt_c + 1))
+	[ $(( (0x$R12 >> 5) & 1 | (0x${STA6:-0} >> 19) & 1 )) -eq 1 ] && pkt_c=$((pkt_c + 1))
 done
-log "C: $early_c of 60 ended early, $pkt_c by conn2ap or cirq; echo requests in the window $(( $(in_echos) - e0 ))"
+log "C: $early_c of 60 ended early, $pkt_c by conn2ap or the WLAN line; echo requests in the window $(( $(in_echos) - e0 ))"
 check_hash "window C"
 check_dmesg
 
@@ -296,7 +300,7 @@ while [ $(( $(date +%s) - start )) -lt 300 ]; do
 	fi
 	period
 	check_hash "a period of B"
-	if early && [ $(( (0x$R12 >> 6) & 1 | (0x$R12 >> 2) & 1 )) -eq 1 ]; then
+	if early && [ $(( (0x$R12 >> 6) & 1 | (0x$R12 >> 2) & 1 | (0x${STA3:-0} >> 2) & 1 )) -eq 1 ]; then
 		key=1
 		log "B: a key ended the period"
 		break

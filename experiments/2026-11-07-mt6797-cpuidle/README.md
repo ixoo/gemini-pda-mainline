@@ -2866,6 +2866,40 @@ D5 also has to keep three findings from D4:
 - check the GIC pending words before each entry;
 - leave APXGPT out.
 
+### Request D4c: packets with interrupt-driven Wi-Fi RX (2026-11-16)
+
+The owner chose interrupt-driven Wi-Fi RX before D5 ("interrupt driven
+wifi", relayed by the custodian). The Wi-Fi session pushed 0807 (the driver
+takes RX on its interrupt) and 0808 (DT: SPI 283, level-low) in `35259fb3`:
+- the line is enabled at the GIC from link-up on, and masked only from the
+  handler to the end of the worker pass;
+- a quiet link is still polled once a second for the driver's own
+  deadlines.
+
+D4c is window C again, within the approved D4b list, with no write change:
+- **Candidate:** an image built from `35259fb3` or later. It carries 0804-0806
+  and 0807/0808, so its own `mt6797-spm-sleep.ko` is used, given by path to
+  d4.sh. Run with `D4_CIRQ_LEVEL=1`, d4.sh from the commit recording this.
+- **Hypothesis:** an inbound packet now asserts SPI 283, which SYS_CIRQ
+  records, and that ends the period.
+- **Unique observation:** the WLAN line as a SODI wake source, and the RTT
+  the laptop sees with it.
+- **Pass:**
+  - in C, most periods end early with CIRQ status word 6 bit 19, which
+    d4.sh now counts as a packet wake (and status word 3 bit 2, SPI 170, as
+    a key in B);
+  - the laptop's RTTs are well under 2 s;
+  - the hashes are equal.
+
+  The driver's 1 s poll cannot end a period, since its timer is masked
+  during the wait. So C still isolates the packet wake. A and B run as
+  before.
+
+| Result | Next |
+| --- | --- |
+| Packets wake SODI through SPI 283 | D5, with the Wi-Fi poll counted among the idle wakers in its census |
+| No early wakes, word 6 bit 19 never set | Check that the line was cloned (the `cloned=` word 6) and whether the driver had fallen back to polling (its log) |
+
 ### What it should save
 
 | State | Today | Expected |
