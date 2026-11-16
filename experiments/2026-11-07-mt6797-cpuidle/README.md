@@ -2959,6 +2959,17 @@ without a WLAN interrupt the driver handles; the level-mode SYS_CIRQ
 record for SPI 283 persists or fires again after each exit; or CONSYS
 behaves differently while the AP is in SODI.
 
+Inference, untested (from the Wi-Fi session, agreed by the custodian):
+the wakes fit beacon timing. A 102.4 ms beacon interval at a random phase
+gives a median wait of about 51 ms and about 10 wakes a second. The
+driver refuses power save (`IEEE80211_CONF_PS` returns `-EOPNOTSUPP`), so
+the firmware listens for every beacon, and CONSYS probably asserts
+CONN2AP for its resources each time, without a WLAN interrupt the driver
+handles. Beacon timing alone does not explain the 956 ms longest period.
+Firmware power save that wakes only at DTIM would cut these wakes; it
+needs new firmware commands and changes on air, so it waits for the
+owner's admission. Until then, long SODI residency needs Wi-Fi down.
+
 For D5 this is the main finding: an idle joined link rarely lets a
 period run to its timer, so the WLAN wake rate bounds what SODI can
 save while Wi-Fi is up, until the extra wakes are explained.
