@@ -1609,6 +1609,12 @@ Reading:
 - Not shown: the cap holding a load at low charge, where T4b lost power without it.
   That is the measurement that decides battery default-on.
 
+**Owner decision (2026-11-16):** keep the A72s off at boot while on battery until the
+cap is shown at low charge. `a72-at-boot` is renamed `.off` and `cpufreq-at-boot` stays
+set, so the station boots A53-only and the init skips `battery-headroom`. The low-charge
+test (T11, the cap holding all-ten load from 3.70-3.80 V at rest) is proposed and not
+approved.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
