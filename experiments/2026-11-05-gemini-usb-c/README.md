@@ -1069,6 +1069,45 @@ still reach MTU3. Role control would also stop for good after a rebind. 0801
 now looks the switch up at each change and releases it after. Until a
 build with this fix, MTU3 isn't unbound on an image that has 0801.
 
+**M1 rerun: power-down passed, charger typing failed (2026-11-16).** Run by
+the custodian with the owner. Image 133, built from `e55d200e` (with
+`3672fde8` and `a8533226`): package `linux-7.1.3-gemini-cd9d72a0…`,
+`Image.gz` `c227528f…`, boot2 `2e1719b1…`, written with `flash-boot2` and
+verified. Boot `9a1464ca`, taint 0 and no warnings throughout.
+
+- Baseline, cable in: role `device`, gadget `configured`, type CDP, MTU3
+  active, the three SSUSB clocks at enable 1, USB SSH working. Then
+  `control=auto`.
+- Four unplug and plug cycles. Every unplug, after 10 s: role `none`, gadget
+  `not attached`, runtime suspended with usage 0, `infra_ssusb_sys`, `_bus`
+  and `_ref` at enable 0 and prepare 0, no "ip sleep failed". Every plug,
+  after 1 s: role `device`, gadget `configured`, MTU3 active, clocks on,
+  `usb0` up with its address. The laptop opened a new USB SSH session each
+  time, 14–44 s after the drop, including the owner's time to replug.
+- **Failure:** every replug logged "charger attached: non-standard charger"
+  and left `usb_type` Unknown, where the boot read CDP. The charger guard
+  returned the input limit to 500 mA at the first unplug and kept it there,
+  instead of the 1.5 A it set at boot from CDP.
+
+So the power-down and the gadget's return work, and the SSUSB gates go for
+SODI. BC1.1 misreads a charging host as a non-standard charger while the
+T-PHY is powered down. The boot pass ran with MTU3 active and pulled up, and
+read CDP.
+
+Fix, folded into 0801 (compile-checked, not run): the detection holds MTU3
+runtime-active, which powers the PHY and clocks back on. With role *none*
+still set, the gadget stays stopped and doesn't pull up. MTU3 is released
+after the detection, then the role goes to *device*.
+
+**M2, written in advance, not run.** Same steps as M1 on an image with this
+0801, four cycles. *Pass:* every replug reads the same type as the baseline
+(CDP from the laptop) and the guard's input limit follows it, with M1's
+power-down, gadget and `usb0` SSH checks still passing. *Branches:*
+non-standard again → the PHY's power state isn't enough, and the boot pass
+differs by its pullup; next, run the detection after the role goes to
+*device*, as at boot. A charger misread only on some cycles → record the
+timing between the plug and the detection. M1's stop rules apply.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 

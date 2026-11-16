@@ -11,15 +11,17 @@ with no cable: the SoC's deep idle waits on them.
 
 The PMIC's charger detection does see VBUS. Set the controller's role
 switch to none when VBUS goes and to device when it comes, after the
-charger type detection so that the pullup does not disturb it. The switch is
+charger type detection so that the pullup does not disturb it. BC1.1 misread
+a charging host as a non-standard charger with the controller powered
+down, so hold it powered, still stopped, for the detection. The switch is
 looked up at each change and released after it, since the controller
 can be unbound and bound again with a new switch. Leave a
 host role alone: it is set by whoever drives the port as a host, and
 its VBUS comes from this side.
 ---
- drivers/power/supply/Kconfig           |  4 ++-
- drivers/power/supply/mt6351-usb-type.c | 39 ++++++++++++++++++++++++++
- 2 files changed, 42 insertions(+), 1 deletion(-)
+ drivers/power/supply/Kconfig           |  4 +-
+ drivers/power/supply/mt6351-usb-type.c | 79 ++++++++++++++++++++++++++
+ 2 files changed, 82 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
 index db30caedf..3a52cc596 100644
@@ -41,18 +43,21 @@ index db30caedf..3a52cc596 100644
  config CHARGER_BQ25980
  	tristate "TI BQ25980 battery charger driver"
 diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
-index c7f3306df..13c77e391 100644
+index c7f3306df..faafc3371 100644
 --- a/drivers/power/supply/mt6351-usb-type.c
 +++ b/drivers/power/supply/mt6351-usb-type.c
-@@ -27,6 +27,7 @@
+@@ -25,8 +25,10 @@
+ #include <linux/of_address.h>
+ #include <linux/of_platform.h>
  #include <linux/platform_device.h>
++#include <linux/pm_runtime.h>
  #include <linux/power_supply.h>
  #include <linux/regmap.h>
 +#include <linux/usb/role.h>
  #include <linux/workqueue.h>
  
  #define MT6351_CHR_CON0			0x0f78
-@@ -172,6 +173,42 @@ static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
+@@ -172,6 +174,78 @@ static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
  	return type;
  }
  
@@ -92,10 +97,55 @@ index c7f3306df..13c77e391 100644
 +	usb_role_switch_put(sw);
 +}
 +
++/*
++ * BC1.1 misreads a charging host as a non-standard charger while the USB
++ * controller has powered its PHY down for want of VBUS. Hold the controller
++ * powered for the detection; with no role set it stays stopped, so its
++ * gadget does not pull up. Returns the controller to release, or NULL.
++ */
++static struct device *mt6351_usb_type_hold_phy(void)
++{
++	struct platform_device *pdev;
++	struct device_node *np;
++
++	np = of_find_compatible_node(NULL, NULL, "mediatek,mt6797-mtu3");
++	if (!np)
++		return NULL;
++	pdev = of_find_device_by_node(np);
++	of_node_put(np);
++	if (!pdev)
++		return NULL;
++
++	if (pm_runtime_resume_and_get(&pdev->dev)) {
++		put_device(&pdev->dev);
++		return NULL;
++	}
++
++	return &pdev->dev;
++}
++
++static void mt6351_usb_type_release_phy(struct device *dev)
++{
++	if (!dev)
++		return;
++
++	pm_runtime_put(dev);
++	put_device(dev);
++}
++
  static void mt6351_usb_type_work(struct work_struct *work)
  {
  	struct mt6351_usb_type *ut =
-@@ -191,6 +228,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
+@@ -185,12 +259,16 @@ static void mt6351_usb_type_work(struct work_struct *work)
+ 	if (!regmap_read(ut->regmap, MT6351_CHR_CON0, &con0)) {
+ 		online = con0 & MT6351_RGS_CHRDET;
+ 		if (online && !ut->online) {
++			struct device *usb = mt6351_usb_type_hold_phy();
++
+ 			type = mt6351_usb_type_detect(ut);
++			mt6351_usb_type_release_phy(usb);
+ 			if (type < 0) {
+ 				/* Not reported online, so the retry tries again. */
  				dev_warn_ratelimited(ut->dev, "detection failed: %d\n", type);
  				queue_delayed_work(system_power_efficient_wq,
  						   &ut->work, USB_TYPE_RETRY);
@@ -103,7 +153,7 @@ index c7f3306df..13c77e391 100644
  				return;
  			}
  			dev_info(ut->dev, "charger attached: %s\n",
-@@ -207,6 +245,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
+@@ -207,6 +285,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
  			WRITE_ONCE(ut->online, false);
  			power_supply_changed(ut->psy);
  		}
