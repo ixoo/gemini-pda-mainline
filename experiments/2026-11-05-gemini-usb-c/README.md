@@ -1137,6 +1137,27 @@ hand, MTU3 read `control=auto`, runtime suspended, with the SSUSB clocks at
 enable 0. A plug then read CDP, the guard set 1.5 A, and the role, gadget,
 `usb0` and USB SSH came back; taint 0 (custodian report).
 
+**Suspend and a wall charger after a power-down (2026-11-16).** Custodian
+report, image 134 with gemini-base 66, boot `764f1282`, taint 0, no warnings.
+
+- s2idle while powered down, cable out: one cycle (RTC wake after 20 s)
+  succeeded; MTU3's system suspend and resume returned 0, and after resume it
+  was still runtime suspended with the SSUSB clocks at 0. A laptop plug
+  afterwards read CDP, the guard set 1.5 A, and the gadget, `usb0` and USB SSH
+  came back.
+- Wall charger after a power-down: "charger attached: DCP (dedicated
+  charger)", the guard set 1.5 A and the battery charged. But the role went
+  to `device` and the gadget pulled D+ up. With no host, MTU3 then
+  runtime-suspended in the device role, which keeps its clocks (no wake path),
+  so the SSUSB clocks stayed on: SODI stays blocked while on a wall charger.
+
+Fix, folded into 0801 (compile-checked, not run): a dedicated or Apple
+charger has no host behind it, so the role stays *none*; only SDP, CDP, a
+non-standard charger (which may still be a host) or a failed detection set
+*device*. M3 on the next image: a wall charger after a power-down should read
+DCP, set 1.5 A, keep role `none` and the SSUSB clocks at 0, with no pullup in
+the log; then a laptop plug should still bring back the gadget and USB SSH.
+
 U5 (later, not prepared): both ports at once; a C-to-C charger on the left
 port in the default; repeated attach cycles.
 

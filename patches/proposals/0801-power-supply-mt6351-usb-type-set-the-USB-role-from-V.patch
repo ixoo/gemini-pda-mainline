@@ -10,7 +10,8 @@ device-default port with no wake path, it keeps its clocks and PHY on
 with no cable: the SoC's deep idle waits on them.
 
 The PMIC's charger detection does see VBUS. Set the controller's role
-switch to none when VBUS goes and to device when it comes, after the
+switch to none when VBUS goes and to device when it comes from a port
+that may be a host, not from a dedicated or Apple charger, after the
 charger type detection so that the pullup does not disturb it. BC1.1 misread
 a charging host as a non-standard charger with the controller powered
 down, so hold it powered, still stopped, for the detection. The switch is
@@ -20,8 +21,8 @@ host role alone: it is set by whoever drives the port as a host, and
 its VBUS comes from this side.
 ---
  drivers/power/supply/Kconfig           |  4 +-
- drivers/power/supply/mt6351-usb-type.c | 79 ++++++++++++++++++++++++++
- 2 files changed, 82 insertions(+), 1 deletion(-)
+ drivers/power/supply/mt6351-usb-type.c | 87 ++++++++++++++++++++++++++
+ 2 files changed, 90 insertions(+), 1 deletion(-)
 
 diff --git a/drivers/power/supply/Kconfig b/drivers/power/supply/Kconfig
 index db30caedf..3a52cc596 100644
@@ -43,7 +44,7 @@ index db30caedf..3a52cc596 100644
  config CHARGER_BQ25980
  	tristate "TI BQ25980 battery charger driver"
 diff --git a/drivers/power/supply/mt6351-usb-type.c b/drivers/power/supply/mt6351-usb-type.c
-index c7f3306df..faafc3371 100644
+index c7f3306df..872aef7e2 100644
 --- a/drivers/power/supply/mt6351-usb-type.c
 +++ b/drivers/power/supply/mt6351-usb-type.c
 @@ -25,8 +25,10 @@
@@ -57,7 +58,7 @@ index c7f3306df..faafc3371 100644
  #include <linux/workqueue.h>
  
  #define MT6351_CHR_CON0			0x0f78
-@@ -172,6 +174,78 @@ static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
+@@ -172,6 +174,79 @@ static int mt6351_usb_type_detect(struct mt6351_usb_type *ut)
  	return type;
  }
  
@@ -65,10 +66,11 @@ index c7f3306df..faafc3371 100644
 + * The PHY forces the USB controller's B-session valid, so the controller
 + * itself never sees VBUS. With no VBUS there is no host to serve: set its
 + * role switch to none, which lets it power down, and back to device when
-+ * VBUS comes, after the detection so that the pullup does not disturb it.
++ * VBUS comes from a port that may be a host, after the detection so that the
++ * pullup does not disturb it.
 + * A host role is someone else's and left alone.
 + */
-+static void mt6351_usb_type_set_role(struct mt6351_usb_type *ut, bool vbus)
++static void mt6351_usb_type_set_role(struct mt6351_usb_type *ut, bool host)
 +{
 +	struct usb_role_switch *sw;
 +	struct device_node *np;
@@ -87,7 +89,7 @@ index c7f3306df..faafc3371 100644
 +		return;
 +
 +	if (usb_role_switch_get_role(sw) != USB_ROLE_HOST) {
-+		ret = usb_role_switch_set_role(sw, vbus ? USB_ROLE_DEVICE :
++		ret = usb_role_switch_set_role(sw, host ? USB_ROLE_DEVICE :
 +						      USB_ROLE_NONE);
 +		if (ret)
 +			dev_warn_ratelimited(ut->dev,
@@ -136,7 +138,7 @@ index c7f3306df..faafc3371 100644
  static void mt6351_usb_type_work(struct work_struct *work)
  {
  	struct mt6351_usb_type *ut =
-@@ -185,12 +259,16 @@ static void mt6351_usb_type_work(struct work_struct *work)
+@@ -185,12 +260,16 @@ static void mt6351_usb_type_work(struct work_struct *work)
  	if (!regmap_read(ut->regmap, MT6351_CHR_CON0, &con0)) {
  		online = con0 & MT6351_RGS_CHRDET;
  		if (online && !ut->online) {
@@ -153,11 +155,18 @@ index c7f3306df..faafc3371 100644
  				return;
  			}
  			dev_info(ut->dev, "charger attached: %s\n",
-@@ -207,6 +285,7 @@ static void mt6351_usb_type_work(struct work_struct *work)
+@@ -207,6 +286,14 @@ static void mt6351_usb_type_work(struct work_struct *work)
  			WRITE_ONCE(ut->online, false);
  			power_supply_changed(ut->psy);
  		}
-+		mt6351_usb_type_set_role(ut, online);
++		/*
++		 * A dedicated or Apple charger has no host behind it: leave the
++		 * controller without a role, so that it stays powered down. A
++		 * charger read as non-standard may still be a host.
++		 */
++		mt6351_usb_type_set_role(ut, online &&
++					 ut->usb_type != POWER_SUPPLY_USB_TYPE_DCP &&
++					 ut->usb_type != POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID);
  	}
  }
  
