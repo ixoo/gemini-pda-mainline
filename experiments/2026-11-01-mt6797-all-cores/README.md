@@ -1536,6 +1536,51 @@ load afterwards. This is two cycles on one boot.
 by default needs it. Its cpufreq block now loads it, naming the charger, when policy8
 exists, and the station image packs it.
 
+**T9 result (observed, owner-approved, image 129, boots `b7e1b7c5` and `2f6856a8`;
+passed, with one finding).**
+
+Image 129 is image 128's kernel package composed with the init and `compose-station.py`
+from 8c5ceea4. Its initramfs carries `battery-headroom` `6a67f22e` and `mt6797-a72`
+`b0311656`, as T7 and T8 used. Both boots ran on a wall charger with the battery at
+100 %, with `a72-at-boot` and `cpufreq-at-boot` set and nothing loaded by hand.
+
+On both boots:
+- the status lines read `a72=loaded cpus=0-9`, then
+  `cpufreq=loaded,da9213-legacy-regulator,mt6797-vsram-regulator,clk-mt6797-mcusys,cpufreq-dt,mtk-cci-devfreq,power_allocator,battery-headroom`;
+- there was no "leaving it out" line;
+- three policies ran on schedutil at 10 ms, with the power allocator at 60/60/10/3000
+  and weights LL 4096, L 1024, A72 1024 and GPU 1024;
+- policy8 read 845 MHz with a top of 1677 MHz, and the clock driver read 845 MHz,
+  not faulted;
+- the CPU8 and CPU9 hashes matched the reference;
+- VSRAM_B stayed at or above VPROC2 + 10 mV, and taint was 0.
+
+A 120 s load on all ten (`t7.sh` `ee42d0db`) ended `passed` on both boots:
+
+| Boot | SoC max | Battery min | A72 points |
+| --- | --- | --- | --- |
+| `b7e1b7c5` | 77.7 C | 4.035 V | 338-1495 MHz |
+| `2f6856a8` | 78.5 C | 4.048 V | 338-1677 MHz |
+
+With the A53s less loaded at the start of these short runs, the allocator let the
+A72s up, unlike in T7's long run.
+
+**Finding: the first cap can come minutes late.** `battery-headroom` logged "no headroom
+reported, no cap" at about 4 s on both boots. Its first cap came at 20.6 s on boot 1, but
+only at 154.9 s on boot 2, after the load had ended.
+- **Cause, from the code:** the module reads the battery's `current_max` only on a
+  power-supply change event. Since 0794, the gauge raises an event only when the
+  headroom moves a band from the value last reported, at most once in 30 s. The first
+  valid value, after the -ENODATA before it, raises none. So the first cap waits for
+  any later battery or charger event. On boot 1 one came within seconds; on boot 2, at
+  a steady 100 % on the charger, none came for two and a half minutes.
+- **Risk:** on battery at low charge, all ten CPUs can run uncapped in that time, which
+  is the T4b case.
+- **Fix:** the gauge raises one event when the headroom first becomes valid. That is
+  the fuel-gauge session's patch, and the request went through the custodian. The A72s
+  stay off by default for battery use until an image with it shows the first cap
+  within a gauge window of the first valid headroom.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
