@@ -1020,8 +1020,11 @@ path throughout; the owner plugs and unplugs the laptop's cable.
 4. Optional, with the cpuidle census: SSUSB no longer in the SODI blockers.
 5. Owner plugs the laptop back. *Expected:* within about 2 s
    "charger attached" with the same type as step 1, role `device`, controller
-   active, gadget `configured`, USB SSH back.
-6. Repeat steps 3 and 5 three times.
+   active, gadget `configured`. Then, with the controller having been
+   powered down in step 3: `usb0` up with its address from the card's
+   network configuration, and a new SSH session over `usb0` from the laptop
+   that runs a command. Enumeration alone doesn't pass this step.
+6. Repeat steps 3 and 5 three times, with the `usb0` SSH check each time.
 
 *Stop:* USB SSH not back 10 s after a plug → over Wi-Fi, `echo device` to
 `/sys/class/usb_role/11271000.usb-role-switch/role`, then `echo on` to the
