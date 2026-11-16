@@ -2658,4 +2658,15 @@ itself at boot, a wall charger after a power-down, or system suspend while power
 by hand with `echo on > /sys/bus/platform/devices/11271000.usb/power/control`.
 
 Built in an Arch chroot over card-32's image: `gemini-base-66` (`6a341c8f…`); `udevadm verify`
-passes on the rule. Not on the device.
+passes on the rule.
+
+**Result** (custodian, card-32, image 134, boot `764f1282`, taint 0 and no warnings throughout):
+
+- At 43 s, cable out, nothing done by hand: `power/control` read `auto`, set by the rule at
+  coldplug. MTU3 was runtime-suspended and the three SSUSB clocks were at enable 0.
+- After the owner plugged in the laptop cable, the charger was typed CDP and the guard set
+  1.5 A three seconds later. The role went to device, the gadget configured, `usb0` came up
+  with its address, and a new USB SSH session worked.
+
+That covers the rule applying at boot. A wall charger after a power-down, and system suspend
+while powered down, are still untested.
