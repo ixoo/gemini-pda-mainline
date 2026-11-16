@@ -234,6 +234,39 @@ Each one joins, gets DHCP and carries a 60 s transfer.
 
 - **802.11 power save.** Firmware PS-Poll or U-APSD, as the vendor's
   power-management path does. DTIM-based wake while idle.
+
+  **Scope, at the owner's request ("Scope power save", 2026-11-16); nothing below is admitted or built.**
+  On a quiet joined link the WLAN interrupt matches received frames (about 3 a second), but SODI periods end
+  every 56 ms at the median, which fits the 102.4 ms beacon interval: the firmware runs with power save off
+  (`IEEE80211_CONF_PS` is refused) and wakes for every beacon. Two separate mechanisms, from the vendor's gen3
+  driver (Planet source, `nic/nic.c`, `nic/nic_pwr_mgt.c`, `include/nic_cmd_event.h`):
+
+  - *802.11 power save.* `CMD_ID_POWER_SAVE_MODE` (0x05), `{ bss_index, ps_profile, 2 reserved }`; the
+    profile values (constant awake, fast PS, maximum PS) are still to be confirmed from the vendor's OID code.
+    The firmware then sets the PM bit, sleeps between DTIMs and fetches buffered frames itself; the driver
+    already sends `CMD_ID_INDICATE_PM_BSS_CONNECTED` (0x16) with the DTIM period, AID and beacon interval. In
+    the driver: accept `IEEE80211_CONF_PS` and send the profile from `config`, advertise `SUPPORTS_PS` and
+    `SUPPORTS_DYNAMIC_PS` so mac80211 leaves the null frames to the firmware, and gate it behind a module
+    parameter first, since `CONFIG_CFG80211_DEFAULT_PS=y` would otherwise turn it on at every join.
+  - *Low-power ownership.* The driver holds driver own (WHLPCR bit 8) for good. The vendor hands ownership
+    back with `WHLPCR_FW_OWN_REQ_SET` and reclaims it with `FW_OWN_REQ_CLR`, polling up to 2048 ms, before HIF
+    access. Without it CONSYS likely cannot sleep. It touches every HIF access path, so it is a later stage.
+
+  Risks: access points that buffer badly or drop the PM state; broadcast and ARP delivered only at DTIM; added
+  latency up to the DTIM interval for the first frame after a quiet spell; an untested firmware command ending
+  in a fail-stop; and, for ownership, a HIF access while the firmware owns the bus, which would stall or
+  restart the WLAN.
+
+  Staged plan, each stage needing its own admission:
+  1. *Baseline, read only:* battery current averaged over 10 min on a quiet joined link with the screen
+     blanked and no SSH, and the cpuidle SODI wake distribution in the same state.
+  2. *Fast PS by module parameter:* one join, then 10 min quiet, a laptop ping at 1 s, a 60 s download and one
+     reconnect. Stop at any restart, `join stopped`, `txfail`, disconnect, or ping loss above 1 %.
+  3. *Maximum PS*, the same test, only if 2 holds.
+  4. *Ownership handoff*, designed after 2.
+
+  The gain to measure, against stage 1: SODI wakes on a quiet link moving from beacon pace to DTIM pace or
+  slower, and the battery current falling, both on the same boot by toggling the parameter.
 - **Polling.** The receive interrupt line never asserted, so make the poll
   adaptive: fast while traffic flows, backing off to the DTIM interval
   while idle. Before that, look once more for the interrupt route, the
