@@ -2949,9 +2949,19 @@ boot 2d4dcc57 and image 136 with the 0811 CONSYS module, the image's
   needs Wi-Fi quiet (down, or the WLAN line out of the wake set).
 - Every hash equal, no refusals, taint 0, no warning; CPUs restored.
 
+A read-only quiet-link census on the same boot (CPU awake, screen
+blanked, no SSH, 60 s) counted 2.9 handled `mt6797-wlan` interrupts per
+second and 3.1 received frames per second on wlan0 (1.4/s of them
+dropped), with nothing sent. Window A's 56 ms median period means 10-15
+SODI wakes per second, all flagged conn2ap and STA6 bit 19: several times
+the handled interrupt rate. Untested explanations: CONN2AP asserts
+without a WLAN interrupt the driver handles; the level-mode SYS_CIRQ
+record for SPI 283 persists or fires again after each exit; or CONSYS
+behaves differently while the AP is in SODI.
+
 For D5 this is the main finding: an idle joined link rarely lets a
 period run to its timer, so the WLAN wake rate bounds what SODI can
-save while Wi-Fi is up.
+save while Wi-Fi is up, until the extra wakes are explained.
 
 **D4 is complete.** SODI periods are ended by the PCM timer, a key (EINT,
 or SYS_CIRQ), and an inbound packet (SYS_CIRQ and CONN2AP), with memory
