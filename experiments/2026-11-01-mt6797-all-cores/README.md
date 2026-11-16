@@ -1615,6 +1615,66 @@ set, so the station boots A53-only and the init skips `battery-headroom`. The lo
 test (T11, the cap holding all-ten load from 3.70-3.80 V at rest) is proposed and not
 approved.
 
+**battery-headroom's margins from the battery runs (desk analysis, 2026-11-16).** The
+owner asked for this ahead of T11. The inputs are:
+- the two all-ten load logs on battery, T10 (`c364c1a2`) and T8's load (`2765f020`);
+- the module's caps in dmesg;
+- the energy model of image 131's DVFS tree: coefficients 78 (LL), 129 (L) and 396 (A72),
+  at the OPP voltages.
+
+The raw logs stay private.
+
+How the module counts:
+- A policy's current is its energy-model power with every CPU busy, times
+  (100 + `leak_pct`)/100, divided by `vmin_uv`.
+- It cuts the A72s first, then L, then LL, until the sum fits the battery's
+  headroom less `reserve_ua`.
+- A re-implementation of this, fed T10's headroom of 2.56 A, gives the logged caps
+  2158/2002/1547 MHz.
+
+What the logs show:
+- **Against the battery current,** the energy model is low. The measured battery
+  current, less a 200 mA base, is 2.6-3.6 times the model's power over 3.1 V (median
+  of each run), and up to 4.7 times. The model leaves out the CCI, DRAM, the
+  converters' loss and the leakage at 70-77 C, and the coefficients are estimates.
+- **End to end,** what counts is whether the terminal stays above 3.10 V when the cap
+  allows a load. Two things are conservative and partly cancel the low model: the
+  gauge's resistance (about 0.40 ohm against about 0.3 ohm seen in T10) and the 3.1 V
+  divisor.
+  - The factor that would have matched the voltage actually measured is about 1.1-1.6
+    at the median and 1.4-2.3 at the 90th percentile, with the 700 mA reserve.
+  - Today's 1.3 sits at the median, not at the tail.
+  - This rests on an assumed open-circuit voltage of about 4.15 V on both runs.
+- **The cost of a safe factor.** With `leak_pct` 130 (factor 2.3), the A72s are held at
+  338 MHz from full charge down, because the rule budgets for all ten CPUs busy at
+  once and cuts the A72s first.
+
+| Rest OCV | Headroom | Caps at 30 (A72/L/LL MHz) | Caps at 130 |
+| --- | --- | --- | --- |
+| 4.10 V | 2.56 A | 2158/2002/1547 | 338/2002/1547 |
+| 3.90 V | 2.05 A | 1131/2002/1547 | 338/1495/1547 |
+| 3.75 V | 1.67 A | 338/1885/1547 | 338/832/1547 |
+| 3.60 V | 1.28 A | 338/962/1547 | 338/325/1118 |
+| 3.50 V | 1.03 A | 338/325/1118 | 338/325/338 |
+
+The table assumes the gauge's resistance at 0.39 ohm.
+
+Choices, and what stays as built:
+- **`leak_pct`** stays 30 for T11. Both runs here started from full, so neither
+  measured the tail at low charge. T11 does, with its 3.0 V stop 0.3 V above the
+  cut-off. The value then comes from T11's log.
+- **`reserve_ua`** stays 700 mA. The base at rest was about 200 mA. The rest covers
+  the display and part of the GPU, which the module does not cap; the GPU's
+  energy-model top is about 760 mW.
+- **`vmin_uv`** stays 3.10 V, the vendor's throttling point.
+- **`fallback_ua`** stays 0. Since 0795 the first cap comes about 14 s after the
+  module's first read, and 0796 starts the gauge from the PMIC's start-up OCV.
+- **Not a tuning question:** a static all-busy budget that is safe at its tail leaves
+  the A72s little on battery. The vendor paired its budget with the PMIC's
+  low-battery interrupt (3.40/3.25/3.10 V), which reacts to real sag without polling.
+  With that as a backstop, the budget can sit at the median instead of the tail. That
+  is a design choice for the owner, after T11.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
