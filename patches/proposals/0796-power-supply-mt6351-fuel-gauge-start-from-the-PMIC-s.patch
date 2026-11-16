@@ -1,0 +1,92 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Julien Etienne <julien.etienne@gmail.com>
+Date: Mon, 16 Nov 2026 08:54:36 -0500
+Subject: [PATCH] power: supply: mt6351-fuel-gauge: start from the PMIC's
+ start-up OCV
+
+The counted capacity started from an OCV reading taken under the boot's
+load: the voltage at the moment of the read, corrected by the current
+averaged over a 5 s window, times the learned resistance. Boot load
+swings hard, and with an aged cell's 0.4 Ohm the correction was off by
+up to half a volt either way: on station-work-130 the capacity read 70 %
+and then 100 % within seconds, for a cell at about 91 %, crossing an
+80 % charge limit both ways.
+
+The PMIC samples the battery voltage itself at start-up, before the
+system loads it, into AUXADC_ADC21, which the vendor stack uses as its
+boot OCV. Take the first OCV reading from it when it is ready and
+between 3.0 and 4.45 V, keeping the loaded reading only as a fallback.
+Right after a charge, surface charge raises it a few points, which the
+next rest or charge corrects.
+---
+ drivers/power/supply/mt6351-fuel-gauge.c | 40 ++++++++++++++++++++++++
+ 1 file changed, 40 insertions(+)
+
+diff --git a/drivers/power/supply/mt6351-fuel-gauge.c b/drivers/power/supply/mt6351-fuel-gauge.c
+index f8dce52..867d68b 100644
+--- a/drivers/power/supply/mt6351-fuel-gauge.c
++++ b/drivers/power/supply/mt6351-fuel-gauge.c
+@@ -32,6 +32,12 @@
+ #define MT6351_FGADC_CON2		0x0ca8	/* FG_CAR[18:3] */
+ #define MT6351_FGADC_CON3		0x0caa	/* FG_CAR[2:0] */
+ #define MT6351_FGADC_CON11		0x0cba	/* FG_CURRENT_OUT */
++/* The battery voltage the PMIC samples at start-up, before the load: bit 15 ready. */
++#define MT6351_AUXADC_ADC21		0x0e2a
++#define MT6351_PWRON_RDY		BIT(15)
++#define MT6351_PWRON_CODE		GENMASK(14, 0)
++#define MT6351_PWRON_MIN_UV		3000000
++#define MT6351_PWRON_MAX_UV		4450000
+ /* The software read controls in CON0's upper byte; the lower byte is left. */
+ #define MT6351_FG_CTRL_MASK		GENMASK(15, 8)
+ #define MT6351_FG_SW_READ_PRE		BIT(9)
+@@ -984,6 +990,39 @@ static const enum power_supply_property mt6351_fg_props[] = {
+ 	POWER_SUPPLY_PROP_VOLTAGE_MIN_DESIGN,
+ };
+ 
++/*
++ * The first OCV reading, from the battery voltage the PMIC sampled at
++ * start-up, before the system loaded the battery: as the vendor stack does,
++ * rather than a voltage and a current taken under the boot's changing load.
++ * After a charge, surface charge raises it a few points, which the next rest
++ * or charge corrects. Called once at probe.
++ */
++static void mt6351_fg_pwron_anchor(struct mt6351_fg *fg)
++{
++	unsigned int val;
++	int uv, mc, pct;
++
++	if (regmap_read(fg->regmap, MT6351_AUXADC_ADC21, &val) ||
++	    !(val & MT6351_PWRON_RDY) || thermal_zone_get_temp(fg->tz, &mc))
++		return;
++
++	/* Three times the 1.8 V full scale of the 15-bit code. */
++	uv = div_u64((u64)FIELD_GET(MT6351_PWRON_CODE, val) * 3 * 1800000, 1 << 15);
++	if (uv < MT6351_PWRON_MIN_UV || uv > MT6351_PWRON_MAX_UV)
++		return;
++	pct = power_supply_batinfo_ocv2cap(fg->info, uv, mc / 1000);
++	if (pct < 0)
++		return;
++
++	guard(mutex)(&fg->lock);
++	fg->anchor_uah = div_s64(fg->full_uah * clamp(pct, 0, 100), 100);
++	fg->anchor_car = fg->car;
++	fg->anchor_time = ktime_get_boottime();
++	fg->anchor_trusted = false;
++	fg->anchored = true;
++	dev_info(fg->dev, "start-up OCV %d uV: %d %% of the OCV table\n", uv, pct);
++}
++
+ static const struct power_supply_desc mt6351_fg_desc = {
+ 	.name = "battery",
+ 	.type = POWER_SUPPLY_TYPE_BATTERY,
+@@ -1060,6 +1099,7 @@ static int mt6351_fg_probe(struct platform_device *pdev)
+ 
+ 	/* Open the first current window now, so the current is known 5 s on. */
+ 	mt6351_fg_read(fg, &ret, &ret);
++	mt6351_fg_pwron_anchor(fg);
+ 
+ 	/*
+ 	 * A charger attached while the system sleeps wakes it, so that the
+-- 
+2.54.0 (Apple Git-157)
+

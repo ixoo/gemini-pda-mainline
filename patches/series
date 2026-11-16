@@ -1368,3 +1368,4 @@ proposals/0792-soc-mediatek-mt6797-dvfsp-handoff-report-why-an-I2C6.patch
 proposals/0793-soc-mediatek-mt6797-dvfsp-handoff-do-not-hold-the-sh.patch
 proposals/0794-power-supply-mt6351-fuel-gauge-stop-the-headroom-eve.patch
 proposals/0795-power-supply-mt6351-fuel-gauge-announce-the-first-he.patch
+proposals/0796-power-supply-mt6351-fuel-gauge-start-from-the-PMIC-s.patch

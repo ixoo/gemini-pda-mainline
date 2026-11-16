@@ -1153,6 +1153,25 @@ against it.
   - 0794 had made the first valid value set the reference without raising an event. It now
     raises one; the band and 30 s rules apply from there.
   - Compiled at W=1 and checkpatch clean; not on a device.
+- **0795 on the device** (image 130, boot `c364c1a2…`): battery-headroom's first cap came at
+  18.0 s.
+- **The capacity swung 92 → 70 → 100 within about 18 s of boot,** on battery, crossing the 80 %
+  limit both ways.
+  - The cell rested at 4.10 V at −0.19 A, an OCV of about 4.18 V and 85 % of the table, so
+    about 91 % displayed.
+  - The first OCV reading pairs the voltage at the read with the 5 s window's average current.
+    Under boot load, at the learned 0.4 Ω, that is up to about 0.5 V off either way.
+  - Under T10's 120 s all-core load, Vbat sat at 3.52-3.60 V at up to 2.0 A, consistent with
+    about 0.39 Ω.
+- **The PMIC's start-up sample:** `AUXADC_ADC21` (`0x0E2A`), bits 14:0 at 3 × 1.8 V ÷ 32768 and
+  bit 15 ready, read by the vendor's `get_hw_ocv()`.
+  - On `c364c1a2…` it read `0xe565`, ready, 4.278 V, about 93 % of the table.
+  - That boot followed a charge minutes before, so the value includes surface charge.
+- **[0796](../../patches/proposals/0796-power-supply-mt6351-fuel-gauge-start-from-the-PMIC-s.patch)**
+  takes the first OCV reading from that sample at probe, when it is ready and within
+  3.0-4.45 V, and keeps the loaded reading only as a fallback.
+  - It logs `start-up OCV N uV: P % of the OCV table`.
+  - Compiled at W=1 and checkpatch clean; not on a device.
 
 ### T2: the image with 0710-0711 (next built-in batch)
 
