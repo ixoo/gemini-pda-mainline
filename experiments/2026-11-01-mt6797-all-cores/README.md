@@ -1496,6 +1496,46 @@ Reading:
 
 Next: T8 (suspend with the A72s online), then T9.
 
+**T8 result (observed, owner-approved, image 128, boot `2765f020`; passed).**
+
+Setup:
+- on battery, at 99 %, with the battery at 22.9 C;
+- the seven modules as in T7 attempt 3, `battery-headroom` included;
+- schedutil, the power allocator at the init's gains, and the A72 weight at 1024;
+- each cycle was an RTC alarm 20 s ahead, then `systemctl suspend` (s2idle) through the
+  sleep hook.
+
+On battery `battery-headroom` capped policy8 at 1131 MHz or below, so the move after
+each resume went to the cap at that moment (1131 MHz), not to 1378 MHz.
+
+Before the cycles and after each of the two resumes, the readings were the same:
+- `online` read 0-9, with three policies;
+- the clock driver read policy8's rate (845 MHz), not faulted;
+- the CPU8 and CPU9 hashes matched CPU0;
+- VPROC2 880 mV and VSRAM_B 1.0 V, unchanged.
+
+Each cycle resumed in about 18 s of wall time. `suspend_stats` rose from 1 to 3
+successes with no failure.
+
+After each resume, policy8 moved to 1131 MHz: the clock driver read 1131 MHz, CPU8
+measured 1131 MHz, and VPROC2 moved to 930 mV. So the A72 rail write over I2C6
+works after resume. It came back down to 845 MHz and 880 mV when released.
+
+A 120 s load on all ten afterwards (`t7.sh` `ee42d0db`) ended `passed`:
+- the SoC at most 73.5 C;
+- the battery at least 3.584 V and at most 1.43 A;
+- the A72s at 338 MHz in 44 of 45 samples.
+
+No fault, resume error or warning appeared in either cycle, and the taint stayed 0.
+
+Reading: s2idle keeps the A72s online with their policy, rate and rails, and the
+firmware leaves the B PLL and VPROC2 alone across it. The A72s still scale and carry
+load afterwards. This is two cycles on one boot.
+
+**Before T9.** The station init does not load `battery-headroom`, and loading the A72s
+by default needs it. Its cpufreq block now loads it, naming the charger, when policy8
+exists, and the station image packs it.
+
 **T4b: A72 voltage.** Profile `mt6797-a53-station-dvfs`, DVFS tree, after the
 cpufreq session's own A53 voltage test passes on that profile. Same loading
 order: the A72 module, then the cpufreq session's modules, as in the init.
@@ -1558,8 +1598,8 @@ they stay opt-in through `/mnt/data/a72-at-boot`.
 
 **T9: loading at init.** Create `/mnt/data/a72-at-boot` and
 `/mnt/data/cpufreq-at-boot`, power off, and the owner selects boot2. Read the
-init status lines for the order, `online 0-9` and the three policies. Then a
-second boot to show it repeats.
+init status lines for the order, `online 0-9`, the three policies and
+`battery-headroom` in the cpufreq line. Then a second boot to show it repeats.
 
 ## Observations
 

@@ -168,6 +168,17 @@ fi
                     $bb echo "${gain#*=}" >"$zone/${gain%%=*}" 2>/dev/null
                 done
             done
+            # With the A72s up, cap the CPUs to the battery's headroom: all ten loaded
+            # on a low cell reached the PMIC's 2.70 V cut-off
+            # (experiments/2026-11-01-mt6797-all-cores, T4b).
+            ko=/lib/modules/$($bb uname -r)/battery-headroom.ko
+            if [ -e /sys/devices/system/cpu/cpufreq/policy8 ] && [ -e "$ko" ]; then
+                if $bb insmod "$ko" charger=bq25890-charger-0; then
+                    result="$result,battery-headroom"
+                else
+                    result="$result,battery-headroom-failed"
+                fi
+            fi
         fi
         status "cpufreq=$result"
         $bb rm -f "$marker"

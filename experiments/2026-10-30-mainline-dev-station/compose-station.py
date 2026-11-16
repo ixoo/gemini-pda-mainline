@@ -29,7 +29,7 @@ DTB = os.environ.get('STATION_DTB', 'mt6797-gemini-pda-station-a72.dtb')
 # Loaded only by the init's off-by-default cpufreq gate or by hand, so packed when the
 # package has them (the mt6797-a53-station-dvfs profile) and skipped otherwise.
 GATED = ['da9213-legacy-regulator', 'mt6797-vsram-regulator', 'clk-mt6797-mcusys', 'cpufreq-dt',
-         'mtk-cci-devfreq', 'mt6797-spm-sleep']
+         'mtk-cci-devfreq', 'mt6797-spm-sleep', 'battery-headroom']
 # The video decoder and its helpers, station only (owner, 2026-11-12: "go ahead with
 # decoder loaded at boot"); gemini-base loads them on the Arch card root. The diagnostic
 # mt6797-vdec-probe and -replay match the same node and are deliberately not packed.
