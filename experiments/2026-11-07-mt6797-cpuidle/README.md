@@ -2313,6 +2313,66 @@ so it changes nothing in the current plan or its blocking list. If
 screen-on SODI is ever pursued, mainline `mediatek-drm` would need the same
 SRAM borrowing, and the display session would own it.
 
+### State table (2026-11-16)
+
+Where each way of saving CPU and SoC power stands on this unit:
+
+| State | Mechanism | Status | Measured | Blocked by |
+| --- | --- | --- | --- | --- |
+| WFI with A53 retention | Hardware, every idle A53 (firmware enables SPARK on `CPU_ON`) | Works | — | — |
+| Per-core power-down in idle | Would need an MT6797 MCDI program | Not possible | — | No such program; firmware waits in EL3 |
+| Hotplug on a dark screen | `backlight-policy` (station), CPU1-9 | Works (station; the card root has no such policy) | about 15 mA for CPU1-7 (R1b) | — |
+| s2idle | Kernel | Works | 73 mA | — |
+| `mem` suspend (Route A, S1) | `mt6797-spm-sleep` + vendor `pcm_suspend.bin`, CPU kept powered | Works on the station; lid close, charger wake (0688/0689) | 42 mA | Soak K1; loading at boot |
+| Unused infra gates | `mt6797-gate-unused` (0768, 0770, 0789) | Works, 26 gates (+ ICUSB with 0789) | about 3 mA | — |
+| SODI (dark screen, awake) | Vendor `pcm_sodi.bin`, CPU kept powered, from CPU0's idle | Planned (D3-D5) | — | SSUSB_REF, BUS, SYS held by MTU3 (usb-c designing runtime off) |
+| Deep idle | Vendor `pcm_deepidle.bin` | Deferred | — | SODI first; then DISP_PWM (0788) and the display domain |
+| Lazy RCU | Config | Folded into the station fragments | tick restarts −7 % | — |
+| HZ 100 | Config | T2 pending | — | — |
+
+### D3: one SODI period on demand (design, 2026-11-16)
+
+The first SODI test needs no cpuidle driver. A debugfs file in
+`mt6797-spm-sleep` runs one SODI period on CPU0 with interrupts off, ended by
+the PCM timer, while the system is otherwise awake: CPU1-9 offline, display
+blanked, radios unloaded, the USB gadget unbound with the cable out (the one
+remaining blocker removed by hand, as for S1), `mt6797-gate-unused` loaded.
+It reuses S1's loader, PCM reset, kick, wake read-back and restore, and
+0688's GIC mask. Values derived from the vendor's MT6797 `sodi_ctrl`
+(`mt_spm_sodi.c`) through the MT6797 `__spm_set_power_control`
+(`mt_spm_internal.c`); the same derivation reproduces S1's suspend values
+exactly (`SPM_SRC_MASK` `0x10aa007e`), which checks it.
+
+| Item | S1 (suspend) | D3 (SODI) |
+| --- | --- | --- |
+| Program | `pcm_suspend.bin` | `pcm_sodi.bin`, 1,583 words, SHA-256 `dda8cca1…122ae4` |
+| `SPM_AP_STANDBY_CON` | `0x04080011` \| bit 23 as read | the same: WFI AND, MD1 and CONN requests honoured, SCP masked (no SCP firmware), MP3 idle masked |
+| `SPM_SRC_REQ` | `0x00000040` | `0x00000000` (no DVFS force-down) |
+| `SPM_SRC_MASK` | `0x10aa007e` | `0x10aa007e` |
+| `SPM_SRC2_MASK` | `0x00f1001f` | `0x08ff009f`: display, display OD, MFG, GCE and CONN DDR requests honoured |
+| `WFI_EN` | MP0, MP1, MP2 | MP0 and MP1 only (the vendor leaves MP2 at 0) |
+| Wake mask | `0xffffffbe` (timer, EINT) | the same for D3; the vendor's full SODI set (`0x0f57c5f5`) comes with D4 and SYS_CIRQ |
+| Flags | `0x000d02b1` | the same with bit 12 clear (PDN mode): CPU kept powered, no VPROC/VSRAM DVS, VCORE DFS off, SYSRAM sleep off (the vendor's only SODI flag), segment bit, thermal check skipped |
+| PMIC wrapper | suspend phase | deep-idle phase (§6 of the SPM sleep page): slot 7 and 8 `TOP_CON` with `SRCLKEN_IN2` normal and sleep, from the live `TOP_CON` |
+| PMIC power-good force | P2 | the same (`__spm_pmic_pg_force_on`) |
+| PCM timer | 10-300 s | 1 s, then 10 s |
+
+**Open before implementing,** each needing a read or the decode:
+
+1. `SPM_SW_RSV_5`: the SODI program loads its VCORE state from bits 24:23.
+   C0 read `0xFFFFFFFF` there on mainline (no resident VCORE-DVFS program
+   writes it). What the program does with state 3 is not traced; the PCM
+   decode session can answer it.
+2. The vendor sets SMI common's async DCM (`MMU_SMI_ASYNC_CFG`, M4U `0xb80`,
+   bits 15:14) around SODI. The M4U block has no mainline owner and may be
+   clock-gated, so D3 leaves it out; whether SODI needs it with the display
+   off is open.
+3. `__spm_bsi_top_init_setting` (only with modem, C2K and CONN off): its
+   writes are not yet listed.
+
+After D3: D4 adds SYS_CIRQ and the vendor's full wake set, and wakes from a
+key, an audio period and a Wi-Fi packet; D5 is the CPU0-only cpuidle driver.
+
 ### What it should save
 
 | State | Today | Expected |
